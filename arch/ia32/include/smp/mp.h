@@ -34,6 +34,9 @@
 #include <synch/waitq.h>
 #include <config.h>
 
+#define CT_EXT_ENTRY_TYPE		0
+#define CT_EXT_ENTRY_LEN		1
+
 struct __mpfs {
 	__u32 signature;
 	struct __mpct *configuration_table;

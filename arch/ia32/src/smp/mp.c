@@ -413,11 +413,16 @@ void ct_l_intr_entry(struct __l_intr_entry *lintr)
 
 void ct_extended_entries(void)
 {
-	/*
-	 * Not yet implemented.
-	 */
-	if (ct->ext_table_length)
-		panic("ct_extended_entries: not supported\n");
+	__u8 *ext = (__u8 *) ct + ct->base_table_length;
+	__u8 *cur;
+
+	for (cur = ext; cur < ext + ct->ext_table_length; cur += cur[CT_EXT_ENTRY_LEN]) {
+		switch (cur[CT_EXT_ENTRY_TYPE]) {
+			default:
+				printf("%X: skipping MP Configuration Table extended entry type %d\n", cur, cur[CT_EXT_ENTRY_TYPE]);
+				break;
+		}
+	}
 }
 
 /*
