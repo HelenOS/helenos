@@ -121,7 +121,7 @@ int mp_ct_check(void)
 	for (i=0,sum=0; i < ct->ext_table_length; i++)
 		sum += ext[i];
 		
-	return !sum;
+	return sum == ct->ext_table_checksum;
 }
 
 void mp_init(void)
