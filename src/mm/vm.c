@@ -170,7 +170,7 @@ void vm_uninstall(vm_t *m)
 	
 	pri = cpu_priority_high();
 
-	tlb_shutdown_start();
+	tlb_shootdown_start();
 
 	spinlock_lock(&m->lock);
 
@@ -180,7 +180,7 @@ void vm_uninstall(vm_t *m)
 	spinlock_unlock(&m->lock);
 
 	tlb_invalidate(0);
-	tlb_shutdown_finalize();
+	tlb_shootdown_finalize();
 
 	cpu_priority_restore(pri);
 }

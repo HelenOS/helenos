@@ -34,34 +34,34 @@
 
 #ifdef __SMP__
 static spinlock_t tlblock;
-static volatile int tlb_shutdown_cnt;
+static volatile int tlb_shootdown_cnt;
 
 void tlb_init(void)
 {
 	spinlock_initialize(&tlblock);
-	tlb_shutdown_cnt = 0;
+	tlb_shootdown_cnt = 0;
 }
 
 /* must be called with interrupts disabled */
-void tlb_shutdown_start(void)
+void tlb_shootdown_start(void)
 {
 	spinlock_lock(&tlblock);
-	tlb_shutdown_ipi_send();
+	tlb_shootdown_ipi_send();
 	
-	while (tlb_shutdown_cnt < config.cpu_active - 1)
+	while (tlb_shootdown_cnt < config.cpu_active - 1)
 		;
 		
-	tlb_shutdown_cnt = 0;
+	tlb_shootdown_cnt = 0;
 }
 
-void tlb_shutdown_finalize(void)
+void tlb_shootdown_finalize(void)
 {
 	spinlock_unlock(&tlblock);
 }
 
-void tlb_shutdown_ipi_recv(void)
+void tlb_shootdown_ipi_recv(void)
 {
-	atomic_inc((int *) &tlb_shutdown_cnt);
+	atomic_inc((int *) &tlb_shootdown_cnt);
 	spinlock_lock(&tlblock);
 	spinlock_unlock(&tlblock);
 	tlb_invalidate(0);	/* TODO: use valid ASID */

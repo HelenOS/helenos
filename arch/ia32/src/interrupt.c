@@ -94,10 +94,10 @@ void syscall(__u8 n, __u32 stack[])
 	thread_sleep(1);
 }
 
-void tlb_shutdown_ipi(__u8 n, __u32 stack[])
+void tlb_shootdown_ipi(__u8 n, __u32 stack[])
 {
 	trap_virtual_eoi();
-	tlb_shutdown_ipi_recv();
+	tlb_shootdown_ipi_recv();
 }
 
 void trap_virtual_enable_irqs(__u16 irqmask)

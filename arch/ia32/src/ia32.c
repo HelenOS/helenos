@@ -58,7 +58,7 @@ void arch_init(void)
 		trap_register(VECTOR_SYSCALL, syscall);
 		
 		#ifdef __SMP__
-		trap_register(VECTOR_TLB_SHUTDOWN, tlb_shutdown_ipi);
+		trap_register(VECTOR_TLB_SHOOTDOWN, tlb_shootdown_ipi);
 		#endif /* __SMP__ */
 	}
 }

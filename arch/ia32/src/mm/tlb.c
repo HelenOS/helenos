@@ -40,8 +40,8 @@ void tlb_invalidate(int asid)
 }
 
 #ifdef __SMP__
-void tlb_shutdown_ipi_send(void)
+void tlb_shootdown_ipi_send(void)
 {
-	(void) l_apic_broadcast_custom_ipi(VECTOR_TLB_SHUTDOWN);
+	(void) l_apic_broadcast_custom_ipi(VECTOR_TLB_SHOOTDOWN);
 }
 #endif /* __SMP__ */

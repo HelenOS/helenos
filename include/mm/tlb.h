@@ -31,20 +31,20 @@
 
 #ifdef __SMP__
 extern void tlb_init(void);
-extern void tlb_shutdown_start(void);
-extern void tlb_shutdown_finalize(void);
-extern void tlb_shutdown_ipi_recv(void);
+extern void tlb_shootdown_start(void);
+extern void tlb_shootdown_finalize(void);
+extern void tlb_shootdown_ipi_recv(void);
 #else
 
 #define tlb_init()		;
-#define tlb_shutdown_start()	;
-#define tlb_shutdown_finalize()	;
-#define tlb_shutdown_ipi_recv() ;
+#define tlb_shootdown_start()	;
+#define tlb_shootdown_finalize()	;
+#define tlb_shootdown_ipi_recv() ;
 
 #endif /* __SMP__ */
 
 /* Export TLB interface that each architecture must implement. */
 extern void tlb_invalidate(int asid);
-extern void tlb_shutdown_ipi_send(void);
+extern void tlb_shootdown_ipi_send(void);
 
 #endif
