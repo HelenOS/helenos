@@ -33,6 +33,7 @@
 #include <func.h>
 #include <cpu.h>
 #include <arch/asm.h>
+#include <mm/tlb.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -91,6 +92,12 @@ void syscall(__u8 n, __u32 stack[])
 {
 	printf("syscall... ");
 	thread_sleep(1);
+}
+
+void tlb_shutdown_ipi(__u8 n, __u32 stack[])
+{
+	trap_virtual_eoi();
+	tlb_shutdown_ipi_recv();
 }
 
 void trap_virtual_enable_irqs(__u16 irqmask)

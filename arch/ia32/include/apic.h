@@ -39,6 +39,7 @@
 #define IPI_INIT 	0
 #define IPI_STARTUP	0
 
+#define DLVRMODE_FIXED	(0<<8)
 #define DLVRMODE_INIT	(5<<8)
 #define DLVRMODE_STUP	(6<<8)
 #define DESTMODE_PHYS	(0<<11)
@@ -56,7 +57,7 @@
 /* Interrupt Command Register */
 #define ICRlo		(0x300/sizeof(__u32))
 #define ICRhi		(0x310/sizeof(__u32))
-#define ICRloClear	((0xff<<0)|(1<<13)|(3<<16)|(0xfff<<20))
+#define ICRloClear	((1<<13)|(3<<16)|(0xfff<<20))
 #define ICRhiClear	(0xffffff<<0)
 
 /* End Of Interrupt */
@@ -115,6 +116,7 @@ extern void apic_spurious(__u8 n, __u32 stack[]);
 
 extern void l_apic_init(void);
 extern void l_apic_eoi(void);
+extern int l_apic_broadcast_custom_ipi(__u8 vector);
 extern int l_apic_send_init_ipi(__u8 apicid);
 extern void l_apic_debug(void);
 extern void l_apic_timer_interrupt(__u8 n, __u32 stack[]);

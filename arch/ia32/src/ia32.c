@@ -56,6 +56,10 @@ void arch_init(void)
 		i8254_init();	/* hard clock */
 		
 		trap_register(VECTOR_SYSCALL, syscall);
+		
+		#ifdef __SMP__
+		trap_register(VECTOR_TLB_SHUTDOWN, tlb_shutdown_ipi);
+		#endif /* __SMP__ */
 	}
 }
 

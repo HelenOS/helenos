@@ -134,6 +134,4 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 	pt[pte].page_cache_disable = !(flags & PAGE_CACHEABLE);
 	pt[pte].uaccessible = (flags & PAGE_USER) != 0;
 	pt[pte].writeable = (flags & PAGE_WRITE) != 0;	
-	
-	tlb_invalidate(0);
 }

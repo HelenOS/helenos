@@ -27,8 +27,43 @@
  */
 
 #include <mm/tlb.h>
+#include <synch/spinlock.h>
+#include <typedefs.h>
+#include <arch/atomic.h>
+#include <config.h>
 
-void tlb_shutdown(void)
+#ifdef __SMP__
+static spinlock_t tlblock;
+static volatile int tlb_shutdown_cnt;
+
+void tlb_init(void)
 {
-	/* TODO: implement tlb_shutdown */
+	spinlock_initialize(&tlblock);
+	tlb_shutdown_cnt = 0;
 }
+
+/* must be called with interrupts disabled */
+void tlb_shutdown_start(void)
+{
+	spinlock_lock(&tlblock);
+	tlb_shutdown_ipi_send();
+	
+	while (tlb_shutdown_cnt < config.cpu_active - 1)
+		;
+		
+	tlb_shutdown_cnt = 0;
+}
+
+void tlb_shutdown_finalize(void)
+{
+	spinlock_unlock(&tlblock);
+}
+
+void tlb_shutdown_ipi_recv(void)
+{
+	atomic_inc((int *) &tlb_shutdown_cnt);
+	spinlock_lock(&tlblock);
+	spinlock_unlock(&tlblock);
+	tlb_invalidate(0);	/* TODO: use valid ASID */
+}
+#endif /* __SMP__ */

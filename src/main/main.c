@@ -46,6 +46,7 @@
 
 #include <mm/frame.h>
 #include <mm/page.h>
+#include <mm/tlb.h>
 #include <synch/waitq.h>
 
 #include <arch.h>
@@ -110,6 +111,7 @@ void main_bsp_separated_stack(void) {
 	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE);
 	frame_init();
 	page_init();
+	tlb_init();
 
 	#ifdef __SMP__
 	mp_init();	/* Multiprocessor */

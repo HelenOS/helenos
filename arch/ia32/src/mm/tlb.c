@@ -29,7 +29,19 @@
 #include <mm/tlb.h>
 #include <arch/asm.h>
 
+#ifdef __SMP__
+#include <arch/apic.h>
+#include <arch/interrupt.h>
+#endif /* __SMP__ */
+
 void tlb_invalidate(int asid)
 {
 	cpu_write_dba(cpu_read_dba());
 }
+
+#ifdef __SMP__
+void tlb_shutdown_ipi_send(void)
+{
+	(void) l_apic_broadcast_custom_ipi(VECTOR_TLB_SHUTDOWN);
+}
+#endif /* __SMP__ */

@@ -29,6 +29,7 @@
 #include <mm/vm.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/tlb.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -142,7 +143,7 @@ void vm_area_unmap(vm_area_t *a)
 
 	for (i=0; i<a->size; i++)		
 		map_page_to_frame(a->address + i*PAGE_SIZE, 0, PAGE_NOT_PRESENT, 0);
-		
+	
 	spinlock_unlock(&a->lock);
 	cpu_priority_restore(pri);
 }
@@ -168,11 +169,18 @@ void vm_uninstall(vm_t *m)
 	pri_t pri;
 	
 	pri = cpu_priority_high();
+
+	tlb_shutdown_start();
+
 	spinlock_lock(&m->lock);
 
 	for(l = m->vm_area_head.next; l != &m->vm_area_head; l = l->next)
 		vm_area_unmap(list_get_instance(l, vm_area_t, link));
 
 	spinlock_unlock(&m->lock);
+
+	tlb_invalidate(0);
+	tlb_shutdown_finalize();
+
 	cpu_priority_restore(pri);
 }

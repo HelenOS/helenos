@@ -142,6 +142,29 @@ int apic_poll_errors(void)
 }
 
 /*
+ * Send all CPUs excluding the->cpu IPI vector.
+ */
+int l_apic_broadcast_custom_ipi(__u8 vector)
+{
+	__u32 lo;
+
+	/*
+	 * Read the ICR register in and zero all non-reserved fields.
+	 */
+	lo = l_apic[ICRlo] & ICRloClear;
+
+	lo |= DLVRMODE_FIXED | DESTMODE_LOGIC | LEVEL_ASSERT | SHORTHAND_EXCL | TRGRMODE_LEVEL | vector;
+	
+	l_apic[ICRlo] = lo;
+
+	lo = l_apic[ICRlo] & ICRloClear;
+	if (lo & SEND_PENDING)
+		printf("IPI is pending.\n");
+
+	return apic_poll_errors();
+}
+
+/*
  * Universal Start-up Algorithm for bringing up the AP processors.
  */
 int l_apic_send_init_ipi(__u8 apicid)

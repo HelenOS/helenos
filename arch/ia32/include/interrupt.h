@@ -59,6 +59,7 @@
 #define VECTOR_KBD		(IVT_IRQBASE+IRQ_KBD)
 
 #define VECTOR_SYSCALL		(IVT_FREEBASE+0)
+#define VECTOR_TLB_SHUTDOWN	(IVT_FREEBASE+1)
 
 typedef void (* iroutine)(__u8 n, __u32 stack[]);
 
@@ -76,6 +77,7 @@ extern void null_interrupt(__u8 n, __u32 stack[]);
 extern void gp_fault(__u8 n, __u32 stack[]);
 extern void page_fault(__u8 n, __u32 stack[]);
 extern void syscall(__u8 n, __u32 stack[]);
+extern void tlb_shutdown_ipi(__u8 n, __u32 stack[]);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);
