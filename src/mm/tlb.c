@@ -27,9 +27,11 @@
  */
 
 #include <mm/tlb.h>
+#include <smp/ipi.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
 #include <arch/atomic.h>
+#include <arch/interrupt.h>
 #include <config.h>
 
 #ifdef __SMP__
@@ -57,6 +59,11 @@ void tlb_shootdown_start(void)
 void tlb_shootdown_finalize(void)
 {
 	spinlock_unlock(&tlblock);
+}
+
+void tlb_shootdown_ipi_send(void)
+{
+	ipi_broadcast(VECTOR_TLB_SHOOTDOWN_IPI);
 }
 
 void tlb_shootdown_ipi_recv(void)

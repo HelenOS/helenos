@@ -58,8 +58,9 @@
 #define VECTOR_CLK		(IVT_IRQBASE+IRQ_CLK)
 #define VECTOR_KBD		(IVT_IRQBASE+IRQ_KBD)
 
-#define VECTOR_SYSCALL		(IVT_FREEBASE+0)
-#define VECTOR_TLB_SHOOTDOWN	(IVT_FREEBASE+1)
+#define VECTOR_SYSCALL			(IVT_FREEBASE+0)
+#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
+#define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+2)
 
 typedef void (* iroutine)(__u8 n, __u32 stack[]);
 
@@ -78,6 +79,7 @@ extern void gp_fault(__u8 n, __u32 stack[]);
 extern void page_fault(__u8 n, __u32 stack[]);
 extern void syscall(__u8 n, __u32 stack[]);
 extern void tlb_shootdown_ipi(__u8 n, __u32 stack[]);
+extern void wakeup_ipi(__u8 n, __u32 stack[]);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);

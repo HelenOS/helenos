@@ -26,6 +26,7 @@ arch_sources= \
 	arch/smp/apic.c \
 	arch/smp/mp.c \
 	arch/smp/atomic.S \
+	arch/smp/ipi.c \
 	arch/ia32.c \
 	arch/interrupt.c \
 	arch/pm.c \

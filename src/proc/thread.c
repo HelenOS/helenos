@@ -45,6 +45,12 @@
 #include <typedefs.h>
 #include <time/clock.h>
 #include <list.h>
+#include <config.h>
+
+#ifdef __SMP__
+#include <arch/interrupt.h>
+#include <arch/apic.h>
+#endif /* __SMP__ */
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"};
 
@@ -88,7 +94,7 @@ void thread_ready(thread_t *t)
 	cpu_t *cpu;
 	runq_t *r;
 	pri_t pri;
-	int i;
+	int i, avg, send_ipi = 0;
 
 	pri = cpu_priority_high();
 
@@ -112,11 +118,18 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&r->lock);
 
 	spinlock_lock(&nrdylock);
-	nrdy++;
+	avg = ++nrdy / config.cpu_active;
 	spinlock_unlock(&nrdylock);
 
 	spinlock_lock(&cpu->lock);
-	cpu->nrdy++;
+	if ((++cpu->nrdy) > avg && (config.cpu_active == config.cpu_count)) {
+		/*
+		 * If there are idle halted CPU's, this will wake them up.
+		 */
+		#ifdef __SMP__
+		l_apic_broadcast_custom_ipi(VECTOR_WAKEUP_IPI);
+		#endif /* __SMP__  */
+	}	
 	spinlock_unlock(&cpu->lock);
     
 	cpu_priority_restore(pri);

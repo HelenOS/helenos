@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mm/tlb.h>
-#include <arch/asm.h>
+#ifdef __SMP__
 
-void tlb_invalidate(int asid)
+#include <smp/ipi.h>
+#include <arch/apic.h>
+
+void ipi_broadcast(int ipi)
 {
-	cpu_write_dba(cpu_read_dba());
+	(void) l_apic_broadcast_custom_ipi((__u8) ipi);
 }
+
+#endif /* __SMP__ */
