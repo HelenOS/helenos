@@ -31,7 +31,7 @@
 #include <smp/ipi.h>
 #include <arch/apic.h>
 
-void ipi_broadcast(int ipi)
+void ipi_broadcast_arch(int ipi)
 {
 	(void) l_apic_broadcast_custom_ipi((__u8) ipi);
 }

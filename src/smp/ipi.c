@@ -26,14 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __IPI_H__
-#define __IPI_H__
-
 #ifdef __SMP__
-extern void ipi_broadcast(int ipi);
-extern void ipi_broadcast_arch(int ipi);
-#else
-#define ipi_broadcast(x)	;
-#endif /* __SMP__ */
 
-#endif
+#include <smp/ipi.h>
+#include <config.h>
+
+void ipi_broadcast(int ipi)
+{
+	/*
+	 * Provisions must be made to avoid sending IPI:
+	 * - before all CPU's were configured to accept the IPI
+	 * - if there is only one CPU but the kernel was compiled with __SMP__
+	 */
+
+	if ((config.cpu_active > 1) && (config.cpu_active == config.cpu_count))
+		ipi_broadcast_arch(ipi);
+}
+
+#endif /* __SMP__ */

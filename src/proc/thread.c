@@ -46,11 +46,8 @@
 #include <time/clock.h>
 #include <list.h>
 #include <config.h>
-
-#ifdef __SMP__
 #include <arch/interrupt.h>
-#include <arch/apic.h>
-#endif /* __SMP__ */
+#include <smp/ipi.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"};
 
@@ -122,13 +119,11 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&nrdylock);
 
 	spinlock_lock(&cpu->lock);
-	if ((++cpu->nrdy) > avg && (config.cpu_active == config.cpu_count)) {
+	if ((++cpu->nrdy) > avg) {
 		/*
 		 * If there are idle halted CPU's, this will wake them up.
 		 */
-		#ifdef __SMP__
 		ipi_broadcast(VECTOR_WAKEUP_IPI);
-		#endif /* __SMP__  */
 	}	
 	spinlock_unlock(&cpu->lock);
     

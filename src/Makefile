@@ -24,7 +24,8 @@ sources=cpu/cpu.c \
 	synch/rwlock.c \
 	synch/mutex.c \
 	synch/semaphore.c \
-	synch/waitq.c
+	synch/waitq.c \
+	smp/ipi.c
 
 ifdef DEBUG_SPINLOCK
 CFLAGS+=-D$(DEBUG_SPINLOCK)
