@@ -1,0 +1,36 @@
+ia32 port
+=========
+
+    HARDWARE REQUIREMENTS
+    o IA-32 processor (Pentium and successors)
+
+    COMPILER REQUIREMENTS
+    o binutils 2.15
+    o gcc 2.95
+    o gcc 3.3.2 - gcc 3.3.5
+
+    SMP COMPATIBILITY
+    o Bochs 2.0.2 - Bochs 2.1
+	o 2x-8x 686 CPU
+    o ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41
+	o 2x 200Mhz Pentium CPU
+    
+    EMULATORS AND VIRTUALIZERS
+    o Bochs 2.0.2 - Bochs 2.1
+    o VMware Workstation 4
+
+
+mips port
+=========
+
+    HARDWARE REQUIREMENTS
+    o no real hardware supported
+    o msim emulated MIPS R4000 CPU (see mips) 
+
+    COMPILER REQUIREMENTS
+    o binutils 2.14 mips cross binutils
+    o gcc 2.8.1 mips cross compiler
+    o gcc 3.2.3 mips cross compiler
+
+    EMULATORS AND VIRTUALIZERS
+    o msim

@@ -1,0 +1,37 @@
+SPARTAN kernel currently supports emulated MIPS R4000 32-bit
+little-endian architecture. In other words, it can only run in MIPS
+R4000 emulator called msim. This emulator is being developed by Viliam
+Holub:
+
+http://nenya.ms.mff.cuni.cz/~holub/msim
+
+Note that msim diverges from real MIPS hardware in some aspects.
+Therefore, some non-trivial changes will be necessary for a real
+hardware port. The simulator is described in this manual:
+
+http://nenya.ms.mff.cuni.cz/~holub/msim/msim.ps
+
+You'll need a msim.conf script like this:
+
+	#
+	# MSIM configuration script
+	#
+
+	add dcpu mips1
+
+	add rwm 	mainmem		0               16M	load "kernel.bin"
+	add rom 	startmem        0x1fc00000	1k      load "load.bin"
+
+	add dprinter    printer         0xA000000
+
+
+
+BOOTSTRAP
+=========
+Because the mips port uses binary executable format and for some other
+architectural reasons, it shares one address for bootstrap entry
+(address where control is passed from loader) and for TLB refill
+exception entry. The former is used only once during system bootstrap.
+From that point further, only TLB refill exception entry uses that
+address. Note that this is the reason why main_bsp() is called from
+tlb_refill() code.

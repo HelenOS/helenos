@@ -1,0 +1,29 @@
+
+                                 SPINNING LOCKS
+                spinlock_lock, spinlock_trylock, spinlock_unlock
+                                 +------------+
+                                 | spinlock_t |
+                                 +------------+
+
+                                   WAIT QUEUES
+                         waitq_sleep_timeout, waitq_wakeup
+                                   +---------+
+                                   | waitq_t |
+			           +---------+
+				  /           \
+               SEMAPHORES        /             \  CONDITION VARIABLES
+ semaphore_down_timeout, semaphore_up    condvar_wait_timeout, condvar_signal
+            +--------------+   /                 \   +-----------+
+            | semaphore_t  |<-+                   +->| condvar_t |
+            +--------------+                         +-----------+
+                   |                                       ^
+		   |                                       |
+                   |                                +------+
+                   V                               /           
+                MUTEXES                           / READERS/WRITERS LOCKS
+    mutex_lock_timeout, mutex_unlock   rwlock_reader/writer_lock_timeout, rwlock_unlock
+              +---------+                       /        +----------+
+	      | mutex_t |------------------------------->| rwlock_t |
+	      +---------+                     /          +----------+
+	           |                         /
+		   +------------------------+
