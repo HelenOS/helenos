@@ -127,7 +127,7 @@ void thread_ready(thread_t *t)
 		 * If there are idle halted CPU's, this will wake them up.
 		 */
 		#ifdef __SMP__
-		l_apic_broadcast_custom_ipi(VECTOR_WAKEUP_IPI);
+		ipi_broadcast(VECTOR_WAKEUP_IPI);
 		#endif /* __SMP__  */
 	}	
 	spinlock_unlock(&cpu->lock);
