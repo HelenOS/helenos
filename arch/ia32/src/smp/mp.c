@@ -28,13 +28,13 @@
 
 #ifdef __SMP__
 
-#include <arch/mp.h>
-#include <arch/ap.h>
 #include <arch/pm.h>
 #include <config.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/apic.h>
+#include <arch/smp/mp.h>
+#include <arch/smp/ap.h>
+#include <arch/smp/apic.h>
 #include <func.h>
 #include <arch/types.h>
 #include <typedefs.h>

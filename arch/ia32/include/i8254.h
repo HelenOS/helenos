@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __i8254_H__
-#define __i8254_H__
+#ifndef __I8254_H__
+#define __I8254_H__
 
 #include <arch/types.h>
 

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __i386_CPU_H__
-#define __i386_CPU_H__
+#ifndef __ia32_CPU_H__
+#define __ia32_CPU_H__
 
 #include <typedefs.h>
 #include <arch/pm.h>

@@ -1,5 +1,5 @@
 /*
- *  i386 linker script
+ *  ia32 linker script
  *  
  *  kernel text
  *  kernel data

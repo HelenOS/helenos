@@ -30,7 +30,7 @@
 #include <smp/ipi.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
-#include <arch/atomic.h>
+#include <arch/smp/atomic.h>
 #include <arch/interrupt.h>
 #include <config.h>
 

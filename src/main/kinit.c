@@ -42,7 +42,7 @@
 #include <mm/vm.h>
 
 #ifdef __SMP__
-#include <arch/mp.h>
+#include <arch/smp/mp.h>
 #endif /* __SMP__ */
 
 #include <synch/waitq.h>

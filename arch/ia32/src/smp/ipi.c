@@ -29,7 +29,7 @@
 #ifdef __SMP__
 
 #include <smp/ipi.h>
-#include <arch/apic.h>
+#include <arch/smp/apic.h>
 
 void ipi_broadcast_arch(int ipi)
 {

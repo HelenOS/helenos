@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __i386_ASM_H__
-#define __i386_ASM_H__
+#ifndef __ia32_ASM_H__
+#define __ia32_ASM_H__
 
 #include <cpu.h>
 #include <arch/types.h>

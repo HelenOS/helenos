@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __i386_THREAD_H__
-#define __i386_THREAD_H__
+#ifndef __ia32_THREAD_H__
+#define __ia32_THREAD_H__
 
 #define ARCH_THREAD_DATA
 

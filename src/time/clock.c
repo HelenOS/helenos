@@ -40,7 +40,7 @@
 #include <list.h>
 
 #ifdef __SMP__
-#include <arch/atomic.h>
+#include <arch/smp/atomic.h>
 #endif
 
 /*

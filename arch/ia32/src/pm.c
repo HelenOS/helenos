@@ -36,7 +36,7 @@
 #include <panic.h>
 
 /*
- * Early i386 configuration functions and data structures.
+ * Early ia32 configuration functions and data structures.
  */
 
 /*

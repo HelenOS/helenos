@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __i386_PAGE_H__
-#define __i386_PAGE_H__
+#ifndef __ia32_PAGE_H__
+#define __ia32_PAGE_H__
 
 #include <arch/types.h>
 #include <arch/mm/frame.h>

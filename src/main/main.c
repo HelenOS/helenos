@@ -40,8 +40,8 @@
 #include <mm/heap.h>
 
 #ifdef __SMP__
-#include <arch/apic.h>
-#include <arch/mp.h>
+#include <arch/smp/apic.h>
+#include <arch/smp/mp.h>
 #endif /* __SMP__ */
 
 #include <mm/frame.h>
