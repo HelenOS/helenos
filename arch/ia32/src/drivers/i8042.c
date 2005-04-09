@@ -54,5 +54,5 @@ void i8042_interrupt(__u8 n, __u32 stack[])
 
 	trap_virtual_eoi();
 	x = inb(0x60);
-	printf("%d", the->cpu->id);;
+	printf("%d", CPU->id);;
 }

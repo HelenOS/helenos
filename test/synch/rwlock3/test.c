@@ -44,16 +44,16 @@ static void failed(void *arg);
 
 void reader(void *arg)
 {
-	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", the->cpu->id, the->thread->tid);    	
+	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);    	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);	
-	printf("cpu%d, tid %d: success\n", the->cpu->id, the->thread->tid);    		
+	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    		
 
-	printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", the->cpu->id, the->thread->tid);    	
+	printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
 
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d: success\n", the->cpu->id, the->thread->tid);    			
+	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
 	
 	printf("Test passed.\n");	
 
@@ -77,7 +77,7 @@ void test(void)
 	rwlock_write_lock(&rwlock);
 	
 	for (i=0; i<4; i++) {
-		thrd = thread_create(reader, NULL, the->task, 0);
+		thrd = thread_create(reader, NULL, TASK, 0);
 		if (thrd)
 			thread_ready(thrd);
 		else

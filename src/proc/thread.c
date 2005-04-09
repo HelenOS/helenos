@@ -66,11 +66,11 @@ __u32 last_tid = 0;
  */
 void cushion(void)
 {
-	void (*f)(void *) = the->thread->thread_code;
-	void *arg = the->thread->thread_arg;
+	void (*f)(void *) = THREAD->thread_code;
+	void *arg = THREAD->thread_arg;
 
 	/* this is where each thread wakes up after its creation */
-	spinlock_unlock(&the->thread->lock);
+	spinlock_unlock(&THREAD->lock);
 	cpu_priority_low();
 
 	f(arg);
@@ -80,7 +80,7 @@ void cushion(void)
 
 void thread_init(void)
 {
-	the->thread = NULL;
+	THREAD = NULL;
 	nrdy = 0;
 	spinlock_initialize(&threads_lock);
 	list_initialize(&threads_head);
@@ -214,14 +214,14 @@ void thread_exit(void)
 
 restart:
 	pri = cpu_priority_high();
-	spinlock_lock(&the->thread->lock);
-	if (the->thread->timeout_pending) { /* busy waiting for timeouts in progress */
-		spinlock_unlock(&the->thread->lock);
+	spinlock_lock(&THREAD->lock);
+	if (THREAD->timeout_pending) { /* busy waiting for timeouts in progress */
+		spinlock_unlock(&THREAD->lock);
 		cpu_priority_restore(pri);
 		goto restart;
 	}
-	the->thread->state = Exiting;
-	spinlock_unlock(&the->thread->lock);
+	THREAD->state = Exiting;
+	spinlock_unlock(&THREAD->lock);
 	scheduler();
 }
 
@@ -247,9 +247,9 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 	pri_t pri;
 	
 	pri = cpu_priority_high();
-	spinlock_lock(&the->thread->lock);
-	the->thread->call_me = call_me;
-	the->thread->call_me_with = call_me_with;
-	spinlock_unlock(&the->thread->lock);
+	spinlock_lock(&THREAD->lock);
+	THREAD->call_me = call_me;
+	THREAD->call_me_with = call_me_with;
+	spinlock_unlock(&THREAD->lock);
 	cpu_priority_restore(pri);
 }

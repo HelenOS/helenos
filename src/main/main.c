@@ -184,9 +184,9 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
-	the->cpu->saved_context.sp = (__address) &the->cpu->stack[CPU_STACK_SIZE-8];
-	the->cpu->saved_context.pc = (__address) main_ap_separated_stack;
-	context_restore(&the->cpu->saved_context);
+	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
+	CPU->saved_context.pc = (__address) main_ap_separated_stack;
+	context_restore(&CPU->saved_context);
 	/* not reached */
 }
 

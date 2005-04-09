@@ -39,8 +39,8 @@
 
 void timeout_init(void)
 {
-	spinlock_initialize(&the->cpu->timeoutlock);
-	list_initialize(&the->cpu->timeout_active_head);
+	spinlock_initialize(&CPU->timeoutlock);
+	list_initialize(&CPU->timeout_active_head);
 }
 
 
@@ -70,13 +70,13 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	__u64 sum;
 
 	pri = cpu_priority_high();
-	spinlock_lock(&the->cpu->timeoutlock);
+	spinlock_lock(&CPU->timeoutlock);
 	spinlock_lock(&t->lock);
     
 	if (t->cpu)
 		panic("timeout_register: t->cpu != 0");
 
-	t->cpu = the->cpu;
+	t->cpu = CPU;
 	t->ticks = us2ticks(time);
 	
 	t->handler = f;
@@ -86,8 +86,8 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	 * Insert t into the active timeouts list according to t->ticks.
 	 */
 	sum = 0;
-	l = the->cpu->timeout_active_head.next;
-	while (l != &the->cpu->timeout_active_head) {
+	l = CPU->timeout_active_head.next;
+	while (l != &CPU->timeout_active_head) {
 		hlp = list_get_instance(l, timeout_t, link);
 		spinlock_lock(&hlp->lock);
 		if (t->ticks < sum + hlp->ticks) {
@@ -109,14 +109,14 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	/*
 	 * Decrease ticks of t's immediate succesor by t->ticks.
 	 */
-	if (l != &the->cpu->timeout_active_head) {
+	if (l != &CPU->timeout_active_head) {
 		spinlock_lock(&hlp->lock);
 		hlp->ticks -= t->ticks;
 		spinlock_unlock(&hlp->lock);
 	}
 
 	spinlock_unlock(&t->lock);
-	spinlock_unlock(&the->cpu->timeoutlock);
+	spinlock_unlock(&CPU->timeoutlock);
 	cpu_priority_restore(pri);
 }
 

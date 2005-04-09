@@ -46,7 +46,7 @@ void tlb_refill(void)
 
 void tlb_invalid(void)
 {
-	panic(PANIC "%X: TLB exception at %X", cp0_badvaddr_read(), the->thread ? the->thread->saved_epc : 0);
+	panic(PANIC "%X: TLB exception at %X", cp0_badvaddr_read(), THREAD ? THREAD->saved_epc : 0);
 }
 
 void tlb_invalidate(int asid)

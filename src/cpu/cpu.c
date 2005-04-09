@@ -27,6 +27,7 @@
  */
 
 #include <cpu.h>
+#include <arch.h>
 #include <arch/cpu.h>
 #include <mm/heap.h>
 #include <mm/page.h>
@@ -84,7 +85,7 @@ void cpu_init(void) {
 	}
 	#endif /* __SMP__ */
 	
-	the->cpu = &cpus[config.cpu_active-1];	
+	CPU = &cpus[config.cpu_active-1];	
 	cpu_identify();
 	cpu_arch_init();
 }

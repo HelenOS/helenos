@@ -42,9 +42,9 @@ void exception(void)
 	epc = cp0_epc_read();
 	cp0_status_write(cp0_status_read() & ~ cp0_status_exl_exception_bit);
 
-	if (the->thread) {
-		the->thread->saved_pri = pri;
-		the->thread->saved_epc = epc;
+	if (THREAD) {
+		THREAD->saved_pri = pri;
+		THREAD->saved_epc = epc;
 	}
 	/* decode exception number and process the exception */
 	switch(excno = (cp0_cause_read()>>2)&0x1f) {
@@ -54,9 +54,9 @@ void exception(void)
 		default: panic(PANIC "unhandled exception %d\n", excno); break;
 	}
 	
-	if (the->thread) {
-		pri = the->thread->saved_pri;
-		epc = the->thread->saved_epc;
+	if (THREAD) {
+		pri = THREAD->saved_pri;
+		epc = THREAD->saved_epc;
 	}
 
 	cp0_epc_write(epc);

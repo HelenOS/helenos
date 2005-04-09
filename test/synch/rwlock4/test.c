@@ -73,20 +73,20 @@ void writer(void *arg)
 	waitq_sleep(&can_start);
 
 	to = random(40000);
-	printf("cpu%d, tid %d w+ (%d)\n", the->cpu->id, the->thread->tid, to);
+	printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = rwlock_write_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d w!\n", the->cpu->id, the->thread->tid);
+		printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
 		return;
 	};
-	printf("cpu%d, tid %d w=\n", the->cpu->id, the->thread->tid);
+	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
 
 	if (rwlock.readers_in) panic("Oops.");
 	thread_usleep(random(1000000));
 	if (rwlock.readers_in) panic("Oops.");	
 
 	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d w-\n", the->cpu->id, the->thread->tid);	
+	printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);	
 }
 
 void reader(void *arg)
@@ -95,16 +95,16 @@ void reader(void *arg)
 	waitq_sleep(&can_start);
 	
 	to = random(2000);
-	printf("cpu%d, tid %d r+ (%d)\n", the->cpu->id, the->thread->tid, to);
+	printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = rwlock_read_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d r!\n", the->cpu->id, the->thread->tid);
+		printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
 		return;
 	}
-	printf("cpu%d, tid %d r=\n", the->cpu->id, the->thread->tid);
+	printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
 	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
-	printf("cpu%d, tid %d r-\n", the->cpu->id, the->thread->tid);		
+	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
 }
 
 void failed(void)
@@ -134,7 +134,7 @@ void test(void)
 		k = random(7) + 1;
 		printf("Creating %d readers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(reader, NULL, the->task, 0);
+			thrd = thread_create(reader, NULL, TASK, 0);
 			if (thrd)
 				thread_ready(thrd);
 			else
@@ -144,7 +144,7 @@ void test(void)
 		k = random(5) + 1;
 		printf("Creating %d writers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(writer, NULL, the->task, 0);
+			thrd = thread_create(writer, NULL, TASK, 0);
 			if (thrd)
 				thread_ready(thrd);
 			else

@@ -42,8 +42,8 @@ void userspace(void)
 	/*
 	 * Prepare TSS stack selector and pointers for next syscall.
 	 */
-	the->cpu->arch.tss->esp0 = (__address) &the->thread->kstack[THREAD_STACK_SIZE-8];
-	the->cpu->arch.tss->ss0 = selector(KDATA_DES);
+	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-8];
+	CPU->arch.tss->ss0 = selector(KDATA_DES);
 	
 	__asm__ volatile (""
 	    "pushl %0\n"

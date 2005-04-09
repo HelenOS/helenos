@@ -69,18 +69,18 @@ void consumer(void *arg)
 	waitq_sleep(&can_start);
 	
 	to = random(20000);
-	printf("cpu%d, tid %d down+ (%d)\n", the->cpu->id, the->thread->tid, to);
+	printf("cpu%d, tid %d down+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = semaphore_down_timeout(&sem, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d down!\n", the->cpu->id, the->thread->tid);
+		printf("cpu%d, tid %d down!\n", CPU->id, THREAD->tid);
 		return;
 	}
 	
-	printf("cpu%d, tid %d down=\n", the->cpu->id, the->thread->tid);	
+	printf("cpu%d, tid %d down=\n", CPU->id, THREAD->tid);	
 	thread_usleep(random(30000));
 	
 	semaphore_up(&sem);
-	printf("cpu%d, tid %d up\n", the->cpu->id, the->thread->tid);
+	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
 }
 
 void failed(void)
@@ -107,7 +107,7 @@ void test(void)
 		k = random(7) + 1;
 		printf("Creating %d consumers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(consumer, NULL, the->task, 0);
+			thrd = thread_create(consumer, NULL, TASK, 0);
 			if (thrd)
 				thread_ready(thrd);
 			else

@@ -83,8 +83,8 @@ void cpu_arch_init(void)
 
 void cpu_identify(void)
 {
-	the->cpu->arch.rev_num = cp0_prid_read() & 0xff;
-	the->cpu->arch.imp_num = (cp0_prid_read() >> 8) & 0xff;
+	CPU->arch.rev_num = cp0_prid_read() & 0xff;
+	CPU->arch.imp_num = (cp0_prid_read() >> 8) & 0xff;
 }
 
 void cpu_print_report(cpu_t *m)

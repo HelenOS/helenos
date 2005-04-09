@@ -34,6 +34,10 @@
 
 #include <cpu.h>
 
+#define CPU		(the->cpu)
+#define THREAD		(the->thread)
+#define TASK		(the->task)
+
 extern cpu_private_page_t *the;
 
 extern void arch_init(void);

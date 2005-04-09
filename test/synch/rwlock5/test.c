@@ -95,14 +95,14 @@ void test(void)
 		
 		for (j=0; j<(READERS+WRITERS)/2; j++) {
 			for (k=0; k<i; k++) {
-				thrd = thread_create(reader, NULL, the->task, 0);
+				thrd = thread_create(reader, NULL, TASK, 0);
 				if (thrd)
 					thread_ready(thrd);
 				else
 					failed();
 			}
 			for (k=0; k<(4-i); k++) {
-				thrd = thread_create(writer, NULL, the->task, 0);
+				thrd = thread_create(writer, NULL, TASK, 0);
 				if (thrd)
 					thread_ready(thrd);
 				else

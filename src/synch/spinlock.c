@@ -49,7 +49,7 @@ void spinlock_lock(spinlock_t *sl)
 
 	while (test_and_set(&sl->val)) {
 		if (i++ > 300000) {
-			printf("cpu%d: looping on spinlock %X, caller=%X\n", the->cpu->id, sl, caller);
+			printf("cpu%d: looping on spinlock %X, caller=%X\n", CPU->id, sl, caller);
 			i = 0;
 		}
 	}

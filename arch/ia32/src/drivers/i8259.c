@@ -116,5 +116,5 @@ void pic_eoi(void)
 
 void pic_spurious(__u8 n, __u32 stack[])
 {
-	printf("cpu%d: PIC spurious interrupt\n", the->cpu->id);
+	printf("cpu%d: PIC spurious interrupt\n", CPU->id);
 }

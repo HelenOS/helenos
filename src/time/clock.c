@@ -57,8 +57,8 @@ void clock(void)
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
 	 */
-	spinlock_lock(&the->cpu->timeoutlock);
-	while ((l = the->cpu->timeout_active_head.next) != &the->cpu->timeout_active_head) {
+	spinlock_lock(&CPU->timeoutlock);
+	while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
 		h = list_get_instance(l, timeout_t, link);
 		spinlock_lock(&h->lock);
 		if (h->ticks-- != 0) {
@@ -70,30 +70,30 @@ void clock(void)
 		arg = h->arg;
 		timeout_reinitialize(h);
 		spinlock_unlock(&h->lock);	
-		spinlock_unlock(&the->cpu->timeoutlock);
+		spinlock_unlock(&CPU->timeoutlock);
 
 		f(arg);
 
-		spinlock_lock(&the->cpu->timeoutlock);
+		spinlock_lock(&CPU->timeoutlock);
 	}
-	spinlock_unlock(&the->cpu->timeoutlock);
+	spinlock_unlock(&CPU->timeoutlock);
 
 	/*
-	 * Do CPU usage accounting and find out whether to preempt the->thread.
+	 * Do CPU usage accounting and find out whether to preempt THREAD.
 	 */
 
-	if (the->thread) {
-		spinlock_lock(&the->cpu->lock);
-		the->cpu->needs_relink++;
-		spinlock_unlock(&the->cpu->lock);	
+	if (THREAD) {
+		spinlock_lock(&CPU->lock);
+		CPU->needs_relink++;
+		spinlock_unlock(&CPU->lock);	
 	
-		spinlock_lock(&the->thread->lock);
-    		if (!the->thread->ticks--) {
-			spinlock_unlock(&the->thread->lock);
+		spinlock_lock(&THREAD->lock);
+    		if (!THREAD->ticks--) {
+			spinlock_unlock(&THREAD->lock);
 			scheduler();
 		}
 		else {
-			spinlock_unlock(&the->thread->lock);
+			spinlock_unlock(&THREAD->lock);
 		}
 	}
 

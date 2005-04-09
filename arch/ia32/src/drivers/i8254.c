@@ -110,7 +110,7 @@ void i8254_calibrate_delay_loop(void)
 	o2 |= inb(CLK_PORT1) << 8;
 
 
-	the->cpu->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + 
+	CPU->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + 
 				    (((MAGIC_NUMBER*LOOPS)/1000) % ((t1-t2)-(o1-o2)) ? 1 : 0);
 	
 
@@ -118,7 +118,7 @@ void i8254_calibrate_delay_loop(void)
 	delay(1<<SHIFT);
 	clk2 = rdtsc();
 	
-	the->cpu->frequency_mhz = (clk2-clk1)>>SHIFT;
+	CPU->frequency_mhz = (clk2-clk1)>>SHIFT;
 
 	return;
 }

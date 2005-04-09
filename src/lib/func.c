@@ -38,7 +38,7 @@ void halt(void)
 {
 	haltstate = 1;
 	cpu_priority_high();
-	printf("cpu%d: halted\n", the->cpu->id);
+	printf("cpu%d: halted\n", CPU->id);
 	cpu_halt();
 }
 

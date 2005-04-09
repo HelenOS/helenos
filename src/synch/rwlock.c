@@ -80,9 +80,9 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 	int rc;
 	
 	pri = cpu_priority_high();
-	spinlock_lock(&the->thread->lock);
-	the->thread->rwlock_holder_type = RWLOCK_WRITER;
-	spinlock_unlock(&the->thread->lock);	
+	spinlock_lock(&THREAD->lock);
+	THREAD->rwlock_holder_type = RWLOCK_WRITER;
+	spinlock_unlock(&THREAD->lock);	
 	cpu_priority_restore(pri);
 
 	/*
@@ -120,9 +120,9 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 	pri_t pri;
 	
 	pri = cpu_priority_high();
-	spinlock_lock(&the->thread->lock);
-	the->thread->rwlock_holder_type = RWLOCK_READER;
-	spinlock_unlock(&the->thread->lock);	
+	spinlock_lock(&THREAD->lock);
+	THREAD->rwlock_holder_type = RWLOCK_READER;
+	spinlock_unlock(&THREAD->lock);	
 
 	spinlock_lock(&rwl->lock);
 

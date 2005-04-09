@@ -69,9 +69,9 @@ struct thread *find_best_thread(void)
 loop:
 	cpu_priority_high();
 
-	spinlock_lock(&the->cpu->lock);
-	n = the->cpu->nrdy;
-	spinlock_unlock(&the->cpu->lock);
+	spinlock_lock(&CPU->lock);
+	n = CPU->nrdy;
+	spinlock_unlock(&CPU->lock);
 
 	cpu_priority_low();
 	
@@ -81,8 +81,8 @@ loop:
 		 * If the load balancing thread is not running, wake it up and
 		 * set CPU-private flag that the kcpulb has been started.
 		 */
-		if (test_and_set(&the->cpu->kcpulbstarted) == 0) {
-    			waitq_wakeup(&the->cpu->kcpulb_wq, 0);
+		if (test_and_set(&CPU->kcpulbstarted) == 0) {
+    			waitq_wakeup(&CPU->kcpulb_wq, 0);
 			goto loop;
 		}
 		#endif /* __SMP__ */
@@ -100,7 +100,7 @@ loop:
 	cpu_priority_high();
 
 	for (i = 0; i<RQ_COUNT; i++) {
-		r = &the->cpu->rq[i];
+		r = &CPU->rq[i];
 		spinlock_lock(&r->lock);
 		if (r->n == 0) {
 			/*
@@ -114,9 +114,9 @@ loop:
 		nrdy--;
 		spinlock_unlock(&nrdylock);		
 
-		spinlock_lock(&the->cpu->lock);
-		the->cpu->nrdy--;
-		spinlock_unlock(&the->cpu->lock);
+		spinlock_lock(&CPU->lock);
+		CPU->nrdy--;
+		spinlock_unlock(&CPU->lock);
 
 		r->n--;
 
@@ -129,7 +129,7 @@ loop:
 		spinlock_unlock(&r->lock);
 
 		spinlock_lock(&t->lock);
-		t->cpu = the->cpu;
+		t->cpu = CPU;
 
 		t->ticks = us2ticks((i+1)*10000);
 		t->pri = i;	/* eventually correct rq index */
@@ -159,11 +159,11 @@ void relink_rq(int start)
 	int i, n;
 
 	list_initialize(&head);
-	spinlock_lock(&the->cpu->lock);
-	if (the->cpu->needs_relink > NEEDS_RELINK_MAX) {
+	spinlock_lock(&CPU->lock);
+	if (CPU->needs_relink > NEEDS_RELINK_MAX) {
 		for (i = start; i<RQ_COUNT-1; i++) {
 			/* remember and empty rq[i + 1] */
-			r = &the->cpu->rq[i + 1];
+			r = &CPU->rq[i + 1];
 			spinlock_lock(&r->lock);
 			list_concat(&head, &r->rq_head);
 			n = r->n;
@@ -171,15 +171,15 @@ void relink_rq(int start)
 			spinlock_unlock(&r->lock);
 		
 			/* append rq[i + 1] to rq[i] */
-			r = &the->cpu->rq[i];
+			r = &CPU->rq[i];
 			spinlock_lock(&r->lock);
 			list_concat(&r->rq_head, &head);
 			r->n += n;
 			spinlock_unlock(&r->lock);
 		}
-		the->cpu->needs_relink = 0;
+		CPU->needs_relink = 0;
 	}
-	spinlock_unlock(&the->cpu->lock);				
+	spinlock_unlock(&CPU->lock);				
 
 }
 
@@ -195,17 +195,17 @@ void scheduler(void)
 	if (haltstate)
 		halt();
 
-	if (the->thread) {
-		spinlock_lock(&the->thread->lock);
-		if (!context_save(&the->thread->saved_context)) {
+	if (THREAD) {
+		spinlock_lock(&THREAD->lock);
+		if (!context_save(&THREAD->saved_context)) {
 			/*
 			 * This is the place where threads leave scheduler();
 			 */
-		    	spinlock_unlock(&the->thread->lock);
-			cpu_priority_restore(the->thread->saved_context.pri);
+		    	spinlock_unlock(&THREAD->lock);
+			cpu_priority_restore(THREAD->saved_context.pri);
 			return;
 		}
-		the->thread->saved_context.pri = pri;
+		THREAD->saved_context.pri = pri;
 	}
 
 	/*
@@ -220,10 +220,10 @@ void scheduler(void)
 	 * Therefore the scheduler() function continues in
 	 * scheduler_separated_stack().
 	 */
-	context_save(&the->cpu->saved_context);
-	the->cpu->saved_context.sp = (__address) &the->cpu->stack[CPU_STACK_SIZE-8];
-	the->cpu->saved_context.pc = (__address) scheduler_separated_stack;
-	context_restore(&the->cpu->saved_context);
+	context_save(&CPU->saved_context);
+	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
+	CPU->saved_context.pc = (__address) scheduler_separated_stack;
+	context_restore(&CPU->saved_context);
 	/* not reached */
 }
 
@@ -231,34 +231,34 @@ void scheduler_separated_stack(void)
 {
 	int priority;
 
-	if (the->thread) {
-		switch (the->thread->state) {
+	if (THREAD) {
+		switch (THREAD->state) {
 		    case Running:
-			    the->thread->state = Ready;
-			    spinlock_unlock(&the->thread->lock);
-			    thread_ready(the->thread);
+			    THREAD->state = Ready;
+			    spinlock_unlock(&THREAD->lock);
+			    thread_ready(THREAD);
 			    break;
 
 		    case Exiting:
-			    frame_free((__address) the->thread->kstack);
-			    if (the->thread->ustack) {
-				    frame_free((__address) the->thread->ustack);
+			    frame_free((__address) THREAD->kstack);
+			    if (THREAD->ustack) {
+				    frame_free((__address) THREAD->ustack);
 			    }
 			    
 			    /*
 			     * Detach from the containing task.
 			     */
-			    spinlock_lock(&the->task->lock);
-			    list_remove(&the->thread->th_link);
-			    spinlock_unlock(&the->task->lock);
+			    spinlock_lock(&TASK->lock);
+			    list_remove(&THREAD->th_link);
+			    spinlock_unlock(&TASK->lock);
 
-			    spinlock_unlock(&the->thread->lock);
+			    spinlock_unlock(&THREAD->lock);
 			    
 			    spinlock_lock(&threads_lock);
-			    list_remove(&the->thread->threads_link);
+			    list_remove(&THREAD->threads_link);
 			    spinlock_unlock(&threads_lock);
 			    
-			    free(the->thread);
+			    free(THREAD);
 			    
 			    break;
 			    
@@ -266,24 +266,24 @@ void scheduler_separated_stack(void)
 			    /*
 			     * Prefer the thread after it's woken up.
 			     */
-			    the->thread->pri = -1;
+			    THREAD->pri = -1;
 
 			    /*
 			     * We need to release wq->lock which we locked in waitq_sleep().
-			     * Address of wq->lock is kept in the->thread->sleep_queue.
+			     * Address of wq->lock is kept in THREAD->sleep_queue.
 			     */
-			    spinlock_unlock(&the->thread->sleep_queue->lock);
+			    spinlock_unlock(&THREAD->sleep_queue->lock);
 
 			    /*
 			     * Check for possible requests for out-of-context invocation.
 			     */
-			    if (the->thread->call_me) {
-				    the->thread->call_me(the->thread->call_me_with);
-				    the->thread->call_me = NULL;
-				    the->thread->call_me_with = NULL;
+			    if (THREAD->call_me) {
+				    THREAD->call_me(THREAD->call_me_with);
+				    THREAD->call_me = NULL;
+				    THREAD->call_me_with = NULL;
 			    }
 
-			    spinlock_unlock(&the->thread->lock);
+			    spinlock_unlock(&THREAD->lock);
 			    
 			    break;
 
@@ -291,38 +291,38 @@ void scheduler_separated_stack(void)
 			    /*
 			     * Entering state is unexpected.
 			     */
-			    panic("tid%d: unexpected state %s\n", the->thread->tid, thread_states[the->thread->state]);
+			    panic("tid%d: unexpected state %s\n", THREAD->tid, thread_states[THREAD->state]);
 			    break;
 		}
-		the->thread = NULL;
+		THREAD = NULL;
 	}
     
-	the->thread = find_best_thread();
+	THREAD = find_best_thread();
 	
-	spinlock_lock(&the->thread->lock);
-	priority = the->thread->pri;
-	spinlock_unlock(&the->thread->lock);	
+	spinlock_lock(&THREAD->lock);
+	priority = THREAD->pri;
+	spinlock_unlock(&THREAD->lock);	
 	
 	relink_rq(priority);		
 
-	spinlock_lock(&the->thread->lock);	
+	spinlock_lock(&THREAD->lock);	
 
 	/*
 	 * If both the old and the new task are the same, lots of work is avoided.
 	 */
-	if (the->task != the->thread->task) {
+	if (TASK != THREAD->task) {
 		vm_t *m1 = NULL;
 		vm_t *m2;
 
-		if (the->task) {
-			spinlock_lock(&the->task->lock);
-			m1 = the->task->vm;
-			spinlock_unlock(&the->task->lock);
+		if (TASK) {
+			spinlock_lock(&TASK->lock);
+			m1 = TASK->vm;
+			spinlock_unlock(&TASK->lock);
 		}
 
-		spinlock_lock(&the->thread->task->lock);
-		m2 = the->thread->task->vm;
-		spinlock_unlock(&the->thread->task->lock);
+		spinlock_lock(&THREAD->task->lock);
+		m2 = THREAD->task->vm;
+		spinlock_unlock(&THREAD->task->lock);
 		
 		/*
 		 * Note that it is possible for two tasks to share one vm mapping.
@@ -337,16 +337,16 @@ void scheduler_separated_stack(void)
 			}
 			vm_install(m2);
 		}
-		the->task = the->thread->task;	
+		TASK = THREAD->task;	
 	}
 
-	the->thread->state = Running;
+	THREAD->state = Running;
 
 	#ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (pri=%d,ticks=%d,nrdy=%d)\n", the->cpu->id, the->thread->tid, the->thread->pri, the->thread->ticks, the->cpu->nrdy);
+	printf("cpu%d: tid %d (pri=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->pri, THREAD->ticks, CPU->nrdy);
 	#endif	
 
-	context_restore(&the->thread->saved_context);
+	context_restore(&THREAD->saved_context);
 	/* not reached */
 }
 
@@ -365,7 +365,7 @@ loop:
 	/*
 	 * Sleep until there's some work to do.
 	 */
-	waitq_sleep(&the->cpu->kcpulb_wq);
+	waitq_sleep(&CPU->kcpulb_wq);
 
 not_satisfied:
 	/*
@@ -374,10 +374,10 @@ not_satisfied:
 	 * passes. Each time get the most up to date counts.
 	 */
 	pri = cpu_priority_high();
-	spinlock_lock(&the->cpu->lock);
+	spinlock_lock(&CPU->lock);
 	count = nrdy / config.cpu_active;
-	count -= the->cpu->nrdy;
-	spinlock_unlock(&the->cpu->lock);
+	count -= CPU->nrdy;
+	spinlock_unlock(&CPU->lock);
 	cpu_priority_restore(pri);
 
 	if (count <= 0)
@@ -399,7 +399,7 @@ not_satisfied:
 			 * Not interested in ourselves.
 			 * Doesn't require interrupt disabling for kcpulb is X_WIRED.
 			 */
-			if (the->cpu == cpu)
+			if (CPU == cpu)
 				continue;
 
 restart:		pri = cpu_priority_high();
@@ -460,7 +460,7 @@ restart:		pri = cpu_priority_high();
 				 */
 				spinlock_lock(&t->lock);
 				#ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", the->cpu->id, t->tid, the->cpu->id, the->cpu->nrdy, nrdy / config.cpu_active);
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, CPU->nrdy, nrdy / config.cpu_active);
 				#endif
 				t->flags |= X_STOLEN;
 				spinlock_unlock(&t->lock);
@@ -483,7 +483,7 @@ restart:		pri = cpu_priority_high();
 		}
 	}
 
-	if (the->cpu->nrdy) {
+	if (CPU->nrdy) {
 		/*
 		 * Be a little bit light-weight and let migrated threads run.
 		 */
@@ -503,7 +503,7 @@ satisfied:
 	/*
 	 * Tell find_best_thread() to wake us up later again.
 	 */
-	the->cpu->kcpulbstarted = 0;
+	CPU->kcpulbstarted = 0;
 	goto loop;
 }
 

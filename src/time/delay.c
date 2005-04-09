@@ -41,6 +41,6 @@ void delay(__u32 microseconds)
 	pri_t pri;
 
 	pri = cpu_priority_high();
-	asm_delay_loop(microseconds * the->cpu->delay_loop_const);
+	asm_delay_loop(microseconds * CPU->delay_loop_const);
 	cpu_priority_restore(pri);
 }

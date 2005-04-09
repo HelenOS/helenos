@@ -114,7 +114,7 @@ void apic_init(void)
 
 void apic_spurious(__u8 n, __u32 stack[])
 {
-	printf("cpu%d: APIC spurious interrupt\n", the->cpu->id);
+	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
 }
 
 int apic_poll_errors(void)
@@ -142,7 +142,7 @@ int apic_poll_errors(void)
 }
 
 /*
- * Send all CPUs excluding the->cpu IPI vector.
+ * Send all CPUs excluding CPU IPI vector.
  */
 int l_apic_broadcast_custom_ipi(__u8 vector)
 {
@@ -232,7 +232,7 @@ void l_apic_init(void)
 
 	l_apic[TPR] &= TPRClear;
 
-	if (the->cpu->arch.family >= 6)
+	if (CPU->arch.family >= 6)
 		enable_l_apic_in_msr();
 	
 	tmp = l_apic[ICRlo] & ICRloClear;
@@ -270,7 +270,7 @@ void l_apic_debug(void)
 #ifdef LAPIC_VERBOSE
 	int i, lint;
 
-	printf("LVT on cpu%d, LAPIC ID: %d\n", the->cpu->id, (l_apic[L_APIC_ID] >> 24)&0xf);
+	printf("LVT on cpu%d, LAPIC ID: %d\n", CPU->id, (l_apic[L_APIC_ID] >> 24)&0xf);
 
 	printf("LVT_Tm: ");
 	if (l_apic[LVT_Tm] & (1<<17)) printf("periodic"); else printf("one-shot"); putchar(',');	
@@ -304,7 +304,7 @@ void l_apic_debug(void)
 	/*
 	 * This register is supported only on P6 and higher.
 	 */
-	if (the->cpu->family > 5) {
+	if (CPU->family > 5) {
 		printf("LVT_PCINT: ");
 		if (l_apic[LVT_PCINT] & (1<<16)) printf("masked"); else printf("not masked"); putchar(',');
 		if (l_apic[LVT_PCINT] & (1<<12)) printf("send pending"); else printf("idle"); putchar(',');

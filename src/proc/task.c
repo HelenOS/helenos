@@ -40,7 +40,7 @@ link_t tasks_head;
 
 void task_init(void)
 {
-	the->task = NULL;
+	TASK = NULL;
 	spinlock_initialize(&tasks_lock);
 	list_initialize(&tasks_head);
 }

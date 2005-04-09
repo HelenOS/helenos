@@ -129,13 +129,13 @@ restart:
 	 * Simply, the thread is not allowed to go to sleep if
 	 * there are timeouts in progress.
 	 */
-	spinlock_lock(&the->thread->lock);
-	if (the->thread->timeout_pending) {
-		spinlock_unlock(&the->thread->lock);
+	spinlock_lock(&THREAD->lock);
+	if (THREAD->timeout_pending) {
+		spinlock_unlock(&THREAD->lock);
 		cpu_priority_restore(pri);		
 		goto restart;
 	}
-	spinlock_unlock(&the->thread->lock);
+	spinlock_unlock(&THREAD->lock);
 	
 	spinlock_lock(&wq->lock);
 	
@@ -159,30 +159,30 @@ restart:
 	/*
 	 * Now we are firmly decided to go to sleep.
 	 */
-	spinlock_lock(&the->thread->lock);
+	spinlock_lock(&THREAD->lock);
 	if (usec) {
 		/* We use the timeout variant. */
-		if (!context_save(&the->thread->sleep_timeout_context)) {
+		if (!context_save(&THREAD->sleep_timeout_context)) {
 			/*
 			 * Short emulation of scheduler() return code.
 			 */
-			spinlock_unlock(&the->thread->lock);
+			spinlock_unlock(&THREAD->lock);
 			cpu_priority_restore(pri);
 			return ESYNCH_TIMEOUT;
 		}
-		the->thread->timeout_pending = 1;
-		timeout_register(&the->thread->sleep_timeout, (__u64) usec, waitq_interrupted_sleep, the->thread);
+		THREAD->timeout_pending = 1;
+		timeout_register(&THREAD->sleep_timeout, (__u64) usec, waitq_interrupted_sleep, THREAD);
 	}
 
-	list_append(&the->thread->wq_link, &wq->head);
+	list_append(&THREAD->wq_link, &wq->head);
 
 	/*
 	 * Suspend execution.
 	 */
-	the->thread->state = Sleeping;
-	the->thread->sleep_queue = wq;
+	THREAD->state = Sleeping;
+	THREAD->sleep_queue = wq;
 
-	spinlock_unlock(&the->thread->lock);
+	spinlock_unlock(&THREAD->lock);
 
 	scheduler(); 	/* wq->lock is released in scheduler_separated_stack() */
 	cpu_priority_restore(pri);

@@ -61,7 +61,7 @@ static char *vendor_str[] = {
 
 void cpu_arch_init(void)
 {
-	the->cpu->arch.tss = tss_p;
+	CPU->arch.tss = tss_p;
 }
 
 
@@ -70,7 +70,7 @@ void cpu_identify(void)
 	cpu_info_t info;
 	int i;
 
-	the->cpu->arch.vendor = VendorUnknown;
+	CPU->arch.vendor = VendorUnknown;
 	if (has_cpuid()) {
 		cpuid(0, &info);
 
@@ -81,7 +81,7 @@ void cpu_identify(void)
 		    info.cpuid_ecx==AMD_CPUID_ECX &&
 		    info.cpuid_edx==AMD_CPUID_EDX) {
 			
-			the->cpu->arch.vendor = VendorAMD;
+			CPU->arch.vendor = VendorAMD;
 		}
 
 		/*
@@ -91,14 +91,14 @@ void cpu_identify(void)
 		    info.cpuid_ecx==INTEL_CPUID_ECX &&
 		    info.cpuid_edx==INTEL_CPUID_EDX) {
 
-			the->cpu->arch.vendor = VendorIntel;
+			CPU->arch.vendor = VendorIntel;
 
 		}
 				
 		cpuid(1, &info);
-		the->cpu->arch.family = (info.cpuid_eax>>8)&0xf;
-		the->cpu->arch.model = (info.cpuid_eax>>4)&0xf;
-		the->cpu->arch.stepping = (info.cpuid_eax>>0)&0xf;						
+		CPU->arch.family = (info.cpuid_eax>>8)&0xf;
+		CPU->arch.model = (info.cpuid_eax>>4)&0xf;
+		CPU->arch.stepping = (info.cpuid_eax>>0)&0xf;						
 	}
 }
 
