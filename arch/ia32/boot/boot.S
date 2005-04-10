@@ -34,6 +34,15 @@
 #
 
 
+# KERNEL_SIZE is passed from the outside to the preprocessor
+#if (KERNEL_SIZE%512>0)
+#define TAIL		1
+#else
+#define	TAIL		0
+#endif
+
+#define SECTORS		(KERNEL_SIZE/512+TAIL)
+
 .text
 .global _start_0x7c00
 
@@ -41,28 +50,23 @@
 _start_0x7c00:
 	xorw %ax,%ax		# reset, %al will be used below
 	movw %ax,%dx		# fd0, %dh and %dl will be used below
-	int $0x13
-	jc stop_trying
-
-	movb $2,%ah		# read
-	incb %al		# one sector
-	movb %ah,%cl		# from disk sector 2
-	movw %dx,%es
-	movw $0x8000,%bx	# at %es:%bx
-	int $0x13
-	jc stop_trying
-
-	pushw $('.')
-	call echo_mark
-	add $2,%sp
-    
     	movw %dx,%ds
+
+	movw %dx,%ss		# initialize stack
+	movw $stack,%sp
+
+	int $0x13		# reset floppy
+	jc stop_trying
+
+    	movw %dx,%ds
+	movw %dx,%ss
+	movw $0x7c00,%sp
+	movw $0xffe0,%si	# after next increment, %si will become 0x0000
+	movw %si,%es
+	movw $0x8000,%bx	# at %es:%bx
 	
-	# KERNEL_SIZE is passed from the outside to the preprocessor
-	movl $(KERNEL_SIZE),%edi
+	movl $(SECTORS),%edi
 	
-	shrl $9,%edi		# number of sectors that kernel occupies (%edi div 512)
-    
 read_next:
 	test %edi,%edi
 	jnz read_sectors
@@ -71,16 +75,14 @@ read_next:
 	movw $0x3f2,%dx
 	outb %al,%dx
 
-	pushw $('$')
+	movb $('$'),%al
 	call echo_mark
-	add $2,%sp	
 	
 	jmpl $0,$0x8000
 
 read_sectors:
-	pushw $('.')
+	movb $('.'),%al	
 	call echo_mark
-	add $2,%sp
 
 	decl %edi
 	incw logical_sector
@@ -104,9 +106,8 @@ read_sectors:
 	int $0x13
 	jnc read_next
 
-	pushw $('R')
+	movb $('R'),%al
 	call echo_mark
-	add $2,%sp
 
 	xorw %ax,%ax			# try to reset
 	movw %ax,%dx			# fd0
@@ -114,9 +115,8 @@ read_sectors:
 	jnc read_next
 
 stop_trying:
-	pushw $('F')
+	movb $('F'),%al	
 	call echo_mark
-	add $2,%sp
 
 	cli
 	hlt
@@ -127,7 +127,6 @@ echo_mark:
 	movw %sp,%bp
 	pusha
     
-	movw CH(%bp),%ax
 	movb $0xe,%ah
 	movb $7,%bl
 	int $0x10
@@ -138,15 +137,15 @@ echo_mark:
 
 # current logical sector from the beginning of the disk
 logical_sector:
-	.word 1
+	.word 0
 
 # number of sectors per track on 1440 floppy
 sectors:
 	.byte 18
-
 
 # boot floppy signature
 .org 0x1fe
 boot_floppy_signature:
 	.byte 0x55
 	.byte 0xaa
+stack:
