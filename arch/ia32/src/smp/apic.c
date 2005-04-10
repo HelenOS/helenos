@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __SMP__
-
 #include <arch/types.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/ap.h>
@@ -38,6 +36,8 @@
 #include <print.h>
 #include <arch/asm.h>
 #include <arch.h>
+
+#ifdef __SMP__
 
 /*
  * This is functional, far-from-general-enough interface to the APIC.
@@ -221,7 +221,19 @@ int l_apic_send_init_ipi(__u8 apicid)
 void l_apic_init(void)
 {
 	__u32 tmp, t1, t2;
+	int cpu_id = config.cpu_active - 1;
 	
+
+	/*
+	 * Here we set local APIC ID's so that they match operating system's CPU ID's
+	 * This operation is dangerous as it is model specific.
+	 * TODO: some care should be taken.
+	 * NOTE: CPU may not be used to define APIC ID
+	 */
+	if (l_apic_id() != cpu_id) {
+		l_apic[L_APIC_ID] &= L_APIC_IDClear;
+		l_apic[L_APIC_ID] |= (l_apic[L_APIC_ID]&L_APIC_IDClear)|((cpu_id)<<L_APIC_IDShift);
+	}
 
 	l_apic[LVT_Err] |= (1<<16);
 	l_apic[LVT_LINT0] |= (1<<16);
@@ -270,7 +282,7 @@ void l_apic_debug(void)
 #ifdef LAPIC_VERBOSE
 	int i, lint;
 
-	printf("LVT on cpu%d, LAPIC ID: %d\n", CPU->id, (l_apic[L_APIC_ID] >> 24)&0xf);
+	printf("LVT on cpu%d, LAPIC ID: %d\n", CPU->id, l_apic_id());
 
 	printf("LVT_Tm: ");
 	if (l_apic[LVT_Tm] & (1<<17)) printf("periodic"); else printf("one-shot"); putchar(',');	
@@ -304,7 +316,7 @@ void l_apic_debug(void)
 	/*
 	 * This register is supported only on P6 and higher.
 	 */
-	if (CPU->family > 5) {
+	if (CPU->arch.family > 5) {
 		printf("LVT_PCINT: ");
 		if (l_apic[LVT_PCINT] & (1<<16)) printf("masked"); else printf("not masked"); putchar(',');
 		if (l_apic[LVT_PCINT] & (1<<12)) printf("send pending"); else printf("idle"); putchar(',');
@@ -323,6 +335,11 @@ void l_apic_timer_interrupt(__u8 n, __u32 stack[])
 {
 	l_apic_eoi();
 	clock();
+}
+
+__u8 l_apic_id(void)
+{
+	return (l_apic[L_APIC_ID] >> L_APIC_IDShift)&L_APIC_IDMask;
 }
 
 __u32 io_apic_read(__u8 address)

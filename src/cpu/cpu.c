@@ -39,8 +39,7 @@
 #include <memstr.h>
 #include <list.h>
 
-cpu_private_page_t *the = NULL;
-
+cpu_private_data_t *cpu_private_data;
 cpu_t *cpus;
 
 void cpu_init(void) {
@@ -49,11 +48,16 @@ void cpu_init(void) {
 	#ifdef __SMP__
 	if (config.cpu_active == 1) {
 	#endif /* __SMP__ */
+		cpu_private_data = (cpu_private_data_t *) malloc(sizeof(cpu_private_data_t) * config.cpu_count);
+		if (!cpu_private_data)
+			panic("malloc/cpu_private_data");
+
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
 		if (!cpus)
 			panic("malloc/cpus");
 
 		/* initialize everything */
+		memsetb((__address) cpu_private_data, sizeof(cpu_private_data_t) * config.cpu_count, 0);
 		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
     
 		for (i=0; i < config.cpu_count; i++) {
@@ -70,22 +74,14 @@ void cpu_init(void) {
 			for (j = 0; j < RQ_COUNT; j++) {
 				list_initialize(&cpus[i].rq[j].rq_head);
 			}
+			
+			cpu_private_data[i].cpu = &cpus[i];
 		}
 		
-		the = (cpu_private_page_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
-		memsetb((__address) the, PAGE_SIZE, 0);
 	#ifdef __SMP__
-	}
-	else {
-		__address frame;
-		
-		frame = frame_alloc(FRAME_KA | FRAME_PANIC);
-		memsetb(frame, PAGE_SIZE, 0);
-		map_page_to_frame((__address) the, frame, PAGE_CACHEABLE, 1);
 	}
 	#endif /* __SMP__ */
 	
-	CPU = &cpus[config.cpu_active-1];	
 	cpu_identify();
 	cpu_arch_init();
 }

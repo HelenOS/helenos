@@ -13,11 +13,13 @@ SECTIONS {
     .image 0x8000: AT (0x8000) { 
 	ktext_start = .;
 	*(K_TEXT_START);
+	delta_start = .;
+	*(K_DATA_START);
+	delta_end = .;			
 	*(.text);
 	ktext_end = .;
 
 	kdata_start = .;
-	*(K_DATA_START);
 	*(.data);		/* initialized data */
 	*(.rodata*);		/* string literals */
 	*(COMMON);		/* global variables */
@@ -28,12 +30,12 @@ SECTIONS {
 
     . = ABSOLUTE(hardcoded_ktext_size);
     .patch_1 : {
-        LONG(ktext_end - ktext_start);
+        LONG(ktext_end - ktext_start - (delta_end - delta_start));
     }
 
     . = ABSOLUTE(hardcoded_kdata_size);
     .patch_2 : {
-        LONG(kdata_end - kdata_start);
+        LONG(kdata_end - kdata_start + (delta_end - delta_start));
     }
 
     . = ABSOLUTE(hardcoded_load_address);

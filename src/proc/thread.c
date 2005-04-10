@@ -99,7 +99,7 @@ void thread_ready(thread_t *t)
 
 	i = (t->pri < RQ_COUNT -1) ? ++t->pri : t->pri;
 	
-	cpu = the->cpu;
+	cpu = CPU;
 	if (t->flags & X_WIRED) {
 		cpu = t->cpu;
 	}

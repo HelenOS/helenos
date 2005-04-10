@@ -30,7 +30,7 @@
 #define __TYPEDEFS_H__
 
 typedef struct config config_t;
-typedef struct cpu_private_page cpu_private_page_t;
+typedef struct cpu_private_data cpu_private_data_t;
 typedef struct cpu_info cpu_info_t;
 
 typedef struct cpu cpu_t;

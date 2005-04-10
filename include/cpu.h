@@ -68,12 +68,17 @@ struct cpu {
 	__u8 *stack;
 };
 
-struct cpu_private_page {
+/*
+ * read/write by associated CPU
+ * read only by other CPUs
+ */
+struct cpu_private_data {
 	cpu_t *cpu;
 	thread_t *thread;
 	task_t *task;
 };
 
+extern cpu_private_data_t *cpu_private_data;
 extern cpu_t *cpus;
 
 extern void cpu_init(void);

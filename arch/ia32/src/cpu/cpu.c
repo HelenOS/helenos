@@ -35,6 +35,8 @@
 #include <print.h>
 #include <typedefs.h>
 
+#include <arch/smp/apic.h>
+
 /*
  * Identification of CPUs.
  * Contains only non-MP-Specification specific SMP code.

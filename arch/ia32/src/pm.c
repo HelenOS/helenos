@@ -66,7 +66,7 @@ static struct tss tss;
 struct tss *tss_p = NULL;
 
 /* gdtr changes everytime new CPU is initialized */
-struct ptr_16_32 gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };
+struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = (__address) gdt };
 struct ptr_16_32 idtr = { .limit = sizeof(idt), .base = (__address) idt };
 
 void gdt_setbase(struct descriptor *d, __address base)

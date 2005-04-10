@@ -29,8 +29,15 @@
 #ifndef __ia32_CPU_H__
 #define __ia32_CPU_H__
 
+#include <config.h>
 #include <typedefs.h>
 #include <arch/pm.h>
+
+#ifdef __SMP__
+#define CPU_ID_ARCH	(config.cpu_count>1?l_apic_id():0)
+#else
+#define CPU_ID_ARCH	(0)
+#endif
 
 struct cpu_arch {
         int vendor;

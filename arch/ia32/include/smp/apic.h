@@ -95,6 +95,8 @@
 /* Local APIC ID Register */
 #define L_APIC_ID	(0x020/sizeof(__u32))
 #define L_APIC_IDClear	(~(0xf<<24))
+#define L_APIC_IDShift	24
+#define L_APIC_IDMask	0xf
 
 /* IO APIC */
 #define IOREGSEL	(0x00/sizeof(__u32))
@@ -120,6 +122,7 @@ extern int l_apic_broadcast_custom_ipi(__u8 vector);
 extern int l_apic_send_init_ipi(__u8 apicid);
 extern void l_apic_debug(void);
 extern void l_apic_timer_interrupt(__u8 n, __u32 stack[]);
+extern __u8 l_apic_id(void);
 
 extern __u32 io_apic_read(__u8 address);
 extern void io_apic_write(__u8 address , __u32 x);

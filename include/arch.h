@@ -33,12 +33,11 @@
 #include <typedefs.h>
 
 #include <cpu.h>
+#include <arch/cpu.h>
 
-#define CPU		(the->cpu)
-#define THREAD		(the->thread)
-#define TASK		(the->task)
-
-extern cpu_private_page_t *the;
+#define CPU		(cpu_private_data[CPU_ID_ARCH].cpu)
+#define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
+#define TASK		(cpu_private_data[CPU_ID_ARCH].task)
 
 extern void arch_init(void);
 extern void calibrate_delay_loop(void);
