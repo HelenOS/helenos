@@ -74,8 +74,6 @@ void cpu_init(void) {
 			for (j = 0; j < RQ_COUNT; j++) {
 				list_initialize(&cpus[i].rq[j].rq_head);
 			}
-			
-			cpu_private_data[i].cpu = &cpus[i];
 		}
 		
 	#ifdef __SMP__

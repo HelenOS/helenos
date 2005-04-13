@@ -73,7 +73,6 @@ struct cpu {
  * read only by other CPUs
  */
 struct cpu_private_data {
-	cpu_t *cpu;
 	thread_t *thread;
 	task_t *task;
 };

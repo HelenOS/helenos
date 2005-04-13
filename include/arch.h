@@ -35,7 +35,7 @@
 #include <cpu.h>
 #include <arch/cpu.h>
 
-#define CPU		(cpu_private_data[CPU_ID_ARCH].cpu)
+#define CPU		(&cpus[CPU_ID_ARCH])
 #define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
 #define TASK		(cpu_private_data[CPU_ID_ARCH].task)
 
