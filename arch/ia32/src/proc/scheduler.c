@@ -26,28 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <userspace.h>
-#include <arch/pm.h>
-#include <arch/types.h>
-#include <arch.h>
+#include <proc/scheduler.h>
+#include <cpu.h>
 #include <proc/thread.h>
-#include <mm/vm.h>
+#include <arch.h>
 
-void userspace(void)
+void before_thread_runs(void)
 {
-	pri_t pri;
-	
-	pri = cpu_priority_high();
-
-	__asm__ volatile (""
-	    "pushl %0\n"
-	    "pushl %1\n"
-	    "pushl %2\n"
-	    "pushl %3\n"
-	    "pushl %4\n"
-	    "iret"
-	    : : "i" (selector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+THREAD_STACK_SIZE-1000), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
-	/* NOT REACHED */
-
-	for(;;);
+	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-8];
+        CPU->arch.tss->ss0 = selector(KDATA_DES);	
 }

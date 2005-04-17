@@ -201,6 +201,7 @@ void scheduler(void)
 			/*
 			 * This is the place where threads leave scheduler();
 			 */
+			before_thread_runs();
 		    	spinlock_unlock(&THREAD->lock);
 			cpu_priority_restore(THREAD->saved_context.pri);
 			return;

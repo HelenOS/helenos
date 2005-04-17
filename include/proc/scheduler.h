@@ -55,4 +55,10 @@ extern void scheduler_init(void);
 extern void scheduler(void);
 extern void kcpulb(void *arg);
 
+/*
+ * To be defined by architectures:
+ */
+ 
+extern void before_thread_runs(void);
+
 #endif
