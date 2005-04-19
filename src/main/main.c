@@ -103,16 +103,17 @@ void main_bsp_separated_stack(void) {
 
 	arch_init();
 
+	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE);
+	frame_init();
+	page_init();
+	tlb_init();
+
+	arch_post_mm_init();
 
 	printf("%s, %s\n", project, copyright);
 
 	printf("%L: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
-
-	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE);
-	frame_init();
-	page_init();
-	tlb_init();
 
 	#ifdef __SMP__
 	mp_init();	/* Multiprocessor */

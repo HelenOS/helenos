@@ -31,6 +31,6 @@
 
 void page_init(void)
 {	
-	map_page_to_frame(0x0, 0x0, PAGE_NOT_PRESENT, 0);
 	page_arch_init();
+	map_page_to_frame(0x0, 0x0, PAGE_NOT_PRESENT, 0);
 }

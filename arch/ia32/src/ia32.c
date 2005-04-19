@@ -50,11 +50,10 @@ void arch_init(void)
 	pm_init();
 
 	if (config.cpu_active == 1) {
-		ega_init();	/* video */
 		i8042_init();	/* a20 bit */
-		i8259_init();	/* PIC */
+	    	i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
-		
+
 		trap_register(VECTOR_SYSCALL, syscall);
 		
 		#ifdef __SMP__
@@ -62,6 +61,11 @@ void arch_init(void)
 		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
 		#endif /* __SMP__ */
 	}
+}
+
+void arch_post_mm_init()
+{
+	ega_init();	/* video */
 }
 
 void calibrate_delay_loop(void)

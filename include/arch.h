@@ -40,6 +40,7 @@
 #define TASK		(cpu_private_data[CPU_ID_ARCH].task)
 
 extern void arch_init(void);
+extern void arch_post_mm_init(void);
 extern void calibrate_delay_loop(void);
 
 extern pri_t cpu_priority_high(void);

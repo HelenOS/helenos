@@ -49,3 +49,7 @@ void arch_init(void)
 	cp0_compare_write(cp0_compare_value);
 	cp0_count_write(0);
 }
+
+void arch_post_mm_init(void)
+{
+}
