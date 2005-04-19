@@ -39,6 +39,7 @@
 #include <memstr.h>
 #include <list.h>
 
+
 cpu_private_data_t *cpu_private_data;
 cpu_t *cpus;
 

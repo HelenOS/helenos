@@ -65,7 +65,9 @@ void arch_init(void)
 
 void arch_post_mm_init()
 {
-	ega_init();	/* video */
+	if (config.cpu_active == 1) {
+		ega_init();	/* video */
+	}
 }
 
 void calibrate_delay_loop(void)
