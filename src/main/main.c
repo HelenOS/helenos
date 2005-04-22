@@ -101,7 +101,7 @@ void main_bsp_separated_stack(void) {
 	task_t *k;
 	thread_t *t;
 
-	arch_init();
+	arch_pre_mm_init();
 
 	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE);
 	frame_init();
@@ -170,9 +170,10 @@ void main_ap(void)
 	 */
 	config.cpu_active++;
 
-	arch_init();
+	arch_pre_mm_init();
 	frame_init();
 	page_init();
+	arch_post_mm_init();
 
 	cpu_init();
 	calibrate_delay_loop();

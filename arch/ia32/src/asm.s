@@ -129,6 +129,9 @@ enable_l_apic_in_msr:
 	push %ebp
 	movl %esp,%ebp
 	pusha
+
+	push %ds
+	push %es
     
 	# we must fill the data segment registers
 	movw $16,%ax
@@ -141,6 +144,9 @@ enable_l_apic_in_msr:
 	pushl %edi
 	call trap_dispatcher
 	addl $8,%esp
+
+	pop %es
+	pop %ds
 
 	popa
 	pop %ebp
@@ -314,7 +320,7 @@ memcmp:
 .global utext
 utext:
 0:
-	movl $0xdeadbeaf, %eax
+#	movl $0xdeadbeaf, %eax
 	int $48
 	jmp 0b
 	# not reached

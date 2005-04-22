@@ -30,7 +30,7 @@
 #include <arch/cp0.h>
 #include <arch/exception.h>
 
-void arch_init(void)
+void arch_pre_mm_init(void)
 {
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the kernel.
