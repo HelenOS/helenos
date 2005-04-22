@@ -166,6 +166,7 @@ restart:
 			/*
 			 * Short emulation of scheduler() return code.
 			 */
+			before_thread_runs();
 			spinlock_unlock(&THREAD->lock);
 			cpu_priority_restore(pri);
 			return ESYNCH_TIMEOUT;
