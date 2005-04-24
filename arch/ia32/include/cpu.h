@@ -34,7 +34,7 @@
 #include <arch/pm.h>
 
 #ifdef __SMP__
-#define CPU_ID_ARCH	((config.cpu_active>1)?l_apic_id():0)
+#define CPU_ID_ARCH	(read_dr0())
 #else
 #define CPU_ID_ARCH	(0)
 #endif

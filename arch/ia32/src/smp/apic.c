@@ -103,8 +103,6 @@ void apic_init(void)
 		}
 	}
 
-
-
 	/*
 	 * Configure the BSP's lapic.
 	 */
@@ -183,7 +181,7 @@ int l_apic_send_init_ipi(__u8 apicid)
 	
 	l_apic[ICRhi] = hi;
 	l_apic[ICRlo] = lo;
-	
+
 	/*
 	 * According to MP Specification, 20us should be enough to
 	 * deliver the IPI.
@@ -195,7 +193,7 @@ int l_apic_send_init_ipi(__u8 apicid)
 	lo = l_apic[ICRlo] & ICRloClear;
 	if (lo & SEND_PENDING)
 		printf("IPI is pending.\n");
-	
+
 	l_apic[ICRlo] = lo | DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_DEASSERT | SHORTHAND_DEST | TRGRMODE_LEVEL;
 
 	/*
@@ -203,17 +201,18 @@ int l_apic_send_init_ipi(__u8 apicid)
 	 */
 	delay(10000);
 
-	/*
-	 * MP specification says this should not be done for 82489DX-based
-	 * l_apic's. However, everything is ok as long as STARTUP IPI is ignored
-	 * by 8249DX.
-	 */
-	for (i = 0; i < 2; i++) {
-		lo = l_apic[ICRlo] & ICRloClear;
-		lo |= ((__address) ap_boot) / 4096; /* calculate the reset vector */
-		l_apic[ICRlo] = lo | DLVRMODE_STUP | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST |  TRGRMODE_LEVEL;
-		delay(200);
+	if (!is_82489DX_apic(l_apic[LAVR])) {
+		/*
+		 * If this is not 82489DX-based l_apic we must send two STARTUP IPI's.
+		 */
+		for (i = 0; i<2; i++) {
+			lo = l_apic[ICRlo] & ICRloClear;
+			lo |= ((__address) ap_boot) / 4096; /* calculate the reset vector */
+			l_apic[ICRlo] = lo | DLVRMODE_STUP | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST |  TRGRMODE_LEVEL;
+			delay(200);
+		}
 	}
+	
 	
 	return apic_poll_errors();
 }
@@ -221,19 +220,6 @@ int l_apic_send_init_ipi(__u8 apicid)
 void l_apic_init(void)
 {
 	__u32 tmp, t1, t2;
-	int cpu_id = config.cpu_active - 1;
-	
-
-	/*
-	 * Here we set local APIC ID's so that they match operating system's CPU ID's
-	 * This operation is dangerous as it is model specific.
-	 * TODO: some care should be taken.
-	 * NOTE: CPU may not be used to define APIC ID
-	 */
-	if (l_apic_id() != cpu_id) {
-		l_apic[L_APIC_ID] &= L_APIC_IDClear;
-		l_apic[L_APIC_ID] |= (l_apic[L_APIC_ID]&L_APIC_IDClear)|((cpu_id)<<L_APIC_IDShift);
-	}
 
 	l_apic[LVT_Err] |= (1<<16);
 	l_apic[LVT_LINT0] |= (1<<16);
@@ -244,8 +230,8 @@ void l_apic_init(void)
 
 	l_apic[TPR] &= TPRClear;
 
-	if (CPU->arch.family >= 6)
-		enable_l_apic_in_msr();
+//	if (CPU->arch.family >= 6)
+//		enable_l_apic_in_msr();
 	
 	tmp = l_apic[ICRlo] & ICRloClear;
 	l_apic[ICRlo] = tmp | DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_DEASSERT | SHORTHAND_INCL | TRGRMODE_LEVEL;

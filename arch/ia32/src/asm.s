@@ -52,6 +52,19 @@
 .global memsetb
 .global memsetw
 .global memcmp
+.global write_dr0
+.global read_dr0
+
+write_dr0:
+	pushl %eax
+	movl 8(%esp),%eax
+	movl %eax,%dr0
+	popl %eax
+	ret
+	
+read_dr0:
+	movl %dr0,%eax
+	ret
 
 #
 # set priority level high

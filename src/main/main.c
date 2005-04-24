@@ -118,6 +118,8 @@ void main_bsp_separated_stack(void) {
 	#ifdef __SMP__
 	mp_init();	/* Multiprocessor */
 	#endif /* __SMP__ */
+	
+	printf("config.cpu_count=%d\n", config.cpu_count);
 
 	cpu_init();
 	calibrate_delay_loop();

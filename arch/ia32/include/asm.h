@@ -58,4 +58,7 @@ extern void enable_l_apic_in_msr(void);
 extern void halt_cpu(void);
 extern void cpu_sleep(void);
 
+extern void write_dr0(__u32 v);
+extern __u32 read_dr0(void);
+
 #endif

@@ -98,6 +98,13 @@
 #define L_APIC_IDShift	24
 #define L_APIC_IDMask	0xf
 
+/* Local APIC Version Register */
+#define LAVR		(0x030/sizeof(__u32))
+#define LAVR_Mask	0xff
+#define is_local_apic(x)	(((x)&LAVR_Mask&0xf0)==0x1)
+#define is_82489DX_apic(x)	((((x)&LAVR_Mask&0xf0)==0x0))
+#define is_local_xapic(x)	(((x)&LAVR_Mask)==0x14)
+
 /* IO APIC */
 #define IOREGSEL	(0x00/sizeof(__u32))
 #define IOWIN		(0x10/sizeof(__u32))

@@ -486,12 +486,17 @@ void kmp(void *arg)
 		 */
 		if (pr[i].cpu_flags & (1<<0) == 0)
 			continue;
-	
+
 		/*
 		 * The bootstrap processor is already up.
 		 */
 		if (pr[i].cpu_flags & (1<<1))
 			continue;
+
+		if (pr[i].l_apic_id == l_apic_id()) {
+			printf("%X: bad processor entry #%d, will not send IPI to myself\n", &pr[i], i);
+			continue;
+		}
 		
 		/*
 		 * Prepare new GDT for CPU in question.
@@ -501,7 +506,7 @@ void kmp(void *arg)
 
 		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
 		gdtr.base = (__address) gdt_new;
-		
+
 		if (l_apic_send_init_ipi(pr[i].l_apic_id)) {
 			/*
 		         * There may be just one AP being initialized at
