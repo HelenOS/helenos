@@ -494,7 +494,7 @@ void kmp(void *arg)
 			continue;
 
 		if (pr[i].l_apic_id == l_apic_id()) {
-			printf("%X: bad processor entry #%d, will not send IPI to myself\n", &pr[i], i);
+			printf("%L: bad processor entry #%d, will not send IPI to myself\n", &pr[i], i);
 			continue;
 		}
 		

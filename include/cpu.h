@@ -59,6 +59,7 @@ struct cpu {
 	#endif /* __SMP__ */
 
 	int id;
+	int active;
 
 	__u16 frequency_mhz;
 	__u32 delay_loop_const;

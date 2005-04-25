@@ -59,6 +59,6 @@ extern void halt_cpu(void);
 extern void cpu_sleep(void);
 
 extern void write_dr0(__u32 v);
-extern __u32 read_dr0(void);
+extern inline __u32 read_dr0(void);
 
 #endif

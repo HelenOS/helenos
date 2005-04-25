@@ -44,6 +44,21 @@
 
 #include <arch/interrupt.h>
 
+#include <arch/asm.h>
+
+void write_dr0(__u32 v)
+{
+	__asm__("movl %0,%%dr0" : : "r" (v));
+}
+
+inline __u32 read_dr0(void)
+{
+	__u32 v;
+	
+	__asm__("movl %%dr0,%0\n" : "=r" (v));
+	
+	return v;
+}
 
 void arch_pre_mm_init(void)
 {
