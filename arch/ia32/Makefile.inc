@@ -23,6 +23,7 @@ arch_sources= \
 	arch/delay.s \
 	arch/asm.s \
 	arch/proc/scheduler.c \
+	arch/acpi/acpi.c \
 	arch/smp/ap.S \
 	arch/smp/apic.c \
 	arch/smp/mp.c \

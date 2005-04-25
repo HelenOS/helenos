@@ -46,6 +46,7 @@
 #include <cpu.h>
 #include <arch/i8259.h>
 #include <arch/asm.h>
+#include <arch/acpi/madt.h>
 
 /*
  * Multi-Processor Specification detection code.
