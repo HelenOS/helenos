@@ -33,6 +33,6 @@ __address ebda = 0;
 
 void bios_init(void)
 {
-	/* Copy the EBDA out from BIOS Data Area */
+	/* Copy the EBDA address out from BIOS Data Area */
 	ebda = *((__u16 *) BIOS_EBDA_PTR) * 0x10;
 }

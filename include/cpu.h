@@ -60,6 +60,7 @@ struct cpu {
 
 	int id;
 	int active;
+	int tlb_active;
 
 	__u16 frequency_mhz;
 	__u32 delay_loop_const;

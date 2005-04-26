@@ -230,8 +230,8 @@ void l_apic_init(void)
 
 	l_apic[TPR] &= TPRClear;
 
-//	if (CPU->arch.family >= 6)
-//		enable_l_apic_in_msr();
+	if (CPU->arch.family >= 6)
+		enable_l_apic_in_msr();
 	
 	tmp = l_apic[ICRlo] & ICRloClear;
 	l_apic[ICRlo] = tmp | DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_DEASSERT | SHORTHAND_INCL | TRGRMODE_LEVEL;
@@ -256,6 +256,7 @@ void l_apic_init(void)
 	t2 = l_apic[CCRT];
 	
 	l_apic[ICRT] = t1-t2;
+	
 }
 
 void l_apic_eoi(void)

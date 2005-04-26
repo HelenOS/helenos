@@ -33,32 +33,36 @@
 #include <arch/smp/atomic.h>
 #include <arch/interrupt.h>
 #include <config.h>
+#include <arch.h>
 
 #ifdef __SMP__
 static spinlock_t tlblock;
-static volatile int tlb_shootdown_cnt;
 
 void tlb_init(void)
 {
 	spinlock_initialize(&tlblock);
-	tlb_shootdown_cnt = 0;
 }
 
 /* must be called with interrupts disabled */
 void tlb_shootdown_start(void)
 {
+	int i;
+
+	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
 	tlb_shootdown_ipi_send();
+	tlb_invalidate(0); /* TODO: use valid ASID */
 	
-	while (tlb_shootdown_cnt < config.cpu_active - 1)
-		;
-		
-	tlb_shootdown_cnt = 0;
+busy_wait:	
+	for (i = 0; i<config.cpu_active; i++)
+		if (cpus[i].tlb_active)
+			goto busy_wait;
 }
 
 void tlb_shootdown_finalize(void)
 {
 	spinlock_unlock(&tlblock);
+	CPU->tlb_active = 1;
 }
 
 void tlb_shootdown_ipi_send(void)
@@ -68,9 +72,10 @@ void tlb_shootdown_ipi_send(void)
 
 void tlb_shootdown_ipi_recv(void)
 {
-	atomic_inc((int *) &tlb_shootdown_cnt);
+	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
 	spinlock_unlock(&tlblock);
 	tlb_invalidate(0);	/* TODO: use valid ASID */
+	CPU->tlb_active = 1;
 }
 #endif /* __SMP__ */

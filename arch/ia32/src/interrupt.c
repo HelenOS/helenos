@@ -92,7 +92,7 @@ void page_fault(__u8 n, __u32 stack[])
 void syscall(__u8 n, __u32 stack[])
 {
 	printf("cpu%d: syscall\n", CPU->id);
-	thread_usleep(1000000);
+	thread_usleep(1000);
 }
 
 void tlb_shootdown_ipi(__u8 n, __u32 stack[])

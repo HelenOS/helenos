@@ -82,6 +82,7 @@ void cpu_init(void) {
 	#endif /* __SMP__ */
 	
 	CPU->active = 1;
+	CPU->tlb_active = 1;
 	
 	cpu_identify();
 	cpu_arch_init();
