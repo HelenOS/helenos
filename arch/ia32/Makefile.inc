@@ -24,6 +24,7 @@ arch_sources= \
 	arch/asm.s \
 	arch/proc/scheduler.c \
 	arch/acpi/acpi.c \
+	arch/bios/bios.c \
 	arch/smp/ap.S \
 	arch/smp/apic.c \
 	arch/smp/mp.c \

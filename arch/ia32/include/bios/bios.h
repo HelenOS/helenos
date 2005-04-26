@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,71 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
+#ifndef __BIOS_H__
+#define __BIOS_H__
 
 #include <arch/types.h>
-#include <typedefs.h>
 
-#include <arch/pm.h>
+#define BIOS_EBDA_PTR	0x40e
 
-#include <arch/ega.h>
-#include <arch/i8042.h>
-#include <arch/i8254.h>
-#include <arch/i8259.h>
+extern __address ebda;
 
-#include <arch/context.h>
+extern void bios_init(void);
 
-#include <config.h>
-
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <arch/acpi/acpi.h>
-
-void write_dr0(__u32 v)
-{
-	__asm__("movl %0,%%dr0" : : "r" (v));
-}
-
-inline __u32 read_dr0(void)
-{
-	__u32 v;
-	
-	__asm__("movl %%dr0,%0\n" : "=r" (v));
-	
-	return v;
-}
-
-void arch_pre_mm_init(void)
-{
-	pm_init();
-
-	write_dr0(config.cpu_active - 1);
-
-	if (config.cpu_active == 1) {
-		bios_init();
-		i8042_init();	/* a20 bit */
-	    	i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
-
-		trap_register(VECTOR_SYSCALL, syscall);
-		
-		#ifdef __SMP__
-		trap_register(VECTOR_TLB_SHOOTDOWN_IPI, tlb_shootdown_ipi);
-		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
-		#endif /* __SMP__ */
-	}
-}
-
-void arch_post_mm_init()
-{
-	if (config.cpu_active == 1) {
-		ega_init();	/* video */
-		acpi_init();
-	}
-}
-
-void calibrate_delay_loop(void)
-{
-	i8254_calibrate_delay_loop();
-	i8254_normal_operation();
-}
+#endif /* __BIOS_H__ */

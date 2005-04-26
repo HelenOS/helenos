@@ -46,6 +46,7 @@
 #include <cpu.h>
 #include <arch/i8259.h>
 #include <arch/asm.h>
+#include <arch/bios/bios.h>
 #include <arch/acpi/madt.h>
 
 /*
@@ -132,21 +133,10 @@ void mp_init(void)
 	
 
 	/*
-	 * First place to search the MP Floating Pointer Structure is the Extended
-	 * BIOS Data Area. We have to read EBDA segment address from the BIOS Data
-	 * Area. Unfortunatelly, this memory is in page 0, which has intentionally no
-	 * mapping.
-	 */
-	frame = frame_alloc(FRAME_KA);
-	map_page_to_frame(frame,0,PAGE_CACHEABLE,0);
-	addr = *((__u16 *) (frame + 0x40e)) * 16;
-	map_page_to_frame(frame,frame,PAGE_CACHEABLE,0);
-	frame_free(frame);	
-
-	/*
 	 * EBDA can be undefined. In that case addr would be 0. 
 	 */
-	if (addr >= 0x1000) {
+	addr = ebda;
+	if (addr) {
 		cnt = 1024;
 		while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
 			if (mp_fs_check((__u8 *) addr))
@@ -155,18 +145,19 @@ void mp_init(void)
 			cnt--;
 		}
 	}
-	
-	/*
-	 * Second place where the MP Floating Pointer Structure may live is the last
-	 * kilobyte of base memory.
-	 */
-	addr = 639*1024;
-	cnt = 1024;
-	while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
-		if (mp_fs_check((__u8 *) addr))
-			goto fs_found;
-		addr++;
-		cnt--;
+	else {
+		/*
+		 * Second place where the MP Floating Pointer Structure may live is the last
+		 * kilobyte of base memory.
+		 */
+		addr = 639*1024;
+		cnt = 1024;
+		while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
+			if (mp_fs_check((__u8 *) addr))
+				goto fs_found;
+			addr++;
+			cnt--;
+		}
 	}
 
 	/*
