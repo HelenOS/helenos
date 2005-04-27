@@ -115,9 +115,7 @@ void main_bsp_separated_stack(void) {
 	printf("%L: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
-	#ifdef __SMP__
-	mp_init();	/* Multiprocessor */
-	#endif /* __SMP__ */
+	arch_late_init();
 	
 	printf("config.cpu_count=%d\n", config.cpu_count);
 

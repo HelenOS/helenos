@@ -37,6 +37,4 @@ extern void halt(void);
 
 extern int strcmp(char *src, char *dst);
 
-extern __address __u32_search(__address src, int cnt, __u32 x);
-
 #endif

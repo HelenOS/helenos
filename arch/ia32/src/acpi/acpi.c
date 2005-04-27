@@ -27,9 +27,58 @@
  */
 
 #include <arch/acpi/acpi.h>
+#include <arch/bios/bios.h>
+
+#define RSDP_SIGNATURE		"RSD PTR "
+#define RSDP_REVISION_OFFS	15
 
 struct acpi_rsdp *acpi_rsdp = NULL;
 
+int rsdp_check(__u8 *rsdp) {
+	struct acpi_rsdp *r = (struct acpi_rsdp *) rsdp;
+	__u8 sum = 0;
+	int i;
+	
+	for (i=0; i<20; i++)
+		sum += rsdp[i];
+		
+	if (sum)	
+		return 0; /* bad checksum */
+
+	if (r->revision == 0)
+		return 1; /* ACPI 1.0 */
+		
+	for (; i<r->length; i++)
+		sum += rsdp[i];
+		
+	return !sum;
+	
+}
+
 void acpi_init(void)
 {
+        __u8 *addr[2] = { NULL, (__u8 *) 0xe0000 };
+        int i, j, length[2] = { 1024, 128*1024 };
+	__u64 *sig = (__u64 *) RSDP_SIGNATURE;
+
+        /*
+	 * Find Root System Description Pointer
+         * 1. search first 1K of EBDA
+         * 2. search 128K starting at 0xe0000
+         */
+
+	addr[0] = (__u8 *) ebda;
+	for (i = (ebda ? 0 : 1); i < 2; i++) {
+                for (j = 0; j < length[i]; j += 16) {
+                        if (*((__u64 *) &addr[i][j]) == *sig && rsdp_check(&addr[i][j])) {
+                                acpi_rsdp = (struct acpi_rsdp *) &addr[i][j];
+                                goto rsdp_found;
+                        }
+                }
+        }
+
+        return;
+
+rsdp_found:
+        printf("%L: ACPI Root System Description Pointer\n", acpi_rsdp);		
 }

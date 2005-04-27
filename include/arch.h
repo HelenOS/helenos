@@ -41,6 +41,7 @@
 
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);
+extern void arch_late_init(void);
 extern void calibrate_delay_loop(void);
 
 extern pri_t cpu_priority_high(void);

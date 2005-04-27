@@ -85,9 +85,12 @@ void kinit(void *arg)
 	/*
 	 * Now that all CPUs are up, we can report what we've found.
 	 */
-	for (i = 0; i < config.cpu_count; i++)
+	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].active)
 			cpu_print_report(&cpus[i]);
+		else
+			printf("cpu%d: not active\n", i);
+	}
 
 #ifdef __SMP__
 	if (config.cpu_count > 1) {

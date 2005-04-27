@@ -54,7 +54,7 @@ void tlb_shootdown_start(void)
 	tlb_invalidate(0); /* TODO: use valid ASID */
 	
 busy_wait:	
-	for (i = 0; i<config.cpu_active; i++)
+	for (i = 0; i<config.cpu_count; i++)
 		if (cpus[i].tlb_active)
 			goto busy_wait;
 }

@@ -73,4 +73,6 @@ extern struct acpi_rsdp *acpi_rsdp;
 
 extern void acpi_init(void);
 
+static int rsdp_check(__u8 *rsdp);
+
 #endif /* __ACPI_H__ */

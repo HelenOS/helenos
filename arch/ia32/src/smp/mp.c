@@ -128,59 +128,34 @@ int mp_ct_check(void)
 
 void mp_init(void)
 {
-	__address addr, frame;
-	int cnt, n;
+	__u8 *addr[2] = { NULL, (__u8 *) 0xf0000 };
+	int i, j, length[2] = { 1024, 64*1024 };
 	
 
 	/*
-	 * EBDA can be undefined. In that case addr would be 0. 
+	 * Find MP Floating Pointer Structure
+	 * 1a. search first 1K of EBDA
+	 * 1b. if EBDA is undefined, search last 1K of base memory
+	 *  2. search 64K starting at 0xf0000
 	 */
-	addr = ebda;
-	if (addr) {
-		cnt = 1024;
-		while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
-			if (mp_fs_check((__u8 *) addr))
-				goto fs_found;
-			addr++;
-			cnt--;
-		}
-	}
-	else {
-		/*
-		 * Second place where the MP Floating Pointer Structure may live is the last
-		 * kilobyte of base memory.
-		 */
-		addr = 639*1024;
-		cnt = 1024;
-		while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
-			if (mp_fs_check((__u8 *) addr))
-				goto fs_found;
-			addr++;
-			cnt--;
-		}
-	}
 
-	/*
-	 * As the last resort, MP Floating Pointer Structure is searched in the BIOS
-	 * ROM.
-	 */
-	addr = 0xf0000;
-	cnt = 64*1024;
-	while (addr = __u32_search(addr,cnt,FS_SIGNATURE)) {
-		if (mp_fs_check((__u8 *) addr))
-			goto fs_found;
-		addr++;
-		cnt--;
+	addr[0] = (__u8 *) (ebda ? ebda : 639 * 1024);
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < length[i]; j += 16) {
+			if (*((__u32 *) &addr[i][j]) == FS_SIGNATURE && mp_fs_check(&addr[i][j])) {
+				fs = (struct __mpfs *) &addr[i][j];
+				goto fs_found;
+			}
+		}
 	}
 
 	return;
 	
 fs_found:
-	printf("%L: MP Floating Pointer Structure\n", addr);
+	printf("%L: MP Floating Pointer Structure\n", fs);
 
-	fs = (struct __mpfs *) addr;
 	frame_not_free((__address) fs);
-	
+
 	if (fs->config_type == 0 && fs->configuration_table) {
 		if (fs->mpfib2 >> 7) {
 			printf("mp_init: PIC mode not supported\n");

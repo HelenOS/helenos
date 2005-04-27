@@ -59,15 +59,3 @@ int strcmp(char *src, char *dst)
 	}
 	return 1;
 }
-
-__address __u32_search(__address src, int cnt, __u32 x)
-{
-	__u32 *base = (__u32 *) src; 
-	int i;
-	
-	for (i=0; i<=cnt-sizeof(__u32); i++)
-		if (base[i] == x)
-			return (__address) &base[i];
-
-	return 0;
-}
