@@ -10,14 +10,14 @@ ia32 port
     o gcc 3.3.2 - gcc 3.3.5
 
     SMP COMPATIBILITY
-    o Bochs 2.0.2 - Bochs 2.1
+    o Bochs 2.0.2 - Bochs 2.2-cvs
 	o 2x-8x 686 CPU
     o ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41
 	o 2x 200Mhz Pentium CPU
     
     EMULATORS AND VIRTUALIZERS
-    o Bochs 2.0.2 - Bochs 2.1
-    o VMware Workstation 4
+    o Bochs 2.0.2 - Bochs 2.2-cvs
+    o VMware Workstation 4, VMware Workstation 5
 
 
 mips port

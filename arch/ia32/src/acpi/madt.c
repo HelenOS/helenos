@@ -26,64 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ACPI_H__
-#define __ACPI_H__
+#include <arch/acpi/acpi.h>
+#include <arch/acpi/madt.h>
 
-#include <arch/types.h>
-
-/* Root System Description Pointer */
-struct acpi_rsdp {
-	__u8 signature[8];
-	__u8 checksum;
-	__u8 oemid[6];
-	__u8 revision;
-	__u32 rsdt_address;
-	__u32 length;
-	__u64 xsdt_address;
-	__u32 ext_checksum;
-	__u8 reserved[3];
-} __attribute__ ((packed));
-
-/* System Description Table Header */
-struct acpi_sdt_header {
-	__u8 signature[4];
-	__u32 length;
-	__u8 revision;
-	__u8 checksum;
-	__u8 oemid[6];
-	__u8 oem_table_id[8];
-	__u32 oem_revision;
-	__u32 creator_id;
-	__u32 creator_revision;
-} __attribute__ ((packed));;
-
-struct acpi_signature_map {
-	__u8 *signature;
-	struct acpi_sdt_header **sdt_ptr;
-	char *description;
-};
-
-/* Root System Description Table */
-struct acpi_rsdt {
-	struct acpi_sdt_header header;
-	__u32 entry[];
-} __attribute__ ((packed));;
-
-/* Extended System Description Table */
-struct acpi_xsdt {
-	struct acpi_sdt_header header;
-	__u64 entry[];
-} __attribute__ ((packed));;
-
-extern struct acpi_rsdp *acpi_rsdp;
-extern struct acpi_rsdt *acpi_rsdt;
-extern struct acpi_xsdt *acpi_xsdt;
-
-extern void acpi_init(void);
-static int rsdp_check(__u8 *rsdp);
-static void map_sdt(struct acpi_sdt_header *sdt);
-extern int acpi_sdt_check(__u8 *sdt);
-static void configure_via_rsdt(void);
-static void configure_via_xsdt(void);
-
-#endif /* __ACPI_H__ */
+struct acpi_madt *acpi_madt = NULL;
