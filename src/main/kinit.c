@@ -42,7 +42,7 @@
 #include <mm/vm.h>
 
 #ifdef __SMP__
-#include <arch/smp/mp.h>
+#include <arch/smp/mps.h>
 #endif /* __SMP__ */
 
 #include <synch/waitq.h>
@@ -114,6 +114,7 @@ void kinit(void *arg)
 
 	cpu_priority_low();
 
+#ifdef __USERSPACE__
 	/*
 	 * Create the first user task.
 	 */
@@ -138,6 +139,7 @@ void kinit(void *arg)
 	if (!a) panic(PANIC "vm_area_create: vm_stack");
 	
 	thread_ready(t);
+#endif /* __USERSPACE__ */
 
 #ifdef __TEST__
 	test();

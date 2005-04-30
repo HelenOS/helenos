@@ -30,14 +30,7 @@
 #define __MADT_H__
 
 #include <arch/acpi/acpi.h>
-
-/* Multiple APIC Description Table */
-struct acpi_madt {
-	struct acpi_sdt_header header;
-	__u32 l_apic_address;
-	__u32 flags;
-	__u8  apic_strucure[];
-} __attribute__ ((packed));
+#include <arch/smp/apic.h>
 
 #define	MADT_L_APIC			0
 #define MADT_IO_APIC			1
@@ -51,19 +44,30 @@ struct acpi_madt {
 #define MADT_RESERVED_SKIP_BEGIN	9
 #define MADT_RESERVED_SKIP_END		127
 #define MADT_RESERVED_OEM_BEGIN		128
-#define MADT_RESERVED_OEM_END		255
 
-struct madt_l_apic {
+struct madt_apic_header {
 	__u8 type;
 	__u8 length;
+} __attribute__ ((packed));
+
+
+/* Multiple APIC Description Table */
+struct acpi_madt {
+	struct acpi_sdt_header header;
+	__u32 l_apic_address;
+	__u32 flags;
+	struct madt_apic_header apic_header[];
+} __attribute__ ((packed));
+
+struct madt_l_apic {
+	struct madt_apic_header header;
 	__u8 acpi_id;
 	__u8 apic_id;
 	__u32 flags;	
 } __attribute__ ((packed));
 
 struct madt_io_apic {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u8 io_apic_id;
 	__u8 reserved;
 	__u32 io_apic_address;	
@@ -71,8 +75,7 @@ struct madt_io_apic {
 } __attribute__ ((packed));
 
 struct madt_intr_src_ovrd {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u8 bus;
 	__u8 source;
 	__u32 global_intr;
@@ -80,30 +83,26 @@ struct madt_intr_src_ovrd {
 } __attribute__ ((packed));
 
 struct madt_nmi_src {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u16 flags;
 	__u32 global_intr;
 } __attribute__ ((packed));
 
 struct madt_l_apic_nmi {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u8 acpi_id;
 	__u16 flags;
 	__u8 l_apic_lint;
 } __attribute__ ((packed));
 
 struct madt_l_apic_addr_ovrd {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u16 reserved;
 	__u64 l_apic_address;
 } __attribute__ ((packed));
 
 struct madt_io_sapic {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u8 io_apic_id;
 	__u8 reserved;
 	__u32 global_intr_base;
@@ -111,8 +110,7 @@ struct madt_io_sapic {
 } __attribute__ ((packed));
 
 struct madt_l_sapic {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u8 acpi_id;
 	__u8 sapic_id;
 	__u8 sapic_eid;
@@ -123,8 +121,7 @@ struct madt_l_sapic {
 } __attribute__ ((packed));
 
 struct madt_platform_intr_src {
-	__u8 type;
-	__u8 length;
+	struct madt_apic_header header;
 	__u16 flags;
 	__u8 intr_type;
 	__u8 processor_id;
@@ -135,5 +132,7 @@ struct madt_platform_intr_src {
 } __attribute__ ((packed));
 
 extern struct acpi_madt *acpi_madt;
+
+extern void acpi_madt_parse(void);
 
 #endif /* __MADT_H__ */

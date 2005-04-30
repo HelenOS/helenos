@@ -29,7 +29,7 @@
 #include <arch/types.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/ap.h>
-#include <arch/smp/mp.h>
+#include <arch/smp/mps.h>
 #include <mm/page.h>
 #include <time/delay.h>
 #include <arch/interrupt.h>
@@ -43,7 +43,7 @@
  * This is functional, far-from-general-enough interface to the APIC.
  * Advanced Programmable Interrupt Controller for MP systems.
  * Tested on:
- *	Bochs 2.0.2 with 2-8 CPUs
+ *	Bochs 2.0.2 - Bochs 2.2-cvs with 2-8 CPUs
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
  */
 
@@ -82,7 +82,7 @@ void apic_init(void)
 	for (i=1; i<16; i++) {
 		int pin;
 	
-		if ((pin = mp_irq_to_pin(i)) != -1)
+		if ((pin = mps_irq_to_pin(i)) != -1)
 	    		io_apic_change_ioredtbl(pin,0xf,IVT_IRQBASE+i,LOPRI);
 	}
 	
@@ -379,7 +379,7 @@ void io_apic_disable_irqs(__u16 irqmask)
 			 * Mask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = mp_irq_to_pin(i);
+			pin = mps_irq_to_pin(i);
 			if (pin != -1) {
 				reglo = io_apic_read(IOREDTBL + pin*2);
 				reglo |= (1<<16);
@@ -401,7 +401,7 @@ void io_apic_enable_irqs(__u16 irqmask)
 			 * Unmask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = mp_irq_to_pin(i);
+			pin = mps_irq_to_pin(i);
 			if (pin != -1) {
 				reglo = io_apic_read(IOREDTBL + pin*2);
 				reglo &= ~(1<<16);

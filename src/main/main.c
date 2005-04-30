@@ -41,8 +41,10 @@
 
 #ifdef __SMP__
 #include <arch/smp/apic.h>
-#include <arch/smp/mp.h>
+#include <arch/smp/mps.h>
 #endif /* __SMP__ */
+
+#include <smp/smp.h>
 
 #include <mm/frame.h>
 #include <mm/page.h>
@@ -117,6 +119,7 @@ void main_bsp_separated_stack(void) {
 
 	arch_late_init();
 	
+	smp_init();
 	printf("config.cpu_count=%d\n", config.cpu_count);
 
 	cpu_init();

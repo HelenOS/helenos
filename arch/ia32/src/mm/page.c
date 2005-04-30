@@ -127,6 +127,7 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 		memcopy(pd[pde].frame_address << 12, newpt, PAGE_SIZE);
 		pd[pde].frame_address = newpt >> 12;
 	}
+	
 	pt = (struct page_specifier *) (pd[pde].frame_address << 12);
 
 	pt[pte].frame_address = frame >> 12;

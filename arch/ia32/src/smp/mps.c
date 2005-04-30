@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2001-2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 #include <config.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/smp/mp.h>
+#include <arch/smp/mps.h>
 #include <arch/smp/ap.h>
 #include <arch/smp/apic.h>
 #include <func.h>
@@ -50,14 +50,14 @@
 #include <arch/acpi/madt.h>
 
 /*
- * Multi-Processor Specification detection code.
+ * MultiProcessor Specification detection code.
  */
 
 #define	FS_SIGNATURE	0x5f504d5f
 #define CT_SIGNATURE 	0x504d4350
 
-int mp_fs_check(__u8 *base);
-int mp_ct_check(void);
+int mps_fs_check(__u8 *base);
+int mps_ct_check(void);
 
 int configure_via_ct(void);
 int configure_via_default(__u8 n);
@@ -70,8 +70,8 @@ void ct_l_intr_entry(struct __l_intr_entry *lintr);
 
 void ct_extended_entries(void);
 
-static struct __mpfs *fs;
-static struct __mpct *ct;
+static struct mps_fs *fs;
+static struct mps_ct *ct;
 
 struct __processor_entry *processor_entries = NULL;
 struct __bus_entry *bus_entries = NULL;
@@ -91,7 +91,7 @@ waitq_t kmp_completion_wq;
 /*
  * Used to check the integrity of the MP Floating Structure.
  */
-int mp_fs_check(__u8 *base)
+int mps_fs_check(__u8 *base)
 {
 	int i;
 	__u8 sum;
@@ -105,7 +105,7 @@ int mp_fs_check(__u8 *base)
 /*
  * Used to check the integrity of the MP Configuration Table.
  */
-int mp_ct_check(void)
+int mps_ct_check(void)
 {
 	__u8 *base = (__u8 *) ct;
 	__u8 *ext = base + ct->base_table_length;
@@ -126,7 +126,7 @@ int mp_ct_check(void)
 	return sum == ct->ext_table_checksum;
 }
 
-void mp_init(void)
+void mps_init(void)
 {
 	__u8 *addr[2] = { NULL, (__u8 *) 0xf0000 };
 	int i, j, length[2] = { 1024, 64*1024 };
@@ -142,8 +142,8 @@ void mp_init(void)
 	addr[0] = (__u8 *) (ebda ? ebda : 639 * 1024);
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
-			if (*((__u32 *) &addr[i][j]) == FS_SIGNATURE && mp_fs_check(&addr[i][j])) {
-				fs = (struct __mpfs *) &addr[i][j];
+			if (*((__u32 *) &addr[i][j]) == FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
+				fs = (struct mps_fs *) &addr[i][j];
 				goto fs_found;
 			}
 		}
@@ -152,13 +152,13 @@ void mp_init(void)
 	return;
 	
 fs_found:
-	printf("%L: MP Floating Pointer Structure\n", fs);
+	printf("%L: MPS Floating Pointer Structure\n", fs);
 
 	frame_not_free((__address) fs);
 
 	if (fs->config_type == 0 && fs->configuration_table) {
 		if (fs->mpfib2 >> 7) {
-			printf("mp_init: PIC mode not supported\n");
+			printf("mps_init: PIC mode not supported\n");
 			return;
 		}
 
@@ -191,7 +191,7 @@ int configure_via_ct(void)
 		printf("configure_via_ct: bad ct->signature\n");
 		return 1;
 	}
-	if (!mp_ct_check()) {
+	if (!mps_ct_check()) {
 		printf("configure_via_ct: bad ct checksum\n");
 		return 1;
 	}
@@ -287,7 +287,7 @@ int ct_processor_entry(struct __processor_entry *pr)
 
 void ct_bus_entry(struct __bus_entry *bus)
 {
-#ifdef MPCT_VERBOSE
+#ifdef MPSCT_VERBOSE
 	char buf[7];
 	memcopy((__address) bus->bus_type, (__address) buf,6);
 	buf[6] = 0;
@@ -315,10 +315,10 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 	io_apic = ioa->io_apic;
 }
 
-//#define MPCT_VERBOSE
+//#define MPSCT_VERBOSE
 void ct_io_intr_entry(struct __io_intr_entry *iointr)
 {
-#ifdef MPCT_VERBOSE
+#ifdef MPSCT_VERBOSE
 	switch (iointr->intr_type) {
 	    case 0: printf("INT"); break;
 	    case 1: printf("NMI"); break;
@@ -349,7 +349,7 @@ void ct_io_intr_entry(struct __io_intr_entry *iointr)
 
 void ct_l_intr_entry(struct __l_intr_entry *lintr)
 {
-#ifdef MPCT_VERBOSE
+#ifdef MPSCT_VERBOSE
 	switch (lintr->intr_type) {
 	    case 0: printf("INT"); break;
 	    case 1: printf("NMI"); break;
@@ -495,7 +495,7 @@ void kmp(void *arg)
 	waitq_wakeup(&kmp_completion_wq, WAKEUP_FIRST);
 }
 
-int mp_irq_to_pin(int irq)
+int mps_irq_to_pin(int irq)
 {
 	int i;
 	

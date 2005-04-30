@@ -28,7 +28,8 @@ arch_sources= \
 	arch/bios/bios.c \
 	arch/smp/ap.S \
 	arch/smp/apic.c \
-	arch/smp/mp.c \
+	arch/smp/mps.c \
+	arch/smp/smp.c \
 	arch/smp/atomic.S \
 	arch/smp/ipi.c \
 	arch/ia32.c \

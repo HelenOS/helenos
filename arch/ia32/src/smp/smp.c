@@ -26,60 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/types.h>
+#include <smp/smp.h>
 #include <arch/acpi/acpi.h>
 #include <arch/acpi/madt.h>
-#include <arch/smp/apic.h>
-
-struct acpi_madt *acpi_madt = NULL;
+#include <arch/smp/mps.h>
+#include <config.h>
 
 #ifdef __SMP__
 
-char *entry[] = {
-	"L_APIC",
-	"IO_APIC",
-	"INTR_SRC_OVRD",
-	"NMI_SRC",
-	"L_APIC_NMI",
-	"L_APIC_ADDR_OVRD",
-	"IO_SAPIC",
-	"L_SAPIC",
-	"PLATFORM_INTR_SRC"
-};
-
-void acpi_madt_parse(void)
+void smp_init(void)
 {
-	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
-	struct madt_apic_header *h = &acpi_madt->apic_header[0];
-
-	l_apic = (__u32 *) acpi_madt->l_apic_address;
-
-	while (h < end) {
-		switch (h->type) {
-			case MADT_L_APIC:
-			case MADT_IO_APIC:
-			case MADT_INTR_SRC_OVRD:
-			case MADT_NMI_SRC:
-			case MADT_L_APIC_NMI:
-			case MADT_L_APIC_ADDR_OVRD:
-			case MADT_IO_SAPIC:
-			case MADT_L_SAPIC:
-			case MADT_PLATFORM_INTR_SRC:
-				printf("MADT: skipping %s entry (type=%d)\n", entry[h->type], h->type);
-				break;
-
-			default:
-				if (h->type >= MADT_RESERVED_SKIP_BEGIN && h->type <= MADT_RESERVED_SKIP_END) {
-					printf("MADT: skipping reserved entry (type=%d)\n", h->type);
-				}
-				if (h->type >= MADT_RESERVED_OEM_BEGIN) {
-					printf("MADT: skipping OEM entry (type=%d)\n", h->type);
-				}
-				break;
-		}
-		h = (struct madt_apic_header *) (((__u8 *) h) + h->length);
+	if (acpi_madt) {
+		acpi_madt_parse();
 	}
-
+	if (config.cpu_count == 1)
+		mps_init();
 }
+
 
 #endif /* __SMP__ */

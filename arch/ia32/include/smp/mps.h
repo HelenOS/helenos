@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MP_H__
-#define __MP_H__
+#ifndef __MPS_H__
+#define __MPS_H__
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -37,9 +37,9 @@
 #define CT_EXT_ENTRY_TYPE		0
 #define CT_EXT_ENTRY_LEN		1
 
-struct __mpfs {
+struct mps_fs {
 	__u32 signature;
-	struct __mpct *configuration_table;
+	struct mps_ct *configuration_table;
 	__u8 length;
 	__u8 revision;
 	__u8 checksum;
@@ -50,7 +50,7 @@ struct __mpfs {
 	__u8 mpfib5;
 } __attribute__ ((packed));
 
-struct __mpct {
+struct mps_ct {
 	__u32 signature;
 	__u16 base_table_length;
 	__u8 revision;
@@ -117,9 +117,9 @@ struct __l_intr_entry {
 extern waitq_t ap_completion_wq;
 extern waitq_t kmp_completion_wq;
 
-extern int mp_irq_to_pin(int irq);
+extern int mps_irq_to_pin(int irq);
 
-extern void mp_init(void);
+extern void mps_init(void);
 extern void kmp(void *arg);
 
 #endif

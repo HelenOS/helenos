@@ -93,7 +93,6 @@ void arch_late_init()
 	if (config.cpu_active == 1) {
 		#ifdef __SMP__
 		acpi_init();
-		mp_init();
 		#endif /* __SMP__ */
 	}
 }

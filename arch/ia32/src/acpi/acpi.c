@@ -78,7 +78,15 @@ int acpi_sdt_check(__u8 *sdt)
 
 void map_sdt(struct acpi_sdt_header *sdt)
 {
+	int i, cnt, length;
+
 	map_page_to_frame((__address) sdt, (__address) sdt, PAGE_NOT_CACHEABLE, 0);
+	
+	length = sdt->length + ((__address) sdt) - ((__address) sdt)&0xfffff000;
+	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
+	
+	for (i = 1; i < cnt; i++)
+		map_page_to_frame(((__address) sdt) + i*PAGE_SIZE, ((__address) sdt) + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
 }
 
 void acpi_init(void)

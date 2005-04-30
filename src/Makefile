@@ -31,6 +31,10 @@ ifdef DEBUG_SPINLOCK
 CFLAGS+=-D$(DEBUG_SPINLOCK)
 endif
 
+ifdef USERSPACE
+CFLAGS+=-D$(USERSPACE)
+endif
+
 ifdef TEST
 test_objects:=$(addsuffix .o,$(basename ../test/$(TEST_DIR)/$(TEST_FILE)))
 CFLAGS+=-D$(TEST)
