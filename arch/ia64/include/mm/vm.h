@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/vm.h>
-#include <mm/heap.h>
+#ifndef __ia64_VM_H__
+#define __ia64_VM_H__
 
-#include <synch/spinlock.h>
-#include <arch.h>
-#include <panic.h>
-#include <list.h>
+#include <arch/types.h>
 
-spinlock_t tasks_lock;
-link_t tasks_head;
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x8000000000000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
+#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
+#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffffffffffff
 
-void task_init(void)
-{
-	TASK = NULL;
-	spinlock_initialize(&tasks_lock);
-	list_initialize(&tasks_head);
-}
+#define UTEXT_ADDRESS_ARCH	0x0000000000001000
+#define USTACK_ADDRESS_ARCH	0x7ffffffffffff000
+#define UDATA_ADDRESS_ARCH	0x0000000001001000
 
-task_t *task_create(vm_t *m)
-{
-	pri_t pri;
-	task_t *ta;
-	
-	ta = (task_t *) malloc(sizeof(task_t));
-	if (ta) {
-		spinlock_initialize(&ta->lock);
-		list_initialize(&ta->th_head);
-		list_initialize(&ta->tasks_link);
-		ta->vm = m;
-		
-		pri = cpu_priority_high();
-		spinlock_lock(&tasks_lock);
-		list_append(&ta->tasks_link, &tasks_head);
-		spinlock_unlock(&tasks_lock);
-		cpu_priority_restore(pri);
-	}
-	return ta;
-}
-
+#endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/vm.h>
-#include <mm/heap.h>
+#ifndef __ia64_THREAD_H__
+#define __ia64_THREAD_H__
 
-#include <synch/spinlock.h>
-#include <arch.h>
-#include <panic.h>
-#include <list.h>
+#define ARCH_THREAD_DATA struct { } arch_thread_data;
 
-spinlock_t tasks_lock;
-link_t tasks_head;
-
-void task_init(void)
-{
-	TASK = NULL;
-	spinlock_initialize(&tasks_lock);
-	list_initialize(&tasks_head);
-}
-
-task_t *task_create(vm_t *m)
-{
-	pri_t pri;
-	task_t *ta;
-	
-	ta = (task_t *) malloc(sizeof(task_t));
-	if (ta) {
-		spinlock_initialize(&ta->lock);
-		list_initialize(&ta->th_head);
-		list_initialize(&ta->tasks_link);
-		ta->vm = m;
-		
-		pri = cpu_priority_high();
-		spinlock_lock(&tasks_lock);
-		list_append(&ta->tasks_link, &tasks_head);
-		spinlock_unlock(&tasks_lock);
-		cpu_priority_restore(pri);
-	}
-	return ta;
-}
-
+#endif

@@ -34,3 +34,12 @@ mips port
 
     EMULATORS AND VIRTUALIZERS
     o msim
+
+ia64 port
+=========
+
+    HARDWARE REQUIREMENTS
+    o no real hardware supported
+
+    EMULATORS AND VIRTUALIZERS
+    o ski

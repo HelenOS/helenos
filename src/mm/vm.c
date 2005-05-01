@@ -30,6 +30,7 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/tlb.h>
+#include <mm/heap.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
