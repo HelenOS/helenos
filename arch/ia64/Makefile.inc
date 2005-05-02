@@ -16,4 +16,6 @@ LFLAGS=-EL -n -M -no-check-sections -T ../arch/ia64/_link.ld
 
 arch_sources= \
 	arch/start.S \
-	arch/fake.s
+	arch/fake.s \
+	arch/putchar.c \
+	arch/ia64.c

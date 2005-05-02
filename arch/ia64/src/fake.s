@@ -50,7 +50,6 @@
 .global map_page_to_frame
 .global memsetb
 .global panic
-.global putchar
 
 before_thread_runs:
 userspace:
@@ -74,6 +73,5 @@ frame_arch_init:
 map_page_to_frame:
 memsetb:
 panic:
-putchar:
-	brl 0x0
+	br.ret.sptk.many rp
 

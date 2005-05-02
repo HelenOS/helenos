@@ -2,7 +2,7 @@ OUTPUT_FORMAT(elf64-ia64-little)
 ENTRY(start)
 
 SECTIONS {
-    .image 0xf000000000000000: AT (0xf000000000000000) { 
+    .image 0x0000000000000000: AT (0x0000000000000000) { 
 	    *(.text .stub .text.* .gnu.linkonce.t.*)
 	    *(.interp)
 	    *(.hash)

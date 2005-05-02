@@ -26,9 +26,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/ski/ski.h>
+
 .text
 
 .global kernel_image_start
 
 kernel_image_start:
-	brl 0x0
+	# initialize gp (Global Pointer) register
+	mov r1=0x1000
+
+	# initialize Ski console using SSC (Simulator System Sall)
+	mov r15=SKI_CONSOLE_INIT
+	break 0x80000
+
+0:
+	mov r15=SKI_CONSOLE_PUTC
+	mov r32='.'
+	break 0x80000
+
+	br 0b
