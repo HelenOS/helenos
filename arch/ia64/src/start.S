@@ -32,17 +32,17 @@
 
 .global kernel_image_start
 
+stack0:
 kernel_image_start:
 	# initialize gp (Global Pointer) register
-	mov r1=0x1000
+	mov r1=kernel_image_start;
 
-	# initialize Ski console using SSC (Simulator System Sall)
+	# set stack pointer to some sane value
+	mov r12=stack0
+	
+	# initialize Ski console using SSC (Simulator System Call)
 	mov r15=SKI_CONSOLE_INIT
 	break 0x80000
 
 0:
-	mov r15=SKI_CONSOLE_PUTC
-	mov r32='.'
-	break 0x80000
-
 	br 0b

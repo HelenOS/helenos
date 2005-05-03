@@ -1,9 +1,21 @@
+/*
+ *  IA-64 linker script
+ *
+ *  It is ELF format, but its only section looks like this:
+ *  kernel text
+ *  kernel data
+ *
+ */
+
 OUTPUT_FORMAT(elf64-ia64-little)
 ENTRY(kernel_image_start)
 
 SECTIONS {
     .image 0x0000000000001000: AT (0x0000000000001000) { 
-	    *(.text .stub .text.* .gnu.linkonce.t.*)
+	    ktext_start = .;
+	    *(.text .text.* )
+	    ktext_end = .;
+	    kdata_start = .;
 	    *(.interp)
 	    *(.hash)
 	    *(.dynsym)
@@ -68,5 +80,22 @@ SECTIONS {
 	    *(.dynbss)
 	    *(.bss .bss.* .gnu.linkonce.b.*)
 	    *(COMMON)
+	    kdata_end = .;
     }
+
+    . = ABSOLUTE(hardcoded_ktext_size);
+    .patch_1 : {
+        LONG(ktext_end - ktext_start);
+    }
+
+    . = ABSOLUTE(hardcoded_kdata_size);
+    .patch_2 : {
+        LONG(kdata_end - kdata_start);
+    }
+
+    . = ABSOLUTE(hardcoded_load_address);
+    .patch_3 : {
+        QUAD(0x0000000000001000);
+    }
+
 }

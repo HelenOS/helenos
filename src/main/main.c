@@ -63,7 +63,7 @@ context_t ctx;
  * These 'hardcoded' variables will be intialised by
  * the linker with appropriate sizes and addresses.
  */
-__u32 hardcoded_load_address = 0;
+__address hardcoded_load_address = 0;
 __u32 hardcoded_ktext_size = 0;
 __u32 hardcoded_kdata_size = 0;
 
