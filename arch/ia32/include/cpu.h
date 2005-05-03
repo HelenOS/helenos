@@ -32,6 +32,7 @@
 #include <config.h>
 #include <typedefs.h>
 #include <arch/pm.h>
+#include <arch/asm.h>
 
 #ifdef __SMP__
 #define CPU_ID_ARCH	(read_dr0())

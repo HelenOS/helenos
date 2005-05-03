@@ -29,7 +29,6 @@
 #ifndef __ia32_ASM_H__
 #define __ia32_ASM_H__
 
-#include <cpu.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <mm/page.h>
@@ -58,7 +57,10 @@ extern void enable_l_apic_in_msr(void);
 extern void halt_cpu(void);
 extern void cpu_sleep(void);
 
-extern void write_dr0(__u32 v);
-extern inline __u32 read_dr0(void);
+static inline void write_dr0(__u32 v);
+static inline __u32 read_dr0(void);
+
+inline void write_dr0(__u32 v) { __asm__ volatile ("movl %0,%%dr0\n" : : "r" (v)); }
+inline __u32 read_dr0(void) { __u32 v; __asm__ volatile ("movl %%dr0,%0" : "=r" (v)); return v; }
 
 #endif
