@@ -13,9 +13,7 @@ ENTRY(kernel_image_start)
 SECTIONS {
     .image 0x0000000000001000: AT (0x0000000000001000) { 
 	    ktext_start = .;
-	    *(.text .text.* )
-	    ktext_end = .;
-	    kdata_start = .;
+	    *(.text .stub .text.* .gnu.linkonce.t.*)
 	    *(.interp)
 	    *(.hash)
 	    *(.dynsym)
@@ -52,6 +50,8 @@ SECTIONS {
 	    *(.init)
 	    *(.plt)
 	    *(.fini)
+	    ktext_end = .;
+	    kdata_start = .;
 	    *(.rodata .rodata.* .gnu.linkonce.r.*)
 	    *(.rodata1)
 	    *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)

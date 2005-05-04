@@ -30,4 +30,4 @@
 
 .global start
 start:
-    brl 0x0000000001000000
+    brl 0x0000000000001000
