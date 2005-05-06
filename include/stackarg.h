@@ -28,7 +28,7 @@
 
 
 /*
- * Variable argument list manipulation macors
+ * Variable argument list manipulation macros
  * for architectures using stack to pass arguments.
  */
  
