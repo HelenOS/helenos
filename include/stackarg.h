@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
 
-#define NULL 0
+/*
+ * Variable argument list manipulation macors
+ * for architectures using stack to pass arguments.
+ */
+ 
+#ifndef __STACKARG_H__
+#define __STACKARG_H__
 
-typedef signed char __s8;
+#include <arch/types.h>
 
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned long __u32;
-typedef long long __u64;
+typedef struct va_list {
+	int pos;
+	__address *last;
+} va_list;
 
-typedef __u32 __address;
+#define va_start(ap, lst) 		\
+	(ap).pos = 0; 			\
+	(ap).last = (__address *) &(lst)
 
-typedef __u32 pri_t;
+#define va_arg(ap, type) 		\
+	((type) *((ap).last + ++((ap).pos)))
 
-typedef __u32 __native;
+#define va_end(ap)
+    
 
 #endif

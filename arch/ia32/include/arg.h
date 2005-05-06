@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __ia32_ARG_H__
+#define __ia32_ARG_H__
 
-#define NULL 0
-
-typedef signed char __s8;
-
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned long __u32;
-typedef long long __u64;
-
-typedef __u32 __address;
-
-typedef __u32 pri_t;
-
-typedef __u32 __native;
+#include <stackarg.h>
 
 #endif

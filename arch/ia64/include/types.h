@@ -42,4 +42,6 @@ typedef __u64 __address;
 
 typedef __u32 pri_t;
 
+typedef __u64 __native;
+
 #endif

@@ -59,4 +59,6 @@ typedef struct vm vm_t;
 
 typedef struct link link_t;
 
+typedef char *char_ptr;
+
 #endif

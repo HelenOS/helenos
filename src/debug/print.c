@@ -29,6 +29,8 @@
 #include <putchar.h>
 #include <print.h>
 #include <synch/spinlock.h>
+#include <arch/arg.h>
+
 
 static char digits[] = "0123456789abcdef";
 static spinlock_t printflock;
@@ -79,11 +81,15 @@ void print_number(__u32 num, int base)
  */
 void printf(char *fmt, ...)
 {
-	int irqpri, i = 0, pos = 0;
-	char c;
+	int irqpri, i = 0;
+	va_list ap;
+	char c;	
+
+	va_start(ap, fmt);
 
 	irqpri = cpu_priority_high();
 	spinlock_lock(&printflock);
+
 	while (c = fmt[i++]) {
 		switch (c) {
 
@@ -99,11 +105,11 @@ void printf(char *fmt, ...)
 				 * String and character conversions.
 				 */
 				case 's':
-					print_str((char *) *(((__address *) &fmt + (++pos))));
+					print_str(va_arg(ap, char_ptr));
 					goto loop;
 
 				case 'c':
-					c = *((char *) ((__address *)(&fmt + (++pos))));
+					c = va_arg(ap, char);
 					break;
 
 				/*
@@ -112,32 +118,32 @@ void printf(char *fmt, ...)
 				case 'L': 
 					print_str("0x");
 				case 'l':
-		    			print_fixed_hex(*((__address *)(&fmt + (++pos))),INT32);
+		    			print_fixed_hex(va_arg(ap, __native), INT32);
 					goto loop;
 
 				case 'W':
 					print_str("0x");
 				case 'w':
-		    			print_fixed_hex(*((__address *)(&fmt + (++pos))),INT16);
+		    			print_fixed_hex(va_arg(ap, __native), INT16);
 					goto loop;
 
 				case 'B':
 					print_str("0x");
 				case 'b':
-		    			print_fixed_hex(*((__address *)(&fmt + (++pos))),INT8);
+		    			print_fixed_hex(va_arg(ap, __native), INT8);
 					goto loop;
 
 				/*
 		                 * Decimal and hexadecimal conversions.
 		                 */
 				case 'd':
-		    			print_number(*((__address *)(&fmt + (++pos))), 10);
+		    			print_number(va_arg(ap, __native), 10);
 					goto loop;
 
 				case 'X':
 			                print_str("0x");
 				case 'x':
-		    			print_number(*((__address *)(&fmt + (++pos))), 16);
+		    			print_number(va_arg(ap, __native), 16);
 					goto loop;
 	    
 				/*
@@ -157,4 +163,6 @@ loop:
 out:
 	spinlock_unlock(&printflock);
 	cpu_priority_restore(irqpri);
+	
+	va_end(ap);
 }
