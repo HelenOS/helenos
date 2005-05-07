@@ -49,7 +49,7 @@ void print_str(char *str)
  * This is a universal function for printing hexadecimal numbers of fixed
  * width.
  */
-void print_fixed_hex(__u32 num, int width)
+void print_fixed_hex(__native num, int width)
 {
 	int i;
     
@@ -61,16 +61,16 @@ void print_fixed_hex(__u32 num, int width)
  * This is a universal function for printing decimal and hexadecimal numbers.
  * It prints only significant digits.
  */
-void print_number(__u32 num, int base)
+void print_number(__native num, int base)
 { 
-	char d[32+1];		/* this is good enough even for base == 2 */
-        int i = 31;
+	char d[sizeof(__native)*8+1];		/* this is good enough even for base == 2 */
+        int i = sizeof(__native)*8-1;
     
 	do {
 		d[i--] = digits[num % base];
 	} while (num /= base);
 	
-	d[32] = 0;	
+	d[sizeof(__native)*8] = 0;	
 	print_str(&d[i + 1]);
 }
 
@@ -109,7 +109,7 @@ void printf(char *fmt, ...)
 					goto loop;
 
 				case 'c':
-					c = va_arg(ap, char);
+					c = (char) va_arg(ap, int);
 					break;
 
 				/*

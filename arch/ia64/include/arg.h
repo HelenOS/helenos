@@ -29,7 +29,6 @@
 #ifndef __ia64_ARG_H__
 #define __ia64_ARG_H__
 
-/* TODO: to be replaced by real IA-64 stuff */
-#include <stackarg.h>
+#include <stdarg.h>
 
 #endif
