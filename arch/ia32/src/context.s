@@ -84,11 +84,13 @@ fpu_context_restore:
     ret
 
 .global fpu_lazy_context_save
+fpu_lazy_context_save:
     mov 4(%esp),%eax;
     fxsave (%eax)
     xor %eax,%eax;
     ret;
 .global fpu_lazy_context_restore
+fpu_lazy_context_restore:
     mov 4(%esp),%eax;
     fxrstor (%eax)
     xor %eax,%eax;
