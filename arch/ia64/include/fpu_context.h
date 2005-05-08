@@ -26,17 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_CONTEXT_H__
-#define __ia64_CONTEXT_H__
+#ifndef __ia64_FPU_CONTEXT_H__
+#define __ia64_FPU_CONTEXT_H__
 
 #include <arch/types.h>
 
-
-
-struct context {
-	__u64 sp;
-	__u64 pc;
-	pri_t pri;
+struct fpu_context {
+/* TODO: define IA-64 FPU context */
 };
+
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_CONTEXT_H__
-#define __ia64_CONTEXT_H__
+#ifndef __mips_FPU_CONTEXT_H__
+#define __mips_FPU_CONTEXT_H__
 
 #include <arch/types.h>
 
-
-
-struct context {
-	__u64 sp;
-	__u64 pc;
-	pri_t pri;
+struct fpu_context {
+/* TODO: define MIPS FPU context */
 };
+
+
+
 
 #endif

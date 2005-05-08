@@ -31,9 +31,6 @@
 
 #include <arch/types.h>
 
-struct fpu_context {
-/* TODO: define MIPS FPU context */
-};
 
 
 

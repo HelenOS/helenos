@@ -33,6 +33,7 @@
 #include <proc/task.h>
 #include <synch/spinlock.h>
 #include <arch/context.h>
+#include <fpu_context.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <time/timeout.h>
