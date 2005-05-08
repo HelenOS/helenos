@@ -57,7 +57,7 @@ volatile int nrdy;
 void before_thread_runs(void)
 {
 	before_thread_runs_arch(); 
-	fpu_context_restore();
+	fpu_context_restore(&(THREAD->saved_fpu_context));
 }
 
 
@@ -204,6 +204,7 @@ void scheduler(void)
 
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
+		fpu_context_save(&(THREAD->saved_fpu_context));
 		if (!context_save(&THREAD->saved_context)) {
 			/*
 			 * This is the place where threads leave scheduler();

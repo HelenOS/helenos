@@ -30,17 +30,17 @@
 
 #include <fpu_context.h>
 
-void fpu_context_save(void)
+void fpu_context_save(fpu_context_t *fctx)
 {
 }
 
 
-void fpu_context_restore()
+void fpu_context_restore(fpu_context_t *fctx)
 {
 }
 
 
-void fpu_lazy_context_save()
+void fpu_lazy_context_save(fpu_context_t *fctx)
 {
 /*
 	pushl %eax
@@ -51,7 +51,7 @@ void fpu_lazy_context_save()
 */	
 }
 
-void fpu_lazy_context_restore()
+void fpu_lazy_context_restore(fpu_context_t *fctx)
 {
 /*
 	pushl %eax
