@@ -19,7 +19,7 @@ arch_sources= \
 	arch/fake.s \
 	arch/putchar.c \
 	arch/ia64.c \
-	arch/fpu_context.c
+	arch/fpu_context.c \
 	arch/context.S 
 	
 
