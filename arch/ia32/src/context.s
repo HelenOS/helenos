@@ -79,23 +79,3 @@ context_restore:
 	ret
 
 
-fpu_context_save:
-        ret
-
-fpu_context_restore:
-        ret
-
-fpu_lazy_context_save:
-	pushl %eax
-        mov 8(%esp),%eax
-        fxsave (%eax)
-        popl %eax
-        ret
-
-fpu_lazy_context_restore:
-	pushl %eax
-        mov 8(%esp),%eax
-        fxrstor (%eax)
-        popl %eax
-        ret
-

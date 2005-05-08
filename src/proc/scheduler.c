@@ -54,6 +54,13 @@
 spinlock_t nrdylock;
 volatile int nrdy;
 
+void before_thread_runs(void)
+{
+	before_thread_runs_arch(); 
+	fpu_context_restore();
+}
+
+
 void scheduler_init(void)
 {
 	spinlock_initialize(&nrdylock);

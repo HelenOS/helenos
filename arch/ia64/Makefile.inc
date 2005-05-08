@@ -18,5 +18,8 @@ arch_sources= \
 	arch/start.S \
 	arch/fake.s \
 	arch/putchar.c \
-	arch/context.S \
-	arch/ia64.c
+	arch/ia64.c \
+	arch/fpu_context.c
+	arch/context.S 
+	
+

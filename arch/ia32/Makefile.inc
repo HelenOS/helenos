@@ -44,6 +44,7 @@ arch_sources= \
 	arch/drivers/i8254.c \
 	arch/drivers/i8259.c \
 	arch/drivers/ega.c \
-	arch/boot/boot.S
+	arch/boot/boot.S \
+	arch/fpu_context.c
 
 

@@ -30,8 +30,12 @@
 #define __CONTEXT_H__
 
 #include <typedefs.h>
+#include "fpu_context.h"
+
 
 extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
+
+
 
 #endif

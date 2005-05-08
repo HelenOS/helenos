@@ -1,5 +1,6 @@
+/*
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2005 Jakub Vana
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,49 +26,38 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+*/
 
-.text
+#include <fpu_context.h>
 
-.global calibrate_delay_loop
-.global asm_delay_loop
-.global userspace
-.global before_thread_runs_arch
-.global arch_late_init
-.global arch_post_mm_init
-.global arch_pre_mm_init
-.global cpu_arch_init
-.global cpu_halt
-.global cpu_identify
-.global cpu_print_report
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_read
-.global cpu_priority_restore
-.global cpu_sleep
-.global frame_arch_init
-.global map_page_to_frame
-.global memsetb
-.global panic
+void fpu_context_save(void)
+{
+}
 
-before_thread_runs_arch:
-userspace:
-calibrate_delay_loop:
-asm_delay_loop:
-arch_late_init:
-arch_post_mm_init:
-arch_pre_mm_init:
-cpu_arch_init:
-cpu_halt:
-cpu_identify:
-cpu_print_report:
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_read:
-cpu_priority_restore:
-cpu_sleep:
-frame_arch_init:
-map_page_to_frame:
-memsetb:
-panic:
-	br.ret.sptk.many rp
 
+void fpu_context_restore()
+{
+}
+
+
+void fpu_lazy_context_save()
+{
+/*
+	pushl %eax
+        mov 8(%esp),%eax
+        fxsave (%eax)
+        popl %eax
+        ret
+*/	
+}
+
+void fpu_lazy_context_restore()
+{
+/*
+	pushl %eax
+        mov 8(%esp),%eax
+        fxrstor (%eax)
+        popl %eax
+        ret
+*/	
+}

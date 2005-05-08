@@ -30,4 +30,5 @@ arch_sources= \
 	arch/cpu/cpu.c \
 	arch/mm/frame.c \
 	arch/mm/page.c \
-	arch/mm/tlb.c
+	arch/mm/tlb.c \
+	arch/fpu_context.c

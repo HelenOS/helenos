@@ -32,9 +32,9 @@
 .global calibrate_delay_loop
 .global asm_delay_loop
 .global userspace
-.global before_thread_runs
+.global _before_thread_runs_arch
 
-before_thread_runs:
+before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
 asm_delay_loop:
