@@ -33,11 +33,11 @@
 .set nomacro
 
 start:
-    # move 0x80000000 to reg $8
-    lui $8, 0x8000
+	# move 0x80000000 to reg $8
+	lui $8, 0x8000
     
-    # prepare stack
-    lui $29, 0x8100
+	# prepare stack
+	lui $29, 0x8100
     
-    j $8
-    nop
+	j $8
+	nop

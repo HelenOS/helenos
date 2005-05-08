@@ -29,15 +29,15 @@
 .text
 
 .macro cp0_read reg
-    mfc0 $2,\reg
-    j $31
-    nop
+	mfc0 $2,\reg
+	j $31
+	nop
 .endm
 
 .macro cp0_write reg
-    mtc0 $4,\reg
-    j $31
-    nop
+	mtc0 $4,\reg
+	j $31
+	nop
 .endm
 
 .set noat

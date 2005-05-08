@@ -38,5 +38,5 @@ before_thread_runs:
 userspace:
 calibrate_delay_loop:
 asm_delay_loop:
-    j $31
-    nop
+	j $31
+	nop

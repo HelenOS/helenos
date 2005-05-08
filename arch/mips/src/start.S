@@ -44,48 +44,48 @@
 .org 0x0
 kernel_image_start:
 tlb_refill_entry:
-    j tlb_refill_handler
-    nop
+	j tlb_refill_handler
+	nop
 
 .org 0x100
 cache_error_entry:
-    j cache_error_handler
-    nop
+	j cache_error_handler
+	nop
     
 .org 0x180
 exception_entry:
 exception_handler:
-    sub $29, STACK_SPACE
-    REGISTERS_STORE $29
+	sub $29, STACK_SPACE
+	REGISTERS_STORE $29
     
-    jal exception
-    nop
+	jal exception
+	nop
     
-    REGISTERS_LOAD $29
-    add $29, STACK_SPACE
+	REGISTERS_LOAD $29
+	add $29, STACK_SPACE
 
-    eret
+	eret
 
 tlb_refill_handler:
-    sub $29, STACK_SPACE
-    REGISTERS_STORE $29
+	sub $29, STACK_SPACE
+	REGISTERS_STORE $29
     
-    jal tlb_refill
-    nop
+	jal tlb_refill
+	nop
     
-    REGISTERS_LOAD $29
-    add $29, STACK_SPACE
+	REGISTERS_LOAD $29
+	add $29, STACK_SPACE
     
-    eret
+	eret
 
 cache_error_handler:
-    sub $29, STACK_SPACE
-    REGISTERS_STORE $29
+	sub $29, STACK_SPACE
+	REGISTERS_STORE $29
 
-    jal cache_error
-    nop
+	jal cache_error
+	nop
     
-    REGISTERS_LOAD $29
-    add $29, STACK_SPACE
+	REGISTERS_LOAD $29
+	add $29, STACK_SPACE
 
-    eret
+	eret

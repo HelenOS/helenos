@@ -30,7 +30,10 @@
 
 .global context_save
 .global context_restore
-
+.global fpu_context_save
+.global fpu_context_restore
+.global fpu_lazy_context_save
+.global fpu_lazy_context_restore
 
 #
 # save context of this CPU
@@ -76,23 +79,23 @@ context_restore:
 	ret
 
 
-.global fpu_context_save
 fpu_context_save:
         ret
-.global fpu_context_restore
+
 fpu_context_restore:
         ret
 
-.global fpu_lazy_context_save
 fpu_lazy_context_save:
-        mov 4(%esp),%eax;
+	pushl %eax
+        mov 8(%esp),%eax
         fxsave (%eax)
-        xor %eax,%eax;
-        ret;
-.global fpu_lazy_context_restore
+        popl %eax
+        ret
+
 fpu_lazy_context_restore:
-        mov 4(%esp),%eax;
+	pushl %eax
+        mov 8(%esp),%eax
         fxrstor (%eax)
-        xor %eax,%eax;
-       ret;
+        popl %eax
+        ret
 
