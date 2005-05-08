@@ -32,7 +32,7 @@
 #include <arch/types.h>
 
 struct fpu_context {
-  //Don't understand MIPS fpu environment
+/* TODO: define MIPS FPU context */
 };
 
 

@@ -32,7 +32,7 @@
 #include <arch/types.h>
 
 struct fpu_context {
-  __u8 fpu[512]; //FXSAVE & FXRSTOR storage area size
+	__u8 fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
 };
 
 

@@ -32,7 +32,7 @@
 #include <arch/types.h>
 
 struct fpu_context {
-  //Don't understand IA-64 fpu environment
+/* TODO: define IA-64 FPU context */
 };
 
 

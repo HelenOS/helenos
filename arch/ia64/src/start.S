@@ -44,5 +44,7 @@ kernel_image_start:
 	mov r15=SKI_CONSOLE_INIT
 	break 0x80000
 
+	br.call.sptk.many rp=main_bsp
+
 0:
 	br 0b

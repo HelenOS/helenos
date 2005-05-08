@@ -9,8 +9,6 @@
 
 + get user mode support for all architectures
 
-+ when a new thread enters scheduler, at least one CPU in
-  cpu_sleep() should be woken up by an IPI
 + save/restore floating point context on context switch 
   + [ia32] lazy context switch using TS flag
 + [ia32] review privilege separation

@@ -35,8 +35,6 @@
 .global arch_late_init
 .global arch_post_mm_init
 .global arch_pre_mm_init
-.global context_restore
-.global context_save
 .global cpu_arch_init
 .global cpu_halt
 .global cpu_identify
@@ -58,8 +56,6 @@ asm_delay_loop:
 arch_late_init:
 arch_post_mm_init:
 arch_pre_mm_init:
-context_restore:
-context_save:
 cpu_arch_init:
 cpu_halt:
 cpu_identify:
