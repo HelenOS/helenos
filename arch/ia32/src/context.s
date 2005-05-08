@@ -31,6 +31,7 @@
 .global context_save
 .global context_restore
 
+
 #
 # save context of this CPU
 context_save:
@@ -73,3 +74,23 @@ context_restore:
 	movl %eax,(%esp)	# ctx->pc -> saver's return %eip
         xorl %eax,%eax		# context_restore returns 0
 	ret
+
+
+.global fpu_context_save
+fpu_context_save:
+    ret
+.global fpu_context_restore
+fpu_context_restore:
+    ret
+
+.global fpu_lazy_context_save
+    mov 4(%esp),%eax;
+    fxsave (%eax)
+    xor %eax,%eax;
+    ret;
+.global fpu_lazy_context_restore
+    mov 4(%esp),%eax;
+    fxrstor (%eax)
+    xor %eax,%eax;
+    ret;
+

@@ -46,7 +46,6 @@ struct context {
 	__u32 edi;
 	__u32 ebp;
 	__u32 pri;
-	struct fpu_context *fpu;	
 } __attribute__ ((packed));
 
 #endif

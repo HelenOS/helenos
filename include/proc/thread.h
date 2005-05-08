@@ -72,7 +72,9 @@ struct thread {
 
 	context_t saved_context;
 	context_t sleep_timeout_context;
-
+	fpu_context_t saved_fpu;	               
+	
+	
 	waitq_t *sleep_queue;
 	timeout_t sleep_timeout;
 	volatile int timeout_pending;
