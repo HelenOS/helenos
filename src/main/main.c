@@ -91,10 +91,10 @@ void main_bsp(void)
 	config.memory_size = CONFIG_MEMORY_SIZE;
 	config.kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE + CONFIG_STACK_SIZE;
 
-	context_save(&ctx); /* There is no nead to save FPU context */
+	context_save(&ctx);
 	ctx.sp = config.base + config.kernel_size - 8;
 	ctx.pc = (__address) main_bsp_separated_stack;
-	context_restore(&ctx); /* There is no nead to load FPU context */
+	context_restore(&ctx);
 	/* not reached */
 }
 
@@ -192,7 +192,7 @@ void main_ap(void)
 	 */
 	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
 	CPU->saved_context.pc = (__address) main_ap_separated_stack;
-	context_restore(&CPU->saved_context); /* There is no nead to load FPU context */
+	context_restore(&CPU->saved_context);
 	/* not reached */
 }
 
