@@ -31,6 +31,11 @@
 
 #include <arch/types.h>
 
+struct fpu_context {
+  //Don't understand IA-64 fpu environment
+};
+
+
 struct context {
 	__u64 sp;
 	__u64 pc;

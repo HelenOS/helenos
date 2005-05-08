@@ -31,6 +31,11 @@
 
 #include <arch/types.h>
 
+struct fpu_context {
+  __u8 fpu[512]; //FXSAVE & FXRSTOR storage area size
+};
+
+
 struct context {
 	__u32 sp;
 	__u32 pc;
@@ -40,7 +45,8 @@ struct context {
 	__u32 esi;
 	__u32 edi;
 	__u32 ebp;
-	__u32 pri;	
+	__u32 pri;
+	struct fpu_context *fpu;	
 } __attribute__ ((packed));
 
 #endif

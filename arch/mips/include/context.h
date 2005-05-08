@@ -31,6 +31,12 @@
 
 #include <arch/types.h>
 
+struct fpu_context {
+  //Don't understand MIPS fpu environment
+};
+
+
+
 struct context {
     __u32 r0;
     __u32 r1;

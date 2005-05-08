@@ -38,6 +38,7 @@ typedef struct cpu_arch cpu_arch_t;
 typedef struct task task_t;
 typedef struct thread thread_t;
 typedef struct context context_t;
+typedef struct fpu_context fpu_context_t;
 
 typedef struct timeout timeout_t;
 
