@@ -61,9 +61,38 @@ static char *vendor_str[] = {
 	"GenuineIntel"
 };
 
+void set_TS_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%eax;"
+		"or $8,%%eax;"
+		"mov %%eax,%%cr0;"
+		:
+		:
+		:"%eax"
+	);
+}
+
+void reset_TS_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%eax;"
+		"and $0xffFFffF7,%%eax;"
+		"mov %%eax,%%cr0;"
+		:
+		:
+		:"%eax"
+	);	
+}
+
+
+
 void cpu_arch_init(void)
 {
 	CPU->arch.tss = tss_p;
+	CPU->arch.fpu_owner=NULL;
 }
 
 

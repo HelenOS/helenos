@@ -30,6 +30,7 @@
 #define __ia32_CPU_H__
 
 #include <config.h>
+#include <proc/thread.h>
 #include <typedefs.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
@@ -46,7 +47,11 @@ struct cpu_arch {
         int model;
         int stepping;
 	struct tss *tss;
+	thread_t *fpu_owner;
 };
 
+
+void set_TS_flag(void);
+void reset_TS_flag(void);
 
 #endif
