@@ -33,8 +33,8 @@ memcpy:
 	/*
 	 * Switch the role of first two arguments
 	 */
-	sub r33 = r32, r33	;;
+	sub r33 = r33, r32	;;
 	add r32 = r32, r33	;;
-	sub r33 = r33, r32	
+	sub r33 = r32, r33	
 		
 	br _memcopy

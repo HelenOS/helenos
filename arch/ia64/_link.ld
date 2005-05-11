@@ -12,7 +12,7 @@ ENTRY(kernel_image_start)
 
 SECTIONS {
     .image 0x0000000000001000: AT (0x0000000000001000) { 
-	    ktext_start = .;
+	    *(K_TEXT_START)
 	    *(.text .stub .text.* .gnu.linkonce.t.*)
 	    *(.interp)
 	    *(.hash)
@@ -50,8 +50,8 @@ SECTIONS {
 	    *(.init)
 	    *(.plt)
 	    *(.fini)
-	    ktext_end = .;
-	    kdata_start = .;
+	    *(K_TEXT_END)
+	    *(K_DATA_START)
 	    *(.rodata .rodata.* .gnu.linkonce.r.*)
 	    *(.rodata1)
 	    *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
@@ -79,23 +79,9 @@ SECTIONS {
 	    *(.scommon)
 	    *(.dynbss)
 	    *(.bss .bss.* .gnu.linkonce.b.*)
-	    *(COMMON)
-	    kdata_end = .;
+	    *(COMMON);
+	    *(K_DATA_END)
     }
 
-    . = ABSOLUTE(hardcoded_ktext_size);
-    .patch_1 : {
-        LONG(ktext_end - ktext_start);
-    }
-
-    . = ABSOLUTE(hardcoded_kdata_size);
-    .patch_2 : {
-        LONG(kdata_end - kdata_start);
-    }
-
-    . = ABSOLUTE(hardcoded_load_address);
-    .patch_3 : {
-        QUAD(0x0000000000001000);
-    }
-
+    
 }

@@ -77,7 +77,7 @@ context_save:
 	mov ar.pfs = loc0
 	
 	add r8 = r0, r0, 1 		/* context_save returns 1 */
-	br.ret.sptk.many rp
+	br.ret.sptk.many b0
 
 context_restore:
 	alloc loc0 = ar.pfs, 1, 2, 0, 0
@@ -125,4 +125,4 @@ context_restore:
 	mov ar.pfs = loc0
 	
 	mov r8 = r0			/* context_restore returns 0 */
-	br.ret.sptk.many rp
+	br.ret.sptk.many b0

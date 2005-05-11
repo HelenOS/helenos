@@ -28,6 +28,23 @@
 
 #include <arch/ski/ski.h>
 
+.section K_TEXT_START
+.global k_text_start
+k_text_start:
+
+.section K_TEXT_END
+.global k_text_end
+k_text_end:
+
+.section K_DATA_START
+.global k_data_start
+k_data_start:
+
+.section K_DATA_END
+.global k_data_end
+k_data_end:
+
+
 .text
 
 .global kernel_image_start
@@ -35,16 +52,36 @@
 stack0:
 kernel_image_start:
 	# initialize gp (Global Pointer) register
-	mov r1=kernel_image_start;
+	movl r1=k_text_start;
 
 	# set stack pointer to some sane value
-	mov r12=stack0
+	movl r12=stack0
+
+	#
+	# Initialize hardcoded_* variables.
+	# (IA-64 port doesn't get these values from linker.)
+	#
+	movl r8 = k_text_start	;;
+	movl r9 = k_text_end	;;
+	sub r8 = r9, r8		;;
+	addl r10 = @gprel(hardcoded_ktext_size), gp;;
+	st4 [r10] = r8		;;
+
+	movl r8 = k_data_start	;;
+	movl r9 = k_data_end	;;
+	sub r8 = r9, r8		;;
+	addl r10 = @gprel(hardcoded_kdata_size), gp;;
+	st4 [r10] = r8		;;
+	
+	addl r10 = @gprel(hardcoded_load_address), gp;;
+	st8 [r10] = r1
 	
 	# initialize Ski console using SSC (Simulator System Call)
 	mov r15=SKI_CONSOLE_INIT
 	break 0x80000
 
-	br.call.sptk.many rp=main_bsp
+	br.call.sptk.many b0=main_bsp
 
 0:
 	br 0b
+

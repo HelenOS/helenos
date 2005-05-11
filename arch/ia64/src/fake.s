@@ -69,5 +69,5 @@ frame_arch_init:
 map_page_to_frame:
 memsetb:
 panic:
-	br.ret.sptk.many rp
+	br.ret.sptk.many b0
 

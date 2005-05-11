@@ -12,7 +12,7 @@ ASFLAGS=-EL
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O3
-LFLAGS=-EL -n -M -no-check-sections -T ../arch/ia64/_link.ld
+LFLAGS=-EL -M -no-check-sections -T ../arch/ia64/_link.ld
 
 arch_sources= \
 	arch/start.S \
