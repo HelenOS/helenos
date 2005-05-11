@@ -72,7 +72,7 @@ struct link {
 
 #define list_get_instance(link,type,member) (type *)(((__u8*)(link))-((__u8*)&(((type *)NULL)->member)))
 
-extern int list_member(link_t *link, link_t *head);
+extern bool list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);
 
 #endif

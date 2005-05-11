@@ -37,17 +37,17 @@
  * @param link Item to look for.
  * @param head List to look in.
  *
- * @return 1 if link is contained in head, 0 otherwise.
+ * @return true if link is contained in head, false otherwise.
  *
  */
-int list_member(link_t *link, link_t *head)
+bool list_member(const link_t *link, const link_t *head)
 {
-	int found = 0;
+	bool found = false;
 	link_t *hlp = head->next;
 	
 	while (hlp != head) {
 		if (hlp == link) {
-			found = 1;
+			found = true;
 			break;
 		}
 		hlp = hlp->next;

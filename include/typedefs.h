@@ -29,6 +29,11 @@
 #ifndef __TYPEDEFS_H__
 #define __TYPEDEFS_H__
 
+#define false 0
+#define true 1
+
+typedef short bool;
+
 typedef struct config config_t;
 typedef struct cpu_private_data cpu_private_data_t;
 typedef struct cpu_info cpu_info_t;
