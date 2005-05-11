@@ -42,10 +42,10 @@
 static chunk_t *chunk0;
 static spinlock_t heaplock;
 
-void heap_init(__address heap, int size)
+void heap_init(__address heap, __u32 size)
 {
 	spinlock_initialize(&heaplock);
-	memsetb(heap,size,0);
+	memsetb(heap, size, 0);
 	chunk0 = (chunk_t *) heap;
 	chunk0->used = 0;
 	chunk0->size = size - sizeof(chunk_t);
@@ -56,7 +56,7 @@ void heap_init(__address heap, int size)
 /*
  * Uses first-fit algorithm.
  */
-void *malloc(int size)
+void *malloc(size_t size)
 {
 	pri_t pri;
 	chunk_t *x, *y, *z;

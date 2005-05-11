@@ -77,7 +77,7 @@ struct vm {
 extern vm_t * vm_create(void);
 extern void vm_destroy(vm_t *m);
 
-extern vm_area_t *vm_area_create(vm_t *m, vm_type_t type, int size, __address addr);
+extern vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr);
 extern void vm_area_destroy(vm_area_t *a);
 
 extern void vm_area_map(vm_area_t *a);

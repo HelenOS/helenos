@@ -61,7 +61,7 @@ void halt(void)
  * @return 0 if the strings are equal, 1 otherwise.
  *
  */
-int strcmp(char *src, char *dst)
+int strcmp(const char *src, const char *dst)
 {
 	int i;
 	

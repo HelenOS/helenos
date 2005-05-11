@@ -56,7 +56,7 @@ void vm_destroy(vm_t *m)
 {
 }
 
-vm_area_t *vm_area_create(vm_t *m, vm_type_t type, int size, __address addr)
+vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 {
 	pri_t pri;
 	vm_area_t *a;

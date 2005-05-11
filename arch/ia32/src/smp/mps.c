@@ -289,7 +289,7 @@ void ct_bus_entry(struct __bus_entry *bus)
 {
 #ifdef MPSCT_VERBOSE
 	char buf[7];
-	memcopy((__address) bus->bus_type, (__address) buf,6);
+	memcopy((__address) bus->bus_type, (__address) buf, 6);
 	buf[6] = 0;
 	printf("bus%d: %s\n", bus->bus_id, buf);
 #endif

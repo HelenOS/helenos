@@ -29,19 +29,20 @@
 #ifndef __MEMSTR_H__
 #define __MEMSTR_H__
 
+#include <typedefs.h>
 #include <arch/types.h>
 
-extern void memcopy(__address src, __address dst, int cnt);
+extern void memcopy(__address src, __address dst, size_t cnt);
 
-extern void memsetw(__address dst, int cnt, __u16 x);
-extern void memsetb(__address dst, int cnt, __u8 x);
+extern void memsetw(__address dst, size_t cnt, __u16 x);
+extern void memsetb(__address dst, size_t cnt, __u8 x);
 
 extern int memcmp(__address src, __address dst, int cnt);
 
 /*
  * Architecture independent variants.
  */
-extern void _memcopy(__address src, __address dst, int cnt);
-extern void _memsetb(__address dst, int cnt, __u8 x);
+extern void _memcopy(__address src, __address dst, size_t cnt);
+extern void _memsetb(__address dst, size_t cnt, __u8 x);
 
 #endif

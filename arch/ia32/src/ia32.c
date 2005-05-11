@@ -67,14 +67,14 @@ void arch_pre_mm_init(void)
 	}
 }
 
-void arch_post_mm_init()
+void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		ega_init();	/* video */
 	}
 }
 
-void arch_late_init()
+void arch_late_init(void)
 {
 	if (config.cpu_active == 1) {
 		#ifdef __SMP__

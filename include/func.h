@@ -35,6 +35,6 @@ extern __u32 haltstate;
 
 extern void halt(void);
 
-extern int strcmp(char *src, char *dst);
+extern int strcmp(const char *src, const char *dst);
 
 #endif

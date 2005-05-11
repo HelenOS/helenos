@@ -41,7 +41,7 @@
  * @param cnt Number of bytes to copy.
  *
  */
-void _memcopy(__address src, __address dst, int cnt)
+void _memcopy(__address src, __address dst, size_t cnt)
 {
 	int i;
 	
@@ -60,7 +60,7 @@ void _memcopy(__address src, __address dst, int cnt)
  * @param x   Value to fill.
  *
  */
-void _memsetb(__address dst, int cnt, __u8 x)
+void _memsetb(__address dst, size_t cnt, __u8 x)
 {
 	int i;
 	__u8 *p = (__u8 *) dst;

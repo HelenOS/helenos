@@ -40,9 +40,9 @@ struct chunk {
 	__u8 data[0];
 };
 
-extern void heap_init(__address heap, int size);
+extern void heap_init(__address heap, __u32 size);
 
-extern void *malloc(int size);
+extern void *malloc(size_t size);
 extern void free(void *ptr);
 
 #endif
