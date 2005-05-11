@@ -15,6 +15,7 @@ sources=cpu/cpu.c \
 	mm/vm.c \
 	lib/func.c \
 	lib/list.c \
+	lib/memstr.c \
 	debug/print.c \
 	time/clock.c \
 	time/timeout.c \

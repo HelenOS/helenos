@@ -29,7 +29,7 @@
 #include <memstr.h>
 #include <arch/types.h>
 
-void memcopy(__address src, __address dst, int cnt)
+void _memcopy(__address src, __address dst, int cnt)
 {
 	int i;
 	
@@ -37,7 +37,7 @@ void memcopy(__address src, __address dst, int cnt)
 		*((__u8 *) (dst + i)) = *((__u8 *) (src + i));
 }
 
-void memsetb(__address dst, int cnt, __u8 x)
+void _memsetb(__address dst, int cnt, __u8 x)
 {
 	int i;
 	__u8 *p = (__u8 *) dst;

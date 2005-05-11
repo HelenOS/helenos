@@ -143,6 +143,11 @@ cpu_halt:
 	nop
 
 
+.global memsetb
+memsetb:
+	j _memsetb
+	nop
+
 # THIS IS USERSPACE CODE
 .global utext
 utext:

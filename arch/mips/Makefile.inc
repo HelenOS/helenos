@@ -26,7 +26,6 @@ arch_sources= \
 	arch/exception.c \
 	arch/interrupt.c \
 	arch/cache.c \
-	arch/lib/memstr.c \
 	arch/cpu/cpu.c \
 	arch/mm/frame.c \
 	arch/mm/page.c \
