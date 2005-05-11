@@ -29,6 +29,18 @@
 #include <memstr.h>
 #include <arch/types.h>
 
+
+/** Copy block of memory
+ *
+ * Copy cnt bytes from src address to dst address.
+ * The copying is done byte-by-byte. The source
+ * and destination memory areas cannot overlap.
+ *
+ * @param src Origin address to copy from.
+ * @param dst Origin address to copy to.
+ * @param cnt Number of bytes to copy.
+ *
+ */
 void _memcopy(__address src, __address dst, int cnt)
 {
 	int i;
@@ -37,6 +49,17 @@ void _memcopy(__address src, __address dst, int cnt)
 		*((__u8 *) (dst + i)) = *((__u8 *) (src + i));
 }
 
+
+/** Fill block of memory
+ *
+ * Fill cnt bytes at dst address with the value x.
+ * The filling is done byte-by-byte.
+ *
+ * @param dst Origin address to fill.
+ * @param cnt Number of bytes to fill.
+ * @param x   Value to fill.
+ *
+ */
 void _memsetb(__address dst, int cnt, __u8 x)
 {
 	int i;

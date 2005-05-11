@@ -28,6 +28,18 @@
 
 #include <list.h>
 
+
+/** Check for membership
+ *
+ * Check whether link is contained in the list head.
+ * The membership is defined as pointer equivalence.
+ *
+ * @param link Item to look for.
+ * @param head List to look in.
+ *
+ * @return 1 if link is contained in head, 0 otherwise.
+ *
+ */
 int list_member(link_t *link, link_t *head)
 {
 	int found = 0;
@@ -44,6 +56,17 @@ int list_member(link_t *link, link_t *head)
 	return found;
 }
 
+
+/** Concatenate two lists
+ *
+ * Concatenate lists head1 and head2, producing a single
+ * list head1 containing items from both (in head1, head2
+ * order) and empty list head2.
+ *
+ * @param head1 First list and concatenated output
+ * @param head2 Second list and empty output.
+ *
+ */
 void list_concat(link_t *head1, link_t *head2)
 {
 	if (list_empty(head2))

@@ -32,8 +32,14 @@
 #include <arch/asm.h>
 #include <arch.h>
 
-__u32	haltstate = 0;
+__u32	haltstate = 0; /**< Halt flag */
 
+
+/** Halt wrapper
+ *
+ * Set halt flag and halt the cpu.
+ *
+ */
 void halt(void)
 {
 	haltstate = 1;
@@ -43,9 +49,17 @@ void halt(void)
 }
 
 
-/*
- * returns 0 if src == dst
- * otherwise returns 1
+/** Compare two NULL terminated strings
+ *
+ * Do a char-by-char comparment of two NULL terminated strings.
+ * The strings are considered equal iff they have the same
+ * length and consist of the same characters.
+ *
+ * @param src First string to compare.
+ * @param dst Second string to compare.
+ *
+ * @return 0 if the strings are equal, 1 otherwise.
+ *
  */
 int strcmp(char *src, char *dst)
 {
