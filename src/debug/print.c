@@ -107,22 +107,22 @@ void print_number(const __native num, const int base)
  * following character:
  *
  * %    Prints the percentage character.
- * s    The next variant argument is threated as char*
+ * s    The next variant argument is treated as char*
  *      and printed as a NULL terminated string.
- * c    The next variant argument is threated as a single char.
- * l    The next variant argument is threated as a 32b integer
+ * c    The next variant argument is treated as a single char.
+ * l    The next variant argument is treated as a 32b integer
  *      and printed in full hexadecimal width.
  * L    As with 'l', but '0x' is prefixed.
- * w    The next variant argument is threated as a 16b integer
+ * w    The next variant argument is treated as a 16b integer
  *      and printed in full hexadecimal width.
  * W    As with 'w', but '0x' is prefixed.
- * b    The next variant argument is threated as a 8b integer
+ * b    The next variant argument is treated as a 8b integer
  *      and printed in full hexadecimal width.
  * N    As with 'b', but '0x' is prefixed.
- * d    The next variant argument is threated as integer
+ * d    The next variant argument is treated as integer
  *      and printed in standard decimal format (only significant
  *      digits).
- * x    The next variant argument is threated as integer
+ * x    The next variant argument is treated as integer
  *      and printed in standard hexadecimal format (only significant
  *      digits).
  * X    As with 'x', but '0x' is prefixed.
