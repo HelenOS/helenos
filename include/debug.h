@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Martin Decky
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
  *
  */
 #ifndef NDEBUG
-#	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s)\n", #expr); }
+#	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s)", #expr); }
 #else
 #	define ASSERT(expr)
 #endif
