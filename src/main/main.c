@@ -55,7 +55,7 @@
 #include <arch.h>
 
 char *project = "SPARTAN kernel";
-char *copyright = "Copyright (C) 2001-2005 Jakub Jermar";
+char *copyright = "Copyright (C) 2001-2005 Jakub Jermar, Copyright (C) 2005 HelenOS project";
 
 config_t config;
 context_t ctx;
@@ -113,7 +113,7 @@ void main_bsp_separated_stack(void) {
 
 	arch_post_mm_init();
 
-	printf("%s, %s\n", project, copyright);
+	printf("%s\n%s\n", project, copyright);
 
 	printf("%L: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
