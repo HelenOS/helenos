@@ -143,7 +143,7 @@ void pm_init(void)
 	else {
 		tss_p = (struct tss *) malloc(sizeof(struct tss));
 		if (!tss_p)
-			panic(PANIC "could not allocate TSS\n");
+			panic("could not allocate TSS\n");
 	}
 
 	tss_initialize(tss_p);

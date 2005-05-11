@@ -37,6 +37,7 @@
 #include <arch.h>
 #include <arch/asm.h>
 #include <list.h>
+#include <panic.h>
 #include <typedefs.h>
 #include <mm/page.h>
 #include <synch/spinlock.h>

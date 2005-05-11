@@ -119,24 +119,24 @@ void kinit(void *arg)
 	 * Create the first user task.
 	 */
 	m = vm_create();
-	if (!m)	panic(PANIC "vm_create");
+	if (!m)	panic("vm_create");
 	u = task_create(m);
-	if (!u)	panic(PANIC "task_create");
+	if (!u)	panic("task_create");
 	t = thread_create(uinit, NULL, u, THREAD_USER_STACK);
-	if (!t) panic(PANIC "thread_create");
+	if (!t) panic("thread_create");
 
 	/*
 	 * Create the text vm_area and copy the userspace code there.
 	 */	
 	a = vm_area_create(m, VMA_TEXT, 1, UTEXT_ADDRESS);
-	if (!a) panic(PANIC "vm_area_create: vm_text");
+	if (!a) panic("vm_area_create: vm_text");
 	memcopy((__address) utext, PA2KA(a->mapping[0]), utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);		
 
 	/*
 	 * Create the data vm_area.
 	 */
 	a = vm_area_create(m, VMA_STACK, 1, USTACK_ADDRESS);
-	if (!a) panic(PANIC "vm_area_create: vm_stack");
+	if (!a) panic("vm_area_create: vm_stack");
 	
 	thread_ready(t);
 #endif /* __USERSPACE__ */

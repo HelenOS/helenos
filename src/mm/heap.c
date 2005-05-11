@@ -30,6 +30,7 @@
 #include <synch/spinlock.h>
 #include <func.h>
 #include <memstr.h>
+#include <panic.h>
 #include <arch/types.h>
 
 /*

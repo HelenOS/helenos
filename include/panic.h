@@ -29,8 +29,12 @@
 #ifndef __PANIC_H__
 #define __PANIC_H__
 
-#define PANIC "KERNEL PANIC: "
+#ifndef NDEBUG
+#	define panic(format, ...) panic_printf("Kernel panic in %s() at %s on line %d: " format, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);
+#else
+#	define panic(format, ...) panic_printf("Kernel panic: " format, ##__VA_ARGS__);
+#endif
 
-extern void panic(char *fmt, ...);
+extern void panic_printf(char *fmt, ...);
 
 #endif

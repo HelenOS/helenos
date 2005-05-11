@@ -75,7 +75,7 @@ void interrupt(void)
 			    case 0x3:
 			    case 0x4:
 			    case 0x5:
-                            case 0x6: panic(PANIC "unhandled interrupt %d\n", i); break;
+                            case 0x6: panic("unhandled interrupt %d\n", i); break;
                             case 0x7:
                                     /* clear timer interrupt */
                                     cp0_compare_write(cp0_compare_value);

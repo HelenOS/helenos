@@ -41,12 +41,12 @@ void tlb_refill(void)
 		main_bsp();
 	}
 	
-	panic(PANIC "tlb_refill exception\n");
+	panic("tlb_refill exception\n");
 }
 
 void tlb_invalid(void)
 {
-	panic(PANIC "%X: TLB exception at %X", cp0_badvaddr_read(), THREAD ? THREAD->saved_epc : 0);
+	panic("%X: TLB exception at %X", cp0_badvaddr_read(), THREAD ? THREAD->saved_epc : 0);
 }
 
 void tlb_invalidate(int asid)

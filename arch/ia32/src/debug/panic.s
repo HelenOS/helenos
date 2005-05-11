@@ -27,8 +27,8 @@
 #
 
 .text
-.global panic
+.global panic_printf
 
-panic:
+panic_printf:
 	movl $halt,(%esp)	# fake stack to make printf return to halt
 	jmp printf

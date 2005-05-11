@@ -47,7 +47,7 @@
 .global frame_arch_init
 .global map_page_to_frame
 .global memsetb
-.global panic
+.global panic_printf
 
 before_thread_runs_arch:
 userspace:
@@ -68,6 +68,6 @@ cpu_sleep:
 frame_arch_init:
 map_page_to_frame:
 memsetb:
-panic:
+panic_printf:
 	br.ret.sptk.many b0
 

@@ -31,5 +31,5 @@
 
 void cache_error(void)
 {
-	panic(PANIC "cache_error exception\n");
+	panic("cache_error exception\n");
 }

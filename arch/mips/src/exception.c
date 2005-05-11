@@ -51,7 +51,7 @@ void exception(void)
 		case EXC_Int: interrupt(); break;
 		case EXC_TLBL:
 		case EXC_TLBS: tlb_invalid(); break;
-		default: panic(PANIC "unhandled exception %d\n", excno); break;
+		default: panic("unhandled exception %d\n", excno); break;
 	}
 	
 	if (THREAD) {

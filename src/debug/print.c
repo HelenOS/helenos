@@ -46,11 +46,11 @@ static spinlock_t printflock;              /**< printf spinlock */
  */
 void print_str(const char *str)
 {
-        int i = 0;
+	int i = 0;
 	char c;
-    
+	
 	while (c = str[i++])
-	    putchar(c);
+		putchar(c);
 }
 
 
@@ -84,12 +84,12 @@ void print_fixed_hex(const __native num, const int width)
  *             be in range 2 .. 16).
  *
  */
-void print_number(const __native num, const int base)
+void print_number(const __native num, const unsigned int base)
 {
 	int val = num;
 	char d[sizeof(__native)*8+1];		/* this is good enough even for base == 2 */
-        int i = sizeof(__native)*8-1;
-    
+	int i = sizeof(__native)*8-1;
+	
 	do {
 		d[i--] = digits[val % base];
 	} while (val /= base);

@@ -62,7 +62,7 @@ vm_area_t *vm_area_create(vm_t *m, vm_type_t type, int size, __address addr)
 	vm_area_t *a;
 	
 	if (addr % PAGE_SIZE)
-		panic(PANIC "addr not aligned to a page boundary");
+		panic("addr not aligned to a page boundary");
 	
 	pri = cpu_priority_high();
 	spinlock_lock(&m->lock);
@@ -124,7 +124,7 @@ void vm_area_map(vm_area_t *a)
 			flags = PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
 			break;
 		default:
-			panic(PANIC "unexpected vm_type_t %d", a->type); 
+			panic("unexpected vm_type_t %d", a->type); 
 	}
 	
 	for (i=0; i<a->size; i++)

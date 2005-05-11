@@ -71,7 +71,7 @@ void frame_init(void)
 
                 frame_bitmap = (__u8 *) malloc(frame_bitmap_octets);
                 if (!frame_bitmap)
-                        panic(PANIC "malloc/frame_bitmap\n");
+                        panic("malloc/frame_bitmap\n");
 
                 /*
                  * Mark all frames free.
@@ -144,16 +144,16 @@ loop:
 				return i*FRAME_SIZE;
 			}
 		}
-		panic(PANIC "frames_free inconsistent (%d)\n", frames_free);
+		panic("frames_free inconsistent (%d)\n", frames_free);
 	}
 	spinlock_unlock(&framelock);
 	cpu_priority_restore(pri);
 
 	if (flags & FRAME_PANIC)
-		panic(PANIC "unable to allocate frame\n");
+		panic("unable to allocate frame\n");
 		
 	/* TODO: implement sleeping logic here */
-	panic(PANIC "sleep not supported\n");
+	panic("sleep not supported\n");
 	
 	goto loop;
 }
@@ -195,9 +195,9 @@ void frame_free(__address addr)
 				 frames_free++;
 			}	
 		}
-		else panic(PANIC "frame_free: frame already free\n");
+		else panic("frame_free: frame already free\n");
 	}
-	else panic(PANIC "frame_free: frame number too big\n");
+	else panic("frame_free: frame number too big\n");
 	
 	spinlock_unlock(&framelock);
 	cpu_priority_restore(pri);

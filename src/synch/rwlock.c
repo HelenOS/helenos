@@ -184,10 +184,10 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 				cpu_priority_restore(pri);
 				break;
 			case ESYNCH_OK_ATOMIC:
-				panic(PANIC "_mutex_lock_timeout()==ESYNCH_OK_ATOMIC");
+				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC");
 				break;
 			dafault:
-				panic(PANIC "invalid ESYNCH");
+				panic("invalid ESYNCH");
 				break;
 		}
 		return rc;

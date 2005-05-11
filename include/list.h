@@ -68,7 +68,7 @@ struct link {
 	link_initialize(link); \
 }
 
-#define list_empty(head) (((head)->next == (head))?1:0)
+#define list_empty(head) (((head)->next == (head))?true:false)
 
 #define list_get_instance(link,type,member) (type *)(((__u8*)(link))-((__u8*)&(((type *)NULL)->member)))
 

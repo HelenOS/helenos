@@ -28,6 +28,7 @@
 
 #include <arch/interrupt.h>
 #include <print.h>
+#include <debug.h>
 #include <panic.h>
 #include <arch/i8259.h>
 #include <func.h>
@@ -48,12 +49,14 @@ void (* eoi_function)(void) = NULL;
 
 iroutine trap_register(__u8 n, iroutine f)
 {
+	ASSERT(n < IVT_ITEMS);
+	
 	iroutine old;
-    
+	
 	old = ivt[n];
 	ivt[n] = f;
-    
-    	return old;
+	
+	return old;
 }
 
 /*
@@ -62,7 +65,9 @@ iroutine trap_register(__u8 n, iroutine f)
  */
 void trap_dispatcher(__u8 n, __u32 stack[])
 {
-	ivt[n](n,stack);
+	ASSERT(n < IVT_ITEMS);
+	
+	ivt[n](n, stack);
 }
 
 void null_interrupt(__u8 n, __u32 stack[])
@@ -112,7 +117,7 @@ void trap_virtual_enable_irqs(__u16 irqmask)
 	if (enable_irqs_function)
 		enable_irqs_function(irqmask);
 	else
-		panic(PANIC "no enable_irqs_function\n");
+		panic("no enable_irqs_function\n");
 }
 
 void trap_virtual_disable_irqs(__u16 irqmask)
@@ -120,7 +125,7 @@ void trap_virtual_disable_irqs(__u16 irqmask)
 	if (disable_irqs_function)
 		disable_irqs_function(irqmask);
 	else
-		panic(PANIC "no disable_irqs_function\n");
+		panic("no disable_irqs_function\n");
 }
 
 void trap_virtual_eoi(void)
@@ -128,6 +133,6 @@ void trap_virtual_eoi(void)
 	if (eoi_function)
 		eoi_function();
 	else
-		panic(PANIC "no eoi_function\n");
+		panic("no eoi_function\n");
 
 }

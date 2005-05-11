@@ -32,9 +32,9 @@
 .set noreorder
 .set nomacro
 
-.global panic
+.global panic_printf
 	
-panic:
+panic_printf:
 	jal printf
 	nop
 	j cpu_halt

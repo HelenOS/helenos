@@ -29,6 +29,7 @@
 #include <arch/asm.h>
 #include <arch/context.h>
 #include <print.h>
+#include <panic.h>
 #include <config.h>
 #include <time/clock.h>
 #include <proc/scheduler.h>

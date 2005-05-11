@@ -30,6 +30,7 @@
 #include <typedefs.h>
 #include <arch/types.h>
 #include <config.h>
+#include <panic.h>
 #include <synch/spinlock.h>
 #include <func.h>
 #include <cpu.h>

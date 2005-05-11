@@ -34,6 +34,8 @@
 
 typedef short bool;
 
+typedef unsigned int size_t;
+
 typedef struct config config_t;
 typedef struct cpu_private_data cpu_private_data_t;
 typedef struct cpu_info cpu_info_t;
