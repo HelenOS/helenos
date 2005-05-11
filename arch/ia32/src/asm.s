@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# very low and hardware-level functions
+## very low and hardware-level functions
 
 .text
 
@@ -53,40 +53,64 @@
 .global memsetw
 .global memcmp
 
+
+## Set priority level high
 #
-# set priority level high
+# Disable interrupts and return previous
+# EFLAGS in EAX.
+#
 cpu_priority_high:
 	pushf
 	pop %eax
 	cli
 	ret
-    
+
+
+## Set priority level low
 #
-# set priority level low
+# Enable interrupts and return previous
+# EFLAGS in EAX.
+#    
 cpu_priority_low:
         pushf
 	pop %eax
 	sti
 	ret
 
+
+## Restore priority level
 #
-# restore priority level
+# Restore EFLAGS.
+#
 cpu_priority_restore:
 	push 4(%esp)
 	popf
 	ret
 
-# return raw priority level
+## Return raw priority level
+#
+# Return EFLAFS in EAX.
+#
 cpu_priority_read:
 	pushf
 	pop %eax
 	ret
 
+
+## Halt the CPU
+#
+# Halt the CPU using HLT.
+#
 cpu_halt:
 cpu_sleep:
 	hlt
 	ret
 
+
+## Turn paging on
+#
+# Enable paging and write-back caching in CR0.
+#
 paging_on:
 	pushl %eax
 	movl %cr0,%eax
@@ -98,10 +122,20 @@ paging_on:
 	popl %eax
 	ret
 
+
+## Read CR3
+#
+# Store CR3 in EAX.
+#
 cpu_read_dba:
 	movl %cr3,%eax
 	ret
 
+
+## Write CR3
+#
+# Set CR3.
+#
 cpu_write_dba:
 	pushl %eax
 	movl 8(%esp),%eax
@@ -109,10 +143,20 @@ cpu_write_dba:
 	popl %eax
 	ret
 
+
+## Read CR2
+#
+# Store CR2 in EAX.
+#
 cpu_read_cr2:
 	movl %cr2,%eax
 	ret
 
+
+## Enable local APIC
+#
+# Enable local APIC in MSR.
+#
 enable_l_apic_in_msr:
 	pusha
 	
@@ -125,6 +169,15 @@ enable_l_apic_in_msr:
 	popa
 	ret
 
+
+## Declare interrupt handlers
+#
+# Declare interrupt handlers for n interrupt
+# vectors starting at vector i.
+#
+# The handlers setup data segment registers
+# and call trap_dispatcher().
+#
 .macro handler i n
 	push %ebp
 	movl %esp,%ebp
@@ -169,6 +222,10 @@ h_start:
 h_end:
 
 
+## I/O input (byte)
+#
+# Get a byte from I/O port and store it AL.
+#
 inb:
 	push %edx
 	xorl %eax,%eax
@@ -177,6 +234,11 @@ inb:
 	pop %edx
 	ret
 
+
+## I/O input (word)
+#
+# Get a word from I/O port and store it AX.
+#
 inw:
 	push %edx
 	xorl %eax,%eax
@@ -185,6 +247,11 @@ inw:
 	pop %edx
 	ret
 
+
+## I/O input (dword)
+#
+# Get a dword from I/O port and store it EAX.
+#
 inl:
 	push %edx
 	xorl %eax,%eax
@@ -193,6 +260,11 @@ inl:
 	pop %edx
 	ret
 
+
+## I/O output (byte)
+#
+# Send a byte to I/O port.
+#
 outb:
 	push %ebp
 	movl %esp,%ebp
@@ -206,6 +278,11 @@ outb:
 	pop %ebp
 	ret
 
+
+## I/O output (word)
+#
+# Send a word to I/O port.
+#
 outw:
 	push %ebp
 	movl %esp,%ebp
@@ -219,6 +296,11 @@ outw:
 	pop %ebp
 	ret
 
+
+## I/O output (dword)
+#
+# Send a dword to I/O port.
+#
 outl:
 	push %ebp
 	movl %esp,%ebp
@@ -232,6 +314,14 @@ outl:
 	pop %ebp
 	ret
 
+
+## Copy memory
+#
+# Copy a given number of bytes (3rd argument)
+# from the memory location defined by 1st argument
+# to the memory location defined by 2nd argument.
+# The memory areas cannot overlap.
+#
 SRC=8
 DST=12
 CNT=16
@@ -251,25 +341,13 @@ memcopy:
 	pop %ebp
 	ret
 
-DST=8
-CNT=12
-X=16
-memsetw:
-	push %ebp
-	movl %esp,%ebp
-	pusha
-    
-	cld
-	movl CNT(%ebp),%ecx
-	movl DST(%ebp),%edi
-	movl X(%ebp),%eax
-    
-	rep stosw %ax,%es:(%edi)
-    
-        popa
-	pop %ebp
-	ret
 
+## Fill memory with bytes
+#
+# Fill a given number of bytes (2nd argument)
+# at memory defined by 1st argument with the
+# byte value defined by 3rd argument.
+#
 DST=8
 CNT=12
 X=16
@@ -289,6 +367,40 @@ memsetb:
 	pop %ebp
 	ret
 
+
+## Fill memory with words
+#
+# Fill a given number of words (2nd argument)
+# at memory defined by 1st argument with the
+# word value defined by 3rd argument.
+#
+DST=8
+CNT=12
+X=16
+memsetw:
+	push %ebp
+	movl %esp,%ebp
+	pusha
+    
+	cld
+	movl CNT(%ebp),%ecx
+	movl DST(%ebp),%edi
+	movl X(%ebp),%eax
+    
+	rep stosw %ax,%es:(%edi)
+    
+        popa
+	pop %ebp
+	ret
+
+
+## Compare memory regions for equality
+#
+# Compare a given number of bytes (3rd argument)
+# at memory locations defined by 1st and 2nd argument
+# for equality. If the bytes are equal, EAX contains
+# 0.
+#
 SRC=12
 DST=16
 CNT=20

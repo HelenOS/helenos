@@ -33,6 +33,12 @@
 #include <proc/thread.h>
 #include <mm/vm.h>
 
+
+/** Enter userspace
+ *
+ * Change CPU protection level to 3, enter userspace.
+ *
+ */
 void userspace(void)
 {
 	pri_t pri;
@@ -47,7 +53,7 @@ void userspace(void)
 	    "pushl %4\n"
 	    "iret"
 	    : : "i" (selector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+THREAD_STACK_SIZE-1000), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
-	/* NOT REACHED */
-
+	
+	/* Unreachable */
 	for(;;);
 }

@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# CPU identification functions.
 # The code below just interfaces the CPUID instruction.
 # CPU recognition logic is contained in higher-level functions.
 
@@ -37,6 +35,11 @@
 .global cpuid
 .global rdtsc
 
+
+## Determine CPUID support
+#
+# Return 0 in EAX if CPUID is not support, 1 if supported.
+#
 has_cpuid:
 	push %ebx
 	
@@ -55,7 +58,18 @@ has_cpuid:
 	pop %ebx
 	ret
 
-# cpuid(__u32 cmd, struct cpu_info *info)
+
+## Get CPUID data
+#
+# This code is just an interfaces the CPUID instruction, CPU recognition
+# logic is contained in higher-level functions.
+#
+# The C prototype is:
+#   void cpuid(__u32 cmd, struct cpu_info *info)
+#
+# @param cmd  CPUID command.
+# @param info Buffer to store CPUID output.
+#
 cpuid:
 	pushl %ebp
 	movl %esp,%ebp

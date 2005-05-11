@@ -1,5 +1,4 @@
-/*
- *  ia32 linker script
+/** IA-32 linker script
  *  
  *  kernel text
  *  kernel data

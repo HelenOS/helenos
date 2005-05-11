@@ -35,8 +35,12 @@
 .global fpu_lazy_context_save
 .global fpu_lazy_context_restore
 
+
+## Save current CPU context
 #
-# save context of this CPU
+# Save CPU context to the kernel_context variable
+# pointed by the 1st argument. Returns 1 in EAX.
+#
 context_save:
 	push %ebx
 
@@ -58,9 +62,13 @@ context_save:
 	xorl %eax,%eax		# context_save returns 1
 	incl %eax
 	ret
-    
+
+
+## Restore current CPU context
 #
-# restore saved context on this CPU
+# Restore CPU context from the kernel_context variable
+# pointed by the 1st argument. Returns 0 in EAX.
+#    
 context_restore:
 	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
 	movl (%eax),%esp	# ctx->sp -> %esp
@@ -77,5 +85,3 @@ context_restore:
 	movl %eax,(%esp)	# ctx->pc -> saver's return %eip
         xorl %eax,%eax		# context_restore returns 0
 	ret
-
-
