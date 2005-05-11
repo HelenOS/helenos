@@ -32,9 +32,18 @@
 #include <arch/arg.h>
 
 
-static char digits[] = "0123456789abcdef";
-static spinlock_t printflock;
+static char digits[] = "0123456789abcdef"; /**< Hexadecimal characters */
+static spinlock_t printflock;              /**< printf spinlock */
 
+
+/** Print NULL terminated string
+ *
+ * Print characters from str using putchar() until
+ * \x00 character is reached.
+ *
+ * @param str Characters to print.
+ *
+ */
 void print_str(char *str)
 {
         int i = 0;
@@ -45,9 +54,16 @@ void print_str(char *str)
 }
 
 
-/* 
- * This is a universal function for printing hexadecimal numbers of fixed
- * width.
+/** Print hexadecimal digits
+ *
+ * Print fixed count of hexadecimal digits from
+ * the number num. The digits are printed in
+ * natural left-to-right order starting with
+ * the width-th digit.
+ *
+ * @param num   Number containing digits.
+ * @param width Count of digits to print.
+ *
  */
 void print_fixed_hex(__native num, int width)
 {
@@ -57,9 +73,16 @@ void print_fixed_hex(__native num, int width)
 	    putchar(digits[(num>>i) & 0xf]);
 }
 
-/* 
- * This is a universal function for printing decimal and hexadecimal numbers.
- * It prints only significant digits.
+
+/** Print number in given base
+ *
+ * Print significant digits of a number in given
+ * base.
+ *
+ * @param num  Number to print.
+ * @param base Base to print the number in (should
+ *             be in range 2 .. 16).
+ *
  */
 void print_number(__native num, int base)
 { 
@@ -74,10 +97,40 @@ void print_number(__native num, int base)
 	print_str(&d[i + 1]);
 }
 
-/*
- * This is our function for printing formatted text.
- * It's much simpler than the user-space one.
- * We are greateful for this function.
+
+/** General formatted text print
+ *
+ * Print text formatted according the fmt parameter
+ * and variant arguments. Each formatting directive
+ * begins with % (percentage) character and one of the
+ * following character:
+ *
+ * %    Prints the percentage character.
+ * s    The next variant argument is threated as char*
+ *      and printed as a NULL terminated string.
+ * c    The next variant argument is threated as a single char.
+ * l    The next variant argument is threated as a 32b integer
+ *      and printed in full hexadecimal width.
+ * L    As with 'l', but '0x' is prefixed.
+ * w    The next variant argument is threated as a 16b integer
+ *      and printed in full hexadecimal width.
+ * W    As with 'w', but '0x' is prefixed.
+ * b    The next variant argument is threated as a 8b integer
+ *      and printed in full hexadecimal width.
+ * N    As with 'b', but '0x' is prefixed.
+ * d    The next variant argument is threated as integer
+ *      and printed in standard decimal format (only significant
+ *      digits).
+ * x    The next variant argument is threated as integer
+ *      and printed in standard hexadecimal format (only significant
+ *      digits).
+ * X    As with 'x', but '0x' is prefixed.
+ *
+ * All other characters from fmt except the formatting directives
+ * are printed in verbatim.
+ *
+ * @param fmt Formatting NULL terminated string.
+ *
  */
 void printf(char *fmt, ...)
 {
