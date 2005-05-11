@@ -35,11 +35,11 @@
 #define INT16	2
 #define INT32	4
 
-static void print_str(char *str);
-static void print_fixed_hex(__native num, int width);
-static  void print_number(__native num, int base);
+static void print_str(const char *str);
+static void print_fixed_hex(const __native num, const int width);
+static void print_number(const __native num, const int base);
 
-extern void putchar(char c);
-extern void printf(char *fmt, ...);
+extern void putchar(const char c);
+extern void printf(const char *fmt, ...);
 
 #endif

@@ -44,7 +44,7 @@ static spinlock_t printflock;              /**< printf spinlock */
  * @param str Characters to print.
  *
  */
-void print_str(char *str)
+void print_str(const char *str)
 {
         int i = 0;
 	char c;
@@ -65,7 +65,7 @@ void print_str(char *str)
  * @param width Count of digits to print.
  *
  */
-void print_fixed_hex(__native num, int width)
+void print_fixed_hex(const __native num, const int width)
 {
 	int i;
     
@@ -84,14 +84,15 @@ void print_fixed_hex(__native num, int width)
  *             be in range 2 .. 16).
  *
  */
-void print_number(__native num, int base)
-{ 
+void print_number(const __native num, const int base)
+{
+	int val = num;
 	char d[sizeof(__native)*8+1];		/* this is good enough even for base == 2 */
         int i = sizeof(__native)*8-1;
     
 	do {
-		d[i--] = digits[num % base];
-	} while (num /= base);
+		d[i--] = digits[val % base];
+	} while (val /= base);
 	
 	d[sizeof(__native)*8] = 0;	
 	print_str(&d[i + 1]);
@@ -132,7 +133,7 @@ void print_number(__native num, int base)
  * @param fmt Formatting NULL terminated string.
  *
  */
-void printf(char *fmt, ...)
+void printf(const char *fmt, ...)
 {
 	int irqpri, i = 0;
 	va_list ap;

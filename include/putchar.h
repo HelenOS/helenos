@@ -29,6 +29,6 @@
 #ifndef __PUTCHAR_H__
 #define __PUTCHAR_H__
 
-extern void putchar(char ch);
+extern void putchar(const char ch);
 
 #endif

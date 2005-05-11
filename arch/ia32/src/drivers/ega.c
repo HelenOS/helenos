@@ -76,7 +76,7 @@ void ega_check_cursor(void)
 	ega_cursor = ega_cursor - ROW;
 }
 
-void ega_putchar(char ch)
+void ega_putchar(const char ch)
 {
 	pri_t pri;
 
@@ -110,7 +110,7 @@ void ega_move_cursor(void)
 	outb(0x3d5,ega_cursor&0xff);	
 }
 
-void putchar(char ch)
+void putchar(const char ch)
 {
 	ega_putchar(ch);
 }

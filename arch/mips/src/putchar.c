@@ -32,7 +32,7 @@
 
 #define VIDEORAM	0xA000000
 
-void putchar(char ch)
+void putchar(const char ch)
 {
 	__u32 status = cp0_status_read();
 	

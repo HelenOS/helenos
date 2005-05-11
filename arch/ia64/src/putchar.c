@@ -30,7 +30,7 @@
 #include <arch/types.h>
 #include <arch/ski/ski.h>
 
-void putchar(char ch)
+void putchar(const char ch)
 {
 	__asm__ (
 		"mov r15=%0\n"
