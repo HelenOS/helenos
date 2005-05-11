@@ -32,30 +32,18 @@
 .global k_text_start
 k_text_start:
 
-.section K_TEXT_END
-.global k_text_end
-k_text_end:
-
-.section K_DATA_START
-.global k_data_start
-k_data_start:
-
-.section K_DATA_END
-.global k_data_end
-k_data_end:
-
-
-.text
-
 .global kernel_image_start
 
 stack0:
 kernel_image_start:
-	# initialize gp (Global Pointer) register
-	movl r1=k_text_start;
+	# initialize register stack
+	alloc r1 = ar.pfs, 0, 0, 0, 0	;;
 
-	# set stack pointer to some sane value
+	# initialize memory stack to some sane value
 	movl r12=stack0
+
+	# initialize gp (Global Pointer) register
+	movl r1=k_text_start
 
 	#
 	# Initialize hardcoded_* variables.
@@ -85,3 +73,14 @@ kernel_image_start:
 0:
 	br 0b
 
+.section K_TEXT_END
+.global k_text_end
+k_text_end:
+
+.section K_DATA_START
+.global k_data_start
+k_data_start:
+
+.section K_DATA_END
+.global k_data_end
+k_data_end:
