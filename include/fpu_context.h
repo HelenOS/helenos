@@ -10,7 +10,7 @@ extern void fpu_context_save(fpu_context_t *);
 extern void fpu_context_restore(fpu_context_t *);
 extern void fpu_lazy_context_save(fpu_context_t *);
 extern void fpu_lazy_context_restore(fpu_context_t *);
-
+extern void fpu_init(void);
 
 
 #endif /*fpu_context_h*/

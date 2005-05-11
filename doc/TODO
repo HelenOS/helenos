@@ -11,6 +11,7 @@
 
 + save/restore floating point context on context switch 
   + [ia32] lazy context switch using TS flag
++ [ia32] MMX,SSE1-.. initialization
 + [ia32] review privilege separation
   + zero IOPL in EFLAGS
   + before IRET (from SYSCALL), zero NT in EFLAGS
@@ -18,3 +19,5 @@
 + [ia32] zero the alignment exception bit in EFLAGS
 + make emulated architectures also work on real hardware
 + bring in support for other architectures (e.g. PowerPC)
+
+

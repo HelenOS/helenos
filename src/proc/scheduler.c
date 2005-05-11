@@ -267,6 +267,11 @@ void scheduler_separated_stack(void)
 			    spinlock_lock(&threads_lock);
 			    list_remove(&THREAD->threads_link);
 			    spinlock_unlock(&threads_lock);
+
+			    spinlock_lock(&THREAD->cpu->lock);
+			    if(THREAD->cpu->arch.fpu_owner==THREAD) THREAD->cpu->arch.fpu_owner=NULL;
+			    spinlock_unlock(&THREAD->cpu->lock);
+
 			    
 			    free(THREAD);
 			    
@@ -427,9 +432,10 @@ restart:		pri = cpu_priority_high();
 				/*
 		    		 * We don't want to steal CPU-wired threads neither threads already stolen.
 				 * The latter prevents threads from migrating between CPU's without ever being run.
-		        	 */
+		        	 * We don't want to steal threads whose FPU context is still in CPU
+				 */
 				spinlock_lock(&t->lock);
-				if (!(t->flags & (X_WIRED | X_STOLEN))) {
+				if ( (!(t->flags & (X_WIRED | X_STOLEN))) && (!(t->fpu_context_engaged)) ) {
 					/*
 					 * Remove t from r.
 					 */

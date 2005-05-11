@@ -120,6 +120,7 @@ void idt_init(void)
 		trap_register(i, null_interrupt);
 	}
 	trap_register(13, gp_fault);
+	trap_register( 7, nm_fault);
 }
 
 
