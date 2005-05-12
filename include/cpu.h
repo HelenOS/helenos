@@ -66,6 +66,8 @@ struct cpu {
 	__u32 delay_loop_const;
 
 	cpu_arch_t arch;
+
+	thread_t *fpu_owner;
 	
 	__u8 *stack;
 };

@@ -88,16 +88,16 @@ void gp_fault(__u8 n, __u32 stack[])
 void nm_fault(__u8 n, __u32 stack[])
 {
 
-        if (((CPU->arch).fpu_owner)!=NULL) 
+        if ((CPU->fpu_owner)!=NULL) 
 	{  
-		fpu_lazy_context_save(&(((CPU->arch).fpu_owner)->saved_fpu_context));
-		((CPU->arch).fpu_owner)->fpu_context_engaged=0; /* Enables migration */
+		fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
+		(CPU->fpu_owner)->fpu_context_engaged=0; /* Enables migration */
 	}
 	
 	if(THREAD->fpu_context_exists) fpu_lazy_context_restore(&(THREAD->saved_fpu_context));
         else {fpu_init();THREAD->fpu_context_exists=1;}
 
-	(CPU->arch).fpu_owner=THREAD;
+	CPU->fpu_owner=THREAD;
 
 	reset_TS_flag();
 	

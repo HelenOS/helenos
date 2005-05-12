@@ -47,7 +47,6 @@ struct cpu_arch {
         int model;
         int stepping;
 	struct tss *tss;
-	thread_t *fpu_owner;
 };
 
 

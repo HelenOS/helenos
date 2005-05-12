@@ -92,7 +92,7 @@ void reset_TS_flag(void)
 void cpu_arch_init(void)
 {
 	CPU->arch.tss = tss_p;
-	CPU->arch.fpu_owner=NULL;
+	CPU->fpu_owner=NULL;
 }
 
 
