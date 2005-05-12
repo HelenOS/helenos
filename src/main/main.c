@@ -53,6 +53,7 @@
 #include <synch/waitq.h>
 
 #include <arch.h>
+#include <arch/faddr.h>
 
 char *project = "SPARTAN kernel";
 char *copyright = "Copyright (C) 2001-2005 Jakub Jermar, Copyright (C) 2005 HelenOS project";
@@ -94,7 +95,7 @@ void main_bsp(void)
 
 	context_save(&ctx);
 	ctx.sp = config.base + config.kernel_size - 8;
-	ctx.pc = (__address) main_bsp_separated_stack;
+	ctx.pc = FADDR(main_bsp_separated_stack);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -192,7 +193,7 @@ void main_ap(void)
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
 	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
-	CPU->saved_context.pc = (__address) main_ap_separated_stack;
+	CPU->saved_context.pc = FADDR(main_ap_separated_stack);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

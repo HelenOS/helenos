@@ -7,12 +7,12 @@ CC=$(IA-64_CC_DIR)/$(IA-64_TARGET)-gcc
 AS=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-as
 LD=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-ld
 
-ASFLAGS=-EL
+ASFLAGS=-mconstant-gp
 
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O3
-LFLAGS=-EL -M -no-check-sections -T ../arch/ia64/_link.ld
+CFLAGS=$(CPPFLAGS) -mconstant-gp -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O3
+LFLAGS=-EL -M -T ../arch/ia64/_link.ld
 
 arch_sources= \
 	arch/start.S \
@@ -22,5 +22,3 @@ arch_sources= \
 	arch/ia64.c \
 	arch/fpu_context.c \
 	arch/context.S 
-	
-

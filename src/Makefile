@@ -76,7 +76,7 @@ kernel.bin: $(arch_objects) $(objects) $(test_objects)
 	$(CC) $(CPPFLAGS) -E $< >$@
 
 %.o: %.s
-	$(AS) $< -o $@
+	$(AS) $(ASFLAGS) $< -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -41,6 +41,7 @@
 #include <typedefs.h>
 #include <mm/page.h>
 #include <synch/spinlock.h>
+#include <arch/faddr.h>
 
 #ifdef __SMP__
 #include <arch/smp/atomic.h>
@@ -232,7 +233,7 @@ void scheduler(void)
 	 */
 	context_save(&CPU->saved_context);
 	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
-	CPU->saved_context.pc = (__address) scheduler_separated_stack;
+	CPU->saved_context.pc = FADDR(scheduler_separated_stack);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

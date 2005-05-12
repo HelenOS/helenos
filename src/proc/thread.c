@@ -48,6 +48,7 @@
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
+#include <arch/faddr.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"};
 
@@ -164,7 +165,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		
 		
 		context_save(&t->saved_context);
-		t->saved_context.pc = (__address) cushion;
+		t->saved_context.pc = FADDR(cushion);
 		t->saved_context.sp = (__address) &t->kstack[THREAD_STACK_SIZE-8];
 
 		pri = cpu_priority_high();
