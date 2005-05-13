@@ -33,8 +33,6 @@
 .global userspace
 .global before_thread_runs_arch
 .global arch_late_init
-.global arch_post_mm_init
-.global arch_pre_mm_init
 .global cpu_arch_init
 .global cpu_halt
 .global cpu_identify
@@ -54,8 +52,6 @@ userspace:
 calibrate_delay_loop:
 asm_delay_loop:
 arch_late_init:
-arch_post_mm_init:
-arch_pre_mm_init:
 cpu_arch_init:
 cpu_halt:
 cpu_identify:

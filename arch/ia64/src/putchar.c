@@ -27,19 +27,9 @@
  */
 
 #include <putchar.h>
-#include <arch/types.h>
 #include <arch/ski/ski.h>
 
 void putchar(const char ch)
 {
-	__asm__ (
-		"mov r15=%0\n"
-		"mov r32=%1\n"		/* r32 is in0 */
-		"break 0x80000\n"	/* modifies r8 */
-		:
-		: "i" (SKI_CONSOLE_PUTC), "r" (ch)
-		: "r15", "in0", "r8"
-	);
-	
-	if (ch == '\n') putchar('\r');
+	ski_putchar(ch);
 }

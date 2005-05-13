@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/ski/ski.h>
-
 .section K_TEXT_START
 .global k_text_start
 k_text_start:
@@ -51,23 +49,19 @@ kernel_image_start:
 	#
 	movl r8 = k_text_start	;;
 	movl r9 = k_text_end	;;
-	sub r8 = r9, r8		;;
+	sub r8 = r9, r8		
 	addl r10 = @gprel(hardcoded_ktext_size), gp;;
 	st4 [r10] = r8		;;
 
 	movl r8 = k_data_start	;;
 	movl r9 = k_data_end	;;
-	sub r8 = r9, r8		;;
+	sub r8 = r9, r8		
 	addl r10 = @gprel(hardcoded_kdata_size), gp;;
 	st4 [r10] = r8		;;
 	
 	addl r10 = @gprel(hardcoded_load_address), gp;;
 	st8 [r10] = r1
 	
-	# initialize Ski console using SSC (Simulator System Call)
-	mov r15=SKI_CONSOLE_INIT
-	break 0x80000
-
 	br.call.sptk.many b0=main_bsp
 
 0:

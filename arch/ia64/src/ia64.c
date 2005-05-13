@@ -26,3 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch.h>
+#include <arch/ski/ski.h>
+
+void arch_pre_mm_init(void)
+{
+}
+
+void arch_post_mm_init(void)
+{
+	ski_init_console();
+}

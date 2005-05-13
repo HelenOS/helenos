@@ -26,13 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SKI_H__
-#define __SKI_H__
+#include <arch/ski/ski.h>
 
-#define SKI_INIT_CONSOLE	20
-#define SKI_PUTCHAR		31
+void ski_init_console(void)
+{
+	__asm__ (
+		"mov r15=%0\n"
+		"break 0x80000\n"
+		:
+		: "i" (SKI_INIT_CONSOLE)
+		: "r15", "r8"
+	);
+}
 
-extern void ski_init_console(void);
-extern void ski_putchar(const char ch);
+void ski_putchar(const char ch)
+{
+	__asm__ (
+		"mov r15=%0\n"
+		"mov r32=%1\n"		/* r32 is in0 */
+		"break 0x80000\n"	/* modifies r8 */
+		:
+		: "i" (SKI_PUTCHAR), "r" (ch)
+		: "r15", "in0", "r8"
+	);
 	
-#endif
+	if (ch == '\n') ski_putchar('\r');
+}

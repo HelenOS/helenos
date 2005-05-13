@@ -56,7 +56,7 @@
 #include <arch/faddr.h>
 
 char *project = "SPARTAN kernel";
-char *copyright = "Copyright (C) 2001-2005 Jakub Jermar, Copyright (C) 2005 HelenOS project";
+char *copyright = "Copyright (C) 2001-2005 Jakub Jermar\nCopyright (C) 2005 HelenOS project";
 
 config_t config;
 context_t ctx;

@@ -21,4 +21,5 @@ arch_sources= \
 	arch/putchar.c \
 	arch/ia64.c \
 	arch/fpu_context.c \
-	arch/context.S 
+	arch/context.S \
+	arch/ski/ski.c
