@@ -116,7 +116,7 @@ void main_bsp_separated_stack(void) {
 
 	printf("%s\n%s\n", project, copyright);
 
-	printf("%L: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
+	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
 	arch_late_init();

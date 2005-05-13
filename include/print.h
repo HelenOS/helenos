@@ -34,6 +34,7 @@
 #define INT8	1
 #define INT16	2
 #define INT32	4
+#define INT64	8
 
 static void print_str(const char *str);
 static void print_fixed_hex(const __native num, const int width);

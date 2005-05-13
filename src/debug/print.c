@@ -110,6 +110,13 @@ void print_number(const __native num, const unsigned int base)
  * s    The next variant argument is treated as char*
  *      and printed as a NULL terminated string.
  * c    The next variant argument is treated as a single char.
+ * p    The next variant argument is treated as a maximum
+ *      bit-width integer with respect to architecture
+ *      and printed in full hexadecimal width.
+ * P    As with 'p', but '0x' is prefixed.
+ * q    The next variant argument is treated as a 64b integer
+ *      and printed in full hexadecimal width.
+ * Q    As with 'q', but '0x' is prefixed.
  * l    The next variant argument is treated as a 32b integer
  *      and printed in full hexadecimal width.
  * L    As with 'l', but '0x' is prefixed.
@@ -169,6 +176,18 @@ void printf(const char *fmt, ...)
 				/*
 		                 * Hexadecimal conversions with fixed width.
 		                 */
+				case 'P': 
+					print_str("0x");
+				case 'p':
+		    			print_fixed_hex(va_arg(ap, __native), sizeof(__native));
+					goto loop;
+
+				case 'Q': 
+					print_str("0x");
+				case 'q':
+		    			print_fixed_hex(va_arg(ap, __native), INT64);
+					goto loop;
+
 				case 'L': 
 					print_str("0x");
 				case 'l':
