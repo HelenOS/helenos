@@ -28,6 +28,11 @@
 
 #include <arch/ski/ski.h>
 
+/** Initialize debug console
+ *
+ * Issue SSC (Simulator System Call) to
+ * to open debug console.
+ */
 void ski_init_console(void)
 {
 	__asm__ (
@@ -39,6 +44,13 @@ void ski_init_console(void)
 	);
 }
 
+/** Display character on debug console
+ *
+ * Use SSC (Simulator System Call) to
+ * display character on debug console.
+ *
+ * @param ch   Character to be printed.
+ */
 void ski_putchar(const char ch)
 {
 	__asm__ (
