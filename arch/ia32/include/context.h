@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-
+#define SP_DELTA	8
 
 struct context {
 	__u32 sp;

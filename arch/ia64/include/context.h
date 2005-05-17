@@ -31,6 +31,8 @@
 
 #include <arch/types.h>
 
+#define SP_DELTA	16
+
 struct context {
 	__u64 r1;
 	__u64 r2;

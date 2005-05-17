@@ -232,7 +232,7 @@ void scheduler(void)
 	 * scheduler_separated_stack().
 	 */
 	context_save(&CPU->saved_context);
-	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-8];
+	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-SP_DELTA];
 	CPU->saved_context.pc = FADDR(scheduler_separated_stack);
 	context_restore(&CPU->saved_context);
 	/* not reached */

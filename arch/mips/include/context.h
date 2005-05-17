@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-
+#define SP_DELTA	0
 
 
 struct context {

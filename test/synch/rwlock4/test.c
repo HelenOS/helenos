@@ -33,6 +33,7 @@
 #include <proc/thread.h>
 #include <arch/types.h>
 #include <arch/context.h>
+#include <panic.h>
 
 #include <synch/waitq.h>
 #include <synch/rwlock.h>

@@ -324,7 +324,7 @@ void l_apic_timer_interrupt(__u8 n, __u32 stack[])
 	clock();
 }
 
-inline __u8 l_apic_id(void)
+__u8 l_apic_id(void)
 {
 	return (l_apic[L_APIC_ID] >> L_APIC_IDShift)&L_APIC_IDMask;
 }

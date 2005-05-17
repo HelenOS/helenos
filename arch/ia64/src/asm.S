@@ -38,3 +38,7 @@ memcpy:
 	sub r33 = r32, r33	
 		
 	br _memcopy
+
+.global memcopy
+memcopy:
+	br _memcopy

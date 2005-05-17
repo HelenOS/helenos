@@ -166,7 +166,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		
 		context_save(&t->saved_context);
 		t->saved_context.pc = FADDR(cushion);
-		t->saved_context.sp = (__address) &t->kstack[THREAD_STACK_SIZE-8];
+		t->saved_context.sp = (__address) &t->kstack[THREAD_STACK_SIZE-SP_DELTA];
 
 		pri = cpu_priority_high();
 		t->saved_context.pri = cpu_priority_read();

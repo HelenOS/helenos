@@ -34,11 +34,18 @@ k_text_start:
 
 stack0:
 kernel_image_start:
+	.auto
+	# initialize PSR
+	mov psr.l = r0
+	
 	# initialize register stack
-	alloc r1 = ar.pfs, 0, 0, 0, 0	;;
+	mov ar.rsc = r0
+	loadrs
 
+	.explicit
 	# initialize memory stack to some sane value
-	movl r12=stack0
+	movl r12 = stack0	;;
+	add r12 = - 16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
 	movl r1=k_text_start
