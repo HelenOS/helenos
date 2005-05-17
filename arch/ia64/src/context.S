@@ -32,12 +32,15 @@
 .global context_restore
 
 context_save:
-	alloc loc0 = ar.pfs, 1, 2, 0, 0
+	alloc loc0 = ar.pfs, 1, 9, 0, 0
 	
 	/*
 	 * TODO: save the rest of the context registers.
 	 */
 
+	/*
+	 * Save general registers
+	 */
 	st8 [in0] = r1, 8	;;
 	st8 [in0] = r2, 8	;;
 	st8 [in0] = r3, 8	;;
@@ -70,8 +73,30 @@ context_save:
 	st8 [in0] = r30, 8	;;
 	st8 [in0] = r31, 8	;;
 
-	/* save pc */
+	/*
+	 * Save branch registers
+	 */
 	mov loc1 = b0		;;
+	st8 [in0] = loc1, 8		/* save pc */
+	mov loc2 = b1		;;
+	st8 [in0] = loc2, 8
+	mov loc3 = b2		;;
+	st8 [in0] = loc3, 8
+	mov loc4 = b3		;;
+	st8 [in0] = loc4, 8
+	mov loc5 = b4		;;
+	st8 [in0] = loc5, 8
+	mov loc6 = b5		;;
+	st8 [in0] = loc6, 8
+	mov loc7 = b6		;;
+	st8 [in0] = loc7, 8
+	mov loc8 = b7		;;
+	st8 [in0] = loc8, 8
+
+	/*
+	 * Save predicate registers
+	 */
+	mov loc1 = pr		;;
 	st8 [in0] = loc1, 8
 	
 	mov ar.pfs = loc0
@@ -80,12 +105,15 @@ context_save:
 	br.ret.sptk.many b0
 
 context_restore:
-	alloc loc0 = ar.pfs, 1, 2, 0, 0
+	alloc loc0 = ar.pfs, 1, 9, 0, 0
 
 	/*
 	 * TODO: restore the rest of the context registers.
 	 */
 	
+	/*
+	 * Restore general registers
+	 */
 	ld8 r1 = [in0], 8	;;
 	ld8 r2 = [in0], 8	;;
 	ld8 r3 = [in0], 8	;;
@@ -118,9 +146,28 @@ context_restore:
 	ld8 r30 = [in0], 8	;;
 	ld8 r31 = [in0], 8	;;
 
-	/* restore pc */
-	ld8 loc1 = [in0], 8	;;
+	/* 
+	 * Restore branch registers
+	 */
+	ld8 loc1 = [in0], 8	;;	/* restore pc */
 	mov b0 = loc1
+	ld8 loc2 = [in0], 8	;;
+	mov b1 = loc2
+	ld8 loc3 = [in0], 8	;;
+	mov b2 = loc3
+	ld8 loc4 = [in0], 8	;;
+	mov b3 = loc4
+	ld8 loc5 = [in0], 8	;;
+	mov b4 = loc5
+	ld8 loc6 = [in0], 8	;;
+	mov b5 = loc6
+	ld8 loc7 = [in0], 8	;;
+	mov b6 = loc7
+	ld8 loc8 = [in0], 8	;;
+	mov b7 = loc8
+
+	ld8 loc1 = [in0], 8	;;
+	mov pr = loc1, ~0
 	
 	mov ar.pfs = loc0
 	

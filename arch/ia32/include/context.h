@@ -31,6 +31,10 @@
 
 #include <arch/types.h>
 
+/*
+ * Both context_save() and context_restore() eat two doublewords from the stack.
+ * First for pop of the saved register, second during ret instruction.
+ */
 #define SP_DELTA	8
 
 struct context {

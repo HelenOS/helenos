@@ -31,9 +31,16 @@
 
 #include <arch/types.h>
 
-#define SP_DELTA	16
+/*
+ * context_save() and context_restore() are both leaf procedures.
+ * No need to allocate scratch area.
+ */
+#define SP_DELTA	0
 
 struct context {
+	/*
+	 * General registers
+	 */
 	__u64 r1;
 	__u64 r2;
 	__u64 r3;
@@ -65,7 +72,24 @@ struct context {
 	__u64 r29;
 	__u64 r30;
 	__u64 r31;
+	
+	/*
+	 * Branch registers
+	 */
 	__u64 pc;		/* b0 */
+	__u64 b1;
+	__u64 b2;
+	__u64 b3;
+	__u64 b4;
+	__u64 b5;
+	__u64 b6;
+	__u64 b7;
+
+	/*
+	 * Predicate registers
+	 */
+	__u64 pr;
+	
 	pri_t pri;
 } __attribute__ ((packed));
 
