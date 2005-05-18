@@ -38,6 +38,10 @@
 #define SP_DELTA	0
 
 struct context {
+	__u64 pfs;
+	__u64 unat_caller;
+	__u64 unat_callee;
+
 	/*
 	 * General registers
 	 */
