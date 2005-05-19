@@ -77,6 +77,7 @@ extern void trap_dispatcher(__u8 n, __u32 stack[]);
 extern void null_interrupt(__u8 n, __u32 stack[]);
 extern void gp_fault(__u8 n, __u32 stack[]);
 extern void nm_fault(__u8 n, __u32 stack[]);
+extern void ss_fault(__u8 n, __u32 stack[]);
 extern void page_fault(__u8 n, __u32 stack[]);
 extern void syscall(__u8 n, __u32 stack[]);
 extern void tlb_shootdown_ipi(__u8 n, __u32 stack[]);

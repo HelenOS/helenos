@@ -85,22 +85,38 @@ void gp_fault(__u8 n, __u32 stack[])
 	panic("general protection fault\n");
 }
 
+void ss_fault(__u8 n, __u32 stack[])
+{
+	printf("stack[0]=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
+	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
+	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
+	panic("Stack fault\n");
+}
+
+
 void nm_fault(__u8 n, __u32 stack[])
 {
 
+//	printf("-1\n");        
+	reset_TS_flag();
         if ((CPU->fpu_owner)!=NULL) 
 	{  
-		fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
+//	        printf("owner %X\n",(int)(&((CPU->fpu_owner)->saved_fpu_context)));        
+	        fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
+
+//	        printf("owner 2\n");
 		(CPU->fpu_owner)->fpu_context_engaged=0; /* Enables migration */
+//	        printf("owner 3\n");        
+
 	}
-	
+//	printf("0\n");
 	if(THREAD->fpu_context_exists) fpu_lazy_context_restore(&(THREAD->saved_fpu_context));
         else {fpu_init();THREAD->fpu_context_exists=1;}
-
+//	printf("1\n");
 	CPU->fpu_owner=THREAD;
-
-	reset_TS_flag();
+//	printf("2\n");
 	
+//	printf("3\n");	
 //	panic("#NM fault\n");
 }
 
