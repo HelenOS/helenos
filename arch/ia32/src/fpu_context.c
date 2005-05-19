@@ -51,28 +51,30 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_lazy_context_save(fpu_context_t *fctx)
 {
-    printf("");
-    asm(
-        "mov %0,%%eax;"
-        "fxsave (%%eax);"
-	:"=m"(fctx)
-	:
-	:"eax"
-    );	
-    printf("");
+	asm
+	(
+		"push %%eax;"
+		"mov 0x8(%%esp),%%eax;"
+		"fnsave (%%eax);"
+		"pop %%eax;"
+		:"=m"(fctx)
+		:
+		:"eax"
+	);	
 }
 
 void fpu_lazy_context_restore(fpu_context_t *fctx)
 {
-    printf("");
-    asm(
-        "mov %0,%%eax;"
-        "fxrstor (%%eax);"
-	:"=m"(fctx)
-	:
-	:"eax"
-    );
-    printf("");    
+	asm
+	(
+		"push %%eax;"
+		"mov 0x8(%%esp),%%eax;"
+		"frstor (%%eax);"
+		"pop %%eax;"
+		:"=m"(fctx)
+		:
+		:"eax"
+	);
 }
 
 void fpu_init(void)

@@ -101,7 +101,8 @@ void nm_fault(__u8 n, __u32 stack[])
 	reset_TS_flag();
         if ((CPU->fpu_owner)!=NULL) 
 	{  
-//	        printf("owner %X\n",(int)(&((CPU->fpu_owner)->saved_fpu_context)));        
+//		printf("tid:%d \n", THREAD->tid);
+//		printf("owner:%d\n", (CPU->fpu_owner)->tid);
 	        fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
 
 //	        printf("owner 2\n");
