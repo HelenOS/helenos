@@ -43,14 +43,19 @@
 
 static void e(void *data)
 {
+	int i;
 	while(1) {
 		double e,d,le,f;
 		le=-1;
 		e=0;
 		f=1;
-		for(d=1;e!=le;d*=f,f+=1) {
+		for(i=0,d=1;e!=le;d*=f,f+=1,i++) {
 			le=e;
 			e=e+1/d;
+			if (i>1000000) {
+				printf("tid%d: e LOOPING\n", THREAD->tid);
+				i = 0;
+			}
 		}
     
 		if((int)(100000000*e)==271828182) printf("tid%d: e OK\n", THREAD->tid);
