@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,33 +42,61 @@
 #include <arch/smp/atomic.h>
 #include <proc/thread.h>
 
+#define THREADS		150*2
+
+#define E_10e8	271828182
+#define PI_10e8	314159265
+
+static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
+
+static volatile int threads_ok;
+static waitq_t can_start;
+
 static void e(void *data)
 {
-	int i;
-	while(1) 
-	{
-		double e,d,le,f;
-		le=-1;
-		e=0;
-		f=1;
-		for(i=0,d=1;e!=le;d*=f,f+=1,i++) 
-		{
-			le=e;
-			e=e+1/d;
-			if (i>20000000) 
-			{
-//				printf("tid%d: e LOOPING\n", THREAD->tid);
-				putchar('!');
-				i = 0;
-			}
-			
-		}
-    
-		if((int)(100000000*e)==271828182) printf("tid%d: e OK\n", THREAD->tid);
-		else panic("tid%d: e FAILED (100000000*e=%d)\n", THREAD->tid, (int) 100000000*e);
+	double e,d,le,f;
+	le=-1;
+	e=0;
+	f=1;
+
+	waitq_sleep(&can_start);
+
+	for(d=1;e!=le;d*=f,f+=1) {
+		le=e;
+		e=e+1/d;
 	}
+
+	if((int)(100000000*e)==E_10e8) {
+		atomic_inc((int *) &threads_ok);
+	}
+	else
+		printf("tid%d: e*10e8=%d)\n", THREAD->tid, (int) 100000000*e);
 }
 
+static void pi(void *data)
+{
+        double lpi = -1, pi = 0;
+        double ab, ad;
+        int n;
+
+	waitq_sleep(&can_start);
+
+        for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
+                double sc, cd;
+
+                sc = sqrt(1 - (ab*ab/4));
+                cd = 1 - sc;
+                ad = sqrt(ab*ab/4 + cd*cd);
+                lpi = pi;
+                pi = 2 * n * ad;
+        }
+
+	if((int)(100000000*pi)==PI_10e8) {
+		atomic_inc((int *) &threads_ok);
+	}
+	else
+		printf("tid%d: pi*10e8=%d)\n", THREAD->tid, (int) 100000000*pi);
+}
 
 
 void test(void)
@@ -75,11 +104,26 @@ void test(void)
 	thread_t *t;
 	int i;
 
-	for (i=0; i<4; i++) {  
-		t = thread_create(e, NULL, TASK, 0);
+	waitq_initialize(&can_start);
+
+	printf("FPU test #1\n");
+	printf("Creating %d threads... ", THREADS);
+
+	for (i=0; i<THREADS/2; i++) {  
+		if (!(t = thread_create(e, NULL, TASK, 0)))
+			panic("could not create thread\n");
+		thread_ready(t);
+		if (!(t = thread_create(pi, NULL, TASK, 0)))
+			panic("could not create thread\n");
 		thread_ready(t);
 	}
+	printf("ok\n");
 	
-	while(1);
+	thread_sleep(1);
+	waitq_wakeup(&can_start, WAKEUP_ALL);
 
+	while (threads_ok != THREADS)
+		;
+		
+	printf("Test passed.\n");
 }
