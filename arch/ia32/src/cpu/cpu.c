@@ -131,7 +131,6 @@ void cpu_identify(void)
 		CPU->arch.model = (info.cpuid_eax>>4)&0xf;
 		CPU->arch.stepping = (info.cpuid_eax>>0)&0xf;						
 	}
-    set_TS_flag();
 }
 
 void cpu_print_report(cpu_t* m)

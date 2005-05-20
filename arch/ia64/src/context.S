@@ -32,18 +32,34 @@
 .global context_restore
 
 context_save:
-	alloc loc0 = ar.pfs, 1, 10, 0, 0
+	alloc loc0 = ar.pfs, 1, 11, 0, 0
 	mov loc1 = ar.unat	;;
+	/* loc2 */
+	mov loc3 = ar.rsc
+	mov loc4 = ar.bsp
+	mov loc5 = ar.rnat
+	mov loc6 = ar.lc
+	mov loc7 = ar.ec
+	mov loc8 = ar.ccv
+	mov loc9 = ar.csd
+	mov loc10 = ar.ssd
 	
+	/*
+	 * Save application registers
+	 */
 	st8 [in0] = loc0, 8	;;	/* save ar.pfs */
 	st8 [in0] = loc1, 8	;;	/* save ar.unat (caller) */
 	mov loc2 = in0		;;
 	add in0 = 8, in0	;;	/* skip ar.unat (callee) */
+	st8 [in0] = loc3, 8	;;	/* save ar.rsc */
+	st8 [in0] = loc4, 8	;;	/* save ar.bsp */
+	st8 [in0] = loc5, 8	;;	/* save ar.rnat */
+	st8 [in0] = loc6, 8	;;	/* save ar.lc */
+	st8 [in0] = loc7, 8	;;	/* save ar.ec */
+	st8 [in0] = loc8, 8	;;	/* save ar.ccv */
+	st8 [in0] = loc9, 8	;;	/* save ar.csd */
+	st8 [in0] = loc10, 8	;;	/* save ar.ssd */	
 	
-	/*
-	 * TODO: save the rest of the context registers.
-	 */
-
 	/*
 	 * Save general registers including NaT bits
 	 */
@@ -115,17 +131,30 @@ context_save:
 	br.ret.sptk.many b0
 
 context_restore:
-	alloc loc0 = ar.pfs, 1, 10, 0, 0	;;
+	alloc loc0 = ar.pfs, 1, 11, 0, 0	;;
 
+	ld8 loc0 = [in0], 8	;;	/* load ar.pfs */
+	ld8 loc1 = [in0], 8	;;	/* load ar.unat (caller) */
+	ld8 loc2 = [in0], 8	;;	/* load ar.unat (callee) */
+	ld8 loc3 = [in0], 8	;;	/* load ar.rsc */
+	ld8 loc4 = [in0], 8	;;	/* load ar.bsp */
+	ld8 loc5 = [in0], 8	;;	/* load ar.rnat */
+	ld8 loc6 = [in0], 8	;;	/* load ar.lc */
+	ld8 loc7 = [in0], 8	;;	/* load ar.ec */
+	ld8 loc8 = [in0], 8	;;	/* load ar.ccv */
+	ld8 loc9 = [in0], 8	;;	/* load ar.csd */
+	ld8 loc10 = [in0], 8	;;	/* load ar.ssd */
+	
 	/*
-	 * TODO: restore the rest of the context registers.
+	 * Restore application registers
 	 */
-	
-	ld8 loc0 = [in0], 8	;;	/* load pfs */
-	ld8 loc1 = [in0], 8	;;	/* load unat (caller) */
-	ld8 loc2 = [in0], 8	;;	/* load unat (callee) */
-	
 	mov ar.unat = loc2	;;
+	/* TODO: restore ar.rsc, ar.rnat, ar.bspstore */	
+	mov ar.lc = loc6
+	mov ar.ec = loc7
+	mov ar.ccv = loc8
+	mov ar.csd = loc9
+	mov ar.ssd = loc10
 	
 	/*
 	 * Restore general registers including NaT bits

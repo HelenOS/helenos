@@ -27,20 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/interrupt.h>
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
-#include <arch/i8259.h>
-#include <func.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <mm/tlb.h>
 
 #include <test.h>
-#include <arch.h>
 #include <arch/smp/atomic.h>
 #include <proc/thread.h>
+
+#include <arch.h>
 
 #define THREADS		150*2
 #define ATTEMPTS	10

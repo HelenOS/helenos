@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
