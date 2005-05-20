@@ -43,6 +43,7 @@
 #include <proc/thread.h>
 
 #define THREADS		150*2
+#define ATTEMPTS	10
 
 #define E_10e8	271828182
 #define PI_10e8	314159265
@@ -54,48 +55,56 @@ static waitq_t can_start;
 
 static void e(void *data)
 {
+	int i;
 	double e,d,le,f;
-	le=-1;
-	e=0;
-	f=1;
 
 	waitq_sleep(&can_start);
 
-	for(d=1;e!=le;d*=f,f+=1) {
-		le=e;
-		e=e+1/d;
+	for (i = 0; i<ATTEMPTS; i++) {
+		le=-1;
+		e=0;
+		f=1;
+
+		for(d=1;e!=le;d*=f,f+=1) {
+			le=e;
+			e=e+1/d;
+		}
+
+		if((int)(100000000*e)!=E_10e8)
+			panic("tid%d: e*10e8=%d\n", THREAD->tid, (int) 100000000*e);
 	}
 
-	if((int)(100000000*e)==E_10e8) {
-		atomic_inc((int *) &threads_ok);
-	}
-	else
-		printf("tid%d: e*10e8=%d)\n", THREAD->tid, (int) 100000000*e);
+	atomic_inc((int *) &threads_ok);
 }
 
 static void pi(void *data)
 {
-        double lpi = -1, pi = 0;
-        double ab, ad;
-        int n;
+	int i;
+        double lpi, pi;
+        double n, ab, ad;
 
 	waitq_sleep(&can_start);
 
-        for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
-                double sc, cd;
 
-                sc = sqrt(1 - (ab*ab/4));
-                cd = 1 - sc;
-                ad = sqrt(ab*ab/4 + cd*cd);
-                lpi = pi;
-                pi = 2 * n * ad;
-        }
+	for (i = 0; i<ATTEMPTS; i++) {
+		lpi = -1;
+		pi = 0;
 
-	if((int)(100000000*pi)==PI_10e8) {
-		atomic_inc((int *) &threads_ok);
+        	for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
+                	double sc, cd;
+
+                	sc = sqrt(1 - (ab*ab/4));
+                	cd = 1 - sc;
+                	ad = sqrt(ab*ab/4 + cd*cd);
+                	lpi = pi;
+                	pi = 2 * n * ad;
+        	}
+
+		if((int)(100000000*pi)!=PI_10e8)
+			panic("tid%d: pi*10e8=%d\n", THREAD->tid, (int) 100000000*pi);
 	}
-	else
-		printf("tid%d: pi*10e8=%d)\n", THREAD->tid, (int) 100000000*pi);
+
+	atomic_inc((int *) &threads_ok);
 }
 
 

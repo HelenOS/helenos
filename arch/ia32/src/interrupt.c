@@ -96,29 +96,15 @@ void ss_fault(__u8 n, __u32 stack[])
 
 void nm_fault(__u8 n, __u32 stack[])
 {
-
-//	printf("-1\n");        
 	reset_TS_flag();
         if ((CPU->fpu_owner)!=NULL) 
 	{  
-//		printf("tid:%d \n", THREAD->tid);
-//		printf("owner:%d\n", (CPU->fpu_owner)->tid);
 	        fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
-
-//	        printf("owner 2\n");
-		(CPU->fpu_owner)->fpu_context_engaged=0; /* Enables migration */
-//	        printf("owner 3\n");        
-
+		(CPU->fpu_owner)->fpu_context_engaged=0; /* don't prevent migration */
 	}
-//	printf("0\n");
 	if(THREAD->fpu_context_exists) fpu_lazy_context_restore(&(THREAD->saved_fpu_context));
         else {fpu_init();THREAD->fpu_context_exists=1;}
-//	printf("1\n");
 	CPU->fpu_owner=THREAD;
-//	printf("2\n");
-	
-//	printf("3\n");	
-//	panic("#NM fault\n");
 }
 
 
