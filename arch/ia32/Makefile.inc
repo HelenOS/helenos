@@ -45,6 +45,7 @@ arch_sources= \
 	arch/drivers/i8259.c \
 	arch/drivers/ega.c \
 	arch/boot/boot.S \
+	arch/boot/memmap.S\
 	arch/fpu_context.c
 
 
