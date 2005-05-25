@@ -37,6 +37,15 @@
  */
 #define SP_DELTA	0
 
+#ifdef context_set
+#undef context_set
+#endif
+
+#define context_set(c, _pc, stack, size) 	\
+	(c)->pc = (__address) _pc;		\
+	(c)->bsp = (__address) stack;		\
+	(c)->sp = ((__address) stack) + (size) - SP_DELTA;
+
 struct context {
 
 	/*
@@ -46,7 +55,7 @@ struct context {
 	__u64 ar_unat_caller;
 	__u64 ar_unat_callee;
 	__u64 ar_rsc;
-	__u64 ar_bsp;
+	__u64 bsp;	/* ar_bsp */
 	__u64 ar_rnat;
 	__u64 ar_lc;
 	__u64 ar_ec;

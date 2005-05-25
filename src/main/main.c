@@ -27,7 +27,7 @@
  */
 
 #include <arch/asm.h>
-#include <arch/context.h>
+#include <context.h>
 #include <print.h>
 #include <panic.h>
 #include <config.h>
@@ -94,8 +94,7 @@ void main_bsp(void)
 	config.kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE + CONFIG_STACK_SIZE;
 
 	context_save(&ctx);
-	ctx.sp = config.base + config.kernel_size - SP_DELTA;
-	ctx.pc = FADDR(main_bsp_separated_stack);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -192,8 +191,7 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
-	CPU->saved_context.sp = (__address) &CPU->stack[CPU_STACK_SIZE-SP_DELTA];
-	CPU->saved_context.pc = FADDR(main_ap_separated_stack);
+	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack), CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

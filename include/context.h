@@ -29,9 +29,14 @@
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
+#include <arch/types.h>
 #include <typedefs.h>
-#include "fpu_context.h"
 
+#ifndef context_set
+#define context_set(c, _pc, stack, size) 	\
+	(c)->pc = (__address) (_pc);		\
+	(c)->sp = ((__address) (stack)) + (size) - SP_DELTA;
+#endif /* context_set */
 
 extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
