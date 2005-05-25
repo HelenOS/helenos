@@ -40,5 +40,8 @@
 	/* Corrupted memory */
 #define MEMMAP_MEMORY_UNUSABLE	5 
 
-
+	 /* size of one entry */
+#define MEMMAP_E820_RECORD_SIZE 20 
+	/* maximum entries */
+#define MEMMAP_E820_MAX_RECORDS 32 
 #endif
