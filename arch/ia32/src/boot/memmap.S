@@ -47,7 +47,7 @@ E820_SMAP = 0x534d4150
 memmap_arch_init:
 	
 e820begin:
-	xorl	%ebx,%ebx	#at first call must be ebx==0
+	xorl	%ebx,%ebx	# during first call, ebx must be 0
 	
 	movw	$e820table,%di
 	movb	$E820_MAX_RECORDS,(e820counter)
@@ -62,7 +62,7 @@ e820loop:
 	jc		e820end	
 	
 	
-	cmpl	$E820_SMAP,%eax		# verifiing BIOS
+	cmpl	$E820_SMAP,%eax		# verifying BIOS
 	jne		e820end
 	
 	movw	%di,%ax		# next record
@@ -86,4 +86,4 @@ e820counter:
 	.byte 0
 		 
 e820table:
-	.space  (32*E820_RECORD_SIZE),0 #prostor na 32 zaznamu delky E820_RECORD_SIZE
+	.space  (32*E820_RECORD_SIZE),0 # space for 32 records, each E820_RECORD_SIZE bytes long
