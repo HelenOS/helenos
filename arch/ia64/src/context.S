@@ -36,8 +36,27 @@ context_save:
 	mov loc1 = ar.unat	;;
 	/* loc2 */
 	mov loc3 = ar.rsc
-	mov loc4 = ar.bsp
+
+	.auto
+
+	/*
+	 * Flush dirty registers to backing store.
+	 * After this ar.bsp and ar.bspstore are equal.
+	 */
+	flushrs
+	mov loc4 = ar.bsp	
+	
+	/*
+	 * Put RSE to enforced lazy mode.
+	 * So that ar.rnat can be read.
+	 */
+	movl loc5 = ~3
+	and loc5 = loc3, loc5
+	mov ar.rsc = loc5
 	mov loc5 = ar.rnat
+
+	.explicit
+
 	mov loc6 = ar.lc
 	mov loc7 = ar.ec
 	mov loc8 = ar.ccv
@@ -145,11 +164,25 @@ context_restore:
 	ld8 loc9 = [in0], 8	;;	/* load ar.csd */
 	ld8 loc10 = [in0], 8	;;	/* load ar.ssd */
 	
+	.auto	
+
+	/*
+	 * Invalidate the ALAT
+	 */
+	invala
+
 	/*
 	 * Restore application registers
 	 */
+
+	mov ar.bspstore = loc4
+	mov ar.rnat = loc5
+	mov ar.pfs = loc0
+	mov ar.rsc = loc3
+
+	.explicit
+
 	mov ar.unat = loc2	;;
-	/* TODO: restore ar.rsc, ar.rnat, ar.bspstore */	
 	mov ar.lc = loc6
 	mov ar.ec = loc7
 	mov ar.ccv = loc8
@@ -217,7 +250,6 @@ context_restore:
 	ld8 loc2 = [in0], 8	;;
 	mov pr = loc2, ~0
 	
-	mov ar.pfs = loc0
 	mov ar.unat = loc1
 	
 	mov r8 = r0			/* context_restore returns 0 */
