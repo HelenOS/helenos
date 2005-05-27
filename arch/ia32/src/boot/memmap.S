@@ -69,8 +69,11 @@ e820loop:
 	addw	$E820_RECORD_SIZE,%ax
 	movw	%ax,%di
 		
-	decb	(e820counter)
-	jnz		e820loop
+	decb	(e820counter) # buffer is full
+	jz	e820end
+	
+	cmpl	$0,%ebx	
+	jne	e820loop
 	
 e820end:
 	
