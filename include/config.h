@@ -38,11 +38,11 @@
 
 struct config {
 	__address base;
-	__u32 memory_size;
-	__u32 kernel_size;
+	size_t memory_size;
+	size_t kernel_size;
 
-	int cpu_count;
-	volatile int cpu_active;
+	count_t cpu_count;
+	volatile count_t cpu_active;
 };
 
 extern config_t config;

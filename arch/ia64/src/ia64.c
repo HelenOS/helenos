@@ -31,9 +31,9 @@
 
 void arch_pre_mm_init(void)
 {
+	ski_init_console();
 }
 
 void arch_post_mm_init(void)
 {
-	ski_init_console();
 }

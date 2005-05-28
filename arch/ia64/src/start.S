@@ -40,6 +40,7 @@ kernel_image_start:
 	
 	# initialize register stack
 	mov ar.rsc = r0
+	mov ar.bspstore = r0
 	loadrs
 
 	.explicit

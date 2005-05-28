@@ -42,19 +42,19 @@
 
 #include <synch/spinlock.h>
 
-__u32 frames;
-__u32 frames_free;
+count_t frames = 0;
+count_t frames_free;
 
 __u8 *frame_bitmap;
-__u32 frame_bitmap_octets;
+count_t frame_bitmap_octets;
 
 /*
  * This is for kernel address space frames (allocated with FRAME_KA).
  * Their addresses may not interfere with user address space.
  */
 __u8 *frame_kernel_bitmap;
-__u32 kernel_frames;
-__u32 kernel_frames_free;
+count_t kernel_frames;
+count_t kernel_frames_free;
 
 static spinlock_t framelock;
 
@@ -68,7 +68,6 @@ void frame_init(void)
 
                 frames = config.memory_size / FRAME_SIZE;
                 frame_bitmap_octets = frames / 8 + (frames % 8 > 0);
-
                 frame_bitmap = (__u8 *) malloc(frame_bitmap_octets);
                 if (!frame_bitmap)
                         panic("malloc/frame_bitmap\n");
@@ -110,7 +109,7 @@ __address frame_alloc(int flags)
 	int i;
 	pri_t pri;
 	__u8 **frame_bitmap_ptr = &frame_bitmap;
-	__u32 *frames_ptr = &frames, *frames_free_ptr = &frames_free;
+	count_t *frames_ptr = &frames, *frames_free_ptr = &frames_free;
 	
 	if (flags & FRAME_KA) {
 		frame_bitmap_ptr = &frame_kernel_bitmap;
@@ -165,7 +164,7 @@ void frame_free(__address addr)
 {
 	pri_t pri;
 	__u32 frame;
-	__u32 *frames_free_ptr = &frames_free, *frames_ptr = &frames;
+	count_t *frames_free_ptr = &frames_free, *frames_ptr = &frames;
 	__u8 **frame_bitmap_ptr = &frame_bitmap;
 
 	if (IS_KA(addr)) {
@@ -195,9 +194,9 @@ void frame_free(__address addr)
 				 frames_free++;
 			}	
 		}
-		else panic("frame_free: frame already free\n");
+		else panic("frame already free\n");
 	}
-	else panic("frame_free: frame number too big\n");
+	else panic("frame number too big\n");
 	
 	spinlock_unlock(&framelock);
 	cpu_priority_restore(pri);
@@ -211,7 +210,7 @@ void frame_not_free(__address addr)
 {
 	pri_t pri;
 	__u32 frame;
-	__u32 *frames_ptr = &frames, *frames_free_ptr = &frames_free;
+	count_t *frames_ptr = &frames, *frames_free_ptr = &frames_free;
 	__u8 **frame_bitmap_ptr = &frame_bitmap;
 	
 	pri = cpu_priority_high();

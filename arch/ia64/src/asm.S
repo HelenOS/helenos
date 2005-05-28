@@ -42,3 +42,18 @@ memcpy:
 .global memcopy
 memcopy:
 	br _memcopy
+
+.global memsetb
+memsetb:
+	br _memsetb
+
+.global cpu_halt
+cpu_halt:
+	br cpu_halt
+
+.global panic_printf
+panic_printf:
+	{
+		br.call.sptk.many b0=printf
+	}
+	br cpu_halt

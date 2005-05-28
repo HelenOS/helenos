@@ -42,7 +42,7 @@
 static chunk_t *chunk0;
 static spinlock_t heaplock;
 
-void heap_init(__address heap, __u32 size)
+void heap_init(__address heap, size_t size)
 {
 	spinlock_initialize(&heaplock);
 	memsetb(heap, size, 0);
@@ -62,7 +62,7 @@ void *malloc(size_t size)
 	chunk_t *x, *y, *z;
 
 	if (size == 0)
-		panic("malloc: zero-size allocation request");
+		panic("zero-size allocation request");
 		
 	x = chunk0;
 	pri = cpu_priority_high();

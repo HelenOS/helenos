@@ -34,7 +34,6 @@
 .global before_thread_runs_arch
 .global arch_late_init
 .global cpu_arch_init
-.global cpu_halt
 .global cpu_identify
 .global cpu_print_report
 .global cpu_priority_high
@@ -44,8 +43,6 @@
 .global cpu_sleep
 .global frame_arch_init
 .global map_page_to_frame
-.global memsetb
-.global panic_printf
 
 before_thread_runs_arch:
 userspace:
@@ -53,7 +50,6 @@ calibrate_delay_loop:
 asm_delay_loop:
 arch_late_init:
 cpu_arch_init:
-cpu_halt:
 cpu_identify:
 cpu_print_report:
 cpu_priority_high:
@@ -63,7 +59,5 @@ cpu_priority_restore:
 cpu_sleep:
 frame_arch_init:
 map_page_to_frame:
-memsetb:
-panic_printf:
 	br.ret.sptk.many b0
 

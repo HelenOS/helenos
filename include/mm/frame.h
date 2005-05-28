@@ -30,18 +30,19 @@
 #define __FRAME_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
 
-extern __u32 frames;
-extern __u32 frames_free;
+extern count_t frames;
+extern count_t frames_free;
 
-extern __u32 kernel_frames;
-extern __u32 kernel_frames_free;
+extern count_t kernel_frames;
+extern count_t kernel_frames_free;
 
 extern __u8 *frame_bitmap;
-extern __u32 frame_bitmap_octets;
+extern count_t frame_bitmap_octets;
 
 extern __u8 *frame_kernel_bitmap;
 
