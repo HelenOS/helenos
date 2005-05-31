@@ -75,7 +75,7 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	spinlock_lock(&t->lock);
     
 	if (t->cpu)
-		panic("timeout_register: t->cpu != 0");
+		panic("t->cpu != 0");
 
 	t->cpu = CPU;
 	t->ticks = us2ticks(time);

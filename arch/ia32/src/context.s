@@ -30,10 +30,6 @@
 
 .global context_save
 .global context_restore
-.global fpu_context_save
-.global fpu_context_restore
-.global fpu_lazy_context_save
-.global fpu_lazy_context_restore
 
 
 ## Save current CPU context
