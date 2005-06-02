@@ -47,5 +47,3 @@ arch_sources= \
 	arch/boot/boot.S \
 	arch/boot/memmap.S\
 	arch/fpu_context.c
-
-

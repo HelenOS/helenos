@@ -148,6 +148,11 @@ memsetb:
 	j _memsetb
 	nop
 
+.global memcopy
+memcopy:
+	j _memcopy
+	nop
+
 # THIS IS USERSPACE CODE
 .global utext
 utext:

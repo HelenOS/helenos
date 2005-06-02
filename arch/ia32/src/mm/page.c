@@ -53,19 +53,22 @@ void page_arch_init(void)
 	__u32 i;
 
 	if (config.cpu_active == 1) {
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
+		dba = KA2PA(frame_alloc(FRAME_KA | FRAME_PANIC));
 		memsetb(dba, PAGE_SIZE, 0);
-		cpu_write_dba(dba);
 	    
 		bootstrap_dba = dba;
 
 		/*
 		 * Identity mapping for all but 0th page.
+		 * PA2KA(identity) mapping for all but 0th page.
 		 */
-		for (i = 1; i < frames; i++)
+		for (i = 1; i < frames; i++) {
 			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, 0);
+			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, 0);			
+		}
 
 		trap_register(14, page_fault);
+		cpu_write_dba(dba);		
 	}
 	else {
 
@@ -104,7 +107,9 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 	__address dba, newpt;
 	int pde, pte;
 
-	dba = cpu_read_dba();
+//	TODO: map_page_to_frame should take dba as a parameter
+//	dba = cpu_read_dba();
+	dba = bootstrap_dba;
 
 	pde = page >> 22;		/* page directory entry */
 	pte = (page >> 12) & 0x3ff;	/* page table entry */
@@ -116,14 +121,14 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 		 * There is currently no page table for this address. Allocate
 		 * frame for the page table and clean it.
 		 */
-		newpt = frame_alloc(FRAME_KA);
+		newpt = KA2PA(frame_alloc(FRAME_KA));
 		pd[pde].frame_address = newpt >> 12;
 		memsetb(newpt, PAGE_SIZE, 0);
 		pd[pde].present = 1;
 		pd[pde].uaccessible = 1;
 	}
 	if (copy) {
-		newpt = frame_alloc(FRAME_KA);
+		newpt = KA2PA(frame_alloc(FRAME_KA));
 		memcopy(pd[pde].frame_address << 12, newpt, PAGE_SIZE);
 		pd[pde].frame_address = newpt >> 12;
 	}

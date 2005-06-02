@@ -37,11 +37,8 @@
 void frame_arch_init(void)
 {
 	if (config.cpu_active == 1) {
-		__u32 kernel_frames_max;
-		
-		kernel_frames_max = ((KERNEL_ADDRESS_SPACE_END+1)/FRAME_SIZE);
-		
-		kernel_frames_free = kernel_frames = frames < kernel_frames_max ? frames : kernel_frames_max;
+		kernel_frames = frames;
+		kernel_frames_free = frames_free;
 		frame_kernel_bitmap = frame_bitmap;
 
 		frame_not_free(0x0);

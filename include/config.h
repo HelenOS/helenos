@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-#define CONFIG_MEMORY_SIZE	16*1024*1024
+#define CONFIG_MEMORY_SIZE	4*1024*1024
 #define CONFIG_HEAP_SIZE	300*1024
 #define CONFIG_STACK_SIZE	32*1024
 

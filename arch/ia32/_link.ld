@@ -1,20 +1,28 @@
 /** IA-32 linker script
  *  
- *  kernel text
- *  kernel data
- *  
+ * umapped section:
+ * 	kernel text
+ * 	kernel data
+ * mapped section:
+ *	kernel text
+ *	kernel data 
  */
 
 OUTPUT_FORMAT(binary)
 ENTRY(kernel_image_start)
 
 SECTIONS {
-    .image 0x8000: AT (0x8000) { 
-	ktext_start = .;
+    .unmapped 0x8000: AT (0x8000) {
+	unmapped_ktext_start = .;
 	*(K_TEXT_START);
-	delta_start = .;
+	unmapped_ktext_end = .;
+	unmapped_kdata_start = .;
 	*(K_DATA_START);
-	delta_end = .;			
+	unmapped_kdata_end = .;
+    }
+    
+    .mapped (0x80000000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) { 
+	ktext_start = .;
 	*(.text);
 	ktext_end = .;
 
@@ -27,19 +35,8 @@ SECTIONS {
 	kdata_end = .;
     }
 
-    . = ABSOLUTE(hardcoded_ktext_size);
-    .patch_1 : {
-        LONG(ktext_end - ktext_start - (delta_end - delta_start));
-    }
-
-    . = ABSOLUTE(hardcoded_kdata_size);
-    .patch_2 : {
-        LONG(kdata_end - kdata_start + (delta_end - delta_start));
-    }
-
-    . = ABSOLUTE(hardcoded_load_address);
-    .patch_3 : {
-        LONG(0x8000);
-    }
+    _hardcoded_ktext_size = ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start);
+    _hardcoded_kdata_size = kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start);
+    _hardcoded_load_address = 0x80008000;
 
 }

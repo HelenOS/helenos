@@ -137,7 +137,7 @@ extern struct idescriptor idt[];
 extern void pm_init(void);
 
 extern void gdt_setbase(struct descriptor *d, __address base);
-extern void gdt_setlimit(struct descriptor *d, __address limit);
+extern void gdt_setlimit(struct descriptor *d, __u32 limit);
 
 extern void idt_init(void);
 extern void idt_setoffset(struct idescriptor *d, __address offset);

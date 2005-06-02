@@ -34,8 +34,8 @@
 
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	(x)
-#define PA2KA(x)	(x)
+#define KA2PA(x)	((x) - 0x80000000)
+#define PA2KA(x)	((x) + 0x80000000)
 
 struct page_specifier {
 	unsigned present : 1;

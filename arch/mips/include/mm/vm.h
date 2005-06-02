@@ -37,7 +37,7 @@
 #define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff	
 
 #define UTEXT_ADDRESS_ARCH	0x00001000
-#define USTACK_ADDRESS_ARCH	0x7ffff000
+#define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
 #define UDATA_ADDRESS_ARCH	0x01001000
 
 #endif

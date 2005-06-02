@@ -66,17 +66,17 @@ static struct tss tss;
 struct tss *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = (__address) gdt };
-struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START")))= { .limit = sizeof(idt), .base = (__address) idt };
+struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
+struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(idt), .base = KA2PA((__address) idt) };
 
 void gdt_setbase(struct descriptor *d, __address base)
 {
-        d->base_0_15 = base & 0xffff;
-        d->base_16_23 = (base >> 16) & 0xff;
-        d->base_24_31 = (base >> 24) & 0xff;
+        d->base_0_15 = KA2PA(base) & 0xffff;
+        d->base_16_23 = (KA2PA(base) >> 16) & 0xff;
+        d->base_24_31 = (KA2PA(base) >> 24) & 0xff;
 }
 
-void gdt_setlimit(struct descriptor *d, __address limit)
+void gdt_setlimit(struct descriptor *d, __u32 limit)
 {
         d->limit_0_15 = limit & 0xffff;
         d->limit_16_19 = (limit >> 16) & 0xf;
@@ -84,8 +84,8 @@ void gdt_setlimit(struct descriptor *d, __address limit)
 
 void idt_setoffset(struct idescriptor *d, __address offset)
 {
-	d->offset_0_15 = offset & 0xffff;
-	d->offset_16_31 = offset >> 16;
+	d->offset_0_15 = KA2PA(offset) & 0xffff;
+	d->offset_16_31 = KA2PA(offset) >> 16;
 }
 
 void tss_initialize(struct tss *t)

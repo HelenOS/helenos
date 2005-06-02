@@ -29,12 +29,6 @@
 
 #include <arch/boot/memmap.h>
 
-.global memmap_arch_init
-
-.code16
-.section K_TEXT_START
-
-
 E820_RECORD_SIZE = MEMMAP_E820_RECORD_SIZE
 E820_MAX_RECORDS = MEMMAP_E820_MAX_RECORDS
 E820_SMAP = 0x534d4150

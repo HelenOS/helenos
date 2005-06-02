@@ -39,8 +39,8 @@
 # switch to protected mode.
 #
 kernel_image_start:
-	call memmap_arch_init
 	cli
+	call memmap_arch_init
 	xorw %ax,%ax
 	movw %ax,%ds
 	lgdt gdtr
@@ -62,8 +62,39 @@ meeting_point:
 
 	lidt idtr
 
-	call main_bsp			# never returns
+	#
+	# Here we setup mapping for both the unmapped and mapped sections of the kernel.
+	# For simplicity, we set only one 4M page for 0x00000000 and one for 0x80000000.
+	#
+	movl %cr4, %ecx
+	orl $(1<<4), %ecx
+	movl %ecx, %cr4				# turn PSE on
 	
+	movl $((1<<7)|(1<<0)), %eax
+	movl %eax, page_directory		# mapping 0x00000000 => 0x00000000
+
+	movl $(page_directory+(4096/2)), %edx
+	movl %eax, (%edx)			# mapping 0x80000000 => 0x00000000
+
+	leal page_directory, %eax
+	movl %eax, %cr3
+	
+	# turn on paging
+	movl %cr0, %ebx
+	orl $(1<<31), %ebx
+	movl %ebx, %cr0
+
+	movl $_hardcoded_ktext_size, hardcoded_ktext_size
+	movl $_hardcoded_kdata_size, hardcoded_kdata_size
+	movl $_hardcoded_load_address, hardcoded_load_address
+
+	call main_bsp			# never returns
 
 	cli
 	hlt
+
+.section K_DATA_START
+
+.align 4096
+page_directory:
+	.space 4096, 0

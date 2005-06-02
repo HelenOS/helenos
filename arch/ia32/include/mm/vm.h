@@ -31,13 +31,13 @@
 
 #include <arch/types.h>
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x0
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0x3fffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x40000000
-#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff	
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff	
+#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x00000000
+#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff
 
-#define UTEXT_ADDRESS_ARCH	0x40000000
-#define USTACK_ADDRESS_ARCH	0xfffff000
-#define UDATA_ADDRESS_ARCH	0x41000000
+#define UTEXT_ADDRESS_ARCH	0x00001000
+#define USTACK_ADDRESS_ARCH	(0x7fffffffUL-(PAGE_SIZE-1))
+#define UDATA_ADDRESS_ARCH	0x21000000
 
 #endif

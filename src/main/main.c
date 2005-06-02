@@ -63,7 +63,8 @@ context_t ctx;
 
 /*
  * These 'hardcoded' variables will be intialised by
- * the linker with appropriate sizes and addresses.
+ * the linker or the low level assembler code with
+ * appropriate sizes and addresses.
  */
 __address hardcoded_load_address = 0;
 __u32 hardcoded_ktext_size = 0;
@@ -114,7 +115,6 @@ void main_bsp_separated_stack(void) {
 	arch_post_mm_init();
 
 	printf("%s\n%s\n", project, copyright);
-
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
