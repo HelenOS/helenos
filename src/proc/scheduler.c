@@ -84,7 +84,7 @@ void scheduler_init(void)
 /** Get thread to be scheduled
  *
  * Get the optimal thread to be scheduled
- * according thread accounting and scheduler
+ * according to thread accounting and scheduler
  * policy.
  *
  * @return Thread to be scheduled.

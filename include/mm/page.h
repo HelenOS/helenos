@@ -46,6 +46,6 @@
 #define PAGE_EXEC		(1<<5)
 
 extern void page_init(void);
-extern void map_page_to_frame(__address page, __address frame, int flags, int copy);
+extern void map_page_to_frame(__address page, __address frame, int flags, __address root);
 
 #endif

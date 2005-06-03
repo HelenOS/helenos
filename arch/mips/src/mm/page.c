@@ -29,7 +29,7 @@
 #include <arch/types.h>
 #include <mm/page.h>
 
-void map_page_to_frame(__address page, __address frame, int flags, int copy)
+void map_page_to_frame(__address page, __address frame, int flags, __address root)
 {
 	/* TODO !!! */
 }

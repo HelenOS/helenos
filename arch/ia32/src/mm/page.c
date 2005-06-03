@@ -64,8 +64,8 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all but 0th page.
 		 */
 		for (i = 1; i < frames; i++) {
-			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, 0);
-			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, 0);			
+			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, dba);
+			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, dba);
 		}
 
 		trap_register(14, page_fault);
@@ -94,23 +94,21 @@ void page_arch_init(void)
  * the page table for this page has not been allocated so far, it will take
  * care of it and allocate the necessary frame.
  *
- * When the copy parameter is positive, map_page_to_frame will not overwrite
- * the current mapping. It will allocate a new frame and do the mapping on it
- * instead.
- *
  * PAGE_CACHEABLE flag: when set, it turns caches for that page on
  * PAGE_NOT_PRESENT flag: when set, it marks the page not present
  * PAGE_USER flag: when set, the page is accessible from userspace
+ *
+ * When the root parameter is non-zero, it is used as the page directory address.
+ * Otherwise, the page directory address is read from CPU.
  */
-void map_page_to_frame(__address page, __address frame, int flags, int copy)
+void map_page_to_frame(__address page, __address frame, int flags, __address root)
 {
 	struct page_specifier *pd, *pt;
 	__address dba, newpt;
 	int pde, pte;
 
-//	TODO: map_page_to_frame should take dba as a parameter
-//	dba = cpu_read_dba();
-	dba = bootstrap_dba;
+	if (root) dba = root;
+	else dba = cpu_read_dba();
 
 	pde = page >> 22;		/* page directory entry */
 	pte = (page >> 12) & 0x3ff;	/* page table entry */
@@ -127,11 +125,6 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 		memsetb(newpt, PAGE_SIZE, 0);
 		pd[pde].present = 1;
 		pd[pde].uaccessible = 1;
-	}
-	if (copy) {
-		newpt = frame_alloc(FRAME_KA);
-		memcopy(pd[pde].frame_address << 12, newpt, PAGE_SIZE);
-		pd[pde].frame_address = KA2PA(newpt) >> 12;
 	}
 	
 	pt = (struct page_specifier *) (pd[pde].frame_address << 12);
