@@ -38,6 +38,12 @@
 #include <arch/asm.h>
 #include <arch.h>
 
+
+/** Initialize timeouts
+ *
+ * Initialize kernel timeouts.
+ *
+ */
 void timeout_init(void)
 {
 	spinlock_initialize(&CPU->timeoutlock);
@@ -45,6 +51,13 @@ void timeout_init(void)
 }
 
 
+/** Initialize empty timeout list
+ *
+ * Initialize the timeout list to be empty.
+ *
+ * @param t Timeout list to be initialized.
+ *
+ */
 void timeout_reinitialize(timeout_t *t)
 {
 	t->cpu = NULL;
@@ -54,14 +67,33 @@ void timeout_reinitialize(timeout_t *t)
 	link_initialize(&t->link);
 }
 
+
+/** Initialize timeout list
+ *
+ * Initialize the timeout list and its spinlock.
+ *
+ * @param t Timeout list to be initialized.
+ *
+ */
 void timeout_initialize(timeout_t *t)
 {
 	spinlock_initialize(&t->lock);
 	timeout_reinitialize(t);
 }
 
-/*
- * This function registers f for execution in about time microseconds.
+
+/** Register timeout callback
+ *
+ * Insert the timeout handler f (with argument arg)
+ * to the timeout list and make it execute in
+ * time microseconds (or slightly more).
+ *
+ * @param t    Timeout list.
+ * @patam time Number of usec in the future to execute
+ *             the handler.
+ * @param f    Timeout handler function.
+ * @param arg  Timeout handler argument.
+ *
  */
 void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 {
@@ -121,6 +153,14 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	cpu_priority_restore(pri);
 }
 
+
+/** Unregister timeout callback
+ *
+ * Remove timeout from timeout list.
+ *
+ * @param t Timeout to unregister.
+ *
+ */
 int timeout_unregister(timeout_t *t)
 {
 	timeout_t *hlp;

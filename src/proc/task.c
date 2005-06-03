@@ -39,6 +39,12 @@
 spinlock_t tasks_lock;
 link_t tasks_head;
 
+
+/** Initialize tasks
+ *
+ * Initialize kernel tasks support.
+ *
+ */
 void task_init(void)
 {
 	TASK = NULL;
@@ -46,6 +52,16 @@ void task_init(void)
 	list_initialize(&tasks_head);
 }
 
+
+/** Create new task
+ *
+ * Create new task with no threads.
+ *
+ * @param m Task's virtual memory structure.
+ *
+ * @return New task's structure on success, NULL on failure.
+ *
+ */
 task_t *task_create(vm_t *m)
 {
 	pri_t pri;

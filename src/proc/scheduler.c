@@ -56,6 +56,13 @@
 spinlock_t nrdylock;
 volatile int nrdy;
 
+
+/** Initialize context switching
+ *
+ * Initialize context switching and lazy FPU
+ * context switching.
+ *
+ */
 void before_thread_runs(void)
 {
 	before_thread_runs_arch(); 
@@ -63,12 +70,26 @@ void before_thread_runs(void)
 }
 
 
+/** Initialize scheduler
+ *
+ * Initialize kernel scheduler.
+ *
+ */
 void scheduler_init(void)
 {
 	spinlock_initialize(&nrdylock);
 }
 
-/* cpu_priority_high()'d */
+
+/** Get thread to be scheduled
+ *
+ * Get the optimal thread to be scheduled
+ * according thread accounting and scheduler
+ * policy.
+ *
+ * @return Thread to be scheduled.
+ *
+ */
 struct thread *find_best_thread(void)
 {
 	thread_t *t;
@@ -155,11 +176,17 @@ loop:
 
 }
 
-/*
- * This function prevents low priority threads from starving in rq's.
- * When it decides to relink rq's, it reconnects respective pointers
- * so that in result threads with 'pri' greater or equal 'start' are
- * moved to a higher-priority queue.
+
+/** Prevent rq starvation
+ *
+ * Prevent low priority threads from starving in rq's.
+ *
+ * When the function decides to relink rq's, it reconnects
+ * respective pointers so that in result threads with 'pri'
+ * greater or equal 'start' are moved to a higher-priority queue.
+ *
+ * @param start Threshold priority.
+ *
  */
 void relink_rq(int start)
 {
@@ -192,8 +219,11 @@ void relink_rq(int start)
 
 }
 
-/*
- * The scheduler.
+
+/** The scheduler
+ *
+ * The thread scheduling procedure.
+ *
  */
 void scheduler(void)
 {
@@ -237,6 +267,14 @@ void scheduler(void)
 	/* not reached */
 }
 
+
+/** Scheduler stack switch wrapper
+ *
+ * Second part of the scheduler() function
+ * using new stack. Handling the actual context
+ * switch to a new thread.
+ *
+ */
 void scheduler_separated_stack(void)
 {
 	int priority;
@@ -365,10 +403,15 @@ void scheduler_separated_stack(void)
 	/* not reached */
 }
 
+
 #ifdef __SMP__
-/*
- * This is the load balancing thread. 
- * It supervises thread supplies for the CPU it's wired to.
+/** Load balancing thread
+ *
+ * SMP load balancing thread, supervising thread supplies
+ * for the CPU it's wired to.
+ *
+ * @param arg Generic thread argument (unused).
+ *
  */
 void kcpulb(void *arg)
 {

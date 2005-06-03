@@ -50,7 +50,7 @@
 #include <smp/ipi.h>
 #include <arch/faddr.h>
 
-char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"};
+char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
 spinlock_t threads_lock;
 link_t threads_head;
@@ -58,12 +58,15 @@ link_t threads_head;
 static spinlock_t tidlock;
 __u32 last_tid = 0;
 
-/*
- * cushion() is provided to ensure that every thread
+
+/** Thread wrapper
+ *
+ * This wrapper is provided to ensure that every thread
  * makes a call to thread_exit() when its implementing
  * function returns.
  *
- * cpu_priority_high()'d
+ * cpu_priority_high() is assumed.
+ *
  */
 void cushion(void)
 {
@@ -81,6 +84,12 @@ void cushion(void)
 	/* not reached */
 }
 
+
+/** Initialize threads
+ *
+ * Initialize kernel threads support.
+ *
+ */
 void thread_init(void)
 {
 	THREAD = NULL;
@@ -89,6 +98,14 @@ void thread_init(void)
 	list_initialize(&threads_head);
 }
 
+
+/** Make thread ready
+ *
+ * Switch thread t to the ready state.
+ *
+ * @param t Thread to make ready.
+ *
+ */
 void thread_ready(thread_t *t)
 {
 	cpu_t *cpu;
@@ -108,7 +125,7 @@ void thread_ready(thread_t *t)
 	}
 	spinlock_unlock(&t->lock);
 	
-        /*
+	/*
 	 * Append t to respective ready queue on respective processor.
 	 */
 	r = &cpu->rq[i];
@@ -133,6 +150,19 @@ void thread_ready(thread_t *t)
 	cpu_priority_restore(pri);
 }
 
+
+/** Create new thread
+ *
+ * Create a new thread.
+ *
+ * @param func  Thread's implementing function.
+ * @param arg   Thread's implementing function argument.
+ * @param task  Task to which the thread belongs.
+ * @param flags Thread flags.
+ *
+ * @return New thread's structure on success, NULL on failure.
+ *
+ */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags)
 {
 	thread_t *t;
@@ -213,6 +243,13 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	return t;
 }
 
+
+/** Make thread exiting
+ *
+ * End current thread execution and switch it to the exiting
+ * state. All pending timeouts are executed.
+ *
+ */
 void thread_exit(void)
 {
 	pri_t pri;
@@ -230,14 +267,27 @@ restart:
 	scheduler();
 }
 
+
+/** Thread sleep
+ *
+ * Suspend execution of the current thread.
+ *
+ * @param sec Number of seconds to sleep.
+ *
+ */
 void thread_sleep(__u32 sec)
 {
         thread_usleep(sec*1000000);
 }
-	
-/*
- * Suspend execution of current thread for usec microseconds.
- */
+
+
+/** Thread usleep
+ *
+ * Suspend execution of the current thread.
+ *
+ * @param usec Number of microseconds to sleep.
+ *
+ */	
 void thread_usleep(__u32 usec)
 {
 	waitq_t wq;
@@ -247,6 +297,16 @@ void thread_usleep(__u32 usec)
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_NON_BLOCKING);
 }
 
+
+/** Register thread out-of-context invocation
+ *
+ * Register a function and its argument to be executed
+ * on next context switch to the current thread.
+ *
+ * @param call_me      Out-of-context function.
+ * @param call_me_with Out-of-context function argument.
+ *
+ */
 void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 {
 	pri_t pri;

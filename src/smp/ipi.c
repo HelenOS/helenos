@@ -31,6 +31,14 @@
 #include <smp/ipi.h>
 #include <config.h>
 
+
+/** Broadcast IPI message
+ *
+ * Broadcast IPI message to all CPUs.
+ *
+ * @param ipi Message to broadcast.
+ *
+ */
 void ipi_broadcast(int ipi)
 {
 	/*

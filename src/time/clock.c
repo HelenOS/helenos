@@ -43,8 +43,12 @@
 #include <arch/smp/atomic.h>
 #endif
 
-/*
- * Clock is called from an interrupt and is cpu_priority_high()'d.
+/** Clock routine
+ *
+ * Clock routine executed from clock interrupt handler
+ * (assuming cpu_priority_high()). Runs expired timeouts
+ * and preemptive scheduling.
+ *
  */
 void clock(void)
 {

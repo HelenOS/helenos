@@ -32,14 +32,22 @@
 #include <arch/asm.h>
 #include <arch.h>
 
-/*
- * Note that the delay loop is calibrated for each and every CPU in the system.
- * Therefore it is necessary to cpu_priority_high() before calling the asm_delay_loop().
+/** Active delay
+ *
+ * Delay the execution for the given number
+ * of microseconds (or slightly more). The delay
+ * is implemented as CPU calibrated active loop.
+ *
+ * @param microseconds Number of usec to sleep.
+ *
  */
 void delay(__u32 microseconds)
 {
 	pri_t pri;
-
+	
+	/* The delay loop is calibrated for each and every
+	   CPU in the system. Therefore it is necessary to
+	   cpu_priority_high() before calling the asm_delay_loop(). */
 	pri = cpu_priority_high();
 	asm_delay_loop(microseconds * CPU->delay_loop_const);
 	cpu_priority_restore(pri);
