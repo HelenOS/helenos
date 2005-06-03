@@ -84,8 +84,13 @@ void main_ap(void);
 static void main_bsp_separated_stack(void);
 static void main_ap_separated_stack(void);
 
-/*
- * Executed by the bootstrap processor. cpu_priority_high()'d
+
+/** Bootstrap CPU main kernel routine
+ *
+ * Initializes the kernel by bootstrap CPU.
+ *
+ * Assuming cpu_priority_high().
+ *
  */
 void main_bsp(void)
 {
@@ -102,6 +107,12 @@ void main_bsp(void)
 	/* not reached */
 }
 
+
+/** Bootstrap CPU main kernel routine stack wrapper
+ *
+ * Second part of main_bsp().
+ *
+ */
 void main_bsp_separated_stack(void) {
 	vm_t *m;
 	task_t *k;
@@ -161,10 +172,15 @@ void main_bsp_separated_stack(void) {
 	/* not reached */
 }
 
+
 #ifdef __SMP__
-/*
- * Executed by application processors. cpu_priority_high()'d
- * Temporary stack is at ctx.sp which was set during BP boot.
+/** Application CPUs main kernel routine
+ *
+ * Executed by application processors, temporary stack
+ * is at ctx.sp which was set during BP boot.
+ *
+ * Assuming  cpu_priority_high().
+ *
  */
 void main_ap(void)
 {
@@ -198,6 +214,12 @@ void main_ap(void)
 	/* not reached */
 }
 
+
+/** Application CPUs main kernel routine stack wrapper
+ *
+ * Second part of main_ap().
+ *
+ */
 void main_ap_separated_stack(void)
 {
 	/*

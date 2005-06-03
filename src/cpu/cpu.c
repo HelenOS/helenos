@@ -43,6 +43,12 @@
 cpu_private_data_t *cpu_private_data;
 cpu_t *cpus;
 
+
+/** Initialize CPUs
+ *
+ * Initialize kernel CPUs support.
+ *
+ */
 void cpu_init(void) {
 	int i, j;
 	
