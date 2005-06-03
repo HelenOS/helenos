@@ -27,8 +27,6 @@
 #
 
 .section K_TEXT_START
-.global k_text_start
-k_text_start:
 
 .global kernel_image_start
 
@@ -49,40 +47,25 @@ kernel_image_start:
 	add r12 = - 16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
-	movl r1=k_text_start
+	movl r1 = _hardcoded_load_address
+	
+	;;
 
 	#
 	# Initialize hardcoded_* variables.
-	# (IA-64 port doesn't get these values from linker.)
 	#
-	movl r8 = k_text_start	;;
-	movl r9 = k_text_end	;;
-	sub r8 = r9, r8		
-	addl r10 = @gprel(hardcoded_ktext_size), gp;;
-	st4 [r10] = r8		;;
-
-	movl r8 = k_data_start	;;
-	movl r9 = k_data_end	;;
-	sub r8 = r9, r8		
-	addl r10 = @gprel(hardcoded_kdata_size), gp;;
-	st4 [r10] = r8		;;
-	
-	addl r10 = @gprel(hardcoded_load_address), gp;;
-	st8 [r10] = r1
+	movl r14 = _hardcoded_ktext_size
+	movl r15 = _hardcoded_kdata_size
+	movl r16 = _hardcoded_load_address
+	addl r17 = @gprel(hardcoded_ktext_size), gp
+	addl r18 = @gprel(hardcoded_kdata_size), gp
+	addl r19 = @gprel(hardcoded_load_address), gp
+	;;
+	st4 [r17] = r14
+	st4 [r18] = r15
+	st8 [r19] = r16
 	
 	br.call.sptk.many b0=main_bsp
 
 0:
 	br 0b
-
-.section K_TEXT_END
-.global k_text_end
-k_text_end:
-
-.section K_DATA_START
-.global k_data_start
-k_data_start:
-
-.section K_DATA_END
-.global k_data_end
-k_data_end:

@@ -35,6 +35,7 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <synch/spinlock.h>
+#include <debug.h>
 
 /*
  * Note.
@@ -53,7 +54,7 @@ void page_arch_init(void)
 	__u32 i;
 
 	if (config.cpu_active == 1) {
-		dba = KA2PA(frame_alloc(FRAME_KA | FRAME_PANIC));
+		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
 		memsetb(dba, PAGE_SIZE, 0);
 	    
 		bootstrap_dba = dba;
@@ -68,7 +69,7 @@ void page_arch_init(void)
 		}
 
 		trap_register(14, page_fault);
-		cpu_write_dba(dba);		
+		cpu_write_dba(KA2PA(dba));
 	}
 	else {
 
@@ -81,7 +82,7 @@ void page_arch_init(void)
 
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
 		memcopy(bootstrap_dba, dba, PAGE_SIZE);
-		cpu_write_dba(dba);
+		cpu_write_dba(KA2PA(dba));
 	}
 
 	paging_on();
@@ -121,16 +122,16 @@ void map_page_to_frame(__address page, __address frame, int flags, int copy)
 		 * There is currently no page table for this address. Allocate
 		 * frame for the page table and clean it.
 		 */
-		newpt = KA2PA(frame_alloc(FRAME_KA));
-		pd[pde].frame_address = newpt >> 12;
+		newpt = frame_alloc(FRAME_KA);
+		pd[pde].frame_address = KA2PA(newpt) >> 12;
 		memsetb(newpt, PAGE_SIZE, 0);
 		pd[pde].present = 1;
 		pd[pde].uaccessible = 1;
 	}
 	if (copy) {
-		newpt = KA2PA(frame_alloc(FRAME_KA));
+		newpt = frame_alloc(FRAME_KA);
 		memcopy(pd[pde].frame_address << 12, newpt, PAGE_SIZE);
-		pd[pde].frame_address = newpt >> 12;
+		pd[pde].frame_address = KA2PA(newpt) >> 12;
 	}
 	
 	pt = (struct page_specifier *) (pd[pde].frame_address << 12);

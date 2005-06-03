@@ -47,7 +47,7 @@ void ega_init(void)
 {
 	__u8 hi, lo;
 
-	map_page_to_frame(VIDEORAM, VIDEORAM, PAGE_NOT_CACHEABLE, 0);
+	map_page_to_frame(PA2KA(VIDEORAM), VIDEORAM, PAGE_NOT_CACHEABLE, 0);
 	outb(0x3d4,0xe);
 	hi = inb(0x3d5);
 	outb(0x3d4,0xf);
@@ -58,7 +58,7 @@ void ega_init(void)
 
 void ega_display_char(char ch)
 {
-	__u8 *vram = (__u8 *) VIDEORAM;
+	__u8 *vram = (__u8 *) PA2KA(VIDEORAM);
 	
 	vram[ega_cursor*2] = ch;
 }
@@ -71,8 +71,8 @@ void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 	    return;
 
-	memcopy(VIDEORAM + ROW*2, VIDEORAM, (SCREEN - ROW)*2);
-	memsetw(VIDEORAM + (SCREEN - ROW)*2, ROW, 0x0720);
+	memcopy(PA2KA(VIDEORAM) + ROW*2, PA2KA(VIDEORAM), (SCREEN - ROW)*2);
+	memsetw(PA2KA(VIDEORAM) + (SCREEN - ROW)*2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 

@@ -55,6 +55,8 @@
 #include <arch.h>
 #include <arch/faddr.h>
 
+#include <typedefs.h>
+
 char *project = "SPARTAN kernel";
 char *copyright = "Copyright (C) 2001-2005 Jakub Jermar\nCopyright (C) 2005 HelenOS project";
 
@@ -67,8 +69,8 @@ context_t ctx;
  * appropriate sizes and addresses.
  */
 __address hardcoded_load_address = 0;
-__u32 hardcoded_ktext_size = 0;
-__u32 hardcoded_kdata_size = 0;
+size_t hardcoded_ktext_size = 0;
+size_t hardcoded_kdata_size = 0;
 
 void main_bsp(void);
 void main_ap(void);
