@@ -15,6 +15,7 @@ SECTIONS {
 	.unmapped 0x8000: AT (0x8000) {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
+		*(K_TEXT_START_2);
 		unmapped_ktext_end = .;
 		unmapped_kdata_start = .;
 		*(K_DATA_START);

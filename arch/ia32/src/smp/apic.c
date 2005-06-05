@@ -208,7 +208,7 @@ int l_apic_send_init_ipi(__u8 apicid)
 		for (i = 0; i<2; i++) {
 			lo = l_apic[ICRlo] & ICRloClear;
 			lo |= ((__address) ap_boot) / 4096; /* calculate the reset vector */
-			l_apic[ICRlo] = lo | DLVRMODE_STUP | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST |  TRGRMODE_LEVEL;
+			l_apic[ICRlo] = lo | DLVRMODE_STUP | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST | TRGRMODE_LEVEL;
 			delay(200);
 		}
 	}

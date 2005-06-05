@@ -22,7 +22,7 @@ You'll need a msim.conf script like this:
 	add rwm 	mainmem		0               16M	load "kernel.bin"
 	add rom 	startmem        0x1fc00000	1k      load "load.bin"
 
-	add dprinter    printer         0xA000000
+	add dprinter    printer         0x10000000
 
 
 

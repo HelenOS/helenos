@@ -36,7 +36,7 @@ E820_SMAP = 0x534d4150
 .global memmap_arch_init
 
 .code16
-.section K_TEXT_START
+.section K_TEXT_START_2
 
 memmap_arch_init:
 	

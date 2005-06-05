@@ -72,7 +72,6 @@ void page_arch_init(void)
 		cpu_write_dba(KA2PA(dba));
 	}
 	else {
-
 		/*
 		 * Application processors need to create their own view of the
 		 * virtual address space. Because of that, each AP copies

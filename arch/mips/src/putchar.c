@@ -30,7 +30,7 @@
 #include <arch/types.h>
 #include <arch/cp0.h>
 
-#define VIDEORAM	0xA000000
+#define VIDEORAM	0xB0000000
 
 void putchar(const char ch)
 {

@@ -30,7 +30,7 @@
 # Init code for application processors.
 #
 
-.text
+.section K_TEXT_START_2
 
 #ifdef __SMP__
 
@@ -47,7 +47,6 @@ KDATA=16
 ap_boot:
 .code16
 	cli
-
 	xorw %ax,%ax
 	movw %ax,%ds
 
@@ -55,6 +54,8 @@ ap_boot:
 	movl %cr0,%eax
 	orl $1,%eax
 	movl %eax,%cr0
+	jmp 0f
+0:
 	ljmp $KTEXT,$jump_to_kernel
 
 # this is where the AP enters the kernel space
@@ -64,10 +65,12 @@ jump_to_kernel:
 	movw %ax,%ds
 	movw %ax,%es
 	movw %ax,%ss
-	movl $ctx,%eax
+	movl $(ctx-0x80000000),%eax	# KA2PA((__address) &ctx)
 	movl (%eax),%esp
 
 	lidt idtr
+
+	call map_kernel
 
 	ljmp $KTEXT,$main_ap
 

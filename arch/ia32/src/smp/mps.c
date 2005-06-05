@@ -158,7 +158,7 @@ fs_found:
 
 	if (fs->config_type == 0 && fs->configuration_table) {
 		if (fs->mpfib2 >> 7) {
-			printf("mps_init: PIC mode not supported\n");
+			printf("%s: PIC mode not supported\n", __FUNCTION__);
 			return;
 		}
 
@@ -188,15 +188,15 @@ int configure_via_ct(void)
 	int i, cnt;
 		
 	if (ct->signature != CT_SIGNATURE) {
-		printf("configure_via_ct: bad ct->signature\n");
+		printf("%s: bad ct->signature\n", __FUNCTION__);
 		return 1;
 	}
 	if (!mps_ct_check()) {
-		printf("configure_via_ct: bad ct checksum\n");
+		printf("%s: bad ct checksum\n", __FUNCTION__);
 		return 1;
 	}
 	if (ct->oem_table) {
-		printf("configure_via_ct: ct->oem_table not supported\n");
+		printf("%s: ct->oem_table not supported\n", __FUNCTION__);
 		return 1;
 	}
 	
@@ -251,7 +251,7 @@ int configure_via_ct(void)
 				 * Something is wrong. Fallback to UP mode.
 				 */
 				 
-				printf("configure_via_ct: ct badness\n");
+				printf("%s: ct badness\n", __FUNCTION__);
 				return 1;
 		}
 	}
@@ -268,7 +268,7 @@ int configure_via_default(__u8 n)
 	/*
 	 * Not yet implemented.
 	 */
-	printf("configure_via_default: not supported\n");
+	printf("%s: not supported\n", __FUNCTION__);
 	return 1;
 }
 
@@ -425,12 +425,12 @@ void kmp(void *arg)
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
 	*((__u16 *) (frame + 0x467+0)) =  ((__address) ap_boot) >> 4;	/* segment */
-	*((__u16 *) (frame + 0x467+2)) =  0x0;	/* offset */
+	*((__u16 *) (frame + 0x467+2)) =  0;				/* offset */
 	
 	/*
-	 * Give back the borrowed frame and restore identity mapping for it.
+	 * Give back and unmap the borrowed frame.
 	 */
-	map_page_to_frame(frame,frame,PAGE_CACHEABLE,0);
+	map_page_to_frame(frame,0,PAGE_NOT_PRESENT,0);
 	frame_free(frame);
 
 	/*
@@ -472,8 +472,8 @@ void kmp(void *arg)
 			panic("couldn't allocate memory for GDT\n");
 
 		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
-		gdtr.base = (__address) gdt_new;
-
+		gdtr.base = KA2PA((__address) gdt_new);
+		
 		if (l_apic_send_init_ipi(pr[i].l_apic_id)) {
 			/*
 		         * There may be just one AP being initialized at

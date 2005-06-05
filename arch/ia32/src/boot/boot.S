@@ -62,6 +62,19 @@ meeting_point:
 
 	lidt idtr
 
+	call map_kernel
+
+	movl $_hardcoded_ktext_size, hardcoded_ktext_size
+	movl $_hardcoded_kdata_size, hardcoded_kdata_size
+	movl $_hardcoded_load_address, hardcoded_load_address
+
+	call main_bsp			# never returns
+
+	cli
+	hlt
+
+.global map_kernel
+map_kernel:
 	#
 	# Here we setup mapping for both the unmapped and mapped sections of the kernel.
 	# For simplicity, we set only one 4M page for 0x00000000 and one for 0x80000000.
@@ -83,15 +96,8 @@ meeting_point:
 	movl %cr0, %ebx
 	orl $(1<<31), %ebx
 	movl %ebx, %cr0
+	ret
 
-	movl $_hardcoded_ktext_size, hardcoded_ktext_size
-	movl $_hardcoded_kdata_size, hardcoded_kdata_size
-	movl $_hardcoded_load_address, hardcoded_load_address
-
-	call main_bsp			# never returns
-
-	cli
-	hlt
 
 .section K_DATA_START
 

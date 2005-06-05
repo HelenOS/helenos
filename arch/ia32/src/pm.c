@@ -74,6 +74,7 @@ void gdt_setbase(struct descriptor *d, __address base)
         d->base_0_15 = KA2PA(base) & 0xffff;
         d->base_16_23 = (KA2PA(base) >> 16) & 0xff;
         d->base_24_31 = (KA2PA(base) >> 24) & 0xff;
+
 }
 
 void gdt_setlimit(struct descriptor *d, __u32 limit)
