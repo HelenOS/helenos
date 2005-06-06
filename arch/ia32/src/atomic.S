@@ -32,7 +32,11 @@
 atomic_inc:
 	pushl %ebx
 	movl 8(%esp),%ebx
+#ifdef __SMP__	
 	lock incl (%ebx)
+#else
+	incl (%ebx)
+#endif		
 	popl %ebx
 	ret
 
@@ -40,7 +44,11 @@ atomic_inc:
 atomic_dec:
 	pushl %ebx
 	movl 8(%esp),%ebx
+#ifdef __SMP__	
 	lock decl (%ebx)
+#else
+	decl (%ebx)
+#endif
 	popl %ebx
 	ret
 	

@@ -32,7 +32,7 @@
 #include <panic.h>
 
 #include <test.h>
-#include <arch/smp/atomic.h>
+#include <arch/atomic.h>
 #include <proc/thread.h>
 
 #include <arch.h>

@@ -43,7 +43,6 @@ struct runq {
 	int n;
 };
 
-extern spinlock_t nrdylock;
 extern volatile int nrdy;
 
 static thread_t *find_best_thread(void);

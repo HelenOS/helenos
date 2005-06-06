@@ -42,10 +42,7 @@
 #include <mm/page.h>
 #include <synch/spinlock.h>
 #include <arch/faddr.h>
-
-#ifdef __SMP__
-#include <arch/smp/atomic.h>
-#endif /* __SMP__ */
+#include <arch/atomic.h>
 
 /*
  * NOTE ON ATOMIC READS:
@@ -53,7 +50,6 @@
  * For that reason, all accesses to nrdy and the likes must be protected by spinlock.
  */
 
-spinlock_t nrdylock;
 volatile int nrdy;
 
 
@@ -77,7 +73,6 @@ void before_thread_runs(void)
  */
 void scheduler_init(void)
 {
-	spinlock_initialize(&nrdylock);
 }
 
 
@@ -140,9 +135,7 @@ loop:
 			continue;
 		}
 	
-		spinlock_lock(&nrdylock);
-		nrdy--;
-		spinlock_unlock(&nrdylock);		
+		atomic_dec(&nrdy);
 
 		spinlock_lock(&CPU->lock);
 		CPU->nrdy--;
@@ -498,9 +491,7 @@ restart:		pri = cpu_priority_high();
 					cpu->nrdy--;
 					spinlock_unlock(&cpu->lock);
 
-					spinlock_lock(&nrdylock);
-					nrdy--;
-					spinlock_unlock(&nrdylock);					
+					atomic_dec(&nrdy);
 
 			    		r->n--;
 					list_remove(&t->rq_link);

@@ -38,10 +38,7 @@
 #include <print.h>
 #include <arch.h>
 #include <list.h>
-
-#ifdef __SMP__
-#include <arch/smp/atomic.h>
-#endif
+#include <arch/atomic.h>
 
 /** Clock routine
  *

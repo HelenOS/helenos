@@ -26,10 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MIPS_ATOMIC_H__
-#define __MIPS_ATOMIC_H__
+#ifndef __ia32_ATOMIC_H__
+#define __ia32_ATOMIC_H__
 
-#define atomic_inc(x)	((*x)++)
-#define atomic_dec(x)	((*x)--)
+#include <arch/types.h>
+
+extern void atomic_inc(volatile int *val);
+extern void atomic_dec(volatile int *val);
+
+extern int test_and_set(int *val);
+extern void spinlock_arch(int *val);
 
 #endif

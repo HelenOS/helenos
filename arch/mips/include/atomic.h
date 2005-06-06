@@ -26,15 +26,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_ATOMIC_H__
-#define __ia32_ATOMIC_H__
+#ifndef __MIPS_ATOMIC_H__
+#define __MIPS_ATOMIC_H__
 
-#include <arch/types.h>
+#define atomic_inc(x)	(a_add(x,1))
+#define atomic_dec(x)	(a_sub(x,1))
 
-extern void atomic_inc(int *val);
-extern void atomic_dec(int *val);
+/*
+ * Atomic addition
+ *
+ * This case is harder, and we have to use the special LL and SC operations
+ * to achieve atomicity. The instructions are similar to LW (load) and SW
+ * (store), except that the LL (load-linked) instruction loads the address
+ * of the variable to a special register and if another process writes to
+ * the same location, the SC (store-conditional) instruction fails.
+ */
+static inline int a_add( volatile int *val, int i)
+{
+	int tmp, tmp2;
 
-extern int test_and_set(int *val);
-extern void spinlock_arch(int *val);
+	asm volatile (
+		"	.set	push\n"
+		"	.set	noreorder\n"
+		"	nop\n"
+		"1:\n"
+		"	ll	%0, %1\n"
+		"	addu	%0, %0, %2\n"
+		"       move    %3, %0\n"
+		"	sc	%0, %1\n"
+		"	beq	%0, 0x0, 1b\n"
+		"	move    %0, %3\n"
+		"	.set	pop\n"
+		: "=&r" (tmp), "=o" (*val)
+		: "r" (i), "r" (tmp2)
+		);
+	return tmp;
+}
+
+
+/*
+ * Atomic subtraction
+ *
+ * Implemented in the same manner as a_add, except we substract the value.
+ */
+static inline int a_sub( volatile int *val, int i)
+
+{
+	int tmp, tmp2;
+
+	asm volatile (
+		"	.set	push\n"
+		"	.set	noreorder\n"
+		"	nop\n"
+		"1:\n"
+		"	ll	%0, %1\n"
+		"	subu	%0, %0, %2\n"
+		"       move    %3, %0\n"
+		"	sc	%0, %1\n"
+		"	beq	%0, 0x0, 1b\n"
+		"       move    %0, %3\n"
+		"	.set	pop\n"
+		: "=&r" (tmp), "=o" (*val)
+		: "r" (i), "r" (tmp2)
+		);
+	return tmp;
+}
+
 
 #endif

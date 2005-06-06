@@ -30,7 +30,7 @@ arch_sources= \
 	arch/smp/apic.c \
 	arch/smp/mps.c \
 	arch/smp/smp.c \
-	arch/smp/atomic.S \
+	arch/atomic.S \
 	arch/smp/ipi.c \
 	arch/ia32.c \
 	arch/interrupt.c \

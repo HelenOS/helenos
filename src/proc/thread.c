@@ -49,6 +49,7 @@
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
 #include <arch/faddr.h>
+#include <arch/atomic.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
@@ -134,9 +135,8 @@ void thread_ready(thread_t *t)
 	r->n++;
 	spinlock_unlock(&r->lock);
 
-	spinlock_lock(&nrdylock);
-	avg = ++nrdy / config.cpu_active;
-	spinlock_unlock(&nrdylock);
+	atomic_inc(&nrdy);
+	avg = nrdy / config.cpu_active;
 
 	spinlock_lock(&cpu->lock);
 	if ((++cpu->nrdy) > avg) {

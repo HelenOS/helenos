@@ -28,10 +28,7 @@
 
 #include <arch.h>
 
-#ifdef __SMP__
-#include <arch/smp/atomic.h>
-#endif
-
+#include <arch/atomic.h>
 #include <synch/spinlock.h>
 
 #ifdef __SMP__

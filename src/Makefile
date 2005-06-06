@@ -70,7 +70,7 @@ dist-clean:
 	-$(MAKE) clean
 
 kernel.bin: $(arch_objects) $(objects) $(test_objects)
-	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) -o $@ >kernel.map
+	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) -o $@ -Map kernel.map
 
 %.s: %.S
 	$(CC) $(CPPFLAGS) -E $< >$@

@@ -7,7 +7,7 @@
  */
 
 OUTPUT_FORMAT(binary)
-ENTRY(kernel_image_start)
+ENTRY(kernel_image_start) 
 
 SECTIONS {
 	.image 0x80000000: AT (0x80000000) { 
