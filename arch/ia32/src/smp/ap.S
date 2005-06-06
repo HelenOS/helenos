@@ -54,11 +54,7 @@ ap_boot:
 	movl %cr0,%eax
 	orl $1,%eax
 	movl %eax,%cr0
-	jmp 0f
-0:
-	ljmp $KTEXT,$jump_to_kernel
-
-# this is where the AP enters the kernel space
+	jmpl $KTEXT,$jump_to_kernel
 jump_to_kernel:
 .code32
 	movw $KDATA,%ax

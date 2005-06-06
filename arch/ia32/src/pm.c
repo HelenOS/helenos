@@ -71,9 +71,9 @@ struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = si
 
 void gdt_setbase(struct descriptor *d, __address base)
 {
-        d->base_0_15 = KA2PA(base) & 0xffff;
-        d->base_16_23 = (KA2PA(base) >> 16) & 0xff;
-        d->base_24_31 = (KA2PA(base) >> 24) & 0xff;
+        d->base_0_15 = base & 0xffff;
+        d->base_16_23 = ((base) >> 16) & 0xff;
+        d->base_24_31 = ((base) >> 24) & 0xff;
 
 }
 
@@ -85,8 +85,11 @@ void gdt_setlimit(struct descriptor *d, __u32 limit)
 
 void idt_setoffset(struct idescriptor *d, __address offset)
 {
-	d->offset_0_15 = KA2PA(offset) & 0xffff;
-	d->offset_16_31 = KA2PA(offset) >> 16;
+	/*
+	 * Offset is a linear address.
+	 */
+	d->offset_0_15 = offset & 0xffff;
+	d->offset_16_31 = offset >> 16;
 }
 
 void tss_initialize(struct tss *t)

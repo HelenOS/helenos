@@ -47,8 +47,10 @@ kernel_image_start:
 	movl %cr0,%eax
 	orl $0x1,%eax
 	movl %eax,%cr0
-	jmp 0f
-0:
+	jmpl $8,$meeting_point
+meeting_point:
+.code32
+
 	movw $16,%ax
 	movw %ax,%es
 	movw %ax,%gs
@@ -56,9 +58,6 @@ kernel_image_start:
 	movw %ax,%ds			# kernel data + stack
         movw %ax,%ss
 	movl $0x7c00,%esp
-	jmpl $8,$meeting_point
-meeting_point:
-.code32
 
 	lidt idtr
 
@@ -96,6 +95,8 @@ map_kernel:
 	movl %cr0, %ebx
 	orl $(1<<31), %ebx
 	movl %ebx, %cr0
+	jmp 0f
+0:
 	ret
 
 
