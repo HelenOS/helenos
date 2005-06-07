@@ -44,12 +44,6 @@
 #include <arch/faddr.h>
 #include <arch/atomic.h>
 
-/*
- * NOTE ON ATOMIC READS:
- * Some architectures cannot read __u32 atomically.
- * For that reason, all accesses to nrdy and the likes must be protected by spinlock.
- */
-
 volatile int nrdy;
 
 

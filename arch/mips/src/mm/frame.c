@@ -31,7 +31,4 @@
 
 void frame_arch_init(void)
 {
-	kernel_frames = frames;
-	kernel_frames_free = frames_free;
-	frame_kernel_bitmap = frame_bitmap;
 }

@@ -95,8 +95,6 @@ map_kernel:
 	movl %cr0, %ebx
 	orl $(1<<31), %ebx
 	movl %ebx, %cr0
-	jmp 0f
-0:
 	ret
 
 

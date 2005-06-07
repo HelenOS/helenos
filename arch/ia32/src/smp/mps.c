@@ -392,6 +392,7 @@ void ct_extended_entries(void)
 	}
 }
 
+
 /*
  * Kernel thread for bringing up application processors. It becomes clear
  * that we need an arrangement like this (AP's being initialized by a kernel
@@ -414,11 +415,9 @@ void kmp(void *arg)
 	pr = processor_entries;
 
 	/*
-	 * Grab a frame and map its address to page 0. This is a hack which
-	 * accesses data in frame 0. Note that page 0 is not present because
-	 * of nil reference bug catching.
+	 * We need to access data in frame 0.
 	 */
-	frame = frame_alloc(FRAME_KA);
+	frame = frame_alloc(0);
 	map_page_to_frame(frame,0,PAGE_CACHEABLE,0);
 
 	/*
@@ -473,7 +472,7 @@ void kmp(void *arg)
 
 		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
 		gdtr.base = KA2PA((__address) gdt_new);
-		
+
 		if (l_apic_send_init_ipi(pr[i].l_apic_id)) {
 			/*
 		         * There may be just one AP being initialized at

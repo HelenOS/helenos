@@ -63,6 +63,7 @@ jump_to_kernel:
 	movw %ax,%ss
 	movl $(ctx-0x80000000),%eax	# KA2PA((__address) &ctx)
 	movl (%eax),%esp
+	subl $0x80000000,%esp		# KA2PA(ctx.sp)
 
 	lidt idtr
 

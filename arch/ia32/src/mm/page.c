@@ -64,8 +64,8 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all but 0th page.
 		 */
 		for (i = 1; i < frames; i++) {
-			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, dba);
-			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, dba);
+			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
+			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
 		}
 
 		trap_register(14, page_fault);
@@ -112,7 +112,7 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
 	pde = page >> 22;		/* page directory entry */
 	pte = (page >> 12) & 0x3ff;	/* page table entry */
 	
-	pd = (struct page_specifier *) dba;
+	pd = (struct page_specifier *) PA2KA(dba);
 	
 	if (!pd[pde].present) {
 		/*
@@ -126,7 +126,7 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
 		pd[pde].uaccessible = 1;
 	}
 	
-	pt = (struct page_specifier *) (pd[pde].frame_address << 12);
+	pt = (struct page_specifier *) PA2KA((pd[pde].frame_address << 12));
 
 	pt[pte].frame_address = frame >> 12;
 	pt[pte].present = !(flags & PAGE_NOT_PRESENT);

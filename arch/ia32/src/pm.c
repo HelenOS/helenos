@@ -131,7 +131,7 @@ void idt_init(void)
 
 void pm_init(void)
 {
-	struct descriptor *gdt_p = (struct descriptor *) gdtr.base;
+	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
 
 	/*
 	 * Each CPU has its private GDT and TSS.

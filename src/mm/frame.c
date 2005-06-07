@@ -48,14 +48,6 @@ count_t frames_free;
 __u8 *frame_bitmap;
 count_t frame_bitmap_octets;
 
-/*
- * This is for kernel address space frames (allocated with FRAME_KA).
- * Their addresses may not interfere with user address space.
- */
-__u8 *frame_kernel_bitmap;
-count_t kernel_frames;
-count_t kernel_frames_free;
-
 static spinlock_t framelock;
 
 void frame_init(void)
@@ -77,17 +69,10 @@ void frame_init(void)
                  */
                 memsetb((__address) frame_bitmap, frame_bitmap_octets, 0);
                 frames_free = frames;
-
-		/*
-		 * Will be properly set up by architecture dependent frame init.
-		 */
-		frame_kernel_bitmap = NULL;
-		kernel_frames_free = 0;
-		kernel_frames = 0;	
 	}
 
 	/*
-	 * No frame allocations/reservations  prior this point.
+	 * No frame allocations/reservations prior this point.
 	 */
 
 	frame_arch_init();
@@ -108,35 +93,20 @@ __address frame_alloc(int flags)
 {
 	int i;
 	pri_t pri;
-	__u8 **frame_bitmap_ptr = &frame_bitmap;
-	count_t *frames_ptr = &frames, *frames_free_ptr = &frames_free;
-	
-	if (flags & FRAME_KA) {
-		frame_bitmap_ptr = &frame_kernel_bitmap;
-		frames_ptr = &kernel_frames;
-		frames_free_ptr = &kernel_frames_free;
-	}
 	
 loop:
 	pri = cpu_priority_high();
 	spinlock_lock(&framelock);
-	if (*frames_free_ptr) {
-		for (i=0; i < *frames_ptr; i++) {
+	if (frames_free) {
+		for (i=0; i < frames; i++) {
 			int m, n;
 		
 			m = i / 8;
 			n = i % 8;
 
-			if (((*frame_bitmap_ptr)[m] & (1<<n)) == 0) {
-				(*frame_bitmap_ptr)[m] |= (1<<n);
-				*frames_free_ptr--;
-				if (flags & FRAME_KA) {
-					/*
-					 * frames_free_ptr points to kernel_frames_free
-					 * It is still necessary to decrement frames_free.
-					 */
-					frames_free--;
-				}
+			if ((frame_bitmap[m] & (1<<n)) == 0) {
+				frame_bitmap[m] |= (1<<n);
+				frames_free--;
 				spinlock_unlock(&framelock);
 				cpu_priority_restore(pri);
 				if (flags & FRAME_KA) return PA2KA(i*FRAME_SIZE);
@@ -164,35 +134,21 @@ void frame_free(__address addr)
 {
 	pri_t pri;
 	__u32 frame;
-	count_t *frames_free_ptr = &frames_free, *frames_ptr = &frames;
-	__u8 **frame_bitmap_ptr = &frame_bitmap;
-
-	if (IS_KA(addr)) {
-		frames_free_ptr = &kernel_frames_free;
-		frame_bitmap_ptr = &frame_kernel_bitmap;
-	}
 
 	pri = cpu_priority_high();
 	spinlock_lock(&framelock);
 	
 	frame = IS_KA(addr) ? KA2PA(addr) : addr;
 	frame /= FRAME_SIZE;
-	if (frame < *frames_ptr) {
+	if (frame < frames) {
 		int m, n;
 	
 		m = frame / 8;
 		n = frame % 8;
 	
-		if ((*frame_bitmap_ptr)[m] & (1<<n)) {
-			(*frame_bitmap_ptr)[m] &= ~(1<<n);
-			*frames_free_ptr++;
-			if (IS_KA(addr)) {
-				/*
-				 * frames_free_ptr points to kernel_frames_free
-				 * It is still necessary to increment frames_free.
-				 */
-				 frames_free++;
-			}	
+		if (frame_bitmap[m] & (1<<n)) {
+			frame_bitmap[m] &= ~(1<<n);
+			frames_free++;
 		}
 		else panic("frame already free\n");
 	}
@@ -210,29 +166,20 @@ void frame_not_free(__address addr)
 {
 	pri_t pri;
 	__u32 frame;
-	count_t *frames_ptr = &frames, *frames_free_ptr = &frames_free;
-	__u8 **frame_bitmap_ptr = &frame_bitmap;
 	
 	pri = cpu_priority_high();
 	spinlock_lock(&framelock);
 	frame = IS_KA(addr) ? KA2PA(addr) : addr;
 	frame /= FRAME_SIZE;
-	if (frame < *frames_ptr) {
+	if (frame < frames) {
 		int m, n;
 
 		m = frame / 8;
 		n = frame % 8;
 	
-		if (((*frame_bitmap_ptr)[m] & (1<<n)) == 0) {	
-			(*frame_bitmap_ptr)[m] |= (1<<n);
-			*frames_free_ptr--;	
-			if (IS_KA(addr)) {
-				/*
-				 * frames_free_ptr points to kernel_frames_free
-				 * It is still necessary to decrement frames_free.
-				 */
-				frames_free--;
-			}
+		if ((frame_bitmap[m] & (1<<n)) == 0) {	
+			frame_bitmap[m] |= (1<<n);
+			frames_free--;	
 		}
 	}
 	spinlock_unlock(&framelock);
