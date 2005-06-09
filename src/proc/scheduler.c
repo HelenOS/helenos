@@ -117,8 +117,10 @@ loop:
 	}
 
 	cpu_priority_high();
-
-	for (i = 0; i<RQ_COUNT; i++) {
+	
+	i = 0;
+retry:
+	for (; i<RQ_COUNT; i++) {
 		r = &CPU->rq[i];
 		spinlock_lock(&r->lock);
 		if (r->n == 0) {
@@ -129,12 +131,18 @@ loop:
 			continue;
 		}
 	
-		atomic_dec(&nrdy);
-
-		spinlock_lock(&CPU->lock);
+		/* avoid deadlock with relink_rq */
+		if (!spinlock_trylock(&CPU->lock)) {
+			/*
+			 * Unlock r and try again.
+			 */
+			spinlock_unlock(&r->lock);
+			goto retry;
+		}
 		CPU->nrdy--;
 		spinlock_unlock(&CPU->lock);
 
+		atomic_dec(&nrdy);
 		r->n--;
 
 		/*
