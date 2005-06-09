@@ -131,7 +131,7 @@ retry:
 			continue;
 		}
 	
-		/* avoid deadlock with relink_rq */
+		/* avoid deadlock with relink_rq() */
 		if (!spinlock_trylock(&CPU->lock)) {
 			/*
 			 * Unlock r and try again.
@@ -446,16 +446,16 @@ not_satisfied:
 			cpu_t *cpu;
 
 			cpu = &cpus[(i + k) % config.cpu_active];
-			r = &cpu->rq[j];
 
 			/*
 			 * Not interested in ourselves.
 			 * Doesn't require interrupt disabling for kcpulb is X_WIRED.
 			 */
 			if (CPU == cpu)
-				continue;
+				continue;				
 
 restart:		pri = cpu_priority_high();
+			r = &cpu->rq[j];
 			spinlock_lock(&r->lock);
 			if (r->n == 0) {
 				spinlock_unlock(&r->lock);
@@ -470,10 +470,11 @@ restart:		pri = cpu_priority_high();
 				/*
 		    		 * We don't want to steal CPU-wired threads neither threads already stolen.
 				 * The latter prevents threads from migrating between CPU's without ever being run.
-		        	 * We don't want to steal threads whose FPU context is still in CPU
+		        	 * We don't want to steal threads whose FPU context is still in CPU.
 				 */
 				spinlock_lock(&t->lock);
 				if ( (!(t->flags & (X_WIRED | X_STOLEN))) && (!(t->fpu_context_engaged)) ) {
+				
 					/*
 					 * Remove t from r.
 					 */

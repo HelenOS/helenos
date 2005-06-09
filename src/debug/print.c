@@ -30,6 +30,7 @@
 #include <print.h>
 #include <synch/spinlock.h>
 #include <arch/arg.h>
+#include <arch/asm.h>
 
 
 static char digits[] = "0123456789abcdef"; /**< Hexadecimal characters */

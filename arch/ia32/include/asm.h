@@ -37,10 +37,6 @@
 extern __u32 interrupt_handler_size;
 
 extern void paging_on(void);
-extern __address cpu_read_dba(void);
-extern void cpu_write_dba(__address dba);
-
-extern __address cpu_read_cr2(void);
 
 extern void interrupt_handlers(void);
 
@@ -54,13 +50,109 @@ extern void outl(int port, __u32 l);
 
 extern void enable_l_apic_in_msr(void);
 
-extern void halt_cpu(void);
-extern void cpu_sleep(void);
+/** Halt CPU
+ *
+ * Halt the current CPU until interrupt event.
+ */
+static inline void cpu_halt(void) { __asm__("hlt"); };
+static inline void cpu_sleep(void) { __asm__("hlt"); };
 
-static inline void write_dr0(__u32 v);
-static inline __u32 read_dr0(void);
+/** Read CR2
+ *
+ * Return value in CR2
+ *
+ * @return Value read.
+ */
+static inline __u32 read_cr2(void) { __u32 v; __asm__ volatile ("movl %%cr2,%0" : "=r" (v)); return v; }
 
-inline void write_dr0(__u32 v) { __asm__ volatile ("movl %0,%%dr0\n" : : "r" (v)); }
-inline __u32 read_dr0(void) { __u32 v; __asm__ volatile ("movl %%dr0,%0" : "=r" (v)); return v; }
+/** Write CR3
+ *
+ * Write value to CR3.
+ *
+ * @param v Value to be written.
+ */
+static inline void write_cr3(__u32 v) { __asm__ volatile ("movl %0,%%cr3\n" : : "r" (v)); }
+
+/** Read CR3
+ *
+ * Return value in CR3
+ *
+ * @return Value read.
+ */
+static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0" : "=r" (v)); return v; }
+
+/** Write DR0
+ *
+ * Write value to DR0.
+ *
+ * @param v Value to be written.
+ */
+static inline void write_dr0(__u32 v) { __asm__ volatile ("movl %0,%%dr0\n" : : "r" (v)); }
+
+/** Read DR0
+ *
+ * Return value in DR0
+ *
+ * @return Value read.
+ */
+static inline __u32 read_dr0(void) { __u32 v; __asm__ volatile ("movl %%dr0,%0" : "=r" (v)); return v; }
+
+/** Set priority level low
+ *
+ * Enable interrupts and return previous
+ * value of EFLAGS.
+ */
+static inline pri_t cpu_priority_low(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushf\n"
+		"popl %0\n"
+		"sti\n"
+		: "=r" (v)
+	);
+	return v;
+}
+
+/** Set priority level high
+ *
+ * Disable interrupts and return previous
+ * value of EFLAGS.
+ */
+static inline pri_t cpu_priority_high(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushf\n"
+		"popl %0\n"
+		"cli\n"
+		: "=r" (v)
+	);
+	return v;
+}
+
+/** Restore priority level
+ *
+ * Restore EFLAGS.
+ */
+static inline void cpu_priority_restore(pri_t pri) {
+	__asm__ volatile (
+		"pushl %0\n"
+		"popf\n"
+		: : "r" (pri)
+	);
+}
+
+/** Return raw priority level
+ *
+ * Return EFLAFS.
+ */
+static inline pri_t cpu_priority_read(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushf\n"
+		"popl %0\n"
+		: "=r" (v)
+	);
+	return v;
+}
 
 #endif

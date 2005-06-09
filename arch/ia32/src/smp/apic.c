@@ -44,6 +44,7 @@
  * Advanced Programmable Interrupt Controller for MP systems.
  * Tested on:
  *	Bochs 2.0.2 - Bochs 2.2 with 2-8 CPUs
+ *	Simics 2.0.28 
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
  */
 

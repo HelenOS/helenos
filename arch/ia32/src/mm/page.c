@@ -69,7 +69,7 @@ void page_arch_init(void)
 		}
 
 		trap_register(14, page_fault);
-		cpu_write_dba(KA2PA(dba));
+		write_cr3(KA2PA(dba));
 	}
 	else {
 		/*
@@ -81,7 +81,7 @@ void page_arch_init(void)
 
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
 		memcopy(bootstrap_dba, dba, PAGE_SIZE);
-		cpu_write_dba(KA2PA(dba));
+		write_cr3(KA2PA(dba));
 	}
 
 	paging_on();
@@ -107,7 +107,7 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
 	int pde, pte;
 
 	if (root) dba = root;
-	else dba = cpu_read_dba();
+	else dba = read_cr3();
 
 	pde = page >> 22;		/* page directory entry */
 	pte = (page >> 12) & 0x3ff;	/* page table entry */

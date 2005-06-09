@@ -38,6 +38,7 @@
 #include <config.h>
 #include <list.h>
 #include <panic.h>
+#include <arch/asm.h>
 
 vm_t *vm_create(void)
 {

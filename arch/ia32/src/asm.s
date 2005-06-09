@@ -30,16 +30,9 @@
 
 .text
 
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_restore
-.global cpu_priority_read
 .global cpu_halt
 .global cpu_sleep
 .global paging_on
-.global cpu_read_dba
-.global cpu_write_dba
-.global cpu_read_cr2
 .global enable_l_apic_in_msr
 .global interrupt_handlers
 .global inb
@@ -52,59 +45,6 @@
 .global memsetb
 .global memsetw
 .global memcmp
-
-
-## Set priority level high
-#
-# Disable interrupts and return previous
-# EFLAGS in EAX.
-#
-cpu_priority_high:
-	pushf
-	pop %eax
-	cli
-	ret
-
-
-## Set priority level low
-#
-# Enable interrupts and return previous
-# EFLAGS in EAX.
-#    
-cpu_priority_low:
-        pushf
-	pop %eax
-	sti
-	ret
-
-
-## Restore priority level
-#
-# Restore EFLAGS.
-#
-cpu_priority_restore:
-	push 4(%esp)
-	popf
-	ret
-
-## Return raw priority level
-#
-# Return EFLAFS in EAX.
-#
-cpu_priority_read:
-	pushf
-	pop %eax
-	ret
-
-
-## Halt the CPU
-#
-# Halt the CPU using HLT.
-#
-cpu_halt:
-cpu_sleep:
-	hlt
-	ret
 
 
 ## Turn paging on
@@ -120,36 +60,6 @@ paging_on:
 	jmp 0f
 0:
 	popl %eax
-	ret
-
-
-## Read CR3
-#
-# Store CR3 in EAX.
-#
-cpu_read_dba:
-	movl %cr3,%eax
-	ret
-
-
-## Write CR3
-#
-# Set CR3.
-#
-cpu_write_dba:
-	pushl %eax
-	movl 8(%esp),%eax
-	movl %eax,%cr3
-	popl %eax
-	ret
-
-
-## Read CR2
-#
-# Store CR2 in EAX.
-#
-cpu_read_cr2:
-	movl %cr2,%eax
 	ret
 
 

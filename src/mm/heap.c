@@ -32,6 +32,7 @@
 #include <memstr.h>
 #include <panic.h>
 #include <arch/types.h>
+#include <arch/asm.h>
 
 /*
  * First-fit algorithm.

@@ -176,7 +176,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 		frame_ks = frame_alloc(FRAME_KA);
 		if (THREAD_USER_STACK & flags) {
-			frame_us = frame_alloc(0);
+			frame_us = frame_alloc(FRAME_KA);
 		}
 
 		pri = cpu_priority_high();

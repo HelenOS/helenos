@@ -28,47 +28,9 @@
 
 .text
 
-.global atomic_inc
-atomic_inc:
-	pushl %ebx
-	movl 8(%esp),%ebx
-#ifdef __SMP__	
-	lock incl (%ebx)
-#else
-	incl (%ebx)
-#endif		
-	popl %ebx
-	ret
-
-.global atomic_dec
-atomic_dec:
-	pushl %ebx
-	movl 8(%esp),%ebx
-#ifdef __SMP__	
-	lock decl (%ebx)
-#else
-	decl (%ebx)
-#endif
-	popl %ebx
-	ret
-	
-
 #ifdef __SMP__
 
-
-.global test_and_set
 .global spinlock_arch
-
-test_and_set:
-	pushl %ebx
-    
-	movl 8(%esp),%ebx
-	movl $1,%eax
-	xchgl %eax,(%ebx)	# xchg implicitly turns on the LOCK signal
-    
-	popl %ebx
-	ret
-
 
 #
 # This is a bus-and-hyperthreading-friendly implementation of spinlock 

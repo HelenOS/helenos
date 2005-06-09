@@ -31,10 +31,36 @@
 
 #include <arch/types.h>
 
-extern void atomic_inc(volatile int *val);
-extern void atomic_dec(volatile int *val);
+static inline void atomic_inc(volatile int *val) {
+#ifdef __SMP__
+	__asm__ volatile ("lock incl (%0)\n" : : "r" (val));
+#else
+	__asm__ volatile ("incl (%0)\n" : : "r" (val));
+#endif /* __SMP__ */
+}
 
-extern int test_and_set(int *val);
+static inline void atomic_dec(volatile int *val) {
+#ifdef __SMP__
+	__asm__ volatile ("lock decl (%0)\n" : : "r" (val));
+#else
+	__asm__ volatile ("decl (%0)\n" : : "r" (val));
+#endif /* __SMP__ */
+}
+
+static inline int test_and_set(int *val) {
+	int v;
+	
+	__asm__ volatile (
+		"movl $1, %0\n"
+		"xchgl %0, (%1)\n"
+		: "=r" (v)
+		: "r" (val)
+	);
+	
+	return v;
+}
+
+
 extern void spinlock_arch(int *val);
 
 #endif

@@ -111,7 +111,7 @@ void nm_fault(__u8 n, __u32 stack[])
 
 void page_fault(__u8 n, __u32 stack[])
 {
-	printf("page fault address: %X\n", cpu_read_cr2());
+	printf("page fault address: %X\n", read_cr2());
 	printf("stack[0]=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
 	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
 	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);

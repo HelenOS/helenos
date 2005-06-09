@@ -31,5 +31,5 @@
 
 void tlb_invalidate(int asid)
 {
-	cpu_write_dba(cpu_read_dba());
+	write_cr3(read_cr3());
 }
