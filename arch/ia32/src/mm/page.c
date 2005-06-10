@@ -60,10 +60,10 @@ void page_arch_init(void)
 		bootstrap_dba = dba;
 
 		/*
-		 * Identity mapping for all but 0th page.
-		 * PA2KA(identity) mapping for all but 0th page.
+		 * Identity mapping for all frames.
+		 * PA2KA(identity) mapping for all frames.
 		 */
-		for (i = 1; i < frames; i++) {
+		for (i = 0; i < frames; i++) {
 			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
 			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
 		}

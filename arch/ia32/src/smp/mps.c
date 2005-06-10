@@ -404,7 +404,6 @@ void kmp(void *arg)
 {
 	struct __processor_entry *pr;
 	__address src, dst;
-	__address frame;
 	int i;
 
 	waitq_initialize(&ap_completion_wq);
@@ -416,22 +415,15 @@ void kmp(void *arg)
 
 	/*
 	 * We need to access data in frame 0.
+	 * We boldly make use of kernel address space mapping.
 	 */
-	frame = frame_alloc(0);
-	map_page_to_frame(frame,0,PAGE_CACHEABLE,0);
 
 	/*
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
-	*((__u16 *) (frame + 0x467+0)) =  ((__address) ap_boot) >> 4;	/* segment */
-	*((__u16 *) (frame + 0x467+2)) =  0;				/* offset */
+	*((__u16 *) (PA2KA(0x467+0))) =  ((__address) ap_boot) >> 4;	/* segment */
+	*((__u16 *) (PA2KA(0x467+2))) =  0;				/* offset */
 	
-	/*
-	 * Give back and unmap the borrowed frame.
-	 */
-	map_page_to_frame(frame,0,PAGE_NOT_PRESENT,0);
-	frame_free(frame);
-
 	/*
 	 * Save 0xa to address 0xf of the CMOS RAM.
 	 * BIOS will not do the POST after the INIT signal.
@@ -471,6 +463,7 @@ void kmp(void *arg)
 			panic("couldn't allocate memory for GDT\n");
 
 		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
+		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
 		gdtr.base = KA2PA((__address) gdt_new);
 
 		if (l_apic_send_init_ipi(pr[i].l_apic_id)) {

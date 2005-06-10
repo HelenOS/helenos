@@ -47,7 +47,7 @@ static inline void atomic_dec(volatile int *val) {
 #endif /* __SMP__ */
 }
 
-static inline int test_and_set(int *val) {
+static inline int test_and_set(volatile int *val) {
 	int v;
 	
 	__asm__ volatile (
@@ -61,6 +61,6 @@ static inline int test_and_set(int *val) {
 }
 
 
-extern void spinlock_arch(int *val);
+extern void spinlock_arch(volatile int *val);
 
 #endif

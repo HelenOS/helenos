@@ -28,9 +28,33 @@
 
 #include <mm/page.h>
 #include <arch/mm/page.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 void page_init(void)
 {	
 	page_arch_init();
 	map_page_to_frame(0x0, 0x0, PAGE_NOT_PRESENT, 0);
+}
+
+/** Map memory structure
+ *
+ * Identity-map memory structure
+ * considering possible crossings
+ * of page boundaries.
+ *
+ * @param s Address of the structure.
+ * @param size Size of the structure.
+ */
+void map_structure(__address s, size_t size)
+{
+	int i, cnt, length;
+
+	/* TODO: implement portable way of computing page address from address */
+        length = size + (s - (s & 0xfffff000));
+        cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
+
+        for (i = 0; i < cnt; i++)
+                map_page_to_frame(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
+
 }

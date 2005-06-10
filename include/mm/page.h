@@ -31,6 +31,7 @@
 
 #include <arch/types.h>
 #include <arch/mm/page.h>
+#include <typedefs.h>
 
 #define PAGE_NOT_CACHEABLE      (0<<0)
 #define PAGE_CACHEABLE          (1<<0)
@@ -47,5 +48,6 @@
 
 extern void page_init(void);
 extern void map_page_to_frame(__address page, __address frame, int flags, __address root);
+extern void map_structure(__address s, size_t size);
 
 #endif
