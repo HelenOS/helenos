@@ -69,6 +69,6 @@ jump_to_kernel:
 
 	call map_kernel
 
-	ljmp $KTEXT,$main_ap
+	jmpl $KTEXT,$main_ap
 
 #endif /* __SMP__ */
