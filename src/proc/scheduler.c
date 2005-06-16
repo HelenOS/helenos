@@ -47,10 +47,11 @@
 volatile int nrdy;
 
 
-/** Initialize context switching
+/** Take actions before new thread runs
  *
- * Initialize context switching and lazy FPU
- * context switching.
+ * Perform actions that need to be
+ * taken before the newly selected
+ * tread is passed control.
  *
  */
 void before_thread_runs(void)

@@ -35,6 +35,13 @@
 #include <cpu.h>
 #include <arch/cpu.h>
 
+/*
+ * NOTE:
+ * CPU, THREAD and TASK are not preemption-safe.
+ * Provisions must be made to prevent preemption prior
+ * to using these macros. Simple cpu_priority_high()
+ * call will suffice.
+ */
 #define CPU		(&cpus[CPU_ID_ARCH])
 #define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
 #define TASK		(cpu_private_data[CPU_ID_ARCH].task)
