@@ -69,7 +69,7 @@ static void e(void *data)
 			panic("tid%d: e*10e8=%d\n", THREAD->tid, (int) 100000000*e);
 	}
 
-	atomic_inc((int *) &threads_ok);
+	atomic_inc(&threads_ok);
 }
 
 static void pi(void *data)
@@ -99,7 +99,7 @@ static void pi(void *data)
 			panic("tid%d: pi*10e8=%d\n", THREAD->tid, (int) 100000000*pi);
 	}
 
-	atomic_inc((int *) &threads_ok);
+	atomic_inc(&threads_ok);
 }
 
 

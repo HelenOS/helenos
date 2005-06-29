@@ -41,8 +41,8 @@
 static rwlock_t rwlock;
 
 static waitq_t can_start;
-static int items_read;
-static int items_written;
+static volatile int items_read;
+static volatile int items_written;
 
 static void writer(void *arg);
 static void reader(void *arg);

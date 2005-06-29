@@ -37,6 +37,21 @@
 #define KA2PA(x)	((x) - 0x80000000)
 #define PA2KA(x)	((x) + 0x80000000)
 
+/*
+ * Implementation of generic 4-level page table interface.
+ * IA-32 has 2-level page tables, so PTL1 and PTL2 are left out.
+ */
+#define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>22)&0x3ff)
+#define PTL1_INDEX_ARCH(vaddr)	0
+#define PTL2_INDEX_ARCH(vaddr)	0
+#define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x3ff)
+
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((__address)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
+
+
 struct page_specifier {
 	unsigned present : 1;
 	unsigned writeable : 1;
@@ -49,6 +64,8 @@ struct page_specifier {
 	unsigned avl : 3;
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
+
+typedef struct page_specifier	pte_t;
 
 extern void page_arch_init(void);
 

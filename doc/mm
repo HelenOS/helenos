@@ -1,0 +1,52 @@
+Memory management
+=================
+
+SPARTAN kernel deploys generic interface for 4-level page tables,
+no matter what the real underlying hardware architecture is.
+
+
+ VADDR
+ +-----------------------------------------------------------------------------+
+ |   PTL0_INDEX  |   PTL1_INDEX   |   PTL2_INDEX   |   PTL3_INDEX   |   OFFSET |
+ +-----------------------------------------------------------------------------+
+
+
+ PTL0                   PTL1                   PTL2                   PTL3
+ +--------+             +--------+             +--------+             +--------+
+ |        |             |        |             |  PTL3  | -----\      |        |
+ |        |             |        |             +--------+      |      |        |
+ |        |             +--------+             |        |      |      |        |
+ |        |             |  PTL2  | -----\      |        |      |      |        |
+ |        |             +--------+      |      |        |      |      |        |
+ |        |             |        |      |      |        |      |      +--------+
+ +--------+             |        |      |      |        |      |      | FRAME  |
+ |  PTL1  | -----\      |        |      |      |        |      |      +--------+
+ +--------+      |      |        |      |      |        |      |      |        |
+ |        |      |      |        |      |      |        |      |      |        |
+ |        |      |      |        |      |      |        |      |      |        |
+ +--------+      \----> +--------+      \----> +--------+      \----> +--------+
+     ^
+     |
+     |
+ +--------+
+ |  PTL0  |
+ +--------+
+
+
+PTL0		Page Table Level 0 (Page Directory)
+PTL1		Page Table Level 1
+PTL2		Page Table Level 2
+PTL3		Page Table Level 3
+
+PTL0_INDEX	Index into PTL0
+PTL1_INDEX	Index into PTL1
+PTL2_INDEX	Index into PTL2
+PTL3_INDEX	Index into PTL3
+
+VADDR		Virtual address for which mapping is looked up
+FRAME		Physical address of memory frame to which VADDR is mapped
+
+
+On architectures whose hardware has fewer levels, PTL2 and, if need be, PTL1 are
+left out. TLB-only architectures are to define custom format for software page
+tables.
