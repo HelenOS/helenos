@@ -42,7 +42,6 @@
 .global cpu_priority_restore
 .global cpu_sleep
 .global frame_arch_init
-.global map_page_to_frame
 
 before_thread_runs_arch:
 userspace:
@@ -58,6 +57,5 @@ cpu_priority_read:
 cpu_priority_restore:
 cpu_sleep:
 frame_arch_init:
-map_page_to_frame:
 	br.ret.sptk.many b0
 

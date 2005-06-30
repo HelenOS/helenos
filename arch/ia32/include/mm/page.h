@@ -29,8 +29,10 @@
 #ifndef __ia32_PAGE_H__
 #define __ia32_PAGE_H__
 
+#include <mm/page.h>
 #include <arch/types.h>
 #include <arch/mm/frame.h>
+#include <typedefs.h>
 
 #define PAGE_SIZE	FRAME_SIZE
 
@@ -46,11 +48,27 @@
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x3ff)
 
+#define GET_PTL0_ADDRESS_ARCH()			((pte_t *) read_cr3())
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
 #define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((__address)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
 
+#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((__address) (ptl0)))
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].frame_address = (a)>>12)
+#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
+#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].frame_address = (a)>>12)
+
+#define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
+#define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
+#define GET_PTL3_FLAGS_ARCH(ptl2, i)		PAGE_PRESENT
+#define GET_FRAME_FLAGS_ARCH(ptl3, i)		get_pt_flags((pte_t *)(ptl3), (index_t)(i))
+
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *)(ptl0), (index_t)(i), (x))
+#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
+#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
 struct page_specifier {
 	unsigned present : 1;
@@ -65,7 +83,31 @@ struct page_specifier {
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
 
-typedef struct page_specifier	pte_t;
+typedef struct page_specifier pte_t;
+
+static inline int get_pt_flags(pte_t *pt, index_t i)
+{
+	pte_t *p = &pt[i];
+	
+	return (
+		(!p->page_cache_disable)<<PAGE_CACHEABLE_SHIFT |
+		(!p->present)<<PAGE_PRESENT_SHIFT |
+		p->uaccessible<<PAGE_USER_SHIFT |
+		1<<PAGE_READ_SHIFT |
+		p->writeable<<PAGE_WRITE_SHIFT |
+		1<<PAGE_EXEC_SHIFT
+	);
+}
+
+static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
+{
+	pte_t *p = &pt[i];
+	
+	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
+	p->present = !(flags & PAGE_NOT_PRESENT);
+	p->uaccessible = flags & PAGE_USER;
+	p->writeable = flags & PAGE_WRITE;
+}
 
 extern void page_arch_init(void);
 

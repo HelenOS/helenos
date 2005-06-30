@@ -27,9 +27,11 @@
  */
 
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <arch/asm.h>
 
 void page_init(void)
 {	
@@ -57,4 +59,52 @@ void map_structure(__address s, size_t size)
         for (i = 0; i < cnt; i++)
                 map_page_to_frame(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
 
+}
+
+/** Map page to frame
+ *
+ * Map virtual address 'page' to physical address 'frame'
+ * using 'flags'. Allocate and setup any missing page tables.
+ *
+ * @param page Virtual address of the page to be mapped.
+ * @param frame Physical address of memory frame to which the mapping is done.
+ * @param flags Flags to be used for mapping.
+ * @param root Explicit PTL0 address.
+ */
+void map_page_to_frame(__address page, __address frame, int flags, __address root)
+{
+        pte_t *ptl0, *ptl1, *ptl2, *ptl3;
+        __address newpt;
+
+        ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+
+        if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
+                newpt = frame_alloc(FRAME_KA);
+                memsetb(newpt, PAGE_SIZE, 0);
+                SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
+                SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER);
+        }
+
+        ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+
+        if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
+                newpt = frame_alloc(FRAME_KA);
+                memsetb(newpt, PAGE_SIZE, 0);
+                SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
+                SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER);
+        }
+
+        ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+
+        if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
+                newpt = frame_alloc(FRAME_KA);
+                memsetb(newpt, PAGE_SIZE, 0);
+                SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
+                SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER);
+        }
+
+        ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+
+        SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
+        SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
 }
