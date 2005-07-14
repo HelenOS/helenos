@@ -73,7 +73,6 @@ struct vm_area {
 struct vm {
 	spinlock_t lock;
 	link_t vm_area_head;
-	int j;
 	pte_t *ptl0;
 };
 
