@@ -29,12 +29,15 @@
 #ifndef __mips_TLB_H__
 #define __mips_TLB_H__
 
+#define PAGE_UNCACHED			2
+#define PAGE_CACHEABLE_EXC_WRITE	5
+
 struct entry_lo {
-	unsigned g : 1;
-	unsigned v : 1;
-	unsigned d : 1;
-	unsigned c : 3;
-	unsigned pfn : 24;
+	unsigned g : 1; 	/* global bit */
+	unsigned v : 1; 	/* valid bit */
+	unsigned d : 1; 	/* dirty/write-protect bit */
+	unsigned c : 3; 	/* cache coherency attribute */
+	unsigned pfn : 24;	/* frame number */
 	unsigned : 2;
 } __attribute__ ((packed));
 
@@ -57,6 +60,8 @@ struct tlb_entry {
 	struct entry_hi hi;
 	struct page_mask mask;
 } __attribute__ ((packed));
+
+typedef struct entry_lo pte_t;
 
 extern void tlb_refill(void);
 extern void tlb_invalid(void);

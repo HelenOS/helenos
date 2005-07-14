@@ -48,6 +48,7 @@ vm_t *vm_create(void)
 	if (m) {
 		spinlock_initialize(&m->lock);
 		list_initialize(&m->vm_area_head);
+		m->ptl0 = NULL;
 	}
 	
 	return m;

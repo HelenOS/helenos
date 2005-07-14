@@ -29,6 +29,7 @@
 #ifndef __VM_H__
 #define __VM_H__
 
+#include <arch/mm/page.h>
 #include <arch/mm/vm.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -51,7 +52,7 @@ enum vm_type {
 };
 
 /*
- * Each vm_area structure describes one continuous area of virtual memory.
+ * Each vm_area_t structure describes one continuous area of virtual memory.
  * In the future, it should not be difficult to support shared areas of vm.
  */
 struct vm_area {
@@ -64,7 +65,7 @@ struct vm_area {
 };
 
 /*
- * vm_mapping_t contains the list of vm_areas of userspace accessible
+ * vm_t contains the list of vm_areas of userspace accessible
  * pages for one or more tasks. Ranges of kernel memory pages are not
  * supposed to figure in the list as they are shared by all tasks and
  * set up during system initialization.
@@ -72,6 +73,8 @@ struct vm_area {
 struct vm {
 	spinlock_t lock;
 	link_t vm_area_head;
+	int j;
+	pte_t *ptl0;
 };
 
 extern vm_t * vm_create(void);

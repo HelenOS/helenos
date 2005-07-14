@@ -29,6 +29,7 @@
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
+#include <arch/types.h>
 #include <arch/mm/frame.h>
 
 #define PAGE_SIZE	FRAME_SIZE

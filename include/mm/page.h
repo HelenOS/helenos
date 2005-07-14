@@ -76,7 +76,6 @@
  * These macros traverse the 4-level tree of page tables,
  * each descending by one level.
  */
-#define GET_PTL0_ADDRESS()		GET_PTL0_ADDRESS_ARCH()
 #define GET_PTL1_ADDRESS(ptl0, i)	GET_PTL1_ADDRESS_ARCH(ptl0, i)
 #define GET_PTL2_ADDRESS(ptl1, i)	GET_PTL2_ADDRESS_ARCH(ptl1, i)
 #define GET_PTL3_ADDRESS(ptl2, i)	GET_PTL3_ADDRESS_ARCH(ptl2, i)
@@ -86,7 +85,6 @@
  * These macros are provided to change shape of the 4-level
  * tree of page tables on respective level.
  */
-#define SET_PTL0_ADDRESS(ptl0)		SET_PTL0_ADDRESS_ARCH(ptl0)
 #define SET_PTL1_ADDRESS(ptl0, i, a)	SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
 #define SET_PTL2_ADDRESS(ptl1, i, a)	SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS(ptl2, i, a)	SET_PTL3_ADDRESS_ARCH(ptl2, i, a)

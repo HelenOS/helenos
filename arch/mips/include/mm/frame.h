@@ -29,7 +29,7 @@
 #ifndef __mips_FRAME_H__
 #define __mips_FRAME_H__
 
-#define FRAME_SIZE		4096
+#define FRAME_SIZE		16384
 
 extern void frame_arch_init(void);
 

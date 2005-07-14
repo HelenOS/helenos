@@ -29,47 +29,85 @@
 #ifndef __mips_PAGE_H__
 #define __mips_PAGE_H__
 
+#include <arch/mm/tlb.h>
+#include <mm/page.h>
 #include <arch/mm/frame.h>
 #include <arch/types.h>
+#include <arch.h>
 
 #define PAGE_SIZE	FRAME_SIZE
 
 #define KA2PA(x)	((x) - 0x80000000)
 #define PA2KA(x)	((x) + 0x80000000)
 
-#define page_arch_init()	;
-
 /*
  * Implementation of generic 4-level page table interface.
- * TODO: this is a fake implementation provided to satisfy the compiler
+ * NOTE: this implementation is under construction
+ * 
+ * Page table layout:
+ * - 32-bit virtual addresses
+ * - Offset is 14 bits => pages are 16K long
+ * - PTE's use the same format as CP0 EntryLo[01] registers => PTE is therefore 4 bytes long
+ * - PTL0 has 64 entries (6 bits)
+ * - PTL1 is not used
+ * - PTL2 is not used
+ * - PTL3 has 4096 entries (12 bits)
  */
-#define PTL0_INDEX_ARCH(vaddr)  0 
+ 
+#define PTL0_INDEX_ARCH(vaddr)  ((vaddr)>>26) 
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  0 
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14)&0xfff)
 
-#define GET_PTL0_ADDRESS_ARCH()                 ((pte_t *) 0)
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)          ((pte_t *) 0)
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)          ((pte_t *) 0)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)          ((pte_t *) 0)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)         ((pte_t *) 0)
+#define GET_PTL0_ADDRESS_ARCH()                 (PTL0)
+#define SET_PTL0_ADDRESS_ARCH(ptl0)		(PTL0 = (pte_t *)(ptl0))
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)          (((pte_t *)(ptl0))[(i)].pfn<<14)
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i)          (ptl1)
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i)          (ptl2)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)         (((pte_t *)(ptl3))[(i)].pfn<<14)
+
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].pfn = (a)>>14)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].pfn = (a)>>14)
 
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)            0
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)            0
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)            0
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)           0
+#define GET_PTL1_FLAGS_ARCH(ptl0, i)            get_pt_flags((pte_t *)(ptl0), (index_t)(i))
+#define GET_PTL2_FLAGS_ARCH(ptl1, i)            PAGE_PRESENT
+#define GET_PTL3_FLAGS_ARCH(ptl2, i)            PAGE_PRESENT
+#define GET_FRAME_FLAGS_ARCH(ptl3, i)           get_pt_flags((pte_t *)(ptl3), (index_t)(i))
 
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *)(ptl0), (index_t)(i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
-typedef __u32 pte_t;
+static inline int get_pt_flags(pte_t *pt, index_t i)
+{
+	pte_t *p = &pt[i];
+	
+	return (
+		((p->c>PAGE_UNCACHED)<<PAGE_CACHEABLE_SHIFT) |
+		((!p->v)<<PAGE_PRESENT_SHIFT) |
+		(1<<PAGE_USER_SHIFT) |
+		(1<<PAGE_READ_SHIFT) |
+		((p->d)<<PAGE_WRITE_SHIFT) |
+		(1<<PAGE_EXEC_SHIFT)
+	);
+		
+}
+
+static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
+{
+	pte_t *p = &pt[i];
+	
+	p->c = (flags & PAGE_CACHEABLE) ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
+	p->v = !(flags & PAGE_NOT_PRESENT);
+	p->d = flags & PAGE_WRITE;
+}
+
+extern void page_arch_init(void);
+
+extern pte_t *PTL0;
 
 #endif
