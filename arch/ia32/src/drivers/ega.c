@@ -69,7 +69,7 @@ void ega_display_char(char ch)
 void ega_check_cursor(void)
 {
 	if (ega_cursor < SCREEN)
-	    return;
+		return;
 
 	memcopy(PA2KA(VIDEORAM) + ROW*2, PA2KA(VIDEORAM), (SCREEN - ROW)*2);
 	memsetw(PA2KA(VIDEORAM) + (SCREEN - ROW)*2, ROW, 0x0720);
@@ -85,19 +85,19 @@ void ega_putchar(const char ch)
 
 	switch (ch) {
 	    case '\n':
-		    ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
-		    break;
+		ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
+		break;
 	    case '\t':
-		    ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
-		    break; 
+		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
+		break; 
 	    default:
-		    ega_display_char(ch);
-		    ega_cursor++;
-		    break;
+		ega_display_char(ch);
+		ega_cursor++;
+		break;
         }
 	ega_check_cursor();
 	ega_move_cursor();
-        
+
 	spinlock_unlock(&egalock);
 	cpu_priority_restore(pri);
 }

@@ -50,6 +50,6 @@ typedef struct va_list {
 	((type) *((ap).last + ++((ap).pos)))
 
 #define va_end(ap)
-    
+
 
 #endif

@@ -108,22 +108,15 @@ void cpu_identify(void)
 		/*
 		 * Check for AMD processor.
 		 */
-		if (info.cpuid_ebx==AMD_CPUID_EBX && 
-		    info.cpuid_ecx==AMD_CPUID_ECX &&
-		    info.cpuid_edx==AMD_CPUID_EDX) {
-			
+		if (info.cpuid_ebx==AMD_CPUID_EBX && info.cpuid_ecx==AMD_CPUID_ECX && info.cpuid_edx==AMD_CPUID_EDX) {
 			CPU->arch.vendor = VendorAMD;
 		}
 
 		/*
 		 * Check for Intel processor.
 		 */		
-		if (info.cpuid_ebx==INTEL_CPUID_EBX && 
-		    info.cpuid_ecx==INTEL_CPUID_ECX &&
-		    info.cpuid_edx==INTEL_CPUID_EDX) {
-
+		if (info.cpuid_ebx==INTEL_CPUID_EBX && info.cpuid_ecx==INTEL_CPUID_ECX && info.cpuid_edx==INTEL_CPUID_EDX) {
 			CPU->arch.vendor = VendorIntel;
-
 		}
 				
 		cpuid(1, &info);

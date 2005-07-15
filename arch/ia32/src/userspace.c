@@ -46,13 +46,13 @@ void userspace(void)
 	pri = cpu_priority_high();
 
 	__asm__ volatile (""
-	    "pushl %0\n"
-	    "pushl %1\n"
-	    "pushl %2\n"
-	    "pushl %3\n"
-	    "pushl %4\n"
-	    "iret"
-	    : : "i" (selector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+(THREAD_STACK_SIZE-1)), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
+		"pushl %0\n"
+		"pushl %1\n"
+		"pushl %2\n"
+		"pushl %3\n"
+		"pushl %4\n"
+		"iret"
+		: : "i" (selector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+(THREAD_STACK_SIZE-1)), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
 	
 	/* Unreachable */
 	for(;;);

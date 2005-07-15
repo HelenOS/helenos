@@ -75,8 +75,8 @@ static void e(void *data)
 static void pi(void *data)
 {
 	int i;
-        double lpi, pi;
-        double n, ab, ad;
+	double lpi, pi;
+	double n, ab, ad;
 
 	waitq_sleep(&can_start);
 
@@ -85,15 +85,15 @@ static void pi(void *data)
 		lpi = -1;
 		pi = 0;
 
-        	for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
-                	double sc, cd;
+		for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
+			double sc, cd;
 
-                	sc = sqrt(1 - (ab*ab/4));
-                	cd = 1 - sc;
-                	ad = sqrt(ab*ab/4 + cd*cd);
-                	lpi = pi;
-                	pi = 2 * n * ad;
-        	}
+			sc = sqrt(1 - (ab*ab/4));
+			cd = 1 - sc;
+			ad = sqrt(ab*ab/4 + cd*cd);
+			lpi = pi;
+			pi = 2 * n * ad;
+		}
 
 		if((int)(100000000*pi)!=PI_10e8)
 			panic("tid%d: pi*10e8=%d\n", THREAD->tid, (int) 100000000*pi);

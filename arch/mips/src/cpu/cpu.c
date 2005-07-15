@@ -39,42 +39,42 @@ struct {
 	char *vendor;
 	char *model;
 } imp_data[] = {
-    { "Invalid", "Invalid" },	/* 0x00 */
-    { "MIPS", "R2000" },	/* 0x01 */
-    { "MIPS", "R3000" },	/* 0x02 */
-    { "MIPS", "R6000" },	/* 0x03 */
-    { "MIPS", " R4000/R4400" }, /* 0x04 */
-    { "LSI Logic", "R3000" },	/* 0x05 */
-    { "MIPS", "R6000A" },	/* 0x06 */
-    { "IDT", "3051/3052" },	/* 0x07 */
-    { "Invalid", "Invalid" },	/* 0x08 */
-    { "MIPS", "R10000/T5" },	/* 0x09 */
-    { "MIPS", "R4200" },	/* 0x0a */
-    { "Unknown", "Unknown" },	/* 0x0b */
-    { "Unknown", "Unknown" },	/* 0x0c */
-    { "Invalid", "Invalid" },	/* 0x0d */
-    { "Invalid", "Invalid" },	/* 0x0e */
-    { "Invalid", "Invalid" },	/* 0x0f */
-    { "MIPS", "R8000" },	/* 0x10 */
-    { "Invalid", "Invalid" },	/* 0x11 */
-    { "Invalid", "Invalid" },	/* 0x12 */
-    { "Invalid", "Invalid" },	/* 0x13 */
-    { "Invalid", "Invalid" },	/* 0x14 */
-    { "Invalid", "Invalid" },	/* 0x15 */
-    { "Invalid", "Invalid" },	/* 0x16 */
-    { "Invalid", "Invalid" },	/* 0x17 */
-    { "Invalid", "Invalid" },	/* 0x18 */
-    { "Invalid", "Invalid" },	/* 0x19 */
-    { "Invalid", "Invalid" },  	/* 0x1a */
-    { "Invalid", "Invalid" },	/* 0x1b */
-    { "Invalid", "Invalid" },	/* 0x1c */
-    { "Invalid", "Invalid" },	/* 0x1d */
-    { "Invalid", "Invalid" },	/* 0x1e */
-    { "Invalid", "Invalid" },	/* 0x1f */
-    { "QED", "R4600" },		/* 0x20 */
-    { "Sony", "R3000" },	/* 0x21 */
-    { "Toshiba", "R3000" },	/* 0x22 */
-    { "NKK", "R3000" }		/* 0x23 */
+	{ "Invalid", "Invalid" },	/* 0x00 */
+	{ "MIPS", "R2000" },		/* 0x01 */
+	{ "MIPS", "R3000" },		/* 0x02 */
+	{ "MIPS", "R6000" },		/* 0x03 */
+	{ "MIPS", " R4000/R4400" }, 	/* 0x04 */
+	{ "LSI Logic", "R3000" },	/* 0x05 */
+	{ "MIPS", "R6000A" },		/* 0x06 */
+	{ "IDT", "3051/3052" },		/* 0x07 */
+	{ "Invalid", "Invalid" },	/* 0x08 */
+	{ "MIPS", "R10000/T5" },	/* 0x09 */
+	{ "MIPS", "R4200" },		/* 0x0a */
+	{ "Unknown", "Unknown" },	/* 0x0b */
+	{ "Unknown", "Unknown" },	/* 0x0c */
+	{ "Invalid", "Invalid" },	/* 0x0d */
+	{ "Invalid", "Invalid" },	/* 0x0e */
+	{ "Invalid", "Invalid" },	/* 0x0f */
+	{ "MIPS", "R8000" },		/* 0x10 */
+	{ "Invalid", "Invalid" },	/* 0x11 */
+	{ "Invalid", "Invalid" },	/* 0x12 */
+	{ "Invalid", "Invalid" },	/* 0x13 */
+	{ "Invalid", "Invalid" },	/* 0x14 */
+	{ "Invalid", "Invalid" },	/* 0x15 */
+	{ "Invalid", "Invalid" },	/* 0x16 */
+	{ "Invalid", "Invalid" },	/* 0x17 */
+	{ "Invalid", "Invalid" },	/* 0x18 */
+	{ "Invalid", "Invalid" },	/* 0x19 */
+	{ "Invalid", "Invalid" },  	/* 0x1a */
+	{ "Invalid", "Invalid" },	/* 0x1b */
+	{ "Invalid", "Invalid" },	/* 0x1c */
+	{ "Invalid", "Invalid" },	/* 0x1d */
+	{ "Invalid", "Invalid" },	/* 0x1e */
+	{ "Invalid", "Invalid" },	/* 0x1f */
+	{ "QED", "R4600" },		/* 0x20 */
+	{ "Sony", "R3000" },		/* 0x21 */
+	{ "Toshiba", "R3000" },		/* 0x22 */
+	{ "NKK", "R3000" }		/* 0x23 */
 };
 
 void cpu_arch_init(void)

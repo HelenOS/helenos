@@ -39,9 +39,9 @@
 #define WAKEUP_ALL	1
 
 struct waitq {
-    spinlock_t lock;
-    int missed_wakeups;
-    link_t head;
+	spinlock_t lock;
+	int missed_wakeups;
+	link_t head;
 };
 
 #define waitq_sleep(wq) \

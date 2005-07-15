@@ -42,7 +42,7 @@ context_save:
 
 	movl 4(%esp),%eax	# the caller's return %eip
 	movl 8(%esp),%ebx	# address of the kernel_context variable to save context to
-        movl %eax,4(%ebx)	# %eip -> ctx->pc
+	movl %eax,4(%ebx)	# %eip -> ctx->pc
 	movl %esp,(%ebx)	# %esp -> ctx->sp
 
 	movl %ebx,%eax
@@ -53,8 +53,8 @@ context_save:
 	movl %edx,16(%eax)
 	movl %esi,20(%eax)
 	movl %edi,24(%eax)
-	movl %ebp,28(%eax)    
-    
+	movl %ebp,28(%eax)
+
 	xorl %eax,%eax		# context_save returns 1
 	incl %eax
 	ret
@@ -64,7 +64,7 @@ context_save:
 #
 # Restore CPU context from the kernel_context variable
 # pointed by the 1st argument. Returns 0 in EAX.
-#    
+#
 context_restore:
 	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
 	movl (%eax),%esp	# ctx->sp -> %esp
@@ -79,5 +79,5 @@ context_restore:
 
 	movl 4(%eax),%eax
 	movl %eax,(%esp)	# ctx->pc -> saver's return %eip
-        xorl %eax,%eax		# context_restore returns 0
+	xorl %eax,%eax		# context_restore returns 0
 	ret

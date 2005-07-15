@@ -105,7 +105,7 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	pri = cpu_priority_high();
 	spinlock_lock(&CPU->timeoutlock);
 	spinlock_lock(&t->lock);
-    
+
 	if (t->cpu)
 		panic("t->cpu != 0");
 
@@ -114,7 +114,7 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 	
 	t->handler = f;
 	t->arg = arg;
-    
+
 	/*
 	 * Insert t into the active timeouts list according to t->ticks.
 	 */

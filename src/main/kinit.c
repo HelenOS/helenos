@@ -94,7 +94,7 @@ void kinit(void *arg)
 
 #ifdef __SMP__
 	if (config.cpu_count > 1) {
-	        /*
+		/*
 		 * For each CPU, create its load balancing thread.
 		 */
 		for (i = 0; i < config.cpu_count; i++) {

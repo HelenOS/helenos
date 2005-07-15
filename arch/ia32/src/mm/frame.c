@@ -39,7 +39,7 @@ void frame_arch_init(void)
 	if (config.cpu_active == 1) {
 		frame_not_free(0x0);
 
-                frame_region_not_free(0xa0000,0xff000);
-                frame_region_not_free(0xfec00000,0xffffffff);
+		frame_region_not_free(0xa0000,0xff000);
+		frame_region_not_free(0xfec00000,0xffffffff);
 	}
 }

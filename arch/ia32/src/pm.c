@@ -45,18 +45,18 @@
  * whole memory. One is for code and one is for data.
  */
 struct descriptor gdt[GDT_ITEMS] = {
-    /* NULL descriptor */
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    /* KTEXT descriptor */
-    { 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
-    /* KDATA descriptor */
-    { 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
-    /* UTEXT descriptor */
-    { 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
-    /* UDATA descriptor */
-    { 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
-    /* TSS descriptor - set up will be completed later */
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	/* NULL descriptor */
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	/* KTEXT descriptor */
+	{ 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
+	/* KDATA descriptor */
+	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
+	/* UTEXT descriptor */
+	{ 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
+	/* UDATA descriptor */
+	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
+	/* TSS descriptor - set up will be completed later */
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 static struct idescriptor idt[IDT_ITEMS];
@@ -71,16 +71,15 @@ struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = si
 
 void gdt_setbase(struct descriptor *d, __address base)
 {
-        d->base_0_15 = base & 0xffff;
-        d->base_16_23 = ((base) >> 16) & 0xff;
-        d->base_24_31 = ((base) >> 24) & 0xff;
-
+	d->base_0_15 = base & 0xffff;
+	d->base_16_23 = ((base) >> 16) & 0xff;
+	d->base_24_31 = ((base) >> 24) & 0xff;
 }
 
 void gdt_setlimit(struct descriptor *d, __u32 limit)
 {
-        d->limit_0_15 = limit & 0xffff;
-        d->limit_16_19 = (limit >> 16) & 0xf;
+	d->limit_0_15 = limit & 0xffff;
+	d->limit_16_19 = (limit >> 16) & 0xf;
 }
 
 void idt_setoffset(struct idescriptor *d, __address offset)
@@ -104,7 +103,7 @@ void idt_init(void)
 {
 	struct idescriptor *d;
 	int i;
-    
+
 	for (i = 0; i < IDT_ITEMS; i++) {
 		d = &idt[i];
 

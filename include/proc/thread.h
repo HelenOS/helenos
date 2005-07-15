@@ -73,12 +73,16 @@ struct thread {
 
 	context_t saved_context;
 	context_t sleep_timeout_context;
-	fpu_context_t saved_fpu_context;	               
-	int fpu_context_exists;	               
-	int fpu_context_engaged;               /* Defined only if thread doesn't run. It means that fpu context is in CPU 
-						that last time executes this thread. This disables migration */          
-	
-	
+	fpu_context_t saved_fpu_context;
+	int fpu_context_exists;
+
+	/*
+	 * Defined only if thread doesn't run.
+	 * It means that fpu context is in CPU that last time executes this thread.
+	 * This disables migration
+	 */
+	int fpu_context_engaged;
+
 	waitq_t *sleep_queue;
 	timeout_t sleep_timeout;
 	volatile int timeout_pending;

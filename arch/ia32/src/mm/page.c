@@ -56,7 +56,7 @@ void page_arch_init(void)
 	if (config.cpu_active == 1) {
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
 		memsetb(dba, PAGE_SIZE, 0);
-	    
+
 		bootstrap_dba = dba;
 
 		/*

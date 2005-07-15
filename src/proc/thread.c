@@ -146,7 +146,7 @@ void thread_ready(thread_t *t)
 		ipi_broadcast(VECTOR_WAKEUP_IPI);
 	}	
 	spinlock_unlock(&cpu->lock);
-    
+
 	cpu_priority_restore(pri);
 }
 
@@ -277,7 +277,7 @@ restart:
  */
 void thread_sleep(__u32 sec)
 {
-        thread_usleep(sec*1000000);
+	thread_usleep(sec*1000000);
 }
 
 

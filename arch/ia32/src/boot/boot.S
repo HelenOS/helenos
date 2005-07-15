@@ -56,7 +56,7 @@ meeting_point:
 	movw %ax,%gs
 	movw %ax,%fs
 	movw %ax,%ds			# kernel data + stack
-        movw %ax,%ss
+	movw %ax,%ss
 	movl $0x7c00,%esp
 
 	lidt idtr

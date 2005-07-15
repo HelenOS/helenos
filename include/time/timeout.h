@@ -34,7 +34,7 @@
 #include <synch/spinlock.h>
 #include <list.h>
 
-#define us2ticks(us)    ((__u64)(((__u32) (us)/(1000000/HZ))))
+#define us2ticks(us)	((__u64)(((__u32) (us)/(1000000/HZ))))
 
 typedef void (* timeout_handler)(void *arg);
 

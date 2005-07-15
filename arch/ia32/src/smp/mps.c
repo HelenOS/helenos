@@ -243,9 +243,9 @@ int configure_via_ct(void)
 				l_intr_entries = l_intr_entries ? l_intr_entries : (struct __l_intr_entry *) cur;
 				l_intr_entry_cnt++;
 				ct_l_intr_entry((struct __l_intr_entry *) cur);
-		    		cur += 8;
+				cur += 8;
 				break;
-	    
+
 			default:
 				/*
 				 * Something is wrong. Fallback to UP mode.

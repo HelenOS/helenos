@@ -37,12 +37,12 @@ void arch_pre_mm_init(void)
 	 * Clear the error level.
 	 */
 	cp0_status_write(cp0_status_read() & ~(cp0_status_bev_bootstrap_bit|cp0_status_erl_error_bit));
-    
+
 	/*
 	 * Unmask hardware clock interrupt.
 	 */
 	cp0_status_write(cp0_status_read() | (1<<cp0_status_im7_shift));
-    
+
 	/*
 	 * Start hardware clock.
 	 */

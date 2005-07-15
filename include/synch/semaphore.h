@@ -36,7 +36,7 @@
 
 struct semaphore
 {
-    waitq_t wq;
+	waitq_t wq;
 };
 
 #define semaphore_down(s) \

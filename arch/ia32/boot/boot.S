@@ -50,7 +50,7 @@
 _start_0x7c00:
 	xorw %ax,%ax		# reset, %al will be used below
 	movw %ax,%dx		# fd0, %dh and %dl will be used below
-    	movw %dx,%ds
+	movw %dx,%ds
 
 	movw %dx,%ss		# initialize stack
 	movw $stack,%sp
@@ -58,7 +58,7 @@ _start_0x7c00:
 	int $0x13		# reset floppy
 	jc stop_trying
 
-    	movw %dx,%ds
+	movw %dx,%ds
 	movw %dx,%ss
 	movw $0x7c00,%sp
 	movw $0xffe0,%si	# after next increment, %si will become 0x0000
@@ -92,13 +92,13 @@ read_sectors:
 
 	movw logical_sector,%ax
 	divb sectors
-    
+
 	movb %ah,%cl
-        incb %cl			# sector
-    
+	incb %cl			# sector
+
 	movb %al,%ch
 	shrb $1,%ch			# track
-    
+
 	movb %al,%dh
 	andb $1,%dh			# head
 
@@ -126,11 +126,11 @@ echo_mark:
 	push %bp
 	movw %sp,%bp
 	pusha
-    
+
 	movb $0xe,%ah
 	movb $7,%bl
 	int $0x10
-    
+
 	popa
 	pop %bp
 	ret

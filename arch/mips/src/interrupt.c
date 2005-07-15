@@ -35,26 +35,26 @@
 
 pri_t cpu_priority_high(void)
 {
-    pri_t pri = (pri_t) cp0_status_read();
-    cp0_status_write(pri & ~cp0_status_ie_enabled_bit);
-    return pri;
+	pri_t pri = (pri_t) cp0_status_read();
+	cp0_status_write(pri & ~cp0_status_ie_enabled_bit);
+	return pri;
 }
 
 pri_t cpu_priority_low(void)
 {
-    pri_t pri = (pri_t) cp0_status_read();
-    cp0_status_write(pri | cp0_status_ie_enabled_bit);
-    return pri;
+	pri_t pri = (pri_t) cp0_status_read();
+	cp0_status_write(pri | cp0_status_ie_enabled_bit);
+	return pri;
 }
 
 void cpu_priority_restore(pri_t pri)
 {
-    cp0_status_write(cp0_status_read() | (pri & cp0_status_ie_enabled_bit));
+	cp0_status_write(cp0_status_read() | (pri & cp0_status_ie_enabled_bit));
 }
 
 pri_t cpu_priority_read(void)
 {
-    return cp0_status_read();
+	return cp0_status_read();
 }
 
 
@@ -84,8 +84,8 @@ void interrupt(void)
 					break;
 				case 7: /* Timer Interrupt */
 					cp0_compare_write(cp0_compare_value); /* clear timer interrupt */
-				    /* start counting over again */
-					cp0_count_write(0);				    
+					/* start counting over again */
+					cp0_count_write(0);
 					clock();
 					break;
 			}

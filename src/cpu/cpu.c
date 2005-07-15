@@ -66,7 +66,7 @@ void cpu_init(void) {
 		/* initialize everything */
 		memsetb((__address) cpu_private_data, sizeof(cpu_private_data_t) * config.cpu_count, 0);
 		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
-    
+
 		for (i=0; i < config.cpu_count; i++) {
 			cpus[i].stack = (__u8 *) malloc(CPU_STACK_SIZE);
 			if (!cpus[i].stack)

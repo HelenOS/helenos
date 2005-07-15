@@ -84,7 +84,7 @@ void apic_init(void)
 		int pin;
 	
 		if ((pin = mps_irq_to_pin(i)) != -1)
-	    		io_apic_change_ioredtbl(pin,0xf,IVT_IRQBASE+i,LOPRI);
+		io_apic_change_ioredtbl(pin,0xf,IVT_IRQBASE+i,LOPRI);
 	}
 	
 
@@ -136,7 +136,7 @@ int apic_poll_errors(void)
 		printf("Received Illegal Vector\n");
 	if ((esr>>7) & 1)
 		printf("Illegal Register Address\n");
-    
+
 	return !esr;
 }
 

@@ -51,16 +51,16 @@ tlb_refill_entry:
 cache_error_entry:
 	j cache_error_handler
 	nop
-    
+
 .org 0x180
 exception_entry:
 exception_handler:
 	sub $29, STACK_SPACE
 	REGISTERS_STORE $29
-    
+
 	jal exception
 	nop
-    
+
 	REGISTERS_LOAD $29
 	add $29, STACK_SPACE
 
@@ -69,13 +69,13 @@ exception_handler:
 tlb_refill_handler:
 	sub $29, STACK_SPACE
 	REGISTERS_STORE $29
-    
+
 	jal tlb_refill
 	nop
-    
+
 	REGISTERS_LOAD $29
 	add $29, STACK_SPACE
-    
+
 	eret
 
 cache_error_handler:
@@ -84,7 +84,7 @@ cache_error_handler:
 
 	jal cache_error
 	nop
-    
+
 	REGISTERS_LOAD $29
 	add $29, STACK_SPACE
 

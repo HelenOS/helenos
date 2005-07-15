@@ -83,7 +83,7 @@ cpuid:
 	movl %ebx,4(%esi)
 	movl %ecx,8(%esi)
 	movl %edx,12(%esi)
-    
+
 	popa
 	popl %ebp
 	ret

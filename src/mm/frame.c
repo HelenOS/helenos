@@ -54,23 +54,23 @@ static spinlock_t framelock;
 
 void frame_init(void)
 {
-        if (config.cpu_active == 1) {
+	if (config.cpu_active == 1) {
 
-                /*
-                 * The bootstrap processor will allocate all necessary memory for frame allocation.
-                 */
+		/*
+		 * The bootstrap processor will allocate all necessary memory for frame allocation.
+		 */
 
-                frames = config.memory_size / FRAME_SIZE;
-                frame_bitmap_octets = frames / 8 + (frames % 8 > 0);
-                frame_bitmap = (__u8 *) malloc(frame_bitmap_octets);
-                if (!frame_bitmap)
-                        panic("malloc/frame_bitmap\n");
+		frames = config.memory_size / FRAME_SIZE;
+		frame_bitmap_octets = frames / 8 + (frames % 8 > 0);
+		frame_bitmap = (__u8 *) malloc(frame_bitmap_octets);
+		if (!frame_bitmap)
+			panic("malloc/frame_bitmap\n");
 
-                /*
-                 * Mark all frames free.
-                 */
-                memsetb((__address) frame_bitmap, frame_bitmap_octets, 0);
-                frames_free = frames;
+		/*
+		 * Mark all frames free.
+		 */
+		memsetb((__address) frame_bitmap, frame_bitmap_octets, 0);
+		frames_free = frames;
 	}
 
 	/*
@@ -80,10 +80,10 @@ void frame_init(void)
 	frame_arch_init();
 
 	if (config.cpu_active == 1) {
-                /*
-                 * Create the memory address space map. Marked frames and frame
-                 * regions cannot be used for allocation.
-                 */
+		/*
+		 * Create the memory address space map. Marked frames and frame
+		 * regions cannot be used for allocation.
+		 */
 		frame_region_not_free(config.base, config.base + config.kernel_size);
 	}
 }

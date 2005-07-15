@@ -42,10 +42,10 @@
 #endif
 
 struct cpu_arch {
-        int vendor;
-        int family;
-        int model;
-        int stepping;
+	int vendor;
+	int family;
+	int model;
+	int stepping;
 	struct tss *tss;
 };
 

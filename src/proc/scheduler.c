@@ -102,7 +102,7 @@ loop:
 		 * set CPU-private flag that the kcpulb has been started.
 		 */
 		if (test_and_set(&CPU->kcpulbstarted) == 0) {
-    			waitq_wakeup(&CPU->kcpulb_wq, 0);
+			waitq_wakeup(&CPU->kcpulb_wq, 0);
 			goto loop;
 		}
 		#endif /* __SMP__ */
@@ -238,7 +238,7 @@ void scheduler(void)
 			 * This is the place where threads leave scheduler();
 			 */
 			before_thread_runs();
-		    	spinlock_unlock(&THREAD->lock);
+			spinlock_unlock(&THREAD->lock);
 			cpu_priority_restore(THREAD->saved_context.pri);
 			return;
 		}
@@ -278,74 +278,73 @@ void scheduler_separated_stack(void)
 	if (THREAD) {
 		switch (THREAD->state) {
 		    case Running:
-			    THREAD->state = Ready;
-			    spinlock_unlock(&THREAD->lock);
-			    thread_ready(THREAD);
-			    break;
+			THREAD->state = Ready;
+			spinlock_unlock(&THREAD->lock);
+			thread_ready(THREAD);
+			break;
 
 		    case Exiting:
-			    frame_free((__address) THREAD->kstack);
-			    if (THREAD->ustack) {
-				    frame_free((__address) THREAD->ustack);
-			    }
-			    
-			    /*
-			     * Detach from the containing task.
-			     */
-			    spinlock_lock(&TASK->lock);
-			    list_remove(&THREAD->th_link);
-			    spinlock_unlock(&TASK->lock);
+			frame_free((__address) THREAD->kstack);
+			if (THREAD->ustack) {
+				frame_free((__address) THREAD->ustack);
+			}
 
-			    spinlock_unlock(&THREAD->lock);
-			    
-			    spinlock_lock(&threads_lock);
-			    list_remove(&THREAD->threads_link);
-			    spinlock_unlock(&threads_lock);
+			/*
+			 * Detach from the containing task.
+			 */
+			spinlock_lock(&TASK->lock);
+			list_remove(&THREAD->th_link);
+			spinlock_unlock(&TASK->lock);
 
-			    spinlock_lock(&CPU->lock);
-			    if(CPU->fpu_owner==THREAD) CPU->fpu_owner=NULL;
-			    spinlock_unlock(&CPU->lock);
+			spinlock_unlock(&THREAD->lock);
+    
+			spinlock_lock(&threads_lock);
+			list_remove(&THREAD->threads_link);
+			spinlock_unlock(&threads_lock);
 
-			    
-			    free(THREAD);
-			    
-			    break;
-			    
+			spinlock_lock(&CPU->lock);
+			if(CPU->fpu_owner==THREAD) CPU->fpu_owner=NULL;
+			spinlock_unlock(&CPU->lock);
+
+			free(THREAD);
+
+			break;
+    
 		    case Sleeping:
-			    /*
-			     * Prefer the thread after it's woken up.
-			     */
-			    THREAD->pri = -1;
+			/*
+			 * Prefer the thread after it's woken up.
+			 */
+			THREAD->pri = -1;
 
-			    /*
-			     * We need to release wq->lock which we locked in waitq_sleep().
-			     * Address of wq->lock is kept in THREAD->sleep_queue.
-			     */
-			    spinlock_unlock(&THREAD->sleep_queue->lock);
+			/*
+			 * We need to release wq->lock which we locked in waitq_sleep().
+			 * Address of wq->lock is kept in THREAD->sleep_queue.
+			 */
+			spinlock_unlock(&THREAD->sleep_queue->lock);
 
-			    /*
-			     * Check for possible requests for out-of-context invocation.
-			     */
-			    if (THREAD->call_me) {
-				    THREAD->call_me(THREAD->call_me_with);
-				    THREAD->call_me = NULL;
-				    THREAD->call_me_with = NULL;
-			    }
+			/*
+			 * Check for possible requests for out-of-context invocation.
+			 */
+			if (THREAD->call_me) {
+				THREAD->call_me(THREAD->call_me_with);
+				THREAD->call_me = NULL;
+				THREAD->call_me_with = NULL;
+			}
 
-			    spinlock_unlock(&THREAD->lock);
-			    
-			    break;
+			spinlock_unlock(&THREAD->lock);
+
+			break;
 
 		    default:
-			    /*
-			     * Entering state is unexpected.
-			     */
-			    panic("tid%d: unexpected state %s\n", THREAD->tid, thread_states[THREAD->state]);
-			    break;
+			/*
+			 * Entering state is unexpected.
+			 */
+			panic("tid%d: unexpected state %s\n", THREAD->tid, thread_states[THREAD->state]);
+			break;
 		}
 		THREAD = NULL;
 	}
-    
+
 	THREAD = find_best_thread();
 	
 	spinlock_lock(&THREAD->lock);
@@ -469,9 +468,9 @@ restart:		pri = cpu_priority_high();
 			while (l != &r->rq_head) {
 				t = list_get_instance(l, thread_t, rq_link);
 				/*
-		    		 * We don't want to steal CPU-wired threads neither threads already stolen.
+				 * We don't want to steal CPU-wired threads neither threads already stolen.
 				 * The latter prevents threads from migrating between CPU's without ever being run.
-		        	 * We don't want to steal threads whose FPU context is still in CPU.
+				 * We don't want to steal threads whose FPU context is still in CPU.
 				 */
 				spinlock_lock(&t->lock);
 				if ( (!(t->flags & (X_WIRED | X_STOLEN))) && (!(t->fpu_context_engaged)) ) {
@@ -497,7 +496,7 @@ restart:		pri = cpu_priority_high();
 
 					atomic_dec(&nrdy);
 
-			    		r->n--;
+					r->n--;
 					list_remove(&t->rq_link);
 
 					break;
@@ -527,7 +526,7 @@ restart:		pri = cpu_priority_high();
 					goto satisfied;
 					
 				/*
-                    		 * We are not satisfied yet, focus on another CPU next time.
+				 * We are not satisfied yet, focus on another CPU next time.
 				 */
 				k++;
 				
@@ -552,7 +551,7 @@ restart:		pri = cpu_priority_high();
 	}
 		
 	goto not_satisfied;
-    
+
 satisfied:
 	/*
 	 * Tell find_best_thread() to wake us up later again.

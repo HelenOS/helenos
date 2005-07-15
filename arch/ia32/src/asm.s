@@ -95,12 +95,12 @@ enable_l_apic_in_msr:
 
 	push %ds
 	push %es
-    
+
 	# we must fill the data segment registers
 	movw $16,%ax
 	movw %ax,%ds
 	movw %ax,%es
-    
+
 	movl $(\i),%edi
 	pushl %ebp
 	addl $4,(%esp)
@@ -113,9 +113,9 @@ enable_l_apic_in_msr:
 
 	popa
 	pop %ebp
-    
-        iret
-    
+
+	iret
+
 	.if (\n-\i)-1
 	handler "(\i+1)",\n
 	.endif
@@ -179,11 +179,11 @@ outb:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	movl 8(%ebp),%edx
 	movl 12(%ebp),%eax
 	outb %al,%dx
-    
+
 	popa
 	pop %ebp
 	ret
@@ -197,11 +197,11 @@ outw:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	movl 8(%ebp),%edx
 	movl 12(%ebp),%eax
 	outw %ax,%dx
-    
+
 	popa
 	pop %ebp
 	ret
@@ -215,11 +215,11 @@ outl:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	movl 8(%ebp),%edx
 	movl 12(%ebp),%eax
 	outl %eax,%dx
-    
+
 	popa
 	pop %ebp
 	ret
@@ -239,14 +239,14 @@ memcopy:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	cld
 	movl CNT(%ebp),%ecx
 	movl DST(%ebp),%edi
-	movl SRC(%ebp),%esi    
-    
+	movl SRC(%ebp),%esi
+
 	rep movsb %ds:(%esi),%es:(%edi)
-    
+
 	popa
 	pop %ebp
 	ret
@@ -265,15 +265,15 @@ memsetb:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	cld
 	movl CNT(%ebp),%ecx
 	movl DST(%ebp),%edi
 	movl X(%ebp),%eax
-    
+
 	rep stosb %al,%es:(%edi)
-    
-        popa
+
+	popa
 	pop %ebp
 	ret
 
@@ -291,15 +291,15 @@ memsetw:
 	push %ebp
 	movl %esp,%ebp
 	pusha
-    
+
 	cld
 	movl CNT(%ebp),%ecx
 	movl DST(%ebp),%edi
 	movl X(%ebp),%eax
-    
+
 	rep stosw %ax,%es:(%edi)
-    
-        popa
+
+	popa
 	pop %ebp
 	ret
 
@@ -320,12 +320,12 @@ memcmp:
 	movl %esp,%ebp
 
 	pusha
-    
+
 	cld
 	movl CNT(%ebp),%ecx
 	movl DST(%ebp),%edi
-	movl SRC(%ebp),%esi    
-    
+	movl SRC(%ebp),%esi
+
 	repe cmpsb %es:(%edi),%ds:(%esi)
 	movl %ecx,(%ebp)
 

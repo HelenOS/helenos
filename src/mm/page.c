@@ -53,11 +53,11 @@ void map_structure(__address s, size_t size)
 	int i, cnt, length;
 
 	/* TODO: implement portable way of computing page address from address */
-        length = size + (s - (s & 0xfffff000));
-        cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
+	length = size + (s - (s & 0xfffff000));
+	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
 
-        for (i = 0; i < cnt; i++)
-                map_page_to_frame(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
+	for (i = 0; i < cnt; i++)
+		map_page_to_frame(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
 
 }
 
@@ -73,38 +73,38 @@ void map_structure(__address s, size_t size)
  */
 void map_page_to_frame(__address page, __address frame, int flags, __address root)
 {
-        pte_t *ptl0, *ptl1, *ptl2, *ptl3;
-        __address newpt;
+	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
+	__address newpt;
 
-        ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
 
-        if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-                newpt = frame_alloc(FRAME_KA);
-                memsetb(newpt, PAGE_SIZE, 0);
-                SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
-                SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER);
-        }
+	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
+		newpt = frame_alloc(FRAME_KA);
+		memsetb(newpt, PAGE_SIZE, 0);
+		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
+		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER);
+	}
 
-        ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 
-        if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-                newpt = frame_alloc(FRAME_KA);
-                memsetb(newpt, PAGE_SIZE, 0);
-                SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
-                SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER);
-        }
+	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
+		newpt = frame_alloc(FRAME_KA);
+		memsetb(newpt, PAGE_SIZE, 0);
+		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
+		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER);
+	}
 
-        ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 
-        if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-                newpt = frame_alloc(FRAME_KA);
-                memsetb(newpt, PAGE_SIZE, 0);
-                SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
-                SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER);
-        }
+	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
+		newpt = frame_alloc(FRAME_KA);
+		memsetb(newpt, PAGE_SIZE, 0);
+		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
+		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER);
+	}
 
-        ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 
-        SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
-        SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
+	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
+	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
 }

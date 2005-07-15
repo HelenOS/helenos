@@ -83,7 +83,7 @@ void i8254_calibrate_delay_loop(void)
 	outb(CLK_PORT1, 0xff);
 
 	do {
-	        /* will read both status and count */
+		/* will read both status and count */
 		outb(CLK_PORT4, 0xc2);
 		not_ok = (inb(CLK_PORT1)>>6)&1;
 		t1 = inb(CLK_PORT1);
@@ -109,10 +109,7 @@ void i8254_calibrate_delay_loop(void)
 	o2 = inb(CLK_PORT1);
 	o2 |= inb(CLK_PORT1) << 8;
 
-
-	CPU->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + 
-				    (((MAGIC_NUMBER*LOOPS)/1000) % ((t1-t2)-(o1-o2)) ? 1 : 0);
-	
+	CPU->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + (((MAGIC_NUMBER*LOOPS)/1000) % ((t1-t2)-(o1-o2)) ? 1 : 0);
 
 	clk1 = rdtsc();
 	delay(1<<SHIFT);

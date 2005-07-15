@@ -89,7 +89,7 @@ void clock(void)
 		spinlock_unlock(&CPU->lock);	
 	
 		spinlock_lock(&THREAD->lock);
-    		if (!THREAD->ticks--) {
+		if (!THREAD->ticks--) {
 			spinlock_unlock(&THREAD->lock);
 			scheduler();
 		}

@@ -31,17 +31,17 @@ SECTIONS {
 
 	. = ABSOLUTE(hardcoded_ktext_size);
 	.patch_1 : {
-        	LONG(ktext_end - ktext_start);
+		LONG(ktext_end - ktext_start);
 	}
 
 	. = ABSOLUTE(hardcoded_kdata_size);
 	.patch_2 : {
-        	LONG(kdata_end - kdata_start);
+		LONG(kdata_end - kdata_start);
 	}
 
 	. = ABSOLUTE(hardcoded_load_address);
 	.patch_3 : {
-        	LONG(0x80000000);
+		LONG(0x80000000);
 	}
 
 }
