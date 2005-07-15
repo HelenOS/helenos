@@ -36,6 +36,7 @@ void exception(void)
 {
 	int excno;
 	__u32 epc;
+	__u32 epc_shift = 0;
 	pri_t pri;
 	
 	pri = cpu_priority_high();
@@ -47,11 +48,60 @@ void exception(void)
 		THREAD->saved_epc = epc;
 	}
 	/* decode exception number and process the exception */
-	switch(excno = (cp0_cause_read()>>2)&0x1f) {
-		case EXC_Int: interrupt(); break;
+	switch (excno = (cp0_cause_read() >> 2) & 0x1f) {
+		case EXC_Int:
+			interrupt();
+			break;
 		case EXC_TLBL:
-		case EXC_TLBS: tlb_invalid(); break;
-		default: panic("unhandled exception %d\n", excno); break;
+		case EXC_TLBS:
+			tlb_invalid();
+			break;
+		case EXC_Mod:
+			panic("unhandled TLB Modification Exception\n");
+			break;
+		case EXC_AdEL:
+			panic("unhandled Address Error Exception - load or instruction fetch\n");
+			break;
+ 	 	case EXC_AdES:
+			panic("unhandled Address Error Exception - store\n");
+			break;
+ 	 	case EXC_IBE:
+			panic("unhandled Bus Error Exception - fetch instruction\n");
+			break;
+ 	 	case EXC_DBE:
+			panic("unhandled Bus Error Exception - data reference: load or store\n");
+			break;
+		case EXC_Bp:
+			/* it is necessary to not re-execute BREAK instruction after returning from Exception handler
+			   (see page 138 in R4000 Manual for more information) */
+			epc_shift = 4;
+			break;
+		case EXC_RI:
+			panic("unhandled Reserved Instruction Exception\n");
+			break;
+ 	 	case EXC_CpU:
+			panic("unhandled Coprocessor Unusable Exception\n");
+			break;
+ 	 	case EXC_Ov:
+			panic("unhandled Arithmetic Overflow Exception\n");
+			break;
+ 	 	case EXC_Tr:
+			panic("unhandled Trap Exception\n");
+			break;
+ 	 	case EXC_VCEI:
+			panic("unhandled Virtual Coherency Exception - instruction\n");
+			break;
+ 	 	case EXC_FPE:
+			panic("unhandled Floating-Point Exception\n");
+			break;
+ 	 	case EXC_WATCH:
+			panic("unhandled reference to WatchHi/WatchLo address\n");
+			break;
+ 	 	case EXC_VCED:
+			panic("unhandled Virtual Coherency Exception - data\n");
+			break;
+		default:
+			panic("unhandled exception %d\n", excno);
 	}
 	
 	if (THREAD) {
@@ -59,7 +109,7 @@ void exception(void)
 		epc = THREAD->saved_epc;
 	}
 
-	cp0_epc_write(epc);
+	cp0_epc_write(epc + epc_shift);
 	cp0_status_write(cp0_status_read() | cp0_status_exl_exception_bit);
 	cpu_priority_restore(pri);
 }

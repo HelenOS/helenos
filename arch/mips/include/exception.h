@@ -33,6 +33,20 @@
 #define EXC_MOD		1
 #define EXC_TLBL	2
 #define EXC_TLBS	3
+#define EXC_AdEL	4
+#define EXC_AdES	5
+#define EXC_IBE		6
+#define EXC_DBE		7
+#define EXC_Sys		8
+#define EXC_Bp		9
+#define EXC_RI		10
+#define EXC_CpU		11
+#define EXC_Ov		12
+#define EXC_Tr		13
+#define EXC_VCEI	14
+#define EXC_FPE		15
+#define EXC_WATCH	23
+#define EXC_VCED	31
 
 extern void exception(void);
 
