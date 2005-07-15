@@ -67,6 +67,7 @@
 .global cp0_status_read
 .global cp0_status_write
 .global cp0_cause_read
+.global cp0_cause_write
 .global cp0_epc_read
 .global cp0_epc_write
 .global cp0_prid_read
@@ -106,6 +107,7 @@ cp0_status_read:	cp0_read $12
 cp0_status_write:	cp0_write $12
 
 cp0_cause_read:		cp0_read $13
+cp0_cause_write:	cp0_write $13
 
 cp0_epc_read:		cp0_read $14
 cp0_epc_write:		cp0_write $14

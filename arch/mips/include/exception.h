@@ -30,7 +30,7 @@
 #define __EXCEPTION_H__
 
 #define EXC_Int		0
-#define EXC_MOD		1
+#define EXC_Mod		1
 #define EXC_TLBL	2
 #define EXC_TLBS	3
 #define EXC_AdEL	4

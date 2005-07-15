@@ -61,30 +61,35 @@ pri_t cpu_priority_read(void)
 void interrupt(void)
 {
 	__u32 cause;
-        int i;
-
+	int i;
+	
 	/* decode interrupt number and process the interrupt */
-        cause = (cp0_cause_read()>>8)&0xff;
-
-        for (i=0; i<8; i++) {
-                if (cause & (1<<i)) {
-                        switch (i) {
-			    case 0x0:
-			    case 0x1:
-			    case 0x2:
-			    case 0x3:
-			    case 0x4:
-			    case 0x5:
-                            case 0x6: panic("unhandled interrupt %d\n", i); break;
-                            case 0x7:
-                                    /* clear timer interrupt */
-                                    cp0_compare_write(cp0_compare_value);
+	cause = (cp0_cause_read() >> 8) &0xff;
+	
+	for (i = 0; i < 8; i++) {
+		if (cause & (1 << i)) {
+			switch (i) {
+				case 0: /* SW0 - Software interrupt 0 */
+					cp0_cause_write(cause & ~(1 << 8)); /* clear SW0 interrupt */
+					break;
+				case 1: /* SW1 - Software interrupt 1 */
+					cp0_cause_write(cause & ~(1 << 9)); /* clear SW1 interrupt */
+					break;
+				case 2: /* IRQ0 */
+				case 3: /* IRQ1 */
+				case 4: /* IRQ2 */
+				case 5: /* IRQ3 */
+				case 6: /* IRQ4 */
+					panic("unhandled interrupt %d\n", i);
+					break;
+				case 7: /* Timer Interrupt */
+					cp0_compare_write(cp0_compare_value); /* clear timer interrupt */
 				    /* start counting over again */
-				    cp0_count_write(0);				    
-                                    clock();
-                                    break;
-                        }
-                }
-        }
+					cp0_count_write(0);				    
+					clock();
+					break;
+			}
+		}
+	}
 
 }
