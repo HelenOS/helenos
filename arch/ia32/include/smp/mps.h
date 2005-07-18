@@ -33,6 +33,7 @@
 #include <typedefs.h>
 #include <synch/waitq.h>
 #include <config.h>
+#include <arch/smp/smp.h>
 
 #define CT_EXT_ENTRY_TYPE		0
 #define CT_EXT_ENTRY_LEN		1
@@ -116,6 +117,8 @@ struct __l_intr_entry {
 
 extern waitq_t ap_completion_wq;
 extern waitq_t kmp_completion_wq;
+
+extern struct smp_config_operations mps_config_operations;
 
 extern int mps_irq_to_pin(int irq);
 

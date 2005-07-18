@@ -28,26 +28,19 @@
 
 #ifdef __SMP__
 
-#include <arch/pm.h>
 #include <config.h>
 #include <print.h>
-#include <panic.h>
+#include <debug.h>
 #include <arch/smp/mps.h>
-#include <arch/smp/ap.h>
 #include <arch/smp/apic.h>
+#include <arch/smp/smp.h>
 #include <func.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <synch/waitq.h>
-#include <time/delay.h>
-#include <mm/heap.h>
 #include <mm/page.h>
-#include <mm/frame.h>
 #include <cpu.h>
-#include <arch/i8259.h>
 #include <arch/asm.h>
 #include <arch/bios/bios.h>
-#include <arch/acpi/madt.h>
 
 /*
  * MultiProcessor Specification detection code.
@@ -87,6 +80,46 @@ int l_intr_entry_cnt = 0;
 
 waitq_t ap_completion_wq;
 waitq_t kmp_completion_wq;
+
+
+/*
+ * Implementation of IA-32 SMP configuration interface.
+ */
+static count_t get_cpu_count(void);
+static bool is_cpu_enabled(index_t i);
+static bool is_bsp(index_t i);
+static __u8 get_cpu_apic_id(index_t i);
+
+struct smp_config_operations mps_config_operations = {
+	.cpu_count = get_cpu_count,
+	.cpu_enabled = is_cpu_enabled,
+	.cpu_bootstrap = is_bsp,
+	.cpu_apic_id = get_cpu_apic_id
+};
+
+count_t get_cpu_count(void)
+{
+	return processor_entry_cnt;
+}
+
+bool is_cpu_enabled(index_t i)
+{
+	ASSERT(i < processor_entry_cnt);
+	return processor_entries[i].cpu_flags & 0x1;
+}
+
+bool is_bsp(index_t i)
+{
+	ASSERT(i < processor_entry_cnt);
+	return processor_entries[i].cpu_flags & 0x2;
+}
+
+__u8 get_cpu_apic_id(index_t i)
+{
+	ASSERT(i < processor_entry_cnt);
+	return processor_entries[i].l_apic_id;
+}
+
 
 /*
  * Used to check the integrity of the MP Floating Structure.
@@ -390,101 +423,6 @@ void ct_extended_entries(void)
 				break;
 		}
 	}
-}
-
-
-/*
- * Kernel thread for bringing up application processors. It becomes clear
- * that we need an arrangement like this (AP's being initialized by a kernel
- * thread), for a thread has its dedicated stack. (The stack used during the
- * BSP initialization (prior the very first call to scheduler()) will be used
- * as an initialization stack for each AP.)
- */
-void kmp(void *arg)
-{
-	struct __processor_entry *pr;
-	__address src, dst;
-	int i;
-
-	waitq_initialize(&ap_completion_wq);
-
-	/*
-	 * Processor entries immediately follow the configuration table header.
-	 */
-	pr = processor_entries;
-
-	/*
-	 * We need to access data in frame 0.
-	 * We boldly make use of kernel address space mapping.
-	 */
-
-	/*
-	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
-	 */
-	*((__u16 *) (PA2KA(0x467+0))) =  ((__address) ap_boot) >> 4;	/* segment */
-	*((__u16 *) (PA2KA(0x467+2))) =  0;				/* offset */
-	
-	/*
-	 * Save 0xa to address 0xf of the CMOS RAM.
-	 * BIOS will not do the POST after the INIT signal.
-	 */
-	outb(0x70,0xf);
-	outb(0x71,0xa);
-
-	cpu_priority_high();
-
-	pic_disable_irqs(0xffff);
-	apic_init();
-
-	for (i = 0; i < processor_entry_cnt; i++) {
-		struct descriptor *gdt_new;
-	
-		/*
-		 * Skip processors marked unusable.
-		 */
-		if (pr[i].cpu_flags & (1<<0) == 0)
-			continue;
-
-		/*
-		 * The bootstrap processor is already up.
-		 */
-		if (pr[i].cpu_flags & (1<<1))
-			continue;
-
-		if (pr[i].l_apic_id == l_apic_id()) {
-			printf("%L: bad processor entry #%d, will not send IPI to myself\n", &pr[i], i);
-			continue;
-		}
-		
-		/*
-		 * Prepare new GDT for CPU in question.
-		 */
-		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor))))
-			panic("couldn't allocate memory for GDT\n");
-
-		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
-		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
-		gdtr.base = KA2PA((__address) gdt_new);
-
-		if (l_apic_send_init_ipi(pr[i].l_apic_id)) {
-			/*
-		         * There may be just one AP being initialized at
-			 * the time. After it comes completely up, it is
-			 * supposed to wake us up.
-		         */
-			waitq_sleep(&ap_completion_wq);
-			cpu_priority_high();
-		}
-		else {
-			printf("INIT IPI for l_apic%d failed\n", pr[i].l_apic_id);
-		}
-	}
-
-	/*
-	 * Wakeup the kinit thread so that
-	 * system initialization can go on.
-	 */
-	waitq_wakeup(&kmp_completion_wq, WAKEUP_FIRST);
 }
 
 int mps_irq_to_pin(int irq)
