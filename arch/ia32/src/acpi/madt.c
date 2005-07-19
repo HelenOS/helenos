@@ -27,11 +27,15 @@
  */
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <arch/acpi/acpi.h>
 #include <arch/acpi/madt.h>
 #include <arch/smp/apic.h>
+#include <arch/smp/smp.h>
 #include <mm/page.h>
 #include <panic.h>
+#include <debug.h>
+#include <config.h>
 
 struct acpi_madt *acpi_madt = NULL;
 
@@ -64,6 +68,44 @@ char *entry[] = {
 	"L_SAPIC",
 	"PLATFORM_INTR_SRC"
 };
+
+/*
+ * ACPI MADT Implementation of SMP configuration interface.
+ */
+static count_t madt_cpu_count(void);
+static bool madt_cpu_enabled(index_t i);
+static bool madt_cpu_bootstrap(index_t i);
+static __u8 madt_cpu_apic_id(index_t i);
+
+struct smp_config_operations madt_config_operations = {
+	.cpu_count = madt_cpu_count,
+	.cpu_enabled = madt_cpu_enabled,
+	.cpu_bootstrap = madt_cpu_bootstrap,
+	.cpu_apic_id = madt_cpu_apic_id
+};
+
+static count_t madt_cpu_count(void)
+{
+	return madt_l_apic_entry_cnt;
+}
+
+static bool madt_cpu_enabled(index_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	return madt_l_apic_entries[i].flags & 0x1;
+}
+
+static bool madt_cpu_bootstrap(index_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	return madt_l_apic_entries[i].apic_id == l_apic_id();
+}
+
+static __u8 madt_cpu_apic_id(index_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	return madt_l_apic_entries[i].apic_id;
+}
 
 void acpi_madt_parse(void)
 {
@@ -105,6 +147,8 @@ void acpi_madt_parse(void)
 		h = (struct madt_apic_header *) (((__u8 *) h) + h->length);
 	}
 
+	if (madt_l_apic_entry_cnt)
+		config.cpu_count = madt_l_apic_entry_cnt;
 }
  
 void madt_l_apic_entry(struct madt_l_apic *la, __u8 prev_type)

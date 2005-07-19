@@ -31,6 +31,7 @@
 
 #include <arch/acpi/acpi.h>
 #include <arch/smp/apic.h>
+#include <arch/smp/smp.h>
 
 #define	MADT_L_APIC			0
 #define MADT_IO_APIC			1
@@ -132,6 +133,7 @@ struct madt_platform_intr_src {
 } __attribute__ ((packed));
 
 extern struct acpi_madt *acpi_madt;
+extern struct smp_config_operations madt_config_operations;
 
 extern void acpi_madt_parse(void);
 

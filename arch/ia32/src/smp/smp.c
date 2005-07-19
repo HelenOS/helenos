@@ -51,6 +51,7 @@ void smp_init(void)
 {
 	if (acpi_madt) {
 		acpi_madt_parse();
+		ops = &madt_config_operations;
 	}
 	if (config.cpu_count == 1) {
 		mps_init();
