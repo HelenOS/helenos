@@ -27,37 +27,41 @@
  */
 
 
-#include <arch/boot/memmap.h>
+#include <arch/boot/memmapasm.h>
 
 E820_RECORD_SIZE = MEMMAP_E820_RECORD_SIZE
 E820_MAX_RECORDS = MEMMAP_E820_MAX_RECORDS
 E820_SMAP = 0x534d4150
 
 .global memmap_arch_init
+.global e820counter
+.global e820table
+.global e801memorysize
 
 .code16
 .section K_TEXT_START_2
 
 memmap_arch_init:
-	
+
 e820begin:
 	xorl	%ebx,%ebx	# during first call, ebx must be 0
-	
+	movw	%bx,%ds
+	movw	%bx,%es
 	movw	$e820table,%di
 	movb	$E820_MAX_RECORDS,(e820counter)
 e820loop:	
-	movl	$E820_SMAP,%edx 	# constrol sequence "SMAP"
-	pushw	%ds
-	popw	%es		# e820 buffer address
+	movl	$E820_SMAP,%edx 	# control sequence "SMAP"
 
-	movl	$0xe820,%eax		# service
+	movl	$0x0000e820,%eax	# service
 	movl	$E820_RECORD_SIZE,%ecx
 	int 	$0x15
-	jc		e820end	
-	
+	jc	e820err
 	
 	cmpl	$E820_SMAP,%eax		# verifying BIOS
-	jne		e820end
+	jne	e820err
+
+	cmpl	$E820_RECORD_SIZE,%ecx
+	jne	e820err			# bad record size - bug in bios
 	
 	movw	%di,%ax		# next record
 	addw	$E820_RECORD_SIZE,%ax
@@ -70,17 +74,52 @@ e820loop:
 	jne	e820loop
 	
 e820end:
-	
-	movb	(e820counter),%al	
-	negb	%al
-	addb	$32,%al
+	movb	$E820_MAX_RECORDS,%al
+	subb	(e820counter),%al
 	movb	%al,(e820counter) # store # of valid entries in e820counter
+
+	jmp	e801begin
+
+e820err:
+	movb	$0,(e820counter)
+
+# method e801 - get size of memory
+
+e801begin:
+	xorw	%dx,%dx
+	xorw	%cx,%cx
+	xorw	%bx,%bx
+	movw	$0xe801,%ax
+	stc
+	int	$0x15
 	
+	jc	e801end
+	
+			# fix problem with some BIOSes which use ax:bx rather than cx:dx
+	testw	%cx,%cx
+	jnz	e801cxdx
+	testw	%dx,%dx
+	jnz	e801cxdx
+
+	movw	%ax,%cx
+	movw	%bx,%dx
+	
+e801cxdx:
+	andl	$0xffff,%edx
+	shll	$6,%edx
+	andl	$0xffff,%ecx
+	addl	%ecx,%edx
+	addl	$0x0400,%edx  # add lower 1 MB - its not count by e801 method
+	movl	%edx,(e801memorysize)		
+e801end:
 	ret
 
+	#memory size in 1 kb chunks
+e801memorysize:
+	.long	0
 
 e820counter:
-	.byte 0
-		 
+	.byte 0xff
+
 e820table:
-	.space  (32*E820_RECORD_SIZE),0 # space for 32 records, each E820_RECORD_SIZE bytes long
+	.space  (32*E820_RECORD_SIZE),0xff # space for 32 records, each E820_RECORD_SIZE bytes long

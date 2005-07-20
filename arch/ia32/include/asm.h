@@ -33,6 +33,7 @@
 #include <typedefs.h>
 #include <mm/page.h>
 #include <synch/spinlock.h>
+#include <arch/boot/memmap.h>
 
 extern __u32 interrupt_handler_size;
 
