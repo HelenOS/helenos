@@ -28,6 +28,8 @@
 
 ## very low and hardware-level functions
 
+#define ERROR_WORD_INTERRUPT_LIST 0x00027D00
+
 .text
 
 .global cpu_halt
@@ -111,9 +113,23 @@ enable_l_apic_in_msr:
 	pop %es
 	pop %ds
 
+	mov $\i,%cl;
+	movl $1,%eax;
+	test $0xe0,%cl;
+	jnz 0f;
+	shl %cl,%eax;
+	and $ERROR_WORD_INTERRUPT_LIST,%eax;
+	jnz 0f;
+
+	popa;
+	pop %ebp;
+	add $4,%esp;
+	iret;
+
+0:
+
 	popa
 	pop %ebp
-
 	iret
 
 	.if (\n-\i)-1

@@ -21,7 +21,7 @@ arch_sources= \
 	arch/debug/panic.s \
 	arch/cpuid.s \
 	arch/delay.s \
-	arch/asm.s \
+	arch/asm.S \
 	arch/proc/scheduler.c \
 	arch/acpi/acpi.c \
 	arch/acpi/madt.c \
