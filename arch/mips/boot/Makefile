@@ -1,5 +1,5 @@
-MIPS_BINUTILS_DIR=/usr/local/mips/bin
-MIPS_TARGET=decstation-ultrix
+MIPS_BINUTILS_DIR=/usr/local/mipsel/bin
+MIPS_TARGET=mipsel-linux-gnu
 
 .PHONY: nothing build
 
@@ -11,8 +11,8 @@ build: boot.bin
 AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
 LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 
-ASFLAGS=-mips2 -EL
-LFLAGS=--oformat=binary -mips2 -EL -e start
+ASFLAGS=-mips2
+LFLAGS=--oformat=binary -mips2 -e start
 
 boot.bin: boot.o
 	$(LD) $(LFLAGS) boot.o -o $@

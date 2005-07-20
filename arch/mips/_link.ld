@@ -10,12 +10,17 @@ OUTPUT_FORMAT(binary)
 ENTRY(kernel_image_start) 
 
 SECTIONS {
-	.image 0x80000000: AT (0x80000000) { 
+	.image 0x80000000: AT (0x80000000) {
+		_gp = 0x00000000;
+		
 		ktext_start = .;
 		*(.text);
 		ktext_end = .;
 
 		kdata_start = .;
+		*(.reginfo);
+		*(.rodata);
+		*(.rodata.*);
 		*(.rdata);
 		*(.data);		/* initialized data */
 		*(.lit8);

@@ -1,19 +1,18 @@
-# decstation-ultrix target has been obsoleted in recent gcc compilers (3.1) and removed in (3.3)
-MIPS_TARGET=decstation-ultrix
+MIPS_TARGET=mipsel-linux-gnu
 
-MIPS_CC_DIR=/usr/local/mips/bin
-MIPS_BINUTILS_DIR=/usr/local/mips/bin
+MIPS_CC_DIR=/usr/local/mipsel/bin
+MIPS_BINUTILS_DIR=/usr/local/mipsel/bin
 
 CC=$(MIPS_CC_DIR)/$(MIPS_TARGET)-gcc
 AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
 LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 
-ASFLAGS=-EL -mips3
+ASFLAGS=-mips3
 
 DEFS=-DARCH=$(ARCH)
-CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -EL -mips2 -G 0 -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O2
-LFLAGS=-EL -mips2 -M -no-check-sections -T ../arch/mips/_link.ld
+CPPFLAGS=$(DEFS) -nostdinc -mxgot -I../include
+CFLAGS=$(CPPFLAGS) -mips2 -G 0 -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O2
+LFLAGS=-mips2 -M -no-check-sections -T ../arch/mips/_link.ld
 
 arch_sources= \
 	arch/start.S \

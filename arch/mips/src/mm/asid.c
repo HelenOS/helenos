@@ -39,7 +39,7 @@ int asid_bitmap[32]; /**< Bitmap of ASIDs currently in TLB */
 /** Cleanup asid_bitmap
  *
  */
-void asid_bitmap_reset()
+void asid_bitmap_reset(void)
 {
 	memsetb(asid_bitmap, sizeof(asid_bitmap), 0);
 }
@@ -48,7 +48,7 @@ void asid_bitmap_reset()
 /** Initialize manipulating with ASIDs
  *
  */
-void init_asids()
+void init_asids(void)
 {
 	memsetb(asids, sizeof(asids), 0);
 	asid_bitmap_reset();

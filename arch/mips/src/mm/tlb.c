@@ -27,6 +27,7 @@
  */
 
 #include <arch/mm/tlb.h>
+#include <arch/mm/asid.h>
 #include <mm/tlb.h>
 #include <arch/cp0.h>
 #include <panic.h>
@@ -51,4 +52,13 @@ void tlb_invalid(void)
 
 void tlb_invalidate(int asid)
 {
+	pri_t pri;
+	
+	pri = cpu_priority_high();
+	
+	asid_bitmap_reset();
+	
+	// TODO
+	
+	cpu_priority_restore(pri);
 }

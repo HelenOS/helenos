@@ -32,6 +32,7 @@
 .set noreorder
 .set nomacro
 
+.global start
 start:
 	# move 0x80000000 to reg $8
 	lui $8, 0x8000
