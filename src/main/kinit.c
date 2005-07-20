@@ -130,7 +130,7 @@ void kinit(void *arg)
 	 */	
 	a = vm_area_create(m, VMA_TEXT, 1, UTEXT_ADDRESS);
 	if (!a) panic("vm_area_create: vm_text");
-	memcopy((__address) utext, PA2KA(a->mapping[0]), utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);		
+	memcopy((__address) utext, PA2KA(a->mapping[0]), utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);
 
 	/*
 	 * Create the data vm_area.

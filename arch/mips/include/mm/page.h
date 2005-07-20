@@ -101,9 +101,9 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
-	p->c = (flags & PAGE_CACHEABLE) ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
+	p->c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
 	p->v = !(flags & PAGE_NOT_PRESENT);
-	p->d = flags & PAGE_WRITE;
+	p->d = (flags & PAGE_WRITE) != 0;
 }
 
 extern void page_arch_init(void);
