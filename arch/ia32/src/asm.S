@@ -28,6 +28,8 @@
 
 ## very low and hardware-level functions
 
+#  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
+# and 1 means interrupt with error word
 #define ERROR_WORD_INTERRUPT_LIST 0x00027D00
 
 .text
@@ -113,6 +115,8 @@ enable_l_apic_in_msr:
 	pop %es
 	pop %ds
 
+
+# Test if this is interrupt with error word or not
 	mov $\i,%cl;
 	movl $1,%eax;
 	test $0xe0,%cl;
@@ -122,13 +126,15 @@ enable_l_apic_in_msr:
 	and $ERROR_WORD_INTERRUPT_LIST,%eax;
 	jz 0f;
 
+
+# Return with error word
 	popa;
 	pop %ebp;
-	add $4,%esp;
+	add $4,%esp;    # Skip error word
 	iret;
 
 0:
-
+# Return with no error word
 	popa
 	pop %ebp
 	iret
