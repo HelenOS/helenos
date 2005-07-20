@@ -117,9 +117,10 @@ enable_l_apic_in_msr:
 	movl $1,%eax;
 	test $0xe0,%cl;
 	jnz 0f;
+	and $0x1f,%cl;
 	shl %cl,%eax;
 	and $ERROR_WORD_INTERRUPT_LIST,%eax;
-	jnz 0f;
+	jz 0f;
 
 	popa;
 	pop %ebp;
@@ -357,9 +358,16 @@ memcmp:
 # THIS IS USERSPACE CODE
 .global utext
 utext:
+	xor %ax,%ax;
+	mov %ax,%ds;
+	mov %ax,%es;
+	mov %ax,%fs;
+	mov %ax,%gs;
 0:
 #	movl $0xdeadbeaf, %eax
-	int $48
+  int $48
+	cli;
+	sti;
 	jmp 0b
 	# not reached
 utext_end:
