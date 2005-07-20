@@ -32,7 +32,6 @@
 #include <arch/acpi/madt.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
-#include <mm/page.h>
 #include <panic.h>
 #include <debug.h>
 #include <config.h>
@@ -111,7 +110,7 @@ void acpi_madt_parse(void)
 {
 	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *h = &acpi_madt->apic_header[0];
-	__u8 prev_type = 0; /* used to detect incosecutive entries */
+	__u8 prev_type = 0; /* used to detect inconsecutive entries */
 
 
 	l_apic = (__u32 *) acpi_madt->l_apic_address;
@@ -177,7 +176,6 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u8 prev_type)
 	if (!madt_io_apic_entry_cnt++) {
 		madt_io_apic_entries = ioa;
 		io_apic = (__u32 *) ioa->io_apic_address;
-		map_page_to_frame((__address) io_apic, (__address) io_apic, PAGE_NOT_CACHEABLE, 0);
 	}
 	else {
 		/* currently not supported */

@@ -37,7 +37,6 @@
 #include <func.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <mm/page.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch/bios/bios.h>
@@ -202,16 +201,6 @@ fs_found:
 	else
 		config.cpu_count = configure_via_default(fs->config_type);
 
-	if (config.cpu_count > 1) {
-		map_page_to_frame((__address) l_apic, (__address) l_apic, PAGE_NOT_CACHEABLE, 0);
- 	}		
-	
-	
-	/*
-	 * Must be initialized outside the kmp thread, since it is waited
-	 * on before the kmp thread is created.
-	 */
-	waitq_initialize(&kmp_completion_wq);
 	return;
 }
 
@@ -342,8 +331,6 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 		 */
 		return;
 	}
-	
-	map_page_to_frame((__address) ioa->io_apic, (__address) ioa->io_apic, PAGE_NOT_CACHEABLE, 0);
 	
 	io_apic = ioa->io_apic;
 }

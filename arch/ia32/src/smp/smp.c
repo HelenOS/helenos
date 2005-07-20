@@ -57,6 +57,18 @@ void smp_init(void)
 		mps_init();
 		ops = &mps_config_operations;
 	}
+
+	if (config.cpu_count > 1) {
+		map_page_to_frame((__address) l_apic, (__address) l_apic, PAGE_NOT_CACHEABLE, 0);
+		map_page_to_frame((__address) io_apic, (__address) io_apic, PAGE_NOT_CACHEABLE, 0);
+        }
+
+        /* 
+         * Must be initialized outside the kmp thread, since it is waited
+         * on before the kmp thread is created.
+         */
+        waitq_initialize(&kmp_completion_wq);
+
 }
 
 /*
