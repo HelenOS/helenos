@@ -128,7 +128,7 @@ void idt_init(void)
 }
 
 
-// Clean IOPL(12,13) and NT(14) flags in EFLAGS register
+/* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)
 {
   asm
@@ -144,7 +144,7 @@ static void clean_IOPL_NT_flags(void)
 	);
 }
 
-// Clean AM(18) flag in CR0 register
+/* Clean AM(18) flag in CR0 register */
 static void clean_AM_flag(void)
 {
   asm
@@ -200,6 +200,6 @@ void pm_init(void)
 	 */
 	__asm__("ltr %0" : : "r" ((__u16) selector(TSS_DES)));
 	
-	clean_IOPL_NT_flags();    //Disable I/O on nonprivileged levels 
-	clean_AM_flag();          //Disable alignment check
+	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
+	clean_AM_flag();          /* Disable alignment check */
 }
