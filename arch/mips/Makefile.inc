@@ -10,7 +10,7 @@ LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 ASFLAGS=-mips3
 
 DEFS=-DARCH=$(ARCH)
-CPPFLAGS=$(DEFS) -nostdinc -mxgot -I../include
+CPPFLAGS=$(DEFS) -mno-abicalls -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -mips2 -G 0 -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O2
 LFLAGS=-mips2 -M -no-check-sections -T ../arch/mips/_link.ld
 
