@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Josef Cejka
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_MEMORY_INIT_H__
-#define __ia32_MEMORY_INIT_H__
+#ifndef __mips_MEMORY_INIT_H__
+#define __mips_MEMORY_INIT_H__
 
-#include <typedefs.h>
+#include <config.h>
 
-size_t get_memory_size(void);
+#define get_memory_size()	CONFIG_MEMORY_SIZE
 
 #endif
