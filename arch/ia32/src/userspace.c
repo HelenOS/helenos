@@ -49,7 +49,7 @@ void userspace(void)
     // CLNT
 		"pushfl;"
 		"pop %%eax;"
-		"and $0xFFFFBFFF;"
+		"and $0xFFFFBFFF,%%eax;"
 		"push %%eax;"
 		"popfl;"
 

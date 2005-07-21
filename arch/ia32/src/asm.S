@@ -119,7 +119,7 @@ enable_l_apic_in_msr:
 # CLNT
   pushfl;
 	pop %eax;
-	and $0xFFFFBFFF;
+	and $0xFFFFBFFF,%eax;
 	push %eax;
 	popfl;
 	
