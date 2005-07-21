@@ -12,7 +12,7 @@
 + save/restore floating point context on context switch 
   + [ia32] lazy context switch using TS flag                              [DONE]
 + [ia32] MMX,SSE1-.. initialization
-+ [ia32] review privilege separation
++ [ia32] review privilege separation                                      [DONE]
   + zero IOPL in EFLAGS                                                   [DONE]
   + before IRET (from SYSCALL), zero NT in EFLAGS                         [DONE]
 + [ia32] review the cache controling bits in CR0 register
