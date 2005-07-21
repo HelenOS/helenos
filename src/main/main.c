@@ -47,6 +47,7 @@
 
 #include <smp/smp.h>
 
+#include <arch/mm/memory_init.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/tlb.h>
@@ -98,7 +99,7 @@ void main_bsp(void)
 	config.cpu_active = 1;
 
 	config.base = hardcoded_load_address;
-	config.memory_size = CONFIG_MEMORY_SIZE;
+	config.memory_size = get_memory_size();
 	config.kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE + CONFIG_STACK_SIZE;
 
 	context_save(&ctx);

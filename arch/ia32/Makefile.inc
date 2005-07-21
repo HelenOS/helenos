@@ -38,6 +38,7 @@ arch_sources= \
 	arch/userspace.c \
 	arch/cpu/cpu.c \
 	arch/mm/frame.c \
+	arch/mm/memory_init.c \
 	arch/mm/page.c \
 	arch/mm/tlb.c \
 	arch/drivers/i8042.c \

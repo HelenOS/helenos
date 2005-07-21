@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mm/frame.h>
-#include <arch/mm/frame.h>
-#include <mm/vm.h>
-#include <config.h>
-#include <arch/boot/memmap.h>
+#ifndef __ai32_MEMORY_INIT_H__
+#define __ai32_MEMORY_INIT_H__
 
-#include <print.h>
+#include <typedefs.h>
 
-/*
- * TODO: use the memory map obtained from BIOS
- */
-void frame_arch_init(void)
-{
-	__u8 i;
-	
-	if (config.cpu_active == 1) {
-		frame_not_free(0x0);
+size_t get_memory_size(void);
 
-		frame_region_not_free(0xa0000,0xff000);
-		frame_region_not_free(0xfec00000,0xffffffff);
-		
-		for (i=e820counter;i>0;i--) {
-			// printf("E820 base: %Q size: %Q type: %L \n",e820table[i-1].base_address,e820table[i-1].size,e820table[i-1].type);
-			if (e820table[i-1].type!=MEMMAP_MEMORY_AVAILABLE) {
-				frame_region_not_free(e820table[i-1].base_address,e820table[i-1].size);
-				}
-			}
-	}
-}
+#endif
