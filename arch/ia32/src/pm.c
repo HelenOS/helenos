@@ -128,6 +128,25 @@ void idt_init(void)
 }
 
 
+
+static void clean_IOPL_NT_flags(void)
+{
+  asm
+	(
+    "pushfl;"
+		"pop %%eax;"
+		"and $0xffff8fff,%%eax;"
+		"push %%eax;"
+		"popfl;"
+		:
+		:
+		:"%eax"
+	);
+}
+
+
+
+
 void pm_init(void)
 {
 	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
@@ -165,4 +184,6 @@ void pm_init(void)
 	 * to its own TSS. We just need to load the TR register.
 	 */
 	__asm__("ltr %0" : : "r" ((__u16) selector(TSS_DES)));
+	
+	clean_IOPL_NT_flags();
 }

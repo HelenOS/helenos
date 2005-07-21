@@ -116,6 +116,15 @@ enable_l_apic_in_msr:
 	pop %ds
 
 
+# CLNT
+  pushfl;
+	pop %eax;
+	and $0xFFFFBFFF;
+	push %eax;
+	popfl;
+	
+
+
 # Test if this is interrupt with error word or not
 	mov $\i,%cl;
 	movl $1,%eax;

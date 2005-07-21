@@ -49,6 +49,7 @@
 #define INTEL_CPUID_ECX 0x6c65746e
 #define INTEL_CPUID_EDX 0x49656e69
 
+
 enum vendor {
 	VendorUnknown=0,
 	VendorAMD,
@@ -86,6 +87,7 @@ void reset_TS_flag(void)
 		:"%eax"
 	);	
 }
+
 
 
 

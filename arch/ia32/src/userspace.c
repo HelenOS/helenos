@@ -46,6 +46,13 @@ void userspace(void)
 	pri = cpu_priority_high();
 
 	__asm__ volatile (""
+    // CLNT
+		"pushfl;"
+		"pop %%eax;"
+		"and $0xFFFFBFFF;"
+		"push %%eax;"
+		"popfl;"
+
 		"pushl %0\n"
 		"pushl %1\n"
 		"pushl %2\n"
