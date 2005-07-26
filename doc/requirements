@@ -5,9 +5,8 @@ ia32 port
 	o IA-32 processor (Pentium and successors)
 
 	COMPILER REQUIREMENTS
-	o binutils 2.15
-	o gcc 2.95
-	o gcc 3.3.2 - gcc 3.3.5
+	o binutils 2.15 and gcc 3.3.5
+	o older versions may do as well, but are now obsoleted
 
 	SMP COMPATIBILITY
 	o Bochs 2.0.2 - Bochs 2.2
@@ -30,9 +29,8 @@ mips port
 	o msim emulated MIPS R4000 CPU (see mips) 
 
 	COMPILER REQUIREMENTS
-	o binutils 2.14 mips cross binutils
-	o gcc 2.8.1 mips cross compiler
-	o gcc 3.2.3 mips cross compiler
+	o mips binutils 2.16 and gcc 4.0.1 cross compiler
+	o older versions may do as well, but are now obsoleted
 
 	EMULATORS AND VIRTUALIZERS
 	o msim
@@ -45,3 +43,7 @@ ia64 port
 
 	EMULATORS AND VIRTUALIZERS
 	o ski
+	
+	COMPILER REQUIREMENTS
+	o IA-64 binutils 2.15 and gcc 4.0.0 cross compiler
+	o older versions may do as well, but are now obsoleted

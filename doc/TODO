@@ -17,7 +17,7 @@
   + before IRET (from SYSCALL), zero NT in EFLAGS                         [DONE]
 + [ia32] review the cache controling bits in CR0 register
 + [ia32] zero the alignment exception bit in EFLAGS                       [DONE]
-  - Task changed to clean AM in CR0 so the alignment check is disabled globaly
+  - Task changed to clean AM in CR0 so the alignment check is disabled globally
 + make emulated architectures also work on real hardware
 + bring in support for other architectures (e.g. PowerPC)
 
