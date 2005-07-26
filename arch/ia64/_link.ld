@@ -21,8 +21,6 @@ SECTIONS {
 		*(K_DATA_START)
 		*(.rodata .rodata.*)
 		*(.opd)
-/*		*(.IA_64.unwind_info*)
-		*(.IA_64.unwind*) */
 		*(.data)
 		*(.got .got.*)
 		*(.sdata)
