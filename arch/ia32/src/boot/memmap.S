@@ -48,7 +48,7 @@ e820begin:
 	movw	%bx,%ds
 	movw	%bx,%es
 	movw	$e820table,%di
-	movb	$E820_MAX_RECORDS,(e820counter)
+	movb	$E820_MAX_RECORDS,e820counter
 e820loop:	
 	movl	$E820_SMAP,%edx 	# control sequence "SMAP"
 
@@ -67,7 +67,7 @@ e820loop:
 	addw	$E820_RECORD_SIZE,%ax
 	movw	%ax,%di
 		
-	decb	(e820counter) # buffer is full
+	decb	e820counter # buffer is full
 	jz	e820end
 	
 	cmpl	$0,%ebx	
@@ -75,13 +75,13 @@ e820loop:
 	
 e820end:
 	movb	$E820_MAX_RECORDS,%al
-	subb	(e820counter),%al
-	movb	%al,(e820counter) # store # of valid entries in e820counter
+	subb	e820counter,%al
+	movb	%al,e820counter # store # of valid entries in e820counter
 
 	jmp	e801begin
 
 e820err:
-	movb	$0,(e820counter)
+	movb	$0,e820counter
 
 # method e801 - get size of memory
 
@@ -109,8 +109,8 @@ e801cxdx:
 	shll	$6,%edx
 	andl	$0xffff,%ecx
 	addl	%ecx,%edx
-	addl	$0x0400,%edx  # add lower 1 MB - its not count by e801 method
-	movl	%edx,(e801memorysize)		
+	addl	$0x0400,%edx  # add lower 1 MB - it's not included by e801 method
+	movl	%edx,e801memorysize
 e801end:
 	ret
 

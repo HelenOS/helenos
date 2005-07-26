@@ -31,7 +31,7 @@
 
 size_t get_memory_size(void) 
 {
-	return e801memorysize;	
+	return e801memorysize*1024;
 }
 
 

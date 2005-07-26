@@ -135,6 +135,7 @@ void main_bsp_separated_stack(void) {
 	arch_late_init();
 	
 	smp_init();
+	printf("config.memory_size=%dM\n", config.memory_size/(1024*1024));
 	printf("config.cpu_count=%d\n", config.cpu_count);
 
 	cpu_init();
