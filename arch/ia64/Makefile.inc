@@ -11,7 +11,7 @@ ASFLAGS=-mconstant-gp
 
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -mconstant-gp -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O3
+CFLAGS=$(CPPFLAGS) -mconstant-gp -nostdlib -fno-builtin -fno-unwind-tables -Wmissing-prototypes -Werror -O3
 LFLAGS=-EL -M -T ../arch/ia64/_link.ld
 
 arch_sources= \
