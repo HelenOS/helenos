@@ -29,6 +29,9 @@
 #ifndef __ia64_BARRIER_H__
 #define __ia64_BARRIER_H__
 
+/*
+ * TODO: Implement true IA-64 memory barriers for macros below.
+ */
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 

@@ -29,6 +29,9 @@
 #ifndef __mips_BARRIER_H__
 #define __mips_BARRIER_H__
 
+/*
+ * TODO: implement true MIPS memory barriers for macros below.
+ */
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 

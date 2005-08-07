@@ -1,24 +1,28 @@
++ implement true memory barriers for all architectures
+
 + implement true memory management
-  + [ia32] use int 0x15 ax=0xe820 to get memory map and memory size
+  + [ia32] use int 0x15 ax=0xe820 to get memory map and memory size	[DONE]
   + [mips] use some heuristics to get memory map and memory size
-  + reimplement heap so that it can allocate/deallocate itself frames as necessary
-  + provide native four-level portable page table interface
+  + reimplement heap so that it can allocate/deallocate
+    itself frames as necessary
+  + provide native four-level portable page table interface		[DONE]
     + every architecture uses its native page table format
-    + kernel provides unified four-level page table interface for all architectures
-  + track usage of frames containing middle-level page tables (frame leak)
+    + kernel provides unified four-level page table interface
+      for all architectures
+  + track usage of frames containing middle-level page tables
+    (frame leak)
 
 + get user mode support for all architectures
 
 + save/restore floating point context on context switch 
-  + [ia32] lazy context switch using TS flag                              [DONE]
+  + [ia32] lazy context switch using TS flag                            [DONE]
 + [ia32] MMX,SSE1-.. initialization
-+ [ia32] review privilege separation                                      [DONE]
-  + zero IOPL in EFLAGS                                                   [DONE]
-  + before IRET (from SYSCALL), zero NT in EFLAGS                         [DONE]
++ [ia32] review privilege separation                                    [DONE]
+  + zero IOPL in EFLAGS                                                 [DONE]
+  + before IRET (from SYSCALL), zero NT in EFLAGS                       [DONE]
 + [ia32] review the cache controling bits in CR0 register
-+ [ia32] zero the alignment exception bit in EFLAGS                       [DONE]
-  - Task changed to clean AM in CR0 so the alignment check is disabled globally
++ [ia32] zero the alignment exception bit in EFLAGS                     [DONE]
+  - Task changed to clear AM in CR0 so that
+    the alignment check is disabled globally
 + make emulated architectures also work on real hardware
 + bring in support for other architectures (e.g. PowerPC)
-
-
