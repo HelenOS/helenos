@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
+#ifndef __ia32_BARRIER_H__
+#define __ia32_BARRIER_H__
 
-#include <arch/atomic.h>
-#include <arch/barrier.h>
-#include <synch/spinlock.h>
+/*
+ * NOTE:
+ * No barriers for critical section (i.e. spinlock) on IA-32 are needed:
+ * - spinlock_lock() and spinlock_trylock() use serializing XCHG instruction
+ * - writes cannot pass reads on IA-32 => spinlock_unlock() needs no barriers
+ */
 
-#ifdef __SMP__
+/*
+ * Provisions are made to prevent compiler from reordering instructions itself.
+ */
 
-void spinlock_initialize(spinlock_t *sl)
-{
-	sl->val = 0;
-}
-
-#ifdef DEBUG_SPINLOCK
-void spinlock_lock(spinlock_t *sl)
-{
-	int i = 0;
-	__address caller = ((__u32 *) &sl)[-1];
-
-	while (test_and_set(&sl->val)) {
-		if (i++ > 300000) {
-			printf("cpu%d: looping on spinlock %X, caller=%X\n", CPU->id, sl, caller);
-			i = 0;
-		}
-	}
-	CS_ENTER_BARRIER();
-
-}
-#else
-void spinlock_lock(spinlock_t *sl)
-{
-	/*
-	 * Each architecture has its own efficient/recommended
-	 * implementation of spinlock.
-	 */
-	spinlock_arch(&sl->val);
-	CS_ENTER_BARRIER();
-}
-#endif
-
-int spinlock_trylock(spinlock_t *sl)
-{
-	int rc;
-	
-	rc = !test_and_set(&sl->val);
-	CS_ENTER_BARRIER();
-	
-	return rc;
-}
-
-void spinlock_unlock(spinlock_t *sl)
-{
-	CS_LEAVE_BARRIER();
-	sl->val = 0;
-}
+#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
 #endif
