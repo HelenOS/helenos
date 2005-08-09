@@ -26,3 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+.text
+
+.set noreorder
+.set nomacro
+
+.global start
+start:
+	bl real_start
+
+real_start:
+	
