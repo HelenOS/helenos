@@ -29,10 +29,11 @@
 #ifndef __ppc_PAGE_H__
 #define __ppc_PAGE_H__
 
+
+
 #include <mm/page.h>
 #include <arch/mm/frame.h>
 #include <arch/types.h>
-#include <arch.h>
 
 #define PAGE_SIZE	FRAME_SIZE
 
@@ -44,7 +45,7 @@
 #define PTL2_INDEX_ARCH(vaddr)		0
 #define PTL3_INDEX_ARCH(vaddr)		0
 
-#define GET_PTL0_ADDRESS_ARCH()
+#define GET_PTL0_ADDRESS_ARCH()		0
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) 0)
