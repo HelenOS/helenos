@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Martin Decky
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,6 @@
 
 #ifndef __ppc_PAGE_H__
 #define __ppc_PAGE_H__
-
-
 
 #include <mm/page.h>
 #include <arch/mm/frame.h>
