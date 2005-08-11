@@ -76,7 +76,7 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	__address newpt;
 
-//	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = frame_alloc(FRAME_KA);
