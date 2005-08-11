@@ -24,7 +24,7 @@ GCC="gcc-core-${GCC_VERSION}.tar.bz2"
 BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 
-PLATFORM="powerpc"
+PLATFORM="ppc"
 WORKDIR=`pwd`
 TARGET="${PLATFORM}-linux-gnu"
 HOST="i686-pc-linux-gnu"

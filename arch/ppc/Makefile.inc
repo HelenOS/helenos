@@ -1,7 +1,7 @@
-MIPS_CC_DIR=/usr/local/powerpc/bin
-CC=$(MIPS_CC_DIR)/powerpc-linux-gcc
-AS=$(MIPS_CC_DIR)/powerpc-linux-as
-LD=$(MIPS_CC_DIR)/powerpc-linux-ld
+MIPS_CC_DIR=/usr/local/ppc/bin
+CC=$(MIPS_CC_DIR)/ppc-linux-gnu-gcc
+AS=$(MIPS_CC_DIR)/ppc-linux-gnu-as
+LD=$(MIPS_CC_DIR)/ppc-linux-gnu-ld
 
 ASFLAGS=
 
