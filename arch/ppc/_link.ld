@@ -12,6 +12,7 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	.image 0x80000000: AT (0x80000000) { 
 		ktext_start = .;
+		*(K_TEXT_START)
 		*(.text);
 		ktext_end = .;
 
