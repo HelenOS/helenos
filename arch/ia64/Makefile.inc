@@ -17,7 +17,7 @@ LFLAGS=-EL -M -T ../arch/ia64/_link.ld
 arch_sources= \
 	arch/start.S \
 	arch/asm.S \
-	arch/fake.s \
+	arch/dummy.s \
 	arch/putchar.c \
 	arch/ia64.c \
 	arch/fpu_context.c \

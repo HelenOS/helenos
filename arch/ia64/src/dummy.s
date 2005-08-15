@@ -42,6 +42,7 @@
 .global cpu_priority_restore
 .global cpu_sleep
 .global frame_arch_init
+.global dummy
 
 before_thread_runs_arch:
 userspace:
@@ -57,5 +58,7 @@ cpu_priority_read:
 cpu_priority_restore:
 cpu_sleep:
 frame_arch_init:
+
+dummy:
 	br.ret.sptk.many b0
 

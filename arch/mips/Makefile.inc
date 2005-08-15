@@ -19,7 +19,7 @@ arch_sources= \
 	arch/context.S \
 	arch/panic.s \
 	arch/mips.c \
-	arch/fake.s \
+	arch/dummy.s \
 	arch/putchar.c \
 	arch/asm.s \
 	arch/exception.c \

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,48 +27,19 @@
 #
 
 .text
+.set noat
 
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_read
-.global cpu_priority_restore
-.global memsetb
-.global context_save
-.global context_restore
+.global calibrate_delay_loop
+.global asm_delay_loop
 .global userspace
 .global before_thread_runs_arch
-.global panic_printf
-.global cpu_identify
-.global cpu_arch_init
-.global cpu_sleep
-.global cpu_print_report
-.global get_memory_size
-.global arch_pre_mm_init
-.global arch_post_mm_init
-.global arch_late_init
-.global calibrate_delay_loop
+.global dummy
 
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_restore:
-cpu_priority_read:
-memsetb:
-context_save:
-context_restore:
 before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
 asm_delay_loop:
-panic_printf:
-cpu_identify:
-cpu_arch_init:
-cpu_sleep:
-cpu_print_report:
-get_memory_size:
-arch_pre_mm_init:
-arch_post_mm_init:
-arch_late_init:
-calibrate_delay_loop:
 
-0:
-	bl 0b
+dummy:
+	j $31
+	nop

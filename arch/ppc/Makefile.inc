@@ -13,5 +13,5 @@ LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 arch_sources= \
 	arch/powerpc.c \
 	arch/fpu_context.c \
-	arch/fake.s \
+	arch/dummy.s \
 	arch/start.S
