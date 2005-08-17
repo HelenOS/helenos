@@ -1,3 +1,6 @@
+PPC_BINUTILS_DIR=/usr/local/ppc/bin
+PPC_TARGET=ppc-linux-gnu
+
 .PHONY: nothing build
 
 nothing:
@@ -5,11 +8,11 @@ nothing:
 build: boot.bin
 	cp boot.bin ../../../src/load.bin
 
-AS=/usr/local/mips/bin/decstation-ultrix-as
-LD=/usr/local/mips/bin/decstation-ultrix-ld
+AS=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-as
+LD=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-ld
 
-ASFLAGS=-mips2 -EL
-LFLAGS=--oformat=binary -mips2 -EL -e start
+ASFLAGS=
+LFLAGS=--oformat=binary -e start
 
 boot.bin: boot.o
 	$(LD) $(LFLAGS) boot.o -o $@

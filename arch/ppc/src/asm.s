@@ -28,9 +28,7 @@
 
 .text
 
-.global start
-start:
-	bl real_start
-
-real_start:
-	
+.global cpu_halt
+cpu_halt:
+	b cpu_halt
+ 

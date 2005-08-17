@@ -47,6 +47,7 @@
 .global arch_post_mm_init
 .global arch_late_init
 .global calibrate_delay_loop
+.global asm_delay_loop
 .global dummy
 
 cpu_priority_high:

@@ -14,6 +14,13 @@ SECTIONS {
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
+		*(.rodata);
+		*(.rodata.*);
+		*(.data);		/* initialized data */
+		*(.sdata);
+		*(.sbss);
+		*(.bss);		/* uninitialized static variables */	
+		*(COMMON); 		/* global variables */
 		ktext_end = .;
 
 		kdata_start = .;

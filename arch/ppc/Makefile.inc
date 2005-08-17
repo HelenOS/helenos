@@ -1,7 +1,11 @@
+PPC_TARGET=ppc-linux-gnu
+
 PPC_CC_DIR=/usr/local/ppc/bin
-CC=$(PPC_CC_DIR)/ppc-linux-gnu-gcc
-AS=$(PPC_CC_DIR)/ppc-linux-gnu-as
-LD=$(PPC_CC_DIR)/ppc-linux-gnu-ld
+PPC_BINUTILS_DIR=/usr/local/ppc/bin
+
+CC=$(PPC_CC_DIR)/$(PPC_TARGET)-gcc
+AS=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-as
+LD=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-ld
 
 ASFLAGS=
 
@@ -14,4 +18,8 @@ arch_sources= \
 	arch/powerpc.c \
 	arch/fpu_context.c \
 	arch/dummy.s \
-	arch/start.S
+	arch/start.S \
+	arch/asm.s \
+	arch/putchar.c \
+	arch/mm/frame.c \
+	arch/mm/page.c
