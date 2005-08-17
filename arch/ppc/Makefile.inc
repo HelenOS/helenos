@@ -20,6 +20,6 @@ arch_sources= \
 	arch/dummy.s \
 	arch/start.S \
 	arch/asm.s \
-	arch/putchar.c \
 	arch/mm/frame.c \
-	arch/mm/page.c
+	arch/mm/page.c \
+	arch/drivers/vga.c
