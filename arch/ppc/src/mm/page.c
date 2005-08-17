@@ -32,8 +32,6 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 
-pte_t *PTL0 = NULL;
-
 void page_arch_init(void)
 {
 }

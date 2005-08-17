@@ -1,12 +1,13 @@
 /*
- *  PowerPC linker script
- *  
+ *  PPC linker script
+ *
+ *  It is ELF format, but its only section looks like this:
  *  kernel text
  *  kernel data
- *  
+ *
  */
 
-OUTPUT_FORMAT(binary)
+OUTPUT_FORMAT(elf32-powerpc)
 ENTRY(kernel_image_start)
 
 SECTIONS {
@@ -14,6 +15,10 @@ SECTIONS {
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
+		ktext_end = .;
+		
+		kdata_start = .;
+		*(K_DATA_START)
 		*(.rodata);
 		*(.rodata.*);
 		*(.data);		/* initialized data */
@@ -21,25 +26,11 @@ SECTIONS {
 		*(.sbss);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
-		ktext_end = .;
-
-		kdata_start = .;
 		kdata_end = .;
-	} = 0x00000000
-
-	. = ABSOLUTE(hardcoded_ktext_size);
-	.patch_1 : {
-        	LONG(ktext_end - ktext_start);
 	}
-
-	. = ABSOLUTE(hardcoded_kdata_size);
-	.patch_2 : {
-        	LONG(kdata_end - kdata_start);
-	}
-
-	. = ABSOLUTE(hardcoded_load_address);
-	.patch_3 : {
-		LONG(0x80000000);
-	}
+	
+	_hardcoded_ktext_size = ktext_end - ktext_start;
+	_hardcoded_kdata_size = kdata_end - kdata_start;
+	_hardcoded_load_address = 0x80000000;
 
 }

@@ -15,7 +15,7 @@ CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O2
 LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 
 arch_sources= \
-	arch/powerpc.c \
+	arch/ppc.c \
 	arch/fpu_context.c \
 	arch/dummy.s \
 	arch/start.S \

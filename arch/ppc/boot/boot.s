@@ -30,7 +30,4 @@
 
 .global start
 start:
-	bl real_start
-
-real_start:
-	
+		

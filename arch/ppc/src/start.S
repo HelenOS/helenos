@@ -31,3 +31,4 @@
 .global kernel_image_start
 
 kernel_image_start:
+	b main_bsp
