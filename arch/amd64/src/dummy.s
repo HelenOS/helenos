@@ -28,6 +28,7 @@
 
 .text
 
+.global memcopy
 .global cpu_priority_high
 .global cpu_priority_low
 .global cpu_priority_read
@@ -53,6 +54,7 @@
 .global frame_arch_init
 .global dummy
 
+memcopy:
 cpu_priority_high:
 cpu_priority_low:
 cpu_priority_restore:

@@ -37,15 +37,6 @@
 #include <synch/spinlock.h>
 #include <debug.h>
 
-/*
- * Note.
- * This is the preliminary code for controlling paging mechanism on ia32. It is
- * needed by other parts of the kernel for its ability to map virtual addresses
- * to physical. SMP code relies on this feature. Other than that, this code is
- * by no means meant to implement virtual memory in terms of swapping pages in
- * and out.
- */
-
 __address bootstrap_dba; 
 
 void page_arch_init(void)

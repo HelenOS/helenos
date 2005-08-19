@@ -29,6 +29,7 @@
 #include <arch/ega.h>
 #include <putchar.h>
 #include <mm/page.h>
+#include <arch/mm/page.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
 #include <arch/asm.h>

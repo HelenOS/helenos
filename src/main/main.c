@@ -149,7 +149,7 @@ void main_bsp_separated_stack(void) {
 	/*
 	 * Create kernel vm mapping.
 	 */
-	m = vm_create();
+	m = vm_create(GET_PTL0_ADDRESS());
 	if (!m) panic("can't create kernel vm address space\n");
 
 	/*

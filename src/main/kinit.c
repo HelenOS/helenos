@@ -118,7 +118,7 @@ void kinit(void *arg)
 	/*
 	 * Create the first user task.
 	 */
-	m = vm_create();
+	m = vm_create(NULL);
 	if (!m)	panic("vm_create");
 	u = task_create(m);
 	if (!u)	panic("task_create");
@@ -130,6 +130,7 @@ void kinit(void *arg)
 	 */	
 	a = vm_area_create(m, VMA_TEXT, 1, UTEXT_ADDRESS);
 	if (!a) panic("vm_area_create: vm_text");
+	vm_area_map(a, m);
 	memcopy((__address) utext, PA2KA(a->mapping[0]), utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);
 
 	/*
@@ -137,6 +138,7 @@ void kinit(void *arg)
 	 */
 	a = vm_area_create(m, VMA_STACK, 1, USTACK_ADDRESS);
 	if (!a) panic("vm_area_create: vm_stack");
+	vm_area_map(a, m);	
 	
 	thread_ready(t);
 #endif /* __USERSPACE__ */

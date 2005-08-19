@@ -39,8 +39,13 @@
 #include <list.h>
 #include <panic.h>
 #include <arch/asm.h>
+#include <debug.h>
 
-vm_t *vm_create(void)
+#define KAS_START_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)
+#define KAS_END_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_END)
+#define KAS_INDICES		(1+(KAS_END_INDEX-KAS_START_INDEX))
+
+vm_t *vm_create(pte_t *ptl0)
 {
 	vm_t *m;
 	
@@ -48,7 +53,20 @@ vm_t *vm_create(void)
 	if (m) {
 		spinlock_initialize(&m->lock);
 		list_initialize(&m->vm_area_head);
-		m->ptl0 = NULL;
+
+		/*
+		 * Each vm_t is supposed to have its own page table.
+		 * It is either passed one or it has to allocate and set one up.
+		 */
+		if (!(m->ptl0 = ptl0)) {
+			pte_t *src_ptl0, *dst_ptl0;
+		
+			src_ptl0 = (pte_t *) PA2KA(GET_PTL0_ADDRESS());
+			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
+			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
+			memcopy((__address) &src_ptl0[KAS_START_INDEX], (__address) &dst_ptl0[KAS_START_INDEX], KAS_INDICES*sizeof(pte_t));
+			m->ptl0 = (pte_t *) KA2PA(dst_ptl0);
+		}
 	}
 	
 	return m;
@@ -109,12 +127,13 @@ void vm_area_destroy(vm_area_t *a)
 {
 }
 
-void vm_area_map(vm_area_t *a)
+void vm_area_map(vm_area_t *a, vm_t *m)
 {
 	int i, flags;
 	pri_t pri;
 	
 	pri = cpu_priority_high();
+	spinlock_lock(&m->lock);
 	spinlock_lock(&a->lock);
 
 	switch (a->type) {
@@ -126,28 +145,33 @@ void vm_area_map(vm_area_t *a)
 			flags = PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
 			break;
 		default:
-			panic("unexpected vm_type_t %d", a->type); 
+			panic("unexpected vm_type_t %d", a->type);
 	}
-	
+
+	ASSERT(m->ptl0);
 	for (i=0; i<a->size; i++)
-		map_page_to_frame(a->address + i*PAGE_SIZE, a->mapping[i], flags, 0);
+		map_page_to_frame(a->address + i*PAGE_SIZE, a->mapping[i], flags, (__address) m->ptl0);
 		
 	spinlock_unlock(&a->lock);
+	spinlock_unlock(&m->lock);
 	cpu_priority_restore(pri);
 }
 
-void vm_area_unmap(vm_area_t *a)
+void vm_area_unmap(vm_area_t *a, vm_t *m)
 {
 	int i;
 	pri_t pri;
 	
 	pri = cpu_priority_high();
+	spinlock_lock(&m->lock);
 	spinlock_lock(&a->lock);
 
+	ASSERT(m->ptl0);
 	for (i=0; i<a->size; i++)		
-		map_page_to_frame(a->address + i*PAGE_SIZE, 0, PAGE_NOT_PRESENT, 0);
+		map_page_to_frame(a->address + i*PAGE_SIZE, 0, PAGE_NOT_PRESENT, (__address) m->ptl0);
 	
 	spinlock_unlock(&a->lock);
+	spinlock_unlock(&m->lock);
 	cpu_priority_restore(pri);
 }
 
@@ -157,31 +181,14 @@ void vm_install(vm_t *m)
 	pri_t pri;
 	
 	pri = cpu_priority_high();
-	spinlock_lock(&m->lock);
-
-	for(l = m->vm_area_head.next; l != &m->vm_area_head; l = l->next)
-		vm_area_map(list_get_instance(l, vm_area_t, link));
-
-	spinlock_unlock(&m->lock);
-	cpu_priority_restore(pri);
-}
-
-void vm_uninstall(vm_t *m)
-{
-	link_t *l;
-	pri_t pri;
-	
-	pri = cpu_priority_high();
 
 	tlb_shootdown_start();
-
 	spinlock_lock(&m->lock);
 
-	for(l = m->vm_area_head.next; l != &m->vm_area_head; l = l->next)
-		vm_area_unmap(list_get_instance(l, vm_area_t, link));
+	ASSERT(m->ptl0);
+	SET_PTL0_ADDRESS(m->ptl0);
 
 	spinlock_unlock(&m->lock);
-
 	tlb_shootdown_finalize();
 
 	cpu_priority_restore(pri);

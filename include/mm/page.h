@@ -106,8 +106,6 @@
 #define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
-#include <arch/mm/page.h>
-
 extern void page_init(void);
 extern void map_page_to_frame(__address page, __address frame, int flags, __address root);
 extern void map_structure(__address s, size_t size);

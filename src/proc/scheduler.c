@@ -380,9 +380,6 @@ void scheduler_separated_stack(void)
 			 * Both tasks and vm mappings are different.
 			 * Replace the old one with the new one.
 			 */
-			if (m1) {
-				vm_uninstall(m1);
-			}
 			vm_install(m2);
 		}
 		TASK = THREAD->task;	

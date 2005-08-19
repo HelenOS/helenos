@@ -34,6 +34,7 @@
 #include <arch/asm.h>
 #include <arch/context.h>
 #include <panic.h>
+#include <arch/mm/page.h>
 
 /*
  * Early ia32 configuration functions and data structures.
@@ -131,9 +132,9 @@ void idt_init(void)
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)
 {
-  asm
+	asm
 	(
-    "pushfl;"
+		"pushfl;"
 		"pop %%eax;"
 		"and $0xffff8fff,%%eax;"
 		"push %%eax;"
@@ -147,9 +148,9 @@ static void clean_IOPL_NT_flags(void)
 /* Clean AM(18) flag in CR0 register */
 static void clean_AM_flag(void)
 {
-  asm
+	asm
 	(
-    "mov %%cr0,%%eax;"
+		"mov %%cr0,%%eax;"
 		"and $0xFFFBFFFF,%%eax;"
 		"mov %%eax,%%cr0;"
 		:
@@ -157,10 +158,6 @@ static void clean_AM_flag(void)
 		:"%eax"
 	);
 }
-
-
-
-
 
 void pm_init(void)
 {

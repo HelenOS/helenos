@@ -76,14 +76,14 @@ struct vm {
 	pte_t *ptl0;
 };
 
-extern vm_t * vm_create(void);
+extern vm_t * vm_create(pte_t *ptl0);
 extern void vm_destroy(vm_t *m);
 
 extern vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr);
 extern void vm_area_destroy(vm_area_t *a);
 
-extern void vm_area_map(vm_area_t *a);
-extern void vm_area_unmap(vm_area_t *a);
+extern void vm_area_map(vm_area_t *a, vm_t *m);
+extern void vm_area_unmap(vm_area_t *a, vm_t *m);
 
 extern void vm_install(vm_t *m);
 extern void vm_uninstall(vm_t *m);
