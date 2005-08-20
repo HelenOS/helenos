@@ -379,10 +379,7 @@ utext:
 	mov %ax,%fs;
 	mov %ax,%gs;
 0:
-#	movl $0xdeadbeaf, %eax
-  int $48
-	cli;
-	sti;
+	int $48
 	jmp 0b
 	# not reached
 utext_end:

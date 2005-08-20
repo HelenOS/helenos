@@ -48,7 +48,7 @@
 vm_t *vm_create(pte_t *ptl0)
 {
 	vm_t *m;
-	
+
 	m = (vm_t *) malloc(sizeof(vm_t));
 	if (m) {
 		spinlock_initialize(&m->lock);
@@ -58,17 +58,19 @@ vm_t *vm_create(pte_t *ptl0)
 		 * Each vm_t is supposed to have its own page table.
 		 * It is either passed one or it has to allocate and set one up.
 		 */
-		if (!(m->ptl0 = ptl0)) {
+		m->ptl0 = ptl0;
+		if (!m->ptl0) {
 			pte_t *src_ptl0, *dst_ptl0;
 		
-			src_ptl0 = (pte_t *) PA2KA(GET_PTL0_ADDRESS());
+			src_ptl0 = (pte_t *) PA2KA((__address) GET_PTL0_ADDRESS());
 			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
-			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
-			memcopy((__address) &src_ptl0[KAS_START_INDEX], (__address) &dst_ptl0[KAS_START_INDEX], KAS_INDICES*sizeof(pte_t));
-			m->ptl0 = (pte_t *) KA2PA(dst_ptl0);
+//			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
+//			memcopy((__address) &src_ptl0[KAS_START_INDEX], (__address) &dst_ptl0[KAS_START_INDEX], KAS_INDICES*sizeof(pte_t));
+			memcopy(PA2KA((__address) GET_PTL0_ADDRESS()), (__address) dst_ptl0, PAGE_SIZE);
+			m->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
 		}
 	}
-	
+
 	return m;
 }
 
