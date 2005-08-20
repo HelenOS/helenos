@@ -34,8 +34,8 @@
 
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	((x)-0x8000000000000000)
-#define PA2KA(x)	((x)+0x8000000000000000)
+#define KA2PA(x)	(((__address) (x))-0x8000000000000000)
+#define PA2KA(x)	(((__address) (x))+0x8000000000000000)
 
 #define page_arch_init()	;
 

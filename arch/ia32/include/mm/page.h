@@ -36,8 +36,8 @@
 
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	((x) - 0x80000000)
-#define PA2KA(x)	((x) + 0x80000000)
+#define KA2PA(x)	(((__address) (x)) - 0x80000000)
+#define PA2KA(x)	(((__address) (x)) + 0x80000000)
 
 /*
  * Implementation of generic 4-level page table interface.
