@@ -77,7 +77,6 @@ void kinit(void *arg)
 			spinlock_unlock(&t->lock);
 			thread_ready(t);
 			waitq_sleep(&kmp_completion_wq);
-			cpu_priority_high();
 		}
 		else panic("thread_create/kmp");
 	}

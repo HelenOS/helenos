@@ -147,7 +147,6 @@ void kmp(void *arg)
 			 * supposed to wake us up.
 		         */
 			waitq_sleep(&ap_completion_wq);
-			cpu_priority_high();
 		}
 		else {
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));

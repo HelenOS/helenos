@@ -242,6 +242,12 @@ void scheduler(void)
 			cpu_priority_restore(THREAD->saved_context.pri);
 			return;
 		}
+
+		/*
+		 * CPU priority of preempted thread is recorded here
+		 * to facilitate scheduler() invocations from
+		 * cpu_priority_high()'ed code (e.g. waitq_sleep_timeout()). 
+		 */
 		THREAD->saved_context.pri = pri;
 	}
 
