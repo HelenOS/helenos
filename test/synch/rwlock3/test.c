@@ -40,7 +40,7 @@
 static rwlock_t rwlock;
 
 static void reader(void *arg);
-static void failed(void *arg);
+static void failed(void);
 
 void reader(void *arg)
 {

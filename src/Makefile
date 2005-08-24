@@ -20,6 +20,7 @@ sources=cpu/cpu.c \
 	time/clock.c \
 	time/timeout.c \
 	time/delay.c \
+	preempt/preemption.c \
 	synch/spinlock.c \
 	synch/condvar.c \
 	synch/rwlock.c \

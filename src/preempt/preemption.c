@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,67 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_H__
-#define __CPU_H__
+#include <preemption.h>
+#include <arch.h>
+#include <arch/atomic.h>
+#include <arch/barrier.h>
 
-#include <arch/cpu.h>
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <proc/scheduler.h>
-#include <time/clock.h>
-#include <synch/spinlock.h>
-#include <synch/waitq.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <arch/context.h>
+void preemption_disable(void)
+{
+}
 
-#define CPU_STACK_SIZE	PAGE_SIZE
-
-struct cpu {
-	spinlock_t lock;
-	context_t saved_context;
-
-	volatile int nrdy;
-	runq_t rq[RQ_COUNT];
-	volatile int needs_relink;
-
-	spinlock_t timeoutlock;
-	link_t timeout_active_head;
-
-	#ifdef __SMP__
-	int kcpulbstarted;
-	waitq_t kcpulb_wq;
-	#endif /* __SMP__ */
-
-	int id;
-	int active;
-	int tlb_active;
-
-	__u16 frequency_mhz;
-	__u32 delay_loop_const;
-
-	cpu_arch_t arch;
-
-	thread_t *fpu_owner;
-	
-	__u8 *stack;
-};
-
-/*
- * read/write by associated CPU
- * read only by other CPUs
- */
-struct cpu_private_data {
-	thread_t *thread;
-	task_t *task;
-};
-
-extern cpu_private_data_t *cpu_private_data;
-extern cpu_t *cpus;
-
-extern void cpu_init(void);
-extern void cpu_arch_init(void);
-extern void cpu_identify(void);
-extern void cpu_print_report(cpu_t *m);
-
-#endif
+void preemption_enable(void)
+{
+}
