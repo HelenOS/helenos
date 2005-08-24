@@ -35,8 +35,8 @@
 
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	(((__address) (x)) - 0x80000000)
-#define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#define KA2PA(x)	(((__address) (x)) + 0x80000000)
+#define PA2KA(x)	(((__address) (x)) - 0x80000000)
 
 #define PTL0_INDEX_ARCH(vaddr)		0
 #define PTL1_INDEX_ARCH(vaddr)		0

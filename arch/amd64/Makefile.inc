@@ -10,7 +10,7 @@ LD=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-ld
 
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fno-unwind-tables -Wmissing-prototypes -Werror -O3 -march=opteron -m64 -mcmodel=kernel
+CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fno-unwind-tables -Wmissing-prototypes -Werror -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
 LFLAGS=-M -T ../arch/amd64/_link.ld
 
 arch_sources = arch/dummy.s \
