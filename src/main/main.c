@@ -114,7 +114,8 @@ void main_bsp(void)
  * Second part of main_bsp().
  *
  */
-void main_bsp_separated_stack(void) {
+void main_bsp_separated_stack(void) 
+{
 	vm_t *m;
 	task_t *k;
 	thread_t *t;

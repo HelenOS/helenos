@@ -39,8 +39,8 @@
 # switch to protected mode.
 #
 kernel_image_start:
-	call memmap_arch_init
 	cli
+	call memmap_arch_init
 	xorw %ax,%ax
 	movw %ax,%ds
 	lgdt gdtr
