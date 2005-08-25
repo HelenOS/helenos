@@ -41,9 +41,9 @@
 #undef context_set
 #endif
 
-#define context_set(c, _pc, stack, size) 	\
-	(c)->pc = (__address) _pc;		\
-	(c)->bsp = (__address) stack;		\
+#define context_set(c, _pc, stack, size) 			\
+	(c)->pc = (__address) _pc;				\
+	(c)->bsp = ((__address) stack) + (sizeof(the_t));	\
 	(c)->sp = ((__address) stack) + (size) - SP_DELTA;
 
 struct context {

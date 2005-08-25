@@ -34,6 +34,7 @@
 #include <mm/page.h>
 #include <synch/spinlock.h>
 #include <arch/boot/memmap.h>
+#include <config.h>
 
 extern __u32 interrupt_handler_size;
 
@@ -153,6 +154,20 @@ static inline pri_t cpu_priority_read(void) {
 		"popl %0\n"
 		: "=r" (v)
 	);
+	return v;
+}
+
+/** Return base address of current stack
+ *
+ * Return the base address of the current stack.
+ * The stack is assumed to be STACK_SIZE bytes long.
+ */
+static inline __address get_stack_base(void)
+{
+	__address v;
+	
+	__asm__ volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
+	
 	return v;
 }
 

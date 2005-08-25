@@ -39,9 +39,10 @@
 #include <time/timeout.h>
 #include <synch/rwlock.h>
 #include <mm/page.h>
+#include <config.h>
 #include <list.h>
 
-#define THREAD_STACK_SIZE	PAGE_SIZE
+#define THREAD_STACK_SIZE	STACK_SIZE
 
 #define THREAD_USER_STACK	1
 

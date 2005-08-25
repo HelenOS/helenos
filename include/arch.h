@@ -46,6 +46,18 @@
 #define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
 #define TASK		(cpu_private_data[CPU_ID_ARCH].task)
 
+/*
+ * For each possible kernel stack, structure
+ * of the following type will be placed at
+ * the bottom of the stack.
+ */
+struct the {
+	int preemption_disabled;
+	thread_t *thread;		/* current thread */
+	task_t *task;			/* current task */
+	cpu_t *cpu;			/* executing cpu */
+};
+
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);
 extern void arch_late_init(void);

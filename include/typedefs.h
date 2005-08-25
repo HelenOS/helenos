@@ -71,4 +71,6 @@ typedef struct link link_t;
 
 typedef char *char_ptr;
 
+typedef struct the the_t;
+
 #endif

@@ -29,6 +29,23 @@
 #ifndef __MIPS_ASM_H__
 #define __MIPS_ASM_H__
 
+#include <arch/types.h>
+#include <config.h>
+
 #define cpu_sleep()	;
+
+/** Return base address of current stack
+ * 
+ * Return the base address of the current stack.
+ * The stack is assumed to be STACK_SIZE bytes long.
+ */
+static inline __address get_stack_base(void)
+{
+	__address v;
+	
+	__asm__ volatile ("and %0, $29, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	
+	return v;
+}
 
 #endif

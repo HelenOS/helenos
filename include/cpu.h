@@ -39,8 +39,9 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/context.h>
+#include <config.h>
 
-#define CPU_STACK_SIZE	PAGE_SIZE
+#define CPU_STACK_SIZE	STACK_SIZE
 
 struct cpu {
 	spinlock_t lock;
