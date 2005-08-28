@@ -40,9 +40,13 @@
 #
 kernel_image_start:
 	cli
-	call memmap_arch_init
 	xorw %ax,%ax
 	movw %ax,%ds
+	movw %ax,%ss			# initialize stack segment register
+	movl $0x7c00,%esp		# initialize stack pointer
+	
+	call memmap_arch_init
+	
 	lgdt gdtr
 	movl %cr0,%eax
 	orl $0x1,%eax
@@ -57,7 +61,6 @@ meeting_point:
 	movw %ax,%fs
 	movw %ax,%ds			# kernel data + stack
 	movw %ax,%ss
-	movl $0x7c00,%esp
 
 	lidt idtr
 
