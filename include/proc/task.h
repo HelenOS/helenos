@@ -31,8 +31,6 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <proc/thread.h>
-#include <mm/vm.h>
 #include <list.h>
 
 struct task {

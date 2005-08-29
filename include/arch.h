@@ -34,6 +34,10 @@
 
 #include <cpu.h>
 #include <arch/cpu.h>
+#include <arch/asm.h> 
+
+#include <proc/thread.h>
+#include <proc/task.h>
 
 /*
  * NOTE:
@@ -57,6 +61,8 @@ struct the {
 	task_t *task;			/* current task */
 	cpu_t *cpu;			/* executing cpu */
 };
+
+#define THE		((the_t *)(get_stack_base()))	
 
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);

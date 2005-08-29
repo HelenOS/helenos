@@ -97,13 +97,28 @@ void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
+	size_t size, delta;
+
+	/*
+	 * Calculate 'size' that kernel and heap occupies in memory.
+	 */
+	size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE;	 
+	 
+	/*
+	 * We need the boot stack to start on page boundary.
+	 * That is why 'delta' is calculated.
+	 */
+	delta = PAGE_SIZE - ((hardcoded_load_address + size) % PAGE_SIZE);
+	delta = (delta == PAGE_SIZE) ? 0 : delta;
+	
+	size += delta;
 
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
-	config.kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE + CONFIG_STACK_SIZE;
+	config.kernel_size = size + CONFIG_STACK_SIZE;
 
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE, CONFIG_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }

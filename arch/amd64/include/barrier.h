@@ -32,4 +32,8 @@
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
+#define memory_barrier()
+#define read_barrier()
+#define write_barrier()
+
 #endif

@@ -28,13 +28,19 @@
 
 #include <preemption.h>
 #include <arch.h>
-#include <arch/atomic.h>
+#include <arch/asm.h>
 #include <arch/barrier.h>
+#include <debug.h>
 
 void preemption_disable(void)
 {
+	THE->preemption_disabled++;
+	memory_barrier();
 }
 
 void preemption_enable(void)
 {
+	ASSERT(THE->preemption_disabled);
+	memory_barrier();
+	THE->preemption_disabled--;
 }

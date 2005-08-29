@@ -43,4 +43,8 @@
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
+#define memory_barrier()	__asm__ volatile ("mfence\n" ::: "memory")
+#define read_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
+#define write_barrier()		__asm__ volatile ("lfence\n" ::: "memory")
+
 #endif

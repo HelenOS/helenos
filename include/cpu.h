@@ -30,16 +30,14 @@
 #define __CPU_H__
 
 #include <arch/cpu.h>
-#include <proc/thread.h>
-#include <proc/task.h>
 #include <proc/scheduler.h>
-#include <time/clock.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/context.h>
 #include <config.h>
+#include <list.h>
 
 #define CPU_STACK_SIZE	STACK_SIZE
 

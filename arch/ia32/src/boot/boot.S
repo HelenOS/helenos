@@ -47,10 +47,12 @@ kernel_image_start:
 	
 	call memmap_arch_init
 	
-	lgdt gdtr
+	lgdt gdtr			# initialize Global Descriptor Table register
+	lidt idtr			# initialize Interrupt Descriptor Table register
+	
 	movl %cr0,%eax
 	orl $0x1,%eax
-	movl %eax,%cr0
+	movl %eax,%cr0			# switch to protected mode
 	jmpl $8,$meeting_point
 meeting_point:
 .code32
@@ -62,9 +64,7 @@ meeting_point:
 	movw %ax,%ds			# kernel data + stack
 	movw %ax,%ss
 
-	lidt idtr
-
-	call map_kernel
+	call map_kernel			# map kernel and turn paging on
 
 	movl $_hardcoded_ktext_size, hardcoded_ktext_size
 	movl $_hardcoded_kdata_size, hardcoded_kdata_size
@@ -94,7 +94,7 @@ map_kernel:
 	leal page_directory, %eax
 	movl %eax, %cr3
 	
-	# turn on paging
+	# turn paging on
 	movl %cr0, %ebx
 	orl $(1<<31), %ebx
 	movl %ebx, %cr0

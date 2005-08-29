@@ -34,9 +34,6 @@
 
 #include <print.h>
 
-/*
- * TODO: use the memory map obtained from BIOS
- */
 void frame_arch_init(void)
 {
 	__u8 i;

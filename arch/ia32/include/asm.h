@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
-#include <mm/page.h>
+#include <config.h>
 #include <synch/spinlock.h>
 #include <arch/boot/memmap.h>
 #include <config.h>

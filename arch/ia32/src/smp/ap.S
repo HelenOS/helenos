@@ -50,10 +50,12 @@ ap_boot:
 	xorw %ax,%ax
 	movw %ax,%ds
 
-	lgdt gdtr
+	lgdt gdtr			# initialize Global Descriptor Table register
+	lidt idtr			# initialize Interrupt Descriptor Table register
+	
 	movl %cr0,%eax
 	orl $1,%eax
-	movl %eax,%cr0
+	movl %eax,%cr0			# switch to protected mode
 	jmpl $KTEXT,$jump_to_kernel
 jump_to_kernel:
 .code32
@@ -65,9 +67,7 @@ jump_to_kernel:
 	movl (%eax),%esp
 	subl $0x80000000,%esp		# KA2PA(ctx.sp)
 
-	lidt idtr
-
-	call map_kernel
+	call map_kernel			# map kernel and turn paging on
 
 	jmpl $KTEXT,$main_ap
 

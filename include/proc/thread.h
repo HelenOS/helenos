@@ -30,7 +30,6 @@
 #define __THREAD_H__
 
 #include <arch/thread.h>
-#include <proc/task.h>
 #include <synch/spinlock.h>
 #include <arch/context.h>
 #include <fpu_context.h>
@@ -38,7 +37,6 @@
 #include <typedefs.h>
 #include <time/timeout.h>
 #include <synch/rwlock.h>
-#include <mm/page.h>
 #include <config.h>
 #include <list.h>
 

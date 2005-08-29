@@ -33,7 +33,6 @@
 #include <mm/page.h>
 #include <arch/mm/frame.h>
 #include <arch/types.h>
-#include <arch.h>
 
 #define PAGE_SIZE	FRAME_SIZE
 
