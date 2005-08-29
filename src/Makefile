@@ -27,7 +27,8 @@ sources=cpu/cpu.c \
 	synch/mutex.c \
 	synch/semaphore.c \
 	synch/waitq.c \
-	smp/ipi.c
+	smp/ipi.c \
+	fb/font-8x16.c
 
 ifdef DEBUG_SPINLOCK
 CFLAGS+=-D$(DEBUG_SPINLOCK)
