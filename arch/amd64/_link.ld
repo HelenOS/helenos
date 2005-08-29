@@ -1,4 +1,4 @@
-/** IA-32 linker script
+/** AMD64 linker script
  *  
  * umapped section:
  * 	kernel text
@@ -22,7 +22,7 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 
-	.mapped (-0x80000000+SIZEOF(.unmapped)) : AT (0x8000+SIZEOF(.unmapped)) { 
+	.mapped (0xffffffff80000000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text);
 		ktext_end = .;
@@ -32,6 +32,7 @@ SECTIONS {
 		*(.rodata*);		/* string literals */
 		*(COMMON);		/* global variables */
 		*(.bss);		/* uninitialized static variables */
+		*(.eh_frame);
 		*(K_DATA_END);
 		kdata_end = .;
 	}

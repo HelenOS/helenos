@@ -39,13 +39,55 @@
 # switch to protected mode.
 #
 kernel_image_start:
+	cli
+	xorw %ax,%ax
+	movw %ax,%ds
+	movw %ax,%ss            # initialize stack segment register
+	movl $0x7c00,%esp	# initialize stack pointer
+	
+	call memmap_arch_init
+	
+	mov $0x80000000, %eax  
+	cpuid
+	cmp $0x80000000, %eax 	# any function > 80000000h?
+	jbe no_long_mode
+	mov $0x80000001, %eax	# Extended function code 80000001
+	cpuid
+	bt $29, %edx 		# Test if long mode is supported.
+	jnc no_long_mode
 
-meeting_point:
-.code32
+# Fill out GDTR.base, IDTR.base
+	leal gdtr, %eax
+	movl gdt_addr, %ebx
+	movl %ebx, 2(%eax)
 
+	movl idt_addr, %ebx
+	leal idtr, %eax
+	movl %ebx, 2(%eax)
 
-.section K_DATA_START
+# Load gdtr, idtr	
+	lgdt gdtr
+	lidt idtr
+	
+	mov $1, %eax    # Enable protected mode (CR0.PE = 1)
+	mov %eax, %cr0 
 
+	jmpl $8, $now_in_prot
+	
+now_in_prot:
+	
+
+no_long_mode:
+1:
+	jmp 1b
+			
+
+.section K_DATA_START	
 .align 4096
 page_directory:
 	.space 4096, 0
+
+gdt_addr:	
+	.quad gdt + 0x80000000
+idt_addr:	
+	.quad idt + 0x80000000

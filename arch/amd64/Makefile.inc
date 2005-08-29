@@ -16,4 +16,6 @@ LFLAGS=-M -T ../arch/amd64/_link.ld
 arch_sources = arch/dummy.s \
 	arch/fpu_context.c \
 	arch/putchar.c \
-	arch/boot/boot.S
+	arch/boot/boot.S \
+	arch/boot/memmap.S \
+	arch/pm.c
