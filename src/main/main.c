@@ -73,6 +73,16 @@ __address hardcoded_load_address = 0;
 size_t hardcoded_ktext_size = 0;
 size_t hardcoded_kdata_size = 0;
 
+/*
+ * Size of memory in bytes taken by kernel and heap.
+ */
+static size_t kernel_size;
+
+/*
+ * Extra space on heap to make the stack start on page boundary.
+ */
+static size_t heap_delta;
+
 void main_bsp(void);
 void main_ap(void);
 
@@ -85,7 +95,6 @@ void main_ap(void);
 static void main_bsp_separated_stack(void);
 static void main_ap_separated_stack(void);
 
-
 /** Bootstrap CPU main kernel routine
  *
  * Initializes the kernel by bootstrap CPU.
@@ -97,28 +106,18 @@ void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
-	size_t size, delta;
 
-	/*
-	 * Calculate 'size' that kernel and heap occupies in memory.
-	 */
-	size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE;	 
-	 
-	/*
-	 * We need the boot stack to start on page boundary.
-	 * That is why 'delta' is calculated.
-	 */
-	delta = PAGE_SIZE - ((hardcoded_load_address + size) % PAGE_SIZE);
-	delta = (delta == PAGE_SIZE) ? 0 : delta;
-	
-	size += delta;
+	kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE;	 
+	heap_delta = PAGE_SIZE - ((hardcoded_load_address + kernel_size) % PAGE_SIZE);
+	heap_delta = (heap_delta == PAGE_SIZE) ? 0 : heap_delta;
+	kernel_size += heap_delta;
 
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
-	config.kernel_size = size + CONFIG_STACK_SIZE;
+	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;
 
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + size, CONFIG_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -135,9 +134,13 @@ void main_bsp_separated_stack(void)
 	task_t *k;
 	thread_t *t;
 
-	arch_pre_mm_init();
+	THE->preemption_disabled = 0;
+	THE->cpu = NULL;
+	THE->thread = NULL;
+	THE->task = NULL;
 
-	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE);
+	arch_pre_mm_init();
+	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE + heap_delta);
 	frame_init();
 	page_init();
 	tlb_init();

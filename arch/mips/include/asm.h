@@ -38,6 +38,7 @@
  * 
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
+ * The stack must start on page boundary.
  */
 static inline __address get_stack_base(void)
 {

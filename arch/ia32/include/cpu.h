@@ -29,8 +29,6 @@
 #ifndef __ia32_CPU_H__
 #define __ia32_CPU_H__
 
-#include <config.h>
-#include <proc/thread.h>
 #include <typedefs.h>
 #include <arch/pm.h>
 #include <arch/asm.h>

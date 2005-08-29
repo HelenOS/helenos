@@ -31,7 +31,12 @@
 
 #include <arch/types.h>
 
-#define SP_DELTA	0
+#define STACK_ITEM_SIZE	4
+
+/*
+ * Put one item onto the stack to support get_stack_base().
+ */
+#define SP_DELTA	(0+STACK_ITEM_SIZE)
 
 
 struct context {

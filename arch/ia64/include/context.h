@@ -31,11 +31,15 @@
 
 #include <arch/types.h>
 
+#define STACK_ITEM_SIZE	16
+
 /*
  * context_save() and context_restore() are both leaf procedures.
  * No need to allocate scratch area.
+ *
+ * One item is put onto the stack to support get_stack_base().
  */
-#define SP_DELTA	0
+#define SP_DELTA	(0+STACK_ITEM_SIZE)
 
 #ifdef context_set
 #undef context_set
