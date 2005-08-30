@@ -37,7 +37,7 @@
 #define INT64	8
 
 static void print_str(const char *str);
-static void print_fixed_hex(const __native num, const int width);
+static void print_fixed_hex(const __u64 num, const int width);
 static void print_number(const __native num, const unsigned int base);
 
 extern void putchar(const char c);

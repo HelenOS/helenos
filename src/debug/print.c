@@ -66,7 +66,7 @@ void print_str(const char *str)
  * @param width Count of digits to print.
  *
  */
-void print_fixed_hex(const __native num, const int width)
+void print_fixed_hex(const __u64 num, const int width)
 {
 	int i;
     
@@ -186,7 +186,7 @@ void printf(const char *fmt, ...)
 				case 'Q': 
 					print_str("0x");
 				case 'q':
-		    			print_fixed_hex(va_arg(ap, __native), INT64);
+		    			print_fixed_hex(va_arg(ap, __u64), INT64);
 					goto loop;
 
 				case 'L': 

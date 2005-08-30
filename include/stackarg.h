@@ -39,15 +39,15 @@
 
 typedef struct va_list {
 	int pos;
-	__address *last;
+	__u8 *last;
 } va_list;
 
 #define va_start(ap, lst) 		\
-	(ap).pos = 0; 			\
-	(ap).last = (__address *) &(lst)
+	(ap).pos = sizeof(lst); 			\
+	(ap).last = (__u8 *) &(lst)
 
 #define va_arg(ap, type) 		\
-	((type) *((ap).last + ++((ap).pos)))
+	(*((type *)((ap).last + ((ap).pos  += sizeof(type) ) - sizeof(type))))
 
 #define va_end(ap)
 
