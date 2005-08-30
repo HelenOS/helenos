@@ -29,15 +29,25 @@
 #ifndef __amd64_CONTEXT_H__
 #define __amd64_CONTEXT_H__
 
-#include <arch/types.h>
+#ifndef __amd64_TYPES_H__
+#  include <arch/types.h>
+#endif
 
-#define SP_DELTA	0
+#define SP_DELTA     8
 
 struct context {
-	__u64 sp;
-	__u64 pc;
-	
-	pri_t pri;
+    __u64 sp;
+    __u64 pc;
+    
+    __u64 rbx;
+    __u64 rbp;
+
+    __u64 r12;
+    __u64 r13;
+    __u64 r14;
+    __u64 r15;
+
+    pri_t pri;
 } __attribute__ ((packed));
 
 #endif

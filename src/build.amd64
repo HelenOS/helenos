@@ -1,3 +1,6 @@
 #! /bin/sh
 
+set -e
+
+(cd ../arch/amd64/src;make gencontext;./gencontext)
 make all ARCH=amd64

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,58 +28,51 @@
 
 .text
 
-.global memcopy
-.global memcpy
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_read
-.global cpu_priority_restore
-.global memsetb
-.global userspace
-.global before_thread_runs_arch
-.global panic_printf
-.global cpu_identify
-.global cpu_arch_init
-.global cpu_sleep
-.global cpu_print_report
-.global get_memory_size
-.global arch_pre_mm_init
-.global arch_post_mm_init
-.global arch_late_init
-.global calibrate_delay_loop
-.global asm_delay_loop
-.global cpu_halt
-.global page_arch_init
-.global frame_arch_init
-.global dummy
-.global asm_delay_loop
+.global context_save
+.global context_restore
 
-memcpy:	
-memcopy:
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_restore:
-cpu_priority_read:
-memsetb:
-asm_delay_loop:	
-before_thread_runs_arch:
-userspace:
-calibrate_delay_loop:
-asm_delay_loop:
-panic_printf:
-cpu_identify:
-cpu_arch_init:
-cpu_sleep:
-cpu_print_report:
-get_memory_size:
-arch_pre_mm_init:
-arch_post_mm_init:
-arch_late_init:
-calibrate_delay_loop:
-cpu_halt:
-page_arch_init:
-frame_arch_init:
+#include "context_offset.h"
 
-dummy:
-0:
+## Save current CPU context
+#
+# Save CPU context to the kernel_context variable
+# pointed by the 1st argument. Returns 1 in EAX.
+#
+context_save:
+	movq (%rsp), %rdx     # the caller's return %eip
+	# In %edi is passed 1st argument
+	movq %rdx, OFFSET_PC(%rdi)
+	movq %rsp, OFFSET_SP(%rdi)
+	
+	movq %rbx, OFFSET_RBX(%rdi)
+	movq %rbp, OFFSET_RBP(%rdi)
+	movq %r12, OFFSET_R12(%rdi)
+	movq %r13, OFFSET_R13(%rdi)
+	movq %r14, OFFSET_R14(%rdi)
+	movq %r15, OFFSET_R15(%rdi)
+	
+	xorq %rax,%rax		# context_save returns 1
+	incq %rax
+	ret
+
+
+## Restore current CPU context
+#
+# Restore CPU context from the kernel_context variable
+# pointed by the 1st argument. Returns 0 in EAX.
+#
+context_restore:	
+	movq OFFSET_R15(%rdi), %r15
+	movq OFFSET_R14(%rdi), %r14
+	movq OFFSET_R13(%rdi), %r13
+	movq OFFSET_R12(%rdi), %r12
+	movq OFFSET_RBP(%rdi), %rbp
+	movq OFFSET_RBX(%rdi), %rbx	
+	
+	movq OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
+	
+	movq OFFSET_PC(%rdi), %rdx
+	movq %rdx,(%rsp)
+
+	xorq %rax,%rax		# context_restore returns 0
 	ret

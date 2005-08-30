@@ -32,10 +32,14 @@
 #include <arch/types.h>
 #include <config.h>
 
+void asm_delay_loop(__u32 t);
+
 /* TODO: implement the real stuff */
 static inline __address get_stack_base(void)
 {
 	return NULL;
 }
+
+static inline void cpu_sleep(void) { __asm__("hlt"); };
 
 #endif

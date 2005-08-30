@@ -18,4 +18,5 @@ arch_sources = arch/dummy.s \
 	arch/putchar.c \
 	arch/boot/boot.S \
 	arch/boot/memmap.S \
-	arch/pm.c
+	arch/pm.c \
+	arch/context.S

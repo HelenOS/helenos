@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __amd64_TYPES_H__
+#define __amd64_TYPES_H__
 
 #define NULL 0
 
@@ -40,7 +40,8 @@ typedef long long __u64;
 
 typedef __u64 __address;
 
-typedef __u32 pri_t;
+/* Flags of processor (return value of cpu_priority_high()) */
+typedef __u64 pri_t;
 
 typedef __u64 __native;
 
