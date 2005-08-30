@@ -32,6 +32,7 @@
 #include <typedefs.h>
 #include <arch/types.h>
 
+extern char *memcpy(void * dst, const void *src, size_t cnt);
 extern char *memcopy(void * dst, const void *src, size_t cnt);
 
 extern void memsetw(__address dst, size_t cnt, __u16 x);
@@ -44,5 +45,6 @@ extern int memcmp(__address src, __address dst, int cnt);
  */
 extern char *_memcopy(void *dst, const void *src, size_t cnt);
 extern void _memsetb(__address dst, size_t cnt, __u8 x);
+extern void _memsetw(__address dst, size_t cnt, __u16 x);
 
 #endif

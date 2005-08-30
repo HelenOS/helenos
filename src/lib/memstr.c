@@ -70,3 +70,22 @@ void _memsetb(__address dst, size_t cnt, __u8 x)
 	for(i=0; i<cnt; i++)
 		p[i] = x;
 }
+
+/** Fill block of memory
+ *
+ * Fill cnt words at dst address with the value x.
+ * The filling is done word-by-word.
+ *
+ * @param dst Origin address to fill.
+ * @param cnt Number of words to fill.
+ * @param x   Value to fill.
+ *
+ */
+void _memsetw(__address dst, size_t cnt, __u16 x)
+{
+	int i;
+	__u8 *p = (__u8 *) dst;
+	
+	for(i=0; i<cnt; i++)
+		p[i] = x;	
+}

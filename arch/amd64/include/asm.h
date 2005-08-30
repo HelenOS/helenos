@@ -32,6 +32,7 @@
 #include <arch/types.h>
 #include <config.h>
 
+
 void asm_delay_loop(__u32 t);
 
 /* TODO: implement the real stuff */
@@ -41,5 +42,78 @@ static inline __address get_stack_base(void)
 }
 
 static inline void cpu_sleep(void) { __asm__("hlt"); };
+
+
+static inline __u8 inb(__u16 port) 
+{
+	__u8 out;
+
+	asm (
+		"mov %0, %%dx;"
+		"inb %%dx,%%al;"
+		"mov %%al, %1;"
+		:"=m"(out)
+		:"m"(port)
+		:"dx","al"
+		);
+	return out;
+}
+
+static inline __u8 outb(__u16 port,__u8 b) 
+{
+	asm (
+		"mov %0,%%dx;"
+		"mov %1,%%al;"
+		"outb %%al,%%dx;"
+		:
+		:"m"( port), "m" (b)
+		:"dx","al"
+		);
+}
+
+/** Set priority level low
+ *
+ * Enable interrupts and return previous
+ * value of EFLAGS.
+ */
+static inline pri_t cpu_priority_low(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushfq\n"
+		"popq %0\n"
+		"sti\n"
+		: "=r" (v)
+	);
+	return v;
+}
+
+/** Set priority level high
+ *
+ * Disable interrupts and return previous
+ * value of EFLAGS.
+ */
+static inline pri_t cpu_priority_high(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushfq\n"
+		"popq %0\n"
+		"cli\n"
+		: "=r" (v)
+		);
+	return v;
+}
+
+/** Restore priority level
+ *
+ * Restore EFLAGS.
+ */
+static inline void cpu_priority_restore(pri_t pri) {
+	__asm__ volatile (
+		"pushq %0\n"
+		"popfq\n"
+		: : "r" (pri)
+		);
+}
+
 
 #endif

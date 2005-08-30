@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <putchar.h>
-#include <arch/types.h>
+#include <memstr.h>
 
+/* TODO: Rewrite to assembler */
 
-void putchar(const char ch)
+char *memcpy(void *dst, const void *src, size_t cnt)
 {
+	_memcopy(dst, src, cnt);
 }
+
+char *memcopy(void * dst, const void *src, size_t cnt)
+{
+	_memcopy(dst, src, cnt);
+}
+
+void memsetw(__address dst, size_t cnt, __u16 x)
+{
+	_memsetw(dst, cnt, x);
+}
+
+void memsetb(__address dst, size_t cnt, __u8 x)
+{
+	_memsetb(dst, cnt, x);
+}
+

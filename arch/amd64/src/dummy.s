@@ -28,13 +28,10 @@
 
 .text
 
-.global memcopy
-.global memcpy
 .global cpu_priority_high
 .global cpu_priority_low
 .global cpu_priority_read
 .global cpu_priority_restore
-.global memsetb
 .global userspace
 .global before_thread_runs_arch
 .global panic_printf
@@ -54,13 +51,10 @@
 .global dummy
 .global asm_delay_loop
 
-memcpy:	
-memcopy:
 cpu_priority_high:
 cpu_priority_low:
 cpu_priority_restore:
 cpu_priority_read:
-memsetb:
 asm_delay_loop:	
 before_thread_runs_arch:
 userspace:
