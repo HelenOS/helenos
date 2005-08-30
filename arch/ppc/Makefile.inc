@@ -15,6 +15,7 @@ CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Werror-implicit-function-declaration 
 LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 
 arch_sources= \
+	arch/context.S \
 	arch/ppc.c \
 	arch/debug/panic.s \
 	arch/fpu_context.c \

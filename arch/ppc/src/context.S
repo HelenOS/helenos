@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2005 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,29 +28,27 @@
 
 #include <arch/asm/macro.h>
 
-.section K_TEXT_START
+.text   
 
-.global kernel_image_start
+.global context_save
+.global context_restore
 
-kernel_image_start:
-	bl early_init
+context_save:
+	REGISTERS_STORE r3
 	
-	lis r3, _hardcoded_ktext_size@ha
-	addi r3, r3, _hardcoded_ktext_size@l
-	lis r4, hardcoded_ktext_size@ha
-	addi r4, r4, hardcoded_ktext_size@l
-	stw r3, 0(r4)
+	mflr r3
+	stw r3, 128(r3)
 	
-	lis r3, _hardcoded_kdata_size@ha
-	addi r3, r3, _hardcoded_kdata_size@l
-	lis r4, hardcoded_kdata_size@ha
-	addi r4, r4, hardcoded_kdata_size@l
-	stw r3, 0(r4)
+	# context_save returns 1
+	li r3, 1
+	blr
 	
-	lis r3, _hardcoded_load_address@ha
-	addi r3, r3, _hardcoded_load_address@l
-	lis r4, hardcoded_load_address@ha
-	addi r4, r4, hardcoded_load_address@l
-	stw r3, 0(r4)
+context_restore:
+	REGISTERS_LOAD r3
 	
-	b main_bsp
+	lwz r3, 128(r3)
+	mtlr r3
+	
+	# context_restore returns 0
+	li r3, 0
+	blr

@@ -28,11 +28,10 @@
 
 .text
 
+.global memcpy
 .global memcopy
 .global cpu_priority_read
 .global memsetb
-.global context_save
-.global context_restore
 .global userspace
 .global before_thread_runs_arch
 .global cpu_identify
@@ -45,11 +44,10 @@
 .global asm_delay_loop
 .global dummy
 
+memcpy:
 memcopy:
 cpu_priority_read:
 memsetb:
-context_save:
-context_restore:
 before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:

@@ -32,5 +32,4 @@ SECTIONS {
 	_hardcoded_ktext_size = ktext_end - ktext_start;
 	_hardcoded_kdata_size = kdata_end - kdata_start;
 	_hardcoded_load_address = 0x80000000;
-
 }
