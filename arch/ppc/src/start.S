@@ -31,4 +31,6 @@
 .global kernel_image_start
 
 kernel_image_start:
+	bl early_init
+	
 	b main_bsp

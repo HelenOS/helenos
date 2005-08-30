@@ -22,4 +22,4 @@ arch_sources= \
 	arch/asm.s \
 	arch/mm/frame.c \
 	arch/mm/page.c \
-	arch/drivers/vga.c
+	arch/drivers/ofw.c

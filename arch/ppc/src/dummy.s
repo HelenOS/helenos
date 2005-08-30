@@ -41,7 +41,6 @@
 .global panic_printf
 .global cpu_identify
 .global cpu_arch_init
-.global cpu_sleep
 .global cpu_print_report
 .global get_memory_size
 .global arch_pre_mm_init
@@ -66,7 +65,6 @@ asm_delay_loop:
 panic_printf:
 cpu_identify:
 cpu_arch_init:
-cpu_sleep:
 cpu_print_report:
 get_memory_size:
 arch_pre_mm_init:
@@ -76,4 +74,4 @@ calibrate_delay_loop:
 
 dummy:
 0:
-	bl 0b
+	b 0b

@@ -26,67 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/vga.h>
-#include <putchar.h>
-#include <mm/page.h>
-#include <synch/spinlock.h>
-#include <arch/types.h>
-#include <arch/asm.h>
+#ifndef __ppc_PPC_H__
+#define __ppc_PPC_H__
 
-static spinlock_t vgalock;
-static __u32 vga_cursor;
+extern void early_init(int r3, int r4, int r5);
 
-void vga_move_cursor(void);
-
-void vga_init(void)
-{
-}
-
-void vga_display_char(char ch)
-{
-//	__u8 *vram = (__u8 *) PA2KA(VIDEORAM);
-	
-//	vram[vga_cursor*2] = ch;
-}
-
-/*
- * This function takes care of scrolling.
- */
-void vga_check_cursor(void)
-{
-}
-
-void vga_putchar(const char ch)
-{
-	pri_t pri;
-
-	pri = cpu_priority_high();
-	spinlock_lock(&vgalock);
-
-	switch (ch) {
-	    case '\n':
-		vga_cursor = (vga_cursor + ROW) - vga_cursor % ROW;
-		break;
-	    case '\t':
-		vga_cursor = (vga_cursor + 8) - vga_cursor % 8;
-		break; 
-	    default:
-		vga_display_char(ch);
-		vga_cursor++;
-		break;
-        }
-	vga_check_cursor();
-	vga_move_cursor();
-
-	spinlock_unlock(&vgalock);
-	cpu_priority_restore(pri);
-}
-
-void vga_move_cursor(void)
-{
-}
-
-void putchar(const char ch)
-{
-	vga_putchar(ch);
-}
+#endif

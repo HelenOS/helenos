@@ -34,8 +34,6 @@
 
 .text
 
-.global cpu_halt
-.global cpu_sleep
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers

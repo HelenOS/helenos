@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,3 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch.h>
+#include <arch/ppc.h>
+#include <arch/drivers/ofw.h>
+
+void early_init(int r3, int r4, int r5)
+{
+	ofw = (ofw_entry) r5;
+	ofw_init();
+}
