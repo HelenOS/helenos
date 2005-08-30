@@ -40,6 +40,7 @@
 #include <mm/page.h>
 #include <arch/mm/page.h>
 #include <mm/vm.h>
+#include <print.h>
 
 #ifdef __SMP__
 #include <arch/smp/mps.h>

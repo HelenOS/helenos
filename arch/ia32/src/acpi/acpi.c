@@ -31,6 +31,7 @@
 #include <arch/bios/bios.h>
 
 #include <mm/page.h>
+#include <print.h>
 
 #define RSDP_SIGNATURE		"RSD PTR "
 #define RSDP_REVISION_OFFS	15

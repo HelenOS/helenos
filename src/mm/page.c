@@ -32,6 +32,8 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
+#include <memstr.h>
+
 
 void page_init(void)
 {	

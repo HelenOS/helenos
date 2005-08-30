@@ -31,6 +31,7 @@
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <mm/page.h>
+#include <memstr.h>
 
 pte_t *PTL0 = NULL;
 

@@ -35,6 +35,7 @@
 #include <panic.h>
 #include <debug.h>
 #include <config.h>
+#include <print.h>
 
 struct acpi_madt *acpi_madt = NULL;
 

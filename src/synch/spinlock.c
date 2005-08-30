@@ -31,6 +31,7 @@
 #include <arch/atomic.h>
 #include <arch/barrier.h>
 #include <synch/spinlock.h>
+#include <print.h>
 
 #ifdef __SMP__
 

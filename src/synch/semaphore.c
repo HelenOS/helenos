@@ -31,6 +31,7 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
+#include <arch.h>
 
 void semaphore_initialize(semaphore_t *s, int val)
 {

@@ -27,6 +27,7 @@
  */
 
 #include <arch/exception.h>
+#include <arch/interrupt.h>
 #include <panic.h>
 #include <arch/cp0.h>
 #include <arch/types.h>

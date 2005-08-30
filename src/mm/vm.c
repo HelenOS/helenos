@@ -40,6 +40,8 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <debug.h>
+#include <memstr.h>
+#include <arch.h>
 
 #define KAS_START_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)
 #define KAS_END_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_END)
@@ -66,7 +68,7 @@ vm_t *vm_create(pte_t *ptl0)
 			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
 //			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
 //			memcopy((__address) &src_ptl0[KAS_START_INDEX], (__address) &dst_ptl0[KAS_START_INDEX], KAS_INDICES*sizeof(pte_t));
-			memcopy(PA2KA((__address) GET_PTL0_ADDRESS()), (__address) dst_ptl0, PAGE_SIZE);
+			memcopy((void *)PA2KA((__address) dst_ptl0), (void *)GET_PTL0_ADDRESS() , PAGE_SIZE);
 			m->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
 		}
 	}

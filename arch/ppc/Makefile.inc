@@ -11,7 +11,7 @@ ASFLAGS=
 
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Wmissing-prototypes -Werror -O2
+CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O2
 LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 
 arch_sources= \

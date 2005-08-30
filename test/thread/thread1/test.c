@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +27,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <print.h>
+#include <debug.h>
+#include <panic.h>
+
+#include <test.h>
+#include <arch/atomic.h>
+#include <proc/thread.h>
+
 #include <arch.h>
 
-#include <arch/types.h>
-#include <typedefs.h>
-
-#include <arch/pm.h>
-
-#include <arch/ega.h>
-#include <arch/i8042.h>
-#include <arch/i8254.h>
-#include <arch/i8259.h>
-
-#include <arch/context.h>
-
-#include <config.h>
-
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <arch/acpi/acpi.h>
-
-#include <arch/bios/bios.h>
-
-#include <arch/mm/memory_init.h>
 
 
-void arch_pre_mm_init(void)
+#define THREADS 5
+
+
+static void thread(void *data)
 {
-	pm_init();
-
-	if (config.cpu_active == 1) {
-		bios_init();
-		i8042_init();	/* a20 bit */
-		i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
-
-		trap_register(VECTOR_SYSCALL, syscall);
-		
-		#ifdef __SMP__
-		trap_register(VECTOR_TLB_SHOOTDOWN_IPI, tlb_shootdown_ipi);
-		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
-		#endif /* __SMP__ */
-	}
+    while(1)
+    {
+        printf("%d\n",(int)(THREAD->tid));
+	scheduler();
+    }
 }
 
-void arch_post_mm_init(void)
-{
-	if (config.cpu_active == 1) {
-		ega_init();	/* video */
-	}
-}
 
-void arch_late_init(void)
-{
-	if (config.cpu_active == 1) {
-		memory_print_map();
-		
-		#ifdef __SMP__
-		acpi_init();
-		#endif /* __SMP__ */
-	}
-}
 
-void calibrate_delay_loop(void)
+void test(void)
 {
-	i8254_calibrate_delay_loop();
-	i8254_normal_operation();
+	thread_t *t;
+	int i;
+
+
+
+	for (i=0; i<THREADS; i++) 
+	{  
+		if (!(t = thread_create(thread, NULL, TASK, 0)))
+			panic("could not create thread\n");
+		thread_ready(t);
+	}
+	printf("ok\n");
+	
 }

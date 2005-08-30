@@ -52,6 +52,11 @@ extern void outl(int port, __u32 l);
 
 extern void enable_l_apic_in_msr(void);
 
+
+void asm_delay_loop(__u32 t);
+void asm_fake_loop(__u32 t);
+
+
 /** Halt CPU
  *
  * Halt the current CPU until interrupt event.

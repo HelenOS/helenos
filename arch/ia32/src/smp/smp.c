@@ -42,6 +42,9 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/heap.h>
+#include <print.h>
+#include <memstr.h>
+#include <arch/i8259.h>
 
 #ifdef __SMP__
 
@@ -136,8 +139,8 @@ void kmp(void *arg)
 		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor))))
 			panic("couldn't allocate memory for GDT\n");
 
-		memcopy(gdt, gdt_new, GDT_ITEMS*sizeof(struct descriptor));
-		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
+		memcopy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));           // swaped
+		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
 		gdtr.base = KA2PA((__address) gdt_new);
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {

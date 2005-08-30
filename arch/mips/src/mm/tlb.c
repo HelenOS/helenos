@@ -33,6 +33,11 @@
 #include <panic.h>
 #include <arch.h>
 
+void main_bsp(void);
+
+
+
+
 int bootstrap = 1;
 
 void tlb_refill(void)

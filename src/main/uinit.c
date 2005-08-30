@@ -30,6 +30,8 @@
 #include <arch/types.h>
 #include <proc/thread.h>
 #include <userspace.h>
+#include <print.h>
+
 
 void uinit(void *arg)
 {

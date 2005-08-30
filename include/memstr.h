@@ -32,7 +32,7 @@
 #include <typedefs.h>
 #include <arch/types.h>
 
-extern void memcopy(__address src, __address dst, size_t cnt);
+extern char *  memcopy(void * dst, const void *src, size_t cnt);
 
 extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);
@@ -42,7 +42,7 @@ extern int memcmp(__address src, __address dst, int cnt);
 /*
  * Architecture independent variants.
  */
-extern void _memcopy(__address src, __address dst, size_t cnt);
+extern char * _memcopy(void *dst, const void *src, size_t cnt);
 extern void _memsetb(__address dst, size_t cnt, __u8 x);
 
 #endif

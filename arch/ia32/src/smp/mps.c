@@ -40,6 +40,7 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch/bios/bios.h>
+#include <mm/frame.h>
 
 /*
  * MultiProcessor Specification detection code.

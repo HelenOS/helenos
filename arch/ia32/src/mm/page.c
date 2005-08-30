@@ -36,6 +36,7 @@
 #include <arch/asm.h>
 #include <synch/spinlock.h>
 #include <debug.h>
+#include <memstr.h>
 
 __address bootstrap_dba; 
 
@@ -71,7 +72,7 @@ void page_arch_init(void)
 		 */
 
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
-		memcopy(bootstrap_dba, dba, PAGE_SIZE);
+		memcopy((void *)dba,(void *)bootstrap_dba , PAGE_SIZE); //swaped
 		write_cr3(KA2PA(dba));
 	}
 

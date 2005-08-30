@@ -74,6 +74,8 @@ struct cpu {
 extern cpu_t *cpus;
 
 extern void cpu_init(void);
+extern void cpu_halt(void);
+
 extern void cpu_arch_init(void);
 extern void cpu_identify(void);
 extern void cpu_print_report(cpu_t *m);

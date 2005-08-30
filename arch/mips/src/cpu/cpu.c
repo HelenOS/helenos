@@ -34,6 +34,7 @@
 #include <arch/cp0.h>
 
 #include <typedefs.h>
+#include <print.h>
 
 struct {
 	char *vendor;

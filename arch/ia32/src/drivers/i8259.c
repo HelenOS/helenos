@@ -31,6 +31,7 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <print.h>
 
 /*
  * This is the PIC driver.

@@ -28,6 +28,7 @@
 
 #include <arch/boot/memmap.h>
 #include <arch/mm/memory_init.h>
+#include <print.h>
 
 size_t get_memory_size(void) 
 {

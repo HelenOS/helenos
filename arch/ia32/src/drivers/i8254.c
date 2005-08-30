@@ -36,7 +36,9 @@
 #include <config.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
+#include <arch/cpuid.h>
 #include <arch.h>
+#include <time/delay.h>
 
 /*
  * i8254 chip driver.

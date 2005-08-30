@@ -50,6 +50,7 @@
 #include <smp/ipi.h>
 #include <arch/faddr.h>
 #include <arch/atomic.h>
+#include <memstr.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 

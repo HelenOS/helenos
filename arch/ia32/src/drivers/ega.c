@@ -33,6 +33,7 @@
 #include <synch/spinlock.h>
 #include <arch/types.h>
 #include <arch/asm.h>
+#include <memstr.h>
 
 /*
  * The EGA driver.
@@ -72,7 +73,7 @@ void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 		return;
 
-	memcopy(PA2KA(VIDEORAM) + ROW*2, PA2KA(VIDEORAM), (SCREEN - ROW)*2);
+	memcopy((void *)PA2KA(VIDEORAM),(void *)PA2KA(VIDEORAM) + ROW*2, (SCREEN - ROW)*2); //swaped
 	memsetw(PA2KA(VIDEORAM) + (SCREEN - ROW)*2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }

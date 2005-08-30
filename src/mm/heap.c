@@ -33,6 +33,7 @@
 #include <panic.h>
 #include <arch/types.h>
 #include <arch/asm.h>
+#include <arch.h>
 
 /*
  * First-fit algorithm.

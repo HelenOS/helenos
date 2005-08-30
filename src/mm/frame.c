@@ -43,6 +43,7 @@
 #include <synch/spinlock.h>
 
 #include <arch/asm.h>
+#include <arch.h>
 
 count_t frames = 0;
 count_t frames_free;

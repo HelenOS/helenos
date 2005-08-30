@@ -35,6 +35,8 @@
 #include <arch/context.h>
 #include <panic.h>
 #include <arch/mm/page.h>
+#include <mm/heap.h>
+#include <memstr.h>
 
 /*
  * Early ia32 configuration functions and data structures.
