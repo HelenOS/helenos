@@ -84,7 +84,7 @@ void _memsetb(__address dst, size_t cnt, __u8 x)
 void _memsetw(__address dst, size_t cnt, __u16 x)
 {
 	int i;
-	__u8 *p = (__u8 *) dst;
+	__u16 *p = (__u16 *) dst;
 	
 	for(i=0; i<cnt; i++)
 		p[i] = x;	
