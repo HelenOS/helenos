@@ -34,7 +34,7 @@
 #include <arch/context.h>
 
 #define IDT_ITEMS 64
-#define GDT_ITEMS 6
+#define GDT_ITEMS 7
 
 #define NULL_DES	0
 #define KTEXT_DES	1
@@ -52,6 +52,7 @@
 #define AR_DATA		(2<<3)
 #define AR_CODE		(3<<3)
 #define AR_WRITABLE	(1<<1)
+#define AR_READABLE     (1<<1)
 #define AR_INTERRUPT	(0xe)
 #define AR_TSS		(0x9)
 

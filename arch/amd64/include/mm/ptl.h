@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_PAGE_H__
-#define __amd64_PAGE_H__
 
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
-#include <arch/mm/ptl.h>
+#ifndef __amd64_PTL_H_
+#define __amd64_PTL_H_
 
-#define PAGE_SIZE	FRAME_SIZE
+#define PTL_NO_EXEC       (1<<63)
+#define PTL_ACCESSED      (1<<5)
+#define PTL_CACHE_DISABLE (1<<4)
+#define PTL_CACHE_THROUGH (1<<3)
+#define PTL_USER          (1<<2)
+#define PTL_WRITABLE      (1<<1)
+#define PTL_PRESENT       1
+#define PTL_2MB_PAGE      (1<<7)
 
-#define PTL0_INDEX_ARCH(vaddr)		0
-#define PTL1_INDEX_ARCH(vaddr)		0
-#define PTL2_INDEX_ARCH(vaddr)		0
-#define PTL3_INDEX_ARCH(vaddr)		0
+#define KA2PA(x)	(((__address) (x)) + 0x80000000)
+#define PA2KA(x)	(((__address) (x)) - 0x80000000)
 
-#define GET_PTL0_ADDRESS_ARCH()		0
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
-
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) 0)
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		((pte_t *) 0)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		((pte_t *) 0)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((pte_t *) 0)
-
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
-#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
-#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)
-
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		0
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		0
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		0
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		0
-
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)
-#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
-#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
-
-extern void page_arch_init(void);
-
-typedef __u32 pte_t;
 
 #endif

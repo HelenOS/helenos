@@ -44,11 +44,11 @@ struct descriptor gdt[GDT_ITEMS] = {
 	{ .limit_0_15  = 0xffff, 
 	  .base_0_15   = 0, 
 	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL, 
+	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE , 
 	  .limit_16_19 = 0xf, 
 	  .available   = 0, 
 	  .longmode    = 1, 
-	  .special     = 0, 
+	  .special     = 0,
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
 	/* KDATA descriptor */
@@ -60,7 +60,7 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .available   = 0, 
 	  .longmode    = 0, 
 	  .special     = 0, 
-	  .granularity = 0, 
+	  .granularity = 1, 
 	  .base_24_31  = 0 },
 	/* UTEXT descriptor */
 	{ .limit_0_15  = 0xffff, 
@@ -84,6 +84,17 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .special     = 1, 
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
+	/* KTEXT 16-bit protected */
+	{ .limit_0_15  = 0xffff, 
+	  .base_0_15   = 0, 
+	  .base_16_23  = 0, 
+	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE, 
+	  .limit_16_19 = 0xf, 
+	  .available   = 0, 
+	  .longmode    = 0, 
+	  .special     = 0,
+	  .granularity = 1, 
+	  .base_24_31  = 0 },
 	/* TSS descriptor - set up will be completed later */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -92,7 +103,5 @@ struct idescriptor idt[IDT_ITEMS];
 
 static struct tss tss;
 
-/* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt) };
-//struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
-struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(idt) };
+/* Does not compile correctly if it does not exist */
+int __attribute__ ((section ("K_DATA_START"))) __fake;

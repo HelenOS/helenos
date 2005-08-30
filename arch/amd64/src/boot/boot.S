@@ -26,10 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section K_TEXT_START
-.global kernel_image_start
+#include <arch/mm/ptl.h>
 
-.code16
+#define START_STACK     0x7c00	
+#define START_STACK_64  $0xffffffff80007c00
+					
 #
 # This is where we require any SPARTAN-kernel-compatible boot loader
 # to pass control in real mode.
@@ -38,14 +39,17 @@
 # time. So we can just load the respective table registers and
 # switch to protected mode.
 #
+.section K_TEXT_START
+.code16
+.global kernel_image_start
 kernel_image_start:
 	cli
 	xorw %ax,%ax
 	movw %ax,%ds
 	movw %ax,%ss            # initialize stack segment register
-	movl $0x7c00,%esp	# initialize stack pointer
+	movl START_STACK,%esp	# initialize stack pointer
 	
-	call memmap_arch_init
+#	call memmap_arch_init
 	
 	mov $0x80000000, %eax  
 	cpuid
@@ -56,38 +60,99 @@ kernel_image_start:
 	bt $29, %edx 		# Test if long mode is supported.
 	jnc no_long_mode
 
-# Fill out GDTR.base, IDTR.base
-	leal gdtr, %eax
-	movl gdt_addr, %ebx
-	movl %ebx, 2(%eax)
-
-	movl idt_addr, %ebx
-	leal idtr, %eax
-	movl %ebx, 2(%eax)
-
-# Load gdtr, idtr	
-	lgdt gdtr
-	lidt idtr
+	# Load gdtr, idtr
+	lgdt gdtr_inst
+	lidt idtr_inst
 	
-	mov $1, %eax    # Enable protected mode (CR0.PE = 1)
-	mov %eax, %cr0 
+	movl %cr0,%eax
+	orl $0x1,%eax
+	movl %eax,%cr0			# switch to protected mode
 
-	jmpl $8, $now_in_prot
-	
-now_in_prot:
-	
+	jmpl $40, $now_in_prot
 
 no_long_mode:
 1:
 	jmp 1b
+
+# Protected 16-bit. We want to reuse the code-seg descriptor,
+# the Default operand size must not be 1 when entering long mode	
+now_in_prot:  
+	# Set up stack & data descriptors
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %fs
+	movw %ax, %gs
+	movw %ax, %ss
+
+	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
+	# Paging is not enabled until after long mode is enabled
+	movl %cr4, %eax
+	btsl $5, %eax
+	movl %eax, %cr4
+
+	# Set up paging tables
+	leal ptl_0, %eax
+	movl %eax, %cr3
+		
+	# Enable long mode
+	movl $0xc0000080, %ecx   # EFER MSR number
+	rdmsr                   # Read EFER
+	btsl $8, %eax            # Set LME=1
+	wrmsr                   # Write EFER
+	
+	# Enable paging to activate long mode (set CR0.PG=1)
+	movl %cr0, %eax
+	btsl $31, %eax
+	movl %eax, %cr0
+	
+	# At this point we are in compatibility mode
+	jmpl $8, $start64
+
+.code64
+start64:
+	movq START_STACK_64, %rsp
+	
+	lidt idtr_inst
+	
+	call main_bsp   # never returns
+1:
+	jmp 1b
 			
 
-.section K_DATA_START	
+.section K_DATA_START
 .align 4096
-page_directory:
-	.space 4096, 0
+.global ptl_2
+ptl_2:	
+	.quad 0x0 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0x200000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0x400000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0x600000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0x800000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0xa00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0xc00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad 0xe00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	
+.align 4096
+.global ptl_1
+ptl_1:
+	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 509,8,0
+	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 2,8,0
+	
+.align 4096
+.global ptl_0
+ptl_0:
+	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 510,8,0
+	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
-gdt_addr:	
-	.quad gdt + 0x80000000
-idt_addr:	
-	.quad idt + 0x80000000
+.global gdtr_inst				
+gdtr_inst:
+	.word 7*8  # GDT_ITEMS * 8
+	.long gdt + 0x80000000
+
+.global idtr_inst
+idtr_inst:
+	.word 0
+	.long idt + 0x80000000
