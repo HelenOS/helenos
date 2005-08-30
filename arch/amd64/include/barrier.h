@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_BARRIER_H__
-#define __ppc_BARRIER_H__
+#ifndef __amd64_BARRIER_H__
+#define __amd64_BARRIER_H__
 
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")

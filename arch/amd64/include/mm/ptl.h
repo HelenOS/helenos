@@ -39,8 +39,5 @@
 #define PTL_PRESENT       1
 #define PTL_2MB_PAGE      (1<<7)
 
-#define KA2PA(x)	(((__address) (x)) + 0x80000000)
-#define PA2KA(x)	(((__address) (x)) - 0x80000000)
-
 
 #endif

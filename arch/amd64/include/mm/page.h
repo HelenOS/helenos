@@ -29,12 +29,21 @@
 #ifndef __amd64_PAGE_H__
 #define __amd64_PAGE_H__
 
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
-#include <arch/mm/ptl.h>
+#ifndef __ASM__
+#  include <mm/page.h>
+#  include <arch/mm/frame.h>
+#  include <arch/types.h>
+#endif
 
 #define PAGE_SIZE	FRAME_SIZE
+
+#ifndef __ASM__
+# define KA2PA(x)	(((__address) (x)) + 0x80000000)
+# define PA2KA(x)	(((__address) (x)) - 0x80000000)
+#else
+# define KA2PA(x)	((x) + 0x80000000)
+# define PA2KA(x)	((x)) - 0x80000000)
+#endif
 
 #define PTL0_INDEX_ARCH(vaddr)		0
 #define PTL1_INDEX_ARCH(vaddr)		0
@@ -64,8 +73,10 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
+#ifndef __ASM__
 extern void page_arch_init(void);
 
-typedef __u32 pte_t;
+typedef __u64 pte_t;
+#endif
 
 #endif

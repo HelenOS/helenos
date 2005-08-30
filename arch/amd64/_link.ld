@@ -40,5 +40,4 @@ SECTIONS {
 	_hardcoded_ktext_size = ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start);
 	_hardcoded_kdata_size = kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start);
 	_hardcoded_load_address = 0xffffffff80008000;
-	_ka_start = 0xffffffff80000000;
 }

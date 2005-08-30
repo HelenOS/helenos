@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2001-2004 Jakub Jermar
+# Copyright (C) 2001-2004 Ondrej Palkovsky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#define __ASM__
+
+#include <arch/mm/page.h>	
 #include <arch/mm/ptl.h>
+#include <arch/pm.h>
 
 #define START_STACK     0x7c00	
 #define START_STACK_64  $0xffffffff80007c00
@@ -51,11 +55,11 @@ kernel_image_start:
 	
 #	call memmap_arch_init
 	
-	mov $0x80000000, %eax  
+	movl $0x80000000, %eax  
 	cpuid
 	cmp $0x80000000, %eax 	# any function > 80000000h?
 	jbe no_long_mode
-	mov $0x80000001, %eax	# Extended function code 80000001
+	movl $0x80000001, %eax	# Extended function code 80000001
 	cpuid
 	bt $29, %edx 		# Test if long mode is supported.
 	jnc no_long_mode
@@ -68,7 +72,7 @@ kernel_image_start:
 	orl $0x1,%eax
 	movl %eax,%cr0			# switch to protected mode
 
-	jmpl $40, $now_in_prot
+	jmpl $selector(KTEXT32_DES), $now_in_prot
 
 no_long_mode:
 1:
@@ -78,7 +82,7 @@ no_long_mode:
 # the Default operand size must not be 1 when entering long mode	
 now_in_prot:  
 	# Set up stack & data descriptors
-	movw $16, %ax
+	movw $selector(KDATA_DES), %ax
 	movw %ax, %ds
 	movw %ax, %fs
 	movw %ax, %gs
@@ -106,7 +110,7 @@ now_in_prot:
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
-	jmpl $8, $start64
+	jmpl $selector(KTEXT_DES), $start64
 
 .code64
 start64:
@@ -149,10 +153,10 @@ ptl_0:
 
 .global gdtr_inst				
 gdtr_inst:
-	.word 7*8  # GDT_ITEMS * 8
-	.long gdt + 0x80000000
+	.word selector(GDT_ITEMS)
+	.long KA2PA(gdt)
 
 .global idtr_inst
 idtr_inst:
 	.word 0
-	.long idt + 0x80000000
+	.long KA2PA(idt)

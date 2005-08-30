@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_MEMMAP_H__
-#define __ia32_MEMMAP_H__
+#ifndef __amd64_MEMMAP_H__
+#define __amd64_MEMMAP_H__
 
 
 #include <arch/boot/memmapasm.h>

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_MEMMAPASM_H__
-#define __ia32_MEMMAPASM_H__
+#ifndef __amd64_MEMMAPASM_H__
+#define __amd64_MEMMAPASM_H__
 
 
 /* E820h memory range types - other values*/

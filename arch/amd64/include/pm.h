@@ -26,12 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PM_H__
-#define __PM_H__
+#ifndef __amd64_PM_H__
+#define __amd64_PM_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-#include <arch/context.h>
+#ifndef __ASM__
+# include <arch/types.h>
+# include <typedefs.h>
+# include <arch/context.h>
+#endif
 
 #define IDT_ITEMS 64
 #define GDT_ITEMS 7
@@ -41,7 +43,8 @@
 #define	KDATA_DES	2
 #define UTEXT_DES	3
 #define UDATA_DES	4
-#define TSS_DES		5
+#define KTEXT32_DES     5
+#define TSS_DES		6
 
 #define selector(des)	((des)<<3)
 
@@ -60,6 +63,8 @@
 #define DPL_USER	(PL_USER<<5)
 
 #define IO_MAP_BASE	(104)
+
+#ifndef __ASM__
 
 struct ptr_16_32 {
 	__u16 limit;
@@ -144,5 +149,7 @@ extern void idt_init(void);
 extern void idt_setoffset(struct idescriptor *d, __address offset);
 
 extern void tss_initialize(struct tss *t);
+
+#endif /* __ASM__ */
 
 #endif

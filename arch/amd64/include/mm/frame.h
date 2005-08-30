@@ -31,6 +31,8 @@
 
 #define FRAME_SIZE		4096
 
+#ifndef __ASM__
 extern void frame_arch_init(void);
+#endif
 
 #endif

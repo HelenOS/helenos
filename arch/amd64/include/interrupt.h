@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#ifndef __amd64_INTERRUPT_H__
+#define __amd64_INTERRUPT_H__
 
 extern void interrupt(void);
 
