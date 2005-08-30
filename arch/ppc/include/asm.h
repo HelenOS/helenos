@@ -77,4 +77,7 @@ static inline __address get_stack_base(void)
 	return NULL;
 }
 
+void cpu_sleep(void);
+void asm_delay_loop(__u32 t);
+
 #endif

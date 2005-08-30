@@ -28,6 +28,7 @@
 
 #include <arch/drivers/ofw.h>
 #include <stdarg.h>
+#include <cpu.h>
 
 ofw_entry ofw;
 

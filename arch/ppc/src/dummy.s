@@ -34,6 +34,7 @@
 .global memsetb
 .global userspace
 .global before_thread_runs_arch
+.global cpu_sleep
 .global cpu_identify
 .global cpu_arch_init
 .global cpu_print_report
