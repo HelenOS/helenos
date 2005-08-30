@@ -262,8 +262,8 @@ outl:
 # to the memory location defined by 2nd argument.
 # The memory areas cannot overlap.
 #
-SRC=8
-DST=12
+SRC=12
+DST=8
 CNT=16
 memcopy:
 	push %ebp
