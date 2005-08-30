@@ -66,8 +66,6 @@ vm_t *vm_create(pte_t *ptl0)
 		
 			src_ptl0 = (pte_t *) PA2KA((__address) GET_PTL0_ADDRESS());
 			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
-//			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
-//			memcopy((__address) &src_ptl0[KAS_START_INDEX], (__address) &dst_ptl0[KAS_START_INDEX], KAS_INDICES*sizeof(pte_t));
 			memcopy((void *)PA2KA((__address) dst_ptl0), (void *)GET_PTL0_ADDRESS() , PAGE_SIZE);
 			m->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
 		}

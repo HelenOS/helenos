@@ -361,9 +361,8 @@ void scheduler_separated_stack(void)
 		}
 		THREAD = NULL;
 	}
-	printf("*0*");
+
 	THREAD = find_best_thread();
-	printf("*1*");
 	
 	spinlock_lock(&THREAD->lock);
 	priority = THREAD->pri;

@@ -258,8 +258,8 @@ outl:
 ## Copy memory
 #
 # Copy a given number of bytes (3rd argument)
-# from the memory location defined by 1st argument
-# to the memory location defined by 2nd argument.
+# from the memory location defined by 2nd argument
+# to the memory location defined by 1st argument.
 # The memory areas cannot overlap.
 #
 SRC=12
