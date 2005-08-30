@@ -29,8 +29,6 @@
 #ifndef __mips_CPU_H__
 #define __mips_CPU_H__
 
-#define CPU_ID_ARCH	0
-
 struct cpu_arch {
 	int imp_num;
 	int rev_num;

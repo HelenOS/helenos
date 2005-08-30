@@ -83,22 +83,6 @@ static inline void write_cr3(__u32 v) { __asm__ volatile ("movl %0,%%cr3\n" : : 
  */
 static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0" : "=r" (v)); return v; }
 
-/** Write DR0
- *
- * Write value to DR0.
- *
- * @param v Value to be written.
- */
-static inline void write_dr0(__u32 v) { __asm__ volatile ("movl %0,%%dr0\n" : : "r" (v)); }
-
-/** Read DR0
- *
- * Return value in DR0
- *
- * @return Value read.
- */
-static inline __u32 read_dr0(void) { __u32 v; __asm__ volatile ("movl %%dr0,%0" : "=r" (v)); return v; }
-
 /** Set priority level low
  *
  * Enable interrupts and return previous

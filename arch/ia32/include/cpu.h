@@ -33,12 +33,6 @@
 #include <arch/pm.h>
 #include <arch/asm.h>
 
-#ifdef __SMP__
-#define CPU_ID_ARCH	(read_dr0())
-#else
-#define CPU_ID_ARCH	(0)
-#endif
-
 struct cpu_arch {
 	int vendor;
 	int family;

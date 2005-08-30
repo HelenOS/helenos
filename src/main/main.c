@@ -179,7 +179,6 @@ void main_bsp_separated_stack(void)
 	 */
 	t = thread_create(kinit, NULL, k, 0);
 	if (!t) panic("can't create kinit thread\n");
-
 	thread_ready(t);
 
 	/*
@@ -210,6 +209,11 @@ void main_ap(void)
 	 */
 	config.cpu_active++;
 
+	/*
+	 * The THE structure is well defined because ctx.sp is used as stack.
+	 */
+	the_initialize(THE);
+
 	arch_pre_mm_init();
 	frame_init();
 	page_init();
@@ -221,6 +225,7 @@ void main_ap(void)
 	l_apic_init();
 	l_apic_debug();
 
+	the_copy(THE, (the_t *) CPU->stack);
 
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could

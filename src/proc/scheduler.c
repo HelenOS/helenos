@@ -363,7 +363,7 @@ void scheduler_separated_stack(void)
 	spinlock_lock(&THREAD->lock);
 	priority = THREAD->pri;
 	spinlock_unlock(&THREAD->lock);	
-	
+
 	relink_rq(priority);		
 
 	spinlock_lock(&THREAD->lock);	

@@ -31,8 +31,6 @@
 
 #include <typedefs.h>
 
-#define CPU_ID_ARCH	0
-
 struct cpu_arch {
 };
 	

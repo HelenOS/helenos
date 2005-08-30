@@ -39,16 +39,9 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 
-/*
- * NOTE:
- * CPU, THREAD and TASK are not preemption-safe.
- * Provisions must be made to prevent preemption prior
- * to using these macros. Simple cpu_priority_high()
- * call will suffice.
- */
-#define CPU		(&cpus[CPU_ID_ARCH])
-#define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
-#define TASK		(cpu_private_data[CPU_ID_ARCH].task)
+#define CPU		THE->cpu
+#define THREAD		THE->thread
+#define TASK		THE->task
 
 /*
  * For each possible kernel stack, structure

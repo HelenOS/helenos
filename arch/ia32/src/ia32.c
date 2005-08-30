@@ -51,8 +51,6 @@ void arch_pre_mm_init(void)
 {
 	pm_init();
 
-	write_dr0(config.cpu_active - 1);
-
 	if (config.cpu_active == 1) {
 		bios_init();
 		i8042_init();	/* a20 bit */

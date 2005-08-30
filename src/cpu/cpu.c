@@ -39,10 +39,7 @@
 #include <memstr.h>
 #include <list.h>
 
-
-cpu_private_data_t *cpu_private_data;
 cpu_t *cpus;
-
 
 /** Initialize CPUs
  *
@@ -55,20 +52,15 @@ void cpu_init(void) {
 	#ifdef __SMP__
 	if (config.cpu_active == 1) {
 	#endif /* __SMP__ */
-		cpu_private_data = (cpu_private_data_t *) malloc(sizeof(cpu_private_data_t) * config.cpu_count);
-		if (!cpu_private_data)
-			panic("malloc/cpu_private_data");
-
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
 		if (!cpus)
 			panic("malloc/cpus");
 
 		/* initialize everything */
-		memsetb((__address) cpu_private_data, sizeof(cpu_private_data_t) * config.cpu_count, 0);
 		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
 		for (i=0; i < config.cpu_count; i++) {
-			cpus[i].stack = (__u8 *) malloc(CPU_STACK_SIZE);
+			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC);
 			if (!cpus[i].stack)
 				panic("malloc/cpus[%d].stack\n", i);
 			
@@ -86,6 +78,8 @@ void cpu_init(void) {
 	#ifdef __SMP__
 	}
 	#endif /* __SMP__ */
+
+	CPU = &cpus[config.cpu_active-1];
 	
 	CPU->active = 1;
 	CPU->tlb_active = 1;
