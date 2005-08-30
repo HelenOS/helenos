@@ -47,58 +47,6 @@ typedef struct {
 	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
 } ofw_args_t;
 
-/** OpenFirmware device address range structure
- *
- */
-typedef struct {
-	__u32 space;
-	__u32 address;
-	__u32 size;
-} address_range_t;
-
-/** OpenFirmware device interrupt structure
- *
- */
-typedef struct {
-	__u32 line;  /**< Interrupt number */
-	__u32 flags; /**< Interrupt flags/logic */
-} interrupt_info_t;
-
-/** OpenFirmware property structure
- *
- */
-typedef struct property_t {
-	char *name;              /**< Property name */
-	__u32 length;            /**< Value length */
-	char *value;             /**< Property value */
-	struct property_t *next; /**< Next property in list */
-} property_t;
-
-/** OpenFirmware device descritor
- *
- */
-typedef struct device_node_t {
-	char *name;                     /**< Device name */
-	char *type;                     /**< Device type */
-	phandle node;                   /**< Device handle */
-	
-	__u32 n_addrs;                  /**< Number of address ranges */
-	address_range_t *addrs;         /**< Address ranges list */
-	
-	__u32 n_intrs;                  /**< Number of interrupts */
-	interrupt_info_t *intrs;        /**< Interrupts list */
-	
-	char *full_name;                /**< Device full name */
-	
-	property_t *properties;         /**< Device properties */
-	
-	struct device_node_t *parent;   /**< Parent device */
-	struct device_node_t *child;    /**< First child in tree */
-	struct device_node_t *sibling;  /**< Next device on tree level */
-	struct device_node_t *next;     /**< Next device of the same type */
-	struct device_node_t *next_all; /**< Next device in list of all nodes */
-} device_node_t;
-
 typedef void (*ofw_entry)(ofw_args_t *);
 
 extern ofw_entry ofw;
