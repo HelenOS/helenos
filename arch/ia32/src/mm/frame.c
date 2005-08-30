@@ -45,7 +45,6 @@ void frame_arch_init(void)
 		frame_region_not_free(0xfec00000,0xffffffff);
 		
 		for (i=e820counter;i>0;i--) {
-			printf("E820 base: %Q size: %Q type: %L \n",e820table[i-1].base_address,e820table[i-1].size,e820table[i-1].type);
 			if (e820table[i-1].type!=MEMMAP_MEMORY_AVAILABLE) {
 				frame_region_not_free(e820table[i-1].base_address,e820table[i-1].size);
 				}

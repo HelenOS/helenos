@@ -45,6 +45,7 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/acpi/acpi.h>
+#include <arch/mm/memory_init.h>
 
 void arch_pre_mm_init(void)
 {
@@ -77,6 +78,8 @@ void arch_post_mm_init(void)
 void arch_late_init(void)
 {
 	if (config.cpu_active == 1) {
+		memory_print_map();
+		
 		#ifdef __SMP__
 		acpi_init();
 		#endif /* __SMP__ */
