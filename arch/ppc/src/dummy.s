@@ -29,20 +29,15 @@
 .text
 
 .global memcopy
-.global cpu_priority_high
-.global cpu_priority_low
 .global cpu_priority_read
-.global cpu_priority_restore
 .global memsetb
 .global context_save
 .global context_restore
 .global userspace
 .global before_thread_runs_arch
-.global panic_printf
 .global cpu_identify
 .global cpu_arch_init
 .global cpu_print_report
-.global get_memory_size
 .global arch_pre_mm_init
 .global arch_post_mm_init
 .global arch_late_init
@@ -51,9 +46,6 @@
 .global dummy
 
 memcopy:
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_restore:
 cpu_priority_read:
 memsetb:
 context_save:
@@ -62,11 +54,9 @@ before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
 asm_delay_loop:
-panic_printf:
 cpu_identify:
 cpu_arch_init:
 cpu_print_report:
-get_memory_size:
 arch_pre_mm_init:
 arch_post_mm_init:
 arch_late_init:

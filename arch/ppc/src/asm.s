@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/asm/macro.h>
+
 .text
 
 .global cpu_halt

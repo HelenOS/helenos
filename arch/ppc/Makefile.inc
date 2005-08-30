@@ -16,10 +16,12 @@ LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 
 arch_sources= \
 	arch/ppc.c \
+	arch/debug/panic.s \
 	arch/fpu_context.c \
 	arch/dummy.s \
 	arch/start.S \
 	arch/asm.s \
 	arch/mm/frame.c \
+	arch/mm/memory_init.c \
 	arch/mm/page.c \
 	arch/drivers/ofw.c

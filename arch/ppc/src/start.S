@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/asm/macro.h>
+
 .section K_TEXT_START
 
 .global kernel_image_start

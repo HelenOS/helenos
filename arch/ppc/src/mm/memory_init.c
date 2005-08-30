@@ -26,55 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_ASM_H__
-#define __ppc_ASM_H__
+#include <arch/mm/memory_init.h>
+#include <arch/drivers/ofw.h>
+#include <panic.h>
 
-#include <arch/types.h>
-#include <config.h>
+#define MEMMAP_MAX_RECORDS 32
 
-/** Set priority level low
- *
- * Enable interrupts and return previous
- * value of EE.
- */
-static inline pri_t cpu_priority_low(void) {
-	pri_t v;
-	__asm__ volatile (
-		"\n"
-		: "=r" (v)
-	);
-	return v;
-}
+typedef struct {
+	__u32 start;
+	__u32 size;
+} memmap_t;
 
-/** Set priority level high
- *
- * Disable interrupts and return previous
- * value of EE.
- */
-static inline pri_t cpu_priority_high(void) {
-	pri_t v;
-	__asm__ volatile (
-		"\n"
-		: "=r" (v)
-	);
-	return v;
-}
-
-/** Restore priority level
- *
- * Restore EE.
- */
-static inline void cpu_priority_restore(pri_t pri) {
-	__asm__ volatile (
-		"\n"
-		: : "r" (pri)
-	);
-}
-
-/* TODO: implement the real stuff */
-static inline __address get_stack_base(void)
+size_t get_memory_size(void) 
 {
-	return NULL;
-}
+	phandle handle = ofw_find_device("/memory");
+	if (handle == -1)
+		panic("No RAM\n");
+	
+	memmap_t memmap[MEMMAP_MAX_RECORDS];
+	size_t ret = ofw_get_property(handle, "reg", &memmap, sizeof(memmap));
+	if (ret == -1)
+		panic("Device /memory has no reg property\n");
+	
+	size_t total;
+	int i;
+	
+	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {
+		if (memmap[i].size == 0)
+			break;
+		total += memmap[i].size;
+	}
 
-#endif
+	return total;
+}

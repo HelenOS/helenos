@@ -74,6 +74,9 @@
 #define	r30	30
 #define	r31	31
 
+/* GPR Aliases */
+#define	sp	1
+
 /* Floating Point Registers (FPRs) */
 #define	fr0	0
 #define	fr1	1

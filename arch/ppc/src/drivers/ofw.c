@@ -29,13 +29,14 @@
 #include <arch/drivers/ofw.h>
 #include <stdarg.h>
 
-ihandle ofw_chosen;
-ihandle ofw_stdout;
 ofw_entry ofw;
+
+phandle ofw_chosen;
+ihandle ofw_stdout;
 
 void ofw_init(void)
 {
-	ofw_chosen = ofw_call("finddevice", 1, 1, "/chosen");
+	ofw_chosen = ofw_find_device("/chosen");
 	if (ofw_chosen == -1)
 		ofw_done();
 	
@@ -52,7 +53,7 @@ void ofw_done(void)
 int ofw_call(const char *service, const int nargs, const int nret, ...)
 {
 	va_list list;
-	struct ofw_args_t args;
+	ofw_args_t args;
 	int i;
 	
 	args.service = service;
@@ -77,7 +78,17 @@ void ofw_putchar(const char ch)
 	if (ofw_stdout == 0)
 		return;
 	
-	ofw_call("write", 3, 1, ofw_stdout, ch, 1);
+	ofw_call("write", 3, 1, ofw_stdout, &ch, 1);
+}
+
+phandle ofw_find_device(const char *name)
+{
+	return ofw_call("finddevice", 1, 1, name);
+}
+
+int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen)
+{
+	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
 }
 
 void putchar(const char ch)
