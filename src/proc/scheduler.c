@@ -252,6 +252,13 @@ void scheduler(void)
 	}
 
 	/*
+	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU
+	 * and preemption counter. At this point THE could be coming either
+	 * from THREAD's or CPU's stack.
+	 */
+	the_copy(THE, (the_t *) CPU->stack);
+
+	/*
 	 * We may not keep the old stack.
 	 * Reason: If we kept the old stack and got blocked, for instance, in
 	 * find_best_thread(), the old thread could get rescheduled by another
@@ -397,6 +404,8 @@ void scheduler_separated_stack(void)
 	printf("cpu%d: tid %d (pri=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->pri, THREAD->ticks, CPU->nrdy);
 	#endif	
 
+	the_copy(THE, (the_t *) THREAD->kstack);
+	
 	context_restore(&THREAD->saved_context);
 	/* not reached */
 }

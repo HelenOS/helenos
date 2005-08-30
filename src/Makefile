@@ -16,6 +16,7 @@ sources=cpu/cpu.c \
 	lib/func.c \
 	lib/list.c \
 	lib/memstr.c \
+	lib/the.c \
 	debug/print.c \
 	time/clock.c \
 	time/timeout.c \

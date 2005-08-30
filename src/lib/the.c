@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ARCH_H__
-#define __ARCH_H__
-
-#include <arch/types.h>
+#include <arch.h>
 #include <typedefs.h>
 
-#include <cpu.h>
-#include <arch/cpu.h>
-#include <arch/asm.h> 
 
-#include <proc/thread.h>
-#include <proc/task.h>
-
-/*
- * NOTE:
- * CPU, THREAD and TASK are not preemption-safe.
- * Provisions must be made to prevent preemption prior
- * to using these macros. Simple cpu_priority_high()
- * call will suffice.
+/** Initialize THE structure
+ *
+ * Initialize THE structure passed as argument.
+ *
+ * @the THE structure to be initialized.
+ *
  */
-#define CPU		(&cpus[CPU_ID_ARCH])
-#define THREAD		(cpu_private_data[CPU_ID_ARCH].thread)
-#define TASK		(cpu_private_data[CPU_ID_ARCH].task)
+void the_initialize(the_t *the)
+{
+	the->preemption_disabled = 0;
+	the->cpu = NULL;
+	the->thread = NULL;
+	the->task = NULL;
+}
 
-/*
- * For each possible kernel stack, structure
- * of the following type will be placed at
- * the bottom of the stack.
+/** Copy THE structure
+ *
+ * Copy the source THE structure to the destination THE structure.
+ *
+ * @src The source THE structure.
+ * @dst The destination THE structure.
  */
-struct the {
-	int preemption_disabled;
-	thread_t *thread;		/* current thread */
-	task_t *task;			/* current task */
-	cpu_t *cpu;			/* executing cpu */
-};
-
-#define THE		((the_t *)(get_stack_base()))	
-
-extern void the_initialize(the_t *the);
-extern void the_copy(the_t *src, the_t *dst);
-
-extern void arch_pre_mm_init(void);
-extern void arch_post_mm_init(void);
-extern void arch_late_init(void);
-extern void calibrate_delay_loop(void);
-
-extern pri_t cpu_priority_high(void);
-extern pri_t cpu_priority_low(void);
-extern void cpu_priority_restore(pri_t pri);
-extern pri_t cpu_priority_read(void);
-
-#endif
+void the_copy(the_t *src, the_t *dst)
+{
+	*dst = *src;
+}

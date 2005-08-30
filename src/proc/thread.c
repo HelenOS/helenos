@@ -196,6 +196,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		
 		context_save(&t->saved_context);
 		context_set(&t->saved_context, FADDR(cushion), t->kstack, THREAD_STACK_SIZE);
+		
+		the_initialize((the_t *) t->kstack);
 
 		pri = cpu_priority_high();
 		t->saved_context.pri = cpu_priority_read();
