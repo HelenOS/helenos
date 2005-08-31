@@ -163,7 +163,7 @@ void idt_init(void)
 		d = &idt[i];
 
 		d->unused = 0;
-		d->selector = idtselector(KTEXT_DES);
+		d->selector = gdtselector(KTEXT_DES);
 
 		d->present = 1;
 		d->type = AR_INTERRUPT;	/* masking interrupt */
