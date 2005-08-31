@@ -108,11 +108,12 @@ struct descriptor gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-struct ptr_16_64 gdtr = {.limit = sizeof(gdtr), .base= (__u64) &gdtr };
+struct ptr_16_64 gdtr = {.limit = sizeof(gdtr), .base= (__u64)KA2PA(&gdt) };
 
 struct idescriptor idt[IDT_ITEMS];
 
 static struct tss tss;
+struct tss *tss_p = NULL;
 
 /* TODO: Does not compile correctly if it does not exist ???? */
 int __attribute__ ((section ("K_DATA_START"))) __fake;
@@ -216,7 +217,7 @@ static void clean_AM_flag(void)
 void pm_init(void)
 {
 	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
-	struct tss_descriptor *tss_d;
+	struct tss_descriptor *tss_desc;
 
 	/*
 	 * Each CPU has its private GDT and TSS.
@@ -239,10 +240,10 @@ void pm_init(void)
 
 	tss_initialize(tss_p);
 
-	tss_d = (struct tss_descriptor *) &gdt_p[TSS_DES];
-	tss_d[TSS_DES].present = 1;
-	tss_d[TSS_DES].type = AR_TSS;
-	tss_d[TSS_DES].dpl = PL_KERNEL;
+	tss_desc = (struct tss_descriptor *) (&gdt_p[TSS_DES]);
+	tss_desc->present = 1;
+	tss_desc->type = AR_TSS;
+	tss_desc->dpl = PL_KERNEL;
 	
 	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);

@@ -5,3 +5,4 @@ make dist-clean ARCH=ia32
 
 find ../arch/amd64 -type l | xargs rm
 rm ../arch/amd64/src/context_offset.h
+rm ../arch/amd64/src/gencontext

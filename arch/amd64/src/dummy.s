@@ -57,7 +57,6 @@
 .global gp_fault
 .global nm_fault
 .global ss_fault
-.global tss_p
 .global interrupt_handlers
 .global memcpy
 
@@ -66,9 +65,7 @@ interrupt_handler_size:
 interrupt_handlers:	
 gp_fault:
 nm_fault:
-ss_fault:
-tss_p:	
-	
+ss_fault:	
 eoi_function:
 syscall:	
 enable_irqs_function:
