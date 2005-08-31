@@ -36,7 +36,7 @@
 #endif
 
 #define IDT_ITEMS 64
-#define GDT_ITEMS 7
+#define GDT_ITEMS 8
 
 #define NULL_DES	0
 #define KTEXT_DES	1
@@ -46,7 +46,8 @@
 #define KTEXT32_DES     5
 #define TSS_DES		6
 
-#define selector(des)	((des)<<3)
+#define gdtselector(des)	((des)<<3)
+#define idtselector(des)        ((des)<<4)
 
 #define PL_KERNEL	0
 #define PL_USER		3
@@ -56,8 +57,9 @@
 #define AR_CODE		(3<<3)
 #define AR_WRITABLE	(1<<1)
 #define AR_READABLE     (1<<1)
-#define AR_INTERRUPT	(0xe)
 #define AR_TSS		(0x9)
+#define AR_INTERRUPT    (0xe)
+#define AR_TRAP         (0xf)
 
 #define DPL_KERNEL	(PL_KERNEL<<5)
 #define DPL_USER	(PL_USER<<5)
@@ -65,11 +67,6 @@
 #define IO_MAP_BASE	(104)
 
 #ifndef __ASM__
-
-struct ptr_16_32 {
-	__u16 limit;
-	__u32 base;
-} __attribute__ ((packed));
 
 struct descriptor {
 	unsigned limit_0_15: 16;
@@ -84,66 +81,70 @@ struct descriptor {
 	unsigned base_24_31: 8;
 } __attribute__ ((packed));
 
+struct tss_descriptor {
+	unsigned limit_0_15: 16;
+	unsigned base_0_15: 16;
+	unsigned base_16_23: 8;
+	unsigned type: 4;
+	unsigned reserve1 : 1;
+	unsigned dpl : 2;
+	unsigned present : 1;
+	unsigned limit_16_19: 4;
+	unsigned available: 1;
+	unsigned reserve2: 2;
+	unsigned granularity : 1;
+	unsigned base_24_31: 8;	
+	unsigned base_32_63 : 32;
+	unsigned reserve3 : 32;
+} __attribute__ ((packed));
+
 struct idescriptor {
 	unsigned offset_0_15: 16;
 	unsigned selector: 16;
-	unsigned unused: 8;
-	unsigned access: 8;
+	unsigned ist:3;
+	unsigned unused: 5;
+	unsigned type: 5;
+	unsigned dpl: 2;
+	unsigned present : 1;
 	unsigned offset_16_31: 16;
+	unsigned offset_32_63: 16;
+	unsigned reserved : 32;
 } __attribute__ ((packed));
 
+struct ptr_16_64 {
+	__u16 limit;
+	__u64 base;
+} __attribute__ ((packed));
 
 struct tss {
-	__u16 link;
-	unsigned : 16;
-	__u32 esp0;
-	__u16 ss0;
-	unsigned : 16;
-	__u32 esp1;
-	__u16 ss1;
-	unsigned : 16;
-	__u32 esp2;
-	__u16 ss2;
-	unsigned : 16;
-	__u32 cr3;
-	__u32 eip;
-	__u32 eflags;
-	__u32 eax;
-	__u32 ecx;
-	__u32 edx;
-	__u32 ebx;
-	__u32 esp;
-	__u32 ebp;
-	__u32 esi;
-	__u32 edi;
-	__u16 es;
-	unsigned : 16;
-	__u16 cs;
-	unsigned : 16;
-	__u16 ss;
-	unsigned : 16;
-	__u16 ds;
-	unsigned : 16;
-	__u16 fs;
-	unsigned : 16;
-	__u16 gs;
-	unsigned : 16;
-	__u16 ldtr;
-	unsigned : 16;
-	unsigned : 16;
-	__u16 io_map_base;
+	__u32 reserve1;
+	__u64 rsp0;
+	__u64 rsp1;
+	__u64 rsp2;
+	__u64 reserve2;
+	__u64 ist1;
+	__u64 ist2;
+	__u64 ist3;
+	__u64 ist4;
+	__u64 ist5;
+	__u64 ist6;
+	__u64 ist7;
+	__u64 reserve3;
+	__u16 reserve4;
+	__u16 iomap;
 } __attribute__ ((packed));
 
-extern struct ptr_16_32 gdtr;
 extern struct tss *tss_p;
 
 extern struct descriptor gdt[];
 extern struct idescriptor idt[];
 
+extern struct ptr_16_64 gdtr;
+
 extern void pm_init(void);
 
-extern void gdt_setbase(struct descriptor *d, __address base);
-extern void gdt_setlimit(struct descriptor *d, __u32 limit);
+extern void gdt_tss_setbase(struct descriptor *d, __address base);
+extern void gdt_tss_setlimit(struct descriptor *d, __u32 limit);
 
 extern void idt_init(void);
 extern void idt_setoffset(struct idescriptor *d, __address offset);

@@ -20,4 +20,11 @@ arch_sources = arch/dummy.s \
 	arch/pm.c \
 	arch/context.S \
 	arch/drivers/ega.c \
-	arch/supplib.c
+	arch/drivers/i8042.c \
+	arch/drivers/i8254.c \
+	arch/drivers/i8259.c \
+	arch/supplib.c \
+	arch/delay.S \
+	arch/amd64.c \
+	arch/bios/bios.c
+

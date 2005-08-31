@@ -29,7 +29,14 @@
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
+#include <arch/interrupt.h>
+#include <arch/asm.h>
 
+#include <config.h>
+
+#include <memstr.h>
+#include <mm/heap.h>
+#include <debug.h>
 
 /*
  * There is no segmentation in long mode so we set up flat mode. In this
@@ -71,7 +78,7 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .available   = 0, 
 	  .longmode    = 1, 
 	  .special     = 0, 
-	  .granularity = 0, 
+	  .granularity = 1, 
 	  .base_24_31  = 0 },
 	/* UDATA descriptor */
 	{ .limit_0_15  = 0xffff, 
@@ -95,13 +102,157 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .special     = 0,
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
-	/* TSS descriptor - set up will be completed later */
+	/* TSS descriptor - set up will be completed later,
+	 * on AMD64 it is 64-bit - 2 items in table */
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
+
+struct ptr_16_64 gdtr = {.limit = sizeof(gdtr), .base= (__u64) &gdtr };
 
 struct idescriptor idt[IDT_ITEMS];
 
 static struct tss tss;
 
-/* Does not compile correctly if it does not exist */
+/* TODO: Does not compile correctly if it does not exist ???? */
 int __attribute__ ((section ("K_DATA_START"))) __fake;
+
+void gdt_tss_setbase(struct descriptor *d, __address base)
+{
+	struct tss_descriptor *td = (struct tss_descriptor *) d;
+
+	td->base_0_15 = base & 0xffff;
+	td->base_16_23 = ((base) >> 16) & 0xff;
+	td->base_24_31 = ((base) >> 24) & 0xff;
+	td->base_32_63 = ((base) >> 32);
+}
+
+void gdt_tss_setlimit(struct descriptor *d, __u32 limit)
+{
+	struct tss_descriptor *td = (struct tss_descriptor *) d;
+
+	td->limit_0_15 = limit & 0xffff;
+	td->limit_16_19 = (limit >> 16) & 0xf;
+}
+
+void idt_setoffset(struct idescriptor *d, __address offset)
+{
+	/*
+	 * Offset is a linear address.
+	 */
+	d->offset_0_15 = offset & 0xffff;
+	d->offset_16_31 = offset >> 16 & 0xffff;
+	d->offset_32_63 = offset >> 32;
+}
+
+void tss_initialize(struct tss *t)
+{
+	memsetb((__address) t, sizeof(struct tss), 0);
+}
+
+/*
+ * This function takes care of proper setup of IDT and IDTR.
+ */
+void idt_init(void)
+{
+	struct idescriptor *d;
+	int i;
+
+	for (i = 0; i < IDT_ITEMS; i++) {
+		d = &idt[i];
+
+		d->unused = 0;
+		d->selector = idtselector(KTEXT_DES);
+
+		d->present = 1;
+		d->type = AR_INTERRUPT;	/* masking interrupt */
+
+		if (i == VECTOR_SYSCALL) {
+			/*
+			 * The syscall interrupt gate must be calleable from userland.
+			 */
+			d->dpl |= PL_USER;
+		}
+		
+		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
+		trap_register(i, null_interrupt);
+	}
+	trap_register(13, gp_fault);
+	trap_register( 7, nm_fault);
+	trap_register(12, ss_fault);
+}
+
+
+/* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
+static void clean_IOPL_NT_flags(void)
+{
+	asm
+	(
+		"pushfq;"
+		"pop %%rax;"
+		"and $~(0x7000),%%rax;"
+		"pushq %%rax;"
+		"popfq;"
+		:
+		:
+		:"%rax"
+	);
+}
+
+/* Clean AM(18) flag in CR0 register */
+static void clean_AM_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%rax;"
+		"and $~(0x40000),%%rax;"
+		"mov %%rax,%%cr0;"
+		:
+		:
+		:"%rax"
+	);
+}
+
+void pm_init(void)
+{
+	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
+	struct tss_descriptor *tss_d;
+
+	/*
+	 * Each CPU has its private GDT and TSS.
+	 * All CPUs share one IDT.
+	 */
+
+	if (config.cpu_active == 1) {
+		idt_init();
+		/*
+		 * NOTE: bootstrap CPU has statically allocated TSS, because
+		 * the heap hasn't been initialized so far.
+		 */
+		tss_p = &tss;
+	}
+	else {
+		tss_p = (struct tss *) malloc(sizeof(struct tss));
+		if (!tss_p)
+			panic("could not allocate TSS\n");
+	}
+
+	tss_initialize(tss_p);
+
+	tss_d = (struct tss_descriptor *) &gdt_p[TSS_DES];
+	tss_d[TSS_DES].present = 1;
+	tss_d[TSS_DES].type = AR_TSS;
+	tss_d[TSS_DES].dpl = PL_KERNEL;
+	
+	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
+	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);
+
+	/*
+	 * As of this moment, the current CPU has its own GDT pointing
+	 * to its own TSS. We just need to load the TR register.
+	 */
+	__asm__("ltr %0" : : "r" ((__u16) gdtselector(TSS_DES)));
+	
+	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
+	clean_AM_flag();          /* Disable alignment check */
+}

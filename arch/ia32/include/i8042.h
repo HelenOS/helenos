@@ -32,6 +32,6 @@
 #include <arch/types.h>
 
 extern void i8042_init(void);
-extern void i8042_interrupt(__u8 n, __u32 stack[]);
+extern void i8042_interrupt(__u8 n, __native stack[]);
 
 #endif

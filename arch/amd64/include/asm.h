@@ -34,6 +34,8 @@
 
 
 void asm_delay_loop(__u32 t);
+void asm_fake_loop(__u32 t);
+
 
 /* TODO: implement the real stuff */
 static inline __address get_stack_base(void)
@@ -54,7 +56,7 @@ static inline __u8 inb(__u16 port)
 		"mov %%al, %1;"
 		:"=m"(out)
 		:"m"(port)
-		:"dx","al"
+		:"%dx","%al"
 		);
 	return out;
 }
@@ -67,7 +69,7 @@ static inline __u8 outb(__u16 port,__u8 b)
 		"outb %%al,%%dx;"
 		:
 		:"m"( port), "m" (b)
-		:"dx","al"
+		:"%dx","%al"
 		);
 }
 
@@ -115,5 +117,21 @@ static inline void cpu_priority_restore(pri_t pri) {
 		);
 }
 
+/** Return raw priority level
+ *
+ * Return EFLAFS.
+ */
+static inline pri_t cpu_priority_read(void) {
+	pri_t v;
+	__asm__ volatile (
+		"pushfq\n"
+		"popq %0\n"
+		: "=r" (v)
+	);
+	return v;
+}
+
+extern size_t interrupt_handler_size;
+extern void interrupt_handlers(void);
 
 #endif

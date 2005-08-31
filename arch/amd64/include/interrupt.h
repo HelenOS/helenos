@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_INTERRUPT_H__
-#define __amd64_INTERRUPT_H__
+#ifndef __INTERRUPT_H__
+#define __INTERRUPT_H__
 
-extern void interrupt(void);
+#include <arch/types.h>
+#include <arch/pm.h>
+
+#define IVT_ITEMS		IDT_ITEMS
+
+#define IVT_EXCBASE		0
+#define EXCLAST			31
+
+#define IVT_IRQBASE		(IVT_EXCBASE+EXCLAST+1)
+#define IRQLAST			15
+
+#define IVT_FREEBASE		(IVT_IRQBASE+IRQLAST+1)
+
+#define IRQ_CLK		0
+#define IRQ_KBD		1
+#define IRQ_PIC1	2
+#define IRQ_PIC_SPUR	7
+
+/* this one must have four least significant bits set to ones */
+#define VECTOR_APIC_SPUR	(IVT_ITEMS-1)
+
+#if (((VECTOR_APIC_SPUR + 1)%16) || VECTOR_APIC_SPUR >= IVT_ITEMS)
+#error Wrong definition of VECTOR_APIC_SPUR
+#endif
+
+#define VECTOR_PIC_SPUR		(IVT_IRQBASE+IRQ_PIC_SPUR)
+#define VECTOR_CLK		(IVT_IRQBASE+IRQ_CLK)
+#define VECTOR_KBD		(IVT_IRQBASE+IRQ_KBD)
+
+#define VECTOR_SYSCALL			(IVT_FREEBASE+0)
+#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
+#define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+2)
+
+typedef void (* iroutine)(__u8 n, __native stack[]);
+
+extern void (* disable_irqs_function)(__u16 irqmask);
+extern void (* enable_irqs_function)(__u16 irqmask);
+extern void (* eoi_function)(void);
+
+extern iroutine trap_register(__u8 n, iroutine f);
+
+extern void trap_dispatcher(__u8 n, __native stack[]);
+
+extern void null_interrupt(__u8 n, __native stack[]);
+extern void gp_fault(__u8 n, __native stack[]);
+extern void nm_fault(__u8 n, __native stack[]);
+extern void ss_fault(__u8 n, __native stack[]);
+extern void page_fault(__u8 n, __native stack[]);
+extern void syscall(__u8 n, __native stack[]);
+extern void tlb_shootdown_ipi(__u8 n, __native stack[]);
+extern void wakeup_ipi(__u8 n, __native stack[]);
+
+extern void trap_virtual_enable_irqs(__u16 irqmask);
+extern void trap_virtual_disable_irqs(__u16 irqmask);
+extern void trap_virtual_eoi(void);
 
 #endif

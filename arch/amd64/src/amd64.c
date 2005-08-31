@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/i8042.h>
-#include <arch/i8259.h>
-#include <arch/interrupt.h>
-#include <cpu.h>
-#include <arch/asm.h>
 #include <arch.h>
-#include <print.h>
 
-/*
- * i8042 processor driver.
- * Its very essential function is enabling the A20.
- */
+#include <arch/types.h>
 
-void i8042_init(void)
+#include <config.h>
+
+#include <arch/ega.h>
+#include <arch/i8042.h>
+#include <arch/i8254.h>
+#include <arch/i8259.h>
+
+#include <arch/bios/bios.h>
+
+void arch_pre_mm_init(void)
 {
-	/* A20: deadly if not enabled */
-	outb(0x64,0xd1);
-	outb(0x60,0xdf);
-	
-	trap_register(VECTOR_KBD, i8042_interrupt);
+	pm_init();
+
+	if (config.cpu_active == 1) {
+		bios_init();
+		i8042_init();	/* a20 bit */
+		i8259_init();	/* PIC */
+		i8254_init();	/* hard clock */
+
+		trap_register(VECTOR_SYSCALL, syscall);
+		
+		#ifdef __SMP__
+		trap_register(VECTOR_TLB_SHOOTDOWN_IPI, tlb_shootdown_ipi);
+		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
+		#endif /* __SMP__ */
+	}
 }
 
-void i8042_interrupt(__u8 n, __native stack[])
+void arch_post_mm_init(void)
 {
-	__u8 x;
-
-	trap_virtual_eoi();
-	x = inb(0x60);
-	printf("%d", CPU->id);;
+	if (config.cpu_active == 1) {
+		ega_init();	/* video */
+	}
 }

@@ -122,7 +122,7 @@ void i8254_calibrate_delay_loop(void)
 	return;
 }
 
-void i8254_interrupt(__u8 n, __u32 stack[])
+void i8254_interrupt(__u8 n, __native stack[])
 {
 	trap_virtual_eoi();
 	clock();

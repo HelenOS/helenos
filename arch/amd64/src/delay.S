@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#
+# Micro second delay loop functions.
+#
+
 .text
 
-.global userspace
-.global before_thread_runs_arch
-.global panic_printf
-.global cpu_identify
-.global cpu_arch_init
-.global cpu_sleep
-.global cpu_print_report
-.global get_memory_size
-.global arch_late_init
-.global calibrate_delay_loop
-.global cpu_halt
-.global page_arch_init
-.global frame_arch_init
-.global dummy
-.global trap_register
-.global trap_virtual_eoi
-.global trap_virtual_enable_irqs
-.global rdtsc
-.global trap_virtual_disable_irqs
-.global enable_irqs_function
-.global disable_irqs_function
-.global eoi_function
-.global syscall
-	
-.global null_interrupt
-.global interrupt_handler_size
-.global gp_fault
-.global nm_fault
-.global ss_fault
-.global tss_p
-.global interrupt_handlers
-.global memcpy
+.global asm_delay_loop
+.global asm_fake_loop
 
-null_interrupt:
-interrupt_handler_size:
-interrupt_handlers:	
-gp_fault:
-nm_fault:
-ss_fault:
-tss_p:	
-	
-eoi_function:
-syscall:	
-enable_irqs_function:
-disable_irqs_function:	
-rdtsc:
-trap_virtual_eoi:
-trap_virtual_enable_irqs:
-trap_virtual_disable_irqs:	
-trap_register:	
-before_thread_runs_arch:
-userspace:
-calibrate_delay_loop:
-panic_printf:
-cpu_identify:
-cpu_arch_init:
-cpu_sleep:
-cpu_print_report:
-get_memory_size:
-arch_late_init:
-calibrate_delay_loop:
-cpu_halt:
-page_arch_init:
-frame_arch_init:
-memcpy:
+asm_delay_loop:
+0:	lahf
+	dec %edi
+	jnz 0b
+	ret
 
-dummy:
-0:
+asm_fake_loop:
+0:	lahf
+	dec %edi
+	jz 0b
 	ret

@@ -66,13 +66,15 @@ kernel_image_start:
 
 	# Load gdtr, idtr
 	lgdt gdtr_inst
+	# Load idtr, but it contains mess - we should not get interrupt
+	# anyway
 	lidt idtr_inst
 	
 	movl %cr0,%eax
 	orl $0x1,%eax
 	movl %eax,%cr0			# switch to protected mode
 
-	jmpl $selector(KTEXT32_DES), $now_in_prot
+	jmpl $gdtselector(KTEXT32_DES), $now_in_prot
 
 no_long_mode:
 1:
@@ -82,7 +84,7 @@ no_long_mode:
 # the Default operand size must not be 1 when entering long mode	
 now_in_prot:  
 	# Set up stack & data descriptors
-	movw $selector(KDATA_DES), %ax
+	movw $gdtselector(KDATA_DES), %ax
 	movw %ax, %ds
 	movw %ax, %fs
 	movw %ax, %gs
@@ -110,21 +112,20 @@ now_in_prot:
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
-	jmpl $selector(KTEXT_DES), $start64
+	jmpl $gdtselector(KTEXT_DES), $start64
 
 .code64
 start64:
 	movq START_STACK_64, %rsp
 	
-	lidt idtr_inst
-	
 	call main_bsp   # never returns
 1:
 	jmp 1b
-			
-
+				
 .section K_DATA_START
 .align 4096
+
+# Identical mapping of first 16MB and the same of -2GB -> 0	
 .global ptl_2
 ptl_2:	
 	.quad 0x0 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
@@ -153,10 +154,10 @@ ptl_0:
 
 .global gdtr_inst				
 gdtr_inst:
-	.word selector(GDT_ITEMS)
+	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)
 
 .global idtr_inst
 idtr_inst:
-	.word 0
+	.word idtselector(IDT_ITEMS)
 	.long KA2PA(idt)

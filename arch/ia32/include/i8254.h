@@ -32,7 +32,7 @@
 #include <arch/types.h>
 
 extern void i8254_init(void);
-extern void i8254_interrupt(__u8 n, __u32 stack[]);
+extern void i8254_interrupt(__u8 n, __native stack[]);
 extern void i8254_calibrate_delay_loop(void);
 extern void i8254_normal_operation(void);
 

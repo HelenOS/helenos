@@ -62,9 +62,7 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
 #define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+2)
 
-typedef void (* iroutine)(__u8 n, __u32 stack[]);
-
-extern iroutine ivt[IVT_ITEMS];
+typedef void (* iroutine)(__u8 n, __native stack[]);
 
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
@@ -72,16 +70,16 @@ extern void (* eoi_function)(void);
 
 extern iroutine trap_register(__u8 n, iroutine f);
 
-extern void trap_dispatcher(__u8 n, __u32 stack[]);
+extern void trap_dispatcher(__u8 n, __native stack[]);
 
-extern void null_interrupt(__u8 n, __u32 stack[]);
-extern void gp_fault(__u8 n, __u32 stack[]);
-extern void nm_fault(__u8 n, __u32 stack[]);
-extern void ss_fault(__u8 n, __u32 stack[]);
-extern void page_fault(__u8 n, __u32 stack[]);
-extern void syscall(__u8 n, __u32 stack[]);
-extern void tlb_shootdown_ipi(__u8 n, __u32 stack[]);
-extern void wakeup_ipi(__u8 n, __u32 stack[]);
+extern void null_interrupt(__u8 n, __native stack[]);
+extern void gp_fault(__u8 n, __native stack[]);
+extern void nm_fault(__u8 n, __native stack[]);
+extern void ss_fault(__u8 n, __native stack[]);
+extern void page_fault(__u8 n, __native stack[]);
+extern void syscall(__u8 n, __native stack[]);
+extern void tlb_shootdown_ipi(__u8 n, __native stack[]);
+extern void wakeup_ipi(__u8 n, __native stack[]);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);

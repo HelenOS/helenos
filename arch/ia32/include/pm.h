@@ -132,7 +132,6 @@ extern struct ptr_16_32 gdtr;
 extern struct tss *tss_p;
 
 extern struct descriptor gdt[];
-extern struct idescriptor idt[];
 
 extern void pm_init(void);
 
