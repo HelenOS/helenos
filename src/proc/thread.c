@@ -185,7 +185,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		t->tid = ++last_tid;
 		spinlock_unlock(&tidlock);
 		cpu_priority_restore(pri);
-
+		
 		memsetb(frame_ks, THREAD_STACK_SIZE, 0);
 		link_initialize(&t->rq_link);
 		link_initialize(&t->wq_link);
@@ -193,7 +193,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		link_initialize(&t->threads_link);
 		t->kstack = (__u8 *) frame_ks;
 		t->ustack = (__u8 *) frame_us;
-		
 		
 		context_save(&t->saved_context);
 		context_set(&t->saved_context, FADDR(cushion), t->kstack, THREAD_STACK_SIZE);

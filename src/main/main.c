@@ -53,6 +53,7 @@
 #include <mm/tlb.h>
 #include <synch/waitq.h>
 
+#include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
 
@@ -106,19 +107,19 @@ void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
-
+	
 	kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE;	 
 	heap_delta = PAGE_SIZE - ((hardcoded_load_address + kernel_size) % PAGE_SIZE);
 	heap_delta = (heap_delta == PAGE_SIZE) ? 0 : heap_delta;
 	kernel_size += heap_delta;
-
+	
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
 	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;
-
+	
 	context_save(&ctx);
+	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size + heap_delta, CONFIG_STACK_SIZE + CONFIG_HEAP_SIZE);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
-	context_map_stack(config.base + kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -157,7 +158,7 @@ void main_bsp_separated_stack(void)
 
 	cpu_init();
 	calibrate_delay_loop();
-
+	
 	timeout_init();
 	scheduler_init();
 	task_init();
@@ -167,19 +168,22 @@ void main_bsp_separated_stack(void)
 	 * Create kernel vm mapping.
 	 */
 	m = vm_create(GET_PTL0_ADDRESS());
-	if (!m) panic("can't create kernel vm address space\n");
+	if (!m)
+		panic("can't create kernel vm address space\n");
 
 	/*
 	 * Create kernel task.
 	 */
 	k = task_create(m);
-	if (!k) panic("can't create kernel task\n");
-
+	if (!k)
+		panic("can't create kernel task\n");
+		
 	/*
 	 * Create the first thread.
 	 */
 	t = thread_create(kinit, NULL, k, 0);
-	if (!t) panic("can't create kinit thread\n");
+	if (!t)
+		panic("can't create kinit thread\n");
 	thread_ready(t);
 
 	/*

@@ -25,49 +25,78 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+#include "main.h"
 
-#ifndef __ppc_CONTEXT_H__
-#define __ppc_CONTEXT_H__
+ofw_entry ofw;
 
-#include <arch/types.h>
+phandle ofw_chosen;
+ihandle ofw_stdout;
 
-#define SP_DELTA	8
+void init(void)
+{
+	ofw_chosen = ofw_find_device("/chosen");
+	if (ofw_chosen == -1)
+		ofw_call("exit", 0, 0);
+	
+	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
+		ofw_stdout = 0;
+}
 
-struct context {
-	__u32 r0;
-	__u32 sp;
-	__u32 r2;
-	__u32 r3;
-	__u32 r4;
-	__u32 r5;
-	__u32 r6;
-	__u32 r7;
-	__u32 r8;
-	__u32 r9;
-	__u32 r10;
-	__u32 r11;
-	__u32 r12;
-	__u32 r13;
-	__u32 r14;
-	__u32 r15;
-	__u32 r16;
-	__u32 r17;
-	__u32 r18;
-	__u32 r19;
-	__u32 r20;
-	__u32 r21;
-	__u32 r22;
-	__u32 r23;
-	__u32 r24;
-	__u32 r25;
-	__u32 r26;
-	__u32 r27;
-	__u32 r28;
-	__u32 r29;
-	__u32 r30;
-	__u32 r31;
-	__u32 pc;
-	pri_t pri;
-} __attribute__ ((packed));
+int ofw_call(const char *service, const int nargs, const int nret, ...)
+{
+	va_list list;
+	ofw_args_t args;
+	int i;
+	
+	args.service = service;
+	args.nargs = nargs;
+	args.nret = nret;
+	
+	va_start(list, nret);
+	for (i = 0; i < nargs; i++)
+		args.args[i] = va_arg(list, ofw_arg_t);
+	va_end(list);
+	
+	for (i = 0; i < nret; i++)
+		args.args[i + nargs] = 0;
+	
+	ofw(&args);
+	
+	return args.args[nargs];
+}
 
-#endif
+void ofw_write(const char *str, const int len)
+{
+	if (ofw_stdout == 0)
+		return;
+	
+	ofw_call("write", 3, 1, ofw_stdout, str, len);
+}
+
+void ofw_puts(const char *str)
+{
+	int len = 0;
+	
+	while (str[len] != 0)
+		len++;
+	
+	ofw_write(str, len);
+}
+
+phandle ofw_find_device(const char *name)
+{
+	return ofw_call("finddevice", 1, 1, name);
+}
+
+int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen)
+{
+	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
+}
+
+void bootstrap(void)
+{
+	ofw_puts("\nHelenOS PPC Bootloader\n");
+
+	while (1);
+}

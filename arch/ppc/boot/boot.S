@@ -26,15 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/asm/macro.h>
+#include <asm/macro.h>
 
-.text
+.section BOOTSTRAP
 
-.global cpu_halt
-.global cpu_sleep
+.global start
 
-cpu_halt:
-	b cpu_halt
-
-cpu_sleep:
-	b cpu_sleep
+start:
+	lis r4, ofw@ha
+	addi r4, r4, ofw@l
+	stw r5, 0(r4)
+	
+	bl init
+	
+	b bootstrap

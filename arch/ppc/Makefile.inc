@@ -12,15 +12,17 @@ ASFLAGS=
 DEFS=-DARCH=$(ARCH)
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O2
-LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
+LFLAGS=-M -no-check-sections -N -T ../arch/ppc/_link.ld
 
 arch_sources= \
 	arch/context.S \
 	arch/debug/panic.s \
 	arch/fpu_context.c \
+	arch/ppc.c \
 	arch/dummy.s \
 	arch/start.S \
-	arch/asm.s \
+	arch/asm.S \
+	arch/cpu/cpu.c \
 	arch/mm/frame.c \
 	arch/mm/memory_init.c \
 	arch/mm/page.c \

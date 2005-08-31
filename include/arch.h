@@ -43,6 +43,10 @@
 #define THREAD		THE->thread
 #define TASK		THE->task
 
+#ifndef early_mapping
+#define early_mapping(stack, size)
+#endif /* early_mapping */
+
 /*
  * For each possible kernel stack, structure
  * of the following type will be placed at

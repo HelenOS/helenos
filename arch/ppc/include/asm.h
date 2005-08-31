@@ -78,11 +78,27 @@ static inline void cpu_priority_restore(pri_t pri) {
 	__asm__ volatile (
 		"mfmsr %%r31\n"
 		"rlwimi  %0, %%r31, 0, 17, 15\n"
+		"cmpw 0, %0, %%r31\n"
+		"beq 0f\n"
 		"mtmsr %0\n"
+		"0:\n"
 		: "=r" (pri)
 		: "0" (pri)
 		: "%r31"
 	);
+}
+
+/** Return raw priority level
+ *
+ * Return EE.
+ */
+static inline pri_t cpu_priority_read(void) {
+	pri_t v;
+	__asm__ volatile (
+		"mfmsr %0\n"
+		: "=r" (v)
+	);
+	return v;
 }
 
 /* TODO: implement the real stuff */

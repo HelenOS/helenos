@@ -26,8 +26,64 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/asm/macro.h>
+
 .text
 
-.global start
-start:
-		
+.global cpu_halt
+.global cpu_sleep
+.global memsetb
+.global memcpy
+
+cpu_halt:
+	b cpu_halt
+
+cpu_sleep:
+	b cpu_sleep
+
+memsetb:
+	rlwimi r5, r5, 8, 16, 23
+	rlwimi r5, r5, 16, 0, 15
+	
+	addi r14, r3, -4
+	
+	cmplwi 0, r4, 4
+	blt 7f
+	
+	stwu r5, 4(r14)
+	beqlr
+	
+	andi. r15, r14, 3
+	add r4, r15, r4
+	subf r14, r15, r14
+	srwi r15, r4, 2
+	mtctr r15
+	
+	bdz 6f
+	
+	1:
+		stwu r5, 4(r14)
+		bdnz 1b
+	
+	6:
+	
+	andi. r4, r4, 3
+	
+	7:
+	
+	cmpwi 0, r4, 0
+	beqlr
+	
+	mtctr r4
+	addi r6, r6, 3
+	
+	8:
+	
+	stbu r5, 1(r14)
+	bdnz 8b
+	
+	blr
+
+memcpy:
+	# TODO
+	blr

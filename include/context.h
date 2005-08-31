@@ -38,10 +38,6 @@
 	(c)->sp = ((__address) (stack)) + (size) - SP_DELTA;
 #endif /* context_set */
 
-#ifndef context_map_stack
-#define context_map_stack(stack, size)
-#endif /* context_map_stack */
-
 extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
 

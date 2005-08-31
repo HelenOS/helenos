@@ -26,48 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_CONTEXT_H__
-#define __ppc_CONTEXT_H__
+#ifndef __ppc_ARCH_H__
+#define __ppc_ARCH_H__
 
-#include <arch/types.h>
+#include <arch/drivers/ofw.h>
 
-#define SP_DELTA	8
+#ifdef early_mapping
+#undef early_mapping
+#endif
 
-struct context {
-	__u32 r0;
-	__u32 sp;
-	__u32 r2;
-	__u32 r3;
-	__u32 r4;
-	__u32 r5;
-	__u32 r6;
-	__u32 r7;
-	__u32 r8;
-	__u32 r9;
-	__u32 r10;
-	__u32 r11;
-	__u32 r12;
-	__u32 r13;
-	__u32 r14;
-	__u32 r15;
-	__u32 r16;
-	__u32 r17;
-	__u32 r18;
-	__u32 r19;
-	__u32 r20;
-	__u32 r21;
-	__u32 r22;
-	__u32 r23;
-	__u32 r24;
-	__u32 r25;
-	__u32 r26;
-	__u32 r27;
-	__u32 r28;
-	__u32 r29;
-	__u32 r30;
-	__u32 r31;
-	__u32 pc;
-	pri_t pri;
-} __attribute__ ((packed));
+#define early_mapping(stack, size) \
+	ofw_claim((void *) stack, size, 0);
 
 #endif

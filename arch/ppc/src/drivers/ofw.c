@@ -41,7 +41,7 @@ void ofw_init(void)
 	if (ofw_chosen == -1)
 		ofw_done();
 	
-	if (ofw_call("getprop", 4, 1, ofw_chosen, "stdout", &ofw_stdout, sizeof(ofw_stdout)) <= 0)
+	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)
 		ofw_stdout = 0;
 }
 

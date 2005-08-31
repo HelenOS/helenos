@@ -28,36 +28,14 @@
 
 .text
 
-.global memcpy
-.global cpu_priority_read
-.global memsetb
+.global asm_delay_loop
 .global userspace
 .global before_thread_runs_arch
-.global cpu_sleep
-.global cpu_identify
-.global cpu_arch_init
-.global cpu_print_report
-.global arch_pre_mm_init
-.global arch_post_mm_init
-.global arch_late_init
-.global calibrate_delay_loop
-.global asm_delay_loop
 .global dummy
 
-memcpy:
-cpu_priority_read:
-memsetb:
 before_thread_runs_arch:
 userspace:
-calibrate_delay_loop:
 asm_delay_loop:
-cpu_identify:
-cpu_arch_init:
-cpu_print_report:
-arch_pre_mm_init:
-arch_post_mm_init:
-arch_late_init:
-calibrate_delay_loop:
 
 dummy:
 0:
