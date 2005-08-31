@@ -66,10 +66,6 @@ meeting_point:
 
 	call map_kernel			# map kernel and turn paging on
 
-	movl $_hardcoded_ktext_size, hardcoded_ktext_size
-	movl $_hardcoded_kdata_size, hardcoded_kdata_size
-	movl $_hardcoded_load_address, hardcoded_load_address
-
 	call main_bsp			# never returns
 
 	cli

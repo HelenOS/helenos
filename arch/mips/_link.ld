@@ -27,26 +27,16 @@ SECTIONS {
 		*(.lit4);
 		*(.sdata);
 		*(.sbss);
+		hardcoded_ktext_size = .;
+		LONG(ktext_end - ktext_start);	
+		hardcoded_kdata_size = .;
+		LONG(kdata_end - kdata_start);
+		hardcoded_load_address = .;
+		LONG(0x80000000);
 		*(.bss);		/* uninitialized static variables */	
 		*(.scommon);
 		*(COMMON); 		/* global variables */
 		kdata_end = .;
 
 	} = 0x00000000
-
-	. = ABSOLUTE(hardcoded_ktext_size);
-	.patch_1 : {
-		LONG(ktext_end - ktext_start);
-	}
-
-	. = ABSOLUTE(hardcoded_kdata_size);
-	.patch_2 : {
-		LONG(kdata_end - kdata_start);
-	}
-
-	. = ABSOLUTE(hardcoded_load_address);
-	.patch_3 : {
-		LONG(0x80000000);
-	}
-
 }

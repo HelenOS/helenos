@@ -63,21 +63,21 @@ iroutine trap_register(__u8 n, iroutine f)
  * Called directly from the assembler code.
  * CPU is cpu_priority_high().
  */
-void trap_dispatcher(__u8 n, __u32 stack[])
+void trap_dispatcher(__u8 n, __native stack[])
 {
 	ASSERT(n < IVT_ITEMS);
 	
 	ivt[n](n, stack);
 }
 
-void null_interrupt(__u8 n, __u32 stack[])
+void null_interrupt(__u8 n, __native stack[])
 {
 	printf("int %d: null_interrupt\n", n);
 	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
 	panic("unserviced interrupt\n");
 }
 
-void gp_fault(__u8 n, __u32 stack[])
+void gp_fault(__u8 n, __native stack[])
 {
 	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
 	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
@@ -86,7 +86,7 @@ void gp_fault(__u8 n, __u32 stack[])
 	stack[1]++;
 }
 
-void ss_fault(__u8 n, __u32 stack[])
+void ss_fault(__u8 n, __native stack[])
 {
 	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
 	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
@@ -95,7 +95,7 @@ void ss_fault(__u8 n, __u32 stack[])
 }
 
 
-void nm_fault(__u8 n, __u32 stack[])
+void nm_fault(__u8 n, __native stack[])
 {
 	reset_TS_flag();
 	if ((CPU->fpu_owner)!=NULL) {  
@@ -109,7 +109,7 @@ void nm_fault(__u8 n, __u32 stack[])
 
 
 
-void page_fault(__u8 n, __u32 stack[])
+void page_fault(__u8 n, __native stack[])
 {
 	printf("page fault address: %X\n", read_cr2());
 	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
@@ -118,19 +118,19 @@ void page_fault(__u8 n, __u32 stack[])
 	panic("page fault\n");
 }
 
-void syscall(__u8 n, __u32 stack[])
+void syscall(__u8 n, __native stack[])
 {
 	printf("cpu%d: syscall\n", CPU->id);
 	thread_usleep(1000);
 }
 
-void tlb_shootdown_ipi(__u8 n, __u32 stack[])
+void tlb_shootdown_ipi(__u8 n, __native stack[])
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
 }
 
-void wakeup_ipi(__u8 n, __u32 stack[])
+void wakeup_ipi(__u8 n, __native stack[])
 {
 	trap_virtual_eoi();
 }

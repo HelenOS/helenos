@@ -42,39 +42,16 @@
 .global page_arch_init
 .global frame_arch_init
 .global dummy
-.global trap_register
-.global trap_virtual_eoi
-.global trap_virtual_enable_irqs
 .global rdtsc
-.global trap_virtual_disable_irqs
-.global enable_irqs_function
-.global disable_irqs_function
-.global eoi_function
-.global syscall
+.global reset_TS_flag
+.global fpu_init
 	
-.global null_interrupt
 .global interrupt_handler_size
-.global gp_fault
-.global nm_fault
-.global ss_fault
 .global interrupt_handlers
-.global memcpy
 
-null_interrupt:
 interrupt_handler_size:
 interrupt_handlers:	
-gp_fault:
-nm_fault:
-ss_fault:	
-eoi_function:
-syscall:	
-enable_irqs_function:
-disable_irqs_function:	
 rdtsc:
-trap_virtual_eoi:
-trap_virtual_enable_irqs:
-trap_virtual_disable_irqs:	
-trap_register:	
 before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
@@ -89,8 +66,13 @@ calibrate_delay_loop:
 cpu_halt:
 page_arch_init:
 frame_arch_init:
-memcpy:
-
+reset_TS_flag:
+fpu_init:	
+	
 dummy:
 0:
 	ret
+
+.global memcpy
+memcpy:
+	jmp _memcpy

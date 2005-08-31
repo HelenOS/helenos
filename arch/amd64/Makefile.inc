@@ -26,5 +26,5 @@ arch_sources = arch/dummy.s \
 	arch/supplib.c \
 	arch/delay.S \
 	arch/amd64.c \
-	arch/bios/bios.c
-
+	arch/bios/bios.c \
+	arch/interrupt.c

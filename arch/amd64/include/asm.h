@@ -131,6 +131,15 @@ static inline pri_t cpu_priority_read(void) {
 	return v;
 }
 
+/** Read CR2
+ *
+ * Return value in CR2
+ *
+ * @return Value read.
+ */
+static inline __u32 read_cr2(void) { __u64 v; __asm__ volatile ("movq %%cr2,%0" : "=r" (v)); return v; }
+
+
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
 
