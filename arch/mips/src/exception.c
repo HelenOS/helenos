@@ -39,7 +39,14 @@ void exception(void)
 	__u32 epc;
 	__u32 epc_shift = 0;
 	pri_t pri;
-	
+
+	/*
+	 * NOTE ON OPERATION ORDERING
+	 *
+	 * On entry, cpu_priority_high() must be called before exception bit is cleared.
+	 * On exit, exception bit must be set before cpu_priority_restore() is called.
+	 */
+
 	pri = cpu_priority_high();
 	epc = cp0_epc_read();
 	cp0_status_write(cp0_status_read() & ~ cp0_status_exl_exception_bit);

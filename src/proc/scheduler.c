@@ -135,7 +135,7 @@ retry:
 			spinlock_unlock(&r->lock);
 			continue;
 		}
-	
+
 		/* avoid deadlock with relink_rq() */
 		if (!spinlock_trylock(&CPU->lock)) {
 			/*
@@ -412,6 +412,9 @@ void scheduler_separated_stack(void)
 	printf("cpu%d: tid %d (pri=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->pri, THREAD->ticks, CPU->nrdy);
 	#endif	
 
+	/*
+	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to thread's stack.
+	 */
 	the_copy(THE, (the_t *) THREAD->kstack);
 	
 	context_restore(&THREAD->saved_context);

@@ -75,9 +75,9 @@ void cushion(void)
 	void (*f)(void *) = THREAD->thread_code;
 	void *arg = THREAD->thread_arg;
 
+	/* this is where each thread wakes up after its creation */
 	before_thread_runs();
 
-	/* this is where each thread wakes up after its creation */
 	spinlock_unlock(&THREAD->lock);
 	cpu_priority_low();
 
