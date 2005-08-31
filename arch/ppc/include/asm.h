@@ -40,8 +40,13 @@
 static inline pri_t cpu_priority_low(void) {
 	pri_t v;
 	__asm__ volatile (
-		"\n"
+		"mfmsr %0\n"
+		"mfmsr %%r31\n"
+		"ori %%r31, %%r31, 1 << 15\n"
+		"mtmsr %%r31\n"
 		: "=r" (v)
+		:
+		: "%r31"
 	);
 	return v;
 }
@@ -54,8 +59,13 @@ static inline pri_t cpu_priority_low(void) {
 static inline pri_t cpu_priority_high(void) {
 	pri_t v;
 	__asm__ volatile (
-		"\n"
+		"mfmsr %0\n"
+		"mfmsr %%r31\n"
+		"rlwinm %%r31, %%r31, 0, 17, 15\n"
+		"mtmsr %%r31\n"
 		: "=r" (v)
+		:
+		: "%r31"
 	);
 	return v;
 }
@@ -66,8 +76,12 @@ static inline pri_t cpu_priority_high(void) {
  */
 static inline void cpu_priority_restore(pri_t pri) {
 	__asm__ volatile (
-		"\n"
-		: : "r" (pri)
+		"mfmsr %%r31\n"
+		"rlwimi  %0, %%r31, 0, 17, 15\n"
+		"mtmsr %0\n"
+		: "=r" (pri)
+		: "0" (pri)
+		: "%r31"
 	);
 }
 
