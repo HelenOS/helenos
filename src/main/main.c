@@ -157,6 +157,7 @@ void main_bsp_separated_stack(void)
 	printf("config.cpu_count=%d\n", config.cpu_count);
 
 	cpu_init();
+	
 	calibrate_delay_loop();
 	
 	timeout_init();

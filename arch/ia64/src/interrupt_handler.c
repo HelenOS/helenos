@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,19 +24,24 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#include <putchar.h>
-#include <arch/types.h>
-#include <arch/cp0.h>
 
-#define VIDEORAM	0xB0000000
+#include <panic.h>
 
-void putchar(const char ch)
+
+void general_exception(void);
+void general_exception(void)
 {
-//	__u32 status = cp0_status_read();
-	
-//	cp0_status_write(cp0_status_read() | cp0_status_erl_error_bit);
-	*((char *) VIDEORAM) = ch;
-//	cp0_status_write(status);
+    panic("\nGeneral Exception\n");
 }
+
+
+
+void break_instruction(void);
+void break_instruction(void)
+{
+    panic("\nBreak Instruction\n");
+}
+

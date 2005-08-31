@@ -14,6 +14,8 @@ CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -mconstant-gp -nostdlib -fno-builtin -fno-unwind-tables -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
 LFLAGS=-EL -M -T ../arch/ia64/_link.ld
 
+
+
 arch_sources= \
 	arch/start.S \
 	arch/asm.S \
@@ -22,4 +24,7 @@ arch_sources= \
 	arch/ia64.c \
 	arch/fpu_context.c \
 	arch/context.S \
-	arch/ski/ski.c
+	arch/ski/ski.c \
+	arch/cpu/cpu.c \
+	arch/ivt.S \
+	arch/interrupt_handler.c

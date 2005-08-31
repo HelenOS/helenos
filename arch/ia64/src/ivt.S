@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2005 Jakub Vana
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
 
-.global calibrate_delay_loop
-.global asm_delay_loop
-.global userspace
-.global before_thread_runs_arch
-.global arch_late_init
-.global cpu_identify
-.global cpu_print_report
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_read
-.global cpu_priority_restore
-.global cpu_sleep
-.global frame_arch_init
-.global dummy
 
-before_thread_runs_arch:
-userspace:
-calibrate_delay_loop:
-asm_delay_loop:
-arch_late_init:
-cpu_identify:
-cpu_print_report:
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_read:
-cpu_priority_restore:
-cpu_sleep:
-frame_arch_init:
+.macro Handler o h
+.org IVT + \o
+br \h;;
+.endm
 
-dummy:
-	br.ret.sptk.many b0
 
+
+.global IVT
+.align 32768
+IVT:
+
+Handler 0x2c00 break_instruction
+Handler 0x5400 general_exception
+
+
+
+
+.align 32768
+.byte 0

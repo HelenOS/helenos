@@ -362,7 +362,11 @@ void scheduler_separated_stack(void)
 		THREAD = NULL;
 	}
 
+	printf("Ahoj");
 	THREAD = find_best_thread();
+//	putchar('@');
+	printf("Lidi");	
+//	printf("*1*");
 	
 	spinlock_lock(&THREAD->lock);
 	priority = THREAD->pri;
