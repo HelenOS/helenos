@@ -16,7 +16,6 @@ LFLAGS=-M -no-check-sections -T ../arch/ppc/_link.ld
 
 arch_sources= \
 	arch/context.S \
-	arch/ppc.c \
 	arch/debug/panic.s \
 	arch/fpu_context.c \
 	arch/dummy.s \

@@ -118,6 +118,7 @@ void main_bsp(void)
 
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
+	context_map_stack(config.base + kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -133,7 +134,7 @@ void main_bsp_separated_stack(void)
 	vm_t *m;
 	task_t *k;
 	thread_t *t;
-
+	
 	the_initialize(THE);
 
 	arch_pre_mm_init();

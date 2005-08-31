@@ -92,6 +92,11 @@ int ofw_get_property(const phandle device, const char *name, void *buf, const in
 	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
 }
 
+void *ofw_claim(const void *addr, const int size, const int align)
+{
+	return (void *) ofw_call("claim", 3, 1, addr, size, align);
+}
+
 void putchar(const char ch)
 {
 	ofw_putchar(ch);

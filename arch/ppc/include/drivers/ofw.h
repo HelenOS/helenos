@@ -57,6 +57,7 @@ extern int ofw_call(const char *service, const int nargs, const int nret, ...);
 extern void ofw_putchar(const char ch);
 extern phandle ofw_find_device(const char *name);
 extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);
+extern void *ofw_claim(const void *addr, const int size, const int align);
 extern void putchar(const char ch);
 
 #endif

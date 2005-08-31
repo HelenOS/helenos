@@ -33,7 +33,9 @@
 .global kernel_image_start
 
 kernel_image_start:
-	bl early_init
+	lis r4, ofw@ha
+	addi r4, r4, ofw@l
+	stw r5, 0(r4)
 	
 	lis r3, _hardcoded_ktext_size@ha
 	addi r3, r3, _hardcoded_ktext_size@l
@@ -52,5 +54,7 @@ kernel_image_start:
 	lis r4, hardcoded_load_address@ha
 	addi r4, r4, hardcoded_load_address@l
 	stw r3, 0(r4)
+	
+	bl ofw_init
 	
 	b main_bsp

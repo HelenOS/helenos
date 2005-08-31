@@ -30,8 +30,16 @@
 #define __ppc_CONTEXT_H__
 
 #include <arch/types.h>
+#include <arch/drivers/ofw.h>
 
-#define SP_DELTA	4
+#define SP_DELTA	8
+
+#ifdef context_map_stack
+#undef context_map_stack
+#endif
+
+#define context_map_stack(stack, size) \
+	ofw_claim((void *) stack, size, 0);
 
 struct context {
 	__u32 r0;
