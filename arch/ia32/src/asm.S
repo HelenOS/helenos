@@ -43,7 +43,7 @@
 .global outb
 .global outw
 .global outl
-.global memcopy
+.global memcpy
 .global memsetb
 .global memsetw
 .global memcmp
@@ -265,7 +265,7 @@ outl:
 SRC=12
 DST=8
 CNT=16
-memcopy:
+memcpy:
 	push %ebp
 	movl %esp,%ebp
 	pusha

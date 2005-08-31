@@ -30,16 +30,6 @@
 
 /* TODO: Rewrite to assembler */
 
-char *memcpy(void *dst, const void *src, size_t cnt)
-{
-	_memcopy(dst, src, cnt);
-}
-
-char *memcopy(void * dst, const void *src, size_t cnt)
-{
-	_memcopy(dst, src, cnt);
-}
-
 void memsetw(__address dst, size_t cnt, __u16 x)
 {
 	_memsetw(dst, cnt, x);

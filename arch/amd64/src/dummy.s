@@ -50,6 +50,7 @@
 .global frame_arch_init
 .global dummy
 .global asm_delay_loop
+.global memcpy
 
 cpu_priority_high:
 cpu_priority_low:
@@ -73,6 +74,7 @@ calibrate_delay_loop:
 cpu_halt:
 page_arch_init:
 frame_arch_init:
+memcpy:
 
 dummy:
 0:

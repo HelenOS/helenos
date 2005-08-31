@@ -139,7 +139,7 @@ void kmp(void *arg)
 		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor))))
 			panic("couldn't allocate memory for GDT\n");
 
-		memcopy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));           // swaped
+		memcpy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));
 		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
 		gdtr.base = KA2PA((__address) gdt_new);
 

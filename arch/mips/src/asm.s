@@ -150,9 +150,9 @@ memsetb:
 	j _memsetb
 	nop
 
-.global memcopy
-memcopy:
-	j _memcopy
+.global memcpy
+memcpy:
+	j _memcpy
 	nop
 
 # THIS IS USERSPACE CODE

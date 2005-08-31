@@ -72,7 +72,7 @@ void page_arch_init(void)
 		 */
 
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
-		memcopy((void *)dba,(void *)bootstrap_dba , PAGE_SIZE); //swaped
+		memcpy((void *)dba, (void *)bootstrap_dba , PAGE_SIZE);
 		write_cr3(KA2PA(dba));
 	}
 

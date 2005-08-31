@@ -29,7 +29,6 @@
 .text
 
 .global memcpy
-.global memcopy
 .global cpu_priority_read
 .global memsetb
 .global userspace
@@ -46,7 +45,6 @@
 .global dummy
 
 memcpy:
-memcopy:
 cpu_priority_read:
 memsetb:
 before_thread_runs_arch:
