@@ -47,4 +47,5 @@ arch_sources= \
 	arch/drivers/ega.c \
 	arch/boot/boot.S \
 	arch/boot/memmap.S\
-	arch/fpu_context.c
+	arch/fpu_context.c\
+	arch/fmath.c
