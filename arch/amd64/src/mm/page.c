@@ -27,8 +27,50 @@
  */
 
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <arch/mm/page.h>
+#include <arch/interrupt.h>
+#include <arch/asm.h>
+#include <config.h>
+
+#include <memstr.h>
+
+
+__address bootstrap_dba; 
 
 void page_arch_init(void)
 {
+	__address dba;
+	count_t i;
+
+	if (config.cpu_active == 1) {
+		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
+		memsetb(dba, PAGE_SIZE, 0);
+
+		bootstrap_dba = dba;
+
+		/*
+		 * Identity mapping for all frames.
+		 * PA2KA(identity) mapping for all frames.
+		 */
+		for (i = 0; i < frames; i++) {
+			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
+			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
+		}
+
+		trap_register(14, page_fault);
+		write_cr3(KA2PA(dba));
+	}
+	else {
+		/*
+		 * Application processors need to create their own view of the
+		 * virtual address space. Because of that, each AP copies
+		 * already-initialized paging information from the bootstrap
+		 * processor and adjusts it to fulfill its needs.
+		 */
+
+		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
+		memcpy((void *)dba, (void *)bootstrap_dba , PAGE_SIZE);
+		write_cr3(KA2PA(dba));
+	}
 }

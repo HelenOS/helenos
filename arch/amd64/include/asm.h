@@ -36,10 +36,13 @@
 void asm_delay_loop(__u32 t);
 void asm_fake_loop(__u32 t);
 
-/* TODO: implement the real stuff */
 static inline __address get_stack_base(void)
 {
-	return NULL;
+	__address v;
+	
+	__asm__ volatile ("andq %%rsp, %0\n" : "=r" (v) : "0" (~((__u64)STACK_SIZE-1)));
+	
+	return v;
 }
 
 static inline void cpu_sleep(void) { __asm__("hlt"); };
@@ -51,9 +54,9 @@ static inline __u8 inb(__u16 port)
 	__u8 out;
 
 	asm (
-		"mov %0, %%dx;"
+		"mov %1, %%dx;"
 		"inb %%dx,%%al;"
-		"mov %%al, %1;"
+		"mov %%al, %0;"
 		:"=m"(out)
 		:"m"(port)
 		:"%dx","%al"

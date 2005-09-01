@@ -36,7 +36,7 @@
 
 
 void page_init(void)
-{	
+{
 	page_arch_init();
 	map_page_to_frame(0x0, 0x0, PAGE_NOT_PRESENT, 0);
 }
@@ -54,8 +54,7 @@ void map_structure(__address s, size_t size)
 {
 	int i, cnt, length;
 
-	/* TODO: implement portable way of computing page address from address */
-	length = size + (s - (s & 0xfffff000));
+	length = size + (s - (s & ~(PAGE_SIZE-1)));
 	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
 
 	for (i = 0; i < cnt; i++)
