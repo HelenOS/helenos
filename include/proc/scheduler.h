@@ -43,7 +43,7 @@ struct runq {
 	int n;
 };
 
-extern volatile int nrdy;
+extern volatile count_t nrdy;
 
 static thread_t *find_best_thread(void);
 static void relink_rq(int start);

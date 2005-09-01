@@ -46,9 +46,9 @@
 #include <print.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
+#include <debug.h>
 
-
-volatile int nrdy;
+volatile count_t nrdy;
 
 
 /** Take actions before new thread runs
@@ -89,6 +89,8 @@ struct thread *find_best_thread(void)
 	thread_t *t;
 	runq_t *r;
 	int i, n;
+
+	ASSERT(CPU != NULL);
 
 loop:
 	cpu_priority_high();
@@ -147,7 +149,7 @@ retry:
 		CPU->nrdy--;
 		spinlock_unlock(&CPU->lock);
 
-		atomic_dec(&nrdy);
+		atomic_dec((int *) &nrdy);
 		r->n--;
 
 		/*
@@ -229,6 +231,8 @@ void scheduler(void)
 {
 	volatile pri_t pri;
 
+	ASSERT(CPU != NULL);
+
 	pri = cpu_priority_high();
 
 	if (haltstate)
@@ -291,6 +295,8 @@ void scheduler(void)
 void scheduler_separated_stack(void)
 {
 	int priority;
+
+	ASSERT(CPU != NULL);
 
 	if (THREAD) {
 		switch (THREAD->state) {

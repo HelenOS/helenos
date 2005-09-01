@@ -32,6 +32,7 @@
 #include <arch/cp0.h>
 #include <arch/types.h>
 #include <arch.h>
+#include <debug.h>
 
 void exception(void)
 {
@@ -39,6 +40,8 @@ void exception(void)
 	__u32 epc;
 	__u32 epc_shift = 0;
 	pri_t pri;
+
+	ASSERT(CPU != NULL);
 
 	/*
 	 * NOTE ON OPERATION ORDERING

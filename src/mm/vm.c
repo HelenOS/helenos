@@ -66,7 +66,10 @@ vm_t *vm_create(pte_t *ptl0)
 		
 			src_ptl0 = (pte_t *) PA2KA((__address) GET_PTL0_ADDRESS());
 			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC);
+
+			/* TODO: in theory, it should be only necessary to copy kernel address space... */
 			memcpy((void *)PA2KA((__address) dst_ptl0), (void *)GET_PTL0_ADDRESS() , PAGE_SIZE);
+
 			m->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
 		}
 	}
