@@ -61,7 +61,7 @@ void tlb_invalidate(int asid)
 	
 	pri = cpu_priority_high();
 	
-	asid_bitmap_reset();
+//	asid_bitmap_reset();
 	
 	// TODO
 	

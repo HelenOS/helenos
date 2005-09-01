@@ -51,14 +51,14 @@ static inline int a_add( volatile int *val, int i)
 		"	nop\n"
 		"1:\n"
 		"	ll	%0, %1\n"
-		"	addu	%0, %0, %2\n"
-		"       move    %3, %0\n"
+		"	addu	%0, %0, %3\n"
+		"       move    %2, %0\n"
 		"	sc	%0, %1\n"
 		"	beq	%0, 0x0, 1b\n"
-		"	move    %0, %3\n"
+		"	move    %0, %2\n"
 		"	.set	pop\n"
-		: "=&r" (tmp), "=o" (*val)
-		: "r" (i), "r" (tmp2)
+		: "=&r" (tmp), "=o" (*val), "=r" (tmp2)
+		: "r" (i)
 		);
 	return tmp;
 }
@@ -80,14 +80,14 @@ static inline int a_sub( volatile int *val, int i)
 		"	nop\n"
 		"1:\n"
 		"	ll	%0, %1\n"
-		"	subu	%0, %0, %2\n"
-		"       move    %3, %0\n"
+		"	subu	%0, %0, %3\n"
+		"       move    %2, %0\n"
 		"	sc	%0, %1\n"
 		"	beq	%0, 0x0, 1b\n"
-		"       move    %0, %3\n"
+		"       move    %0, %2\n"
 		"	.set	pop\n"
-		: "=&r" (tmp), "=o" (*val)
-		: "r" (i), "r" (tmp2)
+		: "=&r" (tmp), "=o" (*val), "=r" (tmp2)
+		: "r" (i)
 		);
 	return tmp;
 }
