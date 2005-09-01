@@ -62,12 +62,10 @@ __u32 random(__u32 max)
 	__u32 rc;
 	pri_t pri;
 
-	pri = cpu_priority_high();
 	spinlock_lock(&lock);	
 	rc = seed % max;
 	seed = (((seed<<2) ^ (seed>>2)) * 487) + rc;
 	spinlock_unlock(&lock);
-	cpu_priority_restore(pri);
 	return rc;
 }
 
