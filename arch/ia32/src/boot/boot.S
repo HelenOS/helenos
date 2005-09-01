@@ -50,7 +50,6 @@ kernel_image_start:
 	call memmap_arch_init
 	
 	lgdt gdtr			# initialize Global Descriptor Table register
-	lidt idtr			# initialize Interrupt Descriptor Table register
 	
 	movl %cr0,%eax
 	orl $0x1,%eax
@@ -73,7 +72,6 @@ multiboot_image_start:
 	movl $0x7c00, %esp		# initialize stack pointer
 	
 	lgdt gdtr
-	lidt idtr
 
 meeting_point:
 	movw $16,%ax

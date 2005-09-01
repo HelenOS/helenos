@@ -165,6 +165,15 @@ void pm_init(void)
 {
 	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
 
+
+	/*
+	 * Update addresses in GDT and IDT to their virtual counterparts.
+	 */
+	gdtr.base = KA2PA(gdtr.base);
+	idtr.base = (__address) idt;
+	__asm__ volatile ("lgdt %0\n" : : "m" (gdtr));
+	__asm__ volatile ("lidt %0\n" : : "m" (idtr));	
+	
 	/*
 	 * Each CPU has its private GDT and TSS.
 	 * All CPUs share one IDT.
@@ -197,7 +206,7 @@ void pm_init(void)
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	__asm__("ltr %0" : : "r" ((__u16) selector(TSS_DES)));
+	__asm__ volatile ("ltr %0" : : "r" ((__u16) selector(TSS_DES)));
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
 	clean_AM_flag();          /* Disable alignment check */

@@ -51,7 +51,6 @@ ap_boot:
 	movw %ax,%ds
 
 	lgdt gdtr			# initialize Global Descriptor Table register
-	lidt idtr			# initialize Interrupt Descriptor Table register
 	
 	movl %cr0,%eax
 	orl $1,%eax
