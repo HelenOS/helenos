@@ -44,6 +44,9 @@ void frame_arch_init(void)
 		frame_region_not_free(0xa0000,0xff000);
 		frame_region_not_free(0xfec00000,0xffffffff);
 		
+		/* This is a nasty hack, which should be fixed soon */
+		frame_region_not_free(0x9000, 0xa000);
+		
 		for (i=e820counter;i>0;i--) {
 			if (e820table[i-1].type!=MEMMAP_MEMORY_AVAILABLE) {
 				frame_region_not_free(e820table[i-1].base_address,e820table[i-1].size);

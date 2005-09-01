@@ -29,6 +29,7 @@
 #ifndef __ia32_BOOT_H__
 #define __ia32_BOOT_H__
 
+#define BOOT_OFFSET	0x100000
 #define MULTIBOOT_HEADER_MAGIC		0x1BADB002
 #define MULTIBOOT_HEADER_FLAGS		0x00010003
 

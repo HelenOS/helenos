@@ -37,6 +37,7 @@
 #include <synch/spinlock.h>
 #include <debug.h>
 #include <memstr.h>
+#include <print.h>
 
 __address bootstrap_dba; 
 
@@ -50,7 +51,7 @@ void page_arch_init(void)
 		memsetb(dba, PAGE_SIZE, 0);
 
 		bootstrap_dba = dba;
-
+		
 		/*
 		 * Identity mapping for all frames.
 		 * PA2KA(identity) mapping for all frames.

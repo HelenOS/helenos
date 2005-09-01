@@ -42,47 +42,71 @@
 #
 kernel_image_start:
 	cli
-	xorw %ax,%ax
-	movw %ax,%ds
-	movw %ax,%ss			# initialize stack segment register
-	movl $0x7c00,%esp		# initialize stack pointer
+	xorw %ax, %ax
+	movw %ax, %ds
+	movw %ax, %ss			# initialize stack segment register
+	movl $0x7c00, %esp		# initialize stack pointer
 	
 	call memmap_arch_init
 	
 	lgdt gdtr			# initialize Global Descriptor Table register
 	
-	movl %cr0,%eax
-	orl $0x1,%eax
-	movl %eax,%cr0			# switch to protected mode
-	jmpl $8,$meeting_point
-
+	movl %cr0, %eax
+	orl $0x1, %eax
+	movl %eax, %cr0			# switch to protected mode
+	
+	jmpl $8, $boot_image_start
+	
 .code32
 .align 4
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
-	.long multiboot_header
-	.long unmapped_ktext_start
+	.long multiboot_header + BOOT_OFFSET
+	.long unmapped_ktext_start + BOOT_OFFSET
 	.long 0
 	.long 0
-	.long multiboot_image_start
+	.long multiboot_image_start + BOOT_OFFSET
+	
+boot_image_start:
+	movw $16, %ax
+	movw %ax, %es
+	movw %ax, %gs
+	movw %ax, %fs
+	movw %ax, %ds			# kernel data + stack
+	movw %ax, %ss
+	
+	call map_kernel			# map kernel and turn paging on
+	
+	movb $0xd1, %al			# enable A20 using the keyboard controller
+	outb %al, $0x64
+	movb $0xdf, %al
+	outb %al, $0x60
+	
+	movl $0x8000, %esi
+	movl $0x8000 + BOOT_OFFSET, %edi
+	movl $_hardcoded_kernel_size, %ecx
+	cld
+	rep movsb
+	
+	jmp protected
 	
 multiboot_image_start:
 	movl $0x7c00, %esp		# initialize stack pointer
 	
 	lgdt gdtr
 
-meeting_point:
-	movw $16,%ax
-	movw %ax,%es
-	movw %ax,%gs
-	movw %ax,%fs
-	movw %ax,%ds			# kernel data + stack
-	movw %ax,%ss
-
+	movw $16, %ax
+	movw %ax, %es
+	movw %ax, %gs
+	movw %ax, %fs
+	movw %ax, %ds			# kernel data + stack
+	movw %ax, %ss
+	
 	call map_kernel			# map kernel and turn paging on
-
+	
+protected:
 	call main_bsp			# never returns
 
 	cli

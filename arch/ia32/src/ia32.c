@@ -60,7 +60,7 @@ void arch_pre_mm_init(void)
 		i8042_init();	/* a20 bit */
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
-
+		
 		trap_register(VECTOR_SYSCALL, syscall);
 		
 		#ifdef __SMP__

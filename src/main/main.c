@@ -139,7 +139,7 @@ void main_bsp_separated_stack(void)
 	thread_t *t;
 	
 	the_initialize(THE);
-
+	
 	arch_pre_mm_init();
 	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE + heap_delta);
 	frame_init();

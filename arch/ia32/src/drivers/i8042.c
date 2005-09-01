@@ -36,15 +36,10 @@
 
 /*
  * i8042 processor driver.
- * Its very essential function is enabling the A20.
  */
 
 void i8042_init(void)
 {
-	/* A20: deadly if not enabled */
-	outb(0x64,0xd1);
-	outb(0x60,0xdf);
-	
 	trap_register(VECTOR_KBD, i8042_interrupt);
 }
 

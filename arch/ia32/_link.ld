@@ -22,7 +22,7 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 
-	.mapped (0x80000000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) { 
+	.mapped (0x80100000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) { 
 		ktext_start = .;
 		*(.text);
 		ktext_end = .;
@@ -32,7 +32,7 @@ SECTIONS {
 		*(.rodata*);		/* string literals */
 		*(COMMON);		/* global variables */
 		hardcoded_load_address = .;
-		LONG(0x80008000);
+		LONG(0x80108000);
 		hardcoded_ktext_size = .;
 		LONG(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
@@ -41,4 +41,7 @@ SECTIONS {
 		*(K_DATA_END);
 		kdata_end = .;
 	}
+	
+	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
+	
 }
