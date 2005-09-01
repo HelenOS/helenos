@@ -83,7 +83,6 @@ void gp_fault(__u8 n, __native stack[])
 	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
 	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
 	panic("general protection fault\n");
-	stack[1]++;
 }
 
 void ss_fault(__u8 n, __native stack[])

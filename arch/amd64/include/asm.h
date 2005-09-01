@@ -36,7 +36,6 @@
 void asm_delay_loop(__u32 t);
 void asm_fake_loop(__u32 t);
 
-
 /* TODO: implement the real stuff */
 static inline __address get_stack_base(void)
 {
@@ -44,6 +43,7 @@ static inline __address get_stack_base(void)
 }
 
 static inline void cpu_sleep(void) { __asm__("hlt"); };
+static inline void cpu_halt(void) { __asm__("hlt"); };
 
 
 static inline __u8 inb(__u16 port) 
@@ -137,7 +137,7 @@ static inline pri_t cpu_priority_read(void) {
  *
  * @return Value read.
  */
-static inline __u32 read_cr2(void) { __u64 v; __asm__ volatile ("movq %%cr2,%0" : "=r" (v)); return v; }
+static inline __u64 read_cr2(void) { __u64 v; __asm__ volatile ("movq %%cr2,%0" : "=r" (v)); return v; }
 
 /** Write CR3
  *
@@ -153,14 +153,7 @@ static inline void write_cr3(__u64 v) { __asm__ volatile ("movq %0,%%cr3\n" : : 
  *
  * @return Value read.
  */
-static inline __u32 read_cr3(void) { __u64 v; __asm__ volatile ("movq %%cr3,%0" : "=r" (v)); return v; }
-
-/** Set priority level low
- *
- * Enable interrupts and return previous
- * value of EFLAGS.
- */
-
+static inline __u64 read_cr3(void) { __u64 v; __asm__ volatile ("movq %%cr3,%0" : "=r" (v)); return v; }
 
 
 extern size_t interrupt_handler_size;

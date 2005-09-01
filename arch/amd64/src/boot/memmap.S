@@ -116,7 +116,7 @@ e801end:
 
 	#memory size in 1 kb chunks
 e801memorysize:
-	.long	0
+	.long 0x0
 
 e820counter:
 	.byte 0x0

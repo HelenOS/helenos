@@ -86,16 +86,16 @@ struct tss_descriptor {
 	unsigned base_0_15: 16;
 	unsigned base_16_23: 8;
 	unsigned type: 4;
-	unsigned reserve1 : 1;
+	unsigned  : 1;
 	unsigned dpl : 2;
 	unsigned present : 1;
 	unsigned limit_16_19: 4;
 	unsigned available: 1;
-	unsigned reserve2: 2;
+	unsigned : 2;
 	unsigned granularity : 1;
 	unsigned base_24_31: 8;	
 	unsigned base_32_63 : 32;
-	unsigned reserve3 : 32;
+	unsigned  : 32;
 } __attribute__ ((packed));
 
 struct idescriptor {
@@ -107,8 +107,8 @@ struct idescriptor {
 	unsigned dpl: 2;
 	unsigned present : 1;
 	unsigned offset_16_31: 16;
-	unsigned offset_32_63: 16;
-	unsigned reserved : 32;
+	unsigned offset_32_63: 32;
+	unsigned  : 32;
 } __attribute__ ((packed));
 
 struct ptr_16_64 {

@@ -180,7 +180,7 @@ void idt_init(void)
 	}
 	trap_register(13, gp_fault);
 	trap_register( 7, nm_fault);
-	trap_register(12, ss_fault);
+	trap_register(12, ss_fault);	
 }
 
 

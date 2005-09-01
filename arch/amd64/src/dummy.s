@@ -30,21 +30,17 @@
 
 .global userspace
 .global before_thread_runs_arch
-.global panic_printf
 .global cpu_identify
 .global cpu_arch_init
 .global cpu_sleep
 .global cpu_print_report
 .global arch_late_init
 .global calibrate_delay_loop
-.global cpu_halt
 .global dummy
 .global rdtsc
 .global reset_TS_flag
 .global fpu_init
 	
-.global interrupt_handler_size
-.global interrupt_handlers
 .global memory_print_map
 .global get_memory_size
 
@@ -52,20 +48,16 @@ get_memory_size:
 	movq $4*1024*1024, %rax
 	ret
 
-interrupt_handler_size:
-interrupt_handlers:	
 rdtsc:
 before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
-panic_printf:
 cpu_identify:
 cpu_arch_init:
 cpu_sleep:
 cpu_print_report:
 arch_late_init:
 calibrate_delay_loop:
-cpu_halt:
 reset_TS_flag:
 fpu_init:
 memory_print_map:	
