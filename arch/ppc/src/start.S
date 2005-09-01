@@ -37,24 +37,6 @@ kernel_image_start:
 	addi r4, r4, ofw@l
 	stw r5, 0(r4)
 	
-	lis r3, _hardcoded_ktext_size@ha
-	addi r3, r3, _hardcoded_ktext_size@l
-	lis r4, hardcoded_ktext_size@ha
-	addi r4, r4, hardcoded_ktext_size@l
-	stw r3, 0(r4)
-	
-	lis r3, _hardcoded_kdata_size@ha
-	addi r3, r3, _hardcoded_kdata_size@l
-	lis r4, hardcoded_kdata_size@ha
-	addi r4, r4, hardcoded_kdata_size@l
-	stw r3, 0(r4)
-	
-	lis r3, _hardcoded_load_address@ha
-	addi r3, r3, _hardcoded_load_address@l
-	lis r4, hardcoded_load_address@ha
-	addi r4, r4, hardcoded_load_address@l
-	stw r3, 0(r4)
-	
 	bl ofw_init
 	
 	b main_bsp

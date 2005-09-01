@@ -25,12 +25,14 @@ SECTIONS {
 		*(.sdata);
 		*(.sdata2);
 		*(.sbss);
+		hardcoded_ktext_size = .;
+		LONG(ktext_end - ktext_start);	
+		hardcoded_kdata_size = .;
+		LONG(kdata_end - kdata_start);
+		hardcoded_load_address = .;
+		LONG(0x80000000);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
 		kdata_end = .;
 	}
-	
-	_hardcoded_ktext_size = ktext_end - ktext_start;
-	_hardcoded_kdata_size = kdata_end - kdata_start;
-	_hardcoded_load_address = 0x80000000;
 }
