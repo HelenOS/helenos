@@ -84,17 +84,19 @@ void clock(void)
 	 */
 
 	if (THREAD) {
+		__u64 ticks;
+		
 		spinlock_lock(&CPU->lock);
 		CPU->needs_relink++;
 		spinlock_unlock(&CPU->lock);	
 	
 		spinlock_lock(&THREAD->lock);
-		if (!THREAD->ticks--) {
-			spinlock_unlock(&THREAD->lock);
+		if (ticks = THREAD->ticks)
+			THREAD->ticks--;
+		spinlock_unlock(&THREAD->lock);
+		
+		if (!ticks && !PREEMPTION_DISABLED) {
 			scheduler();
-		}
-		else {
-			spinlock_unlock(&THREAD->lock);
 		}
 	}
 

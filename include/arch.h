@@ -39,9 +39,10 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 
-#define CPU		THE->cpu
-#define THREAD		THE->thread
-#define TASK		THE->task
+#define CPU			THE->cpu
+#define THREAD			THE->thread
+#define TASK			THE->task
+#define PREEMPTION_DISABLED	THE->preemption_disabled
 
 #ifndef early_mapping
 #define early_mapping(stack, size)
