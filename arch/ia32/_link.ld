@@ -32,7 +32,7 @@ SECTIONS {
 		*(.rodata*);		/* string literals */
 		*(COMMON);		/* global variables */
 		hardcoded_load_address = .;
-		LONG(0xffffffff80008000);
+		LONG(0x80008000);
 		hardcoded_ktext_size = .;
 		LONG(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
