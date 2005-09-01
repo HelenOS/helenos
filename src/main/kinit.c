@@ -41,6 +41,7 @@
 #include <arch/mm/page.h>
 #include <mm/vm.h>
 #include <print.h>
+#include <memstr.h>
 
 #ifdef __SMP__
 #include <arch/smp/mps.h>
