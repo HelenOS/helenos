@@ -139,6 +139,29 @@ static inline pri_t cpu_priority_read(void) {
  */
 static inline __u32 read_cr2(void) { __u64 v; __asm__ volatile ("movq %%cr2,%0" : "=r" (v)); return v; }
 
+/** Write CR3
+ *
+ * Write value to CR3.
+ *
+ * @param v Value to be written.
+ */
+static inline void write_cr3(__u64 v) { __asm__ volatile ("movq %0,%%cr3\n" : : "r" (v)); }
+
+/** Read CR3
+ *
+ * Return value in CR3
+ *
+ * @return Value read.
+ */
+static inline __u32 read_cr3(void) { __u64 v; __asm__ volatile ("movq %%cr3,%0" : "=r" (v)); return v; }
+
+/** Set priority level low
+ *
+ * Enable interrupts and return previous
+ * value of EFLAGS.
+ */
+
+
 
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);

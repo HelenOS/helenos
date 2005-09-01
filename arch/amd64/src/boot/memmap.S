@@ -119,7 +119,7 @@ e801memorysize:
 	.long	0
 
 e820counter:
-	.byte 0xff
+	.byte 0x0
 
 e820table:
-	.space  (32*E820_RECORD_SIZE),0xff # space for 32 records, each E820_RECORD_SIZE bytes long
+	.space  (32*E820_RECORD_SIZE),0x0 # space for 32 records, each E820_RECORD_SIZE bytes long

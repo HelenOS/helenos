@@ -191,10 +191,10 @@ void frame_not_free(__address addr)
 
 void frame_region_not_free(__address start, __address stop)
 {
-	__u32 i;
+	__address a;
 
 	start /= FRAME_SIZE;
 	stop /= FRAME_SIZE;
-	for (i = start; i <= stop; i++)
-		frame_not_free(i * FRAME_SIZE);
+	for (a = start; a <= stop; a++)
+		frame_not_free(a * FRAME_SIZE);
 }

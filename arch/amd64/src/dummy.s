@@ -35,12 +35,9 @@
 .global cpu_arch_init
 .global cpu_sleep
 .global cpu_print_report
-.global get_memory_size
 .global arch_late_init
 .global calibrate_delay_loop
 .global cpu_halt
-.global page_arch_init
-.global frame_arch_init
 .global dummy
 .global rdtsc
 .global reset_TS_flag
@@ -48,6 +45,12 @@
 	
 .global interrupt_handler_size
 .global interrupt_handlers
+.global memory_print_map
+.global get_memory_size
+
+get_memory_size:
+	movq $4*1024*1024, %rax
+	ret
 
 interrupt_handler_size:
 interrupt_handlers:	
@@ -60,14 +63,12 @@ cpu_identify:
 cpu_arch_init:
 cpu_sleep:
 cpu_print_report:
-get_memory_size:
 arch_late_init:
 calibrate_delay_loop:
 cpu_halt:
-page_arch_init:
-frame_arch_init:
 reset_TS_flag:
-fpu_init:	
+fpu_init:
+memory_print_map:	
 	
 dummy:
 0:

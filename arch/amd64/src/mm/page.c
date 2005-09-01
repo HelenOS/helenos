@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_MEMORY_INIT_H__
-#define __amd64_MEMORY_INIT_H__
+#include <mm/page.h>
+#include <arch/mm/page.h>
 
-#include <config.h>
-
-size_t get_memory_size(void);
-
-#endif
+void page_arch_init(void)
+{
+}
