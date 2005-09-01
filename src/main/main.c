@@ -132,6 +132,8 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
+
+	int a;
 	vm_t *m;
 	task_t *k;
 	thread_t *t;
@@ -157,7 +159,7 @@ void main_bsp_separated_stack(void)
 	printf("config.cpu_count=%d\n", config.cpu_count);
 
 	cpu_init();
-	
+
 	calibrate_delay_loop();
 	
 	timeout_init();

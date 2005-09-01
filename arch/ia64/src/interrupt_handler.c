@@ -29,6 +29,7 @@
 
 
 #include <panic.h>
+#include <arch/types.h>
 
 
 void general_exception(void);
@@ -44,4 +45,21 @@ void break_instruction(void)
 {
     panic("\nBreak Instruction\n");
 }
+
+
+void universal_handler(void);
+void universal_handler(void)
+{
+	__u64 i;
+
+	__asm__ (
+		"mov  %0 = r12;;"
+		: "=r" (i)
+		: 
+		: "r15"
+	);
+
+	panic("\nException:%Q\n",i);
+}
+
 
