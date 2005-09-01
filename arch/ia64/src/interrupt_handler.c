@@ -29,7 +29,11 @@
 
 
 #include <panic.h>
+#include <print.h>
 #include <arch/types.h>
+#include <arch/asm.h>
+
+extern __u64 REG_DUMP;
 
 
 void general_exception(void);
@@ -47,19 +51,85 @@ void break_instruction(void)
 }
 
 
+#define cr_dump(r) {__u64 val; get_control_register(r,val); printf("cr"#r":%Q\n",val);}
+#define ar_dump(r) {__u64 val; get_aplication_register(r,val); printf("ar"#r":%Q\n",val);}
+
 void universal_handler(void);
 void universal_handler(void)
 {
-	__u64 i;
+	__u64 vector,psr;
+	__u64 *p;
+	int i;
+	
+	
+	get_shadow_register(16,vector);
 
-	__asm__ (
-		"mov  %0 = r12;;"
-		: "=r" (i)
-		: 
-		: "r15"
-	);
+	
+	p=&REG_DUMP;
 
-	panic("\nException:%Q\n",i);
+	for(i=0;i<128;i+=2) printf("gr%d:%Q\tgr%d:%Q\n",i,p[i],i+1,p[i+1]);
+
+
+	cr_dump(0);	
+	cr_dump(1);	
+	cr_dump(2);	
+	cr_dump(8);	
+	cr_dump(16);	
+	cr_dump(17);	
+	cr_dump(19);	
+	cr_dump(20);	
+	cr_dump(21);	
+	cr_dump(22);	
+	cr_dump(23);	
+	cr_dump(24);	
+	cr_dump(25);	
+	cr_dump(64);	
+	cr_dump(65);	
+	cr_dump(66);	
+	cr_dump(67);	
+	cr_dump(68);	
+	cr_dump(69);	
+	cr_dump(70);	
+	cr_dump(71);	
+	cr_dump(72);	
+	cr_dump(73);	
+	cr_dump(74);	
+	cr_dump(80);	
+	cr_dump(81);	
+	
+	ar_dump(0);	
+	ar_dump(1);	
+	ar_dump(2);	
+	ar_dump(3);	
+	ar_dump(4);	
+	ar_dump(5);	
+	ar_dump(6);	
+	ar_dump(7);	
+	ar_dump(16);	
+	ar_dump(17);	
+	ar_dump(18);	
+	ar_dump(19);	
+	ar_dump(21);	
+	ar_dump(24);	
+	ar_dump(25);	
+	ar_dump(26);	
+	ar_dump(27);	
+	ar_dump(28);	
+	ar_dump(29);	
+	ar_dump(30);	
+	ar_dump(32);	
+	ar_dump(36);	
+	ar_dump(40);	
+	ar_dump(44);	
+	ar_dump(64);	
+	ar_dump(65);	
+	ar_dump(66);	
+
+	get_psr(psr);
+
+	printf("\nPSR:%Q\n",psr);
+	
+	panic("\nException:%Q\n",vector);
 }
 
 

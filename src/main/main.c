@@ -132,8 +132,6 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
-
-	int a;
 	vm_t *m;
 	task_t *k;
 	thread_t *t;

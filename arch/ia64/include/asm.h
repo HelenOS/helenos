@@ -52,4 +52,13 @@ void cpu_sleep(void);
 
 void asm_delay_loop(__u32 t);
 
+
+#define set_shadow_register(reg,val) {__u64 v = val; __asm__  volatile("mov r15 = %0;;\n""bsw.0;;\n""mov "   #reg   " = r15;;\n""bsw.1;;\n" : : "r" (v) : "r15" ); }
+#define get_shadow_register(reg,val) {__u64 v ; __asm__  volatile("bsw.0;;\n" "mov r15 = r" #reg ";;\n" "bsw.1;;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
+
+#define get_control_register(reg,val) {__u64 v ; __asm__  volatile("mov r15 = cr" #reg ";;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
+#define get_aplication_register(reg,val) {__u64 v ; __asm__  volatile("mov r15 = ar" #reg ";;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
+#define get_psr(val) {__u64 v ; __asm__  volatile("mov r15 = psr;;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
+
+
 #endif
