@@ -29,17 +29,22 @@
 #ifndef __amd64_ATOMIC_H__
 #define __amd64_ATOMIC_H__
 
-/*
- * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
- * WARNING: the following functions cause the code to be preemption-unsafe !!!
- */
 
-static inline atomic_inc(volatile int *val) {
-	*val++;
+/* Count_t is 32-bits on AMD-64 */
+static inline void atomic_inc(volatile count_t *val) {
+#ifdef __SMP__
+	__asm__ volatile ("lock incl (%0)\n" : : "r" (val));
+#else
+	__asm__ volatile ("incl (%0)\n" : : "r" (val));
+#endif /* __SMP__ */
 }
 
-static inline atomic_dec(volatile int *val) {
-	*val--;
+static inline void atomic_dec(volatile count_t *val) {
+#ifdef __SMP__
+	__asm__ volatile ("lock decl (%0)\n" : : "r" (val));
+#else
+	__asm__ volatile ("decl (%0)\n" : : "r" (val));
+#endif /* __SMP__ */
 }
 
 #endif

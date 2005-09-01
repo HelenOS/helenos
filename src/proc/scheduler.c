@@ -149,7 +149,7 @@ retry:
 		CPU->nrdy--;
 		spinlock_unlock(&CPU->lock);
 
-		atomic_dec((int *) &nrdy);
+		atomic_dec(&nrdy);
 		r->n--;
 
 		/*

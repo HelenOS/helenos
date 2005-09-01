@@ -136,7 +136,7 @@ void thread_ready(thread_t *t)
 	r->n++;
 	spinlock_unlock(&r->lock);
 
-	atomic_inc((int *) &nrdy);
+	atomic_inc(&nrdy);
 	avg = nrdy / config.cpu_active;
 
 	spinlock_lock(&cpu->lock);
