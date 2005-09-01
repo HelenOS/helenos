@@ -31,6 +31,7 @@
 #include <arch/atomic.h>
 #include <arch/barrier.h>
 #include <synch/spinlock.h>
+#include <preemption.h>
 #include <print.h>
 
 #ifdef __SMP__
@@ -46,6 +47,7 @@ void spinlock_lock(spinlock_t *sl)
 	int i = 0;
 	__address caller = ((__u32 *) &sl)[-1];
 
+	preemption_disable();
 	while (test_and_set(&sl->val)) {
 		if (i++ > 300000) {
 			printf("cpu%d: looping on spinlock %X, caller=%X\n", CPU->id, sl, caller);
@@ -58,6 +60,8 @@ void spinlock_lock(spinlock_t *sl)
 #else
 void spinlock_lock(spinlock_t *sl)
 {
+	preemption_disable();
+
 	/*
 	 * Each architecture has its own efficient/recommended
 	 * implementation of spinlock.
@@ -71,8 +75,12 @@ int spinlock_trylock(spinlock_t *sl)
 {
 	int rc;
 	
+	preemption_disable();
 	rc = !test_and_set(&sl->val);
 	CS_ENTER_BARRIER();
+
+	if (!rc)
+		preemption_enable();
 	
 	return rc;
 }
@@ -81,6 +89,7 @@ void spinlock_unlock(spinlock_t *sl)
 {
 	CS_LEAVE_BARRIER();
 	sl->val = 0;
+	preemption_enable();
 }
 
 #endif

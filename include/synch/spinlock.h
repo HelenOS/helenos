@@ -31,6 +31,7 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <preemption.h>
 
 #ifdef __SMP__
 struct spinlock {
@@ -48,9 +49,9 @@ struct spinlock {
 };
 
 #define spinlock_initialize(x)
-#define spinlock_lock(x)
-#define spinlock_trylock(x) 1
-#define spinlock_unlock(x)
+#define spinlock_lock(x)		preemption_disable()
+#define spinlock_trylock(x) 		(preemption_disable(), 1)
+#define spinlock_unlock(x)		preemption_enable()
 
 #endif
 
