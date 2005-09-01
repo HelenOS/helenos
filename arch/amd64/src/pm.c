@@ -110,8 +110,8 @@ struct descriptor gdt[GDT_ITEMS] = {
 
 struct idescriptor idt[IDT_ITEMS];
 
-struct ptr_16_64 gdtr = {.limit = sizeof(gdt), .base= (__u64) &gdt };
-struct ptr_16_64 idtr = {.limit = sizeof(idt), .base= (__u64) &idt };
+struct ptr_16_64 gdtr = {.limit = sizeof(gdt), .base= (__u64) gdt };
+struct ptr_16_64 idtr = {.limit = sizeof(idt), .base= (__u64) idt };
 
 static struct tss tss;
 struct tss *tss_p = NULL;
