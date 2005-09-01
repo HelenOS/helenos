@@ -54,7 +54,6 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (i = 0; i < frames; i++) {
-			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
 			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
 		}
 

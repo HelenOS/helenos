@@ -108,9 +108,10 @@ struct descriptor gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-struct ptr_16_64 gdtr = {.limit = sizeof(gdtr), .base= (__u64)KA2PA(&gdt) };
-
 struct idescriptor idt[IDT_ITEMS];
+
+struct ptr_16_64 gdtr = {.limit = sizeof(gdt), .base= (__u64) &gdt };
+struct ptr_16_64 idtr = {.limit = sizeof(idt), .base= (__u64) &idt };
 
 static struct tss tss;
 struct tss *tss_p = NULL;
@@ -216,7 +217,7 @@ static void clean_AM_flag(void)
 
 void pm_init(void)
 {
-	struct descriptor *gdt_p = (struct descriptor *) PA2KA(gdtr.base);
+	struct descriptor *gdt_p = (struct descriptor *) gdtr.base;
 	struct tss_descriptor *tss_desc;
 
 	/*
@@ -248,6 +249,8 @@ void pm_init(void)
 	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);
 
+	__asm__("lgdt %0" : : "m"(gdtr));
+	__asm__("lidt %0" : : "m"(idtr));
 	/*
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
