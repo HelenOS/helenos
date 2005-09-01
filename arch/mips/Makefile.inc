@@ -29,4 +29,5 @@ arch_sources= \
 	arch/mm/frame.c \
 	arch/mm/page.c \
 	arch/mm/tlb.c \
-	arch/fpu_context.c
+	arch/fpu_context.c \
+	arch/fmath.c

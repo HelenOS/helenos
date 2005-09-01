@@ -27,4 +27,5 @@ arch_sources= \
 	arch/ski/ski.c \
 	arch/cpu/cpu.c \
 	arch/ivt.S \
-	arch/interrupt_handler.c
+	arch/interrupt_handler.c \
+	arch/fmath.c
