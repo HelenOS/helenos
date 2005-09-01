@@ -122,7 +122,7 @@ double fmath_set_sign(double num,__u8 sign)
 	fmath_ld_union.bf = num;
 	fmath_ld_union.ldd[7]=((fmath_ld_union.ldd[7])&0x7f)|(sign<<7); // change 64th bit (IA32 is a little endian)
 	return fmath_ld_union.bf;
-*/	return 1.0
+*/	return 1.0;
 }
 
 double fmath_abs(double num) 

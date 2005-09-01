@@ -38,11 +38,3 @@ void cpu_arch_init(void)
 }
 
 
-void gugux_pokus(void);
-void gugux_pokus(void)
-{
-    panic("\n\nGUGUX Exception\n\n");
-}
-
-
-

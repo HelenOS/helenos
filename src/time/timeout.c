@@ -37,6 +37,7 @@
 #include <print.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <print.h>
 
 
 /** Initialize timeouts
@@ -131,6 +132,7 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 		spinlock_unlock(&hlp->lock);
 		l = l->next;
 	}
+
 	m = l->prev;
 	list_prepend(&t->link, m); /* avoid using l->prev */
 
