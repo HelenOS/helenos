@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/boot/boot.h>
+
 .section K_TEXT_START
 .global kernel_image_start
 
@@ -54,9 +56,26 @@ kernel_image_start:
 	orl $0x1,%eax
 	movl %eax,%cr0			# switch to protected mode
 	jmpl $8,$meeting_point
-meeting_point:
-.code32
 
+.code32
+.align 4
+multiboot_header:
+	.long MULTIBOOT_HEADER_MAGIC
+	.long MULTIBOOT_HEADER_FLAGS
+	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
+	.long multiboot_header
+	.long unmapped_ktext_start
+	.long 0
+	.long 0
+	.long multiboot_image_start
+	
+multiboot_image_start:
+	movl $0x7c00, %esp		# initialize stack pointer
+	
+	lgdt gdtr
+	lidt idtr
+
+meeting_point:
 	movw $16,%ax
 	movw %ax,%es
 	movw %ax,%gs
