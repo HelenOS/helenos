@@ -37,6 +37,7 @@
 #include <arch/mm/page.h>
 #include <mm/heap.h>
 #include <memstr.h>
+#include <arch/boot/boot.h>
 
 /*
  * Early ia32 configuration functions and data structures.
@@ -69,7 +70,7 @@ static struct tss tss;
 struct tss *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
+struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt - BOOT_OFFSET) };
 struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(idt), .base = KA2PA((__address) idt) };
 
 void gdt_setbase(struct descriptor *d, __address base)
