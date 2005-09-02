@@ -24,6 +24,7 @@ SECTIONS {
 
 	.mapped (0x80100000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) { 
 		ktext_start = .;
+		*(BOOT_DATA)
 		*(.text);
 		ktext_end = .;
 
@@ -43,5 +44,8 @@ SECTIONS {
 	}
 	
 	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
-	
+
+	_map_address = 0x80100000;
+	e820table_boot = e820table - _map_address;
+	e820counter_boot = e820counter - _map_address;
 }

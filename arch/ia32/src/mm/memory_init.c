@@ -31,6 +31,9 @@
 #include <arch/mm/page.h>
 #include <print.h>
 
+__u8 e820counter __attribute__ ((section ("BOOT_DATA"))) = 0xff;
+struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS] __attribute__ ((section ("BOOT_DATA"))) ;
+
 size_t get_memory_size(void) 
 {
 	return e801memorysize*1024;
@@ -40,16 +43,9 @@ void memory_print_map(void)
 {
 	__u8 i;
 	
-	/*
-	 * We must not work with the original addresses for they are not mapped anymore.
-	 */
-	struct e820memmap_ *memtable = (struct e820memmap_ *) PA2KA(e820table);
-	__u32 *counter_p = (__u32 *) PA2KA(&e820counter);
-	
-	
-	for (i=*counter_p;i>0;i--) {
-		printf("E820 base: %Q size: %Q type: ", memtable[i-1].base_address, memtable[i-1].size);
-		switch (memtable[i-1].type) {
+	for (i=e820counter;i>0;i--) {
+		printf("E820 base: %Q size: %Q type: ", e820table[i-1].base_address, e820table[i-1].size);
+		switch (e820table[i-1].type) {
 			case MEMMAP_MEMORY_AVAILABLE: 
 				printf("available memory\n");
 				break;

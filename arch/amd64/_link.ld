@@ -24,6 +24,7 @@ SECTIONS {
 
 	.mapped (0xffffffff80000000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) {
 		ktext_start = .;
+		*(BOOT_DATA);
 		*(.text);
 		ktext_end = .;
 
@@ -42,4 +43,7 @@ SECTIONS {
 		*(K_DATA_END);
 		kdata_end = .;
 	}
+	_map_address = 0xffffffff80000000;
+	e820table_boot = e820table - _map_address;
+	e820counter_boot = e820counter - _map_address;
 }

@@ -34,8 +34,6 @@ E820_MAX_RECORDS = MEMMAP_E820_MAX_RECORDS
 E820_SMAP = 0x534d4150
 
 .global memmap_arch_init
-.global e820counter
-.global e820table
 .global e801memorysize
 
 .code16
@@ -47,8 +45,8 @@ e820begin:
 	xorl	%ebx,%ebx	# during first call, ebx must be 0
 	movw	%bx,%ds
 	movw	%bx,%es
-	movw	$e820table,%di
-	movb	$E820_MAX_RECORDS,e820counter
+	movw	$e820table_boot,%di
+	movb	$E820_MAX_RECORDS,e820counter_boot
 e820loop:	
 	movl	$E820_SMAP,%edx 	# control sequence "SMAP"
 
@@ -67,7 +65,7 @@ e820loop:
 	addw	$E820_RECORD_SIZE,%ax
 	movw	%ax,%di
 		
-	decb	e820counter # buffer is full
+	decb	e820counter_boot # buffer is full
 	jz	e820end
 	
 	cmpl	$0,%ebx	
@@ -75,13 +73,13 @@ e820loop:
 	
 e820end:
 	movb	$E820_MAX_RECORDS,%al
-	subb	e820counter,%al
-	movb	%al,e820counter # store # of valid entries in e820counter
+	subb	e820counter_boot,%al
+	movb	%al,e820counter_boot # store # of valid entries in e820counter
 
 	jmp	e801begin
 
 e820err:
-	movb	$0,e820counter
+	movb	$0,e820counter_boot
 
 # method e801 - get size of memory
 
@@ -117,9 +115,4 @@ e801end:
 	#memory size in 1 kb chunks
 e801memorysize:
 	.long	0
-
-e820counter:
-	.byte 0xff
-
-e820table:
-	.space  (32*E820_RECORD_SIZE),0xff # space for 32 records, each E820_RECORD_SIZE bytes long
+	
