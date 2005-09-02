@@ -49,7 +49,7 @@ void frame_arch_init(void)
 		
 		for (i=e820counter;i>0;i--) {
 			if (e820table[i-1].type!=MEMMAP_MEMORY_AVAILABLE) {
-				frame_region_not_free(e820table[i-1].base_address,e820table[i-1].size);
+					frame_region_not_free(e820table[i-1].base_address, e820table[i-1].base_address+e820table[i-1].size);
 				}
 			}
 	}
