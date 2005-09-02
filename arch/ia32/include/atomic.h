@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-static inline void atomic_inc(volatile count_t *val) {
+static inline void atomic_inc(volatile int *val) {
 #ifdef __SMP__
 	__asm__ volatile ("lock incl (%0)\n" : : "r" (val));
 #else
@@ -39,7 +39,7 @@ static inline void atomic_inc(volatile count_t *val) {
 #endif /* __SMP__ */
 }
 
-static inline void atomic_dec(volatile count_t *val) {
+static inline void atomic_dec(volatile int *val) {
 #ifdef __SMP__
 	__asm__ volatile ("lock decl (%0)\n" : : "r" (val));
 #else
