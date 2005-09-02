@@ -33,7 +33,7 @@
 #include <arch/pm.h>
 
 #define START_STACK     0x7c00	
-#define START_STACK_64  $0xffffffff80007c00
+#define START_STACK_64  0xffffffff80007c00
 					
 #
 # This is where we require any SPARTAN-kernel-compatible boot loader
@@ -51,9 +51,9 @@ kernel_image_start:
 	xorw %ax,%ax
 	movw %ax,%ds
 	movw %ax,%ss            # initialize stack segment register
-	movl START_STACK,%esp	# initialize stack pointer
+	movl $(START_STACK),%esp	# initialize stack pointer
 	
-#	call memmap_arch_init
+	call memmap_arch_init
 	
 	movl $0x80000000, %eax  
 	cpuid
@@ -116,7 +116,7 @@ now_in_prot:
 
 .code64
 start64:
-	movq START_STACK_64, %rsp
+	movq $(START_STACK_64), %rsp
 	
 	call main_bsp   # never returns
 1:

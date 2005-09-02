@@ -32,4 +32,5 @@ arch_sources = arch/dummy.s \
 	arch/mm/page.c \
 	arch/mm/tlb.c \
 	arch/asm_utils.S \
-	arch/fmath.c
+	arch/fmath.c \
+	arch/mm/memory_init.c

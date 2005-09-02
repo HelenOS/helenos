@@ -4,17 +4,19 @@ set -e
 # Generate context_offset.h
 (cd ../arch/amd64/src;make gencontext;./gencontext)
 # Create links to ia32 architecture
-for a in drivers bios; do
-  ln -sf ../../ia32/src/$a ../arch/amd64/src/
-done
-for a in frame.c tlb.c; do
-  ln -sf ../../../ia32/src/mm/$a ../arch/amd64/src/mm
+
+(
+set -e
+cd ../arch
+for a in drivers bios mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S; do
+  echo ln -sf `pwd`/ia32/src/$a amd64/src/$a
+  ln -sf `pwd`/ia32/src/$a amd64/src/$a
 done
 
-for a in ega.h i8042.h i8259.h i8254.h cpuid.h interrupt.h bios; do
-  ln -sf ../../ia32/include/$a ../arch/amd64/include/
+for a in ega.h i8042.h i8259.h i8254.h interrupt.h bios mm/memory_init.h; do
+  echo ln -sf `pwd`/ia32/include/$a amd64/include/$a
+  ln -sf `pwd`/ia32/include/$a amd64/include/$a
 done
-ln -sf ../../../ia32/include/mm/memory_init.h ../arch/amd64/include/mm/
-
+)
 make dist-clean ARCH=ia32
 make all ARCH=amd64

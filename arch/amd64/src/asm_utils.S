@@ -44,6 +44,39 @@ panic_printf:
 	movq $halt, (%rsp)
 	jmp printf
 
+.global has_cpuid
+.global rdtsc
+
+
+## Determine CPUID support
+#
+# Return 0 in EAX if CPUID is not support, 1 if supported.
+#
+has_cpuid:
+	pushq %rbx
+	
+	pushfq			# store flags
+	popq %rax		# read flags
+	movq %rax,%rbx		# copy flags
+	btcl $21,%ebx		# swap the ID bit
+	pushq %rbx
+	popfq			# propagate the change into flags
+	pushfq
+	popq %rbx		# read flags	
+	andl $(1<<21),%eax	# interested only in ID bit
+	andl $(1<<21),%ebx
+	xorl %ebx,%eax		# 0 if not supported, 1 if supported
+	
+	popq %rbx
+	ret
+
+
+rdtsc:
+	xorq %rax,%rax
+	rdtsc
+	ret
+	
+
 # Push all general purpose registers on stack except %rbp, %rsp
 .macro push_all_gpr
 	pushq %rax 

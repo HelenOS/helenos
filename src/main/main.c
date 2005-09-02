@@ -186,7 +186,6 @@ void main_bsp_separated_stack(void)
 	if (!t)
 		panic("can't create kinit thread\n");
 	thread_ready(t);
-
 	/*
 	 * This call to scheduler() will return to kinit,
 	 * starting the thread of kernel threads.

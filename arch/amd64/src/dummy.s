@@ -34,33 +34,18 @@
 .global cpu_arch_init
 .global cpu_sleep
 .global cpu_print_report
-.global arch_late_init
-.global calibrate_delay_loop
 .global dummy
-.global rdtsc
 .global reset_TS_flag
 .global fpu_init
 	
-.global memory_print_map
-.global get_memory_size
-
-get_memory_size:
-	movq $4*1024*1024, %rax
-	ret
-
-rdtsc:
 before_thread_runs_arch:
 userspace:
-calibrate_delay_loop:
 cpu_identify:
 cpu_arch_init:
 cpu_sleep:
 cpu_print_report:
-arch_late_init:
-calibrate_delay_loop:
 reset_TS_flag:
 fpu_init:
-memory_print_map:	
 	
 dummy:
 0:
