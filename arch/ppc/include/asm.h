@@ -101,10 +101,19 @@ static inline pri_t cpu_priority_read(void) {
 	return v;
 }
 
-/* TODO: implement the real stuff */
+/** Return base address of current stack.
+ *
+ * Return the base address of the current stack.
+ * The stack is assumed to be STACK_SIZE bytes long.
+ * The stack must start on page boundary.
+ */
 static inline __address get_stack_base(void)
 {
-	return NULL;
+	__address v;
+	
+	__asm__ volatile ("and %0, %%r1, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	
+	return v;
 }
 
 void cpu_sleep(void);

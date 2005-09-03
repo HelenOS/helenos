@@ -36,6 +36,12 @@
 void asm_delay_loop(__u32 t);
 void asm_fake_loop(__u32 t);
 
+/** Return base address of current stack.
+ *
+ * Return the base address of the current stack.
+ * The stack is assumed to be STACK_SIZE bytes long.
+ * The stack must start on page boundary.
+ */
 static inline __address get_stack_base(void)
 {
 	__address v;
