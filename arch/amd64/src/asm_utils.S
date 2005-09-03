@@ -39,6 +39,7 @@
 .text
 .global interrupt_handlers
 .global panic_printf
+.global cpuid
 
 panic_printf:
 	movq $halt, (%rsp)
@@ -46,8 +47,9 @@ panic_printf:
 
 .global has_cpuid
 .global rdtsc
-
-
+.global read_efer_flag
+.global set_efer_flag
+	
 ## Determine CPUID support
 #
 # Return 0 in EAX if CPUID is not support, 1 if supported.
@@ -70,12 +72,36 @@ has_cpuid:
 	popq %rbx
 	ret
 
+cpuid:
+	movq %rbx, %r10  # we have to preserve rbx across function calls
+
+	movl %edi,%eax	# load the command into %eax
+
+	cpuid	
+	movl %eax,0(%rsi)
+	movl %ebx,4(%rsi)
+	movl %ecx,8(%rsi)
+	movl %edx,12(%rsi)
+
+	movq %r10, %rbx
+	ret
 
 rdtsc:
 	xorq %rax,%rax
 	rdtsc
 	ret
+
+set_efer_flag:
+	movq $0xc0000080, %rcx
+	rdmsr
+	btsl %edi, %eax
+	wrmsr
+	ret
 	
+read_efer_flag:	
+	movq $0xc0000080, %rcx
+	rdmsr
+	ret 		
 
 # Push all general purpose registers on stack except %rbp, %rsp
 .macro push_all_gpr

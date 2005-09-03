@@ -26,36 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_CPU_H__
-#define __amd64_CPU_H__
-
-
-#define EFER_MSR_NUM    0xc0000080
-#define AMD_SCE_FLAG    0
-#define AMD_LME_FLAG    8
-#define AMD_LMA_FLAG    10
-#define AMD_FFXSR_FLAG  14
-#define AMD_NXE_FLAG    11
-
-#ifndef __ASM__
-
-#include <typedefs.h>
+#include <arch/cpu.h>
+#include <arch/cpuid.h>
 #include <arch/pm.h>
 
-struct cpu_arch {
-	int vendor;
-	int family;
-	int model;
-	int stepping;
-	struct tss *tss;
+#include <arch.h>
+#include <arch/types.h>
+#include <print.h>
+#include <typedefs.h>
+
+/*
+ * Identification of CPUs.
+ * Contains only non-MP-Specification specific SMP code.
+ */
+#define AMD_CPUID_EBX	0x68747541
+#define AMD_CPUID_ECX 	0x444d4163
+#define AMD_CPUID_EDX 	0x69746e65
+
+#define INTEL_CPUID_EBX	0x756e6547
+#define INTEL_CPUID_ECX 0x6c65746e
+#define INTEL_CPUID_EDX 0x49656e69
+
+
+enum vendor {
+	VendorUnknown=0,
+	VendorAMD,
+	VendorIntel
 };
 
+static char *vendor_str[] = {
+	"Unknown Vendor",
+	"AuthenticAMD",
+	"GenuineIntel"
+};
 
-extern void set_TS_flag(void);
-extern void reset_TS_flag(void);
-extern void set_efer_flag(int flag);
-extern __u64 read_efer_flag(void);
+void set_TS_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%rax;"
+		"or $8,%%rax;"
+		"mov %%rax,%%cr0;"
+		:
+		:
+		:"%rax"
+	);
+}
 
-#endif /* __ASM__ */
-
-#endif
+void reset_TS_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%rax;"
+		"btc $4,%%rax;"
+		"mov %%rax,%%cr0;"
+		:
+		:
+		:"%rax"
+	);	
+}

@@ -35,7 +35,6 @@
 .global cpu_sleep
 .global cpu_print_report
 .global dummy
-.global reset_TS_flag
 .global fpu_init
 	
 before_thread_runs_arch:
@@ -44,7 +43,6 @@ cpu_identify:
 cpu_arch_init:
 cpu_sleep:
 cpu_print_report:
-reset_TS_flag:
 fpu_init:
 	
 dummy:

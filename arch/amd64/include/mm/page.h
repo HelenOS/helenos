@@ -42,7 +42,7 @@
 # define PA2KA(x)      (((__address) (x)) - 0x80000000)
 #else
 # define KA2PA(x)      ((x) + 0x80000000)
-//# define PA2KA(x)      ((x)) - 0x80000000)
+# define PA2KA(x)      ((x) - 0x80000000)
 #endif
 
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>39)&0x1ff)

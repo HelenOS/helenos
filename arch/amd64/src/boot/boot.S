@@ -31,6 +31,7 @@
 #include <arch/mm/page.h>	
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>
+#include <arch/cpu.h>
 
 #define START_STACK     0x7c00	
 #define START_STACK_64  0xffffffff80007c00
@@ -101,9 +102,9 @@ now_in_prot:
 	movl %eax, %cr3
 		
 	# Enable long mode
-	movl $0xc0000080, %ecx   # EFER MSR number
+	movl $EFER_MSR_NUM, %ecx   # EFER MSR number
 	rdmsr                   # Read EFER
-	btsl $8, %eax            # Set LME=1
+	btsl $AMD_LME_FLAG, %eax            # Set LME=1
 	wrmsr                   # Write EFER
 	
 	# Enable paging to activate long mode (set CR0.PG=1)

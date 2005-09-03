@@ -39,9 +39,22 @@
 
 #include <arch/bios/bios.h>
 #include <arch/mm/memory_init.h>
+#include <arch/cpu.h>
+#include <print.h>
+#include <arch/cpuid.h>
 
 void arch_pre_mm_init(void)
 {
+	struct cpu_info cpuid_s;
+
+	cpuid(AMD_CPUID_EXTENDED,&cpuid_s);
+	if (! (cpuid_s.cpuid_edx & (1<<AMD_EXT_NOEXECUTE))) {
+		printf("We do not support NX!!-----------\n");
+		printf("%X------\n",cpuid_s.cpuid_edx);
+		cpu_halt();
+	}
+	set_efer_flag(AMD_NXE_FLAG);
+
 	pm_init();
 
 	if (config.cpu_active == 1) {
