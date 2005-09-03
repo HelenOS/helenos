@@ -53,26 +53,26 @@ static inline __u8 inb(__u16 port)
 {
 	__u8 out;
 
-	asm (
+	__asm__ volatile (
 		"mov %1, %%dx;"
 		"inb %%dx,%%al;"
 		"mov %%al, %0;"
 		:"=m"(out)
 		:"m"(port)
-		:"%dx","%al"
+		:"%rdx","%rax"
 		);
 	return out;
 }
 
 static inline __u8 outb(__u16 port,__u8 b) 
 {
-	asm (
+	__asm__ volatile (
 		"mov %0,%%dx;"
 		"mov %1,%%al;"
 		"outb %%al,%%dx;"
 		:
 		:"m"( port), "m" (b)
-		:"%dx","%al"
+		:"%rdx","%rax"
 		);
 }
 

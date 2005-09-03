@@ -39,17 +39,22 @@
 .text
 .global interrupt_handlers
 .global panic_printf
-.global cpuid
 
 panic_printf:
 	movq $halt, (%rsp)
 	jmp printf
 
+.global memcpy
+memcpy:
+	jmp _memcpy
+	
+.global cpuid
 .global has_cpuid
 .global rdtsc
 .global read_efer_flag
 .global set_efer_flag
 	
+
 ## Determine CPUID support
 #
 # Return 0 in EAX if CPUID is not support, 1 if supported.

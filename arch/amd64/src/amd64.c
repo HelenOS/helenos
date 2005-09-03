@@ -92,7 +92,6 @@ void arch_late_init(void)
 
 void calibrate_delay_loop(void)
 {
-	return;
 	i8254_calibrate_delay_loop();
 	i8254_normal_operation();
 }

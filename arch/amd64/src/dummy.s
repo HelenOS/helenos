@@ -43,12 +43,11 @@ cpu_identify:
 cpu_arch_init:
 cpu_sleep:
 cpu_print_report:
-fpu_init:
 	
 dummy:
 0:
 	ret
 
-.global memcpy
-memcpy:
-	jmp _memcpy
+fpu_init:
+	fninit
+	ret
