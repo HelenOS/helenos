@@ -85,7 +85,7 @@ void map_sdt(struct acpi_sdt_header *sdt)
 
 void acpi_init(void)
 {
-	__u8 *addr[2] = { NULL, (__u8 *) 0xe0000 };
+	__u8 *addr[2] = { NULL, (__u8 *) PA2KA(0xe0000) };
 	int i, j, length[2] = { 1024, 128*1024 };
 	__u64 *sig = (__u64 *) RSDP_SIGNATURE;
 
