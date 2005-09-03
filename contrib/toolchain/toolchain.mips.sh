@@ -67,7 +67,7 @@ check_error $? "Error unpacking GCC."
 echo ">>> Compiling and installing binutils"
 cd "${BINUTILSDIR}"
 check_error $? "Change directory failed."
-./configure "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--disable-nls"
+./configure "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
 check_error $? "Error configuring binutils."
 make all install
 check_error $? "Error compiling/installing binutils."
