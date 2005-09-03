@@ -172,7 +172,8 @@ void pm_init(void)
 	/*
 	 * Update addresses in GDT and IDT to their virtual counterparts.
 	 */
-	gdtr.base = (__address) gdt;
+	if (config.cpu_active == 1)
+		gdtr.base = (__address) gdt;
 	idtr.base = (__address) idt;
 	__asm__ volatile ("lgdt %0\n" : : "m" (gdtr));
 	__asm__ volatile ("lidt %0\n" : : "m" (idtr));	

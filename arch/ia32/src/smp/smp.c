@@ -85,7 +85,7 @@ void kmp(void *arg)
 {
 	__address src, dst;
 	int i;
-
+	
 	ASSERT(ops != NULL);
 
 	waitq_initialize(&ap_completion_wq);
@@ -141,7 +141,8 @@ void kmp(void *arg)
 
 		memcpy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));
 		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
-		gdtr.base = KA2PA((__address) gdt_new);
+		ap_bootstrap_gdtr.base = KA2PA((__address) gdt_new);
+		gdtr.base = (__address) gdt_new;
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {
 			/*
