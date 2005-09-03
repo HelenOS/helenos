@@ -223,7 +223,7 @@ int configure_via_ct(void)
 		return 1;
 	}
 	
-	l_apic = (__u32 *)PA2KA((__address)ct->l_apic);
+	l_apic = (__u32 *)(__address)ct->l_apic;
 
 	cnt = 0;
 	cur = &ct->base_table[0];
@@ -333,7 +333,7 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 		return;
 	}
 	
-	io_apic = (__u32 *)PA2KA((__address)ioa->io_apic);
+	io_apic = (__u32 *)(__address)ioa->io_apic;
 }
 
 //#define MPSCT_VERBOSE

@@ -91,7 +91,7 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .special     = 1, 
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
-	/* KTEXT 16-bit protected */
+	/* KTEXT 32-bit protected */
 	{ .limit_0_15  = 0xffff, 
 	  .base_0_15   = 0, 
 	  .base_16_23  = 0, 
@@ -99,7 +99,7 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .limit_16_19 = 0xf, 
 	  .available   = 0, 
 	  .longmode    = 0, 
-	  .special     = 0,
+	  .special     = 1,
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
 	/* TSS descriptor - set up will be completed later,

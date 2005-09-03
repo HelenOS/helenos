@@ -82,14 +82,13 @@ no_long_mode:
 1:
 	jmp 1b
 
-# Protected 16-bit. We want to reuse the code-seg descriptor,
-# the Default operand size must not be 1 when entering long mode	
+# Protected 32-bit. We want to reuse the code-seg descriptor,
+# the Default operand size must not be 1 when entering long mode
+.code32
 now_in_prot:  
 	# Set up stack & data descriptors
 	movw $gdtselector(KDATA_DES), %ax
 	movw %ax, %ds
-	movw %ax, %fs
-	movw %ax, %gs
 	movw %ax, %ss
 
 	movb $0xd1, %al		# enable A20 using the keyboard controller
@@ -169,10 +168,5 @@ ptl_0:
 
 .global gdtr_inst				
 bsp_bootstrap_gdtr:
-	.word gdtselector(GDT_ITEMS)
-	.long KA2PA(gdt)-BOOT_OFFSET
-
-.global ap_bootstrap_gdtr
-ap_bootstrap_gdtr:
 	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)-BOOT_OFFSET

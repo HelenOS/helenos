@@ -27,8 +27,3 @@
 #
 
 .text
-
-.global ap_boot
-	
-ap_boot:	
-	ret

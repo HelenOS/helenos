@@ -52,7 +52,8 @@ arch_sources = arch/dummy.s \
 	arch/acpi/madt.c
 
 ifdef SMP
-arch_sources += arch/smp/apic.c \
+arch_sources += arch/smp/ap.S \
+		arch/smp/apic.c \
 		arch/smp/ipi.c \
 		arch/smp/mps.c \
 		arch/smp/smp.c

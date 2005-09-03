@@ -55,9 +55,13 @@ SECTIONS {
 
 		kdata_end = .;
 	}
-	_map_address = 0xffffffff80100000;
+	_boot_offset = 0x100000;
+	_ka2pa_offset = 0xffffffff80000000;
+	_map_address = _ka2pa_offset + _boot_offset;
+
 	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
 
 	e820table_boot = e820table - _map_address;
 	e820counter_boot = e820counter - _map_address;
+	ap_bootstrap_gdtr = ap_bootstrap_gdtr_boot + _ka2pa_offset;
 }
