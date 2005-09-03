@@ -62,8 +62,11 @@ void smp_init(void)
 	}
 
 	if (config.cpu_count > 1) {
-		map_page_to_frame((__address) l_apic, (__address) l_apic, PAGE_NOT_CACHEABLE, 0);
-		map_page_to_frame((__address) io_apic, (__address) io_apic, PAGE_NOT_CACHEABLE, 0);
+		map_page_to_frame((__address)l_apic, KA2PA((__address)l_apic), 
+				  PAGE_NOT_CACHEABLE, 0);
+		map_page_to_frame((__address) io_apic, 
+				  KA2PA((__address) io_apic), 
+				  PAGE_NOT_CACHEABLE, 0);
         }
 
         /* 

@@ -161,7 +161,7 @@ int mps_ct_check(void)
 
 void mps_init(void)
 {
-	__u8 *addr[2] = { NULL, (__u8 *) 0xf0000 };
+	__u8 *addr[2] = { NULL, (__u8 *) PA2KA(0xf0000) };
 	int i, j, length[2] = { 1024, 64*1024 };
 	
 
@@ -172,7 +172,7 @@ void mps_init(void)
 	 *  2. search 64K starting at 0xf0000
 	 */
 
-	addr[0] = (__u8 *) (ebda ? ebda : 639 * 1024);
+	addr[0] = (__u8 *) PA2KA(ebda ? ebda : 639 * 1024);
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
 			if (*((__u32 *) &addr[i][j]) == FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
@@ -195,7 +195,7 @@ fs_found:
 			return;
 		}
 
-		ct = fs->configuration_table;
+		ct = (struct mps_ct *)PA2KA((__address)fs->configuration_table);
 		frame_not_free((__address) ct);
 		config.cpu_count = configure_via_ct();
 	} 
@@ -223,7 +223,7 @@ int configure_via_ct(void)
 		return 1;
 	}
 	
-	l_apic = ct->l_apic;
+	l_apic = (__u32 *)PA2KA((__address)ct->l_apic);
 
 	cnt = 0;
 	cur = &ct->base_table[0];
@@ -333,7 +333,7 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 		return;
 	}
 	
-	io_apic = ioa->io_apic;
+	io_apic = (__u32 *)PA2KA((__address)ioa->io_apic);
 }
 
 //#define MPSCT_VERBOSE

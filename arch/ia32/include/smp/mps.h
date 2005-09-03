@@ -40,7 +40,7 @@
 
 struct mps_fs {
 	__u32 signature;
-	struct mps_ct *configuration_table;
+	__u32 configuration_table;
 	__u8 length;
 	__u8 revision;
 	__u8 checksum;
@@ -58,10 +58,10 @@ struct mps_ct {
 	__u8 checksum;
 	__u8 oem_id[8];
 	__u8 product_id[12];
-	__u8 *oem_table;
+	__u32 oem_table;
 	__u16 oem_table_size;
 	__u16 entry_count;
-	__u32 *l_apic;
+	__u32 l_apic;
 	__u16 ext_table_length;
 	__u8 ext_table_checksum;
 	__u8 xxx;
@@ -89,7 +89,7 @@ struct __io_apic_entry {
 	__u8 io_apic_id;
 	__u8 io_apic_version;
 	__u8 io_apic_flags;
-	__u32 *io_apic;
+	__u32 io_apic;
 } __attribute__ ((packed));
 
 struct __io_intr_entry {

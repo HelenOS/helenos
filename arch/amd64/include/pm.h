@@ -116,6 +116,11 @@ struct ptr_16_64 {
 	__u64 base;
 } __attribute__ ((packed));
 
+struct ptr_16_32 {
+	__u16 limit;
+	__u32 base;
+} __attribute__ ((packed));
+
 struct tss {
 	__u32 reserve1;
 	__u64 rsp0;
@@ -140,6 +145,8 @@ extern struct descriptor gdt[];
 extern struct idescriptor idt[];
 
 extern struct ptr_16_64 gdtr;
+extern struct ptr_16_32 bsp_bootstrap_gdtr;
+extern struct ptr_16_32 ap_bootstrap_gdtr;
 
 extern void pm_init(void);
 

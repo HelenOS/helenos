@@ -66,10 +66,7 @@ kernel_image_start:
 	jnc no_long_mode
 
 	# Load gdtr, idtr
-	lgdt gdtr_inst
-	# Load idtr, but it contains mess - we should not get interrupt
-	# anyway
-	lidt idtr_inst
+	lgdt bsp_bootstrap_gdtr
 	
 	movl %cr0,%eax
 	orl $0x1,%eax
@@ -154,11 +151,11 @@ ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
 .global gdtr_inst				
-gdtr_inst:
+bsp_bootstrap_gdtr:
 	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)
 
-.global idtr_inst
-idtr_inst:
-	.word idtselector(IDT_ITEMS)
-	.long KA2PA(idt)
+.global ap_bootstrap_gdtr
+ap_bootstrap_gdtr:
+	.word gdtselector(GDT_ITEMS)
+	.long KA2PA(gdt)
