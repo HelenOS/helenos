@@ -6,9 +6,19 @@ CC=$(AMD64_CC_DIR)/$(AMD64_TARGET)-gcc
 AS=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-as
 LD=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-ld
 
-#ASFLAGS=--64
+
 
 DEFS=-DARCH=$(ARCH)
+
+ifdef SMP
+DEFS+=-D$(SMP)
+endif
+
+ifdef HT
+DEFS+=-D$(HT)
+endif
+
+
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fno-unwind-tables -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
 LFLAGS=-M -T ../arch/amd64/_link.ld

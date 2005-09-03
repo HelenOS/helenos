@@ -37,7 +37,7 @@ struct chunk {
 	struct chunk *next;
 	struct chunk *prev;
 	__u32 size;
-	__u8 data[0];
+	__native data[0];
 };
 
 extern void heap_init(__address heap, size_t size);
