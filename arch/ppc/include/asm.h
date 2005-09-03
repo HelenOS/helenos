@@ -39,14 +39,14 @@
  */
 static inline pri_t cpu_priority_low(void) {
 	pri_t v;
+	pri_t tmp;
+	
 	__asm__ volatile (
 		"mfmsr %0\n"
-		"mfmsr %%r31\n"
-		"ori %%r31, %%r31, 1 << 15\n"
-		"mtmsr %%r31\n"
-		: "=r" (v)
-		:
-		: "%r31"
+		"mfmsr %1\n"
+		"ori %1, %1, 1 << 15\n"
+		"mtmsr %1\n"
+		: "=r" (v), "=r" (tmp)
 	);
 	return v;
 }
@@ -58,14 +58,14 @@ static inline pri_t cpu_priority_low(void) {
  */
 static inline pri_t cpu_priority_high(void) {
 	pri_t v;
+	pri_t tmp;
+	
 	__asm__ volatile (
 		"mfmsr %0\n"
-		"mfmsr %%r31\n"
-		"rlwinm %%r31, %%r31, 0, 17, 15\n"
-		"mtmsr %%r31\n"
-		: "=r" (v)
-		:
-		: "%r31"
+		"mfmsr %1\n"
+		"rlwinm %1, %1, 0, 17, 15\n"
+		"mtmsr %1\n"
+		: "=r" (v), "=r" (tmp)
 	);
 	return v;
 }
@@ -75,16 +75,17 @@ static inline pri_t cpu_priority_high(void) {
  * Restore EE.
  */
 static inline void cpu_priority_restore(pri_t pri) {
+	pri_t tmp;
+	
 	__asm__ volatile (
-		"mfmsr %%r31\n"
-		"rlwimi  %0, %%r31, 0, 17, 15\n"
-		"cmpw 0, %0, %%r31\n"
+		"mfmsr %1\n"
+		"rlwimi  %0, %1, 0, 17, 15\n"
+		"cmpw 0, %0, %1\n"
 		"beq 0f\n"
 		"mtmsr %0\n"
 		"0:\n"
-		: "=r" (pri)
+		: "=r" (pri), "=r" (tmp)
 		: "0" (pri)
-		: "%r31"
 	);
 }
 
@@ -116,6 +117,7 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+void cpu_halt(void);
 void cpu_sleep(void);
 void asm_delay_loop(__u32 t);
 

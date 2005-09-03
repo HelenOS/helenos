@@ -27,6 +27,7 @@
  */
 
 #include <arch/drivers/ofw.h>
+#include <arch/asm.h>
 #include <stdarg.h>
 #include <cpu.h>
 
