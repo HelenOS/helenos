@@ -33,17 +33,17 @@
 
 static inline void atomic_inc(volatile int *val) {
 #ifdef __SMP__
-	__asm__ volatile ("lock incl (%0)\n" : : "r" (val));
+	__asm__ volatile ("lock incl %0\n" : "=m" (*val));
 #else
-	__asm__ volatile ("incl (%0)\n" : : "r" (val));
+	__asm__ volatile ("incl %0\n" : "=m" (*val));
 #endif /* __SMP__ */
 }
 
 static inline void atomic_dec(volatile int *val) {
 #ifdef __SMP__
-	__asm__ volatile ("lock decl (%0)\n" : : "r" (val));
+	__asm__ volatile ("lock decl %0\n" : "=m" (*val));
 #else
-	__asm__ volatile ("decl (%0)\n" : : "r" (val));
+	__asm__ volatile ("decl %0\n" : "=m" (*val));
 #endif /* __SMP__ */
 }
 
@@ -52,9 +52,8 @@ static inline int test_and_set(volatile int *val) {
 	
 	__asm__ volatile (
 		"movl $1, %0\n"
-		"xchgl %0, (%1)\n"
-		: "=r" (v)
-		: "r" (val)
+		"xchgl %0, %1\n"
+		: "=r" (v),"=m" (*val)
 	);
 	
 	return v;
