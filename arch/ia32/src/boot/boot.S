@@ -107,6 +107,9 @@ multiboot_image_start:
 	movw %ax, %ds							# kernel data + stack
 	movw %ax, %ss
 	
+	jmpl $KTEXT, $multiboot_meeting_point
+	multiboot_meeting_point:
+	
 	call map_kernel							# map kernel and turn paging on
 	
 protected:
