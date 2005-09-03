@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-#define MAX_SYMBOL_NAME 32
+#define MAX_SYMBOL_NAME 64
 
 struct symtab_entry {
 	__u64 address;

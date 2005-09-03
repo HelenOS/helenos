@@ -5,8 +5,10 @@ import struct
 import re
 
 symline = re.compile(r'(0x[a-f0-9]+)\s+([^\s]+)$')
-symtabfmt = "<Q32s"
-MAXSTRING=31
+fileline = re.compile(r'[^\s]+\s+0x[a-f0-9]+\s+0x[a-f0-9]+\s+([^\s]+\.o)$')
+
+MAXSTRING=63
+symtabfmt = "<Q%ds" % (MAXSTRING+1)
 
 def read_symbols(inp):
     while 1:
@@ -17,6 +19,7 @@ def read_symbols(inp):
             break        
 
     symtable = {}
+    filename = ''
     while 1:
         line = inp.readline()
         if not line.strip():
@@ -24,10 +27,14 @@ def read_symbols(inp):
         if line[0] not in (' ','.'):
             break
         line = line.strip()
-        # Search only for symbols
+        # Search for file name
+        res = fileline.match(line)
+        if res:
+            filename = res.group(1)
+        # Search for symbols
         res = symline.match(line)
         if res:
-            symtable[int(res.group(1),16)] = res.group(2)
+            symtable[int(res.group(1),16)] = filename + ':' + res.group(2)
     return symtable
     
 def generate(inp, out):
