@@ -520,7 +520,7 @@ restart:		pri = cpu_priority_high();
 					cpu->nrdy--;
 					spinlock_unlock(&cpu->lock);
 
-					atomic_dec(&nrdy);
+					atomic_dec((int *)&nrdy);
 
 					r->n--;
 					list_remove(&t->rq_link);
