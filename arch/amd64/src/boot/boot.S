@@ -32,8 +32,9 @@
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
+#include <arch/cpuid.h>
+#include <arch/boot/boot.h>
 
-#define START_STACK     0x7c00	
 #define START_STACK_64  0xffffffff80007c00
 					
 #
@@ -44,6 +45,9 @@
 # time. So we can just load the respective table registers and
 # switch to protected mode.
 #
+
+#define START_STACK (BOOTSTRAP_OFFSET-0x400)
+	
 .section K_TEXT_START
 .code16
 .global kernel_image_start
@@ -52,7 +56,7 @@ kernel_image_start:
 	xorw %ax,%ax
 	movw %ax,%ds
 	movw %ax,%ss            # initialize stack segment register
-	movl $(START_STACK),%esp	# initialize stack pointer
+	movl $(START_STACK), %esp	# initialize stack pointer
 	
 	call memmap_arch_init
 	
@@ -60,7 +64,7 @@ kernel_image_start:
 	cpuid
 	cmp $0x80000000, %eax 	# any function > 80000000h?
 	jbe no_long_mode
-	movl $0x80000001, %eax	# Extended function code 80000001
+	movl $(AMD_CPUID_EXTENDED), %eax # Extended function code 80000001
 	cpuid
 	bt $29, %edx 		# Test if long mode is supported.
 	jnc no_long_mode
@@ -88,6 +92,12 @@ now_in_prot:
 	movw %ax, %gs
 	movw %ax, %ss
 
+	movb $0xd1, %al		# enable A20 using the keyboard controller
+	outb %al, $0x64
+	movb $0xdf, %al
+	outb %al, $0x60
+
+	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
 	movl %cr4, %eax
@@ -97,7 +107,7 @@ now_in_prot:
 	# Set up paging tables
 	leal ptl_0, %eax
 	movl %eax, %cr3
-		
+	
 	# Enable long mode
 	movl $EFER_MSR_NUM, %ecx   # EFER MSR number
 	rdmsr                   # Read EFER
@@ -114,7 +124,14 @@ now_in_prot:
 
 .code64
 start64:
-	movq $(START_STACK_64), %rsp
+	movq $(PA2KA(START_STACK)), %rsp
+
+	# Copy kernel to higher physical memory
+	movq $BOOTSTRAP_OFFSET, %rsi
+	movq $BOOTSTRAP_OFFSET + BOOT_OFFSET, %rdi
+	movq $_hardcoded_kernel_size, %rcx
+	cld
+	rep movsb
 	
 	call main_bsp   # never returns
 1:
@@ -153,9 +170,9 @@ ptl_0:
 .global gdtr_inst				
 bsp_bootstrap_gdtr:
 	.word gdtselector(GDT_ITEMS)
-	.long KA2PA(gdt)
+	.long KA2PA(gdt)-BOOT_OFFSET
 
 .global ap_bootstrap_gdtr
 ap_bootstrap_gdtr:
 	.word gdtselector(GDT_ITEMS)
-	.long KA2PA(gdt)
+	.long KA2PA(gdt)-BOOT_OFFSET

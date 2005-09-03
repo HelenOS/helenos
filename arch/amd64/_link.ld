@@ -17,12 +17,13 @@ SECTIONS {
 		*(K_TEXT_START);
 		*(K_TEXT_START_2);
 		unmapped_ktext_end = .;
+
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
 		unmapped_kdata_end = .;
 	}
 
-	.mapped (0xffffffff80000000+SIZEOF(.unmapped)+0x8000) : AT (0x8000+SIZEOF(.unmapped)) {
+	.mapped (0xffffffff80100000+0x8000+SIZEOF(.unmapped)) : AT (0x8000+SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(BOOT_DATA);
 		*(.text);
@@ -37,6 +38,10 @@ SECTIONS {
 		QUAD(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
+		hardcoded_unmapped_ktext_size = .;
+		LONG(unmapped_ktext_end - unmapped_ktext_start);
+		hardcoded_unmapped_kdata_size = .;
+		LONG(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);		/* global variables */
 
 
@@ -50,7 +55,9 @@ SECTIONS {
 
 		kdata_end = .;
 	}
-	_map_address = 0xffffffff80000000;
+	_map_address = 0xffffffff80100000;
+	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
+
 	e820table_boot = e820table - _map_address;
 	e820counter_boot = e820counter - _map_address;
 }

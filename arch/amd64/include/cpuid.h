@@ -29,10 +29,12 @@
 #ifndef __CPUID_H__
 #define __CPUID_H__
 
-#include <arch/types.h>
-
 #define AMD_CPUID_EXTENDED 0x80000001
 #define AMD_EXT_NOEXECUTE    20
+
+#ifndef __ASM__
+
+#include <arch/types.h>
 
 struct cpu_info {
 	__u32 cpuid_eax;
@@ -48,4 +50,5 @@ extern void cpuid(__u32 cmd, cpu_info_t *info);
 
 extern __u64 rdtsc(void);
 
+#endif /* __ASM__ */
 #endif
