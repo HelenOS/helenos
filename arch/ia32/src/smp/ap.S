@@ -50,11 +50,11 @@ ap_boot:
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt ap_bootstrap_gdtr	# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr	# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
-	movl %eax, %cr0			# switch to protected mode
+	movl %eax, %cr0				# switch to protected mode
 	jmpl $KTEXT, $jump_to_kernel
 	
 jump_to_kernel:

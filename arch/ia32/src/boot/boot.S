@@ -52,7 +52,7 @@ kernel_image_start:
 	
 	call memmap_arch_init
 	
-	lgdt bsp_bootstrap_gdtr					# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr				# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $0x1, %eax
@@ -93,27 +93,29 @@ boot_image_start:
 	cld
 	rep movsb
 	
-	jmp protected
+	call main_bsp			# never returns
+
+	cli
+	hlt
 	
 multiboot_image_start:
-	movl BOOTSTRAP_OFFSET - 0x400, %esp		# initialize stack pointer
+	movl $BOOTSTRAP_OFFSET - 0x400, %esp			# initialize stack pointer
 	
-	lgdt gdtr								# initialize Global Descriptor Table register
+	lgdt protected_bootstrap_gdtr - 0x80000000		# initialize Global Descriptor Table register
 
 	movw $KDATA, %ax
 	movw %ax, %es
 	movw %ax, %gs
 	movw %ax, %fs
-	movw %ax, %ds							# kernel data + stack
+	movw %ax, %ds									# kernel data + stack
 	movw %ax, %ss
 	
-	jmpl $KTEXT, $multiboot_meeting_point
+	jmpl $KTEXT, $multiboot_meeting_point + BOOT_OFFSET
 	multiboot_meeting_point:
 	
-	call map_kernel							# map kernel and turn paging on
+	call map_kernel									# map kernel and turn paging on
 	
-protected:
-	call main_bsp		# never returns
+	call main_bsp - BOOT_OFFSET						# never returns
 
 	cli
 	hlt
