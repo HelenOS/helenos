@@ -41,13 +41,14 @@ static spinlock_t printflock;              /**< printf spinlock */
 #define DEFAULT_DOUBLE_PRECISION 16
 #define DEFAULT_DOUBLE_BUFFER_SIZE 128
 
-void print_double(double num, __u16 precision) 
+void print_double(double num, __u8 modifier, __u16 precision) 
 {
 	double intval,intval2;
 	int counter;
 	int exponent,exponenttmp;
 	unsigned char buf[DEFAULT_DOUBLE_BUFFER_SIZE];
 	unsigned long in1,in2;	
+	
 	/*
 	if (fmath_is_nan(num)) {
 		print_str("NaN");
@@ -60,6 +61,23 @@ void print_double(double num, __u16 precision)
 		}
 	
 	num=fmath_abs(num);
+
+	if ((modifier=='E')||(modifier=='e')) {
+		intval2=fmath_fint(fmath_get_decimal_exponent(num),&intval);
+		exponent=intval;
+		if ((intval2<0.0)&&(exponent<0)) exponent--;
+		num = num / ((fmath_dpow(10.0,exponent)));
+		
+		print_double(num,modifier+1,precision); //modifier+1 = E => F or e => f
+		putchar(modifier);
+		if (exponent<0) {
+			putchar('-');
+			exponent*=-1;
+			}
+		print_number(exponent,10);
+		return;
+		}
+		
 
 	/*
 	if (fmath_is_infinity(num)) {
@@ -232,7 +250,9 @@ void printf(const char *fmt, ...)
 	int irqpri, i = 0;
 	va_list ap;
 	char c;	
-
+	
+	__u16 precision;
+	
 	va_start(ap, fmt);
 
 	irqpri = cpu_priority_high();
@@ -241,8 +261,22 @@ void printf(const char *fmt, ...)
 	while (c = fmt[i++]) {
 		switch (c) {
 
+			
+			
 		    /* control character */
 		    case '%':
+		    
+				precision = DEFAULT_DOUBLE_PRECISION;
+				if (fmt[i]=='.') {
+					precision=0;
+					c=fmt[++i];
+						while((c>='0')&&(c<='9')) {
+							precision = precision*10 + c - '0';
+							c=fmt[++i];
+							}
+						
+				}
+		    
 			    switch (c = fmt[i++]) {
 
 				/* percentile itself */
@@ -298,9 +332,20 @@ void printf(const char *fmt, ...)
 		                 */
 				
 				case 'F':
-				case 'f':
-		    			print_double(va_arg(ap, double),DEFAULT_DOUBLE_PRECISION);
+		    			print_double(va_arg(ap, double),'F',precision);
 					goto loop;
+					
+				case 'f':
+		    			print_double(va_arg(ap, double),'f',precision);
+					goto loop;
+				
+				case 'E':
+		    			print_double(va_arg(ap, double),'E',precision);
+					goto loop;
+				case 'e':
+		    			print_double(va_arg(ap, double),'e',precision);
+					goto loop;
+				
 				/*
 		                 * Decimal and hexadecimal conversions.
 		                 */
