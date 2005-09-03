@@ -40,7 +40,7 @@
 static rwlock_t rwlock;
 
 static void writer(void *arg);
-static void failed(void *arg);
+static void failed(void);
 
 void writer(void *arg)
 {
@@ -55,7 +55,7 @@ void writer(void *arg)
 	printf("Test passed.\n");
 }
 
-void failed(void)
+void failed()
 {
 	printf("Test failed prematurely.\n");
 	thread_exit();
