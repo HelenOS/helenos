@@ -47,27 +47,33 @@ KDATA=16
 ap_boot:
 .code16
 	cli
-	xorw %ax,%ax
-	movw %ax,%ds
+	xorw %ax, %ax
+	movw %ax, %ds
 
-	lgdt gdtr			# initialize Global Descriptor Table register
+	lgdt ap_bootstrap_gdtr	# initialize Global Descriptor Table register
 	
-	movl %cr0,%eax
-	orl $1,%eax
-	movl %eax,%cr0			# switch to protected mode
-	jmpl $KTEXT,$jump_to_kernel
+	movl %cr0, %eax
+	orl $1, %eax
+	movl %eax, %cr0			# switch to protected mode
+	jmpl $KTEXT, $jump_to_kernel
+	
 jump_to_kernel:
 .code32
-	movw $KDATA,%ax
-	movw %ax,%ds
-	movw %ax,%es
-	movw %ax,%ss
-	movl $(ctx-0x80000000),%eax	# KA2PA((__address) &ctx)
-	movl (%eax),%esp
-	subl $0x80000000,%esp		# KA2PA(ctx.sp)
+	movw $KDATA, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %ss
+	movl $(ctx-0x80000000), %eax	# KA2PA((__address) &ctx)
+	movl (%eax), %esp
+	subl $0x80000000, %esp			# KA2PA(ctx.sp)
 
-	call map_kernel			# map kernel and turn paging on
+	call map_kernel					# map kernel and turn paging on
+	
+	movb $0xd1, %al					# enable A20 using the keyboard controller
+	outb %al, $0x64
+	movb $0xdf, %al
+	outb %al, $0x60
 
-	jmpl $KTEXT,$main_ap
+	jmpl $KTEXT, $main_ap
 
 #endif /* __SMP__ */

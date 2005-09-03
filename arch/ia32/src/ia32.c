@@ -57,7 +57,7 @@ void arch_pre_mm_init(void)
 
 	if (config.cpu_active == 1) {
 		bios_init();
-		i8042_init();	/* a20 bit */
+		i8042_init();	/* keyboard controller */
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
 		

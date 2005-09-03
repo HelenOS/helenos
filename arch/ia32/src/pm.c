@@ -70,7 +70,9 @@ static struct tss tss;
 struct tss *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt - BOOT_OFFSET) };
+struct ptr_16_32 bsp_bootstrap_gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt - BOOT_OFFSET) };
+struct ptr_16_32 ap_bootstrap_gdtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
+struct ptr_16_32 gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
 struct ptr_16_32 idtr __attribute__ ((section ("K_DATA_START"))) = { .limit = sizeof(idt), .base = KA2PA((__address) idt) };
 
 void gdt_setbase(struct descriptor *d, __address base)
@@ -170,7 +172,7 @@ void pm_init(void)
 	/*
 	 * Update addresses in GDT and IDT to their virtual counterparts.
 	 */
-	gdtr.base = KA2PA(gdtr.base);
+	gdtr.base = (__address) gdt;
 	idtr.base = (__address) idt;
 	__asm__ volatile ("lgdt %0\n" : : "m" (gdtr));
 	__asm__ volatile ("lidt %0\n" : : "m" (idtr));	

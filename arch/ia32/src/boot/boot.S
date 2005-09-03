@@ -31,6 +31,9 @@
 .section K_TEXT_START
 .global kernel_image_start
 
+KTEXT=8
+KDATA=16
+
 .code16
 #
 # This is where we require any SPARTAN-kernel-compatible boot loader
@@ -44,18 +47,18 @@ kernel_image_start:
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
-	movw %ax, %ss			# initialize stack segment register
-	movl $0x7c00, %esp		# initialize stack pointer
+	movw %ax, %ss							# initialize stack segment register
+	movl $BOOTSTRAP_OFFSET - 0x400, %esp	# initialize stack pointer
 	
 	call memmap_arch_init
 	
-	lgdt gdtr			# initialize Global Descriptor Table register
+	lgdt bsp_bootstrap_gdtr					# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $0x1, %eax
-	movl %eax, %cr0			# switch to protected mode
+	movl %eax, %cr0							# switch to protected mode
 	
-	jmpl $8, $boot_image_start
+	jmpl $KTEXT, $boot_image_start
 	
 .code32
 .align 4
@@ -70,7 +73,7 @@ multiboot_header:
 	.long multiboot_image_start + BOOT_OFFSET
 	
 boot_image_start:
-	movw $16, %ax
+	movw $KDATA, %ax
 	movw %ax, %es
 	movw %ax, %gs
 	movw %ax, %fs
@@ -84,8 +87,8 @@ boot_image_start:
 	movb $0xdf, %al
 	outb %al, $0x60
 	
-	movl $0x8000, %esi
-	movl $0x8000 + BOOT_OFFSET, %edi
+	movl $BOOTSTRAP_OFFSET, %esi
+	movl $BOOTSTRAP_OFFSET + BOOT_OFFSET, %edi
 	movl $_hardcoded_kernel_size, %ecx
 	cld
 	rep movsb
@@ -93,21 +96,21 @@ boot_image_start:
 	jmp protected
 	
 multiboot_image_start:
-	movl $0x7c00, %esp		# initialize stack pointer
+	movl BOOTSTRAP_OFFSET - 0x400, %esp		# initialize stack pointer
 	
-	lgdt gdtr
+	lgdt gdtr								# initialize Global Descriptor Table register
 
-	movw $16, %ax
+	movw $KDATA, %ax
 	movw %ax, %es
 	movw %ax, %gs
 	movw %ax, %fs
-	movw %ax, %ds			# kernel data + stack
+	movw %ax, %ds							# kernel data + stack
 	movw %ax, %ss
 	
-	call map_kernel			# map kernel and turn paging on
+	call map_kernel							# map kernel and turn paging on
 	
 protected:
-	call main_bsp			# never returns
+	call main_bsp		# never returns
 
 	cli
 	hlt

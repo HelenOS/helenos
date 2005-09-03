@@ -30,22 +30,26 @@
 #include <arch/mm/frame.h>
 #include <mm/vm.h>
 #include <config.h>
+#include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
 
-#include <print.h>
+size_t hardcoded_unmapped_ktext_size = 0;
+size_t hardcoded_unmapped_kdata_size = 0;
 
 void frame_arch_init(void)
 {
 	__u8 i;
 	
 	if (config.cpu_active == 1) {
+		/* Reserve the NULL frame */
 		frame_not_free(0x0);
-
+		
+		/* Reserve well-known memory regions */
 		frame_region_not_free(0xa0000,0xff000);
 		frame_region_not_free(0xfec00000,0xffffffff);
 		
-		/* This is a nasty hack, which should be fixed soon */
-		frame_region_not_free(0x0, 0xfffff);
+		/* Reserve real mode bootstrap memory */
+		frame_region_not_free(BOOTSTRAP_OFFSET, BOOTSTRAP_OFFSET + hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
 		
 		for (i=e820counter;i>0;i--) {
 			if (e820table[i-1].type!=MEMMAP_MEMORY_AVAILABLE) {
