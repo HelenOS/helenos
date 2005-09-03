@@ -69,7 +69,7 @@ void print_double(double num, __u8 modifier, __u16 precision)
 	if ((modifier=='E')||(modifier=='e')) {
 		intval2=fmath_fint(fmath_get_decimal_exponent(num),&intval);
 		exponent=intval;
-		if ((intval2<0.0)&&(exponent<0)) exponent--;
+		if ((intval2<0.0)) exponent--;
 		num = num / ((fmath_dpow(10.0,exponent)));
 		
 		print_double(num,modifier+1,precision); //modifier+1 = E => F or e => f
@@ -119,10 +119,10 @@ void print_double(double num, __u8 modifier, __u16 precision)
 		counter=0;	
 	}
 	
-	if (intval==0.0) {
+	in1=intval;
+	if (in1==0.0) {
 		if (counter<DEFAULT_DOUBLE_BUFFER_SIZE) buf[counter++]='0';
 	} else {
-		in1=intval;
 		while(( in1>0 )&&(counter<DEFAULT_DOUBLE_BUFFER_SIZE)) {
 			
 			in2=in1;
