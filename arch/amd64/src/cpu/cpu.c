@@ -62,26 +62,68 @@ static char *vendor_str[] = {
 
 void set_TS_flag(void)
 {
-	asm
-	(
+	__asm__	volatile (
 		"mov %%cr0,%%rax;"
 		"or $8,%%rax;"
 		"mov %%rax,%%cr0;"
 		:
 		:
 		:"%rax"
-	);
+		);
 }
 
 void reset_TS_flag(void)
 {
-	asm
-	(
+	__asm__	volatile (
 		"mov %%cr0,%%rax;"
 		"btc $4,%%rax;"
 		"mov %%rax,%%cr0;"
 		:
 		:
 		:"%rax"
-	);	
+		);	
+}
+
+void cpu_arch_init(void)
+{
+	CPU->arch.tss = tss_p;
+	CPU->fpu_owner=NULL;
+}
+
+
+void cpu_identify(void)
+{
+	cpu_info_t info;
+	int i;
+
+	CPU->arch.vendor = VendorUnknown;
+	if (has_cpuid()) {
+		cpuid(0, &info);
+
+		/*
+		 * Check for AMD processor.
+		 */
+		if (info.cpuid_ebx==AMD_CPUID_EBX && info.cpuid_ecx==AMD_CPUID_ECX && info.cpuid_edx==AMD_CPUID_EDX) {
+			CPU->arch.vendor = VendorAMD;
+		}
+
+		/*
+		 * Check for Intel processor.
+		 */		
+		if (info.cpuid_ebx==INTEL_CPUID_EBX && info.cpuid_ecx==INTEL_CPUID_ECX && info.cpuid_edx==INTEL_CPUID_EDX) {
+			CPU->arch.vendor = VendorIntel;
+		}
+				
+		cpuid(1, &info);
+		CPU->arch.family = (info.cpuid_eax>>8)&0xf;
+		CPU->arch.model = (info.cpuid_eax>>4)&0xf;
+		CPU->arch.stepping = (info.cpuid_eax>>0)&0xf;						
+	}
+}
+
+void cpu_print_report(cpu_t* m)
+{
+	printf("cpu%d: (%s family=%d model=%d stepping=%d) %dMHz\n",
+		m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model, m->arch.stepping,
+		m->frequency_mhz);
 }

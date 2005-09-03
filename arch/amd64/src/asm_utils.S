@@ -55,6 +55,26 @@ memcpy:
 .global set_efer_flag
 	
 
+# THIS IS USERSPACE CODE
+.global utext
+utext:
+	xor %ax,%ax;
+	mov %ax,%ds;
+	mov %ax,%es;
+	mov %ax,%fs;
+	mov %ax,%gs;
+0:
+	int $48
+	jmp 0b
+	# not reached
+utext_end:
+
+.data
+.global utext_size
+utext_size:
+	.long utext_end - utext 
+
+	
 ## Determine CPUID support
 #
 # Return 0 in EAX if CPUID is not support, 1 if supported.

@@ -28,26 +28,5 @@
 
 .text
 
-.global userspace
-.global before_thread_runs_arch
-.global cpu_identify
-.global cpu_arch_init
-.global cpu_sleep
-.global cpu_print_report
-.global dummy
-.global fpu_init
-	
-before_thread_runs_arch:
-userspace:
-cpu_identify:
-cpu_arch_init:
-cpu_sleep:
-cpu_print_report:
-	
-dummy:
 0:
-	ret
-
-fpu_init:
-	fninit
 	ret

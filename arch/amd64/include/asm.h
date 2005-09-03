@@ -51,8 +51,8 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
-static inline void cpu_sleep(void) { __asm__("hlt"); };
-static inline void cpu_halt(void) { __asm__("hlt"); };
+static inline void cpu_sleep(void) { __asm__ volatile ("hlt"); };
+static inline void cpu_halt(void) { __asm__ volatile ("hlt"); };
 
 
 static inline __u8 inb(__u16 port) 

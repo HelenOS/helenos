@@ -34,4 +34,6 @@ arch_sources = arch/dummy.s \
 	arch/asm_utils.S \
 	arch/fmath.c \
 	arch/mm/memory_init.c \
-	arch/cpu/cpu.c
+	arch/cpu/cpu.c \
+	arch/proc/scheduler.c \
+	arch/userspace.c

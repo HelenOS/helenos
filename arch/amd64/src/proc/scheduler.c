@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,26 +24,15 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-#include <fpu_context.h>
+#include <proc/scheduler.h>
+#include <cpu.h>
+#include <proc/thread.h>
+#include <arch.h>
+#include <arch/context.h>	/* SP_DELTA */
 
-void fpu_context_save(fpu_context_t *fctx)
+void before_thread_runs_arch(void)
 {
-}
-
-
-void fpu_context_restore(fpu_context_t *fctx)
-{
-}
-
-
-void fpu_lazy_context_save(fpu_context_t *fctx)
-{
-}
-
-void fpu_lazy_context_restore(fpu_context_t *fctx)
-{
-
+	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 }

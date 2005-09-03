@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,50 +24,41 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-#include <fpu_context.h>
+#include <userspace.h>
+#include <arch/pm.h>
+#include <arch/types.h>
 #include <arch.h>
-#include <cpu.h>
+#include <proc/thread.h>
+#include <mm/vm.h>
 
-void fpu_context_save(fpu_context_t *fctx)
+
+/** Enter userspace
+ *
+ * Change CPU protection level to 3, enter userspace.
+ *
+ */
+void userspace(void)
 {
-}
+	pri_t pri;
+	
+	pri = cpu_priority_high();
 
-
-void fpu_context_restore(fpu_context_t *fctx)
-{
-	if(THREAD==CPU->fpu_owner) {reset_TS_flag(); }
-	else 
-	{
-		set_TS_flag(); 
-		if((CPU->fpu_owner)!=NULL)(CPU->fpu_owner)->fpu_context_engaged=1;
-	}
-}
-
-
-void fpu_lazy_context_save(fpu_context_t *fctx)
-{
-	return;
-	__asm__ (
-		"fnsave %0"
-		: "=m"(fctx)
-		);
-}
-
-void fpu_lazy_context_restore(fpu_context_t *fctx)
-{
-	return;
-	__asm__ (
-		"frstor %0"
-		: "=m"(fctx)
-		);
-}
-
-void fpu_init(void)
-{
-	asm(
-		"fninit;"
-	);
+	__asm__ volatile (""
+			  "movq %0, %%rax;"		       
+			  "movq %1, %%rbx;"
+			  "movq %2, %%rcx;"
+			  "movq %3, %%rdx;"
+			  "movq %4, %%rsi;"
+			  "pushq %%rax;"
+			  "pushq %%rbx;"
+			  "pushq %%rcx;"
+			  "pushq %%rdx;"
+			  "pushq %%rsi;"
+			  "iretq;"
+			  : : "i" (gdtselector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+(THREAD_STACK_SIZE-1)), "r" (pri), "i" (gdtselector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
+	
+	/* Unreachable */
+	for(;;);
 }

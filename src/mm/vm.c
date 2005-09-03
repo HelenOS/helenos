@@ -70,7 +70,7 @@ vm_t *vm_create(pte_t *ptl0)
 //			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
 //			memcpy((void *) &dst_ptl0[KAS_START_INDEX], (void *) &src_ptl0[KAS_START_INDEX], KAS_INDICES);
 			
-			memcpy((void *) dst_ptl0, (void *) GET_PTL0_ADDRESS() , PAGE_SIZE);
+			memcpy((void *) dst_ptl0,(void *) src_ptl0, PAGE_SIZE);
 
 			m->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
 		}
