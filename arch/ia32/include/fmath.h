@@ -34,9 +34,6 @@ typedef unsigned char fmath_ld_descr_t[8];
  
 typedef union { double bf; unsigned char ldd[8]; }  fmath_ld_union_t;
 
-int fmath_is_negative(double num);
-//int fmath_is_exponent_negative(double num);
-
 /**returns exponent in binary encoding*/
 signed short fmath_get_binary_exponent(double num);
 
@@ -53,11 +50,6 @@ __u64 fmath_get_binary_mantisa(double num) ;
 */
 double fmath_fint(double num, double *intp);
 
-/** Return absolute value from num */
-double fmath_abs(double num);
-
-double fmath_set_sign(double num,__u8 sign);
-
 /** count base^exponent from positive exponent
 * @param base
 * @param exponent - Must be > 0.0 
@@ -65,3 +57,8 @@ double fmath_set_sign(double num,__u8 sign);
 */
 double fmath_dpow(double base, double exponent) ;
 
+/** return 1, if num is NaN */
+int fmath_is_nan(double num);
+
+/** return 1, if fmath is a infinity */
+int fmath_is_infinity(double num);

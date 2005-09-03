@@ -49,18 +49,22 @@ void print_double(double num, __u8 modifier, __u16 precision)
 	unsigned char buf[DEFAULT_DOUBLE_BUFFER_SIZE];
 	unsigned long in1,in2;	
 	
-	/*
+
 	if (fmath_is_nan(num)) {
 		print_str("NaN");
 		return;
 	}
-	*/
 	
-	if (fmath_is_negative(num)) {
+	if (num<0.0) {
 		putchar('-');
+		num=num*-1.0;
 		}
-	
-	num=fmath_abs(num);
+
+
+	if (fmath_is_infinity(num)) {
+		print_str("Inf");
+		return;
+		}
 
 	if ((modifier=='E')||(modifier=='e')) {
 		intval2=fmath_fint(fmath_get_decimal_exponent(num),&intval);
@@ -78,12 +82,6 @@ void print_double(double num, __u8 modifier, __u16 precision)
 		return;
 		}
 		
-
-	/*
-	if (fmath_is_infinity(num)) {
-		print_str("Inf");
-		}
-	*/
 	//TODO: rounding constant - when we got fraction >= 0.5, we must increment last printed number 
 
 	/* Here is problem with cumulative error while printing big double values -> we will divide

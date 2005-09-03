@@ -30,15 +30,7 @@
 #include <print.h>
 
 #define FMATH_MANTISA_MASK ( 0x000fffffffffffffLL )
-
-int fmath_is_negative(double num) 
-{
-	fmath_ld_union_t fmath_ld_union;
-	fmath_ld_union.bf = num;
-	return ((fmath_ld_union.ldd[7])&0x80)==0x80; /*first bit is sign, IA32 is little endian -> 8th byte*/
-
-} 
-
+#define FMATH_NAN ( 0x0001000000000001LL )
 signed short fmath_get_binary_exponent(double num) 
 {
 	fmath_ld_union_t fmath_ld_union;
@@ -77,7 +69,6 @@ double fmath_fint(double num, double *intp)
 	
 	if (exp<0) {
 		*intp = 0.0;
-		*intp = fmath_set_sign(0.0L,fmath_is_negative(num));
 		return num;
 		}
 		
@@ -85,7 +76,6 @@ double fmath_fint(double num, double *intp)
 	if (exp>51) {
 		*intp=num;
 		num=0.0;
-		num= fmath_set_sign(0.0L,fmath_is_negative(*intp));
 		return num;
 	}
 	
@@ -106,18 +96,6 @@ double fmath_fint(double num, double *intp)
 	return fmath_ld_union_num.bf-fmath_ld_union_int.bf;
 };
 	
-double fmath_set_sign(double num,__u8 sign) 
-{
-	fmath_ld_union_t fmath_ld_union;
-	fmath_ld_union.bf = num;
-	fmath_ld_union.ldd[7]=((fmath_ld_union.ldd[7])&0x7f)|(sign<<7); /* change 64th bit (IA32 is a little endian)*/
-	return fmath_ld_union.bf;
-}
-
-double fmath_abs(double num) 
-{
-	return fmath_set_sign(num,0);
-}
 
 double fmath_dpow(double base, double exponent) 
 {
@@ -141,3 +119,28 @@ double fmath_dpow(double base, double exponent)
 	return value;
 }
 
+int fmath_is_nan(double num) 
+{
+	__u16 exp;
+	fmath_ld_union_t fmath_ld_union;
+	fmath_ld_union.bf = num;
+	exp=(((fmath_ld_union.ldd[7])&0x7f)<<4) + (((fmath_ld_union.ldd[6])&0xf0)>>4); /* exponent is 11 bits lenght, so sevent bits is in 8th byte and 4 bits in 7th */
+
+	if (exp!=0x07ff) return 0;
+	if (fmath_get_binary_mantisa(num)>=FMATH_NAN) return 1;
+	
+		
+	return 0;
+}
+
+int fmath_is_infinity(double num)
+{
+	__u16 exp;
+	fmath_ld_union_t fmath_ld_union;
+	fmath_ld_union.bf = num;
+	exp=(((fmath_ld_union.ldd[7])&0x7f)<<4) + (((fmath_ld_union.ldd[6])&0xf0)>>4); /* exponent is 11 bits lenght, so sevent bits is in 8th byte and 4 bits in 7th */
+
+	if (exp!=0x07ff) return 0;
+	if (fmath_get_binary_mantisa(num)==0x0) return 1;
+	return 0;
+}

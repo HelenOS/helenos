@@ -31,6 +31,7 @@
 void test(void)
 {
 	__u64 u64const = 0x0123456789ABCDEFLL;
+	double d;
 	printf(" Printf test \n");
 	printf(" Q  %Q  %q \n",u64const, u64const);
 	printf(" L  %L  %l \n",0x01234567 ,0x01234567);   
@@ -47,5 +48,11 @@ void test(void)
 	printf(" E  %.10E %.8e (-987654321.123456789e12 for precision 10 & 8)\n",-987654321.123456789e12,-987654321.123456789e12);
 	printf(" E  %.10E %.8e (123456789.987654321e12 for precision 10 & 8)\n",123456789.987654321e12,123456789.987654321e12);
 	printf(" E  %.10E %.8e (987654321.123456789e12 for precision 10 & 8)\n",987654321.123456789e12,987654321.123456789e12);
+	u64const =0x7fffffffffffffffLL;
+	d =*((double *)((void *)(&u64const)));
+	printf(" E  %.10E (NaN)\n",d);
+	u64const =(0xfff0000000000000LL);
+	d =*(double *)(void *)(&u64const);
+	printf(" E  %.10E (-Inf)\n",d);
 	return;
 }
