@@ -28,6 +28,10 @@ SECTIONS {
 		*(.scommon)
 		*(.bss)
 		*(COMMON);
+
+                symbol_table = .;
+                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
 		kdata_end = .;
 	}
 

@@ -61,4 +61,9 @@ void asm_delay_loop(__u32 t);
 #define get_psr(val) {__u64 v ; __asm__  volatile("mov r15 = psr;;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
 
 
+void cpu_halt(void);
+
+
+
+
 #endif

@@ -34,9 +34,9 @@ stack0:
 kernel_image_start:
 	.auto
 	# initialize PSR
-	mov psr.l = r0;;
-	srlz.i;
-	srlz.d;;
+	{mov psr.l = r0;;}
+	{srlz.i;
+	srlz.d;;}
 	
 	# initialize register stack
 	mov ar.rsc = r0

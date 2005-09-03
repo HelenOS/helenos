@@ -6,6 +6,10 @@ IA-64_BINUTILS_DIR=/usr/local/ia64/bin
 CC=$(IA-64_CC_DIR)/$(IA-64_TARGET)-gcc
 AS=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-as
 LD=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-ld
+OBJCOPY=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-objcopy
+BFD_NAME=elf64-little
+BFD_ARCH=ia64-elf64
+
 
 ASFLAGS=-mconstant-gp
 

@@ -22,9 +22,9 @@ void cpu_arch_init(void)
 
 	__asm__  volatile (
 		"mov cr2 = %0;;\n"
-		"mov psr.l = %1;;\n"
-		"srlz.i;"
-		"srlz.d;;"
+		"{mov psr.l = %1;;}\n"
+		"{srlz.i;"
+		"srlz.d;;}"
 		: 
 		: "r" (p), "r" (psr)
 	);

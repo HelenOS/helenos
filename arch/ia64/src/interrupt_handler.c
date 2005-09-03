@@ -32,6 +32,7 @@
 #include <print.h>
 #include <arch/types.h>
 #include <arch/asm.h>
+#include <symtab.h>
 
 extern __u64 REG_DUMP;
 
@@ -51,15 +52,16 @@ void break_instruction(void)
 }
 
 
-#define cr_dump(r) {__u64 val; get_control_register(r,val); printf("cr"#r":%Q\n",val);}
-#define ar_dump(r) {__u64 val; get_aplication_register(r,val); printf("ar"#r":%Q\n",val);}
+#define cr_dump(r) {__u64 val; get_control_register(r,val); printf("\ncr"#r":%Q",val);}
+#define ar_dump(r) {__u64 val; get_aplication_register(r,val); printf("\nar"#r":%Q",val);}
 
 void universal_handler(void);
 void universal_handler(void)
 {
-	__u64 vector,psr;
+	__u64 vector,psr,PC;
 	__u64 *p;
 	int i;
+	char *sym;
 	
 	
 	get_shadow_register(16,vector);
@@ -76,10 +78,10 @@ void universal_handler(void)
 	cr_dump(8);	
 	cr_dump(16);	
 	cr_dump(17);	
-	cr_dump(19);	
-	cr_dump(20);	
+	cr_dump(19);get_control_register(19,PC); if(sym=get_symtab_entry(PC)) printf("(%s)",sym);
+	cr_dump(20);get_control_register(20,PC); if(sym=get_symtab_entry(PC)) printf("(%s)",sym);	
 	cr_dump(21);	
-	cr_dump(22);	
+	cr_dump(22);get_control_register(22,PC); if(sym=get_symtab_entry(PC)) printf("(%s)",sym);	
 	cr_dump(23);	
 	cr_dump(24);	
 	cr_dump(25);	
