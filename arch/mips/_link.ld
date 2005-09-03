@@ -36,6 +36,10 @@ SECTIONS {
 		*(.bss);		/* uninitialized static variables */	
 		*(.scommon);
 		*(COMMON); 		/* global variables */
+
+		symbol_table = .;
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
 		kdata_end = .;
 
 	} = 0x00000000

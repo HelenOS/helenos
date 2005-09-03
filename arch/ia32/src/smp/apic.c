@@ -111,7 +111,7 @@ void apic_init(void)
 	l_apic_debug();	
 }
 
-void apic_spurious(__u8 n, __u32 stack[])
+void apic_spurious(__u8 n, __native stack[])
 {
 	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
 }
@@ -319,7 +319,7 @@ void l_apic_debug(void)
 #endif
 }
 
-void l_apic_timer_interrupt(__u8 n, __u32 stack[])
+void l_apic_timer_interrupt(__u8 n, __native stack[])
 {
 	l_apic_eoi();
 	clock();

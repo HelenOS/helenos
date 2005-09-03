@@ -31,16 +31,23 @@ SECTIONS {
 		kdata_start = .;
 		*(.data);		/* initialized data */
 		*(.rodata*);		/* string literals */
-		*(COMMON);		/* global variables */
 		hardcoded_load_address = .;
 		QUAD(0xffffffff80008000);
 		hardcoded_ktext_size = .;
 		QUAD(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
+		*(COMMON);		/* global variables */
+
+
+
 		*(.eh_frame);
 		*(.bss);		/* uninitialized static variables */
 		*(K_DATA_END);
+
+		symbol_table = .;
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
 		kdata_end = .;
 	}
 	_map_address = 0xffffffff80000000;

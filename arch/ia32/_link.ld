@@ -45,6 +45,10 @@ SECTIONS {
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
 		*(.bss);		/* uninitialized static variables */
 		*(K_DATA_END);
+
+		symbol_table = .;
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
 		kdata_end = .;
 	}
 	

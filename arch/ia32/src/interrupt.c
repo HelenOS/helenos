@@ -36,6 +36,7 @@
 #include <arch/asm.h>
 #include <mm/tlb.h>
 #include <arch.h>
+#include <symtab.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -46,6 +47,22 @@ static iroutine ivt[IVT_ITEMS];
 void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
+
+#define PRINT_INFO_ERRCODE(x) { \
+	char *symbol = get_symtab_entry(stack[1]); \
+	if (!symbol) \
+		symbol = ""; \
+	printf("----------------EXCEPTION OCCURED----------------\n"); \
+	printf("%%eip: %X (%s)\n",x[1],symbol); \
+	printf("ERROR_WORD=%X\n", x[0]); \
+	printf("%%cs=%X,flags=%X\n", x[2], x[3]); \
+	printf("%%eax=%X, %%ebx=%X, %%ecx=%X, %%edx=%X\n",\
+	       x[-2],x[-5],x[-3],x[-4]); \
+	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%esp=%X\n",\
+	       x[-8],x[-9],x[-1],x); \
+	printf("stack: %X, %X, %X, %X\n", x[4], x[5], x[6], x[7]); \
+	printf("       %X, %X, %X, %X\n", x[8], x[9], x[10], x[11]); \
+        }
 
 iroutine trap_register(__u8 n, iroutine f)
 {
@@ -79,17 +96,13 @@ void null_interrupt(__u8 n, __native stack[])
 
 void gp_fault(__u8 n, __native stack[])
 {
-	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
-	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
+	PRINT_INFO_ERRCODE(stack);
 	panic("general protection fault\n");
 }
 
 void ss_fault(__u8 n, __native stack[])
 {
-	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
-	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
+	PRINT_INFO_ERRCODE(stack);
 	panic("stack fault\n");
 }
 
@@ -110,10 +123,8 @@ void nm_fault(__u8 n, __native stack[])
 
 void page_fault(__u8 n, __native stack[])
 {
+	PRINT_INFO_ERRCODE(stack);
 	printf("page fault address: %X\n", read_cr2());
-	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
-	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
 	panic("page fault\n");
 }
 

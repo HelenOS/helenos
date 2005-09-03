@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/tlb.h>
-#include <arch/mm/asid.h>
-#include <mm/tlb.h>
-#include <arch/cp0.h>
-#include <panic.h>
-#include <arch.h>
+#ifndef __amd64_BOOT_H__
+#define __amd64_BOOT_H__
 
-#include <symtab.h>
+#define BOOTSTRAP_OFFSET			0x8000
+#define BOOT_OFFSET				0x0
 
-void main_bsp(void);
+#define MULTIBOOT_HEADER_MAGIC		0x1BADB002
+#define MULTIBOOT_HEADER_FLAGS		0x00010003
 
-int bootstrap = 1;
-
-void tlb_refill(void)
-{
-	if (bootstrap) {
-		bootstrap = 0;
-		main_bsp();
-	}
-	
-	panic("tlb_refill exception\n");
-}
-
-void tlb_invalid(void)
-{
-	char *symbol = "";
-
-	if (THREAD) {
-		char *s = get_symtab_entry(THREAD->saved_epc);
-		if (s)
-			symbol = s;
-	}
-	panic("%X: TLB exception at %X(%s)\n", cp0_badvaddr_read(), 
-	      THREAD ? THREAD->saved_epc : 0, symbol);
-}
-
-void tlb_invalidate(int asid)
-{
-	pri_t pri;
-	
-	pri = cpu_priority_high();
-	
-//	asid_bitmap_reset();
-	
-	// TODO
-	
-	cpu_priority_restore(pri);
-}
+#endif

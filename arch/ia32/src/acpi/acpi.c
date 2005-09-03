@@ -95,7 +95,7 @@ void acpi_init(void)
 	 * 2. search 128K starting at 0xe0000
 	 */
 
-	addr[0] = (__u8 *) ebda;
+	addr[0] = (__u8 *) PA2KA(ebda);
 	for (i = (ebda ? 0 : 1); i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
 			if (*((__u64 *) &addr[i][j]) == *sig && rsdp_check(&addr[i][j])) {
@@ -110,7 +110,7 @@ void acpi_init(void)
 rsdp_found:
 	printf("%L: ACPI Root System Description Pointer\n", acpi_rsdp);
 
-	acpi_rsdt = (struct acpi_rsdt *) acpi_rsdp->rsdt_address;
+	acpi_rsdt = (struct acpi_rsdt *) (__native) acpi_rsdp->rsdt_address;
 	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((__address) acpi_rsdp->xsdt_address);
 
 	if (acpi_rsdt) map_sdt((struct acpi_sdt_header *) acpi_rsdt);
@@ -136,7 +136,7 @@ void configure_via_rsdt(void)
 	
 	for (i=0; i<cnt; i++) {
 		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) acpi_rsdt->entry[i];
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (__native) acpi_rsdt->entry[i];
 		
 			map_sdt(h);	
 			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {

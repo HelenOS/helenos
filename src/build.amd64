@@ -8,7 +8,7 @@ set -e
 (
 set -e
 cd ../arch
-for a in drivers bios fpu_context.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S; do
+for a in drivers bios fpu_context.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S smp/apic.c smp/ipi.c smp/mps.c smp/smp.c acpi; do
   if [ \! -e amd64/src/$a ]; then
     echo ln -sf `pwd`/ia32/src/$a amd64/src/$a
     ln -sf `pwd`/ia32/src/$a amd64/src/$a

@@ -18,6 +18,7 @@ sources=cpu/cpu.c \
 	lib/memstr.c \
 	lib/the.c \
 	debug/print.c \
+	debug/symtab.c \
 	time/clock.c \
 	time/timeout.c \
 	time/delay.c \
@@ -64,7 +65,7 @@ build: kernel.bin boot
 
 clean:
 	find . ../arch/$(ARCH)/src ../test -name '*.o' -exec rm \{\} \;
-	-rm *.bin kernel.map
+	-rm *.bin kernel.map kernel.map.pre debug/real_map.bin
 	$(MAKE) -C ../arch/$(ARCH)/boot clean
 
 dist-clean:
@@ -73,7 +74,11 @@ dist-clean:
 	-$(MAKE) clean
 
 kernel.bin: $(arch_objects) $(objects) $(test_objects)
-	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) -o $@ -Map kernel.map
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile debug/empty_map.o
+	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/empty_map.o -o $@ -Map kernel.map.pre
+	debug/genmap.py kernel.map.pre debug/real_map.bin
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab debug/real_map.bin debug/real_map.o
+	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/real_map.o -o $@ -Map kernel.map	
 
 %.s: %.S
 	$(CC) $(CPPFLAGS) -E $< >$@

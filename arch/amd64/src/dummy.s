@@ -28,5 +28,7 @@
 
 .text
 
-0:
+.global ap_boot
+	
+ap_boot:	
 	ret

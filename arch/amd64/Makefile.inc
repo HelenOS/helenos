@@ -5,8 +5,9 @@ AMD64_BINUTILS_DIR=/usr/local/amd64/bin
 CC=$(AMD64_CC_DIR)/$(AMD64_TARGET)-gcc
 AS=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-as
 LD=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-ld
-
-
+OBJCOPY=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-objcopy
+BFD_NAME=elf64-x86-64
+BFD_ARCH=i386:x86-64
 
 DEFS=-DARCH=$(ARCH)
 
@@ -46,4 +47,13 @@ arch_sources = arch/dummy.s \
 	arch/mm/memory_init.c \
 	arch/cpu/cpu.c \
 	arch/proc/scheduler.c \
-	arch/userspace.c
+	arch/userspace.c \
+	arch/acpi/acpi.c \
+	arch/acpi/madt.c
+
+ifdef SMP
+arch_sources += arch/smp/apic.c \
+		arch/smp/ipi.c \
+		arch/smp/mps.c \
+		arch/smp/smp.c
+endif

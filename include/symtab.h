@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/tlb.h>
-#include <arch/mm/asid.h>
-#include <mm/tlb.h>
-#include <arch/cp0.h>
-#include <panic.h>
-#include <arch.h>
+#ifndef __SYMTAB_H__
+#define __SYMTAB_H__
 
-#include <symtab.h>
+#include <arch/types.h>
 
-void main_bsp(void);
+#define MAX_SYMBOL_NAME 32
 
-int bootstrap = 1;
+struct symtab_entry {
+	__u64 address;
+	char symbol_name[MAX_SYMBOL_NAME];
+};
 
-void tlb_refill(void)
-{
-	if (bootstrap) {
-		bootstrap = 0;
-		main_bsp();
-	}
-	
-	panic("tlb_refill exception\n");
-}
+extern char * get_symtab_entry(__native addr);
 
-void tlb_invalid(void)
-{
-	char *symbol = "";
+/* Symtable linked together by build process */
+extern struct symtab_entry symbol_table[];
 
-	if (THREAD) {
-		char *s = get_symtab_entry(THREAD->saved_epc);
-		if (s)
-			symbol = s;
-	}
-	panic("%X: TLB exception at %X(%s)\n", cp0_badvaddr_read(), 
-	      THREAD ? THREAD->saved_epc : 0, symbol);
-}
-
-void tlb_invalidate(int asid)
-{
-	pri_t pri;
-	
-	pri = cpu_priority_high();
-	
-//	asid_bitmap_reset();
-	
-	// TODO
-	
-	cpu_priority_restore(pri);
-}
+#endif

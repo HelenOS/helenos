@@ -121,14 +121,14 @@ extern volatile __u32 *io_apic;
 extern __u32 apic_id_mask;
 
 extern void apic_init(void);
-extern void apic_spurious(__u8 n, __u32 stack[]);
+extern void apic_spurious(__u8 n, __native stack[]);
 
 extern void l_apic_init(void);
 extern void l_apic_eoi(void);
 extern int l_apic_broadcast_custom_ipi(__u8 vector);
 extern int l_apic_send_init_ipi(__u8 apicid);
 extern void l_apic_debug(void);
-extern void l_apic_timer_interrupt(__u8 n, __u32 stack[]);
+extern void l_apic_timer_interrupt(__u8 n, __native stack[]);
 extern __u8 l_apic_id(void);
 
 extern __u32 io_apic_read(__u8 address);

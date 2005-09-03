@@ -1,6 +1,10 @@
 CC=gcc
 AS=as
 LD=ld
+OBJCOPY=objcopy
+BFD_NAME=elf32-i386
+BFD_ARCH=i386
+
 
 DEFS:=-DARCH=$(ARCH)
 

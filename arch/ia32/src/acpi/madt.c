@@ -114,7 +114,7 @@ void acpi_madt_parse(void)
 	__u8 prev_type = 0; /* used to detect inconsecutive entries */
 
 
-	l_apic = (__u32 *) acpi_madt->l_apic_address;
+	l_apic = (__u32 *) (__native) acpi_madt->l_apic_address;
 
 	while (h < end) {
 		switch (h->type) {
@@ -176,7 +176,7 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u8 prev_type)
 
 	if (!madt_io_apic_entry_cnt++) {
 		madt_io_apic_entries = ioa;
-		io_apic = (__u32 *) ioa->io_apic_address;
+		io_apic = (__u32 *) (__native) ioa->io_apic_address;
 	}
 	else {
 		/* currently not supported */

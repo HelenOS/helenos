@@ -165,6 +165,24 @@ static inline void write_cr3(__u64 v) { __asm__ volatile ("movq %0,%%cr3\n" : : 
 static inline __u64 read_cr3(void) { __u64 v; __asm__ volatile ("movq %%cr3,%0" : "=r" (v)); return v; }
 
 
+/** Enable local APIC
+ *
+ * Enable local APIC in MSR.
+ */
+static inline void enable_l_apic_in_msr()
+{
+	__asm__ volatile (
+		"movl $0x1b, %%ecx;"
+		"rdmsr;"
+		"orl $(1<<11),%%eax;"
+		"orl $(0xfee00000),%%eax;"
+		"wrmsr;"
+		:
+		:
+		:"%eax","%ecx","%edx"
+		);
+}
+
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
 

@@ -36,6 +36,24 @@
 #include <arch/asm.h>
 #include <mm/tlb.h>
 #include <arch.h>
+#include <symtab.h>
+
+#define PRINT_INFO_ERRCODE(x) { \
+	char *symbol = get_symtab_entry(stack[1]); \
+	if (!symbol) \
+		symbol = ""; \
+	printf("----------------EXCEPTION OCCURED----------------\n"); \
+	printf("%%rip: %Q (%s)\n",x[1],symbol); \
+	printf("ERROR_WORD=%Q\n", x[0]); \
+	printf("%%rcs=%Q,flags=%Q\n", x[2], x[3]); \
+	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-1],x[-2],x[-3]); \
+	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-4],x[-5],x[-6]); \
+	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-7],x[-8],x[-9]); \
+	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-10],x[-11],x[-12]); \
+	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-13],x[-14],x); \
+	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]); \
+	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]); \
+        }
 
 /*
  * Interrupt and exception dispatching.
@@ -72,6 +90,7 @@ void trap_dispatcher(__u8 n, __native stack[])
 
 void null_interrupt(__u8 n, __native stack[])
 {
+	printf("----------------EXCEPTION OCCURED----------------\n");
 	printf("int %d: null_interrupt\n", n);
 	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
 	panic("unserviced interrupt\n");
@@ -79,17 +98,13 @@ void null_interrupt(__u8 n, __native stack[])
 
 void gp_fault(__u8 n, __native stack[])
 {
-	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
-	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
+	PRINT_INFO_ERRCODE(stack);
 	panic("general protection fault\n");
 }
 
 void ss_fault(__u8 n, __native stack[])
 {
-	printf("ERROR_WORD=%X, %%eip=%X, %%cs=%X, flags=%X\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%eax=%L, %%ebx=%L, %%ecx=%L, %%edx=%L,\n%%edi=%L, %%esi=%L, %%ebp=%L, %%esp=%L\n", stack[-2], stack[-5], stack[-3], stack[-4], stack[-9], stack[-8], stack[-1], stack);
-	printf("stack: %X, %X, %X, %X\n", stack[4], stack[5], stack[6], stack[7]);
+	PRINT_INFO_ERRCODE(stack);
 	panic("stack fault\n");
 }
 
@@ -110,12 +125,8 @@ void nm_fault(__u8 n, __native stack[])
 
 void page_fault(__u8 n, __native stack[])
 {
-	printf("page fault address: %Q\n", read_cr2());
-	printf("ERROR_WORD=%Q, %%rip=%Q, %%rcs=%Q, flags=%Q\n", stack[0], stack[1], stack[2], stack[3]);
-	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q, %%rdx=%Q,\n%%rsi=%Q, %%rdi=%Q\n",
-	       stack[-1], stack[-2], stack[-3], stack[-4], stack[-5], stack[-6]);
-
-	printf("stack: %X, %X, %X, %X\n", stack[5], stack[6], stack[7], stack[8]);
+	PRINT_INFO_ERRCODE(stack);
+	printf("Page fault address: %Q\n", read_cr2());
 	panic("page fault\n");
 }
 
