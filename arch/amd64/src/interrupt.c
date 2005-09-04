@@ -39,28 +39,32 @@
 #include <symtab.h>
 #include <arch/asm.h>
 
-#define PRINT_INFO_ERRCODE(n,x) { \
-	char *symbol = get_symtab_entry(stack[1]); \
-	if (!symbol) \
-		symbol = ""; \
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__); \
-	printf("%%rip: %Q (%s)\n",x[1],symbol); \
-	printf("ERROR_WORD=%Q\n", x[0]); \
-	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", x[2], x[3],read_cr0()); \
-	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-2],x[-3],x[-4]); \
-	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-5],x[-6],x[-7]); \
-	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-8],x[-9],x[-10]); \
-	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-11],x[-12],x[-13]); \
-	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-14],x[-15],x); \
-	printf("%%rbp=%Q\n",x[-1]); \
-	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]); \
-	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]); \
-	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]); \
-	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]); \
-	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]); \
-	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]); \
-	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]); \
-        }
+
+static void print_info_errcode(__u8 n, __native x[])
+{
+	char *symbol;
+
+	if (!(symbol=get_symtab_entry(x[1])))
+		symbol = "";
+
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__);
+	printf("%%rip: %Q (%s)\n",x[1],symbol);
+	printf("ERROR_WORD=%Q\n", x[0]);
+	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", x[2], x[3],read_cr0());
+	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-2],x[-3],x[-4]);
+	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-5],x[-6],x[-7]);
+	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-8],x[-9],x[-10]);
+	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-11],x[-12],x[-13]);
+	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-14],x[-15],x);
+	printf("%%rbp=%Q\n",x[-1]);
+	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]);
+	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]);
+	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]);
+	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]);
+	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]);
+	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]);
+	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]);
+}
 
 /*
  * Interrupt and exception dispatching.
@@ -104,13 +108,13 @@ void null_interrupt(__u8 n, __native stack[])
 
 void gp_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(n,stack);
+	print_info_errcode(n,stack);
 	panic("general protection fault\n");
 }
 
 void ss_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(n,stack);
+	print_info_errcode(n,stack);
 	panic("stack fault\n");
 }
 
@@ -136,7 +140,7 @@ void nm_fault(__u8 n, __native stack[])
 
 void page_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(n,stack);
+	print_info_errcode(n,stack);
 	printf("Page fault address: %Q\n", read_cr2());
 	panic("page fault\n");
 }
