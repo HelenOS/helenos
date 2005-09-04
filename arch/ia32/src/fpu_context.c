@@ -38,36 +38,37 @@ void fpu_context_save(fpu_context_t *fctx)
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
-	if(THREAD==CPU->fpu_owner) {reset_TS_flag(); }
-	else 
-	{
+	if (THREAD==CPU->fpu_owner) 
+		reset_TS_flag();
+	else {
 		set_TS_flag(); 
-		if((CPU->fpu_owner)!=NULL)(CPU->fpu_owner)->fpu_context_engaged=1;
+		if (CPU->fpu_owner != NULL)
+			(CPU->fpu_owner)->fpu_context_engaged=1;
 	}
 }
 
 
 void fpu_lazy_context_save(fpu_context_t *fctx)
 {
-	return;
-	__asm__ (
+	__asm__ volatile (
 		"fnsave %0"
-		: "=m"(fctx)
+		: "=m"(*fctx)
 		);
+	return;
 }
 
 void fpu_lazy_context_restore(fpu_context_t *fctx)
 {
-	return;
-	__asm__ (
+	__asm__ volatile (
 		"frstor %0"
-		: "=m"(fctx)
+		: "=m"(*fctx)
 		);
+	return;
 }
 
 void fpu_init(void)
 {
-	asm(
+	__asm__ volatile (
 		"fninit;"
 	);
 }
