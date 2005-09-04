@@ -29,8 +29,6 @@
 
 #include <arch/boot/memmapasm.h>
 
-E820_RECORD_SIZE = MEMMAP_E820_RECORD_SIZE
-E820_MAX_RECORDS = MEMMAP_E820_MAX_RECORDS
 E820_SMAP = 0x534d4150
 
 .global memmap_arch_init
@@ -46,23 +44,23 @@ e820begin:
 	movw	%bx,%ds
 	movw	%bx,%es
 	movw	$e820table_boot,%di
-	movb	$E820_MAX_RECORDS,e820counter_boot
+	movb	$MEMMAP_E820_MAX_RECORDS,e820counter_boot
 e820loop:	
 	movl	$E820_SMAP,%edx 	# control sequence "SMAP"
 
 	movl	$0x0000e820,%eax	# service
-	movl	$E820_RECORD_SIZE,%ecx
+	movl	$MEMMAP_E820_RECORD_SIZE,%ecx
 	int 	$0x15
 	jc	e820err
 	
 	cmpl	$E820_SMAP,%eax		# verifying BIOS
 	jne	e820err
 
-	cmpl	$E820_RECORD_SIZE,%ecx
+	cmpl	$MEMMAP_E820_RECORD_SIZE,%ecx
 	jne	e820err			# bad record size - bug in bios
 	
 	movw	%di,%ax		# next record
-	addw	$E820_RECORD_SIZE,%ax
+	addw	$MEMMAP_E820_RECORD_SIZE,%ax
 	movw	%ax,%di
 		
 	decb	e820counter_boot # buffer is full
@@ -72,7 +70,7 @@ e820loop:
 	jne	e820loop
 	
 e820end:
-	movb	$E820_MAX_RECORDS,%al
+	movb	$MEMMAP_E820_MAX_RECORDS,%al
 	subb	e820counter_boot,%al
 	movb	%al,e820counter_boot # store # of valid entries in e820counter
 

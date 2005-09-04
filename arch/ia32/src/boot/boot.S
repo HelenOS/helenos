@@ -27,6 +27,7 @@
 #
 
 #include <arch/boot/boot.h>
+#include <arch/boot/memmapasm.h>
 
 .section K_TEXT_START
 .global kernel_image_start
@@ -80,8 +81,6 @@ boot_image_start:
 	movw %ax, %ds			# kernel data + stack
 	movw %ax, %ss
 	
-	call map_kernel			# map kernel and turn paging on
-	
 	movb $0xd1, %al			# enable A20 using the keyboard controller
 	outb %al, $0x64
 	movb $0xdf, %al
@@ -92,6 +91,8 @@ boot_image_start:
 	movl $_hardcoded_kernel_size, %ecx
 	cld
 	rep movsb
+	
+	call map_kernel			# map kernel and turn paging on
 	
 	call main_bsp			# never returns
 
@@ -113,37 +114,88 @@ multiboot_image_start:
 	jmpl $KTEXT, $multiboot_meeting_point + BOOT_OFFSET
 	multiboot_meeting_point:
 	
-	pushl %ebx
+	pushl %ebx										# save parameters from GRUB
 	pushl %eax
+	
+	movl $BOOTSTRAP_OFFSET + BOOT_OFFSET, %esi
+	movl $BOOTSTRAP_OFFSET, %edi
+	movl $_hardcoded_unmapped_size, %ecx
+	cld
+	rep movsb
 	
 	call map_kernel									# map kernel and turn paging on
 	
 	popl %eax
 	popl %ebx
-	cmpl $MULTIBOOT_LOADER_MAGIC, %eax
+	cmpl $MULTIBOOT_LOADER_MAGIC, %eax			# compare GRUB signature
 	je valid_boot
-	
-		# ...
+		
+		xorl %ecx, %ecx							# no memory size or map available
+		movl %ecx, e801memorysize
+		movl %ecx, e820counter
 		
 		jmp invalid_boot
-	
+		
 	valid_boot:
 		
-		movl (%ebx), %eax
+		movl (%ebx), %eax						# ebx = physical address of struct multiboot_info
 		
-		# ... check flags in eax
+		bt $0, %eax								# mbi->flags[0] (mem_lower, mem_upper valid)
+		jc mem_valid
+			
+			xorl %ecx, %ecx
+			jmp mem_invalid
+			
+		mem_valid:
+		movl 4(%ebx), %ecx						# mbi->mem_lower
+		addl 8(%ebx), %ecx						# mbi->mem_upper
 		
-		movl 4(%ebx), %ecx
-		addl 8(%ebx), %ecx
+		mem_invalid:
 		movl %ecx, e801memorysize
 		
-#		movl 44(%ebx), %ecx
-		xorl %ecx, %ecx
-		movl %ecx, e820counter
-#		movl 48(%ebx), %esi
-#		movl $e820table, %edi
-#		cld
-#		rep movsb
+		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
+		jc mmap_valid
+			
+			xorl %edx, %edx
+			jmp mmap_invalid
+			
+		mmap_valid:
+		movl 44(%ebx), %ecx						# mbi->mmap_length
+		movl 48(%ebx), %esi						# mbi->mmap_addr
+		movl $e820table, %edi
+		xorl %edx, %edx
+		
+		mmap_loop:
+			cmpl $0, %ecx
+			jle mmap_end
+			
+			movl 4(%esi), %eax					# mmap->base_addr_low
+			movl %eax, (%edi)
+			
+			movl 8(%esi), %eax					# mmap->base_addr_high
+			movl %eax, 4(%edi)
+			
+			movl 12(%esi), %eax					# mmap->length_low
+			movl %eax, 8(%edi)
+			
+			movl 16(%esi), %eax					# mmap->length_high
+			movl %eax, 12(%edi)
+			
+			movl 20(%esi), %eax					# mmap->type
+			movl %eax, 16(%edi)
+			
+			movl (%esi), %eax					# mmap->size
+			addl $0x4, %eax
+			addl %eax, %esi
+			subl %eax, %ecx
+			addl $MEMMAP_E820_RECORD_SIZE, %edi
+			incl %edx
+			jmp mmap_loop
+		
+		mmap_end:
+		
+		mmap_invalid:
+		movl %edx, e820counter
 		
 	invalid_boot:
 	

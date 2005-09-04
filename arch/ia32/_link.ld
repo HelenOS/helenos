@@ -53,6 +53,7 @@ SECTIONS {
 	}
 	
 	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
+	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	
 	_map_address = 0x80100000;
 	e820table_boot = e820table - _map_address;
