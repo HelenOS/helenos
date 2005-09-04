@@ -33,6 +33,10 @@ SECTIONS {
 		LONG(0x80000000);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
+
+		symbol_table = .;
+                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
 		kdata_end = .;
 	}
 }
