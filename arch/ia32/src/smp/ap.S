@@ -69,11 +69,6 @@ jump_to_kernel:
 
 	call map_kernel					# map kernel and turn paging on
 	
-	movb $0xd1, %al					# enable A20 using the keyboard controller
-	outb %al, $0x64
-	movb $0xdf, %al
-	outb %al, $0x60
-
 	jmpl $KTEXT, $main_ap
 
 #endif /* __SMP__ */
