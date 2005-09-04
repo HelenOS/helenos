@@ -76,7 +76,7 @@ dist-clean:
 kernel.bin: $(arch_objects) $(objects) $(test_objects)
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile debug/empty_map.o
 	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/empty_map.o -o $@ -Map kernel.map.pre
-	debug/genmap.py kernel.map.pre debug/real_map.bin
+	../tools/genmap.py kernel.map.pre debug/real_map.bin
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab debug/real_map.bin debug/real_map.o
 	$(LD) $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/real_map.o -o $@ -Map kernel.map	
 

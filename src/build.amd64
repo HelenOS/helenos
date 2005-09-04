@@ -2,7 +2,7 @@
 
 set -e
 # Generate context_offset.h
-(cd ../arch/amd64/src;make gencontext;./gencontext)
+(cd ../tools/amd64/;make gencontext;./gencontext)
 # Create links to ia32 architecture
 
 (
