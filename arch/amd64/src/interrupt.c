@@ -37,22 +37,29 @@
 #include <mm/tlb.h>
 #include <arch.h>
 #include <symtab.h>
+#include <arch/asm.h>
 
-#define PRINT_INFO_ERRCODE(x) { \
+#define PRINT_INFO_ERRCODE(n,x) { \
 	char *symbol = get_symtab_entry(stack[1]); \
 	if (!symbol) \
 		symbol = ""; \
-	printf("----------------EXCEPTION OCCURED----------------\n"); \
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__); \
 	printf("%%rip: %Q (%s)\n",x[1],symbol); \
 	printf("ERROR_WORD=%Q\n", x[0]); \
-	printf("%%rcs=%Q,flags=%Q\n", x[2], x[3]); \
-	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-1],x[-2],x[-3]); \
-	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-4],x[-5],x[-6]); \
-	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-7],x[-8],x[-9]); \
-	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-10],x[-11],x[-12]); \
-	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-13],x[-14],x); \
+	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", x[2], x[3],read_cr0()); \
+	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-2],x[-3],x[-4]); \
+	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-5],x[-6],x[-7]); \
+	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-8],x[-9],x[-10]); \
+	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-11],x[-12],x[-13]); \
+	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-14],x[-15],x); \
+	printf("%%rbp=%Q\n",x[-1]); \
 	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]); \
 	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]); \
+	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]); \
+	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]); \
+	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]); \
+	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]); \
+	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]); \
         }
 
 /*
@@ -90,21 +97,20 @@ void trap_dispatcher(__u8 n, __native stack[])
 
 void null_interrupt(__u8 n, __native stack[])
 {
-	printf("----------------EXCEPTION OCCURED----------------\n");
-	printf("int %d: null_interrupt\n", n);
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__); \
 	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
 	panic("unserviced interrupt\n");
 }
 
 void gp_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(stack);
+	PRINT_INFO_ERRCODE(n,stack);
 	panic("general protection fault\n");
 }
 
 void ss_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(stack);
+	PRINT_INFO_ERRCODE(n,stack);
 	panic("stack fault\n");
 }
 
@@ -112,12 +118,17 @@ void ss_fault(__u8 n, __native stack[])
 void nm_fault(__u8 n, __native stack[])
 {
 	reset_TS_flag();
-	if ((CPU->fpu_owner)!=NULL) {  
-		fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
-		(CPU->fpu_owner)->fpu_context_engaged=0; /* don't prevent migration */
+	if (CPU->fpu_owner != NULL) {  
+		fpu_lazy_context_save(&CPU->fpu_owner->saved_fpu_context);
+		/* don't prevent migration */
+		CPU->fpu_owner->fpu_context_engaged=0; 
 	}
-	if(THREAD->fpu_context_exists) fpu_lazy_context_restore(&(THREAD->saved_fpu_context));
-	else {fpu_init();THREAD->fpu_context_exists=1;}
+	if (THREAD->fpu_context_exists)
+		fpu_lazy_context_restore(&THREAD->saved_fpu_context);
+	else {
+		fpu_init();
+		THREAD->fpu_context_exists=1;
+	}
 	CPU->fpu_owner=THREAD;
 }
 
@@ -125,7 +136,7 @@ void nm_fault(__u8 n, __native stack[])
 
 void page_fault(__u8 n, __native stack[])
 {
-	PRINT_INFO_ERRCODE(stack);
+	PRINT_INFO_ERRCODE(n,stack);
 	printf("Page fault address: %Q\n", read_cr2());
 	panic("page fault\n");
 }

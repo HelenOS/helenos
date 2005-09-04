@@ -54,7 +54,7 @@ ap_boot:
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt ap_bootstrap_gdtr_boot	# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr_boot	# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
@@ -96,14 +96,8 @@ now_in_prot:
 
 .code64
 start64:
-	movq $ctx, %rax
-	movq 0(%rax), %rsp
+	movq (ctx), %rsp
 	call main_ap   # never returns
 	
-.global ap_bootstrap_gdtr_boot
-ap_bootstrap_gdtr_boot:
-	.word gdtselector(GDT_ITEMS)
-	.long KA2PA(gdt)
-
 	
 #endif /* __SMP__ */

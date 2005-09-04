@@ -60,11 +60,41 @@ static char *vendor_str[] = {
 	"GenuineIntel"
 };
 
+
+/** Setup flags on processor so that we can use the FPU
+ *
+ * cr0.osfxsr = 1 -> we do support fxstor/fxrestor
+ * cr0.em = 0 -> we do not emulate coprocessor
+ * cr0.mp = 1 -> we do want lazy context switch
+ */
+void cpu_setup_fpu(void)
+{
+	__asm__ volatile (
+		"movq %%cr0, %%rax;"
+		"btsq $1, %%rax;" /* cr0.mp */
+		"btrq $2, %%rax;"  /* cr0.em */
+		"movq %%rax, %%cr0;"
+
+		"movq %%cr4, %%rax;"
+		"bts $9, %%rax;" /* cr4.osfxsr */
+		"movq %%rax, %%cr4;"
+		:
+		:
+		:"%rax"
+		);
+}
+
+/** Set the TS flag to 1. 
+ *
+ * If a thread accesses coprocessor, exception is run, which 
+ * does a lazy fpu context switch.
+ *
+ */
 void set_TS_flag(void)
 {
 	__asm__	volatile (
 		"mov %%cr0,%%rax;"
-		"or $8,%%rax;"
+		"bts $3,%%rax;"
 		"mov %%rax,%%cr0;"
 		:
 		:
@@ -76,7 +106,7 @@ void reset_TS_flag(void)
 {
 	__asm__	volatile (
 		"mov %%cr0,%%rax;"
-		"btc $4,%%rax;"
+		"btr $3,%%rax;"
 		"mov %%rax,%%cr0;"
 		:
 		:

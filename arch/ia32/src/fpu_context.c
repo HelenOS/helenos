@@ -54,7 +54,6 @@ void fpu_lazy_context_save(fpu_context_t *fctx)
 		"fnsave %0"
 		: "=m"(*fctx)
 		);
-	return;
 }
 
 void fpu_lazy_context_restore(fpu_context_t *fctx)
@@ -63,7 +62,6 @@ void fpu_lazy_context_restore(fpu_context_t *fctx)
 		"frstor %0"
 		: "=m"(*fctx)
 		);
-	return;
 }
 
 void fpu_init(void)

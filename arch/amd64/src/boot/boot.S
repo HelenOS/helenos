@@ -70,7 +70,7 @@ kernel_image_start:
 	jnc no_long_mode
 
 	# Load gdtr, idtr
-	lgdt bsp_bootstrap_gdtr
+	lgdt real_bootstrap_gdtr_boot
 	
 	movl %cr0,%eax
 	orl $0x1,%eax
@@ -166,7 +166,7 @@ ptl_0:
 	.fill 510,8,0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
-.global gdtr_inst				
-bsp_bootstrap_gdtr:
+.global real_bootstrap_gdtr_boot
+real_bootstrap_gdtr_boot:
 	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)-BOOT_OFFSET

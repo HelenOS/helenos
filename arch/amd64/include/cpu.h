@@ -55,6 +55,7 @@ extern void set_TS_flag(void);
 extern void reset_TS_flag(void);
 extern void set_efer_flag(int flag);
 extern __u64 read_efer_flag(void);
+void cpu_setup_fpu(void);
 
 #endif /* __ASM__ */
 

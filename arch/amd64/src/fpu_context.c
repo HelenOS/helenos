@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,14 +24,55 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef __amd64_FPU_CONTEXT_H__
-#define __amd64_FPU_CONTEXT_H__
+#include <fpu_context.h>
+#include <arch.h>
+#include <cpu.h>
 
-#include <arch/types.h>
+void fpu_context_save(fpu_context_t *fctx)
+{
+}
 
-struct fpu_context {
-};
+void fpu_context_restore(fpu_context_t *fctx)
+{
+	if(THREAD==CPU->fpu_owner) 
+		reset_TS_flag();
+	else {
+		set_TS_flag(); 
+		if (CPU->fpu_owner != NULL)
+			CPU->fpu_owner->fpu_context_engaged=1;
+	}
+}
 
-#endif
+
+void fpu_lazy_context_save(fpu_context_t *fctx)
+{
+	/* TODO: We need malloc that allocates on 16-byte boundary !! */
+	if (((__u64)fctx) & 0xf)
+		fctx = (fpu_context_t *)((((__u64)fctx) | 0xf) + 1);
+
+	__asm__ volatile (
+		"fxsave %0"
+		: "=m"(*fctx)
+		);
+}
+
+void fpu_lazy_context_restore(fpu_context_t *fctx)
+{
+	/* TODO: We need malloc that allocates on 16-byte boundary !! */
+	if (((__u64)fctx) & 0xf)
+		fctx = (fpu_context_t *)((((__u64)fctx) | 0xf) + 1);
+	__asm__ volatile (
+		"fxrstor %0"
+		: "=m"(*fctx)
+		);
+}
+
+void fpu_init(void)
+{
+	__asm__ volatile (
+		"fninit;"
+	);
+}

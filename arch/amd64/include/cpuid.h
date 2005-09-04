@@ -29,8 +29,12 @@
 #ifndef __CPUID_H__
 #define __CPUID_H__
 
-#define AMD_CPUID_EXTENDED 0x80000001
+#define AMD_CPUID_EXTENDED   0x80000001
 #define AMD_EXT_NOEXECUTE    20
+
+#define INTEL_CPUID_STANDARD 0x1
+#define INTEL_SSE2           26
+#define INTEL_FXSAVE         24
 
 #ifndef __ASM__
 

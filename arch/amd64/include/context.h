@@ -33,7 +33,12 @@
 #  include <arch/types.h>
 #endif
 
-#define SP_DELTA     8
+
+/* According to ABI the stack MUST be aligned on 
+ * 16-byte boundary. If it is not, the va_arg calling will
+ * panic sooner or later
+ */
+#define SP_DELTA     16
 
 struct context {
     __u64 sp;

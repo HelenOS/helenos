@@ -43,18 +43,27 @@
 #include <print.h>
 #include <arch/cpuid.h>
 #include <arch/acpi/acpi.h>
+#include <panic.h>
 
 void arch_pre_mm_init(void)
 {
 	struct cpu_info cpuid_s;
 
 	cpuid(AMD_CPUID_EXTENDED,&cpuid_s);
-	if (! (cpuid_s.cpuid_edx & (1<<AMD_EXT_NOEXECUTE))) {
-		printf("We do not support NX!!-----------\n");
-		printf("%X------\n",cpuid_s.cpuid_edx);
-		cpu_halt();
-	}
+	if (! (cpuid_s.cpuid_edx & (1<<AMD_EXT_NOEXECUTE)))
+		panic("Processor does not support No-execute pages.\n");
+
+	cpuid(INTEL_CPUID_STANDARD,&cpuid_s);
+	if (! (cpuid_s.cpuid_edx & (1<<INTEL_FXSAVE)))
+		panic("Processor does not support FXSAVE/FXRESTORE.\n");
+	
+	if (! (cpuid_s.cpuid_edx & (1<<INTEL_SSE2)))
+		panic("Processor does not support SSE2 instructions.\n");
+
+	/* Enable No-execute pages */
 	set_efer_flag(AMD_NXE_FLAG);
+	/* Enable FPU */
+	cpu_setup_fpu();
 
 	pm_init();
 
