@@ -8,11 +8,15 @@
  *	kernel data 
  */
 
+#define __ASM__
+#include <arch/boot/boot.h>
+#include <arch/mm/page.h>
+
 OUTPUT_FORMAT(binary)
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.unmapped 0x8000: AT (0x8000) {
+	.unmapped BOOTSTRAP_OFFSET: AT (BOOTSTRAP_OFFSET) {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
 		*(K_TEXT_START_2);
@@ -23,7 +27,7 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 
-	.mapped (0xffffffff80100000+0x8000+SIZEOF(.unmapped)) : AT (0x8000+SIZEOF(.unmapped)) {
+	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)) : AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(BOOT_DATA);
 		*(.text);
@@ -62,7 +66,7 @@ SECTIONS {
 	_map_address = _ka2pa_offset + _boot_offset;
 
 
-	e820table_boot = e820table - _map_address;
-	e820counter_boot = e820counter - _map_address;
-	real_bootstrap_gdtr = real_bootstrap_gdtr_boot + _ka2pa_offset;
+	e820table_boot = KA2PA(e820table) - BOOT_OFFSET;
+	e820counter_boot = KA2PA(e820counter) - BOOT_OFFSET;
+	real_bootstrap_gdtr = PA2KA(real_bootstrap_gdtr_boot);
 }

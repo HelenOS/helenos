@@ -22,7 +22,10 @@ endif
 
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fno-unwind-tables -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
-LFLAGS=-M -T ../arch/amd64/_link.ld
+LFLAGS=-M 
+
+../arch/amd64/_link.ld: ../arch/amd64/_link.ld.in
+	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 arch_sources = arch/dummy.s \
 	arch/fpu_context.c \

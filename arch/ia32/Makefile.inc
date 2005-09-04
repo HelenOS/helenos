@@ -18,7 +18,7 @@ endif
 
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
-LFLAGS=-M -no-check-sections -T ../arch/ia32/_link.ld
+LFLAGS=-M -no-check-sections
 
 arch_sources= \
 	arch/context.s \
