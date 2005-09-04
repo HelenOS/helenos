@@ -29,6 +29,7 @@
 
 #include <symtab.h>
 #include <typedefs.h>
+#include <arch/byteorder.h>
 
 /** Return entry that seems most likely to correspond to the @addr
  *
@@ -37,11 +38,11 @@ char * get_symtab_entry(__native addr)
 {
 	count_t i;
 
-	for (i=1;symbol_table[i].address;++i) {
-		if (addr < symbol_table[i].address)
+	for (i=1;symbol_table[i].address_le;++i) {
+		if (addr < native_le2host(symbol_table[i].address_le))
 			break;
 	}
-	if (addr >= symbol_table[i-1].address)
+	if (addr >= native_le2host(symbol_table[i-1].address_le))
 		return symbol_table[i-1].symbol_name;
 	return NULL;
 }

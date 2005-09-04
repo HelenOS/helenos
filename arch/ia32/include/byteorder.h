@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SYMTAB_H__
-#define __SYMTAB_H__
+#ifndef __ia32_BYTEORDER_H__
+#define __ia32_BYTEORDER_H__
 
-#include <arch/types.h>
-
-#define MAX_SYMBOL_NAME 64
-
-struct symtab_entry {
-	__u64 address_le;
-	char symbol_name[MAX_SYMBOL_NAME];
-};
-
-extern char * get_symtab_entry(__native addr);
-
-/* Symtable linked together by build process */
-extern struct symtab_entry symbol_table[];
+/* IA-32 is little-endian */
+#define native_le2host(n)		n
 
 #endif
