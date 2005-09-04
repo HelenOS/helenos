@@ -157,7 +157,7 @@ ptl_1:
 	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
 	.fill 509,8,0
 	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 2,8,0
+	.fill 1,8,0
 	
 .align 4096
 .global ptl_0

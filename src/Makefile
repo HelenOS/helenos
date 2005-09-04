@@ -65,7 +65,7 @@ build: kernel.bin boot
 
 clean:
 	find . ../arch/$(ARCH)/src ../test -name '*.o' -exec rm \{\} \;
-	-rm *.bin kernel.map kernel.map.pre debug/real_map.bin
+	-rm *.bin kernel.map kernel.map.pre kernel.objdump debug/real_map.bin
 	$(MAKE) -C ../arch/$(ARCH)/boot clean
 
 dist-clean:
@@ -73,11 +73,17 @@ dist-clean:
 	-rm Makefile.depend
 	-$(MAKE) clean
 
-kernel.bin: $(arch_objects) $(objects) $(test_objects) ../arch/$(ARCH)/_link.ld
+debug/real_map.bin: $(arch_objects) $(objects) $(test_objects) ../arch/$(ARCH)/_link.ld 
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile debug/empty_map.o
 	$(LD) -T ../arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/empty_map.o -o $@ -Map kernel.map.pre
-	../tools/genmap.py kernel.map.pre debug/real_map.bin
-	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab debug/real_map.bin debug/real_map.o
+	$(OBJDUMP) -t $(arch_objects) $(objects) $(test_objects) > kernel.objdump
+	../tools/genmap.py kernel.map.pre kernel.objdump debug/real_map.bin 
+
+debug/real_map.o: debug/real_map.bin
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
+
+
+kernel.bin: $(arch_objects) $(objects) $(test_objects) ../arch/$(ARCH)/_link.ld debug/real_map.o
 	$(LD) -T ../arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/real_map.o -o $@ -Map kernel.map
 
 %.s: %.S

@@ -1,6 +1,7 @@
 CC=gcc
 AS=as
 LD=ld
+OBJDUMP=objdump
 OBJCOPY=objcopy
 BFD_NAME=elf32-i386
 BFD_ARCH=i386
