@@ -38,7 +38,7 @@
 #include <arch.h>
 
 #define THREADS		150*2
-#define ATTEMPTS	10
+#define ATTEMPTS	100
 
 #define E_10e8	271828182
 #define PI_10e8	314159265
