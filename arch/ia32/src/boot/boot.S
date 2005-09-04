@@ -103,17 +103,49 @@ multiboot_image_start:
 	
 	lgdt protected_bootstrap_gdtr - 0x80000000		# initialize Global Descriptor Table register
 
-	movw $KDATA, %ax
-	movw %ax, %es
-	movw %ax, %gs
-	movw %ax, %fs
-	movw %ax, %ds									# kernel data + stack
-	movw %ax, %ss
+	movw $KDATA, %cx
+	movw %cx, %es
+	movw %cx, %gs
+	movw %cx, %fs
+	movw %cx, %ds									# kernel data + stack
+	movw %cx, %ss
 	
 	jmpl $KTEXT, $multiboot_meeting_point + BOOT_OFFSET
 	multiboot_meeting_point:
 	
+	pushl %ebx
+	pushl %eax
+	
 	call map_kernel									# map kernel and turn paging on
+	
+	popl %eax
+	popl %ebx
+	cmpl $MULTIBOOT_LOADER_MAGIC, %eax
+	je valid_boot
+	
+		# ...
+		
+		jmp invalid_boot
+	
+	valid_boot:
+		
+		movl (%ebx), %eax
+		
+		# ... check flags in eax
+		
+		movl 4(%ebx), %ecx
+		addl 8(%ebx), %ecx
+		movl %ecx, e801memorysize
+		
+#		movl 44(%ebx), %ecx
+		xorl %ecx, %ecx
+		movl %ecx, e820counter
+#		movl 48(%ebx), %esi
+#		movl $e820table, %edi
+#		cld
+#		rep movsb
+		
+	invalid_boot:
 	
 	call main_bsp - BOOT_OFFSET						# never returns
 
