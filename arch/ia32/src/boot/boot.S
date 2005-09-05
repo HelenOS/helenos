@@ -26,8 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#define __ASM__
+	
 #include <arch/boot/boot.h>
 #include <arch/boot/memmapasm.h>
+#include <arch/mm/page.h>
+#include <arch/pm.h>
 
 .section K_TEXT_START
 .global kernel_image_start
@@ -53,7 +57,7 @@ kernel_image_start:
 	
 	call memmap_arch_init
 	
-	lgdt real_bootstrap_gdtr				# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr_boot		# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $0x1, %eax
@@ -235,3 +239,9 @@ map_kernel:
 .align 4096
 page_directory:
 	.space 4096, 0
+
+.global real_bootstrap_gdtr_boot
+real_bootstrap_gdtr_boot:
+	.word selector(GDT_ITEMS)
+	.long KA2PA(gdt)-BOOT_OFFSET
+	

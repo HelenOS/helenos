@@ -50,7 +50,7 @@ ap_boot:
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt real_bootstrap_gdtr	# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr_boot	# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax

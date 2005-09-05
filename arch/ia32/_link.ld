@@ -58,4 +58,5 @@ SECTIONS {
 	_map_address = 0x80100000;
 	e820table_boot = e820table - _map_address;
 	e820counter_boot = e820counter - _map_address;
+	real_bootstrap_gdtr = real_bootstrap_gdtr_boot + 0x80000000;
 }

@@ -29,15 +29,15 @@
 #ifndef __ia32_PAGE_H__
 #define __ia32_PAGE_H__
 
-#include <mm/page.h>
-#include <arch/types.h>
-#include <arch/mm/frame.h>
-#include <typedefs.h>
-
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	(((__address) (x)) - 0x80000000)
-#define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#ifndef __ASM__
+# define KA2PA(x)	(((__address) (x)) - 0x80000000)
+# define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#else
+# define KA2PA(x)	((x) - 0x80000000)
+# define PA2KA(x)	((x) + 0x80000000)
+#endif
 
 /*
  * Implementation of generic 4-level page table interface.
@@ -69,6 +69,13 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
+
+#ifndef __ASM__
+
+#include <mm/page.h>
+#include <arch/types.h>
+#include <arch/mm/frame.h>
+#include <typedefs.h>
 
 struct page_specifier {
 	unsigned present : 1;
@@ -110,5 +117,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 }
 
 extern void page_arch_init(void);
+
+#endif /* __ASM__ */
 
 #endif

@@ -29,10 +29,6 @@
 #ifndef __PM_H__
 #define __PM_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-#include <arch/context.h>
-
 #define IDT_ITEMS 64
 #define GDT_ITEMS 6
 
@@ -59,6 +55,12 @@
 #define DPL_USER	(PL_USER<<5)
 
 #define IO_MAP_BASE	(104)
+
+#ifndef __ASM__
+
+#include <arch/types.h>
+#include <typedefs.h>
+#include <arch/context.h>
 
 struct ptr_16_32 {
 	__u16 limit;
@@ -144,5 +146,7 @@ extern void idt_init(void);
 extern void idt_setoffset(struct idescriptor *d, __address offset);
 
 extern void tss_initialize(struct tss *t);
+
+#endif /* __ASM__ */
 
 #endif
