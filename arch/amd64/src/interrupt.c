@@ -40,6 +40,22 @@
 #include <arch/asm.h>
 
 
+
+static void messy_stack_trace(__native *stack)
+{
+	__native *upper_limit = (__native *)(((__native)THREAD->kstack) + STACK_SIZE);
+	char *symbol;
+
+	printf("Stack contents: ");
+	while (stack < upper_limit) {
+		symbol = get_symtab_entry((__address)*stack);
+		if (symbol)
+			printf("%s, ", symbol);
+		stack++;
+	}
+	printf("\n");
+}
+
 static void print_info_errcode(__u8 n, __native x[])
 {
 	char *symbol;
@@ -64,6 +80,7 @@ static void print_info_errcode(__u8 n, __native x[])
 	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]);
 	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]);
 	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]);
+	messy_stack_trace(&x[5]);
 }
 
 /*

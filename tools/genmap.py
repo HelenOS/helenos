@@ -8,27 +8,48 @@ MAXSTRING=63
 symtabfmt = "<Q%ds" % (MAXSTRING+1)
 
 
-objline = re.compile(r'([0-9a-f]+)\s+[lg]\s+F\s+\.text\s+[0-9a-f]+\s+(.*)$')
+funcline = re.compile(r'([0-9a-f]+)\s+[lg]\s+F\s+\.text\s+([0-9a-f]+)\s+(.*)$')
+bssline = re.compile(r'([0-9a-f]+)\s+[lg]\s+[a-zA-Z]\s+\.bss\s+([0-9a-f]+)\s+(.*)$')
+dataline = re.compile(r'([0-9a-f]+)\s+[lg]\s+[a-zA-Z]\s+\.data\s+([0-9a-f]+)\s+(.*)$')
 fileexp = re.compile(r'([^\s]+):\s+file format')
 def read_obdump(inp):
-    result = {}
+    funcs = {}
+    data = {}
+    bss ={}
     fname = ''
     for line in inp:
         line = line.strip()
-        res = objline.match(line)
+        res = funcline.match(line)
         if res:
-            result.setdefault(fname,[]).append((int(res.group(1),16),
-                                                 res.group(2)))
+            funcs.setdefault(fname,[]).append((int(res.group(1),16),
+                                               res.group(3)))
+            continue
+        res = bssline.match(line)
+        if res:
+            start = int(res.group(1),16)
+            end = int(res.group(2),16)
+            if end:
+                bss.setdefault(fname,[]).append((start,res.group(3)))
+        res = dataline.match(line)
+        if res:
+            start = int(res.group(1),16)
+            end = int(res.group(2),16)
+            if end:
+                data.setdefault(fname,[]).append((start,res.group(3)))
         res = fileexp.match(line)
         if res:
             fname = res.group(1)
             continue
-    
-    return result
 
-startfile = re.compile(r'\.text\s+(0x[0-9a-f]+)\s+0x[0-9a-f]+\s+(.*)$')
+    return {
+        'text' : funcs,
+        'bss' : bss,
+        'data' : data
+        }
+
+startfile = re.compile(r'\.(text|bss|data)\s+(0x[0-9a-f]+)\s+0x[0-9a-f]+\s+(.*)$')
 def generate(kmapf, obmapf, out):
-    obdump = read_obdump(obmapf)
+    obdump = read_obdump(obmapf)    
 
     def sorter(x,y):
         return cmp(x[0],y[0])
@@ -36,12 +57,13 @@ def generate(kmapf, obmapf, out):
     for line in kmapf:
         line = line.strip()
         res = startfile.match(line)
-        if res and obdump.has_key(res.group(2)):
-            offset = int(res.group(1),16)
-            fname = res.group(2)
-            symbols = obdump[fname]
+
+        if res and obdump[res.group(1)].has_key(res.group(3)):
+            offset = int(res.group(2),16)
+            fname = res.group(3)
+            symbols = obdump[res.group(1)][fname]
             symbols.sort(sorter)
-            for addr,symbol in symbols:
+            for addr,symbol in symbols:                
                 value = fname + ':' + symbol
                 data = struct.pack(symtabfmt,addr+offset,value[:MAXSTRING])
                 out.write(data)
