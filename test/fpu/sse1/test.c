@@ -44,7 +44,7 @@
 static volatile int threads_ok;
 static waitq_t can_start;
 
-static void testit(void *data)
+static void testit1(void *data)
 {
 	int i;
 	volatile long long j;
@@ -74,6 +74,36 @@ static void testit(void *data)
 	atomic_inc(&threads_ok);
 }
 
+static void testit2(void *data)
+{
+	int i;
+	volatile long long j;
+	double e,d,le,f;
+	int arg __attribute__((aligned(16))) = (int)((__native) data);
+	int after_arg __attribute__((aligned(16)));
+	
+	waitq_sleep(&can_start);
+
+	for (i = 0; i<ATTEMPTS; i++) {
+		__asm__ volatile (
+			"movlpd	%0, %%xmm2"
+			:"=m"(arg)
+			);
+
+		scheduler();
+		__asm__ volatile (
+			"movlpd %%xmm2, %0"
+			:"=m"(after_arg)
+			);
+		
+		if(arg != after_arg)
+			panic("tid%d: arg(%d) != %d\n", 
+			      THREAD->tid, arg, after_arg);
+	}
+
+	atomic_inc(&threads_ok);
+}
+
 
 void test(void)
 {
@@ -85,11 +115,15 @@ void test(void)
 	printf("SSE test #1\n");
 	printf("Creating %d threads... ", THREADS);
 
-	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(testit, (void *)((__native)i), TASK, 0)))
+	for (i=0; i<THREADS/2; i++) {  
+		if (!(t = thread_create(testit1, (void *)((__native)i*2), TASK, 0)))
+			panic("could not create thread\n");
+		thread_ready(t);
+		if (!(t = thread_create(testit2, (void *)((__native)i*2+1), TASK, 0)))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}
+
 	printf("ok\n");
 	
 	thread_sleep(1);

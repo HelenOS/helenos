@@ -134,6 +134,7 @@ void nm_fault(__u8 n, __native stack[])
 		THREAD->fpu_context_exists=1;
 	}
 	CPU->fpu_owner=THREAD;
+	THREAD->fpu_context_engaged = 1;
 }
 
 
