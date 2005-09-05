@@ -43,7 +43,7 @@
 
 static void messy_stack_trace(__native *stack)
 {
-	__native *upper_limit = (__native *)(((__native)THREAD->kstack) + STACK_SIZE);
+	__native *upper_limit = (__native *)(((__native)get_stack_base()) + STACK_SIZE);
 	char *symbol;
 
 	printf("Stack contents: ");
