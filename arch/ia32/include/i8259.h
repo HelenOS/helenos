@@ -40,8 +40,6 @@
 #define PIC_NEEDICW4	(1<<0)
 #define	PIC_ICW1	(1<<4)
 
-#define PIC_PIC1ID	1
-
 extern void i8259_init(void);
 extern void pic_enable_irqs(__u16 irqmask);
 extern void pic_disable_irqs(__u16 irqmask);
