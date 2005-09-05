@@ -59,7 +59,7 @@ void i8259_init(void)
 	outb(PIC_PIC1PORT2, IVT_IRQBASE + 8);
 
 	/* ICW3: pic1 is known as PIC_PIC1ID */
-	outb(PIC_PIC1PORT2, PIC_PIC1ID);
+	outb(PIC_PIC1PORT2, IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
 	outb(PIC_PIC1PORT2, 1);
