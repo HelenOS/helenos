@@ -31,11 +31,11 @@
 
 #include <arch/types.h>
 
-/** Convert little-endian parameter to host endianess
+/** Convert little-endian __native to host __native
  *
- * Convert little-endian to host endianess,
+ * Convert little-endian __native parameter to host endianess.
  *
- * @param n Little-endian native argument.
+ * @param n Little-endian __native argument.
  *
  * @return Result in host endianess.
  *

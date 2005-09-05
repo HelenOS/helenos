@@ -34,6 +34,7 @@
 #include <arch/acpi/madt.h>
 #include <config.h>
 #include <synch/waitq.h>
+#include <synch/synch.h>
 #include <arch/pm.h>
 #include <func.h>
 #include <panic.h>
@@ -111,8 +112,6 @@ void kmp(void *arg)
 	outb(0x70,0xf);
 	outb(0x71,0xa);
 
-	cpu_priority_high();
-
 	pic_disable_irqs(0xffff);
 	apic_init();
 
@@ -132,7 +131,7 @@ void kmp(void *arg)
 			continue;
 
 		if (ops->cpu_apic_id(i) == l_apic_id()) {
-			printf("kmp: bad processor entry #%d, will not send IPI to myself\n", i);
+			printf("%s: bad processor entry #%d, will not send IPI to myself\n", __FUNCTION__, i);
 			continue;
 		}
 		
@@ -153,7 +152,8 @@ void kmp(void *arg)
 			 * the time. After it comes completely up, it is
 			 * supposed to wake us up.
 		         */
-			waitq_sleep(&ap_completion_wq);
+			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_BLOCKING) == ESYNCH_TIMEOUT)
+				printf("%s: waiting for cpu%d (APIC ID = %d) timed out\n", __FUNCTION__, config.cpu_active > i ? config.cpu_active : i, ops->cpu_apic_id(i));
 		}
 		else {
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));
