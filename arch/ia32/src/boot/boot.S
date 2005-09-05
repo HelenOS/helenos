@@ -217,7 +217,7 @@ map_kernel:
 	movl $((1<<7)|(1<<0)), %eax
 	movl %eax, page_directory		# mapping 0x00000000 => 0x00000000
 
-	movl $(page_directory+(4096/2)), %edx
+	movl $(page_directory+2048), %edx
 	movl %eax, (%edx)			# mapping 0x80000000 => 0x00000000
 
 	leal page_directory, %eax

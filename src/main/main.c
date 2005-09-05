@@ -218,13 +218,14 @@ void main_ap(void)
 	 * The THE structure is well defined because ctx.sp is used as stack.
 	 */
 	the_initialize(THE);
-
+	
 	arch_pre_mm_init();
 	frame_init();
 	page_init();
 	arch_post_mm_init();
-
+	
 	cpu_init();
+	
 	calibrate_delay_loop();
 
 	l_apic_init();

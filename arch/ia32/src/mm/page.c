@@ -56,10 +56,8 @@ void page_arch_init(void)
 		 * Identity mapping for all frames.
 		 * PA2KA(identity) mapping for all frames.
 		 */
-		for (i = 0; i < frames; i++) {
-			map_page_to_frame(i * PAGE_SIZE, i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
+		for (i = 0; i < frames; i++)
 			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
-		}
 
 		trap_register(14, page_fault);
 		write_cr3(KA2PA(dba));

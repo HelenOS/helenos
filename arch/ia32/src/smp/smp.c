@@ -143,21 +143,19 @@ void kmp(void *arg)
 
 		memcpy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));
 		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
-		real_bootstrap_gdtr.base = KA2PA((__address) gdt_new);
+		((struct ptr_16_32 *) PA2KA((__address) &real_bootstrap_gdtr))->base = KA2PA((__address) gdt_new);
 		gdtr.base = (__address) gdt_new;
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {
 			/*
-		         * There may be just one AP being initialized at
+			 * There may be just one AP being initialized at
 			 * the time. After it comes completely up, it is
 			 * supposed to wake us up.
-		         */
+			 */
 			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_BLOCKING) == ESYNCH_TIMEOUT)
 				printf("%s: waiting for cpu%d (APIC ID = %d) timed out\n", __FUNCTION__, config.cpu_active > i ? config.cpu_active : i, ops->cpu_apic_id(i));
-		}
-		else {
+		} else
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));
-		}
 	}
 
 	/*

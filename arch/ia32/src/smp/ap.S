@@ -69,6 +69,8 @@ jump_to_kernel:
 
 	call map_kernel					# map kernel and turn paging on
 	
+	addl $0x80000000, %esp			# PA2KA(ctx.sp)
+	
 	jmpl $KTEXT, $main_ap
 
 #endif /* __SMP__ */
