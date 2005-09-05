@@ -21,6 +21,9 @@ CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
 LFLAGS=-M -no-check-sections
 
+../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
+	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+
 arch_sources= \
 	arch/context.s \
 	arch/debug/panic.s \

@@ -8,11 +8,15 @@
  *	kernel data 
  */
 
+#define __ASM__
+#include <arch/boot/boot.h>
+#include <arch/mm/page.h>
+
 OUTPUT_FORMAT(binary)
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.unmapped 0x8000: AT (0x8000) {
+	.unmapped BOOTSTRAP_OFFSET: AT (BOOTSTRAP_OFFSET) {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
 		*(K_TEXT_START_2);
@@ -23,7 +27,7 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 	
-	.mapped (0x80100000+0x8000+SIZEOF(.unmapped)): AT (0x8000+SIZEOF(.unmapped)) { 
+	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)): AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) { 
 		ktext_start = .;
 		*(BOOT_DATA)
 		*(.text);
@@ -34,7 +38,7 @@ SECTIONS {
 		*(.rodata*);		/* string literals */
 		*(COMMON);		/* global variables */
 		hardcoded_load_address = .;
-		LONG(0x80108000);
+		LONG(PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET));
 		hardcoded_ktext_size = .;
 		LONG(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
@@ -55,8 +59,7 @@ SECTIONS {
 	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	
-	_map_address = 0x80100000;
-	e820table_boot = e820table - _map_address;
-	e820counter_boot = e820counter - _map_address;
-	real_bootstrap_gdtr = real_bootstrap_gdtr_boot + 0x80000000;
+	e820table_boot = KA2PA(e820table) - BOOT_OFFSET;
+	e820counter_boot = KA2PA(e820counter) - BOOT_OFFSET;
+	real_bootstrap_gdtr = PA2KA(real_bootstrap_gdtr_boot);
 }
