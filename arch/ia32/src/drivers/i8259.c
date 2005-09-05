@@ -58,7 +58,7 @@ void i8259_init(void)
 	/* ICW2: IRQ 8 maps to INT (IVT_IRQBASE + 8) */
 	outb(PIC_PIC1PORT2, IVT_IRQBASE + 8);
 
-	/* ICW3: pic1 is known as PIC_PIC1ID */
+	/* ICW3: pic1 is known as IRQ_PIC1 */
 	outb(PIC_PIC1PORT2, IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
