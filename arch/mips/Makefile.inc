@@ -21,11 +21,11 @@ LFLAGS=-mips2 -M -no-check-sections
 arch_sources= \
 	arch/start.S \
 	arch/context.S \
-	arch/panic.s \
+	arch/panic.S \
 	arch/mips.c \
-	arch/dummy.s \
+	arch/dummy.S \
 	arch/putchar.c \
-	arch/asm.s \
+	arch/asm.S \
 	arch/exception.c \
 	arch/interrupt.c \
 	arch/cache.c \

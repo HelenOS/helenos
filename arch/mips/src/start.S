@@ -43,7 +43,10 @@
 .global tlb_refill_entry
 .global cache_error_entry
 .global exception_entry
+.global userspace_asm
 
+# Save registers to space defined by \r
+# We will change $at on the way
 .macro REGISTERS_STORE r
 	sw $at,EOFFSET_AT(\r)
 	sw $v0,EOFFSET_V0(\r)
@@ -62,6 +65,12 @@
 	sw $t7,EOFFSET_T7(\r)
 	sw $t8,EOFFSET_T8(\r)
 	sw $t9,EOFFSET_T9(\r)
+
+	mflo $at
+	sw $at, EOFFSET_LO(\r)
+	mfhi $at
+	sw $at, EOFFSET_HI(\r)
+	
 	sw $s0,EOFFSET_S0(\r)
 	sw $s1,EOFFSET_S1(\r)
 	sw $s2,EOFFSET_S2(\r)
@@ -73,14 +82,13 @@
 	sw $s8,EOFFSET_S8(\r)	
 	sw $gp,EOFFSET_GP(\r)
 	sw $ra,EOFFSET_RA(\r)
-	mflo $k0
-	mfhi $k1
-	sw $k0,EOFFSET_LO(\r)
-	sw $k1,EOFFSET_HI(\r)
+	sw $sp,EOFFSET_SP(\r)
+
+	mfc0 $at, $status
+	sw $at,EOFFSET_STATUS(\r)
 .endm
 
 .macro REGISTERS_LOAD r
-	lw $at,EOFFSET_AT(\r)
 	lw $v0,EOFFSET_V0(\r)
 	lw $v1,EOFFSET_V1(\r)
 	lw $a0,EOFFSET_A0(\r)
@@ -109,13 +117,37 @@
 	lw $gp,EOFFSET_GP(\r)
 	lw $ra,EOFFSET_RA(\r)
 	
-	lw $k0,EOFFSET_LO(\r)
-	lw $k1,EOFFSET_HI(\r)
-	mtlo $k0
-	mthi $k1
+	lw $at,EOFFSET_LO(\r)
+	mtlo $at
+	lw $at,EOFFSET_HI(\r)
+	mthi $at
+
+	lw $at,EOFFSET_STATUS(\r)
+	mtc0 $at, $status
+	
+	lw $at,EOFFSET_AT(\r)
+	lw $sp,EOFFSET_SP(\r)
 .endm
 
+# Move kernel stack pointer address to register K0
+# - if we are in user mode, load the appropriate stack
+# address
+.macro KERNEL_STACK_TO_K0
+	# If we are in user mode
+	mfc0 $k0, $status
+	andi $k0, 0x10
 	
+	beq $k0, $0, 1f
+	add $k0, $sp, 0
+	
+	# Move $k0 pointer to kernel stack
+	lui $k0, %hi(supervisor_sp)
+	ori $k0, %lo(supervisor_sp)
+	# Move $k0 (superveisor_sp)
+	lw $k0, 0($k0)
+1:		
+.endm
+		
 .org 0x0
 tlb_refill_entry:
 	j tlb_refill_handler
@@ -127,25 +159,20 @@ cache_error_entry:
 	nop
 
 .org 0x180
-exception_entry:
-exception_handler:
-	sub $sp, REGISTER_SPACE
-	REGISTERS_STORE $sp
+norm_exception:	
+	j exception_handler
+	nop	
 
-	jal exception
-	nop
+.org 0x200
+iv_exception:	
+	j exception_handler
+	nop	
 
-	REGISTERS_LOAD $sp
-	add $sp, REGISTER_SPACE
-
-	eret
-	nop
-
-.org KA2PA(0x80000300)
+.org KA2PA(KERNEL_STARTUP_ADDRESS)
 kernel_image_start:
 	/* Load temporary stack */
-	lui $sp, (TEMP_STACK_START + TEMP_STACK_SIZE) >> 16
-	ori $sp, (TEMP_STACK_START + TEMP_STACK_SIZE) & 0xffff
+	lui $sp, %hi(end_stack)
+	ori $sp, $0, %lo(end_stack)
 
 	/* Not sure about this, but might be needed for PIC code???? */
 	lui $gp, 0x8000
@@ -153,31 +180,56 @@ kernel_image_start:
 	jal main_bsp
 	nop
 
-.org KA2PA(TEMP_STACK_START)
+
 	.space TEMP_STACK_SIZE
+end_stack:	
+	
+exception_handler:
+exception_entry:
+	KERNEL_STACK_TO_K0
+	sub $k0, REGISTER_SPACE
+	REGISTERS_STORE $k0
+	add $sp, $k0, 0
+
+	jal exception
+	nop
+
+	REGISTERS_LOAD $sp
+	# The $sp is automatically restored to former value
+	eret
+	nop
 	
 tlb_refill_handler:
-	sub $sp, REGISTER_SPACE
-	REGISTERS_STORE $sp
+	KERNEL_STACK_TO_K0
+	sub $k0, REGISTER_SPACE
+	REGISTERS_STORE $k0
+	add $sp, $k0, 0
 
 	jal tlb_refill
 	nop
 
 	REGISTERS_LOAD $sp
-	add $sp, REGISTER_SPACE
 
 	eret
 	nop
 
 cache_error_handler:
+	KERNEL_STACK_TO_K0
 	sub $sp, REGISTER_SPACE
 	REGISTERS_STORE $sp
+	add $sp, $k0, 0
 
 	jal cache_error
 	nop
 
 	REGISTERS_LOAD $sp
-	add $sp, REGISTER_SPACE
 
 	eret
 	nop
+
+userspace_asm:
+	.word 0x29
+	add $sp, $a0, 0
+	eret
+	nop
+

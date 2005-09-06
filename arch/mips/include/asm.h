@@ -30,6 +30,7 @@
 #define __MIPS_ASM_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 
 #define cpu_sleep()	;
@@ -49,8 +50,8 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
-void cpu_halt(void);
-void asm_delay_loop(__u32 t);
-
+extern void cpu_halt(void);
+extern void asm_delay_loop(__u32 t);
+extern void userspace_asm(__address ustack);
 
 #endif

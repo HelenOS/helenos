@@ -31,15 +31,11 @@
 
 .global calibrate_delay_loop
 .global asm_delay_loop
-.global userspace
-.global before_thread_runs_arch
 .global dummy
 .global fpu_enable
 .global fpu_disable
 .global fpu_init
-
-before_thread_runs_arch:
-userspace:
+	
 calibrate_delay_loop:
 asm_delay_loop:
 fpu_enable:

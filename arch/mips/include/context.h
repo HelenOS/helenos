@@ -62,10 +62,13 @@
 #define EOFFSET_S8 100
 #define EOFFSET_GP 104
 #define EOFFSET_RA 108
-#define EOFFSET_LO 112
-#define EOFFSET_HI 116
+#define EOFFSET_SP 112
 
-#define REGISTER_SPACE 120
+#define EOFFSET_LO 116
+#define EOFFSET_HI 120
+#define EOFFSET_STATUS 124
+
+#define REGISTER_SPACE 128
 
 /*
  * Put one item onto the stack to support get_stack_base().

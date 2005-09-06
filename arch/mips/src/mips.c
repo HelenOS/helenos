@@ -29,6 +29,10 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
+#include <arch/asm/regname.h>
+#include <arch/asm.h>
+#include <mm/vm.h>
+#include <userspace.h>
 
 void arch_pre_mm_init(void)
 {
@@ -57,3 +61,27 @@ void arch_post_mm_init(void)
 void arch_late_init(void)
 {
 }
+
+void userspace(void)
+{
+	/* EXL=1, UM=1, IE=1 */
+	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
+					      cp0_status_um_bit |
+					      cp0_status_ie_enabled_bit));
+	
+	cp0_epc_write(UTEXT_ADDRESS);
+	userspace_asm(USTACK_ADDRESS+PAGE_SIZE);
+	while (1)
+		;
+}
+
+/* Stack pointer saved when entering user mode */
+/* TODO: How do we do it on SMP system???? */
+__address supervisor_sp;
+
+void before_thread_runs_arch(void)
+{
+	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+}
+
+

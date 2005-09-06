@@ -35,6 +35,7 @@
 #define cp0_status_exl_exception_bit	(1<<1)
 #define cp0_status_erl_error_bit	(1<<2)
 #define cp0_status_bev_bootstrap_bit	(1<<22)
+#define cp0_status_um_bit	        (1<<4)
 
 #define cp0_status_im7_shift		15
 /*
