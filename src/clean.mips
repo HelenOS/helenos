@@ -1,3 +1,5 @@
 #! /bin/sh
 
 make dist-clean ARCH=mips
+
+rm ../tools/mips/gencontext

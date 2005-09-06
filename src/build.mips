@@ -1,3 +1,8 @@
 #! /bin/sh
 
+set -e
+# Generate context_offset.h
+(cd ../tools/mips/;make gencontext;./gencontext)
+
+
 make all ARCH=mips

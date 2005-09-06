@@ -35,17 +35,8 @@
 
 #include <symtab.h>
 
-void main_bsp(void);
-
-int bootstrap = 1;
-
 void tlb_refill(void)
 {
-	if (bootstrap) {
-		bootstrap = 0;
-		main_bsp();
-	}
-	
 	panic("tlb_refill exception\n");
 }
 

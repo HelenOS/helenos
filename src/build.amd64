@@ -15,7 +15,7 @@ for a in drivers bios fmath.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S
   fi
 done
 
-for a in atomic.h ega.h fpu_context.h i8042.h i8259.h i8254.h interrupt.h bios mm/memory_init.h boot/memmap.h boot/memmapasm.h smp acpi; do
+for a in atomic.h ega.h fpu_context.h i8042.h i8259.h i8254.h interrupt.h bios mm/memory_init.h boot/memmap.h boot/memmapasm.h smp acpi barrier.h; do
   if [ \! -e amd64/include/$a ]; then
     echo ln -sf `pwd`/ia32/include/$a amd64/include/$a
     ln -sf `pwd`/ia32/include/$a amd64/include/$a

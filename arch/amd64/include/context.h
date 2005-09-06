@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,9 @@
  */
 #define SP_DELTA     16
 
+/* We include only registers that must be preserved
+ * during function call
+ */
 struct context {
     __u64 sp;
     __u64 pc;

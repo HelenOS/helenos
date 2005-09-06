@@ -29,15 +29,15 @@
 #ifndef __mips_PAGE_H__
 #define __mips_PAGE_H__
 
-#include <arch/mm/tlb.h>
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
-
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	(((__address) (x)) - 0x80000000)
-#define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#ifndef __ASM__
+#  define KA2PA(x)	(((__address) (x)) - 0x80000000)
+#  define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#else
+#  define KA2PA(x)	((x) - 0x80000000)
+#  define PA2KA(x)	((x) + 0x80000000)
+#endif
 
 /*
  * Implementation of generic 4-level page table interface.
@@ -81,6 +81,13 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
+#ifndef __ASM__
+
+#include <arch/mm/tlb.h>
+#include <mm/page.h>
+#include <arch/mm/frame.h>
+#include <arch/types.h>
+
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];
@@ -108,5 +115,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 extern void page_arch_init(void);
 
 extern pte_t *PTL0;
+
+#endif /* __ASM__ */
 
 #endif

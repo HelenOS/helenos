@@ -32,13 +32,12 @@
 .set noreorder
 .set nomacro
 
+#include <arch/asm/boot.h>
+	
 .global start
 start:
-	# move 0x80000000 to reg $8
-	lui $8, 0x8000
+	lui     $ra, KERNEL_STARTUP_ADDRESS >> 16 
+	ori     $ra, KERNEL_STARTUP_ADDRESS & 0xffff
 
-	# prepare stack
-	lui $29, 0x8100
-
-	j $8
+	j $ra
 	nop

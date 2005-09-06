@@ -9,16 +9,18 @@ build: boot.bin
 	cp boot.bin ../../../src/load.bin
 
 AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
+CC=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-gcc
 LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 
-ASFLAGS=-mips2
+ASFLAGS=-mips2 -I../../../include
 LFLAGS=--oformat=binary -mips2 -e start
 
-boot.bin: boot.o
-	$(LD) $(LFLAGS) boot.o -o $@
+.S.o:
+	$(CC) $(ASFLAGS) -c -o $@ $<
 
-boot.o:
-	$(AS) boot.s -o $@
+boot.bin: boot.o
+	$(LD) $(LFLAGS) $< -o $@
+
 
 clean:
 	-rm *.o *.bin
