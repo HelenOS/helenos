@@ -38,22 +38,15 @@
 # pointed by the 1st argument. Returns 1 in EAX.
 #
 context_save:
-	push %ebx
+	movl 0(%esp),%eax	# the caller's return %eip
+	movl 4(%esp),%edx	# address of the kernel_context variable to save context to
 
-	movl 4(%esp),%eax	# the caller's return %eip
-	movl 8(%esp),%ebx	# address of the kernel_context variable to save context to
-	movl %eax,4(%ebx)	# %eip -> ctx->pc
-	movl %esp,(%ebx)	# %esp -> ctx->sp
-
-	movl %ebx,%eax
-	pop %ebx
-
-	movl %ebx,8(%eax)
-	movl %ecx,12(%eax)
-	movl %edx,16(%eax)
-	movl %esi,20(%eax)
-	movl %edi,24(%eax)
-	movl %ebp,28(%eax)
+	movl %esp,0(%edx)	# %esp -> ctx->sp
+	movl %eax,4(%edx)	# %eip -> ctx->pc
+	movl %ebx,8(%edx)	# %ebx -> ctx->ebx
+	movl %esi,12(%edx)	# %esi -> ctx->esi
+	movl %edi,16(%edx)	# %edi -> ctx->edi
+	movl %ebp,20(%edx)	# %ebp -> ctx->ebp
 
 	xorl %eax,%eax		# context_save returns 1
 	incl %eax
@@ -67,17 +60,13 @@ context_save:
 #
 context_restore:
 	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
-	movl (%eax),%esp	# ctx->sp -> %esp
-	addl $4,%esp		# this is for the pop we don't do
+	movl 0(%eax),%esp	# ctx->sp -> %esp
+	movl 4(%eax),%edx	# ctx->pc -> %edx
+	movl 8(%eax),%ebx	# ctx->ebx -> %ebx
+	movl 12(%eax),%esi	# ctx->esi -> %esi
+	movl 16(%eax),%edi	# ctx->edi -> %edi
+	movl 20(%eax),%ebp	# ctx->ebp -> %ebp
 
-	movl 8(%eax),%ebx
-	movl 12(%eax),%ecx
-	movl 16(%eax),%edx
-	movl 20(%eax),%esi
-	movl 24(%eax),%edi
-	movl 28(%eax),%ebp
-
-	movl 4(%eax),%eax
-	movl %eax,(%esp)	# ctx->pc -> saver's return %eip
+	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
 	xorl %eax,%eax		# context_restore returns 0
 	ret

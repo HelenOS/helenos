@@ -45,8 +45,6 @@ struct context {
 	__u32 sp;
 	__u32 pc;
 	__u32 ebx;
-	__u32 ecx;
-	__u32 edx;
 	__u32 esi;
 	__u32 edi;
 	__u32 ebp;
