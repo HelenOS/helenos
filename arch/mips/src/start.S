@@ -1,4 +1,4 @@
-
+#
 # Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
