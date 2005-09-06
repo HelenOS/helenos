@@ -244,4 +244,4 @@ page_directory:
 real_bootstrap_gdtr_boot:
 	.word selector(GDT_ITEMS)
 	.long KA2PA(gdt)-BOOT_OFFSET
-	
+

@@ -86,8 +86,8 @@ debug/real_map.o: debug/real_map.bin
 kernel.bin: $(arch_objects) $(objects) $(test_objects) ../arch/$(ARCH)/_link.ld debug/real_map.o
 	$(LD) -T ../arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(objects) $(test_objects) debug/real_map.o -o $@ -Map kernel.map
 
-%.s: %.S
-	$(CC) $(CPPFLAGS) -E $< >$@
+%.o: %.S
+	$(CC) $(ASFLAGS) $(CFLAGS) -c $< -o $@
 
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@

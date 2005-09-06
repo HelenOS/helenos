@@ -228,7 +228,6 @@ cache_error_handler:
 	nop
 
 userspace_asm:
-	.word 0x29
 	add $sp, $a0, 0
 	eret
 	nop
