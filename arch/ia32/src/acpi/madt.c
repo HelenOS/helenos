@@ -112,6 +112,8 @@ void acpi_madt_parse(void)
 {
 	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *h;
+	
+        l_apic = (__u32 *) (__native) acpi_madt->l_apic_address;
 
 	/* calculate madt entries */
 	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
@@ -204,7 +206,6 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 	if (!madt_io_apic_entry_cnt++) {
 		/* remember index of the first io apic entry */
 		madt_io_apic_entry_index = index;
-		/* ????!!!! */
 		io_apic = (__u32 *) (__native) ioa->io_apic_address;
 	} else {
 		/* currently not supported */
