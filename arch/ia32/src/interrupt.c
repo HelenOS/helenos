@@ -109,18 +109,11 @@ void ss_fault(__u8 n, __native stack[])
 
 void nm_fault(__u8 n, __native stack[])
 {
-	reset_TS_flag();
-	if (CPU->fpu_owner != NULL) {  
-		fpu_lazy_context_save(&((CPU->fpu_owner)->saved_fpu_context));
-		CPU->fpu_owner->fpu_context_engaged=0; /* don't prevent migration */
-	}
-	if (THREAD->fpu_context_exists) 
-		fpu_lazy_context_restore(&(THREAD->saved_fpu_context));
-	else {
-		fpu_init();
-		THREAD->fpu_context_exists=1;
-	}
-	CPU->fpu_owner=THREAD;
+#ifdef FPU_LAZY     
+	scheduler_fpu_lazy_request();
+#else
+	panic("fpu fault");
+#endif
 }
 
 

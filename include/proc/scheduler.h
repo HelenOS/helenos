@@ -51,6 +51,7 @@ static void scheduler_separated_stack(void);
 
 extern void scheduler_init(void);
 
+extern void scheduler_fpu_lazy_request(void);
 extern void scheduler(void);
 extern void kcpulb(void *arg);
 

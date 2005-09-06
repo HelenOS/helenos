@@ -41,8 +41,4 @@ struct cpu_arch {
 	struct tss *tss;
 };
 
-
-void set_TS_flag(void);
-void reset_TS_flag(void);
-
 #endif

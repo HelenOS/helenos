@@ -7,11 +7,12 @@ CC=$(IA-32_CC_DIR)/$(IA-32_TARGET)-gcc
 AS=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-as
 LD=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-ld
 OBJCOPY=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objcopy
+OBJDUMP=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objdump
 
 BFD_NAME=elf32-i386
 BFD_ARCH=i386
 
-DEFS:=-DARCH=$(ARCH)
+DEFS:=-DARCH=$(ARCH) -DFPU_LAZY
 
 ifdef SMP
 DEFS+=-D$(SMP)
@@ -24,6 +25,9 @@ endif
 CPPFLAGS=$(DEFS) -nostdinc -I../include
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
 LFLAGS=-M -no-check-sections
+
+../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
+	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
 	arch/context.s \

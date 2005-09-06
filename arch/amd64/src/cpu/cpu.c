@@ -90,7 +90,7 @@ void cpu_setup_fpu(void)
  * does a lazy fpu context switch.
  *
  */
-void set_TS_flag(void)
+void fpu_disable(void)
 {
 	__asm__	volatile (
 		"mov %%cr0,%%rax;"
@@ -102,7 +102,7 @@ void set_TS_flag(void)
 		);
 }
 
-void reset_TS_flag(void)
+void fpu_enable(void)
 {
 	__asm__	volatile (
 		"mov %%cr0,%%rax;"

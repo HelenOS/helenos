@@ -33,20 +33,7 @@
 
 void fpu_context_save(fpu_context_t *fctx)
 {
-}
-
-void fpu_context_restore(fpu_context_t *fctx)
-{
-	if(THREAD==CPU->fpu_owner) 
-		reset_TS_flag();
-	else
-		set_TS_flag(); 
-}
-
-
-void fpu_lazy_context_save(fpu_context_t *fctx)
-{
-	/* TODO: We need malloc that allocates on 16-byte boundary !! */
+	/* Align on 16-byte boundary */
 	if (((__u64)fctx) & 0xf)
 		fctx = (fpu_context_t *)((((__u64)fctx) | 0xf) + 1);
 
@@ -56,7 +43,7 @@ void fpu_lazy_context_save(fpu_context_t *fctx)
 		);
 }
 
-void fpu_lazy_context_restore(fpu_context_t *fctx)
+void fpu_context_restore(fpu_context_t *fctx)
 {
 	/* TODO: We need malloc that allocates on 16-byte boundary !! */
 	if (((__u64)fctx) & 0xf)

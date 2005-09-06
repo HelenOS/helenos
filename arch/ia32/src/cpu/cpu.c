@@ -62,10 +62,9 @@ static char *vendor_str[] = {
 	"GenuineIntel"
 };
 
-void set_TS_flag(void)
+void fpu_disable(void)
 {
-	asm
-	(
+	__asm__ volatile (
 		"mov %%cr0,%%eax;"
 		"or $8,%%eax;"
 		"mov %%eax,%%cr0;"
@@ -75,10 +74,9 @@ void set_TS_flag(void)
 	);
 }
 
-void reset_TS_flag(void)
+void fpu_enable(void)
 {
-	asm
-	(
+	__asm__ volatile (
 		"mov %%cr0,%%eax;"
 		"and $0xffFFffF7,%%eax;"
 		"mov %%eax,%%cr0;"

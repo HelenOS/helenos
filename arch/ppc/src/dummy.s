@@ -32,10 +32,16 @@
 .global userspace
 .global before_thread_runs_arch
 .global dummy
+.global fpu_init
+.global fpu_enable
+.global fpu_disable
 
 before_thread_runs_arch:
 userspace:
 asm_delay_loop:
+fpu_init:
+fpu_enable:	
+fpu_disable:	
 
 dummy:
 0:
