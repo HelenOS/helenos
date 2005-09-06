@@ -36,26 +36,26 @@
 #include <debug.h>
 #include <config.h>
 #include <print.h>
+#include <mm/heap.h>
+#include <memstr.h>
 
 struct acpi_madt *acpi_madt = NULL;
 
 #ifdef __SMP__
 
-/*
- * NOTE: it is currently not completely clear to the authors of SPARTAN whether
- * MADT can exist in such a form that entries of the same type are not consecutive.
- * Because of this uncertainity, some entry types are explicitly checked for
- * being consecutive with other entries of the same kind. 
- */
-
-static void madt_l_apic_entry(struct madt_l_apic *la, __u8 prev_type);
-static void madt_io_apic_entry(struct madt_io_apic *ioa, __u8 prev_type);
+static void madt_l_apic_entry(struct madt_l_apic *la, __u32 index);
+static void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index);
 
 struct madt_l_apic *madt_l_apic_entries = NULL;
 struct madt_io_apic *madt_io_apic_entries = NULL;
 
+__u32 madt_l_apic_entry_index = 0;
+__u32 madt_io_apic_entry_index = 0;
 int madt_l_apic_entry_cnt = 0;
 int madt_io_apic_entry_cnt = 0;
+
+struct madt_apic_header * * madt_entries_index = NULL;
+int madt_entries_index_cnt = 0;
 
 char *entry[] = {
 	"L_APIC",
@@ -92,37 +92,69 @@ static count_t madt_cpu_count(void)
 static bool madt_cpu_enabled(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
-	return madt_l_apic_entries[i].flags & 0x1;
+	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->flags & 0x1;
+
 }
 
 static bool madt_cpu_bootstrap(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
-	return madt_l_apic_entries[i].apic_id == l_apic_id();
+	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id == l_apic_id();
 }
 
 static __u8 madt_cpu_apic_id(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
-	return madt_l_apic_entries[i].apic_id;
+	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
 }
 
 void acpi_madt_parse(void)
 {
 	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
-	struct madt_apic_header *h = &acpi_madt->apic_header[0];
-	__u8 prev_type = 0; /* used to detect inconsecutive entries */
+	struct madt_apic_header *h;
+
+	/* calculate madt entries */
+	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
+		madt_entries_index_cnt++;
+	}
+	printf("MADT: Found %d entries\n", madt_entries_index_cnt);
+
+	/* create madt apic entries index array */
+	madt_entries_index = (struct madt_apic_header * *) malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header * *));
+
+	__u32 index = 0;
+
+	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
+		madt_entries_index[index++] = h;
+	}
 
 
-	l_apic = (__u32 *) (__native) acpi_madt->l_apic_address;
+	/* Bublesort madt index. Quicksort later. */
+	bool done = false;
 
-	while (h < end) {
+	while (!done) {
+		done = true;
+		for (index = 0; index < madt_entries_index_cnt - 1; index++) {
+			if (madt_entries_index[index]->type > madt_entries_index[index + 1]->type) {
+				h = madt_entries_index[index];
+				madt_entries_index[index] = madt_entries_index[index + 1];
+				madt_entries_index[index + 1] = h;
+				done = false;
+			}
+	    	}
+	
+	}
+		
+
+	/* Parse MADT entries */	
+	for (index = 0; index < madt_entries_index_cnt - 1; index++) {
+		h = madt_entries_index[index];
 		switch (h->type) {
 			case MADT_L_APIC:
-				madt_l_apic_entry((struct madt_l_apic *) h, prev_type);
+				madt_l_apic_entry((struct madt_l_apic *) h, index);
 				break;
 			case MADT_IO_APIC:
-				madt_io_apic_entry((struct madt_io_apic *) h, prev_type);
+				madt_io_apic_entry((struct madt_io_apic *) h, index);
 				break;
 			case MADT_INTR_SRC_OVRD:
 			case MADT_NMI_SRC:
@@ -143,22 +175,21 @@ void acpi_madt_parse(void)
 				}
 				break;
 		}
-		prev_type = h->type;
-		h = (struct madt_apic_header *) (((__u8 *) h) + h->length);
+	
+	
 	}
+	
 
 	if (madt_l_apic_entry_cnt)
 		config.cpu_count = madt_l_apic_entry_cnt;
 }
  
-void madt_l_apic_entry(struct madt_l_apic *la, __u8 prev_type)
-{
-	/* check for consecutiveness */
-	if (madt_l_apic_entry_cnt && prev_type != MADT_L_APIC)
-	panic("%s entries are not consecuitve\n", entry[MADT_L_APIC]);
 
-	if (!madt_l_apic_entry_cnt++)
-		madt_l_apic_entries = la;
+void madt_l_apic_entry(struct madt_l_apic *la, __u32 index)
+{
+	if (!madt_l_apic_entry_cnt++) {
+		madt_l_apic_entry_index = index;
+	}
 		
 	if (!(la->flags & 0x1)) {
 		/* Processor is unusable, skip it. */
@@ -168,17 +199,14 @@ void madt_l_apic_entry(struct madt_l_apic *la, __u8 prev_type)
 	apic_id_mask |= 1<<la->apic_id;
 }
 
-void madt_io_apic_entry(struct madt_io_apic *ioa, __u8 prev_type)
+void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 {
-	/* check for consecutiveness */
-	if (madt_io_apic_entry_cnt && prev_type != MADT_IO_APIC)
-	panic("%s entries are not consecuitve\n", entry[MADT_IO_APIC]);
-
 	if (!madt_io_apic_entry_cnt++) {
-		madt_io_apic_entries = ioa;
+		/* remember index of the first io apic entry */
+		madt_io_apic_entry_index = index;
+		/* ????!!!! */
 		io_apic = (__u32 *) (__native) ioa->io_apic_address;
-	}
-	else {
+	} else {
 		/* currently not supported */
 		return;
 	}
