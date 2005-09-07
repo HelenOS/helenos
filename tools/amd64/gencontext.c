@@ -7,7 +7,7 @@ typedef __u64 pri_t;
 #define __amd64_TYPES_H__
 #include "../../arch/amd64/include/context.h"
 
-#define FILENAME "../../arch/amd64/src/context_offset.h"
+#define FILENAME "../../arch/amd64/include/context_offset.h"
 
 int main(void)
 {
