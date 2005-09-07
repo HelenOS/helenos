@@ -34,10 +34,9 @@
 #include <arch.h>
 #include <debug.h>
 
-void exception(void)
+void exception(struct exception_regdump *pstate)
 {
 	int excno;
-	__u32 epc;
 	__u32 epc_shift = 0;
 
 	ASSERT(CPU != NULL);
@@ -45,18 +44,14 @@ void exception(void)
 	/*
 	 * NOTE ON OPERATION ORDERING
 	 *
-	 * On entry, cpu_priority_high() must be called before exception bit is cleared.
-	 * On exit, exception bit must be set before cpu_priority_restore() is called.
+	 * On entry, cpu_priority_high() must be called before 
+	 * exception bit is cleared.
 	 */
 
 	cpu_priority_high();
-	epc = cp0_epc_read();
 	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
 						cp0_status_um_bit));
 
-	if (THREAD) {
-		THREAD->saved_epc = epc;
-	}
 	/* decode exception number and process the exception */
 	switch (excno = (cp0_cause_read() >> 2) & 0x1f) {
 		case EXC_Int:
@@ -64,7 +59,7 @@ void exception(void)
 			break;
 		case EXC_TLBL:
 		case EXC_TLBS:
-			tlb_invalid();
+			tlb_invalid(pstate);
 			break;
 		case EXC_Mod:
 			panic("unhandled TLB Modification Exception\n");
@@ -114,12 +109,5 @@ void exception(void)
 			panic("unhandled exception %d\n", excno);
 	}
 	
-	if (THREAD)
-		epc = THREAD->saved_epc;
-	
-	/* Raise EXL bit before epc_write, so that we support
-	 * properly nested exceptions
-	 */
-	cp0_status_write(cp0_status_read() | cp0_status_exl_exception_bit);
-	cp0_epc_write(epc + epc_shift);
+	pstate->epc += epc_shift;
 }

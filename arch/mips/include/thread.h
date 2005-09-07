@@ -29,6 +29,6 @@
 #ifndef __mips_THREAD_H__
 #define __mips_THREAD_H__
 
-#define ARCH_THREAD_DATA  __u32	saved_epc;
+#define ARCH_THREAD_DATA
 
 #endif

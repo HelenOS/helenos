@@ -31,45 +31,6 @@
 
 #define STACK_ITEM_SIZE	4
 
-/* These are offsets into the register dump saved
- * on exception entry
- */
-#define EOFFSET_AT 0
-#define EOFFSET_V0 4
-#define EOFFSET_V1 8
-#define EOFFSET_A0 12
-#define EOFFSET_A1 16
-#define EOFFSET_A2 20
-#define EOFFSET_A3 24
-#define EOFFSET_A4 28
-#define EOFFSET_T1 32
-#define EOFFSET_T2 36
-#define EOFFSET_T3 40
-#define EOFFSET_T4 44
-#define EOFFSET_T5 48
-#define EOFFSET_T6 52
-#define EOFFSET_T7 56
-#define EOFFSET_T8 60
-#define EOFFSET_T9 64
-#define EOFFSET_S0 68
-#define EOFFSET_S1 72
-#define EOFFSET_S2 76
-#define EOFFSET_S3 80
-#define EOFFSET_S4 84
-#define EOFFSET_S5 88
-#define EOFFSET_S6 92
-#define EOFFSET_S7 96
-#define EOFFSET_S8 100
-#define EOFFSET_GP 104
-#define EOFFSET_RA 108
-#define EOFFSET_SP 112
-
-#define EOFFSET_LO 116
-#define EOFFSET_HI 120
-#define EOFFSET_STATUS 124
-
-#define REGISTER_SPACE 128
-
 /*
  * Put one item onto the stack to support get_stack_base().
  */

@@ -31,7 +31,7 @@
 #include <arch/asm/regname.h>
 #include <arch/mm/page.h>
 #include <arch/asm/boot.h>
-#include <arch/context.h>
+#include <arch/context_offset.h>
 	
 .text
 
@@ -55,7 +55,7 @@
 	sw $a1,EOFFSET_A1(\r)
 	sw $a2,EOFFSET_A2(\r)
 	sw $a3,EOFFSET_A3(\r)
-	sw $t0,EOFFSET_A4(\r)
+	sw $t0,EOFFSET_T0(\r)
 	sw $t1,EOFFSET_T1(\r)
 	sw $t2,EOFFSET_T2(\r)
 	sw $t3,EOFFSET_T3(\r)
@@ -86,6 +86,8 @@
 
 	mfc0 $at, $status
 	sw $at,EOFFSET_STATUS(\r)
+	mfc0 $at, $epc
+	sw $at,EOFFSET_EPC(\r)
 .endm
 
 .macro REGISTERS_LOAD r
@@ -95,7 +97,7 @@
 	lw $a1,EOFFSET_A1(\r)
 	lw $a2,EOFFSET_A2(\r)
 	lw $a3,EOFFSET_A3(\r)
-	lw $t0,EOFFSET_A4(\r)
+	lw $t0,EOFFSET_T0(\r)
 	lw $t1,EOFFSET_T1(\r)
 	lw $t2,EOFFSET_T2(\r)
 	lw $t3,EOFFSET_T3(\r)
@@ -124,6 +126,8 @@
 
 	lw $at,EOFFSET_STATUS(\r)
 	mtc0 $at, $status
+	lw $at,EOFFSET_EPC(\r)
+	mtc0 $at, $epc
 	
 	lw $at,EOFFSET_AT(\r)
 	lw $sp,EOFFSET_SP(\r)
@@ -191,7 +195,8 @@ exception_entry:
 	REGISTERS_STORE $k0
 	add $sp, $k0, 0
 
-	jal exception
+	add $a0, $sp, 0 
+	jal exception /* exception(register_space) */
 	nop
 
 	REGISTERS_LOAD $sp
@@ -205,7 +210,8 @@ tlb_refill_handler:
 	REGISTERS_STORE $k0
 	add $sp, $k0, 0
 
-	jal tlb_refill
+	add $a0, $sp, 0 
+	jal tlb_refill /* tlb_refill(register_space) */
 	nop
 
 	REGISTERS_LOAD $sp

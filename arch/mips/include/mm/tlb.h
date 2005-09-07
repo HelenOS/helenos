@@ -29,6 +29,8 @@
 #ifndef __mips_TLB_H__
 #define __mips_TLB_H__
 
+#include <arch/exception.h>
+
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
 
@@ -63,7 +65,7 @@ struct tlb_entry {
 
 typedef struct entry_lo pte_t;
 
-extern void tlb_refill(void);
-extern void tlb_invalid(void);
+extern void tlb_invalid(struct exception_regdump *pstate);
+extern void tlb_refill(struct exception_regdump *pstate);
 
 #endif

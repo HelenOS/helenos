@@ -28,7 +28,7 @@
 
 #define __ASM__
 #include <arch/asm/regname.h>
-#include "context_offset.h"
+#include <arch/context_offset.h>
 	
 .text   
 

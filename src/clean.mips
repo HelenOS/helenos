@@ -3,4 +3,4 @@
 make dist-clean ARCH=mips
 
 rm ../tools/mips/gencontext
-rm ../arch/mips/src/context_offset.h
+rm ../arch/mips/include/context_offset.h

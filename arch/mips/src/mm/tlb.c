@@ -35,22 +35,22 @@
 
 #include <symtab.h>
 
-void tlb_refill(void)
+void tlb_refill(struct exception_regdump *pstate)
 {
 	panic("tlb_refill exception\n");
 }
 
-void tlb_invalid(void)
+void tlb_invalid(struct exception_regdump *pstate)
 {
 	char *symbol = "";
 
 	if (THREAD) {
-		char *s = get_symtab_entry(THREAD->saved_epc);
+		char *s = get_symtab_entry(pstate->epc);
 		if (s)
 			symbol = s;
 	}
 	panic("%X: TLB exception at %X(%s)\n", cp0_badvaddr_read(), 
-	      THREAD ? THREAD->saved_epc : 0, symbol);
+	      pstate->epc, symbol);
 }
 
 void tlb_invalidate(int asid)

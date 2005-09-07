@@ -29,6 +29,10 @@
 #ifndef __EXCEPTION_H__
 #define __EXCEPTION_H__
 
+#ifndef __mips_TYPES_H_
+#  include <arch/types.h>
+#endif
+
 #define EXC_Int		0
 #define EXC_Mod		1
 #define EXC_TLBL	2
@@ -48,6 +52,44 @@
 #define EXC_WATCH	23
 #define EXC_VCED	31
 
-extern void exception(void);
+struct exception_regdump {
+	__u32 at;
+	__u32 v0;
+	__u32 v1;
+	__u32 a0;
+	__u32 a1;
+	__u32 a2;
+	__u32 a3;
+	__u32 t0;
+	__u32 t1;
+	__u32 t2;
+	__u32 t3;
+	__u32 t4;
+	__u32 t5;
+	__u32 t6;
+	__u32 t7;
+	__u32 s0;
+	__u32 s1;
+	__u32 s2;
+	__u32 s3;
+	__u32 s4;
+	__u32 s5;
+	__u32 s6;
+	__u32 s7;
+	__u32 t8;
+	__u32 t9;
+	__u32 gp;
+	__u32 sp;
+	__u32 s8;
+	__u32 ra;
+	
+	__u32 lo;
+	__u32 hi;
+
+	__u32 status; /* cp0_status */
+	__u32 epc; /* cp0_epc */
+};
+
+extern void exception(struct exception_regdump *pstate);
 
 #endif
