@@ -45,8 +45,8 @@ void userspace(void)
 	
 	pri = cpu_priority_high();
 
-	__asm__ volatile (""
-    /* CLNT */
+	__asm__ volatile (
+		/* CLNT */
 		"pushfl;"
 		"pop %%eax;"
 		"and $0xFFFFBFFF,%%eax;"
@@ -59,7 +59,9 @@ void userspace(void)
 		"pushl %3\n"
 		"pushl %4\n"
 		"iret"
-		: : "i" (selector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+(THREAD_STACK_SIZE-1)), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
+		: 
+		: "i" (selector(UDATA_DES) | PL_USER), "r" (USTACK_ADDRESS+(THREAD_STACK_SIZE)), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS)
+		: "eax");
 	
 	/* Unreachable */
 	for(;;);
