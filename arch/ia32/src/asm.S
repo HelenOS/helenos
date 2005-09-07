@@ -54,14 +54,12 @@
 # Enable paging and write-back caching in CR0.
 #
 paging_on:
-	pushl %eax
-	movl %cr0,%eax
-	orl $(1<<31),%eax		# paging on
-	andl $~((1<<30)|(1<<29)),%eax	# clear Cache Disable and not Write Though
-	movl %eax,%cr0
+	movl %cr0,%edx
+	orl $(1<<31),%edx		# paging on
+	andl $~((1<<30)|(1<<29)),%edx	# clear Cache Disable and not Write Though
+	movl %edx,%cr0
 	jmp 0f
 0:
-	popl %eax
 	ret
 
 
@@ -70,15 +68,15 @@ paging_on:
 # Enable local APIC in MSR.
 #
 enable_l_apic_in_msr:
-	pusha
-	
+	push %eax
+
 	movl $0x1b, %ecx
 	rdmsr
 	orl $(1<<11),%eax
 	orl $(0xfee00000),%eax
 	wrmsr
-	
-	popa
+
+	pop %eax
 	ret
 
 
@@ -115,30 +113,30 @@ enable_l_apic_in_msr:
 
 
 # CLNT
-  pushfl;
-	pop %eax;
-	and $0xFFFFBFFF,%eax;
-	push %eax;
-	popfl;
+	pushfl
+	pop %eax
+	and $0xFFFFBFFF,%eax
+	push %eax
+	popfl
 	
 
 
 # Test if this is interrupt with error word or not
-	mov $\i,%cl;
-	movl $1,%eax;
-	test $0xe0,%cl;
-	jnz 0f;
-	and $0x1f,%cl;
-	shl %cl,%eax;
-	and $ERROR_WORD_INTERRUPT_LIST,%eax;
-	jz 0f;
+	mov $\i,%cl
+	movl $1,%eax
+	test $0xe0,%cl
+	jnz 0f
+	and $0x1f,%cl
+	shl %cl,%eax
+	and $ERROR_WORD_INTERRUPT_LIST,%eax
+	jz 0f
 
 
 # Return with error word
-	popa;
-	pop %ebp;
-	add $4,%esp;    # Skip error word
-	iret;
+	popa
+	pop %ebp
+	add $4,%esp	# Skip error word
+	iret
 
 0:
 # Return with no error word
@@ -167,11 +165,9 @@ h_end:
 # Get a byte from I/O port and store it AL.
 #
 inb:
-	push %edx
 	xorl %eax,%eax
-	movl 8(%esp),%edx
+	movl 4(%esp),%edx
 	inb %dx,%al
-	pop %edx
 	ret
 
 
@@ -180,11 +176,9 @@ inb:
 # Get a word from I/O port and store it AX.
 #
 inw:
-	push %edx
 	xorl %eax,%eax
-	movl 8(%esp),%edx
+	movl 4(%esp),%edx
 	inw %dx,%ax
-	pop %edx
 	ret
 
 
@@ -193,11 +187,9 @@ inw:
 # Get a dword from I/O port and store it EAX.
 #
 inl:
-	push %edx
 	xorl %eax,%eax
-	movl 8(%esp),%edx
+	movl 4(%esp),%edx
 	inl %dx,%eax
-	pop %edx
 	ret
 
 
@@ -206,16 +198,13 @@ inl:
 # Send a byte to I/O port.
 #
 outb:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
 
-	movl 8(%ebp),%edx
-	movl 12(%ebp),%eax
+	movl 8(%esp),%edx
+	movl 12(%esp),%eax
 	outb %al,%dx
 
-	popa
-	pop %ebp
+	pop %eax
 	ret
 
 
@@ -224,16 +213,13 @@ outb:
 # Send a word to I/O port.
 #
 outw:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
 
-	movl 8(%ebp),%edx
-	movl 12(%ebp),%eax
+	movl 8(%esp),%edx
+	movl 12(%esp),%eax
 	outw %ax,%dx
 
-	popa
-	pop %ebp
+	pop %eax
 	ret
 
 
@@ -242,16 +228,13 @@ outw:
 # Send a dword to I/O port.
 #
 outl:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
 
-	movl 8(%ebp),%edx
-	movl 12(%ebp),%eax
+	movl 8(%esp),%edx
+	movl 12(%esp),%eax
 	outl %eax,%dx
 
-	popa
-	pop %ebp
+	pop %eax
 	ret
 
 
@@ -262,23 +245,21 @@ outl:
 # to the memory location defined by 1st argument.
 # The memory areas cannot overlap.
 #
-SRC=12
-DST=8
-CNT=16
+SRC=16
+DST=12
+CNT=20
 memcpy:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %esi
+	push %edi
 
-	cld
-	movl CNT(%ebp),%ecx
-	movl DST(%ebp),%edi
-	movl SRC(%ebp),%esi
+	movl CNT(%esp),%ecx
+	movl DST(%esp),%edi
+	movl SRC(%esp),%esi
 
 	rep movsb %ds:(%esi),%es:(%edi)
 
-	popa
-	pop %ebp
+	pop %edi
+	pop %esi
 	ret
 
 
@@ -288,23 +269,21 @@ memcpy:
 # at memory defined by 1st argument with the
 # byte value defined by 3rd argument.
 #
-DST=8
-CNT=12
-X=16
+DST=12
+CNT=16
+X=20
 memsetb:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
+	push %edi
 
-	cld
-	movl CNT(%ebp),%ecx
-	movl DST(%ebp),%edi
-	movl X(%ebp),%eax
+	movl CNT(%esp),%ecx
+	movl DST(%esp),%edi
+	movl X(%esp),%eax
 
 	rep stosb %al,%es:(%edi)
 
-	popa
-	pop %ebp
+	pop %edi
+	pop %eax
 	ret
 
 
@@ -314,23 +293,22 @@ memsetb:
 # at memory defined by 1st argument with the
 # word value defined by 3rd argument.
 #
-DST=8
-CNT=12
-X=16
+DST=12
+CNT=16
+X=20
 memsetw:
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
+	push %edi
 
-	cld
-	movl CNT(%ebp),%ecx
-	movl DST(%ebp),%edi
-	movl X(%ebp),%eax
+	movl CNT(%esp),%ecx
+	movl DST(%esp),%edi
+	movl X(%esp),%eax
 
 	rep stosw %ax,%es:(%edi)
 
-	popa
-	pop %ebp
+	pop %edi
+	pop %eax
+
 	ret
 
 
@@ -345,25 +323,18 @@ SRC=12
 DST=16
 CNT=20
 memcmp:
-	push %ebp
-	subl $4,%esp	
-	movl %esp,%ebp
+	push %esi
+	push %edi
 
-	pusha
-
-	cld
-	movl CNT(%ebp),%ecx
-	movl DST(%ebp),%edi
-	movl SRC(%ebp),%esi
+	movl CNT(%esp),%ecx
+	movl DST(%esp),%edi
+	movl SRC(%esp),%esi
 
 	repe cmpsb %es:(%edi),%ds:(%esi)
-	movl %ecx,(%ebp)
+	movl %ecx,%eax		# %ecx contains the return value (zero on success)
 
-	popa
-	
-	movl (%ebp),%eax	# return value => %eax (zero on success)
-	addl $4,%esp
-	pop %ebp
+	pop %edi
+	pop %esi
 	
 	ret
 
@@ -371,11 +342,11 @@ memcmp:
 # THIS IS USERSPACE CODE
 .global utext
 utext:
-	xor %ax,%ax;
-	mov %ax,%ds;
-	mov %ax,%es;
-	mov %ax,%fs;
-	mov %ax,%gs;
+	xor %ax,%ax
+	mov %ax,%ds
+	mov %ax,%es
+	mov %ax,%fs
+	mov %ax,%gs
 0:
 	int $48
 	jmp 0b
