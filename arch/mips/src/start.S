@@ -146,7 +146,7 @@
 	
 	# Move $k0 pointer to kernel stack
 	lui $k0, %hi(supervisor_sp)
-	ori $k0, %lo(supervisor_sp)
+	ori $k0, $k0, %lo(supervisor_sp)
 	# Move $k0 (superveisor_sp)
 	lw $k0, 0($k0)
 1:		
@@ -176,7 +176,7 @@ iv_exception:
 kernel_image_start:
 	/* Load temporary stack */
 	lui $sp, %hi(end_stack)
-	ori $sp, $0, %lo(end_stack)
+	ori $sp, $sp, %lo(end_stack)
 
 	/* Not sure about this, but might be needed for PIC code???? */
 	lui $gp, 0x8000
