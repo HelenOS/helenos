@@ -44,7 +44,7 @@
 .global dummy
 .global fpu_enable
 .global fpu_disable
-.gloabl fpu_init
+.global fpu_init
 
 before_thread_runs_arch:
 userspace:

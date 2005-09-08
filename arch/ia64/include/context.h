@@ -62,45 +62,17 @@ struct context {
 	__u64 bsp;	/* ar_bsp */
 	__u64 ar_rnat;
 	__u64 ar_lc;
-	__u64 ar_ec;
-	__u64 ar_ccv;
-	__u64 ar_csd;
-	__u64 ar_ssd;
 
 	/*
 	 * General registers
 	 */
 	__u64 r1;
-	__u64 r2;
-	__u64 r3;
 	__u64 r4;
 	__u64 r5;
 	__u64 r6;
 	__u64 r7;
-	__u64 r8;
-	__u64 r9;
-	__u64 r10;
-	__u64 r11;
 	__u64 sp;		/* r12 */
 	__u64 r13;
-	__u64 r14;
-	__u64 r15;
-	__u64 r16;
-	__u64 r17;
-	__u64 r18;
-	__u64 r19;
-	__u64 r20;
-	__u64 r21;
-	__u64 r22;
-	__u64 r23;
-	__u64 r24;
-	__u64 r25;
-	__u64 r26;
-	__u64 r27;
-	__u64 r28;
-	__u64 r29;
-	__u64 r30;
-	__u64 r31;
 	
 	/*
 	 * Branch registers
@@ -111,8 +83,6 @@ struct context {
 	__u64 b3;
 	__u64 b4;
 	__u64 b5;
-	__u64 b6;
-	__u64 b7;
 
 	/*
 	 * Predicate registers
