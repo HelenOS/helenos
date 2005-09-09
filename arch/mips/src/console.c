@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,14 +29,39 @@
 #include <putchar.h>
 #include <arch/types.h>
 #include <arch/cp0.h>
+#include <arch/console.h>
 
-#define VIDEORAM	0xB0000000
+static void (*putchar_func)(const char ch) = NULL;
+
+static void cons_putchar(const char ch)
+{
+	*((char *) VIDEORAM) = ch;
+}
+
+
+static void serial_putchar(const char ch)
+{
+	int i;
+
+	if (ch=='\n')
+		putchar('\r');
+
+	/* Wait until transmit buffer empty */
+	while (! ((*SERIAL_LSR) & (1<<TRANSMIT_EMPTY_BIT)))
+		;
+	*(SERIAL_PORT_BASE) = ch;
+}
+
+void console_init(void)
+{
+	/* The LSR on the start usually contains this value */
+	if (*SERIAL_LSR == 0x60)
+		putchar_func = serial_putchar;
+	else
+		putchar_func = cons_putchar;
+}
 
 void putchar(const char ch)
 {
-//	__u32 status = cp0_status_read();
-	
-//	cp0_status_write(cp0_status_read() | cp0_status_erl_error_bit);
-	*((char *) VIDEORAM) = ch;
-//	cp0_status_write(status);
+	putchar_func(ch);
 }

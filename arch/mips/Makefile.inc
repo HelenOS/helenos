@@ -24,7 +24,7 @@ arch_sources= \
 	arch/panic.S \
 	arch/mips.c \
 	arch/dummy.S \
-	arch/putchar.c \
+	arch/console.c \
 	arch/asm.S \
 	arch/exception.c \
 	arch/interrupt.c \

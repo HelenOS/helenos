@@ -57,7 +57,6 @@ pri_t cpu_priority_read(void)
 	return cp0_status_read();
 }
 
-
 void interrupt(void)
 {
 	__u32 cause;
@@ -83,9 +82,8 @@ void interrupt(void)
 					panic("unhandled interrupt %d\n", i);
 					break;
 				case 7: /* Timer Interrupt */
-					cp0_compare_write(cp0_compare_value); /* clear timer interrupt */
+					cp0_compare_write(cp0_count_read() + cp0_compare_value); /* clear timer interrupt */
 					/* start counting over again */
-					cp0_count_write(0);
 					clock();
 					break;
 			}

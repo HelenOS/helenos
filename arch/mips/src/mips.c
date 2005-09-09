@@ -33,6 +33,7 @@
 #include <arch/asm.h>
 #include <mm/vm.h>
 #include <userspace.h>
+#include <arch/console.h>
 
 void arch_pre_mm_init(void)
 {
@@ -50,8 +51,9 @@ void arch_pre_mm_init(void)
 	/*
 	 * Start hardware clock.
 	 */
-	cp0_compare_write(cp0_compare_value);
-	cp0_count_write(0);
+	cp0_compare_write(cp0_compare_value + cp0_count_read());
+
+	console_init();
 }
 
 void arch_post_mm_init(void)

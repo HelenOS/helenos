@@ -34,12 +34,14 @@
 #include <arch/cp0.h>
 
 #include <typedefs.h>
-#include <print.h>
+#include <print.h>	
 
-struct {
+struct data_t {
 	char *vendor;
 	char *model;
-} imp_data[] = {
+};
+
+static struct data_t imp_data[] = {
 	{ "Invalid", "Invalid" },	/* 0x00 */
 	{ "MIPS", "R2000" },		/* 0x01 */
 	{ "MIPS", "R3000" },		/* 0x02 */
@@ -78,6 +80,13 @@ struct {
 	{ "NKK", "R3000" }		/* 0x23 */
 };
 
+static struct data_t imp_data80[] = {
+	{ "MIPS", "4Kc" },  /* 0x80 */
+	{"Invalid","Invalid"}, /* 0x81 */
+	{"Invalid","Invalid"}, /* 0x82 */
+	{"MIPS","4Km & 4Kp"} /* 0x83 */
+};
+
 void cpu_arch_init(void)
 {
 }
@@ -90,6 +99,14 @@ void cpu_identify(void)
 
 void cpu_print_report(cpu_t *m)
 {
+	struct data_t *data;
+
+	if (m->arch.imp_num & 0x80) {
+		data = &imp_data80[m->arch.imp_num & 0x7f];
+	} else
+		data = &imp_data[m->arch.imp_num];
+
 	printf("cpu%d: %s %s (rev=%d.%d, imp=%d)\n",
-		m->id, imp_data[m->arch.imp_num].vendor, imp_data[m->arch.imp_num].model, m->arch.rev_num >> 4, m->arch.rev_num & 0xf, m->arch.imp_num);
+		m->id, data->vendor, data->model, m->arch.rev_num >> 4, 
+	       m->arch.rev_num & 0xf, m->arch.imp_num);
 }

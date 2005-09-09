@@ -6,11 +6,14 @@
  *  
  */
 
+/* OUTPUT_FORMAT(ecoff-littlemips) */
 OUTPUT_FORMAT(binary)
+/* OUTPUT_FORMAT(elf32-little) */
+
 ENTRY(kernel_image_start) 
 
 SECTIONS {
-	.image 0x80000000: AT (0x80000000) {
+	.image 0x80000000: AT (0) {
 		_gp = 0x00000000;
 		
 		ktext_start = .;
@@ -27,6 +30,9 @@ SECTIONS {
 		*(.lit4);
 		*(.sdata);
 		*(.sbss);
+		*(.comment); 
+		*(.pdr); 
+
 		hardcoded_ktext_size = .;
 		LONG(ktext_end - ktext_start);	
 		hardcoded_kdata_size = .;
@@ -42,5 +48,5 @@ SECTIONS {
 
 		kdata_end = .;
 
-	} = 0x00000000
+	} 
 }

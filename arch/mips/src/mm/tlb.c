@@ -37,7 +37,19 @@
 
 void tlb_refill(struct exception_regdump *pstate)
 {
-	panic("tlb_refill exception\n");
+	char *symbol = "";
+	char *sym2 = "";
+
+	if (THREAD) {
+		char *s = get_symtab_entry(pstate->epc);
+		if (s)
+			symbol = s;
+		s = get_symtab_entry(pstate->ra);
+		if (s)
+			sym2 = s;
+	}
+	panic("%X: tlb_refill exception at %X(%s<-%s)\n", cp0_badvaddr_read(),
+	      pstate->epc, symbol,sym2);
 }
 
 void tlb_invalid(struct exception_regdump *pstate)
