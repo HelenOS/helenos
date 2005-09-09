@@ -25,4 +25,3 @@
   - Task changed to clear AM in CR0 so that
     the alignment check is disabled globally
 + make emulated architectures also work on real hardware
-+ bring in support for other architectures (e.g. PowerPC)

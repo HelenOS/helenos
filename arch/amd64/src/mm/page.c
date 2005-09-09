@@ -50,7 +50,6 @@ void page_arch_init(void)
 		bootstrap_dba = dba;
 
 		/*
-		 * Identity mapping for all frames.
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (i = 0; i < frames; i++) {

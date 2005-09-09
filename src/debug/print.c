@@ -58,13 +58,13 @@ void print_double(double num, __u8 modifier, __u16 precision)
 	if (num<0.0) {
 		putchar('-');
 		num=num*-1.0;
-		}
+	}
 
 
 	if (fmath_is_infinity(num)) {
 		print_str("Inf");
 		return;
-		}
+	}
 
 	if ((modifier=='E')||(modifier=='e')) {
 		intval2=fmath_fint(fmath_get_decimal_exponent(num),&intval);
@@ -72,20 +72,23 @@ void print_double(double num, __u8 modifier, __u16 precision)
 		if ((intval2<0.0)) exponent--;
 		num = num / ((fmath_dpow(10.0,exponent)));
 		
-		print_double(num,modifier+1,precision); //modifier+1 = E => F or e => f
+		print_double(num,modifier+1,precision); /* modifier+1 = E => F or e => f */
 		putchar(modifier);
 		if (exponent<0) {
 			putchar('-');
 			exponent*=-1;
-			}
+		}
 		print_number(exponent,10);
 		return;
-		}
+	}
 		
-	//TODO: rounding constant - when we got fraction >= 0.5, we must increment last printed number 
+	/* TODO: rounding constant - when we got fraction >= 0.5, we must increment last printed number */
 
-	/* Here is problem with cumulative error while printing big double values -> we will divide
-	the number with a power of 10, print new number with better method for small numbers and then print decimal point at correct position */
+	/* 
+	 * Here is a problem with cumulative error while printing big double values -> we will divide
+	 * the number with a power of 10, print new number with better method for small numbers and
+	 * then print decimal point at correct position.
+	 */
 	
 	fmath_fint(fmath_get_decimal_exponent(num),&intval);
 	
@@ -135,7 +138,7 @@ void print_double(double num, __u8 modifier, __u16 precision)
 	counter = (counter>=DEFAULT_DOUBLE_BUFFER_SIZE?DEFAULT_DOUBLE_BUFFER_SIZE:counter);
 	while (counter>0) {
 		putchar(buf[--counter]);
-	};
+	}
 	return;
 }
 
@@ -236,6 +239,16 @@ void print_number(const __native num, const unsigned int base)
  *      and printed in standard hexadecimal format (only significant
  *      digits).
  * X    As with 'x', but '0x' is prefixed.
+ * .    The decimal number following period will be treated as precision
+ *      for printing floating point numbers. One of 'e', 'E', 'f' or 'F'
+ *      must follow.
+ * e    The next variant argument is treated as double precision float
+ *      and printed in exponent notation with only one digit before decimal point
+ *      in specified precision. The exponent sign is printed as 'e'.
+ * E    As with 'e', but the exponent sign is printed as 'E'.
+ * f    The next variant argument is treated as double precision float
+ *      and printed in decimal notation in specified precision.
+ * F    As with 'f'.
  *
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
@@ -259,110 +272,105 @@ void printf(const char *fmt, ...)
 	while (c = fmt[i++]) {
 		switch (c) {
 
-			
-			
 		    /* control character */
 		    case '%':
-		    
-				precision = DEFAULT_DOUBLE_PRECISION;
-				if (fmt[i]=='.') {
-					precision=0;
+			precision = DEFAULT_DOUBLE_PRECISION;
+			if (fmt[i]=='.') {
+				precision=0;
+				c=fmt[++i];
+				while((c>='0')&&(c<='9')) {
+					precision = precision*10 + c - '0';
 					c=fmt[++i];
-						while((c>='0')&&(c<='9')) {
-							precision = precision*10 + c - '0';
-							c=fmt[++i];
-							}
-						
 				}
+			}
 		    
-			    switch (c = fmt[i++]) {
+			switch (c = fmt[i++]) {
 
-				/* percentile itself */
-				case '%':
-					break;
+			    /* percentile itself */
+			    case '%':
+				break;
 
-				/*
-				 * String and character conversions.
-				 */
-				case 's':
-					print_str(va_arg(ap, char_ptr));
-					goto loop;
+			    /*
+			     * String and character conversions.
+			     */
+			    case 's':
+				print_str(va_arg(ap, char_ptr));
+				goto loop;
 
-				case 'c':
-					c = (char) va_arg(ap, int);
-					break;
+			    case 'c':
+				c = (char) va_arg(ap, int);
+				break;
 
-				/*
-		                 * Hexadecimal conversions with fixed width.
-		                 */
-				case 'P': 
-					print_str("0x");
-				case 'p':
-		    			print_fixed_hex(va_arg(ap, __native), sizeof(__native));
-					goto loop;
+			    /*
+		             * Hexadecimal conversions with fixed width.
+		             */
+			    case 'P': 
+				print_str("0x");
+			    case 'p':
+	    			print_fixed_hex(va_arg(ap, __native), sizeof(__native));
+				goto loop;
 
-				case 'Q': 
-					print_str("0x");
-				case 'q':
-		    			print_fixed_hex(va_arg(ap, __u64), INT64);
-					goto loop;
+			    case 'Q': 
+				print_str("0x");
+			    case 'q':
+		    		print_fixed_hex(va_arg(ap, __u64), INT64);
+				goto loop;
 
-				case 'L': 
-					print_str("0x");
-				case 'l':
-		    			print_fixed_hex(va_arg(ap, __native), INT32);
-					goto loop;
+			    case 'L': 
+				print_str("0x");
+			    case 'l':
+		    		print_fixed_hex(va_arg(ap, __native), INT32);
+				goto loop;
 
-				case 'W':
-					print_str("0x");
-				case 'w':
-		    			print_fixed_hex(va_arg(ap, __native), INT16);
-					goto loop;
+			    case 'W':
+				print_str("0x");
+			    case 'w':
+		    		print_fixed_hex(va_arg(ap, __native), INT16);
+				goto loop;
 
-				case 'B':
-					print_str("0x");
-				case 'b':
-		    			print_fixed_hex(va_arg(ap, __native), INT8);
-					goto loop;
+			    case 'B':
+				print_str("0x");
+			    case 'b':
+		    		print_fixed_hex(va_arg(ap, __native), INT8);
+				goto loop;
 
-				/*
-		                 * Floating point conversions.
-		                 */
-				
-				case 'F':
-		    			print_double(va_arg(ap, double),'F',precision);
-					goto loop;
+			    /*
+		             * Floating point conversions.
+		             */
+			    case 'F':
+		    		print_double(va_arg(ap, double),'F',precision);
+				goto loop;
 					
-				case 'f':
-		    			print_double(va_arg(ap, double),'f',precision);
-					goto loop;
+			    case 'f':
+		    		print_double(va_arg(ap, double),'f',precision);
+				goto loop;
 				
-				case 'E':
-		    			print_double(va_arg(ap, double),'E',precision);
-					goto loop;
-				case 'e':
-		    			print_double(va_arg(ap, double),'e',precision);
-					goto loop;
+			    case 'E':
+		    		print_double(va_arg(ap, double),'E',precision);
+				goto loop;
+			    case 'e':
+		    		print_double(va_arg(ap, double),'e',precision);
+				goto loop;
 				
-				/*
-		                 * Decimal and hexadecimal conversions.
-		                 */
-				case 'd':
-		    			print_number(va_arg(ap, __native), 10);
-					goto loop;
+			    /*
+		             * Decimal and hexadecimal conversions.
+		             */
+			    case 'd':
+		    		print_number(va_arg(ap, __native), 10);
+				goto loop;
 
-				case 'X':
-			                print_str("0x");
-				case 'x':
-		    			print_number(va_arg(ap, __native), 16);
-					goto loop;
+			    case 'X':
+				print_str("0x");
+			    case 'x':
+		    		print_number(va_arg(ap, __native), 16);
+				goto loop;
 	    
-				/*
-				 * Bad formatting.
-				 */
-				default:
-					goto out;
-			    }
+			    /*
+			     * Bad formatting.
+			     */
+			    default:
+				goto out;
+			}
 
 		    default: putchar(c);
 		}

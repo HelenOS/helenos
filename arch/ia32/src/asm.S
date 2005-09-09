@@ -358,8 +358,6 @@ utext_end:
 utext_size:
 	.long utext_end - utext 
 
-
-#.section K_DATA_START
 .global interrupt_handler_size
 
 interrupt_handler_size: .long (h_end-h_start)/IDT_ITEMS

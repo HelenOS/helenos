@@ -53,11 +53,11 @@ kernel_image_start:
 	xorw %ax, %ax
 	movw %ax, %ds
 	movw %ax, %ss							# initialize stack segment register
-	movl $BOOTSTRAP_OFFSET - 0x400, %esp	# initialize stack pointer
+	movl $BOOTSTRAP_OFFSET - 0x400, %esp				# initialize stack pointer
 	
 	call memmap_arch_init
 	
-	lgdt real_bootstrap_gdtr_boot		# initialize Global Descriptor Table register
+	lgdt real_bootstrap_gdtr_boot					# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $0x1, %eax
@@ -82,10 +82,10 @@ boot_image_start:
 	movw %ax, %es
 	movw %ax, %gs
 	movw %ax, %fs
-	movw %ax, %ds			# kernel data + stack
+	movw %ax, %ds							# kernel data + stack
 	movw %ax, %ss
 	
-	movb $0xd1, %al			# enable A20 using the keyboard controller
+	movb $0xd1, %al							# enable A20 using the keyboard controller
 	outb %al, $0x64
 	movb $0xdf, %al
 	outb %al, $0x60
@@ -96,29 +96,29 @@ boot_image_start:
 	cld
 	rep movsb
 	
-	call map_kernel			# map kernel and turn paging on
+	call map_kernel							# map kernel and turn paging on
 	
-	call main_bsp			# never returns
+	call main_bsp							# never returns
 
 	cli
 	hlt
 	
 multiboot_image_start:
-	movl $BOOTSTRAP_OFFSET - 0x400, %esp			# initialize stack pointer
+	movl $BOOTSTRAP_OFFSET - 0x400, %esp				# initialize stack pointer
 	
-	lgdt protected_bootstrap_gdtr - 0x80000000		# initialize Global Descriptor Table register
+	lgdt protected_bootstrap_gdtr - 0x80000000			# initialize Global Descriptor Table register
 
 	movw $KDATA, %cx
 	movw %cx, %es
 	movw %cx, %gs
 	movw %cx, %fs
-	movw %cx, %ds									# kernel data + stack
+	movw %cx, %ds							# kernel data + stack
 	movw %cx, %ss
 	
 	jmpl $KTEXT, $multiboot_meeting_point + BOOT_OFFSET
 	multiboot_meeting_point:
 	
-	pushl %ebx										# save parameters from GRUB
+	pushl %ebx							# save parameters from GRUB
 	pushl %eax
 	
 	movl $BOOTSTRAP_OFFSET + BOOT_OFFSET, %esi
@@ -127,11 +127,11 @@ multiboot_image_start:
 	cld
 	rep movsb
 	
-	call map_kernel									# map kernel and turn paging on
+	call map_kernel							# map kernel and turn paging on
 	
 	popl %eax
 	popl %ebx
-	cmpl $MULTIBOOT_LOADER_MAGIC, %eax			# compare GRUB signature
+	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
 	je valid_boot
 		
 		xorl %ecx, %ecx							# no memory size or map available
@@ -203,7 +203,7 @@ multiboot_image_start:
 		
 	invalid_boot:
 	
-	call main_bsp - BOOT_OFFSET						# never returns
+	call main_bsp - BOOT_OFFSET					# never returns
 
 	cli
 	hlt
@@ -216,13 +216,13 @@ map_kernel:
 	#
 	movl %cr4, %ecx
 	orl $(1<<4), %ecx
-	movl %ecx, %cr4				# turn PSE on
+	movl %ecx, %cr4							# turn PSE on
 	
 	movl $((1<<7)|(1<<0)), %eax
-	movl %eax, page_directory		# mapping 0x00000000 => 0x00000000
+	movl %eax, page_directory					# mapping 0x00000000 => 0x00000000
 
 	movl $(page_directory+2048), %edx
-	movl %eax, (%edx)			# mapping 0x80000000 => 0x00000000
+	movl %eax, (%edx)						# mapping 0x80000000 => 0x00000000
 
 	leal page_directory, %eax
 	movl %eax, %cr3
