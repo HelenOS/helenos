@@ -29,7 +29,7 @@ SECTIONS {
 	
 	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)): AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) { 
 		ktext_start = .;
-		*(BOOT_DATA)
+		*(BOOT_DATA);
 		*(.text);
 		ktext_end = .;
 		
@@ -40,9 +40,9 @@ SECTIONS {
 		hardcoded_load_address = .;
 		LONG(PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET));
 		hardcoded_ktext_size = .;
-		LONG(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
+		LONG((ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
-		LONG(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
+		LONG((kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start));
 		hardcoded_unmapped_ktext_size = .;
 		LONG(unmapped_ktext_end - unmapped_ktext_start);
 		hardcoded_unmapped_kdata_size = .;

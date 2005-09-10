@@ -1,3 +1,10 @@
 #! /bin/sh
 
-make all ARCH=ia32
+COMPILER=""
+
+if [ $1 == "cross" ];
+then
+	COMPILER="CROSS_COMPILER=yes";
+fi;
+
+make all ARCH=ia32 $COMPILER

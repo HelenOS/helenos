@@ -1,11 +1,24 @@
-CC=gcc
-AS=as
-LD=ld
-OBJDUMP=objdump
-OBJCOPY=objcopy
+ifeq (${CROSS_COMPILER},yes)
+	IA-32_TARGET=i686-pc-linux-gnu
+
+	IA-32_CC_DIR=/usr/local/i686/bin
+	IA-32_BINUTILS_DIR=/usr/local/i686/bin
+
+	CC=$(IA-32_CC_DIR)/$(IA-32_TARGET)-gcc
+	AS=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-as
+	LD=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-ld
+	OBJCOPY=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objcopy
+	OBJDUMP=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objdump
+else
+	CC=gcc
+	AS=as
+	LD=ld
+	OBJCOPY=objcopy
+	OBJDUMP=objdump
+endif
+
 BFD_NAME=elf32-i386
 BFD_ARCH=i386
-
 
 DEFS:=-DARCH=$(ARCH) -DFPU_LAZY
 
@@ -17,11 +30,12 @@ ifdef HT
 DEFS+=-D$(HT)
 endif
 
-CFLAGS=$(DEFS) -nostdlib -fno-builtin -fomit-frame-pointer -O3
-LFLAGS=-M -no-check-sections
+CPPFLAGS=$(DEFS) -nostdinc -I../include
+CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
+LFLAGS=-M
 
 ../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -C -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
 	arch/context.s \

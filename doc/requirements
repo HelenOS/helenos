@@ -6,10 +6,11 @@ ia32 port
 
 	COMPILER REQUIREMENTS
 	o binutils 2.15 and gcc 3.3.5
+	o binutils 2.16 and gcc 4.0.1
 	o older versions may do as well, but are now obsoleted
 
 	SMP COMPATIBILITY
-	o Bochs 2.0.2 - Bochs 2.2
+	o Bochs 2.0.2 - Bochs 2.2.1
 		o 2x-8x 686 CPU
 	o Simics 2.0.28 - Simics 2.2.19
 		o 2x-8x Pentium 4 CPU
@@ -17,16 +18,17 @@ ia32 port
 		o 2x 200Mhz Pentium CPU
     
 	EMULATORS AND VIRTUALIZERS
-	o Bochs 2.0.2 - Bochs 2.2
+	o Bochs 2.0.2 - Bochs 2.2.1
 	o VMware Workstation 4, VMware Workstation 5
+	o Simics 2.2.19
 
 amd64 port
-=========
+==========
 	HARDWARE REQUIREMENTS
 	o no real hardware supported
 
 	SMP COMPATIBILITY
-	o Bochs 2.2
+	o Bochs 2.2.1
 		o 2x-8x AMD64 CPU
 	o Simics Simics 2.2.19
 		o 2x-8x AMD hammer CPU
@@ -36,7 +38,7 @@ amd64 port
 	o Simics Simics 2.2.19
 
 mips32 port
-=========
+===========
 
 	HARDWARE REQUIREMENTS
 	o no real hardware supported
