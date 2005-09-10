@@ -29,6 +29,8 @@
 #ifndef __INTERRUPT_H__
 #define __INTERRUPT_H__
 
+#define TIMER_INTERRUPT   7
+
 extern void interrupt(void);
 
 #endif

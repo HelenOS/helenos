@@ -35,6 +35,7 @@
 #include <userspace.h>
 #include <arch/console.h>
 #include <memstr.h>
+#include <arch/interrupt.h>
 
 /* Size of the code jumping to the exception handler code 
  * - J+NOP 
@@ -47,13 +48,16 @@
 
 #include <arch/debug.h>
 
+#include <print.h>
 void arch_pre_mm_init(void)
 {
+	/* It is not assumed by default */
+	cpu_priority_high();
+
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *)tlb_refill_entry, EXCEPTION_JUMP_SIZE);
 	memcpy(NORM_EXC, (char *)exception_entry, EXCEPTION_JUMP_SIZE);
 	memcpy(CACHE_EXC, (char *)cache_error_entry, EXCEPTION_JUMP_SIZE);
-
 
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the kernel.
@@ -61,10 +65,14 @@ void arch_pre_mm_init(void)
 	 */
 	cp0_status_write(cp0_status_read() & ~(cp0_status_bev_bootstrap_bit|cp0_status_erl_error_bit));
 
+	/* 
+	 * Mask all interrupts 
+	 */
+	cp0_mask_all_int();
 	/*
 	 * Unmask hardware clock interrupt.
 	 */
-	cp0_status_write(cp0_status_read() | (1<<cp0_status_im7_shift));
+	cp0_unmask_int(TIMER_INTERRUPT);
 
 	/*
 	 * Start hardware clock.

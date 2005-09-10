@@ -30,6 +30,19 @@
 #include <arch/types.h>
 #include <arch/cp0.h>
 #include <arch/console.h>
+#include <arch.h>
+
+static void arc_putchar(const char ch)
+{
+	int cnt;
+	pri_t pri;
+
+	/* TODO: Should be spinlock? */
+	pri = cpu_priority_high();
+	bios_write(1, &ch, 1, &cnt);
+	cpu_priority_restore(pri);
+	
+}
 
 static void cons_putchar(const char ch)
 {

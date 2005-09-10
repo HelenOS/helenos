@@ -86,18 +86,18 @@ static void testit2(void *data)
 
 	for (i = 0; i<ATTEMPTS; i++) {
 		__asm__ volatile (
-			"ctc1 %0,$1"
+			"mtc1 %0,$1"
 			:"=r"(arg)
 			);
 
 		scheduler();
 		__asm__ volatile (
-			"cfc1 %0,$1"
+			"mfc1 %0,$1"
 			:"=r"(after_arg)
 			);
 		
 		if(arg != after_arg)
-			panic("Control reg tid%d: arg(%d) != %d\n", 
+			panic("General reg tid%d: arg(%d) != %d\n", 
 			      THREAD->tid, arg, after_arg);
 	}
 

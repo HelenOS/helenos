@@ -77,14 +77,16 @@ static struct data_t imp_data[] = {
 	{ "QED", "R4600" },		/* 0x20 */
 	{ "Sony", "R3000" },		/* 0x21 */
 	{ "Toshiba", "R3000" },		/* 0x22 */
-	{ "NKK", "R3000" }		/* 0x23 */
+	{ "NKK", "R3000" },		/* 0x23 */
+	{ NULL, NULL }
 };
 
 static struct data_t imp_data80[] = {
 	{ "MIPS", "4Kc" },  /* 0x80 */
 	{"Invalid","Invalid"}, /* 0x81 */
 	{"Invalid","Invalid"}, /* 0x82 */
-	{"MIPS","4Km & 4Kp"} /* 0x83 */
+	{"MIPS","4Km & 4Kp"}, /* 0x83 */
+	{ NULL, NULL}
 };
 
 void cpu_arch_init(void)
@@ -100,11 +102,26 @@ void cpu_identify(void)
 void cpu_print_report(cpu_t *m)
 {
 	struct data_t *data;
+	int i;
 
 	if (m->arch.imp_num & 0x80) {
+		/* Count records */
+		for (i=0;imp_data80[i].vendor;i++)
+			;
+		if (m->arch.imp_num & 0x7f >= i) {
+			printf("imp=%d\n",m->arch.imp_num);
+			return;
+		}
 		data = &imp_data80[m->arch.imp_num & 0x7f];
-	} else
+	} else {
+		for (i=0;imp_data[i].vendor;i++)
+			;
+		if (m->arch.imp_num >= i) {
+			printf("imp=%d\n",m->arch.imp_num);
+			return;
+		}
 		data = &imp_data[m->arch.imp_num];
+	}
 
 	printf("cpu%d: %s %s (rev=%d.%d, imp=%d)\n",
 		m->id, data->vendor, data->model, m->arch.rev_num >> 4, 

@@ -13,7 +13,7 @@ CC=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-gcc
 LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 
 ASFLAGS=-mips2 -I../../../include
-LFLAGS=--oformat=binary -mips2 -e start -T _link.ld 
+LFLAGS=--oformat=binary -e start -T _link.ld 
 
 .S.o:
 	$(CC) $(ASFLAGS) -c -o $@ $<

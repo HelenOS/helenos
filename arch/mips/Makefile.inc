@@ -11,39 +11,46 @@ OBJCOPY=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-objcopy
 BFD_NAME=elf32-tradlittlemips
 BFD_ARCH=mips
 
-ASFLAGS=-mips3
-
-DEFS=-DARCH=$(ARCH) -DMACHINE=${MACHINE}
-CFLAGS=$(DEFS) -mno-abicalls -mips3 -G 0 -nostdlib -fno-builtin -O2 
-LFLAGS=-mips2 -M -no-check-sections
+DEFS=-DARCH=$(ARCH) -DMACHINE=${MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS}
+CFLAGS=$(DEFS) -mno-abicalls -G 0 -nostdlib -fno-builtin -O2  -fno-zero-initialized-in-bss 
+LFLAGS=-M -N
 
 # It seems that on big endian either GCC or the simulators
 # have the swl/swr/lwl/lwr instructions wrong. Just for sure,
 # disable it with -mmemcpy (force calling memcpy instead of inlining)
 
 ifeq (${MACHINE},indy)
- CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY
- BFD = elf32-big
+ CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY -march=r4600
+ BFD = ecoff-bigmips
+ KERNEL_LOAD_ADDRESS = 0x88002000
 endif
 
 ifeq (${MACHINE},lgxemul)
- CFLAGS += -DHAVE_FPU -DFPU_LAZY
+ CFLAGS += -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-littlemips
+ KERNEL_LOAD_ADDRESS = 0x80010000
 endif
 
 ifeq (${MACHINE},bgxemul)
- CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY
+ CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-bigmips
+ KERNEL_LOAD_ADDRESS = 0x80010000
 endif
 
+# MSIM needs lwl/swl patch & 4kc instruction patch to work
+# otherwise add -mmemcpy -mips3
 ifeq (${MACHINE},msim)
  BFD = binary
- CFLAGS += -msoft-float
+ CFLAGS += -msoft-float -march=4kc 
+ KERNEL_LOAD_ADDRESS = 0x80010000
 endif
 
+# SIMICS 4kc emulation is broken, although for instructions
+# that do not bother us
 ifeq (${MACHINE},simics)
  BFD = elf32-little
- CFLAGS += -msoft-float
+ CFLAGS += -msoft-float -mips3
+ KERNEL_LOAD_ADDRESS = 0x80010000
 endif
 
 ../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in

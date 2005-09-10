@@ -38,7 +38,9 @@
 #define cp0_status_bev_bootstrap_bit	(1<<22)
 #define cp0_status_fpu_bit              (1<<29)
 
-#define cp0_status_im7_shift		15
+#define cp0_status_im_shift		8
+#define cp0_status_im_mask              0xff00
+
 /*
  * Magic value for use in msim.
  * On AMD Duron 800Mhz, this roughly seems like one us.
@@ -63,6 +65,10 @@ static inline void tlbwr(void)
 	__asm__ volatile ("tlbwr");
 }
 
+#define cp0_mask_all_int() cp0_status_write(cp0_status_read() & ~(cp0_status_im_mask))
+#define cp0_unmask_all_int() cp0_status_write(cp0_status_read() | cp0_status_im_mask)
+#define cp0_mask_int(it) cp0_status_write(cp0_status_read() & ~(1<<(cp0_status_im_shift+(it))))
+#define cp0_unmask_int(it) cp0_status_write(cp0_status_read() | (1<<(cp0_status_im_shift+(it))))
 
 
 extern  __u32 cp0_index_read(void);

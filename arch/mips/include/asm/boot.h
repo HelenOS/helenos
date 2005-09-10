@@ -33,8 +33,4 @@
 /* Temporary stack size for boot process */
 #define TEMP_STACK_SIZE 0x100
 
-/* Kernel startup address */
-#define KERNEL_LOAD_ADDRESS 0x80100000
-
-
 #endif

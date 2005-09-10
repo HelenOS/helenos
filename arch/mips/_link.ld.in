@@ -15,7 +15,7 @@ OUTPUT_ARCH(mips)
 ENTRY(kernel_image_start) 
 
 SECTIONS {
-	. = 0x80100000;
+	. = KERNEL_LOAD_ADDRESS;
 	.text : {
 		ktext_start = .;
 		*(.text);
@@ -29,12 +29,14 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0x80100000);
+		LONG(KERNEL_LOAD_ADDRESS);
+		*(.rodata*);
+		*(.sdata);
+		*(.reginfo);
 	}
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
 	.lit4 : { *(.lit4) }
-	.sdata : { *(.sdata) }
 	.sbss : {
 		*(.sbss);
 		*(.scommon);
@@ -43,15 +45,17 @@ SECTIONS {
 		*(.bss);		/* uninitialized static variables */
 		*(COMMON); 		/* global variables */
 	}
-	mysymtable : {
+
+	mysymtab : {
 		symbol_table = .;
-		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+		*(symtab.*);             /* Symbol table, must be LAST symbol!*/
 	}
 	kdata_end = .;
 
-	.mdebug : { *(.mdebug) }
-	.stab 0 : { *(.stab) }
-	.stabstr 0 : { *(.stabstr) }
-	.comment : { *(.comment) }
-	.note : { *(.note) }
+	/DISCARD/ : {
+	  *(.mdebug*);
+	  *(.pdr);
+	  *(.comment);
+	  *(.note);
+	}
 }

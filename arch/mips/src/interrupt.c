@@ -81,9 +81,9 @@ void interrupt(void)
 				case 6: /* IRQ4 */
 					panic("unhandled interrupt %d\n", i);
 					break;
-				case 7: /* Timer Interrupt */
-					cp0_compare_write(cp0_count_read() + cp0_compare_value); /* clear timer interrupt */
-					/* start counting over again */
+				case TIMER_INTERRUPT:
+					/* clear timer interrupt & set new */
+					cp0_compare_write(cp0_count_read() + cp0_compare_value); 
 					clock();
 					break;
 			}

@@ -28,9 +28,11 @@
 
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
+#include <arch/asm/boot.h>
+#include <arch/mm/page.h>
 
 void frame_arch_init(void)
 {
-	/* Disable first megabyte (God knows why) */
-	frame_region_not_free(0, 1024*1024);
+	/* Disable Everything until load address */
+	frame_region_not_free(0, KA2PA(KERNEL_LOAD_ADDRESS));
 }
