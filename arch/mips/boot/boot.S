@@ -35,7 +35,7 @@
 #include <arch/asm/boot.h>
 
 #ifndef KERNEL_LOAD_ADDRESS
-# define KERNEL_LOAD_ADDRESS 0x80010000
+# define KERNEL_LOAD_ADDRESS 0x80100000
 #endif
 	
 .global start

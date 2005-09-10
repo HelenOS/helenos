@@ -37,6 +37,8 @@
 #include <memstr.h>
 #include <arch/interrupt.h>
 
+#include <print.h>
+
 /* Size of the code jumping to the exception handler code 
  * - J+NOP 
  */
@@ -46,9 +48,6 @@
 #define NORM_EXC ((char *) 0x80000180)
 #define CACHE_EXC ((char *) 0x80000100)
 
-#include <arch/debug.h>
-
-#include <print.h>
 void arch_pre_mm_init(void)
 {
 	/* It is not assumed by default */

@@ -28,13 +28,13 @@ endif
 ifeq (${MACHINE},lgxemul)
  CFLAGS += -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-littlemips
- KERNEL_LOAD_ADDRESS = 0x80010000
+ KERNEL_LOAD_ADDRESS = 0x80100000
 endif
 
 ifeq (${MACHINE},bgxemul)
  CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-bigmips
- KERNEL_LOAD_ADDRESS = 0x80010000
+ KERNEL_LOAD_ADDRESS = 0x80100000
 endif
 
 # MSIM needs lwl/swl patch & 4kc instruction patch to work
@@ -42,7 +42,7 @@ endif
 ifeq (${MACHINE},msim)
  BFD = binary
  CFLAGS += -msoft-float -march=4kc 
- KERNEL_LOAD_ADDRESS = 0x80010000
+ KERNEL_LOAD_ADDRESS = 0x80100000
 endif
 
 # SIMICS 4kc emulation is broken, although for instructions
@@ -50,7 +50,7 @@ endif
 ifeq (${MACHINE},simics)
  BFD = elf32-little
  CFLAGS += -msoft-float -mips3
- KERNEL_LOAD_ADDRESS = 0x80010000
+ KERNEL_LOAD_ADDRESS = 0x80100000
 endif
 
 ../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in

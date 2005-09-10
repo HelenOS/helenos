@@ -36,6 +36,7 @@
 
 void exception(struct exception_regdump *pstate)
 {
+	int cause;
 	int excno;
 	__u32 epc_shift = 0;
 
@@ -59,8 +60,10 @@ void exception(struct exception_regdump *pstate)
 	if (THREAD && !THREAD->pstate)
 		THREAD->pstate = pstate;
 
+	cause = cp0_cause_read();
+	excno = cp0_cause_excno(cause);
 	/* decode exception number and process the exception */
-	switch (excno = (cp0_cause_read() >> 2) & 0x1f) {
+	switch (excno) {
 		case EXC_Int:
 			interrupt();
 			break;
@@ -70,10 +73,11 @@ void exception(struct exception_regdump *pstate)
 			break;
  	 	case EXC_CpU:
 #ifdef FPU_LAZY     
-			scheduler_fpu_lazy_request();
-#else
-			panic("unhandled Coprocessor Unusable Exception\n");
+			if (cp0_cause_coperr(cause) == fpu_cop_id)
+				scheduler_fpu_lazy_request();
+			else
 #endif
+				panic("unhandled Coprocessor Unusable Exception\n");
 			break;
 		case EXC_Mod:
 			panic("unhandled TLB Modification Exception\n");
