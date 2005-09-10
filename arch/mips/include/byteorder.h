@@ -30,6 +30,16 @@
 #define __mips_BYTEORDER_H__
 
 /* MIPS is little-endian */
-#define native_le2host(n)		n
+#ifdef BIG_ENDIAN
+static inline __native native_le2host(__native n)
+{
+	return ((n & 0xff) << 24) |
+		((n & 0xff00) << 8) |
+		((n & 0xff0000) >> 8) |
+		((n & 0xff000000) >> 24);
+}
+#else
+#  define native_le2host(n)		n
+#endif
 
 #endif

@@ -45,7 +45,7 @@ void fpu_context_save(fpu_context_t *fctx)
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
-	/* TODO: We need malloc that allocates on 16-byte boundary !! */
+	/* Align on 16-byte boundary */
 	if (((__u64)fctx) & 0xf)
 		fctx = (fpu_context_t *)((((__u64)fctx) | 0xf) + 1);
 	__asm__ volatile (
@@ -56,6 +56,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_init(void)
 {
+	/* TODO: Zero all SSE, MMX etc. registers */
 	__asm__ volatile (
 		"fninit;"
 	);

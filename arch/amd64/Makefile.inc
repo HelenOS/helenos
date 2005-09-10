@@ -21,12 +21,11 @@ DEFS+=-D$(HT)
 endif
 
 
-CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fno-unwind-tables -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
+CFLAGS=$(DEFS) -nostdlib -fno-builtin -fno-unwind-tables -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
 LFLAGS=-M 
 
 ../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(CFLAGS) -C -E -x c $< | grep -v "^\#" > $@
 
 arch_sources = arch/dummy.s \
 	arch/fpu_context.c \

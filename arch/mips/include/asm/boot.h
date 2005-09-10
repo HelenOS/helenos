@@ -34,7 +34,7 @@
 #define TEMP_STACK_SIZE 0x100
 
 /* Kernel startup address */
-#define KERNEL_STARTUP_ADDRESS 0x80000300
+#define KERNEL_LOAD_ADDRESS 0x80100000
 
 
 #endif

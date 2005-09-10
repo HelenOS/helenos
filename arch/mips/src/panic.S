@@ -32,11 +32,12 @@
 .set noreorder
 .set nomacro
 
-.global panic_printf
+#include <arch/asm/regname.h>
 	
-panic_printf:
-	jal printf
-	nop
-	j cpu_halt
-	nop
+.global panic_printf
 
+/* From printf return directly to halt() */	
+panic_printf:
+	lui $ra, %hi(halt)
+	j printf
+	ori $ra, %lo(halt)

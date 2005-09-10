@@ -5,48 +5,53 @@
  *  kernel data
  *  
  */
+#undef mips
+#define mips mips
 
-/* OUTPUT_FORMAT(ecoff-littlemips) */
-OUTPUT_FORMAT(binary)
-/* OUTPUT_FORMAT(elf32-little) */
+OUTPUT_FORMAT(BFD)
+
+OUTPUT_ARCH(mips)
 
 ENTRY(kernel_image_start) 
 
 SECTIONS {
-	.image 0x80000000: AT (0) {
-		_gp = 0x00000000;
-		
+	. = 0x80100000;
+	.text : {
 		ktext_start = .;
 		*(.text);
 		ktext_end = .;
-
+	}
+	.data : {
 		kdata_start = .;
-		*(.reginfo);
-		*(.rodata);
-		*(.rodata.*);
-		*(.rdata);
 		*(.data);		/* initialized data */
-		*(.lit8);
-		*(.lit4);
-		*(.sdata);
-		*(.sbss);
-		*(.comment); 
-		*(.pdr); 
-
 		hardcoded_ktext_size = .;
 		LONG(ktext_end - ktext_start);	
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0x80000000);
-		*(.bss);		/* uninitialized static variables */	
+		LONG(0x80100000);
+	}
+	_gp = . + 0x8000;
+	.lit8 : { *(.lit8) }
+	.lit4 : { *(.lit4) }
+	.sdata : { *(.sdata) }
+	.sbss : {
+		*(.sbss);
 		*(.scommon);
+	}
+	.bss : {
+		*(.bss);		/* uninitialized static variables */
 		*(COMMON); 		/* global variables */
-
+	}
+	mysymtable : {
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+	}
+	kdata_end = .;
 
-		kdata_end = .;
-
-	} 
+	.mdebug : { *(.mdebug) }
+	.stab 0 : { *(.stab) }
+	.stabstr 0 : { *(.stabstr) }
+	.comment : { *(.comment) }
+	.note : { *(.note) }
 }

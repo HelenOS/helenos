@@ -33,7 +33,12 @@
 #include <typedefs.h>
 #include <config.h>
 
-#define cpu_sleep()	;
+
+static inline void cpu_sleep(void)
+{
+	/* Most of the simulators do not support */
+/*	__asm__ volatile ("wait"); */
+}
 
 /** Return base address of current stack
  * 

@@ -36,8 +36,8 @@
 	
 .global start
 start:
-	lui     $ra, KERNEL_STARTUP_ADDRESS >> 16 
-	ori     $ra, KERNEL_STARTUP_ADDRESS & 0xffff
+	lui     $ra, KERNEL_LOAD_ADDRESS >> 16 
+	ori     $ra, KERNEL_LOAD_ADDRESS & 0xffff
 
 	j $ra
 	nop

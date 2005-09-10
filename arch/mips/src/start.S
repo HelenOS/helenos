@@ -153,26 +153,6 @@
 .endm
 		
 .org 0x0
-tlb_refill_entry:
-	j tlb_refill_handler
-	nop
-
-.org 0x100
-cache_error_entry:
-	j cache_error_handler
-	nop
-
-.org 0x180
-norm_exception:	
-	j exception_handler
-	nop	
-
-.org 0x200
-iv_exception:	
-	j exception_handler
-	nop	
-
-.org KA2PA(KERNEL_STARTUP_ADDRESS)
 kernel_image_start:
 	/* Load temporary stack */
 	lui $sp, %hi(end_stack)
@@ -186,10 +166,23 @@ kernel_image_start:
 
 
 	.space TEMP_STACK_SIZE
-end_stack:	
+end_stack:
+
+tlb_refill_entry:
+	j tlb_refill_handler
+	nop
+
+cache_error_entry:
+	j cache_error_handler
+	nop
+
+exception_entry:
+	j exception_handler
+	nop	
+
+	
 	
 exception_handler:
-exception_entry:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
 	REGISTERS_STORE $k0

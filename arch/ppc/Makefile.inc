@@ -14,8 +14,7 @@ BFD_ARCH=powerpc
 ASFLAGS=
 
 DEFS=-DARCH=$(ARCH)
-CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O2
+CFLAGS=$(DEFS) -nostdlib -fno-builtin -O2
 LFLAGS=-M -no-check-sections -N
 
 arch_sources= \

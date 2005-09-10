@@ -34,8 +34,9 @@
 #define cp0_status_ie_enabled_bit	(1<<0)
 #define cp0_status_exl_exception_bit	(1<<1)
 #define cp0_status_erl_error_bit	(1<<2)
-#define cp0_status_bev_bootstrap_bit	(1<<22)
 #define cp0_status_um_bit	        (1<<4)
+#define cp0_status_bev_bootstrap_bit	(1<<22)
+#define cp0_status_fpu_bit              (1<<29)
 
 #define cp0_status_im7_shift		15
 /*
@@ -43,6 +44,26 @@
  * On AMD Duron 800Mhz, this roughly seems like one us.
  */
 #define cp0_compare_value 		10000
+
+static inline void tlbp(void)
+{
+	__asm__ volatile ("tlbp");
+}
+
+static inline void tlbr(void)
+{
+	__asm__ volatile ("tlbr");
+}
+static inline void tlbwi(void)
+{
+	__asm__ volatile ("tlbwi");
+}
+static inline void tlbwr(void)
+{
+	__asm__ volatile ("tlbwr");
+}
+
+
 
 extern  __u32 cp0_index_read(void);
 extern void cp0_idnex_write(__u32 val);
@@ -85,10 +106,5 @@ extern __u32 cp0_epc_read(void);
 extern void cp0_epc_write(__u32 val);
 
 extern __u32 cp0_prid_read(void);
-
-extern void tlbp(void);
-extern void tlbr(void);
-extern void tlbwi(void);
-extern void tlbwr(void);
 
 #endif

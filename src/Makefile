@@ -32,6 +32,9 @@ sources=cpu/cpu.c \
 	smp/ipi.c \
 	fb/font-8x16.c
 
+# CFLAGS options same for all targets
+CFLAGS+=-nostdinc -I../include -Werror-implicit-function-declaration -Wmissing-prototypes -Werror
+
 ifdef DEBUG_SPINLOCK
 CFLAGS+=-D$(DEBUG_SPINLOCK)
 endif
@@ -59,7 +62,7 @@ config:
 	ln -s ../arch/$(ARCH)/include ../include/arch
 
 depend:
-	$(CC) $(CPPFLAGS) -M $(arch_sources) $(sources) >Makefile.depend
+	$(CC) $(CFLAGS) -M $(arch_sources) $(sources) >Makefile.depend
 
 build: kernel.bin boot
 

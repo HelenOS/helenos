@@ -32,10 +32,8 @@
 #include <arch/types.h>
 
 struct fpu_context {
-/* TODO: define MIPS FPU context */
+	__native dregs[32];
+	__native cregs[32];
 };
-
-
-
 
 #endif

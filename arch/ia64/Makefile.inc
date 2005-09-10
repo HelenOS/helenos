@@ -15,8 +15,7 @@ BFD_ARCH=ia64-elf64
 ASFLAGS=-mconstant-gp
 
 DEFS=-DARCH=$(ARCH)
-CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -mconstant-gp -nostdlib -fno-builtin -fno-unwind-tables -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
+CFLAGS=$(DEFS) -mconstant-gp -nostdlib -fno-builtin -fno-unwind-tables -O3
 LFLAGS=-EL -M
 
 

@@ -31,8 +31,6 @@
 #include <arch/cp0.h>
 #include <arch/console.h>
 
-static void (*putchar_func)(const char ch) = NULL;
-
 static void cons_putchar(const char ch)
 {
 	*((char *) VIDEORAM) = ch;
@@ -51,6 +49,8 @@ static void serial_putchar(const char ch)
 		;
 	*(SERIAL_PORT_BASE) = ch;
 }
+
+static void (*putchar_func)(const char ch) = cons_putchar;
 
 void console_init(void)
 {

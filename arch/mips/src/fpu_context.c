@@ -28,13 +28,28 @@
  */
 
 #include <fpu_context.h>
+#include <arch.h>
+#include <arch/cp0.h>
 
-void fpu_context_save(fpu_context_t *fctx)
-{
+void fpu_disable(void)
+{	
+#ifdef HAVE_FPU
+	cp0_status_write(cp0_status_read() & ~cp0_status_fpu_bit);
+	if (THREAD && THREAD->pstate)
+		THREAD->pstate->status &= ~cp0_status_fpu_bit;
+#endif
 }
 
-
-void fpu_context_restore(fpu_context_t *fctx)
+void fpu_enable(void)
 {
+#ifdef HAVE_FPU
+	cp0_status_write(cp0_status_read() | cp0_status_fpu_bit);
+	if (THREAD && THREAD->pstate)
+		THREAD->pstate->status |= cp0_status_fpu_bit;
+#endif
 }
 
+void fpu_init(void)
+{
+	/* TODO: Zero all registers */
+}

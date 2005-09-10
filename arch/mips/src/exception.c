@@ -51,6 +51,9 @@ void exception(struct exception_regdump *pstate)
 	cpu_priority_high();
 	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
 						cp0_status_um_bit));
+	/* Save pstate so that the threads can access it */
+	if (THREAD)
+		THREAD->pstate = pstate;
 
 	/* decode exception number and process the exception */
 	switch (excno = (cp0_cause_read() >> 2) & 0x1f) {
@@ -85,7 +88,11 @@ void exception(struct exception_regdump *pstate)
 			panic("unhandled Reserved Instruction Exception\n");
 			break;
  	 	case EXC_CpU:
+#ifdef FPU_LAZY     
+			scheduler_fpu_lazy_request();
+#else
 			panic("unhandled Coprocessor Unusable Exception\n");
+#endif
 			break;
  	 	case EXC_Ov:
 			panic("unhandled Arithmetic Overflow Exception\n");
@@ -110,4 +117,8 @@ void exception(struct exception_regdump *pstate)
 	}
 	
 	pstate->epc += epc_shift;
+	/* Probable not needed, but just for sure that nobody 
+	 * will continue accessing it */
+	if (THREAD)
+		THREAD->pstate = NULL;
 }

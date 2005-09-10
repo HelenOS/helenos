@@ -13,10 +13,41 @@ BFD_ARCH=mips
 
 ASFLAGS=-mips3
 
-DEFS=-DARCH=$(ARCH)
-CPPFLAGS=$(DEFS) -mno-abicalls -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -mips2 -G 0 -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O2 -msoft-float
+DEFS=-DARCH=$(ARCH) -DMACHINE=${MACHINE}
+CFLAGS=$(DEFS) -mno-abicalls -mips3 -G 0 -nostdlib -fno-builtin -O2 
 LFLAGS=-mips2 -M -no-check-sections
+
+# It seems that on big endian either GCC or the simulators
+# have the swl/swr/lwl/lwr instructions wrong. Just for sure,
+# disable it with -mmemcpy (force calling memcpy instead of inlining)
+
+ifeq (${MACHINE},indy)
+ CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY
+ BFD = elf32-big
+endif
+
+ifeq (${MACHINE},lgxemul)
+ CFLAGS += -DHAVE_FPU -DFPU_LAZY
+ BFD = ecoff-littlemips
+endif
+
+ifeq (${MACHINE},bgxemul)
+ CFLAGS += -EB -mmemcpy -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY
+ BFD = ecoff-bigmips
+endif
+
+ifeq (${MACHINE},msim)
+ BFD = binary
+ CFLAGS += -msoft-float
+endif
+
+ifeq (${MACHINE},simics)
+ BFD = elf32-little
+ CFLAGS += -msoft-float
+endif
+
+../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
+	$(CC) $(CFLAGS) -C -DBFD=${BFD} -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
 	arch/start.S \

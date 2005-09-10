@@ -32,15 +32,9 @@
 .global calibrate_delay_loop
 .global asm_delay_loop
 .global dummy
-.global fpu_enable
-.global fpu_disable
-.global fpu_init
 	
 calibrate_delay_loop:
 asm_delay_loop:
-fpu_enable:
-fpu_disable:
-fpu_init:	
 
 dummy:
 	j $31

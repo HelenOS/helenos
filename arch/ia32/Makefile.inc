@@ -17,12 +17,11 @@ ifdef HT
 DEFS+=-D$(HT)
 endif
 
-CPPFLAGS=$(DEFS) -nostdinc -I../include
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
+CFLAGS=$(DEFS) -nostdlib -fno-builtin -fomit-frame-pointer -O3
 LFLAGS=-M -no-check-sections
 
 ../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(CFLAGS) -C -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
 	arch/context.s \

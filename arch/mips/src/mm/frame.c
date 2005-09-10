@@ -31,4 +31,6 @@
 
 void frame_arch_init(void)
 {
+	/* Disable first megabyte (God knows why) */
+	frame_region_not_free(0, 1024*1024);
 }

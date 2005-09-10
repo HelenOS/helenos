@@ -29,6 +29,8 @@
 #ifndef __mips_THREAD_H__
 #define __mips_THREAD_H__
 
-#define ARCH_THREAD_DATA
+#include <arch/exception.h>
+
+#define ARCH_THREAD_DATA   struct exception_regdump *pstate
 
 #endif

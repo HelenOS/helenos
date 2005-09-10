@@ -34,9 +34,27 @@
 #include <mm/vm.h>
 #include <userspace.h>
 #include <arch/console.h>
+#include <memstr.h>
+
+/* Size of the code jumping to the exception handler code 
+ * - J+NOP 
+ */
+#define EXCEPTION_JUMP_SIZE    8
+
+#define TLB_EXC ((char *) 0x80000000)
+#define NORM_EXC ((char *) 0x80000180)
+#define CACHE_EXC ((char *) 0x80000100)
+
+#include <arch/debug.h>
 
 void arch_pre_mm_init(void)
 {
+	/* Copy the exception vectors to the right places */
+	memcpy(TLB_EXC, (char *)tlb_refill_entry, EXCEPTION_JUMP_SIZE);
+	memcpy(NORM_EXC, (char *)exception_entry, EXCEPTION_JUMP_SIZE);
+	memcpy(CACHE_EXC, (char *)cache_error_entry, EXCEPTION_JUMP_SIZE);
+
+
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the kernel.
 	 * Clear the error level.
