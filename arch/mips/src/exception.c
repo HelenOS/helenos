@@ -51,8 +51,12 @@ void exception(struct exception_regdump *pstate)
 	cpu_priority_high();
 	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
 						cp0_status_um_bit));
+
 	/* Save pstate so that the threads can access it */
-	if (THREAD)
+	/* If THREAD->pstate is set, this is nested exception,
+	 * do not rewrite it
+	 */
+	if (THREAD && !THREAD->pstate)
 		THREAD->pstate = pstate;
 
 	/* decode exception number and process the exception */
@@ -63,6 +67,13 @@ void exception(struct exception_regdump *pstate)
 		case EXC_TLBL:
 		case EXC_TLBS:
 			tlb_invalid(pstate);
+			break;
+ 	 	case EXC_CpU:
+#ifdef FPU_LAZY     
+			scheduler_fpu_lazy_request();
+#else
+			panic("unhandled Coprocessor Unusable Exception\n");
+#endif
 			break;
 		case EXC_Mod:
 			panic("unhandled TLB Modification Exception\n");
@@ -87,13 +98,6 @@ void exception(struct exception_regdump *pstate)
 		case EXC_RI:
 			panic("unhandled Reserved Instruction Exception\n");
 			break;
- 	 	case EXC_CpU:
-#ifdef FPU_LAZY     
-			scheduler_fpu_lazy_request();
-#else
-			panic("unhandled Coprocessor Unusable Exception\n");
-#endif
-			break;
  	 	case EXC_Ov:
 			panic("unhandled Arithmetic Overflow Exception\n");
 			break;
@@ -117,8 +121,12 @@ void exception(struct exception_regdump *pstate)
 	}
 	
 	pstate->epc += epc_shift;
-	/* Probable not needed, but just for sure that nobody 
-	 * will continue accessing it */
+	/* Set to NULL, so that we can still support nested
+	 * exceptions
+	 * TODO: We should probably set EXL bit before this command,
+	 * nesting. On the other hand, if some exception occurs between
+	 * here and ERET, it won't set anything on the pstate anyway.
+	 */
 	if (THREAD)
 		THREAD->pstate = NULL;
 }
