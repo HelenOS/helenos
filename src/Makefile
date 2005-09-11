@@ -17,6 +17,7 @@ sources=cpu/cpu.c \
 	lib/list.c \
 	lib/memstr.c \
 	lib/the.c \
+	lib/sort.c \
 	debug/print.c \
 	debug/symtab.c \
 	time/clock.c \

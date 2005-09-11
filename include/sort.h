@@ -26,54 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <func.h>
-#include <print.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
+#ifndef __FUNC_H__
+#define __FUNC_H__
 
-__u32	haltstate = 0; /**< Halt flag */
+#include <arch/types.h>
 
-
-/** Halt wrapper
- *
- * Set halt flag and halt the cpu.
- *
+/* 
+ * sorting routines
  */
-void halt(void)
-{
-	haltstate = 1;
-	cpu_priority_high();
-	if (CPU)
-		printf("cpu%d: halted\n", CPU->id);
-	else
-		printf("cpu: halted\n");
-	cpu_halt();
-}
+extern void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b));
+extern void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b));
 
-
-/** Compare two NULL terminated strings
- *
- * Do a char-by-char comparment of two NULL terminated strings.
- * The strings are considered equal iff they have the same
- * length and consist of the same characters.
- *
- * @param src First string to compare.
- * @param dst Second string to compare.
- *
- * @return 0 if the strings are equal, 1 otherwise.
- *
+/*
+ * default sorting comparators
  */
-int strcmp(const char *src, const char *dst)
-{
-	int i;
-	
-	i = 0;
-	while (src[i] == dst[i]) {
-		if (src[i] == '\0')
-			return 0;
-		i++;
-	}
-	return 1;
-}
+extern int int_cmp(void * a, void * b);
+extern int __u32_cmp(void * a, void * b);
+extern int __u16_cmp(void * a, void * b);
+extern int __u8_cmp(void * a, void * b);
 
+#endif

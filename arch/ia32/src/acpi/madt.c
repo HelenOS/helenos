@@ -38,6 +38,7 @@
 #include <print.h>
 #include <mm/heap.h>
 #include <memstr.h>
+#include <sort.h>
 
 struct acpi_madt *acpi_madt = NULL;
 
@@ -45,6 +46,7 @@ struct acpi_madt *acpi_madt = NULL;
 
 static void madt_l_apic_entry(struct madt_l_apic *la, __u32 index);
 static void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index);
+static int madt_cmp(void * a, void * b);
 
 struct madt_l_apic *madt_l_apic_entries = NULL;
 struct madt_io_apic *madt_io_apic_entries = NULL;
@@ -108,8 +110,18 @@ static __u8 madt_cpu_apic_id(index_t i)
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
 }
 
+int madt_cmp(void * a, void * b) 
+{
+    return 
+	(((struct madt_apic_header *) a)->type > ((struct madt_apic_header *) b)->type) ?
+	1 : 
+	((((struct madt_apic_header *) a)->type < ((struct madt_apic_header *) b)->type) ? -1 : 0);
+}
+	
 void acpi_madt_parse(void)
 {
+
+
 	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *h;
 	
@@ -131,22 +143,8 @@ void acpi_madt_parse(void)
 	}
 
 
-	/* Bublesort madt index. Quicksort later. */
-	bool done = false;
-
-	while (!done) {
-		done = true;
-		for (index = 0; index < madt_entries_index_cnt - 1; index++) {
-			if (madt_entries_index[index]->type > madt_entries_index[index + 1]->type) {
-				h = madt_entries_index[index];
-				madt_entries_index[index] = madt_entries_index[index + 1];
-				madt_entries_index[index + 1] = h;
-				done = false;
-			}
-	    	}
-	
-	}
-		
+	/* Quicksort MADT index structure */
+	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(__address), &madt_cmp);
 
 	/* Parse MADT entries */	
 	for (index = 0; index < madt_entries_index_cnt - 1; index++) {
