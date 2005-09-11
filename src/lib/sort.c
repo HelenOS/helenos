@@ -29,36 +29,25 @@
 #include <mm/heap.h>
 #include <memstr.h>
 #include <sort.h>
+#include <panic.h>
 
+static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp);
 
+/*
+ * Wrapper method for quicksort algorithm to decrease amount of allocations
+ */
 void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b)) {
-	if (n > 4) {
-		int i = 0, j = n - 1;
-		void * tmp = (void *) malloc(e_size);
-		void * pivot = (void *) malloc(e_size);
-
-		memcpy(pivot, data, e_size);
-
-		while (1) {
-			while ((cmp(data + i * e_size, pivot) < 0) && i < n) i++;
-			while ((cmp(data + j * e_size, pivot) >=0) && j > 0) j--;
-			if (i<j) {
-				memcpy(tmp, data + i * e_size, e_size);
-				memcpy(data + i * e_size, data + j * e_size, e_size);
-				memcpy(data + j * e_size, tmp, e_size);
-			} else {
-				break;
-			}
-		}
-
-		free(tmp);
-		free(pivot);
-
-		qsort(data, j + 1, e_size, cmp);
-		qsort(data + (j + 1) * e_size, n - j - 1, e_size, cmp);
-	} else {
-		bubblesort(data, n, e_size, cmp);
+	void * tmp = (void *) malloc(e_size);
+	void * pivot = (void *) malloc(e_size);
+	
+	if (!tmp || !pivot) {
+		panic("qsort(): Cannot allocate memory\n");
 	}
+
+	_qsort(data, n, e_size, cmp, pivot, tmp);
+	
+	free(tmp);
+	free(pivot);
 }
 
 
@@ -81,6 +70,33 @@ void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, vo
 	
 	free(slot);
 }
+
+static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp) {
+	if (n > 4) {
+		int i = 0, j = n - 1;
+
+		memcpy(pivot, data, e_size);
+
+		while (1) {
+			while ((cmp(data + i * e_size, pivot) < 0) && i < n) i++;
+			while ((cmp(data + j * e_size, pivot) >=0) && j > 0) j--;
+			if (i<j) {
+				memcpy(tmp, data + i * e_size, e_size);
+				memcpy(data + i * e_size, data + j * e_size, e_size);
+				memcpy(data + j * e_size, tmp, e_size);
+			} else {
+				break;
+			}
+		}
+
+		qsort(data, j + 1, e_size, cmp);
+		qsort(data + (j + 1) * e_size, n - j - 1, e_size, cmp);
+	} else {
+		bubblesort(data, n, e_size, cmp);
+	}
+}
+
+
 
 /*
  * Comparator returns 1 if a > b, 0 if a == b, -1 if a < b
