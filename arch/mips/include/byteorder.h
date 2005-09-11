@@ -29,29 +29,23 @@
 #ifndef __mips_BYTEORDER_H__
 #define __mips_BYTEORDER_H__
 
+#include <arch/types.h>
+#include <byteorder.h>
+
 #ifdef BIG_ENDIAN
-static inline __u64 u64_le2host(__u64 n)
+static inline __u64 __u64_le2host(__u64 n)
 {
-	return ((n & 0xff) << 56) |
-		((n & 0xff00) << 40) |
-		((n & 0xff0000) << 24) |
-		((n & 0xff000000LL) << 8) |
-		((n & 0xff00000000LL) >>8) |
-		((n & 0xff0000000000LL) >> 24) |
-		((n & 0xff000000000000LL) >> 40) |
-		((n & 0xff00000000000000LL) >> 56);
+	return __u64_byteorder_swap(n);
 }
 
-static inline __native native_le2host(__native n)
+static inline __native __native_le2host(__native n)
 {
-	return ((n & 0xff) << 24) |
-		((n & 0xff00) << 8) |
-		((n & 0xff0000) >> 8) |
-		((n & 0xff000000) >> 24);
+	return __u32_byteroder_swap(n);
 }
+
 #else
-#  define native_le2host(n)		(n)
-#  define u64_le2host(n)		(n)
+#  define __native_le2host(n)		(n)
+#  define __u64_le2host(n)		(n)
 #endif
 
 #endif

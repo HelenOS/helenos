@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __BYTEORDER_H__
+#define __BYTEORDER_H__
 
-#include <symtab.h>
-#include <typedefs.h>
-#include <arch/byteorder.h>
-
-/** Return entry that seems most likely to correspond to the @addr
- *
- */
-char * get_symtab_entry(__native addr)
+static inline __u64 __u64_byteorder_swap(__u64 n)
 {
-	count_t i;
-
-	for (i=1;symbol_table[i].address_le;++i) {
-		if (addr < __u64_le2host(symbol_table[i].address_le))
-			break;
-	}
-	if (addr >= __u64_le2host(symbol_table[i-1].address_le))
-		return symbol_table[i-1].symbol_name;
-	return NULL;
+	return ((n & 0xff) << 56) |
+		((n & 0xff00) << 40) |
+		((n & 0xff0000) << 24) |
+		((n & 0xff000000LL) << 8) |
+		((n & 0xff00000000LL) >>8) |
+		((n & 0xff0000000000LL) >> 24) |
+		((n & 0xff000000000000LL) >> 40) |
+		((n & 0xff00000000000000LL) >> 56);
 }
+
+static inline __u32 __u32_byteorder_swap(__u32 n)
+{
+	return ((n & 0xff) << 24) |
+		((n & 0xff00) << 8) |
+		((n & 0xff0000) >> 8) |
+		((n & 0xff000000) >> 24);
+}
+
+#endif
