@@ -41,7 +41,7 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
 	void * pivot = (void *) malloc(e_size);
 	
 	if (!tmp || !pivot) {
-		panic("qsort(): Cannot allocate memory\n");
+		panic("Cannot allocate memory\n");
 	}
 
 	_qsort(data, n, e_size, cmp, pivot, tmp);
