@@ -36,6 +36,7 @@
 #include <arch/console.h>
 #include <memstr.h>
 #include <arch/interrupt.h>
+#include <arch/drivers/arc.h>
 
 #include <print.h>
 
@@ -52,6 +53,8 @@ void arch_pre_mm_init(void)
 {
 	/* It is not assumed by default */
 	cpu_priority_high();
+
+	init_arc();
 
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *)tlb_refill_entry, EXCEPTION_JUMP_SIZE);
@@ -79,6 +82,7 @@ void arch_pre_mm_init(void)
 	cp0_compare_write(cp0_compare_value + cp0_count_read());
 
 	console_init();
+	arc_print_memory_map();
 }
 
 void arch_post_mm_init(void)
@@ -110,5 +114,3 @@ void before_thread_runs_arch(void)
 {
 	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 }
-
-

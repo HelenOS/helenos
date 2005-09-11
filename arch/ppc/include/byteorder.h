@@ -40,6 +40,17 @@
  * @return Result in host endianess.
  *
  */
+static inline __u64 u64_le2host(__u64 n)
+{
+	return ((n & 0xff) << 56) |
+		((n & 0xff00) << 40) |
+		((n & 0xff0000) << 24) |
+		((n & 0xff000000LL) << 8) |
+		((n & 0xff00000000LL) >>8) |
+		((n & 0xff0000000000LL) >> 24) |
+		((n & 0xff000000000000LL) >> 40) |
+		((n & 0xff00000000000000LL) >> 56);
+}
 static inline __native native_le2host(__native n)
 {
 	__address v;

@@ -58,11 +58,6 @@ memcpy:
 # THIS IS USERSPACE CODE
 .global utext
 utext:
-	xor %ax,%ax;
-	mov %ax,%ds;
-	mov %ax,%es;
-	mov %ax,%fs;
-	mov %ax,%gs;
 0:
 	int $48
 	jmp 0b
@@ -177,11 +172,10 @@ read_efer_flag:
 	
 	push_all_gpr
 
-	# trap_dispatcher(i, stack)
 	movq $(\i),%rdi   # %rdi - first parameter
 	movq %rbp, %rsi
 	addq $8, %rsi     # %rsi - second parameter - original stack
-	call trap_dispatcher
+	call trap_dispatcher 	# trap_dispatcher(i, stack)
 
 # Test if this is interrupt with error word or not
 	mov $\i,%cl;
@@ -216,9 +210,6 @@ read_efer_flag:
 interrupt_handlers:
 h_start:
 	handler 0 IDT_ITEMS
-#	handler 64 128	
-#	handler 128 192
-#	handler 192 256
 h_end:
 	
 	

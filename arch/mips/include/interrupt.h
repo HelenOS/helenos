@@ -29,8 +29,10 @@
 #ifndef __INTERRUPT_H__
 #define __INTERRUPT_H__
 
+#include <arch/exception.h>
+
 #define TIMER_INTERRUPT   7
 
-extern void interrupt(void);
+extern void interrupt(struct exception_regdump *pstate);
 
 #endif

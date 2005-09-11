@@ -30,6 +30,7 @@
 #define __amd64_BYTEORDER_H__
 
 /* AMD64 is little-endian */
-#define native_le2host(n)		n
+#define native_le2host(n)		(n)
+#define u64_le2host(n)		(n)
 
 #endif

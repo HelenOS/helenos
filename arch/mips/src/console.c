@@ -31,25 +31,16 @@
 #include <arch/cp0.h>
 #include <arch/console.h>
 #include <arch.h>
+#include <arch/drivers/arc.h>
+#include <arch/arch.h>
 
-static void arc_putchar(const char ch)
-{
-	int cnt;
-	pri_t pri;
-
-	/* TODO: Should be spinlock? */
-	pri = cpu_priority_high();
-	bios_write(1, &ch, 1, &cnt);
-	cpu_priority_restore(pri);
-	
-}
-
+/** Putchar that works with MSIM & gxemul */
 static void cons_putchar(const char ch)
 {
 	*((char *) VIDEORAM) = ch;
 }
 
-
+/** Putchar that works with simics */
 static void serial_putchar(const char ch)
 {
 	int i;
@@ -67,8 +58,10 @@ static void (*putchar_func)(const char ch) = cons_putchar;
 
 void console_init(void)
 {
+	if (arc_enabled()) 
+		putchar_func = arc_putchar;
 	/* The LSR on the start usually contains this value */
-	if (*SERIAL_LSR == 0x60)
+	else if (*SERIAL_LSR == 0x60)
 		putchar_func = serial_putchar;
 	else
 		putchar_func = cons_putchar;

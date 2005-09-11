@@ -65,7 +65,7 @@ void exception(struct exception_regdump *pstate)
 	/* decode exception number and process the exception */
 	switch (excno) {
 		case EXC_Int:
-			interrupt();
+			interrupt(pstate);
 			break;
 		case EXC_TLBL:
 		case EXC_TLBS:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,83 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/tlb.h>
-#include <arch/mm/asid.h>
-#include <mm/tlb.h>
-#include <arch/cp0.h>
-#include <panic.h>
+#include <arch/drivers/arc.h>
+#include <arch/mm/page.h>
+#include <print.h>
 #include <arch.h>
+#include <arch/byteorder.h>
 
-#include <symtab.h>
+/* This is a good joke, SGI HAS different types than NT bioses... */
+/* Here is the SGI type */
+static char *basetypes[] = {
+	"ExceptionBlock",
+	"SystemParameterBlock",
+	"FreeContiguous",
+	"FreeMemory",
+	"BadMemory",
+	"LoadedProgram",
+	"FirmwareTemporary",
+	"FirmwarePermanent"
+};
 
-void tlb_refill(struct exception_regdump *pstate)
+static arc_sbp *sbp = (arc_sbp *)PA2KA(0x1000);
+static arc_func_vector_t *arc_entry; 
+
+static void _arc_putchar(char ch);
+
+/** Initialize ARC structure
+ *
+ * @return 0 - ARC OK, -1 - ARC does not exist
+ */
+int init_arc(void)
 {
-	char *symbol = "";
-	char *sym2 = "";
+	if (sbp->signature != ARC_MAGIC) {
+		sbp = NULL;
+		return -1;
+	}
+	arc_entry = sbp->firmwarevector;
 
-	char *s = get_symtab_entry(pstate->epc);
-	if (s)
-		symbol = s;
-	s = get_symtab_entry(pstate->ra);
-	if (s)
-		sym2 = s;
-	panic("%X: tlb_refill exception at %X(%s<-%s)\n", cp0_badvaddr_read(),
-	      pstate->epc, symbol,sym2);
+	arc_putchar('A');
+	arc_putchar('R');
+	arc_putchar('C');
+	arc_putchar('\n');
 }
 
-void tlb_invalid(struct exception_regdump *pstate)
+/** Return true if ARC is available */
+int arc_enabled(void)
 {
-	char *symbol = "";
-
-	char *s = get_symtab_entry(pstate->epc);
-	if (s)
-		symbol = s;
-	panic("%X: TLB exception at %X(%s)\n", cp0_badvaddr_read(), 
-	      pstate->epc, symbol);
+	return sbp != NULL;
 }
 
-void tlb_invalidate(int asid)
+void arc_print_memory_map(void)
 {
+	arc_memdescriptor_t *desc;
+
+	if (!sbp) {
+		printf("ARC not enabled.\n");
+		return;
+	}
+
+	printf("Memory map:\n");
+
+	desc = arc_entry->getmemorydescriptor(NULL);
+	while (desc) {
+		printf("%s: %d (size: %dKB)\n",basetypes[desc->type],
+		       desc->basepage * 4096,
+		       desc->basecount*4);
+		desc = arc_entry->getmemorydescriptor(desc);
+	}
+}
+
+/** Print charactor to console */
+void arc_putchar(char ch)
+{
+	__u32 cnt;
 	pri_t pri;
-	
+
+	/* TODO: Should be spinlock? */
 	pri = cpu_priority_high();
-	
-//	asid_bitmap_reset();
-	
-	// TODO
-	
+	arc_entry->write(1, &ch, 1, &cnt);
 	cpu_priority_restore(pri);
+	
 }

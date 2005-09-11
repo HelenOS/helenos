@@ -38,7 +38,4 @@
 
 void console_init(void);
 
-extern int bios_write(int fd, const char *buf, int size, int *cnt);
-
-
 #endif

@@ -117,13 +117,6 @@ cp0_epc_write:		cp0_write $14
 cp0_prid_read:		cp0_read $15
 
 
-.global bios_write
-bios_write:
-	lw	$2, 0x80001020
-	lw	$2, 0x6c($2)
-	j	$2
-	nop
-	
 .global cpu_halt
 cpu_halt:
 	j cpu_halt

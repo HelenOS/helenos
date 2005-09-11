@@ -33,6 +33,11 @@ SECTIONS {
 		*(.rodata*);
 		*(.sdata);
 		*(.reginfo);
+		/* Unfortunately IRIX does not allow us
+	         * to include this as a last section :-(
+		 * BSS/SBSS addresses will be wrong */
+		symbol_table = .;
+		*(symtab.*);             
 	}
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
@@ -46,10 +51,6 @@ SECTIONS {
 		*(COMMON); 		/* global variables */
 	}
 
-	mysymtab : {
-		symbol_table = .;
-		*(symtab.*);             /* Symbol table, must be LAST symbol!*/
-	}
 	kdata_end = .;
 
 	/DISCARD/ : {

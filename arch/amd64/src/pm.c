@@ -91,7 +91,7 @@ struct descriptor gdt[GDT_ITEMS] = {
 	  .special     = 1, 
 	  .granularity = 1, 
 	  .base_24_31  = 0 },
-	/* KTEXT 32-bit protected */
+	/* KTEXT 32-bit protected, for protected mode before long mode */
 	{ .limit_0_15  = 0xffff, 
 	  .base_0_15   = 0, 
 	  .base_16_23  = 0, 

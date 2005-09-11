@@ -8,7 +8,7 @@ MAXSTRING=63
 symtabfmt = "<Q%ds" % (MAXSTRING+1)
 
 
-funcline = re.compile(r'([0-9a-f]+)\s+[lg]\s+F\s+\.text\s+([0-9a-f]+)\s+(.*)$')
+funcline = re.compile(r'([0-9a-f]+)\s+[lg]\s+.\s+\.text\s+([0-9a-f]+)\s+(.*)$')
 bssline = re.compile(r'([0-9a-f]+)\s+[lg]\s+[a-zA-Z]\s+\.bss\s+([0-9a-f]+)\s+(.*)$')
 dataline = re.compile(r'([0-9a-f]+)\s+[lg]\s+[a-zA-Z]\s+\.data\s+([0-9a-f]+)\s+(.*)$')
 fileexp = re.compile(r'([^\s]+):\s+file format')

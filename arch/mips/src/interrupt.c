@@ -32,6 +32,25 @@
 #include <arch/cp0.h>
 #include <time/clock.h>
 #include <panic.h>
+#include <print.h>
+#include <symtab.h>
+#include <arch/drivers/arc.h>
+
+static void print_regdump(struct exception_regdump *pstate)
+{
+	char *pcsymbol = "";
+	char *rasymbol = "";
+
+	char *s = get_symtab_entry(pstate->epc);
+	if (s)
+		pcsymbol = s;
+	s = get_symtab_entry(pstate->ra);
+	if (s)
+		rasymbol = s;
+	
+	printf("PC: %X(%s) RA: %X(%s)\n",pstate->epc,pcsymbol,
+	       pstate->ra,rasymbol);
+}
 
 pri_t cpu_priority_high(void)
 {
@@ -57,7 +76,7 @@ pri_t cpu_priority_read(void)
 	return cp0_status_read();
 }
 
-void interrupt(void)
+void interrupt(struct exception_regdump *pstate)
 {
 	__u32 cause;
 	int i;
@@ -69,16 +88,17 @@ void interrupt(void)
 		if (cause & (1 << i)) {
 			switch (i) {
 				case 0: /* SW0 - Software interrupt 0 */
-					cp0_cause_write(cause & ~(1 << 8)); /* clear SW0 interrupt */
+					cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
 					break;
 				case 1: /* SW1 - Software interrupt 1 */
-					cp0_cause_write(cause & ~(1 << 9)); /* clear SW1 interrupt */
+					cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
 					break;
 				case 2: /* IRQ0 */
 				case 3: /* IRQ1 */
 				case 4: /* IRQ2 */
 				case 5: /* IRQ3 */
 				case 6: /* IRQ4 */
+					print_regdump(pstate);
 					panic("unhandled interrupt %d\n", i);
 					break;
 				case TIMER_INTERRUPT:
