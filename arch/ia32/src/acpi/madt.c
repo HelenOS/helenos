@@ -131,7 +131,6 @@ void acpi_madt_parse(void)
 	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
 		madt_entries_index_cnt++;
 	}
-	printf("MADT: Found %d entries\n", madt_entries_index_cnt);
 
 	/* create madt apic entries index array */
 	madt_entries_index = (struct madt_apic_header * *) malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header * *));
@@ -141,7 +140,6 @@ void acpi_madt_parse(void)
 	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
 		madt_entries_index[index++] = h;
 	}
-
 
 	/* Quicksort MADT index structure */
 	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(__address), &madt_cmp);

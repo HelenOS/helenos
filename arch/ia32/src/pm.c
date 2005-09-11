@@ -69,9 +69,6 @@ static struct tss tss;
 
 struct tss *tss_p = NULL;
 
-/* TODO: Does not compile correctly if it does not exist ???? */
-int __attribute__ ((section ("K_DATA_START"))) __fake;
-
 /* gdtr is changed by kmp before next CPU is initialized */
 struct ptr_16_32 protected_bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
 struct ptr_16_32 gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };

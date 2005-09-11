@@ -24,6 +24,7 @@ SECTIONS {
 		
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
+//		LONG(0xdeadbeaf);		/* TODO: remove 0xdeadbeaf */
 		unmapped_kdata_end = .;
 	}
 	
@@ -34,9 +35,9 @@ SECTIONS {
 		ktext_end = .;
 		
 		kdata_start = .;
-		*(.data);		/* initialized data */
-		*(.rodata*);		/* string literals */
-		*(COMMON);		/* global variables */
+		*(.data);			/* initialized data */
+		*(.rodata*);			/* string literals */
+		*(COMMON);			/* global variables */
 		hardcoded_load_address = .;
 		LONG(PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET));
 		hardcoded_ktext_size = .;
@@ -47,11 +48,12 @@ SECTIONS {
 		LONG(unmapped_ktext_end - unmapped_ktext_start);
 		hardcoded_unmapped_kdata_size = .;
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
-		*(.bss);		/* uninitialized static variables */
-		*(K_DATA_END);
+		*(.bss);			/* uninitialized static variables */
+		*(.note.GNU-stack);
+                *(.comment);
 
 		symbol_table = .;
-		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
 
 		kdata_end = .;
 	}

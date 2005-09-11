@@ -29,7 +29,6 @@
 #ifndef __mips_BYTEORDER_H__
 #define __mips_BYTEORDER_H__
 
-/* MIPS is little-endian */
 #ifdef BIG_ENDIAN
 static inline __u64 u64_le2host(__u64 n)
 {
