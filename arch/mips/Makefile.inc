@@ -25,7 +25,7 @@ ifeq (${MACHINE},indy)
  CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY -march=r4600
  BFD = ecoff-bigmips
  KERNEL_LOAD_ADDRESS = 0x88002000
- BFD_NAME=elf32-big
+ BFD_NAME=elf32-bigmips
 endif
 
 ifeq (${MACHINE},lgxemul)
@@ -43,7 +43,7 @@ ifeq (${MACHINE},bgxemul)
  CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-bigmips
  KERNEL_LOAD_ADDRESS = 0x80100000
- BFD_NAME=elf32-big
+ BFD_NAME=elf32-bigmips
 endif
 
 # MSIM needs lwl/swl patch & 4kc instruction patch to work
