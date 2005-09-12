@@ -26,16 +26,92 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_ARC_H_
-#define __mips32_ARC_H_
+#ifndef __mips_ARC_H_
+#define __mips_ARC_H_
 
 #include <arch/types.h>
 
 #define ARC_BASE_ADDR 0x1000;
 #define ARC_MAGIC 0x53435241
 
+typedef enum {
+	SystemClass = 0,
+	ProcessorClass,
+	CacheClass,
+	AdapterClass,
+	ControllerClass,
+	PeripheralClass,
+	MemoryClass
+} arc_component_class;
+
+typedef enum {
+	ARC_type = 0,
+	CPU_type,
+	FPU_type,
+	PrimaryICache,
+	PrimaryDCache,
+	SecondaryICache,
+	SecondaryDCache,
+	SecondaryCache,
+	Memory, /* Not in NT PROM */
+	EISAAdapter,
+	TCAdapter,
+	SCSIAdapter,
+	DTIAdapter,
+	MultiFunctionAdapter,
+	DiskController,
+	TapeController,
+	CDROMController,
+	WORMController,
+	SerialController,
+	NetworkController,
+	DisplayController,
+	ParallelController,
+	PointerController,
+	KeyboardController,
+	AudioController,
+	OtherController,
+	DiskPeripheral,
+	FloppyDiskPeripheral,
+	TapePeripheral,
+	ModemPeripheral,
+	MonitorPeripheral,
+	PrinterPeripheral,
+	PointerPeripheral,
+	KeyboardPeripheral,
+	TerminalPeripheral,
+	LinePeripheral,
+	NetworkPeripheral,
+	OtherPeripheral,
+	XTalkAdapter,
+	PCIAdapter,
+	GIOAdapter,
+	TPUAdapter,
+	Anonymous
+}arc_component_type;
+
+typedef enum {
+	Failed = 1,
+	ReadOnly = 2,
+	Removable = 4,
+	ConsoleIn = 8,
+	ConsoleOut = 16,
+	Input = 32,
+	Output = 64
+}arc_component_flags;
+
 typedef struct  {
-} arc_component;
+	arc_component_class class;
+	arc_component_type type;
+	arc_component_flags flags;
+	__u16 revision;
+	__u16 version;
+	__u32 key;
+	__u32 affinitymask;
+	__u32 configdatasize;
+	__u32 identifier_len;
+	char *identifier;
+} __attribute__ ((packed)) arc_component;
 
 typedef struct {
 	__u16 year;
@@ -45,7 +121,7 @@ typedef struct {
 	__u16 minutes;
 	__u16 seconds;
 	__u16 mseconds;
-} arc_timeinfo ;
+} __attribute__ ((packed)) arc_timeinfo;
 
 /* This is the SGI block structure, WinNT has it different */
 typedef enum {
@@ -135,5 +211,6 @@ extern int init_arc(void);
 extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
 extern void arc_putchar(char ch);
+extern void arc_print_devices(void);
 
 #endif

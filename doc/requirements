@@ -41,7 +41,7 @@ mips32 port
 ===========
 
 	HARDWARE REQUIREMENTS
-	o no real hardware supported
+	o SGI Indy R4600
 	o msim emulated MIPS R4000 CPU (see mips) 
 
 	COMPILER REQUIREMENTS

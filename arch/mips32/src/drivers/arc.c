@@ -45,6 +45,53 @@ static char *basetypes[] = {
 	"FirmwarePermanent"
 };
 
+static char *ctypes[] = {
+	"ARC_type",
+	"CPU_type",
+	"FPU_type",
+	"PrimaryICache",
+	"PrimaryDCache",
+	"SecondaryICache",
+	"SecondaryDCache",
+	"SecondaryCache",
+	"Memory",
+	"EISAAdapter",
+	"TCAdapter",
+	"SCSIAdapter",
+	"DTIAdapter",
+	"MultiFunctionAdapter",
+	"DiskController",
+	"TapeController",
+	"CDROMController",
+	"WORMController",
+	"SerialController",
+	"NetworkController",
+	"DisplayController",
+	"ParallelController",
+	"PointerController",
+	"KeyboardController",
+	"AudioController",
+	"OtherController",
+	"DiskPeripheral",
+	"FloppyDiskPeripheral",
+	"TapePeripheral",
+	"ModemPeripheral",
+	"MonitorPeripheral",
+	"PrinterPeripheral",
+	"PointerPeripheral",
+	"KeyboardPeripheral",
+	"TerminalPeripheral",
+	"OtherPeripheral",
+	"LinePeripheral",
+	"NetworkPeripheral"
+	"OtherPeripheral",
+	"XTalkAdapter",
+	"PCIAdapter",
+	"GIOAdapter",
+	"TPUAdapter",
+	"Anonymous"
+};
+
 static arc_sbp *sbp = (arc_sbp *)PA2KA(0x1000);
 static arc_func_vector_t *arc_entry; 
 
@@ -74,11 +121,43 @@ int arc_enabled(void)
 	return sbp != NULL;
 }
 
+static void arc_print_component(arc_component *c)
+{
+	int i;
+
+	printf("%s: ",ctypes[c->type]);
+	for (i=0;i < c->identifier_len;i++)
+		putchar(c->identifier[i]);
+	putchar('\n');
+}
+
+void arc_print_devices(void)
+{
+	arc_component *c,*next;
+
+	if (!arc_enabled())
+		return;
+
+	c = arc_entry->getchild(NULL);
+	while (c) {
+		arc_print_component(c);
+		next = arc_entry->getchild(c);
+		while (!next) {
+			next = arc_entry->getpeer(c);
+			if (!next)
+				c = arc_entry->getparent(c);
+			if (!c)
+				return;
+		}
+		c = next;
+	}
+}
+
 void arc_print_memory_map(void)
 {
 	arc_memdescriptor_t *desc;
 
-	if (!sbp) {
+	if (!arc_enabled()) {
 		printf("ARC not enabled.\n");
 		return;
 	}

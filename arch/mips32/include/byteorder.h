@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_BYTEORDER_H__
-#define __mips32_BYTEORDER_H__
+#ifndef __mips_BYTEORDER_H__
+#define __mips_BYTEORDER_H__
 
 #include <arch/types.h>
 #include <byteorder.h>
@@ -40,7 +40,7 @@ static inline __u64 __u64_le2host(__u64 n)
 
 static inline __native __native_le2host(__native n)
 {
-	return __u32_byteroder_swap(n);
+	return __u32_byteorder_swap(n);
 }
 
 #else

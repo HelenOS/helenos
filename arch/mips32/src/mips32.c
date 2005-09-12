@@ -83,6 +83,7 @@ void arch_pre_mm_init(void)
 
 	console_init();
 	arc_print_memory_map();
+	arc_print_devices();
 }
 
 void arch_post_mm_init(void)
