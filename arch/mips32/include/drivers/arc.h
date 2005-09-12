@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips_ARC_H_
-#define __mips_ARC_H_
+#ifndef __mips32_ARC_H__
+#define __mips32_ARC_H__
 
 #include <arch/types.h>
 

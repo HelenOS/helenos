@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips_BYTEORDER_H__
-#define __mips_BYTEORDER_H__
+#ifndef __mips32_BYTEORDER_H__
+#define __mips32_BYTEORDER_H__
 
 #include <arch/types.h>
 #include <byteorder.h>
