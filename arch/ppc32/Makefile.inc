@@ -21,7 +21,7 @@ arch_sources= \
 	arch/context.S \
 	arch/debug/panic.s \
 	arch/fpu_context.c \
-	arch/ppc.c \
+	arch/ppc32.c \
 	arch/dummy.s \
 	arch/start.S \
 	arch/asm.S \
