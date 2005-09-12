@@ -1,0 +1,15 @@
+ppc32 port
+==========
+
+ppc32 port is the fourth port of SPARTAN, originally written by Martin Decky.
+The goal is to support 32-bit PowerPC architecture.
+So far, it runs only in emulator.
+
+HARDWARE REQUIREMENTS
+        o no real hardware supported
+
+EMULATORS AND VIRTUALIZERS
+        o PearPC
+
+COMPILER REQUIREMENTS
+        o binutils 2.16 and gcc 4.0.1

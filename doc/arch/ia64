@@ -1,14 +1,15 @@
-SPARTAN kernel now features early IA-64 support.
-To run SPARTAN on IA-64, you must use the
-HP Ski simulator. It can be downloaded from here:
+ia64 port
+=========
 
-http://www.hpl.hp.com/research/linux/ski/
+ia64 port is the third port of SPARTAN originally written by Jakub Jermar.
+It is still in its early stages. It runs on HP Ski simulator of IA-64 architecture.
 
-Use init skript like this to run the kernel:
+HARDWARE REQUIREMENTS
+        o no real hardware supported
 
------8<------
+EMULATORS AND VIRTUALIZERS
+        o ski
 
-load kernel.bin
-load load.bin
-
------>8------
+COMPILER REQUIREMENTS
+        o IA-64 binutils 2.15 and gcc 4.0.0 cross compiler
+        o older versions may do as well, but are now obsoleted

@@ -1,0 +1,22 @@
+amd64 port
+==========
+
+The fifth port, amd64 port, is heavily based on ia32 port.
+It was originally written by Ondrej Palkovsky.
+The goal is to support AMD64 or Intel Extended Memory PC's.
+The new 64-bit code makes use of portable parts of ia32.
+Both uniprocessors and multiprocessors are supported.
+It has not been tested on real hardware, so far.
+
+HARDWARE REQUIREMENTS
+        o no real hardware supported
+
+SMP COMPATIBILITY
+        o Bochs 2.2.1
+                o 2x-8x AMD64 CPU
+        o Simics Simics 2.2.19
+                o 2x-8x AMD hammer CPU
+
+EMULATORS AND VIRTUALIZERS
+        o Bochs 2.2
+        o Simics Simics 2.2.19

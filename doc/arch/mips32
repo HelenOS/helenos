@@ -1,12 +1,20 @@
-SPARTAN kernel currently supports emulated MIPS R4000 32-bit
-little-endian architecture. In other words, it can only run in MIPS
-R4000 emulator called msim. This emulator is being developed by Viliam
-Holub:
+mips32 port
+===========
 
-http://nenya.ms.mff.cuni.cz/~holub/msim
+mips32 is the second port of SPARTAN kernel originally written by Jakub Jermar.
+It was first developed to run on MIPS R4000 32-bit simulator.
+Now it can run on real hardware as well.
+It can be compiled and run either as little- or big-endian.
 
-Note that msim diverges from real MIPS hardware in some aspects.
-Therefore, some non-trivial changes will be necessary for a real
-hardware port. The simulator is described in this manual:
+HARDWARE REQUIREMENTS
+        o SGI Indy R4600
+        o emulated MIPS 4K CPU
 
-http://nenya.ms.mff.cuni.cz/~holub/msim/msim.ps
+COMPILER REQUIREMENTS
+        o mips binutils 2.16 and gcc 4.0.1 cross compiler
+        o older versions may do as well, but are now obsoleted
+
+EMULATORS AND VIRTUALIZERS
+        o msim 1.2.6 with lwl/lwr/swl/swr patch
+        o gxemul - both big and little endian
+        o simics 2.2.19
