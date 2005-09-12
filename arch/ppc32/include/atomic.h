@@ -26,14 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_BARRIER_H__
-#define __ppc_BARRIER_H__
+#ifndef __ppc32_ATOMIC_H__
+#define __ppc32_ATOMIC_H__
 
-#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
+/*
+ * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
+ * WARNING: the following functions cause the code to be preemption-unsafe !!!
+ */
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+static inline atomic_inc(volatile int *val) {
+	*val++;
+}
+
+static inline atomic_dec(volatile int *val) {
+	*val--;
+}
 
 #endif

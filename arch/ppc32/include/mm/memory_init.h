@@ -26,9 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_THREAD_H__
-#define __ppc_THREAD_H__
+#ifndef __ppc32_MEMORY_INIT_H__
+#define __ppc32_MEMORY_INIT_H__
 
-#define ARCH_THREAD_DATA
+#include <config.h>
+
+size_t get_memory_size(void);
 
 #endif

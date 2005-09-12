@@ -71,7 +71,7 @@ arch_sources= \
 	arch/start.S \
 	arch/context.S \
 	arch/panic.S \
-	arch/mips.c \
+	arch/mips32.c \
 	arch/dummy.S \
 	arch/console.c \
 	arch/asm.S \

@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_MEMORY_INIT_H__
-#define __ppc_MEMORY_INIT_H__
+#ifndef __ppc32_FRAME_H__
+#define __ppc32_FRAME_H__
 
-#include <config.h>
+#define FRAME_SIZE		4096
 
-size_t get_memory_size(void);
+extern void frame_arch_init(void);
 
 #endif

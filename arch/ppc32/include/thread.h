@@ -26,16 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_ARCH_H__
-#define __ppc_ARCH_H__
+#ifndef __ppc32_THREAD_H__
+#define __ppc32_THREAD_H__
 
-#include <arch/drivers/ofw.h>
-
-#ifdef early_mapping
-#undef early_mapping
-#endif
-
-#define early_mapping(stack, size) \
-	ofw_claim((void *) stack, size, 0);
+#define ARCH_THREAD_DATA
 
 #endif

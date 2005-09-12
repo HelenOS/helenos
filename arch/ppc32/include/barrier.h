@@ -26,11 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_FADDR_H__
-#define __ppc_FADDR_H__
+#ifndef __ppc32_BARRIER_H__
+#define __ppc32_BARRIER_H__
 
-#include <arch/types.h>
+#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
-#define FADDR(fptr)		((__address) (fptr))
+#define memory_barrier()
+#define read_barrier()
+#define write_barrier()
 
 #endif

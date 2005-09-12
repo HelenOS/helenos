@@ -26,38 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#ifndef __ppc32_ARCH_H__
+#define __ppc32_ARCH_H__
 
-#include <arch/types.h>
+#include <arch/drivers/ofw.h>
 
-#define MAX_OFW_ARGS	10
+#ifdef early_mapping
+#undef early_mapping
+#endif
 
-typedef __u32 ofw_arg_t;
-typedef __u32 ihandle;
-typedef __u32 phandle;
-
-/** OpenFirmware command structure
- *
- */
-typedef struct {
-	const char *service;          /**< Command name */
-	__u32 nargs;                  /**< Number of in arguments */
-	__u32 nret;                   /**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
-} ofw_args_t;
-
-typedef void (*ofw_entry)(ofw_args_t *);
-
-extern ofw_entry ofw;
-
-extern void ofw_init(void);
-extern void ofw_done(void);
-extern int ofw_call(const char *service, const int nargs, const int nret, ...);
-extern void ofw_putchar(const char ch);
-extern phandle ofw_find_device(const char *name);
-extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);
-extern void *ofw_claim(const void *addr, const int size, const int align);
-extern void putchar(const char ch);
+#define early_mapping(stack, size) \
+	ofw_claim((void *) stack, size, 0);
 
 #endif

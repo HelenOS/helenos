@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_ASM_H__
-#define __ppc_ASM_H__
+#ifndef __ppc32_ASM_H__
+#define __ppc32_ASM_H__
 
 #include <arch/types.h>
 #include <config.h>

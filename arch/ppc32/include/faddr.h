@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_FRAME_H__
-#define __ppc_FRAME_H__
+#ifndef __ppc32_FADDR_H__
+#define __ppc32_FADDR_H__
 
-#define FRAME_SIZE		4096
+#include <arch/types.h>
 
-extern void frame_arch_init(void);
+#define FADDR(fptr)		((__address) (fptr))
 
 #endif

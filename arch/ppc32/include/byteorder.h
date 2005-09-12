@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc_BYTEORDER_H__
-#define __ppc_BYTEORDER_H__
+#ifndef __ppc32_BYTEORDER_H__
+#define __ppc32_BYTEORDER_H__
 
 #include <arch/types.h>
 #include <byteorder.h>

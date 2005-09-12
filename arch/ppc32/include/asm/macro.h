@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __ppc32_MACRO_H__
+#define __ppc32_MACRO_H__
+
 /*
  * PPC assembler macros
  */
@@ -259,3 +262,5 @@
 	lwz r30, 120(\r)
 	lwz r31, 124(\r)
 .endm
+
+#endif
