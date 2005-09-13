@@ -5,7 +5,7 @@ ia32 port is the oldest and the most advanced one.
 It was originally written by Jakub Jermar.
 It is meant to support ordinary PC's based on IA-32 architecture.
 Both uniprocessor and multiprocessor modes are supported.
-It runs on both emulated environment and real hardware.
+It runs both in emulated environment and on real hardware.
 
 HARDWARE REQUIREMENTS
         o IA-32 processor (Pentium and successors)

@@ -1,22 +1,26 @@
 amd64 port
 ==========
 
-The fifth port, amd64 port, is heavily based on ia32 port.
-It was originally written by Ondrej Palkovsky.
-The goal is to support AMD64 or Intel Extended Memory PC's.
-The new 64-bit code makes use of portable parts of ia32.
+The fifth port, amd64 port, was originally written by Ondrej Palkovsky.
+The goal is to support AMD64 and Intel Extended Memory 64 Technology PC's.
+The port makes use of portable parts of ia32.
 Both uniprocessors and multiprocessors are supported.
-It has not been tested on real hardware, so far.
+The kernel runs on real hardware and in simulators too.
 
 HARDWARE REQUIREMENTS
-        o no real hardware supported
+        o AMD64 architecture processor
+	o Intel Extended Memory 64 Technology processor
+
+CPU
+	o Intel Xeon with Intel Extended Memory 64 Technology
 
 SMP COMPATIBILITY
         o Bochs 2.2.1
                 o 2x-8x AMD64 CPU
-        o Simics Simics 2.2.19
+        o Simics 2.2.19
                 o 2x-8x AMD hammer CPU
+	o HP ProLiant ML350 (HyperThreading)
 
 EMULATORS AND VIRTUALIZERS
-        o Bochs 2.2
-        o Simics Simics 2.2.19
+        o Bochs 2.2.1
+        o Simics 2.2.19

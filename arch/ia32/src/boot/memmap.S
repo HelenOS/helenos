@@ -38,41 +38,38 @@ E820_SMAP = 0x534d4150
 .section K_TEXT_START_2
 
 memmap_arch_init:
-
 e820begin:
-	xorl	%ebx,%ebx	# during first call, ebx must be 0
-	movw	%bx,%ds
-	movw	%bx,%es
+	xorl	%ebx,%ebx			# during first call, ebx must be 0
 	movw	$e820table_boot,%di
 	movb	$MEMMAP_E820_MAX_RECORDS,e820counter_boot
 e820loop:	
-	movl	$E820_SMAP,%edx 	# control sequence "SMAP"
+	movl	$E820_SMAP,%edx 		# control sequence "SMAP"
 
-	movl	$0x0000e820,%eax	# service
+	movl	$0x0000e820,%eax		# service
 	movl	$MEMMAP_E820_RECORD_SIZE,%ecx
 	int 	$0x15
 	jc	e820err
 	
-	cmpl	$E820_SMAP,%eax		# verifying BIOS
+	cmpl	$E820_SMAP,%eax			# verifying BIOS
 	jne	e820err
 
 	cmpl	$MEMMAP_E820_RECORD_SIZE,%ecx
-	jne	e820err			# bad record size - bug in bios
+	jne	e820err				# bad record size - bug in bios
 	
-	movw	%di,%ax		# next record
+	movw	%di,%ax				# next record
 	addw	$MEMMAP_E820_RECORD_SIZE,%ax
 	movw	%ax,%di
 		
-	decb	e820counter_boot # buffer is full
+	decb	e820counter_boot 		# buffer is full
 	jz	e820end
 	
-	cmpl	$0,%ebx	
-	jne	e820loop
+	testl	%ebx,%ebx	
+	jnz	e820loop
 	
 e820end:
 	movb	$MEMMAP_E820_MAX_RECORDS,%al
 	subb	e820counter_boot,%al
-	movb	%al,e820counter_boot # store # of valid entries in e820counter
+	movb	%al,e820counter_boot 		# store # of valid entries in e820counter
 
 	jmp	e801begin
 
@@ -91,7 +88,7 @@ e801begin:
 	
 	jc	e801end
 	
-			# fix problem with some BIOSes which use ax:bx rather than cx:dx
+	# fix problem with some BIOSes which use ax:bx rather than cx:dx
 	testw	%cx,%cx
 	jnz	e801cxdx
 	testw	%dx,%dx
@@ -105,12 +102,14 @@ e801cxdx:
 	shll	$6,%edx
 	andl	$0xffff,%ecx
 	addl	%ecx,%edx
-	addl	$0x0400,%edx  # add lower 1 MB - it's not included by e801 method
+	addl	$0x0400,%edx  			# add lower 1 MB - it's not included by e801 method
 	movl	%edx,e801memorysize
 e801end:
 	ret
 
-	#memory size in 1 kb chunks
+
+.section K_DATA_START
+
+#memory size in 1 kb chunks
 e801memorysize:
 	.long	0
-

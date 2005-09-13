@@ -10,6 +10,9 @@ HARDWARE REQUIREMENTS
         o SGI Indy R4600
         o emulated MIPS 4K CPU
 
+CPU
+	o QED R4600
+
 COMPILER REQUIREMENTS
         o mips binutils 2.16 and gcc 4.0.1 cross compiler
         o older versions may do as well, but are now obsoleted

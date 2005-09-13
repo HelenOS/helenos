@@ -55,6 +55,7 @@ kernel_image_start:
 	cli
 	xorw %ax,%ax
 	movw %ax,%ds
+	movw %ax,%es
 	movw %ax,%ss            # initialize stack segment register
 	movl $(START_STACK), %esp	# initialize stack pointer
 	

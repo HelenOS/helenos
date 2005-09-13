@@ -52,6 +52,7 @@ kernel_image_start:
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
+	movw %ax, %es
 	movw %ax, %ss							# initialize stack segment register
 	movl $BOOTSTRAP_OFFSET - 0x400, %esp				# initialize stack pointer
 	
@@ -85,7 +86,7 @@ boot_image_start:
 	movw %ax, %ds							# kernel data + stack
 	movw %ax, %ss
 	
-	movb $0xd1, %al							# enable A20 using the keyboard controller
+	movb $0xd1, %al							# enable A20 using i8042 controller
 	outb %al, $0x64
 	movb $0xdf, %al
 	outb %al, $0x60

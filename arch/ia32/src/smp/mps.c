@@ -185,7 +185,7 @@ void mps_init(void)
 	return;
 	
 fs_found:
-	printf("%L: MPS Floating Pointer Structure\n", fs);
+	printf("%P: MPS Floating Pointer Structure\n", fs);
 
 	frame_not_free((__address) fs);
 
@@ -407,7 +407,7 @@ void ct_extended_entries(void)
 	for (cur = ext; cur < ext + ct->ext_table_length; cur += cur[CT_EXT_ENTRY_LEN]) {
 		switch (cur[CT_EXT_ENTRY_TYPE]) {
 			default:
-				printf("%L: skipping MP Configuration Table extended entry type %d\n", cur, cur[CT_EXT_ENTRY_TYPE]);
+				printf("%P: skipping MP Configuration Table extended entry type %d\n", cur, cur[CT_EXT_ENTRY_TYPE]);
 				break;
 		}
 	}
