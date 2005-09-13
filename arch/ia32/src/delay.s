@@ -36,19 +36,15 @@
 .global asm_fake_loop
 
 asm_delay_loop:
-	pushl %ecx
-	movl 8(%esp),%ecx	# move argument to %ecx
+	movl 4(%esp),%ecx	# move argument to %ecx
 0:	lahf
 	dec %ecx
 	jnz 0b
-	popl %ecx
 	ret
 
 asm_fake_loop:
-	pushl %ecx
-	movl 8(%esp),%ecx	# move argument to %ecx
+	movl 4(%esp),%ecx	# move argument to %ecx
 0:	lahf
 	dec %ecx
 	jz 0b
-	popl %ecx
 	ret

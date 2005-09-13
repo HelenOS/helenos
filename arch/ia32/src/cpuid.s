@@ -26,68 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# The code below just interfaces the CPUID instruction.
-# CPU recognition logic is contained in higher-level functions.
-
 .text
 
 .global has_cpuid
-.global cpuid
-.global rdtsc
 
 
 ## Determine CPUID support
 #
-# Return 0 in EAX if CPUID is not support, 1 if supported.
+# Return 0 in EAX if CPUID is not supported, 1 if supported.
 #
 has_cpuid:
-	push %ebx
-	
 	pushf			# store flags
 	popl %eax		# read flags
-	movl %eax,%ebx		# copy flags
-	btcl $21,%ebx		# swap the ID bit
-	pushl %ebx
+	movl %eax,%edx		# copy flags
+	btcl $21,%edx		# swap the ID bit
+	pushl %edx
 	popf			# propagate the change into flags
 	pushf
-	popl %ebx		# read flags	
+	popl %edx		# read flags	
 	andl $(1<<21),%eax	# interested only in ID bit
-	andl $(1<<21),%ebx
-	xorl %ebx,%eax		# 0 if not supported, 1 if supported
-	
-	pop %ebx
-	ret
-
-
-## Get CPUID data
-#
-# This code is just an interfaces the CPUID instruction, CPU recognition
-# logic is contained in higher-level functions.
-#
-# The C prototype is:
-#   void cpuid(__u32 cmd, struct cpu_info *info)
-#
-# @param cmd  CPUID command.
-# @param info Buffer to store CPUID output.
-#
-cpuid:
-	pushl %ebp
-	movl %esp,%ebp
-	pusha
-
-	movl 8(%ebp),%eax	# load the command into %eax
-	movl 12(%ebp),%esi	# laod the address of the info struct
-
-	cpuid	
-	movl %eax,0(%esi)
-	movl %ebx,4(%esi)
-	movl %ecx,8(%esi)
-	movl %edx,12(%esi)
-
-	popa
-	popl %ebp
-	ret
-
-rdtsc:
-	rdtsc
+	andl $(1<<21),%edx
+	xorl %edx,%eax		# 0 if not supported, 1 if supported
 	ret

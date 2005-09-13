@@ -51,8 +51,8 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
-static inline void cpu_sleep(void) { __asm__ volatile ("hlt"); };
-static inline void cpu_halt(void) { __asm__ volatile ("hlt"); };
+static inline void cpu_sleep(void) { __asm__ volatile ("hlt\n"); };
+static inline void cpu_halt(void) { __asm__ volatile ("hlt\n"); };
 
 
 static inline __u8 inb(__u16 port) 
@@ -60,9 +60,9 @@ static inline __u8 inb(__u16 port)
 	__u8 out;
 
 	__asm__ volatile (
-		"mov %1, %%dx;"
-		"inb %%dx,%%al;"
-		"mov %%al, %0;"
+		"mov %1, %%dx\n"
+		"inb %%dx,%%al\n"
+		"mov %%al, %0\n"
 		:"=m"(out)
 		:"m"(port)
 		:"%rdx","%rax"
@@ -73,9 +73,9 @@ static inline __u8 inb(__u16 port)
 static inline __u8 outb(__u16 port,__u8 b) 
 {
 	__asm__ volatile (
-		"mov %0,%%dx;"
-		"mov %1,%%al;"
-		"outb %%al,%%dx;"
+		"mov %0,%%dx\n"
+		"mov %1,%%al\n"
+		"outb %%al,%%dx\n"
 		:
 		:"m"( port), "m" (b)
 		:"%rdx","%rax"
@@ -149,7 +149,7 @@ static inline pri_t cpu_priority_read(void) {
 static inline __u64 read_cr0(void) 
 { 
 	__u64 v; 
-	__asm__ volatile ("movq %%cr0,%0" : "=r" (v)); 
+	__asm__ volatile ("movq %%cr0,%0\n" : "=r" (v)); 
 	return v; 
 }
 
@@ -162,7 +162,7 @@ static inline __u64 read_cr0(void)
 static inline __u64 read_cr2(void) 
 { 
 	__u64 v; 
-	__asm__ volatile ("movq %%cr2,%0" : "=r" (v)); 
+	__asm__ volatile ("movq %%cr2,%0\n" : "=r" (v)); 
 	return v; 
 }
 
@@ -198,11 +198,11 @@ static inline __u64 read_cr3(void)
 static inline void enable_l_apic_in_msr()
 {
 	__asm__ volatile (
-		"movl $0x1b, %%ecx;"
-		"rdmsr;"
-		"orl $(1<<11),%%eax;"
-		"orl $(0xfee00000),%%eax;"
-		"wrmsr;"
+		"movl $0x1b, %%ecx\n"
+		"rdmsr\n"
+		"orl $(1<<11),%%eax\n"
+		"orl $(0xfee00000),%%eax\n"
+		"wrmsr\n"
 		:
 		:
 		:"%eax","%ecx","%edx"

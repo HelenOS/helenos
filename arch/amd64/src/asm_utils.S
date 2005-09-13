@@ -75,21 +75,17 @@ utext_size:
 # Return 0 in EAX if CPUID is not support, 1 if supported.
 #
 has_cpuid:
-	pushq %rbx
-	
 	pushfq			# store flags
 	popq %rax		# read flags
-	movq %rax,%rbx		# copy flags
-	btcl $21,%ebx		# swap the ID bit
-	pushq %rbx
+	movq %rax,%rdx		# copy flags
+	btcl $21,%edx		# swap the ID bit
+	pushq %rdx
 	popfq			# propagate the change into flags
 	pushfq
-	popq %rbx		# read flags	
+	popq %rdx		# read flags	
 	andl $(1<<21),%eax	# interested only in ID bit
-	andl $(1<<21),%ebx
-	xorl %ebx,%eax		# 0 if not supported, 1 if supported
-	
-	popq %rbx
+	andl $(1<<21),%edx
+	xorl %edx,%eax		# 0 if not supported, 1 if supported
 	ret
 
 cpuid:

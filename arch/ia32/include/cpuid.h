@@ -39,8 +39,20 @@ struct cpu_info {
 } __attribute__ ((packed));
 
 extern int has_cpuid(void);
-extern void cpuid(__u32 cmd, cpu_info_t *info);
 
-extern __u64 rdtsc(void);
+static inline void cpuid(__u32 cmd, struct cpu_info *info)
+{
+        __asm__ volatile (
+                "movl %4, %%eax\n"
+                "cpuid\n"
+                "movl %%eax,%0\n"
+                "movl %%ebx,%1\n"
+                "movl %%ecx,%2\n"
+                "movl %%edx,%3\n"
+                : "=m" (info->cpuid_eax), "=m" (info->cpuid_ebx), "=m" (info->cpuid_ecx), "=m" (info->cpuid_edx)
+                : "m" (cmd)
+                : "eax", "ebx", "ecx", "edx"
+        );
+}
 
 #endif

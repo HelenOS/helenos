@@ -30,10 +30,6 @@
 #define __ia32_ASM_H__
 
 #include <arch/types.h>
-#include <typedefs.h>
-#include <config.h>
-#include <synch/spinlock.h>
-#include <arch/boot/memmap.h>
 #include <config.h>
 
 extern __u32 interrupt_handler_size;
@@ -61,8 +57,8 @@ void asm_fake_loop(__u32 t);
  *
  * Halt the current CPU until interrupt event.
  */
-static inline void cpu_halt(void) { __asm__("hlt"); };
-static inline void cpu_sleep(void) { __asm__("hlt"); };
+static inline void cpu_halt(void) { __asm__("hlt\n"); };
+static inline void cpu_sleep(void) { __asm__("hlt\n"); };
 
 /** Read CR2
  *
@@ -70,7 +66,7 @@ static inline void cpu_sleep(void) { __asm__("hlt"); };
  *
  * @return Value read.
  */
-static inline __u32 read_cr2(void) { __u32 v; __asm__ volatile ("movl %%cr2,%0" : "=r" (v)); return v; }
+static inline __u32 read_cr2(void) { __u32 v; __asm__ volatile ("movl %%cr2,%0\n" : "=r" (v)); return v; }
 
 /** Write CR3
  *
@@ -86,7 +82,7 @@ static inline void write_cr3(__u32 v) { __asm__ volatile ("movl %0,%%cr3\n" : : 
  *
  * @return Value read.
  */
-static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0" : "=r" (v)); return v; }
+static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0\n" : "=r" (v)); return v; }
 
 /** Set priority level low
  *
@@ -157,6 +153,15 @@ static inline __address get_stack_base(void)
 	__address v;
 	
 	__asm__ volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
+	
+	return v;
+}
+
+static inline __u64 rdtsc(void)
+{
+	__u64 v;
+	
+	__asm__ volatile("rdtsc\n" : "=A" (v));
 	
 	return v;
 }
