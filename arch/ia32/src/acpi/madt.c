@@ -112,16 +112,14 @@ static __u8 madt_cpu_apic_id(index_t i)
 
 int madt_cmp(void * a, void * b) 
 {
-    return 
-	(((struct madt_apic_header *) a)->type > ((struct madt_apic_header *) b)->type) ?
-	1 : 
-	((((struct madt_apic_header *) a)->type < ((struct madt_apic_header *) b)->type) ? -1 : 0);
+	return 
+		(((struct madt_apic_header *) a)->type > ((struct madt_apic_header *) b)->type) ?
+		1 : 
+		((((struct madt_apic_header *) a)->type < ((struct madt_apic_header *) b)->type) ? -1 : 0);
 }
 	
 void acpi_madt_parse(void)
 {
-
-
 	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *h;
 	

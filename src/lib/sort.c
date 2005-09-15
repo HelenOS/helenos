@@ -31,30 +31,50 @@
 #include <sort.h>
 #include <panic.h>
 
+#define EBUFSIZE	32
+
 static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp);
 
 /*
  * Wrapper method for quicksort algorithm to decrease amount of allocations
  */
 void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b)) {
-	void * tmp = (void *) malloc(e_size);
-	void * pivot = (void *) malloc(e_size);
+	__u8 buf_tmp[EBUFSIZE];
+	__u8 buf_pivot[EBUFSIZE];
+	void * tmp = buf_tmp;
+	void * pivot = buf_pivot;
+
+	if (e_size > EBUFSIZE) {
+		pivot = (void *) malloc(e_size);
+		tmp = (void *) malloc(e_size);
 	
-	if (!tmp || !pivot) {
-		panic("Cannot allocate memory\n");
+		if (!tmp || !pivot) {
+			panic("Cannot allocate memory\n");
+		}
 	}
 
 	_qsort(data, n, e_size, cmp, pivot, tmp);
 	
-	free(tmp);
-	free(pivot);
+	if (e_size > EBUFSIZE) {
+		free(tmp);
+		free(pivot);
+	}
 }
 
 
 void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b)) {
+	__u8 buf_slot[EBUFSIZE];
 	bool done = false;
 	void * p;
-	void * slot = (void *) malloc(e_size);
+	void * slot = buf_slot;
+	
+	if (e_size > EBUFSIZE) {
+		slot = (void *) malloc(e_size);
+		
+		if (!slot) {
+			panic("Cannot allocate memory\n");
+		}
+	}
 
 	while (!done) {
 		done = true;
@@ -68,7 +88,9 @@ void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, vo
 		}
 	}
 	
-	free(slot);
+	if (e_size > EBUFSIZE) {	
+		free(slot);
+	}
 }
 
 static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp) {
