@@ -33,12 +33,8 @@
 
 #define EBUFSIZE	32
 
-static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp);
-
-/*
- * Wrapper method for quicksort algorithm to decrease amount of allocations
- */
-void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b)) {
+void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
+{
 	__u8 buf_tmp[EBUFSIZE];
 	__u8 buf_pivot[EBUFSIZE];
 	void * tmp = buf_tmp;
@@ -53,7 +49,29 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
 		}
 	}
 
-	_qsort(data, n, e_size, cmp, pivot, tmp);
+	if (n > 4) {
+		int i = 0, j = n - 1;
+
+		memcpy(pivot, data, e_size);
+
+		while (1) {
+			while ((cmp(data + i * e_size, pivot) < 0) && i < n) i++;
+			while ((cmp(data + j * e_size, pivot) >=0) && j > 0) j--;
+			if (i<j) {
+				memcpy(tmp, data + i * e_size, e_size);
+				memcpy(data + i * e_size, data + j * e_size, e_size);
+				memcpy(data + j * e_size, tmp, e_size);
+			} else {
+				break;
+			}
+		}
+
+		qsort(data, j + 1, e_size, cmp);
+		qsort(data + (j + 1) * e_size, n - j - 1, e_size, cmp);
+	} else {
+		bubblesort(data, n, e_size, cmp);
+	}
+
 	
 	if (e_size > EBUFSIZE) {
 		free(tmp);
@@ -62,7 +80,8 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
 }
 
 
-void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b)) {
+void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
+{
 	__u8 buf_slot[EBUFSIZE];
 	bool done = false;
 	void * p;
@@ -93,49 +112,25 @@ void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, vo
 	}
 }
 
-static void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void * pivot, void * tmp) {
-	if (n > 4) {
-		int i = 0, j = n - 1;
-
-		memcpy(pivot, data, e_size);
-
-		while (1) {
-			while ((cmp(data + i * e_size, pivot) < 0) && i < n) i++;
-			while ((cmp(data + j * e_size, pivot) >=0) && j > 0) j--;
-			if (i<j) {
-				memcpy(tmp, data + i * e_size, e_size);
-				memcpy(data + i * e_size, data + j * e_size, e_size);
-				memcpy(data + j * e_size, tmp, e_size);
-			} else {
-				break;
-			}
-		}
-
-		qsort(data, j + 1, e_size, cmp);
-		qsort(data + (j + 1) * e_size, n - j - 1, e_size, cmp);
-	} else {
-		bubblesort(data, n, e_size, cmp);
-	}
-}
-
-
-
 /*
  * Comparator returns 1 if a > b, 0 if a == b, -1 if a < b
  */
-int int_cmp(void * a, void * b) {
+int int_cmp(void * a, void * b)
+{
 	return (* (int *) a > * (int*)b) ? 1 : (*(int *)a < * (int *)b) ? -1 : 0;
 }
 
-int __u8_cmp(void * a, void * b) {
+int __u8_cmp(void * a, void * b)
+{
 	return (* (__u8 *) a > * (__u8 *)b) ? 1 : (*(__u8 *)a < * (__u8 *)b) ? -1 : 0;
 }
 
-int __u16_cmp(void * a, void * b) {
+int __u16_cmp(void * a, void * b)
+{
 	return (* (__u16 *) a > * (__u16 *)b) ? 1 : (*(__u16 *)a < * (__u16 *)b) ? -1 : 0;
 }
 
-int __u32_cmp(void * a, void * b) {
+int __u32_cmp(void * a, void * b)
+{
 	return (* (__u32 *) a > * (__u32 *)b) ? 1 : (*(__u32 *)a < * (__u32 *)b) ? -1 : 0;
 }
-

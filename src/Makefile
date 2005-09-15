@@ -8,6 +8,7 @@ sources=cpu/cpu.c \
 	proc/scheduler.c \
 	proc/thread.c \
 	proc/task.c \
+	proc/the.c \
 	mm/heap.c \
 	mm/frame.c \
 	mm/page.c \
@@ -16,7 +17,6 @@ sources=cpu/cpu.c \
 	lib/func.c \
 	lib/list.c \
 	lib/memstr.c \
-	lib/the.c \
 	lib/sort.c \
 	debug/print.c \
 	debug/symtab.c \
