@@ -40,7 +40,6 @@
 .global inb
 .global inw
 .global inl
-.global outb
 .global outw
 .global outl
 .global memcpy
@@ -190,21 +189,6 @@ inl:
 	xorl %eax,%eax
 	movl 4(%esp),%edx
 	inl %dx,%eax
-	ret
-
-
-## I/O output (byte)
-#
-# Send a byte to I/O port.
-#
-outb:
-	push %eax
-
-	movl 8(%esp),%edx
-	movl 12(%esp),%eax
-	outb %al,%dx
-
-	pop %eax
 	ret
 
 

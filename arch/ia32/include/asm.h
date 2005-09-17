@@ -42,7 +42,6 @@ extern __u8 inb(int port);
 extern __u16 inw(int port);
 extern __u32 inl(int port);
 
-extern void outb(int port, __u8 b);
 extern void outw(int port, __u16 w);
 extern void outl(int port, __u32 l);
 
@@ -83,6 +82,16 @@ static inline void write_cr3(__u32 v) { __asm__ volatile ("movl %0,%%cr3\n" : : 
  * @return Value read.
  */
 static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0\n" : "=r" (v)); return v; }
+
+/** Byte to port
+ *
+ * Output byte to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
+
 
 /** Set priority level low
  *
@@ -165,5 +174,6 @@ static inline __u64 rdtsc(void)
 	
 	return v;
 }
+
 
 #endif
