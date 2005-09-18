@@ -138,8 +138,8 @@ static inline __u32 inl(__u16 port) { __u32 val; __asm__ volatile ("inl %w1, %l0
 static inline pri_t cpu_priority_low(void) {
 	pri_t v;
 	__asm__ volatile (
-		"pushf\n"
-		"popl %0\n"
+		"pushf\n\t"
+		"popl %0\n\t"
 		"sti\n"
 		: "=r" (v)
 	);
@@ -154,8 +154,8 @@ static inline pri_t cpu_priority_low(void) {
 static inline pri_t cpu_priority_high(void) {
 	pri_t v;
 	__asm__ volatile (
-		"pushf\n"
-		"popl %0\n"
+		"pushf\n\t"
+		"popl %0\n\t"
 		"cli\n"
 		: "=r" (v)
 	);
@@ -168,7 +168,7 @@ static inline pri_t cpu_priority_high(void) {
  */
 static inline void cpu_priority_restore(pri_t pri) {
 	__asm__ volatile (
-		"pushl %0\n"
+		"pushl %0\n\t"
 		"popf\n"
 		: : "r" (pri)
 	);
@@ -181,7 +181,7 @@ static inline void cpu_priority_restore(pri_t pri) {
 static inline pri_t cpu_priority_read(void) {
 	pri_t v;
 	__asm__ volatile (
-		"pushf\n"
+		"pushf\n\t"
 		"popl %0\n"
 		: "=r" (v)
 	);
@@ -210,6 +210,36 @@ static inline __u64 rdtsc(void)
 	__asm__ volatile("rdtsc\n" : "=A" (v));
 	
 	return v;
+}
+
+/** Copy memory
+ * 
+ * Copy a given number of bytes (3rd argument)
+ * from the memory location defined by 2nd argument
+ * to the memory location defined by 1st argument.
+ * The memory areas cannot overlap.
+ *
+ * @param destination
+ * @param source
+ * @param number of bytes
+ * @return destination
+ */
+static inline void * memcpy(void * dst, const void * src, size_t cnt)
+{
+	__u32 d0, d1, d2;
+	
+	__asm__ __volatile__(
+		"rep movsl\n\t"
+		"movl %4, %%ecx\n\t"
+		"andl $3, %%ecx\n\t"
+		"jz 1f\n\t"
+		"rep movsb\n\t"
+		"1:\n"
+		: "=&c" (d0), "=&D" (d1), "=&S" (d2)
+		: "0" (cnt / 4), "g" (cnt), "1" ((__u32) dst), "2" ((__u32) src)
+		: "memory");
+		
+	return dst;
 }
 
 

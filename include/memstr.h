@@ -31,8 +31,7 @@
 
 #include <typedefs.h>
 #include <arch/types.h>
-
-#define memcpy(dst, src, cnt)	__builtin_memcpy((dst), (src), (cnt)); 
+#include <arch/asm.h>
 
 extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);

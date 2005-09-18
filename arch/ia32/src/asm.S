@@ -37,7 +37,6 @@
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
-.global memcpy
 .global memsetb
 .global memsetw
 .global memcmp
@@ -152,31 +151,6 @@ h_start:
 #	handler 128 192
 #	handler 192 256
 h_end:
-
-
-## Copy memory
-#
-# Copy a given number of bytes (3rd argument)
-# from the memory location defined by 2nd argument
-# to the memory location defined by 1st argument.
-# The memory areas cannot overlap.
-#
-SRC=16
-DST=12
-CNT=20
-memcpy:
-	push %esi
-	push %edi
-
-	movl CNT(%esp),%ecx
-	movl DST(%esp),%edi
-	movl SRC(%esp),%esi
-
-	rep movsb %ds:(%esi),%es:(%edi)
-
-	pop %edi
-	pop %esi
-	ret
 
 
 ## Fill memory with bytes
