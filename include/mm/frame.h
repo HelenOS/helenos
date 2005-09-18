@@ -40,12 +40,13 @@
 struct frame_zone {
 	link_t fz_link;		/**< link to previous and next frame_zone */
 
-	spinlock_t lock;	/**< this lock protexts everything below */
-	link_t free_head;	/**< list of free frames */
-	link_t busy_head;	/**< list of busy frames */
-	count_t free_count;	/**< frames in free list */
-	count_t busy_count;	/**< frames in busy list */
-	frame_t *frames;	/**< array of frames in this zone */
+	spinlock_t lock;	/**< this lock protects everything below */
+	__address base;		/**< physical address of the first frame in the frames array */
+	frame_t *frames;	/**< array of frame_t structures in this zone */
+	link_t free_head;	/**< list of free frame_t structures */
+	link_t busy_head;	/**< list of busy frame_t structures */
+	count_t free_count;	/**< number of frame_t structures in free list */
+	count_t busy_count;	/**< number of frame_t structures in busy list */
 	int flags;
 };
 
@@ -75,4 +76,5 @@ extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
 
+extern frame_zone_t *frame_zone_create();
 #endif
