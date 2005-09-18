@@ -229,11 +229,17 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
 	__u32 d0, d1, d2;
 	
 	__asm__ __volatile__(
+		/* copy all full dwords */
 		"rep movsl\n\t"
+		/* load count again */
 		"movl %4, %%ecx\n\t"
+		/* ecx = ecx mod 4 */
 		"andl $3, %%ecx\n\t"
+		/* are there last <=3 bytes? */
 		"jz 1f\n\t"
+		/* copy last <=3 bytes */
 		"rep movsb\n\t"
+		/* exit from asm block */
 		"1:\n"
 		: "=&c" (d0), "=&D" (d1), "=&S" (d2)
 		: "0" (cnt / 4), "g" (cnt), "1" ((__u32) dst), "2" ((__u32) src)
