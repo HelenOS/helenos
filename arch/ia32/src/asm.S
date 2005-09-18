@@ -37,9 +37,6 @@
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
-.global inb
-.global inw
-.global inl
 .global memcpy
 .global memsetb
 .global memsetw
