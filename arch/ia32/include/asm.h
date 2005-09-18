@@ -38,10 +38,6 @@ extern void paging_on(void);
 
 extern void interrupt_handlers(void);
 
-extern __u8 inb(int port);
-extern __u16 inw(int port);
-extern __u32 inl(int port);
-
 extern void enable_l_apic_in_msr(void);
 
 
@@ -98,8 +94,6 @@ static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1
  */
 static inline void outw(__u16 port, __u16 val) { __asm__ volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) ); }
 
-
-
 /** Double word to port
  *
  * Output double word to port
@@ -108,6 +102,33 @@ static inline void outw(__u16 port, __u16 val) { __asm__ volatile ("outw %w0, %w
  * @param val Value to write
  */
 static inline void outl(__u16 port, __u32 val) { __asm__ volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) ); }
+
+/** Byte from port
+ *
+ * Get byte from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
+
+/** Word from port
+ *
+ * Get word from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline __u16 inw(__u16 port) { __u16 val; __asm__ volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) ); return val; }
+
+/** Double word from port
+ *
+ * Get double word from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline __u32 inl(__u16 port) { __u32 val; __asm__ volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) ); return val; }
 
 /** Set priority level low
  *

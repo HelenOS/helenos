@@ -157,39 +157,6 @@ h_start:
 h_end:
 
 
-## I/O input (byte)
-#
-# Get a byte from I/O port and store it AL.
-#
-inb:
-	xorl %eax,%eax
-	movl 4(%esp),%edx
-	inb %dx,%al
-	ret
-
-
-## I/O input (word)
-#
-# Get a word from I/O port and store it AX.
-#
-inw:
-	xorl %eax,%eax
-	movl 4(%esp),%edx
-	inw %dx,%ax
-	ret
-
-
-## I/O input (dword)
-#
-# Get a dword from I/O port and store it EAX.
-#
-inl:
-	xorl %eax,%eax
-	movl 4(%esp),%edx
-	inl %dx,%eax
-	ret
-
-
 ## Copy memory
 #
 # Copy a given number of bytes (3rd argument)
