@@ -42,9 +42,6 @@ extern __u8 inb(int port);
 extern __u16 inw(int port);
 extern __u32 inl(int port);
 
-extern void outw(int port, __u16 w);
-extern void outl(int port, __u32 l);
-
 extern void enable_l_apic_in_msr(void);
 
 
@@ -92,6 +89,25 @@ static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0\n
  */
 static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
 
+/** Word to port
+ *
+ * Output word to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void outw(__u16 port, __u16 val) { __asm__ volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) ); }
+
+
+
+/** Double word to port
+ *
+ * Output double word to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void outl(__u16 port, __u32 val) { __asm__ volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Set priority level low
  *

@@ -40,8 +40,6 @@
 .global inb
 .global inw
 .global inl
-.global outw
-.global outl
 .global memcpy
 .global memsetb
 .global memsetw
@@ -189,36 +187,6 @@ inl:
 	xorl %eax,%eax
 	movl 4(%esp),%edx
 	inl %dx,%eax
-	ret
-
-
-## I/O output (word)
-#
-# Send a word to I/O port.
-#
-outw:
-	push %eax
-
-	movl 8(%esp),%edx
-	movl 12(%esp),%eax
-	outw %ax,%dx
-
-	pop %eax
-	ret
-
-
-## I/O output (dword)
-#
-# Send a dword to I/O port.
-#
-outl:
-	push %eax
-
-	movl 8(%esp),%edx
-	movl 12(%esp),%eax
-	outl %eax,%dx
-
-	pop %eax
 	ret
 
 
