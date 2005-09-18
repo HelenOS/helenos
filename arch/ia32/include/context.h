@@ -41,6 +41,10 @@
  */
 #define SP_DELTA	(8+STACK_ITEM_SIZE)
 
+/*
+ * Only save registers that must be preserved across
+ * function calls.
+ */
 struct context {
 	__u32 sp;
 	__u32 pc;

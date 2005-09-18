@@ -31,9 +31,31 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <list.h>
+#include <synch/spinlock.h>
 
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
+
+struct frame_zone {
+	link_t fz_link;		/**< link to previous and next frame_zone */
+
+	spinlock_t lock;	/**< this lock protexts everything below */
+	link_t free_head;	/**< list of free frames */
+	link_t busy_head;	/**< list of busy frames */
+	count_t free_count;	/**< frames in free list */
+	count_t busy_count;	/**< frames in busy list */
+	frame_t *frames;	/**< array of frames in this zone */
+	int flags;
+};
+
+struct frame {
+	count_t refcount;	/**< when > 0, the frame is in busy list, otherwise the frame is in free list */
+	link_t link;		/**< link either to frame_zone free or busy list */
+};
+
+extern spinlock_t frame_zone_head_lock;		/**< this lock protects frame_zone_head list */
+extern link_t frame_zone_head;			/**< list of all frame_zone's in the system */
 
 extern count_t frames;
 extern count_t frames_free;

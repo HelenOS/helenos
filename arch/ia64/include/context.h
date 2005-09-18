@@ -50,6 +50,10 @@
 	(c)->bsp = ((__address) stack) + (sizeof(the_t));	\
 	(c)->sp = ((__address) stack) + (size) - SP_DELTA;
 
+/*
+ * Only save registers that must be preserved across
+ * function calls.
+ */
 struct context {
 
 	/*
