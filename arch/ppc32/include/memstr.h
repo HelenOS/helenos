@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 HelenOS project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MEMSTR_H__
-#define __MEMSTR_H__
+#ifndef __ppc32_MEMSTR_H__
+#define __ppc32_MEMSTR_H__
 
-#include <typedefs.h>
-#include <arch/types.h>
-#include <arch/memstr.h>
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt));
 
-/*
 extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);
-extern int memcmp(__address src, __address dst, int cnt);
-extern void * memcpy(void *dst, const void *src, size_t cnt);
-*/
 
-/*
- * Architecture independent variants.
- */
-extern void *_memcpy(void *dst, const void *src, size_t cnt);
-extern void _memsetb(__address dst, size_t cnt, __u8 x);
-extern void _memsetw(__address dst, size_t cnt, __u16 x);
+extern int memcmp(__address src, __address dst, int cnt);
 
 #endif
