@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 HelenOS project
+ * Copyright (C) 2005 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
