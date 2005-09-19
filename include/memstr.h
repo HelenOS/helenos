@@ -37,11 +37,12 @@ extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);
 
 extern int memcmp(__address src, __address dst, int cnt);
+extern void *memcpy(void *dst, const void *src, size_t cnt);
 
 /*
  * Architecture independent variants.
  */
-extern char *_memcpy(void *dst, const void *src, size_t cnt);
+extern void *_memcpy(void *dst, const void *src, size_t cnt);
 extern void _memsetb(__address dst, size_t cnt, __u8 x);
 extern void _memsetw(__address dst, size_t cnt, __u16 x);
 

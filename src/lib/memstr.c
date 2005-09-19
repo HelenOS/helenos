@@ -41,7 +41,7 @@
  * @param cnt Number of bytes to copy.
  *
  */
-char *_memcpy(void * dst, const void *src, size_t cnt)
+void *_memcpy(void * dst, const void *src, size_t cnt)
 {
 	int i;
 	
