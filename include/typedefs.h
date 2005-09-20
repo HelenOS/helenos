@@ -63,7 +63,7 @@ typedef struct waitq waitq_t;
 
 typedef struct chunk chunk_t;
 
-typedef struct frame_zone frame_zone_t;
+typedef struct zone zone_t;
 typedef struct frame frame_t;
 
 typedef enum vm_type vm_type_t;

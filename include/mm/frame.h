@@ -37,8 +37,8 @@
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
 
-struct frame_zone {
-	link_t fz_link;		/**< link to previous and next frame_zone */
+struct zone {
+	link_t link;		/**< link to previous and next zone */
 
 	spinlock_t lock;	/**< this lock protects everything below */
 	__address base;		/**< physical address of the first frame in the frames array */
@@ -51,12 +51,13 @@ struct frame_zone {
 };
 
 struct frame {
+	zone_t *zone;		/**< host zone */
 	count_t refcount;	/**< when > 0, the frame is in busy list, otherwise the frame is in free list */
 	link_t link;		/**< link either to frame_zone free or busy list */
 };
 
-extern spinlock_t frame_zone_head_lock;		/**< this lock protects frame_zone_head list */
-extern link_t frame_zone_head;			/**< list of all frame_zone's in the system */
+extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
+extern link_t zone_head;		/**< list of all zones in the system */
 
 extern count_t frames;
 extern count_t frames_free;
@@ -76,5 +77,21 @@ extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
 
-extern frame_zone_t *frame_zone_create();
+/*
+ * TODO: Implement the following functions.
+ */
+
+extern void zone_init(void);
+extern zone_t *zone_create(__address start, size_t size, int flags);
+extern void zone_attach(zone_t *zone);
+ 
+/*
+extern frame_t *frame_alloc(int flags);
+extern void frame_free(frame_t *frame);
+*/
+extern void frame_initialize(frame_t *frame);
+extern __address frame_get_address(frame_t *frame);
+extern frame_t *frame_reference(frame_t *frame);
+extern void frame_release(frame_t *frame);
+
 #endif
