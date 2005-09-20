@@ -77,20 +77,21 @@ extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
 
+extern void zone_init(void);
+extern zone_t *zone_create(__address start, size_t size, int flags);
+extern void zone_attach(zone_t *zone);
+
+extern void frame_initialize(frame_t *frame, zone_t *zone);
+extern __address frame_get_address(frame_t *frame);
+
 /*
  * TODO: Implement the following functions.
  */
 
-extern void zone_init(void);
-extern zone_t *zone_create(__address start, size_t size, int flags);
-extern void zone_attach(zone_t *zone);
- 
 /*
 extern frame_t *frame_alloc(int flags);
 extern void frame_free(frame_t *frame);
 */
-extern void frame_initialize(frame_t *frame);
-extern __address frame_get_address(frame_t *frame);
 extern frame_t *frame_reference(frame_t *frame);
 extern void frame_release(frame_t *frame);
 

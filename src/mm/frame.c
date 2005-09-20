@@ -39,6 +39,7 @@
 #include <memstr.h>
 
 #include <panic.h>
+#include <debug.h>
 
 #include <synch/spinlock.h>
 
@@ -53,9 +54,14 @@ count_t frame_bitmap_octets;
 
 static spinlock_t framelock;
 
+spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
+link_t zone_head;                /**< list of all zones in the system */
+
+
 void frame_init(void)
 {
 	if (config.cpu_active == 1) {
+		zone_init();
 
 		/*
 		 * The bootstrap processor will allocate all necessary memory for frame allocation.
@@ -197,4 +203,128 @@ void frame_region_not_free(__address start, __address stop)
 	stop /= FRAME_SIZE;
 	for (a = start; a <= stop; a++)
 		frame_not_free(a * FRAME_SIZE);
+}
+
+/** Initialize zonekeeping
+ *
+ * Initialize zonekeeping.
+ */
+void zone_init(void)
+{
+	spinlock_initialize(&zone_head_lock);
+	list_initialize(&zone_head);
+}
+
+/** Create frame zone
+ *
+ * Create new frame zone.
+ *
+ * @param start Physical address of the first frame within the zone.
+ * @param size Size of the zone. Must be a multiple of FRAME_SIZE.
+ * @param flags Zone flags.
+ *
+ * @return Initialized zone.
+ */
+zone_t *zone_create(__address start, size_t size, int flags)
+{
+	zone_t *z;
+	count_t cnt;
+	int i;
+	
+	ASSERT(start % FRAME_SIZE == 0);
+	ASSERT(size % FRAME_SIZE == 0);
+	
+	cnt = size / FRAME_SIZE;
+	
+	z = (zone_t *) malloc(sizeof(zone_t));
+	if (z) {
+		link_initialize(&z->link);
+		spinlock_initialize(&z->lock);
+	
+		z->base = start;
+		z->flags = flags;
+
+		z->free_count = cnt;
+		list_initialize(&z->free_head);
+
+		z->busy_count = 0;
+		list_initialize(&z->busy_head);
+		
+		z->frames = (frame_t *) malloc(cnt * sizeof(frame_t));
+		if (!z->frames) {
+			free(z);
+			return NULL;
+		}
+		
+		for (i = 0; i<cnt; i++) {
+			frame_initialize(&z->frames[i], z);
+			list_append(&z->frames[i].link, &z->free_head);
+		}
+		
+	}
+	
+	return z;
+}
+
+/** Attach frame zone
+ *
+ * Attach frame zone to zone list.
+ *
+ * @param zone Zone to be attached.
+ */
+void zone_attach(zone_t *zone)
+{
+	pri_t pri;
+	
+	pri = cpu_priority_high();
+	spinlock_lock(&zone_head_lock);
+	
+	list_append(&zone->link, &zone_head);
+	
+	spinlock_unlock(&zone_head_lock);
+	cpu_priority_restore(pri);
+}
+
+/** Initialize frame structure
+ *
+ * Initialize frame structure.
+ *
+ * @param frame Frame structure to be initialized.
+ * @param zone Host frame zone.
+ */
+void frame_initialize(frame_t *frame, zone_t *zone)
+{
+	frame->refcount = 0;
+	link_initialize(&frame->link);
+	frame->zone = zone;
+}
+
+/** Get address of physical frame from its frame structure
+ *
+ * Get address of physical frame from its frame structure.
+ *
+ * @param frame Frame structure of the queried frame address.
+ *
+ * @return Address of frame associated with the argument.
+ */
+__address frame_get_address(frame_t *frame)
+{
+	__address v;
+	zone_t *z;
+	pri_t pri;
+	
+	z = frame->zone;
+	
+	pri = cpu_priority_high();
+	spinlock_lock(&z->lock);
+
+	v = z->base + (frame - z->frames) * FRAME_SIZE;
+	
+	if (z->flags & FRAME_KA)
+		v = PA2KA(v);
+
+	spinlock_unlock(&z->lock);
+	cpu_priority_restore(pri);
+	
+	return v;
 }
