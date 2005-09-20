@@ -18,6 +18,7 @@ COMPILER REQUIREMENTS
         o older versions may do as well, but are now obsoleted
 
 EMULATORS AND VIRTUALIZERS
+	o msim 1.2.7
         o msim 1.2.6 with lwl/lwr/swl/swr patch
         o gxemul - both big and little endian
         o simics 2.2.19

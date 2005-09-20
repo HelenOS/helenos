@@ -37,38 +37,42 @@ struct link {
 	link_t *next;
 };
 
-
-#define link_initialize(link) { \
-	(link)->prev = NULL; \
-	(link)->next = NULL; \
+static inline void link_initialize(link_t *link)
+{
+	link->prev = NULL;
+	link->next = NULL;
 }
 
-#define list_initialize(head) { \
-	(head)->prev = (head); \
-	(head)->next = (head); \
+static inline void list_initialize(link_t *head)
+{
+	head->prev = head;
+	head->next = head;
 }
 
-#define list_prepend(link, head) { \
-	(link)->next = (head)->next; \
-	(link)->prev = (head); \
-	(head)->next->prev = (link); \
-	(head)->next = (link); \
+static inline void list_prepend(link_t *link, link_t *head)
+{
+	link->next = head->next;
+	link->prev = head;
+	head->next->prev = link;
+	head->next = link;
 }
 
-#define list_append(link, head) { \
-	(link)->prev = (head)->prev; \
-	(link)->next = (head); \
-	(head)->prev->next = (link); \
-	(head)->prev = (link); \
+static inline void list_append(link_t *link, link_t *head)
+{
+	link->prev = head->prev;
+	link->next = head;
+	head->prev->next = link;
+	head->prev = link;
 }
 
-#define list_remove(link) { \
-	(link)->next->prev = (link)->prev; \
-	(link)->prev->next = (link)->next; \
-	link_initialize(link); \
+static inline void list_remove(link_t *link)
+{
+	link->next->prev = link->prev;
+	link->prev->next = link->next;
+	link_initialize(link);
 }
 
-#define list_empty(head) (((head)->next == (head))?true:false)
+static inline bool list_empty(link_t *head) { return head->next == head ? true : false; }
 
 #define list_get_instance(link,type,member) (type *)(((__u8*)(link))-((__u8*)&(((type *)NULL)->member)))
 
