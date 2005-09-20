@@ -157,10 +157,8 @@ void arc_print_memory_map(void)
 {
 	arc_memdescriptor_t *desc;
 
-	if (!arc_enabled()) {
-		printf("ARC not enabled.\n");
+	if (!arc_enabled())
 		return;
-	}
 
 	printf("Memory map:\n");
 

@@ -48,9 +48,16 @@ endif
 
 # MSIM needs lwl/swl patch & 4kc instruction patch to work
 # otherwise add -mmemcpy -mips3
-ifeq (${MACHINE},msim)
+ifeq (${MACHINE},msim4kc)
  BFD = binary
  CFLAGS += -msoft-float -march=4kc 
+ KERNEL_LOAD_ADDRESS = 0x80100000
+ BFD_NAME=elf32-little
+endif
+
+ifeq (${MACHINE},msim)
+ BFD = binary
+ CFLAGS += -msoft-float -mips3
  KERNEL_LOAD_ADDRESS = 0x80100000
  BFD_NAME=elf32-little
 endif
