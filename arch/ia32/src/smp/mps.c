@@ -187,8 +187,6 @@ void mps_init(void)
 fs_found:
 	printf("%P: MPS Floating Pointer Structure\n", fs);
 
-	frame_not_free((__address) fs);
-
 	if (fs->config_type == 0 && fs->configuration_table) {
 		if (fs->mpfib2 >> 7) {
 			printf("%s: PIC mode not supported\n", __FUNCTION__);
@@ -196,7 +194,6 @@ fs_found:
 		}
 
 		ct = (struct mps_ct *)PA2KA((__address)fs->configuration_table);
-		frame_not_free((__address) ct);
 		config.cpu_count = configure_via_ct();
 	} 
 	else

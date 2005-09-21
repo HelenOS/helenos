@@ -28,7 +28,16 @@
 
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
+#include <config.h>
+#include <panic.h>
 
 void frame_arch_init(void)
 {
+        zone_t *z;
+
+        z = zone_create(0, config.memory_size & ~(FRAME_SIZE-1), 0);
+        if (!z) {
+                panic("Can't allocate zone (%dB).\n", config.memory_size & ~(FRAME_SIZE-1));
+        }
+        zone_attach(z);
 }

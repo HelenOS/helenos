@@ -40,7 +40,6 @@
 .global cpu_priority_read
 .global cpu_priority_restore
 .global cpu_sleep
-.global frame_arch_init
 .global dummy
 .global fpu_enable
 .global fpu_disable
@@ -58,7 +57,6 @@ cpu_priority_low:
 cpu_priority_read:
 cpu_priority_restore:
 cpu_sleep:
-frame_arch_init:
 fpu_init:
 fpu_enable:
 fpu_disable:	

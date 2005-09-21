@@ -26,184 +26,249 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <typedefs.h>
 #include <arch/types.h>
-#include <func.h>
-
 #include <mm/heap.h>
 #include <mm/frame.h>
-#include <mm/page.h>
 #include <mm/vm.h>
-#include <arch/mm/page.h>
-
-#include <config.h>
-#include <memstr.h>
-
 #include <panic.h>
 #include <debug.h>
-
+#include <list.h>
 #include <synch/spinlock.h>
-
 #include <arch/asm.h>
 #include <arch.h>
-
-count_t frames = 0;
-count_t frames_free;
-
-__u8 *frame_bitmap;
-count_t frame_bitmap_octets;
-
-static spinlock_t framelock;
 
 spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
 link_t zone_head;                /**< list of all zones in the system */
 
-
+/** Initialize physical memory management
+ *
+ * Initialize physical memory managemnt.
+ */
 void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		zone_init();
-
-		/*
-		 * The bootstrap processor will allocate all necessary memory for frame allocation.
-		 */
-
-		frames = config.memory_size / FRAME_SIZE;
-		frame_bitmap_octets = frames / 8 + (frames % 8 > 0);
-		frame_bitmap = (__u8 *) malloc(frame_bitmap_octets);
-		if (!frame_bitmap)
-			panic("malloc/frame_bitmap\n");
-
-		/*
-		 * Mark all frames free.
-		 */
-		memsetb((__address) frame_bitmap, frame_bitmap_octets, 0);
-		frames_free = frames;
 	}
-
-	/*
-	 * No frame allocations/reservations prior this point.
-	 */
 
 	frame_arch_init();
-
+	
 	if (config.cpu_active == 1) {
-		/*
-		 * Create the memory address space map. Marked frames and frame
-		 * regions cannot be used for allocation.
-		 */
-		frame_region_not_free(config.base, config.base + config.kernel_size);
-	}
+                frame_region_not_free(config.base, config.base + config.kernel_size + CONFIG_STACK_SIZE);
+        }	
 }
 
-/*
- * Allocate a frame.
+/** Allocate a frame
+ *
+ * Allocate a frame of physical memory.
+ *
+ * @param flags Flags for host zone selection and address processing.
+ *
+ * @return Allocated frame.
  */
 __address frame_alloc(int flags)
 {
-	int i;
 	pri_t pri;
+	link_t *cur, *tmp;
+	zone_t *z;
+	zone_t *zone = NULL;
+	frame_t *frame = NULL;
+	__address v;
 	
 loop:
 	pri = cpu_priority_high();
-	spinlock_lock(&framelock);
-	if (frames_free) {
-		for (i=0; i < frames; i++) {
-			int m, n;
-		
-			m = i / 8;
-			n = i % 8;
-
-			if ((frame_bitmap[m] & (1<<n)) == 0) {
-				frame_bitmap[m] |= (1<<n);
-				frames_free--;
-				spinlock_unlock(&framelock);
-				cpu_priority_restore(pri);
-				if (flags & FRAME_KA) return PA2KA(i*FRAME_SIZE);
-				return i*FRAME_SIZE;
-			}
-		}
-		panic("frames_free inconsistent (%d)\n", frames_free);
-	}
-	spinlock_unlock(&framelock);
-	cpu_priority_restore(pri);
-
-	if (flags & FRAME_PANIC)
-		panic("unable to allocate frame\n");
-		
-	/* TODO: implement sleeping logic here */
-	panic("sleep not supported\n");
+	spinlock_lock(&zone_head_lock);
 	
-	goto loop;
+	/*
+	 * First, find suitable frame zone.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		/*
+		 * Check if the zone has any free frames.
+		 */
+		if (z->free_count) {
+			zone = z;
+			break;
+		}
+		spinlock_unlock(&z->lock);
+	}
+	
+	if (!zone) {
+		if (flags & FRAME_PANIC)
+			panic("Can't allocate frame.\n");
+		
+		/*
+		 * TODO: Sleep until frames are available again.
+		 */
+		spinlock_unlock(&zone_head_lock);
+		cpu_priority_restore(pri);
+
+		panic("Sleep not implemented.\n");
+		goto loop;
+	}
+		
+	tmp = zone->free_head.next;
+	frame = list_get_instance(tmp, frame_t, link);
+
+	frame->refcount++;
+	list_remove(tmp);			/* remove frame from free_head */
+	list_append(tmp, &zone->busy_head);	/* append frame to busy_head */
+	zone->free_count--;
+	zone->busy_count++;
+	
+	v = zone->base + (frame - zone->frames) * FRAME_SIZE;
+	
+	if (flags & FRAME_KA)
+		v = PA2KA(v);
+	
+	spinlock_unlock(&zone->lock);
+	
+	spinlock_unlock(&zone_head_lock);
+	cpu_priority_restore(pri);
+	
+	return v;
 }
 
-/*
- * Free a frame.
+/** Free a frame.
+ *
+ * Find respective frame structrue for supplied addr.
+ * Decrement frame reference count.
+ * If it drops to zero, move the frame structure to free list.
+ *
+ * @param addr Address of the frame to be freed. It must be a multiple of FRAME_SIZE.
  */
 void frame_free(__address addr)
 {
 	pri_t pri;
-	__u32 frame;
-
+	link_t *cur;
+	zone_t *z;
+	zone_t *zone = NULL;
+	frame_t *frame;
+	
+	ASSERT(addr % FRAME_SIZE == 0);
+	
 	pri = cpu_priority_high();
-	spinlock_lock(&framelock);
+	spinlock_lock(&zone_head_lock);
 	
-	frame = IS_KA(addr) ? KA2PA(addr) : addr;
-	frame /= FRAME_SIZE;
-	if (frame < frames) {
-		int m, n;
-	
-		m = frame / 8;
-		n = frame % 8;
-	
-		if (frame_bitmap[m] & (1<<n)) {
-			frame_bitmap[m] &= ~(1<<n);
-			frames_free++;
+	/*
+	 * First, find host frame zone for addr.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		if (IS_KA(addr))
+			addr = KA2PA(addr);
+		
+		/*
+		 * Check if addr belongs to z.
+		 */
+		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
+			zone = z;
+			break;
 		}
-		else panic("frame already free\n");
+		spinlock_unlock(&z->lock);
 	}
-	else panic("frame number too big\n");
 	
-	spinlock_unlock(&framelock);
+	ASSERT(zone != NULL);
+	
+	frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
+	ASSERT(frame->refcount);
+
+	if (!--frame->refcount) {
+		list_remove(&frame->link);			/* remove frame from busy_head */
+		list_append(&frame->link, &zone->free_head);	/* append frame to free_head */
+		zone->free_count++;
+		zone->busy_count--;
+	}
+	
+	spinlock_unlock(&zone->lock);	
+	
+	spinlock_unlock(&zone_head_lock);
 	cpu_priority_restore(pri);
 }
 
-/*
- * Don't use this function for normal allocation. Use frame_alloc() instead.
- * Use this function to declare that some special frame is not free.
+/** Mark frame not free.
+ *
+ * Find respective frame structrue for supplied addr.
+ * Increment frame reference count and move the frame structure to busy list.
+ *
+ * @param addr Address of the frame to be marked. It must be a multiple of FRAME_SIZE.
  */
 void frame_not_free(__address addr)
 {
 	pri_t pri;
-	__u32 frame;
+	link_t *cur;
+	zone_t *z;
+	zone_t *zone = NULL;
+	frame_t *frame;
+	
+	ASSERT(addr % FRAME_SIZE == 0);
 	
 	pri = cpu_priority_high();
-	spinlock_lock(&framelock);
-	frame = IS_KA(addr) ? KA2PA(addr) : addr;
-	frame /= FRAME_SIZE;
-	if (frame < frames) {
-		int m, n;
-
-		m = frame / 8;
-		n = frame % 8;
+	spinlock_lock(&zone_head_lock);
 	
-		if ((frame_bitmap[m] & (1<<n)) == 0) {	
-			frame_bitmap[m] |= (1<<n);
-			frames_free--;	
+	/*
+	 * First, find host frame zone for addr.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		if (IS_KA(addr))
+			addr = KA2PA(addr);
+		
+		/*
+		 * Check if addr belongs to z.
+		 */
+		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
+			zone = z;
+			break;
 		}
+		spinlock_unlock(&z->lock);
 	}
-	spinlock_unlock(&framelock);
+	
+	ASSERT(zone != NULL);
+	
+	frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
+
+	if (!frame->refcount) {
+		frame->refcount++;
+
+		list_remove(&frame->link);			/* remove frame from free_head */
+		list_append(&frame->link, &zone->busy_head);	/* append frame to busy_head */
+		zone->free_count--;
+		zone->busy_count++;
+	}
+	
+	spinlock_unlock(&zone->lock);	
+	
+	spinlock_unlock(&zone_head_lock);
 	cpu_priority_restore(pri);
 }
 
+/** Mark frame region not free.
+ *
+ * Mark frame region not free.
+ *
+ * @param start First address.
+ * @param stop Last address.
+ */
 void frame_region_not_free(__address start, __address stop)
 {
-	__address a;
+        __address a;
 
-	start /= FRAME_SIZE;
-	stop /= FRAME_SIZE;
-	for (a = start; a <= stop; a++)
-		frame_not_free(a * FRAME_SIZE);
+        start /= FRAME_SIZE;
+        stop /= FRAME_SIZE;
+        for (a = start; a <= stop; a++)
+                frame_not_free(a * FRAME_SIZE);
 }
+
 
 /** Initialize zonekeeping
  *
@@ -296,35 +361,4 @@ void frame_initialize(frame_t *frame, zone_t *zone)
 {
 	frame->refcount = 0;
 	link_initialize(&frame->link);
-	frame->zone = zone;
-}
-
-/** Get address of physical frame from its frame structure
- *
- * Get address of physical frame from its frame structure.
- *
- * @param frame Frame structure of the queried frame address.
- *
- * @return Address of frame associated with the argument.
- */
-__address frame_get_address(frame_t *frame)
-{
-	__address v;
-	zone_t *z;
-	pri_t pri;
-	
-	z = frame->zone;
-	
-	pri = cpu_priority_high();
-	spinlock_lock(&z->lock);
-
-	v = z->base + (frame - z->frames) * FRAME_SIZE;
-	
-	if (z->flags & FRAME_KA)
-		v = PA2KA(v);
-
-	spinlock_unlock(&z->lock);
-	cpu_priority_restore(pri);
-	
-	return v;
 }

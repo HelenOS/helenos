@@ -51,7 +51,6 @@ struct zone {
 };
 
 struct frame {
-	zone_t *zone;		/**< host zone */
 	count_t refcount;	/**< when > 0, the frame is in busy list, otherwise the frame is in free list */
 	link_t link;		/**< link either to frame_zone free or busy list */
 };
@@ -59,39 +58,20 @@ struct frame {
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
 extern link_t zone_head;		/**< list of all zones in the system */
 
-extern count_t frames;
-extern count_t frames_free;
-
-extern count_t kernel_frames;
-extern count_t kernel_frames_free;
-
-extern __u8 *frame_bitmap;
-extern count_t frame_bitmap_octets;
-
-extern __u8 *frame_kernel_bitmap;
+extern void zone_init(void);
+extern zone_t *zone_create(__address start, size_t size, int flags);
+extern void zone_attach(zone_t *zone);
 
 extern void frame_init(void);
-
+extern void frame_initialize(frame_t *frame, zone_t *zone);
 __address frame_alloc(int flags);
 extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
 
-extern void zone_init(void);
-extern zone_t *zone_create(__address start, size_t size, int flags);
-extern void zone_attach(zone_t *zone);
-
-extern void frame_initialize(frame_t *frame, zone_t *zone);
-extern __address frame_get_address(frame_t *frame);
-
 /*
  * TODO: Implement the following functions.
  */
-
-/*
-extern frame_t *frame_alloc(int flags);
-extern void frame_free(frame_t *frame);
-*/
 extern frame_t *frame_reference(frame_t *frame);
 extern void frame_release(frame_t *frame);
 

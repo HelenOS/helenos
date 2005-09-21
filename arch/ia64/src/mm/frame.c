@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mm/page.h>
+#include <arch/mm/frame.h>
 #include <mm/frame.h>
-#include <arch/mm/page.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
 #include <config.h>
+#include <panic.h>
 
-#include <memstr.h>
-
-
-__address bootstrap_dba; 
-
-void page_arch_init(void)
+void frame_arch_init(void)
 {
-	__address dba;
-	count_t i;
-
-	if (config.cpu_active == 1) {
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
-		memsetb(dba, PAGE_SIZE, 0);
-
-		bootstrap_dba = dba;
-
-		/*
-		 * PA2KA(identity) mapping for all frames.
-		 */
-		for (i = 0; i < config.memory_size/FRAME_SIZE; i++) {
-			map_page_to_frame(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
-		}
-
-		trap_register(14, page_fault);
-		write_cr3(KA2PA(dba));
+	zone_t *z;
+	
+	z = zone_create(0, config.memory_size, 0);
+	if (!z) {
+		panic("Can't allocate zone (%dB).\n", config.memory_size);
 	}
-	else {
-		/*
-		 * Application processors need to create their own view of the
-		 * virtual address space. Because of that, each AP copies
-		 * already-initialized paging information from the bootstrap
-		 * processor and adjusts it to fulfill its needs.
-		 */
-
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
-		memcpy((void *)dba, (void *)bootstrap_dba , PAGE_SIZE);
-		write_cr3(KA2PA(dba));
-	}
+	zone_attach(z);
 }

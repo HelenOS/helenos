@@ -32,4 +32,5 @@ arch_sources= \
 	arch/cpu/cpu.c \
 	arch/ivt.S \
 	arch/interrupt_handler.c \
-	arch/fmath.c
+	arch/fmath.c \
+	arch/mm/frame.c
