@@ -43,11 +43,11 @@ void frame_arch_init(void)
 	__u8 i;
 	
 	if (config.cpu_active == 1) {
-		for (i=e820counter;i>0;i--) {
-			if (e820table[i-1].type==MEMMAP_MEMORY_AVAILABLE) {
-				z = zone_create(e820table[i-1].base_address, e820table[i-1].size & ~(FRAME_SIZE-1), 0);
+		for (i=0;i<e820counter;i++) {
+			if (e820table[i].type==MEMMAP_MEMORY_AVAILABLE) {
+				z = zone_create(e820table[i].base_address, e820table[i].size & ~(FRAME_SIZE-1), 0);
 				if (!z) {
-					panic("Cannot allocate zone (%dB).\n", e820table[i-1].size & ~(FRAME_SIZE-1));
+					panic("Cannot allocate zone (%dB).\n", e820table[i].size & ~(FRAME_SIZE-1));
 				}
 				zone_attach(z);
 			}

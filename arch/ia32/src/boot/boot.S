@@ -213,20 +213,28 @@ multiboot_image_start:
 map_kernel:
 	#
 	# Here we setup mapping for both the unmapped and mapped sections of the kernel.
-	# For simplicity, we set only one 4M page for 0x00000000 and one for 0x80000000.
+	# For simplicity, we map the entire 4G space.
 	#
 	movl %cr4, %ecx
 	orl $(1<<4), %ecx
 	movl %ecx, %cr4							# turn PSE on
 	
+	movl $(page_directory+0), %esi
+	movl $(page_directory+2048), %edi
+	xorl %ecx, %ecx
+	xorl %ebx, %ebx
+0:
 	movl $((1<<7)|(1<<0)), %eax
-	movl %eax, page_directory					# mapping 0x00000000 => 0x00000000
+	orl %ebx, %eax
+	movl %eax, (%esi,%ecx,4)					# mapping 0x00000000+%ecx*4M => 0x00000000+%ecx*4M
+	movl %eax, (%edi,%ecx,4)					# mapping 0x80000000+%ecx*4M => 0x00000000+%ecx*4M
+	addl $(4*1024*1024), %ebx
 
-	movl $(page_directory+2048), %edx
-	movl %eax, (%edx)						# mapping 0x80000000 => 0x00000000
+	incl %ecx
+	cmpl $512, %ecx
+	jl 0b
 
-	leal page_directory, %eax
-	movl %eax, %cr3
+	movl %esi, %cr3
 	
 	# turn paging on
 	movl %cr0, %ebx
