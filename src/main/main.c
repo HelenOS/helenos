@@ -80,6 +80,11 @@ size_t hardcoded_kdata_size = 0;
 static size_t kernel_size;
 
 /*
+ * Size of heap.
+ */
+static size_t heap_size;
+
+/*
  * Extra space on heap to make the stack start on page boundary.
  */
 static size_t heap_delta;
@@ -107,18 +112,20 @@ void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
+	config.base = hardcoded_load_address;
+	config.memory_size = get_memory_size();
+
+	heap_size = CONFIG_HEAP_SIZE + (config.memory_size/FRAME_SIZE)*sizeof(frame_t);
 	
-	kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + CONFIG_HEAP_SIZE;	 
+	kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + heap_size;
 	heap_delta = PAGE_SIZE - ((hardcoded_load_address + kernel_size) % PAGE_SIZE);
 	heap_delta = (heap_delta == PAGE_SIZE) ? 0 : heap_delta;
 	kernel_size += heap_delta;
 	
-	config.base = hardcoded_load_address;
-	config.memory_size = get_memory_size();
 	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;
 	
 	context_save(&ctx);
-	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size + heap_delta, CONFIG_STACK_SIZE + CONFIG_HEAP_SIZE);
+	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size + heap_delta, CONFIG_STACK_SIZE + heap_size);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
@@ -139,7 +146,7 @@ void main_bsp_separated_stack(void)
 	the_initialize(THE);
 	
 	arch_pre_mm_init();
-	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_HEAP_SIZE + heap_delta);
+	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);
 	frame_init();
 	page_init();
 	tlb_init();
