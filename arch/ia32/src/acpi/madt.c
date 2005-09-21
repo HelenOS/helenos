@@ -51,10 +51,11 @@ static int madt_cmp(void * a, void * b);
 struct madt_l_apic *madt_l_apic_entries = NULL;
 struct madt_io_apic *madt_io_apic_entries = NULL;
 
-__u32 madt_l_apic_entry_index = 0;
-__u32 madt_io_apic_entry_index = 0;
-int madt_l_apic_entry_cnt = 0;
-int madt_io_apic_entry_cnt = 0;
+index_t madt_l_apic_entry_index = 0;
+index_t madt_io_apic_entry_index = 0;
+count_t madt_l_apic_entry_cnt = 0;
+count_t madt_io_apic_entry_cnt = 0;
+count_t cpu_count = 0;
 
 struct madt_apic_header * * madt_entries_index = NULL;
 int madt_entries_index_cnt = 0;
@@ -176,8 +177,8 @@ void acpi_madt_parse(void)
 	}
 	
 
-	if (madt_l_apic_entry_cnt)
-		config.cpu_count = madt_l_apic_entry_cnt;
+	if (cpu_count)
+		config.cpu_count = cpu_count;
 }
  
 
@@ -191,7 +192,8 @@ void madt_l_apic_entry(struct madt_l_apic *la, __u32 index)
 		/* Processor is unusable, skip it. */
 		return;
 	}
-		
+	
+	cpu_count++;	
 	apic_id_mask |= 1<<la->apic_id;
 }
 
