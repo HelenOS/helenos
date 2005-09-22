@@ -43,9 +43,9 @@ void memory_print_map(void)
 {
 	__u8 i;
 	
-	for (i=e820counter;i>0;i--) {
-		printf("E820 base: %Q size: %Q type: ", e820table[i-1].base_address, e820table[i-1].size);
-		switch (e820table[i-1].type) {
+	for (i=0;i<e820counter;i++) {
+		printf("E820 base: %Q size: %Q type: ", e820table[i].base_address, e820table[i].size);
+		switch (e820table[i].type) {
 			case MEMMAP_MEMORY_AVAILABLE: 
 				printf("available memory\n");
 				break;
