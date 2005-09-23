@@ -52,7 +52,7 @@ struct zone {
 struct frame {
 	count_t refcount;	/**< when == 0, the frame is in free list */
 	link_t link;		/**< link to zone free list when refcount == 0 */
-} __attribute__ ((packed));
+};
 
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
 extern link_t zone_head;		/**< list of all zones in the system */

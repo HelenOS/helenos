@@ -32,6 +32,9 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+#define malloc(size)		early_malloc(size)
+#define free(ptr)		early_free(ptr)
+
 struct chunk {
 	int used;
 	struct chunk *next;
@@ -40,9 +43,9 @@ struct chunk {
 	__native data[0];
 };
 
-extern void heap_init(__address heap, size_t size);
+extern void early_heap_init(__address heap, size_t size);
 
-extern void *malloc(size_t size);
-extern void free(void *ptr);
+extern void *early_malloc(size_t size);
+extern void early_free(void *ptr);
 
 #endif

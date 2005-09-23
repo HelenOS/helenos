@@ -147,7 +147,7 @@ void main_bsp_separated_stack(void)
 	the_initialize(THE);
 	
 	arch_pre_mm_init();
-	heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);
+	early_heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);
 	frame_init();
 	page_init();
 	tlb_init();

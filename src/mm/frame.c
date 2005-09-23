@@ -298,7 +298,7 @@ zone_t *zone_create(__address start, size_t size, int flags)
 	
 	cnt = size / FRAME_SIZE;
 	
-	z = (zone_t *) malloc(sizeof(zone_t));
+	z = (zone_t *) early_malloc(sizeof(zone_t));
 	if (z) {
 		link_initialize(&z->link);
 		spinlock_initialize(&z->lock);
@@ -311,7 +311,7 @@ zone_t *zone_create(__address start, size_t size, int flags)
 
 		z->busy_count = 0;
 		
-		z->frames = (frame_t *) malloc(cnt * sizeof(frame_t));
+		z->frames = (frame_t *) early_malloc(cnt * sizeof(frame_t));
 		if (!z->frames) {
 			free(z);
 			return NULL;

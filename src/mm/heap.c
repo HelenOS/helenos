@@ -44,7 +44,7 @@
 static chunk_t *chunk0;
 static spinlock_t heaplock;
 
-void heap_init(__address heap, size_t size)
+void early_heap_init(__address heap, size_t size)
 {
 	spinlock_initialize(&heaplock);
 	memsetb(heap, size, 0);
@@ -58,7 +58,7 @@ void heap_init(__address heap, size_t size)
 /*
  * Uses first-fit algorithm.
  */
-void *malloc(size_t size)
+void *early_malloc(size_t size)
 {
 	pri_t pri;
 	chunk_t *x, *y, *z;
@@ -114,7 +114,7 @@ void *malloc(size_t size)
 	return NULL;
 }
 
-void free(void *ptr)
+void early_free(void *ptr)
 {
 	pri_t pri;
 	chunk_t *x, *y, *z;
