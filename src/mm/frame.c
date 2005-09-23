@@ -115,7 +115,6 @@ loop:
 
 	frame->refcount++;
 	list_remove(tmp);			/* remove frame from free_head */
-	list_append(tmp, &zone->busy_head);	/* append frame to busy_head */
 	zone->free_count--;
 	zone->busy_count++;
 	
@@ -180,7 +179,6 @@ void frame_free(__address addr)
 	ASSERT(frame->refcount);
 
 	if (!--frame->refcount) {
-		list_remove(&frame->link);			/* remove frame from busy_head */
 		list_append(&frame->link, &zone->free_head);	/* append frame to free_head */
 		zone->free_count++;
 		zone->busy_count--;
@@ -195,7 +193,7 @@ void frame_free(__address addr)
 /** Mark frame not free.
  *
  * Find respective frame structrue for supplied addr.
- * Increment frame reference count and move the frame structure to busy list.
+ * Increment frame reference count and remove the frame structure from free list.
  *
  * @param addr Address of the frame to be marked. It must be a multiple of FRAME_SIZE.
  */
@@ -241,7 +239,6 @@ void frame_not_free(__address addr)
 		frame->refcount++;
 
 		list_remove(&frame->link);			/* remove frame from free_head */
-		list_append(&frame->link, &zone->busy_head);	/* append frame to busy_head */
 		zone->free_count--;
 		zone->busy_count++;
 	}
@@ -313,7 +310,6 @@ zone_t *zone_create(__address start, size_t size, int flags)
 		list_initialize(&z->free_head);
 
 		z->busy_count = 0;
-		list_initialize(&z->busy_head);
 		
 		z->frames = (frame_t *) malloc(cnt * sizeof(frame_t));
 		if (!z->frames) {

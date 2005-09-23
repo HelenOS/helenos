@@ -44,16 +44,15 @@ struct zone {
 	__address base;		/**< physical address of the first frame in the frames array */
 	frame_t *frames;	/**< array of frame_t structures in this zone */
 	link_t free_head;	/**< list of free frame_t structures */
-	link_t busy_head;	/**< list of busy frame_t structures */
 	count_t free_count;	/**< number of frame_t structures in free list */
-	count_t busy_count;	/**< number of frame_t structures in busy list */
+	count_t busy_count;	/**< number of frame_t structures not in free list */
 	int flags;
 };
 
 struct frame {
-	count_t refcount;	/**< when > 0, the frame is in busy list, otherwise the frame is in free list */
-	link_t link;		/**< link either to frame_zone free or busy list */
-};
+	count_t refcount;	/**< when == 0, the frame is in free list */
+	link_t link;		/**< link to zone free list when refcount == 0 */
+} __attribute__ ((packed));
 
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
 extern link_t zone_head;		/**< list of all zones in the system */

@@ -35,10 +35,8 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <mm/vm.h>
 #include <main/kinit.h>
 #include <cpu.h>
-#include <mm/heap.h>
 
 #ifdef __SMP__
 #include <arch/smp/apic.h>
@@ -48,9 +46,12 @@
 #include <smp/smp.h>
 
 #include <arch/mm/memory_init.h>
+#include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/tlb.h>
+#include <mm/vm.h>
+
 #include <synch/waitq.h>
 
 #include <arch/arch.h>
