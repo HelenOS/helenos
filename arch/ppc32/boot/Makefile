@@ -6,7 +6,7 @@ PPC_TARGET=ppc-linux-gnu
 nothing:
 
 build: boot.bin
-	cp boot.bin ../../../src/load.bin
+	cp boot.bin ../../../load.bin
 
 CC=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-gcc
 AS=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-as

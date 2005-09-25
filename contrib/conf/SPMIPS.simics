@@ -3,7 +3,7 @@ run-python-file ../scripts/extrapath.py
 add-directory ../../import/mips
 read-configuration spmips.conf
 
-set-pc (cpu0.load-binary ../../../SPARTAN/src/kernel.bin)
+set-pc (cpu0.load-binary ../../../SPARTAN/kernel.bin)
 
 # Setup uart to use 8 bits
 @conf.tty0.lcr = 0xf;

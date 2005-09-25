@@ -6,7 +6,7 @@ MIPS_TARGET=mipsel-linux-gnu
 nothing:
 
 build: boot.bin
-	cp boot.bin ../../../src/load.bin
+	cp boot.bin ../../../load.bin
 
 AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
 CC=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-gcc

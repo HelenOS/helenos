@@ -2,12 +2,12 @@
 
 set -e
 # Generate context_offset.h
-(cd ../tools/amd64/;make gencontext;./gencontext)
+(cd tools/amd64/;make gencontext;./gencontext)
 # Create links to ia32 architecture
 
 (
 set -e
-cd ../arch
+cd arch
 for a in drivers bios fmath.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S smp/apic.c smp/ipi.c smp/mps.c smp/smp.c acpi; do
   if [ \! -e amd64/src/$a ]; then
     echo ln -sf `pwd`/ia32/src/$a amd64/src/$a

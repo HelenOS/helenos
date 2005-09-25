@@ -21,16 +21,16 @@ LFLAGS=-EL -M
 
 
 arch_sources= \
-	arch/start.S \
-	arch/asm.S \
-	arch/dummy.s \
-	arch/putchar.c \
-	arch/ia64.c \
-	arch/fpu_context.c \
-	arch/context.S \
-	arch/ski/ski.c \
-	arch/cpu/cpu.c \
-	arch/ivt.S \
-	arch/interrupt_handler.c \
-	arch/fmath.c \
-	arch/mm/frame.c
+	src/arch/start.S \
+	src/arch/asm.S \
+	src/arch/dummy.s \
+	src/arch/putchar.c \
+	src/arch/ia64.c \
+	src/arch/fpu_context.c \
+	src/arch/context.S \
+	src/arch/ski/ski.c \
+	src/arch/cpu/cpu.c \
+	src/arch/ivt.S \
+	src/arch/interrupt_handler.c \
+	src/arch/fmath.c \
+	src/arch/mm/frame.c

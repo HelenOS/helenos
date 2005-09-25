@@ -2,4 +2,4 @@
 
 make dist-clean ARCH=ia32
 
-rm ../arch/ia32/_link.ld
+rm arch/ia32/_link.ld

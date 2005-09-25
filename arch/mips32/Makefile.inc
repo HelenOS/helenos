@@ -71,24 +71,24 @@ ifeq (${MACHINE},simics)
  BFD_NAME=elf32-little
 endif
 
-../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
+arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(CFLAGS) -C -DBFD=${BFD} -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
-	arch/start.S \
-	arch/context.S \
-	arch/panic.S \
-	arch/mips32.c \
-	arch/dummy.S \
-	arch/console.c \
-	arch/asm.S \
-	arch/exception.c \
-	arch/interrupt.c \
-	arch/cache.c \
-	arch/cpu/cpu.c \
-	arch/mm/frame.c \
-	arch/mm/page.c \
-	arch/mm/tlb.c \
-	arch/fpu_context.c \
-	arch/fmath.c \
-	arch/drivers/arc.c
+	src/arch/start.S \
+	src/arch/context.S \
+	src/arch/panic.S \
+	src/arch/mips32.c \
+	src/arch/dummy.S \
+	src/arch/console.c \
+	src/arch/asm.S \
+	src/arch/exception.c \
+	src/arch/interrupt.c \
+	src/arch/cache.c \
+	src/arch/cpu/cpu.c \
+	src/arch/mm/frame.c \
+	src/arch/mm/page.c \
+	src/arch/mm/tlb.c \
+	src/arch/fpu_context.c \
+	src/arch/fmath.c \
+	src/arch/drivers/arc.c

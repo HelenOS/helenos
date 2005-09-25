@@ -3,9 +3,9 @@
 nothing:
 
 build: boot.bin
-	dd if=boot.bin of=../../../src/image.bin bs=512 conv=sync
-	-cat ../../../src/kernel.bin >>../../../src/image.bin
-	dd if=/dev/zero of=../../../src/image.bin bs=1 seek=1474559 count=1
+	dd if=boot.bin of=../../../image.bin bs=512 conv=sync
+	-cat ../../../kernel.bin >>../../../image.bin
+	dd if=/dev/zero of=../../../image.bin bs=1 seek=1474559 count=1
 
 boot.bin: boot.o
 	ld -T boot.ld -entry _start_0x7c00 --oformat binary boot.o -o $@

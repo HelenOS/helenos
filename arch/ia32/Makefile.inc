@@ -30,43 +30,43 @@ ifdef HT
 DEFS+=-D$(HT)
 endif
 
-CPPFLAGS=$(DEFS) -nostdinc -I../include
+CPPFLAGS=$(DEFS) -nostdinc -Iinclude/
 CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
 LFLAGS=-M
 
-../arch/$(ARCH)/_link.ld: ../arch/$(ARCH)/_link.ld.in
+arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
-	arch/context.s \
-	arch/debug/panic.s \
-	arch/cpuid.s \
-	arch/delay.s \
-	arch/asm.S \
-	arch/proc/scheduler.c \
-	arch/acpi/acpi.c \
-	arch/acpi/madt.c \
-	arch/bios/bios.c \
-	arch/smp/ap.S \
-	arch/smp/apic.c \
-	arch/smp/mps.c \
-	arch/smp/smp.c \
-	arch/atomic.S \
-	arch/smp/ipi.c \
-	arch/ia32.c \
-	arch/interrupt.c \
-	arch/pm.c \
-	arch/userspace.c \
-	arch/cpu/cpu.c \
-	arch/mm/frame.c \
-	arch/mm/memory_init.c \
-	arch/mm/page.c \
-	arch/mm/tlb.c \
-	arch/drivers/i8042.c \
-	arch/drivers/i8254.c \
-	arch/drivers/i8259.c \
-	arch/drivers/ega.c \
-	arch/boot/boot.S \
-	arch/boot/memmap.S\
-	arch/fpu_context.c\
-	arch/fmath.c
+	src/arch/context.s \
+	src/arch/debug/panic.s \
+	src/arch/cpuid.s \
+	src/arch/delay.s \
+	src/arch/asm.S \
+	src/arch/proc/scheduler.c \
+	src/arch/acpi/acpi.c \
+	src/arch/acpi/madt.c \
+	src/arch/bios/bios.c \
+	src/arch/smp/ap.S \
+	src/arch/smp/apic.c \
+	src/arch/smp/mps.c \
+	src/arch/smp/smp.c \
+	src/arch/atomic.S \
+	src/arch/smp/ipi.c \
+	src/arch/ia32.c \
+	src/arch/interrupt.c \
+	src/arch/pm.c \
+	src/arch/userspace.c \
+	src/arch/cpu/cpu.c \
+	src/arch/mm/frame.c \
+	src/arch/mm/memory_init.c \
+	src/arch/mm/page.c \
+	src/arch/mm/tlb.c \
+	src/arch/drivers/i8042.c \
+	src/arch/drivers/i8254.c \
+	src/arch/drivers/i8259.c \
+	src/arch/drivers/ega.c \
+	src/arch/boot/boot.S \
+	src/arch/boot/memmap.S\
+	src/arch/fpu_context.c\
+	src/arch/fmath.c

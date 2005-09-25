@@ -8,7 +8,6 @@ else
 fi
 
 # Generate context_offset.h
-(cd ../tools/mips32/;make gencontext;./gencontext)
-rm ../arch/mips32/_link.ld
+(cd tools/mips32/;make gencontext;./gencontext)
 
 make all ARCH=mips32 MACHINE=$MACHINE

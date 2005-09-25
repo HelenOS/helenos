@@ -1,0 +1,9 @@
+#! /bin/sh
+
+make dist-clean ARCH=amd64
+make dist-clean ARCH=ia32
+
+find arch/amd64 -type l | xargs rm
+rm arch/amd64/include/context_offset.h
+rm arch/amd64/_link.ld
+rm tools/amd64/gencontext

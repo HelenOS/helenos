@@ -18,16 +18,16 @@ CFLAGS=$(DEFS) -nostdlib -fno-builtin -O2
 LFLAGS=-M -no-check-sections -N
 
 arch_sources= \
-	arch/context.S \
-	arch/debug/panic.s \
-	arch/fpu_context.c \
-	arch/ppc32.c \
-	arch/dummy.s \
-	arch/start.S \
-	arch/asm.S \
-	arch/cpu/cpu.c \
-	arch/mm/frame.c \
-	arch/mm/memory_init.c \
-	arch/mm/page.c \
-	arch/drivers/ofw.c \
-	arch/fmath.c
+	src/arch/context.S \
+	src/arch/debug/panic.s \
+	src/arch/fpu_context.c \
+	src/arch/ppc32.c \
+	src/arch/dummy.s \
+	src/arch/start.S \
+	src/arch/asm.S \
+	src/arch/cpu/cpu.c \
+	src/arch/mm/frame.c \
+	src/arch/mm/memory_init.c \
+	src/arch/mm/page.c \
+	src/arch/drivers/ofw.c \
+	src/arch/fmath.c

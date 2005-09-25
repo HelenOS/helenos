@@ -6,7 +6,7 @@ IA-64_TARGET=ia64-pc-linux-gnu
 nothing:
 
 build: boot.bin
-	cp boot.bin ../../../src/load.bin
+	cp boot.bin ../../../load.bin
 
 AS=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-as
 LD=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-ld
