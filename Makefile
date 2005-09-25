@@ -9,6 +9,7 @@ sources=src/cpu/cpu.c \
 	src/proc/thread.c \
 	src/proc/task.c \
 	src/proc/the.c \
+	src/mm/buddy.c \
 	src/mm/heap.c \
 	src/mm/frame.c \
 	src/mm/page.c \

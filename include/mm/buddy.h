@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPEDEFS_H__
-#define __TYPEDEFS_H__
+#ifndef __BUDDY_H__
+#define __BUDDY_H__
 
-#define false 0
-#define true 1
+#include <arch/types.h>
+#include <typedefs.h>
 
-typedef short bool;
+struct buddy_operations {
+	link_t *(* find_buddy)(link_t *);
+	link_t *(* bisect)(link_t *);
+	link_t *(* coalesce)(link_t *, link_t *);
+	void (*set_order)(link_t *, __u8);
+	__u8 (*get_order)(link_t *);
+};
 
-typedef unsigned int size_t;
-typedef unsigned int count_t;
-typedef unsigned int index_t;
+struct buddy_system {
+	__u8 max_order;
+	link_t *order;
+	buddy_operations_t *op;
+};
 
-typedef struct config config_t;
-typedef struct cpu_private_data cpu_private_data_t;
-typedef struct cpu_info cpu_info_t;
-
-typedef struct cpu cpu_t;
-typedef struct cpu_arch cpu_arch_t;
-typedef struct task task_t;
-typedef struct thread thread_t;
-typedef struct context context_t;
-typedef struct fpu_context fpu_context_t;
-
-typedef struct timeout timeout_t;
-
-typedef struct runq runq_t;
-
-typedef struct spinlock spinlock_t;
-typedef struct mutex mutex_t;
-typedef struct semaphore semaphore_t;
-typedef struct rwlock rwlock_t;
-typedef enum rwlock_type rwlock_type_t;
-typedef struct condvar condvar_t;
-typedef struct waitq waitq_t;
-
-typedef struct chunk chunk_t;
-
-typedef struct buddy_system buddy_system_t;
-typedef struct buddy_operations buddy_operations_t;
-
-typedef struct zone zone_t;
-typedef struct frame frame_t;
-
-typedef enum vm_type vm_type_t;
-typedef struct vm_area vm_area_t;
-typedef struct vm vm_t;
-
-typedef struct link link_t;
-
-typedef char *char_ptr;
-
-typedef struct the the_t;
+extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_operations_t *op);
+extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
+extern void buddy_system_free(buddy_system_t *b, link_t *block);
 
 #endif
