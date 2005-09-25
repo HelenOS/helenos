@@ -313,7 +313,7 @@ zone_t *zone_create(__address start, size_t size, int flags)
 		
 		z->frames = (frame_t *) early_malloc(cnt * sizeof(frame_t));
 		if (!z->frames) {
-			free(z);
+			early_free(z);
 			return NULL;
 		}
 		
