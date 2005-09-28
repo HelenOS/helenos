@@ -29,23 +29,23 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <cpu.h>
+#include <mm/heap.h>
+#include <mm/frame.h>
+#include <mm/page.h>
 #include <mm/vm.h>
+#include <arch/asm.h>
+#include <arch/faddr.h>
+#include <arch/atomic.h>
+#include <synch/spinlock.h>
 #include <config.h>
 #include <context.h>
 #include <func.h>
 #include <arch.h>
-#include <arch/asm.h>
 #include <list.h>
 #include <panic.h>
 #include <typedefs.h>
-#include <mm/page.h>
-#include <synch/spinlock.h>
-#include <arch/faddr.h>
-#include <arch/atomic.h>
+#include <cpu.h>
 #include <print.h>
-#include <mm/frame.h>
-#include <mm/heap.h>
 #include <debug.h>
 
 volatile count_t nrdy;

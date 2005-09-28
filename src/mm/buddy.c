@@ -48,6 +48,8 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_operations_t *op)
 	buddy_system_t *b;
 	int i;
 
+	ASSERT(max_order < BUDDY_SYSTEM_INNER_BLOCK);
+
 	ASSERT(op->find_buddy);
 	ASSERT(op->set_order);
 	ASSERT(op->get_order);
@@ -166,10 +168,19 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 	buddy = b->op->find_buddy(block);
 	
 	if (buddy && i != b->max_order - 1) {
+
+		ASSERT(b->op->get_order(buddy) == i);
+		
 		/*
 		 * Remove buddy from the list of order i.
 		 */
 		list_remove(buddy);
+		
+		/*
+		 * Invalidate order of both block and buddy.
+		 */
+		b->op->set_order(block, BUDDY_SYSTEM_INNER_BLOCK);
+		b->op->set_order(buddy, BUDDY_SYSTEM_INNER_BLOCK);
 		
 		/*
 		 * Coalesce block and buddy into one block.

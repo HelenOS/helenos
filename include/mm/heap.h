@@ -45,7 +45,7 @@ struct chunk {
 
 extern void early_heap_init(__address heap, size_t size);
 
-extern void *early_malloc(size_t size);
+extern void *early_malloc(size_t size) __attribute__ ((malloc));
 extern void early_free(void *ptr);
 
 #endif

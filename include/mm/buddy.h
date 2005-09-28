@@ -32,6 +32,8 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+#define BUDDY_SYSTEM_INNER_BLOCK	0xff
+
 struct buddy_operations {
 	link_t *(* find_buddy)(link_t *);
 	link_t *(* bisect)(link_t *);
