@@ -162,46 +162,47 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 
 	ASSERT(i < b->max_order);
 
+	if (i != b->max_order - 1) {
+		/*
+		 * See if there is any buddy in the list of order i.
+		 */
+		buddy = b->op->find_buddy(block);
+		if (buddy) {
+
+			ASSERT(b->op->get_order(buddy) == i);
+		
+			/*
+			 * Remove buddy from the list of order i.
+			 */
+			list_remove(buddy);
+		
+			/*
+			 * Invalidate order of both block and buddy.
+			 */
+			b->op->set_order(block, BUDDY_SYSTEM_INNER_BLOCK);
+			b->op->set_order(buddy, BUDDY_SYSTEM_INNER_BLOCK);
+		
+			/*
+			 * Coalesce block and buddy into one block.
+			 */
+			hlp = b->op->coalesce(block, buddy);
+
+			/*
+			 * Set order of the coalesced block to i + 1.
+			 */
+			b->op->set_order(hlp, i + 1);
+
+			/*
+			 * Recursively add the coalesced block to the list of order i + 1.
+			 */
+			buddy_system_free(b, hlp);
+			return;
+		}
+	}
+
 	/*
-	 * See if there is any buddy in the list of order i.
+	 * Insert block into the list of order i.
 	 */
-	buddy = b->op->find_buddy(block);
-	
-	if (buddy && i != b->max_order - 1) {
-
-		ASSERT(b->op->get_order(buddy) == i);
-		
-		/*
-		 * Remove buddy from the list of order i.
-		 */
-		list_remove(buddy);
-		
-		/*
-		 * Invalidate order of both block and buddy.
-		 */
-		b->op->set_order(block, BUDDY_SYSTEM_INNER_BLOCK);
-		b->op->set_order(buddy, BUDDY_SYSTEM_INNER_BLOCK);
-		
-		/*
-		 * Coalesce block and buddy into one block.
-		 */
-		hlp = b->op->coalesce(block, buddy);
-
-		/*
-		 * Set order of the coalesced block to i + 1.
-		 */
-		b->op->set_order(hlp, i + 1);
-
-		/*
-		 * Recursively add the coalesced block to the list of order i + 1.
-		 */
-		buddy_system_free(b, hlp);
-	}
-	else {
-		/*
-		 * Insert block into the list of order i.
-		 */
-		list_append(block, &b->order[i]);
-	}
+	list_append(block, &b->order[i]);
 
 }
