@@ -2,9 +2,9 @@
 
 COMPILER=""
 
-if [ $1 == "cross" ];
+if [ $1 == "native" ];
 then
-	COMPILER="CROSS_COMPILER=yes";
+	COMPILER="NATIVE_COMPILER=yes";
 fi;
 
 make all ARCH=ia32 $COMPILER

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef fpu_context_h
-#define fpu_context_h
+#ifndef __FPU_CONTEXT_H__
+#define __FPU_CONTEXT_H__
 
 
 #include <arch/fpu_context.h>
@@ -40,5 +40,5 @@ extern void fpu_enable(void);
 extern void fpu_disable(void);
 
 
-#endif /*fpu_context_h*/
+#endif /* __FPU_CONTEXT_H__ */
 

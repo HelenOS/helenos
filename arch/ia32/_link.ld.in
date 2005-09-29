@@ -21,11 +21,12 @@ SECTIONS {
 		*(K_TEXT_START);
 		*(K_TEXT_START_2);
 		unmapped_ktext_end = .;
-		
+	
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
-		LONG(0xdeadbeaf);		/* TODO: remove 0xdeadbeaf */
 		unmapped_kdata_end = .;
+		
+		LONG(0xdeadbeaf);		/* TODO: remove 0xdeadbeaf */						
 	}
 	
 	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)): AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) { 
@@ -49,14 +50,17 @@ SECTIONS {
 		hardcoded_unmapped_kdata_size = .;
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
 		*(.bss);			/* uninitialized static variables */
-		*(.note.GNU-stack);
-                *(.comment);
-
 		symbol_table = .;
 		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
 
 		kdata_end = .;
 	}
+
+	/DISCARD/ : {
+		*(.note.GNU-stack);		
+		*(.comment);
+	}
+
 	
 	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);

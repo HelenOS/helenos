@@ -34,7 +34,7 @@
 
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff
 
-struct buddy_operations {
+struct buddy_system_operations {
 	link_t *(* find_buddy)(link_t *);
 	link_t *(* bisect)(link_t *);
 	link_t *(* coalesce)(link_t *, link_t *);
@@ -45,10 +45,10 @@ struct buddy_operations {
 struct buddy_system {
 	__u8 max_order;
 	link_t *order;
-	buddy_operations_t *op;
+	buddy_system_operations_t *op;
 };
 
-extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_operations_t *op);
+extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op);
 extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
 

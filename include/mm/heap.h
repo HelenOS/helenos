@@ -37,8 +37,8 @@
 
 struct chunk {
 	int used;
-	struct chunk *next;
-	struct chunk *prev;
+	chunk_t *next;
+	chunk_t *prev;
 	__u32 size;
 	__native data[0];
 };

@@ -43,7 +43,7 @@
  *
  * @return New buddy system.
  */
-buddy_system_t *buddy_system_create(__u8 max_order, buddy_operations_t *op)
+buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op)
 {
 	buddy_system_t *b;
 	int i;

@@ -1,4 +1,10 @@
-ifeq (${CROSS_COMPILER},yes)
+ifeq (${NATIVE_COMPILER},yes)
+	CC=gcc
+	AS=as
+	LD=ld
+	OBJCOPY=objcopy
+	OBJDUMP=objdump
+else
 	IA-32_TARGET=i686-pc-linux-gnu
 
 	IA-32_CC_DIR=/usr/local/i686/bin
@@ -9,12 +15,6 @@ ifeq (${CROSS_COMPILER},yes)
 	LD=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-ld
 	OBJCOPY=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objcopy
 	OBJDUMP=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objdump
-else
-	CC=gcc
-	AS=as
-	LD=ld
-	OBJCOPY=objcopy
-	OBJDUMP=objdump
 endif
 
 BFD_NAME=elf32-i386

@@ -64,7 +64,7 @@ typedef struct waitq waitq_t;
 typedef struct chunk chunk_t;
 
 typedef struct buddy_system buddy_system_t;
-typedef struct buddy_operations buddy_operations_t;
+typedef struct buddy_system_operations buddy_system_operations_t;
 
 typedef struct zone zone_t;
 typedef struct frame frame_t;

@@ -206,8 +206,7 @@ memsetw:
 #
 # Compare a given number of bytes (3rd argument)
 # at memory locations defined by 1st and 2nd argument
-# for equality. If the bytes are equal, EAX contains
-# 0.
+# for equality. If the bytes are equal, EAX contains 0.
 #
 SRC=12
 DST=16
