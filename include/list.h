@@ -37,18 +37,37 @@ struct link {
 	link_t *next;
 };
 
+/** Initialize doubly-linked circular list link
+ *
+ * Initialize doubly-linked list link.
+ *
+ * @param link Pointer to link_t structure to be initialized.
+ */
 static inline void link_initialize(link_t *link)
 {
 	link->prev = NULL;
 	link->next = NULL;
 }
 
+/** Initialize doubly-linked circular list
+ *
+ * Initialize doubly-linked circular list.
+ *
+ * @param head Pointer to link_t structure representing head of the list.
+ */
 static inline void list_initialize(link_t *head)
 {
 	head->prev = head;
 	head->next = head;
 }
 
+/** Add item to the beginning of doubly-linked circular list
+ *
+ * Add item to the beginning of doubly-linked circular list.
+ *
+ * @param link Pointer to link_t structure to be added.
+ * @param head Pointer to link_t structure representing head of the list.
+ */
 static inline void list_prepend(link_t *link, link_t *head)
 {
 	link->next = head->next;
@@ -57,6 +76,13 @@ static inline void list_prepend(link_t *link, link_t *head)
 	head->next = link;
 }
 
+/** Add item to the end of doubly-linked circular list
+ *
+ * Add item to the end of doubly-linked circular list.
+ *
+ * @param link Pointer to link_t structure to be added.
+ * @param head Pointer to link_t structure representing head of the list.
+ */
 static inline void list_append(link_t *link, link_t *head)
 {
 	link->prev = head->prev;
@@ -65,6 +91,12 @@ static inline void list_append(link_t *link, link_t *head)
 	head->prev = link;
 }
 
+/** Remove item from doubly-linked circular list
+ *
+ * Remove item from doubly-linked circular list.
+ *
+ * @param link Pointer to link_t structure to be removed from the list it is contained in.
+ */
 static inline void list_remove(link_t *link)
 {
 	link->next->prev = link->prev;
@@ -72,7 +104,63 @@ static inline void list_remove(link_t *link)
 	link_initialize(link);
 }
 
-static inline bool list_empty(link_t *head) { return head->next == head ? true : false; }
+/** Query emptiness of doubly-linked circular list
+ *
+ * Query emptiness of doubly-linked circular list.
+ *
+ * @param head Pointer to link_t structure representing head of the list.
+ */
+static inline bool list_empty(link_t *head)
+{
+	return head->next == head ? true : false;
+}
+
+
+/** Split or concatenate headless doubly-linked circular list
+ *
+ * Split or concatenate headless doubly-linked circular list.
+ *
+ * Note that the algorithm works both directions:
+ * concatenates splitted lists and splits concatenated lists.
+ *
+ * @param part1 Pointer to link_t structure leading the first (half of the headless) list.
+ * @param part2 Pointer to link_t structure leading the second (half of the headless) list. 
+ */
+static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
+{
+	link_t *hlp;
+
+	part1->prev->next = part2;
+	part2->prev->next = part1;	
+	hlp = part1->prev;
+	part1->prev = part2->prev;
+	part2->prev = hlp;
+}
+
+
+/** Split headless doubly-linked circular list
+ *
+ * Split headless doubly-linked circular list.
+ *
+ * @param part1 Pointer to link_t structure leading the first half of the headless list.
+ * @param part2 Pointer to link_t structure leading the second half of the headless list. 
+ */
+static inline void headless_list_split(link_t *part1, link_t *part2)
+{
+	headless_list_split_or_concat(part1, part2);
+}
+
+/** Concatenate two headless doubly-linked circular lists
+ *
+ * Concatenate two headless doubly-linked circular lists.
+ *
+ * @param part1 Pointer to link_t structure leading the first headless list.
+ * @param part2 Pointer to link_t structure leading the second headless list. 
+ */
+static inline void headless_list_concat(link_t *part1, link_t *part2)
+{
+	headless_list_split_or_concat(part1, part2);
+}
 
 #define list_get_instance(link,type,member) (type *)(((__u8*)(link))-((__u8*)&(((type *)NULL)->member)))
 
