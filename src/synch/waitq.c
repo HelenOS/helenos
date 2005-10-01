@@ -26,21 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <context.h>
-#include <proc/thread.h>
-
-#include <synch/synch.h>
 #include <synch/waitq.h>
+#include <synch/synch.h>
 #include <synch/spinlock.h>
-
+#include <proc/thread.h>
 #include <arch/asm.h>
 #include <arch/types.h>
+#include <time/timeout.h>
 #include <arch.h>
-
+#include <context.h>
 #include <list.h>
 
-#include <time/timeout.h>
-
+/** Initialize wait queue
+ *
+ * Initialize wait queue.
+ *
+ * @param wq Pointer to wait queue to be initialized.
+ */
 void waitq_initialize(waitq_t *wq)
 {
 	spinlock_initialize(&wq->lock);
@@ -48,14 +50,17 @@ void waitq_initialize(waitq_t *wq)
 	wq->missed_wakeups = 0;
 }
 
-/*
- * Called with interrupts disabled from clock() when sleep_timeout
- * timeouts. This function is not allowed to enable interrupts.
+/** Handle timeout during waitq_sleep_timeout() call
  *
- * It is supposed to try to remove 'its' thread from the waitqueue; it
- * can eventually fail to achieve this goal when these two events
- * overlap; in that case it behaves just as though there was no
- * timeout at all
+ * This routine is called when waitq_sleep_timeout() timeouts.
+ * Interrupts are disabled.
+ *
+ * It is supposed to try to remove 'its' thread from the wait queue;
+ * it can eventually fail to achieve this goal when these two events
+ * overlap. In that case it behaves just as though there was no
+ * timeout at all.
+ *
+ * @param data Pointer to the thread that called waitq_sleep_timeout().
  */
 void waitq_interrupted_sleep(void *data)
 {
@@ -92,15 +97,22 @@ out:
 	spinlock_unlock(&threads_lock);
 }
 
-/*
+/** Sleep until either wakeup or timeout occurs
+ *
  * This is a sleep implementation which allows itself to be
  * interrupted from the sleep, restoring a failover context.
+ *
+ * Sleepers are organised in FIFO fashion in a structure called wait queue.
  *
  * This function is really basic in that other functions as waitq_sleep()
  * and all the *_timeout() functions use it.
  *
- * The third argument controls whether only a conditional sleep
- * (non-blocking sleep) is called for when the second argument is 0.
+ * @param wq Pointer to wait queue.
+ * @param usec Timeout value in microseconds.
+ * @param nonblocking Controls whether only a conditional sleep
+ *        (non-blocking sleep) is called for when the usec argument is 0.
+ *
+ * Relation between 'usec' and 'nonblocking' is described by this table:
  *
  * usec | nonblocking |	what happens if there is no missed_wakeup
  * -----+-------------+--------------------------------------------
@@ -108,11 +120,17 @@ out:
  *  0	| <> 0	      |	immediately returns ESYNCH_WOULD_BLOCK
  *  > 0	| x	      |	blocks with timeout until timeout or wakeup
  *
- * return values:
- *  ESYNCH_WOULD_BLOCK 
- *  ESYNCH_TIMEOUT 
- *  ESYNCH_OK_ATOMIC 
- *  ESYNCH_OK_BLOCKED
+ * @return Returns one of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT,
+ *         ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
+ *
+ * Meaning of the return values is described by the following chart:
+ *
+ * ESYNCH_WOULD_BLOCK 	Sleep failed because at the time of the call,
+ *			there was no pending wakeup.
+ * ESYNCH_TIMEOUT 	Sleep timed out.
+ * ESYNCH_OK_ATOMIC 	Sleep succeeded; at the time of the call,
+ *			where was a pending wakeup.
+ * ESYNCH_OK_BLOCKED	Sleep succeeded; the full sleep was attempted.
  */
 int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking)
 {
@@ -192,11 +210,18 @@ restart:
 }
 
 
-/*
- * This is the SMP- and IRQ-safe wrapper meant for general use.
- */
-/*
- * Besides its 'normal' wakeup operation, it attempts to unregister possible timeout.
+/** Wake up first thread sleeping in a wait queue
+ *
+ * Wake up first thread sleeping in a wait queue.
+ * This is the SMP- and IRQ-safe wrapper meant for
+ * general use.
+ *
+ * Besides its 'normal' wakeup operation, it attempts
+ * to unregister possible timeout.
+ *
+ * @param wq Pointer to wait queue.
+ * @param all If this is non-zero, all sleeping threads
+ *        will be woken up and missed count will be zeroed.
  */
 void waitq_wakeup(waitq_t *wq, int all)
 {
@@ -211,9 +236,15 @@ void waitq_wakeup(waitq_t *wq, int all)
 	cpu_priority_restore(pri);	
 }
 
-/*
- * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup.
- * It assumes wq->lock is already locked.
+/** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
+ *
+ * This is the internal SMP- and IRQ-unsafe version
+ * of waitq_wakeup(). It assumes wq->lock is already
+ * locked and interrupts are already disabled.
+ *
+ * @param wq Pointer to wait queue.
+ * @param all If this is non-zero, all sleeping threads
+ *        will be woken up and missed count will be zeroed.
  */
 void _waitq_wakeup_unsafe(waitq_t *wq, int all)
 {
