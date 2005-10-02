@@ -26,20 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <synch/synch.h>
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
+#include <synch/synch.h>
 
+/** Initialize mutex
+ *
+ * Initialize mutex.
+ *
+ * @param mtx Mutex.
+ */
 void mutex_initialize(mutex_t *mtx)
 {
 	semaphore_initialize(&mtx->sem, 1);
 }
 
+/** Acquire mutex
+ *
+ * Acquire mutex.
+ * Timeout mode and non-blocking mode can be requested.
+ *
+ * @param mxt Mutex.
+ * @param usec Timeout in microseconds.
+ * @param trylock Switches between blocking and non-blocking mode.
+ *
+ * For exact description of possible combinations of
+ * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
 int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int trylock)
 {
 	return _semaphore_down_timeout(&mtx->sem, usec, trylock);
 }
 
+/** Release mutex
+ *
+ * Release mutex.
+ *
+ * @param mtx Mutex.
+ */
 void mutex_unlock(mutex_t *mtx)
 {
 	semaphore_up(&mtx->sem);
