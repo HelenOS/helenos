@@ -26,13 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <synch/synch.h>
 #include <synch/semaphore.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
+#include <synch/synch.h>
 #include <arch/asm.h>
 #include <arch.h>
 
+/** Initialize semaphore
+ *
+ * Initialize semaphore.
+ *
+ * @param s Semaphore.
+ * @param val Maximal number of threads allowed to enter critical section.
+ */
 void semaphore_initialize(semaphore_t *s, int val)
 {
 	pri_t pri;
@@ -48,11 +55,31 @@ void semaphore_initialize(semaphore_t *s, int val)
 	cpu_priority_restore(pri);
 }
 
+/** Semaphore down
+ *
+ * Semaphore down.
+ * Conditional mode and mode with timeout can be requested.
+ *
+ * @param s Semaphore.
+ * @param usec Timeout in microseconds.
+ * @param trydown Switches between blocking and non-blocking mode.
+ *
+ * For exact description of possible combinations of
+ * 'usec' and 'trydown', see comment for waitq_sleep_timeout().
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
 int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int trydown)
 {
 	return waitq_sleep_timeout(&s->wq, usec, trydown); 
 }
 
+/** Semaphore up
+ *
+ * Semaphore up.
+ *
+ * @param s Semaphore.
+ */
 void semaphore_up(semaphore_t *s)
 {
 	waitq_wakeup(&s->wq, WAKEUP_FIRST);
