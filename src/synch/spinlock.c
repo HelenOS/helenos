@@ -26,22 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
-
+#include <synch/spinlock.h>
 #include <arch/atomic.h>
 #include <arch/barrier.h>
-#include <synch/spinlock.h>
+#include <arch.h>
 #include <preemption.h>
 #include <print.h>
+#include <debug.h>
 
 #ifdef __SMP__
 
+/** Initialize spinlock
+ *
+ * Initialize spinlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
 void spinlock_initialize(spinlock_t *sl)
 {
 	sl->val = 0;
 }
 
 #ifdef DEBUG_SPINLOCK
+/** Lock spinlock
+ *
+ * Lock spinlock.
+ * This version has limitted ability to report 
+ * possible occurence of deadlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
 void spinlock_lock(spinlock_t *sl)
 {
 	int i = 0;
@@ -54,10 +68,22 @@ void spinlock_lock(spinlock_t *sl)
 			i = 0;
 		}
 	}
+
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
 	CS_ENTER_BARRIER();
 
 }
+
 #else
+
+/** Lock spinlock
+ *
+ * Lock spinlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
 void spinlock_lock(spinlock_t *sl)
 {
 	preemption_disable();
@@ -67,16 +93,34 @@ void spinlock_lock(spinlock_t *sl)
 	 * implementation of spinlock.
 	 */
 	spinlock_arch(&sl->val);
+
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
 	CS_ENTER_BARRIER();
 }
 #endif
 
+/** Lock spinlock conditionally
+ *
+ * Lock spinlock conditionally.
+ * If the spinlock is not available at the moment,
+ * signal failure.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ *
+ * @return Zero on failure, non-zero otherwise.
+ */
 int spinlock_trylock(spinlock_t *sl)
 {
 	int rc;
 	
 	preemption_disable();
 	rc = !test_and_set(&sl->val);
+
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
 	CS_ENTER_BARRIER();
 
 	if (!rc)
@@ -85,9 +129,21 @@ int spinlock_trylock(spinlock_t *sl)
 	return rc;
 }
 
+/** Unlock spinlock
+ *
+ * Unlock spinlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
 void spinlock_unlock(spinlock_t *sl)
 {
+	ASSERT(sl->val != 0);
+
+	/*
+	 * Prevent critical section code from bleeding out this way down.
+	 */
 	CS_LEAVE_BARRIER();
+	
 	sl->val = 0;
 	preemption_enable();
 }
