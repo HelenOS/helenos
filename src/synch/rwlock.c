@@ -50,12 +50,11 @@
  * each thread can block on only one rwlock at a time.
  */
  
-#include <synch/synch.h>
 #include <synch/rwlock.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
-
+#include <synch/synch.h>
 #include <list.h>
 #include <typedefs.h>
 #include <arch/asm.h>
@@ -69,12 +68,32 @@
 static void let_others_in(rwlock_t *rwl, int readers_only);
 static void release_spinlock(void *arg);
 
+/** Initialize reader/writer lock
+ *
+ * Initialize reader/writer lock.
+ *
+ * @param rwl Reader/Writer lock.
+ */
 void rwlock_initialize(rwlock_t *rwl) {
 	spinlock_initialize(&rwl->lock);
 	mutex_initialize(&rwl->exclusive);
 	rwl->readers_in = 0;
 }
 
+/** Acquire reader/writer lock for reading
+ *
+ * Acquire reader/writer lock for reading.
+ * Timeout and willingness to block may be specified.
+ *
+ * @param rwl Reader/Writer lock.
+ * @param usec Timeout in microseconds.
+ * @param trylock Switches between blocking and non-blocking mode.
+ *
+ * For exact description of possible combinations of
+ * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
 int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 {
 	pri_t pri;
@@ -115,6 +134,20 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 	return rc;
 }
 
+/** Acquire reader/writer lock for writing
+ *
+ * Acquire reader/writer lock for writing.
+ * Timeout and willingness to block may be specified.
+ *
+ * @param rwl Reader/Writer lock.
+ * @param usec Timeout in microseconds.
+ * @param trylock Switches between blocking and non-blocking mode.
+ *
+ * For exact description of possible combinations of
+ * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
 int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 {
 	int rc;
@@ -208,6 +241,14 @@ shortcut:
 	return ESYNCH_OK_ATOMIC;
 }
 
+/** Release reader/writer lock held by writer
+ *
+ * Release reader/writer lock held by writer.
+ * Handoff reader/writer lock ownership directly
+ * to waiting readers or a writer.
+ *
+ * @param rwl Reader/Writer lock.
+ */
 void rwlock_write_unlock(rwlock_t *rwl)
 {
 	pri_t pri;
@@ -220,6 +261,15 @@ void rwlock_write_unlock(rwlock_t *rwl)
 	
 }
 
+/** Release reader/writer lock held by reader
+ *
+ * Release reader/writer lock held by reader.
+ * Handoff reader/writer lock ownership directly
+ * to a waiting writer or don't do anything if more
+ * readers poses the lock.
+ *
+ * @param rwl Reader/Writer lock.
+ */
 void rwlock_read_unlock(rwlock_t *rwl)
 {
 	pri_t pri;
@@ -233,11 +283,17 @@ void rwlock_read_unlock(rwlock_t *rwl)
 }
 
 
-/*
+/** Direct handoff
+ *
+ * Direct handoff of reader/writer lock ownership
+ * to waiting readers or a writer.
+ *
  * Must be called with rwl->lock locked.
  * Must be called with cpu_priority_high'ed.
- */
-/*
+ *
+ * @param rwl Reader/Writer lock.
+ * @param readers_only See the description below.
+ *
  * If readers_only is false: (unlock scenario)
  * Let the first sleeper on 'exclusive' mutex in, no matter
  * whether it is a reader or a writer. If there are more leading
@@ -305,6 +361,13 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 	spinlock_unlock(&rwl->exclusive.sem.wq.lock);
 }
 
+/** Release spinlock callback
+ *
+ * This is a callback function invoked from the scheduler.
+ * The callback is registered in _rwlock_read_lock_timeout().
+ *
+ * @param arg Spinlock.
+ */
 void release_spinlock(void *arg)
 {
 	spinlock_unlock((spinlock_t *) arg);
