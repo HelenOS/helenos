@@ -26,26 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <synch/synch.h>
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
+#include <synch/synch.h>
 
+/** Initialize condition variable
+ *
+ * Initialize condition variable.
+ *
+ * @param cv Condition variable.
+ */
 void condvar_initialize(condvar_t *cv)
 {
 	waitq_initialize(&cv->wq);
 }
 
+/** Signal the condition has become true
+ *
+ * Signal the condition has become true
+ * to the first waiting thread by waking it up.
+ *
+ * @param Condition variable.
+ */
 void condvar_signal(condvar_t *cv)
 {
 	waitq_wakeup(&cv->wq, WAKEUP_FIRST);
 }
 
+/** Signal the condition has become true
+ *
+ * Signal the condition has become true
+ * to all waiting threads by waking them up.
+ *
+ * @param Condition variable.
+ */
 void condvar_broadcast(condvar_t *cv)
 {
 	waitq_wakeup(&cv->wq, WAKEUP_ALL);
 }
 
+/** Wait for the condition becoming true
+ *
+ * Wait for the condition becoming true.
+ *
+ * @param Condition variable.
+ */
 int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int trywait)
 {
 	int rc;
