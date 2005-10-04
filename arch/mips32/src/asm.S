@@ -62,8 +62,8 @@
 .global cp0_badvaddr_read
 .global cp0_count_read
 .global cp0_count_write
-.global cp0_hi_read
-.global cp0_hi_write
+.global cp0_entry_hi_read
+.global cp0_entry_hi_write
 .global cp0_compare_read
 .global cp0_compare_write
 .global cp0_status_read

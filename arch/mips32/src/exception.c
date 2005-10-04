@@ -80,7 +80,7 @@ void exception(struct exception_regdump *pstate)
 				panic("unhandled Coprocessor Unusable Exception\n");
 			break;
 		case EXC_Mod:
-			panic("unhandled TLB Modification Exception\n");
+			tlb_modified(pstate);
 			break;
 		case EXC_AdEL:
 			panic("unhandled Address Error Exception - load or instruction fetch\n");

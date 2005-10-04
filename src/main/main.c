@@ -151,7 +151,6 @@ void main_bsp_separated_stack(void)
 	frame_init();
 	page_init();
 	tlb_init();
-
 	arch_post_mm_init();
 
 	printf("%s\n%s\n", project, copyright);
@@ -230,6 +229,7 @@ void main_ap(void)
 	arch_pre_mm_init();
 	frame_init();
 	page_init();
+	tlb_init();
 	arch_post_mm_init();
 	
 	cpu_init();

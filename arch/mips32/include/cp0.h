@@ -52,32 +52,13 @@
  */
 #define cp0_compare_value 		10000
 
-static inline void tlbp(void)
-{
-	__asm__ volatile ("tlbp");
-}
-
-static inline void tlbr(void)
-{
-	__asm__ volatile ("tlbr");
-}
-static inline void tlbwi(void)
-{
-	__asm__ volatile ("tlbwi");
-}
-static inline void tlbwr(void)
-{
-	__asm__ volatile ("tlbwr");
-}
-
 #define cp0_mask_all_int() cp0_status_write(cp0_status_read() & ~(cp0_status_im_mask))
 #define cp0_unmask_all_int() cp0_status_write(cp0_status_read() | cp0_status_im_mask)
 #define cp0_mask_int(it) cp0_status_write(cp0_status_read() & ~(1<<(cp0_status_im_shift+(it))))
 #define cp0_unmask_int(it) cp0_status_write(cp0_status_read() | (1<<(cp0_status_im_shift+(it))))
 
-
 extern  __u32 cp0_index_read(void);
-extern void cp0_idnex_write(__u32 val);
+extern void cp0_index_write(__u32 val);
 
 extern __u32 cp0_random_read(void);
 

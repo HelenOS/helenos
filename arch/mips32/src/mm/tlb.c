@@ -32,8 +32,31 @@
 #include <arch/cp0.h>
 #include <panic.h>
 #include <arch.h>
-
 #include <symtab.h>
+
+void tlb_init_arch(void)
+{
+	int i;
+
+	cp0_pagemask_write(TLB_PAGE_MASK_16K);
+	cp0_entry_hi_write(0);
+	cp0_entry_lo0_write(0);
+	cp0_entry_lo1_write(0);
+
+	/*
+	 * Invalidate all entries.
+	 */
+	for (i = 0; i < TLB_SIZE; i++) {
+		cp0_index_write(0);
+		tlbwi();
+	}
+	
+	/*
+	 * The kernel is going to make use of some wired
+	 * entries (e.g. mapping kernel stacks).
+	 */
+	cp0_wired_write(TLB_WIRED);
+}
 
 void tlb_refill(struct exception_regdump *pstate)
 {
@@ -46,8 +69,8 @@ void tlb_refill(struct exception_regdump *pstate)
 	s = get_symtab_entry(pstate->ra);
 	if (s)
 		sym2 = s;
-	panic("%X: tlb_refill exception at %X(%s<-%s)\n", cp0_badvaddr_read(),
-	      pstate->epc, symbol,sym2);
+	panic("%X: TLB Refill Exception at %X(%s<-%s)\n", cp0_badvaddr_read(),
+	      pstate->epc, symbol, sym2);
 }
 
 void tlb_invalid(struct exception_regdump *pstate)
@@ -57,9 +80,21 @@ void tlb_invalid(struct exception_regdump *pstate)
 	char *s = get_symtab_entry(pstate->epc);
 	if (s)
 		symbol = s;
-	panic("%X: TLB exception at %X(%s)\n", cp0_badvaddr_read(), 
+	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(),
 	      pstate->epc, symbol);
 }
+
+void tlb_modified(struct exception_regdump *pstate)
+{
+	char *symbol = "";
+
+	char *s = get_symtab_entry(pstate->epc);
+	if (s)
+		symbol = s;
+	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(),
+	      pstate->epc, symbol);
+}
+
 
 void tlb_invalidate(int asid)
 {

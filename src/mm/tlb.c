@@ -27,6 +27,7 @@
  */
 
 #include <mm/tlb.h>
+#include <arch/mm/tlb.h>
 #include <smp/ipi.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
@@ -37,12 +38,17 @@
 
 #ifdef __SMP__
 static spinlock_t tlblock;
+#endif
 
 void tlb_init(void)
 {
-	spinlock_initialize(&tlblock);
+	if (config.cpu_active == 1)
+		spinlock_initialize(&tlblock);
+
+	tlb_init_arch();
 }
 
+#ifdef __SMP__
 /* must be called with interrupts disabled */
 void tlb_shootdown_start(void)
 {

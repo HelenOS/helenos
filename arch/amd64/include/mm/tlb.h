@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TLB_H__
-#define __TLB_H__
+#ifndef __amd64_TLB_H__
+#define __amd64_TLB_H__
 
-extern void tlb_init(void);
-
-#ifdef __SMP__
-extern void tlb_shootdown_start(void);
-extern void tlb_shootdown_finalize(void);
-extern void tlb_shootdown_ipi_recv(void);
-#else
-#  define tlb_shootdown_start()	;
-#  define tlb_shootdown_finalize()	;
-#  define tlb_shootdown_ipi_recv() ;
-#endif /* __SMP__ */
-
-/* Export TLB interface that each architecture must implement. */
-extern void tlb_init_arch(void);
-extern void tlb_invalidate(int asid);
-extern void tlb_shootdown_ipi_send(void);
+#define tlb_init_arch()
 
 #endif

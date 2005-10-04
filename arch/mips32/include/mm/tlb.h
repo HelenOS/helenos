@@ -31,6 +31,13 @@
 
 #include <arch/exception.h>
 
+#define TLB_SIZE	48
+
+#define TLB_WIRED		1
+#define TLB_KSTACK_WIRED_INDEX	0
+
+#define TLB_PAGE_MASK_16K	(0x3<<13)
+
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
 
@@ -65,7 +72,35 @@ struct tlb_entry {
 
 typedef struct entry_lo pte_t;
 
+/** Read Indexed TLB Entry
+ *
+ * Read Indexed TLB Entry.
+ */
+static inline void tlbr(void)
+{
+	__asm__ volatile ("tlbr\n\t");
+}
+
+/** Write Indexed TLB Entry
+ *
+ * Write Indexed TLB Entry.
+ */
+static inline void tlbwi(void)
+{
+	__asm__ volatile ("tlbwi\n\t");
+}
+
+/** Write Random TLB Entry
+ *
+ * Write Random TLB Entry.
+ */
+static inline void tlbwr(void)
+{
+	__asm__ volatile ("tlbwr\n\t");
+}
+
 extern void tlb_invalid(struct exception_regdump *pstate);
 extern void tlb_refill(struct exception_regdump *pstate);
+extern void tlb_modified(struct exception_regdump *pstate);
 
 #endif
