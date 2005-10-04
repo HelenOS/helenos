@@ -44,4 +44,6 @@ typedef __u64 pri_t;
 
 typedef __u64 __native;
 
+typedef __u64 pte_t;
+
 #endif

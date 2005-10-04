@@ -108,6 +108,7 @@
 
 extern void page_init(void);
 extern void map_page_to_frame(__address page, __address frame, int flags, __address root);
+extern pte_t *find_mapping(__address page, __address root);
 extern void map_structure(__address s, size_t size);
 
 #endif

@@ -44,4 +44,6 @@ typedef __u32 pri_t;
 
 typedef __u32 __native;
 
+typedef __u32 pte_t;
+
 #endif

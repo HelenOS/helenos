@@ -45,4 +45,6 @@ typedef __u64 pri_t;
 
 typedef __u64 __native;
 
+typedef struct page_specifier pte_t;
+
 #endif

@@ -54,6 +54,8 @@
 #include <test.h>
 #endif /* __TEST__ */
 
+#include <mm/frame.h>
+
 void kinit(void *arg)
 {
 	vm_t *m;

@@ -39,6 +39,7 @@
 #include <arch.h>
 #include <list.h>
 #include <arch/atomic.h>
+#include <proc/thread.h>
 
 /** Clock routine
  *

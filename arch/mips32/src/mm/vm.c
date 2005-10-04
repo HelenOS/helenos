@@ -26,48 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_PAGE_H__
-#define __ia64_PAGE_H__
+#include <arch/mm/vm.h>
+#include <arch/mm/tlb.h>
+#include <mm/vm.h>
+#include <arch/cp0.h>
+#include <arch.h>
+#include <print.h>
 
-#include <arch/types.h>
-#include <arch/mm/frame.h>
-
-#define PAGE_SIZE	FRAME_SIZE
-
-#define KA2PA(x)	(((__address) (x))-0x8000000000000000)
-#define PA2KA(x)	(((__address) (x))+0x8000000000000000)
-
-#define page_arch_init()	;
-
-/*
- * Implementation of generic 4-level page table interface.
- * TODO: this is a fake implementation provided to satisfy the compiler
+/** Install ASID of the current VM
+ *
+ * Install ASID of the current VM.
+ *
+ * @param vm VM structure.
  */
-#define PTL0_INDEX_ARCH(vaddr)  0
-#define PTL1_INDEX_ARCH(vaddr)  0
-#define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  0
+void vm_install_arch(vm_t *vm)
+{
+	struct entry_hi hi;
+	pri_t pri;
+	
+	*((__u32 *) &hi) = cp0_entry_hi_read();
 
-#define GET_PTL0_ADDRESS_ARCH()			((pte_t *) 0)
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) 0)
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		((pte_t *) 0)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		((pte_t *) 0)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((pte_t *) 0)
-
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
-#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
-#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)
-
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		0
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		0
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		0
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		0
-
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)
-#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
-#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
-
-#endif
+	pri = cpu_priority_high();
+	spinlock_lock(&vm->lock);
+	hi.asid = vm->asid;
+	cp0_entry_hi_write(*((__u32 *) &hi));	
+	spinlock_lock(&vm->unlock);
+	cpu_priority_restore(pri);
+}

@@ -10,8 +10,8 @@ OBJCOPY=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-objcopy
 BFD_ARCH=mips
 
 DEFS=-DARCH=$(ARCH) -DMACHINE=${MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS}
-CFLAGS=$(DEFS) -mno-abicalls -G 0 -nostdlib -fno-builtin -O2  -fno-zero-initialized-in-bss 
-LFLAGS=-M -N
+CFLAGS=$(DEFS) -mno-abicalls -G 0 -nostdlib -fno-builtin -O2  -fno-zero-initialized-in-bss
+LFLAGS=
 BFD_ARCH=mips
 
 # GCC 4.0.1 compiled for mipsEL has problems compiling in 
@@ -86,9 +86,11 @@ arch_sources= \
 	src/arch/interrupt.c \
 	src/arch/cache.c \
 	src/arch/cpu/cpu.c \
+	src/arch/mm/asid.c \
 	src/arch/mm/frame.c \
 	src/arch/mm/page.c \
 	src/arch/mm/tlb.c \
+	src/arch/mm/vm.c \
 	src/arch/fpu_context.c \
 	src/arch/fmath.c \
 	src/arch/drivers/arc.c

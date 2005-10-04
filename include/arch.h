@@ -36,12 +36,10 @@
 #include <arch/cpu.h>
 #include <arch/asm.h> 
 
-#include <proc/thread.h>
-#include <proc/task.h>
-
 #define CPU			THE->cpu
 #define THREAD			THE->thread
 #define TASK			THE->task
+#define VM			THE->vm
 #define PREEMPTION_DISABLED	THE->preemption_disabled
 
 #ifndef early_mapping
@@ -58,6 +56,7 @@ struct the {
 	thread_t *thread;		/* current thread */
 	task_t *task;			/* current task */
 	cpu_t *cpu;			/* executing cpu */
+	vm_t *vm;			/* current vm */
 };
 
 #define THE		((the_t *)(get_stack_base()))	

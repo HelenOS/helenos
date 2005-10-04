@@ -32,6 +32,8 @@
 #include <mm/tlb.h>
 #include <mm/heap.h>
 #include <arch/mm/page.h>
+#include <arch/mm/asid.h>
+#include <arch/mm/vm.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
@@ -55,6 +57,8 @@ vm_t *vm_create(pte_t *ptl0)
 	if (m) {
 		spinlock_initialize(&m->lock);
 		list_initialize(&m->vm_area_head);
+
+		m->asid = asid_get();
 
 		/*
 		 * Each vm_t is supposed to have its own page table.
@@ -199,4 +203,8 @@ void vm_install(vm_t *m)
 	tlb_shootdown_finalize();
 
 	cpu_priority_restore(pri);
+
+	vm_install_arch(m);
+	
+	VM = m;
 }

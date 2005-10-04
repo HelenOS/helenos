@@ -40,4 +40,6 @@
 #define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
 #define UDATA_ADDRESS_ARCH	0x21000000
 
+#define vm_install_arch(vm)
+
 #endif

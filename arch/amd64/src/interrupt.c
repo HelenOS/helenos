@@ -39,6 +39,7 @@
 #include <symtab.h>
 #include <arch/asm.h>
 #include <proc/scheduler.h>
+#include <proc/thread.h>
 
 
 static void messy_stack_trace(__native *stack)

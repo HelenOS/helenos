@@ -52,8 +52,7 @@ struct entry_lo {
 
 struct entry_hi {
 	unsigned asid : 8;
-	unsigned : 4;
-	unsigned g : 1;
+	unsigned : 5;
 	unsigned vpn2 : 19;
 } __attribute__ ((packed));
 
@@ -70,7 +69,6 @@ struct tlb_entry {
 	struct page_mask mask;
 } __attribute__ ((packed));
 
-typedef struct entry_lo pte_t;
 
 /** Read Indexed TLB Entry
  *

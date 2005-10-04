@@ -30,6 +30,7 @@
 #define __mips32_VM_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
 #define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff
@@ -39,5 +40,7 @@
 #define UTEXT_ADDRESS_ARCH	0x00004000
 #define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
 #define UDATA_ADDRESS_ARCH	0x01001000
+
+extern void vm_install_arch(vm_t *vm);
 
 #endif

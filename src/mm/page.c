@@ -34,7 +34,6 @@
 #include <arch/asm.h>
 #include <memstr.h>
 
-
 void page_init(void)
 {
 	page_arch_init();
@@ -108,4 +107,37 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
 
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
+}
+
+/** Find mapping for virtual page
+ *
+ * Find mapping for virtual page.
+ *
+ * @param page Virtual page.
+ * @param root PTL0 address if non-zero.
+ *
+ * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
+ */
+pte_t *find_mapping(__address page, __address root)
+{
+	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
+
+	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+
+	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
+		return NULL;
+
+	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+
+	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
+		return NULL;
+
+	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+
+	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
+		return NULL;
+
+	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+
+	return &ptl3[PTL3_INDEX(page)];
 }

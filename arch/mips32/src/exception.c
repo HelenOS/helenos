@@ -33,6 +33,7 @@
 #include <arch/types.h>
 #include <arch.h>
 #include <debug.h>
+#include <proc/thread.h>
 
 void exception(struct exception_regdump *pstate)
 {

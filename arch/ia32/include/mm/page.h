@@ -90,8 +90,6 @@ struct page_specifier {
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
 
-typedef struct page_specifier pte_t;
-
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];

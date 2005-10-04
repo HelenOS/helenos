@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Matrin Decky
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,11 @@
 #ifndef __mips32_ASID_H__
 #define __mips32_ASID_H__
 
-extern void asid_bitmap_reset(void);
+#include <arch/types.h>
+
+typedef __u8 asid_t;
+
+extern asid_t asid_get(void);
+extern void asid_put(asid_t asid);
 
 #endif

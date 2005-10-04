@@ -37,7 +37,7 @@
 #include <memstr.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
-
+#include <proc/thread.h>
 #include <print.h>
 
 /* Size of the code jumping to the exception handler code 

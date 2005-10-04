@@ -26,31 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch/mm/asid.h>
+#include <synch/spinlock.h>
 #include <arch.h>
-#include <memstr.h>
+#include <debug.h>
 
-/**< Array of threads that have currently some ASID assigned,
-     NULL means no thread have ASID with number of that index assigned */
-struct thread * asids[256];
-int last_asid; /**< The number of last assigned ASID */
-int asid_bitmap[32]; /**< Bitmap of ASIDs currently in TLB */
+#define ASIDS	256
 
+static spinlock_t asid_usage_lock;
+static count_t asid_usage[ASIDS];	/**< Usage tracking array for ASIDs */
 
-/** Cleanup asid_bitmap
+/** Get ASID
  *
+ * Get the least used ASID.
+ *
+ * @return ASID
  */
-void asid_bitmap_reset(void)
+asid_t asid_get(void)
 {
-	memsetb(asid_bitmap, sizeof(asid_bitmap), 0);
+	pri_t pri;
+	int i, j;
+	count_t min;
+	
+	min = (unsigned) -1;
+	
+	pri = cpu_priority_high();
+	spinlock_lock(&asid_usage_lock);
+	
+	for (i=0, j = 0; (i<ASIDS); i++) {
+		if (asid_usage[i] < min) {
+			j = i;
+			min = asid_usage[i];
+			if (!min)
+				break;
+		}
+	}
+
+	asid_usage[i]++;
+
+	spinlock_unlock(&asid_usage_lock);
+	cpu_priority_restore(pri);
+
+	return i;
 }
 
-
-/** Initialize manipulating with ASIDs
+/** Release ASID
  *
+ * Release ASID by decrementing its usage count.
+ *
+ * @param asid ASID.
  */
-void init_asids(void)
+void asid_put(asid_t asid)
 {
-	memsetb(asids, sizeof(asids), 0);
-	asid_bitmap_reset();
-	last_asid = 0;
+	pri_t pri;
+
+	pri = cpu_priority_high();
+	spinlock_lock(&asid_usage_lock);
+
+	ASSERT(asid_usage[asid] > 0);
+	asid_usage[asid]--;
+
+	spinlock_unlock(&asid_usage_lock);
+	cpu_priority_restore(pri);
 }

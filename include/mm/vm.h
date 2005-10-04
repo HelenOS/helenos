@@ -31,6 +31,7 @@
 
 #include <arch/mm/page.h>
 #include <arch/mm/vm.h>
+#include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
@@ -74,6 +75,7 @@ struct vm {
 	spinlock_t lock;
 	link_t vm_area_head;
 	pte_t *ptl0;
+	asid_t asid;
 };
 
 extern vm_t * vm_create(pte_t *ptl0);

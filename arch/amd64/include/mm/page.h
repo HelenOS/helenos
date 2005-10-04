@@ -74,8 +74,6 @@
 
 #ifndef __ASM__
 
-typedef struct page_specifier pte_t;
-
 struct page_specifier {
 	unsigned present : 1;
 	unsigned writeable : 1;

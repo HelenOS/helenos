@@ -56,20 +56,20 @@
 #define PTL0_INDEX_ARCH(vaddr)  ((vaddr)>>26) 
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14)&0xfff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>12)&0xfff)
 
 #define GET_PTL0_ADDRESS_ARCH()			(PTL0)
 #define SET_PTL0_ADDRESS_ARCH(ptl0)		(PTL0 = (pte_t *)(ptl0))
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].pfn<<14)
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].pfn<<12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].pfn<<14)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].pfn<<12)
 
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].pfn = (a)>>14)
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].pfn = (a)>>12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].pfn = (a)>>14)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].pfn = (a)>>12)
 
 #define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT

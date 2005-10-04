@@ -34,6 +34,7 @@
 #include <arch/types.h>
 #include <print.h>
 #include <typedefs.h>
+#include <fpu_context.h>
 
 /*
  * Identification of CPUs.

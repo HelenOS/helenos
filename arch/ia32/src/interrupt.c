@@ -37,6 +37,7 @@
 #include <mm/tlb.h>
 #include <arch.h>
 #include <symtab.h>
+#include <proc/thread.h>
 
 /*
  * Interrupt and exception dispatching.

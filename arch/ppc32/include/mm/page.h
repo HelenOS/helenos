@@ -68,6 +68,4 @@
 
 extern void page_arch_init(void);
 
-typedef __u32 pte_t;
-
 #endif
