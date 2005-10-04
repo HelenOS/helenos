@@ -32,8 +32,6 @@
 extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);
 
-extern int memcmp(__address src, __address dst, int cnt);
-
 /** Copy memory
  *
  * Copy a given number of bytes (3rd argument)
@@ -71,5 +69,33 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
 }
 
 
+/** Compare memory
+ *
+ * Compare a given number of bytes (3rd argument)
+ * at memory locations defined by 1st and 2nd argument
+ * for equality. If memory is equal, returns 0.
+ *
+ * @param pointer 1
+ * @param pointer 2
+ * @param number of bytes
+ * @return 0 on match or non-zero if different
+ */
+static inline int memcmp(const void * mem1, const void * mem2, size_t cnt)
+{
+	__u32 d0, d1, d2;
+	int ret;
+	
+	__asm__ (
+		"repe cmpsb\n\t"
+		"je 1f\n\t"
+		"movl %3, %0\n\t"
+		"addl $1, %0\n\t"
+		"1:\n"
+		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
+		: "0" (0), "1" (mem1), "2" (mem2), "3" (cnt)
+	);
+	
+	return ret;
+}
 
 #endif

@@ -39,8 +39,6 @@
 .global interrupt_handlers
 .global memsetb
 .global memsetw
-.global memcmp
-
 
 ## Turn paging on
 #
@@ -199,32 +197,6 @@ memsetw:
 	pop %edi
 	pop %eax
 
-	ret
-
-
-## Compare memory regions for equality
-#
-# Compare a given number of bytes (3rd argument)
-# at memory locations defined by 1st and 2nd argument
-# for equality. If the bytes are equal, EAX contains 0.
-#
-SRC=12
-DST=16
-CNT=20
-memcmp:
-	push %esi
-	push %edi
-
-	movl CNT(%esp),%ecx
-	movl DST(%esp),%edi
-	movl SRC(%esp),%esi
-
-	repe cmpsb %es:(%edi),%ds:(%esi)
-	movl %ecx,%eax		# %ecx contains the return value (zero on success)
-
-	pop %edi
-	pop %esi
-	
 	ret
 
 
