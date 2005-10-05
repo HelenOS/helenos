@@ -36,10 +36,10 @@
  * to the memory location defined by 1st argument.
  * The memory areas cannot overlap.
  *
- * @param destination
- * @param source
- * @param number of bytes
- * @return destination
+ * @param dst Destination
+ * @param src Source
+ * @param cnt Number of bytes
+ * @return Destination
  */
 static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
@@ -72,10 +72,10 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
  * at memory locations defined by 1st and 2nd argument
  * for equality. If bytes are equal function returns 0.
  *
- * @param region 1
- * @param region 2
- * @param number of bytes
- * @return zero if bytes are equal, non-zero otherwise
+ * @param src Region 1
+ * @param dst Region 2
+ * @param cnt Number of bytes
+ * @return Zero if bytes are equal, non-zero otherwise
  */
 static inline int memcmp(__address src, __address dst, size_t cnt)
 {
@@ -100,9 +100,9 @@ static inline int memcmp(__address src, __address dst, size_t cnt)
  * at memory defined by 1st argument with the
  * word value defined by 3rd argument.
  *
- * @param destination
- * @param number of words
- * @param value to fill
+ * @param dst Destination
+ * @param cnt Number of words
+ * @param x Value to fill
  */
 static inline void memsetw(__address dst, size_t cnt, __u16 x)
 {
@@ -122,9 +122,9 @@ static inline void memsetw(__address dst, size_t cnt, __u16 x)
  * at memory defined by 1st argument with the
  * word value defined by 3rd argument.
  *
- * @param destination
- * @param number of bytes
- * @param value to fill
+ * @param dst Destination
+ * @param cnt Number of bytes
+ * @param x Value to fill
  */
 static inline void memsetb(__address dst, size_t cnt, __u8 x)
 {
