@@ -46,7 +46,8 @@
  * Page table layout:
  * - 32-bit virtual addresses
  * - Offset is 14 bits => pages are 16K long
- * - PTE's use the same format as CP0 EntryLo[01] registers => PTE is therefore 4 bytes long
+ * - PTE's use similar format as CP0 EntryLo[01] registers => PTE is therefore 4 bytes long
+ * - PTE's make use of CP0 EntryLo's two-bit reserved field for bit W (writable) and bit A (accessed)
  * - PTL0 has 64 entries (6 bits)
  * - PTL1 is not used
  * - PTL2 is not used
@@ -56,7 +57,7 @@
 #define PTL0_INDEX_ARCH(vaddr)  ((vaddr)>>26) 
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>12)&0xfff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14)&0x3fff)
 
 #define GET_PTL0_ADDRESS_ARCH()			(PTL0)
 #define SET_PTL0_ADDRESS_ARCH(ptl0)		(PTL0 = (pte_t *)(ptl0))
@@ -97,7 +98,7 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 		((!p->v)<<PAGE_PRESENT_SHIFT) |
 		(1<<PAGE_USER_SHIFT) |
 		(1<<PAGE_READ_SHIFT) |
-		((p->d)<<PAGE_WRITE_SHIFT) |
+		((p->w)<<PAGE_WRITE_SHIFT) |
 		(1<<PAGE_EXEC_SHIFT)
 	);
 		
@@ -109,7 +110,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	
 	p->c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
 	p->v = !(flags & PAGE_NOT_PRESENT);
-	p->d = (flags & PAGE_WRITE) != 0;
+	p->w = (flags & PAGE_WRITE) != 0;
 }
 
 extern void page_arch_init(void);

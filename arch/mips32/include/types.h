@@ -49,6 +49,6 @@ typedef __u32 pri_t;
 
 typedef __u32 __native;
 
-typedef struct entry_lo pte_t;
+typedef struct pte pte_t;
 
 #endif

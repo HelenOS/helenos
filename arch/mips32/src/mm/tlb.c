@@ -42,6 +42,9 @@ static void tlb_refill_fail(struct exception_regdump *pstate);
 static void tlb_invalid_fail(struct exception_regdump *pstate);
 static void tlb_modified_fail(struct exception_regdump *pstate);
 
+static pte_t *find_mapping_and_check(__address badvaddr);
+static void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, bool c, __address pfn);
+
 /** Initialize TLB
  *
  * Initialize TLB.
@@ -79,46 +82,34 @@ void tlb_init_arch(void)
  */
 void tlb_refill(struct exception_regdump *pstate)
 {
-	struct entry_hi hi;
+	struct entry_lo lo;
 	__address badvaddr;
 	pte_t *pte;
 	
-	*((__u32 *) &hi) = cp0_entry_hi_read();
 	badvaddr = cp0_badvaddr_read();
 	
-	spinlock_lock(&VM->lock);
-
-	/*
-	 * Refill cannot succeed if the ASIDs don't match.
-	 */
-	if (hi.asid != VM->asid)
-		goto fail;
-
-	/*
-	 * Refill cannot succeed if badvaddr is not
-	 * associated with any mapping.
-	 */
-	pte = find_mapping(badvaddr, 0);
+	spinlock_lock(&VM->lock);		
+	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
 		goto fail;
-		
+
 	/*
-	 * Refill cannot succeed if the mapping is marked as invalid.
+	 * Record access to PTE.
 	 */
-	if (!pte->v)
-		goto fail;
+	pte->a = 1;
+
+	prepare_entry_lo(&lo, pte->g, pte->v, pte->d, pte->c, pte->pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
 	 */
-	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	if ((badvaddr/PAGE_SIZE) % 2 == 0) {
-		cp0_entry_lo0_write(*((__u32 *) pte));
+		cp0_entry_lo0_write(*((__u32 *) &lo));
 		cp0_entry_lo1_write(0);
 	}
 	else {
 		cp0_entry_lo0_write(0);
-		cp0_entry_lo1_write(*((__u32 *) pte));
+		cp0_entry_lo1_write(*((__u32 *) &lo));
 	}
 	tlbwr();
 
@@ -130,13 +121,135 @@ fail:
 	tlb_refill_fail(pstate);
 }
 
+/** Process TLB Invalid Exception
+ *
+ * Process TLB Invalid Exception.
+ *
+ * @param pstate Interrupted register context.
+ */
 void tlb_invalid(struct exception_regdump *pstate)
 {
+	struct index index;
+	__address badvaddr;
+	struct entry_lo lo;
+	pte_t *pte;
+
+	badvaddr = cp0_badvaddr_read();
+
+	/*
+	 * Locate the faulting entry in TLB.
+	 */
+	tlbp();
+	*((__u32 *) &index) = cp0_index_read();
+	
+	spinlock_lock(&VM->lock);	
+	
+	/*
+	 * Fail if the entry is not in TLB.
+	 */
+	if (index.p)
+		goto fail;
+
+	pte = find_mapping_and_check(badvaddr);
+	if (!pte)
+		goto fail;
+
+	/*
+	 * Read the faulting TLB entry.
+	 */
+	tlbr();
+
+	/*
+	 * Record access to PTE.
+	 */
+	pte->a = 1;
+
+	prepare_entry_lo(&lo, pte->g, pte->v, pte->d, pte->c, pte->pfn);
+
+	/*
+	 * The entry is to be updated in TLB.
+	 */
+	if ((badvaddr/PAGE_SIZE) % 2 == 0)
+		cp0_entry_lo0_write(*((__u32 *) &lo));
+	else
+		cp0_entry_lo1_write(*((__u32 *) &lo));
+	tlbwi();
+
+	spinlock_unlock(&VM->lock);	
+	return;
+	
+fail:
+	spinlock_unlock(&VM->lock);
 	tlb_invalid_fail(pstate);
 }
 
+/** Process TLB Modified Exception
+ *
+ * Process TLB Modified Exception.
+ *
+ * @param pstate Interrupted register context.
+ */
+
 void tlb_modified(struct exception_regdump *pstate)
 {
+	struct index index;
+	__address badvaddr;
+	struct entry_lo lo;
+	pte_t *pte;
+
+	badvaddr = cp0_badvaddr_read();
+
+	/*
+	 * Locate the faulting entry in TLB.
+	 */
+	tlbp();
+	*((__u32 *) &index) = cp0_index_read();
+	
+	spinlock_lock(&VM->lock);	
+	
+	/*
+	 * Fail if the entry is not in TLB.
+	 */
+	if (index.p)
+		goto fail;
+
+	pte = find_mapping_and_check(badvaddr);
+	if (!pte)
+		goto fail;
+
+	/*
+	 * Fail if the page is not writable.
+	 */
+	if (!pte->w)
+		goto fail;
+
+	/*
+	 * Read the faulting TLB entry.
+	 */
+	tlbr();
+
+	/*
+	 * Record access and write to PTE.
+	 */
+	pte->a = 1;
+	pte->d = 1;
+
+	prepare_entry_lo(&lo, pte->g, pte->v, pte->w, pte->c, pte->pfn);
+
+	/*
+	 * The entry is to be updated in TLB.
+	 */
+	if ((badvaddr/PAGE_SIZE) % 2 == 0)
+		cp0_entry_lo0_write(*((__u32 *) &lo));
+	else
+		cp0_entry_lo1_write(*((__u32 *) &lo));
+	tlbwi();
+
+	spinlock_unlock(&VM->lock);	
+	return;
+	
+fail:
+	spinlock_unlock(&VM->lock);
 	tlb_modified_fail(pstate);
 }
 
@@ -162,8 +275,7 @@ void tlb_invalid_fail(struct exception_regdump *pstate)
 	char *s = get_symtab_entry(pstate->epc);
 	if (s)
 		symbol = s;
-	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(),
-	      pstate->epc, symbol);
+	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
 }
 
 void tlb_modified_fail(struct exception_regdump *pstate)
@@ -173,8 +285,7 @@ void tlb_modified_fail(struct exception_regdump *pstate)
 	char *s = get_symtab_entry(pstate->epc);
 	if (s)
 		symbol = s;
-	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(),
-	      pstate->epc, symbol);
+	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
 }
 
 
@@ -187,4 +298,52 @@ void tlb_invalidate(int asid)
 	// TODO
 	
 	cpu_priority_restore(pri);
+}
+
+/** Try to find PTE for faulting address
+ *
+ * Try to find PTE for faulting address.
+ * The VM->lock must be held on entry to this function.
+ *
+ * @param badvaddr Faulting virtual address.
+ *
+ * @return PTE on success, NULL otherwise.
+ */
+pte_t *find_mapping_and_check(__address badvaddr)
+{
+	struct entry_hi hi;
+	pte_t *pte;
+
+	*((__u32 *) &hi) = cp0_entry_hi_read();
+
+	/*
+	 * Handler cannot succeed if the ASIDs don't match.
+	 */
+	if (hi.asid != VM->asid)
+		return NULL;
+	
+	/*
+	 * Handler cannot succeed if badvaddr has no mapping.
+	 */
+	pte = find_mapping(badvaddr, 0);
+	if (!pte)
+		return NULL;
+
+	/*
+	 * Handler cannot succeed if the mapping is marked as invalid.
+	 */
+	if (!pte->v)
+		return NULL;
+
+	return pte;
+}
+
+void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, bool c, __address pfn)
+{
+	lo->g = g;
+	lo->v = v;
+	lo->d = d;
+	lo->c = c;
+	lo->pfn = pfn;
+	lo->zero = 0;
 }

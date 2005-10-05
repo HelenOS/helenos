@@ -47,7 +47,17 @@ struct entry_lo {
 	unsigned d : 1; 	/* dirty/write-protect bit */
 	unsigned c : 3; 	/* cache coherency attribute */
 	unsigned pfn : 24;	/* frame number */
-	unsigned : 2;
+	unsigned zero: 2;	/* zero */
+} __attribute__ ((packed));
+
+struct pte {
+	unsigned g : 1; 	/* global bit */
+	unsigned v : 1; 	/* valid bit */
+	unsigned d : 1; 	/* dirty/write-protect bit */
+	unsigned c : 3; 	/* cache coherency attribute */
+	unsigned pfn : 24;	/* frame number */
+	unsigned w : 1;		/* writable */
+	unsigned a : 1;		/* accessed */
 } __attribute__ ((packed));
 
 struct entry_hi {
@@ -62,12 +72,20 @@ struct page_mask {
 	unsigned : 7;
 } __attribute__ ((packed));
 
-struct tlb_entry {
-	struct entry_lo lo0;
-	struct entry_lo lo1;
-	struct entry_hi hi;
-	struct page_mask mask;
+struct index {
+	unsigned index : 4;
+	unsigned : 27;
+	unsigned p : 1;
 } __attribute__ ((packed));
+
+/** Probe TLB for Matching Entry
+ *
+ * Probe TLB for Matching Entry.
+ */
+static inline void tlbp(void)
+{
+	__asm__ volatile ("tlbp\n\t");
+}
 
 
 /** Read Indexed TLB Entry
