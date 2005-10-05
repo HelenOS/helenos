@@ -50,7 +50,6 @@
 
 #include <arch/mm/memory_init.h>
 
-
 void arch_pre_mm_init(void)
 {
 	pm_init();

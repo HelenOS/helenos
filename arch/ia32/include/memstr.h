@@ -29,9 +29,6 @@
 #ifndef __ia32_MEMSTR_H__
 #define __ia32_MEMSTR_H__
 
-extern void memsetw(__address dst, size_t cnt, __u16 x);
-extern void memsetb(__address dst, size_t cnt, __u8 x);
-
 /** Copy memory
  *
  * Copy a given number of bytes (3rd argument)
@@ -69,18 +66,18 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
 }
 
 
-/** Compare memory
+/** Compare memory regions for equality
  *
  * Compare a given number of bytes (3rd argument)
  * at memory locations defined by 1st and 2nd argument
- * for equality. If memory is equal, returns 0.
+ * for equality. If bytes are equal function returns 0.
  *
- * @param pointer 1
- * @param pointer 2
+ * @param region 1
+ * @param region 2
  * @param number of bytes
- * @return 0 on match or non-zero if different
+ * @return zero if bytes are equal, non-zero otherwise
  */
-static inline int memcmp(const void * mem1, const void * mem2, size_t cnt)
+static inline int memcmp(__address src, __address dst, size_t cnt)
 {
 	__u32 d0, d1, d2;
 	int ret;
@@ -92,10 +89,54 @@ static inline int memcmp(const void * mem1, const void * mem2, size_t cnt)
 		"addl $1, %0\n\t"
 		"1:\n"
 		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
-		: "0" (0), "1" (mem1), "2" (mem2), "3" (cnt)
+		: "0" (0), "1" (src), "2" (dst), "3" (cnt)
 	);
 	
 	return ret;
+}
+
+/** Fill memory with words
+ * Fill a given number of words (2nd argument)
+ * at memory defined by 1st argument with the
+ * word value defined by 3rd argument.
+ *
+ * @param destination
+ * @param number of words
+ * @param value to fill
+ */
+static inline void memsetw(__address dst, size_t cnt, __u16 x)
+{
+	__u32 d0, d1;
+	
+	__asm__ __volatile__ (
+		"rep stosw\n\t"
+		: "=&D" (d0), "=&c" (d1), "=a" (x)
+		: "0" (dst), "1" (cnt), "2" (x)
+		: "memory"
+	);
+
+}
+
+/** Fill memory with bytes
+ * Fill a given number of bytes (2nd argument)
+ * at memory defined by 1st argument with the
+ * word value defined by 3rd argument.
+ *
+ * @param destination
+ * @param number of bytes
+ * @param value to fill
+ */
+static inline void memsetb(__address dst, size_t cnt, __u8 x)
+{
+	__u32 d0, d1;
+	
+	__asm__ __volatile__ (
+		"rep stosb\n\t"
+		: "=&D" (d0), "=&c" (d1), "=a" (x)
+		: "0" (dst), "1" (cnt), "2" (x)
+		: "memory"
+	);
+
 }
 
 #endif

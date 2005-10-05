@@ -37,8 +37,6 @@
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
-.global memsetb
-.global memsetw
 
 ## Turn paging on
 #
@@ -149,55 +147,6 @@ h_start:
 #	handler 128 192
 #	handler 192 256
 h_end:
-
-
-## Fill memory with bytes
-#
-# Fill a given number of bytes (2nd argument)
-# at memory defined by 1st argument with the
-# byte value defined by 3rd argument.
-#
-DST=12
-CNT=16
-X=20
-memsetb:
-	push %eax
-	push %edi
-
-	movl CNT(%esp),%ecx
-	movl DST(%esp),%edi
-	movl X(%esp),%eax
-
-	rep stosb %al,%es:(%edi)
-
-	pop %edi
-	pop %eax
-	ret
-
-
-## Fill memory with words
-#
-# Fill a given number of words (2nd argument)
-# at memory defined by 1st argument with the
-# word value defined by 3rd argument.
-#
-DST=12
-CNT=16
-X=20
-memsetw:
-	push %eax
-	push %edi
-
-	movl CNT(%esp),%ecx
-	movl DST(%esp),%edi
-	movl X(%esp),%eax
-
-	rep stosw %ax,%es:(%edi)
-
-	pop %edi
-	pop %eax
-
-	ret
 
 
 # THIS IS USERSPACE CODE
