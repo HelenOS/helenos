@@ -43,7 +43,7 @@ static void tlb_invalid_fail(struct exception_regdump *pstate);
 static void tlb_modified_fail(struct exception_regdump *pstate);
 
 static pte_t *find_mapping_and_check(__address badvaddr);
-static void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, bool c, __address pfn);
+static void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, int c, __address pfn);
 
 /** Initialize TLB
  *
@@ -338,7 +338,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	return pte;
 }
 
-void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, bool c, __address pfn)
+void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, int c, __address pfn)
 {
 	lo->g = g;
 	lo->v = v;
