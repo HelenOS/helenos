@@ -27,9 +27,16 @@
  */
 
 #include <mm/tlb.h>
+#include <arch/mm/asid.h>
 #include <arch/asm.h>
 
-void tlb_invalidate(int asid)
+/** Invalidate all TLB entries
+ *
+ * Invalidate all TLB entries.
+ *
+ * @param asid This argument is ignored.
+ */
+void tlb_invalidate(asid_t asid)
 {
 	write_cr3(read_cr3());
 }

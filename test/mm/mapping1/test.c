@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <print.h>
+#include <test.h>
+#include <mm/page.h>
+#include <mm/frame.h>
+#include <arch/mm/page.h>
+#include <arch/types.h>
+#include <debug.h>
 
-#ifndef __TLB_H__
-#define __TLB_H__
+#define PAGE0	0x10000000
+#define PAGE1	(PAGE0+PAGE_SIZE)
 
-#include <arch/mm/asid.h>
+#define VALUE0	0x01234567
+#define VALUE1	0x89abcdef
 
-extern void tlb_init(void);
+void test(void)
+{
+	__address frame0, frame1;
+	__u32 v0, v1;
 
-#ifdef __SMP__
-extern void tlb_shootdown_start(void);
-extern void tlb_shootdown_finalize(void);
-extern void tlb_shootdown_ipi_recv(void);
-#else
-#  define tlb_shootdown_start()	;
-#  define tlb_shootdown_finalize()	;
-#  define tlb_shootdown_ipi_recv() ;
-#endif /* __SMP__ */
+	printf("Memory management test mapping #1\n");
 
-/* Export TLB interface that each architecture must implement. */
-extern void tlb_init_arch(void);
-extern void tlb_invalidate(asid_t asid);
-extern void tlb_shootdown_ipi_send(void);
+	frame0 = frame_alloc(FRAME_KA);
+	frame1 = frame_alloc(FRAME_KA);	
+	
+	*((__u32 *) frame0) = VALUE0;
+	*((__u32 *) frame1) = VALUE1;
+	
+	printf("Mapping %X to %X.\n", PAGE0, KA2PA(frame0));
+	map_page_to_frame(PAGE0, KA2PA(frame0), PAGE_PRESENT, 0);
+	printf("Mapping %X to %X.\n", PAGE1, KA2PA(frame1));	
+	map_page_to_frame(PAGE1, KA2PA(frame1), PAGE_PRESENT, 0);
+	
+	printf("Value at %X is %X.\n", PAGE0, v0 = *((__u32 *) PAGE0));
+	printf("Value at %X is %X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	
+	ASSERT(v0 == VALUE0);
+	ASSERT(v1 == VALUE1);
 
-#endif
+	printf("Writing 0 to %X.\n", PAGE0);
+	*((__u32 *) PAGE0) = 0;
+	printf("Writing 0 to %X.\n", PAGE1);
+	*((__u32 *) PAGE1) = 0;	
+	
+	printf("Value at %X is %X.\n", PAGE0, v0 = *((__u32 *) PAGE0));	
+	printf("Value at %X is %X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+
+	ASSERT(v0 == 0);
+	ASSERT(v1 == 0);
+	
+	printf("Test passed.\n");
+	
+}

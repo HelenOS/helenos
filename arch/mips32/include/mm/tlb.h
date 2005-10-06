@@ -41,14 +41,17 @@
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
 
-struct entry_lo {
-	unsigned g : 1; 	/* global bit */
-	unsigned v : 1; 	/* valid bit */
-	unsigned d : 1; 	/* dirty/write-protect bit */
-	unsigned c : 3; 	/* cache coherency attribute */
-	unsigned pfn : 24;	/* frame number */
-	unsigned zero: 2;	/* zero */
-} __attribute__ ((packed));
+union entry_lo {
+	struct {
+		unsigned g : 1; 	/* global bit */
+		unsigned v : 1; 	/* valid bit */
+		unsigned d : 1; 	/* dirty/write-protect bit */
+		unsigned c : 3; 	/* cache coherency attribute */
+		unsigned pfn : 24;	/* frame number */
+		unsigned zero: 2;	/* zero */
+	} __attribute__ ((packed));
+	__u32 value;
+};
 
 struct pte {
 	unsigned g : 1; 	/* global bit */
@@ -60,23 +63,37 @@ struct pte {
 	unsigned a : 1;		/* accessed */
 } __attribute__ ((packed));
 
-struct entry_hi {
-	unsigned asid : 8;
-	unsigned : 5;
-	unsigned vpn2 : 19;
-} __attribute__ ((packed));
+union entry_hi {
+	struct {
+		unsigned asid : 8;
+		unsigned : 5;
+		unsigned vpn2 : 19;
+	} __attribute__ ((packed));
+	__u32 value;
+};
 
-struct page_mask {
-	unsigned : 13;
-	unsigned mask : 12;
-	unsigned : 7;
-} __attribute__ ((packed));
+union page_mask {
+	struct {
+		unsigned : 13;
+		unsigned mask : 12;
+		unsigned : 7;
+	} __attribute__ ((packed));
+	__u32 value;
+};
 
-struct index {
-	unsigned index : 4;
-	unsigned : 27;
-	unsigned p : 1;
-} __attribute__ ((packed));
+union index {
+	struct {
+		unsigned index : 4;
+		unsigned : 27;
+		unsigned p : 1;
+	} __attribute__ ((packed));
+	__u32 value;
+};
+
+typedef union entry_lo entry_lo_t;
+typedef union entry_hi entry_hi_t;
+typedef union page_mask page_mask_t;
+typedef union index tlb_index_t;
 
 /** Probe TLB for Matching Entry
  *

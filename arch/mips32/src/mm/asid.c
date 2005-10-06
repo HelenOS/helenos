@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,8 +31,7 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <debug.h>
-
-#define ASIDS	256
+#include <typedefs.h>
 
 static spinlock_t asid_usage_lock;
 static count_t asid_usage[ASIDS];	/**< Usage tracking array for ASIDs */
@@ -53,7 +53,7 @@ asid_t asid_get(void)
 	pri = cpu_priority_high();
 	spinlock_lock(&asid_usage_lock);
 	
-	for (i=0, j = 0; (i<ASIDS); i++) {
+	for (i = ASID_START, j = ASID_START; i < ASIDS; i++) {
 		if (asid_usage[i] < min) {
 			j = i;
 			min = asid_usage[i];
@@ -62,7 +62,7 @@ asid_t asid_get(void)
 		}
 	}
 
-	asid_usage[i]++;
+	asid_usage[j]++;
 
 	spinlock_unlock(&asid_usage_lock);
 	cpu_priority_restore(pri);
@@ -83,9 +83,38 @@ void asid_put(asid_t asid)
 	pri = cpu_priority_high();
 	spinlock_lock(&asid_usage_lock);
 
+	ASSERT(asid != ASID_INVALID);
+	
 	ASSERT(asid_usage[asid] > 0);
 	asid_usage[asid]--;
 
 	spinlock_unlock(&asid_usage_lock);
 	cpu_priority_restore(pri);
+}
+
+/** Find out whether ASID is used by more address spaces
+ *
+ * Find out whether ASID is used by more address spaces.
+ *
+ * @param asid ASID in question.
+ *
+ * @return True if 'asid' is used by more address spaces, false otherwise.
+ */
+bool asid_has_conflicts(asid_t asid)
+{
+	bool has_conflicts = false;
+	pri_t pri;
+
+	ASSERT(asid != ASID_INVALID);
+
+	pri = cpu_priority_high();
+	spinlock_lock(&asid_usage_lock);
+
+	if (asid_usage[asid] > 1)
+		has_conflicts = true;
+
+	spinlock_unlock(&asid_usage_lock);
+	cpu_priority_restore(pri);
+
+	return has_conflicts;
 }

@@ -37,13 +37,14 @@
 #include <symtab.h>
 #include <synch/spinlock.h>
 #include <print.h>
+#include <debug.h>
 
 static void tlb_refill_fail(struct exception_regdump *pstate);
 static void tlb_invalid_fail(struct exception_regdump *pstate);
 static void tlb_modified_fail(struct exception_regdump *pstate);
 
 static pte_t *find_mapping_and_check(__address badvaddr);
-static void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, int c, __address pfn);
+static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn);
 
 /** Initialize TLB
  *
@@ -82,7 +83,7 @@ void tlb_init_arch(void)
  */
 void tlb_refill(struct exception_regdump *pstate)
 {
-	struct entry_lo lo;
+	entry_lo_t lo;
 	__address badvaddr;
 	pte_t *pte;
 	
@@ -104,12 +105,12 @@ void tlb_refill(struct exception_regdump *pstate)
 	 * New entry is to be inserted into TLB
 	 */
 	if ((badvaddr/PAGE_SIZE) % 2 == 0) {
-		cp0_entry_lo0_write(*((__u32 *) &lo));
+		cp0_entry_lo0_write(lo.value);
 		cp0_entry_lo1_write(0);
 	}
 	else {
 		cp0_entry_lo0_write(0);
-		cp0_entry_lo1_write(*((__u32 *) &lo));
+		cp0_entry_lo1_write(lo.value);
 	}
 	tlbwr();
 
@@ -129,9 +130,9 @@ fail:
  */
 void tlb_invalid(struct exception_regdump *pstate)
 {
-	struct index index;
+	tlb_index_t index;
 	__address badvaddr;
-	struct entry_lo lo;
+	entry_lo_t lo;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
@@ -140,15 +141,17 @@ void tlb_invalid(struct exception_regdump *pstate)
 	 * Locate the faulting entry in TLB.
 	 */
 	tlbp();
-	*((__u32 *) &index) = cp0_index_read();
+	index.value = cp0_index_read();
 	
 	spinlock_lock(&VM->lock);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
 	 */
-	if (index.p)
+	if (index.p) {
+		printf("TLB entry not found.\n");
 		goto fail;
+	}
 
 	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
@@ -170,9 +173,9 @@ void tlb_invalid(struct exception_regdump *pstate)
 	 * The entry is to be updated in TLB.
 	 */
 	if ((badvaddr/PAGE_SIZE) % 2 == 0)
-		cp0_entry_lo0_write(*((__u32 *) &lo));
+		cp0_entry_lo0_write(lo.value);
 	else
-		cp0_entry_lo1_write(*((__u32 *) &lo));
+		cp0_entry_lo1_write(lo.value);
 	tlbwi();
 
 	spinlock_unlock(&VM->lock);	
@@ -189,12 +192,11 @@ fail:
  *
  * @param pstate Interrupted register context.
  */
-
 void tlb_modified(struct exception_regdump *pstate)
 {
-	struct index index;
+	tlb_index_t index;
 	__address badvaddr;
-	struct entry_lo lo;
+	entry_lo_t lo;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
@@ -203,15 +205,17 @@ void tlb_modified(struct exception_regdump *pstate)
 	 * Locate the faulting entry in TLB.
 	 */
 	tlbp();
-	*((__u32 *) &index) = cp0_index_read();
+	index.value = cp0_index_read();
 	
 	spinlock_lock(&VM->lock);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
 	 */
-	if (index.p)
+	if (index.p) {
+		printf("TLB entry not found.\n");
 		goto fail;
+	}
 
 	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
@@ -240,9 +244,9 @@ void tlb_modified(struct exception_regdump *pstate)
 	 * The entry is to be updated in TLB.
 	 */
 	if ((badvaddr/PAGE_SIZE) % 2 == 0)
-		cp0_entry_lo0_write(*((__u32 *) &lo));
+		cp0_entry_lo0_write(lo.value);
 	else
-		cp0_entry_lo1_write(*((__u32 *) &lo));
+		cp0_entry_lo1_write(lo.value);
 	tlbwi();
 
 	spinlock_unlock(&VM->lock);	
@@ -288,14 +292,35 @@ void tlb_modified_fail(struct exception_regdump *pstate)
 	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
 }
 
-
-void tlb_invalidate(int asid)
+/** Invalidate TLB entries with specified ASID
+ *
+ * Invalidate TLB entries with specified ASID.
+ *
+ * @param asid ASID.
+ */
+void tlb_invalidate(asid_t asid)
 {
+	entry_hi_t hi;
 	pri_t pri;
+	int i;	
 	
+	ASSERT(asid != ASID_INVALID);
+
 	pri = cpu_priority_high();
 	
-	// TODO
+	for (i = 0; i < TLB_SIZE; i++) {
+		cp0_index_write(i);
+		tlbr();
+		
+		hi.value = cp0_entry_hi_read();
+		if (hi.asid == asid) {
+			cp0_pagemask_write(TLB_PAGE_MASK_16K);
+			cp0_entry_hi_write(0);
+			cp0_entry_lo0_write(0);
+			cp0_entry_lo1_write(0);
+			tlbwi();
+		}
+	}
 	
 	cpu_priority_restore(pri);
 }
@@ -311,34 +336,40 @@ void tlb_invalidate(int asid)
  */
 pte_t *find_mapping_and_check(__address badvaddr)
 {
-	struct entry_hi hi;
+	entry_hi_t hi;
 	pte_t *pte;
 
-	*((__u32 *) &hi) = cp0_entry_hi_read();
+	hi.value = cp0_entry_hi_read();
 
 	/*
 	 * Handler cannot succeed if the ASIDs don't match.
 	 */
-	if (hi.asid != VM->asid)
+	if (hi.asid != VM->asid) {
+		printf("EntryHi.asid=%d, VM->asid=%d\n", hi.asid, VM->asid);
 		return NULL;
+	}
 	
 	/*
 	 * Handler cannot succeed if badvaddr has no mapping.
 	 */
 	pte = find_mapping(badvaddr, 0);
-	if (!pte)
+	if (!pte) {
+		printf("No such mapping.\n");
 		return NULL;
+	}
 
 	/*
 	 * Handler cannot succeed if the mapping is marked as invalid.
 	 */
-	if (!pte->v)
+	if (!pte->v) {
+		printf("Invalid mapping.\n");
 		return NULL;
+	}
 
 	return pte;
 }
 
-void prepare_entry_lo(struct entry_lo *lo, bool g, bool v, bool d, int c, __address pfn)
+void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn)
 {
 	lo->g = g;
 	lo->v = v;

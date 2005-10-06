@@ -31,7 +31,6 @@
 #include <mm/vm.h>
 #include <arch/cp0.h>
 #include <arch.h>
-#include <print.h>
 
 /** Install ASID of the current VM
  *
@@ -41,10 +40,10 @@
  */
 void vm_install_arch(vm_t *vm)
 {
-	struct entry_hi hi;
+	entry_hi_t hi;
 	pri_t pri;
 	
-	*((__u32 *) &hi) = cp0_entry_hi_read();
+	hi.value = cp0_entry_hi_read();
 
 	pri = cpu_priority_high();
 	spinlock_lock(&vm->lock);
