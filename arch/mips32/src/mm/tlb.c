@@ -86,8 +86,15 @@ void tlb_refill(struct exception_regdump *pstate)
 	entry_lo_t lo;
 	__address badvaddr;
 	pte_t *pte;
-	
+
+// debug	
+	entry_hi_t hi;
+
 	badvaddr = cp0_badvaddr_read();
+
+// debug
+	hi.value = cp0_entry_hi_read();
+	printf("TLB Refill: hi.vnp2=%X\n", hi.vpn2);
 	
 	spinlock_lock(&VM->lock);		
 	pte = find_mapping_and_check(badvaddr);

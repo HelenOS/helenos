@@ -48,7 +48,7 @@ void vm_install_arch(vm_t *vm)
 	pri = cpu_priority_high();
 	spinlock_lock(&vm->lock);
 	hi.asid = vm->asid;
-	cp0_entry_hi_write(*((__u32 *) &hi));	
+	cp0_entry_hi_write(hi.value);	
 	spinlock_lock(&vm->unlock);
 	cpu_priority_restore(pri);
 }

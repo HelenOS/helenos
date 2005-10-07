@@ -52,24 +52,24 @@ void test(void)
 	*((__u32 *) frame0) = VALUE0;
 	*((__u32 *) frame1) = VALUE1;
 	
-	printf("Mapping %X to %X.\n", PAGE0, KA2PA(frame0));
+	printf("Mapping %P to %P.\n", PAGE0, KA2PA(frame0));
 	map_page_to_frame(PAGE0, KA2PA(frame0), PAGE_PRESENT, 0);
-	printf("Mapping %X to %X.\n", PAGE1, KA2PA(frame1));	
+	printf("Mapping %P to %P.\n", PAGE1, KA2PA(frame1));	
 	map_page_to_frame(PAGE1, KA2PA(frame1), PAGE_PRESENT, 0);
 	
-	printf("Value at %X is %X.\n", PAGE0, v0 = *((__u32 *) PAGE0));
-	printf("Value at %X is %X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	printf("Value at %P is %L.\n", PAGE0, v0 = *((__u32 *) PAGE0));
+	printf("Value at %P is %L.\n", PAGE1, v1 = *((__u32 *) PAGE1));
 	
 	ASSERT(v0 == VALUE0);
 	ASSERT(v1 == VALUE1);
 
-	printf("Writing 0 to %X.\n", PAGE0);
+	printf("Writing 0 to %P.\n", PAGE0);
 	*((__u32 *) PAGE0) = 0;
-	printf("Writing 0 to %X.\n", PAGE1);
+	printf("Writing 0 to %P.\n", PAGE1);
 	*((__u32 *) PAGE1) = 0;	
 	
-	printf("Value at %X is %X.\n", PAGE0, v0 = *((__u32 *) PAGE0));	
-	printf("Value at %X is %X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	printf("Value at %P is %L.\n", PAGE0, v0 = *((__u32 *) PAGE0));	
+	printf("Value at %P is %L.\n", PAGE1, v1 = *((__u32 *) PAGE1));
 
 	ASSERT(v0 == 0);
 	ASSERT(v1 == 0);
