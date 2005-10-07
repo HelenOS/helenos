@@ -1,0 +1,8 @@
+sparc64 port
+============
+
+Currently, this porting effort is subject to
+Jakub Jermar's work on his master thesis.
+
+The goal is to provide support for UltraSPARC
+implementation of SPARC V9 architecture.
