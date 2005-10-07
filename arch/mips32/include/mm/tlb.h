@@ -48,7 +48,7 @@ union entry_lo {
 		unsigned d : 1; 	/* dirty/write-protect bit */
 		unsigned c : 3; 	/* cache coherency attribute */
 		unsigned pfn : 24;	/* frame number */
-		unsigned zero: 2;	/* zero */
+		unsigned : 2;		/* zero */
 	} __attribute__ ((packed));
 	__u32 value;
 };

@@ -44,7 +44,9 @@ static void tlb_invalid_fail(struct exception_regdump *pstate);
 static void tlb_modified_fail(struct exception_regdump *pstate);
 
 static pte_t *find_mapping_and_check(__address badvaddr);
+
 static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn);
+static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
 
 /** Initialize TLB
  *
@@ -84,19 +86,14 @@ void tlb_init_arch(void)
 void tlb_refill(struct exception_regdump *pstate)
 {
 	entry_lo_t lo;
+	entry_hi_t hi;	
 	__address badvaddr;
 	pte_t *pte;
 
-// debug	
-	entry_hi_t hi;
-
 	badvaddr = cp0_badvaddr_read();
 
-// debug
-	hi.value = cp0_entry_hi_read();
-	printf("TLB Refill: hi.vnp2=%X\n", hi.vpn2);
-	
 	spinlock_lock(&VM->lock);		
+
 	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
 		goto fail;
@@ -106,11 +103,13 @@ void tlb_refill(struct exception_regdump *pstate)
 	 */
 	pte->a = 1;
 
+	prepare_entry_hi(&hi, VM->asid, badvaddr);
 	prepare_entry_lo(&lo, pte->g, pte->v, pte->d, pte->c, pte->pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
 	 */
+	cp0_entry_hi_write(hi.value);
 	if ((badvaddr/PAGE_SIZE) % 2 == 0) {
 		cp0_entry_lo0_write(lo.value);
 		cp0_entry_lo1_write(0);
@@ -140,6 +139,7 @@ void tlb_invalid(struct exception_regdump *pstate)
 	tlb_index_t index;
 	__address badvaddr;
 	entry_lo_t lo;
+	entry_hi_t hi;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
@@ -147,6 +147,9 @@ void tlb_invalid(struct exception_regdump *pstate)
 	/*
 	 * Locate the faulting entry in TLB.
 	 */
+	hi.value = cp0_entry_hi_read();
+	prepare_entry_hi(&hi, hi.asid, badvaddr);
+	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
 	
@@ -204,6 +207,7 @@ void tlb_modified(struct exception_regdump *pstate)
 	tlb_index_t index;
 	__address badvaddr;
 	entry_lo_t lo;
+	entry_hi_t hi;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
@@ -211,6 +215,9 @@ void tlb_modified(struct exception_regdump *pstate)
 	/*
 	 * Locate the faulting entry in TLB.
 	 */
+	hi.value = cp0_entry_hi_read();
+	prepare_entry_hi(&hi, hi.asid, badvaddr);
+	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
 	
@@ -378,10 +385,16 @@ pte_t *find_mapping_and_check(__address badvaddr)
 
 void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn)
 {
+	lo->value = 0;
 	lo->g = g;
 	lo->v = v;
 	lo->d = d;
 	lo->c = c;
 	lo->pfn = pfn;
-	lo->zero = 0;
+}
+
+void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr)
+{
+	hi->value = (((addr/PAGE_SIZE)/2)*PAGE_SIZE*2);
+	hi->asid = asid;
 }
