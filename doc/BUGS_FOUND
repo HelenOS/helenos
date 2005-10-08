@@ -13,6 +13,7 @@ Bochs
 Msim
 ====
 - Incorrect interpretation of lwl/lwr/swl/swr instructions
+- Omitted excMod case in write_proc_mem()
 
 Gcc
 ===
