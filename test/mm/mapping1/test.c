@@ -42,7 +42,7 @@
 void test(void)
 {
 	__address frame0, frame1;
-	volatile __u32 v0, v1;
+	__u32 v0, v1;
 
 	printf("Memory management test mapping #1\n");
 
@@ -73,8 +73,8 @@ void test(void)
 	v0 = *((__u32 *) PAGE0);
 	v1 = *((__u32 *) PAGE1);
 	
-	printf("Value at virtual address %P is %X.\n", PAGE0, v0 = *((__u32 *) PAGE0));	
-	printf("Value at virtual address %P is %X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	printf("Value at virtual address %P is %X.\n", PAGE0, *((__u32 *) PAGE0));	
+	printf("Value at virtual address %P is %X.\n", PAGE1, *((__u32 *) PAGE1));
 
 	ASSERT(v0 == 0);
 	ASSERT(v1 == 0);
