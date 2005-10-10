@@ -37,6 +37,7 @@
 #include <proc/task.h>
 #include <main/kinit.h>
 #include <cpu.h>
+#include <align.h>
 
 #ifdef __SMP__
 #include <arch/smp/apic.h>
@@ -85,8 +86,10 @@ static size_t kernel_size;
  */
 static size_t heap_size;
 
+
 /*
- * Extra space on heap to make the stack start on page boundary.
+ * Extra space between heap and stack
+ * enforced by alignment requirements.
  */
 static size_t heap_delta;
 
@@ -117,16 +120,13 @@ void main_bsp(void)
 	config.memory_size = get_memory_size();
 
 	heap_size = CONFIG_HEAP_SIZE + (config.memory_size/FRAME_SIZE)*sizeof(frame_t);
-	
-	kernel_size = hardcoded_ktext_size + hardcoded_kdata_size + heap_size;
-	heap_delta = PAGE_SIZE - ((hardcoded_load_address + kernel_size) % PAGE_SIZE);
-	heap_delta = (heap_delta == PAGE_SIZE) ? 0 : heap_delta;
-	kernel_size += heap_delta;
+	kernel_size = ALIGN(hardcoded_ktext_size + hardcoded_kdata_size + heap_size, PAGE_SIZE);
+	heap_delta = kernel_size - (hardcoded_ktext_size + hardcoded_kdata_size + heap_size);
 	
 	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;
 	
 	context_save(&ctx);
-	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size + heap_delta, CONFIG_STACK_SIZE + heap_size);
+	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_STACK_SIZE + heap_size + heap_delta);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */

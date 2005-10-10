@@ -26,76 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_CONTEXT_H__
-#define __ia64_CONTEXT_H__
+#ifndef __ALIGN_H__
+#define __ALIGN_H__
 
-#include <arch/types.h>
-#include <align.h>
-
-#define STACK_ITEM_SIZE	16
-#define STACK_ALIGNMENT 16
-
-/*
- * context_save() and context_restore() are both leaf procedures.
- * No need to allocate scratch area.
- *
- * One item is put onto the stack to support get_stack_base().
- */
-#define SP_DELTA	(0+STACK_ITEM_SIZE)
-
-#ifdef context_set
-#undef context_set
-#endif
-
-#define context_set(c, _pc, stack, size) 						\
-	(c)->pc = (__address) _pc;							\
-	(c)->bsp = ((__address) stack) + (ALIGN(sizeof(the_t), STACK_ALIGNMENT));	\
-	(c)->sp = ((__address) stack) + (size) - SP_DELTA;
-
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-struct context {
-
-	/*
-	 * Application registers
-	 */
-	__u64 ar_pfs;
-	__u64 ar_unat_caller;
-	__u64 ar_unat_callee;
-	__u64 ar_rsc;
-	__u64 bsp;	/* ar_bsp */
-	__u64 ar_rnat;
-	__u64 ar_lc;
-
-	/*
-	 * General registers
-	 */
-	__u64 r1;
-	__u64 r4;
-	__u64 r5;
-	__u64 r6;
-	__u64 r7;
-	__u64 sp;		/* r12 */
-	__u64 r13;
-	
-	/*
-	 * Branch registers
-	 */
-	__u64 pc;		/* b0 */
-	__u64 b1;
-	__u64 b2;
-	__u64 b3;
-	__u64 b4;
-	__u64 b5;
-
-	/*
-	 * Predicate registers
-	 */
-	__u64 pr;
-	
-	pri_t pri;
-} __attribute__ ((packed));
+#define ALIGN(s, a)	((s) % (a) ? (((s) / (a)) + 1) * (a) : (s))
 
 #endif
