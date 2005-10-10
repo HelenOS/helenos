@@ -62,15 +62,15 @@
 #define GET_PTL0_ADDRESS_ARCH()			(PTL0)
 #define SET_PTL0_ADDRESS_ARCH(ptl0)		(PTL0 = (pte_t *)(ptl0))
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].pfn<<12)
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].lo.pfn<<12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].pfn<<12)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].lo.pfn<<12)
 
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].pfn = (a)>>12)
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].lo.pfn = (a)>>12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].pfn = (a)>>12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].lo.pfn = (a)>>12)
 
 #define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
@@ -94,8 +94,8 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 	pte_t *p = &pt[i];
 	
 	return (
-		((p->c>PAGE_UNCACHED)<<PAGE_CACHEABLE_SHIFT) |
-		((!p->v)<<PAGE_PRESENT_SHIFT) |
+		((p->lo.c>PAGE_UNCACHED)<<PAGE_CACHEABLE_SHIFT) |
+		((!p->lo.v)<<PAGE_PRESENT_SHIFT) |
 		(1<<PAGE_USER_SHIFT) |
 		(1<<PAGE_READ_SHIFT) |
 		((p->w)<<PAGE_WRITE_SHIFT) |
@@ -108,8 +108,8 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
-	p->c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
-	p->v = !(flags & PAGE_NOT_PRESENT);
+	p->lo.c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
+	p->lo.v = !(flags & PAGE_NOT_PRESENT);
 	p->w = (flags & PAGE_WRITE) != 0;
 }
 

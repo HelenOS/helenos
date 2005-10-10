@@ -49,8 +49,8 @@
 
 #define context_set(c, _pc, stack, size) 						\
 	(c)->pc = (__address) _pc;							\
-	(c)->bsp = ((__address) stack) + (ALIGN(sizeof(the_t), STACK_ALIGNMENT));	\
-	(c)->sp = ((__address) stack) + (size) - SP_DELTA;
+	(c)->bsp = ((__address) stack) + ALIGN(sizeof(the_t), STACK_ALIGNMENT);		\
+	(c)->sp = ((__address) stack) + ALIGN((size) - SP_DELTA, STACK_ALIGNMENT);
 
 /*
  * Only save registers that must be preserved across

@@ -49,6 +49,6 @@ typedef __u32 pri_t;
 
 typedef __u32 __native;
 
-typedef struct pte pte_t;
+typedef union pte pte_t;
 
 #endif

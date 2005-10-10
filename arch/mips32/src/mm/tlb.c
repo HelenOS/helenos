@@ -104,7 +104,7 @@ void tlb_refill(struct exception_regdump *pstate)
 	pte->a = 1;
 
 	prepare_entry_hi(&hi, VM->asid, badvaddr);
-	prepare_entry_lo(&lo, pte->g, pte->v, pte->d, pte->c, pte->pfn);
+	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->lo.d, pte->lo.c, pte->lo.pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
@@ -177,7 +177,7 @@ void tlb_invalid(struct exception_regdump *pstate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_lo(&lo, pte->g, pte->v, pte->d, pte->c, pte->pfn);
+	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->lo.d, pte->lo.c, pte->lo.pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -250,9 +250,9 @@ void tlb_modified(struct exception_regdump *pstate)
 	 * Record access and write to PTE.
 	 */
 	pte->a = 1;
-	pte->d = 1;
+	pte->lo.d = 1;
 
-	prepare_entry_lo(&lo, pte->g, pte->v, pte->w, pte->c, pte->pfn);
+	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->w, pte->lo.c, pte->lo.pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -375,7 +375,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Handler cannot succeed if the mapping is marked as invalid.
 	 */
-	if (!pte->v) {
+	if (!pte->lo.v) {
 		printf("Invalid mapping.\n");
 		return NULL;
 	}
