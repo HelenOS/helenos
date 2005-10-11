@@ -46,7 +46,7 @@ void mutex_initialize(mutex_t *mtx)
  * Acquire mutex.
  * Timeout mode and non-blocking mode can be requested.
  *
- * @param mxt Mutex.
+ * @param mtx Mutex.
  * @param usec Timeout in microseconds.
  * @param trylock Switches between blocking and non-blocking mode.
  *

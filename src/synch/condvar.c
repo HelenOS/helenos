@@ -47,7 +47,7 @@ void condvar_initialize(condvar_t *cv)
  * Signal the condition has become true
  * to the first waiting thread by waking it up.
  *
- * @param Condition variable.
+ * @param cv Condition variable.
  */
 void condvar_signal(condvar_t *cv)
 {
@@ -59,7 +59,7 @@ void condvar_signal(condvar_t *cv)
  * Signal the condition has become true
  * to all waiting threads by waking them up.
  *
- * @param Condition variable.
+ * @param cv Condition variable.
  */
 void condvar_broadcast(condvar_t *cv)
 {
@@ -70,7 +70,15 @@ void condvar_broadcast(condvar_t *cv)
  *
  * Wait for the condition becoming true.
  *
- * @param Condition variable.
+ * @param cv Condition variable.
+ * @param mtx Mutex.
+ * @param usec Timeout value in microseconds.
+ * @param trywait Blocking versus non-blocking operation mode switch.
+ *
+ * For exact description of possible combinations of
+ * 'usec' and 'trywait', see comment for waitq_sleep_timeout().
+ *
+ * @return See comment for waitq_sleep_timeout().
  */
 int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int trywait)
 {

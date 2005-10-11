@@ -34,8 +34,7 @@
  *
  * Initialize THE structure passed as argument.
  *
- * @the THE structure to be initialized.
- *
+ * @param the THE structure to be initialized.
  */
 void the_initialize(the_t *the)
 {
@@ -50,8 +49,8 @@ void the_initialize(the_t *the)
  *
  * Copy the source THE structure to the destination THE structure.
  *
- * @src The source THE structure.
- * @dst The destination THE structure.
+ * @param src The source THE structure.
+ * @param dst The destination THE structure.
  */
 void the_copy(the_t *src, the_t *dst)
 {

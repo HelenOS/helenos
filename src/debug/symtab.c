@@ -31,8 +31,14 @@
 #include <typedefs.h>
 #include <arch/byteorder.h>
 
-/** Return entry that seems most likely to correspond to the @addr
+/** Return entry that seems most likely to correspond to address
  *
+ * Return entry that seems most likely to correspond
+ * to address passed in the argument.
+ *
+ * @param addr Address.
+ *
+ * @return Pointer to respective symbol string on success, NULL otherwise.
  */
 char * get_symtab_entry(__native addr)
 {

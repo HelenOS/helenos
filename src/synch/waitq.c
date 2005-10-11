@@ -108,29 +108,32 @@ out:
  * and all the *_timeout() functions use it.
  *
  * @param wq Pointer to wait queue.
- * @param usec Timeout value in microseconds.
- * @param nonblocking Controls whether only a conditional sleep
- *        (non-blocking sleep) is called for when the usec argument is 0.
+ * @param usec Timeout in microseconds.
+ * @param nonblocking Blocking vs. non-blocking operation mode switch.
  *
- * Relation between 'usec' and 'nonblocking' is described by this table:
+ * If usec is greater than zero, regardless of the value of @nonblocking,
+ * the call will not return until either timeout or wakeup comes.
  *
- * usec | nonblocking |	what happens if there is no missed_wakeup
- * -----+-------------+--------------------------------------------
- *  0	| 0	      |	blocks without timeout until wakeup
- *  0	| <> 0	      |	immediately returns ESYNCH_WOULD_BLOCK
- *  > 0	| x	      |	blocks with timeout until timeout or wakeup
+ * If usec is zero and nonblocking is zero (false), the call
+ * will not return until wakeup comes.
+ *
+ * If usec is zero and nonblocking is non-zero (true), the call will
+ * immediately return, reporting either success or failure.
  *
  * @return Returns one of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT,
  *         ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
  *
- * Meaning of the return values is described by the following chart:
+ * ESYNCH_WOULD_BLOCK means that the sleep failed because at the time
+ * of the call there was no pending wakeup.
  *
- * ESYNCH_WOULD_BLOCK 	Sleep failed because at the time of the call,
- *			there was no pending wakeup.
- * ESYNCH_TIMEOUT 	Sleep timed out.
- * ESYNCH_OK_ATOMIC 	Sleep succeeded; at the time of the call,
- *			where was a pending wakeup.
- * ESYNCH_OK_BLOCKED	Sleep succeeded; the full sleep was attempted.
+ * ESYNCH_TIMEOUT means that the sleep timed out.
+ *
+ * ESYNCH_OK_ATOMIC means that the sleep succeeded and that there was
+ * a pending wakeup at the time of the call. The caller was not put
+ * asleep at all.
+ * 
+ * ESYNCH_OK_BLOCKED means that the sleep succeeded; the full sleep was 
+ * attempted.
  */
 int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking)
 {

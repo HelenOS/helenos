@@ -38,10 +38,9 @@
  * of microseconds (or slightly more). The delay
  * is implemented as CPU calibrated active loop.
  *
- * @param microseconds Number of usec to sleep.
- *
+ * @param usec Number of microseconds to sleep.
  */
-void delay(__u32 microseconds)
+void delay(__u32 usec)
 {
 	pri_t pri;
 	
@@ -49,6 +48,6 @@ void delay(__u32 microseconds)
 	   CPU in the system. Therefore it is necessary to
 	   cpu_priority_high() before calling the asm_delay_loop(). */
 	pri = cpu_priority_high();
-	asm_delay_loop(microseconds * CPU->delay_loop_const);
+	asm_delay_loop(usec * CPU->delay_loop_const);
 	cpu_priority_restore(pri);
 }

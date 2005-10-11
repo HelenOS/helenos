@@ -90,7 +90,7 @@ void timeout_initialize(timeout_t *t)
  * time microseconds (or slightly more).
  *
  * @param t    Timeout list.
- * @patam time Number of usec in the future to execute
+ * @param time Number of usec in the future to execute
  *             the handler.
  * @param f    Timeout handler function.
  * @param arg  Timeout handler argument.
