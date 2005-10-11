@@ -145,7 +145,7 @@ void print_double(double num, __u8 modifier, __u16 precision)
 /** Print NULL terminated string
  *
  * Print characters from str using putchar() until
- * \x00 character is reached.
+ * \\0 character is reached.
  *
  * @param str Characters to print.
  *
@@ -209,52 +209,71 @@ void print_number(const __native num, const unsigned int base)
  *
  * Print text formatted according the fmt parameter
  * and variant arguments. Each formatting directive
- * begins with % (percentage) character and one of the
+ * begins with \% (percentage) character and one of the
  * following character:
  *
- * %    Prints the percentage character.
+ * \%    Prints the percentage character.
+ *
  * s    The next variant argument is treated as char*
  *      and printed as a NULL terminated string.
+ *
  * c    The next variant argument is treated as a single char.
+ *
  * p    The next variant argument is treated as a maximum
  *      bit-width integer with respect to architecture
  *      and printed in full hexadecimal width.
+ *
  * P    As with 'p', but '0x' is prefixed.
+ *
  * q    The next variant argument is treated as a 64b integer
  *      and printed in full hexadecimal width.
+ *
  * Q    As with 'q', but '0x' is prefixed.
+ *
  * l    The next variant argument is treated as a 32b integer
  *      and printed in full hexadecimal width.
+ *
  * L    As with 'l', but '0x' is prefixed.
+ *
  * w    The next variant argument is treated as a 16b integer
  *      and printed in full hexadecimal width.
+ *
  * W    As with 'w', but '0x' is prefixed.
+ *
  * b    The next variant argument is treated as a 8b integer
  *      and printed in full hexadecimal width.
- * N    As with 'b', but '0x' is prefixed.
+ *
+ * B    As with 'b', but '0x' is prefixed.
+ *
  * d    The next variant argument is treated as integer
  *      and printed in standard decimal format (only significant
  *      digits).
+ *
  * x    The next variant argument is treated as integer
  *      and printed in standard hexadecimal format (only significant
  *      digits).
+ *
  * X    As with 'x', but '0x' is prefixed.
+ *
  * .    The decimal number following period will be treated as precision
  *      for printing floating point numbers. One of 'e', 'E', 'f' or 'F'
  *      must follow.
+ *
  * e    The next variant argument is treated as double precision float
  *      and printed in exponent notation with only one digit before decimal point
  *      in specified precision. The exponent sign is printed as 'e'.
+ *
  * E    As with 'e', but the exponent sign is printed as 'E'.
+ *
  * f    The next variant argument is treated as double precision float
  *      and printed in decimal notation in specified precision.
+ *
  * F    As with 'f'.
  *
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *
  * @param fmt Formatting NULL terminated string.
- *
  */
 void printf(const char *fmt, ...)
 {

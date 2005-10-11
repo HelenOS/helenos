@@ -111,7 +111,7 @@ out:
  * @param usec Timeout in microseconds.
  * @param nonblocking Blocking vs. non-blocking operation mode switch.
  *
- * If usec is greater than zero, regardless of the value of @nonblocking,
+ * If usec is greater than zero, regardless of the value of nonblocking,
  * the call will not return until either timeout or wakeup comes.
  *
  * If usec is zero and nonblocking is zero (false), the call
