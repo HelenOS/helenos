@@ -37,7 +37,7 @@
 #include <arch/cpuid.h>
 #include <arch/mm/page.h>
 	
-.section K_TEXT_START_2
+.section K_TEXT_START_2, "ax"
 
 #ifdef __SMP__
 

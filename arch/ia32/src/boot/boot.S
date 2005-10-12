@@ -33,7 +33,7 @@
 #include <arch/mm/page.h>
 #include <arch/pm.h>
 
-.section K_TEXT_START
+.section K_TEXT_START, "ax"
 .global kernel_image_start
 
 KTEXT=8
@@ -243,7 +243,7 @@ map_kernel:
 	ret
 
 
-.section K_DATA_START
+.section K_DATA_START, "aw", @progbits
 
 .align 4096
 page_directory:

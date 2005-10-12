@@ -116,9 +116,6 @@ struct ptr_16_64 idtr = {.limit = sizeof(idt), .base= (__u64) idt };
 static struct tss tss;
 struct tss *tss_p = NULL;
 
-/* TODO: Does not compile correctly if it does not exist ???? */
-int __attribute__ ((section ("K_DATA_START"))) __fake;
-
 void gdt_tss_setbase(struct descriptor *d, __address base)
 {
 	struct tss_descriptor *td = (struct tss_descriptor *) d;

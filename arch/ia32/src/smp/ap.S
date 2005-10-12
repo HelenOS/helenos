@@ -30,7 +30,7 @@
 # Init code for application processors.
 #
 
-.section K_TEXT_START_2
+.section K_TEXT_START_2, "ax"
 
 #ifdef __SMP__
 

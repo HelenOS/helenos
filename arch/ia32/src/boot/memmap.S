@@ -35,7 +35,7 @@ E820_SMAP = 0x534d4150
 .global e801memorysize
 
 .code16
-.section K_TEXT_START_2
+.section K_TEXT_START_2, "ax"
 
 memmap_arch_init:
 e820begin:
@@ -108,7 +108,7 @@ e801end:
 	ret
 
 
-.section K_DATA_START
+.section K_DATA_START, "aw", @progbits
 
 #memory size in 1 kb chunks
 e801memorysize:

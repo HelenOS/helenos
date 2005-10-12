@@ -25,8 +25,6 @@ SECTIONS {
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
 		unmapped_kdata_end = .;
-		
-		LONG(0xdeadbeaf);		/* TODO: remove 0xdeadbeaf */						
 	}
 	
 	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)): AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) { 

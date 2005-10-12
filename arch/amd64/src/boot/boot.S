@@ -48,7 +48,7 @@
 
 #define START_STACK (BOOTSTRAP_OFFSET-0x400)
 	
-.section K_TEXT_START
+.section K_TEXT_START, "ax"
 .code16
 .global kernel_image_start
 kernel_image_start:
@@ -137,7 +137,7 @@ start64:
 1:
 	jmp 1b
 				
-.section K_DATA_START
+.section K_DATA_START, "aw", @progbits
 .align 4096
 
 # Identical mapping of first 16MB and the same of -2GB -> 0	
