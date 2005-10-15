@@ -40,7 +40,6 @@ arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 arch_sources= \
 	src/arch/context.s \
 	src/arch/debug/panic.s \
-	src/arch/cpuid.s \
 	src/arch/delay.s \
 	src/arch/asm.S \
 	src/arch/proc/scheduler.c \

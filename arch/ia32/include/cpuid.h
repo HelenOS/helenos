@@ -38,21 +38,45 @@ struct cpu_info {
 	__u32 cpuid_edx;
 } __attribute__ ((packed));
 
-extern int has_cpuid(void);
+static inline __u32 has_cpuid(void)
+{
+	__u32 val, ret;
+	
+	__asm__ volatile (
+		"pushf\n"               /* read flags */
+		"popl %0\n"
+		"movl %0, %1\n"
+		
+		"btcl $21, %1\n"        /* swap the ID bit */
+		
+		"pushl %1\n"            /* propagate the change into flags */
+		"popf\n"
+		"pushf\n"
+		"popl %1\n"
+		
+		"andl $(1 << 21), %0\n" /* interrested only in ID bit */
+		"andl $(1 << 21), %1\n"
+		"xorl %1, %0\n"
+		: "=r" (ret), "=r" (val)
+	);
+	
+	return ret;
+}
 
 static inline void cpuid(__u32 cmd, struct cpu_info *info)
 {
-        __asm__ volatile (
-                "movl %4, %%eax\n"
-                "cpuid\n"
-                "movl %%eax,%0\n"
-                "movl %%ebx,%1\n"
-                "movl %%ecx,%2\n"
-                "movl %%edx,%3\n"
-                : "=m" (info->cpuid_eax), "=m" (info->cpuid_ebx), "=m" (info->cpuid_ecx), "=m" (info->cpuid_edx)
-                : "m" (cmd)
-                : "eax", "ebx", "ecx", "edx"
-        );
+	__asm__ volatile (
+		"movl %4, %%eax\n"
+		"cpuid\n"
+		
+		"movl %%eax, %0\n"
+		"movl %%ebx, %1\n"
+		"movl %%ecx, %2\n"
+		"movl %%edx, %3\n"
+		: "=m" (info->cpuid_eax), "=m" (info->cpuid_ebx), "=m" (info->cpuid_ecx), "=m" (info->cpuid_edx)
+		: "m" (cmd)
+		: "eax", "ebx", "ecx", "edx"
+	);
 }
 
 #endif
