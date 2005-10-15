@@ -2,7 +2,7 @@
 
 COMPILER=""
 
-if [ $1 == "native" ];
+if [ "$1" == "native" ];
 then
 	COMPILER="NATIVE_COMPILER=yes";
 fi;
