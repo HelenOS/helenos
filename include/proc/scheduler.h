@@ -39,8 +39,8 @@
 
 struct runq {
 	spinlock_t lock;
-	link_t rq_head;
-	int n;
+	link_t rq_head;		/**< List of ready threads. */
+	int n;			/**< Number of threads in rq_ready. */
 };
 
 extern volatile count_t nrdy;

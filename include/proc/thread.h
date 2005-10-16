@@ -45,12 +45,12 @@
 #define THREAD_USER_STACK	1
 
 enum state {
-	Invalid,
-	Running,
-	Sleeping,
-	Ready,
-	Entering,
-	Exiting
+	Invalid,	/**< It is an error, if thread is found in this state. */
+	Running,	/**< State of a thread that is currently executing on some CPU. */
+	Sleeping,	/**< Thread in this state is waiting for an event. */
+	Ready,		/**< State of threads in a run queue. */
+	Entering,	/**< Threads are in this state before they are first readied. */
+	Exiting		/**< After a thread calls thread_exit(), it is put into Exiting state. */
 };
 
 extern char *thread_states[];
@@ -59,19 +59,24 @@ extern char *thread_states[];
 #define X_STOLEN	(1<<1)
 
 struct thread {
-	link_t rq_link;				/* run queue link */
-	link_t wq_link;				/* wait queue link */
-	link_t th_link;				/* links to threads within the parent task*/
-	link_t threads_link;
+	link_t rq_link;				/**< Run queue link. */
+	link_t wq_link;				/**< Wait queue link. */
+	link_t th_link;				/**< Links to threads within containing task. */
+	link_t threads_link;			/**< Link to the list of all threads. */
 	
 	/* items below are protected by lock */
 	spinlock_t lock;
 
-	void (* thread_code)(void *);
-	void *thread_arg;
+	void (* thread_code)(void *);		/**< Function implementing the thread. */
+	void *thread_arg;			/**< Argument passed to thread_code() function. */
 
-	context_t saved_context;
-	context_t sleep_timeout_context;
+	context_t saved_context;		/**< From here, the stored context is restored when the thread is scheduled. */
+	context_t sleep_timeout_context;	/**< From here, the stored failover context is restored when sleep times out. */
+
+	waitq_t *sleep_queue;			/**< Wait queue in which this thread sleeps. */
+	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
+	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */
+
 	fpu_context_t saved_fpu_context;
 	int fpu_context_exists;
 
@@ -82,34 +87,30 @@ struct thread {
 	 */
 	int fpu_context_engaged;
 
-	waitq_t *sleep_queue;
-	timeout_t sleep_timeout;
-	volatile int timeout_pending;
-
 	rwlock_type_t rwlock_holder_type;
-	void (* call_me)(void *);
-	void *call_me_with;
 
-	int state;
-	int flags;
+	void (* call_me)(void *);		/**< Funtion to be called in scheduler before the thread is put asleep. */
+	void *call_me_with;			/**< Argument passed to call_me(). */
+
+	state_t state;				/**< Thread's state. */
+	int flags;				/**< Thread's flags. */
 	
-	cpu_t *cpu;
-	task_t *task;
+	cpu_t *cpu;				/**< Thread's CPU. */
+	task_t *task;				/**< Containing task. */
 
-	__u64 ticks;
+	__u64 ticks;				/**< Ticks before preemption. */
 
-	__u32 tid;
+	int pri;				/**< Thread's priority. Implemented as index of run queue. */
+	__u32 tid;				/**< Thread ID. */
 	
-	int pri;
-	
-	ARCH_THREAD_DATA;
+	ARCH_THREAD_DATA;			/**< Architecture-specific data. */
 
-	__u8 *kstack;
-	__u8 *ustack;
+	__u8 *kstack;				/**< Thread's kernel stack. */
+	__u8 *ustack;				/**< Thread's user stack. */
 };
 
-extern spinlock_t threads_lock;
-extern link_t threads_head;
+extern spinlock_t threads_lock;			/**< Lock protecting threads_head list. */
+extern link_t threads_head;			/**< List of all threads in the system. */
 
 static void cushion(void);
 

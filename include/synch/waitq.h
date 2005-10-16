@@ -40,8 +40,8 @@
 
 struct waitq {
 	spinlock_t lock;
-	int missed_wakeups;
-	link_t head;
+	int missed_wakeups;	/**< Number of waitq_wakeup() calls that didn't find a thread to wake up. */
+	link_t head;		/**< List of sleeping threads for wich there was no missed_wakeup. */
 };
 
 #define waitq_sleep(wq) \

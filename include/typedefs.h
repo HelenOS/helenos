@@ -45,6 +45,7 @@ typedef struct cpu_info cpu_info_t;
 typedef struct cpu cpu_t;
 typedef struct cpu_arch cpu_arch_t;
 typedef struct task task_t;
+typedef enum state state_t;
 typedef struct thread thread_t;
 typedef struct context context_t;
 typedef struct fpu_context fpu_context_t;

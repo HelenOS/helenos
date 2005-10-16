@@ -35,8 +35,8 @@
 
 struct task {
 	spinlock_t lock;
-	link_t th_head;		/* list of threads contained in this task */
-	link_t tasks_link;	/* link to other tasks within the system */
+	link_t th_head;		/**< List of threads contained in this task. */
+	link_t tasks_link;	/**< Link to other tasks within the system. */
 	vm_t *vm;
 };
 
