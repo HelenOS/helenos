@@ -29,7 +29,7 @@
 #ifndef __SYNCH_H__
 #define __SYNCH_H__
 
-#define SYNCH_NO_TIMEOUT	0	/**< No timeout is request. */
+#define SYNCH_NO_TIMEOUT	0	/**< Request with no timeout. */
 #define SYNCH_BLOCKING		0	/**< Blocking operation request. */
 #define SYNCH_NON_BLOCKING	1	/**< Non-blocking operation request. */
 

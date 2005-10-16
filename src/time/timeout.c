@@ -52,11 +52,11 @@ void timeout_init(void)
 }
 
 
-/** Initialize empty timeout list
+/** Reinitialize timeout 
  *
- * Initialize the timeout list to be empty.
+ * Initialize all members except the lock.
  *
- * @param t Timeout list to be initialized.
+ * @param t Timeout to be initialized.
  *
  */
 void timeout_reinitialize(timeout_t *t)
@@ -69,11 +69,11 @@ void timeout_reinitialize(timeout_t *t)
 }
 
 
-/** Initialize timeout list
+/** Initialize timeout
  *
- * Initialize the timeout list and its spinlock.
+ * Initialize all members including the lock.
  *
- * @param t Timeout list to be initialized.
+ * @param t Timeout to be initialized.
  *
  */
 void timeout_initialize(timeout_t *t)
@@ -83,20 +83,20 @@ void timeout_initialize(timeout_t *t)
 }
 
 
-/** Register timeout callback
+/** Register timeout
  *
- * Insert the timeout handler f (with argument arg)
- * to the timeout list and make it execute in
+ * Insert timeout handler f (with argument arg)
+ * to timeout list and make it execute in
  * time microseconds (or slightly more).
  *
- * @param t    Timeout list.
+ * @param t    Timeout structure.
  * @param time Number of usec in the future to execute
  *             the handler.
  * @param f    Timeout handler function.
  * @param arg  Timeout handler argument.
  *
  */
-void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
+void timeout_register(timeout_t *t, __u64 time, timeout_handler_t f, void *arg)
 {
 	timeout_t *hlp;
 	link_t *l, *m;
@@ -156,14 +156,15 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler f, void *arg)
 }
 
 
-/** Unregister timeout callback
+/** Unregister timeout
  *
  * Remove timeout from timeout list.
  *
  * @param t Timeout to unregister.
  *
+ * @return true on success, false on failure.
  */
-int timeout_unregister(timeout_t *t)
+bool timeout_unregister(timeout_t *t)
 {
 	timeout_t *hlp;
 	link_t *l;
@@ -175,7 +176,7 @@ grab_locks:
 	if (!t->cpu) {
 		spinlock_unlock(&t->lock);
 		cpu_priority_restore(pri);
-		return 0;
+		return false;
 	}
 	if (!spinlock_trylock(&t->cpu->timeoutlock)) {
 		spinlock_unlock(&t->lock);
@@ -203,5 +204,5 @@ grab_locks:
 	spinlock_unlock(&t->lock);
 
 	cpu_priority_restore(pri);
-	return 1;
+	return true;
 }

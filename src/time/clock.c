@@ -52,7 +52,7 @@ void clock(void)
 {
 	link_t *l;
 	timeout_t *h;
-	timeout_handler f;
+	timeout_handler_t f;
 	void *arg;
 
 	/*

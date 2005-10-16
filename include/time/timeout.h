@@ -36,25 +36,25 @@
 
 #define us2ticks(us)	((__u64)(((__u32) (us)/(1000000/HZ))))
 
-typedef void (* timeout_handler)(void *arg);
+typedef void (* timeout_handler_t)(void *arg);
 
 struct timeout {
 	spinlock_t lock;
 
-	link_t link;
+	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
 	
-	__u64 ticks;
+	__u64 ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
 
-	timeout_handler handler;
-	void *arg;
+	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
+	void *arg;			/**< Argument to be passed to handler() function. */
 	
-	cpu_t *cpu;
+	cpu_t *cpu;			/**< On which processor is this timeout registered. */
 };
 
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *t);
 extern void timeout_reinitialize(timeout_t *t);
-extern void timeout_register(timeout_t *t, __u64 usec, timeout_handler f, void *arg);
-extern int timeout_unregister(timeout_t *t);
+extern void timeout_register(timeout_t *t, __u64 usec, timeout_handler_t f, void *arg);
+extern bool timeout_unregister(timeout_t *t);
 
 #endif

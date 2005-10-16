@@ -32,12 +32,14 @@
 #include <arch/barrier.h>
 #include <debug.h>
 
+/** Increment preemption disabled counter. */
 void preemption_disable(void)
 {
 	THE->preemption_disabled++;
 	memory_barrier();
 }
 
+/** Decrement preemption disabled counter. */
 void preemption_enable(void)
 {
 	ASSERT(THE->preemption_disabled);
