@@ -107,7 +107,6 @@ context_save:
 	mov loc2 = pr		;;
 	st8 [in0] = loc2, 8
 	
-	mov ar.pfs = loc0
 	mov ar.unat = loc1
 	
 	add r8 = r0, r0, 1 		/* context_save returns 1 */
