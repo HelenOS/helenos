@@ -62,7 +62,7 @@ struct context {
 	__u32 s8;
 	__u32 gp;
 
-	__u32 pri;
+	ipl_t ipl;
 };
 
 #endif /* __ASM__ */

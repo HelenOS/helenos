@@ -32,14 +32,16 @@
 #include <arch/types.h>
 #include <config.h>
 
-/** Set priority level low
+/** Enable interrupts.
  *
  * Enable interrupts and return previous
  * value of EE.
+ *
+ * @return Old interrupt priority level.
  */
-static inline pri_t cpu_priority_low(void) {
-	pri_t v;
-	pri_t tmp;
+static inline ipl_t interrupts_enable(void) {
+	ipl_t v;
+	ipl_t tmp;
 	
 	__asm__ volatile (
 		"mfmsr %0\n"
@@ -51,14 +53,16 @@ static inline pri_t cpu_priority_low(void) {
 	return v;
 }
 
-/** Set priority level high
+/** Disable interrupts.
  *
  * Disable interrupts and return previous
  * value of EE.
+ *
+ * @return Old interrupt priority level.
  */
-static inline pri_t cpu_priority_high(void) {
-	pri_t v;
-	pri_t tmp;
+static inline ipl_t interrupts_disable(void) {
+	ipl_t v;
+	ipl_t tmp;
 	
 	__asm__ volatile (
 		"mfmsr %0\n"
@@ -70,12 +74,14 @@ static inline pri_t cpu_priority_high(void) {
 	return v;
 }
 
-/** Restore priority level
+/** Restore interrupt priority level.
  *
  * Restore EE.
+ *
+ * @param ipl Saved interrupt priority level.
  */
-static inline void cpu_priority_restore(pri_t pri) {
-	pri_t tmp;
+static inline void interrupts_restore(ipl_t ipl) {
+	ipl_t tmp;
 	
 	__asm__ volatile (
 		"mfmsr %1\n"
@@ -84,17 +90,19 @@ static inline void cpu_priority_restore(pri_t pri) {
 		"beq 0f\n"
 		"mtmsr %0\n"
 		"0:\n"
-		: "=r" (pri), "=r" (tmp)
-		: "0" (pri)
+		: "=r" (ipl), "=r" (tmp)
+		: "0" (ipl)
 	);
 }
 
-/** Return raw priority level
+/** Return interrupt priority level.
  *
  * Return EE.
+ *
+ * @return Current interrupt priority level.
  */
-static inline pri_t cpu_priority_read(void) {
-	pri_t v;
+static inline ipl_t interrupts_read(void) {
+	ipl_t v;
 	__asm__ volatile (
 		"mfmsr %0\n"
 		: "=r" (v)

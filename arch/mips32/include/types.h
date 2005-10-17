@@ -45,7 +45,7 @@ typedef signed long long __s64;
 
 typedef __u32 __address;
 
-typedef __u32 pri_t;
+typedef __u32 ipl_t;
 
 typedef __u32 __native;
 

@@ -285,7 +285,7 @@ void printf(const char *fmt, ...)
 	
 	va_start(ap, fmt);
 
-	irqpri = cpu_priority_high();
+	irqpri = interrupts_disable();
 	spinlock_lock(&printflock);
 
 	while (c = fmt[i++]) {
@@ -400,7 +400,7 @@ loop:
 
 out:
 	spinlock_unlock(&printflock);
-	cpu_priority_restore(irqpri);
+	interrupts_restore(irqpri);
 	
 	va_end(ap);
 }

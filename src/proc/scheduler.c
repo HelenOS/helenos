@@ -125,13 +125,13 @@ struct thread *find_best_thread(void)
 	ASSERT(CPU != NULL);
 
 loop:
-	cpu_priority_high();
+	interrupts_disable();
 
 	spinlock_lock(&CPU->lock);
 	n = CPU->nrdy;
 	spinlock_unlock(&CPU->lock);
 
-	cpu_priority_low();
+	interrupts_enable();
 	
 	if (n == 0) {
 		#ifdef __SMP__
@@ -155,7 +155,7 @@ loop:
 		 goto loop;
 	}
 
-	cpu_priority_high();
+	interrupts_disable();
 	
 	i = 0;
 retry:
@@ -196,7 +196,7 @@ retry:
 		t->cpu = CPU;
 
 		t->ticks = us2ticks((i+1)*10000);
-		t->pri = i;	/* eventually correct rq index */
+		t->priority = i;	/* eventually correct rq index */
 
 		/*
 		 * Clear the X_STOLEN flag so that t can be migrated when load balancing needs emerge.
@@ -261,11 +261,11 @@ void relink_rq(int start)
  */
 void scheduler(void)
 {
-	volatile pri_t pri;
+	volatile ipl_t ipl;
 
 	ASSERT(CPU != NULL);
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	if (haltstate)
 		halt();
@@ -281,16 +281,16 @@ void scheduler(void)
 			 */
 			before_thread_runs();
 			spinlock_unlock(&THREAD->lock);
-			cpu_priority_restore(THREAD->saved_context.pri);
+			interrupts_restore(THREAD->saved_context.ipl);
 			return;
 		}
 
 		/*
-		 * CPU priority of preempted thread is recorded here
-		 * to facilitate scheduler() invocations from
-		 * cpu_priority_high()'ed code (e.g. waitq_sleep_timeout()). 
+		 * Interrupt priority level of preempted thread is recorded here
+		 * to facilitate scheduler() invocations from interrupts_disable()'d
+		 * code (e.g. waitq_sleep_timeout()). 
 		 */
-		THREAD->saved_context.pri = pri;
+		THREAD->saved_context.ipl = ipl;
 	}
 
 	/*
@@ -371,7 +371,7 @@ void scheduler_separated_stack(void)
 			/*
 			 * Prefer the thread after it's woken up.
 			 */
-			THREAD->pri = -1;
+			THREAD->priority = -1;
 
 			/*
 			 * We need to release wq->lock which we locked in waitq_sleep().
@@ -406,7 +406,7 @@ void scheduler_separated_stack(void)
 	THREAD = find_best_thread();
 	
 	spinlock_lock(&THREAD->lock);
-	priority = THREAD->pri;
+	priority = THREAD->priority;
 	spinlock_unlock(&THREAD->lock);	
 
 	relink_rq(priority);		
@@ -446,7 +446,7 @@ void scheduler_separated_stack(void)
 	THREAD->state = Running;
 
 	#ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (pri=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->pri, THREAD->ticks, CPU->nrdy);
+	printf("cpu%d: tid %d (priority=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, CPU->nrdy);
 	#endif	
 
 	/*
@@ -472,7 +472,7 @@ void kcpulb(void *arg)
 {
 	thread_t *t;
 	int count, i, j, k = 0;
-	pri_t pri;
+	ipl_t ipl;
 
 loop:
 	/*
@@ -486,12 +486,12 @@ not_satisfied:
 	 * other CPU's. Note that situation can have changed between two
 	 * passes. Each time get the most up to date counts.
 	 */
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&CPU->lock);
 	count = nrdy / config.cpu_active;
 	count -= CPU->nrdy;
 	spinlock_unlock(&CPU->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	if (count <= 0)
 		goto satisfied;
@@ -514,12 +514,12 @@ not_satisfied:
 			if (CPU == cpu)
 				continue;				
 
-restart:		pri = cpu_priority_high();
+restart:		ipl = interrupts_disable();
 			r = &cpu->rq[j];
 			spinlock_lock(&r->lock);
 			if (r->n == 0) {
 				spinlock_unlock(&r->lock);
-				cpu_priority_restore(pri);
+				interrupts_restore(ipl);
 				continue;
 			}
 		
@@ -548,7 +548,7 @@ restart:		pri = cpu_priority_high();
 					if (!spinlock_trylock(&cpu->lock)) {
 						/* Release all locks and try again. */ 
 						spinlock_unlock(&r->lock);
-						cpu_priority_restore(pri);
+						interrupts_restore(ipl);
 						goto restart;
 					}
 					cpu->nrdy--;
@@ -580,7 +580,7 @@ restart:		pri = cpu_priority_high();
 	
 				thread_ready(t);
 
-				cpu_priority_restore(pri);
+				interrupts_restore(ipl);
 	
 				if (--count == 0)
 					goto satisfied;
@@ -592,7 +592,7 @@ restart:		pri = cpu_priority_high();
 				
 				continue;
 			}
-			cpu_priority_restore(pri);
+			interrupts_restore(ipl);
 		}
 	}
 

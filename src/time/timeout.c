@@ -100,10 +100,10 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler_t f, void *arg)
 {
 	timeout_t *hlp;
 	link_t *l, *m;
-	pri_t pri;
+	ipl_t ipl;
 	__u64 sum;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&CPU->timeoutlock);
 	spinlock_lock(&t->lock);
 
@@ -152,7 +152,7 @@ void timeout_register(timeout_t *t, __u64 time, timeout_handler_t f, void *arg)
 
 	spinlock_unlock(&t->lock);
 	spinlock_unlock(&CPU->timeoutlock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 
@@ -168,19 +168,19 @@ bool timeout_unregister(timeout_t *t)
 {
 	timeout_t *hlp;
 	link_t *l;
-	pri_t pri;
+	ipl_t ipl;
 
 grab_locks:
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&t->lock);
 	if (!t->cpu) {
 		spinlock_unlock(&t->lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 		return false;
 	}
 	if (!spinlock_trylock(&t->cpu->timeoutlock)) {
 		spinlock_unlock(&t->lock);
-		cpu_priority_restore(pri);		
+		interrupts_restore(ipl);		
 		goto grab_locks;
 	}
 	
@@ -203,6 +203,6 @@ grab_locks:
 	timeout_reinitialize(t);
 	spinlock_unlock(&t->lock);
 
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	return true;
 }

@@ -44,13 +44,13 @@ static count_t asid_usage[ASIDS];	/**< Usage tracking array for ASIDs */
  */
 asid_t asid_get(void)
 {
-	pri_t pri;
+	ipl_t ipl;
 	int i, j;
 	count_t min;
 	
 	min = (unsigned) -1;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&asid_usage_lock);
 	
 	for (i = ASID_START, j = ASID_START; i < ASIDS; i++) {
@@ -65,7 +65,7 @@ asid_t asid_get(void)
 	asid_usage[j]++;
 
 	spinlock_unlock(&asid_usage_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	return i;
 }
@@ -78,9 +78,9 @@ asid_t asid_get(void)
  */
 void asid_put(asid_t asid)
 {
-	pri_t pri;
+	ipl_t ipl;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&asid_usage_lock);
 
 	ASSERT(asid != ASID_INVALID);
@@ -89,7 +89,7 @@ void asid_put(asid_t asid)
 	asid_usage[asid]--;
 
 	spinlock_unlock(&asid_usage_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Find out whether ASID is used by more address spaces
@@ -103,18 +103,18 @@ void asid_put(asid_t asid)
 bool asid_has_conflicts(asid_t asid)
 {
 	bool has_conflicts = false;
-	pri_t pri;
+	ipl_t ipl;
 
 	ASSERT(asid != ASID_INVALID);
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&asid_usage_lock);
 
 	if (asid_usage[asid] > 1)
 		has_conflicts = true;
 
 	spinlock_unlock(&asid_usage_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	return has_conflicts;
 }

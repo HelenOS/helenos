@@ -89,13 +89,13 @@ void vm_destroy(vm_t *m)
 
 vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 {
-	pri_t pri;
+	ipl_t ipl;
 	vm_area_t *a;
 	
 	if (addr % PAGE_SIZE)
 		panic("addr not aligned to a page boundary");
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&m->lock);
 	
 	/*
@@ -110,7 +110,7 @@ vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 		if (!a->mapping) {
 			free(a);
 			spinlock_unlock(&m->lock);
-			cpu_priority_restore(pri);
+			interrupts_restore(ipl);
 			return NULL;
 		}
 		
@@ -129,7 +129,7 @@ vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 	}
 
 	spinlock_unlock(&m->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	
 	return a;
 }
@@ -141,9 +141,9 @@ void vm_area_destroy(vm_area_t *a)
 void vm_area_map(vm_area_t *a, vm_t *m)
 {
 	int i, flags;
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&m->lock);
 	spinlock_lock(&a->lock);
 
@@ -165,15 +165,15 @@ void vm_area_map(vm_area_t *a, vm_t *m)
 		
 	spinlock_unlock(&a->lock);
 	spinlock_unlock(&m->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 void vm_area_unmap(vm_area_t *a, vm_t *m)
 {
 	int i;
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&m->lock);
 	spinlock_lock(&a->lock);
 
@@ -183,15 +183,15 @@ void vm_area_unmap(vm_area_t *a, vm_t *m)
 	
 	spinlock_unlock(&a->lock);
 	spinlock_unlock(&m->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 void vm_install(vm_t *m)
 {
 	link_t *l;
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	tlb_shootdown_start();
 	spinlock_lock(&m->lock);
@@ -202,7 +202,7 @@ void vm_install(vm_t *m)
 	spinlock_unlock(&m->lock);
 	tlb_shootdown_finalize();
 
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	vm_install_arch(m);
 	

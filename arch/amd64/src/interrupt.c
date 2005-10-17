@@ -108,7 +108,7 @@ iroutine trap_register(__u8 n, iroutine f)
 
 /*
  * Called directly from the assembler code.
- * CPU is cpu_priority_high().
+ * CPU is interrupts_disable()'d.
  */
 void trap_dispatcher(__u8 n, __native stack[])
 {

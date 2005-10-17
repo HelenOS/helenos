@@ -35,10 +35,10 @@
 .global arch_late_init
 .global cpu_identify
 .global cpu_print_report
-.global cpu_priority_high
-.global cpu_priority_low
-.global cpu_priority_read
-.global cpu_priority_restore
+.global interrupts_disable
+.global interrupts_enable
+.global interrupts_read
+.global interrupts_restore
 .global cpu_sleep
 .global dummy
 .global fpu_enable
@@ -52,10 +52,10 @@ asm_delay_loop:
 arch_late_init:
 cpu_identify:
 cpu_print_report:
-cpu_priority_high:
-cpu_priority_low:
-cpu_priority_read:
-cpu_priority_restore:
+interrupts_disable:
+interrupts_enable:
+interrupts_read:
+interrupts_restore:
 cpu_sleep:
 fpu_init:
 fpu_enable:

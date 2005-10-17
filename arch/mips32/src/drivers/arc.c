@@ -175,11 +175,11 @@ void arc_print_memory_map(void)
 void arc_putchar(char ch)
 {
 	__u32 cnt;
-	pri_t pri;
+	ipl_t ipl;
 
 	/* TODO: Should be spinlock? */
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	arc_entry->write(1, &ch, 1, &cnt);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	
 }

@@ -68,7 +68,7 @@ void frame_init(void)
  */
 __address frame_alloc(int flags)
 {
-	pri_t pri;
+	ipl_t ipl;
 	link_t *cur, *tmp;
 	zone_t *z;
 	zone_t *zone = NULL;
@@ -76,7 +76,7 @@ __address frame_alloc(int flags)
 	__address v;
 	
 loop:
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	
 	/*
@@ -104,7 +104,7 @@ loop:
 		 * TODO: Sleep until frames are available again.
 		 */
 		spinlock_unlock(&zone_head_lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 
 		panic("Sleep not implemented.\n");
 		goto loop;
@@ -126,7 +126,7 @@ loop:
 	spinlock_unlock(&zone->lock);
 	
 	spinlock_unlock(&zone_head_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	
 	return v;
 }
@@ -141,7 +141,7 @@ loop:
  */
 void frame_free(__address addr)
 {
-	pri_t pri;
+	ipl_t ipl;
 	link_t *cur;
 	zone_t *z;
 	zone_t *zone = NULL;
@@ -149,7 +149,7 @@ void frame_free(__address addr)
 	
 	ASSERT(addr % FRAME_SIZE == 0);
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	
 	/*
@@ -187,7 +187,7 @@ void frame_free(__address addr)
 	spinlock_unlock(&zone->lock);	
 	
 	spinlock_unlock(&zone_head_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Mark frame not free.
@@ -199,7 +199,7 @@ void frame_free(__address addr)
  */
 void frame_not_free(__address addr)
 {
-	pri_t pri;
+	ipl_t ipl;
 	link_t *cur;
 	zone_t *z;
 	zone_t *zone = NULL;
@@ -207,7 +207,7 @@ void frame_not_free(__address addr)
 	
 	ASSERT(addr % FRAME_SIZE == 0);
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	
 	/*
@@ -246,7 +246,7 @@ void frame_not_free(__address addr)
 	spinlock_unlock(&zone->lock);	
 	
 	spinlock_unlock(&zone_head_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Mark frame region not free.
@@ -335,15 +335,15 @@ zone_t *zone_create(__address start, size_t size, int flags)
  */
 void zone_attach(zone_t *zone)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	
 	list_append(&zone->link, &zone_head);
 	
 	spinlock_unlock(&zone_head_lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Initialize frame structure

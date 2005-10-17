@@ -52,7 +52,7 @@ struct context {
 	__u32 esi;
 	__u32 edi;
 	__u32 ebp;
-	__u32 pri;
+	ipl_t ipl;
 } __attribute__ ((packed));
 
 #endif

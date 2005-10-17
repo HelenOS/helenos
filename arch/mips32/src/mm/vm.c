@@ -41,14 +41,14 @@
 void vm_install_arch(vm_t *vm)
 {
 	entry_hi_t hi;
-	pri_t pri;
+	ipl_t ipl;
 	
 	hi.value = cp0_entry_hi_read();
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&vm->lock);
 	hi.asid = vm->asid;
 	cp0_entry_hi_write(hi.value);	
 	spinlock_lock(&vm->unlock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }

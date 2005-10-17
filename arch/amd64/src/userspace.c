@@ -41,9 +41,9 @@
  */
 void userspace(void)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	__asm__ volatile (""
 			  "movq %0, %%rax;"		       
@@ -57,7 +57,7 @@ void userspace(void)
 			  "pushq %%rdx;"
 			  "pushq %%rsi;"
 			  "iretq;"
-			  : : "i" (gdtselector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+THREAD_STACK_SIZE), "r" (pri), "i" (gdtselector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
+			  : : "i" (gdtselector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+THREAD_STACK_SIZE), "r" (ipl), "i" (gdtselector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
 	
 	/* Unreachable */
 	for(;;);

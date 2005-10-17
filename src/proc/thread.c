@@ -67,7 +67,7 @@ __u32 last_tid = 0;
  * makes a call to thread_exit() when its implementing
  * function returns.
  *
- * cpu_priority_high() is assumed.
+ * interrupts_disable() is assumed.
  *
  */
 void cushion(void)
@@ -79,7 +79,7 @@ void cushion(void)
 	before_thread_runs();
 
 	spinlock_unlock(&THREAD->lock);
-	cpu_priority_low();
+	interrupts_enable();
 
 	f(arg);
 	thread_exit();
@@ -112,14 +112,14 @@ void thread_ready(thread_t *t)
 {
 	cpu_t *cpu;
 	runq_t *r;
-	pri_t pri;
+	ipl_t ipl;
 	int i, avg, send_ipi = 0;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	spinlock_lock(&t->lock);
 
-	i = (t->pri < RQ_COUNT -1) ? ++t->pri : t->pri;
+	i = (t->priority < RQ_COUNT -1) ? ++t->priority : t->priority;
 	
 	cpu = CPU;
 	if (t->flags & X_WIRED) {
@@ -148,7 +148,7 @@ void thread_ready(thread_t *t)
 	}	
 	spinlock_unlock(&cpu->lock);
 
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 
@@ -171,7 +171,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 
 	t = (thread_t *) malloc(sizeof(thread_t));
 	if (t) {
-		pri_t pri;
+		ipl_t ipl;
 	
 		spinlock_initialize(&t->lock);
 	
@@ -180,11 +180,11 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 			frame_us = frame_alloc(FRAME_KA);
 		}
 
-		pri = cpu_priority_high();
+		ipl = interrupts_disable();
 		spinlock_lock(&tidlock);
 		t->tid = ++last_tid;
 		spinlock_unlock(&tidlock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 		
 		memsetb(frame_ks, THREAD_STACK_SIZE, 0);
 		link_initialize(&t->rq_link);
@@ -199,14 +199,14 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		
 		the_initialize((the_t *) t->kstack);
 
-		pri = cpu_priority_high();
-		t->saved_context.pri = cpu_priority_read();
-		cpu_priority_restore(pri);
+		ipl = interrupts_disable();
+		t->saved_context.ipl = interrupts_read();
+		interrupts_restore(ipl);
 		
 		t->thread_code = func;
 		t->thread_arg = arg;
 		t->ticks = -1;
-		t->pri = -1;		/* start in rq[0] */
+		t->priority = -1;		/* start in rq[0] */
 		t->cpu = NULL;
 		t->flags = 0;
 		t->state = Entering;
@@ -227,7 +227,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		/*
 		 * Register this thread in the system-wide list.
 		 */
-		pri = cpu_priority_high();		
+		ipl = interrupts_disable();		
 		spinlock_lock(&threads_lock);
 		list_append(&t->threads_link, &threads_head);
 		spinlock_unlock(&threads_lock);
@@ -239,7 +239,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		list_append(&t->th_link, &task->th_head);
 		spinlock_unlock(&task->lock);
 
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 	}
 
 	return t;
@@ -254,14 +254,14 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
  */
 void thread_exit(void)
 {
-	pri_t pri;
+	ipl_t ipl;
 
 restart:
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
 	if (THREAD->timeout_pending) { /* busy waiting for timeouts in progress */
 		spinlock_unlock(&THREAD->lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 		goto restart;
 	}
 	THREAD->state = Exiting;
@@ -311,12 +311,12 @@ void thread_usleep(__u32 usec)
  */
 void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
 	THREAD->call_me = call_me;
 	THREAD->call_me_with = call_me_with;
 	spinlock_unlock(&THREAD->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }

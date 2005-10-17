@@ -60,14 +60,14 @@ void early_heap_init(__address heap, size_t size)
  */
 void *early_malloc(size_t size)
 {
-	pri_t pri;
+	ipl_t ipl;
 	chunk_t *x, *y, *z;
 
 	if (size == 0)
 		panic("zero-size allocation request");
 		
 	x = chunk0;
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&heaplock);		
 	while (x) {
 		if (x->used || x->size < size) {
@@ -84,7 +84,7 @@ void *early_malloc(size_t size)
 		 */
 		if (x->size < size + sizeof(chunk_t) + 1) {
 			spinlock_unlock(&heaplock);
-			cpu_priority_restore(pri);
+			interrupts_restore(ipl);
 			return &x->data[0];
 		}
 
@@ -105,18 +105,18 @@ void *early_malloc(size_t size)
 		x->size = size;
 		x->next = y;
 		spinlock_unlock(&heaplock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 
 		return &x->data[0];
 	}
 	spinlock_unlock(&heaplock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	return NULL;
 }
 
 void early_free(void *ptr)
 {
-	pri_t pri;
+	ipl_t ipl;
 	chunk_t *x, *y, *z;
 
 	if (!ptr)
@@ -127,7 +127,7 @@ void early_free(void *ptr)
 	if (y->used != 1)
 		panic("freeing unused/damaged chunk");
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&heaplock);
 	x = y->prev;
 	z = y->next;
@@ -150,5 +150,5 @@ void early_free(void *ptr)
 	}
 	y->used = 0;
 	spinlock_unlock(&heaplock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }

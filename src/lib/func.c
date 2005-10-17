@@ -43,7 +43,7 @@ __u32	haltstate = 0; /**< Halt flag */
 void halt(void)
 {
 	haltstate = 1;
-	cpu_priority_high();
+	interrupts_disable();
 	if (CPU)
 		printf("cpu%d: halted\n", CPU->id);
 	else

@@ -131,13 +131,15 @@ static inline __u16 inw(__u16 port) { __u16 val; __asm__ volatile ("inw %w1, %w0
  */
 static inline __u32 inl(__u16 port) { __u32 val; __asm__ volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) ); return val; }
 
-/** Set priority level low
+/** Enable interrupts.
  *
  * Enable interrupts and return previous
  * value of EFLAGS.
+ *
+ * @return Old interrupt priority level.
  */
-static inline pri_t cpu_priority_low(void) {
-	pri_t v;
+static inline ipl_t interrupts_enable(void) {
+	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
@@ -147,13 +149,15 @@ static inline pri_t cpu_priority_low(void) {
 	return v;
 }
 
-/** Set priority level high
+/** Disable interrupts.
  *
  * Disable interrupts and return previous
  * value of EFLAGS.
+ *
+ * @return Old interrupt priority level.
  */
-static inline pri_t cpu_priority_high(void) {
-	pri_t v;
+static inline ipl_t interrupts_disable(void) {
+	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
@@ -163,24 +167,26 @@ static inline pri_t cpu_priority_high(void) {
 	return v;
 }
 
-/** Restore priority level
+/** Restore interrupt priority level.
  *
  * Restore EFLAGS.
+ *
+ * @param ipl Saved interrupt priority level.
  */
-static inline void cpu_priority_restore(pri_t pri) {
+static inline void interrupts_restore(ipl_t ipl) {
 	__asm__ volatile (
 		"pushl %0\n\t"
 		"popf\n"
-		: : "r" (pri)
+		: : "r" (ipl)
 	);
 }
 
-/** Return raw priority level
+/** Return interrupt priority level.
  *
- * Return EFLAFS.
+ * @return EFLAFS.
  */
-static inline pri_t cpu_priority_read(void) {
-	pri_t v;
+static inline ipl_t interrupts_read(void) {
+	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n"

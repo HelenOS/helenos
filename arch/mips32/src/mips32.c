@@ -52,7 +52,7 @@
 void arch_pre_mm_init(void)
 {
 	/* It is not assumed by default */
-	cpu_priority_high();
+	interrupts_disable();
 
 	init_arc();
 

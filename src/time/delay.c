@@ -42,12 +42,15 @@
  */
 void delay(__u32 usec)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	/* The delay loop is calibrated for each and every
-	   CPU in the system. Therefore it is necessary to
-	   cpu_priority_high() before calling the asm_delay_loop(). */
-	pri = cpu_priority_high();
+	/* 
+	 * The delay loop is calibrated for each and every
+	 * CPU in the system. Therefore it is necessary to
+	 * call interrupts_disable() before calling the
+	 * asm_delay_loop().
+	 */
+	ipl = interrupts_disable();
 	asm_delay_loop(usec * CPU->delay_loop_const);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }

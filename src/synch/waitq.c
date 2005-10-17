@@ -137,11 +137,11 @@ out:
  */
 int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking)
 {
-	volatile pri_t pri; /* must be live after context_restore() */
+	volatile ipl_t ipl; /* must be live after context_restore() */
 	
 	
 restart:
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	
 	/*
 	 * Busy waiting for a delayed timeout.
@@ -153,7 +153,7 @@ restart:
 	spinlock_lock(&THREAD->lock);
 	if (THREAD->timeout_pending) {
 		spinlock_unlock(&THREAD->lock);
-		cpu_priority_restore(pri);		
+		interrupts_restore(ipl);		
 		goto restart;
 	}
 	spinlock_unlock(&THREAD->lock);
@@ -164,14 +164,14 @@ restart:
 	if (wq->missed_wakeups) {
 		wq->missed_wakeups--;
 		spinlock_unlock(&wq->lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 		return ESYNCH_OK_ATOMIC;
 	}
 	else {
 		if (nonblocking && (usec == 0)) {
 			/* return immediatelly instead of going to sleep */
 			spinlock_unlock(&wq->lock);
-			cpu_priority_restore(pri);
+			interrupts_restore(ipl);
 			return ESYNCH_WOULD_BLOCK;
 		}
 	}
@@ -189,7 +189,7 @@ restart:
 			 */
 			before_thread_runs();
 			spinlock_unlock(&THREAD->lock);
-			cpu_priority_restore(pri);
+			interrupts_restore(ipl);
 			return ESYNCH_TIMEOUT;
 		}
 		THREAD->timeout_pending = 1;
@@ -207,7 +207,7 @@ restart:
 	spinlock_unlock(&THREAD->lock);
 
 	scheduler(); 	/* wq->lock is released in scheduler_separated_stack() */
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	
 	return ESYNCH_OK_BLOCKED;
 }
@@ -228,15 +228,15 @@ restart:
  */
 void waitq_wakeup(waitq_t *wq, int all)
 {
-	pri_t pri;
+	ipl_t ipl;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&wq->lock);
 
 	_waitq_wakeup_unsafe(wq, all);
 
 	spinlock_unlock(&wq->lock);	
-	cpu_priority_restore(pri);	
+	interrupts_restore(ipl);	
 }
 
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()

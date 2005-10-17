@@ -41,9 +41,9 @@
  */
 void userspace(void)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	__asm__ volatile (
 		/* CLNT */
@@ -60,7 +60,7 @@ void userspace(void)
 		"pushl %4\n"
 		"iret"
 		: 
-		: "i" (selector(UDATA_DES) | PL_USER), "r" (USTACK_ADDRESS+(THREAD_STACK_SIZE)), "r" (pri), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS)
+		: "i" (selector(UDATA_DES) | PL_USER), "r" (USTACK_ADDRESS+(THREAD_STACK_SIZE)), "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS)
 		: "eax");
 	
 	/* Unreachable */

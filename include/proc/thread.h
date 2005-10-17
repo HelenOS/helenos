@@ -100,7 +100,7 @@ struct thread {
 
 	__u64 ticks;				/**< Ticks before preemption. */
 
-	int pri;				/**< Thread's priority. Implemented as index of run queue. */
+	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
 	__u32 tid;				/**< Thread ID. */
 	
 	ARCH_THREAD_DATA;			/**< Architecture-specific data. */

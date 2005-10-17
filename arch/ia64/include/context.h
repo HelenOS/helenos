@@ -95,7 +95,7 @@ struct context {
 	 */
 	__u64 pr;
 	
-	pri_t pri;
+	ipl_t ipl;
 } __attribute__ ((packed));
 
 #endif

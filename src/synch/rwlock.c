@@ -96,14 +96,14 @@ void rwlock_initialize(rwlock_t *rwl) {
  */
 int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 {
-	pri_t pri;
+	ipl_t ipl;
 	int rc;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
 	THREAD->rwlock_holder_type = RWLOCK_WRITER;
 	spinlock_unlock(&THREAD->lock);	
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	/*
 	 * Writers take the easy part.
@@ -118,7 +118,7 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 		 * No claims about its holder can be made.
 		 */
 		 
-		pri = cpu_priority_high();
+		ipl = interrupts_disable();
 		spinlock_lock(&rwl->lock);
 		/*
 		 * Now when rwl is locked, we can inspect it again.
@@ -128,7 +128,7 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 		if (rwl->readers_in)
 			let_others_in(rwl, ALLOW_READERS_ONLY);
 		spinlock_unlock(&rwl->lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 	}
 	
 	return rc;
@@ -151,9 +151,9 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 {
 	int rc;
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
 	THREAD->rwlock_holder_type = RWLOCK_READER;
 	spinlock_unlock(&THREAD->lock);	
@@ -204,7 +204,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 			case ESYNCH_TIMEOUT:
 				/*
 				 * The sleep timeouted.
-				 * We just restore the cpu priority.
+				 * We just restore interrupt priority level.
 				 */
 			case ESYNCH_OK_BLOCKED:		
 				/*
@@ -215,7 +215,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 				 * Same time means both events happen atomically when
 				 * rwl->lock is held.)
 				 */
-				cpu_priority_restore(pri);
+				interrupts_restore(ipl);
 				break;
 			case ESYNCH_OK_ATOMIC:
 				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC");
@@ -236,7 +236,7 @@ shortcut:
 	rwl->readers_in++;
 	
 	spinlock_unlock(&rwl->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 
 	return ESYNCH_OK_ATOMIC;
 }
@@ -251,13 +251,13 @@ shortcut:
  */
 void rwlock_write_unlock(rwlock_t *rwl)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&rwl->lock);
 	let_others_in(rwl, ALLOW_ALL);
 	spinlock_unlock(&rwl->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 	
 }
 
@@ -272,14 +272,14 @@ void rwlock_write_unlock(rwlock_t *rwl)
  */
 void rwlock_read_unlock(rwlock_t *rwl)
 {
-	pri_t pri;
+	ipl_t ipl;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&rwl->lock);
 	if (!--rwl->readers_in)
 		let_others_in(rwl, ALLOW_ALL);
 	spinlock_unlock(&rwl->lock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 
@@ -289,7 +289,7 @@ void rwlock_read_unlock(rwlock_t *rwl)
  * to waiting readers or a writer.
  *
  * Must be called with rwl->lock locked.
- * Must be called with cpu_priority_high'ed.
+ * Must be called with interrupts_disable()'d.
  *
  * @param rwl Reader/Writer lock.
  * @param readers_only See the description below.

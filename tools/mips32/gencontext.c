@@ -2,7 +2,7 @@
 
 
 typedef unsigned int __u32;
-typedef __u32 pri_t;
+typedef __u32 ipl_t;
 
 #define __mips32_TYPES_H__
 #include "../../arch/mips32/include/context.h"

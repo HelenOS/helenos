@@ -55,7 +55,7 @@ struct context {
     __u64 r14;
     __u64 r15;
 
-    pri_t pri;
+    ipl_t ipl;
 } __attribute__ ((packed));
 
 #endif

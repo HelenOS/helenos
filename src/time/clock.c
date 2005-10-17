@@ -44,7 +44,7 @@
 /** Clock routine
  *
  * Clock routine executed from clock interrupt handler
- * (assuming cpu_priority_high()). Runs expired timeouts
+ * (assuming interrupts_disable()'d). Runs expired timeouts
  * and preemptive scheduling.
  *
  */

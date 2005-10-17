@@ -67,7 +67,7 @@ struct context {
 	__u32 r30;
 	__u32 r31;
 	__u32 pc;
-	pri_t pri;
+	ipl_t ipl;
 } __attribute__ ((packed));
 
 #endif

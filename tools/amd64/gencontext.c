@@ -2,7 +2,7 @@
 
 
 typedef long long __u64;
-typedef __u64 pri_t;
+typedef __u64 ipl_t;
 
 #define __amd64_TYPES_H__
 #include "../../arch/amd64/include/context.h"
@@ -31,7 +31,7 @@ int main(void)
 	fprintf(f,"#define OFFSET_R13 0x%x\n",((int)&pctx->r13) - (int )pctx);
 	fprintf(f,"#define OFFSET_R14 0x%x\n",((int)&pctx->r14) - (int )pctx);
 	fprintf(f,"#define OFFSET_R15 0x%x\n",((int)&pctx->r15) - (int )pctx);
-	fprintf(f,"#define OFFSET_PRI 0x%x\n",((int)&pctx->pri) - (int )pctx);
+	fprintf(f,"#define OFFSET_IPL 0x%x\n",((int)&pctx->ipl) - (int )pctx);
 	fclose(f);
 
 	return 0;

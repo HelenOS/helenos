@@ -42,17 +42,17 @@
  */
 void semaphore_initialize(semaphore_t *s, int val)
 {
-	pri_t pri;
+	ipl_t ipl;
 	
 	waitq_initialize(&s->wq);
 	
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 
 	spinlock_lock(&s->wq.lock);
 	s->wq.missed_wakeups = val;
 	spinlock_unlock(&s->wq.lock);
 
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Semaphore down

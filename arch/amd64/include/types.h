@@ -40,8 +40,8 @@ typedef unsigned long long __u64;
 
 typedef __u64 __address;
 
-/* Flags of processor (return value of cpu_priority_high()) */
-typedef __u64 pri_t;
+/* Flags of processor (return value of interrupts_disable()) */
+typedef __u64 ipl_t;
 
 typedef __u64 __native;
 

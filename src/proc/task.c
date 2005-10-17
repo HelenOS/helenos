@@ -64,7 +64,7 @@ void task_init(void)
  */
 task_t *task_create(vm_t *m)
 {
-	pri_t pri;
+	ipl_t ipl;
 	task_t *ta;
 	
 	ta = (task_t *) malloc(sizeof(task_t));
@@ -74,11 +74,11 @@ task_t *task_create(vm_t *m)
 		list_initialize(&ta->tasks_link);
 		ta->vm = m;
 		
-		pri = cpu_priority_high();
+		ipl = interrupts_disable();
 		spinlock_lock(&tasks_lock);
 		list_append(&ta->tasks_link, &tasks_head);
 		spinlock_unlock(&tasks_lock);
-		cpu_priority_restore(pri);
+		interrupts_restore(ipl);
 	}
 	return ta;
 }

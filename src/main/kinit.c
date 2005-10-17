@@ -64,7 +64,7 @@ void kinit(void *arg)
 	thread_t *t;
 	int i;
 
-	cpu_priority_high();
+	interrupts_disable();
 
 #ifdef __SMP__		 	
 	if (config.cpu_count > 1) {
@@ -115,7 +115,7 @@ void kinit(void *arg)
 	}
 #endif /* __SMP__ */
 
-	cpu_priority_low();
+	interrupts_enable();
 
 #ifdef __USERSPACE__
 	/*

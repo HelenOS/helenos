@@ -46,17 +46,17 @@
 #define early_mapping(stack, size)
 #endif /* early_mapping */
 
-/*
+/**
  * For each possible kernel stack, structure
  * of the following type will be placed at
  * the bottom of the stack.
  */
 struct the {
-	int preemption_disabled;
-	thread_t *thread;		/* current thread */
-	task_t *task;			/* current task */
-	cpu_t *cpu;			/* executing cpu */
-	vm_t *vm;			/* current vm */
+	int preemption_disabled;	/**< Preemption disabled counter. */
+	thread_t *thread;		/**< Current thread. */
+	task_t *task;			/**< Current task. */
+	cpu_t *cpu;			/**< Executing cpu. */
+	vm_t *vm;			/**< Current vm. */
 };
 
 #define THE		((the_t *)(get_stack_base()))	
@@ -69,9 +69,9 @@ extern void arch_post_mm_init(void);
 extern void arch_late_init(void);
 extern void calibrate_delay_loop(void);
 
-extern pri_t cpu_priority_high(void);
-extern pri_t cpu_priority_low(void);
-extern void cpu_priority_restore(pri_t pri);
-extern pri_t cpu_priority_read(void);
+extern ipl_t interrupts_disable(void); 
+extern ipl_t interrupts_enable(void);
+extern void interrupts_restore(ipl_t ipl);
+extern ipl_t interrupts_read(void);
 
 #endif

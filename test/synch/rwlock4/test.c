@@ -60,7 +60,7 @@ static void failed(void);
 __u32 random(__u32 max)
 {
 	__u32 rc;
-	pri_t pri;
+	ipl_t ipl;
 
 	spinlock_lock(&lock);	
 	rc = seed % max;

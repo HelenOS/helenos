@@ -134,6 +134,7 @@ context_restore:
 	 * Restore application registers
 	 */
 
+	/* TODO: ensure RSE lazy mode */
 	mov ar.bspstore = loc4
 	mov ar.rnat = loc5
 	mov ar.pfs = loc0

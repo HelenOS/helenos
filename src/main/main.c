@@ -109,7 +109,7 @@ static void main_ap_separated_stack(void);
  *
  * Initializes the kernel by bootstrap CPU.
  *
- * Assuming cpu_priority_high().
+ * Assuming interrupts_disable().
  *
  */
 void main_bsp(void)
@@ -208,7 +208,7 @@ void main_bsp_separated_stack(void)
  * Executed by application processors, temporary stack
  * is at ctx.sp which was set during BP boot.
  *
- * Assuming  cpu_priority_high().
+ * Assuming interrupts_disable()'d.
  *
  */
 void main_ap(void)

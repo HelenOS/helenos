@@ -315,12 +315,12 @@ void tlb_modified_fail(struct exception_regdump *pstate)
 void tlb_invalidate(asid_t asid)
 {
 	entry_hi_t hi;
-	pri_t pri;
+	ipl_t ipl;
 	int i;	
 	
 	ASSERT(asid != ASID_INVALID);
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	
 	for (i = 0; i < TLB_SIZE; i++) {
 		cp0_index_write(i);
@@ -336,7 +336,7 @@ void tlb_invalidate(asid_t asid)
 		}
 	}
 	
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 /** Try to find PTE for faulting address

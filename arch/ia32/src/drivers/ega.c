@@ -80,9 +80,9 @@ void ega_check_cursor(void)
 
 void ega_putchar(const char ch)
 {
-	pri_t pri;
+	ipl_t ipl;
 
-	pri = cpu_priority_high();
+	ipl = interrupts_disable();
 	spinlock_lock(&egalock);
 
 	switch (ch) {
@@ -101,7 +101,7 @@ void ega_putchar(const char ch)
 	ega_move_cursor();
 
 	spinlock_unlock(&egalock);
-	cpu_priority_restore(pri);
+	interrupts_restore(ipl);
 }
 
 void ega_move_cursor(void)

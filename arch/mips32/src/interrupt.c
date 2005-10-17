@@ -52,26 +52,42 @@ static void print_regdump(struct exception_regdump *pstate)
 	       pstate->ra,rasymbol);
 }
 
-pri_t cpu_priority_high(void)
+/** Disable interrupts.
+ *
+ * @return Old interrupt priority level.
+ */
+ipl_t interrupts_disable(void)
 {
-	pri_t pri = (pri_t) cp0_status_read();
-	cp0_status_write(pri & ~cp0_status_ie_enabled_bit);
-	return pri;
+	ipl_t ipl = (ipl_t) cp0_status_read();
+	cp0_status_write(ipl & ~cp0_status_ie_enabled_bit);
+	return ipl;
 }
 
-pri_t cpu_priority_low(void)
+/** Enable interrupts.
+ *
+ * @return Old interrupt priority level.
+ */
+ipl_t interrupts_enable(void)
 {
-	pri_t pri = (pri_t) cp0_status_read();
-	cp0_status_write(pri | cp0_status_ie_enabled_bit);
-	return pri;
+	ipl_t ipl = (ipl_t) cp0_status_read();
+	cp0_status_write(ipl | cp0_status_ie_enabled_bit);
+	return ipl;
 }
 
-void cpu_priority_restore(pri_t pri)
+/** Restore interrupt priority level.
+ *
+ * @param ipl Saved interrupt priority level.
+ */
+void interrupts_restore(ipl_t ipl)
 {
-	cp0_status_write(cp0_status_read() | (pri & cp0_status_ie_enabled_bit));
+	cp0_status_write(cp0_status_read() | (ipl & cp0_status_ie_enabled_bit));
 }
 
-pri_t cpu_priority_read(void)
+/** Read interrupt priority level.
+ *
+ * @return Current interrupt priority level.
+ */
+ipl_t interrupts_read(void)
 {
 	return cp0_status_read();
 }

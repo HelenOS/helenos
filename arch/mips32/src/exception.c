@@ -46,11 +46,11 @@ void exception(struct exception_regdump *pstate)
 	/*
 	 * NOTE ON OPERATION ORDERING
 	 *
-	 * On entry, cpu_priority_high() must be called before 
+	 * On entry, interrupts_disable() must be called before 
 	 * exception bit is cleared.
 	 */
 
-	cpu_priority_high();
+	interrupts_disable();
 	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
 						cp0_status_um_bit));
 
