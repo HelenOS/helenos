@@ -36,8 +36,8 @@
 .set noreorder
 .set nomacro
 
-.global context_save
-.global context_restore
+.global context_save_arch
+.global context_restore_arch
 
 .macro CONTEXT_STORE r
 	sw $s0,OFFSET_S0(\r)
@@ -72,14 +72,14 @@
 .endm
 
 	
-context_save:
+context_save_arch:
 	CONTEXT_STORE $a0
 
 	# context_save returns 1
 	j $31
 	li $2, 1	
 	
-context_restore:
+context_restore_arch:
 	CONTEXT_LOAD $a0
 
 	# context_restore returns 0

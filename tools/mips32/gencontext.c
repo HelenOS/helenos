@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-
 typedef unsigned int __u32;
 typedef __u32 ipl_t;
+typedef __u32 __address;
 
 #define __mips32_TYPES_H__
 #include "../../arch/mips32/include/context.h"

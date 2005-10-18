@@ -28,10 +28,10 @@
 
 .text
 
-.global context_save
-.global context_restore
+.global context_save_arch
+.global context_restore_arch
 
-context_save:
+context_save_arch:
 	alloc loc0 = ar.pfs, 1, 8, 0, 0
 	mov loc1 = ar.unat	;;
 	/* loc2 */
@@ -112,7 +112,7 @@ context_save:
 	add r8 = r0, r0, 1 		/* context_save returns 1 */
 	br.ret.sptk.many b0
 
-context_restore:
+context_restore_arch:
 	alloc loc0 = ar.pfs, 1, 8, 0, 0	;;
 
 	ld8 loc0 = [in0], 8	;;	/* load ar.pfs */

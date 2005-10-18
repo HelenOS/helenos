@@ -30,6 +30,7 @@
 #include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <proc/thread.h>
+#include <proc/scheduler.h>
 #include <arch/asm.h>
 #include <arch/types.h>
 #include <time/timeout.h>

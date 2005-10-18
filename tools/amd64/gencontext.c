@@ -3,6 +3,7 @@
 
 typedef long long __u64;
 typedef __u64 ipl_t;
+typedef __u64 __address;
 
 #define __amd64_TYPES_H__
 #include "../../arch/amd64/include/context.h"

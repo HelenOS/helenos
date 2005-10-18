@@ -28,17 +28,17 @@
 
 .text
 
-.global context_save
-.global context_restore
+.global context_save_arch
+.global context_restore_arch
 
 #include <arch/context_offset.h>
 
 ## Save current CPU context
 #
-# Save CPU context to the kernel_context variable
+# Save CPU context to context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
-context_save:
+context_save_arch:
 	movq (%rsp), %rdx     # the caller's return %eip
 	# In %edi is passed 1st argument
 	movq %rdx, OFFSET_PC(%rdi)
@@ -58,10 +58,10 @@ context_save:
 
 ## Restore current CPU context
 #
-# Restore CPU context from the kernel_context variable
+# Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore:	
+context_restore_arch:	
 	movq OFFSET_R15(%rdi), %r15
 	movq OFFSET_R14(%rdi), %r14
 	movq OFFSET_R13(%rdi), %r13

@@ -30,6 +30,7 @@
 #define __ia64_CONTEXT_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 
 #define STACK_ITEM_SIZE	16
@@ -50,7 +51,7 @@
 #define context_set(c, _pc, stack, size) 						\
 	(c)->pc = (__address) _pc;							\
 	(c)->bsp = ((__address) stack) + ALIGN(sizeof(the_t), STACK_ALIGNMENT);		\
-	(c)->sp = ((__address) stack) + ALIGN((size) - SP_DELTA, STACK_ALIGNMENT);
+	(c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - SP_DELTA;
 
 /*
  * Only save registers that must be preserved across
@@ -65,7 +66,7 @@ struct context {
 	__u64 ar_unat_caller;
 	__u64 ar_unat_callee;
 	__u64 ar_rsc;
-	__u64 bsp;	/* ar_bsp */
+	__address bsp;		/* ar_bsp */
 	__u64 ar_rnat;
 	__u64 ar_lc;
 
@@ -77,13 +78,13 @@ struct context {
 	__u64 r5;
 	__u64 r6;
 	__u64 r7;
-	__u64 sp;		/* r12 */
+	__address sp;		/* r12 */
 	__u64 r13;
 	
 	/*
 	 * Branch registers
 	 */
-	__u64 pc;		/* b0 */
+	__address pc;		/* b0 */
 	__u64 b1;
 	__u64 b2;
 	__u64 b3;

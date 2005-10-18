@@ -195,7 +195,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		t->ustack = (__u8 *) frame_us;
 		
 		context_save(&t->saved_context);
-		context_set(&t->saved_context, FADDR(cushion), t->kstack, THREAD_STACK_SIZE);
+		context_set(&t->saved_context, FADDR(cushion), (__address) t->kstack, THREAD_STACK_SIZE);
 		
 		the_initialize((the_t *) t->kstack);
 

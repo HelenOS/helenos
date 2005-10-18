@@ -44,8 +44,8 @@
  * during function call
  */
 struct context {
-    __u64 sp;
-    __u64 pc;
+    __address sp;
+    __address pc;
     
     __u64 rbx;
     __u64 rbp;

@@ -28,16 +28,16 @@
 
 .text
 
-.global context_save
-.global context_restore
+.global context_save_arch
+.global context_restore_arch
 
 
 ## Save current CPU context
 #
-# Save CPU context to the kernel_context variable
+# Save CPU context to the context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
-context_save:
+context_save_arch:
 	movl 0(%esp),%eax	# the caller's return %eip
 	movl 4(%esp),%edx	# address of the kernel_context variable to save context to
 
@@ -53,12 +53,12 @@ context_save:
 	ret
 
 
-## Restore current CPU context
+## Restore saved CPU context
 #
-# Restore CPU context from the kernel_context variable
+# Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore:
+context_restore_arch:
 	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
 	movl 0(%eax),%esp	# ctx->sp -> %esp
 	movl 4(%eax),%edx	# ctx->pc -> %edx

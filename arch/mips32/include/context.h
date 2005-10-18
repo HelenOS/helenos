@@ -48,8 +48,8 @@
  * function calls.
  */
 struct context {
-	__u32 sp;
-	__u32 pc;
+	__address sp;
+	__address pc;
 	
 	__u32 s0;
 	__u32 s1;

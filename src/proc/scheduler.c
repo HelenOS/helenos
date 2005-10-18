@@ -313,7 +313,7 @@ void scheduler(void)
 	 * scheduler_separated_stack().
 	 */
 	context_save(&CPU->saved_context);
-	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), CPU->stack, CPU_STACK_SIZE);
+	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

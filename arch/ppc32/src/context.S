@@ -30,10 +30,10 @@
 
 .text   
 
-.global context_save
-.global context_restore
+.global context_save_arch
+.global context_restore_arch
 
-context_save:
+context_save_arch:
 	REGISTERS_STORE r3
 	
 	mflr r3
@@ -43,7 +43,7 @@ context_save:
 	li r3, 1
 	blr
 	
-context_restore:
+context_restore_arch:
 	REGISTERS_LOAD r3
 	
 	lwz r3, 128(r3)

@@ -31,6 +31,8 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <arch/context.h>
+
 
 #ifndef context_set
 #define context_set(c, _pc, stack, size) 	\
@@ -38,7 +40,45 @@
 	(c)->sp = ((__address) (stack)) + (size) - SP_DELTA;
 #endif /* context_set */
 
-extern int context_save(context_t *c);
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
+extern int context_save_arch(context_t *c);
+extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
+
+/** Save register context.
+ *
+ * Save current register context (including stack pointers)
+ * to context structure.
+ *
+ * Note that call to context_restore() will return at the same
+ * address as the corresponding call to context_save().
+ *
+ * @param c Context structure.
+ *
+ * @return context_save() returns 1, context_restore() returns 0.
+ */
+static inline int context_save(context_t *c)
+{
+	return context_save_arch(c);
+}
+
+/** Restore register context.
+ *
+ * Restore previously saved register context (including stack pointers)
+ * from context structure.
+ *
+ * Note that this function does not normally return.
+ * Instead, it returns at the same address as the
+ * corresponding call to context_save(), the only
+ * difference being return value.
+ *
+ * Note that content of any local variable defined by
+ * the caller of context_save() is undefined after
+ * context_restore().
+ *
+ * @param c Context structure.
+ */
+static inline void context_restore(context_t *c)
+{
+	context_restore_arch(c);
+}
 
 #endif

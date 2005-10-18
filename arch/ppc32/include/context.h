@@ -35,7 +35,7 @@
 
 struct context {
 	__u32 r0;
-	__u32 sp;
+	__address sp;
 	__u32 r2;
 	__u32 r3;
 	__u32 r4;
@@ -66,7 +66,7 @@ struct context {
 	__u32 r29;
 	__u32 r30;
 	__u32 r31;
-	__u32 pc;
+	__address pc;
 	ipl_t ipl;
 } __attribute__ ((packed));
 
