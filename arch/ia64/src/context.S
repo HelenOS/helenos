@@ -113,7 +113,7 @@ context_save_arch:
 	br.ret.sptk.many b0
 
 context_restore_arch:
-	alloc loc0 = ar.pfs, 1, 8, 0, 0	;;
+	alloc loc0 = ar.pfs, 1, 9, 0, 0	;;
 
 	ld8 loc0 = [in0], 8	;;	/* load ar.pfs */
 	ld8 loc1 = [in0], 8	;;	/* load ar.unat (caller) */
@@ -131,11 +131,24 @@ context_restore_arch:
 	invala
 
 	/*
+	 * Put RSE to enforced lazy mode.
+	 * So that ar.bspstore and ar.rnat can be written.
+	 */
+	movl loc8 = ~3
+	and loc8 = loc3, loc8
+	mov ar.rsc = loc8
+
+	/*
+	 * Flush dirty registers to backing store.
+	 * We do this because we want the following move
+	 * to ar.bspstore to assign the same value to ar.bsp.
+	 */
+	flushrs
+
+	/*
 	 * Restore application registers
 	 */
-
-	/* TODO: ensure RSE lazy mode */
-	mov ar.bspstore = loc4
+	mov ar.bspstore = loc4	/* rse.bspload = ar.bsp = ar.bspstore = loc4 */
 	mov ar.rnat = loc5
 	mov ar.pfs = loc0
 	mov ar.rsc = loc3
