@@ -33,8 +33,9 @@
 #include <typedefs.h>
 #include <align.h>
 
-#define STACK_ITEM_SIZE	16
-#define STACK_ALIGNMENT 16
+#define STACK_ITEM_SIZE			16
+#define STACK_ALIGNMENT			16
+#define REGISTER_STACK_ALIGNMENT 	8
 
 /*
  * context_save() and context_restore() are both leaf procedures.
@@ -44,13 +45,16 @@
  */
 #define SP_DELTA	(0+STACK_ITEM_SIZE)
 
+#define PFM_MASK	(~0x3fffffffff)
+
 #ifdef context_set
 #undef context_set
 #endif
 
-#define context_set(c, _pc, stack, size) 						\
-	(c)->pc = (__address) _pc;							\
-	(c)->bsp = ((__address) stack) + ALIGN(sizeof(the_t), STACK_ALIGNMENT);		\
+#define context_set(c, _pc, stack, size) 								\
+	(c)->pc = (__address) _pc;									\
+	(c)->bsp = ((__address) stack) + ALIGN(sizeof(the_t), REGISTER_STACK_ALIGNMENT);		\
+	(c)->ar_pfs &= PFM_MASK; 									\
 	(c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - SP_DELTA;
 
 /*
