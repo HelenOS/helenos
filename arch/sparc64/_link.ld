@@ -1,5 +1,5 @@
 /*
- *  PPC32 linker script
+ *  SPARC64 linker script
  *
  *  It is ELF format, but its only section looks like this:
  *  kernel text
@@ -7,7 +7,7 @@
  *
  */
 
-OUTPUT_FORMAT(elf32-powerpc)
+OUTPUT_FORMAT(elf64-sparc)
 ENTRY(kernel_image_start)
 
 SECTIONS {

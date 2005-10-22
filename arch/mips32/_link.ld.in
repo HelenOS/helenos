@@ -1,5 +1,5 @@
 /*
- *  MIPS linker script
+ *  MIPS32 linker script
  *  
  *  kernel text
  *  kernel data
