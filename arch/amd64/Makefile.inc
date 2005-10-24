@@ -38,7 +38,6 @@ arch_sources = \
 	src/arch/drivers/i8042.c \
 	src/arch/drivers/i8254.c \
 	src/arch/drivers/i8259.c \
-	src/arch/supplib.c \
 	src/arch/delay.S \
 	src/arch/amd64.c \
 	src/arch/bios/bios.c \

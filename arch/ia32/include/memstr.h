@@ -43,7 +43,7 @@
  */
 static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
-        __u32 d0, d1, d2;
+        __native d0, d1, d2;
 
         __asm__ __volatile__(
                 /* copy all full dwords */
@@ -59,7 +59,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
                 /* exit from asm block */
                 "1:\n"
                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)
-                : "0" (cnt / 4), "g" (cnt), "1" ((__u32) dst), "2" ((__u32) src)
+                : "0" ((__native) (cnt / 4)), "g" ((__native) cnt), "1" ((__native) dst), "2" ((__native) src)
                 : "memory");
 
         return dst;
@@ -77,7 +77,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
  * @param cnt Number of bytes
  * @return Zero if bytes are equal, non-zero otherwise
  */
-static inline int memcmp(__address src, __address dst, size_t cnt)
+static inline int memcmp(const void * src, const void * dst, size_t cnt)
 {
 	__u32 d0, d1, d2;
 	int ret;
@@ -89,7 +89,7 @@ static inline int memcmp(__address src, __address dst, size_t cnt)
 		"addl $1, %0\n\t"
 		"1:\n"
 		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
-		: "0" (0), "1" (src), "2" (dst), "3" (cnt)
+		: "0" (0), "1" ((__native) src), "2" ((__native) dst), "3" ((__native) cnt)
 	);
 	
 	return ret;
