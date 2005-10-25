@@ -93,5 +93,5 @@ userspace:
 
 dummy:
 0:
-	ba,pt   %xcc, 0b
+	b 0b
 	nop

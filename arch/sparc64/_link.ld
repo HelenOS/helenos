@@ -39,4 +39,10 @@ SECTIONS {
 
 		kdata_end = .;
 	}
+	
+	/DISCARD/ : {
+		*(.comment);
+		*(.note*);
+	}
+
 }

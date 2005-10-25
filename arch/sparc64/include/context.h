@@ -33,7 +33,7 @@
 #include <typedefs.h>
 #include <align.h>
 
-#define STACK_ITEM_SIZE			16
+#define STACK_ITEM_SIZE			8
 
 /*
  * One item is put onto the stack to support get_stack_base().
