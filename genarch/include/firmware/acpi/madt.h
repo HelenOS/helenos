@@ -29,7 +29,7 @@
 #ifndef __MADT_H__
 #define __MADT_H__
 
-#include <arch/acpi/acpi.h>
+#include <genarch/firmware/acpi/acpi.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
 

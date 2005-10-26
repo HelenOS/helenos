@@ -42,7 +42,7 @@
 #include <arch/cpu.h>
 #include <print.h>
 #include <arch/cpuid.h>
-#include <arch/acpi/acpi.h>
+#include <genarch/firmware/acpi/acpi.h>
 #include <panic.h>
 
 void arch_pre_mm_init(void)

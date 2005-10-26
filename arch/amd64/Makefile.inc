@@ -50,9 +50,7 @@ arch_sources = \
 	src/arch/mm/memory_init.c \
 	src/arch/cpu/cpu.c \
 	src/arch/proc/scheduler.c \
-	src/arch/userspace.c \
-	src/arch/acpi/acpi.c \
-	src/arch/acpi/madt.c
+	src/arch/userspace.c
 
 ifdef SMP
 arch_sources += src/arch/smp/ap.S \

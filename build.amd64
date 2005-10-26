@@ -8,14 +8,14 @@ set -e
 (
 set -e
 cd arch
-for a in drivers bios fmath.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S smp/apic.c smp/ipi.c smp/mps.c smp/smp.c acpi; do
+for a in drivers bios fmath.c mm/frame.c mm/tlb.c mm/memory_init.c boot/memmap.S smp/apic.c smp/ipi.c smp/mps.c smp/smp.c; do
   if [ \! -e amd64/src/$a ]; then
     echo ln -sf `pwd`/ia32/src/$a amd64/src/$a
     ln -sf `pwd`/ia32/src/$a amd64/src/$a
   fi
 done
 
-for a in atomic.h ega.h fpu_context.h i8042.h i8259.h i8254.h interrupt.h bios mm/memory_init.h boot/memmap.h boot/memmapasm.h smp acpi barrier.h; do
+for a in atomic.h ega.h fpu_context.h i8042.h i8259.h i8254.h interrupt.h bios mm/memory_init.h boot/memmap.h boot/memmapasm.h smp barrier.h; do
   if [ \! -e amd64/include/$a ]; then
     echo ln -sf `pwd`/ia32/include/$a amd64/include/$a
     ln -sf `pwd`/ia32/include/$a amd64/include/$a

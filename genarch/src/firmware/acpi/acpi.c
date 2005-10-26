@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/acpi/acpi.h>
-#include <arch/acpi/madt.h>
+#include <genarch/firmware/acpi/acpi.h>
+#include <genarch/firmware/acpi/madt.h>
 #include <arch/bios/bios.h>
 
 #include <mm/page.h>

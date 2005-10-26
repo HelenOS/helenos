@@ -28,8 +28,8 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
-#include <arch/acpi/acpi.h>
-#include <arch/acpi/madt.h>
+#include <genarch/firmware/acpi/acpi.h>
+#include <genarch/firmware/acpi/madt.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
 #include <panic.h>

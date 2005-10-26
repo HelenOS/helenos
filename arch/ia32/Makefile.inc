@@ -43,8 +43,6 @@ arch_sources= \
 	src/arch/delay.s \
 	src/arch/asm.S \
 	src/arch/proc/scheduler.c \
-	src/arch/acpi/acpi.c \
-	src/arch/acpi/madt.c \
 	src/arch/bios/bios.c \
 	src/arch/smp/ap.S \
 	src/arch/smp/apic.c \
