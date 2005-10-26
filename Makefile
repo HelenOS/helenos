@@ -1,5 +1,6 @@
 include Makefile.config
 include arch/$(ARCH)/Makefile.inc
+include genarch/Makefile.inc
 
 sources=src/cpu/cpu.c \
 	src/main/main.c \
@@ -50,6 +51,7 @@ test_objects:=$(addsuffix .o,$(basename test/$(TEST_DIR)/$(TEST_FILE)))
 CFLAGS+=-D$(TEST)
 endif
 arch_objects:=$(addsuffix .o,$(basename $(arch_sources)))
+genarch_objects:=$(addsuffix .o,$(basename $(genarch_sources)))
 objects:=$(addsuffix .o,$(basename $(sources)))
 
 .PHONY : all config depend build clean dist-clean boot
@@ -60,36 +62,40 @@ all: dist-clean config depend build
 
 config:
 	find src/ include/ -name arch -type l -exec rm \{\} \;
+	find src/ include/ -name genarch -type l -exec rm \{\} \;	
 	ln -s ../arch/$(ARCH)/src/ src/arch
 	ln -s ../arch/$(ARCH)/include/ include/arch
+	ln -s ../genarch/src/ src/genarch
+	ln -s ../genarch/include/ include/genarch
 
 depend:
-	$(CC) $(CFLAGS) -M $(arch_sources) $(sources) >Makefile.depend
+	$(CC) $(CFLAGS) -M $(arch_sources) $(genarch_sources) $(sources) >Makefile.depend
 
 build: kernel.bin boot
 
 clean:
-	find src/ arch/$(ARCH)/src/ test/ -name '*.o' -exec rm \{\} \;
+	find src/ arch/$(ARCH)/src/ genarch/src/ test/ -name '*.o' -exec rm \{\} \;
 	-rm *.bin kernel.map kernel.map.pre kernel.objdump src/debug/real_map.bin
 	$(MAKE) -C arch/$(ARCH)/boot/ clean
 
 dist-clean:
 	find src/ include/ -name arch -type l -exec rm \{\} \;
+	find src/ include/ -name genarch -type l -exec rm \{\} \;	
 	-rm Makefile.depend
 	-$(MAKE) clean
 
-src/debug/real_map.bin: $(arch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld 
+src/debug/real_map.bin: $(arch_objects) $(genarch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld 
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile src/debug/empty_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(objects) $(test_objects) src/debug/empty_map.o -o $@ -Map kernel.map.pre
-	$(OBJDUMP) -t $(arch_objects) $(objects) $(test_objects) > kernel.objdump
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(genarch_objects) $(objects) $(test_objects) src/debug/empty_map.o -o $@ -Map kernel.map.pre
+	$(OBJDUMP) -t $(arch_objects) $(genarch_objects) $(objects) $(test_objects) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump src/debug/real_map.bin 
 
 src/debug/real_map.o: src/debug/real_map.bin
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
 
 
-kernel.bin: $(arch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld src/debug/real_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(objects) $(test_objects) src/debug/real_map.o -o $@ -Map kernel.map
+kernel.bin: $(arch_objects) $(genarch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld src/debug/real_map.o
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(genarch_objects) $(objects) $(test_objects) src/debug/real_map.o -o $@ -Map kernel.map
 
 %.o: %.S
 	$(CC) $(ASFLAGS) $(CFLAGS) -c $< -o $@

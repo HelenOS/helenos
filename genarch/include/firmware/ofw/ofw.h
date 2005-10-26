@@ -53,7 +53,7 @@ extern ofw_entry ofw;
 
 extern void ofw_init(void);
 extern void ofw_done(void);
-extern int ofw_call(const char *service, const int nargs, const int nret, ...);
+extern __address ofw_call(const char *service, const int nargs, const int nret, ...);
 extern void ofw_putchar(const char ch);
 extern phandle ofw_find_device(const char *name);
 extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);

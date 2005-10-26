@@ -27,7 +27,7 @@
  */
 
 #include <arch/mm/memory_init.h>
-#include <arch/drivers/ofw.h>
+#include <genarch/firmware/ofw/ofw.h>
 #include <panic.h>
 
 #define MEMMAP_MAX_RECORDS 32

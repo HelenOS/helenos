@@ -26,10 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/drivers/ofw.h>
+#include <genarch/firmware/ofw/ofw.h>
 #include <arch/asm.h>
 #include <stdarg.h>
 #include <cpu.h>
+#include <arch/types.h>
 
 ofw_entry ofw;
 
@@ -52,7 +53,7 @@ void ofw_done(void)
 	cpu_halt();
 }
 
-int ofw_call(const char *service, const int nargs, const int nret, ...)
+__address ofw_call(const char *service, const int nargs, const int nret, ...)
 {
 	va_list list;
 	ofw_args_t args;

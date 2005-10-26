@@ -55,7 +55,6 @@
 .global memsetb
 .global page_arch_init
 .global panic_printf
-.global putchar
 .global userspace
 
 .global dummy
@@ -87,7 +86,6 @@ memcpy:
 memsetb:
 page_arch_init:
 panic_printf:
-putchar:
 userspace:
 
 

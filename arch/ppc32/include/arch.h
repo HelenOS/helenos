@@ -29,7 +29,7 @@
 #ifndef __ppc32_ARCH_H__
 #define __ppc32_ARCH_H__
 
-#include <arch/drivers/ofw.h>
+#include <genarch/firmware/ofw/ofw.h>
 
 #ifdef early_mapping
 #undef early_mapping

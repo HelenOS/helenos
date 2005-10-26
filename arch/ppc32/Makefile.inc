@@ -29,5 +29,4 @@ arch_sources= \
 	src/arch/mm/frame.c \
 	src/arch/mm/memory_init.c \
 	src/arch/mm/page.c \
-	src/arch/drivers/ofw.c \
 	src/arch/fmath.c
