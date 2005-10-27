@@ -2,9 +2,20 @@
 
 COMPILER=""
 
-if [ "$1" == "native" ];
-then
-	COMPILER="NATIVE_COMPILER=yes";
-fi;
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		native)
+			COMPILER="$COMPILER NATIVE_COMPILER=yes"
+			;;
+		strong)
+			COMPILER="$COMPILER STRONG_ORDERING=yes"
+			;;
+		*)
+			echo "Supported arguments: native strong"
+			exit 1
+			;;
+	esac
+	shift
+done
 
 make all ARCH=ia32 $COMPILER

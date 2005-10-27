@@ -22,12 +22,16 @@ BFD_ARCH=i386
 
 DEFS:=-DARCH=$(ARCH) -DFPU_LAZY
 
+ifeq (${STRONG_ORDERING},yes)
+	DEFS+=-D__STRONG_ORDERING__
+endif
+
 ifdef SMP
-DEFS+=-D$(SMP)
+	DEFS+=-D$(SMP)
 endif
 
 ifdef HT
-DEFS+=-D$(HT)
+	DEFS+=-D$(HT)
 endif
 
 CPPFLAGS=$(DEFS) -nostdinc -Iinclude/
