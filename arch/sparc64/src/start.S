@@ -31,5 +31,27 @@
 .global kernel_image_start
 kernel_image_start:
 0:
-	b 0b
+	b 1f
 	nop
+
+#
+# This header forces SILO to load the kernel at 0x4000.
+# More precisely, SILO will think this is an old version of Linux.
+#
+.ascii "HdrS"
+.word 0
+.half 0
+
+.align 8
+
+1:
+	set ofw, %l0
+	stx %o4, [%l0]
+
+	call ofw_init
+	nop
+
+2:
+	b 2b
+	nop
+

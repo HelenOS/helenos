@@ -28,12 +28,8 @@
 
 .text
 
-.global arch_late_init
-.global arch_post_mm_init
-.global arch_pre_mm_init
 .global asm_delay_loop
 .global before_thread_runs_arch
-.global calibrate_delay_loop
 .global context_restore_arch
 .global context_save_arch
 .global cpu_arch_init
@@ -59,12 +55,8 @@
 
 .global dummy
 
-arch_late_init:
-arch_post_mm_init:
-arch_pre_mm_init:
 asm_delay_loop:
 before_thread_runs_arch:
-calibrate_delay_loop:
 context_restore_arch:
 context_save_arch:
 cpu_arch_init:

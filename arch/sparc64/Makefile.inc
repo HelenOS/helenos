@@ -19,4 +19,6 @@ LFLAGS=-M -no-check-sections -N
 
 arch_sources= \
 	src/arch/dummy.s \
-	src/arch/start.S
+	src/arch/start.S \
+	src/arch/sparc64.c
+
