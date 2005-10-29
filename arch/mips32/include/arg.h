@@ -29,6 +29,28 @@
 #ifndef __mips32_ARG_H__
 #define __mips32_ARG_H__
 
-#include <stackarg.h>
+//#include <stackarg.h>
+
+#include <arch/types.h>
+
+typedef struct va_list {
+	int pos;
+	__u8 *last;
+} va_list;
+
+#define va_start(ap, lst) 		\
+	(ap).pos = sizeof(lst); 			\
+	(ap).last = (__u8 *) &(lst)
+
+/**
+* va_arg macro for MIPS32 - problem is that 64 bit values must be aligned on an 8-byte boundary (32bit values not)
+* To satisfy this, paddings must be sometimes inserted. 
+*/
+#define va_arg(ap, type) 		\
+	(*((type *)((ap).last + ((ap).pos  += sizeof(type) + ((sizeof(type)==8)&&(((ap).pos)&(4))?4:0)) - sizeof(type))))
+
+#define va_end(ap)
+
+
 
 #endif
