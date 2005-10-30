@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#include <arch/mm/frame.h>
+#include <mm/frame.h>
+#include <config.h>
+#include <panic.h>
 
-#include <arch/types.h>
-
-#define MAX_OFW_ARGS	10
-
-typedef __native ofw_arg_t;
-typedef int ihandle;
-typedef int phandle;
-
-/** OpenFirmware command structure
- *
- */
-typedef struct {
-	const char *service;          /**< Command name */
-	__native nargs;               /**< Number of in arguments */
-	__native nret;                /**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
-} ofw_args_t;
-
-typedef void (*ofw_entry)(ofw_args_t *);
-
-extern ofw_entry ofw;
-
-extern void ofw_init(void);
-extern void ofw_done(void);
-extern __native ofw_call(const char *service, const int nargs, const int nret, ...);
-extern void ofw_putchar(const char ch);
-extern phandle ofw_find_device(const char *name);
-extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);
-extern void *ofw_claim(const void *addr, const int size, const int align);
-
-#endif
+void frame_arch_init(void)
+{
+	zone_t *z;
+	
+	z = zone_create(0, config.memory_size, 0);
+	if (!z) {
+		panic("Can't allocate zone (%dB).\n", config.memory_size);
+	}
+	zone_attach(z);
+}

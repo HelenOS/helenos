@@ -78,6 +78,11 @@ static inline ipl_t interrupts_read(void) {
  */
 static inline __address get_stack_base(void)
 {
+	__address v;
+	
+	__asm__ volatile ("and %%o6, %1, %0\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	
+	return v;
 }
 
 void cpu_halt(void);

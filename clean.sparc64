@@ -1,3 +1,6 @@
 #! /bin/sh
 
 make dist-clean ARCH=sparc64
+
+rm tools/sparc64/gencontext
+rm arch/sparc64/include/context_offset.h

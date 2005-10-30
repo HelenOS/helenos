@@ -14,11 +14,17 @@ BFD_ARCH=sparc
 ASFLAGS=
 
 DEFS=-DARCH=$(ARCH)
-CFLAGS=$(DEFS) -nostdlib -fno-builtin -O2
+CFLAGS=$(DEFS) -nostdlib -fno-builtin -mcpu=ultrasparc -m64 -O2
 LFLAGS=-M -no-check-sections -N
 
 arch_sources= \
+	src/arch/asm.S \
+	src/arch/console.c \
+	src/arch/context.S \
 	src/arch/dummy.s \
+	src/arch/sparc64.c \
 	src/arch/start.S \
-	src/arch/sparc64.c
+	src/arch/mm/frame.c \
+	src/arch/mm/page.c
+	
 

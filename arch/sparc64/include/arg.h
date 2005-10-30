@@ -29,6 +29,6 @@
 #ifndef __sparc64_ARG_H__
 #define __sparc64_ARG_H__
 
-#include <stackarg.h>
+#include <stdarg.h>
 
 #endif

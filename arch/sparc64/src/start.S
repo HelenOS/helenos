@@ -26,6 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+.register %g2, #scratch
+.register %g3, #scratch
+.register %g6, #scratch
+.register %g7, #scratch
+
 .section K_TEXT_START, "ax"
 
 .global kernel_image_start
@@ -51,7 +56,11 @@ kernel_image_start:
 	call ofw_init
 	nop
 
+	call main_bsp
+	nop
+
+	/* Not reached. */
+
 2:
 	b 2b
 	nop
-

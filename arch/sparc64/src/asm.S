@@ -28,48 +28,14 @@
 
 .text
 
-.global asm_delay_loop
-.global before_thread_runs_arch
-.global cpu_arch_init
-.global cpu_halt
-.global cpu_identify
-.global cpu_print_report
-.global cpu_sleep
-.global fmath_dpow
-.global fmath_fint
-.global fmath_get_decimal_exponent
-.global fmath_is_infinity
-.global fmath_is_nan
-.global fpu_context_restore
-.global fpu_context_save
-.global fpu_enable
-.global fpu_init
-.global panic_printf
-.global userspace
+.global memcpy
+.global memsetb
 
-.global dummy
-
-asm_delay_loop:
-before_thread_runs_arch:
-cpu_arch_init:
-cpu_halt:
-cpu_identify:
-cpu_print_report:
-cpu_sleep:
-fmath_dpow:
-fmath_fint:
-fmath_get_decimal_exponent:
-fmath_is_infinity:
-fmath_is_nan:
-fpu_context_restore:
-fpu_context_save:
-fpu_enable:
-fpu_init:
-panic_printf:
-userspace:
-
-
-dummy:
-0:
-	b 0b
+memcpy:
+	b _memcpy
 	nop
+
+memsetb:
+	b _memsetb
+	nop
+

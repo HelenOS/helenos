@@ -30,7 +30,7 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0x4000);
+		QUAD(0x4000);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
 

@@ -26,50 +26,66 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
+#define __ASM__
+#include <arch/context_offset.h>
+	
+.text   
 
-.global asm_delay_loop
-.global before_thread_runs_arch
-.global cpu_arch_init
-.global cpu_halt
-.global cpu_identify
-.global cpu_print_report
-.global cpu_sleep
-.global fmath_dpow
-.global fmath_fint
-.global fmath_get_decimal_exponent
-.global fmath_is_infinity
-.global fmath_is_nan
-.global fpu_context_restore
-.global fpu_context_save
-.global fpu_enable
-.global fpu_init
-.global panic_printf
-.global userspace
+.global context_save_arch
+.global context_restore_arch
 
-.global dummy
+.macro CONTEXT_STORE r
+	stx %l0, [\r + OFFSET_L0]
+	stx %l1, [\r + OFFSET_L1]
+	stx %l2, [\r + OFFSET_L2]
+	stx %l3, [\r + OFFSET_L3]
+	stx %l4, [\r + OFFSET_L4]
+	stx %l5, [\r + OFFSET_L5]
+	stx %l6, [\r + OFFSET_L6]
+	stx %l7, [\r + OFFSET_L7]
+	stx %i1, [\r + OFFSET_I1]
+	stx %i2, [\r + OFFSET_I2]
+	stx %i3, [\r + OFFSET_I3]
+	stx %i4, [\r + OFFSET_I4]
+	stx %i5, [\r + OFFSET_I5]
+	stx %i6, [\r + OFFSET_SP]
+	stx %i7, [\r + OFFSET_PC]
+.endm
 
-asm_delay_loop:
-before_thread_runs_arch:
-cpu_arch_init:
-cpu_halt:
-cpu_identify:
-cpu_print_report:
-cpu_sleep:
-fmath_dpow:
-fmath_fint:
-fmath_get_decimal_exponent:
-fmath_is_infinity:
-fmath_is_nan:
-fpu_context_restore:
-fpu_context_save:
-fpu_enable:
-fpu_init:
-panic_printf:
-userspace:
+.macro CONTEXT_LOAD r
+	ldx [\r + OFFSET_L0], %l0
+	ldx [\r + OFFSET_L1], %l1
+	ldx [\r + OFFSET_L2], %l2
+	ldx [\r + OFFSET_L3], %l3
+	ldx [\r + OFFSET_L4], %l4
+	ldx [\r + OFFSET_L5], %l5
+	ldx [\r + OFFSET_L6], %l6
+	ldx [\r + OFFSET_L7], %l7
+	ldx [\r + OFFSET_I1], %i1
+	ldx [\r + OFFSET_I2], %i2
+	ldx [\r + OFFSET_I3], %i3
+	ldx [\r + OFFSET_I4], %i4
+	ldx [\r + OFFSET_I5], %i5
+	ldx [\r + OFFSET_SP], %i6
+	ldx [\r + OFFSET_PC], %i7
+	ldx [\r + OFFSET_SP], %sp
+.endm
 
+	
+context_save_arch:
+	save %sp, 0, %sp
+	CONTEXT_STORE %i0
 
-dummy:
-0:
-	b 0b
-	nop
+	# context_save returns 1
+	mov 1, %i0	
+	ret
+	restore %sp, 0, %sp
+	
+context_restore_arch:
+	save %sp, 0, %sp
+	CONTEXT_LOAD %i0
+
+	# context_restore returns 0
+	xor %i0, %i0, %i0			
+	ret
+	restore %sp, 0, %sp	

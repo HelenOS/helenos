@@ -29,10 +29,15 @@
 #ifndef __sparc64_CONTEXT_H__
 #define __sparc64_CONTEXT_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-#include <align.h>
+#ifndef __sparc64_TYPES_H__
+# include <arch/types.h>
+#endif
 
+#ifndef __ALIGN_H__
+# include <align.h>
+#endif
+
+#define STACK_ALIGNMENT			8
 #define STACK_ITEM_SIZE			8
 
 /*
@@ -40,16 +45,35 @@
  */
 #define SP_DELTA	(0+STACK_ITEM_SIZE)
 
+#ifdef context_set
+#undef context_set
+#endif
+
+#define context_set(c, _pc, stack, size)                                                                \
+        (c)->pc = ((__address) _pc) - 8;                                                                \
+        (c)->sp = ((__address) stack) + (ALIGN((size), STACK_ALIGNMENT) + 1) - SP_DELTA;			
+
 /*
  * Only save registers that must be preserved across
  * function calls.
  */
 struct context {
-
-	__address bsp;
-	__address sp;
-	__address pc;
+	__u64 l0;
+	__u64 l1;
+	__u64 l2;
+	__u64 l3;
+	__u64 l4;
+	__u64 l5;
+	__u64 l6;
+	__u64 l7;
+	__u64 i1;
+	__u64 i2;
+	__u64 i3;
+	__u64 i4;
+	__u64 i5;
+	__address sp;		/* %i6 */
+	__address pc;		/* %i7 */
 	ipl_t ipl;
-} __attribute__ ((packed));
+};
 
 #endif

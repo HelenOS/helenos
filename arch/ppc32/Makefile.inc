@@ -18,6 +18,7 @@ CFLAGS=$(DEFS) -nostdlib -fno-builtin -O2
 LFLAGS=-M -no-check-sections -N
 
 arch_sources= \
+	src/arch/console.c \
 	src/arch/context.S \
 	src/arch/debug/panic.s \
 	src/arch/fpu_context.c \
