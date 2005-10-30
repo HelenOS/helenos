@@ -73,19 +73,19 @@
 
 	
 context_save_arch:
-	save %sp, 0, %sp
+	save %sp, -128, %sp
 	CONTEXT_STORE %i0
 
 	# context_save returns 1
 	mov 1, %i0	
 	ret
-	restore %sp, 0, %sp
+	restore %sp, 128, %sp
 	
 context_restore_arch:
-	save %sp, 0, %sp
+	save %sp, -128, %sp
 	CONTEXT_LOAD %i0
 
 	# context_restore returns 0
 	xor %i0, %i0, %i0			
 	ret
-	restore %sp, 0, %sp	
+	restore %sp, 128, %sp	
