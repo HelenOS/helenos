@@ -37,13 +37,21 @@
 # include <align.h>
 #endif
 
-#define STACK_ALIGNMENT			8
-#define STACK_ITEM_SIZE			8
+/** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
+#define STACK_ALIGNMENT			16
 
-/*
- * One item is put onto the stack to support get_stack_base().
+#define STACK_ITEM_SIZE			sizeof(__u64)
+
+/**
+ * 16-extended-word save area for %i[0-7] and %l[0-7] registers.
  */
-#define SP_DELTA	(0+STACK_ITEM_SIZE)
+#define SAVE_AREA	(16*STACK_ITEM_SIZE)
+#define SP_DELTA	SAVE_AREA
+
+/**
+ * By convention, the actual top of the stack is %sp + BIAS.
+ */
+#define BIAS		2047
 
 #ifdef context_set
 #undef context_set
@@ -51,7 +59,7 @@
 
 #define context_set(c, _pc, stack, size)                                                                \
         (c)->pc = ((__address) _pc) - 8;                                                                \
-        (c)->sp = ((__address) stack) + (ALIGN((size), STACK_ALIGNMENT) + 1) - SP_DELTA;			
+        (c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - (BIAS + SP_DELTA)
 
 /*
  * Only save registers that must be preserved across
