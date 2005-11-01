@@ -50,14 +50,14 @@ endif
 # otherwise add -mmemcpy -mips3
 ifeq (${MACHINE},msim4kc)
  BFD = binary
- CFLAGS += -msoft-float -march=4kc 
+ CFLAGS += -mhard-float -march=4kc 
  KERNEL_LOAD_ADDRESS = 0x80100000
  BFD_NAME=elf32-little
 endif
 
 ifeq (${MACHINE},msim)
  BFD = binary
- CFLAGS += -msoft-float -mips3
+ CFLAGS += -mhard-float -mips3
  KERNEL_LOAD_ADDRESS = 0x80100000
  BFD_NAME=elf32-little
 endif
@@ -66,7 +66,7 @@ endif
 # that do not bother us
 ifeq (${MACHINE},simics)
  BFD = elf32-little
- CFLAGS += -msoft-float -mips3
+ CFLAGS += -mhard-float -mips3
  KERNEL_LOAD_ADDRESS = 0x80100000
  BFD_NAME=elf32-little
 endif
