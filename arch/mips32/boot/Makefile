@@ -12,7 +12,7 @@ AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
 CC=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-gcc
 LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
 
-ASFLAGS=-mips2 -I../../../include
+ASFLAGS=-mips2 -I../../../generic/include
 LFLAGS=--oformat=binary -e start -T _link.ld 
 
 .S.o:

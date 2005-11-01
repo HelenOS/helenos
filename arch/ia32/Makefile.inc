@@ -42,32 +42,32 @@ arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
-	src/arch/context.s \
-	src/arch/debug/panic.s \
-	src/arch/delay.s \
-	src/arch/asm.S \
-	src/arch/proc/scheduler.c \
-	src/arch/bios/bios.c \
-	src/arch/smp/ap.S \
-	src/arch/smp/apic.c \
-	src/arch/smp/mps.c \
-	src/arch/smp/smp.c \
-	src/arch/atomic.S \
-	src/arch/smp/ipi.c \
-	src/arch/ia32.c \
-	src/arch/interrupt.c \
-	src/arch/pm.c \
-	src/arch/userspace.c \
-	src/arch/cpu/cpu.c \
-	src/arch/mm/frame.c \
-	src/arch/mm/memory_init.c \
-	src/arch/mm/page.c \
-	src/arch/mm/tlb.c \
-	src/arch/drivers/i8042.c \
-	src/arch/drivers/i8254.c \
-	src/arch/drivers/i8259.c \
-	src/arch/drivers/ega.c \
-	src/arch/boot/boot.S \
-	src/arch/boot/memmap.S\
-	src/arch/fpu_context.c\
-	src/arch/fmath.c
+	generic/src/arch/context.s \
+	generic/src/arch/debug/panic.s \
+	generic/src/arch/delay.s \
+	generic/src/arch/asm.S \
+	generic/src/arch/proc/scheduler.c \
+	generic/src/arch/bios/bios.c \
+	generic/src/arch/smp/ap.S \
+	generic/src/arch/smp/apic.c \
+	generic/src/arch/smp/mps.c \
+	generic/src/arch/smp/smp.c \
+	generic/src/arch/atomic.S \
+	generic/src/arch/smp/ipi.c \
+	generic/src/arch/ia32.c \
+	generic/src/arch/interrupt.c \
+	generic/src/arch/pm.c \
+	generic/src/arch/userspace.c \
+	generic/src/arch/cpu/cpu.c \
+	generic/src/arch/mm/frame.c \
+	generic/src/arch/mm/memory_init.c \
+	generic/src/arch/mm/page.c \
+	generic/src/arch/mm/tlb.c \
+	generic/src/arch/drivers/i8042.c \
+	generic/src/arch/drivers/i8254.c \
+	generic/src/arch/drivers/i8259.c \
+	generic/src/arch/drivers/ega.c \
+	generic/src/arch/boot/boot.S \
+	generic/src/arch/boot/memmap.S\
+	generic/src/arch/fpu_context.c\
+	generic/src/arch/fmath.c

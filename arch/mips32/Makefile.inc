@@ -75,22 +75,22 @@ arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(CFLAGS) -C -DBFD=${BFD} -E -x c $< | grep -v "^\#" > $@
 
 arch_sources= \
-	src/arch/start.S \
-	src/arch/context.S \
-	src/arch/panic.S \
-	src/arch/mips32.c \
-	src/arch/dummy.S \
-	src/arch/console.c \
-	src/arch/asm.S \
-	src/arch/exception.c \
-	src/arch/interrupt.c \
-	src/arch/cache.c \
-	src/arch/cpu/cpu.c \
-	src/arch/mm/asid.c \
-	src/arch/mm/frame.c \
-	src/arch/mm/page.c \
-	src/arch/mm/tlb.c \
-	src/arch/mm/vm.c \
-	src/arch/fpu_context.c \
-	src/arch/fmath.c \
-	src/arch/drivers/arc.c
+	generic/src/arch/start.S \
+	generic/src/arch/context.S \
+	generic/src/arch/panic.S \
+	generic/src/arch/mips32.c \
+	generic/src/arch/dummy.S \
+	generic/src/arch/console.c \
+	generic/src/arch/asm.S \
+	generic/src/arch/exception.c \
+	generic/src/arch/interrupt.c \
+	generic/src/arch/cache.c \
+	generic/src/arch/cpu/cpu.c \
+	generic/src/arch/mm/asid.c \
+	generic/src/arch/mm/frame.c \
+	generic/src/arch/mm/page.c \
+	generic/src/arch/mm/tlb.c \
+	generic/src/arch/mm/vm.c \
+	generic/src/arch/fpu_context.c \
+	generic/src/arch/fmath.c \
+	generic/src/arch/drivers/arc.c

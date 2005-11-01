@@ -71,7 +71,7 @@ void kinit(void *arg)
 		/*
 		 * Create the kmp thread and wait for its completion.
 		 * cpu1 through cpuN-1 will come up consecutively and
-		 * not mess together with kcpulb and klwtm threads.
+		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
 		if (t = thread_create(kmp, NULL, TASK, 0)) {

@@ -18,13 +18,13 @@ CFLAGS=$(DEFS) -nostdlib -fno-builtin -mcpu=ultrasparc -m64 -O2
 LFLAGS=-M -no-check-sections -N
 
 arch_sources= \
-	src/arch/asm.S \
-	src/arch/console.c \
-	src/arch/context.S \
-	src/arch/dummy.s \
-	src/arch/sparc64.c \
-	src/arch/start.S \
-	src/arch/mm/frame.c \
-	src/arch/mm/page.c
+	generic/src/arch/asm.S \
+	generic/src/arch/console.c \
+	generic/src/arch/context.S \
+	generic/src/arch/dummy.s \
+	generic/src/arch/sparc64.c \
+	generic/src/arch/start.S \
+	generic/src/arch/mm/frame.c \
+	generic/src/arch/mm/page.c
 	
 

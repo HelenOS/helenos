@@ -30,10 +30,10 @@ endif
 
 
 ifeq ($(OFW),yes)
-genarch_sources+=src/genarch/firmware/ofw/ofw.c
+genarch_sources+=generic/src/genarch/firmware/ofw/ofw.c
 endif
 
 ifeq ($(ACPI),yes)
-genarch_sources+=src/genarch/firmware/acpi/acpi.c \
-		 src/genarch/firmware/acpi/madt.c
+genarch_sources+=generic/src/genarch/firmware/acpi/acpi.c \
+		 generic/src/genarch/firmware/acpi/madt.c
 endif
