@@ -43,7 +43,7 @@ void external_interrupt(void)
 	ivr.value = ivr_read();
 	srlz_d();
 	
-	switch(ivr.value) {
+	switch(ivr.vector) {
 	    case INTERRUPT_TIMER:
 	    	panic("cpu%d: timer interrupt\n", CPU->id);
 	    	break;
