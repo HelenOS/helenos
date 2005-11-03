@@ -31,6 +31,7 @@ arch_sources= \
 	generic/src/arch/ski/ski.c \
 	generic/src/arch/cpu/cpu.c \
 	generic/src/arch/ivt.S \
+	generic/src/arch/interrupt.c \
 	generic/src/arch/interrupt_handler.c \
 	generic/src/arch/fmath.c \
 	generic/src/arch/mm/frame.c

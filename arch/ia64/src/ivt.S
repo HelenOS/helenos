@@ -385,7 +385,7 @@ Handler2 0x2000
 Handler2 0x2400
 Handler2 0x2800
 Handler 0x2c00 break_instruction
-Handler2 0x3000
+Handler 0x3000 external_interrupt
 Handler2 0x3400
 Handler2 0x3800
 Handler2 0x3c00

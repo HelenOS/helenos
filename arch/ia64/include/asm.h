@@ -47,6 +47,19 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+/** Read IVR (External Interrupt Vector Register)
+ *
+ * @return Highest priority, pending, unmasked external interrupt vector.
+ */
+static inline __u8 read_ivr(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("mov %0 = cr65\n" : "=r" (v));
+	
+	return (__u8) (v & 0xf);
+}
+
 
 void cpu_sleep(void);
 

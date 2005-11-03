@@ -32,7 +32,7 @@ ifeq (${MACHINE},lgxemul)
  CFLAGS += -DHAVE_FPU -DFPU_LAZY -mips3
  BFD = ecoff-littlemips
  KERNEL_LOAD_ADDRESS = 0x80100000
- BFD_NAME=elf32-little
+ BFD_NAME=elf32-tradlittlemips
 endif
 
 ifeq (${MACHINE},bgxemul)
@@ -52,23 +52,23 @@ ifeq (${MACHINE},msim4kc)
  BFD = binary
  CFLAGS += -mhard-float -march=4kc 
  KERNEL_LOAD_ADDRESS = 0x80100000
- BFD_NAME=elf32-little
+ BFD_NAME=elf32-tradlittlemips
 endif
 
 ifeq (${MACHINE},msim)
  BFD = binary
  CFLAGS += -mhard-float -mips3
  KERNEL_LOAD_ADDRESS = 0x80100000
- BFD_NAME=elf32-little
+ BFD_NAME=elf32-tradlittlemips
 endif
 
 # SIMICS 4kc emulation is broken, although for instructions
 # that do not bother us
 ifeq (${MACHINE},simics)
- BFD = elf32-little
+ BFD = elf32-tradlittlemips
  CFLAGS += -mhard-float -mips3
  KERNEL_LOAD_ADDRESS = 0x80100000
- BFD_NAME=elf32-little
+ BFD_NAME=elf32-tradlittlemips
 endif
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in

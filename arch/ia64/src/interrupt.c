@@ -24,22 +24,25 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef __ia64_BARRIER_H__
-#define __ia64_BARRIER_H__
+#include <arch/interrupt.h>
+#include <panic.h>
+#include <arch/types.h>
+#include <arch/asm.h>
+#include <arch/barrier.h>
 
-/*
- * TODO: Implement true IA-64 memory barriers for macros below.
- */
-#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define srlz_i()		__asm__ volatile (";; srlz.i ;;\n" ::: "memory")
-#define srlz_d()		__asm__ volatile (";; srlz.d ;;\n" ::: "memory")
-
-#endif
+void external_interrupt(void)
+{
+	__u8 ivr;
+	
+	srlz_d();
+	ivr = read_ivr();
+	srlz_d();
+	
+	switch(ivr) {
+	    default:
+		panic("\nUnhandled External Interrupt Vector %d\n", ivr);
+	}
+}
