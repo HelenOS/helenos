@@ -26,20 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_BARRIER_H__
-#define __ia64_BARRIER_H__
+#ifndef __ia64_REGISTER_H__
+#define __ia64_REGISTER_H__
 
-/*
- * TODO: Implement true IA-64 memory barriers for macros below.
- */
-#define CS_ENTER_BARRIER()	memory_barrier()
-#define CS_LEAVE_BARRIER()	memory_barrier()
+#include <arch/types.h>
 
-#define memory_barrier()	__asm__ volatile ("mf\n" ::: "memory")
-#define read_barrier()		memory_barrier()
-#define write_barrier()		memory_barrier()
+#define CR_IVR_MASK	0xf
 
-#define srlz_i()		__asm__ volatile (";; srlz.i ;;\n" ::: "memory")
-#define srlz_d()		__asm__ volatile (";; srlz.d\n" ::: "memory")
+#define PSR_I_MASK	0x4000
 
 #endif

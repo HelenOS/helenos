@@ -32,13 +32,14 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
+#include <arch/register.h>
 
 void external_interrupt(void)
 {
 	__u8 ivr;
 	
 	srlz_d();
-	ivr = read_ivr();
+	ivr = ivr_read() & CR_IVR_MASK;
 	srlz_d();
 	
 	switch(ivr) {

@@ -138,7 +138,8 @@ static inline __u32 inl(__u16 port) { __u32 val; __asm__ volatile ("inl %w1, %l0
  *
  * @return Old interrupt priority level.
  */
-static inline ipl_t interrupts_enable(void) {
+static inline ipl_t interrupts_enable(void)
+{
 	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
@@ -156,7 +157,8 @@ static inline ipl_t interrupts_enable(void) {
  *
  * @return Old interrupt priority level.
  */
-static inline ipl_t interrupts_disable(void) {
+static inline ipl_t interrupts_disable(void)
+{
 	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
@@ -173,7 +175,8 @@ static inline ipl_t interrupts_disable(void) {
  *
  * @param ipl Saved interrupt priority level.
  */
-static inline void interrupts_restore(ipl_t ipl) {
+static inline void interrupts_restore(ipl_t ipl)
+{
 	__asm__ volatile (
 		"pushl %0\n\t"
 		"popf\n"
@@ -185,7 +188,8 @@ static inline void interrupts_restore(ipl_t ipl) {
  *
  * @return EFLAFS.
  */
-static inline ipl_t interrupts_read(void) {
+static inline ipl_t interrupts_read(void)
+{
 	ipl_t v;
 	__asm__ volatile (
 		"pushf\n\t"
