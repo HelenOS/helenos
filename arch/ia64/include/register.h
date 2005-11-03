@@ -32,7 +32,41 @@
 #include <arch/types.h>
 
 #define CR_IVR_MASK	0xf
-
 #define PSR_I_MASK	0x4000
+
+/** External Interrupt Vector Register */
+union cr_ivr {
+	__u8  vector;
+	__u64 value;
+};
+
+typedef union cr_ivr cr_ivr_t;
+
+/** Task Priority Register */
+union cr_tpr {
+	struct {
+		unsigned : 4;
+		unsigned mic: 4;		/**< Mask Interrupt Class. */
+		unsigned : 8;
+		unsigned mmi: 1;		/**< Mask Maskable Interrupts. */
+	} __attribute__ ((packed));
+	__u64 value;
+};
+
+typedef union cr_tpr cr_tpr_t;
+
+/** Interval Timer Vector */
+union cr_itv {
+	struct {
+		unsigned vector : 8;
+		unsigned : 4;
+		unsigned : 1;
+		unsigned : 3;
+		unsigned m : 1;			/**< Mask. */
+	} __attribute__ ((packed));
+	__u64 value;
+};
+
+typedef union cr_itv cr_itv_t;
 
 #endif

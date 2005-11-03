@@ -29,21 +29,29 @@
 
 #include <arch/interrupt.h>
 #include <panic.h>
+#include <print.h>
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>
+#include <arch.h>
 
 void external_interrupt(void)
 {
-	__u8 ivr;
+	cr_ivr_t ivr;
 	
-	srlz_d();
-	ivr = ivr_read() & CR_IVR_MASK;
+	ivr.value = ivr_read();
 	srlz_d();
 	
-	switch(ivr) {
+	switch(ivr.value) {
+	    case INTERRUPT_TIMER:
+	    	panic("cpu%d: timer interrupt\n", CPU->id);
+	    	break;
+	    case INTERRUPT_SPURIOUS:
+	    	printf("cpu%d: spurious interrupt\n", CPU->id);
+		break;
 	    default:
-		panic("\nUnhandled External Interrupt Vector %d\n", ivr);
+		panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
+		break;
 	}
 }

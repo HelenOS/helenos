@@ -92,9 +92,22 @@ static inline void itm_write(__u64 v)
 	__asm__ volatile ("mov cr.itm = %0\n" : : "r" (v));
 }
 
+/** Read ITV (Interval Timer Vector) register.
+ *
+ * @return Current vector and mask bit.
+ */
+static inline __u64 itv_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("mov %0 = cr.itv\n" : "=r" (v));
+	
+	return v;
+}
+
 /** Write ITV (Interval Timer Vector) register.
  *
- * @param New vector and masked bit.
+ * @param New vector and mask bit.
  */
 static inline void itv_write(__u64 v)
 {

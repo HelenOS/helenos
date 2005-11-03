@@ -29,6 +29,9 @@
 #ifndef __ia64_INTERRUPT_H__
 #define __ia64_INTERRUPT_H__
 
+#define INTERRUPT_TIMER		0
+#define INTERRUPT_SPURIOUS	15
+
 extern void external_interrupt(void);
 
 #endif
