@@ -26,14 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_INTERRUPT_H__
-#define __ia64_INTERRUPT_H__
+/** Interval Timer driver. */
+ 
+#include <arch/drivers/it.h>
+#include <arch/interrupt.h>
+#include <arch/register.h>
+#include <arch/asm.h>
+#include <arch/barrier.h>
+#include <time/clock.h>
 
-#define INTERRUPT_TIMER		0
-#define INTERRUPT_SPURIOUS	15
+/** Initialize Interval Timer. */
+void it_init(void)
+{
+	cr_itv_t itv;
 
-#define EOI	0		/**< The actual value doesn't matter. */
+	/* initialize Interval Timer external interrupt vector */
+	itv.value = itv_read();
+	itv.vector = INTERRUPT_TIMER;
+	itv.m = 0;
+	itv_write(itv.value);
+	srlz_d();
 
-extern void external_interrupt(void);
+	/* set Interval Timer Counter to zero */
+	itc_write(0);
+	srlz_d();
+	
+	/* generate first Interval Timer interrupt in IT_DELTA ticks */
+	itm_write(IT_DELTA);
+	srlz_d();
+}
 
-#endif
+/** Process Interval Timer interrupt. */
+void it_interrupt(void)
+{
+	eoi_write(EOI);
+	itm_write(itc_read() + IT_DELTA);	/* program next interruption */
+	clock();
+}

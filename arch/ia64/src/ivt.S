@@ -27,7 +27,113 @@
 #
 
 
+/*
+ * This macro roughly follows steps from 1 to 19 described in
+ * Intel Itanium Architecture Software Developer's Manual, Chapter 3.4.2.
+ *
+ * Some steps are skipped (enabling and disabling interrupts).
+ * Some steps are not fully supported yet (e.g. interruptions
+ * from user space and floating-point context).
+ */
+.macro HEAVYWEIGHT_HANDLER offs handler
+    .org IVT + \offs
+	SAVE_INTERRUPTED_CONTEXT		/* steps 1 - 9 */
+	br.call.sptk.many rp = \handler		/* steps 10 - 11 */
+	br restore_interrupted_context		/* steps 12 - 19 */
+.endm
 
+.macro SAVE_INTERRUPTED_CONTEXT
+    /* 1. copy interrupt registers into bank 0 */
+	mov r24 = cr.iip
+	mov r25 = cr.ipsr
+	mov r26 = cr.iipa
+	mov r27 = cr.isr
+	mov r28 = cr.ifa
+	
+    /* 2. preserve predicate register into bank 0 */
+	mov r29 = pr ;;
+	
+	/* 3. switch to kernel memory stack */
+	/* TODO: support interruptions from userspace */
+	/* assume kernel stack */
+	
+    /* 4. allocate memory stack for registers saved in bank 0 */
+	st8 [r12] = r29, -8 ;;	/* save predicate registers */
+	st8 [r12] = r28, -8 ;;	/* save cr.ifa */
+	st8 [r12] = r27, -8 ;;	/* save cr.isr */
+	st8 [r12] = r26, -8 ;;	/* save cr.iipa */
+	st8 [r12] = r25, -8 ;;	/* save cr.ipsr */
+	st8 [r12] = r24, -8 ;;	/* save cr.iip */
+	
+    /* 5. RSE switch */
+    	.auto
+	mov r24 = ar.rsc
+	mov r25 = ar.pfs
+	cover
+	mov r26 = cr.ifs
+	
+	st8 [r12] = r24, -8	/* save ar.rsc */
+	st8 [r12] = r25, -8	/* save ar.pfs */
+	st8 [r12] = r26, -8	/* save ar.ifs */
+	
+	and r30 = ~3, r24
+	mov ar.rsc = r30	/* place RSE in enforced lazy mode */
+	
+	mov r27 = ar.rnat
+	mov r28 = ar.bspstore
+	
+	/* assume kernel backing store */
+	mov ar.bspstore = r28
+	
+	mov r29 = ar.bsp
+	
+	st8 [r12] = r27, -8	/* save ar.rnat */
+	st8 [r12] = r28, -8	/* save ar.bspstore */
+	st8 [r12] = r29, -8	/* save ar.bsp */
+	
+	mov ar.rsc = r24	/* restore RSE's setting */
+	.explicit
+	
+    /* 6. switch to bank 1 and reenable PSR.ic */
+	ssm 0x2000
+	bsw.1 ;;
+	srlz.d
+	
+    /* 7. preserve branch and application registers */
+	
+    /* 8. preserve general and floating-point registers */
+	/* TODO: save floating-point context */
+	
+    /* 9. skipped (will not enable interrupts) */
+.endm
+
+.macro RESTORE_INTERRUPTED_CONTEXT
+    /* 12. skipped (will not disable interrupts) */
+	
+    /* 13. restore general and floating-point registers */
+	/* TODO: restore floating-point context */
+	
+    /* 14. restore branch and application registers */
+	
+    /* 15. disable PSR.ic and switch to bank 0 */
+	rsm 0x2000
+	bsw.0 ;;
+	srlz.d
+	
+    /* 16. RSE switch */
+	
+    /* 17. restore interruption state from memory stack */
+	
+    /* 18. restore predicate registers from memory stack */
+	
+    /* 19. return from interruption */
+	rfi
+.endm
+
+.global restore_interrupted_context
+restore_interrupted_context:
+	RESTORE_INTERRUPTED_CONTEXT
+	/* not reached */
 
 dump_gregs:
 mov r16 = REG_DUMP;;
@@ -385,7 +491,7 @@ Handler2 0x2000
 Handler2 0x2400
 Handler2 0x2800
 Handler 0x2c00 break_instruction
-Handler 0x3000 external_interrupt
+HEAVYWEIGHT_HANDLER 0x3000 external_interrupt	/* For external interrupt, heavyweight handler is used. */
 Handler2 0x3400
 Handler2 0x3800
 Handler2 0x3c00

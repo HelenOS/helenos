@@ -34,4 +34,5 @@ arch_sources= \
 	generic/src/arch/interrupt.c \
 	generic/src/arch/interrupt_handler.c \
 	generic/src/arch/fmath.c \
-	generic/src/arch/mm/frame.c
+	generic/src/arch/mm/frame.c \
+	generic/src/arch/drivers/it.c

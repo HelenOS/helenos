@@ -26,14 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_INTERRUPT_H__
-#define __ia64_INTERRUPT_H__
+#ifndef __ia64_IT_H__
+#define __ia64_IT_H__
 
-#define INTERRUPT_TIMER		0
-#define INTERRUPT_SPURIOUS	15
+/*
+ * Unfortunately, Ski does not emulate PAL,
+ * so we can't read the real frequency ratios
+ * from firmware.
+ *
+ */
+#define IT_DELTA        1000
 
-#define EOI	0		/**< The actual value doesn't matter. */
-
-extern void external_interrupt(void);
+extern void it_init(void);
+extern void it_interrupt(void);
 
 #endif

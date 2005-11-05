@@ -34,6 +34,7 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>
+#include <arch/drivers/it.h>
 #include <arch.h>
 
 void external_interrupt(void)
@@ -45,6 +46,7 @@ void external_interrupt(void)
 	
 	switch(ivr.vector) {
 	    case INTERRUPT_TIMER:
+		it_interrupt();
 	    	panic("cpu%d: timer interrupt\n", CPU->id);
 	    	break;
 	    case INTERRUPT_SPURIOUS:

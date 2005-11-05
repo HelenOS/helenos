@@ -28,35 +28,14 @@
 
 #include <arch.h>
 #include <arch/ski/ski.h>
-#include <arch/asm.h>
-#include <arch/register.h>
-#include <arch/barrier.h>
-#include <arch/interrupt.h>
-
-/** TODO: read ticks per second from firmware */
-#define IT_DELTA	50000000
+#include <arch/drivers/it.h>
 
 void arch_pre_mm_init(void)
 {
 	ski_init_console();
+	it_init();
 }
 
 void arch_post_mm_init(void)
 {
-	cr_itv_t itv;
-
-	/* initialize Interval Timer external interrupt vector */
-	itv.value = itv_read();
-	itv.vector = INTERRUPT_TIMER;
-	itv.m = 0;
-	itv_write(itv.value);
-	srlz_d();
-
-	/* set Interval Timer Counter to zero */
-	itc_write(0);
-	srlz_d();
-	
-	/* generate first Interval Timer interrupt in IT_DELTA ticks */
-	itm_write(IT_DELTA);
-	srlz_d();
 }

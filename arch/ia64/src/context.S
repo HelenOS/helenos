@@ -50,8 +50,7 @@ context_save_arch:
 	 * Put RSE to enforced lazy mode.
 	 * So that ar.rnat can be read.
 	 */
-	movl loc5 = ~3
-	and loc5 = loc3, loc5
+	and loc5 = ~3, loc3
 	mov ar.rsc = loc5
 	mov loc5 = ar.rnat
 
