@@ -27,22 +27,21 @@
 #
 
 
-/*
+/** Heavyweight interrupt handler
+ *
  * This macro roughly follows steps from 1 to 19 described in
  * Intel Itanium Architecture Software Developer's Manual, Chapter 3.4.2.
  *
+ * HEAVYWEIGHT_HANDLER macro must cram into 16 bundles (48 instructions).
+ * This goal is achieved by using procedure calls after RSE becomes operational.
+ *
  * Some steps are skipped (enabling and disabling interrupts).
  * Some steps are not fully supported yet (e.g. interruptions
- * from user space and floating-point context).
+ * from userspace and floating-point context).
  */
 .macro HEAVYWEIGHT_HANDLER offs handler
     .org IVT + \offs
-	SAVE_INTERRUPTED_CONTEXT		/* steps 1 - 9 */
-	br.call.sptk.many rp = \handler		/* steps 10 - 11 */
-	br restore_interrupted_context		/* steps 12 - 19 */
-.endm
 
-.macro SAVE_INTERRUPTED_CONTEXT
     /* 1. copy interrupt registers into bank 0 */
 	mov r24 = cr.iip
 	mov r25 = cr.ipsr
@@ -53,19 +52,20 @@
     /* 2. preserve predicate register into bank 0 */
 	mov r29 = pr ;;
 	
-	/* 3. switch to kernel memory stack */
+    /* 3. switch to kernel memory stack */
 	/* TODO: support interruptions from userspace */
 	/* assume kernel stack */
 	
     /* 4. allocate memory stack for registers saved in bank 0 */
 	st8 [r12] = r29, -8 ;;	/* save predicate registers */
-	st8 [r12] = r28, -8 ;;	/* save cr.ifa */
-	st8 [r12] = r27, -8 ;;	/* save cr.isr */
-	st8 [r12] = r26, -8 ;;	/* save cr.iipa */
-	st8 [r12] = r25, -8 ;;	/* save cr.ipsr */
+
 	st8 [r12] = r24, -8 ;;	/* save cr.iip */
-	
-    /* 5. RSE switch */
+	st8 [r12] = r25, -8 ;;	/* save cr.ipsr */
+	st8 [r12] = r26, -8 ;;	/* save cr.iipa */
+	st8 [r12] = r27, -8 ;;	/* save cr.isr */
+	st8 [r12] = r28, -8 ;;	/* save cr.ifa */		
+
+    /* 5. RSE switch from interrupted context */
     	.auto
 	mov r24 = ar.rsc
 	mov r25 = ar.pfs
@@ -94,33 +94,156 @@
 	mov ar.rsc = r24	/* restore RSE's setting */
 	.explicit
 	
+    /* the rest of the save-handler can be kept outside IVT */
+
+	movl r24 = \handler
+	mov r25 = b0
+	br.call.sptk.many rp = heavyweight_handler_inner
+0:	mov b0 = r25	
+
+	{ br heavyweight_handler_finalize }
+.endm
+
+.global heavyweight_handler_inner
+heavyweight_handler_inner:
+	/*
+	 * From this point, the rest of the interrupted context
+	 * will be preserved in stacked registers and backing store.
+	 */
+	alloc loc0 = ar.pfs, 0, 46, 0, 0 ;;
+	
+	/* copy handler address (r24 from bank 0 will be invisible soon) */
+	mov loc1 = r24
+
     /* 6. switch to bank 1 and reenable PSR.ic */
 	ssm 0x2000
 	bsw.1 ;;
 	srlz.d
 	
     /* 7. preserve branch and application registers */
+    	mov loc2 = ar.unat
+	mov loc3 = ar.lc
+	mov loc4 = ar.ec
+	mov loc5 = ar.ccv
+	mov loc6 = ar.csd
+	mov loc7 = ar.ssd
+	
+	mov loc8 = b0
+	mov loc9 = b1
+	mov loc10 = b2
+	mov loc11 = b3
+	mov loc12 = b4
+	mov loc13 = b5
+	mov loc14 = b6
+	mov loc15 = b7
 	
     /* 8. preserve general and floating-point registers */
 	/* TODO: save floating-point context */
-	
+	mov loc16 = r1
+	mov loc17 = r2
+	mov loc18 = r3
+	mov loc19 = r4
+	mov loc20 = r5
+	mov loc21 = r6
+	mov loc22 = r7
+	mov loc23 = r8
+	mov loc24 = r9
+	mov loc25 = r10
+	mov loc26 = r11
+	/* skip r12 (stack pointer) */
+	mov loc27 = r13
+	mov loc28 = r14
+	mov loc29 = r15
+	mov loc30 = r16
+	mov loc31 = r17
+	mov loc32 = r18
+	mov loc33 = r19
+	mov loc34 = r20
+	mov loc35 = r21
+	mov loc36 = r22
+	mov loc37 = r23
+	mov loc38 = r24
+	mov loc39 = r25
+	mov loc40 = r26
+	mov loc41 = r27
+	mov loc42 = r28
+	mov loc43 = r29
+	mov loc44 = r30
+	mov loc45 = r31
+    
     /* 9. skipped (will not enable interrupts) */
-.endm
 
-.macro RESTORE_INTERRUPTED_CONTEXT
-    /* 12. skipped (will not disable interrupts) */
+    /* 10. call handler */
+    	mov b1 = loc1
+	br.call.sptk.many b0 = b1
+
+    /* 11. return from handler */
+0:
 	
+    /* 12. skipped (will not disable interrupts) */
+
     /* 13. restore general and floating-point registers */
 	/* TODO: restore floating-point context */
+	mov r1 = loc16
+	mov r2 = loc17
+	mov r3 = loc18
+	mov r4 = loc19
+	mov r5 = loc20
+	mov r6 = loc21
+	mov r7 = loc22
+	mov r8 = loc23
+	mov r9 = loc24
+	mov r10 = loc25
+	mov r11 = loc26
+	/* skip r12 (stack pointer) */
+	mov r13 = loc27
+	mov r14 = loc28
+	mov r15 = loc29
+	mov r16 = loc30
+	mov r17 = loc31
+	mov r18 = loc32
+	mov r19 = loc33
+	mov r20 = loc34
+	mov r21 = loc35
+	mov r22 = loc36
+	mov r23 = loc37
+	mov r24 = loc38
+	mov r25 = loc39
+	mov r26 = loc40
+	mov r27 = loc41
+	mov r28 = loc42
+	mov r29 = loc43
+	mov r30 = loc44
+	mov r31 = loc45
 	
     /* 14. restore branch and application registers */
+    	mov ar.unat = loc2
+	mov ar.lc = loc3
+	mov ar.ec = loc4
+	mov ar.ccv = loc5
+	mov ar.csd = loc6
+	mov ar.ssd = loc7
+	
+	mov b0 = loc8
+	mov b1 = loc9
+	mov b2 = loc10
+	mov b3 = loc11
+	mov b4 = loc12
+	mov b5 = loc13
+	mov b6 = loc14
+	mov b7 = loc15
 	
     /* 15. disable PSR.ic and switch to bank 0 */
 	rsm 0x2000
 	bsw.0 ;;
 	srlz.d
-	
-    /* 16. RSE switch */
+
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp
+
+.global heavyweight_handler_finalize
+heavyweight_handler_finalize:
+    /* 16. RSE switch to interrupted context */
 	
     /* 17. restore interruption state from memory stack */
 	
@@ -128,12 +251,9 @@
 	
     /* 19. return from interruption */
 	rfi
-.endm
 
-.global restore_interrupted_context
-restore_interrupted_context:
-	RESTORE_INTERRUPTED_CONTEXT
-	/* not reached */
+
+
 
 dump_gregs:
 mov r16 = REG_DUMP;;
