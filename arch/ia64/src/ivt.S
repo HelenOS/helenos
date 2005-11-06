@@ -56,7 +56,7 @@
 	/* TODO: support interruptions from userspace */
 	/* assume kernel stack */
 	
-    /* 4. allocate memory stack for registers saved in bank 0 */
+    /* 4. save registers in bank 0 into memory stack */
 	st8 [r12] = r29, -8 ;;	/* save predicate registers */
 
 	st8 [r12] = r24, -8 ;;	/* save cr.iip */
@@ -101,7 +101,7 @@
 	br.call.sptk.many rp = heavyweight_handler_inner
 0:	mov b0 = r25	
 
-	{ br heavyweight_handler_finalize }
+	br heavyweight_handler_finalize
 .endm
 
 .global heavyweight_handler_inner
