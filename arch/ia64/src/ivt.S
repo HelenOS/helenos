@@ -26,6 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/stack.h>
+
+#define STACK_ITEMS		12
+#define STACK_FRAME_SIZE	((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE)
+
+#if (STACK_FRAME_SIZE % STACK_ALIGNMENT != 0)
+#error Memory stack must be 16-byte aligned.
+#endif
 
 /** Heavyweight interrupt handler
  *
@@ -57,15 +65,16 @@
 	/* assume kernel stack */
 	
     /* 4. save registers in bank 0 into memory stack */
-	add r12 = -8, r12 ;;
+	add r31 = -8, r12 ;;
+	add r12 = -STACK_FRAME_SIZE, r12 ;;
 	
-	st8 [r12] = r29, -8 ;;	/* save predicate registers */
+	st8 [r31] = r29, -8 ;;	/* save predicate registers */
 
-	st8 [r12] = r24, -8 ;;	/* save cr.iip */
-	st8 [r12] = r25, -8 ;;	/* save cr.ipsr */
-	st8 [r12] = r26, -8 ;;	/* save cr.iipa */
-	st8 [r12] = r27, -8 ;;	/* save cr.isr */
-	st8 [r12] = r28, -8 ;;	/* save cr.ifa */		
+	st8 [r31] = r24, -8 ;;	/* save cr.iip */
+	st8 [r31] = r25, -8 ;;	/* save cr.ipsr */
+	st8 [r31] = r26, -8 ;;	/* save cr.iipa */
+	st8 [r31] = r27, -8 ;;	/* save cr.isr */
+	st8 [r31] = r28, -8 ;;	/* save cr.ifa */		
 
     /* 5. RSE switch from interrupted context */
     	.auto
@@ -74,9 +83,9 @@
 	cover
 	mov r26 = cr.ifs
 	
-	st8 [r12] = r24, -8	/* save ar.rsc */
-	st8 [r12] = r25, -8	/* save ar.pfs */
-	st8 [r12] = r26, -8	/* save ar.ifs */
+	st8 [r31] = r24, -8	/* save ar.rsc */
+	st8 [r31] = r25, -8	/* save ar.pfs */
+	st8 [r31] = r26, -8	/* save ar.ifs */
 	
 	and r30 = ~3, r24
 	mov ar.rsc = r30	/* place RSE in enforced lazy mode */
@@ -89,9 +98,9 @@
 	
 	mov r29 = ar.bsp
 	
-	st8 [r12] = r27, -8	/* save ar.rnat */
-	st8 [r12] = r28, -8	/* save ar.bspstore */
-	st8 [r12] = r29		/* save ar.bsp */
+	st8 [r31] = r27, -8	/* save ar.rnat */
+	st8 [r31] = r28, -8	/* save ar.bspstore */
+	st8 [r31] = r29		/* save ar.bsp */
 	
 	mov ar.rsc = r24	/* restore RSE's setting */
 	.explicit
