@@ -91,7 +91,7 @@
 	
 	st8 [r12] = r27, -8	/* save ar.rnat */
 	st8 [r12] = r28, -8	/* save ar.bspstore */
-	st8 [r12] = r29, -8	/* save ar.bsp */
+	st8 [r12] = r29		/* save ar.bsp */
 	
 	mov ar.rsc = r24	/* restore RSE's setting */
 	.explicit
