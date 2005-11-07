@@ -121,15 +121,16 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all clean config depend
+.PHONY: all clean config depend boot
 
-all: kernel.bin
+all: kernel.bin boot
 
 -include Makefile.depend
 
 clean:
 	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
-	-rm -f kernel.bin kernel.map kernel.map.pre kernel.objdump src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch
+	-rm -f kernel.bin kernel.map kernel.map.pre kernel.objdump generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
+	$(MAKE) -C arch/$(ARCH)/boot clean
 
 config:
 	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
@@ -152,6 +153,9 @@ generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 
 kernel.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
+
+boot: kernel.bin
+	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`"
 
 %.o: %.S
 	$(CC) $(ASFLAGS) $(CFLAGS) -c $< -o $@
