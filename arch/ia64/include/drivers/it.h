@@ -35,7 +35,7 @@
  * from firmware.
  *
  */
-#define IT_DELTA        1000
+#define IT_DELTA        100000
 
 extern void it_init(void);
 extern void it_interrupt(void);

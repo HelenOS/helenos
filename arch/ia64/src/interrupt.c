@@ -44,8 +44,6 @@ void external_interrupt(void)
 	ivr.value = ivr_read();
 	srlz_d();
 
-/*	printf("Interrupr\n");
-*/	
 	switch(ivr.vector) {
 	    case INTERRUPT_TIMER:
 		it_interrupt();

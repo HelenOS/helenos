@@ -263,7 +263,7 @@ heavyweight_handler_finalize:
 	.auto
 	cover			/*Allocate zerro size frame (Step 1(from Intel Docs))*/
 
-	add r31 = STACK_SCRATCH_AREA_SIZE, r12;;
+	add r31 = STACK_SCRATCH_AREA_SIZE, r12
 
 	mov r28 = ar.bspstore   /*Calculate loadrs (step 2)*/
 	ld8 r29 = [r31], +8     
