@@ -57,6 +57,8 @@
 	/* assume kernel stack */
 	
     /* 4. save registers in bank 0 into memory stack */
+	add r12 = -8, r12 ;;
+	
 	st8 [r12] = r29, -8 ;;	/* save predicate registers */
 
 	st8 [r12] = r24, -8 ;;	/* save cr.iip */
