@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <genarch/firmware/acpi/acpi.h>
-#include <genarch/firmware/acpi/madt.h>
+#include <genarch/acpi/acpi.h>
+#include <genarch/acpi/madt.h>
 #include <arch/bios/bios.h>
 
 #include <mm/page.h>
@@ -44,7 +44,7 @@ struct acpi_signature_map signature_map[] = {
 	{ (__u8 *)"APIC", (struct acpi_sdt_header **) &acpi_madt, "Multiple APIC Description Table" }
 };
 
-int rsdp_check(__u8 *rsdp) {
+static int rsdp_check(__u8 *rsdp) {
 	struct acpi_rsdp *r = (struct acpi_rsdp *) rsdp;
 	__u8 sum = 0;
 	int i;
@@ -77,10 +77,53 @@ int acpi_sdt_check(__u8 *sdt)
 	return !sum;
 }
 
-void map_sdt(struct acpi_sdt_header *sdt)
+static void map_sdt(struct acpi_sdt_header *sdt)
 {
 	map_page_to_frame((__address) sdt, (__address) sdt, PAGE_NOT_CACHEABLE, 0);
 	map_structure((__address) sdt, sdt->length);
+}
+
+static void configure_via_rsdt(void)
+{
+	int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u32);
+	
+	for (i=0; i<cnt; i++) {
+		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (__native) acpi_rsdt->entry[i];
+		
+			map_sdt(h);	
+			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
+				if (!acpi_sdt_check((__u8 *) h))
+					goto next;
+				*signature_map[j].sdt_ptr = h;
+				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+			}
+		}
+next:
+		;
+	}
+}
+
+static void configure_via_xsdt(void)
+{
+	int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u64);
+	
+	for (i=0; i<cnt; i++) {
+		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((__address) acpi_rsdt->entry[i]);
+
+			map_sdt(h);
+			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
+				if (!acpi_sdt_check((__u8 *) h))
+					goto next;
+				*signature_map[j].sdt_ptr = h;
+				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+			}
+		}
+next:
+		;
+	}
+
 }
 
 void acpi_init(void)
@@ -130,45 +173,3 @@ rsdp_found:
 
 }
 
-void configure_via_rsdt(void)
-{
-	int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u32);
-	
-	for (i=0; i<cnt; i++) {
-		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (__native) acpi_rsdt->entry[i];
-		
-			map_sdt(h);	
-			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
-				if (!acpi_sdt_check((__u8 *) h))
-					goto next;
-				*signature_map[j].sdt_ptr = h;
-				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
-			}
-		}
-next:
-		;
-	}
-}
-
-void configure_via_xsdt(void)
-{
-	int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u64);
-	
-	for (i=0; i<cnt; i++) {
-		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((__address) acpi_rsdt->entry[i]);
-
-			map_sdt(h);
-			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
-				if (!acpi_sdt_check((__u8 *) h))
-					goto next;
-				*signature_map[j].sdt_ptr = h;
-				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
-			}
-		}
-next:
-		;
-	}
-
-}

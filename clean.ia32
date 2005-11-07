@@ -1,7 +1,0 @@
-#! /bin/sh
-
-make dist-clean ARCH=ia32
-( cd uspace/libc && make dist-clean ARCH=ia32 )
-( cd uspace && make dist-clean ARCH=ia32 )
-
-rm arch/ia32/_link.ld

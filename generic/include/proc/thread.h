@@ -112,8 +112,6 @@ struct thread {
 extern spinlock_t threads_lock;			/**< Lock protecting threads_head list. */
 extern link_t threads_head;			/**< List of all threads in the system. */
 
-static void cushion(void);
-
 extern void thread_init(void);
 extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags);
 extern void thread_ready(thread_t *t);

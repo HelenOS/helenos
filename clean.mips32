@@ -1,7 +1,0 @@
-#! /bin/sh
-
-make dist-clean ARCH=mips32
-
-rm tools/mips32/gencontext
-rm arch/mips32/include/context_offset.h
-rm arch/mips32/_link.ld

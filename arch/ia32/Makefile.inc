@@ -1,73 +1,105 @@
-ifeq (${NATIVE_COMPILER},yes)
-	CC=gcc
-	AS=as
-	LD=ld
-	OBJCOPY=objcopy
-	OBJDUMP=objdump
+#
+# Copyright (C) 2005 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+## Toolchain configuration
+#
+
+BFD_NAME = elf32-i386
+BFD_ARCH = i386
+TARGET = i686-pc-linux-gnu
+TOOLCHAIN_DIR = /usr/local/i686/bin
+
+## Accepted CPUs
+#
+# Default CPU is Pentium 4
+#
+
+ifeq ($CPU,athlon-xp)
+	CFLAGS += -march=athlon-xp -mmmx -msse -m3dnow
+	DEFS += -DFENCES=486
+	CONFIG_SMP = n
+	CONFIG_HT = n
+elseifeq ($CPU,athlon-mp)
+	CFLAGS += -march=athlon-mp -mmmx -msse -m3dnow
+	DEFS += -DFENCES=486
+elseifeq ($CPU,pentium3)
+	CFLAGS += -march=pentium3 -mmmx -msse -msse2
+	DEFS += -DFENCES=486
 else
-	IA-32_TARGET=i686-pc-linux-gnu
-
-	IA-32_CC_DIR=/usr/local/i686/bin
-	IA-32_BINUTILS_DIR=/usr/local/i686/bin
-
-	CC=$(IA-32_CC_DIR)/$(IA-32_TARGET)-gcc
-	AS=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-as
-	LD=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-ld
-	OBJCOPY=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objcopy
-	OBJDUMP=$(IA-32_BINUTILS_DIR)/$(IA-32_TARGET)-objdump
+	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+	DEFS += -DFENCES=p4
 endif
 
-BFD_NAME=elf32-i386
-BFD_ARCH=i386
+## Own configuration directives
+#
 
-DEFS:=-DARCH=$(ARCH) -DFPU_LAZY
+CONFIG_ACPI = y
 
-ifeq (${STRONG_ORDERING},yes)
-	DEFS+=-D__STRONG_ORDERING__
+## Accepted configuration directives
+#
+
+ifeq ($(CONFIG_SMP),y)
+	DEFS += -DSMP
+endif
+ifeq ($(CONFIG_HT),y)
+	DEFS += -DHT
+endif
+ifeq ($(CONFIG_FPU_LAZY),y)
+	DEFS += -DFPU_LAZY
 endif
 
-ifdef SMP
-	DEFS+=-D$(SMP)
-endif
-
-ifdef HT
-	DEFS+=-D$(HT)
-endif
-
-CPPFLAGS=$(DEFS) -nostdinc -Iinclude/
-CFLAGS=$(CPPFLAGS) -nostdlib -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
-LFLAGS=-M
-
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
-
-arch_sources= \
-	generic/src/arch/context.s \
-	generic/src/arch/debug/panic.s \
-	generic/src/arch/delay.s \
-	generic/src/arch/asm.S \
-	generic/src/arch/proc/scheduler.c \
-	generic/src/arch/bios/bios.c \
-	generic/src/arch/smp/ap.S \
-	generic/src/arch/smp/apic.c \
-	generic/src/arch/smp/mps.c \
-	generic/src/arch/smp/smp.c \
-	generic/src/arch/atomic.S \
-	generic/src/arch/smp/ipi.c \
-	generic/src/arch/ia32.c \
-	generic/src/arch/interrupt.c \
-	generic/src/arch/pm.c \
-	generic/src/arch/userspace.c \
-	generic/src/arch/cpu/cpu.c \
-	generic/src/arch/mm/frame.c \
-	generic/src/arch/mm/memory_init.c \
-	generic/src/arch/mm/page.c \
-	generic/src/arch/mm/tlb.c \
-	generic/src/arch/drivers/i8042.c \
-	generic/src/arch/drivers/i8254.c \
-	generic/src/arch/drivers/i8259.c \
-	generic/src/arch/drivers/ega.c \
-	generic/src/arch/boot/boot.S \
-	generic/src/arch/boot/memmap.S\
-	generic/src/arch/fpu_context.c\
-	generic/src/arch/fmath.c
+ARCH_SOURCES = \
+	arch/$(ARCH)/src/context.s \
+	arch/$(ARCH)/src/debug/panic.s \
+	arch/$(ARCH)/src/delay.s \
+	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/bios/bios.c \
+	arch/$(ARCH)/src/smp/ap.S \
+	arch/$(ARCH)/src/smp/apic.c \
+	arch/$(ARCH)/src/smp/mps.c \
+	arch/$(ARCH)/src/smp/smp.c \
+	arch/$(ARCH)/src/atomic.S \
+	arch/$(ARCH)/src/smp/ipi.c \
+	arch/$(ARCH)/src/ia32.c \
+	arch/$(ARCH)/src/interrupt.c \
+	arch/$(ARCH)/src/pm.c \
+	arch/$(ARCH)/src/userspace.c \
+	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/mm/memory_init.c \
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/mm/tlb.c \
+	arch/$(ARCH)/src/drivers/i8042.c \
+	arch/$(ARCH)/src/drivers/i8254.c \
+	arch/$(ARCH)/src/drivers/i8259.c \
+	arch/$(ARCH)/src/drivers/ega.c \
+	arch/$(ARCH)/src/boot/boot.S \
+	arch/$(ARCH)/src/boot/memmap.S \
+	arch/$(ARCH)/src/fpu_context.c\
+	arch/$(ARCH)/src/fmath.c

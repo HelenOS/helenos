@@ -58,7 +58,7 @@ void ega_init(void)
 	ega_putchar('\n');
 }
 
-void ega_display_char(char ch)
+static void ega_display_char(char ch)
 {
 	__u8 *vram = (__u8 *) PA2KA(VIDEORAM);
 	
@@ -68,7 +68,7 @@ void ega_display_char(char ch)
 /*
  * This function takes care of scrolling.
  */
-void ega_check_cursor(void)
+static void ega_check_cursor(void)
 {
 	if (ega_cursor < SCREEN)
 		return;

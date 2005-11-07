@@ -80,10 +80,6 @@ extern struct acpi_rsdt *acpi_rsdt;
 extern struct acpi_xsdt *acpi_xsdt;
 
 extern void acpi_init(void);
-static int rsdp_check(__u8 *rsdp);
-static void map_sdt(struct acpi_sdt_header *sdt);
 extern int acpi_sdt_check(__u8 *sdt);
-static void configure_via_rsdt(void);
-static void configure_via_xsdt(void);
 
 #endif /* __ACPI_H__ */

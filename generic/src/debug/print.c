@@ -41,7 +41,71 @@ static spinlock_t printflock;              /**< printf spinlock */
 #define DEFAULT_DOUBLE_PRECISION 16
 #define DEFAULT_DOUBLE_BUFFER_SIZE 128
 
-void print_double(double num, __u8 modifier, __u16 precision) 
+
+/** Print NULL terminated string
+ *
+ * Print characters from str using putchar() until
+ * \\0 character is reached.
+ *
+ * @param str Characters to print.
+ *
+ */
+static void print_str(const char *str)
+{
+	int i = 0;
+	char c;
+	
+	while (c = str[i++])
+		putchar(c);
+}
+
+
+/** Print hexadecimal digits
+ *
+ * Print fixed count of hexadecimal digits from
+ * the number num. The digits are printed in
+ * natural left-to-right order starting with
+ * the width-th digit.
+ *
+ * @param num   Number containing digits.
+ * @param width Count of digits to print.
+ *
+ */
+static void print_fixed_hex(const __u64 num, const int width)
+{
+	int i;
+    
+	for (i = width*8 - 4; i >= 0; i -= 4)
+	    putchar(digits[(num>>i) & 0xf]);
+}
+
+
+/** Print number in given base
+ *
+ * Print significant digits of a number in given
+ * base.
+ *
+ * @param num  Number to print.
+ * @param base Base to print the number in (should
+ *             be in range 2 .. 16).
+ *
+ */
+static void print_number(const __native num, const unsigned int base)
+{
+	int val = num;
+	char d[sizeof(__native)*8+1];		/* this is good enough even for base == 2 */
+	int i = sizeof(__native)*8-1;
+	
+	do {
+		d[i--] = digits[val % base];
+	} while (val /= base);
+	
+	d[sizeof(__native)*8] = 0;	
+	print_str(&d[i + 1]);
+}
+
+
+static void print_double(double num, __u8 modifier, __u16 precision) 
 {
 	double intval,intval2;
 	int counter;
@@ -140,68 +204,6 @@ void print_double(double num, __u8 modifier, __u16 precision)
 		putchar(buf[--counter]);
 	}
 	return;
-}
-
-/** Print NULL terminated string
- *
- * Print characters from str using putchar() until
- * \\0 character is reached.
- *
- * @param str Characters to print.
- *
- */
-void print_str(const char *str)
-{
-	int i = 0;
-	char c;
-	
-	while (c = str[i++])
-		putchar(c);
-}
-
-
-/** Print hexadecimal digits
- *
- * Print fixed count of hexadecimal digits from
- * the number num. The digits are printed in
- * natural left-to-right order starting with
- * the width-th digit.
- *
- * @param num   Number containing digits.
- * @param width Count of digits to print.
- *
- */
-void print_fixed_hex(const __u64 num, const int width)
-{
-	int i;
-    
-	for (i = width*8 - 4; i >= 0; i -= 4)
-	    putchar(digits[(num>>i) & 0xf]);
-}
-
-
-/** Print number in given base
- *
- * Print significant digits of a number in given
- * base.
- *
- * @param num  Number to print.
- * @param base Base to print the number in (should
- *             be in range 2 .. 16).
- *
- */
-void print_number(const __native num, const unsigned int base)
-{
-	int val = num;
-	char d[sizeof(__native)*8+1];		/* this is good enough even for base == 2 */
-	int i = sizeof(__native)*8-1;
-	
-	do {
-		d[i--] = digits[val % base];
-	} while (val /= base);
-	
-	d[sizeof(__native)*8] = 0;	
-	print_str(&d[i + 1]);
 }
 
 

@@ -1,8 +1,90 @@
+#
+# Copyright (C) 2005 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+## Kernel release
+#
+
+VERSION = 0
+PATCHLEVEL = 1
+SUBLEVEL = 0
+EXTRAVERSION = 
+NAME = Dawn
+RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
+
+## Make some default assumptions
+#
+
+ifndef ARCH
+	ARCH = ia32
+endif
+
+## Common compiler flags
+#
+
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+LFLAGS = -M
+
+## Setup kernel configuration
+#
+
 include Makefile.config
 include arch/$(ARCH)/Makefile.inc
 include genarch/Makefile.inc
 
-sources=generic/src/cpu/cpu.c \
+ifeq ($(CONFIG_DEBUG),n)
+	DEFS += -DNDEBUG
+endif
+ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
+	DEFS += -DDEBUG_SPINLOCK
+endif
+
+## Toolchain configuration
+#
+
+ifeq ($(COMPILER),native)
+	CC = gcc
+	AS = as
+	LD = ld
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+else
+	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
+	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
+	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
+	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
+	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+endif
+
+## Generic kernel sources
+#
+
+GENERIC_SOURCES = \
+	generic/src/cpu/cpu.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
@@ -35,67 +117,41 @@ sources=generic/src/cpu/cpu.c \
 	generic/src/smp/ipi.c \
 	generic/src/fb/font-8x16.c
 
-# CFLAGS options same for all targets
-CFLAGS+=-nostdinc -Igeneric/include/ -Werror-implicit-function-declaration -Wmissing-prototypes -Werror
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
+ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
+GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-ifdef DEBUG_SPINLOCK
-CFLAGS+=-D$(DEBUG_SPINLOCK)
-endif
+.PHONY: all clean config depend
 
-ifdef USERSPACE
-CFLAGS+=-D$(USERSPACE)
-endif
-
-ifdef TEST
-test_objects:=$(addsuffix .o,$(basename test/$(TEST_DIR)/$(TEST_FILE)))
-CFLAGS+=-D$(TEST)
-endif
-arch_objects:=$(addsuffix .o,$(basename $(arch_sources)))
-genarch_objects:=$(addsuffix .o,$(basename $(genarch_sources)))
-objects:=$(addsuffix .o,$(basename $(sources)))
-
-.PHONY : all config depend build clean dist-clean boot
-
-all: dist-clean config depend build
+all: kernel.bin
 
 -include Makefile.depend
 
-config:
-	find generic/src/ generic/include/ -name arch -type l -exec rm \{\} \;
-	find generic/src/ generic/include/ -name genarch -type l -exec rm \{\} \;	
-	ln -s ../../arch/$(ARCH)/src/ generic/src/arch
-	ln -s ../../arch/$(ARCH)/include/ generic/include/arch
-	ln -s ../../genarch/src/ generic/src/genarch
-	ln -s ../../genarch/include/ generic/include/genarch
-
-depend:
-	$(CC) $(CFLAGS) -M $(arch_sources) $(genarch_sources) $(sources) >Makefile.depend
-
-build: kernel.bin boot
-
 clean:
-	find generic/src/ arch/$(ARCH)/src/ genarch/src/ test/ -name '*.o' -exec rm \{\} \;
-	-rm *.bin kernel.map kernel.map.pre kernel.objdump generic/src/debug/real_map.bin
-	$(MAKE) -C arch/$(ARCH)/boot/ clean
+	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
+	-rm -f kernel.bin kernel.map kernel.map.pre kernel.objdump src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch
 
-dist-clean:
-	find generic/src/ generic/include/ -name arch -type l -exec rm \{\} \;
-	find generic/src/ generic/include/ -name genarch -type l -exec rm \{\} \;	
-	-rm Makefile.depend
-	-$(MAKE) clean
+config:
+	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
+	ln -sfn ../../genarch/include/ generic/include/genarch
 
-generic/src/debug/real_map.bin: $(arch_objects) $(genarch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld 
+depend: config
+	$(CC) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+
+arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
+	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+
+generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile generic/src/debug/empty_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(genarch_objects) $(objects) $(test_objects) generic/src/debug/empty_map.o -o $@ -Map kernel.map.pre
-	$(OBJDUMP) -t $(arch_objects) $(genarch_objects) $(objects) $(test_objects) > kernel.objdump
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/empty_map.o -o $@ -Map kernel.map.pre
+	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 
 generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
 
-
-kernel.bin: $(arch_objects) $(genarch_objects) $(objects) $(test_objects) arch/$(ARCH)/_link.ld generic/src/debug/real_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(arch_objects) $(genarch_objects) $(objects) $(test_objects) generic/src/debug/real_map.o -o $@ -Map kernel.map
+kernel.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
 
 %.o: %.S
 	$(CC) $(ASFLAGS) $(CFLAGS) -c $< -o $@
@@ -105,8 +161,3 @@ kernel.bin: $(arch_objects) $(genarch_objects) $(objects) $(test_objects) arch/$
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-
-KS=`cat kernel.bin | wc -c`
-
-boot:
-	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE=$(KS)

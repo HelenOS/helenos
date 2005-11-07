@@ -116,7 +116,7 @@ void scheduler_init(void)
  * @return Thread to be scheduled.
  *
  */
-struct thread *find_best_thread(void)
+static struct thread *find_best_thread(void)
 {
 	thread_t *t;
 	runq_t *r;
@@ -222,7 +222,7 @@ retry:
  * @param start Threshold priority.
  *
  */
-void relink_rq(int start)
+static void relink_rq(int start)
 {
 	link_t head;
 	runq_t *r;
@@ -254,71 +254,6 @@ void relink_rq(int start)
 }
 
 
-/** The scheduler
- *
- * The thread scheduling procedure.
- *
- */
-void scheduler(void)
-{
-	volatile ipl_t ipl;
-
-	ASSERT(CPU != NULL);
-
-	ipl = interrupts_disable();
-
-	if (haltstate)
-		halt();
-
-	if (THREAD) {
-		spinlock_lock(&THREAD->lock);
-#ifndef FPU_LAZY
-		fpu_context_save(&(THREAD->saved_fpu_context));
-#endif
-		if (!context_save(&THREAD->saved_context)) {
-			/*
-			 * This is the place where threads leave scheduler();
-			 */
-			before_thread_runs();
-			spinlock_unlock(&THREAD->lock);
-			interrupts_restore(THREAD->saved_context.ipl);
-			return;
-		}
-
-		/*
-		 * Interrupt priority level of preempted thread is recorded here
-		 * to facilitate scheduler() invocations from interrupts_disable()'d
-		 * code (e.g. waitq_sleep_timeout()). 
-		 */
-		THREAD->saved_context.ipl = ipl;
-	}
-
-	/*
-	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU
-	 * and preemption counter. At this point THE could be coming either
-	 * from THREAD's or CPU's stack.
-	 */
-	the_copy(THE, (the_t *) CPU->stack);
-
-	/*
-	 * We may not keep the old stack.
-	 * Reason: If we kept the old stack and got blocked, for instance, in
-	 * find_best_thread(), the old thread could get rescheduled by another
-	 * CPU and overwrite the part of its own stack that was also used by
-	 * the scheduler on this CPU.
-	 *
-	 * Moreover, we have to bypass the compiler-generated POP sequence
-	 * which is fooled by SP being set to the very top of the stack.
-	 * Therefore the scheduler() function continues in
-	 * scheduler_separated_stack().
-	 */
-	context_save(&CPU->saved_context);
-	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
-	context_restore(&CPU->saved_context);
-	/* not reached */
-}
-
-
 /** Scheduler stack switch wrapper
  *
  * Second part of the scheduler() function
@@ -326,7 +261,7 @@ void scheduler(void)
  * switch to a new thread.
  *
  */
-void scheduler_separated_stack(void)
+static void scheduler_separated_stack(void)
 {
 	int priority;
 
@@ -457,6 +392,74 @@ void scheduler_separated_stack(void)
 	context_restore(&THREAD->saved_context);
 	/* not reached */
 }
+
+
+/** The scheduler
+ *
+ * The thread scheduling procedure.
+ *
+ */
+void scheduler(void)
+{
+	volatile ipl_t ipl;
+
+	ASSERT(CPU != NULL);
+
+	ipl = interrupts_disable();
+
+	if (haltstate)
+		halt();
+
+	if (THREAD) {
+		spinlock_lock(&THREAD->lock);
+#ifndef FPU_LAZY
+		fpu_context_save(&(THREAD->saved_fpu_context));
+#endif
+		if (!context_save(&THREAD->saved_context)) {
+			/*
+			 * This is the place where threads leave scheduler();
+			 */
+			before_thread_runs();
+			spinlock_unlock(&THREAD->lock);
+			interrupts_restore(THREAD->saved_context.ipl);
+			return;
+		}
+
+		/*
+		 * Interrupt priority level of preempted thread is recorded here
+		 * to facilitate scheduler() invocations from interrupts_disable()'d
+		 * code (e.g. waitq_sleep_timeout()). 
+		 */
+		THREAD->saved_context.ipl = ipl;
+	}
+
+	/*
+	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU
+	 * and preemption counter. At this point THE could be coming either
+	 * from THREAD's or CPU's stack.
+	 */
+	the_copy(THE, (the_t *) CPU->stack);
+
+	/*
+	 * We may not keep the old stack.
+	 * Reason: If we kept the old stack and got blocked, for instance, in
+	 * find_best_thread(), the old thread could get rescheduled by another
+	 * CPU and overwrite the part of its own stack that was also used by
+	 * the scheduler on this CPU.
+	 *
+	 * Moreover, we have to bypass the compiler-generated POP sequence
+	 * which is fooled by SP being set to the very top of the stack.
+	 * Therefore the scheduler() function continues in
+	 * scheduler_separated_stack().
+	 */
+	context_save(&CPU->saved_context);
+	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
+	context_restore(&CPU->saved_context);
+	/* not reached */
+}
+
+
+
 
 
 #ifdef __SMP__

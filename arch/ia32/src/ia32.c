@@ -44,7 +44,7 @@
 
 #include <arch/interrupt.h>
 #include <arch/asm.h>
-#include <genarch/firmware/acpi/acpi.h>
+#include <genarch/acpi/acpi.h>
 
 #include <arch/bios/bios.h>
 

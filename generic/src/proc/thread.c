@@ -70,7 +70,7 @@ __u32 last_tid = 0;
  * interrupts_disable() is assumed.
  *
  */
-void cushion(void)
+static void cushion(void)
 {
 	void (*f)(void *) = THREAD->thread_code;
 	void *arg = THREAD->thread_arg;

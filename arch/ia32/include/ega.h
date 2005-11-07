@@ -37,7 +37,4 @@
 extern void ega_init(void);
 extern void ega_putchar(const char ch);
 
-static void ega_check_cursor(void);
-static void ega_display_char(char ch);
-
 #endif

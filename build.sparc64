@@ -1,6 +1,0 @@
-#! /bin/sh
-
-# Generate context_offset.h
-(cd tools/sparc64/;make gencontext;./gencontext)
-
-make all ARCH=sparc64

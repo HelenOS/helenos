@@ -44,11 +44,6 @@ struct runq {
 };
 
 extern volatile count_t nrdy;
-
-static thread_t *find_best_thread(void);
-static void relink_rq(int start);
-static void scheduler_separated_stack(void);
-
 extern void scheduler_init(void);
 
 extern void scheduler_fpu_lazy_request(void);

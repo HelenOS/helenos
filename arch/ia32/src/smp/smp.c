@@ -30,8 +30,8 @@
 #include <arch/smp/smp.h>
 #include <arch/smp/mps.h>
 #include <arch/smp/ap.h>
-#include <genarch/firmware/acpi/acpi.h>
-#include <genarch/firmware/acpi/madt.h>
+#include <genarch/acpi/acpi.h>
+#include <genarch/acpi/madt.h>
 #include <config.h>
 #include <synch/waitq.h>
 #include <synch/synch.h>

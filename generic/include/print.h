@@ -36,11 +36,6 @@
 #define INT32	4
 #define INT64	8
 
-static void print_double(double num, __u8 modifier, __u16 precision) ;
-static void print_str(const char *str);
-static void print_fixed_hex(const __u64 num, const int width);
-static void print_number(const __native num, const unsigned int base);
-
 extern void putchar(const char c);
 extern void printf(const char *fmt, ...);
 
