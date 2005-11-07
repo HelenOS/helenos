@@ -255,15 +255,82 @@ heavyweight_handler_inner:
 .global heavyweight_handler_finalize
 heavyweight_handler_finalize:
     /* 16. RSE switch to interrupted context */
-	
+
+/********************************************************************************************/
+
+
+
+	.auto
+	cover			/*Allocate zerro size frame (Step 1(from Intel Docs))*/
+
+	add r31 = STACK_SCRATCH_AREA_SIZE, r12;;
+
+	mov r28 = ar.bspstore   /*Calculate loadrs (step 2)*/
+	ld8 r29 = [r31], +8     
+	sub r27 = r29 , r28
+	shl r27 = r27, 16
+
+	mov r24 = ar.rsc
+	and r30 = ~3, r24
+	or  r24 = r30 , r27     
+	mov ar.rsc = r24	/* place RSE in enforced lazy mode */
+
+
+
+	loadrs 			/*(Step 3)*/
+
+
+				/*Read saved registers*/
+	ld8 r28 = [r31], +8     /*ar.bspstore*/
+	ld8 r27 = [r31], +8 	/*ar.rnat*/
+	ld8 r26 = [r31], +8 	/*cr.ifs*/
+	ld8 r25 = [r31], +8 	/*ar.pfs*/
+	ld8 r24 = [r31], +8 	/*ar.rsc*/
+
+
+	mov ar.bspstore = r28	/*(Step 4)*/
+	mov ar.rnat = r27	/*(Step 5)*/
+
+	mov ar.pfs = r25	/*(Step 6)*/
+	mov cr.ifs = r26	
+
+	mov ar.rsc = r24	/*(Step 7)*/
+
+
+	.explicit	
+
+
+/********************************************************************************************/
+
+
+
     /* 17. restore interruption state from memory stack */
+
+	ld8 r28 = [r31] , +8 ;;	/* load cr.ifa */		
+	ld8 r27 = [r31] , +8 ;;	/* load cr.isr */
+	ld8 r26 = [r31] , +8 ;;	/* load cr.iipa */
+	ld8 r25 = [r31] , +8 ;;	/* load cr.ipsr */
+	ld8 r24 = [r31] , +8 ;;	/* load cr.iip */
+
+
+	mov cr.iip = r24
+	mov cr.ipsr = r25
+	mov cr.iipa = r26
+	mov cr.isr = r27
+	mov cr.ifa = r28
+
+
 	
     /* 18. restore predicate registers from memory stack */
+
+
+	ld8 r29 = [r31] , -8 ;;	/* load predicate registers */
+	mov pr =r29 ;;
+	
+	add r12 = STACK_FRAME_SIZE,r12;;
 	
     /* 19. return from interruption */
-	rfi
-
-
+	rfi;;
 
 
 dump_gregs:

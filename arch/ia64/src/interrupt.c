@@ -43,11 +43,12 @@ void external_interrupt(void)
 	
 	ivr.value = ivr_read();
 	srlz_d();
-	
+
+/*	printf("Interrupr\n");
+*/	
 	switch(ivr.vector) {
 	    case INTERRUPT_TIMER:
 		it_interrupt();
-	    	panic("cpu%d: timer interrupt\n", CPU->id);
 	    	break;
 	    case INTERRUPT_SPURIOUS:
 	    	printf("cpu%d: spurious interrupt\n", CPU->id);

@@ -29,7 +29,7 @@
 #ifndef __ia64_STACK_H__
 #define __ia64_STACK_H__
 
-#define STACK_ITEM_SIZE			16
+#define STACK_ITEM_SIZE			8
 #define STACK_ALIGNMENT			16
 #define STACK_SCRATCH_AREA_SIZE		16
 #define REGISTER_STACK_ALIGNMENT 	8
