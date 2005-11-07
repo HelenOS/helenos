@@ -19,3 +19,5 @@ while [ "$#" -gt 0 ]; do
 done
 
 make all ARCH=ia32 $COMPILER
+( cd uspace/libc && make all ARCH=ia32 $COMPILER )
+( cd uspace && make all ARCH=ia32 $COMPILER )
