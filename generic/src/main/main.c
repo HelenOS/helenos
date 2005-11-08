@@ -61,7 +61,12 @@
 
 #include <typedefs.h>
 
-char *project = "SPARTAN kernel release " RELEASE " (" NAME ")";
+char *project = "SPARTAN kernel";
+#ifdef TAG
+	char *revision = RELEASE " (" NAME ") " TAG;
+#else
+	char *revision = RELEASE " (" NAME ")";
+#endif
 char *copyright = "Copyright (C) 2001-2005 Jakub Jermar\nCopyright (C) 2005 HelenOS project";
 
 config_t config;
@@ -153,7 +158,7 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	arch_post_mm_init();
 
-	printf("%s\n%s\n", project, copyright);
+	printf("%s %s\n%s\n", project, revision, copyright);
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 

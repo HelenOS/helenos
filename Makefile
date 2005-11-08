@@ -46,10 +46,14 @@ endif
 ## Common compiler flags
 #
 
-DEFS = -DARCH=$(ARCH) -DRELEASE=\"$(RELEASE)\" -DNAME=\"$(NAME)\"
+DEFS = -DARCH=$(ARCH) -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\""
 CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
 LFLAGS = -M
-AFLAGS = 
+AFLAGS =
+
+ifdef TAG
+	DEFS += "-DTAG=\"$(TAG)\""
+endif
 
 ## Setup kernel configuration
 #

@@ -52,4 +52,12 @@ while [ "$#" -gt 0 ]; do
 	shift
 done
 
-make all "ARCH=$ARCH" $ARGS
+TAG="`svnversion . 2> /dev/null`"
+TIMESTAMP="`date "+%Y-%m-%d %H:%M:%S" 2> /dev/null`"
+if [ -z "$TAG" ]; then
+	TAG="built on $TIMESTAMP"
+else
+	TAG="revision $TAG (built on $TIMESTAMP)"
+fi
+
+make all "ARCH=$ARCH" "TAG=$TAG" $ARGS
