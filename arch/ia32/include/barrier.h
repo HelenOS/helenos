@@ -43,16 +43,14 @@
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
-#if (FENCES == p4)
+#ifdef CONFIG_FENCES_P4
 #	define memory_barrier()	__asm__ volatile ("mfence\n" ::: "memory")
-#	define read_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
-#	define write_barrier()		__asm__ volatile ("lfence\n" ::: "memory")
-#elif (FENCES == p3)
-#	define memory_barrier()	__asm__ volatile ("xchgl %%eax,%%eax\n" ::: "memory")
-#	define read_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
-#	define write_barrier()		__asm__ volatile ("xchgl %%eax,%%eax\n" ::: "memory")
-#else
-#	error Unsupported FENCES value
+#	define read_barrier()		__asm__ volatile ("lfence\n" ::: "memory")
+#	define write_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
+#elif CONFIG_FENCES_P3
+#	define memory_barrier()	__asm__ volatile ("\n" ::: "memory")
+#	define read_barrier()		__asm__ volatile ("\n" ::: "memory")
+#	define write_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
 #endif
 
 #endif
