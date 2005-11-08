@@ -36,7 +36,7 @@
 #include <config.h>
 #include <arch.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 static spinlock_t tlblock;
 #endif
 
@@ -48,7 +48,7 @@ void tlb_init(void)
 	tlb_init_arch();
 }
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 /* must be called with interrupts disabled */
 void tlb_shootdown_start(void)
 {
@@ -84,4 +84,4 @@ void tlb_shootdown_ipi_recv(void)
 	tlb_invalidate(0);	/* TODO: use valid ASID */
 	CPU->tlb_active = 1;
 }
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

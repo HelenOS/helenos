@@ -39,7 +39,7 @@
 	
 .section K_TEXT_START_2, "ax"
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 .global ap_boot
 
@@ -100,4 +100,4 @@ start64:
 	call main_ap   # never returns
 	
 	
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

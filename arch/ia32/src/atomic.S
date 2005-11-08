@@ -28,7 +28,7 @@
 
 .text
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 .global spinlock_arch
 
@@ -42,7 +42,7 @@ spinlock_arch:
 	movl 12(%esp),%ebx
 
 0:	
-	#ifdef __HT__
+	#ifdef CONFIG_HT
 	pause			# Pentium 4's with HT love this instruction
 	#endif
 	movl (%ebx),%eax

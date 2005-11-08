@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 #include <config.h>
 #include <print.h>
@@ -422,4 +422,4 @@ int mps_irq_to_pin(int irq)
 	return -1;
 }
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

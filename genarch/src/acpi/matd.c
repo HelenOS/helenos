@@ -42,7 +42,7 @@
 
 struct acpi_madt *acpi_madt = NULL;
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 static void madt_l_apic_entry(struct madt_l_apic *la, __u32 index);
 static void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index);
@@ -210,4 +210,4 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 }
 
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

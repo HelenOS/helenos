@@ -29,10 +29,10 @@
 #ifndef __SMP_H__
 #define __SMP_H__
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 extern void smp_init(void);
 #else
 #define smp_init()	;
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 #endif /* __SMP_H__ */

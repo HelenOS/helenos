@@ -60,13 +60,13 @@ CONFIG_ACPI = y
 #
 
 ifeq ($(CONFIG_SMP),y)
-	DEFS += -DSMP
+	DEFS += -DCONFIG_SMP
 endif
 ifeq ($(CONFIG_HT),y)
-	DEFS += -DHT
+	DEFS += -DCONFIG_HT
 endif
 ifeq ($(CONFIG_FPU_LAZY),y)
-	DEFS += -DFPU_LAZY
+	DEFS += -DCONFIG_FPU_LAZY
 endif
 
 ARCH_SOURCES = \

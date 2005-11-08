@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 #include <smp/ipi.h>
 #include <arch/smp/apic.h>
@@ -36,4 +36,4 @@ void ipi_broadcast_arch(int ipi)
 	(void) l_apic_broadcast_custom_ipi((__u8) ipi);
 }
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

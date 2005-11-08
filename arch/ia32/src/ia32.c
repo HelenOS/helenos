@@ -62,10 +62,10 @@ void arch_pre_mm_init(void)
 		
 		trap_register(VECTOR_SYSCALL, syscall);
 		
-		#ifdef __SMP__
+		#ifdef CONFIG_SMP
 		trap_register(VECTOR_TLB_SHOOTDOWN_IPI, tlb_shootdown_ipi);
 		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
-		#endif /* __SMP__ */
+		#endif /* CONFIG_SMP */
 	}
 }
 
@@ -81,9 +81,9 @@ void arch_late_init(void)
 	if (config.cpu_active == 1) {
 		memory_print_map();
 		
-		#ifdef __SMP__
+		#ifdef CONFIG_SMP
 		acpi_init();
-		#endif /* __SMP__ */
+		#endif /* CONFIG_SMP */
 	}
 }
 

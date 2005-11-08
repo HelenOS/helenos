@@ -29,11 +29,11 @@
 #ifndef __IPI_H__
 #define __IPI_H__
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 extern void ipi_broadcast(int ipi);
 extern void ipi_broadcast_arch(int ipi);
 #else
 #define ipi_broadcast(x)	;
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 #endif

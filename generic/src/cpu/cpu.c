@@ -49,9 +49,9 @@ cpu_t *cpus;
 void cpu_init(void) {
 	int i, j;
 	
-	#ifdef __SMP__
+	#ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
-	#endif /* __SMP__ */
+	#endif /* CONFIG_SMP */
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
 		if (!cpus)
 			panic("malloc/cpus");
@@ -66,7 +66,7 @@ void cpu_init(void) {
 			
 			cpus[i].id = i;
 			
-			#ifdef __SMP__
+			#ifdef CONFIG_SMP
 			waitq_initialize(&cpus[i].kcpulb_wq);
 			#endif /* __SMP */
 			
@@ -75,9 +75,9 @@ void cpu_init(void) {
 			}
 		}
 		
-	#ifdef __SMP__
+	#ifdef CONFIG_SMP
 	}
-	#endif /* __SMP__ */
+	#endif /* CONFIG_SMP */
 
 	CPU = &cpus[config.cpu_active-1];
 	

@@ -52,10 +52,10 @@ struct cpu {
 	spinlock_t timeoutlock;
 	link_t timeout_active_head;
 
-	#ifdef __SMP__
+	#ifdef CONFIG_SMP
 	int kcpulbstarted;
 	waitq_t kcpulb_wq;
-	#endif /* __SMP__ */
+	#endif /* CONFIG_SMP */
 
 	int id;
 	int active;

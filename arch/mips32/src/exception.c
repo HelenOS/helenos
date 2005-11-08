@@ -73,7 +73,7 @@ void exception(struct exception_regdump *pstate)
 			tlb_invalid(pstate);
 			break;
  	 	case EXC_CpU:
-#ifdef FPU_LAZY     
+#ifdef CONFIG_FPU_LAZY     
 			if (cp0_cause_coperr(cause) == fpu_cop_id)
 				scheduler_fpu_lazy_request();
 			else

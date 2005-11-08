@@ -37,7 +37,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 /*
  * This is functional, far-from-general-enough interface to the APIC.
@@ -416,4 +416,4 @@ void io_apic_enable_irqs(__u16 irqmask)
 
 }
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

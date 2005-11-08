@@ -102,7 +102,7 @@ CONFIG_OFW = y
 #
 
 ifeq ($(CONFIG_FPU_LAZY),y)
-	DEFS += -DFPU_LAZY
+	DEFS += -DCONFIG_FPU_LAZY
 endif
 
 ARCH_SOURCES = \

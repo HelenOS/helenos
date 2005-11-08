@@ -32,7 +32,7 @@
 
 .section K_TEXT_START_2, "ax"
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 .global ap_boot
 
@@ -73,4 +73,4 @@ jump_to_kernel:
 	
 	jmpl $KTEXT, $main_ap
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

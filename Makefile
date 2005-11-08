@@ -62,7 +62,7 @@ ifeq ($(CONFIG_DEBUG),n)
 	DEFS += -DNDEBUG
 endif
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
-	DEFS += -DDEBUG_SPINLOCK
+	DEFS += -DCONFIG_DEBUG_SPINLOCK
 endif
 
 ## Toolchain configuration

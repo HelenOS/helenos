@@ -110,7 +110,7 @@ void ss_fault(__u8 n, __native stack[])
 
 void nm_fault(__u8 n, __native stack[])
 {
-#ifdef FPU_LAZY     
+#ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
 	panic("fpu fault");

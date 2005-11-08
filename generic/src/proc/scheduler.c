@@ -61,7 +61,7 @@ volatile count_t nrdy;
 void before_thread_runs(void)
 {
 	before_thread_runs_arch();
-#ifdef FPU_LAZY
+#ifdef CONFIG_FPU_LAZY
 	if(THREAD==CPU->fpu_owner) 
 		fpu_enable();
 	else
@@ -77,7 +77,7 @@ void before_thread_runs(void)
 #endif
 }
 
-#ifdef FPU_LAZY
+#ifdef CONFIG_FPU_LAZY
 void scheduler_fpu_lazy_request(void)
 {
 	fpu_enable();
@@ -134,7 +134,7 @@ loop:
 	interrupts_enable();
 	
 	if (n == 0) {
-		#ifdef __SMP__
+		#ifdef CONFIG_SMP
 		/*
 		 * If the load balancing thread is not running, wake it up and
 		 * set CPU-private flag that the kcpulb has been started.
@@ -143,7 +143,7 @@ loop:
 			waitq_wakeup(&CPU->kcpulb_wq, 0);
 			goto loop;
 		}
-		#endif /* __SMP__ */
+		#endif /* CONFIG_SMP */
 		
 		/*
 		 * For there was nothing to run, the CPU goes to sleep
@@ -412,7 +412,7 @@ void scheduler(void)
 
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
-#ifndef FPU_LAZY
+#ifndef CONFIG_FPU_LAZY
 		fpu_context_save(&(THREAD->saved_fpu_context));
 #endif
 		if (!context_save(&THREAD->saved_context)) {
@@ -462,7 +462,7 @@ void scheduler(void)
 
 
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 /** Load balancing thread
  *
  * SMP load balancing thread, supervising thread supplies
@@ -623,4 +623,4 @@ satisfied:
 	goto loop;
 }
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */

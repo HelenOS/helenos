@@ -39,10 +39,10 @@
 #include <cpu.h>
 #include <align.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
 #include <arch/smp/mps.h>
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 #include <smp/smp.h>
 
@@ -202,7 +202,7 @@ void main_bsp_separated_stack(void)
 }
 
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 /** Application CPUs main kernel routine
  *
  * Executed by application processors, temporary stack
@@ -268,4 +268,4 @@ void main_ap_separated_stack(void)
 	scheduler();
 	/* not reached */
 }
-#endif /* __SMP__*/
+#endif /* CONFIG_SMP */

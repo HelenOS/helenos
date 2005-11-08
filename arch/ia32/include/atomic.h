@@ -32,19 +32,19 @@
 #include <arch/types.h>
 
 static inline void atomic_inc(volatile int *val) {
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 	__asm__ volatile ("lock incl %0\n" : "=m" (*val));
 #else
 	__asm__ volatile ("incl %0\n" : "=m" (*val));
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(volatile int *val) {
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 	__asm__ volatile ("lock decl %0\n" : "=m" (*val));
 #else
 	__asm__ volatile ("decl %0\n" : "=m" (*val));
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 }
 
 static inline int test_and_set(volatile int *val) {

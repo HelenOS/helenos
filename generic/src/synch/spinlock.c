@@ -34,7 +34,7 @@
 #include <print.h>
 #include <debug.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 /** Initialize spinlock
  *
@@ -47,7 +47,7 @@ void spinlock_initialize(spinlock_t *sl)
 	sl->val = 0;
 }
 
-#ifdef DEBUG_SPINLOCK
+#ifdef CONFIG_DEBUG_SPINLOCK
 /** Lock spinlock
  *
  * Lock spinlock.

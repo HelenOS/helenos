@@ -33,7 +33,7 @@
 #include <typedefs.h>
 #include <preemption.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 struct spinlock {
 	int val;
 };

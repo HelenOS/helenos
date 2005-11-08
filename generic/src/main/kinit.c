@@ -43,9 +43,9 @@
 #include <print.h>
 #include <memstr.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
@@ -66,7 +66,7 @@ void kinit(void *arg)
 
 	interrupts_disable();
 
-#ifdef __SMP__		 	
+#ifdef CONFIG_SMP		 	
 	if (config.cpu_count > 1) {
 		/*
 		 * Create the kmp thread and wait for its completion.
@@ -84,7 +84,7 @@ void kinit(void *arg)
 		}
 		else panic("thread_create/kmp");
 	}
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 	/*
 	 * Now that all CPUs are up, we can report what we've found.
 	 */
@@ -95,7 +95,7 @@ void kinit(void *arg)
 			printf("cpu%d: not active\n", i);
 	}
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		/*
 		 * For each CPU, create its load balancing thread.
@@ -113,7 +113,7 @@ void kinit(void *arg)
 
 		}
 	}
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 	interrupts_enable();
 

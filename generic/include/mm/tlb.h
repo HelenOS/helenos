@@ -33,7 +33,7 @@
 
 extern void tlb_init(void);
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 extern void tlb_shootdown_start(void);
 extern void tlb_shootdown_finalize(void);
 extern void tlb_shootdown_ipi_recv(void);
@@ -41,7 +41,7 @@ extern void tlb_shootdown_ipi_recv(void);
 #  define tlb_shootdown_start()	;
 #  define tlb_shootdown_finalize()	;
 #  define tlb_shootdown_ipi_recv() ;
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
 
 /* Export TLB interface that each architecture must implement. */
 extern void tlb_init_arch(void);

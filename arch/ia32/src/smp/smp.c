@@ -47,7 +47,7 @@
 #include <memstr.h>
 #include <arch/i8259.h>
 
-#ifdef __SMP__
+#ifdef CONFIG_SMP
 
 static struct smp_config_operations *ops = NULL;
 
@@ -165,4 +165,4 @@ void kmp(void *arg)
 	waitq_wakeup(&kmp_completion_wq, WAKEUP_FIRST);
 }
 
-#endif /* __SMP__ */
+#endif /* CONFIG_SMP */
