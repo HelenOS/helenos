@@ -55,9 +55,9 @@ done
 TAG="`svnversion . 2> /dev/null`"
 TIMESTAMP="`date "+%Y-%m-%d %H:%M:%S" 2> /dev/null`"
 if [ -z "$TAG" ]; then
-	TAG="built on $TIMESTAMP"
+	TAG="Built on $TIMESTAMP for $ARCH"
 else
-	TAG="revision $TAG (built on $TIMESTAMP)"
+	TAG="Revision $TAG (built on $TIMESTAMP for $ARCH)"
 fi
 
 make all "ARCH=$ARCH" "TAG=$TAG" $ARGS
