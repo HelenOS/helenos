@@ -47,5 +47,13 @@ LFLAGS += -no-check-sections -N
 CONFIG_OFW = y
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/dummy.s \
+	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/console.c \
+	arch/$(ARCH)/src/context.S \
+	arch/$(ARCH)/src/dummy.s \	
+	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/sparc64.c \
 	arch/$(ARCH)/src/start.S
+
+
