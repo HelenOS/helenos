@@ -1,5 +1,4 @@
-/*
- *  PPC32 linker script
+/** PPC32 linker script
  *
  *  It is ELF format, but its only section looks like this:
  *  kernel text
@@ -7,7 +6,9 @@
  *
  */
 
-OUTPUT_FORMAT(elf32-powerpc)
+#define __ASM__
+
+OUTPUT_FORMAT("elf32-powerpc")
 ENTRY(kernel_image_start)
 
 SECTIONS {
@@ -35,7 +36,7 @@ SECTIONS {
 		*(COMMON); 		/* global variables */
 
 		symbol_table = .;
-                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
 
 		kdata_end = .;
 	}

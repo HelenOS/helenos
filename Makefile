@@ -46,8 +46,10 @@ endif
 ## Common compiler flags
 #
 
+DEFS = -DARCH=$(ARCH)
 CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
 LFLAGS = -M
+AFLAGS = 
 
 ## Setup kernel configuration
 #
@@ -128,8 +130,8 @@ all: kernel.bin boot
 -include Makefile.depend
 
 clean:
-	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
 	-rm -f kernel.bin kernel.map kernel.map.pre kernel.objdump generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
+	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
 	$(MAKE) -C arch/$(ARCH)/boot clean
 
 config:
@@ -137,10 +139,10 @@ config:
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
 depend: config
-	$(CC) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile generic/src/debug/empty_map.o
@@ -155,13 +157,13 @@ kernel.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GE
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
 
 boot: kernel.bin
-	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`"
+	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`" CC=$(CC) AS=$(AS) LD=$(LD)
 
 %.o: %.S
-	$(CC) $(ASFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -c $< -o $@
 
 %.o: %.s
-	$(AS) $(ASFLAGS) $< -o $@
+	$(AS) $(AFLAGS) $< -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

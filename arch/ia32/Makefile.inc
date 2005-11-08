@@ -34,23 +34,31 @@ BFD_ARCH = i386
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/i686/bin
 
-## Accepted CPUs
-#
-# Default CPU is Pentium 4
+## Make some default assumptions
 #
 
-ifeq ($CPU,athlon-xp)
+ifndef CPU
+	CPU = pentium4
+endif
+
+## Accepted CPUs
+#
+
+ifeq ($(CPU),athlon-xp)
 	CFLAGS += -march=athlon-xp -mmmx -msse -m3dnow
 	DEFS += -DFENCES=486
 	CONFIG_SMP = n
 	CONFIG_HT = n
-elseifeq ($CPU,athlon-mp)
+endif
+ifeq ($(CPU),athlon-mp)
 	CFLAGS += -march=athlon-mp -mmmx -msse -m3dnow
 	DEFS += -DFENCES=486
-elseifeq ($CPU,pentium3)
+endif
+ifeq ($(CPU),pentium3)
 	CFLAGS += -march=pentium3 -mmmx -msse -msse2
 	DEFS += -DFENCES=486
-else
+endif
+ifeq ($(CPU),pentium4)
 	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
 	DEFS += -DFENCES=p4
 endif

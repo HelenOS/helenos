@@ -1,24 +1,13 @@
-IA-64_BINUTILS_DIR=/usr/local/ia64/bin
-IA-64_TARGET=ia64-pc-linux-gnu
-
-.PHONY: nothing build
-
-nothing:
+.PHONY: build clean
 
 build: boot.bin
 	cp boot.bin ../../../load.bin
 
-AS=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-as
-LD=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-ld
-
-ASFLAGS=-EL
-LFLAGS=-EL -T _link.ld -n
-
 boot.bin: boot.o
-	$(LD) $(LFLAGS) boot.o -o $@
+	$(LD) -EL -T _link.ld -n boot.o -o $@
 
-boot.o:
+boot.o: boot.s
 	$(AS) boot.s -o $@
 
 clean:
-	-rm *.o *.bin
+	-rm -f boot.o boot.bin ../../../load.bin

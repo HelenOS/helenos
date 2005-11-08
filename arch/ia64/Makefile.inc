@@ -1,38 +1,59 @@
-IA-64_TARGET=ia64-pc-linux-gnu
+#
+# Copyright (C) 2005 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 
-IA-64_CC_DIR=/usr/local/ia64/bin
-IA-64_BINUTILS_DIR=/usr/local/ia64/bin
+## Toolchain configuration
+#
 
-CC=$(IA-64_CC_DIR)/$(IA-64_TARGET)-gcc
-AS=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-as
-LD=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-ld
-OBJDUMP=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-objdump
-OBJCOPY=$(IA-64_BINUTILS_DIR)/$(IA-64_TARGET)-objcopy
-BFD_NAME=elf64-little
-BFD_ARCH=ia64-elf64
+BFD_NAME = elf64-little
+BFD_ARCH = ia64-elf64
+TARGET = ia64-pc-linux-gnu
+TOOLCHAIN_DIR = /usr/local/ia64/bin
 
+## Make some default assumptions
+#
 
-ASFLAGS=-mconstant-gp
+CFLAGS += -mconstant-gp -fno-unwind-tables
+LFLAGS += -EL
+AFLAGS += -mconstant-gp
 
-DEFS=-DARCH=$(ARCH)
-CFLAGS=$(DEFS) -mconstant-gp -nostdlib -fno-builtin -fno-unwind-tables -O3
-LFLAGS=-EL -M
-
-
-
-arch_sources= \
-	generic/src/arch/start.S \
-	generic/src/arch/asm.S \
-	generic/src/arch/dummy.s \
-	generic/src/arch/putchar.c \
-	generic/src/arch/ia64.c \
-	generic/src/arch/fpu_context.c \
-	generic/src/arch/context.S \
-	generic/src/arch/ski/ski.c \
-	generic/src/arch/cpu/cpu.c \
-	generic/src/arch/ivt.S \
-	generic/src/arch/interrupt.c \
-	generic/src/arch/interrupt_handler.c \
-	generic/src/arch/fmath.c \
-	generic/src/arch/mm/frame.c \
-	generic/src/arch/drivers/it.c
+ARCH_SOURCES = \
+	arch/$(ARCH)/src/start.S \
+	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/dummy.s \
+	arch/$(ARCH)/src/putchar.c \
+	arch/$(ARCH)/src/ia64.c \
+	arch/$(ARCH)/src/fpu_context.c \
+	arch/$(ARCH)/src/context.S \
+	arch/$(ARCH)/src/ski/ski.c \
+	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/ivt.S \
+	arch/$(ARCH)/src/interrupt.c \
+	arch/$(ARCH)/src/interrupt_handler.c \
+	arch/$(ARCH)/src/fmath.c \
+	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/drivers/it.c

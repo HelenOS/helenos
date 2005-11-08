@@ -1,11 +1,12 @@
-/*
- *  IA-64 linker script
+/** IA-64 linker script
  *
  *  It is ELF format, but its only section looks like this:
  *  kernel text
  *  kernel data
  *
  */
+
+#define __ASM__
 
 OUTPUT_FORMAT(elf64-ia64-little)
 ENTRY(kernel_image_start)

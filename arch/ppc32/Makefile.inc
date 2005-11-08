@@ -1,33 +1,60 @@
-PPC_TARGET=ppc-linux-gnu
+#
+# Copyright (C) 2005 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 
-PPC_CC_DIR=/usr/local/ppc/bin
-PPC_BINUTILS_DIR=/usr/local/ppc/bin
+## Toolchain configuration
+#
 
-CC=$(PPC_CC_DIR)/$(PPC_TARGET)-gcc
-AS=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-as
-LD=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-ld
-OBJDUMP=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-objdump
-OBJCOPY=$(PPC_BINUTILS_DIR)/$(PPC_TARGET)-objcopy
-BFD_NAME=elf32-powerpc
-BFD_ARCH=powerpc
+BFD_NAME = elf32-powerpc
+BFD_ARCH = powerpc
+TARGET = ppc-linux-gnu
+TOOLCHAIN_DIR = /usr/local/ppc/bin
 
-ASFLAGS=
+## Make some default assumptions
+#
 
-DEFS=-DARCH=$(ARCH)
-CFLAGS=$(DEFS) -nostdlib -fno-builtin -O2
-LFLAGS=-M -no-check-sections -N
+LFLAGS += -no-check-sections -N
 
-arch_sources= \
-	generic/src/arch/console.c \
-	generic/src/arch/context.S \
-	generic/src/arch/debug/panic.s \
-	generic/src/arch/fpu_context.c \
-	generic/src/arch/ppc32.c \
-	generic/src/arch/dummy.s \
-	generic/src/arch/start.S \
-	generic/src/arch/asm.S \
-	generic/src/arch/cpu/cpu.c \
-	generic/src/arch/mm/frame.c \
-	generic/src/arch/mm/memory_init.c \
-	generic/src/arch/mm/page.c \
-	generic/src/arch/fmath.c
+## Own configuration directives
+#
+
+CONFIG_OFW = y
+
+ARCH_SOURCES = \
+	arch/$(ARCH)/src/console.c \
+	arch/$(ARCH)/src/context.S \
+	arch/$(ARCH)/src/debug/panic.s \
+	arch/$(ARCH)/src/fpu_context.c \
+	arch/$(ARCH)/src/ppc32.c \
+	arch/$(ARCH)/src/dummy.s \
+	arch/$(ARCH)/src/start.S \
+	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/mm/memory_init.c \
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/fmath.c

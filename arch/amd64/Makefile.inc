@@ -1,61 +1,103 @@
-AMD64_TARGET=amd64-linux-gnu
-AMD64_CC_DIR=/usr/local/amd64/bin
-AMD64_BINUTILS_DIR=/usr/local/amd64/bin
+#
+# Copyright (C) 2005 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 
-CC=$(AMD64_CC_DIR)/$(AMD64_TARGET)-gcc
-AS=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-as
-LD=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-ld
-OBJDUMP=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-objdump
-OBJCOPY=$(AMD64_BINUTILS_DIR)/$(AMD64_TARGET)-objcopy
-BFD_NAME=elf64-x86-64
-BFD_ARCH=i386:x86-64
+## Toolchain configuration
+#
 
-DEFS=-DARCH=$(ARCH) -DFPU_LAZY
+BFD_NAME = elf64-x86-64
+BFD_ARCH = i386:x86-64
+TARGET = amd64-linux-gnu
+TOOLCHAIN_DIR = /usr/local/amd64/bin
 
-ifdef SMP
-DEFS+=-D$(SMP)
+## Make some default assumptions
+#
+
+ifndef CPU
+	CPU = opteron
+endif
+CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
+
+## Accepted CPUs
+#
+
+ifeq ($(CPU),opteron)
+	CFLAGS += -march=opteron
+	DEFS += -DFENCES=p4
 endif
 
-ifdef HT
-DEFS+=-D$(HT)
+## Own configuration directives
+#
+
+CONFIG_ACPI = y
+
+## Accepted configuration directives
+#
+
+ifeq ($(CONFIG_SMP),y)
+	DEFS += -DSMP
+endif
+ifeq ($(CONFIG_HT),y)
+	DEFS += -DHT
+endif
+ifeq ($(CONFIG_FPU_LAZY),y)
+	DEFS += -DFPU_LAZY
 endif
 
+ARCH_SOURCES = \
+	arch/$(ARCH)/src/dummy.s \
+	arch/$(ARCH)/src/fpu_context.c \
+	arch/$(ARCH)/src/boot/boot.S \
+	arch/$(ARCH)/src/boot/memmap.S \
+	arch/$(ARCH)/src/pm.c \
+	arch/$(ARCH)/src/context.S \
+	arch/$(ARCH)/src/drivers/ega.c \
+	arch/$(ARCH)/src/drivers/i8042.c \
+	arch/$(ARCH)/src/drivers/i8254.c \
+	arch/$(ARCH)/src/drivers/i8259.c \
+	arch/$(ARCH)/src/delay.S \
+	arch/$(ARCH)/src/amd64.c \
+	arch/$(ARCH)/src/bios/bios.c \
+	arch/$(ARCH)/src/interrupt.c \
+	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/mm/tlb.c \
+	arch/$(ARCH)/src/asm_utils.S \
+	arch/$(ARCH)/src/fmath.c \
+	arch/$(ARCH)/src/mm/memory_init.c \
+	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/userspace.c
 
-CFLAGS=$(DEFS) -nostdlib -fno-builtin -fno-unwind-tables -O3 -march=opteron -m64 -mcmodel=kernel -mno-red-zone
-LFLAGS=-M 
-
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(CFLAGS) -C -E -x c $< | grep -v "^\#" > $@
-
-arch_sources = \
-	generic/src/arch/dummy.s \
-	generic/src/arch/fpu_context.c \
-	generic/src/arch/boot/boot.S \
-	generic/src/arch/boot/memmap.S \
-	generic/src/arch/pm.c \
-	generic/src/arch/context.S \
-	generic/src/arch/drivers/ega.c \
-	generic/src/arch/drivers/i8042.c \
-	generic/src/arch/drivers/i8254.c \
-	generic/src/arch/drivers/i8259.c \
-	generic/src/arch/delay.S \
-	generic/src/arch/amd64.c \
-	generic/src/arch/bios/bios.c \
-	generic/src/arch/interrupt.c \
-	generic/src/arch/mm/frame.c \
-	generic/src/arch/mm/page.c \
-	generic/src/arch/mm/tlb.c \
-	generic/src/arch/asm_utils.S \
-	generic/src/arch/fmath.c \
-	generic/src/arch/mm/memory_init.c \
-	generic/src/arch/cpu/cpu.c \
-	generic/src/arch/proc/scheduler.c \
-	generic/src/arch/userspace.c
-
-ifdef SMP
-arch_sources += generic/src/arch/smp/ap.S \
-		generic/src/arch/smp/apic.c \
-		generic/src/arch/smp/ipi.c \
-		generic/src/arch/smp/mps.c \
-		generic/src/arch/smp/smp.c
+ifeq ($(CONFIG_SMP),y)
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/smp/ap.S \
+		arch/$(ARCH)/src/smp/apic.c \
+		arch/$(ARCH)/src/smp/ipi.c \
+		arch/$(ARCH)/src/smp/mps.c \
+		arch/$(ARCH)/src/smp/smp.c
 endif

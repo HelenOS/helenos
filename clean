@@ -1,3 +1,10 @@
 #! /bin/sh
 
-make clean
+ARCH="`basename "$0" | awk -F. '{ if (NF > 1) print \$NF }'`"
+if [ -z "$ARCH" ]; then
+	for ARCH in arch/* ; do
+		make clean "ARCH=`basename "$ARCH"`"
+	done
+else
+	make clean "ARCH=$ARCH"
+fi
