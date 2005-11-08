@@ -12,7 +12,6 @@
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 
-OUTPUT_FORMAT(BFD)
 ENTRY(kernel_image_start)
 
 SECTIONS {

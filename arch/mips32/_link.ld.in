@@ -8,7 +8,6 @@
 #undef mips
 #define mips mips
 
-OUTPUT_FORMAT(BFD)
 OUTPUT_ARCH(mips)
 
 ENTRY(kernel_image_start) 
