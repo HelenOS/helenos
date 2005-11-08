@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/boot/memmap.h
+../../../ia32/include/boot/memmap.h

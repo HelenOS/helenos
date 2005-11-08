@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/i8254.h
+../../ia32/include/i8254.h

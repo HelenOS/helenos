@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/src/boot/memmap.S
+../../../ia32/src/boot/memmap.S

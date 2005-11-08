@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/fpu_context.h
+../../ia32/include/fpu_context.h

@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/atomic.h
+../../ia32/include/atomic.h

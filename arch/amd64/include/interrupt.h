@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/interrupt.h
+../../ia32/include/interrupt.h

@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/include/barrier.h
+../../ia32/include/barrier.h

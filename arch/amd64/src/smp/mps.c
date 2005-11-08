@@ -1,1 +1,1 @@
-/home/martin/HelenOS/SPARTAN/arch/ia32/src/smp/mps.c
+../../../ia32/src/smp/mps.c
