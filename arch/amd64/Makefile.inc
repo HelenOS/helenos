@@ -31,6 +31,7 @@
 
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
+BFD = binary
 TARGET = amd64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/amd64/bin
 

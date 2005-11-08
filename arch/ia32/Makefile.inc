@@ -31,6 +31,7 @@
 
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
+BFD = binary
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/i686/bin
 
@@ -46,20 +47,26 @@ endif
 
 ifeq ($(CPU),athlon-xp)
 	CFLAGS += -march=athlon-xp -mmmx -msse -m3dnow
-	DEFS += -DFENCES=486
+	DEFS += -DFENCES=p3
 	CONFIG_SMP = n
 	CONFIG_HT = n
 endif
 ifeq ($(CPU),athlon-mp)
 	CFLAGS += -march=athlon-mp -mmmx -msse -m3dnow
-	DEFS += -DFENCES=486
+	DEFS += -DFENCES=p3
+	CONFIG_HT = n
 endif
 ifeq ($(CPU),pentium3)
-	CFLAGS += -march=pentium3 -mmmx -msse -msse2
-	DEFS += -DFENCES=486
+	CFLAGS += -march=pentium3 -mmmx -msse
+	DEFS += -DFENCES=p3
+	CONFIG_HT = n
+endif
+ifeq ($(CPU),prescott)
+	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+	DEFS += -DFENCES=p4
 endif
 ifeq ($(CPU),pentium4)
-	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
 	DEFS += -DFENCES=p4
 endif
 

@@ -31,6 +31,7 @@
 
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
+BFD = elf64-sparc
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/sparc64/bin
 

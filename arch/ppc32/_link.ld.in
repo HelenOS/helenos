@@ -8,7 +8,7 @@
 
 #define __ASM__
 
-OUTPUT_FORMAT("elf32-powerpc")
+OUTPUT_FORMAT(BFD)
 ENTRY(kernel_image_start)
 
 SECTIONS {

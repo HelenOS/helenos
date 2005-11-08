@@ -32,11 +32,7 @@
 .set noreorder
 .set nomacro
 
-#include <arch/asm/boot.h>
-
-#ifndef KERNEL_LOAD_ADDRESS
-# define KERNEL_LOAD_ADDRESS 0x80100000
-#endif
+#define KERNEL_LOAD_ADDRESS 0x80100000
 	
 .global start
 start:

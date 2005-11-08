@@ -1,26 +1,15 @@
-MIPS_BINUTILS_DIR=/usr/local/mipsel/bin
-MIPS_TARGET=mipsel-linux-gnu
+.PHONY: build clean
 
-.PHONY: nothing build
-
-nothing:
+CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mips3 -I../include
 
 build: boot.bin
 	cp boot.bin ../../../load.bin
 
-AS=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-as
-CC=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-gcc
-LD=$(MIPS_BINUTILS_DIR)/$(MIPS_TARGET)-ld
-
-AFLAGS=-mips2 -I../../../generic/include
-LFLAGS=--oformat=binary -e start -T _link.ld 
-
-.S.o:
-	$(CC) $(ASFLAGS) -c -o $@ $<
-
 boot.bin: boot.o
-	$(LD) $(LFLAGS) $< -o $@
+	$(LD) -e start -T _link.ld boot.o -o $@
 
+boot.o: boot.S
+	$(CC) $(CFLAGS) -c boot.S -o $@
 
 clean:
-	-rm *.o *.bin
+	-rm -f boot.o boot.bin ../../../load.bin

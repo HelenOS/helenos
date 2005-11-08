@@ -8,7 +8,7 @@
 
 #define __ASM__
 
-OUTPUT_FORMAT("elf64-sparc")
+OUTPUT_FORMAT(BFD)
 ENTRY(kernel_image_start)
 
 SECTIONS {
