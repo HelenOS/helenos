@@ -29,6 +29,8 @@
 #ifndef __ia32_BARRIER_H__
 #define __ia32_BARRIER_H__
 
+#include <arch/types.h>
+
 /*
  * NOTE:
  * No barriers for critical section (i.e. spinlock) on IA-32 are needed:
@@ -43,14 +45,27 @@
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
+static inline void cpuid_serialization(void)
+{
+	__asm__ volatile (
+		"xorl %%eax, %%eax\n"
+		"cpuid\n"
+		::: "eax", "ebx", "ecx", "edx", "memory"
+	);
+}
+
 #ifdef CONFIG_FENCES_P4
 #	define memory_barrier()	__asm__ volatile ("mfence\n" ::: "memory")
 #	define read_barrier()		__asm__ volatile ("lfence\n" ::: "memory")
 #	define write_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
 #elif CONFIG_FENCES_P3
-#	define memory_barrier()	__asm__ volatile ("\n" ::: "memory")
-#	define read_barrier()		__asm__ volatile ("\n" ::: "memory")
+#	define memory_barrier()		cpuid_serialization()
+#	define read_barrier()		cpuid_serialization()
 #	define write_barrier()		__asm__ volatile ("sfence\n" ::: "memory")
+#else
+#	define memory_barrier()		cpuid_serialization()
+#	define read_barrier()		cpuid_serialization()
+#	define write_barrier()		cpuid_serialization()
 #endif
 
 #endif
