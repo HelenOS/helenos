@@ -45,14 +45,14 @@ void it_init(void)
 	itv.vector = INTERRUPT_TIMER;
 	itv.m = 0;
 	itv_write(itv.value);
-	srlz_d();
 
 	/* set Interval Timer Counter to zero */
 	itc_write(0);
-	srlz_d();
 	
 	/* generate first Interval Timer interrupt in IT_DELTA ticks */
 	itm_write(IT_DELTA);
+
+	/* propagate changes */
 	srlz_d();
 }
 
@@ -61,5 +61,6 @@ void it_interrupt(void)
 {
 	eoi_write(EOI);
 	itm_write(itc_read() + IT_DELTA);	/* program next interruption */
+	srlz_d();				/* propagate changes */
 	clock();
 }

@@ -46,6 +46,9 @@
  * Some steps are skipped (enabling and disabling interrupts).
  * Some steps are not fully supported yet (e.g. interruptions
  * from userspace and floating-point context).
+ *
+ * @param offs Offset from the beginning of IVT.
+ * @param handler Interrupt handler address.
  */
 .macro HEAVYWEIGHT_HANDLER offs handler
     .org IVT + \offs
@@ -100,7 +103,7 @@
 	
 	st8 [r31] = r27, -8	/* save ar.rnat */
 	st8 [r31] = r28, -8	/* save ar.bspstore */
-	st8 [r31] = r29		/* save ar.bsp */
+	st8 [r31] = r29, -8	/* save ar.bsp */
 	
 	mov ar.rsc = r24	/* restore RSE's setting */
 	.explicit
@@ -255,18 +258,13 @@ heavyweight_handler_inner:
 .global heavyweight_handler_finalize
 heavyweight_handler_finalize:
     /* 16. RSE switch to interrupted context */
-
-/********************************************************************************************/
-
-
-
 	.auto
-	cover			/*Allocate zerro size frame (Step 1(from Intel Docs))*/
+	cover			/* allocate zerro size frame (step 1 (from Intel Docs)) */
 
 	add r31 = STACK_SCRATCH_AREA_SIZE, r12
 
-	mov r28 = ar.bspstore   /*Calculate loadrs (step 2)*/
-	ld8 r29 = [r31], +8     
+	mov r28 = ar.bspstore   /* calculate loadrs (step 2) */
+	ld8 r29 = [r31], +8     /* load ar.bsp */
 	sub r27 = r29 , r28
 	shl r27 = r27, 16
 
@@ -275,43 +273,29 @@ heavyweight_handler_finalize:
 	or  r24 = r30 , r27     
 	mov ar.rsc = r24	/* place RSE in enforced lazy mode */
 
+	loadrs 			/* (step 3) */
 
+	ld8 r28 = [r31], +8     /* load ar.bspstore */
+	ld8 r27 = [r31], +8 	/* load ar.rnat */
+	ld8 r26 = [r31], +8 	/* load cr.ifs */
+	ld8 r25 = [r31], +8 	/* load ar.pfs */
+	ld8 r24 = [r31], +8 	/* load ar.rsc */
 
-	loadrs 			/*(Step 3)*/
+	mov ar.bspstore = r28	/* (step 4) */
+	mov ar.rnat = r27	/* (step 5) */
 
-
-				/*Read saved registers*/
-	ld8 r28 = [r31], +8     /*ar.bspstore*/
-	ld8 r27 = [r31], +8 	/*ar.rnat*/
-	ld8 r26 = [r31], +8 	/*cr.ifs*/
-	ld8 r25 = [r31], +8 	/*ar.pfs*/
-	ld8 r24 = [r31], +8 	/*ar.rsc*/
-
-
-	mov ar.bspstore = r28	/*(Step 4)*/
-	mov ar.rnat = r27	/*(Step 5)*/
-
-	mov ar.pfs = r25	/*(Step 6)*/
+	mov ar.pfs = r25	/* (step 6) */
 	mov cr.ifs = r26	
 
-	mov ar.rsc = r24	/*(Step 7)*/
-
-
+	mov ar.rsc = r24	/* (step 7) */
 	.explicit	
 
-
-/********************************************************************************************/
-
-
-
     /* 17. restore interruption state from memory stack */
-
-	ld8 r28 = [r31] , +8 ;;	/* load cr.ifa */		
-	ld8 r27 = [r31] , +8 ;;	/* load cr.isr */
-	ld8 r26 = [r31] , +8 ;;	/* load cr.iipa */
-	ld8 r25 = [r31] , +8 ;;	/* load cr.ipsr */
-	ld8 r24 = [r31] , +8 ;;	/* load cr.iip */
-
+	ld8 r28 = [r31], +8 ;;	/* load cr.ifa */		
+	ld8 r27 = [r31], +8 ;;	/* load cr.isr */
+	ld8 r26 = [r31], +8 ;;	/* load cr.iipa */
+	ld8 r25 = [r31], +8 ;;	/* load cr.ipsr */
+	ld8 r24 = [r31], +8 ;;	/* load cr.iip */
 
 	mov cr.iip = r24
 	mov cr.ipsr = r25
@@ -319,19 +303,13 @@ heavyweight_handler_finalize:
 	mov cr.isr = r27
 	mov cr.ifa = r28
 
-
-	
     /* 18. restore predicate registers from memory stack */
-
-
 	ld8 r29 = [r31] , -8 ;;	/* load predicate registers */
-	mov pr =r29 ;;
-	
-	add r12 = STACK_FRAME_SIZE,r12;;
+	mov pr = r29
 	
     /* 19. return from interruption */
-	rfi;;
-
+    	add r12 = STACK_FRAME_SIZE, r12
+	rfi ;;
 
 dump_gregs:
 mov r16 = REG_DUMP;;
