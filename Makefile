@@ -64,6 +64,9 @@ endif
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
 	DEFS += -DCONFIG_DEBUG_SPINLOCK
 endif
+ifeq ($(CONFIG_USERSPACE),y)
+	DEFS += -DCONFIG_USERSPACE
+endif
 
 ## Toolchain configuration
 #
@@ -118,6 +121,14 @@ GENERIC_SOURCES = \
 	generic/src/synch/waitq.c \
 	generic/src/smp/ipi.c \
 	generic/src/fb/font-8x16.c
+
+## Test sources
+#
+
+ifneq ($(CONFIG_TEST),)
+	DEFS += -DCONFIG_TEST
+	GENERIC_SOURCES += test/$(CONFIG_TEST)/test.c
+endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))

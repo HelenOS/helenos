@@ -50,9 +50,9 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
-#ifdef __TEST__
+#ifdef CONFIG_TEST
 #include <test.h>
-#endif /* __TEST__ */
+#endif /* CONFIG_TEST */
 
 #include <mm/frame.h>
 
@@ -117,7 +117,7 @@ void kinit(void *arg)
 
 	interrupts_enable();
 
-#ifdef __USERSPACE__
+#ifdef CONFIG_USERSPACE
 	/*
 	 * Create the first user task.
 	 */
@@ -149,11 +149,11 @@ void kinit(void *arg)
 	vm_area_map(a, m);	
 	
 	thread_ready(t);
-#endif /* __USERSPACE__ */
+#endif /* CONFIG_USERSPACE */
 
-#ifdef __TEST__
+#ifdef CONFIG_TEST
 	test();
-#endif /* __TEST__ */
+#endif /* CONFIG_TEST */
 
 
 	while (1) {
