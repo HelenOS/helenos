@@ -41,7 +41,9 @@ TOOLCHAIN_DIR = /usr/local/amd64/bin
 ifndef CPU
 	CPU = opteron
 endif
+
 CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
+DEFS += -D_CPU=${CPU}
 
 ## Accepted CPUs
 #

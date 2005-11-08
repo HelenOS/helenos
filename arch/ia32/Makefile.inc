@@ -42,6 +42,8 @@ ifndef CPU
 	CPU = pentium4
 endif
 
+DEFS += -D_CPU=${CPU}
+
 ## Accepted CPUs
 #
 

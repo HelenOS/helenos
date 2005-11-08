@@ -61,7 +61,7 @@
 
 #include <typedefs.h>
 
-char *project = "SPARTAN kernel";
+char *project = "SPARTAN kernel release " RELEASE " (" NAME ")";
 char *copyright = "Copyright (C) 2001-2005 Jakub Jermar\nCopyright (C) 2005 HelenOS project";
 
 config_t config;
