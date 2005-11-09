@@ -54,7 +54,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/ivt.S \
 	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/interrupt_handler.c \
 	arch/$(ARCH)/src/fmath.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/drivers/it.c

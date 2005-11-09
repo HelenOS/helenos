@@ -34,6 +34,80 @@
 #define CR_IVR_MASK	0xf
 #define PSR_I_MASK	0x4000
 
+/** Application registers. */
+#define AR_KR0		0
+#define AR_KR1		1
+#define AR_KR2		2
+#define AR_KR3		3
+#define AR_KR4		4
+#define AR_KR5		5
+#define AR_KR6		6
+#define AR_KR7		7
+/* AR 8-15 reserved */
+#define AR_RSC		16
+#define AR_BSP		17
+#define AR_BSPSTORE	18
+#define AR_RNAT		19
+/* AR 20 reserved */
+#define AR_FCR		21
+/* AR 22-23 reserved */
+#define AR_EFLAG	24
+#define AR_CSD		25
+#define AR_SSD		26
+#define AR_CFLG		27
+#define AR_FSR		28
+#define AR_FIR		29
+#define AR_FDR		30
+/* AR 31 reserved */
+#define AR_CCV		32
+/* AR 33-35 reserved */
+#define AR_UNAT		36
+/* AR 37-39 reserved */
+#define AR_FPSR		40
+/* AR 41-43 reserved */
+#define AR_ITC		44
+/* AR 45-47 reserved */
+/* AR 48-63 ignored */
+#define AR_PFS		64
+#define AR_LC		65
+#define AR_EC		66
+/* AR 67-111 reserved */
+/* AR 112-127 ignored */
+
+/** Control registers. */
+#define CR_DCR		0
+#define CR_ITM		1
+#define CR_IVA		2
+/* CR3-CR7 reserved */
+#define CR_PTA		8
+/* CR9-CR15 reserved */
+#define CR_IPSR		16
+#define CR_ISR		17
+/* CR18 reserved */
+#define CR_IIP		19
+#define CR_IFA		20
+#define CR_ITIR		21
+#define CR_IIPA		22
+#define CR_IFS		23
+#define CR_IIM		24
+#define CR_IHA		25
+/* CR26-CR63 reserved */
+#define CR_LID		64
+#define CR_IVR		65
+#define CR_TPR		66
+#define CR_EOI		67
+#define CR_IRR0		68
+#define CR_IRR1		69
+#define CR_IRR2		70
+#define CR_IRR3		71
+#define CR_ITV		72
+#define CR_PMV		73
+#define CR_CMCV		74
+/* CR75-CR79 reserved */
+#define CR_LRR0		80
+#define CR_LRR1		81
+/* CR82-CR127 reserved */
+
 /** External Interrupt Vector Register */
 union cr_ivr {
 	__u8  vector;

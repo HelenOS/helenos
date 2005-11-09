@@ -29,11 +29,34 @@
 #ifndef __ia64_INTERRUPT_H__
 #define __ia64_INTERRUPT_H__
 
+#include <arch/types.h>
+
+/** External interrupt vectors. */
 #define INTERRUPT_TIMER		0
 #define INTERRUPT_SPURIOUS	15
 
 #define EOI	0		/**< The actual value doesn't matter. */
 
-extern void external_interrupt(void);
+struct exception_regdump {
+	__address ar_bsp;
+	__address ar_bspstore;
+	__u64 ar_rnat;
+	__u64 ar_ifs;
+	__u64 ar_pfs;
+	__u64 ar_rsc;
+	__address cr_ifa;
+	__u64 cr_isr;
+	__address cr_iipa;
+	__u64 cr_ips;
+	__address cr_iip;
+	__u64 pr;
+} __attribute__ ((packed));
+
+extern void *ivt;
+
+extern void general_exception(__u64 vector, struct exception_regdump *pstate);
+extern void break_instruction(__u64 vector, struct exception_regdump *pstate);
+extern void universal_handler(__u64 vector, struct exception_regdump *pstate);
+extern void external_interrupt(__u64 vector, struct exception_regdump *pstate);
 
 #endif

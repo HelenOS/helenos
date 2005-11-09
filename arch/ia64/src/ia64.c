@@ -29,9 +29,16 @@
 #include <arch.h>
 #include <arch/ski/ski.h>
 #include <arch/drivers/it.h>
+#include <arch/interrupt.h>
+#include <arch/barrier.h>
+#include <arch/types.h>
 
 void arch_pre_mm_init(void)
 {
+	/* Set Interruption Vector Address (i.e. location of interruption vector table). */
+	iva_write((__address) &ivt);
+	srlz_d();
+	
 	ski_init_console();
 	it_init();
 }

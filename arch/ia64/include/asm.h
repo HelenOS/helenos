@@ -48,6 +48,29 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+/** Read IVA (Interruption Vector Address).
+ *
+ * @return Return location of interruption vector table.
+ */
+static inline __u64 iva_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("mov %0 = cr.iva\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write IVA (Interruption Vector Address) register.
+ *
+ * @param New location of interruption vector table.
+ */
+static inline void iva_write(__u64 v)
+{
+	__asm__ volatile ("mov cr.iva = %0\n" : : "r" (v));
+}
+
+
 /** Read IVR (External Interrupt Vector Register).
  *
  * @return Highest priority, pending, unmasked external interrupt vector.
@@ -217,13 +240,6 @@ static inline ipl_t interrupts_read(void)
 	
 	return (ipl_t) v;
 }
-
-#define set_shadow_register(reg,val) {__u64 v = val; __asm__  volatile("mov r15 = %0;;\n""bsw.0;;\n""mov "   #reg   " = r15;;\n""bsw.1;;\n" : : "r" (v) : "r15" ); }
-#define get_shadow_register(reg,val) {__u64 v ; __asm__  volatile("bsw.0;;\n" "mov r15 = r" #reg ";;\n" "bsw.1;;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
-
-#define get_control_register(reg,val) {__u64 v ; __asm__  volatile("mov r15 = cr" #reg ";;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
-#define get_aplication_register(reg,val) {__u64 v ; __asm__  volatile("mov r15 = ar" #reg ";;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
-#define get_psr(val) {__u64 v ; __asm__  volatile("mov r15 = psr;;\n" "mov %0 = r15;;\n" : "=r" (v) : : "r15" ); val=v; }
 
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
