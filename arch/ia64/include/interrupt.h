@@ -30,10 +30,19 @@
 #define __ia64_INTERRUPT_H__
 
 #include <arch/types.h>
+#include <arch/register.h>
 
-/** External interrupt vectors. */
+/** External Interrupt vectors. */
 #define INTERRUPT_TIMER		0
 #define INTERRUPT_SPURIOUS	15
+
+/** General Exception codes. */
+#define GE_ILLEGALOP		0
+#define GE_PRIVOP		1
+#define GE_PRIVREG		2
+#define GE_RESREGFLD		3
+#define GE_DISBLDISTRAN		4
+#define GE_ILLEGALDEP		8
 
 #define EOI	0		/**< The actual value doesn't matter. */
 
@@ -45,7 +54,7 @@ struct exception_regdump {
 	__u64 ar_pfs;
 	__u64 ar_rsc;
 	__address cr_ifa;
-	__u64 cr_isr;
+	cr_isr_t cr_isr;
 	__address cr_iipa;
 	__u64 cr_ips;
 	__address cr_iip;

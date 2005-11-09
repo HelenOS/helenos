@@ -30,7 +30,6 @@
 # Init code for application processors.
 #
 
-#define __ASM__
 #include <arch/boot/boot.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>

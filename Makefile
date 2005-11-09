@@ -140,12 +140,12 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
 .PHONY: all clean config depend boot
 
-all: kernel.bin boot
+all: kernel.bin boot disasm
 
 -include Makefile.depend
 
 clean:
-	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
+	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
 	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
 	$(MAKE) -C arch/$(ARCH)/boot clean
 
@@ -177,8 +177,11 @@ kernel.bin: kernel.raw
 boot: kernel.bin
 	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`" CC=$(CC) AS=$(AS) LD=$(LD)
 
+disasm: kernel.raw
+	$(OBJDUMP) -d kernel.raw > kernel.disasm
+
 %.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

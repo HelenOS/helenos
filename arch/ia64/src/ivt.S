@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2005 Jakub Vana
+# Copyright (C) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +28,7 @@
 #
 
 #include <arch/stack.h>
+#include <arch/register.h>
 
 #define STACK_ITEMS		12
 #define STACK_FRAME_SIZE	((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE)
@@ -189,7 +191,7 @@ heavyweight_handler_inner:
 	add out1 = STACK_SCRATCH_AREA_SIZE, r12
 
     /* 6. switch to bank 1 and reenable PSR.ic */
-	ssm 0x2000
+	ssm PSR_IC_MASK
 	bsw.1 ;;
 	srlz.d
 	
@@ -307,7 +309,7 @@ heavyweight_handler_inner:
 	mov b7 = loc16
 	
     /* 15. disable PSR.ic and switch to bank 0 */
-	rsm 0x2000
+	rsm PSR_IC_MASK
 	bsw.0 ;;
 	srlz.d
 

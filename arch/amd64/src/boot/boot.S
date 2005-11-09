@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define __ASM__
-
 #include <arch/mm/page.h>	
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>

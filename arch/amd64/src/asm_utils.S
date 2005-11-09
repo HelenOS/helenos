@@ -33,7 +33,6 @@
 	
 #define ERROR_WORD_INTERRUPT_LIST 0x00027D00
 
-#define __ASM__
 #include <arch/pm.h>
 	
 .text

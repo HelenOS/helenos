@@ -220,12 +220,10 @@ static ipl_t interrupts_enable(void)
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
-	__asm__ volatile (
-		"mov psr.l = %0\n"
-		";;\n"
-		"srlz.d\n"
-		: : "r" ((__u64) ipl)
-	);
+	if (ipl & PSR_I_MASK)
+		(void) interrupts_enable();
+	else
+		(void) interrupts_disable();
 }
 
 /** Return interrupt priority level.

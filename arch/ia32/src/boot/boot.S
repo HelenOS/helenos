@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define __ASM__
-	
 #include <arch/boot/boot.h>
 #include <arch/boot/memmapasm.h>
 #include <arch/mm/page.h>

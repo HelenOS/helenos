@@ -29,10 +29,13 @@
 #ifndef __ia64_REGISTER_H__
 #define __ia64_REGISTER_H__
 
+#ifndef __ASM__
 #include <arch/types.h>
+#endif
 
 #define CR_IVR_MASK	0xf
 #define PSR_I_MASK	0x4000
+#define PSR_IC_MASK	0x2000
 
 /** Application registers. */
 #define AR_KR0		0
@@ -108,6 +111,7 @@
 #define CR_LRR1		81
 /* CR82-CR127 reserved */
 
+#ifndef __ASM__
 /** External Interrupt Vector Register */
 union cr_ivr {
 	__u8  vector;
@@ -142,5 +146,38 @@ union cr_itv {
 };
 
 typedef union cr_itv cr_itv_t;
+
+/** Interruption Status Register */
+union cr_isr {
+	struct {
+		union {
+			/** General Exception code field structuring. */
+			struct {
+				unsigned ge_na : 4;
+				unsigned ge_code : 4;
+			} __attribute__ ((packed));
+			__u16 code;
+		};
+		__u8 vector;
+		unsigned : 8;
+		unsigned x : 1;			/**< Execute exception. */
+		unsigned w : 1;			/**< Write exception. */
+		unsigned r : 1;			/**< Read exception. */
+		unsigned na : 1;		/**< Non-access exception. */
+		unsigned sp : 1;		/**< Speculative load exception. */
+		unsigned rs : 1;		/**< Register stack. */
+		unsigned ir : 1;		/**< Incomplete Register frame. */
+		unsigned ni : 1;		/**< Nested Interruption. */
+		unsigned so : 1;		/**< IA-32 Supervisor Override. */
+		unsigned ei : 2;		/**< Excepting Instruction. */
+		unsigned ed : 1;		/**< Exception Deferral. */
+		unsigned : 20;
+	} __attribute__ ((packed));
+	__u64 value;
+};
+
+typedef union cr_isr cr_isr_t;
+
+#endif /* !__ASM__ */
 
 #endif

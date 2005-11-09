@@ -105,7 +105,7 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 };
 
 static char *vector_to_string(__u16 vector);
-static void dump_stack(struct exception_regdump *pstate);
+static void dump_interrupted_context(struct exception_regdump *pstate);
 
 char *vector_to_string(__u16 vector)
 {
@@ -117,7 +117,7 @@ char *vector_to_string(__u16 vector)
 		return vector_names_64_bundle[vector/(64*BUNDLE_SIZE)];
 }
 
-void dump_stack(struct exception_regdump *pstate)
+void dump_interrupted_context(struct exception_regdump *pstate)
 {
 	char *ifa, *iipa, *iip;
 
@@ -126,31 +126,59 @@ void dump_stack(struct exception_regdump *pstate)
 	iip = get_symtab_entry(pstate->cr_iip);
 
 	putchar('\n');
+	printf("Interrupted context dump:\n");
 	printf("ar.bsp=%P\tar.bspstore=%P\n", pstate->ar_bsp, pstate->ar_bspstore);
 	printf("ar.rnat=%Q\tar.rsc=%Q\n", pstate->ar_rnat, pstate->ar_rsc);
 	printf("ar.ifs=%Q\tar.pfs=%Q\n", pstate->ar_ifs, pstate->ar_pfs);
-	printf("cr.isr=%Q\tcr.ips=%Q\t\n", pstate->cr_isr, pstate->cr_ips);
+	printf("cr.isr=%Q\tcr.ips=%Q\t\n", pstate->cr_isr.value, pstate->cr_ips);
 	
-	printf("cr.iip=%Q (%s)\n", pstate->cr_iip, iip ? iip : "?");
-	printf("cr.iipa=%Q (%s)\n", pstate->cr_iipa, iipa ? iipa : "?");
-	printf("cr.ifa=%Q (%s)\n", pstate->cr_ifa, ifa ? ifa : "?");
+	printf("cr.iip=%Q, #%d\t(%s)\n", pstate->cr_iip, pstate->cr_isr.ei ,iip ? iip : "?");
+	printf("cr.iipa=%Q\t(%s)\n", pstate->cr_iipa, iipa ? iipa : "?");
+	printf("cr.ifa=%Q\t(%s)\n", pstate->cr_ifa, ifa ? ifa : "?");
 }
 
 void general_exception(__u64 vector, struct exception_regdump *pstate)
 {
-	dump_stack(pstate);
-	panic("General Exception\n");
+	char *desc = "";
+
+	dump_interrupted_context(pstate);
+
+	switch (pstate->cr_isr.ge_code) {
+	    case GE_ILLEGALOP:
+		desc = "Illegal Operation fault";
+		break;
+	    case GE_PRIVOP:
+		desc = "Privileged Operation fault";
+		break;
+	    case GE_PRIVREG:
+		desc = "Privileged Register fault";
+		break;
+	    case GE_RESREGFLD:
+		desc = "Reserved Register/Field fault";
+		break;
+	    case GE_DISBLDISTRAN:
+		desc = "Disabled Instruction Set Transition fault";
+		break;
+	    case GE_ILLEGALDEP:
+		desc = "Illegal Dependency fault";
+		break;
+	    default:
+	    	desc = "unknown";
+		break;
+	}
+
+	panic("General Exception (%s)\n", desc);
 }
 
 void break_instruction(__u64 vector, struct exception_regdump *pstate)
 {
-	dump_stack(pstate);
+	dump_interrupted_context(pstate);
 	panic("Break Instruction\n");
 }
 
 void universal_handler(__u64 vector, struct exception_regdump *pstate)
 {
-	dump_stack(pstate);
+	dump_interrupted_context(pstate);
 	panic("Interruption: %W (%s)\n", (__u16) vector, vector_to_string(vector));
 }
 
