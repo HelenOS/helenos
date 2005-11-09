@@ -34,14 +34,14 @@
 
 /** Debugging ASSERT macro
  *
- * If NDEBUG is not set, the ASSERT() macro
+ * If CONFIG_DEBUG is set, the ASSERT() macro
  * evaluates expr and if it is false raises
  * kernel panic.
  *
  * @param expr Expression which is expected to be true.
  *
  */
-#ifndef NDEBUG
+#ifdef CONFIG_DEBUG
 #	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s)", #expr); }
 #else
 #	define ASSERT(expr)

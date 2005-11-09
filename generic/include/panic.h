@@ -29,7 +29,7 @@
 #ifndef __PANIC_H__
 #define __PANIC_H__
 
-#ifndef NDEBUG
+#ifdef CONFIG_DEBUG
 #	define panic(format, ...) panic_printf("Kernel panic in %s() at %s on line %d: " format, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);
 #else
 #	define panic(format, ...) panic_printf("Kernel panic: " format, ##__VA_ARGS__);

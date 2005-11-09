@@ -62,8 +62,8 @@ include Makefile.config
 include arch/$(ARCH)/Makefile.inc
 include genarch/Makefile.inc
 
-ifeq ($(CONFIG_DEBUG),n)
-	DEFS += -DNDEBUG
+ifeq ($(CONFIG_DEBUG),y)
+	DEFS += -DCONFIG_DEBUG
 endif
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
 	DEFS += -DCONFIG_DEBUG_SPINLOCK
