@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/register.h>
+
 .section K_TEXT_START
 
 .global kernel_image_start
@@ -38,6 +40,11 @@ kernel_image_start:
 	mov psr.l = r0
 	srlz.i
 	srlz.d
+	ssm PSR_IC_MASK
+	srlz.d
+	
+	# switch to register bank 1
+	bsw.1
 	
 	# initialize register stack
 	mov ar.rsc = r0
