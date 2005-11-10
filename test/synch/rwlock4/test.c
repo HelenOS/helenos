@@ -49,7 +49,7 @@ static spinlock_t lock;
 
 static waitq_t can_start;
 
-__u32 seed = 0xdeadbeaf;
+__u32 seed = 0xdeadbeef;
 
 static __u32 random(__u32 max);
 

@@ -29,17 +29,23 @@
 #ifndef __ia64_ATOMIC_H__
 #define __ia64_ATOMIC_H__
 
-/*
- * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
- * WARNING: the following functions cause the code to be preemption-unsafe !!!
+#include <arch/types.h>
+
+typedef volatile __u64 atomic_t;
+
+static inline atomic_t atomic_add(atomic_t *val, int imm)
+{
+	atomic_t v;
+
+/*	
+ *	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "=m" (val) : "i" (imm));
  */
-
-static inline atomic_inc(volatile int *val) {
-	*val++;
+ 	*val += imm;
+	
+	return v;
 }
 
-static inline atomic_dec(volatile int *val) {
-	*val--;
-}
+static inline atomic_t atomic_inc(atomic_t *val) { return atomic_add(val, 1); }
+static inline atomic_t atomic_dec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif

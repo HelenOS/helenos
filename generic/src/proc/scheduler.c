@@ -48,7 +48,7 @@
 #include <print.h>
 #include <debug.h>
 
-volatile count_t nrdy;
+atomic_t nrdy;
 
 
 /** Take actions before new thread runs
@@ -181,7 +181,7 @@ retry:
 		CPU->nrdy--;
 		spinlock_unlock(&CPU->lock);
 
-		atomic_dec((int *) &nrdy);
+		atomic_dec(&nrdy);
 		r->n--;
 
 		/*
@@ -557,7 +557,7 @@ restart:		ipl = interrupts_disable();
 					cpu->nrdy--;
 					spinlock_unlock(&cpu->lock);
 
-					atomic_dec((int *)&nrdy);
+					atomic_dec(&nrdy);
 
 					r->n--;
 					list_remove(&t->rq_link);

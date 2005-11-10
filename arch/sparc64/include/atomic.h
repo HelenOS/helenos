@@ -29,16 +29,20 @@
 #ifndef __sparc64_ATOMIC_H__
 #define __sparc64_ATOMIC_H__
 
+#include <arch/types.h>
+
+typedef volatile __u64 atomic_t;
+
 /*
  * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
  * WARNING: the following functions cause the code to be preemption-unsafe !!!
  */
 
-static inline atomic_inc(volatile int *val) {
+static inline void atomic_inc(atomic_t *val) {
 	*val++;
 }
 
-static inline atomic_dec(volatile int *val) {
+static inline void atomic_dec(atomic_t *val) {
 	*val--;
 }
 

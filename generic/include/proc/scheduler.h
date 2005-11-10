@@ -32,6 +32,7 @@
 #include <synch/spinlock.h>
 #include <time/clock.h>		/* HZ */
 #include <typedefs.h>
+#include <arch/atomic.h>
 #include <list.h>
 
 #define RQ_COUNT 		16
@@ -43,7 +44,7 @@ struct runq {
 	int n;			/**< Number of threads in rq_ready. */
 };
 
-extern volatile count_t nrdy;
+extern atomic_t nrdy;
 extern void scheduler_init(void);
 
 extern void scheduler_fpu_lazy_request(void);

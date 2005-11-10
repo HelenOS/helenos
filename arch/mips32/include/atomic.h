@@ -29,8 +29,12 @@
 #ifndef __mips32_ATOMIC_H__
 #define __mips32_ATOMIC_H__
 
+#include <arch/types.h>
+
 #define atomic_inc(x)	(a_add(x,1))
 #define atomic_dec(x)	(a_sub(x,1))
+
+typedef volatile __u32 atomic_t;
 
 /*
  * Atomic addition
@@ -41,9 +45,9 @@
  * of the variable to a special register and if another process writes to
  * the same location, the SC (store-conditional) instruction fails.
  */
-static inline int a_add( volatile int *val, int i)
+static inline atomic_t a_add(atomic_t *val, int i)
 {
-	int tmp, tmp2;
+	atomic_t tmp, tmp2;
 
 	asm volatile (
 		"	.set	push\n"
@@ -69,10 +73,10 @@ static inline int a_add( volatile int *val, int i)
  *
  * Implemented in the same manner as a_add, except we substract the value.
  */
-static inline int a_sub( volatile int *val, int i)
+static inline atomic_t a_sub(atomic_t *val, int i)
 
 {
-	int tmp, tmp2;
+	atomic_t tmp, tmp2;
 
 	asm volatile (
 		"	.set	push\n"

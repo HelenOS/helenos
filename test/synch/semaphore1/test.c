@@ -42,8 +42,8 @@
 static semaphore_t sem;
 
 static waitq_t can_start;
-static volatile int items_produced;
-static volatile int items_consumed;
+static atomic_t items_produced;
+static atomic_t items_consumed;
 
 static void consumer(void *arg);
 static void producer(void *arg);
