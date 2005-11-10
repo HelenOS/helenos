@@ -146,7 +146,7 @@ all: kernel.bin boot disasm
 
 clean:
 	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
-	find generic/src/ arch/$(ARCH)/src/ genarch/src/ -name '*.o' -exec rm \{\} \;
+	find generic/src/ arch/$(ARCH)/src/ genarch/src/ test/ -name '*.o' -exec rm \{\} \;
 	$(MAKE) -C arch/$(ARCH)/boot clean
 
 config:
