@@ -33,9 +33,13 @@
 #include <typedefs.h>
 #include <list.h>
 #include <synch/spinlock.h>
+#include <mm/buddy.h>
 
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
+
+#define FRAME2ADDR(zone, frame)		((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
+#define ADDR2FRAME(zone, addr)		(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
 
 struct zone {
 	link_t link;		/**< link to previous and next zone */
@@ -46,12 +50,16 @@ struct zone {
 	link_t free_head;	/**< list of free frame_t structures */
 	count_t free_count;	/**< number of frame_t structures in free list */
 	count_t busy_count;	/**< number of frame_t structures not in free list */
+	
+	buddy_system_t * buddy_system; /**< buddy system allocator for the zone */
 	int flags;
 };
 
 struct frame {
 	count_t refcount;	/**< when == 0, the frame is in free list */
 	link_t link;		/**< link to zone free list when refcount == 0 */
+	__u8 order;		/**< buddy system  block order */
+	link_t buddy_link;	/**< link to the next free block inside one order*/
 };
 
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
@@ -67,6 +75,18 @@ __address frame_alloc(int flags);
 extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
+
+/*
+ * Buddy system operations
+ */
+link_t * zone_buddy_find_buddy(link_t * buddy);
+link_t * zone_buddy_bisect(link_t * block);
+link_t * zone_buddy_coalesce(link_t * buddy_l, link_t * buddy_r);
+void zone_buddy_set_order(link_t * block, __u8 order);
+__u8 zone_buddy_get_order(link_t * block);
+
+__address zone_buddy_frame_alloc(int flags, __u8 order);
+void zone_buddy_frame_free(__address addr);
 
 /*
  * TODO: Implement the following functions.

@@ -41,6 +41,14 @@
 spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
 link_t zone_head;                /**< list of all zones in the system */
 
+static struct buddy_system_operations  zone_buddy_system_operations = {
+	.find_buddy = zone_buddy_find_buddy,
+	.bisect = zone_buddy_bisect,
+	.coalesce = zone_buddy_coalesce,
+	.set_order = zone_buddy_set_order,
+	.get_order = zone_buddy_get_order,
+};
+
 /** Initialize physical memory management
  *
  * Initialize physical memory managemnt.
@@ -118,7 +126,8 @@ loop:
 	zone->free_count--;
 	zone->busy_count++;
 	
-	v = zone->base + (frame - zone->frames) * FRAME_SIZE;
+	//v = zone->base + (frame - zone->frames) * FRAME_SIZE;
+	v = FRAME2ADDR(zone, frame);
 	
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
@@ -175,7 +184,8 @@ void frame_free(__address addr)
 	
 	ASSERT(zone != NULL);
 	
-	frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
+	frame = ADDR2FRAME(zone, addr);
+	// frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
 	ASSERT(frame->refcount);
 
 	if (!--frame->refcount) {
@@ -233,7 +243,8 @@ void frame_not_free(__address addr)
 	
 	ASSERT(zone != NULL);
 	
-	frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
+	//frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
+	frame = ADDR2FRAME(zone, addr);
 
 	if (!frame->refcount) {
 		frame->refcount++;
@@ -292,6 +303,7 @@ zone_t *zone_create(__address start, size_t size, int flags)
 	zone_t *z;
 	count_t cnt;
 	int i;
+	__u8 max_order;
 	
 	ASSERT(start % FRAME_SIZE == 0);
 	ASSERT(size % FRAME_SIZE == 0);
@@ -322,6 +334,11 @@ zone_t *zone_create(__address start, size_t size, int flags)
 			list_append(&z->frames[i].link, &z->free_head);
 		}
 		
+		/*
+		 * Create buddy system for the zone
+		 */
+		for (max_order = 0; cnt >> max_order; max_order++);
+		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations);
 	}
 	
 	return z;
@@ -357,4 +374,172 @@ void frame_initialize(frame_t *frame, zone_t *zone)
 {
 	frame->refcount = 0;
 	link_initialize(&frame->link);
+}
+
+
+
+/*
+ * buddy system functions (under construction)
+ * 
+ */
+
+
+/** Allocate 2^order frames
+ *
+ */
+__address zone_buddy_frame_alloc(int flags, __u8 order) {
+	ipl_t ipl;
+	link_t *cur, *tmp;
+	zone_t *z;
+	zone_t *zone = NULL;
+	frame_t *frame = NULL;
+	__address v;
+	
+loop:
+	ipl = interrupts_disable();
+	spinlock_lock(&zone_head_lock);
+	
+	/*
+	 * First, find suitable frame zone.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		/*
+		 * Check if the zone has 2^order frames area available
+		 * TODO: Must check if buddy system has at least block in order >= given order
+		 */
+		if (z->free_count == (1 >> order)) { 
+			zone = z;
+			break;
+		}
+		
+		spinlock_unlock(&z->lock);
+	}
+	
+	if (!zone) {
+		if (flags & FRAME_PANIC)
+			panic("Can't allocate frame.\n");
+		
+		/*
+		 * TODO: Sleep until frames are available again.
+		 */
+		spinlock_unlock(&zone_head_lock);
+		interrupts_restore(ipl);
+
+		panic("Sleep not implemented.\n");
+		goto loop;
+	}
+		
+
+	/* Allocate frames from zone buddy system */
+	cur = buddy_system_alloc(zone->buddy_system, order);
+	
+	/* frame will be actually a first frame of the block */
+	frame = list_get_instance(cur, frame_t, buddy_link);
+	
+	/* get frame address */
+	v = FRAME2ADDR(zone, frame);
+	
+	if (flags & FRAME_KA)
+		v = PA2KA(v);
+	
+	spinlock_unlock(&zone->lock);
+	spinlock_unlock(&zone_head_lock);
+	interrupts_restore(ipl);
+	
+	return v;
+}
+
+
+/** Free frame(s)
+ *
+ * @param addr Address of the frame(s) to be freed. It must be a multiple of FRAME_SIZE.
+ */
+void zone_buddy_frame_free(__address addr)
+{
+	ipl_t ipl;
+	link_t *cur;
+	zone_t *z;
+	zone_t *zone = NULL;
+	frame_t *frame;
+	
+	ASSERT(addr % FRAME_SIZE == 0);
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&zone_head_lock);
+	
+	/*
+	 * First, find host frame zone for addr.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		if (IS_KA(addr))
+			addr = KA2PA(addr);
+		
+		/*
+		 * Check if addr belongs to z.
+		 */
+		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
+			zone = z;
+			break;
+		}
+		spinlock_unlock(&z->lock);
+	}
+	
+	ASSERT(zone != NULL);
+	
+	frame = ADDR2FRAME(zone, addr);
+
+	ASSERT(frame->refcount);
+
+	if (!--frame->refcount) {
+		buddy_system_free(zone->buddy_system, &frame->buddy_link);
+	}
+	
+	spinlock_unlock(&zone->lock);	
+	
+	spinlock_unlock(&zone_head_lock);
+	interrupts_restore(ipl);
+}
+
+
+/** Buddy system find_buddy implementation
+ *
+ */
+link_t * zone_buddy_find_buddy(link_t * buddy) {
+
+}
+
+/** Buddy system bisect implementation
+ *
+ */
+link_t * zone_buddy_bisect(link_t * block) {
+
+}
+
+/** Buddy system coalesce implementation
+ *
+ */
+link_t * zone_buddy_coalesce(link_t * buddy_l, link_t * buddy_r) {
+
+}
+
+/** Buddy system set_order implementation
+ *
+ */
+void zone_buddy_set_order(link_t * block, __u8 order) {
+
+}
+
+/** Buddy system get_order implementation
+ *
+ */
+__u8 zone_buddy_get_order(link_t * block) {
+
+
 }
