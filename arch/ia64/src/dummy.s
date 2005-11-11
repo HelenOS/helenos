@@ -33,8 +33,6 @@
 .global userspace
 .global before_thread_runs_arch
 .global arch_late_init
-.global cpu_identify
-.global cpu_print_report
 .global cpu_sleep
 .global dummy
 .global fpu_enable
@@ -46,8 +44,6 @@ userspace:
 calibrate_delay_loop:
 asm_delay_loop:
 arch_late_init:
-cpu_identify:
-cpu_print_report:
 cpu_sleep:
 fpu_init:
 fpu_enable:

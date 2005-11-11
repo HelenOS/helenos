@@ -29,9 +29,32 @@
 #ifndef __ia64_CPU_H__
 #define __ia64_CPU_H__
 
+#include <arch/types.h>
 #include <typedefs.h>
+#include <arch/register.h>
+
+#define FAMILY_ITANIUM	0x7
+#define FAMILY_ITANIUM2	0x1f
 
 struct cpu_arch {
+	__u64 cpuid0;
+	__u64 cpuid1;
+	cpuid3_t cpuid3;
 };
+
+/** Read CPUID register.
+ *
+ * @param n CPUID register number.
+ *
+ * @return Value of CPUID[n] register.
+ */
+static inline __u64 cpuid_read(int n)
+{
+	__u64 v;
 	
+	__asm__ volatile ("mov %0 = cpuid[%1]\n" : "=r" (v) : "r" (n));
+	
+	return v;
+}
+
 #endif

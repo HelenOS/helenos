@@ -178,6 +178,20 @@ union cr_isr {
 
 typedef union cr_isr cr_isr_t;
 
+/** CPUID Register 3 */
+union cpuid3 {
+	struct {
+		__u8 number;
+		__u8 revision;
+		__u8 model;
+		__u8 family;
+		__u8 archrev;
+	} __attribute__ ((packed));
+	__u64 value;
+};
+
+typedef union cpuid3 cpuid3_t;
+
 #endif /* !__ASM__ */
 
 #endif

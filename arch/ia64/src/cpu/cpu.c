@@ -27,9 +27,41 @@
  */
 
 #include <cpu.h>
+#include <arch.h>
+#include <arch/register.h>
+#include <print.h>
 
 void cpu_arch_init(void)
 {
 }
 
+void cpu_identify(void)
+{
+	CPU->arch.cpuid0 = cpuid_read(0);
+	CPU->arch.cpuid1 = cpuid_read(1);
+	CPU->arch.cpuid3.value = cpuid_read(3);
+}
 
+void cpu_print_report(cpu_t *m)
+{
+	char *family_str;
+	char vendor[2*sizeof(__u64)+1];
+	
+	*((__u64 *) &vendor[0*sizeof(__u64)]) = CPU->arch.cpuid0;
+	*((__u64 *) &vendor[1*sizeof(__u64)]) = CPU->arch.cpuid1;
+	vendor[sizeof(vendor)-1] = '\0';
+	
+	switch(m->arch.cpuid3.family) {
+	    case FAMILY_ITANIUM:
+	    	family_str = "Itanium";
+		break;
+	    case FAMILY_ITANIUM2:
+	    	family_str = "Itanium 2";
+		break;
+	    default:
+	    	family_str = "Unknown";
+		break;
+	}
+	
+	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id, family_str, vendor, CPU->arch.cpuid3.archrev, CPU->arch.cpuid3.model, CPU->arch.cpuid3.revision);
+}
