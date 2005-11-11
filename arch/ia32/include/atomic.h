@@ -35,19 +35,48 @@ typedef volatile __u32 atomic_t;
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock incl %0\n" : "=m" (*val));
+	__asm__ volatile ("lock incl %0\n" : "+m" (*val));
 #else
-	__asm__ volatile ("incl %0\n" : "=m" (*val));
+	__asm__ volatile ("incl %0\n" : "+m" (*val));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock decl %0\n" : "=m" (*val));
+	__asm__ volatile ("lock decl %0\n" : "+m" (*val));
 #else
-	__asm__ volatile ("decl %0\n" : "=m" (*val));
+	__asm__ volatile ("decl %0\n" : "+m" (*val));
 #endif /* CONFIG_SMP */
 }
+
+static inline atomic_t atomic_inc_pre(atomic_t *val) 
+{
+	atomic_t r;
+	__asm__ volatile (
+		"movl $1,%0;"
+		"lock xaddl %0,%1;"
+		: "=r"(r), "+m" (*val)
+	);
+	return r;
+}
+
+
+
+static inline atomic_t atomic_dec_pre(atomic_t *val) 
+{
+	atomic_t r;
+	__asm__ volatile (
+		"movl $-1,%0;"
+		"lock xaddl %0,%1;"
+		: "=r"(r), "+m" (*val)
+	);
+	return r;
+}
+
+#define atomic_inc_post(val) (atomic_inc_pre(val)+1)
+#define atomic_dec_post(val) (atomic_dec_pre(val)-1)
+
+
 
 static inline int test_and_set(volatile int *val) {
 	int v;
@@ -55,7 +84,7 @@ static inline int test_and_set(volatile int *val) {
 	__asm__ volatile (
 		"movl $1, %0\n"
 		"xchgl %0, %1\n"
-		: "=r" (v),"=m" (*val)
+		: "=r" (v),"+m" (*val)
 	);
 	
 	return v;

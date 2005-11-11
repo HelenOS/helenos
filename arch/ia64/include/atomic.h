@@ -37,15 +37,26 @@ static inline atomic_t atomic_add(atomic_t *val, int imm)
 {
 	atomic_t v;
 
-/*	
- *	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "=m" (val) : "i" (imm));
- */
+	
+ 	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (*val) : "i" (imm));
+ 
  	*val += imm;
 	
 	return v;
 }
 
-static inline atomic_t atomic_inc(atomic_t *val) { return atomic_add(val, 1); }
-static inline atomic_t atomic_dec(atomic_t *val) { return atomic_add(val, -1); }
+static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
+static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
+
+
+static inline atomic_t atomic_inc_pre(atomic_t *val) { return atomic_add(val, 1); }
+static inline atomic_t atomic_dec_pre(atomic_t *val) { return atomic_add(val, -1); }
+
+
+static inline atomic_t atomic_inc_post(atomic_t *val) { return atomic_add(val, 1)+1; }
+static inline atomic_t atomic_dec_post(atomic_t *val) { return atomic_add(val, -1)-1; }
+
+
+
 
 #endif

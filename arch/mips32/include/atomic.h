@@ -34,6 +34,13 @@
 #define atomic_inc(x)	(a_add(x,1))
 #define atomic_dec(x)	(a_sub(x,1))
 
+#define atomic_inc_pre(x) (a_add(x,1)-1)
+#define atomic_dec_pre(x) (a_sub(x,1)+1)
+
+#define atomic_inc_post(x) (a_add(x,1))
+#define atomic_dec_post(x) (a_sub(x,1))
+
+
 typedef volatile __u32 atomic_t;
 
 /*
@@ -44,6 +51,9 @@ typedef volatile __u32 atomic_t;
  * (store), except that the LL (load-linked) instruction loads the address
  * of the variable to a special register and if another process writes to
  * the same location, the SC (store-conditional) instruction fails.
+ 
+ Returns (*val)+i
+ 
  */
 static inline atomic_t a_add(atomic_t *val, int i)
 {
@@ -72,6 +82,9 @@ static inline atomic_t a_add(atomic_t *val, int i)
  * Atomic subtraction
  *
  * Implemented in the same manner as a_add, except we substract the value.
+
+ Returns (*val)-i
+
  */
 static inline atomic_t a_sub(atomic_t *val, int i)
 
