@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2005 Jakub Vana
+# Copyright (C) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +28,7 @@
 #
 
 #include <arch/stack.h>
+#include <arch/register.h>
 
 #define STACK_ITEMS		12
 #define STACK_FRAME_SIZE	((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE)
@@ -104,7 +106,7 @@ heavyweight_handler:
 	mov r28 = ar.bspstore ;;
 	
 	/* assume kernel backing store */
-	mov ar.bspstore = r28 ;;
+	/* mov ar.bspstore = r28 ;; */
 	
 	mov r29 = ar.bsp
 	
@@ -144,8 +146,8 @@ heavyweight_handler:
 	ld8 r25 = [r31], +8 ;;		/* load ar.pfs */
 	ld8 r24 = [r31], +8 ;;		/* load ar.rsc */
 
-	mov ar.bspstore = r28 ;;	/* (step 4) */
-	mov ar.rnat = r27		/* (step 5) */
+	/* mov ar.bspstore = r28 ;; */	/* (step 4) */
+	/* mov ar.rnat = r27 */		/* (step 5) */
 
 	mov ar.pfs = r25		/* (step 6) */
 	mov cr.ifs = r26	
@@ -189,7 +191,7 @@ heavyweight_handler_inner:
 	add out1 = STACK_SCRATCH_AREA_SIZE, r12
 
     /* 6. switch to bank 1 and reenable PSR.ic */
-	ssm 0x2000
+	ssm PSR_IC_MASK
 	bsw.1 ;;
 	srlz.d
 	
@@ -245,6 +247,11 @@ heavyweight_handler_inner:
 	mov loc46 = r31
     
     /* 9. skipped (will not enable interrupts) */
+	/*
+    	 * ssm PSR_I_MASK
+	 * ;;
+	 * srlz.d
+	 */
 
     /* 10. call handler */
     	mov b1 = loc2
@@ -254,6 +261,11 @@ heavyweight_handler_inner:
 0:
 	
     /* 12. skipped (will not disable interrupts) */
+	/*
+    	 * rsm PSR_I_MASK
+	 * ;;
+	 * srlz.d
+	 */
 
     /* 13. restore general and floating-point registers */
 	/* TODO: restore floating-point context */
@@ -307,7 +319,7 @@ heavyweight_handler_inner:
 	mov b7 = loc16
 	
     /* 15. disable PSR.ic and switch to bank 0 */
-	rsm 0x2000
+	rsm PSR_IC_MASK
 	bsw.0 ;;
 	srlz.d
 
