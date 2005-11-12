@@ -507,39 +507,150 @@ void zone_buddy_frame_free(__address addr)
 	interrupts_restore(ipl);
 }
 
+/** Guess zone by frame instance address
+ *
+ * @param frame Frame
+ *
+ * @return Zone of given frame
+ */
+zone_t * get_zone_by_frame(frame_t * frame) {
+	link_t * cur;
+	zone_t * zone, *z;
+
+	ASSERT(frame);
+	/*
+	 * First, find host frame zone for addr.
+	 */
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		/*
+		 * Check if frame address belongs to z.
+		 */
+		if ((frame >= z->frames) && (frame <= z->frames + (z->free_count + z->busy_count))) {
+			zone = z;
+			break;
+		}
+		spinlock_unlock(&z->lock);
+	}
+	ASSERT(zone);
+	
+	return zone;
+
+
+}
 
 /** Buddy system find_buddy implementation
+ * @param block Block for which buddy should be found
  *
+ * @return Buddy for given block if found
  */
-link_t * zone_buddy_find_buddy(link_t * buddy) {
+link_t * zone_buddy_find_buddy(link_t * block) {
+	frame_t * frame, * f;
+	zone_t * zone;
+	link_t * cur;
+	bool is_left, is_right;
 
+	frame = list_get_instance(block, frame_t, buddy_link);
+	zone = get_zone_by_frame(frame);
+	
+	
+	/* 
+	 * (FRAME_INDEX % 2^(ORDER+1)) == 0 ===> LEFT BUDDY 
+	 * (FRAME_INDEX % 2^(ORDER+1)) == 2^(ORDER) ===> RIGHT BUDDY
+	 */
+	 
+	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
+	is_right = IS_BUDDY_RIGHT_BLOCK(zone, frame);
+	
+	ASSERT((is_left || is_right) && (!is_left || !is_right));
+	
+	for (cur = &zone->buddy_system->order[frame->buddy_order]; cur; cur = cur->next) {
+		f = list_get_instance(cur, frame_t, buddy_link);
+		
+		ASSERT(f->buddy_order == frame->buddy_order);
+		
+		/* 
+		 * if found frame is coherent with our frame from the left 
+		 */
+		if ((FRAME_INDEX(zone, f) + 1 >> frame->buddy_order == FRAME_INDEX(zone, frame)) && is_right) {
+			return cur;
+		}
+		
+		/* 
+		 * if found frame is coherent with our frame from the right 
+		 */
+		if ((FRAME_INDEX(zone,f) - 1 >> frame->buddy_order == FRAME_INDEX(zone, frame)) && is_left) {
+			return cur;
+		}
+		
+	}
+	
+	return NULL;
+	
+	
 }
 
 /** Buddy system bisect implementation
  *
+ * @param block Block to bisect
+ *
+ * @return right block
  */
 link_t * zone_buddy_bisect(link_t * block) {
+	frame_t * frame_l, * frame_r;
+	zone_t * zone;
+	
+	frame_l = list_get_instance(block, frame_t, buddy_link);
 
+	zone = get_zone_by_frame(frame_l);
+	
+	frame_r = &zone->frames[FRAME_INDEX(zone, frame_l) + 1>>(frame_l->buddy_order-1)];
+
+
+	return &frame_r->buddy_link;
+	
 }
 
 /** Buddy system coalesce implementation
  *
+ * @param block_1 First block
+ * @param block_2 First block's buddy
+ *
+ * @return Coalesced block (actually block that represents lower address)
  */
-link_t * zone_buddy_coalesce(link_t * buddy_l, link_t * buddy_r) {
+link_t * zone_buddy_coalesce(link_t * block_1, link_t * block_2) {
+	frame_t * frame1, * frame2;
+	zone_t * zone;
+	
+	frame1 = list_get_instance(block_1, frame_t, buddy_link);
+	frame2 = list_get_instance(block_2, frame_t, buddy_link);
+	
+	zone = get_zone_by_frame(frame1);
+	
+	return FRAME_INDEX(zone, frame1) < FRAME_INDEX(zone, frame2) ? block_1 : block_2;
 
 }
 
 /** Buddy system set_order implementation
- *
+ * @param block Buddy system block
+ * @param order Order to set
  */
 void zone_buddy_set_order(link_t * block, __u8 order) {
-
+	frame_t * frame;
+	frame = list_get_instance(block, frame_t, buddy_link);
+	frame->buddy_order = order;
 }
 
 /** Buddy system get_order implementation
+ * @param block Buddy system block
  *
+ * @return Order of block
  */
 __u8 zone_buddy_get_order(link_t * block) {
-
-
+	frame_t * frame;
+	frame = list_get_instance(block, frame_t, buddy_link);
+	return frame->buddy_order;
 }

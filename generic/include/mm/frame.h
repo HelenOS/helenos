@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +39,13 @@
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
 
-#define FRAME2ADDR(zone, frame)		((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
-#define ADDR2FRAME(zone, addr)		(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
+#define FRAME2ADDR(zone, frame)			((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
+#define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
+#define FRAME_INDEX(zone, frame)		((count_t)((frame) - (zone)->frames))
+#define IS_BUDDY_LEFT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 >> ((frame)->buddy_order + 1))) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 >> ((frame)->buddy_order + 1))) == (1 >> (frame)->buddy_order))
+
+
 
 struct zone {
 	link_t link;		/**< link to previous and next zone */
@@ -51,14 +57,14 @@ struct zone {
 	count_t free_count;	/**< number of frame_t structures in free list */
 	count_t busy_count;	/**< number of frame_t structures not in free list */
 	
-	buddy_system_t * buddy_system; /**< buddy system allocator for the zone */
+	buddy_system_t * buddy_system; /**< buddy system for the zone */
 	int flags;
 };
 
 struct frame {
 	count_t refcount;	/**< when == 0, the frame is in free list */
 	link_t link;		/**< link to zone free list when refcount == 0 */
-	__u8 order;		/**< buddy system  block order */
+	__u8 buddy_order;	/**< buddy system block order */
 	link_t buddy_link;	/**< link to the next free block inside one order*/
 };
 
@@ -75,6 +81,7 @@ __address frame_alloc(int flags);
 extern void frame_free(__address addr);
 extern void frame_not_free(__address addr);
 extern void frame_region_not_free(__address start, __address stop);
+zone_t * get_zone_by_frame(frame_t * frame);
 
 /*
  * Buddy system operations

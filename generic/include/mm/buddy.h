@@ -35,11 +35,11 @@
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff
 
 struct buddy_system_operations {
-	link_t *(* find_buddy)(link_t *);		/**< Return pointer to left-side or right-side buddy for block passed as argument. */
-	link_t *(* bisect)(link_t *);			/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
-	link_t *(* coalesce)(link_t *, link_t *);	/**< Coalesce to buddies into a bigger block. */
-	void (*set_order)(link_t *, __u8);		/**< Set order of block passed as argument. */
-	__u8 (*get_order)(link_t *);			/**< Return order of block passed as argument. */
+	link_t *(* find_buddy)(link_t *);				/**< Return pointer to left-side or right-side buddy for block passed as argument. */
+	link_t *(* bisect)(link_t *);					/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
+	link_t *(* coalesce)(link_t *, link_t *);			/**< Coalesce to buddies into a bigger block. */
+	void (*set_order)(link_t *, __u8);				/**< Set order of block passed as argument. */
+	__u8 (*get_order)(link_t *);					/**< Return order of block passed as argument. */
 };
 
 struct buddy_system {
