@@ -38,10 +38,11 @@
 #define RQ_COUNT 		16
 #define NEEDS_RELINK_MAX	(HZ)
 
+/** Scheduler run queue structure. */
 struct runq {
 	spinlock_t lock;
 	link_t rq_head;		/**< List of ready threads. */
-	int n;			/**< Number of threads in rq_ready. */
+	count_t n;		/**< Number of threads in rq_ready. */
 };
 
 extern atomic_t nrdy;
@@ -51,11 +52,12 @@ extern void scheduler_fpu_lazy_request(void);
 extern void scheduler(void);
 extern void kcpulb(void *arg);
 
+extern void before_thread_runs(void);
+
 /*
  * To be defined by architectures:
  */
  
-extern void before_thread_runs(void);
 extern void before_thread_runs_arch(void);
 
 #endif

@@ -45,9 +45,9 @@ struct cpu {
 	spinlock_t lock;
 	context_t saved_context;
 
-	volatile int nrdy;
+	volatile count_t nrdy;
 	runq_t rq[RQ_COUNT];
-	volatile int needs_relink;
+	volatile count_t needs_relink;
 
 	spinlock_t timeoutlock;
 	link_t timeout_active_head;

@@ -43,7 +43,7 @@ enum rwlock_type {
 struct rwlock {
 	spinlock_t lock;
 	mutex_t exclusive;	/**< Mutex for writers, readers can bypass it if readers_in is positive. */
-	int readers_in;		/**< Number of readers in critical section. */
+	count_t readers_in;	/**< Number of readers in critical section. */
 };
 
 #define rwlock_write_lock(rwl) \

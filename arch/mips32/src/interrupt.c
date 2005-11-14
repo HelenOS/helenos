@@ -114,6 +114,7 @@ void interrupt(struct exception_regdump *pstate)
 				case 4: /* IRQ2 */
 				case 5: /* IRQ3 */
 				case 6: /* IRQ4 */
+				default:
 					print_regdump(pstate);
 					panic("unhandled interrupt %d\n", i);
 					break;

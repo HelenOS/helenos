@@ -29,9 +29,11 @@
 #ifndef __mips32_CPU_H__
 #define __mips32_CPU_H__
 
+#include <arch/types.h>
+
 struct cpu_arch {
-	int imp_num;
-	int rev_num;
+	__u32 imp_num;
+	__u32 rev_num;
 };
 	
 #endif

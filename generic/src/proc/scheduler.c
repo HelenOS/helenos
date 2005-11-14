@@ -50,7 +50,6 @@
 
 atomic_t nrdy;
 
-
 /** Take actions before new thread runs
  *
  * Perform actions that need to be
@@ -116,7 +115,7 @@ void scheduler_init(void)
  * @return Thread to be scheduled.
  *
  */
-static struct thread *find_best_thread(void)
+static thread_t *find_best_thread(void)
 {
 	thread_t *t;
 	runq_t *r;

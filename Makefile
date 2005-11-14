@@ -47,7 +47,7 @@ endif
 #
 
 DEFS = -DARCH=$(ARCH) -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\""
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -nostdlib -nostdinc -Igeneric/include/
 LFLAGS = -M
 AFLAGS =
 

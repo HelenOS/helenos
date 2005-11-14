@@ -39,7 +39,6 @@ typedef unsigned int count_t;
 typedef unsigned int index_t;
 
 typedef struct config config_t;
-typedef struct cpu_private_data cpu_private_data_t;
 typedef struct cpu_info cpu_info_t;
 
 typedef struct cpu cpu_t;

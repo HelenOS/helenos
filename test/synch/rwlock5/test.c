@@ -75,7 +75,7 @@ void failed(void)
 void test(void)
 {
 	int i, j, k;
-	int readers, writers;
+	count_t readers, writers;
 	
 	printf("Read/write locks test #5\n");
     

@@ -45,7 +45,7 @@
 
 static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
 
-static volatile int threads_ok;
+static atomic_t threads_ok;
 static waitq_t can_start;
 
 static void e(void *data)

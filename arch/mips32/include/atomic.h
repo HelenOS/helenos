@@ -31,82 +31,42 @@
 
 #include <arch/types.h>
 
-#define atomic_inc(x)	(a_add(x,1))
-#define atomic_dec(x)	(a_sub(x,1))
+#define atomic_inc(x)	((void) atomic_add(x, 1))
+#define atomic_dec(x)	((void) atomic_add(x, -1))
 
-#define atomic_inc_pre(x) (a_add(x,1)-1)
-#define atomic_dec_pre(x) (a_sub(x,1)+1)
+#define atomic_inc_pre(x) (atomic_add(x, 1) - 1)
+#define atomic_dec_pre(x) (atomic_add(x, -1) + 1)
 
-#define atomic_inc_post(x) (a_add(x,1))
-#define atomic_dec_post(x) (a_sub(x,1))
+#define atomic_inc_post(x) atomic_add(x, 1)
+#define atomic_dec_post(x) atomic_add(x, -1)
 
 
 typedef volatile __u32 atomic_t;
 
-/*
- * Atomic addition
+/* Atomic addition of immediate value.
  *
- * This case is harder, and we have to use the special LL and SC operations
- * to achieve atomicity. The instructions are similar to LW (load) and SW
- * (store), except that the LL (load-linked) instruction loads the address
- * of the variable to a special register and if another process writes to
- * the same location, the SC (store-conditional) instruction fails.
- 
- Returns (*val)+i
- 
- */
-static inline atomic_t a_add(atomic_t *val, int i)
-{
-	atomic_t tmp, tmp2;
-
-	asm volatile (
-		"	.set	push\n"
-		"	.set	noreorder\n"
-		"	nop\n"
-		"1:\n"
-		"	ll	%0, %1\n"
-		"	addu	%0, %0, %3\n"
-		"       move    %2, %0\n"
-		"	sc	%0, %1\n"
-		"	beq	%0, 0x0, 1b\n"
-		"	move    %0, %2\n"
-		"	.set	pop\n"
-		: "=&r" (tmp), "=o" (*val), "=r" (tmp2)
-		: "r" (i)
-		);
-	return tmp;
-}
-
-
-/*
- * Atomic subtraction
+ * @param val Memory location to which will be the immediate value added.
+ * @param i Signed immediate that will be added to *val.
  *
- * Implemented in the same manner as a_add, except we substract the value.
-
- Returns (*val)-i
-
+ * @return Value after addition.
  */
-static inline atomic_t a_sub(atomic_t *val, int i)
-
+static inline atomic_t atomic_add(atomic_t *val, int i)
 {
-	atomic_t tmp, tmp2;
+	atomic_t tmp, v;
 
-	asm volatile (
-		"	.set	push\n"
-		"	.set	noreorder\n"
-		"	nop\n"
+	__asm__ volatile (
 		"1:\n"
-		"	ll	%0, %1\n"
-		"	subu	%0, %0, %3\n"
-		"       move    %2, %0\n"
-		"	sc	%0, %1\n"
-		"	beq	%0, 0x0, 1b\n"
-		"       move    %0, %2\n"
-		"	.set	pop\n"
-		: "=&r" (tmp), "=o" (*val), "=r" (tmp2)
-		: "r" (i)
+		"	ll %0, %1\n"
+		"	addiu %0, %0, %3\n"	/* same as addi, but never traps on overflow */
+		"       move %2, %0\n"
+		"	sc %0, %1\n"
+		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
+		/*	nop	*/		/* nop is inserted automatically by compiler */
+		: "=r" (tmp), "=m" (*val), "=r" (v)
+		: "i" (i), "i" (0)
 		);
-	return tmp;
+
+	return v;
 }
 
 
