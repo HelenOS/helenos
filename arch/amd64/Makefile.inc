@@ -42,7 +42,7 @@ ifndef CPU
 	CPU = opteron
 endif
 
-CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone -O3
+CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
 DEFS += -D_CPU=${CPU}
 
 ## Accepted CPUs

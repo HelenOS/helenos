@@ -41,7 +41,7 @@ ifndef MACHINE
 endif
 
 KERNEL_LOAD_ADDRESS = 0x80100000
-CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -O2
+CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 DEFS += -DMACHINE=${MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS}
 
 ## Accepted MACHINEs

@@ -38,7 +38,7 @@ TOOLCHAIN_DIR = /usr/local/sparc64/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -mcpu=ultrasparc -m64 -O3
+CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N
 
 ## Own configuration directives

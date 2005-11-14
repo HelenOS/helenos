@@ -38,7 +38,6 @@ TOOLCHAIN_DIR = /usr/local/ppc/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -O3
 LFLAGS += -no-check-sections -N
 
 ## Own configuration directives
