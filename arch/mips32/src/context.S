@@ -47,7 +47,7 @@
 	sw $s5,OFFSET_S5(\r)
 	sw $s6,OFFSET_S6(\r)
 	sw $s7,OFFSET_S7(\r)
-	sw $s8,OFFSET_S7(\r)
+	sw $s8,OFFSET_S8(\r)
 	sw $gp,OFFSET_GP(\r)
 	
 	sw $ra,OFFSET_PC(\r)
@@ -63,7 +63,7 @@
 	lw $s5,OFFSET_S5(\r)
 	lw $s6,OFFSET_S6(\r)
 	lw $s7,OFFSET_S7(\r)
-	lw $s8,OFFSET_S7(\r)
+	lw $s8,OFFSET_S8(\r)
 	lw $gp,OFFSET_GP(\r)
 	
 	lw $ra,OFFSET_PC(\r)
