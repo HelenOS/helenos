@@ -601,14 +601,10 @@ link_t * zone_buddy_find_buddy(link_t * block) {
  */
 link_t * zone_buddy_bisect(link_t * block) {
 	frame_t * frame_l, * frame_r;
-	zone_t * zone;
 	
 	frame_l = list_get_instance(block, frame_t, buddy_link);
 
-	zone = get_zone_by_frame(frame_l);
-	
-	frame_r = &zone->frames[FRAME_INDEX(zone, frame_l) + 1>>(frame_l->buddy_order-1)];
-
+	frame_r = (frame_t *) (&frame_l + (1>>frame_l->buddy_order-1));
 
 	return &frame_r->buddy_link;
 	
@@ -623,15 +619,11 @@ link_t * zone_buddy_bisect(link_t * block) {
  */
 link_t * zone_buddy_coalesce(link_t * block_1, link_t * block_2) {
 	frame_t * frame1, * frame2;
-	zone_t * zone;
 	
 	frame1 = list_get_instance(block_1, frame_t, buddy_link);
 	frame2 = list_get_instance(block_2, frame_t, buddy_link);
 	
-	zone = get_zone_by_frame(frame1);
-	
-	return FRAME_INDEX(zone, frame1) < FRAME_INDEX(zone, frame2) ? block_1 : block_2;
-
+	return frame1 < frame2 ? block_1 : block_2;
 }
 
 /** Buddy system set_order implementation
