@@ -34,21 +34,23 @@
 
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff
 
+/** Buddy system operations to be implemented by each implementations. */
 struct buddy_system_operations {
-	link_t *(* find_buddy)(link_t *);				/**< Return pointer to left-side or right-side buddy for block passed as argument. */
-	link_t *(* bisect)(link_t *);					/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
-	link_t *(* coalesce)(link_t *, link_t *);			/**< Coalesce two buddies into a bigger block. */
-	void (*set_order)(link_t *, __u8);				/**< Set order of block passed as argument. */
-	__u8 (*get_order)(link_t *);					/**< Return order of block passed as argument. */
+	link_t *(* find_buddy)(buddy_system_t *, link_t *);		/**< Return pointer to left-side or right-side buddy for block passed as argument. */
+	link_t *(* bisect)(buddy_system_t *, link_t *);			/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
+	link_t *(* coalesce)(buddy_system_t *, link_t *, link_t *);	/**< Coalesce two buddies into a bigger block. */
+	void (*set_order)(buddy_system_t *, link_t *, __u8);		/**< Set order of block passed as argument. */
+	__u8 (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
 };
 
 struct buddy_system {
 	__u8 max_order;
 	link_t *order;
 	buddy_system_operations_t *op;
+	void *data;				/**< Pointer to be used by the implementation. */
 };
 
-extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op);
+extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op, void *data);
 extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
 

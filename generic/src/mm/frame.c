@@ -338,7 +338,7 @@ zone_t *zone_create(__address start, size_t size, int flags)
 		 * Create buddy system for the zone
 		 */
 		for (max_order = 0; cnt >> max_order; max_order++);
-		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations);
+		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations, (void *) z);
 	}
 	
 	return z;
@@ -543,11 +543,13 @@ zone_t * get_zone_by_frame(frame_t * frame) {
 }
 
 /** Buddy system find_buddy implementation
+ *
+ * @param b Buddy system.
  * @param block Block for which buddy should be found
  *
  * @return Buddy for given block if found
  */
-link_t * zone_buddy_find_buddy(link_t * block) {
+link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 	frame_t * frame, * f;
 	zone_t * zone;
 	link_t * cur;
@@ -595,11 +597,12 @@ link_t * zone_buddy_find_buddy(link_t * block) {
 
 /** Buddy system bisect implementation
  *
+ * @param b Buddy system.
  * @param block Block to bisect
  *
  * @return right block
  */
-link_t * zone_buddy_bisect(link_t * block) {
+link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
 	frame_t * frame_l, * frame_r;
 	
 	frame_l = list_get_instance(block, frame_t, buddy_link);
@@ -612,12 +615,13 @@ link_t * zone_buddy_bisect(link_t * block) {
 
 /** Buddy system coalesce implementation
  *
+ * @param b Buddy system.
  * @param block_1 First block
  * @param block_2 First block's buddy
  *
  * @return Coalesced block (actually block that represents lower address)
  */
-link_t * zone_buddy_coalesce(link_t * block_1, link_t * block_2) {
+link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1, link_t * block_2) {
 	frame_t * frame1, * frame2;
 	
 	frame1 = list_get_instance(block_1, frame_t, buddy_link);
@@ -627,21 +631,25 @@ link_t * zone_buddy_coalesce(link_t * block_1, link_t * block_2) {
 }
 
 /** Buddy system set_order implementation
+ *
+ * @param b Buddy system.
  * @param block Buddy system block
  * @param order Order to set
  */
-void zone_buddy_set_order(link_t * block, __u8 order) {
+void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order) {
 	frame_t * frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	frame->buddy_order = order;
 }
 
 /** Buddy system get_order implementation
+ *
+ * @param b Buddy system.
  * @param block Buddy system block
  *
  * @return Order of block
  */
-__u8 zone_buddy_get_order(link_t * block) {
+__u8 zone_buddy_get_order(buddy_system_t *b, link_t * block) {
 	frame_t * frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	return frame->buddy_order;

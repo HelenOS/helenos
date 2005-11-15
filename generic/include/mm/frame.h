@@ -86,11 +86,11 @@ zone_t * get_zone_by_frame(frame_t * frame);
 /*
  * Buddy system operations
  */
-link_t * zone_buddy_find_buddy(link_t * buddy);
-link_t * zone_buddy_bisect(link_t * block);
-link_t * zone_buddy_coalesce(link_t * buddy_l, link_t * buddy_r);
-void zone_buddy_set_order(link_t * block, __u8 order);
-__u8 zone_buddy_get_order(link_t * block);
+link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * buddy);
+link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block);
+link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * buddy_l, link_t * buddy_r);
+void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order);
+__u8 zone_buddy_get_order(buddy_system_t *b, link_t * block);
 
 __address zone_buddy_frame_alloc(int flags, __u8 order);
 void zone_buddy_frame_free(__address addr);

@@ -40,10 +40,11 @@
  *
  * @param max_order The biggest allocable size will be 2^max_order.
  * @param op Operations for new buddy system.
+ * @param data Pointer to be used by implentation.
  *
  * @return New buddy system.
  */
-buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op)
+buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op, void *data)
 {
 	buddy_system_t *b;
 	int i;
@@ -76,6 +77,7 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 	
 		b->max_order = max_order;
 		b->op = op;
+		b->data = data;
 	}
 	
 	return b;
@@ -130,9 +132,9 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	/*
 	 * Bisect the block and set order of both of its parts to i.
 	 */
-	hlp = b->op->bisect(res);
-	b->op->set_order(res, i);
-	b->op->set_order(hlp, i);
+	hlp = b->op->bisect(b, res);
+	b->op->set_order(b, res, i);
+	b->op->set_order(b, hlp, i);
 	
 	/*
 	 * Return the other half to buddy system.
@@ -158,7 +160,7 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 	/*
 	 * Determine block's order.
 	 */
-	i = b->op->get_order(block);
+	i = b->op->get_order(b, block);
 
 	ASSERT(i < b->max_order);
 
@@ -166,10 +168,10 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 		/*
 		 * See if there is any buddy in the list of order i.
 		 */
-		buddy = b->op->find_buddy(block);
+		buddy = b->op->find_buddy(b, block);
 		if (buddy) {
 
-			ASSERT(b->op->get_order(buddy) == i);
+			ASSERT(b->op->get_order(b, buddy) == i);
 		
 			/*
 			 * Remove buddy from the list of order i.
@@ -179,18 +181,18 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 			/*
 			 * Invalidate order of both block and buddy.
 			 */
-			b->op->set_order(block, BUDDY_SYSTEM_INNER_BLOCK);
-			b->op->set_order(buddy, BUDDY_SYSTEM_INNER_BLOCK);
+			b->op->set_order(b, block, BUDDY_SYSTEM_INNER_BLOCK);
+			b->op->set_order(b, buddy, BUDDY_SYSTEM_INNER_BLOCK);
 		
 			/*
 			 * Coalesce block and buddy into one block.
 			 */
-			hlp = b->op->coalesce(block, buddy);
+			hlp = b->op->coalesce(b, block, buddy);
 
 			/*
 			 * Set order of the coalesced block to i + 1.
 			 */
-			b->op->set_order(hlp, i + 1);
+			b->op->set_order(b, hlp, i + 1);
 
 			/*
 			 * Recursively add the coalesced block to the list of order i + 1.
