@@ -623,7 +623,7 @@ link_t * zone_buddy_coalesce(link_t * block_1, link_t * block_2) {
 	frame1 = list_get_instance(block_1, frame_t, buddy_link);
 	frame2 = list_get_instance(block_2, frame_t, buddy_link);
 	
-	return frame1 < frame2 ? block_1 : block_2;
+	return &frame1 < &frame2 ? block_1 : block_2;
 }
 
 /** Buddy system set_order implementation
