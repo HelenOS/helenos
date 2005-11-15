@@ -40,7 +40,7 @@
  *
  * @param max_order The biggest allocable size will be 2^max_order.
  * @param op Operations for new buddy system.
- * @param data Pointer to be used by implentation.
+ * @param data Pointer to be used by implementation.
  *
  * @return New buddy system.
  */
@@ -84,8 +84,6 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 }
 
 /** Allocate block from buddy system.
- *
- * Allocate block from buddy system.
  *
  * @param b Buddy system pointer.
  * @param i Returned block will be 2^i big.
@@ -146,8 +144,6 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 }
 
 /** Return block to buddy system.
- *
- * Return block to buddy system.
  *
  * @param b Buddy system pointer.
  * @param block Block to return.
