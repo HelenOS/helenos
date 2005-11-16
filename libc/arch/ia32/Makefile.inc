@@ -26,76 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Make some default assumptions
-#
-
-ifndef ARCH
-	ARCH = ia32
-endif
-
-## Common compiler flags
-#
-
-DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Iinclude
-LFLAGS = -M
-AFLAGS =
-
-## Setup platform configuration
-#
-
-include arch/$(ARCH)/Makefile.inc
-
 ## Toolchain configuration
 #
 
-ifeq ($(COMPILER),native)
-	CC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-else
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
-endif
-
-## Sources
-#
-
-GENERIC_SOURCES = \
-	generic/libc.c
-
-ARCH_SOURCES = \
-	arch/$(ARCH)/libc.c
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
-
-.PHONY: all clean depend boot
-
-all: libc.a
-
--include Makefile.depend
-
-clean:
-	-rm -f libc.a
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
-
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+TARGET = i686-pc-linux-gnu
+TOOLCHAIN_DIR = /usr/local/i686/bin
