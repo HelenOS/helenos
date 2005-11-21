@@ -79,7 +79,7 @@ int acpi_sdt_check(__u8 *sdt)
 
 static void map_sdt(struct acpi_sdt_header *sdt)
 {
-	map_page_to_frame((__address) sdt, (__address) sdt, PAGE_NOT_CACHEABLE, 0);
+	page_mapping_insert((__address) sdt, (__address) sdt, PAGE_NOT_CACHEABLE, 0);
 	map_structure((__address) sdt, sdt->length);
 }
 

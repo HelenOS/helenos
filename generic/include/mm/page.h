@@ -107,8 +107,8 @@
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
 extern void page_init(void);
-extern void map_page_to_frame(__address page, __address frame, int flags, __address root);
-extern pte_t *find_mapping(__address page, __address root);
+extern void page_mapping_insert(__address page, __address frame, int flags, __address root);
+extern pte_t *page_mapping_find(__address page, __address root);
 extern void map_structure(__address s, size_t size);
 
 #endif

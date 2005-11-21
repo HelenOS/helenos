@@ -63,9 +63,9 @@ void smp_init(void)
 	}
 
 	if (config.cpu_count > 1) {		
-		map_page_to_frame((__address)l_apic, (__address)l_apic, 
+		page_mapping_insert((__address)l_apic, (__address)l_apic, 
 				  PAGE_NOT_CACHEABLE, 0);
-		map_page_to_frame((__address) io_apic,
+		page_mapping_insert((__address) io_apic,
 				  (__address) io_apic,
 				  PAGE_NOT_CACHEABLE, 0);
         }

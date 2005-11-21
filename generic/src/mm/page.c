@@ -37,7 +37,7 @@
 void page_init(void)
 {
 	page_arch_init();
-	map_page_to_frame(0x0, 0x0, PAGE_NOT_PRESENT, 0);
+	page_mapping_insert(0x0, 0x0, PAGE_NOT_PRESENT, 0);
 }
 
 /** Map memory structure
@@ -57,7 +57,7 @@ void map_structure(__address s, size_t size)
 	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
 
 	for (i = 0; i < cnt; i++)
-		map_page_to_frame(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
+		page_mapping_insert(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
 
 }
 
@@ -71,7 +71,7 @@ void map_structure(__address s, size_t size)
  * @param flags Flags to be used for mapping.
  * @param root Explicit PTL0 address.
  */
-void map_page_to_frame(__address page, __address frame, int flags, __address root)
+void page_mapping_insert(__address page, __address frame, int flags, __address root)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	__address newpt;
@@ -118,7 +118,7 @@ void map_page_to_frame(__address page, __address frame, int flags, __address roo
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *find_mapping(__address page, __address root)
+pte_t *page_mapping_find(__address page, __address root)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 

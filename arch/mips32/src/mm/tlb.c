@@ -366,7 +366,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Handler cannot succeed if badvaddr has no mapping.
 	 */
-	pte = find_mapping(badvaddr, 0);
+	pte = page_mapping_find(badvaddr, 0);
 	if (!pte) {
 		printf("No such mapping.\n");
 		return NULL;
