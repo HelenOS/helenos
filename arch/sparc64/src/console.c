@@ -27,7 +27,7 @@
  */
 
 #include <putchar.h>
-#include <genarch/firmware/ofw/ofw.h>
+#include <genarch/ofw/ofw.h>
 
 /** Print one character.
  *

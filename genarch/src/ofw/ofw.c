@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <genarch/firmware/ofw/ofw.h>
+#include <genarch/ofw/ofw.h>
 #include <arch/asm.h>
 #include <stdarg.h>
 #include <cpu.h>

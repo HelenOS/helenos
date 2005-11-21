@@ -30,7 +30,7 @@
 
 ifeq ($(CONFIG_OFW),y)
 	GENARCH_SOURCES += \
-		genarch/src/firmware/ofw/ofw.c
+		genarch/src/ofw/ofw.c
 endif
 ifeq ($(CONFIG_ACPI),y)
 	GENARCH_SOURCES += \
