@@ -72,7 +72,8 @@ GENERIC_SOURCES = \
 	generic/libc.c
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/entry.s
+	arch/$(ARCH)/entry.s \
+	arch/$(ARCH)/syscall.c
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))

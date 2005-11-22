@@ -26,13 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__LIBC_H__
-#define __LIBC__LIBC_H__
+#include <libc.h>
 
+void __syscall(const unsigned int id, const unsigned int p1, const unsigned int p2, const unsigned int p3)
+{
 
-extern void __main(void);
-extern void __exit(void);
-extern void __syscall(const unsigned int id, const unsigned int p1, const unsigned int p2, const unsigned int p3);
-
-
-#endif
+}

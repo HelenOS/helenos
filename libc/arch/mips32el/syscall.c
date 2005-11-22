@@ -26,13 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__LIBC_H__
-#define __LIBC__LIBC_H__
+#include <libc.h>
 
-
-extern void __main(void);
-extern void __exit(void);
-extern void __syscall(const unsigned int id, const unsigned int p1, const unsigned int p2, const unsigned int p3);
-
-
-#endif
+void __syscall(const unsigned int id, const unsigned int p1, const unsigned int p2, const unsigned int p3)
+{
+	register unsigned int __mips_reg_a0 asm("$4") = p1;
+	register unsigned int __mips_reg_a1 asm("$5") = p2;
+	register unsigned int __mips_reg_a2 asm("$6") = p3;
+	register unsigned int __mips_reg_a3 asm("$7") = id;
+	
+	asm volatile (
+		"syscall\n"
+		:
+		: "r" (__mips_reg_a0),
+		  "r" (__mips_reg_a1),
+		  "r" (__mips_reg_a2),
+		  "r" (__mips_reg_a3)
+		: "v0"
+	);
+}
