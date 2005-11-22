@@ -89,7 +89,7 @@ void arch_post_mm_init(void)
 	}
 }
 
-void arch_late_init(void)
+void arch_pre_smp_init(void)
 {
 	if (config.cpu_active == 1) {
 		memory_print_map();
@@ -98,6 +98,10 @@ void arch_late_init(void)
 		acpi_init();
 		#endif /* CONFIG_SMP */
 	}
+}
+
+void arch_post_smp_init(void)
+{
 }
 
 void calibrate_delay_loop(void)

@@ -46,3 +46,12 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 }
+
+void arch_pre_smp_init(void)
+{
+}
+
+
+void arch_post_smp_init(void)
+{
+}

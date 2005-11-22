@@ -32,7 +32,6 @@
 .global asm_delay_loop
 .global userspace
 .global before_thread_runs_arch
-.global arch_late_init
 .global cpu_sleep
 .global dummy
 .global fpu_enable
@@ -43,7 +42,6 @@ before_thread_runs_arch:
 userspace:
 calibrate_delay_loop:
 asm_delay_loop:
-arch_late_init:
 cpu_sleep:
 fpu_init:
 fpu_enable:
