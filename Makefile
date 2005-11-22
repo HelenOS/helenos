@@ -69,10 +69,10 @@ all: init
 
 clean:
 	-rm -f init init.map _link.ld *.o
-	$(MAKE) -C libc clean
+	$(MAKE) -C libc clean ARCH=$(ARCH)
 
 libc/libc.a:
-	$(MAKE) -C libc all
+	$(MAKE) -C libc all ARCH=$(ARCH)
 
 _link.ld: _link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
