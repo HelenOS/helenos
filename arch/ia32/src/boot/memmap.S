@@ -27,7 +27,7 @@
  */
 
 
-#include <arch/boot/memmapasm.h>
+#include <arch/boot/memmap.h>
 
 E820_SMAP = 0x534d4150
 

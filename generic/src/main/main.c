@@ -84,6 +84,9 @@ __address hardcoded_load_address = 0;
 size_t hardcoded_ktext_size = 0;
 size_t hardcoded_kdata_size = 0;
 
+__address init_addr = 0;
+size_t init_size = 0;
+
 /*
  * Size of memory in bytes taken by kernel and heap.
  */

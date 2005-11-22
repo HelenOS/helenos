@@ -29,8 +29,26 @@
 #ifndef __ia32_MEMMAP_H__
 #define __ia32_MEMMAP_H__
 
+/* E820h memory range types - other values*/
+	/* Free memory */
+#define MEMMAP_MEMORY_AVAILABLE	1
+	/* Not available for OS */
+#define MEMMAP_MEMORY_RESERVED	2 
+	/* OS may use it after reading ACPI table */
+#define MEMMAP_MEMORY_ACPI	3 
+	/* Unusable, required to be saved and restored across an NVS sleep */
+#define MEMMAP_MEMORY_NVS	4 
+	/* Corrupted memory */
+#define MEMMAP_MEMORY_UNUSABLE	5 
 
-#include <arch/boot/memmapasm.h>
+	 /* size of one entry */
+#define MEMMAP_E820_RECORD_SIZE 20 
+	/* maximum entries */
+#define MEMMAP_E820_MAX_RECORDS 32 
+
+
+#ifndef __ASM__
+
 #include <arch/types.h>
 
 struct e820memmap_ {
@@ -44,5 +62,7 @@ extern struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS];
 extern __u8 e820counter; 
 
 extern __u32 e801memorysize; // size of memory in KB
+
+#endif
 
 #endif

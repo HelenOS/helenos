@@ -27,7 +27,7 @@
 #
 
 #include <arch/boot/boot.h>
-#include <arch/boot/memmapasm.h>
+#include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
 
@@ -155,6 +155,19 @@ multiboot_image_start:
 		
 		mem_invalid:
 		movl %ecx, e801memorysize
+		
+		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)	
+		jc mods_valid
+			
+			xorl %ecx, %ecx
+			xorl %edx, %edx
+			jmp mods_invalid
+		
+		mods_valid:
+		
+		mods_invalid:
+		movl %ecx, init_addr
+		movl %edx, init_size
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid
