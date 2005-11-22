@@ -31,6 +31,13 @@
 
 #include <arch/types.h>
 
+/** Scancodes. */
+#define SC_ESC		0x01
+#define SC_BACKSPACE	0x0e
+#define SC_LSHIFT	0x2a
+#define SC_RSHIFT	0x36
+#define SC_CAPSLOCK	0x3a
+
 extern void i8042_init(void);
 extern void i8042_interrupt(__u8 n, __native stack[]);
 

@@ -157,7 +157,7 @@ void kinit(void *arg)
 
 
 	while (1) {
-		thread_usleep(1000000);
+		thread_sleep(60);
 		printf("kinit... ");
 	}
 
