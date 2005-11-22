@@ -26,44 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Make some default assumptions
-#
-
-ifndef ARCH
-	ARCH = ia32
-endif
-
 ## Common compiler flags
 #
 
+LIBC_PREFIX = .
 DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Iinclude
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include
 LFLAGS = -M
 AFLAGS =
 
-## Setup platform configuration
+## Setup toolchain
 #
 
-include arch/$(ARCH)/Makefile.inc
-
-## Toolchain configuration
-#
-
-ifeq ($(COMPILER),native)
-	CC = gcc
-	AS = as
-	LD = ld
-	AR = ar
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-else
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
-endif
+include $(LIBC_PREFIX)/Makefile.toolchain
 
 ## Sources
 #
@@ -80,12 +55,12 @@ ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
 .PHONY: all clean depend
 
-all: libc.a
+all: libc.a _link.ld
 
 -include Makefile.depend
 
 clean:
-	-rm -f libc.a Makefile.depend
+	-rm -f libc.a _link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
@@ -93,6 +68,9 @@ depend:
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+
+_link.ld: _link.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

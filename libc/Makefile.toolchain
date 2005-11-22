@@ -26,28 +26,31 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Make some default assumptions
+DEFS = -DARCH=$(ARCH)
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include
+LFLAGS = -M
+AFLAGS =
+
+## Setup platform configuration
 #
 
-ifndef ARCH
-	ARCH = ia32
+include $(LIBC_PREFIX)/arch/$(ARCH)/Makefile.inc
+
+## Toolchain configuration
+#
+
+ifeq ($(COMPILER),native)
+	CC = gcc
+	AS = as
+	LD = ld
+	AR = ar
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+else
+	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
+	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
+	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
+	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
+	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
+	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
-
-SOURCES = \
-	libc \
-	init
-
-CLEANS := $(addsuffix .clean,$(SOURCES))
-
-.PHONY: all $(SOURCES) $(CLEANS) clean
-
-all: $(SOURCES)
-
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
-
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
-
-$(SOURCES):
-	$(MAKE) -C $@ all ARCH=$(ARCH)

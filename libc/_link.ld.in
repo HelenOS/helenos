@@ -1,5 +1,5 @@
 OUTPUT_FORMAT(binary)
-STARTUP(libc/arch/ARCH/entry.o)
+STARTUP(../libc/arch/ARCH/entry.o)
 ENTRY(__entry)
 
 SECTIONS {

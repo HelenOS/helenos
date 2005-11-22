@@ -26,28 +26,41 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Make some default assumptions
+## Setup toolchain
 #
 
-ifndef ARCH
-	ARCH = ia32
-endif
+LIBC_PREFIX = ../libc
+include $(LIBC_PREFIX)/Makefile.toolchain
 
+## Sources
+#
+
+OUTPUT = init
 SOURCES = \
-	libc \
-	init
+	init.c
 
-CLEANS := $(addsuffix .clean,$(SOURCES))
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all $(SOURCES) $(CLEANS) clean
+.PHONY: all clean depend
 
-all: $(SOURCES)
+all: $(OUTPUT)
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+-include Makefile.depend
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map Makefile.depend
 
-$(SOURCES):
-	$(MAKE) -C $@ all ARCH=$(ARCH)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(OBJECTS)
+	$(LD) -T $(LIBC_PREFIX)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a -o $@ -Map $(OUTPUT).map
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
