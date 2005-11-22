@@ -43,5 +43,5 @@ int puts(const char * str)
 
 ssize_t write(int fd, const void * buf, size_t count)
 {
-	return __syscall(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
+	return (ssize_t) __syscall(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
 }

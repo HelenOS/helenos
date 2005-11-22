@@ -40,7 +40,7 @@ typedef enum {
 
 extern void __main(void);
 extern void __exit(void);
-extern unsigned int __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3);
+extern sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3);
 
 
 #endif

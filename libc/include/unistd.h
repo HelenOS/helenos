@@ -26,20 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libc.h>
+#ifndef __LIBC__UNISTD_H__
+#define __LIBC__UNISTD_H__
 
-sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3)
-{
-	sysarg_t ret;
-	
-	asm volatile (
-		"int $0x80\n"
-		: "=a" (ret)
-		: "a" (id),
-		  "b" (p1),
-		  "c" (p2),
-		  "d" (p3)
-	);
-	
-	return ret;
-}
+#include <types.h>
+
+#define NULL 0
+
+extern ssize_t write(int fd, const void * buf, size_t count);
+
+#endif

@@ -28,13 +28,13 @@
 
 #include <libc.h>
 
-unsigned int __syscall(const syscall_t id, const unsigned int p1, const unsigned int p2, const unsigned int p3)
+sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3)
 {
-	register unsigned int __mips_reg_a0 asm("$4") = p1;
-	register unsigned int __mips_reg_a1 asm("$5") = p2;
-	register unsigned int __mips_reg_a2 asm("$6") = p3;
-	register unsigned int __mips_reg_a3 asm("$7") = id;
-	register unsigned int __mips_reg_v0 asm("$2");
+	register sysarg_t __mips_reg_a0 asm("$4") = p1;
+	register sysarg_t __mips_reg_a1 asm("$5") = p2;
+	register sysarg_t __mips_reg_a2 asm("$6") = p3;
+	register sysarg_t __mips_reg_a3 asm("$7") = id;
+	register sysarg_t __mips_reg_v0 asm("$2");
 	
 	asm volatile (
 		"syscall\n"
