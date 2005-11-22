@@ -35,6 +35,7 @@
 #include <print.h>
 #include <symtab.h>
 #include <arch/drivers/arc.h>
+#include <arch/drivers/keyboard.h>
 
 static void print_regdump(struct exception_regdump *pstate)
 {
@@ -110,7 +111,9 @@ void interrupt(struct exception_regdump *pstate)
 					cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
 					break;
 				case 2: /* IRQ0 */
-				case 3: /* IRQ1 */
+				case KEYBOARD_IRQ:
+					keyboard();
+					break;
 				case 4: /* IRQ2 */
 				case 5: /* IRQ3 */
 				case 6: /* IRQ4 */
@@ -118,7 +121,7 @@ void interrupt(struct exception_regdump *pstate)
 					print_regdump(pstate);
 					panic("unhandled interrupt %d\n", i);
 					break;
-				case TIMER_INTERRUPT:
+				case TIMER_IRQ:
 					/* clear timer interrupt & set new */
 					cp0_compare_write(cp0_count_read() + cp0_compare_value); 
 					clock();

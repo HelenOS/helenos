@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_INTERRUPT_H__
-#define __mips32_INTERRUPT_H__
+#ifndef __mips32_KEYBOARD_H__
+#define __mips32_KEYBOARD_H__
 
-#include <arch/exception.h>
+#include <arch/types.h>
+#include <arch/interrupt.h>
 
-#define IRQ3	3
-#define IRQ7	7
+/** Address of 'keyboard' device. */
+#define KEYBOARD_ADDRESS		0xB0000004
 
-#define KEYBOARD_IRQ	IRQ3
-#define TIMER_IRQ   	IRQ7
+extern void keyboard_init(void);
+extern void keyboard(void);
 
-extern void interrupt(struct exception_regdump *pstate);
 
 #endif

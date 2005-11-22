@@ -51,9 +51,9 @@ static void key_pressed(__u8 sc);
 #define PRESSED_CAPSLOCK	(1<<1)
 #define LOCKED_CAPSLOCK		(1<<0)
 
-static spinlock_t keylock;	/**< keylock protects keyflags and lockflags. */
+static spinlock_t keylock;		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
-static volatile int lockflags;		/**< Tracking of multiple lock keys keypresses. */
+static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
 /** Primary meaning of scancodes. */
 static char sc_primary_map[] = {

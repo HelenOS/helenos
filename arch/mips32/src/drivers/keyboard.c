@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_INTERRUPT_H__
-#define __mips32_INTERRUPT_H__
+#include <arch/drivers/keyboard.h>
+#include <arch/cp0.h>
+#include <putchar.h>
 
-#include <arch/exception.h>
+void keyboard_init(void)
+{
+	/* unmask keyboard interrupt */
+	cp0_unmask_int(KEYBOARD_IRQ);
+}
 
-#define IRQ3	3
-#define IRQ7	7
-
-#define KEYBOARD_IRQ	IRQ3
-#define TIMER_IRQ   	IRQ7
-
-extern void interrupt(struct exception_regdump *pstate);
-
-#endif
+void keyboard(void)
+{
+	putchar(*((char *) KEYBOARD_ADDRESS));
+}

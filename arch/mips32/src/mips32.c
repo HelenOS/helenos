@@ -74,7 +74,7 @@ void arch_pre_mm_init(void)
 	/*
 	 * Unmask hardware clock interrupt.
 	 */
-	cp0_unmask_int(TIMER_INTERRUPT);
+	cp0_unmask_int(TIMER_IRQ);
 
 	/*
 	 * Start hardware clock.
