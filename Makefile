@@ -93,8 +93,11 @@ endif
 #
 
 GENERIC_SOURCES = \
+	generic/src/console/chardev.c \
+	generic/src/console/console.c \
 	generic/src/cpu/cpu.c \
 	generic/src/main/main.c \
+	generic/src/main/kconsole.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
 	generic/src/proc/scheduler.c \

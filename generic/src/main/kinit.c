@@ -26,10 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <main/kinit.h>
+#include <main/kconsole.h>
+#include <main/uinit.h>
 #include <config.h>
 #include <arch.h>
-#include <main/kinit.h>
-#include <main/uinit.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/thread.h>
@@ -82,7 +83,7 @@ void kinit(void *arg)
 			thread_ready(t);
 			waitq_sleep(&kmp_completion_wq);
 		}
-		else panic("thread_create/kmp");
+		else panic("thread_create/kmp\n");
 	}
 #endif /* CONFIG_SMP */
 	/*
@@ -109,11 +110,18 @@ void kinit(void *arg)
 				spinlock_unlock(&t->lock);
 				thread_ready(t);
 			}
-			else panic("thread_create/kcpulb");
+			else panic("thread_create/kcpulb\n");
 
 		}
 	}
 #endif /* CONFIG_SMP */
+
+	/*
+	 * Create kernel console.
+	 */
+	if (t = thread_create(kconsole, NULL, TASK, 0))
+		thread_ready(t);
+	else panic("thread_create/kconsole\n");
 
 	interrupts_enable();
 
@@ -123,20 +131,20 @@ void kinit(void *arg)
 	 */
 	m = vm_create(NULL);
 	if (!m)
-		panic("vm_create");
+		panic("vm_create\n");
 	u = task_create(m);
 	if (!u)
-		panic("task_create");
+		panic("task_create\n");
 	t = thread_create(uinit, NULL, u, THREAD_USER_STACK);
 	if (!t)
-		panic("thread_create");
+		panic("thread_create\n");
 
 	/*
 	 * Create the text vm_area and copy the userspace code there.
 	 */	
 	a = vm_area_create(m, VMA_TEXT, 1, UTEXT_ADDRESS);
 	if (!a)
-		panic("vm_area_create: vm_text");
+		panic("vm_area_create: vm_text\n");
 	vm_area_map(a, m);
 	memcpy((void *) PA2KA(a->mapping[0]), (void *) utext, utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);
 
@@ -145,7 +153,7 @@ void kinit(void *arg)
 	 */
 	a = vm_area_create(m, VMA_STACK, 1, USTACK_ADDRESS);
 	if (!a)
-		panic("vm_area_create: vm_stack");
+		panic("vm_area_create: vm_stack\n");
 	vm_area_map(a, m);	
 	
 	thread_ready(t);
@@ -154,7 +162,6 @@ void kinit(void *arg)
 #ifdef CONFIG_TEST
 	test();
 #endif /* CONFIG_TEST */
-
 
 	while (1) {
 		thread_sleep(60);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2003 Josef Cejka
  * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
@@ -27,16 +28,53 @@
  */
 
 #include <arch/drivers/keyboard.h>
+#include <console/chardev.h>
+#include <console/console.h>
 #include <arch/cp0.h>
 #include <putchar.h>
+#include <synch/spinlock.h>
+#include <synch/waitq.h>
+#include <typedefs.h>
 
+static chardev_t kbrd;
+
+static void keyboard_enable(void);
+
+/** Initialize keyboard subsystem. */
 void keyboard_init(void)
 {
-	/* unmask keyboard interrupt */
 	cp0_unmask_int(KEYBOARD_IRQ);
+	chardev_initialize(&kbrd, keyboard_enable);
+	stdin = &kbrd;
 }
 
+/** Process keyboard interrupt.
+ *
+ * This function is called directly from the interrupt handler.
+ * It feeds the keyboard buffer with characters read. When the buffer
+ * is full, it simply masks the keyboard interrupt signal.
+ */
 void keyboard(void)
 {
-	putchar(*((char *) KEYBOARD_ADDRESS));
+	char ch;
+
+	spinlock_lock(&kbrd.lock);
+	kbrd.counter++;
+	if (kbrd.counter == CHARDEV_BUFLEN - 1) {
+	        /* buffer full => disable keyboard interrupt */
+		cp0_mask_int(KEYBOARD_IRQ);
+	}
+
+	ch = *((char *) KEYBOARD_ADDRESS);
+	putchar(ch);
+	kbrd.buffer[kbrd.index++] = ch;
+	kbrd.index = kbrd.index % CHARDEV_BUFLEN; /* index modulo size of buffer */
+	waitq_wakeup(&kbrd.wq, WAKEUP_FIRST);
+	spinlock_unlock(&kbrd.lock);
+}
+
+/* Called from getc(). */
+void keyboard_enable(void)
+{
+	cp0_unmask_int(KEYBOARD_IRQ);
 }

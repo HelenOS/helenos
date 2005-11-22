@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2003 Josef Cejka
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +27,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPEDEFS_H__
-#define __TYPEDEFS_H__
+#include <console/console.h>
+#include <console/chardev.h>
+#include <synch/waitq.h>
+#include <synch/spinlock.h>
+#include <arch/types.h>
+#include <typedefs.h>
+#include <arch.h>
 
-#define false 0
-#define true 1
+/** Standard input character device. */
+chardev_t *stdin = NULL;
 
-typedef short bool;
+/** Get string from character device.
+ *
+ * Read characters from character device until first occurrence
+ * of newline character.
+ *
+ * @param chardev Character device.
+ * @param string Buffer where to store string terminated by '\0'.
+ * @param len Size of the buffer.
+ */
+void gets(chardev_t *chardev, __u8 *string, size_t buflen)
+{
+	index_t index = 0;
+	char ch;
 
-typedef unsigned int size_t;
-typedef unsigned int count_t;
-typedef unsigned int index_t;
+	while (index < buflen) {
+		ch = getc(chardev);
+		if (ch == '\n') { /* end of string => write 0, return */
+			string[index] = '\0';
+			return;
+		}
+		string[index++] = ch;
+	}
+	return;
+}
 
-typedef struct config config_t;
-typedef struct cpu_info cpu_info_t;
+/** Get character from character device.
+ *
+ * @param chardev Character device.
+ *
+ * @return Character read.
+ */
+__u8 getc(chardev_t *chardev)
+{
+	__u8 ch;
+	ipl_t ipl;
 
-typedef struct cpu cpu_t;
-typedef struct cpu_arch cpu_arch_t;
-typedef struct task task_t;
-typedef enum state state_t;
-typedef struct thread thread_t;
-typedef struct context context_t;
-typedef struct fpu_context fpu_context_t;
+	waitq_sleep(&chardev->wq);
+	ipl = interrupts_disable();
+	spinlock_lock(&chardev->lock);
+	ch = chardev->buffer[(chardev->index - chardev->counter) % CHARDEV_BUFLEN];
+	chardev->counter--;
+	spinlock_unlock(&chardev->lock);
+	interrupts_restore(ipl);
 
-typedef struct timeout timeout_t;
+	chardev->ready_func();
 
-typedef struct runq runq_t;
-
-typedef struct spinlock spinlock_t;
-typedef struct mutex mutex_t;
-typedef struct semaphore semaphore_t;
-typedef struct rwlock rwlock_t;
-typedef enum rwlock_type rwlock_type_t;
-typedef struct condvar condvar_t;
-typedef struct waitq waitq_t;
-
-typedef struct chunk chunk_t;
-
-typedef struct buddy_system buddy_system_t;
-typedef struct buddy_system_operations buddy_system_operations_t;
-
-typedef struct zone zone_t;
-typedef struct frame frame_t;
-
-typedef enum vm_type vm_type_t;
-typedef struct vm_area vm_area_t;
-typedef struct vm vm_t;
-
-typedef struct link link_t;
-
-typedef char *char_ptr;
-
-typedef struct the the_t;
-
-typedef struct chardev chardev_t;
-
-#endif
+	return ch;
+}

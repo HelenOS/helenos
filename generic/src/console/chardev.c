@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPEDEFS_H__
-#define __TYPEDEFS_H__
+#include <console/chardev.h>
+#include <synch/waitq.h>
+#include <synch/spinlock.h>
 
-#define false 0
-#define true 1
-
-typedef short bool;
-
-typedef unsigned int size_t;
-typedef unsigned int count_t;
-typedef unsigned int index_t;
-
-typedef struct config config_t;
-typedef struct cpu_info cpu_info_t;
-
-typedef struct cpu cpu_t;
-typedef struct cpu_arch cpu_arch_t;
-typedef struct task task_t;
-typedef enum state state_t;
-typedef struct thread thread_t;
-typedef struct context context_t;
-typedef struct fpu_context fpu_context_t;
-
-typedef struct timeout timeout_t;
-
-typedef struct runq runq_t;
-
-typedef struct spinlock spinlock_t;
-typedef struct mutex mutex_t;
-typedef struct semaphore semaphore_t;
-typedef struct rwlock rwlock_t;
-typedef enum rwlock_type rwlock_type_t;
-typedef struct condvar condvar_t;
-typedef struct waitq waitq_t;
-
-typedef struct chunk chunk_t;
-
-typedef struct buddy_system buddy_system_t;
-typedef struct buddy_system_operations buddy_system_operations_t;
-
-typedef struct zone zone_t;
-typedef struct frame frame_t;
-
-typedef enum vm_type vm_type_t;
-typedef struct vm_area vm_area_t;
-typedef struct vm vm_t;
-
-typedef struct link link_t;
-
-typedef char *char_ptr;
-
-typedef struct the the_t;
-
-typedef struct chardev chardev_t;
-
-#endif
+/** Initialize character device. */
+void chardev_initialize(chardev_t *chardev, ready_func_t r)
+{
+	waitq_initialize(&chardev->wq);
+	spinlock_initialize(&chardev->lock);
+	chardev->counter = 0;
+	chardev->index = 0;
+	chardev->ready_func = r;
+}

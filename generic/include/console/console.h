@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TYPEDEFS_H__
-#define __TYPEDEFS_H__
+#ifndef __CONSOLE_H__
+#define __CONSOLE_H__
 
-#define false 0
-#define true 1
+#include <arch/types.h>
+#include <typedefs.h>
 
-typedef short bool;
+extern chardev_t *stdin;
 
-typedef unsigned int size_t;
-typedef unsigned int count_t;
-typedef unsigned int index_t;
+extern __u8 getc(chardev_t *chardev);
+extern void gets(chardev_t *chardev, __u8 *buf, size_t buflen);
 
-typedef struct config config_t;
-typedef struct cpu_info cpu_info_t;
-
-typedef struct cpu cpu_t;
-typedef struct cpu_arch cpu_arch_t;
-typedef struct task task_t;
-typedef enum state state_t;
-typedef struct thread thread_t;
-typedef struct context context_t;
-typedef struct fpu_context fpu_context_t;
-
-typedef struct timeout timeout_t;
-
-typedef struct runq runq_t;
-
-typedef struct spinlock spinlock_t;
-typedef struct mutex mutex_t;
-typedef struct semaphore semaphore_t;
-typedef struct rwlock rwlock_t;
-typedef enum rwlock_type rwlock_type_t;
-typedef struct condvar condvar_t;
-typedef struct waitq waitq_t;
-
-typedef struct chunk chunk_t;
-
-typedef struct buddy_system buddy_system_t;
-typedef struct buddy_system_operations buddy_system_operations_t;
-
-typedef struct zone zone_t;
-typedef struct frame frame_t;
-
-typedef enum vm_type vm_type_t;
-typedef struct vm_area vm_area_t;
-typedef struct vm vm_t;
-
-typedef struct link link_t;
-
-typedef char *char_ptr;
-
-typedef struct the the_t;
-
-typedef struct chardev chardev_t;
-
-#endif
+#endif /* __CHARDEV_H__ */

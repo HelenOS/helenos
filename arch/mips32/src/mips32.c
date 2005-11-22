@@ -37,6 +37,7 @@
 #include <memstr.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
+#include <arch/drivers/keyboard.h>
 #include <proc/thread.h>
 #include <print.h>
 
@@ -82,6 +83,7 @@ void arch_pre_mm_init(void)
 	cp0_compare_write(cp0_compare_value + cp0_count_read());
 
 	console_init();
+	keyboard_init();
 	arc_print_memory_map();
 	arc_print_devices();
 }
