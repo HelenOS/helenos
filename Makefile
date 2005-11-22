@@ -37,14 +37,14 @@ endif
 #
 
 DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Iinclude
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Ilibc/include
 LFLAGS = -M
 AFLAGS =
 
 ## Setup platform configuration
 #
 
-include arch/$(ARCH)/Makefile.inc
+include libc/arch/$(ARCH)/Makefile.inc
 
 ## Toolchain configuration
 #
@@ -53,45 +53,32 @@ ifeq ($(COMPILER),native)
 	CC = gcc
 	AS = as
 	LD = ld
-	AR = ar
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 else
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
 	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-## Sources
-#
+.PHONY: all clean
 
-GENERIC_SOURCES = \
-	generic/libc.c
-
-ARCH_SOURCES = \
-	arch/$(ARCH)/entry.s
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
-
-.PHONY: all clean depend
-
-all: libc.a
-
--include Makefile.depend
+all: init
 
 clean:
-	-rm -f libc.a Makefile.depend
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
+	-rm -f init init.map _link.ld *.o
+	$(MAKE) -C libc clean
 
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+libc/libc.a:
+	$(MAKE) -C libc all
 
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+_link.ld: _link.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+
+init: init.o libc/libc.a _link.ld
+	$(LD) -T _link.ld $(LFLAGS) init.o libc/libc.a -o $@ -Map init.map
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
