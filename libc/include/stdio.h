@@ -26,9 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libc.h>
+#ifndef __LIBC__STDIO_H__
+#define __LIBC__STDIO_H__
 
-void __syscall(const unsigned int id, const unsigned int p1, const unsigned int p2, const unsigned int p3)
-{
+#include <types.h>
 
-}
+#define EOF -1
+
+extern int puts(const char * str);
+
+#endif

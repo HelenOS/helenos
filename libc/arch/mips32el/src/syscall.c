@@ -26,11 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__UNISTD_H__
-#define __LIBC__UNISTD_H__
+#include <libc.h>
 
-#define NULL 0
-
-extern void puts(const char *str);
-
-#endif
+unsigned int __syscall(const syscall_t id, const unsigned int p1, const unsigned int p2, const unsigned int p3)
+{
+	register unsigned int __mips_reg_a0 asm("$4") = p1;
+	register unsigned int __mips_reg_a1 asm("$5") = p2;
+	register unsigned int __mips_reg_a2 asm("$6") = p3;
+	register unsigned int __mips_reg_a3 asm("$7") = id;
+	register unsigned int __mips_reg_v0 asm("$2");
+	
+	asm volatile (
+		"syscall\n"
+		: "=r" (__mips_reg_v0)
+		: "r" (__mips_reg_a0),
+		  "r" (__mips_reg_a1),
+		  "r" (__mips_reg_a2),
+		  "r" (__mips_reg_a3)
+	);
+	
+	return __mips_reg_v0;
+}

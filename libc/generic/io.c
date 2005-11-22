@@ -24,23 +24,24 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ */ 
 
-#ifndef __LIBC__LIBC_H__
-#define __LIBC__LIBC_H__
+#include <libc.h>
+#include <unistd.h>
+#include <stdio.h>
 
-#include <types.h>
+int puts(const char * str)
+{
+	size_t count;
+	
+	for (count = 0; str[count] != 0; count++);
+	if (write(1, (void * ) str, count) == count)
+		return 0;
+	else
+		return EOF;
+}
 
-
-typedef enum {
-	SYS_CTL = 0,
-	SYS_IO	= 1
-} syscall_t;
-
-
-extern void __main(void);
-extern void __exit(void);
-extern unsigned int __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3);
-
-
-#endif
+ssize_t write(int fd, const void * buf, size_t count)
+{
+	return __syscall(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
+}

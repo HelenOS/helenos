@@ -26,21 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__LIBC_H__
-#define __LIBC__LIBC_H__
+#ifndef __LIBC__TYPES_H__
+#define __LIBC__TYPES_H__
 
-#include <types.h>
-
-
-typedef enum {
-	SYS_CTL = 0,
-	SYS_IO	= 1
-} syscall_t;
-
-
-extern void __main(void);
-extern void __exit(void);
-extern unsigned int __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3);
-
+typedef unsigned int sysarg_t;
+typedef unsigned int size_t;
+typedef signed int ssize_t;
 
 #endif

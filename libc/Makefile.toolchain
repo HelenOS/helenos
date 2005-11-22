@@ -27,7 +27,7 @@
 #
 
 DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include
+CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include -I$(LIBC_PREFIX)/arch/$(ARCH)/include
 LFLAGS = -M
 AFLAGS =
 

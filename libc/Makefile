@@ -30,10 +30,6 @@
 #
 
 LIBC_PREFIX = .
-DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include
-LFLAGS = -M
-AFLAGS =
 
 ## Setup toolchain
 #
@@ -44,11 +40,12 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 #
 
 GENERIC_SOURCES = \
-	generic/libc.c
+	generic/libc.c \
+	generic/io.c
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/entry.s \
-	arch/$(ARCH)/syscall.c
+	arch/$(ARCH)/src/entry.s \
+	arch/$(ARCH)/src/syscall.c
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
