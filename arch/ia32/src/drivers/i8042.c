@@ -35,6 +35,8 @@
 #include <print.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
+#include <console/chardev.h>
+#include <console/console.h>
 
 /**
  * i8042 processor driver.
@@ -54,6 +56,15 @@ static void key_pressed(__u8 sc);
 static spinlock_t keylock;		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
+
+static void i8042_suspend(void);
+static void i8042_resume(void);
+
+static chardev_t kbrd;
+static chardev_operations_t ops = {
+	.suspend = i8042_suspend,
+	.resume = i8042_resume
+};
 
 /** Primary meaning of scancodes. */
 static char sc_primary_map[] = {
@@ -220,6 +231,8 @@ void i8042_init(void)
 {
 	trap_register(VECTOR_KBD, i8042_interrupt);
 	spinlock_initialize(&keylock);
+	chardev_initialize(&kbrd, &ops);
+	stdin = &kbrd;
 }
 
 /** Process i8042 interrupt.
@@ -292,8 +305,18 @@ void key_pressed(__u8 sc)
 			shift = !shift;
 		if (shift)
 			map = sc_secondary_map;
-		putchar(map[sc]);
+		chardev_push_character(&kbrd, map[sc]);
 		break;
 	}
 	spinlock_unlock(&keylock);
+}
+
+/* Called from getc(). */
+void i8042_resume(void)
+{
+}
+
+/* Called from getc(). */
+void i8042_suspend(void)
+{
 }

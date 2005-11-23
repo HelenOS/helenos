@@ -82,7 +82,7 @@ __u8 getc(chardev_t *chardev)
 	spinlock_unlock(&chardev->lock);
 	interrupts_restore(ipl);
 
-	chardev->ready_func();
+	chardev->op->resume();
 
 	return ch;
 }

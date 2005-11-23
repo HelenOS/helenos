@@ -36,45 +36,40 @@
 #include <synch/waitq.h>
 #include <typedefs.h>
 
-static chardev_t kbrd;
-
 static void keyboard_enable(void);
+static void keyboard_disable(void);
+
+static chardev_t kbrd;
+static chardev_operations_t ops = {
+	.resume = keyboard_enable,
+	.suspend = keyboard_disable
+};
 
 /** Initialize keyboard subsystem. */
 void keyboard_init(void)
 {
 	cp0_unmask_int(KEYBOARD_IRQ);
-	chardev_initialize(&kbrd, keyboard_enable);
+	chardev_initialize(&kbrd, &ops);
 	stdin = &kbrd;
 }
 
-/** Process keyboard interrupt.
- *
- * This function is called directly from the interrupt handler.
- * It feeds the keyboard buffer with characters read. When the buffer
- * is full, it simply masks the keyboard interrupt signal.
- */
+/** Process keyboard interrupt. */
 void keyboard(void)
 {
 	char ch;
 
-	spinlock_lock(&kbrd.lock);
-	kbrd.counter++;
-	if (kbrd.counter == CHARDEV_BUFLEN - 1) {
-	        /* buffer full => disable keyboard interrupt */
-		cp0_mask_int(KEYBOARD_IRQ);
-	}
-
 	ch = *((char *) KEYBOARD_ADDRESS);
-	putchar(ch);
-	kbrd.buffer[kbrd.index++] = ch;
-	kbrd.index = kbrd.index % CHARDEV_BUFLEN; /* index modulo size of buffer */
-	waitq_wakeup(&kbrd.wq, WAKEUP_FIRST);
-	spinlock_unlock(&kbrd.lock);
+	chardev_push_character(&kbrd, ch);
 }
 
 /* Called from getc(). */
 void keyboard_enable(void)
 {
 	cp0_unmask_int(KEYBOARD_IRQ);
+}
+
+/* Called from getc(). */
+void keyboard_disable(void)
+{
+	cp0_mask_int(KEYBOARD_IRQ);
 }

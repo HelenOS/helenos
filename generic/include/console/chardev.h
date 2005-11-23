@@ -34,9 +34,15 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
-#define CHARDEV_BUFLEN 10
+#define CHARDEV_BUFLEN 512
 
-typedef void (* ready_func_t)(void);
+/* Character device operations interface. */
+struct chardev_operations {
+	void (* suspend)(void);		/**< Suspend pushing characters. */
+	void (* resume)(void);		/**< Resume pushing characters. */
+};
+
+typedef struct chardev_operations chardev_operations_t;
 
 /** Character input device. */
 struct chardev {
@@ -45,9 +51,10 @@ struct chardev {
 	__u8 buffer[CHARDEV_BUFLEN];
 	count_t counter;
 	index_t index;
-	ready_func_t ready_func;	/**< Function to re-enable input from the device. */
+	chardev_operations_t *op;	/**< Implementation of chardev operations. */
 };
 
-extern void chardev_initialize(chardev_t *chardev, ready_func_t r);
+extern void chardev_initialize(chardev_t *chardev, chardev_operations_t *op);
+void chardev_push_character(chardev_t *chardev, __u8 ch);
 
 #endif /* __CHARDEV_H__ */

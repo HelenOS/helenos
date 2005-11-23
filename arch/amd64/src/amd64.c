@@ -102,6 +102,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+        trap_virtual_enable_irqs(1<<IRQ_KBD);
 }
 
 void calibrate_delay_loop(void)
