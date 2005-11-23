@@ -40,8 +40,7 @@
 #ifdef CONFIG_SMP
 
 /*
- * This is functional, far-from-general-enough interface to the APIC.
- * Advanced Programmable Interrupt Controller for MP systems.
+ * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
  *	Bochs 2.0.2 - Bochs 2.2 with 2-8 CPUs
  *	Simics 2.0.28 - Simics 2.2.14 2-4 CPUs
@@ -82,11 +81,12 @@ void apic_init(void)
 	 */
 	io_apic_disable_irqs(0xffff);
 	trap_register(VECTOR_CLK, l_apic_timer_interrupt);
-	for (i=1; i<16; i++) {
+	for (i=0; i<16; i++) {
 		int pin;
 	
-		if ((pin = mps_irq_to_pin(i)) != -1)
-		io_apic_change_ioredtbl(pin,0xf,IVT_IRQBASE+i,LOPRI);
+		if ((pin = smp_irq_to_pin(i)) != -1) {
+			io_apic_change_ioredtbl(pin,0xff,IVT_IRQBASE+i,LOPRI);
+		}
 	}
 	
 
@@ -352,29 +352,31 @@ void io_apic_write(__u8 address, __u32 x)
 
 void io_apic_change_ioredtbl(int signal, int dest, __u8 v, int flags)
 {
-	__u32 reglo, reghi;
+	io_redirection_reg_t reg;
 	int dlvr = 0;
 	
 	if (flags & LOPRI)
-		dlvr = 1;
-	
-	reglo = io_apic_read(IOREDTBL + signal*2);
-	reghi = io_apic_read(IOREDTBL + signal*2 + 1);
-	
-	reghi &= ~0x0f000000;
-	reghi |= (dest<<24);
+		dlvr = DELMOD_LOWPRI;
 
-	reglo &= (~0x1ffff) | (1<<16); /* don't touch the mask */
-	reglo |= (0<<15) | (0<<13) | (0<<11) | (dlvr<<8) | v;
+	
+	reg.lo = io_apic_read(IOREDTBL + signal*2);
+	reg.hi = io_apic_read(IOREDTBL + signal*2 + 1);
+	
+	reg.dest =  dest;
+	reg.destmod = DESTMOD_LOGIC;
+	reg.trigger_mode = TRIGMOD_EDGE;
+	reg.intpol = POLARITY_HIGH;
+	reg.delmod = dlvr;
+	reg.intvec = v;
 
-	io_apic_write(IOREDTBL + signal*2, reglo);		
-	io_apic_write(IOREDTBL + signal*2 + 1, reghi);
+	io_apic_write(IOREDTBL + signal*2, reg.lo);
+	io_apic_write(IOREDTBL + signal*2 + 1, reg.hi);
 }
 
 void io_apic_disable_irqs(__u16 irqmask)
 {
-	int i,pin;
-	__u32 reglo;
+	io_redirection_reg_t reg;
+	int i, pin;
 	
 	for (i=0;i<16;i++) {
 		if ((irqmask>>i) & 1) {
@@ -382,11 +384,11 @@ void io_apic_disable_irqs(__u16 irqmask)
 			 * Mask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = mps_irq_to_pin(i);
+			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reglo = io_apic_read(IOREDTBL + pin*2);
-				reglo |= (1<<16);
-				io_apic_write(IOREDTBL + pin*2,reglo);
+				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.masked = true;
+				io_apic_write(IOREDTBL + pin*2, reg.lo);
 			}
 			
 		}
@@ -395,8 +397,8 @@ void io_apic_disable_irqs(__u16 irqmask)
 
 void io_apic_enable_irqs(__u16 irqmask)
 {
-	int i,pin;
-	__u32 reglo;
+	int i, pin;
+	io_redirection_reg_t reg;	
 	
 	for (i=0;i<16;i++) {
 		if ((irqmask>>i) & 1) {
@@ -404,11 +406,11 @@ void io_apic_enable_irqs(__u16 irqmask)
 			 * Unmask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = mps_irq_to_pin(i);
+			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reglo = io_apic_read(IOREDTBL + pin*2);
-				reglo &= ~(1<<16);
-				io_apic_write(IOREDTBL + pin*2,reglo);
+				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.masked = false;
+				io_apic_write(IOREDTBL + pin*2, reg.lo);
 			}
 			
 		}

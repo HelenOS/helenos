@@ -44,8 +44,12 @@ struct acpi_madt *acpi_madt = NULL;
 
 #ifdef CONFIG_SMP
 
+/** Standard ISA IRQ map; can be overriden by Interrupt Source Override entries of MADT. */
+int isa_irq_map[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
 static void madt_l_apic_entry(struct madt_l_apic *la, __u32 index);
 static void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index);
+static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index);
 static int madt_cmp(void * a, void * b);
 
 struct madt_l_apic *madt_l_apic_entries = NULL;
@@ -79,36 +83,44 @@ static count_t madt_cpu_count(void);
 static bool madt_cpu_enabled(index_t i);
 static bool madt_cpu_bootstrap(index_t i);
 static __u8 madt_cpu_apic_id(index_t i);
+static int madt_irq_to_pin(int irq);
 
 struct smp_config_operations madt_config_operations = {
 	.cpu_count = madt_cpu_count,
 	.cpu_enabled = madt_cpu_enabled,
 	.cpu_bootstrap = madt_cpu_bootstrap,
-	.cpu_apic_id = madt_cpu_apic_id
+	.cpu_apic_id = madt_cpu_apic_id,
+	.irq_to_pin = madt_irq_to_pin
 };
 
-static count_t madt_cpu_count(void)
+count_t madt_cpu_count(void)
 {
 	return madt_l_apic_entry_cnt;
 }
 
-static bool madt_cpu_enabled(index_t i)
+bool madt_cpu_enabled(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->flags & 0x1;
 
 }
 
-static bool madt_cpu_bootstrap(index_t i)
+bool madt_cpu_bootstrap(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id == l_apic_id();
 }
 
-static __u8 madt_cpu_apic_id(index_t i)
+__u8 madt_cpu_apic_id(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
+}
+
+int madt_irq_to_pin(int irq)
+{
+	ASSERT(irq < sizeof(isa_irq_map)/sizeof(int));
+        return isa_irq_map[irq];
 }
 
 int madt_cmp(void * a, void * b) 
@@ -154,6 +166,8 @@ void acpi_madt_parse(void)
 				madt_io_apic_entry((struct madt_io_apic *) h, index);
 				break;
 			case MADT_INTR_SRC_OVRD:
+				madt_intr_src_ovrd_entry((struct madt_intr_src_ovrd *) h, index);
+				break;
 			case MADT_NMI_SRC:
 			case MADT_L_APIC_NMI:
 			case MADT_L_APIC_ADDR_OVRD:
@@ -209,5 +223,12 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 	}
 }
 
+void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
+{
+	ASSERT(override->source < sizeof(isa_irq_map)/sizeof(int));
+	printf("Remapping irq%d to IO APIC pin%d\n",  override->source, override->global_intr);
+	isa_irq_map[override->source] = override->global_intr;
+	
+}
 
 #endif /* CONFIG_SMP */

@@ -69,7 +69,6 @@ void arch_pre_mm_init(void)
 
 	if (config.cpu_active == 1) {
 		bios_init();
-		i8042_init();	/* a20 bit */
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
 
@@ -102,7 +101,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-        trap_virtual_enable_irqs(1<<IRQ_KBD);
+		i8042_init();	/* keyboard controller */
 }
 
 void calibrate_delay_loop(void)

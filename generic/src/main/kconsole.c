@@ -49,5 +49,6 @@ void kconsole(void *arg)
 	while (true) {
 		printf("%s> ", __FUNCTION__);
 		gets(stdin, buf, sizeof(buf));
+		printf("?\n");
 	}
 }

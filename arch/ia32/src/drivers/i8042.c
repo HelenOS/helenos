@@ -43,6 +43,14 @@
  * It takes care of low-level keyboard functions.
  */
 
+#define i8042_DATA		0x60
+#define i8042_STATUS		0x64
+
+/** Keyboard commands. */
+#define KBD_ENABLE	0xf4
+#define KBD_DISABLE	0xf5
+#define KBD_ACK		0xfa
+
 #define SPECIAL		'?'
 #define KEY_RELEASE	0x80
 
@@ -230,6 +238,7 @@ static char sc_secondary_map[] = {
 void i8042_init(void)
 {
 	trap_register(VECTOR_KBD, i8042_interrupt);
+	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	spinlock_initialize(&keylock);
 	chardev_initialize(&kbrd, &ops);
 	stdin = &kbrd;
@@ -245,7 +254,7 @@ void i8042_interrupt(__u8 n, __native stack[])
 	__u8 x;
 
 	trap_virtual_eoi();
-	x = inb(0x60);
+	x = inb(i8042_DATA);
 	if (x & KEY_RELEASE)
 		key_released(x ^ KEY_RELEASE);
 	else

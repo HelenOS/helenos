@@ -32,11 +32,15 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+/** SMP config opertaions interface. */
 struct smp_config_operations {
-	count_t (* cpu_count)(void);
-	bool (* cpu_enabled)(index_t i);
-	bool (*cpu_bootstrap)(index_t i);
-	__u8 (*cpu_apic_id)(index_t i);
+	count_t (* cpu_count)(void);		/**< Return number of detected processors. */
+	bool (* cpu_enabled)(index_t i);	/**< Check whether the processor of index i is enabled. */
+	bool (*cpu_bootstrap)(index_t i);	/**< Check whether the processor of index i is BSP. */
+	__u8 (*cpu_apic_id)(index_t i);		/**< Return APIC ID of the processor of index i. */
+	int (*irq_to_pin)(int irq);		/**< Return mapping between irq and APIC pin. */
 };
+
+extern int smp_irq_to_pin(int irq);
 
 #endif

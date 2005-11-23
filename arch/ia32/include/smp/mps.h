@@ -120,8 +120,6 @@ extern waitq_t kmp_completion_wq;
 
 extern struct smp_config_operations mps_config_operations;
 
-extern int mps_irq_to_pin(int irq);
-
 extern void mps_init(void);
 extern void kmp(void *arg);
 

@@ -89,12 +89,14 @@ static count_t get_cpu_count(void);
 static bool is_cpu_enabled(index_t i);
 static bool is_bsp(index_t i);
 static __u8 get_cpu_apic_id(index_t i);
+static int mps_irq_to_pin(int irq);
 
 struct smp_config_operations mps_config_operations = {
 	.cpu_count = get_cpu_count,
 	.cpu_enabled = is_cpu_enabled,
 	.cpu_bootstrap = is_bsp,
-	.cpu_apic_id = get_cpu_apic_id
+	.cpu_apic_id = get_cpu_apic_id,
+	.irq_to_pin = mps_irq_to_pin
 };
 
 count_t get_cpu_count(void)

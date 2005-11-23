@@ -117,6 +117,11 @@ void kinit(void *arg)
 #endif /* CONFIG_SMP */
 
 	/*
+	 * At this point SMP, if present, is configured.
+	 */
+	arch_post_smp_init();
+
+	/*
 	 * Create kernel console.
 	 */
 	if (t = thread_create(kconsole, NULL, TASK, 0))
@@ -164,7 +169,7 @@ void kinit(void *arg)
 #endif /* CONFIG_TEST */
 
 	while (1) {
-		thread_sleep(60);
+		thread_sleep(1);
 		printf("kinit... ");
 	}
 

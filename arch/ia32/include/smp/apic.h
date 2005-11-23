@@ -114,6 +114,55 @@
 #define IOAPICARB	0x02
 #define IOREDTBL	0x10
 
+/** Delivery modes. */
+#define DELMOD_FIXED	0x0
+#define DELMOD_LOWPRI	0x1
+#define DELMOD_SMI	0x2
+/* 0x3 reserved */
+#define DELMOD_NMI	0x4
+#define DELMOD_INIT	0x5
+/* 0x6 reserved */
+#define DELMOD_EXTINT	0x7
+
+/** Destination modes. */
+#define DESTMOD_PHYS	0x0
+#define DESTMOD_LOGIC	0x1
+
+/** Trigger Modes. */
+#define TRIGMOD_EDGE	0x0
+#define TRIGMOD_LEVEL	0x1
+
+/** Interrupt Input Pin Polarities. */
+#define POLARITY_HIGH	0x0
+#define POLARITY_LOW	0x1
+
+/** I/O Redirection Register. */
+struct io_redirection_reg {
+	union {
+		__u32 lo;
+		struct {
+			unsigned intvec : 8;		/**< Interrupt Vector. */
+			unsigned delmod : 3;		/**< Delivery Mode. */
+			unsigned destmod : 1; 		/**< Destination mode. */
+			unsigned delivs : 1;		/**< Delivery status (RO). */
+			unsigned intpol : 1;		/**< Interrupt Input Pin Polarity. */
+			unsigned irr : 1;		/**< Remote IRR (RO). */
+			unsigned trigger_mode : 1;	/**< Trigger Mode. */
+			unsigned masked : 1;		/**< Interrupt Mask. */
+			unsigned : 15;			/**< Reserved. */
+		};
+	};
+	union {
+		__u32 hi;
+		struct {
+			unsigned : 24;			/**< Reserved. */
+			unsigned dest : 8;		/**< Destination Field. */
+		};
+	};
+	
+} __attribute__ ((packed));
+
+typedef struct io_redirection_reg io_redirection_reg_t;
 
 extern volatile __u32 *l_apic;
 extern volatile __u32 *io_apic;

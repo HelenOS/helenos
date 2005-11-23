@@ -165,4 +165,10 @@ void kmp(void *arg)
 	waitq_wakeup(&kmp_completion_wq, WAKEUP_FIRST);
 }
 
+int smp_irq_to_pin(int irq)
+{
+	ASSERT(ops != NULL);
+	return ops->irq_to_pin(irq);
+}
+
 #endif /* CONFIG_SMP */
