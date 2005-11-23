@@ -43,7 +43,7 @@
  * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
  *	Bochs 2.0.2 - Bochs 2.2 with 2-8 CPUs
- *	Simics 2.0.28 - Simics 2.2.14 2-4 CPUs
+ *	Simics 2.0.28 - Simics 2.2.19 2-8 CPUs
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
  *	ASUS PCH-DL with 2x 3000Mhz Pentium 4 Xeon (HT) CPUs
  *	MSI K7D Master-L with 2x 2100MHz Athlon MP CPUs
@@ -64,6 +64,7 @@ __u32 apic_id_mask = 0;
 
 int apic_poll_errors(void);
 
+/** Initialize APIC on BSP. */
 void apic_init(void)
 {
 	__u32 tmp, id, i;
@@ -85,7 +86,7 @@ void apic_init(void)
 		int pin;
 	
 		if ((pin = smp_irq_to_pin(i)) != -1) {
-			io_apic_change_ioredtbl(pin,0xff,IVT_IRQBASE+i,LOPRI);
+			io_apic_change_ioredtbl(pin, 0xff, IVT_IRQBASE+i, LOPRI);
 		}
 	}
 	
@@ -147,19 +148,20 @@ int apic_poll_errors(void)
  */
 int l_apic_broadcast_custom_ipi(__u8 vector)
 {
-	__u32 lo;
+	icr_t icr;
 
-	/*
-	 * Read the ICR register in and zero all non-reserved fields.
-	 */
-	lo = l_apic[ICRlo] & ICRloClear;
+	icr.lo = l_apic[ICRlo];
+	icr.delmod = DELMOD_FIXED;
+	icr.destmod = DESTMOD_LOGIC;
+	icr.level = LEVEL_ASSERT;
+	icr.shorthand = SHORTHAND_ALL_EXCL;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	icr.vector = vector;
 
-	lo |= DLVRMODE_FIXED | DESTMODE_LOGIC | LEVEL_ASSERT | SHORTHAND_EXCL | TRGRMODE_LEVEL | vector;
-	
-	l_apic[ICRlo] = lo;
+	l_apic[ICRlo] = icr.lo;
 
-	lo = l_apic[ICRlo] & ICRloClear;
-	if (lo & SEND_PENDING)
+	icr.lo = l_apic[ICRlo];
+	if (icr.lo & SEND_PENDING)
 		printf("IPI is pending.\n");
 
 	return apic_poll_errors();
@@ -170,20 +172,25 @@ int l_apic_broadcast_custom_ipi(__u8 vector)
  */
 int l_apic_send_init_ipi(__u8 apicid)
 {
-	__u32 lo, hi;
+	icr_t icr;
 	int i;
 
 	/*
 	 * Read the ICR register in and zero all non-reserved fields.
 	 */
-	lo = l_apic[ICRlo] & ICRloClear;
-	hi = l_apic[ICRhi] & ICRhiClear;
+	icr.lo = l_apic[ICRlo];
+	icr.hi = l_apic[ICRhi];
 	
-	lo |= DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST | TRGRMODE_LEVEL;
-	hi |= apicid << 24;
+	icr.delmod = DELMOD_INIT;
+	icr.destmod = DESTMOD_PHYS;
+	icr.level = LEVEL_ASSERT;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	icr.shorthand = SHORTHAND_NONE;
+	icr.vector = 0;
+	icr.dest = apicid;
 	
-	l_apic[ICRhi] = hi;
-	l_apic[ICRlo] = lo;
+	l_apic[ICRhi] = icr.hi;
+	l_apic[ICRlo] = icr.lo;
 
 	/*
 	 * According to MP Specification, 20us should be enough to
@@ -193,11 +200,17 @@ int l_apic_send_init_ipi(__u8 apicid)
 
 	if (!apic_poll_errors()) return 0;
 
-	lo = l_apic[ICRlo] & ICRloClear;
-	if (lo & SEND_PENDING)
+	icr.lo = l_apic[ICRlo];
+	if (icr.lo & SEND_PENDING)
 		printf("IPI is pending.\n");
 
-	l_apic[ICRlo] = lo | DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_DEASSERT | SHORTHAND_DEST | TRGRMODE_LEVEL;
+	icr.delmod = DELMOD_INIT;
+	icr.destmod = DESTMOD_PHYS;
+	icr.level = LEVEL_DEASSERT;
+	icr.shorthand = SHORTHAND_NONE;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	icr.vector = 0;
+	l_apic[ICRlo] = icr.lo;
 
 	/*
 	 * Wait 10ms as MP Specification specifies.
@@ -209,9 +222,14 @@ int l_apic_send_init_ipi(__u8 apicid)
 		 * If this is not 82489DX-based l_apic we must send two STARTUP IPI's.
 		 */
 		for (i = 0; i<2; i++) {
-			lo = l_apic[ICRlo] & ICRloClear;
-			lo |= ((__address) ap_boot) / 4096; /* calculate the reset vector */
-			l_apic[ICRlo] = lo | DLVRMODE_STUP | DESTMODE_PHYS | LEVEL_ASSERT | SHORTHAND_DEST | TRGRMODE_LEVEL;
+			icr.lo = l_apic[ICRlo];
+			icr.vector = ((__address) ap_boot) / 4096; /* calculate the reset vector */
+			icr.delmod = DELMOD_STARTUP;
+			icr.destmod = DESTMOD_PHYS;
+			icr.level = LEVEL_ASSERT;
+			icr.shorthand = SHORTHAND_NONE;
+			icr.trigger_mode = TRIGMOD_LEVEL;
+			l_apic[ICRlo] = icr.lo;
 			delay(200);
 		}
 	}
@@ -222,22 +240,47 @@ int l_apic_send_init_ipi(__u8 apicid)
 
 void l_apic_init(void)
 {
-	__u32 tmp, t1, t2;
+	lvt_error_t error;
+	lvt_lint_t lint;
+	svr_t svr;
+	lvt_tm_t tm;
+	icr_t icr;
+	__u32 t1, t2;
 
-	l_apic[LVT_Err] |= (1<<16);
-	l_apic[LVT_LINT0] |= (1<<16);
-	l_apic[LVT_LINT1] |= (1<<16);
+	/* Initialize LVT Error register. */
+	error.value = l_apic[LVT_Err];
+	error.masked = true;
+	l_apic[LVT_Err] = error.value;
 
-	tmp = l_apic[SVR] & SVRClear;
-	l_apic[SVR] = tmp | (1<<8) | (VECTOR_APIC_SPUR);
+	/* Initialize LVT LINT0 register. */
+	lint.value = l_apic[LVT_LINT0];
+	lint.masked = true;
+	l_apic[LVT_LINT0] = lint.value;
+
+	/* Initialize LVT LINT1 register. */
+	lint.value = l_apic[LVT_LINT1];
+	lint.masked = true;
+	l_apic[LVT_LINT1] = lint.value;
+	
+	/* Spurious-Interrupt Vector Register initialization. */
+	svr.value = l_apic[SVR];
+	svr.vector = VECTOR_APIC_SPUR;
+	svr.lapic_enabled = true;
+	l_apic[SVR] = svr.value;
 
 	l_apic[TPR] &= TPRClear;
 
 	if (CPU->arch.family >= 6)
 		enable_l_apic_in_msr();
 	
-	tmp = l_apic[ICRlo] & ICRloClear;
-	l_apic[ICRlo] = tmp | DLVRMODE_INIT | DESTMODE_PHYS | LEVEL_DEASSERT | SHORTHAND_INCL | TRGRMODE_LEVEL;
+	/* Interrupt Command Register initialization. */
+	icr.lo = l_apic[ICRlo];
+	icr.delmod = DELMOD_INIT;
+	icr.destmod = DESTMOD_PHYS;
+	icr.level = LEVEL_DEASSERT;
+	icr.shorthand = SHORTHAND_ALL_INCL;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	l_apic[ICRlo] = icr.lo;
 	
 	/*
 	 * Program the timer for periodic mode and respective vector.
@@ -245,8 +288,12 @@ void l_apic_init(void)
 
 	l_apic[TDCR] &= TDCRClear;
 	l_apic[TDCR] |= 0xb;
-	tmp = l_apic[LVT_Tm] | (1<<17) | (VECTOR_CLK);
-	l_apic[LVT_Tm] = tmp & ~(1<<16);
+
+	tm.value = l_apic[LVT_Tm];
+	tm.vector = VECTOR_CLK;
+	tm.mode = TIMER_PERIODIC;
+	tm.masked = false;
+	l_apic[LVT_Tm] = tm.value;
 
 	t1 = l_apic[CCRT];
 	l_apic[ICRT] = 0xffffffff;

@@ -39,26 +39,68 @@
 #define IPI_INIT 	0
 #define IPI_STARTUP	0
 
-#define DLVRMODE_FIXED	(0<<8)
-#define DLVRMODE_INIT	(5<<8)
-#define DLVRMODE_STUP	(6<<8)
-#define DESTMODE_PHYS	(0<<11)
-#define DESTMODE_LOGIC	(1<<11)
-#define LEVEL_ASSERT	(1<<14)
-#define LEVEL_DEASSERT	(0<<14)
-#define TRGRMODE_LEVEL	(1<<15)
-#define TRGRMODE_EDGE	(0<<15)
-#define SHORTHAND_DEST	(0<<18)
-#define SHORTHAND_INCL	(2<<18)
-#define SHORTHAND_EXCL	(3<<18)
+/** Delivery modes. */
+#define DELMOD_FIXED	0x0
+#define DELMOD_LOWPRI	0x1
+#define DELMOD_SMI	0x2
+/* 0x3 reserved */
+#define DELMOD_NMI	0x4
+#define DELMOD_INIT	0x5
+#define DELMOD_STARTUP	0x6
+#define DELMOD_EXTINT	0x7
+
+/** Destination modes. */
+#define DESTMOD_PHYS	0x0
+#define DESTMOD_LOGIC	0x1
+
+/** Trigger Modes. */
+#define TRIGMOD_EDGE	0x0
+#define TRIGMOD_LEVEL	0x1
+
+/** Levels. */
+#define LEVEL_DEASSERT	0x0
+#define LEVEL_ASSERT	0x1
+
+/** Destination Shorthands. */
+#define SHORTHAND_NONE		0x0
+#define SHORTHAND_SELF		0x1
+#define SHORTHAND_ALL_INCL	0x2
+#define SHORTHAND_ALL_EXCL	0x3
+
+/** Interrupt Input Pin Polarities. */
+#define POLARITY_HIGH	0x0
+#define POLARITY_LOW	0x1
 
 #define SEND_PENDING	(1<<12)
 
-/* Interrupt Command Register */
+/** Interrupt Command Register. */
 #define ICRlo		(0x300/sizeof(__u32))
 #define ICRhi		(0x310/sizeof(__u32))
-#define ICRloClear	((1<<13)|(3<<16)|(0xfff<<20))
-#define ICRhiClear	(0xffffff<<0)
+struct icr {
+	union {
+		__u32 lo;
+		struct {
+			__u8 vector;			/**< Interrupt Vector. */
+			unsigned delmod : 3;		/**< Delivery Mode. */
+			unsigned destmod : 1;		/**< Destination Mode. */
+			unsigned delivs : 1;		/**< Delivery status (RO). */
+			unsigned : 1;			/**< Reserved. */
+			unsigned level : 1;		/**< Level. */
+			unsigned trigger_mode : 1;	/**< Trigger Mode. */
+			unsigned : 2;			/**< Reserved. */
+			unsigned shorthand : 2;		/**< Destination Shorthand. */
+			unsigned : 12;			/**< Reserved. */
+		} __attribute__ ((packed));
+	};
+	union {
+		__u32 hi;
+		struct {
+			unsigned : 24;			/**< Reserved. */
+			__u8 dest;			/**< Destination field. */
+		} __attribute__ ((packed));
+	};
+} __attribute__ ((packed));
+typedef struct icr icr_t;
 
 /* End Of Interrupt */
 #define EOI		(0x0b0/sizeof(__u32))
@@ -71,11 +113,20 @@
 #define TPR		(0x080/sizeof(__u32))
 #define TPRClear	0xffffff00
 
-/* Spurious Vector Register */
+/** Spurious-Interrupt Vector Register. */
 #define SVR		(0x0f0/sizeof(__u32))
-#define SVRClear	(~0x3f0)
+union svr {
+	__u32 value;
+	struct {
+		__u8 vector;			/**< Spurious Vector */
+		unsigned lapic_enabled : 1;	/**< APIC Software Enable/Disable */
+		unsigned focus_checking : 1;	/**< Focus Processor Checking */
+		unsigned : 22;			/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union svr svr_t;
 
-/* Time Divide Configuratio Register */
+/* Time Divide Configuration Register */
 #define TDCR		(0x3e0/sizeof(__u32))
 #define TDCRClear	(~0xb)
 
@@ -85,11 +136,61 @@
 /* Current Count Register for Timer */
 #define CCRT		(0x390/sizeof(__u32))
 
-/* LVT */
+/** Timer Modes. */
+#define TIMER_ONESHOT	0x0
+#define TIMER_PERIODIC	0x1
+
+/** LVT Timer register. */
 #define LVT_Tm		(0x320/sizeof(__u32))
+union lvt_tm {
+	__u32 value;
+	struct {
+		__u8 vector;		/**< Local Timer Interrupt vector. */
+		unsigned : 4;		/**< Reserved. */
+		unsigned delivs : 1;	/**< Delivery status (RO). */
+		unsigned : 3;		/**< Reserved. */
+		unsigned masked : 1;	/**< Interrupt Mask. */
+		unsigned mode : 1;	/**< Timer Mode. */
+		unsigned : 14;		/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union lvt_tm lvt_tm_t;
+
+/** LVT LINT registers. */
 #define LVT_LINT0	(0x350/sizeof(__u32))
 #define LVT_LINT1	(0x360/sizeof(__u32))
+union lvt_lint {
+	__u32 value;
+	struct {
+		__u8 vector;			/**< LINT Interrupt vector. */
+		unsigned delmod : 3;		/**< Delivery Mode. */
+		unsigned : 1;			/**< Reserved. */
+		unsigned delivs : 1;		/**< Delivery status (RO). */
+		unsigned intpol : 1;		/**< Interrupt Input Pin Polarity. */
+		unsigned irr : 1;		/**< Remote IRR (RO). */
+		unsigned trigger_mode : 1;	/**< Trigger Mode. */
+		unsigned masked : 1;		/**< Interrupt Mask. */
+		unsigned : 15;			/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union lvt_lint lvt_lint_t;
+
+/** LVT Error register. */
 #define LVT_Err		(0x370/sizeof(__u32))
+union lvt_error {
+	__u32 value;
+	struct {
+		__u8 vector;		/**< Local Timer Interrupt vector. */
+		unsigned : 4;		/**< Reserved. */
+		unsigned delivs : 1;	/**< Delivery status (RO). */
+		unsigned : 3;		/**< Reserved. */
+		unsigned masked : 1;	/**< Interrupt Mask. */
+		unsigned : 15;		/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union lvt_error lvt_error_t;
+
+
 #define LVT_PCINT	(0x340/sizeof(__u32))
 
 /* Local APIC ID Register */
@@ -114,34 +215,12 @@
 #define IOAPICARB	0x02
 #define IOREDTBL	0x10
 
-/** Delivery modes. */
-#define DELMOD_FIXED	0x0
-#define DELMOD_LOWPRI	0x1
-#define DELMOD_SMI	0x2
-/* 0x3 reserved */
-#define DELMOD_NMI	0x4
-#define DELMOD_INIT	0x5
-/* 0x6 reserved */
-#define DELMOD_EXTINT	0x7
-
-/** Destination modes. */
-#define DESTMOD_PHYS	0x0
-#define DESTMOD_LOGIC	0x1
-
-/** Trigger Modes. */
-#define TRIGMOD_EDGE	0x0
-#define TRIGMOD_LEVEL	0x1
-
-/** Interrupt Input Pin Polarities. */
-#define POLARITY_HIGH	0x0
-#define POLARITY_LOW	0x1
-
 /** I/O Redirection Register. */
 struct io_redirection_reg {
 	union {
 		__u32 lo;
 		struct {
-			unsigned intvec : 8;		/**< Interrupt Vector. */
+			__u8 intvec;			/**< Interrupt Vector. */
 			unsigned delmod : 3;		/**< Delivery Mode. */
 			unsigned destmod : 1; 		/**< Destination mode. */
 			unsigned delivs : 1;		/**< Delivery status (RO). */
@@ -150,14 +229,14 @@ struct io_redirection_reg {
 			unsigned trigger_mode : 1;	/**< Trigger Mode. */
 			unsigned masked : 1;		/**< Interrupt Mask. */
 			unsigned : 15;			/**< Reserved. */
-		};
+		} __attribute__ ((packed));
 	};
 	union {
 		__u32 hi;
 		struct {
 			unsigned : 24;			/**< Reserved. */
-			unsigned dest : 8;		/**< Destination Field. */
-		};
+			__u8 dest : 8;		/**< Destination Field. */
+		} __attribute__ ((packed));
 	};
 	
 } __attribute__ ((packed));
