@@ -226,9 +226,9 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
 {
 	ASSERT(override->source < sizeof(isa_irq_map)/sizeof(int));
-	printf("Remapping irq%d to IO APIC pin%d\n",  override->source, override->global_intr);
-	isa_irq_map[override->source] = override->global_intr;
-	
+	printf("MADT: ignoring %s entry: bus=%d, source=%d, global_int=%d, flags=%W\n",
+		entry[override->header.type], override->bus, override->source,
+		override->global_int, override->flags);
 }
 
 #endif /* CONFIG_SMP */

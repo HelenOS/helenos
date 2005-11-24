@@ -35,6 +35,8 @@
 #define FIXED		(0<<0)
 #define LOPRI		(1<<0)
 
+#define APIC_ID_COUNT	16
+
 /* local APIC macros */
 #define IPI_INIT 	0
 #define IPI_STARTUP	0
@@ -85,7 +87,12 @@
 #define TIMER_ONESHOT	0x0
 #define TIMER_PERIODIC	0x1
 
-#define SEND_PENDING	(1<<12)
+/** Delivery status. */
+#define DELIVS_IDLE	0x0
+#define DELIVS_PENDING	0x1
+
+/** Destination masks. */
+#define DEST_ALL	0xff
 
 /** Interrupt Command Register. */
 #define ICRlo		(0x300/sizeof(__u32))
@@ -224,14 +231,14 @@ typedef union lvt_error lvt_error_t;
 
 /** Local APIC ID Register. */
 #define L_APIC_ID	(0x020/sizeof(__u32))
-union lapic_id {
+union l_apic_id {
 	__u32 value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
 		__u8 apic_id;		/**< Local APIC ID. */
 	} __attribute__ ((packed));
 };
-typedef union lapic_id lapic_id_t;
+typedef union l_apic_id l_apic_id_t;
 
 /* Local APIC Version Register */
 #define LAVR		(0x030/sizeof(__u32))
@@ -284,8 +291,19 @@ struct io_redirection_reg {
 	};
 	
 } __attribute__ ((packed));
-
 typedef struct io_redirection_reg io_redirection_reg_t;
+
+
+/** IO APIC Identification Register. */
+union io_apic_id {
+	__u32 value;
+	struct {
+		unsigned : 24;		/**< Reserved. */
+		unsigned apic_id : 4;	/**< IO APIC ID. */
+		unsigned : 4;		/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union io_apic_id io_apic_id_t;
 
 extern volatile __u32 *l_apic;
 extern volatile __u32 *io_apic;

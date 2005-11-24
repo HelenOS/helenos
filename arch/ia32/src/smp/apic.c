@@ -64,6 +64,7 @@ __u32 apic_id_mask = 0;
 
 static int apic_poll_errors(void);
 
+#ifdef LAPIC_VERBOSE
 static char *delmod_str[] = {
 	"Fixed",
 	"Lowest Priority",
@@ -104,11 +105,13 @@ static char *intpol_str[] = {
 	"Polarity High",
 	"Polarity Low"
 };
+#endif /* LAPIC_VERBOSE */
 
 /** Initialize APIC on BSP. */
 void apic_init(void)
 {
-	__u32 tmp, id, i;
+	io_apic_id_t idreg;
+	int i;
 
 	trap_register(VECTOR_APIC_SPUR, apic_spurious);
 
@@ -123,26 +126,23 @@ void apic_init(void)
 	 */
 	io_apic_disable_irqs(0xffff);
 	trap_register(VECTOR_CLK, l_apic_timer_interrupt);
-	for (i=0; i<16; i++) {
+	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
 	
 		if ((pin = smp_irq_to_pin(i)) != -1) {
-			io_apic_change_ioredtbl(pin, 0xff, IVT_IRQBASE+i, LOPRI);
+			io_apic_change_ioredtbl(pin, DEST_ALL, IVT_IRQBASE+i, LOPRI);
 		}
 	}
 	
-
 	/*
 	 * Ensure that io_apic has unique ID.
 	 */
-	tmp = io_apic_read(IOAPICID);
-	id = (tmp >> 24) & 0xf;
-	if ((1<<id) & apic_id_mask) {
-		int i;
-		
-		for (i=0; i<15; i++) {
+	idreg.value = io_apic_read(IOAPICID);
+	if ((1<<idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
+		for (i = 0; i < APIC_ID_COUNT; i++) {
 			if (!((1<<i) & apic_id_mask)) {
-				io_apic_write(IOAPICID, (tmp & (~(0xf<<24))) | (i<<24));
+				idreg.apic_id = i;
+				io_apic_write(IOAPICID, idreg.value);
 				break;
 			}
 		}
@@ -152,6 +152,7 @@ void apic_init(void)
 	 * Configure the BSP's lapic.
 	 */
 	l_apic_init();
+
 	l_apic_debug();	
 }
 
@@ -178,9 +179,9 @@ int apic_poll_errors(void)
 	esr.value = l_apic[ESR];
 	
 	if (esr.send_checksum_error)
-		printf("Send CS Error\n");
+		printf("Send Checksum Error\n");
 	if (esr.receive_checksum_error)
-		printf("Receive CS Error\n");
+		printf("Receive Checksum Error\n");
 	if (esr.send_accept_error)
 		printf("Send Accept Error\n");
 	if (esr.receive_accept_error)
@@ -216,7 +217,7 @@ int l_apic_broadcast_custom_ipi(__u8 vector)
 	l_apic[ICRlo] = icr.lo;
 
 	icr.lo = l_apic[ICRlo];
-	if (icr.lo & SEND_PENDING)
+	if (icr.delivs == DELIVS_PENDING)
 		printf("IPI is pending.\n");
 
 	return apic_poll_errors();
@@ -259,7 +260,7 @@ int l_apic_send_init_ipi(__u8 apicid)
 	if (!apic_poll_errors()) return 0;
 
 	icr.lo = l_apic[ICRlo];
-	if (icr.lo & SEND_PENDING)
+	if (icr.delivs == DELIVS_PENDING)
 		printf("IPI is pending.\n");
 
 	icr.delmod = DELMOD_INIT;
@@ -291,7 +292,6 @@ int l_apic_send_init_ipi(__u8 apicid)
 			delay(200);
 		}
 	}
-	
 	
 	return apic_poll_errors();
 }
@@ -366,7 +366,6 @@ void l_apic_init(void)
 	t2 = l_apic[CCRT];
 	
 	l_apic[ICRT] = t1-t2;
-	
 }
 
 /** Local APIC End of Interrupt. */
@@ -413,10 +412,10 @@ void l_apic_timer_interrupt(__u8 n, __native stack[])
  */
 __u8 l_apic_id(void)
 {
-	lapic_id_t lapic_id;
+	l_apic_id_t idreg;
 	
-	lapic_id.value = l_apic[L_APIC_ID];
-	return lapic_id.apic_id;
+	idreg.value = l_apic[L_APIC_ID];
+	return idreg.apic_id;
 }
 
 /** Read from IO APIC register.
@@ -490,7 +489,7 @@ void io_apic_disable_irqs(__u16 irqmask)
 	int i, pin;
 	
 	for (i=0;i<16;i++) {
-		if ((irqmask>>i) & 1) {
+		if (irqmask & (1<<i)) {
 			/*
 			 * Mask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
@@ -516,7 +515,7 @@ void io_apic_enable_irqs(__u16 irqmask)
 	io_redirection_reg_t reg;	
 	
 	for (i=0;i<16;i++) {
-		if ((irqmask>>i) & 1) {
+		if (irqmask & (1<<i)) {
 			/*
 			 * Unmask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
@@ -530,7 +529,6 @@ void io_apic_enable_irqs(__u16 irqmask)
 			
 		}
 	}
-
 }
 
 #endif /* CONFIG_SMP */

@@ -79,7 +79,7 @@ struct madt_intr_src_ovrd {
 	struct madt_apic_header header;
 	__u8 bus;
 	__u8 source;
-	__u32 global_intr;
+	__u32 global_int;
 	__u16 flags;
 } __attribute__ ((packed));
 
