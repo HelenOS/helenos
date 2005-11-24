@@ -60,10 +60,10 @@ void i8254_init(void)
 void i8254_normal_operation(void)
 {
 	outb(CLK_PORT4, 0x36);
-	trap_virtual_disable_irqs(1<<IRQ_CLK);
+	pic_disable_irqs(1<<IRQ_CLK);
 	outb(CLK_PORT1, (CLK_CONST/HZ) & 0xf);
 	outb(CLK_PORT1, (CLK_CONST/HZ) >> 8);
-	trap_virtual_enable_irqs(1<<IRQ_CLK);
+	pic_enable_irqs(1<<IRQ_CLK);
 	trap_register(VECTOR_CLK, i8254_interrupt);
 }
 

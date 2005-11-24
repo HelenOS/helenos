@@ -94,5 +94,11 @@ void arch_post_smp_init(void)
 void calibrate_delay_loop(void)
 {
 	i8254_calibrate_delay_loop();
-	i8254_normal_operation();
+	if (config.cpu_active == 1) {
+		/*
+		 * This has to be done only on UP.
+		 * On SMP, i8254 is not used for time keeping and its interrupt pin remains masked.
+		 */
+		i8254_normal_operation();
+	}
 }

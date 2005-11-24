@@ -71,6 +71,20 @@
 #define POLARITY_HIGH	0x0
 #define POLARITY_LOW	0x1
 
+/** Divide Values. (Bit 2 is always 0) */
+#define DIVIDE_2	0x0
+#define DIVIDE_4	0x1
+#define DIVIDE_8	0x2
+#define DIVIDE_16	0x3
+#define DIVIDE_32	0x8
+#define DIVIDE_64	0x9
+#define DIVIDE_128	0xa
+#define DIVIDE_1	0xb
+
+/** Timer Modes. */
+#define TIMER_ONESHOT	0x0
+#define TIMER_PERIODIC	0x1
+
 #define SEND_PENDING	(1<<12)
 
 /** Interrupt Command Register. */
@@ -105,9 +119,24 @@ typedef struct icr icr_t;
 /* End Of Interrupt */
 #define EOI		(0x0b0/sizeof(__u32))
 
-/* Error Status Register */
+/** Error Status Register. */
 #define ESR		(0x280/sizeof(__u32))
-#define ESRClear	((0xffffff<<8)|(1<<4))
+union esr {
+	__u32 value;
+	__u8 err_bitmap;
+	struct {
+		unsigned send_checksum_error : 1;
+		unsigned receive_checksum_error : 1;
+		unsigned send_accept_error : 1;
+		unsigned receive_accept_error : 1;
+		unsigned : 1;
+		unsigned send_illegal_vector : 1;
+		unsigned received_illegal_vector : 1;
+		unsigned illegal_register_address : 1;
+		unsigned : 24;
+	} __attribute__ ((packed));
+};
+typedef union esr esr_t;
 
 /* Task Priority Register */
 #define TPR		(0x080/sizeof(__u32))
@@ -126,19 +155,22 @@ union svr {
 };
 typedef union svr svr_t;
 
-/* Time Divide Configuration Register */
+/** Time Divide Configuration Register. */
 #define TDCR		(0x3e0/sizeof(__u32))
-#define TDCRClear	(~0xb)
+union tdcr {
+	__u32 value;
+	struct {
+		unsigned div_value : 4;		/**< Divide Value, bit 2 is always 0. */
+		unsigned : 28;			/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union tdcr tdcr_t;
 
 /* Initial Count Register for Timer */
 #define ICRT		(0x380/sizeof(__u32))
 
 /* Current Count Register for Timer */
 #define CCRT		(0x390/sizeof(__u32))
-
-/** Timer Modes. */
-#define TIMER_ONESHOT	0x0
-#define TIMER_PERIODIC	0x1
 
 /** LVT Timer register. */
 #define LVT_Tm		(0x320/sizeof(__u32))
@@ -190,14 +222,16 @@ union lvt_error {
 };
 typedef union lvt_error lvt_error_t;
 
-
-#define LVT_PCINT	(0x340/sizeof(__u32))
-
-/* Local APIC ID Register */
+/** Local APIC ID Register. */
 #define L_APIC_ID	(0x020/sizeof(__u32))
-#define L_APIC_IDClear	(~(0xf<<24))
-#define L_APIC_IDShift	24
-#define L_APIC_IDMask	0xf
+union lapic_id {
+	__u32 value;
+	struct {
+		unsigned : 24;		/**< Reserved. */
+		__u8 apic_id;		/**< Local APIC ID. */
+	} __attribute__ ((packed));
+};
+typedef union lapic_id lapic_id_t;
 
 /* Local APIC Version Register */
 #define LAVR		(0x030/sizeof(__u32))
@@ -214,6 +248,16 @@ typedef union lvt_error lvt_error_t;
 #define IOAPICVER	0x01
 #define IOAPICARB	0x02
 #define IOREDTBL	0x10
+
+/** I/O Register Select Register. */
+union io_regsel {
+	__u32 value;
+	struct {
+		__u8 reg_addr;		/**< APIC Register Address. */
+		unsigned : 24;		/**< Reserved. */
+	} __attribute__ ((packed));
+};
+typedef union io_regsel io_regsel_t;
 
 /** I/O Redirection Register. */
 struct io_redirection_reg {
@@ -261,7 +305,7 @@ extern __u8 l_apic_id(void);
 
 extern __u32 io_apic_read(__u8 address);
 extern void io_apic_write(__u8 address , __u32 x);
-extern void io_apic_change_ioredtbl(int signal, int dest, __u8 v, int flags);
+extern void io_apic_change_ioredtbl(int pin, int dest, __u8 v, int flags);
 extern void io_apic_disable_irqs(__u16 irqmask);
 extern void io_apic_enable_irqs(__u16 irqmask);
 
