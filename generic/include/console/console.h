@@ -35,6 +35,6 @@
 extern chardev_t *stdin;
 
 extern __u8 getc(chardev_t *chardev);
-extern void gets(chardev_t *chardev, __u8 *buf, size_t buflen);
+extern count_t gets(chardev_t *chardev, char *buf, size_t buflen);
 
 #endif /* __CHARDEV_H__ */

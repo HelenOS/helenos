@@ -37,6 +37,7 @@
 #include <typedefs.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <macros.h>
 
 /**
  * i8042 processor driver.
@@ -307,7 +308,7 @@ void key_pressed(__u8 sc)
 		keyflags |= PRESSED_CAPSLOCK;
 		break;
 	    default:
-	    	letter = (ascii >= 'a') && (ascii <= 'z');
+	    	letter = is_lower(ascii);
 		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
 		shift = keyflags & PRESSED_SHIFT;
 		if (letter && capslock)

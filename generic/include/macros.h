@@ -26,43 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __KCONSOLE_H__
-#define __KCONSOLE_H__
+#ifndef __MACROS_H__
+#define __MACROS_H__
 
-#include <typedefs.h>
-#include <list.h>
-#include <synch/spinlock.h>
-
-enum cmd_arg_type {
-	ARG_TYPE_INVALID = 0,
-	ARG_TYPE_INT,
-	ARG_TYPE_STRING
-};
-
-/** Structure representing one argument of kconsole command line. */
-struct cmd_arg {
-	cmd_arg_type_t type;		/**< Type descriptor. */
-	void *buffer;			/**< Buffer where to store data. */
-	size_t buflen;			/**< Size of the buffer. */
-};
-
-/** Structure representing one kconsole command. */
-struct cmd_info {
-	link_t link;			/**< Command list link. */
-	spinlock_t lock;		/**< This lock protects everything below. */
-	const char *name;		/**< Command name. */
-	const char *description;	/**< Textual description. */
-	int (* func)(cmd_arg_t *cmd);	/**< Function implementing the command. */
-	count_t argc;			/**< Number of arguments. */
-	cmd_arg_t *argv;		/**< Argument vector. */
-};
-
-extern spinlock_t cmd_lock;
-extern link_t cmd_head;
-
-extern void kconsole_init(void);
-extern void kconsole(void *arg);
-
-extern int cmd_register(cmd_info_t *cmd);
+#define is_digit(d)	(((d) >= '0') && ((d)<='9'))
+#define is_lower(c)	(((c) >= 'a') && ((c) <= 'z'))
+#define is_upper(c)	(((c) >= 'A') && ((c) <= 'Z'))
+#define is_alpha(c)	(is_lower(c) || is_upper(c))
+#define is_alphanum(c)	(is_alpha(c) || is_digit(c))
+#define is_white(c)	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
 
 #endif

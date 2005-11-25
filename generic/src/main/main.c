@@ -36,6 +36,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <main/kinit.h>
+#include <main/kconsole.h>
 #include <cpu.h>
 #include <align.h>
 
@@ -156,6 +157,13 @@ void main_bsp_separated_stack(void)
 	thread_t *t;
 	
 	the_initialize(THE);
+	
+	/*
+	 * kconsole data structures must be initialized very early
+	 * because other subsystems will register their respective
+	 * commands.
+	 */
+	kconsole_init();
 	
 	arch_pre_mm_init();
 	early_heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);

@@ -30,11 +30,13 @@
 #define __FUNC_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 extern __u32 haltstate;
 
 extern void halt(void);
 
-extern int strcmp(const char *src, const char *dst);
+extern size_t strlen(const char *str);
+extern int strcmp(const char *src, const char *dst, size_t len);
 
 #endif

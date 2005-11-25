@@ -41,8 +41,10 @@
 #include <mm/page.h>
 #include <arch/mm/page.h>
 #include <mm/vm.h>
+#include <mm/frame.h>
 #include <print.h>
 #include <memstr.h>
+#include <console/console.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
@@ -55,7 +57,7 @@
 #include <test.h>
 #endif /* CONFIG_TEST */
 
-#include <mm/frame.h>
+
 
 void kinit(void *arg)
 {
@@ -168,9 +170,11 @@ void kinit(void *arg)
 	test();
 #endif /* CONFIG_TEST */
 
-	while (1) {
-		thread_sleep(1);
-		printf("kinit... ");
+	if (!stdin) {
+		while (1) {
+			thread_sleep(1);
+			printf("kinit... ");
+		}
 	}
 
 }

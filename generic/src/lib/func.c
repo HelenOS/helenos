@@ -31,6 +31,7 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <typedefs.h>
 
 __u32	haltstate = 0; /**< Halt flag */
 
@@ -51,26 +52,43 @@ void halt(void)
 	cpu_halt();
 }
 
+/** Return number of characters in a string.
+ *
+ * @param str NULL terminated string.
+ *
+ * @return Number of characters in str.
+ */
+size_t strlen(const char *str)
+{
+	int i;
+	
+	for (i = 0; str[i]; i++)
+		;
+	
+	return i;
+}
 
 /** Compare two NULL terminated strings
  *
- * Do a char-by-char comparment of two NULL terminated strings.
- * The strings are considered equal iff they have the same
- * length and consist of the same characters.
+ * Do a char-by-char comparison of two NULL terminated strings.
+ * The strings are considered equal iff they consist of the same
+ * characters on the minimum of their lengths and specified maximal
+ * length.
  *
  * @param src First string to compare.
  * @param dst Second string to compare.
+ * @param len Maximal length for comparison.
  *
  * @return 0 if the strings are equal, 1 otherwise.
  *
  */
-int strcmp(const char *src, const char *dst)
+int strcmp(const char *src, const char *dst, size_t len)
 {
 	int i;
 	
 	i = 0;
-	while (src[i] == dst[i]) {
-		if (src[i] == '\0')
+	while ((i < len) && (src[i] == dst[i])) {
+		if ((i == len - 1) || (src[i] == '\0'))
 			return 0;
 		i++;
 	}

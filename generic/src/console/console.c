@@ -44,10 +44,12 @@ chardev_t *stdin = NULL;
  * of newline character.
  *
  * @param chardev Character device.
- * @param string Buffer where to store string terminated by '\0'.
+ * @param buf Buffer where to store string terminated by '\0'.
  * @param len Size of the buffer.
+ *
+ * @return Number of characters read.
  */
-void gets(chardev_t *chardev, __u8 *string, size_t buflen)
+count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 {
 	index_t index = 0;
 	char ch;
@@ -55,12 +57,12 @@ void gets(chardev_t *chardev, __u8 *string, size_t buflen)
 	while (index < buflen) {
 		ch = getc(chardev);
 		if (ch == '\n') { /* end of string => write 0, return */
-			string[index] = '\0';
-			return;
+			buf[index] = '\0';
+			return (count_t) index;
 		}
-		string[index++] = ch;
+		buf[index++] = ch;
 	}
-	return;
+	return (count_t) index;
 }
 
 /** Get character from character device.
