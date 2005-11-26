@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <main/kconsole.h>
+#include <console/kconsole.h>
 #include <console/console.h>
 #include <console/chardev.h>
 #include <print.h>
@@ -37,14 +37,15 @@
 #include <arch.h>
 #include <func.h>
 #include <macros.h>
+#include <debug.h>
 
 #define MAX_CMDLINE	256
 
 /** Simple kernel console.
  *
  * The console is realized by kernel thread kconsole.
- * It doesn't understand any commands on its own, but
- * makes it possible for other kernel subsystems to
+ * It doesn't understand any useful command on its own,
+ * but makes it possible for other kernel subsystems to
  * register their own commands.
  */
  
@@ -67,9 +68,22 @@ spinlock_t cmd_lock;	/**< Lock protecting command list. */
 link_t cmd_head;	/**< Command list. */
 
 static cmd_info_t *parse_cmdline(char *cmdline, size_t len);
-static int cmd_help(cmd_arg_t *cmd);
+static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end);
 
+/** Data and methods for 'help' command. */
+static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info;
+
+/** Data and methods for 'description' command. */
+static int cmd_desc(cmd_arg_t *argv);
+static void desc_help(void);
+static cmd_info_t desc_info;
+static char desc_buf[MAX_CMDLINE+1];
+static cmd_arg_t desc_argv = {
+	.type = ARG_TYPE_STRING,
+	.buffer = desc_buf,
+	.len = sizeof(desc_buf)
+};
 
 /** Initialize kconsole data structures. */
 void kconsole_init(void)
@@ -80,14 +94,29 @@ void kconsole_init(void)
 	help_info.name = "help";
 	help_info.description = "List supported commands.";
 	help_info.func = cmd_help;
+	help_info.help = NULL;
 	help_info.argc = 0;
 	help_info.argv = NULL;
-	
+
 	spinlock_initialize(&help_info.lock);
 	link_initialize(&help_info.link);
-	
+
 	if (!cmd_register(&help_info))
-		panic("could not register command\n");
+		panic("could not register command %s\n", help_info.name);
+
+
+	desc_info.name = "describe";
+	desc_info.description = "Describe specified command.";
+	desc_info.help = desc_help;
+	desc_info.func = cmd_desc;
+	desc_info.argc = 1;
+	desc_info.argv = &desc_argv;
+	
+	spinlock_initialize(&desc_info.lock);
+	link_initialize(&desc_info.link);
+	
+	if (!cmd_register(&desc_info))
+		panic("could not register command %s\n", desc_info.name);
 }
 
 
@@ -129,7 +158,7 @@ int cmd_register(cmd_info_t *cmd)
 			spinlock_lock(&hlp->lock);
 		}
 		
-		if ((strcmp(hlp->name, cmd->name, strlen(cmd->name)) == 0)) {
+		if ((strncmp(hlp->name, cmd->name, strlen(cmd->name)) == 0)) {
 			/* The command is already there. */
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd->lock);
@@ -169,13 +198,12 @@ void kconsole(void *arg)
 	
 	while (true) {
 		printf("%s> ", __FUNCTION__);
-		len = gets(stdin, cmdline, sizeof(cmdline));
+		if (!(len = gets(stdin, cmdline, sizeof(cmdline))))
+			continue;
 		cmdline[len] = '\0';
 		cmd_info = parse_cmdline(cmdline, len);
-		if (!cmd_info) {
-			printf("?\n");
+		if (!cmd_info)
 			continue;
-		}
 		(void) cmd_info->func(cmd_info->argv);
 	}
 }
@@ -190,26 +218,12 @@ void kconsole(void *arg)
 cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 {
 	index_t start = 0, end = 0;
-	bool found_start = false;
 	cmd_info_t *cmd = NULL;
 	link_t *cur;
 	ipl_t ipl;
 	int i;
 	
-	for (i = 0; i < len; i++) {
-		if (!found_start) {
-			if (is_white(cmdline[i]))
-				start++;
-			else
-				found_start = true;
-		} else {
-			if (is_white(cmdline[i]))
-				break;
-		}
-	}
-	end = i - 1;
-	
-	if (!found_start) {
+	if (!parse_argument(cmdline, len, &start, &end)) {
 		/* Command line did not contain alphanumeric word. */
 		return NULL;
 	}
@@ -223,7 +237,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		
-		if (strcmp(hlp->name, &cmdline[start], (end - start) + 1) == 0) {
+		if (strncmp(hlp->name, &cmdline[start], (end - start) + 1) == 0) {
 			cmd = hlp;
 			break;
 		}
@@ -235,6 +249,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	
 	if (!cmd) {
 		/* Unknown command. */
+		printf("Unknown command.\n");
 		interrupts_restore(ipl);
 		return NULL;
 	}
@@ -242,25 +257,95 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	/* cmd == hlp is locked */
 	
 	/*
-	 * TODO:
 	 * The command line must be further analyzed and
 	 * the parameters therefrom must be matched and
 	 * converted to those specified in the cmd info
 	 * structure.
 	 */
+
+	for (i = 0; i < cmd->argc; i++) {
+		char *buf;
+		start = end + 1;
+		if (!parse_argument(cmdline, len, &start, &end)) {
+			printf("Too few arguments.\n");
+			spinlock_unlock(&cmd->lock);
+			interrupts_restore(ipl);
+			return NULL;
+		}
+		
+		switch (cmd->argv[i].type) {
+		    case ARG_TYPE_STRING:
+		    	buf = cmd->argv[i].buffer;
+		    	strncpy(buf, (const char *) &cmdline[start], min((end - start) + 1, cmd->argv[i].len - 1));
+			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
+			break;
+		    case ARG_TYPE_INT:
+		    case ARG_TYPE_INVALID:
+		    default:
+			panic("invalid argument type\n");
+			break;
+		}
+	}
+	
+	start = end + 1;
+	if (parse_argument(cmdline, len, &start, &end)) {
+		printf("Too many arguments.\n");
+		spinlock_unlock(&cmd->lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
 	
 	spinlock_unlock(&cmd->lock);
 	interrupts_restore(ipl);
 	return cmd;
 }
 
+/** Parse argument.
+ *
+ * Find start and end positions of command line argument.
+ *
+ * @param cmdline Command line as read from the input device.
+ * @param len Number of characters in cmdline.
+ * @param start On entry, 'start' contains pointer to the index 
+ *        of first unprocessed character of cmdline.
+ *        On successful exit, it marks beginning of the next argument.
+ * @param end Undefined on entry. On exit, 'end' points to the last character
+ *        of the next argument.
+ *
+ * @return false on failure, true on success.
+ */
+bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end)
+{
+	int i;
+	bool found_start = false;
+	
+	ASSERT(start != NULL);
+	ASSERT(end != NULL);
+	
+	for (i = *start; i < len; i++) {
+		if (!found_start) {
+			if (is_white(cmdline[i]))
+				(*start)++;
+			else
+				found_start = true;
+		} else {
+			if (is_white(cmdline[i]))
+				break;
+		}
+	}
+	*end = i - 1;
+
+	return found_start;
+}
+
+
 /** List supported commands.
  *
- * @param cmd Argument vector.
+ * @param argv Argument vector.
  *
  * @return 0 on failure, 1 on success.
  */
-int cmd_help(cmd_arg_t *cmd)
+int cmd_help(cmd_arg_t *argv)
 {
 	link_t *cur;
 	ipl_t ipl;
@@ -274,7 +359,7 @@ int cmd_help(cmd_arg_t *cmd)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		
-		printf("%s\t%s\n", hlp->name, hlp->description);
+		printf("%s - %s\n", hlp->name, hlp->description);
 
 		spinlock_unlock(&hlp->lock);
 	}
@@ -283,4 +368,47 @@ int cmd_help(cmd_arg_t *cmd)
 	interrupts_restore(ipl);
 
 	return 1;
+}
+
+/** Describe specified command.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int cmd_desc(cmd_arg_t *argv)
+{
+	link_t *cur;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&cmd_lock);
+	
+	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+		cmd_info_t *hlp;
+		
+		hlp = list_get_instance(cur, cmd_info_t, link);
+		spinlock_lock(&hlp->lock);
+
+		if (strncmp(hlp->name, (const char *) argv->buffer, strlen(hlp->name)) == 0) {
+			printf("%s - %s\n", hlp->name, hlp->description);
+			if (hlp->help)
+				hlp->help();
+			spinlock_unlock(&hlp->lock);
+			break;
+		}
+
+		spinlock_unlock(&hlp->lock);
+	}
+	
+	spinlock_unlock(&cmd_lock);	
+	interrupts_restore(ipl);
+
+	return 1;
+}
+
+/** Print detailed description of 'describe' command. */
+void desc_help(void)
+{
+	printf("Syntax: describe command_name\n");
 }

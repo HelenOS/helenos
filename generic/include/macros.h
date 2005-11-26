@@ -36,4 +36,7 @@
 #define is_alphanum(c)	(is_alpha(c) || is_digit(c))
 #define is_white(c)	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
 
+#define min(a,b)	((a)<(b)?(a):(b))
+#define max(a,b)	((a)>(b)?(a):(b))
+
 #endif

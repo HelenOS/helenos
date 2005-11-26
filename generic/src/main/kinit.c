@@ -27,7 +27,6 @@
  */
 
 #include <main/kinit.h>
-#include <main/kconsole.h>
 #include <main/uinit.h>
 #include <config.h>
 #include <arch.h>
@@ -45,6 +44,7 @@
 #include <print.h>
 #include <memstr.h>
 #include <console/console.h>
+#include <console/kconsole.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>

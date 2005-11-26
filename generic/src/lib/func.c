@@ -82,7 +82,7 @@ size_t strlen(const char *str)
  * @return 0 if the strings are equal, 1 otherwise.
  *
  */
-int strcmp(const char *src, const char *dst, size_t len)
+int strncmp(const char *src, const char *dst, size_t len)
 {
 	int i;
 	
@@ -95,3 +95,21 @@ int strcmp(const char *src, const char *dst, size_t len)
 	return 1;
 }
 
+/** Copy NULL terminated string.
+ *
+ * Copy at most 'len' characters from string 'src' to 'dest'.
+ * If 'src' is shorter than 'len', '\0' is inserted behind the
+ * last copied character.
+ *
+ * @param src Source string.
+ * @param dst Destination buffer.
+ * @param len Size of destination buffer.
+ */
+void strncpy(char *dest, const char *src, size_t len)
+{
+	int i;
+	for (i = 0; i < len; i++) {
+		if (!(dest[i] = src[i]))
+			return;
+	}
+}

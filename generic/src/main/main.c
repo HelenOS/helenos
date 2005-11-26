@@ -36,7 +36,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <main/kinit.h>
-#include <main/kconsole.h>
+#include <console/kconsole.h>
 #include <cpu.h>
 #include <align.h>
 

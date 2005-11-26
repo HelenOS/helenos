@@ -43,7 +43,7 @@ enum cmd_arg_type {
 struct cmd_arg {
 	cmd_arg_type_t type;		/**< Type descriptor. */
 	void *buffer;			/**< Buffer where to store data. */
-	size_t buflen;			/**< Size of the buffer. */
+	size_t len;			/**< Size of the buffer. */
 };
 
 /** Structure representing one kconsole command. */
@@ -52,9 +52,10 @@ struct cmd_info {
 	spinlock_t lock;		/**< This lock protects everything below. */
 	const char *name;		/**< Command name. */
 	const char *description;	/**< Textual description. */
-	int (* func)(cmd_arg_t *cmd);	/**< Function implementing the command. */
+	int (* func)(cmd_arg_t *);	/**< Function implementing the command. */
 	count_t argc;			/**< Number of arguments. */
 	cmd_arg_t *argv;		/**< Argument vector. */
+	void (* help)(void);		/**< Function for printing detailed help. */
 };
 
 extern spinlock_t cmd_lock;
