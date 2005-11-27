@@ -35,6 +35,8 @@
 #include <arch/barrier.h>
 #include <time/clock.h>
 
+void keyboard(void);
+
 /** Initialize Interval Timer. */
 void it_init(void)
 {
@@ -63,4 +65,5 @@ void it_interrupt(void)
 	itm_write(itc_read() + IT_DELTA);	/* program next interruption */
 	srlz_d();				/* propagate changes */
 	clock();
+	keyboard();
 }

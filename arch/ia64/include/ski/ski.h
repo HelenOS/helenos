@@ -29,10 +29,15 @@
 #ifndef __SKI_H__
 #define __SKI_H__
 
+#include <arch/types.h>
+
+
 #define SKI_INIT_CONSOLE	20
+#define SKI_GETCHAR		21
 #define SKI_PUTCHAR		31
 
 extern void ski_init_console(void);
 extern void ski_putchar(const char ch);
+extern  __s32 ski_getchar(void);
 	
 #endif

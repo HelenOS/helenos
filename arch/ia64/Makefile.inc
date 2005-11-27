@@ -56,4 +56,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/fmath.c \
 	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/drivers/it.c
+	arch/$(ARCH)/src/drivers/it.c \
+	arch/$(ARCH)/src/drivers/keyboard.c

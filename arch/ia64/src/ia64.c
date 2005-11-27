@@ -32,6 +32,9 @@
 #include <arch/interrupt.h>
 #include <arch/barrier.h>
 #include <arch/types.h>
+#include <arch/drivers/keyboard.h>
+
+#include <console/console.h>
 
 void arch_pre_mm_init(void)
 {
@@ -40,6 +43,7 @@ void arch_pre_mm_init(void)
 	srlz_d();
 	
 	ski_init_console();
+	keyboard_init();
 	it_init();
 }
 

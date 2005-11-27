@@ -64,3 +64,26 @@ void ski_putchar(const char ch)
 	
 	if (ch == '\n') ski_putchar('\r');
 }
+
+
+/** Display character on debug console
+ *
+ * Use SSC (Simulator System Call) to
+ * get character from debug console.
+ */
+__s32 ski_getchar(void)
+{
+	__u64 ch;
+	
+	__asm__ (
+		"mov r15=%0\n"
+		"break 0x80000;;\n"	/* modifies r8 */
+		"mov %1=r8;;\n"		
+
+		:
+		: "i" (SKI_GETCHAR), "r" (ch)
+		: "r15",  "r8"
+	);
+
+	return (__s32)ch;
+}
