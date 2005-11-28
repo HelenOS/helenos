@@ -70,6 +70,8 @@ void ski_putchar(const char ch)
  *
  * Use SSC (Simulator System Call) to
  * get character from debug console.
+ * Non blocking HW call
+ * @return Returns ascii code of pressed key or 0 if no key pressed
  */
 __s32 ski_getchar(void)
 {
