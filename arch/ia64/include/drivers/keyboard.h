@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@
 #include <arch/ski/ski.h>
 
 extern void keyboard_init(void);
-extern void keyboard(void);
+extern void poll_keyboard(void);
 
 
 #endif

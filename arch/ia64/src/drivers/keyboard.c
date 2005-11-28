@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2003 Josef Cejka
  * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,17 +55,17 @@ void keyboard_init(void)
 {
 	chardev_initialize(&kbrd, &ops);
 	stdin = &kbrd;
-	kb_disable = 0;
+	kb_disable = false;
 }
 
 /** Process keyboard interrupt. */
-void keyboard(void)
+void poll_keyboard(void)
 {
 	if(kb_disable) return;
 	char ch;
 
 	ch = ski_getchar();
-	if(ch==13) ch=10; 
+	if(ch=='\r') ch='\n'; 
 	if(ch) chardev_push_character(&kbrd, ch);
 	
 }
@@ -72,11 +73,11 @@ void keyboard(void)
 /* Called from getc(). */
 void keyboard_enable(void)
 {
-	kb_disable=0;
+	kb_disable=false;
 }
 
 /* Called from getc(). */
 void keyboard_disable(void)
 {
-	kb_disable=1;	
+	kb_disable=true;	
 }
