@@ -57,8 +57,14 @@
 #include <test.h>
 #endif /* CONFIG_TEST */
 
-
-
+/** Kernel initialization thread.
+ *
+ * kinit takes care of higher level kernel
+ * initialization (i.e. thread creation,
+ * userspace initialization etc.).
+ *
+ * @param arg Not used.
+ */
 void kinit(void *arg)
 {
 	vm_t *m;

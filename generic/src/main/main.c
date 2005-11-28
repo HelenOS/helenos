@@ -76,8 +76,8 @@ char *copyright = "Copyright (C) 2001-2005 HelenOS project";
 config_t config;
 context_t ctx;
 
-/*
- * These 'hardcoded' variables will be intialised by
+/**
+ * These 'hardcoded' variables will be intialized by
  * the linker or the low level assembler code with
  * appropriate sizes and addresses.
  */
@@ -88,18 +88,18 @@ size_t hardcoded_kdata_size = 0;
 __address init_addr = 0;
 size_t init_size = 0;
 
-/*
+/**
  * Size of memory in bytes taken by kernel and heap.
  */
 static size_t kernel_size;
 
-/*
+/**
  * Size of heap.
  */
 static size_t heap_size;
 
 
-/*
+/**
  * Extra space between heap and stack
  * enforced by alignment requirements.
  */

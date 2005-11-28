@@ -1,6 +1,4 @@
 /*
- * Copyright (C) 2003 Josef Cejka
- * Copyright (C) 2005 Jakub Jermar
  * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
@@ -46,9 +44,7 @@ static chardev_operations_t ops = {
 	.suspend = keyboard_disable
 };
 
-
-int kb_disable;
-
+bool kb_disable;
 
 /** Initialize keyboard subsystem. */
 void keyboard_init(void)
@@ -58,26 +54,29 @@ void keyboard_init(void)
 	kb_disable = false;
 }
 
-/** Process keyboard interrupt. */
+/** Ask keyboard if a key was pressed. */
 void poll_keyboard(void)
 {
-	if(kb_disable) return;
 	char ch;
 
+	if (kb_disable)
+		return;
+
 	ch = ski_getchar();
-	if(ch=='\r') ch='\n'; 
-	if(ch) chardev_push_character(&kbrd, ch);
-	
+	if(ch == '\r')
+		ch = '\n'; 
+	if (ch)
+		chardev_push_character(&kbrd, ch);
 }
 
 /* Called from getc(). */
 void keyboard_enable(void)
 {
-	kb_disable=false;
+	kb_disable = false;
 }
 
 /* Called from getc(). */
 void keyboard_disable(void)
 {
-	kb_disable=true;	
+	kb_disable = true;	
 }

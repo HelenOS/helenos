@@ -19,7 +19,7 @@ SMP COMPATIBILITY
         o Bochs 2.0.2 - Bochs 2.2.1
                 o 2x-8x 686 CPU
         o Simics 2.0.28 - Simics 2.2.19
-                o 2x-8x Pentium 4 CPU
+                o 2x-15x Pentium 4 CPU
 	o VMware Workstation 5.5
 		o 2x CPU
         o ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41

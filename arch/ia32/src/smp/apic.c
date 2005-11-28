@@ -43,7 +43,7 @@
  * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
  *	Bochs 2.0.2 - Bochs 2.2 with 2-8 CPUs
- *	Simics 2.0.28 - Simics 2.2.19 2-8 CPUs
+ *	Simics 2.0.28 - Simics 2.2.19 2-15 CPUs
  *	VMware Workstation 5.5 with 2 CPUs
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
  *	ASUS PCH-DL with 2x 3000Mhz Pentium 4 Xeon (HT) CPUs

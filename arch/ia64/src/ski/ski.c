@@ -65,13 +65,14 @@ void ski_putchar(const char ch)
 	if (ch == '\n') ski_putchar('\r');
 }
 
-
-/** Display character on debug console
+/** Ask debug console if a key was pressed.
  *
  * Use SSC (Simulator System Call) to
  * get character from debug console.
- * Non blocking HW call
- * @return Returns ascii code of pressed key or 0 if no key pressed
+ *
+ * This call is non-blocking.
+ *
+ * @return ASCII code of pressed key or 0 if no key pressed.
  */
 __s32 ski_getchar(void)
 {
