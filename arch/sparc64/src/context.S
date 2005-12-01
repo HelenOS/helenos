@@ -27,6 +27,7 @@
 #
 
 #include <arch/context_offset.h>
+#include <arch/stack.h>
 	
 .text   
 
@@ -72,7 +73,7 @@
 
 	
 context_save_arch:
-	save %sp, -128, %sp
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	CONTEXT_STORE %i0
 
 	# context_save returns 1
@@ -81,10 +82,10 @@ context_save_arch:
 	restore %sp, 128, %sp
 	
 context_restore_arch:
-	save %sp, -128, %sp
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	CONTEXT_LOAD %i0
 
 	# context_restore returns 0
 	xor %i0, %i0, %i0			
 	ret
-	restore %sp, 128, %sp	
+	restore %sp, STACK_WINDOW_SAVE_AREA_SIZE, %sp	
