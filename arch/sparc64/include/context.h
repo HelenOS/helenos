@@ -49,7 +49,6 @@
 
 #define context_set(c, _pc, stack, size)                                                                \
         (c)->pc = ((__address) _pc) - 8;                                                                \
-	(c)->fp = NULL;											\
         (c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA)
 
 /*
@@ -58,14 +57,13 @@
  * register window.
  */
 struct context {
-	__u64 i1;
-	__u64 i2;
-	__u64 i3;
-	__u64 i4;
-	__u64 i5;
-	__address fp;		/* %i6 */
-	__address pc;		/* %i7 */
-	__address sp;
+	__u64 o1;
+	__u64 o2;
+	__u64 o3;
+	__u64 o4;
+	__u64 o5;
+	__address sp;		/* %o6 */
+	__address pc;		/* %o7 */
 	ipl_t ipl;
 };
 

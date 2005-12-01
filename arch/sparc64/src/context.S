@@ -35,42 +35,36 @@
 .global context_restore_arch
 
 .macro CONTEXT_STORE r
-	stx %i1, [\r + OFFSET_I1]
-	stx %i2, [\r + OFFSET_I2]
-	stx %i3, [\r + OFFSET_I3]
-	stx %i4, [\r + OFFSET_I4]
-	stx %i5, [\r + OFFSET_I5]
-	stx %fp, [\r + OFFSET_FP]
-	stx %i7, [\r + OFFSET_PC]
+	stx %o1, [\r + OFFSET_I1]
+	stx %o2, [\r + OFFSET_I2]
+	stx %o3, [\r + OFFSET_I3]
+	stx %o4, [\r + OFFSET_I4]
+	stx %o5, [\r + OFFSET_I5]
+	stx %o7, [\r + OFFSET_PC]
 	stx %sp, [\r + OFFSET_SP]
 .endm
 
 .macro CONTEXT_LOAD r
-	ldx [\r + OFFSET_I1], %i1
-	ldx [\r + OFFSET_I2], %i2
-	ldx [\r + OFFSET_I3], %i3
-	ldx [\r + OFFSET_I4], %i4
-	ldx [\r + OFFSET_I5], %i5
-	ldx [\r + OFFSET_FP], %fp
-	ldx [\r + OFFSET_PC], %i7
+	ldx [\r + OFFSET_I1], %o1
+	ldx [\r + OFFSET_I2], %o2
+	ldx [\r + OFFSET_I3], %o3
+	ldx [\r + OFFSET_I4], %o4
+	ldx [\r + OFFSET_I5], %o5
+	ldx [\r + OFFSET_PC], %o7
 	ldx [\r + OFFSET_SP], %sp
 .endm
 
 	
 context_save_arch:
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	CONTEXT_STORE %i0
+	CONTEXT_STORE %o0
 
 	# context_save returns 1
-	mov 1, %i0
-	ret
-	restore %sp, STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	retl
+	mov 1, %o0
 
 context_restore_arch:
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	CONTEXT_LOAD %i0
+	CONTEXT_LOAD %o0
 
 	# context_restore returns 0
-	xor %i0, %i0, %i0
-	ret
-	restore %sp, STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	retl
+	xor %o0, %o0, %o0
