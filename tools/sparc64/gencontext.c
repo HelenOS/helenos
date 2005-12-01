@@ -34,6 +34,7 @@ int main(void)
 	fprintf(f,"#define OFFSET_O5  0x%x\n",((int)&pctx->o5) - (int )pctx);
 	fprintf(f,"#define OFFSET_SP  0x%x\n",((int)&pctx->sp) - (int )pctx);
 	fprintf(f,"#define OFFSET_PC  0x%x\n",((int)&pctx->pc) - (int )pctx);
+	fprintf(f,"#define OFFSET_FP  0x%x\n",((int)&pctx->fp) - (int )pctx);
 
 	fclose(f);
 

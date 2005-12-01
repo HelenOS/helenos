@@ -7,3 +7,4 @@
 #define OFFSET_O5  0x20
 #define OFFSET_SP  0x28
 #define OFFSET_PC  0x30
+#define OFFSET_FP  0x38

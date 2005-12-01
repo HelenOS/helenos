@@ -47,9 +47,11 @@
 #undef context_set
 #endif
 
-#define context_set(c, _pc, stack, size)                                                                \
-        (c)->pc = ((__address) _pc) - 8;                                                                \
-        (c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA)
+#define context_set(c, _pc, stack, size)								\
+        (c)->pc = ((__address) _pc) - 8;								\
+        (c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
+	(c)->fp = -STACK_BIAS
+	
 
 /*
  * Only save registers that must be preserved across
@@ -64,6 +66,7 @@ struct context {
 	__u64 o5;
 	__address sp;		/* %o6 */
 	__address pc;		/* %o7 */
+	__address fp;
 	ipl_t ipl;
 };
 
