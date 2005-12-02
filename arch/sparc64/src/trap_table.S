@@ -26,59 +26,75 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/context_offset.h>
-#include <arch/stack.h>
-
 /**
- * Both context_save_arch() and context_restore_arch() are
- * leaf-optimized procedures. This kind of optimization
- * is very important and prevents any implicit window
- * spill/fill/clean traps in these very core kernel
- * functions.
+ * This file contains two trap tables. First, trap_table, is the one
+ * to wich kernel copies OFW's own trap table and patches it with
+ * kernel-provided handlers from the second trap table, trap_table_kernel.
  */
-	
-.text   
+ 
+.text
 
-.global context_save_arch
-.global context_restore_arch
+#include <arch/trap_table.h>
 
-.macro CONTEXT_STORE r
-	stx %o1, [\r + OFFSET_O1]
-	stx %o2, [\r + OFFSET_O2]
-	stx %o3, [\r + OFFSET_O3]
-	stx %o4, [\r + OFFSET_O4]
-	stx %o5, [\r + OFFSET_O5]
-	stx %o7, [\r + OFFSET_PC]
-	stx %sp, [\r + OFFSET_SP]
-	stx %fp, [\r + OFFSET_FP]
-.endm
+#define TABLE_SIZE	TRAP_TABLE_SIZE
+#define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
 
-.macro CONTEXT_LOAD r
-	ldx [\r + OFFSET_O1], %o1
-	ldx [\r + OFFSET_O2], %o2
-	ldx [\r + OFFSET_O3], %o3
-	ldx [\r + OFFSET_O4], %o4
-	ldx [\r + OFFSET_O5], %o5
-	ldx [\r + OFFSET_PC], %o7
-	ldx [\r + OFFSET_SP], %sp
-	ldx [\r + OFFSET_FP], %fp
-.endm
 
-context_save_arch:
-	CONTEXT_STORE %o0
-	retl
-	mov 1, %o0		! context_save_arch returns 1
+/*
+ * Trap table for copy of OFW's own trap table.
+ */
+.align TABLE_SIZE
+.global trap_table
+trap_table:
+	.space TABLE_SIZE, 0
 
-context_restore_arch:
-	#
-	# Flush all active windows.
-	# This is essential, because CONTEXT_LOAD overwrites
-	# %sp of CWP - 1 with the value written to %fp of CWP.
-	# Flushing all active windows mitigates this problem
-	# as CWP - 1 becomes the overlap window.
-	#
-	flushw
-	
-	CONTEXT_LOAD %o0
-	retl
-	xor %o0, %o0, %o0	! context_restore_arch returns 0
+
+/*
+ * Kernel-provided trap handlers.
+ */
+.global trap_table_kernel
+trap_table_kernel:
+
+/*
+ * Hardware interrupts for TL=0.
+ */
+.org trap_table_kernel + 0*ENTRY_SIZE
+tl_0_hardware_traps:
+
+/*
+ * Register window spill/fill/clean traps for TL=0.
+ */
+.org trap_table_kernel + 128*ENTRY_SIZE
+tl_0_regwin_traps:
+
+/*
+ * Software traps for TL=0.
+ */
+.org trap_table_kernel + 256*ENTRY_SIZE
+tl_0_software_traps:
+
+/* Reserved area. */
+.org trap_table_kernel + 384*ENTRY_SIZE
+.space 128*ENTRY_SIZE, 0
+
+/*
+ * Hardware interrupts for TL>0.
+ */
+.org trap_table_kernel + 512*ENTRY_SIZE
+tl_non_0_hardware_traps:
+
+/*
+ * Register window spill/fill/clean traps for TL>0.
+ */
+.org trap_table_kernel + 640*ENTRY_SIZE
+tl_non_0_regwin_traps:
+
+/*
+ * Software traps for TL>0.
+ */
+.org trap_table_kernel + 768*ENTRY_SIZE
+tl_non_0_software_traps:
+
+/* Reserved area. */
+.org trap_table_kernel + 896*ENTRY_SIZE
+.space 128*ENTRY_SIZE, 0

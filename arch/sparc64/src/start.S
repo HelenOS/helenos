@@ -51,10 +51,9 @@ kernel_image_start:
 
 1:
 	set ofw, %l0
-	stx %o4, [%l0]
 
 	call ofw_init
-	nop
+	stx %o4, [%l0]
 
 	call main_bsp
 	nop

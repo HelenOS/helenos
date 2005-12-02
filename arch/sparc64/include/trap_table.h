@@ -26,36 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
-#include <print.h>
-#include <arch/asm.h>
-#include <memstr.h>
-#include <arch/trap_table.h>
+#ifndef __sparc64_TRAP_TABLE_H__
+#define __sparc64_TRAP_TABLE_H__
 
-void arch_pre_mm_init(void)
-{
-}
+#ifndef __ASM__
+#include <arch/types.h>
+#endif /* __ASM__ */
 
-void arch_post_mm_init(void)
-{
-}
+#define TRAP_TABLE_ENTRY_COUNT	1024
+#define TRAP_TABLE_ENTRY_SIZE	32
+#define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT*TRAP_TABLE_ENTRY_SIZE)
 
-void arch_pre_smp_init(void)
-{
-	/*
-	 * Copy OFW's trap table into kernel and point TBA there.
-	 */
-	memcpy((void *) trap_table, (void *) tba_read(), TRAP_TABLE_SIZE);
-/*
- *	TBA cannot be changed until there are means of getting it into TLB.
- *	tba_write((__u64) trap_table);
- */
-}
+#ifndef __ASM__
+struct trap_table_entry {
+	__u8 octets[TRAP_TABLE_ENTRY_SIZE];
+} __attribute__ ((packed));
 
-void arch_post_smp_init(void)
-{
-}
+typedef struct trap_table_entry trap_table_entry_t;
 
-void calibrate_delay_loop(void)
-{
-}
+extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
+extern trap_table_entry_t trap_table_kernel[TRAP_TABLE_ENTRY_COUNT];
+#endif /* __ASM__ */
+
+#endif

@@ -85,6 +85,29 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+/** Read Trap Base Address register.
+ *
+ * @return Current value in TBA.
+ */
+static inline __u64 tba_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%tba, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write Trap Base Address register.
+ *
+ * @param New value of TBA.
+ */
+static inline void tba_write(__u64 v)
+{
+	__asm__ volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
+}
+
+
 void cpu_halt(void);
 void cpu_sleep(void);
 void asm_delay_loop(__u32 t);
