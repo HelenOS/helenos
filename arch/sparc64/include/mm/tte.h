@@ -39,7 +39,7 @@ union tte_tag {
 		unsigned : 2;		/**< Reserved. */
 		unsigned context : 13;	/**< Context identifier. */
 		unsigned : 6;		/**< Reserved. */
-		long va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
+		__u64 va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
 	} __attribute__ ((packed));
 };
 
