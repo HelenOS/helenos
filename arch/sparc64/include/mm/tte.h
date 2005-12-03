@@ -26,14 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_TLB_H__
-#define __sparc64_TLB_H__
+#ifndef __sparc64_TTE_H__
+#define __sparc64_TTE_H__
 
-#include <arch/mm/tte.h>
+#include <arch/types.h>
 
-/** I-/D-TLB Data In/Access Register type. */
-typedef tte_data_t tlb_data_t;
+/** Translation Table Entry - Tag. */
+union tte_tag {
+	__u64 value;
+	struct {
+		unsigned g : 1;		/**< Global. */
+		unsigned : 2;		/**< Reserved. */
+		unsigned context : 13;	/**< Context identifier. */
+		unsigned : 6;		/**< Reserved. */
+		long va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
+	} __attribute__ ((packed));
+};
 
-#define tlb_init_arch()
+typedef union tte_tag tte_tag_t;
+
+/** Translation Table Entry - Data. */
+union tte_data {
+	__u64 value;
+	struct {
+		unsigned v : 1;		/**< Valid. */
+		unsigned size : 2;	/**< Page size of this entry. */
+		unsigned nfo : 1;	/**< No-Fault-Only. */
+		unsigned ie : 1;	/**< Invert Endianness. */
+		unsigned soft2 : 9;	/**< Software defined field. */
+		unsigned diag : 9;	/**< Diagnostic data. */
+		unsigned pa : 28;	/**< Physical page number. */
+		unsigned soft : 6;	/**< Software defined field. */
+		unsigned l : 1;		/**< Lock. */
+		unsigned cp : 1;	/**< Cacheable in physically indexed cache. */
+		unsigned cv : 1;	/**< Cacheable in virtually indexed cache. */
+		unsigned e : 1;		/**< Side-effect. */
+		unsigned p : 1;		/**< Privileged. */
+		unsigned w : 1;		/**< Writable. */
+		unsigned g : 1;		/**< Global. */
+	} __attribute__ ((packed));
+};
+
+typedef union tte_data tte_data_t;
 
 #endif
