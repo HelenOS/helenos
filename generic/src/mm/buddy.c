@@ -33,6 +33,7 @@
 #include <typedefs.h>
 #include <list.h>
 #include <debug.h>
+#include <print.h>
 
 /** Create buddy system
  *
@@ -56,6 +57,7 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 	ASSERT(op->get_order);
 	ASSERT(op->bisect);
 	ASSERT(op->coalesce);
+	ASSERT(op->mark_busy);
 
 	/*
 	 * Allocate memory for structure describing the whole buddy system.
@@ -83,6 +85,28 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 	return b;
 }
 
+/** Check if buddy system can allocate block
+ *
+ * @param b Buddy system pointer
+ * @param i Size of the block (2^i)
+ *
+ * @return True if block can be allocated
+ */
+bool buddy_system_can_alloc(buddy_system_t *b, __u8 i) {
+	__u8 k;
+	
+	ASSERT(i < b->max_order);
+	
+	for (k=i; k < b->max_order; k++) {
+		if (!list_empty(&b->order[k])) {
+			return true;
+		}
+	}
+	
+	return false;
+	
+}
+
 /** Allocate block from buddy system.
  *
  * @param b Buddy system pointer.
@@ -103,6 +127,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	if (!list_empty(&b->order[i])) {
 		res = b->order[i].next;
 		list_remove(res);
+		b->op->mark_busy(b, res);
 		return res;
 	}
 	
@@ -136,7 +161,9 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	
 	/*
 	 * Return the other half to buddy system.
+	 * PROBLEM!!!! FILL FIND OTHER PART AS BUDDY AND LINK TOGETHER
 	 */
+	b->op->mark_busy(b, res);
 	buddy_system_free(b, hlp);
 	
 	return res;
@@ -152,7 +179,7 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 {
 	link_t *buddy, *hlp;
 	__u8 i;
-	
+
 	/*
 	 * Determine block's order.
 	 */
@@ -168,7 +195,6 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 		if (buddy) {
 
 			ASSERT(b->op->get_order(b, buddy) == i);
-		
 			/*
 			 * Remove buddy from the list of order i.
 			 */

@@ -33,11 +33,5 @@
 
 void frame_arch_init(void)
 {
-	zone_t *z;
-	
-	z = zone_create(0, config.memory_size, 0);
-	if (!z) {
-		panic("Can't allocate zone (%dB).\n", config.memory_size);
-	}
-	zone_attach(z);
+        zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
 }

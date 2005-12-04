@@ -41,6 +41,7 @@ struct buddy_system_operations {
 	link_t *(* coalesce)(buddy_system_t *, link_t *, link_t *);	/**< Coalesce two buddies into a bigger block. */
 	void (*set_order)(buddy_system_t *, link_t *, __u8);		/**< Set order of block passed as argument. */
 	__u8 (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
+	void (*mark_busy)(buddy_system_t *, link_t *);			/**< Mark block as busy */
 };
 
 struct buddy_system {
@@ -52,6 +53,7 @@ struct buddy_system {
 
 extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op, void *data);
 extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
+extern bool buddy_system_can_alloc(buddy_system_t *b, __u8 order);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
 
 #endif

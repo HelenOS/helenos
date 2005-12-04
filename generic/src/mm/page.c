@@ -79,7 +79,7 @@ void page_mapping_insert(__address page, __address frame, int flags, __address r
 	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = frame_alloc(FRAME_KA);
+		newpt = frame_alloc(FRAME_KA, 0);
 		memsetb(newpt, PAGE_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC);
@@ -88,7 +88,7 @@ void page_mapping_insert(__address page, __address frame, int flags, __address r
 	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = frame_alloc(FRAME_KA);
+		newpt = frame_alloc(FRAME_KA, 0);
 		memsetb(newpt, PAGE_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC);
@@ -97,7 +97,7 @@ void page_mapping_insert(__address page, __address frame, int flags, __address r
 	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = frame_alloc(FRAME_KA);
+		newpt = frame_alloc(FRAME_KA, 0);
 		memsetb(newpt, PAGE_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC);

@@ -68,6 +68,7 @@ typedef struct buddy_system_operations buddy_system_operations_t;
 
 typedef struct zone zone_t;
 typedef struct frame frame_t;
+typedef struct region region_t;
 
 typedef enum vm_type vm_type_t;
 typedef struct vm_area vm_area_t;

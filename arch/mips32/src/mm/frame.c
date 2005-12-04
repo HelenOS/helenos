@@ -32,17 +32,11 @@
 #include <arch/mm/page.h>
 #include <config.h>
 #include <panic.h>
+#include <print.h>
 
 void frame_arch_init(void)
 {
-	zone_t *z;
-	
-	z = zone_create(0, config.memory_size, 0);
-	if (!z) {
-		panic("Can't allocate zone (%dB).\n", config.memory_size);
-	}
-	zone_attach(z);
-
 	/* Disable Everything until load address */
-	frame_region_not_free(0, KA2PA(KERNEL_LOAD_ADDRESS));
+	frame_region_not_free(0, KA2PA(KERNEL_LOAD_ADDRESS) + FRAME_SIZE);
+        zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
 }

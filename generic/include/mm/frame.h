@@ -42,10 +42,11 @@
 #define FRAME2ADDR(zone, frame)			((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
 #define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
 #define FRAME_INDEX(zone, frame)		((count_t)((frame) - (zone)->frames))
-#define IS_BUDDY_LEFT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 >> ((frame)->buddy_order + 1))) == 0)
-#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 >> ((frame)->buddy_order + 1))) == (1 >> (frame)->buddy_order))
+#define FRAME_INDEX_VALID(zone, index)		(((index) >= 0) && ((index) < ((zone)->free_count + (zone)->busy_count)))
+#define IS_BUDDY_LEFT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 << ((frame)->buddy_order + 1))) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) % (1 << ((frame)->buddy_order + 1))) == (1 << (frame)->buddy_order))
 
-
+#define ZONE_BLACKLIST_SIZE	3
 
 struct zone {
 	link_t link;		/**< link to previous and next zone */
@@ -68,6 +69,16 @@ struct frame {
 	link_t buddy_link;	/**< link to the next free block inside one order*/
 };
 
+struct region {
+	__address base;
+	size_t size;
+};
+
+extern region_t zone_blacklist[];
+extern count_t zone_blacklist_count;
+extern void frame_region_not_free(__address base, size_t size);
+extern void zone_create_in_region(__address base, size_t size);
+
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
 extern link_t zone_head;		/**< list of all zones in the system */
 
@@ -77,10 +88,8 @@ extern void zone_attach(zone_t *zone);
 
 extern void frame_init(void);
 extern void frame_initialize(frame_t *frame, zone_t *zone);
-__address frame_alloc(int flags);
+__address frame_alloc(int flags, __u8 order);
 extern void frame_free(__address addr);
-extern void frame_not_free(__address addr);
-extern void frame_region_not_free(__address start, __address stop);
 zone_t * get_zone_by_frame(frame_t * frame);
 
 /*
@@ -91,9 +100,7 @@ link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block);
 link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * buddy_l, link_t * buddy_r);
 void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order);
 __u8 zone_buddy_get_order(buddy_system_t *b, link_t * block);
-
-__address zone_buddy_frame_alloc(int flags, __u8 order);
-void zone_buddy_frame_free(__address addr);
+void zone_buddy_mark_busy(buddy_system_t *b, link_t * block);
 
 /*
  * TODO: Implement the following functions.

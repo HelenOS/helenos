@@ -33,6 +33,7 @@
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
 #include <panic.h>
+#include <debug.h>
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -40,22 +41,22 @@ size_t hardcoded_unmapped_kdata_size = 0;
 void frame_arch_init(void)
 {
 	zone_t *z;
+	__address start, stop;
+	size_t size;
 	__u8 i;
 	
 	if (config.cpu_active == 1) {
+
+		/* Reserve frame 0 (BIOS data) */
+		frame_region_not_free(0, FRAME_SIZE);
+		
+		/* Reserve real mode bootstrap memory */
+		frame_region_not_free(BOOTSTRAP_OFFSET, hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
+		
 		for (i=0;i<e820counter;i++) {
 			if (e820table[i].type==MEMMAP_MEMORY_AVAILABLE) {
-				z = zone_create(e820table[i].base_address, e820table[i].size & ~(FRAME_SIZE-1), 0);
-				if (!z) {
-					panic("Cannot allocate zone (%dB).\n", e820table[i].size & ~(FRAME_SIZE-1));
-				}
-				zone_attach(z);
+				zone_create_in_region(e820table[i].base_address,  e820table[i].size & ~(FRAME_SIZE-1));
 			}
 		}
-		
-		frame_not_free(0);
-
-		/* Reserve real mode bootstrap memory */
-                frame_region_not_free(BOOTSTRAP_OFFSET, BOOTSTRAP_OFFSET + hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
 	}
 }

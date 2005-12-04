@@ -39,7 +39,7 @@ void page_arch_init(void)
 {
 	__address ptl0;
 	
-	ptl0 = frame_alloc(FRAME_KA | FRAME_PANIC);
+	ptl0 = frame_alloc(FRAME_KA | FRAME_PANIC, 0);
 	memsetb(ptl0, FRAME_SIZE, 0);
 	
 	SET_PTL0_ADDRESS(KA2PA(ptl0));

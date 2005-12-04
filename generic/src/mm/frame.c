@@ -37,9 +37,13 @@
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <print.h>
 
 spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
 link_t zone_head;                /**< list of all zones in the system */
+
+region_t zone_blacklist[ZONE_BLACKLIST_SIZE];
+count_t zone_blacklist_count = 0;
 
 static struct buddy_system_operations  zone_buddy_system_operations = {
 	.find_buddy = zone_buddy_find_buddy,
@@ -47,6 +51,7 @@ static struct buddy_system_operations  zone_buddy_system_operations = {
 	.coalesce = zone_buddy_coalesce,
 	.set_order = zone_buddy_set_order,
 	.get_order = zone_buddy_get_order,
+	.mark_busy = zone_buddy_mark_busy,
 };
 
 /** Initialize physical memory management
@@ -57,13 +62,10 @@ void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		zone_init();
+		frame_region_not_free(config.base, config.base + config.kernel_size + CONFIG_STACK_SIZE);
 	}
 
 	frame_arch_init();
-	
-	if (config.cpu_active == 1) {
-                frame_region_not_free(config.base, config.base + config.kernel_size + CONFIG_STACK_SIZE);
-        }	
 }
 
 /** Allocate a frame
@@ -74,7 +76,7 @@ void frame_init(void)
  *
  * @return Allocated frame.
  */
-__address frame_alloc(int flags)
+__address frame_alloc(int flags, __u8 order) 
 {
 	ipl_t ipl;
 	link_t *cur, *tmp;
@@ -86,7 +88,7 @@ __address frame_alloc(int flags)
 loop:
 	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
-	
+
 	/*
 	 * First, find suitable frame zone.
 	 */
@@ -94,323 +96,9 @@ loop:
 		z = list_get_instance(cur, zone_t, link);
 		
 		spinlock_lock(&z->lock);
-		/*
-		 * Check if the zone has any free frames.
-		 */
-		if (z->free_count) {
-			zone = z;
-			break;
-		}
-		spinlock_unlock(&z->lock);
-	}
-	
-	if (!zone) {
-		if (flags & FRAME_PANIC)
-			panic("Can't allocate frame.\n");
-		
-		/*
-		 * TODO: Sleep until frames are available again.
-		 */
-		spinlock_unlock(&zone_head_lock);
-		interrupts_restore(ipl);
 
-		panic("Sleep not implemented.\n");
-		goto loop;
-	}
-		
-	tmp = zone->free_head.next;
-	frame = list_get_instance(tmp, frame_t, link);
-
-	frame->refcount++;
-	list_remove(tmp);			/* remove frame from free_head */
-	zone->free_count--;
-	zone->busy_count++;
-	
-	//v = zone->base + (frame - zone->frames) * FRAME_SIZE;
-	v = FRAME2ADDR(zone, frame);
-	
-	if (flags & FRAME_KA)
-		v = PA2KA(v);
-	
-	spinlock_unlock(&zone->lock);
-	
-	spinlock_unlock(&zone_head_lock);
-	interrupts_restore(ipl);
-	
-	return v;
-}
-
-/** Free a frame.
- *
- * Find respective frame structrue for supplied addr.
- * Decrement frame reference count.
- * If it drops to zero, move the frame structure to free list.
- *
- * @param addr Address of the frame to be freed. It must be a multiple of FRAME_SIZE.
- */
-void frame_free(__address addr)
-{
-	ipl_t ipl;
-	link_t *cur;
-	zone_t *z;
-	zone_t *zone = NULL;
-	frame_t *frame;
-	
-	ASSERT(addr % FRAME_SIZE == 0);
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&zone_head_lock);
-	
-	/*
-	 * First, find host frame zone for addr.
-	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
-		
-		spinlock_lock(&z->lock);
-		
-		if (IS_KA(addr))
-			addr = KA2PA(addr);
-		
-		/*
-		 * Check if addr belongs to z.
-		 */
-		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
-			zone = z;
-			break;
-		}
-		spinlock_unlock(&z->lock);
-	}
-	
-	ASSERT(zone != NULL);
-	
-	frame = ADDR2FRAME(zone, addr);
-	// frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
-	ASSERT(frame->refcount);
-
-	if (!--frame->refcount) {
-		list_append(&frame->link, &zone->free_head);	/* append frame to free_head */
-		zone->free_count++;
-		zone->busy_count--;
-	}
-	
-	spinlock_unlock(&zone->lock);	
-	
-	spinlock_unlock(&zone_head_lock);
-	interrupts_restore(ipl);
-}
-
-/** Mark frame not free.
- *
- * Find respective frame structrue for supplied addr.
- * Increment frame reference count and remove the frame structure from free list.
- *
- * @param addr Address of the frame to be marked. It must be a multiple of FRAME_SIZE.
- */
-void frame_not_free(__address addr)
-{
-	ipl_t ipl;
-	link_t *cur;
-	zone_t *z;
-	zone_t *zone = NULL;
-	frame_t *frame;
-	
-	ASSERT(addr % FRAME_SIZE == 0);
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&zone_head_lock);
-	
-	/*
-	 * First, find host frame zone for addr.
-	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
-		
-		spinlock_lock(&z->lock);
-		
-		if (IS_KA(addr))
-			addr = KA2PA(addr);
-		
-		/*
-		 * Check if addr belongs to z.
-		 */
-		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
-			zone = z;
-			break;
-		}
-		spinlock_unlock(&z->lock);
-	}
-	
-	ASSERT(zone != NULL);
-	
-	//frame = &zone->frames[(addr - zone->base)/FRAME_SIZE];
-	frame = ADDR2FRAME(zone, addr);
-
-	if (!frame->refcount) {
-		frame->refcount++;
-
-		list_remove(&frame->link);			/* remove frame from free_head */
-		zone->free_count--;
-		zone->busy_count++;
-	}
-	
-	spinlock_unlock(&zone->lock);	
-	
-	spinlock_unlock(&zone_head_lock);
-	interrupts_restore(ipl);
-}
-
-/** Mark frame region not free.
- *
- * Mark frame region not free.
- *
- * @param start First address.
- * @param stop Last address.
- */
-void frame_region_not_free(__address start, __address stop)
-{
-        __address a;
-
-        start /= FRAME_SIZE;
-        stop /= FRAME_SIZE;
-        for (a = start; a <= stop; a++)
-                frame_not_free(a * FRAME_SIZE);
-}
-
-
-/** Initialize zonekeeping
- *
- * Initialize zonekeeping.
- */
-void zone_init(void)
-{
-	spinlock_initialize(&zone_head_lock);
-	list_initialize(&zone_head);
-}
-
-/** Create frame zone
- *
- * Create new frame zone.
- *
- * @param start Physical address of the first frame within the zone.
- * @param size Size of the zone. Must be a multiple of FRAME_SIZE.
- * @param flags Zone flags.
- *
- * @return Initialized zone.
- */
-zone_t *zone_create(__address start, size_t size, int flags)
-{
-	zone_t *z;
-	count_t cnt;
-	int i;
-	__u8 max_order;
-	
-	ASSERT(start % FRAME_SIZE == 0);
-	ASSERT(size % FRAME_SIZE == 0);
-	
-	cnt = size / FRAME_SIZE;
-	
-	z = (zone_t *) early_malloc(sizeof(zone_t));
-	if (z) {
-		link_initialize(&z->link);
-		spinlock_initialize(&z->lock);
-	
-		z->base = start;
-		z->flags = flags;
-
-		z->free_count = cnt;
-		list_initialize(&z->free_head);
-
-		z->busy_count = 0;
-		
-		z->frames = (frame_t *) early_malloc(cnt * sizeof(frame_t));
-		if (!z->frames) {
-			early_free(z);
-			return NULL;
-		}
-		
-		for (i = 0; i<cnt; i++) {
-			frame_initialize(&z->frames[i], z);
-			list_append(&z->frames[i].link, &z->free_head);
-		}
-		
-		/*
-		 * Create buddy system for the zone
-		 */
-		for (max_order = 0; cnt >> max_order; max_order++);
-		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations, (void *) z);
-	}
-	
-	return z;
-}
-
-/** Attach frame zone
- *
- * Attach frame zone to zone list.
- *
- * @param zone Zone to be attached.
- */
-void zone_attach(zone_t *zone)
-{
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&zone_head_lock);
-	
-	list_append(&zone->link, &zone_head);
-	
-	spinlock_unlock(&zone_head_lock);
-	interrupts_restore(ipl);
-}
-
-/** Initialize frame structure
- *
- * Initialize frame structure.
- *
- * @param frame Frame structure to be initialized.
- * @param zone Host frame zone.
- */
-void frame_initialize(frame_t *frame, zone_t *zone)
-{
-	frame->refcount = 0;
-	link_initialize(&frame->link);
-}
-
-
-
-/*
- * buddy system functions (under construction)
- * 
- */
-
-
-/** Allocate 2^order frames
- *
- */
-__address zone_buddy_frame_alloc(int flags, __u8 order) {
-	ipl_t ipl;
-	link_t *cur, *tmp;
-	zone_t *z;
-	zone_t *zone = NULL;
-	frame_t *frame = NULL;
-	__address v;
-	
-loop:
-	ipl = interrupts_disable();
-	spinlock_lock(&zone_head_lock);
-	
-	/*
-	 * First, find suitable frame zone.
-	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
-		
-		spinlock_lock(&z->lock);
-		/*
-		 * Check if the zone has 2^order frames area available
-		 * TODO: Must check if buddy system has at least block in order >= given order
-		 */
-		if (z->free_count == (1 >> order)) { 
+		/* Check if the zone has 2^order frames area available  */
+		if (buddy_system_can_alloc(z->buddy_system, order)) {
 			zone = z;
 			break;
 		}
@@ -441,30 +129,32 @@ loop:
 	
 	/* get frame address */
 	v = FRAME2ADDR(zone, frame);
-	
+
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
 	
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
 	interrupts_restore(ipl);
-	
 	return v;
+
 }
 
-
-/** Free frame(s)
+/** Free a frame.
  *
- * @param addr Address of the frame(s) to be freed. It must be a multiple of FRAME_SIZE.
+ * Find respective frame structrue for supplied addr.
+ * Decrement frame reference count.
+ * If it drops to zero, move the frame structure to free list.
+ *
+ * @param addr Address of the frame to be freed. It must be a multiple of FRAME_SIZE.
  */
-void zone_buddy_frame_free(__address addr)
+void frame_free(__address addr)
 {
 	ipl_t ipl;
 	link_t *cur;
 	zone_t *z;
 	zone_t *zone = NULL;
 	frame_t *frame;
-	
 	ASSERT(addr % FRAME_SIZE == 0);
 	
 	ipl = interrupts_disable();
@@ -507,40 +197,174 @@ void zone_buddy_frame_free(__address addr)
 	interrupts_restore(ipl);
 }
 
-/** Guess zone by frame instance address
+/** Mark frame region not free.
  *
- * @param frame Frame
+ * Mark frame region not free.
  *
- * @return Zone of given frame
+ * @param start First address.
+ * @param stop Last address.
  */
-zone_t * get_zone_by_frame(frame_t * frame) {
-	link_t * cur;
-	zone_t * zone, *z;
+void frame_region_not_free(__address base, size_t size)
+{
+	count_t index;
+	index = zone_blacklist_count++;
+	ASSERT(base % FRAME_SIZE == 0);
+	
+	if (size % FRAME_SIZE != 0) {
+		size = size + (FRAME_SIZE - size % FRAME_SIZE);
+	}
+	ASSERT(size % FRAME_SIZE == 0);
+	ASSERT(zone_blacklist_count <= ZONE_BLACKLIST_SIZE);
+	zone_blacklist[index].base = base;
+	zone_blacklist[index].size = size;
+}
 
-	ASSERT(frame);
-	/*
-	 * First, find host frame zone for addr.
-	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
+
+/** Initialize zonekeeping
+ *
+ * Initialize zonekeeping.
+ */
+void zone_init(void)
+{
+	spinlock_initialize(&zone_head_lock);
+	list_initialize(&zone_head);
+}
+
+
+void zone_create_in_region(__address base, size_t size) {
+	int i;
+	zone_t * z;
+	__address s; size_t sz;
+	
+	ASSERT(base % FRAME_SIZE == 0);
+	ASSERT(size % FRAME_SIZE == 0);
+	
+	if (!size) return;
+	
+	for (i = 0; i < zone_blacklist_count; i++) {
+		if (zone_blacklist[i].base >= base && zone_blacklist[i].base < base + size) {
+			s = base; sz = zone_blacklist[i].base - base;
+			ASSERT(base != s || sz != size);
+			zone_create_in_region(s, sz);
+			
+			s = zone_blacklist[i].base + zone_blacklist[i].size;
+			sz = (base + size) - (zone_blacklist[i].base + zone_blacklist[i].size);
+			ASSERT(base != s || sz != size);
+			zone_create_in_region(s, sz);
+			return;
 		
-		spinlock_lock(&z->lock);
+		}
+	}
+	
+	z = zone_create(base, size, 0);
+
+	if (!z) {
+		panic("Cannot allocate zone (%dB).\n", size);
+	}
+	
+	zone_attach(z);
+}
+
+
+
+/** Create frame zone
+ *
+ * Create new frame zone.
+ *
+ * @param start Physical address of the first frame within the zone.
+ * @param size Size of the zone. Must be a multiple of FRAME_SIZE.
+ * @param flags Zone flags.
+ *
+ * @return Initialized zone.
+ */
+zone_t * zone_create(__address start, size_t size, int flags)
+{
+	zone_t *z;
+	count_t cnt;
+	int i;
+	__u8 max_order;
+
+	/* hack for bug #10 */
+	// if (start == 0x100000) size -= (FRAME_SIZE * 256);
+
+	// printf("ZONE_CREATE()   %X - %X (%d kbytes)			\n", start, start+size, size/1024);	
+	ASSERT(start % FRAME_SIZE == 0);
+	ASSERT(size % FRAME_SIZE == 0);
+	
+	cnt = size / FRAME_SIZE;
+	
+	z = (zone_t *) early_malloc(sizeof(zone_t));
+	if (z) {
+		link_initialize(&z->link);
+		spinlock_initialize(&z->lock);
+	
+		z->base = start;
+		z->flags = flags;
+
+		z->free_count = cnt;
+		list_initialize(&z->free_head);
+
+		z->busy_count = 0;
+		
+		z->frames = (frame_t *) early_malloc(cnt * sizeof(frame_t));
+		if (!z->frames) {
+			early_free(z);
+			return NULL;
+		}
+		
+		for (i = 0; i<cnt; i++) {
+			frame_initialize(&z->frames[i], z);
+			list_append(&z->frames[i].link, &z->free_head);
+		}
 		
 		/*
-		 * Check if frame address belongs to z.
+		 * Create buddy system for the zone
 		 */
-		if ((frame >= z->frames) && (frame <= z->frames + (z->free_count + z->busy_count))) {
-			zone = z;
-			break;
+		for (max_order = 0; cnt >> max_order; max_order++);
+		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations, (void *) z);
+		
+		/* Stuffing frames */
+		for (i = 0; i<cnt; i++) {
+			z->frames[i].refcount = 0;
+			buddy_system_free(z->buddy_system, &z->frames[i].buddy_link);	
 		}
-		spinlock_unlock(&z->lock);
 	}
-	ASSERT(zone);
-	
-	return zone;
-
-
+	return z;
 }
+
+/** Attach frame zone
+ *
+ * Attach frame zone to zone list.
+ *
+ * @param zone Zone to be attached.
+ */
+void zone_attach(zone_t *zone)
+{
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&zone_head_lock);
+	
+	list_append(&zone->link, &zone_head);
+	
+	spinlock_unlock(&zone_head_lock);
+	interrupts_restore(ipl);
+}
+
+/** Initialize frame structure
+ *
+ * Initialize frame structure.
+ *
+ * @param frame Frame structure to be initialized.
+ * @param zone Host frame zone.
+ */
+void frame_initialize(frame_t *frame, zone_t *zone)
+{
+	frame->refcount = 1;
+	frame->buddy_order = 0;
+	link_initialize(&frame->link);
+}
+
 
 /** Buddy system find_buddy implementation
  *
@@ -553,45 +377,39 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 	frame_t * frame, * f;
 	zone_t * zone;
 	link_t * cur;
+	count_t index;
 	bool is_left, is_right;
 
 	frame = list_get_instance(block, frame_t, buddy_link);
-	zone = get_zone_by_frame(frame);
-	
+	zone = (zone_t *) b->data;
 	
 	/* 
 	 * (FRAME_INDEX % 2^(ORDER+1)) == 0 ===> LEFT BUDDY 
 	 * (FRAME_INDEX % 2^(ORDER+1)) == 2^(ORDER) ===> RIGHT BUDDY
 	 */
-	 
+
 	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
 	is_right = IS_BUDDY_RIGHT_BLOCK(zone, frame);
 	
 	ASSERT((is_left || is_right) && (!is_left || !is_right));
 	
-	for (cur = &zone->buddy_system->order[frame->buddy_order]; cur; cur = cur->next) {
-		f = list_get_instance(cur, frame_t, buddy_link);
-		
-		ASSERT(f->buddy_order == frame->buddy_order);
-		
-		/* 
-		 * if found frame is coherent with our frame from the left 
-		 */
-		if ((FRAME_INDEX(zone, f) + 1 >> frame->buddy_order == FRAME_INDEX(zone, frame)) && is_right) {
-			return cur;
+	/*
+	 * test left buddy
+	 */
+	if (is_left) {
+		index = (FRAME_INDEX(zone, frame)) + (1 << frame->buddy_order);
+	} else if (is_right) {
+		index = (FRAME_INDEX(zone, frame)) - (1 << frame->buddy_order);
+	}
+	
+	if (FRAME_INDEX_VALID(zone, index)) {
+		if (	zone->frames[index].buddy_order == frame->buddy_order && 
+			zone->frames[index].refcount == 0) {
+			return &zone->frames[index].buddy_link;
 		}
-		
-		/* 
-		 * if found frame is coherent with our frame from the right 
-		 */
-		if ((FRAME_INDEX(zone,f) - 1 >> frame->buddy_order == FRAME_INDEX(zone, frame)) && is_left) {
-			return cur;
-		}
-		
 	}
 	
 	return NULL;
-	
 	
 }
 
@@ -604,13 +422,9 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
  */
 link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
 	frame_t * frame_l, * frame_r;
-	
 	frame_l = list_get_instance(block, frame_t, buddy_link);
-
-	frame_r = (frame_t *) (&frame_l + (1>>frame_l->buddy_order-1));
-
+	frame_r = (frame_l + (1 << (frame_l->buddy_order - 1)));
 	return &frame_r->buddy_link;
-	
 }
 
 /** Buddy system coalesce implementation
@@ -623,11 +437,9 @@ link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
  */
 link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1, link_t * block_2) {
 	frame_t * frame1, * frame2;
-	
 	frame1 = list_get_instance(block_1, frame_t, buddy_link);
 	frame2 = list_get_instance(block_2, frame_t, buddy_link);
-	
-	return &frame1 < &frame2 ? block_1 : block_2;
+	return frame1 < frame2 ? block_1 : block_2;
 }
 
 /** Buddy system set_order implementation
@@ -653,4 +465,16 @@ __u8 zone_buddy_get_order(buddy_system_t *b, link_t * block) {
 	frame_t * frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	return frame->buddy_order;
+}
+
+/** Buddy system mark_busy implementation
+ *
+ * @param b Buddy system
+ * @param block Buddy system block
+ *
+ */
+void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
+	frame_t * frame;
+	frame = list_get_instance(block, frame_t, buddy_link);
+	frame->refcount = 1;
 }

@@ -44,7 +44,7 @@ void page_arch_init(void)
 	count_t i;
 
 	if (config.cpu_active == 1) {
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
+		dba = frame_alloc(FRAME_KA | FRAME_PANIC, 0);
 		memsetb(dba, PAGE_SIZE, 0);
 
 		bootstrap_dba = dba;
@@ -67,7 +67,7 @@ void page_arch_init(void)
 		 * processor and adjusts it to fulfill its needs.
 		 */
 
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC);
+		dba = frame_alloc(FRAME_KA | FRAME_PANIC, 0);
 		memcpy((void *)dba, (void *)bootstrap_dba , PAGE_SIZE);
 		write_cr3(KA2PA(dba));
 	}
