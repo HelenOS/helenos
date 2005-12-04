@@ -35,7 +35,8 @@ endif
 
 SOURCES = \
 	libc \
-	init
+	init \
+	softfloat
 
 CLEANS := $(addsuffix .clean,$(SOURCES))
 
