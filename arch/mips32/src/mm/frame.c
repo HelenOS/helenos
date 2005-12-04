@@ -36,7 +36,5 @@
 
 void frame_arch_init(void)
 {
-	/* Disable Everything until load address */
-	frame_region_not_free(0, KA2PA(KERNEL_LOAD_ADDRESS) + FRAME_SIZE);
-        zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
+        zone_create_in_region(KA2PA(KERNEL_LOAD_ADDRESS), config.memory_size & ~(FRAME_SIZE-1));
 }

@@ -38,6 +38,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <print.h>
+#include <align.h>
 
 spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
 link_t zone_head;                /**< list of all zones in the system */
@@ -62,7 +63,7 @@ void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		zone_init();
-		frame_region_not_free(config.base, config.base + config.kernel_size + CONFIG_STACK_SIZE);
+		frame_region_not_free(config.base, config.kernel_size);
 	}
 
 	frame_arch_init();
@@ -211,7 +212,7 @@ void frame_region_not_free(__address base, size_t size)
 	ASSERT(base % FRAME_SIZE == 0);
 	
 	if (size % FRAME_SIZE != 0) {
-		size = size + (FRAME_SIZE - size % FRAME_SIZE);
+		size = ALIGN(size, FRAME_SIZE);
 	}
 	ASSERT(size % FRAME_SIZE == 0);
 	ASSERT(zone_blacklist_count <= ZONE_BLACKLIST_SIZE);
