@@ -388,9 +388,7 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 	 */
 
 	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
-	is_right = IS_BUDDY_RIGHT_BLOCK(zone, frame);
-	
-	ASSERT((is_left || is_right) && (!is_left || !is_right));
+	is_right = !is_left;
 	
 	/*
 	 * test left buddy
