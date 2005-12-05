@@ -63,17 +63,16 @@ void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		zone_init();
-		frame_region_not_free(config.base, config.kernel_size);
+		frame_region_not_free(KA2PA(config.base), config.kernel_size);
 	}
 
 	frame_arch_init();
 }
 
-/** Allocate a frame
- *
- * Allocate a frame of physical memory.
+/** Allocate power-of-two frames of physical memory.
  *
  * @param flags Flags for host zone selection and address processing.
+ * @param order Allocate exactly 2^order frames.
  *
  * @return Allocated frame.
  */
@@ -202,19 +201,19 @@ void frame_free(__address addr)
  *
  * Mark frame region not free.
  *
- * @param start First address.
- * @param stop Last address.
+ * @param base Base address of non-available region.
+ * @param size Size of non-available region.
  */
 void frame_region_not_free(__address base, size_t size)
 {
-	count_t index;
+	index_t index;
 	index = zone_blacklist_count++;
-	ASSERT(base % FRAME_SIZE == 0);
-	
-	if (size % FRAME_SIZE != 0) {
-		size = ALIGN(size, FRAME_SIZE);
-	}
-	ASSERT(size % FRAME_SIZE == 0);
+
+	/* Force base to the nearest lower address frame boundary. */
+	base &= ~(FRAME_SIZE - 1);
+	/* Align size to frame boundary. */
+	size = ALIGN(size, FRAME_SIZE);
+
 	ASSERT(zone_blacklist_count <= ZONE_BLACKLIST_SIZE);
 	zone_blacklist[index].base = base;
 	zone_blacklist[index].size = size;
@@ -235,13 +234,15 @@ void zone_init(void)
 void zone_create_in_region(__address base, size_t size) {
 	int i;
 	zone_t * z;
-	__address s; size_t sz;
+	__address s;
+	size_t sz;
 	
 	ASSERT(base % FRAME_SIZE == 0);
 	ASSERT(size % FRAME_SIZE == 0);
 	
-	if (!size) return;
-	
+	if (!size)
+		return;
+
 	for (i = 0; i < zone_blacklist_count; i++) {
 		if (zone_blacklist[i].base >= base && zone_blacklist[i].base < base + size) {
 			s = base; sz = zone_blacklist[i].base - base;
@@ -303,8 +304,6 @@ zone_t * zone_create(__address start, size_t size, int flags)
 		z->flags = flags;
 
 		z->free_count = cnt;
-		list_initialize(&z->free_head);
-
 		z->busy_count = 0;
 		
 		z->frames = (frame_t *) early_malloc(cnt * sizeof(frame_t));
@@ -315,13 +314,13 @@ zone_t * zone_create(__address start, size_t size, int flags)
 		
 		for (i = 0; i<cnt; i++) {
 			frame_initialize(&z->frames[i], z);
-			list_append(&z->frames[i].link, &z->free_head);
 		}
 		
 		/*
 		 * Create buddy system for the zone
 		 */
-		for (max_order = 0; cnt >> max_order; max_order++);
+		for (max_order = 0; cnt >> max_order; max_order++)
+			;
 		z->buddy_system = buddy_system_create(max_order, &zone_buddy_system_operations, (void *) z);
 		
 		/* Stuffing frames */
@@ -363,7 +362,6 @@ void frame_initialize(frame_t *frame, zone_t *zone)
 {
 	frame->refcount = 1;
 	frame->buddy_order = 0;
-	link_initialize(&frame->link);
 }
 
 

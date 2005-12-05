@@ -54,7 +54,6 @@ struct zone {
 	spinlock_t lock;	/**< this lock protects everything below */
 	__address base;		/**< physical address of the first frame in the frames array */
 	frame_t *frames;	/**< array of frame_t structures in this zone */
-	link_t free_head;	/**< list of free frame_t structures */
 	count_t free_count;	/**< number of frame_t structures in free list */
 	count_t busy_count;	/**< number of frame_t structures not in free list */
 	
@@ -63,10 +62,9 @@ struct zone {
 };
 
 struct frame {
-	count_t refcount;	/**< when == 0, the frame is in free list */
-	link_t link;		/**< link to zone free list when refcount == 0 */
+	count_t refcount;	/**< tracking of shared frames  */
 	__u8 buddy_order;	/**< buddy system block order */
-	link_t buddy_link;	/**< link to the next free block inside one order*/
+	link_t buddy_link;	/**< link to the next free block inside one order */
 };
 
 struct region {

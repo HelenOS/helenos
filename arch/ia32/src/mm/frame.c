@@ -41,8 +41,6 @@ size_t hardcoded_unmapped_kdata_size = 0;
 void frame_arch_init(void)
 {
 	zone_t *z;
-	__address start, stop;
-	size_t size;
 	__u8 i;
 	
 	if (config.cpu_active == 1) {
@@ -53,8 +51,8 @@ void frame_arch_init(void)
 		/* Reserve real mode bootstrap memory */
 		frame_region_not_free(BOOTSTRAP_OFFSET, hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
 		
-		for (i=0;i<e820counter;i++) {
-			if (e820table[i].type==MEMMAP_MEMORY_AVAILABLE) {
+		for (i = 0; i < e820counter; i++) {
+			if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 				zone_create_in_region(e820table[i].base_address,  e820table[i].size & ~(FRAME_SIZE-1));
 			}
 		}
