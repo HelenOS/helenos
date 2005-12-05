@@ -38,7 +38,7 @@ TOOLCHAIN_DIR = /usr/local/ia64/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -mconstant-gp -fno-unwind-tables -minline-int-divide-min-latency
+CFLAGS += -mconstant-gp -fno-unwind-tables
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 

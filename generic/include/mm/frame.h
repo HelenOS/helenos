@@ -53,8 +53,8 @@ struct zone {
 	spinlock_t lock;	/**< this lock protects everything below */
 	__address base;		/**< physical address of the first frame in the frames array */
 	frame_t *frames;	/**< array of frame_t structures in this zone */
-	count_t free_count;	/**< number of frame_t structures in free list */
-	count_t busy_count;	/**< number of frame_t structures not in free list */
+	count_t free_count;	/**< number of free frame_t structures */
+	count_t busy_count;	/**< number of busy frame_t structures */
 	
 	buddy_system_t * buddy_system; /**< buddy system for the zone */
 	int flags;

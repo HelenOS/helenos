@@ -43,6 +43,11 @@
 spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
 link_t zone_head;                /**< list of all zones in the system */
 
+/** Blacklist containing non-available areas of memory.
+ *
+ * This blacklist is used to exclude frames that cannot be allocated
+ * (e.g. kernel memory) from available memory map.
+ */
 region_t zone_blacklist[ZONE_BLACKLIST_SIZE];
 count_t zone_blacklist_count = 0;
 
@@ -122,22 +127,29 @@ loop:
 		
 
 	/* Allocate frames from zone buddy system */
-	cur = buddy_system_alloc(zone->buddy_system, order);
+	tmp = buddy_system_alloc(zone->buddy_system, order);
 	
-	/* frame will be actually a first frame of the block */
-	frame = list_get_instance(cur, frame_t, buddy_link);
+	ASSERT(tmp);
+	
+	/* Update zone information. */
+	zone->free_count -= (1 << order);
+	zone->busy_count += (1 << order);
+
+	/* Frame will be actually a first frame of the block. */
+	frame = list_get_instance(tmp, frame_t, buddy_link);
 	
 	/* get frame address */
 	v = FRAME2ADDR(zone, frame);
 
-	if (flags & FRAME_KA)
-		v = PA2KA(v);
-	
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
 	interrupts_restore(ipl);
-	return v;
 
+
+	if (flags & FRAME_KA)
+		v = PA2KA(v);
+	
+	return v;
 }
 
 /** Free a frame.
@@ -190,9 +202,12 @@ void frame_free(__address addr)
 	if (!--frame->refcount) {
 		buddy_system_free(zone->buddy_system, &frame->buddy_link);
 	}
+
+	/* Update zone information. */
+	zone->free_count += (1 << frame->buddy_order);
+	zone->busy_count -= (1 << frame->buddy_order);
 	
-	spinlock_unlock(&zone->lock);	
-	
+	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
 	interrupts_restore(ipl);
 }
@@ -230,7 +245,15 @@ void zone_init(void)
 	list_initialize(&zone_head);
 }
 
-
+/** Create frame zones in region of available memory.
+ *
+ * Avoid any black listed areas of non-available memory.
+ * Assume that the black listed areas cannot overlap
+ * one another or cross available memory region boundaries.
+ *
+ * @param base Base address of available memory region.
+ * @param size Size of the region.
+ */
 void zone_create_in_region(__address base, size_t size) {
 	int i;
 	zone_t * z;
@@ -266,7 +289,6 @@ void zone_create_in_region(__address base, size_t size) {
 	
 	zone_attach(z);
 }
-
 
 
 /** Create frame zone
@@ -373,20 +395,14 @@ void frame_initialize(frame_t *frame, zone_t *zone)
  * @return Buddy for given block if found
  */
 link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
-	frame_t * frame, * f;
+	frame_t * frame;
 	zone_t * zone;
-	link_t * cur;
 	count_t index;
 	bool is_left, is_right;
 
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
 	
-	/* 
-	 * (FRAME_INDEX % 2^(ORDER+1)) == 0 ===> LEFT BUDDY 
-	 * (FRAME_INDEX % 2^(ORDER+1)) == 2^(ORDER) ===> RIGHT BUDDY
-	 */
-
 	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
 	is_right = !is_left;
 	
@@ -406,8 +422,7 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 		}
 	}
 	
-	return NULL;
-	
+	return NULL;	
 }
 
 /** Buddy system bisect implementation
