@@ -34,9 +34,12 @@
 #include <arch/boot/memmap.h>
 #include <panic.h>
 #include <debug.h>
+#include <align.h>
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
+
+__address last_frame = 0;
 
 void frame_arch_init(void)
 {
@@ -53,8 +56,10 @@ void frame_arch_init(void)
 		
 		for (i = 0; i < e820counter; i++) {
 			if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-				zone_create_in_region(e820table[i].base_address,  e820table[i].size & ~(FRAME_SIZE-1));
-			}
+				zone_create_in_region(e820table[i].base_address, e820table[i].size & ~(FRAME_SIZE-1));
+				if (last_frame < ALIGN(e820table[i].base_address + e820table[i].size, FRAME_SIZE))
+					last_frame = ALIGN(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
+			}			
 		}
 	}
 }

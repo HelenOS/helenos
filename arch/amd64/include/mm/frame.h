@@ -29,10 +29,15 @@
 #ifndef __amd64_FRAME_H__
 #define __amd64_FRAME_H__
 
+#ifndef __ASM__
+#include <arch/types.h>
+#endif /* __ASM__ */
+
 #define FRAME_SIZE		4096
 
 #ifndef __ASM__
+extern __address last_frame;
 extern void frame_arch_init(void);
-#endif
+#endif /* __ASM__ */
 
 #endif

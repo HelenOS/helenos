@@ -26,12 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch/mm/page.h>
+#include <arch/mm/frame.h>
+#include <mm/frame.h>
+#include <mm/page.h>
 #include <arch/types.h>
 #include <config.h>
 #include <func.h>
-#include <mm/frame.h>
-#include <mm/page.h>
-#include <arch/mm/page.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <synch/spinlock.h>
@@ -44,7 +45,7 @@ __address bootstrap_dba;
 void page_arch_init(void)
 {
 	__address dba;
-	__u32 i;
+	__address cur;
 
 	if (config.cpu_active == 1) {
 		dba = frame_alloc(FRAME_KA | FRAME_PANIC, 0);
@@ -53,10 +54,10 @@ void page_arch_init(void)
 		bootstrap_dba = dba;
 		
 		/*
-		 * PA2KA(identity) mapping for all frames.
+		 * PA2KA(identity) mapping for all frames until last_frame.
 		 */
-		for (i = 0; i < config.memory_size/PAGE_SIZE; i++)
-			page_mapping_insert(PA2KA(i * PAGE_SIZE), i * PAGE_SIZE, PAGE_CACHEABLE, KA2PA(dba));
+		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
+			page_mapping_insert(PA2KA(cur), cur, PAGE_CACHEABLE, KA2PA(dba));
 
 		trap_register(14, page_fault);
 		write_cr3(KA2PA(dba));
