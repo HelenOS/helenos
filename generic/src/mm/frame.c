@@ -308,10 +308,6 @@ zone_t * zone_create(__address start, size_t size, int flags)
 	int i;
 	__u8 max_order;
 
-	/* hack for bug #10 */
-	// if (start == 0x100000) size -= (FRAME_SIZE * 256);
-
-	// printf("ZONE_CREATE()   %X - %X (%d kbytes)			\n", start, start+size, size/1024);	
 	ASSERT(start % FRAME_SIZE == 0);
 	ASSERT(size % FRAME_SIZE == 0);
 	
