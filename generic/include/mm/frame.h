@@ -36,6 +36,8 @@
 #include <synch/spinlock.h>
 #include <mm/buddy.h>
 
+#define ONE_FRAME	0
+
 #define FRAME_KA	1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC	2	/* panic on failure */
 

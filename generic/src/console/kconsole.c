@@ -425,20 +425,20 @@ int cmd_desc(cmd_arg_t *argv)
 	return 1;
 }
 
+/** Print detailed description of 'describe' command. */
+void desc_help(void)
+{
+	printf("Syntax: describe command_name\n");
+}
+
 /** Halt the kernel.
  *
- * @param argv Argument vector.
+ * @param argv Argument vector (ignored).
  *
- * @return 0 on failure, 1 on success.
+ * @return 0 on failure, 1 on success (never returns).
  */
 int cmd_halt(cmd_arg_t *argv)
 {
 	halt();
 	return 1;
-}
-
-/** Print detailed description of 'describe' command. */
-void desc_help(void)
-{
-	printf("Syntax: describe command_name\n");
 }

@@ -60,7 +60,7 @@ void cpu_init(void) {
 		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
 		for (i=0; i < config.cpu_count; i++) {
-			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC,0);
+			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
 			if (!cpus[i].stack)
 				panic("malloc/cpus[%d].stack\n", i);
 			
