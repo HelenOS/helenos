@@ -85,6 +85,10 @@ static cmd_arg_t desc_argv = {
 	.len = sizeof(desc_buf)
 };
 
+/** Data and methods for 'halt' command. */
+static int cmd_halt(cmd_arg_t *argv);
+static cmd_info_t halt_info;
+
 /** Initialize kconsole data structures. */
 void kconsole_init(void)
 {
@@ -117,6 +121,20 @@ void kconsole_init(void)
 	
 	if (!cmd_register(&desc_info))
 		panic("could not register command %s\n", desc_info.name);
+	
+	
+	halt_info.name = "halt";
+	halt_info.description = "Halt the kernel.";
+	halt_info.func = cmd_halt;
+	halt_info.help = NULL;
+	halt_info.argc = 0;
+	halt_info.argv = NULL;
+
+	spinlock_initialize(&halt_info.lock);
+	link_initialize(&halt_info.link);
+
+	if (!cmd_register(&halt_info))
+		panic("could not register command %s\n", halt_info.name);
 }
 
 
@@ -404,6 +422,18 @@ int cmd_desc(cmd_arg_t *argv)
 	spinlock_unlock(&cmd_lock);	
 	interrupts_restore(ipl);
 
+	return 1;
+}
+
+/** Halt the kernel.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int cmd_halt(cmd_arg_t *argv)
+{
+	halt();
 	return 1;
 }
 
