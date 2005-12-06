@@ -111,6 +111,7 @@ class Dialog(NoDialog):
         self.title = text
         
     def calldlg(self,*args,**kw):
+        "Wrapper for calling 'dialog' program"
         indesc, outdesc = os.pipe()
         pid = os.fork()
         if not pid:
@@ -176,6 +177,7 @@ class Dialog(NoDialog):
         return data
     
 def read_defaults(fname,defaults):
+    "Read saved values from last configuration run"
     f = file(fname,'r')
     for line in f:
         res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
@@ -184,6 +186,7 @@ def read_defaults(fname,defaults):
     f.close()
 
 def check_condition(text, defaults):
+    "Check that the condition specified on input line is True"
     result = False
     conds = text.split('|')
     for cond in conds:
@@ -199,6 +202,7 @@ def check_condition(text, defaults):
     return False
 
 def parse_config(input, output, dlg, defaults={}):
+    "Parse configuration file and create Makefile.config on the fly"
     f = file(input, 'r')
     outf = file(output, 'w')
 
@@ -211,6 +215,7 @@ def parse_config(input, output, dlg, defaults={}):
     choices = []
     for line in f:        
         if line.startswith('!'):
+            # Ask a question
             res = re.search(r'!\s*(?:\[(.*?)\])?\s*([^\s]+)\s*\((.*)\)\s*$', line)
             if not res:
                 raise RuntimeError("Weird line: %s" % line)
@@ -249,6 +254,7 @@ def parse_config(input, output, dlg, defaults={}):
             continue
         
         if line.startswith('@'):
+            # Add new line into the 'choice array' 
             res = re.match(r'@\s*(?:\[(.*?)\])?\s*"(.*?)"\s*(.*)$', line)
             if not res:
                 raise RuntimeError("Bad line: %s" % line)
@@ -257,11 +263,14 @@ def parse_config(input, output, dlg, defaults={}):
                     continue
             choices.append((res.group(2), res.group(3)))
             continue
-        
+
+        # All other things print to output file
         outf.write(line)
         if re.match(r'^#[^#]', line):
+            # Last comment before question will be displayed to the user
             comment = line[1:].strip()
         elif line.startswith('##'):
+            # Set title of the dialog window
             dlg.set_title(line[2:].strip())
         
     outf.close()
