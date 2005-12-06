@@ -51,7 +51,7 @@ extern void spinlock_unlock(spinlock_t *sl);
 struct spinlock {
 };
 
-#define spinlock_initialize(x)
+#define spinlock_initialize(x,name)
 #define spinlock_lock(x)		preemption_disable()
 #define spinlock_trylock(x) 		(preemption_disable(), 1)
 #define spinlock_unlock(x)		preemption_enable()
