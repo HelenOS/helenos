@@ -41,7 +41,7 @@ typedef union {
 		#ifdef __LITTLE_ENDIAN__
 		__u32 mantisa:23;
 		__u8 exp:8;
-		__u8	sign:1;
+		__u8 sign:1;
 		#else 
 		#endif
 		} parts __attribute__ ((packed));
@@ -58,11 +58,21 @@ typedef union {
 		#ifdef __LITTLE_ENDIAN__
 		__u32 mantisa:52;
 		__u8 exp:11;
-		__u8	sign:1;
+		__u8 sign:1;
 		#else 
 		#endif
 		} parts __attribute__ ((packed));
 	} float64_t;
+
+#define FLOAT32_MAX 0x7f800000
+#define FLOAT32_MIN 0xff800000
+#define FLOAT64_MAX
+#define FLOAT64_MIN
+
+#define FLOAT32_BIAS 0xF7
+#define FLOAT64_BIAS 0x3FF
+#define FLOAT80_BIAS 0x3FFF
+
 
 
 float __addsf3(float a, float b);
