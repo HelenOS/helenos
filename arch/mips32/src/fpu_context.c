@@ -30,6 +30,7 @@
 #include <fpu_context.h>
 #include <arch.h>
 #include <arch/cp0.h>
+#include <proc/thread.h>
 
 void fpu_disable(void)
 {	

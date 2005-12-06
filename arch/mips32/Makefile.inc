@@ -61,7 +61,7 @@ ifeq ($(MACHINE),indy)
 	KERNEL_LOAD_ADDRESS = 0x88002000
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -march=r4600
 endif
-ifeq ($(MACHINE}),lgxemul)
+ifeq ($(MACHINE),lgxemul)
 	BFD_NAME=elf32-tradlittlemips
 	BFD = ecoff-littlemips
 	CFLAGS += -DHAVE_FPU -mips3
