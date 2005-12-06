@@ -175,15 +175,28 @@ class Dialog(NoDialog):
             raise EOFError
         return data
     
-def read_defaults(fname):
-    defaults = {}
+def read_defaults(fname,defaults):
     f = file(fname,'r')
     for line in f:
-        res = re.match(r'^([^#]\w*)\s*=\s*(.*?)\s*$', line)
+        res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
         if res:
             defaults[res.group(1)] = res.group(2)
     f.close()
-    return defaults
+
+def check_condition(text, defaults):
+    result = False
+    conds = text.split('|')
+    for cond in conds:
+        condname,condval = cond.split('=')
+        if not defaults.has_key(condname):
+            raise RuntimeError("Condition var %s does not exist: %s" % \
+                               (condname,line))
+        # None means wildcard
+        if defaults[condname] is None:
+            return True
+        if  condval == defaults[condname]:
+            return True
+    return False
 
 def parse_config(input, output, dlg, defaults={}):
     f = file(input, 'r')
@@ -198,13 +211,19 @@ def parse_config(input, output, dlg, defaults={}):
     choices = []
     for line in f:        
         if line.startswith('!'):
-            res = re.search(r'!\s*([^\s]+)\s*\((.*)\)\s*$', line)
+            res = re.search(r'!\s*(?:\[(.*?)\])?\s*([^\s]+)\s*\((.*)\)\s*$', line)
             if not res:
                 raise RuntimeError("Weird line: %s" % line)
-            varname = res.group(1)
-            vartype = res.group(2)
+            varname = res.group(2)
+            vartype = res.group(3)
 
             default = defaults.get(varname,None)
+
+            if res.group(1):
+                if not check_condition(res.group(1), defaults):
+                    if default is not None:
+                        outf.write('#!# %s = %s\n' % (varname, default))
+                    continue
 
             if vartype == 'y/n':
                 result = dlg.yesno(comment, default)
@@ -221,6 +240,8 @@ def parse_config(input, output, dlg, defaults={}):
             else:
                 raise RuntimeError("Bad method: %s" % vartype)
             outf.write('%s = %s\n' % (varname, result))
+            # Remeber the selected value
+            defaults[varname] = result
             # Clear cumulated values
             comment = ''
             default = None
@@ -228,10 +249,13 @@ def parse_config(input, output, dlg, defaults={}):
             continue
         
         if line.startswith('@'):
-            res = re.match(r'@\s*"(.*?)"\s*(.*)$', line)
+            res = re.match(r'@\s*(?:\[(.*?)\])?\s*"(.*?)"\s*(.*)$', line)
             if not res:
                 raise RuntimeError("Bad line: %s" % line)
-            choices.append((res.group(1), res.group(2)))
+            if res.group(1):
+                if not check_condition(res.group(1),defaults):
+                    continue
+            choices.append((res.group(2), res.group(3)))
             continue
         
         outf.write(line)
@@ -244,7 +268,7 @@ def parse_config(input, output, dlg, defaults={}):
     f.close()
 
 def main():
-    defaults = {}
+    defaults = {'ARCH':None}
     try:
         dlg = Dialog()
     except NotImplementedError:
@@ -252,11 +276,13 @@ def main():
 
     # Default run will update the configuration file
     # with newest options
-    if len(sys.argv) == 2 and sys.argv[1]=='default':
+    if len(sys.argv) >= 2:
+        defaults['ARCH'] = sys.argv[1]
+    if len(sys.argv) == 3 and sys.argv[2]=='default':
         dlg = DefaultDialog(dlg)
 
     if os.path.exists(OUTPUT):
-        defaults = read_defaults(OUTPUT)
+        read_defaults(OUTPUT, defaults)
     
     parse_config(INPUT, TMPOUTPUT, dlg, defaults)
     if os.path.exists(OUTPUT):
