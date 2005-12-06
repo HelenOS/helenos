@@ -60,4 +60,5 @@ else
 	TAG="Revision $TAG (built on $TIMESTAMP for $ARCH)"
 fi
 
+tools/config.py default
 make all "ARCH=$ARCH" "TAG=$TAG" $ARGS
