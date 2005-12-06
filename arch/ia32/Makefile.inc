@@ -38,36 +38,36 @@ TOOLCHAIN_DIR = /usr/local/i686/bin
 ## Make some default assumptions
 #
 
-ifndef CPU
-	CPU = pentium4
+ifndef IA32_CPU
+	IA32_CPU = pentium4
 endif
 
-DEFS += -D_CPU=${CPU}
+DEFS += -D_CPU=${IA32_CPU}
 
 ## Accepted CPUs
 #
 
-ifeq ($(CPU),athlon-xp)
+ifeq ($(IA32_CPU),athlon-xp)
 	CFLAGS += -march=athlon-xp -mmmx -msse -m3dnow
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_SMP = n
 	CONFIG_HT = n
 endif
-ifeq ($(CPU),athlon-mp)
+ifeq ($(IA32_CPU),athlon-mp)
 	CFLAGS += -march=athlon-mp -mmmx -msse -m3dnow
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
-ifeq ($(CPU),pentium3)
+ifeq ($(IA32_CPU),pentium3)
 	CFLAGS += -march=pentium3 -mmmx -msse
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
-ifeq ($(CPU),prescott)
+ifeq ($(IA32_CPU),prescott)
 	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
 	DEFS += -DCONFIG_FENCES_P4
 endif
-ifeq ($(CPU),pentium4)
+ifeq ($(IA32_CPU),pentium4)
 	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
 	DEFS += -DCONFIG_FENCES_P4
 endif

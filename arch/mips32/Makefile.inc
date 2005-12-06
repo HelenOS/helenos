@@ -36,20 +36,20 @@ TOOLCHAIN_DIR = /usr/local/mipsel/bin
 ## Make some default assumptions
 #
 
-ifndef MACHINE
-	MACHINE = msim
+ifndef MIPS_MACHINE
+	MIPS_MACHINE = msim
 endif
 
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x80110000
 INIT_SIZE = 65536
 CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
-DEFS += -DMACHINE=${MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
+DEFS += -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
 
 ## Accepted MACHINEs
 #
 
-ifeq ($(MACHINE),indy)
+ifeq ($(MIPS_MACHINE),indy)
 	# GCC 4.0.1 compiled for mipsEL has problems compiling in 
 	# BigEndian mode with the swl/swr/lwl/lwr instructions.
 	# We have to compile it with mips-sgi-irix5 to get it right.
@@ -61,19 +61,19 @@ ifeq ($(MACHINE),indy)
 	KERNEL_LOAD_ADDRESS = 0x88002000
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -march=r4600
 endif
-ifeq ($(MACHINE),lgxemul)
+ifeq ($(MIPS_MACHINE),lgxemul)
 	BFD_NAME=elf32-tradlittlemips
 	BFD = ecoff-littlemips
 	CFLAGS += -DHAVE_FPU -mips3
 endif
-ifeq ($(MACHINE),bgxemul)
+ifeq ($(MIPS_MACHINE),bgxemul)
 	BFD_NAME=elf32-bigmips
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -mips3
 endif
-ifeq ($(MACHINE),msim4kc)
+ifeq ($(MIPS_MACHINE),msim4kc)
 	# MSIM needs lwl/swl patch & 4kc instruction patch to work
 	# otherwise add -mmemcpy -mips3
 	
@@ -81,7 +81,7 @@ ifeq ($(MACHINE),msim4kc)
 	BFD = binary
 	CFLAGS += -mhard-float -march=4kc 
 endif
-ifeq ($(MACHINE),simics)
+ifeq ($(MIPS_MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions
 	# that do not bother us
 	
@@ -89,16 +89,11 @@ ifeq ($(MACHINE),simics)
 	BFD = elf32-tradlittlemips
 	CFLAGS += -mhard-float -mips3
 endif
-ifeq ($(MACHINE),msim)
+ifeq ($(MIPS_MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
 	CFLAGS += -mhard-float -mips3
 endif
-
-## Own configuration directives
-#
-
-CONFIG_OFW = y
 
 ## Accepted configuration directives
 #

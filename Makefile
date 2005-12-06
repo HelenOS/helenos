@@ -36,12 +36,10 @@ EXTRAVERSION =
 NAME = Dawn
 RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 
-## Make some default assumptions
+## Include configuration
 #
 
-ifndef ARCH
-	ARCH = ia32
-endif
+include Makefile.config
 
 ## Common compiler flags
 #
@@ -58,7 +56,6 @@ endif
 ## Setup kernel configuration
 #
 
-include Makefile.config
 include arch/$(ARCH)/Makefile.inc
 include genarch/Makefile.inc
 

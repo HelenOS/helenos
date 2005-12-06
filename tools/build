@@ -2,48 +2,13 @@
 
 function syntax {
 	echo "Syntax:"
-	echo " build.<arch> [-compiler <compiler>] [-cpu <cpu>] [-machine <machine>]"
-	echo
-	echo "<arch>     ... amd64, ia32, ia64, mips32, ppc32, sparc64"
-	echo "<compiler> ... native, *cross"
-	echo "<cpu>      ... for ia32: athlon-xp, athlon-mp, pentium3, *pentium4, prescott"
-	echo "<machine>  ... for mips32: *msim, msim4kc, simics, lgxemul, bgxemul, indy"
+	echo " build "
 	echo
 }
-
-ARCH="`basename "$0" | awk -F. '{ if (NF > 1) print \$NF }'`"
-if [ -z "$ARCH" ]; then
-	syntax
-	exit 1
-fi
 
 ARGS=""
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-		-compiler)
-			if [ -z "$2" ]; then
-				syntax
-				exit 1
-			fi
-			ARGS="$ARGS COMPILER=$2"
-			shift
-			;;
-		-cpu)
-			if [ -z "$2" ]; then
-				syntax
-				exit 1
-			fi
-			ARGS="$ARGS CPU=$2"
-			shift
-			;;
-		-machine)
-			if [ -z "$2" ]; then
-				syntax
-				exit 1
-			fi
-			ARGS="$ARGS MACHINE=$2"
-			shift
-			;;
 		*)
 			syntax
 			exit 1
@@ -60,5 +25,5 @@ else
 	TAG="Revision $TAG (built on $TIMESTAMP for $ARCH)"
 fi
 
-tools/config.py $ARCH default
-make all "ARCH=$ARCH" "TAG=$TAG" $ARGS
+tools/config.py default
+make all "TAG=$TAG" $ARGS

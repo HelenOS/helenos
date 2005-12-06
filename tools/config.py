@@ -186,18 +186,36 @@ def read_defaults(fname,defaults):
     f.close()
 
 def check_condition(text, defaults):
-    "Check that the condition specified on input line is True"
-    result = False
+    result = True
+    conds = text.split('&')
+    for cond in conds:
+        if cond.startswith('(') and cond.endswith(')'):
+            cond = cond[1:-1]
+        if not check_dnf(cond, defaults):
+            return False
+    return True
+
+def check_dnf(text, defaults):
+    """
+    Check that the condition specified on input line is True
+
+    only CNF is supported
+    """
     conds = text.split('|')
     for cond in conds:
-        condname,condval = cond.split('=')
+        res = re.match(r'^(.*?)(!?=)(.*)$', cond)
+        if not res:
+            raise RuntimeError("Invalid condition: %s" % cond)
+        condname = res.group(1)
+        oper = res.group(2)
+        condval = res.group(3)
         if not defaults.has_key(condname):
             raise RuntimeError("Condition var %s does not exist: %s" % \
-                               (condname,line))
-        # None means wildcard
-        if defaults[condname] is None:
+                               (condname,text))
+
+        if oper=='=' and  condval == defaults[condname]:
             return True
-        if  condval == defaults[condname]:
+        if oper == '!=' and condval != defaults[condname]:
             return True
     return False
 
@@ -213,7 +231,28 @@ def parse_config(input, output, dlg, defaults={}):
     comment = ''
     default = None
     choices = []
-    for line in f:        
+    for line in f:
+        if line.startswith('%'):
+            res = re.match(r'^%\s*(?:\[(.*?)\])?\s*(.*)$', line)
+            if not res:
+                raise RuntimeError('Invalid command: %s' % line)
+            if res.group(1):
+                if not check_condition(res.group(1), defaults):
+                    continue
+            args = res.group(2).strip().split(' ')
+            cmd = args[0].lower()
+            args = args[1:]
+            if cmd == 'askdefault':
+                if isinstance(dlg, DefaultDialog):
+                    continue
+                res = dlg.noyes('Change kernel configuration')
+                if res == 'n':
+                    dlg = DefaultDialog(dlg)
+            elif cmd == 'saveas':
+                outf.write('%s = %s\n' % (args[1],defaults[args[0]]))
+                
+            continue
+            
         if line.startswith('!'):
             # Ask a question
             res = re.search(r'!\s*(?:\[(.*?)\])?\s*([^\s]+)\s*\((.*)\)\s*$', line)
@@ -228,6 +267,10 @@ def parse_config(input, output, dlg, defaults={}):
                 if not check_condition(res.group(1), defaults):
                     if default is not None:
                         outf.write('#!# %s = %s\n' % (varname, default))
+                    # Clear cumulated values
+                    comment = ''
+                    default = None
+                    choices = []
                     continue
 
             if vartype == 'y/n':
@@ -277,7 +320,7 @@ def parse_config(input, output, dlg, defaults={}):
     f.close()
 
 def main():
-    defaults = {'ARCH':None}
+    defaults = {}
     try:
         dlg = Dialog()
     except NotImplementedError:
@@ -285,9 +328,7 @@ def main():
 
     # Default run will update the configuration file
     # with newest options
-    if len(sys.argv) >= 2:
-        defaults['ARCH'] = sys.argv[1]
-    if len(sys.argv) == 3 and sys.argv[2]=='default':
+    if len(sys.argv) == 2 and sys.argv[1]=='default':
         dlg = DefaultDialog(dlg)
 
     if os.path.exists(OUTPUT):
