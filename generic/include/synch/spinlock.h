@@ -35,10 +35,13 @@
 
 #ifdef CONFIG_SMP
 struct spinlock {
+#ifdef CONFIG_DEBUG_SPINLOCK
+	char *name;
+#endif
 	int val;
 };
 
-extern void spinlock_initialize(spinlock_t *sl);
+extern void spinlock_initialize(spinlock_t *sl, char *name);
 extern void spinlock_lock(spinlock_t *sl);
 extern int spinlock_trylock(spinlock_t *sl);
 extern void spinlock_unlock(spinlock_t *sl);

@@ -92,7 +92,7 @@ static cmd_info_t halt_info;
 /** Initialize kconsole data structures. */
 void kconsole_init(void)
 {
-	spinlock_initialize(&cmd_lock);
+	spinlock_initialize(&cmd_lock, "kconsole_cmd");
 	list_initialize(&cmd_head);
 	
 	help_info.name = "help";
@@ -102,7 +102,7 @@ void kconsole_init(void)
 	help_info.argc = 0;
 	help_info.argv = NULL;
 
-	spinlock_initialize(&help_info.lock);
+	spinlock_initialize(&help_info.lock, "kconsole_help");
 	link_initialize(&help_info.link);
 
 	if (!cmd_register(&help_info))
@@ -116,7 +116,7 @@ void kconsole_init(void)
 	desc_info.argc = 1;
 	desc_info.argv = &desc_argv;
 	
-	spinlock_initialize(&desc_info.lock);
+	spinlock_initialize(&desc_info.lock, "kconsole_desc");
 	link_initialize(&desc_info.link);
 	
 	if (!cmd_register(&desc_info))
@@ -130,7 +130,7 @@ void kconsole_init(void)
 	halt_info.argc = 0;
 	halt_info.argv = NULL;
 
-	spinlock_initialize(&halt_info.lock);
+	spinlock_initialize(&halt_info.lock, "kconsole_halt");
 	link_initialize(&halt_info.link);
 
 	if (!cmd_register(&halt_info))

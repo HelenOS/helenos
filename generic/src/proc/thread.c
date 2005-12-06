@@ -96,7 +96,7 @@ void thread_init(void)
 {
 	THREAD = NULL;
 	nrdy = 0;
-	spinlock_initialize(&threads_lock);
+	spinlock_initialize(&threads_lock, "threads_lock");
 	list_initialize(&threads_head);
 }
 
@@ -173,7 +173,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	if (t) {
 		ipl_t ipl;
 	
-		spinlock_initialize(&t->lock);
+		spinlock_initialize(&t->lock, "thread_t_lock");
 	
 		frame_ks = frame_alloc(FRAME_KA, ONE_FRAME);
 		if (THREAD_USER_STACK & flags) {

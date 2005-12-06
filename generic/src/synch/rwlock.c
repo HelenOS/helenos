@@ -75,7 +75,7 @@ static void release_spinlock(void *arg);
  * @param rwl Reader/Writer lock.
  */
 void rwlock_initialize(rwlock_t *rwl) {
-	spinlock_initialize(&rwl->lock);
+	spinlock_initialize(&rwl->lock, "rwlock");
 	mutex_initialize(&rwl->exclusive);
 	rwl->readers_in = 0;
 }

@@ -240,7 +240,7 @@ void i8042_init(void)
 {
 	trap_register(VECTOR_KBD, i8042_interrupt);
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
-	spinlock_initialize(&keylock);
+	spinlock_initialize(&keylock, "i8042_lock");
 	chardev_initialize(&kbrd, &ops);
 	stdin = &kbrd;
 }

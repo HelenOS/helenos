@@ -47,7 +47,7 @@
  */
 void timeout_init(void)
 {
-	spinlock_initialize(&CPU->timeoutlock);
+	spinlock_initialize(&CPU->timeoutlock, "timeout_lock");
 	list_initialize(&CPU->timeout_active_head);
 }
 
@@ -78,7 +78,7 @@ void timeout_reinitialize(timeout_t *t)
  */
 void timeout_initialize(timeout_t *t)
 {
-	spinlock_initialize(&t->lock);
+	spinlock_initialize(&t->lock, "timeout_t_lock");
 	timeout_reinitialize(t);
 }
 

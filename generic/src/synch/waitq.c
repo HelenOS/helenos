@@ -46,7 +46,7 @@
  */
 void waitq_initialize(waitq_t *wq)
 {
-	spinlock_initialize(&wq->lock);
+	spinlock_initialize(&wq->lock, "waitq_lock");
 	list_initialize(&wq->head);
 	wq->missed_wakeups = 0;
 }

@@ -33,6 +33,7 @@
 #include <preemption.h>
 #include <print.h>
 #include <debug.h>
+#include <symtab.h>
 
 #ifdef CONFIG_SMP
 
@@ -42,9 +43,12 @@
  *
  * @param sl Pointer to spinlock_t structure.
  */
-void spinlock_initialize(spinlock_t *sl)
+void spinlock_initialize(spinlock_t *sl, char *name)
 {
 	sl->val = 0;
+#ifdef CONFIG_DEBUG_SPINLOCK
+	sl->name = name;
+#endif	
 }
 
 #ifdef CONFIG_DEBUG_SPINLOCK
@@ -59,12 +63,18 @@ void spinlock_initialize(spinlock_t *sl)
 void spinlock_lock(spinlock_t *sl)
 {
 	int i = 0;
-	__address caller = ((__u32 *) &sl)[-1];
+	__address caller = ((__address *) &sl)[-1];
+	char *symbol;
 
 	preemption_disable();
 	while (test_and_set(&sl->val)) {
 		if (i++ > 300000) {
-			printf("cpu%d: looping on spinlock %X, caller=%X\n", CPU->id, sl, caller);
+			printf("cpu%d: looping on spinlock %p:%s, caller=%p",
+			       CPU->id, sl, sl->name, caller);
+			symbol = get_symtab_entry(caller);
+			if (symbol)
+				printf("(%s)", symbol);
+			printf("\n");
 			i = 0;
 		}
 	}

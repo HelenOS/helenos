@@ -55,7 +55,7 @@ vm_t *vm_create(pte_t *ptl0)
 
 	m = (vm_t *) malloc(sizeof(vm_t));
 	if (m) {
-		spinlock_initialize(&m->lock);
+		spinlock_initialize(&m->lock, "vm_lock");
 		list_initialize(&m->vm_area_head);
 
 		m->asid = asid_get();
@@ -117,7 +117,7 @@ vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 		for (i=0; i<size; i++)
 			a->mapping[i] = frame_alloc(0, ONE_FRAME);
 		
-		spinlock_initialize(&a->lock);
+		spinlock_initialize(&a->lock, "vm_area_lock");
 			
 		link_initialize(&a->link);			
 		a->type = type;

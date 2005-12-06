@@ -39,7 +39,7 @@ class NoDialog:
 
     def print_title(self):
         if not self.printed:
-            sys.stdout.write("*** %s ***\n" % self.title)
+            sys.stdout.write("\n*** %s ***\n" % self.title)
             self.printed = True
 
     def set_title(self, text):
@@ -312,7 +312,7 @@ def parse_config(input, output, dlg, defaults={}):
         if re.match(r'^#[^#]', line):
             # Last comment before question will be displayed to the user
             comment = line[1:].strip()
-        elif line.startswith('##'):
+        elif line.startswith('## '):
             # Set title of the dialog window
             dlg.set_title(line[2:].strip())
         

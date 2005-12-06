@@ -39,7 +39,7 @@
 void chardev_initialize(chardev_t *chardev, chardev_operations_t *op)
 {
 	waitq_initialize(&chardev->wq);
-	spinlock_initialize(&chardev->lock);
+	spinlock_initialize(&chardev->lock, "chardev");
 	chardev->counter = 0;
 	chardev->index = 0;
 	chardev->op = op;

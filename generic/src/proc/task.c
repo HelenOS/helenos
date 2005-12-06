@@ -48,7 +48,7 @@ link_t tasks_head;
 void task_init(void)
 {
 	TASK = NULL;
-	spinlock_initialize(&tasks_lock);
+	spinlock_initialize(&tasks_lock, "tasks_lock");
 	list_initialize(&tasks_head);
 }
 
@@ -69,7 +69,7 @@ task_t *task_create(vm_t *m)
 	
 	ta = (task_t *) malloc(sizeof(task_t));
 	if (ta) {
-		spinlock_initialize(&ta->lock);
+		spinlock_initialize(&ta->lock, "task_ta_lock");
 		list_initialize(&ta->th_head);
 		list_initialize(&ta->tasks_link);
 		ta->vm = m;

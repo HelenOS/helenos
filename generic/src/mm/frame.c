@@ -241,7 +241,7 @@ void frame_region_not_free(__address base, size_t size)
  */
 void zone_init(void)
 {
-	spinlock_initialize(&zone_head_lock);
+	spinlock_initialize(&zone_head_lock, "zone_head_lock");
 	list_initialize(&zone_head);
 }
 
@@ -316,7 +316,7 @@ zone_t * zone_create(__address start, size_t size, int flags)
 	z = (zone_t *) early_malloc(sizeof(zone_t));
 	if (z) {
 		link_initialize(&z->link);
-		spinlock_initialize(&z->lock);
+		spinlock_initialize(&z->lock, "zone_lock");
 	
 		z->base = start;
 		z->flags = flags;
