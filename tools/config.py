@@ -79,7 +79,12 @@ class NoDialog:
             sys.stdout.write('Enter choice number: ')
 
     def menu(self, text, choices, button, defopt=None):
-        return self.choice(text, [button] + choices)
+        menu = []
+        for key, descr in choices:
+            txt = key + (45-len(key))*' ' + ': ' + descr
+            menu.append((key, txt))
+            
+        return self.choice(text, [button] + menu)
         
     def choice(self, text, choices, defopt=None):
         self.print_title()
@@ -365,12 +370,15 @@ def main():
     # with newest options
     if os.path.exists(OUTPUT):
         read_defaults(OUTPUT, defaults)
-    
+
+    # Dry run only with defaults
     varnames = parse_config(INPUT, TMPOUTPUT, DefaultDialog(dlg), defaults)
     # If not in default mode, present selection of all possibilities
     if not defmode:
         defopt = 0
         while 1:
+            # varnames contains variable names that were in the
+            # last question set
             choices = [ (x[1],defaults[x[0]]) for x in varnames ]
             res = dlg.menu('Configuration',choices,('save','Save'),defopt)
             if res == 'save':
@@ -381,6 +389,9 @@ def main():
                 if res == descr:
                     defopt = i
                     break
+            # Ask the user a simple question, produce output
+            # as if the user answered all the other questions
+            # with default answer
             varnames = parse_config(INPUT, TMPOUTPUT, dlg, defaults,
                                     askonly=varnames[i][0])
         
