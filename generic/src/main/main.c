@@ -181,7 +181,7 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	arch_post_mm_init();
 
-	printf("%s, release %s (%s)%s\nBuild%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
+	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
