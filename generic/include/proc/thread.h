@@ -64,7 +64,12 @@ struct thread {
 	link_t th_link;				/**< Links to threads within containing task. */
 	link_t threads_link;			/**< Link to the list of all threads. */
 	
-	/* items below are protected by lock */
+	/** Lock protecting thread structure.
+	 *
+	 * Protects the whole thread structure except list links above.
+	 * Must be acquired before T.lock for each T of type task_t.
+	 * 
+	 */
 	spinlock_t lock;
 
 	void (* thread_code)(void *);		/**< Function implementing the thread. */
@@ -109,7 +114,14 @@ struct thread {
 	__u8 *ustack;				/**< Thread's user stack. */
 };
 
-extern spinlock_t threads_lock;			/**< Lock protecting threads_head list. */
+/** Thread list lock.
+ *
+ * This lock protects all link_t structures chained in threads_head.
+ * Must be acquired before T.lock for each T of type thread_t.
+ *
+ */
+extern spinlock_t threads_lock;
+
 extern link_t threads_head;			/**< List of all threads in the system. */
 
 extern void thread_init(void);

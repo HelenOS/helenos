@@ -53,8 +53,8 @@ static inline atomic_t atomic_inc_pre(atomic_t *val)
 {
 	atomic_t r;
 	__asm__ volatile (
-		"movl $1,%0;"
-		"lock xaddl %0,%1;"
+		"movl $1, %0\n"
+		"lock xaddl %0, %1\n"
 		: "=r"(r), "=m" (*val)
 	);
 	return r;
@@ -66,8 +66,8 @@ static inline atomic_t atomic_dec_pre(atomic_t *val)
 {
 	atomic_t r;
 	__asm__ volatile (
-		"movl $-1,%0;"
-		"lock xaddl %0,%1;"
+		"movl $-1, %0\n"
+		"lock xaddl %0, %1\n"
 		: "=r"(r), "=m" (*val)
 	);
 	return r;
@@ -75,8 +75,6 @@ static inline atomic_t atomic_dec_pre(atomic_t *val)
 
 #define atomic_inc_post(val) (atomic_inc_pre(val)+1)
 #define atomic_dec_post(val) (atomic_dec_pre(val)-1)
-
-
 
 static inline int test_and_set(volatile int *val) {
 	int v;

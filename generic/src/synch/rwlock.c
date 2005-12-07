@@ -26,9 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-/*
- * Reader/Writer locks
+/** Reader/Writer locks
+ *
+ * A reader/writer lock can be held by multiple readers at a time.
+ * Or it can be exclusively held by a sole writer at a time.
  */
 
 /*
@@ -75,7 +76,7 @@ static void release_spinlock(void *arg);
  * @param rwl Reader/Writer lock.
  */
 void rwlock_initialize(rwlock_t *rwl) {
-	spinlock_initialize(&rwl->lock, "rwlock");
+	spinlock_initialize(&rwl->lock, "rwlock_t");
 	mutex_initialize(&rwl->exclusive);
 	rwl->readers_in = 0;
 }
@@ -218,10 +219,10 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 				interrupts_restore(ipl);
 				break;
 			case ESYNCH_OK_ATOMIC:
-				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC");
+				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC\n");
 				break;
 			dafault:
-				panic("invalid ESYNCH");
+				panic("invalid ESYNCH\n");
 				break;
 		}
 		return rc;
@@ -283,7 +284,7 @@ void rwlock_read_unlock(rwlock_t *rwl)
 }
 
 
-/** Direct handoff
+/** Direct handoff of reader/writer lock ownership.
  *
  * Direct handoff of reader/writer lock ownership
  * to waiting readers or a writer.
@@ -306,7 +307,7 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 {
 	rwlock_type_t type = RWLOCK_NONE;
 	thread_t *t = NULL;
-	int one_more = 1;
+	bool one_more = true;
 	
 	spinlock_lock(&rwl->exclusive.sem.wq.lock);
 
@@ -352,7 +353,7 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 			if (t) {
 				spinlock_lock(&t->lock);
 				if (t->rwlock_holder_type != RWLOCK_READER)
-					one_more = 0;
+					one_more = false;
 				spinlock_unlock(&t->lock);	
 			}
 		}

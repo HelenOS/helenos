@@ -33,6 +33,7 @@
 #include <proc/scheduler.h>
 #include <arch/asm.h>
 #include <arch/types.h>
+#include <typedefs.h>
 #include <time/timeout.h>
 #include <arch.h>
 #include <context.h>
@@ -67,7 +68,7 @@ void waitq_interrupted_sleep(void *data)
 {
 	thread_t *t = (thread_t *) data;
 	waitq_t *wq;
-	int do_wakeup = 0;
+	bool do_wakeup = false;
 
 	spinlock_lock(&threads_lock);
 	if (!list_member(&t->threads_link, &threads_head))
@@ -75,24 +76,25 @@ void waitq_interrupted_sleep(void *data)
 
 grab_locks:
 	spinlock_lock(&t->lock);
-	if (wq = t->sleep_queue) {
+	if (wq = t->sleep_queue) {		/* assignment */
 		if (!spinlock_trylock(&wq->lock)) {
 			spinlock_unlock(&t->lock);
-			goto grab_locks; /* avoid deadlock */
+			goto grab_locks;	/* avoid deadlock */
 		}
 
 		list_remove(&t->wq_link);
 		t->saved_context = t->sleep_timeout_context;
-		do_wakeup = 1;
+		do_wakeup = true;
 		
 		spinlock_unlock(&wq->lock);
 		t->sleep_queue = NULL;
 	}
 	
-	t->timeout_pending = 0;
+	t->timeout_pending = false;
 	spinlock_unlock(&t->lock);
 	
-	if (do_wakeup) thread_ready(t);
+	if (do_wakeup)
+		thread_ready(t);
 
 out:
 	spinlock_unlock(&threads_lock);
@@ -193,7 +195,7 @@ restart:
 			interrupts_restore(ipl);
 			return ESYNCH_TIMEOUT;
 		}
-		THREAD->timeout_pending = 1;
+		THREAD->timeout_pending = true;
 		timeout_register(&THREAD->sleep_timeout, (__u64) usec, waitq_interrupted_sleep, THREAD);
 	}
 
@@ -227,7 +229,7 @@ restart:
  * @param all If this is non-zero, all sleeping threads
  *        will be woken up and missed count will be zeroed.
  */
-void waitq_wakeup(waitq_t *wq, int all)
+void waitq_wakeup(waitq_t *wq, bool all)
 {
 	ipl_t ipl;
 
@@ -250,14 +252,15 @@ void waitq_wakeup(waitq_t *wq, int all)
  * @param all If this is non-zero, all sleeping threads
  *        will be woken up and missed count will be zeroed.
  */
-void _waitq_wakeup_unsafe(waitq_t *wq, int all)
+void _waitq_wakeup_unsafe(waitq_t *wq, bool all)
 {
 	thread_t *t;
 
 loop:	
 	if (list_empty(&wq->head)) {
 		wq->missed_wakeups++;
-		if (all) wq->missed_wakeups = 0;
+		if (all)
+			wq->missed_wakeups = 0;
 		return;
 	}
 
@@ -266,11 +269,12 @@ loop:
 	list_remove(&t->wq_link);
 	spinlock_lock(&t->lock);
 	if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
-		t->timeout_pending = 0;
+		t->timeout_pending = false;
 	t->sleep_queue = NULL;
 	spinlock_unlock(&t->lock);
 
 	thread_ready(t);
 
-	if (all) goto loop;
+	if (all)
+		goto loop;
 }

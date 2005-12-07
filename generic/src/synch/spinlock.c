@@ -62,9 +62,10 @@ void spinlock_initialize(spinlock_t *sl, char *name)
  */
 void spinlock_lock(spinlock_t *sl)
 {
-	int i = 0;
+	count_t i = 0;
 	__address caller = ((__address *) &sl)[-1];
 	char *symbol;
+	bool deadlock_reported = false;
 
 	preemption_disable();
 	while (test_and_set(&sl->val)) {
@@ -76,8 +77,12 @@ void spinlock_lock(spinlock_t *sl)
 				printf("(%s)", symbol);
 			printf("\n");
 			i = 0;
+			deadlock_reported = true;
 		}
 	}
+
+	if (deadlock_reported)
+		printf("cpu%d: not deadlocked\n", CPU->id);
 
 	/*
 	 * Prevent critical section code from bleeding out this way up.

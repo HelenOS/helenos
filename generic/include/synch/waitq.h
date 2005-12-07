@@ -38,8 +38,15 @@
 #define WAKEUP_FIRST	0
 #define WAKEUP_ALL	1
 
+/** Wait queue structure. */
 struct waitq {
+
+	/** Lock protecting wait queue structure.
+	 *
+	 * Must be acquired before T.lock for each T of type thread_t.
+	 */
 	spinlock_t lock;
+
 	int missed_wakeups;	/**< Number of waitq_wakeup() calls that didn't find a thread to wake up. */
 	link_t head;		/**< List of sleeping threads for wich there was no missed_wakeup. */
 };
@@ -51,7 +58,7 @@ extern void waitq_interrupted_sleep(void *data);
 
 extern void waitq_initialize(waitq_t *wq);
 extern int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking);
-extern void waitq_wakeup(waitq_t *wq, int all);
-extern void _waitq_wakeup_unsafe(waitq_t *wq, int all);
+extern void waitq_wakeup(waitq_t *wq, bool all);
+extern void _waitq_wakeup_unsafe(waitq_t *wq, bool all);
 
 #endif
