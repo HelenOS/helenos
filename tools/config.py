@@ -187,11 +187,14 @@ class Dialog(NoDialog):
         kw = {}
         if defopt:
             kw['default-item'] = choices[defopt][0] 
-        res,data = self.calldlg('--cancel-label',button[1],
+        res,data = self.calldlg('--extra-label',button[1],
+                                '--extra-button',
                                 '--menu',text,height,width,
                                 str(len(choices)),*args,**kw)
-        if res == 1:
+        if res == 3:
             return button[0]
+        if res == 1: # Cancel
+            sys.exit(1)
         elif res:
             print data
             raise EOFError
