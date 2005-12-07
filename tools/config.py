@@ -253,6 +253,26 @@ def check_dnf(text, defaults):
 
 def parse_config(input, output, dlg, defaults={}, askonly=None):
     "Parse configuration file and create Makefile.config on the fly"
+    def ask_the_question():
+        "Ask question based on the type of variables to ask"
+        # This is quite a hack, this thingy is written just to
+        # have access to local variables..
+        if vartype == 'y/n':
+            return dlg.yesno(comment, default)
+        elif vartype == 'n/y':
+            return dlg.noyes(comment, default)
+        elif vartype == 'choice':
+            defopt = None
+            if default is not None:
+                for i,(key,val) in enumerate(choices):
+                    if key == default:
+                        defopt = i
+                        break
+            return dlg.choice(comment, choices, defopt)
+        else:
+            raise RuntimeError("Bad method: %s" % vartype)
+
+    
     f = file(input, 'r')
     outf = file(output, 'w')
 
@@ -303,27 +323,12 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
                 
             asked_names.append((varname,comment))
 
-            if default is not None and askonly and askonly != varname:
-                outf.write('%s = %s\n' % (varname, default))
-                continue
+            if default is None or not askonly or askonly == varname:
+                default = ask_the_question()
 
-            if vartype == 'y/n':
-                result = dlg.yesno(comment, default)
-            elif vartype == 'n/y':
-                result = dlg.noyes(comment, default)
-            elif vartype == 'choice':
-                defopt = None
-                if default is not None:
-                    for i,(key,val) in enumerate(choices):
-                        if key == default:
-                            defopt = i
-                            break
-                result = dlg.choice(comment, choices, defopt)
-            else:
-                raise RuntimeError("Bad method: %s" % vartype)
-            outf.write('%s = %s\n' % (varname, result))
+            outf.write('%s = %s\n' % (varname, default))
             # Remeber the selected value
-            defaults[varname] = result
+            defaults[varname] = default
             # Clear cumulated values
             comment = ''
             default = None
