@@ -34,35 +34,35 @@ typedef union {
 	float f;
 	struct 	{
 		#ifdef __BIG_ENDIAN__
-		__u8 sign:1;
-		__u8 exp:8;
+		__u32 sign:1;
+		__u32 exp:8;
 		__u32 mantisa:23;
-		#else
-		#ifdef __LITTLE_ENDIAN__
+		#elif defined __LITTLE_ENDIAN__
 		__u32 mantisa:23;
-		__u8 exp:8;
-		__u8 sign:1;
+		__u32 exp:8;
+		__u32 sign:1;
 		#else 
+		#error "Unknown endians."
 		#endif
 		} parts __attribute__ ((packed));
- 	} float32_t;
+ 	} float32;
 	
 typedef union {
 	double d;
 	struct	{
 		#ifdef __BIG_ENDIAN__
-		__u8 sign:1;
-		__u8 exp:11;
-		__u32 mantisa:52;
-		#else
-		#ifdef __LITTLE_ENDIAN__
-		__u32 mantisa:52;
-		__u8 exp:11;
-		__u8 sign:1;
+		__u64 sign:1;
+		__u64 exp:11;
+		__u64 mantisa:52;
+		#elif defined __LITTLE_ENDIAN__
+		__u64 mantisa:52;
+		__u64 exp:11;
+		__u64 sign:1;
 		#else 
+		#error "Unknown endians."
 		#endif
 		} parts __attribute__ ((packed));
-	} float64_t;
+	} float64;
 
 #define FLOAT32_MAX 0x7f800000
 #define FLOAT32_MIN 0xff800000

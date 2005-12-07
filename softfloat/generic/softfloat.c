@@ -29,23 +29,27 @@
 
 #include<softfloat.h>
 
+float32 addFloat32(float32 a, float32 b);
+float32 subFloat32(float32 a, float32 b);
+inline int isFloat32NaN(float32 f);
+inline int isFloat32SigNaN(float32 f);
 
 float __addsf3(float a, float b)
 {
 	float32 fa, fb;
-	a.f=a;
-	b.f=b;
-	if (a.parts.sign!=b.parts.sign) return subFloat32(a,b).f;
-	return addFloat32(a,b).f;
+	fa.f=a;
+	fb.f=b;
+	if (fa.parts.sign!=fb.parts.sign) return subFloat32(fa,fb).f;
+	return addFloat32(fa,fb).f;
 };
 
 float __subsf3(float a, float b)
 {
 	float32 fa, fb;
-	a.f=a;
-	b.f=b;
-	if (a.parts.sign!=b.parts.sign) return addFloat32(a,b).f;
-	return subFloat32(a,b).f;
+	fa.f=a;
+	fb.f=b;
+	if (fa.parts.sign!=fb.parts.sign) return addFloat32(fa,fb).f;
+	return subFloat32(fa,fb).f;
 };
 
 float __negsf2(float a)
@@ -59,46 +63,70 @@ float __negsf2(float a)
 double __negdf2(double a)
 {
 	float64 fa;
-	fa.f=a;
+	fa.d=a;
 	fa.parts.sign=!fa.parts.sign;
-	return fa.f;
+	return fa.d;
 };
 
+/** Add two Float32 numbers with same signs
+ */
 float32 addFloat32(float32 a, float32 b)
 {
-	__u32 expdiff;
+	int expdiff;
 	__u32 exp1,exp2,mant1,mant2;
 	
 	expdiff=a.parts.exp - b.parts.exp;
 	if (expdiff<0) {
-		if (isFloat32NaN(a)) {
-			//TODO: fix it
-			return a;
+		if (isFloat32NaN(b)) {
+			//TODO: fix SigNaN
+			if (isFloat32SigNaN(b)) {
+			};
+			return b;
 		};
-
+		
+		if (b.parts.exp==0xFF) { 
+			return b;
+		}
+		
 		mant1=b.parts.mantisa;
 		exp1=b.parts.exp;
 		mant2=a.parts.mantisa;
 		exp2=a.parts.exp;
 		expdiff*=-1;
 	} else {
-		if (isFloat32NaN(b)) {
-			//TODO: fix it
-			return b;
+		if (isFloat32NaN(a)) {
+			//TODO: fix SigNaN
+			if ((isFloat32SigNaN(a))||(isFloat32SigNaN(b))) {
+			};
+			return a;
 		};
+		
+		if (a.parts.exp==0xFF) { 
+			return a;
+		}
+		
 		mant1=a.parts.mantisa;
 		exp1=a.parts.exp;
 		mant2=b.parts.mantisa;
 		exp2=b.parts.exp;
 	};
-
+	
+	if (exp1==0) {
+		//both are denormalized
+		mant1+=mant2;
+		if (mant1&0xF00000) {
+			a.parts.exp=1;
+		};
+		a.parts.mantisa=mant1;
+		return a;
+	};
+	
 	// create some space for rounding
 	mant1<<=6;
 	mant2<<=6;
 	
-	if (exp1!=0) {
-		mant1|=0x20000000; //add hidden bit
-	};
+	mant1|=0x20000000; //add hidden bit
+	
 	
 	if (exp2==0) {
 		--expdiff;	
@@ -106,20 +134,24 @@ float32 addFloat32(float32 a, float32 b)
 		mant2|=0x20000000; //hidden bit
 	};
 	
-	
-	if (expdiff>24) {
-		goto done; 
-	};
-	
 	mant2>>=expdiff;
 	mant1+=mant2;
 done:
-	//TODO: round mant1
+	if (mant1&0x40000000) {
+		++exp1;
+		mant1>>=1;
+	};
+	
+	//rounding - if first bit after mantisa is set then round up
+	mant1+=0x20;
+	
 	a.parts.exp=exp1;
 	a.parts.mantisa=mant1>>6;
 	return a;
 };
 
+/** Substract two float32 numbers with same signs
+ */
 float32 subFloat32(float32 a, float32 b)
 {
 	
@@ -128,15 +160,11 @@ float32 subFloat32(float32 a, float32 b)
 
 inline int isFloat32NaN(float32 f)
 {	/* NaN : exp = 0xff and nonzero mantisa */
-	float32 fa;
-	fa.f=f;
-	return ((fa.parts.exp==0xFF)&&(fa.parts.mantisa));
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa));
 };
 
 inline int isFloat32SigNaN(float32 f)
 {	/* SigNaN : exp = 0xff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
-	float32 fa;
-	fa.f=f;
-	return ((fa.parts.exp==0xFF)&&(fa.parts.mantisa>0x400000));
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa>0x400000));
 };
 
