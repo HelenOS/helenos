@@ -77,6 +77,9 @@ class NoDialog:
             sys.stdout.write('Enter choice number[%d]: ' % defopt)
         else:
             sys.stdout.write('Enter choice number: ')
+
+    def menu(self, text, choices, button, defopt=None):
+        return self.choice(text, [button] + choices)
         
     def choice(self, text, choices, defopt=None):
         self.print_title()
@@ -102,7 +105,8 @@ class Dialog(NoDialog):
     def __init__(self):
         NoDialog.__init__(self)
         self.dlgcmd = os.environ.get('DIALOG','dialog')
-        self.title = 'HelenOS Configuration'
+        self.title = ''
+        self.backtitle = 'HelenOS Kernel Configuration'
         
         if os.system('%s --print-maxsize >/dev/null 2>&1' % self.dlgcmd) != 0:
             raise NotImplementedError
@@ -119,7 +123,8 @@ class Dialog(NoDialog):
             os.dup(outdesc)
             os.close(indesc)
             
-            dlgargs = [self.dlgcmd,'--title',self.title]
+            dlgargs = [self.dlgcmd,'--title',self.title,
+                       '--backtitle', self.backtitle]
             for key,val in kw.items():
                 dlgargs.append('--'+key)
                 dlgargs.append(val)
@@ -156,6 +161,28 @@ class Dialog(NoDialog):
         if res == 0:
             return 'y'
         return 'n'
+
+    def menu(self, text, choices, button, defopt=None):
+        text = text + ':'
+        width = '70'
+        height = str(8 + len(choices))
+        args = []
+        for key,val in choices:
+            args.append(key)
+            args.append(val)
+
+        kw = {}
+        if defopt:
+            kw['default-item'] = choices[defopt][0] 
+        res,data = self.calldlg('--cancel-label',button[1],
+                                '--menu',text,height,width,
+                                str(len(choices)),*args,**kw)
+        if res == 1:
+            return button[0]
+        elif res:
+            print data
+            raise EOFError
+        return data
     
     def choice(self, text, choices, defopt=None):
         text = text + ':'
@@ -219,7 +246,7 @@ def check_dnf(text, defaults):
             return True
     return False
 
-def parse_config(input, output, dlg, defaults={}):
+def parse_config(input, output, dlg, defaults={}, askonly=None):
     "Parse configuration file and create Makefile.config on the fly"
     f = file(input, 'r')
     outf = file(output, 'w')
@@ -227,6 +254,8 @@ def parse_config(input, output, dlg, defaults={}):
     outf.write('#########################################\n')
     outf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
     outf.write('#########################################\n\n')
+
+    asked_names = []
 
     comment = ''
     default = None
@@ -242,13 +271,7 @@ def parse_config(input, output, dlg, defaults={}):
             args = res.group(2).strip().split(' ')
             cmd = args[0].lower()
             args = args[1:]
-            if cmd == 'askdefault':
-                if isinstance(dlg, DefaultDialog):
-                    continue
-                res = dlg.noyes('Change kernel configuration')
-                if res == 'n':
-                    dlg = DefaultDialog(dlg)
-            elif cmd == 'saveas':
+            if cmd == 'saveas':
                 outf.write('%s = %s\n' % (args[1],defaults[args[0]]))
                 
             continue
@@ -262,7 +285,7 @@ def parse_config(input, output, dlg, defaults={}):
             vartype = res.group(3)
 
             default = defaults.get(varname,None)
-
+            
             if res.group(1):
                 if not check_condition(res.group(1), defaults):
                     if default is not None:
@@ -272,6 +295,12 @@ def parse_config(input, output, dlg, defaults={}):
                     default = None
                     choices = []
                     continue
+                
+            asked_names.append((varname,comment))
+
+            if default is not None and askonly and askonly != varname:
+                outf.write('%s = %s\n' % (varname, default))
+                continue
 
             if vartype == 'y/n':
                 result = dlg.yesno(comment, default)
@@ -318,6 +347,7 @@ def parse_config(input, output, dlg, defaults={}):
         
     outf.close()
     f.close()
+    return asked_names
 
 def main():
     defaults = {}
@@ -326,15 +356,35 @@ def main():
     except NotImplementedError:
         dlg = NoDialog()
 
+    if len(sys.argv) == 2 and sys.argv[1]=='default':
+        defmode = True
+    else:
+        defmode = False
+
     # Default run will update the configuration file
     # with newest options
-    if len(sys.argv) == 2 and sys.argv[1]=='default':
-        dlg = DefaultDialog(dlg)
-
     if os.path.exists(OUTPUT):
         read_defaults(OUTPUT, defaults)
     
-    parse_config(INPUT, TMPOUTPUT, dlg, defaults)
+    varnames = parse_config(INPUT, TMPOUTPUT, DefaultDialog(dlg), defaults)
+    # If not in default mode, present selection of all possibilities
+    if not defmode:
+        defopt = 0
+        while 1:
+            choices = [ (x[1],defaults[x[0]]) for x in varnames ]
+            res = dlg.menu('Configuration',choices,('save','Save'),defopt)
+            if res == 'save':
+                parse_config(INPUT, TMPOUTPUT, DefaultDialog(dlg), defaults)
+                break
+            # transfer description back to varname
+            for i,(vname,descr) in enumerate(varnames):
+                if res == descr:
+                    defopt = i
+                    break
+            varnames = parse_config(INPUT, TMPOUTPUT, dlg, defaults,
+                                    askonly=varnames[i][0])
+        
+    
     if os.path.exists(OUTPUT):
         os.unlink(OUTPUT)
     os.rename(TMPOUTPUT, OUTPUT)
