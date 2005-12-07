@@ -5,6 +5,7 @@ Kernel configuration script
 import sys
 import os
 import re
+import commands
 
 INPUT = 'kernel.config'
 OUTPUT = 'Makefile.config'
@@ -376,7 +377,10 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
         elif line.startswith('## '):
             # Set title of the dialog window
             dlg.set_title(line[2:].strip())
-        
+
+    outf.write('\n')
+    outf.write('REVISION=%s\n' % commands.getoutput('svnversion . 2> /dev/null'))
+    outf.write('TIMESTAMP=%s\n' % commands.getoutput('date "+%Y-%m-%d %H:%M:%S"'))
     outf.close()
     f.close()
     return asked_names

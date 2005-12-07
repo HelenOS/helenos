@@ -47,4 +47,7 @@
 #	define ASSERT(expr)
 #endif
 
+#define STRING(arg) STRING_ARG(arg)
+#define STRING_ARG(arg) #arg
+
 #endif

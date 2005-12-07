@@ -30,6 +30,7 @@
 #include <context.h>
 #include <print.h>
 #include <panic.h>
+#include <debug.h>
 #include <config.h>
 #include <time/clock.h>
 #include <proc/scheduler.h>
@@ -63,15 +64,23 @@
 #include <typedefs.h>
 
 char *project = "SPARTAN kernel";
-char *release = RELEASE " (" NAME ")";
-#ifdef TAG
-	char *rr_delimiter = "\n";
-	char *revision = TAG;
+char *copyright = "Copyright (C) 2001-2005 HelenOS project";
+char *release = RELEASE;
+char *name = NAME;
+char *arch = STRING(ARCH);
+
+#ifdef REVISION
+	char *revision = ", revision " REVISION;
 #else
-	char *rr_delimiter = "";
 	char *revision = "";
 #endif
-char *copyright = "Copyright (C) 2001-2005 HelenOS project";
+
+#ifdef TIMESTAMP
+	char *timestamp = " on " TIMESTAMP;
+#else
+	char *timestamp = "";
+#endif
+
 
 config_t config;
 context_t ctx;
@@ -172,7 +181,7 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	arch_post_mm_init();
 
-	printf("%s, release %s%s%s\n%s\n", project, release, rr_delimiter, revision, copyright);
+	printf("%s, release %s (%s)%s\nBuild%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 

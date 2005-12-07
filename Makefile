@@ -49,8 +49,12 @@ CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration
 LFLAGS = -M
 AFLAGS =
 
-ifdef TAG
-	DEFS += "-DTAG=\"$(TAG)\""
+ifdef REVISION
+	DEFS += "-DREVISION=\"$(REVISION)\""
+endif
+
+ifdef TIMESTAMP
+	DEFS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
 endif
 
 ## Setup kernel configuration
@@ -138,13 +142,13 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all clean config links depend boot
+.PHONY: all build clean config links depend boot
 
 all:
 	tools/config.py default
-	$(MAKE) -C . real_all
+	$(MAKE) -C . build
 
-real_all: kernel.bin boot disasm
+build: kernel.bin boot disasm
 
 config:
 	tools/config.py
