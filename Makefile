@@ -39,7 +39,7 @@ RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 ## Include configuration
 #
 
-include Makefile.config
+-include Makefile.config
 
 ## Common compiler flags
 #
@@ -56,8 +56,8 @@ endif
 ## Setup kernel configuration
 #
 
-include arch/$(ARCH)/Makefile.inc
-include genarch/Makefile.inc
+-include arch/$(ARCH)/Makefile.inc
+-include genarch/Makefile.inc
 
 ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
@@ -138,22 +138,35 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all clean config depend boot
+.PHONY: all clean config links depend boot
 
-all: kernel.bin boot disasm
+all:
+	tools/config.py default
+	$(MAKE) -C . real_all
+
+real_all: kernel.bin boot disasm
+
+config:
+	tools/config.py
 
 -include Makefile.depend
 
+distclean: clean
+	-rm Makefile.config
+
 clean:
 	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
-	find generic/src/ arch/$(ARCH)/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
-	$(MAKE) -C arch/$(ARCH)/boot clean
+	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
+	for arch in arch/*; do \
+	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null;\
+	    $(MAKE) -C $$arch/boot clean; \
+	done;exit 0
 
-config:
+archlinks:
 	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
-depend: config
+depend: archlinks
 	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in

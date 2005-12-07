@@ -1,0 +1,14 @@
+Following make targets are supported:
+
+make, make all
+	- Check configuration, build
+
+make config
+	- Start kernel configuration program
+
+make clean
+	- Clean build temporary files
+
+make distclean
+	- Clean everything including configuration
+

@@ -137,20 +137,28 @@ class Dialog(NoDialog):
             os.execlp(self.dlgcmd,*dlgargs)
 
         os.close(outdesc)
-        errout = os.fdopen(indesc,'r')
-        data = errout.read()
-        errout.close()
-            
-        pid,status = os.wait()
+        
+        try:
+            errout = os.fdopen(indesc,'r')
+            data = errout.read()
+            errout.close()
+            pid,status = os.wait()
+        except:
+            os.system('reset') # Reset terminal
+            raise
+        
         if not os.WIFEXITED(status):
+            os.system('reset') # Reset terminal
             raise EOFError
+        
         status = os.WEXITSTATUS(status)
         if status == 255:
             raise EOFError
         return status,data
         
     def yesno(self, text, default=None):
-        text = text + ':'
+        if text[-1] not in ('?',':'):
+            text = text + ':'
         width = '50'
         height = '5'
         if len(text) < 48:
@@ -404,7 +412,9 @@ def main():
     if os.path.exists(OUTPUT):
         os.unlink(OUTPUT)
     os.rename(TMPOUTPUT, OUTPUT)
-        
+    
+    if not defmode and dlg.yesno('Rebuild kernel?') == 'y':
+        os.execlp('make','make','clean','all')
 
 if __name__ == '__main__':
     main()
