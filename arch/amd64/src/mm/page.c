@@ -35,7 +35,7 @@
 #include <config.h>
 #include <memstr.h>
 
-__address bootstrap_dba; 
+static __address bootstrap_dba; 
 
 void page_arch_init(void)
 {
@@ -59,15 +59,6 @@ void page_arch_init(void)
 		write_cr3(KA2PA(dba));
 	}
 	else {
-		/*
-		 * Application processors need to create their own view of the
-		 * virtual address space. Because of that, each AP copies
-		 * already-initialized paging information from the bootstrap
-		 * processor and adjusts it to fulfill its needs.
-		 */
-
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
-		memcpy((void *)dba, (void *)bootstrap_dba , PAGE_SIZE);
-		write_cr3(KA2PA(dba));
+		write_cr3(KA2PA(bootstrap_dba));
 	}
 }

@@ -33,7 +33,6 @@
 
 #define FRAME_SIZE	4096
 
-extern __address bootstrap_dba;
 extern __address last_frame;
 
 extern void frame_arch_init(void);

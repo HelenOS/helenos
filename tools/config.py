@@ -265,14 +265,14 @@ def check_dnf(text, defaults):
 
 def parse_config(input, output, dlg, defaults={}, askonly=None):
     "Parse configuration file and create Makefile.config on the fly"
-    def ask_the_question():
+    def ask_the_question(dialog):
         "Ask question based on the type of variables to ask"
         # This is quite a hack, this thingy is written just to
         # have access to local variables..
         if vartype == 'y/n':
-            return dlg.yesno(comment, default)
+            return dialog.yesno(comment, default)
         elif vartype == 'n/y':
-            return dlg.noyes(comment, default)
+            return dialog.noyes(comment, default)
         elif vartype == 'choice':
             defopt = None
             if default is not None:
@@ -280,7 +280,7 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
                     if key == default:
                         defopt = i
                         break
-            return dlg.choice(comment, choices, defopt)
+            return dialog.choice(comment, choices, defopt)
         else:
             raise RuntimeError("Bad method: %s" % vartype)
 
@@ -316,12 +316,10 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
                 for i,arg in enumerate(args):
                     if arg.startswith('$'):
                         args[i] = defaults[arg[1:]]
-
-                subc = os.popen(' '.join(args),'r')
-                data = subc.read().strip()
-                if subc.close():
+                data,status = commands.getstatusoutput(' '.join(args))
+                if status:
                     raise RuntimeError('Error running: %s' % ' '.join(args))
-                outf.write('%s = %s\n' % (varname,data))
+                outf.write('%s = %s\n' % (varname,data.strip()))
             continue
             
         if line.startswith('!'):
@@ -347,7 +345,9 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             asked_names.append((varname,comment))
 
             if default is None or not askonly or askonly == varname:
-                default = ask_the_question()
+                default = ask_the_question(dlg)
+            else:
+                default = ask_the_question(DefaultDialog(dlg))
 
             outf.write('%s = %s\n' % (varname, default))
             # Remeber the selected value
