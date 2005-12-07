@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2001-2005 Jakub Jermar
+ * Copyright (C) 2005 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -225,11 +226,11 @@ void frame_region_not_free(__address base, size_t size)
 	index = zone_blacklist_count++;
 
 	/* Force base to the nearest lower address frame boundary. */
-	base &= ~(FRAME_SIZE - 1);
+	base = ALIGN_DOWN(base, FRAME_SIZE);
 	/* Align size to frame boundary. */
-	size = ALIGN(size, FRAME_SIZE);
+	size = ALIGN_UP(size, FRAME_SIZE);
 
-	ASSERT(zone_blacklist_count <= ZONE_BLACKLIST_SIZE);
+	ASSERT(index < ZONE_BLACKLIST_SIZE);
 	zone_blacklist[index].base = base;
 	zone_blacklist[index].size = size;
 }
@@ -284,7 +285,7 @@ void zone_create_in_region(__address base, size_t size) {
 	z = zone_create(base, size, 0);
 
 	if (!z) {
-		panic("Cannot allocate zone (%dB).\n", size);
+		panic("Cannot allocate zone (base=%P, size=%d).\n", base, size);
 	}
 	
 	zone_attach(z);
@@ -393,18 +394,19 @@ void frame_initialize(frame_t *frame, zone_t *zone)
 link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 	frame_t * frame;
 	zone_t * zone;
-	count_t index;
+	index_t index;
 	bool is_left, is_right;
 
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
 	
-	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
-	is_right = !is_left;
+	ASSERT(IS_BUDDY_ORDER_OK(FRAME_INDEX(zone, frame), frame->buddy_order));
 	
-	/*
-	 * test left buddy
-	 */
+	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
+	is_right = IS_BUDDY_RIGHT_BLOCK(zone, frame);
+	
+	ASSERT(is_left ^ is_right);
+	
 	if (is_left) {
 		index = (FRAME_INDEX(zone, frame)) + (1 << frame->buddy_order);
 	} else if (is_right) {
@@ -430,8 +432,10 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
  */
 link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
 	frame_t * frame_l, * frame_r;
+
 	frame_l = list_get_instance(block, frame_t, buddy_link);
 	frame_r = (frame_l + (1 << (frame_l->buddy_order - 1)));
+	
 	return &frame_r->buddy_link;
 }
 
@@ -445,8 +449,10 @@ link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
  */
 link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1, link_t * block_2) {
 	frame_t * frame1, * frame2;
+	
 	frame1 = list_get_instance(block_1, frame_t, buddy_link);
 	frame2 = list_get_instance(block_2, frame_t, buddy_link);
+	
 	return frame1 < frame2 ? block_1 : block_2;
 }
 

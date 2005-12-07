@@ -141,7 +141,7 @@ void main_bsp(void)
 	config.memory_size = get_memory_size();
 
 	heap_size = CONFIG_HEAP_SIZE + (config.memory_size/FRAME_SIZE)*sizeof(frame_t);
-	kernel_size = ALIGN(hardcoded_ktext_size + hardcoded_kdata_size + heap_size, PAGE_SIZE);
+	kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size + heap_size, PAGE_SIZE);
 	heap_delta = kernel_size - (hardcoded_ktext_size + hardcoded_kdata_size + heap_size);
 	
 	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;

@@ -29,6 +29,18 @@
 #ifndef __ALIGN_H__
 #define __ALIGN_H__
 
-#define ALIGN(s, a)	((s) % (a) ? (((s) / (a)) + 1) * (a) : (s))
+/** Align to the nearest higher address.
+ *
+ * @param s Address or size to be aligned.
+ * @param a Size of alignment.
+ */
+#define ALIGN_UP(s, a)		((s) % (a) ? (((s) / (a)) + 1) * (a) : (s))
+
+/** Align to the nearest lower address.
+ *
+ * @param s Address or size to be aligned.
+ * @param a Size of alignment.
+ */
+#define ALIGN_DOWN(s, a)	((s) & ~((a)-1))
 
 #endif

@@ -40,7 +40,7 @@
  *
  * One item is put onto the stack to support get_stack_base().
  */
-#define SP_DELTA	(0+ALIGN(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+#define SP_DELTA	(0+ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #define PFM_MASK	(~0x3fffffffff)
 
@@ -50,9 +50,9 @@
 
 #define context_set(c, _pc, stack, size) 								\
 	(c)->pc = (__address) _pc;									\
-	(c)->bsp = ((__address) stack) + ALIGN(sizeof(the_t), REGISTER_STACK_ALIGNMENT);		\
+	(c)->bsp = ((__address) stack) + ALIGN_UP(sizeof(the_t), REGISTER_STACK_ALIGNMENT);		\
 	(c)->ar_pfs &= PFM_MASK; 									\
-	(c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - SP_DELTA;
+	(c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;
 
 /*
  * Only save registers that must be preserved across

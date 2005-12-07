@@ -57,8 +57,8 @@ void frame_arch_init(void)
 		for (i = 0; i < e820counter; i++) {
 			if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 				zone_create_in_region(e820table[i].base_address, e820table[i].size & ~(FRAME_SIZE-1));
-				if (last_frame < ALIGN(e820table[i].base_address + e820table[i].size, FRAME_SIZE))
-					last_frame = ALIGN(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
+				if (last_frame < ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE))
+					last_frame = ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
 			}			
 		}
 	}

@@ -45,7 +45,9 @@
 #define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
 #define FRAME_INDEX(zone, frame)		((index_t)((frame) - (zone)->frames))
 #define FRAME_INDEX_VALID(zone, index)		(((index) >= 0) && ((index) < ((zone)->free_count + (zone)->busy_count)))
-#define IS_BUDDY_LEFT_BLOCK(zone, frame)	((FRAME_INDEX((zone), (frame)) & ~(((__native) -1)<<((frame)->buddy_order + 1))) == 0)
+#define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
+#define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
 #define ZONE_BLACKLIST_SIZE	3
 

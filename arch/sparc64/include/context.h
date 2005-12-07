@@ -30,7 +30,7 @@
 #define __sparc64_CONTEXT_H__
 
 #ifndef __sparc64_STACK_H__
-#include <arch/stack.h>
+# include <arch/stack.h>
 #endif
 
 #ifndef __sparc64_TYPES_H__
@@ -49,7 +49,7 @@
 
 #define context_set(c, _pc, stack, size)								\
         (c)->pc = ((__address) _pc) - 8;								\
-        (c)->sp = ((__address) stack) + ALIGN((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
+        (c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
 	(c)->fp = -STACK_BIAS
 	
 
