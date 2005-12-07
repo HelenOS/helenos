@@ -309,7 +309,18 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             args = args[1:]
             if cmd == 'saveas':
                 outf.write('%s = %s\n' % (args[1],defaults[args[0]]))
-                
+            elif cmd == 'shellcmd':
+                varname = args[0]
+                args = args[1:]
+                for i,arg in enumerate(args):
+                    if arg.startswith('$'):
+                        args[i] = defaults[arg[1:]]
+
+                subc = os.popen(' '.join(args),'r')
+                data = subc.read().strip()
+                if subc.close():
+                    raise RuntimeError('Error running: %s' % ' '.join(args))
+                outf.write('%s = %s\n' % (varname,data))
             continue
             
         if line.startswith('!'):
