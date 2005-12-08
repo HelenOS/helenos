@@ -72,6 +72,9 @@ endif
 ifeq ($(CONFIG_USERSPACE),y)
 	DEFS += -DCONFIG_USERSPACE
 endif
+ifeq ($(CONFIG_FPU_LAZY),y)
+	DEFS += -DCONFIG_FPU_LAZY
+endif
 
 ## Toolchain configuration
 #

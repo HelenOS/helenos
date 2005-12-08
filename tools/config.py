@@ -230,23 +230,42 @@ def read_defaults(fname,defaults):
             defaults[res.group(1)] = res.group(2)
     f.close()
 
-def check_condition(text, defaults):
-    result = True
-    conds = text.split('&')
+def check_condition(text, defaults, asked_names):
+    seen_vars = [ x[0] for x in asked_names ]
+    ctype = 'cnf'
+    if ')|' in text or '|(' in text:
+        ctype = 'dnf'
+    
+    if ctype == 'cnf':
+        conds = text.split('&')
+    else:
+        conds = text.split('|')
+
     for cond in conds:
         if cond.startswith('(') and cond.endswith(')'):
             cond = cond[1:-1]
-        if not check_dnf(cond, defaults):
+            
+        inside = check_inside(cond, defaults, ctype, seen_vars)
+        
+        if ctype == 'cnf' and not inside:
             return False
-    return True
+        if ctype == 'dnf' and inside:
+            return True
 
-def check_dnf(text, defaults):
+    if ctype == 'cnf':
+        return True
+    return False
+
+def check_inside(text, defaults, ctype, seen_vars):
     """
     Check that the condition specified on input line is True
 
     only CNF is supported
     """
-    conds = text.split('|')
+    if ctype == 'cnf':
+        conds = text.split('|')
+    else:
+        conds = text.split('&')
     for cond in conds:
         res = re.match(r'^(.*?)(!?=)(.*)$', cond)
         if not res:
@@ -254,15 +273,27 @@ def check_dnf(text, defaults):
         condname = res.group(1)
         oper = res.group(2)
         condval = res.group(3)
+        if condname not in seen_vars:
+            raise RuntimeError("Variable %s not defined before being asked." %\
+                               condname)
         if not defaults.has_key(condname):
             raise RuntimeError("Condition var %s does not exist: %s" % \
                                (condname,text))
 
-        if oper=='=' and  condval == defaults[condname]:
-            return True
-        if oper == '!=' and condval != defaults[condname]:
-            return True
-    return False
+        if ctype == 'cnf':
+            if oper == '=' and  condval == defaults[condname]:
+                return True
+            if oper == '!=' and condval != defaults[condname]:
+                return True
+        else:
+            if oper== '=' and condval != defaults[condname]:
+                return False
+            if oper== '!=' and condval == defaults[condname]:
+                print 2
+                return False
+    if ctype=='cnf':
+        return False
+    return True
 
 def parse_config(input, output, dlg, defaults={}, askonly=None):
     "Parse configuration file and create Makefile.config on the fly"
@@ -304,7 +335,8 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             if not res:
                 raise RuntimeError('Invalid command: %s' % line)
             if res.group(1):
-                if not check_condition(res.group(1), defaults):
+                if not check_condition(res.group(1), defaults,
+                                       asked_names):
                     continue
             args = res.group(2).strip().split(' ')
             cmd = args[0].lower()
@@ -334,7 +366,8 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             default = defaults.get(varname,None)
             
             if res.group(1):
-                if not check_condition(res.group(1), defaults):
+                if not check_condition(res.group(1), defaults,
+                                       asked_names):
                     if default is not None:
                         outf.write('#!# %s = %s\n' % (varname, default))
                     # Clear cumulated values
@@ -365,7 +398,8 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             if not res:
                 raise RuntimeError("Bad line: %s" % line)
             if res.group(1):
-                if not check_condition(res.group(1),defaults):
+                if not check_condition(res.group(1),defaults,
+                                       asked_names):
                     continue
             choices.append((res.group(2), res.group(3)))
             continue
@@ -433,7 +467,7 @@ def main():
     os.rename(TMPOUTPUT, OUTPUT)
     
     if not defmode and dlg.yesno('Rebuild kernel?') == 'y':
-        os.execlp('make','make','clean','all')
+        os.execlp('make','make','clean','build')
 
 if __name__ == '__main__':
     main()

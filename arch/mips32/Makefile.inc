@@ -73,14 +73,6 @@ ifeq ($(MIPS_MACHINE),bgxemul)
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -mips3
 endif
-ifeq ($(MIPS_MACHINE),msim4kc)
-	# MSIM needs lwl/swl patch & 4kc instruction patch to work
-	# otherwise add -mmemcpy -mips3
-	
-	BFD_NAME = elf32-tradlittlemips
-	BFD = binary
-	CFLAGS += -mhard-float -march=4kc 
-endif
 ifeq ($(MIPS_MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions
 	# that do not bother us
@@ -95,12 +87,6 @@ ifeq ($(MIPS_MACHINE),msim)
 	CFLAGS += -mhard-float -mips3
 endif
 
-## Accepted configuration directives
-#
-
-ifeq ($(CONFIG_FPU_LAZY),y)
-	DEFS += -DCONFIG_FPU_LAZY
-endif
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \

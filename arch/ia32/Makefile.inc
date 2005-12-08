@@ -86,9 +86,6 @@ endif
 ifeq ($(CONFIG_HT),y)
 	DEFS += -DCONFIG_HT
 endif
-ifeq ($(CONFIG_FPU_LAZY),y)
-	DEFS += -DCONFIG_FPU_LAZY
-endif
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/context.s \
