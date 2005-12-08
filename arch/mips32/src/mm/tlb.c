@@ -53,7 +53,7 @@ static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
  * Initialize TLB.
  * Invalidate all entries and mark wired entries.
  */
-void tlb_init_arch(void)
+void tlb_arch_init(void)
 {
 	int i;
 
@@ -397,4 +397,8 @@ void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr)
 {
 	hi->value = (((addr/PAGE_SIZE)/2)*PAGE_SIZE*2);
 	hi->asid = asid;
+}
+
+void tlb_print(void)
+{
 }

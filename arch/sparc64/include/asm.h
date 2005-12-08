@@ -107,6 +107,33 @@ static inline void tba_write(__u64 v)
 	__asm__ volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
 }
 
+/** Load __u64 from alternate space.
+ *
+ * @param asi ASI determining the alternate space.
+ * @param va Virtual address within the ASI.
+ *
+ * @return Value read from the virtual address in the specified address space.
+ */
+static inline __u64 asi_u64_read(asi_t asi, __address va)
+{
+	__u64 v;
+	
+	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" (asi));
+	
+	return v;
+}
+
+/** Store __u64 to alternate space.
+ *
+ * @param asi ASI determining the alternate space.
+ * @param va Virtual address within the ASI.
+ * @param v Value to be written.
+ */
+static inline void asi_u64_write(asi_t asi, __address va, __u64 v)
+{
+	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi));
+}
+
 
 void cpu_halt(void);
 void cpu_sleep(void);

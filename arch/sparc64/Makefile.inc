@@ -53,6 +53,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/sparc64.c \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/trap_table.S

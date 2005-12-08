@@ -30,6 +30,12 @@
 #define __sparc64_TLB_H__
 
 #include <arch/mm/tte.h>
+#include <arch/asm.h>
+#include <arch/types.h>
+#include <typedefs.h>
+
+#define ITLB_ENTRY_COUNT		64
+#define DTLB_ENTRY_COUNT		64
 
 /** I-MMU ASIs. */
 #define ASI_IMMU			0x50
@@ -70,6 +76,86 @@
 /** I-/D-TLB Data In/Access Register type. */
 typedef tte_data_t tlb_data_t;
 
-#define tlb_init_arch()
+/** I-/D-TLB Data Access Address in Alternate Space. */
+union tlb_data_access_addr {
+	__u64 value;
+	struct {
+		__u64 : 55;
+		unsigned tlb_entry : 6;
+		unsigned : 3;
+	} __attribute__ ((packed));
+};
+typedef union tlb_data_access_addr tlb_data_access_addr_t;
+typedef union tlb_data_access_addr tlb_tag_read_addr_t;
+
+/** I-/D-TLB Tag Read Register. */
+union tlb_tag_read_reg {
+	__u64 value;
+	struct {
+		__u64 va : 51;		/**< Virtual Address. */
+		unsigned context : 13;	/**< Context identifier. */
+	} __attribute__ ((packed));
+};
+typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
+
+/** Read IMMU TLB Data Access Register.
+ *
+ * @param entry TLB Entry index.
+ *
+ * @return Current value of specified IMMU TLB Data Access Register.
+ */
+static inline __u64 itlb_data_access_read(index_t entry)
+{
+	tlb_data_access_addr_t reg;
+	
+	reg.value = 0;
+	reg.tlb_entry = entry;
+	return asi_u64_read(ASI_ITLB_DATA_ACCESS_REG, reg.value);
+}
+
+/** Read DMMU TLB Data Access Register.
+ *
+ * @param entry TLB Entry index.
+ *
+ * @return Current value of specified DMMU TLB Data Access Register.
+ */
+static inline __u64 dtlb_data_access_read(index_t entry)
+{
+	tlb_data_access_addr_t reg;
+	
+	reg.value = 0;
+	reg.tlb_entry = entry;
+	return asi_u64_read(ASI_DTLB_DATA_ACCESS_REG, reg.value);
+}
+
+/** Read IMMU TLB Tag Read Register.
+ *
+ * @param entry TLB Entry index.
+ *
+ * @return Current value of specified IMMU TLB Tag Read Register.
+ */
+static inline __u64 itlb_tag_read(index_t entry)
+{
+	tlb_tag_read_addr_t tag;
+
+	tag.value = 0;
+	tag.tlb_entry =	entry;
+	return asi_u64_read(ASI_ITLB_TAG_READ_REG, tag.value);
+}
+
+/** Read DMMU TLB Tag Read Register.
+ *
+ * @param entry TLB Entry index.
+ *
+ * @return Current value of specified DMMU TLB Tag Read Register.
+ */
+static inline __u64 dtlb_tag_read(index_t entry)
+{
+	tlb_tag_read_addr_t tag;
+
+	tag.value = 0;
+	tag.tlb_entry =	entry;
+	return asi_u64_read(ASI_DTLB_TAG_READ_REG, tag.value);
+}
 
 #endif

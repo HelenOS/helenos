@@ -45,7 +45,7 @@ void tlb_init(void)
 	if (config.cpu_active == 1)
 		spinlock_initialize(&tlblock, "tlb_lock");
 
-	tlb_init_arch();
+	tlb_arch_init();
 }
 
 #ifdef CONFIG_SMP

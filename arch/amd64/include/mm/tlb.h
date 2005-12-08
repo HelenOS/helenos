@@ -29,6 +29,7 @@
 #ifndef __amd64_TLB_H__
 #define __amd64_TLB_H__
 
-#define tlb_init_arch()
+#define tlb_arch_init()
+#define tlb_print()
 
 #endif

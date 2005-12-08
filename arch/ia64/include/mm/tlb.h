@@ -29,6 +29,7 @@
 #ifndef __ia64_TLB_H__
 #define __ia64_TLB_H__
 
-#define tlb_init_arch()
+#define tlb_arch_init()
+#define tlb_print()
 
 #endif

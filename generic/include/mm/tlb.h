@@ -44,7 +44,8 @@ extern void tlb_shootdown_ipi_recv(void);
 #endif /* CONFIG_SMP */
 
 /* Export TLB interface that each architecture must implement. */
-extern void tlb_init_arch(void);
+extern void tlb_arch_init(void);
+extern void tlb_print(void);
 extern void tlb_invalidate(asid_t asid);
 extern void tlb_shootdown_ipi_send(void);
 

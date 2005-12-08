@@ -39,4 +39,6 @@
 #define read_barrier()
 #define write_barrier()
 
+#define flush()			__asm__ volatile ("flush\n" ::: "memory")
+
 #endif
