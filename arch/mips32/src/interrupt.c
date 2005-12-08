@@ -125,6 +125,7 @@ void interrupt(struct exception_regdump *pstate)
 					/* clear timer interrupt & set new */
 					cp0_compare_write(cp0_count_read() + cp0_compare_value); 
 					clock();
+					keyboard_poll();
 					break;
 			}
 		}

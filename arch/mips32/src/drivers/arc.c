@@ -183,3 +183,22 @@ void arc_putchar(char ch)
 	interrupts_restore(ipl);
 	
 }
+
+/** Try to get character, return character or -1 if not available */
+int arc_getchar(void)
+{
+	char ch;
+	__u32 count;
+	long result;
+
+	if (arc_entry->getreadstatus(0))
+		return -1;
+	result = arc_entry->read(0, &ch, 1, &count);
+	if (result || count!=1) {
+		cpu_halt();
+		return -1;
+	}
+	if (ch == '\r')
+		return '\n';
+	return ch;
+}

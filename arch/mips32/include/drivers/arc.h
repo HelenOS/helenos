@@ -177,7 +177,7 @@ typedef struct {
 	long (*open)(void); /* ... */
 	long (*close)(__u32 fileid);
 	long (*read)(__u32 fileid,void *buf,__u32 n,__u32 *cnt);
-	long (*getreadstatus)();
+	long (*getreadstatus)(__u32 fileid);
 	long (*write)(__u32 fileid, void *buf,__u32 n,__u32 *cnt);
 	long (*seek)(void); /* ... */
 /* 30 */
@@ -212,5 +212,5 @@ extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
 extern void arc_putchar(char ch);
 extern void arc_print_devices(void);
-
+extern int arc_getchar(void);
 #endif

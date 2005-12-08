@@ -188,7 +188,8 @@ class Dialog(NoDialog):
         kw = {}
         if defopt:
             kw['default-item'] = choices[defopt][0] 
-        res,data = self.calldlg('--extra-label',button[1],
+        res,data = self.calldlg('--ok-label','Change',
+                                '--extra-label',button[1],
                                 '--extra-button',
                                 '--menu',text,height,width,
                                 str(len(choices)),*args,**kw)

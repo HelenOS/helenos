@@ -35,21 +35,37 @@
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <typedefs.h>
+#include <arch/drivers/arc.h>
 
 static void keyboard_enable(void);
 static void keyboard_disable(void);
+static void arc_kb_disable(void);
+static void arc_kb_enable(void);
 
 static chardev_t kbrd;
-static chardev_operations_t ops = {
+
+static chardev_operations_t arc_ops = {
+	.resume = arc_kb_enable,
+	.suspend = arc_kb_disable
+};
+
+static chardev_operations_t msim_ops = {
 	.resume = keyboard_enable,
 	.suspend = keyboard_disable
 };
 
+static int arc_kb_enabled;
+
 /** Initialize keyboard subsystem. */
 void keyboard_init(void)
 {
-	cp0_unmask_int(KEYBOARD_IRQ);
-	chardev_initialize(&kbrd, &ops);
+	if (arc_enabled()) {
+		chardev_initialize(&kbrd, &arc_ops);
+		arc_kb_enabled = 1;
+	} else {
+		cp0_unmask_int(KEYBOARD_IRQ);
+		chardev_initialize(&kbrd, &msim_ops);
+	}
 	stdin = &kbrd;
 }
 
@@ -72,4 +88,28 @@ void keyboard_enable(void)
 void keyboard_disable(void)
 {
 	cp0_mask_int(KEYBOARD_IRQ);
+}
+
+/*****************************/
+/* Arc keyboard */
+
+void keyboard_poll(void)
+{
+	int ch;
+
+	if (!arc_enabled() || !arc_kb_enabled)
+		return;
+	while ((ch = arc_getchar()) != -1)
+		chardev_push_character(&kbrd, ch);		
+}
+
+static void arc_kb_enable(void)
+{
+	arc_kb_enabled = 1;
+}
+
+/* Called from getc(). */
+static void arc_kb_disable(void)
+{
+	arc_kb_enabled = 0;
 }

@@ -37,6 +37,6 @@
 
 extern void keyboard_init(void);
 extern void keyboard(void);
-
+extern void keyboard_poll(void);
 
 #endif
