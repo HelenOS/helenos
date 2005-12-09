@@ -134,6 +134,10 @@ float32 addFloat32(float32 a, float32 b)
 		mant2|=0x20000000; //hidden bit
 	};
 	
+	if (expdiff>24) {
+	     goto done;	
+	     };
+	
 	mant2>>=expdiff;
 	mant1+=mant2;
 done:
