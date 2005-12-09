@@ -33,6 +33,8 @@
 
 #define ARC_BASE_ADDR 0x1000;
 #define ARC_MAGIC 0x53435241
+/* Frame size used by ARC */
+#define ARC_FRAME 4096
 
 typedef enum {
 	SystemClass = 0,
@@ -207,10 +209,12 @@ typedef struct {
 	__u32 adaptercount;
 }__attribute__ ((packed)) arc_sbp;
 
-extern int init_arc(void);
+extern int arc_init(void);
 extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
 extern void arc_putchar(char ch);
 extern void arc_print_devices(void);
 extern int arc_getchar(void);
+void arc_frame_init(void);
+
 #endif

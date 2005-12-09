@@ -33,8 +33,22 @@
 #include <config.h>
 #include <panic.h>
 #include <print.h>
+#include <arch/drivers/arc.h>
 
+/** Create memory zones
+ *
+ * If ARC is known, read information from ARC, otherwise
+ * assume some defaults. 
+ * - blacklist first FRAME because there is an exception vector
+ */
 void frame_arch_init(void)
 {
-        zone_create_in_region(KA2PA(KERNEL_LOAD_ADDRESS), config.memory_size & ~(FRAME_SIZE-1));
+	/* Blacklist first 4KB, exception vector */
+	frame_region_not_free(0, FRAME_SIZE);
+
+	if (arc_enabled())
+		arc_frame_init();
+	else
+		zone_create_in_region(KA2PA(KERNEL_LOAD_ADDRESS),
+				      config.memory_size & ~(FRAME_SIZE-1));
 }

@@ -55,7 +55,7 @@ void arch_pre_mm_init(void)
 	/* It is not assumed by default */
 	interrupts_disable();
 
-	init_arc();
+	arc_init();
 
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *)tlb_refill_entry, EXCEPTION_JUMP_SIZE);

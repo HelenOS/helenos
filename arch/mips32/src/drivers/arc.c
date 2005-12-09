@@ -31,6 +31,8 @@
 #include <print.h>
 #include <arch.h>
 #include <arch/byteorder.h>
+#include <arch/mm/frame.h>
+#include <mm/frame.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -101,7 +103,7 @@ static void _arc_putchar(char ch);
  *
  * @return 0 - ARC OK, -1 - ARC does not exist
  */
-int init_arc(void)
+int arc_init(void)
 {
 	if (sbp->signature != ARC_MAGIC) {
 		sbp = NULL;
@@ -165,8 +167,8 @@ void arc_print_memory_map(void)
 	desc = arc_entry->getmemorydescriptor(NULL);
 	while (desc) {
 		printf("%s: %d (size: %dKB)\n",basetypes[desc->type],
-		       desc->basepage * 4096,
-		       desc->basecount*4);
+		       desc->basepage * ARC_FRAME,
+		       desc->basecount*ARC_FRAME/1024);
 		desc = arc_entry->getmemorydescriptor(desc);
 	}
 }
@@ -202,3 +204,27 @@ int arc_getchar(void)
 		return '\n';
 	return ch;
 }
+
+/* Initialize frame zones from ARC firmware. 
+ * In the future we may use even the FirmwareTemporary regions,
+ * currently we use the FreeMemory (what about the LoadedProgram?)
+ */
+void arc_frame_init(void)
+{
+	arc_memdescriptor_t *desc;
+	int total = 0;
+
+	desc = arc_entry->getmemorydescriptor(NULL);
+	while (desc) {
+		if (desc->type == FreeMemory ||
+		    desc->type == FreeContiguous) {
+			total += desc->basecount*ARC_FRAME;
+			zone_create_in_region(desc->basepage*ARC_FRAME,
+					      desc->basecount*ARC_FRAME);
+		}
+		desc = arc_entry->getmemorydescriptor(desc);
+	}
+
+	config.memory_size = total;
+}
+

@@ -31,7 +31,9 @@
 
 #include <config.h>
 
+/* When this function is called, we do not have ARC initiated
+ * - provide some reasonable minimum and update it later
+ */
 #define get_memory_size()	CONFIG_MEMORY_SIZE
-//#define get_memory_size()	150*1024*1024
 
 #endif

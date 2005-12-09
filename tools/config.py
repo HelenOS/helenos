@@ -289,7 +289,6 @@ def check_inside(text, defaults, ctype, seen_vars):
             if oper== '=' and condval != defaults[condname]:
                 return False
             if oper== '!=' and condval == defaults[condname]:
-                print 2
                 return False
     if ctype=='cnf':
         return False
