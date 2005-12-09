@@ -75,6 +75,8 @@ void keyboard(void)
 	char ch;
 
 	ch = *((char *) KEYBOARD_ADDRESS);
+	if (ch =='\r')
+		ch = '\n';
 	chardev_push_character(&kbrd, ch);
 }
 

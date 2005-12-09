@@ -110,10 +110,10 @@ void interrupt(struct exception_regdump *pstate)
 				case 1: /* SW1 - Software interrupt 1 */
 					cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
 					break;
-				case 2: /* IRQ0 */
 				case KEYBOARD_IRQ:
 					keyboard();
 					break;
+			        case 3:
 				case 4: /* IRQ2 */
 				case 5: /* IRQ3 */
 				case 6: /* IRQ4 */

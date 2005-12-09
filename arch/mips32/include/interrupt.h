@@ -31,10 +31,11 @@
 
 #include <arch/exception.h>
 
+#define IRQ2	2
 #define IRQ3	3
 #define IRQ7	7
 
-#define KEYBOARD_IRQ	IRQ3
+#define KEYBOARD_IRQ	IRQ2
 #define TIMER_IRQ   	IRQ7
 
 extern void interrupt(struct exception_regdump *pstate);

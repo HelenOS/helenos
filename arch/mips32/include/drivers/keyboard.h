@@ -33,7 +33,7 @@
 #include <arch/interrupt.h>
 
 /** Address of 'keyboard' device. */
-#define KEYBOARD_ADDRESS		0xB0000004
+#define KEYBOARD_ADDRESS		0xB0000000
 
 extern void keyboard_init(void);
 extern void keyboard(void);
