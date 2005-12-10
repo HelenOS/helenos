@@ -39,5 +39,6 @@ extern void halt(void);
 extern size_t strlen(const char *str);
 extern int strncmp(const char *src, const char *dst, size_t len);
 extern void strncpy(char *dest, const char *src, size_t len);
+extern __native atoi(const char *text);
 
 #endif

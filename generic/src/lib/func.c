@@ -113,3 +113,41 @@ void strncpy(char *dest, const char *src, size_t len)
 			return;
 	}
 }
+
+/** Convert ascii representation to __native
+ *
+ * Supports 0x for hexa & 0 for octal notation.
+ * Does not check for overflows, does not support negative numbers
+ *
+ * @param text Textual representation of number
+ * @return Converted number or 0 if no valid number ofund 
+ */
+__native atoi(const char *text)
+{
+	int base = 10;
+	__native result = 0;
+
+	if (text[0] == '0' && text[1] == 'x') {
+		base = 16;
+		text += 2;
+	} else if (text[0] == '0')
+		base = 8;
+
+	while (*text) {
+		result *= base;
+		if (base != 16 && *text >= 'A' && *text <= 'F')
+			break;
+		if (base == 8 && *text >='8')
+			break;
+
+		if (*text >= '0' && *text <= '9')
+			result += *text - '0';
+		else if (*text >= 'A' && *text <= 'F')
+			result += *text - 'A' + 10;
+		else
+			break;
+		text++;
+	}
+
+	return result;
+}

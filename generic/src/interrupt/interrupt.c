@@ -90,7 +90,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 	char *symbol;
 
 	spinlock_lock(&exctbl_lock);
-	printf("Exc Handler    Description\n");
+	printf("Exc Description Handler\n");
 	for (i=0; i < IVT_ITEMS; i++) {
 		symbol = get_symtab_entry((__native)exc_table[i].f);
 		if (!symbol)

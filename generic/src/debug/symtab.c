@@ -30,6 +30,8 @@
 #include <symtab.h>
 #include <typedefs.h>
 #include <arch/byteorder.h>
+#include <func.h>
+#include <print.h>
 
 /** Return entry that seems most likely to correspond to address
  *
@@ -51,4 +53,59 @@ char * get_symtab_entry(__native addr)
 	if (addr >= __u64_le2host(symbol_table[i-1].address_le))
 		return symbol_table[i-1].symbol_name;
 	return NULL;
+}
+
+/** Return address that corresponds to the entry
+ *
+ * Search symbol table, and if the address ENDS with
+ * the parameter, return value
+ *
+ * @param name Name of the symbol
+ * @return 0 - Not found, -1 - Duplicate symbol, other - address of symbol
+ */
+__address get_symbol_addr(const char *name)
+{
+	count_t i;
+	count_t found = 0;
+	count_t found_pos;
+
+	count_t nmlen = strlen(name);
+	count_t slen;
+
+	for (i=0;symbol_table[i].address_le;++i) {
+		slen = strlen(symbol_table[i].symbol_name);
+		if (slen < nmlen)
+			continue;
+		if (strncmp(name, symbol_table[i].symbol_name + (slen-nmlen),
+			    nmlen) == 0) {
+			found++;
+			found_pos = i;
+		}
+	}
+	if (found == 0)
+		return NULL;
+	if (found == 1)
+		return __u64_le2host(symbol_table[found_pos].address_le);
+	return ((__address) -1);
+}
+
+void symtab_print_search(const char *name)
+{
+	int i;
+	count_t nmlen = strlen(name);
+	count_t slen;
+	__address addr;
+	char *realname;
+
+	for (i=0;symbol_table[i].address_le;++i) {
+		slen = strlen(symbol_table[i].symbol_name);
+		if (slen < nmlen)
+			continue;
+		if (strncmp(name, symbol_table[i].symbol_name + (slen-nmlen),
+			    nmlen) == 0) {
+			addr =  __u64_le2host(symbol_table[i].address_le);
+			realname = symbol_table[i].symbol_name;
+			printf("0x%p: %s\n", addr, realname);
+		}
+	}
 }

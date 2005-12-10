@@ -44,6 +44,7 @@ struct cmd_arg {
 	cmd_arg_type_t type;		/**< Type descriptor. */
 	void *buffer;			/**< Buffer where to store data. */
 	size_t len;			/**< Size of the buffer. */
+	__native intval;                /**< Integer value */
 };
 
 /** Structure representing one kconsole command. */

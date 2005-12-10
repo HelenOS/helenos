@@ -38,6 +38,7 @@
 #include <func.h>
 #include <macros.h>
 #include <debug.h>
+#include <symtab.h>
 
 #define MAX_CMDLINE	256
 
@@ -72,22 +73,108 @@ static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *e
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
-static cmd_info_t help_info;
+static cmd_info_t help_info = {
+	.name = "help",
+	.description = "List of supported commands.",
+	.func = cmd_help,
+	.argc = 0
+};
 
 /** Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
 static void desc_help(void);
-static cmd_info_t desc_info;
 static char desc_buf[MAX_CMDLINE+1];
 static cmd_arg_t desc_argv = {
 	.type = ARG_TYPE_STRING,
 	.buffer = desc_buf,
 	.len = sizeof(desc_buf)
 };
+static cmd_info_t desc_info = {
+	.name = "describe",
+	.description = "Describe specified command.",
+	.help = desc_help,
+	.func = cmd_desc,
+	.argc = 1,
+	.argv = &desc_argv
+};
+
+/** Data and methods for 'symaddr' command. */
+static int cmd_symaddr(cmd_arg_t *argv);
+static char symaddr_buf[MAX_CMDLINE+1];
+static cmd_arg_t symaddr_argv = {
+	.type = ARG_TYPE_STRING,
+	.buffer = symaddr_buf,
+	.len = sizeof(symaddr_buf)
+};
+static cmd_info_t symaddr_info = {
+	.name = "symaddr",
+	.description = "Return symbol address.",
+	.func = cmd_symaddr,
+	.argc = 1,
+	.argv = &symaddr_argv
+};
+
+/** Call0 - call function with no parameters */
+static char call0_buf[MAX_CMDLINE+1];
+
+static int cmd_call0(cmd_arg_t *argv);
+static cmd_arg_t call0_argv = {
+	.type = ARG_TYPE_STRING,
+	.buffer = call0_buf,
+	.len = sizeof(call0_buf)
+};
+static cmd_info_t call0_info = {
+	.name = "call0",
+	.description = "call0 <function> -> call function().",
+	.func = cmd_call0,
+	.argc = 1,
+	.argv = &call0_argv
+};
+
+static int cmd_call1(cmd_arg_t *argv);
+static cmd_arg_t call1_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = call0_buf,
+		.len = sizeof(call0_buf)
+	},
+	{ .type = ARG_TYPE_INT }
+};
+static cmd_info_t call1_info = {
+	.name = "call1",
+	.description = "call1 <function> <arg1> -> call function(arg1).",
+	.func = cmd_call1,
+	.argc = 2,
+	.argv = call1_argv
+};
+
+static int cmd_call2(cmd_arg_t *argv);
+static cmd_arg_t call2_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = call0_buf,
+		.len = sizeof(call0_buf)
+	},
+	{ .type = ARG_TYPE_INT },
+	{ .type = ARG_TYPE_INT }
+};
+static cmd_info_t call2_info = {
+	.name = "call2",
+	.description = "call2 <function> <arg1> <arg2> -> call function(arg1,arg2).",
+	.func = cmd_call2,
+	.argc = 3,
+	.argv = call2_argv
+};
+
 
 /** Data and methods for 'halt' command. */
 static int cmd_halt(cmd_arg_t *argv);
-static cmd_info_t halt_info;
+static cmd_info_t halt_info = {
+	.name = "halt",
+	.description = "Halt the kernel.",
+	.func = cmd_halt,
+	.argc = 0
+};
 
 /** Initialize kconsole data structures. */
 void kconsole_init(void)
@@ -95,44 +182,40 @@ void kconsole_init(void)
 	spinlock_initialize(&cmd_lock, "kconsole_cmd");
 	list_initialize(&cmd_head);
 	
-	help_info.name = "help";
-	help_info.description = "List supported commands.";
-	help_info.func = cmd_help;
-	help_info.help = NULL;
-	help_info.argc = 0;
-	help_info.argv = NULL;
-
 	spinlock_initialize(&help_info.lock, "kconsole_help");
 	link_initialize(&help_info.link);
-
 	if (!cmd_register(&help_info))
 		panic("could not register command %s\n", help_info.name);
 
 
-	desc_info.name = "describe";
-	desc_info.description = "Describe specified command.";
-	desc_info.help = desc_help;
-	desc_info.func = cmd_desc;
-	desc_info.argc = 1;
-	desc_info.argv = &desc_argv;
-	
 	spinlock_initialize(&desc_info.lock, "kconsole_desc");
 	link_initialize(&desc_info.link);
-	
 	if (!cmd_register(&desc_info))
 		panic("could not register command %s\n", desc_info.name);
 	
-	
-	halt_info.name = "halt";
-	halt_info.description = "Halt the kernel.";
-	halt_info.func = cmd_halt;
-	halt_info.help = NULL;
-	halt_info.argc = 0;
-	halt_info.argv = NULL;
+	spinlock_initialize(&symaddr_info.lock, "kconsole_symaddr");
+	link_initialize(&symaddr_info.link);
+	if (!cmd_register(&symaddr_info))
+		panic("could not register command %s\n", symaddr_info.name);
 
+	spinlock_initialize(&call0_info.lock, "kconsole_call0");
+	link_initialize(&call0_info.link);
+	if (!cmd_register(&call0_info))
+		panic("could not register command %s\n", call0_info.name);
+
+	spinlock_initialize(&call1_info.lock, "kconsole_call1");
+	link_initialize(&call1_info.link);
+	if (!cmd_register(&call1_info))
+		panic("could not register command %s\n", call1_info.name);
+
+
+	spinlock_initialize(&call2_info.lock, "kconsole_call2");
+	link_initialize(&call2_info.link);
+	if (!cmd_register(&call2_info))
+		panic("could not register command %s\n", call2_info.name);
+	
 	spinlock_initialize(&halt_info.lock, "kconsole_halt");
 	link_initialize(&halt_info.link);
-
 	if (!cmd_register(&halt_info))
 		panic("could not register command %s\n", halt_info.name);
 }
@@ -285,15 +368,37 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		}
 		
 		switch (cmd->argv[i].type) {
-		    case ARG_TYPE_STRING:
+		case ARG_TYPE_STRING:
 		    	buf = cmd->argv[i].buffer;
 		    	strncpy(buf, (const char *) &cmdline[start], min((end - start) + 1, cmd->argv[i].len - 1));
 			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
 			break;
-		    case ARG_TYPE_INT:
-		    case ARG_TYPE_INVALID:
-		    default:
-			panic("invalid argument type\n");
+		case ARG_TYPE_INT: {
+			char symname[MAX_SYMBOL_NAME];
+			__address symaddr;
+
+			/* If we get a name, try to find it in symbol table */
+			if (cmdline[start] < '0' | cmdline[start] > '9') {
+				strncpy(symname, cmdline+start, min((end-start) + 1, MAX_SYMBOL_NAME -1 ));
+				symaddr = get_symbol_addr(symname);
+				if (!symaddr) {
+					printf("Symbol %s not found.\n",symname);
+					return NULL;
+				}
+				if (symaddr == (__address) -1) {
+					printf("Duplicate symbol %s.\n",symname);
+					symtab_print_search(symname);
+					return NULL;
+				}
+				cmd->argv[i].intval = *((__native *)symaddr);
+			} else /* It's a number - convert it */
+				cmd->argv[i].intval = atoi(cmdline+start);
+			break;
+			}
+		case ARG_TYPE_INVALID:
+		default:
+			printf("invalid argument type\n");
+			return NULL;
 			break;
 		}
 	}
@@ -411,6 +516,91 @@ int cmd_desc(cmd_arg_t *argv)
 
 	return 1;
 }
+
+/** Search symbol table */
+int cmd_symaddr(cmd_arg_t *argv)
+{
+	__address symaddr;
+	char *symbol;
+
+	symtab_print_search(argv->buffer);
+	
+	return 1;
+}
+
+/** Call function with zero parameters */
+int cmd_call0(cmd_arg_t *argv)
+{
+	__address symaddr;
+	char *symbol;
+	__native (*f)(void);
+
+	symaddr = get_symbol_addr(argv->buffer);
+	if (!symaddr)
+		printf("Symbol not found.\n");
+	else if (symaddr == (__address) -1) {
+		symtab_print_search(argv->buffer);
+		printf("Duplicate symbol, be more specific.\n");
+	} else {
+		symbol = get_symtab_entry(symaddr);
+		printf("Calling f(): 0x%p: %s\n", symaddr, symbol);
+		f =  (__native (*)(void)) symaddr;
+		printf("Result: 0x%X\n", f());
+	}
+	
+	return 1;
+}
+
+/** Call function with one parameter */
+int cmd_call1(cmd_arg_t *argv)
+{
+	__address symaddr;
+	char *symbol;
+	__native (*f)(__native);
+	__native arg1 = argv[1].intval;
+
+	symaddr = get_symbol_addr(argv->buffer);
+	if (!symaddr)
+		printf("Symbol not found.\n");
+	else if (symaddr == (__address) -1) {
+		symtab_print_search(argv->buffer);
+		printf("Duplicate symbol, be more specific.\n");
+	} else {
+		symbol = get_symtab_entry(symaddr);
+		printf("Calling f(0x%x): 0x%p: %s\n", arg1, symaddr, symbol);
+		f =  (__native (*)(__native)) symaddr;
+		printf("Result: 0x%x\n", f(arg1));
+	}
+	
+	return 1;
+}
+
+/** Call function with two parameters */
+int cmd_call2(cmd_arg_t *argv)
+{
+	__address symaddr;
+	char *symbol;
+	__native (*f)(__native);
+	__native arg1 = argv[1].intval;
+	__native arg2 = argv[2].intval;
+
+	symaddr = get_symbol_addr(argv->buffer);
+	if (!symaddr)
+		printf("Symbol not found.\n");
+	else if (symaddr == (__address) -1) {
+		symtab_print_search(argv->buffer);
+		printf("Duplicate symbol, be more specific.\n");
+	} else {
+		symbol = get_symtab_entry(symaddr);
+		printf("Calling f(0x%x,0x%x): 0x%p: %s\n", 
+		       arg1, arg2, symaddr, symbol);
+		f =  (__native (*)(__native)) symaddr;
+		printf("Result: 0x%x\n", f(arg1));
+	}
+	
+	return 1;
+}
+
 
 /** Print detailed description of 'describe' command. */
 void desc_help(void)
