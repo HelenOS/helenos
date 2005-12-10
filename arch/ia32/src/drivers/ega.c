@@ -34,6 +34,8 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <memstr.h>
+#include <console/chardev.h>
+#include <console/console.h>
 
 /*
  * The EGA driver.
@@ -42,6 +44,13 @@
 
 static spinlock_t egalock;
 static __u32 ega_cursor;
+
+static void ega_putchar(chardev_t *d, const char ch);
+
+chardev_t ega_console;
+static chardev_operations_t ega_ops = {
+	.write = ega_putchar
+};
 
 void ega_move_cursor(void);
 
@@ -55,7 +64,11 @@ void ega_init(void)
 	outb(0x3d4,0xf);
 	lo = inb(0x3d5);
 	ega_cursor = (hi<<8)|lo;
-	ega_putchar('\n');
+
+	chardev_initialize("ega_out", &ega_console, &ega_ops);
+	stdout = &ega_console;
+
+	putchar('\n');
 }
 
 static void ega_display_char(char ch)
@@ -78,7 +91,7 @@ static void ega_check_cursor(void)
 	ega_cursor = ega_cursor - ROW;
 }
 
-void ega_putchar(const char ch)
+void ega_putchar(chardev_t *d, const char ch)
 {
 	ipl_t ipl;
 
@@ -110,9 +123,4 @@ void ega_move_cursor(void)
 	outb(0x3d5,(ega_cursor>>8)&0xff);
 	outb(0x3d4,0xf);
 	outb(0x3d5,ega_cursor&0xff);	
-}
-
-void putchar(const char ch)
-{
-	ega_putchar(ch);
 }

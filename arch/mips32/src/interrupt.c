@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <interrupt.h>
 #include <arch/interrupt.h>
 #include <arch/types.h>
 #include <arch.h>
@@ -35,7 +36,6 @@
 #include <print.h>
 #include <symtab.h>
 #include <arch/drivers/arc.h>
-#include <arch/drivers/keyboard.h>
 
 static void print_regdump(struct exception_regdump *pstate)
 {
@@ -93,6 +93,31 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
+static void unhandled_exception(int n, void *stack)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)stack;
+
+	print_regdump(pstate);
+	panic("unhandled interrupt %d\n", n);
+}
+
+static void timer_exception(int n, void *stack)
+{
+	cp0_compare_write(cp0_count_read() + cp0_compare_value); 
+	clock();
+}
+
+static void swint0(int n, void *stack)
+{
+	cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
+}
+
+static void swint1(int n, void *stack)
+{
+	cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
+}
+
+/** Basic exception handler */
 void interrupt(struct exception_regdump *pstate)
 {
 	__u32 cause;
@@ -101,34 +126,20 @@ void interrupt(struct exception_regdump *pstate)
 	/* decode interrupt number and process the interrupt */
 	cause = (cp0_cause_read() >> 8) &0xff;
 	
-	for (i = 0; i < 8; i++) {
-		if (cause & (1 << i)) {
-			switch (i) {
-				case 0: /* SW0 - Software interrupt 0 */
-					cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
-					break;
-				case 1: /* SW1 - Software interrupt 1 */
-					cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
-					break;
-				case KEYBOARD_IRQ:
-					keyboard();
-					break;
-			        case 3:
-				case 4: /* IRQ2 */
-				case 5: /* IRQ3 */
-				case 6: /* IRQ4 */
-				default:
-					print_regdump(pstate);
-					panic("unhandled interrupt %d\n", i);
-					break;
-				case TIMER_IRQ:
-					/* clear timer interrupt & set new */
-					cp0_compare_write(cp0_count_read() + cp0_compare_value); 
-					clock();
-					keyboard_poll();
-					break;
-			}
-		}
-	}
+	for (i = 0; i < 8; i++)
+		if (cause & (1 << i))
+			exc_dispatch(i, (void *)pstate);
+}
 
+/* Initialize basic tables for exception dispatching */
+void interrupt_init(void)
+{
+	int i;
+
+	for (i=0;i < IVT_ITEMS; i++)
+		exc_register(i, "undef", unhandled_exception);
+
+	exc_register(TIMER_IRQ, "timer", timer_exception);
+	exc_register(0, "swint0", swint0);
+	exc_register(1, "swint1", swint1);
 }

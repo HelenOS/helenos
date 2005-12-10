@@ -37,6 +37,7 @@
 
 /** Standard input character device. */
 chardev_t *stdin = NULL;
+chardev_t *stdout = NULL;
 
 /** Get string from character device.
  *
@@ -84,7 +85,12 @@ __u8 getc(chardev_t *chardev)
 	spinlock_unlock(&chardev->lock);
 	interrupts_restore(ipl);
 
-	chardev->op->resume();
+	chardev->op->resume(chardev);
 
 	return ch;
+}
+
+void putchar(char c)
+{
+	stdout->op->write(stdout, c);
 }

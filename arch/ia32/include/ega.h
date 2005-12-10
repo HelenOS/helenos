@@ -35,6 +35,5 @@
 #define SCREEN		(ROW*ROWS)
 
 extern void ega_init(void);
-extern void ega_putchar(const char ch);
 
 #endif

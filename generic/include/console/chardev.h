@@ -36,25 +36,34 @@
 
 #define CHARDEV_BUFLEN 512
 
+struct chardev;
+
 /* Character device operations interface. */
 struct chardev_operations {
-	void (* suspend)(void);		/**< Suspend pushing characters. */
-	void (* resume)(void);		/**< Resume pushing characters. */
+	void (* suspend)(struct chardev *);/**< Suspend pushing characters. */
+	void (* resume)(struct chardev *); /**< Resume pushing characters. */
+	/** Write character to stream */
+	void (* write)(struct chardev *, char c);
 };
 
 typedef struct chardev_operations chardev_operations_t;
 
 /** Character input device. */
 struct chardev {
+	char *name;
+	
 	waitq_t wq;
 	spinlock_t lock;		/**< Protects everything below. */
 	__u8 buffer[CHARDEV_BUFLEN];
 	count_t counter;
-	index_t index;
 	chardev_operations_t *op;	/**< Implementation of chardev operations. */
+	index_t index;
+	void *data;
 };
 
-extern void chardev_initialize(chardev_t *chardev, chardev_operations_t *op);
+extern void chardev_initialize(char *name,
+			       chardev_t *chardev, 
+			       chardev_operations_t *op);
 void chardev_push_character(chardev_t *chardev, __u8 ch);
 
 #endif /* __CHARDEV_H__ */

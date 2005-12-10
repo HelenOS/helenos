@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __DRV_SERIAL_H__
+#define __DRV_SERIAL_H__
+
 #include <console/chardev.h>
-#include <putchar.h>
-#include <synch/waitq.h>
-#include <synch/spinlock.h>
 
-/** Initialize character device.
- *
- * @param chardev Character device.
- * @param op Implementation of character device operations.
- */
-void chardev_initialize(char *name,chardev_t *chardev, 
-			chardev_operations_t *op)
-{
-	chardev->name = name;
+#define SERIAL_MAX        4
+#define SERIAL_COM1       0x3f8
+#define SERIAL_COM1_IRQ   4
+#define SERIAL_COM2       0x2f8
+#define SERIAL_COM2_IRQ   3
 
-	waitq_initialize(&chardev->wq);
-	spinlock_initialize(&chardev->lock, "chardev");
-	chardev->counter = 0;
-	chardev->index = 0;
-	chardev->op = op;
-}
+#define P_WRITEB(where,what)     (*((volatile char *) (0xB8000000+where))=what)
+#define P_READB(where)           (*((volatile char *)(0xB8000000+where)))
 
-/** Push character read from input character device.
- *
- * @param chardev Character device.
- * @param ch Character being pushed.
- */
-void chardev_push_character(chardev_t *chardev, __u8 ch)
-{
-        spinlock_lock(&chardev->lock);
-	chardev->counter++;
-	if (chardev->counter == CHARDEV_BUFLEN - 1) {
-		/* buffer full => disable device interrupt */
-		chardev->op->suspend(chardev);
-	}
+#define SERIAL_READ(x)           P_READB(x)
+#define SERIAL_WRITE(x,c)        P_WRITEB(x,c)
+/* Interrupt enable register */
+#define SERIAL_READ_IER(x)              (P_READB((x) + 1))
+#define SERIAL_WRITE_IER(x,c)           (P_WRITEB((x)+1,c))
+/* Interrupt identification register */
+#define SERIAL_READ_IIR(x)             (P_READB((x) + 2))
+/* Line status register */
+#define SERIAL_READ_LSR(x)             (P_READB((x) + 5))
+#define TRANSMIT_EMPTY_BIT      5          
 
-	putchar(ch);
-        chardev->buffer[chardev->index++] = ch;
-        chardev->index = chardev->index % CHARDEV_BUFLEN; /* index modulo size of buffer */
-        waitq_wakeup(&chardev->wq, WAKEUP_FIRST);
-        spinlock_unlock(&chardev->lock);
-}
+typedef struct {
+	int port;
+	int irq;
+}serial_t;
+
+chardev_t * serial_console(void);
+int serial_init(void);
+
+#endif

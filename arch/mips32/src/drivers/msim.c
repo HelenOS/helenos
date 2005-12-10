@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2003 Josef Cejka
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,91 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/drivers/keyboard.h>
+#include <interrupt.h>
 #include <console/chardev.h>
-#include <console/console.h>
+#include <arch/drivers/msim.h>
 #include <arch/cp0.h>
-#include <putchar.h>
-#include <synch/spinlock.h>
-#include <synch/waitq.h>
-#include <typedefs.h>
-#include <arch/drivers/arc.h>
 
-static void keyboard_enable(void);
-static void keyboard_disable(void);
-static void arc_kb_disable(void);
-static void arc_kb_enable(void);
+static chardev_t console;
 
-static chardev_t kbrd;
-
-static chardev_operations_t arc_ops = {
-	.resume = arc_kb_enable,
-	.suspend = arc_kb_disable
-};
+static void msim_write(chardev_t *dev, const char ch);
+static void msim_enable(chardev_t *dev);
+static void msim_disable(chardev_t *dev);
 
 static chardev_operations_t msim_ops = {
-	.resume = keyboard_enable,
-	.suspend = keyboard_disable
+	.resume = msim_enable,
+	.suspend = msim_disable,
+	.write = msim_write
 };
 
-static int arc_kb_enabled;
-
-/** Initialize keyboard subsystem. */
-void keyboard_init(void)
+/** Putchar that works with MSIM & gxemul */
+void msim_write(chardev_t *dev, const char ch)
 {
-	if (arc_enabled()) {
-		chardev_initialize(&kbrd, &arc_ops);
-		arc_kb_enabled = 1;
-	} else {
-		cp0_unmask_int(KEYBOARD_IRQ);
-		chardev_initialize(&kbrd, &msim_ops);
-	}
-	stdin = &kbrd;
+	*((char *) MSIM_VIDEORAM) = ch;
+}
+
+/* Called from getc(). */
+void msim_enable(chardev_t *dev)
+{
+	cp0_unmask_int(MSIM_KBD_IRQ);
+}
+
+/* Called from getc(). */
+void msim_disable(chardev_t *dev)
+{
+	cp0_mask_int(MSIM_KBD_IRQ);
 }
 
 /** Process keyboard interrupt. */
-void keyboard(void)
+static void msim_interrupt(int n, void *stack)
 {
 	char ch;
 
-	ch = *((char *) KEYBOARD_ADDRESS);
+	ch = *((char *) MSIM_KBD_ADDRESS);
 	if (ch =='\r')
 		ch = '\n';
-	chardev_push_character(&kbrd, ch);
+	chardev_push_character(&console, ch);
 }
 
-/* Called from getc(). */
-void keyboard_enable(void)
+
+/* Return console object representing msim console */
+chardev_t * msim_console(void)
 {
-	cp0_unmask_int(KEYBOARD_IRQ);
-}
+	chardev_initialize("msim_console", &console, &msim_ops);
 
-/* Called from getc(). */
-void keyboard_disable(void)
-{
-	cp0_mask_int(KEYBOARD_IRQ);
-}
+	exc_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
 
-/*****************************/
-/* Arc keyboard */
+	cp0_unmask_int(MSIM_KBD_IRQ);
 
-void keyboard_poll(void)
-{
-	int ch;
-
-	if (!arc_enabled() || !arc_kb_enabled)
-		return;
-	while ((ch = arc_getchar()) != -1)
-		chardev_push_character(&kbrd, ch);		
-}
-
-static void arc_kb_enable(void)
-{
-	arc_kb_enabled = 1;
-}
-
-/* Called from getc(). */
-static void arc_kb_disable(void)
-{
-	arc_kb_enabled = 0;
+	return &console;
 }

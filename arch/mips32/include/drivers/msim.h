@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _MSIM_H_
+#define _MSIM_H_
+
 #include <console/chardev.h>
-#include <putchar.h>
-#include <synch/waitq.h>
-#include <synch/spinlock.h>
 
-/** Initialize character device.
- *
- * @param chardev Character device.
- * @param op Implementation of character device operations.
- */
-void chardev_initialize(char *name,chardev_t *chardev, 
-			chardev_operations_t *op)
-{
-	chardev->name = name;
+#define MSIM_VIDEORAM            0xB0000000
+/** Address of 'keyboard' device. */
+#define MSIM_KBD_ADDRESS		0xB0000000
+#define MSIM_KBD_IRQ	2
 
-	waitq_initialize(&chardev->wq);
-	spinlock_initialize(&chardev->lock, "chardev");
-	chardev->counter = 0;
-	chardev->index = 0;
-	chardev->op = op;
-}
+chardev_t * msim_console(void);
 
-/** Push character read from input character device.
- *
- * @param chardev Character device.
- * @param ch Character being pushed.
- */
-void chardev_push_character(chardev_t *chardev, __u8 ch)
-{
-        spinlock_lock(&chardev->lock);
-	chardev->counter++;
-	if (chardev->counter == CHARDEV_BUFLEN - 1) {
-		/* buffer full => disable device interrupt */
-		chardev->op->suspend(chardev);
-	}
-
-	putchar(ch);
-        chardev->buffer[chardev->index++] = ch;
-        chardev->index = chardev->index % CHARDEV_BUFLEN; /* index modulo size of buffer */
-        waitq_wakeup(&chardev->wq, WAKEUP_FIRST);
-        spinlock_unlock(&chardev->lock);
-}
+#endif

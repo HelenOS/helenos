@@ -26,48 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <putchar.h>
-#include <arch/types.h>
-#include <arch/cp0.h>
+#include <console/console.h>
 #include <arch/console.h>
-#include <arch.h>
 #include <arch/drivers/arc.h>
-#include <arch/arch.h>
-
-/** Putchar that works with MSIM & gxemul */
-static void cons_putchar(const char ch)
-{
-	*((char *) VIDEORAM) = ch;
-}
-
-/** Putchar that works with simics */
-static void serial_putchar(const char ch)
-{
-	int i;
-
-	if (ch=='\n')
-		putchar('\r');
-
-	/* Wait until transmit buffer empty */
-	while (! ((*SERIAL_LSR) & (1<<TRANSMIT_EMPTY_BIT)))
-		;
-	*(SERIAL_PORT_BASE) = ch;
-}
-
-static void (*putchar_func)(const char ch) = cons_putchar;
+#include <arch/drivers/serial.h>
+#include <arch/drivers/msim.h>
 
 void console_init(void)
 {
-	if (arc_enabled()) 
-		putchar_func = arc_putchar;
-	/* The LSR on the start usually contains this value */
-	else if (*SERIAL_LSR == 0x60)
-		putchar_func = serial_putchar;
-	else
-		putchar_func = cons_putchar;
-}
+	chardev_t *console;
 
-void putchar(const char ch)
-{
-	putchar_func(ch);
+	if (arc_enabled()) {
+		console = arc_console();
+	} else if (serial_init()) {
+		console = serial_console();
+	} else
+		console = msim_console();
+
+	stdin = console;
+	stdout = console;
 }

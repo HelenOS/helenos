@@ -108,4 +108,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/fmath.c \
 	arch/$(ARCH)/src/drivers/arc.c \
-	arch/$(ARCH)/src/drivers/keyboard.c
+	arch/$(ARCH)/src/drivers/msim.c \
+	arch/$(ARCH)/src/drivers/serial.c

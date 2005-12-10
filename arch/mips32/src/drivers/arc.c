@@ -33,6 +33,7 @@
 #include <arch/byteorder.h>
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
+#include <interrupt.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -97,25 +98,8 @@ static char *ctypes[] = {
 static arc_sbp *sbp = (arc_sbp *)PA2KA(0x1000);
 static arc_func_vector_t *arc_entry; 
 
-static void _arc_putchar(char ch);
 
-/** Initialize ARC structure
- *
- * @return 0 - ARC OK, -1 - ARC does not exist
- */
-int arc_init(void)
-{
-	if (sbp->signature != ARC_MAGIC) {
-		sbp = NULL;
-		return -1;
-	}
-	arc_entry = sbp->firmwarevector;
-
-	arc_putchar('A');
-	arc_putchar('R');
-	arc_putchar('C');
-	arc_putchar('\n');
-}
+static void arc_putchar(char ch);
 
 /** Return true if ARC is available */
 int arc_enabled(void)
@@ -129,8 +113,8 @@ static void arc_print_component(arc_component *c)
 
 	printf("%s: ",ctypes[c->type]);
 	for (i=0;i < c->identifier_len;i++)
-		putchar(c->identifier[i]);
-	putchar('\n');
+		arc_putchar(c->identifier[i]);
+	arc_putchar('\n');
 }
 
 void arc_print_devices(void)
@@ -174,7 +158,7 @@ void arc_print_memory_map(void)
 }
 
 /** Print charactor to console */
-void arc_putchar(char ch)
+static void arc_putchar(char ch)
 {
 	__u32 cnt;
 	ipl_t ipl;
@@ -186,23 +170,87 @@ void arc_putchar(char ch)
 	
 }
 
+/** Initialize ARC structure
+ *
+ * @return 0 - ARC OK, -1 - ARC does not exist
+ */
+int arc_init(void)
+{
+	if (sbp->signature != ARC_MAGIC) {
+		sbp = NULL;
+		return -1;
+	}
+	arc_entry = sbp->firmwarevector;
+
+	arc_putchar('A');
+	arc_putchar('R');
+	arc_putchar('C');
+	arc_putchar('\n');
+}
+
+static int kbd_polling_enabled;
+static chardev_t console;
+
 /** Try to get character, return character or -1 if not available */
-int arc_getchar(void)
+static void arc_keyboard_poll(void)
 {
 	char ch;
 	__u32 count;
 	long result;
+	
+	if (! kbd_polling_enabled)
+		return;
 
 	if (arc_entry->getreadstatus(0))
-		return -1;
+		return;
 	result = arc_entry->read(0, &ch, 1, &count);
 	if (result || count!=1) {
-		cpu_halt();
-		return -1;
+		return;
 	}
 	if (ch == '\r')
-		return '\n';
-	return ch;
+		ch = '\n';
+
+	chardev_push_character(&console, ch);
+}
+
+static void arc_write(chardev_t *dev, const char ch)
+{
+	arc_putchar(ch);
+}
+
+static void arc_enable(chardev_t *dev)
+{
+	kbd_polling_enabled = 1;	
+}
+
+static void arc_disable(chardev_t *dev)
+{
+	kbd_polling_enabled = 0;
+}
+
+static chardev_operations_t arc_ops = {
+	.resume = arc_enable,
+	.suspend = arc_disable,
+	.write = arc_write
+};
+
+iroutine old_timer;
+/** Do polling on timer interrupt */
+static void timer_replace(int n, void *stack)
+{
+	arc_keyboard_poll();
+	old_timer(n, stack);
+	arc_keyboard_poll();
+}
+
+
+chardev_t * arc_console(void)
+{
+	kbd_polling_enabled = 1;
+	
+	chardev_initialize("arc_console", &console, &arc_ops);
+	old_timer = exc_register(TIMER_IRQ, "arc_kb_poll", timer_replace);
+	return &console;
 }
 
 /* Initialize frame zones from ARC firmware. 

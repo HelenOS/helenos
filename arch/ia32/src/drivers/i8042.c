@@ -66,8 +66,8 @@ static spinlock_t keylock;		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
-static void i8042_suspend(void);
-static void i8042_resume(void);
+static void i8042_suspend(chardev_t *);
+static void i8042_resume(chardev_t *);
 
 static chardev_t kbrd;
 static chardev_operations_t ops = {
@@ -241,7 +241,7 @@ void i8042_init(void)
 	trap_register(VECTOR_KBD, i8042_interrupt);
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	spinlock_initialize(&keylock, "i8042_lock");
-	chardev_initialize(&kbrd, &ops);
+	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 }
 
@@ -322,11 +322,11 @@ void key_pressed(__u8 sc)
 }
 
 /* Called from getc(). */
-void i8042_resume(void)
+void i8042_resume(chardev_t *d)
 {
 }
 
 /* Called from getc(). */
-void i8042_suspend(void)
+void i8042_suspend(chardev_t *d)
 {
 }

@@ -36,7 +36,6 @@
 #define INT32	4
 #define INT64	8
 
-extern void putchar(const char c);
 extern void printf(const char *fmt, ...);
 
 #endif

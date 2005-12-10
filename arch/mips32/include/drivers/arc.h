@@ -30,6 +30,7 @@
 #define __mips32_ARC_H__
 
 #include <arch/types.h>
+#include <console/chardev.h>
 
 #define ARC_BASE_ADDR 0x1000;
 #define ARC_MAGIC 0x53435241
@@ -212,9 +213,8 @@ typedef struct {
 extern int arc_init(void);
 extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
-extern void arc_putchar(char ch);
 extern void arc_print_devices(void);
-extern int arc_getchar(void);
 void arc_frame_init(void);
+chardev_t * arc_console(void);
 
 #endif

@@ -26,20 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include <arch.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
-#include <arch/asm/regname.h>
 #include <arch/asm.h>
 #include <mm/vm.h>
+
 #include <userspace.h>
 #include <arch/console.h>
 #include <memstr.h>
-#include <arch/interrupt.h>
-#include <arch/drivers/arc.h>
-#include <arch/drivers/keyboard.h>
 #include <proc/thread.h>
 #include <print.h>
+
+#include <arch/interrupt.h>
+#include <arch/drivers/arc.h>
+#include <console/chardev.h>
+
+#include <arch/asm/regname.h>
 
 /* Size of the code jumping to the exception handler code 
  * - J+NOP 
@@ -54,6 +58,9 @@ void arch_pre_mm_init(void)
 {
 	/* It is not assumed by default */
 	interrupts_disable();
+	
+	/* Initialize dispatch table */
+	interrupt_init();
 
 	arc_init();
 
@@ -83,7 +90,6 @@ void arch_pre_mm_init(void)
 	cp0_compare_write(cp0_compare_value + cp0_count_read());
 
 	console_init();
-	keyboard_init();
 	arc_print_memory_map();
 	arc_print_devices();
 }

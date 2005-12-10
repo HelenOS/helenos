@@ -30,12 +30,6 @@
 #define __mips32_CONSOLE_H__
 
 
-#define VIDEORAM	0xB0000000
-
-#define SERIAL_PORT_BASE	((char *) 0xB80003f8 )
-#define SERIAL_LSR              ((char *) (SERIAL_PORT_BASE + 5))
-#define TRANSMIT_EMPTY_BIT      5          
-
 void console_init(void);
 
 #endif

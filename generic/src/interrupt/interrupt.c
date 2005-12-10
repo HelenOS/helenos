@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_KEYBOARD_H__
-#define __mips32_KEYBOARD_H__
+#include <interrupt.h>
+#include <debug.h>
 
-#include <arch/types.h>
-#include <arch/interrupt.h>
+static struct {
+	char *name;
+	iroutine f;
+} ivt[IVT_ITEMS];
 
-/** Address of 'keyboard' device. */
-#define KEYBOARD_ADDRESS		0xB0000000
+iroutine exc_register(int n, char *name, iroutine f)
+{
+	ASSERT(n < IVT_ITEMS);
+	
+	iroutine old;
+	
+	old = ivt[n].f;
+	ivt[n].f = f;
+	ivt[n].name = name;
+	
+	return old;
+}
 
-extern void keyboard_init(void);
-extern void keyboard(void);
-extern void keyboard_poll(void);
-
-#endif
+/*
+ * Called directly from the assembler code.
+ * CPU is interrupts_disable()'d.
+ */
+void exc_dispatch(int n, void *stack)
+{
+	ASSERT(n < IVT_ITEMS);
+	
+	ivt[n].f(n, stack);
+}

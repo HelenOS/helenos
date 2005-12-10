@@ -33,8 +33,10 @@
 #include <typedefs.h>
 
 extern chardev_t *stdin;
+extern chardev_t *stdout;
 
 extern __u8 getc(chardev_t *chardev);
 extern count_t gets(chardev_t *chardev, char *buf, size_t buflen);
+extern void putchar(char c);
 
 #endif /* __CHARDEV_H__ */
