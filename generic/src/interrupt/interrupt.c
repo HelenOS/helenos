@@ -111,7 +111,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 }
 
 static cmd_info_t exc_info = {
-	.name = "exc_print",
+	.name = "pexc",
 	.description = "Print exception table",
 	.func = exc_print_cmd,
 	.help = NULL,

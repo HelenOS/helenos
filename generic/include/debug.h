@@ -30,7 +30,20 @@
 #define __DEBUG_H__
 
 #include <panic.h>
+#include <arch/debug.h>
+#include <arch.h>
 
+#ifndef CALLER
+/**  Default (returns 0) macro for getting address of calling function
+ *   @param x First argument of the called function
+ */
+#  define CALLER(x)       ((__address *) 0)
+#endif
+
+#ifndef HERE
+/** Current Instruction Pointer address */
+#  define HERE ((__address *)0)
+#endif
 
 /** Debugging ASSERT macro
  *

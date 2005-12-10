@@ -217,6 +217,18 @@ static inline void enable_l_apic_in_msr()
 		);
 }
 
+static inline __address * get_ip() 
+{
+	__address *ip;
+
+	__asm__ volatile (
+		"mov %%rip, %0"
+		: "=r" (ip)
+		);
+	return ip;
+}
+
+
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
 

@@ -63,7 +63,7 @@ void spinlock_initialize(spinlock_t *sl, char *name)
 void spinlock_lock(spinlock_t *sl)
 {
 	count_t i = 0;
-	__address caller = ((__address *) &sl)[-1];
+	__address caller = CALLER(sl);
 	char *symbol;
 	bool deadlock_reported = false;
 

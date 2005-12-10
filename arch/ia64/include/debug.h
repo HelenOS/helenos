@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2005 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_DEBUG_H__
-#define __mips23_DEBUG_H__
-
-
-
-/**	simulator enters the trace mode */
-#define ___traceon()	asm volatile ( "\t.word\t0x39\n");
-/** 	simulator leaves the trace mode */
-#define ___traceoff()	asm volatile ( "\t.word\t0x3d\n");
-/** 	register dump */
-#define ___regview()	asm volatile ( "\t.word\t0x37\n");
-/** 	halt the simulator */
-#define ___halt()	asm volatile ( "\t.word\t0x28\n");
-/**     simulator enters interactive mode */
-#define ___intmode()	asm volatile ( "\t.word\t0x29\n");
-
-/** Return current IP address */
-static inline __address * _get_ra() 
-{
-	__address *ip;
-
-	__asm__ volatile (
-		"mov %%31, %0"
-		: "=r" (ip)
-		);
-	return ip;
-}
-#define CALLER(first_arg)    (_get_ra())
-
+#ifndef __ia64_DEBUG_H__
+#define __ia64_DEBUG_H__
 
 #endif

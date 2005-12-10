@@ -223,4 +223,16 @@ static inline __u64 rdtsc(void)
 	return v;
 }
 
+/** Return current IP address */
+static inline __address * get_ip() 
+{
+	__address *ip;
+
+	__asm__ volatile (
+		"mov %%eip, %0"
+		: "=r" (ip)
+		);
+	return ip;
+}
+
 #endif
