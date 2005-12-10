@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <console/kconsole.h>
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
-#include <smp/ipi.h>
-#include <synch/spinlock.h>
-#include <typedefs.h>
-#include <arch/atomic.h>
-#include <arch/interrupt.h>
-#include <config.h>
-#include <arch.h>
-#include <panic.h>
 
-#ifdef CONFIG_SMP
-static spinlock_t tlblock;
-#endif
+static int cmd_ptlb(cmd_arg_t *argv);
 
-void tlb_init(void)
+cmd_info_t desc_ptlb = {
+	.name = "ptlb",
+	.description = "Print TLB contents.",
+	.help = NULL,
+	.func = cmd_ptlb,
+	.argc = 0,
+	.argv = NULL
+};
+
+/** Command for printing TLB contents.
+ *
+ * @param argv Not used.
+ *
+ * @return Always returns 1.
+ */
+int cmd_ptlb(cmd_arg_t *argv)
 {
-	if (config.cpu_active == 1)
-		spinlock_initialize(&tlblock, "tlb_lock");
-
-	tlb_arch_init();
+	tlb_print();
+	return 1;
 }
-
-#ifdef CONFIG_SMP
-/* must be called with interrupts disabled */
-void tlb_shootdown_start(void)
-{
-	int i;
-
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
-	tlb_shootdown_ipi_send();
-	tlb_invalidate(0); /* TODO: use valid ASID */
-	
-busy_wait:	
-	for (i = 0; i<config.cpu_count; i++)
-		if (cpus[i].tlb_active)
-			goto busy_wait;
-}
-
-void tlb_shootdown_finalize(void)
-{
-	spinlock_unlock(&tlblock);
-	CPU->tlb_active = 1;
-}
-
-void tlb_shootdown_ipi_send(void)
-{
-	ipi_broadcast(VECTOR_TLB_SHOOTDOWN_IPI);
-}
-
-void tlb_shootdown_ipi_recv(void)
-{
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
-	spinlock_unlock(&tlblock);
-	tlb_invalidate(0);	/* TODO: use valid ASID */
-	CPU->tlb_active = 1;
-}
-#endif /* CONFIG_SMP */

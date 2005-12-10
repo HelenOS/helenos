@@ -40,6 +40,8 @@
 #include <debug.h>
 #include <symtab.h>
 
+#include <mm/tlb_cmd.h>
+
 #define MAX_CMDLINE	256
 
 /** Simple kernel console.
@@ -269,6 +271,11 @@ void kconsole_init(void)
 	link_initialize(&halt_info.link);
 	if (!cmd_register(&halt_info))
 		panic("could not register command %s\n", halt_info.name);
+
+	spinlock_initialize(&desc_ptlb.lock, "kconsole_ptlb");
+	link_initialize(&desc_ptlb.link);
+	if (!cmd_register(&desc_ptlb))
+		panic("could not register command %s\n", desc_ptlb.name);
 }
 
 

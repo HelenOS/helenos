@@ -65,7 +65,7 @@ void tlb_arch_init(void)
 	/*
 	 * Invalidate all entries.
 	 */
-	for (i = 0; i < TLB_SIZE; i++) {
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbwi();
 	}
@@ -322,7 +322,7 @@ void tlb_invalidate(asid_t asid)
 
 	ipl = interrupts_disable();
 	
-	for (i = 0; i < TLB_SIZE; i++) {
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
 		
@@ -399,6 +399,26 @@ void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr)
 	hi->asid = asid;
 }
 
+/** Print contents of TLB. */
 void tlb_print(void)
 {
+	entry_lo_t lo0, lo1;
+	entry_hi_t hi;
+	int i;
+
+	printf("TLB:\n");
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+		cp0_index_write(i);
+
+		tlbr();
+		
+		hi.value = cp0_entry_hi_read();
+		lo0.value = cp0_entry_lo0_read();
+		lo1.value = cp0_entry_lo1_read();
+		
+		printf("%d: asid=%d, vpn2=%d\tg[0]=%d, v[0]=%d, d[0]=%d, c[0]=%B, pfn[0]=%d\n"
+		       "\t\t\tg[1]=%d, v[1]=%d, d[1]=%d, c[1]=%B, pfn[1]=%d\n",
+		       i, hi.asid, hi.vpn2, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
+		       lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
+	}
 }
