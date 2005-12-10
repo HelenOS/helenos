@@ -103,7 +103,7 @@ static void tlbinv_exception(int n, void *data)
 	tlb_invalid(pstate);
 }
 
-static void cpunsbl_exception(int n, void *data)
+static void cpuns_exception(int n, void *data)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
@@ -179,6 +179,6 @@ void exception_init(void)
 	exc_register(EXC_TLBS, "tlbinvl", tlbinv_exception);
 	exc_register(EXC_Int, "interrupt", interrupt_exception);
 #ifdef CONFIG_FPU_LAZY
-	exc_register(EXC_CpU, "cpunus", cpun_exception);
+	exc_register(EXC_CpU, "cpunus", cpuns_exception);
 #endif
 }
