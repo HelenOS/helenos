@@ -39,6 +39,7 @@
 #include <debug.h>
 #include <memstr.h>
 #include <print.h>
+#include <interrupt.h>
 
 static __address bootstrap_dba; 
 
@@ -59,7 +60,7 @@ void page_arch_init(void)
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
 			page_mapping_insert(PA2KA(cur), cur, PAGE_CACHEABLE, KA2PA(dba));
 
-		trap_register(14, page_fault);
+		exc_register(14, "page_fault", page_fault);
 		write_cr3(KA2PA(dba));
 	}
 	else {

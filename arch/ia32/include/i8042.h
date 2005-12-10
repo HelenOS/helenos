@@ -39,6 +39,5 @@
 #define SC_CAPSLOCK	0x3a
 
 extern void i8042_init(void);
-extern void i8042_interrupt(__u8 n, __native stack[]);
 
 #endif

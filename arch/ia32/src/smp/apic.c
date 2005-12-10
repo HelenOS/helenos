@@ -32,6 +32,7 @@
 #include <arch/smp/mps.h>
 #include <mm/page.h>
 #include <time/delay.h>
+#include <interrupt.h>
 #include <arch/interrupt.h>
 #include <print.h>
 #include <arch/asm.h>
@@ -108,13 +109,17 @@ static char *intpol_str[] = {
 };
 #endif /* LAPIC_VERBOSE */
 
+
+static void apic_spurious(int n, void *stack);
+static void l_apic_timer_interrupt(int n, void *stack);
+
 /** Initialize APIC on BSP. */
 void apic_init(void)
 {
 	io_apic_id_t idreg;
 	int i;
 
-	trap_register(VECTOR_APIC_SPUR, apic_spurious);
+	exc_register(VECTOR_APIC_SPUR, "apic_spurious", apic_spurious);
 
 	enable_irqs_function = io_apic_enable_irqs;
 	disable_irqs_function = io_apic_disable_irqs;
@@ -126,7 +131,7 @@ void apic_init(void)
 	 * Other interrupts will be forwarded to the lowest priority CPU.
 	 */
 	io_apic_disable_irqs(0xffff);
-	trap_register(VECTOR_CLK, l_apic_timer_interrupt);
+	exc_register(VECTOR_CLK, "l_apic_timer", l_apic_timer_interrupt);
 	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
 	
@@ -162,7 +167,7 @@ void apic_init(void)
  * @param n Interrupt vector.
  * @param stack Interrupted stack.
  */
-void apic_spurious(__u8 n, __native stack[])
+void apic_spurious(int n, void *stack)
 {
 	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
 }
@@ -401,7 +406,7 @@ void l_apic_debug(void)
  * @param n Interrupt vector number.
  * @param stack Interrupted stack.
  */
-void l_apic_timer_interrupt(__u8 n, __native stack[])
+void l_apic_timer_interrupt(int n, void *stack)
 {
 	l_apic_eoi();
 	clock();

@@ -38,6 +38,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <macros.h>
+#include <interrupt.h>
 
 /**
  * i8042 processor driver.
@@ -235,10 +236,12 @@ static char sc_secondary_map[] = {
 	SPECIAL, /* 0x7f */	
 };
 
+static void i8042_interrupt(int n, void *stack);
+
 /** Initialize i8042. */
 void i8042_init(void)
 {
-	trap_register(VECTOR_KBD, i8042_interrupt);
+	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	spinlock_initialize(&keylock, "i8042_lock");
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
@@ -250,7 +253,7 @@ void i8042_init(void)
  * @param n Interrupt vector.
  * @param stack Interrupted stack.
  */
-void i8042_interrupt(__u8 n, __native stack[])
+void i8042_interrupt(int n, void *stack)
 {
 	__u8 x;
 

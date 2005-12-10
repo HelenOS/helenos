@@ -39,6 +39,7 @@
 #include <arch/cpuid.h>
 #include <arch.h>
 #include <time/delay.h>
+#include <interrupt.h>
 
 /*
  * i8254 chip driver.
@@ -52,6 +53,8 @@
 #define CLK_CONST	1193180
 #define MAGIC_NUMBER	1194
 
+static void i8254_interrupt(int n, void *stack);
+
 void i8254_init(void)
 {
 	i8254_normal_operation();
@@ -64,7 +67,7 @@ void i8254_normal_operation(void)
 	outb(CLK_PORT1, (CLK_CONST/HZ) & 0xf);
 	outb(CLK_PORT1, (CLK_CONST/HZ) >> 8);
 	pic_enable_irqs(1<<IRQ_CLK);
-	trap_register(VECTOR_CLK, i8254_interrupt);
+	exc_register(VECTOR_CLK, "i8254_clock", i8254_interrupt);
 }
 
 #define LOOPS 150000
@@ -122,7 +125,7 @@ void i8254_calibrate_delay_loop(void)
 	return;
 }
 
-void i8254_interrupt(__u8 n, __native stack[])
+void i8254_interrupt(int n, void *stack)
 {
 	trap_virtual_eoi();
 	clock();

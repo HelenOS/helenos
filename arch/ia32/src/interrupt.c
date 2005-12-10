@@ -43,14 +43,13 @@
  * Interrupt and exception dispatching.
  */
 
-static iroutine ivt[IVT_ITEMS];
-
 void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-#define PRINT_INFO_ERRCODE(x) { \
-	char *symbol = get_symtab_entry(stack[1]); \
+#define PRINT_INFO_ERRCODE(st) { \
+        __native *x = (__native *) st; \
+	char *symbol = get_symtab_entry(x[1]); \
 	if (!symbol) \
 		symbol = ""; \
 	printf("----------------EXCEPTION OCCURED----------------\n"); \
@@ -65,50 +64,29 @@ void (* eoi_function)(void) = NULL;
 	printf("       %X, %X, %X, %X\n", x[8], x[9], x[10], x[11]); \
         }
 
-iroutine trap_register(__u8 n, iroutine f)
+void null_interrupt(int n, void *st)
 {
-	ASSERT(n < IVT_ITEMS);
-	
-	iroutine old;
-	
-	old = ivt[n];
-	ivt[n] = f;
-	
-	return old;
-}
+	__native *stack = (__native *) st;
 
-/*
- * Called directly from the assembler code.
- * CPU is interrupts_disable()'d.
- */
-void trap_dispatcher(__u8 n, __native stack[])
-{
-	ASSERT(n < IVT_ITEMS);
-	
-	ivt[n](n, stack);
-}
-
-void null_interrupt(__u8 n, __native stack[])
-{
 	printf("int %d: null_interrupt\n", n);
 	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
 	panic("unserviced interrupt\n");
 }
 
-void gp_fault(__u8 n, __native stack[])
+void gp_fault(int n, void *stack)
 {
 	PRINT_INFO_ERRCODE(stack);
 	panic("general protection fault\n");
 }
 
-void ss_fault(__u8 n, __native stack[])
+void ss_fault(int n, void *stack)
 {
 	PRINT_INFO_ERRCODE(stack);
 	panic("stack fault\n");
 }
 
 
-void nm_fault(__u8 n, __native stack[])
+void nm_fault(int n, void *stack)
 {
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
@@ -119,26 +97,26 @@ void nm_fault(__u8 n, __native stack[])
 
 
 
-void page_fault(__u8 n, __native stack[])
+void page_fault(int n, void *stack)
 {
 	PRINT_INFO_ERRCODE(stack);
 	printf("page fault address: %X\n", read_cr2());
 	panic("page fault\n");
 }
 
-void syscall(__u8 n, __native stack[])
+void syscall(int n, void *stack)
 {
 	printf("cpu%d: syscall\n", CPU->id);
 	thread_usleep(1000);
 }
 
-void tlb_shootdown_ipi(__u8 n, __native stack[])
+void tlb_shootdown_ipi(int n, void *stack)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
 }
 
-void wakeup_ipi(__u8 n, __native stack[])
+void wakeup_ipi(int n, void *stack)
 {
 	trap_virtual_eoi();
 }

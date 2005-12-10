@@ -38,6 +38,7 @@
 #include <mm/heap.h>
 #include <memstr.h>
 #include <arch/boot/boot.h>
+#include <interrupt.h>
 
 /*
  * Early ia32 configuration functions and data structures.
@@ -124,11 +125,11 @@ void idt_init(void)
 		}
 		
 		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
-		trap_register(i, null_interrupt);
+		exc_register(i, "undef", null_interrupt);
 	}
-	trap_register(13, gp_fault);
-	trap_register( 7, nm_fault);
-	trap_register(12, ss_fault);
+	exc_register(13, "gp_fault", gp_fault);
+	exc_register( 7, "nm_fault", nm_fault);
+	exc_register(12, "ss_fault", ss_fault);
 }
 
 

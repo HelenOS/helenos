@@ -163,7 +163,7 @@ distclean: clean
 	-rm Makefile.config
 
 clean:
-	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
+	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 	for arch in arch/*; do \
 	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null;\
@@ -174,8 +174,11 @@ archlinks:
 	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
-depend: archlinks
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+depend: archlinks Makefile.depend
+
+Makefile.depend:
+	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) >Makefile.depend 2>/dev/null
+	#$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@

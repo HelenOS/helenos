@@ -159,7 +159,7 @@ read_efer_flag:
 # vectors starting at vector i.
 #
 # The handlers setup data segment registers
-# and call trap_dispatcher().
+# and call exc_dispatch().
 #
 .macro handler i n
 	pushq %rbp
@@ -170,7 +170,7 @@ read_efer_flag:
 	movq $(\i),%rdi   # %rdi - first parameter
 	movq %rbp, %rsi
 	addq $8, %rsi     # %rsi - second parameter - original stack
-	call trap_dispatcher 	# trap_dispatcher(i, stack)
+	call exc_dispatch 	# exc_dispatch(i, stack)
 
 # Test if this is interrupt with error word or not
 	mov $\i,%cl;

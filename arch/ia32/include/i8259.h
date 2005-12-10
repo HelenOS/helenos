@@ -44,6 +44,5 @@ extern void i8259_init(void);
 extern void pic_enable_irqs(__u16 irqmask);
 extern void pic_disable_irqs(__u16 irqmask);
 extern void pic_eoi(void);
-extern void pic_spurious(__u8 n, __native stack[]);
 
 #endif

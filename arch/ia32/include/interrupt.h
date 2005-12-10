@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#ifndef __ia32_INTERRUPT_H__
+#define __ia32_INTERRUPT_H__
 
 #include <arch/types.h>
 #include <arch/pm.h>
@@ -61,24 +61,18 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
 #define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+2)
 
-typedef void (* iroutine)(__u8 n, __native stack[]);
-
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
 extern void (* eoi_function)(void);
 
-extern iroutine trap_register(__u8 n, iroutine f);
-
-extern void trap_dispatcher(__u8 n, __native stack[]);
-
-extern void null_interrupt(__u8 n, __native stack[]);
-extern void gp_fault(__u8 n, __native stack[]);
-extern void nm_fault(__u8 n, __native stack[]);
-extern void ss_fault(__u8 n, __native stack[]);
-extern void page_fault(__u8 n, __native stack[]);
-extern void syscall(__u8 n, __native stack[]);
-extern void tlb_shootdown_ipi(__u8 n, __native stack[]);
-extern void wakeup_ipi(__u8 n, __native stack[]);
+extern void null_interrupt(int n, void *stack);
+extern void gp_fault(int n, void *stack);
+extern void nm_fault(int n, void *stack);
+extern void ss_fault(int n, void *stack);
+extern void page_fault(int n, void *stack);
+extern void syscall(int n, void *stack);
+extern void tlb_shootdown_ipi(int n, void *stack);
+extern void wakeup_ipi(int n, void *stack);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);

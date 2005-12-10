@@ -75,7 +75,7 @@ enable_l_apic_in_msr:
 # vectors starting at vector i.
 #
 # The handlers setup data segment registers
-# and call trap_dispatcher().
+# and call exc_dispatch().
 #
 .macro handler i n
 	push %ebp
@@ -94,7 +94,7 @@ enable_l_apic_in_msr:
 	pushl %ebp
 	addl $4,(%esp)
 	pushl %edi
-	call trap_dispatcher
+	call exc_dispatch
 	addl $8,%esp
 
 	pop %es

@@ -49,6 +49,7 @@
 #include <arch/bios/bios.h>
 
 #include <arch/mm/memory_init.h>
+#include <interrupt.h>
 
 void arch_pre_mm_init(void)
 {
@@ -59,11 +60,12 @@ void arch_pre_mm_init(void)
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
 		
-		trap_register(VECTOR_SYSCALL, syscall);
+		exc_register(VECTOR_SYSCALL, "syscall", syscall);
 		
 		#ifdef CONFIG_SMP
-		trap_register(VECTOR_TLB_SHOOTDOWN_IPI, tlb_shootdown_ipi);
-		trap_register(VECTOR_WAKEUP_IPI, wakeup_ipi);
+		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
+			     tlb_shootdown_ipi);
+		exc_register(VECTOR_WAKEUP_IPI, "wakeup_ipi", wakeup_ipi);
 		#endif /* CONFIG_SMP */
 	}
 }
