@@ -61,6 +61,7 @@ void msim_disable(chardev_t *dev)
 	cp0_mask_int(MSIM_KBD_IRQ);
 }
 
+#include <print.h>
 /** Process keyboard interrupt. */
 static void msim_interrupt(int n, void *stack)
 {
@@ -69,6 +70,8 @@ static void msim_interrupt(int n, void *stack)
 	ch = *((char *) MSIM_KBD_ADDRESS);
 	if (ch =='\r')
 		ch = '\n';
+	if (ch == 0x7f)
+		ch = '\b';
 	chardev_push_character(&console, ch);
 }
 

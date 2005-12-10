@@ -62,7 +62,6 @@ void chardev_push_character(chardev_t *chardev, __u8 ch)
 		chardev->op->suspend(chardev);
 	}
 
-	putchar(ch);
         chardev->buffer[chardev->index++] = ch;
         chardev->index = chardev->index % CHARDEV_BUFLEN; /* index modulo size of buffer */
         waitq_wakeup(&chardev->wq, WAKEUP_FIRST);

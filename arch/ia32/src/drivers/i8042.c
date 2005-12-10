@@ -81,7 +81,7 @@ static char sc_primary_map[] = {
 	SPECIAL, /* 0x00 */
 	SPECIAL, /* 0x01 - Esc */
 	'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-	SPECIAL, /* 0x0e - Backspace */
+	'\b', /* 0x0e - Backspace */
 	'\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
 	SPECIAL, /* 0x1d - LCtrl */
 	'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'',

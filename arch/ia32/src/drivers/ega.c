@@ -99,13 +99,17 @@ void ega_putchar(chardev_t *d, const char ch)
 	spinlock_lock(&egalock);
 
 	switch (ch) {
-	    case '\n':
+	case '\n':
 		ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
 		break;
-	    case '\t':
+	case '\t':
 		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
 		break; 
-	    default:
+	case '\b':
+		if (ega_cursor % ROW)
+			ega_cursor--;
+		break;
+	default:
 		ega_display_char(ch);
 		ega_cursor++;
 		break;

@@ -209,7 +209,9 @@ static void arc_keyboard_poll(void)
 	}
 	if (ch == '\r')
 		ch = '\n';
-
+	if (ch == 0x7f)
+		ch = '\b';
+	
 	chardev_push_character(&console, ch);
 }
 

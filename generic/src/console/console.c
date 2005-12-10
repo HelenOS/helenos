@@ -39,6 +39,30 @@
 chardev_t *stdin = NULL;
 chardev_t *stdout = NULL;
 
+/** Get character from character device.
+ *
+ * @param chardev Character device.
+ *
+ * @return Character read.
+ */
+static __u8 _getc(chardev_t *chardev)
+{
+	__u8 ch;
+	ipl_t ipl;
+
+	waitq_sleep(&chardev->wq);
+	ipl = interrupts_disable();
+	spinlock_lock(&chardev->lock);
+	ch = chardev->buffer[(chardev->index - chardev->counter) % CHARDEV_BUFLEN];
+	chardev->counter--;
+	spinlock_unlock(&chardev->lock);
+	interrupts_restore(ipl);
+
+	chardev->op->resume(chardev);
+
+	return ch;
+}
+
 /** Get string from character device.
  *
  * Read characters from character device until first occurrence
@@ -56,7 +80,19 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 	char ch;
 
 	while (index < buflen) {
-		ch = getc(chardev);
+		ch = _getc(chardev);
+		if (ch == '\b') {
+			if (index > 0) {
+				index--;
+				/* Space backspace, space */
+				putchar('\b');
+				putchar(' ');
+				putchar('\b');
+			}
+			continue;
+		} 
+		putchar(ch);
+
 		if (ch == '\n') { /* end of string => write 0, return */
 			buf[index] = '\0';
 			return (count_t) index;
@@ -66,27 +102,13 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 	return (count_t) index;
 }
 
-/** Get character from character device.
- *
- * @param chardev Character device.
- *
- * @return Character read.
- */
+/** Get character from device & echo it to screen */
 __u8 getc(chardev_t *chardev)
 {
 	__u8 ch;
-	ipl_t ipl;
 
-	waitq_sleep(&chardev->wq);
-	ipl = interrupts_disable();
-	spinlock_lock(&chardev->lock);
-	ch = chardev->buffer[(chardev->index - chardev->counter) % CHARDEV_BUFLEN];
-	chardev->counter--;
-	spinlock_unlock(&chardev->lock);
-	interrupts_restore(ipl);
-
-	chardev->op->resume(chardev);
-
+	ch = _getc(chardev);
+	putchar(ch);
 	return ch;
 }
 
