@@ -94,4 +94,5 @@ extern void exception(struct exception_regdump *pstate);
 extern void tlb_refill_entry(void);
 extern void exception_entry(void);
 extern void cache_error_entry(void);
+extern void exception_init(void);
 #endif

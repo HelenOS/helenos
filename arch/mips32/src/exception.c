@@ -34,6 +34,96 @@
 #include <arch.h>
 #include <debug.h>
 #include <proc/thread.h>
+#include <symtab.h>
+#include <print.h>
+#include <interrupt.h>
+
+static char * exctable[] = {
+	"Interrupt","TLB Modified","TLB Invalid","TLB Invalid Store",
+		"Address Error - load/instr. fetch",
+		"Address Error - store",
+		"Bus Error - fetch instruction",
+		"Bus Error - data reference",
+		"Syscall",
+		"BreakPoint",
+		"Reserved Instruction",
+		"Coprocessor Unusable",
+		"Arithmetic Overflow",
+		"Trap",
+		"Virtual Coherency - instruction",
+		"Floating Point",
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+		"WatchHi/WatchLo", /* 23 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+		"Virtual Coherency - data",
+};
+
+static void print_regdump(struct exception_regdump *pstate)
+{
+	char *pcsymbol = "";
+	char *rasymbol = "";
+
+	char *s = get_symtab_entry(pstate->epc);
+	if (s)
+		pcsymbol = s;
+	s = get_symtab_entry(pstate->ra);
+	if (s)
+		rasymbol = s;
+	
+	printf("PC: %X(%s) RA: %X(%s)\n",pstate->epc,pcsymbol,
+	       pstate->ra,rasymbol);
+}
+
+static void unhandled_exception(int n, void *data)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)data;
+
+	print_regdump(pstate);
+	panic("unhandled exception %s\n", exctable[n]);
+}
+
+static void breakpoint_exception(int n, void *data)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)data;
+	/* it is necessary to not re-execute BREAK instruction after 
+	   returning from Exception handler
+	   (see page 138 in R4000 Manual for more information) */
+	pstate->epc += 4;
+}
+
+static void tlbmod_exception(int n, void *data)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)data;
+	tlb_modified(pstate);
+}
+
+static void tlbinv_exception(int n, void *data)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)data;
+	tlb_invalid(pstate);
+}
+
+static void cpunsbl_exception(int n, void *data)
+{
+	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
+		scheduler_fpu_lazy_request();
+	else
+		panic("unhandled Coprocessor Unusable Exception\n");
+}
+
+static void interrupt_exception(int n, void *pstate)
+{
+	__u32 cause;
+	int i;
+	
+	/* decode interrupt number and process the interrupt */
+	cause = (cp0_cause_read() >> 8) &0xff;
+	
+	for (i = 0; i < 8; i++)
+		if (cause & (1 << i))
+			exc_dispatch(i+INT_OFFSET, pstate);
+}
+
 
 void exception(struct exception_regdump *pstate)
 {
@@ -63,69 +153,9 @@ void exception(struct exception_regdump *pstate)
 
 	cause = cp0_cause_read();
 	excno = cp0_cause_excno(cause);
-	/* decode exception number and process the exception */
-	switch (excno) {
-		case EXC_Int:
-			interrupt(pstate);
-			break;
-		case EXC_TLBL:
-		case EXC_TLBS:
-			tlb_invalid(pstate);
-			break;
- 	 	case EXC_CpU:
-#ifdef CONFIG_FPU_LAZY     
-			if (cp0_cause_coperr(cause) == fpu_cop_id)
-				scheduler_fpu_lazy_request();
-			else
-#endif
-				panic("unhandled Coprocessor Unusable Exception\n");
-			break;
-		case EXC_Mod:
-			tlb_modified(pstate);
-			break;
-		case EXC_AdEL:
-			panic("unhandled Address Error Exception - load or instruction fetch\n");
-			break;
- 	 	case EXC_AdES:
-			panic("unhandled Address Error Exception - store\n");
-			break;
- 	 	case EXC_IBE:
-			panic("unhandled Bus Error Exception - fetch instruction\n");
-			break;
- 	 	case EXC_DBE:
-			panic("unhandled Bus Error Exception - data reference: load or store\n");
-			break;
-		case EXC_Bp:
-			/* it is necessary to not re-execute BREAK instruction after returning from Exception handler
-			   (see page 138 in R4000 Manual for more information) */
-			epc_shift = 4;
-			break;
-		case EXC_RI:
-			panic("unhandled Reserved Instruction Exception\n");
-			break;
- 	 	case EXC_Ov:
-			panic("unhandled Arithmetic Overflow Exception\n");
-			break;
- 	 	case EXC_Tr:
-			panic("unhandled Trap Exception\n");
-			break;
- 	 	case EXC_VCEI:
-			panic("unhandled Virtual Coherency Exception - instruction\n");
-			break;
- 	 	case EXC_FPE:
-			panic("unhandled Floating-Point Exception\n");
-			break;
- 	 	case EXC_WATCH:
-			panic("unhandled reference to WatchHi/WatchLo address\n");
-			break;
- 	 	case EXC_VCED:
-			panic("unhandled Virtual Coherency Exception - data\n");
-			break;
-		default:
-			panic("unhandled exception %d\n", excno);
-	}
-	
-	pstate->epc += epc_shift;
+	/* Dispatch exception */
+	exc_dispatch(excno, pstate);
+
 	/* Set to NULL, so that we can still support nested
 	 * exceptions
 	 * TODO: We should probably set EXL bit before this command,
@@ -134,4 +164,21 @@ void exception(struct exception_regdump *pstate)
 	 */
 	if (THREAD)
 		THREAD->pstate = NULL;
+}
+
+void exception_init(void)
+{
+	int i;
+
+	/* Clear exception table */
+	for (i=0;i < IVT_ITEMS; i++)
+		exc_register(i, "undef", unhandled_exception);
+	exc_register(EXC_Bp, "bkpoint", breakpoint_exception);
+	exc_register(EXC_Mod, "tlb_mod", tlbmod_exception);
+	exc_register(EXC_TLBL, "tlbinvl", tlbinv_exception);
+	exc_register(EXC_TLBS, "tlbinvl", tlbinv_exception);
+	exc_register(EXC_Int, "interrupt", interrupt_exception);
+#ifdef CONFIG_FPU_LAZY
+	exc_register(EXC_CpU, "cpunus", cpun_exception);
+#endif
 }

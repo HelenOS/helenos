@@ -31,7 +31,10 @@
 
 #include <arch/exception.h>
 
-#define IVT_ITEMS   8
+#define IVT_ITEMS   40
+#define INT_OFFSET  32
+
+#define int_register(it, name, handler) exc_register(((it)+INT_OFFSET),name,handler)
 
 #define IRQ2	2
 #define IRQ3	3
@@ -39,7 +42,6 @@
 
 #define TIMER_IRQ   	IRQ7
 
-extern void interrupt(struct exception_regdump *pstate);
 extern void interrupt_init(void);
 
 #endif

@@ -32,26 +32,7 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <time/clock.h>
-#include <panic.h>
-#include <print.h>
-#include <symtab.h>
 #include <arch/drivers/arc.h>
-
-static void print_regdump(struct exception_regdump *pstate)
-{
-	char *pcsymbol = "";
-	char *rasymbol = "";
-
-	char *s = get_symtab_entry(pstate->epc);
-	if (s)
-		pcsymbol = s;
-	s = get_symtab_entry(pstate->ra);
-	if (s)
-		rasymbol = s;
-	
-	printf("PC: %X(%s) RA: %X(%s)\n",pstate->epc,pcsymbol,
-	       pstate->ra,rasymbol);
-}
 
 /** Disable interrupts.
  *
@@ -93,14 +74,6 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
-static void unhandled_exception(int n, void *stack)
-{
-	struct exception_regdump *pstate = (struct exception_regdump *)stack;
-
-	print_regdump(pstate);
-	panic("unhandled interrupt %d\n", n);
-}
-
 static void timer_exception(int n, void *stack)
 {
 	cp0_compare_write(cp0_count_read() + cp0_compare_value); 
@@ -117,29 +90,12 @@ static void swint1(int n, void *stack)
 	cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
 }
 
-/** Basic exception handler */
-void interrupt(struct exception_regdump *pstate)
-{
-	__u32 cause;
-	int i;
-	
-	/* decode interrupt number and process the interrupt */
-	cause = (cp0_cause_read() >> 8) &0xff;
-	
-	for (i = 0; i < 8; i++)
-		if (cause & (1 << i))
-			exc_dispatch(i, (void *)pstate);
-}
-
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
 	int i;
 
-	for (i=0;i < IVT_ITEMS; i++)
-		exc_register(i, "undef", unhandled_exception);
-
-	exc_register(TIMER_IRQ, "timer", timer_exception);
-	exc_register(0, "swint0", swint0);
-	exc_register(1, "swint1", swint1);
+	int_register(TIMER_IRQ, "timer", timer_exception);
+	int_register(0, "swint0", swint0);
+	int_register(1, "swint1", swint1);
 }

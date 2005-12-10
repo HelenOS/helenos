@@ -251,7 +251,7 @@ chardev_t * arc_console(void)
 	kbd_polling_enabled = true;
 	
 	chardev_initialize("arc_console", &console, &arc_ops);
-	old_timer = exc_register(TIMER_IRQ, "arc_kb_poll", timer_replace);
+	old_timer = int_register(TIMER_IRQ, "arc_kb_poll", timer_replace);
 	return &console;
 }
 

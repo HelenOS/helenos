@@ -60,6 +60,7 @@ void arch_pre_mm_init(void)
 	interrupts_disable();
 	
 	/* Initialize dispatch table */
+	exception_init();
 	interrupt_init();
 
 	arc_init();

@@ -34,6 +34,7 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <align.h>
 
 /*
  * First-fit algorithm.
@@ -62,6 +63,8 @@ void *early_malloc(size_t size)
 {
 	ipl_t ipl;
 	chunk_t *x, *y, *z;
+
+	size = ALIGN_UP(size, sizeof(__native));
 
 	if (size == 0)
 		panic("zero-size allocation request");

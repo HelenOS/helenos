@@ -81,7 +81,7 @@ chardev_t * msim_console(void)
 {
 	chardev_initialize("msim_console", &console, &msim_ops);
 
-	exc_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
+	int_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
 
 	cp0_unmask_int(MSIM_KBD_IRQ);
 

@@ -111,11 +111,11 @@ chardev_t * serial_console(void)
 	console.data = sd;
 	kb_enabled = true;
 
-//	exc_register(2, "serial_drvr", serial_interrupt);
+//	int_register(2, "serial_drvr", serial_interrupt);
 	/* I don't know why, but the serial interrupts simply
 	 * don't work on simics
 	 */
-	old_timer = exc_register(TIMER_IRQ, "serial_drvr_poll", timer_replace);
+	old_timer = int_register(TIMER_IRQ, "serial_drvr_poll", timer_replace);
 	
 
 	return &console;
