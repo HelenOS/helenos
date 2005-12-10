@@ -31,7 +31,7 @@
 
 #include <arch/exception.h>
 
-#define IVT_ITEMS   32
+#define IVT_ITEMS   8
 
 #define IRQ2	2
 #define IRQ3	3

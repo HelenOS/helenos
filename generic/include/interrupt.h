@@ -37,7 +37,8 @@
 
 typedef void (* iroutine)(int n, void *stack);
 
-extern iroutine exc_register(int n, char *name, iroutine f);
+extern iroutine exc_register(int n, const char *name, iroutine f);
 extern void exc_dispatch(int n, void *stack);
+void exc_init(void);
 
 #endif

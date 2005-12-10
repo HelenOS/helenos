@@ -28,26 +28,45 @@
 
 #include <interrupt.h>
 #include <debug.h>
+#include <console/kconsole.h>
+#include <console/console.h>
+#include <console/chardev.h>
+#include <panic.h>
+#include <print.h>
+#include <symtab.h>
 
 static struct {
-	char *name;
+	const char *name;
 	iroutine f;
-} ivt[IVT_ITEMS];
+} exc_table[IVT_ITEMS];
 
-iroutine exc_register(int n, char *name, iroutine f)
+static spinlock_t exctbl_lock;
+
+/** Register exception handler
+ * 
+ * @param n Exception number
+ * @param name Description 
+ * @param f Exception handler
+ */
+iroutine exc_register(int n, const char *name, iroutine f)
 {
 	ASSERT(n < IVT_ITEMS);
 	
 	iroutine old;
 	
-	old = ivt[n].f;
-	ivt[n].f = f;
-	ivt[n].name = name;
-	
+	spinlock_lock(&exctbl_lock);
+
+	old = exc_table[n].f;
+	exc_table[n].f = f;
+	exc_table[n].name = name;
+
+	spinlock_unlock(&exctbl_lock);	
+
 	return old;
 }
 
-/*
+/** Dispatch exception according to exception table
+ *
  * Called directly from the assembler code.
  * CPU is interrupts_disable()'d.
  */
@@ -55,5 +74,62 @@ void exc_dispatch(int n, void *stack)
 {
 	ASSERT(n < IVT_ITEMS);
 	
-	ivt[n].f(n, stack);
+	exc_table[n].f(n, stack);
 }
+
+/** Default 'null' exception handler */
+static void exc_undef(int n, void *stack)
+{
+	panic("Unhandled exception %d.", n);
+}
+
+/** KConsole cmd - print all exceptions */
+static int exc_print_cmd(cmd_arg_t *argv)
+{
+	int i;
+	char *symbol;
+
+	spinlock_lock(&exctbl_lock);
+	printf("Exc Handler    Description\n");
+	for (i=0; i < IVT_ITEMS; i++) {
+		symbol = get_symtab_entry((__native)exc_table[i].f);
+		if (!symbol)
+			symbol = "not found";
+		printf("%d %s 0x%p(%s)\n",i,exc_table[i].name,
+		       exc_table[i].f,symbol);		
+		if (!((i+1) % 20)) {
+			printf("Press any key to continue.");
+			getc(stdin);
+			printf("\n");
+		}
+	}
+	spinlock_unlock(&exctbl_lock);
+	
+	return 1;
+}
+
+static cmd_info_t exc_info = {
+	.name = "exc_print",
+	.description = "Print exception table",
+	.func = exc_print_cmd,
+	.help = NULL,
+	.argc = 0,
+	.argv = NULL
+};
+
+/** Initialize generic exception handling support */
+void exc_init(void)
+{
+	int i;
+
+	spinlock_initialize(&exctbl_lock, "exctbl_lock");
+
+	for (i=0;i < IVT_ITEMS; i++)
+		exc_register(i, "undef", exc_undef);
+
+	spinlock_initialize(&exc_info.lock, "kconsole_excinfo");
+	link_initialize(&exc_info.link);
+	if (!cmd_register(&exc_info))
+		panic("could not register command %s\n", exc_info.name);
+}
+

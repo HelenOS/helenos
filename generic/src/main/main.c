@@ -40,6 +40,7 @@
 #include <console/kconsole.h>
 #include <cpu.h>
 #include <align.h>
+#include <interrupt.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -173,6 +174,10 @@ void main_bsp_separated_stack(void)
 	 * commands.
 	 */
 	kconsole_init();
+	/* Exception handler initialization, before architecture
+	 * starts adding it's own handlers
+	 */
+	exc_init();
 	
 	arch_pre_mm_init();
 	early_heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);

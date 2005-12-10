@@ -44,6 +44,7 @@
 #include <print.h>
 #include <memstr.h>
 #include <console/console.h>
+#include <interrupt.h>
 #include <console/kconsole.h>
 
 #ifdef CONFIG_SMP
