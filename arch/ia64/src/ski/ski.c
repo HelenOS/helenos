@@ -33,7 +33,7 @@
 static chardev_t ski_console;
 static bool kb_disable;
 
-static void ski_write(chardev_t *d, const char ch);
+static void ski_putchar(chardev_t *d, const char ch);
 static __s32 ski_getchar(void);
 
 /** Display character on debug console
@@ -44,7 +44,7 @@ static __s32 ski_getchar(void);
  * @param d Character device.
  * @param ch Character to be printed.
  */
-void ski_write(chardev_t *d, const char ch)
+void ski_putchar(chardev_t *d, const char ch)
 {
 	__asm__ (
 		"mov r15=%0\n"
@@ -56,7 +56,7 @@ void ski_write(chardev_t *d, const char ch)
 	);
 	
 	if (ch == '\n')
-		ski_write(d, '\r');
+		ski_putchar(d, '\r');
 }
 
 /** Ask debug console if a key was pressed.
@@ -116,7 +116,7 @@ static void ski_kb_disable(chardev_t *d)
 static chardev_operations_t ski_ops = {
 	.resume = ski_kb_enable,
 	.suspend = ski_kb_disable,
-	.write = ski_write
+	.write = ski_putchar
 };
 
 

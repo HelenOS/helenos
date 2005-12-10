@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <putchar.h>
+#include <arch/console.h>
 #include <genarch/ofw/ofw.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -35,19 +35,19 @@
  *
  * @param ch Character to be printed.
  */
-static void ofw_write(chardev_t *d, const char ch)
+static void ofw_ppc32_putchar(chardev_t *d, const char ch)
 {
 	ofw_putchar(ch);
 }
 
-chardev_t ofw_console;
-static chardev_operations_t ofw_ops = {
-	.write = ofw_write
+static chardev_t ofw_ppc32_console;
+static chardev_operations_t ofw_ppc32_console_ops = {
+	.write = ofw_ppc32_putchar
 };
 
 /** Initialize console to use ofw output */
-void console_init(void)
+void ofw_ppc32_console_init(void)
 {
-	chardev_initialize("ofw_out", &ofw_console, &ofw_ops);
-	stdout = &ofw_console;
+	chardev_initialize("ofw_out", &ofw_ppc32_console, &ofw_ppc32_console_ops);
+	stdout = &ofw_ppc32_console;
 }

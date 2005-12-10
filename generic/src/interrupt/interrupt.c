@@ -112,7 +112,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 
 static cmd_info_t exc_info = {
 	.name = "pexc",
-	.description = "Print exception table",
+	.description = "Print exception table.",
 	.func = exc_print_cmd,
 	.help = NULL,
 	.argc = 0,

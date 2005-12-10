@@ -32,7 +32,7 @@
 #include <arch/interrupt.h>
 
 #ifndef IVT_ITEMS
-#  define IVT_ITEMS 1
+#  define IVT_ITEMS 0
 #endif
 
 typedef void (* iroutine)(int n, void *stack);

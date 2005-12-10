@@ -36,14 +36,11 @@
 
 #define CHARDEV_BUFLEN 512
 
-struct chardev;
-
 /* Character device operations interface. */
 struct chardev_operations {
-	void (* suspend)(struct chardev *);/**< Suspend pushing characters. */
-	void (* resume)(struct chardev *); /**< Resume pushing characters. */
-	/** Write character to stream */
-	void (* write)(struct chardev *, char c);
+	void (* suspend)(chardev_t *);		/**< Suspend pushing characters. */
+	void (* resume)(chardev_t *); 		/**< Resume pushing characters. */
+	void (* write)(chardev_t *, char c);	/**< Write character to stream. */
 };
 
 typedef struct chardev_operations chardev_operations_t;

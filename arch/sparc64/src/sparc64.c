@@ -31,9 +31,11 @@
 #include <arch/asm.h>
 #include <memstr.h>
 #include <arch/trap_table.h>
+#include <arch/console.h>
 
 void arch_pre_mm_init(void)
 {
+	ofw_sparc64_console_init();
 }
 
 void arch_post_mm_init(void)

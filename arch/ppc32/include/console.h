@@ -26,31 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
+#ifndef __ppc32_CONSOLE_H__
+#define __ppc32_CONSOLE_H__
 
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
+extern void ofw_ppc32_console_init(void);
 
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar
-};
-
-void ofw_sparc64_console_init(void)
-{
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdout = &ofw_sparc64_console;
-}
-
-/** Print one character.
- *
- * @param ch Character to be printed.
- */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
-{
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
-}
+#endif
