@@ -73,16 +73,16 @@ __s32 ski_getchar(void)
 	__u64 ch;
 	
 	__asm__ (
-		"mov r15=%0\n"
+		"mov r15=%1\n"
 		"break 0x80000;;\n"	/* modifies r8 */
-		"mov %1=r8;;\n"		
+		"mov %0=r8;;\n"		
 
-		:
-		: "i" (SKI_GETCHAR), "r" (ch)
+		: "=r" (ch)
+		: "i" (SKI_GETCHAR)
 		: "r15",  "r8"
 	);
 
-	return (__s32)ch;
+	return (__s32) ch;
 }
 
 /** Ask keyboard if a key was pressed. */
