@@ -149,7 +149,6 @@ int cmd_register(cmd_info_t *cmd)
 	ipl_t ipl;
 	link_t *cur;
 	
-	ipl = interrupts_disable();
 	spinlock_lock(&cmd_lock);
 	
 	/*
@@ -163,7 +162,6 @@ int cmd_register(cmd_info_t *cmd)
 		if (hlp == cmd) {
 			/* The command is already there. */
 			spinlock_unlock(&cmd_lock);
-			interrupts_restore(ipl);
 			return 0;
 		}
 
@@ -181,7 +179,6 @@ int cmd_register(cmd_info_t *cmd)
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd->lock);
 			spinlock_unlock(&cmd_lock);
-			interrupts_restore(ipl);
 			return 0;
 		}
 		
@@ -195,7 +192,6 @@ int cmd_register(cmd_info_t *cmd)
 	list_append(&cmd->link, &cmd_head);
 	
 	spinlock_unlock(&cmd_lock);
-	interrupts_restore(ipl);
 	return 1;
 }
 
@@ -246,7 +242,6 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		return NULL;
 	}
 
-	ipl = interrupts_disable();
 	spinlock_lock(&cmd_lock);
 	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
@@ -268,7 +263,6 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	if (!cmd) {
 		/* Unknown command. */
 		printf("Unknown command.\n");
-		interrupts_restore(ipl);
 		return NULL;
 	}
 
@@ -287,7 +281,6 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		if (!parse_argument(cmdline, len, &start, &end)) {
 			printf("Too few arguments.\n");
 			spinlock_unlock(&cmd->lock);
-			interrupts_restore(ipl);
 			return NULL;
 		}
 		
@@ -309,12 +302,10 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	if (parse_argument(cmdline, len, &start, &end)) {
 		printf("Too many arguments.\n");
 		spinlock_unlock(&cmd->lock);
-		interrupts_restore(ipl);
 		return NULL;
 	}
 	
 	spinlock_unlock(&cmd->lock);
-	interrupts_restore(ipl);
 	return cmd;
 }
 
@@ -368,7 +359,6 @@ int cmd_help(cmd_arg_t *argv)
 	link_t *cur;
 	ipl_t ipl;
 
-	ipl = interrupts_disable();
 	spinlock_lock(&cmd_lock);
 	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
@@ -383,7 +373,6 @@ int cmd_help(cmd_arg_t *argv)
 	}
 	
 	spinlock_unlock(&cmd_lock);	
-	interrupts_restore(ipl);
 
 	return 1;
 }
@@ -399,7 +388,6 @@ int cmd_desc(cmd_arg_t *argv)
 	link_t *cur;
 	ipl_t ipl;
 
-	ipl = interrupts_disable();
 	spinlock_lock(&cmd_lock);
 	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
@@ -420,7 +408,6 @@ int cmd_desc(cmd_arg_t *argv)
 	}
 	
 	spinlock_unlock(&cmd_lock);	
-	interrupts_restore(ipl);
 
 	return 1;
 }

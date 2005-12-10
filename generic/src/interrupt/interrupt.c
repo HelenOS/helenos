@@ -99,7 +99,9 @@ static int exc_print_cmd(cmd_arg_t *argv)
 		       exc_table[i].f,symbol);		
 		if (!((i+1) % 20)) {
 			printf("Press any key to continue.");
+			spinlock_unlock(&exctbl_lock);
 			getc(stdin);
+			spinlock_lock(&exctbl_lock);
 			printf("\n");
 		}
 	}
