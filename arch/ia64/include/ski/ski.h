@@ -37,7 +37,6 @@
 #define SKI_PUTCHAR		31
 
 extern void ski_init_console(void);
-extern void ski_putchar(const char ch);
-extern  __s32 ski_getchar(void);
+extern void poll_keyboard(void);
 	
 #endif

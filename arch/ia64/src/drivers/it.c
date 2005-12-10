@@ -29,7 +29,7 @@
 /** Interval Timer driver. */
  
 #include <arch/drivers/it.h>
-#include <arch/drivers/keyboard.h>
+#include <arch/ski/ski.h>
 #include <arch/interrupt.h>
 #include <arch/register.h>
 #include <arch/asm.h>

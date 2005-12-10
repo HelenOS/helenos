@@ -27,22 +27,11 @@
  */
 
 #include <arch/ski/ski.h>
+#include <console/console.h>
+#include <console/chardev.h>
 
-/** Initialize debug console
- *
- * Issue SSC (Simulator System Call) to
- * to open debug console.
- */
-void ski_init_console(void)
-{
-	__asm__ (
-		"mov r15=%0\n"
-		"break 0x80000\n"
-		:
-		: "i" (SKI_INIT_CONSOLE)
-		: "r15", "r8"
-	);
-}
+static chardev_t ski_console;
+static bool kb_disable;
 
 /** Display character on debug console
  *
@@ -51,7 +40,7 @@ void ski_init_console(void)
  *
  * @param ch   Character to be printed.
  */
-void ski_putchar(const char ch)
+void ski_write(chardev_t *d, const char ch)
 {
 	__asm__ (
 		"mov r15=%0\n"
@@ -89,4 +78,59 @@ __s32 ski_getchar(void)
 	);
 
 	return (__s32)ch;
+}
+
+/** Ask keyboard if a key was pressed. */
+void poll_keyboard(void)
+{
+	char ch;
+
+	if (kb_disable)
+		return;
+
+	ch = ski_getchar();
+	if(ch == '\r')
+		ch = '\n'; 
+	if (ch)
+		chardev_push_character(&ski_console, ch);
+}
+
+/* Called from getc(). */
+static void ski_kb_enable(chardev_t *)
+{
+	kb_disable = false;
+}
+
+/* Called from getc(). */
+static void ski_kb_disable(chardev_t *d)
+{
+	kb_disable = true;	
+}
+
+
+static chardev_operations_t ski_ops = {
+	.resume = ski_kb_enable,
+	.suspend = ski_kb_disable,
+	.write = ski_write
+};
+
+
+/** Initialize debug console
+ *
+ * Issue SSC (Simulator System Call) to
+ * to open debug console.
+ */
+void ski_init_console(void)
+{
+	__asm__ (
+		"mov r15=%0\n"
+		"break 0x80000\n"
+		:
+		: "i" (SKI_INIT_CONSOLE)
+		: "r15", "r8"
+	);
+
+	chardev_initialize("ski_console", &ski_console, &ski_ops);
+	stdin = &ski_console;
+	stdout = &ski_console;
 }

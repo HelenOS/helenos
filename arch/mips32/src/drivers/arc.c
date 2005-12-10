@@ -188,7 +188,7 @@ int arc_init(void)
 	arc_putchar('\n');
 }
 
-static int kbd_polling_enabled;
+static bool kbd_polling_enabled;
 static chardev_t console;
 
 /** Try to get character, return character or -1 if not available */
@@ -220,12 +220,12 @@ static void arc_write(chardev_t *dev, const char ch)
 
 static void arc_enable(chardev_t *dev)
 {
-	kbd_polling_enabled = 1;	
+	kbd_polling_enabled = true;
 }
 
 static void arc_disable(chardev_t *dev)
 {
-	kbd_polling_enabled = 0;
+	kbd_polling_enabled = false;
 }
 
 static chardev_operations_t arc_ops = {
@@ -246,7 +246,7 @@ static void timer_replace(int n, void *stack)
 
 chardev_t * arc_console(void)
 {
-	kbd_polling_enabled = 1;
+	kbd_polling_enabled = true;
 	
 	chardev_initialize("arc_console", &console, &arc_ops);
 	old_timer = exc_register(TIMER_IRQ, "arc_kb_poll", timer_replace);

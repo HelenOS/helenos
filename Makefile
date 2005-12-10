@@ -174,9 +174,7 @@ archlinks:
 	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
-depend: archlinks Makefile.depend
-
-Makefile.depend:
+depend: archlinks
 	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) >Makefile.depend 2>/dev/null
 	#$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 

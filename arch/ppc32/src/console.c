@@ -28,12 +28,26 @@
 
 #include <putchar.h>
 #include <genarch/ofw/ofw.h>
+#include <console/chardev.h>
+#include <console/console.h>
 
 /** Print one character.
  *
  * @param ch Character to be printed.
  */
-void putchar(const char ch)
+static void ofw_write(chardev_t *d, const char ch)
 {
 	ofw_putchar(ch);
+}
+
+chardev_t ofw_console;
+static chardev_operations_t ofw_ops = {
+	.write = ofw_write
+};
+
+/** Initialize console to use ofw output */
+void console_init(void)
+{
+	chardev_initialize("ofw_out", &ofw_console, &ofw_ops);
+	stdout = &ofw_console;
 }

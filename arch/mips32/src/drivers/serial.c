@@ -33,8 +33,8 @@
 #include <console/console.h>
 
 static chardev_t console;
-
 static serial_t sconf[SERIAL_MAX];
+static bool kb_enabled;
 
 static void serial_write(chardev_t *d, const char ch)
 {
@@ -51,10 +51,12 @@ static void serial_write(chardev_t *d, const char ch)
 
 static void serial_enable(chardev_t *d)
 {
+	kb_enabled = true;
 }
 
 static void serial_disable(chardev_t *d)
 {
+	kb_enabled = false;
 }
 
 int serial_init(void)
@@ -107,6 +109,7 @@ chardev_t * serial_console(void)
 
 	chardev_initialize("serial_console", &console, &serial_ops);
 	console.data = sd;
+	kb_enabled = true;
 
 //	exc_register(2, "serial_drvr", serial_interrupt);
 	/* I don't know why, but the serial interrupts simply
