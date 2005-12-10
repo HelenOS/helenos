@@ -49,6 +49,6 @@ void vm_install_arch(vm_t *vm)
 	spinlock_lock(&vm->lock);
 	hi.asid = vm->asid;
 	cp0_entry_hi_write(hi.value);	
-	spinlock_lock(&vm->unlock);
+	spinlock_unlock(&vm->lock);
 	interrupts_restore(ipl);
 }
