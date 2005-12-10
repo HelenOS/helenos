@@ -36,7 +36,8 @@
 enum cmd_arg_type {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
-	ARG_TYPE_STRING
+	ARG_TYPE_STRING,
+	ARG_TYPE_VAR      /**< Variable type - either symbol or string */
 };
 
 /** Structure representing one argument of kconsole command line. */
@@ -45,6 +46,7 @@ struct cmd_arg {
 	void *buffer;			/**< Buffer where to store data. */
 	size_t len;			/**< Size of the buffer. */
 	__native intval;                /**< Integer value */
+	cmd_arg_type_t vartype;         /**< Resulting type of variable arg */
 };
 
 /** Structure representing one kconsole command. */

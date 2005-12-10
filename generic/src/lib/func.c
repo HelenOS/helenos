@@ -112,6 +112,7 @@ void strncpy(char *dest, const char *src, size_t len)
 		if (!(dest[i] = src[i]))
 			return;
 	}
+	dest[i-1] = '\0';
 }
 
 /** Convert ascii representation to __native

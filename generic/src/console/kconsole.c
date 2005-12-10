@@ -116,6 +116,8 @@ static cmd_info_t symaddr_info = {
 
 /** Call0 - call function with no parameters */
 static char call0_buf[MAX_CMDLINE+1];
+static char carg1_buf[MAX_CMDLINE+1];
+static char carg2_buf[MAX_CMDLINE+1];
 
 static int cmd_call0(cmd_arg_t *argv);
 static cmd_arg_t call0_argv = {
@@ -138,7 +140,11 @@ static cmd_arg_t call1_argv[] = {
 		.buffer = call0_buf,
 		.len = sizeof(call0_buf)
 	},
-	{ .type = ARG_TYPE_INT }
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg1_buf,
+		.len = sizeof(carg1_buf)
+	}
 };
 static cmd_info_t call1_info = {
 	.name = "call1",
@@ -155,8 +161,16 @@ static cmd_arg_t call2_argv[] = {
 		.buffer = call0_buf,
 		.len = sizeof(call0_buf)
 	},
-	{ .type = ARG_TYPE_INT },
-	{ .type = ARG_TYPE_INT }
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg1_buf,
+		.len = sizeof(carg1_buf)
+	},
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg2_buf,
+		.len = sizeof(carg2_buf)
+	}
 };
 static cmd_info_t call2_info = {
 	.name = "call2",
@@ -305,6 +319,38 @@ void kconsole(void *arg)
 	}
 }
 
+static int parse_int_arg(char *text, size_t len, __native *result)
+{
+	char symname[MAX_SYMBOL_NAME];
+	__address symaddr;
+	bool isaddr = false;
+	
+	/* If we get a name, try to find it in symbol table */
+	if (text[0] < '0' | text[0] > '9') {
+		if (text[0] == '&') {
+			isaddr = true;
+			text++;len--;
+		}
+		strncpy(symname, text, min(len+1, MAX_SYMBOL_NAME));
+		symaddr = get_symbol_addr(symname);
+		if (!symaddr) {
+			printf("Symbol %s not found.\n",symname);
+			return -1;
+		}
+		if (symaddr == (__address) -1) {
+			printf("Duplicate symbol %s.\n",symname);
+			symtab_print_search(symname);
+			return -1;
+		}
+		if (isaddr)
+			*result = (__native)symaddr;
+		else
+			*result = *((__native *)symaddr);
+	} else /* It's a number - convert it */
+		*result = atoi(text);
+	return 0;
+}
+
 /** Parse command line.
  *
  * @param cmdline Command line as read from input device.
@@ -370,31 +416,30 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
 		    	buf = cmd->argv[i].buffer;
-		    	strncpy(buf, (const char *) &cmdline[start], min((end - start) + 1, cmd->argv[i].len - 1));
+		    	strncpy(buf, (const char *) &cmdline[start], min((end - start) + 2, cmd->argv[i].len));
 			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
 			break;
-		case ARG_TYPE_INT: {
-			char symname[MAX_SYMBOL_NAME];
-			__address symaddr;
-
-			/* If we get a name, try to find it in symbol table */
-			if (cmdline[start] < '0' | cmdline[start] > '9') {
-				strncpy(symname, cmdline+start, min((end-start) + 1, MAX_SYMBOL_NAME -1 ));
-				symaddr = get_symbol_addr(symname);
-				if (!symaddr) {
-					printf("Symbol %s not found.\n",symname);
-					return NULL;
-				}
-				if (symaddr == (__address) -1) {
-					printf("Duplicate symbol %s.\n",symname);
-					symtab_print_search(symname);
-					return NULL;
-				}
-				cmd->argv[i].intval = *((__native *)symaddr);
-			} else /* It's a number - convert it */
-				cmd->argv[i].intval = atoi(cmdline+start);
+		case ARG_TYPE_INT: 
+			if (parse_int_arg(cmdline+start, end-start+1, 
+					  &cmd->argv[i].intval))
+				return NULL;
 			break;
+		case ARG_TYPE_VAR:
+			if (start != end && cmdline[start] == '"' && cmdline[end] == '"') {
+				buf = cmd->argv[i].buffer;
+				strncpy(buf, (const char *) &cmdline[start+1], 
+					min((end-start), cmd->argv[i].len));
+				buf[min((end - start), cmd->argv[i].len - 1)] = '\0';
+				cmd->argv[i].intval = (__native) buf;
+				cmd->argv[i].vartype = ARG_TYPE_STRING;
+			} else if (!parse_int_arg(cmdline+start, end-start+1, 
+						 &cmd->argv[i].intval))
+				cmd->argv[i].vartype = ARG_TYPE_INT;
+			else {
+				printf("Unrecognized variable argument.\n");
+				return NULL;
 			}
+			break;
 		case ARG_TYPE_INVALID:
 		default:
 			printf("invalid argument type\n");
@@ -537,7 +582,7 @@ int cmd_call0(cmd_arg_t *argv)
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
-		printf("Symbol not found.\n");
+		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (__address) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
@@ -561,7 +606,7 @@ int cmd_call1(cmd_arg_t *argv)
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
-		printf("Symbol not found.\n");
+		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (__address) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
@@ -580,13 +625,13 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	__address symaddr;
 	char *symbol;
-	__native (*f)(__native);
+	__native (*f)(__native,__native);
 	__native arg1 = argv[1].intval;
 	__native arg2 = argv[2].intval;
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
-		printf("Symbol not found.\n");
+		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (__address) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
@@ -594,8 +639,8 @@ int cmd_call2(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%x,0x%x): 0x%p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
-		f =  (__native (*)(__native)) symaddr;
-		printf("Result: 0x%x\n", f(arg1));
+		f =  (__native (*)(__native,__native)) symaddr;
+		printf("Result: 0x%x\n", f(arg1, arg2));
 	}
 	
 	return 1;
