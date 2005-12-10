@@ -135,17 +135,18 @@ __native atoi(const char *text)
 		base = 8;
 
 	while (*text) {
-		result *= base;
 		if (base != 16 && *text >= 'A' && *text <= 'F')
 			break;
 		if (base == 8 && *text >='8')
 			break;
 
-		if (*text >= '0' && *text <= '9')
+		if (*text >= '0' && *text <= '9') {
+			result *= base;
 			result += *text - '0';
-		else if (*text >= 'A' && *text <= 'F')
+		} else if (*text >= 'A' && *text <= 'F') {
+			result *= base;
 			result += *text - 'A' + 10;
-		else
+		} else
 			break;
 		text++;
 	}

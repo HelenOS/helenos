@@ -118,6 +118,7 @@ static cmd_info_t symaddr_info = {
 static char call0_buf[MAX_CMDLINE+1];
 static char carg1_buf[MAX_CMDLINE+1];
 static char carg2_buf[MAX_CMDLINE+1];
+static char carg3_buf[MAX_CMDLINE+1];
 
 static int cmd_call0(cmd_arg_t *argv);
 static cmd_arg_t call0_argv = {
@@ -180,6 +181,37 @@ static cmd_info_t call2_info = {
 	.argv = call2_argv
 };
 
+static int cmd_call3(cmd_arg_t *argv);
+static cmd_arg_t call3_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = call0_buf,
+		.len = sizeof(call0_buf)
+	},
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg1_buf,
+		.len = sizeof(carg1_buf)
+	},
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg2_buf,
+		.len = sizeof(carg2_buf)
+	},
+	{ 
+		.type = ARG_TYPE_VAR,
+		.buffer = carg3_buf,
+		.len = sizeof(carg3_buf)
+	}
+
+};
+static cmd_info_t call3_info = {
+	.name = "call3",
+	.description = "call3 <function> <arg1> <arg2> <arg3> -> call function(arg1,arg2,arg3).",
+	.func = cmd_call3,
+	.argc = 4,
+	.argv = call3_argv
+};
 
 /** Data and methods for 'halt' command. */
 static int cmd_halt(cmd_arg_t *argv);
@@ -227,6 +259,11 @@ void kconsole_init(void)
 	link_initialize(&call2_info.link);
 	if (!cmd_register(&call2_info))
 		panic("could not register command %s\n", call2_info.name);
+
+	spinlock_initialize(&call3_info.lock, "kconsole_call3");
+	link_initialize(&call3_info.link);
+	if (!cmd_register(&call3_info))
+		panic("could not register command %s\n", call3_info.name);
 	
 	spinlock_initialize(&halt_info.lock, "kconsole_halt");
 	link_initialize(&halt_info.link);
@@ -647,6 +684,33 @@ int cmd_call2(cmd_arg_t *argv)
 		       arg1, arg2, symaddr, symbol);
 		f =  (__native (*)(__native,__native)) symaddr;
 		printf("Result: 0x%x\n", f(arg1, arg2));
+	}
+	
+	return 1;
+}
+
+/** Call function with three parameters */
+int cmd_call3(cmd_arg_t *argv)
+{
+	__address symaddr;
+	char *symbol;
+	__native (*f)(__native,__native,__native);
+	__native arg1 = argv[1].intval;
+	__native arg2 = argv[2].intval;
+	__native arg3 = argv[3].intval;
+
+	symaddr = get_symbol_addr(argv->buffer);
+	if (!symaddr)
+		printf("Symbol %s not found.\n", argv->buffer);
+	else if (symaddr == (__address) -1) {
+		symtab_print_search(argv->buffer);
+		printf("Duplicate symbol, be more specific.\n");
+	} else {
+		symbol = get_symtab_entry(symaddr);
+		printf("Calling f(0x%x,0x%x, 0x%x): 0x%p: %s\n", 
+		       arg1, arg2, arg3, symaddr, symbol);
+		f =  (__native (*)(__native,__native,__native)) symaddr;
+		printf("Result: 0x%x\n", f(arg1, arg2, arg3));
 	}
 	
 	return 1;
