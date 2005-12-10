@@ -324,11 +324,15 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 	char symname[MAX_SYMBOL_NAME];
 	__address symaddr;
 	bool isaddr = false;
+	bool isptr = false;
 	
 	/* If we get a name, try to find it in symbol table */
 	if (text[0] < '0' | text[0] > '9') {
 		if (text[0] == '&') {
 			isaddr = true;
+			text++;len--;
+		} else if (text[0] == '*') {
+			isptr = true;
 			text++;len--;
 		}
 		strncpy(symname, text, min(len+1, MAX_SYMBOL_NAME));
@@ -344,6 +348,8 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 		}
 		if (isaddr)
 			*result = (__native)symaddr;
+		else if (isptr)
+			*result = **((__native **)symaddr);
 		else
 			*result = *((__native *)symaddr);
 	} else /* It's a number - convert it */
