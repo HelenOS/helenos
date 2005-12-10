@@ -155,6 +155,7 @@ all:
 build: kernel.bin boot disasm
 
 config:
+	-rm Makefile.depend
 	tools/config.py
 
 -include Makefile.depend
