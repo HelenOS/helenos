@@ -31,12 +31,11 @@
 
 #include <arch/types.h>
 
-
 #define SKI_INIT_CONSOLE	20
 #define SKI_GETCHAR		21
 #define SKI_PUTCHAR		31
 
 extern void ski_init_console(void);
 extern void poll_keyboard(void);
-	
+
 #endif

@@ -31,5 +31,5 @@
 
 void putchar(const char ch)
 {
-	ski_putchar(ch);
+	ski_write(ch);
 }

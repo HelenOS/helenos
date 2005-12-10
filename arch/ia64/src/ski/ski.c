@@ -33,12 +33,16 @@
 static chardev_t ski_console;
 static bool kb_disable;
 
+static void ski_write(chardev_t *d, const char ch);
+static __s32 ski_getchar(void);
+
 /** Display character on debug console
  *
  * Use SSC (Simulator System Call) to
  * display character on debug console.
  *
- * @param ch   Character to be printed.
+ * @param d Character device.
+ * @param ch Character to be printed.
  */
 void ski_write(chardev_t *d, const char ch)
 {
@@ -51,7 +55,8 @@ void ski_write(chardev_t *d, const char ch)
 		: "r15", "in0", "r8"
 	);
 	
-	if (ch == '\n') ski_putchar('\r');
+	if (ch == '\n')
+		ski_write(d, '\r');
 }
 
 /** Ask debug console if a key was pressed.
@@ -96,7 +101,7 @@ void poll_keyboard(void)
 }
 
 /* Called from getc(). */
-static void ski_kb_enable(chardev_t *)
+static void ski_kb_enable(chardev_t *d)
 {
 	kb_disable = false;
 }

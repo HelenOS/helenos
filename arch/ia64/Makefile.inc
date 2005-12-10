@@ -46,7 +46,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/putchar.c \
 	arch/$(ARCH)/src/ia64.c \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/context.S \
@@ -56,5 +55,4 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/fmath.c \
 	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/drivers/it.c \
-	arch/$(ARCH)/src/drivers/keyboard.c
+	arch/$(ARCH)/src/drivers/it.c

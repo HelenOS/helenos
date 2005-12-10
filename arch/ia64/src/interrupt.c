@@ -31,6 +31,7 @@
 #include <arch/interrupt.h>
 #include <panic.h>
 #include <print.h>
+#include <console/console.h>
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
