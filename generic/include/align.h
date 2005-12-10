@@ -42,6 +42,10 @@
  * @param s Address or size to be aligned.
  * @param a Size of alignment, must be power of 2.
  */
-#define ALIGN_UP(s, a)		(((s) + ((a) - 1)) & ~((a) - 1))
+#ifdef ppc32	/* Nasty ppc32 hack. FIX ME. */
+#	define ALIGN_UP(s, a)		((s) % (a) ? (((s) / (a)) + 1) * (a) : (s))
+#else
+#	define ALIGN_UP(s, a)		(((s) + ((a) - 1)) & ~((a) - 1))
+#endif
 
 #endif
