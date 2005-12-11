@@ -48,10 +48,11 @@ SECTIONS {
 		*(COMMON);		/* global variables */
 
 		*(.eh_frame);
-		*(.bss);		/* uninitialized static variables */
 
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+
+		*(.bss);		/* uninitialized static variables */
 
 		kdata_end = .;
 	}

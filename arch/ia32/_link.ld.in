@@ -46,10 +46,9 @@ SECTIONS {
 		LONG(unmapped_ktext_end - unmapped_ktext_start);
 		hardcoded_unmapped_kdata_size = .;
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
-		*(.bss);			/* uninitialized static variables */
 		symbol_table = .;
 		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
-
+		*(.bss);			/* uninitialized static variables */
 		kdata_end = .;
 	}
 

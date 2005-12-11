@@ -215,7 +215,7 @@ static int cmdtab_compl(char *name)
 	if (!found)
 		return 0;
 
-	if (found > 1) {
+	if (found > 1 && !strlen(output)) {
 		printf("\n");
 		startpos = NULL;
 		while ((foundtxt = cmdtab_search_one(name, &startpos))) {
@@ -286,18 +286,20 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				continue;
 			for (i=0;tmp[i] && curlen < MAX_CMDLINE;i++,curlen++)
 				insert_char(current, tmp[i], i+position);
-			if (found == 1) { /* One match */
-				for (i=position;i<curlen;i++)
+
+			if (strlen(tmp) || found==1) { /* If we have a hint */
+				for (i=position;i<curlen;i++) 
 					putchar(current[i]);
 				position += strlen(tmp);
 				/* Add space to end */
-				if (position == curlen && curlen < MAX_CMDLINE) {
+				if (found == 1 && position == curlen && \
+				    curlen < MAX_CMDLINE) {
 					current[position] = ' ';
 					curlen++;
 					position++;
 					putchar(' ');
 				}
-			} else {
+			} else { /* No hint, table was printed */
 				printf("%s> ", prompt);
 				for (i=0; i<curlen;i++)
 					putchar(current[i]);

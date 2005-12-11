@@ -172,7 +172,7 @@ int symtab_compl(char *name)
 	if (!found)
 		return 0;
 
-	if (found > 1) {
+	if (found > 1 && !strlen(output)) {
 		printf("\n");
 		startpos = 0;
 		while ((foundtxt = symtab_search_one(name, &startpos))) {

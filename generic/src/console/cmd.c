@@ -358,7 +358,7 @@ int cmd_call0(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(): 0x%p: %s\n", symaddr, symbol);
 		f =  (__native (*)(void)) symaddr;
-		printf("Result: 0x%X\n", f());
+		printf("Result: 0x%p\n", f());
 	}
 	
 	return 1;
@@ -382,7 +382,7 @@ int cmd_call1(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%x): 0x%p: %s\n", arg1, symaddr, symbol);
 		f =  (__native (*)(__native)) symaddr;
-		printf("Result: 0x%x\n", f(arg1));
+		printf("Result: 0x%p\n", f(arg1));
 	}
 	
 	return 1;
@@ -408,7 +408,7 @@ int cmd_call2(cmd_arg_t *argv)
 		printf("Calling f(0x%x,0x%x): 0x%p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		f =  (__native (*)(__native,__native)) symaddr;
-		printf("Result: 0x%x\n", f(arg1, arg2));
+		printf("Result: 0x%p\n", f(arg1, arg2));
 	}
 	
 	return 1;
@@ -435,7 +435,7 @@ int cmd_call3(cmd_arg_t *argv)
 		printf("Calling f(0x%x,0x%x, 0x%x): 0x%p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
 		f =  (__native (*)(__native,__native,__native)) symaddr;
-		printf("Result: 0x%x\n", f(arg1, arg2, arg3));
+		printf("Result: 0x%p\n", f(arg1, arg2, arg3));
 	}
 	
 	return 1;
