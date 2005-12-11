@@ -92,6 +92,27 @@ static cmd_info_t symaddr_info = {
 	.argv = &symaddr_argv
 };
 
+static char set_buf[MAX_CMDLINE+1];
+static int cmd_set4(cmd_arg_t *argv);
+static cmd_arg_t set4_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = set_buf,
+		.len = sizeof(set_buf)
+	},
+	{ 
+		.type = ARG_TYPE_INT
+	}
+};
+static cmd_info_t set4_info = {
+	.name = "set4",
+	.description = "set <dest_addr> <value> - 4byte version",
+	.func = cmd_set4,
+	.argc = 2,
+	.argv = set4_argv
+};
+
+
 /** Data and methods for 'call0' command. */
 static char call0_buf[MAX_CMDLINE+1];
 static char carg1_buf[MAX_CMDLINE+1];
@@ -255,6 +276,10 @@ void cmd_init(void)
 	cmd_initialize(&call3_info);
 	if (!cmd_register(&call3_info))
 		panic("could not register command %s\n", call3_info.name);
+
+	cmd_initialize(&set4_info);
+	if (!cmd_register(&set4_info))
+		panic("could not register command %s\n", set4_info.name);
 	
 	cmd_initialize(&halt_info);
 	if (!cmd_register(&halt_info))
@@ -469,5 +494,38 @@ int cmd_halt(cmd_arg_t *argv)
 int cmd_ptlb(cmd_arg_t *argv)
 {
 	tlb_print();
+	return 1;
+}
+
+/** Write 4 byte value to address */
+int cmd_set4(cmd_arg_t *argv)
+{
+	char *symbol;
+	__u32 *addr ;
+	__u32 arg1 = argv[1].intval;
+	bool pointer = false;
+
+	if (((char *)argv->buffer)[0] == '*') {
+		addr = (__u32 *) get_symbol_addr(argv->buffer+1);
+		pointer = true;
+	} else if (((char *)argv->buffer)[0] >= '0' && 
+		   ((char *)argv->buffer)[0] <= '9')
+		addr = (__u32 *)atoi((char *)argv->buffer);
+	else
+		addr = (__u32 *)get_symbol_addr(argv->buffer);
+
+	if (!addr)
+		printf("Symbol %s not found.\n", argv->buffer);
+	else if (addr == (__u32 *) -1) {
+		symtab_print_search(argv->buffer);
+		printf("Duplicate symbol, be more specific.\n");
+	} else {
+		if (pointer)
+			addr = (__u32 *)*addr;
+		printf("Writing 0x%x -> 0x%p\n", arg1, addr);
+		*addr = arg1;
+		
+	}
+	
 	return 1;
 }

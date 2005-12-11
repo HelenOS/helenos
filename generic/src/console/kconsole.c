@@ -358,8 +358,10 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 		position++;
 		rdln_print_c('\b',curlen-position);
 	} 
-	histposition++;
-	histposition = histposition % KCONSOLE_HISTORY;
+	if (curlen) {
+		histposition++;
+		histposition = histposition % KCONSOLE_HISTORY;
+	}
 	current[curlen] = '\0';
 	return current;
 }
