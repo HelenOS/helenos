@@ -32,7 +32,11 @@
 #include <arch/exception.h>
 #include <typedefs.h>
 
-#define TLB_ENTRY_COUNT		48
+#ifdef TLBCNT
+#	define TLB_ENTRY_COUNT		TLBCNT
+#else
+#	define TLB_ENTRY_COUNT		48
+#endif
 
 #define TLB_WIRED		1
 #define TLB_KSTACK_WIRED_INDEX	0

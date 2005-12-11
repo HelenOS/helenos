@@ -79,7 +79,8 @@ ifeq ($(MIPS_MACHINE),simics)
 	
 	BFD_NAME = elf32-tradlittlemips
 	BFD = elf32-tradlittlemips
-	CFLAGS += -mhard-float -mips3
+	CFLAGS += -mhard-float -mips3 -DTLBCNT=16
+	TLBCNT = 16
 endif
 ifeq ($(MIPS_MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
