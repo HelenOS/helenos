@@ -55,21 +55,10 @@ static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
  */
 void tlb_arch_init(void)
 {
-	int i;
-
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
-	cp0_entry_hi_write(0);
-	cp0_entry_lo0_write(0);
-	cp0_entry_lo1_write(0);
 
-	/*
-	 * Invalidate all entries.
-	 */
-	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
-		cp0_index_write(i);
-		tlbwi();
-	}
-	
+	tlb_invalidate_all();
+		
 	/*
 	 * The kernel is going to make use of some wired
 	 * entries (e.g. mapping kernel stacks in kseg3).
@@ -409,7 +398,6 @@ void tlb_print(void)
 	printf("TLB:\n");
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
-
 		tlbr();
 		
 		hi.value = cp0_entry_hi_read();
@@ -420,5 +408,67 @@ void tlb_print(void)
 		       "\t\t\tg[1]=%d, v[1]=%d, d[1]=%d, c[1]=%B, pfn[1]=%d\n",
 		       i, hi.asid, hi.vpn2, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
 		       lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
+	}
+}
+
+/** Invalidate all TLB entries. */
+void tlb_invalidate_all(void)
+{
+	int i;
+
+	cp0_entry_hi_write(0);
+	cp0_entry_lo0_write(0);
+	cp0_entry_lo1_write(0);
+
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+		cp0_index_write(i);
+		tlbwi();
+	}
+}
+
+/** Invalidate all TLB entries belonging to specified address space.
+ *
+ * @param asid Address space identifier.
+ */
+void tlb_invalidate_asid(asid_t asid)
+{
+	entry_hi_t hi;
+	int i;
+
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+		cp0_index_write(i);
+		tlbr();
+		
+		if (hi.asid == asid) {
+			cp0_entry_lo0_write(0);
+			cp0_entry_lo1_write(0);
+			tlbwi();
+		}
+	}
+
+}
+
+/** Invalidate TLB entry for specified page belonging to specified address space.
+ *
+ * @param asid Address space identifier.
+ * @param page Page whose TLB entry is to be invalidated.
+ */
+void tlb_invalidate_page(asid_t asid, __address page)
+{
+	entry_hi_t hi;
+	tlb_index_t index;
+	int i;
+
+	hi.value = 0;
+	prepare_entry_hi(&hi, asid, page);
+	
+	tlbp();
+	index.value = cp0_index_read();
+
+	if (!index.p) {
+		/* Entry was found, index register contains valid index. */
+		cp0_entry_lo0_write(0);
+		cp0_entry_lo1_write(0);
+		tlbwi();
 	}
 }
