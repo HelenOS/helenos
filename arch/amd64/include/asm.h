@@ -32,9 +32,8 @@
 #include <arch/types.h>
 #include <config.h>
 
-
-void asm_delay_loop(__u32 t);
-void asm_fake_loop(__u32 t);
+extern void asm_delay_loop(__u32 t);
+extern void asm_fake_loop(__u32 t);
 
 /** Return base address of current stack.
  *
@@ -228,6 +227,14 @@ static inline __address * get_ip()
 	return ip;
 }
 
+/** Invalidate TLB Entry.
+ *
+ * @param addr Address on a page whose TLB entry is to be invalidated.
+ */
+static inline void invlpg(__address addr)
+{
+        __asm__ volatile ("invlpg %0\n" :: "m" (addr));
+}
 
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
