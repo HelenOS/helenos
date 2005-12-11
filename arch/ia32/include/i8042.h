@@ -37,6 +37,11 @@
 #define SC_LSHIFT	0x2a
 #define SC_RSHIFT	0x36
 #define SC_CAPSLOCK	0x3a
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x4b
+#define SC_RIGHTARR     0x4d
+#define SC_UPARR        0x48
+#define SC_DOWNARR      0x50
 
 extern void i8042_init(void);
 

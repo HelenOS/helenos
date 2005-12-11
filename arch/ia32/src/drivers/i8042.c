@@ -303,14 +303,36 @@ void key_pressed(__u8 sc)
 
 	spinlock_lock(&keylock);
 	switch (sc) {
-	    case SC_LSHIFT:
-	    case SC_RSHIFT:
+	case SC_LSHIFT:
+	case SC_RSHIFT:
 	    	keyflags |= PRESSED_SHIFT;
 		break;
-	    case SC_CAPSLOCK:
+	case SC_CAPSLOCK:
 		keyflags |= PRESSED_CAPSLOCK;
 		break;
-	    default:
+	case SC_SPEC_ESCAPE:
+		break;
+	case SC_LEFTARR:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x5b);
+		chardev_push_character(&kbrd, 0x44);
+		break;
+	case SC_RIGHTARR:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x5b);
+		chardev_push_character(&kbrd, 0x43);
+		break;
+	case SC_UPARR:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x5b);
+		chardev_push_character(&kbrd, 0x41);
+		break;
+	case SC_DOWNARR:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x5b);
+		chardev_push_character(&kbrd, 0x42);
+		break;
+	default:
 	    	letter = is_lower(ascii);
 		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
 		shift = keyflags & PRESSED_SHIFT;

@@ -39,13 +39,13 @@
 chardev_t *stdin = NULL;
 chardev_t *stdout = NULL;
 
-/** Get character from character device.
+/** Get character from character device. Do not echo character.
  *
  * @param chardev Character device.
  *
  * @return Character read.
  */
-static __u8 _getc(chardev_t *chardev)
+__u8 _getc(chardev_t *chardev)
 {
 	__u8 ch;
 	ipl_t ipl;

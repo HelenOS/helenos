@@ -34,6 +34,7 @@
 #include <synch/spinlock.h>
 
 #define MAX_CMDLINE     256
+#define KCONSOLE_HISTORY 10
 
 enum cmd_arg_type {
 	ARG_TYPE_INVALID = 0,

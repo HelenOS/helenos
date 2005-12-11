@@ -55,57 +55,132 @@ char * get_symtab_entry(__native addr)
 	return NULL;
 }
 
+/** Find symbols that match the parameter forward and print them 
+ *
+ * @param name - search string
+ * @param startpos - starting position, changes to found position
+ * @return Pointer to the part of string that should be completed or NULL
+ */
+static char * symtab_search_one(const char *name, int *startpos)
+{
+	int namelen = strlen(name);
+	char *curname;
+	int i,j;
+	char *foundsym = NULL;
+	int foundpos = 0;
+	int colonoffset = -1;
+
+	for (i=0;name[i];i++)
+		if (name[i] == ':') {
+			colonoffset = i;
+			break;
+		}
+
+	for (i=*startpos;symbol_table[i].address_le;++i) {
+		/* Find a ':' in name */
+		curname = symbol_table[i].symbol_name;
+		for (j=0; curname[j] && curname[j] != ':'; j++)
+			;
+		if (!curname[j])
+			continue;
+		j -= colonoffset;
+		curname += j;
+		if (strlen(curname) < namelen)
+			continue;
+		if (strncmp(curname, name, namelen) == 0) {
+			*startpos = i;
+			return curname+namelen;
+		}
+	}
+	return NULL;
+}
+
 /** Return address that corresponds to the entry
  *
- * Search symbol table, and if the address ENDS with
- * the parameter, return value
+ * Search symbol table, and if there is one match, return it
  *
  * @param name Name of the symbol
  * @return 0 - Not found, -1 - Duplicate symbol, other - address of symbol
  */
 __address get_symbol_addr(const char *name)
 {
-	count_t i;
 	count_t found = 0;
-	count_t found_pos;
+	__address addr = NULL;
+	char *hint;
+	int i;
 
-	count_t nmlen = strlen(name);
-	count_t slen;
-
-	for (i=0;symbol_table[i].address_le;++i) {
-		slen = strlen(symbol_table[i].symbol_name);
-		if (slen < nmlen)
-			continue;
-		if (strncmp(name, symbol_table[i].symbol_name + (slen-nmlen),
-			    nmlen) == 0) {
+	i = 0;
+	while ((hint=symtab_search_one(name, &i))) {
+		if (!strlen(hint)) {
+			addr =  __u64_le2host(symbol_table[i].address_le);
 			found++;
-			found_pos = i;
 		}
+		i++;
 	}
-	if (found == 0)
-		return NULL;
-	if (found == 1)
-		return __u64_le2host(symbol_table[found_pos].address_le);
-	return ((__address) -1);
+	if (found > 1)
+		return ((__address) -1);
+	return addr;
 }
 
+/** Find symbols that match parameter and prints them */
 void symtab_print_search(const char *name)
 {
 	int i;
-	count_t nmlen = strlen(name);
-	count_t slen;
 	__address addr;
 	char *realname;
 
-	for (i=0;symbol_table[i].address_le;++i) {
-		slen = strlen(symbol_table[i].symbol_name);
-		if (slen < nmlen)
-			continue;
-		if (strncmp(name, symbol_table[i].symbol_name + (slen-nmlen),
-			    nmlen) == 0) {
-			addr =  __u64_le2host(symbol_table[i].address_le);
-			realname = symbol_table[i].symbol_name;
-			printf("0x%p: %s\n", addr, realname);
+
+	i = 0;
+	while (symtab_search_one(name, &i)) {
+		addr =  __u64_le2host(symbol_table[i].address_le);
+		realname = symbol_table[i].symbol_name;
+		printf("0x%p: %s\n", addr, realname);
+		i++;
+	}
+}
+
+/** Symtab completion
+ *
+ * @param name - Search string, completes to symbol name
+ * @returns - 0 - nothing found, 1 - success, >1 print duplicates 
+ */
+int symtab_compl(char *name)
+{
+	char output[MAX_SYMBOL_NAME+1];
+	int startpos = 0;
+	char *foundtxt;
+	int found = 0;
+	int i;
+
+	/* Do not print everything */
+	if (!strlen(name))
+		return 0;
+
+	output[0] = '\0';
+
+	while ((foundtxt = symtab_search_one(name, &startpos))) {
+		startpos++;
+		if (!found)
+			strncpy(output, foundtxt, strlen(foundtxt)+1);
+		else {
+			for (i=0; output[i] && foundtxt[i] && output[i]==foundtxt[i]; i++)
+				;
+			output[i] = '\0';
+		}
+		found++;
+	}
+	if (!found)
+		return 0;
+
+	if (found > 1) {
+		printf("\n");
+		startpos = 0;
+		while ((foundtxt = symtab_search_one(name, &startpos))) {
+			printf("%s\n", symbol_table[startpos].symbol_name);
+			startpos++;
 		}
 	}
+	strncpy(name, output, MAX_SYMBOL_NAME);
+	return found;
+	
 }

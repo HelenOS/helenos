@@ -69,14 +69,19 @@ link_t cmd_head;	/**< Command list. */
 
 static cmd_info_t *parse_cmdline(char *cmdline, size_t len);
 static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end);
+static char history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
 
 /** Initialize kconsole data structures. */
 void kconsole_init(void)
 {
+	int i;
+
 	spinlock_initialize(&cmd_lock, "kconsole_cmd");
 	list_initialize(&cmd_head);
 
 	cmd_init();
+	for (i=0; i<KCONSOLE_HISTORY; i++)
+		history[i][0] = '\0';
 }
 
 
@@ -137,15 +142,235 @@ int cmd_register(cmd_info_t *cmd)
 	return 1;
 }
 
+static void rdln_print_c(char ch, int count)
+{
+	int i;
+	for (i=0;i<count;i++)
+		putchar(ch);
+}
+
+static void insert_char(char *str, char ch, int pos)
+{
+	int i;
+	
+	for (i=strlen(str);i > pos; i--)
+		str[i] = str[i-1];
+	str[pos] = ch;
+}
+
+static const char * cmdtab_search_one(const char *name,link_t **startpos)
+{
+	int namelen = strlen(name);
+	const char *curname;
+	char *foundsym = NULL;
+	int foundpos = 0;
+
+	spinlock_lock(&cmd_lock);
+
+	if (!*startpos)
+		*startpos = cmd_head.next;
+
+	for (;*startpos != &cmd_head;*startpos = (*startpos)->next) {
+		cmd_info_t *hlp;
+		hlp = list_get_instance(*startpos, cmd_info_t, link);
+
+		curname = hlp->name;
+		if (strlen(curname) < namelen)
+			continue;
+		if (strncmp(curname, name, namelen) == 0) {
+			spinlock_unlock(&cmd_lock);	
+			return curname+namelen;
+		}
+	}
+	spinlock_unlock(&cmd_lock);	
+	return NULL;
+}
+
+
+/** Command completion of the commands 
+ *
+ * @param name - string to match, changed to hint on exit
+ * @return number of found matches
+ */
+static int cmdtab_compl(char *name)
+{
+	char output[MAX_SYMBOL_NAME+1];
+	link_t *startpos = NULL;
+	const char *foundtxt;
+	int found = 0;
+	int i;
+
+	output[0] = '\0';
+	while ((foundtxt = cmdtab_search_one(name, &startpos))) {
+		startpos = startpos->next;
+		if (!found)
+			strncpy(output, foundtxt, strlen(foundtxt)+1);
+		else {
+			for (i=0; output[i] && foundtxt[i] && output[i]==foundtxt[i]; i++)
+				;
+			output[i] = '\0';
+		}
+		found++;
+	}
+	if (!found)
+		return 0;
+
+	if (found > 1) {
+		printf("\n");
+		startpos = NULL;
+		while ((foundtxt = cmdtab_search_one(name, &startpos))) {
+			cmd_info_t *hlp;
+			hlp = list_get_instance(startpos, cmd_info_t, link);
+			printf("%s - %s\n", hlp->name, hlp->description);
+			startpos = startpos->next;
+		}
+	}
+	strncpy(name, output, MAX_SYMBOL_NAME);
+	return found;
+	
+}
+
+static char * clever_readline(const char *prompt, chardev_t *input)
+{
+	static int histposition = 0;
+
+	char tmp[MAX_CMDLINE+1];
+	int curlen = 0, position = 0;
+	char *current = history[histposition];
+	int i;
+	char c;
+
+	printf("%s> ", prompt);
+	while (1) {
+		c = _getc(input);
+		if (c == '\n') {
+			putchar(c);
+			break;
+		} if (c == '\b') {
+			if (position == 0)
+				continue;
+			for (i=position; i<curlen;i++)
+				current[i-1] = current[i];
+			curlen--;
+			position--;
+			putchar('\b');
+			for (i=position;i<curlen;i++)
+				putchar(current[i]);
+			putchar(' ');
+			rdln_print_c('\b',curlen-position+1);
+			continue;
+		}
+		if (c == '\t') {
+			int found;
+
+			/* Move to the end of the word */
+			for (;position<curlen && current[position]!=' ';position++)
+				putchar(current[position]);
+			/* Copy to tmp last word */
+			for (i=position-1;i >= 0 && current[i]!=' ' ;i--)
+				;
+			/* If word begins with * or &, skip it */
+			if (tmp[0] == '*' || tmp[0] == '&')
+				for (i=1;tmp[i];i++)
+					tmp[i-1] = tmp[i];
+			i++; /* I is at the start of the word */
+			strncpy(tmp, current+i, position-i+1);
+
+			if (i==0) { /* Command completion */
+				found = cmdtab_compl(tmp);
+			} else { /* Symtab completion */
+				found = symtab_compl(tmp);
+			}
+
+			if (found == 0) 
+				continue;
+			for (i=0;tmp[i] && curlen < MAX_CMDLINE;i++,curlen++)
+				insert_char(current, tmp[i], i+position);
+			if (found == 1) { /* One match */
+				for (i=position;i<curlen;i++)
+					putchar(current[i]);
+				position += strlen(tmp);
+				/* Add space to end */
+				if (position == curlen && curlen < MAX_CMDLINE) {
+					current[position] = ' ';
+					curlen++;
+					position++;
+					putchar(' ');
+				}
+			} else {
+				printf("%s> ", prompt);
+				for (i=0; i<curlen;i++)
+					putchar(current[i]);
+				position += strlen(tmp);
+			}
+			rdln_print_c('\b', curlen-position);
+			continue;
+		}
+		if (c == 0x1b) {
+			c = _getc(input);
+			if (c!= 0x5b)
+				continue;
+			c = _getc(input);
+			if (c == 0x44) { /* Left */
+				if (position > 0) {
+					putchar('\b');
+					position--;
+				}
+				continue;
+			}
+			if (c == 0x43) { /* Right */
+				if (position < curlen) {
+					putchar(current[position]);
+					position++;
+				}
+				continue;
+			}
+			if (c == 0x41 || c == 0x42) { /* Up,down */
+				rdln_print_c('\b',position);
+				rdln_print_c(' ',curlen);
+				rdln_print_c('\b',curlen);
+				if (c == 0x41)
+					histposition--;
+				else
+					histposition++;
+				if (histposition < 0)
+					histposition = KCONSOLE_HISTORY -1 ;
+				else
+					histposition =  histposition % KCONSOLE_HISTORY;
+				current = history[histposition];
+				printf("%s", current);
+				curlen = strlen(current);
+				position = curlen;
+				continue;
+			}
+			continue;
+		}
+		if (curlen >= MAX_CMDLINE)
+			continue;
+
+		insert_char(current, c, position);
+
+		curlen++;
+		for (i=position;i<curlen;i++)
+			putchar(current[i]);
+		position++;
+		rdln_print_c('\b',curlen-position);
+	} 
+	histposition++;
+	histposition = histposition % KCONSOLE_HISTORY;
+	current[curlen] = '\0';
+	return current;
+}
+
 /** Kernel console managing thread.
  *
  * @param arg Not used.
  */
 void kconsole(void *arg)
 {
-	char cmdline[MAX_CMDLINE+1];
 	cmd_info_t *cmd_info;
 	count_t len;
+	char *cmdline;
 
 	if (!stdin) {
 		printf("%s: no stdin\n", __FUNCTION__);
@@ -153,10 +378,10 @@ void kconsole(void *arg)
 	}
 	
 	while (true) {
-		printf("%s> ", __FUNCTION__);
-		if (!(len = gets(stdin, cmdline, sizeof(cmdline))))
+		cmdline = clever_readline(__FUNCTION__, stdin);
+		len = strlen(cmdline);
+		if (!len)
 			continue;
-		cmdline[len] = '\0';
 		cmd_info = parse_cmdline(cmdline, len);
 		if (!cmd_info)
 			continue;

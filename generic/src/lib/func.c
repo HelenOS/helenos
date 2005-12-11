@@ -79,7 +79,7 @@ size_t strlen(const char *str)
  * @param dst Second string to compare.
  * @param len Maximal length for comparison.
  *
- * @return 0 if the strings are equal, 1 otherwise.
+ * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
  *
  */
 int strncmp(const char *src, const char *dst, size_t len)
@@ -87,11 +87,16 @@ int strncmp(const char *src, const char *dst, size_t len)
 	int i;
 	
 	i = 0;
-	while ((i < len) && (src[i] == dst[i])) {
-		if ((i == len - 1) || (src[i] == '\0'))
-			return 0;
-		i++;
+	for (;*src && *dst && i < len;src++,dst++,i++) {
+		if (*src < *dst)
+			return -1;
+		if (*src > *dst)
+			return 1;
 	}
+	if (i == len || *src == *dst)
+		return 0;
+	if (*src < *dst)
+		return -1;
 	return 1;
 }
 

@@ -41,6 +41,7 @@ struct symtab_entry {
 extern char * get_symtab_entry(__native addr);
 extern __address get_symbol_addr(const char *name);
 extern void symtab_print_search(const char *name);
+extern int symtab_compl(char *name);
 
 /* Symtable linked together by build process */
 extern struct symtab_entry symbol_table[];
