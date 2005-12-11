@@ -100,6 +100,7 @@ GENERIC_SOURCES = \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/kconsole.c \
+	generic/src/console/cmd.c \
 	generic/src/cpu/cpu.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
@@ -114,7 +115,6 @@ GENERIC_SOURCES = \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \
-	generic/src/mm/tlb_cmd.c \
 	generic/src/mm/vm.c \
 	generic/src/lib/func.c \
 	generic/src/lib/list.c \

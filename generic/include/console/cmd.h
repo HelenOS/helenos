@@ -26,29 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <console/kconsole.h>
-#include <mm/tlb.h>
-#include <arch/mm/tlb.h>
+#ifndef __CMD_H__
+#define __CMD_H__
 
-static int cmd_ptlb(cmd_arg_t *argv);
+#include <typedefs.h>
 
-cmd_info_t desc_ptlb = {
-	.name = "ptlb",
-	.description = "Print TLB contents.",
-	.help = NULL,
-	.func = cmd_ptlb,
-	.argc = 0,
-	.argv = NULL
-};
+extern void cmd_initialize(cmd_info_t *cmd);
+extern void cmd_init(void);
 
-/** Command for printing TLB contents.
- *
- * @param argv Not used.
- *
- * @return Always returns 1.
- */
-int cmd_ptlb(cmd_arg_t *argv)
-{
-	tlb_print();
-	return 1;
-}
+#endif

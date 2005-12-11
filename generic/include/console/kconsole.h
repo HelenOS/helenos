@@ -33,6 +33,8 @@
 #include <list.h>
 #include <synch/spinlock.h>
 
+#define MAX_CMDLINE     256
+
 enum cmd_arg_type {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
