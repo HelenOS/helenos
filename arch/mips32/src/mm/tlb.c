@@ -55,9 +55,19 @@ static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
  */
 void tlb_arch_init(void)
 {
-	cp0_pagemask_write(TLB_PAGE_MASK_16K);
+	int i;
 
-	tlb_invalidate_all();
+	cp0_pagemask_write(TLB_PAGE_MASK_16K);
+	cp0_entry_hi_write(0);
+	cp0_entry_lo0_write(0);
+	cp0_entry_lo1_write(0);
+
+	/* Clear and initialize TLB. */
+	
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+		cp0_index_write(i);
+		tlbwi();
+	}
 		
 	/*
 	 * The kernel is going to make use of some wired
@@ -295,39 +305,6 @@ void tlb_modified_fail(struct exception_regdump *pstate)
 	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
 }
 
-/** Invalidate TLB entries with specified ASID
- *
- * Invalidate TLB entries with specified ASID.
- *
- * @param asid ASID.
- */
-void tlb_invalidate(asid_t asid)
-{
-	entry_hi_t hi;
-	ipl_t ipl;
-	int i;	
-	
-	ASSERT(asid != ASID_INVALID);
-
-	ipl = interrupts_disable();
-	
-	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
-		cp0_index_write(i);
-		tlbr();
-		
-		hi.value = cp0_entry_hi_read();
-		if (hi.asid == asid) {
-			cp0_pagemask_write(TLB_PAGE_MASK_16K);
-			cp0_entry_hi_write(0);
-			cp0_entry_lo0_write(0);
-			cp0_entry_lo1_write(0);
-			tlbwi();
-		}
-	}
-	
-	interrupts_restore(ipl);
-}
-
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
@@ -414,16 +391,29 @@ void tlb_print(void)
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
+	ipl_t ipl;
+	entry_lo_t lo0, lo1;
 	int i;
 
-	cp0_entry_hi_write(0);
-	cp0_entry_lo0_write(0);
-	cp0_entry_lo1_write(0);
+	ipl = interrupts_disable();
 
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
+		tlbr();
+
+		lo0.value = cp0_entry_lo0_read();
+		lo1.value = cp0_entry_lo1_read();
+
+		lo0.v = 0;
+		lo1.v = 0;
+
+		cp0_entry_lo0_write(lo0.value);
+		cp0_entry_lo1_write(lo1.value);
+				
 		tlbwi();
 	}
+	
+	interrupts_restore(ipl);
 }
 
 /** Invalidate all TLB entries belonging to specified address space.
@@ -432,20 +422,36 @@ void tlb_invalidate_all(void)
  */
 void tlb_invalidate_asid(asid_t asid)
 {
+	ipl_t ipl;
+	entry_lo_t lo0, lo1;
 	entry_hi_t hi;
 	int i;
 
+	ASSERT(asid != ASID_INVALID);
+
+	ipl = interrupts_disable();
+	
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
 		
+		hi.value = cp0_entry_hi_read();
+		
 		if (hi.asid == asid) {
-			cp0_entry_lo0_write(0);
-			cp0_entry_lo1_write(0);
+			lo0.value = cp0_entry_lo0_read();
+			lo1.value = cp0_entry_lo1_read();
+
+			lo0.v = 0;
+			lo1.v = 0;
+
+			cp0_entry_lo0_write(lo0.value);
+			cp0_entry_lo1_write(lo1.value);
+
 			tlbwi();
 		}
 	}
-
+	
+	interrupts_restore(ipl);
 }
 
 /** Invalidate TLB entry for specified page belonging to specified address space.
@@ -455,20 +461,37 @@ void tlb_invalidate_asid(asid_t asid)
  */
 void tlb_invalidate_page(asid_t asid, __address page)
 {
+	ipl_t ipl;
+	entry_lo_t lo0, lo1;
 	entry_hi_t hi;
 	tlb_index_t index;
-	int i;
+
+	ASSERT(asid != ASID_INVALID);
+
+	ipl = interrupts_disable();
 
 	hi.value = 0;
 	prepare_entry_hi(&hi, asid, page);
-	
+	cp0_entry_hi_write(hi.value);
+
 	tlbp();
 	index.value = cp0_index_read();
 
 	if (!index.p) {
 		/* Entry was found, index register contains valid index. */
-		cp0_entry_lo0_write(0);
-		cp0_entry_lo1_write(0);
+		tlbr();
+
+		lo0.value = cp0_entry_lo0_read();
+		lo1.value = cp0_entry_lo1_read();
+
+		lo0.v = 0;
+		lo1.v = 0;
+
+		cp0_entry_lo0_write(lo0.value);
+		cp0_entry_lo1_write(lo1.value);
+
 		tlbwi();
 	}
+	
+	interrupts_restore(ipl);
 }
