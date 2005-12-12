@@ -34,6 +34,7 @@
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <interrupt.h>
+#include <align.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -263,14 +264,25 @@ void arc_frame_init(void)
 {
 	arc_memdescriptor_t *desc;
 	int total = 0;
+	__address base;
+	size_t basesize;
+	unsigned int i,j;
 
 	desc = arc_entry->getmemorydescriptor(NULL);
 	while (desc) {
 		if (desc->type == FreeMemory ||
 		    desc->type == FreeContiguous) {
-			total += desc->basecount*ARC_FRAME;
-			zone_create_in_region(desc->basepage*ARC_FRAME,
-					      desc->basecount*ARC_FRAME);
+			base = desc->basepage*ARC_FRAME;
+			basesize = desc->basecount*ARC_FRAME;
+
+			if (base % FRAME_SIZE ) {
+				basesize -= FRAME_SIZE - (base % FRAME_SIZE);
+				base = ALIGN_UP(base, FRAME_SIZE);
+			}
+			basesize = ALIGN_DOWN(basesize, FRAME_SIZE);
+
+			total += basesize;
+			zone_create_in_region(base, basesize);
 		}
 		desc = arc_entry->getmemorydescriptor(desc);
 	}
