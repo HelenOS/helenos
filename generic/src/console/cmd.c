@@ -521,7 +521,7 @@ int cmd_set4(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		if (pointer)
-			addr = (__u32 *)*addr;
+			addr = (__u32 *)(*(__native *)addr);
 		printf("Writing 0x%x -> 0x%p\n", arg1, addr);
 		*addr = arg1;
 		
