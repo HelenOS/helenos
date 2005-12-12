@@ -37,11 +37,13 @@ static chardev_t console;
 static void msim_write(chardev_t *dev, const char ch);
 static void msim_enable(chardev_t *dev);
 static void msim_disable(chardev_t *dev);
+static char msim_do_read(chardev_t *dev);
 
 static chardev_operations_t msim_ops = {
 	.resume = msim_enable,
 	.suspend = msim_disable,
-	.write = msim_write
+	.write = msim_write,
+	.read = msim_do_read,
 };
 
 /** Putchar that works with MSIM & gxemul */
@@ -63,10 +65,27 @@ void msim_disable(chardev_t *dev)
 }
 
 #include <print.h>
+/** Read character using polling, assume interrupts disabled */
+static char msim_do_read(chardev_t *dev)
+{
+	char ch;
+
+	while (1) {
+		ch = *((volatile char *) MSIM_KBD_ADDRESS);
+		if (ch) {
+			if (ch == '\r')
+				return '\n';
+			if (ch == 0x7f)
+				return '\b';
+			return ch;
+		}
+	}
+}
+
 /** Process keyboard interrupt. */
 static void msim_interrupt(int n, void *stack)
 {
-	char ch;
+	char ch = 0;
 
 	ch = *((char *) MSIM_KBD_ADDRESS);
 	if (ch =='\r')

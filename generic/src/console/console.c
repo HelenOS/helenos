@@ -34,6 +34,8 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch.h>
+#include <func.h>
+#include <print.h>
 
 /** Standard input character device. */
 chardev_t *stdin = NULL;
@@ -49,6 +51,18 @@ __u8 _getc(chardev_t *chardev)
 {
 	__u8 ch;
 	ipl_t ipl;
+
+	if (haltstate) {
+		/* If we are here, we are hopefully on the processor, that 
+		 * issued the 'halt' command, so proceed to read the character
+		 * directly from input
+		 */
+		if (chardev->op->read)
+			return chardev->op->read(chardev);
+		/* no other way of interacting with user, halt */
+		printf("cpu: halted - no kconsole\n");
+		cpu_halt();
+	}
 
 	waitq_sleep(&chardev->wq);
 	ipl = interrupts_disable();
@@ -114,5 +128,6 @@ __u8 getc(chardev_t *chardev)
 
 void putchar(char c)
 {
-	stdout->op->write(stdout, c);
+	if (stdout->op->write)
+		stdout->op->write(stdout, c);
 }

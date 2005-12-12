@@ -71,11 +71,21 @@ int serial_init(void)
 	return i;
 }
 
-static chardev_operations_t serial_ops = {
-	.resume = serial_enable,
-	.suspend = serial_disable,
-	.write = serial_write
-};
+/** Read character from serial port, wait until available */
+static char serial_do_read(chardev_t *dev)
+{
+	serial_t *sd = (serial_t *)dev->data;
+	char ch;
+
+	while (!(SERIAL_READ_LSR(sd->port) & 1))
+		;
+	ch = SERIAL_READ(sd->port);
+
+	if (ch =='\r')
+		ch = '\n';
+	return ch;
+}
+
 
 /** Process keyboard interrupt. Does not work in simics? */
 static void serial_interrupt(int n, void *stack)
@@ -92,6 +102,14 @@ static void serial_interrupt(int n, void *stack)
 	chardev_push_character(&console, ch);
 }
 
+
+
+static chardev_operations_t serial_ops = {
+	.resume = serial_enable,
+	.suspend = serial_disable,
+	.write = serial_write,
+	.read = serial_do_read
+};
 
 iroutine old_timer;
 /** Do polling on timer interrupt */

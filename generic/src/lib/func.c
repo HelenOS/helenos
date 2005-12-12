@@ -32,6 +32,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <typedefs.h>
+#include <console/kconsole.h>
 
 __u32	haltstate = 0; /**< Halt flag */
 
@@ -45,6 +46,11 @@ void halt(void)
 {
 	haltstate = 1;
 	interrupts_disable();
+#ifdef CONFIG_DEBUG
+	printf("\n");
+	kconsole(NULL); /* Run kconsole as a last resort to user */
+#endif      
+
 	if (CPU)
 		printf("cpu%d: halted\n", CPU->id);
 	else

@@ -41,6 +41,8 @@ struct chardev_operations {
 	void (* suspend)(chardev_t *);		/**< Suspend pushing characters. */
 	void (* resume)(chardev_t *); 		/**< Resume pushing characters. */
 	void (* write)(chardev_t *, char c);	/**< Write character to stream. */
+	/** Read character directly from device, assume interrupts disabled */
+	char (* read)(chardev_t *); 
 };
 
 typedef struct chardev_operations chardev_operations_t;

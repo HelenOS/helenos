@@ -247,7 +247,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 		if (c == '\n') {
 			putchar(c);
 			break;
-		} if (c == '\b') {
+		} if (c == '\b') { /* Backspace */
 			if (position == 0)
 				continue;
 			for (i=position; i<curlen;i++)
@@ -261,7 +261,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 			rdln_print_c('\b',curlen-position+1);
 			continue;
 		}
-		if (c == '\t') {
+		if (c == '\t') { /* Tabulator */
 			int found;
 
 			/* Move to the end of the word */
@@ -309,7 +309,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 			rdln_print_c('\b', curlen-position);
 			continue;
 		}
-		if (c == 0x1b) {
+		if (c == 0x1b) { /* Special command */
 			mod = _getc(input);
 			c = _getc(input);
 
@@ -317,6 +317,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				continue;
 
 			if (c == 0x33 && _getc(input) == 0x7e) {
+				/* Delete */
 				if (position == curlen)
 					continue;
 				for (i=position+1; i<curlen;i++) {
@@ -331,7 +332,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				rdln_print_c('\b',position);
 				position = 0;
 			} 
-			else if (c == 0x46) {
+			else if (c == 0x46) {  /* End */
 				for (i=position;i<curlen;i++)
 					putchar(current[i]);
 				position = curlen;
@@ -355,7 +356,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				rdln_print_c('\b',position);
 				rdln_print_c(' ',curlen);
 				rdln_print_c('\b',curlen);
-				if (c == 0x41)
+				if (c == 0x41) /* Up */
 					histposition--;
 				else
 					histposition++;

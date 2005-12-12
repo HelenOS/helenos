@@ -38,6 +38,11 @@
 
 /* From printf return directly to halt() */	
 panic_printf:
-	lui $ra, %hi(halt)
+	jal printf
+	nop
+	j halt
+	nop
+/* This code does not work, god knows why */		
+/*	lui $ra, %hi(halt)
 	j printf
-	ori $ra, %lo(halt)
+	ori $ra, %lo(halt) */
