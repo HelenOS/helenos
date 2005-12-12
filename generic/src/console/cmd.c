@@ -58,6 +58,12 @@ static cmd_info_t help_info = {
 	.argc = 0
 };
 
+static cmd_info_t exit_info = {
+	.name = "exit",
+	.description ="Exit kconsole",
+	.argc = 0
+};
+
 /** Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
 static void desc_help(void);
@@ -256,6 +262,10 @@ void cmd_init(void)
 	cmd_initialize(&desc_info);
 	if (!cmd_register(&desc_info))
 		panic("could not register command %s\n", desc_info.name);
+
+	cmd_initialize(&exit_info);
+	if (!cmd_register(&exit_info))
+		panic("could not register command %s\n", exit_info.name);
 	
 	cmd_initialize(&symaddr_info);
 	if (!cmd_register(&symaddr_info))

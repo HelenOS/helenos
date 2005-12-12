@@ -40,6 +40,7 @@
 #include <debug.h>
 #include <func.h>
 #include <symtab.h>
+#include <macros.h>
 
 /** Simple kernel console.
  *
@@ -395,7 +396,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
  *
  * @param arg Not used.
  */
-void kconsole(void *arg)
+void kconsole(void *prompt)
 {
 	cmd_info_t *cmd_info;
 	count_t len;
@@ -407,13 +408,16 @@ void kconsole(void *arg)
 	}
 	
 	while (true) {
-		cmdline = clever_readline(__FUNCTION__, stdin);
+		cmdline = clever_readline(prompt, stdin);
 		len = strlen(cmdline);
 		if (!len)
 			continue;
 		cmd_info = parse_cmdline(cmdline, len);
 		if (!cmd_info)
 			continue;
+		if (strncmp(cmd_info->name,"exit", \
+			    min(strlen(cmd_info->name),5)) == 0)
+			break;
 		(void) cmd_info->func(cmd_info->argv);
 	}
 }

@@ -48,7 +48,7 @@ void halt(void)
 	interrupts_disable();
 #ifdef CONFIG_DEBUG
 	printf("\n");
-	kconsole(NULL); /* Run kconsole as a last resort to user */
+	kconsole("panic"); /* Run kconsole as a last resort to user */
 #endif      
 
 	if (CPU)

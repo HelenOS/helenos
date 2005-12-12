@@ -37,6 +37,8 @@
 #include <symtab.h>
 #include <print.h>
 #include <interrupt.h>
+#include <func.h>
+#include <console/kconsole.h>
 
 static char * exctable[] = {
 	"Interrupt","TLB Modified","TLB Invalid","TLB Invalid Store",
@@ -85,6 +87,17 @@ static void unhandled_exception(int n, void *data)
 static void breakpoint_exception(int n, void *data)
 {
 	struct exception_regdump *pstate = (struct exception_regdump *)data;
+	char *symbol = get_symtab_entry(pstate->epc);
+
+#ifdef CONFIG_DEBUG	
+	printf("***Breakpoint %p in %s.\n", pstate->epc, symbol);
+	printf("***Type 'exit' to exit kconsole.\n");
+	/* Umm..we should rather set some 'debugstate' here */
+	haltstate = 1;
+	kconsole("debug");
+	haltstate = 0;
+#endif
+
 	/* it is necessary to not re-execute BREAK instruction after 
 	   returning from Exception handler
 	   (see page 138 in R4000 Manual for more information) */

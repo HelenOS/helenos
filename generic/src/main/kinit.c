@@ -133,7 +133,7 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	if (t = thread_create(kconsole, NULL, TASK, 0))
+	if (t = thread_create(kconsole, "kconsole", TASK, 0))
 		thread_ready(t);
 	else panic("thread_create/kconsole\n");
 
