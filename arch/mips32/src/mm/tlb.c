@@ -68,6 +68,7 @@ void tlb_arch_init(void)
 		cp0_index_write(i);
 		tlbwi();
 	}
+
 		
 	/*
 	 * The kernel is going to make use of some wired
@@ -117,6 +118,7 @@ void tlb_refill(struct exception_regdump *pstate)
 		cp0_entry_lo0_write(0);
 		cp0_entry_lo1_write(lo.value);
 	}
+	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwr();
 
 	spinlock_unlock(&VM->lock);
@@ -185,6 +187,7 @@ void tlb_invalid(struct exception_regdump *pstate)
 		cp0_entry_lo0_write(lo.value);
 	else
 		cp0_entry_lo1_write(lo.value);
+	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
 	spinlock_unlock(&VM->lock);	
@@ -260,6 +263,7 @@ void tlb_modified(struct exception_regdump *pstate)
 		cp0_entry_lo0_write(lo.value);
 	else
 		cp0_entry_lo1_write(lo.value);
+	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
 	spinlock_unlock(&VM->lock);	
@@ -368,6 +372,7 @@ void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr)
 /** Print contents of TLB. */
 void tlb_print(void)
 {
+	page_mask_t mask;
 	entry_lo_t lo0, lo1;
 	entry_hi_t hi;
 	int i;
@@ -377,13 +382,14 @@ void tlb_print(void)
 		cp0_index_write(i);
 		tlbr();
 		
+		mask.value = cp0_pagemask_read();
 		hi.value = cp0_entry_hi_read();
 		lo0.value = cp0_entry_lo0_read();
 		lo1.value = cp0_entry_lo1_read();
 		
-		printf("%d: asid=%d, vpn2=%d\tg[0]=%d, v[0]=%d, d[0]=%d, c[0]=%B, pfn[0]=%d\n"
-		       "\t\t\tg[1]=%d, v[1]=%d, d[1]=%d, c[1]=%B, pfn[1]=%d\n",
-		       i, hi.asid, hi.vpn2, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
+		printf("%d: asid=%d, vpn2=%d, mask=%d\tg[0]=%d, v[0]=%d, d[0]=%d, c[0]=%B, pfn[0]=%d\n"
+		       "\t\t\t\tg[1]=%d, v[1]=%d, d[1]=%d, c[1]=%B, pfn[1]=%d\n",
+		       i, hi.asid, hi.vpn2, mask.mask, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
 		       lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
 }
