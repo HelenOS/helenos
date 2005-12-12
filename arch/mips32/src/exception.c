@@ -142,7 +142,6 @@ void exception(struct exception_regdump *pstate)
 {
 	int cause;
 	int excno;
-	__u32 epc_shift = 0;
 
 	ASSERT(CPU != NULL);
 

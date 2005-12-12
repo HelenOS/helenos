@@ -217,6 +217,24 @@ static void arc_keyboard_poll(void)
 	chardev_push_character(&console, ch);
 }
 
+static char arc_read(chardev_t *dev)
+{
+	char ch;
+	__u32 count;
+	long result;
+
+	result = arc_entry->read(0, &ch, 1, &count);
+	if (result || count!=1) {
+		printf("Error reading from ARC keyboard.\n");
+		cpu_halt();
+	}
+	if (ch == '\r')
+		return '\n';
+	if (ch == 0x7f)
+		return '\b';
+	return ch;
+}
+
 static void arc_write(chardev_t *dev, const char ch)
 {
 	arc_putchar(ch);
@@ -235,7 +253,8 @@ static void arc_disable(chardev_t *dev)
 static chardev_operations_t arc_ops = {
 	.resume = arc_enable,
 	.suspend = arc_disable,
-	.write = arc_write
+	.write = arc_write,
+	.read = arc_read
 };
 
 iroutine old_timer;

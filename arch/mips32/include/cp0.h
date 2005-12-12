@@ -80,13 +80,13 @@ extern void cp0_wired_write(__u32 val);
 
 extern __u32 cp0_badvaddr_read(void);
 
-extern volatile __u32 cp0_count_read(void);
+extern __u32 cp0_count_read(void);
 extern void cp0_count_write(__u32 val);
 
-extern volatile __u32 cp0_entry_hi_read(void);
+extern __u32 cp0_entry_hi_read(void);
 extern void cp0_entry_hi_write(__u32 val);
 
-extern volatile __u32 cp0_compare_read(void);
+extern __u32 cp0_compare_read(void);
 extern void cp0_compare_write(__u32 val);
 
 extern __u32 cp0_status_read(void);

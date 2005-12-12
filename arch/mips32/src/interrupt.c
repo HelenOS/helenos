@@ -93,8 +93,6 @@ static void swint1(int n, void *stack)
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
-	int i;
-
 	int_register(TIMER_IRQ, "timer", timer_exception);
 	int_register(0, "swint0", swint0);
 	int_register(1, "swint1", swint1);
