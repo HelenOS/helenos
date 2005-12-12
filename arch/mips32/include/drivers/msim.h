@@ -36,6 +36,6 @@
 #define MSIM_KBD_ADDRESS		0xB0000000
 #define MSIM_KBD_IRQ	2
 
-chardev_t * msim_console(void);
+void msim_console(void);
 
 #endif

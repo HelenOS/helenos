@@ -42,6 +42,9 @@
 #define SC_RIGHTARR     0x4d
 #define SC_UPARR        0x48
 #define SC_DOWNARR      0x50
+#define SC_DELETE       0x53
+#define SC_HOME         0x47
+#define SC_END          0x4f
 
 extern void i8042_init(void);
 

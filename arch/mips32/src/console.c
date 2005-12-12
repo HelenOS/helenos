@@ -34,15 +34,10 @@
 
 void console_init(void)
 {
-	chardev_t *console;
-
 	if (arc_enabled()) {
-		console = arc_console();
+		arc_console();
 	} else if (serial_init()) {
-		console = serial_console();
+		serial_console();
 	} else
-		console = msim_console();
-
-	stdin = console;
-	stdout = console;
+		msim_console();
 }

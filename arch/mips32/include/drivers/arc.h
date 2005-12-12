@@ -215,6 +215,6 @@ extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
 extern void arc_print_devices(void);
 void arc_frame_init(void);
-chardev_t * arc_console(void);
+void arc_console(void);
 
 #endif

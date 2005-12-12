@@ -56,7 +56,7 @@ typedef struct {
 	int irq;
 }serial_t;
 
-chardev_t * serial_console(void);
+void serial_console(void);
 int serial_init(void);
 
 #endif

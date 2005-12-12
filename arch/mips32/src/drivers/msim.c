@@ -30,6 +30,7 @@
 #include <console/chardev.h>
 #include <arch/drivers/msim.h>
 #include <arch/cp0.h>
+#include <console/console.h>
 
 static chardev_t console;
 
@@ -77,7 +78,7 @@ static void msim_interrupt(int n, void *stack)
 
 
 /* Return console object representing msim console */
-chardev_t * msim_console(void)
+void msim_console(void)
 {
 	chardev_initialize("msim_console", &console, &msim_ops);
 
@@ -85,5 +86,6 @@ chardev_t * msim_console(void)
 
 	cp0_unmask_int(MSIM_KBD_IRQ);
 
-	return &console;
+	stdin = &console;
+	stdout = &console;
 }

@@ -332,6 +332,22 @@ void key_pressed(__u8 sc)
 		chardev_push_character(&kbrd, 0x5b);
 		chardev_push_character(&kbrd, 0x42);
 		break;
+	case SC_HOME:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x4f);
+		chardev_push_character(&kbrd, 0x48);
+		break;
+	case SC_END:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x4f);
+		chardev_push_character(&kbrd, 0x46);
+		break;
+	case SC_DELETE:
+		chardev_push_character(&kbrd, 0x1b);
+		chardev_push_character(&kbrd, 0x5b);
+		chardev_push_character(&kbrd, 0x33);
+		chardev_push_character(&kbrd, 0x7e);
+		break;
 	default:
 	    	letter = is_lower(ascii);
 		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);

@@ -35,6 +35,7 @@
 #include <mm/frame.h>
 #include <interrupt.h>
 #include <align.h>
+#include <console/console.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -246,14 +247,14 @@ static void timer_replace(int n, void *stack)
 	arc_keyboard_poll();
 }
 
-
-chardev_t * arc_console(void)
+void arc_console(void)
 {
 	kbd_polling_enabled = true;
 	
 	chardev_initialize("arc_console", &console, &arc_ops);
 	old_timer = int_register(TIMER_IRQ, "arc_kb_poll", timer_replace);
-	return &console;
+	stdin = &console;
+	stdout = &console;
 }
 
 /* Initialize frame zones from ARC firmware. 

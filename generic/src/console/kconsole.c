@@ -238,6 +238,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 	int curlen = 0, position = 0;
 	char *current = history[histposition];
 	int i;
+	char mod; /* Command Modifier */
 	char c;
 
 	printf("%s> ", prompt);
@@ -309,25 +310,48 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 			continue;
 		}
 		if (c == 0x1b) {
+			mod = _getc(input);
 			c = _getc(input);
-			if (c!= 0x5b)
+
+			if (mod != 0x5b && mod != 0x4f)
 				continue;
-			c = _getc(input);
-			if (c == 0x44) { /* Left */
+
+			if (c == 0x33 && _getc(input) == 0x7e) {
+				if (position == curlen)
+					continue;
+				for (i=position+1; i<curlen;i++) {
+					putchar(current[i]);
+					current[i-1] = current[i];
+				}
+				putchar(' ');
+				rdln_print_c('\b',curlen-position);
+				curlen--;
+			}
+			else if (c == 0x48) { /* Home */
+				rdln_print_c('\b',position);
+				position = 0;
+			} 
+			else if (c == 0x46) {
+				for (i=position;i<curlen;i++)
+					putchar(current[i]);
+				position = curlen;
+			}
+			else if (c == 0x44) { /* Left */
 				if (position > 0) {
 					putchar('\b');
 					position--;
 				}
 				continue;
 			}
-			if (c == 0x43) { /* Right */
+			else if (c == 0x43) { /* Right */
 				if (position < curlen) {
 					putchar(current[position]);
 					position++;
 				}
 				continue;
 			}
-			if (c == 0x41 || c == 0x42) { /* Up,down */
+			else if (c == 0x41 || c == 0x42) { 
+                                /* Up,down */
 				rdln_print_c('\b',position);
 				rdln_print_c(' ',curlen);
 				rdln_print_c('\b',curlen);

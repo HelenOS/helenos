@@ -101,8 +101,7 @@ static void timer_replace(int n, void *stack)
 	serial_interrupt(n, stack);
 }
 
-#include <print.h>
-chardev_t * serial_console(void)
+void serial_console(void)
 {
 	serial_t *sd = &sconf[0];
 
@@ -117,7 +116,6 @@ chardev_t * serial_console(void)
 	 */
 	old_timer = int_register(TIMER_IRQ, "serial_drvr_poll", timer_replace);
 	
-
-	return &console;
-	
+	stdin = &console;
+	stdout = &console;
 }
