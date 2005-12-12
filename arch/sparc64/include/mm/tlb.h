@@ -31,6 +31,7 @@
 
 #include <arch/mm/tte.h>
 #include <arch/asm.h>
+#include <arch/barrier.h>
 #include <arch/types.h>
 #include <typedefs.h>
 
@@ -97,6 +98,7 @@ union tlb_tag_read_reg {
 	} __attribute__ ((packed));
 };
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
+typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 
 /** Read IMMU TLB Data Access Register.
  *
@@ -134,7 +136,7 @@ static inline __u64 dtlb_data_access_read(index_t entry)
  *
  * @return Current value of specified IMMU TLB Tag Read Register.
  */
-static inline __u64 itlb_tag_read(index_t entry)
+static inline __u64 itlb_tag_read_read(index_t entry)
 {
 	tlb_tag_read_addr_t tag;
 
@@ -149,13 +151,53 @@ static inline __u64 itlb_tag_read(index_t entry)
  *
  * @return Current value of specified DMMU TLB Tag Read Register.
  */
-static inline __u64 dtlb_tag_read(index_t entry)
+static inline __u64 dtlb_tag_read_read(index_t entry)
 {
 	tlb_tag_read_addr_t tag;
 
 	tag.value = 0;
 	tag.tlb_entry =	entry;
 	return asi_u64_read(ASI_DTLB_TAG_READ_REG, tag.value);
+}
+
+/** Write IMMU TLB Tag Access Register.
+ *
+ * @param v Value to be written.
+ */
+static inline void itlb_tag_access_write(__u64 v)
+{
+	asi_u64_write(ASI_IMMU, VA_IMMU_TAG_ACCESS, v);
+	flush();
+}
+
+/** Write DMMU TLB Tag Access Register.
+ *
+ * @param v Value to be written.
+ */
+static inline void dtlb_tag_access_write(__u64 v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_TAG_ACCESS, v);
+	flush();
+}
+
+/** Write IMMU TLB Data in Register.
+ *
+ * @param v Value to be written.
+ */
+static inline void itlb_data_in_write(__u64 v)
+{
+	asi_u64_write(ASI_ITLB_DATA_IN_REG, 0, v);
+	flush();
+}
+
+/** Write DMMU TLB Data in Register.
+ *
+ * @param v Value to be written.
+ */
+static inline void dtlb_data_in_write(__u64 v)
+{
+	asi_u64_write(ASI_DTLB_DATA_IN_REG, 0, v);
+	flush();
 }
 
 #endif

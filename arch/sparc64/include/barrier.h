@@ -39,6 +39,16 @@
 #define read_barrier()
 #define write_barrier()
 
-#define flush()			__asm__ volatile ("flush\n" ::: "memory")
+/** Flush Instruction Memory. */
+static inline void flush(void)
+{
+	/*
+	 * The FLUSH instruction takes address parameter,
+	 * but JPS1 implementations are free to ignore it.
+	 * The only requirement is that it is a valid address
+	 * as it is passed to D-MMU.
+	 */
+        __asm__ volatile ("flush %sp\n");       /* %sp is guaranteed to reference mapped memory */
+}
 
 #endif

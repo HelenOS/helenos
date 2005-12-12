@@ -44,18 +44,18 @@ void tlb_print(void)
 	printf("I-TLB contents:\n");
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
-		t.value = itlb_tag_read(i);
+		t.value = itlb_tag_read_read(i);
 		
-		printf("%d: va=%X, context=%d, v=%d, size=%X, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+		printf("%d: va=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
 			i, t.va, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pa, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
 	printf("D-TLB contents:\n");
 	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
 		d.value = dtlb_data_access_read(i);
-		t.value = dtlb_tag_read(i);
+		t.value = dtlb_tag_read_read(i);
 		
-		printf("%d: va=%X, context=%d, v=%d, size=%X, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+		printf("%d: va=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
 			i, t.va, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pa, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 

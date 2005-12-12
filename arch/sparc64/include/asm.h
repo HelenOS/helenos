@@ -131,9 +131,8 @@ static inline __u64 asi_u64_read(asi_t asi, __address va)
  */
 static inline void asi_u64_write(asi_t asi, __address va, __u64 v)
 {
-	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi));
+	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
 }
-
 
 void cpu_halt(void);
 void cpu_sleep(void);
