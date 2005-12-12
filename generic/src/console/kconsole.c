@@ -488,7 +488,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		
-		if (strncmp(hlp->name, &cmdline[start], (end - start) + 1) == 0) {
+		if (strncmp(hlp->name, &cmdline[start], strlen(hlp->name)) == 0) {
 			cmd = hlp;
 			break;
 		}
