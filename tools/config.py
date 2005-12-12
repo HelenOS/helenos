@@ -80,6 +80,7 @@ class NoDialog:
             sys.stdout.write('Enter choice number: ')
 
     def menu(self, text, choices, button, defopt=None):
+        self.title = 'Main menu'
         menu = []
         for key, descr in choices:
             txt = key + (45-len(key))*' ' + ': ' + descr
@@ -177,6 +178,7 @@ class Dialog(NoDialog):
         return 'n'
 
     def menu(self, text, choices, button, defopt=None):
+        self.title = 'Main menu'
         text = text + ':'
         width = '70'
         height = str(8 + len(choices))

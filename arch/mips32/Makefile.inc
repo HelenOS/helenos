@@ -55,7 +55,7 @@ ifeq ($(MIPS_MACHINE),indy)
 	# We have to compile it with mips-sgi-irix5 to get it right.
 	
 	BFD_NAME = elf32-bigmips
-	BFD = ecoff-bigmips
+	BFD = ecoff-bigmips --impure
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	KERNEL_LOAD_ADDRESS = 0x88002000
