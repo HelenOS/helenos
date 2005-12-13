@@ -55,7 +55,7 @@ union tte_data {
 		unsigned ie : 1;	/**< Invert Endianness. */
 		unsigned soft2 : 9;	/**< Software defined field. */
 		unsigned diag : 9;	/**< Diagnostic data. */
-		unsigned pa : 28;	/**< Physical page number. */
+		unsigned pfn : 28;	/**< Physical Address bits, bits 40:13. */
 		unsigned soft : 6;	/**< Software defined field. */
 		unsigned l : 1;		/**< Lock. */
 		unsigned cp : 1;	/**< Cacheable in physically indexed cache. */

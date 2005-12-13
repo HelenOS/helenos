@@ -29,7 +29,12 @@
 #ifndef __sparc64_ASID_H__
 #define __sparc64_ASID_H__
 
-typedef int asid_t;
+#include <arch/types.h>
+
+/*
+ * On SPARC, Context means the same thing as ASID trough out the kernel.
+ */
+typedef __u16 asid_t;
 
 #define asid_get()	0
 

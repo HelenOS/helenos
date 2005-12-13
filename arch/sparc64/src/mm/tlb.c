@@ -29,6 +29,8 @@
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <print.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 void tlb_arch_init(void)
 {
@@ -46,8 +48,8 @@ void tlb_print(void)
 		d.value = itlb_data_access_read(i);
 		t.value = itlb_tag_read_read(i);
 		
-		printf("%d: va=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
-			i, t.va, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pa, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		printf("%d: vpn=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pfn=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
 	printf("D-TLB contents:\n");
@@ -55,8 +57,61 @@ void tlb_print(void)
 		d.value = dtlb_data_access_read(i);
 		t.value = dtlb_tag_read_read(i);
 		
-		printf("%d: va=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pa=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
-			i, t.va, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pa, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		printf("%d: vpn=%Q, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%X, diag=%X, pfn=%X, soft=%X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
+}
+
+/** Invalidate all unlocked ITLB and DTLB entries. */
+void tlb_invalidate_all(void)
+{
+	int i;
+	tlb_data_t d;
+	tlb_tag_read_reg_t t;
+
+	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
+		d.value = itlb_data_access_read(i);
+		if (!d.l) {
+			printf("invalidating ");
+			t.value = itlb_tag_read_read(i);
+			d.v = false;
+			itlb_tag_access_write(t.value);
+			itlb_data_access_write(i, d.value);
+		}
+	}
+	
+	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
+		d.value = dtlb_data_access_read(i);
+		if (!d.l) {
+			t.value = dtlb_tag_read_read(i);
+			d.v = false;
+			dtlb_tag_access_write(t.value);
+			dtlb_data_access_write(i, d.value);
+		}
+	}
+	
+}
+
+/** Invalidate all ITLB and DTLB entries that belong to specified ASID (Context).
+ *
+ * @param asid Address Space ID.
+ */
+void tlb_invalidate_asid(asid_t asid)
+{
+	/* TODO: write asid to some Context register and encode the register in second parameter below. */
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+}
+
+/** Invalidate all ITLB and DLTB entries for specified page in specified address space.
+ *
+ * @param asid Address Space ID.
+ * @param page Page which to sweep out from ITLB and DTLB.
+ */
+void tlb_invalidate_page(asid_t asid, __address page)
+{
+	/* TODO: write asid to some Context register and encode the register in second parameter below. */
+	itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page);
+	dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page);
 }

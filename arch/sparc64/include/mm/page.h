@@ -66,6 +66,16 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
+union page_address {
+	__address address;
+	struct {
+		__u64 vpn : 51;		/**< Virtual Page Number. */
+		unsigned offset : 13;	/**< Offset. */
+	} __attribute__ ((packed));
+};
+
+typedef union page_address page_address_t;
+
 extern void page_arch_init(void);
 
 #endif
