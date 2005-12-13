@@ -111,6 +111,7 @@ static void tlbinv_exception(int n, void *data)
 	tlb_invalid(pstate);
 }
 
+#ifdef CONFIG_FPU_LAZY
 static void cpuns_exception(int n, void *data)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
@@ -118,6 +119,7 @@ static void cpuns_exception(int n, void *data)
 	else
 		panic("unhandled Coprocessor Unusable Exception\n");
 }
+#endif
 
 static void interrupt_exception(int n, void *pstate)
 {

@@ -76,7 +76,7 @@ void waitq_interrupted_sleep(void *data)
 
 grab_locks:
 	spinlock_lock(&t->lock);
-	if (wq = t->sleep_queue) {		/* assignment */
+	if ((wq = t->sleep_queue)) {		/* assignment */
 		if (!spinlock_trylock(&wq->lock)) {
 			spinlock_unlock(&t->lock);
 			goto grab_locks;	/* avoid deadlock */

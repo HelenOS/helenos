@@ -35,6 +35,6 @@
 #	define panic(format, ...) panic_printf("Kernel panic: " format, ##__VA_ARGS__);
 #endif
 
-extern void panic_printf(char *fmt, ...);
+extern void panic_printf(char *fmt, ...) __attribute__((noreturn)) ;
 
 #endif

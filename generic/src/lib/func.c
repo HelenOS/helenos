@@ -34,7 +34,7 @@
 #include <typedefs.h>
 #include <console/kconsole.h>
 
-__u32	haltstate = 0; /**< Halt flag */
+__u32 volatile haltstate = 0; /**< Halt flag */
 
 
 /** Halt wrapper

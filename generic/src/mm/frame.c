@@ -409,7 +409,7 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 	
 	if (is_left) {
 		index = (FRAME_INDEX(zone, frame)) + (1 << frame->buddy_order);
-	} else if (is_right) {
+	} else { // if (is_right)
 		index = (FRAME_INDEX(zone, frame)) - (1 << frame->buddy_order);
 	}
 	

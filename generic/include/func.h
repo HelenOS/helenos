@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-extern __u32 haltstate;
+extern volatile __u32 haltstate;
 
 extern void halt(void);
 

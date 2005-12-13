@@ -55,7 +55,7 @@ static void print_str(const char *str)
 	int i = 0;
 	char c;
 	
-	while (c = str[i++])
+	while ((c = str[i++]))
 		putchar(c);
 }
 
@@ -290,7 +290,7 @@ void printf(const char *fmt, ...)
 	irqpri = interrupts_disable();
 	spinlock_lock(&printflock);
 
-	while (c = fmt[i++]) {
+	while ((c = fmt[i++])) {
 		switch (c) {
 
 		    /* control character */

@@ -322,7 +322,7 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 	static int io_apic_count = 0;
 
 	/* this ioapic is marked unusable */
-	if (ioa->io_apic_flags & 1 == 0)
+	if ((ioa->io_apic_flags & 1) == 0)
 		return;
 	
 	if (io_apic_count++ > 0) {

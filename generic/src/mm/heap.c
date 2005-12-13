@@ -100,7 +100,8 @@ void *early_malloc(size_t size)
 		y->prev = x;
 		y->next = NULL;
 		
-		if (z = x->next) {
+		z = x->next;
+		if (z) {
 			z->prev = y;
 			y->next = z;
 		}

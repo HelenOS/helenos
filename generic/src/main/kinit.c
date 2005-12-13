@@ -84,7 +84,7 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		if (t = thread_create(kmp, NULL, TASK, 0)) {
+		if ((t = thread_create(kmp, NULL, TASK, 0))) {
 			spinlock_lock(&t->lock);
 			t->flags |= X_WIRED;
 			t->cpu = &cpus[0];
@@ -112,7 +112,7 @@ void kinit(void *arg)
 		 */
 		for (i = 0; i < config.cpu_count; i++) {
 
-			if (t = thread_create(kcpulb, NULL, TASK, 0)) {
+			if ((t = thread_create(kcpulb, NULL, TASK, 0))) {
 				spinlock_lock(&t->lock);			
 				t->flags |= X_WIRED;
 				t->cpu = &cpus[i];
@@ -133,7 +133,7 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	if (t = thread_create(kconsole, "kconsole", TASK, 0))
+	if ((t = thread_create(kconsole, "kconsole", TASK, 0)))
 		thread_ready(t);
 	else panic("thread_create/kconsole\n");
 

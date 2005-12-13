@@ -231,7 +231,7 @@ void debugger_bpoint(struct exception_regdump *pstate)
 		    (!cur->executing && pstate->epc==cur->address+sizeof(__native)))
 			panic("Weird breakpoint state.\n");
 		if (!cur->executing) {
-			printf("***Breakpoint %d: %p in %s.\n", i, 
+			printf("***Breakpoint %d: 0x%p in %s.\n", i, 
 			       pstate->epc,symbol);
 			/* Return first instruction back */
 			((__u32 *)cur->address)[0] = cur->instruction;
@@ -248,7 +248,7 @@ void debugger_bpoint(struct exception_regdump *pstate)
 			return;
 		}
 	} else {
-		printf("***Breakpoint %p in %s.\n", pstate->epc, symbol);
+		printf("***Breakpoint 0x%p in %s.\n", pstate->epc, symbol);
 		/* Move on to next instruction */
 		pstate->epc += 4;
 	}

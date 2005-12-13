@@ -92,7 +92,7 @@ void clock(void)
 		spinlock_unlock(&CPU->lock);	
 	
 		spinlock_lock(&THREAD->lock);
-		if (ticks = THREAD->ticks)
+		if ((ticks = THREAD->ticks))
 			THREAD->ticks--;
 		spinlock_unlock(&THREAD->lock);
 		
