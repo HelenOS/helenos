@@ -144,17 +144,23 @@ void symtab_print_search(const char *name)
  * @param name - Search string, completes to symbol name
  * @returns - 0 - nothing found, 1 - success, >1 print duplicates 
  */
-int symtab_compl(char *name)
+int symtab_compl(char *input)
 {
 	char output[MAX_SYMBOL_NAME+1];
 	int startpos = 0;
 	char *foundtxt;
 	int found = 0;
 	int i;
+	char *name = input;
+
+	/* Allow completion of pointers  */
+	if (name[0] == '*' || name[0] == '&')
+		name++;
 
 	/* Do not print everything */
 	if (!strlen(name))
 		return 0;
+	
 
 	output[0] = '\0';
 
@@ -180,7 +186,7 @@ int symtab_compl(char *name)
 			startpos++;
 		}
 	}
-	strncpy(name, output, MAX_SYMBOL_NAME);
+	strncpy(input, output, MAX_SYMBOL_NAME);
 	return found;
 	
 }
