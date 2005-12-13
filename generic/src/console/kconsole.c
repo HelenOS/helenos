@@ -430,7 +430,7 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 	bool isptr = false;
 	
 	/* If we get a name, try to find it in symbol table */
-	if (text[0] < '0' | text[0] > '9') {
+	if (text[0] < '0' || text[0] > '9') {
 		if (text[0] == '&') {
 			isaddr = true;
 			text++;len--;

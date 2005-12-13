@@ -100,6 +100,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/exception.c \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/cache.c \
+	arch/$(ARCH)/src/debugger.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/mm/asid.c \
 	arch/$(ARCH)/src/mm/frame.c \

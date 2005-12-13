@@ -42,6 +42,7 @@
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
 #include <console/chardev.h>
+#include <arch/debugger.h>
 
 #include <arch/asm/regname.h>
 
@@ -91,6 +92,7 @@ void arch_pre_mm_init(void)
 	cp0_compare_write(cp0_compare_value + cp0_count_read());
 
 	console_init();
+	debugger_init();
 	arc_print_memory_map();
 	arc_print_devices();
 }
