@@ -394,7 +394,7 @@ void tlb_print(void)
 	}
 }
 
-/** Invalidate all TLB entries. */
+/** Invalidate all not wired TLB entries. */
 void tlb_invalidate_all(void)
 {
 	ipl_t ipl;
@@ -403,7 +403,7 @@ void tlb_invalidate_all(void)
 
 	ipl = interrupts_disable();
 
-	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+	for (i = TLB_WIRED; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
 
