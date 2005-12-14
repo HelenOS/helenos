@@ -28,12 +28,63 @@
 
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
+#include <arch/mm/frame.h>
+#include <arch/mm/page.h>
+#include <arch/mm/mmu.h>
 #include <print.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <config.h>
 
+/** Initialize ITLB and DTLB.
+ *
+ * The goal of this function is to disable MMU
+ * so that both TLBs can be purged and new
+ * kernel 4M locked entry can be installed.
+ * After TLB is initialized, MMU is enabled
+ * again.
+ */
 void tlb_arch_init(void)
 {
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	frame_address_t fr;
+	page_address_t pg;
+
+	fr.address = config.base;
+	pg.address = config.base;
+	
+	immu_disable();
+	dmmu_disable();
+	
+	/*
+	 * For simplicity, we do identity mapping of first 4M of memory.
+	 * The very next change should be leaving the first 4M unmapped.
+	 */
+	tag.value = 0;
+	tag.vpn = pg.vpn;
+
+	itlb_tag_access_write(tag.value);
+	dtlb_tag_access_write(tag.value);
+
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_4M;
+	data.pfn = fr.pfn;
+	data.l = true;
+	data.cp = 1;
+	data.cv = 1;
+	data.p = true;
+	data.w = true;
+	data.g = true;
+
+	itlb_data_in_write(data.value);
+	dtlb_data_in_write(data.value);
+
+	tlb_invalidate_all();
+
+	dmmu_enable();
+	immu_enable();
 }
 
 /** Print contents of both TLBs. */
@@ -73,7 +124,6 @@ void tlb_invalidate_all(void)
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
 		if (!d.l) {
-			printf("invalidating ");
 			t.value = itlb_tag_read_read(i);
 			d.v = false;
 			itlb_tag_access_write(t.value);

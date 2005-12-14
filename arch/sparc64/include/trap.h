@@ -26,30 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
-#include <print.h>
-#include <arch/trap.h>
-#include <arch/trap_table.h>
-#include <arch/console.h>
+#ifndef __sparc64_TRAP_H__
+#define __sparc64_TRAP_H__
 
-void arch_pre_mm_init(void)
-{
-	ofw_sparc64_console_init();
-}
+extern void trap_init(void);
 
-void arch_post_mm_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-	trap_init();
-}
-
-void arch_post_smp_init(void)
-{
-}
-
-void calibrate_delay_loop(void)
-{
-}
+#endif

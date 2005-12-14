@@ -29,7 +29,20 @@
 #ifndef __sparc64_FRAME_H__
 #define __sparc64_FRAME_H__
 
+#include <arch/types.h>
+
 #define FRAME_SIZE		8192
+
+union frame_address {
+	__address address;
+	struct {
+		unsigned : 23;
+		__u64 pfn : 28;         /**< Physical Frame Number. */
+		unsigned offset : 13;   /**< Offset. */
+	} __attribute__ ((packed));
+};
+
+typedef union frame_address frame_address_t;
 
 extern void frame_arch_init(void);
 

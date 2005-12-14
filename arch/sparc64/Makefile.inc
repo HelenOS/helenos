@@ -56,4 +56,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/sparc64.c \
 	arch/$(ARCH)/src/start.S \
-	arch/$(ARCH)/src/trap_table.S
+	arch/$(ARCH)/src/trap_table.S \
+	arch/$(ARCH)/src/trap.c

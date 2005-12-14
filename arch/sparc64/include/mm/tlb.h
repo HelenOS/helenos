@@ -30,6 +30,7 @@
 #define __sparc64_TLB_H__
 
 #include <arch/mm/tte.h>
+#include <arch/mm/mmu.h>
 #include <arch/mm/page.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
@@ -39,41 +40,11 @@
 #define ITLB_ENTRY_COUNT		64
 #define DTLB_ENTRY_COUNT		64
 
-/** I-MMU ASIs. */
-#define ASI_IMMU			0x50
-#define ASI_IMMU_TSB_8KB_PTR_REG	0x51	
-#define ASI_IMMU_TSB_64KB_PTR_REG	0x52
-#define ASI_ITLB_DATA_IN_REG		0x54
-#define ASI_ITLB_DATA_ACCESS_REG	0x55
-#define ASI_ITLB_TAG_READ_REG		0x56
-#define ASI_IMMU_DEMAP			0x57
-
-/** Virtual Addresses within ASI_IMMU. */
-#define VA_IMMU_TAG_TARGET		0x0	/**< IMMU tag target register. */
-#define VA_IMMU_SFSR			0x18	/**< IMMU sync fault status register. */
-#define VA_IMMU_TSB_BASE		0x28	/**< IMMU TSB base register. */
-#define VA_IMMU_TAG_ACCESS		0x30	/**< IMMU TLB tag access register. */
-
-/** D-MMU ASIs. */
-#define ASI_DMMU			0x58
-#define ASI_DMMU_TSB_8KB_PTR_REG	0x59	
-#define ASI_DMMU_TSB_64KB_PTR_REG	0x5a
-#define ASI_DMMU_TSB_DIRECT_PTR_REG	0x5b
-#define ASI_DTLB_DATA_IN_REG		0x5c
-#define ASI_DTLB_DATA_ACCESS_REG	0x5d
-#define ASI_DTLB_TAG_READ_REG		0x5e
-#define ASI_DMMU_DEMAP			0x5f
-
-/** Virtual Addresses within ASI_DMMU. */
-#define VA_DMMU_TAG_TARGET		0x0	/**< DMMU tag target register. */
-#define VA_PRIMARY_CONTEXT_REG		0x8	/**< DMMU primary context register. */
-#define VA_SECONDARY_CONTEXT_REG	0x10	/**< DMMU secondary context register. */
-#define VA_DMMU_SFSR			0x18	/**< DMMU sync fault status register. */
-#define VA_DMMU_SFAR			0x20	/**< DMMU sync fault address register. */
-#define VA_DMMU_TSB_BASE		0x28	/**< DMMU TSB base register. */
-#define VA_DMMU_TAG_ACCESS		0x30	/**< DMMU TLB tag access register. */
-#define VA_DMMU_VA_WATCHPOINT_REG	0x38	/**< DMMU VA data watchpoint register. */
-#define VA_DMMU_PA_WATCHPOINT_REG	0x40	/**< DMMU PA data watchpoint register. */
+/** Page sizes. */
+#define PAGESIZE_8K	0
+#define PAGESIZE_64K	1
+#define PAGESIZE_512K	2
+#define PAGESIZE_4M	3
 
 /** I-/D-TLB Data In/Access Register type. */
 typedef tte_data_t tlb_data_t;

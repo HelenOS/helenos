@@ -26,30 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
-#include <print.h>
 #include <arch/trap.h>
 #include <arch/trap_table.h>
-#include <arch/console.h>
+#include <arch/asm.h>
+#include <memstr.h>
 
-void arch_pre_mm_init(void)
+void trap_init(void)
 {
-	ofw_sparc64_console_init();
-}
+	/*
+	 * Copy OFW's trap table into kernel.
+	 */
+	memcpy((void *) trap_table, (void *) tba_read(), TRAP_TABLE_SIZE);
 
-void arch_post_mm_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-	trap_init();
-}
-
-void arch_post_smp_init(void)
-{
-}
-
-void calibrate_delay_loop(void)
-{
+	/* Point TBA to kernel copy of OFW's trap table. */
+	tba_write((__u64) trap_table);
 }
