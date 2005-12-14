@@ -63,7 +63,6 @@ void spinlock_initialize(spinlock_t *sl, char *name)
 void spinlock_lock(spinlock_t *sl)
 {
 	count_t i = 0;
-	__address caller = CALLER(sl);
 	char *symbol;
 	bool deadlock_reported = false;
 
@@ -71,8 +70,8 @@ void spinlock_lock(spinlock_t *sl)
 	while (test_and_set(&sl->val)) {
 		if (i++ > 300000) {
 			printf("cpu%d: looping on spinlock %p:%s, caller=%p",
-			       CPU->id, sl, sl->name, caller);
-			symbol = get_symtab_entry(caller);
+			       CPU->id, sl, sl->name, CALLER);
+			symbol = get_symtab_entry(CALLER);
 			if (symbol)
 				printf("(%s)", symbol);
 			printf("\n");

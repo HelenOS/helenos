@@ -33,12 +33,7 @@
 #include <arch/debug.h>
 #include <arch.h>
 
-#ifndef CALLER
-/**  Default (returns 0) macro for getting address of calling function
- *   @param x First argument of the called function
- */
-#  define CALLER(x)       ((__address *) 0)
-#endif
+#define CALLER       ((__address *)__builtin_return_address(0))
 
 #ifndef HERE
 /** Current Instruction Pointer address */

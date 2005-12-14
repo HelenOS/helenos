@@ -31,12 +31,6 @@
 
 #include <arch/asm.h>
 
-/** Return caller of this function 
- *
- * @param first_arg First argument of the function
- */
-#define CALLER(first_arg) 	 ((__address *) &first_arg)[-1];
-
 #define HERE get_ip()
 
 #endif

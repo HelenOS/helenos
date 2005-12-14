@@ -42,18 +42,5 @@
 /**     simulator enters interactive mode */
 #define ___intmode()	asm volatile ( "\t.word\t0x29\n");
 
-/** Return current IP address */
-static inline __address * _get_ra() 
-{
-	__address *ip;
-
-	__asm__ volatile (
-		"mov %%31, %0"
-		: "=r" (ip)
-		);
-	return ip;
-}
-#define CALLER(first_arg)    (_get_ra())
-
 
 #endif
