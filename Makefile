@@ -44,7 +44,7 @@ RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 ## Common compiler flags
 #
 
-DEFS = -D$(ARCH)=$(ARCH) -DARCH=$(ARCH) -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\""
+DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\""
 CFLAGS = -fno-builtin -fomit-frame-pointer -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/ 
 LFLAGS = -M
 AFLAGS =

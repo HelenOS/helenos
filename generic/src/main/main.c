@@ -68,7 +68,7 @@ char *project = "SPARTAN kernel";
 char *copyright = "Copyright (C) 2001-2005 HelenOS project";
 char *release = RELEASE;
 char *name = NAME;
-char *arch = STRING(ARCH);
+char *arch = ARCH;
 
 #ifdef REVISION
 	char *revision = ", revision " REVISION;
