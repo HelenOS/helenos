@@ -63,6 +63,7 @@
 #define I6_OFFSET	112
 #define I7_OFFSET	120
 
+#ifdef __ASM__
 .macro SPILL_NORMAL_HANDLER
 	stx %l0, [%sp + STACK_BIAS + L0_OFFSET]	
 	stx %l1, [%sp + STACK_BIAS + L1_OFFSET]
@@ -125,5 +126,6 @@
 	mov %r0, %i5
 	retry
 .endm
+#endif /* __ASM__ */
 
 #endif

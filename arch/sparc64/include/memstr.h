@@ -29,7 +29,7 @@
 #ifndef __sparc64_MEMSTR_H__
 #define __sparc64_MEMSTR_H__
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt));
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
 extern void memsetw(__address dst, size_t cnt, __u16 x);
 extern void memsetb(__address dst, size_t cnt, __u8 x);
