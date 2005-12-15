@@ -31,13 +31,11 @@
 #include <arch/asm.h>
 #include <memstr.h>
 
+/** Initialize trap table. */
 void trap_init(void)
 {
 	/*
 	 * Copy OFW's trap table into kernel.
 	 */
 	memcpy((void *) trap_table, (void *) tba_read(), TRAP_TABLE_SIZE);
-
-	/* Point TBA to kernel copy of OFW's trap table. */
-	tba_write((__u64) trap_table);
 }

@@ -38,12 +38,24 @@ typedef struct { volatile __u64 count; } atomic_t;
  * WARNING: the following functions cause the code to be preemption-unsafe !!!
  */
 
-static inline void atomic_inc(atomic_t *val) {
+static inline void atomic_inc(atomic_t *val)
+{
 	val->count++;
 }
 
-static inline void atomic_dec(atomic_t *val) {
+static inline void atomic_dec(atomic_t *val)
+{
 	val->count--;
+}
+
+static inline void atomic_set(atomic_t *val, __u64 i)
+{
+	val->count = i;
+}
+
+static inline __u64 atomic_get(atomic_t *val)
+{
+	return val->count;
 }
 
 #endif

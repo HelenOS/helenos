@@ -59,27 +59,29 @@ static inline void atomic_dec(atomic_t *val) {
 #endif /* CONFIG_SMP */
 }
 
-static inline atomic_t atomic_inc_pre(atomic_t *val) 
+static inline count_t atomic_inc_pre(atomic_t *val) 
 {
-	atomic_t r;
+	count_t r;
+
 	__asm__ volatile (
 		"movl $1, %0\n"
 		"lock xaddl %0, %1\n"
-		: "=r"(r), "=m" (val->count)
+		: "=r" (r), "=m" (val->count)
 	);
+
 	return r;
 }
 
-
-
-static inline atomic_t atomic_dec_pre(atomic_t *val) 
+static inline count_t atomic_dec_pre(atomic_t *val) 
 {
-	atomic_t r;
+	count_t r;
+	
 	__asm__ volatile (
 		"movl $-1, %0\n"
 		"lock xaddl %0, %1\n"
-		: "=r"(r), "=m" (*val)
+		: "=r" (r), "=m" (*val)
 	);
+	
 	return r;
 }
 

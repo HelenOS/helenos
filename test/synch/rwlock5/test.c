@@ -85,8 +85,8 @@ void test(void)
 	for (i=1; i<=3; i++) {
 		thread_t *thrd;
 
-		items_read = 0;
-		items_written = 0;
+		atomic_set(&items_read, 0);
+		atomic_set(&items_written, 0);
 
 		readers = i*READERS;
 		writers = (4-i)*WRITERS;
@@ -115,8 +115,8 @@ void test(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-		while (items_read != readers || items_written != writers) {
-			printf("%d readers remaining, %d writers remaining, readers_in=%d\n", readers - items_read, writers - items_written, rwlock.readers_in);
+		while (items_read.count != readers || items_written.count != writers) {
+			printf("%d readers remaining, %d writers remaining, readers_in=%d\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
 			thread_usleep(100000);
 		}
 	}

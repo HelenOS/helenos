@@ -89,8 +89,8 @@ void test(void)
 	for (i=1; i<=3; i++) {
 		thread_t *thrd;
 
-		items_produced = 0;
-		items_consumed = 0;
+		atomic_set(&items_produced, 0);
+		atomic_set(&items_consumed, 0);
 		
 		consumers = i * CONSUMERS;
 		producers = (4-i) * PRODUCERS;
@@ -119,8 +119,8 @@ void test(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-		while (items_consumed != consumers || items_produced != producers) {
-			printf("%d consumers remaining, %d producers remaining\n", consumers - items_consumed, producers - items_produced);
+		while (items_consumed.count != consumers || items_produced.count != producers) {
+			printf("%d consumers remaining, %d producers remaining\n", consumers - items_consumed.count, producers - items_produced.count);
 			thread_sleep(1);
 		}
 	}

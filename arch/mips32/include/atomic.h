@@ -50,9 +50,9 @@ typedef struct { volatile __u32 count; } atomic_t;
  *
  * @return Value after addition.
  */
-static inline atomic_t atomic_add(atomic_t *val, int i)
+static inline count_t atomic_add(atomic_t *val, int i)
 {
-	atomic_t tmp, v;
+	count_t tmp, v;
 
 	__asm__ volatile (
 		"1:\n"

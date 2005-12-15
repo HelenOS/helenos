@@ -33,11 +33,17 @@
 
 typedef struct { volatile __u64 count; } atomic_t;
 
-static inline atomic_t atomic_add(atomic_t *val, int imm)
+/** Atomic addition.
+ *
+ * @param val Atomic value.
+ * @param imm Value to add.
+ *
+ * @return Value after addition.
+ */
+static inline count_t atomic_add(atomic_t *val, int imm)
 {
-	atomic_t v;
+	count_t v;
 
-	
  	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
  
 	return v;
@@ -56,12 +62,10 @@ static inline __u32 atomic_get(atomic_t *val)
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
 static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
 
+static inline count_t atomic_inc_pre(atomic_t *val) { return atomic_add(val, 1); }
+static inline count_t atomic_dec_pre(atomic_t *val) { return atomic_add(val, -1); }
 
-static inline atomic_t atomic_inc_pre(atomic_t *val) { return atomic_add(val, 1); }
-static inline atomic_t atomic_dec_pre(atomic_t *val) { return atomic_add(val, -1); }
-
-
-static inline atomic_t atomic_inc_post(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline atomic_t atomic_dec_post(atomic_t *val) { return atomic_add(val, -1) - 1; }
+static inline count_t atomic_inc_post(atomic_t *val) { return atomic_add(val, 1) + 1; }
+static inline count_t atomic_dec_post(atomic_t *val) { return atomic_add(val, -1) - 1; }
 
 #endif

@@ -35,6 +35,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
+#include <arch/trap.h>
 
 /** Initialize ITLB and DTLB.
  *
@@ -43,6 +44,9 @@
  * kernel 4M locked entry can be installed.
  * After TLB is initialized, MMU is enabled
  * again.
+ *
+ * Switching MMU off imposes the requirement for
+ * the kernel to run in identity mapped environment.
  */
 void tlb_arch_init(void)
 {
@@ -81,6 +85,13 @@ void tlb_arch_init(void)
 	itlb_data_in_write(data.value);
 	dtlb_data_in_write(data.value);
 
+	/*
+	 * Register window traps can occur before MMU is enabled again.
+	 * This ensures that any such traps will be handled from 
+	 * kernel identity mapped trap handler.
+	 */
+	trap_switch_trap_table();
+	
 	tlb_invalidate_all();
 
 	dmmu_enable();
