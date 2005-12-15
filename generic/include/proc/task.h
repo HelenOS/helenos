@@ -34,7 +34,7 @@
 #include <list.h>
 
 struct task {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
 	vm_t *vm;

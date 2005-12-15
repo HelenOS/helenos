@@ -63,7 +63,7 @@ static void key_pressed(__u8 sc);
 #define PRESSED_CAPSLOCK	(1<<1)
 #define LOCKED_CAPSLOCK		(1<<0)
 
-static spinlock_t keylock;		/**< keylock protects keyflags and lockflags. */
+SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
@@ -243,7 +243,6 @@ void i8042_init(void)
 {
 	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
-	spinlock_initialize(&keylock, "i8042_lock");
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 }

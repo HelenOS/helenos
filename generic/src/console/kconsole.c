@@ -65,8 +65,8 @@
  * lower address must be locked first.
  */
  
-spinlock_t cmd_lock;	/**< Lock protecting command list. */
-link_t cmd_head;	/**< Command list. */
+SPINLOCK_INITIALIZE(cmd_lock);	/**< Lock protecting command list. */
+link_t cmd_head;		/**< Command list. */
 
 static cmd_info_t *parse_cmdline(char *cmdline, size_t len);
 static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end);
@@ -77,7 +77,6 @@ void kconsole_init(void)
 {
 	int i;
 
-	spinlock_initialize(&cmd_lock, "kconsole_cmd");
 	list_initialize(&cmd_head);
 
 	cmd_init();

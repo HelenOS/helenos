@@ -174,6 +174,7 @@ void main_bsp_separated_stack(void)
 	 * commands.
 	 */
 	kconsole_init();
+
 	/* Exception handler initialization, before architecture
 	 * starts adding it's own handlers
 	 */

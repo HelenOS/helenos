@@ -66,11 +66,14 @@ void cpu_init(void) {
 			
 			cpus[i].id = i;
 			
+			spinlock_initialize(&cpus[i].lock, "cpu_t.lock");
+
 			#ifdef CONFIG_SMP
 			waitq_initialize(&cpus[i].kcpulb_wq);
 			#endif /* __SMP */
 			
 			for (j = 0; j < RQ_COUNT; j++) {
+				spinlock_initialize(&cpus[i].rq[j].lock, "rq_t.lock");
 				list_initialize(&cpus[i].rq[j].rq_head);
 			}
 		}

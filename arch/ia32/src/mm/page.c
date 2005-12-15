@@ -35,7 +35,6 @@
 #include <func.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
-#include <synch/spinlock.h>
 #include <debug.h>
 #include <memstr.h>
 #include <print.h>

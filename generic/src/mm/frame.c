@@ -41,8 +41,8 @@
 #include <print.h>
 #include <align.h>
 
-spinlock_t zone_head_lock;       /**< this lock protects zone_head list */
-link_t zone_head;                /**< list of all zones in the system */
+SPINLOCK_INITIALIZE(zone_head_lock);	/**< this lock protects zone_head list */
+link_t zone_head;                	/**< list of all zones in the system */
 
 /** Blacklist containing non-available areas of memory.
  *
@@ -242,7 +242,6 @@ void frame_region_not_free(__address base, size_t size)
  */
 void zone_init(void)
 {
-	spinlock_initialize(&zone_head_lock, "zone_head_lock");
 	list_initialize(&zone_head);
 }
 

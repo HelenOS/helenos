@@ -54,7 +54,7 @@
 struct zone {
 	link_t link;		/**< link to previous and next zone */
 
-	spinlock_t lock;	/**< this lock protects everything below */
+	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
 	__address base;		/**< physical address of the first frame in the frames array */
 	frame_t *frames;	/**< array of frame_t structures in this zone */
 	count_t free_count;	/**< number of free frame_t structures */

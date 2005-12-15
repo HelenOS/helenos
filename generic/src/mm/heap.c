@@ -43,11 +43,10 @@
  */
 
 static chunk_t *chunk0;
-static spinlock_t heaplock;
+SPINLOCK_INITIALIZE(heaplock);
 
 void early_heap_init(__address heap, size_t size)
 {
-	spinlock_initialize(&heaplock, "heap_lock");
 	memsetb(heap, size, 0);
 	chunk0 = (chunk_t *) heap;
 	chunk0->used = 0;

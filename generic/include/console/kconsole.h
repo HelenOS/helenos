@@ -55,7 +55,7 @@ struct cmd_arg {
 /** Structure representing one kconsole command. */
 struct cmd_info {
 	link_t link;			/**< Command list link. */
-	spinlock_t lock;		/**< This lock protects everything below. */
+	SPINLOCK_DECLARE(lock);		/**< This lock protects everything below. */
 	const char *name;		/**< Command name. */
 	const char *description;	/**< Textual description. */
 	int (* func)(cmd_arg_t *);	/**< Function implementing the command. */

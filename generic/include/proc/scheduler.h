@@ -40,7 +40,7 @@
 
 /** Scheduler run queue structure. */
 struct runq {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	link_t rq_head;		/**< List of ready threads. */
 	count_t n;		/**< Number of threads in rq_ready. */
 };

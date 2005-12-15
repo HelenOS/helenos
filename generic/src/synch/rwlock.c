@@ -192,7 +192,11 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 		 * we register a function to unlock rwl->lock
 		 * after this thread is put asleep.
 		 */
+		#ifdef CONFIG_SMP
 		thread_register_call_me(release_spinlock, &rwl->lock);
+		#else
+		thread_register_call_me(release_spinlock, NULL);
+		#endif
 				 
 		rc = _mutex_lock_timeout(&rwl->exclusive, usec, trylock);
 		switch (rc) {
@@ -200,7 +204,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 				/*
 				 * release_spinlock() wasn't called
 				 */
-				thread_register_call_me(NULL, NULL);				 
+				thread_register_call_me(NULL, NULL);
 				spinlock_unlock(&rwl->lock);
 			case ESYNCH_TIMEOUT:
 				/*

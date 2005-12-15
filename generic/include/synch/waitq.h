@@ -45,7 +45,7 @@ struct waitq {
 	 *
 	 * Must be acquired before T.lock for each T of type thread_t.
 	 */
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 
 	int missed_wakeups;	/**< Number of waitq_wakeup() calls that didn't find a thread to wake up. */
 	link_t head;		/**< List of sleeping threads for wich there was no missed_wakeup. */

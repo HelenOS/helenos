@@ -35,8 +35,8 @@
 
 #include <arch.h>
 
-static char digits[] = "0123456789abcdef"; /**< Hexadecimal characters */
-static spinlock_t printflock;              /**< printf spinlock */
+static char digits[] = "0123456789abcdef"; 	/**< Hexadecimal characters */
+SPINLOCK_INITIALIZE(printflock);		/**< printf spinlock */
 
 #define DEFAULT_DOUBLE_PRECISION 16
 #define DEFAULT_DOUBLE_BUFFER_SIZE 128

@@ -33,6 +33,7 @@
 #include <typedefs.h>
 #include <synch/mutex.h>
 #include <synch/synch.h>
+#include <synch/spinlock.h>
 
 enum rwlock_type {
 	RWLOCK_NONE,
@@ -41,7 +42,7 @@ enum rwlock_type {
 };
 
 struct rwlock {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	mutex_t exclusive;	/**< Mutex for writers, readers can bypass it if readers_in is positive. */
 	count_t readers_in;	/**< Number of readers in critical section. */
 };

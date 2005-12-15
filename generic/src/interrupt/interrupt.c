@@ -40,7 +40,7 @@ static struct {
 	iroutine f;
 } exc_table[IVT_ITEMS];
 
-static spinlock_t exctbl_lock;
+SPINLOCK_INITIALIZE(exctbl_lock);
 
 /** Register exception handler
  * 
@@ -123,8 +123,6 @@ static cmd_info_t exc_info = {
 void exc_init(void)
 {
 	int i;
-
-	spinlock_initialize(&exctbl_lock, "exctbl_lock");
 
 	for (i=0;i < IVT_ITEMS; i++)
 		exc_register(i, "undef", exc_undef);

@@ -42,14 +42,14 @@
 #define CPU_STACK_SIZE	STACK_SIZE
 
 struct cpu {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	context_t saved_context;
 
 	volatile count_t nrdy;
 	runq_t rq[RQ_COUNT];
 	volatile count_t needs_relink;
 
-	spinlock_t timeoutlock;
+	SPINLOCK_DECLARE(timeoutlock);
 	link_t timeout_active_head;
 
 	#ifdef CONFIG_SMP

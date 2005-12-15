@@ -36,7 +36,7 @@
 #include <panic.h>
 #include <list.h>
 
-spinlock_t tasks_lock;
+SPINLOCK_INITIALIZE(tasks_lock);
 link_t tasks_head;
 
 
@@ -48,7 +48,6 @@ link_t tasks_head;
 void task_init(void)
 {
 	TASK = NULL;
-	spinlock_initialize(&tasks_lock, "tasks_lock");
 	list_initialize(&tasks_head);
 }
 

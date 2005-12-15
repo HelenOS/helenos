@@ -39,13 +39,14 @@
 #include <synch/waitq.h>
 #include <synch/rwlock.h>
 #include <synch/synch.h>
+#include <synch/spinlock.h>
 
 #define READERS		50
 #define WRITERS		50
 
 static rwlock_t rwlock;
 
-static spinlock_t lock;
+SPINLOCK_INITIALIZE(lock);
 
 static waitq_t can_start;
 

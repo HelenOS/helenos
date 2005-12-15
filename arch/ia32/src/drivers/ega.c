@@ -42,7 +42,7 @@
  * Simple and short. Function for displaying characters and "scrolling".
  */
 
-static spinlock_t egalock;
+SPINLOCK_INITIALIZE(egalock);
 static __u32 ega_cursor;
 
 static void ega_putchar(chardev_t *d, const char ch);

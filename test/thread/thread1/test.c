@@ -37,10 +37,7 @@
 
 #include <arch.h>
 
-
-
 #define THREADS 5
-
 
 static void thread(void *data)
 {
@@ -51,21 +48,15 @@ static void thread(void *data)
     }
 }
 
-
-
 void test(void)
 {
 	thread_t *t;
 	int i;
 
-
-
-	for (i=0; i<THREADS; i++) 
-	{  
+	for (i=0; i<THREADS; i++) {  
 		if (!(t = thread_create(thread, NULL, TASK, 0)))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}
 	printf("ok\n");
-	
 }

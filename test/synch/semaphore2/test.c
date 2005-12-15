@@ -37,10 +37,11 @@
 #include <synch/waitq.h>
 #include <synch/semaphore.h>
 #include <synch/synch.h>
+#include <synch/spinlock.h>
 
 static semaphore_t sem;
 
-static spinlock_t lock;
+SPINLOCK_INITIALIZE(lock);
 
 static waitq_t can_start;
 

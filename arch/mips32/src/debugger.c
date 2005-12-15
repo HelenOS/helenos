@@ -38,7 +38,7 @@
 #include <func.h>
 
 bpinfo_t breakpoints[BKPOINTS_MAX];
-spinlock_t bkpoint_lock;
+SPINLOCK_INITIALIZE(bkpoint_lock);
 
 static int cmd_print_breakpoints(cmd_arg_t *argv);
 static cmd_info_t pbkpt_info = {
@@ -181,7 +181,6 @@ void debugger_init()
 
 	for (i=0; i<BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
-	spinlock_initialize(&bkpoint_lock, "breakpoint_lock");
 	
 	cmd_initialize(&pbkpt_info);
 	if (!cmd_register(&pbkpt_info))

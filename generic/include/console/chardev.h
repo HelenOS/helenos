@@ -52,7 +52,7 @@ struct chardev {
 	char *name;
 	
 	waitq_t wq;
-	spinlock_t lock;		/**< Protects everything below. */
+	SPINLOCK_DECLARE(lock);		/**< Protects everything below. */
 	__u8 buffer[CHARDEV_BUFLEN];
 	count_t counter;
 	chardev_operations_t *op;	/**< Implementation of chardev operations. */

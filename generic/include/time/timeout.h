@@ -39,7 +39,7 @@
 typedef void (* timeout_handler_t)(void *arg);
 
 struct timeout {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 
 	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
 	

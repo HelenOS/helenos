@@ -33,7 +33,7 @@
 #include <debug.h>
 #include <typedefs.h>
 
-static spinlock_t asid_usage_lock;
+SPINLOCK_INITIALIZE(asid_usage_lock);
 static count_t asid_usage[ASIDS];	/**< Usage tracking array for ASIDs */
 
 /** Get ASID

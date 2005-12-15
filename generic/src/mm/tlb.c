@@ -37,15 +37,10 @@
 #include <arch.h>
 #include <panic.h>
 
-#ifdef CONFIG_SMP
-static spinlock_t tlblock;
-#endif
+SPINLOCK_INITIALIZE(tlblock);
 
 void tlb_init(void)
 {
-	if (config.cpu_active == 1)
-		spinlock_initialize(&tlblock, "tlb_lock");
-
 	tlb_arch_init();
 }
 

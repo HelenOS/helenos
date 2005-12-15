@@ -41,6 +41,29 @@ struct spinlock {
 	int val;
 };
 
+/*
+ * SPINLOCK_DECLARE is to be used for dynamically allocated spinlocks,
+ * where the lock gets initialized in run time.
+ */
+#define SPINLOCK_DECLARE(slname) 	spinlock_t slname
+
+/*
+ * SPINLOCK_INITIALIZE is to be used for statically allocated spinlocks.
+ * It declares and initializes the lock.
+ */
+#ifdef CONFIG_DEBUG_SPINLOCK
+#define SPINLOCK_INITIALIZE(slname) 	\
+	spinlock_t slname = { 		\
+		.name = #slname,	\
+		.val = 0		\
+	}
+#else
+#define SPINLOCK_INITIALIZE(slname) 	\
+	spinlock_t slname = { 		\
+		.val = 0		\
+	}
+#endif
+
 extern void spinlock_initialize(spinlock_t *sl, char *name);
 extern void spinlock_lock(spinlock_t *sl);
 extern int spinlock_trylock(spinlock_t *sl);
@@ -48,8 +71,9 @@ extern void spinlock_unlock(spinlock_t *sl);
 
 #else
 
-struct spinlock {
-};
+/* On UP systems, spinlocks are effectively left out. */
+#define SPINLOCK_DECLARE(name)
+#define SPINLOCK_INITIALIZE(name)
 
 #define spinlock_initialize(x,name)
 #define spinlock_lock(x)		preemption_disable()

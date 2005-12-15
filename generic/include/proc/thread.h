@@ -70,7 +70,7 @@ struct thread {
 	 * Must be acquired before T.lock for each T of type task_t.
 	 * 
 	 */
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 
 	void (* thread_code)(void *);		/**< Function implementing the thread. */
 	void *thread_arg;			/**< Argument passed to thread_code() function. */

@@ -57,7 +57,7 @@ enum vm_type {
  * In the future, it should not be difficult to support shared areas of vm.
  */
 struct vm_area {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	link_t link;
 	vm_type_t type;
 	int size;
@@ -72,7 +72,7 @@ struct vm_area {
  * set up during system initialization.
  */
 struct vm {
-	spinlock_t lock;
+	SPINLOCK_DECLARE(lock);
 	link_t vm_area_head;
 	pte_t *ptl0;
 	asid_t asid;
