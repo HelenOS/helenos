@@ -142,6 +142,8 @@ void main_bsp(void)
 	config.cpu_active = 1;
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
+	config.init_addr = init_addr;
+	config.init_size = init_size;
 
 	heap_size = CONFIG_HEAP_SIZE + (config.memory_size/FRAME_SIZE)*sizeof(frame_t);
 	kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size + heap_size, PAGE_SIZE);
@@ -206,6 +208,9 @@ void main_bsp_separated_stack(void)
 	scheduler_init();
 	task_init();
 	thread_init();
+	
+	if (config.init_size > 0)
+		printf("config.init_addr=%X, config.init_size=%d\n", config.init_addr, config.init_size);
 
 	/*
 	 * Create kernel vm mapping.

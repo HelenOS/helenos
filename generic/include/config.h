@@ -43,6 +43,9 @@ struct config {
 	__address base;
 	size_t memory_size;
 	size_t kernel_size;
+	
+	__address init_addr;
+	size_t init_size;
 
 	count_t cpu_count;
 	volatile count_t cpu_active;

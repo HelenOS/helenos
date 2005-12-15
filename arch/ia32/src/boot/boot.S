@@ -164,10 +164,18 @@ multiboot_image_start:
 			jmp mods_invalid
 		
 		mods_valid:
+		movl 20(%ebx), %ecx						# mbi->mods_count
+		cmpl $0, %ecx
+		je mods_invalid
+		
+		movl 24(%ebx), %esi						# mbi->mods_addr
+		movl 0(%esi), %edx						# mods->mod_start
+		movl 4(%esi), %ecx						# mods->mod_end
+		subl %edx, %ecx
 		
 		mods_invalid:
-		movl %ecx, init_addr
-		movl %edx, init_size
+		movl %ecx, init_size
+		movl %edx, init_addr
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid
