@@ -68,11 +68,13 @@
  */
 void kinit(void *arg)
 {
+	thread_t *t;
+	int i;
+#ifdef CONFIG_USERSPACE
 	vm_t *m;
 	vm_area_t *a;
 	task_t *u;
-	thread_t *t;
-	int i;
+#endif
 
 	interrupts_disable();
 

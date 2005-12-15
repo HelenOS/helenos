@@ -66,8 +66,6 @@ static char * symtab_search_one(const char *name, int *startpos)
 	int namelen = strlen(name);
 	char *curname;
 	int i,j;
-	char *foundsym = NULL;
-	int foundpos = 0;
 	int colonoffset = -1;
 
 	for (i=0;name[i];i++)

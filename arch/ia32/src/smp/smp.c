@@ -87,7 +87,6 @@ void smp_init(void)
  */
 void kmp(void *arg)
 {
-	__address src, dst;
 	int i;
 	
 	ASSERT(ops != NULL);

@@ -45,7 +45,7 @@
  */
 void spinlock_initialize(spinlock_t *sl, char *name)
 {
-	sl->val = 0;
+	atomic_set(&sl->val, 0);
 #ifdef CONFIG_DEBUG_SPINLOCK
 	sl->name = name;
 #endif	
@@ -151,14 +151,14 @@ int spinlock_trylock(spinlock_t *sl)
  */
 void spinlock_unlock(spinlock_t *sl)
 {
-	ASSERT(sl->val != 0);
+	ASSERT(atomic_get(&sl->val) != 0);
 
 	/*
 	 * Prevent critical section code from bleeding out this way down.
 	 */
 	CS_LEAVE_BARRIER();
 	
-	sl->val = 0;
+	atomic_set(&sl->val,0);
 	preemption_enable();
 }
 

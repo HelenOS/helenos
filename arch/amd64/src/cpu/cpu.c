@@ -125,7 +125,6 @@ void cpu_arch_init(void)
 void cpu_identify(void)
 {
 	cpu_info_t info;
-	int i;
 
 	CPU->arch.vendor = VendorUnknown;
 	if (has_cpuid()) {

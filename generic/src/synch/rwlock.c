@@ -225,7 +225,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 			case ESYNCH_OK_ATOMIC:
 				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC\n");
 				break;
-			dafault:
+			default:
 				panic("invalid ESYNCH\n");
 				break;
 		}

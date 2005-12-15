@@ -38,7 +38,6 @@ static bool kb_enabled;
 
 static void serial_write(chardev_t *d, const char ch)
 {
-	int i;
 	serial_t *sd = (serial_t *)d->data;
 
 	if (ch == '\n')

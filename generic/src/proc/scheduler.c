@@ -490,7 +490,7 @@ not_satisfied:
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&CPU->lock);
-	count = nrdy / config.cpu_active;
+	count = atomic_get(&nrdy) / config.cpu_active;
 	count -= CPU->nrdy;
 	spinlock_unlock(&CPU->lock);
 	interrupts_restore(ipl);
@@ -618,7 +618,7 @@ satisfied:
 	/*
 	 * Tell find_best_thread() to wake us up later again.
 	 */
-	CPU->kcpulbstarted = 0;
+	atomic_set(&CPU->kcpulbstarted,0);
 	goto loop;
 }
 

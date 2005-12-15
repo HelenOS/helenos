@@ -32,13 +32,14 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <preemption.h>
+#include <arch/atomic.h>
 
 #ifdef CONFIG_SMP
 struct spinlock {
 #ifdef CONFIG_DEBUG_SPINLOCK
 	char *name;
 #endif
-	int val;
+	atomic_t val;
 };
 
 /*
@@ -55,12 +56,12 @@ struct spinlock {
 #define SPINLOCK_INITIALIZE(slname) 	\
 	spinlock_t slname = { 		\
 		.name = #slname,	\
-		.val = 0		\
+		.val = { 0 }		\
 	}
 #else
 #define SPINLOCK_INITIALIZE(slname) 	\
 	spinlock_t slname = { 		\
-		.val = 0		\
+		.val = { 0 }		\
 	}
 #endif
 

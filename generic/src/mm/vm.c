@@ -188,7 +188,6 @@ void vm_area_unmap(vm_area_t *a, vm_t *m)
 
 void vm_install(vm_t *m)
 {
-	link_t *l;
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();

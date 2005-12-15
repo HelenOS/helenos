@@ -31,21 +31,31 @@
 
 #include <arch/types.h>
 
-typedef volatile __u32 atomic_t;
+typedef struct { volatile __u32 count; } atomic_t;
+
+static inline void atomic_set(atomic_t *val, __u32 i)
+{
+	val->count = i;
+}
+
+static inline __u32 atomic_get(atomic_t *val)
+{
+	return val->count;
+}
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock incl %0\n" : "=m" (*val));
+	__asm__ volatile ("lock incl %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("incl %0\n" : "=m" (*val));
+	__asm__ volatile ("incl %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock decl %0\n" : "=m" (*val));
+	__asm__ volatile ("lock decl %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("decl %0\n" : "=m" (*val));
+	__asm__ volatile ("decl %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
@@ -55,7 +65,7 @@ static inline atomic_t atomic_inc_pre(atomic_t *val)
 	__asm__ volatile (
 		"movl $1, %0\n"
 		"lock xaddl %0, %1\n"
-		: "=r"(r), "=m" (*val)
+		: "=r"(r), "=m" (val->count)
 	);
 	return r;
 }
@@ -76,13 +86,13 @@ static inline atomic_t atomic_dec_pre(atomic_t *val)
 #define atomic_inc_post(val) (atomic_inc_pre(val)+1)
 #define atomic_dec_post(val) (atomic_dec_pre(val)-1)
 
-static inline int test_and_set(volatile int *val) {
+static inline int test_and_set(atomic_t *val) {
 	int v;
 	
 	__asm__ volatile (
 		"movl $1, %0\n"
 		"xchgl %0, %1\n"
-		: "=r" (v),"=m" (*val)
+		: "=r" (v),"=m" (val->count)
 	);
 	
 	return v;

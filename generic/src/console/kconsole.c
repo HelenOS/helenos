@@ -91,7 +91,6 @@ void kconsole_init(void)
  */
 int cmd_register(cmd_info_t *cmd)
 {
-	ipl_t ipl;
 	link_t *cur;
 	
 	spinlock_lock(&cmd_lock);
@@ -160,8 +159,6 @@ static const char * cmdtab_search_one(const char *name,link_t **startpos)
 {
 	int namelen = strlen(name);
 	const char *curname;
-	char *foundsym = NULL;
-	int foundpos = 0;
 
 	spinlock_lock(&cmd_lock);
 
@@ -469,7 +466,6 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	index_t start = 0, end = 0;
 	cmd_info_t *cmd = NULL;
 	link_t *cur;
-	ipl_t ipl;
 	int i;
 	
 	if (!parse_argument(cmdline, len, &start, &end)) {

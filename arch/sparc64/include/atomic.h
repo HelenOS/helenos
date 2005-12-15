@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-typedef volatile __u64 atomic_t;
+typedef struct { volatile __u64 count; } atomic_t;
 
 /*
  * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
@@ -39,11 +39,11 @@ typedef volatile __u64 atomic_t;
  */
 
 static inline void atomic_inc(atomic_t *val) {
-	*val++;
+	val->count++;
 }
 
 static inline void atomic_dec(atomic_t *val) {
-	*val--;
+	val->count--;
 }
 
 #endif

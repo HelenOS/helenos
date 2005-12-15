@@ -53,7 +53,7 @@ struct cpu {
 	link_t timeout_active_head;
 
 	#ifdef CONFIG_SMP
-	int kcpulbstarted;
+	atomic_t kcpulbstarted;
 	waitq_t kcpulb_wq;
 	#endif /* CONFIG_SMP */
 

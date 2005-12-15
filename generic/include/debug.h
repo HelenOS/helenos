@@ -33,7 +33,7 @@
 #include <arch/debug.h>
 #include <arch.h>
 
-#define CALLER       ((__address *)__builtin_return_address(0))
+#define CALLER       ((__address)__builtin_return_address(0))
 
 #ifndef HERE
 /** Current Instruction Pointer address */

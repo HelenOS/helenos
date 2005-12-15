@@ -188,6 +188,8 @@ int arc_init(void)
 	arc_putchar('R');
 	arc_putchar('C');
 	arc_putchar('\n');
+
+	return 0;
 }
 
 static bool kbd_polling_enabled;
@@ -286,7 +288,6 @@ void arc_frame_init(void)
 	int total = 0;
 	__address base;
 	size_t basesize;
-	unsigned int i,j;
 
 	desc = arc_entry->getmemorydescriptor(NULL);
 	while (desc) {

@@ -41,7 +41,7 @@
 #define atomic_dec_post(x) atomic_add(x, -1)
 
 
-typedef volatile __u32 atomic_t;
+typedef struct { volatile __u32 count; } atomic_t;
 
 /* Atomic addition of immediate value.
  *
@@ -62,12 +62,23 @@ static inline atomic_t atomic_add(atomic_t *val, int i)
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
 		/*	nop	*/		/* nop is inserted automatically by compiler */
-		: "=r" (tmp), "=m" (*val), "=r" (v)
+		: "=r" (tmp), "=m" (val->count), "=r" (v)
 		: "i" (i), "i" (0)
 		);
 
 	return v;
 }
 
+/* Reads/writes are atomic on mips for 4-bytes */
+
+static inline void atomic_set(atomic_t *val, __u32 i)
+{
+	val->count = i;
+}
+
+static inline __u32 atomic_get(atomic_t *val)
+{
+	return val->count;
+}
 
 #endif

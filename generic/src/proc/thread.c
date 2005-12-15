@@ -95,7 +95,7 @@ static void cushion(void)
 void thread_init(void)
 {
 	THREAD = NULL;
-	nrdy = 0;
+	atomic_set(&nrdy,0);
 }
 
 
@@ -111,7 +111,7 @@ void thread_ready(thread_t *t)
 	cpu_t *cpu;
 	runq_t *r;
 	ipl_t ipl;
-	int i, avg, send_ipi = 0;
+	int i, avg;
 
 	ipl = interrupts_disable();
 
@@ -135,7 +135,7 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&r->lock);
 
 	atomic_inc(&nrdy);
-	avg = nrdy / config.cpu_active;
+	avg = atomic_get(&nrdy) / config.cpu_active;
 
 	spinlock_lock(&cpu->lock);
 	if ((++cpu->nrdy) > avg) {

@@ -54,32 +54,23 @@ static inline void cpu_sleep(void) { __asm__ volatile ("hlt\n"); };
 static inline void cpu_halt(void) { __asm__ volatile ("hlt\n"); };
 
 
-static inline __u8 inb(__u16 port) 
-{
-	__u8 out;
+/** Byte from port
+ *
+ * Get byte from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
 
-	__asm__ volatile (
-		"mov %1, %%dx\n"
-		"inb %%dx,%%al\n"
-		"mov %%al, %0\n"
-		:"=m"(out)
-		:"m"(port)
-		:"%rdx","%rax"
-		);
-	return out;
-}
-
-static inline __u8 outb(__u16 port,__u8 b) 
-{
-	__asm__ volatile (
-		"mov %0,%%dx\n"
-		"mov %1,%%al\n"
-		"outb %%al,%%dx\n"
-		:
-		:"m"( port), "m" (b)
-		:"%rdx","%rax"
-		);
-}
+/** Byte to port
+ *
+ * Output byte to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Enable interrupts.
  *

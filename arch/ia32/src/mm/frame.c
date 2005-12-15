@@ -43,7 +43,6 @@ __address last_frame = 0;
 
 void frame_arch_init(void)
 {
-	zone_t *z;
 	__u8 i;
 	
 	if (config.cpu_active == 1) {

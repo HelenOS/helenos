@@ -125,7 +125,9 @@ void main_ap(void);
  * pop sequence otherwise.
  */
 static void main_bsp_separated_stack(void);
+#ifdef CONFIG_SMP
 static void main_ap_separated_stack(void);
+#endif
 
 /** Bootstrap CPU main kernel routine
  *

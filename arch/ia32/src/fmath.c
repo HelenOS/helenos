@@ -62,7 +62,8 @@ double fmath_fint(double num, double *intp)
 	fmath_ld_union_t fmath_ld_union_num;
 	fmath_ld_union_t fmath_ld_union_int;
 	signed short exp;
-	__u64 mask,mantisa;
+	__u64 mask;
+	// __u64 mantisa;
 	int i;
 	
 	exp=fmath_get_binary_exponent(num);

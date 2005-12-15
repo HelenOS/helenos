@@ -31,16 +31,26 @@
 
 #include <arch/types.h>
 
-typedef volatile __u64 atomic_t;
+typedef struct { volatile __u64 count; } atomic_t;
 
 static inline atomic_t atomic_add(atomic_t *val, int imm)
 {
 	atomic_t v;
 
 	
- 	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (*val) : "i" (imm));
+ 	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
  
 	return v;
+}
+
+static inline void atomic_set(atomic_t *val, __u64 i)
+{
+	val->count = i;
+}
+
+static inline __u32 atomic_get(atomic_t *val)
+{
+	return val->count;
 }
 
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }

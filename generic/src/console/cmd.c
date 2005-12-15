@@ -310,7 +310,6 @@ void cmd_init(void)
 int cmd_help(cmd_arg_t *argv)
 {
 	link_t *cur;
-	ipl_t ipl;
 
 	spinlock_lock(&cmd_lock);
 	
@@ -339,7 +338,6 @@ int cmd_help(cmd_arg_t *argv)
 int cmd_desc(cmd_arg_t *argv)
 {
 	link_t *cur;
-	ipl_t ipl;
 
 	spinlock_lock(&cmd_lock);
 	
@@ -368,9 +366,6 @@ int cmd_desc(cmd_arg_t *argv)
 /** Search symbol table */
 int cmd_symaddr(cmd_arg_t *argv)
 {
-	__address symaddr;
-	char *symbol;
-
 	symtab_print_search(argv->buffer);
 	
 	return 1;
@@ -510,7 +505,6 @@ int cmd_ptlb(cmd_arg_t *argv)
 /** Write 4 byte value to address */
 int cmd_set4(cmd_arg_t *argv)
 {
-	char *symbol;
 	__u32 *addr ;
 	__u32 arg1 = argv[1].intval;
 	bool pointer = false;
