@@ -36,6 +36,7 @@
 #include <arch.h>
 #include <func.h>
 #include <print.h>
+#include <arch/atomic.h>
 
 /** Standard input character device. */
 chardev_t *stdin = NULL;
@@ -52,7 +53,7 @@ __u8 _getc(chardev_t *chardev)
 	__u8 ch;
 	ipl_t ipl;
 
-	if (haltstate) {
+	if (atomic_get(&haltstate)) {
 		/* If we are here, we are hopefully on the processor, that 
 		 * issued the 'halt' command, so proceed to read the character
 		 * directly from input
@@ -60,7 +61,11 @@ __u8 _getc(chardev_t *chardev)
 		if (chardev->op->read)
 			return chardev->op->read(chardev);
 		/* no other way of interacting with user, halt */
-		printf("cpu: halted - no kconsole\n");
+		if (CPU)
+			printf("cpu%d: ", CPU->id);
+		else
+			printf("cpu: ");
+		printf("halted - no kconsole\n");
 		cpu_halt();
 	}
 

@@ -34,7 +34,7 @@
 #include <typedefs.h>
 #include <console/kconsole.h>
 
-__u32 volatile haltstate = 0; /**< Halt flag */
+atomic_t haltstate = {0}; /**< Halt flag */
 
 
 /** Halt wrapper
@@ -42,15 +42,28 @@ __u32 volatile haltstate = 0; /**< Halt flag */
  * Set halt flag and halt the cpu.
  *
  */
-void halt(void)
+void halt()
 {
-	haltstate = 1;
+#ifdef CONFIG_DEBUG
+	bool rundebugger;
+
+//      TODO test_and_set not defined on all arches
+//	if (!test_and_set(&haltstate))
+	if (!atomic_get(&haltstate)) {
+		atomic_set(&haltstate, 1);
+		rundebugger = true;
+	}
+#else
+	atomic_set(haltstate, 1);
+#endif
+
 	interrupts_disable();
 #ifdef CONFIG_DEBUG
-	printf("\n");
-	kconsole("panic"); /* Run kconsole as a last resort to user */
+	if (rundebugger) {
+		printf("\n");
+		kconsole("panic"); /* Run kconsole as a last resort to user */
+	}
 #endif      
-
 	if (CPU)
 		printf("cpu%d: halted\n", CPU->id);
 	else

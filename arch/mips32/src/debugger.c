@@ -256,7 +256,7 @@ void debugger_bpoint(struct exception_regdump *pstate)
 			
 	printf("***Type 'exit' to exit kconsole.\n");
 	/* Umm..we should rather set some 'debugstate' here */
-	haltstate = 1;
+	atomic_set(&haltstate,1);
 	kconsole("debug");
-	haltstate = 0;
+	atomic_set(&haltstate,0);
 }

@@ -406,7 +406,7 @@ void scheduler(void)
 
 	ipl = interrupts_disable();
 
-	if (haltstate)
+	if (atomic_get(&haltstate))
 		halt();
 
 	if (THREAD) {

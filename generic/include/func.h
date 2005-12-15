@@ -31,8 +31,9 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <arch/atomic.h>
 
-extern volatile __u32 haltstate;
+extern atomic_t haltstate;
 
 extern void halt(void);
 
