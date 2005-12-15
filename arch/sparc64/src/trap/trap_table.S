@@ -34,7 +34,8 @@
  
 .text
 
-#include <arch/trap_table.h>
+#include <arch/trap/trap_table.h>
+#include <arch/trap/regwin.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
@@ -55,17 +56,22 @@ trap_table:
 .global trap_table_kernel
 trap_table_kernel:
 
-/*
- * Hardware interrupts for TL=0.
- */
-.org trap_table_kernel + 0*ENTRY_SIZE
-tl_0_hardware_traps:
+/* TT = 0x24, TL = 0 *, clean_window handler */
+.org trap_table_kernel + TT_CLEAN_WINDOW*ENTRY_SIZE
+.global clean_window_handler
+clean_window_handler:
+	CLEAN_WINDOW_HANDLER
 
-/*
- * Register window spill/fill/clean traps for TL=0.
- */
-.org trap_table_kernel + 128*ENTRY_SIZE
-tl_0_regwin_traps:
+/* TT = 0x80, TL = 0 *, spill_0_normal handler */
+.org trap_table_kernel + TT_SPILL_0_NORMAL*ENTRY_SIZE
+.global spill_0_normal
+spill_0_normal:
+	SPILL_NORMAL_HANDLER
+
+/* TT = 0xc0, TL = 0 *, fill_0_normal handler */
+.org trap_table_kernel + TT_FILL_0_NORMAL*ENTRY_SIZE
+fill_0_normal:
+	FILL_NORMAL_HANDLER
 
 /*
  * Software traps for TL=0.
@@ -84,7 +90,7 @@ tl_0_software_traps:
 tl_non_0_hardware_traps:
 
 /*
- * Register window spill/fill/clean traps for TL>0.
+ * Register window spill/fill traps for TL>0.
  */
 .org trap_table_kernel + 640*ENTRY_SIZE
 tl_non_0_regwin_traps:

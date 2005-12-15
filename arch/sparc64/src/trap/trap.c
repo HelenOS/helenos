@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/trap.h>
-#include <arch/trap_table.h>
+#include <arch/trap/trap.h>
+#include <arch/trap/trap_table.h>
 #include <arch/asm.h>
 #include <memstr.h>
 

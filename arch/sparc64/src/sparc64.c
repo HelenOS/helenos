@@ -28,8 +28,7 @@
 
 #include <arch.h>
 #include <print.h>
-#include <arch/trap.h>
-#include <arch/trap_table.h>
+#include <arch/trap/trap.h>
 #include <arch/console.h>
 
 void arch_pre_mm_init(void)

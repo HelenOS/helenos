@@ -35,7 +35,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
-#include <arch/trap.h>
+#include <arch/trap/trap.h>
 
 /** Initialize ITLB and DTLB.
  *

@@ -29,7 +29,7 @@
 #ifndef __sparc64_TRAP_H__
 #define __sparc64_TRAP_H__
 
-#include <arch/trap_table.h>
+#include <arch/trap/trap_table.h>
 #include <arch/asm.h>
 
 /** Switch to in-kernel trap table. */
