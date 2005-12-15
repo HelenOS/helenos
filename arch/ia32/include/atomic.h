@@ -31,14 +31,14 @@
 
 #include <arch/types.h>
 
-typedef struct { volatile __u64 count; } atomic_t;
+typedef struct { volatile __u32 count; } atomic_t;
 
-static inline void atomic_set(atomic_t *val, __u64 i)
+static inline void atomic_set(atomic_t *val, __u32 i)
 {
 	val->count = i;
 }
 
-static inline __u64 atomic_get(atomic_t *val)
+static inline __u32 atomic_get(atomic_t *val)
 {
 	return val->count;
 }
@@ -88,8 +88,8 @@ static inline count_t atomic_dec_pre(atomic_t *val)
 #define atomic_inc_post(val) (atomic_inc_pre(val)+1)
 #define atomic_dec_post(val) (atomic_dec_pre(val)-1)
 
-static inline int test_and_set(atomic_t *val) {
-	int v;
+static inline __u32 test_and_set(atomic_t *val) {
+	__u32 v;
 	
 	__asm__ volatile (
 		"movl $1, %0\n"
