@@ -172,6 +172,7 @@ multiboot_image_start:
 		movl 0(%esi), %edx						# mods->mod_start
 		movl 4(%esi), %ecx						# mods->mod_end
 		subl %edx, %ecx
+		addl $0x80000000, %edx
 		
 		mods_invalid:
 		movl %ecx, init_size

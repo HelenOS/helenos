@@ -69,6 +69,8 @@ void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		frame_region_not_free(KA2PA(config.base), config.kernel_size);
+		if (config.init_size > 0)
+			frame_region_not_free(KA2PA(config.init_addr), config.init_size);
 	}
 
 	frame_arch_init();
