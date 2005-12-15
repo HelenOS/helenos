@@ -37,8 +37,7 @@
 #include <list.h>
 
 SPINLOCK_INITIALIZE(tasks_lock);
-link_t tasks_head;
-
+LIST_INITIALIZE(tasks_head);
 
 /** Initialize tasks
  *
@@ -48,7 +47,6 @@ link_t tasks_head;
 void task_init(void)
 {
 	TASK = NULL;
-	list_initialize(&tasks_head);
 }
 
 

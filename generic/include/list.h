@@ -32,10 +32,17 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+/** Doubly linked list head and link type. */
 struct link {
-	link_t *prev;
-	link_t *next;
+	link_t *prev;	/**< Pointer to the previous item in the list. */
+	link_t *next;	/**< Pointer to the next item in the list. */
 };
+
+/** Declare and initialize statically allocated list.
+ *
+ * @param name Name of the new statically allocated list.
+ */
+#define LIST_INITIALIZE(name)		link_t name = { .prev = &name, .next = &name }
 
 /** Initialize doubly-linked circular list link
  *

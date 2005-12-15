@@ -83,7 +83,6 @@ extern void zone_create_in_region(__address base, size_t size);
 extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
 extern link_t zone_head;		/**< list of all zones in the system */
 
-extern void zone_init(void);
 extern zone_t *zone_create(__address start, size_t size, int flags);
 extern void zone_attach(zone_t *zone);
 

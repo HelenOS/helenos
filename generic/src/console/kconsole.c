@@ -66,7 +66,7 @@
  */
  
 SPINLOCK_INITIALIZE(cmd_lock);	/**< Lock protecting command list. */
-link_t cmd_head;		/**< Command list. */
+LIST_INITIALIZE(cmd_head);	/**< Command list. */
 
 static cmd_info_t *parse_cmdline(char *cmdline, size_t len);
 static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end);
@@ -76,8 +76,6 @@ static char history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
 void kconsole_init(void)
 {
 	int i;
-
-	list_initialize(&cmd_head);
 
 	cmd_init();
 	for (i=0; i<KCONSOLE_HISTORY; i++)

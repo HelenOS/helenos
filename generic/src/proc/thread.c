@@ -55,7 +55,7 @@
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
 SPINLOCK_INITIALIZE(threads_lock);	/**< Lock protecting threads_head list. For locking rules, see declaration thereof. */
-link_t threads_head;			/**< List of all threads. */
+LIST_INITIALIZE(threads_head);		/**< List of all threads. */
 
 SPINLOCK_INITIALIZE(tidlock);
 __u32 last_tid = 0;
@@ -96,7 +96,6 @@ void thread_init(void)
 {
 	THREAD = NULL;
 	nrdy = 0;
-	list_initialize(&threads_head);
 }
 
 

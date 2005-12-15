@@ -42,7 +42,7 @@
 #include <align.h>
 
 SPINLOCK_INITIALIZE(zone_head_lock);	/**< this lock protects zone_head list */
-link_t zone_head;                	/**< list of all zones in the system */
+LIST_INITIALIZE(zone_head);            	/**< list of all zones in the system */
 
 /** Blacklist containing non-available areas of memory.
  *
@@ -68,7 +68,6 @@ static struct buddy_system_operations  zone_buddy_system_operations = {
 void frame_init(void)
 {
 	if (config.cpu_active == 1) {
-		zone_init();
 		frame_region_not_free(KA2PA(config.base), config.kernel_size);
 	}
 
@@ -233,16 +232,6 @@ void frame_region_not_free(__address base, size_t size)
 	ASSERT(index < ZONE_BLACKLIST_SIZE);
 	zone_blacklist[index].base = base;
 	zone_blacklist[index].size = size;
-}
-
-
-/** Initialize zonekeeping
- *
- * Initialize zonekeeping.
- */
-void zone_init(void)
-{
-	list_initialize(&zone_head);
 }
 
 /** Create frame zones in region of available memory.
