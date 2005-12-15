@@ -276,21 +276,23 @@ def check_inside(text, defaults, ctype, seen_vars):
         oper = res.group(2)
         condval = res.group(3)
         if condname not in seen_vars:
-            raise RuntimeError("Variable %s not defined before being asked." %\
-                               condname)
-        if not defaults.has_key(condname):
+            varval = ''
+##             raise RuntimeError("Variable %s not defined before being asked." %\
+##                                condname)
+        elif not defaults.has_key(condname):
             raise RuntimeError("Condition var %s does not exist: %s" % \
                                (condname,text))
-
+        else:
+            varval = defaults[condname]
         if ctype == 'cnf':
-            if oper == '=' and  condval == defaults[condname]:
+            if oper == '=' and  condval == varval:
                 return True
-            if oper == '!=' and condval != defaults[condname]:
+            if oper == '!=' and condval != varval:
                 return True
         else:
-            if oper== '=' and condval != defaults[condname]:
+            if oper== '=' and condval != varval:
                 return False
-            if oper== '!=' and condval == defaults[condname]:
+            if oper== '!=' and condval == varval:
                 return False
     if ctype=='cnf':
         return False
