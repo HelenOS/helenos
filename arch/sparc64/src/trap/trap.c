@@ -39,6 +39,11 @@
 void trap_init(void)
 {
 	/*
+	 * Save kernel provided trap handlers.
+	 */
+	memcpy((void *) trap_table_save, (void *) trap_table, TRAP_TABLE_SIZE);
+
+	/*
 	 * Copy OFW's trap table into kernel.
 	 */
 	memcpy((void *) trap_table, (void *) tba_read(), TRAP_TABLE_SIZE);
@@ -73,6 +78,6 @@ void trap_install_handler(index_t tt, size_t len, bool tlnonz)
 	cnt = len/TRAP_TABLE_ENTRY_SIZE;
 	
 	for (i = tt; i < tt + cnt; i++) {
-		trap_table[i] = trap_table_kernel[i];
+		trap_table[i] = trap_table_save[i];
 	}	
 }

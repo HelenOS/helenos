@@ -45,7 +45,7 @@ struct trap_table_entry {
 typedef struct trap_table_entry trap_table_entry_t;
 
 extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
-extern trap_table_entry_t trap_table_kernel[TRAP_TABLE_ENTRY_COUNT];
+extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 #endif /* !__ASM__ */
 
 #endif

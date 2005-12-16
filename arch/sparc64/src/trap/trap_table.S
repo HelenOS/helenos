@@ -27,9 +27,15 @@
 #
 
 /**
- * This file contains two trap tables. First, trap_table, is the one
- * to wich kernel copies OFW's own trap table and patches it with
- * kernel-provided handlers from the second trap table, trap_table_kernel.
+ * This file contains two trap tables.
+ * First, trap_table, is the one wich contains handlers implemented by
+ * kernel. During initialization, these handlers are copied out to
+ * the second trap table, trap_table_save, and the first table is
+ * overwritten with copy of OFW's own trap table. The copy is then patched
+ * from the trap_table_save.
+ *
+ * This arrangement is beneficial because kernel handlers stay on their
+ * link-time addresses which is good for debugging.
  */
  
 .text
@@ -40,67 +46,66 @@
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
 
-
 /*
- * Trap table for copy of OFW's own trap table.
+ * Kernel trap table.
  */
 .align TABLE_SIZE
 .global trap_table
 trap_table:
-	.space TABLE_SIZE, 0
-
-
-/*
- * Kernel-provided trap handlers.
- */
-.global trap_table_kernel
-trap_table_kernel:
 
 /* TT = 0x24, TL = 0 *, clean_window handler */
-.org trap_table_kernel + TT_CLEAN_WINDOW*ENTRY_SIZE
+.org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
 .global clean_window_handler
 clean_window_handler:
 	CLEAN_WINDOW_HANDLER
 
 /* TT = 0x80, TL = 0 *, spill_0_normal handler */
-.org trap_table_kernel + TT_SPILL_0_NORMAL*ENTRY_SIZE
+.org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
 .global spill_0_normal
 spill_0_normal:
 	SPILL_NORMAL_HANDLER
 
 /* TT = 0xc0, TL = 0 *, fill_0_normal handler */
-.org trap_table_kernel + TT_FILL_0_NORMAL*ENTRY_SIZE
+.org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
 fill_0_normal:
 	FILL_NORMAL_HANDLER
 
 /*
  * Software traps for TL=0.
  */
-.org trap_table_kernel + 256*ENTRY_SIZE
+.org trap_table + 256*ENTRY_SIZE
 tl_0_software_traps:
 
 /* Reserved area. */
-.org trap_table_kernel + 384*ENTRY_SIZE
+.org trap_table + 384*ENTRY_SIZE
 .space 128*ENTRY_SIZE, 0
 
 /*
  * Hardware interrupts for TL>0.
  */
-.org trap_table_kernel + 512*ENTRY_SIZE
+.org trap_table + 512*ENTRY_SIZE
 tl_non_0_hardware_traps:
 
 /*
  * Register window spill/fill traps for TL>0.
  */
-.org trap_table_kernel + 640*ENTRY_SIZE
+.org trap_table + 640*ENTRY_SIZE
 tl_non_0_regwin_traps:
 
 /*
  * Software traps for TL>0.
  */
-.org trap_table_kernel + 768*ENTRY_SIZE
+.org trap_table + 768*ENTRY_SIZE
 tl_non_0_software_traps:
 
 /* Reserved area. */
-.org trap_table_kernel + 896*ENTRY_SIZE
+.org trap_table + 896*ENTRY_SIZE
 .space 128*ENTRY_SIZE, 0
+
+
+/*
+ * Save trap table.
+ */
+.global trap_table_save
+trap_table_save:
+	.space TABLE_SIZE, 0
