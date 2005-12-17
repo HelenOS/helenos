@@ -35,11 +35,21 @@
 
 #define BKPOINTS_MAX 10
 
+#define BKPOINT_INPROG   (1 << 0)   /**< Breakpoint was shot */
+#define BKPOINT_ONESHOT  (1 << 1)   /**< One-time breakpoint,mandatory for j/b
+				         instructions */
+#define BKPOINT_REINST   (1 << 2)   /**< Breakpoint is set on the next 
+				         instruction, so that it could be
+					 reinstalled on the previous one */
+#define BKPOINT_FUNCCALL (1 << 3)   /**< Call a predefined function */
+
 typedef struct  {
 	__address address;      /**< Breakpoint address */
 	__native instruction; /**< Original instruction */
 	__native nextinstruction;  /**< Original instruction following break */
-	bool executing;   /**< If we are executing the original instruciton */
+	int flags;        /**< Flags regarding breakpoint */
+	count_t counter;
+	void (*bkfunc)(void *b, struct exception_regdump *pstate);
 } bpinfo_t;
 
 extern void debugger_init(void);

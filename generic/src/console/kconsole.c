@@ -117,8 +117,9 @@ int cmd_register(cmd_info_t *cmd)
 			spinlock_lock(&cmd->lock);
 			spinlock_lock(&hlp->lock);
 		}
-		
-		if ((strncmp(hlp->name, cmd->name, strlen(cmd->name)) == 0)) {
+		if ((strncmp(hlp->name, 
+			     cmd->name, max(strlen(cmd->name),
+					    strlen(hlp->name))) == 0)) {
 			/* The command is already there. */
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd->lock);
@@ -139,6 +140,7 @@ int cmd_register(cmd_info_t *cmd)
 	return 1;
 }
 
+/** Print count times a character */
 static void rdln_print_c(char ch, int count)
 {
 	int i;
@@ -146,6 +148,7 @@ static void rdln_print_c(char ch, int count)
 		putchar(ch);
 }
 
+/** Insert character to string */
 static void insert_char(char *str, char ch, int pos)
 {
 	int i;
@@ -155,6 +158,7 @@ static void insert_char(char *str, char ch, int pos)
 	str[pos] = ch;
 }
 
+/** Try to find a command begenning with prefix */
 static const char * cmdtab_search_one(const char *name,link_t **startpos)
 {
 	int namelen = strlen(name);
@@ -481,7 +485,8 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		
-		if (strncmp(hlp->name, &cmdline[start], strlen(hlp->name)) == 0) {
+		if (strncmp(hlp->name, &cmdline[start], max(strlen(hlp->name),
+							    end-start+1)) == 0) {
 			cmd = hlp;
 			break;
 		}

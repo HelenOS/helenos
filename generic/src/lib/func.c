@@ -114,7 +114,7 @@ int strncmp(const char *src, const char *dst, size_t len)
 	}
 	if (i == len || *src == *dst)
 		return 0;
-	if (*src < *dst)
+	if (!*src)
 		return -1;
 	return 1;
 }
