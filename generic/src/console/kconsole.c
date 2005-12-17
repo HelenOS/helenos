@@ -158,7 +158,7 @@ static void insert_char(char *str, char ch, int pos)
 	str[pos] = ch;
 }
 
-/** Try to find a command begenning with prefix */
+/** Try to find a command beginning with prefix */
 static const char * cmdtab_search_one(const char *name,link_t **startpos)
 {
 	int namelen = strlen(name);

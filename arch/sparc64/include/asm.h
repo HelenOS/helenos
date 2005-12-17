@@ -85,6 +85,19 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+/** Read Version Register.
+ *
+ * @return Value of VER register.
+ */
+static inline __u64 ver_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	
+	return v;
+}
+
 /** Read Trap Base Address register.
  *
  * @return Current value in TBA.

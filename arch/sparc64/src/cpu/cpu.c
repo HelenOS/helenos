@@ -26,26 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_CPU_H__
-#define __sparc64_CPU_H__
-
+#include <cpu.h>
+#include <arch.h>
 #include <arch/register.h>
+#include <arch/asm.h>
+#include <print.h>
 
-#define MANUF_FUJITSU		0x04
-#define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */
-#define MANUF_SUN		0x3e
+void cpu_arch_init(void)
+{
+}
 
-#define IMPL_ULTRASPARCI	0x10
-#define IMPL_ULTRASPARCII	0x11
-#define IMPL_ULTRASPARCII_I	0x12
-#define IMPL_ULTRASPARCII_E	0x13
-#define IMPL_ULTRASPARCIII	0x15
-#define IMPL_ULTRASPARCIV_PLUS	0x19
+void cpu_identify(void)
+{
+	CPU->arch.ver.value = ver_read();
+}
 
-#define IMPL_SPARC64V		0x5
+void cpu_print_report(cpu_t *m)
+{
+	char *manuf, *impl;
 
-struct cpu_arch {
-	ver_reg_t ver;
-};
+	switch (CPU->arch.ver.manuf) {
+	    case MANUF_FUJITSU:
+		manuf = "Fujitsu";
+		break;
+	    case MANUF_ULTRASPARC:
+		manuf = "UltraSPARC";
+		break;
+	    case MANUF_SUN:
+	    	manuf = "Sun";
+		break;
+	    default:
+		manuf = "Unknown";
+		break;
+	}
 	
-#endif
+	switch (CPU->arch.ver.impl) {
+	    case IMPL_ULTRASPARCI:
+		impl = "UltraSPARC I";
+		break;
+	    case IMPL_ULTRASPARCII:
+		impl = "UltraSPARC II";
+		break;
+	    case IMPL_ULTRASPARCII_I:
+		impl = "UltraSPARC IIi";
+		break;
+	    case IMPL_ULTRASPARCII_E:
+		impl = "UltraSPARC IIe";
+		break;
+	    case IMPL_ULTRASPARCIII:
+		impl = "UltraSPARC III";
+		break;
+	    case IMPL_ULTRASPARCIV_PLUS:
+		impl = "UltraSPARC IV+";
+		break;
+	    case IMPL_SPARC64V:
+		impl = "SPARC 64V";
+		break;
+	    default:
+		impl = "Unknown";
+		break;
+	}
+
+	printf("cpu%d: manuf=%s, impl=%s, mask=%d\n", CPU->id, manuf, impl, CPU->arch.ver.mask);
+}

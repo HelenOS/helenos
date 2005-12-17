@@ -203,7 +203,7 @@ void main_bsp_separated_stack(void)
 	cpu_init();
 
 	calibrate_delay_loop();
-	
+
 	timeout_init();
 	scheduler_init();
 	task_init();

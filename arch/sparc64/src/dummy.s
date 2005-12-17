@@ -30,10 +30,7 @@
 
 .global asm_delay_loop
 .global before_thread_runs_arch
-.global cpu_arch_init
 .global cpu_halt
-.global cpu_identify
-.global cpu_print_report
 .global cpu_sleep
 .global fmath_dpow
 .global fmath_fint
@@ -51,10 +48,7 @@
 
 asm_delay_loop:
 before_thread_runs_arch:
-cpu_arch_init:
 cpu_halt:
-cpu_identify:
-cpu_print_report:
 cpu_sleep:
 fmath_dpow:
 fmath_fint:

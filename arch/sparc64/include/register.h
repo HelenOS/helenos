@@ -26,26 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_CPU_H__
-#define __sparc64_CPU_H__
+#ifndef __sparc64_REGISTER_H__
+#define __sparc64_REGISTER_H__
 
-#include <arch/register.h>
+#include <arch/types.h>
 
-#define MANUF_FUJITSU		0x04
-#define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */
-#define MANUF_SUN		0x3e
-
-#define IMPL_ULTRASPARCI	0x10
-#define IMPL_ULTRASPARCII	0x11
-#define IMPL_ULTRASPARCII_I	0x12
-#define IMPL_ULTRASPARCII_E	0x13
-#define IMPL_ULTRASPARCIII	0x15
-#define IMPL_ULTRASPARCIV_PLUS	0x19
-
-#define IMPL_SPARC64V		0x5
-
-struct cpu_arch {
-	ver_reg_t ver;
+/** Version Register. */
+union ver_reg {
+	__u64 value;
+	struct {
+		__u16 manuf;	/**< Manufacturer code. */
+		__u16 impl;
+		__u8 mask;	/**< Mask set revision. */
+		unsigned : 8;
+		__u8 maxtl;
+		unsigned : 3;
+		unsigned maxwin : 5;
+	} __attribute__ ((packed));
 };
-	
+typedef union ver_reg ver_reg_t;
+
 #endif
