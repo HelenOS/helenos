@@ -1,20 +1,20 @@
-.PHONY=build clean
+.PHONY=build kernel uspace clean
 
 ROOT=distroot
 BASE=$(shell cd ../../..; pwd)
 KERNELDIR=$(BASE)/kernel
 USPACEDIR=$(BASE)/uspace
 
-build: $(KERNELDIR)/kernel.bin $(USPACEDIR)/init/init
+build: kernel uspace
 	gunzip -c grub/grub.img.gz > image.bin
 	e2cp $(KERNELDIR)/kernel.bin image.bin:/boot/kernel.bin
 	e2cp $(USPACEDIR)/init/init image.bin:/init
 	e2cp grub/README grub/COPYING image.bin:/boot
 
-$(KERNELDIR)/kernel.bin:
+kernel:
 	$(MAKE) -C $(KERNELDIR)
 
-$(USPACEDIR)/init/init:
+uspace:
 	$(MAKE) -C $(USPACEDIR)
 
 clean:

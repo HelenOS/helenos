@@ -1,10 +1,10 @@
-.PHONY=build clean
+.PHONY=build kernel clean
 
 ROOT=distroot
 BASE=$(shell cd ../../..; pwd)
 KERNELDIR=$(BASE)/kernel
 
-build: $(KERNELDIR)/kernel.bin
+build: kernel
 	mkdir -p $(ROOT)/boot
 	mkdir -p $(ROOT)/kernel
 	cat silo/silo.tar.gz | (cd $(ROOT)/boot; tar xvfz -)
@@ -12,7 +12,7 @@ build: $(KERNELDIR)/kernel.bin
 	ln -s $(KERNELDIR)/kernel.bin $(ROOT)/kernel
 	mkisofs -f -G distroot/boot/isofs.b -B ... -r -o image.iso $(ROOT)/
 
-$(KERNELDIR)/kernel.bin:
+kernel:
 	$(MAKE) -C $(KERNELDIR)
 
 clean:
