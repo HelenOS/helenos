@@ -57,7 +57,7 @@ void tlb_arch_init(void)
 
 	fr.address = config.base;
 	pg.address = config.base;
-	
+
 	immu_disable();
 	dmmu_disable();
 	

@@ -61,8 +61,6 @@ void cpu_init(void) {
 
 		for (i=0; i < config.cpu_count; i++) {
 			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
-			if (!cpus[i].stack)
-				panic("malloc/cpus[%d].stack\n", i);
 			
 			cpus[i].id = i;
 			

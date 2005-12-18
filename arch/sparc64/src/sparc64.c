@@ -52,3 +52,7 @@ void arch_post_smp_init(void)
 void calibrate_delay_loop(void)
 {
 }
+
+void before_thread_runs_arch(void)
+{
+}

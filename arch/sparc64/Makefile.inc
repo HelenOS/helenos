@@ -49,6 +49,7 @@ CONFIG_OFW = y
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/panic.S \
 	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/dummy.s \
