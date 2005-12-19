@@ -29,52 +29,6 @@
 #ifndef __SOFTFLOAT_H__
 #define __SOFTFLOAT_H__
 
-
-typedef union {
-	float f;
-	struct 	{
-		#ifdef __BIG_ENDIAN__
-		__u32 sign:1;
-		__u32 exp:8;
-		__u32 mantisa:23;
-		#elif defined __LITTLE_ENDIAN__
-		__u32 mantisa:23;
-		__u32 exp:8;
-		__u32 sign:1;
-		#else 
-		#error "Unknown endians."
-		#endif
-		} parts __attribute__ ((packed));
- 	} float32;
-	
-typedef union {
-	double d;
-	struct	{
-		#ifdef __BIG_ENDIAN__
-		__u64 sign:1;
-		__u64 exp:11;
-		__u64 mantisa:52;
-		#elif defined __LITTLE_ENDIAN__
-		__u64 mantisa:52;
-		__u64 exp:11;
-		__u64 sign:1;
-		#else 
-		#error "Unknown endians."
-		#endif
-		} parts __attribute__ ((packed));
-	} float64;
-
-#define FLOAT32_MAX 0x7f800000
-#define FLOAT32_MIN 0xff800000
-#define FLOAT64_MAX
-#define FLOAT64_MIN
-
-#define FLOAT32_BIAS 0xF7
-#define FLOAT64_BIAS 0x3FF
-#define FLOAT80_BIAS 0x3FFF
-
-
-
 float __addsf3(float a, float b);
 double __adddf3(double a, double b);
 long double __addtf3(long double a, long double b);

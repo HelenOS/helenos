@@ -26,62 +26,100 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include<softfloat.h>
 #include<sftypes.h>
 #include<arithmetic.h>
-#include<conversion.h>
-#include<comparison.h>
-#include<other.h>
 
-/* Arithmetic functions */
-
-float __addsf3(float a, float b)
+/** Add two Float32 numbers with same signs
+ */
+float32 addFloat32(float32 a, float32 b)
 {
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		if (fa.parts.sign) {
-			fa.parts.sign=0;
-			return subFloat32(fb,fa).f;
+	int expdiff;
+	__u32 exp1,exp2,mant1,mant2;
+	
+	expdiff=a.parts.exp - b.parts.exp;
+	if (expdiff<0) {
+		if (isFloat32NaN(b)) {
+			//TODO: fix SigNaN
+			if (isFloat32SigNaN(b)) {
+			};
+			return b;
 		};
-		fb.parts.sign=0;
-		return subFloat32(fa,fb).f;
-	}
-	return addFloat32(fa,fb).f;
+		
+		if (b.parts.exp==0xFF) { 
+			return b;
+		}
+		
+		mant1=b.parts.mantisa;
+		exp1=b.parts.exp;
+		mant2=a.parts.mantisa;
+		exp2=a.parts.exp;
+		expdiff*=-1;
+	} else {
+		if (isFloat32NaN(a)) {
+			//TODO: fix SigNaN
+			if ((isFloat32SigNaN(a))||(isFloat32SigNaN(b))) {
+			};
+			return a;
+		};
+		
+		if (a.parts.exp==0xFF) { 
+			return a;
+		}
+		
+		mant1=a.parts.mantisa;
+		exp1=a.parts.exp;
+		mant2=b.parts.mantisa;
+		exp2=b.parts.exp;
+	};
+	
+	if (exp1==0) {
+		//both are denormalized
+		mant1+=mant2;
+		if (mant1&0xF00000) {
+			a.parts.exp=1;
+		};
+		a.parts.mantisa=mant1;
+		return a;
+	};
+	
+	// create some space for rounding
+	mant1<<=6;
+	mant2<<=6;
+	
+	mant1|=0x20000000; //add hidden bit
+	
+	
+	if (exp2==0) {
+		--expdiff;	
+	} else {
+		mant2|=0x20000000; //hidden bit
+	};
+	
+	if (expdiff>24) {
+	     goto done;	
+	     };
+	
+	mant2>>=expdiff;
+	mant1+=mant2;
+done:
+	if (mant1&0x40000000) {
+		++exp1;
+		mant1>>=1;
+	};
+	
+	//rounding - if first bit after mantisa is set then round up
+	mant1+=0x20;
+	
+	a.parts.exp=exp1;
+	a.parts.mantisa=mant1>>6;
+	return a;
 };
 
-float __subsf3(float a, float b)
+/** Substract two float32 numbers with same signs
+ */
+float32 subFloat32(float32 a, float32 b)
 {
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign!=fb.parts.sign;
-		return addFloat32(fa,fb).f;
-	}
-	return subFloat32(fa,fb).f;
+	
+	
 };
-
-float __negsf2(float a)
-{
-	float32 fa;
-	fa.f=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.f;
-};
-
-double __negdf2(double a)
-{
-	float64 fa;
-	fa.d=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.d;
-};
-
-/* Conversion functions */
-
-/* Comparison functions */
-
-/* Other functions */
 

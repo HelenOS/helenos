@@ -26,62 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include<softfloat.h>
-#include<sftypes.h>
-#include<arithmetic.h>
-#include<conversion.h>
-#include<comparison.h>
-#include<other.h>
+#ifndef __ARITHMETIC_H__
+#define __ARITHMETIC_H__
 
-/* Arithmetic functions */
+float32 addFloat32(float32 a, float32 b);
+float32 subFloat32(float32 a, float32 b);
 
-float __addsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		if (fa.parts.sign) {
-			fa.parts.sign=0;
-			return subFloat32(fb,fa).f;
-		};
-		fb.parts.sign=0;
-		return subFloat32(fa,fb).f;
-	}
-	return addFloat32(fa,fb).f;
-};
-
-float __subsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign!=fb.parts.sign;
-		return addFloat32(fa,fb).f;
-	}
-	return subFloat32(fa,fb).f;
-};
-
-float __negsf2(float a)
-{
-	float32 fa;
-	fa.f=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.f;
-};
-
-double __negdf2(double a)
-{
-	float64 fa;
-	fa.d=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.d;
-};
-
-/* Conversion functions */
-
-/* Comparison functions */
-
-/* Other functions */
+#endif
 

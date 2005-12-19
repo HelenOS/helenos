@@ -26,62 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include<softfloat.h>
-#include<sftypes.h>
-#include<arithmetic.h>
-#include<conversion.h>
-#include<comparison.h>
-#include<other.h>
+#ifndef __SFTYPES_H__
+#define __SFTYPES_H__
 
-/* Arithmetic functions */
 
-float __addsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		if (fa.parts.sign) {
-			fa.parts.sign=0;
-			return subFloat32(fb,fa).f;
-		};
-		fb.parts.sign=0;
-		return subFloat32(fa,fb).f;
-	}
-	return addFloat32(fa,fb).f;
-};
+typedef union {
+	float f;
+	struct 	{
+		#ifdef __BIG_ENDIAN__
+		__u32 sign:1;
+		__u32 exp:8;
+		__u32 mantisa:23;
+		#elif defined __LITTLE_ENDIAN__
+		__u32 mantisa:23;
+		__u32 exp:8;
+		__u32 sign:1;
+		#else 
+		#error "Unknown endians."
+		#endif
+		} parts __attribute__ ((packed));
+ 	} float32;
+	
+typedef union {
+	double d;
+	struct	{
+		#ifdef __BIG_ENDIAN__
+		__u64 sign:1;
+		__u64 exp:11;
+		__u64 mantisa:52;
+		#elif defined __LITTLE_ENDIAN__
+		__u64 mantisa:52;
+		__u64 exp:11;
+		__u64 sign:1;
+		#else 
+		#error "Unknown endians."
+		#endif
+		} parts __attribute__ ((packed));
+	} float64;
 
-float __subsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign!=fb.parts.sign;
-		return addFloat32(fa,fb).f;
-	}
-	return subFloat32(fa,fb).f;
-};
+#define FLOAT32_MAX 0x7f800000
+#define FLOAT32_MIN 0xff800000
+#define FLOAT64_MAX
+#define FLOAT64_MIN
 
-float __negsf2(float a)
-{
-	float32 fa;
-	fa.f=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.f;
-};
+#define FLOAT32_BIAS 0xF7
+#define FLOAT64_BIAS 0x3FF
+#define FLOAT80_BIAS 0x3FFF
 
-double __negdf2(double a)
-{
-	float64 fa;
-	fa.d=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.d;
-};
 
-/* Conversion functions */
-
-/* Comparison functions */
-
-/* Other functions */
+#endif
 

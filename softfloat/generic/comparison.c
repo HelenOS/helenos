@@ -26,62 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include<softfloat.h>
 #include<sftypes.h>
-#include<arithmetic.h>
-#include<conversion.h>
 #include<comparison.h>
-#include<other.h>
 
-/* Arithmetic functions */
-
-float __addsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		if (fa.parts.sign) {
-			fa.parts.sign=0;
-			return subFloat32(fb,fa).f;
-		};
-		fb.parts.sign=0;
-		return subFloat32(fa,fb).f;
-	}
-	return addFloat32(fa,fb).f;
+inline int isFloat32NaN(float32 f)
+{	/* NaN : exp = 0xff and nonzero mantisa */
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa));
 };
 
-float __subsf3(float a, float b)
-{
-	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign!=fb.parts.sign;
-		return addFloat32(fa,fb).f;
-	}
-	return subFloat32(fa,fb).f;
+inline int isFloat32SigNaN(float32 f)
+{	/* SigNaN : exp = 0xff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa>0x400000));
 };
-
-float __negsf2(float a)
-{
-	float32 fa;
-	fa.f=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.f;
-};
-
-double __negdf2(double a)
-{
-	float64 fa;
-	fa.d=a;
-	fa.parts.sign=!fa.parts.sign;
-	return fa.d;
-};
-
-/* Conversion functions */
-
-/* Comparison functions */
-
-/* Other functions */
 
