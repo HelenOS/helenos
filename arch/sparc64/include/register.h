@@ -46,4 +46,24 @@ union ver_reg {
 };
 typedef union ver_reg ver_reg_t;
 
+/** Processor State Register. */
+union pstate_reg {
+	__u64 value;
+	struct {
+		__u64 : 52;
+		unsigned ig : 1;	/**< Interrupt Globals. */
+		unsigned mg : 1;	/**< MMU Globals. */
+		unsigned cle : 1;	/**< Current Little Endian. */
+		unsigned tle : 1;	/**< Trap Little Endian. */
+		unsigned mm : 2;	/**< Memory Model. */
+		unsigned red : 1;	/**< RED state. */
+		unsigned pef : 1;	/**< Enable floating-point. */
+		unsigned am : 1;	/**< 32-bit Address Mask. */
+		unsigned priv : 1;	/**< Privileged Mode. */
+		unsigned ie : 1;	/**< Interrupt Enable. */
+		unsigned ag : 1;	/**< Alternate Globals*/
+	} __attribute__ ((packed));
+};
+typedef union pstate_reg pstate_reg_t;
+
 #endif

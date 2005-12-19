@@ -58,8 +58,6 @@ fpu_enable:
 fpu_init:
 userspace:
 
-
 dummy:
-0:
 	retl
 	nop

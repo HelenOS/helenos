@@ -29,8 +29,33 @@
 #ifndef __sparc64_ASM_H__
 #define __sparc64_ASM_H__
 
+#include <typedefs.h>
 #include <arch/types.h>
+#include <arch/register.h>
 #include <config.h>
+
+/** Read Processor State register.
+ *
+ * @return Value of PSTATE register.
+ */
+static inline __u64 pstate_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%pstate, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write Processor State register.
+ *
+ * @param New value of PSTATE register.
+ */
+static inline void pstate_write(__u64 v)
+{
+	__asm__ volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
+}
+
 
 /** Enable interrupts.
  *
@@ -40,6 +65,15 @@
  * @return Old interrupt priority level.
  */
 static inline ipl_t interrupts_enable(void) {
+	pstate_reg_t pstate;
+	__u64 value;
+	
+	value = pstate_read();
+	pstate.value = value;
+	pstate.ie = true;
+	pstate_write(pstate.value);
+	
+	return (ipl_t) value;
 }
 
 /** Disable interrupts.
@@ -50,6 +84,15 @@ static inline ipl_t interrupts_enable(void) {
  * @return Old interrupt priority level.
  */
 static inline ipl_t interrupts_disable(void) {
+	pstate_reg_t pstate;
+	__u64 value;
+	
+	value = pstate_read();
+	pstate.value = value;
+	pstate.ie = false;
+	pstate_write(pstate.value);
+	
+	return (ipl_t) value;
 }
 
 /** Restore interrupt priority level.
@@ -59,6 +102,11 @@ static inline ipl_t interrupts_disable(void) {
  * @param ipl Saved interrupt priority level.
  */
 static inline void interrupts_restore(ipl_t ipl) {
+	pstate_reg_t pstate;
+	
+	pstate.value = pstate_read();
+	pstate.ie = ((pstate_reg_t) ipl).ie;
+	pstate_write(pstate.value);
 }
 
 /** Return interrupt priority level.
@@ -68,6 +116,7 @@ static inline void interrupts_restore(ipl_t ipl) {
  * @return Current interrupt priority level.
  */
 static inline ipl_t interrupts_read(void) {
+	return (ipl_t) pstate_read();
 }
 
 /** Return base address of current stack.
@@ -80,7 +129,7 @@ static inline __address get_stack_base(void)
 {
 	__address v;
 	
-	__asm__ volatile ("and %%o6, %1, %0\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	__asm__ volatile ("and %%sp, %1, %0\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
 	return v;
 }

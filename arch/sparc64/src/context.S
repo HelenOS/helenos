@@ -51,6 +51,7 @@
 	stx %o7, [\r + OFFSET_PC]
 	stx %sp, [\r + OFFSET_SP]
 	stx %fp, [\r + OFFSET_FP]
+	stx %i7, [\r + OFFSET_I7]
 .endm
 
 .macro CONTEXT_LOAD r
@@ -62,6 +63,7 @@
 	ldx [\r + OFFSET_PC], %o7
 	ldx [\r + OFFSET_SP], %sp
 	ldx [\r + OFFSET_FP], %fp
+	ldx [\r + OFFSET_I7], %i7
 .endm
 
 context_save_arch:

@@ -294,7 +294,8 @@ static void scheduler_separated_stack(void)
 			spinlock_unlock(&threads_lock);
 
 			spinlock_lock(&CPU->lock);
-			if(CPU->fpu_owner==THREAD) CPU->fpu_owner=NULL;
+			if(CPU->fpu_owner==THREAD)
+				CPU->fpu_owner=NULL;
 			spinlock_unlock(&CPU->lock);
 
 			free(THREAD);

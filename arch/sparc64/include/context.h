@@ -66,7 +66,8 @@ struct context {
 	__u64 o5;
 	__address sp;		/* %o6 */
 	__address pc;		/* %o7 */
-	__address fp;
+	__address fp;		/* %i6 */
+	__address i7;
 	ipl_t ipl;
 };
 
