@@ -40,15 +40,20 @@
 #define CONFIG_STACK_SIZE	STACK_SIZE
 
 struct config {
+	count_t cpu_count;
+	volatile count_t cpu_active;
+
 	__address base;
 	size_t memory_size;
-	size_t kernel_size;
 	
 	__address init_addr;
 	size_t init_size;
-
-	count_t cpu_count;
-	volatile count_t cpu_active;
+	
+	__address heap_addr;
+	size_t heap_size;
+	size_t heap_delta;            /**< Extra space between heap and stack (enforced by alignment requirements) */
+	
+	size_t kernel_size;           /**< Size of memory in bytes taken by kernel, heap and stack */
 };
 
 extern config_t config;

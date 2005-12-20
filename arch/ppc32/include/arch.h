@@ -31,11 +31,4 @@
 
 #include <genarch/ofw/ofw.h>
 
-#ifdef early_mapping
-#undef early_mapping
-#endif
-
-#define early_mapping(stack, size) \
-	ofw_claim((void *) stack, size, 0);
-
 #endif

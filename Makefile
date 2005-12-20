@@ -177,8 +177,7 @@ archlinks:
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
 depend: archlinks
-	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) >Makefile.depend 2>/dev/null
-	#$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
@@ -194,7 +193,6 @@ generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(G
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
-	
 
 generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
@@ -206,7 +204,7 @@ kernel.bin: kernel.raw
 	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin
 
 boot: kernel.bin
-	$(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`" CC=$(CC) AS=$(AS) LD=$(LD)
+	if [ -d arch/$(ARCH)/boot ] ; then $(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`" CC=$(CC) AS=$(AS) LD=$(LD) ; fi
 
 disasm: kernel.raw
 	$(OBJDUMP) -d kernel.raw > kernel.disasm

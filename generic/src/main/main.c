@@ -82,7 +82,6 @@ char *arch = ARCH;
 	char *timestamp = "";
 #endif
 
-
 config_t config;
 context_t ctx;
 
@@ -97,23 +96,6 @@ size_t hardcoded_kdata_size = 0;
 
 __address init_addr = 0;
 size_t init_size = 0;
-
-/**
- * Size of memory in bytes taken by kernel and heap.
- */
-static size_t kernel_size;
-
-/**
- * Size of heap.
- */
-static size_t heap_size;
-
-
-/**
- * Extra space between heap and stack
- * enforced by alignment requirements.
- */
-static size_t heap_delta;
 
 void main_bsp(void);
 void main_ap(void);
@@ -140,20 +122,25 @@ void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
+	
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
 	config.init_addr = init_addr;
 	config.init_size = init_size;
-
-	heap_size = CONFIG_HEAP_SIZE + (config.memory_size/FRAME_SIZE)*sizeof(frame_t);
-	kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size + heap_size, PAGE_SIZE);
-	heap_delta = kernel_size - (hardcoded_ktext_size + hardcoded_kdata_size + heap_size);
 	
-	config.kernel_size = kernel_size + CONFIG_STACK_SIZE;
+	if (init_size > 0)
+		config.heap_addr = init_addr + init_size;
+	else
+		config.heap_addr = hardcoded_load_address + hardcoded_ktext_size + hardcoded_kdata_size;
+	
+	config.heap_size = CONFIG_HEAP_SIZE + (config.memory_size / FRAME_SIZE) * sizeof(frame_t);
+	
+	config.kernel_size = ALIGN_UP(config.heap_addr - hardcoded_load_address + config.heap_size, PAGE_SIZE);
+	config.heap_delta = config.kernel_size - (config.heap_addr - hardcoded_load_address + config.heap_size);
+	config.kernel_size = config.kernel_size + CONFIG_STACK_SIZE;
 	
 	context_save(&ctx);
-	early_mapping(config.base + hardcoded_ktext_size + hardcoded_kdata_size, CONFIG_STACK_SIZE + heap_size + heap_delta);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + kernel_size, CONFIG_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + config.kernel_size, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -185,12 +172,12 @@ void main_bsp_separated_stack(void)
 	exc_init();
 	
 	arch_pre_mm_init();
-	early_heap_init(config.base + hardcoded_ktext_size + hardcoded_kdata_size, heap_size + heap_delta);
+	early_heap_init(config.heap_addr, config.heap_size + config.heap_delta);
 	frame_init();
 	page_init();
 	tlb_init();
 	arch_post_mm_init();
-
+	
 	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);

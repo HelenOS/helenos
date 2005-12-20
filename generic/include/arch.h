@@ -42,10 +42,6 @@
 #define VM			THE->vm
 #define PREEMPTION_DISABLED	THE->preemption_disabled
 
-#ifndef early_mapping
-#define early_mapping(stack, size)
-#endif /* early_mapping */
-
 /**
  * For each possible kernel stack, structure
  * of the following type will be placed at
