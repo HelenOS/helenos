@@ -36,6 +36,11 @@
 #
 #
 __entry:
+	mov %ss, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
 	
 	call main
 	call __exit

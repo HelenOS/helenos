@@ -33,7 +33,7 @@ sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, con
 	sysarg_t ret;
 	
 	asm volatile (
-		"int $0x80\n"
+		"int $0x30\n"
 		: "=a" (ret)
 		: "a" (id),
 		  "b" (p1),
