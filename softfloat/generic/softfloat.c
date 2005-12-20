@@ -83,5 +83,58 @@ double __negdf2(double a)
 
 /* Comparison functions */
 
+/* a<b .. -1
+ * a=b ..  0
+ * a>b ..  1
+ * */
+
+int __cmpsf2(double a, double b) 
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		return 1; /* no special constant for unordered - maybe signaled? */
+	};
+
+	
+	if (isFloat32eq(fa,fb)) {
+		return 0;
+	};
+	
+	if (isFloat32lt(fa,fb)) {
+		return -1;
+		};
+	return 1;
+}
+
+int __unordsf2(float a, float b) 
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	return ((isFloat32NaN(fa))||(isFloat32NaN(fb)));
+};
+
+/** 
+ * @return zero, if neither argument is a NaN and are equal
+ * */
+int __eqsf2(float a, float b) 
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		/* TODO: sigNaNs*/
+		return 1;
+		};
+	return isFloat32eq(fa,fb)-1;
+};
+
+/* strange behavior, but it was in gcc documentation */
+int __nesf2(float a, float b) 
+{
+	return __eqsf2(a,b);
+};
 /* Other functions */
 

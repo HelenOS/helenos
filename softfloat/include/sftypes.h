@@ -32,6 +32,8 @@
 
 typedef union {
 	float f;
+	__u32 binary;
+
 	struct 	{
 		#ifdef __BIG_ENDIAN__
 		__u32 sign:1;
@@ -49,6 +51,8 @@ typedef union {
 	
 typedef union {
 	double d;
+	__u64 binary;
+	
 	struct	{
 		#ifdef __BIG_ENDIAN__
 		__u64 sign:1;

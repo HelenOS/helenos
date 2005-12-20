@@ -39,3 +39,31 @@ inline int isFloat32SigNaN(float32 f)
 	return ((f.parts.exp==0xFF)&&(f.parts.mantisa>0x400000));
 };
 
+inline int isFloat32Infinity(float32 f) 
+{
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa==0x0));
+};
+
+/**
+ * @return 1, if both floats are equal - but NaNs are not recognized 
+ */
+inline int isFloat32eq(float32 a, float32 b)
+{
+	return ((a==b)||(((a.binary| b.binary)&0x7FFFFFFF)==0)); /* a equals to b or both are zeros (with any sign) */
+}
+
+/**
+ * @return 1, if a>b - but NaNs are not recognized 
+ */
+inline int isFloat32lt(float32 a, float32 b) 
+{
+	if (((a.binary| b.binary)&0x7FFFFFFF)==0) {
+		return 0;
+	};
+	a.parts.sign^=a.parts.sign;
+	b.parts.sign^=b.parts.sign;
+	return (a.binary<b.binary);
+			
+}
+
+
