@@ -173,7 +173,7 @@ void kinit(void *arg)
 	a = vm_area_create(m, VMA_STACK, 1, USTACK_ADDRESS);
 	if (!a)
 		panic("vm_area_create: vm_stack\n");
-	vm_area_map(a, m);	
+	vm_area_map(a, m);
 	
 	thread_ready(t);
 #endif /* CONFIG_USERSPACE */
