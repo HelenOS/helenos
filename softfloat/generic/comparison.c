@@ -53,7 +53,7 @@ inline int isFloat32eq(float32 a, float32 b)
 }
 
 /**
- * @return 1, if a>b - but NaNs are not recognized 
+ * @return 1, if a<b - but NaNs are not recognized 
  */
 inline int isFloat32lt(float32 a, float32 b) 
 {
@@ -63,6 +63,20 @@ inline int isFloat32lt(float32 a, float32 b)
 	a.parts.sign^=a.parts.sign;
 	b.parts.sign^=b.parts.sign;
 	return (a.binary<b.binary);
+			
+}
+
+/**
+ * @return 1, if a>b - but NaNs are not recognized 
+ */
+inline int isFloat32gt(float32 a, float32 b) 
+{
+	if (((a.binary| b.binary)&0x7FFFFFFF)==0) {
+		return 0;
+	};
+	a.parts.sign^=a.parts.sign;
+	b.parts.sign^=b.parts.sign;
+	return (a.binary>b.binary);
 			
 }
 

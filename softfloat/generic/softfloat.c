@@ -136,5 +136,82 @@ int __nesf2(float a, float b)
 {
 	return __eqsf2(a,b);
 };
+
+/* return value >= 0 if a>=b and neither is NaN */
+int __gesf2(float a, float b)
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		/* TODO: sigNaNs*/
+		return 1;
+		};
+	
+	if (isFloat32eq(fa,fb)) {
+		return 0;
+	};
+	
+	if (isFloat32gt(fa,fb)) {
+		return 1;
+		};
+	
+	return -1;
+}
+
+/** Return negative value, if a<b and neither is NaN*/
+int __ltsf2(float a, float b)
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		/* TODO: sigNaNs*/
+		return 1;
+		};
+	if (isFloat32lt(fa, fb)) {
+		return -1;
+		};
+	return 0;
+}
+
+/* return value <= 0 if a<=b and neither is NaN */
+int __lesf2(float a, float b)
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		/* TODO: sigNaNs*/
+		return 1;
+		};
+	
+	if (isFloat32eq(fa,fb)) {
+		return 0;
+	};
+	
+	if (isFloat32lt(fa,fb)) {
+		return -1;
+		};
+	
+	return 1;
+}
+
+/** Return positive value, if a>b and neither is NaN*/
+int __ltsf2(float a, float b)
+{
+	float32 fa,fb;
+	fa.f=a;
+	fb.f=b;
+	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+		/* TODO: sigNaNs*/
+		return 1;
+		};
+	if (isFloat32gt(fa, fb)) {
+		return 1;
+		};
+	return 0;
+}
+
 /* Other functions */
 
