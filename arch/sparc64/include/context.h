@@ -55,19 +55,27 @@
 
 /*
  * Only save registers that must be preserved across
- * function calls and that are not saved in caller's
- * register window.
+ * function calls.
  */
 struct context {
-	__u64 o1;
-	__u64 o2;
-	__u64 o3;
-	__u64 o4;
-	__u64 o5;
 	__address sp;		/* %o6 */
 	__address pc;		/* %o7 */
+	__u64 i0;
+	__u64 i1;
+	__u64 i2;
+	__u64 i3;
+	__u64 i4;
+	__u64 i5;
 	__address fp;		/* %i6 */
 	__address i7;
+	__u64 l0;
+	__u64 l1;
+	__u64 l2;
+	__u64 l3;
+	__u64 l4;
+	__u64 l5;
+	__u64 l6;
+	__u64 l7;
 	ipl_t ipl;
 };
 

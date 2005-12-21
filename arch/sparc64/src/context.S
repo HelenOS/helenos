@@ -43,27 +43,45 @@
 .global context_restore_arch
 
 .macro CONTEXT_STORE r
-	stx %o1, [\r + OFFSET_O1]
-	stx %o2, [\r + OFFSET_O2]
-	stx %o3, [\r + OFFSET_O3]
-	stx %o4, [\r + OFFSET_O4]
-	stx %o5, [\r + OFFSET_O5]
-	stx %o7, [\r + OFFSET_PC]
 	stx %sp, [\r + OFFSET_SP]
+	stx %o7, [\r + OFFSET_PC]
+	stx %i0, [\r + OFFSET_I0]
+	stx %i1, [\r + OFFSET_I1]
+	stx %i2, [\r + OFFSET_I2]
+	stx %i3, [\r + OFFSET_I3]
+	stx %i4, [\r + OFFSET_I4]
+	stx %i5, [\r + OFFSET_I5]
 	stx %fp, [\r + OFFSET_FP]
 	stx %i7, [\r + OFFSET_I7]
+	stx %l0, [\r + OFFSET_L0]
+	stx %l1, [\r + OFFSET_L1]
+	stx %l2, [\r + OFFSET_L2]
+	stx %l3, [\r + OFFSET_L3]
+	stx %l4, [\r + OFFSET_L4]
+	stx %l5, [\r + OFFSET_L5]
+	stx %l6, [\r + OFFSET_L6]
+	stx %l7, [\r + OFFSET_L7]
 .endm
 
 .macro CONTEXT_LOAD r
-	ldx [\r + OFFSET_O1], %o1
-	ldx [\r + OFFSET_O2], %o2
-	ldx [\r + OFFSET_O3], %o3
-	ldx [\r + OFFSET_O4], %o4
-	ldx [\r + OFFSET_O5], %o5
-	ldx [\r + OFFSET_PC], %o7
 	ldx [\r + OFFSET_SP], %sp
+	ldx [\r + OFFSET_PC], %o7
+	ldx [\r + OFFSET_I0], %i0
+	ldx [\r + OFFSET_I1], %i1
+	ldx [\r + OFFSET_I2], %i2
+	ldx [\r + OFFSET_I3], %i3
+	ldx [\r + OFFSET_I4], %i4
+	ldx [\r + OFFSET_I5], %i5
 	ldx [\r + OFFSET_FP], %fp
 	ldx [\r + OFFSET_I7], %i7
+	ldx [\r + OFFSET_L0], %l0
+	ldx [\r + OFFSET_L1], %l1
+	ldx [\r + OFFSET_L2], %l2
+	ldx [\r + OFFSET_L3], %l3
+	ldx [\r + OFFSET_L4], %l4
+	ldx [\r + OFFSET_L5], %l5
+	ldx [\r + OFFSET_L6], %l6
+	ldx [\r + OFFSET_L7], %l7
 .endm
 
 context_save_arch:
