@@ -36,7 +36,7 @@ union ver_reg {
 	__u64 value;
 	struct {
 		__u16 manuf;	/**< Manufacturer code. */
-		__u16 impl;
+		__u16 impl;	/**< Implementation code. */
 		__u8 mask;	/**< Mask set revision. */
 		unsigned : 8;
 		__u8 maxtl;
@@ -65,5 +65,25 @@ union pstate_reg {
 	} __attribute__ ((packed));
 };
 typedef union pstate_reg pstate_reg_t;
+
+/** TICK Register. */
+union tick_reg {
+	__u64 value;
+	struct {
+		unsigned npt : 1;	/**< Non-privileged Trap enable. */
+		__u64 counter : 63;	/**< Elapsed CPU clck cycle counter. */
+	} __attribute__ ((packed));
+};
+typedef union tick_reg tick_reg_t;
+
+/** TICK_compare Register. */
+union tick_compare_reg {
+	__u64 value;
+	struct {
+		unsigned int_dis : 1;	/**< TICK_INT interrupt enable. */
+		__u64 tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
+	} __attribute__ ((packed));
+};
+typedef union tick_compare_reg tick_compare_reg_t;
 
 #endif

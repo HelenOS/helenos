@@ -56,6 +56,50 @@ static inline void pstate_write(__u64 v)
 	__asm__ volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
 }
 
+/** Read TICK_compare Register.
+ *
+ * @return Value of TICK_comapre register.
+ */
+static inline __u64 tick_compare_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rd %%tick_cmpr, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write TICK_compare Register.
+ *
+ * @param New value of TICK_comapre register.
+ */
+static inline void tick_compare_write(__u64 v)
+{
+	__asm__ volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
+}
+
+/** Read TICK Register.
+ *
+ * @return Value of TICK register.
+ */
+static inline __u64 tick_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%tick, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write TICK Register.
+ *
+ * @param New value of TICK register.
+ */
+static inline void tick_write(__u64 v)
+{
+	__asm__ volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
+}
+
 
 /** Enable interrupts.
  *
@@ -195,6 +239,8 @@ static inline void asi_u64_write(asi_t asi, __address va, __u64 v)
 {
 	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
 }
+
+
 
 void cpu_halt(void);
 void cpu_sleep(void);

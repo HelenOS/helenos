@@ -103,7 +103,7 @@ typedef union lsu_cr_reg lsu_cr_reg_t;
 #define dmmu_disable()	dmmu_set(false)
 
 /** Disable or Enable IMMU. */
-static inline immu_set(bool enable)
+static inline void immu_set(bool enable)
 {
 	lsu_cr_reg_t cr;
 	
@@ -114,7 +114,7 @@ static inline immu_set(bool enable)
 }
 
 /** Disable or Enable DMMU. */
-static inline dmmu_set(bool enable)
+static inline void dmmu_set(bool enable)
 {
 	lsu_cr_reg_t cr;
 	

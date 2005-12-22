@@ -114,7 +114,7 @@ static inline __u64 itlb_data_access_read(index_t entry)
  * @param entry TLB Entry index.
  * @param value Value to be written.
  */
-static inline __u64 itlb_data_access_write(index_t entry, __u64 value)
+static inline void itlb_data_access_write(index_t entry, __u64 value)
 {
 	tlb_data_access_addr_t reg;
 	
@@ -144,7 +144,7 @@ static inline __u64 dtlb_data_access_read(index_t entry)
  * @param entry TLB Entry index.
  * @param value Value to be written.
  */
-static inline __u64 dtlb_data_access_write(index_t entry, __u64 value)
+static inline void dtlb_data_access_write(index_t entry, __u64 value)
 {
 	tlb_data_access_addr_t reg;
 	
