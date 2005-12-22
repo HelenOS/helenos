@@ -49,7 +49,7 @@ inline int isFloat32Infinity(float32 f)
  */
 inline int isFloat32eq(float32 a, float32 b)
 {
-	return ((a==b)||(((a.binary| b.binary)&0x7FFFFFFF)==0)); /* a equals to b or both are zeros (with any sign) */
+	return ((a.binary==b.binary)||(((a.binary| b.binary)&0x7FFFFFFF)==0)); /* a equals to b or both are zeros (with any sign) */
 }
 
 /**
@@ -58,10 +58,17 @@ inline int isFloat32eq(float32 a, float32 b)
 inline int isFloat32lt(float32 a, float32 b) 
 {
 	if (((a.binary| b.binary)&0x7FFFFFFF)==0) {
-		return 0;
+		return 0; /* +- zeroes */
 	};
-	a.parts.sign^=a.parts.sign;
-	b.parts.sign^=b.parts.sign;
+	
+	if ((a.parts.sign)&&(b.parts.sign)) {
+		/*if both are negative, smaller is that with greater binary value*/
+		return (a.binary>b.binary);
+		};
+	
+	/* lets negate signs - now will be positive numbers allways bigger than negative (first bit will be set for unsigned integer comparison)*/
+	a.parts.sign=!a.parts.sign;
+	b.parts.sign=!b.parts.sign;
 	return (a.binary<b.binary);
 			
 }
@@ -72,10 +79,17 @@ inline int isFloat32lt(float32 a, float32 b)
 inline int isFloat32gt(float32 a, float32 b) 
 {
 	if (((a.binary| b.binary)&0x7FFFFFFF)==0) {
-		return 0;
+		return 0; /* zeroes are equal with any sign */
 	};
-	a.parts.sign^=a.parts.sign;
-	b.parts.sign^=b.parts.sign;
+	
+	if ((a.parts.sign)&&(b.parts.sign)) {
+		/*if both are negative, greater is that with smaller binary value*/
+		return (a.binary<b.binary);
+		};
+	
+	/* lets negate signs - now will be positive numbers allways bigger than negative (first bit will be set for unsigned integer comparison)*/
+	a.parts.sign=!a.parts.sign;
+	b.parts.sign=!b.parts.sign;
 	return (a.binary>b.binary);
 			
 }

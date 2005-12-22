@@ -32,7 +32,7 @@
 inline int isFloat32NaN(float32 f);
 inline int isFloat32SigNaN(float32 f);
 
-inline int isFloat32Infinity(float32 f) 
+inline int isFloat32Infinity(float32 f);
 
 inline int isFloat32eq(float32 a, float32 b);
 inline int isFloat32lt(float32 a, float32 b);

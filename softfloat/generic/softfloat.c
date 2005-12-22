@@ -57,7 +57,7 @@ float __subsf3(float a, float b)
 	fa.f=a;
 	fb.f=b;
 	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign!=fb.parts.sign;
+		fb.parts.sign=!fb.parts.sign;
 		return addFloat32(fa,fb).f;
 	}
 	return subFloat32(fa,fb).f;
@@ -88,7 +88,7 @@ double __negdf2(double a)
  * a>b ..  1
  * */
 
-int __cmpsf2(double a, double b) 
+int __cmpsf2(float a, float b) 
 {
 	float32 fa,fb;
 	fa.f=a;
@@ -145,7 +145,7 @@ int __gesf2(float a, float b)
 	fb.f=b;
 	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
 		/* TODO: sigNaNs*/
-		return 1;
+		return -1;
 		};
 	
 	if (isFloat32eq(fa,fb)) {
@@ -198,14 +198,14 @@ int __lesf2(float a, float b)
 }
 
 /** Return positive value, if a>b and neither is NaN*/
-int __ltsf2(float a, float b)
+int __gtsf2(float a, float b)
 {
 	float32 fa,fb;
 	fa.f=a;
 	fb.f=b;
 	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
 		/* TODO: sigNaNs*/
-		return 1;
+		return -1;
 		};
 	if (isFloat32gt(fa, fb)) {
 		return 1;

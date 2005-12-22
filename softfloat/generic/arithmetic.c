@@ -28,6 +28,7 @@
 
 #include<sftypes.h>
 #include<arithmetic.h>
+#include<comparison.h>
 
 /** Add two Float32 numbers with same signs
  */
