@@ -45,7 +45,7 @@ atomic_t haltstate = {0}; /**< Halt flag */
 void halt()
 {
 #ifdef CONFIG_DEBUG
-	bool rundebugger;
+	bool rundebugger = false;
 
 //      TODO test_and_set not defined on all arches
 //	if (!test_and_set(&haltstate))

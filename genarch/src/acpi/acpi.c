@@ -41,7 +41,7 @@ struct acpi_rsdt *acpi_rsdt = NULL;
 struct acpi_xsdt *acpi_xsdt = NULL;
 
 struct acpi_signature_map signature_map[] = { 
-	{ (__u8 *)"APIC", (struct acpi_sdt_header **) &acpi_madt, "Multiple APIC Description Table" }
+	{ (__u8 *)"APIC", (void *) &acpi_madt, "Multiple APIC Description Table" }
 };
 
 static int rsdp_check(__u8 *rsdp) {

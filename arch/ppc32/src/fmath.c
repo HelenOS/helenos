@@ -43,15 +43,7 @@ signed short fmath_get_binary_exponent(double num)
 
 double fmath_get_decimal_exponent(double num) 
 {	//TODO:
-	double value;
-	// log10(2)*log2(x) => log10(x) 
-/*	__asm__ __volatile__ ( \
-	"fldlg2		#load log10(2)	\n\t"	\
-	"fxch %%st(1) 		\n\t" \
-	"fyl2x		#count st(0)*log2(st(1))->st(1); pop st(0)	\n\t" \
-	: "=t" (value) : "0"(num) );
-*/	return value;
-	
+	return 0;	
 }
 
 __u64 fmath_get_binary_mantisa(double num) 

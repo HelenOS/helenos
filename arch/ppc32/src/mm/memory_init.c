@@ -48,7 +48,7 @@ size_t get_memory_size(void)
 	if (ret == -1)
 		panic("Device /memory has no reg property\n");
 	
-	size_t total;
+	size_t total = 0;
 	int i;
 	
 	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {

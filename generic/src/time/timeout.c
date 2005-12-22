@@ -98,7 +98,7 @@ void timeout_initialize(timeout_t *t)
  */
 void timeout_register(timeout_t *t, __u64 time, timeout_handler_t f, void *arg)
 {
-	timeout_t *hlp;
+	timeout_t *hlp = NULL;
 	link_t *l, *m;
 	ipl_t ipl;
 	__u64 sum;
