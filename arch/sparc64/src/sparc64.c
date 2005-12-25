@@ -33,6 +33,7 @@
 
 void arch_pre_mm_init(void)
 {
+	interrupts_disable();
 	ofw_sparc64_console_init();
 	trap_init();
 }

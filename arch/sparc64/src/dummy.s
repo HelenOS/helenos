@@ -29,7 +29,6 @@
 .text
 
 .global asm_delay_loop
-.global cpu_halt
 .global cpu_sleep
 .global fmath_dpow
 .global fmath_fint
@@ -45,7 +44,6 @@
 .global dummy
 
 asm_delay_loop:
-cpu_halt:
 cpu_sleep:
 fmath_dpow:
 fmath_fint:
@@ -60,4 +58,9 @@ userspace:
 
 dummy:
 	retl
+	nop
+
+.global cpu_halt
+cpu_halt:
+	b cpu_halt
 	nop

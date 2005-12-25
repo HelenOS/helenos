@@ -42,6 +42,7 @@
 
 #include <arch/trap/trap_table.h>
 #include <arch/trap/regwin.h>
+#include <arch/trap/interrupt.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
@@ -53,59 +54,61 @@
 .global trap_table
 trap_table:
 
-/* TT = 0x24, TL = 0 *, clean_window handler */
+/* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
 .global clean_window_handler
 clean_window_handler:
 	CLEAN_WINDOW_HANDLER
 
-/* TT = 0x80, TL = 0 *, spill_0_normal handler */
+/* TT = 0x60, TL = 0, interrupt_vector_trap handler */
+.org trap_table + TT_INTERRUPT_VECTOR_TRAP*ENTRY_SIZE
+.global interrupt_vector_trap_handler
+interrupt_vector_trap_handler:
+	INTERRUPT_VECTOR_TRAP_HANDLER
+
+/* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
 .global spill_0_normal
 spill_0_normal:
 	SPILL_NORMAL_HANDLER
 
-/* TT = 0xc0, TL = 0 *, fill_0_normal handler */
+/* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
+.global fill_0_normal
 fill_0_normal:
 	FILL_NORMAL_HANDLER
 
 /*
- * Software traps for TL=0.
+ * Handlers for TL>0.
  */
-.org trap_table + 256*ENTRY_SIZE
-tl_0_software_traps:
 
-/* Reserved area. */
-.org trap_table + 384*ENTRY_SIZE
-.space 128*ENTRY_SIZE, 0
+/* TT = 0x24, TL > 0, clean_window handler */
+.org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
+.global clean_window_handler_high
+clean_window_handler_high:
+	CLEAN_WINDOW_HANDLER
 
-/*
- * Hardware interrupts for TL>0.
- */
-.org trap_table + 512*ENTRY_SIZE
-tl_non_0_hardware_traps:
 
-/*
- * Register window spill/fill traps for TL>0.
- */
-.org trap_table + 640*ENTRY_SIZE
-tl_non_0_regwin_traps:
+/* TT = 0x80, TL > 0, spill_0_normal handler */
 
-/*
- * Software traps for TL>0.
- */
-.org trap_table + 768*ENTRY_SIZE
-tl_non_0_software_traps:
+.org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
+.global spill_0_normal_high
+spill_0_normal_high:
+	SPILL_NORMAL_HANDLER
 
-/* Reserved area. */
-.org trap_table + 896*ENTRY_SIZE
-.space 128*ENTRY_SIZE, 0
+
+/* TT = 0xc0, TL > 0, fill_0_normal handler */
+.org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
+.global fill_0_normal_high
+fill_0_normal_high:
+	FILL_NORMAL_HANDLER
+
 
 
 /*
  * Save trap table.
  */
+.align TABLE_SIZE
 .global trap_table_save
 trap_table_save:
 	.space TABLE_SIZE, 0

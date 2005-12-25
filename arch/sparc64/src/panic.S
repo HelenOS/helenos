@@ -34,3 +34,4 @@ panic_printf:
 	nop
 	call halt
 	nop
+	/* Not reached. */
