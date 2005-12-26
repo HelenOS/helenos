@@ -26,45 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <arch/asm.h>
-#include <arch/register.h>
+#include <arch/interrupt.h>
+#include <interrupt.h>
+#include <debug.h>
 
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
-
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar
-};
-
-void ofw_sparc64_console_init(void)
-{
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdout = &ofw_sparc64_console;
-}
-
-/** Print one character.
+/** Register Interrupt Level Handler.
  *
- * @param ch Character to be printed.
+ * @param n Interrupt Level (1 - 15).
+ * @param name Short descriptive string.
+ * @param f Handler.
  */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
+void interrupt_register(int n, const char *name, iroutine f)
 {
-	pstate_reg_t pstate;
-
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
-
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
+	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
 	
-	pstate.am = false;
-	pstate_write(pstate.value);
+	exc_register(n - 1, name, f);
 }

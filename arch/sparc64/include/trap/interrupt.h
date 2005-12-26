@@ -26,45 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <arch/asm.h>
-#include <arch/register.h>
-
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
-
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar
-};
-
-void ofw_sparc64_console_init(void)
-{
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdout = &ofw_sparc64_console;
-}
-
-/** Print one character.
- *
- * @param ch Character to be printed.
+/**
+ * This file contains interrupt vector trap handler.
  */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
-{
-	pstate_reg_t pstate;
 
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
+#ifndef __sparc64_INTERRUPT_H__
+#define __sparc64_INTERRUPT_H__
 
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
-	
-	pstate.am = false;
-	pstate_write(pstate.value);
-}
+#include <arch/trap/trap_table.h>
+
+#define TT_INTERRUPT_LEVEL_1			0x41
+#define TT_INTERRUPT_LEVEL_2			0x42
+#define TT_INTERRUPT_LEVEL_3			0x43
+#define TT_INTERRUPT_LEVEL_4			0x44
+#define TT_INTERRUPT_LEVEL_5			0x45
+#define TT_INTERRUPT_LEVEL_6			0x46
+#define TT_INTERRUPT_LEVEL_7			0x47
+#define TT_INTERRUPT_LEVEL_8			0x48
+#define TT_INTERRUPT_LEVEL_9			0x49
+#define TT_INTERRUPT_LEVEL_10			0x4a
+#define TT_INTERRUPT_LEVEL_11			0x4b
+#define TT_INTERRUPT_LEVEL_12			0x4c
+#define TT_INTERRUPT_LEVEL_13			0x4d
+#define TT_INTERRUPT_LEVEL_14			0x4e
+#define TT_INTERRUPT_LEVEL_15			0x4f
+
+#define TT_INTERRUPT_VECTOR_TRAP		0x60
+
+#define INTERRUPT_LEVEL_N_HANDLER_SIZE		TRAP_TABLE_ENTRY_SIZE
+#define INTERRUPT_VECTOR_TRAP_HANDLER_SIZE	TRAP_TABLE_ENTRY_SIZE
+
+#ifdef __ASM__
+.macro INTERRUPT_LEVEL_N_HANDLER n
+	save %sp, -128, %sp
+	mov \n - 1, %o0
+	call exc_dispatch
+	mov %fp, %o1
+	restore
+	retry
+.endm
+
+.macro INTERRUPT_VECTOR_TRAP_HANDLER
+	retry
+.endm
+#endif /* __ASM__ */
+
+#endif

@@ -35,6 +35,7 @@
 #include <debug.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <arch/drivers/tick.h>
 
 /** Initialize trap table. */
 void trap_init(void)
@@ -58,7 +59,21 @@ void trap_init(void)
 	trap_install_handler(TT_CLEAN_WINDOW, CLEAN_WINDOW_HANDLER_SIZE, true);
 	trap_install_handler(TT_SPILL_0_NORMAL, SPILL_HANDLER_SIZE, true);
 	trap_install_handler(TT_FILL_0_NORMAL, FILL_HANDLER_SIZE, true);
-	
+	trap_install_handler(TT_INTERRUPT_LEVEL_1, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_2, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_3, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_4, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_5, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_6, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_7, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_8, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_9, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_10, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_11, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_12, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_13, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_14, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
+	trap_install_handler(TT_INTERRUPT_LEVEL_15, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
 	trap_install_handler(TT_INTERRUPT_VECTOR_TRAP, INTERRUPT_VECTOR_TRAP_HANDLER_SIZE, false);
 }
 

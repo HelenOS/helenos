@@ -100,6 +100,27 @@ static inline void tick_write(__u64 v)
 	__asm__ volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
 }
 
+/** Read SOFTINT Register.
+ *
+ * @return Value of SOFTINT register.
+ */
+static inline __u64 softint_read(void)
+{
+	__u64 v;
+
+	__asm__ volatile ("rd %%softint, %0\n" : "=r" (v));
+
+	return v;
+}
+
+/** Write SOFTINT Register.
+ *
+ * @param New value of SOFTINT register.
+ */
+static inline void softint_write(__u64 v)
+{
+	__asm__ volatile ("wr %0, %1, %%softint\n" : : "r" (v), "i" (0));
+}
 
 /** Enable interrupts.
  *

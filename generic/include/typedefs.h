@@ -86,4 +86,6 @@ typedef enum cmd_arg_type cmd_arg_type_t;
 typedef struct cmd_arg cmd_arg_t;
 typedef struct cmd_info cmd_info_t;
 
+typedef void (* iroutine)(int n, void *stack);
+
 #endif

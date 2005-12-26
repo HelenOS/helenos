@@ -30,12 +30,14 @@
 #include <print.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
+#include <arch/drivers/tick.h>
 
 void arch_pre_mm_init(void)
 {
 	interrupts_disable();
 	ofw_sparc64_console_init();
 	trap_init();
+	tick_init();
 }
 
 void arch_post_mm_init(void)

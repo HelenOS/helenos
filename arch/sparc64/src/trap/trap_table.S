@@ -60,6 +60,96 @@ trap_table:
 clean_window_handler:
 	CLEAN_WINDOW_HANDLER
 
+/* TT = 0x41, TL = 0, interrupt_level_1 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
+.global interrupt_level_1_handler
+interrupt_level_1_handler:
+	INTERRUPT_LEVEL_N_HANDLER 1
+
+/* TT = 0x42, TL = 0, interrupt_level_2 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_2*ENTRY_SIZE
+.global interrupt_level_2_handler
+interrupt_level_2_handler:
+	INTERRUPT_LEVEL_N_HANDLER 2
+
+/* TT = 0x43, TL = 0, interrupt_level_3 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_3*ENTRY_SIZE
+.global interrupt_level_3_handler
+interrupt_level_3_handler:
+	INTERRUPT_LEVEL_N_HANDLER 3
+
+/* TT = 0x44, TL = 0, interrupt_level_4 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_4*ENTRY_SIZE
+.global interrupt_level_4_handler
+interrupt_level_4_handler:
+	INTERRUPT_LEVEL_N_HANDLER 4
+
+/* TT = 0x45, TL = 0, interrupt_level_5 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_5*ENTRY_SIZE
+.global interrupt_level_5_handler
+interrupt_level_5_handler:
+	INTERRUPT_LEVEL_N_HANDLER 5
+
+/* TT = 0x46, TL = 0, interrupt_level_6 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_6*ENTRY_SIZE
+.global interrupt_level_6_handler
+interrupt_level_6_handler:
+	INTERRUPT_LEVEL_N_HANDLER 6
+
+/* TT = 0x47, TL = 0, interrupt_level_7 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_7*ENTRY_SIZE
+.global interrupt_level_7_handler
+interrupt_level_7_handler:
+	INTERRUPT_LEVEL_N_HANDLER 7
+
+/* TT = 0x48, TL = 0, interrupt_level_8 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_8*ENTRY_SIZE
+.global interrupt_level_8_handler
+interrupt_level_8_handler:
+	INTERRUPT_LEVEL_N_HANDLER 8
+
+/* TT = 0x49, TL = 0, interrupt_level_9 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_9*ENTRY_SIZE
+.global interrupt_level_9_handler
+interrupt_level_9_handler:
+	INTERRUPT_LEVEL_N_HANDLER 9
+
+/* TT = 0x4a, TL = 0, interrupt_level_10 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_10*ENTRY_SIZE
+.global interrupt_level_10_handler
+interrupt_level_10_handler:
+	INTERRUPT_LEVEL_N_HANDLER 10
+
+/* TT = 0x4b, TL = 0, interrupt_level_11 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_11*ENTRY_SIZE
+.global interrupt_level_11_handler
+interrupt_level_11_handler:
+	INTERRUPT_LEVEL_N_HANDLER 11
+
+/* TT = 0x4c, TL = 0, interrupt_level_12 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_12*ENTRY_SIZE
+.global interrupt_level_12_handler
+interrupt_level_12_handler:
+	INTERRUPT_LEVEL_N_HANDLER 12
+
+/* TT = 0x4d, TL = 0, interrupt_level_13 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_13*ENTRY_SIZE
+.global interrupt_level_13_handler
+interrupt_level_13_handler:
+	INTERRUPT_LEVEL_N_HANDLER 13
+
+/* TT = 0x4e, TL = 0, interrupt_level_14 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_14*ENTRY_SIZE
+.global interrupt_level_14_handler
+interrupt_level_14_handler:
+	INTERRUPT_LEVEL_N_HANDLER 14
+
+/* TT = 0x4f, TL = 0, interrupt_level_15 handler */
+.org trap_table + TT_INTERRUPT_LEVEL_15*ENTRY_SIZE
+.global interrupt_level_15_handler
+interrupt_level_15_handler:
+	INTERRUPT_LEVEL_N_HANDLER 15
+
 /* TT = 0x60, TL = 0, interrupt_vector_trap handler */
 .org trap_table + TT_INTERRUPT_VECTOR_TRAP*ENTRY_SIZE
 .global interrupt_vector_trap_handler

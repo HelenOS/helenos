@@ -74,7 +74,7 @@ void exc_dispatch(int n, void *stack)
 {
 	ASSERT(n < IVT_ITEMS);
 	
-	exc_table[n].f(n, stack);
+	exc_table[n].f(n + IVT_FIRST, stack);
 }
 
 /** Default 'null' exception handler */
@@ -83,7 +83,7 @@ static void exc_undef(int n, void *stack)
 	panic("Unhandled exception %d.", n);
 }
 
-/** KConsole cmd - print all exceptions */
+/** kconsole cmd - print all exceptions */
 static int exc_print_cmd(cmd_arg_t *argv)
 {
 	int i;
@@ -95,7 +95,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 		symbol = get_symtab_entry((__native)exc_table[i].f);
 		if (!symbol)
 			symbol = "not found";
-		printf("%d %s 0x%p(%s)\n",i,exc_table[i].name,
+		printf("%d %s 0x%p(%s)\n", i + IVT_FIRST, exc_table[i].name,
 		       exc_table[i].f,symbol);		
 		if (!((i+1) % 20)) {
 			printf("Press any key to continue.");

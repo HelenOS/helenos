@@ -26,45 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <arch/asm.h>
-#include <arch/register.h>
+#ifndef __sparc64_TICK_H__
+#define __sparc64_TICK_H__
 
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
+#define TICK_DELTA        100000
 
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar
-};
+extern void tick_init(void);
+extern void tick_interrupt(int n, void *stack);
 
-void ofw_sparc64_console_init(void)
-{
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdout = &ofw_sparc64_console;
-}
-
-/** Print one character.
- *
- * @param ch Character to be printed.
- */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
-{
-	pstate_reg_t pstate;
-
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
-
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
-	
-	pstate.am = false;
-	pstate_write(pstate.value);
-}
+#endif

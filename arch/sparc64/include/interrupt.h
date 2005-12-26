@@ -29,4 +29,11 @@
 #ifndef __sparc64_INTERRUPT_H__
 #define __sparc64_INTERRUPT_H__
 
+#include <typedefs.h>
+
+#define IVT_ITEMS 	15
+#define IVT_FIRST	1
+
+extern void interrupt_register(int n, const char *name, iroutine f);
+
 #endif

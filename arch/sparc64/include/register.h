@@ -80,10 +80,22 @@ typedef union tick_reg tick_reg_t;
 union tick_compare_reg {
 	__u64 value;
 	struct {
-		unsigned int_dis : 1;	/**< TICK_INT interrupt enable. */
+		unsigned int_dis : 1;	/**< TICK_INT interrupt disabled flag. */
 		__u64 tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
 	} __attribute__ ((packed));
 };
 typedef union tick_compare_reg tick_compare_reg_t;
+
+/** SOFTINT Register. */
+union softint_reg {
+	__u64 value;
+	struct {
+		__u64 : 47; 
+		unsigned stick_int : 1;
+		unsigned int_level : 15;
+		unsigned tick_int : 1;
+	} __attribute__ ((packed));
+};
+typedef union softint_reg softint_reg_t;
 
 #endif

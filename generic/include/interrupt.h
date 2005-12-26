@@ -30,12 +30,15 @@
 #define __INTERRUPT_H__
 
 #include <arch/interrupt.h>
+#include <typedefs.h>
 
 #ifndef IVT_ITEMS
-#  define IVT_ITEMS 0
+#	define IVT_ITEMS 0
 #endif
 
-typedef void (* iroutine)(int n, void *stack);
+#ifndef IVT_FIRST
+#	define IVT_FIRST 0
+#endif
 
 extern iroutine exc_register(int n, const char *name, iroutine f);
 extern void exc_dispatch(int n, void *stack);

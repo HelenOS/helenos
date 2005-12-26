@@ -26,45 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
+#include <arch/drivers/tick.h>
+#include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/register.h>
+#include <debug.h>
+#include <print.h>
 
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
-
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar
-};
-
-void ofw_sparc64_console_init(void)
+void tick_init(void)
 {
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdout = &ofw_sparc64_console;
+	tick_compare_reg_t compare;
+	
+	interrupt_register(14, "tick_int", tick_interrupt);
+	compare.int_dis = false;
+	compare.tick_cmpr = TICK_DELTA;
+	tick_compare_write(compare.value);
+	tick_write(0);
 }
 
-/** Print one character.
- *
- * @param ch Character to be printed.
- */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
+void tick_interrupt(int n, void *stack)
 {
-	pstate_reg_t pstate;
-
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
-
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
-	
-	pstate.am = false;
-	pstate_write(pstate.value);
+	panic("Unserviced %s.\n", __FUNCTION__);
 }
