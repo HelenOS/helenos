@@ -31,8 +31,9 @@
 #include <arch/asm.h>
 #include <arch/register.h>
 #include <debug.h>
-#include <print.h>
+#include <time/clock.h>
 
+/** Initialize tick interrupt. */
 void tick_init(void)
 {
 	tick_compare_reg_t compare;
@@ -44,7 +45,38 @@ void tick_init(void)
 	tick_write(0);
 }
 
+/** Process tick interrupt.
+ *
+ * @param n Interrupt Level, 14,  (can be ignored)
+ * @param stack Stack pointer of the interrupted context.
+ */
 void tick_interrupt(int n, void *stack)
 {
-	panic("Unserviced %s.\n", __FUNCTION__);
+	softint_reg_t softint, clear;
+	
+	softint.value = softint_read();
+	
+	/*
+	 * Make sure we are servicing interrupt_level_14
+	 */
+	ASSERT(n == 14);
+	
+	/*
+	 * Make sure we are servicing TICK_INT.
+	 */
+	ASSERT(softint.tick_int);
+
+	/*
+	 * Clear tick interrupt.
+	 */
+	clear.value = 0;
+	clear.tick_int = 1;
+	clear_softint_write(clear.value);
+	
+	/*
+	 * Restart counter.
+	 */
+	tick_write(0);
+	
+	clock();
 }
