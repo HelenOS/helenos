@@ -61,6 +61,8 @@
 	stx %l5, [\r + OFFSET_L5]
 	stx %l6, [\r + OFFSET_L6]
 	stx %l7, [\r + OFFSET_L7]
+	rdpr %cleanwin, %g1
+	stx %g1, [\r + OFFSET_CLEANWIN]
 .endm
 
 .macro CONTEXT_LOAD r
@@ -82,6 +84,8 @@
 	ldx [\r + OFFSET_L5], %l5
 	ldx [\r + OFFSET_L6], %l6
 	ldx [\r + OFFSET_L7], %l7
+	ldx [\r + OFFSET_CLEANWIN], %g1
+	wrpr %g1, %g0, %cleanwin
 .endm
 
 context_save_arch:

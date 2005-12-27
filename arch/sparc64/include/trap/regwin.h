@@ -118,12 +118,14 @@
 	mov %r0, %l5
 	mov %r0, %l6
 	mov %r0, %l7
-	mov %r0, %i0
-	mov %r0, %i1
-	mov %r0, %i2
-	mov %r0, %i3
-	mov %r0, %i4
-	mov %r0, %i5
+	mov %r0, %o0
+	mov %r0, %o1
+	mov %r0, %o2
+	mov %r0, %o3
+	mov %r0, %o4
+	mov %r0, %o5
+	mov %r0, %o6
+	mov %r0, %o7
 	retry
 .endm
 #endif /* __ASM__ */

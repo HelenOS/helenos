@@ -33,6 +33,8 @@
 #include <arch/types.h>
 #endif /* __ASM__ */
 
+#include <arch/stack.h>
+
 #define TRAP_TABLE_ENTRY_COUNT	1024
 #define TRAP_TABLE_ENTRY_SIZE	32
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT*TRAP_TABLE_ENTRY_SIZE)
@@ -47,5 +49,33 @@ typedef struct trap_table_entry trap_table_entry_t;
 extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
 extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 #endif /* !__ASM__ */
+
+#ifdef __ASM__
+.macro SAVE_GLOBALS
+	mov %g1, %l1
+	mov %g2, %l2
+	mov %g3, %l3
+	mov %g4, %l4
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
+.endm
+
+.macro RESTORE_GLOBALS
+	mov %l1, %g1
+	mov %l2, %g2
+	mov %l3, %g3
+	mov %l4, %g4
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
+.endm
+
+.macro SAVING_HANDLER f
+	set \f, %l0
+	b saving_handler
+	nop
+.endm
+#endif /* __ASM__ */
 
 #endif

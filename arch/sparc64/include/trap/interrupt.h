@@ -34,6 +34,7 @@
 #define __sparc64_INTERRUPT_H__
 
 #include <arch/trap/trap_table.h>
+#include <arch/stack.h>
 
 #define TT_INTERRUPT_LEVEL_1			0x41
 #define TT_INTERRUPT_LEVEL_2			0x42
@@ -58,12 +59,10 @@
 
 #ifdef __ASM__
 .macro INTERRUPT_LEVEL_N_HANDLER n
-	save %sp, -128, %sp
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	mov \n - 1, %o0
-	call exc_dispatch
 	mov %fp, %o1
-	restore
-	retry
+	SAVING_HANDLER exc_dispatch
 .endm
 
 .macro INTERRUPT_VECTOR_TRAP_HANDLER

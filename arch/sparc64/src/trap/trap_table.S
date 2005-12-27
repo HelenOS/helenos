@@ -37,7 +37,12 @@
  * This arrangement is beneficial because kernel handlers stay on their
  * link-time addresses which is good for debugging.
  */
- 
+
+.register %g2, #scratch
+.register %g3, #scratch
+.register %g6, #scratch
+.register %g7, #scratch 
+
 .text
 
 #include <arch/trap/trap_table.h>
@@ -202,3 +207,20 @@ fill_0_normal_high:
 .global trap_table_save
 trap_table_save:
 	.space TABLE_SIZE, 0
+
+
+/* Trap handler that explicitly saves global registers.
+ *
+ * Input registers:
+ * 	%l0	 	Address of function to call.
+ * Output registers:
+ *	 %l1 - %l7 	Copy of %g1 - %g7
+ */
+.global saving_handler
+saving_handler:
+	SAVE_GLOBALS
+	call %l0
+	nop
+	RESTORE_GLOBALS
+	restore		/* matches the save instruction from the top-level handler */
+	retry

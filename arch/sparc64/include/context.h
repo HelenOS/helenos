@@ -50,7 +50,8 @@
 #define context_set(c, _pc, stack, size)								\
         (c)->pc = ((__address) _pc) - 8;								\
         (c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
-	(c)->fp = -STACK_BIAS
+	(c)->fp = -STACK_BIAS;										\
+	(c)->cleanwin = 0
 	
 
 /*
@@ -77,6 +78,7 @@ struct context {
 	__u64 l6;
 	__u64 l7;
 	ipl_t ipl;
+	__u64 cleanwin;
 };
 
 #endif

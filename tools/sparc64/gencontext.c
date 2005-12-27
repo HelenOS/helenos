@@ -45,6 +45,7 @@ int main(void)
 	fprintf(f,"#define OFFSET_L5  0x%x\n",((int)&pctx->l5) - (int )pctx);
 	fprintf(f,"#define OFFSET_L6  0x%x\n",((int)&pctx->l6) - (int )pctx);
 	fprintf(f,"#define OFFSET_L7  0x%x\n",((int)&pctx->l7) - (int )pctx);
+	fprintf(f,"#define OFFSET_CLEANWIN  0x%x\n",((int)&pctx->cleanwin) - (int )pctx);
 
 	fclose(f);
 
