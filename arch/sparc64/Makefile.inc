@@ -60,5 +60,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/trap/trap_table.S \
 	arch/$(ARCH)/src/trap/trap.c \
+	arch/$(ARCH)/src/trap/exception.c \
 	arch/$(ARCH)/src/trap/interrupt.c \
 	arch/$(ARCH)/src/drivers/tick.c

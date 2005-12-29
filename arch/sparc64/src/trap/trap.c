@@ -29,6 +29,7 @@
 #include <arch/trap/trap.h>
 #include <arch/trap/trap_table.h>
 #include <arch/trap/regwin.h>
+#include <arch/trap/exception.h>
 #include <arch/trap/interrupt.h>
 #include <arch/asm.h>
 #include <memstr.h>
@@ -53,10 +54,14 @@ void trap_init(void)
 	/*
 	 * Install kernel-provided handlers.
 	 */
+	trap_install_handler(TT_INSTRUCTION_ACCESS_EXCEPTION, TRAP_TABLE_ENTRY_SIZE, false);
 	trap_install_handler(TT_CLEAN_WINDOW, CLEAN_WINDOW_HANDLER_SIZE, false);
+	trap_install_handler(TT_MEM_ADDRESS_NOT_ALIGNED, TRAP_TABLE_ENTRY_SIZE, false);
 	trap_install_handler(TT_SPILL_0_NORMAL, SPILL_HANDLER_SIZE, false);
 	trap_install_handler(TT_FILL_0_NORMAL, FILL_HANDLER_SIZE, false);
+	trap_install_handler(TT_INSTRUCTION_ACCESS_EXCEPTION, TRAP_TABLE_ENTRY_SIZE, true);
 	trap_install_handler(TT_CLEAN_WINDOW, CLEAN_WINDOW_HANDLER_SIZE, true);
+	trap_install_handler(TT_MEM_ADDRESS_NOT_ALIGNED, TRAP_TABLE_ENTRY_SIZE, true);
 	trap_install_handler(TT_SPILL_0_NORMAL, SPILL_HANDLER_SIZE, true);
 	trap_install_handler(TT_FILL_0_NORMAL, FILL_HANDLER_SIZE, true);
 	trap_install_handler(TT_INTERRUPT_LEVEL_1, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);

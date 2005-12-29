@@ -48,6 +48,8 @@
 #include <arch/trap/trap_table.h>
 #include <arch/trap/regwin.h>
 #include <arch/trap/interrupt.h>
+#include <arch/trap/exception.h>
+#include <arch/stack.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
@@ -59,11 +61,23 @@
 .global trap_table
 trap_table:
 
+/* TT = 0x08, TL = 0, instruction_access_exception */
+.org trap_table + TT_INSTRUCTION_ACCESS_EXCEPTION*ENTRY_SIZE
+.global instruction_access_exception
+instruction_access_exception:
+	SIMPLE_HANDLER do_instruction_access_exc
+
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
 .global clean_window_handler
 clean_window_handler:
 	CLEAN_WINDOW_HANDLER
+
+/* TT = 0x34, TL = 0, mem_address_not_aligned */
+.org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
+.global mem_address_not_aligned
+mem_address_not_aligned:
+	SIMPLE_HANDLER do_mem_address_not_aligned
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
@@ -177,20 +191,29 @@ fill_0_normal:
  * Handlers for TL>0.
  */
 
+/* TT = 0x08, TL > 0, instruction_access_exception */
+.org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
+.global instruction_access_exception_high
+instruction_access_exception_high:
+	SIMPLE_HANDLER do_instruction_access_exc
+
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
 .global clean_window_handler_high
 clean_window_handler_high:
 	CLEAN_WINDOW_HANDLER
 
+/* TT = 0x34, TL > 0, mem_address_not_aligned */
+.org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
+.global mem_address_not_aligned_high
+mem_address_not_aligned_high:
+	SIMPLE_HANDLER do_mem_address_not_aligned
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
-
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
 .global spill_0_normal_high
 spill_0_normal_high:
 	SPILL_NORMAL_HANDLER
-
 
 /* TT = 0xc0, TL > 0, fill_0_normal handler */
 .org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
@@ -209,18 +232,105 @@ trap_table_save:
 	.space TABLE_SIZE, 0
 
 
-/* Trap handler that explicitly saves global registers.
+/* Preemptible trap handler.
+ *
+ * This trap handler makes arrangements to
+ * make calling scheduler() possible.
+ *
+ * The caller is responsible for doing save
+ * and allocating PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE
+ * bytes on stack.
  *
  * Input registers:
  * 	%l0	 	Address of function to call.
  * Output registers:
  *	 %l1 - %l7 	Copy of %g1 - %g7
  */
-.global saving_handler
-saving_handler:
+.global preemptible_handler
+preemptible_handler:
+	/*
+	 * Save TSTATE, TPC, TNPC and PSTATE aside.
+	 */
+	rdpr %tstate, %g1
+	rdpr %tpc, %g2
+	rdpr %tnpc, %g3
+	rdpr %pstate, %g4
+
+	stx %g1, [%fp + STACK_BIAS + SAVED_TSTATE]
+	stx %g2, [%fp + STACK_BIAS + SAVED_TPC]
+	stx %g3, [%fp + STACK_BIAS + SAVED_TNPC]
+	stx %g4, [%fp + STACK_BIAS + SAVED_PSTATE]
+	
+	/*
+	 * Write 0 to TL.
+	 */
+	wrpr %g0, 0, %tl
+	
+	/*
+	 * Alter PSTATE.
+	 * - switch to normal globals.
+	 */
+	and %g4, ~1, %g4		! mask alternate globals
+	wrpr %g4, 0, %pstate
+	 
+	/*
+	 * Save the normal globals.
+	 */
 	SAVE_GLOBALS
+	
+	/*
+	 * Call the higher-level handler.
+	 */
 	call %l0
 	nop
+	
+	/*
+	 * Restore the normal global register set.
+	 */
 	RESTORE_GLOBALS
-	restore		/* matches the save instruction from the top-level handler */
+	
+	/*
+	 * Restore PSTATE from saved copy.
+	 * Alternate globals become active.
+	 */
+	ldx [%fp + STACK_BIAS + SAVED_PSTATE], %l4
+	wrpr %l4, 0, %pstate
+	
+	/*
+	 * Write 1 to TL.
+	 */
+	wrpr %g0, 1, %tl
+	
+	/*
+	 * Read TSTATE, TPC and TNPC from saved copy.
+	 */
+	ldx [%fp + STACK_BIAS + SAVED_TSTATE], %g1
+	ldx [%fp + STACK_BIAS + SAVED_TPC], %g2
+	ldx [%fp + STACK_BIAS + SAVED_TNPC], %g3
+
+	/*
+	 * Do restore to match the save instruction from the top-level handler.
+	 */
+	restore
+
+	/*
+	 * On execution of retry instruction, CWP will be restored from TSTATE register.
+	 * However, because of scheduling, it is possible that CWP in saved TSTATE
+	 * is different from current CWP. The following chunk of code fixes CWP
+	 * in the saved copy of TSTATE.
+	 */
+	rdpr %cwp, %g4		! read current CWP
+	and %g1, ~0x1f, %g1	! clear CWP field in saved TSTATE
+	or %g1, %g4, %g1	! write current CWP to TSTATE
+	
+	/*
+	 * Restore TSTATE, TPC and TNPC from saved copies.
+	 */
+	wrpr %g1, 0, %tstate
+	wrpr %g2, 0, %tpc
+	wrpr %g3, 0, %tnpc
+	 
+	/*
+	 * Return from interrupt.
+	 */
 	retry

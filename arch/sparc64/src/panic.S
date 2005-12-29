@@ -32,11 +32,9 @@
 
 .global panic_printf
 panic_printf:
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	call printf
 	nop
 	call halt
 	nop
 	/* Not reached. */
-	restore
 

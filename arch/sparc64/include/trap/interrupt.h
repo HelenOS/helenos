@@ -30,8 +30,8 @@
  * This file contains interrupt vector trap handler.
  */
 
-#ifndef __sparc64_INTERRUPT_H__
-#define __sparc64_INTERRUPT_H__
+#ifndef __sparc64_TRAP_INTERRUPT_H__
+#define __sparc64_TRAP_INTERRUPT_H__
 
 #include <arch/trap/trap_table.h>
 #include <arch/stack.h>
@@ -59,10 +59,10 @@
 
 #ifdef __ASM__
 .macro INTERRUPT_LEVEL_N_HANDLER n
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
 	mov \n - 1, %o0
 	mov %fp, %o1
-	SAVING_HANDLER exc_dispatch
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 .macro INTERRUPT_VECTOR_TRAP_HANDLER

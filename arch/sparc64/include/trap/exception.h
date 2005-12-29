@@ -26,67 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_TRAP_TABLE_H__
-#define __sparc64_TRAP_TABLE_H__
+#ifndef __sparc64_EXCEPTION_H__
+#define __sparc64_EXCEPTION_H__
+
+#define TT_INSTRUCTION_ACCESS_EXCEPTION		0x08
+#define TT_MEM_ADDRESS_NOT_ALIGNED		0x34
 
 #ifndef __ASM__
-#include <arch/types.h>
-#endif /* __ASM__ */
-
-#include <arch/stack.h>
-
-#define TRAP_TABLE_ENTRY_COUNT	1024
-#define TRAP_TABLE_ENTRY_SIZE	32
-#define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT*TRAP_TABLE_ENTRY_SIZE)
-
-#ifndef __ASM__
-struct trap_table_entry {
-	__u8 octets[TRAP_TABLE_ENTRY_SIZE];
-} __attribute__ ((packed));
-
-typedef struct trap_table_entry trap_table_entry_t;
-
-extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
-extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
+extern void do_instruction_access_exc(void);
+extern void do_mem_address_not_aligned(void);
 #endif /* !__ASM__ */
-
-#ifdef __ASM__
-.macro SAVE_GLOBALS
-	mov %g1, %l1
-	mov %g2, %l2
-	mov %g3, %l3
-	mov %g4, %l4
-	mov %g5, %l5
-	mov %g6, %l6
-	mov %g7, %l7
-.endm
-
-.macro RESTORE_GLOBALS
-	mov %l1, %g1
-	mov %l2, %g2
-	mov %l3, %g3
-	mov %l4, %g4
-	mov %l5, %g5
-	mov %l6, %g6
-	mov %l7, %g7
-.endm
-
-#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE	(STACK_WINDOW_SAVE_AREA_SIZE+(4*8))
-#define SAVED_TSTATE	-(1*8)
-#define SAVED_TPC	-(2*8)
-#define SAVED_TNPC	-(3*8)
-#define SAVED_PSTATE	-(4*8)
-
-.macro PREEMPTIBLE_HANDLER f
-	set \f, %l0
-	b preemptible_handler
-	nop
-.endm
-
-.macro SIMPLE_HANDLER f
-	call \f
-	nop
-.endm
-#endif /* __ASM__ */
 
 #endif
