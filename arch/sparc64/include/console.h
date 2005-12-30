@@ -29,6 +29,7 @@
 #ifndef __sparc64_CONSOLE_H__
 #define __sparc64_CONSOLE_H__
 
+extern void kofwinput(void *arg);
 extern void ofw_sparc64_console_init(void);
 
 #endif

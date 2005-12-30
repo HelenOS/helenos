@@ -35,6 +35,7 @@
 ofw_entry ofw;
 
 phandle ofw_chosen;
+ihandle ofw_stdin;
 ihandle ofw_stdout;
 
 void ofw_init(void)
@@ -43,8 +44,11 @@ void ofw_init(void)
 	if (ofw_chosen == -1)
 		ofw_done();
 	
+	if (ofw_get_property(ofw_chosen, "stdin",  &ofw_stdin, sizeof(ofw_stdin)) <= 0)
+		ofw_stdin = 0;
+		
 	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)
-		ofw_stdout = 0;
+		ofw_stdout = 0;	
 }
 
 void ofw_done(void)
@@ -82,6 +86,25 @@ void ofw_putchar(const char ch)
 		return;
 	
 	(void) ofw_call("write", 3, 1, ofw_stdout, &ch, 1);
+}
+
+/** Read character from OFW's input.
+ *
+ * This call is non-blocking.
+ *
+ * @return 0 if no character was read, character read otherwise.
+ */
+char ofw_getchar(void)
+{
+	char ch;
+
+	if (ofw_stdin == 0)
+		return 0;
+	
+	if (ofw_call("read", 3, 1, ofw_stdin, &ch, 1) == 1)
+		return ch;
+	else
+		return 0;
 }
 
 phandle ofw_find_device(const char *name)

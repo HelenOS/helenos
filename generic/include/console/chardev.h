@@ -63,6 +63,6 @@ struct chardev {
 extern void chardev_initialize(char *name,
 			       chardev_t *chardev, 
 			       chardev_operations_t *op);
-void chardev_push_character(chardev_t *chardev, __u8 ch);
+extern void chardev_push_character(chardev_t *chardev, __u8 ch);
 
 #endif /* __CHARDEV_H__ */

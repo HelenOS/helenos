@@ -27,10 +27,11 @@
  */
 
 #include <arch.h>
-#include <print.h>
+#include <debug.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
 #include <arch/drivers/tick.h>
+#include <proc/thread.h>
 
 void arch_pre_mm_init(void)
 {
@@ -50,6 +51,15 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	thread_t *t;
+	
+	/*
+	 * Create thread that reads characters from OFW's input.
+	 */
+	t = thread_create(kofwinput, NULL, TASK, 0);
+	if (!t)
+		panic("cannot create kofwinput\n");
+	thread_ready(t);
 }
 
 void calibrate_delay_loop(void)
