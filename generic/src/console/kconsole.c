@@ -471,6 +471,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	cmd_info_t *cmd = NULL;
 	link_t *cur;
 	int i;
+	int error = 0;
 	
 	if (!parse_argument(cmdline, len, &start, &end)) {
 		/* Command line did not contain alphanumeric word. */
@@ -520,6 +521,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 			return NULL;
 		}
 		
+		error = 0;
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
 		    	buf = cmd->argv[i].buffer;
@@ -529,7 +531,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		case ARG_TYPE_INT: 
 			if (parse_int_arg(cmdline+start, end-start+1, 
 					  &cmd->argv[i].intval))
-				return NULL;
+				error = 1;
 			break;
 		case ARG_TYPE_VAR:
 			if (start != end && cmdline[start] == '"' && cmdline[end] == '"') {
@@ -544,15 +546,20 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 				cmd->argv[i].vartype = ARG_TYPE_INT;
 			else {
 				printf("Unrecognized variable argument.\n");
-				return NULL;
+				error = 1;
 			}
 			break;
 		case ARG_TYPE_INVALID:
 		default:
 			printf("invalid argument type\n");
-			return NULL;
+			error = 1;
 			break;
 		}
+	}
+	
+	if (error) {
+		spinlock_unlock(&cmd->lock);
+		return NULL;
 	}
 	
 	start = end + 1;

@@ -48,6 +48,7 @@
 
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
+#include <mm/frame.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -117,6 +118,7 @@ static cmd_info_t set4_info = {
 	.argc = 2,
 	.argv = set4_argv
 };
+
 
 
 /** Data and methods for 'call0' command. */
@@ -241,6 +243,36 @@ cmd_info_t ptlb_info = {
 	.argv = NULL
 };
 
+
+/** Data and methods for 'zones' command */
+static int cmd_zones(cmd_arg_t *argv);
+static cmd_info_t zones_info = {
+	.name = "zones",
+	.description = "List of memory zones.",
+	.func = cmd_zones,
+	.argc = 0
+};
+
+/** Data and methods for 'zone' command */
+static int cmd_zone(cmd_arg_t *argv);
+static char zone_buf[MAX_CMDLINE+1];
+static cmd_arg_t zone_argv = {
+	.type = ARG_TYPE_INT,
+	.buffer = zone_buf,
+	.len = sizeof(zone_buf)
+};
+
+
+static cmd_info_t zone_info = {
+	.name = "zone",
+	.description = "Show memory zone structure.",
+	.func = cmd_zone,
+	.argc = 1,
+	.argv = &zone_argv
+};
+
+
+
 /** Initialize command info structure.
  *
  * @param cmd Command info structure.
@@ -298,6 +330,16 @@ void cmd_init(void)
 	cmd_initialize(&ptlb_info);
 	if (!cmd_register(&ptlb_info))
 		panic("could not register command %s\n", ptlb_info.name);
+
+	cmd_initialize(&zones_info);
+	if (!cmd_register(&zones_info))
+		panic("could not register command %s\n", zones_info.name);
+
+	cmd_initialize(&zone_info);
+	if (!cmd_register(&zone_info))
+		panic("could not register command %s\n", zone_info.name);
+
+
 }
 
 
@@ -533,3 +575,14 @@ int cmd_set4(cmd_arg_t *argv)
 	
 	return 1;
 }
+
+
+int cmd_zones(cmd_arg_t * argv) {
+	printf("Zones listing not implemented\n");
+	return 1;
+}
+int cmd_zone(cmd_arg_t * argv) {
+	printf("Zone details not implemented\n");
+	return 1;
+}
+
