@@ -70,7 +70,7 @@
 */
 
 #define i8042_SET_COMMAND 0x60
-#define i8042_COMMAND 0x09
+#define i8042_COMMAND 0x49
 #define i8042_WAIT_MASK 0x02
 
 
