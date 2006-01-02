@@ -94,6 +94,10 @@
 /** Destination masks. */
 #define DEST_ALL	0xff
 
+/** Dest format models. */
+#define MODEL_FLAT	0xf
+#define MODEL_CLUSTER	0x0
+
 /** Interrupt Command Register. */
 #define ICRlo		(0x300/sizeof(__u32))
 #define ICRhi		(0x310/sizeof(__u32))
@@ -246,6 +250,28 @@ typedef union l_apic_id l_apic_id_t;
 #define is_local_apic(x)	(((x)&LAVR_Mask&0xf0)==0x1)
 #define is_82489DX_apic(x)	((((x)&LAVR_Mask&0xf0)==0x0))
 #define is_local_xapic(x)	(((x)&LAVR_Mask)==0x14)
+
+/** Logical Destination Register. */
+#define  LDR		(0x0d0/sizeof(__u32))
+union ldr {
+	__u32 value;
+	struct {
+		unsigned : 24;		/**< Reserver. */
+		__u8 id;		/**< Logical APIC ID. */
+	} __attribute__ ((packed));
+};
+typedef union ldr ldr_t;
+
+/** Destination Format Register. */
+#define DFR		(0x0e0/sizeof(__u32))
+union dfr {
+	__u32 value;
+	struct {
+		unsigned : 28;		/**< Reserved, all ones. */
+		unsigned model : 4;	/**< Model. */
+	} __attribute__ ((packed));
+};
+typedef union dfr dfr_t;
 
 /* IO APIC */
 #define IOREGSEL	(0x00/sizeof(__u32))

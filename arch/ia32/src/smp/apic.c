@@ -43,7 +43,7 @@
 /*
  * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
- *	Bochs 2.0.2 - Bochs 2.2 with 2-8 CPUs
+ *	Bochs 2.0.2 - Bochs 2.2.5 with 2-8 CPUs
  *	Simics 2.0.28 - Simics 2.2.19 2-15 CPUs
  *	VMware Workstation 5.5 with 2 CPUs
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
@@ -311,6 +311,8 @@ void l_apic_init(void)
 	icr_t icr;
 	tdcr_t tdcr;
 	lvt_tm_t tm;
+	ldr_t ldr;
+	dfr_t dfr;
 	__u32 t1, t2;
 
 	/* Initialize LVT Error register. */
@@ -372,6 +374,17 @@ void l_apic_init(void)
 	t2 = l_apic[CCRT];
 	
 	l_apic[ICRT] = t1-t2;
+	
+	/* Program Logical Destination Register. */
+	ldr.value = l_apic[LDR];
+	if (CPU->id < sizeof(CPU->id)*8)	/* size in bits */
+		ldr.id = (1<<CPU->id);
+	l_apic[LDR] = ldr.value;
+	
+	/* Program Destination Format Register for Flat mode. */
+	dfr.value = l_apic[DFR];
+	dfr.model = MODEL_FLAT;
+	l_apic[DFR] = dfr.value;
 }
 
 /** Local APIC End of Interrupt. */
@@ -470,11 +483,10 @@ void io_apic_change_ioredtbl(int pin, int dest, __u8 v, int flags)
 	if (flags & LOPRI)
 		dlvr = DELMOD_LOWPRI;
 
-	
 	reg.lo = io_apic_read(IOREDTBL + pin*2);
 	reg.hi = io_apic_read(IOREDTBL + pin*2 + 1);
 	
-	reg.dest =  dest;
+	reg.dest = dest;
 	reg.destmod = DESTMOD_LOGIC;
 	reg.trigger_mode = TRIGMOD_EDGE;
 	reg.intpol = POLARITY_HIGH;
