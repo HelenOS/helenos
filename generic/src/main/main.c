@@ -41,6 +41,7 @@
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
+#include <main/version.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -63,24 +64,6 @@
 #include <arch/faddr.h>
 
 #include <typedefs.h>
-
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (C) 2001-2006 HelenOS project";
-char *release = RELEASE;
-char *name = NAME;
-char *arch = ARCH;
-
-#ifdef REVISION
-	char *revision = ", revision " REVISION;
-#else
-	char *revision = "";
-#endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " TIMESTAMP;
-#else
-	char *timestamp = "";
-#endif
 
 config_t config;
 context_t ctx;
@@ -167,7 +150,7 @@ void main_bsp_separated_stack(void)
 	kconsole_init();
 
 	/* Exception handler initialization, before architecture
-	 * starts adding it's own handlers
+	 * starts adding its own handlers
 	 */
 	exc_init();
 	
@@ -177,8 +160,9 @@ void main_bsp_separated_stack(void)
 	page_init();
 	tlb_init();
 	arch_post_mm_init();
-	
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
+
+	version_print();
+
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 

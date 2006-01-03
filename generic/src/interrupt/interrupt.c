@@ -31,6 +31,7 @@
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/chardev.h>
+#include <console/cmd.h>
 #include <panic.h>
 #include <print.h>
 #include <symtab.h>
@@ -111,7 +112,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 }
 
 static cmd_info_t exc_info = {
-	.name = "pexc",
+	.name = "exc",
 	.description = "Print exception table.",
 	.func = exc_print_cmd,
 	.help = NULL,
@@ -127,8 +128,7 @@ void exc_init(void)
 	for (i=0;i < IVT_ITEMS; i++)
 		exc_register(i, "undef", exc_undef);
 
-	spinlock_initialize(&exc_info.lock, "kconsole_excinfo");
-	link_initialize(&exc_info.link);
+	cmd_initialize(&exc_info);
 	if (!cmd_register(&exc_info))
 		panic("could not register command %s\n", exc_info.name);
 }

@@ -41,8 +41,8 @@ bpinfo_t breakpoints[BKPOINTS_MAX];
 SPINLOCK_INITIALIZE(bkpoint_lock);
 
 static int cmd_print_breakpoints(cmd_arg_t *argv);
-static cmd_info_t pbkpt_info = {
-	.name = "pbkpt",
+static cmd_info_t bkpts_info = {
+	.name = "bkpts",
 	.description = "Print breakpoint table.",
 	.func = cmd_print_breakpoints,
 	.argc = 0,
@@ -264,9 +264,9 @@ void debugger_init()
 	for (i=0; i<BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
 	
-	cmd_initialize(&pbkpt_info);
-	if (!cmd_register(&pbkpt_info))
-		panic("could not register command %s\n", pbkpt_info.name);
+	cmd_initialize(&bkpts_info);
+	if (!cmd_register(&bkpts_info))
+		panic("could not register command %s\n", bkpts_info.name);
 
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))

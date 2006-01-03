@@ -38,6 +38,7 @@
 #include <typedefs.h>
 #include <memstr.h>
 #include <list.h>
+#include <print.h>
 
 cpu_t *cpus;
 
@@ -87,4 +88,17 @@ void cpu_init(void) {
 	
 	cpu_identify();
 	cpu_arch_init();
+}
+
+/** List all processors. */
+void cpu_list(void)
+{
+	int i;
+
+	for (i = 0; i < config.cpu_count; i++) {
+		if (cpus[i].active)
+			cpu_print_report(&cpus[i]);
+		else
+			printf("cpu%d: not active\n", i);
+	}
 }

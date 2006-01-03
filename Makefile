@@ -106,6 +106,7 @@ GENERIC_SOURCES = \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
+	generic/src/main/version.c \
 	generic/src/proc/scheduler.c \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \

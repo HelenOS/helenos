@@ -45,10 +45,11 @@
 #include <macros.h>
 #include <debug.h>
 #include <symtab.h>
-
+#include <cpu.h>
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
 #include <mm/frame.h>
+#include <main/version.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -118,8 +119,6 @@ static cmd_info_t set4_info = {
 	.argc = 2,
 	.argv = set4_argv
 };
-
-
 
 /** Data and methods for 'call0' command. */
 static char call0_buf[MAX_CMDLINE+1];
@@ -232,13 +231,13 @@ static cmd_info_t halt_info = {
 	.argc = 0
 };
 
-/** Data and methods for 'ptlb' command. */
-static int cmd_ptlb(cmd_arg_t *argv);
-cmd_info_t ptlb_info = {
-	.name = "ptlb",
+/** Data and methods for 'tlb' command. */
+static int cmd_tlb(cmd_arg_t *argv);
+cmd_info_t tlb_info = {
+	.name = "tlb",
 	.description = "Print TLB of current processor.",
 	.help = NULL,
-	.func = cmd_ptlb,
+	.func = cmd_tlb,
 	.argc = 0,
 	.argv = NULL
 };
@@ -262,7 +261,6 @@ static cmd_arg_t zone_argv = {
 	.len = sizeof(zone_buf)
 };
 
-
 static cmd_info_t zone_info = {
 	.name = "zone",
 	.description = "Show memory zone structure.",
@@ -270,6 +268,29 @@ static cmd_info_t zone_info = {
 	.argc = 1,
 	.argv = &zone_argv
 };
+
+/** Data and methods for 'cpus' command. */
+static int cmd_cpus(cmd_arg_t *argv);
+cmd_info_t cpus_info = {
+	.name = "cpus",
+	.description = "List all processors.",
+	.help = NULL,
+	.func = cmd_cpus,
+	.argc = 0,
+	.argv = NULL
+};
+
+/** Data and methods for 'version' command. */
+static int cmd_version(cmd_arg_t *argv);
+cmd_info_t version_info = {
+	.name = "version",
+	.description = "Print version information.",
+	.help = NULL,
+	.func = cmd_version,
+	.argc = 0,
+	.argv = NULL
+};
+
 
 
 
@@ -327,9 +348,9 @@ void cmd_init(void)
 	if (!cmd_register(&halt_info))
 		panic("could not register command %s\n", halt_info.name);
 
-	cmd_initialize(&ptlb_info);
-	if (!cmd_register(&ptlb_info))
-		panic("could not register command %s\n", ptlb_info.name);
+	cmd_initialize(&tlb_info);
+	if (!cmd_register(&tlb_info))
+		panic("could not register command %s\n", tlb_info.name);
 
 	cmd_initialize(&zones_info);
 	if (!cmd_register(&zones_info))
@@ -339,6 +360,15 @@ void cmd_init(void)
 	if (!cmd_register(&zone_info))
 		panic("could not register command %s\n", zone_info.name);
 
+	cmd_initialize(&cpus_info);
+	if (!cmd_register(&cpus_info))
+		panic("could not register command %s\n", cpus_info.name);
+		
+	cmd_initialize(&version_info);
+	if (!cmd_register(&version_info))
+		panic("could not register command %s\n", version_info.name);
+		
+		
 
 }
 
@@ -538,7 +568,7 @@ int cmd_halt(cmd_arg_t *argv)
  *
  * @return Always returns 1.
  */
-int cmd_ptlb(cmd_arg_t *argv)
+int cmd_tlb(cmd_arg_t *argv)
 {
 	tlb_print();
 	return 1;
@@ -576,13 +606,36 @@ int cmd_set4(cmd_arg_t *argv)
 	return 1;
 }
 
-
 int cmd_zones(cmd_arg_t * argv) {
 	printf("Zones listing not implemented\n");
 	return 1;
 }
+
 int cmd_zone(cmd_arg_t * argv) {
 	printf("Zone details not implemented\n");
 	return 1;
 }
 
+/** Command for listing processors.
+ *
+ * @param argv Ignored.
+ *
+ * return Always 1.
+ */
+int cmd_cpus(cmd_arg_t *argv)
+{
+	cpu_list();
+	return 1;
+}
+
+/** Command for printing kernel version.
+ *
+ * @param argv Ignored.
+ *
+ * return Always 1.
+ */
+int cmd_version(cmd_arg_t *argv)
+{
+	version_print();
+	return 1;
+}

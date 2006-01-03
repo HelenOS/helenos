@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPU_H__
-#define __CPU_H__
+#ifndef __VERSION_H__
+#define __VERSION_H__
 
-#include <arch/cpu.h>
-#include <proc/scheduler.h>
-#include <synch/spinlock.h>
-#include <synch/waitq.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <arch/context.h>
-#include <config.h>
-#include <list.h>
-
-#define CPU_STACK_SIZE	STACK_SIZE
-
-struct cpu {
-	SPINLOCK_DECLARE(lock);
-	context_t saved_context;
-
-	volatile count_t nrdy;
-	runq_t rq[RQ_COUNT];
-	volatile count_t needs_relink;
-
-	SPINLOCK_DECLARE(timeoutlock);
-	link_t timeout_active_head;
-
-	#ifdef CONFIG_SMP
-	atomic_t kcpulbstarted;
-	waitq_t kcpulb_wq;
-	#endif /* CONFIG_SMP */
-
-	int id;
-	int active;
-	int tlb_active;
-
-	__u16 frequency_mhz;
-	__u32 delay_loop_const;
-
-	cpu_arch_t arch;
-
-	thread_t *fpu_owner;
-	
-	__u8 *stack;
-};
-
-extern cpu_t *cpus;
-
-extern void cpu_init(void);
-extern void cpu_list(void);
-
-extern void cpu_arch_init(void);
-extern void cpu_identify(void);
-extern void cpu_print_report(cpu_t *m);
+extern void version_print(void);
 
 #endif

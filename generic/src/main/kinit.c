@@ -69,7 +69,6 @@
 void kinit(void *arg)
 {
 	thread_t *t;
-	int i;
 #ifdef CONFIG_USERSPACE
 	vm_t *m;
 	vm_area_t *a;
@@ -100,15 +99,12 @@ void kinit(void *arg)
 	/*
 	 * Now that all CPUs are up, we can report what we've found.
 	 */
-	for (i = 0; i < config.cpu_count; i++) {
-		if (cpus[i].active)
-			cpu_print_report(&cpus[i]);
-		else
-			printf("cpu%d: not active\n", i);
-	}
+	cpu_list();
 
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
+		int i;
+		
 		/*
 		 * For each CPU, create its load balancing thread.
 		 */
