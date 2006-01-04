@@ -87,7 +87,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/asm_utils.S \
-	arch/$(ARCH)/src/fmath.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \

@@ -31,15 +31,11 @@
 #include <synch/spinlock.h>
 #include <arch/arg.h>
 #include <arch/asm.h>
-#include <arch/fmath.h>
 
 #include <arch.h>
 
 static char digits[] = "0123456789abcdef"; 	/**< Hexadecimal characters */
 SPINLOCK_INITIALIZE(printflock);		/**< printf spinlock */
-
-#define DEFAULT_DOUBLE_PRECISION 16
-#define DEFAULT_DOUBLE_BUFFER_SIZE 128
 
 
 /** Print NULL terminated string
@@ -105,107 +101,6 @@ static void print_number(const __native num, const unsigned int base)
 }
 
 
-static void print_double(double num, __u8 modifier, __u16 precision) 
-{
-	double intval,intval2;
-	int counter;
-	int exponent,exponenttmp;
-	unsigned char buf[DEFAULT_DOUBLE_BUFFER_SIZE];
-	unsigned long in1,in2;	
-	
-
-	if (fmath_is_nan(num)) {
-		print_str("NaN");
-		return;
-	}
-	
-	if (num<0.0) {
-		putchar('-');
-		num=num*-1.0;
-	}
-
-
-	if (fmath_is_infinity(num)) {
-		print_str("Inf");
-		return;
-	}
-
-	if ((modifier=='E')||(modifier=='e')) {
-		intval2=fmath_fint(fmath_get_decimal_exponent(num),&intval);
-		exponent=intval;
-		if ((intval2<0.0)) exponent--;
-		num = num / ((fmath_dpow(10.0,exponent)));
-		
-		print_double(num,modifier+1,precision); /* modifier+1 = E => F or e => f */
-		putchar(modifier);
-		if (exponent<0) {
-			putchar('-');
-			exponent*=-1;
-		}
-		print_number(exponent,10);
-		return;
-	}
-		
-	/* TODO: rounding constant - when we got fraction >= 0.5, we must increment last printed number */
-
-	/* 
-	 * Here is a problem with cumulative error while printing big double values -> we will divide
-	 * the number with a power of 10, print new number with better method for small numbers and
-	 * then print decimal point at correct position.
-	 */
-	
-	fmath_fint(fmath_get_decimal_exponent(num),&intval);
-	
-	exponent=(intval>0.0?intval:0);
-	
-	precision+=exponent;
-	
-	if (exponent>0) num = num / ((fmath_dpow(10.0,exponent)));
-		
-	num=fmath_fint(num,&intval);
-	
-	if (precision>0) {
-		counter=precision-1;
-		if (exponent>0) counter++;
-		
-		if (counter>=DEFAULT_DOUBLE_BUFFER_SIZE) {
-			counter=DEFAULT_DOUBLE_BUFFER_SIZE;
-		}
-		exponenttmp=exponent;
-		while(counter>=0) {
-			num *= 10.0;
-			num = fmath_fint(num,&intval2);
-			buf[counter--]=((int)intval2)+'0';
-			exponenttmp--;
-			if ((exponenttmp==0)&&(counter>=0)) buf[counter--]='.';
-		}
-		counter=precision;
-		if ((exponent==0)&&(counter<DEFAULT_DOUBLE_BUFFER_SIZE)) buf[counter]='.';
-		counter++;	
-	} else {
-		counter=0;	
-	}
-	
-	in1=intval;
-	if (in1==0.0) {
-		if (counter<DEFAULT_DOUBLE_BUFFER_SIZE) buf[counter++]='0';
-	} else {
-		while(( in1>0 )&&(counter<DEFAULT_DOUBLE_BUFFER_SIZE)) {
-			
-			in2=in1;
-			in1/=10;
-			buf[counter]=in2-in1*10 + '0';
-			counter++;
-		}
-	}
-	
-	counter = (counter>=DEFAULT_DOUBLE_BUFFER_SIZE?DEFAULT_DOUBLE_BUFFER_SIZE:counter);
-	while (counter>0) {
-		putchar(buf[--counter]);
-	}
-	return;
-}
-
 
 /** General formatted text print
  *
@@ -261,17 +156,6 @@ static void print_double(double num, __u8 modifier, __u16 precision)
  *      for printing floating point numbers. One of 'e', 'E', 'f' or 'F'
  *      must follow.
  *
- * e    The next variant argument is treated as double precision float
- *      and printed in exponent notation with only one digit before decimal point
- *      in specified precision. The exponent sign is printed as 'e'.
- *
- * E    As with 'e', but the exponent sign is printed as 'E'.
- *
- * f    The next variant argument is treated as double precision float
- *      and printed in decimal notation in specified precision.
- *
- * F    As with 'f'.
- *
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *
@@ -283,8 +167,6 @@ void printf(const char *fmt, ...)
 	va_list ap;
 	char c;	
 	
-	__u16 precision;
-	
 	va_start(ap, fmt);
 
 	irqpri = interrupts_disable();
@@ -295,15 +177,6 @@ void printf(const char *fmt, ...)
 
 		    /* control character */
 		    case '%':
-			precision = DEFAULT_DOUBLE_PRECISION;
-			if (fmt[i]=='.') {
-				precision=0;
-				c=fmt[++i];
-				while((c>='0')&&(c<='9')) {
-					precision = precision*10 + c - '0';
-					c=fmt[++i];
-				}
-			}
 		    
 			switch (c = fmt[i++]) {
 
@@ -354,25 +227,7 @@ void printf(const char *fmt, ...)
 			    case 'b':
 		    		print_fixed_hex(va_arg(ap, __native), INT8);
 				goto loop;
-
-			    /*
-		             * Floating point conversions.
-		             */
-			    case 'F':
-		    		print_double(va_arg(ap, double),'F',precision);
-				goto loop;
-					
-			    case 'f':
-		    		print_double(va_arg(ap, double),'f',precision);
-				goto loop;
-				
-			    case 'E':
-		    		print_double(va_arg(ap, double),'E',precision);
-				goto loop;
-			    case 'e':
-		    		print_double(va_arg(ap, double),'e',precision);
-				goto loop;
-				
+	
 			    /*
 		             * Decimal and hexadecimal conversions.
 		             */

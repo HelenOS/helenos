@@ -115,5 +115,4 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/ega.c \
 	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/boot/memmap.S \
-	arch/$(ARCH)/src/fpu_context.c\
-	arch/$(ARCH)/src/fmath.c
+	arch/$(ARCH)/src/fpu_context.c
