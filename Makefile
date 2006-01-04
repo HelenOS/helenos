@@ -111,7 +111,7 @@ GENERIC_SOURCES = \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
 	generic/src/proc/the.c \
-	generic/src/proc/syscall.c \
+	generic/src/syscall/syscall.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/heap.c \
 	generic/src/mm/frame.c \

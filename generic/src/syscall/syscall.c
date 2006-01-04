@@ -27,7 +27,7 @@
  */
 
 #include <arch/types.h>
-#include <proc/syscall.h>
+#include <syscall/syscall.h>
 
 int sys_ctl(void) {
 	return 0;
