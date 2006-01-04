@@ -483,7 +483,9 @@ void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
 	frame->refcount = 1;
 }
 
-
+/** Prints list of zones
+ *
+ */
 void zone_print_list(void) {
 	zone_t *zone = NULL;
 	link_t *cur;
@@ -497,6 +499,10 @@ void zone_print_list(void) {
 
 }
 
+/** Prints zone details
+ *
+ * @param zone_index Zone order in zones list (0 is the first zone)
+ */
 void zone_print_one(index_t zone_index) {
 	zone_t *zone = NULL;
 	link_t *cur;
