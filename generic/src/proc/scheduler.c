@@ -397,6 +397,8 @@ static void scheduler_separated_stack(void)
 /** The scheduler
  *
  * The thread scheduling procedure.
+ * Passes control directly to
+ * scheduler_separated_stack().
  *
  */
 void scheduler(void)

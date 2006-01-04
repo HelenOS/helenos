@@ -152,10 +152,6 @@ static void print_number(const __native num, const unsigned int base)
  *
  * X    As with 'x', but '0x' is prefixed.
  *
- * .    The decimal number following period will be treated as precision
- *      for printing floating point numbers. One of 'e', 'E', 'f' or 'F'
- *      must follow.
- *
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *

@@ -37,35 +37,31 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <main/kinit.h>
+#include <main/version.h>
 #include <console/kconsole.h>
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
-#include <main/version.h>
-
-#ifdef CONFIG_SMP
-#include <arch/smp/apic.h>
-#include <arch/smp/mps.h>
-#endif /* CONFIG_SMP */
-
-#include <smp/smp.h>
-
 #include <arch/mm/memory_init.h>
 #include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/tlb.h>
 #include <mm/vm.h>
-
 #include <synch/waitq.h>
-
 #include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
-
 #include <typedefs.h>
 
-config_t config;
+#ifdef CONFIG_SMP
+#include <arch/smp/apic.h>
+#include <arch/smp/mps.h>
+#endif /* CONFIG_SMP */
+#include <smp/smp.h>
+
+config_t config;	/**< Global configuration structure. */
+
 context_t ctx;
 
 /**
@@ -97,6 +93,8 @@ static void main_ap_separated_stack(void);
 /** Bootstrap CPU main kernel routine
  *
  * Initializes the kernel by bootstrap CPU.
+ * This function passes control directly to
+ * main_bsp_separated_stack().
  *
  * Assuming interrupts_disable().
  *
@@ -204,6 +202,7 @@ void main_bsp_separated_stack(void)
 	if (!t)
 		panic("can't create kinit thread\n");
 	thread_ready(t);
+
 	/*
 	 * This call to scheduler() will return to kinit,
 	 * starting the thread of kernel threads.
@@ -218,6 +217,8 @@ void main_bsp_separated_stack(void)
  *
  * Executed by application processors, temporary stack
  * is at ctx.sp which was set during BP boot.
+ * This function passes control directly to
+ * main_ap_separated_stack().
  *
  * Assuming interrupts_disable()'d.
  *
