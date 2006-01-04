@@ -482,3 +482,44 @@ void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
 	frame = list_get_instance(block, frame_t, buddy_link);
 	frame->refcount = 1;
 }
+
+
+void zone_print_list(void) {
+	zone_t *zone = NULL;
+	link_t *cur;
+	index_t i = 0;
+	printf("No.\tBase address\tFree Frames\tBusy Frames\n");
+	printf("---\t------------\t-----------\t-----------\n");
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		zone = list_get_instance(cur, zone_t, link);
+		printf("%d\t%L\t%d\t\t%d\n",i++,zone->base, zone->free_count, zone->busy_count);
+	}
+
+}
+
+void zone_print_one(index_t zone_index) {
+	zone_t *zone = NULL;
+	link_t *cur;
+	index_t i = 0;
+	
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		if (i == zone_index) {
+			zone = list_get_instance(cur, zone_t, link);
+			break;
+		}
+		i++;
+	}
+	
+	if (!zone) {
+		printf("No zone with index %d\n", zone_index);
+		return;
+	}
+	
+	printf("Memory zone %d information\n\n", zone_index);
+	printf("Zone base address: %P\n", zone->base);
+	printf("Zone size: %d frames (%d kbytes)\n", zone->free_count + zone->busy_count, ((zone->free_count + zone->busy_count) * FRAME_SIZE) >> 10);
+	printf("Allocated space: %d frames (%d kbytes)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
+	printf("Available space: %d (%d kbytes)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Buddy allocator structures: not implemented\n");
+}
+

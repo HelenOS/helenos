@@ -254,11 +254,11 @@ static cmd_info_t zones_info = {
 
 /** Data and methods for 'zone' command */
 static int cmd_zone(cmd_arg_t *argv);
-static char zone_buf[MAX_CMDLINE+1];
+//static char zone_buf[sizeof(__native)];
 static cmd_arg_t zone_argv = {
 	.type = ARG_TYPE_INT,
-	.buffer = zone_buf,
-	.len = sizeof(zone_buf)
+	//.buffer = zone_buf,
+	.len = sizeof(__native)
 };
 
 static cmd_info_t zone_info = {
@@ -607,12 +607,12 @@ int cmd_set4(cmd_arg_t *argv)
 }
 
 int cmd_zones(cmd_arg_t * argv) {
-	printf("Zones listing not implemented\n");
+	zone_print_list();
 	return 1;
 }
 
 int cmd_zone(cmd_arg_t * argv) {
-	printf("Zone details not implemented\n");
+	zone_print_one(argv[0].intval);
 	return 1;
 }
 
