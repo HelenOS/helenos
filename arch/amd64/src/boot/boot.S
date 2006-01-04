@@ -80,10 +80,25 @@ kernel_image_start:
 no_long_mode:
 1:
 	jmp 1b
+	
+.code32
+.align 4
+multiboot_header:
+	.long MULTIBOOT_HEADER_MAGIC
+	.long MULTIBOOT_HEADER_FLAGS
+	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
+	.long multiboot_header + BOOT_OFFSET
+	.long unmapped_ktext_start + BOOT_OFFSET
+	.long 0
+	.long 0
+	.long multiboot_image_start + BOOT_OFFSET
+
+multiboot_image_start:
+	movl $START_STACK, %esp				# initialize stack pointer
+	# FIXME TODO
 
 # Protected 32-bit. We want to reuse the code-seg descriptor,
 # the Default operand size must not be 1 when entering long mode
-.code32
 now_in_prot:  
 	# Set up stack & data descriptors
 	movw $gdtselector(KDATA_DES), %ax

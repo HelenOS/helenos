@@ -12,8 +12,6 @@
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 
-ENTRY(kernel_image_start)
-
 SECTIONS {
 	.unmapped BOOTSTRAP_OFFSET: AT (BOOTSTRAP_OFFSET) {
 		unmapped_ktext_start = .;
@@ -28,7 +26,6 @@ SECTIONS {
 	
 	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)): AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) { 
 		ktext_start = .;
-		*(BOOT_DATA);
 		*(.text);
 		ktext_end = .;
 		

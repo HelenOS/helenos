@@ -32,38 +32,10 @@
 #include <arch/pm.h>
 
 .section K_TEXT_START, "ax"
-.global kernel_image_start
 
 KTEXT=8
 KDATA=16
 
-.code16
-#
-# This is where we require any SPARTAN-kernel-compatible boot loader
-# to pass control in real mode.
-#
-# Protected mode tables are statically initialised during compile
-# time. So we can just load the respective table registers and
-# switch to protected mode.
-#
-kernel_image_start:
-	cli
-	xorw %ax, %ax
-	movw %ax, %ds
-	movw %ax, %es
-	movw %ax, %ss							# initialize stack segment register
-	movl $BOOTSTRAP_OFFSET - 0x400, %esp				# initialize stack pointer
-	
-	call memmap_arch_init
-	
-	lgdt real_bootstrap_gdtr_boot					# initialize Global Descriptor Table register
-	
-	movl %cr0, %eax
-	orl $0x1, %eax
-	movl %eax, %cr0							# switch to protected mode
-	
-	jmpl $KTEXT, $boot_image_start
-	
 .code32
 .align 4
 multiboot_header:
@@ -75,32 +47,6 @@ multiboot_header:
 	.long 0
 	.long 0
 	.long multiboot_image_start + BOOT_OFFSET
-	
-boot_image_start:
-	movw $KDATA, %ax
-	movw %ax, %es
-	movw %ax, %gs
-	movw %ax, %fs
-	movw %ax, %ds							# kernel data + stack
-	movw %ax, %ss
-	
-	movb $0xd1, %al							# enable A20 using i8042 controller
-	outb %al, $0x64
-	movb $0xdf, %al
-	outb %al, $0x60
-	
-	movl $BOOTSTRAP_OFFSET, %esi
-	movl $BOOTSTRAP_OFFSET + BOOT_OFFSET, %edi
-	movl $_hardcoded_kernel_size, %ecx
-	cld
-	rep movsb
-	
-	call map_kernel							# map kernel and turn paging on
-	
-	call main_bsp							# never returns
-
-	cli
-	hlt
 	
 multiboot_image_start:
 	movl $BOOTSTRAP_OFFSET - 0x400, %esp				# initialize stack pointer
