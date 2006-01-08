@@ -27,13 +27,16 @@
  */
 
 #include <mm/page.h>
-#include <mm/frame.h>
 #include <arch/mm/page.h>
+#include <arch/mm/asid.h>
+#include <mm/asid.h>
+#include <mm/frame.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 #include <debug.h>
+#include <arch.h>
 
 /** Virtual operations for page subsystem. */
 page_operations_t *page_operations = NULL;
@@ -41,7 +44,7 @@ page_operations_t *page_operations = NULL;
 void page_init(void)
 {
 	page_arch_init();
-	page_mapping_insert(0x0, 0x0, PAGE_NOT_PRESENT, 0);
+	page_mapping_insert(0x0, 0, 0x0, PAGE_NOT_PRESENT, 0);
 }
 
 /** Map memory structure
@@ -61,7 +64,7 @@ void map_structure(__address s, size_t size)
 	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
 
 	for (i = 0; i < cnt; i++)
-		page_mapping_insert(s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
+		page_mapping_insert(s + i*PAGE_SIZE, ASID_KERNEL, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
 
 }
 
@@ -71,16 +74,17 @@ void map_structure(__address s, size_t size)
  * using 'flags'. Allocate and setup any missing page tables.
  *
  * @param page Virtual address of the page to be mapped.
+ * @param asid Address space to wich page belongs.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  * @param root Explicit PTL0 address.
  */
-void page_mapping_insert(__address page, __address frame, int flags, __address root)
+void page_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root)
 {
 	ASSERT(page_operations);
 	ASSERT(page_operations->mapping_insert);
 	
-	page_operations->mapping_insert(page, frame, flags, root);
+	page_operations->mapping_insert(page, asid, frame, flags, root);
 }
 
 /** Find mapping for virtual page
@@ -88,14 +92,15 @@ void page_mapping_insert(__address page, __address frame, int flags, __address r
  * Find mapping for virtual page.
  *
  * @param page Virtual page.
+ * @param asid Address space to wich page belongs.
  * @param root PTL0 address if non-zero.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *page_mapping_find(__address page, __address root)
+pte_t *page_mapping_find(__address page,  asid_t asid, __address root)
 {
 	ASSERT(page_operations);
 	ASSERT(page_operations->mapping_find);
 
-	return page_operations->mapping_find(page, root);
+	return page_operations->mapping_find(page, asid, root);
 }

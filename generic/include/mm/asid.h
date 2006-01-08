@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PAGE_H__
-#define __PAGE_H__
+#ifndef __ASID_H__
+#define __ASID_H__
 
-#include <arch/mm/asid.h>
-#include <arch/types.h>
-#include <typedefs.h>
-
-#define PAGE_CACHEABLE_SHIFT		0
-#define PAGE_NOT_CACHEABLE_SHIFT	PAGE_CACHEABLE_SHIFT
-#define PAGE_PRESENT_SHIFT		1
-#define PAGE_NOT_PRESENT_SHIFT		PAGE_PRESENT_SHIFT
-#define PAGE_USER_SHIFT			2
-#define PAGE_KERNEL_SHIFT		PAGE_USER_SHIFT
-#define PAGE_READ_SHIFT			3
-#define PAGE_WRITE_SHIFT		4
-#define PAGE_EXEC_SHIFT			5
-
-#define PAGE_NOT_CACHEABLE	(0<<PAGE_CACHEABLE_SHIFT)
-#define PAGE_CACHEABLE		(1<<PAGE_CACHEABLE_SHIFT)
-
-#define PAGE_PRESENT		(0<<PAGE_PRESENT_SHIFT)
-#define PAGE_NOT_PRESENT	(1<<PAGE_PRESENT_SHIFT)
-
-#define PAGE_USER		(1<<PAGE_USER_SHIFT)
-#define PAGE_KERNEL		(0<<PAGE_USER_SHIFT)
-
-#define PAGE_READ		(1<<PAGE_READ_SHIFT)
-#define PAGE_WRITE		(1<<PAGE_WRITE_SHIFT)
-#define PAGE_EXEC		(1<<PAGE_EXEC_SHIFT)
-
-struct page_operations {
-	void (* mapping_insert)(__address page, asid_t asid, __address frame, int flags, __address root);
-	pte_t *(* mapping_find)(__address page, asid_t asid, __address root);
-};
-typedef struct page_operations page_operations_t;
-
-extern page_operations_t *page_operations;
-
-extern void page_init(void);
-extern void page_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
-extern pte_t *page_mapping_find(__address page, asid_t asid, __address root);
-extern void map_structure(__address s, size_t size);
+#define ASID_KERNEL	0
 
 #endif

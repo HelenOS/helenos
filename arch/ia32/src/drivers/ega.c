@@ -29,6 +29,7 @@
 #include <arch/ega.h>
 #include <putchar.h>
 #include <mm/page.h>
+#include <mm/asid.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
@@ -58,7 +59,7 @@ void ega_init(void)
 {
 	__u8 hi, lo;
 
-	page_mapping_insert(PA2KA(VIDEORAM), VIDEORAM, PAGE_NOT_CACHEABLE, 0);
+	page_mapping_insert(PA2KA(VIDEORAM), ASID_KERNEL, VIDEORAM, PAGE_NOT_CACHEABLE, 0);
 	outb(0x3d4,0xe);
 	hi = inb(0x3d5);
 	outb(0x3d4,0xf);

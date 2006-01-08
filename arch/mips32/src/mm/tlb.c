@@ -336,7 +336,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Handler cannot succeed if badvaddr has no mapping.
 	 */
-	pte = page_mapping_find(badvaddr, 0);
+	pte = page_mapping_find(badvaddr, VM->asid, 0);
 	if (!pte) {
 		printf("No such mapping.\n");
 		return NULL;

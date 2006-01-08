@@ -162,7 +162,7 @@ void vm_area_map(vm_area_t *a, vm_t *m)
 
 	ASSERT(m->ptl0);
 	for (i=0; i<a->size; i++)
-		page_mapping_insert(a->address + i*PAGE_SIZE, a->mapping[i], flags, (__address) m->ptl0);
+		page_mapping_insert(a->address + i*PAGE_SIZE, m->asid, a->mapping[i], flags, (__address) m->ptl0);
 		
 	spinlock_unlock(&a->lock);
 	spinlock_unlock(&m->lock);
@@ -180,7 +180,7 @@ void vm_area_unmap(vm_area_t *a, vm_t *m)
 
 	ASSERT(m->ptl0);
 	for (i=0; i<a->size; i++)		
-		page_mapping_insert(a->address + i*PAGE_SIZE, 0, PAGE_NOT_PRESENT, (__address) m->ptl0);
+		page_mapping_insert(a->address + i*PAGE_SIZE, 0, 0, PAGE_NOT_PRESENT, (__address) m->ptl0);
 	
 	spinlock_unlock(&a->lock);
 	spinlock_unlock(&m->lock);

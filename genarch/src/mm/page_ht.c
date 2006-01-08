@@ -29,12 +29,13 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 
-static void ht_mapping_insert(__address page, __address frame, int flags, __address root);
-static pte_t *ht_mapping_find(__address page, __address root);
+static void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
+static pte_t *ht_mapping_find(__address page, asid_t asid, __address root);
 
 page_operations_t page_ht_operations = {
 	.mapping_insert = ht_mapping_insert,
@@ -47,11 +48,12 @@ page_operations_t page_ht_operations = {
  * using 'flags'.
  *
  * @param page Virtual address of the page to be mapped.
+ * @param asid Address space to which page belongs.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  * @param root Explicit PTL0 address.
  */
-void ht_mapping_insert(__address page, __address frame, int flags, __address root)
+void ht_mapping_insert(__address page,  asid_t asid, __address frame, int flags, __address root)
 {
 }
 
@@ -60,11 +62,12 @@ void ht_mapping_insert(__address page, __address frame, int flags, __address roo
  * Find mapping for virtual page.
  *
  * @param page Virtual page.
+ * @param asid Address space to wich page belongs.
  * @param root PTL0 address if non-zero.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *ht_mapping_find(__address page, __address root)
+pte_t *ht_mapping_find(__address page, asid_t asid, __address root)
 {
 	return NULL;
 }
