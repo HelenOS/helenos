@@ -31,8 +31,9 @@
 #include <arch/mm/page.h>
 #include <print.h>
 
-__u8 e820counter __attribute__ ((section ("BOOT_DATA"))) = 0xff;
-struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS] __attribute__ ((section ("BOOT_DATA"))) ;
+__u8 e820counter = 0xff;
+struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS];
+__u32 e801memorysize;
 
 size_t get_memory_size(void) 
 {

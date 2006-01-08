@@ -77,7 +77,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/boot/memmap.S \
 	arch/$(ARCH)/src/pm.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/drivers/ega.c \

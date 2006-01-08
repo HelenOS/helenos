@@ -12,13 +12,10 @@
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 
-ENTRY(kernel_image_start)
-
 SECTIONS {
-	.unmapped BOOTSTRAP_OFFSET: AT (BOOTSTRAP_OFFSET) {
+	.unmapped BOOT_OFFSET: AT (0) {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
-		*(K_TEXT_START_2);
 		unmapped_ktext_end = .;
 
 		unmapped_kdata_start = .;
@@ -26,9 +23,8 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 
-	.mapped (PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET)+SIZEOF(.unmapped)) : AT (BOOTSTRAP_OFFSET+SIZEOF(.unmapped)) {
+	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)) : AT (SIZEOF(.unmapped)) {
 		ktext_start = .;
-		*(BOOT_DATA);
 		*(.text);
 		ktext_end = .;
 
@@ -36,7 +32,7 @@ SECTIONS {
 		*(.data);		/* initialized data */
 		*(.rodata*);		/* string literals */
 		hardcoded_load_address = .;
-		QUAD(PA2KA(BOOT_OFFSET+BOOTSTRAP_OFFSET));
+		QUAD(PA2KA(BOOT_OFFSET));
 		hardcoded_ktext_size = .;
 		QUAD(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
 		hardcoded_kdata_size = .;
@@ -56,18 +52,4 @@ SECTIONS {
 
 		kdata_end = .;
 	}
-
-	_hardcoded_kernel_size = (ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start) + (kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start);
-
-	/* Symbols that need to be accessed both from real mode & long mode */
-	/* e820*_boot is real mode (pre-above-1MB-move), e820* is */
-	/* kernel mapped above-1MB-physical copied symbol */
-	e820table_boot = KA2PA(e820table) - BOOT_OFFSET;
-	e820counter_boot = KA2PA(e820counter) - BOOT_OFFSET;
-
-	/* real_bootstrap_gdtr is mapped real_bootstrap_gdtr_boot */
-	/* It is physically outside of kernel area, we have to access */
-	/* it after modification from long mode for booting */
-	/* SMP slave processors */
-	real_bootstrap_gdtr = PA2KA(real_bootstrap_gdtr_boot);
 }

@@ -33,66 +33,56 @@
 #include <arch/cpuid.h>
 #include <arch/boot/boot.h>
 
+#define START_STACK	(BOOT_OFFSET - BOOT_STACK_SIZE)
 #define START_STACK_64  0xffffffff80007c00
-					
-#
-# This is where we require any SPARTAN-kernel-compatible boot loader
-# to pass control in real mode.
-#
-# Protected mode tables are statically initialised during compile
-# time. So we can just load the respective table registers and
-# switch to protected mode.
-#
-
-#define START_STACK (BOOTSTRAP_OFFSET-0x400)
 	
 .section K_TEXT_START, "ax"
-.code16
-.global kernel_image_start
-.global multiboot_image_start
-kernel_image_start:
-	cli
-	xorw %ax,%ax
-	movw %ax,%ds
-	movw %ax,%es
-	movw %ax,%ss            # initialize stack segment register
-	movl $(START_STACK), %esp	# initialize stack pointer
-	
-	call memmap_arch_init
-	
-	movl $0x80000000, %eax  
-	cpuid
-	cmp $0x80000000, %eax 	# any function > 80000000h?
-	jbe no_long_mode
-	movl $(AMD_CPUID_EXTENDED), %eax # Extended function code 80000001
-	cpuid
-	bt $29, %edx 		# Test if long mode is supported.
-	jnc no_long_mode
-
-	# Load gdtr, idtr
-	lgdt real_bootstrap_gdtr_boot
-	
-	movl %cr0,%eax
-	orl $0x1,%eax
-	movl %eax,%cr0			# switch to protected mode
-
-	jmpl $gdtselector(KTEXT32_DES), $now_in_prot
-
-no_long_mode:
-1:
-	jmp 1b
-	
+# .code16
+# .global kernel_image_start
+# .global multiboot_image_start
+# kernel_image_start:
+# 	cli
+# 	xorw %ax,%ax
+# 	movw %ax,%ds
+# 	movw %ax,%es
+# 	movw %ax,%ss            # initialize stack segment register
+# 	movl $(START_STACK), %esp	# initialize stack pointer
+# 	
+# 	call memmap_arch_init
+# 	
+# 	movl $0x80000000, %eax  
+# 	cpuid
+# 	cmp $0x80000000, %eax 	# any function > 80000000h?
+# 	jbe no_long_mode
+# 	movl $(AMD_CPUID_EXTENDED), %eax # Extended function code 80000001
+# 	cpuid
+# 	bt $29, %edx 		# Test if long mode is supported.
+# 	jnc no_long_mode
+# 
+# 	# Load gdtr, idtr
+# 	lgdt real_bootstrap_gdtr_boot
+# 	
+# 	movl %cr0,%eax
+# 	orl $0x1,%eax
+# 	movl %eax,%cr0			# switch to protected mode
+# 
+# 	jmpl $gdtselector(KTEXT32_DES), $now_in_prot
+# 
+# no_long_mode:
+# 1:
+# 	jmp 1b
+# 	
 .code32
 .align 4
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
-	.long multiboot_header + BOOT_OFFSET
-	.long unmapped_ktext_start + BOOT_OFFSET
+	.long multiboot_header
+	.long unmapped_ktext_start
 	.long 0
 	.long 0
-	.long multiboot_image_start + BOOT_OFFSET
+	.long multiboot_image_start
 
 multiboot_image_start:
 	movl $START_STACK, %esp				# initialize stack pointer
@@ -109,60 +99,49 @@ multiboot_image_start:
 	jmpl $gdtselector(KTEXT_DES), $multiboot_meeting_point + BOOT_OFFSET
 	multiboot_meeting_point:
 	
-	hlt
-
-# Protected 32-bit. We want to reuse the code-seg descriptor,
-# the Default operand size must not be 1 when entering long mode
-now_in_prot:  
-	# Set up stack & data descriptors
-	movw $gdtselector(KDATA_DES), %ax
-	movw %ax, %ds
-	movw %ax, %ss
-
-	movb $0xd1, %al		# enable A20 using the keyboard controller
-	outb %al, $0x64
-	movb $0xdf, %al
-	outb %al, $0x60
-
+	# Protected 32-bit. We want to reuse the code-seg descriptor,
+	# the Default operand size must not be 1 when entering long mode
+	
+	pushl %ebx							# save parameters from GRUB
+	pushl %eax
 	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
+	
 	movl %cr4, %eax
 	btsl $5, %eax
 	movl %eax, %cr4
 
 	# Set up paging tables
+	
 	leal ptl_0, %eax
 	movl %eax, %cr3
 	
 	# Enable long mode
-	movl $EFER_MSR_NUM, %ecx   # EFER MSR number
-	rdmsr                   # Read EFER
-	btsl $AMD_LME_FLAG, %eax            # Set LME=1
-	wrmsr                   # Write EFER
+	
+	movl $EFER_MSR_NUM, %ecx	# EFER MSR number
+	rdmsr						# Read EFER
+	btsl $AMD_LME_FLAG, %eax	# Set LME=1
+	wrmsr						# Write EFER
 	
 	# Enable paging to activate long mode (set CR0.PG=1)
+	
 	movl %cr0, %eax
 	btsl $31, %eax
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
+	
 	jmpl $gdtselector(KTEXT_DES), $start64
 
 .code64
 start64:
 	movq $(PA2KA(START_STACK)), %rsp
 
-	# Copy kernel to higher physical memory
-	movq $BOOTSTRAP_OFFSET, %rsi
-	movq $BOOTSTRAP_OFFSET + BOOT_OFFSET, %rdi
-	movq $_hardcoded_kernel_size, %rcx
-	cld
-	rep movsb
-	
 	call main_bsp   # never returns
-1:
-	jmp 1b
+	
+	cli
+	hlt
 				
 .section K_DATA_START, "aw", @progbits
 .align 4096
@@ -217,11 +196,6 @@ ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 	.fill 510,8,0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-
-.global real_bootstrap_gdtr_boot
-real_bootstrap_gdtr_boot:
-	.word gdtselector(GDT_ITEMS)
-	.long KA2PA(gdt)-BOOT_OFFSET
 
 .global protected_bootstrap_gdtr
 protected_bootstrap_gdtr:
