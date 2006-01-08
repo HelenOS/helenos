@@ -44,6 +44,11 @@ inline int isFloat32Infinity(float32 f)
 	return ((f.parts.exp==0xFF)&&(f.parts.mantisa==0x0));
 };
 
+inline int isFloat32Zero(float32 f)
+{
+	return (((f.binary) & 0x7FFFFFFF) == 0);
+}
+
 /**
  * @return 1, if both floats are equal - but NaNs are not recognized 
  */

@@ -63,6 +63,14 @@ float __subsf3(float a, float b)
 	return subFloat32(fa,fb).f;
 };
 
+float __mulsf3(float a, float b) 
+{
+	float32 fa, fb;
+	fa.f=a;
+	fb.f=b;
+	return 	mulFloat32(fa, fb).f;
+}
+
 float __negsf2(float a)
 {
 	float32 fa;

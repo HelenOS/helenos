@@ -31,6 +31,7 @@
 
 float32 addFloat32(float32 a, float32 b);
 float32 subFloat32(float32 a, float32 b);
+float32 mulFloat32(float32 a, float32 b);
 
 #endif
 
