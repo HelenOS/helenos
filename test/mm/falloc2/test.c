@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,67 +25,85 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#include <test.h>
-#include <arch.h>
-#include <arch/atomic.h>
 #include <print.h>
+#include <test.h>
+#include <mm/page.h>
+#include <mm/frame.h>
+#include <arch/mm/page.h>
+#include <arch/types.h>
+#include <arch/atomic.h>
+#include <debug.h>
 #include <proc/thread.h>
+#include <memstr.h>
 
-#include <synch/rwlock.h>
+#define MAX_FRAMES 128
+#define MAX_ORDER 3
 
-#define READERS		50
-#define WRITERS		50
+#define THREAD_RUNS 2
+#define THREADS 6
 
-static rwlock_t rwlock;
-
-static void reader(void *arg);
+static void thread(void * arg);
 static void failed(void);
 
-void reader(void *arg)
-{
-	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);    	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
-	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    		
+static atomic_t thread_count;
 
-	printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
-
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
+void thread(void * arg) {
+	int status, order, run, allocated,i;
 	
-	printf("Test passed.\n");	
-
-}
-
-void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test(void)
-{
-	int i;
-	thread_t *thrd;
+	__u8 val = *((__u8 *) arg);
 	
-	printf("Read/write locks test #3\n");
-    
-	rwlock_initialize(&rwlock);
+	__address frames[MAX_FRAMES];
 
-	rwlock_write_lock(&rwlock);
+	for (run=0;run<THREAD_RUNS;run++) {
 	
-	for (i=0; i<4; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0);
-		if (thrd)
-			thread_ready(thrd);
-		else
-			failed();
+		for (order=0;order<=MAX_ORDER;order++) {
+			printf("Allocating %d frames blocks ... ", 1<<order);
+			allocated = 0;
+			for (i=0;i<MAX_FRAMES>>order;i++) {
+				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA,order, &status);
+				if (status == 0) {
+					memsetb(frames[allocated], (1 << order) * FRAME_SIZE - 1, val);
+					allocated++;
+				} else {
+					break;
+				}
+			}
+		
+			printf("%d blocks alocated.\n", allocated);
+
+			printf("Deallocating ... ");
+			for (i=0;i<allocated;i++) {
+				/* add memtest here */
+				frame_free(frames[i]);
+			}
+			printf("done.\n");
+		}
 	}
-
-
-	thread_sleep(1);
 	
-	rwlock_write_unlock(&rwlock);
+	
+	atomic_dec(&thread_count);
+
 }
+
+
+void failed(void) {
+	panic("Test failed.\n");
+}
+
+
+void test(void) {
+	int i;
+
+	atomic_set(&thread_count, THREADS);
+		
+	for (i=1;i<=THREADS;i++) {
+		thread_t * thrd;
+		thrd = thread_create(thread, &i, TASK, 0);
+		if (thrd) thread_ready(thrd); else failed();
+	}
+	
+	while (thread_count.count);
+
+	printf("Test passed\n");
+}
+
