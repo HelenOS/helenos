@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2001-2004 Jakub Jermar
+# Copyright (C) 2005-2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,52 +32,51 @@
 #
 
 #include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
+#include <arch/mm/page.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
-#include <arch/mm/page.h>
-	
-.section K_TEXT_START_2, "ax"
+
+.section K_TEXT_START, "ax"
 
 #ifdef CONFIG_SMP
 
-.global ap_boot
+.global unmapped_ap_boot
 
 # This piece of code is real-mode and is meant to be alligned at 4K boundary.
 # The requirement for such an alignment comes from MP Specification's STARTUP IPI
 # requirements.
 
 .align 4096
-ap_boot:
+unmapped_ap_boot:
 .code16
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt real_bootstrap_gdtr_boot	# initialize Global Descriptor Table register
+	lgdt ap_gdtr		# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
-	movl %eax, %cr0			# switch to protected mode
+	movl %eax, %cr0				# switch to protected mode
+	jmpl $gdtselector(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	
-	jmpl $gdtselector(KTEXT32_DES), $now_in_prot
-
-.code32	
-now_in_prot:
+jump_to_kernel:
+.code32
 	movw $gdtselector(KDATA_DES), %ax
 	movw %ax, %ds
+	movw %ax, %es
 	movw %ax, %ss
 	
-
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
+	
 	movl %cr4, %eax
 	btsl $5, %eax
 	movl %eax, %cr4
 
-	# Set up NEW paging tables, that are
-	# already moved BOOT_OFFSET up
-	leal ptl_0+BOOT_OFFSET, %eax
+	leal ptl_0, %eax
 	movl %eax, %cr3
 	
 	# Enable long mode
@@ -91,12 +91,23 @@ now_in_prot:
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
-	jmpl $gdtselector(KTEXT_DES), $start64
+	jmpl $gdtselector(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
 
 .code64
 start64:
 	movq (ctx), %rsp
-	call main_ap   # never returns
-	
-	
+	call main_ap - AP_BOOT_OFFSET + BOOT_OFFSET   # never returns
+
+#endif /* CONFIG_SMP */
+
+.section K_DATA_START, "ax"
+
+#ifdef CONFIG_SMP
+
+.global unmapped_ap_gdtr
+
+unmapped_ap_gdtr:
+	.word 0
+	.long 0
+
 #endif /* CONFIG_SMP */

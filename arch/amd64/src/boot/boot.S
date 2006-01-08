@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2005 Ondrej Palkovsky
+# Copyright (C) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,25 +38,7 @@
 #define START_STACK	(BOOT_OFFSET - BOOT_STACK_SIZE)
 	
 .section K_TEXT_START, "ax"
-# .code16
-# .global kernel_image_start
-# .global multiboot_image_start
-# kernel_image_start:
 
-# 	movl $0x80000000, %eax  
-# 	cpuid
-# 	cmp $0x80000000, %eax 	# any function > 80000000h?
-# 	jbe no_long_mode
-# 	movl $(AMD_CPUID_EXTENDED), %eax # Extended function code 80000001
-# 	cpuid
-# 	bt $29, %edx 		# Test if long mode is supported.
-# 	jnc no_long_mode
-# 
-# 
-# no_long_mode:
-# 1:
-# 	jmp 1b
-# 	
 .code32
 .align 4
 .global multiboot_image_start
@@ -88,6 +71,21 @@ multiboot_image_start:
 	
 	# Protected 32-bit. We want to reuse the code-seg descriptor,
 	# the Default operand size must not be 1 when entering long mode
+	
+	movl $0x80000000, %eax  
+ 	cpuid
+ 	cmp $0x80000000, %eax						# any function > 80000000h?
+	jbe long_mode_unsupported
+	movl $(AMD_CPUID_EXTENDED), %eax			# Extended function code 80000001
+	cpuid
+	bt $29, %edx								# Test if long mode is supported.
+ 	jc long_mode_supported
+
+	long_mode_unsupported:
+		cli
+		hlt
+	
+	long_mode_supported:
 	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
@@ -217,6 +215,18 @@ start64:
 		movl %edx, e820counter
 		
 	invalid_boot:
+	
+#ifdef CONFIG_SMP
+	
+	# copy AP bootstrap routines below 1 MB
+	
+	movq $BOOT_OFFSET, %rsi
+	movq $AP_BOOT_OFFSET, %rdi
+	movq $_hardcoded_unmapped_size, %rcx
+	cld
+	rep movsb
+	
+#endif
 	
 	call main_bsp   # never returns
 	
