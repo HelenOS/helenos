@@ -230,3 +230,35 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 	list_append(block, &b->order[i]);
 
 }
+
+
+
+/** Prints out structure of buddy system
+ *
+ * @param b Pointer to buddy system
+ * @param es Element size
+ */
+void buddy_system_structure_print(buddy_system_t *b) {
+	index_t i;
+	count_t cnt, elem_count = 0, block_count = 0;
+	link_t * cur;
+	
+
+	printf("Order\tStatistics\n");
+	printf("-----\t--------------------------------------\n");
+	
+	for (i=0;i < b->max_order; i++) {
+		cnt = 0;
+		if (!list_empty(&b->order[i])) {
+			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) cnt++;
+		}
+	
+		printf("#%d:\t%d blocks available (%d elements per block)\n", i, cnt, 1 << i);
+		
+		block_count += cnt;
+		elem_count += (1 << i) * cnt;
+	}
+	printf("-----\t--------------------------------------\n");
+	printf("Buddy system contains %d elements (%d blocks)\n" , elem_count, block_count);
+
+}

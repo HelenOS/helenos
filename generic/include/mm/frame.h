@@ -113,6 +113,6 @@ extern void frame_release(frame_t *frame);
  * Console functions
  */
 extern void zone_print_list(void);
-extern void zone_print_one(index_t index);
+extern void zone_print_one(__address base);
 
 #endif

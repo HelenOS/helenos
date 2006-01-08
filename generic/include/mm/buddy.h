@@ -55,5 +55,7 @@ extern buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operatio
 extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
 extern bool buddy_system_can_alloc(buddy_system_t *b, __u8 order);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
+extern void buddy_system_structure_print(buddy_system_t *b);
+
 
 #endif

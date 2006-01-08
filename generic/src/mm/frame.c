@@ -490,42 +490,57 @@ void zone_print_list(void) {
 	zone_t *zone = NULL;
 	link_t *cur;
 	index_t i = 0;
+	spinlock_lock(&zone_head_lock);
 	printf("No.\tBase address\tFree Frames\tBusy Frames\n");
 	printf("---\t------------\t-----------\t-----------\n");
 	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
 		zone = list_get_instance(cur, zone_t, link);
+		spinlock_lock(&zone->lock);
 		printf("%d\t%L\t%d\t\t%d\n",i++,zone->base, zone->free_count, zone->busy_count);
 	}
+	spinlock_unlock(&zone_head_lock);
 
 }
 
 /** Prints zone details
  *
- * @param zone_index Zone order in zones list (0 is the first zone)
+ * @param base Zone base address
  */
-void zone_print_one(index_t zone_index) {
-	zone_t *zone = NULL;
+void zone_print_one(__address base) {
+	zone_t *zone = NULL, *z	;
 	link_t *cur;
-	index_t i = 0;
+	
+	
+	spinlock_lock(&zone_head_lock);
+	
 	
 	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		if (i == zone_index) {
-			zone = list_get_instance(cur, zone_t, link);
+		z = list_get_instance(cur, zone_t, link);
+		if (base == z->base) { 
+			zone = z;
 			break;
 		}
-		i++;
 	}
 	
+	
 	if (!zone) {
-		printf("No zone with index %d\n", zone_index);
+		printf("No zone with address %X\n", base);
 		return;
 	}
 	
-	printf("Memory zone %d information\n\n", zone_index);
+	spinlock_lock(&zone->lock);
+	printf("Memory zone information\n\n");
 	printf("Zone base address: %P\n", zone->base);
 	printf("Zone size: %d frames (%d kbytes)\n", zone->free_count + zone->busy_count, ((zone->free_count + zone->busy_count) * FRAME_SIZE) >> 10);
 	printf("Allocated space: %d frames (%d kbytes)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
 	printf("Available space: %d (%d kbytes)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
-	printf("Buddy allocator structures: not implemented\n");
+	
+	printf("\nBuddy allocator structures:\n\n");
+	buddy_system_structure_print(zone->buddy_system);
+	
+	
+	spinlock_unlock(&zone->lock);
+	spinlock_unlock(&zone_head_lock);
+	
 }
 
