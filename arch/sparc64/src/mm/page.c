@@ -27,7 +27,9 @@
  */
 
 #include <arch/mm/page.h>
+#include <genarch/mm/page_ht.h>
 
 void page_arch_init(void)
 {
+	page_operations = &page_ht_operations;
 }

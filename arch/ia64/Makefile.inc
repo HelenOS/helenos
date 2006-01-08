@@ -42,6 +42,11 @@ CFLAGS += -mconstant-gp -fno-unwind-tables
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
+## Compile with page hash table support.
+#
+
+CONFIG_PAGE_HT = y
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
@@ -54,4 +59,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ivt.S \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/mm/frame.c \
+	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/drivers/it.c

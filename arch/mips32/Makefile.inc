@@ -46,6 +46,12 @@ INIT_SIZE = 65536
 CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 DEFS += -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
 
+## Compile with hierarchical page tables support.
+#
+
+CONFIG_PAGE_PT = y
+
+
 ## Accepted MACHINEs
 #
 

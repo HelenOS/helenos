@@ -58,6 +58,11 @@ endif
 
 CONFIG_ACPI = y
 
+## Compile with hierarchical page tables support.
+#
+
+CONFIG_PAGE_PT = y
+
 ## Accepted configuration directives
 #
 

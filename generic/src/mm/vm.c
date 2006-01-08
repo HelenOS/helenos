@@ -32,6 +32,7 @@
 #include <mm/tlb.h>
 #include <mm/heap.h>
 #include <arch/mm/page.h>
+#include <genarch/mm/page_pt.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/vm.h>
 #include <arch/types.h>

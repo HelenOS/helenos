@@ -37,8 +37,6 @@
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
 
-#define page_arch_init()	;
-
 /*
  * Implementation of generic 4-level page table interface.
  * TODO: this is a fake implementation provided to satisfy the compiler
@@ -69,5 +67,7 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
+
+extern void page_arch_init(void);
 
 #endif

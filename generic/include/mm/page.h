@@ -55,56 +55,13 @@
 #define PAGE_WRITE		(1<<PAGE_WRITE_SHIFT)
 #define PAGE_EXEC		(1<<PAGE_EXEC_SHIFT)
 
-/*
- * This is the generic 4-level page table interface.
- * Architectures are supposed to implement *_ARCH macros.
- */
+struct page_operations {
+	void (* mapping_insert)(__address page, __address frame, int flags, __address root);
+	pte_t *(* mapping_find)(__address page, __address root);
+};
+typedef struct page_operations page_operations_t;
 
-/*
- * These macros process vaddr and extract those portions
- * of it that function as indices to respective page tables.
- */
-#define PTL0_INDEX(vaddr)		PTL0_INDEX_ARCH(vaddr)
-#define PTL1_INDEX(vaddr)		PTL1_INDEX_ARCH(vaddr)
-#define PTL2_INDEX(vaddr)		PTL2_INDEX_ARCH(vaddr)
-#define PTL3_INDEX(vaddr)		PTL3_INDEX_ARCH(vaddr)
-
-#define GET_PTL0_ADDRESS()		GET_PTL0_ADDRESS_ARCH()
-#define SET_PTL0_ADDRESS(ptl0)		SET_PTL0_ADDRESS_ARCH(ptl0)
-
-/*
- * These macros traverse the 4-level tree of page tables,
- * each descending by one level.
- */
-#define GET_PTL1_ADDRESS(ptl0, i)	GET_PTL1_ADDRESS_ARCH(ptl0, i)
-#define GET_PTL2_ADDRESS(ptl1, i)	GET_PTL2_ADDRESS_ARCH(ptl1, i)
-#define GET_PTL3_ADDRESS(ptl2, i)	GET_PTL3_ADDRESS_ARCH(ptl2, i)
-#define GET_FRAME_ADDRESS(ptl3, i)	GET_FRAME_ADDRESS_ARCH(ptl3, i)
-
-/*
- * These macros are provided to change shape of the 4-level
- * tree of page tables on respective level.
- */
-#define SET_PTL1_ADDRESS(ptl0, i, a)	SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
-#define SET_PTL2_ADDRESS(ptl1, i, a)	SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
-#define SET_PTL3_ADDRESS(ptl2, i, a)	SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS(ptl3, i, a)	SET_FRAME_ADDRESS_ARCH(ptl3, i, a)
-
-/*
- * These macros are provided to query various flags within the page tables.
- */
-#define GET_PTL1_FLAGS(ptl0, i)		GET_PTL1_FLAGS_ARCH(ptl0, i)
-#define GET_PTL2_FLAGS(ptl1, i)		GET_PTL2_FLAGS_ARCH(ptl1, i)
-#define GET_PTL3_FLAGS(ptl2, i)		GET_PTL3_FLAGS_ARCH(ptl2, i)
-#define GET_FRAME_FLAGS(ptl3, i)	GET_FRAME_FLAGS_ARCH(ptl3, i)
-
-/*
- * These macros are provided to set/clear various flags within the page tables.
- */
-#define SET_PTL1_FLAGS(ptl0, i, x)	SET_PTL1_FLAGS_ARCH(ptl0, i, x)
-#define SET_PTL2_FLAGS(ptl1, i, x)	SET_PTL2_FLAGS_ARCH(ptl1, i, x)
-#define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
+extern page_operations_t *page_operations;
 
 extern void page_init(void);
 extern void page_mapping_insert(__address page, __address frame, int flags, __address root);

@@ -45,6 +45,11 @@ LFLAGS += -no-check-sections -N
 
 CONFIG_OFW = y
 
+## Compile with hierarchical page tables support.
+#
+
+CONFIG_PAGE_PT = y
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \

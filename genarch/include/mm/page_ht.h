@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/page.h>
-#include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
+/*
+ * This is the generic page hash table interface.
+ */
+
+#ifndef __PAGE_HT_H__
+#define __PAGE_HT_H__
+
 #include <mm/page.h>
-#include <arch/types.h>
-#include <config.h>
-#include <func.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <debug.h>
-#include <memstr.h>
-#include <print.h>
-#include <interrupt.h>
 
-static __address bootstrap_dba; 
+extern page_operations_t page_ht_operations;
 
-void page_arch_init(void)
-{
-	__address dba;
-	__address cur;
-
-	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
-	
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
-		memsetb(dba, PAGE_SIZE, 0);
-
-		bootstrap_dba = dba;
-		
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(PA2KA(cur), cur, PAGE_CACHEABLE, KA2PA(dba));
-
-		exc_register(14, "page_fault", page_fault);
-		write_cr3(KA2PA(dba));
-	}
-	else {
-		write_cr3(KA2PA(bootstrap_dba));
-	}
-
-	paging_on();
-}
+#endif

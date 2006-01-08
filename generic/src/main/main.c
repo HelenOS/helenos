@@ -46,6 +46,7 @@
 #include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
+#include <genarch/mm/page_pt.h>
 #include <mm/tlb.h>
 #include <mm/vm.h>
 #include <synch/waitq.h>

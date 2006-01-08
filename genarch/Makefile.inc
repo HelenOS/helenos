@@ -37,3 +37,11 @@ ifeq ($(CONFIG_ACPI),y)
 		genarch/src/acpi/acpi.c \
 		genarch/src/acpi/matd.c
 endif
+ifeq ($(CONFIG_PAGE_PT),y)
+	GENARCH_SOURCES += \
+		genarch/src/mm/page_pt.c
+endif
+ifeq ($(CONFIG_PAGE_HT),y)
+	GENARCH_SOURCES += \
+		genarch/src/mm/page_ht.c
+endif

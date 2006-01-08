@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/page.h>
-#include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
+#include <genarch/mm/page_ht.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <arch/types.h>
-#include <config.h>
-#include <func.h>
-#include <arch/interrupt.h>
+#include <typedefs.h>
 #include <arch/asm.h>
-#include <debug.h>
-#include <memstr.h>
-#include <print.h>
-#include <interrupt.h>
 
-static __address bootstrap_dba; 
+static void ht_mapping_insert(__address page, __address frame, int flags, __address root);
+static pte_t *ht_mapping_find(__address page, __address root);
 
-void page_arch_init(void)
+page_operations_t page_ht_operations = {
+	.mapping_insert = ht_mapping_insert,
+	.mapping_find = ht_mapping_find
+};
+
+/** Map page to frame using page hash table.
+ *
+ * Map virtual address 'page' to physical address 'frame'
+ * using 'flags'.
+ *
+ * @param page Virtual address of the page to be mapped.
+ * @param frame Physical address of memory frame to which the mapping is done.
+ * @param flags Flags to be used for mapping.
+ * @param root Explicit PTL0 address.
+ */
+void ht_mapping_insert(__address page, __address frame, int flags, __address root)
 {
-	__address dba;
-	__address cur;
+}
 
-	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
-	
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
-		memsetb(dba, PAGE_SIZE, 0);
-
-		bootstrap_dba = dba;
-		
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(PA2KA(cur), cur, PAGE_CACHEABLE, KA2PA(dba));
-
-		exc_register(14, "page_fault", page_fault);
-		write_cr3(KA2PA(dba));
-	}
-	else {
-		write_cr3(KA2PA(bootstrap_dba));
-	}
-
-	paging_on();
+/** Find mapping for virtual page in page hash table.
+ *
+ * Find mapping for virtual page.
+ *
+ * @param page Virtual page.
+ * @param root PTL0 address if non-zero.
+ *
+ * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
+ */
+pte_t *ht_mapping_find(__address page, __address root)
+{
+	return NULL;
 }
