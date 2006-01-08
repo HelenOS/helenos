@@ -26,30 +26,22 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
 #include <arch/mm/page.h>	
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
-#include <arch/boot/boot.h>
 
 #define START_STACK	(BOOT_OFFSET - BOOT_STACK_SIZE)
-#define START_STACK_64  0xffffffff80007c00
 	
 .section K_TEXT_START, "ax"
 # .code16
 # .global kernel_image_start
 # .global multiboot_image_start
 # kernel_image_start:
-# 	cli
-# 	xorw %ax,%ax
-# 	movw %ax,%ds
-# 	movw %ax,%es
-# 	movw %ax,%ss            # initialize stack segment register
-# 	movl $(START_STACK), %esp	# initialize stack pointer
-# 	
-# 	call memmap_arch_init
-# 	
+
 # 	movl $0x80000000, %eax  
 # 	cpuid
 # 	cmp $0x80000000, %eax 	# any function > 80000000h?
@@ -59,14 +51,6 @@
 # 	bt $29, %edx 		# Test if long mode is supported.
 # 	jnc no_long_mode
 # 
-# 	# Load gdtr, idtr
-# 	lgdt real_bootstrap_gdtr_boot
-# 	
-# 	movl %cr0,%eax
-# 	orl $0x1,%eax
-# 	movl %eax,%cr0			# switch to protected mode
-# 
-# 	jmpl $gdtselector(KTEXT32_DES), $now_in_prot
 # 
 # no_long_mode:
 # 1:
@@ -74,6 +58,7 @@
 # 	
 .code32
 .align 4
+.global multiboot_image_start
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
@@ -85,9 +70,8 @@ multiboot_header:
 	.long multiboot_image_start
 
 multiboot_image_start:
-	movl $START_STACK, %esp				# initialize stack pointer
-	
-	lgdt protected_bootstrap_gdtr + BOOT_OFFSET		# initialize Global Descriptor Table register
+	movl $START_STACK, %esp			# initialize stack pointer
+	lgdt bootstrap_gdtr				# initialize Global Descriptor Table register
 
 	movw $gdtselector(KDATA_DES), %cx
 	movw %cx, %es
@@ -96,14 +80,14 @@ multiboot_image_start:
 	movw %cx, %ds							# kernel data + stack
 	movw %cx, %ss
 	
-	jmpl $gdtselector(KTEXT_DES), $multiboot_meeting_point + BOOT_OFFSET
+	jmpl $gdtselector(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
+	
+	movl %eax, grub_eax							# save parameters from GRUB
+	movl %ebx, grub_ebx
 	
 	# Protected 32-bit. We want to reuse the code-seg descriptor,
 	# the Default operand size must not be 1 when entering long mode
-	
-	pushl %ebx							# save parameters from GRUB
-	pushl %eax
 	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
@@ -137,7 +121,103 @@ multiboot_image_start:
 .code64
 start64:
 	movq $(PA2KA(START_STACK)), %rsp
-
+	movl grub_eax, %eax
+	movl grub_ebx, %ebx
+	
+	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
+	je valid_boot
+		
+		xorl %ecx, %ecx							# no memory size or map available
+		movl %ecx, e801memorysize
+		movl %ecx, e820counter
+		
+		jmp invalid_boot
+		
+	valid_boot:
+		
+		movl (%ebx), %eax						# ebx = physical address of struct multiboot_info
+		
+		bt $0, %eax								# mbi->flags[0] (mem_lower, mem_upper valid)
+		jc mem_valid
+			
+			xorl %ecx, %ecx
+			jmp mem_invalid
+			
+		mem_valid:
+		movl 4(%ebx), %ecx						# mbi->mem_lower
+		addl 8(%ebx), %ecx						# mbi->mem_upper
+		
+		mem_invalid:
+		movl %ecx, e801memorysize
+		
+		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)	
+		jc mods_valid
+			
+			xorl %ecx, %ecx
+			xorl %edx, %edx
+			jmp mods_invalid
+		
+		mods_valid:
+		movl 20(%ebx), %ecx						# mbi->mods_count
+		cmpl $0, %ecx
+		je mods_invalid
+		
+		movl 24(%ebx), %esi						# mbi->mods_addr
+		movl 0(%esi), %edx						# mods->mod_start
+		movl 4(%esi), %ecx						# mods->mod_end
+		subl %edx, %ecx
+		addl $0x80000000, %edx
+		
+		mods_invalid:
+		movl %ecx, init_size
+		movl %edx, init_addr
+		
+		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
+		jc mmap_valid
+			
+			xorl %edx, %edx
+			jmp mmap_invalid
+			
+		mmap_valid:
+		movl 44(%ebx), %ecx						# mbi->mmap_length
+		movl 48(%ebx), %esi						# mbi->mmap_addr
+		movq $e820table, %rdi
+		xorl %edx, %edx
+		
+		mmap_loop:
+			cmpl $0, %ecx
+			jle mmap_end
+			
+			movl 4(%esi), %eax					# mmap->base_addr_low
+			movl %eax, (%rdi)
+			
+			movl 8(%esi), %eax					# mmap->base_addr_high
+			movl %eax, 4(%rdi)
+			
+			movl 12(%esi), %eax					# mmap->length_low
+			movl %eax, 8(%rdi)
+			
+			movl 16(%esi), %eax					# mmap->length_high
+			movl %eax, 12(%rdi)
+			
+			movl 20(%esi), %eax					# mmap->type
+			movl %eax, 16(%rdi)
+			
+			movl (%esi), %eax					# mmap->size
+			addl $0x4, %eax
+			addl %eax, %esi
+			subl %eax, %ecx
+			addq $MEMMAP_E820_RECORD_SIZE, %rdi
+			incl %edx
+			jmp mmap_loop
+		
+		mmap_end:
+		
+		mmap_invalid:
+		movl %edx, e820counter
+		
+	invalid_boot:
+	
 	call main_bsp   # never returns
 	
 	cli
@@ -197,7 +277,13 @@ ptl_0:
 	.fill 510,8,0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
-.global protected_bootstrap_gdtr
-protected_bootstrap_gdtr:
+.global bootstrap_gdtr
+bootstrap_gdtr:
 	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)
+
+grub_eax:
+	.long 0
+
+grub_ebx:
+	.long 0
