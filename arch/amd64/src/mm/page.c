@@ -31,6 +31,7 @@
 #include <arch/mm/frame.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/asid.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <config.h>
@@ -56,7 +57,7 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			page_mapping_insert(PA2KA(cur), 0, cur, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
+			page_mapping_insert(PA2KA(cur), ASID_KERNEL, cur, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
 		}
 
 		exc_register(14, "page_fault", page_fault);

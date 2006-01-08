@@ -38,33 +38,8 @@
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
 
-#define PTL0_INDEX_ARCH(vaddr)		0
-#define PTL1_INDEX_ARCH(vaddr)		0
-#define PTL2_INDEX_ARCH(vaddr)		0
-#define PTL3_INDEX_ARCH(vaddr)		0
-
 #define GET_PTL0_ADDRESS_ARCH()		0
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
-
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) 0)
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		((pte_t *) 0)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		((pte_t *) 0)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((pte_t *) 0)
-
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
-#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
-#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)
-
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		0
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		0
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		0
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		0
-
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)
-#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
-#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
 union page_address {
 	__address address;
