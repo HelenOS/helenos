@@ -29,5 +29,9 @@
 #ifndef __CONVERSION_H__
 #define __CONVERSION_H__
 
+float64 convertFloat32ToFloat64(float32 a);
+
+float32 convertFloat64ToFloat32(float64 a);
+
 #endif
 

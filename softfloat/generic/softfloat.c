@@ -71,6 +71,14 @@ float __mulsf3(float a, float b)
 	return 	mulFloat32(fa, fb).f;
 }
 
+float __divsf3(float a, float b) 
+{
+	float32 fa, fb;
+	fa.f=a;
+	fb.f=b;
+//	return 	divFloat32(fa, fb).f;
+};
+
 float __negsf2(float a)
 {
 	float32 fa;
@@ -89,6 +97,19 @@ double __negdf2(double a)
 
 /* Conversion functions */
 
+double __extendsfdf2(float a) 
+{
+	float32 fa;
+	fa.f = a;
+	return convertFloat32ToFloat64(fa).d;
+};
+
+float __truncdfsf2(double a) 
+{
+	float64 da;
+	da.d = a;
+	return convertFloat64ToFloat32(da).f;
+}
 /* Comparison functions */
 
 /* a<b .. -1

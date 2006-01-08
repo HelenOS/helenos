@@ -29,7 +29,6 @@
 #ifndef __SFTYPES_H__
 #define __SFTYPES_H__
 
-
 typedef union {
 	float f;
 	__u32 binary;
@@ -79,6 +78,7 @@ typedef union {
 #define FLOAT32_INF 0x7F800000
 
 #define FLOAT32_MANTISA_SIZE 23
+#define FLOAT64_MANTISA_SIZE 52
 
 #define FLOAT32_BIAS 0x7F
 #define FLOAT64_BIAS 0x3FF

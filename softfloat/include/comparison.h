@@ -35,6 +35,12 @@ inline int isFloat32SigNaN(float32 f);
 inline int isFloat32Infinity(float32 f);
 inline int isFloat32Zero(float32 f);
 
+inline int isFloat64NaN(float64 d);
+inline int isFloat64SigNaN(float64 d);
+
+inline int isFloat64Infinity(float64 d);
+inline int isFloat64Zero(float64 d);
+
 inline int isFloat32eq(float32 a, float32 b);
 inline int isFloat32lt(float32 a, float32 b);
 inline int isFloat32gt(float32 a, float32 b);

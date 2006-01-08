@@ -34,9 +34,19 @@ inline int isFloat32NaN(float32 f)
 	return ((f.parts.exp==0xFF)&&(f.parts.mantisa));
 };
 
+inline int isFloat64NaN(float64 d)
+{	/* NaN : exp = 0x7ff and nonzero mantisa */
+	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa));
+};
+
 inline int isFloat32SigNaN(float32 f)
 {	/* SigNaN : exp = 0xff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
 	return ((f.parts.exp==0xFF)&&(f.parts.mantisa>0x400000));
+};
+
+inline int isFloat64SigNaN(float64 d)
+{	/* SigNaN : exp = 0x7ff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
+	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa>0x8000000000000ll));
 };
 
 inline int isFloat32Infinity(float32 f) 
@@ -44,9 +54,19 @@ inline int isFloat32Infinity(float32 f)
 	return ((f.parts.exp==0xFF)&&(f.parts.mantisa==0x0));
 };
 
+inline int isFloat64Infinity(float64 d) 
+{
+	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa==0x0));
+};
+
 inline int isFloat32Zero(float32 f)
 {
 	return (((f.binary) & 0x7FFFFFFF) == 0);
+}
+
+inline int isFloat64Zero(float64 d)
+{
+	return (((d.binary) & 0x7FFFFFFFFFFFFFFFll) == 0);
 }
 
 /**
@@ -98,5 +118,6 @@ inline int isFloat32gt(float32 a, float32 b)
 	return (a.binary>b.binary);
 			
 }
+
 
 
