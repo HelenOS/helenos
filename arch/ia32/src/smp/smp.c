@@ -30,6 +30,7 @@
 #include <arch/smp/smp.h>
 #include <arch/smp/mps.h>
 #include <arch/smp/ap.h>
+#include <arch/boot/boot.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <config.h>
@@ -141,9 +142,10 @@ void kmp(void *arg)
 		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor))))
 			panic("couldn't allocate memory for GDT\n");
 
-		memcpy(gdt_new, gdt, GDT_ITEMS*sizeof(struct descriptor));
+		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
 		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
-		real_bootstrap_gdtr.base = KA2PA((__address) gdt_new);
+		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(struct descriptor);
+		protected_ap_gdtr.base = KA2PA((__address) gdt_new);
 		gdtr.base = (__address) gdt_new;
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {

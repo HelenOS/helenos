@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2001-2004 Jakub Jermar
+# Copyright (C) 2005-2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,11 +31,16 @@
 # Init code for application processors.
 #
 
-.section K_TEXT_START_2, "ax"
+#include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
+#include <arch/mm/page.h>
+#include <arch/pm.h>
+
+.section K_TEXT_START, "ax"
 
 #ifdef CONFIG_SMP
 
-.global ap_boot
+.global unmapped_ap_boot
 
 KTEXT=8
 KDATA=16
@@ -44,18 +50,18 @@ KDATA=16
 # requirements.
 
 .align 4096
-ap_boot:
+unmapped_ap_boot:
 .code16
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt real_bootstrap_gdtr_boot	# initialize Global Descriptor Table register
+	lgdt ap_gdtr		# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
 	movl %eax, %cr0				# switch to protected mode
-	jmpl $KTEXT, $jump_to_kernel
+	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	
 jump_to_kernel:
 .code32
@@ -63,7 +69,7 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $(ctx-0x80000000), %eax	# KA2PA((__address) &ctx)
+	movl $KA2PA(ctx), %eax			# KA2PA((__address) &ctx)
 	movl (%eax), %esp
 	subl $0x80000000, %esp			# KA2PA(ctx.sp)
 
@@ -72,5 +78,18 @@ jump_to_kernel:
 	addl $0x80000000, %esp			# PA2KA(ctx.sp)
 	
 	jmpl $KTEXT, $main_ap
+
+#endif /* CONFIG_SMP */
+
+
+.section K_DATA_START, "ax"
+
+#ifdef CONFIG_SMP
+
+.global unmapped_ap_gdtr
+
+unmapped_ap_gdtr:
+	.word 0
+	.long 0
 
 #endif /* CONFIG_SMP */

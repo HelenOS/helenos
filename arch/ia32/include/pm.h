@@ -131,8 +131,8 @@ struct tss {
 } __attribute__ ((packed));
 
 extern struct ptr_16_32 gdtr;
-extern struct ptr_16_32 real_bootstrap_gdtr;
-extern struct ptr_16_32 protected_bootstrap_gdtr;
+extern struct ptr_16_32 bootstrap_gdtr;
+extern struct ptr_16_32 protected_ap_gdtr;
 extern struct tss *tss_p;
 
 extern struct descriptor gdt[];

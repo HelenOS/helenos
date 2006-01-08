@@ -50,8 +50,10 @@ void frame_arch_init(void)
 		/* Reserve frame 0 (BIOS data) */
 		frame_region_not_free(0, FRAME_SIZE);
 		
-		/* Reserve real mode bootstrap memory */
-		frame_region_not_free(BOOTSTRAP_OFFSET, hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
+#ifdef CONFIG_SMP
+		/* Reserve AP real mode bootstrap memory */
+		frame_region_not_free(AP_BOOT_OFFSET, hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
+#endif
 		
 		for (i = 0; i < e820counter; i++) {
 			if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {

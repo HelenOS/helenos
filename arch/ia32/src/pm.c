@@ -71,7 +71,7 @@ static struct tss tss;
 struct tss *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 protected_bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
+struct ptr_16_32 bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
 struct ptr_16_32 gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };
 
 void gdt_setbase(struct descriptor *d, __address base)

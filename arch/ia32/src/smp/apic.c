@@ -30,6 +30,7 @@
 #include <arch/smp/apic.h>
 #include <arch/smp/ap.h>
 #include <arch/smp/mps.h>
+#include <arch/boot/boot.h>
 #include <mm/page.h>
 #include <time/delay.h>
 #include <interrupt.h>
