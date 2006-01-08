@@ -83,7 +83,7 @@ void frame_init(void)
  *
  * @return Allocated frame.
  */
-__address frame_alloc(int flags, __u8 order) 
+__address frame_alloc(int flags, __u8 order, int * status) 
 {
 	ipl_t ipl;
 	link_t *cur, *tmp;
@@ -117,12 +117,20 @@ loop:
 		if (flags & FRAME_PANIC)
 			panic("Can't allocate frame.\n");
 		
+		
+		
 		/*
 		 * TODO: Sleep until frames are available again.
 		 */
 		spinlock_unlock(&zone_head_lock);
 		interrupts_restore(ipl);
 
+		if (flags & FRAME_NON_BLOCKING) {
+			ASSERT(status != NULL);
+			*status = FRAME_NO_MEMORY;
+			return NULL;
+		}
+		
 		panic("Sleep not implemented.\n");
 		goto loop;
 	}
@@ -150,6 +158,11 @@ loop:
 
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
+	
+	if (flags & FRAME_NON_BLOCKING) {
+		ASSERT(status != NULL);
+		*status = FRAME_OK;
+	}
 	
 	return v;
 }

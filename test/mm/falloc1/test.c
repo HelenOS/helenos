@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,80 +25,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#include <cpu.h>
-#include <arch.h>
-#include <arch/cpu.h>
-#include <mm/heap.h>
+#include <print.h>
+#include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <arch/mm/page.h>
 #include <arch/types.h>
-#include <config.h>
-#include <panic.h>
-#include <typedefs.h>
-#include <memstr.h>
-#include <list.h>
-#include <print.h>
+#include <debug.h>
 
-cpu_t *cpus;
+#define MAX_FRAMES 1024
+#define MAX_ORDER 8
+#define TEST_RUNS 4
 
-/** Initialize CPUs
- *
- * Initialize kernel CPUs support.
- *
- */
-void cpu_init(void) {
-	int i, j;
+void test(void) {
+	__address frames[MAX_FRAMES];
+	int results[MAX_ORDER+1];
 	
-	#ifdef CONFIG_SMP
-	if (config.cpu_active == 1) {
-	#endif /* CONFIG_SMP */
-		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
-		if (!cpus)
-			panic("malloc/cpus");
+	int i, order, run;
+	int allocated;
+	int status;
 
-		/* initialize everything */
-		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
+	ASSERT(TEST_RUNS > 1);
 
-		for (i=0; i < config.cpu_count; i++) {
-			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
-			
-			cpus[i].id = i;
-			
-			spinlock_initialize(&cpus[i].lock, "cpu_t.lock");
-
-			#ifdef CONFIG_SMP
-			waitq_initialize(&cpus[i].kcpulb_wq);
-			#endif /* __SMP */
-			
-			for (j = 0; j < RQ_COUNT; j++) {
-				spinlock_initialize(&cpus[i].rq[j].lock, "rq_t.lock");
-				list_initialize(&cpus[i].rq[j].rq_head);
+	for (run=0;run<=TEST_RUNS;run++) {
+		for (order=0;order<=MAX_ORDER;order++) {
+			printf("Allocating %d frames blocks ... ", 1<<order);
+			allocated = 0;
+			for (i=0;i<MAX_FRAMES>>order;i++) {
+				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING,order, &status);
+				if (status == 0) {
+					allocated++;
+				} else {
+					printf("done. ");
+					break;
+				}
 			}
-		}
 		
-	#ifdef CONFIG_SMP
+			printf("%d blocks alocated.\n", allocated);
+		
+			if (run) {
+				if (results[order] != allocated) {
+					panic("Test failed. Frame leak possible.\n");
+				}
+			} else results[order] = allocated;
+			
+			printf("Deallocating ... ");
+			for (i=0;i<allocated;i++) {
+				frame_free(frames[i]);
+			}
+			printf("done.\n");
+		}
 	}
-	#endif /* CONFIG_SMP */
 
-	CPU = &cpus[config.cpu_active-1];
+
 	
-	CPU->active = 1;
-	CPU->tlb_active = 1;
-	
-	cpu_identify();
-	cpu_arch_init();
+	printf("Test passed\n");
 }
 
-/** List all processors. */
-void cpu_list(void)
-{
-	int i;
-
-	for (i = 0; i < config.cpu_count; i++) {
-		if (cpus[i].active)
-			cpu_print_report(&cpus[i]);
-		else
-			printf("cpu%d: not active\n", i);
-	}
-}

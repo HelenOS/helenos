@@ -38,8 +38,13 @@
 
 #define ONE_FRAME	0
 
-#define FRAME_KA	1	/* skip frames conflicting with user address space */
-#define FRAME_PANIC	2	/* panic on failure */
+#define FRAME_KA		1	/* skip frames conflicting with user address space */
+#define FRAME_PANIC		2	/* panic on failure */
+#define FRAME_NON_BLOCKING	4	/* do not panic and do not sleep on failure */
+
+#define FRAME_OK		0	/* frame_alloc return status */
+#define FRAME_NO_MEMORY		1	/* frame_alloc return status */
+#define FRAME_ERROR		2	/* frame_alloc return status */
 
 #define FRAME2ADDR(zone, frame)			((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
 #define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
@@ -88,8 +93,10 @@ extern void zone_attach(zone_t *zone);
 
 extern void frame_init(void);
 extern void frame_initialize(frame_t *frame, zone_t *zone);
-__address frame_alloc(int flags, __u8 order);
+
+__address frame_alloc(int flags, __u8 order, int * status);
 extern void frame_free(__address addr);
+
 zone_t * get_zone_by_frame(frame_t * frame);
 
 /*

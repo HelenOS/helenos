@@ -42,7 +42,7 @@ void page_arch_init(void)
 
 	page_operations = &page_pt_operations;
 	
-	ptl0 = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
+	ptl0 = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
 	memsetb(ptl0, FRAME_SIZE, 0);
 	
 	SET_PTL0_ADDRESS(KA2PA(ptl0));

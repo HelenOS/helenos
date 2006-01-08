@@ -70,7 +70,7 @@ vm_t *vm_create(pte_t *ptl0)
 			pte_t *src_ptl0, *dst_ptl0;
 		
 			src_ptl0 = (pte_t *) PA2KA((__address) GET_PTL0_ADDRESS());
-			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME);
+			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
 
 //			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
 //			memcpy((void *) &dst_ptl0[KAS_START_INDEX], (void *) &src_ptl0[KAS_START_INDEX], KAS_INDICES);
@@ -116,7 +116,7 @@ vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr)
 		}
 		
 		for (i=0; i<size; i++)
-			a->mapping[i] = frame_alloc(0, ONE_FRAME);
+			a->mapping[i] = frame_alloc(0, ONE_FRAME, NULL);
 		
 		spinlock_initialize(&a->lock, "vm_area_lock");
 			
