@@ -489,14 +489,13 @@ void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
 void zone_print_list(void) {
 	zone_t *zone = NULL;
 	link_t *cur;
-	index_t i = 0;
 	spinlock_lock(&zone_head_lock);
-	printf("No.\tBase address\tFree Frames\tBusy Frames\n");
-	printf("---\t------------\t-----------\t-----------\n");
+	printf("Base address\tFree Frames\tBusy Frames\n");
+	printf("------------\t-----------\t-----------\n");
 	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
 		zone = list_get_instance(cur, zone_t, link);
 		spinlock_lock(&zone->lock);
-		printf("%d\t%L\t%d\t\t%d\n",i++,zone->base, zone->free_count, zone->busy_count);
+		printf("%L\t%d\t\t%d\n",zone->base, zone->free_count, zone->busy_count);
 	}
 	spinlock_unlock(&zone_head_lock);
 
@@ -536,8 +535,7 @@ void zone_print_one(__address base) {
 	printf("Available space: %d (%d kbytes)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
 	
 	printf("\nBuddy allocator structures:\n\n");
-	buddy_system_structure_print(zone->buddy_system);
-	
+	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
