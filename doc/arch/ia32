@@ -16,7 +16,7 @@ COMPILER REQUIREMENTS
         o older versions may do as well, but are now obsoleted
 
 SMP COMPATIBILITY
-        o Bochs 2.0.2 - Bochs 2.2.1
+        o Bochs 2.0.2 - Bochs 2.2.5
                 o 2x-8x 686 CPU
         o Simics 2.0.28 - Simics 2.2.19
                 o 2x-15x Pentium 4 CPU
@@ -30,6 +30,6 @@ SMP COMPATIBILITY
 	        o 2x 2100MHz Athlon MP CPU
 
 EMULATORS AND VIRTUALIZERS
-        o Bochs 2.0.2 - Bochs 2.2.1
+        o Bochs 2.0.2 - Bochs 2.2.5
         o VMware Workstation 4, VMware Workstation 5, VMware Workstation 5.5
         o Simics 2.2.19

@@ -41,8 +41,13 @@
 
 #define CPU_STACK_SIZE	STACK_SIZE
 
+/** CPU structure.
+ *
+ * There is one structure like this for every processor.
+ */
 struct cpu {
 	SPINLOCK_DECLARE(lock);
+
 	context_t saved_context;
 
 	volatile count_t nrdy;
@@ -57,7 +62,11 @@ struct cpu {
 	waitq_t kcpulb_wq;
 	#endif /* CONFIG_SMP */
 
+	/**
+	 * Processor ID assigned by kernel.
+	 */
 	int id;
+	
 	int active;
 	int tlb_active;
 
@@ -68,6 +77,9 @@ struct cpu {
 
 	thread_t *fpu_owner;
 	
+	/**
+	 * Stack used by scheduler when there is no running thread.
+	 */
 	__u8 *stack;
 };
 

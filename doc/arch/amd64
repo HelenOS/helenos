@@ -22,5 +22,5 @@ SMP COMPATIBILITY
 	o HP ProLiant ML350 (HyperThreading)
 
 EMULATORS AND VIRTUALIZERS
-        o Bochs 2.2.1
+        o Bochs 2.2.5
         o Simics 2.2.19
