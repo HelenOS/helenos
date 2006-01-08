@@ -49,6 +49,7 @@
 .section K_TEXT_START, "ax"
 .code16
 .global kernel_image_start
+.global multiboot_image_start
 kernel_image_start:
 	cli
 	xorw %ax,%ax
@@ -95,7 +96,20 @@ multiboot_header:
 
 multiboot_image_start:
 	movl $START_STACK, %esp				# initialize stack pointer
-	# FIXME TODO
+	
+	lgdt protected_bootstrap_gdtr + BOOT_OFFSET		# initialize Global Descriptor Table register
+
+	movw $gdtselector(KDATA_DES), %cx
+	movw %cx, %es
+	movw %cx, %gs
+	movw %cx, %fs
+	movw %cx, %ds							# kernel data + stack
+	movw %cx, %ss
+	
+	jmpl $gdtselector(KTEXT_DES), $multiboot_meeting_point + BOOT_OFFSET
+	multiboot_meeting_point:
+	
+	hlt
 
 # Protected 32-bit. We want to reuse the code-seg descriptor,
 # the Default operand size must not be 1 when entering long mode
@@ -208,3 +222,8 @@ ptl_0:
 real_bootstrap_gdtr_boot:
 	.word gdtselector(GDT_ITEMS)
 	.long KA2PA(gdt)-BOOT_OFFSET
+
+.global protected_bootstrap_gdtr
+protected_bootstrap_gdtr:
+	.word gdtselector(GDT_ITEMS)
+	.long KA2PA(gdt)

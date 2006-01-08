@@ -146,6 +146,7 @@ extern struct idescriptor idt[];
 
 extern struct ptr_16_64 gdtr;
 extern struct ptr_16_32 real_bootstrap_gdtr;
+extern struct ptr_16_32 protected_bootstrap_gdtr;
 
 extern void pm_init(void);
 
