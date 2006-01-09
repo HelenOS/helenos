@@ -59,6 +59,8 @@ float64 convertFloat32ToFloat64(float32 a)
 			mant <<= 1;
 			--result.parts.exp;
 		};
+		
+		++result.parts.exp;
 		result.parts.mantisa = mant;
 	};
 	
@@ -108,7 +110,6 @@ float32 convertFloat64ToFloat32(float64 a)
 		result.parts.exp = 0;
 		
 		exp *= -1;	
-		
 		if (exp > FLOAT32_MANTISA_SIZE ) {
 			/* FIXME: underflow */
 			result.parts.mantisa = 0;
@@ -117,8 +118,10 @@ float32 convertFloat64ToFloat32(float64 a)
 		
 		/* denormalized */
 		
-		mant = result.parts.mantisa >> 1; 
+		mant = a.parts.mantisa; 
 		mant |= 0x10000000000000ll; /* denormalize and set hidden bit */
+		
+		mant >>= (FLOAT64_MANTISA_SIZE - FLOAT32_MANTISA_SIZE + 1);
 		
 		while (exp > 0) {
 			--exp;

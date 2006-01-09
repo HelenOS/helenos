@@ -49,7 +49,7 @@ float __addsf3(float a, float b)
 		return subFloat32(fa,fb).f;
 	}
 	return addFloat32(fa,fb).f;
-};
+}
 
 float __subsf3(float a, float b)
 {
@@ -61,7 +61,7 @@ float __subsf3(float a, float b)
 		return addFloat32(fa,fb).f;
 	}
 	return subFloat32(fa,fb).f;
-};
+}
 
 float __mulsf3(float a, float b) 
 {
@@ -77,7 +77,7 @@ float __divsf3(float a, float b)
 	fa.f=a;
 	fb.f=b;
 //	return 	divFloat32(fa, fb).f;
-};
+}
 
 float __negsf2(float a)
 {
@@ -85,7 +85,7 @@ float __negsf2(float a)
 	fa.f=a;
 	fa.parts.sign=!fa.parts.sign;
 	return fa.f;
-};
+}
 
 double __negdf2(double a)
 {
@@ -93,7 +93,7 @@ double __negdf2(double a)
 	fa.d=a;
 	fa.parts.sign=!fa.parts.sign;
 	return fa.d;
-};
+}
 
 /* Conversion functions */
 
@@ -102,7 +102,7 @@ double __extendsfdf2(float a)
 	float32 fa;
 	fa.f = a;
 	return convertFloat32ToFloat64(fa).d;
-};
+}
 
 float __truncdfsf2(double a) 
 {
@@ -110,6 +110,7 @@ float __truncdfsf2(double a)
 	da.d = a;
 	return convertFloat64ToFloat32(da).f;
 }
+
 /* Comparison functions */
 
 /* a<b .. -1
@@ -143,7 +144,7 @@ int __unordsf2(float a, float b)
 	fa.f=a;
 	fb.f=b;
 	return ((isFloat32NaN(fa))||(isFloat32NaN(fb)));
-};
+}
 
 /** 
  * @return zero, if neither argument is a NaN and are equal
@@ -158,13 +159,13 @@ int __eqsf2(float a, float b)
 		return 1;
 		};
 	return isFloat32eq(fa,fb)-1;
-};
+}
 
 /* strange behavior, but it was in gcc documentation */
 int __nesf2(float a, float b) 
 {
 	return __eqsf2(a,b);
-};
+}
 
 /* return value >= 0 if a>=b and neither is NaN */
 int __gesf2(float a, float b)
@@ -243,4 +244,19 @@ int __gtsf2(float a, float b)
 }
 
 /* Other functions */
+
+float __powisf2(float a, int b)
+{
+//TODO:	
+}
+
+float __mulsc3(float a, float b, float c, float d)
+{
+//TODO:
+}
+
+float __divsc3(float a, float b, float c, float d)
+{
+//TODO:
+}
 
