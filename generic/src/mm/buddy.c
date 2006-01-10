@@ -231,8 +231,6 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 
 }
 
-
-
 /** Prints out structure of buddy system
  *
  * @param b Pointer to buddy system
@@ -250,15 +248,16 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 	for (i=0;i < b->max_order; i++) {
 		cnt = 0;
 		if (!list_empty(&b->order[i])) {
-			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) cnt++;
+			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next)
+				cnt++;
 		}
 	
-		printf("#%d\t%d\t%d kb\t\t%d kb\t\t%d\n", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
+		printf("#%d\t%d\t%dK\t\t%dK\t\t%d\n", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
 		
 		block_count += cnt;
 		elem_count += (1 << i) * cnt;
 	}
 	printf("-----\t------\t--------\t----------\t---------------\n");
-	printf("Buddy system contains %d elements (%d blocks)\n" , elem_count, block_count);
+	printf("Buddy system contains %d free elements (%d blocks)\n" , elem_count, block_count);
 
 }

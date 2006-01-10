@@ -117,8 +117,6 @@ loop:
 		if (flags & FRAME_PANIC)
 			panic("Can't allocate frame.\n");
 		
-		
-		
 		/*
 		 * TODO: Sleep until frames are available again.
 		 */
@@ -154,7 +152,6 @@ loop:
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
 	interrupts_restore(ipl);
-
 
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
@@ -205,6 +202,7 @@ void frame_free(__address addr)
 			zone = z;
 			break;
 		}
+
 		spinlock_unlock(&z->lock);
 	}
 	
@@ -502,6 +500,9 @@ void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
 void zone_print_list(void) {
 	zone_t *zone = NULL;
 	link_t *cur;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	printf("Base address\tFree Frames\tBusy Frames\n");
 	printf("------------\t-----------\t-----------\n");
@@ -509,9 +510,10 @@ void zone_print_list(void) {
 		zone = list_get_instance(cur, zone_t, link);
 		spinlock_lock(&zone->lock);
 		printf("%L\t%d\t\t%d\n",zone->base, zone->free_count, zone->busy_count);
+		spinlock_unlock(&zone->lock);
 	}
 	spinlock_unlock(&zone_head_lock);
-
+	interrupts_restore(ipl);
 }
 
 /** Prints zone details
@@ -521,10 +523,10 @@ void zone_print_list(void) {
 void zone_print_one(__address base) {
 	zone_t *zone = NULL, *z	;
 	link_t *cur;
-	
-	
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
-	
 	
 	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
 		z = list_get_instance(cur, zone_t, link);
@@ -534,8 +536,9 @@ void zone_print_one(__address base) {
 		}
 	}
 	
-	
 	if (!zone) {
+		spinlock_unlock(&zone_head_lock);
+		interrupts_restore(ipl);
 		printf("No zone with address %X\n", base);
 		return;
 	}
@@ -543,15 +546,15 @@ void zone_print_one(__address base) {
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n\n");
 	printf("Zone base address: %P\n", zone->base);
-	printf("Zone size: %d frames (%d kbytes)\n", zone->free_count + zone->busy_count, ((zone->free_count + zone->busy_count) * FRAME_SIZE) >> 10);
-	printf("Allocated space: %d frames (%d kbytes)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
-	printf("Available space: %d (%d kbytes)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Zone size: %d frames (%dK)\n", zone->free_count + zone->busy_count, ((zone->free_count + zone->busy_count) * FRAME_SIZE) >> 10);
+	printf("Allocated space: %d frames (%dK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
+	printf("Available space: %d (%dK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
 	
 	printf("\nBuddy allocator structures:\n\n");
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
-	
+	interrupts_restore(ipl);
 }
 
