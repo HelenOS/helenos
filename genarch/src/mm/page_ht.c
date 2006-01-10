@@ -29,10 +29,12 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/heap.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
+#include <debug.h>
 
 static void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
 static pte_t *ht_mapping_find(__address page, asid_t asid, __address root);
@@ -51,10 +53,21 @@ page_operations_t page_ht_operations = {
  * @param asid Address space to which page belongs.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
- * @param root Explicit PTL0 address.
+ * @param root Ignored.
  */
-void ht_mapping_insert(__address page,  asid_t asid, __address frame, int flags, __address root)
+void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root)
 {
+	pte_t *t, *u = NULL;
+	
+	t = HT_HASH(page, asid);
+	if (!HT_SLOT_EMPTY(t)) {
+		u = (pte_t *) malloc(sizeof(pte_t));	/* FIXME: use slab allocator for this */
+		if (!u)
+			panic("could not allocate memory for hash table\n");
+		*u = *t;
+	}
+	HT_SET_NEXT(t, u);
+	HT_SET_RECORD(t, page, asid, frame, flags);
 }
 
 /** Find mapping for virtual page in page hash table.
@@ -63,11 +76,17 @@ void ht_mapping_insert(__address page,  asid_t asid, __address frame, int flags,
  *
  * @param page Virtual page.
  * @param asid Address space to wich page belongs.
- * @param root PTL0 address if non-zero.
+ * @param root Ignored.
  *
- * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
+ * @return NULL if there is no such mapping; requested mapping otherwise.
  */
 pte_t *ht_mapping_find(__address page, asid_t asid, __address root)
 {
-	return NULL;
+	pte_t *t;
+	
+	t = HT_HASH(page, asid);
+	while (!HT_COMPARE(page, asid, t) && HT_GET_NEXT(t))
+		t = HT_GET_NEXT(t);
+	
+	return HT_COMPARE(page, asid, t) ? t : NULL;
 }

@@ -95,7 +95,7 @@ void page_mapping_insert(__address page, asid_t asid, __address frame, int flags
  * @param asid Address space to wich page belongs.
  * @param root PTL0 address if non-zero.
  *
- * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
+ * @return NULL if there is no such mapping; requested mapping otherwise.
  */
 pte_t *page_mapping_find(__address page,  asid_t asid, __address root)
 {

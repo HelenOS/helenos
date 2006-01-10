@@ -42,6 +42,7 @@
 #define PAGE_READ_SHIFT			3
 #define PAGE_WRITE_SHIFT		4
 #define PAGE_EXEC_SHIFT			5
+#define PAGE_GLOBAL_SHIFT		6
 
 #define PAGE_NOT_CACHEABLE	(0<<PAGE_CACHEABLE_SHIFT)
 #define PAGE_CACHEABLE		(1<<PAGE_CACHEABLE_SHIFT)
@@ -56,6 +57,9 @@
 #define PAGE_WRITE		(1<<PAGE_WRITE_SHIFT)
 #define PAGE_EXEC		(1<<PAGE_EXEC_SHIFT)
 
+#define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
+
+/** Operations to manipulate page mappings. */
 struct page_operations {
 	void (* mapping_insert)(__address page, asid_t asid, __address frame, int flags, __address root);
 	pte_t *(* mapping_find)(__address page, asid_t asid, __address root);

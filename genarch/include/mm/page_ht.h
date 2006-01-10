@@ -28,12 +28,66 @@
 
 /*
  * This is the generic page hash table interface.
+ * Architectures that use single page hash table for
+ * storing page translations must implement it.
  */
 
 #ifndef __PAGE_HT_H__
 #define __PAGE_HT_H__
 
 #include <mm/page.h>
+
+/** Hash function.
+ *
+ * @param page Virtual address. Only vpn bits will be used.
+ * @param asid Address space identifier.
+ *
+ * @return Pointer to hash table typed pte_t *.
+ */
+#define HT_HASH(page, asid)		HT_HASH_ARCH(page, asid)
+
+/** Compare PTE with page and asid.
+ *
+ * @param page Virtual address. Only vpn bits will be used.
+ * @param asid Address space identifier.
+ * @param t PTE.
+ *
+ * @return 1 on match, 0 otherwise.
+ */
+#define HT_COMPARE(page, asid, t)	HT_COMPARE_ARCH(page, asid, t)
+
+/** Identify empty hash table slots.
+ *
+ * @param t Pointer ro hash table typed pte_t *.
+ *
+ * @return 1 if the slot is empty, 0 otherwise.
+ */
+#define HT_SLOT_EMPTY(t)		HT_SLOT_EMPTY_ARCH(t)
+
+/** Return next record in collision chain.
+ *
+ * @param t PTE.
+ *
+ * @return Successor of PTE or NULL.
+ */
+#define HT_GET_NEXT(t)			HT_GET_NEXT_ARCH(t)
+
+/** Set successor in collision chain.
+ *
+ * @param t PTE.
+ * @param s Successor or NULL.
+ */
+#define HT_SET_NEXT(t, s)		HT_SET_NEXT_ARCH(t, s)
+
+/** Set page hash table record.
+ *
+ * @param t PTE.
+ * @param page Virtual address. Only vpn bits will be used.
+ * @param asid Address space identifier.
+ * @param frame Physical address. Only pfn bits will be used.
+ * @param flags Flags. See mm/page.h.
+ */
+#define HT_SET_RECORD(t, page, asid, frame, flags)	HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
 
 extern page_operations_t page_ht_operations;
 
