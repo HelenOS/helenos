@@ -399,8 +399,10 @@ void tlb_print(void)
 {
 	page_mask_t mask;
 	entry_lo_t lo0, lo1;
-	entry_hi_t hi;
+	entry_hi_t hi, hi_save;
 	int i;
+
+	hi_save.value = cp0_entry_hi_read();
 
 	printf("TLB:\n");
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
@@ -417,6 +419,8 @@ void tlb_print(void)
 		       i, hi.asid, hi.vpn2, mask.mask, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
 		       lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
+	
+	cp0_entry_hi_write(hi_save.value);
 }
 
 /** Invalidate all not wired TLB entries. */
@@ -424,8 +428,10 @@ void tlb_invalidate_all(void)
 {
 	ipl_t ipl;
 	entry_lo_t lo0, lo1;
+	entry_hi_t hi_save;
 	int i;
 
+	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();
 
 	for (i = TLB_WIRED; i < TLB_ENTRY_COUNT; i++) {
@@ -445,6 +451,7 @@ void tlb_invalidate_all(void)
 	}
 	
 	interrupts_restore(ipl);
+	cp0_entry_hi_write(hi_save.value);
 }
 
 /** Invalidate all TLB entries belonging to specified address space.
@@ -455,11 +462,12 @@ void tlb_invalidate_asid(asid_t asid)
 {
 	ipl_t ipl;
 	entry_lo_t lo0, lo1;
-	entry_hi_t hi;
+	entry_hi_t hi, hi_save;
 	int i;
 
 	ASSERT(asid != ASID_INVALID);
 
+	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();
 	
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
@@ -483,6 +491,7 @@ void tlb_invalidate_asid(asid_t asid)
 	}
 	
 	interrupts_restore(ipl);
+	cp0_entry_hi_write(hi_save.value);
 }
 
 /** Invalidate TLB entry for specified page belonging to specified address space.
@@ -494,11 +503,12 @@ void tlb_invalidate_page(asid_t asid, __address page)
 {
 	ipl_t ipl;
 	entry_lo_t lo0, lo1;
-	entry_hi_t hi;
+	entry_hi_t hi, hi_save;
 	tlb_index_t index;
 
 	ASSERT(asid != ASID_INVALID);
 
+	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();
 
 	hi.value = 0;
@@ -525,4 +535,5 @@ void tlb_invalidate_page(asid_t asid, __address page)
 	}
 	
 	interrupts_restore(ipl);
+	cp0_entry_hi_write(hi_save.value);
 }

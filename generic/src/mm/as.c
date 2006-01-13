@@ -58,10 +58,10 @@
 #define KAS_INDICES		(1+(KAS_END_INDEX-KAS_START_INDEX))
 
 /*
- * Here we assume that PFN (Physical Frame Numbers) space
+ * Here we assume that PFN (Physical Frame Number) space
  * is smaller than the width of index_t. UNALLOCATED_PFN
  * can be then used to mark mappings wich were not
- * allocated a physical frame.
+ * yet allocated a physical frame.
  */
 #define UNALLOCATED_PFN		((index_t) -1)
 
@@ -141,7 +141,8 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 		for (i=0; i<size; i++) {
 			/*
 			 * Frames will be allocated on-demand by
-			 * as_page_fault().
+			 * as_page_fault() or preloaded by
+			 * as_area_load_mapping().
 			 */
 			a->mapping[i] = UNALLOCATED_PFN;
 		}
@@ -159,7 +160,7 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
-	
+
 	return a;
 }
 
@@ -180,6 +181,7 @@ void as_area_load_mapping(as_area_t *a, index_t *pfn)
 
 	for (i = 0; i < a->size; i++) {
 		ASSERT(a->mapping[i] == UNALLOCATED_PFN);
+		ASSERT(pfn[i] != UNALLOCATED_PFN);
 		a->mapping[i] = pfn[i];
 	}
 	
@@ -194,7 +196,7 @@ void as_area_load_mapping(as_area_t *a, index_t *pfn)
  *
  * @param page Faulting page.
  *
- * @return 0 on page fault, 1 if address space operation
+ * @return 0 on page fault, 1 on success.
  */
 int as_page_fault(__address page)
 {
@@ -250,6 +252,7 @@ int as_page_fault(__address page)
 		frame = frame_alloc(0, ONE_FRAME, NULL);
 		memsetb(frame, FRAME_SIZE, 0);
 		area->mapping[vpn] = frame / FRAME_SIZE;
+		ASSERT(area->mapping[vpn] != UNALLOCATED_PFN);
 	} else {
 		frame = area->mapping[vpn] * FRAME_SIZE;
 	}
