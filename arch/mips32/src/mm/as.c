@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_VM_H__
-#define __ppc32_VM_H__
+#include <arch/mm/as.h>
+#include <arch/mm/tlb.h>
+#include <mm/tlb.h>
+#include <mm/as.h>
+#include <arch/cp0.h>
+#include <arch.h>
 
-#include <arch/types.h>
+/** Install address space.
+ *
+ * Install ASID and if necessary, purge TLB.
+ *
+ * @param as Address space structure.
+ */
+void as_install_arch(as_t *as)
+{
+	entry_hi_t hi;
+	ipl_t ipl;
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff	
-#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x00000000
-#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff
+	/*
+	 * If necessary, purge TLB.
+	 */
+	tlb_invalidate_asid(as->asid);	/* TODO: do it only if necessary */
 
-#define UTEXT_ADDRESS_ARCH	0x00001000
-#define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
-#define UDATA_ADDRESS_ARCH	0x21000000
+	/*
+	 * Install ASID.
+	 */	
+	hi.value = cp0_entry_hi_read();
 
-#define vm_install_arch(vm)
-
-#endif
+	ipl = interrupts_disable();
+	spinlock_lock(&as->lock);
+	hi.asid = as->asid;
+	cp0_entry_hi_write(hi.value);	
+	spinlock_unlock(&as->lock);
+	interrupts_restore(ipl);
+}

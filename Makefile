@@ -117,7 +117,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \
-	generic/src/mm/vm.c \
+	generic/src/mm/as.c \
 	generic/src/lib/func.c \
 	generic/src/lib/list.c \
 	generic/src/lib/memstr.c \

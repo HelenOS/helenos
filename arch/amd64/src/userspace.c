@@ -31,7 +31,7 @@
 #include <arch/types.h>
 #include <arch.h>
 #include <proc/thread.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 
 
 /** Enter userspace

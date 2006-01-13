@@ -32,7 +32,7 @@
 #include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <arch/asm.h>
 #include <arch/faddr.h>
 #include <arch/atomic.h>
@@ -352,28 +352,28 @@ static void scheduler_separated_stack(void)
 	 * If both the old and the new task are the same, lots of work is avoided.
 	 */
 	if (TASK != THREAD->task) {
-		vm_t *m1 = NULL;
-		vm_t *m2;
+		as_t *as1 = NULL;
+		as_t *as2;
 
 		if (TASK) {
 			spinlock_lock(&TASK->lock);
-			m1 = TASK->vm;
+			as1 = TASK->as;
 			spinlock_unlock(&TASK->lock);
 		}
 
 		spinlock_lock(&THREAD->task->lock);
-		m2 = THREAD->task->vm;
+		as2 = THREAD->task->as;
 		spinlock_unlock(&THREAD->task->lock);
 		
 		/*
-		 * Note that it is possible for two tasks to share one vm mapping.
+		 * Note that it is possible for two tasks to share one address space.
 		 */
-		if (m1 != m2) {
+		if (as1 != as2) {
 			/*
-			 * Both tasks and vm mappings are different.
+			 * Both tasks and address spaces are different.
 			 * Replace the old one with the new one.
 			 */
-			vm_install(m2);
+			as_install(as2);
 		}
 		TASK = THREAD->task;	
 	}

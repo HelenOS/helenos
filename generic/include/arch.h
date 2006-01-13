@@ -39,7 +39,7 @@
 #define CPU			THE->cpu
 #define THREAD			THE->thread
 #define TASK			THE->task
-#define VM			THE->vm
+#define AS			THE->as
 #define PREEMPTION_DISABLED	THE->preemption_disabled
 
 /**
@@ -52,7 +52,7 @@ struct the {
 	thread_t *thread;		/**< Current thread. */
 	task_t *task;			/**< Current task. */
 	cpu_t *cpu;			/**< Executing cpu. */
-	vm_t *vm;			/**< Current vm. */
+	as_t *as;			/**< Current address space. */
 };
 
 #define THE		((the_t *)(get_stack_base()))	

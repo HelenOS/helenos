@@ -31,7 +31,7 @@
 #include <arch/types.h>
 #include <mm/heap.h>
 #include <mm/frame.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <panic.h>
 #include <debug.h>
 #include <list.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/vm.h>
-#include <arch/mm/tlb.h>
-#include <mm/vm.h>
-#include <arch/cp0.h>
-#include <arch.h>
+#ifndef __ppc32_AS_H__
+#define __ppc32_AS_H__
 
-/** Install ASID of the current VM
- *
- * Install ASID of the current VM.
- *
- * @param vm VM structure.
- */
-void vm_install_arch(vm_t *vm)
-{
-	entry_hi_t hi;
-	ipl_t ipl;
-	
-	hi.value = cp0_entry_hi_read();
+#include <arch/types.h>
 
-	ipl = interrupts_disable();
-	spinlock_lock(&vm->lock);
-	hi.asid = vm->asid;
-	cp0_entry_hi_write(hi.value);	
-	spinlock_unlock(&vm->lock);
-	interrupts_restore(ipl);
-}
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff	
+#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x00000000
+#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff
+
+#define UTEXT_ADDRESS_ARCH	0x00001000
+#define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
+#define UDATA_ADDRESS_ARCH	0x21000000
+
+#define as_install_arch(as)
+
+#endif

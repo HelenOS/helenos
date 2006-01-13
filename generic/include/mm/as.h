@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __VM_H__
-#define __VM_H__
+#ifndef __AS_H__
+#define __AS_H__
 
 #include <arch/mm/page.h>
-#include <arch/mm/vm.h>
+#include <arch/mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -48,46 +48,54 @@
 #define USTACK_ADDRESS	USTACK_ADDRESS_ARCH
 #define UDATA_ADDRESS	UDATA_ADDRESS_ARCH
 
-enum vm_type {
-	VMA_TEXT = 1, VMA_DATA, VMA_STACK 
+enum as_area_type {
+	AS_AREA_TEXT = 1, AS_AREA_DATA, AS_AREA_STACK 
 };
 
-/*
- * Each vm_area_t structure describes one continuous area of virtual memory.
- * In the future, it should not be difficult to support shared areas of vm.
+/** Address space area structure.
+ *
+ * Each as_area_t structure describes one contiguous area of virtual memory.
+ * In the future, it should not be difficult to support shared areas.
  */
-struct vm_area {
+struct as_area {
 	SPINLOCK_DECLARE(lock);
 	link_t link;
-	vm_type_t type;
-	int size;
-	__address address;
-	__address *mapping;
+	as_area_type_t type;
+	size_t size;		/**< Size of this area. */
+	__address base;		/**< Base address of this area. */
+	index_t *mapping;	/**< Map of physical frame numbers mapped to virtual page numbers in this area. */
 };
 
-/*
- * vm_t contains the list of vm_areas of userspace accessible
+/** Address space structure.
+ *
+ * as_t contains the list of as_areas of userspace accessible
  * pages for one or more tasks. Ranges of kernel memory pages are not
  * supposed to figure in the list as they are shared by all tasks and
  * set up during system initialization.
  */
-struct vm {
+struct as {
 	SPINLOCK_DECLARE(lock);
-	link_t vm_area_head;
+	link_t as_area_head;
 	pte_t *ptl0;
-	asid_t asid;
+	asid_t asid;			/**< Address space identifier. */
 };
 
-extern vm_t * vm_create(pte_t *ptl0);
-extern void vm_destroy(vm_t *m);
+extern as_t * as_create(pte_t *ptl0);
+extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
+extern void as_area_load_mapping(as_area_t *a, index_t *pfn);
+extern int as_page_fault(__address page);
+extern void as_install(as_t *m);
 
-extern vm_area_t *vm_area_create(vm_t *m, vm_type_t type, size_t size, __address addr);
-extern void vm_area_destroy(vm_area_t *a);
-
-extern void vm_area_map(vm_area_t *a, vm_t *m);
-extern void vm_area_unmap(vm_area_t *a, vm_t *m);
-
-extern void vm_install(vm_t *m);
-extern void vm_uninstall(vm_t *m);
+/*
+ * Each architecture should implement this function.
+ * Its main purpose is to do TLB purges according
+ * to architecture's requirements. Note that
+ * some architectures invalidate their TLB automatically
+ * on hardware address space switch (e.g. ia32 and
+ * amd64).
+ */
+#ifndef as_install_arch
+extern void as_install_arch(as_t *as);
+#endif /* !def as_install_arch */
 
 #endif

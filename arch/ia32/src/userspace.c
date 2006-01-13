@@ -31,7 +31,7 @@
 #include <arch/types.h>
 #include <arch.h>
 #include <proc/thread.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 
 
 /** Enter userspace
@@ -47,11 +47,11 @@ void userspace(void)
 
 	__asm__ volatile (
 		/* CLNT */
-		"pushfl;"
-		"pop %%eax;"
-		"and $0xFFFFBFFF,%%eax;"
-		"push %%eax;"
-		"popfl;"
+		"pushfl\n"
+		"pop %%eax\n"
+		"and $0xffffbfff,%%eax\n"
+		"push %%eax\n"
+		"popfl\n"
 
 		"pushl %0\n"
 		"pushl %1\n"
@@ -64,5 +64,6 @@ void userspace(void)
 		: "eax");
 	
 	/* Unreachable */
-	for(;;);
+	for(;;)
+		;
 }

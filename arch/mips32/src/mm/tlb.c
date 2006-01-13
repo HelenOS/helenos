@@ -30,7 +30,7 @@
 #include <arch/mm/asid.h>
 #include <mm/tlb.h>
 #include <mm/page.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <arch/cp0.h>
 #include <panic.h>
 #include <arch.h>
@@ -92,7 +92,7 @@ void tlb_refill(struct exception_regdump *pstate)
 
 	badvaddr = cp0_badvaddr_read();
 
-	spinlock_lock(&VM->lock);		
+	spinlock_lock(&AS->lock);		
 
 	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
@@ -103,7 +103,7 @@ void tlb_refill(struct exception_regdump *pstate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_hi(&hi, VM->asid, badvaddr);
+	prepare_entry_hi(&hi, AS->asid, badvaddr);
 	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->lo.d, pte->lo.c, pte->lo.pfn);
 
 	/*
@@ -121,11 +121,11 @@ void tlb_refill(struct exception_regdump *pstate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwr();
 
-	spinlock_unlock(&VM->lock);
+	spinlock_unlock(&AS->lock);
 	return;
 	
 fail:
-	spinlock_unlock(&VM->lock);
+	spinlock_unlock(&AS->lock);
 	tlb_refill_fail(pstate);
 }
 
@@ -154,7 +154,7 @@ void tlb_invalid(struct exception_regdump *pstate)
 	tlbp();
 	index.value = cp0_index_read();
 	
-	spinlock_lock(&VM->lock);	
+	spinlock_lock(&AS->lock);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
@@ -190,11 +190,11 @@ void tlb_invalid(struct exception_regdump *pstate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	spinlock_unlock(&VM->lock);	
+	spinlock_unlock(&AS->lock);	
 	return;
 	
 fail:
-	spinlock_unlock(&VM->lock);
+	spinlock_unlock(&AS->lock);
 	tlb_invalid_fail(pstate);
 }
 
@@ -223,7 +223,7 @@ void tlb_modified(struct exception_regdump *pstate)
 	tlbp();
 	index.value = cp0_index_read();
 	
-	spinlock_lock(&VM->lock);	
+	spinlock_lock(&AS->lock);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
@@ -266,11 +266,11 @@ void tlb_modified(struct exception_regdump *pstate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	spinlock_unlock(&VM->lock);	
+	spinlock_unlock(&AS->lock);	
 	return;
 	
 fail:
-	spinlock_unlock(&VM->lock);
+	spinlock_unlock(&AS->lock);
 	tlb_modified_fail(pstate);
 }
 
@@ -312,7 +312,7 @@ void tlb_modified_fail(struct exception_regdump *pstate)
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
- * The VM->lock must be held on entry to this function.
+ * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr Faulting virtual address.
  *
@@ -328,15 +328,40 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Handler cannot succeed if the ASIDs don't match.
 	 */
-	if (hi.asid != VM->asid) {
-		printf("EntryHi.asid=%d, VM->asid=%d\n", hi.asid, VM->asid);
+	if (hi.asid != AS->asid) {
+		printf("EntryHi.asid=%d, AS->asid=%d\n", hi.asid, AS->asid);
 		return NULL;
 	}
-	
+
+	/*
+	 * Check if the mapping exists in page tables.
+	 */	
+	pte = page_mapping_find(badvaddr, AS->asid, 0);
+	if (pte && pte->lo.v) {
+		/*
+		 * Mapping found in page tables.
+		 * Immediately succeed.
+		 */
+		return pte;
+	} else {
+		/*
+		 * Mapping not found in page tables.
+		 * Resort to higher-level page fault handler.
+		 */
+		if (as_page_fault(badvaddr)) {
+			/*
+			 * The higher-level page fault handler succeeded,
+			 * The mapping ought to be in place.
+			 */
+			pte = page_mapping_find(badvaddr, AS->asid, 0);
+			ASSERT(pte && pte->lo.v);
+			return pte;
+		}
+	}
+
 	/*
 	 * Handler cannot succeed if badvaddr has no mapping.
 	 */
-	pte = page_mapping_find(badvaddr, VM->asid, 0);
 	if (!pte) {
 		printf("No such mapping.\n");
 		return NULL;

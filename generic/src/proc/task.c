@@ -28,7 +28,7 @@
 
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <mm/heap.h>
 
 #include <synch/spinlock.h>
@@ -54,12 +54,12 @@ void task_init(void)
  *
  * Create new task with no threads.
  *
- * @param m Task's virtual memory structure.
+ * @param as Task's address space.
  *
  * @return New task's structure on success, NULL on failure.
  *
  */
-task_t *task_create(vm_t *m)
+task_t *task_create(as_t *as)
 {
 	ipl_t ipl;
 	task_t *ta;
@@ -69,7 +69,7 @@ task_t *task_create(vm_t *m)
 		spinlock_initialize(&ta->lock, "task_ta_lock");
 		list_initialize(&ta->th_head);
 		list_initialize(&ta->tasks_link);
-		ta->vm = m;
+		ta->as = as;
 		
 		ipl = interrupts_disable();
 		spinlock_lock(&tasks_lock);

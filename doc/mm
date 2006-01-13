@@ -1,8 +1,14 @@
 Memory management
 =================
 
-SPARTAN kernel deploys generic interface for 4-level page tables,
-no matter what the real underlying hardware architecture is.
+1. Virtual Address Translation
+
+1.1 Hierarchical 4-level per address space page tables
+
+SPARTAN kernel deploys generic interface for 4-level page tables
+for these architectures: amd64, ia32, mips32 and ppc32. In this
+setting, page tables are hierarchical and are not shared by
+address spaces (i.e. one set of page tables per address space).
 
 
  VADDR
@@ -50,3 +56,12 @@ FRAME		Physical address of memory frame to which VADDR is mapped
 On architectures whose hardware has fewer levels, PTL2 and, if need be, PTL1 are
 left out. TLB-only architectures are to define custom format for software page
 tables.
+
+
+
+1.2 Single global page hash table
+
+Generic page hash table interface is deployed on 64-bit architectures without
+implied hardware support for hierarchical page tables, i.e. ia64 and sparc64.
+There is only one global page hash table in the system shared by all address
+spaces.

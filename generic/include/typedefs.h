@@ -70,9 +70,9 @@ typedef struct zone zone_t;
 typedef struct frame frame_t;
 typedef struct region region_t;
 
-typedef enum vm_type vm_type_t;
-typedef struct vm_area vm_area_t;
-typedef struct vm vm_t;
+typedef enum as_area_type as_area_type_t;
+typedef struct as_area as_area_t;
+typedef struct as as_t;
 
 typedef struct link link_t;
 

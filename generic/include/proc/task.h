@@ -33,17 +33,18 @@
 #include <synch/spinlock.h>
 #include <list.h>
 
+/** Task structure. */
 struct task {
 	SPINLOCK_DECLARE(lock);
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
-	vm_t *vm;
+	as_t *as;		/**< Address space. */
 };
 
 extern spinlock_t tasks_lock;
 extern link_t tasks_head;
 
 extern void task_init(void);
-extern task_t *task_create(vm_t *m);
+extern task_t *task_create(as_t *as);
 
 #endif

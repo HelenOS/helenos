@@ -39,7 +39,7 @@
 #include <arch/asm.h>
 #include <mm/page.h>
 #include <arch/mm/page.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <mm/frame.h>
 #include <print.h>
 #include <memstr.h>
@@ -70,8 +70,10 @@ void kinit(void *arg)
 {
 	thread_t *t;
 #ifdef CONFIG_USERSPACE
-	vm_t *m;
-	vm_area_t *a;
+	as_t *as;
+	as_area_t *a;
+	__address frame;
+	index_t pfn[1];
 	task_t *u;
 #endif
 
@@ -141,10 +143,10 @@ void kinit(void *arg)
 	/*
 	 * Create the first user task.
 	 */
-	m = vm_create(NULL);
-	if (!m)
-		panic("vm_create\n");
-	u = task_create(m);
+	as = as_create(NULL);
+	if (!as)
+		panic("as_create\n");
+	u = task_create(as);
 	if (!u)
 		panic("task_create\n");
 	t = thread_create(uinit, NULL, u, THREAD_USER_STACK);
@@ -152,24 +154,28 @@ void kinit(void *arg)
 		panic("thread_create\n");
 
 	/*
-	 * Create the text vm_area and copy the userspace code there.
+	 * Create the text as_area and copy the userspace code there.
 	 */	
-	a = vm_area_create(m, VMA_TEXT, 1, UTEXT_ADDRESS);
+	a = as_area_create(as, AS_AREA_TEXT, 1, UTEXT_ADDRESS);
 	if (!a)
-		panic("vm_area_create: vm_text\n");
-	vm_area_map(a, m);
+		panic("as_area_create: text\n");
+
+	frame = frame_alloc(0, ONE_FRAME, NULL);
+
 	if (config.init_size > 0)
-		memcpy((void *) PA2KA(a->mapping[0]), (void *) config.init_addr, config.init_size < PAGE_SIZE ? config.init_size : PAGE_SIZE);
+		memcpy((void *) PA2KA(frame), (void *) config.init_addr, config.init_size < PAGE_SIZE ? config.init_size : PAGE_SIZE);
 	else
-		memcpy((void *) PA2KA(a->mapping[0]), (void *) utext, utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);
+		memcpy((void *) PA2KA(frame), (void *) utext, utext_size < PAGE_SIZE ? utext_size : PAGE_SIZE);
+	
+	pfn[0] = frame / FRAME_SIZE;
+	as_area_load_mapping(a, pfn);
 
 	/*
-	 * Create the data vm_area.
+	 * Create the data as_area.
 	 */
-	a = vm_area_create(m, VMA_STACK, 1, USTACK_ADDRESS);
+	a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
 	if (!a)
-		panic("vm_area_create: vm_stack\n");
-	vm_area_map(a, m);
+		panic("as_area_create: stack\n");
 	
 	thread_ready(t);
 #endif /* CONFIG_USERSPACE */

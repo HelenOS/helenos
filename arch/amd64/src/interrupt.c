@@ -35,6 +35,7 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <mm/tlb.h>
+#include <mm/as.h>
 #include <arch.h>
 #include <symtab.h>
 #include <arch/asm.h>
@@ -124,13 +125,16 @@ void nm_fault(int n, void *stack)
 #endif
 }
 
-
-
 void page_fault(int n, void *stack)
 {
-	print_info_errcode(n,stack);
-	printf("Page fault address: %Q\n", read_cr2());
-	panic("page fault\n");
+	__address page;
+	
+	page = read_cr2();
+	if (!as_page_fault(page)) {
+		print_info_errcode(n,stack);
+		printf("Page fault address: %Q\n", page);
+		panic("page fault\n");
+	}
 }
 
 void syscall(int n, void *stack)

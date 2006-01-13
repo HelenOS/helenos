@@ -48,7 +48,7 @@
 #include <mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/tlb.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <synch/waitq.h>
 #include <arch/arch.h>
 #include <arch.h>
@@ -135,7 +135,7 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
-	vm_t *m;
+	as_t *as;
 	task_t *k;
 	thread_t *t;
 	
@@ -183,16 +183,16 @@ void main_bsp_separated_stack(void)
 		printf("config.init_addr=%X, config.init_size=%d\n", config.init_addr, config.init_size);
 
 	/*
-	 * Create kernel vm mapping.
+	 * Create kernel address space.
 	 */
-	m = vm_create(GET_PTL0_ADDRESS());
-	if (!m)
-		panic("can't create kernel vm address space\n");
+	as = as_create(GET_PTL0_ADDRESS());
+	if (!as)
+		panic("can't create kernel address space\n");
 
 	/*
 	 * Create kernel task.
 	 */
-	k = task_create(m);
+	k = task_create(as);
 	if (!k)
 		panic("can't create kernel task\n");
 		

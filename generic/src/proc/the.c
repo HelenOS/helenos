@@ -42,7 +42,7 @@ void the_initialize(the_t *the)
 	the->cpu = NULL;
 	the->thread = NULL;
 	the->task = NULL;
-	the->vm = NULL;
+	the->as = NULL;
 }
 
 /** Copy THE structure

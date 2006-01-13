@@ -35,6 +35,7 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <mm/tlb.h>
+#include <mm/as.h>
 #include <arch.h>
 #include <symtab.h>
 #include <proc/thread.h>
@@ -99,9 +100,14 @@ void nm_fault(int n, void *stack)
 
 void page_fault(int n, void *stack)
 {
-	PRINT_INFO_ERRCODE(stack);
-	printf("page fault address: %X\n", read_cr2());
-	panic("page fault\n");
+	__address page;
+
+	page = read_cr2();
+	if (!as_page_fault(page)) {
+		PRINT_INFO_ERRCODE(stack);
+		printf("page fault address: %X\n", page);
+		panic("page fault\n");
+	}
 }
 
 void syscall(int n, void *stack)

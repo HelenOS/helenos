@@ -28,7 +28,7 @@
 
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 #include <config.h>
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>

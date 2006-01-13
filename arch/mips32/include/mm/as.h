@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_VM_H__
-#define __sparc64_VM_H__
+#ifndef __mips32_AS_H__
+#define __mips32_AS_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
-#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff
+#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x00000000
+#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff	
 
-#define UTEXT_ADDRESS_ARCH	(0x0000000000000000+PAGE_SIZE)
-#define USTACK_ADDRESS_ARCH	(0x7fffffffffffffff-(PAGE_SIZE-1))
-#define UDATA_ADDRESS_ARCH	0x8000000000000000
-
-#define vm_install_arch(vm)
+#define UTEXT_ADDRESS_ARCH	0x00004000
+#define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
+#define UDATA_ADDRESS_ARCH	0x01001000
 
 #endif

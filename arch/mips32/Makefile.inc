@@ -112,7 +112,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/mm/vm.c \
+	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/drivers/arc.c \
 	arch/$(ARCH)/src/drivers/msim.c \

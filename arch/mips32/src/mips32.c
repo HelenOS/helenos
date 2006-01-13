@@ -31,7 +31,7 @@
 #include <arch/cp0.h>
 #include <arch/exception.h>
 #include <arch/asm.h>
-#include <mm/vm.h>
+#include <mm/as.h>
 
 #include <userspace.h>
 #include <arch/console.h>
