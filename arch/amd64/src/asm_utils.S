@@ -187,7 +187,7 @@ read_efer_flag:
 	pop_all_gpr
 	
 	popq %rbp;
-	add $8,%esp;    # Skip error word
+	addq $8,%rsp;    # Skip error word
 	iretq
 
 0:
