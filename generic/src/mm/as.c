@@ -250,7 +250,7 @@ int as_page_fault(__address page)
 	 */
 	if (area->mapping[vpn] == UNALLOCATED_PFN) {
 		frame = frame_alloc(0, ONE_FRAME, NULL);
-		memsetb(frame, FRAME_SIZE, 0);
+		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 		area->mapping[vpn] = frame / FRAME_SIZE;
 		ASSERT(area->mapping[vpn] != UNALLOCATED_PFN);
 	} else {
