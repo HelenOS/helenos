@@ -27,10 +27,39 @@
  */
 
 #include <arch/mm/page.h>
+#include <arch/types.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/page.h>
 #include <config.h>
 #include <panic.h>
+
+__u64 thash(__u64 va);
+__u64 thash(__u64 va)
+{
+	__u64 ret;
+	asm
+	(
+		"thash %0=%1;;"
+		:"=r"(ret)
+		:"r" (va)
+	);
+	
+	return ret;
+}
+
+__u64 ttag(__u64 va);
+__u64 ttag(__u64 va)
+{
+	__u64 ret;
+	asm
+	(
+		"ttag %0=%1;;"
+		:"=r"(ret)
+		:"r" (va)
+	);
+	
+	return ret;
+}
 
 
 static void set_VHPT_environment(void)
