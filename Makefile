@@ -149,7 +149,7 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all build clean config links depend boot
+.PHONY: all build config distclean clean archlinks depend boot disasm
 
 all:
 	tools/config.py default
