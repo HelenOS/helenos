@@ -32,7 +32,64 @@
 #include <config.h>
 #include <panic.h>
 
+
+static void set_VHPT_environment(void)
+{
+	/*
+	TODO:
+	*/
+	
+	int i;
+	
+	/* First set up REGION REGISTER 0 */
+	
+	region_register rr;
+	rr.map.ve=0;                  /*Disable Walker*/
+	rr.map.ps=PAGE_WIDTH;
+	rr.map.rid=REGION_RID_MAIN;
+	
+	asm
+	(
+		"mov rr[r0]=%0;;"
+		:
+		:"r"(rr.word)
+	);
+		
+	/* And Invalidate the rest of REGION REGISTERS */
+	
+	for(i=1;i<REGION_REGISTERS;i++)
+	{
+		rr.map.rid=REGION_RID_FIRST_INVALID+i-1;
+		asm
+		(
+			"mov r8=%1;;"
+			"mov rr[r8]=%0;;"
+			:
+			:"r"(rr.word),"r"(i)
+			:"r8"
+		);
+	};
+
+	PTA_register pta;
+	pta.map.ve=0;                   /*Disable Walker*/
+	pta.map.vf=1;                   /*Large entry format*/
+	pta.map.size=VHPT_WIDTH;
+	pta.map.base=VHPT_BASE;
+	
+	
+	/*Write PTA*/
+	asm
+	(
+		"mov cr8=%0;;"
+		:
+		:"r"(pta.word)
+	);	
+	
+}	
+
+
 void page_arch_init(void)
 {
 	page_operations = &page_ht_operations;
+	set_VHPT_environment();
 }

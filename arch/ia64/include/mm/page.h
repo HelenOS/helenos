@@ -33,6 +33,7 @@
 #include <arch/mm/frame.h>
 
 #define PAGE_SIZE	FRAME_SIZE
+#define PAGE_WIDTH	FRAME_WIDTH
 
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
@@ -47,6 +48,15 @@
 #define HT_GET_NEXT_ARCH(t)		0
 #define HT_SET_NEXT_ARCH(t, s)
 #define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
+
+#define REGION_RID_MAIN 0
+#define REGION_RID_FIRST_INVALID 16
+#define REGION_REGISTERS 8
+
+#define VHPT_WIDTH 16         /*64kB*/
+#define VHPT_SIZE (1<<VHPT_WIDTH)
+
+#define VHPT_BASE 0           /* Must be aligned to VHPT_SIZE */
 
 struct VHPT_tag_info
 {
@@ -86,7 +96,7 @@ struct VHPT_entry_present
 	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
                             /* But I'm almost sure we nead access to whole word so there are both possibilities*/
 	/* Word 3 */													
-	unsigned long long next :64;
+	unsigned long long next :64; /* This ignored field will be (in my hopes ;-) ) used as pointer in link list of entries with same hash value*/
 	
 }__attribute__ ((packed));
 
@@ -107,7 +117,7 @@ struct VHPT_entry_not_present
 	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
                             /* But I'm almost sure we nead access to whole word so there are both possibilities*/
 	/* Word 3 */													
-	unsigned long long next :64;
+	unsigned long long next :64; /* This ignored field will be (in my hopes ;-) ) used as pointer in link list of entries with same hash value*/
 	
 }__attribute__ ((packed));
 
@@ -118,5 +128,40 @@ typedef union VHPT_entry
 }VHPT_entry;
 
 extern void page_arch_init(void);
+
+
+struct region_register_map
+{
+  unsigned ve            : 1;
+	unsigned r0            : 1;
+	unsigned ps            : 6;
+	unsigned rid           :24;
+	unsigned r1            :32;
+}__attribute__ ((packed));
+
+
+typedef union region_register
+{
+	struct region_register_map   map;
+	unsigned long long           word;
+}region_register;
+
+struct PTA_register_map
+{
+  unsigned ve            : 1;
+	unsigned r0            : 1;
+	unsigned size          : 6;
+	unsigned vf            : 1;
+	unsigned r1            : 6;
+	unsigned long long base:49;
+}__attribute__ ((packed));
+
+
+typedef union PTA_register
+{
+	struct PTA_register_map   map;
+	unsigned long long        word;
+}PTA_register;
+
 
 #endif
