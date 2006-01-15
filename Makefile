@@ -26,29 +26,38 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Make some default assumptions
+## Include configuration
 #
 
-ifndef ARCH
-	ARCH = ia32
-endif
+-include Makefile.config
 
-SOURCES = \
+DIRS = \
 	libc \
 	init \
 	softfloat
 
-CLEANS := $(addsuffix .clean,$(SOURCES))
+BUILDS := $(addsuffix .build,$(DIRS))
+CLEANS := $(addsuffix .clean,$(DIRS))
 
-.PHONY: all $(SOURCES) $(CLEANS) clean
+.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
 
-all: $(SOURCES)
+all:
+	tools/config.py default $(ARCH)
+	$(MAKE) -C . build
+
+config:
+	tools/config.py
+
+build: $(BUILDS)
 
 clean: $(CLEANS)
 	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
 
+distclean: clean
+	-rm Makefile.config
+
 $(CLEANS):
 	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
 
-$(SOURCES):
-	$(MAKE) -C $@ all ARCH=$(ARCH)
+$(BUILDS):
+	$(MAKE) -C $(basename $@) all ARCH=$(ARCH)
