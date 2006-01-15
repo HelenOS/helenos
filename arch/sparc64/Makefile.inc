@@ -30,7 +30,7 @@ TMP=distroot
 
 build: image.iso
 
-image.iso: kernel uspace
+image.iso: kernel
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/kernel
 	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
@@ -43,4 +43,3 @@ clean: clean_kernel
 	-rm -f image.iso
 
 arch_distclean: distclean_kernel
-
