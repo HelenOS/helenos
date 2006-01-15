@@ -48,6 +48,75 @@
 #define HT_SET_NEXT_ARCH(t, s)
 #define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
 
+struct VHPT_tag_info
+{
+	unsigned long long tag       :63;
+	unsigned           ti        : 1;
+}__attribute__ ((packed));
+
+union VHPT_tag
+{
+	struct VHPT_tag_info tag_info;
+	unsigned             tag_word;
+};
+
+struct VHPT_entry_present
+{
+
+	/* Word 0 */
+	unsigned p              : 1;
+	unsigned rv0            : 1;
+	unsigned ma             : 3;
+	unsigned a              : 1;
+	unsigned d              : 1;
+	unsigned pl             : 2;
+	unsigned ar             : 3;
+	unsigned long long ppn  :38;
+	unsigned rv1            : 2;
+	unsigned ed             : 1;
+	unsigned ig1            :11;
+	
+	/* Word 1 */
+	unsigned rv2            : 2;
+	unsigned ps             : 6;
+	unsigned key            :24;
+	unsigned rv3            :32;
+	
+	/* Word 2 */
+	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
+                            /* But I'm almost sure we nead access to whole word so there are both possibilities*/
+	/* Word 3 */													
+	unsigned long long next :64;
+	
+}__attribute__ ((packed));
+
+struct VHPT_entry_not_present
+{
+	/* Word 0 */
+	unsigned p              : 1;
+	unsigned long long ig0  :52;
+	unsigned ig1            :11;
+	
+	/* Word 1 */
+	unsigned rv2            : 2;
+	unsigned ps             : 6;
+	unsigned long long ig2  :56;
+
+	
+	/* Word 2 */
+	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
+                            /* But I'm almost sure we nead access to whole word so there are both possibilities*/
+	/* Word 3 */													
+	unsigned long long next :64;
+	
+}__attribute__ ((packed));
+
+typedef union VHPT_entry 
+{
+	struct VHPT_entry_present        present;
+	struct VHPT_entry_not_present    not_present;
+}VHPT_entry;
+
 extern void page_arch_init(void);
 
 #endif
