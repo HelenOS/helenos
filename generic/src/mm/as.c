@@ -142,7 +142,7 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 			/*
 			 * Frames will be allocated on-demand by
 			 * as_page_fault() or preloaded by
-			 * as_area_load_mapping().
+			 * as_area_set_mapping().
 			 */
 			a->mapping[i] = UNALLOCATED_PFN;
 		}
@@ -168,22 +168,22 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
  *
  * Initialize a->mapping.
  *
- * @param a Target address space area.
- * @param pfn Array of frame numbers. Number of elements must match with a->mapping.
+ * @param a   Target address space area.
+ * @param vpn Page number relative to area start.
+ * @param pfn Frame number to map.
  */
-void as_area_load_mapping(as_area_t *a, index_t *pfn)
+void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn)
 {
+	ASSERT(vpn < a->size);
+	ASSERT(a->mapping[vpn] == UNALLOCATED_PFN);
+	ASSERT(pfn != UNALLOCATED_PFN);
+	
 	ipl_t ipl;
-	int i;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&a->lock);
-
-	for (i = 0; i < a->size; i++) {
-		ASSERT(a->mapping[i] == UNALLOCATED_PFN);
-		ASSERT(pfn[i] != UNALLOCATED_PFN);
-		a->mapping[i] = pfn[i];
-	}
+	
+	a->mapping[vpn] = pfn;
 	
 	spinlock_unlock(&a->lock);
 	interrupts_restore(ipl);
@@ -253,9 +253,8 @@ int as_page_fault(__address page)
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 		area->mapping[vpn] = frame / FRAME_SIZE;
 		ASSERT(area->mapping[vpn] != UNALLOCATED_PFN);
-	} else {
+	} else
 		frame = area->mapping[vpn] * FRAME_SIZE;
-	}
 	
 	switch (area->type) {
 		case AS_AREA_TEXT:

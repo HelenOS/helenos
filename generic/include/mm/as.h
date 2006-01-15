@@ -82,7 +82,7 @@ struct as {
 
 extern as_t * as_create(pte_t *ptl0);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
-extern void as_area_load_mapping(as_area_t *a, index_t *pfn);
+extern void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn);
 extern int as_page_fault(__address page);
 extern void as_install(as_t *m);
 

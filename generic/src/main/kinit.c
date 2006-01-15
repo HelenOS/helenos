@@ -71,8 +71,8 @@ void kinit(void *arg)
 	thread_t *t;
 	as_t *as;
 	as_area_t *a;
-	__address frame;
-	index_t pfn[1];
+	index_t frame, frames;
+	index_t pfn;
 	task_t *u;
 
 	interrupts_disable();
@@ -133,7 +133,8 @@ void kinit(void *arg)
 	 */
 	if ((t = thread_create(kconsole, "kconsole", TASK, 0)))
 		thread_ready(t);
-	else panic("thread_create/kconsole\n");
+	else
+		panic("thread_create/kconsole\n");
 
 	interrupts_enable();
 
@@ -141,6 +142,10 @@ void kinit(void *arg)
 		/*
 		 * Create the first user task.
 		 */
+		
+		if (KA2PA(config.init_addr) % FRAME_SIZE)
+			panic("config.init_addr is not frame aligned");
+		
 		as = as_create(NULL);
 		if (!as)
 			panic("as_create\n");
@@ -153,17 +158,19 @@ void kinit(void *arg)
 		
 		/*
 		 * Create the text as_area and copy the userspace code there.
-		 */	
-		a = as_area_create(as, AS_AREA_TEXT, 1, UTEXT_ADDRESS);
+		 */
+		
+		frame = KA2PA(config.init_addr) / FRAME_SIZE;
+		frames = config.init_size / FRAME_SIZE;
+		if (config.init_size % FRAME_SIZE > 0)
+			frames++;
+		
+		a = as_area_create(as, AS_AREA_TEXT, frames, UTEXT_ADDRESS);
 		if (!a)
 			panic("as_area_create: text\n");
 		
-		// FIXME: Better way to initialize static code/data
-		frame = frame_alloc(0, ONE_FRAME, NULL);
-		memcpy((void *) PA2KA(frame), (void *) config.init_addr, config.init_size < PAGE_SIZE ? config.init_size : PAGE_SIZE);
-		
-		pfn[0] = frame / FRAME_SIZE;
-		as_area_load_mapping(a, pfn);
+		for (pfn = 0; pfn < frames; pfn++)
+			as_area_set_mapping(a, pfn, frame + pfn);
 	
 		/*
 		 * Create the data as_area.

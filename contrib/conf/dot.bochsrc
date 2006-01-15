@@ -130,7 +130,7 @@ vgaromimage: $BXSHARE/VGABIOS-lgpl-latest
 # drive letters such as a: or b: as the path.  Raw floppy access is not
 # supported on Windows 95 and 98.
 #=======================================================================
-floppya: 1_44=image.bin, status=inserted
+floppya: 1_44=image.boot, status=inserted
 #floppya: 1_44=/dev/fd0, status=inserted
 
 #=======================================================================
