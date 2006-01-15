@@ -148,26 +148,7 @@ h_start:
 #	handler 192 256
 h_end:
 
-
-# THIS IS USERSPACE CODE
-.global utext
-utext:
-	xor %ax,%ax
-	mov %ax,%ds
-	mov %ax,%es
-	mov %ax,%fs
-	mov %ax,%gs
-0:
-	int $48
-	jmp 0b
-	# not reached
-utext_end:
-
 .data
-.global utext_size
-utext_size:
-	.long utext_end - utext 
-
 .global interrupt_handler_size
 
 interrupt_handler_size: .long (h_end-h_start)/IDT_ITEMS

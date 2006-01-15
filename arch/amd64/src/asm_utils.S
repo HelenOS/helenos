@@ -53,22 +53,6 @@ memcpy:
 .global read_efer_flag
 .global set_efer_flag
 	
-
-# THIS IS USERSPACE CODE
-.global utext
-utext:
-0:
-	int $48
-	jmp 0b
-	# not reached
-utext_end:
-
-.data
-.global utext_size
-utext_size:
-	.long utext_end - utext 
-
-	
 ## Determine CPUID support
 #
 # Return 0 in EAX if CPUID is not support, 1 if supported.
@@ -206,7 +190,6 @@ interrupt_handlers:
 h_start:
 	handler 0 IDT_ITEMS
 h_end:
-	
 	
 .data
 .global interrupt_handler_size

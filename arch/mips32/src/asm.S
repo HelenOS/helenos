@@ -295,17 +295,3 @@ fpu_context_restore:
 #endif	
 	j $ra
 	nop
-	
-# THIS IS USERSPACE CODE
-.global utext
-utext:
-	j $31
-	nop
-utext_end:
-
-.data
-.global utext_size
-utext_size:
-	.long utext_end-utext
- 
-

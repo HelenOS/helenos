@@ -69,9 +69,6 @@ endif
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
 	DEFS += -DCONFIG_DEBUG_SPINLOCK
 endif
-ifeq ($(CONFIG_USERSPACE),y)
-	DEFS += -DCONFIG_USERSPACE
-endif
 ifeq ($(CONFIG_FPU_LAZY),y)
 	DEFS += -DCONFIG_FPU_LAZY
 endif

@@ -31,9 +31,6 @@
 
 #include <arch/types.h>
 
-extern void utext(void);
-extern __u32 utext_size;  
-
 extern void uinit(void *arg);
 
 #endif
