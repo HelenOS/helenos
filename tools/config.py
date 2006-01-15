@@ -417,8 +417,8 @@ def parse_config(input, output, dlg, defaults={}, askonly=None):
             dlg.set_title(line[2:].strip())
 
     outf.write('\n')
-    outf.write('REVISION=%s\n' % commands.getoutput('svnversion . 2> /dev/null'))
-    outf.write('TIMESTAMP=%s\n' % commands.getoutput('date "+%Y-%m-%d %H:%M:%S"'))
+    outf.write('REVISION = %s\n' % commands.getoutput('svnversion . 2> /dev/null'))
+    outf.write('TIMESTAMP = %s\n' % commands.getoutput('date "+%Y-%m-%d %H:%M:%S"'))
     outf.close()
     f.close()
     return asked_names
@@ -430,7 +430,7 @@ def main():
     except NotImplementedError:
         dlg = NoDialog()
 
-    if len(sys.argv) == 2 and sys.argv[1]=='default':
+    if len(sys.argv) >= 2 and sys.argv[1]=='default':
         defmode = True
     else:
         defmode = False
@@ -439,6 +439,10 @@ def main():
     # with newest options
     if os.path.exists(OUTPUT):
         read_defaults(OUTPUT, defaults)
+
+	# Get ARCH from command line if specified	
+    if len(sys.argv) >= 3:
+        defaults['ARCH'] = sys.argv[2]
 
     # Dry run only with defaults
     varnames = parse_config(INPUT, TMPOUTPUT, DefaultDialog(dlg), defaults)

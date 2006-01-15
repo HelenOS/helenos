@@ -152,7 +152,7 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 .PHONY: all build config distclean clean archlinks depend boot disasm
 
 all:
-	tools/config.py default
+	tools/config.py default $(ARCH)
 	$(MAKE) -C . build
 
 build: kernel.bin boot disasm
