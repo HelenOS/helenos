@@ -29,6 +29,8 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <typedefs.h>
+
 typedef enum {
 	SYS_CTL = 0,
 	SYS_IO	= 1,
@@ -38,7 +40,7 @@ typedef enum {
 typedef int (*syshandler_t)();
 
 extern int sys_ctl(void);
-extern int sys_io(void);
+extern int sys_io(int fd, const void *buf, size_t count);
 
 extern syshandler_t syscall_table[SYSCALL_END];
 

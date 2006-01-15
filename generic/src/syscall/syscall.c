@@ -26,14 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/types.h>
 #include <syscall/syscall.h>
+#include <print.h>
+#include <putchar.h>
 
 int sys_ctl(void) {
+	printf("SYS_CTL\n");
 	return 0;
 }
 
-int sys_io(void) {
+int sys_io(int fd, const void * buf, size_t count) {
+	
+	// TODO: buf sanity checks and a lot of other stuff ...
+
+	size_t i;
+	
+	for (i = 0; i < count; i++)
+		putchar(((char *) buf)[i]);
+	
 	return 0;
 }
 

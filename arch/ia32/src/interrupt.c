@@ -27,6 +27,7 @@
  */
 
 #include <arch/interrupt.h>
+#include <syscall/syscall.h>
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
@@ -110,10 +111,14 @@ void page_fault(int n, void *stack)
 	}
 }
 
-void syscall(int n, void *stack)
+void syscall(int n, void *st)
 {
-	printf("cpu%d: syscall\n", CPU->id);
-	thread_usleep(1000);
+	__native *stack = (__native *) st;
+	
+	if (stack[-2] < SYSCALL_END)
+		syscall_table[stack[-2]](stack[-5], stack[-3], stack[-4]);
+	else
+		panic("Undefined syscall %d", stack[-2]);
 }
 
 void tlb_shootdown_ipi(int n, void *stack)
