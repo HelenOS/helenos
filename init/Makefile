@@ -37,7 +37,8 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 
 OUTPUT = init
 SOURCES = \
-	init.c
+	init.c \
+	version.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <unistd.h>
-#include <stdio.h>
+#include "version.h"
 
 int main(int argc, char *argv[])
 {
-	puts("Hello world\n");
-	while (1) ;
+	version_print();
 	return 0;
 }

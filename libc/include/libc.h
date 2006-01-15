@@ -32,6 +32,11 @@
 #include <types.h>
 
 
+#define __SYSCALL0(id) __syscall(id, 0, 0, 0)
+#define __SYSCALL1(id, p1) __syscall(id, p1, 0, 0)
+#define __SYSCALL2(id, p1, p2) __syscall(id, p1, p2, 0)
+
+
 typedef enum {
 	SYS_CTL = 0,
 	SYS_IO	= 1

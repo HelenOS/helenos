@@ -34,5 +34,6 @@
 #define NULL 0
 
 extern ssize_t write(int fd, const void * buf, size_t count);
+extern void _exit(int status);
 
 #endif

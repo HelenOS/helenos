@@ -30,15 +30,19 @@
 #include <unistd.h>
 #include <stdio.h>
 
+static char nl = '\n';
+
 int puts(const char * str)
 {
 	size_t count;
 	
 	for (count = 0; str[count] != 0; count++);
-	if (write(1, (void * ) str, count) == count)
-		return 0;
-	else
-		return EOF;
+	if (write(1, (void * ) str, count) == count) {
+		if (write(1, &nl, 1) == 1)
+			return 0;
+	}
+	
+	return EOF;
 }
 
 ssize_t write(int fd, const void * buf, size_t count)
