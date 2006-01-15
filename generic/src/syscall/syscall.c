@@ -27,11 +27,14 @@
  */
 
 #include <syscall/syscall.h>
+#include <proc/thread.h>
 #include <print.h>
 #include <putchar.h>
 
 int sys_ctl(void) {
-	printf("SYS_CTL\n");
+	printf("Thread finished\n");
+	thread_exit();
+	/* Unreachable */
 	return 0;
 }
 
@@ -44,7 +47,7 @@ int sys_io(int fd, const void * buf, size_t count) {
 	for (i = 0; i < count; i++)
 		putchar(((char *) buf)[i]);
 	
-	return 0;
+	return count;
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
