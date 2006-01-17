@@ -133,7 +133,6 @@ loop:
 		goto loop;
 	}
 		
-
 	/* Allocate frames from zone buddy system */
 	tmp = buddy_system_alloc(zone->buddy_system, order);
 	
@@ -160,7 +159,6 @@ loop:
 		ASSERT(status != NULL);
 		*status = FRAME_OK;
 	}
-	
 	return v;
 }
 
@@ -179,6 +177,8 @@ void frame_free(__address addr)
 	zone_t *z;
 	zone_t *zone = NULL;
 	frame_t *frame;
+	int order;
+	
 	ASSERT(addr % FRAME_SIZE == 0);
 	
 	ipl = interrupts_disable();
@@ -209,6 +209,9 @@ void frame_free(__address addr)
 	ASSERT(zone != NULL);
 	
 	frame = ADDR2FRAME(zone, addr);
+	
+	/* remember frame order */
+	order = frame->buddy_order;
 
 	ASSERT(frame->refcount);
 
@@ -217,8 +220,8 @@ void frame_free(__address addr)
 	}
 
 	/* Update zone information. */
-	zone->free_count += (1 << frame->buddy_order);
-	zone->busy_count -= (1 << frame->buddy_order);
+	zone->free_count += (1 << order);
+	zone->busy_count -= (1 << order);
 	
 	spinlock_unlock(&zone->lock);
 	spinlock_unlock(&zone_head_lock);
@@ -321,6 +324,8 @@ zone_t * zone_create(__address start, size_t size, int flags)
 		spinlock_initialize(&z->lock, "zone_lock");
 	
 		z->base = start;
+		z->base_index = start / FRAME_SIZE;
+		
 		z->flags = flags;
 
 		z->free_count = cnt;
@@ -348,6 +353,7 @@ zone_t * zone_create(__address start, size_t size, int flags)
 			z->frames[i].refcount = 0;
 			buddy_system_free(z->buddy_system, &z->frames[i].buddy_link);	
 		}
+		
 	}
 	return z;
 }
@@ -400,11 +406,11 @@ link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) {
 
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
+	ASSERT(IS_BUDDY_ORDER_OK(FRAME_INDEX_ABS(zone, frame), frame->buddy_order));
 	
-	ASSERT(IS_BUDDY_ORDER_OK(FRAME_INDEX(zone, frame), frame->buddy_order));
 	
-	is_left = IS_BUDDY_LEFT_BLOCK(zone, frame);
-	is_right = IS_BUDDY_RIGHT_BLOCK(zone, frame);
+	is_left = IS_BUDDY_LEFT_BLOCK_ABS(zone, frame);
+	is_right = IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame);
 	
 	ASSERT(is_left ^ is_right);
 	

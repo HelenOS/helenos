@@ -122,7 +122,7 @@ void main_bsp(void)
 	config.kernel_size = config.kernel_size + CONFIG_STACK_SIZE;
 	
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + config.kernel_size, CONFIG_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.base + config.kernel_size - CONFIG_STACK_SIZE, CONFIG_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }

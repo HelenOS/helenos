@@ -33,7 +33,7 @@
 #include <arch/types.h>
 #include <debug.h>
 
-#define MAX_FRAMES 1024
+#define MAX_FRAMES 2048
 #define MAX_ORDER 8
 #define TEST_RUNS 4
 
@@ -52,7 +52,12 @@ void test(void) {
 			printf("Allocating %d frames blocks ... ", 1<<order);
 			allocated = 0;
 			for (i=0;i<MAX_FRAMES>>order;i++) {
-				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING,order, &status);
+				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING, order, &status);
+				
+				if (frames[allocated] % (FRAME_SIZE << order) != 0) {
+					panic("Test failed. Block at address %X (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+				}
+				
 				if (status == 0) {
 					allocated++;
 				} else {

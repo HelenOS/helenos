@@ -49,10 +49,13 @@
 #define FRAME2ADDR(zone, frame)			((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
 #define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
 #define FRAME_INDEX(zone, frame)		((index_t)((frame) - (zone)->frames))
+#define FRAME_INDEX_ABS(zone, frame)		(((index_t)((frame) - (zone)->frames)) + (zone)->base_index)
 #define FRAME_INDEX_VALID(zone, index)		(((index) >= 0) && ((index) < ((zone)->free_count + (zone)->busy_count)))
 #define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
 #define ZONE_BLACKLIST_SIZE	4
 
@@ -61,6 +64,7 @@ struct zone {
 
 	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
 	__address base;		/**< physical address of the first frame in the frames array */
+	index_t base_index;	/**< frame index offset of the zone base */
 	frame_t *frames;	/**< array of frame_t structures in this zone */
 	count_t free_count;	/**< number of free frame_t structures */
 	count_t busy_count;	/**< number of busy frame_t structures */

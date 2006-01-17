@@ -50,5 +50,5 @@ void frame_arch_init(void)
 		arc_frame_init();
 	else
 		zone_create_in_region(KA2PA(KERNEL_LOAD_ADDRESS),
-				      config.memory_size & ~(FRAME_SIZE-1));
+				      (config.memory_size & ~(FRAME_SIZE-1)));
 }
