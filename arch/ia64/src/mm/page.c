@@ -64,6 +64,8 @@ __u64 ttag(__u64 va)
 
 static void set_VHPT_environment(void)
 {
+	return;
+
 	/*
 	TODO:
 	*/
