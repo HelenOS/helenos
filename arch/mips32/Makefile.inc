@@ -51,6 +51,11 @@ DEFS += -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -
 
 CONFIG_PAGE_PT = y
 
+## Compile with support for address space identifiers.
+#
+
+CONFIG_ASID = y
+
 
 ## Accepted MACHINEs
 #

@@ -31,6 +31,8 @@
 
 typedef int asid_t;
 
-#define asid_get()	0
+#define ASID_MAX_ARCH	0
+
+#define asid_install(as)
 
 #endif

@@ -30,16 +30,9 @@
 #define __mips32_ASID_H__
 
 #include <arch/types.h>
-#include <typedefs.h>
 
-#define ASIDS		256
-#define ASID_INVALID	0
-#define ASID_START	1
+#define ASID_MAX_ARCH	255
 
 typedef __u8 asid_t;
-
-extern asid_t asid_get(void);
-extern void asid_put(asid_t asid);
-extern bool asid_has_conflicts(asid_t asid);
 
 #endif

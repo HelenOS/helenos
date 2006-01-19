@@ -48,6 +48,8 @@
 #define USTACK_ADDRESS	USTACK_ADDRESS_ARCH
 #define UDATA_ADDRESS	UDATA_ADDRESS_ARCH
 
+#define AS_KERNEL	(1<<0)		/**< Kernel address space. */
+
 enum as_area_type {
 	AS_AREA_TEXT = 1, AS_AREA_DATA, AS_AREA_STACK 
 };
@@ -61,7 +63,7 @@ struct as_area {
 	SPINLOCK_DECLARE(lock);
 	link_t link;
 	as_area_type_t type;
-	size_t size;		/**< Size of this area. */
+	size_t size;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
 	index_t *mapping;	/**< Map of physical frame numbers mapped to virtual page numbers in this area. */
 };
@@ -74,26 +76,22 @@ struct as_area {
  * set up during system initialization.
  */
 struct as {
+	/** Protected by asidlock. Must be acquired before as-> lock. */
+	link_t as_with_asid_link;
+
 	SPINLOCK_DECLARE(lock);
 	link_t as_area_head;
 	pte_t *ptl0;
 	asid_t asid;			/**< Address space identifier. */
 };
 
-extern as_t * as_create(pte_t *ptl0);
+extern as_t * as_create(pte_t *ptl0, int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
 extern void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn);
 extern int as_page_fault(__address page);
 extern void as_install(as_t *m);
 
-/*
- * Each architecture should implement this function.
- * Its main purpose is to do TLB purges according
- * to architecture's requirements. Note that
- * some architectures invalidate their TLB automatically
- * on hardware address space switch (e.g. ia32 and
- * amd64).
- */
+/* Interface to be implemented by architectures. */
 #ifndef as_install_arch
 extern void as_install_arch(as_t *as);
 #endif /* !def as_install_arch */

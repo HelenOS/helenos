@@ -26,11 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * ia32 has no hardware support for address space identifiers.
+ * This file is provided to do nop-implementation of mm/asid.h
+ * interface.
+ */
+
 #ifndef __ia32_ASID_H__
 #define __ia32_ASID_H__
 
 typedef int asid_t;
 
-#define asid_get()	0
+#define ASID_MAX_ARCH		0
+
+#define asid_install(as)
 
 #endif

@@ -51,6 +51,12 @@ CONFIG_OFW = y
 
 CONFIG_PAGE_HT = y
 
+## Compile with support for address space identifiers.
+#
+
+CONFIG_ASID = y
+
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/asm.S \

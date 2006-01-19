@@ -45,3 +45,7 @@ ifeq ($(CONFIG_PAGE_HT),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/page_ht.c
 endif
+ifeq ($(CONFIG_ASID),y)
+	GENARCH_SOURCES += \
+		genarch/src/mm/asid.c
+endif

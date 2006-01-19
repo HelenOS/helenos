@@ -31,17 +31,6 @@
 #include <arch/asm.h>
 #include <arch/types.h>
 
-/** Invalidate all TLB entries
- *
- * Invalidate all TLB entries.
- *
- * @param asid This argument is ignored.
- */
-void tlb_invalidate(asid_t asid)
-{
-	write_cr3(read_cr3());
-}
-
 /** Invalidate all entries in TLB. */
 void tlb_invalidate_all(void)
 {
@@ -57,12 +46,16 @@ void tlb_invalidate_asid(asid_t asid)
 	tlb_invalidate_all();
 }
 
-/** Invalidate TLB entry for specified page belongs to specified address space.
+/** Invalidate TLB entry for specified page range belonging to specified address space.
  *
  * @param asid This parameter is ignored as the architecture doesn't support it.
- * @param page Address of the page whose entry is to be invalidated.
+ * @param page Address of the first page whose entry is to be invalidated.
+ * @param cnt Number of entries to invalidate.
  */
-void tlb_invalidate_page(asid_t asid, __address page)
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
-	invlpg(page);
+	int i;
+
+	for (i = 0; i < cnt; i++)
+		invlpg(page + i * PAGE_SIZE);
 }

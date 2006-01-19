@@ -29,8 +29,14 @@
 #ifndef __ia64_ASID_H__
 #define __ia64_ASID_H__
 
-typedef int asid_t;
+#include <arch/types.h>
 
-#define asid_get()	0
+typedef __u32 asid_t;
+
+/*
+ * ASID_MAX can range from 2^18 - 1 to 2^24 - ,
+ * depending on architecture implementation.
+ */
+#define ASID_MAX_ARCH	16777215	/* 2^24 - 1 */
 
 #endif

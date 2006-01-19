@@ -31,25 +31,14 @@
 
 #include <arch/mm/asid.h>
 #include <arch/types.h>
-
-extern void tlb_init(void);
-
-#ifdef CONFIG_SMP
-extern void tlb_shootdown_start(void);
-extern void tlb_shootdown_finalize(void);
-extern void tlb_shootdown_ipi_recv(void);
-#else
-#  define tlb_shootdown_start()	;
-#  define tlb_shootdown_finalize()	;
-#  define tlb_shootdown_ipi_recv() ;
-#endif /* CONFIG_SMP */
+#include <typedefs.h>
 
 /** Type of TLB shootdown message. */
 enum tlb_invalidate_type {
 	TLB_INVL_INVALID = 0,		/**< Invalid type. */
 	TLB_INVL_ALL,			/**< Invalidate all entries in TLB. */
 	TLB_INVL_ASID,			/**< Invalidate all entries belonging to one address space. */
-	TLB_INVL_PAGE			/**< Invalidate one entry for specified page. */
+	TLB_INVL_PAGES			/**< Invalidate specified page range belonging to one address space. */
 };
 
 typedef enum tlb_invalidate_type tlb_invalidate_type_t;
@@ -63,14 +52,25 @@ struct tlb_shootdown_msg {
 
 typedef struct tlb_shootdown_msg tlb_shootdown_msg_t;
 
+extern void tlb_init(void);
+
+#ifdef CONFIG_SMP
+extern void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, __address page, count_t cnt);
+extern void tlb_shootdown_finalize(void);
+extern void tlb_shootdown_ipi_recv(void);
+#else
+#  define tlb_shootdown_start(w, x, y, z)
+#  define tlb_shootdown_finalize()
+#  define tlb_shootdown_ipi_recv()
+#endif /* CONFIG_SMP */
+
+
 /* Export TLB interface that each architecture must implement. */
 extern void tlb_arch_init(void);
 extern void tlb_print(void);
-extern void tlb_invalidate(asid_t asid);
 extern void tlb_shootdown_ipi_send(void);
 
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_asid(asid_t asid);
-extern void tlb_invalidate_page(asid_t asid, __address page);
-
+extern void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt);
 #endif

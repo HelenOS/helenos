@@ -165,14 +165,19 @@ void tlb_invalidate_asid(asid_t asid)
 	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
 }
 
-/** Invalidate all ITLB and DLTB entries for specified page in specified address space.
+/** Invalidate all ITLB and DTLB entries for specified page range in specified address space.
  *
  * @param asid Address Space ID.
- * @param page Page which to sweep out from ITLB and DTLB.
+ * @param page First page which to sweep out from ITLB and DTLB.
+ * @param cnt Number of ITLB and DTLB entries to invalidate.
  */
-void tlb_invalidate_page(asid_t asid, __address page)
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
-	/* TODO: write asid to some Context register and encode the register in second parameter below. */
-	itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page);
-	dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page);
+	int i;
+	
+	for (i = 0; i < cnt; i++) {
+		/* TODO: write asid to some Context register and encode the register in second parameter below. */
+		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page + i * PAGE_SIZE);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page + i * PAGE_SIZE);
+	}
 }

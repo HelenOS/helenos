@@ -33,12 +33,14 @@
  */
 
 #include <mm/as.h>
+#include <mm/asid.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/tlb.h>
 #include <mm/heap.h>
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
+#include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/as.h>
 #include <arch/types.h>
@@ -70,16 +72,20 @@
  * FIXME: this interface must be meaningful for all possible VAT
  * 	  (Virtual Address Translation) mechanisms.
  */
-as_t *as_create(pte_t *ptl0)
+as_t *as_create(pte_t *ptl0, int flags)
 {
 	as_t *as;
 
 	as = (as_t *) malloc(sizeof(as_t));
 	if (as) {
+		list_initialize(&as->as_with_asid_link);
 		spinlock_initialize(&as->lock, "as_lock");
 		list_initialize(&as->as_area_head);
 
-		as->asid = asid_get();
+		if (flags & AS_KERNEL)
+			as->asid = ASID_KERNEL;
+		else
+			as->asid = ASID_INVALID;
 
 		as->ptl0 = ptl0;
 		if (!as->ptl0) {
@@ -289,6 +295,8 @@ void as_install(as_t *as)
 {
 	ipl_t ipl;
 	
+	asid_install(as);
+	
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
 	ASSERT(as->ptl0);
@@ -298,7 +306,7 @@ void as_install(as_t *as)
 
 	/*
 	 * Perform architecture-specific steps.
-	 * (e.g. invalidate TLB, install ASID etc.)
+	 * (e.g. write ASID to hardware register etc.)
 	 */
 	as_install_arch(as);
 	

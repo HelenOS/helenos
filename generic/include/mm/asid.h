@@ -26,9 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * This is generic interface for managing
+ * Address Space IDentifiers (ASIDs).
+ */
+
 #ifndef __ASID_H__
 #define __ASID_H__
 
+#include <arch/mm/asid.h>
+#include <typedefs.h>
+
 #define ASID_KERNEL	0
+#define ASID_INVALID	1
+#define ASID_START	2
+#define ASID_MAX	ASID_MAX_ARCH
+
+#define ASIDS_ALLOCABLE	((ASID_MAX+1)-ASID_START)
+
+extern spinlock_t asidlock;
+extern link_t as_with_asid_head;
+
+extern asid_t asid_get(void);
+extern void asid_put(asid_t asid);
+
+#ifndef asid_install
+extern void asid_install(as_t *as);
+#endif /* !def asid_install */
+
+#define asid_find_free()	ASID_START
+#define asid_put_arch(x)
 
 #endif

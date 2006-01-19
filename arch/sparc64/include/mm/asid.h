@@ -36,6 +36,6 @@
  */
 typedef __u16 asid_t;
 
-#define asid_get()	0
+#define ASID_MAX_ARCH	0x4095	/* 2^12 - 1 */
 
 #endif

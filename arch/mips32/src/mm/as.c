@@ -35,7 +35,7 @@
 
 /** Install address space.
  *
- * Install ASID and if necessary, purge TLB.
+ * Install ASID.
  *
  * @param as Address space structure.
  */
@@ -43,11 +43,6 @@ void as_install_arch(as_t *as)
 {
 	entry_hi_t hi;
 	ipl_t ipl;
-
-	/*
-	 * If necessary, purge TLB.
-	 */
-	tlb_invalidate_asid(as->asid);	/* TODO: do it only if necessary */
 
 	/*
 	 * Install ASID.

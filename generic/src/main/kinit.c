@@ -146,7 +146,7 @@ void kinit(void *arg)
 		if (KA2PA(config.init_addr) % FRAME_SIZE)
 			panic("config.init_addr is not frame aligned");
 		
-		as = as_create(NULL);
+		as = as_create(NULL, 0);
 		if (!as)
 			panic("as_create\n");
 		u = task_create(as);

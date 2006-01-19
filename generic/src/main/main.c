@@ -185,7 +185,7 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create kernel address space.
 	 */
-	as = as_create(GET_PTL0_ADDRESS());
+	as = as_create(GET_PTL0_ADDRESS(), AS_KERNEL);
 	if (!as)
 		panic("can't create kernel address space\n");
 

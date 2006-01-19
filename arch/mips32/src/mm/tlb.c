@@ -27,7 +27,7 @@
  */
 
 #include <arch/mm/tlb.h>
-#include <arch/mm/asid.h>
+#include <mm/asid.h>
 #include <mm/tlb.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -494,13 +494,15 @@ void tlb_invalidate_asid(asid_t asid)
 	cp0_entry_hi_write(hi_save.value);
 }
 
-/** Invalidate TLB entry for specified page belonging to specified address space.
+/** Invalidate TLB entries for specified page range belonging to specified address space.
  *
  * @param asid Address space identifier.
- * @param page Page whose TLB entry is to be invalidated.
+ * @param page First page whose TLB entry is to be invalidated.
+ * @param cnt Number of entries to invalidate.
  */
-void tlb_invalidate_page(asid_t asid, __address page)
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
+	int i;
 	ipl_t ipl;
 	entry_lo_t lo0, lo1;
 	entry_hi_t hi, hi_save;
@@ -511,27 +513,29 @@ void tlb_invalidate_page(asid_t asid, __address page)
 	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();
 
-	hi.value = 0;
-	prepare_entry_hi(&hi, asid, page);
-	cp0_entry_hi_write(hi.value);
+	for (i = 0; i < cnt; i++) {
+		hi.value = 0;
+		prepare_entry_hi(&hi, asid, page + i * PAGE_SIZE);
+		cp0_entry_hi_write(hi.value);
 
-	tlbp();
-	index.value = cp0_index_read();
+		tlbp();
+		index.value = cp0_index_read();
 
-	if (!index.p) {
-		/* Entry was found, index register contains valid index. */
-		tlbr();
+		if (!index.p) {
+			/* Entry was found, index register contains valid index. */
+			tlbr();
 
-		lo0.value = cp0_entry_lo0_read();
-		lo1.value = cp0_entry_lo1_read();
+			lo0.value = cp0_entry_lo0_read();
+			lo1.value = cp0_entry_lo1_read();
 
-		lo0.v = 0;
-		lo1.v = 0;
+			lo0.v = 0;
+			lo1.v = 0;
 
-		cp0_entry_lo0_write(lo0.value);
-		cp0_entry_lo1_write(lo1.value);
+			cp0_entry_lo0_write(lo0.value);
+			cp0_entry_lo1_write(lo1.value);
 
-		tlbwi();
+			tlbwi();
+		}
 	}
 	
 	interrupts_restore(ipl);

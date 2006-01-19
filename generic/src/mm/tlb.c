@@ -46,14 +46,32 @@ void tlb_init(void)
 
 #ifdef CONFIG_SMP
 /* must be called with interrupts disabled */
-void tlb_shootdown_start(void)
+void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, __address page, count_t cnt)
 {
 	int i;
 
 	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
+	
+	/*
+	 * TODO: assemble shootdown message.
+	 */
 	tlb_shootdown_ipi_send();
-	tlb_invalidate(0); /* TODO: use valid ASID */
+
+	switch (type) {
+	    case TLB_INVL_ALL:
+		tlb_invalidate_all();
+		break;
+	    case TLB_INVL_ASID:
+		tlb_invalidate_asid(asid);
+		break;
+	    case TLB_INVL_PAGES:
+		tlb_invalidate_pages(asid, page, cnt);
+		break;
+	    default:
+		panic("unknown tlb_invalidate_type_t value: %d\n", type);
+		break;
+	}
 	
 busy_wait:	
 	for (i = 0; i<config.cpu_count; i++)
@@ -77,7 +95,7 @@ void tlb_shootdown_ipi_recv(void)
 	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
 	spinlock_unlock(&tlblock);
-	tlb_invalidate(0);	/* TODO: use valid ASID */
+	tlb_invalidate_all();	/* TODO: use valid ASID */
 	CPU->tlb_active = 1;
 }
 #endif /* CONFIG_SMP */

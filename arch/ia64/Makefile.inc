@@ -47,6 +47,12 @@ AFLAGS += -mconstant-gp
 
 CONFIG_PAGE_HT = y
 
+## Compile with support for address space identifiers.
+#
+
+CONFIG_ASID = y
+
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
