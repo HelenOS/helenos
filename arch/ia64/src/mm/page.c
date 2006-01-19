@@ -29,6 +29,7 @@
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <genarch/mm/page_ht.h>
+#include <print.h>
 #include <mm/page.h>
 #include <config.h>
 #include <panic.h>
@@ -64,7 +65,7 @@ __u64 ttag(__u64 va)
 
 static void set_VHPT_environment(void)
 {
-	return;
+	
 
 	/*
 	TODO:
@@ -81,25 +82,39 @@ static void set_VHPT_environment(void)
 	
 	asm
 	(
-		"mov rr[r0]=%0;;"
+		";;\n"
+		"srlz.i;;\n"
+		"srlz.d;;\n"
+		"{mov rr[r0]=%0};;\n"
+		"srlz.i;;\n"
+		"srlz.d;;\n"
+		";;\n"
 		:
 		:"r"(rr.word)
 	);
-		
+
+			
 	/* And Invalidate the rest of REGION REGISTERS */
-	
 	for(i=1;i<REGION_REGISTERS;i++)
 	{
 		rr.map.rid=REGION_RID_FIRST_INVALID+i-1;
 		asm
 		(
-			"mov r8=%1;;"
-			"mov rr[r8]=%0;;"
+			";;\n"
+/*			"mov r8=%1;;\n"*/
+/*			"mov rr[r8]=%0;;\n"*/
+			"srlz.i;;\n"
+			"srlz.d;;\n"
+			"{mov rr[%1]=%0};;\n"
+			"srlz.i;;\n"
+			"srlz.d;;\n"
 			:
 			:"r"(rr.word),"r"(i)
 			:"r8"
 		);
 	};
+
+	
 
 	PTA_register pta;
 	pta.map.ve=0;                   /*Disable Walker*/
@@ -107,6 +122,9 @@ static void set_VHPT_environment(void)
 	pta.map.size=VHPT_WIDTH;
 	pta.map.base=VHPT_BASE;
 	
+	return ;
+	
+	printf("pta struct size:%d\n",sizeof(pta));
 	
 	/*Write PTA*/
 	asm
@@ -115,7 +133,7 @@ static void set_VHPT_environment(void)
 		:
 		:"r"(pta.word)
 	);	
-	
+	return ;
 }	
 
 
