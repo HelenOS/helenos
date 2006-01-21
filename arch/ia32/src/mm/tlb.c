@@ -46,7 +46,7 @@ void tlb_invalidate_asid(asid_t asid)
 	tlb_invalidate_all();
 }
 
-/** Invalidate TLB entry for specified page range belonging to specified address space.
+/** Invalidate TLB entries for specified page range belonging to specified address space.
  *
  * @param asid This parameter is ignored as the architecture doesn't support it.
  * @param page Address of the first page whose entry is to be invalidated.

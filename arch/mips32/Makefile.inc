@@ -55,7 +55,7 @@ CONFIG_PAGE_PT = y
 #
 
 CONFIG_ASID = y
-
+CONFIG_ASID_FIFO = y
 
 ## Accepted MACHINEs
 #
@@ -113,7 +113,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/cache.c \
 	arch/$(ARCH)/src/debugger.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/mm/asid.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \

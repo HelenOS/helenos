@@ -28,6 +28,7 @@
 
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
+#include <genarch/mm/asid_fifo.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
@@ -54,6 +55,8 @@ void tlb_arch_init(void)
 	tlb_data_t data;
 	frame_address_t fr;
 	page_address_t pg;
+
+	asid_fifo_init();
 
 	fr.address = config.base;
 	pg.address = config.base;

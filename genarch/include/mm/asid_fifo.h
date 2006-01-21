@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/asid.h>
-#include <typedefs.h>
+#ifndef __ASID_FIFO_H__
+#define __ASID_FIFO_H__
 
+extern void asid_fifo_init(void);
+
+#endif

@@ -49,3 +49,7 @@ ifeq ($(CONFIG_ASID),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/asid.c
 endif
+ifeq ($(CONFIG_ASID_FIFO),y)
+	GENARCH_SOURCES += \
+		genarch/src/mm/asid_fifo.c
+endif

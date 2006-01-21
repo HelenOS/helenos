@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_ASID_H__
-#define __ia64_ASID_H__
+#include <genarch/mm/asid_fifo.h>
+#include <arch/mm/asid.h>
+#include <mm/asid.h>
+#include <typedefs.h>
+#include <fifo.h>
 
-#include <arch/types.h>
-
-typedef __u32 asid_t;
-
-/*
- * ASID_MAX can range from 2^18 - 1 to 2^24 - 1,
- * depending on architecture implementation.
+/**
+ * FIFO queue containing unassigned ASIDs. 
+ * Can be only accessed when asidlock is held.
  */
-#define ASID_MAX_ARCH	16777215	/* 2^24 - 1 */
+FIFO_INITIALIZE(free_asids, asid_t, ASIDS_ALLOCABLE);
 
-#define asid_find_free()	ASID_MAX_ARCH
-#define asid_put_arch(x)
+/** Initialize data structures for O(1) ASID allocation and deallocation. */
+void asid_fifo_init(void)
+{
+	int i;
+	
+	for (i = 0; i < ASIDS_ALLOCABLE; i++) {
+		fifo_push(free_asids, ASID_START + i);
+	}
+}
 
-#endif
+/** Allocate free ASID.
+ *
+ * Allocation runs in O(1).
+ *
+ * @return Free ASID.
+ */
+asid_t asid_find_free(void)
+{
+	return fifo_pop(free_asids);
+}
+
+/** Return ASID among free ASIDs.
+ *
+ * This operation runs in O(1).
+ *
+ * @param asid ASID being freed.
+ */
+void asid_put_arch(asid_t asid)
+{
+	fifo_push(free_asids, asid);
+}

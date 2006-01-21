@@ -54,7 +54,12 @@ extern void asid_put(asid_t asid);
 extern void asid_install(as_t *as);
 #endif /* !def asid_install */
 
-#define asid_find_free()	ASID_START
-#define asid_put_arch(x)
+#ifndef asid_find_free
+extern asid_t asid_find_free(void);
+#endif /* !def asid_find_free */
+
+#ifndef asid_put_arch
+extern void asid_put_arch(asid_t asid);
+#endif /* !def asid_put_arch */
 
 #endif
