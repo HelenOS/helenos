@@ -132,7 +132,8 @@ done:
 float64 addFloat64(float64 a, float64 b)
 {
 	int expdiff;
-	__u64 exp1, exp2, mant1, mant2;
+	__u32 exp1, exp2;
+	__u64 mant1, mant2;
 	
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {

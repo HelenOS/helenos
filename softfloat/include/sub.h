@@ -31,5 +31,7 @@
 
 float32 subFloat32(float32 a, float32 b);
 
+float64 subFloat64(float64 a, float64 b);
+
 #endif
 

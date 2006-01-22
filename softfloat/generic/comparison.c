@@ -40,13 +40,13 @@ inline int isFloat64NaN(float64 d)
 };
 
 inline int isFloat32SigNaN(float32 f)
-{	/* SigNaN : exp = 0xff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
-	return ((f.parts.exp==0xFF)&&(f.parts.mantisa>0x400000));
+{	/* SigNaN : exp = 0xff mantisa = 0xxxxx..x (binary), where at least one x is nonzero */
+	return ((f.parts.exp==0xFF)&&(f.parts.mantisa<0x400000)&&(f.parts.mantisa));
 };
 
 inline int isFloat64SigNaN(float64 d)
-{	/* SigNaN : exp = 0x7ff mantisa = 1xxxxx..x (binary), where at least one x is nonzero */
-	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa>0x8000000000000ll));
+{	/* SigNaN : exp = 0x7ff mantisa = 0xxxxx..x (binary), where at least one x is nonzero */
+	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa)&&(d.parts.mantisa<0x8000000000000ll));
 };
 
 inline int isFloat32Infinity(float32 f) 

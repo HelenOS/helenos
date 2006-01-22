@@ -56,6 +56,22 @@ float __addsf3(float a, float b)
 	return addFloat32(fa,fb).f;
 }
 
+double __adddf3(double a, double b)
+{
+	float64 da, db;
+	da.d=a;
+	db.d=b;
+	if (da.parts.sign!=db.parts.sign) {
+		if (da.parts.sign) {
+			da.parts.sign=0;
+			return subFloat64(db,da).d;
+		};
+		db.parts.sign=0;
+		return subFloat64(da,db).d;
+	}
+	return addFloat64(da,db).d;
+}
+
 float __subsf3(float a, float b)
 {
 	float32 fa, fb;
@@ -66,6 +82,18 @@ float __subsf3(float a, float b)
 		return addFloat32(fa,fb).f;
 	}
 	return subFloat32(fa,fb).f;
+}
+
+double __subdf3(double a, double b)
+{
+	float64 da, db;
+	da.d = a;
+	db.d = b;
+	if (da.parts.sign != db.parts.sign) {
+		db.parts.sign = !db.parts.sign;
+		return addFloat64(da, db).d;
+	}
+	return subFloat64(da, db).d;
 }
 
 float __mulsf3(float a, float b) 

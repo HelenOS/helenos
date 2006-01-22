@@ -73,9 +73,13 @@ typedef union {
 #define FLOAT64_MIN
 
 /* For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf, comparing with this constants is not sufficient */
-#define FLOAT32_NAN 0x7F800001
-#define FLOAT32_SIGNAN 0x7FC00000
+#define FLOAT32_NAN 0x7FC00001
+#define FLOAT32_SIGNAN 0x7F800001
 #define FLOAT32_INF 0x7F800000
+
+#define FLOAT64_NAN 0x7FF8000000000001ll
+#define FLOAT64_SIGNAN 0x7FF0000000000001ll
+#define FLOAT64_INF 0x7FF0000000000000ll
 
 #define FLOAT32_MANTISA_SIZE 23
 #define FLOAT64_MANTISA_SIZE 52
@@ -84,7 +88,7 @@ typedef union {
 #define FLOAT64_HIDDEN_BIT_MASK 0x10000000000000ll
 
 #define FLOAT32_MAX_EXPONENT 0xFF
-#define FLOAT64_MAX_EXPONENT 0x8FF
+#define FLOAT64_MAX_EXPONENT 0x7FF
 
 #define FLOAT32_BIAS 0x7F
 #define FLOAT64_BIAS 0x3FF
