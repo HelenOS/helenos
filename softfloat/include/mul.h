@@ -31,5 +31,9 @@
 
 float32 mulFloat32(float32 a, float32 b);
 
+float64 mulFloat64(float64 a, float64 b);
+
+void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi);
+
 #endif
 

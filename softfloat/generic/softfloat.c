@@ -104,6 +104,14 @@ float __mulsf3(float a, float b)
 	return 	mulFloat32(fa, fb).f;
 }
 
+double __muldf3(double a, double b) 
+{
+	float64 da, db;
+	da.d = a;
+	db.d = b;
+	return 	mulFloat64(da, db).d;
+}
+
 float __divsf3(float a, float b) 
 {
 	float32 fa, fb;
