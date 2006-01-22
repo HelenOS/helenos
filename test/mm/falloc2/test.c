@@ -37,9 +37,9 @@
 #include <memstr.h>
 
 #define MAX_FRAMES 128
-#define MAX_ORDER 3
+#define MAX_ORDER 2
 
-#define THREAD_RUNS 2
+#define THREAD_RUNS 1
 #define THREADS 6
 
 static void thread(void * arg);
@@ -51,32 +51,40 @@ void thread(void * arg) {
 	int status, order, run, allocated,i;
 	
 	__u8 val = *((__u8 *) arg);
+	index_t k;
 	
 	__address frames[MAX_FRAMES];
 
 	for (run=0;run<THREAD_RUNS;run++) {
 	
 		for (order=0;order<=MAX_ORDER;order++) {
-			printf("Allocating %d frames blocks ... ", 1<<order);
+			printf("Thread #%d: Allocating %d frames blocks ... \n",val, 1<<order);
 			allocated = 0;
 			for (i=0;i<MAX_FRAMES>>order;i++) {
 				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA,order, &status);
 				if (status == 0) {
-					memsetb(frames[allocated], (1 << order) * FRAME_SIZE - 1, val);
+					memsetb(frames[allocated], (1 << order) * FRAME_SIZE, val);
 					allocated++;
 				} else {
 					break;
 				}
 			}
 		
-			printf("%d blocks alocated.\n", allocated);
+			printf("Thread #%d: %d blocks alocated.\n",val, allocated);
 
-			printf("Deallocating ... ");
+			printf("Thread #%d: Deallocating ... \n", val);
 			for (i=0;i<allocated;i++) {
-				/* add memtest here */
+				for (k=0;k<=((FRAME_SIZE << order) - 1);k++) {
+					if ( ((char *) frames[i])[k] != val ) {
+						printf("Thread #%d: Unexpected data in block %P offset %X\n",val, frames[i], k);
+						failed();
+					}
+				
+				}
+			
 				frame_free(frames[i]);
 			}
-			printf("done.\n");
+			printf("Thread #%d: Finished run.\n", val);
 		}
 	}
 	
