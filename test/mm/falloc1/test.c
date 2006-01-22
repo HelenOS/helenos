@@ -29,16 +29,17 @@
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/heap.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <debug.h>
 
-#define MAX_FRAMES 2048
+#define MAX_FRAMES 1024
 #define MAX_ORDER 8
-#define TEST_RUNS 4
+#define TEST_RUNS 2
 
 void test(void) {
-	__address frames[MAX_FRAMES];
+	__address * frames = (__address *) malloc(MAX_FRAMES*sizeof(__address));
 	int results[MAX_ORDER+1];
 	
 	int i, order, run;
@@ -52,7 +53,7 @@ void test(void) {
 			printf("Allocating %d frames blocks ... ", 1<<order);
 			allocated = 0;
 			for (i=0;i<MAX_FRAMES>>order;i++) {
-				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING, order, &status);
+				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA, order, &status);
 				
 				if (frames[allocated] % (FRAME_SIZE << order) != 0) {
 					panic("Test failed. Block at address %X (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
@@ -82,7 +83,7 @@ void test(void) {
 		}
 	}
 
-
+	free(frames);
 	
 	printf("Test passed\n");
 }

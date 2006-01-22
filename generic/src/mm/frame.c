@@ -152,6 +152,8 @@ loop:
 	spinlock_unlock(&zone_head_lock);
 	interrupts_restore(ipl);
 
+	ASSERT(v == ALIGN_UP(v, FRAME_SIZE << order));
+
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
 	

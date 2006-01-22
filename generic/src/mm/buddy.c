@@ -68,13 +68,13 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 		/*
 		 * Allocate memory for all orders this buddy system will work with.
 		 */
-		b->order = (link_t *) early_malloc(max_order * sizeof(link_t));
+		b->order = (link_t *) early_malloc((max_order + 1) * sizeof(link_t));
 		if (!b->order) {
 			early_free(b);
 			return NULL;
 		}
 	
-		for (i = 0; i < max_order; i++)
+		for (i = 0; i <= max_order; i++)
 			list_initialize(&b->order[i]);
 	
 		b->max_order = max_order;
@@ -95,9 +95,16 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 bool buddy_system_can_alloc(buddy_system_t *b, __u8 i) {
 	__u8 k;
 	
-	ASSERT(i < b->max_order);
-	
-	for (k=i; k < b->max_order; k++) {
+	/*
+	 * If requested block is greater then maximal block
+	 * we know immediatly that we cannot satisfy the request.
+	 */
+	if (i > b->max_order) return false;
+
+	/*
+	 * Check if any bigger or equal order has free elements
+	 */
+	for (k=i; k <= b->max_order; k++) {
 		if (!list_empty(&b->order[k])) {
 			return true;
 		}
@@ -118,7 +125,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 {
 	link_t *res, *hlp;
 
-	ASSERT(i < b->max_order);
+	ASSERT(i <= b->max_order);
 
 	/*
 	 * If the list of order i is not empty,
@@ -135,7 +142,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	 * If order i is already the maximal order,
 	 * the request cannot be satisfied.
 	 */
-	if (i == b->max_order - 1)
+	if (i == b->max_order)
 		return NULL;
 
 	/*
@@ -185,9 +192,9 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 	 */
 	i = b->op->get_order(b, block);
 
-	ASSERT(i < b->max_order);
+	ASSERT(i <= b->max_order);
 
-	if (i != b->max_order - 1) {
+	if (i != b->max_order) {
 		/*
 		 * See if there is any buddy in the list of order i.
 		 */
@@ -245,7 +252,7 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 	printf("Order\tBlocks\tSize    \tBlock size\tElems per block\n");
 	printf("-----\t------\t--------\t----------\t---------------\n");
 	
-	for (i=0;i < b->max_order; i++) {
+	for (i=0;i <= b->max_order; i++) {
 		cnt = 0;
 		if (!list_empty(&b->order[i])) {
 			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next)

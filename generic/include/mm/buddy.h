@@ -45,7 +45,7 @@ struct buddy_system_operations {
 };
 
 struct buddy_system {
-	__u8 max_order;
+	__u8 max_order;				/**< Maximal order of block which can be stored by buddy system. */
 	link_t *order;
 	buddy_system_operations_t *op;
 	void *data;				/**< Pointer to be used by the implementation. */
