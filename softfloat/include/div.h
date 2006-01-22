@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ARITHMETIC_H__
-#define __ARITHMETIC_H__
+#ifndef __DIV_H__
+#define __DIV_H__
 
-float32 addFloat32(float32 a, float32 b);
-float32 subFloat32(float32 a, float32 b);
-float32 mulFloat32(float32 a, float32 b);
+float32 divFloat32(float32 a, float32 b);
 
 #endif
 

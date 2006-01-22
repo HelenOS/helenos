@@ -28,7 +28,12 @@
 
 #include<softfloat.h>
 #include<sftypes.h>
-#include<arithmetic.h>
+
+#include<add.h>
+#include<sub.h>
+#include<mul.h>
+#include<div.h>
+
 #include<conversion.h>
 #include<comparison.h>
 #include<other.h>
@@ -76,7 +81,7 @@ float __divsf3(float a, float b)
 	float32 fa, fb;
 	fa.f=a;
 	fb.f=b;
-//	return 	divFloat32(fa, fb).f;
+	//return 	divFloat32(fa, fb).f;
 }
 
 float __negsf2(float a)

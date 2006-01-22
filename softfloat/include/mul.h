@@ -26,67 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SFTYPES_H__
-#define __SFTYPES_H__
+#ifndef __MUL_H__
+#define __MUL_H__
 
-typedef union {
-	float f;
-	__u32 binary;
-
-	struct 	{
-		#ifdef __BIG_ENDIAN__
-		__u32 sign:1;
-		__u32 exp:8;
-		__u32 mantisa:23;
-		#elif defined __LITTLE_ENDIAN__
-		__u32 mantisa:23;
-		__u32 exp:8;
-		__u32 sign:1;
-		#else 
-		#error "Unknown endians."
-		#endif
-		} parts __attribute__ ((packed));
- 	} float32;
-	
-typedef union {
-	double d;
-	__u64 binary;
-	
-	struct	{
-		#ifdef __BIG_ENDIAN__
-		__u64 sign:1;
-		__u64 exp:11;
-		__u64 mantisa:52;
-		#elif defined __LITTLE_ENDIAN__
-		__u64 mantisa:52;
-		__u64 exp:11;
-		__u64 sign:1;
-		#else 
-		#error "Unknown endians."
-		#endif
-		} parts __attribute__ ((packed));
-	} float64;
-
-#define FLOAT32_MAX 0x7f800000
-#define FLOAT32_MIN 0xff800000
-#define FLOAT64_MAX
-#define FLOAT64_MIN
-
-/* For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf, comparing with this constants is not sufficient */
-#define FLOAT32_NAN 0x7F800001
-#define FLOAT32_SIGNAN 0x7FC00000
-#define FLOAT32_INF 0x7F800000
-
-#define FLOAT32_MANTISA_SIZE 23
-#define FLOAT64_MANTISA_SIZE 52
-
-#define FLOAT32_HIDDEN_BIT_MASK 0x800000
-#define FLOAT64_HIDDEN_BIT_MASK 0x10000000000000l
-
-#define FLOAT32_BIAS 0x7F
-#define FLOAT64_BIAS 0x3FF
-#define FLOAT80_BIAS 0x3FFF
-
+float32 mulFloat32(float32 a, float32 b);
 
 #endif
 
