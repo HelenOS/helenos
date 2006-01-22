@@ -37,8 +37,8 @@ float32 addFloat32(float32 a, float32 b)
 	int expdiff;
 	__u32 exp1, exp2,mant1, mant2;
 	
-	expdiff=a.parts.exp - b.parts.exp;
-	if (expdiff<0) {
+	expdiff = a.parts.exp - b.parts.exp;
+	if (expdiff < 0) {
 		if (isFloat32NaN(b)) {
 			//TODO: fix SigNaN
 			if (isFloat32SigNaN(b)) {
@@ -47,31 +47,31 @@ float32 addFloat32(float32 a, float32 b)
 			return b;
 		};
 		
-		if (b.parts.exp==0xFF) { 
+		if (b.parts.exp == FLOAT32_MAX_EXPONENT) { 
 			return b;
 		}
 		
-		mant1=b.parts.mantisa;
-		exp1=b.parts.exp;
-		mant2=a.parts.mantisa;
-		exp2=a.parts.exp;
-		expdiff*=-1;
+		mant1 = b.parts.mantisa;
+		exp1 = b.parts.exp;
+		mant2 = a.parts.mantisa;
+		exp2 = a.parts.exp;
+		expdiff *= -1;
 	} else {
 		if (isFloat32NaN(a)) {
 			//TODO: fix SigNaN
-			if ((isFloat32SigNaN(a))||(isFloat32SigNaN(b))) {
+			if (isFloat32SigNaN(a) || isFloat32SigNaN(b)) {
 			};
 			return a;
 		};
 		
-		if (a.parts.exp==0xFF) { 
+		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
 			return a;
 		}
 		
-		mant1=a.parts.mantisa;
-		exp1=a.parts.exp;
-		mant2=b.parts.mantisa;
-		exp2=b.parts.exp;
+		mant1 = a.parts.mantisa;
+		exp1 = a.parts.exp;
+		mant2 = b.parts.mantisa;
+		exp2 = b.parts.exp;
 	};
 	
 	if (exp1 == 0) {
@@ -99,14 +99,14 @@ float32 addFloat32(float32 a, float32 b)
 	mant1 <<= 6;
 	mant2 <<= 6;
 	
-	if (expdiff > 24) {
+	if (expdiff > (FLOAT32_MANTISA_SIZE + 1) ) {
 	     goto done;	
 	     };
 	
-	mant2>>=expdiff;
-	mant1+=mant2;
+	mant2 >>= expdiff;
+	mant1 += mant2;
 done:
-	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 6) ) {
+	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
 		mant1 >>= 1;
 	};
@@ -114,15 +114,15 @@ done:
 	/* rounding - if first bit after mantisa is set then round up */
 	mant1 += (0x1 << 5);
 	
-	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 6)) { 
+	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) { 
 		++exp1;
-		mant1 >> =1;
+		mant1 >>= 1;
 	};
 	
 	a.parts.exp = exp1;
 	
 	/*Clear hidden bit and shift */
-	a.parts.mantisa = ((mant1>>6) & (~FLOAT32_HIDDEN_BIT_MASK)) ; 
+	a.parts.mantisa = ((mant1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)) ; 
 	return a;
 }
 
@@ -132,10 +132,10 @@ done:
 float64 addFloat64(float64 a, float64 b)
 {
 	int expdiff;
-	__u64 exp1,exp2,mant1,mant2;
+	__u64 exp1, exp2, mant1, mant2;
 	
-	expdiff=a.parts.exp - b.parts.exp;
-	if (expdiff<0) {
+	expdiff = a.parts.exp - b.parts.exp;
+	if (expdiff < 0) {
 		if (isFloat64NaN(b)) {
 			//TODO: fix SigNaN
 			if (isFloat64SigNaN(b)) {
@@ -145,25 +145,25 @@ float64 addFloat64(float64 a, float64 b)
 		};
 		
 		/* b is infinity and a not */	
-		if (b.parts.exp==0x8FF) { 
+		if (b.parts.exp == FLOAT64_MAX_EXPONENT ) { 
 			return b;
 		}
 		
-		mant1=b.parts.mantisa;
-		exp1=b.parts.exp;
-		mant2=a.parts.mantisa;
-		exp2=a.parts.exp;
-		expdiff*=-1;
+		mant1 = b.parts.mantisa;
+		exp1 = b.parts.exp;
+		mant2 = a.parts.mantisa;
+		exp2 = a.parts.exp;
+		expdiff *= -1;
 	} else {
 		if (isFloat64NaN(a)) {
 			//TODO: fix SigNaN
-			if ((isFloat64SigNaN(a))||(isFloat64SigNaN(b))) {
+			if (isFloat64SigNaN(a) || isFloat64SigNaN(b)) {
 			};
 			return a;
 		};
 		
 		/* a is infinity and b not */
-		if (a.parts.exp == 0x8FF) { 
+		if (a.parts.exp == FLOAT64_MAX_EXPONENT ) { 
 			return a;
 		}
 		
@@ -200,14 +200,14 @@ float64 addFloat64(float64 a, float64 b)
 	mant1 <<= 6;
 	mant2 <<= 6;
 	
-	if (expdiff > 53) {
+	if (expdiff > (FLOAT64_MANTISA_SIZE + 1) ) {
 	     goto done;	
 	     };
 	
 	mant2 >>= expdiff;
 	mant1 += mant2;
 done:
-	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 6) ) {
+	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
 		mant1 >>= 1;
 	};
@@ -215,14 +215,14 @@ done:
 	/* rounding - if first bit after mantisa is set then round up */
 	mant1 += (0x1 << 5); 
 	
-	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 6)) { 
+	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) { 
 		++exp1;
-		mant1 >> =1;
+		mant1 >>= 1;
 	};
 	
 	a.parts.exp = exp1;
 	/*Clear hidden bit and shift */
-	a.parts.mantisa = ( (mant1 >>6 ) & (~ (FLOAT64_HIDDEN_BIT_MASK)));
+	a.parts.mantisa = ( (mant1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
 	return a;
 }
 
