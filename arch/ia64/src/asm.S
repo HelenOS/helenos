@@ -45,4 +45,4 @@ panic_printf:
 	{
 		br.call.sptk.many b0=printf
 	}
-	br cpu_halt
+	br halt
