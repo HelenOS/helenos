@@ -33,13 +33,22 @@
 
 typedef __u32 asid_t;
 
-/*
- * ASID_MAX can range from 2^18 - 1 to 2^24 - 1,
- * depending on architecture implementation.
- */
-#define ASID_MAX_ARCH	16777215	/* 2^24 - 1 */
+/** Number of ia64 RIDs (Region Identifiers) per kernel ASID. */
+#define RIDS_PER_ASID		7
+#define RID_OVERFLOW		16777216	/* 2^24 */
 
-#define asid_find_free()	ASID_MAX_ARCH
+/**
+ * The point is to have ASID_MAX_ARCH big enough
+ * so that it is never reached and the ASID allocation
+ * mechanism in asid_get() never resorts to stealing.
+ */
+#define ASID_MAX_ARCH		((asid_t) -1)	/**< This value is never reached. */
+
+/**
+ * Value used to recognize the situation when all ASIDs were already allocated.
+ */
+#define ASID_OVERFLOW		(RID_OVERFLOW/RIDS_PER_ASID)
+
 #define asid_put_arch(x)
 
 #endif

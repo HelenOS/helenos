@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * TLB management.
+ */
+
 #include <mm/tlb.h>
-#include <arch/mm/tlb.h>
-#include <smp/ipi.h>
-#include <synch/spinlock.h>
-#include <typedefs.h>
-#include <arch/atomic.h>
-#include <arch/interrupt.h>
-#include <config.h>
-#include <arch.h>
-#include <panic.h>
+#include <arch/mm/asid.h>
 
-SPINLOCK_INITIALIZE(tlblock);
-
-void tlb_init(void)
+/** Invalidate all TLB entries.
+ *
+ * Because of ASID management, region registers must be reset
+ * with new RIDs derived from the potentionally new ASID.
+ */
+void tlb_invalidate_all(void)
 {
-	tlb_arch_init();
+	/* TODO */
 }
 
-#ifdef CONFIG_SMP
-/* must be called with interrupts disabled */
-void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, __address page, count_t cnt)
+/** Invalidate entries belonging to an address space.
+ *
+ * @param asid Address space identifier.
+ */
+void tlb_invalidate_asid(asid_t asid)
 {
-	int i;
-
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
-	
-	/*
-	 * TODO: wrap parameters into a message and
-	 * dispatch it to all CPUs excluding this one.
-	 */
-	
-	tlb_shootdown_ipi_send();
-
-busy_wait:	
-	for (i = 0; i<config.cpu_count; i++)
-		if (cpus[i].tlb_active)
-			goto busy_wait;
+	/* TODO */
 }
-
-void tlb_shootdown_finalize(void)
-{
-	spinlock_unlock(&tlblock);
-	CPU->tlb_active = 1;
-}
-
-void tlb_shootdown_ipi_send(void)
-{
-	ipi_broadcast(VECTOR_TLB_SHOOTDOWN_IPI);
-}
-
-void tlb_shootdown_ipi_recv(void)
-{
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
-	spinlock_unlock(&tlblock);
-	tlb_invalidate_all();	/* TODO: be more finer-grained in what to invalidate */
-	CPU->tlb_active = 1;
-}
-#endif /* CONFIG_SMP */

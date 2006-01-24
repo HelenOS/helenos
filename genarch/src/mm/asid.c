@@ -125,6 +125,7 @@ asid_t asid_get(void)
 		 */
 		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
 		tlb_shootdown_finalize();
+		tlb_invalidate_asid(asid);
 		as->asid = ASID_INVALID;
 		
 		spinlock_unlock(&as->lock);
