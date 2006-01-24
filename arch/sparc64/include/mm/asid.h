@@ -37,6 +37,6 @@
 typedef __u16 asid_t;
 
 #define ASID_STEALING_ENABLED	1
-#define ASID_MAX_ARCH	0x4095	/* 2^12 - 1 */
+#define ASID_MAX_ARCH	0x8191	/* 2^13 - 1 */
 
 #endif

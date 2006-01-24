@@ -30,7 +30,7 @@
  * ASID management.
  *
  * Because ia64 has much wider ASIDs (18-24 bits) compared to other
- * architectures (e.g. 8 bits on mips32 and 12 bits on sparc32), it is
+ * architectures (e.g. 8 bits on mips32 and 13 bits on sparc64), it is
  * inappropriate to use same methods (i.e. genarch/mm/asid_fifo.c) for
  * all of them.
  *
