@@ -94,7 +94,7 @@ asid_t asid_get(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&asidlock);
-	if (asids_allocated == ASIDS_ALLOCABLE) {
+	if (ASID_STEALING_ENABLED && asids_allocated == ASIDS_ALLOCABLE) {
 
 		/*
 		 * All ASIDs are already allocated.
@@ -121,14 +121,18 @@ asid_t asid_get(void)
 		ASSERT(asid != ASID_INVALID);
 
 		/*
+		 * Notify the address space from wich the ASID
+		 * was stolen by invalidating its asid member.
+		 */
+		as->asid = ASID_INVALID;
+		spinlock_unlock(&as->lock);
+
+		/*
 		 * Get the system rid of the stolen ASID.
 		 */
 		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
 		tlb_shootdown_finalize();
 		tlb_invalidate_asid(asid);
-		as->asid = ASID_INVALID;
-		
-		spinlock_unlock(&as->lock);
 	} else {
 
 		/*

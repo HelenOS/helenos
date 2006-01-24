@@ -33,16 +33,20 @@
 
 typedef __u32 asid_t;
 
+/**
+ * This macro eliminates the stealing branch of asid_get().
+ */
+#define ASID_STEALING_ENABLED	0
+
 /** Number of ia64 RIDs (Region Identifiers) per kernel ASID. */
 #define RIDS_PER_ASID		7
 #define RID_OVERFLOW		16777216	/* 2^24 */
 
 /**
- * The point is to have ASID_MAX_ARCH big enough
- * so that it is never reached and the ASID allocation
- * mechanism in asid_get() never resorts to stealing.
+ * This macro is needed only to compile the kernel.
+ * On ia64, its value is ignored.
  */
-#define ASID_MAX_ARCH		((asid_t) -1)	/**< This value is never reached. */
+#define ASID_MAX_ARCH		0
 
 /**
  * Value used to recognize the situation when all ASIDs were already allocated.

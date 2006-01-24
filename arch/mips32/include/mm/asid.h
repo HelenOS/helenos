@@ -31,6 +31,7 @@
 
 #include <arch/types.h>
 
+#define ASID_STEALING_ENABLED	1
 #define ASID_MAX_ARCH	255
 
 typedef __u8 asid_t;
