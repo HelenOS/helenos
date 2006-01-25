@@ -33,6 +33,7 @@
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <debug.h>
+#include <align.h>
 
 #define MAX_FRAMES 1024
 #define MAX_ORDER 8
@@ -47,15 +48,16 @@ void test(void) {
 	int status;
 
 	ASSERT(TEST_RUNS > 1);
+	ASSERT(frames != NULL)
 
-	for (run=0;run<=TEST_RUNS;run++) {
-		for (order=0;order<=MAX_ORDER;order++) {
-			printf("Allocating %d frames blocks ... ", 1<<order);
+	for (run = 0; run < TEST_RUNS; run++) {
+		for (order = 0; order <= MAX_ORDER; order++) {
+			printf("Allocating %d frames blocks ... ", 1 << order);
 			allocated = 0;
-			for (i=0;i<MAX_FRAMES>>order;i++) {
+			for (i = 0; i < MAX_FRAMES >> order; i++) {
 				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA, order, &status);
 				
-				if (frames[allocated] % (FRAME_SIZE << order) != 0) {
+				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
 					panic("Test failed. Block at address %X (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
 				}
 				
@@ -67,16 +69,17 @@ void test(void) {
 				}
 			}
 		
-			printf("%d blocks alocated.\n", allocated);
+			printf("%d blocks allocated.\n", allocated);
 		
 			if (run) {
 				if (results[order] != allocated) {
 					panic("Test failed. Frame leak possible.\n");
 				}
-			} else results[order] = allocated;
+			} else
+				results[order] = allocated;
 			
 			printf("Deallocating ... ");
-			for (i=0;i<allocated;i++) {
+			for (i = 0; i < allocated; i++) {
 				frame_free(frames[i]);
 			}
 			printf("done.\n");
@@ -85,6 +88,6 @@ void test(void) {
 
 	free(frames);
 	
-	printf("Test passed\n");
+	printf("Test passed.\n");
 }
 

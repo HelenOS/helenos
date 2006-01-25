@@ -36,6 +36,7 @@
 #include <debug.h>
 #include <proc/thread.h>
 #include <memstr.h>
+#include <arch.h>
 
 #define MAX_FRAMES 256
 #define MAX_ORDER 8
@@ -48,72 +49,73 @@ static void failed(void);
 
 static atomic_t thread_count;
 
-void thread(void * arg) {
-	int status, order, run, allocated,i;
-	
-	__u8 val = *((__u8 *) arg);
+void thread(void * arg)
+{
+	int status, order, run, allocated, i;
+	__u8 val = THREAD->tid % THREADS;
 	index_t k;
 	
 	__address * frames =  (__address *) malloc(MAX_FRAMES * sizeof(__address));
+	ASSERT(frames != NULL);
 
-	for (run=0;run<THREAD_RUNS;run++) {
-	
-		for (order=0;order<=MAX_ORDER;order++) {
-			printf("Thread #%d: Allocating %d frames blocks ... \n",val, 1<<order);
+	for (run = 0; run < THREAD_RUNS; run++) {
+		for (order = 0; order <= MAX_ORDER; order++) {
+			printf("Thread #%d: Allocating %d frames blocks ... \n", THREAD->tid, 1 << order);
 			allocated = 0;
-			for (i=0;i < (MAX_FRAMES >> order);i++) {
-				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA,order, &status);
+			for (i = 0; i < (MAX_FRAMES >> order); i++) {
+				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA, order, &status);
 				if (status == 0) {
-					memsetb(frames[allocated], (1 << order) * FRAME_SIZE, val);
+					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
 				} else {
 					break;
 				}
 			}
-		
-			printf("Thread #%d: %d blocks alocated.\n",val, allocated);
+			printf("Thread #%d: %d blocks allocated.\n", THREAD->tid, allocated);
 
-			printf("Thread #%d: Deallocating ... \n", val);
-			for (i=0;i<allocated;i++) {
-			
-				for (k=0;k<=((FRAME_SIZE << order) - 1);k++) {
-					if ( ((char *) frames[i])[k] != val ) {
-						printf("Thread #%d: Unexpected data in block %P offset %X\n",val, frames[i], k);
+			printf("Thread #%d: Deallocating ... \n", THREAD->tid);
+			for (i = 0; i < allocated; i++) {
+				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
+					if (((__u8 *) frames[i])[k] != val) {
+						printf("Thread #%d: Unexpected data (%d) in block %P offset %X\n", THREAD->tid, ((char *) frames[i])[k], frames[i], k);
 						failed();
 					}
-				
 				}
-				
 				frame_free(frames[i]);
 			}
 			printf("Thread #%d: Finished run.\n", val);
 		}
 	}
 	
+	free(frames);
 	
 	atomic_dec(&thread_count);
-
 }
 
 
-void failed(void) {
+void failed(void)
+{
 	panic("Test failed.\n");
 }
 
 
-void test(void) {
+void test(void)
+{
 	int i;
 
 	atomic_set(&thread_count, THREADS);
 		
-	for (i=1;i<=THREADS;i++) {
+	for (i = 0; i < THREADS; i++) {
 		thread_t * thrd;
-		thrd = thread_create(thread, &i, TASK, 0);
-		if (thrd) thread_ready(thrd); else failed();
+		thrd = thread_create(thread, NULL, TASK, 0);
+		if (thrd)
+			thread_ready(thrd);
+		else
+			failed();
 	}
 	
-	while (thread_count.count);
+	while (thread_count.count)
+		;
 
-	printf("Test passed\n");
+	printf("Test passed.\n");
 }
-
