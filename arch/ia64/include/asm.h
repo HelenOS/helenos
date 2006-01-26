@@ -29,8 +29,8 @@
 #ifndef __ia64_ASM_H__
 #define __ia64_ASM_H__
 
-#include <arch/types.h>
 #include <config.h>
+#include <arch/types.h>
 #include <arch/register.h>
 
 /** Return base address of current stack

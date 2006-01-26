@@ -28,6 +28,7 @@
 
 #include <arch/interrupt.h>
 #include <interrupt.h>
+#include <arch/types.h>
 #include <debug.h>
 
 /** Register Interrupt Level Handler.

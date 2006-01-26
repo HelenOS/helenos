@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,120 +28,73 @@
  */
 
 #include <arch/mm/page.h>
-#include <arch/types.h>
 #include <genarch/mm/page_ht.h>
+#include <mm/asid.h>
+#include <arch/types.h>
 #include <print.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <config.h>
 #include <panic.h>
 #include <arch/asm.h>
+#include <arch/barrier.h>
 
-__u64 thash(__u64 va);
-__u64 thash(__u64 va)
+/** Initialize VHPT and region registers. */
+static void set_vhpt_environment(void)
 {
-	__u64 ret;
-	asm
-	(
-		"thash %0=%1;;"
-		:"=r"(ret)
-		:"r" (va)
-	);
-	
-	return ret;
-}
-
-__u64 ttag(__u64 va);
-__u64 ttag(__u64 va)
-{
-	__u64 ret;
-	asm
-	(
-		"ttag %0=%1;;"
-		:"=r"(ret)
-		:"r" (va)
-	);
-	
-	return ret;
-}
-
-
-static void set_VHPT_environment(void)
-{
-	
-
-	/*
-	TODO:
-	*/
-	
+	region_register rr;
+	pta_register pta;	
 	int i;
 	
-	/* First set up REGION REGISTER 0 */
+	/*
+	 * First set up kernel region register.
+	 */
+	rr.word = rr_read(VRN_KERNEL);
+	rr.map.ve = 0;                  /* disable VHPT walker */
+	rr.map.ps = PAGE_WIDTH;
+	rr.map.rid = ASID_KERNEL;
+	rr_write(VRN_KERNEL, rr.word);
+	srlz_i();
+	srlz_d();
 	
-	region_register rr;
-	rr.map.ve=0;                  /*Disable Walker*/
-	rr.map.ps=PAGE_WIDTH;
-	rr.map.rid=REGION_RID_MAIN;
+	/*
+	 * And invalidate the rest of region register.
+	 */
+	for(i = 0; i < REGION_REGISTERS; i++) {
+		/* skip kernel rr */
+		if (i == VRN_KERNEL)
+			continue;
 	
-	asm
-	(
-		";;\n"
-		"srlz.i;;\n"
-		"srlz.d;;\n"
-		"{mov rr[r0]=%0};;\n"
-		"srlz.i;;\n"
-		"srlz.d;;\n"
-		";;\n"
-		:
-		:"r"(rr.word)
-	);
+		rr.word == rr_read(i);
+		rr.map.rid = ASID_INVALID;
+		rr_write(i, rr.word);
+		srlz_i();
+		srlz_d();
+	}
 
-			
-	/* And Invalidate the rest of REGION REGISTERS */
-	for(i=1;i<REGION_REGISTERS;i++)
-	{
-		rr.map.rid=REGION_RID_FIRST_INVALID+i-1;
-		asm
-		(
-			";;\n"
-/*			"mov r8=%1;;\n"*/
-/*			"mov rr[r8]=%0;;\n"*/
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			"{mov rr[%1]=%0};;\n"
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(rr.word),"r"(i)
-			:"r8"
-		);
-	};
-
+	/*
+	 * Allocate VHPT and invalidate all its entries.
+	 */
+	page_ht = (pte_t *) frame_alloc(FRAME_KA, VHPT_WIDTH - FRAME_WIDTH, NULL);
+	ht_invalidate_all();
 	
+	/*
+	 * Set up PTA register.
+	 */
+	pta.word = pta_read();
+	pta.map.ve = 0;                   /* disable VHPT walker */
+	pta.map.vf = 1;                   /* large entry format */
+	pta.map.size = VHPT_WIDTH;
+	pta.map.base = (__address) page_ht;
+	pta_write(pta.word);
+	srlz_i();
+	srlz_d();
+}
 
-	PTA_register pta;
-	pta.map.ve=0;                   /*Disable Walker*/
-	pta.map.vf=1;                   /*Large entry format*/
-	pta.map.size=VHPT_WIDTH;
-	pta.map.base=VHPT_BASE;
-	
-	return ;
-	
-	printf("pta struct size:%d\n",sizeof(pta));
-	
-	/*Write PTA*/
-	asm
-	(
-		"mov cr8=%0;;"
-		:
-		:"r"(pta.word)
-	);	
-	return ;
-}	
-
-
+/** Initialize ia64 virtual address translation subsystem. */
 void page_arch_init(void)
 {
 	page_operations = &page_ht_operations;
 	pk_disable();
-	set_VHPT_environment();
+	set_vhpt_environment();
 }

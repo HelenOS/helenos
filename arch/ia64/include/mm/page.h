@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 - 2006 Jakub Jermar
+ * Copyright (C) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,8 +30,11 @@
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
-#include <arch/types.h>
 #include <arch/mm/frame.h>
+#include <genarch/mm/page_ht.h>
+#include <arch/types.h>
+#include <typedefs.h>
+#include <debug.h>
 
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
@@ -51,119 +55,188 @@
 #define HT_SET_NEXT_ARCH(t, s)
 #define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
 
-#define REGION_RID_MAIN 0
-#define REGION_RID_FIRST_INVALID 16
-#define REGION_REGISTERS 8
+#define VRN_KERNEL	 		0
+#define REGION_REGISTERS 		8
 
-#define VHPT_WIDTH 16         /*64kB*/
-#define VHPT_SIZE (1<<VHPT_WIDTH)
+#define VHPT_WIDTH 			20         	/* 1M */
+#define VHPT_SIZE 			(1<<VHPT_WIDTH)
 
-#define VHPT_BASE 0           /* Must be aligned to VHPT_SIZE */
+#define VHPT_BASE 			page_ht		/* Must be aligned to VHPT_SIZE */
 
-struct VHPT_tag_info
-{
-	unsigned long long tag       :63;
-	unsigned           ti        : 1;
-}__attribute__ ((packed));
+struct vhpt_tag_info {
+	unsigned long long tag : 63;
+	unsigned ti : 1;
+} __attribute__ ((packed));
 
-union VHPT_tag
-{
-	struct VHPT_tag_info tag_info;
-	unsigned             tag_word;
+union vhpt_tag {
+	struct vhpt_tag_info tag_info;
+	unsigned tag_word;
 };
 
-struct VHPT_entry_present
-{
-
+struct vhpt_entry_present {
 	/* Word 0 */
-	unsigned p              : 1;
-	unsigned rv0            : 1;
-	unsigned ma             : 3;
-	unsigned a              : 1;
-	unsigned d              : 1;
-	unsigned pl             : 2;
-	unsigned ar             : 3;
-	unsigned long long ppn  :38;
-	unsigned rv1            : 2;
-	unsigned ed             : 1;
-	unsigned ig1            :11;
+	unsigned p : 1;
+	unsigned : 1;
+	unsigned ma : 3;
+	unsigned a : 1;
+	unsigned d : 1;
+	unsigned pl : 2;
+	unsigned ar : 3;
+	unsigned long long ppn : 38;
+	unsigned : 2;
+	unsigned ed : 1;
+	unsigned ig1 : 11;
 	
 	/* Word 1 */
-	unsigned rv2            : 2;
-	unsigned ps             : 6;
-	unsigned key            :24;
-	unsigned rv3            :32;
+	unsigned : 2;
+	unsigned ps : 6;
+	unsigned key : 24;
+	unsigned : 32;
 	
 	/* Word 2 */
-	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
-                            /* But I'm almost sure we nead access to whole word so there are both possibilities*/
-	/* Word 3 */													
-	unsigned long long next :64; /* This ignored field will be (in my hopes ;-) ) used as pointer in link list of entries with same hash value*/
+	union vhpt_tag tag;
 	
-}__attribute__ ((packed));
+	/* Word 3 */													
+	unsigned long long next : 64;	/**< Collision chain next pointer. */
+} __attribute__ ((packed));
 
-struct VHPT_entry_not_present
-{
+struct vhpt_entry_not_present {
 	/* Word 0 */
-	unsigned p              : 1;
-	unsigned long long ig0  :52;
-	unsigned ig1            :11;
+	unsigned p : 1;
+	unsigned long long ig0 : 52;
+	unsigned ig1 : 11;
 	
 	/* Word 1 */
-	unsigned rv2            : 2;
-	unsigned ps             : 6;
-	unsigned long long ig2  :56;
+	unsigned : 2;
+	unsigned ps : 6;
+	unsigned long long ig2 : 56;
 
-	
 	/* Word 2 */
-	union VHPT_tag tag;       /*This data is here as union because I'm not sure if anybody nead access to areas ti and tag in VHPT entry*/
-                            /* But I'm almost sure we nead access to whole word so there are both possibilities*/
-	/* Word 3 */													
-	unsigned long long next :64; /* This ignored field will be (in my hopes ;-) ) used as pointer in link list of entries with same hash value*/
+	union vhpt_tag tag;
 	
-}__attribute__ ((packed));
+	/* Word 3 */													
+	unsigned long long next : 64;	/**< Collision chain next pointer. */
+	
+} __attribute__ ((packed));
 
-typedef union VHPT_entry 
+typedef union vhpt_entry {
+	struct vhpt_entry_present present;
+	struct vhpt_entry_not_present not_present;
+} vhpt_entry;
+
+struct region_register_map {
+	unsigned ve : 1;
+	unsigned : 1;
+	unsigned ps : 6;
+	unsigned rid : 24;
+	unsigned : 32;
+} __attribute__ ((packed));
+
+typedef union region_register {
+	struct region_register_map map;
+	unsigned long long word;
+} region_register;
+
+struct pta_register_map {
+	unsigned ve : 1;
+	unsigned : 1;
+	unsigned size : 6;
+	unsigned vf : 1;
+	unsigned : 6;
+	unsigned long long base : 49;
+} __attribute__ ((packed));
+
+typedef union pta_register {
+	struct pta_register_map map;
+	__u64 word;
+} pta_register;
+
+/** Return Translation Hashed Entry Address.
+ *
+ * VRN bits are used to read RID (ASID) from one
+ * of the eight region registers registers.
+ *
+ * @param va Virtual address including VRN bits.
+ *
+ * @return Address of the head of VHPT collision chain.
+ */
+static inline __u64 thash(__u64 va)
 {
-	struct VHPT_entry_present        present;
-	struct VHPT_entry_not_present    not_present;
-}VHPT_entry;
+	__u64 ret;
+
+	__asm__ volatile ("thash %0 = %1\n" : "=r" (ret) : "r" (va));
+
+	return ret;
+}
+
+/** Return Translation Hashed Entry Tag.
+ *
+ * VRN bits are used to read RID (ASID) from one
+ * of the eight region registers.
+ *
+ * @param va Virtual address including VRN bits.
+ *
+ * @return The unique tag for VPN and RID in the collision chain returned by thash().
+ */
+static inline __u64 ttag(__u64 va)
+{
+	__u64 ret;
+
+	__asm__ volatile ("ttag %0 = %1\n" : "=r" (ret) : "r" (va));
+
+	return ret;
+}
+
+/** Read Region Register.
+ *
+ * @param i Region register index.
+ *
+ * @return Current contents of rr[i].
+ */
+static inline __u64 rr_read(index_t i)
+{
+	__u64 ret;
+	
+//	ASSERT(i < REGION_REGISTERS);
+	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i));
+	
+	return ret;
+}
+
+
+/** Write Region Register.
+ *
+ * @param i Region register index.
+ * @param v Value to be written to rr[i].
+ */
+static inline void rr_write(index_t i, __u64 v)
+{
+//	ASSERT(i < REGION_REGISTERS);
+	__asm__ volatile ("mov rr[%0] = %1\n" : : "r" (i), "r" (v));
+}
+ 
+/** Read Page Table Register.
+ *
+ * @return Current value stored in PTA.
+ */
+static inline __u64 pta_read(void)
+{
+	__u64 ret;
+	
+	__asm__ volatile ("mov %0 = cr.pta\n" : "=r" (ret));
+	
+	return ret;
+}
+
+/** Write Page Table Register.
+ *
+ * @param v New value to be stored in PTA.
+ */
+static inline void pta_write(__u64 v)
+{
+	__asm__ volatile ("mov cr.pta = %0\n" : : "r" (v));
+}
 
 extern void page_arch_init(void);
-
-
-struct region_register_map
-{
-  unsigned ve            : 1;
-	unsigned r0            : 1;
-	unsigned ps            : 6;
-	unsigned rid           :24;
-	unsigned r1            :32;
-}__attribute__ ((packed));
-
-
-typedef union region_register
-{
-	struct region_register_map   map;
-	unsigned long long           word;
-}region_register;
-
-struct PTA_register_map
-{
-  unsigned ve            : 1;
-	unsigned r0            : 1;
-	unsigned size          : 6;
-	unsigned vf            : 1;
-	unsigned r1            : 6;
-	unsigned long long base:49;
-}__attribute__ ((packed));
-
-
-typedef union PTA_register
-{
-	struct PTA_register_map   map;
-	unsigned long long        word;
-}PTA_register;
-
 
 #endif

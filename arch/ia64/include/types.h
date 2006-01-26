@@ -36,8 +36,6 @@ typedef signed short int __s16;
 typedef signed int __s32;
 typedef signed long __s64;
 
-
-
 typedef unsigned char __u8;
 typedef unsigned short __u16;
 typedef unsigned int __u32;
@@ -49,6 +47,6 @@ typedef __u64 ipl_t;
 
 typedef __u64 __native;
 
-typedef __u64 pte_t;
+typedef union vhpt_entry pte_t;
 
 #endif

@@ -53,6 +53,7 @@ typedef __u32 asid_t;
  */
 #define ASID_OVERFLOW		(RID_OVERFLOW/RIDS_PER_ASID)
 
+/** On ia64, this is no-op. */
 #define asid_put_arch(x)
 
 #endif
