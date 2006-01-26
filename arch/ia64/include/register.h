@@ -34,8 +34,9 @@
 #endif
 
 #define CR_IVR_MASK	0xf
-#define PSR_I_MASK	0x4000
 #define PSR_IC_MASK	0x2000
+#define PSR_I_MASK	0x4000
+#define PSR_PK_MASK	0x8000
 
 /** Application registers. */
 #define AR_KR0		0

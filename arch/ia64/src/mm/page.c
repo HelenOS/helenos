@@ -33,6 +33,7 @@
 #include <mm/page.h>
 #include <config.h>
 #include <panic.h>
+#include <arch/asm.h>
 
 __u64 thash(__u64 va);
 __u64 thash(__u64 va)
@@ -140,5 +141,6 @@ static void set_VHPT_environment(void)
 void page_arch_init(void)
 {
 	page_operations = &page_ht_operations;
+	pk_disable();
 	set_VHPT_environment();
 }

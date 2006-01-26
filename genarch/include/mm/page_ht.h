@@ -36,6 +36,10 @@
 #define __PAGE_HT_H__
 
 #include <mm/page.h>
+#include <typedefs.h>
+
+/** Number of slots in page hash table. */
+#define HT_ENTRIES			HT_ENTRIES_ARCH
 
 /** Hash function.
  *
@@ -56,13 +60,19 @@
  */
 #define HT_COMPARE(page, asid, t)	HT_COMPARE_ARCH(page, asid, t)
 
-/** Identify empty hash table slots.
+/** Identify empty page hash table slots.
  *
  * @param t Pointer ro hash table typed pte_t *.
  *
  * @return 1 if the slot is empty, 0 otherwise.
  */
 #define HT_SLOT_EMPTY(t)		HT_SLOT_EMPTY_ARCH(t)
+
+/** Invalidate/empty page hash table slot.
+ *
+ * @param t Address of the slot to be invalidated.
+ */
+#define HT_INVALIDATE_SLOT(t)		HT_INVALIDATE_SLOT_ARCH(t)
 
 /** Return next record in collision chain.
  *
@@ -89,6 +99,12 @@
  */
 #define HT_SET_RECORD(t, page, asid, frame, flags)	HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
 
+
 extern page_operations_t page_ht_operations;
+extern spinlock_t page_ht_lock;
+
+extern pte_t *page_ht;
+
+extern void ht_invalidate_all(void);
 
 #endif

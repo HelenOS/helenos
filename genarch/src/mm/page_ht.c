@@ -34,7 +34,23 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
+#include <synch/spinlock.h>
+#include <arch.h>
 #include <debug.h>
+
+/**
+ * This lock protects the page hash table. Note that software must
+ * be still careful about ordering of writes to ensure consistent
+ * view of the page hash table for hardware helpers such as VHPT
+ * walker on ia64.
+ */
+SPINLOCK_INITIALIZE(page_ht_lock);
+
+/**
+ * Page hash table pointer.
+ * The page hash table may be accessed only when page_ht_lock is held.
+ */
+pte_t *page_ht = NULL;
 
 static void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
 static pte_t *ht_mapping_find(__address page, asid_t asid, __address root);
@@ -47,7 +63,9 @@ page_operations_t page_ht_operations = {
 /** Map page to frame using page hash table.
  *
  * Map virtual address 'page' to physical address 'frame'
- * using 'flags'.
+ * using 'flags'. In order not to disturb hardware searching,
+ * new mappings are appended to the end of the collision
+ * chain.
  *
  * @param page Virtual address of the page to be mapped.
  * @param asid Address space to which page belongs.
@@ -57,22 +75,52 @@ page_operations_t page_ht_operations = {
  */
 void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root)
 {
-	pte_t *t, *u = NULL;
+	pte_t *t, *u;
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&page_ht_lock);
 	
 	t = HT_HASH(page, asid);
 	if (!HT_SLOT_EMPTY(t)) {
-		u = (pte_t *) malloc(sizeof(pte_t));	/* FIXME: use slab allocator for this */
-		if (!u)
-			panic("could not allocate memory for hash table\n");
-		*u = *t;
+	
+		/*
+		 * The slot is occupied.
+		 * Walk through the collision chain and append the mapping to its end.
+		 */
+		 
+		do {
+			u = t;
+			if (HT_COMPARE(page, asid, t)) {
+				/*
+				 * Nothing to do,
+				 * the record is already there.
+				 */
+				spinlock_unlock(&page_ht_lock);
+				interrupts_restore(ipl);
+				return;
+			}
+		} while ((t = HT_GET_NEXT(t)));
+	
+		t = (pte_t *) malloc(sizeof(pte_t));	/* FIXME: use slab allocator for this */
+		if (!t)
+			panic("could not allocate memory\n");
+
+		HT_SET_NEXT(u, t);
 	}
-	HT_SET_NEXT(t, u);
+	
 	HT_SET_RECORD(t, page, asid, frame, flags);
+	HT_SET_NEXT(t, NULL);
+	
+	spinlock_unlock(&page_ht_lock);
+	interrupts_restore(ipl);
 }
 
 /** Find mapping for virtual page in page hash table.
  *
  * Find mapping for virtual page.
+ *
+ * Interrupts must be disabled.
  *
  * @param page Virtual page.
  * @param asid Address space to wich page belongs.
@@ -84,9 +132,39 @@ pte_t *ht_mapping_find(__address page, asid_t asid, __address root)
 {
 	pte_t *t;
 	
+	spinlock_lock(&page_ht_lock);
 	t = HT_HASH(page, asid);
-	while (!HT_COMPARE(page, asid, t) && HT_GET_NEXT(t))
-		t = HT_GET_NEXT(t);
+	if (!HT_SLOT_EMPTY(t)) {
+		while (!HT_COMPARE(page, asid, t) && HT_GET_NEXT(t))
+			t = HT_GET_NEXT(t);
+		t = HT_COMPARE(page, asid, t) ? t : NULL;
+	} else {
+		t = NULL;
+	}
+	spinlock_unlock(&page_ht_lock);
+	return t;
+}
+
+/** Invalidate page hash table.
+ *
+ * Interrupts must be disabled.
+ */
+void ht_invalidate_all(void)
+{
+	pte_t *t, *u;
+	int i;
 	
-	return HT_COMPARE(page, asid, t) ? t : NULL;
+	spinlock_lock(&page_ht_lock);
+	for (i = 0; i < HT_ENTRIES; i++) {
+		if (!HT_SLOT_EMPTY(&page_ht[i])) {
+			t = HT_GET_NEXT(&page_ht[i]);
+			while (t) {
+				u = t;
+				t = HT_GET_NEXT(t);
+				free(u);		/* FIXME: use slab allocator for this */
+			}
+			HT_INVALIDATE_SLOT(&page_ht[i]);
+		}
+	}
+	spinlock_unlock(&page_ht_lock);
 }

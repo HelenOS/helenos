@@ -239,6 +239,12 @@ static inline ipl_t interrupts_read(void)
 	return (ipl_t) v;
 }
 
+/** Disable protection key checking. */
+static inline void pk_disable(void)
+{
+	__asm__ volatile ("rsm %0\n" : : "i" (PSR_PK_MASK));
+}
+
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
 extern void asm_delay_loop(__u32 t);
