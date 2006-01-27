@@ -38,6 +38,7 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
+#include <memstr.h>
 
 /** Initialize VHPT and region registers. */
 static void set_vhpt_environment(void)
@@ -66,6 +67,7 @@ static void set_vhpt_environment(void)
 			continue;
 	
 		rr.word == rr_read(i);
+		rr.map.ve = 0;		/* disable VHPT walker */
 		rr.map.rid = ASID_INVALID;
 		rr_write(i, rr.word);
 		srlz_i();
@@ -76,7 +78,8 @@ static void set_vhpt_environment(void)
 	 * Allocate VHPT and invalidate all its entries.
 	 */
 	page_ht = (pte_t *) frame_alloc(FRAME_KA, VHPT_WIDTH - FRAME_WIDTH, NULL);
-	ht_invalidate_all();
+	memsetb((__address) page_ht, VHPT_SIZE, 0);
+	ht_invalidate_all();	
 	
 	/*
 	 * Set up PTA register.
@@ -97,4 +100,39 @@ void page_arch_init(void)
 	page_operations = &page_ht_operations;
 	pk_disable();
 	set_vhpt_environment();
+}
+
+/** Calculate address of collision chain from VPN and ASID.
+ *
+ * This is rather non-trivial function.
+ * First, it has to translate ASID to RID.
+ * This is achieved by taking VRN bits of
+ * page into account.
+ * Second, it must preserve the region register
+ * it writes the RID to.
+ *
+ * @param page Address of virtual page including VRN bits.
+ * @param asid Address space identifier.
+ *
+ * @return Head of VHPT collision chain for page and asid.
+ */
+pte_t *vhpt_hash(__address page, asid_t asid)
+{
+	region_register rr_save, rr;
+	pte_t *t;
+
+	rr_save.word = rr_read(VRN_WORK);
+	rr.word = rr_save.word;
+	if ((page >> VRN_SHIFT) != VRN_KERNEL)
+		rr.map.rid = (asid * RIDS_PER_ASID) + (page >> VRN_SHIFT);
+	else
+		rr.map.rid = ASID_KERNEL;
+	rr_write(VRN_WORK, rr.word);
+	srlz_i();
+	t = (pte_t *) thash((VRN_WORK << VRN_SHIFT) | (~(VRN_MASK) & page));
+	rr_write(VRN_WORK, rr_save.word);
+	srlz_i();
+	srlz_d();
+
+	return t;
 }

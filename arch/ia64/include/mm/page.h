@@ -46,8 +46,8 @@
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
 /** Implementation of page hash table interface. */
-#define HT_ENTRIES_ARCH			0
-#define HT_HASH_ARCH(page, asid)	0
+#define HT_ENTRIES_ARCH			(VHPT_SIZE/sizeof(pte_t))
+#define HT_HASH_ARCH(page, asid)	vhpt_hash((page), (asid))
 #define HT_COMPARE_ARCH(page, asid, t)	0
 #define HT_SLOT_EMPTY_ARCH(t)		1
 #define HT_INVALIDATE_SLOT_ARCH(t)
@@ -55,7 +55,11 @@
 #define HT_SET_NEXT_ARCH(t, s)
 #define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
 
+#define VRN_SHIFT			61
+#define VRN_MASK			(7LL << VRN_SHIFT)
+
 #define VRN_KERNEL	 		0
+#define VRN_WORK			1LL
 #define REGION_REGISTERS 		8
 
 #define VHPT_WIDTH 			20         	/* 1M */
@@ -197,7 +201,7 @@ static inline __u64 rr_read(index_t i)
 {
 	__u64 ret;
 	
-//	ASSERT(i < REGION_REGISTERS);
+	ASSERT(i < REGION_REGISTERS);
 	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i));
 	
 	return ret;
@@ -211,7 +215,7 @@ static inline __u64 rr_read(index_t i)
  */
 static inline void rr_write(index_t i, __u64 v)
 {
-//	ASSERT(i < REGION_REGISTERS);
+	ASSERT(i < REGION_REGISTERS);
 	__asm__ volatile ("mov rr[%0] = %1\n" : : "r" (i), "r" (v));
 }
  
@@ -238,5 +242,6 @@ static inline void pta_write(__u64 v)
 }
 
 extern void page_arch_init(void);
+extern pte_t *vhpt_hash(__address page, asid_t asid);
 
 #endif
