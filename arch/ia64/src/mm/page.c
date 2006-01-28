@@ -30,7 +30,9 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
+#include <arch/mm/asid.h>
 #include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -40,8 +42,18 @@
 #include <arch/barrier.h>
 #include <memstr.h>
 
+static void set_vhpt_environment(void);
+
+/** Initialize ia64 virtual address translation subsystem. */
+void page_arch_init(void)
+{
+	page_operations = &page_ht_operations;
+	pk_disable();
+	set_vhpt_environment();
+}
+
 /** Initialize VHPT and region registers. */
-static void set_vhpt_environment(void)
+void set_vhpt_environment(void)
 {
 	region_register rr;
 	pta_register pta;	
@@ -94,22 +106,9 @@ static void set_vhpt_environment(void)
 	srlz_d();
 }
 
-/** Initialize ia64 virtual address translation subsystem. */
-void page_arch_init(void)
-{
-	page_operations = &page_ht_operations;
-	pk_disable();
-	set_vhpt_environment();
-}
-
 /** Calculate address of collision chain from VPN and ASID.
  *
- * This is rather non-trivial function.
- * First, it has to translate ASID to RID.
- * This is achieved by taking VRN bits of
- * page into account.
- * Second, it must preserve the region register
- * it writes the RID to.
+ * Interrupts must be disabled.
  *
  * @param page Address of virtual page including VRN bits.
  * @param asid Address space identifier.
@@ -119,20 +118,135 @@ void page_arch_init(void)
 pte_t *vhpt_hash(__address page, asid_t asid)
 {
 	region_register rr_save, rr;
+	index_t vrn;
+	rid_t rid;
 	pte_t *t;
 
-	rr_save.word = rr_read(VRN_WORK);
+	vrn = page >> VRN_SHIFT;
+	rid = ASID2RID(asid, vrn);
+	
+	rr_save.word = rr_read(vrn);
+	if (rr_save.map.rid == rid) {
+		/*
+		 * The RID is already in place, compute thash and return.
+		 */
+		t = (pte_t *) thash(page);
+		return t;
+	}
+	
+	/*
+	 * The RID must be written to some region register.
+	 * To speed things up, register indexed by vrn is used.
+	 */
 	rr.word = rr_save.word;
-	if ((page >> VRN_SHIFT) != VRN_KERNEL)
-		rr.map.rid = (asid * RIDS_PER_ASID) + (page >> VRN_SHIFT);
-	else
-		rr.map.rid = ASID_KERNEL;
-	rr_write(VRN_WORK, rr.word);
+	rr.map.rid = rid;
+	rr_write(vrn, rr.word);
 	srlz_i();
-	t = (pte_t *) thash((VRN_WORK << VRN_SHIFT) | (~(VRN_MASK) & page));
-	rr_write(VRN_WORK, rr_save.word);
+	t = (pte_t *) thash(page);
+	rr_write(vrn, rr_save.word);
 	srlz_i();
 	srlz_d();
 
 	return t;
+}
+
+/** Compare ASID and VPN against PTE.
+ *
+ * Interrupts must be disabled.
+ *
+ * @param page Address of virtual page including VRN bits.
+ * @param asid Address space identifier.
+ *
+ * @return True if page and asid match the page and asid of t, false otherwise.
+ */
+bool vhpt_compare(__address page, asid_t asid, pte_t *t)
+{
+	region_register rr_save, rr;	
+	index_t vrn;
+	rid_t rid;
+	bool match;
+
+	ASSERT(t);
+
+	vrn = page >> VRN_SHIFT;
+	rid = ASID2RID(asid, vrn);
+	
+	rr_save.word = rr_read(vrn);
+	if (rr_save.map.rid == rid) {
+		/*
+		 * The RID is already in place, compare ttag with t and return.
+		 */
+		return ttag(page) == t->present.tag.tag_word;
+	}
+	
+	/*
+	 * The RID must be written to some region register.
+	 * To speed things up, register indexed by vrn is used.
+	 */
+	rr.word = rr_save.word;
+	rr.map.rid = rid;
+	rr_write(vrn, rr.word);
+	srlz_i();
+	match = (ttag(page) == t->present.tag.tag_word);
+	rr_write(vrn, rr_save.word);
+	srlz_i();
+	srlz_d();
+
+	return match;		
+}
+
+/** Set up one VHPT entry.
+ *
+ * @param t VHPT entry to be set up.
+ * @param page Virtual address of the page mapped by the entry.
+ * @param asid Address space identifier of the address space to which page belongs.
+ * @param frame Physical address of the frame to wich page is mapped.
+ * @param flags Different flags for the mapping.
+ */
+void vhpt_set_record(pte_t *t, __address page, asid_t asid, __address frame, int flags)
+{
+	region_register rr_save, rr;	
+	index_t vrn;
+	rid_t rid;
+	__u64 tag;
+
+	ASSERT(t);
+
+	vrn = page >> VRN_SHIFT;
+	rid = ASID2RID(asid, vrn);
+	
+	/*
+	 * Compute ttag.
+	 */
+	rr_save.word = rr_read(vrn);
+	rr.word = rr_save.word;
+	rr.map.rid = rid;
+	rr_write(vrn, rr.word);
+	srlz_i();
+	tag = ttag(page);
+	rr_write(vrn, rr_save.word);
+	srlz_i();
+	srlz_d();
+	
+	/*
+	 * Clear the entry.
+	 */
+	t->word[0] = 0;
+	t->word[1] = 0;
+	t->word[2] = 0;
+	t->word[3] = 0;
+	
+	t->present.p = true;
+	t->present.ma = (flags & PAGE_CACHEABLE) ? MA_WRITEBACK : MA_UNCACHEABLE;
+	t->present.a = false;	/* not accessed */
+	t->present.d = false;	/* not dirty */
+	t->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
+	t->present.ar = (flags & PAGE_WRITE) ? AR_WRITE : AR_READ;
+	t->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0; 
+	t->present.ppn = frame >> PPN_SHIFT;
+	t->present.ed = false;	/* exception not deffered */
+	t->present.ps = PAGE_WIDTH;
+	t->present.key = 0;
+	t->present.tag.tag_word = tag;
+	t->present.next = NULL;
 }

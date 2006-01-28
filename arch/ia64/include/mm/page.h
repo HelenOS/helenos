@@ -32,6 +32,7 @@
 
 #include <arch/mm/frame.h>
 #include <genarch/mm/page_ht.h>
+#include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <debug.h>
@@ -46,26 +47,40 @@
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
 /** Implementation of page hash table interface. */
-#define HT_ENTRIES_ARCH			(VHPT_SIZE/sizeof(pte_t))
-#define HT_HASH_ARCH(page, asid)	vhpt_hash((page), (asid))
-#define HT_COMPARE_ARCH(page, asid, t)	0
-#define HT_SLOT_EMPTY_ARCH(t)		1
-#define HT_INVALIDATE_SLOT_ARCH(t)
-#define HT_GET_NEXT_ARCH(t)		0
-#define HT_SET_NEXT_ARCH(t, s)
-#define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
+#define HT_ENTRIES_ARCH					(VHPT_SIZE/sizeof(pte_t))
+#define HT_HASH_ARCH(page, asid)			vhpt_hash((page), (asid))
+#define HT_COMPARE_ARCH(page, asid, t)			vhpt_compare((page), (asid), (t))
+#define HT_SLOT_EMPTY_ARCH(t)				((t)->present.tag.tag_info.ti)
+#define HT_INVALIDATE_SLOT_ARCH(t)			(t)->present.tag.tag_info.ti = true
+#define HT_GET_NEXT_ARCH(t)				(t)->present.next
+#define HT_SET_NEXT_ARCH(t, s)				(t)->present.next = (s)
+#define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)	vhpt_set_record(t, page, asid, frame, flags)
+
+#define PPN_SHIFT			12
 
 #define VRN_SHIFT			61
 #define VRN_MASK			(7LL << VRN_SHIFT)
 
 #define VRN_KERNEL	 		0
-#define VRN_WORK			1LL
 #define REGION_REGISTERS 		8
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1<<VHPT_WIDTH)
 
 #define VHPT_BASE 			page_ht		/* Must be aligned to VHPT_SIZE */
+
+/** Memory Attributes. */
+#define MA_WRITEBACK	0x0
+#define MA_UNCACHEABLE	0x4
+
+/** Privilege Levels. Only the most and the least privileged ones are ever used. */
+#define PL_KERNEL	0x0
+#define PL_USER		0x3
+
+/* Access Rigths. Only certain combinations are used by the kernel. */
+#define AR_READ		0x0
+#define AR_EXECUTE	0x1
+#define AR_WRITE	0x2
 
 struct vhpt_tag_info {
 	unsigned long long tag : 63;
@@ -101,7 +116,7 @@ struct vhpt_entry_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	unsigned long long next : 64;	/**< Collision chain next pointer. */
+	pte_t *next;			/**< Collision chain next pointer. */
 } __attribute__ ((packed));
 
 struct vhpt_entry_not_present {
@@ -119,13 +134,14 @@ struct vhpt_entry_not_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	unsigned long long next : 64;	/**< Collision chain next pointer. */
+	pte_t *next;			/**< Collision chain next pointer. */
 	
 } __attribute__ ((packed));
 
 typedef union vhpt_entry {
 	struct vhpt_entry_present present;
 	struct vhpt_entry_not_present not_present;
+	__u64 word[4];
 } vhpt_entry;
 
 struct region_register_map {
@@ -243,5 +259,7 @@ static inline void pta_write(__u64 v)
 
 extern void page_arch_init(void);
 extern pte_t *vhpt_hash(__address page, asid_t asid);
+extern bool vhpt_compare(__address page, asid_t asid, pte_t *t);
+extern void vhpt_set_record(pte_t *t, __address page, asid_t asid, __address frame, int flags);
 
 #endif

@@ -49,6 +49,7 @@
 #include <arch/mm/asid.h>
 #include <mm/asid.h>
 #include <mm/as.h>
+#include <genarch/mm/page_ht.h>
 #include <mm/tlb.h>
 #include <list.h>
 #include <typedefs.h>
@@ -104,6 +105,17 @@ asid_t asid_find_free(void)
 			as->asid = next_asid++;
 			spinlock_unlock(&as->lock);
 		}
+		
+		/*
+		 * The page hash table uses VHPT long format PTE's.
+		 * Unfortunatelly, this format has no space to
+		 * store as_t pointer, so it is necessary to
+		 * invalidate the whole structure after all ASIDs
+		 * have been reassigned. The information swept out
+		 * from the page hash table can be later reconstructed
+		 * from as_t structures on demand.
+		 */
+		ht_invalidate_all();
 
 		/*
 		 * Finish TLB shootdown.

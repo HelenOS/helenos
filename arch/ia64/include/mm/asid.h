@@ -42,6 +42,11 @@ typedef __u32 asid_t;
 #define RIDS_PER_ASID		7
 #define RID_OVERFLOW		16777216	/* 2^24 */
 
+#define ASID2RID(asid, vrn)	(((asid)*RIDS_PER_ASID)+(vrn))
+#define RID2ASID(rid)		((rid)/RIDS_PER_ASID)
+
+typedef __u32 rid_t;
+
 /**
  * This macro is needed only to compile the kernel.
  * On ia64, its value is ignored.
