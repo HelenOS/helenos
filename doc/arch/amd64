@@ -15,7 +15,7 @@ CPU
 	o Intel Xeon with Intel Extended Memory 64 Technology
 
 SMP COMPATIBILITY
-        o Bochs 2.2.1
+        o Bochs 2.2.1 - 2.2.6
                 o 2x-8x AMD64 CPU
         o Simics 2.2.19
                 o 2x-8x AMD hammer CPU

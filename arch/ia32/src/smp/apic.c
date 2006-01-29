@@ -44,7 +44,7 @@
 /*
  * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
- *	Bochs 2.0.2 - Bochs 2.2.5 with 2-8 CPUs
+ *	Bochs 2.0.2 - Bochs 2.2.6 with 2-8 CPUs
  *	Simics 2.0.28 - Simics 2.2.19 2-15 CPUs
  *	VMware Workstation 5.5 with 2 CPUs
  *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
@@ -308,6 +308,7 @@ void l_apic_init(void)
 {
 	lvt_error_t error;
 	lvt_lint_t lint;
+	tpr_t tpr;
 	svr_t svr;
 	icr_t icr;
 	tdcr_t tdcr;
@@ -330,14 +331,19 @@ void l_apic_init(void)
 	lint.value = l_apic[LVT_LINT1];
 	lint.masked = true;
 	l_apic[LVT_LINT1] = lint.value;
+
+	/* Task Priority Register initialization. */
+	tpr.value = l_apic[TPR];
+	tpr.pri_sc = 0;
+	tpr.pri = 0;
+	l_apic[TPR] = tpr.value;
 	
 	/* Spurious-Interrupt Vector Register initialization. */
 	svr.value = l_apic[SVR];
 	svr.vector = VECTOR_APIC_SPUR;
 	svr.lapic_enabled = true;
+	svr.focus_checking = true;
 	l_apic[SVR] = svr.value;
-
-	l_apic[TPR] &= TPRClear;
 
 	if (CPU->arch.family >= 6)
 		enable_l_apic_in_msr();

@@ -151,16 +151,23 @@ typedef union esr esr_t;
 
 /* Task Priority Register */
 #define TPR		(0x080/sizeof(__u32))
-#define TPRClear	0xffffff00
+union tpr {
+	__u32 value;
+	struct {
+		unsigned pri_sc : 4;		/**< Task Priority Sub-Class. */
+		unsigned pri : 4;		/**< Task Priority. */
+	} __attribute__ ((packed));
+};
+typedef union tpr tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
 #define SVR		(0x0f0/sizeof(__u32))
 union svr {
 	__u32 value;
 	struct {
-		__u8 vector;			/**< Spurious Vector */
-		unsigned lapic_enabled : 1;	/**< APIC Software Enable/Disable */
-		unsigned focus_checking : 1;	/**< Focus Processor Checking */
+		__u8 vector;			/**< Spurious Vector. */
+		unsigned lapic_enabled : 1;	/**< APIC Software Enable/Disable. */
+		unsigned focus_checking : 1;	/**< Focus Processor Checking. */
 		unsigned : 22;			/**< Reserved. */
 	} __attribute__ ((packed));
 };

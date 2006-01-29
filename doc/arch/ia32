@@ -16,7 +16,7 @@ COMPILER REQUIREMENTS
         o older versions may do as well, but are now obsoleted
 
 SMP COMPATIBILITY
-        o Bochs 2.0.2 - Bochs 2.2.5
+        o Bochs 2.0.2 - Bochs 2.2.6
                 o 2x-8x 686 CPU
         o Simics 2.0.28 - Simics 2.2.19
                 o 2x-15x Pentium 4 CPU
