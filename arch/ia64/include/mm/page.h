@@ -60,14 +60,14 @@
 
 #define VRN_SHIFT			61
 #define VRN_MASK			(7LL << VRN_SHIFT)
-
 #define VRN_KERNEL	 		0
 #define REGION_REGISTERS 		8
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1<<VHPT_WIDTH)
-
 #define VHPT_BASE 			page_ht		/* Must be aligned to VHPT_SIZE */
+
+#define PTA_BASE_SHIFT			15
 
 /** Memory Attributes. */
 #define MA_WRITEBACK	0x0

@@ -100,7 +100,7 @@ void set_vhpt_environment(void)
 	pta.map.ve = 0;                   /* disable VHPT walker */
 	pta.map.vf = 1;                   /* large entry format */
 	pta.map.size = VHPT_WIDTH;
-	pta.map.base = (__address) page_ht;
+	pta.map.base = ((__address) page_ht) >> PTA_BASE_SHIFT;
 	pta_write(pta.word);
 	srlz_i();
 	srlz_d();
