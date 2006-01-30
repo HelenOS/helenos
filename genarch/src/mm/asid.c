@@ -94,7 +94,7 @@ asid_t asid_get(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&asidlock);
-	if (ASID_STEALING_ENABLED && asids_allocated == ASIDS_ALLOCABLE) {
+	if (asids_allocated == ASIDS_ALLOCABLE) {
 
 		/*
 		 * All ASIDs are already allocated.

@@ -31,34 +31,21 @@
 
 #include <arch/types.h>
 
-typedef __u32 asid_t;
+typedef __u16 asid_t;
 
 /**
- * This macro eliminates the stealing branch of asid_get().
+ * Number of ia64 RIDs (Region Identifiers) per kernel ASID.
+ * Note that some architectures may support more bits,
+ * but those extra bits are not used by the kernel. 
  */
-#define ASID_STEALING_ENABLED	0
-
-/** Number of ia64 RIDs (Region Identifiers) per kernel ASID. */
 #define RIDS_PER_ASID		7
-#define RID_OVERFLOW		16777216	/* 2^24 */
+#define RID_MAX			262143		/* 2^18 - 1 */
 
 #define ASID2RID(asid, vrn)	(((asid)*RIDS_PER_ASID)+(vrn))
 #define RID2ASID(rid)		((rid)/RIDS_PER_ASID)
 
 typedef __u32 rid_t;
 
-/**
- * This macro is needed only to compile the kernel.
- * On ia64, its value is ignored.
- */
-#define ASID_MAX_ARCH		0
-
-/**
- * Value used to recognize the situation when all ASIDs were already allocated.
- */
-#define ASID_OVERFLOW		(RID_OVERFLOW/RIDS_PER_ASID)
-
-/** On ia64, this is no-op. */
-#define asid_put_arch(x)
+#define ASID_MAX_ARCH		(RID_MAX/RIDS_PER_ASID)
 
 #endif
