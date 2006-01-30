@@ -66,7 +66,7 @@
  * @return Leading value in FIFO.
  */
 #define fifo_pop(name) \
-	name.fifo[name.head = (name.head + 1) % name.items]
+	name.fifo[name.head = (name.head + 1) < name.items ? (name.head + 1) : 0]
 
 /** Push value to tail of FIFO.
  *
@@ -75,6 +75,6 @@
  *
  */
 #define fifo_push(name, value) \
-	name.fifo[name.tail = (name.tail + 1) % name.items] = (value) 
+	name.fifo[name.tail = (name.tail + 1) < name.items ? (name.tail + 1) : 0] = (value) 
 
 #endif
