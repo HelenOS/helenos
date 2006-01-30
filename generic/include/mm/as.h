@@ -65,7 +65,6 @@ struct as_area {
 	as_area_type_t type;
 	size_t size;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
-	index_t *mapping;	/**< Map of physical frame numbers mapped to virtual page numbers in this area. */
 };
 
 /** Address space structure.
@@ -76,7 +75,7 @@ struct as_area {
  * set up during system initialization.
  */
 struct as {
-	/** Protected by asidlock. Must be acquired before as-> lock. */
+	/** Protected by asidlock. Must be acquired before as->lock. */
 	link_t as_with_asid_link;
 
 	SPINLOCK_DECLARE(lock);
@@ -87,7 +86,7 @@ struct as {
 
 extern as_t * as_create(pte_t *ptl0, int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
-extern void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn);
+extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
 extern void as_install(as_t *m);
 

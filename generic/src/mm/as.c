@@ -59,13 +59,7 @@
 #define KAS_END_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_END)
 #define KAS_INDICES		(1+(KAS_END_INDEX-KAS_START_INDEX))
 
-/*
- * Here we assume that PFN (Physical Frame Number) space
- * is smaller than the width of index_t. UNALLOCATED_PFN
- * can be then used to mark mappings wich were not
- * yet allocated a physical frame.
- */
-#define UNALLOCATED_PFN		((index_t) -1)
+static int get_area_flags(as_area_t *a);
 
 /** Create address space. */
 /*
@@ -133,26 +127,7 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 	 */
 	
 	a = (as_area_t *) malloc(sizeof(as_area_t));
-	if (a) {
-		int i;
-	
-		a->mapping = (index_t *) malloc(size * sizeof(index_t));
-		if (!a->mapping) {
-			free(a);
-			spinlock_unlock(&as->lock);
-			interrupts_restore(ipl);
-			return NULL;
-		}
-		
-		for (i=0; i<size; i++) {
-			/*
-			 * Frames will be allocated on-demand by
-			 * as_page_fault() or preloaded by
-			 * as_area_set_mapping().
-			 */
-			a->mapping[i] = UNALLOCATED_PFN;
-		}
-		
+	if (a) {	
 		spinlock_initialize(&a->lock, "as_area_lock");
 			
 		link_initialize(&a->link);			
@@ -161,7 +136,6 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 		a->base = base;
 		
 		list_append(&a->link, &as->as_area_head);
-
 	}
 
 	spinlock_unlock(&as->lock);
@@ -170,28 +144,52 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 	return a;
 }
 
-/** Load mapping for address space area.
+/** Initialize mapping for one page of address space.
  *
- * Initialize a->mapping.
+ * This functions maps 'page' to 'frame' according
+ * to attributes of the address space area to
+ * wich 'page' belongs.
  *
- * @param a   Target address space area.
- * @param vpn Page number relative to area start.
- * @param pfn Frame number to map.
+ * @param a Target address space.
+ * @param page Virtual page within the area.
+ * @param frame Physical frame to which page will be mapped.
  */
-void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn)
+void as_set_mapping(as_t *as, __address page, __address frame)
 {
-	ASSERT(vpn < a->size);
-	ASSERT(a->mapping[vpn] == UNALLOCATED_PFN);
-	ASSERT(pfn != UNALLOCATED_PFN);
-	
+	as_area_t *a, *area = NULL;
+	link_t *cur;
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&a->lock);
+	spinlock_lock(&as->lock);
 	
-	a->mapping[vpn] = pfn;
+	/*
+	 * First, try locate an area.
+	 */
+	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
+		a = list_get_instance(cur, as_area_t, link);
+		spinlock_lock(&a->lock);
+
+		if ((page >= a->base) && (page < a->base + a->size * PAGE_SIZE)) {
+			area = a;
+			break;
+		}
+		
+		spinlock_unlock(&a->lock);
+	}
 	
-	spinlock_unlock(&a->lock);
+	if (!area) {
+		panic("page not part of any as_area\n");
+	}
+
+	/*
+	 * Note: area->lock is held.
+	 */
+	
+	page_mapping_insert(page, as->asid, frame, get_area_flags(area), (__address) as->ptl0);
+	
+	spinlock_unlock(&area->lock);
+	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 }
 
@@ -206,10 +204,8 @@ void as_area_set_mapping(as_area_t *a, index_t vpn, index_t pfn)
  */
 int as_page_fault(__address page)
 {
-	int flags;
 	link_t *cur;
 	as_area_t *a, *area = NULL;
-	index_t vpn;
 	__address frame;
 	
 	ASSERT(AS);
@@ -228,8 +224,6 @@ int as_page_fault(__address page)
 			 * We found the area containing 'page'.
 			 * TODO: access checking
 			 */
-			
-			vpn = (page - a->base) / PAGE_SIZE;
 			area = a;
 			break;
 		}
@@ -251,35 +245,28 @@ int as_page_fault(__address page)
 	 */
 	
 	/*
-	 * Decide if a frame needs to be allocated.
-	 * If so, allocate it and adjust area->mapping map.
+	 * In general, there can be several reasons that
+	 * can have caused this fault.
+	 *
+	 * - non-existent mapping: the area is a scratch
+	 *   area (e.g. stack) and so far has not been
+	 *   allocated a frame for the faulting page
+	 *
+	 * - non-present mapping: another possibility,
+	 *   currently not implemented, would be frame
+	 *   reuse; when this becomes a possibility,
+	 *   do not forget to distinguish between
+	 *   the different causes
 	 */
-	if (area->mapping[vpn] == UNALLOCATED_PFN) {
-		frame = frame_alloc(0, ONE_FRAME, NULL);
-		memsetb(PA2KA(frame), FRAME_SIZE, 0);
-		area->mapping[vpn] = frame / FRAME_SIZE;
-		ASSERT(area->mapping[vpn] != UNALLOCATED_PFN);
-	} else
-		frame = area->mapping[vpn] * FRAME_SIZE;
+	frame = frame_alloc(0, ONE_FRAME, NULL);
+	memsetb(PA2KA(frame), FRAME_SIZE, 0);
 	
-	switch (area->type) {
-		case AS_AREA_TEXT:
-			flags = PAGE_EXEC | PAGE_READ | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
-			break;
-		case AS_AREA_DATA:
-		case AS_AREA_STACK:
-			flags = PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
-			break;
-		default:
-			panic("unexpected as_area_type_t %d", area->type);
-	}
-
 	/*
 	 * Map 'page' to 'frame'.
 	 * Note that TLB shootdown is not attempted as only new information is being
 	 * inserted into page tables.
 	 */
-	page_mapping_insert(page, AS->asid, frame, flags, (__address) AS->ptl0);
+	page_mapping_insert(page, AS->asid, frame, get_area_flags(area), (__address) AS->ptl0);
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&AS->lock);
@@ -311,4 +298,32 @@ void as_install(as_t *as)
 	as_install_arch(as);
 	
 	AS = as;
+}
+
+/** Compute flags for virtual address translation subsytem.
+ *
+ * The address space area must be locked.
+ * Interrupts must be disabled.
+ *
+ * @param a Address space area.
+ *
+ * @return Flags to be used in page_mapping_insert().
+ */
+int get_area_flags(as_area_t *a)
+{
+	int flags;
+
+	switch (a->type) {
+		case AS_AREA_TEXT:
+			flags = PAGE_EXEC | PAGE_READ | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
+			break;
+		case AS_AREA_DATA:
+		case AS_AREA_STACK:
+			flags = PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
+			break;
+		default:
+			panic("unexpected as_area_type_t %d", a->type);
+	}
+	
+	return flags;
 }

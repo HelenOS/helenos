@@ -71,8 +71,9 @@ void kinit(void *arg)
 	thread_t *t;
 	as_t *as;
 	as_area_t *a;
-	index_t frame, frames;
-	index_t pfn;
+	__address frame;
+	count_t frames;
+	int i;
 	task_t *u;
 
 	interrupts_disable();
@@ -160,7 +161,7 @@ void kinit(void *arg)
 		 * Create the text as_area and copy the userspace code there.
 		 */
 		
-		frame = KA2PA(config.init_addr) / FRAME_SIZE;
+		frame = KA2PA(config.init_addr);
 		frames = config.init_size / FRAME_SIZE;
 		if (config.init_size % FRAME_SIZE > 0)
 			frames++;
@@ -169,15 +170,19 @@ void kinit(void *arg)
 		if (!a)
 			panic("as_area_create: text\n");
 		
-		for (pfn = 0; pfn < frames; pfn++)
-			as_area_set_mapping(a, pfn, frame + pfn);
-	
 		/*
 		 * Create the data as_area.
 		 */
 		a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
 		if (!a)
 			panic("as_area_create: stack\n");
+
+		/*
+		 * Initialize text area mapping.
+		 */
+		for (i = 0; i < frames; i++)
+			as_set_mapping(as, UTEXT_ADDRESS + i * PAGE_SIZE, frame + i * FRAME_SIZE);
+
 	
 		thread_ready(t);
 	}
