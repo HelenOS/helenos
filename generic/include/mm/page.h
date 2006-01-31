@@ -61,16 +61,16 @@
 
 /** Operations to manipulate page mappings. */
 struct page_operations {
-	void (* mapping_insert)(__address page, asid_t asid, __address frame, int flags, __address root);
-	pte_t *(* mapping_find)(__address page, asid_t asid, __address root);
+	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags, __address root);
+	pte_t *(* mapping_find)(as_t *as, __address page, __address root);
 };
 typedef struct page_operations page_operations_t;
 
 extern page_operations_t *page_operations;
 
 extern void page_init(void);
-extern void page_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
-extern pte_t *page_mapping_find(__address page, asid_t asid, __address root);
+extern void page_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root);
+extern pte_t *page_mapping_find(as_t *as, __address page, __address root);
 extern void map_structure(__address s, size_t size);
 
 #endif

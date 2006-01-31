@@ -29,7 +29,7 @@
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <mm/asid.h>
+#include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <debug.h>
@@ -56,9 +56,9 @@ void test(void)
 	*((__u32 *) frame1) = VALUE1;
 	
 	printf("Mapping virtual address %P to physical address %P.\n", PAGE0, KA2PA(frame0));
-	page_mapping_insert(PAGE0, ASID_KERNEL, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE, 0);
+	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE, 0);
 	printf("Mapping virtual address %P to physical address %P.\n", PAGE1, KA2PA(frame1));	
-	page_mapping_insert(PAGE1, ASID_KERNEL, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE, 0);
+	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE, 0);
 	
 	printf("Value at virtual address %P is %L.\n", PAGE0, v0 = *((__u32 *) PAGE0));
 	printf("Value at virtual address %P is %L.\n", PAGE1, v1 = *((__u32 *) PAGE1));

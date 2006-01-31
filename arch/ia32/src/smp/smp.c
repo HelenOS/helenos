@@ -44,7 +44,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/heap.h>
-#include <mm/asid.h>
+#include <mm/as.h>
 #include <print.h>
 #include <memstr.h>
 #include <arch/i8259.h>
@@ -65,10 +65,9 @@ void smp_init(void)
 	}
 
 	if (config.cpu_count > 1) {		
-		page_mapping_insert((__address)l_apic, ASID_KERNEL, (__address)l_apic, 
+		page_mapping_insert(AS_KERNEL, (__address) l_apic, (__address) l_apic, 
 				  PAGE_NOT_CACHEABLE, 0);
-		page_mapping_insert((__address) io_apic, ASID_KERNEL,
-				  (__address) io_apic,
+		page_mapping_insert(AS_KERNEL, (__address) io_apic, (__address) io_apic,
 				  PAGE_NOT_CACHEABLE, 0);
         }
 

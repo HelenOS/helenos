@@ -30,6 +30,7 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
+#include <mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -52,8 +53,8 @@ SPINLOCK_INITIALIZE(page_ht_lock);
  */
 pte_t *page_ht = NULL;
 
-static void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
-static pte_t *ht_mapping_find(__address page, asid_t asid, __address root);
+static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root);
+static pte_t *ht_mapping_find(as_t *as, __address page, __address root);
 
 page_operations_t page_ht_operations = {
 	.mapping_insert = ht_mapping_insert,
@@ -67,21 +68,21 @@ page_operations_t page_ht_operations = {
  * new mappings are appended to the end of the collision
  * chain.
  *
+ * @param as Address space to which page belongs. Must be locked prior the call.
  * @param page Virtual address of the page to be mapped.
- * @param asid Address space to which page belongs.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  * @param root Ignored.
  */
-void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root)
+void ht_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root)
 {
 	pte_t *t, *u;
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&page_ht_lock);
-	
-	t = HT_HASH(page, asid);
+
+	t = HT_HASH(page, as->asid);
 	if (!HT_SLOT_EMPTY(t)) {
 	
 		/*
@@ -91,7 +92,7 @@ void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, 
 		 
 		do {
 			u = t;
-			if (HT_COMPARE(page, asid, t)) {
+			if (HT_COMPARE(page, as->asid, t)) {
 				/*
 				 * Nothing to do,
 				 * the record is already there.
@@ -109,7 +110,7 @@ void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, 
 		HT_SET_NEXT(u, t);
 	}
 	
-	HT_SET_RECORD(t, page, asid, frame, flags);
+	HT_SET_RECORD(t, page, as->asid, frame, flags);
 	HT_SET_NEXT(t, NULL);
 	
 	spinlock_unlock(&page_ht_lock);
@@ -122,22 +123,22 @@ void ht_mapping_insert(__address page, asid_t asid, __address frame, int flags, 
  *
  * Interrupts must be disabled.
  *
+ * @param as Address space to wich page belongs. Must be locked prior the call.
  * @param page Virtual page.
- * @param asid Address space to wich page belongs.
  * @param root Ignored.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  */
-pte_t *ht_mapping_find(__address page, asid_t asid, __address root)
+pte_t *ht_mapping_find(as_t *as, __address page, __address root)
 {
 	pte_t *t;
 	
 	spinlock_lock(&page_ht_lock);
-	t = HT_HASH(page, asid);
+	t = HT_HASH(page, as->asid);
 	if (!HT_SLOT_EMPTY(t)) {
-		while (!HT_COMPARE(page, asid, t) && HT_GET_NEXT(t))
+		while (!HT_COMPARE(page, as->asid, t) && HT_GET_NEXT(t))
 			t = HT_GET_NEXT(t);
-		t = HT_COMPARE(page, asid, t) ? t : NULL;
+		t = HT_COMPARE(page, as->asid, t) ? t : NULL;
 	} else {
 		t = NULL;
 	}

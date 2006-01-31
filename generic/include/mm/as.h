@@ -48,7 +48,7 @@
 #define USTACK_ADDRESS	USTACK_ADDRESS_ARCH
 #define UDATA_ADDRESS	UDATA_ADDRESS_ARCH
 
-#define AS_KERNEL	(1<<0)		/**< Kernel address space. */
+#define FLAG_AS_KERNEL	(1<<0)		/**< Kernel address space. */
 
 enum as_area_type {
 	AS_AREA_TEXT = 1, AS_AREA_DATA, AS_AREA_STACK 
@@ -84,7 +84,9 @@ struct as {
 	asid_t asid;			/**< Address space identifier. */
 };
 
-extern as_t * as_create(pte_t *ptl0, int flags);
+extern as_t *AS_KERNEL;
+
+extern as_t *as_create(pte_t *ptl0, int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);

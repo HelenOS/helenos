@@ -77,6 +77,9 @@ size_t hardcoded_kdata_size = 0;
 __address init_addr = 0;
 size_t init_size = 0;
 
+/** Kernel address space. */
+as_t *AS_KERNEL = NULL;
+
 void main_bsp(void);
 void main_ap(void);
 
@@ -152,7 +155,10 @@ void main_bsp_separated_stack(void)
 	 * starts adding its own handlers
 	 */
 	exc_init();
-	
+
+	/*
+	 * Memory management subsystems initialization.
+	 */	
 	arch_pre_mm_init();
 	early_heap_init(config.heap_addr, config.heap_size + config.heap_delta);
 	frame_init();
@@ -185,7 +191,7 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create kernel address space.
 	 */
-	as = as_create(GET_PTL0_ADDRESS(), AS_KERNEL);
+	as = as_create(GET_PTL0_ADDRESS(), FLAG_AS_KERNEL);
 	if (!as)
 		panic("can't create kernel address space\n");
 

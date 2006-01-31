@@ -76,7 +76,7 @@ as_t *as_create(pte_t *ptl0, int flags)
 		spinlock_initialize(&as->lock, "as_lock");
 		list_initialize(&as->as_area_head);
 
-		if (flags & AS_KERNEL)
+		if (flags & FLAG_AS_KERNEL)
 			as->asid = ASID_KERNEL;
 		else
 			as->asid = ASID_INVALID;
@@ -186,7 +186,7 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 	 * Note: area->lock is held.
 	 */
 	
-	page_mapping_insert(page, as->asid, frame, get_area_flags(area), (__address) as->ptl0);
+	page_mapping_insert(as, page, frame, get_area_flags(area), (__address) as->ptl0);
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&as->lock);
@@ -266,7 +266,7 @@ int as_page_fault(__address page)
 	 * Note that TLB shootdown is not attempted as only new information is being
 	 * inserted into page tables.
 	 */
-	page_mapping_insert(page, AS->asid, frame, get_area_flags(area), (__address) AS->ptl0);
+	page_mapping_insert(AS, page, frame, get_area_flags(area), (__address) AS->ptl0);
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&AS->lock);

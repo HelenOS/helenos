@@ -30,14 +30,14 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <arch/mm/page.h>
-#include <arch/mm/asid.h>
+#include <arch/mm/as.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 
-static void pt_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root);
-static pte_t *pt_mapping_find(__address page, asid_t asid, __address root);
+static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root);
+static pte_t *pt_mapping_find(as_t *as, __address page, __address root);
 
 page_operations_t page_pt_operations = {
 	.mapping_insert = pt_mapping_insert,
@@ -49,13 +49,13 @@ page_operations_t page_pt_operations = {
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'.
  *
+ * @param as Ignored.
  * @param page Virtual address of the page to be mapped.
- * @param asid Ignored.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  * @param root Explicit PTL0 address.
  */
-void pt_mapping_insert(__address page, asid_t asid, __address frame, int flags, __address root)
+void pt_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	__address newpt;
@@ -97,13 +97,13 @@ void pt_mapping_insert(__address page, asid_t asid, __address frame, int flags, 
  *
  * Find mapping for virtual page.
  *
+ * @param as Ignored.
  * @param page Virtual page.
- * @param asid Ignored.
  * @param root PTL0 address if non-zero.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *pt_mapping_find(__address page, asid_t asid, __address root)
+pte_t *pt_mapping_find(as_t *as, __address page, __address root)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 
