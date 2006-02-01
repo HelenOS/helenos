@@ -110,7 +110,7 @@ static inline void immu_set(bool enable)
 	cr.value = asi_u64_read(ASI_LSU_CONTROL_REG, 0);
 	cr.im = enable;
 	asi_u64_write(ASI_LSU_CONTROL_REG, 0, cr.value);
-	flush();
+	membar();
 }
 
 /** Disable or Enable DMMU. */
@@ -121,7 +121,7 @@ static inline void dmmu_set(bool enable)
 	cr.value = asi_u64_read(ASI_LSU_CONTROL_REG, 0);
 	cr.dm = enable;
 	asi_u64_write(ASI_LSU_CONTROL_REG, 0, cr.value);
-	flush();
+	membar();
 }
 
 #endif

@@ -44,5 +44,6 @@ void frame_arch_init(void)
 	 * Blacklist ROM regions.
 	 */
 	frame_region_not_free(ROM_BASE, ROM_SIZE);
-        zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
+	
+	zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
 }

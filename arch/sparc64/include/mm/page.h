@@ -41,7 +41,7 @@
 #define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
 /** Implementation of page hash table interface. */
-#define HT_WIDTH_ARCH			FRAME_WIDTH
+#define HT_WIDTH_ARCH			20	/* 1M */
 #define HT_HASH_ARCH(page, asid)	0
 #define HT_COMPARE_ARCH(page, asid, t)	0
 #define HT_SLOT_EMPTY_ARCH(t)		1

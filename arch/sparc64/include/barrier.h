@@ -51,4 +51,9 @@ static inline void flush(void)
         __asm__ volatile ("flush %sp\n");       /* %sp is guaranteed to reference mapped memory */
 }
 
+static inline void membar(void)
+{
+	__asm__ volatile ("membar #Sync\n");
+}
+
 #endif
