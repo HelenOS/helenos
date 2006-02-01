@@ -31,7 +31,18 @@
 #include <config.h>
 #include <panic.h>
 
+/*
+ * This is Ski-specific and certainly not sufficient
+ * for real ia64 systems that provide memory map.
+ */
+#define ROM_BASE	0xa0000
+#define ROM_SIZE	(384*1024)
+
 void frame_arch_init(void)
 {
+	/*
+	 * Blacklist ROM regions.
+	 */
+	frame_region_not_free(ROM_BASE, ROM_SIZE);
         zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
 }

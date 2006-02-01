@@ -77,9 +77,6 @@ size_t hardcoded_kdata_size = 0;
 __address init_addr = 0;
 size_t init_size = 0;
 
-/** Kernel address space. */
-as_t *AS_KERNEL = NULL;
-
 void main_bsp(void);
 void main_ap(void);
 

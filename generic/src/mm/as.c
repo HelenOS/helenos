@@ -56,6 +56,9 @@
 
 as_operations_t *as_operations = NULL;
 
+/** Kernel address space. */
+as_t *AS_KERNEL = NULL;
+
 static int get_area_flags(as_area_t *a);
 
 /** Initialize address space subsystem. */
@@ -67,7 +70,10 @@ void as_init(void)
                 panic("can't create kernel address space\n");
 }
 
-/** Create address space. */
+/** Create address space.
+ *
+ * @param flags Flags that influence way in wich the address space is created.
+ */
 as_t *as_create(int flags)
 {
 	as_t *as;

@@ -56,7 +56,7 @@ static pte_t *ht_mapping_find(as_t *as, __address page);
 
 page_operations_t page_ht_operations = {
 	.mapping_insert = ht_mapping_insert,
-	.mapping_find = ht_mapping_find,
+	.mapping_find = ht_mapping_find
 };
 
 /** Map page to frame using page hash table.
