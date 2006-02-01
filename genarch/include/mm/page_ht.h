@@ -38,8 +38,10 @@
 #include <mm/page.h>
 #include <typedefs.h>
 
-/** Number of slots in page hash table. */
-#define HT_ENTRIES			HT_ENTRIES_ARCH
+/** Page hash table size. */
+#define HT_WIDTH			HT_WIDTH_ARCH
+#define HT_SIZE				(1<<HT_WIDTH)
+#define HT_ENTRIES			(HT_SIZE/sizeof(pte_t))
 
 /** Hash function.
  *
@@ -98,7 +100,6 @@
  * @param flags Flags. See mm/page.h.
  */
 #define HT_SET_RECORD(t, page, asid, frame, flags)	HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
-
 
 extern page_operations_t page_ht_operations;
 extern spinlock_t page_ht_lock;

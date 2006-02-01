@@ -29,6 +29,7 @@
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/types.h>
@@ -36,8 +37,8 @@
 #include <arch/asm.h>
 #include <memstr.h>
 
-static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root);
-static pte_t *pt_mapping_find(as_t *as, __address page, __address root);
+static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags);
+static pte_t *pt_mapping_find(as_t *as, __address page);
 
 page_operations_t page_pt_operations = {
 	.mapping_insert = pt_mapping_insert,
@@ -49,18 +50,19 @@ page_operations_t page_pt_operations = {
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'.
  *
- * @param as Ignored.
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
- * @param root Explicit PTL0 address.
  */
-void pt_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root)
+void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	__address newpt;
 
-	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = frame_alloc(FRAME_KA, ONE_FRAME, NULL);
@@ -97,17 +99,18 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags, __a
  *
  * Find mapping for virtual page.
  *
- * @param as Ignored.
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to which page belongs.
  * @param page Virtual page.
- * @param root PTL0 address if non-zero.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *pt_mapping_find(as_t *as, __address page, __address root)
+pte_t *pt_mapping_find(as_t *as, __address page)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 
-	ptl0 = (pte_t *) PA2KA(root ? root : (__address) GET_PTL0_ADDRESS());
+	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;

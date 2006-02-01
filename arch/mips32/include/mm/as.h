@@ -41,4 +41,6 @@
 #define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
 #define UDATA_ADDRESS_ARCH	0x01001000
 
+extern void as_arch_init(void);
+
 #endif

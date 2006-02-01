@@ -38,12 +38,10 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <debug.h>
+#include <memstr.h>
 
 /**
- * This lock protects the page hash table. Note that software must
- * be still careful about ordering of writes to ensure consistent
- * view of the page hash table for hardware helpers such as VHPT
- * walker on ia64.
+ * This lock protects the page hash table.
  */
 SPINLOCK_INITIALIZE(page_ht_lock);
 
@@ -53,28 +51,27 @@ SPINLOCK_INITIALIZE(page_ht_lock);
  */
 pte_t *page_ht = NULL;
 
-static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root);
-static pte_t *ht_mapping_find(as_t *as, __address page, __address root);
+static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags);
+static pte_t *ht_mapping_find(as_t *as, __address page);
 
 page_operations_t page_ht_operations = {
 	.mapping_insert = ht_mapping_insert,
-	.mapping_find = ht_mapping_find
+	.mapping_find = ht_mapping_find,
 };
 
 /** Map page to frame using page hash table.
  *
  * Map virtual address 'page' to physical address 'frame'
- * using 'flags'. In order not to disturb hardware searching,
- * new mappings are appended to the end of the collision
- * chain.
+ * using 'flags'. 
  *
- * @param as Address space to which page belongs. Must be locked prior the call.
+ * The address space must be locked and interruptsmust be disabled.
+ *
+ * @param as Address space to which page belongs.
  * @param page Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
- * @param root Ignored.
  */
-void ht_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root)
+void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	pte_t *t, *u;
 	ipl_t ipl;
@@ -121,15 +118,14 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags, __a
  *
  * Find mapping for virtual page.
  *
- * Interrupts must be disabled.
+ * The address space must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs. Must be locked prior the call.
+ * @param as Address space to wich page belongs.
  * @param page Virtual page.
- * @param root Ignored.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  */
-pte_t *ht_mapping_find(as_t *as, __address page, __address root)
+pte_t *ht_mapping_find(as_t *as, __address page)
 {
 	pte_t *t;
 	

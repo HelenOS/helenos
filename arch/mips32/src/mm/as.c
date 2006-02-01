@@ -27,11 +27,18 @@
  */
 
 #include <arch/mm/as.h>
+#include <genarch/mm/as_pt.h>
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <arch/cp0.h>
 #include <arch.h>
+
+/** Architecture dependent address space init. */
+void as_arch_init(void)
+{
+        as_operations = &as_pt_operations;
+}
 
 /** Install address space.
  *
@@ -56,3 +63,4 @@ void as_install_arch(as_t *as)
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 }
+

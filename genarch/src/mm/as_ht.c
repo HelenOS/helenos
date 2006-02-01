@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/page.h>
-#include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
-#include <mm/page.h>
+#include <genarch/mm/as_ht.h>
+#include <genarch/mm/page_ht.h>
 #include <mm/as.h>
+#include <mm/frame.h>
 #include <arch/types.h>
-#include <config.h>
-#include <func.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <debug.h>
+#include <typedefs.h>
 #include <memstr.h>
-#include <print.h>
-#include <interrupt.h>
 
-void page_arch_init(void)
+static pte_t *ht_create(int flags);
+
+as_operations_t as_ht_operations = {
+	.page_table_create = ht_create
+};
+
+
+/** Page hash table create.
+ *
+ * The page hash table will be created only once
+ * and will be shared by all address spaces.
+ *
+ * @param flags Ignored.
+ *
+ * @return Address of global page hash table.
+ */
+pte_t *ht_create(int flags)
 {
-	__address cur;
-
-	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
-	
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE);
-
-		exc_register(14, "page_fault", page_fault);
-		write_cr3((__address) AS_KERNEL->page_table);
+	if (!page_ht) {
+		page_ht = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, HT_WIDTH - FRAME_WIDTH, NULL);
+		memsetb((__address) page_ht, HT_SIZE, 0);
 	}
-	else {
-		write_cr3((__address) AS_KERNEL->page_table);
-	}
-
-	paging_on();
+	return page_ht;
 }

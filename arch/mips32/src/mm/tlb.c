@@ -339,7 +339,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Check if the mapping exists in page tables.
 	 */	
-	pte = page_mapping_find(AS, badvaddr, 0);
+	pte = page_mapping_find(AS, badvaddr);
 	if (pte && pte->lo.v) {
 		/*
 		 * Mapping found in page tables.
@@ -356,7 +356,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
 			 */
-			pte = page_mapping_find(AS, badvaddr, 0);
+			pte = page_mapping_find(AS, badvaddr);
 			ASSERT(pte && pte->lo.v);
 			return pte;
 		}

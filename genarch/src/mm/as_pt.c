@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <mm/as.h>
+#include <arch/mm/page.h>
+#include <arch/mm/as.h>
 #include <arch/types.h>
-#include <config.h>
-#include <func.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <debug.h>
+#include <typedefs.h>
 #include <memstr.h>
-#include <print.h>
-#include <interrupt.h>
+#include <arch.h>
 
-void page_arch_init(void)
+static pte_t *ptl0_create(int flags);
+
+as_operations_t as_pt_operations = {
+	.page_table_create = ptl0_create
+};
+
+/** Create PTL0.
+ *
+ * PTL0 of 4-level page table will be created for each address space.
+ *
+ * @param flags Flags can specify whether ptl0 is for the kernel address space.
+ *
+ * @return New PTL0.
+ */
+pte_t *ptl0_create(int flags)
 {
-	__address cur;
+	pte_t *src_ptl0, *dst_ptl0;
+	ipl_t ipl;
 
-	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
-	
+	dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
+
+	if (flags & FLAG_AS_KERNEL) {
+		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
+	} else {
 		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
+		 * Copy the kernel address space portion to new PTL0.
+		 * TODO: copy only kernel address space.
 		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE);
-
-		exc_register(14, "page_fault", page_fault);
-		write_cr3((__address) AS_KERNEL->page_table);
+		 
+		ipl = interrupts_disable();
+		spinlock_lock(&AS_KERNEL->lock);
+		src_ptl0 = (pte_t *) PA2KA((__address) AS_KERNEL->page_table);
+		memcpy((void *) dst_ptl0,(void *) src_ptl0, PAGE_SIZE);
+		spinlock_unlock(&AS_KERNEL->lock);
+		interrupts_restore(ipl);
 	}
-	else {
-		write_cr3((__address) AS_KERNEL->page_table);
-	}
 
-	paging_on();
+	return (pte_t *) KA2PA((__address) dst_ptl0);
 }

@@ -147,7 +147,7 @@ void kinit(void *arg)
 		if (KA2PA(config.init_addr) % FRAME_SIZE)
 			panic("config.init_addr is not frame aligned");
 		
-		as = as_create(NULL, 0);
+		as = as_create(0);
 		if (!as)
 			panic("as_create\n");
 		u = task_create(as);
@@ -158,7 +158,7 @@ void kinit(void *arg)
 			panic("thread_create\n");
 		
 		/*
-		 * Create the text as_area and copy the userspace code there.
+		 * Create the text as_area and initialize its mapping.
 		 */
 		
 		frame = KA2PA(config.init_addr);
@@ -169,7 +169,10 @@ void kinit(void *arg)
 		a = as_area_create(as, AS_AREA_TEXT, frames, UTEXT_ADDRESS);
 		if (!a)
 			panic("as_area_create: text\n");
-		
+
+		for (i = 0; i < frames; i++)
+			as_set_mapping(as, UTEXT_ADDRESS + i * PAGE_SIZE, frame + i * FRAME_SIZE);
+
 		/*
 		 * Create the data as_area.
 		 */
@@ -177,13 +180,6 @@ void kinit(void *arg)
 		if (!a)
 			panic("as_area_create: stack\n");
 
-		/*
-		 * Initialize text area mapping.
-		 */
-		for (i = 0; i < frames; i++)
-			as_set_mapping(as, UTEXT_ADDRESS + i * PAGE_SIZE, frame + i * FRAME_SIZE);
-
-	
 		thread_ready(t);
 	}
 

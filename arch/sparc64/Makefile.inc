@@ -64,6 +64,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/dummy.s \
+	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \

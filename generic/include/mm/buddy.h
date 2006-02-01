@@ -57,5 +57,4 @@ extern bool buddy_system_can_alloc(buddy_system_t *b, __u8 order);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
 extern void buddy_system_structure_print(buddy_system_t *b, size_t elem_size);
 
-
 #endif

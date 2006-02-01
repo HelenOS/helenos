@@ -59,7 +59,7 @@ void ega_init(void)
 {
 	__u8 hi, lo;
 
-	page_mapping_insert(AS_KERNEL, PA2KA(VIDEORAM), VIDEORAM, PAGE_NOT_CACHEABLE, 0);
+	page_mapping_insert(AS_KERNEL, PA2KA(VIDEORAM), VIDEORAM, PAGE_NOT_CACHEABLE);
 	outb(0x3d4,0xe);
 	hi = inb(0x3d5);
 	outb(0x3d4,0xf);

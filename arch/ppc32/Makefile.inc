@@ -60,6 +60,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/mm/page.c 

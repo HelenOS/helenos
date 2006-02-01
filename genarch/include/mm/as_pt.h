@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/page.h>
-#include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
-#include <mm/page.h>
+#ifndef __AS_PT_H__
+#define __AS_PT_H__
+
 #include <mm/as.h>
-#include <arch/types.h>
-#include <config.h>
-#include <func.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <debug.h>
-#include <memstr.h>
-#include <print.h>
-#include <interrupt.h>
 
-void page_arch_init(void)
-{
-	__address cur;
+extern as_operations_t as_pt_operations;
 
-	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
-	
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE);
-
-		exc_register(14, "page_fault", page_fault);
-		write_cr3((__address) AS_KERNEL->page_table);
-	}
-	else {
-		write_cr3((__address) AS_KERNEL->page_table);
-	}
-
-	paging_on();
-}
+#endif

@@ -64,6 +64,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/ivt.S \
 	arch/$(ARCH)/src/interrupt.c \
+	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \

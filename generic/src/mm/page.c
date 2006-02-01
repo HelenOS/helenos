@@ -48,7 +48,6 @@ page_operations_t *page_operations = NULL;
 void page_init(void)
 {
 	page_arch_init();
-	page_mapping_insert(AS_KERNEL, 0x0, 0x0, PAGE_NOT_PRESENT, 0);
 }
 
 /** Map memory structure
@@ -68,7 +67,7 @@ void map_structure(__address s, size_t size)
 	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
 
 	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE, 0);
+		page_mapping_insert(AS_KERNEL, s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE);
 
 }
 
@@ -77,34 +76,36 @@ void map_structure(__address s, size_t size)
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'. Allocate and setup any missing page tables.
  *
- * @param as Address space to wich page belongs. Must be locked prior the call.
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to wich page belongs..
  * @param page Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
- * @param root Explicit PTL0 address.
  */
-void page_mapping_insert(as_t *as, __address page, __address frame, int flags, __address root)
+void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	ASSERT(page_operations);
 	ASSERT(page_operations->mapping_insert);
 	
-	page_operations->mapping_insert(as, page, frame, flags, root);
+	page_operations->mapping_insert(as, page, frame, flags);
 }
 
 /** Find mapping for virtual page
  *
  * Find mapping for virtual page.
  *
- * @param as Address space to wich page belongs must be locked prior the call.
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to wich page belongs.
  * @param page Virtual page.
- * @param root PTL0 address if non-zero.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  */
-pte_t *page_mapping_find(as_t *as, __address page, __address root)
+pte_t *page_mapping_find(as_t *as, __address page)
 {
 	ASSERT(page_operations);
 	ASSERT(page_operations->mapping_find);
 
-	return page_operations->mapping_find(as, page, root);
+	return page_operations->mapping_find(as, page);
 }

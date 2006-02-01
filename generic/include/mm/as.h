@@ -80,13 +80,24 @@ struct as {
 
 	SPINLOCK_DECLARE(lock);
 	link_t as_area_head;
-	pte_t *ptl0;
-	asid_t asid;			/**< Address space identifier. */
+
+	/** Page table pointer. Constant on architectures that use global page hash table. */
+	pte_t *page_table;
+
+	/** Address space identifier. Constant on architectures that do not support ASIDs.*/
+	asid_t asid;
 };
 
-extern as_t *AS_KERNEL;
+struct as_operations {
+	pte_t *(* page_table_create)(int flags);
+};
+typedef struct as_operations as_operations_t;
 
-extern as_t *as_create(pte_t *ptl0, int flags);
+extern as_t *AS_KERNEL;
+extern as_operations_t *as_operations;
+
+extern void as_init(void);
+extern as_t *as_create(int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);

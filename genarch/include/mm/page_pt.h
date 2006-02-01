@@ -87,7 +87,7 @@
 
 extern page_operations_t page_pt_operations;
 
-extern void page_mapping_insert_pt(as_t *as, __address page, __address frame, int flags, __address root);
-extern pte_t *page_mapping_find_pt(as_t *as, __address page, __address root);
+extern void page_mapping_insert_pt(as_t *as, __address page, __address frame, int flags);
+extern pte_t *page_mapping_find_pt(as_t *as, __address page);
 
 #endif

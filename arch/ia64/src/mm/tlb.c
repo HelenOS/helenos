@@ -33,11 +33,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 
-/** Invalidate all TLB entries.
- *
- * Because of ASID management, region registers must be reset
- * with new RIDs derived from the potentionally new ASID.
- */
+/** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
 	/* TODO */

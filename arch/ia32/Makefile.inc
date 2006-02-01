@@ -110,6 +110,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/pm.c \
 	arch/$(ARCH)/src/userspace.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
+	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/mm/page.c \

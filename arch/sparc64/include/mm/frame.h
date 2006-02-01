@@ -31,7 +31,8 @@
 
 #include <arch/types.h>
 
-#define FRAME_SIZE		8192
+#define FRAME_WIDTH		13
+#define FRAME_SIZE		(1<<FRAME_WIDTH)
 
 union frame_address {
 	__address address;

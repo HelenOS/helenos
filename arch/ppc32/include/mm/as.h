@@ -42,4 +42,6 @@
 
 #define as_install_arch(as)
 
+extern void as_arch_init(void);
+
 #endif

@@ -66,9 +66,9 @@ void smp_init(void)
 
 	if (config.cpu_count > 1) {		
 		page_mapping_insert(AS_KERNEL, (__address) l_apic, (__address) l_apic, 
-				  PAGE_NOT_CACHEABLE, 0);
+				  PAGE_NOT_CACHEABLE);
 		page_mapping_insert(AS_KERNEL, (__address) io_apic, (__address) io_apic,
-				  PAGE_NOT_CACHEABLE, 0);
+				  PAGE_NOT_CACHEABLE);
         }
 
         /* 

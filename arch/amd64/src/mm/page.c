@@ -38,32 +38,24 @@
 #include <memstr.h>
 #include <interrupt.h>
 
-static __address bootstrap_dba; 
-
 void page_arch_init(void)
 {
-	__address dba;
 	__address cur;
 
 	if (config.cpu_active == 1) {
 		page_operations = &page_pt_operations;
 	
-		dba = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
-		memsetb(dba, PAGE_SIZE, 0);
-
-		bootstrap_dba = dba;
-
 		/*
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE | PAGE_EXEC, KA2PA(dba));
+			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE | PAGE_EXEC);
 		}
 
 		exc_register(14, "page_fault", page_fault);
-		write_cr3(KA2PA(dba));
+		write_cr3((__address) AS_KERNEL->page_table);
 	}
 	else {
-		write_cr3(KA2PA(bootstrap_dba));
+		write_cr3((__address) AS_KERNEL->page_table);
 	}
 }

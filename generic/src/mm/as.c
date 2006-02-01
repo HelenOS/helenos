@@ -33,7 +33,7 @@
  */
 
 #include <mm/as.h>
-#include <mm/asid.h>
+#include <arch/mm/as.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/tlb.h>
@@ -42,7 +42,6 @@
 #include <genarch/mm/page_pt.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
-#include <arch/mm/as.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
@@ -55,18 +54,21 @@
 #include <arch.h>
 #include <print.h>
 
-#define KAS_START_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)
-#define KAS_END_INDEX		PTL0_INDEX(KERNEL_ADDRESS_SPACE_END)
-#define KAS_INDICES		(1+(KAS_END_INDEX-KAS_START_INDEX))
+as_operations_t *as_operations = NULL;
 
 static int get_area_flags(as_area_t *a);
 
+/** Initialize address space subsystem. */
+void as_init(void)
+{
+	as_arch_init();
+	AS_KERNEL = as_create(FLAG_AS_KERNEL);
+        if (!AS_KERNEL)
+                panic("can't create kernel address space\n");
+}
+
 /** Create address space. */
-/*
- * FIXME: this interface must be meaningful for all possible VAT
- * 	  (Virtual Address Translation) mechanisms.
- */
-as_t *as_create(pte_t *ptl0, int flags)
+as_t *as_create(int flags)
 {
 	as_t *as;
 
@@ -81,20 +83,7 @@ as_t *as_create(pte_t *ptl0, int flags)
 		else
 			as->asid = ASID_INVALID;
 
-		as->ptl0 = ptl0;
-		if (!as->ptl0) {
-			pte_t *src_ptl0, *dst_ptl0;
-		
-			src_ptl0 = (pte_t *) PA2KA((__address) GET_PTL0_ADDRESS());
-			dst_ptl0 = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
-
-//			memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
-//			memcpy((void *) &dst_ptl0[KAS_START_INDEX], (void *) &src_ptl0[KAS_START_INDEX], KAS_INDICES);
-			
-			memcpy((void *) dst_ptl0,(void *) src_ptl0, PAGE_SIZE);
-
-			as->ptl0 = (pte_t *) KA2PA((__address) dst_ptl0);
-		}
+		as->page_table = page_table_create(flags);
 	}
 
 	return as;
@@ -186,7 +175,7 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 	 * Note: area->lock is held.
 	 */
 	
-	page_mapping_insert(as, page, frame, get_area_flags(area), (__address) as->ptl0);
+	page_mapping_insert(as, page, frame, get_area_flags(area));
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&as->lock);
@@ -266,7 +255,7 @@ int as_page_fault(__address page)
 	 * Note that TLB shootdown is not attempted as only new information is being
 	 * inserted into page tables.
 	 */
-	page_mapping_insert(AS, page, frame, get_area_flags(area), (__address) AS->ptl0);
+	page_mapping_insert(AS, page, frame, get_area_flags(area));
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&AS->lock);
@@ -286,8 +275,8 @@ void as_install(as_t *as)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
-	ASSERT(as->ptl0);
-	SET_PTL0_ADDRESS(as->ptl0);
+	ASSERT(as->page_table);
+	SET_PTL0_ADDRESS(as->page_table);
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 
@@ -326,4 +315,21 @@ int get_area_flags(as_area_t *a)
 	}
 	
 	return flags;
+}
+
+/** Create page table.
+ *
+ * Depending on architecture, create either address space
+ * private or global page table.
+ *
+ * @param flags Flags saying whether the page table is for kernel address space.
+ *
+ * @return First entry of the page table.
+ */
+pte_t *page_table_create(int flags)
+{
+        ASSERT(as_operations);
+        ASSERT(as_operations->page_table_create);
+
+        return as_operations->page_table_create(flags);
 }

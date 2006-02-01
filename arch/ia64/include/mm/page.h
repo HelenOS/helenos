@@ -43,11 +43,10 @@
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
 
-#define GET_PTL0_ADDRESS_ARCH()			((pte_t *) 0)
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
+#define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
 /** Implementation of page hash table interface. */
-#define HT_ENTRIES_ARCH					(VHPT_SIZE/sizeof(pte_t))
+#define HT_WIDTH_ARCH					20	/* 1M */
 #define HT_HASH_ARCH(page, asid)			vhpt_hash((page), (asid))
 #define HT_COMPARE_ARCH(page, asid, t)			vhpt_compare((page), (asid), (t))
 #define HT_SLOT_EMPTY_ARCH(t)				((t)->present.tag.tag_info.ti)

@@ -138,7 +138,6 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
-	as_t *as;
 	task_t *k;
 	thread_t *t;
 	
@@ -151,7 +150,8 @@ void main_bsp_separated_stack(void)
 	 */
 	kconsole_init();
 
-	/* Exception handler initialization, before architecture
+	/*
+	 * Exception handler initialization, before architecture
 	 * starts adding its own handlers
 	 */
 	exc_init();
@@ -162,6 +162,7 @@ void main_bsp_separated_stack(void)
 	arch_pre_mm_init();
 	early_heap_init(config.heap_addr, config.heap_size + config.heap_delta);
 	frame_init();
+	as_init();
 	page_init();
 	tlb_init();
 	arch_post_mm_init();
@@ -189,16 +190,9 @@ void main_bsp_separated_stack(void)
 		printf("config.init_addr=%X, config.init_size=%d\n", config.init_addr, config.init_size);
 
 	/*
-	 * Create kernel address space.
-	 */
-	as = as_create(GET_PTL0_ADDRESS(), FLAG_AS_KERNEL);
-	if (!as)
-		panic("can't create kernel address space\n");
-
-	/*
 	 * Create kernel task.
 	 */
-	k = task_create(as);
+	k = task_create(AS_KERNEL);
 	if (!k)
 		panic("can't create kernel task\n");
 		

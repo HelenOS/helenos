@@ -39,11 +39,13 @@ ifeq ($(CONFIG_ACPI),y)
 endif
 ifeq ($(CONFIG_PAGE_PT),y)
 	GENARCH_SOURCES += \
-		genarch/src/mm/page_pt.c
+		genarch/src/mm/page_pt.c \
+		genarch/src/mm/as_pt.c
 endif
 ifeq ($(CONFIG_PAGE_HT),y)
 	GENARCH_SOURCES += \
-		genarch/src/mm/page_ht.c
+		genarch/src/mm/page_ht.c \
+		genarch/src/mm/as_ht.c
 endif
 ifeq ($(CONFIG_ASID),y)
 	GENARCH_SOURCES += \
