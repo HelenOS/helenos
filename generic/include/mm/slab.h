@@ -37,10 +37,10 @@
 #define SLAB_MAG_SIZE  4
 
 /** If object size is less, store control structure inside SLAB */
-#define SLAB_INSIDE_SIZE   (PAGE_SIZE / 6)
+#define SLAB_INSIDE_SIZE   (PAGE_SIZE >> 3)
 
 /** Maximum wasted space we allow for cache */
-#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) / 4)
+#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order >> 2))
 
 /* slab_reclaim constants */
 #define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because

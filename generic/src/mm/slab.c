@@ -88,7 +88,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 		
 	/* Fill in slab structures */
 	/* TODO: some better way of accessing the frame */
-	for (i=0; i< (1<<cache->order); i++) {
+	for (i=0; i < (1 << cache->order); i++) {
 		frame = ADDR2FRAME(zone, KA2PA((__address)(data+i*PAGE_SIZE)));
 		frame->parent = slab;
 	}
@@ -106,7 +106,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 }
 
 /**
- * Free space associated with SLAB
+ * Deallocate space associated with SLAB
  *
  * @return number of freed frames
  */
@@ -151,8 +151,6 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (!slab)
 		slab = obj2slab(obj);
 
-	spinlock_lock(&cache->lock);
-
 	*((int *)obj) = slab->nextavail;
 	slab->nextavail = (obj - slab->start)/cache->size;
 	slab->available++;
@@ -171,8 +169,6 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		frames = slab_space_free(cache, slab);
 		spinlock_lock(&cache->lock);
 	}
-
-	spinlock_unlock(&cache->lock);
 
 	return frames;
 }
@@ -388,8 +384,10 @@ _slab_cache_create(slab_cache_t *cache,
 	memsetb((__address)cache, sizeof(*cache), 0);
 	cache->name = name;
 
-	if (align)
-		size = ALIGN_UP(size, align);
+	if (align < sizeof(__native))
+		align = sizeof(__native);
+	size = ALIGN_UP(size, align);
+		
 	cache->size = size;
 
 	cache->constructor = constructor;
@@ -411,13 +409,15 @@ _slab_cache_create(slab_cache_t *cache,
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 
 	/* Minimum slab order */
-	cache->order = (cache->size >> PAGE_WIDTH) + 1;
-		
+	cache->order = (cache->size-1) >> PAGE_WIDTH;
+
 	while (badness(cache) > SLAB_MAX_BADNESS(cache)) {
 		cache->order += 1;
 	}
-
 	cache->objects = comp_objects(cache);
+	/* If info fits in, put it inside */
+	if (badness(cache) > sizeof(slab_t))
+		cache->flags |= SLAB_CACHE_SLINSIDE;
 
 	spinlock_lock(&slab_cache_lock);
 
@@ -596,13 +596,14 @@ void slab_print_list(void)
 	link_t *cur;
 
 	spinlock_lock(&slab_cache_lock);
-	printf("SLAB name\tOsize\tOrder\tOcnt\tSlabs\tAllocobjs\n");
+	printf("SLAB name\tOsize\tPages\tOcnt\tSlabs\tAllocobjs\tCtl\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
-		printf("%s\t%d\t%d\t%d\t%d\t%d\n", cache->name, cache->size, 
-		       cache->order, cache->objects,
+		printf("%s\t%d\t%d\t%d\t%d\t%d\t\t%s\n", cache->name, cache->size, 
+		       (1 << cache->order), cache->objects,
 		       atomic_get(&cache->allocated_slabs), 
-		       atomic_get(&cache->allocated_objs));
+		       atomic_get(&cache->allocated_objs),
+		       cache->flags & SLAB_CACHE_SLINSIDE ? "In" : "Out");
 	}
 	spinlock_unlock(&slab_cache_lock);
 }
