@@ -76,18 +76,43 @@ void frame_init(void)
 	frame_arch_init();
 }
 
+/**
+ * Find AND LOCK zone that can allocate order frames
+ *
+ * Assume zone_head_lock is locked.
+ */
+static zone_t * find_free_zone(__u8 order)
+{
+	link_t *cur;
+	zone_t *z;
+
+	for (cur = zone_head.next; cur != &zone_head;cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		/* Check if the zone has 2^order frames area available  */
+		if (buddy_system_can_alloc(z->buddy_system, order))
+			return z;
+		
+		spinlock_unlock(&z->lock);
+	}
+	return NULL;
+}
+
 /** Allocate power-of-two frames of physical memory.
  *
  * @param flags Flags for host zone selection and address processing.
  * @param order Allocate exactly 2^order frames.
+ * @param pzone Pointer to preferred zone pointer, on output it changes
+ *              to the zone that the frame was really allocated to
  *
  * @return Allocated frame.
  */
-__address frame_alloc(int flags, __u8 order, int * status) 
+__address frame_alloc(int flags, __u8 order, int * status, zone_t **pzone) 
 {
 	ipl_t ipl;
-	link_t *cur, *tmp;
-	zone_t *z;
+	link_t *tmp;
 	zone_t *zone = NULL;
 	frame_t *frame = NULL;
 	__address v;
@@ -99,20 +124,22 @@ loop:
 	/*
 	 * First, find suitable frame zone.
 	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
-		
-		spinlock_lock(&z->lock);
-
-		/* Check if the zone has 2^order frames area available  */
-		if (buddy_system_can_alloc(z->buddy_system, order)) {
-			zone = z;
-			break;
-		}
-		
-		spinlock_unlock(&z->lock);
+	if (pzone && *pzone) {
+		spinlock_lock(&(*pzone)->lock);
+		if (!buddy_system_can_alloc((*pzone)->buddy_system, order))
+			spinlock_unlock(&(*pzone)->lock);
+		else
+			zone = *pzone;
 	}
-	
+	if (!zone) {
+		zone = find_free_zone(order);
+		/* If no memory, reclaim some slab memory,
+		   if it does not help, reclaim all */
+		if (!zone && !(flags & FRAME_NO_RECLAIM))
+			if (slab_reclaim(0) || slab_reclaim(SLAB_RECLAIM_ALL))
+				zone = find_free_zone(order);
+	}
+
 	if (!zone) {
 		if (flags & FRAME_PANIC)
 			panic("Can't allocate frame.\n");
@@ -161,8 +188,69 @@ loop:
 		ASSERT(status != NULL);
 		*status = FRAME_OK;
 	}
+	if (pzone)
+		*pzone = zone;
 	return v;
 }
+
+/** Convert address to zone pointer
+ *
+ * Assume zone_head_lock is held
+ *
+ * @param addr Physical address
+ * @param lock If true, lock the zone
+ */
+static zone_t * addr2zone(__address addr, int lock)
+{
+	link_t *cur;
+	zone_t *z = NULL;
+
+	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
+		z = list_get_instance(cur, zone_t, link);
+		
+		spinlock_lock(&z->lock);
+		
+		/*
+		 * Check if addr belongs to z.
+		 */
+		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
+			if (!lock)
+				spinlock_unlock(&z->lock);
+			return z;
+		}
+
+		spinlock_unlock(&z->lock);
+	}
+
+	panic("Cannot find addr2zone: 0x%X", addr);
+}
+
+/** Return frame_t structure corresponding to address
+ *
+ * 
+ */
+frame_t * frame_addr2frame(__address addr)
+{
+	ipl_t ipl;
+	frame_t *frame;
+	zone_t *zone;
+
+	if (IS_KA(addr))
+		addr = KA2PA(addr);
+
+	/* Disable interrupts to avoid deadlocks with interrupt handlers */
+	ipl = interrupts_disable();
+	spinlock_lock(&zone_head_lock);
+	
+	zone = addr2zone(addr,0);
+	frame = ADDR2FRAME(zone, addr);
+
+	spinlock_unlock(&zone_head_lock);
+	interrupts_restore(ipl);
+
+	return frame;
+}
+
 
 /** Free a frame.
  *
@@ -175,40 +263,22 @@ loop:
 void frame_free(__address addr)
 {
 	ipl_t ipl;
-	link_t *cur;
-	zone_t *z;
-	zone_t *zone = NULL;
+	zone_t *zone;
 	frame_t *frame;
 	int order;
 	
 	ASSERT(addr % FRAME_SIZE == 0);
 	
+	if (IS_KA(addr))
+		addr = KA2PA(addr);
+
 	ipl = interrupts_disable();
 	spinlock_lock(&zone_head_lock);
 	
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	for (cur = zone_head.next; cur != &zone_head; cur = cur->next) {
-		z = list_get_instance(cur, zone_t, link);
-		
-		spinlock_lock(&z->lock);
-		
-		if (IS_KA(addr))
-			addr = KA2PA(addr);
-		
-		/*
-		 * Check if addr belongs to z.
-		 */
-		if ((addr >= z->base) && (addr <= z->base + (z->free_count + z->busy_count) * FRAME_SIZE)) {
-			zone = z;
-			break;
-		}
-
-		spinlock_unlock(&z->lock);
-	}
-	
-	ASSERT(zone != NULL);
+	zone = addr2zone(addr, 1); /* This locks the zone automatically */
 	
 	frame = ADDR2FRAME(zone, addr);
 	

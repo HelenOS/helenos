@@ -39,9 +39,10 @@
 
 #define ONE_FRAME	0
 
-#define FRAME_KA		1	/* skip frames conflicting with user address space */
-#define FRAME_PANIC		2	/* panic on failure */
-#define FRAME_ATOMIC 	        4	/* do not panic and do not sleep on failure */
+#define FRAME_KA		0x1	/* skip frames conflicting with user address space */
+#define FRAME_PANIC		0x2	/* panic on failure */
+#define FRAME_ATOMIC 	        0x4	/* do not panic and do not sleep on failure */
+#define FRAME_NO_RECLAIM        0x8     /* Do not start reclaiming when no free memory */
 
 #define FRAME_OK		0	/* frame_alloc return status */
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
@@ -78,7 +79,7 @@ struct frame {
 	count_t refcount;	/**< tracking of shared frames  */
 	__u8 buddy_order;	/**< buddy system block order */
 	link_t buddy_link;	/**< link to the next free block inside one order */
-	slab_slab_t *slab;      /**< If allocated by slab, this points there */
+	void *parent;           /**< If allocated by slab, this points there */
 };
 
 struct region {
@@ -100,7 +101,7 @@ extern void zone_attach(zone_t *zone);
 extern void frame_init(void);
 extern void frame_initialize(frame_t *frame, zone_t *zone);
 
-__address frame_alloc(int flags, __u8 order, int * status);
+__address frame_alloc(int flags, __u8 order, int * status, zone_t **pzone);
 extern void frame_free(__address addr);
 
 zone_t * get_zone_by_frame(frame_t * frame);
@@ -114,6 +115,7 @@ link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * buddy_l, link_t * buddy
 void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order);
 __u8 zone_buddy_get_order(buddy_system_t *b, link_t * block);
 void zone_buddy_mark_busy(buddy_system_t *b, link_t * block);
+extern frame_t * frame_addr2frame(__address addr);
 
 /*
  * TODO: Implement the following functions.

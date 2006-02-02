@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,8 @@
 /** If object size is less, store control structure inside SLAB */
 #define SLAB_INSIDE_SIZE   (PAGE_SIZE / 6)
 
-/* slab_alloc constants */
-#define SLAB_ATOMIC       0x1 /**< Do not sleep when no free memory, 
-				   may return NULL */
-#define SLAB_NO_RECLAIM   0x2 /**< Do not try to call slab_reclaim, if no
-				 free memory is found - avoid deadlock */
+/** Maximum wasted space we allow for cache */
+#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) / 4)
 
 /* slab_reclaim constants */
 #define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because
@@ -54,9 +51,9 @@
 
 typedef struct {
 	link_t link;
-	count_t busy;
-	count_t size;
-	void *objs[0];
+	count_t busy;  /**< Count of full slots in magazine */
+	count_t size;  /**< Number of slots in magazine */
+	void *objs[0]; /**< Slots in magazine */
 }slab_magazine_t;
 
 typedef struct {
@@ -65,24 +62,24 @@ typedef struct {
 	SPINLOCK_DECLARE(lock);
 	link_t link;
 	/* Configuration */
-	size_t size;
-	size_t align;
+	size_t size;      /**< Size of SLAB position - align_up(sizeof(obj)) */
 	int (*constructor)(void *obj, int kmflag);
 	void (*destructor)(void *obj);
-	int flags;
+	int flags;        /**< Flags changing behaviour of cache */
 
 	/* Computed values */
-	int pages;
-	int objects;
+	__u8 order;        /**< Order of frames to be allocated */
+	int objects;      /**< Number of objects that fit in */
 
 	/* Statistics */
 
 	/* Slabs */
-	link_t full_slabs;
-	link_t partial_slabs;
+	link_t full_slabs;     /**< List of full slabs */
+	link_t partial_slabs;  /**< List of partial slabs */
 	/* Magazines  */
-	link_t magazines;
-	/* CPU cache */
+	link_t magazines;      /**< List o full magazines */
+
+	/** CPU cache */
 	struct {
 		slab_magazine_t *current;
 		slab_magazine_t *last;
@@ -90,30 +87,22 @@ typedef struct {
 	}mag_cache[0];
 }slab_cache_t;
 
-typedef struct {
-	slab_cache_t *cache; /**< Pointer to parent cache */
-	void *start;       /**< Start address of first available item */
-	count_t available; /**< Count of available items in this slab */
-	index_t nextavail; /**< The index of next available item */
-}slab_slab_t;
+extern slab_cache_t * slab_cache_create(char *name,
+					size_t size,
+					size_t align,
+					int (*constructor)(void *obj, int kmflag),
+					void (*destructor)(void *obj),
+					int flags);
+extern void slab_cache_destroy(slab_cache_t *cache);
 
-
-slab_cache_t * slab_cache_create(char *name,
-				 size_t size,
-				 size_t align,
-				 int (*constructor)(void *obj, int kmflag),
-				 void (*destructor)(void *obj),
-				 int flags);
-void slab_cache_destroy(slab_cache_t *cache);
-
-void * slab_alloc(slab_cache_t *cache, int flags);
-void slab_free(slab_cache_t *cache, void *obj);
-count_t slab_reclaim(int flags);
+extern void * slab_alloc(slab_cache_t *cache, int flags);
+extern void slab_free(slab_cache_t *cache, void *obj);
+extern count_t slab_reclaim(int flags);
 
 /** Initialize SLAB subsytem */
-void slab_cache_init(void);
+extern void slab_cache_init(void);
 
 /* KConsole debug */
-void slab_print_list(void);
+extern void slab_print_list(void);
 
 #endif

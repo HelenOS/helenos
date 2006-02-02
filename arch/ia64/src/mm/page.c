@@ -89,7 +89,7 @@ void set_vhpt_environment(void)
 	/*
 	 * Allocate VHPT and invalidate all its entries.
 	 */
-	page_ht = (pte_t *) frame_alloc(FRAME_KA, VHPT_WIDTH - FRAME_WIDTH, NULL);
+	page_ht = (pte_t *) frame_alloc(FRAME_KA, VHPT_WIDTH - FRAME_WIDTH, NULL, NULL);
 	memsetb((__address) page_ht, VHPT_SIZE, 0);
 	ht_invalidate_all();	
 	

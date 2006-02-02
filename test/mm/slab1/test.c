@@ -28,8 +28,37 @@
 
 #include <test.h>
 #include <mm/slab.h>
+#include <print.h>
+
+#define VAL_SIZE    128
+#define VAL_COUNT   1024
+
+void * data[16384];
 
 void test(void) 
 {
-	slab_cache_create("test_cache", 10, 0, NULL, NULL, 0);
+	slab_cache_t *cache;
+	int i;
+	
+
+	printf("Creating cache.\n");
+	cache = slab_cache_create("test_cache", VAL_SIZE, 0, NULL, NULL, SLAB_CACHE_NOMAGAZINE);
+	slab_print_list();
+	printf("Destroying cache.\n");
+	slab_cache_destroy(cache);
+
+	printf("Creating cache.\n");
+	cache = slab_cache_create("test_cache", VAL_SIZE, 0, NULL, NULL, 
+				  SLAB_CACHE_NOMAGAZINE);
+	
+	printf("Allocating %d items...", VAL_COUNT);
+	for (i=0; i < VAL_COUNT; i++) {
+		data[i] = slab_alloc(cache, 0);
+	}
+	printf("done.\n");
+	printf("Freeing %d items...", VAL_COUNT);
+	for (i=0; i < VAL_COUNT; i++) {
+		slab_free(cache, data[i]);
+	}
+	printf("done.\n");
 }

@@ -53,7 +53,7 @@ as_operations_t as_ht_operations = {
 pte_t *ht_create(int flags)
 {
 	if (!page_ht) {
-		page_ht = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, HT_WIDTH - FRAME_WIDTH, NULL);
+		page_ht = (pte_t *) frame_alloc(FRAME_KA | FRAME_PANIC, HT_WIDTH - FRAME_WIDTH, NULL, NULL);
 		memsetb((__address) page_ht, HT_SIZE, 0);
 	}
 	return page_ht;
