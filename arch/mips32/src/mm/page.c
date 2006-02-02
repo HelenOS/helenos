@@ -28,22 +28,9 @@
 
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
-#include <arch/mm/frame.h>
-#include <mm/frame.h>
 #include <mm/page.h>
-#include <arch/types.h>
-#include <memstr.h>
-
-pte_t *PTL0 = NULL;
 
 void page_arch_init(void)
 {
-	__address ptl0;
-
 	page_operations = &page_pt_operations;
-	
-	ptl0 = frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL);
-	memsetb(ptl0, FRAME_SIZE, 0);
-	
-	SET_PTL0_ADDRESS(KA2PA(ptl0));
 }

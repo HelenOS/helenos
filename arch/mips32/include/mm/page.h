@@ -59,8 +59,7 @@
 #define PTL2_INDEX_ARCH(vaddr)  0
 #define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14)&0x3fff)
 
-#define GET_PTL0_ADDRESS_ARCH()			(PTL0)
-#define SET_PTL0_ADDRESS_ARCH(ptl0)		(PTL0 = (pte_t *)(ptl0))
+#define SET_PTL0_ADDRESS_ARCH(ptl0)
 
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].lo.pfn<<12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
@@ -114,8 +113,6 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 }
 
 extern void page_arch_init(void);
-
-extern pte_t *PTL0;
 
 #endif /* __ASM__ */
 

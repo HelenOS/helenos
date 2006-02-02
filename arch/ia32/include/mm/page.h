@@ -48,7 +48,6 @@
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x3ff)
 
-#define GET_PTL0_ADDRESS_ARCH()			((pte_t *) read_cr3())
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)

@@ -48,7 +48,6 @@
 #define PTL2_INDEX(vaddr)		PTL2_INDEX_ARCH(vaddr)
 #define PTL3_INDEX(vaddr)		PTL3_INDEX_ARCH(vaddr)
 
-#define GET_PTL0_ADDRESS()		GET_PTL0_ADDRESS_ARCH()
 #define SET_PTL0_ADDRESS(ptl0)		SET_PTL0_ADDRESS_ARCH(ptl0)
 
 /*
