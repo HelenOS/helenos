@@ -48,8 +48,8 @@
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
 #define FRAME_ERROR		2	/* frame_alloc return status */
 
-#define FRAME2ADDR(zone, frame)			((zone)->base + ((frame) - (zone)->frames) * FRAME_SIZE)
-#define ADDR2FRAME(zone, addr)			(&((zone)->frames[((addr) - (zone)->base) / FRAME_SIZE]))
+#define FRAME2ADDR(zone, frame)			((zone)->base + (((frame) - (zone)->frames) << FRAME_WIDTH))
+#define ADDR2FRAME(zone, addr)			(&((zone)->frames[(((addr) - (zone)->base) >> FRAME_WIDTH)]))
 #define FRAME_INDEX(zone, frame)		((index_t)((frame) - (zone)->frames))
 #define FRAME_INDEX_ABS(zone, frame)		(((index_t)((frame) - (zone)->frames)) + (zone)->base_index)
 #define FRAME_INDEX_VALID(zone, index)		(((index) >= 0) && ((index) < ((zone)->free_count + (zone)->busy_count)))

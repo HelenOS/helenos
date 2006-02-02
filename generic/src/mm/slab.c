@@ -86,8 +86,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	}
 
 	/* Fill in slab structures */
-	/* TODO: some better way of accessing the frame, although 
-	 * the optimizer might optimize the division out :-/ */
+	/* TODO: some better way of accessing the frame */
 	for (i=0; i< (1<<cache->order); i++) {
 		ADDR2FRAME(zone, (__address)(data+i*PAGE_SIZE))->parent = slab;
 	}
@@ -144,7 +143,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (!slab)
 		slab = obj2slab(obj);
 
-	spinlock_lock(cache->lock);
+	spinlock_lock(&cache->lock);
 
 	*((int *)obj) = slab->nextavail;
 	slab->nextavail = (obj - slab->start)/cache->size;
@@ -165,7 +164,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		spinlock_lock(&cache->lock);
 	}
 
-	spinlock_unlock(cache->lock);
+	spinlock_unlock(&cache->lock);
 
 	return frames;
 }

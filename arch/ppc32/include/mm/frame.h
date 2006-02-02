@@ -29,7 +29,8 @@
 #ifndef __ppc32_FRAME_H__
 #define __ppc32_FRAME_H__
 
-#define FRAME_SIZE		4096
+#define FRAME_WIDTH		12	/* 4K */
+#define FRAME_SIZE		(1<<FRAME_WIDTH)
 
 extern void frame_arch_init(void);
 

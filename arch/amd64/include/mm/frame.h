@@ -33,7 +33,9 @@
 #include <arch/types.h>
 #endif /* __ASM__ */
 
-#define FRAME_SIZE		4096
+#define FRAME_WIDTH		12	/* 4K */
+#define FRAME_SIZE		(1<<FRAME_WIDTH)
+
 
 #ifndef __ASM__
 extern __address last_frame;

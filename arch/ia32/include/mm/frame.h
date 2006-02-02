@@ -31,7 +31,8 @@
 
 #include <arch/types.h>
 
-#define FRAME_SIZE	4096
+#define FRAME_WIDTH	12	/* 4K */
+#define FRAME_SIZE	(1<<FRAME_WIDTH)
 
 extern __address last_frame;
 
