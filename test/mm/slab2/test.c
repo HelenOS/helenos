@@ -33,6 +33,7 @@
 #include <arch.h>
 #include <panic.h>
 #include <mm/frame.h>
+#include <memstr.h>
 
 #define ITEM_SIZE 256
 
@@ -64,7 +65,8 @@ static void totalmemtest(void)
 				slab_free(cache2,data2);
 			break;
 		}
-
+		memsetb((__address)data1, ITEM_SIZE, 0);
+		memsetb((__address)data2, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		*((void **)data2) = olddata2;
 		olddata1 = data1;
@@ -88,6 +90,7 @@ static void totalmemtest(void)
 		if (!data1) {
 			panic("Incorrect memory size - use another test.");
 		}
+		memsetb((__address)data1, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}
@@ -97,14 +100,28 @@ static void totalmemtest(void)
 		if (!data1) {
 			break;
 		}
+		memsetb((__address)data1, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}
 	slab_print_list();
-	
+	printf("Deallocating cache1...");
+	while (olddata1) {
+		data1 = *((void **)olddata1);
+		slab_free(cache1, olddata1);
+		olddata1 = data1;
+	}
+	printf("done.\n");
+	slab_print_list();
+	slab_cache_destroy(cache1);
+	slab_cache_destroy(cache2);
 }
 
 void test(void)
 {
+	printf("Running reclaim test .. pass1\n");
 	totalmemtest();
+	printf("Running reclaim test .. pass2\n");
+	totalmemtest();
+	printf("Reclaim test OK.\n");
 }

@@ -32,6 +32,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <panic.h>
+#include <memstr.h>
 
 #define VAL_COUNT   1024
 
@@ -50,6 +51,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count);
 	for (i=0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
+		memsetb((__address)data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);
@@ -61,6 +63,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count);
 	for (i=0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
+		memsetb((__address)data[i], size, 0);
 	}
 	printf("done.\n");
 
@@ -74,6 +77,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count/2);
 	for (i=count/2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
+		memsetb((__address)data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);

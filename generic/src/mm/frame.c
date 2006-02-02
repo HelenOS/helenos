@@ -115,6 +115,7 @@ __address frame_alloc(int flags, __u8 order, int * status, zone_t **pzone)
 	link_t *tmp;
 	zone_t *zone = NULL;
 	frame_t *frame = NULL;
+	int freed;
 	__address v;
 	
 loop:
@@ -135,9 +136,20 @@ loop:
 		zone = find_free_zone(order);
 		/* If no memory, reclaim some slab memory,
 		   if it does not help, reclaim all */
-		if (!zone && !(flags & FRAME_NO_RECLAIM))
-			if (slab_reclaim(0) || slab_reclaim(SLAB_RECLAIM_ALL))
+		if (!zone && !(flags & FRAME_NO_RECLAIM)) {
+			spinlock_unlock(&zone_head_lock);
+			freed = slab_reclaim(0);
+			spinlock_lock(&zone_head_lock);
+			if (freed)
 				zone = find_free_zone(order);
+			if (!zone) {
+				spinlock_unlock(&zone_head_lock);
+				freed = slab_reclaim(SLAB_RECLAIM_ALL);
+				spinlock_lock(&zone_head_lock);
+				if (freed)
+					zone = find_free_zone(order);
+			}
+		}
 	}
 
 	if (!zone) {
