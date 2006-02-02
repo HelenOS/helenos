@@ -35,12 +35,13 @@
 #include <list.h>
 #include <synch/spinlock.h>
 #include <mm/buddy.h>
+#include <mm/slab.h>
 
 #define ONE_FRAME	0
 
 #define FRAME_KA		1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC		2	/* panic on failure */
-#define FRAME_NON_BLOCKING	4	/* do not panic and do not sleep on failure */
+#define FRAME_ATOMIC 	        4	/* do not panic and do not sleep on failure */
 
 #define FRAME_OK		0	/* frame_alloc return status */
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
@@ -77,6 +78,7 @@ struct frame {
 	count_t refcount;	/**< tracking of shared frames  */
 	__u8 buddy_order;	/**< buddy system block order */
 	link_t buddy_link;	/**< link to the next free block inside one order */
+	slab_slab_t *slab;      /**< If allocated by slab, this points there */
 };
 
 struct region {

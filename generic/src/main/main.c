@@ -49,6 +49,7 @@
 #include <genarch/mm/page_pt.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
+#include <mm/slab.h>
 #include <synch/waitq.h>
 #include <arch/arch.h>
 #include <arch.h>
@@ -162,6 +163,7 @@ void main_bsp_separated_stack(void)
 	as_init();
 	page_init();
 	tlb_init();
+	slab_cache_init();
 	arch_post_mm_init();
 
 	version_print();

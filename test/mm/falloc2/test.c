@@ -63,7 +63,7 @@ void thread(void * arg)
 			printf("Thread #%d: Allocating %d frames blocks ... \n", THREAD->tid, 1 << order);
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA, order, &status);
+				frames[allocated] = frame_alloc(FRAME_ATOMIC | FRAME_KA, order, &status);
 				if (status == 0) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;

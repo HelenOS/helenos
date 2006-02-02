@@ -55,7 +55,7 @@ void test(void) {
 			printf("Allocating %d frames blocks ... ", 1 << order);
 			allocated = 0;
 			for (i = 0; i < MAX_FRAMES >> order; i++) {
-				frames[allocated] = frame_alloc(FRAME_NON_BLOCKING | FRAME_KA, order, &status);
+				frames[allocated] = frame_alloc(FRAME_ATOMIC | FRAME_KA, order, &status);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
 					panic("Test failed. Block at address %X (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);

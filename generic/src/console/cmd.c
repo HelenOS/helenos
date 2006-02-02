@@ -50,6 +50,7 @@
 #include <arch/mm/tlb.h>
 #include <mm/frame.h>
 #include <main/version.h>
+#include <mm/slab.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -243,6 +244,14 @@ cmd_info_t tlb_info = {
 };
 
 
+static int cmd_slabs(cmd_arg_t *argv);
+static cmd_info_t slabs_info = {
+	.name = "slabs",
+	.description = "List SLAB caches.",
+	.func = cmd_slabs,
+	.argc = 0
+};
+
 /** Data and methods for 'zones' command */
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
@@ -352,6 +361,10 @@ void cmd_init(void)
 	cmd_initialize(&zones_info);
 	if (!cmd_register(&zones_info))
 		panic("could not register command %s\n", zones_info.name);
+
+	cmd_initialize(&slabs_info);
+	if (!cmd_register(&slabs_info))
+		panic("could not register command %s\n", slabs_info.name);
 
 	cmd_initialize(&zone_info);
 	if (!cmd_register(&zone_info))
@@ -600,6 +613,17 @@ int cmd_set4(cmd_arg_t *argv)
 		
 	}
 	
+	return 1;
+}
+
+/** Command for listings SLAB caches
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_slabs(cmd_arg_t * argv) {
+	slab_print_list();
 	return 1;
 }
 

@@ -123,7 +123,7 @@ loop:
 		spinlock_unlock(&zone_head_lock);
 		interrupts_restore(ipl);
 
-		if (flags & FRAME_NON_BLOCKING) {
+		if (flags & FRAME_ATOMIC) {
 			ASSERT(status != NULL);
 			*status = FRAME_NO_MEMORY;
 			return NULL;
@@ -157,7 +157,7 @@ loop:
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
 	
-	if (flags & FRAME_NON_BLOCKING) {
+	if (flags & FRAME_ATOMIC) {
 		ASSERT(status != NULL);
 		*status = FRAME_OK;
 	}
