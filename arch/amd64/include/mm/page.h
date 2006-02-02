@@ -35,6 +35,7 @@
 #  include <arch/types.h>
 #endif
 
+#define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASM__

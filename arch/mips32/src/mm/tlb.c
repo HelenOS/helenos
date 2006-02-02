@@ -366,7 +366,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	 * Handler cannot succeed if badvaddr has no mapping.
 	 */
 	if (!pte) {
-		printf("No such mapping: %P.\n", badvaddr);
+		printf("No such mapping.\n");
 		return NULL;
 	}
 

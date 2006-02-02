@@ -411,7 +411,7 @@ _slab_cache_create(slab_cache_t *cache,
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 
 	/* Minimum slab order */
-	cache->order = (cache->size / PAGE_SIZE) + 1;
+	cache->order = (cache->size >> PAGE_WIDTH) + 1;
 		
 	while (badness(cache) > SLAB_MAX_BADNESS(cache)) {
 		cache->order += 1;

@@ -29,6 +29,7 @@
 #ifndef __ia32_PAGE_H__
 #define __ia32_PAGE_H__
 
+#define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASM__
