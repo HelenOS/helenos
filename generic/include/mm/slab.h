@@ -75,6 +75,7 @@ typedef struct {
 	/* Statistics */
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
+	atomic_t cached_objs;
 
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */

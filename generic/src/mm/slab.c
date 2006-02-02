@@ -96,6 +96,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	slab->start = data;
 	slab->available = cache->objects;
 	slab->nextavail = 0;
+	slab->cache = cache;
 
 	for (i=0; i<cache->objects;i++)
 		*((int *) (slab->start + i*cache->size)) = i+1;
@@ -150,6 +151,8 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 
 	if (!slab)
 		slab = obj2slab(obj);
+
+	ASSERT(slab->cache == cache);
 
 	*((int *)obj) = slab->nextavail;
 	slab->nextavail = (obj - slab->start)/cache->size;
@@ -230,8 +233,10 @@ static count_t magazine_destroy(slab_cache_t *cache,
 	int i;
 	count_t frames = 0;
 
-	for (i=0;i < mag->busy; i++)
+	for (i=0;i < mag->busy; i++) {
 		frames += slab_obj_destroy(cache, mag->objs[i], NULL);
+		atomic_dec(&cache->cached_objs);
+	}
 	
 	slab_free(&mag_cache, mag);
 
@@ -246,6 +251,7 @@ static count_t magazine_destroy(slab_cache_t *cache,
 static void * magazine_obj_get(slab_cache_t *cache)
 {
 	slab_magazine_t *mag;
+	void *obj;
 
 	spinlock_lock(&cache->mag_cache[CPU->id].lock);
 
@@ -279,8 +285,11 @@ static void * magazine_obj_get(slab_cache_t *cache)
 		spinlock_unlock(&cache->lock);
 	}
 gotit:
+	obj = mag->objs[--mag->busy];
 	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
-	return mag->objs[--mag->busy];
+	atomic_dec(&cache->cached_objs);
+	
+	return obj;
 out:	
 	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
 	return NULL;
@@ -337,6 +346,7 @@ static int magazine_obj_put(slab_cache_t *cache, void *obj)
 	mag->objs[mag->busy++] = obj;
 
 	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
+	atomic_inc(&cache->cached_objs);
 	return 0;
 errout:
 	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
@@ -467,7 +477,6 @@ static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 	
 	if (flags & SLAB_RECLAIM_ALL) {
 		/* Aggressive memfree */
-
 		/* Destroy CPU magazines */
 		for (i=0; i<config.cpu_count; i++) {
 			mag = cache->mag_cache[i].current;
@@ -483,11 +492,13 @@ static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 	}
 	/* Destroy full magazines */
 	cur=cache->magazines.prev;
+
 	while (cur!=&cache->magazines) {
 		mag = list_get_instance(cur, slab_magazine_t, link);
 		
 		cur = cur->prev;
 		list_remove(cur->next);
+//		list_remove(&mag->link);
 		frames += magazine_destroy(cache,mag);
 		/* If we do not do full reclaim, break
 		 * as soon as something is freed */
@@ -596,12 +607,13 @@ void slab_print_list(void)
 	link_t *cur;
 
 	spinlock_lock(&slab_cache_lock);
-	printf("SLAB name\tOsize\tPages\tOcnt\tSlabs\tAllocobjs\tCtl\n");
+	printf("SLAB name\tOsize\tPages\tObj/pg\tSlabs\tCached\tAllocobjs\tCtl\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
-		printf("%s\t%d\t%d\t%d\t%d\t%d\t\t%s\n", cache->name, cache->size, 
+		printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t\t%s\n", cache->name, cache->size, 
 		       (1 << cache->order), cache->objects,
-		       atomic_get(&cache->allocated_slabs), 
+		       atomic_get(&cache->allocated_slabs),
+		       atomic_get(&cache->cached_objs),
 		       atomic_get(&cache->allocated_objs),
 		       cache->flags & SLAB_CACHE_SLINSIDE ? "In" : "Out");
 	}
