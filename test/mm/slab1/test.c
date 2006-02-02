@@ -43,7 +43,6 @@ void test(void)
 
 	printf("Creating cache.\n");
 	cache = slab_cache_create("test_cache", VAL_SIZE, 0, NULL, NULL, SLAB_CACHE_NOMAGAZINE);
-	slab_print_list();
 	printf("Destroying cache.\n");
 	slab_cache_destroy(cache);
 
@@ -61,4 +60,32 @@ void test(void)
 		slab_free(cache, data[i]);
 	}
 	printf("done.\n");
+
+	printf("Allocating %d items...", VAL_COUNT);
+	for (i=0; i < VAL_COUNT; i++) {
+		data[i] = slab_alloc(cache, 0);
+	}
+	printf("done.\n");
+
+	slab_print_list();
+	printf("Freeing %d items...", VAL_COUNT/2);
+	for (i=VAL_COUNT-1; i >= VAL_COUNT/2; i--) {
+		slab_free(cache, data[i]);
+	}
+	printf("done.\n");	
+
+	printf("Allocating %d items...", VAL_COUNT/2);
+	for (i=VAL_COUNT/2; i < VAL_COUNT; i++) {
+		data[i] = slab_alloc(cache, 0);
+	}
+	printf("done.\n");
+	printf("Freeing %d items...", VAL_COUNT);
+	for (i=0; i < VAL_COUNT; i++) {
+		slab_free(cache, data[i]);
+	}
+	printf("done.\n");	
+	slab_print_list();
+	slab_cache_destroy(cache);
+
+	printf("Test complete.\n");
 }

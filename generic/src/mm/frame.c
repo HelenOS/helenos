@@ -184,10 +184,9 @@ loop:
 	if (flags & FRAME_KA)
 		v = PA2KA(v);
 	
-	if (flags & FRAME_ATOMIC) {
-		ASSERT(status != NULL);
+	if (status)
 		*status = FRAME_OK;
-	}
+
 	if (pzone)
 		*pzone = zone;
 	return v;

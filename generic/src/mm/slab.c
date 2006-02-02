@@ -69,11 +69,12 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	int i;
 	zone_t *zone = NULL;
 	int status;
+	frame_t *frame;
 
 	data = (void *)frame_alloc(FRAME_KA | flags, cache->order, &status, &zone);
-	if (status != FRAME_OK)
+	if (status != FRAME_OK) {
 		return NULL;
-
+	}
 	if (! cache->flags & SLAB_CACHE_SLINSIDE) {
 		slab = malloc(sizeof(*slab)); // , flags);
 		if (!slab) {
@@ -84,11 +85,12 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 		fsize = (PAGE_SIZE << cache->order);
 		slab = data + fsize - sizeof(*slab);
 	}
-
+		
 	/* Fill in slab structures */
 	/* TODO: some better way of accessing the frame */
 	for (i=0; i< (1<<cache->order); i++) {
-		ADDR2FRAME(zone, (__address)(data+i*PAGE_SIZE))->parent = slab;
+		frame = ADDR2FRAME(zone, KA2PA((__address)(data+i*PAGE_SIZE)));
+		frame->parent = slab;
 	}
 
 	slab->start = data;
@@ -97,6 +99,9 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 
 	for (i=0; i<cache->objects;i++)
 		*((int *) (slab->start + i*cache->size)) = i+1;
+
+	atomic_inc(&cache->allocated_slabs);
+
 	return slab;
 }
 
@@ -110,6 +115,9 @@ static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 	frame_free((__address)slab->start);
 	if (! cache->flags & SLAB_CACHE_SLINSIDE)
 		free(slab);
+
+	atomic_dec(&cache->allocated_slabs);
+	
 	return 1 << cache->order;
 }
 
@@ -153,7 +161,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (slab->available == 1) {
 		/* It was in full, move to partial */
 		list_remove(&slab->link);
-		list_prepend(&cache->partial_slabs, &slab->link);
+		list_prepend(&slab->link, &cache->partial_slabs);
 	}
 	if (slab->available == cache->objects) {
 		/* Free associated memory */
@@ -191,8 +199,9 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 		spinlock_unlock(&cache->lock);
 		slab = slab_space_alloc(cache, flags);
 		spinlock_lock(&cache->lock);
-		if (!slab)
+		if (!slab) {
 			return NULL;
+		}
 	} else {
 		slab = list_get_instance(cache->partial_slabs.next,
 					 slab_t,
@@ -203,9 +212,9 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 	slab->nextavail = *((int *)obj);
 	slab->available--;
 	if (! slab->available)
-		list_prepend(&cache->full_slabs, &slab->link);
+		list_prepend(&slab->link, &cache->full_slabs);
 	else
-		list_prepend(&cache->partial_slabs, &slab->link);
+		list_prepend(&slab->link, &cache->partial_slabs);
 	return obj;
 }
 
@@ -315,7 +324,7 @@ static int magazine_obj_put(slab_cache_t *cache, void *obj)
 		mag = cache->mag_cache[CPU->id].last;
 		if (!mag || mag->size == mag->busy) {
 			if (mag) 
-				list_prepend(&cache->magazines, &mag->link);
+				list_prepend(&mag->link, &cache->magazines);
 
 			mag = slab_alloc(&mag_cache, FRAME_ATOMIC | FRAME_NO_RECLAIM);
 			if (!mag)
@@ -533,7 +542,11 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 		spinlock_unlock(&cache->lock);
 	}
 
+	if (result)
+		atomic_inc(&cache->allocated_objs);
+
 	interrupts_restore(ipl);
+
 
 	return result;
 }
@@ -552,6 +565,7 @@ void slab_free(slab_cache_t *cache, void *obj)
 		slab_obj_destroy(cache, obj, NULL);
 		spinlock_unlock(&cache->lock);
 	}
+	atomic_dec(&cache->allocated_objs);
 	interrupts_restore(ipl);
 }
 
@@ -582,10 +596,13 @@ void slab_print_list(void)
 	link_t *cur;
 
 	spinlock_lock(&slab_cache_lock);
-	printf("SLAB name\tOsize\tOrder\n");
+	printf("SLAB name\tOsize\tOrder\tOcnt\tSlabs\tAllocobjs\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
-		printf("%s\t%d\t%d\n", cache->name, cache->size, cache->order);
+		printf("%s\t%d\t%d\t%d\t%d\t%d\n", cache->name, cache->size, 
+		       cache->order, cache->objects,
+		       atomic_get(&cache->allocated_slabs), 
+		       atomic_get(&cache->allocated_objs));
 	}
 	spinlock_unlock(&slab_cache_lock);
 }

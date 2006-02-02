@@ -31,6 +31,7 @@
 
 #include <list.h>
 #include <synch/spinlock.h>
+#include <arch/atomic.h>
 
 /** Initial Magazine size (TODO: dynamically growing magazines) */
 #define SLAB_MAG_SIZE  4
@@ -72,6 +73,8 @@ typedef struct {
 	int objects;      /**< Number of objects that fit in */
 
 	/* Statistics */
+	atomic_t allocated_slabs;
+	atomic_t allocated_objs;
 
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */
