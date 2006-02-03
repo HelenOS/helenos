@@ -42,7 +42,7 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 
-
+/*
 static void messy_stack_trace(__native *stack)
 {
 	__native *upper_limit = (__native *)(((__native)get_stack_base()) + STACK_SIZE);
@@ -57,7 +57,7 @@ static void messy_stack_trace(__native *stack)
 	}
 	printf("\n");
 }
-
+*/
 static void print_info_errcode(int n, void *st)
 {
 	char *symbol;
@@ -83,7 +83,7 @@ static void print_info_errcode(int n, void *st)
 	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]);
 	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]);
 	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]);
-	messy_stack_trace(&x[5]);
+//	messy_stack_trace(&x[5]);
 }
 
 /*
