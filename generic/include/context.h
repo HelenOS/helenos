@@ -51,14 +51,15 @@ extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
  * Note that call to context_restore() will return at the same
  * address as the corresponding call to context_save().
  *
+ * This MUST be a macro, gcc -O0 does not inline functions even
+ * if they are marked inline and context_save_arch must be called
+ * from level <= that when context_restore is called.
+ *
  * @param c Context structure.
  *
  * @return context_save() returns 1, context_restore() returns 0.
  */
-static inline int context_save(context_t *c)
-{
-	return context_save_arch(c);
-}
+#define context_save(c)   context_save_arch(c)
 
 /** Restore register context.
  *
