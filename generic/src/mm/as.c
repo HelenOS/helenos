@@ -78,7 +78,7 @@ as_t *as_create(int flags)
 {
 	as_t *as;
 
-	as = (as_t *) malloc(sizeof(as_t));
+	as = (as_t *) early_malloc(sizeof(as_t));
 	if (as) {
 		list_initialize(&as->as_with_asid_link);
 		spinlock_initialize(&as->lock, "as_lock");

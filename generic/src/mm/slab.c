@@ -92,6 +92,7 @@
 #include <arch.h>
 #include <panic.h>
 #include <debug.h>
+#include <bitops.h>
 
 SPINLOCK_INITIALIZE(slab_cache_lock);
 static LIST_INITIALIZE(slab_cache_list);
@@ -108,6 +109,14 @@ static slab_cache_t slab_cache_cache;
  *   their caches do not require further allocation
  */
 static slab_cache_t *slab_extern_cache;
+/** Caches for malloc */
+static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W-SLAB_MIN_MALLOC_W+1];
+char *malloc_names[] =  {
+	"malloc-8","malloc-16","malloc-32","malloc-64","malloc-128",
+	"malloc-256","malloc-512","malloc-1K","malloc-2K",
+	"malloc-4K","malloc-8K","malloc-16K","malloc-32K",
+	"malloc-64K","malloc-128K"
+};
 
 /** Slab descriptor */
 typedef struct {
@@ -478,6 +487,7 @@ _slab_cache_create(slab_cache_t *cache,
 		   int flags)
 {
 	int i;
+	int pages;
 
 	memsetb((__address)cache, sizeof(*cache), 0);
 	cache->name = name;
@@ -507,7 +517,8 @@ _slab_cache_create(slab_cache_t *cache,
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 
 	/* Minimum slab order */
-	cache->order = (cache->size-1) >> PAGE_WIDTH;
+	pages = ((cache->size-1) >> PAGE_WIDTH) + 1;
+	cache->order = fnzb(pages);
 
 	while (badness(cache) > SLAB_MAX_BADNESS(cache)) {
 		cache->order += 1;
@@ -632,8 +643,8 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 
 	/* Disable interrupts to avoid deadlocks with interrupt handlers */
 	ipl = interrupts_disable();
-	
-	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
+
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE) && CPU)
 		result = magazine_obj_get(cache);
 
 	if (!result) {
@@ -650,22 +661,29 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 	return result;
 }
 
-/** Return object to cache  */
-void slab_free(slab_cache_t *cache, void *obj)
+/** Return object to cache, use slab if known  */
+static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 {
 	ipl_t ipl;
 
 	ipl = interrupts_disable();
 
 	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) \
+	    || !CPU \
 	    || magazine_obj_put(cache, obj)) {
 		
 		spinlock_lock(&cache->lock);
-		slab_obj_destroy(cache, obj, NULL);
+		slab_obj_destroy(cache, obj, slab);
 		spinlock_unlock(&cache->lock);
 	}
 	interrupts_restore(ipl);
 	atomic_dec(&cache->allocated_objs);
+}
+
+/** Return slab object to cache */
+void slab_free(slab_cache_t *cache, void *obj)
+{
+	_slab_free(cache,obj,NULL);
 }
 
 /* Go through all caches and reclaim what is possible */
@@ -710,6 +728,8 @@ void slab_print_list(void)
 
 void slab_cache_init(void)
 {
+	int i, size;
+
 	/* Initialize magazine cache */
 	_slab_cache_create(&mag_cache,
 			   "slab_magazine",
@@ -731,4 +751,35 @@ void slab_cache_init(void)
 					      SLAB_CACHE_SLINSIDE);
 
 	/* Initialize structures for malloc */
+	for (i=0, size=(1<<SLAB_MIN_MALLOC_W);
+	     i < (SLAB_MAX_MALLOC_W-SLAB_MIN_MALLOC_W+1);
+	     i++, size <<= 1) {
+		malloc_caches[i] = slab_cache_create(malloc_names[i],
+						     size, 0,
+						     NULL,NULL,0);
+	}
+}
+
+/**************************************/
+/* kalloc/kfree functions             */
+void * kalloc(unsigned int size, int flags)
+{
+	int idx;
+
+	ASSERT( size && size <= (1 << SLAB_MAX_MALLOC_W));
+	
+	if (size < (1 << SLAB_MIN_MALLOC_W))
+		size = (1 << SLAB_MIN_MALLOC_W);
+
+	idx = fnzb(size-1) - SLAB_MIN_MALLOC_W + 1;
+
+	return slab_alloc(malloc_caches[idx], flags);
+}
+
+
+void kfree(void *obj)
+{
+	slab_t *slab = obj2slab(obj);
+	
+	_slab_free(slab->cache, obj, slab);
 }

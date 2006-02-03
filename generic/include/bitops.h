@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __HEAP_H__
-#define __HEAP_H__
+#ifndef _BITOPS_H_
+#define _BITOPS_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
-#include <mm/slab.h>
 
-//#define malloc(size)		early_malloc(size)
-//#define free(ptr)		early_free(ptr)
-#define malloc(size)		kalloc(size,0)
-#define free(ptr)		kfree(ptr)
 
-struct chunk {
-	int used;
-	chunk_t *next;
-	chunk_t *prev;
-	__u32 size;
-	__native data[0];
-};
+/** Return position of first non-zero bit from left.
+ *
+ * If number is zero, it returns 0
+ */
+static inline int fnzb32(__u32 arg)
+{
+	int n = 0;
 
-extern void early_heap_init(__address heap, size_t size);
+	if (arg & 0xffff0000) { arg >>= 16;n += 16;}
+	if (arg & 0xff00) { arg >>= 8; n += 8;}
+	if (arg & 0xf0) { arg >>= 4; n += 4;}
+	if (arg & 0xc) { arg >>= 2; n+=2;}
+	if (arg & 0x2) { arg >>= 1; n+=1;}
+	return n;
+}
 
-extern void *early_malloc(size_t size) __attribute__ ((malloc));
-extern void early_free(void *ptr);
+static inline int fnzb64(__u64 arg)
+{
+	int n = 0;
+
+	/* This is because mips complains about big numbers,
+	 * other platforms should optimize it out */
+	__u64 oper = 0xffffffff;
+	oper <<= 32;
+
+	if (arg & oper) { arg >>= 32;n += 32;}
+	return n + fnzb32((__u32) arg);
+}
+
+#define fnzb(x) fnzb32(x)
 
 #endif

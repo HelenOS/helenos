@@ -33,6 +33,12 @@
 #include <synch/spinlock.h>
 #include <arch/atomic.h>
 
+/** Minimum size to be allocated by malloc */
+#define SLAB_MIN_MALLOC_W 3
+
+/** Maximum size to be allocated by malloc */
+#define SLAB_MAX_MALLOC_W 17
+
 /** Initial Magazine size (TODO: dynamically growing magazines) */
 #define SLAB_MAG_SIZE  4
 
@@ -40,7 +46,7 @@
 #define SLAB_INSIDE_SIZE   (PAGE_SIZE >> 3)
 
 /** Maximum wasted space we allow for cache */
-#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order >> 2))
+#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
 #define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because
@@ -108,5 +114,9 @@ extern void slab_cache_init(void);
 
 /* KConsole debug */
 extern void slab_print_list(void);
+
+/* Malloc support */
+extern void * kalloc(unsigned int size, int flags);
+extern void kfree(void *obj);
 
 #endif
