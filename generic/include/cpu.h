@@ -57,11 +57,6 @@ struct cpu {
 	SPINLOCK_DECLARE(timeoutlock);
 	link_t timeout_active_head;
 
-	#ifdef CONFIG_SMP
-	atomic_t kcpulbstarted;
-	waitq_t kcpulb_wq;
-	#endif /* CONFIG_SMP */
-
 	/**
 	 * Processor ID assigned by kernel.
 	 */

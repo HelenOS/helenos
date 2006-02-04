@@ -133,22 +133,10 @@ loop:
 	interrupts_enable();
 	
 	if (n == 0) {
-		#ifdef CONFIG_SMP
-		/*
-		 * If the load balancing thread is not running, wake it up and
-		 * set CPU-private flag that the kcpulb has been started.
-		 */
-		if (test_and_set(&CPU->kcpulbstarted) == 0) {
-			waitq_wakeup(&CPU->kcpulb_wq, 0);
-			goto loop;
-		}
-		#endif /* CONFIG_SMP */
-		
 		/*
 		 * For there was nothing to run, the CPU goes to sleep
 		 * until a hardware interrupt or an IPI comes.
 		 * This improves energy saving and hyperthreading.
-		 * On the other hand, several hardware interrupts can be ignored.
 		 */
 		 cpu_sleep();
 		 goto loop;
@@ -481,9 +469,9 @@ void kcpulb(void *arg)
 
 loop:
 	/*
-	 * Sleep until there's some work to do.
+	 * Work in 1s intervals.
 	 */
-	waitq_sleep(&CPU->kcpulb_wq);
+	thread_sleep(1);
 
 not_satisfied:
 	/*
@@ -578,7 +566,7 @@ restart:		ipl = interrupts_disable();
 				 */
 				spinlock_lock(&t->lock);
 				#ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, CPU->nrdy, nrdy / config.cpu_active);
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, CPU->nrdy, atomic_get(&nrdy) / config.cpu_active);
 				#endif
 				t->flags |= X_STOLEN;
 				spinlock_unlock(&t->lock);
@@ -606,22 +594,17 @@ restart:		ipl = interrupts_disable();
 		 * Be a little bit light-weight and let migrated threads run.
 		 */
 		scheduler();
-	} 
-	else {
+	} else {
 		/*
 		 * We failed to migrate a single thread.
-		 * Something more sophisticated should be done.
+		 * Give up this turn.
 		 */
-		scheduler();
+		goto loop;
 	}
 		
 	goto not_satisfied;
 
 satisfied:
-	/*
-	 * Tell find_best_thread() to wake us up later again.
-	 */
-	atomic_set(&CPU->kcpulbstarted,0);
 	goto loop;
 }
 
@@ -655,7 +638,7 @@ void sched_print_list(void)
 				spinlock_unlock(&r->lock);
 				continue;
 			}
-			printf("Rq %d: ", i);
+			printf("\tRq %d: ", i);
 			for (cur=r->rq_head.next; cur!=&r->rq_head; cur=cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
 				printf("%d(%s) ", t->tid,
