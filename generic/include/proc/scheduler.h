@@ -54,6 +54,7 @@ extern void kcpulb(void *arg);
 
 extern void before_thread_runs(void);
 
+extern void sched_print_list(void);
 /*
  * To be defined by architectures:
  */

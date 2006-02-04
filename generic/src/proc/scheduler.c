@@ -626,3 +626,46 @@ satisfied:
 }
 
 #endif /* CONFIG_SMP */
+
+
+/** Print information about threads & scheduler queues */
+void sched_print_list(void)
+{
+	ipl_t ipl;
+	int cpu,i;
+	runq_t *r;
+	thread_t *t;
+	link_t *cur;
+
+	/* We are going to mess with scheduler structures,
+	 * let's not be interrupted */
+	ipl = interrupts_disable();
+	printf("*********** Scheduler dump ***********\n");
+	for (cpu=0;cpu < config.cpu_count; cpu++) {
+		if (!cpus[cpu].active)
+			continue;
+		spinlock_lock(&cpus[cpu].lock);
+		printf("cpu%d: nrdy: %d needs_relink: %d\n",
+		       cpus[cpu].id, cpus[cpu].nrdy, cpus[cpu].needs_relink);
+		
+		for (i=0; i<RQ_COUNT; i++) {
+			r = &cpus[cpu].rq[i];
+			spinlock_lock(&r->lock);
+			if (!r->n) {
+				spinlock_unlock(&r->lock);
+				continue;
+			}
+			printf("Rq %d: ", i);
+			for (cur=r->rq_head.next; cur!=&r->rq_head; cur=cur->next) {
+				t = list_get_instance(cur, thread_t, rq_link);
+				printf("%d(%s) ", t->tid,
+				       thread_states[t->state]);
+			}
+			printf("\n");
+			spinlock_unlock(&r->lock);
+		}
+		spinlock_unlock(&cpus[cpu].lock);
+	}
+	
+	interrupts_restore(ipl);
+}

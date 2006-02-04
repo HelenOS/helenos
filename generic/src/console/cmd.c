@@ -51,6 +51,7 @@
 #include <mm/frame.h>
 #include <main/version.h>
 #include <mm/slab.h>
+#include <proc/scheduler.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -244,6 +245,14 @@ cmd_info_t tlb_info = {
 };
 
 
+static int cmd_sched(cmd_arg_t *argv);
+static cmd_info_t sched_info = {
+	.name = "scheduler",
+	.description = "List all scheduler information",
+	.func = cmd_sched,
+	.argc = 0
+};
+
 static int cmd_slabs(cmd_arg_t *argv);
 static cmd_info_t slabs_info = {
 	.name = "slabs",
@@ -297,7 +306,26 @@ cmd_info_t version_info = {
 	.argv = NULL
 };
 
-
+static cmd_info_t *basic_commands[] = {
+	&call0_info,
+	&call1_info,
+	&call2_info,
+	&call3_info,
+	&cpus_info,
+	&desc_info,
+	&exit_info,
+	&halt_info,
+	&help_info,
+	&set4_info,
+	&slabs_info,
+	&symaddr_info,
+	&sched_info,
+	&tlb_info,
+	&version_info,
+	&zones_info,
+	&zone_info,
+	NULL
+};
 
 
 /** Initialize command info structure.
@@ -314,72 +342,14 @@ void cmd_initialize(cmd_info_t *cmd)
 /** Initialize and register commands. */
 void cmd_init(void)
 {
-	cmd_initialize(&help_info);
-	if (!cmd_register(&help_info))
-		panic("could not register command %s\n", help_info.name);
+	int i;
 
-	cmd_initialize(&desc_info);
-	if (!cmd_register(&desc_info))
-		panic("could not register command %s\n", desc_info.name);
-
-	cmd_initialize(&exit_info);
-	if (!cmd_register(&exit_info))
-		panic("could not register command %s\n", exit_info.name);
-	
-	cmd_initialize(&symaddr_info);
-	if (!cmd_register(&symaddr_info))
-		panic("could not register command %s\n", symaddr_info.name);
-
-	cmd_initialize(&call0_info);
-	if (!cmd_register(&call0_info))
-		panic("could not register command %s\n", call0_info.name);
-
-	cmd_initialize(&call1_info);
-	if (!cmd_register(&call1_info))
-		panic("could not register command %s\n", call1_info.name);
-
-	cmd_initialize(&call2_info);
-	if (!cmd_register(&call2_info))
-		panic("could not register command %s\n", call2_info.name);
-
-	cmd_initialize(&call3_info);
-	if (!cmd_register(&call3_info))
-		panic("could not register command %s\n", call3_info.name);
-
-	cmd_initialize(&set4_info);
-	if (!cmd_register(&set4_info))
-		panic("could not register command %s\n", set4_info.name);
-	
-	cmd_initialize(&halt_info);
-	if (!cmd_register(&halt_info))
-		panic("could not register command %s\n", halt_info.name);
-
-	cmd_initialize(&tlb_info);
-	if (!cmd_register(&tlb_info))
-		panic("could not register command %s\n", tlb_info.name);
-
-	cmd_initialize(&zones_info);
-	if (!cmd_register(&zones_info))
-		panic("could not register command %s\n", zones_info.name);
-
-	cmd_initialize(&slabs_info);
-	if (!cmd_register(&slabs_info))
-		panic("could not register command %s\n", slabs_info.name);
-
-	cmd_initialize(&zone_info);
-	if (!cmd_register(&zone_info))
-		panic("could not register command %s\n", zone_info.name);
-
-	cmd_initialize(&cpus_info);
-	if (!cmd_register(&cpus_info))
-		panic("could not register command %s\n", cpus_info.name);
-		
-	cmd_initialize(&version_info);
-	if (!cmd_register(&version_info))
-		panic("could not register command %s\n", version_info.name);
-		
-		
-
+	for (i=0;basic_commands[i]; i++) {
+		cmd_initialize(basic_commands[i]);
+		if (!cmd_register(basic_commands[i]))
+			panic("could not register command %s\n", 
+			      basic_commands[i]->name);
+	}
 }
 
 
@@ -481,7 +451,7 @@ int cmd_call1(cmd_arg_t *argv)
 {
 	__address symaddr;
 	char *symbol;
-	__native (*f)(__native);
+	__native (*f)(__native,...);
 	__native arg1 = argv[1].intval;
 
 	symaddr = get_symbol_addr(argv->buffer);
@@ -493,7 +463,7 @@ int cmd_call1(cmd_arg_t *argv)
 	} else {
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%x): 0x%p: %s\n", arg1, symaddr, symbol);
-		f =  (__native (*)(__native)) symaddr;
+		f =  (__native (*)(__native,...)) symaddr;
 		printf("Result: 0x%p\n", f(arg1));
 	}
 	
@@ -505,7 +475,7 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	__address symaddr;
 	char *symbol;
-	__native (*f)(__native,__native);
+	__native (*f)(__native,__native,...);
 	__native arg1 = argv[1].intval;
 	__native arg2 = argv[2].intval;
 
@@ -519,7 +489,7 @@ int cmd_call2(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%x,0x%x): 0x%p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
-		f =  (__native (*)(__native,__native)) symaddr;
+		f =  (__native (*)(__native,__native,...)) symaddr;
 		printf("Result: 0x%p\n", f(arg1, arg2));
 	}
 	
@@ -531,7 +501,7 @@ int cmd_call3(cmd_arg_t *argv)
 {
 	__address symaddr;
 	char *symbol;
-	__native (*f)(__native,__native,__native);
+	__native (*f)(__native,__native,__native,...);
 	__native arg1 = argv[1].intval;
 	__native arg2 = argv[2].intval;
 	__native arg3 = argv[3].intval;
@@ -546,7 +516,7 @@ int cmd_call3(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%x,0x%x, 0x%x): 0x%p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
-		f =  (__native (*)(__native,__native,__native)) symaddr;
+		f =  (__native (*)(__native,__native,__native,...)) symaddr;
 		printf("Result: 0x%p\n", f(arg1, arg2, arg3));
 	}
 	
@@ -624,6 +594,17 @@ int cmd_set4(cmd_arg_t *argv)
  */
 int cmd_slabs(cmd_arg_t * argv) {
 	slab_print_list();
+	return 1;
+}
+
+/** Command for listings Thread information
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_sched(cmd_arg_t * argv) {
+	sched_print_list();
 	return 1;
 }
 

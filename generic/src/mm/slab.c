@@ -76,7 +76,15 @@
  * The brutal reclaim removes all cached objects, even from CPU-bound
  * magazines.
  *
- * 
+ * TODO: For better CPU-scaling the magazine allocation strategy should
+ * be extended. Currently, if the cache does not have magazine, it asks
+ * for non-cpu cached magazine cache to provide one. It might be feasible
+ * to add cpu-cached magazine cache (which would allocate it's magazines
+ * from non-cpu-cached mag. cache). This would provide a nice per-cpu
+ * buffer. The other possibility is to use the per-cache 
+ * 'empty-magazine-list', which decreases competing for 1 per-system
+ * magazine cache.
+ *
  */
 
 
@@ -295,7 +303,7 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 /**
  * Free all objects in magazine and free memory associated with magazine
  *
- * Assume mag_cache[cpu].lock is locked 
+ * Assume cache->lock is held
  *
  * @return Number of freed pages
  */
@@ -619,6 +627,7 @@ static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 	}
 	
 	spinlock_unlock(&cache->lock);
+	/* We can release the cache locks now */
 	if (flags & SLAB_RECLAIM_ALL) {
 		for (i=0; i < config.cpu_count; i++)
 			spinlock_unlock(&cache->mag_cache[i].lock);
@@ -777,7 +786,7 @@ void slab_cache_init(void)
 void * kalloc(unsigned int size, int flags)
 {
 	int idx;
-
+	
 	ASSERT( size && size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))
