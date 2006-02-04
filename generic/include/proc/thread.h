@@ -133,5 +133,6 @@ extern void thread_sleep(__u32 sec);
 extern void thread_usleep(__u32 usec);
 
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
+extern void thread_print_list(void);
 
 #endif

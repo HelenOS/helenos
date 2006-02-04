@@ -51,6 +51,7 @@
 #include <arch/faddr.h>
 #include <arch/atomic.h>
 #include <memstr.h>
+#include <print.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
@@ -317,4 +318,28 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 	THREAD->call_me_with = call_me_with;
 	spinlock_unlock(&THREAD->lock);
 	interrupts_restore(ipl);
+}
+
+/** Print list of threads debug info */
+void thread_print_list(void)
+{
+	link_t *cur;
+	thread_t *t;
+	ipl_t ipl;
+	
+	/* Messing with thread structures, avoid deadlock */
+	ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+
+	for (cur=threads_head.next; cur!=&threads_head; cur=cur->next) {
+		t = list_get_instance(cur, thread_t, threads_link);
+		printf("Thr: %d(%s) ", t->tid, thread_states[t->state]);
+		if (t->cpu)
+			printf("cpu%d ", t->cpu->id);
+		
+		printf("\n");
+	}
+
+	spinlock_unlock(&threads_lock);
+	interrupts_enable();
 }
