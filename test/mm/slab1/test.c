@@ -45,9 +45,7 @@ static void testit(int size, int count)
 	
 	printf("Creating cache, object size: %d.\n", size);
 	cache = slab_cache_create("test_cache", size, 0, NULL, NULL, 
-				  SLAB_CACHE_NOMAGAZINE);
-	slab_print_list();
-	
+				  SLAB_CACHE_NOMAGAZINE);	
 	printf("Allocating %d items...", count);
 	for (i=0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
@@ -67,7 +65,6 @@ static void testit(int size, int count)
 	}
 	printf("done.\n");
 
-	slab_print_list();
 	printf("Freeing %d items...", count/2);
 	for (i=count-1; i >= count/2; i--) {
 		slab_free(cache, data[i]);
@@ -128,7 +125,6 @@ static void thread(void *data)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}
 	printf("Thread #%d finished\n", THREAD->tid);
-	slab_print_list();
 	semaphore_up(&thr_sem);
 }
 

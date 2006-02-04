@@ -365,6 +365,9 @@ static void * magazine_obj_get(slab_cache_t *cache)
 	slab_magazine_t *mag;
 	void *obj;
 
+	if (!CPU)
+		return NULL;
+
 	spinlock_lock(&cache->mag_cache[CPU->id].lock);
 
 	mag = get_full_current_mag(cache);
@@ -434,6 +437,9 @@ static slab_magazine_t * make_empty_current_mag(slab_cache_t *cache)
 static int magazine_obj_put(slab_cache_t *cache, void *obj)
 {
 	slab_magazine_t *mag;
+
+	if (!CPU)
+		return -1;
 
 	spinlock_lock(&cache->mag_cache[CPU->id].lock);
 
@@ -507,9 +513,12 @@ _slab_cache_create(slab_cache_t *cache,
 	list_initialize(&cache->magazines);
 	spinlock_initialize(&cache->lock, "cachelock");
 	if (! (cache->flags & SLAB_CACHE_NOMAGAZINE)) {
-		for (i=0; i< config.cpu_count; i++)
+		for (i=0; i< config.cpu_count; i++) {
+			memsetb((__address)&cache->mag_cache[i],
+				sizeof(cache->mag_cache[i]), 0);
 			spinlock_initialize(&cache->mag_cache[i].lock, 
 					    "cpucachelock");
+		}
 	}
 
 	/* Compute slab sizes, object counts in slabs etc. */
@@ -644,7 +653,7 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 	/* Disable interrupts to avoid deadlocks with interrupt handlers */
 	ipl = interrupts_disable();
 
-	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE) && CPU)
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
 		result = magazine_obj_get(cache);
 
 	if (!result) {
@@ -669,9 +678,7 @@ static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 	ipl = interrupts_disable();
 
 	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) \
-	    || !CPU \
 	    || magazine_obj_put(cache, obj)) {
-		
 		spinlock_lock(&cache->lock);
 		slab_obj_destroy(cache, obj, slab);
 		spinlock_unlock(&cache->lock);
