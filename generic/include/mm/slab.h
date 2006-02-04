@@ -66,7 +66,6 @@ typedef struct {
 typedef struct {
 	char *name;
 
-	SPINLOCK_DECLARE(lock);
 	link_t link;
 	/* Configuration */
 	size_t size;      /**< Size of SLAB position - align_up(sizeof(obj)) */
@@ -86,8 +85,10 @@ typedef struct {
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */
 	link_t partial_slabs;  /**< List of partial slabs */
+	SPINLOCK_DECLARE(slablock);
 	/* Magazines  */
 	link_t magazines;      /**< List o full magazines */
+	SPINLOCK_DECLARE(maglock);
 
 	/** CPU cache */
 	struct {
