@@ -234,6 +234,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		slab = obj2slab(obj);
 
 	ASSERT(slab->cache == cache);
+	ASSERT(slab->available < cache->objects);
 
 	spinlock_lock(&cache->slablock);
 
@@ -242,11 +243,6 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	slab->available++;
 
 	/* Move it to correct list */
-	if (slab->available == 1) {
-		/* It was in full, move to partial */
-		list_remove(&slab->link);
-		list_prepend(&slab->link, &cache->partial_slabs);
-	}
 	if (slab->available == cache->objects) {
 		/* Free associated memory */
 		list_remove(&slab->link);
@@ -254,6 +250,10 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		 * magazine is always allocated with NO reclaim,
 		 * keep all locks */
 		frames = slab_space_free(cache, slab);
+	} else if (slab->available == 1) {
+		/* It was in full, move to partial */
+		list_remove(&slab->link);
+		list_prepend(&slab->link, &cache->partial_slabs);
 	}
 
 	spinlock_unlock(&cache->slablock);
@@ -282,9 +282,9 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 		 */
 		spinlock_unlock(&cache->slablock);
 		slab = slab_space_alloc(cache, flags);
-		spinlock_lock(&cache->slablock);
 		if (!slab)
-			goto err;
+			return NULL;
+		spinlock_lock(&cache->slablock);
 	} else {
 		slab = list_get_instance(cache->partial_slabs.next,
 					 slab_t,
@@ -301,9 +301,6 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 
 	spinlock_unlock(&cache->slablock);
 	return obj;
-err:
-	spinlock_unlock(&cache->slablock);
-	return NULL;
 }
 
 /**************************************/

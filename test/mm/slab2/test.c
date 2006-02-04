@@ -199,5 +199,6 @@ void test(void)
 
 	multitest(128);
 	multitest(2048);
+	multitest(8192);
 	printf("All done.\n");
 }
