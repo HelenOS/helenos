@@ -91,6 +91,9 @@ endif
 ifeq ($(CONFIG_HT),y)
 	DEFS += -DCONFIG_HT
 endif
+ifeq ($(CONFIG_SIMICS_FIX),y)
+	DEFS += -DCONFIG_SIMICS_FIX
+endif
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/context.s \

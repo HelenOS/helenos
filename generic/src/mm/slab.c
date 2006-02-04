@@ -756,6 +756,10 @@ void slab_print_list(void)
 	spinlock_unlock(&slab_cache_lock);
 }
 
+#ifdef CONFIG_DEBUG
+static int _slab_initialized = 0;
+#endif
+
 void slab_cache_init(void)
 {
 	int i, size;
@@ -788,6 +792,9 @@ void slab_cache_init(void)
 						     size, 0,
 						     NULL,NULL,0);
 	}
+#ifdef CONFIG_DEBUG       
+	_slab_initialized = 1;
+#endif
 }
 
 /**************************************/
@@ -795,7 +802,8 @@ void slab_cache_init(void)
 void * kalloc(unsigned int size, int flags)
 {
 	int idx;
-	
+
+	ASSERT(_slab_initialized);
 	ASSERT( size && size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))

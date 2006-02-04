@@ -53,6 +53,13 @@ void frame_arch_init(void)
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
 		frame_region_not_free(AP_BOOT_OFFSET, hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size);
+		
+#ifdef CONFIG_SIMICS_FIX
+		/* Don't know why, but this addresses help */
+		frame_region_not_free(0xf000,FRAME_SIZE);
+		frame_region_not_free(0xe000,FRAME_SIZE);
+		frame_region_not_free(0xd000,FRAME_SIZE);
+#endif
 #endif
 		
 		for (i = 0; i < e820counter; i++) {

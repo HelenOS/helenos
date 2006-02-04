@@ -59,7 +59,7 @@
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
-#define ZONE_BLACKLIST_SIZE	4
+#define ZONE_BLACKLIST_SIZE	8
 
 struct zone {
 	link_t link;		/**< link to previous and next zone */
