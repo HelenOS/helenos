@@ -163,7 +163,6 @@ void main_bsp_separated_stack(void)
 	as_init();
 	page_init();
 	tlb_init();
-	slab_cache_init();
 	arch_post_mm_init();
 
 	version_print();
@@ -173,6 +172,9 @@ void main_bsp_separated_stack(void)
 
 	arch_pre_smp_init();
 	smp_init();
+	/* Slab must be initialized AFTER we know the number of processors */
+	slab_cache_init();
+
 	printf("config.memory_size=%dM\n", config.memory_size/(1024*1024));
 	printf("config.cpu_count=%d\n", config.cpu_count);
 

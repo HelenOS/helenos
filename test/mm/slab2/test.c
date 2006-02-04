@@ -73,7 +73,6 @@ static void totalmemtest(void)
 		olddata2 = data2;
 	}while(1);
 	printf("done.\n");
-	slab_print_list();
 	/* We do not have memory - now deallocate cache2 */
 	printf("Deallocating cache2...");
 	while (olddata2) {
@@ -83,7 +82,6 @@ static void totalmemtest(void)
 	}
 	printf("done.\n");
 
-	slab_print_list();
 	printf("Allocating to cache1...\n");
 	for (i=0; i<30; i++) {
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
@@ -94,7 +92,6 @@ static void totalmemtest(void)
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}
-	slab_print_list();
 	while (1) {
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
 		if (!data1) {
@@ -104,7 +101,6 @@ static void totalmemtest(void)
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}
-	slab_print_list();
 	printf("Deallocating cache1...");
 	while (olddata1) {
 		data1 = *((void **)olddata1);
@@ -117,11 +113,91 @@ static void totalmemtest(void)
 	slab_cache_destroy(cache2);
 }
 
+slab_cache_t *thr_cache;
+semaphore_t thr_sem;
+
+#define THREADS 8
+
+static void thread(void *priv)
+{
+	void *data=NULL, *new;
+
+	printf("Starting thread #%d...\n",THREAD->tid);
+
+	/* Alloc all */
+	printf("Thread #%d allocating...\n", THREAD->tid);
+	while (1) {
+		/* Call with atomic to detect end of memory */
+		new = slab_alloc(thr_cache, FRAME_ATOMIC);
+		if (!new)
+			break;
+		*((void **)new) = data;
+		data = new;
+	}
+	printf("Thread #%d releasing...\n", THREAD->tid);
+	while (data) {
+		new = *((void **)data);
+		slab_free(thr_cache, data);
+		data = new;
+	}
+	printf("Thread #%d allocating...\n", THREAD->tid);
+	while (1) {
+		/* Call with atomic to detect end of memory */
+		new = slab_alloc(thr_cache, FRAME_ATOMIC);
+		if (!new)
+			break;
+		*((void **)new) = data;
+		data = new;
+	}
+	printf("Thread #%d releasing...\n", THREAD->tid);
+	while (data) {
+		new = *((void **)data);
+		slab_free(thr_cache, data);
+		data = new;
+	}
+
+
+	printf("Thread #%d finished\n", THREAD->tid);
+	slab_print_list();
+	semaphore_up(&thr_sem);
+}
+
+
+static void multitest(int size)
+{
+	/* Start 8 threads that just allocate as much as possible,
+	 * then release everything, then again allocate, then release
+	 */
+	thread_t *t;
+	int i;
+
+	printf("Running stress test with size %d\n", size);
+	thr_cache = slab_cache_create("thread_cache", size, 0, 
+				      NULL, NULL, 
+				      0);
+	semaphore_initialize(&thr_sem,0);
+	for (i=0; i<THREADS; i++) {  
+		if (!(t = thread_create(thread, NULL, TASK, 0)))
+			panic("could not create thread\n");
+		thread_ready(t);
+	}
+
+	for (i=0; i<THREADS; i++)
+		semaphore_down(&thr_sem);
+	
+	slab_cache_destroy(thr_cache);
+	printf("Stress test complete.\n");
+}
+
 void test(void)
 {
-	printf("Running reclaim test .. pass1\n");
+	printf("Running reclaim single-thread test .. pass1\n");
 	totalmemtest();
-	printf("Running reclaim test .. pass2\n");
+	printf("Running reclaim single-thread test .. pass2\n");
 	totalmemtest();
 	printf("Reclaim test OK.\n");
+
+	multitest(128);
+	multitest(2048);
+	printf("All done.\n");
 }

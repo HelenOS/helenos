@@ -386,6 +386,8 @@ static void * magazine_obj_get(slab_cache_t *cache)
  * Assure that the current magazine is empty, return pointer to it, or NULL if 
  * no empty magazine is available and cannot be allocated
  *
+ * Assume mag_cache[CPU->id].lock is held
+ *
  * We have 2 magazines bound to processor. 
  * First try the current. 
  *  If full, try the last.
@@ -420,8 +422,11 @@ static slab_magazine_t * make_empty_current_mag(slab_cache_t *cache)
 	newmag->busy = 0;
 
 	/* Flush last to magazine list */
-	if (lastmag)
+	if (lastmag) {
+		spinlock_lock(&cache->lock);
 		list_prepend(&lastmag->link, &cache->magazines);
+		spinlock_unlock(&cache->lock);
+	}
 	/* Move current as last, save new as current */
 	cache->mag_cache[CPU->id].last = cmag;	
 	cache->mag_cache[CPU->id].current = newmag;	
@@ -513,7 +518,7 @@ _slab_cache_create(slab_cache_t *cache,
 	list_initialize(&cache->magazines);
 	spinlock_initialize(&cache->lock, "cachelock");
 	if (! (cache->flags & SLAB_CACHE_NOMAGAZINE)) {
-		for (i=0; i< config.cpu_count; i++) {
+		for (i=0; i < config.cpu_count; i++) {
 			memsetb((__address)&cache->mag_cache[i],
 				sizeof(cache->mag_cache[i]), 0);
 			spinlock_initialize(&cache->mag_cache[i].lock, 
@@ -649,7 +654,7 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 {
 	ipl_t ipl;
 	void *result = NULL;
-
+	
 	/* Disable interrupts to avoid deadlocks with interrupt handlers */
 	ipl = interrupts_disable();
 
