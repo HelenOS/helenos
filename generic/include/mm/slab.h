@@ -29,7 +29,7 @@
 #ifndef __SLAB_H__
 #define __SLAB_H__
 
-#include <list.h>
+#include <adt/list.h>
 #include <synch/spinlock.h>
 #include <arch/atomic.h>
 

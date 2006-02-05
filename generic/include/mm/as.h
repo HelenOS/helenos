@@ -35,7 +35,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define KERNEL_ADDRESS_SPACE_START	KERNEL_ADDRESS_SPACE_START_ARCH
 #define KERNEL_ADDRESS_SPACE_END	KERNEL_ADDRESS_SPACE_END_ARCH

@@ -94,6 +94,7 @@ endif
 #
 
 GENERIC_SOURCES = \
+	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/kconsole.c \
@@ -117,7 +118,6 @@ GENERIC_SOURCES = \
 	generic/src/mm/as.c \
 	generic/src/mm/slab.c \
 	generic/src/lib/func.c \
-	generic/src/lib/list.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
 	generic/src/debug/print.c \

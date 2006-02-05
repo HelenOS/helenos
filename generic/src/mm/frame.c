@@ -34,7 +34,7 @@
 #include <mm/as.h>
 #include <panic.h>
 #include <debug.h>
-#include <list.h>
+#include <adt/list.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch.h>

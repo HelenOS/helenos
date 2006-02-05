@@ -37,7 +37,7 @@
 #include <panic.h>
 #include <typedefs.h>
 #include <memstr.h>
-#include <list.h>
+#include <adt/list.h>
 #include <print.h>
 
 cpu_t *cpus;

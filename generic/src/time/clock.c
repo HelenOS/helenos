@@ -37,7 +37,7 @@
 #include <cpu.h>
 #include <print.h>
 #include <arch.h>
-#include <list.h>
+#include <adt/list.h>
 #include <arch/atomic.h>
 #include <proc/thread.h>
 

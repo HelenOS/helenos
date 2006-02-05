@@ -38,7 +38,7 @@
 #include <time/timeout.h>
 #include <synch/rwlock.h>
 #include <config.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 

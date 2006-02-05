@@ -34,7 +34,7 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <panic.h>
-#include <list.h>
+#include <adt/list.h>
 
 SPINLOCK_INITIALIZE(tasks_lock);
 LIST_INITIALIZE(tasks_head);

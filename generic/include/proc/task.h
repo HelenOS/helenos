@@ -31,7 +31,7 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <list.h>
+#include <adt/list.h>
 
 /** Task structure. */
 struct task {

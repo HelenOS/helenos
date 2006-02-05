@@ -33,7 +33,7 @@
 #include <time/clock.h>		/* HZ */
 #include <typedefs.h>
 #include <arch/atomic.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define RQ_COUNT 		16
 #define NEEDS_RELINK_MAX	(HZ)

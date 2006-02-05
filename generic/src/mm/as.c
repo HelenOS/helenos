@@ -46,7 +46,7 @@
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <config.h>
-#include <list.h>
+#include <adt/list.h>
 #include <panic.h>
 #include <arch/asm.h>
 #include <debug.h>

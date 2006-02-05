@@ -39,7 +39,7 @@
 #include <panic.h>
 #include <typedefs.h>
 #include <arch/types.h>
-#include <list.h>
+#include <adt/list.h>
 #include <arch.h>
 #include <func.h>
 #include <macros.h>

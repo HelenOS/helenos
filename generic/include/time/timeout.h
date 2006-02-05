@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define us2ticks(us)	((__u64)(((__u32) (us)/(1000000/HZ))))
 

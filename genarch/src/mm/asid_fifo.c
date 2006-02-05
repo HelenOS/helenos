@@ -30,7 +30,7 @@
 #include <arch/mm/asid.h>
 #include <mm/asid.h>
 #include <typedefs.h>
-#include <fifo.h>
+#include <adt/fifo.h>
 
 /**
  * FIFO queue containing unassigned ASIDs. 

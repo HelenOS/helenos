@@ -37,7 +37,7 @@
 #include <typedefs.h>
 #include <arch/context.h>
 #include <config.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define CPU_STACK_SIZE	STACK_SIZE
 

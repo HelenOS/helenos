@@ -93,7 +93,7 @@
 
 #include <synch/spinlock.h>
 #include <mm/slab.h>
-#include <list.h>
+#include <adt/list.h>
 #include <memstr.h>
 #include <align.h>
 #include <mm/heap.h>

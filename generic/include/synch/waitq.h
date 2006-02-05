@@ -33,7 +33,7 @@
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/synch.h>
-#include <list.h>
+#include <adt/list.h>
 
 #define WAKEUP_FIRST	0
 #define WAKEUP_ALL	1

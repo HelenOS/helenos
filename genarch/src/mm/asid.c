@@ -53,7 +53,7 @@
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
 #include <arch.h>
-#include <list.h>
+#include <adt/list.h>
 #include <debug.h>
 
 /**

@@ -37,7 +37,7 @@
 #include <time/timeout.h>
 #include <arch.h>
 #include <context.h>
-#include <list.h>
+#include <adt/list.h>
 
 /** Initialize wait queue
  *

@@ -41,7 +41,7 @@
 #include <context.h>
 #include <func.h>
 #include <arch.h>
-#include <list.h>
+#include <adt/list.h>
 #include <panic.h>
 #include <typedefs.h>
 #include <cpu.h>

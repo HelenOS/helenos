@@ -30,7 +30,7 @@
 #define __KCONSOLE_H__
 
 #include <typedefs.h>
-#include <list.h>
+#include <adt/list.h>
 #include <synch/spinlock.h>
 
 #define MAX_CMDLINE     256

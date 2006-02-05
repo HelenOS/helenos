@@ -31,7 +31,7 @@
 #include <mm/heap.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <list.h>
+#include <adt/list.h>
 #include <debug.h>
 #include <print.h>
 

@@ -32,7 +32,7 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
-#include <list.h>
+#include <adt/list.h>
 #include <synch/spinlock.h>
 #include <mm/buddy.h>
 #include <mm/slab.h>
