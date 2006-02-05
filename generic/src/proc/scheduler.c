@@ -131,6 +131,9 @@ loop:
 		 * For there was nothing to run, the CPU goes to sleep
 		 * until a hardware interrupt or an IPI comes.
 		 * This improves energy saving and hyperthreading.
+		 *
+		 * - we might get an interrupt here that makes some thread runnable,
+		 *   in such a case we must wait for the next quantum to come
 		 */
 		 cpu_sleep();
 		 goto loop;
@@ -219,7 +222,7 @@ static void relink_rq(int start)
 		}
 		CPU->needs_relink = 0;
 	}
-	spinlock_unlock(&CPU->lock);				
+	spinlock_unlock(&CPU->lock);
 
 }
 
@@ -462,16 +465,11 @@ not_satisfied:
 	 * other CPU's. Note that situation can have changed between two
 	 * passes. Each time get the most up to date counts.
 	 */
-	average = atomic_get(&nrdy) / config.cpu_active;
+	average = atomic_get(&nrdy) / config.cpu_active + 1;
 	count = average - atomic_get(&CPU->nrdy);
 
-	if (count < 0)
+	if (count <= 0)
 		goto satisfied;
-
-	if (!count) { /* Try to steal threads from CPU's that have more then average count */
-		count = 1;
-		average += 1;
-	}
 
 	/*
 	 * Searching least priority queues on all CPU's first and most priority queues on all CPU's last.
@@ -493,7 +491,7 @@ not_satisfied:
 			if (atomic_get(&cpu->nrdy) <= average)
 				continue;
 
-restart:		ipl = interrupts_disable();
+			ipl = interrupts_disable();
 			r = &cpu->rq[j];
 			spinlock_lock(&r->lock);
 			if (r->n == 0) {
@@ -513,26 +511,12 @@ restart:		ipl = interrupts_disable();
 				 */
 				spinlock_lock(&t->lock);
 				if ( (!(t->flags & (X_WIRED | X_STOLEN))) && (!(t->fpu_context_engaged)) ) {
-				
 					/*
 					 * Remove t from r.
 					 */
-
 					spinlock_unlock(&t->lock);
 					
-					/*
-					 * Here we have to avoid deadlock with relink_rq(),
-					 * because it locks cpu and r in a different order than we do.
-					 */
-					if (!spinlock_trylock(&cpu->lock)) {
-						/* Release all locks and try again. */ 
-						spinlock_unlock(&r->lock);
-						interrupts_restore(ipl);
-						goto restart;
-					}
 					atomic_dec(&cpu->nrdy);
-					spinlock_unlock(&cpu->lock);
-
 					atomic_dec(&nrdy);
 
 					r->n--;
