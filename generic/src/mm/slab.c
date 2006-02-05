@@ -112,7 +112,8 @@ static LIST_INITIALIZE(slab_cache_list);
 static slab_cache_t mag_cache;
 /** Cache for cache descriptors */
 static slab_cache_t slab_cache_cache;
-
+/** Cache for magcache structure from cache_t */
+static slab_cache_t *cpu_cache = NULL;
 /** Cache for external slab descriptors
  * This time we want per-cpu cache, so do not make it static
  * - using SLAB for internal SLAB structures will not deadlock,
@@ -234,12 +235,12 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		slab = obj2slab(obj);
 
 	ASSERT(slab->cache == cache);
-	ASSERT(slab->available < cache->objects);
 
 	if (cache->destructor)
 		freed = cache->destructor(obj);
 	
 	spinlock_lock(&cache->slablock);
+	ASSERT(slab->available < cache->objects);
 
 	*((int *)obj) = slab->nextavail;
 	slab->nextavail = (obj - slab->start)/cache->size;
@@ -536,6 +537,23 @@ static int badness(slab_cache_t *cache)
 	return ssize - objects*cache->size;
 }
 
+/**
+ * Initialize mag_cache structure in slab cache
+ */
+static void make_magcache(slab_cache_t *cache)
+{
+	int i;
+
+	ASSERT(cpu_cache);
+	cache->mag_cache = slab_alloc(cpu_cache, 0);
+	for (i=0; i < config.cpu_count; i++) {
+		memsetb((__address)&cache->mag_cache[i],
+			sizeof(cache->mag_cache[i]), 0);
+		spinlock_initialize(&cache->mag_cache[i].lock, 
+				    "slab_maglock_cpu");
+	}
+}
+
 /** Initialize allocated memory as a slab cache */
 static void
 _slab_cache_create(slab_cache_t *cache,
@@ -546,7 +564,6 @@ _slab_cache_create(slab_cache_t *cache,
 		   int (*destructor)(void *obj),
 		   int flags)
 {
-	int i;
 	int pages;
 	ipl_t ipl;
 
@@ -568,14 +585,8 @@ _slab_cache_create(slab_cache_t *cache,
 	list_initialize(&cache->magazines);
 	spinlock_initialize(&cache->slablock, "slab_lock");
 	spinlock_initialize(&cache->maglock, "slab_maglock");
-	if (! (cache->flags & SLAB_CACHE_NOMAGAZINE)) {
-		for (i=0; i < config.cpu_count; i++) {
-			memsetb((__address)&cache->mag_cache[i],
-				sizeof(cache->mag_cache[i]), 0);
-			spinlock_initialize(&cache->mag_cache[i].lock, 
-					    "slab_maglock_cpu");
-		}
-	}
+	if (! (cache->flags & SLAB_CACHE_NOMAGAZINE))
+		make_magcache(cache);
 
 	/* Compute slab sizes, object counts in slabs etc. */
 	if (cache->size < SLAB_INSIDE_SIZE)
@@ -696,6 +707,8 @@ void slab_cache_destroy(slab_cache_t *cache)
 	    || !list_empty(&cache->partial_slabs))
 		panic("Destroying cache that is not empty.");
 
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
+		slab_free(cpu_cache, cache->mag_cache);
 	slab_free(&slab_cache_cache, cache);
 }
 
@@ -810,7 +823,7 @@ void slab_cache_init(void)
 	/* Initialize slab_cache cache */
 	_slab_cache_create(&slab_cache_cache,
 			   "slab_cache",
-			   sizeof(slab_cache_cache) + config.cpu_count*sizeof(slab_cache_cache.mag_cache[0]),
+			   sizeof(slab_cache_cache),
 			   sizeof(__address),
 			   NULL, NULL,
 			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
@@ -818,7 +831,7 @@ void slab_cache_init(void)
 	slab_extern_cache = slab_cache_create("slab_extern",
 					      sizeof(slab_t),
 					      0, NULL, NULL,
-					      SLAB_CACHE_SLINSIDE);
+					      SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
 
 	/* Initialize structures for malloc */
 	for (i=0, size=(1<<SLAB_MIN_MALLOC_W);
@@ -826,11 +839,40 @@ void slab_cache_init(void)
 	     i++, size <<= 1) {
 		malloc_caches[i] = slab_cache_create(malloc_names[i],
 						     size, 0,
-						     NULL,NULL,0);
+						     NULL,NULL, SLAB_CACHE_MAGDEFERRED);
 	}
 #ifdef CONFIG_DEBUG       
 	_slab_initialized = 1;
 #endif
+}
+
+/** Enable cpu_cache
+ *
+ * Kernel calls this function, when it knows the real number of
+ * processors. 
+ * Allocate slab for cpucache and enable it on all existing
+ * slabs that are SLAB_CACHE_MAGDEFERRED
+ */
+void slab_enable_cpucache(void)
+{
+	link_t *cur;
+	slab_cache_t *s;
+
+	cpu_cache = slab_cache_create("magcpucache",
+				      sizeof(slab_mag_cache_t) * config.cpu_count,
+				      0, NULL, NULL,
+				      SLAB_CACHE_NOMAGAZINE);
+	spinlock_lock(&slab_cache_lock);
+	
+	for (cur=slab_cache_list.next; cur != &slab_cache_list;cur=cur->next){
+		s = list_get_instance(cur, slab_cache_t, link);
+		if ((s->flags & SLAB_CACHE_MAGDEFERRED) != SLAB_CACHE_MAGDEFERRED)
+			continue;
+		make_magcache(s);
+		s->flags &= ~SLAB_CACHE_MAGDEFERRED;
+	}
+
+	spinlock_unlock(&slab_cache_lock);
 }
 
 /**************************************/

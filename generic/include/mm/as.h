@@ -49,7 +49,6 @@
 #define UDATA_ADDRESS	UDATA_ADDRESS_ARCH
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
-#define FLAG_AS_EARLYMALLOC (1 << 1)    /**< Use early malloc */
 
 enum as_area_type {
 	AS_AREA_TEXT = 1, AS_AREA_DATA, AS_AREA_STACK 

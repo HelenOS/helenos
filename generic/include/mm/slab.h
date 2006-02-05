@@ -55,6 +55,8 @@
 /* cache_create flags */
 #define SLAB_CACHE_NOMAGAZINE 0x1 /**< Do not use per-cpu cache */
 #define SLAB_CACHE_SLINSIDE   0x2 /**< Have control structure inside SLAB */
+/** We add magazine cache later, if we have this flag */
+#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE)
 
 typedef struct {
 	link_t link;
@@ -62,6 +64,13 @@ typedef struct {
 	count_t size;  /**< Number of slots in magazine */
 	void *objs[0]; /**< Slots in magazine */
 }slab_magazine_t;
+
+typedef struct {
+	slab_magazine_t *current;
+	slab_magazine_t *last;
+	SPINLOCK_DECLARE(lock);
+}slab_mag_cache_t;
+
 
 typedef struct {
 	char *name;
@@ -92,11 +101,7 @@ typedef struct {
 	SPINLOCK_DECLARE(maglock);
 
 	/** CPU cache */
-	struct {
-		slab_magazine_t *current;
-		slab_magazine_t *last;
-		SPINLOCK_DECLARE(lock);
-	}mag_cache[0];
+	slab_mag_cache_t *mag_cache;
 }slab_cache_t;
 
 extern slab_cache_t * slab_cache_create(char *name,
@@ -113,6 +118,7 @@ extern count_t slab_reclaim(int flags);
 
 /** Initialize SLAB subsytem */
 extern void slab_cache_init(void);
+extern void slab_enable_cpucache(void);
 
 /* KConsole debug */
 extern void slab_print_list(void);
@@ -120,5 +126,4 @@ extern void slab_print_list(void);
 /* Malloc support */
 extern void * kalloc(unsigned int size, int flags);
 extern void kfree(void *obj);
-
 #endif

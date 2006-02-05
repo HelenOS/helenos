@@ -65,7 +65,7 @@ static int get_area_flags(as_area_t *a);
 void as_init(void)
 {
 	as_arch_init();
-	AS_KERNEL = as_create(FLAG_AS_KERNEL | FLAG_AS_EARLYMALLOC);
+	AS_KERNEL = as_create(FLAG_AS_KERNEL);
         if (!AS_KERNEL)
                 panic("can't create kernel address space\n");
 }
@@ -78,10 +78,7 @@ as_t *as_create(int flags)
 {
 	as_t *as;
 
-	if (flags & FLAG_AS_EARLYMALLOC)
-		as = (as_t *) early_malloc(sizeof(as_t));
-	else
-		as = (as_t *) malloc(sizeof(as_t));
+	as = (as_t *) malloc(sizeof(as_t));
 	if (as) {
 		list_initialize(&as->as_with_asid_link);
 		spinlock_initialize(&as->lock, "as_lock");
