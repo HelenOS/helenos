@@ -88,4 +88,7 @@ typedef struct cmd_info cmd_info_t;
 
 typedef void (* iroutine)(int n, void *stack);
 
+typedef struct hash_table hash_table_t;
+typedef struct hash_table_operations hash_table_operations_t;
+
 #endif

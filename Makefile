@@ -94,6 +94,7 @@ endif
 #
 
 GENERIC_SOURCES = \
+	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
