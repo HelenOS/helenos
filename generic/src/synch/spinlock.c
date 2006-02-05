@@ -68,7 +68,7 @@ void spinlock_lock(spinlock_t *sl)
 
 	preemption_disable();
 	while (test_and_set(&sl->val)) {
-		if (i++ > 300000) {
+		if (i++ > 300000 && sl!=&printflock) {
 			printf("cpu%d: looping on spinlock %p:%s, caller=%p",
 			       CPU->id, sl, sl->name, CALLER);
 			symbol = get_symtab_entry(CALLER);

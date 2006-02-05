@@ -70,7 +70,7 @@ typedef struct {
 	/* Configuration */
 	size_t size;      /**< Size of SLAB position - align_up(sizeof(obj)) */
 	int (*constructor)(void *obj, int kmflag);
-	void (*destructor)(void *obj);
+	int (*destructor)(void *obj);
 	int flags;        /**< Flags changing behaviour of cache */
 
 	/* Computed values */
@@ -103,7 +103,7 @@ extern slab_cache_t * slab_cache_create(char *name,
 					size_t size,
 					size_t align,
 					int (*constructor)(void *obj, int kmflag),
-					void (*destructor)(void *obj),
+					int (*destructor)(void *obj),
 					int flags);
 extern void slab_cache_destroy(slab_cache_t *cache);
 

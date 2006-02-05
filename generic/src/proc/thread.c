@@ -52,6 +52,8 @@
 #include <arch/atomic.h>
 #include <memstr.h>
 #include <print.h>
+#include <mm/slab.h>
+#include <debug.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
@@ -60,6 +62,8 @@ LIST_INITIALIZE(threads_head);		/**< List of all threads. */
 
 SPINLOCK_INITIALIZE(tidlock);
 __u32 last_tid = 0;
+
+static slab_cache_t *thread_slab;
 
 
 /** Thread wrapper
@@ -87,6 +91,32 @@ static void cushion(void)
 	/* not reached */
 }
 
+/** Initialization and allocation for thread_t structure */
+static int thr_constructor(void *obj, int kmflags)
+{
+	thread_t *t = (thread_t *)obj;
+
+	spinlock_initialize(&t->lock, "thread_t_lock");
+	link_initialize(&t->rq_link);
+	link_initialize(&t->wq_link);
+	link_initialize(&t->th_link);
+	link_initialize(&t->threads_link);
+	
+	t->kstack = (__u8 *)frame_alloc(ONE_FRAME, FRAME_KA | kmflags);
+	if (!t->kstack)
+		return -1;
+
+	return 0;
+}
+
+/** Destruction of thread_t object */
+static int thr_destructor(void *obj)
+{
+	thread_t *t = (thread_t *)obj;
+
+	frame_free((__address) t->kstack);
+	return 1; /* One page freed */
+}
 
 /** Initialize threads
  *
@@ -97,6 +127,9 @@ void thread_init(void)
 {
 	THREAD = NULL;
 	atomic_set(&nrdy,0);
+	thread_slab = slab_cache_create("thread_slab", 
+					sizeof(thread_t),0, 
+					thr_constructor, thr_destructor, 0);
 }
 
 
@@ -143,6 +176,43 @@ void thread_ready(thread_t *t)
 }
 
 
+/** Destroy thread memory structure
+ *
+ * Detach thread from all queues, cpus etc. and destroy it.
+ *
+ * Assume thread->lock is held!!
+ */
+void thread_destroy(thread_t *t)
+{
+	ASSERT(t->state == Exiting);
+	ASSERT(t->task);
+	ASSERT(t->cpu);
+
+	spinlock_lock(&t->cpu->lock);
+	if(t->cpu->fpu_owner==t)
+		t->cpu->fpu_owner=NULL;
+	spinlock_unlock(&t->cpu->lock);
+
+	if (t->ustack)
+		frame_free((__address) t->ustack);
+	
+	/*
+	 * Detach from the containing task.
+	 */
+	spinlock_lock(&t->task->lock);
+	list_remove(&t->th_link);
+	spinlock_unlock(&t->task->lock);
+	
+	spinlock_unlock(&t->lock);
+	
+	spinlock_lock(&threads_lock);
+	list_remove(&t->threads_link);
+	spinlock_unlock(&threads_lock);
+	
+	slab_free(thread_slab, t);
+}
+
+
 /** Create new thread
  *
  * Create a new thread.
@@ -158,18 +228,18 @@ void thread_ready(thread_t *t)
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags)
 {
 	thread_t *t;
-	__address frame_ks, frame_us = NULL;
+	__address frame_us = NULL;
 
-	t = (thread_t *) malloc(sizeof(thread_t));
+	t = (thread_t *) slab_alloc(thread_slab, 0);
 	if (t) {
 		ipl_t ipl;
 	
-		spinlock_initialize(&t->lock, "thread_t_lock");
-	
-		frame_ks = frame_alloc(ONE_FRAME, FRAME_KA);
 		if (THREAD_USER_STACK & flags) {
 			frame_us = frame_alloc(ONE_FRAME, FRAME_KA);
 		}
+
+		/* Not needed, but good for debugging */
+		memsetb((__address)t->kstack, THREAD_STACK_SIZE, 0);
 
 		ipl = interrupts_disable();
 		spinlock_lock(&tidlock);
@@ -177,12 +247,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		spinlock_unlock(&tidlock);
 		interrupts_restore(ipl);
 		
-		memsetb(frame_ks, THREAD_STACK_SIZE, 0);
-		link_initialize(&t->rq_link);
-		link_initialize(&t->wq_link);
-		link_initialize(&t->th_link);
-		link_initialize(&t->threads_link);
-		t->kstack = (__u8 *) frame_ks;
 		t->ustack = (__u8 *) frame_us;
 		
 		context_save(&t->saved_context);
@@ -218,7 +282,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		/*
 		 * Register this thread in the system-wide list.
 		 */
-		ipl = interrupts_disable();		
+		ipl = interrupts_disable();
 		spinlock_lock(&threads_lock);
 		list_append(&t->threads_link, &threads_head);
 		spinlock_unlock(&threads_lock);

@@ -237,6 +237,7 @@ static void relink_rq(int start)
  * using new stack. Handling the actual context
  * switch to a new thread.
  *
+ * Assume THREAD->lock is held.
  */
 static void scheduler_separated_stack(void)
 {
@@ -253,33 +254,9 @@ static void scheduler_separated_stack(void)
 			break;
 
 		    case Exiting:
-			frame_free((__address) THREAD->kstack);
-			if (THREAD->ustack) {
-				frame_free((__address) THREAD->ustack);
-			}
-
-			/*
-			 * Detach from the containing task.
-			 */
-			spinlock_lock(&TASK->lock);
-			list_remove(&THREAD->th_link);
-			spinlock_unlock(&TASK->lock);
-
-			spinlock_unlock(&THREAD->lock);
-    
-			spinlock_lock(&threads_lock);
-			list_remove(&THREAD->threads_link);
-			spinlock_unlock(&threads_lock);
-
-			spinlock_lock(&CPU->lock);
-			if(CPU->fpu_owner==THREAD)
-				CPU->fpu_owner=NULL;
-			spinlock_unlock(&CPU->lock);
-
-			free(THREAD);
-
+			thread_destroy(THREAD);
 			break;
-    
+			
 		    case Sleeping:
 			/*
 			 * Prefer the thread after it's woken up.

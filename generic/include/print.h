@@ -30,6 +30,7 @@
 #define __PRINT_H__
 
 #include <arch/types.h>
+#include <synch/spinlock.h>
 
 #define INT8	1
 #define INT16	2
@@ -37,5 +38,8 @@
 #define INT64	8
 
 extern void printf(const char *fmt, ...);
+
+/* We need this address in spinlock to avoid deadlock in deadlock detection */
+extern spinlock_t printflock;
 
 #endif

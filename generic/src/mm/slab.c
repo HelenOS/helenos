@@ -228,12 +228,17 @@ static slab_t * obj2slab(void *obj)
 static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 				slab_t *slab)
 {
+	int freed = 0;
+
 	if (!slab)
 		slab = obj2slab(obj);
 
 	ASSERT(slab->cache == cache);
 	ASSERT(slab->available < cache->objects);
 
+	if (cache->destructor)
+		freed = cache->destructor(obj);
+	
 	spinlock_lock(&cache->slablock);
 
 	*((int *)obj) = slab->nextavail;
@@ -246,7 +251,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		list_remove(&slab->link);
 		spinlock_unlock(&cache->slablock);
 
-		return slab_space_free(cache, slab);
+		return freed + slab_space_free(cache, slab);
 
 	} else if (slab->available == 1) {
 		/* It was in full, move to partial */
@@ -254,7 +259,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		list_prepend(&slab->link, &cache->partial_slabs);
 	}
 	spinlock_unlock(&cache->slablock);
-	return 0;
+	return freed;
 }
 
 /**
@@ -290,12 +295,19 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 	obj = slab->start + slab->nextavail * cache->size;
 	slab->nextavail = *((int *)obj);
 	slab->available--;
+
 	if (! slab->available)
 		list_prepend(&slab->link, &cache->full_slabs);
 	else
 		list_prepend(&slab->link, &cache->partial_slabs);
 
 	spinlock_unlock(&cache->slablock);
+
+	if (cache->constructor && cache->constructor(obj, flags)) {
+		/* Bad, bad, construction failed */
+		slab_obj_destroy(cache, obj, slab);
+		return NULL;
+	}
 	return obj;
 }
 
@@ -531,7 +543,7 @@ _slab_cache_create(slab_cache_t *cache,
 		   size_t size,
 		   size_t align,
 		   int (*constructor)(void *obj, int kmflag),
-		   void (*destructor)(void *obj),
+		   int (*destructor)(void *obj),
 		   int flags)
 {
 	int i;
@@ -596,7 +608,7 @@ slab_cache_t * slab_cache_create(char *name,
 				 size_t size,
 				 size_t align,
 				 int (*constructor)(void *obj, int kmflag),
-				 void (*destructor)(void *obj),
+				 int (*destructor)(void *obj),
 				 int flags)
 {
 	slab_cache_t *cache;
