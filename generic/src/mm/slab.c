@@ -228,8 +228,6 @@ static slab_t * obj2slab(void *obj)
 static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 				slab_t *slab)
 {
-	count_t frames = 0;
-
 	if (!slab)
 		slab = obj2slab(obj);
 
@@ -246,19 +244,17 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (slab->available == cache->objects) {
 		/* Free associated memory */
 		list_remove(&slab->link);
-		/* This should not produce deadlock, as
-		 * magazine is always allocated with NO reclaim,
-		 * keep all locks */
-		frames = slab_space_free(cache, slab);
+		spinlock_unlock(&cache->slablock);
+
+		return slab_space_free(cache, slab);
+
 	} else if (slab->available == 1) {
 		/* It was in full, move to partial */
 		list_remove(&slab->link);
 		list_prepend(&slab->link, &cache->partial_slabs);
+		spinlock_unlock(&cache->slablock);
 	}
-
-	spinlock_unlock(&cache->slablock);
-
-	return frames;
+	return 0;
 }
 
 /**
@@ -744,7 +740,6 @@ count_t slab_reclaim(int flags)
 
 	/* TODO: Add assert, that interrupts are disabled, otherwise
 	 * memory allocation from interrupts can deadlock.
-	 * - cache_destroy can call this with interrupts enabled :-/
 	 */
 
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
