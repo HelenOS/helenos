@@ -252,8 +252,8 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		/* It was in full, move to partial */
 		list_remove(&slab->link);
 		list_prepend(&slab->link, &cache->partial_slabs);
-		spinlock_unlock(&cache->slablock);
 	}
+	spinlock_unlock(&cache->slablock);
 	return 0;
 }
 
@@ -536,6 +536,7 @@ _slab_cache_create(slab_cache_t *cache,
 {
 	int i;
 	int pages;
+	ipl_t ipl;
 
 	memsetb((__address)cache, sizeof(*cache), 0);
 	cache->name = name;
@@ -580,11 +581,14 @@ _slab_cache_create(slab_cache_t *cache,
 	if (badness(cache) > sizeof(slab_t))
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 
+	/* Add cache to cache list */
+	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
 
 	list_append(&cache->link, &slab_cache_list);
 
 	spinlock_unlock(&slab_cache_lock);
+	interrupts_restore(ipl);
 }
 
 /** Create slab cache  */
@@ -758,7 +762,9 @@ void slab_print_list(void)
 {
 	slab_cache_t *cache;
 	link_t *cur;
-
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
 	printf("SLAB name\tOsize\tPages\tObj/pg\tSlabs\tCached\tAllocobjs\tCtl\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
@@ -771,6 +777,7 @@ void slab_print_list(void)
 		       cache->flags & SLAB_CACHE_SLINSIDE ? "In" : "Out");
 	}
 	spinlock_unlock(&slab_cache_lock);
+	interrupts_restore(ipl);
 }
 
 #ifdef CONFIG_DEBUG

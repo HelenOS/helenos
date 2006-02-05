@@ -50,7 +50,7 @@ struct cpu {
 
 	context_t saved_context;
 
-	volatile count_t nrdy;
+	atomic_t nrdy;
 	runq_t rq[RQ_COUNT];
 	volatile count_t needs_relink;
 

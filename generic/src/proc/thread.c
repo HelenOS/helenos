@@ -137,15 +137,7 @@ void thread_ready(thread_t *t)
 
 	atomic_inc(&nrdy);
 	avg = atomic_get(&nrdy) / config.cpu_active;
-
-	spinlock_lock(&cpu->lock);
-	if ((++cpu->nrdy) > avg) {
-		/*
-		 * If there are idle halted CPU's, this will wake them up.
-		 */
-		ipi_broadcast(VECTOR_WAKEUP_IPI);
-	}	
-	spinlock_unlock(&cpu->lock);
+	atomic_inc(&cpu->nrdy);
 
 	interrupts_restore(ipl);
 }

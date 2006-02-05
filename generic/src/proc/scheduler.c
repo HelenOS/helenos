@@ -119,20 +119,14 @@ static thread_t *find_best_thread(void)
 {
 	thread_t *t;
 	runq_t *r;
-	int i, n;
+	int i;
 
 	ASSERT(CPU != NULL);
 
 loop:
-	interrupts_disable();
-
-	spinlock_lock(&CPU->lock);
-	n = CPU->nrdy;
-	spinlock_unlock(&CPU->lock);
-
 	interrupts_enable();
 	
-	if (n == 0) {
+	if (atomic_get(&CPU->nrdy) == 0) {
 		/*
 		 * For there was nothing to run, the CPU goes to sleep
 		 * until a hardware interrupt or an IPI comes.
@@ -145,7 +139,6 @@ loop:
 	interrupts_disable();
 	
 	i = 0;
-retry:
 	for (; i<RQ_COUNT; i++) {
 		r = &CPU->rq[i];
 		spinlock_lock(&r->lock);
@@ -157,17 +150,7 @@ retry:
 			continue;
 		}
 
-		/* avoid deadlock with relink_rq() */
-		if (!spinlock_trylock(&CPU->lock)) {
-			/*
-			 * Unlock r and try again.
-			 */
-			spinlock_unlock(&r->lock);
-			goto retry;
-		}
-		CPU->nrdy--;
-		spinlock_unlock(&CPU->lock);
-
+		atomic_dec(&CPU->nrdy);
 		atomic_dec(&nrdy);
 		r->n--;
 
@@ -464,7 +447,7 @@ void scheduler(void)
 void kcpulb(void *arg)
 {
 	thread_t *t;
-	int count, i, j, k = 0;
+	int count, average, i, j, k = 0;
 	ipl_t ipl;
 
 loop:
@@ -479,15 +462,16 @@ not_satisfied:
 	 * other CPU's. Note that situation can have changed between two
 	 * passes. Each time get the most up to date counts.
 	 */
-	ipl = interrupts_disable();
-	spinlock_lock(&CPU->lock);
-	count = atomic_get(&nrdy) / config.cpu_active;
-	count -= CPU->nrdy;
-	spinlock_unlock(&CPU->lock);
-	interrupts_restore(ipl);
+	average = atomic_get(&nrdy) / config.cpu_active;
+	count = average - atomic_get(&CPU->nrdy);
 
-	if (count <= 0)
+	if (count < 0)
 		goto satisfied;
+
+	if (!count) { /* Try to steal threads from CPU's that have more then average count */
+		count = 1;
+		average += 1;
+	}
 
 	/*
 	 * Searching least priority queues on all CPU's first and most priority queues on all CPU's last.
@@ -505,7 +489,9 @@ not_satisfied:
 			 * Doesn't require interrupt disabling for kcpulb is X_WIRED.
 			 */
 			if (CPU == cpu)
-				continue;				
+				continue;
+			if (atomic_get(&cpu->nrdy) <= average)
+				continue;
 
 restart:		ipl = interrupts_disable();
 			r = &cpu->rq[j];
@@ -544,7 +530,7 @@ restart:		ipl = interrupts_disable();
 						interrupts_restore(ipl);
 						goto restart;
 					}
-					cpu->nrdy--;
+					atomic_dec(&cpu->nrdy);
 					spinlock_unlock(&cpu->lock);
 
 					atomic_dec(&nrdy);
@@ -566,7 +552,7 @@ restart:		ipl = interrupts_disable();
 				 */
 				spinlock_lock(&t->lock);
 				#ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, CPU->nrdy, atomic_get(&nrdy) / config.cpu_active);
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
 				#endif
 				t->flags |= X_STOLEN;
 				spinlock_unlock(&t->lock);
@@ -589,7 +575,7 @@ restart:		ipl = interrupts_disable();
 		}
 	}
 
-	if (CPU->nrdy) {
+	if (atomic_get(&CPU->nrdy)) {
 		/*
 		 * Be a little bit light-weight and let migrated threads run.
 		 */
@@ -629,7 +615,7 @@ void sched_print_list(void)
 			continue;
 		spinlock_lock(&cpus[cpu].lock);
 		printf("cpu%d: nrdy: %d needs_relink: %d\n",
-		       cpus[cpu].id, cpus[cpu].nrdy, cpus[cpu].needs_relink);
+		       cpus[cpu].id, atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
 		
 		for (i=0; i<RQ_COUNT; i++) {
 			r = &cpus[cpu].rq[i];
