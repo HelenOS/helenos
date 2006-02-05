@@ -61,7 +61,7 @@ void cpu_init(void) {
 		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
 		for (i=0; i < config.cpu_count; i++) {
-			cpus[i].stack = (__u8 *) frame_alloc(FRAME_KA | FRAME_PANIC, ONE_FRAME, NULL, NULL);
+			cpus[i].stack = (__u8 *) frame_alloc(ONE_FRAME, FRAME_KA | FRAME_PANIC);
 			
 			cpus[i].id = i;
 			

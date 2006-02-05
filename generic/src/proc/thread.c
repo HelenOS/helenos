@@ -166,9 +166,9 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 		spinlock_initialize(&t->lock, "thread_t_lock");
 	
-		frame_ks = frame_alloc(FRAME_KA, ONE_FRAME, NULL, NULL);
+		frame_ks = frame_alloc(ONE_FRAME, FRAME_KA);
 		if (THREAD_USER_STACK & flags) {
-			frame_us = frame_alloc(FRAME_KA, ONE_FRAME, NULL,NULL);
+			frame_us = frame_alloc(ONE_FRAME, FRAME_KA);
 		}
 
 		ipl = interrupts_disable();

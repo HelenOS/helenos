@@ -47,8 +47,8 @@ void test(void)
 
 	printf("Memory management test mapping #1\n");
 
-	frame0 = frame_alloc(FRAME_KA, ONE_FRAME, NULL, NULL);
-	frame1 = frame_alloc(FRAME_KA, ONE_FRAME, NULL, NULL);	
+	frame0 = frame_alloc(ONE_FRAME, FRAME_KA);
+	frame1 = frame_alloc(ONE_FRAME, FRAME_KA);	
 
 	printf("Writing %L to physical address %P.\n", VALUE0, KA2PA(frame0));
 	*((__u32 *) frame0) = VALUE0;

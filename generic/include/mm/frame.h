@@ -61,6 +61,10 @@
 
 #define ZONE_BLACKLIST_SIZE	8
 
+#define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL, NULL)
+#define frame_alloc_rc(order, flags, status)			frame_alloc_generic(order, flags, status, NULL)
+#define frame_alloc_rc_zone(order, flags, status, zone)		frame_alloc_generic(order, flags, status, zone)
+
 struct zone {
 	link_t link;		/**< link to previous and next zone */
 
@@ -101,7 +105,9 @@ extern void zone_attach(zone_t *zone);
 extern void frame_init(void);
 extern void frame_initialize(frame_t *frame, zone_t *zone);
 
-__address frame_alloc(int flags, __u8 order, int * status, zone_t **pzone);
+__address frame_alloc_generic(__u8 order, int flags, int * status, zone_t **pzone);
+
+
 extern void frame_free(__address addr);
 
 zone_t * get_zone_by_frame(frame_t * frame);

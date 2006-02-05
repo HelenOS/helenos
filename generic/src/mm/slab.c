@@ -155,7 +155,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	int status;
 	frame_t *frame;
 
-	data = (void *)frame_alloc(FRAME_KA | flags, cache->order, &status, &zone);
+	data = (void *)frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
 	if (status != FRAME_OK) {
 		return NULL;
 	}

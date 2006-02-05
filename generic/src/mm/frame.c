@@ -109,7 +109,7 @@ static zone_t * find_free_zone(__u8 order)
  *
  * @return Allocated frame.
  */
-__address frame_alloc(int flags, __u8 order, int * status, zone_t **pzone) 
+__address frame_alloc_generic(__u8 order, int flags, int * status, zone_t **pzone) 
 {
 	ipl_t ipl;
 	link_t *tmp;

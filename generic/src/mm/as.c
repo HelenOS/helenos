@@ -256,7 +256,7 @@ int as_page_fault(__address page)
 	 *   do not forget to distinguish between
 	 *   the different causes
 	 */
-	frame = frame_alloc(0, ONE_FRAME, NULL, NULL);
+	frame = frame_alloc(ONE_FRAME, 0);
 	memsetb(PA2KA(frame), FRAME_SIZE, 0);
 	
 	/*

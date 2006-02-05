@@ -60,10 +60,10 @@ void thread(void * arg)
 
 	for (run = 0; run < THREAD_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
-			printf("Thread #%d: Allocating %d frames blocks ... \n", THREAD->tid, 1 << order);
+			printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = frame_alloc(FRAME_ATOMIC | FRAME_KA, order, &status, NULL);
+				frames[allocated] = frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status);
 				if (status == 0) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
@@ -71,24 +71,24 @@ void thread(void * arg)
 					break;
 				}
 			}
-			printf("Thread #%d: %d blocks allocated.\n", THREAD->tid, allocated);
+			printf("Thread #%d (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
 
-			printf("Thread #%d: Deallocating ... \n", THREAD->tid);
+			printf("Thread #%d (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
 					if (((__u8 *) frames[i])[k] != val) {
-						printf("Thread #%d: Unexpected data (%d) in block %P offset %X\n", THREAD->tid, ((char *) frames[i])[k], frames[i], k);
+						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %P offset %X\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						failed();
 					}
 				}
 				frame_free(frames[i]);
 			}
-			printf("Thread #%d: Finished run.\n", val);
+			printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
 	
 	free(frames);
-	
+	printf("Thread #%d (cpu%d): Exiting\n", THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
 }
 
