@@ -27,7 +27,7 @@
  */
 
 /*
- * The SLAB allocator is closely modelled after Opensolaris SLAB allocator
+ * The SLAB allocator is closely modelled after OpenSolaris SLAB allocator
  * http://www.usenix.org/events/usenix01/full_papers/bonwick/bonwick_html/
  *
  * with the following exceptions:

@@ -131,10 +131,14 @@ loop:
 		 * For there was nothing to run, the CPU goes to sleep
 		 * until a hardware interrupt or an IPI comes.
 		 * This improves energy saving and hyperthreading.
-		 *
-		 * - we might get an interrupt here that makes some thread runnable,
-		 *   in such a case we must wait for the next quantum to come
 		 */
+
+		/*
+		 * An interrupt might occur right now and wake up a thread.
+		 * In such case, the CPU will continue to go to sleep
+		 * even though there is a runnable thread.
+		 */
+
 		 cpu_sleep();
 		 goto loop;
 	}
