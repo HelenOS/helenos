@@ -81,6 +81,7 @@ typedef struct {
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
+	atomic_t magazine_counter; /*<< How many magazines in magazines list */
 
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */
