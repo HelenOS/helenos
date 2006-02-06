@@ -160,15 +160,16 @@ start64:
 		cmpl $0, %ecx
 		je mods_invalid
 		
+		xorq %rdx, %rdx
 		movl 24(%ebx), %esi						# mbi->mods_addr
 		movl 0(%esi), %edx						# mods->mod_start
 		movl 4(%esi), %ecx						# mods->mod_end
 		subl %edx, %ecx
-		addl $0x80000000, %edx
+		addq $0xffffffff80000000, %rdx
 		
 		mods_invalid:
 		movl %ecx, init_size
-		movl %edx, init_addr
+		movq %rdx, init_addr
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid
