@@ -57,7 +57,11 @@ void userspace(void)
 			  "pushq %%rdx;"
 			  "pushq %%rsi;"
 			  "iretq;"
-			  : : "i" (gdtselector(UDATA_DES) | PL_USER), "i" (USTACK_ADDRESS+THREAD_STACK_SIZE), "r" (ipl), "i" (gdtselector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS));
+			  : : "i" (gdtselector(UDATA_DES) | PL_USER), 
+			  "i" (USTACK_ADDRESS+THREAD_STACK_SIZE), 
+			  "r" (ipl), 
+			  "i" (gdtselector(UTEXT_DES) | PL_USER), 
+			  "i" (UTEXT_ADDRESS));
 	
 	/* Unreachable */
 	for(;;);
