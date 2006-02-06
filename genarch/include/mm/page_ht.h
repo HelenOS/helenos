@@ -57,9 +57,8 @@ struct pte {
 	unsigned p : 1;		/**< Present. */
 };
 
-extern page_operations_t page_ht_operations;
+extern page_mapping_operations_t ht_mapping_operations;
 extern spinlock_t page_ht_lock;
-
 extern hash_table_t page_ht;
 extern hash_table_operations_t ht_operations;
 

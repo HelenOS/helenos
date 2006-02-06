@@ -43,7 +43,7 @@
 #include <arch.h>
 
 /** Virtual operations for page subsystem. */
-page_operations_t *page_operations = NULL;
+page_mapping_operations_t *page_mapping_operations = NULL;
 
 void page_init(void)
 {
@@ -85,10 +85,10 @@ void map_structure(__address s, size_t size)
  */
 void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
-	ASSERT(page_operations);
-	ASSERT(page_operations->mapping_insert);
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_insert);
 	
-	page_operations->mapping_insert(as, page, frame, flags);
+	page_mapping_operations->mapping_insert(as, page, frame, flags);
 }
 
 /** Find mapping for virtual page
@@ -104,8 +104,8 @@ void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
  */
 pte_t *page_mapping_find(as_t *as, __address page)
 {
-	ASSERT(page_operations);
-	ASSERT(page_operations->mapping_find);
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_find);
 
-	return page_operations->mapping_find(as, page);
+	return page_mapping_operations->mapping_find(as, page);
 }

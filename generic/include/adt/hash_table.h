@@ -66,7 +66,7 @@ struct hash_table_operations {
 	void (*remove_callback)(link_t *item);
 };
 
-#define hash_table_get_instance(item,type,member)	list_get_instance((item),(type),(member))
+#define hash_table_get_instance(item, type, member)	list_get_instance((item), type, member)
 
 extern void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_operations_t *op);
 extern void hash_table_insert(hash_table_t *h, __native key[], link_t *item);

@@ -60,13 +60,13 @@
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
 
 /** Operations to manipulate page mappings. */
-struct page_operations {
+struct page_mapping_operations {
 	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags);
 	pte_t *(* mapping_find)(as_t *as, __address page);
 };
-typedef struct page_operations page_operations_t;
+typedef struct page_mapping_operations page_mapping_operations_t;
 
-extern page_operations_t *page_operations;
+extern page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
 extern void page_mapping_insert(as_t *as, __address page, __address frame, int flags);

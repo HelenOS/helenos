@@ -67,7 +67,8 @@ hash_table_operations_t ht_operations = {
 	.remove_callback = remove_callback
 };
 
-page_operations_t page_ht_operations = {
+/** Page mapping operations for page hash table architectures. */
+page_mapping_operations_t ht_mapping_operations = {
 	.mapping_insert = ht_mapping_insert,
 	.mapping_find = ht_mapping_find
 };
@@ -119,7 +120,7 @@ bool compare(__native key[], count_t keys, link_t *item)
 	/*
 	 * Convert item to PTE.
 	 */
-	t = list_get_instance(item, pte_t, link);
+	t = hash_table_get_instance(item, pte_t, link);
 
 	if (keys == PAGE_HT_KEYS) {
 		return (key[KEY_AS] == (__address) t->as) && (key[KEY_PAGE] == t->page);
@@ -141,7 +142,7 @@ void remove_callback(link_t *item)
 	/*
 	 * Convert item to PTE.
 	 */
-	t = list_get_instance(item, pte_t, link);
+	t = hash_table_get_instance(item, pte_t, link);
 
 	free(t);
 }
@@ -199,7 +200,7 @@ pte_t *ht_mapping_find(as_t *as, __address page)
 
 	hlp = hash_table_find(&page_ht, key);
 	if (hlp)
-		t = list_get_instance(hlp, pte_t, link);
+		t = hash_table_get_instance(hlp, pte_t, link);
 
 	spinlock_unlock(&page_ht_lock);
 	return t;

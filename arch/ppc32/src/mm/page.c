@@ -35,5 +35,5 @@
 
 void page_arch_init(void)
 {
-	page_operations = &page_pt_operations;
+	page_mapping_operations = &pt_mapping_operations;
 }

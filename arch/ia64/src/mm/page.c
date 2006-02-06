@@ -47,7 +47,7 @@ static void set_environment(void);
 /** Initialize ia64 virtual address translation subsystem. */
 void page_arch_init(void)
 {
-	page_operations = &page_ht_operations;
+	page_mapping_operations = &ht_mapping_operations;
 	pk_disable();
 	set_environment();
 }

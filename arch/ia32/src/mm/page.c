@@ -47,7 +47,7 @@ void page_arch_init(void)
 	__address cur;
 
 	if (config.cpu_active == 1) {
-		page_operations = &page_pt_operations;
+		page_mapping_operations = &pt_mapping_operations;
 	
 		/*
 		 * PA2KA(identity) mapping for all frames until last_frame.

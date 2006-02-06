@@ -40,7 +40,7 @@
 static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags);
 static pte_t *pt_mapping_find(as_t *as, __address page);
 
-page_operations_t page_pt_operations = {
+page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
 	.mapping_find = pt_mapping_find
 };

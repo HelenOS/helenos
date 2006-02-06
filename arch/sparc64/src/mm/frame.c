@@ -33,8 +33,8 @@
 void frame_arch_init(void)
 {
 	/*
-	 * Workaround to prevent slab allocator from allocating fram 0,
-	 * which is not, at that time, mapped.
+	 * Workaround to prevent slab allocator from allocating frame 0,
+	 * which is not mapped by OFW.
 	 */
 	frame_region_not_free(0, FRAME_SIZE);
 	

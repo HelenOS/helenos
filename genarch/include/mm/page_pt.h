@@ -84,7 +84,7 @@
 #define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
-extern page_operations_t page_pt_operations;
+extern page_mapping_operations_t pt_mapping_operations;
 
 extern void page_mapping_insert_pt(as_t *as, __address page, __address frame, int flags);
 extern pte_t *page_mapping_find_pt(as_t *as, __address page);
