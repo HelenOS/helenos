@@ -34,7 +34,7 @@
 #include <arch/atomic.h>
 
 /** Minimum size to be allocated by malloc */
-#define SLAB_MIN_MALLOC_W 3
+#define SLAB_MIN_MALLOC_W 4
 
 /** Maximum size to be allocated by malloc */
 #define SLAB_MAX_MALLOC_W 17

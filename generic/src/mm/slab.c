@@ -112,8 +112,6 @@ static LIST_INITIALIZE(slab_cache_list);
 static slab_cache_t mag_cache;
 /** Cache for cache descriptors */
 static slab_cache_t slab_cache_cache;
-/** Cache for magcache structure from cache_t */
-static slab_cache_t *cpu_cache = NULL;
 /** Cache for external slab descriptors
  * This time we want per-cpu cache, so do not make it static
  * - using SLAB for internal SLAB structures will not deadlock,
@@ -124,7 +122,7 @@ static slab_cache_t *slab_extern_cache;
 /** Caches for malloc */
 static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W-SLAB_MIN_MALLOC_W+1];
 char *malloc_names[] =  {
-	"malloc-8","malloc-16","malloc-32","malloc-64","malloc-128",
+	"malloc-16","malloc-32","malloc-64","malloc-128",
 	"malloc-256","malloc-512","malloc-1K","malloc-2K",
 	"malloc-4K","malloc-8K","malloc-16K","malloc-32K",
 	"malloc-64K","malloc-128K"
@@ -138,6 +136,10 @@ typedef struct {
 	count_t available; /**< Count of available items in this slab */
 	index_t nextavail; /**< The index of next available item */
 }slab_t;
+
+#ifdef CONFIG_DEBUG
+static int _slab_initialized = 0;
+#endif
 
 /**************************************/
 /* SLAB allocation functions          */
@@ -543,9 +545,10 @@ static int badness(slab_cache_t *cache)
 static void make_magcache(slab_cache_t *cache)
 {
 	int i;
+	
+	ASSERT(_slab_initialized >= 2);
 
-	ASSERT(cpu_cache);
-	cache->mag_cache = slab_alloc(cpu_cache, 0);
+	cache->mag_cache = kalloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
 	for (i=0; i < config.cpu_count; i++) {
 		memsetb((__address)&cache->mag_cache[i],
 			sizeof(cache->mag_cache[i]), 0);
@@ -708,7 +711,7 @@ void slab_cache_destroy(slab_cache_t *cache)
 		panic("Destroying cache that is not empty.");
 
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
-		slab_free(cpu_cache, cache->mag_cache);
+		kfree(cache->mag_cache);
 	slab_free(&slab_cache_cache, cache);
 }
 
@@ -805,10 +808,6 @@ void slab_print_list(void)
 	interrupts_restore(ipl);
 }
 
-#ifdef CONFIG_DEBUG
-static int _slab_initialized = 0;
-#endif
-
 void slab_cache_init(void)
 {
 	int i, size;
@@ -858,10 +857,10 @@ void slab_enable_cpucache(void)
 	link_t *cur;
 	slab_cache_t *s;
 
-	cpu_cache = slab_cache_create("magcpucache",
-				      sizeof(slab_mag_cache_t) * config.cpu_count,
-				      0, NULL, NULL,
-				      SLAB_CACHE_NOMAGAZINE);
+#ifdef CONFIG_DEBUG
+	_slab_initialized = 2;
+#endif
+
 	spinlock_lock(&slab_cache_lock);
 	
 	for (cur=slab_cache_list.next; cur != &slab_cache_list;cur=cur->next){
