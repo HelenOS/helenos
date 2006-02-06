@@ -40,6 +40,7 @@
 #include <func.h>
 #include <console/kconsole.h>
 #include <arch/debugger.h>
+#include <syscall/syscall.h>
 
 static char * exctable[] = {
 	"Interrupt","TLB Modified","TLB Invalid","TLB Invalid Store",
@@ -134,6 +135,21 @@ static void interrupt_exception(int n, void *pstate)
 			exc_dispatch(i+INT_OFFSET, pstate);
 }
 
+#include <debug.h>
+/** Handle syscall userspace call */
+static void syscall_exception(int n, void *data)
+{
+	struct exception_regdump *pstate = (struct exception_regdump *)data;
+	
+	if (pstate->a3 < SYSCALL_END)
+		pstate->v0 = syscall_table[pstate->a3](pstate->a0,
+						       pstate->a1,
+						       pstate->a2);
+	else
+		panic("Undefined syscall %d", pstate->a3);
+	pstate->epc += 4;
+}
+
 
 void exception(struct exception_regdump *pstate)
 {
@@ -190,4 +206,5 @@ void exception_init(void)
 #ifdef CONFIG_FPU_LAZY
 	exc_register(EXC_CpU, "cpunus", cpuns_exception);
 #endif
+	exc_register(EXC_Sys, "syscall", syscall_exception);
 }

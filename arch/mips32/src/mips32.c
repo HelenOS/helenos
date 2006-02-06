@@ -95,6 +95,10 @@ void arch_pre_mm_init(void)
 	debugger_init();
 	arc_print_memory_map();
 	arc_print_devices();
+
+	/* Setup usermode...*/
+	config.init_addr = 0x20000000;
+	config.init_size = FRAME_SIZE;
 }
 
 void arch_post_mm_init(void)
@@ -109,6 +113,14 @@ void arch_post_smp_init(void)
 {
 }
 
+/* Stack pointer saved when entering user mode */
+/* TODO: How do we do it on SMP system???? */
+
+/* Why the hell moves the linker the variable 64K away in assembler
+ * when not in .text section ????????
+ */
+__address supervisor_sp __attribute__ ((section (".text")));
+
 void userspace(void)
 {
 	/* EXL=1, UM=1, IE=1 */
@@ -121,10 +133,6 @@ void userspace(void)
 	while (1)
 		;
 }
-
-/* Stack pointer saved when entering user mode */
-/* TODO: How do we do it on SMP system???? */
-__address supervisor_sp;
 
 void before_thread_runs_arch(void)
 {

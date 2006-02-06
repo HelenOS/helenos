@@ -62,8 +62,8 @@
 #define s8      30
 #define ra      31
 
-#define index		0
-#define random		1
+#define rindex		0
+#define rrandom		1
 #define entrylo0	2
 #define entrylo1	3
 #define context		4
@@ -76,12 +76,12 @@
 #define status		12
 #define cause		13
 #define epc		14
-#define config		16
+#define rconfig		16
 #define lladdr		17
 #define watchlo		18
 #define watchhi		19
 #define xcontext	20
-#define debug		23
+#define rdebug		23
 #define depc		24
 #define eepc		30
 

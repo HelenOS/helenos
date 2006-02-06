@@ -144,7 +144,7 @@ void kinit(void *arg)
 		 * Create the first user task.
 		 */
 		
-		if (KA2PA(config.init_addr) % FRAME_SIZE)
+		if (config.init_addr % FRAME_SIZE)
 			panic("config.init_addr is not frame aligned");
 		
 		as = as_create(0);
@@ -161,7 +161,10 @@ void kinit(void *arg)
 		 * Create the text as_area and initialize its mapping.
 		 */
 		
-		frame = KA2PA(config.init_addr);
+		frame = config.init_addr;
+		if (IS_KA(frame))
+			frame = KA2PA(frame);
+
 		frames = config.init_size / FRAME_SIZE;
 		if (config.init_size % FRAME_SIZE > 0)
 			frames++;
