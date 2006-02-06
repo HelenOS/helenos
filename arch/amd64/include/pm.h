@@ -39,11 +39,13 @@
 #define GDT_ITEMS 8
 
 #define NULL_DES	0
+/* Warning: Do not reorder next items, unless you look into syscall.c!!! */
 #define KTEXT_DES	1
 #define	KDATA_DES	2
-#define UTEXT_DES	3
-#define UDATA_DES	4
+#define UDATA_DES	3
+#define UTEXT_DES	4
 #define KTEXT32_DES     5
+/* EndOfWarning */
 #define TSS_DES		6
 
 #define gdtselector(des)	((des)<<3)

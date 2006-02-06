@@ -99,7 +99,8 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/userspace.c
+	arch/$(ARCH)/src/userspace.c \
+	arch/$(ARCH)/src/syscall.c
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \

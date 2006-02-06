@@ -188,6 +188,26 @@ static inline __u64 read_cr3(void)
 	return v; 
 }
 
+/** Write to MSR */
+static inline void write_msr(__u32 msr, __u64 value)
+{
+	__asm__ volatile (
+		"wrmsr;" : : "c" (msr), 
+		"a" ((__u32)(value)),
+		"d" ((__u32)(value >> 32))
+		);
+}
+
+static inline __native read_msr(__u32 msr)
+{
+	__u32 ax, dx;
+
+	__asm__ volatile (
+		"rdmsr;" : "=a"(ax), "=d"(dx) : "c" (msr)
+		);
+	return ((__u64)dx << 32) | ax;
+}
+
 
 /** Enable local APIC
  *

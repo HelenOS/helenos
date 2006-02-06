@@ -45,6 +45,7 @@
 #include <genarch/acpi/acpi.h>
 #include <panic.h>
 #include <interrupt.h>
+#include <arch/syscall.h>
 
 /** Disable I/O on non-privileged levels
  *
@@ -99,10 +100,9 @@ void arch_pre_mm_init(void)
 
 	/* Enable No-execute pages */
 	set_efer_flag(AMD_NXE_FLAG);
-	/* Enable SYSCALL/SYSRET */
-	set_efer_flag(AMD_SCE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
+
 	/* Initialize segmentation */
 	pm_init();
 
@@ -112,7 +112,6 @@ void arch_pre_mm_init(void)
 	clean_IOPL_NT_flags();
 	/* Disable alignment check */
 	clean_AM_flag();
-	
 
 	if (config.cpu_active == 1) {
 		bios_init();
@@ -132,6 +131,9 @@ void arch_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		ega_init();	/* video */
 	}
+	/* Setup fast SYSCALL/SYSRET */
+	syscall_setup_cpu();
+
 }
 
 void arch_pre_smp_init(void)

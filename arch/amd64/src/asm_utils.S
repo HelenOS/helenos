@@ -38,6 +38,7 @@
 	
 .text
 .global interrupt_handlers
+.global syscall_entry
 .global panic_printf
 
 panic_printf:
@@ -188,7 +189,14 @@ interrupt_handlers:
 h_start:
 	handler 0 IDT_ITEMS
 h_end:
+
 	
+syscall_entry:
+	# TODO:	Switch to kernel stack
+	call syscall_handler
+	# Switch back
+	sysret
+		
 .data
 .global interrupt_handler_size
 

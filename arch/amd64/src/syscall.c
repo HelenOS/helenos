@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_CPU_H__
-#define __amd64_CPU_H__
-
-
-#define EFER_MSR_NUM    0xc0000080
-#define AMD_SCE_FLAG    0
-#define AMD_LME_FLAG    8
-#define AMD_LMA_FLAG    10
-#define AMD_FFXSR_FLAG  14
-#define AMD_NXE_FLAG    11
-
-/* MSR registers */
-#define AMD_MSR_STAR    0xc0000081
-#define AMD_MSR_LSTAR   0xc0000082
-#define AMD_MSR_SFMASK  0xc0000084
-
-#ifndef __ASM__
-
-#include <typedefs.h>
+#include <syscall/syscall.h>
+#include <arch/syscall.h>
+#include <panic.h>
+#include <arch/cpu.h>
 #include <arch/pm.h>
+#include <arch/asm.h>
 
-struct cpu_arch {
-	int vendor;
-	int family;
-	int model;
-	int stepping;
-	struct tss *tss;
-};
+#include <print.h>
 
-struct star_msr {
+extern void syscall_entry(void);
+
+/** Enable & setup support for SYSCALL/SYSRET */
+void syscall_setup_cpu(void)
+{
+	/* Enable SYSCALL/SYSRET */
+	set_efer_flag(AMD_SCE_FLAG);
+
+	/* Setup syscall entry address */
 	
-};
+	/* This is _mess_ - the 64-bit CS is argument+16,
+	 * the SS is argument+8. The order is:
+	 * +0(KDATA_DES), +8(UDATA_DES), +16(UTEXT_DES)
+	 */
+	write_msr(AMD_MSR_STAR,
+		  ((__u64)(gdtselector(KDATA_DES) | PL_USER)<<48) \
+		  | ((__u64)(gdtselector(KTEXT_DES) | PL_KERNEL)<<32));
+	write_msr(AMD_MSR_LSTAR, (__u64)syscall_entry);
+	/* Mask RFLAGS on syscall 
+	 * - we do not care what is in the flags field
+	 */
+	write_msr(AMD_MSR_SFMASK, 0);
+}
 
-struct lstar_msr {
+/** Dispatch system call */
+__native syscall_handler(__native id, __native a1, __native a2, __native a3)
+{
+	if (id < SYSCALL_END)
+		return syscall_table[id](a1,a2,a3);
+	else
+		panic("Undefined syscall %d", id);
 	
-};
-
-extern void set_efer_flag(int flag);
-extern __u64 read_efer_flag(void);
-void cpu_setup_fpu(void);
-
-#endif /* __ASM__ */
-
-#endif
+}
