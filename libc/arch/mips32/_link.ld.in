@@ -1,0 +1,8 @@
+OUTPUT_FORMAT(binary)
+STARTUP(../libc/arch/ARCH/src/entry.o)
+ENTRY(__entry)
+
+SECTIONS {
+ .text 0x00004000 : {
+ }
+}

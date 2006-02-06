@@ -52,12 +52,12 @@ ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
 .PHONY: all clean depend
 
-all: libc.a _link.ld
+all: libc.a arch/$(ARCH)/_link.ld
 
 -include Makefile.depend
 
 clean:
-	-rm -f libc.a _link.ld Makefile.depend
+	-rm -f libc.a arch/$(ARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
@@ -66,7 +66,7 @@ depend:
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
-_link.ld: _link.ld.in
+arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S

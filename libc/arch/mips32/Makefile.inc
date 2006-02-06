@@ -31,3 +31,4 @@
 
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = /usr/local/mipsel/bin
+CFLAGS += -mno-abicalls -mips3 

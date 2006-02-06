@@ -55,7 +55,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS)
-	$(LD) -T $(LIBC_PREFIX)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a -o $@ -Map $(OUTPUT).map
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
