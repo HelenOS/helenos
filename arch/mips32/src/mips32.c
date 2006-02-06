@@ -95,14 +95,13 @@ void arch_pre_mm_init(void)
 	debugger_init();
 	arc_print_memory_map();
 	arc_print_devices();
-
-	/* Setup usermode...*/
-	config.init_addr = MIPS_USPACE_ADDR;
-	config.init_size = FRAME_SIZE;
 }
 
 void arch_post_mm_init(void)
 {
+	/* Setup usermode...*/
+	config.init_addr = INIT_ADDRESS;
+	config.init_size = INIT_SIZE;
 }
 
 void arch_pre_smp_init(void)
