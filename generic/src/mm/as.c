@@ -281,7 +281,6 @@ void as_install(as_t *as)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
-	ASSERT(as->page_table);
 	SET_PTL0_ADDRESS(as->page_table);
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);

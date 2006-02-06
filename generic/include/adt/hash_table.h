@@ -29,9 +29,9 @@
 #ifndef __HASH_TABLE_H__
 #define __HASH_TABLE_H__
 
+#include <adt/list.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <adt/list.h>
 
 /** Hash table structure. */
 struct hash_table {
@@ -53,7 +53,7 @@ struct hash_table_operations {
 	
 	/** Hash table item comparison function.
 	 *
-	 * @param key Array of keys that will be compared against item. It is not necessary to pass all keys.
+	 * @param key Array of keys that will be compared with item. It is not necessary to pass all keys.
 	 *
 	 * @return true if the keys match, false otherwise.
 	 */
@@ -66,10 +66,10 @@ struct hash_table_operations {
 	void (*remove_callback)(link_t *item);
 };
 
-#define hash_table_get_instance(item, type, member)	list_get_instance((item), (type), (member))
+#define hash_table_get_instance(item,type,member)	list_get_instance((item),(type),(member))
 
 extern void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_operations_t *op);
-extern bool hash_table_insert(hash_table_t *h, __native key[], link_t *item);
+extern void hash_table_insert(hash_table_t *h, __native key[], link_t *item);
 extern link_t *hash_table_find(hash_table_t *h, __native key[]);
 extern void hash_table_remove(hash_table_t *h, __native key[], count_t keys);
 

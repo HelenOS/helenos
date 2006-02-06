@@ -32,5 +32,11 @@
 
 void frame_arch_init(void)
 {
+	/*
+	 * Workaround to prevent slab allocator from allocating fram 0,
+	 * which is not, at that time, mapped.
+	 */
+	frame_region_not_free(0, FRAME_SIZE);
+	
 	zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE - 1));
 }

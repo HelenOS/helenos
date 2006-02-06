@@ -67,10 +67,8 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
  * @param h Hash table.
  * @param hey Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
- *
- * @return true on success, false if the keys were already present in the hash table.
  */
-bool hash_table_insert(hash_table_t *h, __native key[], link_t *item)
+void hash_table_insert(hash_table_t *h, __native key[], link_t *item)
 {
 	index_t chain;
 
@@ -80,16 +78,7 @@ bool hash_table_insert(hash_table_t *h, __native key[], link_t *item)
 	chain = h->op->hash(key);
 	ASSERT(chain < h->entries);
 	
-	if (hash_table_find(h, key)) {
-		/*
-		 * The hash table is not redundant.
-		 * Signal failure on return.
-		 */
-		return false;
-	}
-	
 	list_append(item, &h->entry[chain]);
-	return true;
 }
 
 /** Search hash table for an item matching keys.

@@ -44,7 +44,7 @@ typedef __u64 ipl_t;
 
 typedef __u64 __native;
 
-typedef __u64 pte_t;
+typedef struct pte pte_t;
 
 typedef __u8 asi_t;
 

@@ -28,6 +28,7 @@
 
 #include <genarch/mm/page_ht.h>
 #include <mm/page.h>
+#include <arch/mm/page.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/as.h>
@@ -39,6 +40,14 @@
 #include <arch.h>
 #include <debug.h>
 #include <memstr.h>
+#include <adt/hash_table.h>
+
+static index_t hash(__native key[]);
+static bool compare(__native key[], count_t keys, link_t *item);
+static void remove_callback(link_t *item);
+
+static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags);
+static pte_t *ht_mapping_find(as_t *as, __address page);
 
 /**
  * This lock protects the page hash table.
@@ -46,18 +55,96 @@
 SPINLOCK_INITIALIZE(page_ht_lock);
 
 /**
- * Page hash table pointer.
+ * Page hash table.
  * The page hash table may be accessed only when page_ht_lock is held.
  */
-pte_t *page_ht = NULL;
+hash_table_t page_ht;
 
-static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags);
-static pte_t *ht_mapping_find(as_t *as, __address page);
+/** Hash table operations for page hash table. */
+hash_table_operations_t ht_operations = {
+	.hash = hash,
+	.compare = compare,
+	.remove_callback = remove_callback
+};
 
 page_operations_t page_ht_operations = {
 	.mapping_insert = ht_mapping_insert,
 	.mapping_find = ht_mapping_find
 };
+
+/** Compute page hash table index.
+ *
+ * @param key Array of two keys (i.e. page and address space).
+ *
+ * @return Index into page hash table.
+ */
+index_t hash(__native key[])
+{
+	as_t *as = (as_t *) key[KEY_AS];
+	__address page = (__address) key[KEY_PAGE];
+	index_t index;
+	
+	/*
+	 * Virtual page addresses have roughly the same probability
+	 * of occurring. Least significant bits of VPN compose the
+	 * hash index.
+	 */
+	index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES-1));
+	
+	/*
+	 * Address space structures are likely to be allocated from
+	 * similar addresses. Least significant bits compose the
+	 * hash index.
+	 */
+	index |= ((__native) as) & (PAGE_HT_ENTRIES-1);
+	
+	return index;
+}
+
+/** Compare page hash table item with page and/or address space.
+ *
+ * @param key Array of one or two keys (i.e. page and/or address space).
+ * @param keys Number of keys passed.
+ * @param item Item to compare the keys with.
+ *
+ * @return true on match, false otherwise.
+ */
+bool compare(__native key[], count_t keys, link_t *item)
+{
+	pte_t *t;
+
+	ASSERT(item);
+	ASSERT((keys > 0) && (keys <= PAGE_HT_KEYS));
+
+	/*
+	 * Convert item to PTE.
+	 */
+	t = list_get_instance(item, pte_t, link);
+
+	if (keys == PAGE_HT_KEYS) {
+		return (key[KEY_AS] == (__address) t->as) && (key[KEY_PAGE] == t->page);
+	} else {
+		return (key[KEY_AS] == (__address) t->as);
+	}
+}
+
+/** Callback on page hash table item removal.
+ *
+ * @param item Page hash table item being removed.
+ */
+void remove_callback(link_t *item)
+{
+	pte_t *t;
+
+	ASSERT(item);
+
+	/*
+	 * Convert item to PTE.
+	 */
+	t = list_get_instance(item, pte_t, link);
+
+	free(t);
+}
 
 /** Map page to frame using page hash table.
  *
@@ -73,42 +160,19 @@ page_operations_t page_ht_operations = {
  */
 void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
-	pte_t *t, *u;
+	pte_t *t;
 	ipl_t ipl;
+	__native key[2] = { (__address) as, page };
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&page_ht_lock);
 
-	t = HT_HASH(page, as->asid);
-	if (!HT_SLOT_EMPTY(t)) {
+	if (!hash_table_find(&page_ht, key)) {
+		t = (pte_t *) malloc(sizeof(pte_t));
+		ASSERT(t != NULL);
 	
-		/*
-		 * The slot is occupied.
-		 * Walk through the collision chain and append the mapping to its end.
-		 */
-		 
-		do {
-			u = t;
-			if (HT_COMPARE(page, as->asid, t)) {
-				/*
-				 * Nothing to do,
-				 * the record is already there.
-				 */
-				spinlock_unlock(&page_ht_lock);
-				interrupts_restore(ipl);
-				return;
-			}
-		} while ((t = HT_GET_NEXT(t)));
-	
-		t = (pte_t *) malloc(sizeof(pte_t));	/* FIXME: use slab allocator for this */
-		if (!t)
-			panic("could not allocate memory\n");
-
-		HT_SET_NEXT(u, t);
+		hash_table_insert(&page_ht, key, &t->link);
 	}
-	
-	HT_SET_RECORD(t, page, as->asid, frame, flags);
-	HT_SET_NEXT(t, NULL);
 	
 	spinlock_unlock(&page_ht_lock);
 	interrupts_restore(ipl);
@@ -127,41 +191,16 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
  */
 pte_t *ht_mapping_find(as_t *as, __address page)
 {
-	pte_t *t;
+	link_t *hlp;
+	pte_t *t = NULL;
+	__native key[2] = { (__address) as, page };
 	
 	spinlock_lock(&page_ht_lock);
-	t = HT_HASH(page, as->asid);
-	if (!HT_SLOT_EMPTY(t)) {
-		while (!HT_COMPARE(page, as->asid, t) && HT_GET_NEXT(t))
-			t = HT_GET_NEXT(t);
-		t = HT_COMPARE(page, as->asid, t) ? t : NULL;
-	} else {
-		t = NULL;
-	}
+
+	hlp = hash_table_find(&page_ht, key);
+	if (hlp)
+		t = list_get_instance(hlp, pte_t, link);
+
 	spinlock_unlock(&page_ht_lock);
 	return t;
-}
-
-/** Invalidate page hash table.
- *
- * Interrupts must be disabled.
- */
-void ht_invalidate_all(void)
-{
-	pte_t *t, *u;
-	int i;
-	
-	spinlock_lock(&page_ht_lock);
-	for (i = 0; i < HT_ENTRIES; i++) {
-		if (!HT_SLOT_EMPTY(&page_ht[i])) {
-			t = HT_GET_NEXT(&page_ht[i]);
-			while (t) {
-				u = t;
-				t = HT_GET_NEXT(t);
-				free(u);		/* FIXME: use slab allocator for this */
-			}
-			HT_INVALIDATE_SLOT(&page_ht[i]);
-		}
-	}
-	spinlock_unlock(&page_ht_lock);
 }

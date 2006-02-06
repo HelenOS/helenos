@@ -33,6 +33,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <memstr.h>
+#include <adt/hash_table.h>
 
 static pte_t *ht_create(int flags);
 
@@ -48,13 +49,12 @@ as_operations_t as_ht_operations = {
  *
  * @param flags Ignored.
  *
- * @return Address of global page hash table.
+ * @return Returns NULL.
  */
 pte_t *ht_create(int flags)
 {
-	if (!page_ht) {
-		page_ht = (pte_t *) frame_alloc(HT_WIDTH - FRAME_WIDTH, FRAME_KA | FRAME_PANIC);
-		memsetb((__address) page_ht, HT_SIZE, 0);
+	if (flags & FLAG_AS_KERNEL) {
+		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
 	}
-	return page_ht;
+	return NULL;
 }

@@ -41,16 +41,6 @@
 
 #define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
-/** Implementation of page hash table interface. */
-#define HT_WIDTH_ARCH			20	/* 1M */
-#define HT_HASH_ARCH(page, asid)	0
-#define HT_COMPARE_ARCH(page, asid, t)	0
-#define HT_SLOT_EMPTY_ARCH(t)		1
-#define HT_INVALIDATE_SLOT_ARCH(t)
-#define HT_GET_NEXT_ARCH(t)		0
-#define HT_SET_NEXT_ARCH(t, s)
-#define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)
-
 union page_address {
 	__address address;
 	struct {

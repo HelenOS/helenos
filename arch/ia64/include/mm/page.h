@@ -45,16 +45,6 @@
 
 #define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
-/** Implementation of page hash table interface. */
-#define HT_WIDTH_ARCH					20	/* 1M */
-#define HT_HASH_ARCH(page, asid)			vhpt_hash((page), (asid))
-#define HT_COMPARE_ARCH(page, asid, t)			vhpt_compare((page), (asid), (t))
-#define HT_SLOT_EMPTY_ARCH(t)				((t)->present.tag.tag_info.ti)
-#define HT_INVALIDATE_SLOT_ARCH(t)			(t)->present.tag.tag_info.ti = true
-#define HT_GET_NEXT_ARCH(t)				(t)->present.next
-#define HT_SET_NEXT_ARCH(t, s)				(t)->present.next = (s)
-#define HT_SET_RECORD_ARCH(t, page, asid, frame, flags)	vhpt_set_record(t, page, asid, frame, flags)
-
 #define PPN_SHIFT			12
 
 #define VRN_SHIFT			61
@@ -63,8 +53,8 @@
 #define REGION_REGISTERS 		8
 
 #define VHPT_WIDTH 			20         	/* 1M */
-#define VHPT_SIZE 			(1<<VHPT_WIDTH)
-#define VHPT_BASE 			page_ht		/* Must be aligned to VHPT_SIZE */
+#define VHPT_SIZE 			(1 << VHPT_WIDTH)
+#define VHPT_BASE 			0		/* Must be aligned to VHPT_SIZE */
 
 #define PTA_BASE_SHIFT			15
 
@@ -115,7 +105,7 @@ struct vhpt_entry_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	pte_t *next;			/**< Collision chain next pointer. */
+	__u64 ig3 : 64;
 } __attribute__ ((packed));
 
 struct vhpt_entry_not_present {
@@ -133,15 +123,14 @@ struct vhpt_entry_not_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	pte_t *next;			/**< Collision chain next pointer. */
-	
+	__u64 ig3 : 64;
 } __attribute__ ((packed));
 
 typedef union vhpt_entry {
 	struct vhpt_entry_present present;
 	struct vhpt_entry_not_present not_present;
 	__u64 word[4];
-} vhpt_entry;
+} vhpt_entry_t;
 
 struct region_register_map {
 	unsigned ve : 1;
@@ -257,8 +246,9 @@ static inline void pta_write(__u64 v)
 }
 
 extern void page_arch_init(void);
-extern pte_t *vhpt_hash(__address page, asid_t asid);
-extern bool vhpt_compare(__address page, asid_t asid, pte_t *t);
-extern void vhpt_set_record(pte_t *t, __address page, asid_t asid, __address frame, int flags);
+
+extern vhpt_entry_t *vhpt_hash(__address page, asid_t asid);
+extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
+extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
 
 #endif

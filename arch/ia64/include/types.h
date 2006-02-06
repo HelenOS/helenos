@@ -47,6 +47,6 @@ typedef __u64 ipl_t;
 
 typedef __u64 __native;
 
-typedef union vhpt_entry pte_t;
+typedef struct pte pte_t;
 
 #endif
