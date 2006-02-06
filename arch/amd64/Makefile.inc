@@ -31,6 +31,7 @@ build: image.boot
 image.boot: kernel
 	gunzip -c arch/$(ARCH)/grub/grub.img.gz > image.boot
 	e2cp $(KERNELDIR)/kernel.bin image.boot:/boot/kernel.bin
+	e2cp $(USPACEDIR)/init/init image.boot:/init
 
 clean: clean_kernel
 	-rm -f image.boot
