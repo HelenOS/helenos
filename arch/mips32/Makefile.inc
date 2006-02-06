@@ -43,8 +43,11 @@ endif
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x80110000
 INIT_SIZE = 65536
+MIPS_USPACE_ADDR = 0x20000000
+
 CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
-DEFS += -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
+
+DEFS += -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE} -DMIPS_USPACE_ADDR=$(MIPS_USPACE_ADDR)
 
 ## Compile with hierarchical page tables support.
 #
@@ -76,6 +79,7 @@ ifeq ($(MIPS_MACHINE),lgxemul)
 	BFD_NAME=elf32-tradlittlemips
 	BFD = ecoff-littlemips
 	CFLAGS += -DHAVE_FPU -mips3
+	MIPS_USPACE_ADDR = 0x1800000
 endif
 ifeq ($(MIPS_MACHINE),bgxemul)
 	BFD_NAME=elf32-bigmips
@@ -83,6 +87,7 @@ ifeq ($(MIPS_MACHINE),bgxemul)
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -mips3
+	MIPS_USPACE_ADDR = 0x1800000
 endif
 ifeq ($(MIPS_MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions

@@ -97,7 +97,7 @@ void arch_pre_mm_init(void)
 	arc_print_devices();
 
 	/* Setup usermode...*/
-	config.init_addr = 0x20000000;
+	config.init_addr = MIPS_USPACE_ADDR;
 	config.init_size = FRAME_SIZE;
 }
 
