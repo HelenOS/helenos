@@ -34,6 +34,7 @@
 #define ERROR_WORD_INTERRUPT_LIST 0x00027D00
 
 #include <arch/pm.h>
+#include <arch/context_offset.h>
 	
 .text
 .global interrupt_handlers
@@ -103,38 +104,40 @@ read_efer_flag:
 	ret 		
 
 # Push all general purpose registers on stack except %rbp, %rsp
-.macro push_all_gpr
-	pushq %rax 
-	pushq %rbx
-	pushq %rcx
-	pushq %rdx
-	pushq %rsi
-	pushq %rdi
-	pushq %r8
-	pushq %r9
-	pushq %r10
-	pushq %r11
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
+.macro save_all_gpr
+	movq %rbp, IOFFSET_RBP(%rsp)
+	movq %rax, IOFFSET_RAX(%rsp)
+	movq %rbx, IOFFSET_RBX(%rsp)
+	movq %rcx, IOFFSET_RCX(%rsp)
+	movq %rdx, IOFFSET_RDX(%rsp)
+	movq %rsi, IOFFSET_RSI(%rsp)
+	movq %rdi, IOFFSET_RDI(%rsp)
+	movq %r8, IOFFSET_R8(%rsp)
+	movq %r9, IOFFSET_R9(%rsp)
+	movq %r10, IOFFSET_R10(%rsp)
+	movq %r11, IOFFSET_R11(%rsp)
+	movq %r12, IOFFSET_R12(%rsp)
+	movq %r13, IOFFSET_R13(%rsp)
+	movq %r14, IOFFSET_R14(%rsp)
+	movq %r15, IOFFSET_R15(%rsp)
 .endm
 
-.macro pop_all_gpr
-	popq %r15
-	popq %r14
-	popq %r13
-	popq %r12
-	popq %r11
-	popq %r10
-	popq %r9
-	popq %r8
-	popq %rdi
-	popq %rsi
-	popq %rdx
-	popq %rcx
-	popq %rbx
-	popq %rax
+.macro restore_all_gpr
+	movq IOFFSET_RBP(%rsp), %rbp
+	movq IOFFSET_RAX(%rsp), %rax
+	movq IOFFSET_RBX(%rsp), %rbx
+	movq IOFFSET_RCX(%rsp), %rcx
+	movq IOFFSET_RDX(%rsp), %rdx
+	movq IOFFSET_RSI(%rsp), %rsi
+	movq IOFFSET_RDI(%rsp), %rdi
+	movq IOFFSET_R8(%rsp), %r8
+	movq IOFFSET_R9(%rsp), %r9
+	movq IOFFSET_R10(%rsp), %r10
+	movq IOFFSET_R11(%rsp), %r11
+	movq IOFFSET_R12(%rsp), %r12
+	movq IOFFSET_R13(%rsp), %r13
+	movq IOFFSET_R14(%rsp), %r14
+	movq IOFFSET_R15(%rsp), %r15
 .endm
 	
 ## Declare interrupt handlers
@@ -146,14 +149,11 @@ read_efer_flag:
 # and call exc_dispatch().
 #
 .macro handler i n
-	pushq %rbp
-	movq %rsp,%rbp
-	
-	push_all_gpr
+	subq $IREGISTER_SPACE, %rsp
+	save_all_gpr
 
 	movq $(\i),%rdi   # %rdi - first parameter
-	movq %rbp, %rsi
-	addq $8, %rsi     # %rsi - second parameter - original stack
+	movq %rsp, %rsi   # %rsi - pointer to interrupt_context
 	call exc_dispatch 	# exc_dispatch(i, stack)
 
 # Test if this is interrupt with error word or not
@@ -168,17 +168,15 @@ read_efer_flag:
 
 
 # Return with error word
-	pop_all_gpr
-	
-	popq %rbp;
-	addq $8,%rsp;    # Skip error word
+	restore_all_gpr
+	# $8 = Skip error word
+	addq $IREGISTER_SPACE + 0x8, %rsp
 	iretq
 
 0:
 # Return with no error word
-	pop_all_gpr
-	
-	popq %rbp
+	restore_all_gpr
+	addq $IREGISTER_SPACE, %rsp
 	iretq
 
 	.if (\n-\i)-1

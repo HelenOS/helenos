@@ -189,7 +189,7 @@ void main_bsp_separated_stack(void)
 	thread_init();
 	
 	if (config.init_size > 0)
-		printf("config.init_addr=%X, config.init_size=%d\n", config.init_addr, config.init_size);
+		printf("config.init_addr=%P, config.init_size=%d\n", config.init_addr, config.init_size);
 
 	/*
 	 * Create kernel task.

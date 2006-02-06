@@ -58,31 +58,30 @@ static void messy_stack_trace(__native *stack)
 	printf("\n");
 }
 */
-static void print_info_errcode(int n, void *st)
+
+static void print_info_errcode(int n, struct interrupt_context *ctx)
 {
 	char *symbol;
-	__native *x = (__native *) st;
+	__u64 *x = &ctx->stack[0];
 
 	if (!(symbol=get_symtab_entry(x[1])))
 		symbol = "";
 
 	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__);
-	printf("%%rip: %Q (%s)\n",x[1],symbol);
-	printf("ERROR_WORD=%Q\n", x[0]);
-	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", x[2], x[3],read_cr0());
-	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",x[-2],x[-3],x[-4]);
-	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",x[-5],x[-6],x[-7]);
-	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",x[-8],x[-9],x[-10]);
-	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",x[-11],x[-12],x[-13]);
-	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",x[-14],x[-15],x);
-	printf("%%rbp=%Q\n",x[-1]);
+	printf("%%rip: %Q (%s)\n",ctx->stack[1],symbol);
+	printf("ERROR_WORD=%Q\n", ctx->stack[0]);
+	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", ctx->stack[2], 
+	       ctx->stack[3],read_cr0());
+	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",ctx->rax,ctx->rbx,ctx->rcx);
+	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",ctx->rdx,ctx->rsi,ctx->rdi);
+	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",ctx->r8,ctx->r9,ctx->r10);
+	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",ctx->r11,ctx->r12,ctx->r13);
+	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",ctx->r14,ctx->r15,&ctx->stack[0]);
+	printf("%%rbp=%Q\n",ctx->rbp);
 	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]);
 	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]);
 	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]);
 	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]);
-	printf("       %Q, %Q, %Q\n", x[17], x[18], x[19]);
-	printf("       %Q, %Q, %Q\n", x[20], x[21], x[22]);
-	printf("       %Q, %Q, %Q\n", x[23], x[24], x[25]);
 //	messy_stack_trace(&x[5]);
 }
 
@@ -94,12 +93,11 @@ void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-void null_interrupt(int n, void *st)
+void null_interrupt(int n, struct interrupt_context *ctx)
 {
-	__native *stack = (__native *) st;
-
 	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__); \
-	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
+	printf("stack: %X, %X, %X, %X\n", ctx->stack[0], ctx->stack[1],
+	       ctx->stack[2], ctx->stack[3]);
 	panic("unserviced interrupt\n");
 }
 
@@ -125,22 +123,16 @@ void nm_fault(int n, void *stack)
 #endif
 }
 
-void page_fault(int n, void *stack)
+void page_fault(int n, struct interrupt_context *ctx)
 {
 	__address page;
 	
 	page = read_cr2();
 	if (!as_page_fault(page)) {
-		print_info_errcode(n,stack);
+		print_info_errcode(n,ctx);
 		printf("Page fault address: %Q\n", page);
 		panic("page fault\n");
 	}
-}
-
-void syscall(int n, void *stack)
-{
-	printf("cpu%d: syscall\n", CPU->id);
-	thread_usleep(1000);
 }
 
 void tlb_shootdown_ipi(int n, void *stack)

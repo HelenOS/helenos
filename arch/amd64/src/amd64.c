@@ -46,6 +46,42 @@
 #include <panic.h>
 #include <interrupt.h>
 
+/** Disable I/O on non-privileged levels
+ *
+ * Clean IOPL(12,13) and NT(14) flags in EFLAGS register
+ */
+static void clean_IOPL_NT_flags(void)
+{
+	asm
+	(
+		"pushfq;"
+		"pop %%rax;"
+		"and $~(0x7000),%%rax;"
+		"pushq %%rax;"
+		"popfq;"
+		:
+		:
+		:"%rax"
+	);
+}
+
+/** Disable alignment check
+ *
+ * Clean AM(18) flag in CR0 register 
+ */
+static void clean_AM_flag(void)
+{
+	asm
+	(
+		"mov %%cr0,%%rax;"
+		"and $~(0x40000),%%rax;"
+		"mov %%rax,%%cr0;"
+		:
+		:
+		:"%rax"
+	);
+}
+
 void arch_pre_mm_init(void)
 {
 	struct cpu_info cpuid_s;
@@ -63,18 +99,26 @@ void arch_pre_mm_init(void)
 
 	/* Enable No-execute pages */
 	set_efer_flag(AMD_NXE_FLAG);
+	/* Enable SYSCALL/SYSRET */
+	set_efer_flag(AMD_SCE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
-
+	/* Initialize segmentation */
 	pm_init();
+
+        /* Disable I/O on nonprivileged levels
+	 * clear the NT(nested-thread) flag 
+	 */
+	clean_IOPL_NT_flags();
+	/* Disable alignment check */
+	clean_AM_flag();
+	
 
 	if (config.cpu_active == 1) {
 		bios_init();
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
 
-		exc_register(VECTOR_SYSCALL, "syscall", syscall);
-		
 		#ifdef CONFIG_SMP
 		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
 			     tlb_shootdown_ipi);

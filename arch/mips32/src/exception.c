@@ -78,18 +78,14 @@ static void print_regdump(struct exception_regdump *pstate)
 	       pstate->ra,rasymbol);
 }
 
-static void unhandled_exception(int n, void *data)
+static void unhandled_exception(int n, struct exception_regdump *pstate)
 {
-	struct exception_regdump *pstate = (struct exception_regdump *)data;
-
 	print_regdump(pstate);
 	panic("unhandled exception %s\n", exctable[n]);
 }
 
-static void breakpoint_exception(int n, void *data)
+static void breakpoint_exception(int n, struct exception_regdump *pstate)
 {
-	struct exception_regdump *pstate = (struct exception_regdump *)data;
-
 #ifdef CONFIG_DEBUG
 	debugger_bpoint(pstate);
 #else
@@ -100,20 +96,18 @@ static void breakpoint_exception(int n, void *data)
 #endif
 }
 
-static void tlbmod_exception(int n, void *data)
+static void tlbmod_exception(int n, struct exception_regdump *pstate)
 {
-	struct exception_regdump *pstate = (struct exception_regdump *)data;
 	tlb_modified(pstate);
 }
 
-static void tlbinv_exception(int n, void *data)
+static void tlbinv_exception(int n, struct exception_regdump *pstate)
 {
-	struct exception_regdump *pstate = (struct exception_regdump *)data;
 	tlb_invalid(pstate);
 }
 
 #ifdef CONFIG_FPU_LAZY
-static void cpuns_exception(int n, void *data)
+static void cpuns_exception(int n, struct exception_regdump *pstate)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
@@ -122,7 +116,7 @@ static void cpuns_exception(int n, void *data)
 }
 #endif
 
-static void interrupt_exception(int n, void *pstate)
+static void interrupt_exception(int n, struct exception_regdump *pstate)
 {
 	__u32 cause;
 	int i;
@@ -137,10 +131,8 @@ static void interrupt_exception(int n, void *pstate)
 
 #include <debug.h>
 /** Handle syscall userspace call */
-static void syscall_exception(int n, void *data)
+static void syscall_exception(int n, struct exception_regdump *pstate)
 {
-	struct exception_regdump *pstate = (struct exception_regdump *)data;
-	
 	if (pstate->a3 < SYSCALL_END)
 		pstate->v0 = syscall_table[pstate->a3](pstate->a0,
 						       pstate->a1,
@@ -197,14 +189,14 @@ void exception_init(void)
 
 	/* Clear exception table */
 	for (i=0;i < IVT_ITEMS; i++)
-		exc_register(i, "undef", unhandled_exception);
-	exc_register(EXC_Bp, "bkpoint", breakpoint_exception);
-	exc_register(EXC_Mod, "tlb_mod", tlbmod_exception);
-	exc_register(EXC_TLBL, "tlbinvl", tlbinv_exception);
-	exc_register(EXC_TLBS, "tlbinvl", tlbinv_exception);
-	exc_register(EXC_Int, "interrupt", interrupt_exception);
+		exc_register(i, "undef", (iroutine) unhandled_exception);
+	exc_register(EXC_Bp, "bkpoint", (iroutine) breakpoint_exception);
+	exc_register(EXC_Mod, "tlb_mod", (iroutine) tlbmod_exception);
+	exc_register(EXC_TLBL, "tlbinvl", (iroutine) tlbinv_exception);
+	exc_register(EXC_TLBS, "tlbinvl", (iroutine) tlbinv_exception);
+	exc_register(EXC_Int, "interrupt", (iroutine) interrupt_exception);
 #ifdef CONFIG_FPU_LAZY
-	exc_register(EXC_CpU, "cpunus", cpuns_exception);
+	exc_register(EXC_CpU, "cpunus", (iroutine) cpuns_exception);
 #endif
-	exc_register(EXC_Sys, "syscall", syscall_exception);
+	exc_register(EXC_Sys, "syscall", (iroutine) syscall_exception);
 }

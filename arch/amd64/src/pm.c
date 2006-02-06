@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005-2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -167,52 +168,17 @@ void idt_init(void)
 		d->present = 1;
 		d->type = AR_INTERRUPT;	/* masking interrupt */
 
-		if (i == VECTOR_SYSCALL) {
-			/*
-			 * The syscall interrupt gate must be calleable from userland.
-			 */
-			d->dpl |= PL_USER;
-		}
-		
 		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
-		exc_register(i, "undef", null_interrupt);
+		exc_register(i, "undef", (iroutine)null_interrupt);
 	}
 	exc_register(13, "gp_fault", gp_fault);
 	exc_register( 7, "nm_fault", nm_fault);
 	exc_register(12, "ss_fault", ss_fault);
 }
 
-
-/* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
-static void clean_IOPL_NT_flags(void)
-{
-	asm
-	(
-		"pushfq;"
-		"pop %%rax;"
-		"and $~(0x7000),%%rax;"
-		"pushq %%rax;"
-		"popfq;"
-		:
-		:
-		:"%rax"
-	);
-}
-
-/* Clean AM(18) flag in CR0 register */
-static void clean_AM_flag(void)
-{
-	asm
-	(
-		"mov %%cr0,%%rax;"
-		"and $~(0x40000),%%rax;"
-		"mov %%rax,%%cr0;"
-		:
-		:
-		:"%rax"
-	);
-}
-
+/** Initialize segmentation - code/data/idt tables
+ *
+ */
 void pm_init(void)
 {
 	struct descriptor *gdt_p = (struct descriptor *) gdtr.base;
@@ -254,7 +220,4 @@ void pm_init(void)
 	 * to its own TSS. We just need to load the TR register.
 	 */
 	__asm__("ltr %0" : : "r" ((__u16) gdtselector(TSS_DES)));
-	
-	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
-	clean_AM_flag();          /* Disable alignment check */
 }

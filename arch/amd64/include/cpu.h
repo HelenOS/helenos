@@ -50,6 +50,13 @@ struct cpu_arch {
 	struct tss *tss;
 };
 
+struct star_msr {
+	
+};
+
+struct lstar_msr {
+	
+};
 
 extern void set_efer_flag(int flag);
 extern __u64 read_efer_flag(void);
