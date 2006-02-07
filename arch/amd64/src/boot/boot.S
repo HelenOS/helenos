@@ -58,10 +58,13 @@ multiboot_image_start:
 
 	movw $gdtselector(KDATA_DES), %cx
 	movw %cx, %es
-	movw %cx, %gs
-	movw %cx, %fs
 	movw %cx, %ds							# kernel data + stack
 	movw %cx, %ss
+	# Simics seems to remove hidden part of GS on entering user mode
+	#  when _visible_ part of GS does not point to user-mode segment
+	movw $gdtselector(UDATA_DES), %cx
+	movw %cx, %fs
+	movw %cx, %gs
 	
 	jmpl $gdtselector(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
