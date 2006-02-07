@@ -35,6 +35,7 @@
 
 #include <arch/pm.h>
 #include <arch/context_offset.h>
+#include <arch/mm/page.h>
 	
 .text
 .global interrupt_handlers
@@ -194,11 +195,9 @@ h_end:
 syscall_entry:
 	# Switch to hidden gs	
 	swapgs
-
-	# TODO:	I would like LEA instead of thes 2 instrs,
-	# why does not it work???
-	mov %gs:0, %r10     # We have a stack in r10
-	addq $0x0ff0, %r10
+	# %gs:0 now points to pointer to stack page
+	mov %gs:0, %r10     # We have a ptr to stack page in r10
+	addq $PAGE_SIZE-16, %r10 # We need some space to store old %sp
 	
 	movq %rsp, 0(%r10)  # Save old stack pointer to stack
 	movq %r10, %rsp     # Change to new stack

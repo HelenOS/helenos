@@ -29,9 +29,10 @@
 #ifndef __amd64_PAGE_H__
 #define __amd64_PAGE_H__
 
+#include <arch/mm/frame.h>
+
 #ifndef __ASM__
 #  include <mm/page.h>
-#  include <arch/mm/frame.h>
 #  include <arch/types.h>
 #endif
 
