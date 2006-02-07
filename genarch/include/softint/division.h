@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SOFTINT_H__
-#define __SOFTINT_H__
+#ifndef __SOFTINT_DIVISION_H__
+#define __SOFTINT_DIVISION_H__
 
 
 /* 32bit integer division */

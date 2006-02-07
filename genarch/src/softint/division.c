@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <softint/softint.h>
+#include <genarch/softint/division.h>
 
 #define ABSVAL(x) ( (x) > 0 ? (x) : -(x))
 #define SGN(x) ( (x) >= 0 ? 1 : 0 )
@@ -34,7 +34,7 @@
 static unsigned int divandmod32(unsigned int a, unsigned int b, unsigned int *remainder)
 {
 	unsigned int result;
-	int steps = sizeof(unsigned int); 
+	int steps = sizeof(unsigned int) * 8; 
 	
 	*remainder = 0;
 	result = 0;
@@ -51,14 +51,14 @@ static unsigned int divandmod32(unsigned int a, unsigned int b, unsigned int *re
 
 	for ( ; steps > 0; steps--) {
 		/* shift one bit to remainder */
-		*remainder = ( (*remainder) << 1) | (( divident >> 31) & 0x1);
+		*remainder = ( (*remainder) << 1) | (( a >> 31) & 0x1);
 		result <<= 1;
 		
 		if (*remainder >= b) {
 				*remainder -= b;
 				result |= 0x1;
 		}
-		divident <<= 1;
+		a <<= 1;
 	}
 
 	return result;
@@ -68,7 +68,7 @@ static unsigned int divandmod32(unsigned int a, unsigned int b, unsigned int *re
 static unsigned long divandmod64(unsigned long a, unsigned long b, unsigned long *remainder)
 {
 	unsigned long result;
-	int steps = sizeof(unsigned long); 
+	int steps = sizeof(unsigned long) * 8; 
 	
 	*remainder = 0;
 	result = 0;
@@ -85,14 +85,14 @@ static unsigned long divandmod64(unsigned long a, unsigned long b, unsigned long
 
 	for ( ; steps > 0; steps--) {
 		/* shift one bit to remainder */
-		*remainder = ( (*remainder) << 1) | (( divident >> 63) & 0x1);
+		*remainder = ( (*remainder) << 1) | ((a >> 63) & 0x1);
 		result <<= 1;
 		
 		if (*remainder >= b) {
 				*remainder -= b;
 				result |= 0x1;
 		}
-		divident <<= 1;
+		a <<= 1;
 	}
 
 	return result;
@@ -142,7 +142,7 @@ int __modsi3(int a, int b)
 	unsigned int rem;
 	divandmod32(a, b, &rem);
 	
-	/* if divident is negative, remainder must be too*/
+	/* if divident is negative, remainder must be too */
 	if (!(SGN(a))) {
 		return -((int)rem);
 	}
@@ -156,7 +156,7 @@ long __moddi3(long a, long b)
 	unsigned long rem;
 	divandmod64(a, b, &rem);
 	
-	/* if divident is negative, remainder must be too*/
+	/* if divident is negative, remainder must be too */
 	if (!(SGN(a))) {
 		return -((long)rem);
 	}

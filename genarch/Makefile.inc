@@ -55,3 +55,7 @@ ifeq ($(CONFIG_ASID_FIFO),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/asid_fifo.c
 endif
+ifeq ($(CONFIG_SOFTINT),y)
+	GENARCH_SOURCES += \
+		genarch/src/softint/division.c
+endif

@@ -53,6 +53,12 @@ CONFIG_PAGE_HT = y
 CONFIG_ASID = y
 CONFIG_ASID_FIFO = y
 
+
+## Compile with support for software integer division.
+#
+
+CONFIG_SOFTINT = y
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
