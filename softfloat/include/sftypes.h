@@ -37,9 +37,9 @@ typedef union {
 		#ifdef __BIG_ENDIAN__
 		__u32 sign:1;
 		__u32 exp:8;
-		__u32 mantisa:23;
+		__u32 fraction:23;
 		#elif defined __LITTLE_ENDIAN__
-		__u32 mantisa:23;
+		__u32 fraction:23;
 		__u32 exp:8;
 		__u32 sign:1;
 		#else 
@@ -56,9 +56,9 @@ typedef union {
 		#ifdef __BIG_ENDIAN__
 		__u64 sign:1;
 		__u64 exp:11;
-		__u64 mantisa:52;
+		__u64 fraction:52;
 		#elif defined __LITTLE_ENDIAN__
-		__u64 mantisa:52;
+		__u64 fraction:52;
 		__u64 exp:11;
 		__u64 sign:1;
 		#else 
@@ -81,8 +81,8 @@ typedef union {
 #define FLOAT64_SIGNAN 0x7FF0000000000001ll
 #define FLOAT64_INF 0x7FF0000000000000ll
 
-#define FLOAT32_MANTISA_SIZE 23
-#define FLOAT64_MANTISA_SIZE 52
+#define FLOAT32_FRACTION_SIZE 23
+#define FLOAT64_FRACTION_SIZE 52
 
 #define FLOAT32_HIDDEN_BIT_MASK 0x800000
 #define FLOAT64_HIDDEN_BIT_MASK 0x10000000000000ll

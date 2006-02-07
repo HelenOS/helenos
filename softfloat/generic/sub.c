@@ -35,15 +35,15 @@
 float32 subFloat32(float32 a, float32 b)
 {
 	int expdiff;
-	__u32 exp1, exp2, mant1, mant2;
+	__u32 exp1, exp2, frac1, frac2;
 	float32 result;
 
 	result.f = 0;
 	
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.mantisa < b.parts.mantisa))) {
+	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
 		if (isFloat32NaN(b)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat32SigNaN(b)) {
 			};
 			return b;
@@ -56,14 +56,14 @@ float32 subFloat32(float32 a, float32 b)
 		
 		result.parts.sign = !a.parts.sign; 
 		
-		mant1 = b.parts.mantisa;
+		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
-		mant2 = a.parts.mantisa;
+		frac2 = a.parts.fraction;
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
 		if (isFloat32NaN(a)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat32SigNaN(a) || isFloat32SigNaN(b)) {
 			};
 			return a;
@@ -72,7 +72,7 @@ float32 subFloat32(float32 a, float32 b)
 		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
 			if (b.parts.exp == FLOAT32_MAX_EXPONENT) {
 				/* inf - inf => nan */
-				//TODO: fix exception
+				/* TODO: fix exception */
 				result.binary = FLOAT32_NAN;
 				return result;
 			};
@@ -81,17 +81,17 @@ float32 subFloat32(float32 a, float32 b)
 		
 		result.parts.sign = a.parts.sign;
 		
-		mant1 = a.parts.mantisa;
+		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
-		mant2 = b.parts.mantisa;
+		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;	
 	};
 	
 	if (exp1 == 0) {
-		//both are denormalized
-		result.parts.mantisa = mant1-mant2;
-		if (result.parts.mantisa > mant1) {
-			//TODO: underflow exception
+		/* both are denormalized */
+		result.parts.fraction = frac1-frac2;
+		if (result.parts.fraction > frac1) {
+			/* TODO: underflow exception */
 			return result;
 		};
 		result.parts.exp = 0;
@@ -99,43 +99,43 @@ float32 subFloat32(float32 a, float32 b)
 	};
 
 	/* add hidden bit */
-	mant1 |= FLOAT32_HIDDEN_BIT_MASK; 
+	frac1 |= FLOAT32_HIDDEN_BIT_MASK; 
 	
 	if (exp2 == 0) {
 		/* denormalized */
 		--expdiff;	
 	} else {
 		/* normalized */
-		mant2 |= FLOAT32_HIDDEN_BIT_MASK;
+		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
 	};
 	
 	/* create some space for rounding */
-	mant1 <<= 6;
-	mant2 <<= 6;
+	frac1 <<= 6;
+	frac2 <<= 6;
 	
-	if (expdiff > FLOAT32_MANTISA_SIZE + 1) {
+	if (expdiff > FLOAT32_FRACTION_SIZE + 1) {
 	     goto done;	
 	     };
 	
-	mant1 = mant1 - (mant2 >> expdiff);
+	frac1 = frac1 - (frac2 >> expdiff);
 done:
-	//TODO: find first nonzero digit and shift result and detect possibly underflow
-	while ((exp1 > 0) && (!(mant1 & (FLOAT32_HIDDEN_BIT_MASK << 6 )))) {
+	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
+	while ((exp1 > 0) && (!(frac1 & (FLOAT32_HIDDEN_BIT_MASK << 6 )))) {
 		--exp1;
-		mant1 <<= 1;
-			/* TODO: fix underflow - mant1 == 0 does not necessary means underflow... */
+		frac1 <<= 1;
+			/* TODO: fix underflow - frac1 == 0 does not necessary means underflow... */
 	};
 	
-	/* rounding - if first bit after mantisa is set then round up */
-	mant1 += 0x20;
+	/* rounding - if first bit after fraction is set then round up */
+	frac1 += 0x20;
 
-	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
+	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 	
 	/*Clear hidden bit and shift */
-	result.parts.mantisa = ((mant1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
+	result.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
 	result.parts.exp = exp1;
 	
 	return result;
@@ -147,15 +147,15 @@ float64 subFloat64(float64 a, float64 b)
 {
 	int expdiff;
 	__u32 exp1, exp2;
-	__u64 mant1, mant2;
+	__u64 frac1, frac2;
 	float64 result;
 
 	result.d = 0;
 	
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.mantisa < b.parts.mantisa))) {
+	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
 		if (isFloat64NaN(b)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat64SigNaN(b)) {
 			};
 			return b;
@@ -168,14 +168,14 @@ float64 subFloat64(float64 a, float64 b)
 		
 		result.parts.sign = !a.parts.sign; 
 		
-		mant1 = b.parts.mantisa;
+		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
-		mant2 = a.parts.mantisa;
+		frac2 = a.parts.fraction;
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
 		if (isFloat64NaN(a)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat64SigNaN(a) || isFloat64SigNaN(b)) {
 			};
 			return a;
@@ -184,7 +184,7 @@ float64 subFloat64(float64 a, float64 b)
 		if (a.parts.exp == FLOAT64_MAX_EXPONENT) { 
 			if (b.parts.exp == FLOAT64_MAX_EXPONENT) {
 				/* inf - inf => nan */
-				//TODO: fix exception
+				/* TODO: fix exception */
 				result.binary = FLOAT64_NAN;
 				return result;
 			};
@@ -193,17 +193,17 @@ float64 subFloat64(float64 a, float64 b)
 		
 		result.parts.sign = a.parts.sign;
 		
-		mant1 = a.parts.mantisa;
+		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
-		mant2 = b.parts.mantisa;
+		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;	
 	};
 	
 	if (exp1 == 0) {
-		//both are denormalized
-		result.parts.mantisa = mant1 - mant2;
-		if (result.parts.mantisa > mant1) {
-			//TODO: underflow exception
+		/* both are denormalized */
+		result.parts.fraction = frac1 - frac2;
+		if (result.parts.fraction > frac1) {
+			/* TODO: underflow exception */
 			return result;
 		};
 		result.parts.exp = 0;
@@ -211,43 +211,43 @@ float64 subFloat64(float64 a, float64 b)
 	};
 
 	/* add hidden bit */
-	mant1 |= FLOAT64_HIDDEN_BIT_MASK; 
+	frac1 |= FLOAT64_HIDDEN_BIT_MASK; 
 	
 	if (exp2 == 0) {
 		/* denormalized */
 		--expdiff;	
 	} else {
 		/* normalized */
-		mant2 |= FLOAT64_HIDDEN_BIT_MASK;
+		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
 	};
 	
 	/* create some space for rounding */
-	mant1 <<= 6;
-	mant2 <<= 6;
+	frac1 <<= 6;
+	frac2 <<= 6;
 	
-	if (expdiff > FLOAT64_MANTISA_SIZE + 1) {
+	if (expdiff > FLOAT64_FRACTION_SIZE + 1) {
 	     goto done;	
 	     };
 	
-	mant1 = mant1 - (mant2 >> expdiff);
+	frac1 = frac1 - (frac2 >> expdiff);
 done:
-	//TODO: find first nonzero digit and shift result and detect possibly underflow
-	while ((exp1 > 0) && (!(mant1 & (FLOAT64_HIDDEN_BIT_MASK << 6 )))) {
+	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
+	while ((exp1 > 0) && (!(frac1 & (FLOAT64_HIDDEN_BIT_MASK << 6 )))) {
 		--exp1;
-		mant1 <<= 1;
-			/* TODO: fix underflow - mant1 == 0 does not necessary means underflow... */
+		frac1 <<= 1;
+			/* TODO: fix underflow - frac1 == 0 does not necessary means underflow... */
 	};
 	
-	/* rounding - if first bit after mantisa is set then round up */
-	mant1 += 0x20;
+	/* rounding - if first bit after fraction is set then round up */
+	frac1 += 0x20;
 
-	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
+	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 	
 	/*Clear hidden bit and shift */
-	result.parts.mantisa = ((mant1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK)); 
+	result.parts.fraction = ((frac1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK)); 
 	result.parts.exp = exp1;
 	
 	return result;

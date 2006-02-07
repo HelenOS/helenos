@@ -35,12 +35,12 @@
 float32 addFloat32(float32 a, float32 b)
 {
 	int expdiff;
-	__u32 exp1, exp2,mant1, mant2;
+	__u32 exp1, exp2,frac1, frac2;
 	
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {
 		if (isFloat32NaN(b)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat32SigNaN(b)) {
 			};
 
@@ -51,78 +51,84 @@ float32 addFloat32(float32 a, float32 b)
 			return b;
 		}
 		
-		mant1 = b.parts.mantisa;
+		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
-		mant2 = a.parts.mantisa;
+		frac2 = a.parts.fraction;
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat32NaN(a)) {
-			//TODO: fix SigNaN
+		if ((isFloat32NaN(a)) || (isFloat32NaN(b))) {
+			/* TODO: fix SigNaN */
 			if (isFloat32SigNaN(a) || isFloat32SigNaN(b)) {
 			};
-			return a;
+			return (isFloat32NaN(a)?a:b);
 		};
 		
 		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
 			return a;
 		}
 		
-		mant1 = a.parts.mantisa;
+		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
-		mant2 = b.parts.mantisa;
+		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;
 	};
 	
 	if (exp1 == 0) {
 		/* both are denormalized */
-		mant1 += mant2;
-		if (mant1 & FLOAT32_HIDDEN_BIT_MASK ) {
+		frac1 += frac2;
+		if (frac1 & FLOAT32_HIDDEN_BIT_MASK ) {
 			/* result is not denormalized */
 			a.parts.exp = 1;
 		};
-		a.parts.mantisa = mant1;
+		a.parts.fraction = frac1;
 		return a;
 	};
 	
-	mant1 |= FLOAT32_HIDDEN_BIT_MASK; //add hidden bit
+	frac1 |= FLOAT32_HIDDEN_BIT_MASK; /* add hidden bit */
 
 	if (exp2 == 0) {
 		/* second operand is denormalized */
 		--expdiff;	
 	} else {
 		/* add hidden bit to second operand */
-		mant2 |= FLOAT32_HIDDEN_BIT_MASK; 
+		frac2 |= FLOAT32_HIDDEN_BIT_MASK; 
 	};
 	
 	/* create some space for rounding */
-	mant1 <<= 6;
-	mant2 <<= 6;
+	frac1 <<= 6;
+	frac2 <<= 6;
 	
-	if (expdiff > (FLOAT32_MANTISA_SIZE + 1) ) {
-	     goto done;	
-	     };
+	if (expdiff < (FLOAT32_FRACTION_SIZE + 2) ) {
+		frac2 >>= expdiff;
+		frac1 += frac2;
+		};
 	
-	mant2 >>= expdiff;
-	mant1 += mant2;
-done:
-	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 7) ) {
+	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 	
-	/* rounding - if first bit after mantisa is set then round up */
-	mant1 += (0x1 << 5);
+	/* rounding - if first bit after fraction is set then round up */
+	frac1 += (0x1 << 5);
 	
-	if (mant1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) { 
+	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) { 
+		/* rounding overflow */
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
+	
+	if ((a.parts.exp == FLOAT32_MAX_EXPONENT ) || (a.parts.exp < exp1)) {
+			/* overflow - set infinity as result */
+			a.parts.exp = FLOAT32_MAX_EXPONENT;
+			a.parts.fraction = 0;
+			return a;
+			}
 	
 	a.parts.exp = exp1;
 	
 	/*Clear hidden bit and shift */
-	a.parts.mantisa = ((mant1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)) ; 
+	a.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)) ; 
 	return a;
 }
 
@@ -133,12 +139,12 @@ float64 addFloat64(float64 a, float64 b)
 {
 	int expdiff;
 	__u32 exp1, exp2;
-	__u64 mant1, mant2;
+	__u64 frac1, frac2;
 	
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {
 		if (isFloat64NaN(b)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat64SigNaN(b)) {
 			};
 
@@ -150,14 +156,14 @@ float64 addFloat64(float64 a, float64 b)
 			return b;
 		}
 		
-		mant1 = b.parts.mantisa;
+		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
-		mant2 = a.parts.mantisa;
+		frac2 = a.parts.fraction;
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
 		if (isFloat64NaN(a)) {
-			//TODO: fix SigNaN
+			/* TODO: fix SigNaN */
 			if (isFloat64SigNaN(a) || isFloat64SigNaN(b)) {
 			};
 			return a;
@@ -168,25 +174,25 @@ float64 addFloat64(float64 a, float64 b)
 			return a;
 		}
 		
-		mant1 = a.parts.mantisa;
+		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
-		mant2 = b.parts.mantisa;
+		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;
 	};
 	
 	if (exp1 == 0) {
 		/* both are denormalized */
-		mant1 += mant2;
-		if (mant1 & FLOAT64_HIDDEN_BIT_MASK) { 
+		frac1 += frac2;
+		if (frac1 & FLOAT64_HIDDEN_BIT_MASK) { 
 			/* result is not denormalized */
 			a.parts.exp = 1;
 		};
-		a.parts.mantisa = mant1;
+		a.parts.fraction = frac1;
 		return a;
 	};
 	
-	/* add hidden bit - mant1 is sure not denormalized */
-	mant1 |= FLOAT64_HIDDEN_BIT_MASK;
+	/* add hidden bit - frac1 is sure not denormalized */
+	frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 
 	/* second operand ... */
 	if (exp2 == 0) {
@@ -194,36 +200,42 @@ float64 addFloat64(float64 a, float64 b)
 		--expdiff;	
 	} else {
 		/* is not denormalized */
-		mant2 |= FLOAT64_HIDDEN_BIT_MASK;
+		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
 	};
 	
 	/* create some space for rounding */
-	mant1 <<= 6;
-	mant2 <<= 6;
+	frac1 <<= 6;
+	frac2 <<= 6;
 	
-	if (expdiff > (FLOAT64_MANTISA_SIZE + 1) ) {
-	     goto done;	
-	     };
+	if (expdiff < (FLOAT64_FRACTION_SIZE + 2) ) {
+		frac2 >>= expdiff;
+		frac1 += frac2;
+		};
 	
-	mant2 >>= expdiff;
-	mant1 += mant2;
-done:
-	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 7) ) {
+	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 	
-	/* rounding - if first bit after mantisa is set then round up */
-	mant1 += (0x1 << 5); 
+	/* rounding - if first bit after fraction is set then round up */
+	frac1 += (0x1 << 5); 
 	
-	if (mant1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) { 
+	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) { 
+		/* rounding overflow */
 		++exp1;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
+	
+	if ((a.parts.exp == FLOAT64_MAX_EXPONENT ) || (a.parts.exp < exp1)) {
+			/* overflow - set infinity as result */
+			a.parts.exp = FLOAT64_MAX_EXPONENT;
+			a.parts.fraction = 0;
+			return a;
+			}
 	
 	a.parts.exp = exp1;
 	/*Clear hidden bit and shift */
-	a.parts.mantisa = ( (mant1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
+	a.parts.fraction = ( (frac1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
 	return a;
 }
 

@@ -30,33 +30,33 @@
 #include<comparison.h>
 
 inline int isFloat32NaN(float32 f)
-{	/* NaN : exp = 0xff and nonzero mantisa */
-	return ((f.parts.exp==0xFF)&&(f.parts.mantisa));
+{	/* NaN : exp = 0xff and nonzero fraction */
+	return ((f.parts.exp==0xFF)&&(f.parts.fraction));
 };
 
 inline int isFloat64NaN(float64 d)
-{	/* NaN : exp = 0x7ff and nonzero mantisa */
-	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa));
+{	/* NaN : exp = 0x7ff and nonzero fraction */
+	return ((d.parts.exp==0x7FF)&&(d.parts.fraction));
 };
 
 inline int isFloat32SigNaN(float32 f)
-{	/* SigNaN : exp = 0xff mantisa = 0xxxxx..x (binary), where at least one x is nonzero */
-	return ((f.parts.exp==0xFF)&&(f.parts.mantisa<0x400000)&&(f.parts.mantisa));
+{	/* SigNaN : exp = 0xff fraction = 0xxxxx..x (binary), where at least one x is nonzero */
+	return ((f.parts.exp==0xFF)&&(f.parts.fraction<0x400000)&&(f.parts.fraction));
 };
 
 inline int isFloat64SigNaN(float64 d)
-{	/* SigNaN : exp = 0x7ff mantisa = 0xxxxx..x (binary), where at least one x is nonzero */
-	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa)&&(d.parts.mantisa<0x8000000000000ll));
+{	/* SigNaN : exp = 0x7ff fraction = 0xxxxx..x (binary), where at least one x is nonzero */
+	return ((d.parts.exp==0x7FF)&&(d.parts.fraction)&&(d.parts.fraction<0x8000000000000ll));
 };
 
 inline int isFloat32Infinity(float32 f) 
 {
-	return ((f.parts.exp==0xFF)&&(f.parts.mantisa==0x0));
+	return ((f.parts.exp==0xFF)&&(f.parts.fraction==0x0));
 };
 
 inline int isFloat64Infinity(float64 d) 
 {
-	return ((d.parts.exp==0x7FF)&&(d.parts.mantisa==0x0));
+	return ((d.parts.exp==0x7FF)&&(d.parts.fraction==0x0));
 };
 
 inline int isFloat32Zero(float32 f)

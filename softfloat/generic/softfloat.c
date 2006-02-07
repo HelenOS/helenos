@@ -43,45 +43,45 @@
 float __addsf3(float a, float b)
 {
 	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
+	fa.f = a;
+	fb.f = b;
+	if (fa.parts.sign != fb.parts.sign) {
 		if (fa.parts.sign) {
-			fa.parts.sign=0;
-			return subFloat32(fb,fa).f;
+			fa.parts.sign = 0;
+			return subFloat32(fb, fa).f;
 		};
-		fb.parts.sign=0;
-		return subFloat32(fa,fb).f;
+		fb.parts.sign = 0;
+		return subFloat32(fa, fb).f;
 	}
-	return addFloat32(fa,fb).f;
+	return addFloat32(fa, fb).f;
 }
 
 double __adddf3(double a, double b)
 {
 	float64 da, db;
-	da.d=a;
-	db.d=b;
-	if (da.parts.sign!=db.parts.sign) {
+	da.d = a;
+	db.d = b;
+	if (da.parts.sign != db.parts.sign) {
 		if (da.parts.sign) {
-			da.parts.sign=0;
-			return subFloat64(db,da).d;
+			da.parts.sign = 0;
+			return subFloat64(db, da).d;
 		};
-		db.parts.sign=0;
-		return subFloat64(da,db).d;
+		db.parts.sign = 0;
+		return subFloat64(da, db).d;
 	}
-	return addFloat64(da,db).d;
+	return addFloat64(da, db).d;
 }
 
 float __subsf3(float a, float b)
 {
 	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	if (fa.parts.sign!=fb.parts.sign) {
-		fb.parts.sign=!fb.parts.sign;
-		return addFloat32(fa,fb).f;
+	fa.f = a;
+	fb.f = b;
+	if (fa.parts.sign != fb.parts.sign) {
+		fb.parts.sign = !fb.parts.sign;
+		return addFloat32(fa, fb).f;
 	}
-	return subFloat32(fa,fb).f;
+	return subFloat32(fa, fb).f;
 }
 
 double __subdf3(double a, double b)
@@ -99,8 +99,8 @@ double __subdf3(double a, double b)
 float __mulsf3(float a, float b) 
 {
 	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
+	fa.f = a;
+	fb.f = b;
 	return 	mulFloat32(fa, fb).f;
 }
 
@@ -115,24 +115,24 @@ double __muldf3(double a, double b)
 float __divsf3(float a, float b) 
 {
 	float32 fa, fb;
-	fa.f=a;
-	fb.f=b;
-	//return 	divFloat32(fa, fb).f;
+	fa.f = a;
+	fb.f = b;
+	return 	divFloat32(fa, fb).f;
 }
 
 float __negsf2(float a)
 {
 	float32 fa;
-	fa.f=a;
-	fa.parts.sign=!fa.parts.sign;
+	fa.f = a;
+	fa.parts.sign = !fa.parts.sign;
 	return fa.f;
 }
 
 double __negdf2(double a)
 {
 	float64 fa;
-	fa.d=a;
-	fa.parts.sign=!fa.parts.sign;
+	fa.d = a;
+	fa.parts.sign = !fa.parts.sign;
 	return fa.d;
 }
 
@@ -161,19 +161,19 @@ float __truncdfsf2(double a)
 
 int __cmpsf2(float a, float b) 
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		return 1; /* no special constant for unordered - maybe signaled? */
 	};
 
 	
-	if (isFloat32eq(fa,fb)) {
+	if (isFloat32eq(fa, fb)) {
 		return 0;
 	};
 	
-	if (isFloat32lt(fa,fb)) {
+	if (isFloat32lt(fa, fb)) {
 		return -1;
 		};
 	return 1;
@@ -181,10 +181,10 @@ int __cmpsf2(float a, float b)
 
 int __unordsf2(float a, float b) 
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	return ((isFloat32NaN(fa))||(isFloat32NaN(fb)));
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	return ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) );
 }
 
 /** 
@@ -192,38 +192,38 @@ int __unordsf2(float a, float b)
  * */
 int __eqsf2(float a, float b) 
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		/* TODO: sigNaNs*/
 		return 1;
 		};
-	return isFloat32eq(fa,fb)-1;
+	return isFloat32eq(fa, fb) - 1;
 }
 
 /* strange behavior, but it was in gcc documentation */
 int __nesf2(float a, float b) 
 {
-	return __eqsf2(a,b);
+	return __eqsf2(a, b);
 }
 
 /* return value >= 0 if a>=b and neither is NaN */
 int __gesf2(float a, float b)
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		/* TODO: sigNaNs*/
 		return -1;
 		};
 	
-	if (isFloat32eq(fa,fb)) {
+	if (isFloat32eq(fa, fb)) {
 		return 0;
 	};
 	
-	if (isFloat32gt(fa,fb)) {
+	if (isFloat32gt(fa, fb)) {
 		return 1;
 		};
 	
@@ -233,10 +233,10 @@ int __gesf2(float a, float b)
 /** Return negative value, if a<b and neither is NaN*/
 int __ltsf2(float a, float b)
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		/* TODO: sigNaNs*/
 		return 1;
 		};
@@ -249,19 +249,19 @@ int __ltsf2(float a, float b)
 /* return value <= 0 if a<=b and neither is NaN */
 int __lesf2(float a, float b)
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		/* TODO: sigNaNs*/
 		return 1;
 		};
 	
-	if (isFloat32eq(fa,fb)) {
+	if (isFloat32eq(fa, fb)) {
 		return 0;
 	};
 	
-	if (isFloat32lt(fa,fb)) {
+	if (isFloat32lt(fa, fb)) {
 		return -1;
 		};
 	
@@ -271,10 +271,10 @@ int __lesf2(float a, float b)
 /** Return positive value, if a>b and neither is NaN*/
 int __gtsf2(float a, float b)
 {
-	float32 fa,fb;
-	fa.f=a;
-	fb.f=b;
-	if ((isFloat32NaN(fa))||(isFloat32NaN(fb))) {
+	float32 fa, fb;
+	fa.f = a;
+	fb.f = b;
+	if ( (isFloat32NaN(fa)) || (isFloat32NaN(fb)) ) {
 		/* TODO: sigNaNs*/
 		return -1;
 		};
@@ -288,16 +288,16 @@ int __gtsf2(float a, float b)
 
 float __powisf2(float a, int b)
 {
-//TODO:	
+/* TODO: */
 }
 
 float __mulsc3(float a, float b, float c, float d)
 {
-//TODO:
+/* TODO: */
 }
 
 float __divsc3(float a, float b, float c, float d)
 {
-//TODO:
+/* TODO: */
 }
 

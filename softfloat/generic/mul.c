@@ -36,7 +36,7 @@
 float32 mulFloat32(float32 a, float32 b)
 {
 	float32 result;
-	__u64 mant1, mant2;
+	__u64 frac1, frac2;
 	__s32 exp;
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
@@ -44,12 +44,12 @@ float32 mulFloat32(float32 a, float32 b)
 	if (isFloat32NaN(a) || isFloat32NaN(b) ) {
 		/* TODO: fix SigNaNs */
 		if (isFloat32SigNaN(a)) {
-			result.parts.mantisa = a.parts.mantisa;
+			result.parts.fraction = a.parts.fraction;
 			result.parts.exp = a.parts.exp;
 			return result;
 		};
 		if (isFloat32SigNaN(b)) { /* TODO: fix SigNaN */
-			result.parts.mantisa = b.parts.mantisa;
+			result.parts.fraction = b.parts.fraction;
 			result.parts.exp = b.parts.exp;
 			return result;
 		};
@@ -64,7 +64,7 @@ float32 mulFloat32(float32 a, float32 b)
 			result.binary = FLOAT32_NAN;
 			return result;
 		}
-		result.parts.mantisa = a.parts.mantisa;
+		result.parts.fraction = a.parts.fraction;
 		result.parts.exp = a.parts.exp;
 		return result;
 	}
@@ -75,7 +75,7 @@ float32 mulFloat32(float32 a, float32 b)
 			result.binary = FLOAT32_NAN;
 			return result;
 		}
-		result.parts.mantisa = b.parts.mantisa;
+		result.parts.fraction = b.parts.fraction;
 		result.parts.exp = b.parts.exp;
 		return result;
 	}
@@ -95,72 +95,72 @@ float32 mulFloat32(float32 a, float32 b)
 	if (exp < 0) { 
 		/* FIXME: underflow */
 		/* return signed zero */
-		result.parts.mantisa = 0x0;
+		result.parts.fraction = 0x0;
 		result.parts.exp = 0x0;
 		return result;
 	};
 	
-	mant1 = a.parts.mantisa;
+	frac1 = a.parts.fraction;
 	if (a.parts.exp > 0) {
-		mant1 |= FLOAT32_HIDDEN_BIT_MASK;
+		frac1 |= FLOAT32_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
 	};
 	
-	mant2 = b.parts.mantisa;
+	frac2 = b.parts.fraction;
 
 	if (b.parts.exp > 0) {
-		mant2 |= FLOAT32_HIDDEN_BIT_MASK;
+		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
 	};
 
-	mant1 <<= 1; /* one bit space for rounding */
+	frac1 <<= 1; /* one bit space for rounding */
 
-	mant1 = mant1 * mant2;
+	frac1 = frac1 * frac2;
 /* round and return */
 	
-	while ((exp < FLOAT32_MAX_EXPONENT) && (mant1 >= ( 1 << (FLOAT32_MANTISA_SIZE + 2)))) { 
-		/* 23 bits of mantisa + one more for hidden bit (all shifted 1 bit left)*/
+	while ((exp < FLOAT32_MAX_EXPONENT) && (frac1 >= ( 1 << (FLOAT32_FRACTION_SIZE + 2)))) { 
+		/* 23 bits of fraction + one more for hidden bit (all shifted 1 bit left)*/
 		++exp;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 
 	/* rounding */
-	//++mant1; /* FIXME: not works - without it is ok */
-	mant1 >>= 1; /* shift off rounding space */
+	/* ++frac1; FIXME: not works - without it is ok */
+	frac1 >>= 1; /* shift off rounding space */
 	
-	if ((exp < FLOAT32_MAX_EXPONENT) && (mant1 >= (1 << (FLOAT32_MANTISA_SIZE + 1)))) {
+	if ((exp < FLOAT32_MAX_EXPONENT) && (frac1 >= (1 << (FLOAT32_FRACTION_SIZE + 1)))) {
 		++exp;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 
 	if (exp >= FLOAT32_MAX_EXPONENT ) {	
 		/* TODO: fix overflow */
 		/* return infinity*/
 		result.parts.exp = FLOAT32_MAX_EXPONENT;
-		result.parts.mantisa = 0x0;
+		result.parts.fraction = 0x0;
 		return result;
 	}
 	
-	exp -= FLOAT32_MANTISA_SIZE;
+	exp -= FLOAT32_FRACTION_SIZE;
 
-	if (exp <= FLOAT32_MANTISA_SIZE) { 
+	if (exp <= FLOAT32_FRACTION_SIZE) { 
 		/* denormalized number */
-		mant1 >>= 1; /* denormalize */
-		while ((mant1 > 0) && (exp < 0)) {
-			mant1 >>= 1;
+		frac1 >>= 1; /* denormalize */
+		while ((frac1 > 0) && (exp < 0)) {
+			frac1 >>= 1;
 			++exp;
 		};
-		if (mant1 == 0) {
+		if (frac1 == 0) {
 			/* FIXME : underflow */
 		result.parts.exp = 0;
-		result.parts.mantisa = 0;
+		result.parts.fraction = 0;
 		return result;
 		};
 	};
 	result.parts.exp = exp; 
-	result.parts.mantisa = mant1 & ( (1 << FLOAT32_MANTISA_SIZE) - 1);
+	result.parts.fraction = frac1 & ( (1 << FLOAT32_FRACTION_SIZE) - 1);
 	
 	return result;	
 	
@@ -172,7 +172,7 @@ float32 mulFloat32(float32 a, float32 b)
 float64 mulFloat64(float64 a, float64 b)
 {
 	float64 result;
-	__u64 mant1, mant2;
+	__u64 frac1, frac2;
 	__s32 exp;
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
@@ -180,12 +180,12 @@ float64 mulFloat64(float64 a, float64 b)
 	if (isFloat64NaN(a) || isFloat64NaN(b) ) {
 		/* TODO: fix SigNaNs */
 		if (isFloat64SigNaN(a)) {
-			result.parts.mantisa = a.parts.mantisa;
+			result.parts.fraction = a.parts.fraction;
 			result.parts.exp = a.parts.exp;
 			return result;
 		};
 		if (isFloat64SigNaN(b)) { /* TODO: fix SigNaN */
-			result.parts.mantisa = b.parts.mantisa;
+			result.parts.fraction = b.parts.fraction;
 			result.parts.exp = b.parts.exp;
 			return result;
 		};
@@ -200,7 +200,7 @@ float64 mulFloat64(float64 a, float64 b)
 			result.binary = FLOAT64_NAN;
 			return result;
 		}
-		result.parts.mantisa = a.parts.mantisa;
+		result.parts.fraction = a.parts.fraction;
 		result.parts.exp = a.parts.exp;
 		return result;
 	}
@@ -211,7 +211,7 @@ float64 mulFloat64(float64 a, float64 b)
 			result.binary = FLOAT64_NAN;
 			return result;
 		}
-		result.parts.mantisa = b.parts.mantisa;
+		result.parts.fraction = b.parts.fraction;
 		result.parts.exp = b.parts.exp;
 		return result;
 	}
@@ -231,85 +231,85 @@ float64 mulFloat64(float64 a, float64 b)
 	if (exp < 0) { 
 		/* FIXME: underflow */
 		/* return signed zero */
-		result.parts.mantisa = 0x0;
+		result.parts.fraction = 0x0;
 		result.parts.exp = 0x0;
 		return result;
 	};
 	
-	mant1 = a.parts.mantisa;
+	frac1 = a.parts.fraction;
 	if (a.parts.exp > 0) {
-		mant1 |= FLOAT64_HIDDEN_BIT_MASK;
+		frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
 	};
 	
-	mant2 = b.parts.mantisa;
+	frac2 = b.parts.fraction;
 
 	if (b.parts.exp > 0) {
-		mant2 |= FLOAT64_HIDDEN_BIT_MASK;
+		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
 	};
 
-	mant1 <<= 1; /* one bit space for rounding */
+	frac1 <<= 1; /* one bit space for rounding */
 
-	mul64integers(mant1, mant2, &mant1, &mant2);
+	mul64integers(frac1, frac2, &frac1, &frac2);
 
 /* round and return */
-	/* FIXME: ugly soulution is to shift whole mant2 >> as in 32bit version
+	/* FIXME: ugly soulution is to shift whole frac2 >> as in 32bit version
 	 * Here is is more slower because we have to shift two numbers with carry
 	 * Better is find first nonzero bit and make only one shift
 	 * Third version is to shift both numbers a bit to right and result will be then 
 	 * placed in higher part of result. Then lower part will be good only for rounding.
 	 */
 	
-	while ((exp < FLOAT64_MAX_EXPONENT) && (mant2 > 0 )) { 
-		mant1 >>= 1;
-		mant1 &= ((mant2 & 0x1) << 63);
-		mant2 >>= 1;
+	while ((exp < FLOAT64_MAX_EXPONENT) && (frac2 > 0 )) { 
+		frac1 >>= 1;
+		frac1 &= ((frac2 & 0x1) << 63);
+		frac2 >>= 1;
 		++exp;
 	}
 	
-	while ((exp < FLOAT64_MAX_EXPONENT) && (mant1 >= ( (__u64)1 << (FLOAT64_MANTISA_SIZE + 2)))) { 
+	while ((exp < FLOAT64_MAX_EXPONENT) && (frac1 >= ( (__u64)1 << (FLOAT64_FRACTION_SIZE + 2)))) { 
 		++exp;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 
 	/* rounding */
-	//++mant1; /* FIXME: not works - without it is ok */
-	mant1 >>= 1; /* shift off rounding space */
+	/* ++frac1;  FIXME: not works - without it is ok */
+	frac1 >>= 1; /* shift off rounding space */
 	
-	if ((exp < FLOAT64_MAX_EXPONENT) && (mant1 >= ((__u64)1 << (FLOAT64_MANTISA_SIZE + 1)))) {
+	if ((exp < FLOAT64_MAX_EXPONENT) && (frac1 >= ((__u64)1 << (FLOAT64_FRACTION_SIZE + 1)))) {
 		++exp;
-		mant1 >>= 1;
+		frac1 >>= 1;
 	};
 
 	if (exp >= FLOAT64_MAX_EXPONENT ) {	
 		/* TODO: fix overflow */
 		/* return infinity*/
 		result.parts.exp = FLOAT64_MAX_EXPONENT;
-		result.parts.mantisa = 0x0;
+		result.parts.fraction = 0x0;
 		return result;
 	}
 	
-	exp -= FLOAT64_MANTISA_SIZE;
+	exp -= FLOAT64_FRACTION_SIZE;
 
-	if (exp <= FLOAT64_MANTISA_SIZE) { 
+	if (exp <= FLOAT64_FRACTION_SIZE) { 
 		/* denormalized number */
-		mant1 >>= 1; /* denormalize */
-		while ((mant1 > 0) && (exp < 0)) {
-			mant1 >>= 1;
+		frac1 >>= 1; /* denormalize */
+		while ((frac1 > 0) && (exp < 0)) {
+			frac1 >>= 1;
 			++exp;
 		};
-		if (mant1 == 0) {
+		if (frac1 == 0) {
 			/* FIXME : underflow */
 		result.parts.exp = 0;
-		result.parts.mantisa = 0;
+		result.parts.fraction = 0;
 		return result;
 		};
 	};
 	result.parts.exp = exp; 
-	result.parts.mantisa = mant1 & ( ((__u64)1 << FLOAT64_MANTISA_SIZE) - 1);
+	result.parts.fraction = frac1 & ( ((__u64)1 << FLOAT64_FRACTION_SIZE) - 1);
 	
 	return result;	
 	
@@ -338,8 +338,8 @@ void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi)
 	high = a * b;
 
 	middle1 += middle2;
-	high += ((__u64)(middle1 < middle2) << 32) + middle1>>32;
-	middle1 << 32;
+	high += ((__u64)(middle1 < middle2) << 32) + (middle1 >> 32);
+	middle1 <<= 32;
 	low += middle1;
 	high += (low < middle1);
 	*lo = low;

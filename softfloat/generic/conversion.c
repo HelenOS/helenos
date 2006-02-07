@@ -32,11 +32,11 @@
 float64 convertFloat32ToFloat64(float32 a) 
 {
 	float64 result;
-	__u64 mant;
+	__u64 frac;
 	
 	result.parts.sign = a.parts.sign;
-	result.parts.mantisa = a.parts.mantisa;
-	result.parts.mantisa <<= (FLOAT64_MANTISA_SIZE - FLOAT32_MANTISA_SIZE );
+	result.parts.fraction = a.parts.fraction;
+	result.parts.fraction <<= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE );
 	
 	if ((isFloat32Infinity(a))||(isFloat32NaN(a))) {
 		result.parts.exp = 0x7FF;
@@ -48,20 +48,20 @@ float64 convertFloat32ToFloat64(float32 a)
 	if (a.parts.exp == 0) {
 		/* normalize denormalized numbers */
 
-		if (result.parts.mantisa == 0ll) { /* fix zero */
+		if (result.parts.fraction == 0ll) { /* fix zero */
 			result.parts.exp = 0ll;
 			return result;
 		}
 			
-		mant = result.parts.mantisa;
+		frac = result.parts.fraction;
 		
-		while (!(mant & (0x10000000000000ll))) {
-			mant <<= 1;
+		while (!(frac & (0x10000000000000ll))) {
+			frac <<= 1;
 			--result.parts.exp;
 		};
 		
 		++result.parts.exp;
-		result.parts.mantisa = mant;
+		result.parts.fraction = frac;
 	};
 	
 	return result;
@@ -72,7 +72,7 @@ float32 convertFloat64ToFloat32(float64 a)
 {
 	float32 result;
 	__s32 exp;
-	__u64 mant;
+	__u64 frac;
 	
 	result.parts.sign = a.parts.sign;
 	
@@ -81,16 +81,16 @@ float32 convertFloat64ToFloat32(float64 a)
 		result.parts.exp = 0xFF;
 		
 		if (isFloat64SigNaN(a)) {
-			result.parts.mantisa = 0x800000; /* set first bit of mantisa nonzero */
+			result.parts.fraction = 0x800000; /* set first bit of fraction nonzero */
 			return result;
 		}
 	
-		result.parts.mantisa = 0x1; /* mantisa nonzero but its first bit is zero */
+		result.parts.fraction = 0x1; /* fraction nonzero but its first bit is zero */
 		return result;
 	};
 
 	if (isFloat64Infinity(a)) {
-		result.parts.mantisa = 0;
+		result.parts.fraction = 0;
 		result.parts.exp = 0xFF;
 		return result;
 	};
@@ -99,7 +99,7 @@ float32 convertFloat64ToFloat32(float64 a)
 	
 	if (exp >= 0xFF) {
 		/*FIXME: overflow*/
-		result.parts.mantisa = 0;
+		result.parts.fraction = 0;
 		result.parts.exp = 0xFF;
 		return result;
 		
@@ -110,30 +110,30 @@ float32 convertFloat64ToFloat32(float64 a)
 		result.parts.exp = 0;
 		
 		exp *= -1;	
-		if (exp > FLOAT32_MANTISA_SIZE ) {
+		if (exp > FLOAT32_FRACTION_SIZE ) {
 			/* FIXME: underflow */
-			result.parts.mantisa = 0;
+			result.parts.fraction = 0;
 			return result;
 		};
 		
 		/* denormalized */
 		
-		mant = a.parts.mantisa; 
-		mant |= 0x10000000000000ll; /* denormalize and set hidden bit */
+		frac = a.parts.fraction; 
+		frac |= 0x10000000000000ll; /* denormalize and set hidden bit */
 		
-		mant >>= (FLOAT64_MANTISA_SIZE - FLOAT32_MANTISA_SIZE + 1);
+		frac >>= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE + 1);
 		
 		while (exp > 0) {
 			--exp;
-			mant >>= 1;
+			frac >>= 1;
 		};
-		result.parts.mantisa = mant;
+		result.parts.fraction = frac;
 		
 		return result;
 	};
 
 	result.parts.exp = exp;
-	result.parts.mantisa = a.parts.mantisa >> (FLOAT64_MANTISA_SIZE - FLOAT32_MANTISA_SIZE);
+	result.parts.fraction = a.parts.fraction >> (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE);
 	return result;
 };
 
