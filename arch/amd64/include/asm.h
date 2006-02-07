@@ -72,6 +72,9 @@ static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \
  */
 static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
 
+/** Swap Hidden part of GS register with visible one */
+static inline void swapgs(void) { __asm__ volatile("swapgs"); }
+
 /** Enable interrupts.
  *
  * Enable interrupts and return previous

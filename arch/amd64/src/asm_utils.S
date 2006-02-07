@@ -192,10 +192,29 @@ h_end:
 
 	
 syscall_entry:
-	# TODO:	Switch to kernel stack
+	# Switch to hidden gs	
+	swapgs
+
+	# TODO:	I would like LEA instead of thes 2 instrs,
+	# why does not it work???
+	mov %gs:0, %r10     # We have a stack in r10
+	addq $0x0ff0, %r10
+	
+	movq %rsp, 0(%r10)  # Save old stack pointer to stack
+	movq %r10, %rsp     # Change to new stack
+	pushq %rcx          # Return address
+	pushq %r11          # Save flags
+
+	# Switch back to remain consistent
+	swapgs 
+
+	movq %r9, %rcx      # Exchange last parameter as a third
 	call syscall_handler
-	# Switch back
-	sysret
+	
+	popq %r11
+	popq %rcx
+	movq 0(%rsp), %rsp
+	sysretq
 		
 .data
 .global interrupt_handler_size

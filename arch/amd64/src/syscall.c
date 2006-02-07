@@ -34,6 +34,7 @@
 #include <arch/asm.h>
 
 #include <print.h>
+#include <arch/cpu.h>
 
 extern void syscall_entry(void);
 
@@ -54,17 +55,19 @@ void syscall_setup_cpu(void)
 		  | ((__u64)(gdtselector(KTEXT_DES) | PL_KERNEL)<<32));
 	write_msr(AMD_MSR_LSTAR, (__u64)syscall_entry);
 	/* Mask RFLAGS on syscall 
-	 * - we do not care what is in the flags field
+	 * - disable interrupts, until we exchange the stack register
+	 *   (mask the IE bit)
 	 */
-	write_msr(AMD_MSR_SFMASK, 0);
+	write_msr(AMD_MSR_SFMASK, 0x200);
 }
 
 /** Dispatch system call */
 __native syscall_handler(__native id, __native a1, __native a2, __native a3)
 {
+	interrupts_enable();
 	if (id < SYSCALL_END)
 		return syscall_table[id](a1,a2,a3);
 	else
 		panic("Undefined syscall %d", id);
-	
+	interrupts_disable();
 }
