@@ -26,53 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Common compiler flags
+## Toolchain configuration
 #
 
-LIBC_PREFIX = .
+TARGET = amd64-linux-gnu
+TOOLCHAIN_DIR = /usr/local/amd64/bin
 
-## Setup toolchain
-#
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-## Sources
-#
-
-GENERIC_SOURCES = \
-	generic/libc.c \
-	generic/io.c
-
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/entry.s
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
-
-.PHONY: all clean depend
-
-all: libc.a arch/$(ARCH)/_link.ld
-
--include Makefile.depend
-
-clean:
-	-rm -f libc.a arch/$(ARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
-
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ARCH_SOURCES += arch/$(ARCH)/src/syscall.S
