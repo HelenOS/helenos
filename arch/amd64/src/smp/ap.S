@@ -68,6 +68,8 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
+	movw $gdtselector(UDATA_DES), %ax
+	movw %ax, %gs
 	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
