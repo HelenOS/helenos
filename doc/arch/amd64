@@ -18,9 +18,12 @@ SMP COMPATIBILITY
         o Bochs 2.2.1 - 2.2.6
                 o 2x-8x AMD64 CPU
         o Simics 2.2.19
-                o 2x-8x AMD hammer CPU
+                o 2x-15x AMD hammer CPU
+	o QEMU 0.8.0
+		o 2x-15x CPU
 	o HP ProLiant ML350 (HyperThreading)
 
 EMULATORS AND VIRTUALIZERS
-        o Bochs 2.2.5
+        o Bochs 2.2.6
         o Simics 2.2.19
+	o QEMU 0.8.0

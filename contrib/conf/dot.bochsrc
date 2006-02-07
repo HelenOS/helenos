@@ -58,6 +58,8 @@ config_interface: textconfig
 #display_library: wx
 display_library: x 
 
+cpu: count=8, ips=10000000
+
 #=======================================================================
 # ROMIMAGE:
 # You now need to load a ROM BIOS into F0000-FFFFF. Normally, you can
@@ -66,10 +68,9 @@ display_library: x
 # You can also use the environment variable $BXSHARE to specify the
 # location of the BIOS.
 #=======================================================================
-#romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
-#romimage: file=bios/BIOS-bochs-2-processors, address=0xf0000
-romimage: file=$BXSHARE/BIOS-bochs-8-processors, address=0xf0000
-#romimage: file=bios/rombios.bin, address=0xf0000
+romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
+#romimage: file=$BXSHARE/BIOS-bochs-8-processors, address=0xf0000
+#romimage: file=bios/P4SMT, address=0xf0000
 
 #=======================================================================
 # MEGS
@@ -345,7 +346,7 @@ log: bochsout.txt
 # cause bochs to become unstable.  The panic is a "graceful exit," so
 # if you disable it you may get a spectacular disaster instead.
 #=======================================================================
-panic: action=ask
+panic: action=report
 error: action=report
 info: action=report
 debug: action=ignore

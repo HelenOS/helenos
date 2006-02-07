@@ -115,7 +115,7 @@ void arch_post_smp_init(void)
 /* Stack pointer saved when entering user mode */
 /* TODO: How do we do it on SMP system???? */
 
-/* Why the hell moves the linker the variable 64K away in assembler
+/* Why the linker moves the variable 64K away in assembler
  * when not in .text section ????????
  */
 __address supervisor_sp __attribute__ ((section (".text")));
