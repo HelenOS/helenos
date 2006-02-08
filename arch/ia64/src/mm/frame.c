@@ -41,6 +41,13 @@
 void frame_arch_init(void)
 {
 	/*
+         * Workaround to prevent slab allocator from allocating frame 0.
+         * Remove the following statement when the kernel is no longer
+	 * identity mapped.
+         */
+	frame_region_not_free(0, FRAME_SIZE);
+
+	/*
 	 * Blacklist ROM regions.
 	 */
 	frame_region_not_free(ROM_BASE, ROM_SIZE);

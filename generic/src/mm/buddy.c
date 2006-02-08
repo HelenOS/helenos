@@ -168,7 +168,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	
 	/*
 	 * Return the other half to buddy system.
-	 * PROBLEM!!!! FILL FIND OTHER PART AS BUDDY AND LINK TOGETHER
+	 * PROBLEM!!!! WILL FIND OTHER PART AS BUDDY AND LINK TOGETHER
 	 */
 	b->op->mark_busy(b, res);
 	buddy_system_free(b, hlp);
