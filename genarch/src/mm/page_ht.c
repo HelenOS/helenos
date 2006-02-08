@@ -169,7 +169,7 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	spinlock_lock(&page_ht_lock);
 
 	if (!hash_table_find(&page_ht, key)) {
-		t = (pte_t *) malloc(sizeof(pte_t));
+		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
 		ASSERT(t != NULL);
 	
 		hash_table_insert(&page_ht, key, &t->link);

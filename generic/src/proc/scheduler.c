@@ -327,7 +327,7 @@ static void scheduler_separated_stack(void)
 			 * Both tasks and address spaces are different.
 			 * Replace the old one with the new one.
 			 */
-			as_install(as2);
+			as_switch(as1, as2);
 		}
 		TASK = THREAD->task;	
 	}
@@ -335,7 +335,7 @@ static void scheduler_separated_stack(void)
 	THREAD->state = Running;
 
 	#ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (priority=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, CPU->nrdy);
+	printf("cpu%d: tid %d (priority=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
 	#endif	
 
 	/*

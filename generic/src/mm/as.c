@@ -56,6 +56,15 @@
 
 as_operations_t *as_operations = NULL;
 
+/** Address space lock. It protects inactive_as_with_asid_head. */
+SPINLOCK_INITIALIZE(as_lock);
+
+/**
+ * This list contains address spaces that are not active on any
+ * processor and that have valid ASID.
+ */
+LIST_INITIALIZE(inactive_as_with_asid_head);
+
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
@@ -79,8 +88,7 @@ as_t *as_create(int flags)
 	as_t *as;
 
 	as = (as_t *) malloc(sizeof(as_t), 0);
-
-	list_initialize(&as->as_with_asid_link);
+	link_initialize(&as->inactive_as_with_asid_link);
 	spinlock_initialize(&as->lock, "as_lock");
 	list_initialize(&as->as_area_head);
 	
@@ -89,6 +97,7 @@ as_t *as_create(int flags)
 	else
 		as->asid = ASID_INVALID;
 	
+	as->refcount = 0;
 	as->page_table = page_table_create(flags);
 
 	return as;
@@ -267,29 +276,73 @@ int as_page_fault(__address page)
 	return 1;
 }
 
-/** Install address space on CPU.
+/** Switch address spaces.
  *
- * @param as Address space.
+ * @param old Old address space or NULL.
+ * @param new New address space.
  */
-void as_install(as_t *as)
+void as_switch(as_t *old, as_t *new)
 {
 	ipl_t ipl;
-	
-	asid_install(as);
+	bool needs_asid = false;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
-	SET_PTL0_ADDRESS(as->page_table);
-	spinlock_unlock(&as->lock);
-	interrupts_restore(ipl);
+	spinlock_lock(&as_lock);
 
+	/*
+	 * First, take care of the old address space.
+	 */	
+	if (old) {
+		spinlock_lock(&old->lock);
+		ASSERT(old->refcount);
+		if((--old->refcount == 0) && (old != AS_KERNEL)) {
+			/*
+			 * The old address space is no longer active on
+			 * any processor. It can be appended to the
+			 * list of inactive address spaces with assigned
+			 * ASID.
+			 */
+			 ASSERT(old->asid != ASID_INVALID);
+			 list_append(&old->inactive_as_with_asid_link, &inactive_as_with_asid_head);
+		}
+		spinlock_unlock(&old->lock);
+	}
+
+	/*
+	 * Second, prepare the new address space.
+	 */
+	spinlock_lock(&new->lock);
+	if ((new->refcount++ == 0) && (new != AS_KERNEL)) {
+		if (new->asid != ASID_INVALID)
+			list_remove(&new->inactive_as_with_asid_link);
+		else
+			needs_asid = true;	/* defer call to asid_get() until new->lock is released */
+	}
+	SET_PTL0_ADDRESS(new->page_table);
+	spinlock_unlock(&new->lock);
+
+	if (needs_asid) {
+		/*
+		 * Allocation of new ASID was deferred
+		 * until now in order to avoid deadlock.
+		 */
+		asid_t asid;
+		
+		asid = asid_get();
+		spinlock_lock(&new->lock);
+		new->asid = asid;
+		spinlock_unlock(&new->lock);
+	}
+	spinlock_unlock(&as_lock);
+	interrupts_restore(ipl);
+	
 	/*
 	 * Perform architecture-specific steps.
 	 * (e.g. write ASID to hardware register etc.)
 	 */
-	as_install_arch(as);
+	as_install_arch(new);
 	
-	AS = as;
+	AS = new;
 }
 
 /** Compute flags for virtual address translation subsytem.

@@ -43,6 +43,10 @@
  * ASID from an address space that has not been active for
  * a while.
  *
+ * This code depends on the fact that ASIDS_ALLOCABLE
+ * is greater than number of supported CPUs (i.e. the
+ * amount of concurently active address spaces).
+ *
  * Architectures that don't have hardware support for address
  * spaces do not compile with this file.
  */
@@ -57,33 +61,21 @@
 #include <debug.h>
 
 /**
- * asidlock protects both the asids_allocated counter
- * and the list of address spaces that were already
- * assigned ASID.
+ * asidlock protects the asids_allocated counter.
  */
 SPINLOCK_INITIALIZE(asidlock);
 
 static count_t asids_allocated = 0;
 
-/**
- * List of address spaces with assigned ASID.
- * When the system runs short of allocable
- * ASIDS, inactive address spaces are guaranteed
- * to be at the beginning of the list.
- */
-LIST_INITIALIZE(as_with_asid_head);
-
-
 /** Allocate free address space identifier.
  *
- * This code depends on the fact that ASIDS_ALLOCABLE
- * is greater than number of supported CPUs.
+ * Interrupts must be disabled and as_lock must be held
+ * prior to this call
  *
  * @return New ASID.
  */
 asid_t asid_get(void)
 {
-	ipl_t ipl;
 	asid_t asid;
 	link_t *tmp;
 	as_t *as;
@@ -92,7 +84,6 @@ asid_t asid_get(void)
 	 * Check if there is an unallocated ASID.
 	 */
 	
-	ipl = interrupts_disable();
 	spinlock_lock(&asidlock);
 	if (asids_allocated == ASIDS_ALLOCABLE) {
 
@@ -106,11 +97,11 @@ asid_t asid_get(void)
 		 * It is guaranteed to belong to an
 		 * inactive address space.
 		 */
-		tmp = as_with_asid_head.next;
-		ASSERT(tmp != &as_with_asid_head);
+		ASSERT(!list_empty(&inactive_as_with_asid_head));
+		tmp = inactive_as_with_asid_head.next;
 		list_remove(tmp);
 		
-		as = list_get_instance(tmp, as_t, as_with_asid_link);
+		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);
 		spinlock_lock(&as->lock);
 
 		/*
@@ -145,7 +136,6 @@ asid_t asid_get(void)
 	}
 	
 	spinlock_unlock(&asidlock);
-	interrupts_restore(ipl);
 	
 	return asid;
 }
@@ -167,60 +157,6 @@ void asid_put(asid_t asid)
 	asids_allocated--;
 	asid_put_arch(asid);
 	
-	spinlock_unlock(&asidlock);
-	interrupts_restore(ipl);
-}
-
-/** Install ASID.
- *
- * This function is to be executed on each address space switch.
- *
- * @param as Address space.
- */
-void asid_install(as_t *as)
-{
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&asidlock);
-	spinlock_lock(&as->lock);
-	
-	if (as->asid != ASID_KERNEL) {
-		if (as->asid != ASID_INVALID) {
-			/*
-			 * This address space has valid ASID.
-			 * Remove 'as' from the list of address spaces
-			 * with assigned ASID, so that it can be later
-			 * appended to the tail of the same list.
-			 * This is to prevent stealing of ASIDs from
-			 * recently installed address spaces.
-			 */
-			list_remove(&as->as_with_asid_link);
-		} else {
-			spinlock_unlock(&as->lock);
-			spinlock_unlock(&asidlock);
-	
-			/*
-			 * This address space doesn't have ASID assigned.
-			 * It was stolen or the address space is being
-			 * installed for the first time.
-			 * Allocate new ASID for it.
-			 */
-			as->asid = asid_get();
-			spinlock_lock(&asidlock);
-			spinlock_lock(&as->lock);
-		}
-	
-		/*
-		 * Now it is sure that 'as' has ASID.
-		 * It is therefore appended to the list
-		 * of address spaces from which it can
-		 * be stolen.
-		 */
-		list_append(&as->as_with_asid_link, &as_with_asid_head);
-	}
-	
-	spinlock_unlock(&as->lock);
 	spinlock_unlock(&asidlock);
 	interrupts_restore(ipl);
 }

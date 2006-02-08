@@ -45,9 +45,10 @@
 #define ASIDS_ALLOCABLE	((ASID_MAX+1)-ASID_START)
 
 extern spinlock_t asidlock;
-extern link_t as_with_asid_head;
 
+#ifndef asid_get
 extern asid_t asid_get(void);
+#endif /* !def asid_get */
 extern void asid_put(asid_t asid);
 
 #ifndef asid_install

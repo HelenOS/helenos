@@ -76,9 +76,13 @@ struct as_area {
  */
 struct as {
 	/** Protected by asidlock. Must be acquired before as->lock. */
-	link_t as_with_asid_link;
+	link_t inactive_as_with_asid_link;
 
 	SPINLOCK_DECLARE(lock);
+
+	/** Number of processors on wich is this address space active. */
+	count_t refcount;
+
 	link_t as_area_head;
 
 	/** Page table pointer. Constant on architectures that use global page hash table. */
@@ -96,12 +100,15 @@ typedef struct as_operations as_operations_t;
 extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
 
+extern spinlock_t as_lock;
+extern link_t inactive_as_with_asid_head;
+
 extern void as_init(void);
 extern as_t *as_create(int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
-extern void as_install(as_t *m);
+extern void as_switch(as_t *old, as_t *new);
 
 /* Interface to be implemented by architectures. */
 #ifndef as_install_arch

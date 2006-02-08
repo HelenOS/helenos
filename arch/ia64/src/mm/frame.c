@@ -43,10 +43,10 @@ void frame_arch_init(void)
 	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
 	
 	/*
-         * Workaround to prevent slab allocator from allocating frame 0.
-         * Remove the following statement when the kernel is no longer
+	 * Workaround to prevent slab allocator from allocating frame 0.
+	 * Remove the following statement when the kernel is no longer
 	 * identity mapped.
-         */
+	 */
 	frame_mark_unavailable(0, 1);
 
 	/*
