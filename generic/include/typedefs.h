@@ -66,10 +66,6 @@ typedef struct chunk chunk_t;
 typedef struct buddy_system buddy_system_t;
 typedef struct buddy_system_operations buddy_system_operations_t;
 
-typedef struct zone zone_t;
-typedef struct frame frame_t;
-typedef struct region region_t;
-
 typedef enum as_area_type as_area_type_t;
 typedef struct as_area as_area_t;
 typedef struct as as_t;

@@ -43,12 +43,9 @@
  */
 void frame_arch_init(void)
 {
-	/* Blacklist first 4KB, exception vector */
-	frame_region_not_free(0, FRAME_SIZE);
-
 	if (arc_enabled())
 		arc_frame_init();
-	else
-		zone_create_in_region(KA2PA(KERNEL_LOAD_ADDRESS),
-				      (config.memory_size & ~(FRAME_SIZE-1)));
+	else {
+		zone_create(1, (config.memory_size >> PAGE_WIDTH)-1,1,0);
+	}
 }

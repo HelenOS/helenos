@@ -73,6 +73,8 @@ ifeq ($(MIPS_MACHINE),indy)
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	KERNEL_LOAD_ADDRESS = 0x88002000
 	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -march=r4600
+	INIT_ADDRESS = 0
+	INIT_SIZE = 0
 endif
 ifeq ($(MIPS_MACHINE),lgxemul)
 	BFD_NAME=elf32-tradlittlemips

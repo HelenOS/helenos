@@ -111,7 +111,6 @@ struct thread {
 	ARCH_THREAD_DATA;			/**< Architecture-specific data. */
 
 	__u8 *kstack;				/**< Thread's kernel stack. */
-	__u8 *ustack;				/**< Thread's user stack. */
 };
 
 /** Thread list lock.

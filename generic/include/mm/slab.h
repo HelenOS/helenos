@@ -32,6 +32,7 @@
 #include <adt/list.h>
 #include <synch/spinlock.h>
 #include <arch/atomic.h>
+#include <mm/frame.h>
 
 /** Minimum size to be allocated by malloc */
 #define SLAB_MIN_MALLOC_W 4
@@ -126,4 +127,6 @@ extern void slab_print_list(void);
 /* Malloc support */
 extern void * kalloc(unsigned int size, int flags);
 extern void kfree(void *obj);
+#define malloc(x)  kalloc(x, FRAME_ATOMIC)
+#define free(x)    kfree(x)
 #endif

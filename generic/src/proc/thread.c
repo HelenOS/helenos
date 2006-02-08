@@ -29,7 +29,6 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <arch/asm.h>
@@ -95,6 +94,7 @@ static void cushion(void)
 static int thr_constructor(void *obj, int kmflags)
 {
 	thread_t *t = (thread_t *)obj;
+	pfn_t pfn;
 
 	spinlock_initialize(&t->lock, "thread_t_lock");
 	link_initialize(&t->rq_link);
@@ -102,7 +102,8 @@ static int thr_constructor(void *obj, int kmflags)
 	link_initialize(&t->th_link);
 	link_initialize(&t->threads_link);
 	
-	t->kstack = (__u8 *)frame_alloc(ONE_FRAME, FRAME_KA | kmflags);
+	pfn = frame_alloc(ONE_FRAME, FRAME_KA | kmflags);
+	t->kstack = (__u8 *)PA2KA(PFN2ADDR(pfn));
 	if (!t->kstack)
 		return -1;
 
@@ -114,7 +115,7 @@ static int thr_destructor(void *obj)
 {
 	thread_t *t = (thread_t *)obj;
 
-	frame_free((__address) t->kstack);
+	frame_free(ADDR2PFN(KA2PA(t->kstack)));
 	return 1; /* One page freed */
 }
 
@@ -193,9 +194,6 @@ void thread_destroy(thread_t *t)
 		t->cpu->fpu_owner=NULL;
 	spinlock_unlock(&t->cpu->lock);
 
-	if (t->ustack)
-		frame_free((__address) t->ustack);
-	
 	/*
 	 * Detach from the containing task.
 	 */
@@ -228,16 +226,11 @@ void thread_destroy(thread_t *t)
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags)
 {
 	thread_t *t;
-	__address frame_us = NULL;
 
 	t = (thread_t *) slab_alloc(thread_slab, 0);
 	if (t) {
 		ipl_t ipl;
 	
-		if (THREAD_USER_STACK & flags) {
-			frame_us = frame_alloc(ONE_FRAME, FRAME_KA);
-		}
-
 		/* Not needed, but good for debugging */
 		memsetb((__address)t->kstack, THREAD_STACK_SIZE, 0);
 
@@ -246,8 +239,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		t->tid = ++last_tid;
 		spinlock_unlock(&tidlock);
 		interrupts_restore(ipl);
-		
-		t->ustack = (__u8 *) frame_us;
 		
 		context_save(&t->saved_context);
 		context_set(&t->saved_context, FADDR(cushion), (__address) t->kstack, THREAD_STACK_SIZE);

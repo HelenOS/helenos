@@ -28,26 +28,35 @@
 
 #include <mm/buddy.h>
 #include <mm/frame.h>
-#include <mm/heap.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <adt/list.h>
 #include <debug.h>
 #include <print.h>
 
+/** Return size needed for the buddy configuration data */
+size_t buddy_conf_size(int max_order)
+{
+	return sizeof(buddy_system_t) + (max_order + 1) * sizeof(link_t);
+}
+
+
 /** Create buddy system
  *
  * Allocate memory for and initialize new buddy system.
  *
+ * @param b Preallocated buddy system control data
  * @param max_order The biggest allocable size will be 2^max_order.
  * @param op Operations for new buddy system.
  * @param data Pointer to be used by implementation.
  *
  * @return New buddy system.
  */
-buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *op, void *data)
+void buddy_system_create(buddy_system_t *b,
+			 __u8 max_order, 
+			 buddy_system_operations_t *op, 
+			 void *data)
 {
-	buddy_system_t *b;
 	int i;
 
 	ASSERT(max_order < BUDDY_SYSTEM_INNER_BLOCK);
@@ -60,29 +69,16 @@ buddy_system_t *buddy_system_create(__u8 max_order, buddy_system_operations_t *o
 	ASSERT(op->mark_busy);
 
 	/*
-	 * Allocate memory for structure describing the whole buddy system.
-	 */	
-	b = (buddy_system_t *) early_malloc(sizeof(buddy_system_t));
+	 * Use memory after our own structure
+	 */
+	b->order = (link_t *) (&b[1]);
 	
-	if (b) {
-		/*
-		 * Allocate memory for all orders this buddy system will work with.
-		 */
-		b->order = (link_t *) early_malloc((max_order + 1) * sizeof(link_t));
-		if (!b->order) {
-			early_free(b);
-			return NULL;
-		}
-	
-		for (i = 0; i <= max_order; i++)
-			list_initialize(&b->order[i]);
-	
-		b->max_order = max_order;
-		b->op = op;
-		b->data = data;
-	}
-	
-	return b;
+	for (i = 0; i <= max_order; i++)
+		list_initialize(&b->order[i]);
+
+	b->max_order = max_order;
+	b->op = op;
+	b->data = data;
 }
 
 /** Check if buddy system can allocate block
@@ -114,6 +110,42 @@ bool buddy_system_can_alloc(buddy_system_t *b, __u8 i) {
 	
 }
 
+/** Allocate PARTICULAR block from buddy system
+ *
+ * @ return Block of data or NULL if no such block was found
+ */
+link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
+{
+	link_t *left,*right, *tmp;
+	__u8 order;
+
+	left = b->op->find_block(b, block, BUDDY_SYSTEM_INNER_BLOCK);
+	ASSERT(left);
+	list_remove(left);
+	while (1) {
+		if (! b->op->get_order(b,left)) {
+			b->op->mark_busy(b, left);
+			return left;
+		}
+		
+		order = b->op->get_order(b, left);
+
+		right = b->op->bisect(b, left);
+		b->op->set_order(b, left, order-1);
+		b->op->set_order(b, right, order-1);
+
+		tmp = b->op->find_block(b, block, BUDDY_SYSTEM_INNER_BLOCK);
+
+		if (tmp == right) {
+			right = left;
+			left = tmp;
+		}
+		b->op->mark_busy(b, left);
+		buddy_system_free(b, right);
+		b->op->mark_available(b, left);
+	}
+}
+
 /** Allocate block from buddy system.
  *
  * @param b Buddy system pointer.
@@ -137,7 +169,6 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 		b->op->mark_busy(b, res);
 		return res;
 	}
-	
 	/*
 	 * If order i is already the maximal order,
 	 * the request cannot be satisfied.
@@ -167,8 +198,8 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	b->op->set_order(b, hlp, i);
 	
 	/*
-	 * Return the other half to buddy system.
-	 * PROBLEM!!!! WILL FIND OTHER PART AS BUDDY AND LINK TOGETHER
+	 * Return the other half to buddy system. Mark the first part
+	 * full, so that it won't coalsce again.
 	 */
 	b->op->mark_busy(b, res);
 	buddy_system_free(b, hlp);

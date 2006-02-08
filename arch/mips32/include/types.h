@@ -51,4 +51,6 @@ typedef __u32 __native;
 
 typedef union pte pte_t;
 
+typedef __u32 pfn_t;
+
 #endif

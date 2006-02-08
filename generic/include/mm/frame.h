@@ -35,9 +35,14 @@
 #include <adt/list.h>
 #include <synch/spinlock.h>
 #include <mm/buddy.h>
-#include <mm/slab.h>
+#include <arch/mm/page.h>
 
 #define ONE_FRAME	0
+
+#define ZONES_MAX       16      /**< Maximum number of zones in system */
+
+#define ZONE_JOIN       0x1  /**< If possible, merge with neighberhood zones */
+
 
 #define FRAME_KA		0x1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC		0x2	/* panic on failure */
@@ -48,92 +53,61 @@
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
 #define FRAME_ERROR		2	/* frame_alloc return status */
 
-#define FRAME2ADDR(zone, frame)			((zone)->base + (((frame) - (zone)->frames) << FRAME_WIDTH))
-#define ADDR2FRAME(zone, addr)			(&((zone)->frames[(((addr) - (zone)->base) >> FRAME_WIDTH)]))
-#define FRAME_INDEX(zone, frame)		((index_t)((frame) - (zone)->frames))
-#define FRAME_INDEX_ABS(zone, frame)		(((index_t)((frame) - (zone)->frames)) + (zone)->base_index)
-#define FRAME_INDEX_VALID(zone, index)		(((index) >= 0) && ((index) < ((zone)->free_count + (zone)->busy_count)))
-#define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
-#define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((FRAME_INDEX((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((FRAME_INDEX_ABS((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+/* Return true if the interlvals overlap */
+static inline int overlaps(__address s1,__address e1, __address s2, __address e2)
+{
+	if (s1 >= s2 && s1 < e2)
+		return 1;
+	if (e1 >= s2 && e1 < e2)
+		return 1;
+	if ((s1 < s2) && (e1 >= e2))
+		return 1;
+	return 0;
+}
 
-#define ZONE_BLACKLIST_SIZE	8
+static inline __address PFN2ADDR(pfn_t frame)
+{
+	return (__address)(frame << PAGE_WIDTH);
+}
+
+static inline pfn_t ADDR2PFN(__address addr)
+{
+	return (pfn_t)(addr >> PAGE_WIDTH);
+}
+
+static inline pfn_t SIZE2PFN(__address size)
+{
+	if (!size)
+		return 0;
+	return (pfn_t)((size-1) >> PAGE_WIDTH)+1;
+}
+
+#define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
+#define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+
 
 #define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL, NULL)
 #define frame_alloc_rc(order, flags, status)			frame_alloc_generic(order, flags, status, NULL)
 #define frame_alloc_rc_zone(order, flags, status, zone)		frame_alloc_generic(order, flags, status, zone)
 
-struct zone {
-	link_t link;		/**< link to previous and next zone */
-
-	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
-	__address base;		/**< physical address of the first frame in the frames array */
-	index_t base_index;	/**< frame index offset of the zone base */
-	frame_t *frames;	/**< array of frame_t structures in this zone */
-	count_t free_count;	/**< number of free frame_t structures */
-	count_t busy_count;	/**< number of busy frame_t structures */
-	
-	buddy_system_t * buddy_system; /**< buddy system for the zone */
-	int flags;
-};
-
-struct frame {
-	count_t refcount;	/**< tracking of shared frames  */
-	__u8 buddy_order;	/**< buddy system block order */
-	link_t buddy_link;	/**< link to the next free block inside one order */
-	void *parent;           /**< If allocated by slab, this points there */
-};
-
-struct region {
-	__address base;
-	size_t size;
-};
-
-extern region_t zone_blacklist[];
-extern count_t zone_blacklist_count;
-extern void frame_region_not_free(__address base, size_t size);
-extern void zone_create_in_region(__address base, size_t size);
-
-extern spinlock_t zone_head_lock;	/**< this lock protects zone_head list */
-extern link_t zone_head;		/**< list of all zones in the system */
-
-extern zone_t *zone_create(__address start, size_t size, int flags);
-extern void zone_attach(zone_t *zone);
-
 extern void frame_init(void);
-extern void frame_initialize(frame_t *frame, zone_t *zone);
-
-__address frame_alloc_generic(__u8 order, int flags, int * status, zone_t **pzone);
-
-
+__address frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
 extern void frame_free(__address addr);
 
-zone_t * get_zone_by_frame(frame_t * frame);
+extern void zone_create(pfn_t start, pfn_t count, pfn_t confframe, int flags);
 
-/*
- * Buddy system operations
- */
-link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * buddy);
-link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block);
-link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * buddy_l, link_t * buddy_r);
-void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order);
-__u8 zone_buddy_get_order(buddy_system_t *b, link_t * block);
-void zone_buddy_mark_busy(buddy_system_t *b, link_t * block);
-extern frame_t * frame_addr2frame(__address addr);
-
-/*
- * TODO: Implement the following functions.
- */
-extern frame_t *frame_reference(frame_t *frame);
-extern void frame_release(frame_t *frame);
-
+void * frame_get_parent(pfn_t frame, int hint);
+void frame_set_parent(pfn_t frame, void *data, int hint);
+void frame_mark_unavailable(pfn_t start, pfn_t count);
+__address zone_conf_size(pfn_t start, pfn_t count);
 
 /*
  * Console functions
  */
 extern void zone_print_list(void);
-extern void zone_print_one(__address base);
+void zone_print_one(int znum);
 
 #endif

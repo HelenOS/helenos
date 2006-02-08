@@ -35,7 +35,7 @@
 #include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <memstr.h>
 
 /** Create chained hash table.

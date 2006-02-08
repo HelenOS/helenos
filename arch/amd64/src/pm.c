@@ -37,7 +37,7 @@
 #include <config.h>
 
 #include <memstr.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <debug.h>
 
 /*

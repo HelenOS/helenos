@@ -43,7 +43,7 @@
 #include <arch/asm.h>
 #include <mm/frame.h>
 #include <mm/page.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <mm/as.h>
 #include <print.h>
 #include <memstr.h>

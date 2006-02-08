@@ -39,6 +39,7 @@ typedef unsigned int __u32;
 typedef unsigned long long __u64;
 
 typedef __u64 __address;
+typedef __u64 pfn_t;
 
 /* Flags of processor (return value of interrupts_disable()) */
 typedef __u64 ipl_t;

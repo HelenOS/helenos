@@ -29,7 +29,6 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <mm/heap.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>

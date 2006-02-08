@@ -29,7 +29,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <mm/as.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 
 #include <synch/spinlock.h>
 #include <arch.h>

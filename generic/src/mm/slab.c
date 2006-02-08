@@ -96,7 +96,6 @@
 #include <adt/list.h>
 #include <memstr.h>
 #include <align.h>
-#include <mm/heap.h>
 #include <mm/frame.h>
 #include <config.h>
 #include <print.h>
@@ -154,18 +153,19 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	slab_t *slab;
 	size_t fsize;
 	int i;
-	zone_t *zone = NULL;
 	int status;
-	frame_t *frame;
-
-	data = (void *)frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
+	pfn_t pfn;
+	int zone=0;
+	
+	pfn = frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
+	data = (void *) PA2KA(PFN2ADDR(pfn));
 	if (status != FRAME_OK) {
 		return NULL;
 	}
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE)) {
 		slab = slab_alloc(slab_extern_cache, flags);
 		if (!slab) {
-			frame_free((__address)data);
+			frame_free(ADDR2PFN(KA2PA(data)));
 			return NULL;
 		}
 	} else {
@@ -174,11 +174,8 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	}
 		
 	/* Fill in slab structures */
-	/* TODO: some better way of accessing the frame */
-	for (i=0; i < (1 << cache->order); i++) {
-		frame = ADDR2FRAME(zone, KA2PA((__address)(data+i*PAGE_SIZE)));
-		frame->parent = slab;
-	}
+	for (i=0; i < (1 << cache->order); i++)
+		frame_set_parent(pfn+i, slab, zone);
 
 	slab->start = data;
 	slab->available = cache->objects;
@@ -199,7 +196,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
  */
 static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
-	frame_free((__address)slab->start);
+	frame_free(ADDR2PFN(KA2PA(slab->start)));
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE))
 		slab_free(slab_extern_cache, slab);
 
@@ -211,10 +208,7 @@ static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 /** Map object to slab structure */
 static slab_t * obj2slab(void *obj)
 {
-	frame_t *frame; 
-
-	frame = frame_addr2frame((__address)obj);
-	return (slab_t *)frame->parent;
+	return (slab_t *)frame_get_parent(ADDR2PFN(KA2PA(obj)), 0);
 }
 
 /**************************************/
@@ -725,8 +719,9 @@ void * slab_alloc(slab_cache_t *cache, int flags)
 	/* Disable interrupts to avoid deadlocks with interrupt handlers */
 	ipl = interrupts_disable();
 
-	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE)) {
 		result = magazine_obj_get(cache);
+	}
 	if (!result)
 		result = slab_obj_create(cache, flags);
 

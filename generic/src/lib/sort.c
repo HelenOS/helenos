@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <memstr.h>
 #include <sort.h>
 #include <panic.h>

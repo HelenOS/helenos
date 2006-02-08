@@ -36,8 +36,8 @@
 #include <arch/mm/as.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/slab.h>
 #include <mm/tlb.h>
-#include <mm/heap.h>
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/asid.h>
@@ -253,7 +253,7 @@ int as_page_fault(__address page)
 	 *   do not forget to distinguish between
 	 *   the different causes
 	 */
-	frame = frame_alloc(ONE_FRAME, 0);
+	frame = PFN2ADDR(frame_alloc(ONE_FRAME, 0));
 	memsetb(PA2KA(frame), FRAME_SIZE, 0);
 	
 	/*

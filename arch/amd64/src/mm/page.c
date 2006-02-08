@@ -44,14 +44,13 @@ void page_arch_init(void)
 
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
-	
+		
 		/*
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
 			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE | PAGE_EXEC);
 		}
-
 		exc_register(14, "page_fault", (iroutine)page_fault);
 		write_cr3((__address) AS_KERNEL->page_table);
 	}

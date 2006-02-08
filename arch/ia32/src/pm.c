@@ -35,7 +35,7 @@
 #include <arch/context.h>
 #include <panic.h>
 #include <arch/mm/page.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <memstr.h>
 #include <arch/boot/boot.h>
 #include <interrupt.h>
