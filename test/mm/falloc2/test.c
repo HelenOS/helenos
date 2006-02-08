@@ -55,7 +55,7 @@ void thread(void * arg)
 	__u8 val = THREAD->tid % THREADS;
 	index_t k;
 	
-	__address * frames =  (__address *) malloc(MAX_FRAMES * sizeof(__address));
+	__address * frames =  (__address *) malloc(MAX_FRAMES * sizeof(__address), FRAME_ATOMIC);
 	ASSERT(frames != NULL);
 
 	for (run = 0; run < THREAD_RUNS; run++) {

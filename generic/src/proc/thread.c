@@ -226,67 +226,65 @@ void thread_destroy(thread_t *t)
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags)
 {
 	thread_t *t;
-
-	t = (thread_t *) slab_alloc(thread_slab, 0);
-	if (t) {
-		ipl_t ipl;
+	ipl_t ipl;
 	
-		/* Not needed, but good for debugging */
-		memsetb((__address)t->kstack, THREAD_STACK_SIZE, 0);
-
-		ipl = interrupts_disable();
-		spinlock_lock(&tidlock);
-		t->tid = ++last_tid;
-		spinlock_unlock(&tidlock);
-		interrupts_restore(ipl);
+	t = (thread_t *) slab_alloc(thread_slab, 0);
+	
+	/* Not needed, but good for debugging */
+	memsetb((__address)t->kstack, THREAD_STACK_SIZE, 0);
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&tidlock);
+	t->tid = ++last_tid;
+	spinlock_unlock(&tidlock);
+	interrupts_restore(ipl);
+	
+	context_save(&t->saved_context);
+	context_set(&t->saved_context, FADDR(cushion), (__address) t->kstack, THREAD_STACK_SIZE);
+	
+	the_initialize((the_t *) t->kstack);
+	
+	ipl = interrupts_disable();
+	t->saved_context.ipl = interrupts_read();
+	interrupts_restore(ipl);
+	
+	t->thread_code = func;
+	t->thread_arg = arg;
+	t->ticks = -1;
+	t->priority = -1;		/* start in rq[0] */
+	t->cpu = NULL;
+	t->flags = 0;
+	t->state = Entering;
+	t->call_me = NULL;
+	t->call_me_with = NULL;
+	
+	timeout_initialize(&t->sleep_timeout);
+	t->sleep_queue = NULL;
+	t->timeout_pending = 0;
+	
+	t->rwlock_holder_type = RWLOCK_NONE;
 		
-		context_save(&t->saved_context);
-		context_set(&t->saved_context, FADDR(cushion), (__address) t->kstack, THREAD_STACK_SIZE);
-		
-		the_initialize((the_t *) t->kstack);
-
-		ipl = interrupts_disable();
-		t->saved_context.ipl = interrupts_read();
-		interrupts_restore(ipl);
-		
-		t->thread_code = func;
-		t->thread_arg = arg;
-		t->ticks = -1;
-		t->priority = -1;		/* start in rq[0] */
-		t->cpu = NULL;
-		t->flags = 0;
-		t->state = Entering;
-		t->call_me = NULL;
-		t->call_me_with = NULL;
-		
-		timeout_initialize(&t->sleep_timeout);
-		t->sleep_queue = NULL;
-		t->timeout_pending = 0;
-		
-		t->rwlock_holder_type = RWLOCK_NONE;
-		
-		t->task = task;
-		
-		t->fpu_context_exists=0;
-		t->fpu_context_engaged=0;
-		
-		/*
-		 * Register this thread in the system-wide list.
-		 */
-		ipl = interrupts_disable();
-		spinlock_lock(&threads_lock);
-		list_append(&t->threads_link, &threads_head);
-		spinlock_unlock(&threads_lock);
-
-		/*
-		 * Attach to the containing task.
-		 */
-		spinlock_lock(&task->lock);
-		list_append(&t->th_link, &task->th_head);
-		spinlock_unlock(&task->lock);
-
-		interrupts_restore(ipl);
-	}
+	t->task = task;
+	
+	t->fpu_context_exists=0;
+	t->fpu_context_engaged=0;
+	
+	/*
+	 * Register this thread in the system-wide list.
+	 */
+	ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	list_append(&t->threads_link, &threads_head);
+	spinlock_unlock(&threads_lock);
+	
+	/*
+	 * Attach to the containing task.
+	 */
+	spinlock_lock(&task->lock);
+	list_append(&t->th_link, &task->th_head);
+	spinlock_unlock(&task->lock);
+	
+	interrupts_restore(ipl);
 
 	return t;
 }

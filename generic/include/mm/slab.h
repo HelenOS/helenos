@@ -125,8 +125,6 @@ extern void slab_enable_cpucache(void);
 extern void slab_print_list(void);
 
 /* Malloc support */
-extern void * kalloc(unsigned int size, int flags);
-extern void kfree(void *obj);
-#define malloc(x)  kalloc(x, FRAME_ATOMIC)
-#define free(x)    kfree(x)
+extern void * malloc(unsigned int size, int flags);
+extern void free(void *obj);
 #endif

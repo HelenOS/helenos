@@ -45,6 +45,7 @@ struct buddy_system_operations {
 	void (*mark_available)(buddy_system_t *, link_t *);			/**< Mark block as busy */
 	/** Find parent of block that has given order  */
 	link_t *(* find_block)(buddy_system_t *, link_t *, __u8);
+	void (* print_id)(buddy_system_t *, link_t *);
 };
 
 struct buddy_system {

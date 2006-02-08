@@ -53,8 +53,10 @@
 #define FRAME_ERROR		2	/* frame_alloc return status */
 
 /* Return true if the interlvals overlap */
-static inline int overlaps(__address s1,__address e1, __address s2, __address e2)
+static inline int overlaps(__address s1,__address sz1, __address s2, __address sz2)
 {
+	__address e1 = s1+sz1;
+	__address e2 = s2+sz2;
 	if (s1 >= s2 && s1 < e2)
 		return 1;
 	if (e1 >= s2 && e1 < e2)
@@ -95,12 +97,13 @@ extern void frame_init(void);
 __address frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
 extern void frame_free(__address addr);
 
-extern void zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
-
+extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
 void * frame_get_parent(pfn_t frame, int hint);
 void frame_set_parent(pfn_t frame, void *data, int hint);
 void frame_mark_unavailable(pfn_t start, count_t count);
-__address zone_conf_size(pfn_t start, count_t count);
+__address zone_conf_size(count_t count);
+void zone_merge(int z1, int z2);
+void zone_merge_all(void);
 
 /*
  * Console functions

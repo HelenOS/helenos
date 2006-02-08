@@ -131,5 +131,7 @@ void frame_arch_init(void)
 		frame_mark_unavailable(0xd000 >> FRAME_WIDTH,3);
 #endif
 #endif
+		/* Merge all zones to 1 big zone */
+		zone_merge_all();
 	}
 }

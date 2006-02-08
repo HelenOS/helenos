@@ -190,7 +190,7 @@ void pm_init(void)
 		tss_p = &tss;
 	}
 	else {
-		tss_p = (struct tss *) malloc(sizeof(struct tss));
+		tss_p = (struct tss *) malloc(sizeof(struct tss),FRAME_ATOMIC);
 		if (!tss_p)
 			panic("could not allocate TSS\n");
 	}

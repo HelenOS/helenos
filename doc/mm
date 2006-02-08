@@ -65,3 +65,22 @@ Generic page hash table interface is deployed on 64-bit architectures without
 implied hardware support for hierarchical page tables, i.e. ia64 and sparc64.
 There is only one global page hash table in the system shared by all address
 spaces.
+
+2.1 General allocator
+
+'malloc' function accepts flags as a second argument. The flags are directly
+passed to the underlying frame_alloc function. 
+
+1) If the flags parameter contains FRAME_ATOMIC, the allocator will not sleep.
+   The allocator CAN return NULL, when memory is not directly available.
+   The caller MUST check if NULL was not returned
+
+2) If the flags parameter does not contain FRAME_ATOMIC, the allocator
+   will never return NULL, but it CAN sleep indefinitely. The caller
+   does not have to check the return value.
+
+3) The maximum size that can be allocated using malloc is 128K
+
+Rules 1) and 2) apply to slab_alloc as well. Using SLAB allocator
+to allocate too large values is not recommended.
+

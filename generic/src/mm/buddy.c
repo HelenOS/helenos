@@ -139,7 +139,8 @@ link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 		if (tmp == right) {
 			right = left;
 			left = tmp;
-		}
+		} 
+		ASSERT(tmp == left);
 		b->op->mark_busy(b, left);
 		buddy_system_free(b, right);
 		b->op->mark_available(b, left);
@@ -290,8 +291,15 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 				cnt++;
 		}
 	
-		printf("#%d\t%d\t%dK\t\t%dK\t\t%d\n", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
-		
+		printf("#%d\t%d\t%dK\t\t%dK\t\t%d\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
+		if (!list_empty(&b->order[i])) {
+			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) {
+				b->op->print_id(b, cur);
+				printf(" ");
+			}
+		}
+		printf("\n");
+			
 		block_count += cnt;
 		elem_count += (1 << i) * cnt;
 	}

@@ -115,8 +115,8 @@ void main_bsp(void)
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size, PAGE_SIZE);
 	stackaddr = config.base + config.kernel_size;
 	/* Avoid placing kernel on top of init */
-	if (overlaps(stackaddr,stackaddr+CONFIG_STACK_SIZE,
-		     config.init_addr, config.init_addr+config.init_size)) {
+	if (overlaps(stackaddr,CONFIG_STACK_SIZE,
+		     config.init_addr, config.init_size)) {
 		
 		stackaddr = ALIGN_UP(config.init_addr+config.init_size,
 				     CONFIG_STACK_SIZE);

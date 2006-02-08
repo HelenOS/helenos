@@ -41,6 +41,8 @@ void _bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, v
  * This is only a wrapper that takes care of memory allocations for storing
  * the pivot and temporary elements for generic quicksort algorithm.
  * 
+ * This function _can_ sleep
+ *
  * @param data Pointer to data to be sorted.
  * @param n Number of elements to be sorted.
  * @param e_size Size of one element.
@@ -55,12 +57,8 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
 	void * pivot = buf_pivot;
 
 	if (e_size > EBUFSIZE) {
-		pivot = (void *) malloc(e_size);
-		tmp = (void *) malloc(e_size);
-	
-		if (!tmp || !pivot) {
-			panic("Cannot allocate memory\n");
-		}
+		pivot = (void *) malloc(e_size, 0);
+		tmp = (void *) malloc(e_size, 0);
 	}
 
 	_qsort(data, n, e_size, cmp, tmp, pivot);
@@ -126,11 +124,7 @@ void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, vo
 	void * slot = buf_slot;
 	
 	if (e_size > EBUFSIZE) {
-		slot = (void *) malloc(e_size);
-		
-		if (!slot) {
-			panic("Cannot allocate memory\n");
-		}
+		slot = (void *) malloc(e_size, 0);
 	}
 
 	_bubblesort(data, n, e_size, cmp, slot);

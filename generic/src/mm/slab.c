@@ -542,7 +542,7 @@ static void make_magcache(slab_cache_t *cache)
 	
 	ASSERT(_slab_initialized >= 2);
 
-	cache->mag_cache = kalloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
+	cache->mag_cache = malloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
 	for (i=0; i < config.cpu_count; i++) {
 		memsetb((__address)&cache->mag_cache[i],
 			sizeof(cache->mag_cache[i]), 0);
@@ -705,7 +705,7 @@ void slab_cache_destroy(slab_cache_t *cache)
 		panic("Destroying cache that is not empty.");
 
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
-		kfree(cache->mag_cache);
+		free(cache->mag_cache);
 	slab_free(&slab_cache_cache, cache);
 }
 
@@ -871,7 +871,7 @@ void slab_enable_cpucache(void)
 
 /**************************************/
 /* kalloc/kfree functions             */
-void * kalloc(unsigned int size, int flags)
+void * malloc(unsigned int size, int flags)
 {
 	int idx;
 
@@ -887,7 +887,7 @@ void * kalloc(unsigned int size, int flags)
 }
 
 
-void kfree(void *obj)
+void free(void *obj)
 {
 	slab_t *slab;
 

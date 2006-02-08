@@ -53,7 +53,8 @@ void cpu_init(void) {
 	#ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
 	#endif /* CONFIG_SMP */
-		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
+		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
+					FRAME_ATOMIC);
 		if (!cpus)
 			panic("malloc/cpus");
 

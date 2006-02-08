@@ -78,19 +78,18 @@ as_t *as_create(int flags)
 {
 	as_t *as;
 
-	as = (as_t *) malloc(sizeof(as_t));
-	if (as) {
-		list_initialize(&as->as_with_asid_link);
-		spinlock_initialize(&as->lock, "as_lock");
-		list_initialize(&as->as_area_head);
+	as = (as_t *) malloc(sizeof(as_t), 0);
 
-		if (flags & FLAG_AS_KERNEL)
-			as->asid = ASID_KERNEL;
-		else
-			as->asid = ASID_INVALID;
-
-		as->page_table = page_table_create(flags);
-	}
+	list_initialize(&as->as_with_asid_link);
+	spinlock_initialize(&as->lock, "as_lock");
+	list_initialize(&as->as_area_head);
+	
+	if (flags & FLAG_AS_KERNEL)
+		as->asid = ASID_KERNEL;
+	else
+		as->asid = ASID_INVALID;
+	
+	as->page_table = page_table_create(flags);
 
 	return as;
 }
@@ -121,17 +120,16 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 	 * TODO: test as_area which is to be created doesn't overlap with an existing one.
 	 */
 	
-	a = (as_area_t *) malloc(sizeof(as_area_t));
-	if (a) {	
-		spinlock_initialize(&a->lock, "as_area_lock");
-			
-		link_initialize(&a->link);			
-		a->type = type;
-		a->size = size;
-		a->base = base;
-		
-		list_append(&a->link, &as->as_area_head);
-	}
+	a = (as_area_t *) malloc(sizeof(as_area_t), 0);
+
+	spinlock_initialize(&a->lock, "as_area_lock");
+	
+	link_initialize(&a->link);			
+	a->type = type;
+	a->size = size;
+	a->base = base;
+	
+	list_append(&a->link, &as->as_area_head);
 
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);

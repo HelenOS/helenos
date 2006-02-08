@@ -64,19 +64,19 @@ task_t *task_create(as_t *as)
 	ipl_t ipl;
 	task_t *ta;
 	
-	ta = (task_t *) malloc(sizeof(task_t));
-	if (ta) {
-		spinlock_initialize(&ta->lock, "task_ta_lock");
-		list_initialize(&ta->th_head);
-		list_initialize(&ta->tasks_link);
-		ta->as = as;
-		
-		ipl = interrupts_disable();
-		spinlock_lock(&tasks_lock);
-		list_append(&ta->tasks_link, &tasks_head);
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-	}
+	ta = (task_t *) malloc(sizeof(task_t), 0);
+
+	spinlock_initialize(&ta->lock, "task_ta_lock");
+	list_initialize(&ta->th_head);
+	list_initialize(&ta->tasks_link);
+	ta->as = as;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	list_append(&ta->tasks_link, &tasks_head);
+	spinlock_unlock(&tasks_lock);
+	interrupts_restore(ipl);
+
 	return ta;
 }
 
