@@ -96,8 +96,8 @@ void arch_pre_mm_init(void)
 	arc_print_memory_map();
 	arc_print_devices();
 	/* Setup usermode...*/
-//	config.init_addr = INIT_ADDRESS;
-//	config.init_size = INIT_SIZE;
+	config.init_addr = INIT_ADDRESS;
+	config.init_size = INIT_SIZE;
 }
 
 void arch_post_mm_init(void)
@@ -126,7 +126,6 @@ void userspace(void)
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 					      cp0_status_um_bit |
 					      cp0_status_ie_enabled_bit));
-	
 	cp0_epc_write(UTEXT_ADDRESS);
 	userspace_asm(USTACK_ADDRESS+PAGE_SIZE);
 	while (1)
