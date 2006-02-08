@@ -33,5 +33,5 @@
 
 void frame_arch_init(void)
 {
-	zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
+	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
 }

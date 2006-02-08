@@ -32,13 +32,13 @@
 
 void frame_arch_init(void)
 {
+	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
+
 	/*
 	 * Workaround to prevent slab allocator from allocating frame 0.
 	 * Frame 0 is
 	 * a) not mapped by OFW
 	 * b) would be confused with NULL error return code
 	 */
-	frame_region_not_free(0, FRAME_SIZE);
-	
-	zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE - 1));
+	frame_mark_unavailable(0, 1);
 }

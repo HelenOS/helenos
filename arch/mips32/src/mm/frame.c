@@ -28,11 +28,7 @@
 
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
-#include <arch/asm/boot.h>
-#include <arch/mm/page.h>
 #include <config.h>
-#include <panic.h>
-#include <print.h>
 #include <arch/drivers/arc.h>
 
 /** Create memory zones
@@ -46,6 +42,6 @@ void frame_arch_init(void)
 	if (arc_enabled())
 		arc_frame_init();
 	else {
-		zone_create(1, (config.memory_size >> PAGE_WIDTH)-1,1,0);
+		zone_create(1, (config.memory_size >> FRAME_WIDTH)-1,1,0);
 	}
 }

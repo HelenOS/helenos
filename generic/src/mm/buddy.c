@@ -199,7 +199,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 	
 	/*
 	 * Return the other half to buddy system. Mark the first part
-	 * full, so that it won't coalsce again.
+	 * full, so that it won't coalesce again.
 	 */
 	b->op->mark_busy(b, res);
 	buddy_system_free(b, hlp);

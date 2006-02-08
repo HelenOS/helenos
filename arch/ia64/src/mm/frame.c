@@ -40,17 +40,18 @@
 
 void frame_arch_init(void)
 {
+	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
+	
+
 	/*
          * Workaround to prevent slab allocator from allocating frame 0.
          * Remove the following statement when the kernel is no longer
 	 * identity mapped.
          */
-	frame_region_not_free(0, FRAME_SIZE);
+	frame_mark_unavailable(0, 1);
 
 	/*
 	 * Blacklist ROM regions.
 	 */
-	frame_region_not_free(ROM_BASE, ROM_SIZE);
-	
-	zone_create_in_region(0, config.memory_size & ~(FRAME_SIZE-1));
+	frame_mark_unavailable(ADDR2PFN(ROM_BASE), ROM_SIZE >> FRAME_WIDTH);
 }

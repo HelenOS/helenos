@@ -39,6 +39,7 @@ typedef unsigned long __u32;
 typedef long long __u64;
 
 typedef __u32 __address;
+typedef __u32 pfn_t;
 
 typedef __u32 ipl_t;
 

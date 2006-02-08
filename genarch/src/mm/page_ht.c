@@ -30,7 +30,7 @@
 #include <mm/page.h>
 #include <arch/mm/page.h>
 #include <mm/frame.h>
-#include <mm/heap.h>
+#include <mm/slab.h>
 #include <mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
