@@ -41,13 +41,12 @@
 
 #define ZONES_MAX       16      /**< Maximum number of zones in system */
 
-#define ZONE_JOIN       0x1  /**< If possible, merge with neighberhood zones */
-
+#define ZONE_JOIN       0x1	/**< If possible, merge with neighberhood zones */
 
 #define FRAME_KA		0x1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC		0x2	/* panic on failure */
 #define FRAME_ATOMIC 	        0x4	/* do not panic and do not sleep on failure */
-#define FRAME_NO_RECLAIM        0x8     /* Do not start reclaiming when no free memory */
+#define FRAME_NO_RECLAIM        0x8     /* do not start reclaiming when no free memory */
 
 #define FRAME_OK		0	/* frame_alloc return status */
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
@@ -67,19 +66,19 @@ static inline int overlaps(__address s1,__address e1, __address s2, __address e2
 
 static inline __address PFN2ADDR(pfn_t frame)
 {
-	return (__address)(frame << PAGE_WIDTH);
+	return (__address)(frame << FRAME_WIDTH);
 }
 
 static inline pfn_t ADDR2PFN(__address addr)
 {
-	return (pfn_t)(addr >> PAGE_WIDTH);
+	return (pfn_t)(addr >> FRAME_WIDTH);
 }
 
 static inline pfn_t SIZE2PFN(__address size)
 {
 	if (!size)
 		return 0;
-	return (pfn_t)((size-1) >> PAGE_WIDTH)+1;
+	return (pfn_t)((size-1) >> FRAME_WIDTH)+1;
 }
 
 #define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
@@ -87,7 +86,6 @@ static inline pfn_t SIZE2PFN(__address size)
 #define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-
 
 #define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL, NULL)
 #define frame_alloc_rc(order, flags, status)			frame_alloc_generic(order, flags, status, NULL)
