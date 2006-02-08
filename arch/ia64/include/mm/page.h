@@ -71,6 +71,13 @@
 #define AR_EXECUTE	0x1
 #define AR_WRITE	0x2
 
+
+#define VA_REGION_INDEX 61
+
+#define VA_REGION(va) (va>>VA_REGION_INDEX)
+
+
+
 struct vhpt_tag_info {
 	unsigned long long tag : 63;
 	unsigned ti : 1;
@@ -220,7 +227,11 @@ static inline __u64 rr_read(index_t i)
 static inline void rr_write(index_t i, __u64 v)
 {
 	ASSERT(i < REGION_REGISTERS);
-	__asm__ volatile ("mov rr[%0] = %1\n" : : "r" (i), "r" (v));
+	__asm__ volatile (
+	"mov rr[%0] = %1;;\n" 
+	"srlz.d;;\n"
+	: 
+	: "r" (i), "r" (v));
 }
  
 /** Read Page Table Register.

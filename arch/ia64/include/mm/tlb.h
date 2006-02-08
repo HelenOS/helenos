@@ -32,4 +32,16 @@
 #define tlb_arch_init()
 #define tlb_print()
 
+
+#include <arch/mm/page.h>
+#include <arch/mm/asid.h>
+#include <arch/register.h>
+
+
+void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry);
+void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry);
+
+
 #endif
+
+
