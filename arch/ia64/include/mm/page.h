@@ -139,6 +139,8 @@ typedef union vhpt_entry {
 	__u64 word[4];
 } vhpt_entry_t;
 
+typedef vhpt_entry_t tlb_entry_t;
+
 struct region_register_map {
 	unsigned ve : 1;
 	unsigned : 1;
@@ -229,7 +231,6 @@ static inline void rr_write(index_t i, __u64 v)
 	ASSERT(i < REGION_REGISTERS);
 	__asm__ volatile (
 	"mov rr[%0] = %1;;\n" 
-	"srlz.d;;\n"
 	: 
 	: "r" (i), "r" (v));
 }

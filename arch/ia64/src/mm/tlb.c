@@ -32,6 +32,7 @@
 
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
+#include <arch/barrier.h>
 
 
 /** Invalidate all TLB entries. */
@@ -51,7 +52,7 @@ void tlb_invalidate_asid(asid_t asid)
 
 
 
-void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry)
+void tlb_fill_data(__address va,asid_t asid,tlb_entry_t entry)
 {
 	region_register rr;
 
@@ -62,7 +63,7 @@ void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry)
 
 	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
 	{
-		asm
+		asm volatile
 		(
 			"srlz.i;;\n"
 			"srlz.d;;\n"
@@ -71,8 +72,8 @@ void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry)
 			"mov psr.l=r9;;\n"
 			"srlz.d;;\n"
 			"srlz.i;;\n"
-			"mov cr20=%1\n"        		/*va*/		/*cr20 == IFA*/ 
-			"mov cr21=%2;;\n"					/*entry.word[1]*/ /*cr21=ITIR*/
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
 			"itc.d %3;;\n"						/*entry.word[0]*/
 			"mov psr.l=r8;;\n"
 			"srlz.d;;\n"
@@ -87,14 +88,15 @@ void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry)
 		rr0=rr;
 		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
 		rr_write(VA_REGION(va),rr0.word);
-		asm
+		srlz_d();
+		asm volatile
 		(
 			"mov r8=psr;;\n"
 			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
 			"mov psr.l=r9;;\n"
 			"srlz.d;;\n"
-			"mov cr20=%1\n"        		/*va*/		/*cr20 == IFA*/ 
-			"mov cr21=%2;;\n"					/*entry.word[1]*/ /*cr21=ITIR*/
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
 			"itc.d %3;;\n"						/*entry.word[0]*/
 			"mov psr.l=r8;;\n"
 			"srlz.d;;\n"
@@ -108,7 +110,7 @@ void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry)
 
 }
 
-void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry)
+void tlb_fill_code(__address va,asid_t asid,tlb_entry_t entry)
 {
 	region_register rr;
 
@@ -119,7 +121,7 @@ void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry)
 
 	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
 	{
-		asm
+		asm volatile
 		(
 			"srlz.i;;\n"
 			"srlz.d;;\n"
@@ -128,8 +130,8 @@ void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry)
 			"mov psr.l=r9;;\n"
 			"srlz.d;;\n"
 			"srlz.i;;\n"
-			"mov cr20=%1\n"        		/*va*/		/*cr20 == IFA*/ 
-			"mov cr21=%2;;\n"					/*entry.word[1]*/ /*cr21=ITIR*/
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
 			"itc.i %3;;\n"						/*entry.word[0]*/
 			"mov psr.l=r8;;\n"
 			"srlz.d;;\n"
@@ -144,14 +146,15 @@ void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry)
 		rr0=rr;
 		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
 		rr_write(VA_REGION(va),rr0.word);
-		asm
+		srlz_d();
+		asm volatile
 		(
 			"mov r8=psr;;\n"
 			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
 			"mov psr.l=r9;;\n"
 			"srlz.d;;\n"
-			"mov cr20=%1\n"        		/*va*/		/*cr20 == IFA*/ 
-			"mov cr21=%2;;\n"					/*entry.word[1]*/ /*cr21=ITIR*/
+			"mov cr.ifa=%1\n"      		/*va*/		 
+			"mov cr.itir=%2;;\n"			/*entry.word[1]*/ 
 			"itc.i %3;;\n"						/*entry.word[0]*/
 			"mov psr.l=r8;;\n"
 			"srlz.d;;\n"
@@ -165,4 +168,120 @@ void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry)
 
 }
 
+
+void tlb_fill_data_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry)
+{
+	region_register rr;
+
+
+	if(!(entry.not_present.p)) return;
+
+	rr.word=rr_read(VA_REGION(va));
+
+	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
+	{
+		asm volatile
+		(
+			"srlz.i;;\n"
+			"srlz.d;;\n"
+			"mov r8=psr;;\n"
+			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
+			"mov psr.l=r9;;\n"
+			"srlz.d;;\n"
+			"srlz.i;;\n"
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
+			"itr.d dtr[%4]=%3;;\n"						/*entry.word[0]*/
+			"mov psr.l=r8;;\n"
+			"srlz.d;;\n"
+			:
+			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
+			:"r8","r9"
+		);
+	}
+	else
+	{
+		region_register rr0;
+		rr0=rr;
+		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
+		rr_write(VA_REGION(va),rr0.word);
+		srlz_d();
+		asm volatile
+		(
+			"mov r8=psr;;\n"
+			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
+			"mov psr.l=r9;;\n"
+			"srlz.d;;\n"
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
+			"itr.d dtr[%4]=%3;;\n"						/*entry.word[0]*/
+			"mov psr.l=r8;;\n"
+			"srlz.d;;\n"
+			:
+			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
+			:"r8","r9"
+		);
+		rr_write(VA_REGION(va),rr.word);
+	}
+
+
+}
+
+void tlb_fill_code_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry)
+{
+	region_register rr;
+
+
+	if(!(entry.not_present.p)) return;
+
+	rr.word=rr_read(VA_REGION(va));
+
+	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
+	{
+		asm volatile
+		(
+			"srlz.i;;\n"
+			"srlz.d;;\n"
+			"mov r8=psr;;\n"
+			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
+			"mov psr.l=r9;;\n"
+			"srlz.d;;\n"
+			"srlz.i;;\n"
+			"mov cr.ifa=%1\n"        		/*va*/		 
+			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
+			"itr.i itr[%4]=%3;;\n"						/*entry.word[0]*/
+			"mov psr.l=r8;;\n"
+			"srlz.d;;\n"
+			:
+			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
+			:"r8","r9"
+		);
+	}
+	else
+	{
+		region_register rr0;
+		rr0=rr;
+		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
+		rr_write(VA_REGION(va),rr0.word);
+		srlz_d();
+		asm volatile
+		(
+			"mov r8=psr;;\n"
+			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
+			"mov psr.l=r9;;\n"
+			"srlz.d;;\n"
+			"mov cr.ifa=%1\n"      		/*va*/		 
+			"mov cr.itir=%2;;\n"			/*entry.word[1]*/ 
+			"itr.i itr[%4]=%3;;\n"						/*entry.word[0]*/
+			"mov psr.l=r8;;\n"
+			"srlz.d;;\n"
+			:
+			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
+			:"r8","r9"
+		);
+		rr_write(VA_REGION(va),rr.word);
+	}
+
+
+}
 

@@ -41,6 +41,10 @@
 void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry);
 void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry);
 
+void tlb_fill_code_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry);
+void tlb_fill_data_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry);
+
+
 
 #endif
 
