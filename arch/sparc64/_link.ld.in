@@ -26,9 +26,9 @@ SECTIONS {
 		*(.sdata2);
 		*(.sbss);
 		hardcoded_ktext_size = .;
-		LONG(ktext_end - ktext_start);	
+		QUAD(ktext_end - ktext_start);	
 		hardcoded_kdata_size = .;
-		LONG(kdata_end - kdata_start);
+		QUAD(kdata_end - kdata_start);
 		hardcoded_load_address = .;
 		QUAD(0x4000);
 		*(.bss);		/* uninitialized static variables */	

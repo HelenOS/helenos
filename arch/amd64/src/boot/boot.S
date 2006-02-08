@@ -164,6 +164,7 @@ start64:
 		je mods_invalid
 		
 		xorq %rdx, %rdx
+		movq %rdx, %rcx
 		movl 24(%ebx), %esi						# mbi->mods_addr
 		movl 0(%esi), %edx						# mods->mod_start
 		movl 4(%esi), %ecx						# mods->mod_end
@@ -171,7 +172,7 @@ start64:
 		addq $0xffffffff80000000, %rdx
 		
 		mods_invalid:
-		movl %ecx, init_size
+		movq %rcx, init_size
 		movq %rdx, init_addr
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	

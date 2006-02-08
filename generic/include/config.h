@@ -36,7 +36,6 @@
 #define STACK_SIZE		PAGE_SIZE
 
 #define CONFIG_MEMORY_SIZE	(8*1024*1024)
-#define CONFIG_HEAP_SIZE	(300*1024)
 #define CONFIG_STACK_SIZE	STACK_SIZE
 
 struct config {
@@ -49,11 +48,7 @@ struct config {
 	__address init_addr;
 	size_t init_size;
 	
-	__address heap_addr;
-	size_t heap_size;
-	size_t heap_delta;            /**< Extra space between heap and stack (enforced by alignment requirements) */
-	
-	size_t kernel_size;           /**< Size of memory in bytes taken by kernel, heap and stack */
+	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
 };
 
 extern config_t config;

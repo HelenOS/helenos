@@ -305,7 +305,7 @@ void arc_frame_init(void)
 			total += basesize;
 			
 			zone_create(ADDR2PFN(base),
-				    SIZE2PFN(ALIGN_DOWN(basesize,FRAME_SIZE)),
+				    SIZE2FRAMES(ALIGN_DOWN(basesize,FRAME_SIZE)),
 				    ADDR2PFN(base),0);
 		}
 		desc = arc_entry->getmemorydescriptor(desc);

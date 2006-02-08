@@ -29,10 +29,11 @@
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <config.h>
+#include <align.h>
 
 void frame_arch_init(void)
 {
-	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
+	zone_create(0, config.memory_size >> FRAME_WIDTH, ADDR2PFN(ALIGN_UP(config.base + config.kernel_size + CONFIG_STACK_SIZE, FRAME_SIZE)), 0);
 
 	/*
 	 * Workaround to prevent slab allocator from allocating frame 0.

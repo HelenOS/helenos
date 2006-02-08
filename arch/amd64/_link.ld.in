@@ -38,9 +38,9 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
 		hardcoded_unmapped_ktext_size = .;
-		LONG(unmapped_ktext_end - unmapped_ktext_start);
+		QUAD(unmapped_ktext_end - unmapped_ktext_start);
 		hardcoded_unmapped_kdata_size = .;
-		LONG(unmapped_kdata_end - unmapped_kdata_start);
+		QUAD(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);		/* global variables */
 
 		*(.eh_frame);

@@ -72,7 +72,7 @@ void kinit(void *arg)
 	as_t *as;
 	as_area_t *a;
 	__address frame;
-	pfn_t frames;
+	count_t frames;
 	int i;
 	task_t *u;
 
@@ -165,7 +165,7 @@ void kinit(void *arg)
 		if (IS_KA(frame))
 			frame = KA2PA(frame);
 
-		frames = SIZE2PFN(config.init_size);
+		frames = SIZE2FRAMES(config.init_size);
 		
 		a = as_area_create(as, AS_AREA_TEXT, frames, UTEXT_ADDRESS);
 		if (!a)

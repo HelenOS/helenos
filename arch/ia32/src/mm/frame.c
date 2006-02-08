@@ -41,7 +41,6 @@
 #include <console/cmd.h>
 #include <console/kconsole.h>
 
-
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
@@ -50,19 +49,20 @@ __address last_frame = 0;
 static void init_e820_memory(pfn_t minconf)
 {
 	int i;
-	pfn_t start, size,conf;
+	pfn_t start, conf;
+	size_t size;
 
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address,
 						  FRAME_SIZE));
-			size = SIZE2PFN(ALIGN_DOWN(e820table[i].size,
+			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size,
 						   FRAME_SIZE));
 			if (minconf < start || minconf >= start+size)
 				conf = start;
 			else
 				conf = minconf;
-			zone_create(start,size, conf, 0);
+			zone_create(start, size, conf, 0);
 			if (last_frame < ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE))
 				last_frame = ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
 		}			

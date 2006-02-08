@@ -74,11 +74,11 @@ static inline pfn_t ADDR2PFN(__address addr)
 	return (pfn_t)(addr >> FRAME_WIDTH);
 }
 
-static inline pfn_t SIZE2PFN(__address size)
+static inline count_t SIZE2FRAMES(size_t size)
 {
 	if (!size)
 		return 0;
-	return (pfn_t)((size-1) >> FRAME_WIDTH)+1;
+	return (count_t)((size-1) >> FRAME_WIDTH)+1;
 }
 
 #define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
@@ -95,12 +95,12 @@ extern void frame_init(void);
 __address frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
 extern void frame_free(__address addr);
 
-extern void zone_create(pfn_t start, pfn_t count, pfn_t confframe, int flags);
+extern void zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
 
 void * frame_get_parent(pfn_t frame, int hint);
 void frame_set_parent(pfn_t frame, void *data, int hint);
-void frame_mark_unavailable(pfn_t start, pfn_t count);
-__address zone_conf_size(pfn_t start, pfn_t count);
+void frame_mark_unavailable(pfn_t start, count_t count);
+__address zone_conf_size(pfn_t start, count_t count);
 
 /*
  * Console functions

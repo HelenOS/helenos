@@ -218,4 +218,4 @@ syscall_entry:
 .data
 .global interrupt_handler_size
 
-interrupt_handler_size: .long (h_end-h_start)/IDT_ITEMS
+interrupt_handler_size: .quad (h_end-h_start)/IDT_ITEMS

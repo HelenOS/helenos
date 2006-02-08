@@ -61,7 +61,7 @@ typedef struct {
 typedef struct {
 	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
 	pfn_t base;	/**< frame_no of the first frame in the frames array */
-	pfn_t count;          /**< Size of zone */
+	count_t count;          /**< Size of zone */
 
 	frame_t *frames;	/**< array of frame_t structures in this zone */
 	count_t free_count;	/**< number of free frame_t structures */
@@ -99,7 +99,7 @@ static inline int frame_index_valid(zone_t *zone, index_t index)
 }
 
 /** Compute pfn_t from frame_t pointer & zone pointer */
-static pfn_t make_frame_index(zone_t *zone, frame_t *frame)
+static index_t make_frame_index(zone_t *zone, frame_t *frame)
 {
 	return frame - zone->frames;
 }
@@ -423,7 +423,7 @@ static pfn_t zone_frame_alloc(zone_t *zone,__u8 order, int flags, int *status)
  *
  * Assume zone is locked
  */
-static void zone_frame_free(zone_t *zone, pfn_t frame_idx)
+static void zone_frame_free(zone_t *zone, index_t frame_idx)
 {
 	frame_t *frame;
 	__u8 order;
@@ -445,14 +445,14 @@ static void zone_frame_free(zone_t *zone, pfn_t frame_idx)
 }
 
 /** Return frame from zone */
-static frame_t * zone_get_frame(zone_t *zone, pfn_t frame_idx)
+static frame_t * zone_get_frame(zone_t *zone, index_t frame_idx)
 {
 	ASSERT(frame_idx < zone->count);
 	return &zone->frames[frame_idx];
 }
 
 /** Mark frame in zone unavailable to allocation */
-static void zone_mark_unavailable(zone_t *zone, pfn_t frame_idx)
+static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
 {
 	frame_t *frame;
 	link_t *link;
@@ -475,7 +475,7 @@ static void zone_mark_unavailable(zone_t *zone, pfn_t frame_idx)
  *
  * @return Initialized zone.
  */
-static zone_t * zone_construct(pfn_t start, pfn_t count, 
+static zone_t * zone_construct(pfn_t start, count_t count, 
 			       zone_t *z, int flags)
 {
 	int i;
@@ -516,7 +516,7 @@ static zone_t * zone_construct(pfn_t start, pfn_t count,
 
 
 /** Compute configuration data size for zone */
-__address zone_conf_size(pfn_t start, pfn_t count)
+__address zone_conf_size(pfn_t start, count_t count)
 {
 	int size = sizeof(zone_t) + count*sizeof(frame_t);
 	int max_order;
@@ -530,17 +530,16 @@ __address zone_conf_size(pfn_t start, pfn_t count)
 /** Create and add zone to system
  *
  * @param confframe Where configuration frame is supposed to be.
- *                  Always check, that we will not disturb kernel pages
- *                  the kernel and possibly init. 
+ *                  Always check, that we will not disturb the kernel and possibly init. 
  *                  If confframe is given _outside_ this zone, it is expected,
  *                  that the area is already marked BUSY and big enough
  *                  to contain zone_conf_size() amount of data
  */
-void zone_create(pfn_t start, pfn_t count, pfn_t confframe, int flags)
+void zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 {
 	zone_t *z;
 	__address addr,endaddr;
-	pfn_t confcount;
+	count_t confcount;
 	int i;
 
 	/* Theoretically we could have here 0, practically make sure
@@ -551,7 +550,7 @@ void zone_create(pfn_t start, pfn_t count, pfn_t confframe, int flags)
 	/* If conframe is supposed to be inside our zone, then make sure
 	 * it does not span kernel & init
 	 */
-	confcount = SIZE2PFN(zone_conf_size(start,count));
+	confcount = SIZE2FRAMES(zone_conf_size(start,count));
 	if (confframe >= start && confframe < start+count) {
 		for (;confframe < start+count;confframe++) {
 			addr = PFN2ADDR(confframe);
@@ -699,7 +698,7 @@ void frame_free(pfn_t pfn)
 
 
 /** Mark given range unavailable in frame zones */
-void frame_mark_unavailable(pfn_t start, pfn_t count)
+void frame_mark_unavailable(pfn_t start, count_t count)
 {
 	int i;
 	zone_t *zone;
@@ -729,10 +728,10 @@ void frame_init(void)
 	frame_arch_init();
 	if (config.cpu_active == 1) {
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
-				       SIZE2PFN(config.kernel_size));
+				       SIZE2FRAMES(config.kernel_size));
 		if (config.init_size > 0)
 			frame_mark_unavailable(ADDR2PFN(KA2PA(config.init_addr)),
-					       SIZE2PFN(config.init_size));
+					       SIZE2FRAMES(config.init_size));
 	}
 }
 
