@@ -47,6 +47,7 @@ static bool compare(__native key[], count_t keys, link_t *item);
 static void remove_callback(link_t *item);
 
 static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags);
+static void ht_mapping_remove(as_t *as, __address page);
 static pte_t *ht_mapping_find(as_t *as, __address page);
 
 /**
@@ -70,6 +71,7 @@ hash_table_operations_t ht_operations = {
 /** Page mapping operations for page hash table architectures. */
 page_mapping_operations_t ht_mapping_operations = {
 	.mapping_insert = ht_mapping_insert,
+	.mapping_remove = ht_mapping_remove,
 	.mapping_find = ht_mapping_find
 };
 
@@ -162,10 +164,8 @@ void remove_callback(link_t *item)
 void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	pte_t *t;
-	ipl_t ipl;
 	__native key[2] = { (__address) as, page };
 	
-	ipl = interrupts_disable();
 	spinlock_lock(&page_ht_lock);
 
 	if (!hash_table_find(&page_ht, key)) {
@@ -176,8 +176,34 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	}
 	
 	spinlock_unlock(&page_ht_lock);
-	interrupts_restore(ipl);
 }
+
+/** Remove mapping of page from page hash table.
+ *
+ * Remove any mapping of 'page' within address space 'as'.
+ * TLB shootdown should follow in order to make effects of
+ * this call visible.
+ *
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to wich page belongs.
+ * @param page Virtual address of the page to be demapped.
+ */
+void ht_mapping_remove(as_t *as, __address page)
+{
+	__native key[2] = { (__address) as, page };
+	
+	spinlock_lock(&page_ht_lock);
+
+	/*
+	 * Note that removed PTE's will be freed
+	 * by remove_callback().
+	 */
+	hash_table_remove(&page_ht, key, 2);
+
+	spinlock_unlock(&page_ht_lock);
+}
+
 
 /** Find mapping for virtual page in page hash table.
  *

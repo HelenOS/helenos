@@ -38,10 +38,12 @@
 #include <memstr.h>
 
 static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags);
+static void pt_mapping_remove(as_t *as, __address page);
 static pte_t *pt_mapping_find(as_t *as, __address page);
 
 page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
+	.mapping_remove = pt_mapping_remove,
 	.mapping_find = pt_mapping_find
 };
 
@@ -93,6 +95,42 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
+}
+
+/** Remove mapping of page from hierarchical page tables.
+ *
+ * Remove any mapping of 'page' within address space 'as'.
+ * TLB shootdown should follow in order to make effects of
+ * this call visible.
+ *
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space to wich page belongs.
+ * @param page Virtual address of the page to be demapped.
+ */
+void pt_mapping_remove(as_t *as, __address page)
+{
+	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
+
+	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
+
+	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+
+	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+
+	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+
+	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+
+	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+
+	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+
+	/* Destroy the mapping. Setting to PAGE_NOT_PRESENT is not sufficient. */
+	memsetb((__address) &ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
 }
 
 /** Find mapping for virtual page in hierarchical page tables.

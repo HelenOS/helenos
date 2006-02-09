@@ -62,6 +62,7 @@
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {
 	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags);
+	void (* mapping_remove)(as_t *as, __address page);
 	pte_t *(* mapping_find)(as_t *as, __address page);
 };
 typedef struct page_mapping_operations page_mapping_operations_t;
@@ -70,6 +71,7 @@ extern page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
 extern void page_mapping_insert(as_t *as, __address page, __address frame, int flags);
+extern void page_mapping_remove(as_t *as, __address page);
 extern pte_t *page_mapping_find(as_t *as, __address page);
 extern pte_t *page_table_create(int flags);
 extern void map_structure(__address s, size_t size);
