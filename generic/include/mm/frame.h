@@ -57,13 +57,8 @@ static inline int overlaps(__address s1,__address sz1, __address s2, __address s
 {
 	__address e1 = s1+sz1;
 	__address e2 = s2+sz2;
-	if (s1 >= s2 && s1 < e2)
-		return 1;
-	if (e1 >= s2 && e1 < e2)
-		return 1;
-	if ((s1 < s2) && (e1 >= e2))
-		return 1;
-	return 0;
+
+	return s1 < e2 && s2 < e1;
 }
 
 static inline __address PFN2ADDR(pfn_t frame)

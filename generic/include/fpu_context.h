@@ -35,7 +35,7 @@
 
 extern void fpu_context_save(fpu_context_t *);
 extern void fpu_context_restore(fpu_context_t *);
-extern void fpu_init(void);
+extern void fpu_init(fpu_context_t *);
 extern void fpu_enable(void);
 extern void fpu_disable(void);
 

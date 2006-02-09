@@ -126,7 +126,7 @@ void test(void)
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 
-	while (threads_ok != THREADS)
+	while (atomic_get(&threads_ok) != THREADS)
 		;
 		
 	printf("Test passed.\n");

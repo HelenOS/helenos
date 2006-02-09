@@ -50,7 +50,7 @@ void fpu_enable(void)
 #endif
 }
 
-void fpu_init(void)
+void fpu_init(fpu_context_t *fctx)
 {
 	/* TODO: Zero all registers */
 }

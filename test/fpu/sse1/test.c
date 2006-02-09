@@ -47,8 +47,6 @@ static waitq_t can_start;
 static void testit1(void *data)
 {
 	int i;
-	volatile long long j;
-	double e,d,le,f;
 	int arg __attribute__((aligned(16))) = (int)((__native) data);
 	int after_arg __attribute__((aligned(16)));
 	
@@ -77,8 +75,6 @@ static void testit1(void *data)
 static void testit2(void *data)
 {
 	int i;
-	volatile long long j;
-	double e,d,le,f;
 	int arg __attribute__((aligned(16))) = (int)((__native) data);
 	int after_arg __attribute__((aligned(16)));
 	
@@ -129,7 +125,7 @@ void test(void)
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 
-	while (threads_ok != THREADS)
+	while (atomic_get(&threads_ok) != THREADS)
 		;
 		
 	printf("Test passed.\n");

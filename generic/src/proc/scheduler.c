@@ -55,6 +55,8 @@ atomic_t nrdy;
  * taken before the newly selected
  * tread is passed control.
  *
+ * THREAD->lock is locked on entry
+ *
  */
 void before_thread_runs(void)
 {
@@ -69,7 +71,7 @@ void before_thread_runs(void)
 	if (THREAD->fpu_context_exists)
 		fpu_context_restore(&(THREAD->saved_fpu_context));
 	else {
-		fpu_init();
+		fpu_init(&(THREAD->saved_fpu_context));
 		THREAD->fpu_context_exists=1;
 	}
 #endif
@@ -79,19 +81,29 @@ void before_thread_runs(void)
 void scheduler_fpu_lazy_request(void)
 {
 	fpu_enable();
+	spinlock_lock(&CPU->lock);
+
+	/* Save old context */
 	if (CPU->fpu_owner != NULL) {  
+		spinlock_lock(&CPU->fpu_owner->lock);
 		fpu_context_save(&CPU->fpu_owner->saved_fpu_context);
 		/* don't prevent migration */
 		CPU->fpu_owner->fpu_context_engaged=0; 
+		spinlock_unlock(&CPU->fpu_owner->lock);
 	}
+
+	spinlock_lock(&THREAD->lock);
 	if (THREAD->fpu_context_exists)
 		fpu_context_restore(&THREAD->saved_fpu_context);
 	else {
-		fpu_init();
+		fpu_init(&(THREAD->saved_fpu_context));
 		THREAD->fpu_context_exists=1;
 	}
 	CPU->fpu_owner=THREAD;
 	THREAD->fpu_context_engaged = 1;
+
+	spinlock_unlock(&THREAD->lock);
+	spinlock_unlock(&CPU->lock);
 }
 #endif
 
