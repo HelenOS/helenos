@@ -41,6 +41,7 @@
 void page_arch_init(void)
 {
 	__address cur;
+	int flags;
 
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
@@ -49,7 +50,10 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, PAGE_CACHEABLE | PAGE_EXEC);
+			flags = PAGE_CACHEABLE | PAGE_EXEC;
+			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
+				flags |= PAGE_GLOBAL;
+			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 		}
 		exc_register(14, "page_fault", (iroutine)page_fault);
 		write_cr3((__address) AS_KERNEL->page_table);

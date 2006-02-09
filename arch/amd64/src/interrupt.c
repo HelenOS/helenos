@@ -141,11 +141,6 @@ void tlb_shootdown_ipi(int n, void *stack)
 	tlb_shootdown_ipi_recv();
 }
 
-void wakeup_ipi(int n, void *stack)
-{
-	trap_virtual_eoi();
-}
-
 void trap_virtual_enable_irqs(__u16 irqmask)
 {
 	if (enable_irqs_function)

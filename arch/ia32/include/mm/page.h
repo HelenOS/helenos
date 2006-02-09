@@ -85,7 +85,8 @@ struct page_specifier {
 	unsigned page_cache_disable : 1;
 	unsigned accessed : 1;
 	unsigned dirty : 1;
-	unsigned : 2;
+	unsigned pat : 1;
+	unsigned global : 1;
 	unsigned avl : 3;
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
@@ -100,7 +101,8 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 		p->uaccessible<<PAGE_USER_SHIFT |
 		1<<PAGE_READ_SHIFT |
 		p->writeable<<PAGE_WRITE_SHIFT |
-		1<<PAGE_EXEC_SHIFT
+		1<<PAGE_EXEC_SHIFT |
+		p->global<<PAGE_GLOBAL_SHIFT
 	);
 }
 
@@ -112,6 +114,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	p->present = !(flags & PAGE_NOT_PRESENT);
 	p->uaccessible = (flags & PAGE_USER) != 0;
 	p->writeable = (flags & PAGE_WRITE) != 0;
+	p->global = (flags & PAGE_GLOBAL) != 0;
 }
 
 extern void page_arch_init(void);

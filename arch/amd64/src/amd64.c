@@ -121,7 +121,6 @@ void arch_pre_mm_init(void)
 		#ifdef CONFIG_SMP
 		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
 			     tlb_shootdown_ipi);
-		exc_register(VECTOR_WAKEUP_IPI, "wakeup_ipi", wakeup_ipi);
 		#endif /* CONFIG_SMP */
 	}
 }

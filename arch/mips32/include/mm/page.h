@@ -99,7 +99,8 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 		(1<<PAGE_USER_SHIFT) |
 		(1<<PAGE_READ_SHIFT) |
 		((p->w)<<PAGE_WRITE_SHIFT) |
-		(1<<PAGE_EXEC_SHIFT)
+		(1<<PAGE_EXEC_SHIFT) |
+		p->lo.g<<PAGE_GLOBAL_SHIFT
 	);
 		
 }
@@ -110,6 +111,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	
 	p->lo.c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
 	p->lo.v = !(flags & PAGE_NOT_PRESENT);
+	p->lo.g = (flags & PAGE_GLOBAL) != 0;
 	p->w = (flags & PAGE_WRITE) != 0;
 }
 

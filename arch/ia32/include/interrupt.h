@@ -59,7 +59,6 @@
 
 #define VECTOR_SYSCALL			(IVT_FREEBASE+0)
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
-#define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+2)
 
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
@@ -72,7 +71,6 @@ extern void ss_fault(int n, void *stack);
 extern void page_fault(int n, void *stack);
 extern void syscall(int n, void *stack);
 extern void tlb_shootdown_ipi(int n, void *stack);
-extern void wakeup_ipi(int n, void *stack);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);
