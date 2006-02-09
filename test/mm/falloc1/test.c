@@ -40,7 +40,8 @@
 #define TEST_RUNS 2
 
 void test(void) {
-	__address * frames = (__address *) malloc(MAX_FRAMES*sizeof(__address));
+	__address * frames = (__address *) malloc(MAX_FRAMES*sizeof(__address),
+						  0);
 	int results[MAX_ORDER+1];
 	
 	int i, order, run;

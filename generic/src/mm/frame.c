@@ -575,9 +575,12 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
  *
  * We have several cases
  * - the conf. data is outside of zone -> exit, shall we call frame_free??
- * - the conf. data was created by zone_create -> free every frame
- * - the conf. data was created by merge in frame_alloc -> free first frame
- *   (the difference is in order)
+ * - the conf. data was created by zone_create or 
+ *   updated with reduce_region -> free every frame
+ *
+ * @param newzone The actual zone where freeing should occur
+ * @param oldzone Pointer to old zone configuration data that should
+ *                be freed from new zone
  */
 static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 {
@@ -593,16 +596,47 @@ static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 		return;
 
 	frame = &newzone->frames[pfn - newzone->base];
-	if (frame->buddy_order) {
-		/* Normally zone config data is hidden, show it again */
-		newzone->busy_count += (1 << frame->buddy_order);
-		zone_frame_free(newzone, pfn - newzone->base);
-		return;
-	}
+	ASSERT(!frame->buddy_order);
 
 	for (i=0; i < cframes; i++) {
 		newzone->busy_count++;
 		zone_frame_free(newzone, pfn+i-newzone->base);
+	}
+}
+
+
+/** Reduce allocated block to count of order 0 frames
+ *
+ * The allocated block need 2^order frames of space. Reduce all frames
+ * in block to order 0 and free the unneded frames. This means, that 
+ * when freeing the block, you have to free every frame from block.
+ *
+ * @param zone 
+ * @param frame_idx Index to block 
+ * @param count Allocated space in block
+ */
+static void zone_reduce_region(zone_t *zone, pfn_t frame_idx, count_t count)
+{
+	count_t i;
+	__u8 order;
+	frame_t *frame;
+	
+	ASSERT(frame_idx+count < zone->count);
+
+	order = zone->frames[frame_idx].buddy_order;
+	ASSERT((1 << order) >= count);
+
+	/* Reduce all blocks to order 0 */
+	for (i=0; i < (1 << order); i++) {
+		frame = &zone->frames[i + frame_idx];
+		frame->buddy_order = 0;
+		if (! frame->refcount)
+			frame->refcount = 1;
+		ASSERT(frame->refcount == 1);
+	}
+	/* Free unneeded frames */
+	for (i=count; i < (1 << order); i++) {
+		zone_frame_free(zone, i + frame_idx);
 	}
 }
 
@@ -653,9 +687,12 @@ void zone_merge(int z1, int z2)
 
 	_zone_merge(newzone, zone1, zone2);
 
+	/* Free unneeded config frames */
+	zone_reduce_region(newzone, pfn - newzone->base,  cframes);
 	/* Subtract zone information from busy frames */
-	newzone->busy_count -= (1 << order);
+	newzone->busy_count -= cframes;
 
+	/* Replace existing zones in zoneinfo list */
 	zones.info[z1] = newzone;
 	for (i=z2+1;i < zones.count;i++)
 		zones.info[i-1] = zones.info[i];
@@ -983,7 +1020,7 @@ void zone_print_list(void) {
 	for (i=0;i<zones.count;i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%d  %L\t%d\t\t%d\n",i,PFN2ADDR(zone->base), 
+		printf("%d: %L\t%d\t\t%d\n",i,PFN2ADDR(zone->base), 
 		       zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
@@ -1004,7 +1041,7 @@ void zone_print_one(int num) {
 	spinlock_lock(&zones.lock);
 
 	for (i=0;i < zones.count; i++) {
-		if (i == num || zones.info[i]->base == ADDR2PFN(num)) {
+		if (i == num || PFN2ADDR(zones.info[i]->base) == num) {
 			zone = zones.info[i];
 			break;
 		}
