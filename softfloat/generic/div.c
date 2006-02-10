@@ -31,6 +31,8 @@
 #include<div.h>
 #include<comparison.h>
 #include<mul.h>
+#include<common.h>
+
 
 float32 divFloat32(float32 a, float32 b) 
 {
@@ -306,55 +308,10 @@ float64 divFloat64(float64 a, float64 b)
 		cfrac |= ( remlo != 0 );
 	}
 	
-	/* pack and round */
-	
-	/* find first nonzero digit and shift result and detect possibly underflow */
-	while ((cexp > 0) && (cfrac) && (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1 ) )))) {
-		cexp--; 
-		cfrac <<= 1;
-			/* TODO: fix underflow */
-	};
-	
-	
-	cfrac >>= 1;
-	++cexp;
-	cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
+	/* round and shift */
+	result = finishFloat64(cexp, cfrac, result.parts.sign);
+	return result;
 
-	if (cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1 ))) {
-		++cexp;
-		cfrac >>= 1;
-		}	
-
-	/* check overflow */
-	if (cexp >= FLOAT64_MAX_EXPONENT ) {
-		/* FIXME: overflow, return infinity */
-		result.parts.exp = FLOAT64_MAX_EXPONENT;
-		result.parts.fraction = 0;
-		return result;
-	}
-
-	if (cexp < 0) {
-		/* FIXME: underflow */
-		result.parts.exp = 0;
-		if ((cexp + FLOAT64_FRACTION_SIZE) < 0) {
-			result.parts.fraction = 0;
-			return result;
-		}
-		cfrac >>= 1;
-		while (cexp < 0) {
-			cexp ++;
-			cfrac >>= 1;
-		}
-		return result;
-		
-	} else {
-		cexp ++; /*normalized*/
-		result.parts.exp = (__u32)cexp;
-	}
-	
-	result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2 ) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
-	
-	return result;	
 }
 
 __u64 divFloat64estim(__u64 a, __u64 b)

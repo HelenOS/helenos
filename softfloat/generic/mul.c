@@ -29,6 +29,7 @@
 #include<sftypes.h>
 #include<mul.h>
 #include<comparison.h>
+#include<common.h>
 
 /** Multiply two 32 bit float numbers
  *
@@ -217,26 +218,10 @@ float64 mulFloat64(float64 a, float64 b)
 	}
 
 	/* exp is signed so we can easy detect underflow */
-	exp = a.parts.exp + b.parts.exp;
-	exp -= FLOAT64_BIAS;
-	
-	if (exp >= FLOAT64_MAX_EXPONENT) {
-		/* FIXME: overflow */
-		/* set infinity as result */
-		result.binary = FLOAT64_INF;
-		result.parts.sign = a.parts.sign ^ b.parts.sign;
-		return result;
-	};
-	
-	if (exp < 0) { 
-		/* FIXME: underflow */
-		/* return signed zero */
-		result.parts.fraction = 0x0;
-		result.parts.exp = 0x0;
-		return result;
-	};
+	exp = a.parts.exp + b.parts.exp - FLOAT64_BIAS;
 	
 	frac1 = a.parts.fraction;
+
 	if (a.parts.exp > 0) {
 		frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 	} else {
@@ -251,68 +236,19 @@ float64 mulFloat64(float64 a, float64 b)
 		++exp;
 	};
 
-	frac1 <<= 1; /* one bit space for rounding */
+	frac1 <<= (64 - FLOAT64_FRACTION_SIZE - 1);
+	frac2 <<= (64 - FLOAT64_FRACTION_SIZE - 2);
 
 	mul64integers(frac1, frac2, &frac1, &frac2);
 
-/* round and return */
-	/* FIXME: ugly soulution is to shift whole frac2 >> as in 32bit version
-	 * Here is is more slower because we have to shift two numbers with carry
-	 * Better is find first nonzero bit and make only one shift
-	 * Third version is to shift both numbers a bit to right and result will be then 
-	 * placed in higher part of result. Then lower part will be good only for rounding.
-	 */
-	
-	while ((exp < FLOAT64_MAX_EXPONENT) && (frac2 > 0 )) { 
-		frac1 >>= 1;
-		frac1 &= ((frac2 & 0x1) << 63);
-		frac2 >>= 1;
-		++exp;
+	frac2 |= (frac1 != 0);
+	if (frac2 & (0x1ll << 62)) {
+		frac2 <<= 1;
+		exp--;
 	}
-	
-	while ((exp < FLOAT64_MAX_EXPONENT) && (frac1 >= ( (__u64)1 << (FLOAT64_FRACTION_SIZE + 2)))) { 
-		++exp;
-		frac1 >>= 1;
-	};
 
-	/* rounding */
-	/* ++frac1;  FIXME: not works - without it is ok */
-	frac1 >>= 1; /* shift off rounding space */
-	
-	if ((exp < FLOAT64_MAX_EXPONENT) && (frac1 >= ((__u64)1 << (FLOAT64_FRACTION_SIZE + 1)))) {
-		++exp;
-		frac1 >>= 1;
-	};
-
-	if (exp >= FLOAT64_MAX_EXPONENT ) {	
-		/* TODO: fix overflow */
-		/* return infinity*/
-		result.parts.exp = FLOAT64_MAX_EXPONENT;
-		result.parts.fraction = 0x0;
-		return result;
-	}
-	
-	exp -= FLOAT64_FRACTION_SIZE;
-
-	if (exp <= FLOAT64_FRACTION_SIZE) { 
-		/* denormalized number */
-		frac1 >>= 1; /* denormalize */
-		while ((frac1 > 0) && (exp < 0)) {
-			frac1 >>= 1;
-			++exp;
-		};
-		if (frac1 == 0) {
-			/* FIXME : underflow */
-		result.parts.exp = 0;
-		result.parts.fraction = 0;
-		return result;
-		};
-	};
-	result.parts.exp = exp; 
-	result.parts.fraction = frac1 & ( ((__u64)1 << FLOAT64_FRACTION_SIZE) - 1);
-	
-	return result;	
-	
+	result = finishFloat64(exp, frac2, result.parts.sign);
+	return result;
 }
 
 /** Multiply two 64 bit numbers and return result in two parts
@@ -325,7 +261,7 @@ void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi)
 {
 	__u64 low, high, middle1, middle2;
 	__u32 alow, blow;
-	
+
 	alow = a & 0xFFFFFFFF;
 	blow = b & 0xFFFFFFFF;
 	

@@ -26,13 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DIV_H__
-#define __DIV_H__
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
-float32 divFloat32(float32 a, float32 b);
-float64 divFloat64(float64 a, float64 b);
+#include<sftypes.h>
 
-__u64 divFloat64estim(__u64 a, __u64 b);
+float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign);
 
 #endif
-

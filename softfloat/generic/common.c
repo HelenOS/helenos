@@ -26,13 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DIV_H__
-#define __DIV_H__
+#include<sftypes.h>
+#include<common.h>
 
-float32 divFloat32(float32 a, float32 b);
-float64 divFloat64(float64 a, float64 b);
+/** Take fraction shifted by 10 bits to left, round it, normalize it and detect exceptions
+ * @param exp exponent with bias
+ * @param cfrac fraction shifted 10 places left with added hidden bit
+ * @return valied float64
+ */
+float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
+{
+	float64 result;
 
-__u64 divFloat64estim(__u64 a, __u64 b);
+	result.parts.sign = sign;
 
-#endif
+	/* find first nonzero digit and shift result and detect possibly underflow */
+	while ((cexp > 0) && (cfrac) && (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1 ) )))) {
+		cexp--; 
+		cfrac <<= 1;
+			/* TODO: fix underflow */
+	};
+	
+	cfrac >>= 1;
+	++cexp;
+	cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
 
+	if (cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1 ))) {
+		++cexp;
+		cfrac >>= 1;
+		}	
+
+	/* check overflow */
+	if (cexp >= FLOAT64_MAX_EXPONENT ) {
+		/* FIXME: overflow, return infinity */
+		result.parts.exp = FLOAT64_MAX_EXPONENT;
+		result.parts.fraction = 0;
+		return result;
+	}
+
+	if (cexp < 0) {
+		/* FIXME: underflow */
+		result.parts.exp = 0;
+		if ((cexp + FLOAT64_FRACTION_SIZE) < 0) {
+			result.parts.fraction = 0;
+			return result;
+		}
+		cfrac >>= 1;
+		while (cexp < 0) {
+			cexp ++;
+			cfrac >>= 1;
+		}
+		return result;
+		
+	} else {
+		cexp ++; /*normalized*/
+		result.parts.exp = (__u32)cexp;
+	}
+	
+	result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2 ) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
+	
+	return result;	
+}
