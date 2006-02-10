@@ -45,7 +45,7 @@ static void tlb_modified_fail(struct exception_regdump *pstate);
 
 static pte_t *find_mapping_and_check(__address badvaddr);
 
-static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn);
+static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn);
 static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
 
 /** Initialize TLB
@@ -104,7 +104,7 @@ void tlb_refill(struct exception_regdump *pstate)
 	pte->a = 1;
 
 	prepare_entry_hi(&hi, AS->asid, badvaddr);
-	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->lo.d, pte->lo.c, pte->lo.pfn);
+	prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
@@ -178,7 +178,7 @@ void tlb_invalid(struct exception_regdump *pstate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->lo.d, pte->lo.c, pte->lo.pfn);
+	prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -252,9 +252,9 @@ void tlb_modified(struct exception_regdump *pstate)
 	 * Record access and write to PTE.
 	 */
 	pte->a = 1;
-	pte->lo.d = 1;
+	pte->d = 1;
 
-	prepare_entry_lo(&lo, pte->lo.g, pte->lo.v, pte->w, pte->lo.c, pte->lo.pfn);
+	prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->cacheable, pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -337,7 +337,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	 * Check if the mapping exists in page tables.
 	 */	
 	pte = page_mapping_find(AS, badvaddr);
-	if (pte && pte->lo.v) {
+	if (pte && pte->p) {
 		/*
 		 * Mapping found in page tables.
 		 * Immediately succeed.
@@ -354,7 +354,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 			 * The mapping ought to be in place.
 			 */
 			pte = page_mapping_find(AS, badvaddr);
-			ASSERT(pte && pte->lo.v);
+			ASSERT(pte && pte->p);
 			return pte;
 		}
 	}
@@ -370,7 +370,7 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	/*
 	 * Handler cannot succeed if the mapping is marked as invalid.
 	 */
-	if (!pte->lo.v) {
+	if (!pte->p) {
 		printf("Invalid mapping.\n");
 		return NULL;
 	}
@@ -378,13 +378,13 @@ pte_t *find_mapping_and_check(__address badvaddr)
 	return pte;
 }
 
-void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, int c, __address pfn)
+void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn)
 {
 	lo->value = 0;
 	lo->g = g;
 	lo->v = v;
 	lo->d = d;
-	lo->c = c;
+	lo->c = cacheable ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
 	lo->pfn = pfn;
 }
 

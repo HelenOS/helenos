@@ -75,6 +75,7 @@
 
 #ifndef __ASM__
 
+/** Page Table Entry. */
 struct page_specifier {
 	unsigned present : 1;
 	unsigned writeable : 1;
@@ -85,7 +86,8 @@ struct page_specifier {
 	unsigned dirty : 1;
 	unsigned unused: 1;
 	unsigned global : 1;
-	unsigned avl : 3;
+	unsigned soft_valid : 1;		/**< Valid content even if present bit is cleared. */
+	unsigned avl : 2;
 	unsigned addr_12_31 : 30;
 	unsigned addr_32_51 : 21;
 	unsigned no_execute : 1;
@@ -124,6 +126,11 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	p->writeable = (flags & PAGE_WRITE) != 0;
 	p->no_execute = (flags & PAGE_EXEC) == 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
+	
+	/*
+	 * Ensure that there is at least one bit set even if the present bit is cleared.
+	 */
+	p->soft_valid = 1;
 }
 
 extern void page_arch_init(void);

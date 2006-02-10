@@ -34,6 +34,7 @@
 
 #define FIFO_STATIC_LIMIT	1024
 #define FIFO_STATIC		(ASIDS_ALLOCABLE<FIFO_STATIC_LIMIT)
+
 /**
  * FIFO queue containing unassigned ASIDs. 
  * Can be only accessed when asidlock is held.

@@ -48,6 +48,9 @@
  * - 32-bit virtual addresses
  * - Offset is 14 bits => pages are 16K long
  * - PTE's use similar format as CP0 EntryLo[01] registers => PTE is therefore 4 bytes long
+ * - PTE's replace EntryLo v (valid) bit with p (present) bit
+ * - PTE's use only one bit to distinguish between cacheable and uncacheable mappings
+ * - PTE's define soft_valid field to ensure there is at least one 1 bit even if the p bit is cleared
  * - PTE's make use of CP0 EntryLo's two-bit reserved field for bit W (writable) and bit A (accessed)
  * - PTL0 has 64 entries (6 bits)
  * - PTL1 is not used
@@ -62,15 +65,15 @@
 
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].lo.pfn<<12)
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *)(ptl0))[(i)].pfn<<12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].lo.pfn<<12)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *)(ptl3))[(i)].pfn<<12)
 
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].lo.pfn = (a)>>12)
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].pfn = (a)>>12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].lo.pfn = (a)>>12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].pfn = (a)>>12)
 
 #define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
@@ -94,13 +97,13 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 	pte_t *p = &pt[i];
 	
 	return (
-		((p->lo.c>PAGE_UNCACHED)<<PAGE_CACHEABLE_SHIFT) |
-		((!p->lo.v)<<PAGE_PRESENT_SHIFT) |
+		(p->cacheable<<PAGE_CACHEABLE_SHIFT) |
+		((!p->p)<<PAGE_PRESENT_SHIFT) |
 		(1<<PAGE_USER_SHIFT) |
 		(1<<PAGE_READ_SHIFT) |
 		((p->w)<<PAGE_WRITE_SHIFT) |
 		(1<<PAGE_EXEC_SHIFT) |
-		p->lo.g<<PAGE_GLOBAL_SHIFT
+		(p->g<<PAGE_GLOBAL_SHIFT)
 	);
 		
 }
@@ -109,10 +112,15 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
-	p->lo.c = (flags & PAGE_CACHEABLE) != 0 ? PAGE_CACHEABLE_EXC_WRITE : PAGE_UNCACHED;
-	p->lo.v = !(flags & PAGE_NOT_PRESENT);
-	p->lo.g = (flags & PAGE_GLOBAL) != 0;
+	p->cacheable = (flags & PAGE_CACHEABLE) != 0;
+	p->p = !(flags & PAGE_NOT_PRESENT);
+	p->g = (flags & PAGE_GLOBAL) != 0;
 	p->w = (flags & PAGE_WRITE) != 0;
+	
+	/*
+	 * Ensure that valid entries have at least one bit set.
+	 */
+	p->soft_valid = 1;
 }
 
 extern void page_arch_init(void);

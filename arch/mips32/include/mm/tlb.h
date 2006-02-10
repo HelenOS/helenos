@@ -63,13 +63,17 @@ union entry_lo {
 	__u32 value;
 };
 
-union pte {
-	entry_lo_t lo;
-	struct {
-		unsigned : 30;
-		unsigned w : 1;		/* writable */
-		unsigned a : 1;		/* accessed */
-	} __attribute__ ((packed));
+/** Page Table Entry. */
+struct pte {
+	unsigned g : 1;			/**< Global bit. */
+	unsigned p : 1;			/**< Present bit. */
+	unsigned d : 1;			/**< Dirty bit. */
+	unsigned cacheable : 1;		/**< Cacheable bit. */
+	unsigned : 1;			/**< Unused. */
+	unsigned soft_valid : 1;	/**< Valid content even if not present. */
+	unsigned pfn : 24;		/**< Physical frame number. */
+	unsigned w : 1;			/**< Page writable bit. */
+	unsigned a : 1;			/**< Accessed bit. */
 };
 
 union entry_hi {

@@ -77,6 +77,7 @@
 #include <arch/mm/frame.h>
 #include <typedefs.h>
 
+/** Page Table Entry. */
 struct page_specifier {
 	unsigned present : 1;
 	unsigned writeable : 1;
@@ -87,7 +88,8 @@ struct page_specifier {
 	unsigned dirty : 1;
 	unsigned pat : 1;
 	unsigned global : 1;
-	unsigned avl : 3;
+	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
+	unsigned avl : 2;
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
 
@@ -115,6 +117,11 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	p->uaccessible = (flags & PAGE_USER) != 0;
 	p->writeable = (flags & PAGE_WRITE) != 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
+	
+	/*
+	 * Ensure that there is at least one bit set even if the present bit is cleared.
+	 */
+	p->soft_valid = true;
 }
 
 extern void page_arch_init(void);
