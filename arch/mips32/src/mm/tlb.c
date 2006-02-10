@@ -28,7 +28,6 @@
 
 #include <arch/mm/tlb.h>
 #include <mm/asid.h>
-#include <genarch/mm/asid_fifo.h>
 #include <mm/tlb.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -57,8 +56,6 @@ static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
 void tlb_arch_init(void)
 {
 	int i;
-
-	asid_fifo_init();
 
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	cp0_entry_hi_write(0);

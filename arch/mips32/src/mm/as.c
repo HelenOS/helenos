@@ -28,6 +28,7 @@
 
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
+#include <genarch/mm/asid_fifo.h>
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
@@ -38,6 +39,7 @@
 void as_arch_init(void)
 {
         as_operations = &as_pt_operations;
+	asid_fifo_init();
 }
 
 /** Install address space.

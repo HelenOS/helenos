@@ -32,17 +32,27 @@
 #include <typedefs.h>
 #include <adt/fifo.h>
 
+#define FIFO_STATIC_LIMIT	1024
+#define FIFO_STATIC		(ASIDS_ALLOCABLE<FIFO_STATIC_LIMIT)
 /**
  * FIFO queue containing unassigned ASIDs. 
  * Can be only accessed when asidlock is held.
  */
-FIFO_INITIALIZE(free_asids, asid_t, ASIDS_ALLOCABLE);
+#if FIFO_STATIC
+FIFO_INITIALIZE_STATIC(free_asids, asid_t, ASIDS_ALLOCABLE);
+#else
+FIFO_INITIALIZE_DYNAMIC(free_asids, asid_t, ASIDS_ALLOCABLE);
+#endif
 
 /** Initialize data structures for O(1) ASID allocation and deallocation. */
 void asid_fifo_init(void)
 {
 	int i;
-	
+
+	#if (!FIFO_STATIC)
+	fifo_create(free_asids);
+	#endif
+		
 	for (i = 0; i < ASIDS_ALLOCABLE; i++) {
 		fifo_push(free_asids, ASID_START + i);
 	}

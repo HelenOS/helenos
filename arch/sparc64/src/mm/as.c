@@ -28,9 +28,11 @@
 
 #include <arch/mm/as.h>
 #include <genarch/mm/as_ht.h>
+#include <genarch/mm/asid_fifo.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)
 {
 	as_operations = &as_ht_operations;
+	asid_fifo_init();
 }
