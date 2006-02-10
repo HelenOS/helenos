@@ -103,6 +103,8 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
+ * Empty page tables except PTL0 are freed.
+ *
  * The address space must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
@@ -111,6 +113,12 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 void pt_mapping_remove(as_t *as, __address page)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
+	bool empty = true;
+	int i;
+
+	/*
+	 * First, remove the mapping, if it exists.
+	 */
 
 	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
 
@@ -131,6 +139,86 @@ void pt_mapping_remove(as_t *as, __address page)
 
 	/* Destroy the mapping. Setting to PAGE_NOT_PRESENT is not sufficient. */
 	memsetb((__address) &ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
+
+	/*
+	 * Second, free all empty tables along the way from PTL3 down to PTL0.
+	 */
+	
+	/* check PTL3 */
+	for (i = 0; i < PTL3_ENTRIES; i++) {
+		if (PTE_VALID(&ptl3[i])) {
+			empty = false;
+			break;
+		}
+	}
+	if (empty) {
+		/*
+		 * PTL3 is empty.
+		 * Release the frame and remove PTL3 pointer from preceding table.
+		 */
+		frame_free(ADDR2PFN(KA2PA((__address) ptl3)));
+		if (PTL2_ENTRIES)
+			memsetb((__address) &ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
+		else if (PTL1_ENTRIES)
+			memsetb((__address) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+		else
+			memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+	} else {
+		/*
+		 * PTL3 is not empty.
+		 * Therefore, there must be a path from PTL0 to PTL3 and
+		 * thus nothing to free in higher levels.
+		 */
+		return;
+	}
+	
+	/* check PTL2, empty is still true */
+	if (PTL2_ENTRIES) {
+		for (i = 0; i < PTL2_ENTRIES; i++) {
+			if (PTE_VALID(&ptl2[i])) {
+				empty = false;
+				break;
+			}
+		}
+		if (empty) {
+			/*
+			 * PTL2 is empty.
+			 * Release the frame and remove PTL2 pointer from preceding table.
+			 */
+			frame_free(ADDR2PFN(KA2PA((__address) ptl2)));
+			if (PTL1_ENTRIES)
+				memsetb((__address) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+			else
+				memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+		}
+		else {
+			/*
+			 * PTL2 is not empty.
+			 * Therefore, there must be a path from PTL0 to PTL2 and
+			 * thus nothing to free in higher levels.
+			 */
+			return;
+		}
+	}
+
+	/* check PTL1, empty is still true */
+	if (PTL1_ENTRIES) {
+		for (i = 0; i < PTL1_ENTRIES; i++) {
+			if (PTE_VALID(&ptl1[i])) {
+				empty = false;
+				break;
+			}
+		}
+		if (empty) {
+			/*
+			 * PTL1 is empty.
+			 * Release the frame and remove PTL1 pointer from preceding table.
+			 */
+			frame_free(ADDR2PFN(KA2PA((__address) ptl1)));
+			memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+		}
+	}
+
 }
 
 /** Find mapping for virtual page in hierarchical page tables.

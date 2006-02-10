@@ -40,6 +40,14 @@
 #include <mm/page.h>
 
 /*
+ * Number of entries in each level.
+ */
+#define PTL0_ENTRIES			PTL0_ENTRIES_ARCH
+#define PTL1_ENTRIES			PTL1_ENTRIES_ARCH
+#define PTL2_ENTRIES			PTL2_ENTRIES_ARCH
+#define PTL3_ENTRIES			PTL3_ENTRIES_ARCH
+
+/*
  * These macros process vaddr and extract those portions
  * of it that function as indices to respective page tables.
  */
@@ -83,6 +91,11 @@
 #define SET_PTL2_FLAGS(ptl1, i, x)	SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
+
+/*
+ * Determine whether the mapping is valid.
+ */
+#define PTE_VALID(p)			PTE_VALID_ARCH((p))
 
 extern page_mapping_operations_t pt_mapping_operations;
 

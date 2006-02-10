@@ -47,6 +47,11 @@
 # define PA2KA(x)      ((x) + 0xffffffff80000000)
 #endif
 
+#define PTL0_ENTRIES_ARCH	512
+#define PTL1_ENTRIES_ARCH	512
+#define PTL2_ENTRIES_ARCH	512
+#define PTL3_ENTRIES_ARCH	512
+
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>39)&0x1ff)
 #define PTL1_INDEX_ARCH(vaddr)	(((vaddr)>>30)&0x1ff)
 #define PTL2_INDEX_ARCH(vaddr)	(((vaddr)>>21)&0x1ff)
@@ -72,6 +77,8 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)         set_pt_flags((pte_t *)(ptl1), (index_t)(i), (x))
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)         set_pt_flags((pte_t *)(ptl2), (index_t)(i), (x))
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
+
+#define PTE_VALID_ARCH(p)			(*((__u64 *) (p)) != 0)
 
 #ifndef __ASM__
 

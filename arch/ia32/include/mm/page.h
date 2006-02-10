@@ -44,6 +44,11 @@
  * Implementation of generic 4-level page table interface.
  * IA-32 has 2-level page tables, so PTL1 and PTL2 are left out.
  */
+#define PTL0_ENTRIES_ARCH	1024
+#define PTL1_ENTRIES_ARCH	0
+#define PTL2_ENTRIES_ARCH	0
+#define PTL3_ENTRIES_ARCH	1024
+
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>22)&0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0
@@ -69,6 +74,8 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
+
+#define PTE_VALID_ARCH(p)			(*((__u32 *) (p)) != 0)
 
 #ifndef __ASM__
 

@@ -4,13 +4,12 @@
   + [ia32] use int 0x15 ax=0xe820 to get memory map and memory size	[DONE]
   + [mips] use some heuristics to get memory map and memory size
   + reimplement heap so that it can allocate/deallocate
-    itself frames as necessary
+    itself frames as necessary						[DONE]
   + provide native four-level portable page table interface		[DONE]
     + every architecture uses its native page table format
     + kernel provides unified four-level page table interface
-      for all architectures
-  + track usage of frames containing middle-level page tables
-    (frame leak)
+      or page hash table interface to architectures
+  + deallocation of memory of empty page tables				[DONE]
 
 + get user mode support for all architectures
 
