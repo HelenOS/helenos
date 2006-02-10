@@ -120,6 +120,14 @@ float __divsf3(float a, float b)
 	return 	divFloat32(fa, fb).f;
 }
 
+double __divdf3(double a, double b) 
+{
+	float64 da, db;
+	da.d = a;
+	db.d = b;
+	return 	divFloat64(da, db).d;
+}
+
 float __negsf2(float a)
 {
 	float32 fa;

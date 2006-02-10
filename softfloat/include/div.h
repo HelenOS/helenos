@@ -30,6 +30,8 @@
 #define __DIV_H__
 
 float32 divFloat32(float32 a, float32 b);
+float64 divFloat64(float64 a, float64 b);
 
+__u64 divFloat64estim(__u64 a, __u64 b);
 #endif
 

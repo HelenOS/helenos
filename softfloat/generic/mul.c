@@ -329,21 +329,22 @@ void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi)
 	alow = a & 0xFFFFFFFF;
 	blow = b & 0xFFFFFFFF;
 	
-	a <<= 32;
-	b <<= 32;
+	a >>= 32;
+	b >>= 32;
 	
-	low = (__u64)alow * blow;
+	low = ((__u64)alow) * blow;
 	middle1 = a * blow;
 	middle2 = alow * b;
 	high = a * b;
 
 	middle1 += middle2;
-	high += ((__u64)(middle1 < middle2) << 32) + (middle1 >> 32);
+	high += (((__u64)(middle1 < middle2)) << 32) + (middle1 >> 32);
 	middle1 <<= 32;
 	low += middle1;
 	high += (low < middle1);
 	*lo = low;
 	*hi = high;
+	
 	return;
 }
 

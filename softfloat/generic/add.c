@@ -89,7 +89,7 @@ float32 addFloat32(float32 a, float32 b)
 
 	if (exp2 == 0) {
 		/* second operand is denormalized */
-		--expdiff;	
+		--expdiff;
 	} else {
 		/* add hidden bit to second operand */
 		frac2 |= FLOAT32_HIDDEN_BIT_MASK; 
@@ -118,7 +118,8 @@ float32 addFloat32(float32 a, float32 b)
 		frac1 >>= 1;
 	};
 	
-	if ((a.parts.exp == FLOAT32_MAX_EXPONENT ) || (a.parts.exp < exp1)) {
+	
+	if ((exp1 == FLOAT32_MAX_EXPONENT ) || (exp2 > exp1)) {
 			/* overflow - set infinity as result */
 			a.parts.exp = FLOAT32_MAX_EXPONENT;
 			a.parts.fraction = 0;
