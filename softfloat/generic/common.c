@@ -47,14 +47,32 @@ float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
 			/* TODO: fix underflow */
 	};
 	
-	cfrac >>= 1;
-	++cexp;
 	cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
+	
+	if ((cexp < 0) || ( cexp == 0 && (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1)))))) {
+		/* FIXME: underflow */
+		result.parts.exp = 0;
+		if ((cexp + FLOAT64_FRACTION_SIZE) < 0) {
+			result.parts.fraction = 0;
+			return result;
+		}
+		//cfrac >>= 1;
+		while (cexp < 0) {
+			cexp++;
+			cfrac >>= 1;
+		}
+			
+		result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
+
+		return result;
+	}
+	
+	++cexp;
 
 	if (cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1 ))) {
 		++cexp;
 		cfrac >>= 1;
-		}	
+	}	
 
 	/* check overflow */
 	if (cexp >= FLOAT64_MAX_EXPONENT ) {
@@ -64,26 +82,10 @@ float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
 		return result;
 	}
 
-	if (cexp < 0) {
-		/* FIXME: underflow */
-		result.parts.exp = 0;
-		if ((cexp + FLOAT64_FRACTION_SIZE) < 0) {
-			result.parts.fraction = 0;
-			return result;
-		}
-		cfrac >>= 1;
-		while (cexp < 0) {
-			cexp ++;
-			cfrac >>= 1;
-		}
-		return result;
-		
-	} else {
-		cexp ++; /*normalized*/
-		result.parts.exp = (__u32)cexp;
-	}
+	result.parts.exp = (__u32)cexp;
 	
 	result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2 ) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
 	
 	return result;	
 }
+

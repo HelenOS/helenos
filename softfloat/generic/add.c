@@ -102,7 +102,11 @@ float32 addFloat32(float32 a, float32 b)
 	if (expdiff < (FLOAT32_FRACTION_SIZE + 2) ) {
 		frac2 >>= expdiff;
 		frac1 += frac2;
-		};
+	} else {
+		a.parts.exp = exp1;
+		a.parts.fraction = (frac1 >> 6) & (~(FLOAT32_HIDDEN_BIT_MASK));
+		return a;
+	}
 	
 	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
@@ -142,7 +146,7 @@ float64 addFloat64(float64 a, float64 b)
 	__u32 exp1, exp2;
 	__u64 frac1, frac2;
 	
-	expdiff = a.parts.exp - b.parts.exp;
+	expdiff = ((int )a.parts.exp) - b.parts.exp;
 	if (expdiff < 0) {
 		if (isFloat64NaN(b)) {
 			/* TODO: fix SigNaN */
@@ -211,7 +215,11 @@ float64 addFloat64(float64 a, float64 b)
 	if (expdiff < (FLOAT64_FRACTION_SIZE + 2) ) {
 		frac2 >>= expdiff;
 		frac1 += frac2;
-		};
+	} else {
+		a.parts.exp = exp1;
+		a.parts.fraction = (frac1 >> 6) & (~(FLOAT64_HIDDEN_BIT_MASK));
+		return a;
+	}
 	
 	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7) ) {
 		++exp1;
@@ -227,7 +235,7 @@ float64 addFloat64(float64 a, float64 b)
 		frac1 >>= 1;
 	};
 	
-	if ((a.parts.exp == FLOAT64_MAX_EXPONENT ) || (a.parts.exp < exp1)) {
+	if ((exp1 == FLOAT64_MAX_EXPONENT ) || (exp2 > exp1)) {
 			/* overflow - set infinity as result */
 			a.parts.exp = FLOAT64_MAX_EXPONENT;
 			a.parts.fraction = 0;
@@ -237,6 +245,7 @@ float64 addFloat64(float64 a, float64 b)
 	a.parts.exp = exp1;
 	/*Clear hidden bit and shift */
 	a.parts.fraction = ( (frac1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
+	
 	return a;
 }
 
