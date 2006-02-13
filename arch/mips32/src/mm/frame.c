@@ -42,6 +42,10 @@ void frame_arch_init(void)
 	if (arc_enabled())
 		arc_frame_init();
 	else {
-		zone_create(1, (config.memory_size >> FRAME_WIDTH)-1,1,0);
+		zone_create(0, ADDR2PFN(config.memory_size), 1, 0);
+		/*
+		 * Blacklist interrupt vektor
+		 */
+		frame_mark_unavailable(0, 1);
 	}
 }

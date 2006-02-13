@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <console/console.h>
-#include <arch/console.h>
-#include <arch/drivers/arc.h>
-#include <arch/drivers/serial.h>
-#include <arch/drivers/msim.h>
-#include <fb/fb.h>
+#ifndef _FB_H_
+#define _FB_H_
 
-void console_init(void)
-{
-	if (arc_enabled()) {
-		arc_console();
-	} else if (serial_init()) {
-		serial_console();
-	} else
-		msim_console();
-#ifdef CONFIG_FB
-	fb_init(0xb2000000, 640, 480);
+#include <typedefs.h>
+#include <arch/types.h>
+
+void fb_init(__address addr, int x, int y);
+
 #endif
-}

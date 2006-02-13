@@ -33,5 +33,9 @@
 
 void frame_arch_init(void)
 {
-	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
+	/* First page is exception vector, 
+	 * second is 'implementation specific', evade it too
+	 */
+	zone_create(0, SIZE2FRAMES(config.memory_size), 2, 0);
+	frame_mark_unavailable(0, 2);
 }

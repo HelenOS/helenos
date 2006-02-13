@@ -132,8 +132,15 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/waitq.c \
-	generic/src/smp/ipi.c \
-	generic/src/fb/font-8x16.c
+	generic/src/smp/ipi.c
+
+## Framebuffer
+ifeq ($(CONFIG_FB),y)
+	GENERIC_SOURCES += \
+		generic/src/fb/font-8x16.c \
+		generic/src/fb/fb.c
+	DEFS += -DCONFIG_FB
+endif
 
 ## Test sources
 #
