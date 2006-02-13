@@ -39,6 +39,11 @@
 #define KA2PA(x)	(((__address) (x)) - 0x80000000)
 #define PA2KA(x)	(((__address) (x)) + 0x80000000)
 
+#define PTL0_ENTRIES_ARCH		0
+#define PTL1_ENTRIES_ARCH		0
+#define PTL2_ENTRIES_ARCH		0
+#define PTL3_ENTRIES_ARCH		0
+
 #define PTL0_INDEX_ARCH(vaddr)		0
 #define PTL1_INDEX_ARCH(vaddr)		0
 #define PTL2_INDEX_ARCH(vaddr)		0
@@ -65,6 +70,8 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
+
+#define PTE_VALID_ARCH(p)		1
 
 extern void page_arch_init(void);
 
