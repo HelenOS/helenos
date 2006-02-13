@@ -47,24 +47,28 @@ float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
 			/* TODO: fix underflow */
 	};
 	
-	cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
-	
 	if ((cexp < 0) || ( cexp == 0 && (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1)))))) {
 		/* FIXME: underflow */
 		result.parts.exp = 0;
-		if ((cexp + FLOAT64_FRACTION_SIZE) < 0) {
+		if ((cexp + FLOAT64_FRACTION_SIZE + 1) < 0) { /* +1 is place for rounding */
 			result.parts.fraction = 0;
 			return result;
 		}
-		//cfrac >>= 1;
+		
 		while (cexp < 0) {
 			cexp++;
 			cfrac >>= 1;
 		}
+	
+		cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
+		
+		if (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_HIDDEN_BIT_MASK - 1)))) {
 			
-		result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
-
-		return result;
+			result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
+			return result;
+		}	
+	} else {
+		cfrac += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3)); 
 	}
 	
 	++cexp;

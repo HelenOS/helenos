@@ -191,13 +191,19 @@ float32 divFloat32(float32 a, float32 b)
 float64 divFloat64(float64 a, float64 b) 
 {
 	float64 result;
-	__s32 aexp, bexp, cexp;
+	__s64 aexp, bexp, cexp;
 	__u64 afrac, bfrac, cfrac; 
 	__u64 remlo, remhi;
 	
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
 	if (isFloat64NaN(a)) {
+		
+		if (isFloat64SigNaN(b)) {
+			/*FIXME: SigNaN*/
+			return b;
+		}
+		
 		if (isFloat64SigNaN(a)) {
 			/*FIXME: SigNaN*/
 		}
@@ -214,7 +220,7 @@ float64 divFloat64(float64 a, float64 b)
 	}
 	
 	if (isFloat64Infinity(a)) {
-		if (isFloat64Infinity(b)) {
+		if (isFloat64Infinity(b) || isFloat64Zero(b)) {
 			/*FIXME: inf / inf */
 			result.binary = FLOAT64_NAN;
 			return result;
@@ -259,13 +265,13 @@ float64 divFloat64(float64 a, float64 b)
 	/* denormalized numbers */
 	if (aexp == 0) {
 		if (afrac == 0) {
-		result.parts.exp = 0;
-		result.parts.fraction = 0;
-		return result;
+			result.parts.exp = 0;
+			result.parts.fraction = 0;
+			return result;
 		}
 		/* normalize it*/
 		
-		afrac <<= 1;
+		aexp++;
 			/* afrac is nonzero => it must stop */	
 		while (! (afrac & FLOAT64_HIDDEN_BIT_MASK) ) {
 			afrac <<= 1;
@@ -274,7 +280,7 @@ float64 divFloat64(float64 a, float64 b)
 	}
 
 	if (bexp == 0) {
-		bfrac <<= 1;
+		bexp++;
 			/* bfrac is nonzero => it must stop */	
 		while (! (bfrac & FLOAT64_HIDDEN_BIT_MASK) ) {
 			bfrac <<= 1;
