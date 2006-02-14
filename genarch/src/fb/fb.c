@@ -30,7 +30,7 @@
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <print.h>
+#include <panic.h>
 
 SPINLOCK_INITIALIZE(fb_lock);
 
@@ -57,49 +57,95 @@ static int pixelbytes=0;
 /***************************************************************/
 /* Pixel specific fuctions */
 
-/** Draw pixel of given color on screen */
-static inline void putpixel(int x,int y,int color)
+static void (*putpixel)(int x,int y,int color);
+static int (*getpixel)(int x,int y);
+
+/** Put pixel - 24-bit depth, 1 free byte */
+static void putpixel_4byte(int x,int y,int color)
 {
 	int startbyte = POINTPOS(x,y);
 
-	if (pixelbytes == 3) {
-		fbaddress[startbyte] = RED(color,8);
-		fbaddress[startbyte+1] = GREEN(color,8);
-		fbaddress[startbyte+2] = BLUE(color,8);
-	} else if (pixelbytes == 4) {
-		*((__u32 *)(fbaddress+startbyte)) = color;
-	} else {
-		int compcolor;
-		/* 5-bit, 5-bits, 5-bits */
-		compcolor = RED(color,5) << 10 \
-			| GREEN(color,5) << 5 \
-			| BLUE(color,5);
-		*((__u16 *)(fbaddress+startbyte)) = compcolor;
-	}
+	*((__u32 *)(fbaddress+startbyte)) = color;
 }
 
 /** Return pixel color */
-static inline int getpixel(int x,int y)
+static int getpixel_4byte(int x,int y)
+{
+	int startbyte = POINTPOS(x,y);
+
+	return *((__u32 *)(fbaddress+startbyte)) & 0xffffff;
+}
+
+/** Draw pixel of given color on screen - 24-bit depth */
+static void putpixel_3byte(int x,int y,int color)
+{
+	int startbyte = POINTPOS(x,y);
+
+	fbaddress[startbyte] = RED(color,8);
+	fbaddress[startbyte+1] = GREEN(color,8);
+	fbaddress[startbyte+2] = BLUE(color,8);
+}
+
+static int getpixel_3byte(int x,int y)
+{
+	int startbyte = POINTPOS(x,y);
+	int result;
+
+	result = fbaddress[startbyte] << 16 \
+		| fbaddress[startbyte+1] << 8 \
+		| fbaddress[startbyte+2];
+	return result;
+}
+
+/** Put pixel - 16-bit depth (5:6:6) */
+static void putpixel_2byte(int x,int y,int color)
+{
+	int startbyte = POINTPOS(x,y);
+	int compcolor;
+
+	/* 5-bit, 5-bits, 5-bits */
+	compcolor = RED(color,5) << 11 \
+		| GREEN(color,6) << 5 \
+		| BLUE(color,5);
+	*((__u16 *)(fbaddress+startbyte)) = compcolor;
+}
+
+static int getpixel_2byte(int x,int y)
 {
 	int startbyte = POINTPOS(x,y);
 	int color;
-	int result;
+	int red,green,blue;
 
-	if (pixelbytes == 3) {
-		result = fbaddress[startbyte] << 16 \
-			| fbaddress[startbyte+1] << 8 \
-			| fbaddress[startbyte+2];
-	} else if (pixelbytes == 4) {
-		result = *((__u32 *)(fbaddress+startbyte)) & 0xffffff;
-	} else {
-		int red,green,blue;
-		color = *((__u16 *)(fbaddress+startbyte));
-		red = (color >> 10) & 0x1f;
-		green = (color >> 5) & 0x1f;
-		blue = color & 0x1f;
-		result = (red << 16) | (green << 8) | blue;
-	}
-	return result;
+	color = *((__u16 *)(fbaddress+startbyte));
+	red = (color >> 11) & 0x1f;
+	green = (color >> 5) & 0x3f;
+	blue = color & 0x1f;
+	return (red << (16+3)) | (green << (8+2)) | (blue << 3);
+}
+
+/** Put pixel - 8-bit depth (3:3:2) */
+static void putpixel_1byte(int x,int y,int color)
+{
+	int compcolor;
+
+	/* 3-bit, 3-bits, 2-bits */
+	compcolor = RED(color,3) << 5 \
+		| GREEN(color,3) << 2 \
+		| BLUE(color,2);
+	fbaddress[POINTPOS(x,y)] = compcolor;
+}
+
+
+static int getpixel_1byte(int x,int y)
+{
+	int color;
+	int red,green,blue;
+
+	color = fbaddress[POINTPOS(x,y)];
+	red = (color >> 5) & 0x7;
+	green = (color >> 5) & 0x7;
+	blue = color & 0x3;
+	return (red << (16+5)) | (green << (8+5)) | blue << 6;
 }
 
 static void clear_line(int y);
@@ -126,7 +172,7 @@ static void clear_line(int y)
 {
 	int x;
 	for (x=0; x<xres;x++)
-		putpixel(x,y,BGCOLOR);
+		(*putpixel)(x,y,BGCOLOR);
 }
 
 /** Fill screen with background color */
@@ -140,7 +186,7 @@ static void clear_screen(void)
 
 static void invert_pixel(int x, int y)
 {
-	putpixel(x,y, ~getpixel(x,y));
+	(*putpixel)(x,y, ~(*getpixel)(x,y));
 }
 
 
@@ -151,9 +197,9 @@ static void draw_glyph_line(int glline, int x, int y)
 
 	for (i=0; i < 8; i++)
 		if (glline & (1 << (7-i))) {
-			putpixel(x+i,y,FGCOLOR);
+			(*putpixel)(x+i,y,FGCOLOR);
 		} else
-			putpixel(x+i,y,BGCOLOR);
+			(*putpixel)(x+i,y,BGCOLOR);
 }
 
 /***************************************************************/
@@ -246,6 +292,27 @@ static chardev_operations_t fb_ops = {
 void fb_init(__address addr, int x, int y, int bytes)
 {
 	fbaddress = (unsigned char *)addr;
+
+	switch (bytes) {
+	case 1:
+		putpixel = putpixel_1byte;
+		getpixel = getpixel_1byte;
+		break;
+	case 2:
+		putpixel = putpixel_2byte;
+		getpixel = getpixel_2byte;
+		break;
+	case 3:
+		putpixel = putpixel_3byte;
+		getpixel = getpixel_3byte;
+		break;
+	case 4:
+		putpixel = putpixel_4byte;
+		getpixel = getpixel_4byte;
+		break;
+	default:
+		panic("Unsupported color depth");
+	}
 	
 	xres = x;
 	yres = y;
