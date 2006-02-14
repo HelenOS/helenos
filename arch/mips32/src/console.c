@@ -31,7 +31,7 @@
 #include <arch/drivers/arc.h>
 #include <arch/drivers/serial.h>
 #include <arch/drivers/msim.h>
-#include <fb/fb.h>
+#include <genarch/fb/fb.h>
 
 void console_init(void)
 {

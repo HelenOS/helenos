@@ -59,3 +59,11 @@ ifeq ($(CONFIG_SOFTINT),y)
 	GENARCH_SOURCES += \
 		genarch/src/softint/division.c
 endif
+
+## Framebuffer
+ifeq ($(CONFIG_FB),y)
+	GENARCH_SOURCES += \
+		genarch/src/fb/font-8x16.c \
+		genarch/src/fb/fb.c
+	DEFS += -DCONFIG_FB
+endif

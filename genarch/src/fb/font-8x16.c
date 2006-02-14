@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fb/font-8x16.h>
+#include <genarch/fb/font-8x16.h>
 
 unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES] = {
 

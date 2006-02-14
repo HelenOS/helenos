@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fb/font-8x16.h>
-#include <fb/fb.h>
+#include <genarch/fb/font-8x16.h>
+#include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <print.h>
