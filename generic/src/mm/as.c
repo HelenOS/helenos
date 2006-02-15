@@ -152,7 +152,7 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
  * to attributes of the address space area to
  * wich 'page' belongs.
  *
- * @param a Target address space.
+ * @param as Target address space.
  * @param page Virtual page within the area.
  * @param frame Physical frame to which page will be mapped.
  */
