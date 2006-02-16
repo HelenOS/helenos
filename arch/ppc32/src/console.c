@@ -30,24 +30,12 @@
 #include <genarch/ofw/ofw.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <genarch/fb/fb.h>
 
-/** Print one character.
- *
- * @param ch Character to be printed.
- */
-static void ofw_ppc32_putchar(chardev_t *d, const char ch)
-{
-	ofw_putchar(ch);
-}
-
-static chardev_t ofw_ppc32_console;
-static chardev_operations_t ofw_ppc32_console_ops = {
-	.write = ofw_ppc32_putchar
-};
 
 /** Initialize console to use ofw output */
-void ofw_ppc32_console_init(void)
+void ppc32_console_init(void)
 {
-	chardev_initialize("ofw_out", &ofw_ppc32_console, &ofw_ppc32_console_ops);
-	stdout = &ofw_ppc32_console;
+	/* TODO: PCI detection etc. etc. - this is fine in PearPC for now */
+	fb_init(0x84000000,800,600,4);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/mm/frame.h>
-#include <arch/mm/memory_init.h>
-#include <mm/frame.h>
-#include <config.h>
-#include <panic.h>
+#ifndef __ppc32_SPR_H__
+#define __ppc32_SPR_H__
 
-void frame_arch_init(void)
-{
-	ppc_init_zones();
-	/* First is exception vector, second is 'implementation specific' */
-	frame_mark_unavailable(0, 2);
-}
+#define MSR_DR (1<<27)
+#define MSR_IR (1<<26)
+
+#define SPRN_SRR0  0x1a
+#define SPRN_SRR1  0x1b
+
+/* Works for PPC32 */
+#define L1_CACHE_BYTES (1 << 5)
+
+#endif

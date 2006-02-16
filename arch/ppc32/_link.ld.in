@@ -11,7 +11,7 @@
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image 0x80000000: AT (0x80000000) { 
+	.image 0x800000: AT (0x800000) { 
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
@@ -30,7 +30,7 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0x80000000);
+		LONG(0x800000);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
 

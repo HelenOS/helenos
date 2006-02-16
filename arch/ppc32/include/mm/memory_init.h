@@ -32,5 +32,7 @@
 #include <config.h>
 
 size_t get_memory_size(void);
+void preboot_read_config(void);
+void ppc_init_zones(void);
 
 #endif

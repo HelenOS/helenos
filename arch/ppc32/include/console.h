@@ -29,6 +29,6 @@
 #ifndef __ppc32_CONSOLE_H__
 #define __ppc32_CONSOLE_H__
 
-extern void ofw_ppc32_console_init(void);
+extern void ppc32_console_init(void);
 
 #endif

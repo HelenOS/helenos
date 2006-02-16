@@ -31,7 +31,7 @@
 
 void arch_pre_mm_init(void)
 {
-	ofw_ppc32_console_init();
+	ppc32_console_init();
 }
 
 void arch_post_mm_init(void)
