@@ -44,6 +44,7 @@ LFLAGS += -no-check-sections -N
 #
 
 CONFIG_OFW = y
+CONFIG_FB = y
 
 ## Compile with hierarchical page tables support.
 #
