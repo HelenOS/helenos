@@ -95,6 +95,7 @@ static int thr_constructor(void *obj, int kmflags)
 {
 	thread_t *t = (thread_t *)obj;
 	pfn_t pfn;
+	int status;
 
 	spinlock_initialize(&t->lock, "thread_t_lock");
 	link_initialize(&t->rq_link);
@@ -102,10 +103,10 @@ static int thr_constructor(void *obj, int kmflags)
 	link_initialize(&t->th_link);
 	link_initialize(&t->threads_link);
 	
-	pfn = frame_alloc(ONE_FRAME, FRAME_KA | kmflags);
-	t->kstack = (__u8 *)PA2KA(PFN2ADDR(pfn));
-	if (!t->kstack)
+	pfn = frame_alloc_rc(ONE_FRAME, FRAME_KA | kmflags,&status);
+	if (status)
 		return -1;
+	t->kstack = (__u8 *)PA2KA(PFN2ADDR(pfn));
 
 	return 0;
 }
@@ -229,6 +230,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	ipl_t ipl;
 	
 	t = (thread_t *) slab_alloc(thread_slab, 0);
+	if (!t)
+		return NULL;
 	
 	/* Not needed, but good for debugging */
 	memsetb((__address)t->kstack, THREAD_STACK_SIZE, 0);

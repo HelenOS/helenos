@@ -34,6 +34,8 @@
 #include <panic.h>
 #include <mm/frame.h>
 #include <memstr.h>
+#include <synch/condvar.h>
+#include <synch/mutex.h>
 
 #define ITEM_SIZE 256
 
@@ -115,6 +117,8 @@ static void totalmemtest(void)
 
 slab_cache_t *thr_cache;
 semaphore_t thr_sem;
+condvar_t thread_starter;
+mutex_t starter_mutex;
 
 #define THREADS 8
 
@@ -122,6 +126,10 @@ static void thread(void *priv)
 {
 	void *data=NULL, *new;
 
+	mutex_lock(&starter_mutex);
+	condvar_wait(&thread_starter,&starter_mutex);
+	mutex_unlock(&starter_mutex);
+		
 	printf("Starting thread #%d...\n",THREAD->tid);
 
 	/* Alloc all */
@@ -172,6 +180,9 @@ static void multitest(int size)
 	int i;
 
 	printf("Running stress test with size %d\n", size);
+	condvar_initialize(&thread_starter);
+	mutex_initialize(&starter_mutex);
+
 	thr_cache = slab_cache_create("thread_cache", size, 0, 
 				      NULL, NULL, 
 				      0);
@@ -181,6 +192,8 @@ static void multitest(int size)
 			panic("could not create thread\n");
 		thread_ready(t);
 	}
+	thread_sleep(1);
+	condvar_broadcast(&thread_starter);
 
 	for (i=0; i<THREADS; i++)
 		semaphore_down(&thr_sem);
