@@ -29,8 +29,7 @@
 #ifndef __sparc64_BOOT_H__
 #define __sparc64_BOOT_H__
 
-#define BOOT_OFFSET		0x4000
 #define VMA			0x400000
-#define LMA			BOOT_OFFSET
+#define LMA			0x4000
 
 #endif

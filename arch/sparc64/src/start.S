@@ -35,16 +35,22 @@
 
 .section K_TEXT_START, "ax"
 
+/*
+ * Here is where the kernel is passed control.
+ * The code must be position independent until
+ * the kernel relocates itself to its VMA.
+ */
+
 .global kernel_image_start
 kernel_image_start:
 0:
 	b 1f
 	nop
 
-#
-# This header forces SILO to load the kernel at 0x4000.
-# More precisely, SILO will think this is an old version of Linux.
-#
+/*
+ * This header forces SILO to load the kernel at 0x4000.
+ * More precisely, SILO will think this is an old version of Linux.
+ */
 .ascii "HdrS"
 .word 0
 .half 0
@@ -59,7 +65,7 @@ kernel_image_start:
 	 */
 
 	set LMA, %g1			! source address
-	set VMA, %g2			! destination address (VMA)
+	set VMA, %g2			! destination address
 	set hardcoded_ktext_size, %g3	! link address of hardcoded_ktext_size
 	set hardcoded_kdata_size, %g4	! link address of hardcoded_kdata_size
 
