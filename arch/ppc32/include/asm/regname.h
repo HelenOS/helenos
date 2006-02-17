@@ -26,13 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_MACRO_H__
-#define __ppc32_MACRO_H__
+#ifndef __ppc32_REGNAME_H__
+#define __ppc32_REGNAME_H__
 
-/*
- * PPC assembler macros
- */
- 
 /* Condition Register Bit Fields */
 #define	cr0	0
 #define	cr1	1
@@ -81,16 +77,16 @@
 #define	sp	1
 
 /* Floating Point Registers (FPRs) */
-#define	fr0	0
-#define	fr1	1
-#define	fr2	2
-#define	fr3	3
-#define	fr4	4
-#define	fr5	5
-#define	fr6	6
-#define	fr7	7
-#define	fr8	8
-#define	fr9	9
+#define	fr0		0
+#define	fr1		1
+#define	fr2		2
+#define	fr3		3
+#define	fr4		4
+#define	fr5		5
+#define	fr6		6
+#define	fr7		7
+#define	fr8		8
+#define	fr9		9
 #define	fr10	10
 #define	fr11	11
 #define	fr12	12
@@ -114,16 +110,16 @@
 #define	fr30	30
 #define	fr31	31
 
-#define	vr0	0
-#define	vr1	1
-#define	vr2	2
-#define	vr3	3
-#define	vr4	4
-#define	vr5	5
-#define	vr6	6
-#define	vr7	7
-#define	vr8	8
-#define	vr9	9
+#define	vr0		0
+#define	vr1		1
+#define	vr2		2
+#define	vr3		3
+#define	vr4		4
+#define	vr5		5
+#define	vr6		6
+#define	vr7		7
+#define	vr8		8
+#define	vr9		9
 #define	vr10	10
 #define	vr11	11
 #define	vr12	12
@@ -181,86 +177,16 @@
 #define	evr31	31
 
 /* Special Purpose Registers (SPRs) */
-#define	xer	1
-#define lr	8
-#define ctr	9
-#define	dec	22
+#define	xer		1
+#define lr		8
+#define ctr		9
+#define	dec		22
 #define	srr0	26
 #define srr1	27
 #define	sprg0	272
 #define	sprg1	273
 #define	sprg2	274
 #define	sprg3	275
-#define	prv	287
-
-.macro REGISTERS_STORE r
-	stw r0, 0(\r)
-	stw r1, 4(\r)
-	stw r2, 8(\r)
-	stw r3, 12(\r)
-	stw r4, 16(\r)
-	stw r5, 20(\r)
-	stw r6, 24(\r)
-	stw r7, 28(\r)
-	stw r8, 32(\r)
-	stw r9, 36(\r)
-	stw r10, 40(\r)
-	stw r11, 44(\r)
-	stw r12, 48(\r)
-	stw r13, 52(\r)
-	stw r14, 56(\r)
-	stw r15, 60(\r)
-	stw r16, 64(\r)
-	stw r17, 68(\r)
-	stw r18, 72(\r)
-	stw r19, 76(\r)
-	stw r20, 80(\r)
-	stw r21, 84(\r)
-	stw r22, 88(\r)
-	stw r23, 92(\r)
-	stw r24, 96(\r)
-	stw r25, 100(\r)
-	stw r26, 104(\r)
-	stw r27, 108(\r)
-	stw r28, 112(\r)
-	stw r29, 116(\r)
-	stw r30, 120(\r)
-	stw r31, 124(\r)
-.endm
-
-.macro REGISTERS_LOAD r
-	lwz r0, 0(\r)
-	lwz r1, 4(\r)
-	lwz r2, 8(\r)  
-	lwz r3, 12(\r)
-	lwz r4, 16(\r) 
-	lwz r5, 20(\r)
-	lwz r6, 24(\r)
-	lwz r7, 28(\r)
-	lwz r8, 32(\r)
-	lwz r9, 36(\r)
-	lwz r10, 40(\r)
-	lwz r11, 44(\r)
-	lwz r12, 48(\r)
-	lwz r13, 52(\r)
-	lwz r14, 56(\r)
-	lwz r15, 60(\r)
-	lwz r16, 64(\r)
-	lwz r17, 68(\r)
-	lwz r18, 72(\r)
-	lwz r19, 76(\r)
-	lwz r20, 80(\r)
-	lwz r21, 84(\r)
-	lwz r22, 88(\r)
-	lwz r23, 92(\r)
-	lwz r24, 96(\r)
-	lwz r25, 100(\r)
-	lwz r26, 104(\r)
-	lwz r27, 108(\r)
-	lwz r28, 112(\r)
-	lwz r29, 116(\r)
-	lwz r30, 120(\r)
-	lwz r31, 124(\r)
-.endm
+#define	prv		287
 
 #endif

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/asm/macro.h>
+#include <arch/asm/regname.h>
 
 .text
 

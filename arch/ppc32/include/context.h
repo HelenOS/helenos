@@ -29,24 +29,17 @@
 #ifndef __ppc32_CONTEXT_H__
 #define __ppc32_CONTEXT_H__
 
-#include <arch/types.h>
+#ifndef __ppc32_TYPES_H__
+# include <arch/types.h>
+#endif
 
-#define SP_DELTA	8
+#define SP_DELTA	4
 
 struct context {
-	__u32 r0;
 	__address sp;
+	__address pc;
+	
 	__u32 r2;
-	__u32 r3;
-	__u32 r4;
-	__u32 r5;
-	__u32 r6;
-	__u32 r7;
-	__u32 r8;
-	__u32 r9;
-	__u32 r10;
-	__u32 r11;
-	__u32 r12;
 	__u32 r13;
 	__u32 r14;
 	__u32 r15;
@@ -66,7 +59,9 @@ struct context {
 	__u32 r29;
 	__u32 r30;
 	__u32 r31;
-	__address pc;
+	
+	__u32 cr;
+	
 	ipl_t ipl;
 } __attribute__ ((packed));
 
