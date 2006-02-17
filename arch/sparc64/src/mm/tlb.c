@@ -62,8 +62,7 @@ void tlb_arch_init(void)
 	dmmu_disable();
 	
 	/*
-	 * For simplicity, we do identity mapping of first 4M of memory.
-	 * The very next change should be leaving the first 4M unmapped.
+	 * We do identity mapping of 4M-page at 4M.
 	 */
 	tag.value = 0;
 	tag.vpn = pg.vpn;

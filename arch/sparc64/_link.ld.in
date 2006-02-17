@@ -7,11 +7,12 @@
  */
 
 #define __ASM__
+#include <arch/boot/boot.h>
 
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image 0x4000: AT (0x4000) { 
+	.image VMA: AT (LMA) { 
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
@@ -30,7 +31,7 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		QUAD(0x4000);
+		QUAD(VMA);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
 

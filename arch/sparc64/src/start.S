@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/boot/boot.h>
+
 .register %g2, #scratch
 .register %g3, #scratch
 .register %g6, #scratch
@@ -50,6 +52,41 @@ kernel_image_start:
 .align 8
 
 1:
+	flushw				! flush all but the active register window
+
+	/*
+	 * Prepare to copy the kernel image to 4M.
+	 */
+
+	set LMA, %g1			! source address
+	set VMA, %g2			! destination address (VMA)
+	set hardcoded_ktext_size, %g3	! link address of hardcoded_ktext_size
+	set hardcoded_kdata_size, %g4	! link address of hardcoded_kdata_size
+
+	sub %g3, %g2, %g3		! offset of hardcoded_ktext_size from the beginning of the load address
+	sub %g4, %g2, %g4		! offset of hardcoded_kdata_size from the beginning of the load address
+	
+	ldx [%g3 + %g1], %g3		! hardcoded_ktext_size -> %g3
+	ldx [%g4 + %g1], %g4		! hardcoded_kdata_size -> %g4
+
+	add %g3, %g4, %g3		! size of kernel text and data
+
+	/*
+	 * Start copying the kernel from higher addresses towards lower addresses.
+	 */
+
+2:	dec %g3
+	ldub [%g1 + %g3], %g4
+	stb %g4, [%g2 + %g3]
+	cmp %g3, 0
+	bnz 2b
+	nop
+
+	set relocated, %g1
+	jmp %g1
+	nop
+
+relocated:
 	set ofw, %l0
 
 	call ofw_init
