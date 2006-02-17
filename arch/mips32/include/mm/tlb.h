@@ -53,18 +53,38 @@ typedef union index tlb_index_t;
 
 union entry_lo {
 	struct {
+#ifdef BIG_ENDIAN
+		unsigned : 2;		/* zero */
+		unsigned pfn : 24;	/* frame number */
+		unsigned c : 3; 	/* cache coherency attribute */
+		unsigned d : 1; 	/* dirty/write-protect bit */
+		unsigned v : 1; 	/* valid bit */
+		unsigned g : 1; 	/* global bit */
+#else
 		unsigned g : 1; 	/* global bit */
 		unsigned v : 1; 	/* valid bit */
 		unsigned d : 1; 	/* dirty/write-protect bit */
 		unsigned c : 3; 	/* cache coherency attribute */
 		unsigned pfn : 24;	/* frame number */
 		unsigned : 2;		/* zero */
+#endif
 	} __attribute__ ((packed));
 	__u32 value;
 };
 
 /** Page Table Entry. */
 struct pte {
+#ifdef BIG_ENDIAN
+	unsigned a : 1;			/**< Accessed bit. */
+	unsigned w : 1;			/**< Page writable bit. */
+	unsigned pfn : 24;		/**< Physical frame number. */
+	unsigned soft_valid : 1;	/**< Valid content even if not present. */
+	unsigned : 1;			/**< Unused. */
+	unsigned cacheable : 1;		/**< Cacheable bit. */
+	unsigned d : 1;			/**< Dirty bit. */
+	unsigned p : 1;			/**< Present bit. */
+	unsigned g : 1;			/**< Global bit. */
+#else
 	unsigned g : 1;			/**< Global bit. */
 	unsigned p : 1;			/**< Present bit. */
 	unsigned d : 1;			/**< Dirty bit. */
@@ -74,31 +94,50 @@ struct pte {
 	unsigned pfn : 24;		/**< Physical frame number. */
 	unsigned w : 1;			/**< Page writable bit. */
 	unsigned a : 1;			/**< Accessed bit. */
+#endif
 };
 
 union entry_hi {
 	struct {
+#ifdef BIG_ENDIAN
+		unsigned vpn2 : 19;
+		unsigned : 5;
+		unsigned asid : 8;
+#else
 		unsigned asid : 8;
 		unsigned : 5;
 		unsigned vpn2 : 19;
+#endif
 	} __attribute__ ((packed));
 	__u32 value;
 };
 
 union page_mask {
 	struct {
+#ifdef BIG_ENDIAN
+		unsigned : 7;
+		unsigned mask : 12;
+		unsigned : 13;
+#else
 		unsigned : 13;
 		unsigned mask : 12;
 		unsigned : 7;
+#endif
 	} __attribute__ ((packed));
 	__u32 value;
 };
 
 union index {
 	struct {
+#ifdef BIG_ENDIAN
+		unsigned p : 1;
+		unsigned : 27;
+		unsigned index : 4;
+#else
 		unsigned index : 4;
 		unsigned : 27;
 		unsigned p : 1;
+#endif
 	} __attribute__ ((packed));
 	__u32 value;
 };
