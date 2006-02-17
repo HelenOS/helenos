@@ -349,7 +349,6 @@ void debugger_bpoint(struct exception_regdump *pstate)
 	if (cur)
 		cur->counter++;
 	if (cur && (cur->flags & BKPOINT_FUNCCALL)) {
-		printf("3.5\n");
 		/* Allow zero bkfunc, just for counting */
 		if (cur->bkfunc)
 			cur->bkfunc(cur, pstate);
