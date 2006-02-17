@@ -92,7 +92,6 @@ void failed(void)
 
 void test(void)
 {
-	context_t ctx;
 	__u32 i, k;
 	
 	printf("Semaphore test #2\n");

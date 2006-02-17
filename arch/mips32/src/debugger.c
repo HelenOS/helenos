@@ -346,9 +346,10 @@ void debugger_bpoint(struct exception_regdump *pstate)
 		/* Move on to next instruction */
 		pstate->epc += 4;
 	}
-	
-	cur->counter++;
+	if (cur)
+		cur->counter++;
 	if (cur && (cur->flags & BKPOINT_FUNCCALL)) {
+		printf("3.5\n");
 		/* Allow zero bkfunc, just for counting */
 		if (cur->bkfunc)
 			cur->bkfunc(cur, pstate);
@@ -367,7 +368,6 @@ void debugger_bpoint(struct exception_regdump *pstate)
 		spinlock_lock(&bkpoint_lock);
 		atomic_set(&haltstate,0);
 	}
-
 	if (cur && cur->address == fireaddr && (cur->flags & BKPOINT_INPROG)) {
 		/* Remove one-shot breakpoint */
 		if ((cur->flags & BKPOINT_ONESHOT))
