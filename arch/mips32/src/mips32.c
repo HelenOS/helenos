@@ -93,8 +93,6 @@ void arch_pre_mm_init(void)
 
 	console_init();
 	debugger_init();
-	arc_print_memory_map();
-	arc_print_devices();
 	/* Setup usermode...*/
 	config.init_addr = INIT_ADDRESS;
 	config.init_size = INIT_SIZE;

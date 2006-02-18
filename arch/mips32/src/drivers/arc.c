@@ -38,6 +38,7 @@
 #include <console/console.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
+#include <mm/slab.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -111,22 +112,71 @@ int arc_enabled(void)
 	return sbp != NULL;
 }
 
+
+/** Print configuration data that ARC reports about component */
+static void arc_print_confdata(arc_component *c)
+{
+	cm_resource_list *configdata;
+	int i;
+
+	if (!c->configdatasize)
+		return; /* No configuration data */
+
+	configdata = malloc(c->configdatasize, 0);
+
+	if (arc_entry->getconfigurationdata(configdata, c)) {
+		free(configdata);
+		return;
+	}
+	/* Does not seem to return meaningful data, don't use now */
+	free(configdata);
+	return;
+	
+	for (i=0; i < configdata->count; i++) {
+		switch (configdata->descr[i].type) {
+		case CmResourceTypePort:
+			printf("Port: %P-size:%d ",
+			       (__address)configdata->descr[i].u.port.start,
+			       configdata->descr[i].u.port.length);
+			break;
+		case CmResourceTypeInterrupt:
+			printf("Irq: level(%d) vector(%d) ",
+			       configdata->descr[i].u.interrupt.level,
+			       configdata->descr[i].u.interrupt.vector);
+			break;
+		case CmResourceTypeMemory:
+			printf("Memory: %P-size:%d ",
+			       (__address)configdata->descr[i].u.port.start,
+			       configdata->descr[i].u.port.length);
+			break;
+		default:
+			break;
+		}
+	}
+
+	free(configdata);
+}
+
+/** Print information about component */
 static void arc_print_component(arc_component *c)
 {
 	int i;
 
 	printf("%s: ",ctypes[c->type]);
 	for (i=0;i < c->identifier_len;i++)
-		arc_putchar(c->identifier[i]);
-	arc_putchar('\n');
+		printf("%c",c->identifier[i]);
+
+	printf(" ");
+	arc_print_confdata(c);
+	printf("\n");
 }
 
-void arc_print_devices(void)
+/**
+ * Read from ARC bios configuration data and print it
+ */
+static int cmd_arc_print_devices(cmd_arg_t *argv)
 {
 	arc_component *c,*next;
-
-	if (!arc_enabled())
-		return;
 
 	c = arc_entry->getchild(NULL);
 	while (c) {
@@ -137,18 +187,26 @@ void arc_print_devices(void)
 			if (!next)
 				c = arc_entry->getparent(c);
 			if (!c)
-				return;
+				return 0;
 		}
 		c = next;
 	}
+	return 1;
 }
+static cmd_info_t devlist_info = {
+	.name = "arcdevlist",
+	.description = "Print arc device list",
+	.func = cmd_arc_print_devices,
+	.argc = 0
+};
 
-void arc_print_memory_map(void)
+
+/** Read from arc bios memory map and print it
+ *
+ */
+static int cmd_arc_print_memmap(cmd_arg_t *argv)
 {
 	arc_memdescriptor_t *desc;
-
-	if (!arc_enabled())
-		return;
 
 	printf("Memory map:\n");
 
@@ -160,7 +218,14 @@ void arc_print_memory_map(void)
 		       desc->basecount*ARC_FRAME/1024);
 		desc = arc_entry->getmemorydescriptor(desc);
 	}
+	return 1;
 }
+static cmd_info_t memmap_info = {
+	.name = "arcmemmap",
+	.description = "Print arc memory map",
+	.func = cmd_arc_print_memmap,
+	.argc = 0
+};
 
 /** Print charactor to console */
 static void arc_putchar(char ch)
@@ -207,6 +272,10 @@ int arc_init(void)
 	/* Add command for resetting the computer */
 	cmd_initialize(&reboot_info);
 	cmd_register(&reboot_info);
+	cmd_initialize(&memmap_info);
+	cmd_register(&memmap_info);
+	cmd_initialize(&devlist_info);
+	cmd_register(&devlist_info);
 
 	return 0;
 }

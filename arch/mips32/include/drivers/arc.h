@@ -38,6 +38,46 @@
 #define ARC_FRAME 4096
 
 typedef enum {
+	CmResourceTypeNull = 0,
+	CmResourceTypePort,
+	CmResourceTypeInterrupt,
+	CmResourceTypeMemory,
+	CmResourceTypeDma,
+	CmResourceTypeDeviceSpecific,
+	CmResourceTypeVendor,
+	CmResourceTypeProductName,
+	CmResourceTypeSerialNumber
+}cm_resource_type;
+
+typedef struct {
+	__u8 type;
+	__u8 sharedisposition;
+	__u16 flags;
+	union {
+		struct {
+			long long start; /* 64-bit phys address */
+			unsigned long length;
+		}port;
+		struct {
+			unsigned long level;
+			unsigned long vector;
+			unsigned long reserved1;
+		}interrupt;
+		struct {
+			long long start; /* 64-bit phys address */
+			unsigned long length;
+		}memory;
+	}u;
+}__attribute__ ((packed)) cm_resource_descriptor;
+
+typedef struct {
+	__u16 version;
+	__u16 revision;
+	unsigned long count;
+	cm_resource_descriptor descr[1];
+}__attribute__ ((packed)) cm_resource_list;
+
+typedef enum {
 	SystemClass = 0,
 	ProcessorClass,
 	CacheClass,
@@ -211,9 +251,7 @@ typedef struct {
 }__attribute__ ((packed)) arc_sbp;
 
 extern int arc_init(void);
-extern void arc_print_memory_map(void);
 extern int arc_enabled(void);
-extern void arc_print_devices(void);
 void arc_frame_init(void);
 void arc_console(void);
 
