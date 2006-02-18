@@ -36,6 +36,8 @@
 #include <interrupt.h>
 #include <align.h>
 #include <console/console.h>
+#include <console/kconsole.h>
+#include <console/cmd.h>
 
 /* This is a good joke, SGI HAS different types than NT bioses... */
 /* Here is the SGI type */
@@ -152,7 +154,8 @@ void arc_print_memory_map(void)
 
 	desc = arc_entry->getmemorydescriptor(NULL);
 	while (desc) {
-		printf("%s: %d (size: %dKB)\n",basetypes[desc->type],
+		printf("%s: %d(%P) (size: %dKB)\n",basetypes[desc->type],
+		       desc->basepage * ARC_FRAME,
 		       desc->basepage * ARC_FRAME,
 		       desc->basecount*ARC_FRAME/1024);
 		desc = arc_entry->getmemorydescriptor(desc);
@@ -172,6 +175,18 @@ static void arc_putchar(char ch)
 	
 }
 
+static int cmd_reboot(cmd_arg_t *argv)
+{
+	arc_entry->reboot();
+	return 0;
+}
+static cmd_info_t reboot_info = {
+	.name = "reboot",
+	.description = "Reboot computer",
+	.func = cmd_reboot,
+	.argc = 0
+};
+
 /** Initialize ARC structure
  *
  * @return 0 - ARC OK, -1 - ARC does not exist
@@ -188,6 +203,10 @@ int arc_init(void)
 	arc_putchar('R');
 	arc_putchar('C');
 	arc_putchar('\n');
+
+	/* Add command for resetting the computer */
+	cmd_initialize(&reboot_info);
+	cmd_register(&reboot_info);
 
 	return 0;
 }
@@ -304,9 +323,8 @@ void arc_frame_init(void)
 
 			total += basesize;
 			
-			zone_create(ADDR2PFN(base),
-				    SIZE2FRAMES(ALIGN_DOWN(basesize,FRAME_SIZE)),
-				    ADDR2PFN(base),0);
+			zone_create(ADDR2PFN(base), SIZE2FRAMES(basesize),
+				    ADDR2PFN(base), 0);
 		}
 		desc = arc_entry->getmemorydescriptor(desc);
 	}

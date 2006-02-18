@@ -136,25 +136,22 @@ static int zones_add_zone(zone_t *newzone)
 	/* Try to merge */
 	if (zones.count+1 == ZONES_MAX)
 		panic("Maximum zone(%d) count exceeded.", ZONES_MAX);
-
 	for (i=0; i < zones.count; i++) {
 		/* Check for overflow */
-		z = zones.info[zones.count];
+		z = zones.info[i];
 		if (overlaps(newzone->base,newzone->count,
 			     z->base, z->count)) {
 			printf("Zones overlap!\n");
 			return -1;
 		}
-		if (z->base < newzone->base)
+		if (newzone->base < z->base)
 			break;
 	}
 	/* Move other zones up */
 	for (j=i;j < zones.count;j++)
 		zones.info[j+1] = zones.info[j];
-
 	zones.info[i] = newzone;
 	zones.count++;
-
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
 
@@ -767,7 +764,7 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	for (i = 0; i<count; i++) {
 		frame_initialize(&z->frames[i]);
 	}
-
+	
 	/* Stuffing frames */
 	for (i = 0; i < count; i++) {
 		z->frames[i].refcount = 0;
@@ -843,7 +840,6 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 		for (i=confframe; i<confframe+confcount; i++) {
 			zone_mark_unavailable(z, i - z->base);
 		}
-
 	return znum;
 }
 
@@ -971,7 +967,7 @@ void frame_mark_unavailable(pfn_t start, count_t count)
 	int i;
 	zone_t *zone;
 	int prefzone = 0;
-
+	
 	for (i=0; i < count; i++) {
 		zone = find_zone_and_lock(start+i,&prefzone);
 		if (!zone) /* PFN not found */
@@ -995,8 +991,9 @@ void frame_init(void)
 	/* Tell the architecture to create some memory */
 	frame_arch_init();
 	if (config.cpu_active == 1) {
-		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
-				       SIZE2FRAMES(config.kernel_size));
+		pfn_t firstframe = ADDR2PFN(KA2PA(config.base));
+		pfn_t lastframe = ADDR2PFN(KA2PA(config.base+config.kernel_size));
+		frame_mark_unavailable(firstframe,lastframe-firstframe+1);
 		if (config.init_size > 0)
 			frame_mark_unavailable(ADDR2PFN(KA2PA(config.init_addr)),
 					       SIZE2FRAMES(config.init_size));

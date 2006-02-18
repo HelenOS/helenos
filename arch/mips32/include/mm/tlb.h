@@ -74,17 +74,6 @@ union entry_lo {
 
 /** Page Table Entry. */
 struct pte {
-#ifdef BIG_ENDIAN
-	unsigned a : 1;			/**< Accessed bit. */
-	unsigned w : 1;			/**< Page writable bit. */
-	unsigned pfn : 24;		/**< Physical frame number. */
-	unsigned soft_valid : 1;	/**< Valid content even if not present. */
-	unsigned : 1;			/**< Unused. */
-	unsigned cacheable : 1;		/**< Cacheable bit. */
-	unsigned d : 1;			/**< Dirty bit. */
-	unsigned p : 1;			/**< Present bit. */
-	unsigned g : 1;			/**< Global bit. */
-#else
 	unsigned g : 1;			/**< Global bit. */
 	unsigned p : 1;			/**< Present bit. */
 	unsigned d : 1;			/**< Dirty bit. */
@@ -94,7 +83,6 @@ struct pte {
 	unsigned pfn : 24;		/**< Physical frame number. */
 	unsigned w : 1;			/**< Page writable bit. */
 	unsigned a : 1;			/**< Accessed bit. */
-#endif
 };
 
 union entry_hi {

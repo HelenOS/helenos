@@ -74,8 +74,8 @@ static void print_regdump(struct exception_regdump *pstate)
 	if (s)
 		rasymbol = s;
 	
-	printf("PC: %X(%s) RA: %X(%s)\n",pstate->epc,pcsymbol,
-	       pstate->ra,rasymbol);
+	printf("PC: %X(%s) RA: %X(%s), SP(%P)\n",pstate->epc,pcsymbol,
+	       pstate->ra,rasymbol, pstate->sp);
 }
 
 static void unhandled_exception(int n, struct exception_regdump *pstate)

@@ -1,0 +1,2 @@
+Without this the indy will not boot
+echo 1 > /proc/sys/net/ipv4/ip_no_pmtu_disc
