@@ -177,7 +177,7 @@ struct elf32_section_header {
 	elf32_word sh_info;
 	elf32_word sh_addralign;
 	elf32_word sh_entsize;
-}
+};
 
 
 typedef struct elf32_header elf32_header_t;
