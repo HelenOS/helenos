@@ -38,6 +38,10 @@
 #include<comparison.h>
 #include<other.h>
 
+#include<arch.h>
+#include<types.h>
+#include<functions.h>
+
 /* Arithmetic functions */
 
 float __addsf3(float a, float b)
@@ -160,6 +164,107 @@ float __truncdfsf2(double a)
 	return convertFloat64ToFloat32(da).f;
 }
 
+int __fixsfsi(float a)
+{
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_int(fa);
+}
+int __fixdfsi(double a)
+{
+}
+ 
+long __fixsfdi(float a)
+{
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_long(fa);
+}
+long __fixdfdi(double a)
+{
+}
+ 
+long long __fixsfti(float a)
+{
+}
+long long __fixdfti(double a)
+{
+}
+
+unsigned int __fixunssfsi(float a)
+{
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_uint(fa);
+}
+unsigned int __fixunsdfsi(double a)
+{
+}
+ 
+unsigned long __fixunssfdi(float a)
+{
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_long(fa);
+}
+unsigned long __fixunsdfdi(double a)
+{
+}
+ 
+unsigned long long __fixunssfti(float a)
+{
+}
+unsigned long long __fixunsdfti(double a)
+{
+}
+ 
+float __floatsisf(int i)
+{
+}
+double __floatsidf(int i)
+{
+}
+ 
+float __floatdisf(long i)
+{
+}
+double __floatdidf(long i)
+{
+}
+ 
+float __floattisf(long long i)
+{
+}
+double __floattidf(long long i)
+{
+}
+
+float __floatunsisf(unsigned int i)
+{
+}
+double __floatunsidf(unsigned int i)
+{
+}
+ 
+float __floatundisf(unsigned long i)
+{
+}
+double __floatundidf(unsigned long i)
+{
+}
+ 
+float __floatuntisf(unsigned long long i)
+{
+}
+double __floatuntidf(unsigned long long i)
+{
+}
+
+/* Comparison functions */
 /* Comparison functions */
 
 /* a<b .. -1

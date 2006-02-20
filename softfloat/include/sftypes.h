@@ -29,6 +29,9 @@
 #ifndef __SFTYPES_H__
 #define __SFTYPES_H__
 
+#include <types.h>
+#include <arch.h>
+
 typedef union {
 	float f;
 	__u32 binary;

@@ -111,6 +111,21 @@ double __floattidf(long long i);
 long double __floattitf(long long i);
 long double __floattixf(long long i);
  
+float __floatunsisf(unsigned int i);
+double __floatunsidf(unsigned int i);
+long double __floatunsitf(unsigned int i);
+long double __floatunsixf(unsigned int i);
+ 
+float __floatundisf(unsigned long i);
+double __floatundidf(unsigned long i);
+long double __floatunditf(unsigned long i);
+long double __floatundixf(unsigned long i);
+ 
+float __floatuntisf(unsigned long long i);
+double __floatuntidf(unsigned long long i);
+long double __floatuntitf(unsigned long long i);
+long double __floatuntixf(unsigned long long i);
+ 
 int __cmpsf2(float a, float b);
 int __cmpdf2(double a, double b);
 int __cmptf2(long double a, long double b);
