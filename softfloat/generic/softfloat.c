@@ -209,7 +209,7 @@ unsigned long __fixunssfdi(float a)
 	float32 fa;
 	fa.f = a;
 	
-	return float32_to_long(fa);
+	return float32_to_ulong(fa);
 }
 unsigned long __fixunsdfdi(double a)
 {
