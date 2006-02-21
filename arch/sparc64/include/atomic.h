@@ -33,19 +33,43 @@
 
 typedef struct { volatile __u64 count; } atomic_t;
 
-/*
- * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
- * WARNING: the following functions cause the code to be preemption-unsafe !!!
+/** Atomic add operation.
+ *
+ * Use atomic compare and swap operation to atomically add signed value.
+ *
+ * @param val Atomic variable.
+ * @param i Signed value to be added.
+ *
+ * @return Value of the atomic variable as it existed before addition.
  */
+static inline count_t atomic_add(atomic_t *val, int i)
+{
+	__u64 a, b;
+	volatile __u64 x = (__u64) &val->count;
+
+	__asm__ volatile (
+		"0:\n"
+		"ldx %0, %1\n"
+		"add %1, %3, %2\n"
+		"casx %0, %1, %2\n"
+		"cmp %1, %2\n"
+		"bne 0b\n"
+		"nop\n"
+		: "=m" (*((__u64 *)x)), "=r" (a), "=r" (b)
+		: "r" (i)
+	);
+
+	return a;
+}
 
 static inline void atomic_inc(atomic_t *val)
 {
-	val->count++;
+	(void) atomic_add(val, 1);
 }
 
 static inline void atomic_dec(atomic_t *val)
 {
-	val->count--;
+	(void) atomic_add(val, -1);
 }
 
 static inline void atomic_set(atomic_t *val, __u64 i)
