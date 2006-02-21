@@ -32,6 +32,8 @@
 #include <console/console.h>
 #include <panic.h>
 
+#include "helenos.xbm"
+
 SPINLOCK_INITIALIZE(fb_lock);
 
 static __u8 *fbaddress=NULL;
@@ -47,6 +49,7 @@ static int pixelbytes=0;
 
 #define BGCOLOR   0x000080
 #define FGCOLOR   0xffff00
+#define LOGOCOLOR 0x2020b0
 
 #define RED(x,bits)    ((x >> (16+8-bits)) & ((1<<bits)-1))
 #define GREEN(x,bits)  ((x >> (8+8-bits)) & ((1<<bits)-1))
@@ -231,6 +234,23 @@ static void draw_char(char chr)
 	draw_glyph(chr, position % columns, position/columns);
 }
 
+static void draw_logo(int startx, int starty)
+{
+	int x,y;
+	int byte;
+	int rowbytes;
+
+	rowbytes = (helenos_width-1)/8 + 1;
+
+	for (y=0;y < helenos_height;y++)
+		for (x=0;x < helenos_width; x++ ) {
+			byte = helenos_bits[rowbytes*y + x/8];
+			byte >>= x % 8;
+			if (byte & 1)
+				(*putpixel)(startx+x,starty+y,LOGOCOLOR);
+		}
+}
+
 /***************************************************************/
 /* Stdout specific functions */
 
@@ -322,6 +342,7 @@ void fb_init(__address addr, int x, int y, int bytes)
 	columns = x/COL_WIDTH;
 
 	clear_screen();
+	draw_logo(xres-helenos_width, 0);
 	invert_cursor();
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
