@@ -49,6 +49,7 @@
 #include <arch/trap/regwin.h>
 #include <arch/trap/interrupt.h>
 #include <arch/trap/exception.h>
+#include <arch/trap/mmu.h>
 #include <arch/stack.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
@@ -175,6 +176,24 @@ interrupt_level_15_handler:
 interrupt_vector_trap_handler:
 	INTERRUPT_VECTOR_TRAP_HANDLER
 
+/* TT = 0x64, TL = 0, fast_instruction_access_MMU_miss */
+.org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
+.global fast_instruction_access_mmu_miss_handler
+fast_instruction_access_mmu_miss_handler:
+	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
+
+/* TT = 0x68, TL = 0, fast_data_access_MMU_miss */
+.org trap_table + TT_FAST_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
+.global fast_data_access_mmu_miss_handler
+fast_data_access_mmu_miss_handler:
+	FAST_DATA_ACCESS_MMU_MISS_HANDLER
+
+/* TT = 0x6c, TL = 0, fast_data_access_protection */
+.org trap_table + TT_FAST_DATA_ACCESS_PROTECTION*ENTRY_SIZE
+.global fast_data_access_protection_handler
+fast_data_access_protection_handler:
+	FAST_DATA_ACCESS_PROTECTION_HANDLER
+
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
 .global spill_0_normal
@@ -208,6 +227,24 @@ clean_window_handler_high:
 .global mem_address_not_aligned_high
 mem_address_not_aligned_high:
 	SIMPLE_HANDLER do_mem_address_not_aligned
+
+/* TT = 0x64, TL > 0, fast_instruction_access_MMU_miss */
+.org trap_table + (TT_FAST_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
+.global fast_instruction_access_mmu_miss_handler_high
+fast_instruction_access_mmu_miss_handler_high:
+	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
+
+/* TT = 0x68, TL > 0, fast_data_access_MMU_miss */
+.org trap_table + (TT_FAST_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
+.global fast_data_access_mmu_miss_handler_high
+fast_data_access_mmu_miss_handler_high:
+	FAST_DATA_ACCESS_MMU_MISS_HANDLER
+
+/* TT = 0x6c, TL > 0, fast_data_access_protection */
+.org trap_table + (TT_FAST_DATA_ACCESS_PROTECTION+512)*ENTRY_SIZE
+.global fast_data_access_protection_handler_high
+fast_data_access_protection_handler_high:
+	FAST_DATA_ACCESS_PROTECTION_HANDLER
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE

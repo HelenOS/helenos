@@ -36,6 +36,7 @@
 #include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>
+#include <panic.h>
 
 /** Initialize ITLB and DTLB.
  *
@@ -95,6 +96,24 @@ void tlb_arch_init(void)
 
 	dmmu_enable();
 	immu_enable();
+}
+
+/** ITLB miss handler. */
+void fast_instruction_access_mmu_miss(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+/** DTLB miss handler. */
+void fast_data_access_mmu_miss(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+/** DTLB protection fault handler. */
+void fast_data_access_protection(void)
+{
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Print contents of both TLBs. */

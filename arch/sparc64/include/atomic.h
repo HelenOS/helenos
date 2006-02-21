@@ -53,7 +53,7 @@ static inline count_t atomic_add(atomic_t *val, int i)
 		"add %1, %3, %2\n"
 		"casx %0, %1, %2\n"
 		"cmp %1, %2\n"
-		"bne 0b\n"
+		"bne 0b\n"		/* The operation failed and must be attempted again if a != b. */
 		"nop\n"
 		: "=m" (*((__u64 *)x)), "=r" (a), "=r" (b)
 		: "r" (i)

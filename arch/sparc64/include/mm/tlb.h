@@ -268,4 +268,8 @@ static inline void dtlb_demap(int type, int context_encoding, __address page)
 	flush();
 }
 
+extern void fast_instruction_access_mmu_miss(void);
+extern void fast_data_access_mmu_miss(void);
+extern void fast_data_access_protection(void);
+
 #endif
