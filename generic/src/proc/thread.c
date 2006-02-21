@@ -269,8 +269,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		
 	t->task = task;
 	
-	t->fpu_context_exists=0;
-	t->fpu_context_engaged=0;
+	t->fpu_context_exists = 0;
+	t->fpu_context_engaged = 0;
 	
 	/*
 	 * Register this thread in the system-wide list.
@@ -288,7 +288,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	spinlock_unlock(&task->lock);
 	
 	interrupts_restore(ipl);
-
+	
 	return t;
 }
 

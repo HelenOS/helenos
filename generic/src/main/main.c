@@ -181,7 +181,7 @@ void main_bsp_separated_stack(void)
 	printf("config.memory_size=%dM\n", config.memory_size/(1024*1024));
 	printf("config.cpu_count=%d\n", config.cpu_count);
 	cpu_init();
-
+	
 	calibrate_delay_loop();
 	timeout_init();
 	scheduler_init();
@@ -197,7 +197,7 @@ void main_bsp_separated_stack(void)
 	k = task_create(AS_KERNEL);
 	if (!k)
 		panic("can't create kernel task\n");
-		
+	
 	/*
 	 * Create the first thread.
 	 */
@@ -205,7 +205,7 @@ void main_bsp_separated_stack(void)
 	if (!t)
 		panic("can't create kinit thread\n");
 	thread_ready(t);
-
+	
 	/*
 	 * This call to scheduler() will return to kinit,
 	 * starting the thread of kernel threads.

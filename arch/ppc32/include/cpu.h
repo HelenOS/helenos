@@ -32,6 +32,8 @@
 #include <typedefs.h>
 
 struct cpu_arch {
+	int version;
+	int revision;
 };
 	
 #endif

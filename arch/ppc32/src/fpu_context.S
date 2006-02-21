@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,121 +27,67 @@
 #
 
 #include <arch/asm/regname.h>
+#include <arch/context_offset.h>
 
-.text
+.text   
 
-.global cpu_halt
-.global cpu_sleep
-.global memsetb
-.global memcpy
+.global fpu_context_save
+.global fpu_context_restore
 
-cpu_halt:
-	b cpu_halt
+.macro FPU_CONTEXT_STORE r
+	stfd fr14, OFFSET_FR14(\r)
+	stfd fr15, OFFSET_FR15(\r)
+	stfd fr16, OFFSET_FR16(\r)
+	stfd fr17, OFFSET_FR17(\r)
+	stfd fr18, OFFSET_FR18(\r)
+	stfd fr19, OFFSET_FR19(\r)
+	stfd fr20, OFFSET_FR20(\r)
+	stfd fr21, OFFSET_FR21(\r)
+	stfd fr22, OFFSET_FR22(\r)
+	stfd fr23, OFFSET_FR23(\r)
+	stfd fr24, OFFSET_FR24(\r)
+	stfd fr25, OFFSET_FR25(\r)
+	stfd fr26, OFFSET_FR26(\r)
+	stfd fr27, OFFSET_FR27(\r)
+	stfd fr28, OFFSET_FR28(\r)
+	stfd fr29, OFFSET_FR29(\r)
+	stfd fr30, OFFSET_FR30(\r)
+	stfd fr31, OFFSET_FR31(\r)
+.endm
 
-cpu_sleep:
-	b cpu_sleep
+.macro FPU_CONTEXT_LOAD r
+	lfd fr14, OFFSET_FR14(\r)
+	lfd fr15, OFFSET_FR15(\r)
+	lfd fr16, OFFSET_FR16(\r)
+	lfd fr17, OFFSET_FR17(\r)
+	lfd fr18, OFFSET_FR18(\r)
+	lfd fr19, OFFSET_FR19(\r)
+	lfd fr20, OFFSET_FR20(\r)
+	lfd fr21, OFFSET_FR21(\r)
+	lfd fr22, OFFSET_FR22(\r)
+	lfd fr23, OFFSET_FR23(\r)
+	lfd fr24, OFFSET_FR24(\r)
+	lfd fr25, OFFSET_FR25(\r)
+	lfd fr26, OFFSET_FR26(\r)
+	lfd fr27, OFFSET_FR27(\r)
+	lfd fr28, OFFSET_FR28(\r)
+	lfd fr29, OFFSET_FR29(\r)
+	lfd fr30, OFFSET_FR30(\r)
+	lfd fr31, OFFSET_FR31(\r)
+.endm
 
-memsetb:
-	rlwimi r5, r5, 8, 16, 23
-	rlwimi r5, r5, 16, 0, 15
+fpu_context_save:
+	FPU_CONTEXT_STORE r3
 	
-	addi r14, r3, -4
-	
-	cmplwi 0, r4, 4
-	blt 7f
-	
-	stwu r5, 4(r14)
-	beqlr
-	
-	andi. r15, r14, 3
-	add r4, r15, r4
-	subf r14, r15, r14
-	srwi r15, r4, 2
-	mtctr r15
-	
-	bdz 6f
-	
-	1:
-		stwu r5, 4(r14)
-		bdnz 1b
-	
-	6:
-	
-	andi. r4, r4, 3
-	
-	7:
-	
-	cmpwi 0, r4, 0
-	beqlr
-	
-	mtctr r4
-	addi r6, r6, 3
-	
-	8:
-	
-	stbu r5, 1(r14)
-	bdnz 8b
+	mffs fr0
+	stfd fr0, OFFSET_FPSCR(r3)
 	
 	blr
-
-memcpy:
-	srwi. r7, r5, 3
-	addi r6, r3, -4
-	addi r4, r4, -4
-	beq	2f
 	
-	andi. r0, r6, 3
-	mtctr r7
-	bne 5f
+fpu_context_restore:
+	FPU_CONTEXT_LOAD r3
 	
-	1:
+	lfd fr0, OFFSET_FPSCR(r3)
+	mtfsf 7, fr0
 	
-	lwz r7, 4(r4)
-	lwzu r8, 8(r4)
-	stw r7, 4(r6)
-	stwu r8, 8(r6)
-	bdnz 1b
-	
-	andi. r5, r5, 7
-	
-	2:
-	
-	cmplwi 0, r5, 4
-	blt 3f
-	
-	lwzu r0, 4(r4)
-	addi r5, r5, -4
-	stwu r0, 4(r6)
-	
-	3:
-	
-	cmpwi 0, r5, 0
-	beqlr
-	mtctr r5
-	addi r4, r4, 3
-	addi r6, r6, 3
-	
-	4:
-	
-	lbzu r0, 1(r4)
-	stbu r0, 1(r6)
-	bdnz 4b
 	blr
-	
-	5:
-	
-	subfic r0, r0, 4
-	mtctr r0
-	
-	6:
-	
-	lbz r7, 4(r4)
-	addi r4, r4, 1
-	stb r7, 4(r6)
-	addi r6, r6, 1
-	bdnz 6b
-	subf r5, r0, r5
-	rlwinm. r7, r5, 32-3, 3, 31
-	beq 2b
-	mtctr r7
-	b 1b

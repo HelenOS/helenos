@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPUID_H__
-#define __CPUID_H__
+#ifndef __ia32_CPUID_H__
+#define __ia32_CPUID_H__
 
 #include <arch/types.h>
 

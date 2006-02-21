@@ -29,9 +29,30 @@
 #ifndef __ppc32_FPU_CONTEXT_H__
 #define __ppc32_FPU_CONTEXT_H__
 
-#include <arch/types.h>
+#ifndef __ppc32_TYPES_H__
+# include <arch/types.h>
+#endif
 
 struct fpu_context {
-};
+	__u64 fr14;
+	__u64 fr15;
+	__u64 fr16;
+	__u64 fr17;
+	__u64 fr18;
+	__u64 fr19;
+	__u64 fr20;
+	__u64 fr21;
+	__u64 fr22;
+	__u64 fr23;
+	__u64 fr24;
+	__u64 fr25;
+	__u64 fr26;
+	__u64 fr27;
+	__u64 fr28;
+	__u64 fr29;
+	__u64 fr30;
+	__u64 fr31;
+	__u32 fpscr;
+} __attribute__ ((packed));
 
 #endif

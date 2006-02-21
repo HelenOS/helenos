@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CPUID_H__
-#define __CPUID_H__
+#ifndef __amd64_CPUID_H__
+#define __amd64_CPUID_H__
 
 #define AMD_CPUID_EXTENDED   0x80000001
 #define AMD_EXT_NOEXECUTE    20

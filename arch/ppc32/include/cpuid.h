@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,16 +24,24 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-#include <fpu_context.h>
+#ifndef __ppc32_CPUID_H__
+#define __ppc32_CPUID_H__
 
-void fpu_context_save(fpu_context_t *fctx)
+#include <arch/types.h>
+
+struct cpu_info {
+	__u16 version;
+	__u16 revision;
+} __attribute__ ((packed));
+
+static inline void cpu_version(struct cpu_info *info)
 {
+	__asm__ volatile (
+		"mfspr %0, 287\n"
+		: "=r" (*info)
+	);
 }
 
-
-void fpu_context_restore(fpu_context_t *fctx)
-{
-}
+#endif

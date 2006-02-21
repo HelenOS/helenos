@@ -27,6 +27,7 @@
  */
 
 #include <arch/cpu.h>
+#include <arch/cpuid.h>
 #include <cpu.h>
 
 #include <arch.h>
@@ -40,9 +41,14 @@ void cpu_arch_init(void)
 
 void cpu_identify(void)
 {
+	cpu_info_t info;
+	
+	cpu_version(&info);
+	CPU->arch.version = info.version;
+	CPU->arch.revision = info.revision;
 }
 
 void cpu_print_report(cpu_t *m)
 {
-	printf("cpu%d:\n", m->id);
+	printf("cpu%d: version=%d, revision=%d\n", m->id, m->arch.version, m->arch.revision);
 }
