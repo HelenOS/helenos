@@ -280,15 +280,6 @@ extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
 
 
-static inline void pokus(void)
-{
-	region_register rr;
-	rr.word=rr_read(0);
-	srlz_d();
-	rr_write(0,rr.word);
-	srlz_d();
-
-}
 
 #endif
 

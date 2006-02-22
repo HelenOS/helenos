@@ -160,8 +160,8 @@ paging_start:
 	addl r18 = @gprel(hardcoded_kdata_size), gp
 	addl r19 = @gprel(hardcoded_load_address), gp
 	;;
-	st4 [r17] = r14
-	st4 [r18] = r15
+	st8 [r17] = r14
+	st8 [r18] = r15
 	st8 [r19] = r16
 
 
