@@ -36,15 +36,16 @@ void error(char *msg)
 	exit(2);
 }
 
-#define ELF_VMA	(0x88/sizeof(unsigned long long))
-#define ELF_LMA (0x90/sizeof(unsigned long long))
+#define ELF_VMA	(0x50/sizeof(unsigned long long))
+#define ELF_LMA (0x58/sizeof(unsigned long long))
+#define ELF_ENTRY (0x18/sizeof(unsigned long long))
 
 #define LENGTH	0x98
 
 int main(int argc, char *argv[])
 {
 	int fd;
-	unsigned long long vma, lma;
+	unsigned long long vma, lma,entry;
 	unsigned long long *elf;
 
 	if (argc != 2)
@@ -58,10 +59,14 @@ int main(int argc, char *argv[])
 	if ((void *) elf  == (void *) -1)
 		error("map failed");
 		
-	vma = elf[ELF_VMA];
+	/*vma = elf[ELF_VMA];*/
 	lma = elf[ELF_LMA];
 	elf[ELF_VMA] = lma;
-	elf[ELF_LMA] = vma;
+	entry = elf[ELF_ENTRY];
+	entry &= ((~0LL)>>3);
+	elf[ELF_ENTRY] = entry;
+	elf[ELF_ENTRY] = 0x100000;
+	/*elf[ELF_LMA] = vma;*/
 	
 	if (munmap(elf, LENGTH) == -1)
 		error("munmap failed");

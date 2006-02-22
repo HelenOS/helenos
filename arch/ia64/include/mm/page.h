@@ -30,18 +30,24 @@
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
+#ifndef __ASM__
+
+
 #include <arch/mm/frame.h>
+#include <arch/barrier.h>
 #include <genarch/mm/page_ht.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <debug.h>
 
+#endif
+
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
+#define KERNEL_PAGE_WIDTH	26
 
-#define KA2PA(x)	((__address) (x))
-#define PA2KA(x)	((__address) (x))
+
 
 #define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
@@ -49,8 +55,18 @@
 
 #define VRN_SHIFT			61
 #define VRN_MASK			(7LL << VRN_SHIFT)
-#define VRN_KERNEL	 		0
+
+#ifdef __ASM__
+#define VRN_KERNEL	 		7
+#else
+#define VRN_KERNEL	 		7LL
+#endif
+
 #define REGION_REGISTERS 		8
+
+#define KA2PA(x)	((__address) (x-(VRN_KERNEL<<VRN_SHIFT)))
+#define PA2KA(x)	((__address) (x+(VRN_KERNEL<<VRN_SHIFT)))
+
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)
@@ -76,7 +92,7 @@
 
 #define VA_REGION(va) (va>>VA_REGION_INDEX)
 
-
+#ifndef __ASM__
 
 struct vhpt_tag_info {
 	unsigned long long tag : 63;
@@ -263,4 +279,19 @@ extern vhpt_entry_t *vhpt_hash(__address page, asid_t asid);
 extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
 
+
+static inline void pokus(void)
+{
+	region_register rr;
+	rr.word=rr_read(0);
+	srlz_d();
+	rr_write(0,rr.word);
+	srlz_d();
+
+}
+
 #endif
+
+#endif
+
+

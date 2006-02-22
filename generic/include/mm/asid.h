@@ -34,21 +34,27 @@
 #ifndef __ASID_H__
 #define __ASID_H__
 
+#ifndef __ASM__
+
 #include <arch/mm/asid.h>
 #include <typedefs.h>
+
+#endif
 
 #define ASID_KERNEL	0
 #define ASID_INVALID	1
 #define ASID_START	2
 #define ASID_MAX	ASID_MAX_ARCH
 
+#ifndef __ASM__
+
+
 #define ASIDS_ALLOCABLE	((ASID_MAX+1)-ASID_START)
 
 extern spinlock_t asidlock;
+extern link_t as_with_asid_head;
 
-#ifndef asid_get
 extern asid_t asid_get(void);
-#endif /* !def asid_get */
 extern void asid_put(asid_t asid);
 
 #ifndef asid_install
@@ -64,3 +70,6 @@ extern void asid_put_arch(asid_t asid);
 #endif /* !def asid_put_arch */
 
 #endif
+
+#endif
+

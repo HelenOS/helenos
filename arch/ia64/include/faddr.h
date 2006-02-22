@@ -45,11 +45,30 @@ inline __address FADDR(void (* fptr)(void)) {
 	__address faddr;
 	
 	__asm__(
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
 		"ld8 %0 = [%1]\n\t"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+		"nop 0;;"
+
 		: "=r" (faddr)
 		: "r" (fptr)
 	);
 	
+
+	/*faddr = *((__address *)(fptr));;*/
 	return faddr;
 }
 

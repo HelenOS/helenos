@@ -29,6 +29,8 @@
 #ifndef __ia64_ASID_H__
 #define __ia64_ASID_H__
 
+#ifndef __ASM__
+
 #include <arch/types.h>
 
 typedef __u16 asid_t;
@@ -38,13 +40,20 @@ typedef __u16 asid_t;
  * Note that some architectures may support more bits,
  * but those extra bits are not used by the kernel. 
  */
+#endif 
+ 
 #define RIDS_PER_ASID		7
 #define RID_MAX			262143		/* 2^18 - 1 */
 
 #define ASID2RID(asid, vrn)	(((asid)*RIDS_PER_ASID)+(vrn))
 #define RID2ASID(rid)		((rid)/RIDS_PER_ASID)
 
+#ifndef __ASM__
+
+
 typedef __u32 rid_t;
+
+#endif
 
 #define ASID_MAX_ARCH		(RID_MAX/RIDS_PER_ASID)
 

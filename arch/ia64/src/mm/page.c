@@ -55,10 +55,12 @@ void page_arch_init(void)
 /** Initialize VHPT and region registers. */
 void set_environment(void)
 {
+
+//#ifdef NEVERDEFINED	
 	region_register rr;
 	pta_register pta;	
 	int i;
-	
+
 	/*
 	 * First set up kernel region register.
 	 */
@@ -97,6 +99,11 @@ void set_environment(void)
 	pta_write(pta.word);
 	srlz_i();
 	srlz_d();
+	
+//#endif
+
+	return ;	
+	
 }
 
 /** Calculate address of collision chain from VPN and ASID.

@@ -26,7 +26,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+
 #include <arch/register.h>
+#include <arch/mm/page.h>
+#include <arch/mm/asid.h>
+#include <mm/asid.h>
+
+
+#define RR_MASK (0xFFFFFFFF00000002)
+#define RID_SHIFT 8
+#define PS_SHIFT 2
+
+
+#define KERNEL_TRANSLATION_I 0x0010000000000661
+#define KERNEL_TRANSLATION_D 0x0010000000000661
+
 
 .section K_TEXT_START
 
@@ -36,30 +50,105 @@ stack0:
 kernel_image_start:
 	.auto
 
+	#Fill TR.i and TR.d and enable paging
+
+	mov r9=rr[r0]
+	movl r10=(RR_MASK)
+	and r9=r10,r9
+	movl r10=((ASID2RID(ASID_KERNEL,VRN_KERNEL)<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
+	or  r9=r10,r9
+	mov rr[r0]=r9
+
+	
+
+	movl r8=(VRN_KERNEL<<VRN_SHIFT)
+	mov r9=rr[r8]
+	movl r10=(RR_MASK)
+	and r9=r10,r9
+	movl r10=((ASID2RID(ASID_KERNEL,VRN_KERNEL)<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
+	or  r9=r10,r9
+	mov rr[r8]=r9
+
+
+	movl r8=(VRN_KERNEL<<VRN_SHIFT)
+	mov cr.ifa=r8
+	movl r10=(KERNEL_PAGE_WIDTH<<PS_SHIFT)
+	mov cr.itir=r10
+	movl r10=(KERNEL_TRANSLATION_I)
+	itr.i itr[r0]=r10
+
+#	mov cr.ifa=r0
+#	movl r10=(KERNEL_PAGE_WIDTH<<PS_SHIFT)
+#	mov cr.itir=r10
+	movl r10=(KERNEL_TRANSLATION_D)
+	itr.d dtr[r0]=r10
+
+
+
+
+
+
+
 	# initialize PSR
 	mov psr.l = r0
 	srlz.i
 	srlz.d
-	ssm PSR_IC_MASK
+	movl r10=(PSR_DT_MASK|PSR_RT_MASK|PSR_IT_MASK|PSR_IC_MASK)  /*Enable paging*/
+	mov r9=psr
+	or r10=r10,r9
+	mov cr.ipsr=r10
+	mov cr.ifs=r0
+#	movl r8=(paging_start+VRN_KERNEL<<VRN_SHIFT)
+	movl r8=paging_start
+	mov cr.iip=r8
 	srlz.d
+	srlz.i
+.explicit
+	{rfi;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+
+.global paging_start
+paging_start:
+
+.auto
 	
 	# switch to register bank 1
 	bsw.1
 	
 	# initialize register stack
 	mov ar.rsc = r0
-	mov ar.bspstore = r0
+	movl r8=(VRN_KERNEL<<VRN_SHIFT)
+	mov ar.bspstore = r8
+#	mov ar.bspstore = r0
 	loadrs
 
 	.explicit
 	# initialize memory stack to some sane value
-	movl r12 = stack0	;;
+#	movl r12 = stack0	;;
+	movl r12 = stack0	+ (VRN_KERNEL<<VRN_SHIFT);;
+	
 	add r12 = - 16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
-	movl r1 = _hardcoded_load_address
+	movl r1 = _hardcoded_load_address	;;
+
+#	movl r1 = _hardcoded_load_address + (VRN_KERNEL<<VRN_SHIFT) ;;
 	
-	;;
 
 	#
 	# Initialize hardcoded_* variables.
@@ -71,11 +160,18 @@ kernel_image_start:
 	addl r18 = @gprel(hardcoded_kdata_size), gp
 	addl r19 = @gprel(hardcoded_load_address), gp
 	;;
-	st8 [r17] = r14
-	st8 [r18] = r15
+	st4 [r17] = r14
+	st4 [r18] = r15
 	st8 [r19] = r16
+
+
+.auto
 	
-	br.call.sptk.many b0=main_bsp
+	movl r18=main_bsp 
+	mov b1=r18
+	br.call.sptk.many b0=b1
+
+#	br.call.sptk.many b0=main_bsp
 
 0:
 	br 0b
