@@ -48,7 +48,7 @@ typedef unsigned long long __u64;
 #define MAX_INT64 (0x7FFFFFFFFFFFFFFFll)
 #define MIN_INT64 (0x8000000000000000ll)
 
-#define MAX_UINT64 (0xFFFFFFFFFFFFFFFll)
+#define MAX_UINT64 (0xFFFFFFFFFFFFFFFFll)
 #define MIN_UINT64 (0ll)
 
 

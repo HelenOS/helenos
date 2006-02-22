@@ -173,6 +173,10 @@ int __fixsfsi(float a)
 }
 int __fixdfsi(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_int(da);
 }
  
 long __fixsfdi(float a)
@@ -184,13 +188,25 @@ long __fixsfdi(float a)
 }
 long __fixdfdi(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_long(da);
 }
  
 long long __fixsfti(float a)
 {
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_longlong(fa);
 }
 long long __fixdfti(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_longlong(da);
 }
 
 unsigned int __fixunssfsi(float a)
@@ -202,6 +218,10 @@ unsigned int __fixunssfsi(float a)
 }
 unsigned int __fixunsdfsi(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_uint(da);
 }
  
 unsigned long __fixunssfdi(float a)
@@ -213,13 +233,25 @@ unsigned long __fixunssfdi(float a)
 }
 unsigned long __fixunsdfdi(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_ulong(da);
 }
  
 unsigned long long __fixunssfti(float a)
 {
+	float32 fa;
+	fa.f = a;
+	
+	return float32_to_ulonglong(fa);
 }
 unsigned long long __fixunsdfti(double a)
 {
+	float64 da;
+	da.d = a;
+	
+	return float64_to_ulonglong(da);
 }
  
 float __floatsisf(int i)

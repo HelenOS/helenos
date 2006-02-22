@@ -33,5 +33,15 @@ float64 convertFloat32ToFloat64(float32 a);
 
 float32 convertFloat64ToFloat32(float64 a);
 
+__u32 float32_to_uint32(float32 a);
+__s32 float32_to_int32(float32 a);
+__u64 float64_to_uint64(float64 a);
+__s64 float64_to_int64(float64 a);
+__u64 float32_to_uint64(float32 a);
+__s64 float32_to_int64(float32 a);
+__u32 float64_to_uint32(float64 a);
+__s32 float64_to_int32(float64 a);
+
+
 #endif
 

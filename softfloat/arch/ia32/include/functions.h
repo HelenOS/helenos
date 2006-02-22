@@ -41,4 +41,8 @@
 #define float32_to_ulong(X) float32_to_uint32(X);
 #define float32_to_ulonglong(X) float32_to_uint64(X);
 
+#define float64_to_uint(X) float64_to_uint32(X);
+#define float64_to_ulong(X) float64_to_uint32(X);
+#define float64_to_ulonglong(X) float64_to_uint64(X);
+
 #endif

@@ -207,4 +207,182 @@ __s32 float32_to_int32(float32 a)
 }	
 
 
+/** Helping procedure for converting float64 to uint64
+ * @param a floating point number in normalized form (no NaNs or Inf are checked )
+ * @return unsigned integer
+ */
+static __u64 _float64_to_uint64_helper(float64 a)
+{
+	__u64 frac;
+	
+	if (a.parts.exp < FLOAT64_BIAS) {
+		/*TODO: rounding*/
+		return 0;
+	}
+	
+	frac = a.parts.fraction;
+	
+	frac |= FLOAT64_HIDDEN_BIT_MASK;
+	/* shift fraction to left so hidden bit will be the most significant bit */
+	frac <<= 64 - FLOAT64_FRACTION_SIZE - 1; 
+
+	frac >>= 64 - (a.parts.exp - FLOAT64_BIAS) - 1;
+	if ((a.parts.sign == 1) && (frac != 0)) {
+		frac = ~frac;
+		++frac;
+	}
+	
+	return frac;
+}
+
+/* Convert float to unsigned int64
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__u64 float64_to_uint64(float64 a)
+{
+	if (isFloat64NaN(a)) {
+		return MAX_UINT64;
+	}
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS)))  {
+		if (a.parts.sign) {
+			return MIN_UINT64;
+		}
+		return MAX_UINT64;
+	}
+	
+	return _float64_to_uint64_helper(a);	
+}
+
+/* Convert float to signed int64
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__s64 float64_to_int64(float64 a)
+{
+	if (isFloat64NaN(a)) {
+		return MAX_INT64;
+	}
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS)))  {
+		if (a.parts.sign) {
+			return MIN_INT64;
+		}
+		return MAX_INT64;
+	}
+	return _float64_to_uint64_helper(a);
+}	
+
+
+
+
+
+/** Helping procedure for converting float32 to uint64
+ * @param a floating point number in normalized form (no NaNs or Inf are checked )
+ * @return unsigned integer
+ */
+static __u64 _float32_to_uint64_helper(float32 a)
+{
+	__u64 frac;
+	
+	if (a.parts.exp < FLOAT32_BIAS) {
+		/*TODO: rounding*/
+		return 0;
+	}
+	
+	frac = a.parts.fraction;
+	
+	frac |= FLOAT32_HIDDEN_BIT_MASK;
+	/* shift fraction to left so hidden bit will be the most significant bit */
+	frac <<= 64 - FLOAT32_FRACTION_SIZE - 1; 
+
+	frac >>= 64 - (a.parts.exp - FLOAT32_BIAS) - 1;
+	if ((a.parts.sign == 1) && (frac != 0)) {
+		frac = ~frac;
+		++frac;
+	}
+	
+	return frac;
+}
+
+/* Convert float to unsigned int64
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__u64 float32_to_uint64(float32 a)
+{
+	if (isFloat32NaN(a)) {
+		return MAX_UINT64;
+	}
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS)))  {
+		if (a.parts.sign) {
+			return MIN_UINT64;
+		}
+		return MAX_UINT64;
+	}
+	
+	return _float32_to_uint64_helper(a);	
+}
+
+/* Convert float to signed int64
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__s64 float32_to_int64(float32 a)
+{
+	if (isFloat32NaN(a)) {
+		return MAX_INT64;
+	}
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS)))  {
+		if (a.parts.sign) {
+			return (MIN_INT64);
+		}
+		return MAX_INT64;
+	}
+	return _float32_to_uint64_helper(a);
+}	
+
+
+/* Convert float64 to unsigned int32
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__u32 float64_to_uint32(float64 a)
+{
+	if (isFloat64NaN(a)) {
+		return MAX_UINT32;
+	}
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS)))  {
+		if (a.parts.sign) {
+			return MIN_UINT32;
+		}
+		return MAX_UINT32;
+	}
+	
+	return (__u32)_float64_to_uint64_helper(a);	
+}
+
+/* Convert float64 to signed int32
+ * FIXME: Im not sure what to return if overflow/underflow happens 
+ * 	- now its the biggest or the smallest int
+ */ 
+__s32 float64_to_int32(float64 a)
+{
+	if (isFloat64NaN(a)) {
+		return MAX_INT32;
+	}
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS)))  {
+		if (a.parts.sign) {
+			return MIN_INT32;
+		}
+		return MAX_INT32;
+	}
+	return (__s32)_float64_to_uint64_helper(a);
+}	
+
 
