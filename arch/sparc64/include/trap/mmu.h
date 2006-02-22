@@ -39,6 +39,7 @@
 
 #define FAST_MMU_HANDLER_SIZE			128
 
+#ifdef __ASM__
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 	call fast_instruction_access_mmu_miss
 	nop
@@ -56,5 +57,6 @@
 	nop
 	retry
 .endm
+#endif /* __ASM__ */
 
 #endif

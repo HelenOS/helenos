@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_MEMORY_INIT_H__
-#define __sparc64_MEMORY_INIT_H__
+#ifndef __OFW_MEMORY_INIT_H__
+#define __OFW_MEMORY_INIT_H__
 
 #include <typedefs.h>
 
-extern size_t get_memory_size(void);
+extern void ofw_init_memmap(void);
+extern size_t ofw_get_memory_size(void);
+extern void ofw_init_zones(void);
 
 #endif

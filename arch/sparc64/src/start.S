@@ -98,6 +98,9 @@ relocated:
 	call ofw_init
 	stx %o4, [%l0]
 
+	call ofw_init_memmap
+	nop
+
 	call main_bsp
 	nop
 

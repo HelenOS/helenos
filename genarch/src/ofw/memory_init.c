@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_MEMORY_INIT_H__
-#define __sparc64_MEMORY_INIT_H__
-
+#include <genarch/ofw/memory_init.h>
+#include <genarch/ofw/ofw.h>
+#include <panic.h>
+#include <mm/frame.h>
+#include <align.h>
+#include <arch/types.h>
 #include <typedefs.h>
 
-extern size_t get_memory_size(void);
+#define MEMMAP_MAX_RECORDS 32
 
-#endif
+typedef struct {
+	__address start;
+	size_t size;
+} memmap_t;
+
+static memmap_t memmap[MEMMAP_MAX_RECORDS];
+size_t total_mem = 0;
+
+void ofw_init_memmap(void)
+{
+	int i;
+	int ret;
+
+	phandle handle = ofw_find_device("/memory");
+	if (handle == -1)
+		panic("No RAM\n");
+	
+	ret = ofw_get_property(handle, "reg", &memmap, sizeof(memmap));
+	if (ret == -1)
+		panic("Device /memory has no reg property\n");
+	
+	
+	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {
+		if (memmap[i].size == 0)
+			break;
+		total_mem += memmap[i].size;
+	}
+}
+
+size_t ofw_get_memory_size(void) 
+{
+	return total_mem;
+}
+
+void ofw_init_zones(void)
+{
+	int i;
+	pfn_t confdata;
+
+	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {
+		if (memmap[i].size == 0)
+			break;
+		confdata = ADDR2PFN(memmap[i].start);
+		if (confdata == 0)
+			confdata = 2;
+		zone_create(ADDR2PFN(memmap[i].start),
+			    SIZE2FRAMES(ALIGN_DOWN(memmap[i].size,PAGE_SIZE)),
+			    confdata, 0);
+	}
+}

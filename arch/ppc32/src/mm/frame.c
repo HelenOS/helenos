@@ -29,12 +29,11 @@
 #include <arch/mm/frame.h>
 #include <arch/mm/memory_init.h>
 #include <mm/frame.h>
-#include <config.h>
-#include <panic.h>
+#include <genarch/ofw/memory_init.h>
 
 void frame_arch_init(void)
 {
-	ppc_init_zones();
+	ofw_init_zones();
 	/* First is exception vector, second is 'implementation specific' */
 	frame_mark_unavailable(0, 2);
 }

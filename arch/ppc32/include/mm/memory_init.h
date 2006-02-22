@@ -29,10 +29,9 @@
 #ifndef __ppc32_MEMORY_INIT_H__
 #define __ppc32_MEMORY_INIT_H__
 
-#include <config.h>
+#include <typedefs.h>
 
 size_t get_memory_size(void);
 void preboot_read_config(void);
-void ppc_init_zones(void);
 
 #endif

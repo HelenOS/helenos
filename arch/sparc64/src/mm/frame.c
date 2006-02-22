@@ -27,13 +27,14 @@
  */
 
 #include <arch/mm/frame.h>
+#include <genarch/ofw/memory_init.h>
 #include <mm/frame.h>
 #include <config.h>
 #include <align.h>
 
 void frame_arch_init(void)
 {
-	zone_create(0, config.memory_size >> FRAME_WIDTH, 1, 0);
+	ofw_init_zones();
 
 	/*
 	 * Workaround to prevent slab allocator from allocating frame 0.

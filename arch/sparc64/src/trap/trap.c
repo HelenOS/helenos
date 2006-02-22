@@ -31,6 +31,7 @@
 #include <arch/trap/regwin.h>
 #include <arch/trap/exception.h>
 #include <arch/trap/interrupt.h>
+#include <arch/trap/mmu.h>
 #include <arch/asm.h>
 #include <memstr.h>
 #include <debug.h>
@@ -80,6 +81,19 @@ void trap_init(void)
 	trap_install_handler(TT_INTERRUPT_LEVEL_14, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
 	trap_install_handler(TT_INTERRUPT_LEVEL_15, INTERRUPT_LEVEL_N_HANDLER_SIZE, false);
 	trap_install_handler(TT_INTERRUPT_VECTOR_TRAP, INTERRUPT_VECTOR_TRAP_HANDLER_SIZE, false);
+
+	/*
+	 * Kernel must become independent on Open Firmware calls before MMU handlers are enabled.
+	 */
+/*
+	trap_install_handler(TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, FAST_MMU_HANDLER_SIZE, false);
+	trap_install_handler(TT_FAST_DATA_ACCESS_MMU_MISS, FAST_MMU_HANDLER_SIZE, false);
+	trap_install_handler(TT_FAST_DATA_ACCESS_PROTECTION, FAST_MMU_HANDLER_SIZE, false);
+	trap_install_handler(TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, FAST_MMU_HANDLER_SIZE, true);
+	trap_install_handler(TT_FAST_DATA_ACCESS_MMU_MISS, FAST_MMU_HANDLER_SIZE, true);
+	trap_install_handler(TT_FAST_DATA_ACCESS_PROTECTION, FAST_MMU_HANDLER_SIZE, true);
+*/
+
 }
 
 /** Copy trap handler to active trap table.
