@@ -77,9 +77,6 @@ kernel_image_start:
 	movl r10=(KERNEL_TRANSLATION_I)
 	itr.i itr[r0]=r10
 
-#	mov cr.ifa=r0
-#	movl r10=(KERNEL_PAGE_WIDTH<<PS_SHIFT)
-#	mov cr.itir=r10
 	movl r10=(KERNEL_TRANSLATION_D)
 	itr.d dtr[r0]=r10
 
@@ -98,7 +95,6 @@ kernel_image_start:
 	or r10=r10,r9
 	mov cr.ipsr=r10
 	mov cr.ifs=r0
-#	movl r8=(paging_start+VRN_KERNEL<<VRN_SHIFT)
 	movl r8=paging_start
 	mov cr.iip=r8
 	srlz.d
@@ -134,20 +130,17 @@ paging_start:
 	mov ar.rsc = r0
 	movl r8=(VRN_KERNEL<<VRN_SHIFT)
 	mov ar.bspstore = r8
-#	mov ar.bspstore = r0
 	loadrs
 
 	.explicit
 	# initialize memory stack to some sane value
-#	movl r12 = stack0	;;
-	movl r12 = stack0	+ (VRN_KERNEL<<VRN_SHIFT);;
+	movl r12 = stack0;;
 	
 	add r12 = - 16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
 	movl r1 = _hardcoded_load_address	;;
 
-#	movl r1 = _hardcoded_load_address + (VRN_KERNEL<<VRN_SHIFT) ;;
 	
 
 	#
@@ -171,7 +164,6 @@ paging_start:
 	mov b1=r18
 	br.call.sptk.many b0=b1
 
-#	br.call.sptk.many b0=main_bsp
 
 0:
 	br 0b

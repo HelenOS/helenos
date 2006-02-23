@@ -59,14 +59,10 @@ int main(int argc, char *argv[])
 	if ((void *) elf  == (void *) -1)
 		error("map failed");
 		
-	/*vma = elf[ELF_VMA];*/
 	lma = elf[ELF_LMA];
 	elf[ELF_VMA] = lma;
-	entry = elf[ELF_ENTRY];
-	entry &= ((~0LL)>>3);
+	entry = lma;
 	elf[ELF_ENTRY] = entry;
-	elf[ELF_ENTRY] = 0x100000;
-	/*elf[ELF_LMA] = vma;*/
 	
 	if (munmap(elf, LENGTH) == -1)
 		error("munmap failed");
