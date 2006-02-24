@@ -31,6 +31,7 @@
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
+#include <mm/asid.h>
 #include <print.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -74,7 +75,7 @@ void tlb_arch_init(void)
 	/*
 	 * We do identity mapping of 4M-page at 4M.
 	 */
-	tag.value = 0;
+	tag.value = ASID_KERNEL;
 	tag.vpn = pg.vpn;
 
 	itlb_tag_access_write(tag.value);
@@ -112,7 +113,7 @@ void tlb_arch_init(void)
 	fr.address = 0x1C901000000ULL;
 	pg.address = 0xc0000000;
 
-	tag.value = 0;
+	tag.value = ASID_KERNEL;
 	tag.vpn = pg.vpn;
 
 	dtlb_tag_access_write(tag.value);
@@ -141,19 +142,36 @@ void fast_instruction_access_mmu_miss(void)
 /** DTLB miss handler. */
 void fast_data_access_mmu_miss(void)
 {
-	tlb_sfsr_reg_t status;
-	__address address, tpc;
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	__address tpc;
 	char *tpc_str;
 	
-	status.value = dtlb_sfsr_read();
-	address = dtlb_sfar_read();
-	tpc = tpc_read();
-	tpc_str = get_symtab_entry(tpc);
+	tag.value = dtlb_tag_access_read();
+	if (tag.context != ASID_KERNEL || tag.vpn == 0) {
+		tpc = tpc_read();
+		tpc_str = get_symtab_entry(tpc);
 
-	printf("ASI=%B, Context=%s\n", status.asi, context_encoding[status.ct]);
-	printf("Faulting address: %P\n", dtlb_sfar_read());
-	printf("TPC=%P, (%s)\n", tpc, tpc_str ? tpc_str : "?");
-	panic("%s\n", __FUNCTION__);
+		printf("Faulting page: %P, ASID=%d\n", tag.vpn * PAGE_SIZE, tag.context);
+		printf("TPC=%P, (%s)\n", tpc, tpc_str ? tpc_str : "?");
+		panic("%s\n", __FUNCTION__);
+	}
+
+	/*
+	 * Identity map piece of faulting kernel address space.
+	 */
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_8K;
+	data.pfn = tag.vpn;
+	data.l = false;
+	data.cp = 1;
+	data.cv = 1;
+	data.p = true;
+	data.w = true;
+	data.g = true;
+
+	dtlb_data_in_write(data.value);
 }
 
 /** DTLB protection fault handler. */

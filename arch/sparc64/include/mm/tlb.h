@@ -111,14 +111,14 @@ union tlb_sfsr_reg {
 		unsigned nf : 1;	/**< Nonfaulting load. */
 		unsigned asi : 8;	/**< ASI. */
 		unsigned tm : 1;	/**< TLB miss. */
-		unsigned : 3;
-		unsigned ft : 5;	/**< Fault type. */
+		unsigned : 1;
+		unsigned ft : 7;	/**< Fault type. */
 		unsigned e : 1;		/**< Side-effect bit. */
 		unsigned ct : 2;	/**< Context Register selection. */
 		unsigned pr : 1;	/**< Privilege bit. */
 		unsigned w : 1;		/**< Write bit. */
 		unsigned ow : 1;	/**< Overwrite bit. */
-		unsigned fv : 1;	/**< Fayult Valid bit. */
+		unsigned fv : 1;	/**< Fault Valid bit. */
 	} __attribute__ ((packed));
 };
 typedef union tlb_sfsr_reg tlb_sfsr_reg_t;
@@ -261,6 +261,15 @@ static inline void itlb_tag_access_write(__u64 v)
 	flush();
 }
 
+/** Read IMMU TLB Tag Access Register.
+ *
+ * @return Current value of IMMU TLB Tag Access Register.
+ */
+static inline __u64 itlb_tag_access_read(void)
+{
+	return asi_u64_read(ASI_IMMU, VA_IMMU_TAG_ACCESS);
+}
+
 /** Write DMMU TLB Tag Access Register.
  *
  * @param v Value to be written.
@@ -270,6 +279,16 @@ static inline void dtlb_tag_access_write(__u64 v)
 	asi_u64_write(ASI_DMMU, VA_DMMU_TAG_ACCESS, v);
 	flush();
 }
+
+/** Read DMMU TLB Tag Access Register.
+ *
+ * @return Current value of DMMU TLB Tag Access Register.
+ */
+static inline __u64 dtlb_tag_access_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_DMMU_TAG_ACCESS);
+}
+
 
 /** Write IMMU TLB Data in Register.
  *
