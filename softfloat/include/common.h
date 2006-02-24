@@ -33,6 +33,7 @@
 
 float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign);
 
+int countZeroes64(__u64 i);
 int countZeroes32(__u32 i);
 int countZeroes8(__u8 i);
 

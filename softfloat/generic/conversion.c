@@ -441,6 +441,34 @@ float32 int32_to_float32(__s32 i)
 
 float32 uint64_to_float32(__u64 i) 
 {
+	int counter;
+	__s32 exp;
+	float32 result;
+	
+	result.parts.sign = 0;
+	result.parts.fraction = 0;
+
+	counter = countZeroes64(i);
+
+	exp = FLOAT32_BIAS + 64 - counter - 1;
+	
+	if (counter == 64) {
+		result.binary = 0;
+		return result;
+	}
+	
+	/* Shift all to the first 31 bits (31. will be hidden 1)*/
+	if (counter > 33) {
+		i <<= counter - 1 - 32;
+	} else {
+		i >>= 1 + 32 - counter;
+	}
+
+	roundFloat32(&exp, &i);
+
+	result.parts.fraction = i >> 7;
+	result.parts.exp = exp;
+	return result;
 }
 
 float32 int64_to_float32(__s64 i) 
