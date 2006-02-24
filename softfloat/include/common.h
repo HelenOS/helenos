@@ -33,4 +33,10 @@
 
 float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign);
 
+int countZeroes32(__u32 i);
+int countZeroes8(__u8 i);
+
+void roundFloat32(__s32 *exp, __u32 *fraction);
+void roundFloat64(__s32 *exp, __u64 *fraction);
+
 #endif

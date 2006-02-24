@@ -256,6 +256,10 @@ unsigned long long __fixunsdfti(double a)
  
 float __floatsisf(int i)
 {
+	float32 fa;
+	
+	fa = int_to_float32(i);
+	return fa.f;
 }
 double __floatsidf(int i)
 {
@@ -263,6 +267,10 @@ double __floatsidf(int i)
  
 float __floatdisf(long i)
 {
+	float32 fa;
+	
+	fa = long_to_float32(i);
+	return fa.f;
 }
 double __floatdidf(long i)
 {
@@ -270,6 +278,10 @@ double __floatdidf(long i)
  
 float __floattisf(long long i)
 {
+	float32 fa;
+	
+	fa = longlong_to_float32(i);
+	return fa.f;
 }
 double __floattidf(long long i)
 {
@@ -277,6 +289,10 @@ double __floattidf(long long i)
 
 float __floatunsisf(unsigned int i)
 {
+	float32 fa;
+	
+	fa = uint_to_float32(i);
+	return fa.f;
 }
 double __floatunsidf(unsigned int i)
 {
@@ -284,6 +300,10 @@ double __floatunsidf(unsigned int i)
  
 float __floatundisf(unsigned long i)
 {
+	float32 fa;
+	
+	fa = ulong_to_float32(i);
+	return fa.f;
 }
 double __floatundidf(unsigned long i)
 {
@@ -291,6 +311,10 @@ double __floatundidf(unsigned long i)
  
 float __floatuntisf(unsigned long long i)
 {
+	float32 fa;
+	
+	fa = ulonglong_to_float32(i);
+	return fa.f;
 }
 double __floatuntidf(unsigned long long i)
 {

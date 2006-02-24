@@ -45,4 +45,22 @@
 #define float64_to_ulong(X) float64_to_uint32(X);
 #define float64_to_ulonglong(X) float64_to_uint64(X);
 
+#define int_to_float32(X) int32_to_float32(X);
+#define long_to_float32(X) int32_to_float32(X);
+#define longlong_to_float32(X) int64_to_float32(X);
+
+#define int_to_float64(X) int32_to_float64(X);
+#define long_to_float64(X) int32_to_float64(X);
+#define longlong_to_float64(X) int64_to_float64(X);
+
+#define uint_to_float32(X) uint32_to_float32(X);
+#define ulong_to_float32(X) uint32_to_float32(X);
+#define ulonglong_to_float32(X) uint64_to_float32(X);
+
+#define uint_to_float64(X) uint32_to_float64(X);
+#define ulong_to_float64(X) uint32_to_float64(X);
+#define ulonglong_to_float64(X) uint64_to_float64(X);
+
+
+
 #endif

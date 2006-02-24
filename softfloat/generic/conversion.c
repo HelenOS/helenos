@@ -29,6 +29,7 @@
 #include "sftypes.h"
 #include "conversion.h"
 #include "comparison.h"
+#include "common.h"
 
 float64 convertFloat32ToFloat64(float32 a) 
 {
@@ -385,4 +386,74 @@ __s32 float64_to_int32(float64 a)
 	return (__s32)_float64_to_uint64_helper(a);
 }	
 
+	
+/** Convert unsigned integer to float32
+ *
+ *
+ */
+float32 uint32_to_float32(__u32 i)
+{
+	int counter;
+	__s32 exp;
+	float32 result;
+	
+	result.parts.sign = 0;
+	result.parts.fraction = 0;
 
+	counter = countZeroes32(i);
+
+	exp = FLOAT32_BIAS + 32 - counter - 1;
+	
+	if (counter == 32) {
+		result.binary = 0;
+		return result;
+	}
+	
+	if (counter > 0) {
+		i <<= counter - 1;
+	} else {
+		i >>= 1;
+	}
+
+	roundFloat32(&exp, &i);
+
+	result.parts.fraction = i >> 7;
+	result.parts.exp = exp;
+
+	return result;
+}
+
+float32 int32_to_float32(__s32 i) 
+{
+	float32 result;
+
+	if (i < 0) {
+		result = uint32_to_float32((__u32)(-i));
+	} else {
+		result = uint32_to_float32((__u32)i);
+	}
+	
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
+
+
+float32 uint64_to_float32(__u64 i) 
+{
+}
+
+float32 int64_to_float32(__s64 i) 
+{
+	float32 result;
+
+	if (i < 0) {
+		result = uint64_to_float32((__u64)(-i));
+	} else {
+		result = uint64_to_float32((__u64)i);
+	}
+	
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
