@@ -236,6 +236,20 @@ static inline __u64 tba_read(void)
 	return v;
 }
 
+/** Read Trap Program Counter register.
+ *
+ * @return Current value in TPC.
+ */
+static inline __u64 tpc_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%tpc, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+
 /** Write Trap Base Address register.
  *
  * @param New value of TBA.

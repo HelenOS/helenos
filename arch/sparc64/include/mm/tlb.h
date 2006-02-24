@@ -46,6 +46,15 @@
 #define PAGESIZE_512K	2
 #define PAGESIZE_4M	3
 
+union tlb_context_reg {
+	__u64 v;
+	struct {
+		unsigned long : 51;
+		unsigned context : 13;		/**< Context/ASID. */
+	} __attribute__ ((packed));
+};
+typedef union tlb_context_reg tlb_context_reg_t;
+
 /** I-/D-TLB Data In/Access Register type. */
 typedef tte_data_t tlb_data_t;
 
@@ -93,6 +102,64 @@ union tlb_demap_addr {
 	} __attribute__ ((packed));
 };
 typedef union tlb_demap_addr tlb_demap_addr_t;
+
+/** TLB Synchronous Fault Status Register. */
+union tlb_sfsr_reg {
+	__u64 value;
+	struct {
+		unsigned long : 39;	/**< Implementation dependent. */
+		unsigned nf : 1;	/**< Nonfaulting load. */
+		unsigned asi : 8;	/**< ASI. */
+		unsigned tm : 1;	/**< TLB miss. */
+		unsigned : 3;
+		unsigned ft : 5;	/**< Fault type. */
+		unsigned e : 1;		/**< Side-effect bit. */
+		unsigned ct : 2;	/**< Context Register selection. */
+		unsigned pr : 1;	/**< Privilege bit. */
+		unsigned w : 1;		/**< Write bit. */
+		unsigned ow : 1;	/**< Overwrite bit. */
+		unsigned fv : 1;	/**< Fayult Valid bit. */
+	} __attribute__ ((packed));
+};
+typedef union tlb_sfsr_reg tlb_sfsr_reg_t;
+
+/** Read MMU Primary Context Register.
+ *
+ * @return Current value of Primary Context Register.
+ */
+static inline __u64 mmu_primary_context_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_PRIMARY_CONTEXT_REG);
+}
+
+/** Write MMU Primary Context Register.
+ *
+ * @param v New value of Primary Context Register.
+ */
+static inline void mmu_primary_context_write(__u64 v)
+{
+	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
+	flush();
+}
+
+/** Read MMU Secondary Context Register.
+ *
+ * @return Current value of Secondary Context Register.
+ */
+static inline __u64 mmu_secondary_context_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_SECONDARY_CONTEXT_REG);
+}
+
+/** Write MMU Primary Context Register.
+ *
+ * @param v New value of Primary Context Register.
+ */
+static inline void mmu_secondary_context_write(__u64 v)
+{
+	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
+	flush();
+}
 
 /** Read IMMU TLB Data Access Register.
  *
@@ -222,6 +289,53 @@ static inline void dtlb_data_in_write(__u64 v)
 {
 	asi_u64_write(ASI_DTLB_DATA_IN_REG, 0, v);
 	flush();
+}
+
+/** Read ITLB Synchronous Fault Status Register.
+ *
+ * @return Current content of I-SFSR register.
+ */
+static inline __u64 itlb_sfsr_read(void)
+{
+	return asi_u64_read(ASI_IMMU, VA_IMMU_SFSR);
+}
+
+/** Write ITLB Synchronous Fault Status Register.
+ *
+ * @param v New value of I-SFSR register.
+ */
+static inline void itlb_sfsr_write(__u64 v)
+{
+	asi_u64_write(ASI_IMMU, VA_IMMU_SFSR, v);
+	flush();
+}
+
+/** Read DTLB Synchronous Fault Status Register.
+ *
+ * @return Current content of D-SFSR register.
+ */
+static inline __u64 dtlb_sfsr_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_DMMU_SFSR);
+}
+
+/** Write DTLB Synchronous Fault Status Register.
+ *
+ * @param v New value of D-SFSR register.
+ */
+static inline void dtlb_sfsr_write(__u64 v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_SFSR, v);
+	flush();
+}
+
+/** Read DTLB Synchronous Fault Address Register.
+ *
+ * @return Current content of D-SFAR register.
+ */
+static inline __u64 dtlb_sfar_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_DMMU_SFAR);
 }
 
 /** Perform IMMU TLB Demap Operation.

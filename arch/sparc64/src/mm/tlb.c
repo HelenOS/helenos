@@ -37,6 +37,15 @@
 #include <config.h>
 #include <arch/trap/trap.h>
 #include <panic.h>
+#include <arch/asm.h>
+#include <symtab.h>
+
+char *context_encoding[] = {
+	"Primary",
+	"Secondary",
+	"Nucleus",
+	"Reserved"
+};
 
 /** Initialize ITLB and DTLB.
  *
@@ -96,6 +105,31 @@ void tlb_arch_init(void)
 
 	dmmu_enable();
 	immu_enable();
+	
+	/*
+	 * Quick hack: map frame buffer
+	 */
+	fr.address = 0x1C901000000ULL;
+	pg.address = 0xc0000000;
+
+	tag.value = 0;
+	tag.vpn = pg.vpn;
+
+	dtlb_tag_access_write(tag.value);
+
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_4M;
+	data.pfn = fr.pfn;
+	data.l = true;
+	data.cp = 0;
+	data.cv = 0;
+	data.p = true;
+	data.w = true;
+	data.g = true;
+
+	dtlb_data_in_write(data.value);
+
 }
 
 /** ITLB miss handler. */
@@ -107,6 +141,18 @@ void fast_instruction_access_mmu_miss(void)
 /** DTLB miss handler. */
 void fast_data_access_mmu_miss(void)
 {
+	tlb_sfsr_reg_t status;
+	__address address, tpc;
+	char *tpc_str;
+	
+	status.value = dtlb_sfsr_read();
+	address = dtlb_sfar_read();
+	tpc = tpc_read();
+	tpc_str = get_symtab_entry(tpc);
+
+	printf("ASI=%B, Context=%s\n", status.asi, context_encoding[status.ct]);
+	printf("Faulting address: %P\n", dtlb_sfar_read());
+	printf("TPC=%P, (%s)\n", tpc, tpc_str ? tpc_str : "?");
 	panic("%s\n", __FUNCTION__);
 }
 
