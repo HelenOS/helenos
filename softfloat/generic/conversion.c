@@ -386,7 +386,6 @@ __s32 float64_to_int32(float64 a)
 	return (__s32)_float64_to_uint64_helper(a);
 }	
 
-	
 /** Convert unsigned integer to float32
  *
  *
@@ -485,3 +484,101 @@ float32 int64_to_float32(__s64 i)
 
  	return result;
 }
+
+/** Convert unsigned integer to float64
+ *
+ *
+ */
+float64 uint32_to_float64(__u32 i)
+{
+	int counter;
+	__s32 exp;
+	float64 result;
+	__u64 frac;
+	
+	result.parts.sign = 0;
+	result.parts.fraction = 0;
+
+	counter = countZeroes32(i);
+
+	exp = FLOAT64_BIAS + 32 - counter - 1;
+	
+	if (counter == 32) {
+		result.binary = 0;
+		return result;
+	}
+	
+	frac = i;
+	frac <<= counter + 32 - 1; 
+
+	roundFloat64(&exp, &frac);
+
+	result.parts.fraction = frac >> 10;
+	result.parts.exp = exp;
+
+	return result;
+}
+
+float64 int32_to_float64(__s32 i) 
+{
+	float64 result;
+
+	if (i < 0) {
+		result = uint32_to_float64((__u32)(-i));
+	} else {
+		result = uint32_to_float64((__u32)i);
+	}
+	
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
+
+
+float64 uint64_to_float64(__u64 i) 
+{
+	int counter;
+	__s32 exp;
+	float64 result;
+	
+	result.parts.sign = 0;
+	result.parts.fraction = 0;
+
+	counter = countZeroes64(i);
+
+	exp = FLOAT64_BIAS + 64 - counter - 1;
+	
+	if (counter == 64) {
+		result.binary = 0;
+		return result;
+	}
+	
+	if (counter > 0) {
+		i <<= counter - 1;
+	} else {
+		i >>= 1;
+	}
+
+	roundFloat64(&exp, &i);
+
+	result.parts.fraction = i >> 10;
+	result.parts.exp = exp;
+	return result;
+}
+
+float64 int64_to_float64(__s64 i) 
+{
+	float64 result;
+
+	if (i < 0) {
+		result = uint64_to_float64((__u64)(-i));
+	} else {
+		result = uint64_to_float64((__u64)i);
+	}
+	
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
+
+

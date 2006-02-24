@@ -263,6 +263,10 @@ float __floatsisf(int i)
 }
 double __floatsidf(int i)
 {
+	float64 da;
+	
+	da = int_to_float64(i);
+	return da.d;
 }
  
 float __floatdisf(long i)
@@ -274,6 +278,10 @@ float __floatdisf(long i)
 }
 double __floatdidf(long i)
 {
+	float64 da;
+	
+	da = long_to_float64(i);
+	return da.d;
 }
  
 float __floattisf(long long i)
@@ -285,6 +293,10 @@ float __floattisf(long long i)
 }
 double __floattidf(long long i)
 {
+	float64 da;
+	
+	da = longlong_to_float64(i);
+	return da.d;
 }
 
 float __floatunsisf(unsigned int i)
@@ -296,6 +308,10 @@ float __floatunsisf(unsigned int i)
 }
 double __floatunsidf(unsigned int i)
 {
+	float64 da;
+	
+	da = uint_to_float64(i);
+	return da.d;
 }
  
 float __floatundisf(unsigned long i)
@@ -307,6 +323,10 @@ float __floatundisf(unsigned long i)
 }
 double __floatundidf(unsigned long i)
 {
+	float64 da;
+	
+	da = ulong_to_float64(i);
+	return da.d;
 }
  
 float __floatuntisf(unsigned long long i)
@@ -318,6 +338,10 @@ float __floatuntisf(unsigned long long i)
 }
 double __floatuntidf(unsigned long long i)
 {
+	float64 da;
+	
+	da = ulonglong_to_float64(i);
+	return da.d;
 }
 
 /* Comparison functions */

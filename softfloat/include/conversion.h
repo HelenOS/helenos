@@ -50,5 +50,12 @@ float32 int32_to_float32(__s32 i);
 
 float32 uint64_to_float32(__u64 i);
 float32 int64_to_float32(__s64 i);
+
+float64 uint32_to_float64(__u32 i);
+float64 int32_to_float64(__s32 i);
+
+float64 uint64_to_float64(__u64 i);
+float64 int64_to_float64(__s64 i);
+
 #endif
 
