@@ -56,18 +56,19 @@ void page_arch_init(void)
 void set_environment(void)
 {
 
-//#ifdef NEVERDEFINED	
 	region_register rr;
 	pta_register pta;	
 	int i;
 
 	/*
 	 * First set up kernel region register.
+	 * This action is redundand (see start.S) but I would to keep it to make sure that 
+	 *no unexpected changes will be made. 
 	 */
 	rr.word = rr_read(VRN_KERNEL);
 	rr.map.ve = 0;                  /* disable VHPT walker */
 	rr.map.ps = PAGE_WIDTH;
-	rr.map.rid = ASID_KERNEL;
+	rr.map.rid = ASID2RID(ASID_KERNEL,VRN_KERNEL);  
 	rr_write(VRN_KERNEL, rr.word);
 	srlz_i();
 	srlz_d();
@@ -82,7 +83,7 @@ void set_environment(void)
 	
 		rr.word == rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = ASID_INVALID;
+		rr.map.rid = ASID2RID(ASID_INVALID,i);
 		rr_write(i, rr.word);
 		srlz_i();
 		srlz_d();
@@ -100,7 +101,6 @@ void set_environment(void)
 	srlz_i();
 	srlz_d();
 	
-//#endif
 
 	return ;	
 	

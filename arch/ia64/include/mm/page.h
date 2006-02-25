@@ -45,7 +45,7 @@
 
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
-#define KERNEL_PAGE_WIDTH	26
+#define KERNEL_PAGE_WIDTH	28
 
 
 
@@ -229,8 +229,8 @@ static inline __u64 ttag(__u64 va)
 static inline __u64 rr_read(index_t i)
 {
 	__u64 ret;
-	
 	ASSERT(i < REGION_REGISTERS);
+	i=i<<VRN_SHIFT;
 	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i));
 	
 	return ret;
@@ -245,6 +245,7 @@ static inline __u64 rr_read(index_t i)
 static inline void rr_write(index_t i, __u64 v)
 {
 	ASSERT(i < REGION_REGISTERS);
+	i=i<<VRN_SHIFT;
 	__asm__ volatile (
 	"mov rr[%0] = %1;;\n" 
 	: 

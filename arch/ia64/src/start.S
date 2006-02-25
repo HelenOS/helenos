@@ -50,16 +50,7 @@ stack0:
 kernel_image_start:
 	.auto
 
-	#Fill TR.i and TR.d and enable paging
-
-	mov r9=rr[r0]
-	movl r10=(RR_MASK)
-	and r9=r10,r9
-	movl r10=((ASID2RID(ASID_KERNEL,VRN_KERNEL)<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
-	or  r9=r10,r9
-	mov rr[r0]=r9
-
-	
+	#Fill TR.i and TR.d using Region Register #VRN_KERNEL
 
 	movl r8=(VRN_KERNEL<<VRN_SHIFT)
 	mov r9=rr[r8]
@@ -81,11 +72,6 @@ kernel_image_start:
 	itr.d dtr[r0]=r10
 
 
-
-
-
-
-
 	# initialize PSR
 	mov psr.l = r0
 	srlz.i
@@ -100,15 +86,9 @@ kernel_image_start:
 	srlz.d
 	srlz.i
 .explicit
+
+	/*Return from interupt is only the way how to fill upper half word of PSR*/
 	{rfi;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
 	{nop 0;;}
 	{nop 0;;}
 	{nop 0;;}
@@ -119,7 +99,16 @@ kernel_image_start:
 	{nop 0;;}
 
 .global paging_start
+	/*Now we are paging*/
 paging_start:
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
+	{nop 0;;}
 
 .auto
 	
