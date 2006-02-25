@@ -54,7 +54,7 @@
 extern spinlock_t asidlock;
 extern link_t as_with_asid_head;
 
-extern asid_t asid_get(void);
+extern asid_t asid_get(void);        /*This is in collision with ia32 macro*/
 extern void asid_put(asid_t asid);
 
 #ifndef asid_install

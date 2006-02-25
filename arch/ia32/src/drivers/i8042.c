@@ -47,6 +47,7 @@
 
 #define i8042_DATA		0x60
 #define i8042_STATUS		0x64
+#define i8042_BUFFER_FULL_MASK		0x01
 
 
 /** Keyboard commands. */
@@ -79,10 +80,16 @@
 
 static void key_released(__u8 sc);
 static void key_pressed(__u8 sc);
+static char key_read(chardev_t *d);
 
 #define PRESSED_SHIFT		(1<<0)
 #define PRESSED_CAPSLOCK	(1<<1)
 #define LOCKED_CAPSLOCK		(1<<0)
+
+#define ACTIVE_READ_BUFF_SIZE 16 /*Must be power of 2*/
+
+
+__u8 active_read_buff[ACTIVE_READ_BUFF_SIZE]={0};
 
 SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
@@ -94,7 +101,8 @@ static void i8042_resume(chardev_t *);
 static chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = i8042_suspend,
-	.resume = i8042_resume
+	.resume = i8042_resume,
+	.read = key_read
 };
 
 /** Primary meaning of scancodes. */
@@ -396,3 +404,115 @@ void i8042_resume(chardev_t *d)
 void i8042_suspend(chardev_t *d)
 {
 }
+
+
+static __u8 active_read_buff_read(void)
+{
+	static int i=0;
+	i&=(ACTIVE_READ_BUFF_SIZE-1);
+	if(!active_read_buff[i])
+	{
+		return 0;
+	}
+	return active_read_buff[i++];
+}
+
+static void active_read_buff_write(__u8 ch)
+{
+	static int i=0;
+	active_read_buff[i]=ch;
+	i++;
+	i&=(ACTIVE_READ_BUFF_SIZE-1);
+	active_read_buff[i]=0;
+}
+
+
+static void active_readed_key_pressed(__u8 sc)
+{
+	char *map = sc_primary_map;
+	char ascii = sc_primary_map[sc];
+	bool shift, capslock;
+	bool letter = false;
+
+	/*spinlock_lock(&keylock);*/
+	switch (sc) {
+	case SC_LSHIFT:
+	case SC_RSHIFT:
+	    	keyflags |= PRESSED_SHIFT;
+		break;
+	case SC_CAPSLOCK:
+		keyflags |= PRESSED_CAPSLOCK;
+		break;
+	case SC_SPEC_ESCAPE:
+		break;
+	case SC_LEFTARR:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x5b);
+		active_read_buff_write(0x44);
+		break;
+	case SC_RIGHTARR:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x5b);
+		active_read_buff_write(0x43);
+		break;
+	case SC_UPARR:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x5b);
+		active_read_buff_write(0x41);
+		break;
+	case SC_DOWNARR:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x5b);
+		active_read_buff_write(0x42);
+		break;
+	case SC_HOME:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x4f);
+		active_read_buff_write(0x48);
+		break;
+	case SC_END:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x4f);
+		active_read_buff_write(0x46);
+		break;
+	case SC_DELETE:
+		active_read_buff_write(0x1b);
+		active_read_buff_write(0x5b);
+		active_read_buff_write(0x33);
+		active_read_buff_write(0x7e);
+		break;
+	default:
+	    	letter = is_lower(ascii);
+		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
+		shift = keyflags & PRESSED_SHIFT;
+		if (letter && capslock)
+			shift = !shift;
+		if (shift)
+			map = sc_secondary_map;
+		active_read_buff_write(map[sc]);
+		break;
+	}
+	/*spinlock_unlock(&keylock);*/
+
+}
+
+
+static char key_read(chardev_t *d)
+{
+	char ch;	
+	
+
+	while(!(ch=active_read_buff_read()))
+	{
+		__u8 x;
+		while (!((x=inb(i8042_STATUS))&i8042_BUFFER_FULL_MASK));
+		x = inb(i8042_DATA);
+		if (x & KEY_RELEASE)
+			key_released(x ^ KEY_RELEASE);
+		else
+			active_readed_key_pressed(x);
+	}
+	return ch;
+}
+
+
