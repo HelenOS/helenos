@@ -29,10 +29,9 @@
 build: image.boot
 
 image.boot: kernel
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER)
+	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNEL=../../../$(KERNELDIR)/kernel.bin
 
 clean: clean_kernel
 	make -C arch/$(ARCH)/loader clean
-	-rm -f image.boot
 
 arch_distclean: distclean_kernel

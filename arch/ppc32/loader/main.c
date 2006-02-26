@@ -30,6 +30,9 @@
 #include "printf.h"
 #include "ofw.h"
 
+#define KERNEL_LOAD_ADDRESS 0x800000
+#define KERNEL_SIZE _binary_____________kernel_kernel_bin_size
+
 static void halt(void)
 {
 	while (1);
@@ -37,9 +40,9 @@ static void halt(void)
 
 void bootstrap(void)
 {
-	printf("\nHelenOS PPC Bootloader\nKernel size %d, load address %L\n", kernel_size, kernel_load_address);
+	printf("\nHelenOS PPC Bootloader\nKernel size %d, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
 	
-	void *addr = ofw_claim((void *) kernel_load_address, kernel_size, 1);
+	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
 	if (addr == NULL) {
 		printf("Error: Unable to claim memory");
 		halt();

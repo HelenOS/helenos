@@ -47,6 +47,7 @@ else
 endif
 
 CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3
+DEFS = 
 
 SOURCES = \
 	main.c \
@@ -56,11 +57,23 @@ SOURCES = \
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-loader.bin: $(OBJECTS)
-	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) -o $@
+.PHONY: all clean depend
+
+all: ../image.boot
+
+-include Makefile.depend
+
+../image.boot: depend $(OBJECTS) kernel.o
+	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
+
+depend:
+	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f $(OBJECTS) loader.bin
+	-rm -f $(OBJECTS) ../image.boot kernel.o Makefile.depend
+
+kernel.o: $(KERNEL)
+	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc $(KERNEL) $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
