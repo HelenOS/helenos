@@ -31,7 +31,7 @@
 
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc
-BFD = elf32-powerpc
+BFD = binary
 TARGET = ppc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc/bin
 
