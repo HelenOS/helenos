@@ -46,7 +46,7 @@ static __s32 ski_getchar(void);
  */
 void ski_putchar(chardev_t *d, const char ch)
 {
-	__asm__ (
+	__asm__ volatile (
 		"mov r15=%0\n"
 		"mov r32=%1\n"		/* r32 is in0 */
 		"break 0x80000\n"	/* modifies r8 */
@@ -72,7 +72,7 @@ __s32 ski_getchar(void)
 {
 	__u64 ch;
 	
-	__asm__ (
+	__asm__ volatile (
 		"mov r15=%1\n"
 		"break 0x80000;;\n"	/* modifies r8 */
 		"mov %0=r8;;\n"		
@@ -84,6 +84,19 @@ __s32 ski_getchar(void)
 
 	return (__s32) ch;
 }
+
+/**
+	This is blocking wrap function of ski_getchar
+	It active waits ... for using with non-stable kernel 
+*/
+static char ski_getchar_blocking(chardev_t *d)
+{
+	volatile int ch;
+	while(!(ch=ski_getchar()));
+	if(ch == '\r') ch = '\n'; 
+	return (char) ch;
+}
+
 
 /** Ask keyboard if a key was pressed. */
 void poll_keyboard(void)
@@ -116,7 +129,8 @@ static void ski_kb_disable(chardev_t *d)
 static chardev_operations_t ski_ops = {
 	.resume = ski_kb_enable,
 	.suspend = ski_kb_disable,
-	.write = ski_putchar
+	.write = ski_putchar,
+	.read = ski_getchar_blocking
 };
 
 
@@ -127,7 +141,7 @@ static chardev_operations_t ski_ops = {
  */
 void ski_init_console(void)
 {
-	__asm__ (
+	__asm__ volatile (
 		"mov r15=%0\n"
 		"break 0x80000\n"
 		:
