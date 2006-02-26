@@ -29,8 +29,8 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-extern unsigned int _binary_____________kernel_kernel_bin_size;
-extern void *_binary_____________kernel_kernel_bin_start;
+extern int _binary_____________kernel_kernel_bin_start;
+extern int _binary_____________kernel_kernel_bin_end;
 extern void bootstrap(void);
 
 #endif

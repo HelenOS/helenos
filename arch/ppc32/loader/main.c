@@ -31,7 +31,7 @@
 #include "ofw.h"
 
 #define KERNEL_LOAD_ADDRESS 0x800000
-#define KERNEL_SIZE _binary_____________kernel_kernel_bin_size
+#define KERNEL_SIZE ((unsigned int) &_binary_____________kernel_kernel_bin_end - (unsigned int) &_binary_____________kernel_kernel_bin_start)
 
 static void halt(void)
 {
@@ -40,7 +40,7 @@ static void halt(void)
 
 void bootstrap(void)
 {
-	printf("\nHelenOS PPC Bootloader\nKernel size %d, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
+	printf("\nHelenOS PPC Bootloader\nKernel size %d bytes, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
 	
 	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
 	if (addr == NULL) {
