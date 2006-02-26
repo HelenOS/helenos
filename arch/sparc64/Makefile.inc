@@ -35,7 +35,7 @@ image.iso: kernel
 	mkdir -p $(TMP)/kernel
 	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
 	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
-	ln -s ../../$(KERNELDIR)/kernel.bin $(TMP)/kernel/kernel.bin
+	ln -sf ../../$(KERNELDIR)/kernel.bin $(TMP)/kernel/kernel.bin
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o image.iso $(TMP)/
 
 clean: clean_kernel
