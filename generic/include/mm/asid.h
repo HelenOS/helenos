@@ -48,14 +48,18 @@
 
 #ifndef __ASM__
 
-
 #define ASIDS_ALLOCABLE	((ASID_MAX+1)-ASID_START)
 
 extern spinlock_t asidlock;
 extern link_t as_with_asid_head;
 
-extern asid_t asid_get(void);        /*This is in collision with ia32 macro*/
+#ifndef asid_get
+extern asid_t asid_get(void);
+#endif /* !def asid_get */
+
+#ifndef asid_put
 extern void asid_put(asid_t asid);
+#endif /* !def asid_put */
 
 #ifndef asid_install
 extern void asid_install(as_t *as);
