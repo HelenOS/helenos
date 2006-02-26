@@ -25,78 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-#include "main.h"
 
-ofw_entry ofw;
+#include "main.h" 
+#include "printf.h"
+#include "ofw.h"
 
-phandle ofw_chosen;
-ihandle ofw_stdout;
-
-void init(void)
+static void halt(void)
 {
-	ofw_chosen = ofw_find_device("/chosen");
-	if (ofw_chosen == -1)
-		ofw_call("exit", 0, 0);
-	
-	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
-		ofw_stdout = 0;
-}
-
-int ofw_call(const char *service, const int nargs, const int nret, ...)
-{
-	va_list list;
-	ofw_args_t args;
-	int i;
-	
-	args.service = service;
-	args.nargs = nargs;
-	args.nret = nret;
-	
-	va_start(list, nret);
-	for (i = 0; i < nargs; i++)
-		args.args[i] = va_arg(list, ofw_arg_t);
-	va_end(list);
-	
-	for (i = 0; i < nret; i++)
-		args.args[i + nargs] = 0;
-	
-	ofw(&args);
-	
-	return args.args[nargs];
-}
-
-void ofw_write(const char *str, const int len)
-{
-	if (ofw_stdout == 0)
-		return;
-	
-	ofw_call("write", 3, 1, ofw_stdout, str, len);
-}
-
-void ofw_puts(const char *str)
-{
-	int len = 0;
-	
-	while (str[len] != 0)
-		len++;
-	
-	ofw_write(str, len);
-}
-
-phandle ofw_find_device(const char *name)
-{
-	return ofw_call("finddevice", 1, 1, name);
-}
-
-int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen)
-{
-	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
+	while (1);
 }
 
 void bootstrap(void)
 {
-	ofw_puts("\nHelenOS PPC Bootloader\n");
-
-	while (1);
+	printf("\nHelenOS PPC Bootloader\nKernel size %d, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
+	
+	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
+	if (addr == NULL) {
+		printf("Error: Unable to claim memory");
+		halt();
+	}
+	
+	halt();
 }

@@ -26,9 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef __OFW_H__
+#define __OFW_H__
 
-extern void bootstrap(void);
+#define NULL	0
+#define MAX_OFW_ARGS	10
+
+typedef __builtin_va_list va_list;
+
+#define va_start(ap, last) 		__builtin_va_start(ap, last)
+#define va_arg(ap, type) 		__builtin_va_arg(ap, type)
+#define va_end(ap)			__builtin_va_end(ap)
+
+typedef unsigned int ofw_arg_t;
+typedef unsigned int ihandle;
+typedef unsigned int phandle;
+
+/** OpenFirmware command structure
+ *
+ */
+typedef struct {
+	const char *service;          /**< Command name */
+	unsigned int nargs;           /**< Number of in arguments */
+	unsigned int nret;            /**< Number of out arguments */
+	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
+} ofw_args_t;
+
+typedef void (*ofw_entry)(ofw_args_t *);
+
+extern void init(void);
+extern int ofw_call(const char *service, const int nargs, const int nret, ...);
+extern void ofw_write(const char *str, const int len);
+extern void ofw_puts(const char *str);
+extern void *ofw_claim(const void *addr, const int size, const int align);
+extern phandle ofw_find_device(const char *name);
+extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
 
 #endif

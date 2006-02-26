@@ -1,18 +1,27 @@
 .PHONY: build clean
 
 CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -I../include
+DEFS = -DKERNEL_LOAD_ADDRESS=0x800000 -DKERNEL_SIZE=40960
+
+SOURCES = \
+	main.c \
+	ofw.c \
+	printf.c \
+	boot.S
+
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 build: boot.bin
 	cp boot.bin ../../../load.bin
 
-boot.bin: boot.o main.o
-	$(LD) -no-check-sections -N -T _link.ld boot.o main.o -o $@
+boot.bin: $(OBJECTS)
+	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) -o $@
 
-boot.o: boot.S
-	$(CC) $(CFLAGS) -c boot.S -o $@
+%.o: %.S
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c -o $@
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
 
 clean:
-	-rm -f boot.o main.o boot.bin ../../../load.bin
+	-rm -f $(OBJECTS) boot.bin ../../../load.bin

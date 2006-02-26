@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef __PRINTF_H__
+#define __PRINTF_H__
 
-extern void bootstrap(void);
+#define INT8	1
+#define INT16	2
+#define INT32	4
+#define INT64	8
+
+typedef signed char __s8;
+
+typedef unsigned char __u8;
+typedef unsigned short __u16;
+typedef unsigned long __u32;
+typedef long long __u64;
+
+typedef __u32 __address;
+typedef __u32 __native;
+
+typedef char *char_ptr;
+
+void printf(const char *fmt, ...);
 
 #endif
