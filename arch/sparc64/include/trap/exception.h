@@ -30,11 +30,13 @@
 #define __sparc64_EXCEPTION_H__
 
 #define TT_INSTRUCTION_ACCESS_EXCEPTION		0x08
+#define TT_ILLEGAL_INSTRUCTION			0x10
 #define TT_MEM_ADDRESS_NOT_ALIGNED		0x34
 
 #ifndef __ASM__
 extern void do_instruction_access_exc(void);
 extern void do_mem_address_not_aligned(void);
+extern void do_illegal_instruction(void);
 #endif /* !__ASM__ */
 
 #endif

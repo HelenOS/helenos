@@ -33,6 +33,8 @@
 #ifndef __sparc64_MMU_TRAP_H__
 #define __sparc64_MMU_TRAP_H__
 
+#include <arch/stack.h>
+
 #define TT_FAST_INSTRUCTION_ACCESS_MMU_MISS	0x64
 #define TT_FAST_DATA_ACCESS_MMU_MISS		0x68
 #define TT_FAST_DATA_ACCESS_PROTECTION		0x6c
@@ -41,20 +43,26 @@
 
 #ifdef __ASM__
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	call fast_instruction_access_mmu_miss
 	nop
+	restore
 	retry	
 .endm
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	call fast_data_access_mmu_miss
 	nop
+	restore
 	retry
 .endm
 
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	call fast_data_access_protection
 	nop
+	restore
 	retry
 .endm
 #endif /* __ASM__ */

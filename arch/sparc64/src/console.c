@@ -27,119 +27,12 @@
  */
 
 #include <arch/console.h>
-#include <genarch/ofw/ofw.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <arch/asm.h>
-#include <arch/register.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <proc/thread.h>
-#include <synch/mutex.h>
+#include <genarch/fb/fb.h>
+#include <arch/drivers/fb.h>
 
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
-static char ofw_sparc64_getchar(chardev_t *d);
-static void ofw_sparc64_suspend(chardev_t *d);
-static void ofw_sparc64_resume(chardev_t *d);
-
-mutex_t canwork;
-
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar,
-	.read = ofw_sparc64_getchar,
-	.resume = ofw_sparc64_resume,
-	.suspend = ofw_sparc64_suspend
-};
-
-void ofw_sparc64_console_init(void)
+void fb_sparc64_console_init(void)
 {
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdin = &ofw_sparc64_console;
-	stdout = &ofw_sparc64_console;
-	mutex_initialize(&canwork);
-}
-
-/** Write one character.
- *
- * @param d Character device (ignored).
- * @param ch Character to be written.
- */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
-{
-	pstate_reg_t pstate;
-
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
-
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
-	
-	pstate.am = false;
-	pstate_write(pstate.value);
-}
-
-/** Read one character.
- *
- * The call is non-blocking.
- *
- * @param d Character device (ignored).
- * @return Character read or zero if no character was read.
- */
-char ofw_sparc64_getchar(chardev_t *d)
-{
-	char ch;
-	pstate_reg_t pstate;
-
-	/*
-	 * 32-bit OpenFirmware depends on PSTATE.AM bit set.
-	 */	
-	pstate.value = pstate_read();
-	pstate.am = true;
-	pstate_write(pstate.value);
-
-	ch = ofw_getchar();
-	
-	pstate.am = false;
-	pstate_write(pstate.value);
-	
-	return ch;
-}
-
-void ofw_sparc64_suspend(chardev_t *d)
-{
-	mutex_lock(&canwork);
-}
-
-void ofw_sparc64_resume(chardev_t *d)
-{
-	mutex_unlock(&canwork);
-}
-
-/** Kernel thread for pushing characters read from OFW to input buffer.
- *
- * @param arg Ignored.
- */
-void kofwinput(void *arg)
-{
-
-	while (1) {
-		char ch = 0;
-		
-		mutex_lock(&canwork);
-		mutex_unlock(&canwork);
-		
-		ch = ofw_sparc64_getchar(NULL);
-		if (ch) {
-			if (ch == '\r')
-				ch = '\n';
-			chardev_push_character(&ofw_sparc64_console, ch);
-		}
-		thread_usleep(25000);
-	}
+	fb_init(FB_VIRT_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH/8);
 }

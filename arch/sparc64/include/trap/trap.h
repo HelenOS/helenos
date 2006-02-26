@@ -40,6 +40,5 @@ static inline void trap_switch_trap_table(void)
 }
 
 extern void trap_init(void);
-extern void trap_install_handler(index_t tt, size_t len, bool tlnonz);
 
 #endif

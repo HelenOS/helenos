@@ -27,6 +27,7 @@
  */
 
 #include <arch/trap/exception.h>
+#include <arch/asm.h>
 #include <debug.h>
 
 /** Handle instruction_access_exception. */
@@ -39,4 +40,10 @@ void do_instruction_access_exc(void)
 void do_mem_address_not_aligned(void)
 {
 	panic("Memory Address Not Aligned\n");
+}
+
+/** Handle mem_address_not_aligned. */
+void do_illegal_instruction(void)
+{
+	panic("Illegal Instruction: %P\n", tpc_read());
 }

@@ -36,13 +36,13 @@
 void arch_pre_mm_init(void)
 {
 	interrupts_disable();
-	ofw_sparc64_console_init();
 	trap_init();
 	tick_init();
 }
 
 void arch_post_mm_init(void)
 {
+	fb_sparc64_console_init();
 }
 
 void arch_pre_smp_init(void)
@@ -51,15 +51,6 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	thread_t *t;
-	
-	/*
-	 * Create thread that reads characters from OFW's input.
-	 */
-	t = thread_create(kofwinput, NULL, TASK, 0);
-	if (!t)
-		panic("cannot create kofwinput\n");
-	thread_ready(t);
 }
 
 void calibrate_delay_loop(void)

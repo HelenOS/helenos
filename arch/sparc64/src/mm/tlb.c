@@ -40,6 +40,7 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <symtab.h>
+#include <arch/drivers/fb.h>
 
 char *context_encoding[] = {
 	"Primary",
@@ -110,8 +111,8 @@ void tlb_arch_init(void)
 	/*
 	 * Quick hack: map frame buffer
 	 */
-	fr.address = 0x1C901000000ULL;
-	pg.address = 0xc0000000;
+	fr.address = FB_PHYS_ADDRESS;
+	pg.address = FB_VIRT_ADDRESS;
 
 	tag.value = ASID_KERNEL;
 	tag.vpn = pg.vpn;
@@ -130,7 +131,6 @@ void tlb_arch_init(void)
 	data.g = true;
 
 	dtlb_data_in_write(data.value);
-
 }
 
 /** ITLB miss handler. */
@@ -146,7 +146,7 @@ void fast_data_access_mmu_miss(void)
 	tlb_data_t data;
 	__address tpc;
 	char *tpc_str;
-	
+
 	tag.value = dtlb_tag_access_read();
 	if (tag.context != ASID_KERNEL || tag.vpn == 0) {
 		tpc = tpc_read();

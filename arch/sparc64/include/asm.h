@@ -249,6 +249,18 @@ static inline __u64 tpc_read(void)
 	return v;
 }
 
+/** Read Trap Level register.
+ *
+ * @return Current value in TL.
+ */
+static inline __u64 tl_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("rdpr %%tl, %0\n" : "=r" (v));
+	
+	return v;
+}
 
 /** Write Trap Base Address register.
  *

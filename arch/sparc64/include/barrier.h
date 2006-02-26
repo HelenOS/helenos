@@ -47,7 +47,12 @@ static inline void flush(void)
 	 * As such, it may trap if the address is not found in DTLB.
 	 * However, JPS1 implementations are free to ignore the trap.
 	 */
-        __asm__ volatile ("flush %sp\n");
+	 
+	/*
+	 * %i7 should provide address that is always mapped in DTLB
+	 * as it is a pointer to kernel code.
+	 */
+        __asm__ volatile ("flush %i7\n");
 }
 
 /** Memory Barrier instruction. */

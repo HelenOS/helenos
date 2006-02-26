@@ -27,15 +27,7 @@
 #
 
 /**
- * This file contains two trap tables.
- * First, trap_table, is the one wich contains handlers implemented by
- * kernel. During initialization, these handlers are copied out to
- * the second trap table, trap_table_save, and the first table is
- * overwritten with copy of OFW's own trap table. The copy is then patched
- * from the trap_table_save.
- *
- * This arrangement is beneficial because kernel handlers stay on their
- * link-time addresses which is good for debugging.
+ * This file contains kernel trap table.
  */
 
 .register %g2, #scratch
@@ -67,6 +59,12 @@ trap_table:
 .global instruction_access_exception
 instruction_access_exception:
 	SIMPLE_HANDLER do_instruction_access_exc
+
+/* TT = 0x10, TL = 0, illegal_instruction */
+.org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
+.global illegal_instruction
+illegal_instruction:
+	SIMPLE_HANDLER do_illegal_instruction
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
@@ -216,6 +214,12 @@ fill_0_normal:
 instruction_access_exception_high:
 	SIMPLE_HANDLER do_instruction_access_exc
 
+/* TT = 0x10, TL > 0, illegal_instruction */
+.org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
+.global illegal_instruction_high
+illegal_instruction_high:
+	SIMPLE_HANDLER do_illegal_instruction
+
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
 .global clean_window_handler_high
@@ -257,16 +261,6 @@ spill_0_normal_high:
 .global fill_0_normal_high
 fill_0_normal_high:
 	FILL_NORMAL_HANDLER
-
-
-
-/*
- * Save trap table.
- */
-.align TABLE_SIZE
-.global trap_table_save
-trap_table_save:
-	.space TABLE_SIZE, 0
 
 
 /* Preemptible trap handler.
