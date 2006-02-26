@@ -126,15 +126,15 @@ static int getpixel_2byte(int x,int y)
 	return (red << (16+3)) | (green << (8+2)) | (blue << 3);
 }
 
-/** Put pixel - 8-bit depth (3:3:2) */
+/** Put pixel - 8-bit depth (3:2:3) */
 static void putpixel_1byte(int x,int y,int color)
 {
 	int compcolor;
 
-	/* 3-bit, 3-bits, 2-bits */
+	/* 3-bit, 2-bits, 3-bits */
 	compcolor = RED(color,3) << 5 \
-		| GREEN(color,3) << 2 \
-		| BLUE(color,2);
+		| GREEN(color,2) << 3 \
+		| BLUE(color,3);
 	fbaddress[POINTPOS(x,y)] = compcolor;
 }
 
@@ -146,7 +146,7 @@ static int getpixel_1byte(int x,int y)
 
 	color = fbaddress[POINTPOS(x,y)];
 	red = (color >> 5) & 0x7;
-	green = (color >> 5) & 0x7;
+	green = (color >> 3) & 0x7;
 	blue = color & 0x3;
 	return (red << (16+5)) | (green << (8+5)) | blue << 6;
 }
