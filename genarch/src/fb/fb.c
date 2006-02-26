@@ -146,9 +146,9 @@ static int getpixel_1byte(int x,int y)
 
 	color = fbaddress[POINTPOS(x,y)];
 	red = (color >> 5) & 0x7;
-	green = (color >> 3) & 0x7;
-	blue = color & 0x3;
-	return (red << (16+5)) | (green << (8+5)) | blue << 6;
+	green = (color >> 3) & 0x3;
+	blue = color & 0x7;
+	return (red << (16+5)) | (green << (8+6)) | blue << 5;
 }
 
 static void clear_line(int y);
