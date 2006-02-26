@@ -29,12 +29,11 @@
 #include <memstr.h>
 #include <arch/types.h>
 
-
 /** Copy block of memory
  *
  * Copy cnt bytes from src address to dst address.
- * The copying is done byte-by-byte. The source
- * and destination memory areas cannot overlap.
+ * The copying is done word-by-word and then byte-by-byte.
+ * The source and destination memory areas cannot overlap.
  *
  * @param src Origin address to copy from.
  * @param dst Origin address to copy to.
@@ -43,10 +42,13 @@
  */
 void *_memcpy(void * dst, const void *src, size_t cnt)
 {
-	int i;
+	int i, j;
 	
-	for (i=0; i<cnt; i++)
-		*((__u8 *) (dst + i)) = *((__u8 *) (src + i));
+	for (i = 0; i < cnt/sizeof(__native); i++)
+		((__native *) dst)[i] = ((__native *) src)[i];
+		
+	for (j = 0; j < cnt%sizeof(__native); j++)
+		((__u8 *)(((__native *) dst) + i))[j] = ((__u8 *)(((__native *) src) + i))[j];
 		
 	return (char *)src;
 }
