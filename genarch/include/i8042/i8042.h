@@ -45,5 +45,6 @@
 #define SC_END          0x4f
 
 extern void i8042_init(void);
+extern void i8042_poll(void);
 
 #endif

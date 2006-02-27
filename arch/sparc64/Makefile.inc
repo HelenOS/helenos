@@ -57,7 +57,15 @@ CONFIG_PAGE_HT = y
 CONFIG_ASID = y
 CONFIG_ASID_FIFO = y
 
+## Compile with support for framebuffer.
+#
+
 CONFIG_FB = y
+
+## Compile with support for i8042 controller.
+#
+
+CONFIG_I8042 = y
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \

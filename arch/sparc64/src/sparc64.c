@@ -61,6 +61,14 @@ void arch_post_smp_init(void)
 	if (!t)
 		panic("cannot create kofwinput\n");
 	thread_ready(t);
+
+	/*
+         * Create thread that polls keyboard.
+         */
+	t = thread_create(kkbdpoll, NULL, TASK, 0);
+	if (!t)
+		panic("cannot create kkbdpoll\n");
+	thread_ready(t);
 }
 
 void calibrate_delay_loop(void)

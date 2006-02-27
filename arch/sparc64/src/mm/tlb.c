@@ -42,7 +42,7 @@
 #include <symtab.h>
 
 #include <arch/drivers/fb.h>
-#include <arch/drivers/keyboard.h>
+#include <arch/drivers/i8042.h>
 
 char *context_encoding[] = {
 	"Primary",

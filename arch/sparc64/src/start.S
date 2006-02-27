@@ -101,6 +101,8 @@ relocated:
 	call ofw_init_memmap
 	nop
 
+	wrpr %r0, 0, %pil
+
 	call main_bsp
 	nop
 

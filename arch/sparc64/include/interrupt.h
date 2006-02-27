@@ -34,6 +34,13 @@
 #define IVT_ITEMS 	15
 #define IVT_FIRST	1
 
+/* Dummy macros. */
+#define IRQ_KBD		2
+#define VECTOR_KBD	IRQ_KBD
+
+#define trap_virtual_enable_irqs(x)
+#define trap_virtual_eoi()
+
 extern void interrupt_register(int n, const char *name, iroutine f);
 
 #endif

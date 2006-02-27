@@ -26,10 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_KEYBOARD_H__
-#define __sparc64_KEYBOARD_H__
+#ifndef __sparc64_I8042_H__
+#define __sparc64_I8042_H__
+
+#include <arch/types.h>
 
 #define KBD_PHYS_ADDRESS	0x1fff8904000ULL
 #define KBD_VIRT_ADDRESS	0x00000d00000ULL
+
+#define STATUS_REG	4
+#define COMMAND_REG	4
+#define DATA_REG	6
+
+static inline void i8042_data_write(__u8 data)
+{
+	((__u8 *)(KBD_VIRT_ADDRESS))[DATA_REG] = data;
+}
+
+static inline __u8 i8042_data_read(void)
+{
+	return ((volatile __u8 *)(KBD_VIRT_ADDRESS))[DATA_REG];
+}
+
+static inline __u8 i8042_status_read(void)
+{
+	return ((volatile __u8 *)(KBD_VIRT_ADDRESS))[STATUS_REG];
+}
+
+static inline void i8042_command_write(__u8 command)
+{
+	((__u8 *)(KBD_VIRT_ADDRESS))[COMMAND_REG] = command;
+}
 
 #endif

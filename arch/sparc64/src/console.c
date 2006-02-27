@@ -31,7 +31,8 @@
 #include <typedefs.h>
 #include <genarch/fb/fb.h>
 #include <arch/drivers/fb.h>
-#include <arch/drivers/keyboard.h>
+#include <arch/drivers/i8042.h>
+#include <genarch/i8042/i8042.h>
 #include <genarch/ofw/ofw.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -39,6 +40,8 @@
 #include <arch/register.h>
 #include <proc/thread.h>
 #include <synch/mutex.h>
+
+#define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 
 static void ofw_sparc64_putchar(chardev_t *d, const char ch);
 static char ofw_sparc64_getchar(chardev_t *d);
@@ -73,6 +76,7 @@ void standalone_sparc64_console_init(void)
 	ofw_console_active = 0;
 	stdin = NULL;
 	fb_init(FB_VIRT_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH/8);
+	i8042_init();
 }
 
 /** Write one character using OpenFirmware.
@@ -155,6 +159,18 @@ void kofwinput(void *arg)
 				ch = '\n';
 			chardev_push_character(&ofw_sparc64_console, ch);
 		}
-		thread_usleep(25000);
+		thread_usleep(KEYBOARD_POLL_PAUSE);
+	}
+}
+
+/** Kernel thread for polling keyboard.
+ *
+ * @param arg Ignored.
+ */
+void kkbdpoll(void *arg)
+{
+	while (1) {
+		i8042_poll();		
+		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}
 }

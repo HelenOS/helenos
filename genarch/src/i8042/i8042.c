@@ -52,7 +52,7 @@
 
 /*
  * 60  Write 8042 Command Byte: next data byte written to port 60h is
- *     placed in 8042 command register.Format:
+ *     placed in 8042 command register. Format:
  *
  *    |7|6|5|4|3|2|1|0|8042 Command Byte
  *     | | | | | | | `---- 1=enable output register full interrupt
@@ -73,6 +73,11 @@
 
 #define SPECIAL		'?'
 #define KEY_RELEASE	0x80
+
+/**
+ * These codes read from i8042 data register are silently ignored.
+ */
+#define IGNORE_CODE	0x7f
 
 static void key_released(__u8 sc);
 static void key_pressed(__u8 sc);
@@ -261,19 +266,17 @@ static char sc_secondary_map[] = {
 };
 
 static void i8042_interrupt(int n, void *stack);
+static void i8042_wait(void);
 
 /** Initialize i8042. */
 void i8042_init(void)
 {
 	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
-	while (i8042_status_read() & i8042_WAIT_MASK) {
-		/* wait */
-	}
+	i8042_wait();
 	i8042_command_write(i8042_SET_COMMAND);
-	while (i8042_status_read() & i8042_WAIT_MASK) {
-		/* wait */
-	}
+	i8042_wait();
 	i8042_data_write(i8042_COMMAND);
+	i8042_wait();
 
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
@@ -295,6 +298,13 @@ void i8042_interrupt(int n, void *stack)
 		key_released(x ^ KEY_RELEASE);
 	else
 		key_pressed(x);
+}
+
+/** Wait until the controller reads its data. */
+void i8042_wait(void) {
+	while (i8042_status_read() & i8042_WAIT_MASK) {
+		/* wait */
+	}
 }
 
 /** Process release of key.
@@ -502,10 +512,31 @@ static char key_read(chardev_t *d)
 		while (!((x=i8042_status_read() & i8042_BUFFER_FULL_MASK)))
 			;
 		x = i8042_data_read();
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			active_read_key_pressed(x);
+		if (x != IGNORE_CODE) {
+			if (x & KEY_RELEASE)
+				key_released(x ^ KEY_RELEASE);
+			else
+				active_read_key_pressed(x);
+		}
 	}
 	return ch;
+}
+
+/** Poll for key press and release events.
+ *
+ * This function can be used to implement keyboard polling.
+ */
+void i8042_poll(void)
+{
+	__u8 x;
+
+	while (((x = i8042_status_read() & i8042_BUFFER_FULL_MASK))) {
+		x = i8042_data_read();
+		if (x != IGNORE_CODE) {
+			if (x & KEY_RELEASE)
+				key_released(x ^ KEY_RELEASE);
+			else
+				key_pressed(x);
+		}
+	}
 }
