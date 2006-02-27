@@ -68,3 +68,9 @@ ifeq ($(CONFIG_FB),y)
 		genarch/src/fb/fb.c
 	DEFS += -DCONFIG_FB
 endif
+
+## i8042 controller
+ifeq ($(CONFIG_I8042),y)
+	GENARCH_SOURCES += \
+		genarch/src/i8042/i8042.c
+endif

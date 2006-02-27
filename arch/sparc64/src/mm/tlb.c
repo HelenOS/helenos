@@ -40,7 +40,9 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <symtab.h>
+
 #include <arch/drivers/fb.h>
+#include <arch/drivers/keyboard.h>
 
 char *context_encoding[] = {
 	"Primary",
@@ -122,6 +124,30 @@ void tlb_arch_init(void)
 	data.value = 0;
 	data.v = true;
 	data.size = PAGESIZE_4M;
+	data.pfn = fr.pfn;
+	data.l = true;
+	data.cp = 0;
+	data.cv = 0;
+	data.p = true;
+	data.w = true;
+	data.g = true;
+
+	dtlb_data_in_write(data.value);
+	
+	/*
+	 * Quick hack: map keyboard
+	 */
+	fr.address = KBD_PHYS_ADDRESS;
+	pg.address = KBD_VIRT_ADDRESS;
+
+	tag.value = ASID_KERNEL;
+	tag.vpn = pg.vpn;
+
+	dtlb_tag_access_write(tag.value);
+
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_8K;
 	data.pfn = fr.pfn;
 	data.l = true;
 	data.cp = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __I8042_H__
-#define __I8042_H__
+#ifndef __sparc64_KEYBOARD_H__
+#define __sparc64_KEYBOARD_H__
 
-#include <arch/types.h>
-
-/** Scancodes. */
-#define SC_ESC		0x01
-#define SC_BACKSPACE	0x0e
-#define SC_LSHIFT	0x2a
-#define SC_RSHIFT	0x36
-#define SC_CAPSLOCK	0x3a
-#define SC_SPEC_ESCAPE  0xe0
-#define SC_LEFTARR      0x4b
-#define SC_RIGHTARR     0x4d
-#define SC_UPARR        0x48
-#define SC_DOWNARR      0x50
-#define SC_DELETE       0x53
-#define SC_HOME         0x47
-#define SC_END          0x4f
-
-extern void i8042_init(void);
+#define KBD_PHYS_ADDRESS	0x1fff8904000ULL
+#define KBD_VIRT_ADDRESS	0x00000d00000ULL
 
 #endif

@@ -63,6 +63,11 @@ CONFIG_ACPI = y
 
 CONFIG_PAGE_PT = y
 
+## Compile with i8042 support.
+#
+
+CONFIG_I8042 = y
+
 ## Accepted configuration directives
 #
 
@@ -84,7 +89,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/pm.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/drivers/ega.c \
-	arch/$(ARCH)/src/drivers/i8042.c \
 	arch/$(ARCH)/src/drivers/i8254.c \
 	arch/$(ARCH)/src/drivers/i8259.c \
 	arch/$(ARCH)/src/delay.S \

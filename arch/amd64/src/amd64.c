@@ -33,7 +33,7 @@
 #include <config.h>
 
 #include <arch/ega.h>
-#include <arch/i8042.h>
+#include <genarch/i8042/i8042.h>
 #include <arch/i8254.h>
 #include <arch/i8259.h>
 
@@ -148,7 +148,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-		i8042_init();	/* keyboard controller */
+	i8042_init();	/* keyboard controller */
 }
 
 void calibrate_delay_loop(void)

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/i8042.h>
-#include <arch/i8259.h>
+#include <genarch/i8042/i8042.h>
+#include <arch/drivers/i8042.h>
 #include <arch/interrupt.h>
 #include <cpu.h>
 #include <arch/asm.h>
@@ -44,10 +44,6 @@
  * i8042 processor driver.
  * It takes care of low-level keyboard functions.
  */
-
-#define i8042_DATA			0x60
-#define i8042_STATUS			0x64
-#define i8042_BUFFER_FULL_MASK		0x01
 
 /** Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -71,6 +67,8 @@
 
 #define i8042_SET_COMMAND 	0x60
 #define i8042_COMMAND 		0x49
+
+#define i8042_BUFFER_FULL_MASK	0x01
 #define i8042_WAIT_MASK 	0x02
 
 #define SPECIAL		'?'
@@ -84,9 +82,9 @@ static char key_read(chardev_t *d);
 #define PRESSED_CAPSLOCK	(1<<1)
 #define LOCKED_CAPSLOCK		(1<<0)
 
-#define ACTIVE_READ_BUFF_SIZE 16 /*Must be power of 2*/
+#define ACTIVE_READ_BUFF_SIZE 16 	/* Must be power of 2 */
 
-__u8 active_read_buff[ACTIVE_READ_BUFF_SIZE]={0};
+static __u8 active_read_buff[ACTIVE_READ_BUFF_SIZE];
 
 SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
@@ -268,14 +266,14 @@ static void i8042_interrupt(int n, void *stack);
 void i8042_init(void)
 {
 	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
-	while (inb(i8042_STATUS)&i8042_WAIT_MASK) {
+	while (i8042_status_read() & i8042_WAIT_MASK) {
 		/* wait */
 	}
-	outb(i8042_STATUS,i8042_SET_COMMAND);
-	while (inb(i8042_STATUS)&i8042_WAIT_MASK) {
+	i8042_command_write(i8042_SET_COMMAND);
+	while (i8042_status_read() & i8042_WAIT_MASK) {
 		/* wait */
 	}
-	outb(i8042_DATA,i8042_COMMAND);
+	i8042_data_write(i8042_COMMAND);
 
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
@@ -292,7 +290,7 @@ void i8042_interrupt(int n, void *stack)
 	__u8 x;
 
 	trap_virtual_eoi();
-	x = inb(i8042_DATA);
+	x = i8042_data_read();
 	if (x & KEY_RELEASE)
 		key_released(x ^ KEY_RELEASE);
 	else
@@ -409,9 +407,8 @@ void i8042_suspend(chardev_t *d)
 static __u8 active_read_buff_read(void)
 {
 	static int i=0;
-	i&=(ACTIVE_READ_BUFF_SIZE-1);
-	if(!active_read_buff[i])
-	{
+	i &= (ACTIVE_READ_BUFF_SIZE-1);
+	if(!active_read_buff[i]) {
 		return 0;
 	}
 	return active_read_buff[i++];
@@ -420,9 +417,9 @@ static __u8 active_read_buff_read(void)
 static void active_read_buff_write(__u8 ch)
 {
 	static int i=0;
-	active_read_buff[i]=ch;
+	active_read_buff[i] = ch;
 	i++;
-	i&=(ACTIVE_READ_BUFF_SIZE-1);
+	i &= (ACTIVE_READ_BUFF_SIZE-1);
 	active_read_buff[i]=0;
 }
 
@@ -500,11 +497,11 @@ static char key_read(chardev_t *d)
 {
 	char ch;	
 
-	while(!(ch=active_read_buff_read()))
-	{
+	while(!(ch = active_read_buff_read())) {
 		__u8 x;
-		while (!((x=inb(i8042_STATUS))&i8042_BUFFER_FULL_MASK));
-		x = inb(i8042_DATA);
+		while (!((x=i8042_status_read() & i8042_BUFFER_FULL_MASK)))
+			;
+		x = i8042_data_read();
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
 		else

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,80 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
+/**
+ * This file implements ia32 specific access to i8042 registers.
+ */
 
-#include <arch/types.h>
-#include <typedefs.h>
+#ifndef __ia32_I8042_H__
+#define __ia32_I8042_H__
 
-#include <arch/pm.h>
-
-#include <arch/ega.h>
-#include <genarch/i8042/i8042.h>
-#include <arch/i8254.h>
-#include <arch/i8259.h>
-
-#include <arch/context.h>
-
-#include <config.h>
-
-#include <arch/interrupt.h>
 #include <arch/asm.h>
-#include <genarch/acpi/acpi.h>
+#include <arch/types.h>
 
-#include <arch/bios/bios.h>
+#define i8042_DATA		0x60
+#define i8042_STATUS		0x64
 
-#include <arch/mm/memory_init.h>
-#include <interrupt.h>
-
-void arch_pre_mm_init(void)
+static inline void i8042_data_write(__u8 data)
 {
-	pm_init();
-
-	if (config.cpu_active == 1) {
-		bios_init();
-		i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
-		
-		exc_register(VECTOR_SYSCALL, "syscall", syscall);
-		
-		#ifdef CONFIG_SMP
-		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     tlb_shootdown_ipi);
-		#endif /* CONFIG_SMP */
-	}
+	outb(i8042_DATA, data);
 }
 
-void arch_post_mm_init(void)
+static inline __u8 i8042_data_read(void)
 {
-	if (config.cpu_active == 1) {
-		ega_init();	/* video */
-	}
+	return inb(i8042_DATA);
 }
 
-void arch_pre_smp_init(void)
+static inline __u8 i8042_status_read(void)
 {
-	if (config.cpu_active == 1) {
-		memory_print_map();
-		
-		#ifdef CONFIG_SMP
-		acpi_init();
-		#endif /* CONFIG_SMP */
-	}
+	return inb(i8042_STATUS);
 }
 
-void arch_post_smp_init(void)
+static inline void i8042_command_write(__u8 command)
 {
-	i8042_init();	/* keyboard controller */
+	outb(i8042_STATUS, command);
 }
 
-void calibrate_delay_loop(void)
-{
-	i8254_calibrate_delay_loop();
-	if (config.cpu_active == 1) {
-		/*
-		 * This has to be done only on UP.
-		 * On SMP, i8254 is not used for time keeping and its interrupt pin remains masked.
-		 */
-		i8254_normal_operation();
-	}
-}
+#endif

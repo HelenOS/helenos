@@ -31,6 +31,7 @@
 #include <typedefs.h>
 #include <genarch/fb/fb.h>
 #include <arch/drivers/fb.h>
+#include <arch/drivers/keyboard.h>
 #include <genarch/ofw/ofw.h>
 #include <console/chardev.h>
 #include <console/console.h>

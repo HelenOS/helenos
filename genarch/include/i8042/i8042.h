@@ -26,80 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch.h>
+#ifndef __I8042_H__
+#define __I8042_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
+/** Scancodes. */
+#define SC_ESC		0x01
+#define SC_BACKSPACE	0x0e
+#define SC_LSHIFT	0x2a
+#define SC_RSHIFT	0x36
+#define SC_CAPSLOCK	0x3a
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x4b
+#define SC_RIGHTARR     0x4d
+#define SC_UPARR        0x48
+#define SC_DOWNARR      0x50
+#define SC_DELETE       0x53
+#define SC_HOME         0x47
+#define SC_END          0x4f
 
-#include <arch/pm.h>
+extern void i8042_init(void);
 
-#include <arch/ega.h>
-#include <genarch/i8042/i8042.h>
-#include <arch/i8254.h>
-#include <arch/i8259.h>
-
-#include <arch/context.h>
-
-#include <config.h>
-
-#include <arch/interrupt.h>
-#include <arch/asm.h>
-#include <genarch/acpi/acpi.h>
-
-#include <arch/bios/bios.h>
-
-#include <arch/mm/memory_init.h>
-#include <interrupt.h>
-
-void arch_pre_mm_init(void)
-{
-	pm_init();
-
-	if (config.cpu_active == 1) {
-		bios_init();
-		i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
-		
-		exc_register(VECTOR_SYSCALL, "syscall", syscall);
-		
-		#ifdef CONFIG_SMP
-		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     tlb_shootdown_ipi);
-		#endif /* CONFIG_SMP */
-	}
-}
-
-void arch_post_mm_init(void)
-{
-	if (config.cpu_active == 1) {
-		ega_init();	/* video */
-	}
-}
-
-void arch_pre_smp_init(void)
-{
-	if (config.cpu_active == 1) {
-		memory_print_map();
-		
-		#ifdef CONFIG_SMP
-		acpi_init();
-		#endif /* CONFIG_SMP */
-	}
-}
-
-void arch_post_smp_init(void)
-{
-	i8042_init();	/* keyboard controller */
-}
-
-void calibrate_delay_loop(void)
-{
-	i8254_calibrate_delay_loop();
-	if (config.cpu_active == 1) {
-		/*
-		 * This has to be done only on UP.
-		 * On SMP, i8254 is not used for time keeping and its interrupt pin remains masked.
-		 */
-		i8254_normal_operation();
-	}
-}
+#endif
