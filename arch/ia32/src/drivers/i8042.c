@@ -45,10 +45,9 @@
  * It takes care of low-level keyboard functions.
  */
 
-#define i8042_DATA		0x60
-#define i8042_STATUS		0x64
+#define i8042_DATA			0x60
+#define i8042_STATUS			0x64
 #define i8042_BUFFER_FULL_MASK		0x01
-
 
 /** Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -56,24 +55,23 @@
 #define KBD_ACK		0xfa
 
 /*
- 60   Write 8042 Command Byte: next data byte written to port 60h is
-      placed in 8042 command register.Format:
+ * 60  Write 8042 Command Byte: next data byte written to port 60h is
+ *     placed in 8042 command register.Format:
+ *
+ *    |7|6|5|4|3|2|1|0|8042 Command Byte
+ *     | | | | | | | `---- 1=enable output register full interrupt
+ *     | | | | | | `----- should be 0
+ *     | | | | | `------ 1=set status register system, 0=clear
+ *     | | | | `------- 1=override keyboard inhibit, 0=allow inhibit
+ *     | | | `-------- disable keyboard I/O by driving clock line low
+ *     | | `--------- disable auxiliary device, drives clock line low
+ *     | `---------- IBM scancode translation 0=AT, 1=PC/XT
+ *     `----------- reserved, should be 0
+ */
 
-     |7|6|5|4|3|2|1|0|8042 Command Byte
-      | | | | | | | `---- 1=enable output register full interrupt
-      | | | | | | `----- should be 0
-      | | | | | `------ 1=set status register system, 0=clear
-      | | | | `------- 1=override keyboard inhibit, 0=allow inhibit
-      | | | `-------- disable keyboard I/O by driving clock line low
-      | | `--------- disable auxiliary device, drives clock line low
-      | `---------- IBM scancode translation 0=AT, 1=PC/XT
-      `----------- reserved, should be 0
-*/
-
-#define i8042_SET_COMMAND 0x60
-#define i8042_COMMAND 0x49
-#define i8042_WAIT_MASK 0x02
-
+#define i8042_SET_COMMAND 	0x60
+#define i8042_COMMAND 		0x49
+#define i8042_WAIT_MASK 	0x02
 
 #define SPECIAL		'?'
 #define KEY_RELEASE	0x80
@@ -87,7 +85,6 @@ static char key_read(chardev_t *d);
 #define LOCKED_CAPSLOCK		(1<<0)
 
 #define ACTIVE_READ_BUFF_SIZE 16 /*Must be power of 2*/
-
 
 __u8 active_read_buff[ACTIVE_READ_BUFF_SIZE]={0};
 
@@ -271,9 +268,13 @@ static void i8042_interrupt(int n, void *stack);
 void i8042_init(void)
 {
 	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
-	while (inb(i8042_STATUS)&i8042_WAIT_MASK);     /*Wait*/
+	while (inb(i8042_STATUS)&i8042_WAIT_MASK) {
+		/* wait */
+	}
 	outb(i8042_STATUS,i8042_SET_COMMAND);
-	while (inb(i8042_STATUS)&i8042_WAIT_MASK);     /*Wait*/
+	while (inb(i8042_STATUS)&i8042_WAIT_MASK) {
+		/* wait */
+	}
 	outb(i8042_DATA,i8042_COMMAND);
 
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
@@ -405,7 +406,6 @@ void i8042_suspend(chardev_t *d)
 {
 }
 
-
 static __u8 active_read_buff_read(void)
 {
 	static int i=0;
@@ -427,7 +427,7 @@ static void active_read_buff_write(__u8 ch)
 }
 
 
-static void active_readed_key_pressed(__u8 sc)
+static void active_read_key_pressed(__u8 sc)
 {
 	char *map = sc_primary_map;
 	char ascii = sc_primary_map[sc];
@@ -496,11 +496,9 @@ static void active_readed_key_pressed(__u8 sc)
 
 }
 
-
 static char key_read(chardev_t *d)
 {
 	char ch;	
-	
 
 	while(!(ch=active_read_buff_read()))
 	{
@@ -510,9 +508,7 @@ static char key_read(chardev_t *d)
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
 		else
-			active_readed_key_pressed(x);
+			active_read_key_pressed(x);
 	}
 	return ch;
 }
-
-

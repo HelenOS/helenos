@@ -26,21 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 #include <arch/register.h>
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/asid.h>
 
-
 #define RR_MASK (0xFFFFFFFF00000002)
 #define RID_SHIFT 8
 #define PS_SHIFT 2
 
-
 #define KERNEL_TRANSLATION_I 0x0010000000000661
 #define KERNEL_TRANSLATION_D 0x0010000000000661
-
 
 .section K_TEXT_START
 
@@ -50,7 +46,7 @@ stack0:
 kernel_image_start:
 	.auto
 
-	#Fill TR.i and TR.d using Region Register #VRN_KERNEL
+	# Fill TR.i and TR.d using Region Register #VRN_KERNEL
 
 	movl r8=(VRN_KERNEL<<VRN_SHIFT)
 	mov r9=rr[r8]
@@ -60,23 +56,20 @@ kernel_image_start:
 	or  r9=r10,r9
 	mov rr[r8]=r9
 
-
 	movl r8=(VRN_KERNEL<<VRN_SHIFT)
 	mov cr.ifa=r8
 	movl r10=(KERNEL_PAGE_WIDTH<<PS_SHIFT)
 	mov cr.itir=r10
 	movl r10=(KERNEL_TRANSLATION_I)
 	itr.i itr[r0]=r10
-
 	movl r10=(KERNEL_TRANSLATION_D)
 	itr.d dtr[r0]=r10
-
 
 	# initialize PSR
 	mov psr.l = r0
 	srlz.i
 	srlz.d
-	movl r10=(PSR_DT_MASK|PSR_RT_MASK|PSR_IT_MASK|PSR_IC_MASK)  /*Enable paging*/
+	movl r10=(PSR_DT_MASK|PSR_RT_MASK|PSR_IT_MASK|PSR_IC_MASK)  /* Enable paging */
 	mov r9=psr
 	or r10=r10,r9
 	mov cr.ipsr=r10
@@ -85,10 +78,12 @@ kernel_image_start:
 	mov cr.iip=r8
 	srlz.d
 	srlz.i
-.explicit
 
-	/*Return from interupt is only the way how to fill upper half word of PSR*/
-	{rfi;;}
+	.explicit
+	/*
+	 * Return From Interupt is the only the way to fill upper half word of PSR.
+	 */
+	rfi;;
 	{nop 0;;}
 	{nop 0;;}
 	{nop 0;;}
@@ -99,8 +94,12 @@ kernel_image_start:
 	{nop 0;;}
 
 .global paging_start
-	/*Now we are paging*/
 paging_start:
+
+	/*
+	 * Now we are paging.
+	 */
+
 	{nop 0;;}
 	{nop 0;;}
 	{nop 0;;}
@@ -110,18 +109,15 @@ paging_start:
 	{nop 0;;}
 	{nop 0;;}
 
-.auto
-	
 	# switch to register bank 1
 	bsw.1
 	
 	# initialize register stack
 	mov ar.rsc = r0
-	movl r8=(VRN_KERNEL<<VRN_SHIFT)
+	movl r8=(VRN_KERNEL<<VRN_SHIFT) ;;
 	mov ar.bspstore = r8
 	loadrs
 
-	.explicit
 	# initialize memory stack to some sane value
 	movl r12 = stack0;;
 	
@@ -130,11 +126,9 @@ paging_start:
 	# initialize gp (Global Pointer) register
 	movl r1 = _hardcoded_load_address	;;
 
-	
-
-	#
-	# Initialize hardcoded_* variables.
-	#
+	/*
+	 * Initialize hardcoded_* variables.
+	 */
 	movl r14 = _hardcoded_ktext_size
 	movl r15 = _hardcoded_kdata_size
 	movl r16 = _hardcoded_load_address
@@ -146,13 +140,9 @@ paging_start:
 	st8 [r18] = r15
 	st8 [r19] = r16
 
-
-.auto
-	
-	movl r18=main_bsp 
-	mov b1=r18
+	movl r18=main_bsp ;;
+	mov b1=r18 ;;
 	br.call.sptk.many b0=b1
-
 
 0:
 	br 0b

@@ -86,17 +86,19 @@ __s32 ski_getchar(void)
 }
 
 /**
-	This is blocking wrap function of ski_getchar
-	It active waits ... for using with non-stable kernel 
-*/
+ * This is a blocking wrapper for ski_getchar().
+ * To be used when the kernel crashes. 
+ */
 static char ski_getchar_blocking(chardev_t *d)
 {
-	volatile int ch;
-	while(!(ch=ski_getchar()));
-	if(ch == '\r') ch = '\n'; 
+	int ch;
+
+	while(!(ch=ski_getchar()))
+		;
+	if(ch == '\r')
+		ch = '\n'; 
 	return (char) ch;
 }
-
 
 /** Ask keyboard if a key was pressed. */
 void poll_keyboard(void)
