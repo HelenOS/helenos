@@ -31,6 +31,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <panic.h>
+#include <memstr.h>
 
 #include "helenos.xbm"
 
@@ -157,8 +158,7 @@ static void scroll_screen(void)
 {
 	int i;
 
-	for (i=0;i < (xres*yres*pixelbytes)-ROW_PIX; i++)
-		fbaddress[i] = fbaddress[i+ROW_PIX];
+	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_PIX], (xres*yres*pixelbytes)-ROW_PIX);
 
 	/* Clear last row */
 	for (i=0; i < ROW_HEIGHT;i++)
