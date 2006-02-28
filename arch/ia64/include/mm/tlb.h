@@ -32,19 +32,26 @@
 #define tlb_arch_init()
 #define tlb_print()
 
-
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <arch/register.h>
+#include <typedefs.h>
 
+extern void tc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry, bool dtc);
+extern void dtc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry);
+extern void itc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry);
 
-void tlb_fill_data(__address va,asid_t asid,vhpt_entry_t entry);
-void tlb_fill_code(__address va,asid_t asid,vhpt_entry_t entry);
+extern void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr);
+extern void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
+extern void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
 
-void tlb_fill_code_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry);
-void tlb_fill_data_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry);
-
-
+extern void alternate_instruction_tlb_fault(void);
+extern void alternate_data_tlb_fault(void);
+extern void data_nested_tlb_fault(void);
+extern void data_dirty_bit_fault(void);
+extern void instruction_access_bit_fault(void);
+extern void data_access_bit_fault(void);
+extern void page_not_present(void);
 
 #endif
 

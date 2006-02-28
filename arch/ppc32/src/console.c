@@ -33,7 +33,7 @@
 #include <genarch/fb/fb.h>
 
 
-/** Initialize console to use ofw output */
+/** Initialize console to use frame buffer. */
 void ppc32_console_init(void)
 {
 	/* TODO: PCI detection etc. etc. - this is fine in PearPC for now */

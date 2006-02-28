@@ -33,7 +33,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
 #include <arch/barrier.h>
-
+#include <typedefs.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -50,238 +50,192 @@ void tlb_invalidate_asid(asid_t asid)
 	/* TODO */
 }
 
-
-
-void tlb_fill_data(__address va,asid_t asid,tlb_entry_t entry)
-{
-	region_register rr;
-
-
-	if(!(entry.not_present.p)) return;
-
-	rr.word=rr_read(VA_REGION(va));
-
-	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
-	{
-		asm volatile
-		(
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"srlz.i;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itc.d %3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0])
-			:"r8","r9"
-		);
-	}
-	else
-	{
-		region_register rr0;
-		rr0=rr;
-		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
-		rr_write(VA_REGION(va),rr0.word);
-		srlz_d();
-		asm volatile
-		(
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itc.d %3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0])
-			:"r8","r9"
-		);
-		rr_write(VA_REGION(va),rr.word);
-	}
-
-
+/** Insert data into data translation cache.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ */
+void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry) {
+	tc_mapping_insert(va, asid, entry, true);
 }
 
-void tlb_fill_code(__address va,asid_t asid,tlb_entry_t entry)
-{
-	region_register rr;
-
-
-	if(!(entry.not_present.p)) return;
-
-	rr.word=rr_read(VA_REGION(va));
-
-	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
-	{
-		asm volatile
-		(
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"srlz.i;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itc.i %3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0])
-			:"r8","r9"
-		);
-	}
-	else
-	{
-		region_register rr0;
-		rr0=rr;
-		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
-		rr_write(VA_REGION(va),rr0.word);
-		srlz_d();
-		asm volatile
-		(
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"mov cr.ifa=%1\n"      		/*va*/		 
-			"mov cr.itir=%2;;\n"			/*entry.word[1]*/ 
-			"itc.i %3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0])
-			:"r8","r9"
-		);
-		rr_write(VA_REGION(va),rr.word);
-	}
-
-
+/** Insert data into instruction translation cache.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ */
+void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry) {
+	tc_mapping_insert(va, asid, entry, false);
 }
 
-
-void tlb_fill_data_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry)
+/** Insert data into instruction or data translation cache.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param dtc If true, insert into data translation cache, use instruction translation cache otherwise.
+ */
+void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 {
 	region_register rr;
+	bool restore_rr = false;
 
+	if (!(entry.not_present.p))
+		return;
 
-	if(!(entry.not_present.p)) return;
-
-	rr.word=rr_read(VA_REGION(va));
-
-	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
-	{
-		asm volatile
-		(
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"srlz.i;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itr.d dtr[%4]=%3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
-			:"r8","r9"
-		);
-	}
-	else
-	{
+	rr.word = rr_read(VA_REGION(va));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA_REGION(va))))) {
+		/*
+		 * The selected region register does not contain required RID.
+		 * Save the old content of the register and replace the RID.
+		 */
 		region_register rr0;
-		rr0=rr;
-		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
-		rr_write(VA_REGION(va),rr0.word);
+
+		rr0 = rr;
+		rr0.map.rid = ASID2RID(asid, VA_REGION(va));
+		rr_write(VA_REGION(va), rr0.word);
 		srlz_d();
-		asm volatile
-		(
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itr.d dtr[%4]=%3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
-			:"r8","r9"
-		);
-		rr_write(VA_REGION(va),rr.word);
+		srlz_i();
 	}
-
-
+	
+	__asm__ volatile (
+		"mov r8=psr;;\n"
+		"and r9=r8,%0;;\n"   		/* (~PSR_IC_MASK) */
+		"mov psr.l=r9;;\n"
+		"srlz.d;;\n"
+		"srlz.i;;\n"
+		"mov cr.ifa=%1\n"		/* va */
+		"mov cr.itir=%2;;\n"		/* entry.word[1] */
+		"cmp.eq p6,p7 = %4,r0;;\n"	/* decide between itc and dtc */ 
+		"(p6) itc.i %3;;\n"
+		"(p7) itc.d %3;;\n"
+		"mov psr.l=r8;;\n"
+		"srlz.d;;\n"
+		:
+		: "r" (~PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (dtc)
+		: "p6", "p7", "r8", "r9"
+	);
+	
+	if (restore_rr) {
+		rr_write(VA_REGION(va),rr.word);
+		srlz_d();
+		srlz_i();
+	}
 }
 
-void tlb_fill_code_tr(__u64 tr,__address va,asid_t asid,tlb_entry_t entry)
+/** Insert data into instruction translation register.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param tr Translation register.
+ */
+void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr)
+{
+	tr_mapping_insert(va, asid, entry, false, tr);
+}
+
+/** Insert data into data translation register.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param tr Translation register.
+ */
+void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr)
+{
+	tr_mapping_insert(va, asid, entry, true, tr);
+}
+
+/** Insert data into instruction or data translation register.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param dtc If true, insert into data translation register, use instruction translation register otherwise.
+ * @param tr Translation register.
+ */
+void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr)
 {
 	region_register rr;
+	bool restore_rr = false;
 
+	if (!(entry.not_present.p))
+		return;
 
-	if(!(entry.not_present.p)) return;
-
-	rr.word=rr_read(VA_REGION(va));
-
-	if(rr.map.rid==ASID2RID(asid,VA_REGION(va)))
-	{
-		asm volatile
-		(
-			"srlz.i;;\n"
-			"srlz.d;;\n"
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"srlz.i;;\n"
-			"mov cr.ifa=%1\n"        		/*va*/		 
-			"mov cr.itir=%2;;\n"				/*entry.word[1]*/ 
-			"itr.i itr[%4]=%3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
-			:"r8","r9"
-		);
-	}
-	else
-	{
+	rr.word = rr_read(VA_REGION(va));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA_REGION(va))))) {
+		/*
+		 * The selected region register does not contain required RID.
+		 * Save the old content of the register and replace the RID.
+		 */
 		region_register rr0;
-		rr0=rr;
-		rr0.map.rid=ASID2RID(asid,VA_REGION(va));
-		rr_write(VA_REGION(va),rr0.word);
+
+		rr0 = rr;
+		rr0.map.rid = ASID2RID(asid, VA_REGION(va));
+		rr_write(VA_REGION(va), rr0.word);
 		srlz_d();
-		asm volatile
-		(
-			"mov r8=psr;;\n"
-			"and r9=r8,%0;;\n"   				/*(~PSR_IC_MASK)*/
-			"mov psr.l=r9;;\n"
-			"srlz.d;;\n"
-			"mov cr.ifa=%1\n"      		/*va*/		 
-			"mov cr.itir=%2;;\n"			/*entry.word[1]*/ 
-			"itr.i itr[%4]=%3;;\n"						/*entry.word[0]*/
-			"mov psr.l=r8;;\n"
-			"srlz.d;;\n"
-			:
-			:"r"(~PSR_IC_MASK),"r"(va),"r"(entry.word[1]),"r"(entry.word[0]),"r"(tr)
-			:"r8","r9"
-		);
-		rr_write(VA_REGION(va),rr.word);
+		srlz_i();
 	}
 
-
+	__asm__ volatile (
+		"mov r8=psr;;\n"
+		"and r9=r8,%0;;\n"		/* (~PSR_IC_MASK) */
+		"mov psr.l=r9;;\n"
+		"srlz.d;;\n"
+		"srlz.i;;\n"
+		"mov cr.ifa=%1\n"        	/* va */		 
+		"mov cr.itir=%2;;\n"		/* entry.word[1] */ 
+		"cmp.eq p6,p7=%5,r0;;\n"	/* decide between itr and dtr */
+		"(p6) itr.i itr[%4]=%3;;\n"
+		"(p7) itr.d dtr[%4]=%3;;\n"
+		"mov psr.l=r8;;\n"
+		"srlz.d;;\n"
+		:
+		:"r" (~PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (tr), "r" (dtr)
+		: "p6", "p7", "r8", "r9"
+	);
+	
+	if (restore_rr) {
+		rr_write(VA_REGION(va),rr.word);
+		srlz_d();
+		srlz_i();
+	}
 }
 
+void alternate_instruction_tlb_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void alternate_data_tlb_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void data_nested_tlb_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void data_dirty_bit_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void instruction_access_bit_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void data_access_bit_fault(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
+
+void page_not_present(void)
+{
+	panic("%s\n", __FUNCTION__);
+}
