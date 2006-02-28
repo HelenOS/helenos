@@ -43,3 +43,7 @@ void before_thread_runs_arch(void)
 		  (__u64)&THREAD->kstack);
 	swapgs();
 }
+
+void after_thread_ran_arch(void)
+{
+}

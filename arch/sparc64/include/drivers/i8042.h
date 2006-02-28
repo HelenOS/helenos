@@ -32,7 +32,7 @@
 #include <arch/types.h>
 
 #define KBD_PHYS_ADDRESS	0x1fff8904000ULL
-#define KBD_VIRT_ADDRESS	0x00000d00000ULL
+#define KBD_VIRT_ADDRESS	0x000d0000000ULL
 
 #define STATUS_REG	4
 #define COMMAND_REG	4
@@ -40,7 +40,7 @@
 
 static inline void i8042_data_write(__u8 data)
 {
-	((__u8 *)(KBD_VIRT_ADDRESS))[DATA_REG] = data;
+	((volatile __u8 *)(KBD_VIRT_ADDRESS))[DATA_REG] = data;
 }
 
 static inline __u8 i8042_data_read(void)
@@ -55,7 +55,7 @@ static inline __u8 i8042_status_read(void)
 
 static inline void i8042_command_write(__u8 command)
 {
-	((__u8 *)(KBD_VIRT_ADDRESS))[COMMAND_REG] = command;
+	((volatile __u8 *)(KBD_VIRT_ADDRESS))[COMMAND_REG] = command;
 }
 
 #endif

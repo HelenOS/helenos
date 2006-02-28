@@ -72,6 +72,12 @@ illegal_instruction:
 clean_window_handler:
 	CLEAN_WINDOW_HANDLER
 
+/* TT = 0x32, TL = 0, data_access_error */
+.org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
+.global data_access_error
+data_access_error:
+	SIMPLE_HANDLER do_data_access_error
+
 /* TT = 0x34, TL = 0, mem_address_not_aligned */
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global mem_address_not_aligned
@@ -225,6 +231,12 @@ illegal_instruction_high:
 .global clean_window_handler_high
 clean_window_handler_high:
 	CLEAN_WINDOW_HANDLER
+
+/* TT = 0x32, TL > 0, data_access_error */
+.org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
+.global data_access_error_high
+data_access_error_high:
+	SIMPLE_HANDLER do_data_access_error
 
 /* TT = 0x34, TL > 0, mem_address_not_aligned */
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE

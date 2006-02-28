@@ -40,6 +40,7 @@
 #include <arch/register.h>
 #include <proc/thread.h>
 #include <synch/mutex.h>
+#include <arch/mm/tlb.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 
@@ -75,6 +76,10 @@ void standalone_sparc64_console_init(void)
 {
 	ofw_console_active = 0;
 	stdin = NULL;
+
+	dtlb_insert_mapping(FB_VIRT_ADDRESS, FB_PHYS_ADDRESS, PAGESIZE_4M, true, false);
+	dtlb_insert_mapping(KBD_VIRT_ADDRESS, KBD_PHYS_ADDRESS, PAGESIZE_8K, true, false);
+
 	fb_init(FB_VIRT_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH/8);
 	i8042_init();
 }

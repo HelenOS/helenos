@@ -134,3 +134,7 @@ void before_thread_runs_arch(void)
 {
 	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 }
+
+void after_thread_ran_arch(void)
+{
+}

@@ -37,3 +37,7 @@ void before_thread_runs_arch(void)
 	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
 }
+
+void after_thread_ran_arch(void)
+{
+}

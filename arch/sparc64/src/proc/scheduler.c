@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#include <proc/scheduler.h>
+#include <proc/thread.h>
+#include <arch.h>
+#include <arch/mm/tlb.h>
+#include <config.h>
+#include <align.h>
 
-#include <synch/spinlock.h>
-#include <time/clock.h>		/* HZ */
-#include <typedefs.h>
-#include <arch/atomic.h>
-#include <adt/list.h>
+/** Ensure that thread's kernel stack is locked in TLB. */
+void before_thread_runs_arch(void)
+{
+	__address base;
+	
+	base = ALIGN_DOWN(config.base, 4*1024*1024);
 
-#define RQ_COUNT 		16
-#define NEEDS_RELINK_MAX	(HZ)
+	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + 4*1024*1024) {
+		/*
+		 * Kernel stack of this thread is not locked in DTLB.
+		 * First, make sure it is not mapped already.
+		 * If not, create a locked mapping for it.
+		 */
+		 dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (__address) THREAD->kstack);
+		 dtlb_insert_mapping((__address) THREAD->kstack, (__address) THREAD->kstack, PAGESIZE_8K, true, true);
+	}	
+}
 
-/** Scheduler run queue structure. */
-struct runq {
-	SPINLOCK_DECLARE(lock);
-	link_t rq_head;		/**< List of ready threads. */
-	count_t n;		/**< Number of threads in rq_ready. */
-};
+/** Unlock thread's stack from TLB, if necessary. */
+void after_thread_ran_arch(void)
+{
+	__address base;
 
-extern atomic_t nrdy;
-extern void scheduler_init(void);
+	base = ALIGN_DOWN(config.base, 4*1024*1024);
 
-extern void scheduler_fpu_lazy_request(void);
-extern void scheduler(void);
-extern void kcpulb(void *arg);
-
-extern void before_thread_runs(void);
-extern void after_thread_ran(void);
-
-extern void sched_print_list(void);
-
-/*
- * To be defined by architectures:
- */
-extern void before_thread_runs_arch(void);
-extern void after_thread_ran_arch(void);
-
-#endif
+	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + 4*1024*1024) {
+		/*
+		 * Kernel stack of this thread is locked in DTLB.
+		 * Destroy the mapping.
+		 */
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (__address) THREAD->kstack);
+	}
+}

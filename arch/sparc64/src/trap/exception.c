@@ -42,6 +42,12 @@ void do_mem_address_not_aligned(void)
 	panic("Memory Address Not Aligned\n");
 }
 
+/** Handle data_access_error. */
+void do_data_access_error(void)
+{
+	panic("Data Access Error: %P\n", tpc_read());
+}
+
 /** Handle mem_address_not_aligned. */
 void do_illegal_instruction(void)
 {

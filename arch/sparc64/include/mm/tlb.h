@@ -405,4 +405,6 @@ extern void fast_instruction_access_mmu_miss(void);
 extern void fast_data_access_mmu_miss(void);
 extern void fast_data_access_protection(void);
 
+extern void dtlb_insert_mapping(__address page, __address frame, int pagesize, bool locked, bool cacheable);
+
 #endif

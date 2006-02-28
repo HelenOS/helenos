@@ -31,12 +31,14 @@
 .global asm_delay_loop
 .global userspace
 .global before_thread_runs_arch
+.global after_thread_ran_arch
 .global dummy
 .global fpu_init
 .global fpu_enable
 .global fpu_disable
 
 before_thread_runs_arch:
+after_thread_ran_arch:
 userspace:
 asm_delay_loop:
 fpu_init:

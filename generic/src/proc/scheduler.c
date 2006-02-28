@@ -49,7 +49,7 @@
 
 atomic_t nrdy;
 
-/** Take actions before new thread runs
+/** Take actions before new thread runs.
  *
  * Perform actions that need to be
  * taken before the newly selected
@@ -75,6 +75,20 @@ void before_thread_runs(void)
 		THREAD->fpu_context_exists=1;
 	}
 #endif
+}
+
+/** Take actions after old thread ran.
+ *
+ * Perform actions that need to be
+ * taken after the running thread
+ * was preempted by the scheduler.
+ *
+ * THREAD->lock is locked on entry
+ *
+ */
+void after_thread_ran(void)
+{
+	after_thread_ran_arch();
 }
 
 #ifdef CONFIG_FPU_LAZY
@@ -257,6 +271,9 @@ static void scheduler_separated_stack(void)
 	ASSERT(CPU != NULL);
 
 	if (THREAD) {
+		/* must be run after switch to scheduler stack */
+		after_thread_ran();
+
 		switch (THREAD->state) {
 		    case Running:
 			THREAD->state = Ready;
@@ -300,6 +317,7 @@ static void scheduler_separated_stack(void)
 			panic("tid%d: unexpected state %s\n", THREAD->tid, thread_states[THREAD->state]);
 			break;
 		}
+
 		THREAD = NULL;
 	}
 
@@ -351,6 +369,16 @@ static void scheduler_separated_stack(void)
 	#endif	
 
 	/*
+	 * Some architectures provide late kernel PA2KA(identity)
+	 * mapping in a page fault handler. However, the page fault
+	 * handler uses the kernel stack of the running thread and
+	 * therefore cannot be used to map it. The kernel stack, if
+	 * necessary, is to be mapped in before_thread_runs(). This
+	 * function must be executed before the switch to the new stack.
+	 */
+	before_thread_runs();
+
+	/*
 	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to thread's stack.
 	 */
 	the_copy(THE, (the_t *) THREAD->kstack);
@@ -387,7 +415,6 @@ void scheduler(void)
 			/*
 			 * This is the place where threads leave scheduler();
 			 */
-			before_thread_runs();
 			spinlock_unlock(&THREAD->lock);
 			interrupts_restore(THREAD->saved_context.ipl);
 			return;

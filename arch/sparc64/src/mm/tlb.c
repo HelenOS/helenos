@@ -109,12 +109,25 @@ void tlb_arch_init(void)
 
 	dmmu_enable();
 	immu_enable();
-	
-	/*
-	 * Quick hack: map frame buffer
-	 */
-	fr.address = FB_PHYS_ADDRESS;
-	pg.address = FB_VIRT_ADDRESS;
+}
+
+/** Insert privileged mapping into DMMU TLB.
+ *
+ * @param page Virtual page address.
+ * @param frame Physical frame address.
+ * @param pagesize Page size.
+ * @param locked True for permanent mappings, false otherwise.
+ * @param cacheable True if the mapping is cacheable, false otherwise.
+ */
+void dtlb_insert_mapping(__address page, __address frame, int pagesize, bool locked, bool cacheable)
+{
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	page_address_t pg;
+	frame_address_t fr;
+
+	pg.address = page;
+	fr.address = frame;
 
 	tag.value = ASID_KERNEL;
 	tag.vpn = pg.vpn;
@@ -123,35 +136,11 @@ void tlb_arch_init(void)
 
 	data.value = 0;
 	data.v = true;
-	data.size = PAGESIZE_4M;
+	data.size = pagesize;
 	data.pfn = fr.pfn;
-	data.l = true;
-	data.cp = 0;
-	data.cv = 0;
-	data.p = true;
-	data.w = true;
-	data.g = true;
-
-	dtlb_data_in_write(data.value);
-	
-	/*
-	 * Quick hack: map keyboard
-	 */
-	fr.address = KBD_PHYS_ADDRESS;
-	pg.address = KBD_VIRT_ADDRESS;
-
-	tag.value = ASID_KERNEL;
-	tag.vpn = pg.vpn;
-
-	dtlb_tag_access_write(tag.value);
-
-	data.value = 0;
-	data.v = true;
-	data.size = PAGESIZE_8K;
-	data.pfn = fr.pfn;
-	data.l = true;
-	data.cp = 0;
-	data.cv = 0;
+	data.l = locked;
+	data.cp = cacheable;
+	data.cv = cacheable;
 	data.p = true;
 	data.w = true;
 	data.g = true;
@@ -169,7 +158,6 @@ void fast_instruction_access_mmu_miss(void)
 void fast_data_access_mmu_miss(void)
 {
 	tlb_tag_access_reg_t tag;
-	tlb_data_t data;
 	__address tpc;
 	char *tpc_str;
 
@@ -186,18 +174,7 @@ void fast_data_access_mmu_miss(void)
 	/*
 	 * Identity map piece of faulting kernel address space.
 	 */
-	data.value = 0;
-	data.v = true;
-	data.size = PAGESIZE_8K;
-	data.pfn = tag.vpn;
-	data.l = false;
-	data.cp = 1;
-	data.cv = 1;
-	data.p = true;
-	data.w = true;
-	data.g = true;
-
-	dtlb_data_in_write(data.value);
+	dtlb_insert_mapping(tag.vpn * PAGE_SIZE, tag.vpn * FRAME_SIZE, PAGESIZE_8K, false, true);
 }
 
 /** DTLB protection fault handler. */
