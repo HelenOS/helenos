@@ -33,7 +33,9 @@
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
 #include <arch/barrier.h>
+#include <arch/interrupt.h>
 #include <typedefs.h>
+#include <panic.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -102,8 +104,7 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 	
 	__asm__ volatile (
 		"mov r8=psr;;\n"
-		"and r9=r8,%0;;\n"   		/* (~PSR_IC_MASK) */
-		"mov psr.l=r9;;\n"
+		"rsm %0;;\n"   			/* PSR_IC_MASK */
 		"srlz.d;;\n"
 		"srlz.i;;\n"
 		"mov cr.ifa=%1\n"		/* va */
@@ -114,8 +115,8 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 		"mov psr.l=r8;;\n"
 		"srlz.d;;\n"
 		:
-		: "r" (~PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (dtc)
-		: "p6", "p7", "r8", "r9"
+		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (dtc)
+		: "p6", "p7", "r8"
 	);
 	
 	if (restore_rr) {
@@ -182,8 +183,7 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 
 	__asm__ volatile (
 		"mov r8=psr;;\n"
-		"and r9=r8,%0;;\n"		/* (~PSR_IC_MASK) */
-		"mov psr.l=r9;;\n"
+		"rsm %0;;\n"			/* PSR_IC_MASK */
 		"srlz.d;;\n"
 		"srlz.i;;\n"
 		"mov cr.ifa=%1\n"        	/* va */		 
@@ -194,8 +194,8 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 		"mov psr.l=r8;;\n"
 		"srlz.d;;\n"
 		:
-		:"r" (~PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (tr), "r" (dtr)
-		: "p6", "p7", "r8", "r9"
+		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (tr), "r" (dtr)
+		: "p6", "p7", "r8"
 	);
 	
 	if (restore_rr) {
@@ -205,37 +205,37 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 	}
 }
 
-void alternate_instruction_tlb_fault(void)
+void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-void alternate_data_tlb_fault(void)
+void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+{
+	panic("%s: %P\n", __FUNCTION__, pstate->cr_ifa);
+}
+
+void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-void data_nested_tlb_fault(void)
+void data_dirty_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-void data_dirty_bit_fault(void)
+void instruction_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-void instruction_access_bit_fault(void)
+void data_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-void data_access_bit_fault(void)
-{
-	panic("%s\n", __FUNCTION__);
-}
-
-void page_not_present(void)
+void page_not_present(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
