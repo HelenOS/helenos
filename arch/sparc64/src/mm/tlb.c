@@ -74,6 +74,12 @@ void tlb_arch_init(void)
 
 	immu_disable();
 	dmmu_disable();
+
+	/*
+	 * Demap everything, especially OpenFirmware.
+	 */
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
 	
 	/*
 	 * We do identity mapping of 4M-page at 4M.

@@ -47,7 +47,9 @@
 #include <print.h>
 #include <debug.h>
 
-atomic_t nrdy;
+static void scheduler_separated_stack(void);
+
+atomic_t nrdy;	/**< Number of ready threads in the system. */
 
 /** Take actions before new thread runs.
  *
@@ -61,12 +63,12 @@ atomic_t nrdy;
 void before_thread_runs(void)
 {
 	before_thread_runs_arch();
-#ifdef CONFIG_FPU_LAZY
+	#ifdef CONFIG_FPU_LAZY
 	if(THREAD==CPU->fpu_owner) 
 		fpu_enable();
 	else
 		fpu_disable(); 
-#else
+	#else
 	fpu_enable();
 	if (THREAD->fpu_context_exists)
 		fpu_context_restore(&(THREAD->saved_fpu_context));
@@ -74,14 +76,14 @@ void before_thread_runs(void)
 		fpu_init(&(THREAD->saved_fpu_context));
 		THREAD->fpu_context_exists=1;
 	}
-#endif
+	#endif
 }
 
-/** Take actions after old thread ran.
+/** Take actions after THREAD had run.
  *
  * Perform actions that need to be
  * taken after the running thread
- * was preempted by the scheduler.
+ * had been preempted by the scheduler.
  *
  * THREAD->lock is locked on entry
  *
@@ -107,16 +109,16 @@ void scheduler_fpu_lazy_request(void)
 	}
 
 	spinlock_lock(&THREAD->lock);
-	if (THREAD->fpu_context_exists)
+	if (THREAD->fpu_context_exists) {
 		fpu_context_restore(&THREAD->saved_fpu_context);
-	else {
+	} else {
 		fpu_init(&(THREAD->saved_fpu_context));
 		THREAD->fpu_context_exists=1;
 	}
 	CPU->fpu_owner=THREAD;
 	THREAD->fpu_context_engaged = 1;
-
 	spinlock_unlock(&THREAD->lock);
+
 	spinlock_unlock(&CPU->lock);
 }
 #endif
@@ -129,7 +131,6 @@ void scheduler_fpu_lazy_request(void)
 void scheduler_init(void)
 {
 }
-
 
 /** Get thread to be scheduled
  *
@@ -170,8 +171,7 @@ loop:
 
 	interrupts_disable();
 	
-	i = 0;
-	for (; i<RQ_COUNT; i++) {
+	for (i = 0; i<RQ_COUNT; i++) {
 		r = &CPU->rq[i];
 		spinlock_lock(&r->lock);
 		if (r->n == 0) {
@@ -198,7 +198,7 @@ loop:
 		t->cpu = CPU;
 
 		t->ticks = us2ticks((i+1)*10000);
-		t->priority = i;	/* eventually correct rq index */
+		t->priority = i;	/* correct rq index */
 
 		/*
 		 * Clear the X_STOLEN flag so that t can be migrated when load balancing needs emerge.
@@ -211,7 +211,6 @@ loop:
 	goto loop;
 
 }
-
 
 /** Prevent rq starvation
  *
@@ -255,6 +254,70 @@ static void relink_rq(int start)
 
 }
 
+/** The scheduler
+ *
+ * The thread scheduling procedure.
+ * Passes control directly to
+ * scheduler_separated_stack().
+ *
+ */
+void scheduler(void)
+{
+	volatile ipl_t ipl;
+
+	ASSERT(CPU != NULL);
+
+	ipl = interrupts_disable();
+
+	if (atomic_get(&haltstate))
+		halt();
+
+	if (THREAD) {
+		spinlock_lock(&THREAD->lock);
+		#ifndef CONFIG_FPU_LAZY
+		fpu_context_save(&(THREAD->saved_fpu_context));
+		#endif
+		if (!context_save(&THREAD->saved_context)) {
+			/*
+			 * This is the place where threads leave scheduler();
+			 */
+			spinlock_unlock(&THREAD->lock);
+			interrupts_restore(THREAD->saved_context.ipl);
+			return;
+		}
+
+		/*
+		 * Interrupt priority level of preempted thread is recorded here
+		 * to facilitate scheduler() invocations from interrupts_disable()'d
+		 * code (e.g. waitq_sleep_timeout()). 
+		 */
+		THREAD->saved_context.ipl = ipl;
+	}
+
+	/*
+	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, VM
+	 * and preemption counter. At this point THE could be coming either
+	 * from THREAD's or CPU's stack.
+	 */
+	the_copy(THE, (the_t *) CPU->stack);
+
+	/*
+	 * We may not keep the old stack.
+	 * Reason: If we kept the old stack and got blocked, for instance, in
+	 * find_best_thread(), the old thread could get rescheduled by another
+	 * CPU and overwrite the part of its own stack that was also used by
+	 * the scheduler on this CPU.
+	 *
+	 * Moreover, we have to bypass the compiler-generated POP sequence
+	 * which is fooled by SP being set to the very top of the stack.
+	 * Therefore the scheduler() function continues in
+	 * scheduler_separated_stack().
+	 */
+	context_save(&CPU->saved_context);
+	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
+	context_restore(&CPU->saved_context);
+	/* not reached */
+}
 
 /** Scheduler stack switch wrapper
  *
@@ -264,14 +327,14 @@ static void relink_rq(int start)
  *
  * Assume THREAD->lock is held.
  */
-static void scheduler_separated_stack(void)
+void scheduler_separated_stack(void)
 {
 	int priority;
 
 	ASSERT(CPU != NULL);
 
 	if (THREAD) {
-		/* must be run after switch to scheduler stack */
+		/* must be run after the switch to scheduler stack */
 		after_thread_ran();
 
 		switch (THREAD->state) {
@@ -320,7 +383,6 @@ static void scheduler_separated_stack(void)
 
 		THREAD = NULL;
 	}
-
 
 	THREAD = find_best_thread();
 	
@@ -386,76 +448,6 @@ static void scheduler_separated_stack(void)
 	context_restore(&THREAD->saved_context);
 	/* not reached */
 }
-
-
-/** The scheduler
- *
- * The thread scheduling procedure.
- * Passes control directly to
- * scheduler_separated_stack().
- *
- */
-void scheduler(void)
-{
-	volatile ipl_t ipl;
-
-	ASSERT(CPU != NULL);
-
-	ipl = interrupts_disable();
-
-	if (atomic_get(&haltstate))
-		halt();
-
-	if (THREAD) {
-		spinlock_lock(&THREAD->lock);
-#ifndef CONFIG_FPU_LAZY
-		fpu_context_save(&(THREAD->saved_fpu_context));
-#endif
-		if (!context_save(&THREAD->saved_context)) {
-			/*
-			 * This is the place where threads leave scheduler();
-			 */
-			spinlock_unlock(&THREAD->lock);
-			interrupts_restore(THREAD->saved_context.ipl);
-			return;
-		}
-
-		/*
-		 * Interrupt priority level of preempted thread is recorded here
-		 * to facilitate scheduler() invocations from interrupts_disable()'d
-		 * code (e.g. waitq_sleep_timeout()). 
-		 */
-		THREAD->saved_context.ipl = ipl;
-	}
-
-	/*
-	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, VM
-	 * and preemption counter. At this point THE could be coming either
-	 * from THREAD's or CPU's stack.
-	 */
-	the_copy(THE, (the_t *) CPU->stack);
-
-	/*
-	 * We may not keep the old stack.
-	 * Reason: If we kept the old stack and got blocked, for instance, in
-	 * find_best_thread(), the old thread could get rescheduled by another
-	 * CPU and overwrite the part of its own stack that was also used by
-	 * the scheduler on this CPU.
-	 *
-	 * Moreover, we have to bypass the compiler-generated POP sequence
-	 * which is fooled by SP being set to the very top of the stack.
-	 * Therefore the scheduler() function continues in
-	 * scheduler_separated_stack().
-	 */
-	context_save(&CPU->saved_context);
-	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
-	context_restore(&CPU->saved_context);
-	/* not reached */
-}
-
-
-
-
 
 #ifdef CONFIG_SMP
 /** Load balancing thread
@@ -612,12 +604,14 @@ void sched_print_list(void)
 	/* We are going to mess with scheduler structures,
 	 * let's not be interrupted */
 	ipl = interrupts_disable();
-	printf("*********** Scheduler dump ***********\n");
+	printf("Scheduler dump:\n");
 	for (cpu=0;cpu < config.cpu_count; cpu++) {
+
 		if (!cpus[cpu].active)
 			continue;
+
 		spinlock_lock(&cpus[cpu].lock);
-		printf("cpu%d: nrdy: %d needs_relink: %d\n",
+		printf("cpu%d: nrdy: %d, needs_relink: %d\n",
 		       cpus[cpu].id, atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
 		
 		for (i=0; i<RQ_COUNT; i++) {
@@ -627,7 +621,7 @@ void sched_print_list(void)
 				spinlock_unlock(&r->lock);
 				continue;
 			}
-			printf("\tRq %d: ", i);
+			printf("\trq[%d]: ", i);
 			for (cur=r->rq_head.next; cur!=&r->rq_head; cur=cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
 				printf("%d(%s) ", t->tid,
