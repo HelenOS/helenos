@@ -38,13 +38,46 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-extern void tc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry, bool dtc);
-extern void dtc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry);
-extern void itc_mapping_insert(__address va, asid_t asid, vhpt_entry_t entry);
+/** Data and instruction Translation Register indices. */
+#define DTR_KERNEL	0
+#define ITR_KERNEL	0
+#define DTR_KSTACK	1
+
+/** Portion of TLB insertion format data structure. */
+union tlb_entry {
+	__u64 word[2];
+	struct {
+		/* Word 0 */
+		unsigned p : 1;			/**< Present. */
+		unsigned : 1;
+		unsigned ma : 3;		/**< Memory attribute. */
+		unsigned a : 1;			/**< Accessed. */
+		unsigned d : 1;			/**< Dirty. */
+		unsigned pl : 2;		/**< Privilege level. */
+		unsigned ar : 3;		/**< Access rights. */
+		unsigned long long ppn : 38;	/**< Physical Page Number, a.k.a. PFN. */
+		unsigned : 2;
+		unsigned ed : 1;
+		unsigned ig1 : 11;
+
+		/* Word 1 */
+		unsigned : 2;
+		unsigned ps : 6;		/**< Page size will be 2^ps. */
+		unsigned key : 24;		/**< Protection key, unused. */
+		unsigned : 32;
+	} __attribute__ ((packed));
+} __attribute__ ((packed));
+typedef union tlb_entry tlb_entry_t;
+
+extern void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc);
+extern void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry);
+extern void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry);
 
 extern void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr);
 extern void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
 extern void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
+
+extern void dtlb_mapping_insert(__address page, __address frame, bool dtr, index_t tr);
 
 extern void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate);
 extern void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate);

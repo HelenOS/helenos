@@ -52,7 +52,7 @@ kernel_image_start:
 	mov r9=rr[r8]
 	movl r10=(RR_MASK)
 	and r9=r10,r9
-	movl r10=((ASID2RID(ASID_KERNEL,VRN_KERNEL)<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
+	movl r10=((RID_KERNEL<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
 	or  r9=r10,r9
 	mov rr[r8]=r9
 

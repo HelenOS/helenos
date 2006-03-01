@@ -30,24 +30,11 @@
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
-#ifndef __ASM__
-
-
-#include <arch/mm/frame.h>
-#include <arch/barrier.h>
-#include <genarch/mm/page_ht.h>
-#include <arch/mm/asid.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <debug.h>
-
-#endif
-
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
-#define KERNEL_PAGE_WIDTH	28
 
-
+/** Bit width of the TLB-locked portion of kernel address space. */
+#define KERNEL_PAGE_WIDTH	28	/* 256M */
 
 #define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
 
@@ -55,6 +42,7 @@
 
 #define VRN_SHIFT			61
 #define VRN_MASK			(7LL << VRN_SHIFT)
+#define VA2VRN(va)			((va)>>VRN_SHIFT)
 
 #ifdef __ASM__
 #define VRN_KERNEL	 		7
@@ -66,7 +54,6 @@
 
 #define KA2PA(x)	((__address) (x-(VRN_KERNEL<<VRN_SHIFT)))
 #define PA2KA(x)	((__address) (x+(VRN_KERNEL<<VRN_SHIFT)))
-
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)
@@ -87,12 +74,15 @@
 #define AR_EXECUTE	0x1
 #define AR_WRITE	0x2
 
-
-#define VA_REGION_INDEX 61
-
-#define VA_REGION(va) (va>>VA_REGION_INDEX)
-
 #ifndef __ASM__
+
+#include <arch/mm/frame.h>
+#include <arch/barrier.h>
+#include <genarch/mm/page_ht.h>
+#include <arch/mm/asid.h>
+#include <arch/types.h>
+#include <typedefs.h>
+#include <debug.h>
 
 struct vhpt_tag_info {
 	unsigned long long tag : 63;
@@ -154,8 +144,6 @@ typedef union vhpt_entry {
 	struct vhpt_entry_not_present not_present;
 	__u64 word[4];
 } vhpt_entry_t;
-
-typedef vhpt_entry_t tlb_entry_t;
 
 struct region_register_map {
 	unsigned ve : 1;
@@ -230,12 +218,9 @@ static inline __u64 rr_read(index_t i)
 {
 	__u64 ret;
 	ASSERT(i < REGION_REGISTERS);
-	i=i<<VRN_SHIFT;
-	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i));
-	
+	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i << VRN_SHIFT));
 	return ret;
 }
-
 
 /** Write Region Register.
  *
@@ -245,11 +230,11 @@ static inline __u64 rr_read(index_t i)
 static inline void rr_write(index_t i, __u64 v)
 {
 	ASSERT(i < REGION_REGISTERS);
-	i=i<<VRN_SHIFT;
 	__asm__ volatile (
-	"mov rr[%0] = %1;;\n" 
-	: 
-	: "r" (i), "r" (v));
+		"mov rr[%0] = %1\n" 
+		: 
+		: "r" (i << VRN_SHIFT), "r" (v)
+	);
 }
  
 /** Read Page Table Register.
@@ -280,10 +265,6 @@ extern vhpt_entry_t *vhpt_hash(__address page, asid_t asid);
 extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
 
-
-
 #endif
 
 #endif
-
-

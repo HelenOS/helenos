@@ -46,6 +46,9 @@
 #define PAGESIZE_512K	2
 #define PAGESIZE_4M	3
 
+/** Bit width of the TLB-locked portion of kernel address space. */
+#define KERNEL_PAGE_WIDTH       22	/* 4M */
+
 union tlb_context_reg {
 	__u64 v;
 	struct {

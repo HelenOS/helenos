@@ -74,4 +74,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
+	arch/$(ARCH)/src/proc/scheduler.c \
 	arch/$(ARCH)/src/drivers/it.c

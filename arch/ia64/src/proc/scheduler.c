@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_ASID_H__
-#define __ia64_ASID_H__
+#include <proc/scheduler.h>
+#include <proc/thread.h>
+#include <arch.h>
+#include <arch/mm/tlb.h>
+#include <config.h>
+#include <align.h>
 
-#ifndef __ASM__
+/** Ensure that thread's kernel stack is locked in TLB. */
+void before_thread_runs_arch(void)
+{
+	__address base;
+	
+	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-#include <arch/types.h>
+	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+		/*
+		 * Kernel stack of this thread is not locked in DTLB.
+		 * First, make sure it is not mapped already.
+		 * If not, fill respective tranlsation register.
+		 */
+		 dtlb_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK);
+	}
+}
 
-typedef __u16 asid_t;
-typedef __u32 rid_t;
-
-#endif  /* __ASM__ */
-
-/**
- * Number of ia64 RIDs (Region Identifiers) per kernel ASID.
- * Note that some architectures may support more bits,
- * but those extra bits are not used by the kernel. 
- */
-#define RIDS_PER_ASID		7
-
-#define RID_MAX			262143		/* 2^18 - 1 */
-#define RID_KERNEL		0
-#define RID_INVALID		1
-
-#define ASID2RID(asid, vrn)	(((asid)>RIDS_PER_ASID)?(((asid)*RIDS_PER_ASID)+(vrn)):(asid))
-#define RID2ASID(rid)		((rid)/RIDS_PER_ASID)
-
-#define ASID_MAX_ARCH		(RID_MAX/RIDS_PER_ASID)
-
-#endif
+void after_thread_ran_arch(void)
+{
+}

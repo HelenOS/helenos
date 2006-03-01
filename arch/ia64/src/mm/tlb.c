@@ -31,11 +31,14 @@
  */
 
 #include <mm/tlb.h>
+#include <mm/asid.h>
 #include <arch/mm/tlb.h>
+#include <arch/mm/page.h>
 #include <arch/barrier.h>
 #include <arch/interrupt.h>
 #include <typedefs.h>
 #include <panic.h>
+#include <print.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -84,11 +87,11 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 	region_register rr;
 	bool restore_rr = false;
 
-	if (!(entry.not_present.p))
+	if (!(entry.p))
 		return;
 
-	rr.word = rr_read(VA_REGION(va));
-	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA_REGION(va))))) {
+	rr.word = rr_read(VA2VRN(va));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
 		/*
 		 * The selected region register does not contain required RID.
 		 * Save the old content of the register and replace the RID.
@@ -96,8 +99,8 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 		region_register rr0;
 
 		rr0 = rr;
-		rr0.map.rid = ASID2RID(asid, VA_REGION(va));
-		rr_write(VA_REGION(va), rr0.word);
+		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
+		rr_write(VA2VRN(va), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
@@ -120,7 +123,7 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 	);
 	
 	if (restore_rr) {
-		rr_write(VA_REGION(va),rr.word);
+		rr_write(VA2VRN(va), rr.word);
 		srlz_d();
 		srlz_i();
 	}
@@ -163,11 +166,11 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 	region_register rr;
 	bool restore_rr = false;
 
-	if (!(entry.not_present.p))
+	if (!(entry.p))
 		return;
 
-	rr.word = rr_read(VA_REGION(va));
-	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA_REGION(va))))) {
+	rr.word = rr_read(VA2VRN(va));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
 		/*
 		 * The selected region register does not contain required RID.
 		 * Save the old content of the register and replace the RID.
@@ -175,8 +178,8 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 		region_register rr0;
 
 		rr0 = rr;
-		rr0.map.rid = ASID2RID(asid, VA_REGION(va));
-		rr_write(VA_REGION(va), rr0.word);
+		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
+		rr_write(VA2VRN(va), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
@@ -199,10 +202,40 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 	);
 	
 	if (restore_rr) {
-		rr_write(VA_REGION(va),rr.word);
+		rr_write(VA2VRN(va), rr.word);
 		srlz_d();
 		srlz_i();
 	}
+}
+
+/** Insert data into DTLB.
+ *
+ * @param va Virtual page address.
+ * @param asid Address space identifier.
+ * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param dtr If true, insert into data translation register, use data translation cache otherwise.
+ * @param tr Translation register if dtr is true, ignored otherwise.
+ */
+void dtlb_mapping_insert(__address page, __address frame, bool dtr, index_t tr)
+{
+	tlb_entry_t entry;
+	
+	entry.word[0] = 0;
+	entry.word[1] = 0;
+	
+	entry.p = true;			/* present */
+	entry.ma = MA_WRITEBACK;
+	entry.a = true;			/* already accessed */
+	entry.d = true;			/* already dirty */
+	entry.pl = PL_KERNEL;
+	entry.ar = AR_READ | AR_WRITE;
+	entry.ppn = frame >> PPN_SHIFT;
+	entry.ps = PAGE_WIDTH;
+	
+	if (dtr)
+		dtr_mapping_insert(page, ASID_KERNEL, entry, tr);
+	else
+		dtc_mapping_insert(page, ASID_KERNEL, entry);
 }
 
 void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate)
@@ -210,9 +243,31 @@ void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pst
 	panic("%s\n", __FUNCTION__);
 }
 
+/** Data TLB fault with VHPT turned off.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 {
-	panic("%s: %P\n", __FUNCTION__, pstate->cr_ifa);
+	region_register rr;
+	rid_t rid;
+	__address va;
+	
+	va = pstate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
+	if (RID2ASID(rid) == ASID_KERNEL) {
+		if (VA2VRN(va) == VRN_KERNEL) {
+			/*
+			 * Provide KA2PA(identity) mapping for faulting piece of
+			 * kernel address space.
+			 */
+			dtlb_mapping_insert(va, KA2PA(va), false, 0);
+			return;
+		}
+	}
+	panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
 }
 
 void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate)

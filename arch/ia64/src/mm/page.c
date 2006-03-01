@@ -55,24 +55,22 @@ void page_arch_init(void)
 /** Initialize VHPT and region registers. */
 void set_environment(void)
 {
-
 	region_register rr;
 	pta_register pta;	
 	int i;
 
 	/*
 	 * First set up kernel region register.
-	 * This action is redundand (see start.S) but I would to keep it to make sure that 
-	 *no unexpected changes will be made. 
+	 * This is redundant (see start.S) but we keep it here just for sure.
 	 */
 	rr.word = rr_read(VRN_KERNEL);
 	rr.map.ve = 0;                  /* disable VHPT walker */
 	rr.map.ps = PAGE_WIDTH;
-	rr.map.rid = ASID2RID(ASID_KERNEL,VRN_KERNEL);  
+	rr.map.rid = ASID2RID(ASID_KERNEL, VRN_KERNEL);
 	rr_write(VRN_KERNEL, rr.word);
 	srlz_i();
 	srlz_d();
-	
+
 	/*
 	 * And invalidate the rest of region register.
 	 */
@@ -83,7 +81,7 @@ void set_environment(void)
 	
 		rr.word == rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = ASID2RID(ASID_INVALID,i);
+		rr.map.rid = RID_INVALID;
 		rr_write(i, rr.word);
 		srlz_i();
 		srlz_d();
@@ -100,10 +98,6 @@ void set_environment(void)
 	pta_write(pta.word);
 	srlz_i();
 	srlz_d();
-	
-
-	return ;	
-	
 }
 
 /** Calculate address of collision chain from VPN and ASID.
