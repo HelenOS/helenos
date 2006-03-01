@@ -46,7 +46,7 @@ void before_thread_runs_arch(void)
 		 * First, make sure it is not mapped already.
 		 * If not, fill respective tranlsation register.
 		 */
-		 dtlb_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK);
+		 dtlb_kernel_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK);
 	}
 }
 

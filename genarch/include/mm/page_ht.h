@@ -51,7 +51,11 @@ struct pte {
 	as_t *as;		/**< Address space. */
 	__address page;		/**< Virtual memory page. */
 	__address frame;	/**< Physical memory frame. */
-	int flags;
+	unsigned g : 1;		/**< Global page. */
+	unsigned x : 1;		/**< Execute. */
+	unsigned w : 1;		/**< Writable. */
+	unsigned k : 1;		/**< Kernel privileges required. */
+	unsigned c : 1;		/**< Cacheable. */
 	unsigned a : 1;		/**< Accessed. */
 	unsigned d : 1;		/**< Dirty. */
 	unsigned p : 1;		/**< Present. */

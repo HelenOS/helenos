@@ -171,7 +171,18 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	if (!hash_table_find(&page_ht, key)) {
 		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
 		ASSERT(t != NULL);
-	
+
+		t->g = (flags & PAGE_GLOBAL) != 0;
+		t->x = (flags & PAGE_EXEC) != 0;
+		t->w = (flags & PAGE_WRITE) != 0;
+		t->k = !(flags & PAGE_USER);
+		t->c = (flags & PAGE_CACHEABLE) != 0;
+		t->p = !(flags & PAGE_NOT_PRESENT);
+
+		t->as = as;
+		t->page = page;
+		t->frame = frame;
+
 		hash_table_insert(&page_ht, key, &t->link);
 	}
 	

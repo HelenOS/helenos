@@ -72,7 +72,7 @@ void set_environment(void)
 	srlz_d();
 
 	/*
-	 * And invalidate the rest of region register.
+	 * And setup the rest of region register.
 	 */
 	for(i = 0; i < REGION_REGISTERS; i++) {
 		/* skip kernel rr */
@@ -81,7 +81,8 @@ void set_environment(void)
 	
 		rr.word == rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = RID_INVALID;
+		rr.map.rid = RID_KERNEL;
+		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
 		srlz_i();
 		srlz_d();

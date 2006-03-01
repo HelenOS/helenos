@@ -77,7 +77,10 @@ extern void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool
 extern void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
 extern void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
 
-extern void dtlb_mapping_insert(__address page, __address frame, bool dtr, index_t tr);
+extern void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index_t tr);
+
+extern void dtc_pte_copy(pte_t *t);
+extern void itc_pte_copy(pte_t *t);
 
 extern void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate);
 extern void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate);

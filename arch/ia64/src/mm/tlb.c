@@ -32,13 +32,15 @@
 
 #include <mm/tlb.h>
 #include <mm/asid.h>
+#include <mm/page.h>
+#include <mm/as.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
 #include <arch/interrupt.h>
 #include <typedefs.h>
 #include <panic.h>
-#include <print.h>
+#include <arch.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -86,9 +88,6 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
 {
 	region_register rr;
 	bool restore_rr = false;
-
-	if (!(entry.p))
-		return;
 
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
@@ -166,9 +165,6 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 	region_register rr;
 	bool restore_rr = false;
 
-	if (!(entry.p))
-		return;
-
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
 		/*
@@ -216,7 +212,7 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
  * @param dtr If true, insert into data translation register, use data translation cache otherwise.
  * @param tr Translation register if dtr is true, ignored otherwise.
  */
-void dtlb_mapping_insert(__address page, __address frame, bool dtr, index_t tr)
+void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index_t tr)
 {
 	tlb_entry_t entry;
 	
@@ -238,12 +234,83 @@ void dtlb_mapping_insert(__address page, __address frame, bool dtr, index_t tr)
 		dtc_mapping_insert(page, ASID_KERNEL, entry);
 }
 
-void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+/** Copy content of PTE into data translation cache.
+ *
+ * @param t PTE.
+ */
+void dtc_pte_copy(pte_t *t)
 {
-	panic("%s\n", __FUNCTION__);
+	tlb_entry_t entry;
+
+	entry.word[0] = 0;
+	entry.word[1] = 0;
+	
+	entry.p = t->p;
+	entry.ma = t->c ? MA_WRITEBACK : MA_UNCACHEABLE;
+	entry.a = t->a;
+	entry.d = t->d;
+	entry.pl = t->k ? PL_KERNEL : PL_USER;
+	entry.ar = t->w ? AR_WRITE : AR_READ;
+	entry.ppn = t->frame >> PPN_SHIFT;
+	entry.ps = PAGE_WIDTH;
+	
+	dtc_mapping_insert(t->page, t->as->asid, entry);
 }
 
-/** Data TLB fault with VHPT turned off.
+/** Copy content of PTE into instruction translation cache.
+ *
+ * @param t PTE.
+ */
+void itc_pte_copy(pte_t *t)
+{
+	tlb_entry_t entry;
+
+	entry.word[0] = 0;
+	entry.word[1] = 0;
+	
+	ASSERT(t->x);
+	
+	entry.p = t->p;
+	entry.ma = t->c ? MA_WRITEBACK : MA_UNCACHEABLE;
+	entry.a = t->a;
+	entry.pl = t->k ? PL_KERNEL : PL_USER;
+	entry.ar = t->x ? (AR_EXECUTE | AR_READ) : AR_READ;
+	entry.ppn = t->frame >> PPN_SHIFT;
+	entry.ps = PAGE_WIDTH;
+	
+	itc_mapping_insert(t->page, t->as->asid, entry);
+}
+
+/** Instruction TLB fault handler for faults with VHPT turned off.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
+void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+{
+	region_register rr;
+	__address va;
+	pte_t *t;
+	
+	va = pstate->cr_ifa;	/* faulting address */
+	t = page_mapping_find(AS, va);
+	if (t) {
+		/*
+		 * The mapping was found in software page hash table.
+		 * Insert it into data translation cache.
+		 */
+		itc_pte_copy(t);
+	} else {
+		/*
+		 * Forward the page fault to address space page fault handler.
+		 */
+		if (!as_page_fault(va)) {
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+		}
+	}
+}
+
+/** Data TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
  * @param pstate Structure with saved interruption state.
@@ -253,6 +320,7 @@ void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 	region_register rr;
 	rid_t rid;
 	__address va;
+	pte_t *t;
 	
 	va = pstate->cr_ifa;	/* faulting address */
 	rr.word = rr_read(VA2VRN(va));
@@ -263,34 +331,130 @@ void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 			 * Provide KA2PA(identity) mapping for faulting piece of
 			 * kernel address space.
 			 */
-			dtlb_mapping_insert(va, KA2PA(va), false, 0);
+			dtlb_kernel_mapping_insert(va, KA2PA(va), false, 0);
 			return;
 		}
 	}
-	panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+	
+	t = page_mapping_find(AS, va);
+	if (t) {
+		/*
+		 * The mapping was found in software page hash table.
+		 * Insert it into data translation cache.
+		 */
+		dtc_pte_copy(t);
+	} else {
+		/*
+		 * Forward the page fault to address space page fault handler.
+		 */
+		if (!as_page_fault(va)) {
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+		}
+	}
 }
 
+/** Data nested TLB fault handler.
+ *
+ * This fault should not occur.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
+/** Data Dirty bit fault handler.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void data_dirty_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
-	panic("%s\n", __FUNCTION__);
+	pte_t *t;
+
+	t = page_mapping_find(AS, pstate->cr_ifa);
+	ASSERT(t && t->p);
+	if (t && t->p) {
+		/*
+		 * Update the Dirty bit in page tables and reinsert
+		 * the mapping into DTC.
+		 */
+		t->d = true;
+		dtc_pte_copy(t);
+	}
 }
 
+/** Instruction access bit fault handler.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void instruction_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
-	panic("%s\n", __FUNCTION__);
+	pte_t *t;
+
+	t = page_mapping_find(AS, pstate->cr_ifa);
+	ASSERT(t && t->p);
+	if (t && t->p) {
+		/*
+		 * Update the Accessed bit in page tables and reinsert
+		 * the mapping into ITC.
+		 */
+		t->a = true;
+		itc_pte_copy(t);
+	}
 }
 
+/** Data access bit fault handler.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void data_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
 {
-	panic("%s\n", __FUNCTION__);
+	pte_t *t;
+
+	t = page_mapping_find(AS, pstate->cr_ifa);
+	ASSERT(t && t->p);
+	if (t && t->p) {
+		/*
+		 * Update the Accessed bit in page tables and reinsert
+		 * the mapping into DTC.
+		 */
+		t->a = true;
+		dtc_pte_copy(t);
+	}
 }
 
+/** Page not present fault handler.
+ *
+ * @param vector Interruption vector.
+ * @param pstate Structure with saved interruption state.
+ */
 void page_not_present(__u64 vector, struct exception_regdump *pstate)
 {
-	panic("%s\n", __FUNCTION__);
+	region_register rr;
+	__address va;
+	pte_t *t;
+	
+	va = pstate->cr_ifa;	/* faulting address */
+	t = page_mapping_find(AS, va);
+	ASSERT(t);
+	
+	if (t->p) {
+		/*
+		 * If the Present bit is set in page hash table, just copy it
+		 * and update ITC/DTC.
+		 */
+		if (t->x)
+			itc_pte_copy(t);
+		else
+			dtc_pte_copy(t);
+	} else {
+		if (!as_page_fault(va)) {
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+		}
+	}
 }
