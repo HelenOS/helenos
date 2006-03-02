@@ -33,7 +33,7 @@
 #include <config.h>
 #include <align.h>
 
-/** Ensure that thread's kernel stack is locked in TLB. */
+/** Record kernel stack address in ar.k7 and make sure it is mapped in DTR. */
 void before_thread_runs_arch(void)
 {
 	__address base;
@@ -42,12 +42,18 @@ void before_thread_runs_arch(void)
 
 	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
 		/*
-		 * Kernel stack of this thread is not locked in DTLB.
-		 * First, make sure it is not mapped already.
-		 * If not, fill respective tranlsation register.
+		 * Kernel stack of this thread is not mapped by DTR[TR_KERNEL].
+		 * Use DTR[TR_KSTACK] to map it.
 		 */
 		 dtlb_kernel_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK);
 	}
+	
+	/*
+	 * Record address of kernel stack to ar.k7
+	 * where it will be found after switch
+	 * from userspace.
+	 */
+	__asm__ volatile ("mov ar.k7 = %0\n" : : "r" (THREAD->kstack));
 }
 
 void after_thread_ran_arch(void)
