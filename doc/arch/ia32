@@ -10,11 +10,6 @@ It runs both in emulated environment and on real hardware.
 HARDWARE REQUIREMENTS
         o IA-32 processor (Pentium and successors)
 
-COMPILER REQUIREMENTS
-        o binutils 2.15 and gcc 3.3.5
-        o binutils 2.16 and gcc 4.0.1
-        o older versions may do as well, but are now obsoleted
-
 SMP COMPATIBILITY
         o Bochs 2.0.2 - Bochs 2.2.6
                 o 2x-8x 686 CPU
@@ -36,3 +31,8 @@ EMULATORS AND VIRTUALIZERS
         o VMware Workstation 4, VMware Workstation 5, VMware Workstation 5.5
         o Simics 2.2.19
 	o QEMU 0.8.0
+
+TOOLCHAIN REQUIREMENTS
+        o binutils 2.15, 2.16, 2.16.1
+	o gcc 3.3.5, 4.0.1, 4.1.0
+        o older versions may do as well, but are now obsoleted

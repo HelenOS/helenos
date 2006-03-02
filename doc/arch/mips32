@@ -13,11 +13,12 @@ HARDWARE REQUIREMENTS
 CPU
 	o QED R4600
 
-COMPILER REQUIREMENTS
-        o mips binutils 2.16 and gcc 4.0.1 cross compiler
-        o older versions may do as well, but are now obsoleted
-
 EMULATORS AND VIRTUALIZERS
 	o msim 1.2.8
         o gxemul - both big and little endian
         o simics 2.2.19
+
+TOOLCHAIN REQUIREMENTS
+        o binutils 2.16, 2.16.1
+	o gcc 4.0.1, 4.1.0
+        o older versions may do as well, but are now obsoleted

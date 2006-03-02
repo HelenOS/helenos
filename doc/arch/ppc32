@@ -11,5 +11,6 @@ HARDWARE REQUIREMENTS
 EMULATORS AND VIRTUALIZERS
         o PearPC
 
-COMPILER REQUIREMENTS
-        o binutils 2.16 and gcc 4.0.1
+TOOLCHAIN REQUIREMENTS
+        o binutils 2.16
+	o gcc 4.0.1

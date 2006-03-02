@@ -27,3 +27,8 @@ EMULATORS AND VIRTUALIZERS
         o Bochs 2.2.6
         o Simics 2.2.19
 	o QEMU 0.8.0
+
+TOOLCHAIN REQUIREMENTS
+	o binutils 2.16, 2.16.1
+	o gcc 4.0.1, gcc 4.1.0
+	o older versions may do as well, but are now obsoleted

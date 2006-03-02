@@ -10,6 +10,7 @@ HARDWARE REQUIREMENTS
 EMULATORS AND VIRTUALIZERS
         o ski
 
-COMPILER REQUIREMENTS
-        o IA-64 binutils 2.15 and gcc 4.0.0 cross compiler
+TOOLCHAIN REQUIREMENTS
+        o binutils 2.15, 2.16
+	o gcc 4.0.0
         o older versions may do as well, but are now obsoleted
