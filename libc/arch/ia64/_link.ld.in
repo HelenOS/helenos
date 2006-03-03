@@ -1,0 +1,23 @@
+OUTPUT_FORMAT(elf64-ia64-little)
+STARTUP(../libc/arch/ARCH/src/entry.o)
+ENTRY(__entry)
+
+SECTIONS {
+	.text 0x00004000 : {
+		*(.text)
+		*(.rodata .rodata.*)
+		*(.opd)
+		*(.data)
+		*(.got .got.*)
+		*(.sdata)
+		*(.sbss)
+		*(.scommon)
+		*(.bss)
+		*(COMMON);
+	}
+ 
+	/DISCARD/ : {
+		*(.note.GNU-stack);
+		*(.comment);
+        }
+}
