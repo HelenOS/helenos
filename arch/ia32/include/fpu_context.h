@@ -31,9 +31,12 @@
 
 #include <arch/types.h>
 
+#define ARCH_HAS_FPU
+#define FPU_CONTEXT_ALIGN 16
+
 struct fpu_context {
 	/* TODO: We need malloc that aligns structures on 16-byte boundary */
-	__u8 fpu[512+16]; 		/* FXSAVE & FXRSTOR storage area */
+	__u8 fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
 };
 
 

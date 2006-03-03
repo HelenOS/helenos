@@ -39,6 +39,7 @@
 #include <synch/rwlock.h>
 #include <config.h>
 #include <adt/list.h>
+#include <mm/slab.h>
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 
@@ -82,7 +83,7 @@ struct thread {
 	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
 	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */
 
-	fpu_context_t saved_fpu_context;
+	fpu_context_t *saved_fpu_context;
 	int fpu_context_exists;
 
 	/*
@@ -134,5 +135,9 @@ extern void thread_usleep(__u32 usec);
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *t);
+
+
+/* Fpu context slab cache */
+extern slab_cache_t *fpu_context_slab;
 
 #endif

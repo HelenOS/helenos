@@ -48,7 +48,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 		);
 }
 
-void fpu_init(fpu_context_t *fctx)
+void fpu_init()
 {
 	__asm__ volatile (
 		"fninit;"

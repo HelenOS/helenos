@@ -63,20 +63,20 @@ atomic_t nrdy;	/**< Number of ready threads in the system. */
 void before_thread_runs(void)
 {
 	before_thread_runs_arch();
-	#ifdef CONFIG_FPU_LAZY
+#ifdef CONFIG_FPU_LAZY
 	if(THREAD==CPU->fpu_owner) 
 		fpu_enable();
 	else
 		fpu_disable(); 
-	#else
+#else
 	fpu_enable();
 	if (THREAD->fpu_context_exists)
-		fpu_context_restore(&(THREAD->saved_fpu_context));
+		fpu_context_restore(THREAD->saved_fpu_context);
 	else {
-		fpu_init(&(THREAD->saved_fpu_context));
+		fpu_init();
 		THREAD->fpu_context_exists=1;
 	}
-	#endif
+#endif
 }
 
 /** Take actions after THREAD had run.
@@ -102,7 +102,7 @@ void scheduler_fpu_lazy_request(void)
 	/* Save old context */
 	if (CPU->fpu_owner != NULL) {  
 		spinlock_lock(&CPU->fpu_owner->lock);
-		fpu_context_save(&CPU->fpu_owner->saved_fpu_context);
+		fpu_context_save(CPU->fpu_owner->saved_fpu_context);
 		/* don't prevent migration */
 		CPU->fpu_owner->fpu_context_engaged=0; 
 		spinlock_unlock(&CPU->fpu_owner->lock);
@@ -110,9 +110,17 @@ void scheduler_fpu_lazy_request(void)
 
 	spinlock_lock(&THREAD->lock);
 	if (THREAD->fpu_context_exists) {
-		fpu_context_restore(&THREAD->saved_fpu_context);
+		fpu_context_restore(THREAD->saved_fpu_context);
 	} else {
-		fpu_init(&(THREAD->saved_fpu_context));
+		/* Allocate FPU context */
+		if (!THREAD->saved_fpu_context) {
+			/* Might sleep */
+			spinlock_unlock(&THREAD->lock);
+			THREAD->saved_fpu_context = slab_alloc(fpu_context_slab,
+							       0);
+			spinlock_lock(&THREAD->lock);
+		}
+		fpu_init();
 		THREAD->fpu_context_exists=1;
 	}
 	CPU->fpu_owner=THREAD;
@@ -274,9 +282,9 @@ void scheduler(void)
 
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
-		#ifndef CONFIG_FPU_LAZY
-		fpu_context_save(&(THREAD->saved_fpu_context));
-		#endif
+#ifndef CONFIG_FPU_LAZY
+		fpu_context_save(THREAD->saved_fpu_context);
+#endif
 		if (!context_save(&THREAD->saved_context)) {
 			/*
 			 * This is the place where threads leave scheduler();
@@ -421,14 +429,14 @@ void scheduler_separated_stack(void)
 			 */
 			as_switch(as1, as2);
 		}
-		TASK = THREAD->task;	
+		TASK = THREAD->task;
 	}
 
 	THREAD->state = Running;
 
-	#ifdef SCHEDULER_VERBOSE
+#ifdef SCHEDULER_VERBOSE
 	printf("cpu%d: tid %d (priority=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
-	#endif	
+#endif	
 
 	/*
 	 * Some architectures provide late kernel PA2KA(identity)
@@ -546,9 +554,9 @@ not_satisfied:
 				 * Ready t on local CPU
 				 */
 				spinlock_lock(&t->lock);
-				#ifdef KCPULB_VERBOSE
+#ifdef KCPULB_VERBOSE
 				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
-				#endif
+#endif
 				t->flags |= X_STOLEN;
 				spinlock_unlock(&t->lock);
 	

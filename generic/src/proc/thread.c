@@ -63,6 +63,9 @@ SPINLOCK_INITIALIZE(tidlock);
 __u32 last_tid = 0;
 
 static slab_cache_t *thread_slab;
+#ifdef ARCH_HAS_FPU
+slab_cache_t *fpu_context_slab;
+#endif
 
 
 /** Thread wrapper
@@ -103,9 +106,24 @@ static int thr_constructor(void *obj, int kmflags)
 	link_initialize(&t->th_link);
 	link_initialize(&t->threads_link);
 	
-	pfn = frame_alloc_rc(ONE_FRAME, FRAME_KA | kmflags,&status);
-	if (status)
+#ifdef ARCH_HAS_FPU
+#  ifdef CONFIG_FPU_LAZY
+	t->saved_fpu_context = NULL;
+#  else
+	t->saved_fpu_context = slab_alloc(fpu_context_slab,kmflags);
+	if (!t->saved_fpu_context)
 		return -1;
+#  endif
+#endif	
+
+	pfn = frame_alloc_rc(ONE_FRAME, FRAME_KA | kmflags,&status);
+	if (status) {
+#ifdef ARCH_HAS_FPU
+		if (t->saved_fpu_context)
+			slab_free(fpu_context_slab,t->saved_fpu_context);
+#endif
+		return -1;
+	}
 	t->kstack = (__u8 *)PA2KA(PFN2ADDR(pfn));
 
 	return 0;
@@ -117,6 +135,10 @@ static int thr_destructor(void *obj)
 	thread_t *t = (thread_t *)obj;
 
 	frame_free(ADDR2PFN(KA2PA(t->kstack)));
+#ifdef ARCH_HAS_FPU
+	if (t->saved_fpu_context)
+		slab_free(fpu_context_slab,t->saved_fpu_context);
+#endif
 	return 1; /* One page freed */
 }
 
@@ -132,6 +154,12 @@ void thread_init(void)
 	thread_slab = slab_cache_create("thread_slab", 
 					sizeof(thread_t),0, 
 					thr_constructor, thr_destructor, 0);
+#ifdef ARCH_HAS_FPU
+	fpu_context_slab = slab_cache_create("fpu_slab",
+					     sizeof(fpu_context_t),
+					     FPU_CONTEXT_ALIGN,
+					     NULL, NULL, 0);
+#endif
 }
 
 
