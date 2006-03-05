@@ -52,13 +52,15 @@
  * ELF machine types
  */
 #define EM_NO		0	// No machine
-#define EM_M32		1	// AT&T WE 32100
 #define EM_SPARC	2	// SPARC
 #define EM_386		3	// i386
-#define EM_68K		4	// Motorola 68000
-#define EM_88K		5	// Motorola 88000
-#define EM_860		7	// i80860
 #define EM_MIPS		8	// MIPS RS3000
+#define EM_MIPS_RS3_LE	10	// MIPS RS3000 LE
+#define EM_PPC		20	// PPC32
+#define EM_PPC64	21	// PPC64
+#define EM_SPARCV9	43	// SPARC64
+#define EM_IA_64	50	// IA-64
+#define EM_X86_64	62	// AMD64/EMT64
 
 /**
  * ELF identification indexes

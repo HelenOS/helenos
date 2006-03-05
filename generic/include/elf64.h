@@ -26,33 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <elf.h>
+#ifndef __ELF64_H__
+#define __ELF64_H__
 
-/** 32bit ELF loader
- *
- * @param header Pointer to ELF header in memory
- * @param as Created and properly mapped address space
- * @return EE_OK on success
- */
-int elf32_load(__address header, as_t * as) {
-	elf32_header_t * e_header;
+#include <arch/types.h>
+#include <mm/as.h>
 
-	e_header = (elf32_header_t *) header;
-	
-	/* Identify ELF */
-	if (	e_header->e_ident[EI_MAG0] != ELFMAG0 || e_header->e_ident[EI_MAG1] != ELFMAG1 || 
-		e_header->e_ident[EI_MAG2] != ELFMAG2 || e_header->e_ident[EI_MAG3] != ELFMAG3
-		) {
-		return EE_INVALID;
-	}
-	
-	/* Identify ELF compatibility */
-	if (	e_header->e_ident[EI_DATA] != ELF_DATA_ENCODING || e_header->e_machine != ELF_MACHINE || 
-		e_header->e_ident[EI_VERSION] != EV_CURRENT || e_header->e_ident[EI_CLASS] != ELF_CLASS
-		) {
-		return EE_UNSUPPORTED;
-	}
-	
+/* remove later */
+#include <elf32.h>
 
-	return EE_UNSUPPORTED;	
-}
+extern int elf64_load(__address header, as_t * as);
+
+#endif

@@ -31,12 +31,13 @@
 
 #include <elf32.h>
 
-#define	CURRENT_ELF_MACHINE	EM_386
-#define CURRENT_ELF_DATA	ELFDATA2LSB
+#define	ELF_MACHINE		EM_386
+#define ELF_DATA_ENCODING	ELFDATA2LSB
+#define ELF_CLASS		ELFCLASS32
 
 /*
  * Main ELF loader function
  */
-#defiine elf_load(__address header, as_t *as)	elf32_load(header, as)
+#define elf_load(header, as) elf32_load(header, as)
 
 #endif
