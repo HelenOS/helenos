@@ -133,6 +133,41 @@
 #define SHF_EXECINSTR		0x4
 #define SHF_MASKPROC		0xf0000000
 
+
+/**
+ * Symbol binding
+ */
+#define STB_LOCAL		0
+#define STB_GLOBAL		1
+#define STB_WEAK		2
+#define STB_LOPROC		13
+#define STB_HIPROC		15
+
+/**
+ * Symbol types
+ */
+#define STT_NOTYPE		0
+#define STT_OBJECT		1
+#define STT_FUNC		2
+#define STT_SECTION		3
+#define STT_FILE		4
+#define STT_LOPROC		13
+#define STT_HIPROC		15
+
+
+/**
+ * Program segment types
+ */
+#define PT_NULL			0
+#define PT_LOAD			1
+#define PT_DYNAMIC		2
+#define PT_INTERP		3
+#define PT_NOTE			4
+#define PT_SHLIB		5
+#define PT_PHDR			6
+#define PT_LOPROC		0x70000000
+#define PT_HIPROC		0x7fffffff
+
 /**
  * 32-bit ELF data types
  */
@@ -180,8 +215,38 @@ struct elf32_section_header {
 };
 
 
+/*
+ * 32-bit ELF symbol table entry
+ */
+struct elf32_symbol {
+	elf32_word st_name;
+	elf32_addr st_value;
+	elf32_word st_size;
+	__u8 st_info;
+	__u8 st_other;
+	elf32_half st_shndx;
+};
+
+
+/*
+ * 32-bit ELF program header
+ */
+struct elf32_program_header {
+	elf32_word p_type;
+	elf32_off p_offset;
+	elf32_addr pv_addr;
+	elf32_addr pp_addr;
+	elf32_word p_filesz;
+	elf32_word p_memsz;
+	elf32_word p_flags;
+	elf32_word p_align;
+};
+ 
 typedef struct elf32_header elf32_header_t;
 typedef struct elf32_section_header elf32_section_header_t;
+typedef struct elf32_symbol elf32_symbol_t;
+typedef struct elf32_program_header elf32_program_header_t;
+
 
 
 extern int elf32_load(__address header, as_t * as);
