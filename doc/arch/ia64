@@ -11,6 +11,6 @@ EMULATORS AND VIRTUALIZERS
         o ski
 
 TOOLCHAIN REQUIREMENTS
-        o binutils 2.15, 2.16
-	o gcc 4.0.0
+        o binutils 2.15, 2.16, 2.16.1
+	o gcc 4.0.0, 4.0.1
         o older versions may do as well, but are now obsoleted

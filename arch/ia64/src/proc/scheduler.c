@@ -30,6 +30,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/register.h>
+#include <arch/context.h>
 #include <arch/mm/tlb.h>
 #include <config.h>
 #include <align.h>
@@ -57,7 +58,7 @@ void before_thread_runs_arch(void)
 		"bsw.0\n"
 		"mov r23 = %0\n"
 		"bsw.1\n"
-		 : : "r" (THREAD->kstack));
+		 : : "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]));
 }
 
 void after_thread_ran_arch(void)

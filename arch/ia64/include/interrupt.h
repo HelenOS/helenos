@@ -59,6 +59,7 @@ struct exception_regdump {
 	__u64 cr_ips;
 	__address cr_iip;
 	__u64 pr;
+	__address sp;
 } __attribute__ ((packed));
 
 extern void *ivt;

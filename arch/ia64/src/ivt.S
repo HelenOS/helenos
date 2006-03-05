@@ -29,12 +29,16 @@
 
 #include <arch/stack.h>
 #include <arch/register.h>
+#include <arch/mm/page.h>
+#include <align.h>
 
-#define STACK_ITEMS		12
-#define STACK_FRAME_SIZE	((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE)
+#define STACK_ITEMS		13
+#define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
-#if (STACK_FRAME_SIZE % STACK_ALIGNMENT != 0)
-#error Memory stack must be 16-byte aligned.
+#if (STACK_ITEMS % 2 == 0)
+#	define STACK_FRAME_BIAS	8
+#else
+#	define STACK_FRAME_BIAS 16
 #endif
 
 /** Partitioning of bank 0 registers. */
@@ -70,7 +74,7 @@ heavyweight_handler:
     /* 1. copy interrupt registers into bank 0 */
     
 	/*
-	 * Note that r24-r31 from bank0 can be used only as long as PSR.ic = 0.
+	 * Note that r24-r31 from bank 0 can be used only as long as PSR.ic = 0.
 	 */
 	mov r24 = cr.iip
 	mov r25 = cr.ipsr
@@ -82,20 +86,43 @@ heavyweight_handler:
 	mov r29 = pr ;;
 	
     /* 3. switch to kernel memory stack */
-	/* TODO: support interruptions from userspace */
-	/* assume kernel stack */
+    	mov r30 = cr.ipsr
+	shr.u r31 = r12, VRN_SHIFT ;; 
+
+	/*
+	 * Set p6 to true if the stack register references kernel address space.
+	 * Set p7 to false if the stack register doesn't reference kernel address space.
+	 */
+	cmp.eq p6, p7 = VRN_KERNEL, r31 ;;
 	
-	add r31 = -8, r12 ;;
+	(p6) shr.u r30 = r30, PSR_CPL_SHIFT ;;
+	(p6) and r30 = PSR_CPL_MASK_SHIFTED, r30 ;;
+
+	/*
+	 * Set p6 to true if the interrupted context executed in kernel mode.
+	 * Set p7 to false if the interrupted context didn't execute in kernel mode.
+	 */
+	(p6) cmp.eq p6, p7 = r30, r0 ;;
+	
+	/*
+	 * Now, p7 is true iff the stack needs to be switched to kernel stack.
+	 */
+	mov r30 = r12
+	(p7) mov r12 = R_KSTACK ;;
+	
+	add r31 = -STACK_FRAME_BIAS, r12 ;;
 	add r12 = -STACK_FRAME_SIZE, r12
 
     /* 4. save registers in bank 0 into memory stack */	
-	st8 [r31] = r29, -8 ;;	/* save predicate registers */
+	st8 [r31] = r30, -8 ;;		/* save old stack pointer */ 
+	
+	st8 [r31] = r29, -8 ;;		/* save predicate registers */
 
-	st8 [r31] = r24, -8 ;;	/* save cr.iip */
-	st8 [r31] = r25, -8 ;;	/* save cr.ipsr */
-	st8 [r31] = r26, -8 ;;	/* save cr.iipa */
-	st8 [r31] = r27, -8 ;;	/* save cr.isr */
-	st8 [r31] = r28, -8	/* save cr.ifa */		
+	st8 [r31] = r24, -8 ;;		/* save cr.iip */
+	st8 [r31] = r25, -8 ;;		/* save cr.ipsr */
+	st8 [r31] = r26, -8 ;;		/* save cr.iipa */
+	st8 [r31] = r27, -8 ;;		/* save cr.isr */
+	st8 [r31] = r28, -8 ;;		/* save cr.ifa */
 
     /* 5. RSE switch from interrupted context */
 	mov r24 = ar.rsc
@@ -103,8 +130,8 @@ heavyweight_handler:
 	cover
 	mov r26 = cr.ifs
 	
-	st8 [r31] = r24, -8;;	/* save ar.rsc */
-	st8 [r31] = r25, -8;;	/* save ar.pfs */
+	st8 [r31] = r24, -8 ;;	/* save ar.rsc */
+	st8 [r31] = r25, -8 ;;	/* save ar.pfs */
 	st8 [r31] = r26, -8	/* save ar.ifs */
 	
 	and r30 = ~3, r24 ;;
@@ -120,7 +147,7 @@ heavyweight_handler:
 	
 	st8 [r31] = r27, -8 ;;	/* save ar.rnat */
 	st8 [r31] = r28, -8 ;;	/* save ar.bspstore */
-	st8 [r31] = r29, -8	/* save ar.bsp */
+	st8 [r31] = r29, -8 	/* save ar.bsp */
 	
 	mov ar.rsc = r24	/* restore RSE's setting */
 	
@@ -174,11 +201,11 @@ heavyweight_handler:
 	mov cr.ifa = r28
 
     /* 18. restore predicate registers from memory stack */
-	ld8 r29 = [r31] , -8 ;;	/* load predicate registers */
+	ld8 r29 = [r31], +8 ;;	/* load predicate registers */
 	mov pr = r29
 	
     /* 19. return from interruption */
-    	add r12 = STACK_FRAME_SIZE, r12
+    	ld8 r12 = [r31]		/* load stack pointer */ 
 	rfi ;;
 
 .global heavyweight_handler_inner
