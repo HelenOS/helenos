@@ -37,6 +37,12 @@
 #error Memory stack must be 16-byte aligned.
 #endif
 
+/** Partitioning of bank 0 registers. */
+#define R_OFFS 		r16
+#define R_HANDLER	r17
+#define R_RET		r18
+#define R_KSTACK	r23	/* keep in sync with before_thread_runs_arch() */
+
 /** Heavyweight interrupt handler
  *
  * This macro roughly follows steps from 1 to 19 described in
@@ -54,16 +60,18 @@
  */
 .macro HEAVYWEIGHT_HANDLER offs, handler=universal_handler
     .org ivt + \offs
-	mov r24 = \offs
-	movl r25 = \handler ;;
-	mov ar.k0 = r24
-	mov ar.k1 = r25
+	mov R_OFFS = \offs
+	movl R_HANDLER = \handler ;;
 	br heavyweight_handler
 .endm
 
 .global heavyweight_handler
 heavyweight_handler:
     /* 1. copy interrupt registers into bank 0 */
+    
+	/*
+	 * Note that r24-r31 from bank0 can be used only as long as PSR.ic = 0.
+	 */
 	mov r24 = cr.iip
 	mov r25 = cr.ipsr
 	mov r26 = cr.iipa
@@ -117,11 +125,9 @@ heavyweight_handler:
 	mov ar.rsc = r24	/* restore RSE's setting */
 	
     /* steps 6 - 15 are done by heavyweight_handler_inner() */
-	mov r24 = b0 		/* save b0 belonging to interrupted context */
-	mov r26 = ar.k0
-	mov r25 = ar.k1
-	br.call.sptk.many rp = heavyweight_handler_inner
-0:	mov b0 = r24		/* restore b0 belonging to the interrupted context */
+	mov R_RET = b0 		/* save b0 belonging to interrupted context */
+	br.call.sptk.many b0 = heavyweight_handler_inner
+0:	mov b0 = R_RET		/* restore b0 belonging to the interrupted context */
 
     /* 16. RSE switch to interrupted context */
 	cover			/* allocate zerro size frame (step 1 (from Intel Docs)) */
@@ -184,9 +190,9 @@ heavyweight_handler_inner:
 	alloc loc0 = ar.pfs, 0, 47, 2, 0 ;;
 	
 	/* bank 0 is going to be shadowed, copy essential data from there */
-	mov loc1 = r24	/* b0 belonging to interrupted context */
-	mov loc2 = r25
-	mov out0 = r26
+	mov loc1 = R_RET	/* b0 belonging to interrupted context */
+	mov loc2 = R_HANDLER
+	mov out0 = R_OFFS
 	
 	add out1 = STACK_SCRATCH_AREA_SIZE, r12
 
@@ -323,7 +329,7 @@ heavyweight_handler_inner:
 	bsw.0 ;;
 	srlz.d
 
-	mov r24 = loc1
+	mov R_RET = loc1
 	mov ar.pfs = loc0
 	br.ret.sptk.many b0
 

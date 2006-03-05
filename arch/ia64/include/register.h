@@ -42,8 +42,6 @@
 #define PSR_RT_MASK	(1<<27)
 #define PSR_IT_MASK	0x0000001000000000
 
-
-
 /** Application registers. */
 #define AR_KR0		0
 #define AR_KR1		1

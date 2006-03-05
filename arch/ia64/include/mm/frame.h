@@ -29,7 +29,14 @@
 #ifndef __ia64_FRAME_H__
 #define __ia64_FRAME_H__
 
-#define FRAME_WIDTH   14	/* 16K */
+/*
+ * Frame is defined to be 64K long.
+ * Such a relatively big frame size is used because of kernel stack requirements
+ * and organization. Portion of the stack reserved for RSE must be at least 16K
+ * long. If the memory stack is to have some space allocated, the next available
+ * frame size (i.e. 64K) needs to be used.
+ */
+#define FRAME_WIDTH   16	/* 64K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)
 
 extern void frame_arch_init(void);

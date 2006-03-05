@@ -29,11 +29,12 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <arch.h>
+#include <arch/register.h>
 #include <arch/mm/tlb.h>
 #include <config.h>
 #include <align.h>
 
-/** Record kernel stack address in ar.k7 and make sure it is mapped in DTR. */
+/** Record kernel stack address in bank 0 r23 and make sure it is mapped in DTR. */
 void before_thread_runs_arch(void)
 {
 	__address base;
@@ -49,11 +50,14 @@ void before_thread_runs_arch(void)
 	}
 	
 	/*
-	 * Record address of kernel stack to ar.k7
-	 * where it will be found after switch
-	 * from userspace.
+	 * Record address of kernel stack to bank 0 r23
+	 * where it will be found after switch from userspace.
 	 */
-	__asm__ volatile ("mov ar.k7 = %0\n" : : "r" (THREAD->kstack));
+	__asm__ volatile (
+		"bsw.0\n"
+		"mov r23 = %0\n"
+		"bsw.1\n"
+		 : : "r" (THREAD->kstack));
 }
 
 void after_thread_ran_arch(void)
