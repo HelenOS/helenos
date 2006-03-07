@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
-#include "printf.h"
-#include "ofw.h"
-#include "asm.h"
+#ifndef __SPR_H__
+#define __SPR_H__
 
-#define KERNEL_LOAD_ADDRESS 0x800000
-#define KERNEL_START &_binary_____________kernel_kernel_bin_start
-#define KERNEL_END &_binary_____________kernel_kernel_bin_end
-#define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
+#define MSR_DR (1<<27)
+#define MSR_IR (1<<26)
 
-void bootstrap(void)
-{
-	printf("\nHelenOS PPC Bootloader\nKernel size %d bytes, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
-	
-	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
-	if (addr == NULL) {
-		printf("Error: Unable to claim memory");
-		halt();
-	}
-	memcpy(addr, KERNEL_START, KERNEL_SIZE);
-	
-	printf("Booting the kernel...\n");
-	jump_to_kernel(addr);
-}
+#define SPRN_SRR0  0x1a
+#define SPRN_SRR1  0x1b
+
+/* Works for PPC32 */
+#define L1_CACHE_BYTES (1 << 5)
+
+#endif

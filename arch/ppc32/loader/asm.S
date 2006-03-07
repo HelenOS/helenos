@@ -27,16 +27,127 @@
 #
 
 #include "regname.h"
+#include "spr.h"
 
-.section BOOTSTRAP
+.text
 
-.global start
+.global memsetb
+.global memcpy
+.global halt
+.global jump_to_kernel
 
-start:
-	lis r4, ofw@ha
-	addi r4, r4, ofw@l
-	stw r5, 0(r4)
+memsetb:
+	rlwimi r5, r5, 8, 16, 23
+	rlwimi r5, r5, 16, 0, 15
 	
-	bl init
+	addi r14, r3, -4
 	
-	b bootstrap
+	cmplwi 0, r4, 4
+	blt 7f
+	
+	stwu r5, 4(r14)
+	beqlr
+	
+	andi. r15, r14, 3
+	add r4, r15, r4
+	subf r14, r15, r14
+	srwi r15, r4, 2
+	mtctr r15
+	
+	bdz 6f
+	
+	1:
+		stwu r5, 4(r14)
+		bdnz 1b
+	
+	6:
+	
+	andi. r4, r4, 3
+	
+	7:
+	
+	cmpwi 0, r4, 0
+	beqlr
+	
+	mtctr r4
+	addi r6, r6, 3
+	
+	8:
+	
+	stbu r5, 1(r14)
+	bdnz 8b
+	
+	blr
+
+memcpy:
+	srwi. r7, r5, 3
+	addi r6, r3, -4
+	addi r4, r4, -4
+	beq	2f
+	
+	andi. r0, r6, 3
+	mtctr r7
+	bne 5f
+	
+	1:
+	
+	lwz r7, 4(r4)
+	lwzu r8, 8(r4)
+	stw r7, 4(r6)
+	stwu r8, 8(r6)
+	bdnz 1b
+	
+	andi. r5, r5, 7
+	
+	2:
+	
+	cmplwi 0, r5, 4
+	blt 3f
+	
+	lwzu r0, 4(r4)
+	addi r5, r5, -4
+	stwu r0, 4(r6)
+	
+	3:
+	
+	cmpwi 0, r5, 0
+	beqlr
+	mtctr r5
+	addi r4, r4, 3
+	addi r6, r6, 3
+	
+	4:
+	
+	lbzu r0, 1(r4)
+	stbu r0, 1(r6)
+	bdnz 4b
+	blr
+	
+	5:
+	
+	subfic r0, r0, 4
+	mtctr r0
+	
+	6:
+	
+	lbz r7, 4(r4)
+	addi r4, r4, 1
+	stb r7, 4(r6)
+	addi r6, r6, 1
+	bdnz 6b
+	subf r5, r0, r5
+	rlwinm. r7, r5, 32-3, 3, 31
+	beq 2b
+	mtctr r7
+	b 1b
+	
+halt:
+	b halt
+
+jump_to_kernel:
+	mfmsr r4
+	andis. r4, r4, (~MSR_DR | MSR_IR) >> 16
+	mtspr SPRN_SRR0, r3
+	mtspr SPRN_SRR1, r4
+	sync
+	RFI

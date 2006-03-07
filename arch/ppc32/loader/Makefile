@@ -53,6 +53,7 @@ SOURCES = \
 	main.c \
 	ofw.c \
 	printf.c \
+	asm.S \
 	boot.S
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

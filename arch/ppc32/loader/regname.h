@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_REGNAME_H__
-#define __ppc32_REGNAME_H__
+#ifndef __REGNAME_H__
+#define __REGNAME_H__
 
 /* Condition Register Bit Fields */
 #define	cr0	0

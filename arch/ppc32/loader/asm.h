@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
-#include "printf.h"
-#include "ofw.h"
-#include "asm.h"
+#ifndef __ASM_H__
+#define __ASM_H__
 
-#define KERNEL_LOAD_ADDRESS 0x800000
-#define KERNEL_START &_binary_____________kernel_kernel_bin_start
-#define KERNEL_END &_binary_____________kernel_kernel_bin_end
-#define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
+void halt(void) __attribute__((noreturn));
+void jump_to_kernel(void *addr) __attribute__((noreturn));
 
-void bootstrap(void)
-{
-	printf("\nHelenOS PPC Bootloader\nKernel size %d bytes, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
-	
-	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
-	if (addr == NULL) {
-		printf("Error: Unable to claim memory");
-		halt();
-	}
-	memcpy(addr, KERNEL_START, KERNEL_SIZE);
-	
-	printf("Booting the kernel...\n");
-	jump_to_kernel(addr);
-}
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+
+#endif
