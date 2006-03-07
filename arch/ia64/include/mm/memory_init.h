@@ -31,6 +31,6 @@
 
 #include <config.h>
 
-#define get_memory_size()	CONFIG_MEMORY_SIZE
+#define get_memory_size()	(512*1024*1024)		/* 512M */
 
 #endif

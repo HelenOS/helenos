@@ -32,7 +32,7 @@
 #include <arch/mm/page.h>
 #include <align.h>
 
-#define STACK_ITEMS		13
+#define STACK_ITEMS		14
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
@@ -141,11 +141,12 @@ heavyweight_handler:
 	mov r28 = ar.bspstore ;;
 	
 	/* assume kernel backing store */
-	/* mov ar.bspstore = r28 ;; */
+	mov ar.bspstore = r28 ;;
 	
 	mov r29 = ar.bsp
 	
 	st8 [r31] = r27, -8 ;;	/* save ar.rnat */
+	st8 [r31] = r28, -8 ;;	/* save new value written to ar.bspstore */
 	st8 [r31] = r28, -8 ;;	/* save ar.bspstore */
 	st8 [r31] = r29, -8 	/* save ar.bsp */
 	
@@ -161,9 +162,10 @@ heavyweight_handler:
 
 	add r31 = STACK_SCRATCH_AREA_SIZE, r12 ;;
 
-	mov r28 = ar.bspstore   	/* calculate loadrs (step 2) */
-	ld8 r29 = [r31], +8 ;;		/* load ar.bsp */
-	sub r27 = r29 , r28 ;;
+	ld8 r30 = [r31], +8 ;;		/* load ar.bsp */
+	ld8 r29 = [r31], +8 ;;   	/* load ar.bspstore */
+	ld8 r28 = [r31], +8 ;;   	/* load ar.bspstore_new */
+	sub r27 = r30 , r28 ;;		/* calculate loadrs (step 2) */
 	shl r27 = r27, 16
 
 	mov r24 = ar.rsc ;;
@@ -173,14 +175,13 @@ heavyweight_handler:
 
 	loadrs 				/* (step 3) */
 
-	ld8 r28 = [r31], +8 ;;    	/* load ar.bspstore */
 	ld8 r27 = [r31], +8 ;;		/* load ar.rnat */
 	ld8 r26 = [r31], +8 ;;		/* load cr.ifs */
 	ld8 r25 = [r31], +8 ;;		/* load ar.pfs */
 	ld8 r24 = [r31], +8 ;;		/* load ar.rsc */
 
-	/* mov ar.bspstore = r28 ;; */	/* (step 4) */
-	/* mov ar.rnat = r27 */		/* (step 5) */
+	mov ar.bspstore = r29 ;;	/* (step 4) */
+	mov ar.rnat = r27		/* (step 5) */
 
 	mov ar.pfs = r25		/* (step 6) */
 	mov cr.ifs = r26	

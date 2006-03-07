@@ -49,6 +49,7 @@
 struct exception_regdump {
 	__address ar_bsp;
 	__address ar_bspstore;
+	__address ar_bspstore_new;
 	__u64 ar_rnat;
 	__u64 ar_ifs;
 	__u64 ar_pfs;
