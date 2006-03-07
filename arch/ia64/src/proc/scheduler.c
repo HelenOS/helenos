@@ -31,11 +31,12 @@
 #include <arch.h>
 #include <arch/register.h>
 #include <arch/context.h>
+#include <arch/stack.h>
 #include <arch/mm/tlb.h>
 #include <config.h>
 #include <align.h>
 
-/** Record kernel stack address in bank 0 r23 and make sure it is mapped in DTR. */
+/** Prepare kernel stack pointers in bank 0 r22 and r23 and make sure the stack is mapped in DTR. */
 void before_thread_runs_arch(void)
 {
 	__address base;
@@ -51,14 +52,18 @@ void before_thread_runs_arch(void)
 	}
 	
 	/*
-	 * Record address of kernel stack to bank 0 r23
-	 * where it will be found after switch from userspace.
+	 * Record address of kernel backing store to bank 0 r22.
+	 * Record address of kernel stack to bank 0 r23.
+	 * These values will be found there after switch from userspace.
 	 */
 	__asm__ volatile (
 		"bsw.0\n"
-		"mov r23 = %0\n"
+		"mov r22 = %0\n"
+		"mov r23 = %1\n"
 		"bsw.1\n"
-		 : : "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]));
+		:
+		: "r" (((__address) THREAD->kstack) + ALIGN_UP(sizeof(the_t), REGISTER_STACK_ALIGNMENT)),
+		  "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]));
 }
 
 void after_thread_ran_arch(void)

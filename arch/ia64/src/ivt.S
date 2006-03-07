@@ -45,6 +45,7 @@
 #define R_OFFS 		r16
 #define R_HANDLER	r17
 #define R_RET		r18
+#define R_KSTACK_BSP	r22	/* keep in sync with before_thread_runs_arch() */
 #define R_KSTACK	r23	/* keep in sync with before_thread_runs_arch() */
 
 /** Heavyweight interrupt handler
@@ -56,8 +57,8 @@
  * This goal is achieved by using procedure calls after RSE becomes operational.
  *
  * Some steps are skipped (enabling and disabling interrupts).
- * Some steps are not fully supported yet (e.g. interruptions
- * from userspace and floating-point context).
+ * Some steps are not fully supported yet (e.g. dealing with floating-point
+ * context).
  *
  * @param offs Offset from the beginning of IVT.
  * @param handler Interrupt handler address.
@@ -87,28 +88,29 @@ heavyweight_handler:
 	
     /* 3. switch to kernel memory stack */
     	mov r30 = cr.ipsr
-	shr.u r31 = r12, VRN_SHIFT ;; 
+	shr.u r31 = r12, VRN_SHIFT ;;
+
+	shr.u r30 = r30, PSR_CPL_SHIFT ;;
+	and r30 = PSR_CPL_MASK_SHIFTED, r30 ;;
 
 	/*
-	 * Set p6 to true if the stack register references kernel address space.
-	 * Set p7 to false if the stack register doesn't reference kernel address space.
+	 * Set p3 to true if the interrupted context executed in kernel mode.
+	 * Set p4 to false if the interrupted context didn't execute in kernel mode.
 	 */
-	cmp.eq p6, p7 = VRN_KERNEL, r31 ;;
-	
-	(p6) shr.u r30 = r30, PSR_CPL_SHIFT ;;
-	(p6) and r30 = PSR_CPL_MASK_SHIFTED, r30 ;;
+	cmp.eq p3, p4 = r30, r0 ;;
+	cmp.eq p1, p2 = r30, r0 ;;	/* remember IPSR setting in p1 and p2 */
 
 	/*
-	 * Set p6 to true if the interrupted context executed in kernel mode.
-	 * Set p7 to false if the interrupted context didn't execute in kernel mode.
+	 * Set p3 to true if the stack register references kernel address space.
+	 * Set p4 to false if the stack register doesn't reference kernel address space.
 	 */
-	(p6) cmp.eq p6, p7 = r30, r0 ;;
+	(p3) cmp.eq p3, p4 = VRN_KERNEL, r31 ;;
 	
 	/*
-	 * Now, p7 is true iff the stack needs to be switched to kernel stack.
+	 * Now, p4 is true iff the stack needs to be switched to kernel stack.
 	 */
 	mov r30 = r12
-	(p7) mov r12 = R_KSTACK ;;
+	(p4) mov r12 = R_KSTACK ;;
 	
 	add r31 = -STACK_FRAME_BIAS, r12 ;;
 	add r12 = -STACK_FRAME_SIZE, r12
@@ -130,35 +132,45 @@ heavyweight_handler:
 	cover
 	mov r26 = cr.ifs
 	
-	st8 [r31] = r24, -8 ;;	/* save ar.rsc */
-	st8 [r31] = r25, -8 ;;	/* save ar.pfs */
-	st8 [r31] = r26, -8	/* save ar.ifs */
+	st8 [r31] = r24, -8 ;;		/* save ar.rsc */
+	st8 [r31] = r25, -8 ;;		/* save ar.pfs */
+	st8 [r31] = r26, -8		/* save ar.ifs */
 	
 	and r30 = ~3, r24 ;;
-	mov ar.rsc = r30 ;;	/* place RSE in enforced lazy mode */
+	mov ar.rsc = r30 ;;		/* place RSE in enforced lazy mode */
 	
 	mov r27 = ar.rnat
 	mov r28 = ar.bspstore ;;
 	
-	/* assume kernel backing store */
-	mov ar.bspstore = r28 ;;
+	/*
+	 * Inspect BSPSTORE to figure out whether it is necessary to switch to kernel BSPSTORE.
+	 */
+	(p1) shr.u r30 = r28, VRN_SHIFT ;;
+	(p1) cmp.eq p1, p2 = VRN_KERNEL, r30 ;;
+	
+	/*
+	 * If BSPSTORE needs to be switched, p1 is false and p2 is true.
+	 */
+	(p1) mov r30 = r28
+	(p2) mov r30 = R_KSTACK_BSP ;;
+	(p2) mov ar.bspstore = r30 ;;
 	
 	mov r29 = ar.bsp
 	
-	st8 [r31] = r27, -8 ;;	/* save ar.rnat */
-	st8 [r31] = r28, -8 ;;	/* save new value written to ar.bspstore */
-	st8 [r31] = r28, -8 ;;	/* save ar.bspstore */
-	st8 [r31] = r29, -8 	/* save ar.bsp */
+	st8 [r31] = r27, -8 ;;		/* save ar.rnat */
+	st8 [r31] = r30, -8 ;;		/* save new value written to ar.bspstore */
+	st8 [r31] = r28, -8 ;;		/* save ar.bspstore */
+	st8 [r31] = r29, -8 		/* save ar.bsp */
 	
-	mov ar.rsc = r24	/* restore RSE's setting */
+	mov ar.rsc = r24		/* restore RSE's setting */
 	
     /* steps 6 - 15 are done by heavyweight_handler_inner() */
-	mov R_RET = b0 		/* save b0 belonging to interrupted context */
+	mov R_RET = b0 			/* save b0 belonging to interrupted context */
 	br.call.sptk.many b0 = heavyweight_handler_inner
-0:	mov b0 = R_RET		/* restore b0 belonging to the interrupted context */
+0:	mov b0 = R_RET			/* restore b0 belonging to the interrupted context */
 
     /* 16. RSE switch to interrupted context */
-	cover			/* allocate zerro size frame (step 1 (from Intel Docs)) */
+	cover				/* allocate zerro size frame (step 1 (from Intel Docs)) */
 
 	add r31 = STACK_SCRATCH_AREA_SIZE, r12 ;;
 
@@ -189,11 +201,11 @@ heavyweight_handler:
 	mov ar.rsc = r24		/* (step 7) */
 
     /* 17. restore interruption state from memory stack */
-	ld8 r28 = [r31], +8 ;;	/* load cr.ifa */		
-	ld8 r27 = [r31], +8 ;;	/* load cr.isr */
-	ld8 r26 = [r31], +8 ;;	/* load cr.iipa */
-	ld8 r25 = [r31], +8 ;;	/* load cr.ipsr */
-	ld8 r24 = [r31], +8 ;;	/* load cr.iip */
+	ld8 r28 = [r31], +8 ;;		/* load cr.ifa */		
+	ld8 r27 = [r31], +8 ;;		/* load cr.isr */
+	ld8 r26 = [r31], +8 ;;		/* load cr.iipa */
+	ld8 r25 = [r31], +8 ;;		/* load cr.ipsr */
+	ld8 r24 = [r31], +8 ;;		/* load cr.iip */
 
 	mov cr.iip = r24
 	mov cr.ipsr = r25
@@ -202,11 +214,11 @@ heavyweight_handler:
 	mov cr.ifa = r28
 
     /* 18. restore predicate registers from memory stack */
-	ld8 r29 = [r31], +8 ;;	/* load predicate registers */
+	ld8 r29 = [r31], +8 ;;		/* load predicate registers */
 	mov pr = r29
 	
     /* 19. return from interruption */
-    	ld8 r12 = [r31]		/* load stack pointer */ 
+    	ld8 r12 = [r31]			/* load stack pointer */ 
 	rfi ;;
 
 .global heavyweight_handler_inner
