@@ -29,13 +29,19 @@
 #ifndef __SPR_H__
 #define __SPR_H__
 
-#define MSR_DR (1<<27)
-#define MSR_IR (1<<26)
+#define MSR_DR (1 << 27)
+#define MSR_IR (1 << 26)
 
 #define SPRN_SRR0  0x1a
 #define SPRN_SRR1  0x1b
+#define SPRN_HID0  0x3f0
 
-/* Works for PPC32 */
-#define L1_CACHE_BYTES (1 << 5)
+#define HID0_ICE  (1 << 15)
+#define HID0_DCE  (1 << 14)
+#define HID0_ICFI (1 << 11)
+#define HID0_DCI  (1 << 10)
+
+#define L1_CACHE_LINES (128 * 8)
+#define L1_CACHE_BYTES 5
 
 #endif

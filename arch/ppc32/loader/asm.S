@@ -29,6 +29,11 @@
 #include "regname.h"
 #include "spr.h"
 
+.data
+
+flush_buffer:
+	.space 4
+
 .text
 
 .global memsetb
@@ -144,10 +149,44 @@ memcpy:
 halt:
 	b halt
 
+flush_instruction_cache:
+
+	# Flush data cache
+	
+	lis r3, flush_buffer@h
+	ori r3, r3, flush_buffer@l
+	li r4, L1_CACHE_LINES
+	mtctr r4
+	
+	0:
+	
+	lwz r4, 0(r3)
+	addi r3, r3, L1_CACHE_BYTES
+	bdnz 0b
+	
+	# Invalidate instruction cache
+	
+	li r3, 0
+	ori	r3, r3, (HID0_ICE | HID0_DCE | HID0_ICFI | HID0_DCI)
+	mfspr r4, SPRN_HID0
+	or r5, r4, r3
+	isync
+	mtspr SPRN_HID0, r5
+	sync
+	isync
+	
+	# Enable instruction cache
+	
+	ori	r5, r4, HID0_ICE
+	mtspr SPRN_HID0, r5
+	sync
+	isync
+	blr
+
 jump_to_kernel:
 	mfmsr r4
 	andis. r4, r4, (~MSR_DR | MSR_IR) >> 16
 	mtspr SPRN_SRR0, r3
 	mtspr SPRN_SRR1, r4
-	sync
-	RFI
+	bl flush_instruction_cache
+	rfi
