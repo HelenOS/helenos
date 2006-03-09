@@ -30,6 +30,7 @@
 #define __ia64_CONTEXT_H__
 
 #include <arch/types.h>
+#include <arch/register.h>
 #include <typedefs.h>
 #include <align.h>
 #include <arch/stack.h>
@@ -41,8 +42,6 @@
  * One item is put onto the stack to support get_stack_base().
  */
 #define SP_DELTA	(0+ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
-#define PFM_MASK	(~0x3fffffffff)
 
 #ifdef context_set
 #undef context_set

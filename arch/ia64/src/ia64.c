@@ -31,8 +31,14 @@
 #include <arch/drivers/it.h>
 #include <arch/interrupt.h>
 #include <arch/barrier.h>
+#include <arch/asm.h>
+#include <arch/register.h>
 #include <arch/types.h>
-
+#include <arch/context.h>
+#include <arch/mm/page.h>
+#include <mm/as.h>
+#include <config.h>
+#include <userspace.h>
 #include <console/console.h>
 
 void arch_pre_mm_init(void)
@@ -43,6 +49,8 @@ void arch_pre_mm_init(void)
 	
 	ski_init_console();
 	it_init();
+	config.init_addr = INIT_ADDRESS;
+	config.init_size = INIT_SIZE;
 }
 
 void arch_post_mm_init(void)
@@ -53,7 +61,31 @@ void arch_pre_smp_init(void)
 {
 }
 
-
 void arch_post_smp_init(void)
 {
+}
+
+/** Enter userspace and never return. */
+void userspace(void)
+{
+	psr_t psr;
+	rsc_t rsc;
+
+	psr.value = psr_read();
+	psr.cpl = PL_USER;
+	psr.i = true;				/* start with interrupts enabled */
+	psr.ic = true;
+	psr.ri = 0;				/* start with instruction #0 */
+
+	__asm__ volatile ("mov %0 = ar.rsc\n" : "=r" (rsc.value));
+	rsc.loadrs = 0;
+	rsc.be = false;
+	rsc.pl = PL_USER;
+	rsc.mode = 3;				/* eager mode */
+
+	switch_to_userspace(UTEXT_ADDRESS, USTACK_ADDRESS+PAGE_SIZE-1, USTACK_ADDRESS, psr.value, rsc.value);
+
+	while (1) {
+		;
+	}
 }

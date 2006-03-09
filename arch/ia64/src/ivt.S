@@ -136,8 +136,9 @@ heavyweight_handler:
 	st8 [r31] = r25, -8 ;;		/* save ar.pfs */
 	st8 [r31] = r26, -8		/* save ar.ifs */
 	
-	and r30 = ~3, r24 ;;
-	mov ar.rsc = r30 ;;		/* place RSE in enforced lazy mode */
+	and r24 = ~(RSC_PL_MASK), r24 ;;
+	and r30 = ~(RSC_MODE_MASK), r24 ;;
+	mov ar.rsc = r30 ;;		/* update RSE state */
 	
 	mov r27 = ar.rnat
 	mov r28 = ar.bspstore ;;
@@ -162,7 +163,7 @@ heavyweight_handler:
 	st8 [r31] = r28, -8 ;;		/* save ar.bspstore */
 	st8 [r31] = r29, -8 		/* save ar.bsp */
 	
-	mov ar.rsc = r24		/* restore RSE's setting */
+	mov ar.rsc = r24		/* restore RSE's setting + kernel privileges */
 	
     /* steps 6 - 15 are done by heavyweight_handler_inner() */
 	mov R_RET = b0 			/* save b0 belonging to interrupted context */
@@ -300,6 +301,8 @@ heavyweight_handler_inner:
 	 */
 
     /* 10. call handler */
+    	movl r1 = _hardcoded_load_address
+    
     	mov b1 = loc2
 	br.call.sptk.many b0 = b1
 

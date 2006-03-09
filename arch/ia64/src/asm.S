@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/register.h>
+
 .text
 
 .global memcpy
@@ -46,3 +48,42 @@ panic_printf:
 		br.call.sptk.many b0=printf
 	}
 	br halt
+
+/** Switch to userspace - low level code.
+ *
+ * @param in0 Userspace entry point address.
+ * @param in1 Userspace stack pointer address.
+ * @param in2 Userspace register stack pointer address.
+ * @param in3 Value to be stored in IPSR.
+ * @param in4 Value to be stored in RSC.
+ */
+.global switch_to_userspace
+switch_to_userspace:
+	alloc loc0 = ar.pfs, 5, 3, 0, 0
+	rsm (PSR_IC_MASK | PSR_I_MASK)		/* disable interruption collection  and interrupts */
+	srlz.d ;;
+	srlz.i ;;
+	
+	mov cr.ipsr = in3
+	mov cr.iip = in0
+	mov r12 = in1
+
+	xor r1 = r1, r1
+	
+	mov loc1 = cr.ifs
+	movl loc2 = PFM_MASK ;;
+	and loc1 = loc2, loc1 ;;
+	mov cr.ifs = loc1 ;;			/* prevent decrementing BSP by rfi */
+
+	invala
+	
+	mov loc1 = ar.rsc ;;
+	and loc1 = ~3, loc1 ;;			
+	mov ar.rsc = loc1 ;;			/* put RSE into enforced lazy mode */
+
+	flushrs ;;
+	
+	mov ar.bspstore = in2 ;;
+	mov ar.rsc = in4 ;;
+	
+	rfi ;;

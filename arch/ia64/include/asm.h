@@ -48,6 +48,19 @@ static inline __address get_stack_base(void)
 	return v;
 }
 
+/** Return Processor State Register.
+ *
+ * @return PSR.
+ */
+static inline __u64 psr_read(void)
+{
+	__u64 v;
+	
+	__asm__ volatile ("mov %0 = psr\n" : "=r" (v));
+	
+	return v;
+}
+
 /** Read IVA (Interruption Vector Address).
  *
  * @return Return location of interruption vector table.
@@ -232,11 +245,7 @@ static inline void interrupts_restore(ipl_t ipl)
  */
 static inline ipl_t interrupts_read(void)
 {
-	__u64 v;
-	
-	__asm__ volatile ("mov %0 = psr\n" : "=r" (v));
-	
-	return (ipl_t) v;
+	return (ipl_t) psr_read();
 }
 
 /** Disable protection key checking. */
@@ -248,5 +257,7 @@ static inline void pk_disable(void)
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
 extern void asm_delay_loop(__u32 t);
+
+extern void switch_to_userspace(__address entry, __address sp, __address bsp, __u64 ipsr, __u64 rsc);
 
 #endif

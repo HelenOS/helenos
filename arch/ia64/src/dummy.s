@@ -30,14 +30,12 @@
 
 .global calibrate_delay_loop
 .global asm_delay_loop
-.global userspace
 .global cpu_sleep
 .global dummy
 .global fpu_enable
 .global fpu_disable
 .global fpu_init
 
-userspace:
 calibrate_delay_loop:
 asm_delay_loop:
 cpu_sleep:

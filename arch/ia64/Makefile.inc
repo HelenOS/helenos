@@ -38,9 +38,14 @@ TOOLCHAIN_DIR = /usr/local/ia64/bin
 ## Make some default assumptions
 #
 
+INIT_ADDRESS = 0xe000000000400000
+INIT_SIZE = 0x100000
+
 CFLAGS += -mconstant-gp -fno-unwind-tables
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
+
+DEFS += -DINIT_ADDRESS=$(INIT_ADDRESS) -DINIT_SIZE=$(INIT_SIZE)
 
 ## Compile with page hash table support.
 #

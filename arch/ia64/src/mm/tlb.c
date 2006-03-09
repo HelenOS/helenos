@@ -63,7 +63,8 @@ void tlb_invalidate_asid(asid_t asid)
  * @param asid Address space identifier.
  * @param entry The rest of TLB entry as required by TLB insertion format.
  */
-void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry) {
+void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
+{
 	tc_mapping_insert(va, asid, entry, true);
 }
 
@@ -73,7 +74,8 @@ void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry) {
  * @param asid Address space identifier.
  * @param entry The rest of TLB entry as required by TLB insertion format.
  */
-void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry) {
+void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
+{
 	tc_mapping_insert(va, asid, entry, false);
 }
 
@@ -335,7 +337,7 @@ void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 			return;
 		}
 	}
-	
+
 	t = page_mapping_find(AS, va);
 	if (t) {
 		/*

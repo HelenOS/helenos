@@ -124,14 +124,14 @@ paging_start:
 	add r12 = - 16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
-	movl r1 = _hardcoded_load_address	;;
+	movl r1 = _hardcoded_load_address
 
 	/*
 	 * Initialize hardcoded_* variables.
 	 */
 	movl r14 = _hardcoded_ktext_size
 	movl r15 = _hardcoded_kdata_size
-	movl r16 = _hardcoded_load_address
+	movl r16 = _hardcoded_load_address ;;
 	addl r17 = @gprel(hardcoded_ktext_size), gp
 	addl r18 = @gprel(hardcoded_kdata_size), gp
 	addl r19 = @gprel(hardcoded_load_address), gp

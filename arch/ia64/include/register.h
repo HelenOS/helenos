@@ -29,10 +29,6 @@
 #ifndef __ia64_REGISTER_H__
 #define __ia64_REGISTER_H__
 
-#ifndef __ASM__
-#include <arch/types.h>
-#endif
-
 #define CR_IVR_MASK	0xf
 #define PSR_IC_MASK	0x2000
 #define PSR_I_MASK	0x4000
@@ -44,6 +40,11 @@
 
 #define PSR_CPL_SHIFT		32
 #define PSR_CPL_MASK_SHIFTED	3
+
+#define PFM_MASK        (~0x3fffffffff)
+
+#define RSC_MODE_MASK	3
+#define RSC_PL_MASK	12
 
 /** Application registers. */
 #define AR_KR0		0
@@ -120,6 +121,65 @@
 /* CR82-CR127 reserved */
 
 #ifndef __ASM__
+
+#include <arch/types.h>
+
+/** Processor Status Register. */
+union psr {
+	__u64 value;
+	struct {
+		unsigned : 1;
+		unsigned be : 1;	/**< Big-Endian data accesses. */
+		unsigned up : 1;	/**< User Performance monitor enable. */
+		unsigned ac : 1;	/**< Alignment Check. */
+		unsigned mfl : 1;	/**< Lower floating-point register written. */
+		unsigned mfh : 1;	/**< Upper floating-point register written. */
+		unsigned : 7;
+		unsigned ic : 1;	/**< Interruption Collection. */
+		unsigned i : 1;		/**< Interrupt Bit. */
+		unsigned pk : 1;	/**< Protection Key enable. */
+		unsigned : 1;
+		unsigned dt : 1;	/**< Data address Translation. */
+		unsigned dfl : 1;	/**< Disabled Floating-point Low register set. */
+		unsigned dfh : 1;	/**< Disabled Floating-point High register set. */
+		unsigned sp : 1;	/**< Secure Performance monitors. */
+		unsigned pp : 1;	/**< Privileged Performance monitor enable. */
+		unsigned di : 1;	/**< Disable Instruction set transition. */
+		unsigned si : 1;	/**< Secure Interval timer. */
+		unsigned db : 1;	/**< Debug Breakpoint fault. */
+		unsigned lp : 1;	/**< Lower Privilege transfer trap. */
+		unsigned tb : 1;	/**< Taken Branch trap. */
+		unsigned rt : 1;	/**< Register Stack Translation. */
+		unsigned : 4;
+		unsigned cpl : 2;	/**< Current Privilege Level. */
+		unsigned is : 1;	/**< Instruction Set. */
+		unsigned mc : 1;	/**< Machine Check abort mask. */
+		unsigned it : 1;	/**< Instruction address Translation. */
+		unsigned id : 1;	/**< Instruction Debug fault disable. */
+		unsigned da : 1;	/**< Disable Data Access and Dirty-bit faults. */
+		unsigned dd : 1;	/**< Data Debug fault disable. */
+		unsigned ss : 1;	/**< Single Step enable. */
+		unsigned ri : 2;	/**< Restart Instruction. */
+		unsigned ed : 1;	/**< Exception Deferral. */
+		unsigned bn : 1;	/**< Register Bank. */
+		unsigned ia : 1;	/**< Disable Instruction Access-bit faults. */
+	} __attribute__ ((packed));
+};
+typedef union psr psr_t;
+
+/** Register Stack Configuration Register */
+union rsc {
+	__u64 value;
+	struct {
+		unsigned mode : 2;
+		unsigned pl : 2;	/**< Privilege Level. */
+		unsigned be : 1;	/**< Big-endian. */
+		unsigned : 11;
+		unsigned loadrs : 14;
+	} __attribute__ ((packed));
+};
+typedef union rsc rsc_t;
+
 /** External Interrupt Vector Register */
 union cr_ivr {
 	__u8  vector;
