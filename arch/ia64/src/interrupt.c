@@ -40,6 +40,8 @@
 #include <arch.h>
 #include <symtab.h>
 #include <debug.h>
+#include <syscall/syscall.h>
+#include <print.h>
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -131,7 +133,7 @@ void dump_interrupted_context(struct exception_regdump *pstate)
 	printf("ar.bsp=%P\tar.bspstore=%P\n", pstate->ar_bsp, pstate->ar_bspstore);
 	printf("ar.rnat=%Q\tar.rsc=%Q\n", pstate->ar_rnat, pstate->ar_rsc);
 	printf("ar.ifs=%Q\tar.pfs=%Q\n", pstate->ar_ifs, pstate->ar_pfs);
-	printf("cr.isr=%Q\tcr.ips=%Q\t\n", pstate->cr_isr.value, pstate->cr_ips);
+	printf("cr.isr=%Q\tcr.ipsr=%Q\t\n", pstate->cr_isr.value, pstate->cr_ipsr);
 	
 	printf("cr.iip=%Q, #%d\t(%s)\n", pstate->cr_iip, pstate->cr_isr.ei ,iip ? iip : "?");
 	printf("cr.iipa=%Q\t(%s)\n", pstate->cr_iipa, iipa ? iipa : "?");
@@ -171,10 +173,25 @@ void general_exception(__u64 vector, struct exception_regdump *pstate)
 	panic("General Exception (%s)\n", desc);
 }
 
-void break_instruction(__u64 vector, struct exception_regdump *pstate)
+/** Handle syscall. */
+int break_instruction(__u64 vector, struct exception_regdump *pstate)
 {
-	dump_interrupted_context(pstate);
-	panic("Break Instruction\n");
+	/*
+	 * Move to next instruction after BREAK.
+	 */
+	if (pstate->cr_ipsr.ri == 2) {
+		pstate->cr_ipsr.ri = 0;
+		pstate->cr_iip += 16;
+	} else {
+		pstate->cr_ipsr.ri++;
+	}
+
+	if (pstate->in0 < SYSCALL_END)
+		return syscall_table[pstate->in0](pstate->in1, pstate->in2, pstate->in3);
+	else
+		panic("Undefined syscall %d", pstate->in0);
+		
+	return -1;
 }
 
 void universal_handler(__u64 vector, struct exception_regdump *pstate)

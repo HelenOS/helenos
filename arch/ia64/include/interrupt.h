@@ -57,16 +57,24 @@ struct exception_regdump {
 	__address cr_ifa;
 	cr_isr_t cr_isr;
 	__address cr_iipa;
-	__u64 cr_ips;
+	psr_t cr_ipsr;
 	__address cr_iip;
 	__u64 pr;
 	__address sp;
+	
+	/*
+	 * The following variables are defined only for break_instruction handler. 
+	 */
+	__u64 in0;
+	__u64 in1;
+	__u64 in2;
+	__u64 in3;
 } __attribute__ ((packed));
 
 extern void *ivt;
 
 extern void general_exception(__u64 vector, struct exception_regdump *pstate);
-extern void break_instruction(__u64 vector, struct exception_regdump *pstate);
+extern int break_instruction(__u64 vector, struct exception_regdump *pstate);
 extern void universal_handler(__u64 vector, struct exception_regdump *pstate);
 extern void external_interrupt(__u64 vector, struct exception_regdump *pstate);
 

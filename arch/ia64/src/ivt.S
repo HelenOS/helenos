@@ -32,7 +32,7 @@
 #include <arch/mm/page.h>
 #include <align.h>
 
-#define STACK_ITEMS		14
+#define STACK_ITEMS		18
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
@@ -45,6 +45,7 @@
 #define R_OFFS 		r16
 #define R_HANDLER	r17
 #define R_RET		r18
+#define R_TMP		r19
 #define R_KSTACK_BSP	r22	/* keep in sync with before_thread_runs_arch() */
 #define R_KSTACK	r23	/* keep in sync with before_thread_runs_arch() */
 
@@ -104,18 +105,38 @@ heavyweight_handler:
 	 * Set p3 to true if the stack register references kernel address space.
 	 * Set p4 to false if the stack register doesn't reference kernel address space.
 	 */
-	(p3) cmp.eq p3, p4 = VRN_KERNEL, r31 ;;
+(p3)	cmp.eq p3, p4 = VRN_KERNEL, r31 ;;
 	
 	/*
 	 * Now, p4 is true iff the stack needs to be switched to kernel stack.
 	 */
 	mov r30 = r12
-	(p4) mov r12 = R_KSTACK ;;
+(p4)	mov r12 = R_KSTACK ;;
 	
 	add r31 = -STACK_FRAME_BIAS, r12 ;;
 	add r12 = -STACK_FRAME_SIZE, r12
 
-    /* 4. save registers in bank 0 into memory stack */	
+    /* 4. save registers in bank 0 into memory stack */
+
+	/*
+	 * If this is break_instruction handler,
+	 * copy input parameters to stack.
+	 */
+    	mov R_TMP = 0x2c00 ;;
+	cmp.eq p6,p5 = R_OFFS, R_TMP ;;
+	
+	/*
+	 * From now on, if this is break_instruction handler, p6 is true and p5 is false.
+	 * Otherwise p6 is false and p5 is true.
+	 * Note that p5 is a preserved predicate register and we make use of it.
+	 */
+	
+(p6)	st8 [r31] = r35, -8 ;;		/* save in3 */
+(p6) 	st8 [r31] = r34, -8 ;;		/* save in2 */
+(p6)	st8 [r31] = r33, -8 ;;		/* save in1 */
+(p6)	st8 [r31] = r32, -8 ;;		/* save in0 */
+(p5)	add r31 = -32, r31 ;;
+    
 	st8 [r31] = r30, -8 ;;		/* save old stack pointer */ 
 	
 	st8 [r31] = r29, -8 ;;		/* save predicate registers */
@@ -146,15 +167,15 @@ heavyweight_handler:
 	/*
 	 * Inspect BSPSTORE to figure out whether it is necessary to switch to kernel BSPSTORE.
 	 */
-	(p1) shr.u r30 = r28, VRN_SHIFT ;;
-	(p1) cmp.eq p1, p2 = VRN_KERNEL, r30 ;;
+(p1)	shr.u r30 = r28, VRN_SHIFT ;;
+(p1)	cmp.eq p1, p2 = VRN_KERNEL, r30 ;;
 	
 	/*
 	 * If BSPSTORE needs to be switched, p1 is false and p2 is true.
 	 */
-	(p1) mov r30 = r28
-	(p2) mov r30 = R_KSTACK_BSP ;;
-	(p2) mov ar.bspstore = r30 ;;
+(p1)	mov r30 = r28
+(p2)	mov r30 = R_KSTACK_BSP ;;
+(p2)	mov ar.bspstore = r30 ;;
 	
 	mov r29 = ar.bsp
 	
@@ -268,7 +289,7 @@ heavyweight_handler_inner:
 	mov loc21 = r5
 	mov loc22 = r6
 	mov loc23 = r7
-	mov loc24 = r8
+(p5)	mov loc24 = r8		/* only if not in break_instruction handler */
 	mov loc25 = r9
 	mov loc26 = r10
 	mov loc27 = r11
@@ -325,7 +346,7 @@ heavyweight_handler_inner:
 	mov r5 = loc21
 	mov r6 = loc22
 	mov r7 = loc23
-	mov r8 = loc24
+(p5)	mov r8 = loc24		/* only if not in break_instruction handler */
 	mov r9 = loc25
 	mov r10 = loc26
 	mov r11 = loc27
