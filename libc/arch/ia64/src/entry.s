@@ -36,7 +36,8 @@
 #
 #
 __entry:
-	br.call.sptk.many b0 = main
-	br.call.sptk.many b0 = __exit
+	mov r1 = __entry
+	{ br.call.sptk.many b0 = main }
+	{ br.call.sptk.many b0 = __exit }
 	
 .end __entry

@@ -28,6 +28,16 @@
 
 #include <libc.h>
 
+/**
+ * Immediate operand for break instruction.
+ * Be carefull about the value as Ski simulator
+ * is somewhat sensitive to its value.
+ *
+ * 0 will be confused with Ski breakpoint.
+ * And higher values will be confused with SSC's.
+ */
+#define SYSCALL_IMM	1
+
 sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3)
 {
 	sysarg_t ret;
@@ -37,10 +47,10 @@ sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, con
 		"mov r15 = %2\n"
 		"mov r16 = %3\n"
 		"mov r17 = %4\n"
-		"break 0\n"
+		"break %5\n"
 		"mov %0 = r8\n"
 		: "=r" (ret)
-		: "r" (id), "r" (p1), "r" (p2), "r" (p3)
+		: "r" (id), "r" (p1), "r" (p2), "r" (p3), "i" (SYSCALL_IMM)
 		: "r8", "r14", "r15", "r16"
 	);
 	
