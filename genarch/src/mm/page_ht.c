@@ -41,6 +41,7 @@
 #include <debug.h>
 #include <memstr.h>
 #include <adt/hash_table.h>
+#include <align.h>
 
 static index_t hash(__native key[]);
 static bool compare(__native key[], count_t keys, link_t *item);
@@ -164,7 +165,7 @@ void remove_callback(link_t *item)
 void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	pte_t *t;
-	__native key[2] = { (__address) as, page };
+	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	spinlock_lock(&page_ht_lock);
 
@@ -202,7 +203,7 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
  */
 void ht_mapping_remove(as_t *as, __address page)
 {
-	__native key[2] = { (__address) as, page };
+	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	spinlock_lock(&page_ht_lock);
 
@@ -231,7 +232,7 @@ pte_t *ht_mapping_find(as_t *as, __address page)
 {
 	link_t *hlp;
 	pte_t *t = NULL;
-	__native key[2] = { (__address) as, page };
+	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	spinlock_lock(&page_ht_lock);
 
