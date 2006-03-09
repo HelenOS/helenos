@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+/**
+ * Immediate operand for break instruction.
+ * Be carefull about the value as Ski simulator
+ * is somewhat sensitive to its value.
+ *
+ * 0 will be confused with Ski breakpoint.
+ * And higher values will be confused with SSC's.
+ */
+#define SYSCALL_IMM	1
 
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ia64/bin
-CFLAGS += -fno-unwind-tables
-LFLAGS +=
-AFLAGS += 
-
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S
+.global __syscall
+__syscall:
+	alloc r14 = ar.pfs, 4, 0, 0, 0 ;;
+	break SYSCALL_IMM
+	mov ar.pfs = r14 ;;
+	br.ret.sptk.many b0
