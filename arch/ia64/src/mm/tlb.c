@@ -93,11 +93,6 @@ void tlb_invalidate_asid(asid_t asid)
 	tlb_invalidate_all();
 }
 
-extern void d(void);
-void d(void)
-{
-}
-
 
 void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
 {
@@ -194,7 +189,6 @@ void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
 		}
 			
 	}
-	d();
 	for(i=0;i<cnt;i++)	{
 	__asm__ volatile 
 	(
