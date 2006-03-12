@@ -29,8 +29,8 @@
 #ifndef __ppc32_SPR_H__
 #define __ppc32_SPR_H__
 
-#define MSR_DR (1<<27)
-#define MSR_IR (1<<26)
+#define MSR_IR (1 << 4)
+#define MSR_DR (1 << 5)
 
 #define SPRN_SRR0  0x1a
 #define SPRN_SRR1  0x1b

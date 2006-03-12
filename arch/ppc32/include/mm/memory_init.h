@@ -32,6 +32,5 @@
 #include <typedefs.h>
 
 size_t get_memory_size(void);
-void preboot_read_config(void);
 
 #endif

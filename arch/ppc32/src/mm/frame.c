@@ -29,11 +29,9 @@
 #include <arch/mm/frame.h>
 #include <arch/mm/memory_init.h>
 #include <mm/frame.h>
-#include <genarch/ofw/memory_init.h>
 
 void frame_arch_init(void)
 {
-	ofw_init_zones();
 	/* First is exception vector, second is 'implementation specific' */
 	frame_mark_unavailable(0, 2);
 }

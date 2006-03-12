@@ -27,15 +27,9 @@
  */
 
 #include <arch/mm/memory_init.h>
-#include <genarch/ofw/memory_init.h>
 #include <typedefs.h>
-
-void preboot_read_config(void)
-{
-	ofw_init_memmap();
-}
 
 size_t get_memory_size(void) 
 {
-	return ofw_get_memory_size();
+	return 0;
 }
