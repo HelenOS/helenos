@@ -38,7 +38,7 @@
 #define KERNEL_TRANSLATION_I 0x0010000000000661
 #define KERNEL_TRANSLATION_D 0x0010000000000661
 
-.section K_TEXT_START
+.section K_TEXT_START, "ax"
 
 .global kernel_image_start
 
@@ -84,14 +84,6 @@ kernel_image_start:
 	 * Return From Interupt is the only the way to fill upper half word of PSR.
 	 */
 	rfi;;
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
 
 .global paging_start
 paging_start:
@@ -100,14 +92,6 @@ paging_start:
 	 * Now we are paging.
 	 */
 
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
-	{nop 0;;}
 
 	# switch to register bank 1
 	bsw.1
