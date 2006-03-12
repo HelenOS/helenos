@@ -31,7 +31,6 @@
 
 #include <arch/types.h>
 
-#define ARCH_HAS_FPU
 #define FPU_CONTEXT_ALIGN    sizeof(__native)
 
 struct fpu_context {

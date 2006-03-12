@@ -156,7 +156,7 @@ memcpy:
 
 .global fpu_context_save
 fpu_context_save:
-#ifdef HAVE_FPU
+#ifdef ARCH_HAS_FPU
 	fpu_gp_save 0,$a0
 	fpu_gp_save 1,$a0
 	fpu_gp_save 2,$a0
@@ -227,7 +227,7 @@ fpu_context_save:
 
 .global fpu_context_restore
 fpu_context_restore:
-#ifdef HAVE_FPU
+#ifdef ARCH_HAS_FPU
 	fpu_gp_restore 0,$a0
 	fpu_gp_restore 1,$a0
 	fpu_gp_restore 2,$a0

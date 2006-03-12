@@ -34,7 +34,7 @@
 
 void fpu_disable(void)
 {	
-#ifdef HAVE_FPU
+#ifdef ARCH_HAS_FPU
 	cp0_status_write(cp0_status_read() & ~cp0_status_fpu_bit);
 	if (THREAD && THREAD->pstate)
 		THREAD->pstate->status &= ~cp0_status_fpu_bit;
@@ -43,7 +43,7 @@ void fpu_disable(void)
 
 void fpu_enable(void)
 {
-#ifdef HAVE_FPU
+#ifdef ARCH_HAS_FPU
 	cp0_status_write(cp0_status_read() | cp0_status_fpu_bit);
 	if (THREAD && THREAD->pstate)
 		THREAD->pstate->status |= cp0_status_fpu_bit;

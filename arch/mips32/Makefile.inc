@@ -72,14 +72,14 @@ ifeq ($(MIPS_MACHINE),indy)
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	KERNEL_LOAD_ADDRESS = 0x88002000
-	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -march=r4600
+	CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -march=r4600
 	INIT_ADDRESS = 0
 	INIT_SIZE = 0
 endif
 ifeq ($(MIPS_MACHINE),lgxemul)
 	BFD_NAME=elf32-tradlittlemips
 	BFD = ecoff-littlemips
-	CFLAGS += -DHAVE_FPU -mips3
+	CFLAGS += -DARCH_HAS_FPU -mips3
 	INIT_ADDRESS = 0x1800000
 endif
 ifeq ($(MIPS_MACHINE),bgxemul)
@@ -87,7 +87,7 @@ ifeq ($(MIPS_MACHINE),bgxemul)
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
-	CFLAGS += -EB -DBIG_ENDIAN -DHAVE_FPU -mips3
+	CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
 	INIT_ADDRESS = 0x1800000
 endif
 ifeq ($(MIPS_MACHINE),simics)
