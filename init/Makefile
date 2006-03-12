@@ -42,20 +42,23 @@ SOURCES = \
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend
+.PHONY: all clean depend disasm
 
-all: $(OUTPUT)
+all: $(OUTPUT) disasm
 
 -include Makefile.depend
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map Makefile.depend
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
