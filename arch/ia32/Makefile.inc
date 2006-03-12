@@ -42,7 +42,7 @@ ifndef IA32_CPU
 	IA32_CPU = pentium4
 endif
 
-DEFS += -D_CPU=${IA32_CPU}
+DEFS += -D_CPU=${IA32_CPU} -D__32_BITS__
 
 ## Accepted CPUs
 #

@@ -29,15 +29,8 @@
 #ifndef __ia32_ELF_H__
 #define __ia32_ELF_H__
 
-#include <elf32.h>
-
 #define	ELF_MACHINE		EM_386
 #define ELF_DATA_ENCODING	ELFDATA2LSB
 #define ELF_CLASS		ELFCLASS32
-
-/*
- * Main ELF loader function
- */
-#define elf_load(header, as) elf32_load(header, as)
 
 #endif

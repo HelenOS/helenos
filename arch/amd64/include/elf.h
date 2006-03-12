@@ -29,15 +29,8 @@
 #ifndef __amd64_ELF_H__
 #define __amd64_ELF_H__
 
-#include <elf64.h>
-
 #define	ELF_MACHINE		EM_X86_64
 #define ELF_DATA_ENCODING	ELFDATA2LSB
 #define ELF_CLASS		ELFCLASS64
-
-/*
- * Main ELF loader function
- */
-#define elf_load(header, as) elf64_load(header, as)
 
 #endif

@@ -39,7 +39,7 @@
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(void)
+void userspace(__address entry)
 {
 	ipl_t ipl;
 	
@@ -60,7 +60,7 @@ void userspace(void)
 		"pushl %4\n"
 		"iret"
 		: 
-		: "i" (selector(UDATA_DES) | PL_USER), "r" (USTACK_ADDRESS+(THREAD_STACK_SIZE)), "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "i" (UTEXT_ADDRESS)
+		: "i" (selector(UDATA_DES) | PL_USER), "r" (USTACK_ADDRESS+(THREAD_STACK_SIZE)), "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (entry)
 		: "eax");
 	
 	/* Unreachable */

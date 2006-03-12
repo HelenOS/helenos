@@ -26,18 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_ELF_H__
-#define __ia64_ELF_H__
-
-#include <elf64.h>
+#ifndef __sparc64_ELF_H__
+#define __sparc64_ELF_H__
 
 #define	ELF_MACHINE		EM_SPARCV9
 #define ELF_DATA_ENCODING	ELFDATA2MSB
 #define ELF_CLASS		ELFCLASS64
-
-/*
- * Main ELF loader function
- */
-#define elf_load(header, as) elf64_load(header, as)
 
 #endif

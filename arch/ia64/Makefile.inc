@@ -45,7 +45,7 @@ CFLAGS += -mconstant-gp -fno-unwind-tables
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
-DEFS += -DINIT_ADDRESS=$(INIT_ADDRESS) -DINIT_SIZE=$(INIT_SIZE)
+DEFS += -D__64_BITS__ -DINIT_ADDRESS=$(INIT_ADDRESS) -DINIT_SIZE=$(INIT_SIZE)
 
 ## Compile with page hash table support.
 #

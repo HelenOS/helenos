@@ -66,7 +66,7 @@ void arch_post_smp_init(void)
 }
 
 /** Enter userspace and never return. */
-void userspace(void)
+void userspace(__address entry)
 {
 	psr_t psr;
 	rsc_t rsc;
@@ -83,7 +83,7 @@ void userspace(void)
 	rsc.pl = PL_USER;
 	rsc.mode = 3;				/* eager mode */
 
-	switch_to_userspace(UTEXT_ADDRESS, USTACK_ADDRESS+PAGE_SIZE-1, USTACK_ADDRESS, psr.value, rsc.value);
+	switch_to_userspace(entry, USTACK_ADDRESS+PAGE_SIZE-1, USTACK_ADDRESS, psr.value, rsc.value);
 
 	while (1) {
 		;

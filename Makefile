@@ -120,8 +120,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
-	generic/src/lib/elf32.c \
-	generic/src/lib/elf64.c \
+	generic/src/lib/elf.c \
 	generic/src/debug/print.c \
 	generic/src/debug/symtab.c \
 	generic/src/time/clock.c \

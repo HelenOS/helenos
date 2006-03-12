@@ -29,6 +29,8 @@
 #ifndef __USERSPACE_H__
 #define __USERSPACE_H__
 
-extern void userspace(void) __attribute__ ((noreturn)); /**< Switch to user-space (CPU user priviledge level) */
+#include <arch/types.h>
+
+extern void userspace(__address entry) __attribute__ ((noreturn)); /**< Switch to user-space (CPU user priviledge level) */
 
 #endif

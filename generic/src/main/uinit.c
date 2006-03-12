@@ -32,9 +32,8 @@
 #include <userspace.h>
 #include <print.h>
 
-
 void uinit(void *arg)
 {
 	printf("USER task, uinit thread: kernel mode\n");
-	userspace();
+	userspace((__address)(arg));
 }

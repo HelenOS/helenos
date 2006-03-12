@@ -46,6 +46,7 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
+#include <elf.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
@@ -71,9 +72,7 @@ void kinit(void *arg)
 	thread_t *t;
 	as_t *as;
 	as_area_t *a;
-	__address frame;
-	count_t frames;
-	int i;
+	int rc;
 	task_t *u;
 
 	interrupts_disable();
@@ -150,38 +149,27 @@ void kinit(void *arg)
 		as = as_create(0);
 		if (!as)
 			panic("as_create\n");
-		u = task_create(as);
-		if (!u)
-			panic("task_create\n");
-		t = thread_create(uinit, NULL, u, THREAD_USER_STACK);
-		if (!t)
-			panic("thread_create\n");
+
+		rc = elf_load((elf_header_t *) config.init_addr, as);
+		if (rc != EE_OK) {
+			printf("elf_load failed: %s\n", elf_error(rc));
+		} else {
+			u = task_create(as);
+			if (!u)
+				panic("task_create\n");
+			t = thread_create(uinit, (void *)((elf_header_t *) config.init_addr)->e_entry, u, THREAD_USER_STACK);
+			if (!t)
+				panic("thread_create\n");
 		
-		/*
-		 * Create the text as_area and initialize its mapping.
-		 */
-		
-		frame = config.init_addr;
-		if (IS_KA(frame))
-			frame = KA2PA(frame);
+			/*
+			 * Create the data as_area.
+			 */
+			a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
+			if (!a)
+				panic("as_area_create: stack\n");
 
-		frames = SIZE2FRAMES(config.init_size);
-		
-		a = as_area_create(as, AS_AREA_TEXT, frames, UTEXT_ADDRESS);
-		if (!a)
-			panic("as_area_create: text\n");
-
-		for (i = 0; i < frames; i++)
-			as_set_mapping(as, UTEXT_ADDRESS + i * PAGE_SIZE, frame + i * FRAME_SIZE);
-
-		/*
-		 * Create the data as_area.
-		 */
-		a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
-		if (!a)
-			panic("as_area_create: stack\n");
-
-		thread_ready(t);
+			thread_ready(t);
+		}
 	}
 
 #ifdef CONFIG_TEST

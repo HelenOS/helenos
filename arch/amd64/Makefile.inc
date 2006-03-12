@@ -43,7 +43,7 @@ ifndef CPU
 endif
 
 CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
-DEFS += -D_CPU=${CPU}
+DEFS += -D_CPU=${CPU} -D__64_BITS__
 
 ## Accepted CPUs
 #
