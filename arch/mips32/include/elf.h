@@ -30,7 +30,13 @@
 #define __mips32_ELF_H__
 
 #define	ELF_MACHINE		EM_MIPS
-#define ELF_DATA_ENCODING	ELFDATA2MSB
+
+#ifdef BIG_ENDIAN
+#  define ELF_DATA_ENCODING	ELFDATA2MSB
+#else
+#  define ELF_DATA_ENCODING	ELFDATA2LSB
+#endif
+
 #define ELF_CLASS		ELFCLASS32
 
 #endif
