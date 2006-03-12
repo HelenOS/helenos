@@ -1,8 +1,9 @@
-OUTPUT_FORMAT(binary)
 STARTUP(../libc/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
 SECTIONS {
- .text 0x00004000 : {
- }
+	. = 0x4000;
+	.image : SUBALIGN(0x4000) {
+		*(*);
+	}
 }

@@ -34,3 +34,6 @@ TOOLCHAIN_DIR = /usr/local/mips/bin
 CFLAGS += -mno-abicalls -mips3 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c
+
+LFLAGS += -N
+

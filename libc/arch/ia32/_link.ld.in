@@ -1,8 +1,24 @@
-OUTPUT_FORMAT(binary)
 STARTUP(../libc/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
+PHDRS {
+        image PT_LOAD AT (0x1000);
+}
+
 SECTIONS {
- .text 0x00001000 : {
- }
+	
+	. = 0x1000;
+	.image 0x00001000 : {
+		*(.text);
+                *(.data);                       /* initialized data */
+                *(.rodata*);                    /* string literals */
+                *(COMMON);                      /* global variables */
+                *(.bss);                        /* uninitialized static variables */
+	} :image
+	
+	/DISCARD/ : {
+		*(.note.GNU-stack);
+		*(.comment);
+	}
+
 }
