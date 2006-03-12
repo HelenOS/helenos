@@ -88,4 +88,14 @@
 #define PAL_ENTER_IA_32_ENV	33
 #define PAL_PMI_ENTRYPOINT	32
 
+/*
+	Ski PTCE data
+*/
+#define PAL_PTCE_INFO_BASE() (0x100000000LL)
+#define PAL_PTCE_INFO_COUNT1() (2)
+#define PAL_PTCE_INFO_COUNT2() (3)
+#define PAL_PTCE_INFO_STRIDE1() (0x10000000)
+#define PAL_PTCE_INFO_STRIDE2() (0x2000)
+
+
 #endif

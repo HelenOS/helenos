@@ -38,6 +38,8 @@
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
 #include <arch/interrupt.h>
+#include <arch/pal/pal.h>
+#include <arch/asm.h>
 #include <typedefs.h>
 #include <panic.h>
 #include <arch.h>
@@ -45,7 +47,38 @@
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
-	/* TODO */
+		__address adr;
+		__u32 count1,count2,stride1,stride2;
+		
+		int i,j;
+		
+		adr=PAL_PTCE_INFO_BASE();
+		count1=PAL_PTCE_INFO_COUNT1();
+		count2=PAL_PTCE_INFO_COUNT2();
+		stride1=PAL_PTCE_INFO_STRIDE1();
+		stride2=PAL_PTCE_INFO_STRIDE2();
+		
+		interrupts_disable();
+
+		for(i=0;i<count1;i++)
+		{
+			for(j=0;j<count2;j++)
+			{
+				asm volatile
+				(
+					"ptc.e %0;;"
+					:
+					:"r" (adr)
+				);
+				adr+=stride2;
+			}
+			adr+=stride1;
+		}
+
+		interrupts_enable();
+
+		srlz_d();
+		srlz_i();
 }
 
 /** Invalidate entries belonging to an address space.
