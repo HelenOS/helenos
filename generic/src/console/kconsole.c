@@ -447,15 +447,17 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 			symtab_print_search(symname);
 			return -1;
 		}
-	} else /* It's a number - convert it */
+		if (isaddr)
+			*result = (__native)symaddr;
+		else if (isptr)
+			*result = **((__native **)symaddr);
+		else
+			*result = *((__native *)symaddr);
+	} else { /* It's a number - convert it */
 		*result = atoi(text);
-
-	if (isaddr)
-		*result = (__native)symaddr;
-	else if (isptr)
-		*result = **((__native **)symaddr);
-	else
-		*result = *((__native *)symaddr);
+		if (isptr)
+			*result = *((__native *)*result);
+	}
 
 	return 0;
 }
