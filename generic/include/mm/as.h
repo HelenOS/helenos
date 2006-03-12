@@ -44,9 +44,7 @@
 
 #define IS_KA(addr)	((addr)>=KERNEL_ADDRESS_SPACE_START && (addr)<=KERNEL_ADDRESS_SPACE_END)
 
-#define UTEXT_ADDRESS	UTEXT_ADDRESS_ARCH
 #define USTACK_ADDRESS	USTACK_ADDRESS_ARCH
-#define UDATA_ADDRESS	UDATA_ADDRESS_ARCH
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
 

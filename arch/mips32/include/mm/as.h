@@ -37,9 +37,7 @@
 #define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x00000000
 #define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x7fffffff	
 
-#define UTEXT_ADDRESS_ARCH	0x00004000
 #define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
-#define UDATA_ADDRESS_ARCH	0x01001000
 
 extern void as_arch_init(void);
 
