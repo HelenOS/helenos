@@ -31,6 +31,7 @@
 
 extern int _binary_____________kernel_kernel_bin_start;
 extern int _binary_____________kernel_kernel_bin_end;
+extern void start(void);
 extern void bootstrap(void);
 
 #endif

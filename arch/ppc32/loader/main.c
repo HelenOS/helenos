@@ -38,13 +38,14 @@
 
 void bootstrap(void)
 {
-	printf("\nHelenOS PPC Bootloader\nKernel size %d bytes, load address %L\n", KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
+	printf("\nHelenOS PPC Bootloader\nLoaded at %L\nKernel size %d bytes, load address %L\n", &start, KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
 	
 	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
 	if (addr == NULL) {
 		printf("Error: Unable to claim memory");
 		halt();
 	}
+	printf("Claimed memory at %L\n", addr);
 	memcpy(addr, KERNEL_START, KERNEL_SIZE);
 	
 	printf("Booting the kernel...\n");

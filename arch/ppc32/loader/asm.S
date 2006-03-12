@@ -32,7 +32,7 @@
 .data
 
 flush_buffer:
-	.space 4
+	.space (L1_CACHE_LINES * L1_CACHE_BYTES)
 
 .text
 
@@ -184,9 +184,9 @@ flush_instruction_cache:
 	blr
 
 jump_to_kernel:
-	mfmsr r4
-	andis. r4, r4, (~MSR_DR | MSR_IR) >> 16
 	mtspr SPRN_SRR0, r3
-	mtspr SPRN_SRR1, r4
+	mfmsr r3
+	andi. r3, r3, ~(MSR_IR | MSR_DR)@l
+	mtspr SPRN_SRR1, r3
 	bl flush_instruction_cache
 	rfi
