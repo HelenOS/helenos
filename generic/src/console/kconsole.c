@@ -428,14 +428,14 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 	bool isptr = false;
 	
 	/* If we get a name, try to find it in symbol table */
+	if (text[0] == '&') {
+		isaddr = true;
+		text++;len--;
+	} else if (text[0] == '*') {
+		isptr = true;
+		text++;len--;
+	}
 	if (text[0] < '0' || text[0] > '9') {
-		if (text[0] == '&') {
-			isaddr = true;
-			text++;len--;
-		} else if (text[0] == '*') {
-			isptr = true;
-			text++;len--;
-		}
 		strncpy(symname, text, min(len+1, MAX_SYMBOL_NAME));
 		symaddr = get_symbol_addr(symname);
 		if (!symaddr) {
@@ -447,14 +447,16 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 			symtab_print_search(symname);
 			return -1;
 		}
-		if (isaddr)
-			*result = (__native)symaddr;
-		else if (isptr)
-			*result = **((__native **)symaddr);
-		else
-			*result = *((__native *)symaddr);
 	} else /* It's a number - convert it */
 		*result = atoi(text);
+
+	if (isaddr)
+		*result = (__native)symaddr;
+	else if (isptr)
+		*result = **((__native **)symaddr);
+	else
+		*result = *((__native *)symaddr);
+
 	return 0;
 }
 
