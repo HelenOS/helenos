@@ -27,19 +27,17 @@
 #
 
 VMAXLMA_SRC=$(KERNELDIR)/contrib/arch/ia64/vmaxlma.c
-CROSS_OBJCOPY=/usr/local/ia64/bin/ia64-pc-linux-gnu-objcopy
 
 build: kernel.bin
 
 kernel.bin: kernel uspace vmaxlma
 	cp $(KERNELDIR)/kernel.bin .
 	./vmaxlma kernel.bin
-	$(CROSS_OBJCOPY) -O binary $(USPACEDIR)/init/init init
 
 vmaxlma: $(VMAXLMA_SRC)
 	gcc $(VMAXLMA_SRC) -o $@
 
 clean: clean_kernel clean_uspace
-	-rm -f kernel.bin init vmaxlma
+	-rm -f kernel.bin vmaxlma
 
 arch_distclean: distclean_kernel distclean_uspace
