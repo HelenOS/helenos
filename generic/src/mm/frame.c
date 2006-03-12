@@ -310,7 +310,6 @@ static link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block)
 		index = (frame_index(zone, frame)) - (1 << frame->buddy_order);
 	}
 	
-
 	if (frame_index_valid(zone, index)) {
 		if (zone->frames[index].buddy_order == frame->buddy_order && 
 		    zone->frames[index].refcount == 0) {
@@ -469,11 +468,11 @@ static void zone_frame_free(zone_t *zone, index_t frame_idx)
 
 	if (!--frame->refcount) {
 		buddy_system_free(zone->buddy_system, &frame->buddy_link);
+	
+		/* Update zone information. */
+		zone->free_count += (1 << order);
+		zone->busy_count -= (1 << order);
 	}
-
-	/* Update zone information. */
-	zone->free_count += (1 << order);
-	zone->busy_count -= (1 << order);
 }
 
 /** Return frame from zone */
@@ -601,7 +600,6 @@ static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 	}
 }
 
-
 /** Reduce allocated block to count of order 0 frames
  *
  * The allocated block need 2^order frames of space. Reduce all frames
@@ -708,7 +706,6 @@ errout:
 	interrupts_restore(ipl);
 }
 
-
 /**
  * Merge all zones into one big zone
  *
@@ -772,7 +769,6 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	}
 }
 
-
 /** Compute configuration data size for zone */
 __address zone_conf_size(count_t count)
 {
@@ -783,7 +779,6 @@ __address zone_conf_size(count_t count)
 	size += buddy_conf_size(max_order);
 	return size;
 }
-
 
 /** Create and add zone to system
  *
