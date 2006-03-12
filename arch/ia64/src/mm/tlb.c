@@ -88,7 +88,16 @@ void tlb_invalidate_all(void)
 void tlb_invalidate_asid(asid_t asid)
 {
 	/* TODO */
+	tlb_invalidate_all();
 }
+
+
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+{
+
+
+}
+
 
 /** Insert data into data translation cache.
  *

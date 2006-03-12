@@ -36,8 +36,17 @@
 #include <synch/spinlock.h>
 #include <mm/buddy.h>
 #include <arch/mm/page.h>
+#include <arch/mm/frame.h>
 
 #define ONE_FRAME	0
+#define TWO_FRAMES	1
+
+#ifdef ARCH_STACK_FRAMES
+#define STACK_FRAMES ARCH_STACK_FRAMES
+#else
+#define STACK_FRAMES ONE_FRAME
+#endif
+
 
 #define ZONES_MAX       16      /**< Maximum number of zones in system */
 

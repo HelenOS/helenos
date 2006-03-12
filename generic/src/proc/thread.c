@@ -116,7 +116,7 @@ static int thr_constructor(void *obj, int kmflags)
 #  endif
 #endif	
 
-	pfn = frame_alloc_rc(ONE_FRAME, FRAME_KA | kmflags,&status);
+	pfn = frame_alloc_rc(STACK_FRAMES, FRAME_KA | kmflags,&status);
 	if (status) {
 #ifdef ARCH_HAS_FPU
 		if (t->saved_fpu_context)
