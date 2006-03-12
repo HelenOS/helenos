@@ -44,6 +44,8 @@
 #include <panic.h>
 #include <arch.h>
 
+
+
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
@@ -91,9 +93,126 @@ void tlb_invalidate_asid(asid_t asid)
 	tlb_invalidate_all();
 }
 
-
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+extern void d(void);
+void d(void)
 {
+}
+
+
+void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
+{
+
+
+	region_register rr;
+	bool restore_rr = false;
+	int b=0;
+	int c=cnt;
+	int i;
+
+	rr.word = rr_read(VA2VRN(va));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
+		/*
+		 * The selected region register does not contain required RID.
+		 * Save the old content of the register and replace the RID.
+		 */
+		region_register rr0;
+
+		rr0 = rr;
+		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
+		rr_write(VA2VRN(va), rr0.word);
+		srlz_d();
+		srlz_i();
+	}
+	
+	while(c>>=1)	b++;
+	b>>=1;
+	__u64 ps;
+	
+	switch(b)
+	{
+		case 0: /*cnt 1-3*/
+		{
+			ps=PAGE_WIDTH;
+			break;
+		}
+		case 1: /*cnt 4-15*/
+		{
+			cnt=(cnt/4)+1;
+			ps=PAGE_WIDTH+2;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 2: /*cnt 16-63*/
+		{
+			cnt=(cnt/16)+1;
+			ps=PAGE_WIDTH+4;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 3: /*cnt 64-255*/
+		{
+			cnt=(cnt/64)+1;
+			ps=PAGE_WIDTH+6;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 4: /*cnt 256-1023*/
+		{
+			cnt=(cnt/256)+1;
+			ps=PAGE_WIDTH+8;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 5: /*cnt 1024-4095*/
+		{
+			cnt=(cnt/1024)+1;
+			ps=PAGE_WIDTH+10;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 6: /*cnt 4096-16383*/
+		{
+			cnt=(cnt/4096)+1;
+			ps=PAGE_WIDTH+12;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		case 7: /*cnt 16384-65535*/
+		case 8: /*cnt 65536-(256K-1)*/
+		{
+			cnt=(cnt/16384)+1;
+			ps=PAGE_WIDTH+14;
+			va&=~((1<<ps)-1);
+			break;
+		}
+		default:
+		{
+			cnt=(cnt/(16384*16))+1;
+			ps=PAGE_WIDTH+18;
+			va&=~((1<<ps)-1);
+			break;
+		}
+			
+	}
+	d();
+	for(i=0;i<cnt;i++)	{
+	__asm__ volatile 
+	(
+		"ptc.l %0,%1;;"
+		:
+		: "r"(va), "r"(ps<<2)
+	);
+	va+=(1<<ps);
+	}
+	srlz_d();
+	srlz_i();
+	
+	
+	if (restore_rr) {
+		rr_write(VA2VRN(va), rr.word);
+		srlz_d();
+		srlz_i();
+	}
 
 
 }

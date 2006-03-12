@@ -29,7 +29,7 @@
 #ifndef __ia64_FRAME_H__
 #define __ia64_FRAME_H__
 
-#define FRAME_WIDTH   14	/* 64K */
+#define FRAME_WIDTH   14	/* 16K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)
 
 extern void frame_arch_init(void);

@@ -37,8 +37,7 @@
 
 
 extern void tlb_invalidate_all(void);
-
-
+extern void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt);
 void test(void)
 {
 	tlb_entry_t entryi;
@@ -72,13 +71,15 @@ void test(void)
   entryi.ps = PAGE_WIDTH;
 
 	
-	for(i=0;i<256;i++)
+	for(i=0;i<100;i++)
 	{
 		itc_mapping_insert(0+i*(1<<PAGE_WIDTH),8,entryi);
 		dtc_mapping_insert(0+i*(1<<PAGE_WIDTH),9,entryd);
 	}	
 	
+
+	tlb_invalidate_pages(8,0x18000,13);
 	
-	tlb_invalidate_all();
+	/*tlb_invalidate_all();*/
 	
 }
