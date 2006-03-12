@@ -3,7 +3,22 @@ ENTRY(__entry)
 
 SECTIONS {
 	. = 0x4000;
-	.image : SUBALIGN(0x4000) {
+	.init : SUBALIGN(0x4000) {
+		*(.init);
+	}
+	.text : {
+	        *(.text);
+		*(.rodata*);
+	}
+	.data ALIGN(0x4000) :  {
+		*(.data);
+	}
+	.bss : {
+		*(.bss);
+		*(.sbss);
+		*(COMMON);
+	}
+	/DISCARD/ : {
 		*(*);
 	}
 }

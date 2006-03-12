@@ -30,6 +30,7 @@
 
 .org 0
 
+.section .init, "ax"
 .globl __entry
 
 ## User-space task entry point
