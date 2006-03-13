@@ -107,10 +107,10 @@ void page_fault(int n, istate_t *istate)
 void syscall(int n, istate_t *istate)
 {
 	interrupts_enable();
-	if (istate->edx < SYSCALL_END)
-		istate->eax = syscall_table[istate->edx](istate->eax, istate->ebx, istate->ecx);
+	if (istate->esi < SYSCALL_END)
+		istate->eax = syscall_table[istate->esi](istate->eax, istate->ebx, istate->ecx, istate->edx);
 	else
-		panic("Undefined syscall %d", istate->edx);
+		panic("Undefined syscall %d", istate->esi);
 	interrupts_disable();
 }
 

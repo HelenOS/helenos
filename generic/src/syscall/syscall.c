@@ -55,12 +55,43 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	return count;
 }
 
-/** Send a call over syscall
+/** Send a call over IPC, wait for reply, return to user
  *
  * @return Call identification, returns -1 on fatal error, 
            -2 on 'Too many async request, handle answers first
  */
-static __native sys_ipc_call(__native phoneid, __native arg1, __native arg2)
+static __native sys_ipc_call_sync(__native phoneid, __native arg1, 
+				   __native arg2, __native *respdata)
+{
+	call_t *call;
+	phone_t *phone;
+	/* Special answerbox for synchronous messages */
+
+	if (phoneid >= IPC_MAX_PHONES)
+		return -ENOENT;
+
+	phone = &TASK->phones[phoneid];
+	if (!phone->callee)
+		return -ENOENT;
+
+	call = ipc_call_alloc();
+	call->data[0] = arg1;
+	call->data[1] = arg2;
+	
+	ipc_call_sync(phone, call);
+
+	copy_to_uspace(respdata, &call->data, sizeof(__native) * IPC_CALL_LEN);
+
+	return 0;
+}
+
+/** Send an asynchronous call over ipc
+ *
+ * @return Call identification, returns -1 on fatal error, 
+           -2 on 'Too many async request, handle answers first
+ */
+static __native sys_ipc_call_async(__native phoneid, __native arg1, 
+				   __native arg2)
 {
 	call_t *call;
 	phone_t *phone;
@@ -124,7 +155,8 @@ static __native sys_ipc_wait_for_call(__native *calldata, __native flags)
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ctl,
 	sys_io,
-	sys_ipc_call,
+	sys_ipc_call_sync,
+	sys_ipc_call_async,
 	sys_ipc_answer,
 	sys_ipc_wait_for_call
 };

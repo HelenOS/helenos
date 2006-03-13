@@ -31,10 +31,11 @@
 
 typedef enum {
 	SYS_CTL = 0,
-	SYS_IO	= 1,
-	SYS_IPC_CALL = 2,
-	SYS_IPC_ANSWER = 3,
-	SYS_IPC_WAIT = 4,
+	SYS_IO,
+	SYS_IPC_CALL_SYNC,
+	SYS_IPC_CALL_ASYNC,
+	SYS_IPC_ANSWER,
+	SYS_IPC_WAIT,
 	SYSCALL_END
 } syscall_t;
 

@@ -105,8 +105,21 @@ void ipc_phone_destroy(phone_t *phone)
 	spinlock_unlock(&box->lock);
 }
 
+/** Helper function to facilitate synchronous calls */
+void ipc_call_sync(phone_t *phone, call_t *request)
+{
+	answerbox_t sync_box; 
 
-/** Send a request using phone to answerbox
+	ipc_answerbox_init(&sync_box);
+
+	/* We will receive data on special box */
+	request->callerbox = &sync_box;
+
+	ipc_call(phone, request);
+	ipc_wait_for_call(&sync_box, 0);
+}
+
+/** Send a asynchronous request using phone to answerbox
  *
  * @param phone Phone connected to answerbox
  * @param request Request to be sent
@@ -199,6 +212,8 @@ static void ipc_phonecompany_thread(void *data)
 		call = ipc_wait_for_call(&TASK->answerbox, 0);
 		printf("Received phone call - %P %P\n",
 		       call->data[0], call->data[1]);
+		call->data[0] = 0xbabaaaee;;
+		call->data[1] = 0xaaaaeeee;
 		ipc_answer(&TASK->answerbox, call);
 		printf("Call answered.\n");
 	}

@@ -134,10 +134,11 @@ static void interrupt_exception(int n, istate_t *istate)
 static void syscall_exception(int n, istate_t *istate)
 {
 	interrupts_enable();
-	if (istate->a3 < SYSCALL_END)
-		istate->v0 = syscall_table[istate->a3](istate->a0,
+	if (istate->t0 < SYSCALL_END)
+		istate->v0 = syscall_table[istate->t0](istate->a0,
 						       istate->a1,
-						       istate->a2);
+						       istate->a2,
+						       istate->a3);
 	else
 		panic("Undefined syscall %d", istate->a3);
 	istate->epc += 4;

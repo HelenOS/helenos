@@ -77,6 +77,7 @@ extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
 extern void ipc_call(phone_t *phone, call_t *request);
+extern void ipc_call_sync(phone_t *phone, call_t *request);
 extern void ipc_phone_destroy(phone_t *phone);
 extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
