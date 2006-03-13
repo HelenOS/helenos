@@ -28,17 +28,19 @@
 
 #include <libc.h>
 
-sysarg_t __syscall(const syscall_t id, const sysarg_t p1, const sysarg_t p2, const sysarg_t p3)
+sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, 
+		   const sysarg_t p4, const syscall_t id)
 {
 	sysarg_t ret;
 	
 	asm volatile (
 		"int $0x30\n"
 		: "=a" (ret)
-		: "a" (id),
-		  "b" (p1),
-		  "c" (p2),
-		  "d" (p3)
+		: "a" (p1),
+		  "b" (p2),
+		  "c" (p3),
+		  "d" (p4),
+		  "S" (id)
 	);
 	
 	return ret;

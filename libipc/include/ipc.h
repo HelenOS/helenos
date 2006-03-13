@@ -36,7 +36,7 @@ typedef sysarg_t ipc_data_t[IPC_CALL_LEN];
 typedef sysarg_t ipc_callid_t;
 
 
-extern int ipc_call_sync(int phoneid, int arg1, int arg2);
+extern int ipc_call_sync(int phoneid, int arg1, int arg2, ipc_data_t *resdata);
 extern int ipc_wait_for_call(ipc_data_t *data, int flags);
 
 

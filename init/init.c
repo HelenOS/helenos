@@ -31,9 +31,11 @@
 
 int main(int argc, char *argv[])
 {
+	ipc_data_t ipcdata;
+
 	version_print();
 
-	ipc_call_sync(0, 1, 2);
-
+	ipc_call_sync(0, 1, 2, &ipcdata);
+	
 	return 0;
 }

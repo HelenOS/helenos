@@ -29,17 +29,10 @@
 #include <ipc.h>
 #include <libc.h>
 
-static inline ipc_callid_t _ipc_call(int phoneid, int arg1, int arg2)
+int ipc_call_sync(int phoneid, int arg1, int arg2, ipc_data_t *resdata)
 {
-	__SYSCALL3(SYS_IPC_CALL, phoneid, arg1, arg2);
-}
-
-int ipc_call_sync(int phoneid, int arg1, int arg2)
-{
-	ipc_data_t resdata;
-
-	_ipc_call(phoneid, arg1, arg2);
-	ipc_wait_for_call(&resdata,0);
+	return __SYSCALL4(SYS_IPC_CALL_SYNC, phoneid, arg1, arg2, 
+			  (sysarg_t)resdata);
 }
 
 /*

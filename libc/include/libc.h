@@ -33,15 +33,17 @@
 
 #include <kernel/syscall/syscall.h>
 
-#define __SYSCALL0(id) __syscall(0, 0, 0, id)
-#define __SYSCALL1(id, p1) __syscall(p1, 0, 0, id)
-#define __SYSCALL2(id, p1, p2) __syscall(p1, p2, 0, id)
-#define __SYSCALL3(id, p1, p2, p3) __syscall(p1,p2,p3,id)
+#define __SYSCALL0(id) __syscall(0, 0, 0, 0, id)
+#define __SYSCALL1(id, p1) __syscall(p1, 0, 0, 0, id)
+#define __SYSCALL2(id, p1, p2) __syscall(p1, p2, 0, 0, id)
+#define __SYSCALL3(id, p1, p2, p3) __syscall(p1,p2,p3, 0, id)
+#define __SYSCALL4(id, p1, p2, p3, p4) __syscall(p1,p2,p3,p4,id)
 
 extern void __main(void);
 extern void __exit(void);
 extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, 
-			  const sysarg_t p3, const syscall_t id);
+			  const sysarg_t p3, const sysarg_t p4,
+			  const syscall_t id);
 
 
 #endif
