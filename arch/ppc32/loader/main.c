@@ -38,7 +38,11 @@
 
 void bootstrap(void)
 {
-	printf("\nHelenOS PPC Bootloader\nLoaded at %L\nKernel size %d bytes, load address %L\n", &start, KERNEL_SIZE, KERNEL_LOAD_ADDRESS);
+	printf("\nHelenOS PPC Bootloader\n");
+	
+	void *loader = ofw_translate(&start);
+	printf("loaded at %L (physical %L)\n", &start, loader);
+	printf("kernel load address %L (size %d)\n", KERNEL_LOAD_ADDRESS, KERNEL_SIZE);
 	
 	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
 	if (addr == NULL) {

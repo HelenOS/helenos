@@ -29,7 +29,6 @@
 #ifndef __ASM_H__
 #define __ASM_H__
 
-void halt(void) __attribute__((noreturn));
 void jump_to_kernel(void *addr) __attribute__((noreturn));
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))

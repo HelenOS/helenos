@@ -55,11 +55,17 @@ typedef struct {
 typedef void (*ofw_entry)(ofw_args_t *);
 
 extern void init(void);
-extern int ofw_call(const char *service, const int nargs, const int nret, ...);
-extern void ofw_write(const char *str, const int len);
-extern void ofw_puts(const char *str);
-extern void *ofw_claim(const void *addr, const int size, const int align);
+void halt(void);
+
 extern phandle ofw_find_device(const char *name);
 extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
+extern int ofw_call(const char *service, const int nargs, const int nret, ...);
+#define ofw_call_method(instance, method, nargs, nret, ...) ofw_call("call-method", (nargs + 2), nret, method, instance, ##__VA_ARGS__)
+
+extern ihandle ofw_open(const char *name);
+extern void ofw_write(const char *str, const int len);
+
+extern void *ofw_claim(const void *addr, const int size, const int align);
+extern void *ofw_translate(const void *virt);
 
 #endif

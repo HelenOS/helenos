@@ -27,10 +27,12 @@
  */
  
 #include "ofw.h"
+#include "printf.h"
 
 ofw_entry ofw;
 
 phandle ofw_chosen;
+ihandle ofw_mmu;
 ihandle ofw_stdout;
 
 
@@ -38,10 +40,21 @@ void init(void)
 {
 	ofw_chosen = ofw_find_device("/chosen");
 	if (ofw_chosen == -1)
-		ofw_call("exit", 0, 0);
+		halt();
 	
 	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
 		ofw_stdout = 0;
+	
+	ofw_mmu = ofw_open("/mmu");
+	if (ofw_mmu == -1) {
+		puts("Unable to open /mmu node\n");
+		halt();
+	}
+}
+
+void halt(void)
+{
+	ofw_call("exit", 0, 0);
 }
 
 
@@ -65,7 +78,16 @@ int ofw_call(const char *service, const int nargs, const int nret, ...)
 	
 	ofw(&args);
 	
-	return args.args[nargs];
+	if (nret > 0)
+		return args.args[nargs + nret - 1];
+	else
+		return 0;
+}
+
+
+ihandle ofw_open(const char *name)
+{
+	return ofw_call("open", 1, 1, name);
 }
 
 
@@ -75,17 +97,6 @@ void ofw_write(const char *str, const int len)
 		return;
 	
 	ofw_call("write", 3, 1, ofw_stdout, str, len);
-}
-
-
-void ofw_puts(const char *str)
-{
-	int len = 0;
-	
-	while (str[len] != 0)
-		len++;
-	
-	ofw_write(str, len);
 }
 
 
@@ -104,4 +115,10 @@ int ofw_get_property(const phandle device, const char *name, const void *buf, co
 void *ofw_claim(const void *addr, const int size, const int align)
 {
 	return (void *) ofw_call("claim", 3, 1, addr, size, align);
+}
+
+
+void *ofw_translate(const void *virt)
+{
+	return (void *) ofw_call_method(ofw_mmu, "translate", 1, 5, virt);
 }

@@ -38,7 +38,6 @@ flush_buffer:
 
 .global memsetb
 .global memcpy
-.global halt
 .global jump_to_kernel
 
 memsetb:
@@ -146,9 +145,6 @@ memcpy:
 	mtctr r7
 	b 1b
 	
-halt:
-	b halt
-
 flush_instruction_cache:
 
 	# Flush data cache

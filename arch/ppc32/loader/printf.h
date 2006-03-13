@@ -46,6 +46,7 @@ typedef __u32 __native;
 
 typedef char *char_ptr;
 
+void puts(const char *str);
 void printf(const char *fmt, ...);
 
 #endif

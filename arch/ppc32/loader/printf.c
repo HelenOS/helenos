@@ -32,6 +32,17 @@
 static char digits[] = "0123456789abcdef";  /**< Hexadecimal characters */
 
 
+void puts(const char *str)
+{
+	int len = 0;
+	
+	while (str[len] != 0)
+		len++;
+	
+	ofw_write(str, len);
+}
+
+
 /** Print hexadecimal digits
  *
  * Print fixed count of hexadecimal digits from
@@ -73,7 +84,7 @@ static void print_number(const __native num, const unsigned int base)
 	} while (val /= base);
 	
 	d[sizeof(__native) * 8] = 0;	
-	ofw_puts(&d[i + 1]);
+	puts(&d[i + 1]);
 }
 
 
@@ -156,7 +167,7 @@ void printf(const char *fmt, ...)
 					 * String and character conversions.
 					 */
 					case 's':
-						ofw_puts(va_arg(ap, char_ptr));
+						puts(va_arg(ap, char_ptr));
 						goto loop;
 					
 					case 'c':
@@ -167,31 +178,31 @@ void printf(const char *fmt, ...)
 					 * Hexadecimal conversions with fixed width.
 					 */
 					case 'P': 
-						ofw_puts("0x");
+						puts("0x");
 					case 'p':
 						print_fixed_hex(va_arg(ap, __native), sizeof(__native));
 						goto loop;
 					
 					case 'Q':
-						ofw_puts("0x");
+						puts("0x");
 					case 'q':
 						print_fixed_hex(va_arg(ap, __u64), INT64);
 						goto loop;
 					
 					case 'L': 
-						ofw_puts("0x");
+						puts("0x");
 					case 'l':
 						print_fixed_hex(va_arg(ap, __native), INT32);
 						goto loop;
 					
 					case 'W':
-						ofw_puts("0x");
+						puts("0x");
 					case 'w':
 						print_fixed_hex(va_arg(ap, __native), INT16);
 						goto loop;
 					
 					case 'B':
-						ofw_puts("0x");
+						puts("0x");
 					case 'b':
 						print_fixed_hex(va_arg(ap, __native), INT8);
 						goto loop;
@@ -204,7 +215,7 @@ void printf(const char *fmt, ...)
 						goto loop;
 					
 					case 'X':
-						ofw_puts("0x");
+						puts("0x");
 					case 'x':
 						print_number(va_arg(ap, __native), 16);
 						goto loop;
