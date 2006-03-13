@@ -38,6 +38,7 @@ flush_buffer:
 
 .global memsetb
 .global memcpy
+.global flush_instruction_cache
 .global jump_to_kernel
 
 memsetb:
@@ -180,11 +181,6 @@ flush_instruction_cache:
 	blr
 
 jump_to_kernel:
-	mtspr SPRN_SRR0, r3
-	mfmsr r3
-	lis r4, ~0@h
-	ori r4, r4, ~(MSR_IR | MSR_DR)@l
-	and r3, r3, r4
-	mtspr SPRN_SRR1, r3
-	bl flush_instruction_cache
-	rfi
+	mtlr r3
+	blr
+

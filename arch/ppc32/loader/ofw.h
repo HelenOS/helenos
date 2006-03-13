@@ -60,12 +60,11 @@ void halt(void);
 extern phandle ofw_find_device(const char *name);
 extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
 extern int ofw_call(const char *service, const int nargs, const int nret, ...);
-#define ofw_call_method(instance, method, nargs, nret, ...) ofw_call("call-method", (nargs + 2), nret, method, instance, ##__VA_ARGS__)
 
 extern ihandle ofw_open(const char *name);
 extern void ofw_write(const char *str, const int len);
 
-extern void *ofw_claim(const void *addr, const int size, const int align);
 extern void *ofw_translate(const void *virt);
+extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
 
 #endif

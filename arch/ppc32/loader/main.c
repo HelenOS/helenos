@@ -31,7 +31,8 @@
 #include "ofw.h"
 #include "asm.h"
 
-#define KERNEL_LOAD_ADDRESS 0x400000
+#define KERNEL_PHYSICAL_ADDRESS 0x1000
+#define KERNEL_VIRTUAL_ADDRESS 0x80001000
 #define KERNEL_START &_binary_____________kernel_kernel_bin_start
 #define KERNEL_END &_binary_____________kernel_kernel_bin_end
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
@@ -40,18 +41,23 @@ void bootstrap(void)
 {
 	printf("\nHelenOS PPC Bootloader\n");
 	
-	void *loader = ofw_translate(&start);
-	printf("loaded at %L (physical %L)\n", &start, loader);
-	printf("kernel load address %L (size %d)\n", KERNEL_LOAD_ADDRESS, KERNEL_SIZE);
+	void *phys = ofw_translate(&start);
+	printf("loaded at %L (physical %L)\n", &start, phys);
 	
-	void *addr = ofw_claim((void *) KERNEL_LOAD_ADDRESS, KERNEL_SIZE, 1);
-	if (addr == NULL) {
-		printf("Error: Unable to claim memory");
+	// FIXME: map just the kernel
+	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, 1024 * 1024, 0) != 0) {
+		printf("Unable to map kernel memory at %L (physical %L)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS);
 		halt();
 	}
-	printf("Claimed memory at %L\n", addr);
-	memcpy(addr, KERNEL_START, KERNEL_SIZE);
+	printf("kernel memory mapped at %L (physical %L, size %d bytes)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS, KERNEL_SIZE);
+	// FIXME: relocate the kernel in real mode
+	memcpy((void *) KERNEL_VIRTUAL_ADDRESS, KERNEL_START, KERNEL_SIZE);
+	
+	// FIXME: proper framebuffer mapping
+	ofw_map((void *) 0x84000000, (void *) 0x84000000, 2 * 1024 * 1024, 0);
 	
 	printf("Booting the kernel...\n");
-	jump_to_kernel(addr);
+	
+	flush_instruction_cache();
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS);
 }

@@ -78,10 +78,7 @@ int ofw_call(const char *service, const int nargs, const int nret, ...)
 	
 	ofw(&args);
 	
-	if (nret > 0)
-		return args.args[nargs + nret - 1];
-	else
-		return 0;
+	return args.args[nargs];
 }
 
 
@@ -112,13 +109,13 @@ int ofw_get_property(const phandle device, const char *name, const void *buf, co
 }
 
 
-void *ofw_claim(const void *addr, const int size, const int align)
+void *ofw_translate(const void *virt)
 {
-	return (void *) ofw_call("claim", 3, 1, addr, size, align);
+	return (void *) ofw_call("call-method", 7, 1, "translate", ofw_mmu, virt, 0, 0, 0, 0);
 }
 
 
-void *ofw_translate(const void *virt)
+int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {
-	return (void *) ofw_call_method(ofw_mmu, "translate", 1, 5, virt);
+	return ofw_call("call-method", 6, 1, "map", ofw_mmu, mode, size, virt, phys);
 }
