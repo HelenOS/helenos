@@ -94,7 +94,7 @@ void tlb_invalidate_asid(asid_t asid)
 }
 
 
-void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
 
 
@@ -102,7 +102,9 @@ void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
 	bool restore_rr = false;
 	int b=0;
 	int c=cnt;
-	int i;
+
+	__address va;
+	va=page;
 
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
@@ -132,42 +134,42 @@ void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
 		}
 		case 1: /*cnt 4-15*/
 		{
-			cnt=(cnt/4)+1;
+			/*cnt=((cnt-1)/4)+1;*/
 			ps=PAGE_WIDTH+2;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		case 2: /*cnt 16-63*/
 		{
-			cnt=(cnt/16)+1;
+			/*cnt=((cnt-1)/16)+1;*/
 			ps=PAGE_WIDTH+4;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		case 3: /*cnt 64-255*/
 		{
-			cnt=(cnt/64)+1;
+			/*cnt=((cnt-1)/64)+1;*/
 			ps=PAGE_WIDTH+6;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		case 4: /*cnt 256-1023*/
 		{
-			cnt=(cnt/256)+1;
+			/*cnt=((cnt-1)/256)+1;*/
 			ps=PAGE_WIDTH+8;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		case 5: /*cnt 1024-4095*/
 		{
-			cnt=(cnt/1024)+1;
+			/*cnt=((cnt-1)/1024)+1;*/
 			ps=PAGE_WIDTH+10;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		case 6: /*cnt 4096-16383*/
 		{
-			cnt=(cnt/4096)+1;
+			/*cnt=((cnt-1)/4096)+1;*/
 			ps=PAGE_WIDTH+12;
 			va&=~((1<<ps)-1);
 			break;
@@ -175,28 +177,27 @@ void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt)
 		case 7: /*cnt 16384-65535*/
 		case 8: /*cnt 65536-(256K-1)*/
 		{
-			cnt=(cnt/16384)+1;
+			/*cnt=((cnt-1)/16384)+1;*/
 			ps=PAGE_WIDTH+14;
 			va&=~((1<<ps)-1);
 			break;
 		}
 		default:
 		{
-			cnt=(cnt/(16384*16))+1;
+			/*cnt=((cnt-1)/(16384*16))+1;*/
 			ps=PAGE_WIDTH+18;
 			va&=~((1<<ps)-1);
 			break;
 		}
-			
 	}
-	for(i=0;i<cnt;i++)	{
-	__asm__ volatile 
-	(
-		"ptc.l %0,%1;;"
-		:
-		: "r"(va), "r"(ps<<2)
-	);
-	va+=(1<<ps);
+	/*cnt+=(page!=va);*/
+	for(;va<(page+cnt*(PAGE_SIZE));va+=(1<<ps))	{
+		__asm__ volatile 
+		(
+			"ptc.l %0,%1;;"
+			:
+			: "r"(va), "r"(ps<<2)
+		);
 	}
 	srlz_d();
 	srlz_i();

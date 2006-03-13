@@ -78,7 +78,7 @@ void test(void)
 	}	
 	
 
-	tlb_invalidate_pages(8,0x18000,13);
+	tlb_invalidate_pages(8,0x0c000,14);
 	
 	/*tlb_invalidate_all();*/
 	
