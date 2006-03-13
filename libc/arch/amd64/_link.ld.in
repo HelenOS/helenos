@@ -2,24 +2,31 @@ STARTUP(../libc/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {
-	image PT_LOAD AT (0x1000);
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
 }
 
 SECTIONS {
 	. = 0x1000;
-	.image ALIGN(0x1000) : {
+	
+	.init ALIGN(0x1000) : SUBALIGN(0x1000) {
+		*(.init);
+	} :text
+	.text : {
 		*(.text);
-		*(.data);               /* initialized data */
-		*(.rodata*);            /* string literals */
-		*(COMMON);              /* global variables */
-		*(.eh_frame);
-		*(.bss);                /* uninitialized static variables */
-	} :image
-
+		*(.rodata*);
+	} :text
+	
+	.data ALIGN(0x1000) : SUBALIGN(0x1000) {
+		*(.data);
+	} :data
+	.bss : {
+		*(COMMON);
+		*(.bss);
+	} :data
 
 	/DISCARD/ : {
-		*(.note.GNU-stack);
-		*(.comment);
+		*(*);
 	}
 
 }

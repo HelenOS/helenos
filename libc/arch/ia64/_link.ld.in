@@ -1,23 +1,39 @@
-OUTPUT_FORMAT(elf64-ia64-little)
 STARTUP(../libc/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
+PHDRS {
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
+}
+
 SECTIONS {
-	.text 0x00010000 : {
-		*(.text)
-		*(.rodata .rodata.*)
-		*(.opd)
-		*(.data)
-		*(.got .got.*)
-		*(.sdata)
-		*(.sbss)
-		*(.scommon)
-		*(.bss)
+	. = 0x4000;
+
+	.init ALIGN(0x4000): SUBALIGN(0x4000) {
+		*(.init);
+	} : text
+	.text : {
+		*(.text);
+		*(.rodata*);
+	} :text
+
+	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
+		*(.got*);
+	} :data	
+	.data : {
+		_gp = .;
+		*(.opd);
+		*(.data);
+		*(.sdata);
+	} :data
+	.bss : {
+		*(.sbss);
+		*(.scommon);
 		*(COMMON);
-	}
+		*(.bss);
+	} :data
  
 	/DISCARD/ : {
-		*(.note.GNU-stack);
-		*(.comment);
+		*(*);
         }
 }

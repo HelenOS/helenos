@@ -1,23 +1,31 @@
 STARTUP(../libc/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
+PHDRS {
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
+}
+
 SECTIONS {
 	. = 0x4000;
-	.init : SUBALIGN(0x4000) {
+	
+	.init ALIGN(0x4000) : SUBALIGN(0x4000) {
 		*(.init);
-	}
+	} :text
 	.text : {
 	        *(.text);
 		*(.rodata*);
-	}
-	.data ALIGN(0x4000) :  {
+	} :text
+	
+	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
 		*(.data);
-	}
+	} :data
 	.bss : {
 		*(.bss);
 		*(.sbss);
 		*(COMMON);
-	}
+	} :data
+	
 	/DISCARD/ : {
 		*(*);
 	}

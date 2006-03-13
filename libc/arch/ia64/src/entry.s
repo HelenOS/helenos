@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
+.section .init, "ax"
 
 .org 0
 
@@ -36,7 +36,7 @@
 #
 #
 __entry:
-	mov r1 = __entry
+	mov r1 = _gp 
 	{ br.call.sptk.many b0 = main }
 	{ br.call.sptk.many b0 = __exit }
 	

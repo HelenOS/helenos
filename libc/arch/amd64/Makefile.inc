@@ -33,3 +33,5 @@ TARGET = amd64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/amd64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S
+
+LFLAGS += -N
