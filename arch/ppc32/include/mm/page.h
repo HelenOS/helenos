@@ -29,15 +29,16 @@
 #ifndef __ppc32_PAGE_H__
 #define __ppc32_PAGE_H__
 
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
-
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
-#define KA2PA(x)	((__address)(x))
-#define PA2KA(x)	((__address)(x))
+#ifndef __ASM__
+#	define KA2PA(x)	(((__address) (x)) - 0x80000000)
+#	define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#else
+#	define KA2PA(x)	((x) - 0x80000000)
+#	define PA2KA(x)	((x) + 0x80000000)
+#endif
 
 #define PTL0_ENTRIES_ARCH		0
 #define PTL1_ENTRIES_ARCH		0
@@ -73,6 +74,14 @@
 
 #define PTE_VALID_ARCH(p)		1
 
+#ifndef __ASM__
+
+#include <mm/page.h>
+#include <arch/mm/frame.h>
+#include <arch/types.h>
+
 extern void page_arch_init(void);
+
+#endif /* __ASM__ */
 
 #endif

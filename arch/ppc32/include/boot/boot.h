@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_AS_H__
-#define __ppc32_AS_H__
+#ifndef __ppc32_BOOT_H__
+#define __ppc32_BOOT_H__
 
-#include <arch/types.h>
-
-#define KERNEL_ADDRESS_SPACE_START_ARCH		((__address) 0x80000000)
-#define KERNEL_ADDRESS_SPACE_END_ARCH		((__address) 0xffffffff)
-#define USER_ADDRESS_SPACE_START_ARCH		((__address) 0x00000000)
-#define USER_ADDRESS_SPACE_END_ARCH		((__address) 0x7fffffff)
-
-#define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
-
-#define as_install_arch(as)
-
-extern void as_arch_init(void);
+#define BOOT_OFFSET		0x1000
 
 #endif

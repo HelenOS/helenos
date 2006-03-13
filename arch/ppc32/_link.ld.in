@@ -7,11 +7,13 @@
  */
 
 #define __ASM__
+#include <arch/boot/boot.h>
+#include <arch/mm/page.h>
 
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image 0x400000: AT (0x400000) { 
+	.image PA2KA(BOOT_OFFSET): AT (0) { 
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
@@ -30,7 +32,7 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0x400000);
+		LONG(PA2KA(BOOT_OFFSET));
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
 
