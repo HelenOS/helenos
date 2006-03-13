@@ -32,8 +32,11 @@
 #include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
+#include <mm/slab.h>
 #include <print.h>
 #include <align.h>
+#include <memstr.h>
+#include <macros.h>
 
 static char *error_codes[] = {
 	"no error",
@@ -44,8 +47,9 @@ static char *error_codes[] = {
 	"irrecoverable error"
 };
 
-static int program_header_entry(elf_header_t *header, elf_ph_entry_t *entry, as_t *as);
-static int load_segment(elf_header_t *header, elf_ph_entry_t *entry, as_t *as);
+static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *as);
+static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as);
+static int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as);
 
 /** ELF loader
  *
@@ -70,16 +74,26 @@ int elf_load(elf_header_t *header, as_t * as)
 		return EE_INCOMPATIBLE;
 	}
 
-	if (header->e_phentsize != sizeof(elf_ph_entry_t))
+	if (header->e_phentsize != sizeof(elf_segment_header_t))
+		return EE_INCOMPATIBLE;
+
+	if (header->e_shentsize != sizeof(elf_section_header_t))
 		return EE_INCOMPATIBLE;
 
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC)
 		return EE_UNSUPPORTED;
 
-	/* Walk through all program header entries and process them. */
+	/* Walk through all segment headers and process them. */
 	for (i = 0; i < header->e_phnum; i++) {
-		rc = program_header_entry(header, &((elf_ph_entry_t *)(((__u8 *) header) + header->e_phoff))[i], as);
+		rc = segment_header(&((elf_segment_header_t *)(((__u8 *) header) + header->e_phoff))[i], header, as);
+		if (rc != EE_OK)
+			return rc;
+	}
+
+	/* Inspect all section headers and proccess them. */
+	for (i = 0; i < header->e_shnum; i++) {
+		rc = section_header(&((elf_section_header_t *)(((__u8 *) header) + header->e_shoff))[i], header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
@@ -100,21 +114,22 @@ char *elf_error(int rc)
 	return error_codes[rc];
 }
 
-/** Process program header entry.
+/** Process segment header.
  *
- * @param entry Program header entry.
+ * @param entry Segment header.
+ * @param elf ELF header.
  * @param as Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
  */
-static int program_header_entry(elf_header_t *header, elf_ph_entry_t *entry, as_t *as)
+static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	switch (entry->p_type) {
 	    case PT_NULL:
 	    case PT_PHDR:
 		break;
 	    case PT_LOAD:
-		return load_segment(header, entry, as);
+		return load_segment(entry, elf, as);
 		break;
 	    case PT_DYNAMIC:
 	    case PT_INTERP:
@@ -132,14 +147,17 @@ static int program_header_entry(elf_header_t *header, elf_ph_entry_t *entry, as_
 /** Load segment described by program header entry.
  *
  * @param entry Program header entry describing segment to be loaded.
+ * @param elf ELF header.
  * @parma as Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
  */
-int load_segment(elf_header_t *header, elf_ph_entry_t *entry, as_t *as)
+int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	as_area_t *a;
 	int i, type = 0;
+	size_t segment_size;
+	__u8 *segment;
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) != (entry->p_vaddr % entry->p_align)) {
@@ -161,12 +179,47 @@ int load_segment(elf_header_t *header, elf_ph_entry_t *entry, as_t *as)
 		return EE_UNSUPPORTED;
 	}
 
+	/*
+	 * Check if the virtual address starts on page boundary.
+	 */
+	if (ALIGN_UP(entry->p_vaddr, PAGE_SIZE) != entry->p_vaddr)
+		return EE_UNSUPPORTED;
+
+	/*
+	 * Copying the segment out is certainly necessary for segments with p_filesz < p_memsz
+	 * because of the effect of .bss-like sections. For security reasons, it looks like a
+	 * good idea to copy the segment anyway.
+	 */
+	segment_size = ALIGN_UP(max(entry->p_filesz, entry->p_memsz), PAGE_SIZE);
+	segment = malloc(segment_size, 0);
+	if (entry->p_filesz < entry->p_memsz)
+		memsetb((__address) (segment + entry->p_filesz), segment_size - entry->p_filesz, 0);
+	memcpy(segment, (void *) (((__address) elf) + entry->p_offset), entry->p_filesz);
+
 	a = as_area_create(as, AS_AREA_TEXT, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
 	if (!a)
 		return EE_IRRECOVERABLE;
 	
 	for (i = 0; i < SIZE2FRAMES(entry->p_filesz); i++) {
-		as_set_mapping(as, entry->p_vaddr + i*PAGE_SIZE, KA2PA(((__address) header) + entry->p_offset + i*PAGE_SIZE));
+		as_set_mapping(as, entry->p_vaddr + i*PAGE_SIZE, KA2PA(((__address) segment) + i*PAGE_SIZE));
+	}
+	
+	return EE_OK;
+}
+
+/** Process section header.
+ *
+ * @param entry Segment header.
+ * @param elf ELF header.
+ * @param as Address space into wich the ELF is being loaded.
+ *
+ * @return EE_OK on success, error code otherwise.
+ */
+static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as)
+{
+	switch (entry->sh_type) {
+	    default:
+		break;
 	}
 	
 	return EE_OK;

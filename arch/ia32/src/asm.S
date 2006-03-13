@@ -28,7 +28,7 @@
 
 ## very low and hardware-level functions
 
-#  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
+# Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
 # and 1 means interrupt with error word
 #define ERROR_WORD_INTERRUPT_LIST 0x00027D00
 

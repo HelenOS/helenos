@@ -29,7 +29,7 @@
 #ifndef __ia32_BOOT_H__
 #define __ia32_BOOT_H__
 
-#define BOOT_OFFSET			0x108000
+#define BOOT_OFFSET		0x108000
 #define AP_BOOT_OFFSET		0x8000
 #define BOOT_STACK_SIZE	0x400
 

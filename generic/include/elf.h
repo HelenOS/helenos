@@ -244,6 +244,31 @@ struct elf64_header {
 };
 
 /*
+ * ELF segment header.
+ * Segments headers are also known as program headers.
+ */
+struct elf32_segment_header {
+	elf_word p_type;
+	elf32_off p_offset;
+	elf32_addr p_vaddr;
+	elf32_addr p_paddr;
+	elf_word p_filesz;
+	elf_word p_memsz;
+	elf_word p_flags;
+	elf_word p_align;
+};
+struct elf64_segment_header {
+	elf_word p_type;
+	elf_word p_flags;
+	elf64_off p_offset;
+	elf64_addr p_vaddr;
+	elf64_addr p_paddr;
+	elf_xword p_filesz;
+	elf_xword p_memsz;
+	elf_xword p_align;
+};
+
+/*
  * ELF section header
  */
 struct elf32_section_header {
@@ -291,41 +316,17 @@ struct elf64_symbol {
 	elf_xword st_size;
 };
 
-/*
- * ELF program header entry
- */
-struct elf32_ph_entry {
-	elf_word p_type;
-	elf32_off p_offset;
-	elf32_addr p_vaddr;
-	elf32_addr p_paddr;
-	elf_word p_filesz;
-	elf_word p_memsz;
-	elf_word p_flags;
-	elf_word p_align;
-};
-struct elf64_ph_entry {
-	elf_word p_type;
-	elf_word p_flags;
-	elf64_off p_offset;
-	elf64_addr p_vaddr;
-	elf64_addr p_paddr;
-	elf_xword p_filesz;
-	elf_xword p_memsz;
-	elf_xword p_align;
-};
-
 #ifdef __32_BITS__ 
 typedef struct elf32_header elf_header_t;
+typedef struct elf32_segment_header elf_segment_header_t;
 typedef struct elf32_section_header elf_section_header_t;
 typedef struct elf32_symbol elf_symbol_t;
-typedef struct elf32_ph_entry elf_ph_entry_t;
 #endif
 #ifdef __64_BITS__
 typedef struct elf64_header elf_header_t;
+typedef struct elf64_segment_header elf_segment_header_t;
 typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
-typedef struct elf64_ph_entry elf_ph_entry_t;
 #endif
 
 extern int elf_load(elf_header_t *header, as_t * as);
