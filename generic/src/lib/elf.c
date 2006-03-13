@@ -196,7 +196,7 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 		memsetb((__address) (segment + entry->p_filesz), segment_size - entry->p_filesz, 0);
 	memcpy(segment, (void *) (((__address) elf) + entry->p_offset), entry->p_filesz);
 
-	a = as_area_create(as, AS_AREA_TEXT, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
+	a = as_area_create(as, type, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
 	if (!a)
 		return EE_IRRECOVERABLE;
 	
