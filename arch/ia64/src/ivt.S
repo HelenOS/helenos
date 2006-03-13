@@ -32,7 +32,7 @@
 #include <arch/mm/page.h>
 #include <align.h>
 
-#define STACK_ITEMS		18
+#define STACK_ITEMS		19
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
@@ -130,12 +130,13 @@ heavyweight_handler:
 	 * Otherwise p6 is false and p5 is true.
 	 * Note that p5 is a preserved predicate register and we make use of it.
 	 */
-	
+
+(p6)	st8 [r31] = r36, -8 ;;		/* save in4 */	
 (p6)	st8 [r31] = r35, -8 ;;		/* save in3 */
 (p6) 	st8 [r31] = r34, -8 ;;		/* save in2 */
 (p6)	st8 [r31] = r33, -8 ;;		/* save in1 */
 (p6)	st8 [r31] = r32, -8 ;;		/* save in0 */
-(p5)	add r31 = -32, r31 ;;
+(p5)	add r31 = -40, r31 ;;
     
 	st8 [r31] = r30, -8 ;;		/* save old stack pointer */ 
 	

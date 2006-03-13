@@ -35,6 +35,7 @@
 #include <arch/register.h>
 #include <arch/types.h>
 #include <arch/context.h>
+#include <arch/stack.h>
 #include <arch/mm/page.h>
 #include <mm/as.h>
 #include <config.h>
@@ -83,7 +84,7 @@ void userspace(__address entry)
 	rsc.pl = PL_USER;
 	rsc.mode = 3;				/* eager mode */
 
-	switch_to_userspace(entry, USTACK_ADDRESS+PAGE_SIZE-1, USTACK_ADDRESS, psr.value, rsc.value);
+	switch_to_userspace(entry, USTACK_ADDRESS+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT), USTACK_ADDRESS, psr.value, rsc.value);
 
 	while (1) {
 		;

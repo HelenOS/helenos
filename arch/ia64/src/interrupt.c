@@ -186,10 +186,10 @@ int break_instruction(__u64 vector, istate_t *istate)
 		istate->cr_ipsr.ri++;
 	}
 
-	if (istate->in3 < SYSCALL_END)
-		return syscall_table[istate->in3](istate->in0, istate->in1, istate->in2);
+	if (istate->in4 < SYSCALL_END)
+		return syscall_table[istate->in4](istate->in0, istate->in1, istate->in2, istate->in3);
 	else
-		panic("Undefined syscall %d", istate->in3);
+		panic("Undefined syscall %d", istate->in4);
 		
 	return -1;
 }
