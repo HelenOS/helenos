@@ -47,7 +47,7 @@ typedef __u32 pfn_t;
 typedef __u32 ipl_t;
 
 typedef __u32 __native;
-typedef __s32 __native;
+typedef __s32 __snative;
 
 typedef struct page_specifier pte_t;
 

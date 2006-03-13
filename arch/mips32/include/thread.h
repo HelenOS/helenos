@@ -31,6 +31,6 @@
 
 #include <arch/exception.h>
 
-#define ARCH_THREAD_DATA   struct exception_regdump *pstate
+#define ARCH_THREAD_DATA   istate_t *istate
 
 #endif

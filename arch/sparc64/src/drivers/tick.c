@@ -32,6 +32,7 @@
 #include <arch/register.h>
 #include <debug.h>
 #include <time/clock.h>
+#include <typedefs.h>
 
 /** Initialize tick interrupt. */
 void tick_init(void)
@@ -48,9 +49,9 @@ void tick_init(void)
 /** Process tick interrupt.
  *
  * @param n Interrupt Level, 14,  (can be ignored)
- * @param stack Stack pointer of the interrupted context.
+ * @param istate Interrupted state.
  */
-void tick_interrupt(int n, void *stack)
+void tick_interrupt(int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
 	

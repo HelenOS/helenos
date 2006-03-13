@@ -58,25 +58,4 @@ struct context {
     ipl_t ipl;
 } __attribute__ ((packed));
 
-/** This is passed to interrupt handlers */
-struct interrupt_context {
-	__u64 rax;
-	__u64 rbx;
-	__u64 rcx;
-	__u64 rdx;
-	__u64 rsi;
-	__u64 rdi;
-	__u64 r8;
-	__u64 r9;
-	__u64 r10;
-	__u64 r11;
-	__u64 r12;
-	__u64 r13;
-	__u64 r14;
-	__u64 r15;
-	/* These 2 items MUST be last parts of the structure */
-	__u64 rbp; 
-	__u64 stack[0]; /* Additional data on stack */
-} __attribute__ ((packed));
-
 #endif

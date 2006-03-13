@@ -60,17 +60,38 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+0)
 #define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+1)
 
+/** This is passed to interrupt handlers */
+struct istate {
+	__u64 rax;
+	__u64 rbx;
+	__u64 rcx;
+	__u64 rdx;
+	__u64 rsi;
+	__u64 rdi;
+	__u64 r8;
+	__u64 r9;
+	__u64 r10;
+	__u64 r11;
+	__u64 r12;
+	__u64 r13;
+	__u64 r14;
+	__u64 r15;
+	/* These 2 items MUST be last parts of the structure */
+	__u64 rbp;
+	__u64 stack[0]; /* Additional data on stack */
+} __attribute__ ((packed));
+
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
 extern void (* eoi_function)(void);
 
-extern void null_interrupt(int n, struct interrupt_context *ctx);
-extern void gp_fault(int n, void *stack);
-extern void nm_fault(int n, void *stack);
-extern void ss_fault(int n, void *stack);
-extern void page_fault(int n, struct interrupt_context *ctx);
-extern void syscall(int n, void *stack);
-extern void tlb_shootdown_ipi(int n, void *stack);
+extern void null_interrupt(int n, istate_t *istate);
+extern void gp_fault(int n, istate_t *istate);
+extern void nm_fault(int n, istate_t *istate);
+extern void ss_fault(int n, istate_t *istate);
+extern void page_fault(int n, istate_t *istate);
+extern void syscall(int n, istate_t *istate);
+extern void tlb_shootdown_ipi(int n, istate_t *istate);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);

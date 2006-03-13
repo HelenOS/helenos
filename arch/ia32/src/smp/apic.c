@@ -112,8 +112,8 @@ static char *intpol_str[] = {
 #endif /* LAPIC_VERBOSE */
 
 
-static void apic_spurious(int n, void *stack);
-static void l_apic_timer_interrupt(int n, void *stack);
+static void apic_spurious(int n, istate_t *istate);
+static void l_apic_timer_interrupt(int n, istate_t *istate);
 
 /** Initialize APIC on BSP. */
 void apic_init(void)
@@ -121,7 +121,7 @@ void apic_init(void)
 	io_apic_id_t idreg;
 	int i;
 
-	exc_register(VECTOR_APIC_SPUR, "apic_spurious", apic_spurious);
+	exc_register(VECTOR_APIC_SPUR, "apic_spurious", (iroutine) apic_spurious);
 
 	enable_irqs_function = io_apic_enable_irqs;
 	disable_irqs_function = io_apic_disable_irqs;
@@ -133,7 +133,7 @@ void apic_init(void)
 	 * Other interrupts will be forwarded to the lowest priority CPU.
 	 */
 	io_apic_disable_irqs(0xffff);
-	exc_register(VECTOR_CLK, "l_apic_timer", l_apic_timer_interrupt);
+	exc_register(VECTOR_CLK, "l_apic_timer", (iroutine) l_apic_timer_interrupt);
 	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
 	
@@ -169,7 +169,7 @@ void apic_init(void)
  * @param n Interrupt vector.
  * @param stack Interrupted stack.
  */
-void apic_spurious(int n, void *stack)
+void apic_spurious(int n, istate_t *istate)
 {
 	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
 }
@@ -427,7 +427,7 @@ void l_apic_debug(void)
  * @param n Interrupt vector number.
  * @param stack Interrupted stack.
  */
-void l_apic_timer_interrupt(int n, void *stack)
+void l_apic_timer_interrupt(int n, istate_t *istate)
 {
 	l_apic_eoi();
 	clock();

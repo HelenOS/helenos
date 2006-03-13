@@ -49,11 +49,11 @@ typedef struct  {
 	__native nextinstruction;  /**< Original instruction following break */
 	int flags;        /**< Flags regarding breakpoint */
 	count_t counter;
-	void (*bkfunc)(void *b, struct exception_regdump *pstate);
+	void (*bkfunc)(void *b, istate_t *istate);
 } bpinfo_t;
 
 extern void debugger_init(void);
-void debugger_bpoint(struct exception_regdump *pstate);
+void debugger_bpoint(istate_t *istate);
 
 extern bpinfo_t breakpoints[BKPOINTS_MAX];
 

@@ -349,10 +349,10 @@ static chardev_operations_t arc_ops = {
 
 iroutine old_timer;
 /** Do polling on timer interrupt */
-static void timer_replace(int n, void *stack)
+static void timer_replace(int n, istate_t *istate)
 {
 	arc_keyboard_poll();
-	old_timer(n, stack);
+	old_timer(n, istate);
 	arc_keyboard_poll();
 }
 

@@ -60,17 +60,33 @@
 #define VECTOR_SYSCALL			(IVT_FREEBASE+0)
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
 
+struct istate {
+	__u32 edi;
+	__u32 esi;
+	__u32 ebp;
+	__u32 esp;
+	__u32 ebx;
+	__u32 edx;
+	__u32 ecx;
+	__u32 eax;
+	__u32 error_word;
+	__u32 eip;
+	__u32 cs;
+	__u32 eflags;
+	__u32 stack[];
+};
+
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
 extern void (* eoi_function)(void);
 
-extern void null_interrupt(int n, void *stack);
-extern void gp_fault(int n, void *stack);
-extern void nm_fault(int n, void *stack);
-extern void ss_fault(int n, void *stack);
-extern void page_fault(int n, void *stack);
-extern void syscall(int n, void *stack);
-extern void tlb_shootdown_ipi(int n, void *stack);
+extern void null_interrupt(int n, istate_t *istate);
+extern void gp_fault(int n, istate_t *istate);
+extern void nm_fault(int n, istate_t *istate);
+extern void ss_fault(int n, istate_t *istate);
+extern void page_fault(int n, istate_t *istate);
+extern void syscall(int n, istate_t *istate);
+extern void tlb_shootdown_ipi(int n, istate_t *istate);
 
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);

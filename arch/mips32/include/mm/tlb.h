@@ -169,8 +169,8 @@ static inline void tlbwr(void)
 
 #define tlb_invalidate(asid)	tlb_invalidate_asid(asid)
 
-extern void tlb_invalid(struct exception_regdump *pstate);
-extern void tlb_refill(struct exception_regdump *pstate);
-extern void tlb_modified(struct exception_regdump *pstate);
+extern void tlb_invalid(istate_t *istate);
+extern void tlb_refill(istate_t *istate);
+extern void tlb_modified(istate_t *istate);
 
 #endif

@@ -39,7 +39,7 @@
  * Programmable Interrupt Controller for UP systems.
  */
 
-static void pic_spurious(int n, void *stack);
+static void pic_spurious(int n, istate_t *istate);
 
 void i8259_init(void)
 {
@@ -70,7 +70,7 @@ void i8259_init(void)
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
 	 */
-	exc_register(VECTOR_PIC_SPUR, "pic_spurious", pic_spurious);	
+	exc_register(VECTOR_PIC_SPUR, "pic_spurious", (iroutine) pic_spurious);	
 
 	/*
 	 * Set the enable/disable IRQs handlers.
@@ -118,7 +118,7 @@ void pic_eoi(void)
 	outb(0xa0,0x20);
 }
 
-void pic_spurious(int n, void *stack)
+void pic_spurious(int n, istate_t *istate)
 {
 	printf("cpu%d: PIC spurious interrupt\n", CPU->id);
 }

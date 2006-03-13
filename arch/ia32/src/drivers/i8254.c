@@ -53,7 +53,7 @@
 #define CLK_CONST	1193180
 #define MAGIC_NUMBER	1194
 
-static void i8254_interrupt(int n, void *stack);
+static void i8254_interrupt(int n, istate_t *istate);
 
 void i8254_init(void)
 {
@@ -67,7 +67,7 @@ void i8254_normal_operation(void)
 	outb(CLK_PORT1, (CLK_CONST/HZ) & 0xf);
 	outb(CLK_PORT1, (CLK_CONST/HZ) >> 8);
 	pic_enable_irqs(1<<IRQ_CLK);
-	exc_register(VECTOR_CLK, "i8254_clock", i8254_interrupt);
+	exc_register(VECTOR_CLK, "i8254_clock", (iroutine) i8254_interrupt);
 }
 
 #define LOOPS 150000
@@ -125,7 +125,7 @@ void i8254_calibrate_delay_loop(void)
 	return;
 }
 
-void i8254_interrupt(int n, void *stack)
+void i8254_interrupt(int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	clock();

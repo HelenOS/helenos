@@ -78,10 +78,37 @@ enable_l_apic_in_msr:
 # and call exc_dispatch().
 #
 .macro handler i n
-	push %ebp
-	movl %esp,%ebp
-	pusha
+	push %eax
 
+	# Test if this is interrupt with error word or not
+	movl $(1<<\i), %eax
+	andl $ERROR_WORD_INTERRUPT_LIST,%eax
+
+	/*
+	 * If this interrupt/exception  stores error word,
+	 * we need to pop EAX.
+	 * If this interrupt doesn't store error word, we emulate it
+	 * for the sake of consistent pstate structure. In that case
+	 * we merely leave the EAX on the stack.
+	 */
+	jz 0f
+
+	/*
+	 * This exception stores error word.
+	 */
+	pop %eax
+	jmp 1f
+
+0:
+	/*
+	 * This interrupt doesn't store error word.
+	 * Just restore EAX without doing POP.
+	 */
+	movl (%esp), %eax
+
+1:
+	pusha
+	movl %esp, %ebp
 	push %ds
 	push %es
 
@@ -92,7 +119,6 @@ enable_l_apic_in_msr:
 
 	movl $(\i),%edi
 	pushl %ebp
-	addl $4,(%esp)
 	pushl %edi
 	call exc_dispatch
 	addl $8,%esp
@@ -100,37 +126,15 @@ enable_l_apic_in_msr:
 	pop %es
 	pop %ds
 
-
-# CLNT
+# Clear Nested Task flag.
 	pushfl
 	pop %eax
 	and $0xFFFFBFFF,%eax
 	push %eax
 	popfl
 	
-
-
-# Test if this is interrupt with error word or not
-	mov $\i,%cl
-	movl $1,%eax
-	test $0xe0,%cl
-	jnz 0f
-	and $0x1f,%cl
-	shl %cl,%eax
-	and $ERROR_WORD_INTERRUPT_LIST,%eax
-	jz 0f
-
-
-# Return with error word
 	popa
-	pop %ebp
-	add $4,%esp	# Skip error word
-	iret
-
-0:
-# Return with no error word
-	popa
-	pop %ebp
+	add $4,%esp	# Skip error word, whether real or fake.
 	iret
 
 	.if (\n-\i)-1

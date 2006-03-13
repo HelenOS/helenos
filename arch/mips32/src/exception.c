@@ -62,52 +62,52 @@ static char * exctable[] = {
 		"Virtual Coherency - data",
 };
 
-static void print_regdump(struct exception_regdump *pstate)
+static void print_regdump(istate_t *istate)
 {
 	char *pcsymbol = "";
 	char *rasymbol = "";
 
-	char *s = get_symtab_entry(pstate->epc);
+	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		pcsymbol = s;
-	s = get_symtab_entry(pstate->ra);
+	s = get_symtab_entry(istate->ra);
 	if (s)
 		rasymbol = s;
 	
-	printf("PC: %X(%s) RA: %X(%s), SP(%P)\n",pstate->epc,pcsymbol,
-	       pstate->ra,rasymbol, pstate->sp);
+	printf("PC: %X(%s) RA: %X(%s), SP(%P)\n",istate->epc,pcsymbol,
+	       istate->ra,rasymbol, istate->sp);
 }
 
-static void unhandled_exception(int n, struct exception_regdump *pstate)
+static void unhandled_exception(int n, istate_t *istate)
 {
-	print_regdump(pstate);
+	print_regdump(istate);
 	panic("unhandled exception %s\n", exctable[n]);
 }
 
-static void breakpoint_exception(int n, struct exception_regdump *pstate)
+static void breakpoint_exception(int n, istate_t *istate)
 {
 #ifdef CONFIG_DEBUG
-	debugger_bpoint(pstate);
+	debugger_bpoint(istate);
 #else
 	/* it is necessary to not re-execute BREAK instruction after 
 	   returning from Exception handler
 	   (see page 138 in R4000 Manual for more information) */
-	pstate->epc += 4;
+	istate->epc += 4;
 #endif
 }
 
-static void tlbmod_exception(int n, struct exception_regdump *pstate)
+static void tlbmod_exception(int n, istate_t *istate)
 {
-	tlb_modified(pstate);
+	tlb_modified(istate);
 }
 
-static void tlbinv_exception(int n, struct exception_regdump *pstate)
+static void tlbinv_exception(int n, istate_t *istate)
 {
-	tlb_invalid(pstate);
+	tlb_invalid(istate);
 }
 
 #ifdef CONFIG_FPU_LAZY
-static void cpuns_exception(int n, struct exception_regdump *pstate)
+static void cpuns_exception(int n, istate_t *istate)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
@@ -116,7 +116,7 @@ static void cpuns_exception(int n, struct exception_regdump *pstate)
 }
 #endif
 
-static void interrupt_exception(int n, struct exception_regdump *pstate)
+static void interrupt_exception(int n, istate_t *istate)
 {
 	__u32 cause;
 	int i;
@@ -126,26 +126,25 @@ static void interrupt_exception(int n, struct exception_regdump *pstate)
 	
 	for (i = 0; i < 8; i++)
 		if (cause & (1 << i))
-			exc_dispatch(i+INT_OFFSET, pstate);
+			exc_dispatch(i+INT_OFFSET, istate);
 }
 
 #include <debug.h>
 /** Handle syscall userspace call */
-static void syscall_exception(int n, struct exception_regdump *pstate)
+static void syscall_exception(int n, istate_t *istate)
 {
 	interrupts_enable();
-	if (pstate->a3 < SYSCALL_END)
-		pstate->v0 = syscall_table[pstate->a3](pstate->a0,
-						       pstate->a1,
-						       pstate->a2);
+	if (istate->a3 < SYSCALL_END)
+		istate->v0 = syscall_table[istate->a3](istate->a0,
+						       istate->a1,
+						       istate->a2);
 	else
-		panic("Undefined syscall %d", pstate->a3);
+		panic("Undefined syscall %d", istate->a3);
+	istate->epc += 4;
 	interrupts_disable();
-	pstate->epc += 4;
 }
 
-
-void exception(struct exception_regdump *pstate)
+void exception(istate_t *istate)
 {
 	int cause;
 	int excno;
@@ -163,26 +162,26 @@ void exception(struct exception_regdump *pstate)
 	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
 						cp0_status_um_bit));
 
-	/* Save pstate so that the threads can access it */
-	/* If THREAD->pstate is set, this is nested exception,
+	/* Save istate so that the threads can access it */
+	/* If THREAD->istate is set, this is nested exception,
 	 * do not rewrite it
 	 */
-	if (THREAD && !THREAD->pstate)
-		THREAD->pstate = pstate;
+	if (THREAD && !THREAD->istate)
+		THREAD->istate = istate;
 
 	cause = cp0_cause_read();
 	excno = cp0_cause_excno(cause);
 	/* Dispatch exception */
-	exc_dispatch(excno, pstate);
+	exc_dispatch(excno, istate);
 
 	/* Set to NULL, so that we can still support nested
 	 * exceptions
 	 * TODO: We should probably set EXL bit before this command,
 	 * nesting. On the other hand, if some exception occurs between
-	 * here and ERET, it won't set anything on the pstate anyway.
+	 * here and ERET, it won't set anything on the istate anyway.
 	 */
 	if (THREAD)
-		THREAD->pstate = NULL;
+		THREAD->istate = NULL;
 }
 
 void exception_init(void)

@@ -179,7 +179,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		cur->flags = 0;
 	} else { /* We are add extended */
 		cur->flags = BKPOINT_FUNCCALL;
-		cur->bkfunc = 	(void (*)(void *, struct exception_regdump *)) argv[1].intval;
+		cur->bkfunc = 	(void (*)(void *, istate_t *)) argv[1].intval;
 	}
 	if (is_jump(cur->instruction))
 		cur->flags |= BKPOINT_ONESHOT;
@@ -289,10 +289,10 @@ void debugger_init()
  * If breakpoint not found in breakpoint table, call kconsole and start
  * next instruction.
  */
-void debugger_bpoint(struct exception_regdump *pstate)
+void debugger_bpoint(istate_t *istate)
 {
 	bpinfo_t *cur = NULL;
-	__address fireaddr = pstate->epc;
+	__address fireaddr = istate->epc;
 	int i;
 
 	/* test branch delay slot */
@@ -329,7 +329,7 @@ void debugger_bpoint(struct exception_regdump *pstate)
 		
 		if (!(cur->flags & BKPOINT_FUNCCALL))
 			printf("***Breakpoint %d: 0x%p in %s.\n", i, 
-			       fireaddr, get_symtab_entry(pstate->epc));
+			       fireaddr, get_symtab_entry(istate->epc));
 
 		/* Return first instruction back */
 		((__u32 *)cur->address)[0] = cur->instruction;
@@ -344,14 +344,14 @@ void debugger_bpoint(struct exception_regdump *pstate)
 		printf("***Breakpoint 0x%p in %s.\n", fireaddr, 
 		       get_symtab_entry(fireaddr));
 		/* Move on to next instruction */
-		pstate->epc += 4;
+		istate->epc += 4;
 	}
 	if (cur)
 		cur->counter++;
 	if (cur && (cur->flags & BKPOINT_FUNCCALL)) {
 		/* Allow zero bkfunc, just for counting */
 		if (cur->bkfunc)
-			cur->bkfunc(cur, pstate);
+			cur->bkfunc(cur, istate);
 	} else {
 		printf("***Type 'exit' to exit kconsole.\n");
 		/* This disables all other processors - we are not SMP,

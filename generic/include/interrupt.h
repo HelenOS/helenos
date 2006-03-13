@@ -41,7 +41,7 @@
 #endif
 
 extern iroutine exc_register(int n, const char *name, iroutine f);
-extern void exc_dispatch(int n, void *stack);
+extern void exc_dispatch(int n, istate_t *t);
 void exc_init(void);
 
 #endif

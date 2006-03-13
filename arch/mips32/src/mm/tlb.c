@@ -39,9 +39,9 @@
 #include <print.h>
 #include <debug.h>
 
-static void tlb_refill_fail(struct exception_regdump *pstate);
-static void tlb_invalid_fail(struct exception_regdump *pstate);
-static void tlb_modified_fail(struct exception_regdump *pstate);
+static void tlb_refill_fail(istate_t *istate);
+static void tlb_invalid_fail(istate_t *istate);
+static void tlb_modified_fail(istate_t *istate);
 
 static pte_t *find_mapping_and_check(__address badvaddr);
 
@@ -81,9 +81,9 @@ void tlb_arch_init(void)
  *
  * Process TLB Refill Exception.
  *
- * @param pstate Interrupted register context.
+ * @param istate Interrupted register context.
  */
-void tlb_refill(struct exception_regdump *pstate)
+void tlb_refill(istate_t *istate)
 {
 	entry_lo_t lo;
 	entry_hi_t hi;	
@@ -126,16 +126,16 @@ void tlb_refill(struct exception_regdump *pstate)
 	
 fail:
 	spinlock_unlock(&AS->lock);
-	tlb_refill_fail(pstate);
+	tlb_refill_fail(istate);
 }
 
 /** Process TLB Invalid Exception
  *
  * Process TLB Invalid Exception.
  *
- * @param pstate Interrupted register context.
+ * @param istate Interrupted register context.
  */
-void tlb_invalid(struct exception_regdump *pstate)
+void tlb_invalid(istate_t *istate)
 {
 	tlb_index_t index;
 	__address badvaddr;
@@ -195,16 +195,16 @@ void tlb_invalid(struct exception_regdump *pstate)
 	
 fail:
 	spinlock_unlock(&AS->lock);
-	tlb_invalid_fail(pstate);
+	tlb_invalid_fail(istate);
 }
 
 /** Process TLB Modified Exception
  *
  * Process TLB Modified Exception.
  *
- * @param pstate Interrupted register context.
+ * @param istate Interrupted register context.
  */
-void tlb_modified(struct exception_regdump *pstate)
+void tlb_modified(istate_t *istate)
 {
 	tlb_index_t index;
 	__address badvaddr;
@@ -271,42 +271,42 @@ void tlb_modified(struct exception_regdump *pstate)
 	
 fail:
 	spinlock_unlock(&AS->lock);
-	tlb_modified_fail(pstate);
+	tlb_modified_fail(istate);
 }
 
-void tlb_refill_fail(struct exception_regdump *pstate)
+void tlb_refill_fail(istate_t *istate)
 {
 	char *symbol = "";
 	char *sym2 = "";
 
-	char *s = get_symtab_entry(pstate->epc);
+	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	s = get_symtab_entry(pstate->ra);
+	s = get_symtab_entry(istate->ra);
 	if (s)
 		sym2 = s;
-	panic("%X: TLB Refill Exception at %X(%s<-%s)\n", cp0_badvaddr_read(), pstate->epc, symbol, sym2);
+	panic("%X: TLB Refill Exception at %X(%s<-%s)\n", cp0_badvaddr_read(), istate->epc, symbol, sym2);
 }
 
 
-void tlb_invalid_fail(struct exception_regdump *pstate)
+void tlb_invalid_fail(istate_t *istate)
 {
 	char *symbol = "";
 
-	char *s = get_symtab_entry(pstate->epc);
+	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
+	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
 }
 
-void tlb_modified_fail(struct exception_regdump *pstate)
+void tlb_modified_fail(istate_t *istate)
 {
 	char *symbol = "";
 
-	char *s = get_symtab_entry(pstate->epc);
+	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), pstate->epc, symbol);
+	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
 }
 
 /** Try to find PTE for faulting address

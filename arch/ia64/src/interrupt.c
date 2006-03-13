@@ -108,7 +108,7 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 };
 
 static char *vector_to_string(__u16 vector);
-static void dump_interrupted_context(struct exception_regdump *pstate);
+static void dump_interrupted_context(istate_t *istate);
 
 char *vector_to_string(__u16 vector)
 {
@@ -120,33 +120,33 @@ char *vector_to_string(__u16 vector)
 		return vector_names_64_bundle[vector/(64*BUNDLE_SIZE)];
 }
 
-void dump_interrupted_context(struct exception_regdump *pstate)
+void dump_interrupted_context(istate_t *istate)
 {
 	char *ifa, *iipa, *iip;
 
-	ifa = get_symtab_entry(pstate->cr_ifa);
-	iipa = get_symtab_entry(pstate->cr_iipa);
-	iip = get_symtab_entry(pstate->cr_iip);
+	ifa = get_symtab_entry(istate->cr_ifa);
+	iipa = get_symtab_entry(istate->cr_iipa);
+	iip = get_symtab_entry(istate->cr_iip);
 
 	putchar('\n');
 	printf("Interrupted context dump:\n");
-	printf("ar.bsp=%P\tar.bspstore=%P\n", pstate->ar_bsp, pstate->ar_bspstore);
-	printf("ar.rnat=%Q\tar.rsc=%Q\n", pstate->ar_rnat, pstate->ar_rsc);
-	printf("ar.ifs=%Q\tar.pfs=%Q\n", pstate->ar_ifs, pstate->ar_pfs);
-	printf("cr.isr=%Q\tcr.ipsr=%Q\t\n", pstate->cr_isr.value, pstate->cr_ipsr);
+	printf("ar.bsp=%P\tar.bspstore=%P\n", istate->ar_bsp, istate->ar_bspstore);
+	printf("ar.rnat=%Q\tar.rsc=%Q\n", istate->ar_rnat, istate->ar_rsc);
+	printf("ar.ifs=%Q\tar.pfs=%Q\n", istate->ar_ifs, istate->ar_pfs);
+	printf("cr.isr=%Q\tcr.ipsr=%Q\t\n", istate->cr_isr.value, istate->cr_ipsr);
 	
-	printf("cr.iip=%Q, #%d\t(%s)\n", pstate->cr_iip, pstate->cr_isr.ei ,iip ? iip : "?");
-	printf("cr.iipa=%Q\t(%s)\n", pstate->cr_iipa, iipa ? iipa : "?");
-	printf("cr.ifa=%Q\t(%s)\n", pstate->cr_ifa, ifa ? ifa : "?");
+	printf("cr.iip=%Q, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei ,iip ? iip : "?");
+	printf("cr.iipa=%Q\t(%s)\n", istate->cr_iipa, iipa ? iipa : "?");
+	printf("cr.ifa=%Q\t(%s)\n", istate->cr_ifa, ifa ? ifa : "?");
 }
 
-void general_exception(__u64 vector, struct exception_regdump *pstate)
+void general_exception(__u64 vector, istate_t *istate)
 {
 	char *desc = "";
 
-	dump_interrupted_context(pstate);
+	dump_interrupted_context(istate);
 
-	switch (pstate->cr_isr.ge_code) {
+	switch (istate->cr_isr.ge_code) {
 	    case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
 		break;
@@ -174,33 +174,33 @@ void general_exception(__u64 vector, struct exception_regdump *pstate)
 }
 
 /** Handle syscall. */
-int break_instruction(__u64 vector, struct exception_regdump *pstate)
+int break_instruction(__u64 vector, istate_t *istate)
 {
 	/*
 	 * Move to next instruction after BREAK.
 	 */
-	if (pstate->cr_ipsr.ri == 2) {
-		pstate->cr_ipsr.ri = 0;
-		pstate->cr_iip += 16;
+	if (istate->cr_ipsr.ri == 2) {
+		istate->cr_ipsr.ri = 0;
+		istate->cr_iip += 16;
 	} else {
-		pstate->cr_ipsr.ri++;
+		istate->cr_ipsr.ri++;
 	}
 
-	if (pstate->in0 < SYSCALL_END)
-		return syscall_table[pstate->in0](pstate->in1, pstate->in2, pstate->in3);
+	if (istate->in3 < SYSCALL_END)
+		return syscall_table[istate->in3](istate->in0, istate->in1, istate->in2);
 	else
-		panic("Undefined syscall %d", pstate->in0);
+		panic("Undefined syscall %d", istate->in3);
 		
 	return -1;
 }
 
-void universal_handler(__u64 vector, struct exception_regdump *pstate)
+void universal_handler(__u64 vector, istate_t *istate)
 {
-	dump_interrupted_context(pstate);
+	dump_interrupted_context(istate);
 	panic("Interruption: %W (%s)\n", (__u16) vector, vector_to_string(vector));
 }
 
-void external_interrupt(__u64 vector, struct exception_regdump *pstate)
+void external_interrupt(__u64 vector, istate_t *istate)
 {
 	cr_ivr_t ivr;
 	

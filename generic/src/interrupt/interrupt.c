@@ -71,15 +71,15 @@ iroutine exc_register(int n, const char *name, iroutine f)
  * Called directly from the assembler code.
  * CPU is interrupts_disable()'d.
  */
-void exc_dispatch(int n, void *stack)
+void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
 	
-	exc_table[n].f(n + IVT_FIRST, stack);
+	exc_table[n].f(n + IVT_FIRST, istate);
 }
 
 /** Default 'null' exception handler */
-static void exc_undef(int n, void *stack)
+static void exc_undef(int n, istate_t *istate)
 {
 	panic("Unhandled exception %d.", n);
 }
@@ -126,7 +126,7 @@ void exc_init(void)
 	int i;
 
 	for (i=0;i < IVT_ITEMS; i++)
-		exc_register(i, "undef", exc_undef);
+		exc_register(i, "undef", (iroutine) exc_undef);
 
 	cmd_initialize(&exc_info);
 	if (!cmd_register(&exc_info))

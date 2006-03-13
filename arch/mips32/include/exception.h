@@ -33,6 +33,8 @@
 #  include <arch/types.h>
 #endif
 
+#include <typedefs.h>
+
 #define EXC_Int		0
 #define EXC_Mod		1
 #define EXC_TLBL	2
@@ -52,7 +54,7 @@
 #define EXC_WATCH	23
 #define EXC_VCED	31
 
-struct exception_regdump {
+struct istate {
 	__u32 at;
 	__u32 v0;
 	__u32 v1;
@@ -90,7 +92,7 @@ struct exception_regdump {
 	__u32 epc; /* cp0_epc */
 };
 
-extern void exception(struct exception_regdump *pstate);
+extern void exception(istate_t *istate);
 extern void tlb_refill_entry(void);
 extern void exception_entry(void);
 extern void cache_error_entry(void);

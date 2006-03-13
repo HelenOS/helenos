@@ -60,11 +60,11 @@ void arch_pre_mm_init(void)
 		i8259_init();	/* PIC */
 		i8254_init();	/* hard clock */
 		
-		exc_register(VECTOR_SYSCALL, "syscall", syscall);
+		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
 		
 		#ifdef CONFIG_SMP
 		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     tlb_shootdown_ipi);
+			     (iroutine) tlb_shootdown_ipi);
 		#endif /* CONFIG_SMP */
 	}
 }

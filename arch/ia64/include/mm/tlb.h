@@ -82,12 +82,12 @@ extern void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr
 extern void dtc_pte_copy(pte_t *t);
 extern void itc_pte_copy(pte_t *t);
 
-extern void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate);
-extern void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate);
-extern void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate);
-extern void data_dirty_bit_fault(__u64 vector, struct exception_regdump *pstate);
-extern void instruction_access_bit_fault(__u64 vector, struct exception_regdump *pstate);
-extern void data_access_bit_fault(__u64 vector, struct exception_regdump *pstate);
-extern void page_not_present(__u64 vector, struct exception_regdump *pstate);
+extern void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate);
+extern void alternate_data_tlb_fault(__u64 vector, istate_t *istate);
+extern void data_nested_tlb_fault(__u64 vector, istate_t *istate);
+extern void data_dirty_bit_fault(__u64 vector, istate_t *istate);
+extern void instruction_access_bit_fault(__u64 vector, istate_t *istate);
+extern void data_access_bit_fault(__u64 vector, istate_t *istate);
+extern void page_not_present(__u64 vector, istate_t *istate);
 
 #endif

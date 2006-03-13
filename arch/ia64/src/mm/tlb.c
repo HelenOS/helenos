@@ -442,15 +442,15 @@ void itc_pte_copy(pte_t *t)
 /** Instruction TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
 {
 	region_register rr;
 	__address va;
 	pte_t *t;
 	
-	va = pstate->cr_ifa;	/* faulting address */
+	va = istate->cr_ifa;	/* faulting address */
 	t = page_mapping_find(AS, va);
 	if (t) {
 		/*
@@ -463,7 +463,7 @@ void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pst
 		 * Forward the page fault to address space page fault handler.
 		 */
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
 		}
 	}
 }
@@ -471,16 +471,16 @@ void alternate_instruction_tlb_fault(__u64 vector, struct exception_regdump *pst
 /** Data TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
 	__address va;
 	pte_t *t;
 	
-	va = pstate->cr_ifa;	/* faulting address */
+	va = istate->cr_ifa;	/* faulting address */
 	rr.word = rr_read(VA2VRN(va));
 	rid = rr.map.rid;
 	if (RID2ASID(rid) == ASID_KERNEL) {
@@ -506,7 +506,7 @@ void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
 		}
 	}
 }
@@ -516,9 +516,9 @@ void alternate_data_tlb_fault(__u64 vector, struct exception_regdump *pstate)
  * This fault should not occur.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate)
+void data_nested_tlb_fault(__u64 vector, istate_t *istate)
 {
 	panic("%s\n", __FUNCTION__);
 }
@@ -526,13 +526,13 @@ void data_nested_tlb_fault(__u64 vector, struct exception_regdump *pstate)
 /** Data Dirty bit fault handler.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void data_dirty_bit_fault(__u64 vector, struct exception_regdump *pstate)
+void data_dirty_bit_fault(__u64 vector, istate_t *istate)
 {
 	pte_t *t;
 
-	t = page_mapping_find(AS, pstate->cr_ifa);
+	t = page_mapping_find(AS, istate->cr_ifa);
 	ASSERT(t && t->p);
 	if (t && t->p) {
 		/*
@@ -547,13 +547,13 @@ void data_dirty_bit_fault(__u64 vector, struct exception_regdump *pstate)
 /** Instruction access bit fault handler.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void instruction_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
+void instruction_access_bit_fault(__u64 vector, istate_t *istate)
 {
 	pte_t *t;
 
-	t = page_mapping_find(AS, pstate->cr_ifa);
+	t = page_mapping_find(AS, istate->cr_ifa);
 	ASSERT(t && t->p);
 	if (t && t->p) {
 		/*
@@ -568,13 +568,13 @@ void instruction_access_bit_fault(__u64 vector, struct exception_regdump *pstate
 /** Data access bit fault handler.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void data_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
+void data_access_bit_fault(__u64 vector, istate_t *istate)
 {
 	pte_t *t;
 
-	t = page_mapping_find(AS, pstate->cr_ifa);
+	t = page_mapping_find(AS, istate->cr_ifa);
 	ASSERT(t && t->p);
 	if (t && t->p) {
 		/*
@@ -589,15 +589,15 @@ void data_access_bit_fault(__u64 vector, struct exception_regdump *pstate)
 /** Page not present fault handler.
  *
  * @param vector Interruption vector.
- * @param pstate Structure with saved interruption state.
+ * @param istate Structure with saved interruption state.
  */
-void page_not_present(__u64 vector, struct exception_regdump *pstate)
+void page_not_present(__u64 vector, istate_t *istate)
 {
 	region_register rr;
 	__address va;
 	pte_t *t;
 	
-	va = pstate->cr_ifa;	/* faulting address */
+	va = istate->cr_ifa;	/* faulting address */
 	t = page_mapping_find(AS, va);
 	ASSERT(t);
 	
@@ -612,7 +612,7 @@ void page_not_present(__u64 vector, struct exception_regdump *pstate)
 			dtc_pte_copy(t);
 	} else {
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, pstate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
 		}
 	}
 }

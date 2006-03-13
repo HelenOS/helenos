@@ -74,18 +74,18 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
-static void timer_exception(int n, void *stack)
+static void timer_exception(int n, istate_t *istate)
 {
 	cp0_compare_write(cp0_count_read() + cp0_compare_value); 
 	clock();
 }
 
-static void swint0(int n, void *stack)
+static void swint0(int n, istate_t *istate)
 {
 	cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
 }
 
-static void swint1(int n, void *stack)
+static void swint1(int n, istate_t *istate)
 {
 	cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
 }

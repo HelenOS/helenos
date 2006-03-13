@@ -49,46 +49,41 @@ void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-#define PRINT_INFO_ERRCODE(st) { \
-        __native *x = (__native *) st; \
-	char *symbol = get_symtab_entry(x[1]); \
+#define PRINT_INFO_ERRCODE(istate) do { \
+	char *symbol = get_symtab_entry(istate->eip); \
 	if (!symbol) \
 		symbol = ""; \
 	printf("----------------EXCEPTION OCCURED----------------\n"); \
-	printf("%%eip: %X (%s)\n",x[1],symbol); \
-	printf("ERROR_WORD=%X\n", x[0]); \
-	printf("%%cs=%X,flags=%X\n", x[2], x[3]); \
+	printf("%%eip: %X (%s)\n",istate->eip,symbol); \
+	printf("ERROR_WORD=%X\n", istate->error_word); \
+	printf("%%cs=%X,flags=%X\n", istate->cs, istate->eflags); \
 	printf("%%eax=%X, %%ebx=%X, %%ecx=%X, %%edx=%X\n",\
-	       x[-2],x[-5],x[-3],x[-4]); \
+	       istate->eax,istate->ebx,istate->ecx,istate->edx); \
 	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%esp=%X\n",\
-	       x[-8],x[-9],x[-1],x); \
-	printf("stack: %X, %X, %X, %X\n", x[4], x[5], x[6], x[7]); \
-	printf("       %X, %X, %X, %X\n", x[8], x[9], x[10], x[11]); \
-        }
+	       istate->esi,istate->edi,istate->ebp,istate->esp); \
+	printf("stack: %X, %X, %X, %X\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]); \
+	printf("       %X, %X, %X, %X\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]); \
+} while(0)
 
-void null_interrupt(int n, void *st)
+void null_interrupt(int n, istate_t *istate)
 {
-	__native *stack = (__native *) st;
-
-	printf("int %d: null_interrupt\n", n);
-	printf("stack: %L, %L, %L, %L\n", stack[0], stack[1], stack[2], stack[3]);
-	panic("unserviced interrupt\n");
+	PRINT_INFO_ERRCODE(istate);
+	panic("unserviced interrupt: %d\n", n);
 }
 
-void gp_fault(int n, void *stack)
+void gp_fault(int n, istate_t *istate)
 {
-	PRINT_INFO_ERRCODE(stack);
+	PRINT_INFO_ERRCODE(istate);
 	panic("general protection fault\n");
 }
 
-void ss_fault(int n, void *stack)
+void ss_fault(int n, istate_t *istate)
 {
-	PRINT_INFO_ERRCODE(stack);
+	PRINT_INFO_ERRCODE(istate);
 	panic("stack fault\n");
 }
 
-
-void nm_fault(int n, void *stack)
+void nm_fault(int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
@@ -97,33 +92,29 @@ void nm_fault(int n, void *stack)
 #endif
 }
 
-
-
-void page_fault(int n, void *stack)
+void page_fault(int n, istate_t *istate)
 {
 	__address page;
 
 	page = read_cr2();
 	if (!as_page_fault(page)) {
-		PRINT_INFO_ERRCODE(stack);
+		PRINT_INFO_ERRCODE(istate);
 		printf("page fault address: %X\n", page);
 		panic("page fault\n");
 	}
 }
 
-void syscall(int n, void *st)
+void syscall(int n, istate_t *istate)
 {
-	__native *stack = (__native *) st;
-
 	interrupts_enable();
-	if (stack[-2] < SYSCALL_END)
-		stack[-2] = syscall_table[stack[-2]](stack[-5], stack[-3], stack[-4]);
+	if (istate->edx < SYSCALL_END)
+		istate->eax = syscall_table[istate->edx](istate->eax, istate->ebx, istate->ecx);
 	else
-		panic("Undefined syscall %d", stack[-2]);
+		panic("Undefined syscall %d", istate->edx);
 	interrupts_disable();
 }
 
-void tlb_shootdown_ipi(int n, void *stack)
+void tlb_shootdown_ipi(int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();

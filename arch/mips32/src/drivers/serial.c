@@ -112,10 +112,10 @@ static chardev_operations_t serial_ops = {
 
 iroutine old_timer;
 /** Do polling on timer interrupt */
-static void timer_replace(int n, void *stack)
+static void timer_replace(int n, istate_t *istate)
 {
-	old_timer(n, stack);
-	serial_interrupt(n, stack);
+	old_timer(n, istate);
+	serial_interrupt(n, istate);
 }
 
 void serial_console(void)

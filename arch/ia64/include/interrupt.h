@@ -29,6 +29,7 @@
 #ifndef __ia64_INTERRUPT_H__
 #define __ia64_INTERRUPT_H__
 
+#include <typedefs.h>
 #include <arch/types.h>
 #include <arch/register.h>
 
@@ -46,7 +47,7 @@
 
 #define EOI	0		/**< The actual value doesn't matter. */
 
-struct exception_regdump {
+struct istate {
 	__address ar_bsp;
 	__address ar_bspstore;
 	__address ar_bspstore_new;
@@ -73,9 +74,9 @@ struct exception_regdump {
 
 extern void *ivt;
 
-extern void general_exception(__u64 vector, struct exception_regdump *pstate);
-extern int break_instruction(__u64 vector, struct exception_regdump *pstate);
-extern void universal_handler(__u64 vector, struct exception_regdump *pstate);
-extern void external_interrupt(__u64 vector, struct exception_regdump *pstate);
+extern void general_exception(__u64 vector, istate_t *istate);
+extern int break_instruction(__u64 vector, istate_t *istate);
+extern void universal_handler(__u64 vector, istate_t *istate);
+extern void external_interrupt(__u64 vector, istate_t *istate);
 
 #endif

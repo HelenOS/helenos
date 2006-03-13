@@ -265,13 +265,13 @@ static char sc_secondary_map[] = {
 	SPECIAL, /* 0x7f */	
 };
 
-static void i8042_interrupt(int n, void *stack);
+static void i8042_interrupt(int n, istate_t *istate);
 static void i8042_wait(void);
 
 /** Initialize i8042. */
 void i8042_init(void)
 {
-	exc_register(VECTOR_KBD, "i8042_interrupt", i8042_interrupt);
+	exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
 	i8042_wait();
 	i8042_command_write(i8042_SET_COMMAND);
 	i8042_wait();
@@ -288,7 +288,7 @@ void i8042_init(void)
  * @param n Interrupt vector.
  * @param stack Interrupted stack.
  */
-void i8042_interrupt(int n, void *stack)
+void i8042_interrupt(int n, istate_t *istate)
 {
 	__u8 x;
 

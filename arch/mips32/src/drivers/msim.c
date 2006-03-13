@@ -83,7 +83,7 @@ static char msim_do_read(chardev_t *dev)
 }
 
 /** Process keyboard interrupt. */
-static void msim_interrupt(int n, void *stack)
+static void msim_interrupt(int n, istate_t *istate)
 {
 	char ch = 0;
 
