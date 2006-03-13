@@ -31,7 +31,7 @@
 #include "ofw.h"
 #include "asm.h"
 
-#define KERNEL_LOAD_ADDRESS 0x800000
+#define KERNEL_LOAD_ADDRESS 0x400000
 #define KERNEL_START &_binary_____________kernel_kernel_bin_start
 #define KERNEL_END &_binary_____________kernel_kernel_bin_end
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
