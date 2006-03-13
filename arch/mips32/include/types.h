@@ -48,6 +48,7 @@ typedef __u32 __address;
 typedef __u32 ipl_t;
 
 typedef __u32 __native;
+typedef __s32 __snative;
 
 typedef struct pte pte_t;
 

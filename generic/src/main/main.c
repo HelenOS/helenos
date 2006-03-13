@@ -54,6 +54,7 @@
 #include <arch.h>
 #include <arch/faddr.h>
 #include <typedefs.h>
+#include <ipc/ipc.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -190,7 +191,8 @@ void main_bsp_separated_stack(void)
 	
 	if (config.init_size > 0)
 		printf("config.init_addr=%P, config.init_size=%d\n", config.init_addr, config.init_size);
-
+	
+	ipc_init();
 	/*
 	 * Create kernel task.
 	 */

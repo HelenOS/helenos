@@ -207,9 +207,11 @@ syscall_entry:
 	# Switch back to remain consistent
 	swapgs 
 
+	sti
 	movq %r9, %rcx      # Exchange last parameter as a third
 	call syscall_handler
-	
+	cli                 # We will be touching stack pointer
+		
 	popq %r11
 	popq %rcx
 	movq 0(%rsp), %rsp

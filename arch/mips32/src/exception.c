@@ -133,12 +133,14 @@ static void interrupt_exception(int n, struct exception_regdump *pstate)
 /** Handle syscall userspace call */
 static void syscall_exception(int n, struct exception_regdump *pstate)
 {
+	interrupts_enable();
 	if (pstate->a3 < SYSCALL_END)
 		pstate->v0 = syscall_table[pstate->a3](pstate->a0,
 						       pstate->a1,
 						       pstate->a2);
 	else
 		panic("Undefined syscall %d", pstate->a3);
+	interrupts_disable();
 	pstate->epc += 4;
 }
 

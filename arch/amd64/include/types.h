@@ -48,6 +48,7 @@ typedef __u64 pfn_t;
 typedef __u64 ipl_t;
 
 typedef __u64 __native;
+typedef __s64 __snative;
 
 typedef struct page_specifier pte_t;
 

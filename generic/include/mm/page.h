@@ -32,6 +32,7 @@
 #include <arch/mm/asid.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <memstr.h>
 
 #define PAGE_CACHEABLE_SHIFT		0
 #define PAGE_NOT_CACHEABLE_SHIFT	PAGE_CACHEABLE_SHIFT
@@ -58,6 +59,18 @@
 #define PAGE_EXEC		(1<<PAGE_EXEC_SHIFT)
 
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
+
+
+/* TODO - check that userspace is OK, platform specific functions etc */
+static inline void copy_to_uspace(void *dst, void *src, count_t cnt)
+{
+	memcpy(dst, src, cnt);
+} 
+
+static inline void copy_to_kernel(void *dst, void *src, count_t cnt)
+{
+	memcpy(dst, src, cnt);
+}
 
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {

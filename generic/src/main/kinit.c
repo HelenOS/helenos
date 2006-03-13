@@ -138,6 +138,8 @@ void kinit(void *arg)
 
 	interrupts_enable();
 
+	ipc_create_phonecompany();
+
 	if (config.init_size > 0) {
 		/*
 		 * Create the first user task.

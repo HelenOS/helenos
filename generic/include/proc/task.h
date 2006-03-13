@@ -32,6 +32,7 @@
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <adt/list.h>
+#include <ipc/ipc.h>
 
 /** Task structure. */
 struct task {
@@ -39,6 +40,8 @@ struct task {
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
 	as_t *as;		/**< Address space. */
+	answerbox_t answerbox;  /**< Communication endpoint */
+	phone_t phones[IPC_MAX_PHONES];
 };
 
 extern spinlock_t tasks_lock;

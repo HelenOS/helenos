@@ -114,11 +114,13 @@ void page_fault(int n, void *stack)
 void syscall(int n, void *st)
 {
 	__native *stack = (__native *) st;
-	
+
+	interrupts_enable();
 	if (stack[-2] < SYSCALL_END)
 		stack[-2] = syscall_table[stack[-2]](stack[-5], stack[-3], stack[-4]);
 	else
 		panic("Undefined syscall %d", stack[-2]);
+	interrupts_disable();
 }
 
 void tlb_shootdown_ipi(int n, void *stack)

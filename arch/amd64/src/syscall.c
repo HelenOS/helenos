@@ -62,12 +62,11 @@ void syscall_setup_cpu(void)
 }
 
 /** Dispatch system call */
-__native syscall_handler(__native id, __native a1, __native a2, __native a3)
+__native syscall_handler(__native a1, __native a2, __native a3,
+			 __native id)
 {
-	interrupts_enable();
 	if (id < SYSCALL_END)
 		return syscall_table[id](a1,a2,a3);
 	else
 		panic("Undefined syscall %d", id);
-	interrupts_disable();
 }

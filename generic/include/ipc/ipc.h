@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/as.h>
-#include <mm/slab.h>
+#ifndef __IPC_H__
+#define __IPC_H__
 
+#define IPC_CALL_LEN    2
+
+/* Flags for calls */
+#define IPC_CALL_ANSWERED    1
+/* Flags for ipc_wait_for_call */
+#define IPC_WAIT_NONBLOCKING 1
+
+#ifdef KERNEL
+
+#include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <arch.h>
-#include <panic.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
-#include <memstr.h>
 
-SPINLOCK_INITIALIZE(tasks_lock);
-LIST_INITIALIZE(tasks_head);
-
-/** Initialize tasks
- *
- * Initialize kernel tasks support.
- *
- */
-void task_init(void)
-{
-	TASK = NULL;
-}
+#define IPC_MAX_PHONES  16
 
 
-/** Create new task
- *
- * Create new task with no threads.
- *
- * @param as Task's address space.
- *
- * @return New task's structure on success, NULL on failure.
- *
- */
-task_t *task_create(as_t *as)
-{
-	ipl_t ipl;
-	task_t *ta;
-	
-	ta = (task_t *) malloc(sizeof(task_t), 0);
+typedef struct answerbox answerbox_t;
 
-	spinlock_initialize(&ta->lock, "task_ta_lock");
-	list_initialize(&ta->th_head);
-	list_initialize(&ta->tasks_link);
-	ta->as = as;
+typedef struct {
+	link_t list;
+	answerbox_t *callerbox;
+	int flags;
+	__native data[IPC_CALL_LEN];
+} call_t;
 
-	ipc_answerbox_init(&ta->answerbox);
-	memsetb((__address)&ta->phones, sizeof(ta->phones[0])*IPC_MAX_PHONES, 0);
-	if (ipc_central_box)
-		ipc_phone_init(&ta->phones[0], ipc_central_box);
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	list_append(&ta->tasks_link, &tasks_head);
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);
+struct answerbox {
+	SPINLOCK_DECLARE(lock);
 
-	return ta;
-}
+	waitq_t wq;
 
+	link_t connected_phones; /**< Phones connected to this answerbox */
+	link_t calls;            /**< Received calls */
+	link_t dispatched_calls; /* Should be hash table in the future */
+
+	link_t answers;          /**< Answered calls */
+};
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	link_t list;
+	answerbox_t *callee;
+} phone_t;
+
+extern void ipc_create_phonecompany(void);
+extern void ipc_init(void);
+extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
+extern void ipc_answer(answerbox_t *box, call_t *request);
+extern void ipc_call(phone_t *phone, call_t *request);
+extern void ipc_phone_destroy(phone_t *phone);
+extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
+extern void ipc_call_free(call_t *call);
+extern call_t * ipc_call_alloc(void);
+void ipc_answerbox_init(answerbox_t *box);
+void ipc_phone_init(phone_t *phone, answerbox_t *box);
+
+extern answerbox_t *ipc_central_box;
+
+#endif
+
+#endif

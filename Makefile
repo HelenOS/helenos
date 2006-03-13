@@ -44,7 +44,7 @@ RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 ## Common compiler flags
 #
 
-DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\""
+DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
 CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/ 
 LFLAGS = -M
 AFLAGS =
@@ -133,7 +133,8 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/waitq.c \
-	generic/src/smp/ipi.c
+	generic/src/smp/ipi.c \
+	generic/src/ipc/ipc.c
 
 ## Test sources
 #

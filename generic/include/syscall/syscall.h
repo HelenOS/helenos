@@ -29,19 +29,24 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-#include <typedefs.h>
-
 typedef enum {
 	SYS_CTL = 0,
 	SYS_IO	= 1,
+	SYS_IPC_CALL = 2,
+	SYS_IPC_ANSWER = 3,
+	SYS_IPC_WAIT = 4,
 	SYSCALL_END
 } syscall_t;
 
-typedef int (*syshandler_t)();
+#ifdef KERNEL
 
-extern int sys_ctl(void);
-extern int sys_io(int fd, const void *buf, size_t count);
+#include <arch/types.h>
+#include <typedefs.h>
+
+typedef __native (*syshandler_t)();
 
 extern syshandler_t syscall_table[SYSCALL_END];
+
+#endif
 
 #endif
