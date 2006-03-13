@@ -29,47 +29,39 @@
 ## Common compiler flags
 #
 
-LIBC_PREFIX = .
+LIBC_PREFIX = ../libc
 
 ## Setup toolchain
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
+CFLAGS += -Iinclude
+
 ## Sources
 #
 
 GENERIC_SOURCES = \
-	generic/libc.c \
-	generic/io.c
-
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/entry.s
+	generic/ipc.c
+ARCH_SOURCES = 
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
-.PHONY: all clean depend kerninc
+.PHONY: all clean depend
 
-all: kerninc libc.a arch/$(ARCH)/_link.ld
-
-kerninc:
-	ln -sf ../../../kernel/generic/include include/kernel
+all: libipc.a
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel libc.a arch/$(ARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
+	-rm -f libipcc.a Makefile.depend
+	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+libipc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+	$(AR) rc libipc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

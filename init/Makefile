@@ -30,7 +30,10 @@
 #
 
 LIBC_PREFIX = ../libc
+LIBIPC_PREFIX = ../libipc
 include $(LIBC_PREFIX)/Makefile.toolchain
+
+CFLAGS += -I../libipc/include
 
 ## Sources
 #
@@ -55,7 +58,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBC_PREFIX)/libc.a $(LIBIPC_PREFIX)/libipc.a -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,27 +24,20 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ */ 
 
+#ifndef __LIBIPC_IPC_H__
+#define __LIBIPC_IPC_H__
+
+#include <kernel/ipc/ipc.h>
 #include <libc.h>
 
-sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, 
-		   const sysarg_t p3, const syscall_t id)
-{
-	register sysarg_t __mips_reg_a0 asm("$4") = p1;
-	register sysarg_t __mips_reg_a1 asm("$5") = p2;
-	register sysarg_t __mips_reg_a2 asm("$6") = p3;
-	register sysarg_t __mips_reg_a3 asm("$7") = id;
-	register sysarg_t __mips_reg_v0 asm("$2");
-	
-	asm volatile (
-		"syscall\n"
-		: "=r" (__mips_reg_v0)
-		: "r" (__mips_reg_a0),
-		  "r" (__mips_reg_a1),
-		  "r" (__mips_reg_a2),
-		  "r" (__mips_reg_a3)
-	);
-	
-	return __mips_reg_v0;
-}
+typedef sysarg_t ipc_data_t[IPC_CALL_LEN];
+typedef sysarg_t ipc_callid_t;
+
+
+extern int ipc_call_sync(int phoneid, int arg1, int arg2);
+extern int ipc_wait_for_call(ipc_data_t *data, int flags);
+
+
+#endif

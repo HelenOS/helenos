@@ -33,6 +33,7 @@
 
 DIRS = \
 	libc \
+	libipc \
 	init \
 	softfloat
 

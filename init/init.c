@@ -27,9 +27,13 @@
  */
 
 #include "version.h"
+#include <ipc.h>
 
 int main(int argc, char *argv[])
 {
 	version_print();
+
+	ipc_call_sync(0, 1, 2);
+
 	return 0;
 }

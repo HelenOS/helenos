@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,27 +24,50 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ */ 
 
+#include <ipc.h>
 #include <libc.h>
 
-sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, 
-		   const sysarg_t p3, const syscall_t id)
+static inline ipc_callid_t _ipc_call(int phoneid, int arg1, int arg2)
 {
-	register sysarg_t __mips_reg_a0 asm("$4") = p1;
-	register sysarg_t __mips_reg_a1 asm("$5") = p2;
-	register sysarg_t __mips_reg_a2 asm("$6") = p3;
-	register sysarg_t __mips_reg_a3 asm("$7") = id;
-	register sysarg_t __mips_reg_v0 asm("$2");
+	__SYSCALL3(SYS_IPC_CALL, phoneid, arg1, arg2);
+}
+
+int ipc_call_sync(int phoneid, int arg1, int arg2)
+{
+	ipc_data_t resdata;
+
+	_ipc_call(phoneid, arg1, arg2);
+	ipc_wait_for_call(&resdata,0);
+}
+
+/*
+int ipc_call_async()
+{
 	
-	asm volatile (
-		"syscall\n"
-		: "=r" (__mips_reg_v0)
-		: "r" (__mips_reg_a0),
-		  "r" (__mips_reg_a1),
-		  "r" (__mips_reg_a2),
-		  "r" (__mips_reg_a3)
-	);
-	
-	return __mips_reg_v0;
+}
+
+int ipc_answer()
+{
+}
+*/
+
+/** Call syscall function sys_ipc_wait_for_call */
+static inline ipc_callid_t _ipc_wait_for_call(ipc_data_t *data, int flags)
+{
+	return __SYSCALL2(SYS_IPC_WAIT, (sysarg_t)data, flags);
+}
+
+/** Wait for IPC call and return
+ *
+ * - dispatch ASYNC reoutines in the background
+ */
+int ipc_wait_for_call(ipc_data_t *data, int flags)
+{
+	ipc_callid_t callid;
+
+	callid = _ipc_wait_for_call(data, flags);
+	/* TODO: Handle async replies etc.. */
+	return callid;
 }
