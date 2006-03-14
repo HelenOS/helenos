@@ -27,11 +27,38 @@
  */
 
 #include <arch/mm/frame.h>
+#include <arch/boot/memmap.h>
 #include <arch/mm/memory_init.h>
 #include <mm/frame.h>
+#include <align.h>
+#include <macros.h>
+
+__address last_frame = 0;
 
 void frame_arch_init(void)
 {
+	pfn_t minconf = 2;
+	count_t i;
+	pfn_t start, conf;
+	size_t size;
+	
+	for (i = 0; i < memmap.count; i++) {
+		start = ADDR2PFN(ALIGN_UP(memmap.zones[i].start, FRAME_SIZE));
+		size = SIZE2FRAMES(ALIGN_DOWN(memmap.zones[i].size, FRAME_SIZE));
+		
+		if ((minconf < start) || (minconf >= start + size))
+			conf = start;
+		else
+			conf = minconf;
+		
+		zone_create(start, size, conf, 0);
+		if (last_frame < ALIGN_UP(memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE))
+			last_frame = ALIGN_UP(memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE);
+	}
+
 	/* First is exception vector, second is 'implementation specific' */
 	frame_mark_unavailable(0, 2);
+	
+	/* Merge all zones to 1 big zone */
+	zone_merge_all();
 }

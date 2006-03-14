@@ -29,6 +29,6 @@
 #ifndef __ppc32_BOOT_H__
 #define __ppc32_BOOT_H__
 
-#define BOOT_OFFSET		0x1000
+#define BOOT_OFFSET		0x2000
 
 #endif
