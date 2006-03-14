@@ -46,7 +46,7 @@ static inline ipl_t interrupts_enable(void) {
 	__asm__ volatile (
 		"mfmsr %0\n"
 		"mfmsr %1\n"
-//		"ori %1, %1, 1 << 15\n"
+		"ori %1, %1, 1 << 15\n"
 		"mtmsr %1\n"
 		: "=r" (v), "=r" (tmp)
 	);

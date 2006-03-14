@@ -28,6 +28,8 @@
 
 #include <arch/drivers/cuda.h>
 #include <arch/asm.h>
+#include <console/chardev.h>
+#include <console/console.h>
 
 #define CUDA_PACKET 0x01
 #define CUDA_POWERDOWN 0x0a

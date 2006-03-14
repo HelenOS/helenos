@@ -1,8 +1,11 @@
 /** PPC32 linker script
  *
- *  It is ELF format, but its only section looks like this:
- *  kernel text
- *  kernel data
+ * umapped section:
+ * 	kernel text
+ * 	kernel data
+ * mapped section:
+ *	kernel text
+ *	kernel data 
  *
  */
 
@@ -13,14 +16,24 @@
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image PA2KA(BOOT_OFFSET): AT (0) { 
+	.unmapped 0: AT (0) {
+		unmapped_ktext_start = .;
+		*(K_UNMAPPED_TEXT_START);
+		unmapped_ktext_end = .;
+		
+		unmapped_kdata_start = .;
+		*(K_UNMAPPED_DATA_START);
+		unmapped_kdata_start = .;
+	}
+	
+	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) { 
 		ktext_start = .;
-		*(K_TEXT_START)
+		*(K_TEXT_START);
 		*(.text);
 		ktext_end = .;
 		
 		kdata_start = .;
-		*(K_DATA_START)
+		*(K_DATA_START);
 		*(.rodata);
 		*(.rodata.*);
 		*(.data);		/* initialized data */

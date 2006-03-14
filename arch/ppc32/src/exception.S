@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Jakub Jermar
+# Copyright (C) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,44 +28,80 @@
 
 #include <arch/asm/regname.h>
 #include <arch/asm/spr.h>
-#include <arch/boot/boot.h>
-#include <arch/boot/memmap.h>
 
-.section K_TEXT_START, "ax"
+.section K_UNMAPPED_TEXT_START, "ax"
 
-.global kernel_image_start
-kernel_image_start:
-	
-	# r10 contains physical address to memmap_t
-	# from boot loader
-	
-	lis r4, 0x80000000@ha
-	addi r4, r4, 0x80000000@l
-	
-	add r10, r10, r4
+.org 0x100
+.global exc_system_reset
+exc_system_reset:
+	b exc_system_reset
 
-	lis r4, memmap@ha
-	addi r4, r4, memmap@l    # r4 = memmap
-	
-	lwz r5, 0(r10)           # memmap->total
-	stw r5, 0(r4)
-	
-	lwzu r5, 4(r10)           # memmap->count
-	stwu r5, 4(r4)
-	
-	cmpwi r5, 0
-	beq memmap_end
-	
-	mtctr r5
-	memmap_loop:
-	
-		lwzu r5, 4(r10)           # memmap->zones[i].start
-		stwu r5, 4(r4)
-		
-		lwzu r5, 4(r10)           # memmap->zones[i].size
-		stwu r5, 4(r4)
-	
-	bdnz memmap_loop
-	memmap_end:
-	
-	b main_bsp
+.org 0x200
+.global exc_machine_check
+exc_machine_check:
+	b exc_machine_check
+
+.org 0x300
+.global exc_data_storage
+exc_data_storage:
+	b exc_data_storage
+
+.org 0x380
+.global exc_data_segment
+exc_data_segment:
+	b exc_data_segment
+
+.org 0x400
+.global exc_instruction_storage
+exc_instruction_storage:
+	b exc_instruction_storage
+
+.org 0x480
+.global exc_instruction_segment
+exc_instruction_segment:
+	b exc_instruction_segment
+
+.org 0x500
+.global exc_external
+exc_external:
+	b exc_external
+
+.org 0x600
+.global exc_alignment
+exc_alignment:
+	b exc_alignment
+
+.org 0x700
+.global exc_program
+exc_program:
+	b exc_program
+
+.org 0x800
+.global exc_fp_unavailable
+exc_fp_unavailable:
+	b exc_fp_unavailable
+
+.org 0x900
+.global exc_decrementer
+exc_decrementer:
+	b exc_decrementer
+
+.org 0xa00
+.global exc_reserved0
+exc_reserved0:
+	b exc_reserved0
+
+.org 0xb00
+.global exc_reserved1
+exc_reserved1:
+	b exc_reserved1
+
+.org 0xc00
+.global exc_syscall
+exc_syscall:
+	b exc_syscall
+
+.org 0xd00
+.global exc_trace
+exc_trace:
+	b exc_trace
