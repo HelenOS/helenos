@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,17 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ */ 
 
-#ifndef __LIBC__UNISTD_H__
-#define __LIBC__UNISTD_H__
+#include <libc.h>
+#include <unistd.h>
 
-#include <types.h>
-
-#define NULL 0
-
-extern ssize_t write(int fd, const void * buf, size_t count);
-extern void _exit(int status);
-void * mremap(void *address, size_t size, unsigned long flags);
-
-#endif
+void *mremap(void *address, size_t size, unsigned long flags)
+{
+	return (void *) __SYSCALL3(SYS_MREMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+}
