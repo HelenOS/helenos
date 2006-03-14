@@ -247,7 +247,7 @@ static inline __address * get_ip()
  */
 static inline void invlpg(__address addr)
 {
-        __asm__ volatile ("invlpg %0\n" :: "m" (addr));
+        __asm__ volatile ("invlpg %0\n" :: "m" (*((__native *)addr)));
 }
 
 extern size_t interrupt_handler_size;
