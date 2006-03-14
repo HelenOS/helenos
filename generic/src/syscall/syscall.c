@@ -56,23 +56,33 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	return count;
 }
 
+static phone_t * get_phone(__native phoneid)
+{
+	phone_t *phone;
+
+	if (phoneid >= IPC_MAX_PHONES)
+		return NULL;
+
+	phone = &TASK->phones[phoneid];
+	if (!phone->callee)
+		return NULL;
+	return phone;
+}
+
 /** Send a call over IPC, wait for reply, return to user
  *
  * @return Call identification, returns -1 on fatal error, 
            -2 on 'Too many async request, handle answers first
  */
-static __native sys_ipc_call_sync(__native phoneid, __native method, 
-				   __native arg1, __native *data)
+static __native sys_ipc_call_sync_fast(__native phoneid, __native method, 
+				       __native arg1, __native *data)
 {
 	call_t call;
 	phone_t *phone;
 	/* Special answerbox for synchronous messages */
 
-	if (phoneid >= IPC_MAX_PHONES)
-		return IPC_CALLRET_FATAL;
-
-	phone = &TASK->phones[phoneid];
-	if (!phone->callee)
+	phone = get_phone(phoneid);
+	if (!phone)
 		return IPC_CALLRET_FATAL;
 
 	ipc_call_init(&call);
@@ -86,17 +96,15 @@ static __native sys_ipc_call_sync(__native phoneid, __native method,
 	return 0;
 }
 
-static __native sys_ipc_call_sync_medium(__native phoneid, __native *data)
+/** Synchronous IPC call allowing to send whole message */
+static __native sys_ipc_call_sync(__native phoneid, __native *data)
 {
 	call_t call;
 	phone_t *phone;
 	/* Special answerbox for synchronous messages */
 
-	if (phoneid >= IPC_MAX_PHONES)
-		return IPC_CALLRET_FATAL;
-
-	phone = &TASK->phones[phoneid];
-	if (!phone->callee)
+	phone = get_phone(phoneid);
+	if (!phone)
 		return IPC_CALLRET_FATAL;
 
 	ipc_call_init(&call);
@@ -109,29 +117,37 @@ static __native sys_ipc_call_sync_medium(__native phoneid, __native *data)
 	return 0;
 }
 
+/** Check that the task did not exceed allowed limit
+ *
+ * @return 0 - Limit OK,   -1 - limit exceeded
+ */
+static int check_call_limit(void)
+{
+	if (atomic_inc_post(&TASK->active_calls) > IPC_MAX_ASYNC_CALLS) {
+		atomic_dec(&TASK->active_calls);
+		return -1;
+	}
+	return 0;
+}
 
 /** Send an asynchronous call over ipc
  *
  * @return Call identification, returns -1 on fatal error, 
            -2 on 'Too many async request, handle answers first
  */
-static __native sys_ipc_call_async(__native phoneid, __native method, 
-				   __native arg1, __native arg2)
+static __native sys_ipc_call_async_fast(__native phoneid, __native method, 
+					__native arg1, __native arg2)
 {
 	call_t *call;
 	phone_t *phone;
 
-	if (phoneid >= IPC_MAX_PHONES)
+	phone = get_phone(phoneid);
+	if (!phone)
 		return IPC_CALLRET_FATAL;
 
-	phone = &TASK->phones[phoneid];
-	if (!phone->callee)
-		return IPC_CALLRET_FATAL;
+	if (check_call_limit())
+		return IPC_CALLRET_TEMPORARY;
 
-	/* TODO: Check that we did not exceed system imposed maximum
-	 * of asynchrnously sent messages
-	 * - the userspace should be able to handle it correctly
-	 */
 	call = ipc_call_alloc();
 	IPC_SET_METHOD(call->data, method);
 	IPC_SET_ARG1(call->data, arg1);
@@ -141,6 +157,31 @@ static __native sys_ipc_call_async(__native phoneid, __native method,
 
 	return (__native) call;
 }
+
+/** Synchronous IPC call allowing to send whole message
+ *
+ * @return The same as sys_ipc_call_async
+ */
+static __native sys_ipc_call_async(__native phoneid, __native *data)
+{
+	call_t *call;
+	phone_t *phone;
+
+	phone = get_phone(phoneid);
+	if (!phone)
+		return IPC_CALLRET_FATAL;
+
+	if (check_call_limit())
+		return IPC_CALLRET_TEMPORARY;
+
+	call = ipc_call_alloc();
+	copy_from_uspace(&call->data, data, sizeof(call->data));
+	
+	ipc_call(phone, call);
+
+	return (__native) call;
+}
+
 
 /** Send IPC answer */
 static __native sys_ipc_answer(__native callid, __native retval, __native arg1,
@@ -174,9 +215,11 @@ static __native sys_ipc_wait_for_call(__native *calldata, __native flags)
 	call = ipc_wait_for_call(&TASK->answerbox, flags);
 
 	copy_to_uspace(calldata, &call->data, sizeof(call->data));
+
 	if (call->flags & IPC_CALL_ANSWERED) {
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 		ipc_call_free(call);
+		atomic_dec(&TASK->active_calls);
 		return ((__native)call) | IPC_CALLID_ANSWERED;
 	}
 	return (__native)call;
@@ -191,8 +234,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ctl,
 	sys_io,
 	sys_mremap,
+	sys_ipc_call_sync_fast,
 	sys_ipc_call_sync,
-	sys_ipc_call_sync_medium,
+	sys_ipc_call_async_fast,
 	sys_ipc_call_async,
 	sys_ipc_answer,
 	sys_ipc_wait_for_call

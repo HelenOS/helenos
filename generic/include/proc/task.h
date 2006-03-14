@@ -40,8 +40,10 @@ struct task {
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
 	as_t *as;		/**< Address space. */
+	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
+	atomic_t active_calls;  /**< Active asynchronous messages */
 };
 
 extern spinlock_t tasks_lock;

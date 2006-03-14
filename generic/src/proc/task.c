@@ -81,6 +81,7 @@ task_t *task_create(as_t *as)
 	memsetb((__address)&ta->phones, sizeof(ta->phones[0])*IPC_MAX_PHONES, 0);
 	if (ipc_phone_0)
 		ipc_phone_init(&ta->phones[0], ipc_phone_0);
+	atomic_set(&ta->active_calls, 0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);

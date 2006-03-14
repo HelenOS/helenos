@@ -45,8 +45,11 @@ static void ns_thread(void *data)
 		call = ipc_wait_for_call(&ns_answerbox, 0);
 		switch (IPC_GET_METHOD(call->data)) {
 		case NS_PING:
-			printf("Ping.\n");
+			printf("Ping - %X, %X\n", IPC_GET_ARG1(call->data),
+			       IPC_GET_ARG2(call->data));
 			IPC_SET_RETVAL(call->data, 0);
+			IPC_SET_ARG1(call->data, 0xdeaddead);
+			IPC_SET_ARG2(call->data, 0xdeaddea2);
 			break;
 		default:
 			printf("Unsupported name service call.\n");
