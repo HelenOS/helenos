@@ -28,12 +28,13 @@
 
 #include <arch.h>
 #include <arch/console.h>
-
+#include <arch/drivers/cuda.h>
 #include <arch/mm/memory_init.h>
 
 void arch_pre_mm_init(void)
 {
 	ppc32_console_init();
+	cuda_init();
 }
 
 void arch_post_mm_init(void)

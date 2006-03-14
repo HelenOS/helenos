@@ -55,15 +55,15 @@ void chardev_initialize(char *name,chardev_t *chardev,
  */
 void chardev_push_character(chardev_t *chardev, __u8 ch)
 {
-        spinlock_lock(&chardev->lock);
+	spinlock_lock(&chardev->lock);
 	chardev->counter++;
 	if (chardev->counter == CHARDEV_BUFLEN - 1) {
 		/* buffer full => disable device interrupt */
 		chardev->op->suspend(chardev);
 	}
-
-        chardev->buffer[chardev->index++] = ch;
-        chardev->index = chardev->index % CHARDEV_BUFLEN; /* index modulo size of buffer */
-        waitq_wakeup(&chardev->wq, WAKEUP_FIRST);
-        spinlock_unlock(&chardev->lock);
+	
+	chardev->buffer[chardev->index++] = ch;
+	chardev->index = chardev->index % CHARDEV_BUFLEN; /* index modulo size of buffer */
+	waitq_wakeup(&chardev->wq, WAKEUP_FIRST);
+	spinlock_unlock(&chardev->lock);
 }

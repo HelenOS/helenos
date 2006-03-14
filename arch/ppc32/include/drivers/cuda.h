@@ -30,4 +30,7 @@
 #define __CUDA_H__
 
 
+void cuda_init(void);
+
+
 #endif

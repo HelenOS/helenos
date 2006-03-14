@@ -48,6 +48,11 @@
 static volatile __u8 *cuda = (__u8 *) 0xf2000000;
 
 
+void cuda_init(void)
+{
+}
+
+
 static void cuda_packet(const __u8 data)
 {
 	cuda[B] = cuda[B] | TIP;

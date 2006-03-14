@@ -35,6 +35,11 @@
 
 .global kernel_image_start
 kernel_image_start:
+
+	# load temporary stack
+	
+	lis sp, end_stack@ha
+	addi sp, sp, end_stack@l
 	
 	# r10 contains physical address to memmap_t
 	# from boot loader
@@ -69,3 +74,8 @@ kernel_image_start:
 	memmap_end:
 	
 	b main_bsp
+
+.section K_DATA_START, "aw", @progbits
+	
+	.space TEMP_STACK_SIZE
+end_stack:

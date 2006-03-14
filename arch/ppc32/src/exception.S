@@ -84,6 +84,7 @@ exc_fp_unavailable:
 .org 0x900
 .global exc_decrementer
 exc_decrementer:
+	rfi
 	b exc_decrementer
 
 .org 0xa00

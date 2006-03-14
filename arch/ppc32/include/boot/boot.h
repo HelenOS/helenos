@@ -31,4 +31,7 @@
 
 #define BOOT_OFFSET		0x2000
 
+/* Temporary stack size for boot process */
+#define TEMP_STACK_SIZE 0x100
+
 #endif

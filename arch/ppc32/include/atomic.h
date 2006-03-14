@@ -33,17 +33,32 @@
 
 typedef struct { volatile __u32 count; } atomic_t;
 
-/*
- * TODO: these are just placeholders for real implementations of atomic_inc and atomic_dec.
- * WARNING: the following functions cause the code to be preemption-unsafe !!!
- */
-
 static inline void atomic_inc(atomic_t *val) {
-	val->count++;
+	__u32 tmp;
+
+	asm __volatile__ (
+		"1:\n"
+		"lwarx %0, 0, %2\n"
+		"addic %0, %0, 1\n"
+		"stwcx. %0, 0, %2\n"
+		"bne- 1b"
+		: "=&r" (tmp), "=m" (val->count)
+		: "r" (&val->count), "m" (val->count)
+		: "cc");
 }
 
 static inline void atomic_dec(atomic_t *val) {
-	val->count--;
+	__u32 tmp;
+
+	asm __volatile__(
+		"1:\n"
+		"lwarx %0, 0, %2\n"
+		"addic %0, %0, -1\n"
+		"stwcx.	%0, 0, %2\n"
+		"bne- 1b"
+		: "=&r" (tmp), "=m" (val->count)
+		: "r" (&val->count), "m" (val->count)
+		: "cc");
 }
 
 static inline void atomic_set(atomic_t *val, __u32 i)
