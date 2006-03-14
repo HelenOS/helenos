@@ -29,8 +29,10 @@
 #ifndef __OFW_H__
 #define __OFW_H__
 
-#define NULL	0
-#define MAX_OFW_ARGS	10
+#define NULL 0
+#define MEMMAP_MAX_RECORDS 32
+#define false 0
+#define true 1
 
 typedef __builtin_va_list va_list;
 
@@ -38,33 +40,25 @@ typedef __builtin_va_list va_list;
 #define va_arg(ap, type) 		__builtin_va_arg(ap, type)
 #define va_end(ap)			__builtin_va_end(ap)
 
-typedef unsigned int ofw_arg_t;
-typedef unsigned int ihandle;
-typedef unsigned int phandle;
-
-/** OpenFirmware command structure
- *
- */
 typedef struct {
-	const char *service;          /**< Command name */
-	unsigned int nargs;           /**< Number of in arguments */
-	unsigned int nret;            /**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
-} ofw_args_t;
+	void *start;
+	unsigned int size;
+} memzone_t;
 
-typedef void (*ofw_entry)(ofw_args_t *);
+typedef struct {
+	unsigned int total;
+	unsigned int count;
+	memzone_t zones[MEMMAP_MAX_RECORDS];
+} memmap_t;
+
 
 extern void init(void);
-void halt(void);
+extern void halt(void);
 
-extern phandle ofw_find_device(const char *name);
-extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
-extern int ofw_call(const char *service, const int nargs, const int nret, ...);
-
-extern ihandle ofw_open(const char *name);
 extern void ofw_write(const char *str, const int len);
 
 extern void *ofw_translate(const void *virt);
 extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
+extern int ofw_memmap(memmap_t *map);
 
 #endif

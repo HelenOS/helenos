@@ -29,6 +29,25 @@
 #include "ofw.h"
 #include "printf.h"
 
+#define MAX_OFW_ARGS	10
+
+typedef unsigned int ofw_arg_t;
+typedef unsigned int ihandle;
+typedef unsigned int phandle;
+
+/** OpenFirmware command structure
+ *
+ */
+typedef struct {
+	const char *service;          /**< Command name */
+	unsigned int nargs;           /**< Number of in arguments */
+	unsigned int nret;            /**< Number of out arguments */
+	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
+} ofw_args_t;
+
+typedef void (*ofw_entry)(ofw_args_t *);
+
+
 ofw_entry ofw;
 
 phandle ofw_chosen;
@@ -36,29 +55,7 @@ ihandle ofw_mmu;
 ihandle ofw_stdout;
 
 
-void init(void)
-{
-	ofw_chosen = ofw_find_device("/chosen");
-	if (ofw_chosen == -1)
-		halt();
-	
-	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
-		ofw_stdout = 0;
-	
-	ofw_mmu = ofw_open("/mmu");
-	if (ofw_mmu == -1) {
-		puts("Unable to open /mmu node\n");
-		halt();
-	}
-}
-
-void halt(void)
-{
-	ofw_call("exit", 0, 0);
-}
-
-
-int ofw_call(const char *service, const int nargs, const int nret, ...)
+static int ofw_call(const char *service, const int nargs, const int nret, ...)
 {
 	va_list list;
 	ofw_args_t args;
@@ -82,9 +79,43 @@ int ofw_call(const char *service, const int nargs, const int nret, ...)
 }
 
 
-ihandle ofw_open(const char *name)
+static phandle ofw_find_device(const char *name)
+{
+	return ofw_call("finddevice", 1, 1, name);
+}
+
+
+static int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
+{
+	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
+}
+
+static ihandle ofw_open(const char *name)
 {
 	return ofw_call("open", 1, 1, name);
+}
+
+
+void init(void)
+{
+	ofw_chosen = ofw_find_device("/chosen");
+	if (ofw_chosen == -1)
+		halt();
+	
+	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
+		ofw_stdout = 0;
+	
+	ofw_mmu = ofw_open("/mmu");
+	if (ofw_mmu == -1) {
+		puts("Unable to open /mmu node\n");
+		halt();
+	}
+}
+
+
+void halt(void)
+{
+	ofw_call("exit", 0, 0);
 }
 
 
@@ -97,18 +128,6 @@ void ofw_write(const char *str, const int len)
 }
 
 
-phandle ofw_find_device(const char *name)
-{
-	return ofw_call("finddevice", 1, 1, name);
-}
-
-
-int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
-{
-	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
-}
-
-
 void *ofw_translate(const void *virt)
 {
 	return (void *) ofw_call("call-method", 7, 1, "translate", ofw_mmu, virt, 0, 0, 0, 0);
@@ -118,4 +137,28 @@ void *ofw_translate(const void *virt)
 int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {
 	return ofw_call("call-method", 6, 1, "map", ofw_mmu, mode, size, virt, phys);
+}
+
+
+int ofw_memmap(memmap_t *map)
+{
+	int i;
+	int ret;
+
+	phandle handle = ofw_find_device("/memory");
+	if (handle == -1)
+		return false;
+	
+	ret = ofw_get_property(handle, "reg", &map->zones, sizeof(map->zones));
+	if (ret == -1)
+		return false;
+	
+	map->total = 0;
+	map->count = 0;
+	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {
+		if (map->zones[i].size == 0)
+			break;
+		map->count++;
+		map->total += map->zones[i].size;
+	}
 }

@@ -18,5 +18,6 @@ SECTIONS {
 		*(.sdata2);
 		*(.sbss);
 		*(.bss);		/* uninitialized static variables */	
+		*(COMMON); 		/* global variables */
 	}
 }

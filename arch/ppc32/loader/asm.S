@@ -181,6 +181,7 @@ flush_instruction_cache:
 	blr
 
 jump_to_kernel:
+	mr r10, r4
 	mtlr r3
 	blr
 

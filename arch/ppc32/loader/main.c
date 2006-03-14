@@ -28,7 +28,6 @@
 
 #include "main.h" 
 #include "printf.h"
-#include "ofw.h"
 #include "asm.h"
 
 #define KERNEL_PHYSICAL_ADDRESS 0x1000
@@ -37,12 +36,20 @@
 #define KERNEL_END &_binary_____________kernel_kernel_bin_end
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
 
+memmap_t memmap;
+
 void bootstrap(void)
 {
 	printf("\nHelenOS PPC Bootloader\n");
 	
 	void *phys = ofw_translate(&start);
 	printf("loaded at %L (physical %L)\n", &start, phys);
+	
+	if (!ofw_memmap(&memmap)) {
+		printf("Unable to get memory map\n");
+		halt();
+	}
+	printf("total memory %d MB\n", memmap.total >> 20);
 	
 	// FIXME: map just the kernel
 	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, 1024 * 1024, 0) != 0) {
@@ -59,5 +66,5 @@ void bootstrap(void)
 	printf("Booting the kernel...\n");
 	
 	flush_instruction_cache();
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS);
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, ofw_translate(&memmap));
 }
