@@ -32,7 +32,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+/*
+static void test_printf(void)
+{
+	printf("Simple text.\n");
+	printf("Now insert '%s' string.\n","this");
+	printf("We are brave enought to print numbers like %%d = '%d'\n", 0x123456);
+	printf("And now... '%b' byte! '%w' word! '%W' Word! \n", 0x12, 0x1234, 0x1234);
+	printf(" '%Q' Q! Another '%q' q! \n", 0x1234567887654321ll, 0x1234567887654321ll);
+	printf(" '%P' with 64bit value and '%p' with 32 bit value. \n", 0x1234567887654321ll, 0x12345678 );
+	printf("Thats all, folks!\n");
+}
+*/
 /*
 static void test_mremap(void)
 {

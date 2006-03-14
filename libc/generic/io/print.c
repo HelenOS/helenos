@@ -32,6 +32,9 @@
 #include <io/io.h>
 #include <stdarg.h>
 
+#define __PRINTF_FLAG_PREFIX 0x00000001
+#define __PRINTF_FLAG_SIGNED 0x00000002
+
 static char digits[] = "0123456789abcdef"; 	/**< Hexadecimal characters */
 
 /** Print hexadecimal digits
@@ -45,13 +48,20 @@ static char digits[] = "0123456789abcdef"; 	/**< Hexadecimal characters */
  * @param width Count of digits to print.
  *
  */
-static int print_fixed_hex(const uint64_t num, const int width)
+static int print_fixed_hex(const uint64_t num, const int width, uint64_t flags)
 {
 	int i;
-	char buf[16];
+	char buf[18]; /* 16 bytes for number + 2 for optionaly prefix */
 	char *bptr;
 	
 	bptr = buf;
+	
+	if (flags & __PRINTF_FLAG_PREFIX) {
+		buf[0] = '0';
+		buf[1] = 'x';
+		bptr += 2;
+	}
+
 	for (i = width*8 - 4; i >= 0; i -= 4)
 		*bptr++ = digits[(num>>i) & 0xf];
 	*bptr = '\0';
@@ -70,17 +80,19 @@ static int print_fixed_hex(const uint64_t num, const int width)
  *             be in range 2 .. 16).
  *
  */
-static int print_number(const unsigned int num, const unsigned int base)
+static int print_number(const unsigned long num, const unsigned int base, uint64_t flags)
 {
 	int val = num;
-	char d[sizeof(unsigned int)*8+1];	/* this is good enough even for base == 2 */
-	int i = sizeof(unsigned int)*8-1;
+	char d[sizeof(unsigned long)*8+1];	/* this is good enough even for base == 2 */
+	int i = sizeof(unsigned long)*8-1;
+	
+	/* FIXME: if signed, print sign */
 	
 	do {
 		d[i--] = digits[val % base];
 	} while (val /= base);
 	
-	d[sizeof(unsigned int)*8] = 0;	
+	d[sizeof(unsigned long)*8] = 0;	
 
 	return putstr(&d[i + 1]);
 }
@@ -148,6 +160,8 @@ int printf(const char *fmt, ...)
 	int counter, retval;
 	va_list ap;
 	char c;	
+
+	uint64_t flags;
 	
 	counter = 0;
 	va_start(ap, fmt);
@@ -157,14 +171,20 @@ int printf(const char *fmt, ...)
 		if (c == '%' ) { 
 			/* print common characters if any processed */	
 			if (i > j) {
-				if ((retval = putnchars(&fmt[j], i - j)) == EOF) { /* error */
+				if ((retval = putnchars(&fmt[j], (size_t)(i - j))) == EOF) { /* error */
 					return -counter;
 				}
 				counter += retval;
 			}
-
+			
 			j = ++i;
-
+			
+			/* parse modifiers */
+			flags = 0;
+			/*switch (c = fmt[i]) {
+				case '-':	
+			}	
+			*/
 			switch (c = fmt[i]) {
 
 				/* percentile itself */
@@ -183,7 +203,7 @@ int printf(const char *fmt, ...)
 					counter += retval;
 					break;
 				case 'c':
-					if ((retval = putnchars((char *)&va_arg(ap, int), sizeof(char))) == EOF) {
+					if ((retval = putnchars((char *)&va_arg(ap, unsigned long), sizeof(char))) == EOF) {
 						return -counter;
 					};
 					
@@ -193,66 +213,46 @@ int printf(const char *fmt, ...)
 				/*
 				* Hexadecimal conversions with fixed width.
 				*/
-				case 'P': 
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				case 'P':
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'p':
-	    				if ((retval = print_fixed_hex(va_arg(ap, int), sizeof(int))) == EOF ) {
+	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(unsigned long), flags)) == EOF ) {
 						return -counter;
 					};
 
 					counter += retval;
 					break;
 				case 'Q':
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'q':
-	    				if ((retval = print_fixed_hex(va_arg(ap, uint64_t), sizeof(uint64_t))) == EOF ) {
+	    				if ((retval = print_fixed_hex(va_arg(ap, uint64_t), sizeof(uint64_t), flags)) == EOF ) {
 						return -counter;
 					};
 
 					counter += retval;
 					break;
 				case 'L': 
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'l':
-	    				if ((retval = print_fixed_hex(va_arg(ap, int), sizeof(uint32_t))) == EOF ) {
+	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint32_t), flags)) == EOF ) {
 						return -counter;
 					};
 
 					counter += retval;
 			   		break; 
 				case 'W':
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'w':
-	    				if ((retval = print_fixed_hex(va_arg(ap, int), sizeof(uint16_t))) == EOF ) {
+	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint16_t), flags)) == EOF ) {
 						return -counter;
 					};
 
 					counter += retval;
 					break;
 				case 'B':
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'b':
-	    				if ((retval = print_fixed_hex(va_arg(ap, int), sizeof(uint8_t))) == EOF ) {
+	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint8_t), flags)) == EOF ) {
 						return -counter;
 					};
 
@@ -262,20 +262,18 @@ int printf(const char *fmt, ...)
 				* Decimal and hexadecimal conversions.
 				*/
 				case 'd':
-	    				if ((retval = print_number(va_arg(ap, int), 10)) == EOF ) {
+				case 'i':
+				       	flags |= __PRINTF_FLAG_SIGNED;
+	    				if ((retval = print_number(va_arg(ap,unsigned long), 10, flags)) == EOF ) {
 						return -counter;
 					};
 
 					counter += retval;
 			   		break; 
 				case 'X':
-					if ((retval = putnchars("0x", 2)) == EOF) {
-						return -counter;
-					};
-					
-					counter += retval;
+				       	flags |= __PRINTF_FLAG_PREFIX;
 				case 'x':
-	    				if ((retval = print_number(va_arg(ap, int), 16)) == EOF ) {
+	    				if ((retval = print_number(va_arg(ap, unsigned long), 16, flags)) == EOF ) {
 						return -counter;
 					};
 
@@ -293,7 +291,7 @@ int printf(const char *fmt, ...)
 	}
 	
 	if (i > j) {
-		if ((retval = putnchars(&fmt[j], i - j)) == EOF) { /* error */
+		if ((retval = putnchars(&fmt[j], (size_t)(i - j))) == EOF) { /* error */
 			return -counter;
 		}
 		counter += retval;
