@@ -33,6 +33,9 @@
 
 .global fpu_context_save
 .global fpu_context_restore
+.global fpu_init
+.global fpu_enable
+.global fpu_disable
 
 .macro FPU_CONTEXT_STORE r
 	stfd fr14, OFFSET_FR14(\r)
@@ -90,4 +93,13 @@ fpu_context_restore:
 	lfd fr0, OFFSET_FPSCR(r3)
 	mtfsf 7, fr0
 	
+	blr
+
+fpu_init:
+	blr
+
+fpu_enable:
+	blr
+
+fpu_disable:
 	blr

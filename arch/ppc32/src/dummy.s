@@ -30,28 +30,21 @@
 
 .global asm_delay_loop
 .global userspace
-.global before_thread_runs_arch
-.global after_thread_ran_arch
-.global dummy
-.global fpu_init
-.global fpu_enable
-.global fpu_disable
 .global tlb_invalidate_all
 .global tlb_invalidate_asid
 .global tlb_invalidate_pages
 
-before_thread_runs_arch:
-after_thread_ran_arch:
-userspace:
-asm_delay_loop:
-fpu_init:
-fpu_enable:	
-fpu_disable:	
 tlb_invalidate_all:
+	b tlb_invalidate_all
+
 tlb_invalidate_asid:
+	b tlb_invalidate_asid
+
 tlb_invalidate_pages:
+	b tlb_invalidate_pages
 
+userspace:
+	b userspace
 
-dummy:
-0:
-	b 0b
+asm_delay_loop:
+	b asm_delay_loop

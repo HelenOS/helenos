@@ -30,13 +30,9 @@
 
 .text
 
-.global cpu_halt
 .global cpu_sleep
 .global memsetb
 .global memcpy
-
-cpu_halt:
-	b cpu_halt
 
 cpu_sleep:
 	b cpu_sleep
