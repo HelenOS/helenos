@@ -28,14 +28,13 @@
 
 #include "version.h"
 #include <ipc.h>
+#include <ns.h>
 
 int main(int argc, char *argv[])
 {
-	ipc_data_t ipcdata;
-
 	version_print();
 
-	ipc_call_sync(0, 1, 2, &ipcdata);
+	ipc_call_sync_2(PHONE_NS, NS_PING, 2, 0, 0, 0);
 	
 	return 0;
 }

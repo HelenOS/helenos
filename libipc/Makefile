@@ -54,7 +54,7 @@ all: libipc.a
 -include Makefile.depend
 
 clean:
-	-rm -f libipcc.a Makefile.depend
+	-rm -f libipc.a Makefile.depend
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:

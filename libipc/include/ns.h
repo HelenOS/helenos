@@ -24,35 +24,11 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#ifndef __LIBIPC_IPC_H__
-#define __LIBIPC_IPC_H__
+#ifndef __LIBIPC__NS_H__
+#define __LIBIPC__NS_H__
 
-#include <kernel/ipc/ipc.h>
-#include <libc.h>
-
-typedef sysarg_t ipc_data_t[IPC_CALL_LEN];
-typedef sysarg_t ipc_callid_t;
-
-typedef void (* ipc_async_callback_t)(ipc_data_t *data);
-
-#define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), (res2), 0)
-extern int ipc_call_sync_3(int phoneid, sysarg_t method, sysarg_t arg1,
-			   sysarg_t arg2, sysarg_t arg3,
-			   sysarg_t *result1, sysarg_t *result2, 
-			   sysarg_t *result3);
-
-
-extern int ipc_call_sync(int phoneid, sysarg_t method, sysarg_t arg1, 
-			 sysarg_t *result);
-extern int ipc_wait_for_call(ipc_data_t *data, int flags);
-extern void ipc_answer(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
-		       sysarg_t arg2);
-
-#define ipc_call_async(phoneid,method,arg1,callback) (ipc_call_async_2(phoneid, method, arg1, 0, callback))
-void ipc_call_async_2(int phoneid, sysarg_t method, sysarg_t arg1,
-		      sysarg_t arg2,
-		      ipc_async_callback_t callback);
+#include <kernel/ipc/ns.h>
 
 #endif
