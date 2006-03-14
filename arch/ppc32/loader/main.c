@@ -30,8 +30,8 @@
 #include "printf.h"
 #include "asm.h"
 
-#define KERNEL_PHYSICAL_ADDRESS 0x1000
-#define KERNEL_VIRTUAL_ADDRESS 0x80001000
+#define KERNEL_PHYSICAL_ADDRESS 0x2000
+#define KERNEL_VIRTUAL_ADDRESS 0x80002000
 #define KERNEL_START &_binary_____________kernel_kernel_bin_start
 #define KERNEL_END &_binary_____________kernel_kernel_bin_end
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
