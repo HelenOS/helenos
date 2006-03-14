@@ -55,11 +55,12 @@ all: kerninc libc.a arch/$(ARCH)/_link.ld
 
 kerninc:
 	ln -sf ../../../kernel/generic/include include/kernel
+	ln -sf kernel/arch include/arch
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel libc.a arch/$(ARCH)/_link.ld Makefile.depend
+	-rm -f include/kernel include/arch libc.a arch/$(ARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
