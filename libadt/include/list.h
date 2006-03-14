@@ -177,7 +177,7 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
-#define list_get_instance(link,type,member) (type *)(((__u8*)(link))-((__u8*)&(((type *)NULL)->member)))
+#define list_get_instance(link,type,member) (type *)(((char *)(link))-((char *)&(((type *)NULL)->member)))
 
 extern int list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);

@@ -28,14 +28,40 @@
 
 #include <ipc.h>
 #include <libc.h>
+#include <malloc.h>
+#include <errno.h>
+#include <list.h>
+#include <stdio.h>
+#include <unistd.h>
 
-int ipc_call_sync(int phoneid, sysarg_t method, sysarg_t arg1, 
-		  sysarg_t *result)
+/** Structure used for keeping track of sent async msgs 
+ * and queing unsent msgs
+ *
+ */
+typedef struct {
+	link_t list;
+
+	ipc_async_callback_t callback;
+	void *private;
+	union {
+		ipc_callid_t callid;
+		struct {
+			int phoneid;
+			ipc_data_t data;
+		} msg;
+	}u;
+} async_call_t;
+
+LIST_INITIALIZE(dispatched_calls);
+LIST_INITIALIZE(queued_calls);
+
+int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
+		  ipcarg_t *result)
 {
 	ipc_data_t resdata;
 	int callres;
 	
-	callres = __SYSCALL4(SYS_IPC_CALL_SYNC, phoneid, method, arg1,
+	callres = __SYSCALL4(SYS_IPC_CALL_SYNC_FAST, phoneid, method, arg1,
 			     (sysarg_t)&resdata);
 	if (callres)
 		return callres;
@@ -44,9 +70,9 @@ int ipc_call_sync(int phoneid, sysarg_t method, sysarg_t arg1,
 	return IPC_GET_RETVAL(resdata);
 }
 
-int ipc_call_sync_3(int phoneid, sysarg_t method, sysarg_t arg1,
-		    sysarg_t arg2, sysarg_t arg3,
-		    sysarg_t *result1, sysarg_t *result2, sysarg_t *result3)
+int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		    ipcarg_t arg2, ipcarg_t arg3,
+		    ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3)
 {
 	ipc_data_t data;
 	int callres;
@@ -56,7 +82,7 @@ int ipc_call_sync_3(int phoneid, sysarg_t method, sysarg_t arg1,
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 
-	callres = __SYSCALL2(SYS_IPC_CALL_SYNC_MEDIUM, phoneid, (sysarg_t)&data);
+	callres = __SYSCALL2(SYS_IPC_CALL_SYNC, phoneid, (sysarg_t)&data);
 	if (callres)
 		return callres;
 
@@ -69,41 +95,60 @@ int ipc_call_sync_3(int phoneid, sysarg_t method, sysarg_t arg1,
 	return IPC_GET_RETVAL(data);
 }
 
+/** Syscall to send asynchronous message */
+static	ipc_callid_t _ipc_call_async(int phoneid, ipc_data_t *data)
+{
+	return __SYSCALL2(SYS_IPC_CALL_ASYNC, phoneid, (sysarg_t)data);
+}
+
 /** Send asynchronous message
  *
  * - if fatal error, call callback handler with proper error code
  * - if message cannot be temporarily sent, add to queue
  */
-void ipc_call_async_2(int phoneid, sysarg_t method, sysarg_t arg1,
-		      sysarg_t arg2,
+void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback)
 {
+	async_call_t *call;
 	ipc_callid_t callid;
-	ipc_data_t data; /* Data storage for saving calls */
 
-	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC, phoneid, method, arg1, arg2);
+	call = malloc(sizeof(*call));
+	if (!call) {
+		callback(private, ENOMEM, NULL);
+	}
+		
+	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
 	if (callid == IPC_CALLRET_FATAL) {
 		/* Call asynchronous handler with error code */
-		IPC_SET_RETVAL(data, IPC_CALLRET_FATAL);
-		callback(&data);
+		IPC_SET_RETVAL(call->u.msg.data, ENOENT);
+		callback(private, ENOENT, NULL);
+		free(call);
 		return;
 	}
+
+	call->callback = callback;
+	call->private = private;
+
 	if (callid == IPC_CALLRET_TEMPORARY) {
 		/* Add asynchronous call to queue of non-dispatched async calls */
-		IPC_SET_METHOD(data, method);
-		IPC_SET_ARG1(data, arg1);
-		IPC_SET_ARG2(data, arg2);
-		
+		call->u.msg.phoneid = phoneid;
+		IPC_SET_METHOD(call->u.msg.data, method);
+		IPC_SET_ARG1(call->u.msg.data, arg1);
+		IPC_SET_ARG2(call->u.msg.data, arg2);
+
+		list_append(&call->list, &queued_calls);
 		return;
 	}
-	/* Add callid to list of dispatched calls */
-	
+	call->u.callid = callid;
+	/* Add call to list of dispatched calls */
+	list_append(&call->list, &dispatched_calls);
 }
 
 
 /** Send answer to a received call */
-void ipc_answer(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
-		sysarg_t arg2)
+void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
+		ipcarg_t arg2)
 {
 	__SYSCALL4(SYS_IPC_ANSWER, callid, retval, arg1, arg2);
 }
@@ -115,20 +160,78 @@ static inline ipc_callid_t _ipc_wait_for_call(ipc_data_t *data, int flags)
 	return __SYSCALL2(SYS_IPC_WAIT, (sysarg_t)data, flags);
 }
 
+/** Try to dispatch queed calls from async queue */
+static void try_dispatch_queued_calls(void)
+{
+	async_call_t *call;
+	ipc_callid_t callid;
+
+	while (!list_empty(&queued_calls)) {
+		call = list_get_instance(queued_calls.next, async_call_t,
+					 list);
+
+		callid = _ipc_call_async(call->u.msg.phoneid,
+					 &call->u.msg.data);
+		if (callid == IPC_CALLRET_TEMPORARY)
+			break;
+		list_remove(&call->list);
+		if (callid == IPC_CALLRET_FATAL) {
+			call->callback(call->private, ENOENT, NULL);
+			free(call);
+		} else {
+			call->u.callid = callid;
+			list_append(&call->list, &dispatched_calls);
+		}
+	}
+}
+
+/** Handle received answer
+ *
+ * TODO: Make it use hash table
+ *
+ * @param callid Callid (with first bit set) of the answered call
+ */
+static void handle_answer(ipc_callid_t callid, ipc_data_t *data)
+{
+	link_t *item;
+	async_call_t *call;
+
+	callid &= ~IPC_CALLID_ANSWERED;
+	
+	for (item = dispatched_calls.next; item != &dispatched_calls;
+	     item = item->next) {
+		call = list_get_instance(item, async_call_t, list);
+		if (call->u.callid == callid) {
+			list_remove(&call->list);
+			call->callback(call->private, 
+				       IPC_GET_RETVAL(*data),
+				       data);
+			return;
+		}
+	}
+	printf("Received unidentified answer: %P!!!\n", callid);
+}
+
+
 /** Wait for IPC call and return
  *
  * - dispatch ASYNC reoutines in the background
+ * @param data Space where the message is stored
+ * @return Callid or 0 if nothing available and started with 
+ *         IPC_WAIT_NONBLOCKING
  */
 int ipc_wait_for_call(ipc_data_t *data, int flags)
 {
 	ipc_callid_t callid;
 
 	do {
-		/* Try to dispatch non-dispatched async calls */
+		try_dispatch_queued_calls();
+
 		callid = _ipc_wait_for_call(data, flags);
-		if (callid & IPC_CALLID_ANSWERED) {
-			/* TODO: Call async answer handler */
-		}
+		/* Handle received answers */
+		if (callid & IPC_CALLID_ANSWERED)
+			handle_answer(callid, data);
 	} while (callid & IPC_CALLID_ANSWERED);
+
 	return callid;
 }

@@ -36,7 +36,7 @@ LIBC_PREFIX = ../libc
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -Iinclude
+CFLAGS += -Iinclude -I../libadt/include -I../libc/include
 
 ## Sources
 #

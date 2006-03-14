@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+
 /*
 static void test_printf(void)
 {
@@ -44,6 +45,7 @@ static void test_printf(void)
 	printf("Thats all, folks!\n");
 }
 */
+
 /*
 static void test_mremap(void)
 {
@@ -89,11 +91,47 @@ static void test_malloc(void)
 }
 */
 
+/*
+static void got_answer(void *private, int retval, ipc_data_t *data)
+{
+	printf("Retval: %d...%s...%X, %X\n", retval, private,
+	       IPC_GET_ARG1(*data), IPC_GET_ARG2(*data));
+}
+static void test_async_ipc(void)
+{
+	ipc_data_t data;
+	int i;
+
+	printf("Sending ping\n");
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Pong1", got_answer);
+	ipc_call_async_2(PHONE_NS, NS_PING, 2, 0xbeefbee4, 
+			 "Pong2", got_answer);
+	ipc_call_async_2(PHONE_NS, NS_PING, 3, 0xbeefbee4, 
+			 "Pong3", got_answer);
+	ipc_call_async_2(PHONE_NS, NS_PING, 4, 0xbeefbee4, 
+			 "Pong4", got_answer);
+	ipc_call_async_2(PHONE_NS, NS_PING, 5, 0xbeefbee4, 
+			 "Pong5", got_answer);
+	ipc_call_async_2(PHONE_NS, NS_PING, 6, 0xbeefbee4, 
+			 "Pong6", got_answer);
+	printf("Waiting forever...\n");
+	for (i=0; i<100;i++)
+		printf(".");
+	printf("\n");
+	ipc_wait_for_call(&data, NULL);
+	printf("Received call???\n");
+}
+*/
+
 int main(int argc, char *argv[])
 {
+	ipcarg_t arg1, arg2;
+
 	version_print();
 
-	ipc_call_sync_2(PHONE_NS, NS_PING, 2, 0, 0, 0);
+	ipc_call_sync_2(PHONE_NS, NS_PING, 0xaaaa, 0xbbbb, &arg1, &arg2);
+	printf("Pong: %P %P\n", arg1, arg2);
 	
 	return 0;
 }

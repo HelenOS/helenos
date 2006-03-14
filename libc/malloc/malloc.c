@@ -438,113 +438,40 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 
 */
 
-#ifndef WIN32
-#ifdef _WIN32
-#define WIN32 1
-#endif  /* _WIN32 */
-#endif  /* WIN32 */
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#define HAVE_MMAP 1
-#define HAVE_MORECORE 0
-#define LACKS_UNISTD_H
-#define LACKS_SYS_PARAM_H
-#define LACKS_SYS_MMAN_H
-#define LACKS_STRING_H
-#define LACKS_STRINGS_H
-#define LACKS_SYS_TYPES_H
-#define LACKS_ERRNO_H
-#define MALLOC_FAILURE_ACTION
-#define MMAP_CLEARS 0 /* WINCE and some others apparently don't clear */
-#endif  /* WIN32 */
-
-#if defined(DARWIN) || defined(_DARWIN)
-/* Mac OSX docs advise not to use sbrk; it seems better to use mmap */
-#ifndef HAVE_MORECORE
-#define HAVE_MORECORE 0
-#define HAVE_MMAP 1
-#endif  /* HAVE_MORECORE */
-#endif  /* DARWIN */
-
-#ifndef LACKS_SYS_TYPES_H
 #include <sys/types.h>  /* For size_t */
-#endif  /* LACKS_SYS_TYPES_H */
+
+/** Non-default helenos customizations */
+#define LACKS_FCNTL_H
+#define LACKS_SYS_MMAN_H
+#define LACKS_SYS_PARAM_H
+#undef HAVE_MMAP
+#define HAVE_MMAP 0
+#define LACKS_ERRNO_H
+/* Set errno? */
+#undef MALLOC_FAILURE_ACTION
+#define MALLOC_FAILURE_ACTION
 
 /* The maximum possible size_t value has all bits set */
 #define MAX_SIZE_T           (~(size_t)0)
 
-#ifndef ONLY_MSPACES
 #define ONLY_MSPACES 0
-#endif  /* ONLY_MSPACES */
-#ifndef MSPACES
-#if ONLY_MSPACES
-#define MSPACES 1
-#else   /* ONLY_MSPACES */
 #define MSPACES 0
-#endif  /* ONLY_MSPACES */
-#endif  /* MSPACES */
-#ifndef MALLOC_ALIGNMENT
 #define MALLOC_ALIGNMENT ((size_t)8U)
-#endif  /* MALLOC_ALIGNMENT */
-#ifndef FOOTERS
 #define FOOTERS 0
-#endif  /* FOOTERS */
-#ifndef ABORT
 #define ABORT  abort()
-#endif  /* ABORT */
-#ifndef ABORT_ON_ASSERT_FAILURE
 #define ABORT_ON_ASSERT_FAILURE 1
-#endif  /* ABORT_ON_ASSERT_FAILURE */
-#ifndef PROCEED_ON_ERROR
 #define PROCEED_ON_ERROR 0
-#endif  /* PROCEED_ON_ERROR */
-#ifndef USE_LOCKS
 #define USE_LOCKS 0
-#endif  /* USE_LOCKS */
-#ifndef INSECURE
 #define INSECURE 0
-#endif  /* INSECURE */
-#ifndef HAVE_MMAP
-#define HAVE_MMAP 1
-#endif  /* HAVE_MMAP */
-#ifndef MMAP_CLEARS
+#define HAVE_MMAP 0
+
 #define MMAP_CLEARS 1
-#endif  /* MMAP_CLEARS */
-#ifndef HAVE_MREMAP
-#ifdef linux
-#define HAVE_MREMAP 1
-#else   /* linux */
-#define HAVE_MREMAP 0
-#endif  /* linux */
-#endif  /* HAVE_MREMAP */
-#ifndef MALLOC_FAILURE_ACTION
-#define MALLOC_FAILURE_ACTION  errno = ENOMEM;
-#endif  /* MALLOC_FAILURE_ACTION */
-#ifndef HAVE_MORECORE
-#if ONLY_MSPACES
-#define HAVE_MORECORE 0
-#else   /* ONLY_MSPACES */
+
 #define HAVE_MORECORE 1
-#endif  /* ONLY_MSPACES */
-#endif  /* HAVE_MORECORE */
-#if !HAVE_MORECORE
-#define MORECORE_CONTIGUOUS 0
-#else   /* !HAVE_MORECORE */
-#ifndef MORECORE
-#define MORECORE sbrk
-#endif  /* MORECORE */
-#ifndef MORECORE_CONTIGUOUS
 #define MORECORE_CONTIGUOUS 1
-#endif  /* MORECORE_CONTIGUOUS */
-#endif  /* HAVE_MORECORE */
-#ifndef DEFAULT_GRANULARITY
-#if MORECORE_CONTIGUOUS
+#define MORECORE sbrk
 #define DEFAULT_GRANULARITY (0)  /* 0 means to compute in init_mparams */
-#else   /* MORECORE_CONTIGUOUS */
-#define DEFAULT_GRANULARITY ((size_t)64U * (size_t)1024U)
-#endif  /* MORECORE_CONTIGUOUS */
-#endif  /* DEFAULT_GRANULARITY */
+
 #ifndef DEFAULT_TRIM_THRESHOLD
 #ifndef MORECORE_CANNOT_TRIM
 #define DEFAULT_TRIM_THRESHOLD ((size_t)2U * (size_t)1024U * (size_t)1024U)
@@ -583,18 +510,6 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #define M_GRANULARITY        (-2)
 #define M_MMAP_THRESHOLD     (-3)
 
-/** Non-default helenos customizations */
-#define LACKS_FCNTL_H
-#define LACKS_SYS_MMAN_H
-#define LACKS_SYS_PARAM_H
-#undef HAVE_MMAP
-#define HAVE_MMAP 0
-#define LACKS_ERRNO_H
-/* Set errno? */
-#undef MALLOC_FAILURE_ACTION
-#define MALLOC_FAILURE_ACTION 
-
-
 /*
   ========================================================================
   To make a fully customizable malloc.h header file, cut everything
@@ -607,11 +522,8 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 
 /*------------------------------ internal #includes ---------------------- */
 
-#ifdef WIN32
-#pragma warning( disable : 4146 ) /* no "unsigned" warnings */
-#endif /* WIN32 */
-
 #include <stdio.h>       /* for printing in malloc_stats */
+#include <string.h>
 
 #ifndef LACKS_ERRNO_H
 #include <errno.h>       /* for MALLOC_FAILURE_ACTION */
@@ -631,9 +543,6 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #else  /* DEBUG */
 #define assert(x)
 #endif /* DEBUG */
-#ifndef LACKS_STRING_H
-#include <string.h>      /* for memset etc */
-#endif  /* LACKS_STRING_H */
 #if USE_BUILTIN_FFS
 #ifndef LACKS_STRINGS_H
 #include <strings.h>     /* for ffs */

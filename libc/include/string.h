@@ -30,21 +30,7 @@
 #ifndef __LIBC__STRING_H__
 #define __LIBC__STRING_H__
 
-static inline void * memset(void *s, int c, size_t n)
-{
-	char *os = s;
-	while (n--)
-		*(os++) = c;
-	return s;
-}
-
-static inline void * memcpy(void *dest, void *src, size_t n)
-{
-	char *os = src;
-	char *odst = dest;
-	while (n--)
-		*(odst++) = *(os++);
-	return dest;
-}
+void * memset(void *s, int c, size_t n);
+void * memcpy(void *dest, void *src, size_t n);
 
 #endif

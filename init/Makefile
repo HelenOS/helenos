@@ -58,7 +58,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBC_PREFIX)/libc.a $(LIBIPC_PREFIX)/libipc.a $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,49 +24,26 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
+#include <types.h>
+#include <string.h>
 
-/** Mremap syscall */
-void *mremap(void *address, size_t size, unsigned long flags)
+/* Dummy implementation of mem/ functions */
+
+void * memset(void *s, int c, size_t n)
 {
-	return (void *) __SYSCALL3(SYS_MREMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	char *os = s;
+	while (n--)
+		*(os++) = c;
+	return s;
 }
 
-
-static size_t heapsize = 0;
-/* Start of heap linker symbol */
-extern char _heap;
-
-/** Sbrk emulation 
- *
- * @param size New area that should be allocated or negative, 
-               if it should be shrinked
- * @return Pointer to newly allocated area
- */
-void *sbrk(ssize_t incr)
+void * memcpy(void *dest, void *src, size_t n)
 {
-	void *res;
-	/* Check for invalid values */
-	if (incr < 0 && -incr > heapsize)
-		return NULL;
-	/* Check for too large value */
-	if (incr > 0 && incr+heapsize < heapsize)
-		return NULL;
-	/* Check for too small values */
-	if (incr < 0 && incr+heapsize > heapsize)
-		return NULL;
-
-	res = mremap(&_heap, heapsize + incr,0);
-	if (!res)
-		return NULL;
-	
-	/* Compute start of new area */
-	res = (void *)&_heap + heapsize;
-
-	heapsize += incr;
-
-	return res;
+	char *os = src;
+	char *odst = dest;
+	while (n--)
+		*(odst++) = *(os++);
+	return dest;
 }
