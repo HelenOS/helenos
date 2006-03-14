@@ -29,6 +29,8 @@
 #ifndef __mips32_PAGE_H__
 #define __mips32_PAGE_H__
 
+#include <arch/mm/frame.h>
+
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
@@ -39,6 +41,8 @@
 #  define KA2PA(x)	((x) - 0x80000000)
 #  define PA2KA(x)	((x) + 0x80000000)
 #endif
+
+#ifdef KERNEL
 
 /*
  * Implementation of generic 4-level page table interface.
@@ -133,5 +137,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 extern void page_arch_init(void);
 
 #endif /* __ASM__ */
+
+#endif /* KERNEL */
 
 #endif

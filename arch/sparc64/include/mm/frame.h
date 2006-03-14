@@ -29,10 +29,13 @@
 #ifndef __sparc64_FRAME_H__
 #define __sparc64_FRAME_H__
 
-#include <arch/types.h>
-
 #define FRAME_WIDTH		13	/* 8K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)
+
+#ifdef KERNEL
+#ifndef __ASM__
+
+#include <arch/types.h>
 
 union frame_address {
 	__address address;
@@ -46,5 +49,8 @@ union frame_address {
 typedef union frame_address frame_address_t;
 
 extern void frame_arch_init(void);
+
+#endif
+#endif
 
 #endif

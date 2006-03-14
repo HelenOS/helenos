@@ -29,8 +29,12 @@
 #ifndef __ppc32_PAGE_H__
 #define __ppc32_PAGE_H__
 
+#include <arch/mm/frame.h>
+
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
+
+#ifdef KERNEL
 
 #ifndef __ASM__
 #	define KA2PA(x)	(((__address) (x)) - 0x80000000)
@@ -83,5 +87,7 @@
 extern void page_arch_init(void);
 
 #endif /* __ASM__ */
+
+#endif /* KERNEL */
 
 #endif

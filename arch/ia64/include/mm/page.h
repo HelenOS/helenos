@@ -30,8 +30,13 @@
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
+#include <arch/mm/frame.h>
+
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
+
+
+#ifdef KERNEL
 
 /** Bit width of the TLB-locked portion of kernel address space. */
 #define KERNEL_PAGE_WIDTH	28	/* 256M */
@@ -265,6 +270,8 @@ extern vhpt_entry_t *vhpt_hash(__address page, asid_t asid);
 extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
 
-#endif
+#endif /* __ASM__ */
+
+#endif /* KERNEL */
 
 #endif

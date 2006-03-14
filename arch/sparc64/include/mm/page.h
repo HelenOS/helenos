@@ -29,12 +29,15 @@
 #ifndef __sparc64_PAGE_H__
 #define __sparc64_PAGE_H__
 
-#include <mm/page.h>
 #include <arch/mm/frame.h>
-#include <arch/types.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
+
+#ifdef KERNEL
+
+#include <mm/page.h>
+#include <arch/types.h>
 
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
@@ -52,5 +55,7 @@ union page_address {
 typedef union page_address page_address_t;
 
 extern void page_arch_init(void);
+
+#endif /* KERNEL */
 
 #endif

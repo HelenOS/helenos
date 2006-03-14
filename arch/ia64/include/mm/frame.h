@@ -32,9 +32,14 @@
 #define FRAME_WIDTH   14	/* 16K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)
 
+#ifdef KERNEL
+#ifndef __ASM__
+
 extern void frame_arch_init(void);
 
-
 #define ARCH_STACK_FRAMES TWO_FRAMES
+
+#endif /* __ASM__ */
+#endif /* KERNEL */
 
 #endif

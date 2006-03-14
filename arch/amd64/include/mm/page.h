@@ -31,13 +31,15 @@
 
 #include <arch/mm/frame.h>
 
+#define PAGE_WIDTH	FRAME_WIDTH
+#define PAGE_SIZE	FRAME_SIZE
+
+#ifdef KERNEL
+
 #ifndef __ASM__
 #  include <mm/page.h>
 #  include <arch/types.h>
 #endif
-
-#define PAGE_WIDTH	FRAME_WIDTH
-#define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASM__
 # define KA2PA(x)      (((__address) (x)) - 0xffffffff80000000)
@@ -142,6 +144,8 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 
 extern void page_arch_init(void);
 
-#endif
+#endif /* __ASM__ */
+
+#endif /* KERNEL */
 
 #endif
