@@ -53,7 +53,7 @@ struct hash_table_operations {
 	 *
 	 * @return Index into hash table.
 	 */
-	hash_index_t (* hash)(int key[]);
+	hash_index_t (* hash)(unsigned long key[]);
 	
 	/** Hash table item comparison function.
 	 *
@@ -61,7 +61,7 @@ struct hash_table_operations {
 	 *
 	 * @return true if the keys match, false otherwise.
 	 */
-	int (*compare)(int key[], hash_count_t keys, link_t *item);
+	int (*compare)(unsigned long key[], hash_count_t keys, link_t *item);
 
 	/** Hash table item removal callback.
 	 *
@@ -72,9 +72,9 @@ struct hash_table_operations {
 
 #define hash_table_get_instance(item, type, member)	list_get_instance((item), type, member)
 
-extern void hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op);
-extern void hash_table_insert(hash_table_t *h, int key[], link_t *item);
-extern link_t *hash_table_find(hash_table_t *h, int key[]);
-extern void hash_table_remove(hash_table_t *h, int key[], hash_count_t keys);
+extern int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op);
+extern void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item);
+extern link_t *hash_table_find(hash_table_t *h, unsigned long key[]);
+extern void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys);
 
 #endif

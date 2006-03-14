@@ -35,6 +35,8 @@
 #include <unistd.h>
 #include <malloc.h>
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 /** Create chained hash table.
  *
@@ -42,20 +44,22 @@
  * @param m Number of slots in the hash table.
  * @param max_keys Maximal number of keys needed to identify an item.
  * @param op Hash table operations structure.
+ * @return true on success
  */
-void hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op)
+int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op)
 {
-	int i;
+	hash_count_t i;
 
-	ASSERT(h);
-	ASSERT(op && op->hash && op->compare);
-	ASSERT(max_keys > 0);
+	assert(h);
+	assert(op && op->hash && op->compare);
+	assert(max_keys > 0);
 	
-	h->entry = malloc(m * sizeof(link_t *), 0);
+	h->entry = malloc(m * sizeof(link_t *));
 	if (!h->entry) {
-		panic("cannot allocate memory for hash table\n");
+		printf("cannot allocate memory for hash table\n");
+		return false;
 	}
-	memsetb((__address) h->entry, m * sizeof(link_t *), 0);
+	memset((void *) h->entry, 0,  m * sizeof(link_t *));
 	
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);
@@ -63,6 +67,7 @@ void hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, h
 	h->entries = m;
 	h->max_keys = max_keys;
 	h->op = op;
+	return true;
 }
 
 /** Insert item into hash table.
@@ -71,15 +76,15 @@ void hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, h
  * @param hey Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
-void hash_table_insert(hash_table_t *h, __native key[], link_t *item)
+void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
 {
 	hash_index_t chain;
 
-	ASSERT(item);
-	ASSERT(h && h->op && h->op->hash && h->op->compare);
+	assert(item);
+	assert(h && h->op && h->op->hash && h->op->compare);
 
 	chain = h->op->hash(key);
-	ASSERT(chain < h->entries);
+	assert(chain < h->entries);
 	
 	list_append(item, &h->entry[chain]);
 }
@@ -91,15 +96,15 @@ void hash_table_insert(hash_table_t *h, __native key[], link_t *item)
  *
  * @return Matching item on success, NULL if there is no such item.
  */
-link_t *hash_table_find(hash_table_t *h, __native key[])
+link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 {
 	link_t *cur;
 	hash_index_t chain;
 
-	ASSERT(h && h->op && h->op->hash && h->op->compare);
+	assert(h && h->op && h->op->hash && h->op->compare);
 
 	chain = h->op->hash(key);
-	ASSERT(chain < h->entries);
+	assert(chain < h->entries);
 	
 	/*
 	 * The hash table is not redundant.
@@ -125,13 +130,13 @@ link_t *hash_table_find(hash_table_t *h, __native key[])
  * @param key Array of keys that will be compared against items of the hash table.
  * @param keys Number of keys in the 'key' array.
  */
-void hash_table_remove(hash_table_t *h, __native key[], hash_count_t keys)
+void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 {
 	hash_index_t chain;
 	link_t *cur;
 
-	ASSERT(h && h->op && h->op->hash && h->op->compare && h->op->remove_callback);
-	ASSERT(keys <= h->max_keys);
+	assert(h && h->op && h->op->hash && h->op->compare && h->op->remove_callback);
+	assert(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
 

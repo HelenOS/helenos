@@ -41,7 +41,8 @@ CFLAGS += -Iinclude
 #
 
 GENERIC_SOURCES = \
-	generic/list.c
+	generic/list.c \
+	generic/hash_table.c
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 
