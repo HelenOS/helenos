@@ -26,40 +26,26 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+DEFS = -DARCH=$(ARCH)
+CFLAGS = -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(SOFTINT_PREFIX)/include
+LFLAGS = -M
+AFLAGS =
+
+## Toolchain configuration
 #
 
--include Makefile.config
-
-DIRS = \
-	libc \
-	libipc \
-	init \
-	softfloat \
-	softint
-
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
-
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
-
-all:
-	tools/config.py default $(ARCH)
-	$(MAKE) -C . build
-
-config:
-	tools/config.py
-
-build: $(BUILDS)
-
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
-
-distclean: clean
-	-rm Makefile.config
-
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
-
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+ifeq ($(COMPILER),native)
+	CC = gcc
+	AS = as
+	LD = ld
+	AR = ar
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+else
+	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
+	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
+	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
+	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
+	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
+	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+endif

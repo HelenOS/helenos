@@ -26,40 +26,45 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Common compiler flags
 #
 
--include Makefile.config
+SOFTINT_PREFIX = .
+## Setup toolchain
+#
 
-DIRS = \
-	libc \
-	libipc \
-	init \
-	softfloat \
-	softint
+include $(SOFTINT_PREFIX)/Makefile.toolchain
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+## Sources
+#
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+GENERIC_SOURCES = \
+	generic/division.c
 
-all:
-	tools/config.py default $(ARCH)
-	$(MAKE) -C . build
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
+ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
-config:
-	tools/config.py
+.PHONY: all clean depend
 
-build: $(BUILDS)
+all: softint.a
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+-include Makefile.depend
 
-distclean: clean
-	-rm Makefile.config
+clean:
+	-rm -f softint.a Makefile.depend
+	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+softint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+	$(AR) rc softint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
