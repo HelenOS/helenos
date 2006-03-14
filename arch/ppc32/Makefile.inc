@@ -58,9 +58,9 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/debug/panic.s \
 	arch/$(ARCH)/src/fpu_context.S \
+	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/ppc32.c \
 	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/mm/as.c \

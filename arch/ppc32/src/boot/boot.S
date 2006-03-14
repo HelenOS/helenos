@@ -28,10 +28,44 @@
 
 #include <arch/asm/regname.h>
 #include <arch/asm/spr.h>
+#include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
 
 .section K_TEXT_START
 
 .global kernel_image_start
-
 kernel_image_start:
+	
+	# r10 contains physical address to memmap_t
+	# from boot loader
+	
+	lis r4, 0x80000000@ha
+	addi r4, r4, 0x80000000@l
+	
+	add r10, r10, r4
+
+	lis r4, memmap@ha
+	addi r4, r4, memmap@l    # r4 = memmap
+	
+	lwz r5, 0(r10)           # memmap->total
+	stw r5, 0(r4)
+	
+	lwzu r5, 4(r10)           # memmap->count
+	stwu r5, 4(r4)
+	
+	cmpwi r5, 0
+	beq memmap_end
+	
+	mtctr r5
+	memmap_loop:
+	
+		lwzu r5, 4(r10)           # memmap->zones[i].start
+		stwu r5, 4(r4)
+		
+		lwzu r5, 4(r10)           # memmap->zones[i].size
+		stwu r5, 4(r4)
+	
+	bdnz memmap_loop
+	memmap_end:
+	
 	b main_bsp

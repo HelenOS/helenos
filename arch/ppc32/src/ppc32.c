@@ -29,6 +29,8 @@
 #include <arch.h>
 #include <arch/console.h>
 
+#include <arch/mm/memory_init.h>
+
 void arch_pre_mm_init(void)
 {
 	ppc32_console_init();
@@ -40,6 +42,7 @@ void arch_post_mm_init(void)
 
 void arch_pre_smp_init(void)
 {
+	memory_print_map();
 }
 
 void arch_post_smp_init(void)

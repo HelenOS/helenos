@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_MEMORY_INIT_H__
-#define __ppc32_MEMORY_INIT_H__
+#ifndef __ppc32_MEMMAP_H__
+#define __ppc32_MEMMAP_H__
 
-#include <typedefs.h>
+#define MEMMAP_MAX_RECORDS 32
 
-size_t get_memory_size(void);
+#ifndef __ASM__
 
-void memory_print_map(void);
+#include <arch/types.h>
+
+typedef struct {
+	__address start;
+	__u32 size;
+} memzone_t;
+
+typedef struct {
+	__u32 total;
+	__u32 count;
+	memzone_t zones[MEMMAP_MAX_RECORDS];
+} memmap_t;
+
+extern memmap_t memmap;
+
+#endif
 
 #endif

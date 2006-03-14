@@ -36,5 +36,5 @@
 void ppc32_console_init(void)
 {
 	/* TODO: PCI detection etc. etc. - this is fine in PearPC for now */
-	fb_init(0x84000000, 800, 600, 4);
+	fb_init(0xf0000000, 800, 600, 4);
 }
