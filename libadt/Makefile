@@ -26,41 +26,46 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Common compiler flags
 #
 
--include Makefile.config
+LIBC_PREFIX = ../libc
+## Setup toolchain
+#
 
-DIRS = \
-	softint \
-	softfloat \
-	libc \
-	libipc \
-	libadt \
-	init
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+CFLAGS += -Iinclude
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+## Sources
+#
 
-all:
-	tools/config.py default $(ARCH)
-	$(MAKE) -C . build
+GENERIC_SOURCES = \
+	generic/list.c
 
-config:
-	tools/config.py
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 
-build: $(BUILDS)
+.PHONY: all clean depend
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+all: libadt.a
 
-distclean: clean
-	-rm Makefile.config
+-include Makefile.depend
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+clean:
+	-rm -f libadt.a Makefile.depend
+	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(GENERIC_SOURCES) > Makefile.depend
+
+libadt.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+	$(AR) rc libadt.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
