@@ -97,6 +97,6 @@ struct context {
 	__u64 pr;
 	
 	ipl_t ipl;
-} __attribute__ ((packed));
+};
 
 #endif

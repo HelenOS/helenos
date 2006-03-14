@@ -77,6 +77,7 @@ void userspace(__address entry)
 	psr.i = true;				/* start with interrupts enabled */
 	psr.ic = true;
 	psr.ri = 0;				/* start with instruction #0 */
+	psr.bn = 1;				/* start in bank 0 */
 
 	__asm__ volatile ("mov %0 = ar.rsc\n" : "=r" (rsc.value));
 	rsc.loadrs = 0;

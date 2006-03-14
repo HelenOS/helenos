@@ -28,8 +28,10 @@
  */
 
 #include <fpu_context.h>
+#include <print.h>
 
 void fpu_context_save(fpu_context_t *fctx){
+		return;
 		asm volatile(
 			"stf.spill [%2]=f2,0x80\n"
 			"stf.spill [%3]=f3,0x80\n"
@@ -186,7 +188,7 @@ void fpu_context_save(fpu_context_t *fctx){
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
-
+		return;
 		asm volatile(
 			"ldf.fill f2=[%2],0x80\n"
 			"ldf.fill f3=[%3],0x80\n"

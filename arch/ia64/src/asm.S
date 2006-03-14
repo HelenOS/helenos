@@ -60,7 +60,7 @@ panic_printf:
 .global switch_to_userspace
 switch_to_userspace:
 	alloc loc0 = ar.pfs, 5, 3, 0, 0
-	rsm (PSR_IC_MASK | PSR_I_MASK)		/* disable interruption collection  and interrupts */
+	rsm (PSR_IC_MASK | PSR_I_MASK)		/* disable interruption collection and interrupts */
 	srlz.d ;;
 	srlz.i ;;
 	

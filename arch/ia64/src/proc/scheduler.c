@@ -62,8 +62,7 @@ void before_thread_runs_arch(void)
 		"mov r23 = %1\n"
 		"bsw.1\n"
 		:
-		: /*"r" (((__address) THREAD->kstack) + ALIGN_UP(sizeof(the_t), REGISTER_STACK_ALIGNMENT)),*/
-		  "r" (&THREAD->kstack[THREAD_STACK_SIZE]),
+		: "r" (&THREAD->kstack[THREAD_STACK_SIZE]),
 		  "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA])
 		);
 }

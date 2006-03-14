@@ -42,42 +42,39 @@
 #include <arch/asm.h>
 #include <typedefs.h>
 #include <panic.h>
+#include <print.h>
 #include <arch.h>
-
-
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
+		ipl_t ipl;
 		__address adr;
-		__u32 count1,count2,stride1,stride2;
+		__u32 count1, count2, stride1, stride2;
 		
 		int i,j;
 		
-		adr=PAL_PTCE_INFO_BASE();
-		count1=PAL_PTCE_INFO_COUNT1();
-		count2=PAL_PTCE_INFO_COUNT2();
-		stride1=PAL_PTCE_INFO_STRIDE1();
-		stride2=PAL_PTCE_INFO_STRIDE2();
+		adr = PAL_PTCE_INFO_BASE();
+		count1 = PAL_PTCE_INFO_COUNT1();
+		count2 = PAL_PTCE_INFO_COUNT2();
+		stride1 = PAL_PTCE_INFO_STRIDE1();
+		stride2 = PAL_PTCE_INFO_STRIDE2();
 		
-		interrupts_disable();
+		ipl = interrupts_disable();
 
-		for(i=0;i<count1;i++)
-		{
-			for(j=0;j<count2;j++)
-			{
-				asm volatile
-				(
-					"ptc.e %0;;"
+		for(i = 0; i < count1; i++) {
+			for(j = 0; j < count2; j++) {
+				__asm__ volatile (
+					"ptc.e %0 ;;"
 					:
-					:"r" (adr)
+					: "r" (adr)
 				);
-				adr+=stride2;
+				adr += stride2;
 			}
-			adr+=stride1;
+			adr += stride1;
 		}
 
-		interrupts_enable();
+		interrupts_restore(ipl);
 
 		srlz_d();
 		srlz_i();
@@ -89,22 +86,19 @@ void tlb_invalidate_all(void)
  */
 void tlb_invalidate_asid(asid_t asid)
 {
-	/* TODO */
 	tlb_invalidate_all();
 }
 
 
 void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
-
-
 	region_register rr;
 	bool restore_rr = false;
-	int b=0;
-	int c=cnt;
+	int b = 0;
+	int c = cnt;
 
 	__address va;
-	va=page;
+	va = page;
 
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
@@ -121,95 +115,73 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 		srlz_i();
 	}
 	
-	while(c>>=1)	b++;
-	b>>=1;
+	while(c >>= 1)
+		b++;
+	b >>= 1;
 	__u64 ps;
 	
-	switch(b)
-	{
+	switch (b) {
 		case 0: /*cnt 1-3*/
-		{
-			ps=PAGE_WIDTH;
+			ps = PAGE_WIDTH;
 			break;
-		}
 		case 1: /*cnt 4-15*/
-		{
 			/*cnt=((cnt-1)/4)+1;*/
-			ps=PAGE_WIDTH+2;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+2;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 2: /*cnt 16-63*/
-		{
 			/*cnt=((cnt-1)/16)+1;*/
-			ps=PAGE_WIDTH+4;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+4;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 3: /*cnt 64-255*/
-		{
 			/*cnt=((cnt-1)/64)+1;*/
-			ps=PAGE_WIDTH+6;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+6;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 4: /*cnt 256-1023*/
-		{
 			/*cnt=((cnt-1)/256)+1;*/
-			ps=PAGE_WIDTH+8;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+8;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 5: /*cnt 1024-4095*/
-		{
 			/*cnt=((cnt-1)/1024)+1;*/
-			ps=PAGE_WIDTH+10;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+10;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 6: /*cnt 4096-16383*/
-		{
 			/*cnt=((cnt-1)/4096)+1;*/
-			ps=PAGE_WIDTH+12;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+12;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		case 7: /*cnt 16384-65535*/
 		case 8: /*cnt 65536-(256K-1)*/
-		{
 			/*cnt=((cnt-1)/16384)+1;*/
-			ps=PAGE_WIDTH+14;
-			va&=~((1<<ps)-1);
+			ps = PAGE_WIDTH+14;
+			va &= ~((1<<ps)-1);
 			break;
-		}
 		default:
-		{
 			/*cnt=((cnt-1)/(16384*16))+1;*/
 			ps=PAGE_WIDTH+18;
 			va&=~((1<<ps)-1);
 			break;
-		}
 	}
 	/*cnt+=(page!=va);*/
-	for(;va<(page+cnt*(PAGE_SIZE));va+=(1<<ps))	{
-		__asm__ volatile 
-		(
+	for(; va<(page+cnt*(PAGE_SIZE)); va += (1<<ps))	{
+		__asm__ volatile (
 			"ptc.l %0,%1;;"
 			:
-			: "r"(va), "r"(ps<<2)
+			: "r" (va), "r" (ps<<2)
 		);
 	}
 	srlz_d();
 	srlz_i();
-	
 	
 	if (restore_rr) {
 		rr_write(VA2VRN(va), rr.word);
 		srlz_d();
 		srlz_i();
 	}
-
-
 }
 
 
@@ -506,7 +478,7 @@ void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d, iip=%P\n", __FUNCTION__, va, rid, istate->cr_iip);
 		}
 	}
 }
@@ -612,7 +584,7 @@ void page_not_present(__u64 vector, istate_t *istate)
 			dtc_pte_copy(t);
 	} else {
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d\n", __FUNCTION__, va, rr.map.rid);
 		}
 	}
 }

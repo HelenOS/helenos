@@ -92,7 +92,6 @@ paging_start:
 	 * Now we are paging.
 	 */
 
-
 	# switch to register bank 1
 	bsw.1
 	

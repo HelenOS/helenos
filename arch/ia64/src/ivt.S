@@ -315,7 +315,7 @@ heavyweight_handler_inner:
 	mov loc45 = r30
 	mov loc46 = r31
 
-	/*preserve Floating point status register*/
+	/* preserve Floating point status register */
 	mov loc47 = ar.fpsr
     
     /* 9. skipped (will not enable interrupts) */
@@ -375,8 +375,7 @@ heavyweight_handler_inner:
 	mov r30 = loc45
 	mov r31 = loc46
 	
-
-	/*restore Floating point status register*/
+	/* restore Floating point status register */
 	mov ar.fpsr = loc47
 	
     /* 14. restore branch and application registers */

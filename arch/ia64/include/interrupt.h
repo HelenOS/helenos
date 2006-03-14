@@ -71,7 +71,7 @@ struct istate {
 	__u64 in2;
 	__u64 in3;
 	__u64 in4;
-} __attribute__ ((packed));
+};
 
 extern void *ivt;
 
