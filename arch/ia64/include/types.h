@@ -41,6 +41,14 @@ typedef unsigned short __u16;
 typedef unsigned int __u32;
 typedef unsigned long __u64;
 
+
+typedef unsigned char __r8; 			/*Reserve byte*/
+typedef unsigned short __r16;
+typedef unsigned int __r32;
+typedef unsigned long __r64;
+typedef struct __r128{__r64 lo;__r64 hi;} __r128;
+
+
 typedef __u64 __address;
 typedef __u64 pfn_t;
 

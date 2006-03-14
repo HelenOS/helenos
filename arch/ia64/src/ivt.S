@@ -250,7 +250,7 @@ heavyweight_handler_inner:
 	 * From this point, the rest of the interrupted context
 	 * will be preserved in stacked registers and backing store.
 	 */
-	alloc loc0 = ar.pfs, 0, 47, 2, 0 ;;
+	alloc loc0 = ar.pfs, 0, 48, 2, 0 ;;
 	
 	/* bank 0 is going to be shadowed, copy essential data from there */
 	mov loc1 = R_RET	/* b0 belonging to interrupted context */
@@ -314,6 +314,9 @@ heavyweight_handler_inner:
 	mov loc44 = r29
 	mov loc45 = r30
 	mov loc46 = r31
+
+	/*preserve Floating point status register*/
+	mov loc47 = ar.fpsr
     
     /* 9. skipped (will not enable interrupts) */
 	/*
@@ -371,6 +374,10 @@ heavyweight_handler_inner:
 	mov r29 = loc44
 	mov r30 = loc45
 	mov r31 = loc46
+	
+
+	/*restore Floating point status register*/
+	mov ar.fpsr = loc47
 	
     /* 14. restore branch and application registers */
     	mov ar.unat = loc3

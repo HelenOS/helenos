@@ -31,8 +31,11 @@
 
 #include <arch/types.h>
 
+#define FRS 128
+#define SAVABLE_FRS_OFFSET 2
+
 struct fpu_context {
-/* TODO: define IA-64 FPU context */
+	__r128 fr[FRS];
 };
 
 
