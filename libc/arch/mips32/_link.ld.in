@@ -24,6 +24,8 @@ SECTIONS {
 		*(.bss);
 		*(.sbss);
 		*(COMMON);
+		_heap = .;
+		LONG(0xdeadbeef);
 	} :data
 	
 	/DISCARD/ : {

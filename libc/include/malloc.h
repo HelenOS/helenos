@@ -47,6 +47,7 @@ extern "C" {
 #define dlmalloc_stats         malloc_stats
 #define dlmalloc_usable_size   malloc_usable_size
 #define dlmalloc_footprint     malloc_footprint
+#define dlmalloc_max_footprint malloc_max_footprint
 #define dlindependent_calloc   independent_calloc
 #define dlindependent_comalloc independent_comalloc
 #endif /* USE_DL_PREFIX */
@@ -162,7 +163,8 @@ int dlmallopt(int, int);
   Even if locks are otherwise defined, this function does not use them,
   so results might not be up to date.
 */
-size_t dlmalloc_footprint();
+size_t dlmalloc_footprint(void);
+size_t dlmalloc_max_footprint(void);
 
 #if !NO_MALLINFO
 /*
@@ -391,7 +393,7 @@ size_t dlmalloc_usable_size(void*);
   malloc_stats prints only the most commonly interesting statistics.
   More information can be obtained by calling mallinfo.
 */
-void  dlmalloc_stats();
+void  dlmalloc_stats(void);
 
 #endif /* !ONLY_MSPACES */
 

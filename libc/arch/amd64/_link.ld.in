@@ -23,6 +23,8 @@ SECTIONS {
 	.bss : {
 		*(COMMON);
 		*(.bss);
+		_heap = .;
+		QUAD(0xdeadbeef);
 	} :data
 
 	/DISCARD/ : {

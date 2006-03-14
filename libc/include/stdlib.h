@@ -26,16 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
+#ifndef __LIBC__STDLIB_H__
+#define __LIBC__STDLIB_H__
 
-#include <types.h>
+#include <malloc.h>
 
-#define EOF (-1)
-
-extern int puts(const char * str);
-
-extern int printf(const char *fmt, ...);
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define abort() _exit(1)
 
 #endif

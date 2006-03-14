@@ -29,7 +29,40 @@
 #include <libc.h>
 #include <unistd.h>
 
+/** Mremap syscall */
 void *mremap(void *address, size_t size, unsigned long flags)
 {
 	return (void *) __SYSCALL3(SYS_MREMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+}
+
+
+static size_t heapsize = 0;
+/* Start of heap linker symbol */
+extern char _heap;
+
+/** Sbrk emulation 
+ *
+ * @param size New area that should be allocated or negative, 
+               if it should be shrinked
+ * @return Pointer to newly allocated area
+ */
+void *sbrk(ssize_t incr)
+{
+	void *res;
+	/* Check for invalid values */
+	if (incr < 0 && -incr > heapsize)
+		return NULL;
+	/* Check for too large value */
+	if (incr > 0 && incr+heapsize < heapsize)
+		return NULL;
+	/* Check for too small values */
+	if (incr < 0 && incr+heapsize > heapsize)
+		return NULL;
+
+	res = mremap(&_heap, heapsize + incr,0);
+	if (!res)
+		return NULL;
+	res = (void *)&_heap + incr;
+	heapsize += incr;
+	return res;
 }

@@ -43,7 +43,8 @@ GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/mmap.c \
 	generic/io/io.c \
-	generic/io/print.c
+	generic/io/print.c \
+	malloc/malloc.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s

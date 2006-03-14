@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
+#ifndef __LIBC__ERRNO_H__
+#define __LIBC__ERRNO_H__
 
-#include <types.h>
+#include <kernel/errno.h>
 
-#define EOF (-1)
 
-extern int puts(const char * str);
-
-extern int printf(const char *fmt, ...);
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 #endif
