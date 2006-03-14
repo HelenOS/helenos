@@ -190,11 +190,10 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 			list_append(&request->list, &box->dispatched_calls);
 		} else {
 			if (!(flags & IPC_WAIT_NONBLOCKING)) {
+				/* Wait for event to appear */
 				condvar_wait(&box->cv, &box->mutex);
 				continue;
 			}
-			if (condvar_trywait(&box->cv, &box->mutex) != ESYNCH_WOULD_BLOCK)
-				continue;
 			request = NULL;
 		}
 		break;

@@ -400,7 +400,7 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 			 * This depends on the fact that the memory was allocated using frame_alloc().
 			 */ 
 			pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
-			if (pte) {
+			if (pte && PTE_VALID(pte)) {
 				ASSERT(PTE_PRESENT(pte));
 				frame_free(ADDR2PFN(PTE_GET_FRAME(pte)));
 			}

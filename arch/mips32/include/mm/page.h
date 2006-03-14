@@ -96,7 +96,7 @@
 
 #define PTE_VALID_ARCH(pte)			(*((__u32 *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
-#define PTE_GET_FRAME_ARCH(pte)			((pte)->pfn<<FRAME_WIDTH)
+#define PTE_GET_FRAME_ARCH(pte)			((pte)->pfn<<12)
 
 #ifndef __ASM__
 

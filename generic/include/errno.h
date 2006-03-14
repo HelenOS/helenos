@@ -29,6 +29,9 @@
 #ifndef __ERRNO_H__
 #define __ERRNO_H__
 
-#define ENOENT    1
+/* 1-255 are kernel error codes, 256-512 are user error codes */
+
+#define ENOENT     -1  /* No such entry */
+#define ENOMEM     -2  /* Not enough memory */
 
 #endif
