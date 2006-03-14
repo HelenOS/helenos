@@ -24,23 +24,60 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */ 
+
+#include <libc.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <io/io.h>
+
+static char nl = '\n';
+
+int puts(const char * str)
+{
+	size_t count;
+	
+	for (count = 0; str[count] != 0; count++);
+	if (write(1, (void * ) str, count) == count) {
+		if (write(1, &nl, 1) == 1)
+			return 0;
+	}
+	
+	return EOF;
+}
+
+/** Put count chars from buffer to stdout without adding newline
+ * @param buf Buffer with size at least count bytes
+ * @param count 
+ * @return 0 on succes, EOF on fail
  */
+int putnchars(const char * buf, size_t count)
+{
+	if (write(1, (void * ) buf, count) == count) {
+			return 0;
+	}
+	
+	return EOF;
+}
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+/** Same as puts, but does not print newline at end
+ *
+ */
+int putstr(const char * str)
+{
+	size_t count;
+	
+	for (count = 0; str[count] != 0; count++);
+	if (write(1, (void * ) str, count) == count) {
+			return 0;
+	}
+	
+	return EOF;
+}
 
-typedef unsigned int sysarg_t;
-typedef unsigned int size_t;
-typedef signed int ssize_t;
+ssize_t write(int fd, const void * buf, size_t count)
+{
+	return (ssize_t) __SYSCALL3(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
+}
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
-
-#endif

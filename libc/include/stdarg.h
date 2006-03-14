@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef __LIBC__STDARG_H__
+#define __LIBC__STDARG_H__
 
-typedef unsigned int sysarg_t;
-typedef unsigned int size_t;
-typedef signed int ssize_t;
+#ifndef __VARARGS_DEFINED
+#define __VARARGS_DEFINED
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
+/*
+ * Variable argument list manipulation macros
+ * for architectures using stack to pass arguments.
+ */
+ 
+#include <types.h>
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+typedef struct va_list {
+	int pos;
+	uint8_t *last;
+} va_list;
+
+#define va_start(ap, lst) 		\
+	(ap).pos = sizeof(lst); 			\
+	(ap).last = (uint8_t *) &(lst)
+
+#define va_arg(ap, type) 		\
+	(*((type *)((ap).last + ((ap).pos  += sizeof(type) ) - sizeof(type))))
+
+#define va_end(ap)
+
+#endif
+
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef __LIBC__IO_H__
+#define __LIBC__IO_IO_H__
 
-typedef unsigned int sysarg_t;
-typedef unsigned int size_t;
-typedef signed int ssize_t;
+#include <types.h>
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+int putnchars(const char * buf, size_t count);
+int putstr(const char * str);
 
 #endif

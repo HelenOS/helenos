@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,28 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <stdio.h>
+#ifndef __LIBC__STDDEF_H__
+#define __LIBC__STDDEF_H__
 
-static char nl = '\n';
+#include <types.h>
 
-int puts(const char * str)
-{
-	size_t count;
-	
-	for (count = 0; str[count] != 0; count++);
-	if (write(1, (void * ) str, count) == count) {
-		if (write(1, &nl, 1) == 1)
-			return 0;
-	}
-	
-	return EOF;
-}
+#endif
 
-ssize_t write(int fd, const void * buf, size_t count)
-{
-	return (ssize_t) __SYSCALL3(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
-}

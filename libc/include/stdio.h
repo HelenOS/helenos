@@ -31,8 +31,10 @@
 
 #include <types.h>
 
-#define EOF -1
+#define EOF (-1)
 
 extern int puts(const char * str);
+
+extern int printf(const char *fmt, ...);
 
 #endif
