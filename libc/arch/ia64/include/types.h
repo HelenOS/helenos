@@ -30,8 +30,8 @@
 #define __LIBC__TYPES_H__
 
 typedef unsigned long long sysarg_t;
-typedef unsigned int size_t;
-typedef signed int ssize_t;
+typedef unsigned long size_t;
+typedef signed long ssize_t;
 
 typedef char int8_t;
 typedef short int int16_t;
