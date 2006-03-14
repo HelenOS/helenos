@@ -153,9 +153,9 @@ int printf(const char *fmt, ...)
 	va_start(ap, fmt);
 
 	while ((c = fmt[i])) {
-			/* control character */
+		/* control character */
 		if (c == '%' ) { 
-				/* print common characters if any processed */	
+			/* print common characters if any processed */	
 			if (i > j) {
 				if ((retval = putnchars(&fmt[j], i - j)) == EOF) { /* error */
 					return -counter;
