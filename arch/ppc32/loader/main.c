@@ -52,7 +52,7 @@ void bootstrap(void)
 	printf("total memory %d MB\n", memmap.total >> 20);
 	
 	// FIXME: map just the kernel
-	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, memmap.total - 16 * 1024 * 1024, 0) != 0) {
+	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, memmap.total - 64 * 1024 * 1024, 0) != 0) {
 		printf("Unable to map kernel memory at %L (physical %L)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS);
 		halt();
 	}
@@ -60,8 +60,9 @@ void bootstrap(void)
 	// FIXME: relocate the kernel in real mode
 	memcpy((void *) KERNEL_VIRTUAL_ADDRESS, KERNEL_START, KERNEL_SIZE);
 	
-	// FIXME: proper framebuffer mapping
-	ofw_map((void *) 0x84000000, (void *) 0xf0000000, 2 * 1024 * 1024, 0);
+	// FIXME: proper hardware detection & mapping
+	ofw_map((void *) 0x84000000, (void *) 0xf0000000, 0x01000000, 0);
+	ofw_map((void *) 0x80816000, (void *) 0xf2000000, 0x00018000, 0);
 	
 	printf("Booting the kernel...\n");
 	
