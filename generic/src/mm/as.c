@@ -403,8 +403,8 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 			if (pte && PTE_VALID(pte)) {
 				ASSERT(PTE_PRESENT(pte));
 				frame_free(ADDR2PFN(PTE_GET_FRAME(pte)));
+				page_mapping_remove(as, area->base + i*PAGE_SIZE);
 			}
-			page_mapping_remove(as, area->base + i*PAGE_SIZE);
 		}
 		/*
 		 * Invalidate TLB's.
@@ -412,12 +412,9 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
 		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
 		tlb_shootdown_finalize();
-	} else {
-		/*
-		 * Growing the area.
-		 */
-		area->size = size;
-	}
+	} 
+
+	area->size = pages;
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&as->lock);
