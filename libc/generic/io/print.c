@@ -292,6 +292,13 @@ int printf(const char *fmt, ...)
 		++i;
 	}
 	
+	if (i > j) {
+		if ((retval = putnchars(&fmt[j], i - j)) == EOF) { /* error */
+			return -counter;
+		}
+		counter += retval;
+	}
+	
 	va_end(ap);
 	return counter;
 }
