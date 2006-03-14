@@ -92,10 +92,9 @@
 #define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
-/*
- * Determine whether the mapping is valid.
- */
-#define PTE_VALID(p)			PTE_VALID_ARCH((p))
+#define PTE_VALID(p)		PTE_VALID_ARCH((p))
+#define PTE_PRESENT(p)		PTE_PRESENT_ARCH((p))
+#define PTE_GET_FRAME(p)	PTE_GET_FRAME_ARCH((p))
 
 extern page_mapping_operations_t pt_mapping_operations;
 

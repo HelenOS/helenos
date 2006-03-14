@@ -46,6 +46,10 @@
 #define PAGE_HT_ENTRIES_BITS	13
 #define PAGE_HT_ENTRIES		(1<<PAGE_HT_ENTRIES_BITS)
 
+#define PTE_VALID_ARCH(pte)		((pte) != NULL)
+#define PTE_PRESENT_ARCH(pte)		((pte)->p != 0)
+#define PTE_GET_FRAME_ARCH(pte)		((pte)->frame)
+
 struct pte {
 	link_t link;		/**< Page hash table link. */
 	as_t *as;		/**< Address space. */

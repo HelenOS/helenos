@@ -69,6 +69,7 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 as_t *AS_KERNEL = NULL;
 
 static int get_area_flags(as_area_t *a);
+static as_area_t *find_area_and_lock(as_t *as, __address va);
 
 /** Initialize address space subsystem. */
 void as_init(void)
@@ -168,36 +169,17 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
  */
 void as_set_mapping(as_t *as, __address page, __address frame)
 {
-	as_area_t *a, *area = NULL;
-	link_t *cur;
+	as_area_t *area;
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
 	
-	/*
-	 * First, try locate an area.
-	 */
-	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
-		a = list_get_instance(cur, as_area_t, link);
-		spinlock_lock(&a->lock);
-
-		if ((page >= a->base) && (page < a->base + a->size * PAGE_SIZE)) {
-			area = a;
-			break;
-		}
-		
-		spinlock_unlock(&a->lock);
-	}
-	
+	area = find_area_and_lock(as, page);
 	if (!area) {
 		panic("page not part of any as_area\n");
 	}
 
-	/*
-	 * Note: area->lock is held.
-	 */
-	
 	page_mapping_insert(as, page, frame, get_area_flags(area));
 	
 	spinlock_unlock(&area->lock);
@@ -216,33 +198,13 @@ void as_set_mapping(as_t *as, __address page, __address frame)
  */
 int as_page_fault(__address page)
 {
-	link_t *cur;
-	as_area_t *a, *area = NULL;
+	as_area_t *area;
 	__address frame;
 	
 	ASSERT(AS);
 	spinlock_lock(&AS->lock);
 	
-	/*
-	 * Search this areas of this address space for presence of 'page'.
-	 */
-	for (cur = AS->as_area_head.next; cur != &AS->as_area_head; cur = cur->next) {
-		a = list_get_instance(cur, as_area_t, link);
-		spinlock_lock(&a->lock);
-
-		if ((page >= a->base) && (page < a->base + a->size * PAGE_SIZE)) {
-
-			/*
-			 * We found the area containing 'page'.
-			 * TODO: access checking
-			 */
-			area = a;
-			break;
-		}
-		
-		spinlock_unlock(&a->lock);
-	}
-	
+	area = find_area_and_lock(AS, page);	
 	if (!area) {
 		/*
 		 * No area contained mapping for 'page'.
@@ -252,10 +214,6 @@ int as_page_fault(__address page)
 		return 0;
 	}
 
-	/*
-	 * Note: area->lock is held.
-	 */
-	
 	/*
 	 * In general, there can be several reasons that
 	 * can have caused this fault.
@@ -398,4 +356,99 @@ pte_t *page_table_create(int flags)
         ASSERT(as_operations->page_table_create);
 
         return as_operations->page_table_create(flags);
+}
+
+/** Find address space area and change it.
+ *
+ * @param as Address space.
+ * @param address Virtual address belonging to the area to be changed. Must be page-aligned.
+ * @param size New size of the virtual memory block starting at address. 
+ * @param flags Flags influencing the remap operation. Currently unused.
+ *
+ * @return address on success, (__address) -1 otherwise.
+ */ 
+__address as_remap(as_t *as, __address address, size_t size, int flags)
+{
+	as_area_t *area = NULL;
+	ipl_t ipl;
+	size_t pages;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&as->lock);
+	
+	/*
+	 * Locate the area.
+	 */
+	area = find_area_and_lock(as, address);
+	if (!area) {
+		spinlock_unlock(&as->lock);
+		return (__address) -1;
+	}
+
+	pages = SIZE2FRAMES((address - area->base) + size);
+	if (pages < area->size) {
+		int i;
+
+		/*
+		 * Shrinking the area.
+		 */
+		for (i = pages; i < area->size; i++) {
+			pte_t *pte;
+			
+			/*
+			 * Releasing physical memory.
+			 * This depends on the fact that the memory was allocated using frame_alloc().
+			 */ 
+			pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
+			if (pte) {
+				ASSERT(PTE_PRESENT(pte));
+				frame_free(ADDR2PFN(PTE_GET_FRAME(pte)));
+			}
+			page_mapping_remove(as, area->base + i*PAGE_SIZE);
+		}
+		/*
+		 * Invalidate TLB's.
+		 */
+		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
+		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
+		tlb_shootdown_finalize();
+	} else {
+		/*
+		 * Growing the area.
+		 */
+		area->size = size;
+	}
+	
+	spinlock_unlock(&area->lock);
+	spinlock_unlock(&as->lock);
+	interrupts_restore(ipl);
+
+	return address;
+}
+
+/** Find address space area and lock it.
+ *
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param va Virtual address.
+ *
+ * @return Locked address space area containing va on success or NULL on failure.
+ */
+as_area_t *find_area_and_lock(as_t *as, __address va)
+{
+	link_t *cur;
+	as_area_t *a;
+	
+	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
+		a = list_get_instance(cur, as_area_t, link);
+		spinlock_lock(&a->lock);
+
+		if ((va >= a->base) && (va < a->base + a->size * PAGE_SIZE))
+			 return a;
+		
+		spinlock_unlock(&a->lock);
+	}
+
+	return NULL;
 }

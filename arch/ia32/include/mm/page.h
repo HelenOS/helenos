@@ -80,6 +80,8 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
 #define PTE_VALID_ARCH(p)			(*((__u32 *) (p)) != 0)
+#define PTE_PRESENT_ARCH(p)			((p)->present != 0)
+#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address<<FRAME_WIDTH)
 
 #ifndef __ASM__
 

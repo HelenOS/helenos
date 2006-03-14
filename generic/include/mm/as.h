@@ -104,6 +104,7 @@ extern link_t inactive_as_with_asid_head;
 extern void as_init(void);
 extern as_t *as_create(int flags);
 extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
+extern __address as_remap(as_t *as, __address address, size_t size, int flags);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
 extern void as_switch(as_t *old, as_t *new);

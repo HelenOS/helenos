@@ -28,6 +28,7 @@
 
 #include <syscall/syscall.h>
 #include <proc/thread.h>
+#include <mm/as.h>
 #include <print.h>
 #include <putchar.h>
 #include <ipc/ipc.h>
@@ -181,10 +182,15 @@ static __native sys_ipc_wait_for_call(__native *calldata, __native flags)
 	return (__native)call;
 }
 
+static __native sys_mremap(void *address, size_t size, unsigned long flags)
+{
+	return as_remap(AS, (__address) address, size, 0);
+}
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ctl,
 	sys_io,
+	sys_mremap,
 	sys_ipc_call_sync,
 	sys_ipc_call_sync_medium,
 	sys_ipc_call_async,

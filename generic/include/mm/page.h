@@ -60,7 +60,6 @@
 
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
 
-
 /* TODO - check that userspace is OK, platform specific functions etc */
 static inline void copy_to_uspace(void *dst, void *src, count_t cnt)
 {

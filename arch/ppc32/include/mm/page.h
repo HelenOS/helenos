@@ -77,6 +77,8 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
 #define PTE_VALID_ARCH(p)		1
+#define PTE_PRESENT_ARCH(p)		1
+#define PTE_GET_FRAME_ARCH(p)		0
 
 #ifndef __ASM__
 

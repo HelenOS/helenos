@@ -38,6 +38,7 @@
 
 #include <mm/page.h>
 #include <arch/types.h>
+#include <genarch/mm/page_ht.h>
 
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
