@@ -34,8 +34,7 @@
 #include <stdlib.h>
 
 /*
-extern char _heap;
-void test_mremap(void)
+static void test_mremap(void)
 {
 	printf("Writing to good memory\n");
 	mremap(&_heap, 120000, 0);
@@ -51,7 +50,6 @@ void test_mremap(void)
 }
 */
 /*
-extern char _heap;
 static void test_sbrk(void)
 {
 	printf("Writing to good memory\n");
@@ -68,9 +66,7 @@ static void test_sbrk(void)
 	printf("memory done\n");
 }
 */
-
 /*
-extern char _heap;
 static void test_malloc(void)
 {
 	char *data;

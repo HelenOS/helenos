@@ -29,11 +29,13 @@
 ## Common compiler flags
 #
 
-SOFTINT_PREFIX = .
+LIBC_PREFIX = ../libc
 ## Setup toolchain
 #
 
-include $(SOFTINT_PREFIX)/Makefile.toolchain
+include $(LIBC_PREFIX)/Makefile.toolchain
+
+CFLAGS += -Iinclude
 
 ## Sources
 #
@@ -42,7 +44,6 @@ GENERIC_SOURCES = \
 	generic/division.c
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
 .PHONY: all clean depend
 
@@ -55,7 +56,7 @@ clean:
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+	$(CC) $(DEFS) $(CFLAGS) -M $(GENERIC_SOURCES) > Makefile.depend
 
 softint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc softint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

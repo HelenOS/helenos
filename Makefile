@@ -32,11 +32,11 @@
 -include Makefile.config
 
 DIRS = \
+	softint \
+	softfloat \
 	libc \
 	libipc \
-	init \
-	softfloat \
-	softint
+	init
 
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))
