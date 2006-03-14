@@ -29,6 +29,58 @@
 #include "version.h"
 #include <ipc.h>
 #include <ns.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+/*
+extern char _heap;
+void test_mremap(void)
+{
+	printf("Writing to good memory\n");
+	mremap(&_heap, 120000, 0);
+	printf("%P\n", ((char *)&_heap));
+	printf("%P\n", ((char *)&_heap) + 80000);
+	*(((char *)&_heap) + 80000) = 10;
+	printf("Making small\n");
+	mremap(&_heap, 16000, 0);
+	printf("Failing..\n");
+	*((&_heap) + 80000) = 10;
+
+	printf("memory done\n");
+}
+*/
+/*
+extern char _heap;
+static void test_sbrk(void)
+{
+	printf("Writing to good memory\n");
+	printf("Got: %P\n", sbrk(120000));
+	printf("%P\n", ((char *)&_heap));
+	printf("%P\n", ((char *)&_heap) + 80000);
+	*(((char *)&_heap) + 80000) = 10;
+	printf("Making small, got: %P\n",sbrk(-120000));
+	printf("Testing access to heap\n");
+	_heap = 10;
+	printf("Failing..\n");
+	*((&_heap) + 80000) = 10;
+
+	printf("memory done\n");
+}
+*/
+
+/*
+extern char _heap;
+static void test_malloc(void)
+{
+	char *data;
+
+	data = malloc(10);
+	printf("Heap: %P, data: %P\n", &_heap, data);
+	data[0] = 'a';
+	free(data);
+}
+*/
 
 int main(int argc, char *argv[])
 {
