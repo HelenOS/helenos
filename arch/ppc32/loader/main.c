@@ -30,8 +30,9 @@
 #include "printf.h"
 #include "asm.h"
 
-#define KERNEL_PHYSICAL_ADDRESS 0x2000
-#define KERNEL_VIRTUAL_ADDRESS 0x80002000
+#define KERNEL_PHYSICAL_ADDRESS 0x0000
+#define KERNEL_VIRTUAL_ADDRESS 0x80000000
+#define KERNEL_BOOT_OFFSET 0x2000
 #define KERNEL_START &_binary_____________kernel_kernel_bin_start
 #define KERNEL_END &_binary_____________kernel_kernel_bin_end
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
@@ -67,5 +68,5 @@ void bootstrap(void)
 	printf("Booting the kernel...\n");
 	
 	flush_instruction_cache();
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, ofw_translate(&memmap));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS + KERNEL_BOOT_OFFSET, ofw_translate(&memmap));
 }
