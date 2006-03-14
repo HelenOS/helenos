@@ -67,7 +67,7 @@ static inline void copy_to_uspace(void *dst, void *src, count_t cnt)
 	memcpy(dst, src, cnt);
 } 
 
-static inline void copy_to_kernel(void *dst, void *src, count_t cnt)
+static inline void copy_from_uspace(void *dst, void *src, count_t cnt)
 {
 	memcpy(dst, src, cnt);
 }

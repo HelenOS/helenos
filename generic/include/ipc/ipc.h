@@ -29,17 +29,46 @@
 #ifndef __IPC_H__
 #define __IPC_H__
 
-#define IPC_CALL_LEN    2
+/* Length of data being transfered with IPC call */
+/* - the uspace may not be able to utilize full length */
+#define IPC_CALL_LEN    4
 
 /* Flags for calls */
-#define IPC_CALL_ANSWERED    1
+#define IPC_CALL_ANSWERED      1 /**< This is answer to a call */
+#define IPC_CALL_STATIC_ALLOC  2 /**< This call will not be freed on error */
+
 /* Flags for ipc_wait_for_call */
-#define IPC_WAIT_NONBLOCKING 1
+#define IPC_WAIT_NONBLOCKING   1
+
+/* Flags of callid */
+#define IPC_CALLID_ANSWERED  1
+
+/* Return values from IPC_ASYNC */
+#define IPC_CALLRET_FATAL         -1
+#define IPC_CALLRET_TEMPORARY     -2
+
+
+/* Macros for manipulating calling data */
+#define IPC_SET_RETVAL(data, retval)   ((data)[0] = (retval))
+#define IPC_SET_METHOD(data, val)   ((data)[0] = (val))
+#define IPC_SET_ARG1(data, val)   ((data)[1] = (val))
+#define IPC_SET_ARG2(data, val)   ((data)[2] = (val))
+#define IPC_SET_ARG3(data, val)   ((data)[3] = (val))
+
+#define IPC_GET_METHOD(data)           ((data)[0])
+#define IPC_GET_RETVAL(data)           ((data)[0])
+
+#define IPC_GET_ARG1(data)              ((data)[1])
+#define IPC_GET_ARG2(data)              ((data)[2])
+#define IPC_GET_ARG3(data)              ((data)[3])
+
+/* Well known phone descriptors */
+#define PHONE_NS              0
 
 #ifdef KERNEL
 
-#include <synch/waitq.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
+#include <synch/condvar.h>
 #include <adt/list.h>
 
 #define IPC_MAX_PHONES  16
@@ -57,7 +86,8 @@ typedef struct {
 struct answerbox {
 	SPINLOCK_DECLARE(lock);
 
-	waitq_t wq;
+	mutex_t mutex;
+	condvar_t cv;
 
 	link_t connected_phones; /**< Phones connected to this answerbox */
 	link_t calls;            /**< Received calls */
@@ -72,7 +102,6 @@ typedef struct {
 	answerbox_t *callee;
 } phone_t;
 
-extern void ipc_create_phonecompany(void);
 extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
@@ -82,10 +111,11 @@ extern void ipc_phone_destroy(phone_t *phone);
 extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
 extern call_t * ipc_call_alloc(void);
-void ipc_answerbox_init(answerbox_t *box);
-void ipc_phone_init(phone_t *phone, answerbox_t *box);
+extern void ipc_answerbox_init(answerbox_t *box);
+extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
+extern void ipc_call_init(call_t *call);
 
-extern answerbox_t *ipc_central_box;
+extern answerbox_t *ipc_phone_0;
 
 #endif
 

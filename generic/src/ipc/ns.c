@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/as.h>
-#include <mm/slab.h>
-
-#include <synch/spinlock.h>
-#include <arch.h>
-#include <panic.h>
-#include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
-#include <memstr.h>
+#include <print.h>
+#include <proc/thread.h>
+#include <arch.h>
+#include <panic.h>
 
-SPINLOCK_INITIALIZE(tasks_lock);
-LIST_INITIALIZE(tasks_head);
+static answerbox_t ns_answerbox;
 
-/** Initialize tasks
- *
- * Initialize kernel tasks support.
- *
- */
-void task_init(void)
+/**   */
+static void ns_thread(void *data)
 {
-	TASK = NULL;
+	call_t *call;
+
+	printf("Name service started.\n");
+	while (1) {
+		call = ipc_wait_for_call(&ns_answerbox, 0);
+		switch (IPC_GET_METHOD(call->data)) {
+		case NS_PING:
+			printf("Ping.\n");
+			IPC_SET_RETVAL(call->data, 0);
+			break;
+		default:
+			printf("Unsupported name service call.\n");
+			IPC_SET_RETVAL(call->data, -1);
+		}
+		ipc_answer(&ns_answerbox, call);
+	}
 }
 
-
-/** Create new task
+/** Name service initialization and start
  *
- * Create new task with no threads.
- *
- * @param as Task's address space.
- *
- * @return New task's structure on success, NULL on failure.
- *
+ * This must be started before any task that communicates with name service
  */
-task_t *task_create(as_t *as)
+void ns_start(void)
 {
-	ipl_t ipl;
-	task_t *ta;
+	thread_t *t;
+
+	ipc_answerbox_init(&ns_answerbox);
+	ipc_phone_0 = &ns_answerbox;
 	
-	ta = (task_t *) malloc(sizeof(task_t), 0);
-
-	spinlock_initialize(&ta->lock, "task_ta_lock");
-	list_initialize(&ta->th_head);
-	list_initialize(&ta->tasks_link);
-	ta->as = as;
-
-	ipc_answerbox_init(&ta->answerbox);
-	memsetb((__address)&ta->phones, sizeof(ta->phones[0])*IPC_MAX_PHONES, 0);
-	if (ipc_phone_0)
-		ipc_phone_init(&ta->phones[0], ipc_phone_0);
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	list_append(&ta->tasks_link, &tasks_head);
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);
-
-	return ta;
+	if ((t = thread_create(ns_thread, NULL, TASK, 0)))
+		thread_ready(t);
+	else
+		panic("thread_create/phonecompany");
 }
-

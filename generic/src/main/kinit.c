@@ -47,6 +47,7 @@
 #include <interrupt.h>
 #include <console/kconsole.h>
 #include <elf.h>
+#include <ipc/ns.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
@@ -138,7 +139,8 @@ void kinit(void *arg)
 
 	interrupts_enable();
 
-	ipc_create_phonecompany();
+	/* Initialize name service */
+	ns_start();
 
 	if (config.init_size > 0) {
 		/*

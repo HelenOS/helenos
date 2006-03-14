@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/as.h>
-#include <mm/slab.h>
+#ifndef __NS_H_
+#define __NS_H_
 
-#include <synch/spinlock.h>
-#include <arch.h>
-#include <panic.h>
-#include <adt/list.h>
+/* NameService methods */
+
+/** Ping name service */
+#define NS_PING   1
+
+
+#ifdef KERNEL
+
 #include <ipc/ipc.h>
-#include <ipc/ns.h>
-#include <memstr.h>
 
-SPINLOCK_INITIALIZE(tasks_lock);
-LIST_INITIALIZE(tasks_head);
+extern void ns_start(void);
 
-/** Initialize tasks
- *
- * Initialize kernel tasks support.
- *
- */
-void task_init(void)
-{
-	TASK = NULL;
-}
+#endif
 
-
-/** Create new task
- *
- * Create new task with no threads.
- *
- * @param as Task's address space.
- *
- * @return New task's structure on success, NULL on failure.
- *
- */
-task_t *task_create(as_t *as)
-{
-	ipl_t ipl;
-	task_t *ta;
-	
-	ta = (task_t *) malloc(sizeof(task_t), 0);
-
-	spinlock_initialize(&ta->lock, "task_ta_lock");
-	list_initialize(&ta->th_head);
-	list_initialize(&ta->tasks_link);
-	ta->as = as;
-
-	ipc_answerbox_init(&ta->answerbox);
-	memsetb((__address)&ta->phones, sizeof(ta->phones[0])*IPC_MAX_PHONES, 0);
-	if (ipc_phone_0)
-		ipc_phone_init(&ta->phones[0], ipc_phone_0);
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	list_append(&ta->tasks_link, &tasks_head);
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);
-
-	return ta;
-}
-
+#endif

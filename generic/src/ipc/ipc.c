@@ -31,7 +31,8 @@
  * First the answerbox, then the phone
  */
 
-#include <synch/waitq.h>
+#include <synch/condvar.h>
+#include <synch/mutex.h>
 #include <ipc/ipc.h>
 #include <errno.h>
 #include <mm/slab.h>
@@ -43,7 +44,8 @@
 #include <print.h>
 #include <proc/thread.h>
 
-answerbox_t *ipc_central_box;
+/* Open channel that is assigned automatically to new tasks */
+answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
 
@@ -63,6 +65,13 @@ call_t * ipc_call_alloc(void)
 	return call;
 }
 
+/** Initialize allocated call */
+void ipc_call_init(call_t *call)
+{
+	call->callerbox = &TASK->answerbox;
+	call->flags = IPC_CALL_STATIC_ALLOC;
+}
+
 /** Deallocate call stracuture */
 void ipc_call_free(call_t *call)
 {
@@ -73,8 +82,8 @@ void ipc_call_free(call_t *call)
  */
 void ipc_answerbox_init(answerbox_t *box)
 {
-	spinlock_initialize(&box->lock, "abox_lock");
-	waitq_initialize(&box->wq);
+	mutex_initialize(&box->mutex);
+	condvar_initialize(&box->cv);
 	list_initialize(&box->connected_phones);
 	list_initialize(&box->calls);
 	list_initialize(&box->dispatched_calls);
@@ -88,9 +97,10 @@ void ipc_phone_init(phone_t *phone, answerbox_t *box)
 	spinlock_initialize(&phone->lock, "phone_lock");
 	
 	phone->callee = box;
-	spinlock_lock(&box->lock);
+
+	mutex_lock(&box->mutex);
 	list_append(&phone->list, &box->connected_phones);
-	spinlock_unlock(&box->lock);
+	mutex_unlock(&box->mutex);
 }
 
 /** Disconnect phone from answerbox */
@@ -100,9 +110,9 @@ void ipc_phone_destroy(phone_t *phone)
 	
 	ASSERT(box);
 
-	spinlock_lock(&box->lock);
+	mutex_lock(&box->mutex);
 	list_remove(&phone->list);
-	spinlock_unlock(&box->lock);
+	mutex_unlock(&box->mutex);
 }
 
 /** Helper function to facilitate synchronous calls */
@@ -130,10 +140,10 @@ void ipc_call(phone_t *phone, call_t *request)
 
 	ASSERT(box);
 
-	spinlock_lock(&box->lock);
+	mutex_lock(&box->mutex);
 	list_append(&request->list, &box->calls);
-	spinlock_unlock(&box->lock);
-	waitq_wakeup(&box->wq, 0);
+	mutex_unlock(&box->mutex);
+	condvar_signal(&box->cv);
 }
 
 /** Answer message back to phone
@@ -147,15 +157,14 @@ void ipc_answer(answerbox_t *box, call_t *request)
 
 	request->flags |= IPC_CALL_ANSWERED;
 
-	spinlock_lock(&box->lock);
-	spinlock_lock(&callerbox->lock);
-
+	mutex_lock(&box->mutex);
 	list_remove(&request->list);
-	list_append(&request->list, &callerbox->answers);
-	waitq_wakeup(&callerbox->wq, 0);
+	mutex_unlock(&box->mutex);
 
-	spinlock_unlock(&callerbox->lock);
-	spinlock_unlock(&box->lock);
+	mutex_lock(&callerbox->mutex);
+	list_append(&request->list, &callerbox->answers);
+	mutex_unlock(&callerbox->mutex);
+	condvar_signal(&callerbox->cv);
 }
 
 /** Wait for phone call 
@@ -167,30 +176,30 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 {
 	call_t *request;
 
-	if ((flags & IPC_WAIT_NONBLOCKING)) {
-		if (waitq_sleep_timeout(&box->wq,SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING) == ESYNCH_WOULD_BLOCK)
-			return 0;
-	} else {
-		waitq_sleep(&box->wq);
+	mutex_lock(&box->mutex);
+	while (1) { 
+		if (!list_empty(&box->answers)) {
+			/* Handle asynchronous answers */
+			request = list_get_instance(box->answers.next, call_t, list);
+			list_remove(&request->list);
+		} else if (!list_empty(&box->calls)) {
+			/* Handle requests */
+			request = list_get_instance(box->calls.next, call_t, list);
+			list_remove(&request->list);
+			/* Append request to dispatch queue */
+			list_append(&request->list, &box->dispatched_calls);
+		} else {
+			if (!(flags & IPC_WAIT_NONBLOCKING)) {
+				condvar_wait(&box->cv, &box->mutex);
+				continue;
+			}
+			if (condvar_trywait(&box->cv, &box->mutex) != ESYNCH_WOULD_BLOCK)
+				continue;
+			request = NULL;
+		}
+		break;
 	}
-
-
-	// TODO - might need condition variable+mutex if we want to support
-	// removing of requests from queue before dispatch
-	spinlock_lock(&box->lock);
-	/* Handle answers first */
-	if (!list_empty(&box->answers)) {
-		request = list_get_instance(box->answers.next, call_t, list);
-		list_remove(&request->list);
-	} else {
-		ASSERT (! list_empty(&box->calls));
-		request = list_get_instance(box->calls.next, call_t, list);
-		list_remove(&request->list);
-		/* Append request to dispatch queue */
-		list_append(&request->list, &box->dispatched_calls);
-	}
-	spinlock_unlock(&box->lock);
-
+	mutex_unlock(&box->mutex);
 	return request;
 }
 
@@ -201,33 +210,4 @@ void ipc_init(void)
 					  sizeof(call_t),
 					  0,
 					  NULL, NULL, 0);
-}
-
-static void ipc_phonecompany_thread(void *data)
-{
-	call_t *call;
-
-	printf("Phone company started.\n");
-	while (1) {
-		call = ipc_wait_for_call(&TASK->answerbox, 0);
-		printf("Received phone call - %P %P\n",
-		       call->data[0], call->data[1]);
-		call->data[0] = 0xbabaaaee;;
-		call->data[1] = 0xaaaaeeee;
-		ipc_answer(&TASK->answerbox, call);
-		printf("Call answered.\n");
-	}
-}
-
-void ipc_create_phonecompany(void)
-{
-	thread_t *t;
-	
-	if ((t = thread_create(ipc_phonecompany_thread, "phonecompany", 
-			       TASK, 0)))
-		thread_ready(t);
-	else
-		panic("thread_create/phonecompany");
-
-	ipc_central_box = &TASK->answerbox;
 }
