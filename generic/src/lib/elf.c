@@ -185,16 +185,14 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	if (ALIGN_UP(entry->p_vaddr, PAGE_SIZE) != entry->p_vaddr)
 		return EE_UNSUPPORTED;
 
-	/*
-	 * Copying the segment out is certainly necessary for segments with p_filesz < p_memsz
-	 * because of the effect of .bss-like sections. For security reasons, it looks like a
-	 * good idea to copy the segment anyway.
-	 */
 	segment_size = ALIGN_UP(max(entry->p_filesz, entry->p_memsz), PAGE_SIZE);
-	segment = malloc(segment_size, 0);
-	if (entry->p_filesz < entry->p_memsz)
+	if ((entry->p_flags & PF_W)) {
+		/* If writable, copy data (should be COW in the future) */
+		segment = malloc(segment_size, 0);
 		memsetb((__address) (segment + entry->p_filesz), segment_size - entry->p_filesz, 0);
-	memcpy(segment, (void *) (((__address) elf) + entry->p_offset), entry->p_filesz);
+		memcpy(segment, (void *) (((__address) elf) + entry->p_offset), entry->p_filesz);
+	} else /* Map identically original data */
+		segment = ((void *) elf) + entry->p_offset;
 
 	a = as_area_create(as, type, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
 	if (!a)

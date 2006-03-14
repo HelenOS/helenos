@@ -27,7 +27,6 @@
  */
 
 #include <main/kinit.h>
-#include <main/uinit.h>
 #include <config.h>
 #include <arch.h>
 #include <proc/scheduler.h>
@@ -46,7 +45,6 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
-#include <elf.h>
 #include <ipc/ns.h>
 
 #ifdef CONFIG_SMP
@@ -71,10 +69,6 @@
 void kinit(void *arg)
 {
 	thread_t *t;
-	as_t *as;
-	as_area_t *a;
-	int rc;
-	task_t *u;
 
 	interrupts_disable();
 
@@ -149,30 +143,9 @@ void kinit(void *arg)
 		
 		if (config.init_addr % FRAME_SIZE)
 			panic("config.init_addr is not frame aligned");
-		
-		as = as_create(0);
-		if (!as)
-			panic("as_create\n");
 
-		rc = elf_load((elf_header_t *) config.init_addr, as);
-		if (rc != EE_OK) {
-			printf("elf_load failed: %s\n", elf_error(rc));
-		} else {
-			u = task_create(as);
-			if (!u)
-				panic("task_create\n");
-			t = thread_create(uinit, (void *)((elf_header_t *) config.init_addr)->e_entry, u, THREAD_USER_STACK);
-			if (!t)
-				panic("thread_create\n");
-		
-			/*
-			 * Create the data as_area.
-			 */
-			a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
-			if (!a)
-				panic("as_area_create: stack\n");
-
-			thread_ready(t);
+		if (!task_run_program((void *)config.init_addr)) {
+			printf("Userspace not started.\n");
 		}
 	}
 

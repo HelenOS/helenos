@@ -49,5 +49,6 @@ extern link_t tasks_head;
 
 extern void task_init(void);
 extern task_t *task_create(as_t *as);
+extern task_t *task_run_program(void * program_addr);
 
 #endif

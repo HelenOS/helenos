@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <mm/as.h>
@@ -38,6 +39,8 @@
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <memstr.h>
+
+#include <elf.h>
 
 SPINLOCK_INITIALIZE(tasks_lock);
 LIST_INITIALIZE(tasks_head);
@@ -59,7 +62,7 @@ void task_init(void)
  *
  * @param as Task's address space.
  *
- * @return New task's structure on success, NULL on failure.
+ * @return New task's structure
  *
  */
 task_t *task_create(as_t *as)
@@ -88,3 +91,36 @@ task_t *task_create(as_t *as)
 	return ta;
 }
 
+/** Create new task with 1 thread and run it
+ *
+ * @return Task of the running program or NULL on error
+ */
+task_t * task_run_program(void *program_addr)
+{
+	as_t *as;
+	as_area_t *a;
+	int rc;
+	thread_t *t;
+	task_t *task;
+
+	as = as_create(0);
+
+	rc = elf_load((elf_header_t *) config.init_addr, as);
+	if (rc != EE_OK) {
+		as_free(as);
+		return NULL;
+	} 
+	
+	task = task_create(as);
+	t = thread_create(uinit, (void *)((elf_header_t *) config.init_addr)->e_entry, 
+			  task, THREAD_USER_STACK);
+	
+	/*
+	 * Create the data as_area.
+	 */
+	a = as_area_create(as, AS_AREA_STACK, 1, USTACK_ADDRESS);
+	
+	thread_ready(t);
+
+	return task;
+}

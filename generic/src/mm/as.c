@@ -103,6 +103,16 @@ as_t *as_create(int flags)
 	return as;
 }
 
+/** Free Adress space */
+void as_free(as_t *as)
+{
+	ASSERT(as->refcount == 0);
+
+	/* TODO: free as_areas and other resources held by as */
+	/* TODO: free page table */
+	free(as);
+}
+
 /** Create address space area of common attributes.
  *
  * The created address space area is added to the target address space.

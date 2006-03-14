@@ -107,6 +107,7 @@ extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __a
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
 extern void as_switch(as_t *old, as_t *new);
+extern void as_free(as_t *as);
 
 /* Interface to be implemented by architectures. */
 #ifndef as_install_arch
