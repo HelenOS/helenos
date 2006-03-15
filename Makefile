@@ -149,7 +149,7 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all build config distclean clean archlinks depend boot disasm
+.PHONY: all build config distclean clean archlinks depend disasm
 
 all:
 	tools/config.py default $(NARCH)
@@ -160,7 +160,7 @@ ifdef NARCH
 endif
 	$(MAKE) -C . build
 
-build: kernel.bin boot disasm
+build: kernel.bin disasm
 
 config:
 	-rm Makefile.depend
@@ -176,7 +176,6 @@ clean:
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 	for arch in arch/*; do \
 	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null;\
-	    $(MAKE) -C $$arch/boot clean; \
 	done;exit 0
 
 archlinks:
@@ -209,9 +208,6 @@ kernel.raw: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GE
 
 kernel.bin: kernel.raw
 	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin
-
-boot: kernel.bin
-	if [ -d arch/$(ARCH)/boot ] ; then $(MAKE) -C arch/$(ARCH)/boot build KERNEL_SIZE="`cat kernel.bin | wc -c`" CC=$(CC) AS=$(AS) LD=$(LD) ; fi
 
 disasm: kernel.raw
 	$(OBJDUMP) -d kernel.raw > kernel.disasm
