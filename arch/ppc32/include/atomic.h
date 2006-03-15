@@ -31,6 +31,12 @@
 
 #include <arch/types.h>
 
+#define atomic_inc_pre(x) (atomic_inc(x) - 1)
+#define atomic_dec_pre(x) (atomic_dec(x) + 1)
+
+#define atomic_inc_post(x) atomic_inc(x)
+#define atomic_dec_post(x) atomic_dec(x)
+
 typedef struct { volatile __u32 count; } atomic_t;
 
 static inline void atomic_inc(atomic_t *val) {
