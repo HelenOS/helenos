@@ -27,7 +27,6 @@
 #
 
 #include "regname.h"
-#include "spr.h"
 
 .data
 
@@ -164,18 +163,18 @@ flush_instruction_cache:
 	# Invalidate instruction cache
 	
 	li r3, 0
-	ori	r3, r3, (HID0_ICE | HID0_DCE | HID0_ICFI | HID0_DCI)
-	mfspr r4, SPRN_HID0
+	ori	r3, r3, (hid0_ice | hid0_dce | hid0_icfi | hid0_dci)
+	mfspr r4, hid0
 	or r5, r4, r3
 	isync
-	mtspr SPRN_HID0, r5
+	mtspr hid0, r5
 	sync
 	isync
 	
 	# Enable instruction cache
 	
-	ori	r5, r4, HID0_ICE
-	mtspr SPRN_HID0, r5
+	ori	r5, r4, hid0_ice
+	mtspr hid0, r5
 	sync
 	isync
 	blr
@@ -184,4 +183,3 @@ jump_to_kernel:
 	mr r10, r4
 	mtlr r3
 	blr
-
