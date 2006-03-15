@@ -30,9 +30,13 @@
 #include <arch/console.h>
 #include <arch/drivers/cuda.h>
 #include <arch/mm/memory_init.h>
+#include <arch/interrupt.h>
 
 void arch_pre_mm_init(void)
 {
+	/* Initialize dispatch table */
+	interrupt_init();	
+
 	ppc32_console_init();
 	cuda_init();
 }

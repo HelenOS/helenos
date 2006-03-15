@@ -83,7 +83,6 @@ ifeq ($(CONFIG_SIMICS_FIX),y)
 endif
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/pm.c \

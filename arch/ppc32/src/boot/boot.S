@@ -27,7 +27,6 @@
 #
 
 #include <arch/asm/regname.h>
-#include <arch/asm/spr.h>
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
 

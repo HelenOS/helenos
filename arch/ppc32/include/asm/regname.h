@@ -189,4 +189,8 @@
 #define	sprg3	275
 #define	prv		287
 
+/* MSR bits */
+#define msr_ir	(1 << 4)
+#define msr_dr	(1 << 5)
+
 #endif

@@ -31,12 +31,68 @@
 .text
 
 .global cpu_sleep
+.global iret
 .global memsetb
 .global memcpy
 
 cpu_sleep:
 	b cpu_sleep
 
+iret:
+	lwz r3, 144(sp)
+	mtxer r3
+	
+	lwz r3, 140(sp)
+	mtctr r3
+	
+	lwz r3, 136(sp)
+	mtcr r3
+	
+	lwz r3, 132(sp)
+	mtlr r3
+	
+	lwz r3, 128(sp)
+	mtspr srr1, r3
+	
+	lwz r3, 124(sp)
+	mtspr srr0, r3
+	
+	lwz r0, 0(sp)
+	lwz r2, 4(sp)
+	lwz r3, 8(sp)
+	lwz r4, 12(sp)
+	lwz r5, 16(sp)
+	lwz r6, 20(sp)
+	lwz r7, 24(sp)
+	lwz r8, 28(sp)
+	lwz r9, 32(sp)
+	lwz r10, 36(sp)
+	lwz r11, 40(sp)
+	lwz r12, 44(sp)
+	lwz r13, 48(sp)
+	lwz r14, 52(sp)
+	lwz r15, 56(sp)
+	lwz r16, 60(sp)
+	lwz r17, 64(sp)
+	lwz r18, 68(sp)
+	lwz r19, 72(sp)
+	lwz r20, 76(sp)
+	lwz r21, 80(sp)
+	lwz r22, 84(sp)
+	lwz r23, 88(sp)
+	lwz r24, 92(sp)
+	lwz r25, 96(sp)
+	lwz r26, 100(sp)
+	lwz r27, 104(sp)
+	lwz r28, 108(sp)
+	lwz r29, 112(sp)
+	lwz r30, 116(sp)
+	lwz r31, 120(sp)
+	
+	mfspr sp, sprg1
+	
+	rfi
+	
 memsetb:
 	rlwimi r5, r5, 8, 16, 23
 	rlwimi r5, r5, 16, 0, 15

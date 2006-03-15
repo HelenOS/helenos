@@ -29,8 +29,9 @@
 #ifndef __CUDA_H__
 #define __CUDA_H__
 
+#include <arch/types.h>
 
-void cuda_init(void);
-
+extern void cuda_init(void);
+extern void cuda_packet(const __u8 data);
 
 #endif

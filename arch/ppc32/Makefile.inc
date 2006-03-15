@@ -62,6 +62,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ppc32.c \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/exception.S \
+	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \

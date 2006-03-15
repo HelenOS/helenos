@@ -29,6 +29,11 @@
 #ifndef __ppc32_INTERRUPT_H__
 #define __ppc32_INTERRUPT_H__
 
-extern void interrupt(void);
+#define IVT_ITEMS   15
+#define INT_OFFSET  0
+
+#define VECTOR_DECREMENTER 10
+
+extern void interrupt_init(void);
 
 #endif

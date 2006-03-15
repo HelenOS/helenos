@@ -26,10 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch/mm/page.h>
 #include <proc/scheduler.h>
+#include <proc/thread.h>
+#include <arch.h>
+
+__address supervisor_sp;
+__address supervisor_sp_physical;
 
 void before_thread_runs_arch(void)
 {
+	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
+	supervisor_sp_physical = KA2PA(supervisor_sp_physical);
 }
 
 void after_thread_ran_arch(void)

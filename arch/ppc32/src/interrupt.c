@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_SPR_H__
-#define __ppc32_SPR_H__
+#include <interrupt.h>
+#include <arch/interrupt.h>
+#include <arch/types.h>
+#include <arch.h>
+#include <time/clock.h>
+#include <print.h>
 
-#define MSR_IR (1 << 4)
-#define MSR_DR (1 << 5)
+static void exception_decrementer(int n, istate_t *istate)
+{
+	clock();
+}
 
-#define SPRN_SRR0  0x1a
-#define SPRN_SRR1  0x1b
 
-/* Works for PPC32 */
-#define L1_CACHE_BYTES (1 << 5)
-
-#endif
+/* Initialize basic tables for exception dispatching */
+void interrupt_init(void)
+{
+	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
+}

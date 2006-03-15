@@ -53,7 +53,7 @@ void cuda_init(void)
 }
 
 
-static void cuda_packet(const __u8 data)
+void cuda_packet(const __u8 data)
 {
 	cuda[B] = cuda[B] | TIP;
 	cuda[ACR] = cuda[ACR] | SR_OUT;
@@ -69,7 +69,8 @@ static void cuda_packet(const __u8 data)
 
 
 void cpu_halt(void) {
+#ifdef CONFIG_POWEROFF
 	cuda_packet(CUDA_POWERDOWN);
-	
+#endif
 	cpu_sleep();
 }
