@@ -283,7 +283,7 @@ void scheduler(void)
 
 	if (atomic_get(&haltstate))
 		halt();
-
+	
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
 #ifndef CONFIG_FPU_LAZY
@@ -295,6 +295,7 @@ void scheduler(void)
 			 */
 			spinlock_unlock(&THREAD->lock);
 			interrupts_restore(THREAD->saved_context.ipl);
+			
 			return;
 		}
 
@@ -342,9 +343,9 @@ void scheduler(void)
 void scheduler_separated_stack(void)
 {
 	int priority;
-
+	
 	ASSERT(CPU != NULL);
-
+	
 	if (THREAD) {
 		/* must be run after the switch to scheduler stack */
 		after_thread_ran();

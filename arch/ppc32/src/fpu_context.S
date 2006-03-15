@@ -80,18 +80,18 @@
 .endm
 
 fpu_context_save:
-	FPU_CONTEXT_STORE r3
-	
-	mffs fr0
-	stfd fr0, OFFSET_FPSCR(r3)
+//	FPU_CONTEXT_STORE r3
+//	
+//	mffs fr0
+//	stfd fr0, OFFSET_FPSCR(r3)
 	
 	blr
 	
 fpu_context_restore:
-	FPU_CONTEXT_LOAD r3
-	
-	lfd fr0, OFFSET_FPSCR(r3)
-	mtfsf 7, fr0
+//	FPU_CONTEXT_LOAD r3
+//	
+//	lfd fr0, OFFSET_FPSCR(r3)
+//	mtfsf 7, fr0
 	
 	blr
 

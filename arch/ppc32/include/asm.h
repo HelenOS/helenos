@@ -120,13 +120,16 @@ static inline __address get_stack_base(void)
 {
 	__address v;
 	
-	__asm__ volatile ("and %0, %%r1, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	__asm__ volatile ("and %0, %%sp, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
 	return v;
 }
 
+static inline void cpu_sleep(void)
+{
+}
+
 void cpu_halt(void);
-void cpu_sleep(void);
 void asm_delay_loop(__u32 t);
 
 #endif

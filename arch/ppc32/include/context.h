@@ -33,7 +33,7 @@
 # include <arch/types.h>
 #endif
 
-#define SP_DELTA	8
+#define SP_DELTA	16
 
 struct context {
 	__address sp;

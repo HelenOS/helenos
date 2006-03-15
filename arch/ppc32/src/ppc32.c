@@ -35,7 +35,10 @@
 void arch_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
-	interrupt_init();	
+	interrupt_init();
+	
+	/* Start decrementer */
+	start_decrementer();
 
 	ppc32_console_init();
 	cuda_init();
@@ -57,3 +60,4 @@ void arch_post_smp_init(void)
 void calibrate_delay_loop(void)
 {
 }
+

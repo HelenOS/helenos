@@ -47,4 +47,4 @@ userspace:
 	b userspace
 
 asm_delay_loop:
-	b asm_delay_loop
+	blr

@@ -75,6 +75,6 @@ kernel_image_start:
 	b main_bsp
 
 .section K_DATA_START, "aw", @progbits
-	
+
 	.space TEMP_STACK_SIZE
 end_stack:

@@ -33,9 +33,20 @@
 #include <time/clock.h>
 #include <print.h>
 
+
+void start_decrementer(void)
+{
+	asm volatile (
+		"mtdec %0\n"
+		:: "r" (1000)
+	);
+}
+
+
 static void exception_decrementer(int n, istate_t *istate)
 {
 	clock();
+	start_decrementer();
 }
 
 

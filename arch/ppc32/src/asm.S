@@ -30,13 +30,9 @@
 
 .text
 
-.global cpu_sleep
 .global iret
 .global memsetb
 .global memcpy
-
-cpu_sleep:
-	b cpu_sleep
 
 iret:
 	lwz r3, 144(sp)

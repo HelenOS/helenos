@@ -34,6 +34,7 @@
 
 #define VECTOR_DECREMENTER 10
 
+extern void start_decrementer(void);
 extern void interrupt_init(void);
 
 #endif
