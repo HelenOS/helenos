@@ -31,9 +31,14 @@
 
 #include <kernel/ipc/ipc.h>
 #include <libc.h>
+#include <types.h>
 
 typedef sysarg_t ipcarg_t;
-typedef ipcarg_t ipc_data_t[IPC_CALL_LEN];
+typedef sysarg_t ipc_data_t[IPC_CALL_LEN];
+typedef struct {
+	unsigned long long taskid;
+	ipc_data_t data;
+}ipc_call_t;
 typedef sysarg_t ipc_callid_t;
 
 typedef void (* ipc_async_callback_t)(void *private, 
@@ -49,7 +54,7 @@ extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 			 ipcarg_t *result);
-extern int ipc_wait_for_call(ipc_data_t *data, int flags);
+extern int ipc_wait_for_call(ipc_call_t *data, int flags);
 extern void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 		       ipcarg_t arg2);
 

@@ -82,7 +82,8 @@ int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 
-	callres = __SYSCALL2(SYS_IPC_CALL_SYNC, phoneid, (sysarg_t)&data);
+	callres = __SYSCALL3(SYS_IPC_CALL_SYNC, phoneid, (sysarg_t)&data,
+			     (sysarg_t)&data);
 	if (callres)
 		return callres;
 
@@ -121,7 +122,6 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
 	if (callid == IPC_CALLRET_FATAL) {
 		/* Call asynchronous handler with error code */
-		IPC_SET_RETVAL(call->u.msg.data, ENOENT);
 		callback(private, ENOENT, NULL);
 		free(call);
 		return;
@@ -150,14 +150,15 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 		ipcarg_t arg2)
 {
-	__SYSCALL4(SYS_IPC_ANSWER, callid, retval, arg1, arg2);
+	__SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
 }
 
 
 /** Call syscall function sys_ipc_wait_for_call */
-static inline ipc_callid_t _ipc_wait_for_call(ipc_data_t *data, int flags)
+static inline ipc_callid_t _ipc_wait_for_call(ipc_call_t *call, int flags)
 {
-	return __SYSCALL2(SYS_IPC_WAIT, (sysarg_t)data, flags);
+	return __SYSCALL3(SYS_IPC_WAIT, (sysarg_t)&call->data, 
+			  (sysarg_t)&call->taskid, flags);
 }
 
 /** Try to dispatch queed calls from async queue */
@@ -220,17 +221,17 @@ static void handle_answer(ipc_callid_t callid, ipc_data_t *data)
  * @return Callid or 0 if nothing available and started with 
  *         IPC_WAIT_NONBLOCKING
  */
-int ipc_wait_for_call(ipc_data_t *data, int flags)
+int ipc_wait_for_call(ipc_call_t *call, int flags)
 {
 	ipc_callid_t callid;
 
 	do {
 		try_dispatch_queued_calls();
 
-		callid = _ipc_wait_for_call(data, flags);
+		callid = _ipc_wait_for_call(call, flags);
 		/* Handle received answers */
 		if (callid & IPC_CALLID_ANSWERED)
-			handle_answer(callid, data);
+			handle_answer(callid, &call->data);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;
