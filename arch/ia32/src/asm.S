@@ -89,59 +89,56 @@ enable_l_apic_in_msr:
 	.else
 		movl $0, %eax
 	.endif
-	andl $ERROR_WORD_INTERRUPT_LIST,%eax
+	andl $ERROR_WORD_INTERRUPT_LIST, %eax
+	movl (%esp), %eax
 
 	/*
-	 * If this interrupt/exception  stores error word,
+	 * If this interrupt/exception stores error word,
 	 * we need to pop EAX.
 	 * If this interrupt doesn't store error word, we emulate it
-	 * for the sake of consistent pstate structure. In that case
+	 * for the sake of consistent istate structure. In that case
 	 * we merely leave the EAX on the stack.
 	 */
 	jz 0f
 
 	/*
 	 * This exception stores error word.
+	 * Remove EAX from the stack.
 	 */
-	pop %eax
-	jmp 1f
+	addl $4, %esp
 
 0:
-	/*
-	 * This interrupt doesn't store error word.
-	 * Just restore EAX without doing POP.
-	 */
-	movl (%esp), %eax
-
-1:
 	pusha
 	movl %esp, %ebp
 	push %ds
 	push %es
+	push %fs
+	push %gs
 
 	# we must fill the data segment registers
 	movw $16,%ax
 	movw %ax,%ds
 	movw %ax,%es
 
-	movl $(\i),%edi
 	pushl %ebp
-	pushl %edi
+	pushl $(\i)
 	call exc_dispatch
 	addl $8,%esp
 
+	pop %gs
+	pop %fs
 	pop %es
 	pop %ds
 
 # Clear Nested Task flag.
 	pushfl
 	pop %eax
-	and $0xFFFFBFFF,%eax
+	and $0xffffbfff,%eax
 	push %eax
 	popfl
 	
 	popa
-	add $4,%esp	# Skip error word, whether real or fake.
+	addl $4,%esp	# Skip error word, whether real or fake.
 	iret
 
 	.if (\n-\i)-1
