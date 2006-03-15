@@ -31,15 +31,10 @@
 
 #include <arch/types.h>
 
-#define atomic_inc_pre(x) (atomic_inc(x) - 1)
-#define atomic_dec_pre(x) (atomic_dec(x) + 1)
-
-#define atomic_inc_post(x) atomic_inc(x)
-#define atomic_dec_post(x) atomic_dec(x)
-
 typedef struct { volatile __u32 count; } atomic_t;
 
-static inline void atomic_inc(atomic_t *val) {
+static inline void atomic_inc(atomic_t *val)
+{
 	__u32 tmp;
 
 	asm __volatile__ (
@@ -53,7 +48,8 @@ static inline void atomic_inc(atomic_t *val) {
 		: "cc");
 }
 
-static inline void atomic_dec(atomic_t *val) {
+static inline void atomic_dec(atomic_t *val)
+{
 	__u32 tmp;
 
 	asm __volatile__(
@@ -65,6 +61,30 @@ static inline void atomic_dec(atomic_t *val) {
 		: "=&r" (tmp), "=m" (val->count)
 		: "r" (&val->count), "m" (val->count)
 		: "cc");
+}
+
+static inline __u32 atomic_inc_pre(atomic_t *val)
+{
+	atomic_inc(val);
+	return val->count - 1;
+}
+
+static inline __u32 atomic_dec_pre(atomic_t *val)
+{
+	atomic_dec(val);
+	return val->count + 1;
+}
+
+static inline __u32 atomic_inc_post(atomic_t *val)
+{
+	atomic_inc(val);
+	return val->count;
+}
+
+static inline __u32 atomic_dec_post(atomic_t *val)
+{
+	atomic_dec(val);
+	return val->count;
 }
 
 static inline void atomic_set(atomic_t *val, __u32 i)
