@@ -59,7 +59,7 @@ static inline void atomic_dec(atomic_t *val) {
 #endif /* CONFIG_SMP */
 }
 
-static inline count_t atomic_inc_pre(atomic_t *val) 
+static inline count_t atomic_postinc(atomic_t *val) 
 {
 	count_t r;
 
@@ -72,7 +72,7 @@ static inline count_t atomic_inc_pre(atomic_t *val)
 	return r;
 }
 
-static inline count_t atomic_dec_pre(atomic_t *val) 
+static inline count_t atomic_postdec(atomic_t *val) 
 {
 	count_t r;
 	
@@ -85,8 +85,8 @@ static inline count_t atomic_dec_pre(atomic_t *val)
 	return r;
 }
 
-#define atomic_inc_post(val) (atomic_inc_pre(val)+1)
-#define atomic_dec_post(val) (atomic_dec_pre(val)-1)
+#define atomic_preinc(val) (atomic_postinc(val)+1)
+#define atomic_predec(val) (atomic_postdec(val)-1)
 
 static inline __u32 test_and_set(atomic_t *val) {
 	__u32 v;

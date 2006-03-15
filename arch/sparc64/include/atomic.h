@@ -62,6 +62,26 @@ static inline count_t atomic_add(atomic_t *val, int i)
 	return a;
 }
 
+static inline count_t atomic_preinc(atomic_t *val)
+{
+	return atomic_add(val, 1) + 1;
+}
+
+static inline count_t atomic_postinc(atomic_t *val)
+{
+	return atomic_add(val, 1);
+}
+
+static inline count_t atomic_predec(atomic_t *val)
+{
+	return atomic_add(val, -1) - 1;
+}
+
+static inline count_t atomic_postdec(atomic_t *val)
+{
+	return atomic_add(val, 1);
+}
+
 static inline void atomic_inc(atomic_t *val)
 {
 	(void) atomic_add(val, 1);

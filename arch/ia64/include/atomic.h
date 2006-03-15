@@ -38,7 +38,7 @@ typedef struct { volatile __u64 count; } atomic_t;
  * @param val Atomic value.
  * @param imm Value to add.
  *
- * @return Value after addition.
+ * @return Value before addition.
  */
 static inline count_t atomic_add(atomic_t *val, int imm)
 {
@@ -62,10 +62,10 @@ static inline __u32 atomic_get(atomic_t *val)
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
 static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
 
-static inline count_t atomic_inc_pre(atomic_t *val) { return atomic_add(val, 1); }
-static inline count_t atomic_dec_pre(atomic_t *val) { return atomic_add(val, -1); }
+static inline count_t atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
+static inline count_t atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
 
-static inline count_t atomic_inc_post(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline count_t atomic_dec_post(atomic_t *val) { return atomic_add(val, -1) - 1; }
+static inline count_t atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
+static inline count_t atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif

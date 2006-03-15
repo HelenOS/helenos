@@ -34,12 +34,11 @@
 #define atomic_inc(x)	((void) atomic_add(x, 1))
 #define atomic_dec(x)	((void) atomic_add(x, -1))
 
-#define atomic_inc_pre(x) (atomic_add(x, 1) - 1)
-#define atomic_dec_pre(x) (atomic_add(x, -1) + 1)
+#define atomic_postinc(x) (atomic_add(x, 1) - 1)
+#define atomic_postdec(x) (atomic_add(x, -1) + 1)
 
-#define atomic_inc_post(x) atomic_add(x, 1)
-#define atomic_dec_post(x) atomic_add(x, -1)
-
+#define atomic_preinc(x) atomic_add(x, 1)
+#define atomic_predec(x) atomic_add(x, -1)
 
 typedef struct { volatile __u32 count; } atomic_t;
 

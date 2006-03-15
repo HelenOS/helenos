@@ -124,7 +124,7 @@ static __native sys_ipc_call_sync(__native phoneid, __native *question,
  */
 static int check_call_limit(void)
 {
-	if (atomic_inc_post(&TASK->active_calls) > IPC_MAX_ASYNC_CALLS) {
+	if (atomic_preinc(&TASK->active_calls) > IPC_MAX_ASYNC_CALLS) {
 		atomic_dec(&TASK->active_calls);
 		return -1;
 	}

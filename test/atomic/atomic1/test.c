@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,75 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_ATOMIC_H__
-#define __ppc32_ATOMIC_H__
+#include <test.h>
+#include <print.h>
+#include <arch/atomic.h>
+#include <debug.h>
 
-#include <arch/types.h>
-
-typedef struct { volatile __u32 count; } atomic_t;
-
-static inline void atomic_inc(atomic_t *val)
+void test(void)
 {
-	__u32 tmp;
+	atomic_t a;
 
-	asm __volatile__ (
-		"1:\n"
-		"lwarx %0, 0, %2\n"
-		"addic %0, %0, 1\n"
-		"stwcx. %0, 0, %2\n"
-		"bne- 1b"
-		: "=&r" (tmp), "=m" (val->count)
-		: "r" (&val->count), "m" (val->count)
-		: "cc");
+	atomic_set(&a, 10);
+	printf("Testing atomic_set() and atomic_get().\n");
+	ASSERT(atomic_get(&a) == 10);
+	printf("Testing atomic_postinc()\n");
+	ASSERT(atomic_postinc(&a) == 10);
+	ASSERT(atomic_get(&a) == 11);
+	printf("Testing atomic_postdec()\n");
+	ASSERT(atomic_postdec(&a) == 11);
+	ASSERT(atomic_get(&a) == 10);
+	printf("Testing atomic_preinc()\n");
+	ASSERT(atomic_preinc(&a) == 11);
+	ASSERT(atomic_get(&a) == 11);
+	printf("Testing atomic_predec()\n");
+	ASSERT(atomic_postdec(&a) == 11);
+	ASSERT(atomic_get(&a) == 10);
+
+	printf("Test passed.\n");	
+	return;
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	__u32 tmp;
-
-	asm __volatile__(
-		"1:\n"
-		"lwarx %0, 0, %2\n"
-		"addic %0, %0, -1\n"
-		"stwcx.	%0, 0, %2\n"
-		"bne- 1b"
-		: "=&r" (tmp), "=m" (val->count)
-		: "r" (&val->count), "m" (val->count)
-		: "cc");
-}
-
-static inline __u32 atomic_postinc(atomic_t *val)
-{
-	atomic_inc(val);
-	return val->count - 1;
-}
-
-static inline __u32 atomic_postdec(atomic_t *val)
-{
-	atomic_dec(val);
-	return val->count + 1;
-}
-
-static inline __u32 atomic_preinc(atomic_t *val)
-{
-	atomic_inc(val);
-	return val->count;
-}
-
-static inline __u32 atomic_predec(atomic_t *val)
-{
-	atomic_dec(val);
-	return val->count;
-}
-
-static inline void atomic_set(atomic_t *val, __u32 i)
-{
-	val->count = i;
-}
-
-static inline __u32 atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#endif
