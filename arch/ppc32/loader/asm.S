@@ -180,6 +180,53 @@ flush_instruction_cache:
 	blr
 
 jump_to_kernel:
+	
+	# r3 = kernel_start (va)
+	# r4 = memmap (pa)
+	# r5 = real_mode (pa)
+	
+	mtspr srr0, r5
+	
+	# jumps to real_mode
+	
+	mfmsr r5
+	lis r6, ~0@h
+	ori r6, r6, ~(msr_ir | msr_dr)@l
+	and r5, r5, r6
+	mtspr srr1, r5
+	rfi
+
+.section REALMODE
+.align 12
+.global real_mode
+
+real_mode:
+
+	# fill segment registers
+
+	li r5, 16
+	mtctr r5
+	li r5, 0
+	li r6, 0
+	
+	seg_fill:
+	
+		mtsrin r6, r5
+		addis r5, r5, 0x1000    # move to next SR
+		addis r6, r6, 0x10      # add 256 MB, move to next SR
+		
+		bdnz seg_fill
+	
+	# bootstrap kernel
+	#
+	# r3 = kernel_start (va)
+	# r4 = memmap (pa)       -> r10
+	
+	mtspr srr0, r3
+	
+	mfmsr r5
+	ori r5, r5, (msr_ir | msr_dr)@l
+	mtspr srr1, r5
+	
 	mr r10, r4
-	mtlr r3
-	blr
+	rfi

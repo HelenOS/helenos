@@ -52,8 +52,7 @@ void bootstrap(void)
 	}
 	printf("total memory %d MB\n", memmap.total >> 20);
 	
-	// FIXME: map just the kernel
-	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, memmap.total - 64 * 1024 * 1024, 0) != 0) {
+	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, KERNEL_SIZE + KERNEL_BOOT_OFFSET, 0) != 0) {
 		printf("Unable to map kernel memory at %L (physical %L)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS);
 		halt();
 	}
@@ -65,8 +64,10 @@ void bootstrap(void)
 	ofw_map((void *) 0x84000000, (void *) 0xf0000000, 0x01000000, 0);
 	ofw_map((void *) 0x80816000, (void *) 0xf2000000, 0x00018000, 0);
 	
+	void *tramp = ofw_translate(&real_mode);
+	printf("bootstrap trampoline at %L (physical %L)\n", &real_mode, tramp);
 	printf("Booting the kernel...\n");
 	
 	flush_instruction_cache();
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS + KERNEL_BOOT_OFFSET, ofw_translate(&memmap));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS + KERNEL_BOOT_OFFSET, ofw_translate(&memmap), tramp);
 }

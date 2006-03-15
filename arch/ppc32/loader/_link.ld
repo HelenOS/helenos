@@ -9,6 +9,7 @@ ENTRY(start)
 SECTIONS {
 	.image 0x10000000: AT (0) { 
 		*(BOOTSTRAP)
+		*(REALMODE)
 		*(.text);
 		
 		*(.rodata);

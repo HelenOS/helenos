@@ -30,7 +30,8 @@
 #define __ASM_H__
 
 void flush_instruction_cache(void);
-void jump_to_kernel(void *code, void *memmap) __attribute__((noreturn));
+void jump_to_kernel(void *code, void *memmap, void *real_mode) __attribute__((noreturn));
+void real_mode(void *code, void *memmap);
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 

@@ -65,7 +65,7 @@ all: image.boot
 -include Makefile.depend
 
 image.boot: depend $(OBJECTS) kernel.o
-	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
+	$(LD) -no-check-sections -N -T _link.ld -Map map $(OBJECTS) kernel.o -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
