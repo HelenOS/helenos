@@ -66,9 +66,10 @@ static void e(void *data)
 		}
 
 		if((int)(100000000*e)!=E_10e8)
-			panic("tid%d: e*10e8=%d\n", THREAD->tid, (int) 100000000*e);
+			panic("tid%d: e*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
 	}
 
+	printf("tid%d: e*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
 	atomic_inc(&threads_ok);
 }
 
@@ -96,9 +97,10 @@ static void pi(void *data)
 		}
 
 		if((int)(100000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e8=%d\n", THREAD->tid, (int) 100000000*pi);
+			panic("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
 	}
 
+	printf("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
 	atomic_inc(&threads_ok);
 }
 
