@@ -58,9 +58,8 @@ ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 all: kerninc libc.a arch/$(ARCH)/_link.ld
 
 kerninc:
-	ln -sf ../../../kernel/generic/include include/kernel
-	-rm include/arch
-	ln -sf kernel/arch include/arch
+	ln -sfn ../../../kernel/generic/include include/kernel
+	ln -sfn kernel/arch include/arch
 
 -include Makefile.depend
 
