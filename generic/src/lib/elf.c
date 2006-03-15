@@ -155,7 +155,7 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *
 int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	as_area_t *a;
-	int i, type = 0;
+	int i, flags = 0;
 	size_t segment_size;
 	__u8 *segment;
 
@@ -171,13 +171,12 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	if (entry->p_vaddr + ALIGN_UP(entry->p_memsz, PAGE_SIZE) >= USER_ADDRESS_SPACE_END)
 		return EE_MEMORY;
 	
-	if (entry->p_flags & PF_X) {
-		type = AS_AREA_TEXT;
-	} else if (entry->p_flags & PF_W) {
-		type = AS_AREA_DATA;
-	} else {
-		return EE_UNSUPPORTED;
-	}
+	if (entry->p_flags & PF_X)
+		flags |= AS_AREA_EXEC;
+	if (entry->p_flags & PF_W)
+		flags |= AS_AREA_WRITE;
+	if (entry->p_flags & PF_R)
+		flags |= AS_AREA_READ;
 
 	/*
 	 * Check if the virtual address starts on page boundary.
@@ -194,7 +193,7 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	} else /* Map identically original data */
 		segment = ((void *) elf) + entry->p_offset;
 
-	a = as_area_create(as, type, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
+	a = as_area_create(as, flags, SIZE2FRAMES(entry->p_memsz), entry->p_vaddr);
 	if (!a)
 		return EE_IRRECOVERABLE;
 	

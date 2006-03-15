@@ -119,13 +119,13 @@ void as_free(as_t *as)
  * The created address space area is added to the target address space.
  *
  * @param as Target address space.
- * @param type Type of area.
+ * @param flags Flags of the area.
  * @param size Size of area in multiples of PAGE_SIZE.
  * @param base Base address of area.
  *
  * @return Address space area on success or NULL on failure.
  */
-as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base)
+as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 {
 	ipl_t ipl;
 	as_area_t *a;
@@ -145,7 +145,7 @@ as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address 
 	spinlock_initialize(&a->lock, "as_area_lock");
 	
 	link_initialize(&a->link);			
-	a->type = type;
+	a->flags = flags;
 	a->size = size;
 	a->base = base;
 	
@@ -326,17 +326,16 @@ int get_area_flags(as_area_t *a)
 {
 	int flags;
 
-	switch (a->type) {
-		case AS_AREA_TEXT:
-			flags = PAGE_EXEC | PAGE_READ | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
-			break;
-		case AS_AREA_DATA:
-		case AS_AREA_STACK:
-			flags = PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
-			break;
-		default:
-			panic("unexpected as_area_type_t %d", a->type);
-	}
+	flags = PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
+	
+	if (a->flags & AS_AREA_READ)
+		flags |= PAGE_READ;
+		
+	if (a->flags & AS_AREA_WRITE)
+		flags |= PAGE_WRITE;
+	
+	if (a->flags & AS_AREA_EXEC)
+		flags |= PAGE_EXEC;
 	
 	return flags;
 }

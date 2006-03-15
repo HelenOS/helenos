@@ -48,9 +48,10 @@
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
 
-enum as_area_type {
-	AS_AREA_TEXT = 1, AS_AREA_DATA, AS_AREA_STACK 
-};
+/** Address space area flags. */
+#define AS_AREA_READ	1
+#define AS_AREA_WRITE	2
+#define AS_AREA_EXEC	4
 
 /** Address space area structure.
  *
@@ -60,7 +61,7 @@ enum as_area_type {
 struct as_area {
 	SPINLOCK_DECLARE(lock);
 	link_t link;
-	as_area_type_t type;
+	int flags;
 	size_t size;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
 };
@@ -103,7 +104,7 @@ extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
 extern as_t *as_create(int flags);
-extern as_area_t *as_area_create(as_t *as, as_area_type_t type, size_t size, __address base);
+extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base);
 extern __address as_remap(as_t *as, __address address, size_t size, int flags);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
