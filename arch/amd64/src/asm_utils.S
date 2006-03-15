@@ -26,15 +26,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#define IREGISTER_SPACE 120
+
+#define IOFFSET_RAX 0x0
+#define IOFFSET_RBX 0x8
+#define IOFFSET_RCX 0x10
+#define IOFFSET_RDX 0x18
+#define IOFFSET_RSI 0x20
+#define IOFFSET_RDI 0x28
+#define IOFFSET_R8 0x30
+#define IOFFSET_R9 0x38
+#define IOFFSET_R10 0x40
+#define IOFFSET_R11 0x48
+#define IOFFSET_R12 0x50
+#define IOFFSET_R13 0x58
+#define IOFFSET_R14 0x60
+#define IOFFSET_R15 0x68
+#define IOFFSET_RBP 0x70
 
 #  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
 # and 1 means interrupt with error word
-
-	
 #define ERROR_WORD_INTERRUPT_LIST 0x00027D00
 
 #include <arch/pm.h>
-#include <arch/context_offset.h>
 #include <arch/mm/page.h>
 	
 .text
@@ -141,44 +155,56 @@ read_efer_flag:
 	movq IOFFSET_R14(%rsp), %r14
 	movq IOFFSET_R15(%rsp), %r15
 .endm
-	
+
 ## Declare interrupt handlers
 #
 # Declare interrupt handlers for n interrupt
 # vectors starting at vector i.
 #
-# The handlers setup data segment registers
-# and call exc_dispatch().
+# The handlers call exc_dispatch().
 #
 .macro handler i n
-	subq $IREGISTER_SPACE, %rsp
+
+	/*
+	 * Choose between version with error code and version without error code.
+	 * Both versions have to be of the same size. amd64 assembly is, however,
+	 * a little bit tricky. For instance, subq $0x80, %rsp and subq $0x78, %rsp
+	 * can result in two instructions with different op-code lengths.
+	 * Therefore, pay special attention to the extra NOP's that serve as
+	 * a necessary fill.
+	 */
+
+	.iflt \i-32
+		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
+			/*
+			 * Version with error word.
+			 */
+			subq $IREGISTER_SPACE, %rsp
+			nop
+			nop
+			nop
+		.else
+			/*
+			 * Version without error word,
+			 */
+			subq $(IREGISTER_SPACE+8), %rsp
+		.endif
+	.else
+		/*
+		 * Version without error word,
+		 */
+		subq $(IREGISTER_SPACE+8), %rsp
+	.endif	
+
 	save_all_gpr
 
-	movq $(\i),%rdi   # %rdi - first parameter
-	movq %rsp, %rsi   # %rsi - pointer to interrupt_context
-	call exc_dispatch 	# exc_dispatch(i, stack)
-
-# Test if this is interrupt with error word or not
-	mov $\i,%cl;
-	movl $1,%eax;
-	test $0xe0,%cl;
-	jnz 0f;
-	and $0x1f,%cl;
-	shl %cl,%eax;
-	and $ERROR_WORD_INTERRUPT_LIST,%eax;
-	jz 0f;
-
-
-# Return with error word
+	movq $(\i), %rdi   	# %rdi - first parameter
+	movq %rsp, %rsi   	# %rsi - pointer to istate
+	call exc_dispatch 	# exc_dispatch(i, istate)
+	
 	restore_all_gpr
 	# $8 = Skip error word
-	addq $IREGISTER_SPACE + 0x8, %rsp
-	iretq
-
-0:
-# Return with no error word
-	restore_all_gpr
-	addq $IREGISTER_SPACE, %rsp
+	addq $(IREGISTER_SPACE+8), %rsp
 	iretq
 
 	.if (\n-\i)-1

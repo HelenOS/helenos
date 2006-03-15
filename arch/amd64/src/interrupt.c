@@ -47,14 +47,13 @@ static void print_info_errcode(int n, istate_t *istate)
 	char *symbol;
 	__u64 *x = &istate->stack[0];
 
-	if (!(symbol=get_symtab_entry(x[1])))
+	if (!(symbol=get_symtab_entry(istate->rip)))
 		symbol = "";
 
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__);
-	printf("%%rip: %Q (%s)\n",istate->stack[1],symbol);
-	printf("ERROR_WORD=%Q\n", istate->stack[0]);
-	printf("%%rcs=%Q,flags=%Q, %%cr0=%Q\n", istate->stack[2], 
-	       istate->stack[3],read_cr0());
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n, __FUNCTION__);
+	printf("%%rip: %Q (%s)\n",istate->rip, symbol);
+	printf("ERROR_WORD=%Q\n", istate->error_word);
+	printf("%%rcs=%Q, flags=%Q, %%cr0=%Q\n", istate->cs, istate->rflags,read_cr0());
 	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",istate->rax,istate->rbx,istate->rcx);
 	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",istate->rdx,istate->rsi,istate->rdi);
 	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",istate->r8,istate->r9,istate->r10);
@@ -77,9 +76,7 @@ void (* eoi_function)(void) = NULL;
 
 void null_interrupt(int n, istate_t *istate)
 {
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n,__FUNCTION__); \
-	printf("stack: %X, %X, %X, %X\n", istate->stack[0], istate->stack[1],
-	       istate->stack[2], istate->stack[3]);
+	print_info_errcode(n, istate);
 	panic("unserviced interrupt\n");
 }
 

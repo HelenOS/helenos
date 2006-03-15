@@ -37,28 +37,6 @@ int main(void)
 	fprintf(f,"#define OFFSET_R15 0x%x\n", ((int) &pctx->r15) - (int) pctx);
 	fprintf(f,"#define OFFSET_IPL 0x%x\n", ((int) &pctx->ipl) - (int) pctx);
 
-	fprintf(f, "\n");
-
-#define ifpr(big, nm) fprintf(f, "#define IOFFSET_" #big " 0x%x\n", ((int) &ipctx->nm) - (int) ipctx)
-	
-	ifpr(RAX, rax);
-	ifpr(RBX, rbx);
-	ifpr(RCX, rcx);
-	ifpr(RDX, rdx);
-	ifpr(RSI, rsi);
-	ifpr(RDI, rdi);
-	ifpr(R8, r8);
-	ifpr(R9, r9);
-	ifpr(R10, r10);
-	ifpr(R11, r11);
-	ifpr(R12, r12);
-	ifpr(R13, r13);
-	ifpr(R14, r14);
-	ifpr(R15, r15);
-	ifpr(RBP, rbp);
-
-	fprintf(f, "#define IREGISTER_SPACE %d\n", sizeof(ictx));
-
 	fclose(f);
 
 	return 0;

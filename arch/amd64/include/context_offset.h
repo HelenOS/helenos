@@ -8,20 +8,3 @@
 #define OFFSET_R14 0x30
 #define OFFSET_R15 0x38
 #define OFFSET_IPL 0x40
-
-#define IOFFSET_RAX 0x0
-#define IOFFSET_RBX 0x8
-#define IOFFSET_RCX 0x10
-#define IOFFSET_RDX 0x18
-#define IOFFSET_RSI 0x20
-#define IOFFSET_RDI 0x28
-#define IOFFSET_R8 0x30
-#define IOFFSET_R9 0x38
-#define IOFFSET_R10 0x40
-#define IOFFSET_R11 0x48
-#define IOFFSET_R12 0x50
-#define IOFFSET_R13 0x58
-#define IOFFSET_R14 0x60
-#define IOFFSET_R15 0x68
-#define IOFFSET_RBP 0x70
-#define IREGISTER_SPACE 120

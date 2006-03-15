@@ -78,36 +78,36 @@ enable_l_apic_in_msr:
 # and call exc_dispatch().
 #
 .macro handler i n
-	push %eax
 
 	/*
-	 * Test if this is interrupt with error word or not.
-	 * Be careful about width of the shift.
+	 * This macro distinguishes between two versions of ia32 exceptions.
+	 * One version has error word and the other does not have it.
+	 * The latter version fakes the error word on the stack so that the
+	 * handlers and istate_t can be the same for both types.
 	 */
+
 	.iflt \i-32
-		movl $(1<<\i), %eax
-	.else
-		movl $0, %eax
-	.endif
-	andl $ERROR_WORD_INTERRUPT_LIST, %eax
-	movl (%esp), %eax
+		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
+			/*
+			 * Version with error word.
+			 * Just take space equal to subl $4, %esp.
+			 */
+			nop
+			nop
+			nop
+                .else
+                        /*
+                         * Version without error word,
+                         */
+			subl $4, %esp
+                .endif
+        .else
+                /*
+                 * Version without error word,
+                 */
+		subl $4, %esp
+        .endif
 
-	/*
-	 * If this interrupt/exception stores error word,
-	 * we need to pop EAX.
-	 * If this interrupt doesn't store error word, we emulate it
-	 * for the sake of consistent istate structure. In that case
-	 * we merely leave the EAX on the stack.
-	 */
-	jz 0f
-
-	/*
-	 * This exception stores error word.
-	 * Remove EAX from the stack.
-	 */
-	addl $4, %esp
-
-0:
 	pusha
 	movl %esp, %ebp
 	push %ds
@@ -138,7 +138,7 @@ enable_l_apic_in_msr:
 	popfl
 	
 	popa
-	addl $4,%esp	# Skip error word, whether real or fake.
+	addl $4,%esp	# Skip error word, no matter whether real or fake.
 	iret
 
 	.if (\n-\i)-1

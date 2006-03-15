@@ -76,10 +76,13 @@ struct istate {
 	__u64 r13;
 	__u64 r14;
 	__u64 r15;
-	/* These 2 items MUST be last parts of the structure */
 	__u64 rbp;
-	__u64 stack[0]; /* Additional data on stack */
-} __attribute__ ((packed));
+	__u64 error_word;
+	__u64 rip;
+	__u64 cs;
+	__u64 rflags;
+	__u64 stack[]; /* Additional data on stack */
+};
 
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
