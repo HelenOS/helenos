@@ -56,10 +56,10 @@ distclean: clean arch_distclean
 	-rm Makefile.config
 
 kernel:
-	$(MAKE) -C $(KERNELDIR) ARCH=$(ARCH)
+	$(MAKE) -C $(KERNELDIR) NARCH=$(ARCH)
 
 uspace:
-	$(MAKE) -C $(USPACEDIR) ARCH=$(ARCH)
+	$(MAKE) -C $(USPACEDIR) NARCH=$(ARCH)
 
 clean_kernel:
 	$(MAKE) -C $(KERNELDIR) clean ARCH=$(ARCH)
