@@ -38,6 +38,7 @@
 #include <arch/context.h>
 #include <config.h>
 #include <adt/list.h>
+#include <mm/tlb.h>
 
 #define CPU_STACK_SIZE	STACK_SIZE
 
@@ -48,6 +49,9 @@
 struct cpu {
 	SPINLOCK_DECLARE(lock);
 
+	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
+	count_t tlb_messages_count;
+	
 	context_t saved_context;
 
 	atomic_t nrdy;
