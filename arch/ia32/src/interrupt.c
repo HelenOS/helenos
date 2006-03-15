@@ -49,21 +49,26 @@ void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-#define PRINT_INFO_ERRCODE(istate) do { \
-	char *symbol = get_symtab_entry(istate->eip); \
-	if (!symbol) \
-		symbol = ""; \
-	printf("----------------EXCEPTION OCCURED----------------\n"); \
-	printf("%%eip: %X (%s)\n",istate->eip,symbol); \
-	printf("ERROR_WORD=%X\n", istate->error_word); \
-	printf("%%cs=%X,flags=%X\n", istate->cs, istate->eflags); \
-	printf("%%eax=%X, %%ebx=%X, %%ecx=%X, %%edx=%X\n",\
-	       istate->eax,istate->ebx,istate->ecx,istate->edx); \
-	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%esp=%X\n",\
-	       istate->esi,istate->edi,istate->ebp,istate->esp); \
-	printf("stack: %X, %X, %X, %X\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]); \
-	printf("       %X, %X, %X, %X\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]); \
-} while(0)
+static void PRINT_INFO_ERRCODE(istate_t *istate)
+{
+	char *symbol = get_symtab_entry(istate->eip);
+
+	if (!symbol)
+		symbol = "";
+
+	if (CPU)
+		printf("----------------EXCEPTION OCCURED (cpu%d)----------------\n", CPU->id);
+	else
+		printf("----------------EXCEPTION OCCURED----------------\n");
+		
+	printf("%%eip: %X (%s)\n",istate->eip,symbol);
+	printf("ERROR_WORD=%X\n", istate->error_word);
+	printf("%%cs=%X,flags=%X\n", istate->cs, istate->eflags);
+	printf("%%eax=%X, %%ebx=%X, %%ecx=%X, %%edx=%X\n",  istate->eax,istate->ebx,istate->ecx,istate->edx);
+	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%esp=%X\n",  istate->esi,istate->edi,istate->ebp,istate->esp);
+	printf("stack: %X, %X, %X, %X\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
+	printf("       %X, %X, %X, %X\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
+}
 
 void null_interrupt(int n, istate_t *istate)
 {

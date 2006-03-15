@@ -80,8 +80,15 @@ enable_l_apic_in_msr:
 .macro handler i n
 	push %eax
 
-	# Test if this is interrupt with error word or not
-	movl $(1<<\i), %eax
+	/*
+	 * Test if this is interrupt with error word or not.
+	 * Be careful about width of the shift.
+	 */
+	.iflt \i-32
+		movl $(1<<\i), %eax
+	.else
+		movl $0, %eax
+	.endif
 	andl $ERROR_WORD_INTERRUPT_LIST,%eax
 
 	/*

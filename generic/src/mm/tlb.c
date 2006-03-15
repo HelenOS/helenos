@@ -132,6 +132,8 @@ void tlb_shootdown_ipi_recv(void)
 	count_t count;
 	int i;
 	
+	ASSERT(CPU);
+	
 	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
 	spinlock_unlock(&tlblock);
