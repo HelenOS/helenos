@@ -36,14 +36,41 @@
 #include <proc/thread.h>
 
 #include <arch.h>
+#include <arch/arch.h>
 
-#define THREADS		150*2
-#define ATTEMPTS	100
+#define THREADS		15*2
+#define ATTEMPTS	10
 
 #define E_10e8	271828182
 #define PI_10e8	314159265
 
+
+#ifdef __ia32_ARCH_H__
 static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
+#endif
+
+#ifdef __amd64_ARCH_H__
+static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
+#endif
+
+#ifdef __ia64_ARCH_H__
+static inline long double sqrt(long double a) 
+{   
+	long double x =	1;
+	long double lx = 0;
+
+	if(a<0.00000000000000001) return 0;
+		
+	while(x!=lx)
+	{
+		lx=x;
+		x=(x+(a/x))/2;
+	}
+	return x; 
+}
+#endif
+
+
 
 static atomic_t threads_ok;
 static waitq_t can_start;
@@ -75,6 +102,12 @@ static void e(void *data)
 
 static void pi(void *data)
 {
+
+#ifdef __ia64_ARCH_H__
+#undef PI_10e8	
+#define PI_10e8	3141592
+#endif
+
 	int i;
 	double lpi, pi;
 	double n, ab, ad;
@@ -96,8 +129,14 @@ static void pi(void *data)
 			pi = 2 * n * ad;
 		}
 
+#ifdef __ia64_ARCH_H__
+		if((int)(1000000*pi)!=PI_10e8)
+			panic("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (1000000*pi),(__native) (PI_10e8/100));
+#else
 		if((int)(100000000*pi)!=PI_10e8)
 			panic("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
+#endif
+
 	}
 
 	printf("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
@@ -133,3 +172,43 @@ void test(void)
 		
 	printf("Test passed.\n");
 }
+
+/*
+static void pi(void *data)
+{
+#undef PI_10e8	
+#define PI_10e8	3141592
+
+
+	int i;
+	double lpi, pi;
+	double n, ab, ad;
+
+
+	printf("pi test\n");
+
+	waitq_sleep(&can_start);
+
+
+	for (i = 0; i<ATTEMPTS; i++) {
+		lpi = -1;
+		pi = 0;
+
+		for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
+			double sc, cd;
+
+			sc = sqrt(1 - (ab*ab/4));
+			cd = 1 - sc;
+			ad = sqrt(ab*ab/4 + cd*cd);
+			lpi = pi;
+			pi = 2 * n * ad;
+		}
+
+		atomic_inc(&threads_ok);
+		if((int)(1000000*pi)!=PI_10e8)
+			panic("tid%d: pi*10e6=%d\n", THREAD->tid, (int) 1000000*pi);
+	}
+
+	printf("tid%d: pi*10e6=%d\n", THREAD->tid, (int) 1000000*pi);
+}
+*/

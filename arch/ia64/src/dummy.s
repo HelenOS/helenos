@@ -32,16 +32,10 @@
 .global asm_delay_loop
 .global cpu_sleep
 .global dummy
-.global fpu_enable
-.global fpu_disable
-.global fpu_init
 
 calibrate_delay_loop:
 asm_delay_loop:
 cpu_sleep:
-fpu_init:
-fpu_enable:
-fpu_disable:	
 
 dummy:
 	br.ret.sptk.many b0

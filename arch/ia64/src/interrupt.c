@@ -42,6 +42,7 @@
 #include <debug.h>
 #include <syscall/syscall.h>
 #include <print.h>
+#include <proc/scheduler.h>
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -172,6 +173,21 @@ void general_exception(__u64 vector, istate_t *istate)
 
 	panic("General Exception (%s)\n", desc);
 }
+
+
+void disabled_fp_register(__u64 vector, istate_t *istate)
+{
+#ifdef CONFIG_CPU_LAZY
+	scheduler_fpu_lazy_request();	
+#endif
+}
+
+
+void nop_handler(__u64 vector, istate_t *istate)
+{
+}
+
+
 
 /** Handle syscall. */
 int break_instruction(__u64 vector, istate_t *istate)

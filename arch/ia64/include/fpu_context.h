@@ -29,6 +29,9 @@
 #ifndef __ia64_FPU_CONTEXT_H__
 #define __ia64_FPU_CONTEXT_H__
 
+#define ARCH_HAS_FPU 1
+#define FPU_CONTEXT_ALIGN 16
+
 #include <arch/types.h>
 
 #define FRS 128

@@ -78,6 +78,10 @@ extern void *ivt;
 extern void general_exception(__u64 vector, istate_t *istate);
 extern int break_instruction(__u64 vector, istate_t *istate);
 extern void universal_handler(__u64 vector, istate_t *istate);
+extern void nop_handler(__u64 vector, istate_t *istate);
 extern void external_interrupt(__u64 vector, istate_t *istate);
+extern void disabled_fp_register(__u64 vector, istate_t *istate);
+
+
 
 #endif

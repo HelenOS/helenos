@@ -28,10 +28,10 @@
  */
 
 #include <fpu_context.h>
+#include <arch/register.h>
 #include <print.h>
 
 void fpu_context_save(fpu_context_t *fctx){
-		return;
 		asm volatile(
 			"stf.spill [%2]=f2,0x80\n"
 			"stf.spill [%3]=f3,0x80\n"
@@ -188,7 +188,6 @@ void fpu_context_save(fpu_context_t *fctx){
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
-		return;
 		asm volatile(
 			"ldf.fill f2=[%2],0x80\n"
 			"ldf.fill f3=[%3],0x80\n"
@@ -343,5 +342,185 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 }
 
+void fpu_disable(void)
+{
+		asm volatile(
+			"ssm %0;;\n"
+			"srlz.i\n"
+			"srlz.d;;\n"
+			:
+			:"i" (PSR_DFL_MASK|PSR_DFH_MASK)
+		);
 
+}
+
+void fpu_enable(void)
+{
+		asm volatile(
+			"rsm %0;;\n"
+			"srlz.i\n"
+			"srlz.d;;\n"
+			:
+			:"i" (PSR_DFL_MASK|PSR_DFH_MASK)
+		);
+
+}
+
+void fpu_init(void)
+{
+		__u64 a = 0;
+		fpu_enable();
+		asm volatile
+		(
+			"mov %0=ar.fpsr;;\n"
+			"or %0=%0,%1;;\n"
+			"mov ar.fpsr=%0;;\n"
+			: "+r" (a)
+			: "r" (0x38)
+		);
+		
+		asm volatile(
+			"mov f2=f0\n"
+			"mov f3=f0\n"
+			"mov f4=f0\n"
+			"mov f5=f0\n"
+			"mov f6=f0\n"
+			"mov f7=f0\n"
+			"mov f8=f0\n"
+			"mov f9=f0\n"
+
+			"mov f10=f0\n"
+			"mov f11=f0\n"
+			"mov f12=f0\n"
+			"mov f13=f0\n"
+			"mov f14=f0\n"
+			"mov f15=f0\n"
+			"mov f16=f0\n"
+			"mov f17=f0\n"
+			"mov f18=f0\n"
+			"mov f19=f0\n"
+
+			"mov f20=f0\n"
+			"mov f21=f0\n"
+			"mov f22=f0\n"
+			"mov f23=f0\n"
+			"mov f24=f0\n"
+			"mov f25=f0\n"
+			"mov f26=f0\n"
+			"mov f27=f0\n"
+			"mov f28=f0\n"
+			"mov f29=f0\n"
+
+			"mov f30=f0\n"
+			"mov f31=f0\n"
+			"mov f32=f0\n"
+			"mov f33=f0\n"
+			"mov f34=f0\n"
+			"mov f35=f0\n"
+			"mov f36=f0\n"
+			"mov f37=f0\n"
+			"mov f38=f0\n"
+			"mov f39=f0\n"
+
+			"mov f40=f0\n"
+			"mov f41=f0\n"
+			"mov f42=f0\n"
+			"mov f43=f0\n"
+			"mov f44=f0\n"
+			"mov f45=f0\n"
+			"mov f46=f0\n"
+			"mov f47=f0\n"
+			"mov f48=f0\n"
+			"mov f49=f0\n"
+
+			"mov f50=f0\n"
+			"mov f51=f0\n"
+			"mov f52=f0\n"
+			"mov f53=f0\n"
+			"mov f54=f0\n"
+			"mov f55=f0\n"
+			"mov f56=f0\n"
+			"mov f57=f0\n"
+			"mov f58=f0\n"
+			"mov f59=f0\n"
+
+			"mov f60=f0\n"
+			"mov f61=f0\n"
+			"mov f62=f0\n"
+			"mov f63=f0\n"
+			"mov f64=f0\n"
+			"mov f65=f0\n"
+			"mov f66=f0\n"
+			"mov f67=f0\n"
+			"mov f68=f0\n"
+			"mov f69=f0\n"
+
+			"mov f70=f0\n"
+			"mov f71=f0\n"
+			"mov f72=f0\n"
+			"mov f73=f0\n"
+			"mov f74=f0\n"
+			"mov f75=f0\n"
+			"mov f76=f0\n"
+			"mov f77=f0\n"
+			"mov f78=f0\n"
+			"mov f79=f0\n"
+
+			"mov f80=f0\n"
+			"mov f81=f0\n"
+			"mov f82=f0\n"
+			"mov f83=f0\n"
+			"mov f84=f0\n"
+			"mov f85=f0\n"
+			"mov f86=f0\n"
+			"mov f87=f0\n"
+			"mov f88=f0\n"
+			"mov f89=f0\n"
+
+			"mov f90=f0\n"
+			"mov f91=f0\n"
+			"mov f92=f0\n"
+			"mov f93=f0\n"
+			"mov f94=f0\n"
+			"mov f95=f0\n"
+			"mov f96=f0\n"
+			"mov f97=f0\n"
+			"mov f98=f0\n"
+			"mov f99=f0\n"
+
+			"mov f100=f0\n"
+			"mov f101=f0\n"
+			"mov f102=f0\n"
+			"mov f103=f0\n"
+			"mov f104=f0\n"
+			"mov f105=f0\n"
+			"mov f106=f0\n"
+			"mov f107=f0\n"
+			"mov f108=f0\n"
+			"mov f109=f0\n"
+
+			"mov f110=f0\n"
+			"mov f111=f0\n"
+			"mov f112=f0\n"
+			"mov f113=f0\n"
+			"mov f114=f0\n"
+			"mov f115=f0\n"
+			"mov f116=f0\n"
+			"mov f117=f0\n"
+			"mov f118=f0\n"
+			"mov f119=f0\n"
+
+			"mov f120=f0\n"
+			"mov f121=f0\n"
+			"mov f122=f0\n"
+			"mov f123=f0\n"
+			"mov f124=f0\n"
+			"mov f125=f0\n"
+			"mov f126=f0\n"
+			"mov f127=f0\n"
+
+		);
+
+		fpu_enable();
+}
 
