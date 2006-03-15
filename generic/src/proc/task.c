@@ -37,7 +37,6 @@
 #include <panic.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
-#include <ipc/ns.h>
 #include <memstr.h>
 
 #include <elf.h>
@@ -110,14 +109,14 @@ task_t * task_run_program(void *program_addr)
 
 	as = as_create(0);
 
-	rc = elf_load((elf_header_t *) config.init_addr, as);
+	rc = elf_load((elf_header_t *) program_addr, as);
 	if (rc != EE_OK) {
 		as_free(as);
 		return NULL;
 	} 
 	
 	task = task_create(as);
-	t = thread_create(uinit, (void *)((elf_header_t *) config.init_addr)->e_entry, 
+	t = thread_create(uinit, (void *)((elf_header_t *)program_addr)->e_entry, 
 			  task, THREAD_USER_STACK);
 	
 	/*
