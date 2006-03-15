@@ -38,6 +38,34 @@ struct cpu_info {
 	__u32 cpuid_edx;
 } __attribute__ ((packed));
 
+struct __cpuid_extended_feature_info {
+	unsigned sse3 :  1;
+	unsigned      : 31;
+} __attribute__ ((packed));
+
+typedef union cpuid_extended_feature_info 
+{
+	struct __cpuid_extended_feature_info bits;
+	__u32                                word;
+}cpuid_extended_feature_info;
+
+
+struct __cpuid_feature_info {
+	unsigned 			: 23;
+	unsigned mmx  :  1;
+	unsigned fxsr :  1;
+	unsigned sse  :  1;
+	unsigned sse2 :  1;
+	unsigned      :  5;
+} __attribute__ ((packed));
+
+typedef union cpuid_feature_info 
+{
+	struct __cpuid_feature_info bits;
+	__u32                word       ;
+}cpuid_feature_info;
+
+
 static inline __u32 has_cpuid(void)
 {
 	__u32 val, ret;

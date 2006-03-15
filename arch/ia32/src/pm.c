@@ -130,6 +130,7 @@ void idt_init(void)
 	exc_register(13, "gp_fault", (iroutine) gp_fault);
 	exc_register( 7, "nm_fault", (iroutine) nm_fault);
 	exc_register(12, "ss_fault", (iroutine) ss_fault);
+	exc_register(19, "simd_fp", (iroutine) simd_fp_exception);
 }
 
 

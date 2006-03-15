@@ -88,6 +88,20 @@ void ss_fault(int n, istate_t *istate)
 	panic("stack fault\n");
 }
 
+void simd_fp_exception(int n, istate_t *istate)
+{
+
+	PRINT_INFO_ERRCODE(istate);
+	__u32 mxcsr;
+	asm
+	(
+		"stmxcsr %0;\n"
+		:"=m"(mxcsr)
+	);
+	printf("MXCSR: %X\n",(__native)(mxcsr));
+	panic("SIMD FP exception(19)\n");
+}
+
 void nm_fault(int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY     

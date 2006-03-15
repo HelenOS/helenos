@@ -31,7 +31,13 @@
 #include <arch.h>
 #include <cpu.h>
 
-void fpu_context_save(fpu_context_t *fctx)
+typedef void (*fpu_context_function)(fpu_context_t *fctx);
+
+static fpu_context_function fpu_save,fpu_restore;
+
+
+
+static void fpu_context_f_save(fpu_context_t *fctx)
 {
 	__asm__ volatile (
 		"fnsave %0"
@@ -39,8 +45,7 @@ void fpu_context_save(fpu_context_t *fctx)
 		);
 }
 
-
-void fpu_context_restore(fpu_context_t *fctx)
+static void fpu_context_f_restore(fpu_context_t *fctx)
 {
 	__asm__ volatile (
 		"frstor %0"
@@ -48,9 +53,64 @@ void fpu_context_restore(fpu_context_t *fctx)
 		);
 }
 
-void fpu_init()
+static void fpu_context_fx_save(fpu_context_t *fctx)
 {
 	__asm__ volatile (
-		"fninit;"
+		"fxsave %0"
+		: "=m"(*fctx)
+		);
+}
+
+static void fpu_context_fx_restore(fpu_context_t *fctx)
+{
+	__asm__ volatile (
+		"fxrstor %0"
+		: "=m"(*fctx)
+		);
+}
+
+/*
+	Setup using fxsr instruction
+*/
+void fpu_fxsr(void)
+{
+	fpu_save=fpu_context_fx_save;
+	fpu_restore=fpu_context_fx_restore;
+}
+/*
+	Setup using not fxsr instruction
+*/
+void fpu_fsr(void)
+{
+	fpu_save=fpu_context_f_save;
+	fpu_restore=fpu_context_f_restore;
+}
+
+
+
+void fpu_context_save(fpu_context_t *fctx)
+{
+	fpu_save(fctx);
+}
+
+void fpu_context_restore(fpu_context_t *fctx)
+{
+	fpu_restore(fctx);
+}
+
+
+
+void fpu_init()
+{
+	__u32 help0=0,help1=0;
+	__asm__ volatile (
+		"fninit;\n"
+		"stmxcsr %0\n"
+		"mov %0,%1;\n"
+		"or %2,%1;\n"
+		"mov %1,%0;\n"
+		"ldmxcsr %0;\n"
+		:"+m"(help0),"+r"(help1)
+		:"i"(0x1f80)
 	);
 }

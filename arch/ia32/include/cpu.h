@@ -41,4 +41,7 @@ struct cpu_arch {
 	struct tss *tss;
 };
 
+
+#define CR4_OSFXSR_MASK (1<<9)
+
 #endif
