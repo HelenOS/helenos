@@ -203,7 +203,8 @@ int printf(const char *fmt, ...)
 					counter += retval;
 					break;
 				case 'c':
-					if ((retval = putnchars((char *)&va_arg(ap, unsigned long), sizeof(char))) == EOF) {
+					c = va_arg(ap, unsigned long);
+					if ((retval = putnchars(&c, sizeof(char))) == EOF) {
 						return -counter;
 					};
 					

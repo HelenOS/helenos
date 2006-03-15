@@ -29,31 +29,18 @@
 #ifndef __LIBC__STDARG_H__
 #define __LIBC__STDARG_H__
 
+#include<types.h>
+#include<stackarg.h>
+
 #ifndef __VARARGS_DEFINED
-#define __VARARGS_DEFINED
+# define __VARARGS_DEFINED
 
-/*
- * Variable argument list manipulation macros
- * for architectures using stack to pass arguments.
- */
- 
-#include <types.h>
+typedef __builtin_va_list va_list;
 
-typedef struct va_list {
-	int pos;
-	uint8_t *last;
-} va_list;
+# define va_start(ap, last) 		__builtin_va_start(ap, last)
+# define va_arg(ap, type) 		__builtin_va_arg(ap, type)
+# define va_end(ap)			__builtin_va_end(ap)
 
-#define va_start(ap, lst) 		\
-	(ap).pos = sizeof(lst); 			\
-	(ap).last = (uint8_t *) &(lst)
-
-#define va_arg(ap, type) 		\
-	(*((type *)((ap).last + ((ap).pos  += sizeof(type) ) - sizeof(type))))
-
-#define va_end(ap)
-
-#endif
-
+# endif
 
 #endif
