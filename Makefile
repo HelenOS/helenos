@@ -45,7 +45,12 @@ CLEANS := $(addsuffix .clean,$(DIRS))
 .PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
 
 all:
-	tools/config.py default $(ARCH)
+	tools/config.py default $(NARCH)
+ifdef NARCH
+ ifneq ($(ARCH), $(NARCH))
+	$(MAKE) -C . clean
+ endif
+endif
 	$(MAKE) -C . build
 
 config:
