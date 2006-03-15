@@ -59,6 +59,7 @@ all: kerninc libc.a arch/$(ARCH)/_link.ld
 
 kerninc:
 	ln -sf ../../../kernel/generic/include include/kernel
+	-rm include/arch
 	ln -sf kernel/arch include/arch
 
 -include Makefile.depend

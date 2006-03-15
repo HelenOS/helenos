@@ -35,6 +35,8 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
 
+LIBS = $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
+
 ## Sources
 #
 
@@ -57,8 +59,8 @@ clean:
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(OUTPUT): $(OBJECTS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a $(LFLAGS) -o $@ -Map $(OUTPUT).map
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
