@@ -97,7 +97,8 @@ static __native sys_ipc_call_sync_fast(__native phoneid, __native method,
 }
 
 /** Synchronous IPC call allowing to send whole message */
-static __native sys_ipc_call_sync(__native phoneid, __native *data)
+static __native sys_ipc_call_sync(__native phoneid, __native *question, 
+				  __native *reply)
 {
 	call_t call;
 	phone_t *phone;
@@ -108,11 +109,11 @@ static __native sys_ipc_call_sync(__native phoneid, __native *data)
 		return IPC_CALLRET_FATAL;
 
 	ipc_call_init(&call);
-	copy_from_uspace(&call.data, data, sizeof(call.data));
+	copy_from_uspace(&call.data, question, sizeof(call.data));
 	
 	ipc_call_sync(phone, &call);
 
-	copy_to_uspace(data, &call.data, sizeof(call.data));
+	copy_to_uspace(reply, &call.data, sizeof(call.data));
 
 	return 0;
 }
@@ -184,8 +185,8 @@ static __native sys_ipc_call_async(__native phoneid, __native *data)
 
 
 /** Send IPC answer */
-static __native sys_ipc_answer(__native callid, __native retval, __native arg1,
-			       __native arg2)
+static __native sys_ipc_answer_fast(__native callid, __native retval, 
+				    __native arg1, __native arg2)
 {
 	call_t *call;
 
@@ -202,13 +203,29 @@ static __native sys_ipc_answer(__native callid, __native retval, __native arg1,
 	return 0;
 }
 
+/** Send IPC answer */
+static __native sys_ipc_answer(__native callid, __native *data)
+{
+	call_t *call;
+
+	/* Check that the user is not sending us answer callid */
+	ASSERT(! (callid & 1));
+	/* TODO: Check that the callid is in the dispatch table */
+	call = (call_t *) callid;
+	copy_from_uspace(&call->data, data, sizeof(call->data));
+	ipc_answer(&TASK->answerbox, call);
+
+	return 0;
+}
+
 /** Wait for incoming ipc call or answer
  *
  * @param result 
  * @param flags
  * @return Callid, if callid & 1, then the call is answer
  */
-static __native sys_ipc_wait_for_call(__native *calldata, __native flags)
+static __native sys_ipc_wait_for_call(__native *calldata, task_id_t *taskid,
+				      __native flags)
 {
 	call_t *call;
 	
@@ -222,6 +239,7 @@ static __native sys_ipc_wait_for_call(__native *calldata, __native flags)
 		atomic_dec(&TASK->active_calls);
 		return ((__native)call) | IPC_CALLID_ANSWERED;
 	}
+	copy_to_uspace(taskid, (void *)&TASK->taskid, sizeof(TASK->taskid));
 	return (__native)call;
 }
 
@@ -238,6 +256,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_call_sync,
 	sys_ipc_call_async_fast,
 	sys_ipc_call_async,
+	sys_ipc_answer_fast,
 	sys_ipc_answer,
 	sys_ipc_wait_for_call
 };

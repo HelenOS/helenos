@@ -40,6 +40,8 @@ struct task {
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
 	as_t *as;		/**< Address space. */
+	task_id_t taskid;           /**< Unique identity of task */
+
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];

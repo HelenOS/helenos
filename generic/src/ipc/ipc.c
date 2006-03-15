@@ -61,6 +61,7 @@ call_t * ipc_call_alloc(void)
 	call = slab_alloc(ipc_call_slab, 0);
 	memsetb((__address)call, sizeof(*call), 0);
 	call->callerbox = &TASK->answerbox;
+	call->sender = TASK;
 
 	return call;
 }

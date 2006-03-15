@@ -44,6 +44,7 @@
 
 SPINLOCK_INITIALIZE(tasks_lock);
 LIST_INITIALIZE(tasks_head);
+static task_id_t task_counter = 0;
 
 /** Initialize tasks
  *
@@ -85,7 +86,10 @@ task_t *task_create(as_t *as)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
+
+	ta->taskid = ++task_counter;
 	list_append(&ta->tasks_link, &tasks_head);
+
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 
