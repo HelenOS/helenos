@@ -57,7 +57,15 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 }
 
 
-static __native sys_mremap(void *address, size_t size, unsigned long flags)
+static __native sys_mmap(void *address, size_t size, int flags)
+{
+	if (as_area_create(AS, flags, size, (__address) address))
+		return (__native) address;
+	else
+		return (__native) -1;
+}
+
+static __native sys_mremap(void *address, size_t size, int flags)
 {
 	return as_remap(AS, (__address) address, size, 0);
 }
@@ -65,6 +73,7 @@ static __native sys_mremap(void *address, size_t size, unsigned long flags)
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ctl,
 	sys_io,
+	sys_mmap,
 	sys_mremap,
 	sys_ipc_call_sync_fast,
 	sys_ipc_call_sync,

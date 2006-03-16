@@ -32,6 +32,7 @@
 typedef enum {
 	SYS_CTL = 0,
 	SYS_IO,
+	SYS_MMAP,
 	SYS_MREMAP,
 	SYS_IPC_CALL_SYNC_FAST,
 	SYS_IPC_CALL_SYNC,
