@@ -174,6 +174,7 @@ void idt_init(void)
 	exc_register(13, "gp_fault", gp_fault);
 	exc_register( 7, "nm_fault", nm_fault);
 	exc_register(12, "ss_fault", ss_fault);
+	exc_register(14, "ident_mapper", ident_page_fault);
 }
 
 /** Initialize segmentation - code/data/idt tables

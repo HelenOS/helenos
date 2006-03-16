@@ -184,6 +184,7 @@ void ipc_answer(answerbox_t *box, call_t *request)
 {
 	answerbox_t *callerbox = request->callerbox;
 
+	request->flags &= ~IPC_CALL_DISPATCHED;
 	request->flags |= IPC_CALL_ANSWERED;
 
 	spinlock_lock(&box->lock);
@@ -217,6 +218,7 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 			list_remove(&request->list);
 			/* Append request to dispatch queue */
 			list_append(&request->list, &box->dispatched_calls);
+			request->flags |= IPC_CALL_DISPATCHED;
 		} else {
 			if (!(flags & IPC_WAIT_NONBLOCKING)) {
 				/* Wait for event to appear */

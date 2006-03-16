@@ -38,9 +38,31 @@
 #include <print.h>
 #include <arch/atomic.h>
 
+#define BUFLEN 2048
+static char debug_buffer[BUFLEN];
+static size_t offset = 0;
+/** Initialize stdout to something that does not print, but does not fail
+ *
+ * Save data in some buffer so that it could be retrieved in the debugger
+ */
+static void null_putchar(chardev_t *d, const char ch)
+{
+	if (offset >= BUFLEN)
+		offset = 0;
+	debug_buffer[offset++] = ch;
+}
+
+static chardev_operations_t null_stdout_ops = {
+	.write = null_putchar
+};
+chardev_t null_stdout = {
+	.name = "null",
+	.op = &null_stdout_ops
+};
+
 /** Standard input character device. */
 chardev_t *stdin = NULL;
-chardev_t *stdout = NULL;
+chardev_t *stdout = &null_stdout;
 
 /** Get character from character device. Do not echo character.
  *

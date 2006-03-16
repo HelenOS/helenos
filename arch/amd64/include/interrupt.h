@@ -99,5 +99,7 @@ extern void tlb_shootdown_ipi(int n, istate_t *istate);
 extern void trap_virtual_enable_irqs(__u16 irqmask);
 extern void trap_virtual_disable_irqs(__u16 irqmask);
 extern void trap_virtual_eoi(void);
+/* AMD64 - specific page handler */
+extern void ident_page_fault(int n, istate_t *istate);
 
 #endif

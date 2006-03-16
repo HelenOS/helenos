@@ -37,8 +37,9 @@
 #define IPC_MAX_ASYNC_CALLS  4
 
 /* Flags for calls */
-#define IPC_CALL_ANSWERED      1 /**< This is answer to a call */
-#define IPC_CALL_STATIC_ALLOC  2 /**< This call will not be freed on error */
+#define IPC_CALL_ANSWERED      0x1 /**< This is answer to a call */
+#define IPC_CALL_STATIC_ALLOC  0x2 /**< This call will not be freed on error */
+#define IPC_CALL_DISPATCHED    0x4 /**< Call is in dispatch queue */
 
 /* Flags for ipc_wait_for_call */
 #define IPC_WAIT_NONBLOCKING   1
