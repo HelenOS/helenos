@@ -147,7 +147,7 @@ void kinit(void *arg)
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
 		} else
-			printf("Userspace not started.\n");
+			printf("Init task %d not started.\n", i);
 	}
 
 #ifdef CONFIG_TEST
