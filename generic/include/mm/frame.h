@@ -61,15 +61,6 @@
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
 #define FRAME_ERROR		2	/* frame_alloc return status */
 
-/* Return true if the interlvals overlap */
-static inline int overlaps(__address s1,__address sz1, __address s2, __address sz2)
-{
-	__address e1 = s1+sz1;
-	__address e2 = s2+sz2;
-
-	return s1 < e2 && s2 < e1;
-}
-
 static inline __address PFN2ADDR(pfn_t frame)
 {
 	return (__address)(frame << FRAME_WIDTH);

@@ -55,6 +55,7 @@
 #include <arch/faddr.h>
 #include <typedefs.h>
 #include <ipc/ipc.h>
+#include <macros.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -116,7 +117,7 @@ void main_bsp(void)
 	count_t i;
 	bool overlap = false;
 	for (i = 0; i < init.cnt; i++)
-		if (overlaps(stackaddr, CONFIG_STACK_SIZE, init.tasks[i].addr, init.tasks[i].size)) {
+		if (PA_overlaps(stackaddr, CONFIG_STACK_SIZE, init.tasks[i].addr, init.tasks[i].size)) {
 			stackaddr = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, CONFIG_STACK_SIZE);
 			init.tasks[i].size = ALIGN_UP(init.tasks[i].size, CONFIG_STACK_SIZE) + CONFIG_STACK_SIZE;
 			overlap = true;

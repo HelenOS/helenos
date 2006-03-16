@@ -164,7 +164,6 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECTMETO) {
 		/* If the users accepted call, connect */
 		if (!IPC_GET_RETVAL(answer->data)) {
-			printf("Connecting Phone %P\n",IPC_GET_ARG3(*olddata));
 			ipc_phone_connect((phone_t *)IPC_GET_ARG3(*olddata),
 					  &TASK->answerbox);
 		}

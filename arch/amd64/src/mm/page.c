@@ -39,6 +39,7 @@
 #include <interrupt.h>
 #include <print.h>
 #include <panic.h>
+#include <align.h>
 
 /* Definitions for identity page mapper */
 pte_t helper_ptl1[512] __attribute__((aligned (PAGE_SIZE)));
@@ -70,11 +71,11 @@ extern pte_t ptl_0; /* From boot.S */
 	SET_FRAME_ADDRESS_ARCH(ptl3, PTL3_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
         SET_FRAME_FLAGS_ARCH(ptl3, PTL3_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
-
 void page_arch_init(void)
 {
 	__address cur;
-	int flags;
+	int i;
+	int identity_flags = PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL;
 
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
@@ -83,11 +84,22 @@ void page_arch_init(void)
 		 * PA2KA(identity) mapping for all frames.
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE | PAGE_EXEC;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+			/* Standard identity mapping */
+			page_mapping_insert(AS_KERNEL, PA2KA_IDENT(cur), cur, identity_flags);
 		}
+		/* Upper kernel mapping
+		 * - from zero to top of kernel (include bottom addresses
+		 *   because some are needed for init )
+		 */
+		for (cur = PA2KA_CODE(0); cur < config.base+config.kernel_size; cur += FRAME_SIZE) {
+			page_mapping_insert(AS_KERNEL, cur, KA2PA(cur), identity_flags);
+		}
+		for (i=0; i < init.cnt; i++) {
+			for (cur=init.tasks[i].addr;cur < init.tasks[i].size; cur += FRAME_SIZE) {
+				page_mapping_insert(AS_KERNEL, PA2KA_CODE(KA2PA(cur)), KA2PA(cur), identity_flags);
+			}
+		}
+
 		exc_register(14, "page_fault", (iroutine)page_fault);
 		write_cr3((__address) AS_KERNEL->page_table);
 	}

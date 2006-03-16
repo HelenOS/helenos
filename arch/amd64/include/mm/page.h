@@ -26,6 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** Paging on AMD64
+ *
+ * The space is divided in positive numbers - userspace and
+ * negative numbers - kernel space. The 'negative' space starting
+ * with 0xffff800000000000 and ending with 0xffffffff80000000
+ * (-2GB) is identically mapped physical memory. The area
+ * (0xffffffff80000000 ... 0xffffffffffffffff is again identically
+ * mapped first 2GB.
+ *
+ * ATTENTION - PA2KA(KA2PA(x)) != x if 'x' is in kernel
+ */
+
 #ifndef __amd64_PAGE_H__
 #define __amd64_PAGE_H__
 
@@ -42,11 +54,32 @@
 #endif
 
 #ifndef __ASM__
-# define KA2PA(x)      (((__address) (x)) - 0xffffffff80000000)
-# define PA2KA(x)      (((__address) (x)) + 0xffffffff80000000)
+static inline __address ka2pa(__address x)
+{
+	if (x > 0xffffffff80000000)
+		return x - 0xffffffff80000000;
+	else 
+		return x - 0xffff800000000000;
+}
+/* Linker symbol */
+extern int ktext_start;
+extern int kdata_end;
+static inline __address pa2ka(__address x)
+{
+	if (x >= ka2pa((__address)(&kdata_end)) || \
+	    x <= ka2pa((__address)&ktext_start))
+		return x + 0xffff800000000000;
+	else 
+		return x + 0xffffffff80000000;
+}
+# define KA2PA(x)      ka2pa((__address)x)
+# define PA2KA(x)      pa2ka((__address)x)
+# define PA2KA_IDENT(x)      (((__address) (x)) + 0xffff800000000000)
+# define PA2KA_CODE(x)      (((__address) (x)) + 0xffffffff80000000)
 #else
 # define KA2PA(x)      ((x) - 0xffffffff80000000)
 # define PA2KA(x)      ((x) + 0xffffffff80000000)
+# define PA2KA_DATA(x)      ((x) + 0xffff800000000000)
 #endif
 
 #define PTL0_ENTRIES_ARCH	512

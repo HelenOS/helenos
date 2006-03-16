@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0xffffffff80000000
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0xffff800000000000
 #define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
 #define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
 #define USER_ADDRESS_SPACE_END_ARCH		(__address) 0x00007fffffffffff

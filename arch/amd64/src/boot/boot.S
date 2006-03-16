@@ -174,7 +174,8 @@ start64:
 			
 			xorq %rdx, %rdx
 			movl 0(%esi), %edx					# mods->mod_start
-			addq $0xffffffff80000000, %rdx
+			movq $0xffff800000000000, %r10
+			addq %r10, %rdx
 			movq %rdx, 8(%rdi)
 			
 			xorq %rdx, %rdx
@@ -303,7 +304,9 @@ ptl_1:
 .global ptl_0
 ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 510,8,0
+	.fill 255,8,0
+	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 254,8,0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
 .global bootstrap_gdtr
