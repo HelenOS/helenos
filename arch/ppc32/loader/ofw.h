@@ -53,12 +53,9 @@ typedef struct {
 
 
 extern void init(void);
-extern void halt(void);
-
 extern void ofw_write(const char *str, const int len);
 
 extern void *ofw_translate(const void *virt);
-extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
 
 #endif

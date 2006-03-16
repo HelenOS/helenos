@@ -29,10 +29,22 @@
 #ifndef __ASM_H__
 #define __ASM_H__
 
-void flush_instruction_cache(void);
-void jump_to_kernel(void *code, void *memmap, void *real_mode) __attribute__((noreturn));
-void real_mode(void *code, void *memmap);
+#define PAGE_SIZE 4096
+#define PAGE_WIDTH 12
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#define TRANS_SIZE 1024
+#define TRANS_ITEM_SIZE 4
+
+#define KERNEL_START_ADDR 0x80002000
+
+#ifndef __ASM__
+
+extern void *trans[TRANS_SIZE];
+
+extern void halt();
+extern void jump_to_kernel(void *memmap, void *trans, unsigned int cnt, void *real_mode) __attribute__((noreturn));
+extern void real_mode();
+
+#endif
 
 #endif

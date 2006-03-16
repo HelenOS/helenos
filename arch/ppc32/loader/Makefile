@@ -65,7 +65,7 @@ all: image.boot
 -include Makefile.depend
 
 image.boot: depend $(OBJECTS) kernel.o
-	$(LD) -no-check-sections -N -T _link.ld -Map map $(OBJECTS) kernel.o -o $@
+	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
@@ -74,7 +74,7 @@ clean:
 	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
 
 kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc $(KERNEL) $@
+	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

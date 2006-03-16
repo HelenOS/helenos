@@ -27,6 +27,7 @@
  */
  
 #include "ofw.h"
+#include "asm.h"
 #include "printf.h"
 
 #define MAX_OFW_ARGS	10
@@ -113,12 +114,6 @@ void init(void)
 }
 
 
-void halt(void)
-{
-	ofw_call("exit", 0, 0);
-}
-
-
 void ofw_write(const char *str, const int len)
 {
 	if (ofw_stdout == 0)
@@ -131,12 +126,6 @@ void ofw_write(const char *str, const int len)
 void *ofw_translate(const void *virt)
 {
 	return (void *) ofw_call("call-method", 7, 1, "translate", ofw_mmu, virt, 0, 0, 0, 0);
-}
-
-
-int ofw_map(const void *phys, const void *virt, const int size, const int mode)
-{
-	return ofw_call("call-method", 6, 1, "map", ofw_mmu, mode, size, virt, phys);
 }
 
 

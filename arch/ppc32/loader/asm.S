@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include "asm.h"
 #include "regname.h"
 
 .data
@@ -35,198 +36,106 @@ flush_buffer:
 
 .text
 
-.global memsetb
-.global memcpy
-.global flush_instruction_cache
+.global halt
 .global jump_to_kernel
 
-memsetb:
-	rlwimi r5, r5, 8, 16, 23
-	rlwimi r5, r5, 16, 0, 15
-	
-	addi r14, r3, -4
-	
-	cmplwi 0, r4, 4
-	blt 7f
-	
-	stwu r5, 4(r14)
-	beqlr
-	
-	andi. r15, r14, 3
-	add r4, r15, r4
-	subf r14, r15, r14
-	srwi r15, r4, 2
-	mtctr r15
-	
-	bdz 6f
-	
-	1:
-		stwu r5, 4(r14)
-		bdnz 1b
-	
-	6:
-	
-	andi. r4, r4, 3
-	
-	7:
-	
-	cmpwi 0, r4, 0
-	beqlr
-	
-	mtctr r4
-	addi r6, r6, 3
-	
-	8:
-	
-	stbu r5, 1(r14)
-	bdnz 8b
-	
-	blr
-
-memcpy:
-	srwi. r7, r5, 3
-	addi r6, r3, -4
-	addi r4, r4, -4
-	beq	2f
-	
-	andi. r0, r6, 3
-	mtctr r7
-	bne 5f
-	
-	1:
-	
-	lwz r7, 4(r4)
-	lwzu r8, 8(r4)
-	stw r7, 4(r6)
-	stwu r8, 8(r6)
-	bdnz 1b
-	
-	andi. r5, r5, 7
-	
-	2:
-	
-	cmplwi 0, r5, 4
-	blt 3f
-	
-	lwzu r0, 4(r4)
-	addi r5, r5, -4
-	stwu r0, 4(r6)
-	
-	3:
-	
-	cmpwi 0, r5, 0
-	beqlr
-	mtctr r5
-	addi r4, r4, 3
-	addi r6, r6, 3
-	
-	4:
-	
-	lbzu r0, 1(r4)
-	stbu r0, 1(r6)
-	bdnz 4b
-	blr
-	
-	5:
-	
-	subfic r0, r0, 4
-	mtctr r0
-	
-	6:
-	
-	lbz r7, 4(r4)
-	addi r4, r4, 1
-	stb r7, 4(r6)
-	addi r6, r6, 1
-	bdnz 6b
-	subf r5, r0, r5
-	rlwinm. r7, r5, 32-3, 3, 31
-	beq 2b
-	mtctr r7
-	b 1b
-	
-flush_instruction_cache:
-
-	# Flush data cache
-	
-	lis r3, flush_buffer@h
-	ori r3, r3, flush_buffer@l
-	li r4, L1_CACHE_LINES
-	mtctr r4
-	
-	0:
-	
-	lwz r4, 0(r3)
-	addi r3, r3, L1_CACHE_BYTES
-	bdnz 0b
-	
-	# Invalidate instruction cache
-	
-	li r3, 0
-	ori	r3, r3, (hid0_ice | hid0_dce | hid0_icfi | hid0_dci)
-	mfspr r4, hid0
-	or r5, r4, r3
-	isync
-	mtspr hid0, r5
-	sync
-	isync
-	
-	# Enable instruction cache
-	
-	ori	r5, r4, hid0_ice
-	mtspr hid0, r5
-	sync
-	isync
-	blr
+halt:
+	b halt
 
 jump_to_kernel:
 	
-	# r3 = kernel_start (va)
-	# r4 = memmap (pa)
-	# r5 = real_mode (pa)
+	# r3 = memmap (pa)
+	# r4 = trans (pa)
+	# r5 = number of kernel pages
+	# r6 = real_mode (pa)
 	
-	mtspr srr0, r5
+	mtspr srr0, r6
 	
 	# jumps to real_mode
 	
-	mfmsr r5
-	lis r6, ~0@h
-	ori r6, r6, ~(msr_ir | msr_dr)@l
-	and r5, r5, r6
-	mtspr srr1, r5
+	mfmsr r31
+	lis r30, ~0@h
+	ori r30, r30, ~(msr_ir | msr_dr)@l
+	and r31, r31, r30
+	mtspr srr1, r31
 	rfi
 
 .section REALMODE
-.align 12
+.align PAGE_WIDTH
 .global real_mode
 
 real_mode:
-
+	
+	# copy kernel to proper location
+	#
+	# r4 = trans (pa)
+	# r5 = number of kernel pages
+	
+	li r31, PAGE_SIZE >> 3
+	li r30, 0
+	
+	page_copy:
+		
+		cmpwi r5, 0
+		beq copy_end
+		
+		# copy single page
+		
+		mtctr r31
+		lwz r29, 0(r4)
+		
+		copy_loop:
+			
+			lwz r28, 0(r29)
+			stw r28, 0(r30)
+			
+			addi r29, r29, 4
+			addi r30, r30, 4
+			
+			bdnz copy_loop
+		
+		subi r5, r5, 1
+		addi r4, r4, 4
+		b page_copy
+	
+	copy_end:
+		
 	# fill segment registers
 
-	li r5, 16
-	mtctr r5
-	li r5, 0
-	li r6, 0
+	li r31, 16
+	mtctr r31
+	li r31, 0
+	li r30, 0x2000
 	
 	seg_fill:
 	
-		mtsrin r6, r5
-		addis r5, r5, 0x1000    # move to next SR
-		addis r6, r6, 0x10      # add 256 MB, move to next SR
+		mtsrin r30, r31
+		
+		addis r31, r31, 0x1000    # add 256 MB
+		addi  r30, r30, 0x111     # move to next SR
 		
 		bdnz seg_fill
 	
-	# bootstrap kernel
+	# create identity mapping
+	
+	tlbia
+	
+	# start the kernel
 	#
-	# r3 = kernel_start (va)
-	# r4 = memmap (pa)       -> r10
+	# r3 = memmap (pa)
 	
-	mtspr srr0, r3
+	lis r31, KERNEL_START_ADDR@ha
+	addi r31, r31, KERNEL_START_ADDR@l
 	
-	mfmsr r5
-	ori r5, r5, (msr_ir | msr_dr)@l
-	mtspr srr1, r5
+	mtspr srr0, r31
 	
-	mr r10, r4
+	mfmsr r31
+	ori r31, r31, (msr_ir | msr_dr)@l
+	mtspr srr1, r31
+	
 	rfi
+
+.align PAGE_WIDTH
+.global trans
+trans:
+	.space (TRANS_SIZE * TRANS_ITEM_SIZE)

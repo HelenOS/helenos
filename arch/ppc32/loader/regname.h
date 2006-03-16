@@ -181,6 +181,7 @@
 #define lr		8
 #define ctr		9
 #define	dec		22
+#define	sdr1	25
 #define	srr0	26
 #define srr1	27
 #define	sprg0	272

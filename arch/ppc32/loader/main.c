@@ -30,44 +30,57 @@
 #include "printf.h"
 #include "asm.h"
 
-#define KERNEL_PHYSICAL_ADDRESS 0x0000
-#define KERNEL_VIRTUAL_ADDRESS 0x80000000
-#define KERNEL_BOOT_OFFSET 0x2000
-#define KERNEL_START &_binary_____________kernel_kernel_bin_start
-#define KERNEL_END &_binary_____________kernel_kernel_bin_end
+#define KERNEL_START ((void *) &_binary_____________kernel_kernel_bin_start)
+#define KERNEL_END ((void *) &_binary_____________kernel_kernel_bin_end)
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
 
 memmap_t memmap;
+
+
+static void check_align(const void *addr, const char *desc)
+{
+	if ((unsigned int) addr % PAGE_SIZE != 0) {
+		printf("Error: %s not on page boundary\n", desc);
+		halt();
+	}
+}
+
 
 void bootstrap(void)
 {
 	printf("\nHelenOS PPC Bootloader\n");
 	
-	void *phys = ofw_translate(&start);
-	printf("loaded at %L (physical %L)\n", &start, phys);
+	check_align(KERNEL_START, "Kernel image");
+	check_align(&real_mode, "Bootstrap trampoline");
+	check_align(&trans, "Translation table");
+	
+	void *real_mode_pa = ofw_translate(&real_mode);
+	void *trans_pa = ofw_translate(&trans);
+	void *memmap_pa = ofw_translate(&memmap);
+	
+	printf("Memory statistics\n");
+	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
+	printf(" memory map           at %L (physical %L)\n", &memmap, memmap_pa);
+	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
+	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
 	
 	if (!ofw_memmap(&memmap)) {
 		printf("Unable to get memory map\n");
 		halt();
 	}
-	printf("total memory %d MB\n", memmap.total >> 20);
+	printf("Total memory %d MB\n", memmap.total >> 20);
 	
-	if (ofw_map((void *) KERNEL_PHYSICAL_ADDRESS, (void *) KERNEL_VIRTUAL_ADDRESS, KERNEL_SIZE + KERNEL_BOOT_OFFSET, 0) != 0) {
-		printf("Unable to map kernel memory at %L (physical %L)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS);
-		halt();
+	unsigned int addr;
+	unsigned int pages;
+	for (addr = 0, pages = 0; addr < KERNEL_SIZE; addr += PAGE_SIZE, pages++) {
+		void *pa = ofw_translate(KERNEL_START + addr);
+		if ((unsigned int) pa < KERNEL_SIZE) {
+			printf("Error: Kernel image overlaps kernel physical area\n");
+			halt();
+		}
+		trans[addr >> PAGE_WIDTH] = pa;
 	}
-	printf("kernel memory mapped at %L (physical %L, size %d bytes)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_PHYSICAL_ADDRESS, KERNEL_SIZE);
-	// FIXME: relocate the kernel in real mode
-	memcpy((void *) KERNEL_VIRTUAL_ADDRESS, KERNEL_START, KERNEL_SIZE);
 	
-	// FIXME: proper hardware detection & mapping
-	ofw_map((void *) 0x84000000, (void *) 0xf0000000, 0x01000000, 0);
-	ofw_map((void *) 0x80816000, (void *) 0xf2000000, 0x00018000, 0);
-	
-	void *tramp = ofw_translate(&real_mode);
-	printf("bootstrap trampoline at %L (physical %L)\n", &real_mode, tramp);
 	printf("Booting the kernel...\n");
-	
-	flush_instruction_cache();
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS + KERNEL_BOOT_OFFSET, ofw_translate(&memmap), tramp);
+	jump_to_kernel(memmap_pa, trans_pa, pages, real_mode_pa);
 }
