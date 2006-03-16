@@ -43,31 +43,31 @@ kernel_image_start:
 	# r10 contains physical address to memmap_t
 	# from boot loader
 	
-	lis r4, 0x80000000@ha
-	addi r4, r4, 0x80000000@l
+	lis r31, 0x80000000@ha
+	addi r31, r31, 0x80000000@l
 	
-	add r10, r10, r4
+	add r3, r3, r31
 
-	lis r4, memmap@ha
-	addi r4, r4, memmap@l    # r4 = memmap
+	lis r31, memmap@ha
+	addi r31, r31, memmap@l    # r31 = memmap
 	
-	lwz r5, 0(r10)           # memmap->total
-	stw r5, 0(r4)
+	lwz r30, 0(r3)             # memmap->total
+	stw r30, 0(r31)
 	
-	lwzu r5, 4(r10)           # memmap->count
-	stwu r5, 4(r4)
+	lwzu r30, 4(r3)            # memmap->count
+	stwu r30, 4(r31)
 	
-	cmpwi r5, 0
+	cmpwi r30, 0
 	beq memmap_end
 	
-	mtctr r5
+	mtctr r30
 	memmap_loop:
 	
-		lwzu r5, 4(r10)           # memmap->zones[i].start
-		stwu r5, 4(r4)
+		lwzu r30, 4(r3)           # memmap->zones[i].start
+		stwu r30, 4(r31)
 		
-		lwzu r5, 4(r10)           # memmap->zones[i].size
-		stwu r5, 4(r4)
+		lwzu r30, 4(r3)           # memmap->zones[i].size
+		stwu r30, 4(r31)
 	
 	bdnz memmap_loop
 	memmap_end:

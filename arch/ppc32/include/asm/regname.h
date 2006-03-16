@@ -181,6 +181,7 @@
 #define lr		8
 #define ctr		9
 #define	dec		22
+#define	sdr1	25
 #define	srr0	26
 #define srr1	27
 #define	sprg0	272
@@ -188,9 +189,20 @@
 #define	sprg2	274
 #define	sprg3	275
 #define	prv		287
+#define hid0	1008
 
 /* MSR bits */
 #define msr_ir	(1 << 4)
 #define msr_dr	(1 << 5)
+
+/* HID0 bits */
+#define hid0_ice	(1 << 15)
+#define hid0_dce	(1 << 14)
+#define hid0_icfi	(1 << 11)
+#define hid0_dci	(1 << 10)
+
+/* Cache sizes */
+#define L1_CACHE_LINES (128 * 8)
+#define L1_CACHE_BYTES 5
 
 #endif
