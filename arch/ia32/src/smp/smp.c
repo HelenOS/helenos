@@ -55,6 +55,9 @@ static struct smp_config_operations *ops = NULL;
 
 void smp_init(void)
 {
+	int status;
+	__address l_apic_address, io_apic_address;
+
 	if (acpi_madt) {
 		acpi_madt_parse();
 		ops = &madt_config_operations;
@@ -64,11 +67,22 @@ void smp_init(void)
 		ops = &mps_config_operations;
 	}
 
+	l_apic_address = PA2KA(PFN2ADDR(frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status)));
+	if (status != FRAME_OK)
+		panic("cannot allocate address for l_apic\n");
+
+	io_apic_address = PA2KA(PFN2ADDR(frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status)));
+	if (status != FRAME_OK)
+		panic("cannot allocate address for io_apic\n");
+
 	if (config.cpu_count > 1) {		
-		page_mapping_insert(AS_KERNEL, (__address) l_apic, (__address) l_apic, 
+		page_mapping_insert(AS_KERNEL, l_apic_address, (__address) l_apic, 
 				  PAGE_NOT_CACHEABLE);
-		page_mapping_insert(AS_KERNEL, (__address) io_apic, (__address) io_apic,
+		page_mapping_insert(AS_KERNEL, io_apic_address, (__address) io_apic,
 				  PAGE_NOT_CACHEABLE);
+				  
+		l_apic = (__u32 *) l_apic_address;
+		io_apic = (__u32 *) io_apic_address;
         }
 
         /* 

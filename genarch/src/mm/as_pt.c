@@ -66,15 +66,21 @@ pte_t *ptl0_create(int flags)
 	if (flags & FLAG_AS_KERNEL) {
 		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
 	} else {
+		__address src, dst;
+	
 		/*
 		 * Copy the kernel address space portion to new PTL0.
-		 * TODO: copy only kernel address space.
 		 */
 		 
 		ipl = interrupts_disable();
-		spinlock_lock(&AS_KERNEL->lock);
+		spinlock_lock(&AS_KERNEL->lock);		
 		src_ptl0 = (pte_t *) PA2KA((__address) AS_KERNEL->page_table);
-		memcpy((void *) dst_ptl0,(void *) src_ptl0, PAGE_SIZE);
+
+		src = (__address) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		dst = (__address) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+
+		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
+		memcpy((void *) dst, (void *) src, PAGE_SIZE - (src - (__address) src_ptl0));
 		spinlock_unlock(&AS_KERNEL->lock);
 		interrupts_restore(ipl);
 	}

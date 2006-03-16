@@ -52,9 +52,11 @@ void arch_pre_mm_init(void)
 	it_init();
 	
 	/* Setup usermode */
-	init.cnt = 1;
-	init.tasks[0].addr = INIT_ADDRESS;
-	init.tasks[0].size = INIT_SIZE;
+	init.cnt = 2;
+	init.tasks[0].addr = INIT0_ADDRESS;
+	init.tasks[0].size = INIT0_SIZE;
+	init.tasks[1].addr = INIT1_ADDRESS;
+	init.tasks[1].size = INIT1_SIZE;
 }
 
 void arch_post_mm_init(void)
