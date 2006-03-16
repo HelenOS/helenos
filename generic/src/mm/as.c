@@ -70,6 +70,7 @@ as_t *AS_KERNEL = NULL;
 
 static int get_area_flags(as_area_t *a);
 static as_area_t *find_area_and_lock(as_t *as, __address va);
+static bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area);
 
 /** Initialize address space subsystem. */
 void as_init(void)
@@ -120,7 +121,7 @@ void as_free(as_t *as)
  *
  * @param as Target address space.
  * @param flags Flags of the area.
- * @param size Size of area in multiples of PAGE_SIZE.
+ * @param size Size of area.
  * @param base Base address of area.
  *
  * @return Address space area on success or NULL on failure.
@@ -131,14 +132,20 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 	as_area_t *a;
 	
 	if (base % PAGE_SIZE)
-		panic("addr not aligned to a page boundary");
+		return NULL;
+
+	/* Writeable executable areas are not supported. */
+	if ((flags & AS_AREA_EXEC) && (flags & AS_AREA_WRITE))
+		return NULL;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
 	
-	/*
-	 * TODO: test as_area which is to be created doesn't overlap with an existing one.
-	 */
+	if (!check_area_conflicts(as, base, size, NULL)) {
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
 	
 	a = (as_area_t *) malloc(sizeof(as_area_t), 0);
 
@@ -146,7 +153,7 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 	
 	link_initialize(&a->link);			
 	a->flags = flags;
-	a->size = size;
+	a->pages = SIZE2FRAMES(size);
 	a->base = base;
 	
 	list_append(&a->link, &as->as_area_head);
@@ -431,17 +438,24 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 	area = find_area_and_lock(as, address);
 	if (!area) {
 		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
 		return (__address) -1;
 	}
 
 	pages = SIZE2FRAMES((address - area->base) + size);
-	if (pages < area->size) {
+	if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+
+	if (pages < area->pages) {
 		int i;
 
 		/*
 		 * Shrinking the area.
 		 */
-		for (i = pages; i < area->size; i++) {
+		for (i = pages; i < area->pages; i++) {
 			pte_t *pte;
 			
 			/*
@@ -466,12 +480,12 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 		/*
 		 * Invalidate TLB's.
 		 */
-		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
-		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->size - pages);
+		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
+		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
 	} 
 
-	area->size = pages;
+	area->pages = pages;
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&as->lock);
@@ -498,11 +512,68 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 		a = list_get_instance(cur, as_area_t, link);
 		spinlock_lock(&a->lock);
 
-		if ((va >= a->base) && (va < a->base + a->size * PAGE_SIZE))
-			 return a;
+		if ((va >= a->base) && (va < a->base + a->pages * PAGE_SIZE))
+			return a;
 		
 		spinlock_unlock(&a->lock);
 	}
 
 	return NULL;
+}
+
+/** Check area conflicts with other areas.
+ *
+ * The address space must be locked and interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param va Starting virtual address of the area being tested.
+ * @param size Size of the area being tested.
+ * @param avoid_area Do not touch this area. 
+ *
+ * @return True if there is no conflict, false otherwise.
+ */
+bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area)
+{
+	link_t *cur;
+	as_area_t *a;
+	
+	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
+		__address start;
+		__address end;
+	
+		a = list_get_instance(cur, as_area_t, link);
+		if (a == avoid_area)
+			continue;
+			
+		spinlock_lock(&a->lock);
+
+		start = a->base;
+		end = a->base + a->pages * PAGE_SIZE - 1;
+
+		spinlock_unlock(&a->lock);
+
+		if ((va >= start) && (va <= end)) {
+			/*
+			 * Tested area is inside another area.
+			 */
+			return false;
+		}
+		
+		if ((start >= va) && (start < va + size)) {
+			/*
+			 * Another area starts in tested area.
+			 */
+			return false;
+		}
+		
+		if ((end >= va) && (end < va + size)) {
+			/*
+			 * Another area ends in tested area.
+			 */
+			return false;
+		}
+
+	}
+
+	return true;
 }

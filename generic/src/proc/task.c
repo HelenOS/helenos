@@ -125,7 +125,7 @@ task_t * task_run_program(void *program_addr)
 	/*
 	 * Create the data as_area.
 	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, 1, USTACK_ADDRESS);
+	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, PAGE_SIZE, USTACK_ADDRESS);
 	
 	thread_ready(t);
 

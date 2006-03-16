@@ -62,7 +62,7 @@ struct as_area {
 	SPINLOCK_DECLARE(lock);
 	link_t link;
 	int flags;
-	size_t size;		/**< Size of this area in multiples of PAGE_SIZE. */
+	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
 };
 
