@@ -154,15 +154,15 @@ start64:
 		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
 		jc mods_valid
 			
-			xorl %ecx, %ecx
-			movl %ecx, init
+			xorq %rcx, %rcx
+			movq %rcx, init
 			jmp mods_end
 		
 		mods_valid:
 		
 		xorq %rcx, %rcx
 		movl 20(%ebx), %ecx						# mbi->mods_count
-		movl %ecx, init
+		movq %rcx, init
 		
 		cmpl $0, %ecx
 		je mods_end
@@ -175,12 +175,12 @@ start64:
 			xorq %rdx, %rdx
 			movl 0(%esi), %edx					# mods->mod_start
 			addq $0xffffffff80000000, %rdx
-			movq %rdx, 4(%rdi)
+			movq %rdx, 8(%rdi)
 			
 			xorq %rdx, %rdx
 			movl 4(%esi), %edx
 			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
-			movq %rdx, 12(%rdi)
+			movq %rdx, 16(%rdi)
 			
 			addl $16, %esi
 			addq $16, %rdi
