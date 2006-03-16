@@ -32,9 +32,9 @@
 #define STACK_ITEM_SIZE	4
 
 /*
- * Put one item onto the stack to support get_stack_base().
+ * Put one item onto the stack to support get_stack_base() and align it up to 8 bytes boundary.
  */
-#define SP_DELTA	(0+STACK_ITEM_SIZE)
+#define SP_DELTA	((0 + STACK_ITEM_SIZE + 7) & (~7))
 
 
 #ifndef __ASM__

@@ -30,9 +30,10 @@
 
 void test(void)
 {
-	__u64 u64const = 0x0123456789ABCDEFLL;
 	printf(" Printf test \n");
-	printf(" Q  %Q  %q \n",u64const, u64const);
+	printf(" Q  %Q  %q \n",0x1111111111111111ull, 0x2222222222222222ull);
+	printf(" Q,l  %Q  %l \n", 0x3333333333333333ull, 0x01234567);
+	printf(" l,Q  %l  %Q \n", 0x01234567, 0x4444444444444444ull);
 	printf(" L  %L  %l \n",0x01234567 ,0x01234567);   
 	printf(" W  %W  %w \n",0x0123 ,0x0123);   
 	printf(" B  %B  %b \n",0x01 ,0x01);

@@ -31,24 +31,19 @@
 
 #include <arch/types.h>
 
-typedef struct va_list {
-	int pos;
-	__u8 *last;
-} va_list;
-
-#define va_start(ap, lst) 		\
-	(ap).pos = sizeof(lst);		\
-	(ap).last = (__u8 *) &(lst)
-
 /**
  * va_arg macro for MIPS32 - problem is that 64 bit values must be aligned on an 8-byte boundary (32bit values not)
  * To satisfy this, paddings must be sometimes inserted. 
  */
-#define va_arg(ap, type) 		\
-	(*((type *)((ap).last + ((ap).pos  += sizeof(type) + ((sizeof(type)==8)&&(((ap).pos)&(4))?4:0)) - sizeof(type))))
+
+typedef __address va_list;
+
+#define va_start(ap, lst) \
+	((ap) = (va_list)&(lst) + sizeof(lst))
+
+#define va_arg(ap, type)	\
+	(((type *)((ap) = (va_list)( (sizeof(type) <= 4) ? ((__address)((ap) + 2*4 - 1) & (~3)) : ((__address)((ap) + 2*8 -1) & (~7)) )))[-1])
 
 #define va_end(ap)
-
-
 
 #endif

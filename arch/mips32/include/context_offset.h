@@ -48,4 +48,4 @@
 #define EOFFSET_HI     0x78
 #define EOFFSET_STATUS 0x7c
 #define EOFFSET_EPC    0x80
-#define REGISTER_SPACE 132
+#define REGISTER_SPACE 136
