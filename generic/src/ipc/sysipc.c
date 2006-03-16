@@ -80,12 +80,12 @@ static int phone_alloc(answerbox_t *callee)
 /** Disconnect phone */
 static void phone_dealloc(int phoneid)
 {
-	spinlock_lock(TASK->lock);
+	spinlock_lock(&TASK->lock);
 
 	ASSERT(TASK->phones[phoneid].callee);
 
 	TASK->phones[phoneid].callee = NULL;
-	spinlock_unlock(TASK->lock);
+	spinlock_unlock(&TASK->lock);
 }
 
 /****************************************************/
