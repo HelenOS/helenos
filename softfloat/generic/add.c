@@ -35,7 +35,7 @@
 float32 addFloat32(float32 a, float32 b)
 {
 	int expdiff;
-	__u32 exp1, exp2,frac1, frac2;
+	uint32_t exp1, exp2,frac1, frac2;
 	
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {
@@ -143,8 +143,8 @@ float32 addFloat32(float32 a, float32 b)
 float64 addFloat64(float64 a, float64 b)
 {
 	int expdiff;
-	__u32 exp1, exp2;
-	__u64 frac1, frac2;
+	uint32_t exp1, exp2;
+	uint64_t frac1, frac2;
 	
 	expdiff = ((int )a.parts.exp) - b.parts.exp;
 	if (expdiff < 0) {

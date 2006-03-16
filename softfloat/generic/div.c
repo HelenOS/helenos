@@ -37,8 +37,8 @@
 float32 divFloat32(float32 a, float32 b) 
 {
 	float32 result;
-	__s32 aexp, bexp, cexp;
-	__u64 afrac, bfrac, cfrac;
+	int32_t aexp, bexp, cexp;
+	uint64_t afrac, bfrac, cfrac;
 	
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
@@ -180,7 +180,7 @@ float32 divFloat32(float32 a, float32 b)
 		}
 		
 	} else {
-		result.parts.exp = (__u32)cexp;
+		result.parts.exp = (uint32_t)cexp;
 	}
 	
 	result.parts.fraction = ((cfrac >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
@@ -191,9 +191,9 @@ float32 divFloat32(float32 a, float32 b)
 float64 divFloat64(float64 a, float64 b) 
 {
 	float64 result;
-	__s64 aexp, bexp, cexp;
-	__u64 afrac, bfrac, cfrac; 
-	__u64 remlo, remhi;
+	int64_t aexp, bexp, cexp;
+	uint64_t afrac, bfrac, cfrac; 
+	uint64_t remlo, remhi;
 	
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
@@ -306,7 +306,7 @@ float64 divFloat64(float64 a, float64 b)
 		remhi = afrac - remhi - ( remlo > 0);
 		remlo = - remlo;
 		
-		while ((__s64) remhi < 0) {
+		while ((int64_t) remhi < 0) {
 			cfrac--;
 			remlo += bfrac;
 			remhi += ( remlo < bfrac );
@@ -320,11 +320,11 @@ float64 divFloat64(float64 a, float64 b)
 
 }
 
-__u64 divFloat64estim(__u64 a, __u64 b)
+uint64_t divFloat64estim(uint64_t a, uint64_t b)
 {
-	__u64 bhi;
-	__u64 remhi, remlo;
-	__u64 result;
+	uint64_t bhi;
+	uint64_t remhi, remlo;
+	uint64_t result;
 	
 	if ( b <= a ) {
 		return 0xFFFFFFFFFFFFFFFFull;
@@ -338,7 +338,7 @@ __u64 divFloat64estim(__u64 a, __u64 b)
 	remlo = - remlo;
 
 	b <<= 32;
-	while ( (__s64) remhi < 0 ) {
+	while ( (int64_t) remhi < 0 ) {
 			result -= 0x1ll << 32;	
 			remlo += b;
 			remhi += bhi + ( remlo < b );

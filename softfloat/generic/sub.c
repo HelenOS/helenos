@@ -35,7 +35,7 @@
 float32 subFloat32(float32 a, float32 b)
 {
 	int expdiff;
-	__u32 exp1, exp2, frac1, frac2;
+	uint32_t exp1, exp2, frac1, frac2;
 	float32 result;
 
 	result.f = 0;
@@ -146,8 +146,8 @@ done:
 float64 subFloat64(float64 a, float64 b)
 {
 	int expdiff;
-	__u32 exp1, exp2;
-	__u64 frac1, frac2;
+	uint32_t exp1, exp2;
+	uint64_t frac1, frac2;
 	float64 result;
 
 	result.d = 0;

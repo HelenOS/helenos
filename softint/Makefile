@@ -40,6 +40,8 @@ CFLAGS += -Iinclude
 ## Sources
 #
 
+ARCH_SOURCES =
+
 GENERIC_SOURCES = \
 	generic/division.c
 

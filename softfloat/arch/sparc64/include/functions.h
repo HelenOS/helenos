@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Josef Cejka
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CONVERSION_H__
-#define __CONVERSION_H__
+#ifndef __SOFTFLOAT_FUNCTIONS_H__
+#define __SOFTFLOAT_FUNCTIONS_H__
 
-float64 convertFloat32ToFloat64(float32 a);
+#define float32_to_int(X) float32_to_int32(X);
+#define float32_to_long(X) float32_to_int64(X);
+#define float32_to_longlong(X) float32_to_int64(X);
 
-float32 convertFloat64ToFloat32(float64 a);
+#define float64_to_int(X) float64_to_int32(X);
+#define float64_to_long(X) float64_to_int64(X);
+#define float64_to_longlong(X) float64_to_int64(X);
 
-uint32_t float32_to_uint32(float32 a);
-int32_t float32_to_int32(float32 a);
+#define float32_to_uint(X) float32_to_uint32(X);
+#define float32_to_ulong(X) float32_to_uint64(X);
+#define float32_to_ulonglong(X) float32_to_uint64(X);
 
-uint64_t float32_to_uint64(float32 a);
-int64_t float32_to_int64(float32 a);
+#define float64_to_uint(X) float64_to_uint32(X);
+#define float64_to_ulong(X) float64_to_uint64(X);
+#define float64_to_ulonglong(X) float64_to_uint64(X);
 
-uint64_t float64_to_uint64(float64 a);
-int64_t float64_to_int64(float64 a);
+#define int_to_float32(X) int32_to_float32(X);
+#define long_to_float32(X) int64_to_float32(X);
+#define longlong_to_float32(X) int64_to_float32(X);
 
-uint32_t float64_to_uint32(float64 a);
-int32_t float64_to_int32(float64 a);
+#define int_to_float64(X) int32_to_float64(X);
+#define long_to_float64(X) int64_to_float64(X);
+#define longlong_to_float64(X) int64_to_float64(X);
 
-float32 uint32_to_float32(uint32_t i);
-float32 int32_to_float32(int32_t i);
+#define uint_to_float32(X) uint32_to_float32(X);
+#define ulong_to_float32(X) uint64_to_float32(X);
+#define ulonglong_to_float32(X) uint64_to_float32(X);
 
-float32 uint64_to_float32(uint64_t i);
-float32 int64_to_float32(int64_t i);
-
-float64 uint32_to_float64(uint32_t i);
-float64 int32_to_float64(int32_t i);
-
-float64 uint64_to_float64(uint64_t i);
-float64 int64_to_float64(int64_t i);
+#define uint_to_float64(X) uint32_to_float64(X);
+#define ulong_to_float64(X) uint64_to_float64(X);
+#define ulonglong_to_float64(X) uint64_to_float64(X);
 
 #endif
 

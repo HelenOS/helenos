@@ -26,32 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_TYPES_H__
-#define __ia32_TYPES_H__
+#ifndef __SOFTFLOAT_FUNCTIONS_H__
+#define __SOFTFLOAT_FUNCTIONS_H__
 
-typedef char __s8;
-typedef short __s16;
-typedef long __s32;
-typedef long long __s64;
+#define float32_to_int(X) float32_to_int32(X);
+#define float32_to_long(X) float32_to_int32(X);
+#define float32_to_longlong(X) float32_to_int64(X);
 
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned long __u32;
-typedef unsigned long long __u64;
+#define float64_to_int(X) float64_to_int32(X);
+#define float64_to_long(X) float64_to_int32(X);
+#define float64_to_longlong(X) float64_to_int64(X);
 
-#define MAX_INT32 (0x7FFFFFFF)
-#define MIN_INT32 (0x80000000)
+#define float32_to_uint(X) float32_to_uint32(X);
+#define float32_to_ulong(X) float32_to_uint32(X);
+#define float32_to_ulonglong(X) float32_to_uint64(X);
 
-#define MAX_UINT32 (0xFFFFFFFF)
-#define MIN_UINT32 (0)
+#define float64_to_uint(X) float64_to_uint32(X);
+#define float64_to_ulong(X) float64_to_uint32(X);
+#define float64_to_ulonglong(X) float64_to_uint64(X);
 
-#define MAX_INT64 (0x7FFFFFFFFFFFFFFFll)
-#define MIN_INT64 (0x8000000000000000ll)
+#define int_to_float32(X) int32_to_float32(X);
+#define long_to_float32(X) int32_to_float32(X);
+#define longlong_to_float32(X) int64_to_float32(X);
 
-#define MAX_UINT64 (0xFFFFFFFFFFFFFFFFll)
-#define MIN_UINT64 (0ll)
+#define int_to_float64(X) int32_to_float64(X);
+#define long_to_float64(X) int32_to_float64(X);
+#define longlong_to_float64(X) int64_to_float64(X);
 
+#define uint_to_float32(X) uint32_to_float32(X);
+#define ulong_to_float32(X) uint32_to_float32(X);
+#define ulonglong_to_float32(X) uint64_to_float32(X);
 
+#define uint_to_float64(X) uint32_to_float64(X);
+#define ulong_to_float64(X) uint32_to_float64(X);
+#define ulonglong_to_float64(X) uint64_to_float64(X);
 
 #endif
 

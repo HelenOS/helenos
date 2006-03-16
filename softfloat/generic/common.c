@@ -56,7 +56,7 @@ char zeroTable[256] = {
  * @param cfrac fraction shifted 10 places left with added hidden bit
  * @return valied float64
  */
-float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
+float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign)
 {
 	float64 result;
 
@@ -108,7 +108,7 @@ float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
 		return result;
 	}
 
-	result.parts.exp = (__u32)cexp;
+	result.parts.exp = (uint32_t)cexp;
 	
 	result.parts.fraction = ((cfrac >>(64 - FLOAT64_FRACTION_SIZE - 2 ) ) & (~FLOAT64_HIDDEN_BIT_MASK)); 
 	
@@ -118,7 +118,7 @@ float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign)
 /** Counts leading zeroes in 64bit unsigned integer
  * @param i 
  */
-int countZeroes64(__u64 i)
+int countZeroes64(uint64_t i)
 {
 	int j;
 	for (j =0; j < 64; j += 8) {
@@ -133,7 +133,7 @@ int countZeroes64(__u64 i)
 /** Counts leading zeroes in 32bit unsigned integer
  * @param i 
  */
-int countZeroes32(__u32 i)
+int countZeroes32(uint32_t i)
 {
 	int j;
 	for (j =0; j < 32; j += 8) {
@@ -148,7 +148,7 @@ int countZeroes32(__u32 i)
 /** Counts leading zeroes in byte
  * @param i 
  */
-int countZeroes8(__u8 i)
+int countZeroes8(uint8_t i)
 {
 	return zeroTable[i];
 }
@@ -157,7 +157,7 @@ int countZeroes8(__u8 i)
  * @param exp exponent 
  * @param fraction part with hidden bit shifted to 30. bit
  */
-void roundFloat32(__s32 *exp, __u32 *fraction)
+void roundFloat32(int32_t *exp, uint32_t *fraction)
 {
 	/* rounding - if first bit after fraction is set then round up */
 	(*fraction) += (0x1 << 6);
@@ -182,7 +182,7 @@ void roundFloat32(__s32 *exp, __u32 *fraction)
  * @param exp exponent 
  * @param fraction part with hidden bit shifted to 62. bit
  */
-void roundFloat64(__s32 *exp, __u64 *fraction)
+void roundFloat64(int32_t *exp, uint64_t *fraction)
 {
 	/* rounding - if first bit after fraction is set then round up */
 	(*fraction) += (0x1 << 9);

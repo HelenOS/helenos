@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Josef Cejka
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CONVERSION_H__
-#define __CONVERSION_H__
+#ifndef __LIBC__STDINT_H__
+#define __LIBC__STDINT_H__
 
-float64 convertFloat32ToFloat64(float32 a);
+/* Definitions of types with fixed size*/
+#include<types.h>
 
-float32 convertFloat64ToFloat32(float64 a);
+#define MAX_INT8 (0x7F)
+#define MIN_INT8 (0x80)
+#define MAX_UINT8 (0xFFu)
+#define MIN_UINT8 (0u)
 
-uint32_t float32_to_uint32(float32 a);
-int32_t float32_to_int32(float32 a);
+#define MAX_INT16 (0x7FFF)
+#define MIN_INT16 (0x8000)
+#define MAX_UINT16 (0xFFFFu)
+#define MIN_UINT16 (0u)
 
-uint64_t float32_to_uint64(float32 a);
-int64_t float32_to_int64(float32 a);
+#define MAX_INT32 (0x7FFFFFFF)
+#define MIN_INT32 (0x80000000)
+#define MAX_UINT32 (0xFFFFFFFFu)
+#define MIN_UINT32 (0u)
 
-uint64_t float64_to_uint64(float64 a);
-int64_t float64_to_int64(float64 a);
-
-uint32_t float64_to_uint32(float64 a);
-int32_t float64_to_int32(float64 a);
-
-float32 uint32_to_float32(uint32_t i);
-float32 int32_to_float32(int32_t i);
-
-float32 uint64_to_float32(uint64_t i);
-float32 int64_to_float32(int64_t i);
-
-float64 uint32_to_float64(uint32_t i);
-float64 int32_to_float64(int32_t i);
-
-float64 uint64_to_float64(uint64_t i);
-float64 int64_to_float64(int64_t i);
+#define MAX_INT64 (0x7FFFFFFFFFFFFFFFll)
+#define MIN_INT64 (0x8000000000000000ll)
+#define MAX_UINT64 (0xFFFFFFFFFFFFFFFFull)
+#define MIN_UINT64 (0ull)
 
 #endif
 

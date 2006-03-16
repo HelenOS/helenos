@@ -38,8 +38,6 @@
 #include<comparison.h>
 #include<other.h>
 
-#include<arch.h>
-#include<types.h>
 #include<functions.h>
 
 /* Arithmetic functions */
@@ -480,16 +478,6 @@ int __gtsf2(float a, float b)
 /* Other functions */
 
 float __powisf2(float a, int b)
-{
-/* TODO: */
-}
-
-float __mulsc3(float a, float b, float c, float d)
-{
-/* TODO: */
-}
-
-float __divsc3(float a, float b, float c, float d)
 {
 /* TODO: */
 }

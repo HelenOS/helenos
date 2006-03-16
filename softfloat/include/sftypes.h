@@ -29,43 +29,43 @@
 #ifndef __SFTYPES_H__
 #define __SFTYPES_H__
 
-#include <types.h>
-#include <arch.h>
+#include <endian.h>
+#include <stdint.h>
 
 typedef union {
 	float f;
-	__u32 binary;
+	uint32_t binary;
 
 	struct 	{
-		#ifdef __BIG_ENDIAN__
-		__u32 sign:1;
-		__u32 exp:8;
-		__u32 fraction:23;
-		#elif defined __LITTLE_ENDIAN__
-		__u32 fraction:23;
-		__u32 exp:8;
-		__u32 sign:1;
+		#if __BYTE_ORDER == __BIG_ENDIAN
+		uint32_t sign:1;
+		uint32_t exp:8;
+		uint32_t fraction:23;
+		#elif __BYTE_ORDER == __LITTLE_ENDIAN
+		uint32_t fraction:23;
+		uint32_t exp:8;
+		uint32_t sign:1;
 		#else 
-		#error "Unknown endians."
+			#error "Unknown endians."
 		#endif
 		} parts __attribute__ ((packed));
  	} float32;
 	
 typedef union {
 	double d;
-	__u64 binary;
+	uint64_t binary;
 	
 	struct	{
-		#ifdef __BIG_ENDIAN__
-		__u64 sign:1;
-		__u64 exp:11;
-		__u64 fraction:52;
-		#elif defined __LITTLE_ENDIAN__
-		__u64 fraction:52;
-		__u64 exp:11;
-		__u64 sign:1;
+		#if __BYTE_ORDER == __BIG_ENDIAN
+		uint64_t sign:1;
+		uint64_t exp:11;
+		uint64_t fraction:52;
+		#elif __BYTE_ORDER == __LITTLE_ENDIAN
+		uint64_t fraction:52;
+		uint64_t exp:11;
+		uint64_t sign:1;
 		#else 
-		#error "Unknown endians."
+			#error "Unknown endians."
 		#endif
 		} parts __attribute__ ((packed));
 	} float64;

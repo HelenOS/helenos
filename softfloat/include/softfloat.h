@@ -157,6 +157,8 @@ int __gtsf2(float a, float b);
 int __gtdf2(double a, double b);
 int __gttf2(long double a, long double b);
  
- 
+/* Not implemented yet*/ 
+float __powisf2(float a, int b);
+
 #endif
 

@@ -31,13 +31,13 @@
 
 #include<sftypes.h>
 
-float64 finishFloat64(__s32 cexp, __u64 cfrac, char sign);
+float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign);
 
-int countZeroes64(__u64 i);
-int countZeroes32(__u32 i);
-int countZeroes8(__u8 i);
+int countZeroes64(uint64_t i);
+int countZeroes32(uint32_t i);
+int countZeroes8(uint8_t i);
 
-void roundFloat32(__s32 *exp, __u32 *fraction);
-void roundFloat64(__s32 *exp, __u64 *fraction);
+void roundFloat32(int32_t *exp, uint32_t *fraction);
+void roundFloat64(int32_t *exp, uint64_t *fraction);
 
 #endif

@@ -37,8 +37,8 @@
 float32 mulFloat32(float32 a, float32 b)
 {
 	float32 result;
-	__u64 frac1, frac2;
-	__s32 exp;
+	uint64_t frac1, frac2;
+	int32_t exp;
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
@@ -173,8 +173,8 @@ float32 mulFloat32(float32 a, float32 b)
 float64 mulFloat64(float64 a, float64 b)
 {
 	float64 result;
-	__u64 frac1, frac2;
-	__s32 exp;
+	uint64_t frac1, frac2;
+	int32_t exp;
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
@@ -257,10 +257,10 @@ float64 mulFloat64(float64 a, float64 b)
  * @param lo lower part from result
  * @param hi higher part of result
  */
-void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi)
+void mul64integers(uint64_t a,uint64_t b, uint64_t *lo, uint64_t *hi)
 {
-	__u64 low, high, middle1, middle2;
-	__u32 alow, blow;
+	uint64_t low, high, middle1, middle2;
+	uint32_t alow, blow;
 
 	alow = a & 0xFFFFFFFF;
 	blow = b & 0xFFFFFFFF;
@@ -268,13 +268,13 @@ void mul64integers(__u64 a,__u64 b, __u64 *lo, __u64 *hi)
 	a >>= 32;
 	b >>= 32;
 	
-	low = ((__u64)alow) * blow;
+	low = ((uint64_t)alow) * blow;
 	middle1 = a * blow;
 	middle2 = alow * b;
 	high = a * b;
 
 	middle1 += middle2;
-	high += (((__u64)(middle1 < middle2)) << 32) + (middle1 >> 32);
+	high += (((uint64_t)(middle1 < middle2)) << 32) + (middle1 >> 32);
 	middle1 <<= 32;
 	low += middle1;
 	high += (low < middle1);

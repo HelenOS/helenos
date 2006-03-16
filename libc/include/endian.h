@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Josef Cejka
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CONVERSION_H__
-#define __CONVERSION_H__
+#ifndef __LIBC__ENDIANS_H__
+#define __LIBC__ENDIANS_H__
 
-float64 convertFloat32ToFloat64(float32 a);
+#define __LITTLE_ENDIAN 1234
+#define __BIG_ENDIAN	4321
+#define __PDP_ENDIAN	3412
 
-float32 convertFloat64ToFloat32(float64 a);
-
-uint32_t float32_to_uint32(float32 a);
-int32_t float32_to_int32(float32 a);
-
-uint64_t float32_to_uint64(float32 a);
-int64_t float32_to_int64(float32 a);
-
-uint64_t float64_to_uint64(float64 a);
-int64_t float64_to_int64(float64 a);
-
-uint32_t float64_to_uint32(float64 a);
-int32_t float64_to_int32(float64 a);
-
-float32 uint32_to_float32(uint32_t i);
-float32 int32_to_float32(int32_t i);
-
-float32 uint64_to_float32(uint64_t i);
-float32 int64_to_float32(int64_t i);
-
-float64 uint32_to_float64(uint32_t i);
-float64 int32_to_float64(int32_t i);
-
-float64 uint64_to_float64(uint64_t i);
-float64 int64_to_float64(int64_t i);
+/* TODO: move it to arch dependent directory */
+#define __BYTE_ORDER __LITTLE_ENDIAN
 
 #endif
-
