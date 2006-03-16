@@ -245,3 +245,10 @@ int ipc_connect_to_me(int phoneid, int arg1, int arg2,
 	return __SYSCALL4(SYS_IPC_CONNECT_TO_ME, phoneid, arg1, arg2,
 			  (sysarg_t) taskid);
 }
+
+/** Ask through phone for a new connection to some service */
+int ipc_connect_me_to(int phoneid, int arg1, int arg2)
+{
+	return __SYSCALL3(SYS_IPC_CONNECT_ME_TO, phoneid, arg1, arg2);
+}
+

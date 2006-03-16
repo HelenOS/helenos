@@ -24,6 +24,11 @@ int main(int argc, char **argv)
 			service = IPC_GET_ARG3(call.data);
 			retval = 0;
 			break;
+		case IPC_M_CONNECTMETO:
+			printf("Somebody wants to connect to: %d\n",
+			       IPC_GET_ARG1(call.data));
+			retval = 0;
+			break;
 		case NS_PING:
 			printf("Ping...%P %P\n", IPC_GET_ARG1(call.data),
 			       IPC_GET_ARG2(call.data));

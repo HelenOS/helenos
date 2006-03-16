@@ -64,5 +64,6 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipc_async_callback_t callback);
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, 
 		      unsigned long long *taskid);
+int ipc_connect_me_to(int phoneid, int arg1, int arg2);
 
 #endif

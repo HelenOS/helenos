@@ -144,19 +144,34 @@ static void test_advanced_ipc(void)
 	unsigned long long taskid;
 	ipc_callid_t callid;
 	ipc_call_t data;
+	int i;
 
 	printf("Asking 0 to connect to me...\n");
 	res = ipc_connect_to_me(0, 1, 2, &taskid);
 	printf("Result: %d - taskid: %Q\n", res, taskid);
-//	while (1) {
+	for (i=0; i < 100; i++) {
 		printf("----------------\n");
 		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
 			       got_answer_2);
 		callid = ipc_wait_for_call(&data, NULL);
 		printf("Received ping\n");
 		ipc_answer(callid, 0, 0, 0);
-//	}
-		callid = ipc_wait_for_call(&data, NULL);
+	}
+	callid = ipc_wait_for_call(&data, NULL);
+}
+
+static void test_connection_ipc(void)
+{
+	int res;
+	ipcarg_t result;
+
+	printf("Starting connect...\n");
+	res = ipc_connect_me_to(PHONE_NS, 10, 20);
+	printf("Connected: %d\n", res);
+	printf("pinging.\n");
+	res = ipc_call_sync(res, NS_PING, 0xbeef,&result);
+	printf("Retval: %d - received: %P\n", res, result);
+	
 }
 
 int main(int argc, char *argv[])
@@ -166,6 +181,7 @@ int main(int argc, char *argv[])
 /*	test_printf(); */
 //	test_ping();
 //	test_async_ipc();
-	test_advanced_ipc();
+//	test_advanced_ipc();
+	test_connection_ipc();
 	return 0;
 }
