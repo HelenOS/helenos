@@ -26,47 +26,49 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include Makefile.config
+LIBC_PREFIX = ../libc
+LIBIPC_PREFIX = ../libipc
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-DIRS = \
-	softint \
-	softfloat \
-	libc \
-	libipc \
-	libadt \
-	init \
-	ns
+CFLAGS += -I../libipc/include
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+LIBS = $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+## Sources
+#
 
-all:
-	tools/config.py default $(NARCH)
-ifdef NARCH
- ifneq ($(ARCH), $(NARCH))
-	$(MAKE) -C . clean
- endif
-endif
-	$(MAKE) -C . build
+OUTPUT = ns
+SOURCES = \
+	ns.c
 
-config:
-	tools/config.py
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-build: $(BUILDS)
+.PHONY: all clean depend disasm
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+all: $(OUTPUT) disasm
 
-distclean: clean
-	-rm Makefile.config
+-include Makefile.depend
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

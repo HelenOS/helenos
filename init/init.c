@@ -28,10 +28,10 @@
 
 #include "version.h"
 #include <ipc.h>
-#include <ns.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <ns.h>
 
 /*
 static void test_printf(void)
@@ -46,7 +46,7 @@ static void test_printf(void)
 }
 */
 
-/*
+extern char _heap;
 static void test_mremap(void)
 {
 	printf("Writing to good memory\n");
@@ -61,7 +61,6 @@ static void test_mremap(void)
 
 	printf("memory done\n");
 }
-*/
 /*
 static void test_sbrk(void)
 {
@@ -91,7 +90,16 @@ static void test_malloc(void)
 }
 */
 
-/*
+
+static void test_ping(void)
+{
+	ipcarg_t result;
+	int retval;
+
+	retval = ipc_call_sync(PHONE_NS, NS_PING, 0xbeef,&result);
+	printf("Retval: %d - received: %P\n", retval, result);
+}
+
 static void got_answer(void *private, int retval, ipc_data_t *data)
 {
 	printf("Retval: %d...%s...%X, %X\n", retval, private,
@@ -99,7 +107,7 @@ static void got_answer(void *private, int retval, ipc_data_t *data)
 }
 static void test_async_ipc(void)
 {
-	ipc_data_t data;
+	ipc_call_t data;
 	int i;
 
 	printf("Sending ping\n");
@@ -122,16 +130,39 @@ static void test_async_ipc(void)
 	ipc_wait_for_call(&data, NULL);
 	printf("Received call???\n");
 }
-*/
+
+
+static void got_answer_2(void *private, int retval, ipc_data_t *data)
+{
+	printf("Pong\n");
+}
+static void test_advanced_ipc(void)
+{
+	int res;
+	unsigned long long taskid;
+	ipc_callid_t callid;
+	ipc_call_t data;
+
+	printf("Asking 0 to connect to me...\n");
+	res = ipc_connect_to_me(0, 1, 2, &taskid);
+	printf("Result: %d - taskid: %Q\n", res, taskid);
+//	while (1) {
+		printf("----------------\n");
+		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
+			       got_answer_2);
+		callid = ipc_wait_for_call(&data, NULL);
+		printf("Received ping\n");
+		ipc_answer(callid, 0, 0, 0);
+//	}
+		callid = ipc_wait_for_call(&data, NULL);
+}
 
 int main(int argc, char *argv[])
 {
-	ipcarg_t arg1, arg2;
-
 	version_print();
 
-	ipc_call_sync_2(PHONE_NS, NS_PING, 0xaaaa, 0xbbbb, &arg1, &arg2);
-	printf("Pong: %P %P\n", arg1, arg2);
-	
+//	test_ping();
+//	test_async_ipc();
+	test_advanced_ipc();
 	return 0;
 }

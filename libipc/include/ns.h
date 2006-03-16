@@ -29,6 +29,7 @@
 #ifndef __LIBIPC__NS_H__
 #define __LIBIPC__NS_H__
 
-#include <kernel/ipc/ns.h>
+#define NS_PING      1024
+#define NS_PING_SVC  1025
 
 #endif

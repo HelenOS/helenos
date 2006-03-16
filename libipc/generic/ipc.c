@@ -117,6 +117,7 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	call = malloc(sizeof(*call));
 	if (!call) {
 		callback(private, ENOMEM, NULL);
+		return;
 	}
 		
 	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
@@ -221,7 +222,7 @@ static void handle_answer(ipc_callid_t callid, ipc_data_t *data)
  * @return Callid or 0 if nothing available and started with 
  *         IPC_WAIT_NONBLOCKING
  */
-int ipc_wait_for_call(ipc_call_t *call, int flags)
+ipc_callid_t ipc_wait_for_call(ipc_call_t *call, int flags)
 {
 	ipc_callid_t callid;
 
@@ -235,4 +236,12 @@ int ipc_wait_for_call(ipc_call_t *call, int flags)
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;
+}
+
+/** Ask destination to do a callback connection */
+int ipc_connect_to_me(int phoneid, int arg1, int arg2,
+		      unsigned long long *taskid)
+{
+	return __SYSCALL4(SYS_IPC_CONNECT_TO_ME, phoneid, arg1, arg2,
+			  (sysarg_t) taskid);
 }

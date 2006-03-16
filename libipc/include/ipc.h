@@ -52,9 +52,9 @@ extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			   ipcarg_t *result3);
 
 
-extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
+extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			 ipcarg_t *result);
-extern int ipc_wait_for_call(ipc_call_t *data, int flags);
+extern ipc_callid_t ipc_wait_for_call(ipc_call_t *data, int flags);
 extern void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 		       ipcarg_t arg2);
 
@@ -62,5 +62,7 @@ extern void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback);
+int ipc_connect_to_me(int phoneid, int arg1, int arg2, 
+		      unsigned long long *taskid);
 
 #endif
