@@ -171,9 +171,10 @@ void idt_init(void)
 		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
 		exc_register(i, "undef", (iroutine)null_interrupt);
 	}
-	exc_register(13, "gp_fault", gp_fault);
+
 	exc_register( 7, "nm_fault", nm_fault);
 	exc_register(12, "ss_fault", ss_fault);
+	exc_register(13, "gp_fault", gp_fault);
 	exc_register(14, "ident_mapper", ident_page_fault);
 }
 
