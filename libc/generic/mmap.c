@@ -29,12 +29,31 @@
 #include <libc.h>
 #include <unistd.h>
 
-/** Mremap syscall */
-void *mremap(void *address, size_t size, unsigned long flags)
+/** mmap syscall
+ *
+ * @param address Virtual address where to place new address space area.
+ * @param size Size of the area.
+ * @param flags Flags describing type of the area.
+ *
+ * @return address on success, (void *) -1 otherwise.
+ */
+void *mmap(void *address, size_t size, int flags)
+{
+	return (void *) __SYSCALL3(SYS_MMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+}
+
+/** mremap syscall
+ *
+ * @param address Virtual address pointing into already existing address space area.
+ * @param size New requested size of the area.
+ * @param flags Currently unused.
+ *
+ * @return address on success, (void *) -1 otherwise.
+ */
+void *mremap(void *address, size_t size, int flags)
 {
 	return (void *) __SYSCALL3(SYS_MREMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
 }
-
 
 static size_t heapsize = 0;
 /* Start of heap linker symbol */
