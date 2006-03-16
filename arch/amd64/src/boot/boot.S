@@ -151,29 +151,43 @@ start64:
 		mem_invalid:
 		movl %ecx, e801memorysize
 		
-		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)	
+		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
 		jc mods_valid
 			
 			xorl %ecx, %ecx
-			xorl %edx, %edx
-			jmp mods_invalid
+			movl %ecx, init
+			jmp mods_end
 		
 		mods_valid:
+		
+		xorq %rcx, %rcx
 		movl 20(%ebx), %ecx						# mbi->mods_count
+		movl %ecx, init
+		
 		cmpl $0, %ecx
-		je mods_invalid
+		je mods_end
 		
-		xorq %rdx, %rdx
-		movq %rdx, %rcx
 		movl 24(%ebx), %esi						# mbi->mods_addr
-		movl 0(%esi), %edx						# mods->mod_start
-		movl 4(%esi), %ecx						# mods->mod_end
-		subl %edx, %ecx
-		addq $0xffffffff80000000, %rdx
+		movq $init, %rdi
 		
-		mods_invalid:
-#		movq %rcx, init_size
-#		movq %rdx, init_addr
+		mods_loop:
+			
+			xorq %rdx, %rdx
+			movl 0(%esi), %edx					# mods->mod_start
+			addq $0xffffffff80000000, %rdx
+			movq %rdx, 4(%rdi)
+			
+			xorq %rdx, %rdx
+			movl 4(%esi), %edx
+			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
+			movq %rdx, 12(%rdi)
+			
+			addl $16, %esi
+			addq $16, %rdi
+			
+			loop mods_loop
+			
+		mods_end:
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid
