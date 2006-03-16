@@ -32,6 +32,7 @@ image.boot: kernel uspace
 	gunzip -c arch/$(ARCH)/grub/grub.img.gz > image.boot
 	e2cp $(KERNELDIR)/kernel.bin image.boot:/boot/kernel.bin
 	e2cp $(USPACEDIR)/init/init image.boot:/init
+	e2cp $(USPACEDIR)/ns/ns image.boot:/ns 
 
 clean: clean_kernel clean_uspace
 	-rm -f image.boot
