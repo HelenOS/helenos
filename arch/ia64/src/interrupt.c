@@ -174,11 +174,15 @@ void general_exception(__u64 vector, istate_t *istate)
 	panic("General Exception (%s)\n", desc);
 }
 
+void fpu_enable(void);
 
 void disabled_fp_register(__u64 vector, istate_t *istate)
 {
-#ifdef CONFIG_CPU_LAZY
+#ifdef CONFIG_FPU_LAZY 
 	scheduler_fpu_lazy_request();	
+#else
+	dump_interrupted_context(istate);
+	panic("Interruption: %W (%s)\n", (__u16) vector, vector_to_string(vector));
 #endif
 }
 

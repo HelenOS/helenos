@@ -31,42 +31,10 @@
 #include <arch/register.h>
 #include <print.h>
 
+
 void fpu_context_save(fpu_context_t *fctx){
+
 		asm volatile(
-			"stf.spill [%2]=f2,0x80\n"
-			"stf.spill [%3]=f3,0x80\n"
-			"stf.spill [%4]=f4,0x80\n"
-			"stf.spill [%5]=f5,0x80\n"
-			"stf.spill [%6]=f6,0x80\n"
-			"stf.spill [%7]=f7,0x80\n;;"
-
-			"stf.spill [%0]=f8,0x80\n"
-			"stf.spill [%1]=f9,0x80\n"
-			"stf.spill [%2]=f10,0x80\n"
-			"stf.spill [%3]=f11,0x80\n"
-			"stf.spill [%4]=f12,0x80\n"
-			"stf.spill [%5]=f13,0x80\n"
-			"stf.spill [%6]=f14,0x80\n"
-			"stf.spill [%7]=f15,0x80\n;;"
-
-			"stf.spill [%0]=f16,0x80\n"
-			"stf.spill [%1]=f17,0x80\n"
-			"stf.spill [%2]=f18,0x80\n"
-			"stf.spill [%3]=f19,0x80\n"
-			"stf.spill [%4]=f20,0x80\n"
-			"stf.spill [%5]=f21,0x80\n"
-			"stf.spill [%6]=f22,0x80\n"
-			"stf.spill [%7]=f23,0x80\n;;"
-
-			"stf.spill [%0]=f24,0x80\n"
-			"stf.spill [%1]=f25,0x80\n"
-			"stf.spill [%2]=f26,0x80\n"
-			"stf.spill [%3]=f27,0x80\n"
-			"stf.spill [%4]=f28,0x80\n"
-			"stf.spill [%5]=f29,0x80\n"
-			"stf.spill [%6]=f30,0x80\n"
-			"stf.spill [%7]=f31,0x80\n;;"
-
 
 			"stf.spill [%0]=f32,0x80\n"
 			"stf.spill [%1]=f33,0x80\n"
@@ -188,42 +156,8 @@ void fpu_context_save(fpu_context_t *fctx){
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
+
 		asm volatile(
-			"ldf.fill f2=[%2],0x80\n"
-			"ldf.fill f3=[%3],0x80\n"
-			"ldf.fill f4=[%4],0x80\n"
-			"ldf.fill f5=[%5],0x80\n"
-			"ldf.fill f6=[%6],0x80\n"
-			"ldf.fill f7=[%7],0x80\n;;"
-
-			"ldf.fill f8=[%0],0x80\n"
-			"ldf.fill f9=[%1],0x80\n"
-			"ldf.fill f10=[%2],0x80\n"
-			"ldf.fill f11=[%3],0x80\n"
-			"ldf.fill f12=[%4],0x80\n"
-			"ldf.fill f13=[%5],0x80\n"
-			"ldf.fill f14=[%6],0x80\n"
-			"ldf.fill f15=[%7],0x80\n;;"
-
-			"ldf.fill f16=[%0],0x80\n"
-			"ldf.fill f17=[%1],0x80\n"
-			"ldf.fill f18=[%2],0x80\n"
-			"ldf.fill f19=[%3],0x80\n"
-			"ldf.fill f20=[%4],0x80\n"
-			"ldf.fill f21=[%5],0x80\n"
-			"ldf.fill f22=[%6],0x80\n"
-			"ldf.fill f23=[%7],0x80\n;;"
-
-			"ldf.fill f24=[%0],0x80\n"
-			"ldf.fill f25=[%1],0x80\n"
-			"ldf.fill f26=[%2],0x80\n"
-			"ldf.fill f27=[%3],0x80\n"
-			"ldf.fill f28=[%4],0x80\n"
-			"ldf.fill f29=[%5],0x80\n"
-			"ldf.fill f30=[%6],0x80\n"
-			"ldf.fill f31=[%7],0x80\n;;"
-
-
 			"ldf.fill f32=[%0],0x80\n"
 			"ldf.fill f33=[%1],0x80\n"
 			"ldf.fill f34=[%2],0x80\n"
@@ -338,38 +272,18 @@ void fpu_context_restore(fpu_context_t *fctx)
 			:"r" (&((fctx->fr)[0])),"r" (&((fctx->fr)[1])),"r" (&((fctx->fr)[2])),"r" (&((fctx->fr)[3])),
 			 "r" (&((fctx->fr)[4])),"r" (&((fctx->fr)[5])),"r" (&((fctx->fr)[6])),"r" (&((fctx->fr)[7]))
 		); 
-
-
-}
-
-void fpu_disable(void)
-{
-		asm volatile(
-			"ssm %0;;\n"
-			"srlz.i\n"
-			"srlz.d;;\n"
-			:
-			:"i" (PSR_DFL_MASK|PSR_DFH_MASK)
-		);
-
 }
 
 void fpu_enable(void)
 {
+		__u64 a = 0 ;
 		asm volatile(
-			"rsm %0;;\n"
+			"rsm %0;;"
 			"srlz.i\n"
 			"srlz.d;;\n"
 			:
-			:"i" (PSR_DFL_MASK|PSR_DFH_MASK)
+			:"i" (PSR_DFH_MASK)
 		);
-
-}
-
-void fpu_init(void)
-{
-		__u64 a = 0;
-		fpu_enable();
 		asm volatile
 		(
 			"mov %0=ar.fpsr;;\n"
@@ -378,7 +292,43 @@ void fpu_init(void)
 			: "+r" (a)
 			: "r" (0x38)
 		);
-		
+
+}
+
+void fpu_disable(void)
+{
+
+		__u64 a = 0 ;
+		asm volatile(
+			"ssm %0;;\n"
+			"srlz.i\n"
+			"srlz.d;;\n"
+			:
+			:"i" (PSR_DFH_MASK)
+		);
+		asm volatile
+		(
+			"mov %0=ar.fpsr;;\n"
+			"or %0=%0,%1;;\n"
+			"mov ar.fpsr=%0;;\n"
+			: "+r" (a)
+			: "r" (0x38)
+		);
+
+}
+
+void fpu_init(void)
+{
+		__u64 a = 0 ;
+		asm volatile
+		(
+			"mov %0=ar.fpsr;;\n"
+			"or %0=%0,%1;;\n"
+			"mov ar.fpsr=%0;;\n"
+			: "+r" (a)
+			: "r" (0x38)
+		);
+
 		asm volatile(
 			"mov f2=f0\n"
 			"mov f3=f0\n"
@@ -521,6 +471,5 @@ void fpu_init(void)
 
 		);
 
-		fpu_enable();
 }
 

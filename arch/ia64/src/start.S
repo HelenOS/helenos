@@ -123,9 +123,16 @@ paging_start:
 	st8 [r18] = r15
 	st8 [r19] = r16
 
+
+	ssm (1<<19);; /*Disable f32 - f127*/
+	srlz.i;
+	srlz.d;;
+
+
 	movl r18=main_bsp ;;
 	mov b1=r18 ;;
 	br.call.sptk.many b0=b1
+
 
 0:
 	br 0b

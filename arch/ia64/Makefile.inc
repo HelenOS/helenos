@@ -41,7 +41,7 @@ TOOLCHAIN_DIR = /usr/local/ia64/bin
 INIT_ADDRESS = 0xe000000000400000
 INIT_SIZE = 0x100000
 
-CFLAGS += -mconstant-gp -fno-unwind-tables
+CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 

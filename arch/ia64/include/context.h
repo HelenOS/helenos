@@ -95,8 +95,32 @@ struct context {
 	 * Predicate registers
 	 */
 	__u64 pr;
+
+	__r128 f2 __attribute__ ((aligned(16)));
+	__r128 f3;
+	__r128 f4;
+	__r128 f5;
+
+	__r128 f16;
+	__r128 f17;
+	__r128 f18;
+	__r128 f19;
+	__r128 f20;
+	__r128 f21;
+	__r128 f22;
+	__r128 f23;
+	__r128 f24;
+	__r128 f25;
+	__r128 f26;
+	__r128 f27;
+	__r128 f28;
+	__r128 f29;
+	__r128 f30;
+	__r128 f31;
 	
 	ipl_t ipl;
 };
+
+
 
 #endif

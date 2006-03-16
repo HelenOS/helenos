@@ -32,7 +32,11 @@
 #include <arch/mm/page.h>
 #include <align.h>
 
-#define STACK_ITEMS		19
+
+#define FRS_TO_SAVE 30
+#define STACK_ITEMS		(19 + FRS_TO_SAVE*2)
+//#define STACK_ITEMS		19 		
+	/* 30*2 for FPU registers */
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
@@ -78,6 +82,19 @@ heavyweight_handler:
 	/*
 	 * Note that r24-r31 from bank 0 can be used only as long as PSR.ic = 0.
 	 */
+	
+			/*Set up FPU as in interrupred*/
+	mov r24=psr
+	mov r25=cr.ipsr 
+	mov r26=(PSR_DFH_MASK)
+	mov r27=(~(PSR_DFH_MASK));;
+	and r26=r25,r26
+	and r24=r24,r27;;
+	or r24=r24,r26;;
+	mov psr.l=r24;;
+	srlz.i
+	srlz.d;;
+
 	mov r24 = cr.iip
 	mov r25 = cr.ipsr
 	mov r26 = cr.iipa
@@ -195,7 +212,7 @@ heavyweight_handler:
     /* 16. RSE switch to interrupted context */
 	cover				/* allocate zerro size frame (step 1 (from Intel Docs)) */
 
-	add r31 = STACK_SCRATCH_AREA_SIZE, r12 ;;
+	add r31 = (STACK_SCRATCH_AREA_SIZE+(FRS_TO_SAVE*2*8)), r12 ;;
 
 	ld8 r30 = [r31], +8 ;;		/* load ar.bsp */
 	ld8 r29 = [r31], +8 ;;   	/* load ar.bspstore */
@@ -230,11 +247,19 @@ heavyweight_handler:
 	ld8 r25 = [r31], +8 ;;		/* load cr.ipsr */
 	ld8 r24 = [r31], +8 ;;		/* load cr.iip */
 
-	mov cr.iip = r24
-	mov cr.ipsr = r25
+	mov cr.iip = r24;;
 	mov cr.iipa = r26
 	mov cr.isr = r27
 	mov cr.ifa = r28
+			/*Set up FPU as in exception*/
+	mov r24=psr
+	mov r26=(PSR_DFH_MASK)
+	mov r27=(~(PSR_DFH_MASK));;
+	and r25=r25,r27
+	and r24=r24,r26;;
+	or r25=r25,r24;;
+	mov cr.ipsr = r25
+	
 
     /* 18. restore predicate registers from memory stack */
 	ld8 r29 = [r31], +8 ;;		/* load predicate registers */
@@ -315,6 +340,57 @@ heavyweight_handler_inner:
 	mov loc45 = r30
 	mov loc46 = r31
 
+	mov r24=96 + STACK_SCRATCH_AREA_SIZE
+	mov r25=112 + STACK_SCRATCH_AREA_SIZE 
+	mov r26=0 + STACK_SCRATCH_AREA_SIZE
+	mov r27=16 + STACK_SCRATCH_AREA_SIZE
+	mov r28=32 + STACK_SCRATCH_AREA_SIZE
+	mov r29=48 + STACK_SCRATCH_AREA_SIZE
+	mov r30=64 + STACK_SCRATCH_AREA_SIZE
+	mov r31=80 + STACK_SCRATCH_AREA_SIZE;;
+	add r24=r12,r24
+	add r25=r12,r25
+	add r26=r12,r26
+	add r27=r12,r27
+	add r28=r12,r28
+	add r29=r12,r29
+	add r30=r12,r30
+	add r31=r12,r31;;
+	
+	stf.spill [r26]=f2,0x80
+	stf.spill [r27]=f3,0x80
+	stf.spill [r28]=f4,0x80
+	stf.spill [r29]=f5,0x80
+	stf.spill [r30]=f6,0x80
+	stf.spill [r31]=f7,0x80;;
+
+	stf.spill [r24]=f8,0x80
+	stf.spill [r25]=f9,0x80
+	stf.spill [r26]=f10,0x80
+	stf.spill [r27]=f11,0x80
+	stf.spill [r28]=f12,0x80
+	stf.spill [r29]=f13,0x80
+	stf.spill [r30]=f14,0x80
+	stf.spill [r31]=f15,0x80;;
+
+	stf.spill [r24]=f16,0x80
+	stf.spill [r25]=f17,0x80
+	stf.spill [r26]=f18,0x80
+	stf.spill [r27]=f19,0x80
+	stf.spill [r28]=f20,0x80
+	stf.spill [r29]=f21,0x80
+	stf.spill [r30]=f22,0x80
+	stf.spill [r31]=f23,0x80;;
+
+	stf.spill [r24]=f24,0x80
+	stf.spill [r25]=f25,0x80
+	stf.spill [r26]=f26,0x80
+	stf.spill [r27]=f27,0x80
+	stf.spill [r28]=f28,0x80
+	stf.spill [r29]=f29,0x80
+	stf.spill [r30]=f30,0x80
+	stf.spill [r31]=f31,0x80;;
+
 	/* preserve Floating point status register */
 	mov loc47 = ar.fpsr
     
@@ -343,6 +419,59 @@ heavyweight_handler_inner:
 
     /* 13. restore general and floating-point registers */
 	/* TODO: restore floating-point context */
+	mov r24=96 + STACK_SCRATCH_AREA_SIZE
+	mov r25=112 + STACK_SCRATCH_AREA_SIZE 
+	mov r26=0 + STACK_SCRATCH_AREA_SIZE
+	mov r27=16 + STACK_SCRATCH_AREA_SIZE
+	mov r28=32 + STACK_SCRATCH_AREA_SIZE
+	mov r29=48 + STACK_SCRATCH_AREA_SIZE
+	mov r30=64 + STACK_SCRATCH_AREA_SIZE
+	mov r31=80 + STACK_SCRATCH_AREA_SIZE;;
+	add r24=r12,r24
+	add r25=r12,r25
+	add r26=r12,r26
+	add r27=r12,r27
+	add r28=r12,r28
+	add r29=r12,r29
+	add r30=r12,r30
+	add r31=r12,r31;;
+
+	
+	ldf.fill f2=[r26],0x80
+	ldf.fill f3=[r27],0x80
+	ldf.fill f4=[r28],0x80
+	ldf.fill f5=[r29],0x80
+	ldf.fill f6=[r30],0x80
+	ldf.fill f7=[r31],0x80;;
+
+	ldf.fill f8=[r24],0x80
+	ldf.fill f9=[r25],0x80
+	ldf.fill f10=[r26],0x80
+	ldf.fill f11=[r27],0x80
+	ldf.fill f12=[r28],0x80
+	ldf.fill f13=[r29],0x80
+	ldf.fill f14=[r30],0x80
+	ldf.fill f15=[r31],0x80;;
+
+	ldf.fill f16=[r24],0x80
+	ldf.fill f17=[r25],0x80
+	ldf.fill f18=[r26],0x80
+	ldf.fill f19=[r27],0x80
+	ldf.fill f20=[r28],0x80
+	ldf.fill f21=[r29],0x80
+	ldf.fill f22=[r30],0x80
+	ldf.fill f23=[r31],0x80;;
+
+	ldf.fill f24=[r24],0x80
+	ldf.fill f25=[r25],0x80
+	ldf.fill f26=[r26],0x80
+	ldf.fill f27=[r27],0x80
+	ldf.fill f28=[r28],0x80
+	ldf.fill f29=[r29],0x80
+	ldf.fill f30=[r30],0x80
+	ldf.fill f31=[r31],0x80;;
+	
+	
 	mov r1 = loc17
 	mov r2 = loc18
 	mov r3 = loc19
@@ -478,3 +607,7 @@ ivt:
 	HEAVYWEIGHT_HANDLER 0x7d00
 	HEAVYWEIGHT_HANDLER 0x7e00
 	HEAVYWEIGHT_HANDLER 0x7f00
+
+
+
+

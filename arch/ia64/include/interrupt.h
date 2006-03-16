@@ -48,6 +48,39 @@
 #define EOI	0		/**< The actual value doesn't matter. */
 
 struct istate {
+
+	__r128 f2;
+	__r128 f3;
+	__r128 f4;
+	__r128 f5;
+	__r128 f6;
+	__r128 f7;
+	__r128 f8;
+	__r128 f9;
+	__r128 f10;
+	__r128 f11;
+	__r128 f12;
+	__r128 f13;
+	__r128 f14;
+	__r128 f15;
+	__r128 f16;
+	__r128 f17;
+	__r128 f18;
+	__r128 f19;
+	__r128 f20;
+	__r128 f21;
+	__r128 f22;
+	__r128 f23;
+	__r128 f24;
+	__r128 f25;
+	__r128 f26;
+	__r128 f27;
+	__r128 f28;
+	__r128 f29;
+	__r128 f30;
+	__r128 f31;
+	
+	
 	__address ar_bsp;
 	__address ar_bspstore;
 	__address ar_bspstore_new;

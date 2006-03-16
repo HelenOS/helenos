@@ -34,8 +34,7 @@
 
 #include <arch/types.h>
 
-#define FRS 128
-#define SAVABLE_FRS_OFFSET 2
+#define FRS 96
 
 struct fpu_context {
 	__r128 fr[FRS];
