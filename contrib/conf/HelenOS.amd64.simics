@@ -4,7 +4,7 @@
 
 $num_cpus      = 2
 $cpu_class     = "x86-hammer"
-$freq_mhz      = 500
+$freq_mhz      = 50
 
 add-directory "%simics%/targets/x86-440bx/images"
 

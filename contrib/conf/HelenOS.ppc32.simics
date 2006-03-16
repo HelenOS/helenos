@@ -3,7 +3,7 @@
 #
 
 $cpu_class     = "ppc750"
-$freq_mhz      = 500
+$freq_mhz      = 50
 $image         = "image.boot"
 $image_offset  = -0x7a000000
 
