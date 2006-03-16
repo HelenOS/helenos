@@ -480,5 +480,8 @@ int __gtsf2(float a, float b)
 float __powisf2(float a, int b)
 {
 /* TODO: */
+	float32 fa;
+	fa.binary = FLOAT32_NAN;
+	return fa.f;
 }
 

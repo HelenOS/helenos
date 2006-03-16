@@ -442,7 +442,7 @@ float32 uint64_to_float32(uint64_t i)
 {
 	int counter;
 	int32_t exp;
-	int32_t j;
+	uint32_t j;
 	float32 result;
 	
 	result.parts.sign = 0;
