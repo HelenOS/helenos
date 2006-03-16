@@ -45,7 +45,6 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
-#include <ipc/ns.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
@@ -69,6 +68,7 @@
 void kinit(void *arg)
 {
 	thread_t *t;
+	task_t *utask;
 
 	interrupts_disable();
 
@@ -133,9 +133,6 @@ void kinit(void *arg)
 
 	interrupts_enable();
 
-	/* Initialize name service */
-	ns_start();
-
 	if (config.init_size > 0) {
 		/*
 		 * Create the first user task.
@@ -144,9 +141,11 @@ void kinit(void *arg)
 		if (config.init_addr % FRAME_SIZE)
 			panic("config.init_addr is not frame aligned");
 
-		if (!task_run_program((void *)config.init_addr)) {
+		utask = task_run_program((void *)config.init_addr);
+		if (utask) 
+			ipc_phone_0 = &utask->answerbox;
+		else 
 			printf("Userspace not started.\n");
-		}
 	}
 
 #ifdef CONFIG_TEST

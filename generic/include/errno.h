@@ -33,5 +33,7 @@
 
 #define ENOENT     -1  /* No such entry */
 #define ENOMEM     -2  /* Not enough memory */
+#define ELIMIT     -3  /* Limit exceeded */
+#define EREFUSED   -4  /* Connection refused */
 
 #endif

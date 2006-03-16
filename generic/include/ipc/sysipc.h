@@ -26,21 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __NS_H_
-#define __NS_H_
+#ifndef __SYSIPC_H__
+#define __SYSIPC_H__
 
-/* NameService methods */
-
-/** Ping name service */
-#define NS_PING   1
-
-
-#ifdef KERNEL
-
-#include <ipc/ipc.h>
-
-extern void ns_start(void);
-
-#endif
+__native sys_ipc_call_sync_fast(__native phoneid, __native method, 
+				__native arg1, __native *data);
+__native sys_ipc_call_sync(__native phoneid, __native *question, 
+			   __native *reply);
+__native sys_ipc_call_async_fast(__native phoneid, __native method, 
+				 __native arg1, __native arg2);
+__native sys_ipc_call_async(__native phoneid, __native *data);
+__native sys_ipc_answer_fast(__native callid, __native retval, 
+			     __native arg1, __native arg2);
+__native sys_ipc_answer(__native callid, __native *data);
+__native sys_ipc_connect_to_me(__native phoneid, __native arg1,
+			       __native arg2, task_id_t *taskid);
+__native sys_ipc_wait_for_call(ipc_data_t *calldata, task_id_t *taskid,
+			       __native flags);
 
 #endif

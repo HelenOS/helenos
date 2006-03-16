@@ -40,6 +40,7 @@ typedef enum {
 	SYS_IPC_ANSWER_FAST,
 	SYS_IPC_ANSWER,
 	SYS_IPC_WAIT,
+	SYS_IPC_CONNECT_TO_ME,
 	SYSCALL_END
 } syscall_t;
 

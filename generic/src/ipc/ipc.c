@@ -71,6 +71,7 @@ void ipc_call_init(call_t *call)
 {
 	call->callerbox = &TASK->answerbox;
 	call->flags = IPC_CALL_STATIC_ALLOC;
+	call->sender = TASK;
 }
 
 /** Deallocate call stracuture */
@@ -89,6 +90,7 @@ void ipc_answerbox_init(answerbox_t *box)
 	list_initialize(&box->calls);
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
+	box->task = TASK;
 }
 
 /** Initialize phone structure and connect phone to naswerbox

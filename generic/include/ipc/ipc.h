@@ -68,6 +68,37 @@
 /* Well known phone descriptors */
 #define PHONE_NS              0
 
+/* System-specific methods - only through special syscalls
+ * These methods have special behaviour
+ */
+#define IPC_M_IAMCONNECTING   0
+/** Protocol for CONNECT - TO - ME 
+ *
+ * Calling process asks the callee to create a callback connection,
+ * so that it can start initiating new messages.
+ *
+ * The protocol for negotiating is as follows:
+ * - sys_connecttome - sends a message IPC_M_CONNECTTOME
+ * - sys_wait_for_call - upon receipt tries to allocate new phone
+ *                       - if it fails, responds with ELIMIT
+ *                     - passes call to userspace. If userspace
+ *                       responds with error, phone is deallocated and
+ *                       error is sent back to caller. Otherwise 
+ *                       the call is accepted and the response is sent back.
+ *                     - the allocated phoneid is passed to userspace as
+ *                       ARG3 of the call.
+ *                     - the caller obtains taskid of the called thread
+ */
+#define IPC_M_CONNECTTOME     1
+#define IPC_M_CONNECTMETO     2
+
+
+/* Well-known methods */
+#define IPC_M_FIRST_USER      512
+#define IPC_M_PING            512
+/* User methods */
+#define FIRST_USER_METHOD     1024
+
 #ifdef KERNEL
 
 #include <synch/mutex.h>
@@ -76,19 +107,21 @@
 
 #define IPC_MAX_PHONES  16
 
-
 typedef struct answerbox answerbox_t;
+typedef __native ipc_data_t[IPC_CALL_LEN];
 
 typedef struct {
 	link_t list;
 	answerbox_t *callerbox;
 	int flags;
 	task_t *sender;
-	__native data[IPC_CALL_LEN];
+	ipc_data_t data;
 } call_t;
 
 struct answerbox {
 	SPINLOCK_DECLARE(lock);
+
+	task_t *task;
 
 	mutex_t mutex;
 	condvar_t cv;

@@ -135,7 +135,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/waitq.c \
 	generic/src/smp/ipi.c \
 	generic/src/ipc/ipc.c \
-	generic/src/ipc/ns.c
+	generic/src/ipc/sysipc.c
 
 ## Test sources
 #
