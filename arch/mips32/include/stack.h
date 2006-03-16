@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_CONTEXT_H__
-#define __mips32_CONTEXT_H__
+#ifndef __mips32_STACK_H__
+#define __mips32_STACK_H__
 
-#include <align.h>
-#include <arch/stack.h>
-
-/*
- * Put one item onto the stack to support get_stack_base() and align it up.
- */
-#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
-
-#ifndef __ASM__
-
-#ifndef __mips32_TYPES_H__
-# include <arch/types.h>
-#endif
-
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-struct context {
-	__address sp;
-	__address pc;
-	
-	__u32 s0;
-	__u32 s1;
-	__u32 s2;
-	__u32 s3;
-	__u32 s4;
-	__u32 s5;
-	__u32 s6;
-	__u32 s7;
-	__u32 s8;
-	__u32 gp;
-
-	ipl_t ipl;
-};
-
-#endif /* __ASM__ */
+#define STACK_ITEM_SIZE		4
+#define STACK_ALIGNMENT		8
 
 #endif
