@@ -63,6 +63,7 @@
 #include <smp/smp.h>
 
 config_t config;	/**< Global configuration structure. */
+init_t init = {0};  /**< Initial user-space tasks */
 
 context_t ctx;
 
@@ -74,9 +75,6 @@ context_t ctx;
 __address hardcoded_load_address = 0;
 size_t hardcoded_ktext_size = 0;
 size_t hardcoded_kdata_size = 0;
-
-__address init_addr = 0;
-size_t init_size = 0;
 
 void main_bsp(void);
 void main_ap(void);
@@ -110,21 +108,22 @@ void main_bsp(void)
 	
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
-	config.init_addr = init_addr;
-	config.init_size = init_size;
 	
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size, PAGE_SIZE);
 	stackaddr = config.base + config.kernel_size;
+	
 	/* Avoid placing kernel on top of init */
-	if (overlaps(stackaddr,CONFIG_STACK_SIZE,
-		     config.init_addr, config.init_size)) {
-		
-		stackaddr = ALIGN_UP(config.init_addr+config.init_size,
-				     CONFIG_STACK_SIZE);
-		config.init_size = ALIGN_UP(config.init_size,CONFIG_STACK_SIZE) + CONFIG_STACK_SIZE;
-	} else {
+	count_t i;
+	bool overlap = false;
+	for (i = 0; i < init.cnt; i++)
+		if (overlaps(stackaddr, CONFIG_STACK_SIZE, init.tasks[i].addr, init.tasks[i].size)) {
+			stackaddr = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, CONFIG_STACK_SIZE);
+			init.tasks[i].size = ALIGN_UP(init.tasks[i].size, CONFIG_STACK_SIZE) + CONFIG_STACK_SIZE;
+			overlap = true;
+		}
+	
+	if (!overlap)
 		config.kernel_size += CONFIG_STACK_SIZE;
-	}
 	
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), 
@@ -151,7 +150,7 @@ void main_bsp_separated_stack(void)
 	 * commands.
 	 */
 	kconsole_init();
-
+	
 	/*
 	 * Exception handler initialization, before architecture
 	 * starts adding its own handlers
@@ -189,8 +188,9 @@ void main_bsp_separated_stack(void)
 	task_init();
 	thread_init();
 	
-	if (config.init_size > 0)
-		printf("config.init_addr=%P, config.init_size=%d\n", config.init_addr, config.init_size);
+	count_t i;
+	for (i = 0; i < init.cnt; i++)
+		printf("init[%d].addr=%P, init[%d].size=%d\n", i, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
 	/*

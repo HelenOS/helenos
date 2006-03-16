@@ -35,22 +35,30 @@
 
 #define STACK_SIZE		PAGE_SIZE
 
-#define CONFIG_MEMORY_SIZE	(8*1024*1024)
+#define CONFIG_MEMORY_SIZE	(8 * 1024 * 1024)
 #define CONFIG_STACK_SIZE	STACK_SIZE
+#define CONFIG_INIT_TASKS	32
 
-struct config {
+typedef struct {
+	__address addr;
+	size_t size;
+} init_task_t;
+
+typedef struct {
+	count_t cnt;
+	init_task_t tasks[CONFIG_INIT_TASKS];
+} init_t;
+
+typedef struct {
 	count_t cpu_count;
 	volatile count_t cpu_active;
 
 	__address base;
 	size_t memory_size;
-	
-	__address init_addr;
-	size_t init_size;
-	
 	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
-};
+} config_t;
 
 extern config_t config;
+extern init_t init;
 
 #endif

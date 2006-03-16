@@ -93,9 +93,11 @@ void arch_pre_mm_init(void)
 
 	console_init();
 	debugger_init();
-	/* Setup usermode...*/
-	config.init_addr = INIT_ADDRESS;
-	config.init_size = INIT_SIZE;
+	
+	/* Setup usermode */
+	init.cnt = 1;
+	init.tasks[0].addr = INIT_ADDRESS;
+	init.tasks[0].size = INIT_SIZE;
 }
 
 void arch_post_mm_init(void)

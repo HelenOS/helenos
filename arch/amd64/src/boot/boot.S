@@ -172,8 +172,8 @@ start64:
 		addq $0xffffffff80000000, %rdx
 		
 		mods_invalid:
-		movq %rcx, init_size
-		movq %rdx, init_addr
+#		movq %rcx, init_size
+#		movq %rdx, init_addr
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid

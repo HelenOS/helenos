@@ -99,27 +99,40 @@ multiboot_image_start:
 		mem_invalid:
 		movl %ecx, e801memorysize
 		
-		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)	
+		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
 		jc mods_valid
 			
 			xorl %ecx, %ecx
-			xorl %edx, %edx
-			jmp mods_invalid
+			movl %ecx, init
+			jmp mods_end
 		
 		mods_valid:
+		
 		movl 20(%ebx), %ecx						# mbi->mods_count
+		movl %ecx, init
+		
 		cmpl $0, %ecx
-		je mods_invalid
+		je mods_end
 		
 		movl 24(%ebx), %esi						# mbi->mods_addr
-		movl 0(%esi), %edx						# mods->mod_start
-		movl 4(%esi), %ecx						# mods->mod_end
-		subl %edx, %ecx
-		addl $0x80000000, %edx
+		movl $init, %edi
 		
-		mods_invalid:
-		movl %ecx, init_size
-		movl %edx, init_addr
+		mods_loop:
+		
+			movl 0(%esi), %edx					# mods->mod_start
+			addl $0x80000000, %edx
+			movl %edx, 4(%edi)
+			
+			movl 4(%esi), %edx
+			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
+			movl %edx, 8(%edi)
+			
+			addl $16, %esi
+			addl $8	, %edi
+			
+			loop mods_loop
+			
+		mods_end:
 		
 		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid

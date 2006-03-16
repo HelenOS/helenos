@@ -134,9 +134,9 @@ static int zones_add_zone(zone_t *newzone)
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 	/* Try to merge */
-	if (zones.count+1 == ZONES_MAX)
+	if (zones.count + 1 == ZONES_MAX)
 		panic("Maximum zone(%d) count exceeded.", ZONES_MAX);
-	for (i=0; i < zones.count; i++) {
+	for (i = 0; i < zones.count; i++) {
 		/* Check for overflow */
 		z = zones.info[i];
 		if (overlaps(newzone->base,newzone->count,
@@ -148,8 +148,8 @@ static int zones_add_zone(zone_t *newzone)
 			break;
 	}
 	/* Move other zones up */
-	for (j=i;j < zones.count;j++)
-		zones.info[j+1] = zones.info[j];
+	for (j = i;j < zones.count; j++)
+		zones.info[j + 1] = zones.info[j];
 	zones.info[i] = newzone;
 	zones.count++;
 	spinlock_unlock(&zones.lock);
@@ -689,8 +689,8 @@ void zone_merge(int z1, int z2)
 
 	/* Replace existing zones in zoneinfo list */
 	zones.info[z1] = newzone;
-	for (i=z2+1;i < zones.count;i++)
-		zones.info[i-1] = zones.info[i];
+	for (i = z2 + 1; i < zones.count; i++)
+		zones.info[i - 1] = zones.info[i];
 	zones.count--;
 
 	/* Free old zone information */
@@ -808,19 +808,24 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 	 */
 	confcount = SIZE2FRAMES(zone_conf_size(count));
 	if (confframe >= start && confframe < start+count) {
-		for (;confframe < start+count;confframe++) {
+		for (;confframe < start + count; confframe++) {
 			addr = PFN2ADDR(confframe);
-			if (overlaps(addr, PFN2ADDR(confcount),
-				     KA2PA(config.base),config.kernel_size))
+			if (overlaps(addr, PFN2ADDR(confcount), KA2PA(config.base), config.kernel_size))
 				continue;
-			if (config.init_addr)
-				if (overlaps(addr,PFN2ADDR(confcount), 
-					     KA2PA(config.init_addr),
-					     config.init_size))
-					continue;
+			
+			bool overlap = false;
+			count_t i;
+			for (i = 0; i < init.cnt; i++)
+				if (overlaps(addr, PFN2ADDR(confcount), KA2PA(init.tasks[i].addr), init.tasks[i].size)) {
+					overlap = true;
+					break;
+				}
+			if (overlap)
+				continue;
+			
 			break;
 		}
-		if (confframe >= start+count)
+		if (confframe >= start + count)
 			panic("Cannot find configuration data for zone.");
 	}
 
@@ -989,9 +994,10 @@ void frame_init(void)
 		pfn_t firstframe = ADDR2PFN(KA2PA(config.base));
 		pfn_t lastframe = ADDR2PFN(KA2PA(config.base+config.kernel_size));
 		frame_mark_unavailable(firstframe,lastframe-firstframe+1);
-		if (config.init_size > 0)
-			frame_mark_unavailable(ADDR2PFN(KA2PA(config.init_addr)),
-					       SIZE2FRAMES(config.init_size));
+		
+		count_t i;
+		for (i = 0; i < init.cnt; i++)
+			frame_mark_unavailable(ADDR2PFN(KA2PA(init.tasks[i].addr)), SIZE2FRAMES(init.tasks[i].size));
 	}
 }
 
@@ -1009,7 +1015,7 @@ void zone_print_list(void) {
 	spinlock_lock(&zones.lock);
 	printf("#  Base address\tFree Frames\tBusy Frames\n");
 	printf("   ------------\t-----------\t-----------\n");
-	for (i=0;i<zones.count;i++) {
+	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
 		printf("%d: %L\t%d\t\t%d\n",i,PFN2ADDR(zone->base), 
@@ -1032,7 +1038,7 @@ void zone_print_one(int num) {
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 
-	for (i=0;i < zones.count; i++) {
+	for (i = 0; i < zones.count; i++) {
 		if (i == num || PFN2ADDR(zones.info[i]->base) == num) {
 			zone = zones.info[i];
 			break;

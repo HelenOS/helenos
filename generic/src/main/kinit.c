@@ -132,16 +132,17 @@ void kinit(void *arg)
 		panic("thread_create/kconsole\n");
 
 	interrupts_enable();
-
-	if (config.init_size > 0) {
+	
+	count_t i;
+	for (i = 0; i < init.cnt; i++) {
 		/*
-		 * Create the first user task.
+		 * Run user tasks.
 		 */
 		
-		if (config.init_addr % FRAME_SIZE)
-			panic("config.init_addr is not frame aligned");
+		if (init.tasks[i].addr % FRAME_SIZE)
+			panic("init[%d].addr is not frame aligned", i);
 
-		utask = task_run_program((void *)config.init_addr);
+		utask = task_run_program((void *) init.tasks[i].addr);
 		if (utask) 
 			ipc_phone_0 = &utask->answerbox;
 		else 
