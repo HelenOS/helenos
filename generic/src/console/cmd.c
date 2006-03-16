@@ -53,6 +53,7 @@
 #include <mm/slab.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
+#include <proc/task.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -253,6 +254,14 @@ static cmd_info_t threads_info = {
 	.argc = 0
 };
 
+static int cmd_tasks(cmd_arg_t *argv);
+static cmd_info_t tasks_info = {
+	.name = "tasks",
+	.description = "List all tasks",
+	.func = cmd_tasks,
+	.argc = 0
+};
+
 
 static int cmd_sched(cmd_arg_t *argv);
 static cmd_info_t sched_info = {
@@ -338,6 +347,7 @@ static cmd_info_t *basic_commands[] = {
 	&symaddr_info,
 	&sched_info,
 	&threads_info,
+	&tasks_info,
 	&tlb_info,
 	&version_info,
 	&zones_info,
@@ -625,6 +635,17 @@ int cmd_slabs(cmd_arg_t * argv) {
  */
 int cmd_threads(cmd_arg_t * argv) {
 	thread_print_list();
+	return 1;
+}
+
+/** Command for listings Task information
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_tasks(cmd_arg_t * argv) {
+	task_print_list();
 	return 1;
 }
 

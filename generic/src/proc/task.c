@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <memstr.h>
+#include <print.h>
 
 #include <elf.h>
 
@@ -130,4 +131,34 @@ task_t * task_run_program(void *program_addr)
 	thread_ready(t);
 
 	return task;
+}
+
+/** Print task list */
+void task_print_list(void)
+{
+	link_t *cur;
+	task_t *t;
+	ipl_t ipl;
+	int i;
+	
+	/* Messing with thread structures, avoid deadlock */
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+
+	for (cur=tasks_head.next; cur!=&tasks_head; cur=cur->next) {
+		t = list_get_instance(cur, task_t, tasks_link);
+		spinlock_lock(&t->lock);
+		printf("Task: %Q ActiveCalls: %d", t->taskid, 
+		       atomic_get(&t->active_calls));
+		for (i=0; i < IPC_MAX_PHONES; i++) {
+			if (t->phones[i].callee)
+				printf(" Ph(%d): %P ", i,t->phones[i].callee);
+		}
+		printf("\n");
+		spinlock_unlock(&t->lock);
+	}
+
+	spinlock_unlock(&tasks_lock);
+	interrupts_restore(ipl);
+	
 }

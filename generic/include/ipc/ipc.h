@@ -99,6 +99,9 @@
  * - sys_connect_me_to - send a synchronous message to name server
  *                       indicating that it wants to be connected to some
  *                       service
+ *                     - arg1/2 are user specified, arg3 contains
+ *                       address of the phone that should be connected
+ *                       (TODO: it leaks to userspace)
  *   recepient         -  if ipc_answer == 0, then accept connection
  *                     -  otherwise connection refused
  *                     -  recepient may forward message. Forwarding
@@ -170,6 +173,7 @@ extern call_t * ipc_call_alloc(void);
 extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_init(call_t *call);
 extern void ipc_forward(call_t *call, answerbox_t *newbox,answerbox_t *oldbox);
+extern void task_print_list(void);
 
 extern answerbox_t *ipc_phone_0;
 

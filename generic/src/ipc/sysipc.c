@@ -35,7 +35,11 @@
 #include <debug.h>
 #include <ipc/ipc.h>
 #include <ipc/sysipc.h>
+
+
 #include <print.h>
+#include <arch.h>
+#include <proc/thread.h>
 
 /* TODO: multi-threaded connect-to-me can cause race condition
  * on phone, add counter + thread_kill??
@@ -138,6 +142,8 @@ static inline int answer_will_preprocess(call_t *call)
 {
 	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECTTOME)
 		return 1;
+	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECTMETO)
+		return 1;
 	return 0;
 }
 
@@ -154,6 +160,13 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid,&answer->sender->answerbox);
+		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECTMETO) {
+		/* If the users accepted call, connect */
+		if (!IPC_GET_RETVAL(answer->data)) {
+			printf("Connecting Phone %P\n",IPC_GET_ARG3(*olddata));
+			ipc_phone_connect((phone_t *)IPC_GET_ARG3(*olddata),
+					  &TASK->answerbox);
 		}
 	}
 }
@@ -318,6 +331,9 @@ __native sys_ipc_call_async(__native phoneid, __native *data)
 /** Forward received call to another destination
  *
  * The arg1 and arg2 are changed in the forwarded message
+ *
+ * Warning: If implementing non-fast version, make sure that
+ *          arg3 is not rewritten for certain system IPC
  */
 __native sys_ipc_forward_fast(__native callid, __native phoneid,
 			      __native method, __native arg1)
@@ -436,6 +452,7 @@ __native sys_ipc_connect_to_me(__native phoneid, __native arg1,
 		copy_to_uspace(taskid, 
 			       &phone->callee->task->taskid,
 			       sizeof(TASK->taskid));
+
 	return IPC_GET_RETVAL(call.data);
 }
 
@@ -448,22 +465,30 @@ __native sys_ipc_connect_me_to(__native phoneid, __native arg1,
 {
 	call_t call;
 	phone_t *phone;
+	int newphid;
 
 	phone = get_phone(phoneid);
 	if (!phone)
 		return ENOENT;
 
+	newphid = phone_alloc();
+	if (newphid < 0)
+		return ELIMIT;
+
 	ipc_call_init(&call);
 	IPC_SET_METHOD(call.data, IPC_M_CONNECTMETO);
 	IPC_SET_ARG1(call.data, arg1);
 	IPC_SET_ARG2(call.data, arg2);
+	IPC_SET_ARG3(call.data, (__native)&TASK->phones[newphid]);
 
 	ipc_call_sync(phone, &call);
-	if (!IPC_GET_RETVAL(call.data)) {
-		/* Everybody accepted, we should be connected by now */
+
+	if (IPC_GET_RETVAL(call.data)) { /* Connection failed */
+		phone_dealloc(newphid);
+		return IPC_GET_RETVAL(call.data);
 	}
 
-	return 0;
+	return newphid;
 }
 
 /** Wait for incoming ipc call or answer
@@ -485,7 +510,6 @@ inline __native sys_ipc_wait_for_call(ipc_data_t *calldata,
 
 restart:	
 	call = ipc_wait_for_call(&TASK->answerbox, flags);
-	printf("Received call %P from sender: %P\n", call, call->sender);
 
 	if (call->flags & IPC_CALL_ANSWERED) {
 		if (process_answer(&TASK->answerbox, call))

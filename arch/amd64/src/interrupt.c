@@ -45,7 +45,7 @@
 void print_info_errcode(int n, istate_t *istate)
 {
 	char *symbol;
-	__u64 *x = &istate->stack[0];
+/*	__u64 *x = &istate->stack[0]; */
 
 	if (!(symbol=get_symtab_entry(istate->rip)))
 		symbol = "";
@@ -60,10 +60,12 @@ void print_info_errcode(int n, istate_t *istate)
 	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",istate->r11,istate->r12,istate->r13);
 	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",istate->r14,istate->r15,&istate->stack[0]);
 	printf("%%rbp=%Q\n",istate->rbp);
+/*      
 	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]);
 	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]);
 	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]);
 	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]);
+*/
 }
 
 /*

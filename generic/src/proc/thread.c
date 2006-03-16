@@ -412,10 +412,9 @@ void thread_print_list(void)
 		printf("Thr: %d(%s) ", t->tid, thread_states[t->state]);
 		if (t->cpu)
 			printf("cpu%d ", t->cpu->id);
-		
 		printf("\n");
 	}
 
 	spinlock_unlock(&threads_lock);
-	interrupts_enable();
+	interrupts_restore(ipl);
 }
