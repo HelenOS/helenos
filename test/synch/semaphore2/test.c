@@ -107,7 +107,7 @@ void test(void)
 		k = random(7) + 1;
 		printf("Creating %d consumers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(consumer, NULL, TASK, 0);
+			thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
 			if (thrd)
 				thread_ready(thrd);
 			else

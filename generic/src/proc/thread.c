@@ -248,11 +248,12 @@ void thread_destroy(thread_t *t)
  * @param arg   Thread's implementing function argument.
  * @param task  Task to which the thread belongs.
  * @param flags Thread flags.
+ * @param name  Symbolic name.
  *
  * @return New thread's structure on success, NULL on failure.
  *
  */
-thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags)
+thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name)
 {
 	thread_t *t;
 	ipl_t ipl;
@@ -279,6 +280,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->saved_context.ipl = interrupts_read();
 	interrupts_restore(ipl);
 	
+	t->name = name;
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
@@ -409,9 +411,12 @@ void thread_print_list(void)
 
 	for (cur=threads_head.next; cur!=&threads_head; cur=cur->next) {
 		t = list_get_instance(cur, thread_t, threads_link);
-		printf("Thr: %d(%s) ", t->tid, thread_states[t->state]);
+		printf("%s: address=%P, tid=%d, state=%s, task=%P, code=%P, stack=%P, cpu=",
+			t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
 		if (t->cpu)
 			printf("cpu%d ", t->cpu->id);
+		else
+			printf("none");
 		printf("\n");
 	}
 

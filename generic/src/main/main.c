@@ -196,14 +196,14 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create kernel task.
 	 */
-	k = task_create(AS_KERNEL);
+	k = task_create(AS_KERNEL, "KERNEL");
 	if (!k)
 		panic("can't create kernel task\n");
 	
 	/*
 	 * Create the first thread.
 	 */
-	t = thread_create(kinit, NULL, k, 0);
+	t = thread_create(kinit, NULL, k, 0, "kinit");
 	if (!t)
 		panic("can't create kinit thread\n");
 	thread_ready(t);

@@ -39,7 +39,7 @@
 
 #define THREADS 5
 
-static void thread(void *data)
+static void threadtest(void *data)
 {
     while(1)
     {
@@ -54,7 +54,7 @@ void test(void)
 	int i;
 
 	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(thread, NULL, TASK, 0)))
+		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

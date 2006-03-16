@@ -143,7 +143,6 @@ static void pi(void *data)
 	atomic_inc(&threads_ok);
 }
 
-
 void test(void)
 {
 	thread_t *t;
@@ -155,10 +154,10 @@ void test(void)
 	printf("Creating %d threads... ", THREADS);
 
 	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(e, NULL, TASK, 0)))
+		if (!(t = thread_create(e, NULL, TASK, 0, "e")))
 			panic("could not create thread\n");
 		thread_ready(t);
-		if (!(t = thread_create(pi, NULL, TASK, 0)))
+		if (!(t = thread_create(pi, NULL, TASK, 0, "pi")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}
@@ -172,43 +171,3 @@ void test(void)
 		
 	printf("Test passed.\n");
 }
-
-/*
-static void pi(void *data)
-{
-#undef PI_10e8	
-#define PI_10e8	3141592
-
-
-	int i;
-	double lpi, pi;
-	double n, ab, ad;
-
-
-	printf("pi test\n");
-
-	waitq_sleep(&can_start);
-
-
-	for (i = 0; i<ATTEMPTS; i++) {
-		lpi = -1;
-		pi = 0;
-
-		for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
-			double sc, cd;
-
-			sc = sqrt(1 - (ab*ab/4));
-			cd = 1 - sc;
-			ad = sqrt(ab*ab/4 + cd*cd);
-			lpi = pi;
-			pi = 2 * n * ad;
-		}
-
-		atomic_inc(&threads_ok);
-		if((int)(1000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e6=%d\n", THREAD->tid, (int) 1000000*pi);
-	}
-
-	printf("tid%d: pi*10e6=%d\n", THREAD->tid, (int) 1000000*pi);
-}
-*/

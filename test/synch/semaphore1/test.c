@@ -99,14 +99,14 @@ void test(void)
 	
 		for (j=0; j<(CONSUMERS+PRODUCERS)/2; j++) {
 			for (k=0; k<i; k++) {
-				thrd = thread_create(consumer, NULL, TASK, 0);
+				thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
 				if (thrd)
 					thread_ready(thrd);
 				else
 					failed();
 			}
 			for (k=0; k<(4-i); k++) {
-				thrd = thread_create(producer, NULL, TASK, 0);
+				thrd = thread_create(producer, NULL, TASK, 0, "producer");
 				if (thrd)
 					thread_ready(thrd);
 				else

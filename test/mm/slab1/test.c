@@ -108,7 +108,7 @@ void * thr_data[THREADS][THR_MEM_COUNT];
 slab_cache_t *thr_cache;
 semaphore_t thr_sem;
 
-static void thread(void *data)
+static void slabtest(void *data)
 {
 	int offs = (int)(__native) data;
 	int i,j;
@@ -138,7 +138,7 @@ static void testthreads(void)
 				      SLAB_CACHE_NOMAGAZINE);
 	semaphore_initialize(&thr_sem,0);
 	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(thread, (void *)(__native)i, TASK, 0)))
+		if (!(t = thread_create(slabtest, (void *)(__native)i, TASK, 0, "slabtest")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

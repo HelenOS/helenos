@@ -44,12 +44,12 @@
 #define THREAD_RUNS 1
 #define THREADS 8
 
-static void thread(void * arg);
+static void falloc(void * arg);
 static void failed(void);
 
 static atomic_t thread_count;
 
-void thread(void * arg)
+void falloc(void * arg)
 {
 	int status, order, run, allocated, i;
 	__u8 val = THREAD->tid % THREADS;
@@ -107,7 +107,7 @@ void test(void)
 		
 	for (i = 0; i < THREADS; i++) {
 		thread_t * thrd;
-		thrd = thread_create(thread, NULL, TASK, 0);
+		thrd = thread_create(falloc, NULL, TASK, 0, "falloc");
 		if (thrd)
 			thread_ready(thrd);
 		else

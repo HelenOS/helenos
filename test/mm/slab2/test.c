@@ -122,7 +122,7 @@ mutex_t starter_mutex;
 
 #define THREADS 8
 
-static void thread(void *priv)
+static void slabtest(void *priv)
 {
 	void *data=NULL, *new;
 
@@ -188,7 +188,7 @@ static void multitest(int size)
 				      0);
 	semaphore_initialize(&thr_sem,0);
 	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(thread, NULL, TASK, 0)))
+		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

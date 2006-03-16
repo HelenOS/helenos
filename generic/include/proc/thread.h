@@ -59,7 +59,10 @@ extern char *thread_states[];
 #define X_WIRED		(1<<0)
 #define X_STOLEN	(1<<1)
 
+/** Thread structure. There is one per thread. */
 struct thread {
+	char *name;
+	
 	link_t rq_link;				/**< Run queue link. */
 	link_t wq_link;				/**< Wait queue link. */
 	link_t th_link;				/**< Links to threads within containing task. */
@@ -125,7 +128,7 @@ extern spinlock_t threads_lock;
 extern link_t threads_head;			/**< List of all threads in the system. */
 
 extern void thread_init(void);
-extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags);
+extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name);
 extern void thread_ready(thread_t *t);
 extern void thread_exit(void);
 

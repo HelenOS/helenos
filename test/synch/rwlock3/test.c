@@ -77,7 +77,7 @@ void test(void)
 	rwlock_write_lock(&rwlock);
 	
 	for (i=0; i<4; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0);
+		thrd = thread_create(reader, NULL, TASK, 0, "reader");
 		if (thrd)
 			thread_ready(thrd);
 		else

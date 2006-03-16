@@ -137,7 +137,7 @@ void test(void)
 		k = random(7) + 1;
 		printf("Creating %d readers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(reader, NULL, TASK, 0);
+			thrd = thread_create(reader, NULL, TASK, 0, "reader");
 			if (thrd)
 				thread_ready(thrd);
 			else
@@ -147,7 +147,7 @@ void test(void)
 		k = random(5) + 1;
 		printf("Creating %d writers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(writer, NULL, TASK, 0);
+			thrd = thread_create(writer, NULL, TASK, 0, "writer");
 			if (thrd)
 				thread_ready(thrd);
 			else

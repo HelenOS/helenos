@@ -57,7 +57,7 @@ void arch_post_smp_init(void)
 	/*
          * Create thread that reads characters from OFW's input.
          */
-	t = thread_create(kofwinput, NULL, TASK, 0);
+	t = thread_create(kofwinput, NULL, TASK, 0, "kofwinput");
 	if (!t)
 		panic("cannot create kofwinput\n");
 	thread_ready(t);
@@ -65,7 +65,7 @@ void arch_post_smp_init(void)
 	/*
          * Create thread that polls keyboard.
          */
-	t = thread_create(kkbdpoll, NULL, TASK, 0);
+	t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
 	if (!t)
 		panic("cannot create kkbdpoll\n");
 	thread_ready(t);

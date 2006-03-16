@@ -617,15 +617,14 @@ void sched_print_list(void)
 	/* We are going to mess with scheduler structures,
 	 * let's not be interrupted */
 	ipl = interrupts_disable();
-	printf("Scheduler dump:\n");
 	for (cpu=0;cpu < config.cpu_count; cpu++) {
 
 		if (!cpus[cpu].active)
 			continue;
 
 		spinlock_lock(&cpus[cpu].lock);
-		printf("cpu%d: nrdy: %d, needs_relink: %d\n",
-		       cpus[cpu].id, atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
+		printf("cpu%d: address=%P, nrdy=%d, needs_relink=%d\n",
+		       cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
 		
 		for (i=0; i<RQ_COUNT; i++) {
 			r = &cpus[cpu].rq[i];

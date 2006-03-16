@@ -62,11 +62,12 @@ void task_init(void)
  * Create new task with no threads.
  *
  * @param as Task's address space.
+ * @param name Symbolic name.
  *
  * @return New task's structure
  *
  */
-task_t *task_create(as_t *as)
+task_t *task_create(as_t *as, char *name)
 {
 	ipl_t ipl;
 	task_t *ta;
@@ -78,6 +79,7 @@ task_t *task_create(as_t *as)
 	list_initialize(&ta->th_head);
 	list_initialize(&ta->tasks_link);
 	ta->as = as;
+	ta->name = name;
 
 	
 	ipc_answerbox_init(&ta->answerbox);
@@ -101,9 +103,12 @@ task_t *task_create(as_t *as)
 
 /** Create new task with 1 thread and run it
  *
+ * @param programe_addr Address of program executable image.
+ * @param name Program name. 
+ *
  * @return Task of the running program or NULL on error
  */
-task_t * task_run_program(void *program_addr)
+task_t * task_run_program(void *program_addr, char *name)
 {
 	as_t *as;
 	as_area_t *a;
@@ -119,9 +124,9 @@ task_t * task_run_program(void *program_addr)
 		return NULL;
 	} 
 	
-	task = task_create(as);
+	task = task_create(as, name);
 	t = thread_create(uinit, (void *)((elf_header_t *)program_addr)->e_entry, 
-			  task, THREAD_USER_STACK);
+			  task, 0, "uinit");
 	
 	/*
 	 * Create the data as_area.
@@ -148,8 +153,8 @@ void task_print_list(void)
 	for (cur=tasks_head.next; cur!=&tasks_head; cur=cur->next) {
 		t = list_get_instance(cur, task_t, tasks_link);
 		spinlock_lock(&t->lock);
-		printf("Task: %Q ActiveCalls: %d", t->taskid, 
-		       atomic_get(&t->active_calls));
+		printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
+			t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
 		for (i=0; i < IPC_MAX_PHONES; i++) {
 			if (t->phones[i].callee)
 				printf(" Ph(%d): %P ", i,t->phones[i].callee);

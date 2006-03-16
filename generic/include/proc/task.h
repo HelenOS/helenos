@@ -37,6 +37,7 @@
 /** Task structure. */
 struct task {
 	SPINLOCK_DECLARE(lock);
+	char *name;
 	link_t th_head;		/**< List of threads contained in this task. */
 	link_t tasks_link;	/**< Link to other tasks within the system. */
 	as_t *as;		/**< Address space. */
@@ -52,7 +53,7 @@ extern spinlock_t tasks_lock;
 extern link_t tasks_head;
 
 extern void task_init(void);
-extern task_t *task_create(as_t *as);
-extern task_t *task_run_program(void * program_addr);
+extern task_t *task_create(as_t *as, char *name);
+extern task_t *task_run_program(void *program_addr, char *name);
 
 #endif

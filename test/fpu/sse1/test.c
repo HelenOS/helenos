@@ -112,10 +112,10 @@ void test(void)
 	printf("Creating %d threads... ", THREADS);
 
 	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(testit1, (void *)((__native)i*2), TASK, 0)))
+		if (!(t = thread_create(testit1, (void *)((__native)i*2), TASK, 0, "testit1")))
 			panic("could not create thread\n");
 		thread_ready(t);
-		if (!(t = thread_create(testit2, (void *)((__native)i*2+1), TASK, 0)))
+		if (!(t = thread_create(testit2, (void *)((__native)i*2+1), TASK, 0, "testit2")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

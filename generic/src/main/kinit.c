@@ -80,7 +80,7 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		if ((t = thread_create(kmp, NULL, TASK, 0))) {
+		if ((t = thread_create(kmp, NULL, TASK, 0, "kmp"))) {
 			spinlock_lock(&t->lock);
 			t->flags |= X_WIRED;
 			t->cpu = &cpus[0];
@@ -105,7 +105,7 @@ void kinit(void *arg)
 		 */
 		for (i = 0; i < config.cpu_count; i++) {
 
-			if ((t = thread_create(kcpulb, NULL, TASK, 0))) {
+			if ((t = thread_create(kcpulb, NULL, TASK, 0, "kcpulb"))) {
 				spinlock_lock(&t->lock);			
 				t->flags |= X_WIRED;
 				t->cpu = &cpus[i];
@@ -126,7 +126,7 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	if ((t = thread_create(kconsole, "kconsole", TASK, 0)))
+	if ((t = thread_create(kconsole, "kconsole", TASK, 0, "kconsole")))
 		thread_ready(t);
 	else
 		panic("thread_create/kconsole\n");
@@ -142,7 +142,7 @@ void kinit(void *arg)
 		if (init.tasks[i].addr % FRAME_SIZE)
 			panic("init[%d].addr is not frame aligned", i);
 
-		utask = task_run_program((void *) init.tasks[i].addr);
+		utask = task_run_program((void *) init.tasks[i].addr, "USPACE");
 		if (utask) {
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
