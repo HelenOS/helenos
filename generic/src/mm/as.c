@@ -173,7 +173,7 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
+	page_table_lock(as, true);
 	
 	area = find_area_and_lock(as, page);
 	if (!area) {
@@ -183,7 +183,7 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 	page_mapping_insert(as, page, frame, get_area_flags(area));
 	
 	spinlock_unlock(&area->lock);
-	spinlock_unlock(&as->lock);
+	page_table_unlock(as, true);
 	interrupts_restore(ipl);
 }
 
@@ -198,12 +198,13 @@ void as_set_mapping(as_t *as, __address page, __address frame)
  */
 int as_page_fault(__address page)
 {
+	pte_t *pte;
 	as_area_t *area;
 	__address frame;
 	
 	ASSERT(AS);
+
 	spinlock_lock(&AS->lock);
-	
 	area = find_area_and_lock(AS, page);	
 	if (!area) {
 		/*
@@ -212,6 +213,22 @@ int as_page_fault(__address page)
 		 */
 		spinlock_unlock(&AS->lock);
 		return 0;
+	}
+
+	page_table_lock(AS, false);
+	
+	/*
+	 * To avoid race condition between two page faults
+	 * on the same address, we need to make sure
+	 * the mapping has not been already inserted.
+	 */
+	if ((pte = page_mapping_find(AS, page))) {
+		if (PTE_PRESENT(pte)) {
+			page_table_unlock(AS, false);
+			spinlock_unlock(&area->lock);
+			spinlock_unlock(&AS->lock);
+			return 1;
+		}
 	}
 
 	/*
@@ -237,10 +254,10 @@ int as_page_fault(__address page)
 	 * inserted into page tables.
 	 */
 	page_mapping_insert(AS, page, frame, get_area_flags(area));
+	page_table_unlock(AS, false);
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&AS->lock);
-
 	return 1;
 }
 
@@ -357,6 +374,39 @@ pte_t *page_table_create(int flags)
         return as_operations->page_table_create(flags);
 }
 
+/** Lock page table.
+ *
+ * This function should be called before any page_mapping_insert(),
+ * page_mapping_remove() and page_mapping_find().
+ * 
+ * Locking order is such that address space areas must be locked
+ * prior to this call. Address space can be locked prior to this
+ * call in which case the lock argument is false.
+ *
+ * @param as Address space.
+ * @param as_locked If false, do not attempt to lock as->lock.
+ */
+void page_table_lock(as_t *as, bool lock)
+{
+	ASSERT(as_operations);
+	ASSERT(as_operations->page_table_lock);
+
+	as_operations->page_table_lock(as, lock);
+}
+
+/** Unlock page table.
+ *
+ * @param as Address space.
+ * @param as_locked If false, do not attempt to unlock as->lock.
+ */
+void page_table_unlock(as_t *as, bool unlock)
+{
+	ASSERT(as_operations);
+	ASSERT(as_operations->page_table_unlock);
+
+	as_operations->page_table_unlock(as, unlock);
+}
+
 /** Find address space area and change it.
  *
  * @param as Address space.
@@ -397,12 +447,20 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 			/*
 			 * Releasing physical memory.
 			 * This depends on the fact that the memory was allocated using frame_alloc().
-			 */ 
+			 */
+			page_table_lock(as, false);
 			pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
 			if (pte && PTE_VALID(pte)) {
+				__address frame;
+
 				ASSERT(PTE_PRESENT(pte));
-				frame_free(ADDR2PFN(PTE_GET_FRAME(pte)));
+				frame = PTE_GET_FRAME(pte);
 				page_mapping_remove(as, area->base + i*PAGE_SIZE);
+				page_table_unlock(as, false);
+
+				frame_free(ADDR2PFN(frame));
+			} else {
+				page_table_unlock(as, false);
 			}
 		}
 		/*

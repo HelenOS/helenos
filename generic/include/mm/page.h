@@ -82,6 +82,8 @@ typedef struct page_mapping_operations page_mapping_operations_t;
 extern page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
+extern void page_table_lock(as_t *as, bool lock);
+extern void page_table_unlock(as_t *as, bool unlock);
 extern void page_mapping_insert(as_t *as, __address page, __address frame, int flags);
 extern void page_mapping_remove(as_t *as, __address page);
 extern pte_t *page_mapping_find(as_t *as, __address page);

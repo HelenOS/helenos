@@ -52,7 +52,9 @@ static void ht_mapping_remove(as_t *as, __address page);
 static pte_t *ht_mapping_find(as_t *as, __address page);
 
 /**
- * This lock protects the page hash table.
+ * This lock protects the page hash table. It must be acquired
+ * after address space lock and after any address space area
+ * locks.
  */
 SPINLOCK_INITIALIZE(page_ht_lock);
 
@@ -155,7 +157,7 @@ void remove_callback(link_t *item)
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'. 
  *
- * The address space must be locked and interruptsmust be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to which page belongs.
  * @param page Virtual address of the page to be mapped.
@@ -167,8 +169,6 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	pte_t *t;
 	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
-	spinlock_lock(&page_ht_lock);
-
 	if (!hash_table_find(&page_ht, key)) {
 		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
 		ASSERT(t != NULL);
@@ -186,8 +186,6 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 		hash_table_insert(&page_ht, key, &t->link);
 	}
-	
-	spinlock_unlock(&page_ht_lock);
 }
 
 /** Remove mapping of page from page hash table.
@@ -196,7 +194,7 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
@@ -205,15 +203,11 @@ void ht_mapping_remove(as_t *as, __address page)
 {
 	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
-	spinlock_lock(&page_ht_lock);
-
 	/*
 	 * Note that removed PTE's will be freed
 	 * by remove_callback().
 	 */
 	hash_table_remove(&page_ht, key, 2);
-
-	spinlock_unlock(&page_ht_lock);
 }
 
 
@@ -221,7 +215,7 @@ void ht_mapping_remove(as_t *as, __address page)
  *
  * Find mapping for virtual page.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual page.
@@ -234,12 +228,9 @@ pte_t *ht_mapping_find(as_t *as, __address page)
 	pte_t *t = NULL;
 	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
-	spinlock_lock(&page_ht_lock);
-
 	hlp = hash_table_find(&page_ht, key);
 	if (hlp)
 		t = hash_table_get_instance(hlp, pte_t, link);
 
-	spinlock_unlock(&page_ht_lock);
 	return t;
 }

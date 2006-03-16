@@ -87,13 +87,18 @@ void tlb_arch_init(void)
 void tlb_refill(istate_t *istate)
 {
 	entry_lo_t lo;
-	entry_hi_t hi;	
+	entry_hi_t hi;
+	asid_t asid;
 	__address badvaddr;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
 
-	spinlock_lock(&AS->lock);		
+	spinlock_lock(&AS->lock);
+	asid = AS->asid;
+	spinlock_unlock(&AS->lock);
+
+	page_table_lock(AS, true);
 
 	pte = find_mapping_and_check(badvaddr);
 	if (!pte)
@@ -104,7 +109,7 @@ void tlb_refill(istate_t *istate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_hi(&hi, AS->asid, badvaddr);
+	prepare_entry_hi(&hi, asid, badvaddr);
 	prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
 
 	/*
@@ -122,11 +127,11 @@ void tlb_refill(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwr();
 
-	spinlock_unlock(&AS->lock);
+	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	spinlock_unlock(&AS->lock);
+	page_table_unlock(AS, true);
 	tlb_refill_fail(istate);
 }
 
@@ -154,8 +159,8 @@ void tlb_invalid(istate_t *istate)
 	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
-	
-	spinlock_lock(&AS->lock);	
+
+	page_table_lock(AS, true);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
@@ -191,11 +196,11 @@ void tlb_invalid(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	spinlock_unlock(&AS->lock);	
+	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	spinlock_unlock(&AS->lock);
+	page_table_unlock(AS, true);
 	tlb_invalid_fail(istate);
 }
 
@@ -223,8 +228,8 @@ void tlb_modified(istate_t *istate)
 	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
-	
-	spinlock_lock(&AS->lock);	
+
+	page_table_lock(AS, true);	
 	
 	/*
 	 * Fail if the entry is not in TLB.
@@ -267,11 +272,11 @@ void tlb_modified(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	spinlock_unlock(&AS->lock);	
+	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	spinlock_unlock(&AS->lock);
+	page_table_unlock(AS, true);
 	tlb_modified_fail(istate);
 }
 
@@ -349,34 +354,23 @@ pte_t *find_mapping_and_check(__address badvaddr)
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
+		page_table_unlock(AS, true);
 		if (as_page_fault(badvaddr)) {
 			/*
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
 			 */
+			page_table_lock(AS, true);
 			pte = page_mapping_find(AS, badvaddr);
 			ASSERT(pte && pte->p);
 			return pte;
+		} else {
+			page_table_lock(AS, true);
+			printf("Page fault.\n");
+			return NULL;
 		}
+		
 	}
-
-	/*
-	 * Handler cannot succeed if badvaddr has no mapping.
-	 */
-	if (!pte) {
-		printf("No such mapping.\n");
-		return NULL;
-	}
-
-	/*
-	 * Handler cannot succeed if the mapping is marked as invalid.
-	 */
-	if (!pte->p) {
-		printf("Invalid mapping.\n");
-		return NULL;
-	}
-
-	return pte;
 }
 
 void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn)

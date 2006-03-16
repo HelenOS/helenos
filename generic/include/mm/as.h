@@ -93,6 +93,8 @@ struct as {
 
 struct as_operations {
 	pte_t *(* page_table_create)(int flags);
+	void (* page_table_lock)(as_t *as, bool lock);
+	void (* page_table_unlock)(as_t *as, bool unlock);
 };
 typedef struct as_operations as_operations_t;
 

@@ -76,7 +76,7 @@ void map_structure(__address s, size_t size)
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'. Allocate and setup any missing page tables.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be mapped.
@@ -97,7 +97,7 @@ void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
@@ -114,7 +114,7 @@ void page_mapping_remove(as_t *as, __address page)
  *
  * Find mapping for virtual page.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual page.

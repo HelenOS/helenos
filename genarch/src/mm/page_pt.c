@@ -52,7 +52,7 @@ page_mapping_operations_t pt_mapping_operations = {
  * Map virtual address 'page' to physical address 'frame'
  * using 'flags'.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be mapped.
@@ -105,7 +105,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
  *
  * Empty page tables except PTL0 are freed.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
@@ -225,7 +225,7 @@ void pt_mapping_remove(as_t *as, __address page)
  *
  * Find mapping for virtual page.
  *
- * The address space must be locked and interrupts must be disabled.
+ * The page table must be locked and interrupts must be disabled.
  *
  * @param as Address space to which page belongs.
  * @param page Virtual page.

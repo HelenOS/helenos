@@ -39,8 +39,13 @@
 
 static pte_t *ptl0_create(int flags);
 
+static void pt_lock(as_t *as, bool lock);
+static void pt_unlock(as_t *as, bool unlock);
+
 as_operations_t as_pt_operations = {
-	.page_table_create = ptl0_create
+	.page_table_create = ptl0_create,
+	.page_table_lock = pt_lock,
+	.page_table_unlock = pt_unlock
 };
 
 /** Create PTL0.
@@ -75,4 +80,32 @@ pte_t *ptl0_create(int flags)
 	}
 
 	return (pte_t *) KA2PA((__address) dst_ptl0);
+}
+
+/** Lock page tables.
+ *
+ * Lock only the address space.
+ * Interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param lock If false, do not attempt to lock the address space.
+ */
+void pt_lock(as_t *as, bool lock)
+{
+	if (lock)
+		spinlock_lock(&as->lock);
+}
+
+/** Unlock page tables.
+ *
+ * Unlock the address space.
+ * Interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param unlock If false, do not attempt to unlock the address space.
+ */
+void pt_unlock(as_t *as, bool unlock)
+{
+	if (unlock)
+		spinlock_unlock(&as->lock);
 }

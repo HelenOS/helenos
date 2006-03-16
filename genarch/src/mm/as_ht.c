@@ -34,11 +34,17 @@
 #include <typedefs.h>
 #include <memstr.h>
 #include <adt/hash_table.h>
+#include <synch/spinlock.h>
 
 static pte_t *ht_create(int flags);
 
+static void ht_lock(as_t *as, bool lock);
+static void ht_unlock(as_t *as, bool unlock);
+
 as_operations_t as_ht_operations = {
-	.page_table_create = ht_create
+	.page_table_create = ht_create,
+	.page_table_lock = ht_lock,
+	.page_table_unlock = ht_unlock,
 };
 
 
@@ -57,4 +63,34 @@ pte_t *ht_create(int flags)
 		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
 	}
 	return NULL;
+}
+
+/** Lock page table.
+ *
+ * Lock address space and page hash table.
+ * Interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param lock If false, do not attempt to lock the address space.
+ */
+void ht_lock(as_t *as, bool lock)
+{
+	if (lock)
+		spinlock_lock(&as->lock);
+	spinlock_lock(&page_ht_lock);
+}
+
+/** Unlock page table.
+ *
+ * Unlock address space and page hash table.
+ * Interrupts must be disabled.
+ *
+ * @param as Address space.
+ * @param unlock If false, do not attempt to lock the address space.
+ */
+void ht_unlock(as_t *as, bool unlock)
+{
+	spinlock_unlock(&page_ht_lock);
+	if (unlock)
+		spinlock_unlock(&as->lock);
 }
