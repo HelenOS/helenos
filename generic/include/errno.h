@@ -35,5 +35,7 @@
 #define ENOMEM     -2  /* Not enough memory */
 #define ELIMIT     -3  /* Limit exceeded */
 #define EREFUSED   -4  /* Connection refused */
+#define EFORWARD   -5  /* Forward error */
+#define EPERM      -6  /* Permission denied */
 
 #endif

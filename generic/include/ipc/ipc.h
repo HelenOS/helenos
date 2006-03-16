@@ -71,13 +71,12 @@
 /* System-specific methods - only through special syscalls
  * These methods have special behaviour
  */
-#define IPC_M_IAMCONNECTING   0
 /** Protocol for CONNECT - TO - ME 
  *
  * Calling process asks the callee to create a callback connection,
  * so that it can start initiating new messages.
  *
- * The protocol for negotiating is as follows:
+ * The protocol for negotiating is:
  * - sys_connecttome - sends a message IPC_M_CONNECTTOME
  * - sys_wait_for_call - upon receipt tries to allocate new phone
  *                       - if it fails, responds with ELIMIT
@@ -85,16 +84,34 @@
  *                       responds with error, phone is deallocated and
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
- *                     - the allocated phoneid is passed to userspace as
- *                       ARG3 of the call.
+ *                     - the allocated phoneid is passed to userspace 
+ *                       (on the receiving sid) as ARG3 of the call.
  *                     - the caller obtains taskid of the called thread
  */
 #define IPC_M_CONNECTTOME     1
+/** Protocol for CONNECT - ME - TO
+ *
+ * Calling process asks the callee to create for him a new connection.
+ * E.g. the caller wants a name server to connect him to print server.
+ *
+ * The protocol for negotiating is:
+ * - sys_connect_me_to - send a synchronous message to name server
+ *                       indicating that it wants to be connected to some
+ *                       service
+ *   recepient         -  if ipc_answer == 0, then accept connection
+ *                     -  otherwise connection refused
+ *                     -  recepient may forward message. Forwarding
+ *                        system message 
+ *
+ */
 #define IPC_M_CONNECTMETO     2
+/* Control messages that the server sends to the processes 
+ * about their connections.
+ */
 
 
 /* Well-known methods */
-#define IPC_M_FIRST_USER      512
+#define IPC_M_LAST_SYSTEM     511
 #define IPC_M_PING            512
 /* User methods */
 #define FIRST_USER_METHOD     1024
@@ -123,8 +140,7 @@ struct answerbox {
 
 	task_t *task;
 
-	mutex_t mutex;
-	condvar_t cv;
+	waitq_t wq;
 
 	link_t connected_phones; /**< Phones connected to this answerbox */
 	link_t calls;            /**< Received calls */
@@ -137,6 +153,7 @@ typedef struct {
 	SPINLOCK_DECLARE(lock);
 	link_t list;
 	answerbox_t *callee;
+	int busy;
 } phone_t;
 
 extern void ipc_init(void);
@@ -145,12 +162,13 @@ extern void ipc_answer(answerbox_t *box, call_t *request);
 extern void ipc_call(phone_t *phone, call_t *request);
 extern void ipc_call_sync(phone_t *phone, call_t *request);
 extern void ipc_phone_destroy(phone_t *phone);
-extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
+extern void ipc_phone_init(phone_t *phone);
+extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
 extern call_t * ipc_call_alloc(void);
 extern void ipc_answerbox_init(answerbox_t *box);
-extern void ipc_phone_init(phone_t *phone, answerbox_t *box);
 extern void ipc_call_init(call_t *call);
+extern void ipc_forward(call_t *call, answerbox_t *newbox,answerbox_t *oldbox);
 
 extern answerbox_t *ipc_phone_0;
 

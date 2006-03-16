@@ -69,6 +69,7 @@ task_t *task_create(as_t *as)
 {
 	ipl_t ipl;
 	task_t *ta;
+	int i;
 	
 	ta = (task_t *) malloc(sizeof(task_t), 0);
 
@@ -77,10 +78,12 @@ task_t *task_create(as_t *as)
 	list_initialize(&ta->tasks_link);
 	ta->as = as;
 
+	
 	ipc_answerbox_init(&ta->answerbox);
-	memsetb((__address)&ta->phones, sizeof(ta->phones[0])*IPC_MAX_PHONES, 0);
+	for (i=0; i < IPC_MAX_PHONES;i++)
+		ipc_phone_init(&ta->phones[i]);
 	if (ipc_phone_0)
-		ipc_phone_init(&ta->phones[0], ipc_phone_0);
+		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
 	
 	ipl = interrupts_disable();

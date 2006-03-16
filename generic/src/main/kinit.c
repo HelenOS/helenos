@@ -143,9 +143,10 @@ void kinit(void *arg)
 			panic("init[%d].addr is not frame aligned", i);
 
 		utask = task_run_program((void *) init.tasks[i].addr);
-		if (utask) 
-			ipc_phone_0 = &utask->answerbox;
-		else 
+		if (utask) {
+			if (!ipc_phone_0) 
+				ipc_phone_0 = &utask->answerbox;
+		} else
 			printf("Userspace not started.\n");
 	}
 

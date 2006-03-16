@@ -31,8 +31,8 @@
  * First the answerbox, then the phone
  */
 
-#include <synch/condvar.h>
-#include <synch/mutex.h>
+#include <synch/spinlock.h>
+#include <synch/waitq.h>
 #include <ipc/ipc.h>
 #include <errno.h>
 #include <mm/slab.h>
@@ -84,8 +84,8 @@ void ipc_call_free(call_t *call)
  */
 void ipc_answerbox_init(answerbox_t *box)
 {
-	mutex_initialize(&box->mutex);
-	condvar_initialize(&box->cv);
+	spinlock_initialize(&box->lock, "ipc_box_lock");
+	waitq_initialize(&box->wq);
 	list_initialize(&box->connected_phones);
 	list_initialize(&box->calls);
 	list_initialize(&box->dispatched_calls);
@@ -93,17 +93,25 @@ void ipc_answerbox_init(answerbox_t *box)
 	box->task = TASK;
 }
 
-/** Initialize phone structure and connect phone to naswerbox
- */
-void ipc_phone_init(phone_t *phone, answerbox_t *box)
+/** Connect phone to answerbox */
+void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
-	spinlock_initialize(&phone->lock, "phone_lock");
-	
+	ASSERT(!phone->callee);
+	phone->busy = 1;
 	phone->callee = box;
 
-	mutex_lock(&box->mutex);
+	spinlock_lock(&box->lock);
 	list_append(&phone->list, &box->connected_phones);
-	mutex_unlock(&box->mutex);
+	spinlock_unlock(&box->lock);
+}
+
+/** Initialize phone structure and connect phone to naswerbox
+ */
+void ipc_phone_init(phone_t *phone)
+{
+	spinlock_initialize(&phone->lock, "phone_lock");
+	phone->callee = NULL;
+	phone->busy = 0;
 }
 
 /** Disconnect phone from answerbox */
@@ -113,9 +121,9 @@ void ipc_phone_destroy(phone_t *phone)
 	
 	ASSERT(box);
 
-	mutex_lock(&box->mutex);
+	spinlock_lock(&box->lock);
 	list_remove(&phone->list);
-	mutex_unlock(&box->mutex);
+	spinlock_unlock(&box->lock);
 }
 
 /** Helper function to facilitate synchronous calls */
@@ -137,16 +145,34 @@ void ipc_call_sync(phone_t *phone, call_t *request)
  * @param phone Phone connected to answerbox
  * @param request Request to be sent
  */
-void ipc_call(phone_t *phone, call_t *request)
+void ipc_call(phone_t *phone, call_t *call)
 {
 	answerbox_t *box = phone->callee;
 
 	ASSERT(box);
 
-	mutex_lock(&box->mutex);
-	list_append(&request->list, &box->calls);
-	mutex_unlock(&box->mutex);
-	condvar_signal(&box->cv);
+	spinlock_lock(&box->lock);
+	list_append(&call->list, &box->calls);
+	spinlock_unlock(&box->lock);
+	waitq_wakeup(&box->wq, 0);
+}
+
+/** Forwards call from one answerbox to a new one
+ *
+ * @param request Request to be forwarded
+ * @param newbox Target answerbox
+ * @param oldbox Old answerbox
+ */
+void ipc_forward(call_t *call, answerbox_t *newbox, answerbox_t *oldbox)
+{
+	spinlock_lock(&oldbox->lock);
+	list_remove(&call->list);
+	spinlock_unlock(&oldbox->lock);
+
+	spinlock_lock(&newbox->lock);
+	list_append(&call->list, &newbox->calls);
+	spinlock_lock(&newbox->lock);
+	waitq_wakeup(&newbox->wq, 0);
 }
 
 /** Answer message back to phone
@@ -160,14 +186,14 @@ void ipc_answer(answerbox_t *box, call_t *request)
 
 	request->flags |= IPC_CALL_ANSWERED;
 
-	mutex_lock(&box->mutex);
+	spinlock_lock(&box->lock);
 	list_remove(&request->list);
-	mutex_unlock(&box->mutex);
+	spinlock_unlock(&box->lock);
 
-	mutex_lock(&callerbox->mutex);
+	spinlock_lock(&callerbox->lock);
 	list_append(&request->list, &callerbox->answers);
-	mutex_unlock(&callerbox->mutex);
-	condvar_signal(&callerbox->cv);
+	spinlock_unlock(&callerbox->lock);
+	waitq_wakeup(&callerbox->wq, 0);
 }
 
 /** Wait for phone call 
@@ -179,7 +205,7 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 {
 	call_t *request;
 
-	mutex_lock(&box->mutex);
+	spinlock_lock(&box->lock);
 	while (1) { 
 		if (!list_empty(&box->answers)) {
 			/* Handle asynchronous answers */
@@ -194,14 +220,16 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 		} else {
 			if (!(flags & IPC_WAIT_NONBLOCKING)) {
 				/* Wait for event to appear */
-				condvar_wait(&box->cv, &box->mutex);
+				spinlock_unlock(&box->lock);
+				waitq_sleep(&box->wq);
+				spinlock_lock(&box->lock);
 				continue;
 			}
 			request = NULL;
 		}
 		break;
 	}
-	mutex_unlock(&box->mutex);
+	spinlock_unlock(&box->lock);
 	return request;
 }
 
