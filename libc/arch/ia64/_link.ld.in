@@ -18,10 +18,10 @@ SECTIONS {
 	} :text
 
 	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
+		_gp = .;
 		*(.got*);
 	} :data	
 	.data : {
-		_gp = .;
 		*(.opd);
 		*(.data);
 		*(.sdata);
