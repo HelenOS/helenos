@@ -41,11 +41,13 @@
 
 static void threadtest(void *data)
 {
-    while(1)
-    {
-        printf("%d\n",(int)(THREAD->tid));
-	scheduler();
-    }
+	while(1)
+	{
+		while (1)
+			;
+		printf("%d\n",(int)(THREAD->tid));
+		scheduler();
+	}
 }
 
 void test(void)

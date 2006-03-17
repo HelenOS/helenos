@@ -60,6 +60,7 @@
 
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+0)
 #define VECTOR_WAKEUP_IPI		(IVT_FREEBASE+1)
+#define VECTOR_DEBUG_IPI                (IVT_FREEBASE+2)
 
 /** This is passed to interrupt handlers */
 struct istate {

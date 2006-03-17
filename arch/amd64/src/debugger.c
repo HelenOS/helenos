@@ -37,6 +37,7 @@
 #include <arch/cpu.h>
 #include <debug.h>
 #include <func.h>
+#include <smp/ipi.h>
 
 typedef struct  {
 	__address address;      /**< Breakpoint address */
@@ -54,6 +55,8 @@ static cmd_info_t bkpts_info = {
 	.func = cmd_print_breakpoints,
 	.argc = 0,
 };
+
+#ifndef CONFIG_DEBUG_AS_WATCHPOINT
 
 static int cmd_del_breakpoint(cmd_arg_t *argv);
 static cmd_arg_t del_argv = {
@@ -90,6 +93,7 @@ static cmd_info_t addwatchp_info = {
 	.argv = &addw_argv
 };
 
+#endif
 
 /** Print table of active breakpoints */
 int cmd_print_breakpoints(cmd_arg_t *argv)
@@ -109,6 +113,58 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	return 1;
 }
 
+/* Setup DR register according to table */
+static void setup_dr(int curidx)
+{
+	__native dr7;
+	bpinfo_t *cur = &breakpoints[curidx];
+	int flags = breakpoints[curidx].flags;
+
+	/* Disable breakpoint in DR7 */
+	dr7 = read_dr7();
+	dr7 &= ~(0x2 << (curidx*2));
+
+	if (cur->address) { /* Setup DR register */
+		/* Set breakpoint to debug registers */
+		switch (curidx) {
+		case 0:
+			write_dr0(cur->address);
+			break;
+		case 1:
+			write_dr1(cur->address);
+			break;
+		case 2:
+			write_dr2(cur->address);
+			break;
+		case 3:
+			write_dr3(cur->address);
+			break;
+		}
+		/* Set type to requested breakpoint & length*/
+		dr7 &= ~ (0x3 << (16 + 4*curidx));
+		dr7 &= ~ (0x3 << (18 + 4*curidx));
+		if ((flags & BKPOINT_INSTR)) {
+			;
+		} else {
+			if (sizeof(int) == 4)
+				dr7 |= ((__native) 0x3) << (18 + 4*curidx);
+			else /* 8 */
+				dr7 |= ((__native) 0x2) << (18 + 4*curidx);
+			
+			if ((flags & BKPOINT_WRITE))
+				dr7 |= ((__native) 0x1) << (16 + 4*curidx);
+			else if ((flags & BKPOINT_READ_WRITE))
+				dr7 |= ((__native) 0x3) << (16 + 4*curidx);
+		}
+
+		/* Enable global breakpoint */
+		dr7 |= 0x2 << (curidx*2);
+
+		write_dr7(dr7);
+		
+	} 
+}
+	
 /** Enable hardware breakpoint
  *
  *
@@ -116,77 +172,46 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
  * @param flags Type of breakpoint (EXECUTE, WRITE)
  * @return Debug slot on success, -1 - no available HW breakpoint
  */
-int breakpoint_add(void * where, int flags)
+int breakpoint_add(void * where, int flags, int curidx)
 {
-	bpinfo_t *cur = NULL;
-	int curidx;
 	ipl_t ipl;
 	int i;
-	__native dr7;
+	bpinfo_t *cur;
 
 	ASSERT( flags & (BKPOINT_INSTR | BKPOINT_WRITE | BKPOINT_READ_WRITE));
 
 	ipl = interrupts_disable();
 	spinlock_lock(&bkpoint_lock);
 	
-	/* Find free space in slots */
-	for (i=0; i<BKPOINTS_MAX; i++)
-		if (!breakpoints[i].address) {
-			cur = &breakpoints[i];
-			curidx = i;
-			break;
+	if (curidx == -1) {
+		/* Find free space in slots */
+		for (i=0; i<BKPOINTS_MAX; i++)
+			if (!breakpoints[i].address) {
+				curidx = i;
+				break;
+			}
+		if (curidx == -1) {
+			/* Too many breakpoints */
+			spinlock_unlock(&bkpoint_lock);
+			interrupts_restore(ipl);
+			return -1;
 		}
-	if (!cur) {
-		/* Too many breakpoints */
-		spinlock_unlock(&bkpoint_lock);
-		interrupts_restore(ipl);
-		return -1;
 	}
+	cur = &breakpoints[curidx];
+
 	cur->address = (__address) where;
 	cur->flags = flags;
 	cur->counter = 0;
 
-	/* Set breakpoint to debug registers */
-	switch (curidx) {
-	case 0:
-		write_dr0(cur->address);
-		break;
-	case 1:
-		write_dr1(cur->address);
-		break;
-	case 2:
-		write_dr2(cur->address);
-		break;
-	case 3:
-		write_dr3(cur->address);
-		break;
-	}
-	dr7 = read_dr7();
-	/* Set type to requested breakpoint & length*/
-	dr7 &= ~ (0x3 << (16 + 4*curidx));
-	dr7 &= ~ (0x3 << (18 + 4*curidx));
-	if ((flags & BKPOINT_INSTR)) {
-		printf("Instr breakpoint\n");
-		;
-	} else {
-		if (sizeof(int) == 4)
-			dr7 |= 0x3 << (18 + 4*curidx);
-		else /* 8 */
-			dr7 |= 0x2 << (18 + 4*curidx);
-			
-		if ((flags & BKPOINT_WRITE))
-			dr7 |= 0x1 << (16 + 4*curidx);
-		else if ((flags & BKPOINT_READ_WRITE))
-			dr7 |= 0x3 << (16 + 4*curidx);
-	}
-
-	/* Enable global breakpoint */
-	dr7 |= 0x2 << (curidx*2);
-
-	write_dr7(dr7);
+	setup_dr(curidx);
 
 	spinlock_unlock(&bkpoint_lock);
 	interrupts_restore(ipl);
+
+	/* Send IPI */
+#ifdef CONFIG_SMP
+//	ipi_broadcast(VECTOR_DEBUG_IPI);	
+#endif	
 
 	return curidx;
 }
@@ -221,6 +246,67 @@ static void handle_exception(int slot, istate_t *istate)
 	atomic_set(&haltstate,0);
 }
 
+void breakpoint_del(int slot)
+{
+	bpinfo_t *cur;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&bkpoint_lock);
+
+	cur = &breakpoints[slot];
+	if (!cur->address) {
+		spinlock_unlock(&bkpoint_lock);
+		interrupts_restore(ipl);
+		return;
+	}
+
+	cur->address = NULL;
+
+	setup_dr(slot);
+
+	spinlock_unlock(&bkpoint_lock);
+	interrupts_restore(ipl);
+#ifdef CONFIG_SMP
+//	ipi_broadcast(VECTOR_DEBUG_IPI);	
+#endif
+}
+
+#ifndef CONFIG_DEBUG_AS_WATCHPOINT
+
+/** Remove breakpoint from table */
+int cmd_del_breakpoint(cmd_arg_t *argv)
+{
+	if (argv->intval < 0 || argv->intval > BKPOINTS_MAX) {
+		printf("Invalid breakpoint number.\n");
+		return 0;
+	}
+	breakpoint_del(argv->intval);
+	return 1;
+}
+
+/** Add new breakpoint to table */
+static int cmd_add_breakpoint(cmd_arg_t *argv)
+{
+	int flags;
+	int id;
+
+	if (argv == &add_argv) {
+		flags = BKPOINT_INSTR;
+	} else { /* addwatchp */
+		flags = BKPOINT_WRITE;
+	}
+	printf("Adding breakpoint on address: %p\n", argv->intval);
+	id = breakpoint_add((void *)argv->intval, flags, -1);
+	if (id < 0)
+		printf("Add breakpoint failed.\n");
+	else
+		printf("Added breakpoint %d.\n", id);
+	
+	return 1;
+}
+#endif
+
 static void debug_exception(int n, istate_t *istate)
 {
 	__native dr6;
@@ -244,60 +330,17 @@ static void debug_exception(int n, istate_t *istate)
 	}
 }
 
-void breakpoint_del(int slot)
+#ifdef CONFIG_SMP
+static void debug_ipi(int n, istate_t *istate)
 {
-	bpinfo_t *cur;
-	ipl_t ipl;
-	__native dr7;
+	int i;
 
-	ipl = interrupts_disable();
 	spinlock_lock(&bkpoint_lock);
-
-	cur = &breakpoints[slot];
-	if (!cur->address) {
-		spinlock_unlock(&bkpoint_lock);
-		interrupts_restore(ipl);
-		return;
-	}
-
-	cur->address = NULL;
-
-	/* Disable breakpoint in DR7 */
-	dr7 = read_dr7();
-	dr7 &= ~(0x2 << (slot*2));
-	write_dr7(dr7);
-
+	for (i=0; i < BKPOINTS_MAX; i++)
+		setup_dr(i);
 	spinlock_unlock(&bkpoint_lock);
-	interrupts_restore(ipl);
 }
-
-/** Remove breakpoint from table */
-int cmd_del_breakpoint(cmd_arg_t *argv)
-{
-	if (argv->intval < 0 || argv->intval > BKPOINTS_MAX) {
-		printf("Invalid breakpoint number.\n");
-		return 0;
-	}
-	breakpoint_del(argv->intval);
-	return 1;
-}
-
-/** Add new breakpoint to table */
-static int cmd_add_breakpoint(cmd_arg_t *argv)
-{
-	int flags;
-
-	if (argv == &add_argv) {
-		flags = BKPOINT_INSTR;
-	} else { /* addwatchp */
-		flags = BKPOINT_WRITE;
-	}
-	printf("Adding breakpoint on address: %p\n", argv->intval);
-	if (breakpoint_add((void *)argv->intval, flags))
-		printf("Add breakpoint failed.\n");
-	
-	return 1;
-}
+#endif
 
 /** Initialize debugger */
 void debugger_init()
@@ -311,6 +354,7 @@ void debugger_init()
 	if (!cmd_register(&bkpts_info))
 		panic("could not register command %s\n", bkpts_info.name);
 
+#ifndef CONFIG_DEBUG_AS_WATCHPOINT
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
 		panic("could not register command %s\n", delbkpt_info.name);
@@ -322,7 +366,12 @@ void debugger_init()
 	cmd_initialize(&addwatchp_info);
 	if (!cmd_register(&addwatchp_info))
 		panic("could not register command %s\n", addwatchp_info.name);
+#endif
 	
 	exc_register(VECTOR_DEBUG, "debugger",
 		     debug_exception);
+#ifdef CONFIG_SMP
+	exc_register(VECTOR_DEBUG_IPI, "debugger_smp",
+		     debug_ipi);
+#endif
 }

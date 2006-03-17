@@ -40,13 +40,11 @@ void before_thread_runs_arch(void)
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */
-	static int old_slot = -1;
-	if (old_slot >=0)
-		breakpoint_del(old_slot);
-	old_slot = breakpoint_add(&((the_t *) THREAD->kstack)->as, 
-				  BKPOINT_WRITE | BKPOINT_CHECK_ZERO);
+	if (CPU->id < BKPOINTS_MAX)
+		breakpoint_add(&((the_t *) THREAD->kstack)->as, 
+			       BKPOINT_WRITE | BKPOINT_CHECK_ZERO,
+			       CPU->id);
 #endif
-
 }
 
 void after_thread_ran_arch(void)
