@@ -189,6 +189,7 @@ void thread_ready(thread_t *t)
 	if (t->flags & X_WIRED) {
 		cpu = t->cpu;
 	}
+	t->state = Ready;
 	spinlock_unlock(&t->lock);
 	
 	/*

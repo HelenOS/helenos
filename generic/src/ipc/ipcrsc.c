@@ -72,6 +72,8 @@ phone_t * get_phone_and_lock(__native phoneid)
 		spinlock_unlock(&phone->lock);
 		return NULL;
 	}
+	/* TODO... */
+	spinlock_unlock(&phone->lock);
 	return phone;
 }
 
