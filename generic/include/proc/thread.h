@@ -43,8 +43,6 @@
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 
-#define THREAD_USER_STACK	1
-
 enum state {
 	Invalid,	/**< It is an error, if thread is found in this state. */
 	Running,	/**< State of a thread that is currently executing on some CPU. */
@@ -59,10 +57,10 @@ extern char *thread_states[];
 #define X_WIRED		(1<<0)
 #define X_STOLEN	(1<<1)
 
+#define THREAD_NAME_BUFLEN	20
+
 /** Thread structure. There is one per thread. */
 struct thread {
-	char *name;
-	
 	link_t rq_link;				/**< Run queue link. */
 	link_t wq_link;				/**< Wait queue link. */
 	link_t th_link;				/**< Links to threads within containing task. */
@@ -75,6 +73,8 @@ struct thread {
 	 * 
 	 */
 	SPINLOCK_DECLARE(lock);
+
+	char name[THREAD_NAME_BUFLEN];
 
 	void (* thread_code)(void *);		/**< Function implementing the thread. */
 	void *thread_arg;			/**< Argument passed to thread_code() function. */
@@ -117,6 +117,12 @@ struct thread {
 	__u8 *kstack;				/**< Thread's kernel stack. */
 };
 
+/** Structure passed to uinit kernel thread as argument. */
+typedef struct uspace_arg {
+	__address uspace_entry;
+	__address uspace_stack;
+} uspace_arg_t;
+
 /** Thread list lock.
  *
  * This lock protects all link_t structures chained in threads_head.
@@ -139,8 +145,11 @@ extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *t);
 
-
 /* Fpu context slab cache */
 extern slab_cache_t *fpu_context_slab;
+
+/** Thread syscall prototypes. */
+__native sys_thread_create(__address function, void *arg, void *stack, char *name);
+__native sys_thread_exit(int status);
 
 #endif

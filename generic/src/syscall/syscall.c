@@ -37,13 +37,6 @@
 #include <debug.h>
 #include <ipc/sysipc.h>
 
-static __native sys_ctl(void) {
-	printf("Thread finished\n");
-	thread_exit();
-	/* Unreachable */
-	return 0;
-}
-
 static __native sys_io(int fd, const void * buf, size_t count) {
 	
 	// TODO: buf sanity checks and a lot of other stuff ...
@@ -55,7 +48,6 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	
 	return count;
 }
-
 
 static __native sys_mmap(void *address, size_t size, int flags)
 {
@@ -71,8 +63,9 @@ static __native sys_mremap(void *address, size_t size, int flags)
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
-	sys_ctl,
 	sys_io,
+	sys_thread_create,
+	sys_thread_exit,
 	sys_mmap,
 	sys_mremap,
 	sys_ipc_call_sync_fast,

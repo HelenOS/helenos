@@ -120,14 +120,14 @@ void arch_post_smp_init(void)
  */
 __address supervisor_sp __attribute__ ((section (".text")));
 
-void userspace(__address entry)
+void userspace(uspace_arg_t *uarg)
 {
 	/* EXL=1, UM=1, IE=1 */
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 					      cp0_status_um_bit |
 					      cp0_status_ie_enabled_bit));
-	cp0_epc_write(entry);
-	userspace_asm(USTACK_ADDRESS+PAGE_SIZE);
+	cp0_epc_write(uarg->uspace_entry);
+	userspace_asm(uarg->uspace_stack+PAGE_SIZE);
 	while (1)
 		;
 }

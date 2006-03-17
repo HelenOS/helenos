@@ -115,6 +115,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	int rc;
 	thread_t *t;
 	task_t *task;
+	uspace_arg_t *uarg;
 
 	as = as_create(0);
 
@@ -124,9 +125,12 @@ task_t * task_run_program(void *program_addr, char *name)
 		return NULL;
 	} 
 	
+	uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	uarg->uspace_entry = (__address) ((elf_header_t *) program_addr)->e_entry;
+	uarg->uspace_stack = USTACK_ADDRESS;
+	
 	task = task_create(as, name);
-	t = thread_create(uinit, (void *)((elf_header_t *)program_addr)->e_entry, 
-			  task, 0, "uinit");
+	t = thread_create(uinit, uarg, task, 0, "uinit");
 	
 	/*
 	 * Create the data as_area.

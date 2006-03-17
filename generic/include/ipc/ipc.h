@@ -78,7 +78,7 @@
  * so that it can start initiating new messages.
  *
  * The protocol for negotiating is:
- * - sys_connecttome - sends a message IPC_M_CONNECTTOME
+ * - sys_connect_to_me - sends a message IPC_M_CONNECTTOME
  * - sys_wait_for_call - upon receipt tries to allocate new phone
  *                       - if it fails, responds with ELIMIT
  *                     - passes call to userspace. If userspace

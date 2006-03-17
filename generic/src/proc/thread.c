@@ -53,6 +53,7 @@
 #include <print.h>
 #include <mm/slab.h>
 #include <debug.h>
+#include <main/uinit.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
@@ -280,7 +281,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->saved_context.ipl = interrupts_read();
 	interrupts_restore(ipl);
 	
-	t->name = name;
+	memcpy(t->name, name, THREAD_NAME_BUFLEN);
+	
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
@@ -422,4 +424,41 @@ void thread_print_list(void)
 
 	spinlock_unlock(&threads_lock);
 	interrupts_restore(ipl);
+}
+
+/** Process syscall to create new thread.
+ *
+ */
+__native sys_thread_create(__address function, void *arg, void *stack, char *name)
+{
+        thread_t *t;
+        char namebuf[THREAD_NAME_BUFLEN];
+	uspace_arg_t *uarg;
+	__u32 tid;
+
+        copy_from_uspace(namebuf, name, THREAD_NAME_BUFLEN);
+	uarg = (uspace_arg_t *) malloc(sizeof(uarg), 0);
+	
+	uarg->uspace_entry = function;
+	uarg->uspace_stack = (__address) stack;
+
+        if ((t = thread_create(uinit, uarg, TASK, 0, namebuf))) {
+		tid = t->tid;
+                thread_ready(t);
+		return (__native) tid; 
+        } else {
+                free(namebuf);
+        }
+
+        return (__native) -1;
+}
+
+/** Process syscall to terminate thread.
+ *
+ */
+__native sys_thread_exit(int status)
+{
+        thread_exit();
+        /* Unreachable */
+        return 0;
 }

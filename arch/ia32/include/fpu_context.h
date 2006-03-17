@@ -39,7 +39,6 @@ void fpu_fsr(void);
 
 
 struct fpu_context {
-	/* TODO: We need malloc that aligns structures on 16-byte boundary */
 	__u8 fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
 };
 

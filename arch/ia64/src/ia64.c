@@ -41,6 +41,7 @@
 #include <config.h>
 #include <userspace.h>
 #include <console/console.h>
+#include <proc/thread.h>
 
 void arch_pre_mm_init(void)
 {
@@ -72,7 +73,7 @@ void arch_post_smp_init(void)
 }
 
 /** Enter userspace and never return. */
-void userspace(__address entry)
+void userspace(uspace_arg_t *uarg)
 {
 	psr_t psr;
 	rsc_t rsc;
@@ -90,7 +91,7 @@ void userspace(__address entry)
 	rsc.pl = PL_USER;
 	rsc.mode = 3;				/* eager mode */
 
-	switch_to_userspace(entry, USTACK_ADDRESS+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT), USTACK_ADDRESS, psr.value, rsc.value);
+	switch_to_userspace(uarg->uspace_entry, uarg->uspace_stack+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT), uarg->uspace_stack, psr.value, rsc.value);
 
 	while (1) {
 		;

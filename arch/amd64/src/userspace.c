@@ -39,29 +39,25 @@
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(__address entry)
+void userspace(uspace_arg_t *uarg)
 {
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
 
 	__asm__ volatile (""
-			  "movq %0, %%rax;"		       
-			  "movq %1, %%rbx;"
-			  "movq %2, %%rcx;"
-			  "movq %3, %%rdx;"
-			  "movq %4, %%rsi;"
-			  "pushq %%rax;"
-			  "pushq %%rbx;"
-			  "pushq %%rcx;"
-			  "pushq %%rdx;"
-			  "pushq %%rsi;"
-			  "iretq;"
-			  : : "i" (gdtselector(UDATA_DES) | PL_USER), 
-			  "i" (USTACK_ADDRESS+THREAD_STACK_SIZE), 
+			  "pushq %0\n"
+			  "pushq %1\n"
+			  "pushq %2\n"
+			  "pushq %3\n"
+			  "pushq %4\n"
+			  "iretq\n"
+			  : : 
+			  "i" (gdtselector(UDATA_DES) | PL_USER), 
+			  "r" (uarg->uspace_stack+THREAD_STACK_SIZE), 
 			  "r" (ipl), 
 			  "i" (gdtselector(UTEXT_DES) | PL_USER), 
-			  "r" (entry));
+			  "r" (uarg->uspace_entry));
 	
 	/* Unreachable */
 	for(;;);

@@ -30,10 +30,21 @@
 #include <arch/types.h>
 #include <proc/thread.h>
 #include <userspace.h>
+#include <mm/slab.h>
 #include <print.h>
 
+/** Thread used to bring up userspace thread.
+ *
+ * @param arg Pointer to structure containing userspace entry and stack addresses.
+ */
 void uinit(void *arg)
 {
-	printf("USER task, uinit thread: kernel mode\n");
-	userspace((__address)(arg));
+	uspace_arg_t uarg;
+	
+	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
+	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
+
+	free((uspace_arg_t *) arg);
+	
+	userspace(&uarg);
 }

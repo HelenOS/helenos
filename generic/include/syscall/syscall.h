@@ -30,8 +30,9 @@
 #define __SYSCALL_H__
 
 typedef enum {
-	SYS_CTL = 0,
-	SYS_IO,
+	SYS_IO = 0,
+	SYS_THREAD_CREATE,
+	SYS_THREAD_EXIT,
 	SYS_MMAP,
 	SYS_MREMAP,
 	SYS_IPC_CALL_SYNC_FAST,
