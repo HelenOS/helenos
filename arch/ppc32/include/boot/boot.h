@@ -29,7 +29,7 @@
 #ifndef __ppc32_BOOT_H__
 #define __ppc32_BOOT_H__
 
-#define BOOT_OFFSET		0x2000
+#define BOOT_OFFSET		0x4000
 
 /* Temporary stack size for boot process */
 #define TEMP_STACK_SIZE 0x100
