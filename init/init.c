@@ -32,7 +32,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ns.h>
+#include <thread.h>
 
+extern void utest(void *arg);
+void utest(void *arg)
+{
+//	printf("Uspace thread created.\n");
+	for (;;)
+		;
+}
 
 static void test_printf(void)
 {
@@ -176,6 +184,8 @@ static void test_connection_ipc(void)
 
 int main(int argc, char *argv[])
 {
+	int tid;
+	char *stack;
 	version_print();
 
 /*	test_printf(); */
@@ -183,5 +193,15 @@ int main(int argc, char *argv[])
 //	test_async_ipc();
 //	test_advanced_ipc();
 	test_connection_ipc();
+	
+	stack = (char *) malloc(getpagesize());
+	if (!stack) {
+		printf("Malloc failed.\n");
+	} else {
+		if ((tid = thread_create(utest, NULL, stack, "utest") != -1)) {
+			printf("Created thread tid=%d\n", tid);
+		}
+	}
+	
 	return 0;
 }

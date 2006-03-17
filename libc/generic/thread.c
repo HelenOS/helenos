@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
-#include <libc.h>
-#include <unistd.h>
 #include <thread.h>
+#include <libc.h>
+#include <arch/faddr.h>
 
-void _exit(int status) {
-	thread_exit(status);
+typedef void (* voidfunc_t)(void);
+
+int thread_create(void (* function)(void *), void *arg, void *stack, char *name)
+{
+	return __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) FADDR((voidfunc_t) function), (sysarg_t) arg, (sysarg_t) stack, (sysarg_t) name);
 }
 
-void __main(void) {
+void thread_exit(int status)
+{
+	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 }
 
-void __exit(void) {
-	_exit(0);
-}

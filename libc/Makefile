@@ -43,6 +43,7 @@ GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/mmap.c \
 	generic/string.c \
+	generic/thread.c \
 	generic/io/io.c \
 	generic/io/print.c \
 	malloc/malloc.c

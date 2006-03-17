@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,19 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <thread.h>
+#ifndef __LIBC__THREAD_H__
+#define __LIBC__THREAD_H__
 
-void _exit(int status) {
-	thread_exit(status);
-}
+int thread_create(void (* function)(void *arg), void *arg, void *stack, char *name);
+void thread_exit(int status);
 
-void __main(void) {
-}
-
-void __exit(void) {
-	_exit(0);
-}
+#endif
