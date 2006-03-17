@@ -50,6 +50,7 @@
 
 #include <arch/mm/memory_init.h>
 #include <interrupt.h>
+#include <arch/debugger.h>
 
 void arch_pre_mm_init(void)
 {
@@ -73,6 +74,8 @@ void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		ega_init();	/* video */
+		/* Enable debugger */
+		debugger_init();
 	}
 }
 

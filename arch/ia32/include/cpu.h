@@ -33,6 +33,8 @@
 #include <arch/pm.h>
 #include <arch/asm.h>
 
+#define EFLAGS_RF       (1 << 16)
+
 struct cpu_arch {
 	int vendor;
 	int family;

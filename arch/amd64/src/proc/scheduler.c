@@ -38,7 +38,7 @@ void before_thread_runs_arch(void)
 {
 	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 
-	/* Syscall support - write thread address to hidden part of gs */
+	/* Syscall support - write thread stack address to hidden part of gs */
 	swapgs();
 	write_msr(AMD_MSR_GS,
 		  (__u64)&THREAD->kstack);

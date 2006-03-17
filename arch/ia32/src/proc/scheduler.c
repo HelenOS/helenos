@@ -31,11 +31,22 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/context.h>	/* SP_DELTA */
+#include <arch/debugger.h>
 
 void before_thread_runs_arch(void)
 {
 	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
+
+#ifdef CONFIG_DEBUG_AS_WATCHPOINT
+	/* Set watchpoint on AS to ensure that nobody sets it to zero */
+	static int old_slot = -1;
+	if (old_slot >=0)
+		breakpoint_del(old_slot);
+	old_slot = breakpoint_add(&((the_t *) THREAD->kstack)->as, 
+				  BKPOINT_WRITE | BKPOINT_CHECK_ZERO);
+#endif
+
 }
 
 void after_thread_ran_arch(void)

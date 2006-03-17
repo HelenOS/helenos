@@ -128,4 +128,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/i8259.c \
 	arch/$(ARCH)/src/drivers/ega.c \
 	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/fpu_context.c
+	arch/$(ARCH)/src/fpu_context.c \
+	arch/$(ARCH)/src/debugger.c

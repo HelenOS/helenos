@@ -191,6 +191,12 @@ int breakpoint_add(void * where, int flags)
 	return curidx;
 }
 
+#ifdef amd64
+# define getip(x)  ((x)->rip)
+#else
+# define getip(x)  ((x)->eip)
+#endif
+
 static void handle_exception(int slot, istate_t *istate)
 {
 	ASSERT(breakpoints[slot].address);
@@ -207,8 +213,8 @@ static void handle_exception(int slot, istate_t *istate)
 			       *((__native *) breakpoints[slot].address));
 		}
 	}
-	printf("Reached breakpoint %d:%P(%s)\n", slot, istate->rip,
-	       get_symtab_entry(istate->rip));
+	printf("Reached breakpoint %d:%P(%s)\n", slot, getip(istate),
+	       get_symtab_entry(getip(istate)));
 	printf("***Type 'exit' to exit kconsole.\n");
 	atomic_set(&haltstate,1);
 	kconsole("debug");
@@ -221,7 +227,11 @@ static void debug_exception(int n, istate_t *istate)
 	int i;
 	
 	/* Set RF to restart the instruction  */
+#ifdef amd64       
 	istate->rflags |= RFLAGS_RF;
+#else
+	istate->eflags |= EFLAGS_RF;
+#endif
 
 	dr6 = read_dr6();
 	for (i=0; i < BKPOINTS_MAX; i++) {

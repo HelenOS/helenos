@@ -53,29 +53,36 @@ extern void asm_fake_loop(__u32 t);
 static inline void cpu_halt(void) { __asm__("hlt\n"); };
 static inline void cpu_sleep(void) { __asm__("hlt\n"); };
 
-/** Read CR2
- *
- * Return value in CR2
- *
- * @return Value read.
- */
-static inline __u32 read_cr2(void) { __u32 v; __asm__ volatile ("movl %%cr2,%0\n" : "=r" (v)); return v; }
+#define GEN_READ_REG(reg) static inline __native read_ ##reg (void) \
+    { \
+	__native res; \
+	__asm__ volatile ("movl %%" #reg ", %0" : "=r" (res) ); \
+	return res; \
+    }
 
-/** Write CR3
- *
- * Write value to CR3.
- *
- * @param v Value to be written.
- */
-static inline void write_cr3(__u32 v) { __asm__ volatile ("movl %0,%%cr3\n" : : "r" (v)); }
+#define GEN_WRITE_REG(reg) static inline void write_ ##reg (__native regn) \
+    { \
+	__asm__ volatile ("movl %0, %%" #reg : : "r" (regn)); \
+    }
 
-/** Read CR3
- *
- * Return value in CR3
- *
- * @return Value read.
- */
-static inline __u32 read_cr3(void) { __u32 v; __asm__ volatile ("movl %%cr3,%0\n" : "=r" (v)); return v; }
+GEN_READ_REG(cr0);
+GEN_READ_REG(cr2);
+GEN_READ_REG(cr3);
+GEN_WRITE_REG(cr3);
+
+GEN_READ_REG(dr0);
+GEN_READ_REG(dr1);
+GEN_READ_REG(dr2);
+GEN_READ_REG(dr3);
+GEN_READ_REG(dr6);
+GEN_READ_REG(dr7);
+
+GEN_WRITE_REG(dr0);
+GEN_WRITE_REG(dr1);
+GEN_WRITE_REG(dr2);
+GEN_WRITE_REG(dr3);
+GEN_WRITE_REG(dr6);
+GEN_WRITE_REG(dr7);
 
 /** Byte to port
  *
