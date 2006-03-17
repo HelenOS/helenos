@@ -85,7 +85,7 @@ void page_arch_init(void)
 		 */
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
 			/* Standard identity mapping */
-			page_mapping_insert(AS_KERNEL, PA2KA_IDENT(cur), cur, identity_flags);
+			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, identity_flags);
 		}
 		/* Upper kernel mapping
 		 * - from zero to top of kernel (include bottom addresses
@@ -128,11 +128,11 @@ void ident_page_fault(int n, istate_t *istate)
 		aptl_3 = PTL3_ADDR(aptl_2, oldpage);
 
 		SET_FRAME_FLAGS_ARCH(aptl_3, PTL3_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		if (aptl_3 == helper_ptl3)
+		if (KA2PA(aptl_3) == KA2PA(helper_ptl3))
 			SET_PTL3_FLAGS_ARCH(aptl_2, PTL2_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		if (aptl_2 == helper_ptl2)
+		if (KA2PA(aptl_2) == KA2PA(helper_ptl2))
 			SET_PTL2_FLAGS_ARCH(aptl_1, PTL1_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		if (aptl_1 == helper_ptl1)
+		if (KA2PA(aptl_1) == KA2PA(helper_ptl1))
 			SET_PTL1_FLAGS_ARCH(&ptl_0, PTL0_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
 	}
 	if (PTL1_PRESENT(&ptl_0, page))

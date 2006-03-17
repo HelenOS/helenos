@@ -61,25 +61,12 @@ static inline __address ka2pa(__address x)
 	else 
 		return x - 0xffff800000000000;
 }
-/* Linker symbol */
-extern int ktext_start;
-extern int kdata_end;
-static inline __address pa2ka(__address x)
-{
-	if (x >= ka2pa((__address)(&kdata_end)) || \
-	    x <= ka2pa((__address)&ktext_start))
-		return x + 0xffff800000000000;
-	else 
-		return x + 0xffffffff80000000;
-}
 # define KA2PA(x)      ka2pa((__address)x)
-# define PA2KA(x)      pa2ka((__address)x)
-# define PA2KA_IDENT(x)      (((__address) (x)) + 0xffff800000000000)
 # define PA2KA_CODE(x)      (((__address) (x)) + 0xffffffff80000000)
+# define PA2KA(x)      (((__address) (x)) + 0xffff800000000000)
 #else
 # define KA2PA(x)      ((x) - 0xffffffff80000000)
 # define PA2KA(x)      ((x) + 0xffffffff80000000)
-# define PA2KA_DATA(x)      ((x) + 0xffff800000000000)
 #endif
 
 #define PTL0_ENTRIES_ARCH	512
