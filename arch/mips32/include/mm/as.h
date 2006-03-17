@@ -29,8 +29,7 @@
 #ifndef __mips32_AS_H__
 #define __mips32_AS_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x80000000
 #define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffff

@@ -51,6 +51,7 @@
 #include <arch/asm.h>
 #include <debug.h>
 #include <memstr.h>
+#include <macros.h>
 #include <arch.h>
 #include <print.h>
 
@@ -537,9 +538,15 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	link_t *cur;
 	as_area_t *a;
 	
+	/*
+	 * We don't want any area to have conflicts with NULL page.
+	 */
+	if (overlaps(va, size, NULL, PAGE_SIZE))
+		return false;
+	
 	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
-		__address start;
-		__address end;
+		__address a_start;
+		size_t a_size;
 	
 		a = list_get_instance(cur, as_area_t, link);
 		if (a == avoid_area)
@@ -547,32 +554,23 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 			
 		spinlock_lock(&a->lock);
 
-		start = a->base;
-		end = a->base + a->pages * PAGE_SIZE - 1;
+		a_start = a->base;
+		a_size = a->pages * PAGE_SIZE;
 
 		spinlock_unlock(&a->lock);
 
-		if ((va >= start) && (va <= end)) {
-			/*
-			 * Tested area is inside another area.
-			 */
-			return false;
-		}
-		
-		if ((start >= va) && (start < va + size)) {
-			/*
-			 * Another area starts in tested area.
-			 */
-			return false;
-		}
-		
-		if ((end >= va) && (end < va + size)) {
-			/*
-			 * Another area ends in tested area.
-			 */
-			return false;
-		}
+		if (overlaps(va, size, a_start, a_size))
+			return false;		
 
+	}
+
+	/*
+	 * So far, the area does not conflict with other areas.
+	 * Check if it doesn't conflict with kernel address space.
+	 */	 
+	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
+		return !overlaps(va, size, 
+			KERNEL_ADDRESS_SPACE_START, KERNEL_ADDRESS_SPACE_END-KERNEL_ADDRESS_SPACE_START);
 	}
 
 	return true;

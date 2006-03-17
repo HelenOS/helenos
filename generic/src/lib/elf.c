@@ -165,12 +165,6 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 		}
 	}
 
-	/*
-	 * Check if the segment doesn't interfere with kernel address space.
-	 */
-	if (entry->p_vaddr + ALIGN_UP(entry->p_memsz, PAGE_SIZE) >= USER_ADDRESS_SPACE_END)
-		return EE_MEMORY;
-	
 	if (entry->p_flags & PF_X)
 		flags |= AS_AREA_EXEC;
 	if (entry->p_flags & PF_W)
@@ -195,7 +189,7 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 
 	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr);
 	if (!a)
-		return EE_IRRECOVERABLE;
+		return EE_MEMORY;
 	
 	for (i = 0; i < SIZE2FRAMES(entry->p_filesz); i++) {
 		as_set_mapping(as, entry->p_vaddr + i*PAGE_SIZE, KA2PA(((__address) segment) + i*PAGE_SIZE));

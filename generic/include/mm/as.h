@@ -37,6 +37,9 @@
 #include <synch/spinlock.h>
 #include <adt/list.h>
 
+/** Defined to be true if user address space and kernel address space shadow each other. */
+#define KERNEL_ADDRESS_SPACE_SHADOWED	KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
+
 #define KERNEL_ADDRESS_SPACE_START	KERNEL_ADDRESS_SPACE_START_ARCH
 #define KERNEL_ADDRESS_SPACE_END	KERNEL_ADDRESS_SPACE_END_ARCH
 #define USER_ADDRESS_SPACE_START	USER_ADDRESS_SPACE_START_ARCH

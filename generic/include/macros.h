@@ -39,8 +39,8 @@
 #define min(a,b)	((a)<(b)?(a):(b))
 #define max(a,b)	((a)>(b)?(a):(b))
 
-/* Return true if the interlvals overlap */
-static inline int overlaps(__address s1,size_t sz1, __address s2, size_t sz2)
+/** Return true if the interlvals overlap. */
+static inline int overlaps(__address s1, size_t sz1, __address s2, size_t sz2)
 {
 	__address e1 = s1+sz1;
 	__address e2 = s2+sz2;

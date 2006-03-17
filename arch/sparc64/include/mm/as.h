@@ -29,7 +29,7 @@
 #ifndef __sparc64_AS_H__
 #define __sparc64_AS_H__
 
-#include <arch/types.h>
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
 #define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
