@@ -20,9 +20,8 @@ SECTIONS {
 		*(.sbss);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
-	}
-	
-	.image 0x10000000+SIZEOF(.boot): AT (SIZEOF(.boot)) SUBALIGN(4096) { 
+		
+		. = ALIGN(4096);
 		*(.image);
 	}
 }

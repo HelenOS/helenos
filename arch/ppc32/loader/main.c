@@ -46,6 +46,15 @@ static void check_align(const void *addr, const char *desc)
 }
 
 
+static void check_overlap(const void *addr, const char *desc)
+{
+	if ((unsigned int) addr < KERNEL_SIZE) {
+		printf("Error: %s overlaps kernel physical area\n", desc);
+		halt();
+	}
+}
+
+
 void bootstrap(void)
 {
 	printf("\nHelenOS PPC Bootloader\n");
@@ -54,33 +63,32 @@ void bootstrap(void)
 	check_align(&real_mode, "Bootstrap trampoline");
 	check_align(&trans, "Translation table");
 	
+	if (!ofw_memmap(&memmap)) {
+		printf("Error: Unable to get memory map\n");
+		halt();
+	}
+	
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
 	void *memmap_pa = ofw_translate(&memmap);
 	
-	printf("Memory statistics\n");
+	check_overlap(real_mode_pa, "Bootstrap trampoline");
+	check_overlap(trans_pa, "Translation table");
+	check_overlap(memmap_pa, "Memory map");
+	
+	printf("Memory statistics (total %d MB)\n", memmap.total >> 20);
 	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
 	printf(" memory map           at %L (physical %L)\n", &memmap, memmap_pa);
 	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
 	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
 	
-	if (!ofw_memmap(&memmap)) {
-		printf("Unable to get memory map\n");
-		halt();
-	}
-	printf("Total memory %d MB\n", memmap.total >> 20);
-	
 	unsigned int addr;
-	unsigned int pages;
-	for (addr = 0, pages = 0; addr < KERNEL_SIZE; addr += PAGE_SIZE, pages++) {
+	for (addr = 0; addr < KERNEL_SIZE; addr += PAGE_SIZE) {
 		void *pa = ofw_translate(KERNEL_START + addr);
-		if ((unsigned int) pa < KERNEL_SIZE) {
-			printf("Error: Kernel image overlaps kernel physical area\n");
-			halt();
-		}
+		check_overlap(pa, "Kernel image");
 		trans[addr >> PAGE_WIDTH] = pa;
 	}
 	
 	printf("Booting the kernel...\n");
-	jump_to_kernel(memmap_pa, trans_pa, pages, real_mode_pa);
+	jump_to_kernel(memmap_pa, trans_pa, KERNEL_SIZE, real_mode_pa);
 }

@@ -46,7 +46,7 @@ jump_to_kernel:
 	
 	# r3 = memmap (pa)
 	# r4 = trans (pa)
-	# r5 = number of kernel pages
+	# r5 = kernel size
 	# r6 = real_mode (pa)
 	
 	mtspr srr0, r6
@@ -69,9 +69,9 @@ real_mode:
 	# copy kernel to proper location
 	#
 	# r4 = trans (pa)
-	# r5 = number of kernel pages
+	# r5 = kernel size
 	
-	li r31, PAGE_SIZE >> 3
+	li r31, PAGE_SIZE >> 2
 	li r30, 0
 	
 	page_copy:
@@ -79,7 +79,7 @@ real_mode:
 		cmpwi r5, 0
 		beq copy_end
 		
-		# copy single page
+		# copy page
 		
 		mtctr r31
 		lwz r29, 0(r4)
@@ -91,32 +91,84 @@ real_mode:
 			
 			addi r29, r29, 4
 			addi r30, r30, 4
+			subi r5, r5, 4
+			
+			cmpwi r5, 0
+			beq copy_end
 			
 			bdnz copy_loop
 		
-		subi r5, r5, 1
 		addi r4, r4, 4
 		b page_copy
 	
 	copy_end:
-		
-	# fill segment registers
+	
+	# invalidate segment registers
 
-	li r31, 16
-	mtctr r31
-	li r31, 0
-	li r30, 0x2000
+#	li r31, 16
+#	mtctr r31
+#	li r31, 0
+#	li r30, 0
 	
 	seg_fill:
 	
-		mtsrin r30, r31
-		
-		addis r31, r31, 0x1000    # add 256 MB
-		addi  r30, r30, 0x111     # move to next SR
-		
-		bdnz seg_fill
+#		mtsrin r30, r31
+#		addis r31, r31, 0x1000    # move to next SR
+#		
+#		bdnz seg_fill
+	
+	# invalidate block address translation registers
+	
+	mtspr ibat0u, r30
+	mtspr ibat0l, r30
+	
+	mtspr ibat1u, r30
+	mtspr ibat1l, r30
+	
+	mtspr ibat2u, r30
+	mtspr ibat2l, r30
+	
+	mtspr ibat3u, r30
+	mtspr ibat3l, r30
+	
+	mtspr dbat0u, r30
+	mtspr dbat0l, r30
+	
+	mtspr dbat1u, r30
+	mtspr dbat1l, r30
+	
+	mtspr dbat2u, r30
+	mtspr dbat2l, r30
+	
+	mtspr dbat3u, r30
+	mtspr dbat3l, r30
 	
 	# create identity mapping
+	
+	# FIXME: map exactly the size of RAM
+	
+	lis r31, 0x8000
+	ori r31, r31, 0x0ffe
+	
+	lis r30, 0x0000
+	ori r30, r30, 0x0002
+	
+	mtspr ibat0u, r31
+	mtspr ibat0l, r30
+	
+	mtspr dbat0u, r31
+	mtspr dbat0l, r30
+	
+	# FIXME: temporal framebuffer mapping
+	
+	lis r31, 0xf000
+	ori r31, r31, 0x0ffe
+	
+	lis r30, 0x8400
+	ori r30, r30, 0x0002
+	
+	mtspr dbat1u, r31
+	mtspr dbat1l, r30
 	
 	tlbia
 	

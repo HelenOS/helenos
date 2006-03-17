@@ -189,6 +189,22 @@
 #define	sprg2	274
 #define	sprg3	275
 #define	prv		287
+#define ibat0u	528
+#define ibat0l	529
+#define ibat1u	530
+#define ibat1l	531
+#define ibat2u	532
+#define ibat2l	533
+#define ibat3u	534
+#define ibat3l	535
+#define dbat0u	536
+#define dbat0l	537
+#define dbat1u	538
+#define dbat1l	539
+#define dbat2u	540
+#define dbat2l	541
+#define dbat3u	542
+#define dbat3l	543
 #define hid0	1008
 
 /* MSR bits */
