@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/scheduler.h>
-#include <cpu.h>
-#include <proc/thread.h>
-#include <arch.h>
-#include <arch/context.h>	/* SP_DELTA */
-#include <arch/asm.h>
-#include <arch/debugger.h>
+#ifndef __IPCRSC_H__
+#define __IPCRSC_H__
 
-void before_thread_runs_arch(void)
-{
-	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
-
-	/* Syscall support - write thread address to hidden part of gs */
-	swapgs();
-	write_msr(AMD_MSR_GS,
-		  (__u64)&THREAD->kstack);
-	swapgs();
+call_t * get_call(__native callid);
+phone_t * get_phone_and_lock(__native phoneid);
+int phone_alloc(void);
+void phone_dealloc(int phoneid);
+void phone_connect(int phoneid, answerbox_t *box);
 
 
-#ifdef CONFIG_DEBUG_AS_WATCHPOINT
-	/* Set watchpoint on AS to ensure that nobody sets it to zero */
-	static int old_slot = -1;
-	if (old_slot >=0)
-		breakpoint_del(old_slot);
-	old_slot = breakpoint_add(&((the_t *) THREAD->kstack)->as, 
-				  BKPOINT_WRITE | BKPOINT_CHECK_ZERO);
 #endif
-}
-
-void after_thread_ran_arch(void)
-{
-}

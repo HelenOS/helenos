@@ -46,6 +46,7 @@
 #include <panic.h>
 #include <interrupt.h>
 #include <arch/syscall.h>
+#include <arch/debugger.h>
 
 /** Disable I/O on non-privileged levels
  *
@@ -129,10 +130,12 @@ void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		ega_init();	/* video */
+		/* Enable debugger */
+		debugger_init();
 	}
 	/* Setup fast SYSCALL/SYSRET */
 	syscall_setup_cpu();
-
+	
 }
 
 void arch_pre_smp_init(void)

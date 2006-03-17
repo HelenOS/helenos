@@ -141,56 +141,6 @@ static inline ipl_t interrupts_read(void) {
 	return v;
 }
 
-/** Read CR0
- *
- * Return value in CR0
- *
- * @return Value read.
- */
-static inline __u64 read_cr0(void) 
-{ 
-	__u64 v; 
-	__asm__ volatile ("movq %%cr0,%0\n" : "=r" (v)); 
-	return v; 
-}
-
-/** Read CR2
- *
- * Return value in CR2
- *
- * @return Value read.
- */
-static inline __u64 read_cr2(void) 
-{ 
-	__u64 v; 
-	__asm__ volatile ("movq %%cr2,%0\n" : "=r" (v)); 
-	return v; 
-}
-
-/** Write CR3
- *
- * Write value to CR3.
- *
- * @param v Value to be written.
- */
-static inline void write_cr3(__u64 v) 
-{ 
-	__asm__ volatile ("movq %0,%%cr3\n" : : "r" (v)); 
-}
-
-/** Read CR3
- *
- * Return value in CR3
- *
- * @return Value read.
- */
-static inline __u64 read_cr3(void) 
-{ 
-	__u64 v;
-	__asm__ volatile ("movq %%cr3,%0" : "=r" (v)); 
-	return v; 
-}
-
 /** Write to MSR */
 static inline void write_msr(__u32 msr, __u64 value)
 {
@@ -249,6 +199,38 @@ static inline void invlpg(__address addr)
 {
         __asm__ volatile ("invlpg %0\n" :: "m" (*((__native *)addr)));
 }
+
+#define GEN_READ_REG(reg) static inline __native read_ ##reg (void) \
+    { \
+	__native res; \
+	__asm__ volatile ("movq %%" #reg ", %0" : "=r" (res) ); \
+	return res; \
+    }
+
+#define GEN_WRITE_REG(reg) static inline void write_ ##reg (__native regn) \
+    { \
+	__asm__ volatile ("movq %0, %%" #reg : : "r" (regn)); \
+    }
+
+GEN_READ_REG(cr0);
+GEN_READ_REG(cr2);
+GEN_READ_REG(cr3);
+GEN_WRITE_REG(cr3);
+
+GEN_READ_REG(dr0);
+GEN_READ_REG(dr1);
+GEN_READ_REG(dr2);
+GEN_READ_REG(dr3);
+GEN_READ_REG(dr6);
+GEN_READ_REG(dr7);
+
+GEN_WRITE_REG(dr0);
+GEN_WRITE_REG(dr1);
+GEN_WRITE_REG(dr2);
+GEN_WRITE_REG(dr3);
+GEN_WRITE_REG(dr6);
+GEN_WRITE_REG(dr7);
+
 
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);

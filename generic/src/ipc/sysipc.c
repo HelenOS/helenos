@@ -35,6 +35,7 @@
 #include <debug.h>
 #include <ipc/ipc.h>
 #include <ipc/sysipc.h>
+#include <ipc/ipcrsc.h>
 
 
 #include <print.h>
@@ -62,72 +63,6 @@ static inline int is_system_method(__native method)
 static inline int is_forwardable(__native method)
 {
 	return 1;
-}
-
-/** Find call_t * in call table according to callid
- *
- * @return NULL on not found, otherwise pointer to call structure
- */
-static inline call_t * get_call(__native callid)
-{
-	/* TODO: Traverse list of dispatched calls and find one */
-	/* TODO: locking of call, ripping it from dispatched calls etc.  */
-	return (call_t *) callid;
-}
-
-/** Return pointer to phone identified by phoneid or NULL if non-existent */
-static phone_t * get_phone(__native phoneid)
-{
-	phone_t *phone;
-
-	if (phoneid >= IPC_MAX_PHONES)
-		return NULL;
-
-	phone = &TASK->phones[phoneid];
-	if (!phone->callee)
-		return NULL;
-	return phone;
-}
-
-/** Allocate new phone slot in current TASK structure */
-static int phone_alloc(void)
-{
-	int i;
-
-	spinlock_lock(&TASK->lock);
-	
-	for (i=0; i < IPC_MAX_PHONES; i++) {
-		if (!TASK->phones[i].busy) {
-			TASK->phones[i].busy = 1;
-			break;
-		}
-	}
-	spinlock_unlock(&TASK->lock);
-
-	if (i >= IPC_MAX_PHONES)
-		return -1;
-	return i;
-}
-
-/** Disconnect phone */
-static void phone_dealloc(int phoneid)
-{
-	spinlock_lock(&TASK->lock);
-
-	ASSERT(TASK->phones[phoneid].busy);
-
-	if (TASK->phones[phoneid].callee)
-		ipc_phone_destroy(&TASK->phones[phoneid]);
-
-	TASK->phones[phoneid].busy = 0;
-	spinlock_unlock(&TASK->lock);
-}
-
-static void phone_connect(int phoneid, answerbox_t *box)
-{
-	phone_t *phone = &TASK->phones[phoneid];
-	
-	ipc_phone_connect(phone, box);
 }
 
 /****************************************************/
@@ -212,12 +147,12 @@ __native sys_ipc_call_sync_fast(__native phoneid, __native method,
 	call_t call;
 	phone_t *phone;
 
-	phone = get_phone(phoneid);
-	if (!phone)
-		return ENOENT;
-
 	if (is_system_method(method))
 		return EPERM;
+
+	phone = get_phone_and_lock(phoneid);
+	if (!phone)
+		return ENOENT;
 
 	ipc_call_init(&call);
 	IPC_SET_METHOD(call.data, method);
@@ -237,16 +172,16 @@ __native sys_ipc_call_sync(__native phoneid, __native *question,
 	call_t call;
 	phone_t *phone;
 
-	phone = get_phone(phoneid);
-	if (!phone)
-		return ENOENT;
-
 	ipc_call_init(&call);
 	copy_from_uspace(&call.data, question, sizeof(call.data));
 
 	if (is_system_method(IPC_GET_METHOD(call.data)))
 		return EPERM;
 	
+	phone = get_phone_and_lock(phoneid);
+	if (!phone)
+		return ENOENT;
+
 	ipc_call_sync(phone, &call);
 
 	copy_to_uspace(reply, &call.data, sizeof(call.data));
@@ -278,15 +213,15 @@ __native sys_ipc_call_async_fast(__native phoneid, __native method,
 	call_t *call;
 	phone_t *phone;
 
-	phone = get_phone(phoneid);
-	if (!phone)
-		return IPC_CALLRET_FATAL;
-
 	if (is_system_method(method))
 		return IPC_CALLRET_FATAL;
 
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
+
+	phone = get_phone_and_lock(phoneid);
+	if (!phone)
+		return IPC_CALLRET_FATAL;
 
 	call = ipc_call_alloc();
 	IPC_SET_METHOD(call->data, method);
@@ -307,12 +242,12 @@ __native sys_ipc_call_async(__native phoneid, __native *data)
 	call_t *call;
 	phone_t *phone;
 
-	phone = get_phone(phoneid);
-	if (!phone)
-		return IPC_CALLRET_FATAL;
-
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
+
+	phone = get_phone_and_lock(phoneid);
+	if (!phone)
+		return IPC_CALLRET_FATAL;
 
 	call = ipc_call_alloc();
 	copy_from_uspace(&call->data, data, sizeof(call->data));
@@ -344,7 +279,7 @@ __native sys_ipc_forward_fast(__native callid, __native phoneid,
 	if (!call)
 		return ENOENT;
 
-	phone = get_phone(phoneid);
+	phone = get_phone_and_lock(phoneid);
 	if (!phone) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
@@ -436,15 +371,15 @@ __native sys_ipc_connect_to_me(__native phoneid, __native arg1,
 	call_t call;
 	phone_t *phone;
 
-	phone = get_phone(phoneid);
-	if (!phone)
-		return ENOENT;
-
 	ipc_call_init(&call);
 	IPC_SET_METHOD(call.data, IPC_M_CONNECTTOME);
 	IPC_SET_ARG1(call.data, arg1);
 	IPC_SET_ARG2(call.data, arg2);
 	
+	phone = get_phone_and_lock(phoneid);
+	if (!phone)
+		return ENOENT;
+
 	ipc_call_sync(phone, &call);
 
 	if (!IPC_GET_RETVAL(call.data) && taskid)
@@ -466,7 +401,7 @@ __native sys_ipc_connect_me_to(__native phoneid, __native arg1,
 	phone_t *phone;
 	int newphid;
 
-	phone = get_phone(phoneid);
+	phone = get_phone_and_lock(phoneid);
 	if (!phone)
 		return ENOENT;
 

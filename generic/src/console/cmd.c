@@ -302,14 +302,6 @@ static cmd_info_t zone_info = {
 	.argv = &zone_argv
 };
 
-static int cmd_hello(cmd_arg_t *argv);
-static cmd_info_t hello_info = {
-	.name = "hello",
-	.description = "Hello Message",
-	.func = cmd_hello,
-	.argc = 0
-};
-
 /** Data and methods for 'cpus' command. */
 static int cmd_cpus(cmd_arg_t *argv);
 cmd_info_t cpus_info = {
@@ -352,7 +344,6 @@ static cmd_info_t *basic_commands[] = {
 	&version_info,
 	&zones_info,
 	&zone_info,
-	&hello_info,
 	NULL
 };
 
@@ -703,12 +694,5 @@ int cmd_cpus(cmd_arg_t *argv)
 int cmd_version(cmd_arg_t *argv)
 {
 	version_print();
-	return 1;
-}
-
-
-int cmd_hello(cmd_arg_t *argv)
-{
-	printf("\nHello, World !!!\n");
 	return 1;
 }

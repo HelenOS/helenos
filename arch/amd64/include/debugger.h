@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/scheduler.h>
-#include <cpu.h>
-#include <proc/thread.h>
-#include <arch.h>
-#include <arch/context.h>	/* SP_DELTA */
-#include <arch/asm.h>
-#include <arch/debugger.h>
+#ifndef __amd64_DEBUGGER_H__
+#define __amd64_DEBUGGER_H__
 
-void before_thread_runs_arch(void)
-{
-	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+#include <arch/types.h>
 
-	/* Syscall support - write thread address to hidden part of gs */
-	swapgs();
-	write_msr(AMD_MSR_GS,
-		  (__u64)&THREAD->kstack);
-	swapgs();
+#define BKPOINTS_MAX 4
+
+/* Flags that are passed to breakpoint_add function */
+#define BKPOINT_INSTR        0x1
+#define BKPOINT_WRITE        0x2 
+#define BKPOINT_READ_WRITE   0x4
+
+#define BKPOINT_CHECK_ZERO   0x8
 
 
-#ifdef CONFIG_DEBUG_AS_WATCHPOINT
-	/* Set watchpoint on AS to ensure that nobody sets it to zero */
-	static int old_slot = -1;
-	if (old_slot >=0)
-		breakpoint_del(old_slot);
-	old_slot = breakpoint_add(&((the_t *) THREAD->kstack)->as, 
-				  BKPOINT_WRITE | BKPOINT_CHECK_ZERO);
+extern void debugger_init(void);
+extern int breakpoint_add(void * where, int flags);
+extern void breakpoint_del(int slot);
+
 #endif
-}
-
-void after_thread_ran_arch(void)
-{
-}

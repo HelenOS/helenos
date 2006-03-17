@@ -243,3 +243,13 @@ void ipc_init(void)
 					  0,
 					  NULL, NULL, 0);
 }
+
+/** Cleans up all IPC communication of the given task
+ *
+ *
+ */
+void ipc_cleanup(task_t *task)
+{
+	/* Cancel all calls in my dispatch queue */
+	
+}

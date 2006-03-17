@@ -176,6 +176,7 @@ extern void ipc_forward(call_t *call, answerbox_t *newbox,answerbox_t *oldbox);
 extern void task_print_list(void);
 
 extern answerbox_t *ipc_phone_0;
+extern void ipc_cleanup(task_t *task);
 
 #endif
 

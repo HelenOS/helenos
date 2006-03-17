@@ -53,6 +53,7 @@
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
+#define VECTOR_DEBUG            1
 #define VECTOR_PIC_SPUR		(IVT_IRQBASE+IRQ_PIC_SPUR)
 #define VECTOR_CLK		(IVT_IRQBASE+IRQ_CLK)
 #define VECTOR_KBD		(IVT_IRQBASE+IRQ_KBD)
