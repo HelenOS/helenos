@@ -30,7 +30,7 @@
 #include <arch/pm.h>
 #include <arch/types.h>
 #include <arch.h>
-#include <proc/thread.h>
+#include <proc/uarg.h>
 #include <mm/as.h>
 
 
@@ -39,17 +39,19 @@
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(uspace_arg_t *uarg)
+void userspace(uspace_arg_t *kernel_uarg)
 {
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
 
 	__asm__ volatile (
-		/* CLNT */
+		/*
+		 * Clear nested task flag.
+		 */
 		"pushfl\n"
 		"pop %%eax\n"
-		"and $0xffffbfff,%%eax\n"
+		"and $0xffffbfff, %%eax\n"
 		"push %%eax\n"
 		"popfl\n"
 
@@ -58,10 +60,12 @@ void userspace(uspace_arg_t *uarg)
 		"pushl %2\n"
 		"pushl %3\n"
 		"pushl %4\n"
+		"movl %5, %%eax\n"
 		"iret"
 		: 
-		: "i" (selector(UDATA_DES) | PL_USER), "r" (uarg->uspace_stack+THREAD_STACK_SIZE),
-		  "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (uarg->uspace_entry)
+		: "i" (selector(UDATA_DES) | PL_USER), "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE),
+		  "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (kernel_uarg->uspace_entry),
+		  "r" (kernel_uarg->uspace_uarg)
 		: "eax");
 	
 	/* Unreachable */

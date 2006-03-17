@@ -29,9 +29,9 @@
 #include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <proc/uarg.h>
 #include <mm/as.h>
 #include <mm/slab.h>
-
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <panic.h>
@@ -39,7 +39,6 @@
 #include <ipc/ipc.h>
 #include <memstr.h>
 #include <print.h>
-
 #include <elf.h>
 
 SPINLOCK_INITIALIZE(tasks_lock);
@@ -115,7 +114,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	int rc;
 	thread_t *t;
 	task_t *task;
-	uspace_arg_t *uarg;
+	uspace_arg_t *kernel_uarg;
 
 	as = as_create(0);
 
@@ -125,12 +124,15 @@ task_t * task_run_program(void *program_addr, char *name)
 		return NULL;
 	} 
 	
-	uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	uarg->uspace_entry = (__address) ((elf_header_t *) program_addr)->e_entry;
-	uarg->uspace_stack = USTACK_ADDRESS;
+	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	kernel_uarg->uspace_entry = (void *) ((elf_header_t *) program_addr)->e_entry;
+	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
+	kernel_uarg->uspace_thread_function = NULL;
+	kernel_uarg->uspace_thread_arg = NULL;
+	kernel_uarg->uspace_uarg = NULL;
 	
 	task = task_create(as, name);
-	t = thread_create(uinit, uarg, task, 0, "uinit");
+	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
 	
 	/*
 	 * Create the data as_area.

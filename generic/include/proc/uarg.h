@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <main/uinit.h>
-#include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <print.h>
+#ifndef __UARG_H__
+#define __UARG_H__
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
+/** Structure passed to uinit kernel thread as argument. */
+typedef struct uspace_arg {
+	void *uspace_entry;
+	void *uspace_stack;
 
-	free((uspace_arg_t *) arg);
+	void (* uspace_thread_function)();
+	void *uspace_thread_arg;
 	
-	userspace(&uarg);
-}
+	struct uspace_arg *uspace_uarg;
+} uspace_arg_t;
+
+#endif

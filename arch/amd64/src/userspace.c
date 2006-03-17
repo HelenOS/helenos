@@ -30,7 +30,7 @@
 #include <arch/pm.h>
 #include <arch/types.h>
 #include <arch.h>
-#include <proc/thread.h>
+#include <proc/uarg.h>
 #include <mm/as.h>
 
 
@@ -39,7 +39,7 @@
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(uspace_arg_t *uarg)
+void userspace(uspace_arg_t *kernel_uarg)
 {
 	ipl_t ipl;
 	
@@ -51,14 +51,19 @@ void userspace(uspace_arg_t *uarg)
 			  "pushq %2\n"
 			  "pushq %3\n"
 			  "pushq %4\n"
+			  "movq %5, %%rax\n"
 			  "iretq\n"
 			  : : 
 			  "i" (gdtselector(UDATA_DES) | PL_USER), 
-			  "r" (uarg->uspace_stack+THREAD_STACK_SIZE), 
+			  "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE), 
 			  "r" (ipl), 
 			  "i" (gdtselector(UTEXT_DES) | PL_USER), 
-			  "r" (uarg->uspace_entry));
+			  "r" (kernel_uarg->uspace_entry),
+			  "r" (kernel_uarg->uspace_uarg)
+			  : "rax"
+			  );
 	
 	/* Unreachable */
-	for(;;);
+	for(;;)
+		;
 }

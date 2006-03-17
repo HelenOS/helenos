@@ -54,17 +54,18 @@ panic_printf:
  * @param in0 Userspace entry point address.
  * @param in1 Userspace stack pointer address.
  * @param in2 Userspace register stack pointer address.
- * @param in3 Value to be stored in IPSR.
- * @param in4 Value to be stored in RSC.
+ * @param in3 Userspace address of thread uspace_arg_t structure.
+ * @param in4 Value to be stored in IPSR.
+ * @param in5 Value to be stored in RSC.
  */
 .global switch_to_userspace
 switch_to_userspace:
-	alloc loc0 = ar.pfs, 5, 3, 0, 0
+	alloc loc0 = ar.pfs, 6, 3, 0, 0
 	rsm (PSR_IC_MASK | PSR_I_MASK)		/* disable interruption collection and interrupts */
 	srlz.d ;;
 	srlz.i ;;
 	
-	mov cr.ipsr = in3
+	mov cr.ipsr = in4
 	mov cr.iip = in0
 	mov r12 = in1
 
@@ -84,6 +85,8 @@ switch_to_userspace:
 	flushrs ;;
 	
 	mov ar.bspstore = in2 ;;
-	mov ar.rsc = in4 ;;
+	mov ar.rsc = in5 ;;
+	
+	mov r8 = in3
 	
 	rfi ;;

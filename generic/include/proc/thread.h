@@ -40,6 +40,7 @@
 #include <config.h>
 #include <adt/list.h>
 #include <mm/slab.h>
+#include <proc/uarg.h>
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 
@@ -117,12 +118,6 @@ struct thread {
 	__u8 *kstack;				/**< Thread's kernel stack. */
 };
 
-/** Structure passed to uinit kernel thread as argument. */
-typedef struct uspace_arg {
-	__address uspace_entry;
-	__address uspace_stack;
-} uspace_arg_t;
-
 /** Thread list lock.
  *
  * This lock protects all link_t structures chained in threads_head.
@@ -149,7 +144,7 @@ extern void thread_destroy(thread_t *t);
 extern slab_cache_t *fpu_context_slab;
 
 /** Thread syscall prototypes. */
-__native sys_thread_create(__address function, void *arg, void *stack, char *name);
-__native sys_thread_exit(int status);
+__native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name);
+__native sys_thread_exit(int uspace_status);
 
 #endif

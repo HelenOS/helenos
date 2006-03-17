@@ -31,8 +31,6 @@
 
 #include <arch/types.h>
 
-static __address FADDR(void (* fptr)(void));
-
 /** 
  *
  * Calculate absolute address of function
@@ -41,17 +39,8 @@ static __address FADDR(void (* fptr)(void));
  * @param fptr Function pointer.
  *
  */
-inline __address FADDR(void (* fptr)(void)) {
+static inline __address FADDR(void (* fptr)()) {
 	__address faddr;
-
-	/*Deprecated assembler version*/
-	/*	
-	__asm__(
-		"ld8 %0 = [%1]\n\t"
-		: "=r" (faddr)
-		: "r" (fptr)
-	);
-	*/
 
 	faddr = *((__address *)(fptr));;
 	return faddr;

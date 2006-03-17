@@ -29,6 +29,7 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <proc/uarg.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <arch/asm.h>
@@ -429,25 +430,24 @@ void thread_print_list(void)
 /** Process syscall to create new thread.
  *
  */
-__native sys_thread_create(__address function, void *arg, void *stack, char *name)
+__native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 {
         thread_t *t;
         char namebuf[THREAD_NAME_BUFLEN];
-	uspace_arg_t *uarg;
+	uspace_arg_t *kernel_uarg;		/* TODO: store kernel_uarg in thread_t */
 	__u32 tid;
 
-        copy_from_uspace(namebuf, name, THREAD_NAME_BUFLEN);
-	uarg = (uspace_arg_t *) malloc(sizeof(uarg), 0);
-	
-	uarg->uspace_entry = function;
-	uarg->uspace_stack = (__address) stack;
+        copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
 
-        if ((t = thread_create(uinit, uarg, TASK, 0, namebuf))) {
+	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);	
+	copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
+
+        if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
 		tid = t->tid;
                 thread_ready(t);
 		return (__native) tid; 
         } else {
-                free(namebuf);
+		free(kernel_uarg);
         }
 
         return (__native) -1;
@@ -456,7 +456,7 @@ __native sys_thread_create(__address function, void *arg, void *stack, char *nam
 /** Process syscall to terminate thread.
  *
  */
-__native sys_thread_exit(int status)
+__native sys_thread_exit(int uspace_status)
 {
         thread_exit();
         /* Unreachable */

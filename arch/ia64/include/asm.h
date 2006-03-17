@@ -258,6 +258,6 @@ extern void cpu_halt(void);
 extern void cpu_sleep(void);
 extern void asm_delay_loop(__u32 t);
 
-extern void switch_to_userspace(__address entry, __address sp, __address bsp, __u64 ipsr, __u64 rsc);
+extern void switch_to_userspace(__address entry, __address sp, __address bsp, __address uspace_uarg, __u64 ipsr, __u64 rsc);
 
 #endif

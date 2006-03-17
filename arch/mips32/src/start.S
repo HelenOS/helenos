@@ -226,6 +226,7 @@ cache_error_handler:
 
 userspace_asm:
 	add $sp, $a0, 0
+	add $v0, $a1, 0
 	eret
 	nop
 

@@ -37,6 +37,7 @@
 #include <arch/console.h>
 #include <memstr.h>
 #include <proc/thread.h>
+#include <proc/uarg.h>
 #include <print.h>
 
 #include <arch/interrupt.h>
@@ -120,14 +121,14 @@ void arch_post_smp_init(void)
  */
 __address supervisor_sp __attribute__ ((section (".text")));
 
-void userspace(uspace_arg_t *uarg)
+void userspace(uspace_arg_t *kernel_uarg)
 {
 	/* EXL=1, UM=1, IE=1 */
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 					      cp0_status_um_bit |
 					      cp0_status_ie_enabled_bit));
-	cp0_epc_write(uarg->uspace_entry);
-	userspace_asm(uarg->uspace_stack+PAGE_SIZE);
+	cp0_epc_write((__address) kernel_uarg->uspace_entry);
+	userspace_asm(((__address) kernel_uarg->uspace_stack+PAGE_SIZE), (__address) kernel_uarg->uspace_uarg);
 	while (1)
 		;
 }
