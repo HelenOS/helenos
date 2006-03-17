@@ -39,6 +39,8 @@
 
 #ifndef __ASM__
 
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+
 extern void *trans[TRANS_SIZE];
 
 extern void halt();

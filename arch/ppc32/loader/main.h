@@ -31,6 +31,13 @@
 
 #include "ofw.h"
 
+/** Align to the nearest higher address.
+ *
+ * @param addr  Address or size to be aligned.
+ * @param align Size of alignment, must be power of 2.
+ */
+#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+
 extern int _binary_____________kernel_kernel_bin_start;
 extern int _binary_____________kernel_kernel_bin_end;
 extern void start(void);

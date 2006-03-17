@@ -129,6 +129,12 @@ void *ofw_translate(const void *virt)
 }
 
 
+int ofw_map(const void *phys, const void *virt, const int size, const int mode)
+{
+	return ofw_call("call-method", 6, 1, "map", ofw_mmu, mode, size, virt, phys);
+}
+
+
 int ofw_memmap(memmap_t *map)
 {
 	int i;
