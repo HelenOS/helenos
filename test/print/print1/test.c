@@ -37,5 +37,6 @@ void test(void)
 	printf(" L  %L  %l \n",0x01234567 ,0x01234567);   
 	printf(" W  %W  %w \n",0x0123 ,0x0123);   
 	printf(" B  %B  %b \n",0x01 ,0x01);
+	printf(" Print to NULL '%s'\n",NULL);
 	return;
 }

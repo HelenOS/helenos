@@ -50,6 +50,13 @@ static void print_str(const char *str)
 {
 	int i = 0;
 	char c;
+	char errstr[] = "(NULL)";
+
+	if (str == NULL) {
+		while ((c = errstr[i++]))
+			putchar(c);
+		return;
+	}	
 	
 	while ((c = str[i++]))
 		putchar(c);
