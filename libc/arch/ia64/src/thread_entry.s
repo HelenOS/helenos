@@ -26,19 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+.text
 
-.org 0
+.globl __thread_entry
 
-.globl __entry
-
-## User-space task entry point
+## User-space thread entry point for all but the first threads.
 #
 #
-__entry:
-	alloc loc0 = ar.pfs, 0, 1, 2, 0
-	mov r1 = _gp 
-	{ br.call.sptk.many b0 = main }
-	{ br.call.sptk.many b0 = __exit }
+__thread_entry:
+	alloc loc0 = ar.pfs, 0, 1, 1, 0
+
+	mov r1 = _gp
 	
-.end __entry
+	#
+	# r8 contains address of uarg structure.
+	#
+	
+	mov out0 = r8
+	{ br.call.sptk.many b0 = thread_main }
+	
+	#
+	# Not reached.
+	#
+	
+.end __thread_entry

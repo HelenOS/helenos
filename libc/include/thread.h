@@ -29,7 +29,12 @@
 #ifndef __LIBC__THREAD_H__
 #define __LIBC__THREAD_H__
 
-int thread_create(void (* function)(void *arg), void *arg, void *stack, char *name);
-void thread_exit(int status);
+#include <kernel/proc/uarg.h>
+
+extern void __thread_entry(void);
+extern void thread_main(uspace_arg_t *uarg);
+
+extern int thread_create(void (* function)(void *arg), void *arg, char *name);
+extern void thread_exit(int status);
 
 #endif

@@ -51,7 +51,8 @@ GENERIC_SOURCES = \
 	malloc/malloc.c
 
 ARCH_SOURCES += \
-	arch/$(ARCH)/src/entry.s
+	arch/$(ARCH)/src/entry.s \
+	arch/$(ARCH)/src/thread_entry.s
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))

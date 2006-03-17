@@ -28,17 +28,42 @@
 
 #include <thread.h>
 #include <libc.h>
+#include <stdlib.h>
 #include <arch/faddr.h>
+#include <kernel/proc/uarg.h>
 
-typedef void (* voidfunc_t)(void);
-
-int thread_create(void (* function)(void *), void *arg, void *stack, char *name)
+void thread_main(uspace_arg_t *uarg)
 {
-	return __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) FADDR((voidfunc_t) function), (sysarg_t) arg, (sysarg_t) stack, (sysarg_t) name);
+	uarg->uspace_thread_function(uarg->uspace_thread_arg);
+	free(uarg->uspace_stack);
+	free(uarg);
+	thread_exit(0);
+}
+
+int thread_create(void (* function)(void *), void *arg, char *name)
+{
+	char *stack;
+	uspace_arg_t *uarg;
+
+	stack = (char *) malloc(getpagesize());
+	if (!stack)
+		return -1;
+		
+	uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
+	if (!uarg) {
+		free(stack);
+		return -1;
+	}
+	uarg->uspace_entry = (void *) FADDR(__thread_entry);
+	uarg->uspace_stack = (void *) stack;
+	uarg->uspace_thread_function = (void *) FADDR(function);
+	uarg->uspace_thread_arg = arg;
+	uarg->uspace_uarg = uarg;
+	
+	return __SYSCALL2(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name);
 }
 
 void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 }
-
