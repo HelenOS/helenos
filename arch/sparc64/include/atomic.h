@@ -79,7 +79,7 @@ static inline count_t atomic_predec(atomic_t *val)
 
 static inline count_t atomic_postdec(atomic_t *val)
 {
-	return atomic_add(val, 1);
+	return atomic_add(val, -1);
 }
 
 static inline void atomic_inc(atomic_t *val)
