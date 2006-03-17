@@ -46,11 +46,15 @@ static void test_printf(void)
 {
 	printf("Simple text.\n");
 	printf("Now insert '%s' string.\n","this");
-	printf("We are brave enought to print numbers like %%d = '%d'\n", 0x123456);
-	printf("And now... '%b' byte! '%w' word! '%W' Word! \n", 0x12, 0x1234, 0x1234);
-	printf("'%Q' Q! Another '%q' q! \n", 0x1234567887654321ll, 0x1234567887654321ll);
-	printf("'%Q' with 64bit value and '%p' with 32 bit value. \n", 0x1234567887654321ll, 0x12345678 );
-	printf("'%Q' 64bit, '%p' 32bit, '%b' 8bit, '%w' 16bit, '%Q' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, 0x1234567887654321ull, "Lovely string" );
+	printf("Signed formats on uns. numbers: '%d', '%+d', '% d', '%u' (,+, ,u)\n", 321, 321, 321, 321);
+	printf("Signed formats on sig. numbers: '%d', '%+d', '% d', '%u' (,+, ,u)\n", -321, -321, -321, -321);
+	printf("Signed with different sized: '%hhd', '%hd', '%d', '%ld', %lld;\n", -3, -32, -321, -32101l, -3210123ll);
+	printf("And now... '%hhd' byte! '%hd' word! '%d' int! \n", 11, 11111, 1111111111);
+	printf("Different bases: %#hx, %#hu, %#ho and %#hb\n", 123, 123, 123, 123);
+	printf("Different bases signed: %#hx, %#hu, %#ho and %#hb\n", -123, -123, -123, -123);
+	printf("'%llX' llX! Another '%llx' llx! \n", 0x1234567887654321ll, 0x1234567887654321ll);
+	printf("'%llX' with 64bit value and '%x' with 32 bit value. \n", 0x1234567887654321ll, 0x12345678 );
+	printf("'%llx' 64bit, '%x' 32bit, '%hhx' 8bit, '%hx' 16bit, '%llX' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, 0x1234567887654321ull, "Lovely string" );
 	
 	printf("Thats all, folks!\n");
 }
@@ -112,7 +116,7 @@ static void test_ping(void)
 
 static void got_answer(void *private, int retval, ipc_data_t *data)
 {
-	printf("Retval: %d...%s...%X, %X\n", retval, private,
+	printf("Retval: %d...%s...%zX, %zX\n", retval, private,
 	       IPC_GET_ARG1(*data), IPC_GET_ARG2(*data));
 }
 static void test_async_ipc(void)
@@ -156,7 +160,7 @@ static void test_advanced_ipc(void)
 
 	printf("Asking 0 to connect to me...\n");
 	res = ipc_connect_to_me(0, 1, 2, &taskid);
-	printf("Result: %d - taskid: %Q\n", res, taskid);
+	printf("Result: %d - taskid: %llu\n", res, taskid);
 	for (i=0; i < 100; i++) {
 		printf("----------------\n");
 		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
@@ -178,7 +182,7 @@ static void test_connection_ipc(void)
 	printf("Connected: %d\n", res);
 	printf("pinging.\n");
 	res = ipc_call_sync(res, NS_PING, 0xbeef,&result);
-	printf("Retval: %d - received: %P\n", res, result);
+	printf("Retval: %d - received: %zd\n", res, result);
 	
 }
 

@@ -17,15 +17,15 @@ int main(int argc, char **argv)
 	printf("Name service started.\n");
 	while (1) {
 		callid = ipc_wait_for_call(&call, 0);
-		printf("Received call from: %P..%Q\n", &call.taskid,call.taskid);
+		printf("Received call from: %P..%llX\n", &call.taskid,call.taskid);
 		switch (IPC_GET_METHOD(call.data)) {
 		case IPC_M_CONNECTTOME:
-			printf("Somebody wants to connect with phoneid %d...accepting\n", IPC_GET_ARG3(call.data));
+			printf("Somebody wants to connect with phoneid %zd...accepting\n", IPC_GET_ARG3(call.data));
 			service = IPC_GET_ARG3(call.data);
 			retval = 0;
 			break;
 		case IPC_M_CONNECTMETO:
-			printf("Somebody wants to connect to: %d\n",
+			printf("Somebody wants to connect to: %zd\n",
 			       IPC_GET_ARG1(call.data));
 			retval = 0;
 			break;
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 			printf("Got pong\n");
 			break;
 		default:
-			printf("Unknown method: %d\n", IPC_GET_METHOD(call.data));
+			printf("Unknown method: %zd\n", IPC_GET_METHOD(call.data));
 			retval = ENOENT;
 			break;
 		}

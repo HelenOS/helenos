@@ -28,8 +28,9 @@
 
 DEFS = -DARCH=$(ARCH)
 CFLAGS = -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include -I$(LIBC_PREFIX)/arch/$(ARCH)/include
-LFLAGS = -M
+LFLAGS = -M -N $(SOFTINT_PREFIX)/softint.a
 AFLAGS =
+
 
 ## Setup platform configuration
 #

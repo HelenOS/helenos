@@ -31,6 +31,7 @@
 
 LIBC_PREFIX = ../libc
 LIBIPC_PREFIX = ../libipc
+SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include

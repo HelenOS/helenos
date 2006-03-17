@@ -30,6 +30,7 @@
 #
 
 LIBC_PREFIX = .
+SOFTINT_PREFIX = ../softint
 
 ## Setup toolchain
 #
@@ -38,6 +39,7 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 
 ## Sources
 #
+
 
 GENERIC_SOURCES = \
 	generic/libc.c \

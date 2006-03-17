@@ -32,43 +32,32 @@
 #include <io/io.h>
 #include <stdarg.h>
 
-#define __PRINTF_FLAG_PREFIX 0x00000001
-#define __PRINTF_FLAG_SIGNED 0x00000002
+#define __PRINTF_FLAG_PREFIX		0x00000001	/* show prefixes 0x or 0*/
+#define __PRINTF_FLAG_SIGNED		0x00000002	/* signed / unsigned number */
+#define __PRINTF_FLAG_ZEROPADDED	0x00000004	/* print leading zeroes */
+#define __PRINTF_FLAG_LEFTALIGNED	0x00000010	/* align to left */
+#define __PRINTF_FLAG_SHOWPLUS		0x00000020	/* always show + sign */
+#define __PRINTF_FLAG_SPACESIGN		0x00000040	/* print space instead of plus */
+#define __PRINTF_FLAG_BIGCHARS		0x00000080	/* show big characters */
+#define __PRINTF_FLAG_NEGATIVE		0x00000100	/* number has - sign */
 
-static char digits[] = "0123456789abcdef"; 	/**< Hexadecimal characters */
+#define PRINT_NUMBER_BUFFER_SIZE	(64+5)		/* Buffer big enought for 64 bit number
+							 * printed in base 2, sign, prefix and
+							 * 0 to terminate string.. (last one is only for better testing 
+							 * end of buffer by zero-filling subroutine)
+							 */
+typedef enum {
+	PrintfQualifierByte = 0,
+	PrintfQualifierShort,
+	PrintfQualifierInt,
+	PrintfQualifierLong,
+	PrintfQualifierLongLong,
+	PrintfQualifierSizeT,
+	PrintfQualifierPointer
+} qualifier_t;
 
-/** Print hexadecimal digits
- *
- * Print fixed count of hexadecimal digits from
- * the number num. The digits are printed in
- * natural left-to-right order starting with
- * the width-th digit.
- *
- * @param num   Number containing digits.
- * @param width Count of digits to print.
- *
- */
-static int print_fixed_hex(const uint64_t num, const int width, uint64_t flags)
-{
-	int i;
-	char buf[18]; /* 16 bytes for number + 2 for optionaly prefix */
-	char *bptr;
-	
-	bptr = buf;
-	
-	if (flags & __PRINTF_FLAG_PREFIX) {
-		buf[0] = '0';
-		buf[1] = 'x';
-		bptr += 2;
-	}
-
-	for (i = width*8 - 4; i >= 0; i -= 4)
-		*bptr++ = digits[(num>>i) & 0xf];
-	*bptr = '\0';
-	
-	return putstr(buf);	
-}
-
+static char digits_small[] = "0123456789abcdef"; 	/* Small hexadecimal characters */
+static char digits_big[] = "0123456789ABCDEF"; 	/* Big hexadecimal characters */
 
 /** Print number in given base
  *
@@ -76,25 +65,78 @@ static int print_fixed_hex(const uint64_t num, const int width, uint64_t flags)
  * base.
  *
  * @param num  Number to print.
+ * @param size not used, in future releases will be replaced with precision and width params
  * @param base Base to print the number in (should
  *             be in range 2 .. 16).
+ * @param flags output modifiers
+ * @return number of written characters or EOF
  *
  */
-static int print_number(const unsigned long num, const unsigned int base, uint64_t flags)
+static int print_number(uint64_t num, size_t size, int base , uint64_t flags)
 {
-	int val = num;
-	char d[sizeof(unsigned long)*8+1];	/* this is good enough even for base == 2 */
-	int i = sizeof(unsigned long)*8-1;
+	/* FIXME: This is only first version.
+	 * Printf does not have support for specification of size 
+	 * and precision, so this function writes with parameters defined by
+	 * their type size.
+	 */
+	char *digits = digits_small;
+	char d[PRINT_NUMBER_BUFFER_SIZE];	/* this is good enough even for base == 2, prefix and sign */
+	char *ptr = &d[PRINT_NUMBER_BUFFER_SIZE - 1];
 	
-	/* FIXME: if signed, print sign */
+	if (flags & __PRINTF_FLAG_BIGCHARS) 
+		digits = digits_big;	
 	
-	do {
-		d[i--] = digits[val % base];
-	} while (val /= base);
-	
-	d[sizeof(unsigned long)*8] = 0;	
+	*ptr-- = 0; /* Put zero at end of string */
 
-	return putstr(&d[i + 1]);
+	if (num == 0) {
+		*ptr-- = '0';
+	} else {
+		do {
+			*ptr-- = digits[num % base];
+		} while (num /= base);
+	}
+	if (flags & __PRINTF_FLAG_PREFIX) { /*FIXME*/
+		switch(base) {
+			case 2:	/* Binary formating is not standard, but usefull */
+				*ptr = 'b';
+				if (flags & __PRINTF_FLAG_BIGCHARS) *ptr = 'B';
+				ptr--;
+				*ptr-- = '0';
+				break;
+			case 8:
+				*ptr-- = 'o';
+				break;
+			case 16:
+				*ptr = 'x';
+				if (flags & __PRINTF_FLAG_BIGCHARS) *ptr = 'X';
+				ptr--;
+				*ptr-- = '0';
+				break;
+		}
+	}
+	
+	if (flags & __PRINTF_FLAG_SIGNED) {
+		if (flags & __PRINTF_FLAG_NEGATIVE) {
+			*ptr-- = '-';
+		} else if (flags & __PRINTF_FLAG_SHOWPLUS) {
+				*ptr-- = '+';
+			} else if (flags & __PRINTF_FLAG_SPACESIGN) {
+					*ptr-- = ' ';
+				}
+	}
+
+	/* Print leading zeroes */
+
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		flags &= ~__PRINTF_FLAG_ZEROPADDED;
+	}
+	if (flags & __PRINTF_FLAG_ZEROPADDED) {
+	       	while (ptr != d ) {
+			*ptr-- = '0';
+		}
+	}
+	
+	return putstr(++ptr);
 }
 
 
@@ -156,11 +198,16 @@ static int print_number(const unsigned long num, const unsigned int base, uint64
  */
 int printf(const char *fmt, ...)
 {
-	int i = 0, j = 0;
-	int counter, retval;
+	int i = 0, j = 0; /* i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
+	int end;
+	int counter; /* counter of printed characters */
+	int retval; /* used to store return values from called functions */
 	va_list ap;
-	char c;	
-
+	char c;
+	qualifier_t qualifier;	/* type of argument */
+	int base;	/* base in which will be parameter (numbers only) printed */
+	uint64_t number; /* argument value */
+	size_t	size; /* byte size of integer parameter */
 	uint64_t flags;
 	
 	counter = 0;
@@ -176,21 +223,53 @@ int printf(const char *fmt, ...)
 				}
 				counter += retval;
 			}
-			
-			j = ++i;
-			
+		
+			j = i;
 			/* parse modifiers */
 			flags = 0;
-			/*switch (c = fmt[i]) {
-				case '-':	
-			}	
-			*/
-			switch (c = fmt[i]) {
+			end = 0;
+			
+			do {
+				++i;
+				switch (c = fmt[i]) {
+					case '#': flags |= __PRINTF_FLAG_PREFIX; break;
+					case '-': flags |= __PRINTF_FLAG_LEFTALIGNED; break;
+					case '+': flags |= __PRINTF_FLAG_SHOWPLUS; break;
+					case ' ': flags |= __PRINTF_FLAG_SPACESIGN; break;
+					case '0': flags |= __PRINTF_FLAG_ZEROPADDED; break;
+					default: end = 1;
+				};	
+				
+			} while (end == 0);	
+			/* TODO: width & '*' operator */
+			/* TODO: precision and '*' operator */	
 
-				/* percentile itself */
-				case '%': 
-					--j;	/* soon will be incremented back */
+			switch (fmt[i++]) {
+				case 'h':	/* char or short */
+					qualifier = PrintfQualifierShort;
+					if (fmt[i] == 'h') {
+						i++;
+						qualifier = PrintfQualifierByte;
+					}
 					break;
+				case 'l':	/* long or long long*/
+					qualifier = PrintfQualifierLong;
+					if (fmt[i] == 'l') {
+						i++;
+						qualifier = PrintfQualifierLongLong;
+					}
+					break;
+				case 'z':	/* size_t */
+					qualifier = PrintfQualifierSizeT;
+					break;
+				default:
+					qualifier = PrintfQualifierInt; /* default type */
+					--i;
+			}	
+			
+			base = 10;
+
+			switch (c = fmt[i]) {
 
 				/*
 				* String and character conversions.
@@ -201,7 +280,8 @@ int printf(const char *fmt, ...)
 					};
 					
 					counter += retval;
-					break;
+					j = i + 1; 
+					goto next_char;
 				case 'c':
 					c = va_arg(ap, unsigned long);
 					if ((retval = putnchars(&c, sizeof(char))) == EOF) {
@@ -209,85 +289,110 @@ int printf(const char *fmt, ...)
 					};
 					
 					counter += retval;
-					break;
+					j = i + 1;
+					goto next_char;
 
-				/*
-				* Hexadecimal conversions with fixed width.
+				/* 
+				 * Integer values
 				*/
-				case 'P':
-				       	flags |= __PRINTF_FLAG_PREFIX;
+				case 'P': /* pointer */
+				       	flags |= __PRINTF_FLAG_BIGCHARS;
 				case 'p':
-	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(unsigned long), flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
+					flags |= __PRINTF_FLAG_PREFIX;
+					base = 16;
+					qualifier = PrintfQualifierPointer;
+					break;	
+				case 'b': 
+					base = 2;
 					break;
-				case 'Q':
-				       	flags |= __PRINTF_FLAG_PREFIX;
-				case 'q':
-	    				if ((retval = print_fixed_hex(va_arg(ap, uint64_t), sizeof(uint64_t), flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
+				case 'o':
+					base = 8;
 					break;
-				case 'L': 
-				       	flags |= __PRINTF_FLAG_PREFIX;
-				case 'l':
-	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint32_t), flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
-			   		break; 
-				case 'W':
-				       	flags |= __PRINTF_FLAG_PREFIX;
-				case 'w':
-	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint16_t), flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
-					break;
-				case 'B':
-				       	flags |= __PRINTF_FLAG_PREFIX;
-				case 'b':
-	    				if ((retval = print_fixed_hex(va_arg(ap, unsigned long), sizeof(uint8_t), flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
-					break;
-				/*
-				* Decimal and hexadecimal conversions.
-				*/
 				case 'd':
 				case 'i':
-				       	flags |= __PRINTF_FLAG_SIGNED;
-	    				if ((retval = print_number(va_arg(ap,unsigned long), 10, flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
-			   		break; 
+					flags |= __PRINTF_FLAG_SIGNED;  
+				case 'u':
+					break;
 				case 'X':
-				       	flags |= __PRINTF_FLAG_PREFIX;
+					flags |= __PRINTF_FLAG_BIGCHARS;
 				case 'x':
-	    				if ((retval = print_number(va_arg(ap, unsigned long), 16, flags)) == EOF ) {
-						return -counter;
-					};
-
-					counter += retval;
-			   		break; 
+					base = 16;
+					break;
+				/* percentile itself */
+				case '%': 
+					j = i;
+					goto next_char;
 				/*
 				* Bad formatting.
 				*/
 				default:
-					return -counter;
+					/* Unknown format
+					 *  now, the j is index of '%' so we will
+					 * print whole bad format sequence
+					 */
+					goto next_char;		
 			}
-			++j;
+		
+		
+		/* Print integers */
+			/* print number */
+			switch (qualifier) {
+				case PrintfQualifierByte:
+					size = sizeof(unsigned char);
+					number = (uint64_t)va_arg(ap, unsigned int);
+					break;
+				case PrintfQualifierShort:
+					size = sizeof(unsigned short);
+					number = (uint64_t)va_arg(ap, unsigned int);
+					break;
+				case PrintfQualifierInt:
+					size = sizeof(unsigned int);
+					number = (uint64_t)va_arg(ap, unsigned int);
+					break;
+				case PrintfQualifierLong:
+					size = sizeof(unsigned long);
+					number = (uint64_t)va_arg(ap, unsigned long);
+					break;
+				case PrintfQualifierLongLong:
+					size = sizeof(unsigned long long);
+					number = (uint64_t)va_arg(ap, unsigned long long);
+					break;
+				case PrintfQualifierPointer:
+					size = sizeof(void *);
+					number = (uint64_t)(unsigned long)va_arg(ap, void *);
+					break;
+				case PrintfQualifierSizeT:
+					size = sizeof(size_t);
+					number = (uint64_t)va_arg(ap, size_t);
+					break;
+				default: /* Unknown qualifier */
+					return -counter;
+					
+			}
+			
+			if (flags & __PRINTF_FLAG_SIGNED) {
+				if (number & (0x1 << (size*8 - 1))) {
+					flags |= __PRINTF_FLAG_NEGATIVE;
+				
+					if (size == sizeof(uint64_t)) {
+						number = -((int64_t)number);
+					} else {
+						number = ~number;
+						number &= (~((0xFFFFFFFFFFFFFFFFll) <<  (size * 8)));
+						number++;
+					}
+				}
+			}
+
+			if ((retval = print_number(number, size, base, flags)) == EOF ) {
+				return -counter;
+			};
+
+			counter += retval;
+			j = i + 1;
 		}	
+next_char:
+			
 		++i;
 	}
 	
