@@ -105,17 +105,17 @@ real_mode:
 	
 	# invalidate segment registers
 
-#	li r31, 16
-#	mtctr r31
-#	li r31, 0
-#	li r30, 0
-	
+	li r31, 16
+	mtctr r31
+	li r31, 0
+	li r30, 0
+
 	seg_fill:
 	
-#		mtsrin r30, r31
-#		addis r31, r31, 0x1000    # move to next SR
-#		
-#		bdnz seg_fill
+		mtsrin r30, r31
+		addis r31, r31, 0x1000    # move to next SR
+		
+		bdnz seg_fill
 	
 	# invalidate block address translation registers
 	
