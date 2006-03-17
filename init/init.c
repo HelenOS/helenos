@@ -37,7 +37,7 @@
 extern void utest(void *arg);
 void utest(void *arg)
 {
-//	printf("Uspace thread started.\n");
+	printf("Uspace thread started.\n");
 	for (;;)
 		;
 }

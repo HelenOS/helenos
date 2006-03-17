@@ -32,6 +32,15 @@
 #include <arch/faddr.h>
 #include <kernel/proc/uarg.h>
 
+/** Main thread function.
+ *
+ * This function is called from __thread_entry() and is used
+ * to call the thread's implementing function and perform cleanup
+ * and exit when thread returns back. Do not call this function
+ * directly.
+ *
+ * @param uarg Pointer to userspace argument structure.
+ */
 void thread_main(uspace_arg_t *uarg)
 {
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
@@ -40,6 +49,17 @@ void thread_main(uspace_arg_t *uarg)
 	thread_exit(0);
 }
 
+/** Create userspace thread.
+ *
+ * This function creates new userspace thread and allocates userspace
+ * stack and userspace argument structure for it.
+ *
+ * @param function Function implementing the thread.
+ * @param arg Argument to be passed to thread.
+ * @param name Symbolic name of the thread.
+ *
+ * @param TID of the new thread on success or -1 on failure.
+ */
 int thread_create(void (* function)(void *), void *arg, char *name)
 {
 	char *stack;
@@ -54,15 +74,20 @@ int thread_create(void (* function)(void *), void *arg, char *name)
 		free(stack);
 		return -1;
 	}
+	
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
 	uarg->uspace_stack = (void *) stack;
-	uarg->uspace_thread_function = (void *) FADDR(function);
+	uarg->uspace_thread_function = function;
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
 	return __SYSCALL2(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name);
 }
 
+/** Terminate current thread.
+ *
+ * @param stat Exit status. Currently not used.
+ */
 void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
