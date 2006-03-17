@@ -445,7 +445,8 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 
 	pages = SIZE2FRAMES((address - area->base) + size);
 	if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
-		spinlock_unlock(&as->lock);
+		spinlock_unlock(&area->lock);
+		spinlock_unlock(&as->lock);		
 		interrupts_restore(ipl);
 		return (__address) -1;
 	}
