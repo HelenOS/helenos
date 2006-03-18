@@ -49,6 +49,14 @@ answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
 
+/* Initialize new call */
+static void _ipc_call_init(call_t *call)
+{
+	memsetb((__address)call, sizeof(*call), 0);
+	call->callerbox = &TASK->answerbox;
+	call->sender = TASK;
+}
+
 /** Allocate & initialize call structure
  * 
  * The call is initialized, so that the reply will be directed
@@ -59,19 +67,16 @@ call_t * ipc_call_alloc(void)
 	call_t *call;
 
 	call = slab_alloc(ipc_call_slab, 0);
-	memsetb((__address)call, sizeof(*call), 0);
-	call->callerbox = &TASK->answerbox;
-	call->sender = TASK;
+	_ipc_call_init(call);
 
 	return call;
 }
 
 /** Initialize allocated call */
-void ipc_call_init(call_t *call)
+void ipc_call_static_init(call_t *call)
 {
-	call->callerbox = &TASK->answerbox;
-	call->flags = IPC_CALL_STATIC_ALLOC;
-	call->sender = TASK;
+	_ipc_call_init(call);
+	call->flags |= IPC_CALL_STATIC_ALLOC;
 }
 
 /** Deallocate call stracuture */
@@ -96,6 +101,8 @@ void ipc_answerbox_init(answerbox_t *box)
 /** Connect phone to answerbox */
 void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
+	spinlock_lock(&phone->lock);
+
 	ASSERT(!phone->callee);
 	phone->busy = 1;
 	phone->callee = box;
@@ -103,6 +110,8 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	spinlock_lock(&box->lock);
 	list_append(&phone->list, &box->connected_phones);
 	spinlock_unlock(&box->lock);
+
+	spinlock_unlock(&phone->lock);
 }
 
 /** Initialize phone structure and connect phone to naswerbox
@@ -114,16 +123,26 @@ void ipc_phone_init(phone_t *phone)
 	phone->busy = 0;
 }
 
-/** Disconnect phone from answerbox */
+/** Disconnect phone from answerbox
+ *
+ * It is allowed to call disconnect on already disconnected phone\
+ */
 void ipc_phone_destroy(phone_t *phone)
 {
 	answerbox_t *box = phone->callee;
 	
 	ASSERT(box);
 
+	spinlock_lock(&phone->lock);
 	spinlock_lock(&box->lock);
-	list_remove(&phone->list);
+
+	if (phone->callee) {
+		list_remove(&phone->list);
+		phone->callee = NULL;
+	}
+
 	spinlock_unlock(&box->lock);
+	spinlock_unlock(&phone->lock);
 }
 
 /** Helper function to facilitate synchronous calls */
@@ -140,6 +159,37 @@ void ipc_call_sync(phone_t *phone, call_t *request)
 	ipc_wait_for_call(&sync_box, 0);
 }
 
+/** Answer message that was not dispatched and is not entered in
+ * any queue
+ */
+static void _ipc_answer_free_call(call_t *call)
+{
+	answerbox_t *callerbox = call->callerbox;
+
+	call->flags &= ~IPC_CALL_DISPATCHED;
+	call->flags |= IPC_CALL_ANSWERED;
+
+	spinlock_lock(&callerbox->lock);
+	list_append(&call->list, &callerbox->answers);
+	spinlock_unlock(&callerbox->lock);
+	waitq_wakeup(&callerbox->wq, 0);
+}
+
+/** Answer message, that is in callee queue
+ *
+ * @param box Answerbox that is answering the message
+ * @param call Modified request that is being sent back
+ */
+void ipc_answer(answerbox_t *box, call_t *call)
+{
+	/* Remove from active box */
+	spinlock_lock(&box->lock);
+	list_remove(&call->list);
+	spinlock_unlock(&box->lock);
+	/* Send back answer */
+	_ipc_answer_free_call(call);
+}
+
 /** Send a asynchronous request using phone to answerbox
  *
  * @param phone Phone connected to answerbox
@@ -147,14 +197,23 @@ void ipc_call_sync(phone_t *phone, call_t *request)
  */
 void ipc_call(phone_t *phone, call_t *call)
 {
-	answerbox_t *box = phone->callee;
+	answerbox_t *box;
 
-	ASSERT(box);
+	spinlock_lock(&phone->lock);
+	box = phone->callee;
+	if (!box) {
+		/* Trying to send over disconnected phone */
+		IPC_SET_RETVAL(call->data, ENOENT);
+		_ipc_answer_free_call(call);
+		return;
+	}
 
 	spinlock_lock(&box->lock);
 	list_append(&call->list, &box->calls);
 	spinlock_unlock(&box->lock);
 	waitq_wakeup(&box->wq, 0);
+	
+	spinlock_unlock(&phone->lock);
 }
 
 /** Forwards call from one answerbox to a new one
@@ -163,39 +222,15 @@ void ipc_call(phone_t *phone, call_t *call)
  * @param newbox Target answerbox
  * @param oldbox Old answerbox
  */
-void ipc_forward(call_t *call, answerbox_t *newbox, answerbox_t *oldbox)
+void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 {
 	spinlock_lock(&oldbox->lock);
 	list_remove(&call->list);
 	spinlock_unlock(&oldbox->lock);
 
-	spinlock_lock(&newbox->lock);
-	list_append(&call->list, &newbox->calls);
-	spinlock_lock(&newbox->lock);
-	waitq_wakeup(&newbox->wq, 0);
+	ipc_call(newphone, call);
 }
 
-/** Answer message back to phone
- *
- * @param box Answerbox that is answering the message
- * @param request Modified request that is being sent back
- */
-void ipc_answer(answerbox_t *box, call_t *request)
-{
-	answerbox_t *callerbox = request->callerbox;
-
-	request->flags &= ~IPC_CALL_DISPATCHED;
-	request->flags |= IPC_CALL_ANSWERED;
-
-	spinlock_lock(&box->lock);
-	list_remove(&request->list);
-	spinlock_unlock(&box->lock);
-
-	spinlock_lock(&callerbox->lock);
-	list_append(&request->list, &callerbox->answers);
-	spinlock_unlock(&callerbox->lock);
-	waitq_wakeup(&callerbox->wq, 0);
-}
 
 /** Wait for phone call 
  *

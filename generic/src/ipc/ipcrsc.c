@@ -37,6 +37,58 @@
  * - find phone in slot and send a message using phone
  * - answer message to phone
  * 
+ * Locking strategy
+ *
+ * - To use a phone, disconnect a phone etc., the phone must be
+ *   first locked and then checked that it is connected
+ * - To connect an allocated phone it need not be locked (assigning
+ *   pointer is atomic on all platforms)
+ *
+ * - To find an empty phone slot, the TASK must be locked
+ * - To answer a message, the answerbox must be locked
+ * - The locking of phone and answerbox is done at the ipc_ level.
+ *   It is perfectly correct to pass unconnected phone to these functions
+ *   and proper reply will be generated.
+ *
+ * - There may be objection that a race may occur when the syscall finds
+ *   an appropriate call and before executing ipc_send, the phone call might
+ *   be disconnected and connected elsewhere. As there is no easy solution,
+ *   the application will be notified by an  'PHONE_DISCONNECTED' message
+ *   and the phone will not be allocated before the application notifies
+ *   the kernel subsystem that it does not have any pending calls regarding
+ *   this phone call.
+ *
+ * Locking order
+ *
+ * There are 2 possibilities
+ * - first phone, then answerbox
+ *   + Easy locking on calls
+ *   - Very hard traversing list of phones when disconnecting because
+ *     the phones may disconnect during traversal of list of connected phones.
+ *     The only possibility is try_lock with restart of list traversal.
+ *
+ * - first answerbox, then phone(s)
+ *   + Easy phone disconnect
+ *   - Multiple checks needed when sending message
+ *
+ * Because the answerbox destroyal is much less frequent operation, 
+ * the first method is chosen.
+ *
+ * Cleanup strategy
+ * 
+ * 1) Disconnect all phones.
+ *    * Send message 'PHONE_DISCONNECTED' to the target application 
+ * - Once all phones are disconnected, no further calls can arrive
+ *
+ * 2) Answer all messages in 'calls' and 'dispatched_calls' queues with
+ *    appropriate error code.
+ *
+ * 3) Wait for all async answers to arrive
+ * Alternatively - we might try to invalidate all messages by setting some
+ * flag, that would dispose of the message once it is answered. This
+ * would need to link all calls in one big list, which we don't currently
+ * do.
+ * 
  * 
  */
 
@@ -56,25 +108,6 @@ call_t * get_call(__native callid)
 	/* TODO: Traverse list of dispatched calls and find one */
 	/* TODO: locking of call, ripping it from dispatched calls etc.  */
 	return (call_t *) callid;
-}
-
-/** Return pointer to phone identified by phoneid or NULL if non-existent */
-phone_t * get_phone_and_lock(__native phoneid)
-{
-	phone_t *phone;
-
-	if (phoneid >= IPC_MAX_PHONES)
-		return NULL;
-
-	phone = &TASK->phones[phoneid];
-	spinlock_lock(&phone->lock);
-	if (!phone->callee) {
-		spinlock_unlock(&phone->lock);
-		return NULL;
-	}
-	/* TODO... */
-	spinlock_unlock(&phone->lock);
-	return phone;
 }
 
 /** Allocate new phone slot in current TASK structure */
@@ -111,9 +144,18 @@ void phone_dealloc(int phoneid)
 	spinlock_unlock(&TASK->lock);
 }
 
+/** Connect phone to a given answerbox
+ *
+ * @param phoneid The slot that will be connected
+ *
+ * The procedure _enforces_ that the user first marks the phone
+ * busy (e.g. via phone_alloc) and then connects the phone, otherwise
+ * race condition may appear.
+ */
 void phone_connect(int phoneid, answerbox_t *box)
 {
 	phone_t *phone = &TASK->phones[phoneid];
 	
+	ASSERT(phone->busy);
 	ipc_phone_connect(phone, box);
 }

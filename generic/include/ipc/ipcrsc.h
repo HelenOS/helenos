@@ -30,7 +30,6 @@
 #define __IPCRSC_H__
 
 call_t * get_call(__native callid);
-phone_t * get_phone_and_lock(__native phoneid);
 int phone_alloc(void);
 void phone_dealloc(int phoneid);
 void phone_connect(int phoneid, answerbox_t *box);

@@ -171,9 +171,9 @@ extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
 extern call_t * ipc_call_alloc(void);
 extern void ipc_answerbox_init(answerbox_t *box);
-extern void ipc_call_init(call_t *call);
-extern void ipc_forward(call_t *call, answerbox_t *newbox,answerbox_t *oldbox);
+extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
+extern void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 
 extern answerbox_t *ipc_phone_0;
 extern void ipc_cleanup(task_t *task);
