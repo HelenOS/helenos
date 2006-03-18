@@ -123,28 +123,6 @@ void ipc_phone_init(phone_t *phone)
 	phone->busy = 0;
 }
 
-/** Disconnect phone from answerbox
- *
- * It is allowed to call disconnect on already disconnected phone\
- */
-void ipc_phone_destroy(phone_t *phone)
-{
-	answerbox_t *box = phone->callee;
-	
-	ASSERT(box);
-
-	spinlock_lock(&phone->lock);
-	spinlock_lock(&box->lock);
-
-	if (phone->callee) {
-		list_remove(&phone->list);
-		phone->callee = NULL;
-	}
-
-	spinlock_unlock(&box->lock);
-	spinlock_unlock(&phone->lock);
-}
-
 /** Helper function to facilitate synchronous calls */
 void ipc_call_sync(phone_t *phone, call_t *request)
 {
@@ -190,6 +168,18 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	_ipc_answer_free_call(call);
 }
 
+/* Unsafe unchecking ipc_call */
+static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
+{
+	atomic_inc(&phone->active_calls);
+	call->data.phone = phone;
+
+	spinlock_lock(&box->lock);
+	list_append(&call->list, &box->calls);
+	spinlock_unlock(&box->lock);
+	waitq_wakeup(&box->wq, 0);
+}
+
 /** Send a asynchronous request using phone to answerbox
  *
  * @param phone Phone connected to answerbox
@@ -200,20 +190,55 @@ void ipc_call(phone_t *phone, call_t *call)
 	answerbox_t *box;
 
 	spinlock_lock(&phone->lock);
+
 	box = phone->callee;
 	if (!box) {
 		/* Trying to send over disconnected phone */
+		spinlock_unlock(&phone->lock);
+
+		call->data.phone = phone;
 		IPC_SET_RETVAL(call->data, ENOENT);
 		_ipc_answer_free_call(call);
 		return;
 	}
-
-	spinlock_lock(&box->lock);
-	list_append(&call->list, &box->calls);
-	spinlock_unlock(&box->lock);
-	waitq_wakeup(&box->wq, 0);
+	_ipc_call(phone, box, call);
 	
 	spinlock_unlock(&phone->lock);
+}
+
+/** Disconnect phone from answerbox
+ *
+ * It is allowed to call disconnect on already disconnected phone
+ *
+ * @return 0 - phone disconnected, -1 - the phone was already disconnected
+ */
+int ipc_phone_hangup(phone_t *phone)
+{
+	answerbox_t *box;
+	call_t *call;
+	
+	spinlock_lock(&phone->lock);
+	box = phone->callee;
+	if (!box) {
+		spinlock_unlock(&phone->lock);
+		return -1;
+	}
+
+	spinlock_lock(&box->lock);
+	list_remove(&phone->list);
+	phone->callee = NULL;
+	spinlock_unlock(&box->lock);
+
+	call = ipc_call_alloc();
+	IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+	call->flags |= IPC_CALL_DISCARD_ANSWER;
+	_ipc_call(phone, box, call);
+
+	phone->busy = 0;
+
+	spinlock_unlock(&phone->lock);
+
+	return 0;
 }
 
 /** Forwards call from one answerbox to a new one
@@ -225,6 +250,7 @@ void ipc_call(phone_t *phone, call_t *call)
 void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 {
 	spinlock_lock(&oldbox->lock);
+	atomic_dec(&call->data.phone->active_calls);
 	list_remove(&call->list);
 	spinlock_unlock(&oldbox->lock);
 
@@ -241,30 +267,32 @@ call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 {
 	call_t *request;
 
+restart:      
+	if (flags & IPC_WAIT_NONBLOCKING) {
+		if (waitq_sleep_timeout(&box->wq,0,1) == ESYNCH_WOULD_BLOCK)
+			return NULL;
+	} else 
+		waitq_sleep(&box->wq);
+	
 	spinlock_lock(&box->lock);
-	while (1) { 
-		if (!list_empty(&box->answers)) {
-			/* Handle asynchronous answers */
-			request = list_get_instance(box->answers.next, call_t, list);
-			list_remove(&request->list);
-		} else if (!list_empty(&box->calls)) {
-			/* Handle requests */
-			request = list_get_instance(box->calls.next, call_t, list);
-			list_remove(&request->list);
-			/* Append request to dispatch queue */
-			list_append(&request->list, &box->dispatched_calls);
-			request->flags |= IPC_CALL_DISPATCHED;
-		} else {
-			if (!(flags & IPC_WAIT_NONBLOCKING)) {
-				/* Wait for event to appear */
-				spinlock_unlock(&box->lock);
-				waitq_sleep(&box->wq);
-				spinlock_lock(&box->lock);
-				continue;
-			}
-			request = NULL;
-		}
-		break;
+	if (!list_empty(&box->answers)) {
+		/* Handle asynchronous answers */
+		request = list_get_instance(box->answers.next, call_t, list);
+		list_remove(&request->list);
+		printf("%d %P\n", IPC_GET_METHOD(request->data), 
+		       request->data.phone);
+		atomic_dec(&request->data.phone->active_calls);
+	} else if (!list_empty(&box->calls)) {
+		/* Handle requests */
+		request = list_get_instance(box->calls.next, call_t, list);
+		list_remove(&request->list);
+		/* Append request to dispatch queue */
+		list_append(&request->list, &box->dispatched_calls);
+		request->flags |= IPC_CALL_DISPATCHED;
+	} else {
+		printf("WARNING: Spurious IPC wakeup.\n");
+		spinlock_unlock(&box->lock);
+		goto restart;
 	}
 	spinlock_unlock(&box->lock);
 	return request;

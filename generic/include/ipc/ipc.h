@@ -37,15 +37,20 @@
 #define IPC_MAX_ASYNC_CALLS  4
 
 /* Flags for calls */
-#define IPC_CALL_ANSWERED      0x1 /**< This is answer to a call */
-#define IPC_CALL_STATIC_ALLOC  0x2 /**< This call will not be freed on error */
-#define IPC_CALL_DISPATCHED    0x4 /**< Call is in dispatch queue */
+#define IPC_CALL_ANSWERED     (1<<0) /**< This is answer to a call */
+#define IPC_CALL_STATIC_ALLOC (1<<1) /**< This call will not be freed on error */
+#define IPC_CALL_DISPATCHED   (1<<2) /**< Call is in dispatch queue */
+#define IPC_CALL_DISCARD_ANSWER (1<<3) /**< Answer will not be passed to
+					* userspace, will be discarded */
 
 /* Flags for ipc_wait_for_call */
 #define IPC_WAIT_NONBLOCKING   1
 
-/* Flags of callid */
-#define IPC_CALLID_ANSWERED  1
+/* Flags of callid (the addresses are aligned at least to 4, 
+ * that is why we can use bottom 2 bits of the call address
+ */
+#define IPC_CALLID_ANSWERED       1 /**< Type of this msg is 'answer' */
+#define IPC_CALLID_NOTIFICATION   2 /**< Type of this msg is 'notification' */
 
 /* Return values from IPC_ASYNC */
 #define IPC_CALLRET_FATAL         -1
@@ -53,18 +58,18 @@
 
 
 /* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)   ((data)[0] = (retval))
-#define IPC_SET_METHOD(data, val)   ((data)[0] = (val))
-#define IPC_SET_ARG1(data, val)   ((data)[1] = (val))
-#define IPC_SET_ARG2(data, val)   ((data)[2] = (val))
-#define IPC_SET_ARG3(data, val)   ((data)[3] = (val))
+#define IPC_SET_RETVAL(data, retval)   ((data).args[0] = (retval))
+#define IPC_SET_METHOD(data, val)   ((data).args[0] = (val))
+#define IPC_SET_ARG1(data, val)   ((data).args[1] = (val))
+#define IPC_SET_ARG2(data, val)   ((data).args[2] = (val))
+#define IPC_SET_ARG3(data, val)   ((data).args[3] = (val))
 
-#define IPC_GET_METHOD(data)           ((data)[0])
-#define IPC_GET_RETVAL(data)           ((data)[0])
+#define IPC_GET_METHOD(data)           ((data).args[0])
+#define IPC_GET_RETVAL(data)           ((data).args[0])
 
-#define IPC_GET_ARG1(data)              ((data)[1])
-#define IPC_GET_ARG2(data)              ((data)[2])
-#define IPC_GET_ARG3(data)              ((data)[3])
+#define IPC_GET_ARG1(data)              ((data).args[1])
+#define IPC_GET_ARG2(data)              ((data).args[2])
+#define IPC_GET_ARG3(data)              ((data).args[3])
 
 /* Well known phone descriptors */
 #define PHONE_NS              0
@@ -89,7 +94,7 @@
  *                       (on the receiving sid) as ARG3 of the call.
  *                     - the caller obtains taskid of the called thread
  */
-#define IPC_M_CONNECTTOME     1
+#define IPC_M_CONNECT_TO_ME     1
 /** Protocol for CONNECT - ME - TO
  *
  * Calling process asks the callee to create for him a new connection.
@@ -108,10 +113,11 @@
  *                        system message 
  *
  */
-#define IPC_M_CONNECTMETO     2
-/* Control messages that the server sends to the processes 
- * about their connections.
+#define IPC_M_CONNECT_ME_TO     2
+/** This message is sent to answerbox when the phone
+ * is hung up
  */
+#define IPC_M_PHONE_HUNGUP      3
 
 
 /* Well-known methods */
@@ -128,18 +134,14 @@
 
 #define IPC_MAX_PHONES  16
 
-typedef struct answerbox answerbox_t;
-typedef __native ipc_data_t[IPC_CALL_LEN];
-
+typedef struct answerbox_s answerbox_t;
+typedef struct phone_s phone_t;
 typedef struct {
-	link_t list;
-	answerbox_t *callerbox;
-	int flags;
-	task_t *sender;
-	ipc_data_t data;
-} call_t;
+	__native args[IPC_CALL_LEN];
+	phone_t *phone;
+}ipc_data_t;
 
-struct answerbox {
+struct answerbox_s {
 	SPINLOCK_DECLARE(lock);
 
 	task_t *task;
@@ -153,19 +155,34 @@ struct answerbox {
 	link_t answers;          /**< Answered calls */
 };
 
-typedef struct {
+struct phone_s {
 	SPINLOCK_DECLARE(lock);
 	link_t list;
 	answerbox_t *callee;
 	int busy;
-} phone_t;
+	atomic_t active_calls;
+};
+
+typedef struct {
+	link_t list;
+
+	int flags;
+
+	/* Identification of the caller */
+	task_t *sender;
+	/* The caller box is different from sender->answerbox
+	 * for synchronous calls
+	 */
+	answerbox_t *callerbox;
+
+	ipc_data_t data;
+}call_t;
 
 extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
 extern void ipc_call(phone_t *phone, call_t *request);
 extern void ipc_call_sync(phone_t *phone, call_t *request);
-extern void ipc_phone_destroy(phone_t *phone);
 extern void ipc_phone_init(phone_t *phone);
 extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
@@ -177,6 +194,7 @@ extern void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 
 extern answerbox_t *ipc_phone_0;
 extern void ipc_cleanup(task_t *task);
+extern int ipc_phone_hangup(phone_t *phone);
 
 #endif
 

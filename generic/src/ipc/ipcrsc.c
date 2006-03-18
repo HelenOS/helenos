@@ -36,6 +36,8 @@
  * - disconnect connected phone (some messages might be on the fly)
  * - find phone in slot and send a message using phone
  * - answer message to phone
+ * - hangup phone (the caller has hung up)
+ * - hangup phone (the answerbox is exiting)
  * 
  * Locking strategy
  *
@@ -50,45 +52,41 @@
  *   It is perfectly correct to pass unconnected phone to these functions
  *   and proper reply will be generated.
  *
- * - There may be objection that a race may occur when the syscall finds
- *   an appropriate call and before executing ipc_send, the phone call might
- *   be disconnected and connected elsewhere. As there is no easy solution,
- *   the application will be notified by an  'PHONE_DISCONNECTED' message
- *   and the phone will not be allocated before the application notifies
- *   the kernel subsystem that it does not have any pending calls regarding
- *   this phone call.
- *
  * Locking order
  *
- * There are 2 possibilities
  * - first phone, then answerbox
  *   + Easy locking on calls
  *   - Very hard traversing list of phones when disconnecting because
  *     the phones may disconnect during traversal of list of connected phones.
  *     The only possibility is try_lock with restart of list traversal.
  *
- * - first answerbox, then phone(s)
- *   + Easy phone disconnect
- *   - Multiple checks needed when sending message
+ * Destroying is less frequent, this approach is taken.
  *
- * Because the answerbox destroyal is much less frequent operation, 
- * the first method is chosen.
+ * Phone hangup
+ * 
+ * *** The caller hangs up (sys_ipc_hangup) ***
+ * - The phone is disconnected (no more messages can be sent over this phone),
+ *   all in-progress messages are correctly handled. The anwerbox receives
+ *   IPC_M_PHONE_HUNGUP call from the phone that hung up. When all async
+ *   calls are answered, the phone is deallocated.
+ *
+ * *** The answerbox hangs up (ipc_answer(ESLAM))
+ * - The phone is disconnected. IPC_M_ANSWERBOX_HUNGUP notification
+ *   is sent to source task, the calling process is expected to
+ *   send an sys_ipc_hangup after cleaning up it's internal structures.
  *
  * Cleanup strategy
  * 
- * 1) Disconnect all phones.
+ * 1) Disconnect all our phones ('sys_ipc_hangup')
+ *
+ * 2) Disconnect all phones connected to answerbox.
  *    * Send message 'PHONE_DISCONNECTED' to the target application 
  * - Once all phones are disconnected, no further calls can arrive
  *
- * 2) Answer all messages in 'calls' and 'dispatched_calls' queues with
+ * 3) Answer all messages in 'calls' and 'dispatched_calls' queues with
  *    appropriate error code.
  *
- * 3) Wait for all async answers to arrive
- * Alternatively - we might try to invalidate all messages by setting some
- * flag, that would dispose of the message once it is answered. This
- * would need to link all calls in one big list, which we don't currently
- * do.
- * 
+ * 4) Wait for all async answers to arrive
  * 
  */
 
@@ -118,7 +116,7 @@ int phone_alloc(void)
 	spinlock_lock(&TASK->lock);
 	
 	for (i=0; i < IPC_MAX_PHONES; i++) {
-		if (!TASK->phones[i].busy) {
+		if (!TASK->phones[i].busy && !atomic_get(&TASK->phones[i].active_calls)) {
 			TASK->phones[i].busy = 1;
 			break;
 		}
@@ -130,15 +128,16 @@ int phone_alloc(void)
 	return i;
 }
 
-/** Disconnect phone */
+/** Disconnect phone a free the slot
+ *
+ * All already sent messages will be correctly processed
+ */
 void phone_dealloc(int phoneid)
 {
 	spinlock_lock(&TASK->lock);
 
 	ASSERT(TASK->phones[phoneid].busy);
-
-	if (TASK->phones[phoneid].callee)
-		ipc_phone_destroy(&TASK->phones[phoneid]);
+	ASSERT(! TASK->phones[phoneid].callee);
 
 	TASK->phones[phoneid].busy = 0;
 	spinlock_unlock(&TASK->lock);

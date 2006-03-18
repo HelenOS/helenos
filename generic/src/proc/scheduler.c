@@ -352,7 +352,6 @@ void scheduler_separated_stack(void)
 
 		switch (THREAD->state) {
 		    case Running:
-			THREAD->state = Ready;
 			spinlock_unlock(&THREAD->lock);
 			thread_ready(THREAD);
 			break;

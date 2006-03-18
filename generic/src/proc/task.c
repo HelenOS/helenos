@@ -159,7 +159,7 @@ void task_print_list(void)
 	for (cur=tasks_head.next; cur!=&tasks_head; cur=cur->next) {
 		t = list_get_instance(cur, task_t, tasks_link);
 		spinlock_lock(&t->lock);
-		printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
+		printf("%s: address=%P, taskid=%Q\n\tas=%P, ActiveCalls: %d",
 			t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
 		for (i=0; i < IPC_MAX_PHONES; i++) {
 			if (t->phones[i].callee)

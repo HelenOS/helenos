@@ -45,6 +45,7 @@ typedef enum {
 	SYS_IPC_WAIT,
 	SYS_IPC_CONNECT_TO_ME,
 	SYS_IPC_CONNECT_ME_TO,
+	SYS_IPC_HANGUP,
 	SYSCALL_END
 } syscall_t;
 

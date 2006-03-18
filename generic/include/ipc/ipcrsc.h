@@ -31,8 +31,7 @@
 
 call_t * get_call(__native callid);
 int phone_alloc(void);
-void phone_dealloc(int phoneid);
 void phone_connect(int phoneid, answerbox_t *box);
-
+void phone_dealloc(int phoneid);
 
 #endif
