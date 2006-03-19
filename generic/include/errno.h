@@ -37,5 +37,8 @@
 #define EREFUSED   -4  /* Connection refused */
 #define EFORWARD   -5  /* Forward error */
 #define EPERM      -6  /* Permission denied */
+#define EHANGUP    -7  /* Answerbox closed cionnection, call sys_ipc_hangup
+			* to close the connection. Used by answerbox
+			* to close the connection.  */
 
 #endif

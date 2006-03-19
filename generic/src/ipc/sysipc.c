@@ -75,9 +75,9 @@ static inline int is_forwardable(__native method)
  */
 
 /** Return true if the caller (ipc_answer) should save
- * the old call contents and call answer_preprocess
+ * the old call contents for answer_preprocess
  */
-static inline int answer_will_preprocess(call_t *call)
+static inline int answer_need_old(call_t *call)
 {
 	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
 		return 1;
@@ -91,13 +91,21 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid;
 
+	if (IPC_GET_RETVAL(answer->data) == EHANGUP) {
+		/* Atomic operation */
+		answer->data.phone->callee = NULL;
+	}
+
+	if (!olddata)
+		return;
+
 	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
 		phoneid = IPC_GET_ARG3(*olddata);
 		if (IPC_GET_RETVAL(answer->data)) {
 			/* The connection was not accepted */
 			phone_dealloc(phoneid);
 		} else {
-			/* The connection was accepted */
+				/* The connection was accepted */
 			phone_connect(phoneid,&answer->sender->answerbox);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
@@ -117,6 +125,9 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 /** Do basic kernel processing of received call answer */
 static int process_answer(answerbox_t *box,call_t *call)
 {
+	if (IPC_GET_RETVAL(call->data) == EHANGUP && \
+	    call->flags & IPC_CALL_FORWARDED)
+		IPC_SET_RETVAL(call->data, EFORWARD);
 	return 0;
 }
 
@@ -275,6 +286,8 @@ __native sys_ipc_forward_fast(__native callid, __native phoneid,
 	if (!call)
 		return ENOENT;
 
+	call->flags |= IPC_CALL_FORWARDED;
+
 	GET_CHECK_PHONE(phone, phoneid, { 
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
@@ -298,9 +311,7 @@ __native sys_ipc_forward_fast(__native callid, __native phoneid,
 		IPC_SET_ARG1(call->data, arg1);
 	}
 
-	ipc_forward(call, phone, &TASK->answerbox);
-
-	return 0;
+	return ipc_forward(call, phone, &TASK->answerbox);
 }
 
 /** Send IPC answer */
@@ -309,23 +320,21 @@ __native sys_ipc_answer_fast(__native callid, __native retval,
 {
 	call_t *call;
 	ipc_data_t saved_data;
-	int preprocess = 0;
+	int saveddata = 0;
 
 	call = get_call(callid);
 	if (!call)
 		return ENOENT;
 
-	if (answer_will_preprocess(call)) {
+	if (answer_need_old(call)) {
 		memcpy(&saved_data, &call->data, sizeof(call->data));
-		preprocess = 1;
+		saveddata = 1;
 	}
 
 	IPC_SET_RETVAL(call->data, retval);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
-
-	if (preprocess)
-		answer_preprocess(call, &saved_data);
+	answer_preprocess(call, saveddata ? &saved_data : NULL);
 
 	ipc_answer(&TASK->answerbox, call);
 	return 0;
@@ -336,21 +345,20 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 {
 	call_t *call;
 	ipc_data_t saved_data;
-	int preprocess = 0;
+	int saveddata = 0;
 
 	call = get_call(callid);
 	if (!call)
 		return ENOENT;
 
-	if (answer_will_preprocess(call)) {
+	if (answer_need_old(call)) {
 		memcpy(&saved_data, &call->data, sizeof(call->data));
-		preprocess = 1;
+		saveddata = 1;
 	}
 	copy_from_uspace(&call->data.args, &data->args, 
 			 sizeof(call->data.args));
 
-	if (preprocess)
-		answer_preprocess(call, &saved_data);
+	answer_preprocess(call, saveddata ? &saved_data : NULL);
 	
 	ipc_answer(&TASK->answerbox, call);
 
@@ -448,6 +456,8 @@ __native sys_ipc_wait_for_call(ipc_data_t *calldata, task_id_t *taskid,
 
 restart:	
 	call = ipc_wait_for_call(&TASK->answerbox, flags);
+	if (!call)
+		return 0;
 
 	if (call->flags & IPC_CALL_ANSWERED) {
 		if (process_answer(&TASK->answerbox, call))

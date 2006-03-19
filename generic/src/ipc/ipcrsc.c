@@ -70,23 +70,37 @@
  *   IPC_M_PHONE_HUNGUP call from the phone that hung up. When all async
  *   calls are answered, the phone is deallocated.
  *
- * *** The answerbox hangs up (ipc_answer(ESLAM))
- * - The phone is disconnected. IPC_M_ANSWERBOX_HUNGUP notification
- *   is sent to source task, the calling process is expected to
+ * *** The answerbox hangs up (ipc_answer(EHANGUP))
+ * - The phone is disconnected. EHANGUP response code is sent
+ *   to the calling process. All new calls through this phone
+ *   get a EHUNGUP error code, the task is expected to
  *   send an sys_ipc_hangup after cleaning up it's internal structures.
+ *
+ * Call forwarding
+ * 
+ * The call can be forwarded, so that the answer to call is passed directly
+ * to the original sender. However, this poses special problems regarding 
+ * routing of hangup messages.
+ *
+ * sys_ipc_hangup -> IPC_M_PHONE_HUNGUP
+ * - this message CANNOT be forwarded
+ *
+ * EHANGUP during forward
+ * - The *forwarding* phone will be closed, EFORWARD is sent to receiver.
+ *
+ * EHANGUP, ENOENT during forward
+ * - EFORWARD is sent to the receiver, ipc_forward returns error code EFORWARD
  *
  * Cleanup strategy
  * 
- * 1) Disconnect all our phones ('sys_ipc_hangup')
+ * 1) Disconnect all our phones ('ipc_phone_hangup').
  *
  * 2) Disconnect all phones connected to answerbox.
- *    * Send message 'PHONE_DISCONNECTED' to the target application 
- * - Once all phones are disconnected, no further calls can arrive
  *
  * 3) Answer all messages in 'calls' and 'dispatched_calls' queues with
- *    appropriate error code.
+ *    appropriate error code (EHANGUP, EFORWARD).
  *
- * 4) Wait for all async answers to arrive
+ * 4) Wait for all async answers to arrive.
  * 
  */
 
@@ -116,8 +130,8 @@ int phone_alloc(void)
 	spinlock_lock(&TASK->lock);
 	
 	for (i=0; i < IPC_MAX_PHONES; i++) {
-		if (!TASK->phones[i].busy && !atomic_get(&TASK->phones[i].active_calls)) {
-			TASK->phones[i].busy = 1;
+		if (TASK->phones[i].busy==IPC_BUSY_FREE && !atomic_get(&TASK->phones[i].active_calls)) {
+			TASK->phones[i].busy = IPC_BUSY_CONNECTING;
 			break;
 		}
 	}
@@ -136,10 +150,10 @@ void phone_dealloc(int phoneid)
 {
 	spinlock_lock(&TASK->lock);
 
-	ASSERT(TASK->phones[phoneid].busy);
+	ASSERT(TASK->phones[phoneid].busy == IPC_BUSY_CONNECTING);
 	ASSERT(! TASK->phones[phoneid].callee);
 
-	TASK->phones[phoneid].busy = 0;
+	TASK->phones[phoneid].busy = IPC_BUSY_FREE;
 	spinlock_unlock(&TASK->lock);
 }
 
@@ -155,6 +169,6 @@ void phone_connect(int phoneid, answerbox_t *box)
 {
 	phone_t *phone = &TASK->phones[phoneid];
 	
-	ASSERT(phone->busy);
+	ASSERT(phone->busy == IPC_BUSY_CONNECTING);
 	ipc_phone_connect(phone, box);
 }

@@ -37,11 +37,12 @@
 #define IPC_MAX_ASYNC_CALLS  4
 
 /* Flags for calls */
-#define IPC_CALL_ANSWERED     (1<<0) /**< This is answer to a call */
-#define IPC_CALL_STATIC_ALLOC (1<<1) /**< This call will not be freed on error */
-#define IPC_CALL_DISPATCHED   (1<<2) /**< Call is in dispatch queue */
+#define IPC_CALL_ANSWERED       (1<<0) /**< This is answer to a call */
+#define IPC_CALL_STATIC_ALLOC   (1<<1) /**< This call will not be freed on error */
+#define IPC_CALL_DISPATCHED     (1<<2) /**< Call is in dispatch queue */
 #define IPC_CALL_DISCARD_ANSWER (1<<3) /**< Answer will not be passed to
 					* userspace, will be discarded */
+#define IPC_CALL_FORWARDED      (1<<4) /* Call was forwarded */
 
 /* Flags for ipc_wait_for_call */
 #define IPC_WAIT_NONBLOCKING   1
@@ -155,11 +156,17 @@ struct answerbox_s {
 	link_t answers;          /**< Answered calls */
 };
 
+typedef enum {
+	IPC_BUSY_FREE = 0,
+	IPC_BUSY_CONNECTING,
+	IPC_BUSY_CONNECTED
+} ipc_busy_t;
+
 struct phone_s {
 	SPINLOCK_DECLARE(lock);
 	link_t list;
 	answerbox_t *callee;
-	int busy;
+	ipc_busy_t busy;
 	atomic_t active_calls;
 };
 
@@ -181,7 +188,7 @@ typedef struct {
 extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
-extern void ipc_call(phone_t *phone, call_t *request);
+extern int ipc_call(phone_t *phone, call_t *call);
 extern void ipc_call_sync(phone_t *phone, call_t *request);
 extern void ipc_phone_init(phone_t *phone);
 extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
@@ -190,7 +197,7 @@ extern call_t * ipc_call_alloc(void);
 extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
-extern void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
+extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 
 extern answerbox_t *ipc_phone_0;
 extern void ipc_cleanup(task_t *task);

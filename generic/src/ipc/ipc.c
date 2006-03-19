@@ -104,7 +104,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	spinlock_lock(&phone->lock);
 
 	ASSERT(!phone->callee);
-	phone->busy = 1;
+	phone->busy = IPC_BUSY_CONNECTED;
 	phone->callee = box;
 
 	spinlock_lock(&box->lock);
@@ -120,7 +120,8 @@ void ipc_phone_init(phone_t *phone)
 {
 	spinlock_initialize(&phone->lock, "phone_lock");
 	phone->callee = NULL;
-	phone->busy = 0;
+	phone->busy = IPC_BUSY_FREE;
+	atomic_set(&phone->active_calls, 0);
 }
 
 /** Helper function to facilitate synchronous calls */
@@ -171,8 +172,10 @@ void ipc_answer(answerbox_t *box, call_t *call)
 /* Unsafe unchecking ipc_call */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
-	atomic_inc(&phone->active_calls);
-	call->data.phone = phone;
+	if (! (call->flags & IPC_CALL_FORWARDED)) {
+		atomic_inc(&phone->active_calls);
+		call->data.phone = phone;
+	}
 
 	spinlock_lock(&box->lock);
 	list_append(&call->list, &box->calls);
@@ -185,7 +188,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
  * @param phone Phone connected to answerbox
  * @param request Request to be sent
  */
-void ipc_call(phone_t *phone, call_t *call)
+int ipc_call(phone_t *phone, call_t *call)
 {
 	answerbox_t *box;
 
@@ -195,15 +198,24 @@ void ipc_call(phone_t *phone, call_t *call)
 	if (!box) {
 		/* Trying to send over disconnected phone */
 		spinlock_unlock(&phone->lock);
+		if (call->flags & IPC_CALL_FORWARDED) {
+			IPC_SET_RETVAL(call->data, EFORWARD);
+		} else { /* Simulate sending a message */
+			call->data.phone = phone;
+			atomic_inc(&phone->active_calls);
+			if (phone->busy == IPC_BUSY_CONNECTED)
+				IPC_SET_RETVAL(call->data, EHANGUP);
+			else
+				IPC_SET_RETVAL(call->data, ENOENT);
+		}
 
-		call->data.phone = phone;
-		IPC_SET_RETVAL(call->data, ENOENT);
 		_ipc_answer_free_call(call);
-		return;
+		return ENOENT;
 	}
 	_ipc_call(phone, box, call);
 	
 	spinlock_unlock(&phone->lock);
+	return 0;
 }
 
 /** Disconnect phone from answerbox
@@ -220,8 +232,14 @@ int ipc_phone_hangup(phone_t *phone)
 	spinlock_lock(&phone->lock);
 	box = phone->callee;
 	if (!box) {
+		if (phone->busy == IPC_BUSY_CONNECTING) {
+			spinlock_unlock(&phone->lock);
+			return -1;
+		}
+		/* Already disconnected phone */
+		phone->busy = IPC_BUSY_FREE;
 		spinlock_unlock(&phone->lock);
-		return -1;
+		return 0;
 	}
 
 	spinlock_lock(&box->lock);
@@ -234,7 +252,7 @@ int ipc_phone_hangup(phone_t *phone)
 	call->flags |= IPC_CALL_DISCARD_ANSWER;
 	_ipc_call(phone, box, call);
 
-	phone->busy = 0;
+	phone->busy = IPC_BUSY_FREE;
 
 	spinlock_unlock(&phone->lock);
 
@@ -246,15 +264,18 @@ int ipc_phone_hangup(phone_t *phone)
  * @param request Request to be forwarded
  * @param newbox Target answerbox
  * @param oldbox Old answerbox
+ * @return 0 on forward ok, error code, if there was error
+ * 
+ * - the return value serves only as an information for the forwarder,
+ *   the original caller is notified automatically with EFORWARD
  */
-void ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
+int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 {
 	spinlock_lock(&oldbox->lock);
-	atomic_dec(&call->data.phone->active_calls);
 	list_remove(&call->list);
 	spinlock_unlock(&oldbox->lock);
 
-	ipc_call(newphone, call);
+	return ipc_call(newphone, call);
 }
 
 
@@ -279,8 +300,6 @@ restart:
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, list);
 		list_remove(&request->list);
-		printf("%d %P\n", IPC_GET_METHOD(request->data), 
-		       request->data.phone);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Handle requests */
@@ -313,6 +332,15 @@ void ipc_init(void)
  */
 void ipc_cleanup(task_t *task)
 {
-	/* Cancel all calls in my dispatch queue */
+	int i;
+
+	/* Disconnect all our phones ('ipc_phone_hangup') */
+	for (i=0;i < IPC_MAX_PHONES; i++)
+		ipc_phone_hangup(&task->phones[i]);
+
+	/* Disconnect all phones connected to answerbox */
+
+	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
 	
+	/* Wait for all async answers to arrive */
 }
