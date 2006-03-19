@@ -112,11 +112,12 @@ static void test_ping(void)
 	ipcarg_t result;
 	int retval;
 
+	printf("Pinging\n");
 	retval = ipc_call_sync(PHONE_NS, NS_PING, 0xbeef,&result);
 	printf("Retval: %d - received: %P\n", retval, result);
 }
 
-static void got_answer(void *private, int retval, ipc_data_t *data)
+static void got_answer(void *private, int retval, ipc_call_t *data)
 {
 	printf("Retval: %d...%s...%zX, %zX\n", retval, private,
 	       IPC_GET_ARG1(*data), IPC_GET_ARG2(*data));
@@ -148,21 +149,21 @@ static void test_async_ipc(void)
 }
 
 
-static void got_answer_2(void *private, int retval, ipc_data_t *data)
+static void got_answer_2(void *private, int retval, ipc_call_t *data)
 {
 	printf("Pong\n");
 }
 static void test_advanced_ipc(void)
 {
 	int res;
-	unsigned long long taskid;
+	ipcarg_t phonead;
 	ipc_callid_t callid;
 	ipc_call_t data;
 	int i;
 
 	printf("Asking 0 to connect to me...\n");
-	res = ipc_connect_to_me(0, 1, 2, &taskid);
-	printf("Result: %d - taskid: %llu\n", res, taskid);
+	res = ipc_connect_to_me(0, 1, 2, &phonead);
+	printf("Result: %d - phonead: %llu\n", res, phonead);
 	for (i=0; i < 100; i++) {
 		printf("----------------\n");
 		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
@@ -178,6 +179,7 @@ static void test_connection_ipc(void)
 {
 	int res;
 	ipcarg_t result;
+	int phoneid;
 
 	printf("Starting connect...\n");
 	res = ipc_connect_me_to(PHONE_NS, 10, 20);
@@ -252,10 +254,10 @@ int main(int argc, char *argv[])
 //	test_advanced_ipc();
 //	test_connection_ipc();
 //	test_hangup();
-	test_slam();
+//	test_slam();
 
-//	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
-//		printf("Created thread tid=%d\n", tid);
-//	}
+	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
+		printf("Created thread tid=%d\n", tid);
+	}
 	return 0;
 }

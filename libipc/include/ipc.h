@@ -35,18 +35,13 @@
 
 typedef sysarg_t ipcarg_t;
 typedef struct {
-	sysarg_t args[IPC_CALL_LEN];
-	sysarg_t phoneid;
-} ipc_data_t ;
-typedef struct {
-	unsigned long long taskid;
-	ipc_data_t data;
-}ipc_call_t;
+	ipcarg_t args[IPC_CALL_LEN];
+	ipcarg_t phoneid;
+} ipc_call_t ;
 typedef sysarg_t ipc_callid_t;
 
-typedef void (* ipc_async_callback_t)(void *private, 
-				      int retval,
-				      ipc_data_t *data);
+typedef void (* ipc_async_callback_t)(void *private, int retval,
+				      ipc_call_t *data);
 
 #define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), (res2), 0)
 extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
@@ -65,8 +60,7 @@ extern void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback);
-int ipc_connect_to_me(int phoneid, int arg1, int arg2, 
-		      unsigned long long *taskid);
+int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
 int ipc_connect_me_to(int phoneid, int arg1, int arg2);
 int ipc_hangup(int phoneid);
 

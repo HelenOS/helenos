@@ -46,8 +46,8 @@ typedef struct {
 	union {
 		ipc_callid_t callid;
 		struct {
+			ipc_call_t data;
 			int phoneid;
-			ipc_data_t data;
 		} msg;
 	}u;
 } async_call_t;
@@ -58,7 +58,7 @@ LIST_INITIALIZE(queued_calls);
 int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		  ipcarg_t *result)
 {
-	ipc_data_t resdata;
+	ipc_call_t resdata;
 	int callres;
 	
 	callres = __SYSCALL4(SYS_IPC_CALL_SYNC_FAST, phoneid, method, arg1,
@@ -74,7 +74,7 @@ int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		    ipcarg_t arg2, ipcarg_t arg3,
 		    ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3)
 {
-	ipc_data_t data;
+	ipc_call_t data;
 	int callres;
 
 	IPC_SET_METHOD(data, method);
@@ -97,7 +97,7 @@ int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 }
 
 /** Syscall to send asynchronous message */
-static	ipc_callid_t _ipc_call_async(int phoneid, ipc_data_t *data)
+static	ipc_callid_t _ipc_call_async(int phoneid, ipc_call_t *data)
 {
 	return __SYSCALL2(SYS_IPC_CALL_ASYNC, phoneid, (sysarg_t)data);
 }
@@ -154,14 +154,6 @@ void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 	__SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
 }
 
-
-/** Call syscall function sys_ipc_wait_for_call */
-static inline ipc_callid_t _ipc_wait_for_call(ipc_call_t *call, int flags)
-{
-	return __SYSCALL3(SYS_IPC_WAIT, (sysarg_t)&call->data, 
-			  (sysarg_t)&call->taskid, flags);
-}
-
 /** Try to dispatch queed calls from async queue */
 static void try_dispatch_queued_calls(void)
 {
@@ -193,7 +185,7 @@ static void try_dispatch_queued_calls(void)
  *
  * @param callid Callid (with first bit set) of the answered call
  */
-static void handle_answer(ipc_callid_t callid, ipc_data_t *data)
+static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 {
 	link_t *item;
 	async_call_t *call;
@@ -229,27 +221,39 @@ ipc_callid_t ipc_wait_for_call(ipc_call_t *call, int flags)
 	do {
 		try_dispatch_queued_calls();
 
-		callid = _ipc_wait_for_call(call, flags);
+		callid = __SYSCALL2(SYS_IPC_WAIT, (sysarg_t)call, flags);
 		/* Handle received answers */
 		if (callid & IPC_CALLID_ANSWERED)
-			handle_answer(callid, &call->data);
+			handle_answer(callid, call);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;
 }
 
-/** Ask destination to do a callback connection */
-int ipc_connect_to_me(int phoneid, int arg1, int arg2,
-		      unsigned long long *taskid)
+/** Ask destination to do a callback connection
+ *
+ * @return 0 - OK, error code
+ */
+int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone)
 {
-	return __SYSCALL4(SYS_IPC_CONNECT_TO_ME, phoneid, arg1, arg2,
-			  (sysarg_t) taskid);
+	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1,
+			       arg2, 0, 0, 0, phone);
 }
 
-/** Ask through phone for a new connection to some service */
+/** Ask through phone for a new connection to some service
+ *
+ * @return new phoneid - OK, error code
+ */
 int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 {
-	return __SYSCALL3(SYS_IPC_CONNECT_ME_TO, phoneid, arg1, arg2);
+	int newphid;
+	int res;
+
+	res =  ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1,
+			       arg2, 0, 0, 0, &newphid);
+	if (res)
+		return res;
+	return newphid;
 }
 
 /* Hang up specified phone */
