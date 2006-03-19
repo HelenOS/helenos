@@ -47,7 +47,7 @@
       phone = &TASK->phones[phoneid]; \
 }
 
-#define STRUCT_TO_USPACE(dst,src) copy_to_uspace(dst,src,sizeof(*src))
+#define STRUCT_TO_USPACE(dst,src) copy_to_uspace(dst,src,sizeof(*(src)))
 
 /** Return true if the method is a system method */
 static inline int is_system_method(__native method)
@@ -105,8 +105,10 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			/* The connection was not accepted */
 			phone_dealloc(phoneid);
 		} else {
-				/* The connection was accepted */
+			/* The connection was accepted */
 			phone_connect(phoneid,&answer->sender->answerbox);
+			/* Set 'phone identification' as arg3 of response */
+			IPC_SET_ARG3(answer->data, (__native)&TASK->phones[phoneid]);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
 		/* If the users accepted call, connect */
@@ -117,18 +119,48 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	}
 }
 
+/** Called before the request is sent
+ *
+ * @return 0 - no error, -1 - report error to user
+ */
+static int request_preprocess(call_t *call)
+{
+	int newphid;
+
+	switch (IPC_GET_METHOD(call->data)) {
+	case IPC_M_CONNECT_ME_TO:
+		newphid = phone_alloc();
+		if (newphid < 0)
+			return ELIMIT;
+		/* Set arg3 for server */
+		IPC_SET_ARG3(call->data, (__native)&TASK->phones[newphid]);
+		call->flags |= IPC_CALL_CONN_ME_TO;
+		call->private = newphid;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
 /****************************************************/
 /* Functions called to process received call/answer 
  * before passing to uspace
  */
 
 /** Do basic kernel processing of received call answer */
-static int process_answer(answerbox_t *box,call_t *call)
+static void process_answer(call_t *call)
 {
 	if (IPC_GET_RETVAL(call->data) == EHANGUP && \
 	    call->flags & IPC_CALL_FORWARDED)
 		IPC_SET_RETVAL(call->data, EFORWARD);
-	return 0;
+
+	if (call->flags & IPC_CALL_CONN_ME_TO) {
+		if (IPC_GET_RETVAL(call->data))
+			phone_dealloc(call->private);
+		else
+			IPC_SET_ARG3(call->data, call->private);
+	}
 }
 
 /** Do basic kernel processing of received call request
@@ -161,18 +193,19 @@ __native sys_ipc_call_sync_fast(__native phoneid, __native method,
 {
 	call_t call;
 	phone_t *phone;
-
-	if (is_system_method(method))
-		return EPERM;
+	int res;
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
 	ipc_call_static_init(&call);
 	IPC_SET_METHOD(call.data, method);
 	IPC_SET_ARG1(call.data, arg1);
-	
-	ipc_call_sync(phone, &call);
 
+	if (!(res=request_preprocess(&call))) {
+		ipc_call_sync(phone, &call);
+		process_answer(&call);
+	} else 
+		IPC_SET_RETVAL(call.data, res);
 	STRUCT_TO_USPACE(&data->args, &call.data.args);
 
 	return 0;
@@ -184,16 +217,18 @@ __native sys_ipc_call_sync(__native phoneid, ipc_data_t *question,
 {
 	call_t call;
 	phone_t *phone;
+	int res;
 
 	ipc_call_static_init(&call);
 	copy_from_uspace(&call.data.args, &question->args, sizeof(call.data.args));
 
-	if (is_system_method(IPC_GET_METHOD(call.data)))
-		return EPERM;
-	
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	ipc_call_sync(phone, &call);
+	if (!(res=request_preprocess(&call))) {
+		ipc_call_sync(phone, &call);
+		process_answer(&call);
+	} else 
+		IPC_SET_RETVAL(call.data, res);
 
 	STRUCT_TO_USPACE(&reply->args, &call.data.args);
 
@@ -223,21 +258,22 @@ __native sys_ipc_call_async_fast(__native phoneid, __native method,
 {
 	call_t *call;
 	phone_t *phone;
-
-	if (is_system_method(method))
-		return IPC_CALLRET_FATAL;
+	int res;
 
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
 
 	call = ipc_call_alloc();
 	IPC_SET_METHOD(call->data, method);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 
-	ipc_call(phone, call);
+	if (!(res=request_preprocess(call)))
+		ipc_call(phone, call);
+	else
+		ipc_backsend_err(phone, call, res);
 
 	return (__native) call;
 }
@@ -250,21 +286,19 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 {
 	call_t *call;
 	phone_t *phone;
+	int res;
 
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
 
 	call = ipc_call_alloc();
 	copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
-
-	if (is_system_method(IPC_GET_METHOD(call->data))) {
-		ipc_call_free(call);
-		return EPERM;
-	}
-	
-	ipc_call(phone, call);
+	if (!(res=request_preprocess(call)))
+		ipc_call(phone, call);
+	else
+		ipc_backsend_err(phone, call, res);
 
 	return (__native) call;
 }
@@ -304,6 +338,9 @@ __native sys_ipc_forward_fast(__native callid, __native phoneid,
 	 * on forward, allow changing ARG1 and ARG2 by means of method and arg1
 	 */
 	if (is_system_method(IPC_GET_METHOD(call->data))) {
+		if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
+			phone_dealloc(IPC_GET_ARG3(call->data));
+
 		IPC_SET_ARG1(call->data, method);
 		IPC_SET_ARG2(call->data, arg1);
 	} else {
@@ -365,67 +402,7 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 	return 0;
 }
 
-/** Ask the other side of connection to do 'callback' connection
- *
- * @return 0 if no error, error otherwise 
- */
-__native sys_ipc_connect_to_me(__native phoneid, __native arg1,
-			       __native arg2, task_id_t *taskid)
-{
-	call_t call;
-	phone_t *phone;
-
-	ipc_call_static_init(&call);
-	IPC_SET_METHOD(call.data, IPC_M_CONNECT_TO_ME);
-	IPC_SET_ARG1(call.data, arg1);
-	IPC_SET_ARG2(call.data, arg2);
-	
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
-
-	ipc_call_sync(phone, &call);
-
-	if (!IPC_GET_RETVAL(call.data) && taskid)
-		STRUCT_TO_USPACE(taskid, &phone->callee->task->taskid);
-
-	return IPC_GET_RETVAL(call.data);
-}
-
-/** Ask target process to connect me somewhere
- *
- * @return phoneid - on success, error otherwise
- */
-__native sys_ipc_connect_me_to(__native phoneid, __native arg1,
-			       __native arg2)
-{
-	call_t call;
-	phone_t *phone;
-	int newphid;
-
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
-
-	newphid = phone_alloc();
-	if (newphid < 0)
-		return ELIMIT;
-
-	ipc_call_static_init(&call);
-	IPC_SET_METHOD(call.data, IPC_M_CONNECT_ME_TO);
-	IPC_SET_ARG1(call.data, arg1);
-	IPC_SET_ARG2(call.data, arg2);
-	IPC_SET_ARG3(call.data, (__native)&TASK->phones[newphid]);
-
-	ipc_call_sync(phone, &call);
-
-	if (IPC_GET_RETVAL(call.data)) { /* Connection failed */
-		phone_dealloc(newphid);
-		return IPC_GET_RETVAL(call.data);
-	}
-
-	return newphid;
-}
-
 /** Hang up the phone
- *
- * 
  *
  */
 __native sys_ipc_hangup(int phoneid)
@@ -448,9 +425,7 @@ __native sys_ipc_hangup(int phoneid)
  * @param flags
  * @return Callid, if callid & 1, then the call is answer
  */
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, task_id_t *taskid,
-			       __native flags)
-					     
+__native sys_ipc_wait_for_call(ipc_data_t *calldata, __native flags)
 {
 	call_t *call;
 
@@ -460,8 +435,7 @@ restart:
 		return 0;
 
 	if (call->flags & IPC_CALL_ANSWERED) {
-		if (process_answer(&TASK->answerbox, call))
-			goto restart;
+		process_answer(call);
 
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
@@ -481,9 +455,8 @@ restart:
 	if (process_request(&TASK->answerbox, call))
 		goto restart;
 
-	/* Include phone address('id') of the caller in the request */
+	/* Include phone address('id') of the caller in the request,
+	 * copy whole call->data, not only call->data.args */
 	STRUCT_TO_USPACE(calldata, &call->data);
-	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_ME_TO)
-		STRUCT_TO_USPACE(taskid, &TASK->taskid);
 	return (__native)call;
 }

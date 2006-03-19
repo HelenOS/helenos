@@ -145,7 +145,6 @@ static void _ipc_answer_free_call(call_t *call)
 {
 	answerbox_t *callerbox = call->callerbox;
 
-	call->flags &= ~IPC_CALL_DISPATCHED;
 	call->flags |= IPC_CALL_ANSWERED;
 
 	spinlock_lock(&callerbox->lock);
@@ -166,6 +165,23 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	list_remove(&call->list);
 	spinlock_unlock(&box->lock);
 	/* Send back answer */
+	_ipc_answer_free_call(call);
+}
+
+/** Simulate sending back a message
+ *
+ * Most errors are better handled by forming a normal backward
+ * message and sending it as a normal answer.
+ */
+void ipc_backsend_err(phone_t *phone, call_t *call, __native err)
+{
+	call->data.phone = phone;
+	atomic_inc(&phone->active_calls);
+	if (phone->busy == IPC_BUSY_CONNECTED)
+		IPC_SET_RETVAL(call->data, EHANGUP);
+	else
+		IPC_SET_RETVAL(call->data, ENOENT);
+
 	_ipc_answer_free_call(call);
 }
 
@@ -200,16 +216,14 @@ int ipc_call(phone_t *phone, call_t *call)
 		spinlock_unlock(&phone->lock);
 		if (call->flags & IPC_CALL_FORWARDED) {
 			IPC_SET_RETVAL(call->data, EFORWARD);
-		} else { /* Simulate sending a message */
-			call->data.phone = phone;
-			atomic_inc(&phone->active_calls);
+			_ipc_answer_free_call(call);
+		} else { /* Simulate sending back a message */
 			if (phone->busy == IPC_BUSY_CONNECTED)
-				IPC_SET_RETVAL(call->data, EHANGUP);
+				ipc_backsend_err(phone, call, EHANGUP);
 			else
-				IPC_SET_RETVAL(call->data, ENOENT);
+				ipc_backsend_err(phone, call, ENOENT);
 		}
 
-		_ipc_answer_free_call(call);
 		return ENOENT;
 	}
 	_ipc_call(phone, box, call);
@@ -307,7 +321,6 @@ restart:
 		list_remove(&request->list);
 		/* Append request to dispatch queue */
 		list_append(&request->list, &box->dispatched_calls);
-		request->flags |= IPC_CALL_DISPATCHED;
 	} else {
 		printf("WARNING: Spurious IPC wakeup.\n");
 		spinlock_unlock(&box->lock);

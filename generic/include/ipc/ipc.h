@@ -39,10 +39,10 @@
 /* Flags for calls */
 #define IPC_CALL_ANSWERED       (1<<0) /**< This is answer to a call */
 #define IPC_CALL_STATIC_ALLOC   (1<<1) /**< This call will not be freed on error */
-#define IPC_CALL_DISPATCHED     (1<<2) /**< Call is in dispatch queue */
-#define IPC_CALL_DISCARD_ANSWER (1<<3) /**< Answer will not be passed to
+#define IPC_CALL_DISCARD_ANSWER (1<<2) /**< Answer will not be passed to
 					* userspace, will be discarded */
-#define IPC_CALL_FORWARDED      (1<<4) /* Call was forwarded */
+#define IPC_CALL_FORWARDED      (1<<3) /* Call was forwarded */
+#define IPC_CALL_CONN_ME_TO     (1<<4) /* Identify connect_me_to */
 
 /* Flags for ipc_wait_for_call */
 #define IPC_WAIT_NONBLOCKING   1
@@ -182,7 +182,9 @@ typedef struct {
 	 */
 	answerbox_t *callerbox;
 
-	ipc_data_t data;
+	__native private; /**< Private data to internal IPC */
+
+	ipc_data_t data;  /**< Data passed from/to userspace */
 }call_t;
 
 extern void ipc_init(void);
@@ -198,10 +200,11 @@ extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
 extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
-
-extern answerbox_t *ipc_phone_0;
 extern void ipc_cleanup(task_t *task);
 extern int ipc_phone_hangup(phone_t *phone);
+extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
+
+extern answerbox_t *ipc_phone_0;
 
 #endif
 

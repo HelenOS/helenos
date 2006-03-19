@@ -39,12 +39,7 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data);
 __native sys_ipc_answer_fast(__native callid, __native retval, 
 			     __native arg1, __native arg2);
 __native sys_ipc_answer(__native callid, ipc_data_t *data);
-__native sys_ipc_connect_to_me(__native phoneid, __native arg1,
-			       __native arg2, task_id_t *taskid);
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, task_id_t *taskid,
-			       __native flags);
-__native sys_ipc_connect_me_to(__native phoneid, __native arg1,
-			       __native arg2);
+__native sys_ipc_wait_for_call(ipc_data_t *calldata, __native flags);
 __native sys_ipc_forward_fast(__native callid, __native phoneid,
 			      __native method, __native arg1);
 __native sys_ipc_hangup(int phoneid);

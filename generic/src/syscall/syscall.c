@@ -76,7 +76,5 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_answer,
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
-	sys_ipc_connect_to_me,
-	sys_ipc_connect_me_to,
 	sys_ipc_hangup
 };

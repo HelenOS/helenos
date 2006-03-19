@@ -62,6 +62,22 @@
  *
  * Destroying is less frequent, this approach is taken.
  *
+ * Phone call
+ *
+ * *** Connect_me_to ***
+ * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server
+ * receives 'phoneid' of the connecting phone as an ARG3. If it answers
+ * with RETVAL=0, the phonecall is accepted, otherwise it is refused.
+ *
+ * *** Connect_to_me ***
+ * The caller sends IPC_M_CONNECT_TO_ME, with special 
+ * The server receives an automatically
+ * opened phoneid. If it accepts (RETVAL=0), it can use the phoneid
+ * immediately. 
+ * Possible race condition can arise, when the client receives messages
+ * from new connection before getting response for connect_to_me message.
+ * Userspace should implement handshake protocol that would control it.
+ *
  * Phone hangup
  * 
  * *** The caller hangs up (sys_ipc_hangup) ***
@@ -100,7 +116,7 @@
  * 3) Answer all messages in 'calls' and 'dispatched_calls' queues with
  *    appropriate error code (EHANGUP, EFORWARD).
  *
- * 4) Wait for all async answers to arrive.
+ * 4) Wait for all async answers to arrive and dispose of them.
  * 
  */
 
@@ -142,19 +158,22 @@ int phone_alloc(void)
 	return i;
 }
 
-/** Disconnect phone a free the slot
+static void phone_deallocp(phone_t *phone)
+{
+	ASSERT(phone->busy == IPC_BUSY_CONNECTING);
+	ASSERT(! phone->callee);
+	
+	/* atomic operation */
+	phone->busy = IPC_BUSY_FREE;
+}
+
+/** Free slot from a disconnected phone
  *
  * All already sent messages will be correctly processed
  */
 void phone_dealloc(int phoneid)
 {
-	spinlock_lock(&TASK->lock);
-
-	ASSERT(TASK->phones[phoneid].busy == IPC_BUSY_CONNECTING);
-	ASSERT(! TASK->phones[phoneid].callee);
-
-	TASK->phones[phoneid].busy = IPC_BUSY_FREE;
-	spinlock_unlock(&TASK->lock);
+	phone_deallocp(&TASK->phones[phoneid]);
 }
 
 /** Connect phone to a given answerbox
