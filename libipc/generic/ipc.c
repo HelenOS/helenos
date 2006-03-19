@@ -252,3 +252,8 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 	return __SYSCALL3(SYS_IPC_CONNECT_ME_TO, phoneid, arg1, arg2);
 }
 
+/* Hang up specified phone */
+int ipc_hangup(int phoneid)
+{
+	return __SYSCALL1(SYS_IPC_HANGUP, phoneid);
+}

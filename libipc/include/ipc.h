@@ -34,7 +34,10 @@
 #include <types.h>
 
 typedef sysarg_t ipcarg_t;
-typedef sysarg_t ipc_data_t[IPC_CALL_LEN];
+typedef struct {
+	sysarg_t args[IPC_CALL_LEN];
+	sysarg_t phoneid;
+} ipc_data_t ;
 typedef struct {
 	unsigned long long taskid;
 	ipc_data_t data;
@@ -65,5 +68,6 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, 
 		      unsigned long long *taskid);
 int ipc_connect_me_to(int phoneid, int arg1, int arg2);
+int ipc_hangup(int phoneid);
 
 #endif

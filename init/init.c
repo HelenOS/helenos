@@ -34,6 +34,8 @@
 #include <ns.h>
 #include <thread.h>
 
+int a;
+
 extern void utest(void *arg);
 void utest(void *arg)
 {
@@ -169,7 +171,7 @@ static void test_advanced_ipc(void)
 		printf("Received ping\n");
 		ipc_answer(callid, 0, 0, 0);
 	}
-	callid = ipc_wait_for_call(&data, NULL);
+//	callid = ipc_wait_for_call(&data, NULL);
 }
 
 static void test_connection_ipc(void)
@@ -182,8 +184,61 @@ static void test_connection_ipc(void)
 	printf("Connected: %d\n", res);
 	printf("pinging.\n");
 	res = ipc_call_sync(res, NS_PING, 0xbeef,&result);
-	printf("Retval: %d - received: %zd\n", res, result);
+	printf("Retval: %d - received: %X\n", res, result);
 	
+}
+
+static void test_hangup(void)
+{
+	int phoneid;
+	ipc_call_t data;
+	ipc_callid_t callid;
+	int i;
+
+	printf("Starting connect...\n");
+	phoneid = ipc_connect_me_to(PHONE_NS, 10, 20);
+	printf("Phoneid: %d, pinging\n", phoneid);
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Pong1", got_answer);
+	printf("Hangin up\n");
+	ipc_hangup(phoneid);
+	printf("Connecting\n");
+	phoneid = ipc_connect_me_to(PHONE_NS, 10, 20);
+	printf("Newphid: %d\n", phoneid);
+	for (i=0; i < 1000; i++) {
+		if ((callid=ipc_wait_for_call(&data, IPC_WAIT_NONBLOCKING)))
+			printf("callid: %d\n");
+	}
+	printf("New new phoneid: %d\n", ipc_connect_me_to(PHONE_NS, 10, 20));
+}
+
+static void test_slam(void)
+{
+	int i;
+	ipc_call_t data;
+	ipc_callid_t callid;
+
+	printf("ping");
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Pong1", got_answer);
+	printf("slam");
+	ipc_call_async_2(PHONE_NS, NS_HANGUP, 1, 0xbeefbee2,
+			 "Hang", got_answer);
+	printf("ping2\n");
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Ping2", got_answer);
+	
+	for (i=0; i < 1000; i++) {
+		if ((callid=ipc_wait_for_call(&data, IPC_WAIT_NONBLOCKING)))
+			printf("callid: %d\n");
+	}
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Pong1", got_answer);
+	printf("Closing file\n");
+	ipc_hangup(PHONE_NS);
+	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
+			 "Pong1", got_answer);
+	ipc_wait_for_call(&data, 0);
 }
 
 int main(int argc, char *argv[])
@@ -195,11 +250,12 @@ int main(int argc, char *argv[])
 //	test_ping();
 //	test_async_ipc();
 //	test_advanced_ipc();
-	test_connection_ipc();
-	
-	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
-		printf("Created thread tid=%d\n", tid);
-	}
-	
+//	test_connection_ipc();
+//	test_hangup();
+	test_slam();
+
+//	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
+//		printf("Created thread tid=%d\n", tid);
+//	}
 	return 0;
 }

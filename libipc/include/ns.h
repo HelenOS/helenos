@@ -31,5 +31,6 @@
 
 #define NS_PING      1024
 #define NS_PING_SVC  1025
+#define NS_HANGUP    1026
 
 #endif

@@ -14,18 +14,24 @@ int main(int argc, char **argv)
 	
 	ipcarg_t retval, arg1, arg2;
 
-	printf("Name service started.\n");
+	printf("NS:Name service started.\n");
 	while (1) {
+		call.taskid = -1;
 		callid = ipc_wait_for_call(&call, 0);
-		printf("Received call from: %P..%llX\n", &call.taskid,call.taskid);
+		printf("NS:Call task=%llX,phone=%lX..", 
+		       call.taskid,call.data.phoneid);
 		switch (IPC_GET_METHOD(call.data)) {
-		case IPC_M_CONNECTTOME:
-			printf("Somebody wants to connect with phoneid %zd...accepting\n", IPC_GET_ARG3(call.data));
+		case IPC_M_PHONE_HUNGUP:
+			printf("Phone hung up.\n");
+			retval = 0;
+			break;
+		case IPC_M_CONNECT_TO_ME:
+			printf("Somebody connecting phid=%zd.\n", IPC_GET_ARG3(call.data));
 			service = IPC_GET_ARG3(call.data);
 			retval = 0;
 			break;
-		case IPC_M_CONNECTMETO:
-			printf("Somebody wants to connect to: %zd\n",
+		case IPC_M_CONNECT_ME_TO:
+			printf("Connectmeto: %zd\n",
 			       IPC_GET_ARG1(call.data));
 			retval = 0;
 			break;
@@ -36,10 +42,14 @@ int main(int argc, char **argv)
 			arg1 = 0xdead;
 			arg2 = 0xbeef;
 			break;
+		case NS_HANGUP:
+			printf("Closing connection.\n");
+			retval = EHANGUP;
+			break;
 		case NS_PING_SVC:
-			printf("Pinging service %d\n", service);
+			printf("NS:Pinging service %d\n", service);
 			ipc_call_sync(service, NS_PING, 0xbeef, 0);
-			printf("Got pong\n");
+			printf("NS:Got pong\n");
 			break;
 		default:
 			printf("Unknown method: %zd\n", IPC_GET_METHOD(call.data));
