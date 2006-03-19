@@ -70,7 +70,7 @@
 #define PTL0_INDEX_ARCH(vaddr)  ((vaddr)>>26) 
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14)&0x3fff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr)>>14) & 0xfff)
 
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
