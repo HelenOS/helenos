@@ -246,7 +246,7 @@ int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone)
  */
 int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 {
-	int newphid;
+	ipcarg_t newphid;
 	int res;
 
 	res =  ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1,
