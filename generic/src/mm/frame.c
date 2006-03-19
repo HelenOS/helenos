@@ -537,9 +537,11 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 		frame_initialize(&z->frames[i]);
 	}
 	/* Copy frames from both zones to preserve full frame orders,
-	 * parents etc. Set all frames with refcount=0 to 1, because
+	 * parents etc. Set all free frames with refcount=0 to 1, because
 	 * we add all free frames to buddy allocator later again, clear
-	 * order to 0.
+	 * order to 0. Don't set busy frames with refcount=0, as they
+	 * will not be reallocated during merge and it would make later
+	 * problems with allocation/free.
 	 */
 	for (i=0; i<z1->count; i++)
 		z->frames[i] = z1->frames[i];
@@ -547,10 +549,17 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 		z2idx = i + (z2->base - z1->base);
 		z->frames[z2idx] = z2->frames[i];
 	}
-	for (i=0; i < z->count; i++) {
-		if (!z->frames[i].refcount) {
+	i = 0;
+	while (i < z->count) {
+		if (z->frames[i].refcount) {
+			/* skip busy frames */
+			i += 1 << z->frames[i].buddy_order;
+		} else { /* Free frames, set refcount=1 */
+			/* All free frames have refcount=0, we need not
+			 * to check the order */
 			z->frames[i].refcount = 1;
 			z->frames[i].buddy_order = 0;
+			i++;
 		}
 	}
 	/* Add free blocks from the 2 original zones */
