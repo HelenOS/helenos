@@ -235,12 +235,10 @@ exception_handler:
 #define SS_SP     20
 #define SS_STATUS 24
 #define SS_EPC    28
-#define SS_RA     32
 uspace_shortcut:
 	# We have a lot of space on the stack, with free use
 	sw $sp, SS_SP($k0)
 	move $sp, $k0
-	sw $ra, SS_RA($k0)
 
 	mfc0 $t1, $epc
 	mfc0 $t0, $status
@@ -257,9 +255,6 @@ uspace_shortcut:
 	jal syscall_handler
 	sw $v0, SS_ARG4($sp)        # save v0 - arg4 to stack
 
-	# Restore RA
-	lw $ra, SS_RA($sp)
-	
 	# restore epc+4
 	lw $t0,SS_EPC($sp)
 	addi $t0, $t0, 4
