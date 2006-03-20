@@ -58,46 +58,58 @@
 #define cp0_mask_int(it) cp0_status_write(cp0_status_read() & ~(1<<(cp0_status_im_shift+(it))))
 #define cp0_unmask_int(it) cp0_status_write(cp0_status_read() | (1<<(cp0_status_im_shift+(it))))
 
-extern  __u32 cp0_index_read(void);
-extern void cp0_index_write(__u32 val);
+#define GEN_READ_CP0(nm,reg) static inline __u32 cp0_ ##nm##_read(void) \
+  { \
+      __u32 retval; \
+      asm("mfc0 %0, $" #reg : "=r"(retval)); \
+      return retval; \
+  }
 
-extern __u32 cp0_random_read(void);
+#define GEN_WRITE_CP0(nm,reg) static inline void cp0_ ##nm##_write(__u32 val) \
+ { \
+    asm("mtc0 %0, $" #reg : : "r"(val) ); \
+ }
 
-extern __u32 cp0_entry_lo0_read(void);
-extern void cp0_entry_lo0_write(__u32 val);
+GEN_READ_CP0(index, 0);
+GEN_WRITE_CP0(index, 0);
 
-extern __u32 cp0_entry_lo1_read(void);
-extern void cp0_entry_lo1_write(__u32 val);
+GEN_READ_CP0(random, 1);
 
-extern __u32 cp0_context_read(void);
-extern void cp0_context_write(__u32 val);
+GEN_READ_CP0(entry_lo0, 2);
+GEN_WRITE_CP0(entry_lo0, 2);
 
-extern __u32 cp0_pagemask_read(void);
-extern void cp0_pagemask_write(__u32 val);
+GEN_READ_CP0(entry_lo1, 3);
+GEN_WRITE_CP0(entry_lo1, 3);
 
-extern __u32 cp0_wired_read(void);
-extern void cp0_wired_write(__u32 val);
+GEN_READ_CP0(context, 4);
+GEN_WRITE_CP0(context, 4);
 
-extern __u32 cp0_badvaddr_read(void);
+GEN_READ_CP0(pagemask, 5);
+GEN_WRITE_CP0(pagemask, 5);
 
-extern __u32 cp0_count_read(void);
-extern void cp0_count_write(__u32 val);
+GEN_READ_CP0(wired, 6);
+GEN_WRITE_CP0(wired, 6);
 
-extern __u32 cp0_entry_hi_read(void);
-extern void cp0_entry_hi_write(__u32 val);
+GEN_READ_CP0(badvaddr, 8);
 
-extern __u32 cp0_compare_read(void);
-extern void cp0_compare_write(__u32 val);
+GEN_READ_CP0(count, 9);
+GEN_WRITE_CP0(count, 9);
 
-extern __u32 cp0_status_read(void);
-extern void cp0_status_write(__u32 val);
+GEN_READ_CP0(entry_hi, 10);
+GEN_WRITE_CP0(entry_hi, 10);
 
-extern __u32 cp0_cause_read(void);
-extern void cp0_cause_write(__u32 val);
+GEN_READ_CP0(compare, 11);
+GEN_WRITE_CP0(compare, 11);
 
-extern __u32 cp0_epc_read(void);
-extern void cp0_epc_write(__u32 val);
+GEN_READ_CP0(status, 12);
+GEN_WRITE_CP0(status, 12);
 
-extern __u32 cp0_prid_read(void);
+GEN_READ_CP0(cause, 13);
+GEN_WRITE_CP0(cause, 13);
+
+GEN_READ_CP0(epc, 14);
+GEN_WRITE_CP0(epc, 14);
+
+GEN_READ_CP0(prid, 15);
 
 #endif

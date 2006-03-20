@@ -43,9 +43,13 @@
 .global exception_entry
 .global userspace_asm
 
+# Which status bits should are thread-local
+#define REG_SAVE_MASK 0x1f # KSU(UM), EXL, ERL, IE
+	
 # Save registers to space defined by \r
-# We will change $at on the way
-.macro REGISTERS_STORE r
+# We will change status: Disable ERL,EXL,UM,IE
+# These changes will be automatically reversed in REGISTER_LOAD
+.macro REGISTERS_STORE_AND_EXC_RESET r
 	sw $at,EOFFSET_AT(\r)
 	sw $v0,EOFFSET_V0(\r)
 	sw $v1,EOFFSET_V1(\r)
@@ -85,13 +89,30 @@
 	sw $ra,EOFFSET_RA(\r)
 	sw $sp,EOFFSET_SP(\r)
 
-	mfc0 $at, $status
-	sw $at,EOFFSET_STATUS(\r)
-	mfc0 $at, $epc
-	sw $at,EOFFSET_EPC(\r)
+	mfc0 $t0, $status
+	mfc0 $t1, $epc
+	
+	and $t2, $t0, REG_SAVE_MASK  # Save only KSU,EXL,ERL,IE
+	li $t3, ~(0x1f)
+	and $t0, $t0, $t3           # Clear KSU,EXL,ERL,IE
+	
+	sw $t2,EOFFSET_STATUS(\r)
+	sw $t1,EOFFSET_EPC(\r)
+	mtc0 $t0, $status
 .endm
 
 .macro REGISTERS_LOAD r
+	# Update only UM,EXR,IE from status, the rest
+	# is controlled by OS and not bound to task
+	mfc0 $t0, $status
+	lw $t1,EOFFSET_STATUS(\r)
+
+	li $t2, ~REG_SAVE_MASK    # Mask UM,EXL,ERL,IE
+	and $t0, $t0, $t2
+	
+	or $t0, $t0, $t1   # Copy UM,EXL,ERL,IE from saved status
+	mtc0 $t0, $status
+	
 	lw $v0,EOFFSET_V0(\r)
 	lw $v1,EOFFSET_V1(\r)
 	lw $a0,EOFFSET_A0(\r)
@@ -128,8 +149,6 @@
 	lw $at,EOFFSET_HI(\r)
 	mthi $at
 
-	lw $at,EOFFSET_STATUS(\r)
-	mtc0 $at, $status
 	lw $at,EOFFSET_EPC(\r)
 	mtc0 $at, $epc
 	
@@ -188,23 +207,81 @@ exception_entry:
 	
 exception_handler:
 	KERNEL_STACK_TO_K0
+	
+	mfc0 $k1, $cause
 	sub $k0, REGISTER_SPACE
-	REGISTERS_STORE $k0
-	add $sp, $k0, 0
-
-	add $a0, $sp, 0 
-	jal exception /* exception(register_space) */
-	nop
+	
+	sra $k1, $k1, 0x2     # cp0_exc_cause() part 1
+	andi $k1, $k1, 0x1f   # cp0_exc_cause() part 2
+	sub $k1, 8            # 8=SYSCALL
+	
+	beqz $k1, uspace_shortcut
+	add $k1, 8            # Revert $k1 back to correct exc number
+	
+	REGISTERS_STORE_AND_EXC_RESET $k0
+	move $sp, $k0
+	
+	move $a1, $sp
+	jal exc_dispatch      # exc_dispatch(excno, register_space)
+	move $a0, $k1
 
 	REGISTERS_LOAD $sp
 	# The $sp is automatically restored to former value
 	eret
 	nop
+
+# it seems that mips reserves some space on stack for varfuncs???
+#define SS_ARG4   16
+#define SS_SP     20
+#define SS_STATUS 24
+#define SS_EPC    28
+#define SS_RA     32
+uspace_shortcut:
+	# We have a lot of space on the stack, with free use
+	sw $sp, SS_SP($k0)
+	move $sp, $k0
+	sw $ra, SS_RA($k0)
+
+	mfc0 $t1, $epc
+	mfc0 $t0, $status
+	sw $t1,SS_EPC($sp)  # Save EPC
+	
+	and $t2, $t0, REG_SAVE_MASK # Save only KSU,EXL,ERL,IE
+	li $t3, ~(0x1f)
+	and $t0, $t0, $t3           # Clear KSU,EXL,ERL
+	ori $t0, $t0, 0x1           # Set IE
+
+	sw $t2,SS_STATUS($sp)
+	mtc0 $t0, $status
+
+	jal syscall_handler
+	sw $v0, SS_ARG4($sp)        # save v0 - arg4 to stack
+
+	# Restore RA
+	lw $ra, SS_RA($sp)
+	
+	# restore epc+4
+	lw $t0,SS_EPC($sp)
+	addi $t0, $t0, 4
+	mtc0 $t0, $epc
+	
+	# restore status
+	mfc0 $t0, $status
+	lw $t1,SS_STATUS($sp)
+
+	li $t2, ~REG_SAVE_MASK      # Mask UM,EXL,ERL,IE
+	and $t0, $t0, $t2
+	or $t0, $t0, $t1            # Copy UM,EXL,ERL,IE from saved status
+	mtc0 $t0, $status
+			
+	lw $sp,SS_SP($sp) # restore sp
+	
+	eret
 	
 tlb_refill_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
-	REGISTERS_STORE $k0
+	REGISTERS_STORE_AND_EXC_RESET $k0
 	add $sp, $k0, 0
 
 	add $a0, $sp, 0 
@@ -214,12 +291,11 @@ tlb_refill_handler:
 	REGISTERS_LOAD $sp
 
 	eret
-	nop
 
 cache_error_handler:
 	KERNEL_STACK_TO_K0
 	sub $sp, REGISTER_SPACE
-	REGISTERS_STORE $sp
+	REGISTERS_STORE_AND_EXC_RESET $sp
 	add $sp, $k0, 0
 
 	jal cache_error
@@ -228,11 +304,9 @@ cache_error_handler:
 	REGISTERS_LOAD $sp
 
 	eret
-	nop
 
 userspace_asm:
 	add $sp, $a0, 0
 	add $v0, $a1, 0
 	eret
-	nop
 

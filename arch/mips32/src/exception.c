@@ -129,60 +129,18 @@ static void interrupt_exception(int n, istate_t *istate)
 			exc_dispatch(i+INT_OFFSET, istate);
 }
 
-#include <debug.h>
+__native syscall_handler(__native a0, __native a1, __native a2,
+			 __native a3, __native sysnum)
+{
+	if (sysnum < SYSCALL_END)
+		return syscall_table[sysnum](a0,a1,a2,a3);
+	panic("Undefined syscall %d", sysnum);
+}
+
 /** Handle syscall userspace call */
 static void syscall_exception(int n, istate_t *istate)
 {
-	interrupts_enable();
-	if (istate->t0 < SYSCALL_END)
-		istate->v0 = syscall_table[istate->t0](istate->a0,
-						       istate->a1,
-						       istate->a2,
-						       istate->a3);
-	else
-		panic("Undefined syscall %d", istate->a3);
-	istate->epc += 4;
-	interrupts_disable();
-}
-
-void exception(istate_t *istate)
-{
-	int cause;
-	int excno;
-
-	ASSERT(CPU != NULL);
-
-	/*
-	 * NOTE ON OPERATION ORDERING
-	 *
-	 * On entry, interrupts_disable() must be called before 
-	 * exception bit is cleared.
-	 */
-
-	interrupts_disable();
-	cp0_status_write(cp0_status_read() & ~ (cp0_status_exl_exception_bit |
-						cp0_status_um_bit));
-
-	/* Save istate so that the threads can access it */
-	/* If THREAD->istate is set, this is nested exception,
-	 * do not rewrite it
-	 */
-	if (THREAD && !THREAD->istate)
-		THREAD->istate = istate;
-
-	cause = cp0_cause_read();
-	excno = cp0_cause_excno(cause);
-	/* Dispatch exception */
-	exc_dispatch(excno, istate);
-
-	/* Set to NULL, so that we can still support nested
-	 * exceptions
-	 * TODO: We should probably set EXL bit before this command,
-	 * nesting. On the other hand, if some exception occurs between
-	 * here and ERET, it won't set anything on the istate anyway.
-	 */
-	if (THREAD)
-		THREAD->istate = NULL;
+	panic("Syscall is handled through shortcut");
 }
 
 void exception_init(void)
