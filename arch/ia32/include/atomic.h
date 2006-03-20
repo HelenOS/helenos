@@ -30,6 +30,8 @@
 #define __ia32_ATOMIC_H__
 
 #include <arch/types.h>
+#include <arch/barrier.h>
+#include <preemption.h>
 
 typedef struct { volatile __u32 count; } atomic_t;
 
@@ -100,7 +102,31 @@ static inline __u32 test_and_set(atomic_t *val) {
 	return v;
 }
 
+/** Ia32 specific fast spinlock */
+static inline void atomic_lock_arch(atomic_t *val)
+{
+	__u32 tmp;
 
-extern void spinlock_arch(volatile int *val);
+	preemption_disable();
+	__asm__ volatile (
+		"0:;"
+#ifdef CONFIG_HT
+		"pause;" /* Pentium 4's HT love this instruction */
+#endif
+		"mov %0, %1;"
+		"testl %1, %1;"
+		"jnz 0b;"       /* Leightweight looping on locked spinlock */
+		
+		"incl %1;"      /* now use the atomic operation */
+		"xchgl %0, %1;"
+		"testl %1, %1;"
+		"jnz 0b;"
+                : "=m"(val->count),"=r"(tmp)
+		);
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
+	CS_ENTER_BARRIER();
+}
 
 #endif

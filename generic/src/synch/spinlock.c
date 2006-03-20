@@ -51,7 +51,6 @@ void spinlock_initialize(spinlock_t *sl, char *name)
 #endif	
 }
 
-#ifdef CONFIG_DEBUG_SPINLOCK
 /** Lock spinlock
  *
  * Lock spinlock.
@@ -60,7 +59,8 @@ void spinlock_initialize(spinlock_t *sl, char *name)
  *
  * @param sl Pointer to spinlock_t structure.
  */
-void spinlock_lock(spinlock_t *sl)
+#ifdef CONFIG_DEBUG_SPINLOCK
+void spinlock_lock_debug(spinlock_t *sl)
 {
 	count_t i = 0;
 	char *symbol;
@@ -82,31 +82,6 @@ void spinlock_lock(spinlock_t *sl)
 
 	if (deadlock_reported)
 		printf("cpu%d: not deadlocked\n", CPU->id);
-
-	/*
-	 * Prevent critical section code from bleeding out this way up.
-	 */
-	CS_ENTER_BARRIER();
-
-}
-
-#else
-
-/** Lock spinlock
- *
- * Lock spinlock.
- *
- * @param sl Pointer to spinlock_t structure.
- */
-void spinlock_lock(spinlock_t *sl)
-{
-	preemption_disable();
-
-	/*
-	 * Each architecture has its own efficient/recommended
-	 * implementation of spinlock.
-	 */
-	spinlock_arch(&sl->val);
 
 	/*
 	 * Prevent critical section code from bleeding out this way up.
@@ -141,25 +116,6 @@ int spinlock_trylock(spinlock_t *sl)
 		preemption_enable();
 	
 	return rc;
-}
-
-/** Unlock spinlock
- *
- * Unlock spinlock.
- *
- * @param sl Pointer to spinlock_t structure.
- */
-void spinlock_unlock(spinlock_t *sl)
-{
-	ASSERT(atomic_get(&sl->val) != 0);
-
-	/*
-	 * Prevent critical section code from bleeding out this way down.
-	 */
-	CS_LEAVE_BARRIER();
-	
-	atomic_set(&sl->val,0);
-	preemption_enable();
 }
 
 #endif

@@ -54,7 +54,7 @@ void halt()
 		rundebugger = true;
 	}
 #else
-	atomic_set(haltstate, 1);
+	atomic_set(&haltstate, 1);
 #endif
 
 	interrupts_disable();

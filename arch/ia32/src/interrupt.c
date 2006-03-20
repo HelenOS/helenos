@@ -64,8 +64,10 @@ static void PRINT_INFO_ERRCODE(istate_t *istate)
 	printf("%%eip: %X (%s)\n",istate->eip,symbol);
 	printf("ERROR_WORD=%X\n", istate->error_word);
 	printf("%%cs=%X,flags=%X\n", istate->cs, istate->eflags);
-	printf("%%eax=%X, %%ebx=%X, %%ecx=%X, %%edx=%X\n",  istate->eax,istate->ebx,istate->ecx,istate->edx);
-	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%esp=%X\n",  istate->esi,istate->edi,istate->ebp,istate->esp);
+	printf("%%eax=%X, %%ecx=%X, %%edx=%X, %%esp=%X\n",  istate->eax,istate->ecx,istate->edx,&istate->stack[0]);
+#ifdef CONFIG_DEBUG_ALLREGS
+	printf("%%esi=%X, %%edi=%X, %%ebp=%X, %%ebx=%X\n",  istate->esi,istate->edi,istate->ebp,istate->ebx);
+#endif
 	printf("stack: %X, %X, %X, %X\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
 	printf("       %X, %X, %X, %X\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
 }
@@ -125,12 +127,7 @@ void page_fault(int n, istate_t *istate)
 
 void syscall(int n, istate_t *istate)
 {
-	interrupts_enable();
-	if (istate->esi < SYSCALL_END)
-		istate->eax = syscall_table[istate->esi](istate->eax, istate->ebx, istate->ecx, istate->edx);
-	else
-		panic("Undefined syscall %d", istate->esi);
-	interrupts_disable();
+	panic("Obsolete syscall handler.");
 }
 
 void tlb_shootdown_ipi(int n, istate_t *istate)

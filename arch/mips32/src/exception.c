@@ -40,7 +40,6 @@
 #include <func.h>
 #include <console/kconsole.h>
 #include <arch/debugger.h>
-#include <syscall/syscall.h>
 
 static char * exctable[] = {
 	"Interrupt","TLB Modified","TLB Invalid","TLB Invalid Store",
@@ -127,14 +126,6 @@ static void interrupt_exception(int n, istate_t *istate)
 	for (i = 0; i < 8; i++)
 		if (cause & (1 << i))
 			exc_dispatch(i+INT_OFFSET, istate);
-}
-
-__native syscall_handler(__native a0, __native a1, __native a2,
-			 __native a3, __native sysnum)
-{
-	if (sysnum < SYSCALL_END)
-		return syscall_table[sysnum](a0,a1,a2,a3);
-	panic("Undefined syscall %d", sysnum);
 }
 
 /** Handle syscall userspace call */

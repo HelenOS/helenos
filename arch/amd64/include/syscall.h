@@ -31,8 +31,6 @@
 
 #include <arch/types.h>
 
-extern __native syscall_handler(__native a1,__native a2, __native a3, 
-				__native a4, __native id);
 extern void syscall_setup_cpu(void);
 
 #endif

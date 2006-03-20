@@ -215,7 +215,7 @@ exception_handler:
 	andi $k1, $k1, 0x1f   # cp0_exc_cause() part 2
 	sub $k1, 8            # 8=SYSCALL
 	
-	beqz $k1, uspace_shortcut
+	beqz $k1, syscall_shortcut
 	add $k1, 8            # Revert $k1 back to correct exc number
 	
 	REGISTERS_STORE_AND_EXC_RESET $k0
@@ -228,14 +228,13 @@ exception_handler:
 	REGISTERS_LOAD $sp
 	# The $sp is automatically restored to former value
 	eret
-	nop
 
 # it seems that mips reserves some space on stack for varfuncs???
 #define SS_ARG4   16
 #define SS_SP     20
 #define SS_STATUS 24
 #define SS_EPC    28
-uspace_shortcut:
+syscall_shortcut:
 	# We have a lot of space on the stack, with free use
 	sw $sp, SS_SP($k0)
 	move $sp, $k0

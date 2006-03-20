@@ -33,6 +33,7 @@
 #include <typedefs.h>
 #include <preemption.h>
 #include <arch/atomic.h>
+#include <debug.h>
 
 #ifdef CONFIG_SMP
 struct spinlock {
@@ -66,9 +67,33 @@ struct spinlock {
 #endif
 
 extern void spinlock_initialize(spinlock_t *sl, char *name);
-extern void spinlock_lock(spinlock_t *sl);
 extern int spinlock_trylock(spinlock_t *sl);
-extern void spinlock_unlock(spinlock_t *sl);
+extern void spinlock_lock_debug(spinlock_t *sl);
+
+#ifdef CONFIG_DEBUG_SPINLOCK
+#  define spinlock_lock(x) spinlock_lock_debug(x)
+#else
+#  define spinlock_lock(x) atomic_lock_arch(&(x)->val)
+#endif
+
+/** Unlock spinlock
+ *
+ * Unlock spinlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
+static inline void spinlock_unlock(spinlock_t *sl)
+{
+	ASSERT(atomic_get(&sl->val) != 0);
+
+	/*
+	 * Prevent critical section code from bleeding out this way down.
+	 */
+	CS_LEAVE_BARRIER();
+	
+	atomic_set(&sl->val,0);
+	preemption_enable();
+}
 
 #else
 

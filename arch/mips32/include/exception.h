@@ -98,6 +98,5 @@ extern void tlb_refill_entry(void);
 extern void exception_entry(void);
 extern void cache_error_entry(void);
 extern void exception_init(void);
-extern __native syscall_handler(__native a0, __native a1, __native a2,
-				__native a3, __native sysnum);
+
 #endif

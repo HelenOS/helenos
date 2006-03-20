@@ -54,18 +54,14 @@ void print_info_errcode(int n, istate_t *istate)
 	printf("%%rip: %Q (%s)\n",istate->rip, symbol);
 	printf("ERROR_WORD=%Q\n", istate->error_word);
 	printf("%%rcs=%Q, flags=%Q, %%cr0=%Q\n", istate->cs, istate->rflags,read_cr0());
-	printf("%%rax=%Q, %%rbx=%Q, %%rcx=%Q\n",istate->rax,istate->rbx,istate->rcx);
-	printf("%%rdx=%Q, %%rsi=%Q, %%rdi=%Q\n",istate->rdx,istate->rsi,istate->rdi);
-	printf("%%r8 =%Q, %%r9 =%Q, %%r10=%Q\n",istate->r8,istate->r9,istate->r10);
-	printf("%%r11=%Q, %%r12=%Q, %%r13=%Q\n",istate->r11,istate->r12,istate->r13);
-	printf("%%r14=%Q, %%r15=%Q, %%rsp=%Q\n",istate->r14,istate->r15,&istate->stack[0]);
-	printf("%%rbp=%Q\n",istate->rbp);
-/*      
-	printf("stack: %Q, %Q, %Q\n", x[5], x[6], x[7]);
-	printf("       %Q, %Q, %Q\n", x[8], x[9], x[10]);
-	printf("       %Q, %Q, %Q\n", x[11], x[12], x[13]);
-	printf("       %Q, %Q, %Q\n", x[14], x[15], x[16]);
-*/
+	printf("%%rax=%Q, %%rcx=%Q, %%rdx=%Q\n",istate->rax,istate->rcx,istate->rdx);
+	printf("%%rsi=%Q, %%rdi=%Q, %%r8 =%Q\n",istate->rsi,istate->rdi,istate->r8);
+	printf("%%r9 =%Q, %%r10 =%Q, %%r11=%Q\n",istate->r9,istate->r10,istate->r11);
+#ifdef CONFIG_DEBUG_ALLREGS	
+	printf("%%r12=%Q, %%r13=%Q, %%r14=%Q\n",istate->r12,istate->r13,istate->r14);
+	printf("%%r15=%Q, %%rbx=%Q, %%rbp=%Q\n",istate->r15,istate->rbx,&istate->rbp);
+#endif
+	printf("%%rsp=%Q\n",&istate->stack[0]);
 }
 
 /*

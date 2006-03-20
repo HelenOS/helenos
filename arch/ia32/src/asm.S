@@ -68,6 +68,15 @@ enable_l_apic_in_msr:
 	pop %eax
 	ret
 
+# Clear nested flag
+# overwrites %ecx
+.macro CLEAR_NT_FLAG
+	pushfl
+	pop %ecx
+	and $0xffffbfff,%ecx
+	push %ecx
+	popfl
+.endm	
 
 ## Declare interrupt handlers
 #
@@ -77,24 +86,51 @@ enable_l_apic_in_msr:
 # The handlers setup data segment registers
 # and call exc_dispatch().
 #
+#define INTERRUPT_ALIGN 64
 .macro handler i n
 
+.ifeq \i-0x30     # Syscall handler
+	push %ds
+	push %es
+	push %fs
+	push %gs
+
+	# Push arguments on stack
+	push %edi
+	push %esi
+	push %edx
+	push %ecx
+	push %eax
+	
+	# we must fill the data segment registers
+	movw $16,%ax
+	movw %ax,%ds
+	movw %ax,%es
+	
+	sti
+	call syscall_handler   # syscall_handler(ax,cx,dx,si,di)
+	cli
+	addl $20, %esp         # clean-up of parameters
+	
+	pop %gs
+	pop %fs
+	pop %es
+	pop %ds
+	
+	CLEAR_NT_FLAG
+	iret
+.else	
 	/*
 	 * This macro distinguishes between two versions of ia32 exceptions.
 	 * One version has error word and the other does not have it.
 	 * The latter version fakes the error word on the stack so that the
 	 * handlers and istate_t can be the same for both types.
 	 */
-
 	.iflt \i-32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
-			/*
-			 * Version with error word.
-			 * Just take space equal to subl $4, %esp.
+			/* 
+			 * With error word, do nothing
 			 */
-			nop
-			nop
-			nop
                 .else
                         /*
                          * Version without error word,
@@ -106,41 +142,59 @@ enable_l_apic_in_msr:
                  * Version without error word,
                  */
 		subl $4, %esp
-        .endif
-
-	pusha
-	movl %esp, %ebp
+	.endif
+	
 	push %ds
 	push %es
 	push %fs
 	push %gs
 
+#ifdef CONFIG_DEBUG_ALLREGS
+	push %ebx
+	push %ebp
+	push %edi
+	push %esi
+#else
+	sub $16, %esp
+#endif
+	push %edx
+	push %ecx
+	push %eax
+	
 	# we must fill the data segment registers
 	movw $16,%ax
 	movw %ax,%ds
 	movw %ax,%es
 
-	pushl %ebp
-	pushl $(\i)
-	call exc_dispatch
-	addl $8,%esp
+	pushl %esp          # *istate
+	pushl $(\i)         # intnum
+	call exc_dispatch   # excdispatch(intnum, *istate)
+	addl $8,%esp        # Clear arguments from stack
 
+	CLEAR_NT_FLAG # Modifies %ecx
+	
+	pop %eax
+	pop %ecx
+	pop %edx
+#ifdef CONFIG_DEBUG_ALLREGS
+	pop %esi
+	pop %edi
+	pop %ebp
+	pop %ebx
+#else
+	add $16, %esp
+#endif	
+	
 	pop %gs
 	pop %fs
 	pop %es
 	pop %ds
 
-# Clear Nested Task flag.
-	pushfl
-	pop %eax
-	and $0xffffbfff,%eax
-	push %eax
-	popfl
-	
-	popa
 	addl $4,%esp	# Skip error word, no matter whether real or fake.
 	iret
+.endif
 
+	.align INTERRUPT_ALIGN
 	.if (\n-\i)-1
 	handler "(\i+1)",\n
 	.endif
@@ -148,12 +202,10 @@ enable_l_apic_in_msr:
 
 # keep in sync with pm.h !!!
 IDT_ITEMS=64
+.align INTERRUPT_ALIGN
 interrupt_handlers:
 h_start:
-	handler 0 64
-#	handler 64 128	
-#	handler 128 192
-#	handler 192 256
+	handler 0 IDT_ITEMS
 h_end:
 
 .data

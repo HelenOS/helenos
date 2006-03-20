@@ -55,6 +55,8 @@ typedef enum {
 typedef __native (*syshandler_t)();
 
 extern syshandler_t syscall_table[SYSCALL_END];
+extern __native syscall_handler(__native a1, __native a2, __native a3,
+				__native a4, __native id);
 
 #endif
 

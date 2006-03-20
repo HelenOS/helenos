@@ -63,14 +63,19 @@
 #define VECTOR_DEBUG_IPI                (IVT_FREEBASE+2)
 
 struct istate {
-	__u32 edi;
-	__u32 esi;
-	__u32 ebp;
-	__u32 esp;
-	__u32 ebx;
-	__u32 edx;
-	__u32 ecx;
 	__u32 eax;
+	__u32 ecx;
+	__u32 edx;
+	__u32 esi;
+	__u32 edi;
+	__u32 ebp;
+	__u32 ebx;
+
+	__u32 gs;
+	__u32 fs;
+	__u32 es;
+	__u32 ds;
+
 	__u32 error_word;
 	__u32 eip;
 	__u32 cs;
