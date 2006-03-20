@@ -37,10 +37,10 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 		"int $0x30\n"
 		: "=a" (ret)
 		: "a" (p1),
-		  "b" (p2),
-		  "c" (p3),
-		  "d" (p4),
-		  "S" (id)
+		  "c" (p2),
+		  "d" (p3),
+		  "S" (p4),
+		  "D" (id)
 	);
 	
 	return ret;
