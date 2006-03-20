@@ -75,6 +75,9 @@ endif
 ifeq ($(CONFIG_FPU_LAZY),y)
 	DEFS += -DCONFIG_FPU_LAZY
 endif
+ifeq ($(CONFIG_DEBUG_ALLREGS),y)
+	DEFS += -DCONFIG_DEBUG_ALLREGS
+endif
 
 ## Toolchain configuration
 #

@@ -69,6 +69,7 @@
 	mfhi $at
 	sw $at, EOFFSET_HI(\r)
 	
+#ifdef CONFIG_DEBUG_ALLREGS	
 	sw $s0,EOFFSET_S0(\r)
 	sw $s1,EOFFSET_S1(\r)
 	sw $s2,EOFFSET_S2(\r)
@@ -77,7 +78,9 @@
 	sw $s5,EOFFSET_S5(\r)
 	sw $s6,EOFFSET_S6(\r)
 	sw $s7,EOFFSET_S7(\r)
-	sw $s8,EOFFSET_S8(\r)	
+	sw $s8,EOFFSET_S8(\r)
+#endif
+	
 	sw $gp,EOFFSET_GP(\r)
 	sw $ra,EOFFSET_RA(\r)
 	sw $sp,EOFFSET_SP(\r)
@@ -105,6 +108,8 @@
 	lw $t7,EOFFSET_T7(\r)
 	lw $t8,EOFFSET_T8(\r)
 	lw $t9,EOFFSET_T9(\r)
+	
+#ifdef CONFIG_DEBUG_ALLREGS	
 	lw $s0,EOFFSET_S0(\r)
 	lw $s1,EOFFSET_S1(\r)
 	lw $s2,EOFFSET_S2(\r)
@@ -114,6 +119,7 @@
 	lw $s6,EOFFSET_S6(\r)
 	lw $s7,EOFFSET_S7(\r)
 	lw $s8,EOFFSET_S8(\r)
+#endif
 	lw $gp,EOFFSET_GP(\r)
 	lw $ra,EOFFSET_RA(\r)
 	

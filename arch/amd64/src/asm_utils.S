@@ -121,9 +121,7 @@ read_efer_flag:
 
 # Push all general purpose registers on stack except %rbp, %rsp
 .macro save_all_gpr
-	movq %rbp, IOFFSET_RBP(%rsp)
 	movq %rax, IOFFSET_RAX(%rsp)
-	movq %rbx, IOFFSET_RBX(%rsp)
 	movq %rcx, IOFFSET_RCX(%rsp)
 	movq %rdx, IOFFSET_RDX(%rsp)
 	movq %rsi, IOFFSET_RSI(%rsp)
@@ -132,16 +130,18 @@ read_efer_flag:
 	movq %r9, IOFFSET_R9(%rsp)
 	movq %r10, IOFFSET_R10(%rsp)
 	movq %r11, IOFFSET_R11(%rsp)
+#ifdef CONFIG_DEBUG_ALLREGS	
+	movq %rbx, IOFFSET_RBX(%rsp)
+	movq %rbp, IOFFSET_RBP(%rsp)
 	movq %r12, IOFFSET_R12(%rsp)
 	movq %r13, IOFFSET_R13(%rsp)
 	movq %r14, IOFFSET_R14(%rsp)
 	movq %r15, IOFFSET_R15(%rsp)
+#endif
 .endm
 
 .macro restore_all_gpr
-	movq IOFFSET_RBP(%rsp), %rbp
 	movq IOFFSET_RAX(%rsp), %rax
-	movq IOFFSET_RBX(%rsp), %rbx
 	movq IOFFSET_RCX(%rsp), %rcx
 	movq IOFFSET_RDX(%rsp), %rdx
 	movq IOFFSET_RSI(%rsp), %rsi
@@ -150,12 +150,22 @@ read_efer_flag:
 	movq IOFFSET_R9(%rsp), %r9
 	movq IOFFSET_R10(%rsp), %r10
 	movq IOFFSET_R11(%rsp), %r11
+#ifdef CONFIG_DEBUG_ALLREGS	
+	movq IOFFSET_RBX(%rsp), %rbx
+	movq IOFFSET_RBP(%rsp), %rbp
 	movq IOFFSET_R12(%rsp), %r12
 	movq IOFFSET_R13(%rsp), %r13
 	movq IOFFSET_R14(%rsp), %r14
 	movq IOFFSET_R15(%rsp), %r15
+#endif
 .endm
 
+#ifdef CONFIG_DEBUG_ALLREGS
+# define INTERRUPT_ALIGN 256
+#else
+# define INTERRUPT_ALIGN 128
+#endif
+	
 ## Declare interrupt handlers
 #
 # Declare interrupt handlers for n interrupt
@@ -180,9 +190,6 @@ read_efer_flag:
 			 * Version with error word.
 			 */
 			subq $IREGISTER_SPACE, %rsp
-			nop
-			nop
-			nop
 		.else
 			/*
 			 * Version without error word,
@@ -207,11 +214,13 @@ read_efer_flag:
 	addq $(IREGISTER_SPACE+8), %rsp
 	iretq
 
+	.align INTERRUPT_ALIGN
 	.if (\n-\i)-1
 	handler "(\i+1)",\n
 	.endif
 .endm
-	
+
+.align INTERRUPT_ALIGN
 interrupt_handlers:
 h_start:
 	handler 0 IDT_ITEMS
