@@ -89,4 +89,7 @@ typedef void (* iroutine)(int n, istate_t *istate);
 typedef struct hash_table hash_table_t;
 typedef struct hash_table_operations hash_table_operations_t;
 
+typedef struct btree_node btree_node_t;
+typedef struct btree btree_t;
+
 #endif

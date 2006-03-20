@@ -162,22 +162,21 @@ void main_bsp_separated_stack(void)
 	 * Memory management subsystems initialization.
 	 */	
 	arch_pre_mm_init();
-	/* Initialize at least 1 memory segment big enough for slab to work */
-	frame_init();
+	frame_init();		/* Initialize at least 1 memory segment big enough for slab to work */
 	slab_cache_init();
 	as_init();
 	page_init();
 	tlb_init();
 	arch_post_mm_init();	
-	version_print();
 
+	version_print();
 	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
 	arch_pre_smp_init();
 	smp_init();
-	/* Slab must be initialized AFTER we know the number of processors */
-	slab_enable_cpucache();
+	
+	slab_enable_cpucache();	/* Slab must be initialized AFTER we know the number of processors */
 
 	printf("config.memory_size=%dM\n", config.memory_size/(1024*1024));
 	printf("config.cpu_count=%d\n", config.cpu_count);
