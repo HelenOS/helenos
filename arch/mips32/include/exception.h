@@ -90,7 +90,7 @@ struct istate {
 
 	__u32 status; /* cp0_status */
 	__u32 epc; /* cp0_epc */
-	__u32 padding; /* padding to align stack on 8 bytes boundary */
+	__u32 k1; /* We use it as thread-local pointer */
 };
 
 extern void exception(istate_t *istate);

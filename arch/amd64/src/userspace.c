@@ -45,6 +45,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 	
 	ipl = interrupts_disable();
 
+	/* Clear CF,PF,AF,ZF,SF,DF,OF */
+	ipl &= ~ (0xbc4);
+
 	__asm__ volatile (""
 			  "pushq %0\n"
 			  "pushq %1\n"

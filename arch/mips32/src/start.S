@@ -49,6 +49,7 @@
 # Save registers to space defined by \r
 # We will change status: Disable ERL,EXL,UM,IE
 # These changes will be automatically reversed in REGISTER_LOAD
+# SP is NOT saved as part of these registers
 .macro REGISTERS_STORE_AND_EXC_RESET r
 	sw $at,EOFFSET_AT(\r)
 	sw $v0,EOFFSET_V0(\r)
@@ -87,7 +88,7 @@
 	
 	sw $gp,EOFFSET_GP(\r)
 	sw $ra,EOFFSET_RA(\r)
-	sw $sp,EOFFSET_SP(\r)
+	sw $k1,EOFFSET_K1(\r)
 
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
@@ -143,6 +144,7 @@
 #endif
 	lw $gp,EOFFSET_GP(\r)
 	lw $ra,EOFFSET_RA(\r)
+	lw $k1,EOFFSET_K1(\r)
 	
 	lw $at,EOFFSET_LO(\r)
 	mtlo $at
@@ -207,23 +209,24 @@ exception_entry:
 	
 exception_handler:
 	KERNEL_STACK_TO_K0
-	
-	mfc0 $k1, $cause
 	sub $k0, REGISTER_SPACE
-	
-	sra $k1, $k1, 0x2     # cp0_exc_cause() part 1
-	andi $k1, $k1, 0x1f   # cp0_exc_cause() part 2
-	sub $k1, 8            # 8=SYSCALL
-	
-	beqz $k1, syscall_shortcut
-	add $k1, 8            # Revert $k1 back to correct exc number
-	
-	REGISTERS_STORE_AND_EXC_RESET $k0
+	sw $sp,EOFFSET_SP($k0)
 	move $sp, $k0
+	
+	mfc0 $k0, $cause
+	
+	sra $k0, $k0, 0x2     # cp0_exc_cause() part 1
+	andi $k0, $k0, 0x1f   # cp0_exc_cause() part 2
+	sub $k0, 8            # 8=SYSCALL
+	
+	beqz $k0, syscall_shortcut
+	add $k0, 8            # Revert $k1 back to correct exc number
+	
+	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
 	jal exc_dispatch      # exc_dispatch(excno, register_space)
-	move $a0, $k1
+	move $a0, $k0
 
 	REGISTERS_LOAD $sp
 	# The $sp is automatically restored to former value
@@ -231,14 +234,11 @@ exception_handler:
 
 # it seems that mips reserves some space on stack for varfuncs???
 #define SS_ARG4   16
-#define SS_SP     20
-#define SS_STATUS 24
-#define SS_EPC    28
+#define SS_SP     EOFFSET_SP
+#define SS_STATUS EOFFSET_STATUS
+#define SS_EPC    EOFFSET_EPC
 syscall_shortcut:
 	# We have a lot of space on the stack, with free use
-	sw $sp, SS_SP($k0)
-	move $sp, $k0
-
 	mfc0 $t1, $epc
 	mfc0 $t0, $status
 	sw $t1,SS_EPC($sp)  # Save EPC
@@ -276,6 +276,7 @@ tlb_refill_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
 	REGISTERS_STORE_AND_EXC_RESET $k0
+	sw $sp,EOFFSET_SP($k0)
 	add $sp, $k0, 0
 
 	add $a0, $sp, 0 
@@ -288,8 +289,9 @@ tlb_refill_handler:
 
 cache_error_handler:
 	KERNEL_STACK_TO_K0
-	sub $sp, REGISTER_SPACE
-	REGISTERS_STORE_AND_EXC_RESET $sp
+	sub $k0, REGISTER_SPACE
+	REGISTERS_STORE_AND_EXC_RESET $k0
+	sw $sp,EOFFSET_SP($k0)
 	add $sp, $k0, 0
 
 	jal cache_error
