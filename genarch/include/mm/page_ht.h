@@ -30,6 +30,8 @@
  * This is the generic page hash table interface.
  */
 
+#ifdef CONFIG_PAGE_HT
+
 #ifndef __PAGE_HT_H__
 #define __PAGE_HT_H__
 
@@ -46,9 +48,11 @@
 #define PAGE_HT_ENTRIES_BITS	13
 #define PAGE_HT_ENTRIES		(1<<PAGE_HT_ENTRIES_BITS)
 
-#define PTE_VALID_ARCH(pte)		((pte) != NULL)
-#define PTE_PRESENT_ARCH(pte)		((pte)->p != 0)
-#define PTE_GET_FRAME_ARCH(pte)		((pte)->frame)
+#define PTE_VALID(pte)		((pte) != NULL)
+#define PTE_PRESENT(pte)	((pte)->p != 0)
+#define PTE_GET_FRAME(pte)	((pte)->frame)
+
+#define SET_PTL0_ADDRESS(x)
 
 struct pte {
 	link_t link;		/**< Page hash table link. */
@@ -69,5 +73,7 @@ extern page_mapping_operations_t ht_mapping_operations;
 extern spinlock_t page_ht_lock;
 extern hash_table_t page_ht;
 extern hash_table_operations_t ht_operations;
+
+#endif
 
 #endif

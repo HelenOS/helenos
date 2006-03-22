@@ -40,6 +40,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
+#include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>

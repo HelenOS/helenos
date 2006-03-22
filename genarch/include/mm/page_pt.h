@@ -32,6 +32,8 @@
  * are supposed to implement *_ARCH macros.
  */
 
+#ifdef CONFIG_PAGE_PT
+
 #ifndef __PAGE_PT_H__
 #define __PAGE_PT_H__
 
@@ -100,5 +102,7 @@ extern page_mapping_operations_t pt_mapping_operations;
 
 extern void page_mapping_insert_pt(as_t *as, __address page, __address frame, int flags);
 extern pte_t *page_mapping_find_pt(as_t *as, __address page);
+
+#endif
 
 #endif

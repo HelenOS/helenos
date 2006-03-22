@@ -43,8 +43,6 @@
 #define KA2PA(x)	((__address) (x))
 #define PA2KA(x)	((__address) (x))
 
-#define SET_PTL0_ADDRESS_ARCH(x)	/**< To be removed as situation permits. */
-
 union page_address {
 	__address address;
 	struct {
