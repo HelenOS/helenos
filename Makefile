@@ -140,6 +140,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/waitq.c \
+	generic/src/synch/futex.c \
 	generic/src/smp/ipi.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \

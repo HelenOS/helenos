@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <syscall/syscall.h>
-#include <proc/thread.h>
-#include <mm/as.h>
-#include <print.h>
-#include <putchar.h>
-#include <errno.h>
-#include <proc/task.h>
-#include <arch.h>
-#include <debug.h>
-#include <ipc/sysipc.h>
-#include <synch/futex.h>
+#ifndef __FUTEX_H__
+#define __FUTEX_H__
 
-static __native sys_io(int fd, const void * buf, size_t count) {
-	
-	// TODO: buf sanity checks and a lot of other stuff ...
+#include <arch/types.h>
+#include <typedefs.h>
+#include <synch/waitq.h>
+#include <genarch/mm/page_ht.h>
+#include <genarch/mm/page_pt.h>
 
-	size_t i;
-	
-	for (i = 0; i < count; i++)
-		putchar(((char *) buf)[i]);
-	
-	return count;
-}
-
-static __native sys_mmap(void *address, size_t size, int flags)
-{
-	if (as_area_create(AS, flags, size, (__address) address))
-		return (__native) address;
-	else
-		return (__native) -1;
-}
-
-static __native sys_mremap(void *address, size_t size, int flags)
-{
-	return as_remap(AS, (__address) address, size, 0);
-}
-
-/** Dispatch system call */
-__native syscall_handler(__native a1, __native a2, __native a3,
-			 __native a4, __native id)
-{
-	if (id < SYSCALL_END)
-		return syscall_table[id](a1,a2,a3,a4);
-	else
-		panic("Undefined syscall %d", id);
-}
-
-syshandler_t syscall_table[SYSCALL_END] = {
-	sys_io,
-	sys_thread_create,
-	sys_thread_exit,
-	sys_futex_sleep,
-	sys_futex_wakeup,
-	sys_mmap,
-	sys_mremap,
-	sys_ipc_call_sync_fast,
-	sys_ipc_call_sync,
-	sys_ipc_call_async_fast,
-	sys_ipc_call_async,
-	sys_ipc_answer_fast,
-	sys_ipc_answer,
-	sys_ipc_forward_fast,
-	sys_ipc_wait_for_call,
-	sys_ipc_hangup
+/** Kernel-side futex structure. */
+struct futex {
+	__address paddr;	/** Physical address of the status variable. */
+	waitq_t wq;		/** Wait queue for threads waiting for futex availability. */
+	link_t ht_link;		/** Futex hash table link. */
 };
+
+extern void futex_init(void);
+extern __native sys_futex_sleep(__address uaddr);
+extern __native sys_futex_wakeup(__address uaddr);
+
+#endif

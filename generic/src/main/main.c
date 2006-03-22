@@ -50,6 +50,7 @@
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <synch/waitq.h>
+#include <synch/futex.h>
 #include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
@@ -64,7 +65,7 @@
 #include <smp/smp.h>
 
 config_t config;	/**< Global configuration structure. */
-init_t init = {0};  /**< Initial user-space tasks */
+init_t init = {0};  	/**< Initial user-space tasks */
 
 context_t ctx;
 
@@ -143,8 +144,10 @@ void main_bsp_separated_stack(void)
 {
 	task_t *k;
 	thread_t *t;
+	count_t i;
 	
 	the_initialize(THE);
+
 	/*
 	 * kconsole data structures must be initialized very early
 	 * because other subsystems will register their respective
@@ -187,12 +190,13 @@ void main_bsp_separated_stack(void)
 	scheduler_init();
 	task_init();
 	thread_init();
+	futex_init();
 	
-	count_t i;
 	for (i = 0; i < init.cnt; i++)
 		printf("init[%d].addr=%P, init[%d].size=%d\n", i, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
+
 	/*
 	 * Create kernel task.
 	 */
