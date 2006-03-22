@@ -62,6 +62,7 @@ CONFIG_ACPI = y
 #
 
 CONFIG_PAGE_PT = y
+DEFS += -DCONFIG_PAGE_PT
 
 ## Compile with i8042 support.
 #

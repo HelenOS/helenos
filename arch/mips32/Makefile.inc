@@ -52,6 +52,7 @@ DEFS += -D__32_BITS__ -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_L
 #
 
 CONFIG_PAGE_PT = y
+DEFS += -DCONFIG_PAGE_PT
 
 ## Compile with support for address space identifiers.
 #

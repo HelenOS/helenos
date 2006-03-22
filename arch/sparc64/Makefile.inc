@@ -52,6 +52,7 @@ CONFIG_OFW = y
 #
 
 CONFIG_PAGE_HT = y
+DEFS += -DCONFIG_PAGE_HT
 
 ## Compile with support for address space identifiers.
 #

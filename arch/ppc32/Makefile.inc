@@ -52,6 +52,7 @@ CONFIG_FB = y
 #
 
 CONFIG_PAGE_PT = y
+DEFS += -DCONFIG_PAGE_PT
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/console.c \

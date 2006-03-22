@@ -55,6 +55,7 @@ DEFS += -D__64_BITS__ -DINIT0_ADDRESS=$(INIT0_ADDRESS) -DINIT0_SIZE=$(INIT0_SIZE
 #
 
 CONFIG_PAGE_HT = y
+DEFS += -DCONFIG_PAGE_HT
 
 ## Compile with support for address space identifiers.
 #
