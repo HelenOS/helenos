@@ -85,8 +85,6 @@ static void cushion(void)
 	void *arg = THREAD->thread_arg;
 
 	/* this is where each thread wakes up after its creation */
-	before_thread_runs();
-
 	spinlock_unlock(&THREAD->lock);
 	interrupts_enable();
 
@@ -437,7 +435,7 @@ __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 {
         thread_t *t;
         char namebuf[THREAD_NAME_BUFLEN];
-	uspace_arg_t *kernel_uarg;		/* TODO: store kernel_uarg in thread_t */
+	uspace_arg_t *kernel_uarg;
 	__u32 tid;
 
         copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);

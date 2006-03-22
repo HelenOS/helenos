@@ -190,7 +190,6 @@ restart:
 			/*
 			 * Short emulation of scheduler() return code.
 			 */
-			before_thread_runs();
 			spinlock_unlock(&THREAD->lock);
 			interrupts_restore(ipl);
 			return ESYNCH_TIMEOUT;
