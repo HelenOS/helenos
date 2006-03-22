@@ -37,6 +37,7 @@
 #
 #
 __entry:
+	lui $28, _gp
 
 	jal main
 	nop

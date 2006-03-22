@@ -16,18 +16,25 @@ SECTIONS {
 	        *(.text);
 		*(.rodata*);
 	} :text
-	
-	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
+
+	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
+		_gp = .;
+		*(.got);
+	} :data
+	.data : {
 		*(.data);
 	} :data
+	.sbss : {
+		*(.scommon);
+		*(.sbss);
+	}	
 	.bss : {
 		*(.bss);
-		*(.sbss);
 		*(COMMON);
 		_heap = .;
 		LONG(0xdeadbeef);
 	} :data
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

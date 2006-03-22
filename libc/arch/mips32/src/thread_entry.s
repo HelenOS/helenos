@@ -38,6 +38,8 @@
 #
 #
 __thread_entry:
+	lui $28, _gp
+
 	#
 	# v0 contains address of uarg.
 	#
