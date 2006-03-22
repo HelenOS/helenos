@@ -438,7 +438,7 @@ void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
 		 */
 		page_table_unlock(AS, true);
 		if (!as_page_fault(va)) {
-			panic("%s: va=%P, rid=%d\n", __FUNCTION__, istate->cr_ifa, rr.map.rid);
+			panic("%s: va=%P, rid=%d, iip=%P\n", __FUNCTION__, istate->cr_ifa, rr.map.rid, istate->cr_iip);
 		}
 	}
 }

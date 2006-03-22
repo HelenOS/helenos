@@ -34,7 +34,7 @@
 #include <mm/as.h>
 #include <arch/asm.h>
 #include <arch/faddr.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <synch/spinlock.h>
 #include <config.h>
 #include <context.h>

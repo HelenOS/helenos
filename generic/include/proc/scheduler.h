@@ -32,7 +32,7 @@
 #include <synch/spinlock.h>
 #include <time/clock.h>		/* HZ */
 #include <typedefs.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <adt/list.h>
 
 #define RQ_COUNT 		16

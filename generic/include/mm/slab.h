@@ -31,7 +31,7 @@
 
 #include <adt/list.h>
 #include <synch/spinlock.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <mm/frame.h>
 
 /** Minimum size to be allocated by malloc */

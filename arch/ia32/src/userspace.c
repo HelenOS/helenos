@@ -61,7 +61,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"pushl %3\n"
 		"pushl %4\n"
 		"movl %5, %%eax\n"
-		"iret"
+		"iret\n"
 		: 
 		: "i" (selector(UDATA_DES) | PL_USER), "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE),
 		  "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (kernel_uarg->uspace_entry),

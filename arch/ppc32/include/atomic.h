@@ -30,8 +30,7 @@
 #define __ppc32_ATOMIC_H__
 
 #include <arch/types.h>
-
-typedef struct { volatile __u32 count; } atomic_t;
+#include <typedefs.h>
 
 static inline void atomic_inc(atomic_t *val)
 {
@@ -63,37 +62,27 @@ static inline void atomic_dec(atomic_t *val)
 		: "cc");
 }
 
-static inline __u32 atomic_postinc(atomic_t *val)
+static inline long atomic_postinc(atomic_t *val)
 {
 	atomic_inc(val);
 	return val->count - 1;
 }
 
-static inline __u32 atomic_postdec(atomic_t *val)
+static inline long atomic_postdec(atomic_t *val)
 {
 	atomic_dec(val);
 	return val->count + 1;
 }
 
-static inline __u32 atomic_preinc(atomic_t *val)
+static inline long atomic_preinc(atomic_t *val)
 {
 	atomic_inc(val);
 	return val->count;
 }
 
-static inline __u32 atomic_predec(atomic_t *val)
+static inline long atomic_predec(atomic_t *val)
 {
 	atomic_dec(val);
-	return val->count;
-}
-
-static inline void atomic_set(atomic_t *val, __u32 i)
-{
-	val->count = i;
-}
-
-static inline __u32 atomic_get(atomic_t *val)
-{
 	return val->count;
 }
 

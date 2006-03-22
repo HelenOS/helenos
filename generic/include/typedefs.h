@@ -92,4 +92,6 @@ typedef struct hash_table_operations hash_table_operations_t;
 typedef struct btree_node btree_node_t;
 typedef struct btree btree_t;
 
+typedef struct atomic atomic_t;
+
 #endif

@@ -26,31 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <print.h>
-#include <atomic.h>
-#include <debug.h>
+#ifndef __ATOMIC_H__
+#define __ATOMIC_H__
 
-void test(void)
+struct atomic {
+	volatile long count;
+};
+
+#include <arch/atomic.h>
+#include <typedefs.h>
+
+static inline void atomic_set(atomic_t *val, long i)
 {
-	atomic_t a;
-
-	atomic_set(&a, 10);
-	printf("Testing atomic_set() and atomic_get().\n");
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_postinc()\n");
-	ASSERT(atomic_postinc(&a) == 10);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_postdec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_preinc()\n");
-	ASSERT(atomic_preinc(&a) == 11);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_predec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-
-	printf("Test passed.\n");	
-	return;
+        val->count = i;
 }
+
+static inline long atomic_get(atomic_t *val)
+{
+        return val->count;
+}
+
+#endif

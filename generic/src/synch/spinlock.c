@@ -27,7 +27,7 @@
  */
 
 #include <synch/spinlock.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <arch/barrier.h>
 #include <arch.h>
 #include <preemption.h>

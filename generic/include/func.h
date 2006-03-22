@@ -31,7 +31,7 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 
 extern atomic_t haltstate;
 

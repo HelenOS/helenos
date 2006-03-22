@@ -32,7 +32,7 @@
 #include <mm/slab.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <debug.h>
 #include <proc/thread.h>
 #include <memstr.h>

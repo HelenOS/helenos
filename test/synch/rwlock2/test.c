@@ -28,7 +28,7 @@
 
 #include <test.h>
 #include <arch.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
 

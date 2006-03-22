@@ -32,18 +32,7 @@
 #include <arch/types.h>
 #include <arch/barrier.h>
 #include <preemption.h>
-
-typedef struct { volatile __u64 count; } atomic_t;
-
-static inline void atomic_set(atomic_t *val, __u64 i)
-{
-	val->count = i;
-}
-
-static inline __u64 atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+#include <typedefs.h>
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
@@ -61,9 +50,9 @@ static inline void atomic_dec(atomic_t *val) {
 #endif /* CONFIG_SMP */
 }
 
-static inline count_t atomic_postinc(atomic_t *val) 
+static inline long atomic_postinc(atomic_t *val) 
 {
-	count_t r;
+	long r;
 
 	__asm__ volatile (
 		"movq $1, %0\n"
@@ -74,9 +63,9 @@ static inline count_t atomic_postinc(atomic_t *val)
 	return r;
 }
 
-static inline count_t atomic_postdec(atomic_t *val) 
+static inline long atomic_postdec(atomic_t *val) 
 {
-	count_t r;
+	long r;
 	
 	__asm__ volatile (
 		"movq $-1, %0\n"
@@ -103,7 +92,7 @@ static inline __u64 test_and_set(atomic_t *val) {
 }
 
 
-/** AMD64 specific fast spinlock */
+/** amd64 specific fast spinlock */
 static inline void atomic_lock_arch(atomic_t *val)
 {
 	__u64 tmp;
@@ -116,7 +105,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 #endif
 		"mov %0, %1;"
 		"testq %1, %1;"
-		"jnz 0b;"       /* Leightweight looping on locked spinlock */
+		"jnz 0b;"       /* Lightweight looping on locked spinlock */
 		
 		"incq %1;"      /* now use the atomic operation */
 		"xchgq %0, %1;"

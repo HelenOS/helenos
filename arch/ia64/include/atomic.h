@@ -30,8 +30,8 @@
 #define __ia64_ATOMIC_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
-typedef struct { volatile __u64 count; } atomic_t;
 
 /** Atomic addition.
  *
@@ -40,32 +40,22 @@ typedef struct { volatile __u64 count; } atomic_t;
  *
  * @return Value before addition.
  */
-static inline count_t atomic_add(atomic_t *val, int imm)
+static inline long atomic_add(atomic_t *val, int imm)
 {
-	count_t v;
+	long v;
 
  	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
  
 	return v;
 }
 
-static inline void atomic_set(atomic_t *val, __u64 i)
-{
-	val->count = i;
-}
-
-static inline __u32 atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
 static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
 
-static inline count_t atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline count_t atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
+static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
+static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
 
-static inline count_t atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
-static inline count_t atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
+static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
+static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif

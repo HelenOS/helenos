@@ -36,7 +36,7 @@
 #include <arch.h>
 #include <func.h>
 #include <print.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 
 #define BUFLEN 2048
 static char debug_buffer[BUFLEN];

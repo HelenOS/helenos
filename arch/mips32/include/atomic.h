@@ -30,6 +30,7 @@
 #define __mips32_ATOMIC_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define atomic_inc(x)	((void) atomic_add(x, 1))
 #define atomic_dec(x)	((void) atomic_add(x, -1))
@@ -40,8 +41,6 @@
 #define atomic_preinc(x) atomic_add(x, 1)
 #define atomic_predec(x) atomic_add(x, -1)
 
-typedef struct { volatile __u32 count; } atomic_t;
-
 /* Atomic addition of immediate value.
  *
  * @param val Memory location to which will be the immediate value added.
@@ -49,9 +48,9 @@ typedef struct { volatile __u32 count; } atomic_t;
  *
  * @return Value after addition.
  */
-static inline count_t atomic_add(atomic_t *val, int i)
+static inline long atomic_add(atomic_t *val, int i)
 {
-	count_t tmp, v;
+	long tmp, v;
 
 	__asm__ volatile (
 		"1:\n"
@@ -66,18 +65,6 @@ static inline count_t atomic_add(atomic_t *val, int i)
 		);
 
 	return v;
-}
-
-/* Reads/writes are atomic on mips for 4-bytes */
-
-static inline void atomic_set(atomic_t *val, __u32 i)
-{
-	val->count = i;
-}
-
-static inline __u32 atomic_get(atomic_t *val)
-{
-	return val->count;
 }
 
 #endif

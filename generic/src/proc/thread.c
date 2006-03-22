@@ -49,7 +49,7 @@
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
 #include <arch/faddr.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <memstr.h>
 #include <print.h>
 #include <mm/slab.h>

@@ -30,8 +30,7 @@
 #define __sparc64_ATOMIC_H__
 
 #include <arch/types.h>
-
-typedef struct { volatile __u64 count; } atomic_t;
+#include <typedefs.h>
 
 /** Atomic add operation.
  *
@@ -42,7 +41,7 @@ typedef struct { volatile __u64 count; } atomic_t;
  *
  * @return Value of the atomic variable as it existed before addition.
  */
-static inline count_t atomic_add(atomic_t *val, int i)
+static inline long atomic_add(atomic_t *val, int i)
 {
 	__u64 a, b;
 	volatile __u64 x = (__u64) &val->count;
@@ -62,22 +61,22 @@ static inline count_t atomic_add(atomic_t *val, int i)
 	return a;
 }
 
-static inline count_t atomic_preinc(atomic_t *val)
+static inline long atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1) + 1;
 }
 
-static inline count_t atomic_postinc(atomic_t *val)
+static inline long atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
 
-static inline count_t atomic_predec(atomic_t *val)
+static inline long atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1) - 1;
 }
 
-static inline count_t atomic_postdec(atomic_t *val)
+static inline long atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -90,16 +89,6 @@ static inline void atomic_inc(atomic_t *val)
 static inline void atomic_dec(atomic_t *val)
 {
 	(void) atomic_add(val, -1);
-}
-
-static inline void atomic_set(atomic_t *val, __u64 i)
-{
-	val->count = i;
-}
-
-static inline __u64 atomic_get(atomic_t *val)
-{
-	return val->count;
 }
 
 #endif

@@ -38,7 +38,7 @@
 #include <print.h>
 #include <arch.h>
 #include <adt/list.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <proc/thread.h>
 
 /** Clock routine

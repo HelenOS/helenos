@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <preemption.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <debug.h>
 
 #ifdef CONFIG_SMP

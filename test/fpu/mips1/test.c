@@ -31,7 +31,7 @@
 #include <panic.h>
 
 #include <test.h>
-#include <arch/atomic.h>
+#include <atomic.h>
 #include <proc/thread.h>
 #include <time/delay.h>
 

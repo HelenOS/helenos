@@ -33,8 +33,8 @@
 #include <arch/context.h>	/* SP_DELTA */
 #include <arch/asm.h>
 #include <arch/debugger.h>
-
 #include <print.h>
+
 void before_thread_runs_arch(void)
 {
 	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
