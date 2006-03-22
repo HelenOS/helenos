@@ -33,13 +33,22 @@
 #include <stdlib.h>
 #include <ns.h>
 #include <thread.h>
+#include <futex.h>
 
 int a;
+atomic_t ftx;
 
 extern void utest(void *arg);
 void utest(void *arg)
 {
 	printf("Uspace thread started.\n");
+	if (futex_down(&ftx) < 0)
+		printf("Futex failed.\n");
+	if (futex_up(&ftx) < 0)
+		printf("Futex failed.\n");
+		
+	printf("%s in good condition.\n", __FUNCTION__);
+	
 	for (;;)
 		;
 }
@@ -243,6 +252,8 @@ static void test_slam(void)
 	ipc_wait_for_call(&data, 0);
 }
 
+
+
 int main(int argc, char *argv[])
 {
 	int tid;
@@ -255,9 +266,28 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
+	
+	futex_initialize(&ftx, 1);
+	if (futex_down(&ftx) < 0)
+		printf("Futex failed.\n");
+	if (futex_up(&ftx) < 0)
+		printf("Futex failed.\n");
+
+	if (futex_down(&ftx) < 0)
+		printf("Futex failed.\n");
 
 	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
 		printf("Created thread tid=%d\n", tid);
 	}
+
+	int i;
+	
+	for (i = 0; i < 10000000; i++)
+		;
+		
+	if (futex_up(&ftx) < 0)
+		printf("Futex failed.\n");
+
+	printf("Main thread exiting.\n");
 	return 0;
 }
