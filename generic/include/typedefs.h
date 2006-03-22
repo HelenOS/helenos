@@ -61,6 +61,7 @@ typedef struct rwlock rwlock_t;
 typedef enum rwlock_type rwlock_type_t;
 typedef struct condvar condvar_t;
 typedef struct waitq waitq_t;
+typedef struct futex futex_t;
 
 typedef struct chunk chunk_t;
 
@@ -91,7 +92,5 @@ typedef struct hash_table_operations hash_table_operations_t;
 
 typedef struct btree_node btree_node_t;
 typedef struct btree btree_t;
-
-typedef struct atomic atomic_t;
 
 #endif

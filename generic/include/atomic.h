@@ -29,12 +29,11 @@
 #ifndef __ATOMIC_H__
 #define __ATOMIC_H__
 
-struct atomic {
+typedef struct atomic {
 	volatile long count;
-};
+} atomic_t;
 
 #include <arch/atomic.h>
-#include <typedefs.h>
 
 static inline void atomic_set(atomic_t *val, long i)
 {

@@ -29,10 +29,6 @@
 #ifndef __ia64_ATOMIC_H__
 #define __ia64_ATOMIC_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-
-
 /** Atomic addition.
  *
  * @param val Atomic value.

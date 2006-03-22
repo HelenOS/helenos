@@ -29,12 +29,9 @@
 #ifndef __ppc32_ATOMIC_H__
 #define __ppc32_ATOMIC_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-
 static inline void atomic_inc(atomic_t *val)
 {
-	__u32 tmp;
+	long tmp;
 
 	asm __volatile__ (
 		"1:\n"
@@ -49,7 +46,7 @@ static inline void atomic_inc(atomic_t *val)
 
 static inline void atomic_dec(atomic_t *val)
 {
-	__u32 tmp;
+	long tmp;
 
 	asm __volatile__(
 		"1:\n"

@@ -29,9 +29,6 @@
 #ifndef __mips32_ATOMIC_H__
 #define __mips32_ATOMIC_H__
 
-#include <arch/types.h>
-#include <typedefs.h>
-
 #define atomic_inc(x)	((void) atomic_add(x, 1))
 #define atomic_dec(x)	((void) atomic_add(x, -1))
 
