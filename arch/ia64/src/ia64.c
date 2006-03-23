@@ -42,6 +42,7 @@
 #include <userspace.h>
 #include <console/console.h>
 #include <proc/uarg.h>
+#include <syscall/syscall.h>
 
 void arch_pre_mm_init(void)
 {
@@ -100,4 +101,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 	while (1) {
 		;
 	}
+}
+
+/** Set thread-local-storage pointer.
+ *
+ * We use r13 (a.k.a. tp) for this purpose.
+ */
+__native sys_tls_set(__native addr)
+{
+        return 0;
 }

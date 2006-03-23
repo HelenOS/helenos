@@ -163,12 +163,12 @@ void calibrate_delay_loop(void)
 	i8254_normal_operation();
 }
 
-/** Set Thread-local-storeage pointer
+/** Set thread-local-storage pointer
  *
  * TLS pointer is set in FS register. Unfortunately the 64-bit
  * part can be set only in CPL0 mode.
  *
- * The specs says, that on %fs:0 there is stored contents of %fs register,
+ * The specs say, that on %fs:0 there is stored contents of %fs register,
  * we need not to go to CPL0 to read it.
  */
 __native sys_tls_set(__native addr)

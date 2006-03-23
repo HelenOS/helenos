@@ -101,7 +101,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 	__asm__ volatile (
 		"0:;"
 #ifdef CONFIG_HT
-		"pause;" /* Pentium 4's HT love this instruction */
+		"pause;"
 #endif
 		"mov %0, %1;"
 		"testq %1, %1;"

@@ -143,7 +143,7 @@ void after_thread_ran_arch(void)
 {
 }
 
-/** Set Thread-local-storeage pointer
+/** Set thread-local-storage pointer
  *
  * We have it currently in K1, it is
  * possible to have it separately in the future.

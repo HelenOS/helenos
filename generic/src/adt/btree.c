@@ -28,7 +28,7 @@
 
 /*
  * This B-tree has the following properties:
- * - it is a ballanced 2-3-4 tree (i.e. M = 4)
+ * - it is a ballanced 2-3-4 tree (i.e. BTREE_M = 4)
  * - values (i.e. pointers to values) are stored only in leaves
  * - leaves are linked in a list
  * - technically, it is a B+-tree (because of the previous properties)

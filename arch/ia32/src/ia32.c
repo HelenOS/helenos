@@ -109,7 +109,7 @@ void calibrate_delay_loop(void)
 	}
 }
 
-/** Set Thread-local-storeage pointer
+/** Set thread-local-storage pointer
  *
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.

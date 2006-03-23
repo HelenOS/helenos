@@ -180,8 +180,7 @@ read_efer_flag:
 	 * Both versions have to be of the same size. amd64 assembly is, however,
 	 * a little bit tricky. For instance, subq $0x80, %rsp and subq $0x78, %rsp
 	 * can result in two instructions with different op-code lengths.
-	 * Therefore, pay special attention to the extra NOP's that serve as
-	 * a necessary fill.
+	 * Therefore we align the interrupt handlers.
 	 */
 
 	.iflt \i-32
