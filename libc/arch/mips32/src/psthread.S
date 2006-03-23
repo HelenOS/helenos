@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006 Jakub Jermar
+# Copyright (C) 2003-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,16 +28,61 @@
 
 .text
 
-.globl __thread_entry
+.set noat
+.set noreorder
+.set nomacro
 
-## User-space thread entry point for all but the first threads.
-#
-#
-__thread_entry:
-	#
-	# RAX contains address of uarg
-	#
-	movq %rax, %rdi
-	call __thread_main
+
+#include <arch/asm/regname.h>
+#include <libarch/context_offset.h>
 	
-.end __thread_entry
+.global context_save
+.global context_restore
+
+.macro CONTEXT_STORE r
+	sw $s0,OFFSET_S0(\r)
+	sw $s1,OFFSET_S1(\r)
+	sw $s2,OFFSET_S2(\r)
+	sw $s3,OFFSET_S3(\r)
+	sw $s4,OFFSET_S4(\r)
+	sw $s5,OFFSET_S5(\r)
+	sw $s6,OFFSET_S6(\r)
+	sw $s7,OFFSET_S7(\r)
+	sw $s8,OFFSET_S8(\r)
+	sw $gp,OFFSET_GP(\r)
+	sw $k1,OFFSET_TLS(\r)
+	
+	sw $ra,OFFSET_PC(\r)
+	sw $sp,OFFSET_SP(\r)
+.endm
+
+.macro CONTEXT_LOAD r
+	lw $s0,OFFSET_S0(\r)
+	lw $s1,OFFSET_S1(\r)
+	lw $s2,OFFSET_S2(\r)
+	lw $s3,OFFSET_S3(\r)
+	lw $s4,OFFSET_S4(\r)
+	lw $s5,OFFSET_S5(\r)
+	lw $s6,OFFSET_S6(\r)
+	lw $s7,OFFSET_S7(\r)
+	lw $s8,OFFSET_S8(\r)
+	lw $gp,OFFSET_GP(\r)
+	lw $k1,OFFSET_TLS(\r)
+	
+	lw $ra,OFFSET_PC(\r)
+	lw $sp,OFFSET_SP(\r)
+.endm
+	
+context_save:
+	CONTEXT_STORE $a0
+
+	# context_save returns 1
+	j $ra
+	li $v0, 1	
+	
+context_restore:
+	CONTEXT_LOAD $a0
+
+	# context_restore returns 0
+	j $ra
+	xor $v0, $v0	

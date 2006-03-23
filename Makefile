@@ -32,9 +32,9 @@
 -include Makefile.config
 
 DIRS = \
+	libc \
 	softint \
 	softfloat \
-	libc \
 	libipc \
 	libadt \
 	init \

@@ -49,7 +49,8 @@ GENERIC_SOURCES = \
 	generic/futex.c \
 	generic/io/io.c \
 	generic/io/print.c \
-	malloc/malloc.c
+	malloc/malloc.c \
+	generic/psthread.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
@@ -65,14 +66,17 @@ all: kerninc libc.a arch/$(ARCH)/_link.ld
 kerninc:
 	ln -sfn ../../../kernel/generic/include include/kernel
 	ln -sfn kernel/arch include/arch
+	ln -sfn ../arch/$(ARCH)/include include/libarch
+	ln -sfn ../../libipc/include include/libipc
+	ln -sfn ../../libadt/include include/libadt
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch libc.a arch/$(ARCH)/_link.ld Makefile.depend
+	-rm -f include/kernel include/arch include/libarch include/libipc include/libadt libc.a arch/$(ARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
-depend:
+depend: kerninc
 	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

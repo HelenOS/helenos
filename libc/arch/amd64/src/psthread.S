@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006 Jakub Jermar
+# Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,16 +28,60 @@
 
 .text
 
-.globl __thread_entry
+.global context_save
+.global context_restore
 
-## User-space thread entry point for all but the first threads.
+#include <libarch/context_offset.h>
+
+## Save current CPU context
 #
+# Save CPU context to context_t variable
+# pointed by the 1st argument. Returns 1 in EAX.
 #
-__thread_entry:
-	#
-	# RAX contains address of uarg
-	#
-	movq %rax, %rdi
-	call __thread_main
+context_save:
+	movq (%rsp), %rdx     # the caller's return %eip
+	# In %edi is passed 1st argument
+	movq %rdx, OFFSET_PC(%rdi)
+	movq %rsp, OFFSET_SP(%rdi)
 	
-.end __thread_entry
+	movq %rbx, OFFSET_RBX(%rdi)
+	movq %rbp, OFFSET_RBP(%rdi)
+	movq %r12, OFFSET_R12(%rdi)
+	movq %r13, OFFSET_R13(%rdi)
+	movq %r14, OFFSET_R14(%rdi)
+	movq %r15, OFFSET_R15(%rdi)
+
+	# Save TLS
+	movq %fs:0, %rax
+	movq %rax, OFFSET_TLS(%rdi)
+		
+	xorq %rax,%rax		# context_save returns 1
+	incq %rax
+	ret
+
+
+## Restore current CPU context
+#
+# Restore CPU context from context_t variable
+# pointed by the 1st argument. Returns 0 in EAX.
+#
+context_restore:
+	movq OFFSET_R15(%rdi), %r15
+	movq OFFSET_R14(%rdi), %r14
+	movq OFFSET_R13(%rdi), %r13
+	movq OFFSET_R12(%rdi), %r12
+	movq OFFSET_RBP(%rdi), %rbp
+	movq OFFSET_RBX(%rdi), %rbx	
+	
+	movq OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
+	
+	movq OFFSET_PC(%rdi), %rdx
+	movq %rdx,(%rsp)
+
+	# Set thread local storage
+	movq OFFSET_TLS(%rdi), %rdi   # Set arg1 to TLS addr
+	movq $1, %r8
+	syscall
+
+	xorq %rax,%rax		# context_restore returns 0
+	ret

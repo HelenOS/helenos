@@ -29,7 +29,7 @@
 #ifndef __LIBC__IO_H__
 #define __LIBC__IO_IO_H__
 
-#include <types.h>
+#include <libarch/types.h>
 
 int putnchars(const char * buf, size_t count);
 int putstr(const char * str);

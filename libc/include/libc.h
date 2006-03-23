@@ -30,17 +30,13 @@
 #define __LIBC__LIBC_H__
 
 #include <types.h>
-
 #include <kernel/syscall/syscall.h>
-#include <kernel/arch/mm/page.h>
 
 #define __SYSCALL0(id) __syscall(0, 0, 0, 0, id)
 #define __SYSCALL1(id, p1) __syscall(p1, 0, 0, 0, id)
 #define __SYSCALL2(id, p1, p2) __syscall(p1, p2, 0, 0, id)
 #define __SYSCALL3(id, p1, p2, p3) __syscall(p1,p2,p3, 0, id)
 #define __SYSCALL4(id, p1, p2, p3, p4) __syscall(p1,p2,p3,p4,id)
-
-#define getpagesize()     (PAGE_SIZE)
 
 extern void __main(void);
 extern void __exit(void);

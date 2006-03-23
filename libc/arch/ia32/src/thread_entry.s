@@ -38,14 +38,13 @@ __thread_entry:
 	mov %dx, %ds
 	mov %dx, %es
 	mov %dx, %fs
-	mov %dx, %gs
+	# Do not set %gs, it contains descriptor that can see TLS
 
 	#
 	# EAX contains address of uarg.
 	#
 	pushl %eax
-	call thread_main
-	addl $4, %esp
+	call __thread_main
 	
 	#
 	# Not reached.

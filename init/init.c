@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <ns.h>
 #include <thread.h>
+#include <psthread.h>
 #include <futex.h>
 
 int a;
@@ -252,11 +253,25 @@ static void test_slam(void)
 	ipc_wait_for_call(&data, 0);
 }
 
-
+static int ptest(void *arg)
+{
+	printf("Pseudo thread-1\n");
+	ps_preempt();
+	printf("Pseudo thread-2\n");
+	ps_preempt();
+	printf("Pseudo thread-3\n");
+	ps_preempt();
+	printf("Pseudo thread-4\n");
+	ps_preempt();
+	printf("Pseudo finish\n");
+	return 0;	
+}
 
 int main(int argc, char *argv[])
 {
+	pstid_t ptid;
 	int tid;
+
 	version_print();
 
 /*	test_printf(); */
@@ -273,6 +288,10 @@ int main(int argc, char *argv[])
 	if (futex_up(&ftx) < 0)
 		printf("Futex failed.\n");
 
+	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
+		printf("Created thread tid=%d\n", tid);
+	}
+
 	if (futex_down(&ftx) < 0)
 		printf("Futex failed.\n");
 
@@ -287,6 +306,16 @@ int main(int argc, char *argv[])
 		
 	if (futex_up(&ftx) < 0)
 		printf("Futex failed.\n");
+
+	ptid = psthread_create(ptest, NULL);
+	printf("Main thread-1\n");
+	ps_preempt();
+	printf("Main thread-2\n");
+	ps_preempt();
+	printf("main thread-3\n");
+
+	ps_join(ptid);
+	printf("Main exiting\n");
 
 	printf("Main thread exiting.\n");
 	return 0;

@@ -37,6 +37,7 @@
 ## User-space thread entry point for all but the first threads.
 #
 #
+.ent __thread_entry
 __thread_entry:
 	lui $28, _gp
 
@@ -44,9 +45,13 @@ __thread_entry:
 	# v0 contains address of uarg.
 	#
 	add $4, $2, 0
-	jal thread_main
-	nop
+	# Mips o32 may store its arguments on stack, make space
+	addiu $sp, -16
 	
+	j __thread_main
+	nop
+		
 	#
 	# Not reached.
 	#
+.end __thread_entry

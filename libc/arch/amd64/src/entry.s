@@ -36,6 +36,7 @@
 #
 #
 __entry:
+	call __main
 	call main
 	call __exit
 	

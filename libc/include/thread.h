@@ -30,11 +30,14 @@
 #define __LIBC__THREAD_H__
 
 #include <kernel/proc/uarg.h>
+#include <libarch/thread.h>
 
 extern void __thread_entry(void);
-extern void thread_main(uspace_arg_t *uarg);
+extern void __thread_main(uspace_arg_t *uarg);
 
 extern int thread_create(void (* function)(void *arg), void *arg, char *name);
 extern void thread_exit(int status);
+void * __make_tls(void);
+void __free_tls(void *);
 
 #endif

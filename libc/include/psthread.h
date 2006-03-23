@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,44 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <thread.h>
-#include <malloc.h>
-#include <psthread.h>
+#ifndef __LIBC__PSTHREAD_H__
+#define __LIBC__PSTHREAD_H__
 
-void _exit(int status) {
-	thread_exit(status);
-}
+#include <libarch/psthread.h>
+#include <libadt/list.h>
 
-void __main(void) {
-	__tls_set(__make_tls());
-}
+#ifndef context_set
+#define context_set(c, _pc, stack, size, ptls) 	\
+	(c)->pc = (sysarg_t) (_pc);		\
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+        (c)->tls = (sysarg_t) (ptls);
+#endif /* context_set */
 
-void __exit(void) {
-	free(__tls_get());
-	
-	_exit(0);
-}
+typedef sysarg_t pstid_t;
+
+struct psthread_data {
+	struct psthread_data *self; /* IA32,AMD64 needs to get self address */
+
+	link_t list;
+	context_t ctx;
+	void *stack;
+	void *arg;
+	int (*func)(void *);
+
+	struct psthread_data *waiter;
+	int finished;
+	int retval;
+	int flags;
+};
+typedef struct psthread_data psthread_data_t;
+
+extern int context_save(context_t *c);
+extern void context_restore(context_t *c) __attribute__ ((noreturn));
+
+pstid_t psthread_create(int (*func)(void *), void *arg);
+int ps_preempt(void);
+int ps_join(pstid_t psthrid);
+
+#endif

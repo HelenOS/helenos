@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,24 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
+
+#ifndef __LIBC__amd64THREAD_H__
+#define __LIBC__amd64THREAD_H__
 
 #include <libc.h>
-#include <unistd.h>
-#include <thread.h>
-#include <malloc.h>
-#include <psthread.h>
 
-void _exit(int status) {
-	thread_exit(status);
+static inline void __tls_set(void *tls)
+{
+	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tls);
 }
 
-void __main(void) {
-	__tls_set(__make_tls());
+static inline void * __tls_get(void)
+{
+	void * retval;
+
+	__asm__ ("movq %%fs:0, %0" : "=r"(retval));
+	return retval;
 }
 
-void __exit(void) {
-	free(__tls_get());
-	
-	_exit(0);
-}
+#endif

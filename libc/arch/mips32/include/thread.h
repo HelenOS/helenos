@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,23 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <thread.h>
-#include <malloc.h>
-#include <psthread.h>
+#ifndef __LIBC__mips32THREAD_H__
+#define __LIBC__mips32THREAD_H__
 
-void _exit(int status) {
-	thread_exit(status);
+
+static inline void __tls_set(void *tls)
+{
+	__asm__ volatile ("add $27, %0, $0" : : "r"(tls)); /* Move tls to K1 */
 }
 
-void __main(void) {
-	__tls_set(__make_tls());
+static inline void * __tls_get(void)
+{
+	void * retval;
+
+	__asm__ volatile("add %0, $27, $0" : "=r"(retval));
+	return retval;
 }
 
-void __exit(void) {
-	free(__tls_get());
-	
-	_exit(0);
-}
+#endif

@@ -32,6 +32,7 @@
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/i686/bin
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c
+ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
+		arch/$(ARCH)/src/psthread.S
 
 LFLAGS += -N

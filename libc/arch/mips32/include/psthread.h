@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,30 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <thread.h>
-#include <malloc.h>
-#include <psthread.h>
+#ifndef __LIBC__mips32PSTHREAD_H__
+#define __LIBC__mips32PSTHREAD_H__
 
-void _exit(int status) {
-	thread_exit(status);
-}
+#include <types.h>
 
-void __main(void) {
-	__tls_set(__make_tls());
-}
+#define SP_DELTA	(8)
 
-void __exit(void) {
-	free(__tls_get());
+typedef struct  {
+	uint32_t sp;
+	uint32_t pc;
 	
-	_exit(0);
-}
+	uint32_t s0;
+	uint32_t s1;
+	uint32_t s2;
+	uint32_t s3;
+	uint32_t s4;
+	uint32_t s5;
+	uint32_t s6;
+	uint32_t s7;
+	uint32_t s8;
+	uint32_t gp;
+	uint32_t tls; /* Thread local storage(=k1) */
+} context_t;
+
+#endif

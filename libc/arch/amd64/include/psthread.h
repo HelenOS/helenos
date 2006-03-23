@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,24 +24,35 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <thread.h>
-#include <malloc.h>
-#include <psthread.h>
+#ifndef __LIBC__amd64PSTHREAD_H__
+#define __LIBC__amd64PSTHREAD_H__
 
-void _exit(int status) {
-	thread_exit(status);
-}
+#include <types.h>
 
-void __main(void) {
-	__tls_set(__make_tls());
-}
+/* According to ABI the stack MUST be aligned on 
+ * 16-byte boundary. If it is not, the va_arg calling will
+ * panic sooner or later
+ */
+#define SP_DELTA     16
 
-void __exit(void) {
-	free(__tls_get());
-	
-	_exit(0);
-}
+/* We include only registers that must be preserved
+ * during function call
+ */
+typedef struct {
+    uint64_t sp;
+    uint64_t pc;
+    
+    uint64_t rbx;
+    uint64_t rbp;
+
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
+
+    uint64_t tls;
+} context_t;
+
+#endif

@@ -31,6 +31,23 @@
 #include <stdlib.h>
 #include <arch/faddr.h>
 #include <kernel/proc/uarg.h>
+#include <psthread.h>
+
+#include <stdio.h>
+void * __make_tls(void)
+{
+	psthread_data_t *pt;
+
+	pt = malloc(sizeof(psthread_data_t));
+	pt->self = pt;
+
+	return pt;
+}
+
+void __free_tls(void *tls)
+{
+	free(tls);
+}
 
 /** Main thread function.
  *
@@ -41,11 +58,17 @@
  *
  * @param uarg Pointer to userspace argument structure.
  */
-void thread_main(uspace_arg_t *uarg)
+void __thread_main(uspace_arg_t *uarg)
 {
+	/* This should initialize the area according to TLS specicification */
+	__tls_set(__make_tls());
+
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	free(uarg->uspace_stack);
 	free(uarg);
+
+	__free_tls(__tls_get());
+
 	thread_exit(0);
 }
 

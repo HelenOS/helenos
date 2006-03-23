@@ -36,13 +36,18 @@
 ## User-space task entry point
 #
 #
+.ent __entry
 __entry:
 	lui $28, _gp
-
+	
+	# Mips o32 may store its arguments on stack, make space,
+	# so that it could work with -O0
+	addiu $sp, -16
+	
+	jal __main
+	
 	jal main
-	nop
 	
 	jal __exit
-	nop	
 	
 .end __entry

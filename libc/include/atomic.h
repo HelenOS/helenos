@@ -33,7 +33,7 @@ typedef struct atomic {
 	volatile long count;
 } atomic_t;
 
-#include <atomic_arch.h>
+#include <libarch/atomic.h>
 
 static inline void atomic_set(atomic_t *val, long i)
 {

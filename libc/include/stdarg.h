@@ -29,8 +29,8 @@
 #ifndef __LIBC__STDARG_H__
 #define __LIBC__STDARG_H__
 
-#include<types.h>
-#include<stackarg.h>
+#include <types.h>
+#include <libarch/stackarg.h>
 
 #ifndef __VARARGS_DEFINED
 # define __VARARGS_DEFINED

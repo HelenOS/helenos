@@ -40,8 +40,9 @@ __entry:
 	mov %ax, %ds
 	mov %ax, %es
 	mov %ax, %fs
-	mov %ax, %gs
+	# Do not set %gs, it contains descriptor that can see TLS
 	
+	call __main	
 	call main
 	call __exit
 	
