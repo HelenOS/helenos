@@ -29,15 +29,16 @@
 /**
  * Kernel backend for futexes.
  * Deallocation of orphaned kernel-side futex structures is not currently implemented.
- * Timeouting futexes are currently not implemented.
  */
 
 #include <synch/futex.h>
 #include <synch/rwlock.h>
+#include <synch/spinlock.h>
 #include <synch/synch.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/slab.h>
+#include <proc/thread.h>
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <adt/hash_table.h>
@@ -90,17 +91,22 @@ void futex_initialize(futex_t *futex)
 /** Sleep in futex wait queue.
  *
  * @param uaddr Userspace address of the futex counter.
+ * @param usec If non-zero, number of microseconds this thread is willing to sleep.
+ * @param trydown If usec is zero and trydown is non-zero, conditional operation will be attempted.
  *
- * @return One of ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
+ * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
  *	   If there is no physical mapping for uaddr ENOENT is returned.
  */
-__native sys_futex_sleep(__address uaddr)
+__native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
 {
 	futex_t *futex;
 	__address paddr;
 	link_t *item;
 	pte_t *t;
+	ipl_t ipl;
 	
+	ipl = interrupts_disable();
+
 	/*
 	 * Find physical address of futex counter.
 	 */
@@ -108,11 +114,14 @@ __native sys_futex_sleep(__address uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
+		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
 	paddr = PFN2ADDR(PTE_GET_FRAME(t)) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
+	interrupts_restore(ipl);	
+
 	/*
 	 * Find the respective futex structure
 	 * or allocate new one if it does not exist already.
@@ -148,7 +157,7 @@ __native sys_futex_sleep(__address uaddr)
 		}
 	}
 	
-	return (__native) waitq_sleep(&futex->wq);
+	return (__native) waitq_sleep_timeout(&futex->wq, usec, trydown);
 }
 
 /** Wakeup one thread waiting in futex wait queue.
@@ -164,6 +173,9 @@ __native sys_futex_wakeup(__address uaddr)
 	__address paddr;
 	link_t *item;
 	pte_t *t;
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
 	
 	/*
 	 * Find physical address of futex counter.
@@ -172,11 +184,14 @@ __native sys_futex_wakeup(__address uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
+		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
 	paddr = PFN2ADDR(PTE_GET_FRAME(t)) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
+	interrupts_restore(ipl);
+
 	/*
 	 * Find the respective futex structure.
 	 */
@@ -186,7 +201,7 @@ __native sys_futex_wakeup(__address uaddr)
 		futex = hash_table_get_instance(item, futex_t, ht_link);
 	}
 	rwlock_read_unlock(&futex_ht_lock);
-	
+
 	if (!futex)
 		return (__native) ENOENT;	
 		
