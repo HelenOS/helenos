@@ -83,6 +83,18 @@ static void unhandled_exception(int n, istate_t *istate)
 	panic("unhandled exception %s\n", exctable[n]);
 }
 
+static void reserved_instr_exception(int n, istate_t *istate)
+{
+	if (*((__u32 *)istate->epc) == 0x7c03e83b) {
+		ASSERT(THREAD);
+		istate->epc += 4;
+		istate->v1 = istate->k1;
+	} else {
+		print_regdump(istate);
+		panic("reserved instruction");
+	}
+}
+
 static void breakpoint_exception(int n, istate_t *istate)
 {
 #ifdef CONFIG_DEBUG
@@ -142,6 +154,7 @@ void exception_init(void)
 	for (i=0;i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) unhandled_exception);
 	exc_register(EXC_Bp, "bkpoint", (iroutine) breakpoint_exception);
+	exc_register(EXC_RI, "resinstr", (iroutine) reserved_instr_exception);
 	exc_register(EXC_Mod, "tlb_mod", (iroutine) tlbmod_exception);
 	exc_register(EXC_TLBL, "tlbinvl", (iroutine) tlbinv_exception);
 	exc_register(EXC_TLBS, "tlbinvl", (iroutine) tlbinv_exception);

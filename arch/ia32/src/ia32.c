@@ -111,11 +111,8 @@ void calibrate_delay_loop(void)
 
 /** Set Thread-local-storeage pointer
  *
- * TLS pointer is set in FS register. Unfortunately the 64-bit
- * part can be set only in CPL0 mode.
- *
- * The specs says, that on %fs:0 there is stored contents of %fs register,
- * we need not to go to CPL0 to read it.
+ * TLS pointer is set in GS register. That means, the GS contains
+ * selector, and the descriptor->base is the correct address.
  */
 __native sys_tls_set(__native addr)
 {
