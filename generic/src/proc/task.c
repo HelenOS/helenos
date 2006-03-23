@@ -117,6 +117,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	uspace_arg_t *kernel_uarg;
 
 	as = as_create(0);
+	ASSERT(as);
 
 	rc = elf_load((elf_header_t *) program_addr, as);
 	if (rc != EE_OK) {
@@ -132,15 +133,17 @@ task_t * task_run_program(void *program_addr, char *name)
 	kernel_uarg->uspace_uarg = NULL;
 	
 	task = task_create(as, name);
-	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
-	
+	ASSERT(task);
+
 	/*
 	 * Create the data as_area.
 	 */
 	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, PAGE_SIZE, USTACK_ADDRESS);
-	
-	thread_ready(t);
 
+	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
+	ASSERT(t);
+	thread_ready(t);
+	
 	return task;
 }
 
@@ -159,7 +162,7 @@ void task_print_list(void)
 	for (cur=tasks_head.next; cur!=&tasks_head; cur=cur->next) {
 		t = list_get_instance(cur, task_t, tasks_link);
 		spinlock_lock(&t->lock);
-		printf("%s: address=%P, taskid=%Q\n\tas=%P, ActiveCalls: %d",
+		printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
 			t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
 		for (i=0; i < IPC_MAX_PHONES; i++) {
 			if (t->phones[i].callee)

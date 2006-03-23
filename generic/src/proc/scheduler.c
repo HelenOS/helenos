@@ -562,6 +562,7 @@ not_satisfied:
 				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
 #endif
 				t->flags |= X_STOLEN;
+				t->state = Entering;
 				spinlock_unlock(&t->lock);
 	
 				thread_ready(t);

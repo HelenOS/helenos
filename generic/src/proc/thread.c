@@ -415,7 +415,7 @@ void thread_print_list(void)
 
 	for (cur=threads_head.next; cur!=&threads_head; cur=cur->next) {
 		t = list_get_instance(cur, thread_t, threads_link);
-		printf("%s: address=%P, tid=%d, state=%s\n\ttask=%P, code=%P, stack=%P, cpu=",
+		printf("%s: address=%P, tid=%d, state=%s, task=%P, code=%P, stack=%P, cpu=",
 			t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
 		if (t->cpu)
 			printf("cpu%d ", t->cpu->id);
