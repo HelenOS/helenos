@@ -26,21 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
+#ifndef __LIBC__ia32THREAD_H__
+#define __LIBC__ia32THREAD_H__
 
-#ifndef __LIBC__mips32THREAD_H__
-#define __LIBC__mips32THREAD_H__
+#include <libc.h>
 
 static inline void __tls_set(void *tls)
 {
-	__asm__ volatile ("add $27, %0, $0" : : "r"(tls)); /* Move tls to K1 */
+	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tls);
 }
 
 static inline void * __tls_get(void)
 {
 	void * retval;
 
-	__asm__ volatile("add %0, $27, $0" : "=r"(retval));
+	__asm__ ("movl %%gs:0, %0" : "=r"(retval));
 	return retval;
 }
 

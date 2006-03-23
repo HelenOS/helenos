@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2001-2004 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,26 +28,55 @@
 
 .text
 
-.org 0
+.global context_save
+.global context_restore
 
-.section .init, "ax"
-.globl __start
 
-## User-space task entry point
+## Save current CPU context
 #
+# Save CPU context to the context_t variable
+# pointed by the 1st argument. Returns 1 in EAX.
 #
-.ent __start
-__start:
-	lui $28, _gp
+context_save:
+	movl 0(%esp),%eax	# the caller's return %eip
+	movl 4(%esp),%edx	# address of the kernel_context variable to save context to
+
+	movl %esp,0(%edx)	# %esp -> ctx->sp
+	movl %eax,4(%edx)	# %eip -> ctx->pc
+	movl %ebx,8(%edx)	# %ebx -> ctx->ebx
+	movl %esi,12(%edx)	# %esi -> ctx->esi
+	movl %edi,16(%edx)	# %edi -> ctx->edi
+	movl %ebp,20(%edx)	# %ebp -> ctx->ebp
+
+	# Save TLS
+	movl %gs:0, %eax
+	movl %eax, 24(%edx)     # tls -> ctx->tls
 	
-	# Mips o32 may store its arguments on stack, make space,
-	# so that it could work with -O0
-	addiu $sp, -16
+	xorl %eax,%eax		# context_save returns 1
+	incl %eax
+	ret
+
+
+## Restore saved CPU context
+#
+# Restore CPU context from context_t variable
+# pointed by the 1st argument. Returns 0 in EAX.
+#
+context_restore:
+	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
+	movl 0(%eax),%esp	# ctx->sp -> %esp
+	movl 4(%eax),%edx	# ctx->pc -> %edx
+	movl 8(%eax),%ebx	# ctx->ebx -> %ebx
+	movl 12(%eax),%esi	# ctx->esi -> %esi
+	movl 16(%eax),%edi	# ctx->edi -> %edi
+	movl 20(%eax),%ebp	# ctx->ebp -> %ebp
+
+	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
 	
-	jal __main
+	# Set thread local storage
+	movl 24(%eax), %eax   # Set arg1 to TLS addr
+	movl $1, %edi         # Syscall 1
+	int $0x30
 	
-	jal main
-	
-	jal __exit
-	
-.end __start
+	xorl %eax,%eax		# context_restore returns 0
+	ret

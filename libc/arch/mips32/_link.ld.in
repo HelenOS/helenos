@@ -1,5 +1,5 @@
 STARTUP(../libc/arch/ARCH/src/entry.o)
-ENTRY(__entry)
+ENTRY(__start)
 
 PHDRS {
 	text PT_LOAD FLAGS(5);
@@ -17,12 +17,12 @@ SECTIONS {
 		*(.rodata*);
 	} :text
 
-	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
-		_gp = .;
-		*(.got);
-	} :data
-	.data : {
+	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
 		*(.data);
+	} :data
+	.got : {
+		_gp = .;
+		*(.data.rel*);
 	} :data
 	.sbss : {
 		*(.scommon);

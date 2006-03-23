@@ -26,22 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
+#ifndef __LIBC__ia32PSTHREAD_H__
+#define __LIBC__ia32PSTHREAD_H__
 
-#ifndef __LIBC__mips32THREAD_H__
-#define __LIBC__mips32THREAD_H__
+#include <types.h>
 
-static inline void __tls_set(void *tls)
-{
-	__asm__ volatile ("add $27, %0, $0" : : "r"(tls)); /* Move tls to K1 */
-}
+/* According to ABI the stack MUST be aligned on 
+ * 16-byte boundary. If it is not, the va_arg calling will
+ * panic sooner or later
+ */
+#define SP_DELTA     (12)
 
-static inline void * __tls_get(void)
-{
-	void * retval;
-
-	__asm__ volatile("add %0, $27, $0" : "=r"(retval));
-	return retval;
-}
+/* We include only registers that must be preserved
+ * during function call
+ */
+typedef struct {
+	uint32_t sp;
+	uint32_t pc;
+	
+	uint32_t ebx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	
+	uint32_t tls;
+} context_t;
 
 #endif
