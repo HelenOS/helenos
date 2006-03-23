@@ -28,11 +28,11 @@
 
 #include <syscall/syscall.h>
 #include <proc/thread.h>
+#include <proc/task.h>
 #include <mm/as.h>
 #include <print.h>
 #include <putchar.h>
 #include <errno.h>
-#include <proc/task.h>
 #include <arch.h>
 #include <debug.h>
 #include <ipc/sysipc.h>
@@ -78,7 +78,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_tls_set,
 	sys_thread_create,
 	sys_thread_exit,
-	sys_futex_sleep,
+	sys_futex_sleep_timeout,
 	sys_futex_wakeup,
 	sys_mmap,
 	sys_mremap,
