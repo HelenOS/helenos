@@ -32,11 +32,15 @@
 #include <arch.h>
 #include <arch/context.h>	/* SP_DELTA */
 #include <arch/debugger.h>
+#include <arch/pm.h>
 
 void before_thread_runs_arch(void)
 {
 	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
+
+	/* Set up TLS in GS register */
+	set_tls_desc(THREAD->tls);
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */

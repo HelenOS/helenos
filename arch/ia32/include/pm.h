@@ -30,7 +30,7 @@
 #define __PM_H__
 
 #define IDT_ITEMS 64
-#define GDT_ITEMS 6
+#define GDT_ITEMS 7
 
 #define NULL_DES	0
 #define KTEXT_DES	1
@@ -38,6 +38,7 @@
 #define UTEXT_DES	3
 #define UDATA_DES	4
 #define TSS_DES		5
+#define TLS_DES         6 /* Pointer to Thread-Local-Storage data */
 
 #define selector(des)	((des)<<3)
 
@@ -146,6 +147,7 @@ extern void idt_init(void);
 extern void idt_setoffset(struct idescriptor *d, __address offset);
 
 extern void tss_initialize(struct tss *t);
+extern void set_tls_desc(__address tls);
 
 #endif /* __ASM__ */
 

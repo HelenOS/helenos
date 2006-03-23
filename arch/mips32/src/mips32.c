@@ -39,6 +39,7 @@
 #include <proc/thread.h>
 #include <proc/uarg.h>
 #include <print.h>
+#include <syscall/syscall.h>
 
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
@@ -140,4 +141,14 @@ void before_thread_runs_arch(void)
 
 void after_thread_ran_arch(void)
 {
+}
+
+/** Set Thread-local-storeage pointer
+ *
+ * We have it currently in K1, it is
+ * possible to have it separately in the future.
+ */
+__native sys_tls_set(__native addr)
+{
+	return 0;
 }

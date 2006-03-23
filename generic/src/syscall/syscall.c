@@ -75,6 +75,7 @@ __native syscall_handler(__native a1, __native a2, __native a3,
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_io,
+	sys_tls_set,
 	sys_thread_create,
 	sys_thread_exit,
 	sys_futex_sleep,

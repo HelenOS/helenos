@@ -42,6 +42,7 @@
 #define AMD_MSR_STAR    0xc0000081
 #define AMD_MSR_LSTAR   0xc0000082
 #define AMD_MSR_SFMASK  0xc0000084
+#define AMD_MSR_FS      0xc0000100
 #define AMD_MSR_GS      0xc0000101
 
 #ifndef __ASM__

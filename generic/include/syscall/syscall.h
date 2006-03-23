@@ -31,6 +31,7 @@
 
 typedef enum {
 	SYS_IO = 0,
+	SYS_TLS_SET = 1, /* Hardcoded in AMD64,IA32 uspace - psthread.S */
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
 	SYS_FUTEX_SLEEP,
@@ -59,6 +60,8 @@ typedef __native (*syshandler_t)();
 extern syshandler_t syscall_table[SYSCALL_END];
 extern __native syscall_handler(__native a1, __native a2, __native a3,
 				__native a4, __native id);
+extern __native sys_tls_set(__native addr);
+
 
 #endif
 

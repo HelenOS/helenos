@@ -32,6 +32,7 @@
 
 #include <config.h>
 
+#include <proc/thread.h>
 #include <arch/ega.h>
 #include <genarch/i8042/i8042.h>
 #include <arch/i8254.h>
@@ -47,6 +48,8 @@
 #include <interrupt.h>
 #include <arch/syscall.h>
 #include <arch/debugger.h>
+#include <syscall/syscall.h>
+
 
 /** Disable I/O on non-privileged levels
  *
@@ -158,4 +161,19 @@ void calibrate_delay_loop(void)
 {
 	i8254_calibrate_delay_loop();
 	i8254_normal_operation();
+}
+
+/** Set Thread-local-storeage pointer
+ *
+ * TLS pointer is set in FS register. Unfortunately the 64-bit
+ * part can be set only in CPL0 mode.
+ *
+ * The specs says, that on %fs:0 there is stored contents of %fs register,
+ * we need not to go to CPL0 to read it.
+ */
+__native sys_tls_set(__native addr)
+{
+	THREAD->tls = addr;
+	write_msr(AMD_MSR_FS, addr);
+	return 0;
 }

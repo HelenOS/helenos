@@ -29,6 +29,6 @@
 #ifndef __ia32_THREAD_H__
 #define __ia32_THREAD_H__
 
-#define ARCH_THREAD_DATA
+#define ARCH_THREAD_DATA __native tls;
 
 #endif

@@ -51,6 +51,8 @@
 #include <arch/mm/memory_init.h>
 #include <interrupt.h>
 #include <arch/debugger.h>
+#include <proc/thread.h>
+#include <syscall/syscall.h>
 
 void arch_pre_mm_init(void)
 {
@@ -105,4 +107,20 @@ void calibrate_delay_loop(void)
 		 */
 		i8254_normal_operation();
 	}
+}
+
+/** Set Thread-local-storeage pointer
+ *
+ * TLS pointer is set in FS register. Unfortunately the 64-bit
+ * part can be set only in CPL0 mode.
+ *
+ * The specs says, that on %fs:0 there is stored contents of %fs register,
+ * we need not to go to CPL0 to read it.
+ */
+__native sys_tls_set(__native addr)
+{
+	THREAD->tls = addr;
+	set_tls_desc(addr);
+
+	return 0;
 }

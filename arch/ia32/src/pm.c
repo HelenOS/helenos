@@ -48,6 +48,9 @@
  * We have no use for segmentation so we set up flat mode. In this
  * mode, we use, for each privilege level, two segments spanning the
  * whole memory. One is for code and one is for data.
+ *
+ * One is for GS register which holds pointer to the TLS thread
+ * structure in it's base.
  */
 struct descriptor gdt[GDT_ITEMS] = {
 	/* NULL descriptor */
@@ -61,7 +64,8 @@ struct descriptor gdt[GDT_ITEMS] = {
 	/* UDATA descriptor */
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 	/* TSS descriptor - set up will be completed later */
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 }
 };
 
 static struct idescriptor idt[IDT_ITEMS];
@@ -213,4 +217,16 @@ void pm_init(void)
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
 	clean_AM_flag();          /* Disable alignment check */
+}
+
+void set_tls_desc(__address tls)
+{
+	struct ptr_16_32 cpugdtr;
+	struct descriptor *gdt_p = (struct descriptor *) cpugdtr.base;
+
+	__asm__ volatile ("sgdt %0\n" : : "m" (cpugdtr));
+
+	gdt_setbase(&gdt_p[TLS_DES], tls);
+	/* Reload gdt register to update GS in CPU */
+	__asm__ volatile ("lgdt %0\n" : : "m" (cpugdtr));
 }

@@ -55,6 +55,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"push %%eax\n"
 		"popfl\n"
 
+		/* Set up GS register (TLS) */
+		"movl %6, %%gs\n"
+
 		"pushl %0\n"
 		"pushl %1\n"
 		"pushl %2\n"
@@ -65,7 +68,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 		: 
 		: "i" (selector(UDATA_DES) | PL_USER), "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE),
 		  "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (kernel_uarg->uspace_entry),
-		  "r" (kernel_uarg->uspace_uarg)
+		"r" (kernel_uarg->uspace_uarg),
+		"r" (selector(TLS_DES))
 		: "eax");
 	
 	/* Unreachable */
