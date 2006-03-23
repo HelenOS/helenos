@@ -49,7 +49,10 @@ int futex_down(atomic_t *futex)
 
 int futex_up(atomic_t *futex)
 {
-	if (atomic_preinc(futex) == 0)
+	long val;
+	
+	val = atomic_postinc(futex);
+	if (val < 0)
 		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
 		
 	return 0;
