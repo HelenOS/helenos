@@ -30,9 +30,12 @@
 #define __LIBC__FUTEX_H__
 
 #include <atomic.h>
+#include <types.h>
 
 extern void futex_initialize(atomic_t *futex, int value);
 extern int futex_down(atomic_t *futex);
+extern int futex_trydown(atomic_t *futex);
+extern int futex_down_timeout(atomic_t *futex, uint32_t usec, int trydown);
 extern int futex_up(atomic_t *futex);
 
 #endif
