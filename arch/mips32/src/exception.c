@@ -89,10 +89,8 @@ static void reserved_instr_exception(int n, istate_t *istate)
 		ASSERT(THREAD);
 		istate->epc += 4;
 		istate->v1 = istate->k1;
-	} else {
-		print_regdump(istate);
-		panic("reserved instruction");
-	}
+	} else 
+		unhandled_exception(n, istate);
 }
 
 static void breakpoint_exception(int n, istate_t *istate)

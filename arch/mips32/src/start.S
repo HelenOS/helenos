@@ -251,23 +251,26 @@ syscall_shortcut:
 	sw $t2,SS_STATUS($sp)
 	mtc0 $t0, $status
 
+	# CALL Syscall handler
 	jal syscall_handler
 	sw $v0, SS_ARG4($sp)        # save v0 - arg4 to stack
 
-	# restore epc+4
-	lw $t0,SS_EPC($sp)
-	addi $t0, $t0, 4
-	mtc0 $t0, $epc
-	
 	# restore status
 	mfc0 $t0, $status
 	lw $t1,SS_STATUS($sp)
 
+	# Change back to EXL=1(from last exception), otherwise
+	# an interrupt could rewrite the CP0-EPC
 	li $t2, ~REG_SAVE_MASK      # Mask UM,EXL,ERL,IE
 	and $t0, $t0, $t2
 	or $t0, $t0, $t1            # Copy UM,EXL,ERL,IE from saved status
 	mtc0 $t0, $status
 			
+	# restore epc+4
+	lw $t0,SS_EPC($sp)
+	addi $t0, $t0, 4
+	mtc0 $t0, $epc
+	
 	lw $sp,SS_SP($sp) # restore sp
 	
 	eret
