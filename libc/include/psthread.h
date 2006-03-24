@@ -31,6 +31,7 @@
 
 #include <libarch/psthread.h>
 #include <libadt/list.h>
+#include <libarch/thread.h>
 
 #ifndef context_set
 #define context_set(c, _pc, stack, size, ptls) 			\
@@ -42,13 +43,12 @@
 typedef sysarg_t pstid_t;
 
 struct psthread_data {
-	struct psthread_data *self; /* ia32, amd64 needs to get self address */
-
 	link_t link;
 	context_t ctx;
 	void *stack;
 	void *arg;
 	int (*func)(void *);
+	tcb_t *tcb;
 
 	struct psthread_data *waiter;
 	int finished;
@@ -63,5 +63,8 @@ extern void context_restore(context_t *c) __attribute__ ((noreturn));
 pstid_t psthread_create(int (*func)(void *), void *arg);
 int psthread_schedule_next(void);
 int psthread_join(pstid_t psthrid);
+psthread_data_t * psthread_setup(tcb_t *tcb);
+void psthread_teardown(psthread_data_t *pt);
+
 
 #endif

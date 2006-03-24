@@ -26,6 +26,16 @@ SECTIONS {
 		*(.data);
 		*(.sdata);
 	} :data
+	.tdata : {
+		_tdata_start = .;
+		*(.tdata);
+		_tdata_end = .;
+	} :data
+	.tbss : {
+		_tbss_start = .;
+		*(.tbss);
+		_tbss_end = .;
+	} :data
 	.bss : {
 		*(.sbss);
 		*(.scommon);

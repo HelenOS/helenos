@@ -34,6 +34,7 @@ TOOLCHAIN_DIR = /usr/local/mipsel/bin
 CFLAGS += -mips3
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-	arch/$(ARCH)/src/psthread.S
+	arch/$(ARCH)/src/psthread.S \
+	arch/$(ARCH)/src/thread.c
 
 

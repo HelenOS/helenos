@@ -36,12 +36,20 @@ void _exit(int status) {
 	thread_exit(status);
 }
 
+#include <stdio.h>
 void __main(void) {
-	__tls_set(__make_tls());
+	tcb_t *tcb;
+	
+	tcb = __make_tls();
+	__tcb_set(tcb);
+	psthread_setup(tcb);
 }
 
 void __exit(void) {
-	free(__tls_get());
-	
+	tcb_t *tcb;
+
+	tcb = __tcb_get();
+	psthread_teardown(tcb->pst_data);
+	__free_tls(tcb);
 	_exit(0);
 }

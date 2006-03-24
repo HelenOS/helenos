@@ -31,12 +31,17 @@
 
 #include <libc.h>
 
-static inline void __tls_set(void *tls)
+typedef struct {
+	void *self;
+	void *pst_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tls);
+	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tcb);
 }
 
-static inline void * __tls_get(void)
+static inline tcb_t * __tcb_get(void)
 {
 	void * retval;
 

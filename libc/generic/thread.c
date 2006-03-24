@@ -32,21 +32,38 @@
 #include <arch/faddr.h>
 #include <kernel/proc/uarg.h>
 #include <psthread.h>
+#include <string.h>
 
 #include <stdio.h>
-void * __make_tls(void)
+
+extern char _tdata_start;
+extern char _tdata_end;
+extern char _tbss_start;
+extern char _tbss_end;
+
+/** Create Thread Local storage area, return pointer to TCB(ThreadControlBlock)
+ *
+ * !! The code requires, that sections .tdata and .tbss are adjacent.
+ *    It may be changed in the future.
+ */
+tcb_t * __make_tls(void)
 {
-	psthread_data_t *pt;
+	void *data;
+	tcb_t *tcb;
+	size_t tls_size = &_tbss_end - &_tdata_start;
+	
+	tcb = __alloc_tls(&data, tls_size);
+	
+	memcpy(data, &_tdata_start, &_tdata_end - &_tdata_start);
+	memset(data + (&_tbss_start-&_tdata_start), &_tbss_end-&_tbss_start, 0);
 
-	pt = malloc(sizeof(psthread_data_t));
-	pt->self = pt;
-
-	return pt;
+	return tcb;
 }
 
-void __free_tls(void *tls)
+void __free_tls(tcb_t *tcb)
 {
-	free(tls);
+	size_t tls_size = &_tbss_end - &_tdata_start;
+	__free_tls_arch(tcb, tls_size);
 }
 
 /** Main thread function.
@@ -60,14 +77,18 @@ void __free_tls(void *tls)
  */
 void __thread_main(uspace_arg_t *uarg)
 {
+	tcb_t *tcb;
 	/* This should initialize the area according to TLS specicification */
-	__tls_set(__make_tls());
+	tcb = __make_tls();
+	__tcb_set(tcb);
+	psthread_setup(tcb);
 
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	free(uarg->uspace_stack);
 	free(uarg);
 
-	__free_tls(__tls_get());
+	psthread_teardown(tcb->pst_data);
+	__free_tls(tcb);
 
 	thread_exit(0);
 }

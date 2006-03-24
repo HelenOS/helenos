@@ -31,6 +31,17 @@
 
 #include <types.h>
 
+/* We define our own context_set, because we need to set
+ * the TLS pointer to the tcb+0x7000
+ *
+ * See tls_set in thread.h
+ */
+#define context_set(c, _pc, stack, size, ptls) 			\
+	(c)->pc = (sysarg_t) (_pc);				\
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
+        (c)->tls = ((sysarg_t)(ptls)) + 0x7000 + sizeof(tcb_t);
+
+
 /* +16 is just for sure that the called function
  * have space to store it's arguments
  */

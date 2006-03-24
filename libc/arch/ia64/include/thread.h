@@ -29,12 +29,18 @@
 #ifndef __LIBC__ia64THREAD_H__
 #define __LIBC__ia64THREAD_H__
 
-static inline void __tls_set(void *tls)
+/* This structure must be exactly 16 bytes long */
+typedef struct {
+	void *dtv; /* unused in static linking*/
+	void *pst_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	__asm__ volatile ("mov r13 = %0\n" : : "r" (tls) : "r13");
+	__asm__ volatile ("mov r13 = %0\n" : : "r" (tcb) : "r13");
 }
 
-static inline void *__tls_get(void)
+static inline tcb_t *__tcb_get(void)
 {
 	void *retval;
 

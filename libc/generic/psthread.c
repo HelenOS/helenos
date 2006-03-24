@@ -39,6 +39,27 @@ static LIST_INITIALIZE(ready_list);
 static void psthread_exit(void) __attribute__ ((noinline));
 static void psthread_main(void);
 
+/** Setup PSthread information into TCB structure */
+psthread_data_t * psthread_setup(tcb_t *tcb)
+{
+	psthread_data_t *pt;
+
+	pt = malloc(sizeof(*pt));
+	if (!pt) {
+		return NULL;
+	}
+
+	tcb->pst_data = pt;
+	pt->tcb = tcb;
+
+	return pt;
+}
+
+void psthread_teardown(psthread_data_t *pt)
+{
+	free(pt);
+}
+
 /** Function to preempt to other pseudo thread without adding
  * currently running pseudo thread to ready_list.
  */
@@ -59,7 +80,8 @@ void psthread_exit(void)
 /** Function that is called on entry to new uspace thread */
 void psthread_main(void)
 {
-	psthread_data_t *pt = __tls_get();
+	psthread_data_t *pt = __tcb_get()->pst_data;
+
 	pt->retval = pt->func(pt->arg);
 
 	pt->finished = 1;
@@ -80,7 +102,7 @@ int psthread_schedule_next(void)
 	if (list_empty(&ready_list))
 		return 0;
 
-	pt = __tls_get();
+	pt = __tcb_get()->pst_data;
 	if (!context_save(&pt->ctx))
 		return 1;
 	
@@ -103,11 +125,10 @@ int psthread_join(pstid_t psthrid)
 	volatile int retval;
 
 	/* Handle psthrid = Kernel address -> it is wait for call */
-
 	pt = (psthread_data_t *) psthrid;
 
 	if (!pt->finished) {
-		mypt = __tls_get();
+		mypt = __tcb_get()->pst_data;
 		if (context_save(&((psthread_data_t *) mypt)->ctx)) {
 			pt->waiter = (psthread_data_t *) mypt;
 			psthread_exit();
@@ -116,7 +137,8 @@ int psthread_join(pstid_t psthrid)
 	retval = pt->retval;
 
 	free(pt->stack);
-	__free_tls((psthread_data_t *) pt);
+	__free_tls(pt->tcb);
+	psthread_teardown((void *)pt);
 
 	return retval;
 }
@@ -132,11 +154,22 @@ int psthread_join(pstid_t psthrid)
 pstid_t psthread_create(int (*func)(void *), void *arg)
 {
 	psthread_data_t *pt;
+	tcb_t *tcb;
 
-	pt = __make_tls();
+	tcb = __make_tls();
+	if (!tcb)
+		return 0;
+
+	pt = psthread_setup(tcb);
+	if (!pt) {
+		__free_tls(tcb);
+		return 0;
+	}
 	pt->stack = (char *) malloc(getpagesize());
 
 	if (!pt->stack) {
+		__free_tls(tcb);
+		psthread_teardown(pt);
 		return 0;
 	}
 
@@ -146,7 +179,8 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt->waiter = NULL;
 
 	context_save(&pt->ctx);
-	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, getpagesize(), pt);
+	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, getpagesize(),
+		    tcb);
 
 	list_append(&pt->link, &ready_list);
 

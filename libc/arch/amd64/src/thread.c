@@ -26,44 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
+#include <thread.h>
+#include <malloc.h>
 
-#ifndef __LIBC__mips32THREAD_H__
-#define __LIBC__mips32THREAD_H__
-
-/* I did not find any specification (neither MIPS nor PowerPC), but
- * as I found it
- * - it uses Variant II
- * - TCB is at Address(First TLS Block)+0x7000.
- * - DTV is at Address(First TLS Block)+0x8000
- * - What would happen if the TLS data was larger then 0x7000?
- * - The linker never accesses DTV directly, has the second definition any
- *   sense?
- * We will make it this way:
- * - TCB is at TP-0x7000-sizeof(tcb)
- * - No assumption about DTV etc., but it will not have a fixed address
+/** Allocate TLS & TCB for initial module threads
+ *
+ * @param data Start of data section
+ * @return pointer to tcb_t structure
  */
-#define MIPS_TP_OFFSET 0x7000
-
-typedef struct {
-	void *pst_data;
-} tcb_t;
-
-static inline void __tcb_set(tcb_t *tcb)
+tcb_t * __alloc_tls(void **data, size_t size)
 {
-	void *tp = tcb;
-	tp += MIPS_TP_OFFSET + sizeof(tcb_t);
+	tcb_t *tcb;
+	
+	*data = malloc(sizeof(tcb_t) + size);
 
-	__asm__ volatile ("add $27, %0, $0" : : "r"(tp)); /* Move tls to K1 */
+	tcb = (tcb_t *) (*data + size);
+	tcb->self = tcb;
+
+	return tcb;
 }
 
-static inline tcb_t * __tcb_get(void)
+void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	void * retval;
-
-	__asm__ volatile("add %0, $27, $0" : "=r"(retval));
-
-	return (tcb_t *)(retval - MIPS_TP_OFFSET - sizeof(tcb_t));
+	void *start = ((void *)tcb) - size;
+	free(start);
 }
-
-#endif

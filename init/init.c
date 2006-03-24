@@ -39,6 +39,8 @@
 int a;
 atomic_t ftx;
 
+int __thread tls_prom;
+
 extern void utest(void *arg);
 void utest(void *arg)
 {
@@ -255,11 +257,14 @@ static void test_slam(void)
 
 static int ptest(void *arg)
 {
-	printf("Pseudo thread stage1.\n");
+	tls_prom = -1;
+	printf("Pseudo thread stage%d.\n", -tls_prom);
+	tls_prom = -2;
 	psthread_schedule_next();
-	printf("Pseudo thread stage2.\n");
+	printf("Pseudo thread stage%d.\n", -tls_prom);
+	tls_prom = -3;
 	psthread_schedule_next();
-	printf("Pseudo thread stage3.\n");
+	printf("Pseudo thread stage%d\n", -tls_prom);
 	psthread_schedule_next();
 	printf("Pseudo thread stage4.\n");
 	psthread_schedule_next();
@@ -290,7 +295,7 @@ int main(int argc, char *argv[])
 
 	if (futex_down(&ftx) < 0)
 		printf("Futex failed.\n");
-
+/*
 	if ((tid = thread_create(utest, NULL, "utest")) != -1) {
 		printf("Created thread tid=%d\n", tid);
 	}
@@ -298,7 +303,7 @@ int main(int argc, char *argv[])
 	if ((tid = thread_create(utest, NULL, "utest")) != -1) {
 		printf("Created thread tid=%d\n", tid);
 	}
-
+*/
 	int i;
 	
 	for (i = 0; i < 50000000; i++)
@@ -307,12 +312,17 @@ int main(int argc, char *argv[])
 	if (futex_up(&ftx) < 0)
 		printf("Futex failed.\n");
 
+
+	printf("Creating pathread\n");
+	tls_prom = 1;
 	ptid = psthread_create(ptest, NULL);
-	printf("Main thread stage1.\n");
+	printf("Main thread stage%d\n",tls_prom);
+	tls_prom = 2;
 	psthread_schedule_next();;
-	printf("Main thread stage2.\n");
+	printf("Main thread stage%d\n", tls_prom);
+	tls_prom = 3;
 	psthread_schedule_next();;
-	printf("Main thread stage3.\n");
+	printf("Main thread stage%d\n", tls_prom);
 
 	psthread_join(ptid);
 

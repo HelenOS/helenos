@@ -31,13 +31,16 @@
 
 #include <kernel/proc/uarg.h>
 #include <libarch/thread.h>
+#include <types.h>
 
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *uarg);
 
 extern int thread_create(void (* function)(void *arg), void *arg, char *name);
 extern void thread_exit(int status);
-void * __make_tls(void);
-void __free_tls(void *);
+tcb_t * __make_tls(void);
+tcb_t * __alloc_tls(void **data, size_t size);
+void __free_tls(tcb_t *);
+void __free_tls_arch(tcb_t *, size_t size);
 
 #endif
