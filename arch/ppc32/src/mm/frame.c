@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch/boot/boot.h>
 #include <arch/mm/frame.h>
-#include <arch/boot/memmap.h>
 #include <arch/mm/memory_init.h>
 #include <mm/frame.h>
 #include <align.h>
@@ -42,9 +42,9 @@ void frame_arch_init(void)
 	pfn_t start, conf;
 	size_t size;
 	
-	for (i = 0; i < memmap.count; i++) {
-		start = ADDR2PFN(ALIGN_UP(memmap.zones[i].start, FRAME_SIZE));
-		size = SIZE2FRAMES(ALIGN_DOWN(memmap.zones[i].size, FRAME_SIZE));
+	for (i = 0; i < bootinfo.memmap.count; i++) {
+		start = ADDR2PFN(ALIGN_UP(bootinfo.memmap.zones[i].start, FRAME_SIZE));
+		size = SIZE2FRAMES(ALIGN_DOWN(bootinfo.memmap.zones[i].size, FRAME_SIZE));
 		
 		if ((minconf < start) || (minconf >= start + size))
 			conf = start;
@@ -52,8 +52,8 @@ void frame_arch_init(void)
 			conf = minconf;
 		
 		zone_create(start, size, conf, 0);
-		if (last_frame < ALIGN_UP(memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE))
-			last_frame = ALIGN_UP(memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE);
+		if (last_frame < ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE))
+			last_frame = ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE);
 	}
 
 	/* First is exception vector, second is 'implementation specific' */

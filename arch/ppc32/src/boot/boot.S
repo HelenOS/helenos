@@ -28,7 +28,6 @@
 
 #include <arch/asm/regname.h>
 #include <arch/boot/boot.h>
-#include <arch/boot/memmap.h>
 
 .section K_TEXT_START, "ax"
 
@@ -40,37 +39,33 @@ kernel_image_start:
 	lis sp, end_stack@ha
 	addi sp, sp, end_stack@l
 	
-	# r10 contains physical address to memmap_t
-	# from boot loader
+	# r3 contains physical address of bootinfo_t
+	# r4 contains size of bootinfo_t
 	
 	lis r31, 0x80000000@ha
 	addi r31, r31, 0x80000000@l
 	
 	add r3, r3, r31
 
-	lis r31, memmap@ha
-	addi r31, r31, memmap@l    # r31 = memmap
+	lis r31, bootinfo@ha
+	addi r31, r31, bootinfo@l  # r31 = bootinfo
 	
-	lwz r30, 0(r3)             # memmap->total
-	stw r30, 0(r31)
+	cmpwi r4, 0
+	beq bootinfo_end
 	
-	lwzu r30, 4(r3)            # memmap->count
-	stwu r30, 4(r31)
-	
-	cmpwi r30, 0
-	beq memmap_end
-	
-	mtctr r30
-	memmap_loop:
-	
-		lwzu r30, 4(r3)           # memmap->zones[i].start
-		stwu r30, 4(r31)
+	bootinfo_loop:
 		
-		lwzu r30, 4(r3)           # memmap->zones[i].size
-		stwu r30, 4(r31)
-	
-	bdnz memmap_loop
-	memmap_end:
+		lwz r30, 0(r3)
+		stw r30, 0(r31)
+		
+		addi r3, r3, 4
+		addi r31, r31, 4
+		subi r4, r4, 4
+		
+		cmpwi r4, 0
+		bgt bootinfo_loop
+		
+	bootinfo_end:
 	
 	b main_bsp
 

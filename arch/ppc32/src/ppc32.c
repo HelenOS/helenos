@@ -27,10 +27,13 @@
  */
 
 #include <arch.h>
+#include <arch/boot/boot.h>
 #include <arch/console.h>
 #include <arch/drivers/cuda.h>
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
+
+bootinfo_t bootinfo;
 
 void arch_pre_mm_init(void)
 {

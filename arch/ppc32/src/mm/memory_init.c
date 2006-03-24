@@ -26,17 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/boot/memmap.h>
+#include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
 #include <typedefs.h>
 #include <print.h>
 
-memmap_t memmap;
-
 
 size_t get_memory_size(void) 
 {
-	return memmap.total;
+	return bootinfo.memmap.total;
 }
 
 
@@ -44,6 +42,6 @@ void memory_print_map(void)
 {
 	count_t i;
 	
-	for (i = 0; i < memmap.count; i++)
-		printf("base: %L size: %L\n", memmap.zones[i].start, memmap.zones[i].size);
+	for (i = 0; i < bootinfo.memmap.count; i++)
+		printf("base: %L size: %L\n", bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
 }
