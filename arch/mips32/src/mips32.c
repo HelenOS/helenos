@@ -129,7 +129,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 					      cp0_status_um_bit |
 					      cp0_status_ie_enabled_bit));
 	cp0_epc_write((__address) kernel_uarg->uspace_entry);
-	userspace_asm(((__address) kernel_uarg->uspace_stack+PAGE_SIZE), (__address) kernel_uarg->uspace_uarg);
+	userspace_asm(((__address) kernel_uarg->uspace_stack+PAGE_SIZE), 
+		      (__address) kernel_uarg->uspace_uarg,
+		      (__address) kernel_uarg->uspace_entry);
 	while (1)
 		;
 }

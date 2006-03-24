@@ -303,6 +303,7 @@ cache_error_handler:
 
 userspace_asm:
 	add $sp, $a0, 0
-	add $v0, $a1, 0
+	add $v0, $a1, 0 
+	add $t9, $a2, 0   # Set up correct entry into PIC code 
 	eret
 

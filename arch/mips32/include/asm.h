@@ -57,6 +57,7 @@ static inline __address get_stack_base(void)
 
 extern void cpu_halt(void);
 extern void asm_delay_loop(__u32 t);
-extern void userspace_asm(__address ustack, __address uspace_uarg);
+extern void userspace_asm(__address ustack, __address uspace_uarg,
+			  __address entry);
 
 #endif
