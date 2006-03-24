@@ -36,12 +36,13 @@
 
 static LIST_INITIALIZE(ready_list);
 
-static void ps_exit(void) __attribute__ ((noinline));
+static void psthread_exit(void) __attribute__ ((noinline));
+static void psthread_main(void);
 
-/** Function to preempt to other thread without adding
- * currently running thread to runqueue
+/** Function to preempt to other pseudo thread without adding
+ * currently running pseudo thread to ready_list.
  */
-void ps_exit(void)
+void psthread_exit(void)
 {
 	psthread_data_t *pt;
 
@@ -50,26 +51,29 @@ void ps_exit(void)
 		printf("Cannot exit!!!\n");
 		_exit(0);
 	}
-	pt = list_get_instance(ready_list.next, psthread_data_t, list);
-	list_remove(&pt->list);
+	pt = list_get_instance(ready_list.next, psthread_data_t, link);
+	list_remove(&pt->link);
 	context_restore(&pt->ctx);
 }
 
 /** Function that is called on entry to new uspace thread */
-static int psthread_main(void)
+void psthread_main(void)
 {
 	psthread_data_t *pt = __tls_get();
 	pt->retval = pt->func(pt->arg);
 
 	pt->finished = 1;
 	if (pt->waiter)
-		list_append(&pt->waiter->list, &ready_list);
+		list_append(&pt->waiter->link, &ready_list);
 
-	ps_exit();
+	psthread_exit();
 }
 
-/** Do a preemption of userpace threads */
-int ps_preempt(void)
+/** Schedule next userspace pseudo thread.
+ *
+ * @return 0 if there is no ready pseudo thread, 1 otherwise.
+ */
+int psthread_schedule_next(void)
 {
 	psthread_data_t *pt;
 
@@ -77,18 +81,23 @@ int ps_preempt(void)
 		return 0;
 
 	pt = __tls_get();
-	if (! context_save(&pt->ctx))
+	if (!context_save(&pt->ctx))
 		return 1;
 	
-	list_append(&pt->list, &ready_list);
-	pt = list_get_instance(ready_list.next, psthread_data_t, list);
-	list_remove(&pt->list);
+	list_append(&pt->link, &ready_list);
+	pt = list_get_instance(ready_list.next, psthread_data_t, link);
+	list_remove(&pt->link);
 
 	context_restore(&pt->ctx);
 }
 
-/** Wait for uspace thread to finish */
-int ps_join(pstid_t psthrid)
+/** Wait for uspace pseudo thread to finish.
+ *
+ * @param psthrid Pseudo thread to wait for.
+ *
+ * @return Value returned by the finished thread.
+ */
+int psthread_join(pstid_t psthrid)
 {
 	volatile psthread_data_t *pt, *mypt;
 	volatile int retval;
@@ -101,7 +110,7 @@ int ps_join(pstid_t psthrid)
 		mypt = __tls_get();
 		if (context_save(&((psthread_data_t *) mypt)->ctx)) {
 			pt->waiter = (psthread_data_t *) mypt;
-			ps_exit();
+			psthread_exit();
 		}
 	}
 	retval = pt->retval;
@@ -113,8 +122,12 @@ int ps_join(pstid_t psthrid)
 }
 
 /**
- * Create a userspace thread
+ * Create a userspace thread and append it to ready list.
  *
+ * @param func Pseudo thread function.
+ * @param arg Argument to pass to func.
+ *
+ * @return 0 on failure, TLS of the new pseudo thread.
  */
 pstid_t psthread_create(int (*func)(void *), void *arg)
 {
@@ -135,8 +148,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	context_save(&pt->ctx);
 	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, getpagesize(), pt);
 
-	list_append(&pt->list, &ready_list);
+	list_append(&pt->link, &ready_list);
 
 	return (pstid_t )pt;
 }
-

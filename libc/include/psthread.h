@@ -44,7 +44,7 @@ typedef sysarg_t pstid_t;
 struct psthread_data {
 	struct psthread_data *self; /* ia32, amd64 needs to get self address */
 
-	link_t list;
+	link_t link;
 	context_t ctx;
 	void *stack;
 	void *arg;
@@ -61,7 +61,7 @@ extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
 
 pstid_t psthread_create(int (*func)(void *), void *arg);
-int ps_preempt(void);
-int ps_join(pstid_t psthrid);
+int psthread_schedule_next(void);
+int psthread_join(pstid_t psthrid);
 
 #endif

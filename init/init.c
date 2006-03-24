@@ -255,15 +255,15 @@ static void test_slam(void)
 
 static int ptest(void *arg)
 {
-	printf("Pseudo thread-1\n");
-	ps_preempt();
-	printf("Pseudo thread-2\n");
-	ps_preempt();
-	printf("Pseudo thread-3\n");
-	ps_preempt();
-	printf("Pseudo thread-4\n");
-	ps_preempt();
-	printf("Pseudo finish\n");
+	printf("Pseudo thread stage1.\n");
+	psthread_schedule_next();
+	printf("Pseudo thread stage2.\n");
+	psthread_schedule_next();
+	printf("Pseudo thread stage3.\n");
+	psthread_schedule_next();
+	printf("Pseudo thread stage4.\n");
+	psthread_schedule_next();
+	printf("Pseudo thread exiting.\n");
 	return 0;	
 }
 
@@ -308,14 +308,13 @@ int main(int argc, char *argv[])
 		printf("Futex failed.\n");
 
 	ptid = psthread_create(ptest, NULL);
-	printf("main thread-1\n");
-	ps_preempt();
-	printf("main thread-2\n");
-	ps_preempt();
-	printf("main thread-3\n");
+	printf("Main thread stage1.\n");
+	psthread_schedule_next();;
+	printf("Main thread stage2.\n");
+	psthread_schedule_next();;
+	printf("Main thread stage3.\n");
 
-	ps_join(ptid);
-	printf("Main exiting\n");
+	psthread_join(ptid);
 
 	printf("Main thread exiting.\n");
 	return 0;
