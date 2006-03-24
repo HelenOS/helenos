@@ -31,7 +31,10 @@
 
 #include <types.h>
 
-#define SP_DELTA	(8)
+/* +16 is just for sure that the called function
+ * have space to store it's arguments
+ */
+#define SP_DELTA	(8+16)
 
 typedef struct  {
 	uint32_t sp;

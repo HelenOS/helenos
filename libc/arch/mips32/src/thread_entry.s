@@ -27,11 +27,11 @@
 #
 
 .text
-
+	
 .set noat
 .set noreorder
-.set nomacro
-
+.option pic2
+	
 .globl __thread_entry
 
 ## User-space thread entry point for all but the first threads.
@@ -39,16 +39,18 @@
 #
 .ent __thread_entry
 __thread_entry:
-	lui $28, _gp
+	.frame $sp, 32, $31
+	.cpload $25
 
 	#
 	# v0 contains address of uarg.
 	#
 	add $4, $2, 0
 	# Mips o32 may store its arguments on stack, make space
-	addiu $sp, -16
+	addiu $sp, -32
+	.cprestore 16
 	
-	j __thread_main
+	jal __thread_main
 	nop
 		
 	#

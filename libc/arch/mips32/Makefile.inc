@@ -31,10 +31,9 @@
 
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = /usr/local/mipsel/bin
-CFLAGS += -mips3 -mno-abicalls
+CFLAGS += -mips3
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 	arch/$(ARCH)/src/psthread.S
 
-LFLAGS += -N
 

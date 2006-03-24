@@ -17,12 +17,13 @@ SECTIONS {
 		*(.rodata*);
 	} :text
 
-	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
+	.data : {
 		*(.data);
+		*(.data.rel*);
 	} :data
 	.got : {
 		_gp = .;
-		*(.data.rel*);
+		*(.got);
 	} :data
 	.sbss : {
 		*(.scommon);

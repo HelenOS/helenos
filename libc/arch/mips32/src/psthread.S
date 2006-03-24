@@ -30,7 +30,6 @@
 
 .set noat
 .set noreorder
-.set nomacro
 
 
 #include <arch/asm/regname.h>
@@ -83,6 +82,10 @@ context_save:
 context_restore:
 	CONTEXT_LOAD $a0
 
+	# Just for the jump into first function, but one instruction
+	# should not bother us
+	move $t9, $ra	
 	# context_restore returns 0
 	j $ra
 	xor $v0, $v0	
+
