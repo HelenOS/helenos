@@ -51,6 +51,14 @@ typedef struct {
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
+typedef struct {
+	unsigned int addr;
+	unsigned int width;
+	unsigned int height;
+	unsigned int bpp;
+	unsigned int scanline;
+} screen_t;
+
 
 extern void init(void);
 extern void ofw_write(const char *str, const int len);
@@ -58,5 +66,6 @@ extern void ofw_write(const char *str, const int len);
 extern void *ofw_translate(const void *virt);
 extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
+extern int ofw_screen(screen_t *screen);
 
 #endif

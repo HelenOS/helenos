@@ -31,6 +31,7 @@
 #include "printf.h"
 
 #define MAX_OFW_ARGS	10
+#define STRING_SIZE		1024
 
 typedef unsigned int ofw_arg_t;
 typedef unsigned int ihandle;
@@ -52,6 +53,7 @@ typedef void (*ofw_entry)(ofw_args_t *);
 ofw_entry ofw;
 
 phandle ofw_chosen;
+phandle ofw_aliases;
 ihandle ofw_mmu;
 ihandle ofw_stdout;
 
@@ -106,9 +108,15 @@ void init(void)
 	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
 		ofw_stdout = 0;
 	
+	ofw_aliases = ofw_find_device("/aliases");
+	if (ofw_aliases == -1) {
+		puts("\nUnable to find /aliases device\n");
+		halt();
+	}
+	
 	ofw_mmu = ofw_open("/mmu");
 	if (ofw_mmu == -1) {
-		puts("Unable to open /mmu node\n");
+		puts("\nUnable to open /mmu node\n");
 		halt();
 	}
 }
@@ -156,4 +164,34 @@ int ofw_memmap(memmap_t *map)
 		map->count++;
 		map->total += map->zones[i].size;
 	}
+}
+
+
+int ofw_screen(screen_t *screen)
+{
+	char device_name[STRING_SIZE];
+	
+	if (ofw_get_property(ofw_aliases, "screen", device_name, STRING_SIZE) <= 0)
+		return false;
+	
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+	
+	if (ofw_get_property(device, "address", &screen->addr, sizeof(screen->addr)) <= 0)
+		return false;
+	
+	if (ofw_get_property(device, "width", &screen->width, sizeof(screen->width)) <= 0)
+		return false;
+	
+	if (ofw_get_property(device, "height", &screen->height, sizeof(screen->height)) <= 0)
+		return false;
+	
+	if (ofw_get_property(device, "depth", &screen->bpp, sizeof(screen->bpp)) <= 0)
+		return false;
+	
+	if (ofw_get_property(device, "linebytes", &screen->scanline, sizeof(screen->scanline)) <= 0)
+		return false;
+	
+	return true;
 }

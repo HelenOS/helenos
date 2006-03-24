@@ -36,7 +36,12 @@
 
 #define HEAP_GAP 1024000
 
-memmap_t memmap;
+typedef struct {
+	memmap_t memmap;
+	screen_t screen;
+} bootinfo_t;
+
+bootinfo_t bootinfo;
 
 
 static void check_align(const void *addr, const char *desc)
@@ -82,18 +87,26 @@ void bootstrap(void)
 	check_align(&real_mode, "Bootstrap trampoline");
 	check_align(&trans, "Translation table");
 	
-	if (!ofw_memmap(&memmap)) {
+	if (!ofw_memmap(&bootinfo.memmap)) {
 		printf("Error: Unable to get memory map\n");
 		halt();
 	}
 	
+	if (!ofw_screen(&bootinfo.screen)) {
+		printf("Error: Unable to get screen properties\n");
+		halt();
+	}
+	
+	printf("\nDevice statistics\n");
+	printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
-	void *memmap_pa = ofw_translate(&memmap);
+	void *bootinfo_pa = ofw_translate(&bootinfo);
 	
-	printf("Memory statistics (total %d MB)\n", memmap.total >> 20);
+	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
-	printf(" memory map           at %L (physical %L)\n", &memmap, memmap_pa);
+	printf(" boot info            at %L (physical %L)\n", &bootinfo, bootinfo_pa);
 	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
 	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
 	
@@ -107,8 +120,8 @@ void bootstrap(void)
 	
 	fix_overlap(&real_mode, &real_mode_pa, "Bootstrap trampoline", &top);
 	fix_overlap(&trans, &trans_pa, "Translation table", &top);
-	fix_overlap(&memmap, &memmap_pa, "Memory map", &top);
+	fix_overlap(&bootinfo, &bootinfo_pa, "Boot info", &top);
 	
-	printf("Booting the kernel...\n");
-	jump_to_kernel(memmap_pa, trans_pa, KERNEL_SIZE, real_mode_pa);
+	printf("\nBooting the kernel...\n");
+	jump_to_kernel(bootinfo_pa, trans_pa, KERNEL_SIZE, real_mode_pa);
 }
