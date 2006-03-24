@@ -32,13 +32,16 @@
 #include <unistd.h>
 #include <thread.h>
 #include <stdio.h>
+#include <kernel/arch/faddr.h>
 
 static LIST_INITIALIZE(ready_list);
+
+static void ps_exit(void) __attribute__ ((noinline));
 
 /** Function to preempt to other thread without adding
  * currently running thread to runqueue
  */
-static void ps_exit(void)
+void ps_exit(void)
 {
 	psthread_data_t *pt;
 
@@ -87,8 +90,8 @@ int ps_preempt(void)
 /** Wait for uspace thread to finish */
 int ps_join(pstid_t psthrid)
 {
-	psthread_data_t *pt, *mypt;
-	int retval;
+	volatile psthread_data_t *pt, *mypt;
+	volatile int retval;
 
 	/* Handle psthrid = Kernel address -> it is wait for call */
 
@@ -96,15 +99,15 @@ int ps_join(pstid_t psthrid)
 
 	if (!pt->finished) {
 		mypt = __tls_get();
-		if (context_save(&mypt->ctx)) {
-			pt->waiter = mypt;
+		if (context_save(&((psthread_data_t *) mypt)->ctx)) {
+			pt->waiter = (psthread_data_t *) mypt;
 			ps_exit();
 		}
 	}
 	retval = pt->retval;
 
 	free(pt->stack);
-	__free_tls(pt);
+	__free_tls((psthread_data_t *) pt);
 
 	return retval;
 }
@@ -130,7 +133,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt->waiter = NULL;
 
 	context_save(&pt->ctx);
-	context_set(&pt->ctx, psthread_main, pt->stack, getpagesize(), pt);
+	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, getpagesize(), pt);
 
 	list_append(&pt->list, &ready_list);
 

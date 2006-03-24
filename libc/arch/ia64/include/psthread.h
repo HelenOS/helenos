@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__PSTHREAD_H__
-#define __LIBC__PSTHREAD_H__
+#ifndef __LIBC__ia64PSTHREAD_H__
+#define __LIBC__ia64PSTHREAD_H__
 
-#include <libarch/psthread.h>
-#include <libadt/list.h>
+#include <types.h>
+#include <align.h>
+#include <libarch/stack.h>
 
-#ifndef context_set
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = (sysarg_t) (ptls);
-#endif /* context_set */
+/*
+ * context_save() and context_restore() are both leaf procedures.
+ * No need to allocate scratch area.
+ */
+#define SP_DELTA	(0+ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
-typedef sysarg_t pstid_t;
+#define PFM_MASK        (~0x3fffffffff)
 
-struct psthread_data {
-	struct psthread_data *self; /* ia32, amd64 needs to get self address */
+#ifdef context_set
+#undef context_set
+#endif
 
-	link_t list;
-	context_t ctx;
-	void *stack;
-	void *arg;
-	int (*func)(void *);
+#define context_set(c, _pc, stack, size, tls) 								\
+	do {												\
+		(c)->pc = (uint64_t) _pc;								\
+		(c)->bsp = (uint64_t) stack;								\
+		(c)->ar_pfs &= PFM_MASK; 								\
+		(c)->sp = ((uint64_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
+		(c)->tp = (uint64_t) tls;								\
+	} while (0);
+	
 
-	struct psthread_data *waiter;
-	int finished;
-	int retval;
-	int flags;
-};
-typedef struct psthread_data psthread_data_t;
+/*
+ * Only save registers that must be preserved across
+ * function calls.
+ */
+typedef struct context {
 
-extern int context_save(context_t *c);
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
+	/*
+	 * Application registers
+	 */
+	uint64_t ar_pfs;
+	uint64_t ar_unat_caller;
+	uint64_t ar_unat_callee;
+	uint64_t ar_rsc;
+	uint64_t bsp;		/* ar_bsp */
+	uint64_t ar_rnat;
+	uint64_t ar_lc;
 
-pstid_t psthread_create(int (*func)(void *), void *arg);
-int ps_preempt(void);
-int ps_join(pstid_t psthrid);
+	/*
+	 * General registers
+	 */
+	uint64_t r1;
+	uint64_t r4;
+	uint64_t r5;
+	uint64_t r6;
+	uint64_t r7;
+	uint64_t sp;		/* r12 */
+	uint64_t tp;		/* r13 */
+	
+	/*
+	 * Branch registers
+	 */
+	uint64_t pc;		/* b0 */
+	uint64_t b1;
+	uint64_t b2;
+	uint64_t b3;
+	uint64_t b4;
+	uint64_t b5;
+
+	/*
+	 * Predicate registers
+	 */
+	uint64_t pr;
+} context_t;
 
 #endif

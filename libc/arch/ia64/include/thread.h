@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__PSTHREAD_H__
-#define __LIBC__PSTHREAD_H__
+#ifndef __LIBC__ia64THREAD_H__
+#define __LIBC__ia64THREAD_H__
 
-#include <libarch/psthread.h>
-#include <libadt/list.h>
+static inline void __tls_set(void *tls)
+{
+	__asm__ volatile ("mov r13 = %0\n" : : "r" (tls) : "r13");
+}
 
-#ifndef context_set
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = (sysarg_t) (ptls);
-#endif /* context_set */
+static inline void *__tls_get(void)
+{
+	void *retval;
 
-typedef sysarg_t pstid_t;
+	__asm__ volatile ("mov %0 = r13\n" : "=r" (retval));
 
-struct psthread_data {
-	struct psthread_data *self; /* ia32, amd64 needs to get self address */
-
-	link_t list;
-	context_t ctx;
-	void *stack;
-	void *arg;
-	int (*func)(void *);
-
-	struct psthread_data *waiter;
-	int finished;
-	int retval;
-	int flags;
-};
-typedef struct psthread_data psthread_data_t;
-
-extern int context_save(context_t *c);
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
-
-pstid_t psthread_create(int (*func)(void *), void *arg);
-int ps_preempt(void);
-int ps_join(pstid_t psthrid);
+	return retval;
+}
 
 #endif

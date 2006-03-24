@@ -29,6 +29,7 @@
 #ifndef __LIBC__STDLIB_H__
 #define __LIBC__STDLIB_H__
 
+#include <unistd.h>
 #include <malloc.h>
 
 #define abort() _exit(1)

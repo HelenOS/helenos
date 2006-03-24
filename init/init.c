@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
 
 	version_print();
 
-/*	test_printf(); */
+//	test_printf();
 //	test_ping();
 //	test_async_ipc();
 //	test_advanced_ipc();
@@ -288,29 +288,29 @@ int main(int argc, char *argv[])
 	if (futex_up(&ftx) < 0)
 		printf("Futex failed.\n");
 
-	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
-		printf("Created thread tid=%d\n", tid);
-	}
-
 	if (futex_down(&ftx) < 0)
 		printf("Futex failed.\n");
 
-	if ((tid = thread_create(utest, NULL, "utest") != -1)) {
+	if ((tid = thread_create(utest, NULL, "utest")) != -1) {
+		printf("Created thread tid=%d\n", tid);
+	}
+
+	if ((tid = thread_create(utest, NULL, "utest")) != -1) {
 		printf("Created thread tid=%d\n", tid);
 	}
 
 	int i;
 	
-	for (i = 0; i < 10000000; i++)
+	for (i = 0; i < 50000000; i++)
 		;
 		
 	if (futex_up(&ftx) < 0)
 		printf("Futex failed.\n");
 
 	ptid = psthread_create(ptest, NULL);
-	printf("Main thread-1\n");
+	printf("main thread-1\n");
 	ps_preempt();
-	printf("Main thread-2\n");
+	printf("main thread-2\n");
 	ps_preempt();
 	printf("main thread-3\n");
 

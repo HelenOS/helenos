@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__PSTHREAD_H__
-#define __LIBC__PSTHREAD_H__
+#ifndef __ia64_STACK_H__
+#define __ia64_STACK_H__
 
-#include <libarch/psthread.h>
-#include <libadt/list.h>
-
-#ifndef context_set
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = (sysarg_t) (ptls);
-#endif /* context_set */
-
-typedef sysarg_t pstid_t;
-
-struct psthread_data {
-	struct psthread_data *self; /* ia32, amd64 needs to get self address */
-
-	link_t list;
-	context_t ctx;
-	void *stack;
-	void *arg;
-	int (*func)(void *);
-
-	struct psthread_data *waiter;
-	int finished;
-	int retval;
-	int flags;
-};
-typedef struct psthread_data psthread_data_t;
-
-extern int context_save(context_t *c);
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
-
-pstid_t psthread_create(int (*func)(void *), void *arg);
-int ps_preempt(void);
-int ps_join(pstid_t psthrid);
+#define STACK_ITEM_SIZE			8
+#define STACK_ALIGNMENT			16
+#define STACK_SCRATCH_AREA_SIZE		16
+#define REGISTER_STACK_ALIGNMENT 	8
 
 #endif

@@ -35,4 +35,5 @@ CFLAGS += -fno-unwind-tables
 LFLAGS += -N ../softint/softint.a
 AFLAGS += 
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S
+ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
+		arch/$(ARCH)/src/psthread.S
