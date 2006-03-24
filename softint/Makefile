@@ -58,7 +58,7 @@ clean:
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(GENERIC_SOURCES) > Makefile.depend
+	-makedepend $(DEFS) $(CFLAGS) -f - $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 softint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc softint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

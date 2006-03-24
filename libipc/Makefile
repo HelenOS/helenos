@@ -58,7 +58,7 @@ clean:
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libipc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libipc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

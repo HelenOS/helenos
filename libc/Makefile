@@ -77,7 +77,7 @@ clean:
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend
+	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
