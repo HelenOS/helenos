@@ -228,6 +228,8 @@ void printf(const char *fmt, ...)
 			}
 			
 			default:
+				if (c == '\n')
+					ofw_write("\r", 1);
 				ofw_write(&c, 1);
 		}
 	
