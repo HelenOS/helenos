@@ -38,6 +38,11 @@
  */
 #define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
+typedef struct {
+	memmap_t memmap;
+	screen_t screen;
+} bootinfo_t;
+
 extern int _binary_____________kernel_kernel_bin_start;
 extern int _binary_____________kernel_kernel_bin_end;
 extern void start(void);

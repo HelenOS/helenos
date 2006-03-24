@@ -108,12 +108,13 @@ memcpy:
 
 jump_to_kernel:
 	
-	# r3 = memmap (pa)
-	# r4 = trans (pa)
-	# r5 = kernel size
-	# r6 = real_mode (pa)
+	# r3 = bootinfo (pa)
+	# r4 = bootinfo_size
+	# r5 = trans (pa)
+	# r6 = kernel size
+	# r7 = real_mode (pa)
 	
-	mtspr srr0, r6
+	mtspr srr0, r7
 	
 	# jumps to real_mode
 	
@@ -132,21 +133,21 @@ real_mode:
 	
 	# copy kernel to proper location
 	#
-	# r4 = trans (pa)
-	# r5 = kernel size
+	# r5 = trans (pa)
+	# r6 = kernel size
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
 	
 	page_copy:
 		
-		cmpwi r5, 0
+		cmpwi r6, 0
 		beq copy_end
 		
 		# copy page
 		
 		mtctr r31
-		lwz r29, 0(r4)
+		lwz r29, 0(r5)
 		
 		copy_loop:
 			
@@ -155,14 +156,14 @@ real_mode:
 			
 			addi r29, r29, 4
 			addi r30, r30, 4
-			subi r5, r5, 4
+			subi r6, r6, 4
 			
-			cmpwi r5, 0
+			cmpwi r6, 0
 			beq copy_end
 			
 			bdnz copy_loop
 		
-		addi r4, r4, 4
+		addi r5, r5, 4
 		b page_copy
 	
 	copy_end:
@@ -238,7 +239,7 @@ real_mode:
 	
 	# start the kernel
 	#
-	# r3 = memmap (pa)
+	# r3 = bootinfo (pa)
 	
 	lis r31, KERNEL_START_ADDR@ha
 	addi r31, r31, KERNEL_START_ADDR@l

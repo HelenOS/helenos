@@ -36,11 +36,6 @@
 
 #define HEAP_GAP 1024000
 
-typedef struct {
-	memmap_t memmap;
-	screen_t screen;
-} bootinfo_t;
-
 bootinfo_t bootinfo;
 
 
@@ -123,5 +118,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "Boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, trans_pa, KERNEL_SIZE, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, KERNEL_SIZE, real_mode_pa);
 }
