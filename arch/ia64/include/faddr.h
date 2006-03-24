@@ -39,11 +39,6 @@
  * @param fptr Function pointer.
  *
  */
-static inline __address FADDR(void (* fptr)()) {
-	__address faddr;
-
-	faddr = *((__address *)(fptr));;
-	return faddr;
-}
+#define FADDR(f)	 (*((__address *)(f)));
 
 #endif
