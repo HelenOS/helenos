@@ -42,6 +42,10 @@
  * 	  the original node (which becomes the left sibling).
  * 	  There is always pointer to the left-hand side subtree
  * 	  (i.e. left sibling) in the parent node.
+ *
+ * Be carefull when using these trees. They need to allocate
+ * and deallocate memory for their index nodes and as such
+ * can sleep.
  */
 
 #include <adt/btree.h>
@@ -55,6 +59,7 @@
 static void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
 static void node_insert_key(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+void node_remove_key(btree_node_t *node, __native key);
 static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
 
 #define ROOT_NODE(n)		(!(n)->parent)
@@ -178,40 +183,57 @@ void btree_remove(btree_t *t, __native key)
 void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node)
 {
 	btree_node_t *cur, *next;
-	void *val = NULL;
 	
 	/*
-	 * Iteratively descend to the leaf that can contain searched key.
+	 * Iteratively descend to the leaf that can contain the searched key.
 	 */
 	for (cur = t->root; cur; cur = next) {
-		int i;
-	
+
 		/* Last iteration will set this with proper leaf node address. */
 		*leaf_node = cur;
-		for (i = 0; i < cur->keys; i++) {
-			if (key <= cur->key[i]) {
-				val = cur->value[i];
-				next = cur->subtree[i];
-				
-				/*
-				 * Check if there is anywhere to descend.
-				 */
-				if (!next) {
-					/*
-					 * Leaf-level.
-					 */
-					return (key == cur->key[i]) ? val : NULL;
-				}
-				goto descend;
+		
+		/*
+		 * The key can be in the leftmost subtree.
+		 * Test it separately.
+		 */
+		if (key < cur->key[0]) {
+			next = cur->subtree[0];
+			continue;
+		} else {
+			void *val;
+			int i;
+		
+			/*
+			 * Now if the key is smaller than cur->key[i]
+			 * it can only mean that the value is in cur->subtree[i]
+			 * or it is not in the tree at all.
+			 */
+			for (i = 1; i < cur->keys; i++) {
+				if (key < cur->key[i]) {
+					next = cur->subtree[i];
+					val = cur->value[i - 1];
+
+					if (LEAF_NODE(cur))
+						return key == cur->key[i - 1] ? val : NULL;
+
+					goto descend;
+				} 
 			}
+			
+			/*
+			 * Last possibility is that the key is in the rightmost subtree.
+			 */
+			next = cur->subtree[i];
+			val = cur->value[i - 1];
+			if (LEAF_NODE(cur))
+				return key == cur->key[i - 1] ? val : NULL;
 		}
-		next = cur->subtree[i];
-	descend:
-		;
+		descend:
+			;
 	}
 
 	/*
-	 * The key was not found in the *leaf_node and is greater than any of its keys.
+	 * The key was not found in the *leaf_node and is smaller than any of its keys.
 	 */
 	return NULL;
 }
@@ -272,7 +294,7 @@ void node_initialize(btree_node_t *node)
 	node->depth = 0;
 }
 
-/** Insert key-value-left-subtree triplet into B-tree non-full node.
+/** Insert key-value-right-subtree triplet into B-tree non-full node.
  *
  * It is actually possible to have more keys than BTREE_MAX_KEYS.
  * This feature is used during splitting the node when the
@@ -307,16 +329,16 @@ void node_insert_key(btree_node_t *node, __native key, void *value, btree_node_t
 	node->keys++;
 }
 
-/** Split full B-tree node and insert new key-value-left-subtree triplet.
+/** Split full B-tree node and insert new key-value-right-subtree triplet.
  *
  * This function will split a node and return pointer to a newly created
- * node containing keys greater than the lesser of medians (or median)
- * of the old keys and the newly added key. It will also write the
- * median key to a memory address supplied by the caller.
+ * node containing keys greater than or equal to the greater of medians
+ * (or median) of the old keys and the newly added key. It will also write
+ * the median key to a memory address supplied by the caller.
  *
- * If the node being split is an index node, the median will be
- * removed from the original node. If the node is a leaf node,
- * the median will be preserved.
+ * If the node being split is an index node, the median will not be
+ * included in the new node. If the node is a leaf node,
+ * the median will be copied there.
  *
  * @param node B-tree node wich is going to be split.
  * @param key The key to be inserted.
@@ -342,8 +364,11 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	/*
 	 * Compute median of keys.
 	 */
-	*median = MEDIAN_LOW(node);
+	*median = MEDIAN_HIGH(node);
 		
+	/*
+	 * Allocate and initialize new right sibling.
+	 */
 	rnode = (btree_node_t *) malloc(sizeof(btree_node_t), 0);
 	node_initialize(rnode);
 	rnode->parent = node->parent;
@@ -351,8 +376,10 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	
 	/*
 	 * Copy big keys, values and subtree pointers to the new right sibling.
+	 * If this is an index node, do not copy the median.
 	 */
-	for (i = MEDIAN_LOW_INDEX(node) + 1, j = 0; i < node->keys; i++, j++) {
+	i = (int) INDEX_NODE(node);
+	for (i += MEDIAN_HIGH_INDEX(node), j = 0; i < node->keys; i++, j++) {
 		rnode->key[j] = node->key[i];
 		rnode->value[j] = node->value[i];
 		rnode->subtree[j] = node->subtree[i];
@@ -367,17 +394,20 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	rnode->subtree[j] = node->subtree[i];
 	if (rnode->subtree[j])
 		rnode->subtree[j]->parent = rnode;
-	rnode->keys = j;
-	
-	/*
-	 * Shrink the old node.
-	 * If this is an index node, remove the median.
-	 */
-	node->keys = MEDIAN_LOW_INDEX(node) + 1;
-	if (INDEX_NODE(node))
-		node->keys--;
+
+	rnode->keys = j;	/* Set number of keys of the new node. */
+	node->keys /= 2;	/* Shrink the old node. */
 		
 	return rnode;
+}
+
+/** Remove key from B-tree node.
+ *
+ * @param node B-tree node.
+ * @param key Key to be removed.
+ */
+void node_remove_key(btree_node_t *node, __native key)
+{
 }
 
 /** Print B-tree.
