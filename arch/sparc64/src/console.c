@@ -80,7 +80,7 @@ void standalone_sparc64_console_init(void)
 	dtlb_insert_mapping(FB_VIRT_ADDRESS, FB_PHYS_ADDRESS, PAGESIZE_4M, true, false);
 	dtlb_insert_mapping(KBD_VIRT_ADDRESS, KBD_PHYS_ADDRESS, PAGESIZE_8K, true, false);
 
-	fb_init(FB_VIRT_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH/8);
+	fb_init(FB_VIRT_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH, FB_X_RES * FB_COLOR_DEPTH / 8);
 	i8042_init();
 }
 

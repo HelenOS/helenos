@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch/boot/boot.h>
 #include <arch/console.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -35,6 +36,6 @@
 /** Initialize console to use frame buffer. */
 void ppc32_console_init(void)
 {
-	/* TODO: PCI detection etc. etc. - this is fine in PearPC for now */
-	fb_init(0xf0000000, 800, 600, 4);
+	/* TODO: Framebuffer mapping */
+	fb_init(0xf0000000, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
 }

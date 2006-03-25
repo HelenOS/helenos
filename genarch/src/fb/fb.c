@@ -37,217 +37,189 @@
 
 SPINLOCK_INITIALIZE(fb_lock);
 
-static __u8 *fbaddress=NULL;
-static int xres,yres;
-static int position=0;
-static int columns=0;
-static int rows=0;
-static int pixelbytes=0;
+static __u8 *fbaddress = NULL;
 
-#define COL_WIDTH   8
-#define ROW_HEIGHT  (FONT_SCANLINES)
-#define ROW_PIX     (xres*ROW_HEIGHT*pixelbytes)
+static unsigned int xres = 0;
+static unsigned int yres = 0;
+static unsigned int scanline = 0;
+static unsigned int pixelbytes = 0;
 
-#define BGCOLOR   0x000080
-#define FGCOLOR   0xffff00
-#define LOGOCOLOR 0x2020b0
+static unsigned int position = 0;
+static unsigned int columns = 0;
+static unsigned int rows = 0;
 
-#define RED(x,bits)    ((x >> (16+8-bits)) & ((1<<bits)-1))
-#define GREEN(x,bits)  ((x >> (8+8-bits)) & ((1<<bits)-1))
-#define BLUE(x,bits)   ((x >> (8-bits)) & ((1<<bits)-1))
 
-#define POINTPOS(x,y)   ((y*xres+x)*pixelbytes)
+#define COL_WIDTH	8
+#define ROW_BYTES	(scanline * FONT_SCANLINES)
+
+#define BGCOLOR		0x000080
+#define FGCOLOR		0xffff00
+#define LOGOCOLOR	0x2020b0
+
+#define RED(x, bits)	((x >> (16 + 8 - bits)) & ((1 << bits) - 1))
+#define GREEN(x, bits)	((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
+#define BLUE(x, bits)	((x >> (8 - bits)) & ((1 << bits) - 1))
+
+#define POINTPOS(x, y)	(y * scanline + x * pixelbytes)
 
 /***************************************************************/
 /* Pixel specific fuctions */
 
-static void (*putpixel)(int x,int y,int color);
-static int (*getpixel)(int x,int y);
+static void (*putpixel)(unsigned int x, unsigned int y, int color);
+static int (*getpixel)(unsigned int x, unsigned int y);
 
 /** Put pixel - 24-bit depth, 1 free byte */
-static void putpixel_4byte(int x,int y,int color)
+static void putpixel_4byte(unsigned int x, unsigned int y, int color)
 {
-	int startbyte = POINTPOS(x,y);
-
-	*((__u32 *)(fbaddress+startbyte)) = color;
+	*((__u32 *)(fbaddress + POINTPOS(x, y))) = color;
 }
 
-/** Return pixel color */
-static int getpixel_4byte(int x,int y)
+/** Return pixel color - 24-bit depth, 1 free byte */
+static int getpixel_4byte(unsigned int x, unsigned int y)
 {
-	int startbyte = POINTPOS(x,y);
-
-	return *((__u32 *)(fbaddress+startbyte)) & 0xffffff;
+	return *((__u32 *)(fbaddress + POINTPOS(x, y))) & 0xffffff;
 }
 
-/** Draw pixel of given color on screen - 24-bit depth */
-static void putpixel_3byte(int x,int y,int color)
+/** Put pixel - 24-bit depth */
+static void putpixel_3byte(unsigned int x, unsigned int y, int color)
 {
-	int startbyte = POINTPOS(x,y);
+	unsigned int startbyte = POINTPOS(x, y);
 
-	fbaddress[startbyte] = RED(color,8);
-	fbaddress[startbyte+1] = GREEN(color,8);
-	fbaddress[startbyte+2] = BLUE(color,8);
+	fbaddress[startbyte] = RED(color, 8);
+	fbaddress[startbyte + 1] = GREEN(color, 8);
+	fbaddress[startbyte + 2] = BLUE(color, 8);
 }
 
-static int getpixel_3byte(int x,int y)
+/** Return pixel color - 24-bit depth */
+static int getpixel_3byte(unsigned int x, unsigned int y)
 {
-	int startbyte = POINTPOS(x,y);
-	int result;
+	unsigned int startbyte = POINTPOS(x, y);
 
-	result = fbaddress[startbyte] << 16 \
-		| fbaddress[startbyte+1] << 8 \
-		| fbaddress[startbyte+2];
-	return result;
+	return fbaddress[startbyte] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 2];
 }
 
 /** Put pixel - 16-bit depth (5:6:6) */
-static void putpixel_2byte(int x,int y,int color)
+static void putpixel_2byte(unsigned int x, unsigned int y, int color)
 {
-	int startbyte = POINTPOS(x,y);
-	int compcolor;
-
 	/* 5-bit, 5-bits, 5-bits */
-	compcolor = RED(color,5) << 11 \
-		| GREEN(color,6) << 5 \
-		| BLUE(color,5);
-	*((__u16 *)(fbaddress+startbyte)) = compcolor;
+	*((__u16 *)(fbaddress + POINTPOS(x, y))) = RED(color, 5) << 11 | GREEN(color, 6) << 5 | BLUE(color, 5);
 }
 
-static int getpixel_2byte(int x,int y)
+/** Return pixel color - 16-bit depth (5:6:6) */
+static int getpixel_2byte(unsigned int x, unsigned int y)
 {
-	int startbyte = POINTPOS(x,y);
-	int color;
-	int red,green,blue;
-
-	color = *((__u16 *)(fbaddress+startbyte));
-	red = (color >> 11) & 0x1f;
-	green = (color >> 5) & 0x3f;
-	blue = color & 0x1f;
-	return (red << (16+3)) | (green << (8+2)) | (blue << 3);
+	int color = *((__u16 *)(fbaddress + POINTPOS(x, y)));
+	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
-static void putpixel_1byte(int x,int y,int color)
+static void putpixel_1byte(unsigned int x, unsigned int y, int color)
 {
-	int compcolor;
-
-	/* 3-bit, 2-bits, 3-bits */
-	compcolor = RED(color,3) << 5 \
-		| GREEN(color,2) << 3 \
-		| BLUE(color,3);
-	fbaddress[POINTPOS(x,y)] = compcolor;
+	fbaddress[POINTPOS(x, y)] = RED(color, 3) << 5 | GREEN(color, 2) << 3 | BLUE(color, 3);
 }
 
-
-static int getpixel_1byte(int x,int y)
+/** Return pixel color - 8-bit depth (3:2:3) */
+static int getpixel_1byte(unsigned int x, unsigned int y)
 {
-	int color;
-	int red,green,blue;
-
-	color = fbaddress[POINTPOS(x,y)];
-	red = (color >> 5) & 0x7;
-	green = (color >> 3) & 0x3;
-	blue = color & 0x7;
-	return (red << (16+5)) | (green << (8+6)) | blue << 5;
+	int color = fbaddress[POINTPOS(x, y)];
+	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
-
-static void clear_line(int y);
-/** Scroll screen one row up */
-static void scroll_screen(void)
-{
-	int i;
-
-	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_PIX], (xres*yres*pixelbytes)-ROW_PIX);
-
-	/* Clear last row */
-	for (i=0; i < ROW_HEIGHT;i++)
-		clear_line((rows-1)*ROW_HEIGHT+i);
-	
-}
-
-
-/***************************************************************/
-/* Screen specific function */
 
 /** Fill line with color BGCOLOR */
-static void clear_line(int y)
+static void clear_line(unsigned int y)
 {
-	int x;
-	for (x=0; x<xres;x++)
-		(*putpixel)(x,y,BGCOLOR);
+	unsigned int x;
+	
+	for (x = 0; x < xres; x++)
+		(*putpixel)(x, y, BGCOLOR);
 }
+
 
 /** Fill screen with background color */
 static void clear_screen(void)
 {
-	int y;
+	unsigned int y;
 
-	for (y=0; y<yres;y++)
+	for (y = 0; y < yres; y++)
 		clear_line(y);
 }
 
-static void invert_pixel(int x, int y)
+
+/** Scroll screen one row up */
+static void scroll_screen(void)
 {
-	(*putpixel)(x,y, ~(*getpixel)(x,y));
+	unsigned int i;
+
+	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
+
+	/* Clear last row */
+	for (i = 0; i < FONT_SCANLINES; i++)
+		clear_line((rows - 1) * FONT_SCANLINES + i);
+}
+
+
+static void invert_pixel(unsigned int x, unsigned int y)
+{
+	(*putpixel)(x, y, ~(*getpixel)(x, y));
 }
 
 
 /** Draw one line of glyph at a given position */
-static void draw_glyph_line(int glline, int x, int y)
+static void draw_glyph_line(unsigned int glline, unsigned int x, unsigned int y)
 {
-	int i;
+	unsigned int i;
 
-	for (i=0; i < 8; i++)
-		if (glline & (1 << (7-i))) {
-			(*putpixel)(x+i,y,FGCOLOR);
+	for (i = 0; i < 8; i++)
+		if (glline & (1 << (7 - i))) {
+			(*putpixel)(x + i, y, FGCOLOR);
 		} else
-			(*putpixel)(x+i,y,BGCOLOR);
+			(*putpixel)(x + i, y, BGCOLOR);
 }
 
 /***************************************************************/
 /* Character-console functions */
 
 /** Draw character at given position */
-static void draw_glyph(__u8 glyph, int col, int row)
+static void draw_glyph(__u8 glyph, unsigned int col, unsigned int row)
 {
-	int y;
+	unsigned int y;
 
-	for (y=0; y < FONT_SCANLINES; y++)
-		draw_glyph_line(fb_font[glyph*FONT_SCANLINES+y],
-				col*COL_WIDTH, row*ROW_HEIGHT+y);
+	for (y = 0; y < FONT_SCANLINES; y++)
+		draw_glyph_line(fb_font[glyph * FONT_SCANLINES + y], col * COL_WIDTH, row * FONT_SCANLINES + y);
 }
 
 /** Invert character at given position */
-static void invert_char(int col, int row)
+static void invert_char(unsigned int col, unsigned int row)
 {
-	int x,y;
+	unsigned int x;
+	unsigned int y;
 
-	for (x=0; x < COL_WIDTH; x++)
-		for (y=0; y < FONT_SCANLINES; y++)
-			invert_pixel(col*COL_WIDTH+x,row*ROW_HEIGHT+y);
+	for (x = 0; x < COL_WIDTH; x++)
+		for (y = 0; y < FONT_SCANLINES; y++)
+			invert_pixel(col * COL_WIDTH + x, row * FONT_SCANLINES + y);
 }
 
 /** Draw character at default position */
 static void draw_char(char chr)
 {
-	draw_glyph(chr, position % columns, position/columns);
+	draw_glyph(chr, position % columns, position / columns);
 }
 
-static void draw_logo(int startx, int starty)
+static void draw_logo(unsigned int startx, unsigned int starty)
 {
-	int x,y;
-	int byte;
-	int rowbytes;
+	unsigned int x;
+	unsigned int y;
+	unsigned int byte;
+	unsigned int rowbytes;
 
-	rowbytes = (helenos_width-1)/8 + 1;
+	rowbytes = (helenos_width - 1) / 8 + 1;
 
-	for (y=0;y < helenos_height;y++)
-		for (x=0;x < helenos_width; x++ ) {
-			byte = helenos_bits[rowbytes*y + x/8];
+	for (y = 0; y < helenos_height; y++)
+		for (x = 0; x < helenos_width; x++) {
+			byte = helenos_bits[rowbytes * y + x / 8];
 			byte >>= x % 8;
 			if (byte & 1)
-				(*putpixel)(startx+x,starty+y,LOGOCOLOR);
+				(*putpixel)(startx + x, starty + y, LOGOCOLOR);
 		}
 }
 
@@ -256,7 +228,7 @@ static void draw_logo(int startx, int starty)
 
 static void invert_cursor(void)
 {
-	invert_char(position % columns, position/columns);
+	invert_char(position % columns, position / columns);
 }
 
 /** Print character to screen
@@ -266,33 +238,41 @@ static void invert_cursor(void)
 static void fb_putchar(chardev_t *dev, char ch)
 {
 	spinlock_lock(&fb->lock);
-
-	if (ch == '\n') {
-		invert_cursor();
-		position += columns;
-		position -= position % columns;
-	} else if (ch == '\r') {
-		invert_cursor();
-		position -= position % columns;
-	} else if (ch == '\b') {
-		invert_cursor();
-		if (position % columns)
-			position--;
-	} else if (ch == '\t') {
-		invert_cursor();
-		do {
-			draw_char(' ');
+	
+	switch (ch) {
+		case '\n':
+			invert_cursor();
+			position += columns;
+			position -= position % columns;
+			break;
+		case '\r':
+			invert_cursor();
+			position -= position % columns;
+			break;
+		case '\b':
+			invert_cursor();
+			if (position % columns)
+				position--;
+			break;
+		case '\t':
+			invert_cursor();
+			do {
+				draw_char(' ');
+				position++;
+			} while (position % 8);
+			break;
+		default:
+			draw_char(ch);
 			position++;
-		} while (position % 8);
-	} else {
-		draw_char(ch);
-		position++;
 	}
-	if (position >= columns*rows) {
+	
+	if (position >= columns * rows) {
 		position -= columns;
 		scroll_screen();
 	}
+	
 	invert_cursor();
+	
 	spinlock_unlock(&fb->lock);
 }
 
@@ -304,48 +284,52 @@ static chardev_operations_t fb_ops = {
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr Address of framebuffer
- * @param x X resolution
- * @param y Y resolution
- * @param bytes Bytes per pixel (2,3,4)
+ * @param addr Address of theframebuffer
+ * @param x    Screen width in pixels
+ * @param y    Screen height in pixels
+ * @param bpp  Bits per pixel (8, 16, 24, 32)
+ * @param scan Bytes per one scanline
+ *
  */
-void fb_init(__address addr, int x, int y, int bytes)
+void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan)
 {
-	fbaddress = (unsigned char *)addr;
-
-	switch (bytes) {
-	case 1:
-		putpixel = putpixel_1byte;
-		getpixel = getpixel_1byte;
-		break;
-	case 2:
-		putpixel = putpixel_2byte;
-		getpixel = getpixel_2byte;
-		break;
-	case 3:
-		putpixel = putpixel_3byte;
-		getpixel = getpixel_3byte;
-		break;
-	case 4:
-		putpixel = putpixel_4byte;
-		getpixel = getpixel_4byte;
-		break;
-	default:
-		panic("Unsupported color depth");
+	switch (bpp) {
+		case 8:
+			putpixel = putpixel_1byte;
+			getpixel = getpixel_1byte;
+			pixelbytes = 1;
+			break;
+		case 16:
+			putpixel = putpixel_2byte;
+			getpixel = getpixel_2byte;
+			pixelbytes = 2;
+			break;
+		case 24:
+			putpixel = putpixel_3byte;
+			getpixel = getpixel_3byte;
+			pixelbytes = 3;
+			break;
+		case 32:
+			putpixel = putpixel_4byte;
+			getpixel = getpixel_4byte;
+			pixelbytes = 4;
+			break;
+		default:
+			panic("Unsupported bpp");
 	}
-	
+		
+	fbaddress = (unsigned char *) addr;
 	xres = x;
 	yres = y;
-	pixelbytes = bytes;
+	scanline = scan;
 	
-	rows = y/ROW_HEIGHT;
-	columns = x/COL_WIDTH;
+	rows = y / FONT_SCANLINES;
+	columns = x / COL_WIDTH;
 
 	clear_screen();
-	draw_logo(xres-helenos_width, 0);
+	draw_logo(xres - helenos_width, 0);
 	invert_cursor();
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
 }
-

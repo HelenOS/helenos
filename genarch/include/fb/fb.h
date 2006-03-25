@@ -32,6 +32,6 @@
 #include <typedefs.h>
 #include <arch/types.h>
 
-void fb_init(__address addr, int x, int y, int bytes);
+void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
 
 #endif
