@@ -33,16 +33,6 @@
  * - leaves are linked in a list
  * - technically, it is a B+-tree (because of the previous properties)
  *
- * Some of the functions below take pointer to the right-hand
- * side subtree pointer as parameter. Note that this is sufficient
- * because:
- * 	- New root node is passed the left-hand side subtree pointer
- * 	  directly.
- * 	- node_split() always creates the right sibling and preserves
- * 	  the original node (which becomes the left sibling).
- * 	  There is always pointer to the left-hand side subtree
- * 	  (i.e. left sibling) in the parent node.
- *
  * Be carefull when using these trees. They need to allocate
  * and deallocate memory for their index nodes and as such
  * can sleep.
@@ -58,9 +48,14 @@
 
 static void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
-static void node_insert_key(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-void node_remove_key(btree_node_t *node, __native key);
+static void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static void node_insert_key_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
 static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
+static void node_remove_key_left(btree_node_t *node, __native key);
+static void node_remove_key_right(btree_node_t *node, __native key);
+static index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
+static bool try_insert_by_left_rotation(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static bool try_insert_by_right_rotation(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
 
 #define ROOT_NODE(n)		(!(n)->parent)
 #define INDEX_NODE(n)		((n)->subtree[0] != NULL)
@@ -127,15 +122,25 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 		/*
 		 * Node conatins enough space, the key can be stored immediately.
 		 */
-		node_insert_key(node, key, value, rsubtree);
+		node_insert_key_right(node, key, value, rsubtree);
+	} else if (try_insert_by_left_rotation(node, key, value, rsubtree)) {
+		/*
+		 * The key-value-rsubtree triplet has been inserted because
+		 * some keys could have been moved to the left sibling.
+		 */
+	} else if (try_insert_by_right_rotation(node, key, value, rsubtree)) {
+		/*
+		 * The key-value-rsubtree triplet has been inserted because
+		 * some keys could have been moved to the right sibling.
+		 */
 	} else {
 		btree_node_t *rnode;
 		__native median;
 		
 		/*
-		 * Node is full.
-		 * Split it and insert the smallest key from the node containing
-		 * bigger keys (i.e. the original node) into its parent.
+		 * Node is full and both siblings (if both exist) are full too.
+		 * Split the node and insert the smallest key from the node containing
+		 * bigger keys (i.e. the new node) into its parent.
 		 */
 
 		rnode = node_split(node, key, value, rsubtree, &median);
@@ -148,7 +153,6 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 			/*
 			 * We split the root node. Create new root.
 			 */
-		
 			t->root = (btree_node_t *) malloc(sizeof(btree_node_t), 0);
 			node->parent = t->root;
 			rnode->parent = t->root;
@@ -294,18 +298,54 @@ void node_initialize(btree_node_t *node)
 	node->depth = 0;
 }
 
-/** Insert key-value-right-subtree triplet into B-tree non-full node.
+/** Insert key-value-lsubtree triplet into B-tree node.
+ *
+ * It is actually possible to have more keys than BTREE_MAX_KEYS.
+ * This feature is used during insert by right rotation.
+ *
+ * @param node B-tree node into wich the new key is to be inserted.
+ * @param key The key to be inserted.
+ * @param value Pointer to value to be inserted.
+ * @param lsubtree Pointer to the left subtree.
+ */ 
+void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree)
+{
+	int i;
+
+	for (i = 0; i < node->keys; i++) {
+		if (key < node->key[i]) {
+			int j;
+		
+			for (j = node->keys; j > i; j--) {
+				node->key[j] = node->key[j - 1];
+				node->value[j] = node->value[j - 1];
+				node->subtree[j + 1] = node->subtree[j];
+			}
+			node->subtree[j + 1] = node->subtree[j];
+			break;	
+		}
+	}
+	node->key[i] = key;
+	node->value[i] = value;
+	node->subtree[i] = lsubtree;
+			
+	node->keys++;
+}
+
+
+/** Insert key-value-rsubtree triplet into B-tree node.
  *
  * It is actually possible to have more keys than BTREE_MAX_KEYS.
  * This feature is used during splitting the node when the
- * number of keys is BTREE_MAX_KEYS + 1.
+ * number of keys is BTREE_MAX_KEYS + 1. Insert by left rotation
+ * also makes use of this feature.
  *
  * @param node B-tree node into wich the new key is to be inserted.
  * @param key The key to be inserted.
  * @param value Pointer to value to be inserted.
  * @param rsubtree Pointer to the right subtree.
  */ 
-void node_insert_key(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree)
+void node_insert_key_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree)
 {
 	int i;
 
@@ -321,7 +361,6 @@ void node_insert_key(btree_node_t *node, __native key, void *value, btree_node_t
 			break;	
 		}
 	}
-
 	node->key[i] = key;
 	node->value[i] = value;
 	node->subtree[i + 1] = rsubtree;
@@ -355,11 +394,11 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 
 	ASSERT(median);
 	ASSERT(node->keys == BTREE_MAX_KEYS);
-	
+
 	/*
 	 * Use the extra space to store the extra node.
 	 */
-	node_insert_key(node, key, value, rsubtree);
+	node_insert_key_right(node, key, value, rsubtree);
 
 	/*
 	 * Compute median of keys.
@@ -401,13 +440,218 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	return rnode;
 }
 
-/** Remove key from B-tree node.
+/** Remove key and its left subtree pointer from B-tree node.
+ *
+ * Remove the key and eliminate gaps in node->key array.
+ * Note that the value pointer and the left subtree pointer
+ * is removed from the node as well.
  *
  * @param node B-tree node.
  * @param key Key to be removed.
  */
-void node_remove_key(btree_node_t *node, __native key)
+void node_remove_key_left(btree_node_t *node, __native key)
 {
+	int i, j;
+	
+	for (i = 0; i < node->keys; i++) {
+		if (key == node->key[i]) {
+			for (j = i + 1; j < node->keys; j++) {
+				node->key[j - 1] = node->key[j];
+				node->value[j - 1] = node->value[j];
+				node->subtree[j - 1] = node->subtree[j];
+			}
+			node->subtree[j - 1] = node->subtree[j];
+			node->keys--;
+			return;
+		}
+	}
+	panic("node %P does not contain key %d\n", node, key);
+}
+
+/** Remove key and its right subtree pointer from B-tree node.
+ *
+ * Remove the key and eliminate gaps in node->key array.
+ * Note that the value pointer and the right subtree pointer
+ * is removed from the node as well.
+ *
+ * @param node B-tree node.
+ * @param key Key to be removed.
+ */
+void node_remove_key_right(btree_node_t *node, __native key)
+{
+	int i, j;
+	
+	for (i = 0; i < node->keys; i++) {
+		if (key == node->key[i]) {
+			for (j = i + 1; j < node->keys; j++) {
+				node->key[j - 1] = node->key[j];
+				node->value[j - 1] = node->value[j];
+				node->subtree[j] = node->subtree[j + 1];
+			}
+			node->keys--;
+			return;
+		}
+	}
+	panic("node %P does not contain key %d\n", node, key);
+}
+
+/** Find key by its left or right subtree.
+ *
+ * @param node B-tree node.
+ * @param subtree Left or right subtree of a key found in node.
+ * @param right If true, subtree is a right subtree. If false, subtree is a left subtree.
+ *
+ * @return Index of the key associated with the subtree.
+ */ 
+index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right)
+{
+	int i;
+	
+	for (i = 0; i < node->keys + 1; i++) {
+		if (subtree == node->subtree[i])
+			return i - (int) (right != false);
+	}
+	panic("node %P does not contain subtree %P\n", node, subtree);
+}
+
+/** Insert key-value-rsubtree triplet and rotate the node to the left, if this operation can be done.
+ *
+ * Left sibling of the node (if it exists) is checked for free space.
+ * If there is free space, the key is inserted and the smallest key of
+ * the node is moved there. The index node which is the parent of both
+ * nodes is fixed.
+ *
+ * @param node B-tree node.
+ * @param inskey Key to be inserted.
+ * @param insvalue Value to be inserted.
+ * @param rsubtree Right subtree of inskey.
+ *
+ * @return True if the rotation was performed, false otherwise.
+ */
+bool try_insert_by_left_rotation(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+{
+	index_t idx;
+	btree_node_t *lnode;
+
+	/*
+	 * If this is root node, the rotation can not be done.
+	 */
+	if (ROOT_NODE(node))
+		return false;
+	
+	idx = find_key_by_subtree(node->parent, node, true);
+	if ((int) idx == -1) {
+		/*
+		 * If this node is the leftmost subtree of its parent,
+		 * the rotation can not be done.
+		 */
+		return false;
+	}
+		
+	lnode = node->parent->subtree[idx];
+
+	if (lnode->keys < BTREE_MAX_KEYS) {
+		__native key;
+
+		/*
+		 * The rotaion can be done. The left sibling has free space.
+		 */
+
+		node_insert_key_right(node, inskey, insvalue, rsubtree);
+		key = node->key[0];
+		
+		if (LEAF_NODE(node)) {
+			void *value;
+
+			value = node->value[0];
+			node_remove_key_left(node, key);
+			node_insert_key_right(lnode, key, value, NULL);
+			node->parent->key[idx] = node->key[0];
+		} else {
+			btree_node_t *lsubtree;
+
+			lsubtree = node->subtree[0];
+			node_remove_key_left(node, key);
+			node_insert_key_right(lnode, node->parent->key[idx], NULL, lsubtree);
+			node->parent->key[idx] = key;
+
+			/* Fix parent link of the reconnected left subtree. */
+			lsubtree->parent = lnode;
+		}
+		return true;
+	}
+
+	return false;
+}
+
+/** Insert key-value-rsubtree triplet and rotate the node to the right, if this operation can be done.
+ *
+ * Right sibling of the node (if it exists) is checked for free space.
+ * If there is free space, the key is inserted and the biggest key of
+ * the node is moved there. The index node which is the parent of both
+ * nodes is fixed.
+ *
+ * @param node B-tree node.
+ * @param inskey Key to be inserted.
+ * @param insvalue Value to be inserted.
+ * @param rsubtree Right subtree of inskey.
+ *
+ * @return True if the rotation was performed, false otherwise.
+ */
+bool try_insert_by_right_rotation(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+{
+	index_t idx;
+	btree_node_t *rnode;
+
+	/*
+	 * If this is root node, the rotation can not be done.
+	 */
+	if (ROOT_NODE(node))
+		return false;
+	
+	idx = find_key_by_subtree(node->parent, node, false);
+	if (idx == node->parent->keys) {
+		/*
+		 * If this node is the rightmost subtree of its parent,
+		 * the rotation can not be done.
+		 */
+		return false;
+	}
+		
+	rnode = node->parent->subtree[idx + 1];
+
+	if (rnode->keys < BTREE_MAX_KEYS) {
+		__native key;
+
+		/*
+		 * The rotaion can be done. The right sibling has free space.
+		 */
+
+		node_insert_key_right(node, inskey, insvalue, rsubtree);
+		key = node->key[node->keys - 1];
+		
+		if (LEAF_NODE(node)) {
+			void *value;
+
+			value = node->value[node->keys - 1];
+			node_remove_key_right(node, key);
+			node_insert_key_left(rnode, key, value, NULL);
+			node->parent->key[idx] = key;
+		} else {
+			btree_node_t *rsubt;
+
+			rsubt = node->subtree[node->keys];
+			node_remove_key_right(node, key);
+			node_insert_key_left(rnode, node->parent->key[idx], NULL, rsubt);
+			node->parent->key[idx] = key;
+
+			/* Fix parent link of the reconnected right subtree. */
+			rsubt->parent = rnode;
+		}
+		return true;
+	}
+
+	return false;
 }
 
 /** Print B-tree.
