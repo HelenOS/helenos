@@ -36,7 +36,7 @@
 #define STACK_SIZE		PAGE_SIZE
 
 #define CONFIG_MEMORY_SIZE	(8 * 1024 * 1024)
-#define CONFIG_STACK_SIZE	STACK_SIZE
+
 #define CONFIG_INIT_TASKS	32
 
 typedef struct {

@@ -43,12 +43,13 @@ void before_thread_runs_arch(void)
 	
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<(KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this thread is not mapped by DTR[TR_KERNEL].
-		 * Use DTR[TR_KSTACK] to map it.
+		 * Use DTR[TR_KSTACK1] and DTR[TR_KSTACK2] to map it.
 		 */
-		 dtlb_kernel_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK);
+		dtlb_kernel_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK1);
+		dtlb_kernel_mapping_insert((__address) THREAD->kstack + PAGE_SIZE, KA2PA(THREAD->kstack) + FRAME_SIZE, true, DTR_KSTACK2);
 	}
 	
 	/*

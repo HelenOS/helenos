@@ -41,7 +41,8 @@
 /** Data and instruction Translation Register indices. */
 #define DTR_KERNEL	0
 #define ITR_KERNEL	0
-#define DTR_KSTACK	1
+#define DTR_KSTACK1	1
+#define DTR_KSTACK2	2
 
 /** Portion of TLB insertion format data structure. */
 union tlb_entry {

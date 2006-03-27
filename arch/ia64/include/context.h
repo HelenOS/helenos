@@ -36,7 +36,7 @@
 #include <arch/stack.h>
 
 /*
- * context_save() and context_restore() are both leaf procedures.
+ * context_save_arch() and context_restore_arch() are both leaf procedures.
  * No need to allocate scratch area.
  *
  * One item is put onto the stack to support get_stack_base().
@@ -47,12 +47,14 @@
 #undef context_set
 #endif
 
-/*RSE stack should begin under bottom of stack @ kernel*/
-#define context_set(c, _pc, stack, size) 								\
-	(c)->pc = (__address) _pc;									\
-	(c)->bsp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) ;	\
-	(c)->ar_pfs &= PFM_MASK; 									\
-	(c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;
+/* RSE stack starts at the bottom of memory stack. */
+#define context_set(c, _pc, stack, size)								\
+	do {												\
+		(c)->pc = (__address) _pc;								\
+		(c)->bsp = ((__address) stack) + ALIGN_UP((size), REGISTER_STACK_ALIGNMENT);		\
+		(c)->ar_pfs &= PFM_MASK; 								\
+		(c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
+	} while (0);
 
 /*
  * Only save registers that must be preserved across
@@ -121,7 +123,5 @@ struct context {
 	
 	ipl_t ipl;
 };
-
-
 
 #endif

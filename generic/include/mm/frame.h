@@ -47,10 +47,9 @@
 #define STACK_FRAMES ONE_FRAME
 #endif
 
-
 #define ZONES_MAX       16      /**< Maximum number of zones in system */
 
-#define ZONE_JOIN       0x1	/**< If possible, merge with neighberhood zones */
+#define ZONE_JOIN       0x1	/**< If possible, merge with neighbouring zones */
 
 #define FRAME_KA		0x1	/* skip frames conflicting with user address space */
 #define FRAME_PANIC		0x2	/* panic on failure */

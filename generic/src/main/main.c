@@ -92,6 +92,8 @@ static void main_bsp_separated_stack(void);
 static void main_ap_separated_stack(void);
 #endif
 
+#define CONFIG_STACK_SIZE	((1<<STACK_FRAMES)*STACK_SIZE)
+
 /** Bootstrap CPU main kernel routine
  *
  * Initializes the kernel by bootstrap CPU.
@@ -128,8 +130,7 @@ void main_bsp(void)
 		config.kernel_size += CONFIG_STACK_SIZE;
 	
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), 
-		    stackaddr, CONFIG_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), stackaddr, THREAD_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }

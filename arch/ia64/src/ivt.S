@@ -32,11 +32,8 @@
 #include <arch/mm/page.h>
 #include <align.h>
 
-
 #define FRS_TO_SAVE 30
 #define STACK_ITEMS		(19 + FRS_TO_SAVE*2)
-//#define STACK_ITEMS		19 		
-	/* 30*2 for FPU registers */
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
