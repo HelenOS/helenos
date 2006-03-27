@@ -47,9 +47,10 @@
 #undef context_set
 #endif
 
+/*RSE stack should begin under bottom of stack @ kernel*/
 #define context_set(c, _pc, stack, size) 								\
 	(c)->pc = (__address) _pc;									\
-	(c)->bsp = ((__address) stack) + ALIGN_UP(sizeof(the_t), REGISTER_STACK_ALIGNMENT);		\
+	(c)->bsp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) ;	\
 	(c)->ar_pfs &= PFM_MASK; 									\
 	(c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;
 
