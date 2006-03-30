@@ -45,7 +45,7 @@
 /**
  * For each possible kernel stack, structure
  * of the following type will be placed at
- * the bottom of the stack.
+ * the base address of the stack.
  */
 struct the {
 	count_t preemption_disabled;	/**< Preemption disabled counter. */

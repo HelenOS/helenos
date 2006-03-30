@@ -37,9 +37,9 @@
 
 /** Kernel-side futex structure. */
 struct futex {
-	__address paddr;	/** Physical address of the status variable. */
-	waitq_t wq;		/** Wait queue for threads waiting for futex availability. */
-	link_t ht_link;		/** Futex hash table link. */
+	__address paddr;	/**< Physical address of the status variable. */
+	waitq_t wq;		/**< Wait queue for threads waiting for futex availability. */
+	link_t ht_link;		/**< Futex hash table link. */
 };
 
 extern void futex_init(void);

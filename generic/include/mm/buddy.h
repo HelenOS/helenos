@@ -34,7 +34,7 @@
 
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff
 
-/** Buddy system operations to be implemented by each implementations. */
+/** Buddy system operations to be implemented by each implementation. */
 struct buddy_system_operations {
 	link_t *(* find_buddy)(buddy_system_t *, link_t *);		/**< Return pointer to left-side or right-side buddy for block passed as argument. */
 	link_t *(* bisect)(buddy_system_t *, link_t *);			/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
@@ -42,7 +42,7 @@ struct buddy_system_operations {
 	void (*set_order)(buddy_system_t *, link_t *, __u8);		/**< Set order of block passed as argument. */
 	__u8 (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
 	void (*mark_busy)(buddy_system_t *, link_t *);			/**< Mark block as busy */
-	void (*mark_available)(buddy_system_t *, link_t *);			/**< Mark block as busy */
+	void (*mark_available)(buddy_system_t *, link_t *);		/**< Mark block as busy */
 	/** Find parent of block that has given order  */
 	link_t *(* find_block)(buddy_system_t *, link_t *, __u8);
 	void (* print_id)(buddy_system_t *, link_t *);
