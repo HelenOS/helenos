@@ -28,7 +28,7 @@
 
 /*
  * This B-tree has the following properties:
- * - it is a ballanced 2-3-4 tree (i.e. BTREE_M = 4)
+ * - it is a ballanced 2-3-4-5 tree (i.e. BTREE_M = 5)
  * - values (i.e. pointers to values) are stored only in leaves
  * - leaves are linked in a list
  * - technically, it is a B+-tree (because of the previous properties)
@@ -60,6 +60,8 @@ static bool try_insert_by_right_rotation(btree_node_t *node, __native key, void 
 #define ROOT_NODE(n)		(!(n)->parent)
 #define INDEX_NODE(n)		((n)->subtree[0] != NULL)
 #define LEAF_NODE(n)		((n)->subtree[0] == NULL)
+
+#define FILL_FACTOR		((BTREE_M-1)/2)
 
 #define MEDIAN_LOW_INDEX(n)	(((n)->keys-1)/2)
 #define MEDIAN_HIGH_INDEX(n)	((n)->keys/2)
@@ -171,9 +173,25 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 		
 }
 
-/* TODO */
-void btree_remove(btree_t *t, __native key)
+/** Remove B-tree node.
+ *
+ * @param B-tree.
+ * @param key Key to be removed from the B-tree along with its associated value.
+ * @param leaf_node If not NULL, pointer to the leaf node where the key is found.
+ */
+void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
 {
+	btree_node_t *lnode;
+	
+	lnode = leaf_node;
+	if (!lnode) {
+		if (!btree_search(t, key, &lnode)) {
+			panic("B-tree %P does not contain key %d\n", t, key);
+		}
+	}
+	
+	/* TODO */
+
 }
 
 /** Search key in a B-tree.

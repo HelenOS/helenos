@@ -33,7 +33,7 @@
 #include <typedefs.h>
 #include <adt/list.h>
 
-#define BTREE_M		4
+#define BTREE_M		5
 #define BTREE_MAX_KEYS	(BTREE_M - 1)
 
 /** B-tree node structure. */
@@ -52,8 +52,8 @@ struct btree_node {
 	
 	/**
 	 * Pointers to descendants of this node sorted according to the key array.
-	 * subtree[0] points to subtree with keys lesser than or equal to key[0].
-	 * subtree[1] points to subtree with keys greater than key[0] and lesser than or equal to key[1].
+	 * subtree[0] points to subtree with keys lesser than to key[0].
+	 * subtree[1] points to subtree with keys greater than or equal to key[0] and lesser than key[1].
 	 * ...
 	 * There is room for storing a subtree pointer for the extra key.
 	 */
@@ -80,7 +80,7 @@ extern void btree_create(btree_t *t);
 extern void btree_destroy(btree_t *t);
 
 extern void btree_insert(btree_t *t, __native key, void *value, btree_node_t *leaf_node);
-extern void btree_remove(btree_t *t, __native key);
+extern void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node);
 extern void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node);
 
 extern void *btree_node_min(btree_node_t *node);
