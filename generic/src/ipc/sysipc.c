@@ -92,8 +92,17 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	int phoneid;
 
 	if (IPC_GET_RETVAL(answer->data) == EHANGUP) {
-		/* Atomic operation */
-		answer->data.phone->callee = NULL;
+		/* In case of forward, hangup the forwared phone,
+		 * not the originator
+		 */
+		spinlock_lock(&answer->data.phone->lock);
+		spinlock_lock(&TASK->answerbox.lock);
+		if (answer->data.phone->callee) {
+			list_remove(&answer->data.phone->list);
+			answer->data.phone->callee = 0;
+		}
+		spinlock_unlock(&TASK->answerbox.lock);
+		spinlock_unlock(&answer->data.phone->lock);
 	}
 
 	if (!olddata)

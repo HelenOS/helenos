@@ -322,6 +322,9 @@ restart:
 		/* Append request to dispatch queue */
 		list_append(&request->list, &box->dispatched_calls);
 	} else {
+		/* This can happen regularly after ipc_cleanup, remove
+		 * the warning in the future when the IPC is
+		 * more debugged */
 		printf("WARNING: Spurious IPC wakeup.\n");
 		spinlock_unlock(&box->lock);
 		goto restart;
@@ -339,6 +342,20 @@ void ipc_init(void)
 					  NULL, NULL, 0);
 }
 
+/** Answer all calls from list with EHANGUP msg */
+static void ipc_cleanup_call_list(link_t *lst)
+{
+	call_t *call;
+
+	while (!list_empty(lst)) {
+		call = list_get_instance(lst->next, call_t, list);
+		list_remove(&call->list);
+
+		IPC_SET_RETVAL(call->data, EHANGUP);
+		_ipc_answer_free_call(call);
+	}
+}
+
 /** Cleans up all IPC communication of the given task
  *
  *
@@ -346,14 +363,45 @@ void ipc_init(void)
 void ipc_cleanup(task_t *task)
 {
 	int i;
-
+	call_t *call;
+	phone_t *phone;
+	
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&task->phones[i]);
 
-	/* Disconnect all phones connected to answerbox */
+	/* Disconnect all phones connected to our answerbox */
+restart_phones:
+	spinlock_lock(&task->answerbox.lock);
+	while (!list_empty(&task->answerbox.connected_phones)) {
+		phone = list_get_instance(task->answerbox.connected_phones.next,
+					  phone_t,
+					  list);
+		if (! spinlock_trylock(&phone->lock)) {
+			spinlock_unlock(&task->answerbox.lock);
+			goto restart_phones;
+		}
+		
+		/* Disconnect phone */
+		phone->callee = NULL;
+		list_remove(&phone->list);
+
+		spinlock_unlock(&phone->lock);
+	}
 
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
+	spinlock_lock(&task->answerbox.lock);
+	ipc_cleanup_call_list(&task->answerbox.dispatched_calls);
+	ipc_cleanup_call_list(&task->answerbox.calls);
+	spinlock_unlock(&task->answerbox.lock);
 	
 	/* Wait for all async answers to arrive */
+	while (atomic_get(&task->active_calls)) {
+		call = ipc_wait_for_call(&task->answerbox, 0);
+		ASSERT(call->flags & IPC_CALL_ANSWERED);
+		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
+		
+		atomic_dec(&task->active_calls);
+		ipc_call_free(call);
+	}
 }

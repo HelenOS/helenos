@@ -129,13 +129,25 @@
 
 /** Find call_t * in call table according to callid
  *
+ * TODO: Some speedup (hash table?)
  * @return NULL on not found, otherwise pointer to call structure
  */
 call_t * get_call(__native callid)
 {
-	/* TODO: Traverse list of dispatched calls and find one */
-	/* TODO: locking of call, ripping it from dispatched calls etc.  */
-	return (call_t *) callid;
+	link_t *lst;
+	call_t *call, *result = NULL;
+
+	spinlock_lock(&TASK->answerbox.lock);
+	for (lst = TASK->answerbox.dispatched_calls.next;
+	     lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
+		call = list_get_instance(lst, call_t, list);
+		if ((__native)call == callid) {
+			result = call;
+			break;
+		}
+	}
+	spinlock_unlock(&TASK->answerbox.lock);
+	return result;
 }
 
 /** Allocate new phone slot in current TASK structure */
