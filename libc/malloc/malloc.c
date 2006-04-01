@@ -461,7 +461,7 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #define ABORT  abort()
 #define ABORT_ON_ASSERT_FAILURE 1
 #define PROCEED_ON_ERROR 0
-#define USE_LOCKS 0
+#define USE_LOCKS 1
 #define INSECURE 0
 #define HAVE_MMAP 0
 
@@ -763,52 +763,22 @@ static int win32munmap(void* ptr, size_t size) {
     unique mparams values are initialized only once.
 */
 
-#ifndef WIN32
 /* By default use posix locks */
-#include <pthread.h>
-#define MLOCK_T pthread_mutex_t
-#define INITIAL_LOCK(l)      pthread_mutex_init(l, NULL)
-#define ACQUIRE_LOCK(l)      pthread_mutex_lock(l)
-#define RELEASE_LOCK(l)      pthread_mutex_unlock(l)
+#include <futex.h>
+#define MLOCK_T atomic_t
+#define INITIAL_LOCK(l)      futex_initialize(l, 1)
+/* futex_down cannot fail, but can return different
+ * retvals for OK
+ */
+#define ACQUIRE_LOCK(l)      ({futex_down(l);0;})
+#define RELEASE_LOCK(l)      futex_up(l)
 
 #if HAVE_MORECORE
-static MLOCK_T morecore_mutex = PTHREAD_MUTEX_INITIALIZER;
+static MLOCK_T morecore_mutex = FUTEX_INITIALIZER;
 #endif /* HAVE_MORECORE */
 
-static MLOCK_T magic_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+static MLOCK_T magic_init_mutex = FUTEX_INITIALIZER;
 
-#else /* WIN32 */
-/*
-   Because lock-protected regions have bounded times, and there
-   are no recursive lock calls, we can use simple spinlocks.
-*/
-
-#define MLOCK_T long
-static int win32_acquire_lock (MLOCK_T *sl) {
-  for (;;) {
-#ifdef InterlockedCompareExchangePointer
-    if (!InterlockedCompareExchange(sl, 1, 0))
-      return 0;
-#else  /* Use older void* version */
-    if (!InterlockedCompareExchange((void**)sl, (void*)1, (void*)0))
-      return 0;
-#endif /* InterlockedCompareExchangePointer */
-    Sleep (0);
-  }
-}
-
-static void win32_release_lock (MLOCK_T *sl) {
-  InterlockedExchange (sl, 0);
-}
-
-#define INITIAL_LOCK(l)      *(l)=0
-#define ACQUIRE_LOCK(l)      win32_acquire_lock(l)
-#define RELEASE_LOCK(l)      win32_release_lock(l)
-#if HAVE_MORECORE
-static MLOCK_T morecore_mutex;
-#endif /* HAVE_MORECORE */
-static MLOCK_T magic_init_mutex;
-#endif /* WIN32 */
 
 #define USE_LOCK_BIT               (2U)
 #else  /* USE_LOCKS */

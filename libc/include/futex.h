@@ -32,6 +32,8 @@
 #include <atomic.h>
 #include <types.h>
 
+#define FUTEX_INITIALIZER     {1}
+
 extern void futex_initialize(atomic_t *futex, int value);
 extern int futex_down(atomic_t *futex);
 extern int futex_trydown(atomic_t *futex);
