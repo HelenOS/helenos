@@ -49,12 +49,12 @@
 static void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node);
 static void _btree_remove(btree_t *t, __native key, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
-static void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree);
 static void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
-static btree_node_t *node_combine(btree_node_t *node);
 static void node_remove_key_and_lsubtree(btree_node_t *node, __native key);
 static void node_remove_key_and_rsubtree(btree_node_t *node, __native key);
+static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
+static btree_node_t *node_combine(btree_node_t *node);
 static index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
 static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
 static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
@@ -154,7 +154,7 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 		rnode = node_split(node, key, value, rsubtree, &median);
 
 		if (LEAF_NODE(node)) {
-			list_append(&rnode->leaf_link, &node->leaf_link);
+			list_prepend(&rnode->leaf_link, &node->leaf_link);
 		}
 		
 		if (ROOT_NODE(node)) {
@@ -189,7 +189,6 @@ void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
 	
-	panic("%s needs testing and is disabled in revision %s\n", __FUNCTION__, REVISION);
 	lnode = leaf_node;
 	if (!lnode) {
 		if (!btree_search(t, key, &lnode)) {
@@ -436,6 +435,61 @@ void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value,
 	node->keys++;
 }
 
+/** Remove key and its left subtree pointer from B-tree node.
+ *
+ * Remove the key and eliminate gaps in node->key array.
+ * Note that the value pointer and the left subtree pointer
+ * is removed from the node as well.
+ *
+ * @param node B-tree node.
+ * @param key Key to be removed.
+ */
+void node_remove_key_and_lsubtree(btree_node_t *node, __native key)
+{
+	int i, j;
+	
+	for (i = 0; i < node->keys; i++) {
+		if (key == node->key[i]) {
+			for (j = i + 1; j < node->keys; j++) {
+				node->key[j - 1] = node->key[j];
+				node->value[j - 1] = node->value[j];
+				node->subtree[j - 1] = node->subtree[j];
+			}
+			node->subtree[j - 1] = node->subtree[j];
+			node->keys--;
+			return;
+		}
+	}
+	panic("node %P does not contain key %d\n", node, key);
+}
+
+/** Remove key and its right subtree pointer from B-tree node.
+ *
+ * Remove the key and eliminate gaps in node->key array.
+ * Note that the value pointer and the right subtree pointer
+ * is removed from the node as well.
+ *
+ * @param node B-tree node.
+ * @param key Key to be removed.
+ */
+void node_remove_key_and_rsubtree(btree_node_t *node, __native key)
+{
+	int i, j;
+	
+	for (i = 0; i < node->keys; i++) {
+		if (key == node->key[i]) {
+			for (j = i + 1; j < node->keys; j++) {
+				node->key[j - 1] = node->key[j];
+				node->value[j - 1] = node->value[j];
+				node->subtree[j] = node->subtree[j + 1];
+			}
+			node->keys--;
+			return;
+		}
+	}
+	panic("node %P does not contain key %d\n", node, key);
+}
+
 /** Split full B-tree node and insert new key-value-right-subtree triplet.
  *
  * This function will split a node and return pointer to a newly created
@@ -557,61 +611,6 @@ btree_node_t *node_combine(btree_node_t *node)
 	node->keys += rnode->keys;
 
 	return rnode;
-}
-
-/** Remove key and its left subtree pointer from B-tree node.
- *
- * Remove the key and eliminate gaps in node->key array.
- * Note that the value pointer and the left subtree pointer
- * is removed from the node as well.
- *
- * @param node B-tree node.
- * @param key Key to be removed.
- */
-void node_remove_key_and_lsubtree(btree_node_t *node, __native key)
-{
-	int i, j;
-	
-	for (i = 0; i < node->keys; i++) {
-		if (key == node->key[i]) {
-			for (j = i + 1; j < node->keys; j++) {
-				node->key[j - 1] = node->key[j];
-				node->value[j - 1] = node->value[j];
-				node->subtree[j - 1] = node->subtree[j];
-			}
-			node->subtree[j - 1] = node->subtree[j];
-			node->keys--;
-			return;
-		}
-	}
-	panic("node %P does not contain key %d\n", node, key);
-}
-
-/** Remove key and its right subtree pointer from B-tree node.
- *
- * Remove the key and eliminate gaps in node->key array.
- * Note that the value pointer and the right subtree pointer
- * is removed from the node as well.
- *
- * @param node B-tree node.
- * @param key Key to be removed.
- */
-void node_remove_key_and_rsubtree(btree_node_t *node, __native key)
-{
-	int i, j;
-	
-	for (i = 0; i < node->keys; i++) {
-		if (key == node->key[i]) {
-			for (j = i + 1; j < node->keys; j++) {
-				node->key[j - 1] = node->key[j];
-				node->value[j - 1] = node->value[j];
-				node->subtree[j] = node->subtree[j + 1];
-			}
-			node->keys--;
-			return;
-		}
-	}
-	panic("node %P does not contain key %d\n", node, key);
 }
 
 /** Find key by its left or right subtree.
@@ -878,8 +877,9 @@ bool try_rotation_from_right(btree_node_t *lnode)
 void btree_print(btree_t *t)
 {
 	int i, depth = t->root->depth;
-	link_t head;
-	
+	link_t head, *cur;
+
+	printf("Printing B-tree:\n");
 	list_initialize(&head);
 	list_append(&t->root->bfs_link, &head);
 
@@ -905,7 +905,7 @@ void btree_print(btree_t *t)
 
 		printf("(");
 		for (i = 0; i < node->keys; i++) {
-			printf("%d,", node->key[i]);
+			printf("%d%s", node->key[i], i < node->keys - 1 ? "," : "");
 			if (node->depth && node->subtree[i]) {
 				list_append(&node->subtree[i]->bfs_link, &head);
 			}
@@ -913,6 +913,21 @@ void btree_print(btree_t *t)
 		if (node->depth && node->subtree[i]) {
 			list_append(&node->subtree[i]->bfs_link, &head);
 		}
+		printf(")");
+	}
+	printf("\n");
+	
+	printf("Printing list of leaves:\n");
+	for (cur = t->leaf_head.next; cur != &t->leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		
+		ASSERT(node);
+
+		printf("(");
+		for (i = 0; i < node->keys; i++)
+			printf("%d%s", node->key[i], i < node->keys - 1 ? "," : "");
 		printf(")");
 	}
 	printf("\n");

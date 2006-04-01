@@ -39,7 +39,7 @@
  *   Following features are not currently supported but would be easy to do:
  *   - cache coloring
  *   - dynamic magazine growing (different magazine sizes are already
- *     supported, but we would need to adjust allocating strategy)
+ *     supported, but we would need to adjust allocation strategy)
  *
  * The SLAB allocator supports per-CPU caches ('magazines') to facilitate
  * good SMP scaling. 
