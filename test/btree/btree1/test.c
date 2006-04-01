@@ -77,5 +77,7 @@ void test(void)
 		btree_insert(&t, i, data, NULL);
 
 	btree_print(&t);
+	
+	btree_remove(&t, 50, NULL);
 
 }

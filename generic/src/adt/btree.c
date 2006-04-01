@@ -47,15 +47,21 @@
 #include <print.h>
 
 static void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node);
+static void _btree_remove(btree_t *t, __native key, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
-static void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-static void node_insert_key_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
 static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
-static void node_remove_key_left(btree_node_t *node, __native key);
-static void node_remove_key_right(btree_node_t *node, __native key);
+static btree_node_t *node_combine(btree_node_t *node);
+static void node_remove_key_and_lsubtree(btree_node_t *node, __native key);
+static void node_remove_key_and_rsubtree(btree_node_t *node, __native key);
 static index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
-static bool try_insert_by_left_rotation(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-static bool try_insert_by_right_rotation(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
+static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
+static bool try_insert_by_rotation_to_left(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static bool try_insert_by_rotation_to_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static bool try_rotation_from_left(btree_node_t *rnode);
+static bool try_rotation_from_right(btree_node_t *lnode);
 
 #define ROOT_NODE(n)		(!(n)->parent)
 #define INDEX_NODE(n)		((n)->subtree[0] != NULL)
@@ -124,13 +130,13 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 		/*
 		 * Node conatins enough space, the key can be stored immediately.
 		 */
-		node_insert_key_right(node, key, value, rsubtree);
-	} else if (try_insert_by_left_rotation(node, key, value, rsubtree)) {
+		node_insert_key_and_rsubtree(node, key, value, rsubtree);
+	} else if (try_insert_by_rotation_to_left(node, key, value, rsubtree)) {
 		/*
 		 * The key-value-rsubtree triplet has been inserted because
 		 * some keys could have been moved to the left sibling.
 		 */
-	} else if (try_insert_by_right_rotation(node, key, value, rsubtree)) {
+	} else if (try_insert_by_rotation_to_right(node, key, value, rsubtree)) {
 		/*
 		 * The key-value-rsubtree triplet has been inserted because
 		 * some keys could have been moved to the right sibling.
@@ -183,6 +189,7 @@ void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
 	
+	panic("%s needs testing and is disabled in revision %s\n", __FUNCTION__, REVISION);
 	lnode = leaf_node;
 	if (!lnode) {
 		if (!btree_search(t, key, &lnode)) {
@@ -190,8 +197,82 @@ void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
 		}
 	}
 	
-	/* TODO */
+	_btree_remove(t, key, lnode);
+}
 
+/** Recursively remove B-tree node.
+ *
+ * @param B-tree.
+ * @param key Key to be removed from the B-tree along with its associated value.
+ * @param node Node where the key being removed resides.
+ */
+void _btree_remove(btree_t *t, __native key, btree_node_t *node)
+{
+	if (ROOT_NODE(node)) {
+		if (node->keys == 1 && node->subtree[0]) {
+			/*
+			 * Free the current root and set new root.
+			 */
+			t->root = node->subtree[0];
+			t->root->parent = NULL;
+			free(node);
+		} else {
+			/*
+			 * Remove the key from the root node.
+			 * Note that the right subtree is removed because when
+			 * combining two nodes, the left-side sibling is preserved
+			 * and the right-side sibling is freed.
+			 */
+			node_remove_key_and_rsubtree(node, key);
+		}
+		return;
+	}
+	
+	if (node->keys <= FILL_FACTOR) {
+		/*
+		 * If the node is below the fill factor,
+		 * try to borrow keys from left or right sibling.
+		 */
+		if (!try_rotation_from_left(node))
+			try_rotation_from_right(node);
+	}
+	
+	if (node->keys > FILL_FACTOR) {
+		int i;
+
+		/*
+		 * The key can be immediatelly removed.
+		 *
+		 * Note that the right subtree is removed because when
+		 * combining two nodes, the left-side sibling is preserved
+		 * and the right-side sibling is freed.
+		 */
+		node_remove_key_and_rsubtree(node, key);
+		for (i = 0; i < node->parent->keys; i++) {
+			if (node->parent->key[i] == key)
+				node->parent->key[i] = node->key[0];
+		}
+		
+	} else {
+		index_t idx;
+		btree_node_t *rnode, *parent;
+
+		/*
+		 * The node is below the fill factor as well as its left and right sibling.
+		 * Resort to combining the node with one of its siblings.
+		 * The node which is on the left is preserved and the node on the right is
+		 * freed.
+		 */
+		parent = node->parent;
+		node_remove_key_and_rsubtree(node, key);
+		rnode = node_combine(node);
+		if (LEAF_NODE(rnode))
+			list_remove(&rnode->leaf_link);
+		idx = find_key_by_subtree(parent, rnode, true);
+		ASSERT((int) idx != -1);
+		free(rnode);
+		_btree_remove(t, parent->key[idx], parent);
+	}
 }
 
 /** Search key in a B-tree.
@@ -260,36 +341,6 @@ void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node)
 	return NULL;
 }
 
-/** Get pointer to value with the smallest key within the node.
- *
- * Can be only used on leaf-level nodes.
- *
- * @param node B-tree node.
- *
- * @return Pointer to value assiciated with the smallest key.
- */
-void *btree_node_min(btree_node_t *node)
-{
-	ASSERT(LEAF_NODE(node));
-	ASSERT(node->keys);
-	return node->value[0];
-}
-
-/** Get pointer to value with the biggest key within the node.
- *
- * Can be only used on leaf-level nodes.
- *
- * @param node B-tree node.
- *
- * @return Pointer to value assiciated with the biggest key.
- */
-void *btree_node_max(btree_node_t *node)
-{
-	ASSERT(LEAF_NODE(node));
-	ASSERT(node->keys);
-	return node->value[node->keys - 1];
-}
-
 /** Initialize B-tree node.
  *
  * @param node B-tree node.
@@ -326,7 +377,7 @@ void node_initialize(btree_node_t *node)
  * @param value Pointer to value to be inserted.
  * @param lsubtree Pointer to the left subtree.
  */ 
-void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree)
+void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree)
 {
 	int i;
 
@@ -350,7 +401,6 @@ void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_n
 	node->keys++;
 }
 
-
 /** Insert key-value-rsubtree triplet into B-tree node.
  *
  * It is actually possible to have more keys than BTREE_MAX_KEYS.
@@ -363,7 +413,7 @@ void node_insert_key_left(btree_node_t *node, __native key, void *value, btree_n
  * @param value Pointer to value to be inserted.
  * @param rsubtree Pointer to the right subtree.
  */ 
-void node_insert_key_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree)
+void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree)
 {
 	int i;
 
@@ -416,7 +466,7 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	/*
 	 * Use the extra space to store the extra node.
 	 */
-	node_insert_key_right(node, key, value, rsubtree);
+	node_insert_key_and_rsubtree(node, key, value, rsubtree);
 
 	/*
 	 * Compute median of keys.
@@ -458,6 +508,57 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	return rnode;
 }
 
+/** Combine node with any of its siblings.
+ *
+ * The siblings are required to be below the fill factor.
+ *
+ * @param node Node to combine with one of its siblings.
+ *
+ * @return Pointer to the rightmost of the two nodes.
+ */
+btree_node_t *node_combine(btree_node_t *node)
+{
+	index_t idx;
+	btree_node_t *rnode;
+	int i;
+
+	ASSERT(!ROOT_NODE(node));
+	
+	idx = find_key_by_subtree(node->parent, node, false);
+	if (idx == node->parent->keys) {
+		/*
+		 * Rightmost subtree of its parent, combine with the left sibling.
+		 */
+		idx--;
+		rnode = node;
+		node = node->parent->subtree[idx];
+	} else {
+		rnode = node->parent->subtree[idx + 1];
+	}
+
+	/* Index nodes need to insert parent node key in between left and right node. */
+	if (INDEX_NODE(node))
+		node->key[node->keys++] = node->parent->key[idx];
+	
+	/* Copy the key-value-subtree triplets from the right node. */
+	for (i = 0; i < rnode->keys; i++) {
+		node->key[node->keys + i] = rnode->key[i];
+		node->value[node->keys + i] = rnode->value[i];
+		if (INDEX_NODE(node)) {
+			node->subtree[node->keys + i] = rnode->subtree[i];
+			rnode->subtree[i]->parent = node;
+		}
+	}
+	if (INDEX_NODE(node)) {
+		node->subtree[node->keys + i] = rnode->subtree[i];
+		rnode->subtree[i]->parent = node;
+	}
+
+	node->keys += rnode->keys;
+
+	return rnode;
+}
+
 /** Remove key and its left subtree pointer from B-tree node.
  *
  * Remove the key and eliminate gaps in node->key array.
@@ -467,7 +568,7 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
  * @param node B-tree node.
  * @param key Key to be removed.
  */
-void node_remove_key_left(btree_node_t *node, __native key)
+void node_remove_key_and_lsubtree(btree_node_t *node, __native key)
 {
 	int i, j;
 	
@@ -495,7 +596,7 @@ void node_remove_key_left(btree_node_t *node, __native key)
  * @param node B-tree node.
  * @param key Key to be removed.
  */
-void node_remove_key_right(btree_node_t *node, __native key)
+void node_remove_key_and_rsubtree(btree_node_t *node, __native key)
 {
 	int i, j;
 	
@@ -532,6 +633,80 @@ index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool righ
 	panic("node %P does not contain subtree %P\n", node, subtree);
 }
 
+/** Rotate one key-value-rsubtree triplet from the left sibling to the right sibling.
+ *
+ * The biggest key and its value and right subtree is rotated from the left node
+ * to the right. If the node is an index node, than the parent node key belonging to
+ * the left node takes part in the rotation.
+ *
+ * @param lnode Left sibling.
+ * @param rnode Right sibling.
+ * @param idx Index of the parent node key that is taking part in the rotation.
+ */
+void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
+{
+	__native key;
+
+	key = lnode->key[lnode->keys - 1];
+		
+	if (LEAF_NODE(lnode)) {
+		void *value;
+
+		value = lnode->value[lnode->keys - 1];
+		node_remove_key_and_rsubtree(lnode, key);
+		node_insert_key_and_lsubtree(rnode, key, value, NULL);
+		lnode->parent->key[idx] = key;
+	} else {
+		btree_node_t *rsubtree;
+
+		rsubtree = lnode->subtree[lnode->keys];
+		node_remove_key_and_rsubtree(lnode, key);
+		node_insert_key_and_lsubtree(rnode, lnode->parent->key[idx], NULL, rsubtree);
+		lnode->parent->key[idx] = key;
+
+		/* Fix parent link of the reconnected right subtree. */
+		rsubtree->parent = rnode;
+	}
+
+}
+
+/** Rotate one key-value-lsubtree triplet from the right sibling to the left sibling.
+ *
+ * The smallest key and its value and left subtree is rotated from the right node
+ * to the left. If the node is an index node, than the parent node key belonging to
+ * the right node takes part in the rotation.
+ *
+ * @param lnode Left sibling.
+ * @param rnode Right sibling.
+ * @param idx Index of the parent node key that is taking part in the rotation.
+ */
+void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
+{
+	__native key;
+
+	key = rnode->key[0];
+		
+	if (LEAF_NODE(rnode)) {
+		void *value;
+
+		value = rnode->value[0];
+		node_remove_key_and_lsubtree(rnode, key);
+		node_insert_key_and_rsubtree(lnode, key, value, NULL);
+		rnode->parent->key[idx] = rnode->key[0];
+	} else {
+		btree_node_t *lsubtree;
+
+		lsubtree = rnode->subtree[0];
+		node_remove_key_and_lsubtree(rnode, key);
+		node_insert_key_and_rsubtree(lnode, rnode->parent->key[idx], NULL, lsubtree);
+		rnode->parent->key[idx] = key;
+
+		/* Fix parent link of the reconnected left subtree. */
+		lsubtree->parent = lnode;
+	}
+
+}
+
 /** Insert key-value-rsubtree triplet and rotate the node to the left, if this operation can be done.
  *
  * Left sibling of the node (if it exists) is checked for free space.
@@ -546,7 +721,7 @@ index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool righ
  *
  * @return True if the rotation was performed, false otherwise.
  */
-bool try_insert_by_left_rotation(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+bool try_insert_by_rotation_to_left(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
 {
 	index_t idx;
 	btree_node_t *lnode;
@@ -567,35 +742,12 @@ bool try_insert_by_left_rotation(btree_node_t *node, __native inskey, void *insv
 	}
 		
 	lnode = node->parent->subtree[idx];
-
 	if (lnode->keys < BTREE_MAX_KEYS) {
-		__native key;
-
 		/*
 		 * The rotaion can be done. The left sibling has free space.
 		 */
-
-		node_insert_key_right(node, inskey, insvalue, rsubtree);
-		key = node->key[0];
-		
-		if (LEAF_NODE(node)) {
-			void *value;
-
-			value = node->value[0];
-			node_remove_key_left(node, key);
-			node_insert_key_right(lnode, key, value, NULL);
-			node->parent->key[idx] = node->key[0];
-		} else {
-			btree_node_t *lsubtree;
-
-			lsubtree = node->subtree[0];
-			node_remove_key_left(node, key);
-			node_insert_key_right(lnode, node->parent->key[idx], NULL, lsubtree);
-			node->parent->key[idx] = key;
-
-			/* Fix parent link of the reconnected left subtree. */
-			lsubtree->parent = lnode;
-		}
+		node_insert_key_and_rsubtree(node, inskey, insvalue, rsubtree);
+		rotate_from_right(lnode, node, idx);
 		return true;
 	}
 
@@ -616,7 +768,7 @@ bool try_insert_by_left_rotation(btree_node_t *node, __native inskey, void *insv
  *
  * @return True if the rotation was performed, false otherwise.
  */
-bool try_insert_by_right_rotation(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+bool try_insert_by_rotation_to_right(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
 {
 	index_t idx;
 	btree_node_t *rnode;
@@ -637,37 +789,84 @@ bool try_insert_by_right_rotation(btree_node_t *node, __native inskey, void *ins
 	}
 		
 	rnode = node->parent->subtree[idx + 1];
-
 	if (rnode->keys < BTREE_MAX_KEYS) {
-		__native key;
-
 		/*
 		 * The rotaion can be done. The right sibling has free space.
 		 */
-
-		node_insert_key_right(node, inskey, insvalue, rsubtree);
-		key = node->key[node->keys - 1];
-		
-		if (LEAF_NODE(node)) {
-			void *value;
-
-			value = node->value[node->keys - 1];
-			node_remove_key_right(node, key);
-			node_insert_key_left(rnode, key, value, NULL);
-			node->parent->key[idx] = key;
-		} else {
-			btree_node_t *rsubt;
-
-			rsubt = node->subtree[node->keys];
-			node_remove_key_right(node, key);
-			node_insert_key_left(rnode, node->parent->key[idx], NULL, rsubt);
-			node->parent->key[idx] = key;
-
-			/* Fix parent link of the reconnected right subtree. */
-			rsubt->parent = rnode;
-		}
+		node_insert_key_and_rsubtree(node, inskey, insvalue, rsubtree);
+		rotate_from_left(node, rnode, idx);
 		return true;
 	}
+
+	return false;
+}
+
+/** Rotate in a key from the left sibling or from the index node, if this operation can be done.
+ *
+ * @param rnode Node into which to add key from its left sibling or from the index node.
+ *
+ * @return True if the rotation was performed, false otherwise.
+ */
+bool try_rotation_from_left(btree_node_t *rnode)
+{
+	index_t idx;
+	btree_node_t *lnode;
+
+	/*
+	 * If this is root node, the rotation can not be done.
+	 */
+	if (ROOT_NODE(rnode))
+		return false;
+	
+	idx = find_key_by_subtree(rnode->parent, rnode, true);
+	if ((int) idx == -1) {
+		/*
+		 * If this node is the leftmost subtree of its parent,
+		 * the rotation can not be done.
+		 */
+		return false;
+	}
+		
+	lnode = rnode->parent->subtree[idx];
+	if (lnode->keys > FILL_FACTOR) {
+		rotate_from_left(lnode, rnode, idx);
+		return true;
+	}
+	
+	return false;
+}
+
+/** Rotate in a key from the right sibling or from the index node, if this operation can be done.
+ *
+ * @param rnode Node into which to add key from its right sibling or from the index node.
+ *
+ * @return True if the rotation was performed, false otherwise.
+ */
+bool try_rotation_from_right(btree_node_t *lnode)
+{
+	index_t idx;
+	btree_node_t *rnode;
+
+	/*
+	 * If this is root node, the rotation can not be done.
+	 */
+	if (ROOT_NODE(lnode))
+		return false;
+	
+	idx = find_key_by_subtree(lnode->parent, lnode, false);
+	if (idx == lnode->parent->keys) {
+		/*
+		 * If this node is the rightmost subtree of its parent,
+		 * the rotation can not be done.
+		 */
+		return false;
+	}
+		
+	rnode = lnode->parent->subtree[idx + 1];
+	if (rnode->keys > FILL_FACTOR) {
+		rotate_from_right(lnode, rnode, idx);
+		return true;
+	}	
 
 	return false;
 }
