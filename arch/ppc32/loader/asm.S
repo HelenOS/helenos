@@ -112,9 +112,10 @@ jump_to_kernel:
 	# r4 = bootinfo_size
 	# r5 = trans (pa)
 	# r6 = kernel size
-	# r7 = real_mode (pa)
+	# r7 = framebuffer (pa)
+	# r8 = real_mode (pa)
 	
-	mtspr srr0, r7
+	mtspr srr0, r8
 	
 	# jumps to real_mode
 	
@@ -135,6 +136,7 @@ real_mode:
 	#
 	# r5 = trans (pa)
 	# r6 = kernel size
+	# r7 = framebuffer (pa)
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -229,7 +231,7 @@ real_mode:
 	lis r31, 0xf000
 	ori r31, r31, 0x0ffe
 	
-	lis r30, 0x8400
+	mr r30, r7
 	ori r30, r30, 0x0002
 	
 	mtspr dbat1u, r31
@@ -250,6 +252,8 @@ real_mode:
 	ori r31, r31, (msr_ir | msr_dr)@l
 	mtspr srr1, r31
 	
+	sync
+	isync
 	rfi
 
 .align PAGE_WIDTH

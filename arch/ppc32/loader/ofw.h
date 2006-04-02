@@ -52,7 +52,7 @@ typedef struct {
 } memmap_t;
 
 typedef struct {
-	unsigned int addr;
+	void *addr;
 	unsigned int width;
 	unsigned int height;
 	unsigned int bpp;

@@ -42,7 +42,7 @@ bootinfo_t bootinfo;
 static void check_align(const void *addr, const char *desc)
 {
 	if ((unsigned int) addr % PAGE_SIZE != 0) {
-		printf("Error: %s not on page boundary\n", desc);
+		printf("Error: %s not on page boundary, halting.\n", desc);
 		halt();
 	}
 }
@@ -58,12 +58,12 @@ static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top
 		*top += PAGE_SIZE;
 		
 		if (ofw_map(new_pa, new_va, PAGE_SIZE, 0) != 0) {
-			printf("Error: Unable to map page aligned memory at %L (physical %L)\n", new_va, new_pa);
+			printf("Error: Unable to map page aligned memory at %L (physical %L), halting.\n", new_va, new_pa);
 			halt();
 		}
 		
 		if ((unsigned int) new_pa + PAGE_SIZE < KERNEL_SIZE) {
-			printf("Error: %s cannot be relocated\n", desc);
+			printf("Error: %s cannot be relocated, halting.\n", desc);
 			halt();	
 		}
 		
@@ -83,12 +83,17 @@ void bootstrap(void)
 	check_align(&trans, "Translation table");
 	
 	if (!ofw_memmap(&bootinfo.memmap)) {
-		printf("Error: Unable to get memory map\n");
+		printf("Error: Unable to get memory map, halting.\n");
+		halt();
+	}
+	
+	if (bootinfo.memmap.total == 0) {
+		printf("Error: No memory detected, halting.\n");
 		halt();
 	}
 	
 	if (!ofw_screen(&bootinfo.screen)) {
-		printf("Error: Unable to get screen properties\n");
+		printf("Error: Unable to get screen properties, halting.\n");
 		halt();
 	}
 	
@@ -98,6 +103,7 @@ void bootstrap(void)
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
 	void *bootinfo_pa = ofw_translate(&bootinfo);
+	void *fb = (void *) (((unsigned int) bootinfo.screen.addr) & ((unsigned int) ~0 << 17));
 	
 	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
@@ -118,5 +124,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "Boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, KERNEL_SIZE, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, KERNEL_SIZE, fb, real_mode_pa);
 }

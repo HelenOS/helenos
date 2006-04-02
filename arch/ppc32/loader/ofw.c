@@ -31,7 +31,7 @@
 #include "printf.h"
 
 #define MAX_OFW_ARGS	10
-#define STRING_SIZE		1024
+#define BUF_SIZE		1024
 
 typedef unsigned int ofw_arg_t;
 typedef unsigned int ihandle;
@@ -53,12 +53,14 @@ typedef void (*ofw_entry)(ofw_args_t *);
 ofw_entry ofw;
 
 phandle ofw_chosen;
-phandle ofw_aliases;
-ihandle ofw_mmu;
 ihandle ofw_stdout;
+phandle ofw_root;
+ihandle ofw_mmu;
+phandle ofw_memory;
+phandle ofw_aliases;
 
 
-static int ofw_call(const char *service, const int nargs, const int nret, ...)
+static int ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
 {
 	va_list list;
 	ofw_args_t args;
@@ -68,7 +70,7 @@ static int ofw_call(const char *service, const int nargs, const int nret, ...)
 	args.nargs = nargs;
 	args.nret = nret;
 	
-	va_start(list, nret);
+	va_start(list, rets);
 	for (i = 0; i < nargs; i++)
 		args.args[i] = va_arg(list, ofw_arg_t);
 	va_end(list);
@@ -78,24 +80,52 @@ static int ofw_call(const char *service, const int nargs, const int nret, ...)
 	
 	ofw(&args);
 	
+	for (i = 1; i < nret; i++)
+		rets[i - 1] = args.args[i + nargs];
+	
 	return args.args[nargs];
 }
 
 
 static phandle ofw_find_device(const char *name)
 {
-	return ofw_call("finddevice", 1, 1, name);
+	return ofw_call("finddevice", 1, 1, NULL, name);
 }
 
 
 static int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
 {
-	return ofw_call("getprop", 4, 1, device, name, buf, buflen);
+	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
+
+
+static unsigned int ofw_get_address_cells(const phandle device)
+{
+	unsigned int ret;
+	
+	if (ofw_get_property(device, "#address-cells", &ret, sizeof(ret)) <= 0)
+		if (ofw_get_property(ofw_root, "#address-cells", &ret, sizeof(ret)) <= 0)
+			ret = 1;
+	
+	return ret;
+}
+
+
+static unsigned int ofw_get_size_cells(const phandle device)
+{
+	unsigned int ret;
+	
+	if (ofw_get_property(device, "#size-cells", &ret, sizeof(ret)) <= 0)
+		if (ofw_get_property(ofw_root, "#size-cells", &ret, sizeof(ret)) <= 0)
+			ret = 1;
+	
+	return ret;
+}
+
 
 static ihandle ofw_open(const char *name)
 {
-	return ofw_call("open", 1, 1, name);
+	return ofw_call("open", 1, 1, NULL, name);
 }
 
 
@@ -105,18 +135,29 @@ void init(void)
 	if (ofw_chosen == -1)
 		halt();
 	
-	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)	
+	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)
 		ofw_stdout = 0;
 	
-	ofw_aliases = ofw_find_device("/aliases");
-	if (ofw_aliases == -1) {
-		puts("\nUnable to find /aliases device\n");
+	ofw_root = ofw_find_device("/");
+	if (ofw_root == -1) {
+		puts("\r\nError: Unable to find / device, halted.\r\n");
 		halt();
 	}
 	
-	ofw_mmu = ofw_open("/mmu");
-	if (ofw_mmu == -1) {
-		puts("\nUnable to open /mmu node\n");
+	if (ofw_get_property(ofw_chosen, "mmu",  &ofw_mmu, sizeof(ofw_mmu)) <= 0) {
+		puts("\r\nError: Unable to get mmu property, halted.\r\n");
+		halt();
+	}
+	
+	ofw_memory = ofw_find_device("/memory");
+	if (ofw_memory == -1) {
+		puts("\r\nError: Unable to find /memory device, halted.\r\n");
+		halt();
+	}
+	
+	ofw_aliases = ofw_find_device("/aliases");
+	if (ofw_aliases == -1) {
+		puts("\r\nError: Unable to find /aliases device, halted.\r\n");
 		halt();
 	}
 }
@@ -127,51 +168,60 @@ void ofw_write(const char *str, const int len)
 	if (ofw_stdout == 0)
 		return;
 	
-	ofw_call("write", 3, 1, ofw_stdout, str, len);
+	ofw_call("write", 3, 1, NULL, ofw_stdout, str, len);
 }
 
 
 void *ofw_translate(const void *virt)
 {
-	return (void *) ofw_call("call-method", 7, 1, "translate", ofw_mmu, virt, 0, 0, 0, 0);
+	ofw_arg_t result[3];
+	
+	if (ofw_call("call-method", 4, 4, result, "translate", ofw_mmu, virt, 1) != 0) {
+		puts("Error: MMU method translate() failed, halting.\n");
+		halt();
+	}
+	return (void *) result[2];
 }
 
 
 int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {
-	return ofw_call("call-method", 6, 1, "map", ofw_mmu, mode, size, virt, phys);
+	return ofw_call("call-method", 6, 1, NULL, "map", ofw_mmu, mode, size, virt, phys);
 }
 
 
 int ofw_memmap(memmap_t *map)
 {
-	int i;
-	int ret;
-
-	phandle handle = ofw_find_device("/memory");
-	if (handle == -1)
+	unsigned int buf[BUF_SIZE];
+	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(unsigned int) * BUF_SIZE);
+	if (ret <= 0)
 		return false;
+		
+	unsigned int ac = ofw_get_address_cells(ofw_memory);
+	unsigned int sc = ofw_get_size_cells(ofw_memory);
 	
-	ret = ofw_get_property(handle, "reg", &map->zones, sizeof(map->zones));
-	if (ret == -1)
-		return false;
-	
+	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (i = 0; i < MEMMAP_MAX_RECORDS; i++) {
-		if (map->zones[i].size == 0)
-			break;
-		map->count++;
-		map->total += map->zones[i].size;
+	for (pos = 0; (pos < ret / sizeof(unsigned int)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
+		void * start = (void *) buf[pos + ac - 1];
+		unsigned int size = buf[pos + ac + sc - 1];
+		
+		if (size > 0) {
+			map->zones[map->count].start = start;
+			map->zones[map->count].size = size;
+			map->count++;
+			map->total += size;
+		}
 	}
 }
 
 
 int ofw_screen(screen_t *screen)
 {
-	char device_name[STRING_SIZE];
+	char device_name[BUF_SIZE];
 	
-	if (ofw_get_property(ofw_aliases, "screen", device_name, STRING_SIZE) <= 0)
+	if (ofw_get_property(ofw_aliases, "screen", device_name, sizeof(char) * BUF_SIZE) <= 0)
 		return false;
 	
 	phandle device = ofw_find_device(device_name);
