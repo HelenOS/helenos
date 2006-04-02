@@ -37,5 +37,5 @@
 void ppc32_console_init(void)
 {
 	/* TODO: Framebuffer mapping */
-	fb_init(0xf0000000, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	fb_init(0xf0000000 + (bootinfo.screen.addr & ((__address) ~0 >> 15)), bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
 }
