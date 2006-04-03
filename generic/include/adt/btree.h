@@ -83,5 +83,8 @@ extern void btree_insert(btree_t *t, __native key, void *value, btree_node_t *le
 extern void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node);
 extern void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node);
 
+extern btree_node_t *btree_node_left_sibling(btree_t *t, btree_node_t *node);
+extern btree_node_t *btree_node_right_sibling(btree_t *t, btree_node_t *node);
+
 extern void btree_print(btree_t *t);
 #endif

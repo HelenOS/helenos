@@ -48,6 +48,7 @@
 #include <synch/spinlock.h>
 #include <config.h>
 #include <adt/list.h>
+#include <adt/btree.h>
 #include <panic.h>
 #include <arch/asm.h>
 #include <debug.h>
@@ -94,7 +95,7 @@ as_t *as_create(int flags)
 	as = (as_t *) malloc(sizeof(as_t), 0);
 	link_initialize(&as->inactive_as_with_asid_link);
 	spinlock_initialize(&as->lock, "as_lock");
-	list_initialize(&as->as_area_head);
+	btree_create(&as->as_area_btree);
 	
 	if (flags & FLAG_AS_KERNEL)
 		as->asid = ASID_KERNEL;
@@ -153,12 +154,11 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 
 	spinlock_initialize(&a->lock, "as_area_lock");
 	
-	link_initialize(&a->link);			
 	a->flags = flags;
 	a->pages = SIZE2FRAMES(size);
 	a->base = base;
 	
-	list_append(&a->link, &as->as_area_head);
+	btree_insert(&as->as_area_btree, base, (void *) a, NULL);
 
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
@@ -445,18 +445,12 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 	}
 
 	pages = SIZE2FRAMES((address - area->base) + size);
-	if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&as->lock);		
-		interrupts_restore(ipl);
-		return (__address) -1;
-	}
-
 	if (pages < area->pages) {
 		int i;
 
 		/*
 		 * Shrinking the area.
+		 * No need to check for overlaps.
 		 */
 		for (i = pages; i < area->pages; i++) {
 			pte_t *pte;
@@ -486,6 +480,17 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
+	} else {
+		/*
+		 * Growing the area.
+		 * Check for overlaps with other address space areas.
+		 */
+		if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
+			spinlock_unlock(&area->lock);
+			spinlock_unlock(&as->lock);		
+			interrupts_restore(ipl);
+			return (__address) -1;
+		}
 	} 
 
 	area->pages = pages;
@@ -508,16 +513,43 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
  */
 as_area_t *find_area_and_lock(as_t *as, __address va)
 {
-	link_t *cur;
 	as_area_t *a;
+	btree_node_t *leaf, *lnode;
+	int i;
 	
-	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
-		a = list_get_instance(cur, as_area_t, link);
+	a = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
+	if (a) {
+		/* va is the base address of an address space area */
 		spinlock_lock(&a->lock);
-
-		if ((va >= a->base) && (va < a->base + a->pages * PAGE_SIZE))
+		return a;
+	}
+	
+	/*
+	 * Search the leaf node and the righmost record of its left sibling
+	 * to find out whether this is a miss or va belongs to an address
+	 * space area found there.
+	 */
+	
+	/* First, search the leaf node itself. */
+	for (i = 0; i < leaf->keys; i++) {
+		a = (as_area_t *) leaf->value[i];
+		spinlock_lock(&a->lock);
+		if ((a->base <= va) && (va < a->base + a->pages * PAGE_SIZE)) {
 			return a;
-		
+		}
+		spinlock_unlock(&a->lock);
+	}
+
+	/*
+	 * Second, locate the left sibling and test its last record.
+	 * Because of its position in the B+-tree, it must have base < va.
+	 */
+	if ((lnode = btree_node_left_sibling(&as->as_area_btree, leaf))) {
+		a = (as_area_t *) lnode->value[lnode->keys - 1];
+		spinlock_lock(&a->lock);
+		if (va < a->base + a->pages * PAGE_SIZE) {
+			return a;
+		}
 		spinlock_unlock(&a->lock);
 	}
 
@@ -537,8 +569,9 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
  */
 bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area)
 {
-	link_t *cur;
 	as_area_t *a;
+	btree_node_t *leaf, *node;
+	int i;
 	
 	/*
 	 * We don't want any area to have conflicts with NULL page.
@@ -546,24 +579,52 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	if (overlaps(va, size, NULL, PAGE_SIZE))
 		return false;
 	
-	for (cur = as->as_area_head.next; cur != &as->as_area_head; cur = cur->next) {
-		__address a_start;
-		size_t a_size;
+	/*
+	 * The leaf node is found in O(log n), where n is proportional to
+	 * the number of address space areas belonging to as.
+	 * The check for conflicts is then attempted on the rightmost
+	 * record in the left sibling, the leftmost record in the right
+	 * sibling and all records in the leaf node itself.
+	 */
 	
-		a = list_get_instance(cur, as_area_t, link);
+	if ((a = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf))) {
+		if (a != avoid_area)
+			return false;
+	}
+	
+	/* First, check the two border cases. */
+	if ((node = btree_node_left_sibling(&as->as_area_btree, leaf))) {
+		a = (as_area_t *) node->value[node->keys - 1];
+		spinlock_lock(&a->lock);
+		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
+			spinlock_unlock(&a->lock);
+			return false;
+		}
+		spinlock_unlock(&a->lock);
+	}
+	if ((node = btree_node_right_sibling(&as->as_area_btree, leaf))) {
+		a = (as_area_t *) node->value[0];
+		spinlock_lock(&a->lock);
+		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
+			spinlock_unlock(&a->lock);
+			return false;
+		}
+		spinlock_unlock(&a->lock);
+	}
+	
+	/* Second, check the leaf node. */
+	for (i = 0; i < leaf->keys; i++) {
+		a = (as_area_t *) leaf->value[i];
+	
 		if (a == avoid_area)
 			continue;
-			
+	
 		spinlock_lock(&a->lock);
-
-		a_start = a->base;
-		a_size = a->pages * PAGE_SIZE;
-
+		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
+			spinlock_unlock(&a->lock);
+			return false;
+		}
 		spinlock_unlock(&a->lock);
-
-		if (overlaps(va, size, a_start, a_size))
-			return false;		
-
 	}
 
 	/*

@@ -340,6 +340,38 @@ void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node)
 	return NULL;
 }
 
+/** Return pointer to B-tree node's left sibling.
+ *
+ * @param t B-tree.
+ * @param node Node whose left sibling will be returned.
+ *
+ * @return Left sibling of the node or NULL if the node does not have the left sibling.
+ */
+btree_node_t *btree_node_left_sibling(btree_t *t, btree_node_t *node)
+{
+	ASSERT(LEAF_NODE(node));
+	if (node->leaf_link.prev != &t->leaf_head)
+		return list_get_instance(node->leaf_link.prev, btree_node_t, leaf_link);
+	else
+		return NULL;
+}
+
+/** Return pointer to B-tree node's right sibling.
+ *
+ * @param t B-tree.
+ * @param node Node whose right sibling will be returned.
+ *
+ * @return Right sibling of the node or NULL if the node does not have the right sibling.
+ */
+btree_node_t *btree_node_right_sibling(btree_t *t, btree_node_t *node)
+{
+	ASSERT(LEAF_NODE(node));
+	if (node->leaf_link.next != &t->leaf_head)
+		return list_get_instance(node->leaf_link.next, btree_node_t, leaf_link);
+	else
+		return NULL;
+}
+
 /** Initialize B-tree node.
  *
  * @param node B-tree node.

@@ -36,6 +36,7 @@
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <adt/list.h>
+#include <adt/btree.h>
 
 /** Defined to be true if user address space and kernel address space shadow each other. */
 #define KERNEL_ADDRESS_SPACE_SHADOWED	KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
@@ -63,7 +64,6 @@
  */
 struct as_area {
 	SPINLOCK_DECLARE(lock);
-	link_t link;
 	int flags;
 	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
@@ -85,7 +85,8 @@ struct as {
 	/** Number of processors on wich is this address space active. */
 	count_t refcount;
 
-	link_t as_area_head;
+	/** B+-tree of address space areas. */
+	btree_t as_area_btree;
 
 	/** Page table pointer. Constant on architectures that use global page hash table. */
 	pte_t *page_table;
