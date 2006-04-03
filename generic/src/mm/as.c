@@ -542,7 +542,7 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 
 	/*
 	 * Second, locate the left sibling and test its last record.
-	 * Because of its position in the B+-tree, it must have base < va.
+	 * Because of its position in the B+tree, it must have base < va.
 	 */
 	if ((lnode = btree_node_left_sibling(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) lnode->value[lnode->keys - 1];

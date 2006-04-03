@@ -31,7 +31,7 @@
  * - it is a ballanced 2-3-4-5 tree (i.e. BTREE_M = 5)
  * - values (i.e. pointers to values) are stored only in leaves
  * - leaves are linked in a list
- * - technically, it is a B+-tree (because of the previous properties)
+ * - technically, it is a B+tree (because of the previous properties)
  *
  * Be carefull when using these trees. They need to allocate
  * and deallocate memory for their index nodes and as such
