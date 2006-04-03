@@ -85,7 +85,7 @@ struct as {
 	/** Number of processors on wich is this address space active. */
 	count_t refcount;
 
-	/** B+-tree of address space areas. */
+	/** B+tree of address space areas. */
 	btree_t as_area_btree;
 
 	/** Page table pointer. Constant on architectures that use global page hash table. */
