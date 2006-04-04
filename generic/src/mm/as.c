@@ -525,7 +525,7 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 	}
 	
 	/*
-	 * Search the leaf node and the righmost record of its left sibling
+	 * Search the leaf node and the righmost record of its left neighbour
 	 * to find out whether this is a miss or va belongs to an address
 	 * space area found there.
 	 */
@@ -541,10 +541,10 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 	}
 
 	/*
-	 * Second, locate the left sibling and test its last record.
+	 * Second, locate the left neighbour and test its last record.
 	 * Because of its position in the B+tree, it must have base < va.
 	 */
-	if ((lnode = btree_node_left_sibling(&as->as_area_btree, leaf))) {
+	if ((lnode = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) lnode->value[lnode->keys - 1];
 		spinlock_lock(&a->lock);
 		if (va < a->base + a->pages * PAGE_SIZE) {
@@ -583,8 +583,8 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	 * The leaf node is found in O(log n), where n is proportional to
 	 * the number of address space areas belonging to as.
 	 * The check for conflicts is then attempted on the rightmost
-	 * record in the left sibling, the leftmost record in the right
-	 * sibling and all records in the leaf node itself.
+	 * record in the left neighbour, the leftmost record in the right
+	 * neighbour and all records in the leaf node itself.
 	 */
 	
 	if ((a = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf))) {
@@ -593,7 +593,7 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	}
 	
 	/* First, check the two border cases. */
-	if ((node = btree_node_left_sibling(&as->as_area_btree, leaf))) {
+	if ((node = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) node->value[node->keys - 1];
 		spinlock_lock(&a->lock);
 		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
@@ -602,7 +602,7 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 		}
 		spinlock_unlock(&a->lock);
 	}
-	if ((node = btree_node_right_sibling(&as->as_area_btree, leaf))) {
+	if ((node = btree_leaf_node_right_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) node->value[0];
 		spinlock_lock(&a->lock);
 		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {

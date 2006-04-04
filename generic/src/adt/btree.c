@@ -340,14 +340,14 @@ void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node)
 	return NULL;
 }
 
-/** Return pointer to B-tree node's left sibling.
+/** Return pointer to B-tree leaf node's left neighbour.
  *
  * @param t B-tree.
- * @param node Node whose left sibling will be returned.
+ * @param node Node whose left neighbour will be returned.
  *
- * @return Left sibling of the node or NULL if the node does not have the left sibling.
+ * @return Left neighbour of the node or NULL if the node does not have the left neighbour.
  */
-btree_node_t *btree_node_left_sibling(btree_t *t, btree_node_t *node)
+btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
 {
 	ASSERT(LEAF_NODE(node));
 	if (node->leaf_link.prev != &t->leaf_head)
@@ -356,14 +356,14 @@ btree_node_t *btree_node_left_sibling(btree_t *t, btree_node_t *node)
 		return NULL;
 }
 
-/** Return pointer to B-tree node's right sibling.
+/** Return pointer to B-tree leaf node's right neighbour.
  *
  * @param t B-tree.
- * @param node Node whose right sibling will be returned.
+ * @param node Node whose right neighbour will be returned.
  *
- * @return Right sibling of the node or NULL if the node does not have the right sibling.
+ * @return Right neighbour of the node or NULL if the node does not have the right neighbour.
  */
-btree_node_t *btree_node_right_sibling(btree_t *t, btree_node_t *node)
+btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node)
 {
 	ASSERT(LEAF_NODE(node));
 	if (node->leaf_link.next != &t->leaf_head)
