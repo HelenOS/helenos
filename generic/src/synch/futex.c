@@ -53,6 +53,7 @@
 
 static void futex_initialize(futex_t *futex);
 
+static futex_t *futex_find(__address paddr);
 static index_t futex_ht_hash(__native *key);
 static bool futex_ht_compare(__native *key, count_t keys, link_t *item);
 static void futex_ht_remove_callback(link_t *item);
@@ -101,7 +102,6 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
 {
 	futex_t *futex;
 	__address paddr;
-	link_t *item;
 	pte_t *t;
 	ipl_t ipl;
 	
@@ -122,40 +122,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
 	
 	interrupts_restore(ipl);	
 
-	/*
-	 * Find the respective futex structure
-	 * or allocate new one if it does not exist already.
-	 */
-	rwlock_read_lock(&futex_ht_lock);
-	item = hash_table_find(&futex_ht, &paddr);
-	if (item) {
-		futex = hash_table_get_instance(item, futex_t, ht_link);
-		rwlock_read_unlock(&futex_ht_lock);
-	} else {
-		/*
-		 * Upgrade to writer is not currently supported,
-		 * Therefore, it is necessary to release the read lock
-		 * and reacquire it as a writer.
-		 */
-		rwlock_read_unlock(&futex_ht_lock);
-
-		rwlock_write_lock(&futex_ht_lock);
-		/*
-		 * Detect possible race condition by searching
-		 * the hash table once again with write access.
-		 */
-		item = hash_table_find(&futex_ht, &paddr);
-		if (item) {
-			futex = hash_table_get_instance(item, futex_t, ht_link);
-			rwlock_write_unlock(&futex_ht_lock);
-		} else {
-			futex = (futex_t *) malloc(sizeof(futex_t), 0);
-			futex_initialize(futex);
-			futex->paddr = paddr;
-			hash_table_insert(&futex_ht, &paddr, &futex->ht_link);
-			rwlock_write_unlock(&futex_ht_lock);
-		}
-	}
+	futex = futex_find(paddr);
 	
 	return (__native) waitq_sleep_timeout(&futex->wq, usec, trydown);
 }
@@ -169,9 +136,8 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
  */
 __native sys_futex_wakeup(__address uaddr)
 {
-	futex_t *futex = NULL;
+	futex_t *futex;
 	__address paddr;
-	link_t *item;
 	pte_t *t;
 	ipl_t ipl;
 	
@@ -192,22 +158,62 @@ __native sys_futex_wakeup(__address uaddr)
 	
 	interrupts_restore(ipl);
 
+	futex = futex_find(paddr);
+		
+	waitq_wakeup(&futex->wq, WAKEUP_FIRST);
+	
+	return 0;
+}
+
+/** Find kernel address of the futex structure corresponding to paddr.
+ *
+ * If the structure does not exist alreay, a new one is created.
+ *
+ * @param paddr Physical address of the userspace futex counter.
+ *
+ * @return Address of the kernel futex structure.
+ */
+futex_t *futex_find(__address paddr)
+{
+	link_t *item;
+	futex_t *futex;
+	
 	/*
-	 * Find the respective futex structure.
+	 * Find the respective futex structure
+	 * or allocate new one if it does not exist already.
 	 */
 	rwlock_read_lock(&futex_ht_lock);
 	item = hash_table_find(&futex_ht, &paddr);
 	if (item) {
 		futex = hash_table_get_instance(item, futex_t, ht_link);
-	}
-	rwlock_read_unlock(&futex_ht_lock);
+		rwlock_read_unlock(&futex_ht_lock);
+	} else {
+		/*
+		 * Upgrade to writer is not currently supported,
+		 * Therefore, it is necessary to release the read lock
+		 * and reacquire it as a writer.
+		 */
+		rwlock_read_unlock(&futex_ht_lock);
 
-	if (!futex)
-		return (__native) ENOENT;	
-		
-	waitq_wakeup(&futex->wq, WAKEUP_FIRST);
+		rwlock_write_lock(&futex_ht_lock);
+		/*
+		 * Avoid possible race condition by searching
+		 * the hash table once again with write access.
+		 */
+		item = hash_table_find(&futex_ht, &paddr);
+		if (item) {
+			futex = hash_table_get_instance(item, futex_t, ht_link);
+			rwlock_write_unlock(&futex_ht_lock);
+		} else {
+			futex = (futex_t *) malloc(sizeof(futex_t), 0);
+			futex_initialize(futex);
+			futex->paddr = paddr;
+			hash_table_insert(&futex_ht, &paddr, &futex->ht_link);
+			rwlock_write_unlock(&futex_ht_lock);
+		}
+	}
 	
-	return 0;
+	return futex;
 }
 
 /** Compute hash index into futex hash table.
