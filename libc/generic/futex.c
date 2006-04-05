@@ -38,7 +38,7 @@
  * Because of non-atomic nature of operations performed sequentially on the futex
  * counter and the futex wait queue, there is a race condition:
  *
- * wq->missed_wakeups == 1 && futex->count = 1
+ * (wq->missed_wakeups == 1) && (futex->count = 1)
  *
  * Scenario 1 (wait queue timeout vs. futex_up()):
  * 1. assume wq->missed_wakeups == 0 && futex->count == -1
@@ -154,7 +154,7 @@ int futex_down_timeout(atomic_t *futex, uint32_t usec, int trydown)
  *
  * @param futex Futex.
  *
- * @return ENOENT if there is no such virtual address or futex. Otherwise zero.
+ * @return ENOENT if there is no such virtual address. Otherwise zero.
  */
 int futex_up(atomic_t *futex)
 {
