@@ -14,6 +14,7 @@
 #include <arch/mm/page.h>
 
 ENTRY(kernel_image_start)
+OUTPUT_FORMAT("elf32-powerpc")
 OUTPUT_ARCH("powerpc:common")
 
 SECTIONS {
