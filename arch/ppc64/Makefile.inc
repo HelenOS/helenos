@@ -39,6 +39,7 @@ TOOLCHAIN_DIR = /usr/local/ppc/bin
 #
 
 CFLAGS += -mcpu=powerpc64 -m64
+AFLAGS += -a64
 LFLAGS += -no-check-sections -N
 
 DEFS += -D__64_BITS__

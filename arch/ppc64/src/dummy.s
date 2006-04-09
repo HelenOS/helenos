@@ -28,12 +28,16 @@
 
 .text
 
+.global cpu_halt
 .global asm_delay_loop
 .global userspace
 .global sys_tls_set
 .global tlb_invalidate_all
 .global tlb_invalidate_asid
 .global tlb_invalidate_pages
+
+cpu_halt:
+	b cpu_halt
 
 tlb_invalidate_all:
 	b tlb_invalidate_all
