@@ -39,6 +39,8 @@
 #include <context.h>
 #include <adt/list.h>
 
+static void waitq_timeouted_sleep(void *data);
+
 /** Initialize wait queue
  *
  * Initialize wait queue.
@@ -64,7 +66,7 @@ void waitq_initialize(waitq_t *wq)
  *
  * @param data Pointer to the thread that called waitq_sleep_timeout().
  */
-void waitq_interrupted_sleep(void *data)
+void waitq_timeouted_sleep(void *data)
 {
 	thread_t *t = (thread_t *) data;
 	waitq_t *wq;
@@ -100,7 +102,51 @@ out:
 	spinlock_unlock(&threads_lock);
 }
 
-/** Sleep until either wakeup or timeout occurs
+/** Interrupt sleeping thread.
+ *
+ * This routine attempts to interrupt a thread from its sleep in a waitqueue.
+ * If the thread is not found sleeping, no action is taken.
+ *
+ * @param t Thread to be interrupted.
+ */
+void waitq_interrupt_sleep(thread_t *t)
+{
+	waitq_t *wq;
+	bool do_wakeup = false;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	if (!list_member(&t->threads_link, &threads_head))
+		goto out;
+
+grab_locks:
+	spinlock_lock(&t->lock);
+	if ((wq = t->sleep_queue)) {		/* assignment */
+		if (!spinlock_trylock(&wq->lock)) {
+			spinlock_unlock(&t->lock);
+			goto grab_locks;	/* avoid deadlock */
+		}
+
+		list_remove(&t->wq_link);
+		t->saved_context = t->sleep_interruption_context;
+		do_wakeup = true;
+		
+		spinlock_unlock(&wq->lock);
+		t->sleep_queue = NULL;
+	}
+	spinlock_unlock(&t->lock);
+
+	if (do_wakeup)
+		thread_ready(t);
+
+out:
+	spinlock_unlock(&threads_lock);
+	interrupts_restore(ipl);
+}
+
+
+/** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to be
  * interrupted from the sleep, restoring a failover context.
@@ -130,6 +176,8 @@ out:
  * of the call there was no pending wakeup.
  *
  * ESYNCH_TIMEOUT means that the sleep timed out.
+ *
+ * ESYNCH_INTERRUPTED means that somebody interrupted the sleeping thread.
  *
  * ESYNCH_OK_ATOMIC means that the sleep succeeded and that there was
  * a pending wakeup at the time of the call. The caller was not put
@@ -178,24 +226,33 @@ restart:
 			return ESYNCH_WOULD_BLOCK;
 		}
 	}
-
 	
 	/*
 	 * Now we are firmly decided to go to sleep.
 	 */
 	spinlock_lock(&THREAD->lock);
+
+	/*
+	 * Set context that will be restored if the sleep
+	 * of this thread is ever interrupted.
+	 */
+	if (!context_save(&THREAD->sleep_interruption_context)) {
+		/* Short emulation of scheduler() return code. */
+		spinlock_unlock(&THREAD->lock);
+		interrupts_restore(ipl);
+		return ESYNCH_INTERRUPTED;
+	}
+
 	if (usec) {
 		/* We use the timeout variant. */
 		if (!context_save(&THREAD->sleep_timeout_context)) {
-			/*
-			 * Short emulation of scheduler() return code.
-			 */
+			/* Short emulation of scheduler() return code. */
 			spinlock_unlock(&THREAD->lock);
 			interrupts_restore(ipl);
 			return ESYNCH_TIMEOUT;
 		}
 		THREAD->timeout_pending = true;
-		timeout_register(&THREAD->sleep_timeout, (__u64) usec, waitq_interrupted_sleep, THREAD);
+		timeout_register(&THREAD->sleep_timeout, (__u64) usec, waitq_timeouted_sleep, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->head);

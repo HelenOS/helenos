@@ -80,8 +80,12 @@ struct thread {
 	void (* thread_code)(void *);		/**< Function implementing the thread. */
 	void *thread_arg;			/**< Argument passed to thread_code() function. */
 
-	context_t saved_context;		/**< From here, the stored context is restored when the thread is scheduled. */
-	context_t sleep_timeout_context;	/**< From here, the stored failover context is restored when sleep times out. */
+	/** From here, the stored context is restored when the thread is scheduled. */
+	context_t saved_context;
+	/** From here, the stored timeout context is restored when sleep times out. */
+	context_t sleep_timeout_context;
+	/** From here, the stored interruption context is restored when sleep is interrupted. */
+	context_t sleep_interruption_context;
 
 	waitq_t *sleep_queue;			/**< Wait queue in which this thread sleeps. */
 	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
