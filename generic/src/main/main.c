@@ -57,6 +57,7 @@
 #include <typedefs.h>
 #include <ipc/ipc.h>
 #include <macros.h>
+#include <adt/btree.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -168,6 +169,7 @@ void main_bsp_separated_stack(void)
 	arch_pre_mm_init();
 	frame_init();		/* Initialize at least 1 memory segment big enough for slab to work */
 	slab_cache_init();
+	btree_init();
 	as_init();
 	page_init();
 	tlb_init();

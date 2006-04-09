@@ -76,6 +76,8 @@ struct btree {
 	link_t leaf_head;	/**< Leaf-level list head. */
 };
 
+extern void btree_init(void);
+
 extern void btree_create(btree_t *t);
 extern void btree_destroy(btree_t *t);
 

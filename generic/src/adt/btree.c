@@ -28,7 +28,7 @@
 
 /*
  * This B-tree has the following properties:
- * - it is a ballanced 2-3-4-5 tree (i.e. BTREE_M = 5)
+ * - it is a ballanced 3-4-5 tree (i.e. BTREE_M = 5)
  * - values (i.e. pointers to values) are stored only in leaves
  * - leaves are linked in a list
  * - technically, it is a B+tree (because of the previous properties)
@@ -74,6 +74,14 @@ static bool try_rotation_from_right(btree_node_t *lnode);
 #define MEDIAN_LOW(n)		((n)->key[MEDIAN_LOW_INDEX((n))]);
 #define MEDIAN_HIGH(n)		((n)->key[MEDIAN_HIGH_INDEX((n))]);
 
+static slab_cache_t *btree_node_slab;
+
+/** Initialize B-trees. */
+void btree_init(void)
+{
+	btree_node_slab = slab_cache_create("btree_node_slab", sizeof(btree_node_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+}
+
 /** Create empty B-tree.
  *
  * @param t B-tree.
@@ -81,7 +89,7 @@ static bool try_rotation_from_right(btree_node_t *lnode);
 void btree_create(btree_t *t)
 {
 	list_initialize(&t->leaf_head);
-	t->root = (btree_node_t *) malloc(sizeof(btree_node_t), 0);
+	t->root = (btree_node_t *) slab_alloc(btree_node_slab, 0);
 	node_initialize(t->root);
 	list_append(&t->root->leaf_link, &t->leaf_head);
 }
@@ -90,7 +98,7 @@ void btree_create(btree_t *t)
 void btree_destroy(btree_t *t)
 {
 	ASSERT(!t->root->keys);
-	free(t->root);
+	slab_free(btree_node_slab, t->root);
 }
 
 /** Insert key-value pair into B-tree.
@@ -161,7 +169,7 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 			/*
 			 * We split the root node. Create new root.
 			 */
-			t->root = (btree_node_t *) malloc(sizeof(btree_node_t), 0);
+			t->root = (btree_node_t *) slab_alloc(btree_node_slab, 0);
 			node->parent = t->root;
 			rnode->parent = t->root;
 			node_initialize(t->root);
@@ -214,7 +222,7 @@ void _btree_remove(btree_t *t, __native key, btree_node_t *node)
 			 */
 			t->root = node->subtree[0];
 			t->root->parent = NULL;
-			free(node);
+			slab_free(btree_node_slab, node);
 		} else {
 			/*
 			 * Remove the key from the root node.
@@ -269,7 +277,7 @@ void _btree_remove(btree_t *t, __native key, btree_node_t *node)
 			list_remove(&rnode->leaf_link);
 		idx = find_key_by_subtree(parent, rnode, true);
 		ASSERT((int) idx != -1);
-		free(rnode);
+		slab_free(btree_node_slab, rnode);
 		_btree_remove(t, parent->key[idx], parent);
 	}
 }
@@ -562,7 +570,7 @@ btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_no
 	/*
 	 * Allocate and initialize new right sibling.
 	 */
-	rnode = (btree_node_t *) malloc(sizeof(btree_node_t), 0);
+	rnode = (btree_node_t *) slab_alloc(btree_node_slab, 0);
 	node_initialize(rnode);
 	rnode->parent = node->parent;
 	rnode->depth = node->depth;
