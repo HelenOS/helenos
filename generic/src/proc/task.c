@@ -42,6 +42,9 @@
 #include <print.h>
 #include <elf.h>
 
+
+#define LOADED_PROG_STACK_PAGES_NO 2
+
 SPINLOCK_INITIALIZE(tasks_lock);
 btree_t tasks_btree;
 static task_id_t task_counter = 0;
@@ -139,7 +142,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create the data as_area.
 	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, PAGE_SIZE, USTACK_ADDRESS);
+	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, LOADED_PROG_STACK_PAGES_NO*PAGE_SIZE, USTACK_ADDRESS);
 
 	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
 	ASSERT(t);

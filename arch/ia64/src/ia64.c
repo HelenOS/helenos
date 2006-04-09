@@ -94,7 +94,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 
 	switch_to_userspace((__address) kernel_uarg->uspace_entry,
 			    ((__address) kernel_uarg->uspace_stack)+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-			    (__address) kernel_uarg->uspace_stack,
+			    ((__address) kernel_uarg->uspace_stack)+PAGE_SIZE,
 			    (__address) kernel_uarg->uspace_uarg,
 			    psr.value, rsc.value);
 
