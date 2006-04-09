@@ -42,30 +42,30 @@ typedef __builtin_va_list va_list;
 
 typedef struct {
 	void *start;
-	unsigned int size;
+	unsigned long size;
 } memzone_t;
 
 typedef struct {
-	unsigned int total;
-	unsigned int count;
+	unsigned long total;
+	unsigned long count;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
 typedef struct {
 	void *addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
+	unsigned long width;
+	unsigned long height;
+	unsigned long bpp;
+	unsigned long scanline;
 } screen_t;
 
 
 extern void init(void);
-extern void ofw_write(const char *str, const int len);
+extern void ofw_write(const char *str, const long len);
 
 extern void *ofw_translate(const void *virt);
-extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
-extern int ofw_memmap(memmap_t *map);
-extern int ofw_screen(screen_t *screen);
+extern long ofw_map(const void *phys, const void *virt, const long size, const long mode);
+extern long ofw_memmap(memmap_t *map);
+extern long ofw_screen(screen_t *screen);
 
 #endif

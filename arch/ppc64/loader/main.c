@@ -32,7 +32,7 @@
 
 #define KERNEL_START ((void *) &_binary_____________kernel_kernel_bin_start)
 #define KERNEL_END ((void *) &_binary_____________kernel_kernel_bin_end)
-#define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
+#define KERNEL_SIZE ((unsigned long) KERNEL_END - (unsigned long) KERNEL_START)
 
 #define HEAP_GAP 1024000
 
@@ -41,19 +41,19 @@ bootinfo_t bootinfo;
 
 static void check_align(const void *addr, const char *desc)
 {
-	if ((unsigned int) addr % PAGE_SIZE != 0) {
+	if ((unsigned long) addr % PAGE_SIZE != 0) {
 		printf("Error: %s not on page boundary, halting.\n", desc);
 		halt();
 	}
 }
 
 
-static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top)
+static void fix_overlap(void *va, void **pa, const char *desc, unsigned long *top)
 {
-	if ((unsigned int) *pa + PAGE_SIZE < *top) {
+	if ((unsigned long) *pa + PAGE_SIZE < *top) {
 		printf("Warning: %s overlaps kernel physical area\n", desc);
 		
-		void *new_va = (void *) (ALIGN_UP((unsigned int) KERNEL_END + HEAP_GAP, PAGE_SIZE) + *top);
+		void *new_va = (void *) (ALIGN_UP((unsigned long) KERNEL_END + HEAP_GAP, PAGE_SIZE) + *top);
 		void *new_pa = (void *) (HEAP_GAP + *top);
 		*top += PAGE_SIZE;
 		
@@ -62,7 +62,7 @@ static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top
 			halt();
 		}
 		
-		if ((unsigned int) new_pa + PAGE_SIZE < KERNEL_SIZE) {
+		if ((unsigned long) new_pa + PAGE_SIZE < KERNEL_SIZE) {
 			printf("Error: %s cannot be relocated, halting.\n", desc);
 			halt();	
 		}
@@ -103,7 +103,7 @@ void bootstrap(void)
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
 	void *bootinfo_pa = ofw_translate(&bootinfo);
-	void *fb = (void *) (((unsigned int) bootinfo.screen.addr) & ((unsigned int) ~0 << 17));
+	void *fb = (void *) (((unsigned long) bootinfo.screen.addr) & ((unsigned long) ~0 << 17));
 	
 	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
@@ -111,8 +111,8 @@ void bootstrap(void)
 	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
 	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
 	
-	unsigned int top = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE);
-	unsigned int addr;
+	unsigned long top = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE);
+	unsigned long addr;
 	for (addr = 0; addr < KERNEL_SIZE; addr += PAGE_SIZE) {
 		void *pa = ofw_translate(KERNEL_START + addr);
 		fix_overlap(KERNEL_START + addr, &pa, "Kernel image", &top);

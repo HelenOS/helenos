@@ -44,7 +44,7 @@
 extern void *trans[TRANS_SIZE];
 
 extern void halt();
-extern void jump_to_kernel(void *bootinfo, unsigned int bootinfo_size, void *trans, unsigned int kernel_size, void *framebuffer, void *real_mode) __attribute__((noreturn));
+extern void jump_to_kernel(void *bootinfo, unsigned long bootinfo_size, void *trans, unsigned long kernel_size, void *framebuffer, void *real_mode) __attribute__((noreturn));
 extern void real_mode();
 
 #endif

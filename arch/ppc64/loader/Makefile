@@ -46,7 +46,7 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc64
+CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc64 -m64
 DEFS = 
 
 SOURCES = \

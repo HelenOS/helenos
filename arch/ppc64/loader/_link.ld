@@ -3,7 +3,8 @@
  *
  */
 
-OUTPUT_FORMAT(elf64-powerpc)
+OUTPUT_FORMAT("elf64-powerpc")
+OUTPUT_ARCH("powerpc:common64")
 ENTRY(start)
 
 SECTIONS {

@@ -34,7 +34,7 @@ static char digits[] = "0123456789abcdef";  /**< Hexadecimal characters */
 
 void puts(const char *str)
 {
-	int len = 0;
+	long len = 0;
 	
 	while (str[len] != 0)
 		len++;
@@ -145,7 +145,7 @@ static void print_number(const __native num, const unsigned int base)
  */
 void printf(const char *fmt, ...)
 {
-	int i = 0;
+	long i = 0;
 	va_list ap;
 	char c;	
 	

@@ -43,8 +43,8 @@ typedef struct {
 	screen_t screen;
 } bootinfo_t;
 
-extern int _binary_____________kernel_kernel_bin_start;
-extern int _binary_____________kernel_kernel_bin_end;
+extern long _binary_____________kernel_kernel_bin_start;
+extern long _binary_____________kernel_kernel_bin_end;
 extern void start(void);
 extern void bootstrap(void);
 
