@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc
-BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+.global asm_delay_loop
+.global userspace
+.global sys_tls_set
+.global tlb_invalidate_all
+.global tlb_invalidate_asid
+.global tlb_invalidate_pages
 
-## Make some default assumptions
-#
+tlb_invalidate_all:
+	b tlb_invalidate_all
 
-CFLAGS += -mcpu=powerpc -m32
-LFLAGS += -no-check-sections -N
+tlb_invalidate_asid:
+	b tlb_invalidate_asid
 
-DEFS += -D__32_BITS__
+tlb_invalidate_pages:
+	b tlb_invalidate_pages
 
-## Own configuration directives
-#
+userspace:
+	b userspace
 
-CONFIG_FB = y
+sys_tls_set:
+	b sys_tls_set
 
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-ARCH_SOURCES = \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/debug/panic.s \
-	arch/$(ARCH)/src/fpu_context.S \
-	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/ppc32.c \
-	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/exception.S \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/drivers/cuda.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/memory_init.c \
-	arch/$(ARCH)/src/mm/page.c 
+asm_delay_loop:
+	blr

@@ -26,49 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+#include <arch/asm/macro.h>
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc
-BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+.text
+.global panic_printf
 
-## Make some default assumptions
-#
-
-CFLAGS += -mcpu=powerpc -m32
-LFLAGS += -no-check-sections -N
-
-DEFS += -D__32_BITS__
-
-## Own configuration directives
-#
-
-CONFIG_FB = y
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-ARCH_SOURCES = \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/debug/panic.s \
-	arch/$(ARCH)/src/fpu_context.S \
-	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/ppc32.c \
-	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/exception.S \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/drivers/cuda.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/memory_init.c \
-	arch/$(ARCH)/src/mm/page.c 
+panic_printf:
+	lis %r14, halt@ha
+	addi %r14, %r14, halt@l
+	mtlr %r14	# fake stack to make printf return to halt
+	b printf

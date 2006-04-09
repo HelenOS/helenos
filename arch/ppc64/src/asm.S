@@ -1,0 +1,195 @@
+#
+# Copyright (C) 2006 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+#include <arch/asm/regname.h>
+
+.text
+
+.global iret
+.global memsetb
+.global memcpy
+
+iret:
+	lwz r3, 144(sp)
+	mtxer r3
+	
+	lwz r3, 140(sp)
+	mtctr r3
+	
+	lwz r3, 136(sp)
+	mtcr r3
+	
+	lwz r3, 132(sp)
+	mtlr r3
+	
+	lwz r3, 128(sp)
+	mtspr srr1, r3
+	
+	lwz r3, 124(sp)
+	mtspr srr0, r3
+	
+	lwz r0, 0(sp)
+	lwz r2, 4(sp)
+	lwz r3, 8(sp)
+	lwz r4, 12(sp)
+	lwz r5, 16(sp)
+	lwz r6, 20(sp)
+	lwz r7, 24(sp)
+	lwz r8, 28(sp)
+	lwz r9, 32(sp)
+	lwz r10, 36(sp)
+	lwz r11, 40(sp)
+	lwz r12, 44(sp)
+	lwz r13, 48(sp)
+	lwz r14, 52(sp)
+	lwz r15, 56(sp)
+	lwz r16, 60(sp)
+	lwz r17, 64(sp)
+	lwz r18, 68(sp)
+	lwz r19, 72(sp)
+	lwz r20, 76(sp)
+	lwz r21, 80(sp)
+	lwz r22, 84(sp)
+	lwz r23, 88(sp)
+	lwz r24, 92(sp)
+	lwz r25, 96(sp)
+	lwz r26, 100(sp)
+	lwz r27, 104(sp)
+	lwz r28, 108(sp)
+	lwz r29, 112(sp)
+	lwz r30, 116(sp)
+	lwz r31, 120(sp)
+	
+	mfspr sp, sprg1
+	
+	rfi
+	
+memsetb:
+	rlwimi r5, r5, 8, 16, 23
+	rlwimi r5, r5, 16, 0, 15
+	
+	addi r14, r3, -4
+	
+	cmplwi 0, r4, 4
+	blt 7f
+	
+	stwu r5, 4(r14)
+	beqlr
+	
+	andi. r15, r14, 3
+	add r4, r15, r4
+	subf r14, r15, r14
+	srwi r15, r4, 2
+	mtctr r15
+	
+	bdz 6f
+	
+	1:
+		stwu r5, 4(r14)
+		bdnz 1b
+	
+	6:
+	
+	andi. r4, r4, 3
+	
+	7:
+	
+	cmpwi 0, r4, 0
+	beqlr
+	
+	mtctr r4
+	addi r6, r6, 3
+	
+	8:
+	
+	stbu r5, 1(r14)
+	bdnz 8b
+	
+	blr
+
+memcpy:
+	srwi. r7, r5, 3
+	addi r6, r3, -4
+	addi r4, r4, -4
+	beq	2f
+	
+	andi. r0, r6, 3
+	mtctr r7
+	bne 5f
+	
+	1:
+	
+	lwz r7, 4(r4)
+	lwzu r8, 8(r4)
+	stw r7, 4(r6)
+	stwu r8, 8(r6)
+	bdnz 1b
+	
+	andi. r5, r5, 7
+	
+	2:
+	
+	cmplwi 0, r5, 4
+	blt 3f
+	
+	lwzu r0, 4(r4)
+	addi r5, r5, -4
+	stwu r0, 4(r6)
+	
+	3:
+	
+	cmpwi 0, r5, 0
+	beqlr
+	mtctr r5
+	addi r4, r4, 3
+	addi r6, r6, 3
+	
+	4:
+	
+	lbzu r0, 1(r4)
+	stbu r0, 1(r6)
+	bdnz 4b
+	blr
+	
+	5:
+	
+	subfic r0, r0, 4
+	mtctr r0
+	
+	6:
+	
+	lbz r7, 4(r4)
+	addi r4, r4, 1
+	stb r7, 4(r6)
+	addi r6, r6, 1
+	bdnz 6b
+	subf r5, r0, r5
+	rlwinm. r7, r5, 32-3, 3, 31
+	beq 2b
+	mtctr r7
+	b 1b

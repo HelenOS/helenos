@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,50 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+#include <arch/asm/regname.h>
+#include <arch/boot/boot.h>
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc
-BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+.section K_TEXT_START, "ax"
 
-## Make some default assumptions
-#
+.global kernel_image_start
+kernel_image_start:
 
-CFLAGS += -mcpu=powerpc -m32
-LFLAGS += -no-check-sections -N
+	# load temporary stack
+	
+	lis sp, end_stack@ha
+	addi sp, sp, end_stack@l
+	
+	# r3 contains physical address of bootinfo_t
+	# r4 contains size of bootinfo_t
+	
+	lis r31, 0x80000000@ha
+	addi r31, r31, 0x80000000@l
+	
+	add r3, r3, r31
 
-DEFS += -D__32_BITS__
+	lis r31, bootinfo@ha
+	addi r31, r31, bootinfo@l  # r31 = bootinfo
+	
+	cmpwi r4, 0
+	beq bootinfo_end
+	
+	bootinfo_loop:
+		
+		lwz r30, 0(r3)
+		stw r30, 0(r31)
+		
+		addi r3, r3, 4
+		addi r31, r31, 4
+		subi r4, r4, 4
+		
+		cmpwi r4, 0
+		bgt bootinfo_loop
+		
+	bootinfo_end:
+	
+	b main_bsp
 
-## Own configuration directives
-#
+.section K_DATA_START, "aw", @progbits
 
-CONFIG_FB = y
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-ARCH_SOURCES = \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/debug/panic.s \
-	arch/$(ARCH)/src/fpu_context.S \
-	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/ppc32.c \
-	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/exception.S \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/drivers/cuda.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/memory_init.c \
-	arch/$(ARCH)/src/mm/page.c 
+	.space TEMP_STACK_SIZE
+end_stack:

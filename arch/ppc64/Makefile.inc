@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2005 Martin Decky
+# Copyright (C) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 ## Toolchain configuration
 #
 
-BFD_NAME = elf32-powerpc
+BFD_NAME = elf64-powerpc
 BFD_ARCH = powerpc
 BFD = binary
 TARGET = ppc-linux-gnu
@@ -38,10 +38,10 @@ TOOLCHAIN_DIR = /usr/local/ppc/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -mcpu=powerpc -m32
+CFLAGS += -mcpu=powerpc64 -m64
 LFLAGS += -no-check-sections -N
 
-DEFS += -D__32_BITS__
+DEFS += -D__64_BITS__
 
 ## Own configuration directives
 #
@@ -60,14 +60,13 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/debug/panic.s \
 	arch/$(ARCH)/src/fpu_context.S \
 	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/ppc32.c \
+	arch/$(ARCH)/src/ppc64.c \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/exception.S \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/drivers/cuda.c \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
