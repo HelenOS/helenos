@@ -46,7 +46,7 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc
+CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc64
 DEFS = 
 
 SOURCES = \
@@ -74,7 +74,7 @@ clean:
 	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
 
 kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
+	$(OBJCOPY) -I binary -O elf64-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

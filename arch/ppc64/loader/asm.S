@@ -114,7 +114,7 @@ jump_to_kernel:
 	
 	# jumps to real_mode
 	
-	mfmsr r31
+	mfmsrd r31
 	lis r30, ~0@h
 	ori r30, r30, ~(msr_ir | msr_dr)@l
 	and r31, r31, r30
@@ -122,7 +122,7 @@ jump_to_kernel:
 	
 	sync
 	isync
-	rfi
+	rfid
 
 .section REALMODE
 .align PAGE_WIDTH
@@ -246,13 +246,13 @@ real_mode:
 	
 	mtspr srr0, r31
 	
-	mfmsr r31
+	mfmsrd r31
 	ori r31, r31, (msr_ir | msr_dr)@l
 	mtspr srr1, r31
 	
 	sync
 	isync
-	rfi
+	rfid
 
 .align PAGE_WIDTH
 .global trans

@@ -26,58 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+build: image.boot
 
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+image.boot: kernel
+	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNEL=../../../$(KERNELDIR)/kernel.bin
+	cp arch/$(ARCH)/loader/image.boot image.boot
 
-ifeq ($(COMPILER),native)
-	CC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-else
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
-endif
+clean: clean_kernel
+	make -C arch/$(ARCH)/loader clean
+	-rm -f image.boot
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc
-DEFS = 
-
-SOURCES = \
-	main.c \
-	ofw.c \
-	printf.c \
-	asm.S \
-	boot.S
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend
-
-all: image.boot
-
--include Makefile.depend
-
-image.boot: depend $(OBJECTS) kernel.o
-	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
-
-depend:
-	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
-
-clean:
-	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
-
-kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+arch_distclean: distclean_kernel
