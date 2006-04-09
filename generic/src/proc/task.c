@@ -35,6 +35,7 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <panic.h>
+#include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <memstr.h>
@@ -42,7 +43,7 @@
 #include <elf.h>
 
 SPINLOCK_INITIALIZE(tasks_lock);
-LIST_INITIALIZE(tasks_head);
+btree_t tasks_btree;
 static task_id_t task_counter = 0;
 
 /** Initialize tasks
@@ -53,6 +54,7 @@ static task_id_t task_counter = 0;
 void task_init(void)
 {
 	TASK = NULL;
+	btree_create(&tasks_btree);
 }
 
 
@@ -76,7 +78,6 @@ task_t *task_create(as_t *as, char *name)
 
 	spinlock_initialize(&ta->lock, "task_ta_lock");
 	list_initialize(&ta->th_head);
-	list_initialize(&ta->tasks_link);
 	ta->as = as;
 	ta->name = name;
 
@@ -92,7 +93,7 @@ task_t *task_create(as_t *as, char *name)
 	spinlock_lock(&tasks_lock);
 
 	ta->taskid = ++task_counter;
-	list_append(&ta->tasks_link, &tasks_head);
+	btree_insert(&tasks_btree, (__native) ta, (void *) ta, NULL);
 
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
@@ -151,25 +152,33 @@ task_t * task_run_program(void *program_addr, char *name)
 void task_print_list(void)
 {
 	link_t *cur;
-	task_t *t;
 	ipl_t ipl;
-	int i;
 	
 	/* Messing with thread structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 
-	for (cur=tasks_head.next; cur!=&tasks_head; cur=cur->next) {
-		t = list_get_instance(cur, task_t, tasks_link);
-		spinlock_lock(&t->lock);
-		printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
-			t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
-		for (i=0; i < IPC_MAX_PHONES; i++) {
-			if (t->phones[i].callee)
-				printf(" Ph(%d): %P ", i,t->phones[i].callee);
+	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			task_t *t;
+			int j;
+
+			t = (task_t *) node->value[i];
+		
+			spinlock_lock(&t->lock);
+			printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
+				t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
+			for (j=0; j < IPC_MAX_PHONES; j++) {
+				if (t->phones[j].callee)
+					printf(" Ph(%d): %P ", j, t->phones[j].callee);
+			}
+			printf("\n");
+			spinlock_unlock(&t->lock);
 		}
-		printf("\n");
-		spinlock_unlock(&t->lock);
 	}
 
 	spinlock_unlock(&tasks_lock);

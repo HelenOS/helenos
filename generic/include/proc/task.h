@@ -31,6 +31,7 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
+#include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
 
@@ -39,9 +40,8 @@ struct task {
 	SPINLOCK_DECLARE(lock);
 	char *name;
 	link_t th_head;		/**< List of threads contained in this task. */
-	link_t tasks_link;	/**< Link to other tasks within the system. */
 	as_t *as;		/**< Address space. */
-	task_id_t taskid;           /**< Unique identity of task */
+	task_id_t taskid;	/**< Unique identity of task */
 
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
@@ -50,7 +50,7 @@ struct task {
 };
 
 extern spinlock_t tasks_lock;
-extern link_t tasks_head;
+extern btree_t tasks_btree;
 
 extern void task_init(void);
 extern task_t *task_create(as_t *as, char *name);
