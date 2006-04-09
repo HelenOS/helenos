@@ -41,6 +41,10 @@
 
 #define PFM_MASK        (~0x3fffffffff)
 
+#define PSTHREAD_INITIAL_STACK_PAGES_NO 2
+#define PSTHREAD_INITIAL_STACK_DIVISION 2  /*Stack is divided into two equal parts (for clasic stack and register stack)*/
+
+
 #ifdef context_set
 #undef context_set
 #endif
@@ -48,9 +52,9 @@
 #define context_set(c, _pc, stack, size, tls) 								\
 	do {												\
 		(c)->pc = (uint64_t) _pc;								\
-		(c)->bsp = (uint64_t) stack;								\
+		(c)->bsp = ((uint64_t) stack) + size / PSTHREAD_INITIAL_STACK_DIVISION;								\
 		(c)->ar_pfs &= PFM_MASK; 								\
-		(c)->sp = ((uint64_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
+		(c)->sp = ((uint64_t) stack) + ALIGN_UP((size / PSTHREAD_INITIAL_STACK_DIVISION), STACK_ALIGNMENT) - SP_DELTA;		\
 		(c)->tp = (uint64_t) tls;								\
 	} while (0);
 	

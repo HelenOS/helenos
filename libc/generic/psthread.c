@@ -34,6 +34,11 @@
 #include <stdio.h>
 #include <kernel/arch/faddr.h>
 
+
+#ifndef PSTHREAD_INITIAL_STACK_PAGES_NO
+#define PSTHREAD_INITIAL_STACK_PAGES_NO 1
+#endif
+
 static LIST_INITIALIZE(ready_list);
 
 static void psthread_exit(void) __attribute__ ((noinline));
@@ -165,7 +170,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 		__free_tls(tcb);
 		return 0;
 	}
-	pt->stack = (char *) malloc(getpagesize());
+	pt->stack = (char *) malloc(PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize());
 
 	if (!pt->stack) {
 		__free_tls(tcb);
@@ -179,7 +184,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt->waiter = NULL;
 
 	context_save(&pt->ctx);
-	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, getpagesize(),
+	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(),
 		    tcb);
 
 	list_append(&pt->link, &ready_list);
