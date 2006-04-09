@@ -41,6 +41,7 @@
 #include <cpu.h>
 #include <func.h>
 #include <context.h>
+#include <adt/btree.h>
 #include <adt/list.h>
 #include <typedefs.h>
 #include <time/clock.h>
@@ -58,8 +59,9 @@
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
-SPINLOCK_INITIALIZE(threads_lock);	/**< Lock protecting threads_head list. For locking rules, see declaration thereof. */
-LIST_INITIALIZE(threads_head);		/**< List of all threads. */
+/** Lock protecting threads_head list. For locking rules, see declaration thereof. */
+SPINLOCK_INITIALIZE(threads_lock);
+btree_t threads_btree;			/**< B+tree of all threads. */
 
 SPINLOCK_INITIALIZE(tidlock);
 __u32 last_tid = 0;
@@ -68,7 +70,6 @@ static slab_cache_t *thread_slab;
 #ifdef ARCH_HAS_FPU
 slab_cache_t *fpu_context_slab;
 #endif
-
 
 /** Thread wrapper
  *
@@ -104,7 +105,6 @@ static int thr_constructor(void *obj, int kmflags)
 	link_initialize(&t->rq_link);
 	link_initialize(&t->wq_link);
 	link_initialize(&t->th_link);
-	link_initialize(&t->threads_link);
 	
 #ifdef ARCH_HAS_FPU
 #  ifdef CONFIG_FPU_LAZY
@@ -160,8 +160,9 @@ void thread_init(void)
 					     FPU_CONTEXT_ALIGN,
 					     NULL, NULL, 0);
 #endif
-}
 
+	btree_create(&threads_btree);
+}
 
 /** Make thread ready
  *
@@ -208,7 +209,6 @@ void thread_ready(thread_t *t)
 	interrupts_restore(ipl);
 }
 
-
 /** Destroy thread memory structure
  *
  * Detach thread from all queues, cpus etc. and destroy it.
@@ -236,12 +236,11 @@ void thread_destroy(thread_t *t)
 	spinlock_unlock(&t->lock);
 	
 	spinlock_lock(&threads_lock);
-	list_remove(&t->threads_link);
+	btree_remove(&threads_btree, (__native) t, NULL);
 	spinlock_unlock(&threads_lock);
 	
 	slab_free(thread_slab, t);
 }
-
 
 /** Create new thread
  *
@@ -311,7 +310,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
-	list_append(&t->threads_link, &threads_head);
+	btree_insert(&threads_btree, (__native) t, (void *) t, NULL);
 	spinlock_unlock(&threads_lock);
 	
 	/*
@@ -325,7 +324,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 	return t;
 }
-
 
 /** Make thread exiting
  *
@@ -363,7 +361,6 @@ void thread_sleep(__u32 sec)
 	thread_usleep(sec*1000000);
 }
 
-
 /** Thread usleep
  *
  * Suspend execution of the current thread.
@@ -379,7 +376,6 @@ void thread_usleep(__u32 usec)
 
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_NON_BLOCKING);
 }
-
 
 /** Register thread out-of-context invocation
  *
@@ -406,26 +402,49 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 void thread_print_list(void)
 {
 	link_t *cur;
-	thread_t *t;
 	ipl_t ipl;
 	
 	/* Messing with thread structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 
-	for (cur=threads_head.next; cur!=&threads_head; cur=cur->next) {
-		t = list_get_instance(cur, thread_t, threads_link);
-		printf("%s: address=%P, tid=%d, state=%s, task=%P, code=%P, stack=%P, cpu=",
-			t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
-		if (t->cpu)
-			printf("cpu%d ", t->cpu->id);
-		else
-			printf("none");
-		printf("\n");
+	for (cur = threads_btree.leaf_head.next; cur != &threads_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		int i;
+
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			thread_t *t;
+		
+			t = (thread_t *) node->value[i];
+			printf("%s: address=%P, tid=%d, state=%s, task=%P, code=%P, stack=%P, cpu=",
+				t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
+			if (t->cpu)
+				printf("cpu%d ", t->cpu->id);
+			else
+				printf("none");
+			printf("\n");
+		}
 	}
 
 	spinlock_unlock(&threads_lock);
 	interrupts_restore(ipl);
+}
+
+/** Check whether thread exists.
+ *
+ * Note that threads_lock must be already held and
+ * interrupts must be already disabled.
+ *
+ * @param t Pointer to thread.
+ *
+ * @return True if thread t is known to the system, false otherwise.
+ */
+bool thread_exists(thread_t *t)
+{
+	btree_node_t *leaf;
+	
+	return btree_search(&threads_btree, (__native) t, &leaf) != NULL;
 }
 
 /** Process syscall to create new thread.

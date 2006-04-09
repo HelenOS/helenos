@@ -73,7 +73,7 @@ void waitq_timeouted_sleep(void *data)
 	bool do_wakeup = false;
 
 	spinlock_lock(&threads_lock);
-	if (!list_member(&t->threads_link, &threads_head))
+	if (!thread_exists(t))
 		goto out;
 
 grab_locks:
@@ -117,7 +117,7 @@ void waitq_interrupt_sleep(thread_t *t)
 
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
-	if (!list_member(&t->threads_link, &threads_head))
+	if (!thread_exists(t))
 		goto out;
 
 grab_locks:

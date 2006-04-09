@@ -38,6 +38,7 @@
 #include <time/timeout.h>
 #include <synch/rwlock.h>
 #include <config.h>
+#include <adt/btree.h>
 #include <adt/list.h>
 #include <mm/slab.h>
 #include <proc/uarg.h>
@@ -65,7 +66,6 @@ struct thread {
 	link_t rq_link;				/**< Run queue link. */
 	link_t wq_link;				/**< Wait queue link. */
 	link_t th_link;				/**< Links to threads within containing task. */
-	link_t threads_link;			/**< Link to the list of all threads. */
 	
 	/** Lock protecting thread structure.
 	 *
@@ -130,7 +130,7 @@ struct thread {
  */
 extern spinlock_t threads_lock;
 
-extern link_t threads_head;			/**< List of all threads in the system. */
+extern btree_t threads_btree;			/**< B+tree containing all threads. */
 
 extern void thread_init(void);
 extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name);
@@ -143,6 +143,7 @@ extern void thread_usleep(__u32 usec);
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *t);
+extern bool thread_exists(thread_t *t);
 
 /* Fpu context slab cache */
 extern slab_cache_t *fpu_context_slab;
