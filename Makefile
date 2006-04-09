@@ -222,7 +222,7 @@ disasm: kernel.raw
 	$(OBJDUMP) -d kernel.raw > kernel.disasm
 
 %.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
