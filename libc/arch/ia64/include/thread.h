@@ -29,6 +29,8 @@
 #ifndef __LIBC__ia64THREAD_H__
 #define __LIBC__ia64THREAD_H__
 
+#define THREAD_INITIAL_STACK_PAGES_NO 2
+
 /* This structure must be exactly 16 bytes long */
 typedef struct {
 	void *dtv; /* unused in static linking*/

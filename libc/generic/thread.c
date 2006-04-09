@@ -36,6 +36,12 @@
 
 #include <stdio.h>
 
+
+#ifndef THREAD_INITIAL_STACK_PAGES_NO
+#define THREAD_INITIAL_STACK_PAGES_NO 1
+#endif
+
+
 extern char _tdata_start;
 extern char _tdata_end;
 extern char _tbss_start;
@@ -109,7 +115,7 @@ int thread_create(void (* function)(void *), void *arg, char *name)
 	char *stack;
 	uspace_arg_t *uarg;
 
-	stack = (char *) malloc(getpagesize());
+	stack = (char *) malloc(getpagesize()*THREAD_INITIAL_STACK_PAGES_NO);
 	if (!stack)
 		return -1;
 		
