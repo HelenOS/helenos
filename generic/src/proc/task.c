@@ -43,7 +43,9 @@
 #include <elf.h>
 
 
-#define LOADED_PROG_STACK_PAGES_NO 2
+#ifndef LOADED_PROG_STACK_PAGES_NO
+#define LOADED_PROG_STACK_PAGES_NO 1
+#endif
 
 SPINLOCK_INITIALIZE(tasks_lock);
 btree_t tasks_btree;

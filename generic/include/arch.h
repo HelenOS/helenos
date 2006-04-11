@@ -30,6 +30,7 @@
 #define __ARCH_H__
 
 #include <arch/types.h>
+#include <arch/arch.h>
 #include <typedefs.h>
 
 #include <cpu.h>

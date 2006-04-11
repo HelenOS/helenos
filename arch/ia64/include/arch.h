@@ -29,4 +29,6 @@
 #ifndef __ia64_ARCH_H__
 #define __ia64_ARCH_H__
 
+#define LOADED_PROG_STACK_PAGES_NO 2
+
 #endif
