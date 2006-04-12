@@ -82,6 +82,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_futex_wakeup,
 	sys_mmap,
 	sys_mremap,
+	sys_get_task_id,
 	sys_ipc_call_sync_fast,
 	sys_ipc_call_sync,
 	sys_ipc_call_async_fast,

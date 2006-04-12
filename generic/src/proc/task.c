@@ -155,6 +155,23 @@ task_t * task_run_program(void *program_addr, char *name)
 	return task;
 }
 
+/** Syscall for reading task ID from userspace.
+ *
+ * @param uaddr Userspace address of 8-byte buffer where to store current task ID.
+ *
+ * @return Always returns 0.
+ */
+__native sys_get_task_id(task_id_t *uspace_task_id)
+{
+	/*
+	 * No need to acquire lock on TASK because taskid
+	 * remains constant for the lifespan of the task.
+	 */
+	copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
+
+	return 0;
+}
+
 /** Print task list */
 void task_print_list(void)
 {
