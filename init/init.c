@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <ns.h>
 #include <thread.h>
+#include <task.h>
 #include <psthread.h>
 #include <futex.h>
 
@@ -288,6 +289,8 @@ int main(int argc, char *argv[])
 //	test_hangup();
 //	test_slam();
 	
+	printf("Userspace task, taskid=%llX\n", get_task_id());
+
 	futex_initialize(&ftx, 1);
 	if (futex_down(&ftx) < 0)
 		printf("Futex failed.\n");

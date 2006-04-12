@@ -42,8 +42,8 @@
 #define PFM_MASK        (~0x3fffffffff)
 
 #define PSTHREAD_INITIAL_STACK_PAGES_NO 2
-#define PSTHREAD_INITIAL_STACK_DIVISION 2  /*Stack is divided into two equal parts (for clasic stack and register stack)*/
-
+/* Stack is divided into two equal parts (for memory stack and register stack). */
+#define PSTHREAD_INITIAL_STACK_DIVISION 2  
 
 #ifdef context_set
 #undef context_set

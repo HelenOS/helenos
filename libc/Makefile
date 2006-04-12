@@ -46,6 +46,7 @@ GENERIC_SOURCES = \
 	generic/mmap.c \
 	generic/string.c \
 	generic/thread.c \
+	generic/task.c \
 	generic/futex.c \
 	generic/io/io.c \
 	generic/io/print.c \
