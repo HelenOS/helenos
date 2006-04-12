@@ -38,6 +38,7 @@
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
+#include <security/cap.h>
 #include <memstr.h>
 #include <print.h>
 #include <elf.h>
@@ -86,6 +87,7 @@ task_t *task_create(as_t *as, char *name)
 	ta->as = as;
 	ta->name = name;
 
+	ta->capabilities = 0;
 	
 	ipc_answerbox_init(&ta->answerbox);
 	for (i=0; i < IPC_MAX_PHONES;i++)

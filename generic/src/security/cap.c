@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TASK_H__
-#define __TASK_H__
-
-#include <typedefs.h>
-#include <synch/spinlock.h>
-#include <adt/btree.h>
-#include <adt/list.h>
-#include <ipc/ipc.h>
 #include <security/cap.h>
+#include <proc/task.h>
+#include <synch/spinlock.h>
+#include <arch.h>
+#include <typedefs.h>
 
-/** Task structure. */
-struct task {
-	SPINLOCK_DECLARE(lock);
-	char *name;
-	link_t th_head;		/**< List of threads contained in this task. */
-	as_t *as;		/**< Address space. */
-	task_id_t taskid;	/**< Unique identity of task */
+/** Set capabilities.
+ *
+ * @param t Task whose capabilities are to be changed.
+ * @param caps New set of capabilities.
+ */
+void cap_set(task_t *t, cap_t caps)
+{
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&t->lock);
+	
+	t->capabilities = caps;
+	
+	spinlock_unlock(&t->lock);
+	interrupts_restore(ipl);
+}
 
-	cap_t capabilities;	/**< Task capabilities. */
-
-	/* IPC stuff */
-	answerbox_t answerbox;  /**< Communication endpoint */
-	phone_t phones[IPC_MAX_PHONES];
-	atomic_t active_calls;  /**< Active asynchronous messages */
-};
-
-extern spinlock_t tasks_lock;
-extern btree_t tasks_btree;
-
-extern void task_init(void);
-extern task_t *task_create(as_t *as, char *name);
-extern task_t *task_run_program(void *program_addr, char *name);
-
-#endif
+/** Get capabilities.
+ *
+ * @param t Task whose capabilities are to be returned.
+ * @return Task's capabilities.
+ */
+cap_t cap_get(task_t *t)
+{
+	ipl_t ipl;
+	cap_t caps;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&t->lock);
+	
+	caps = t->capabilities;
+	
+	spinlock_unlock(&t->lock);
+	interrupts_restore(ipl);
+	
+	return caps;
+}

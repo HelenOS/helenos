@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TASK_H__
-#define __TASK_H__
+/**
+ * Capabilities definitions.
+ * Each task can have arbitrary combination of the capabilities
+ * defined in this file. Therefore, they are required to be powers
+ * of two.
+ */
 
+#ifndef __CAP_H__
+#define __CAP_H__
+
+#include <arch/types.h>
 #include <typedefs.h>
-#include <synch/spinlock.h>
-#include <adt/btree.h>
-#include <adt/list.h>
-#include <ipc/ipc.h>
-#include <security/cap.h>
 
-/** Task structure. */
-struct task {
-	SPINLOCK_DECLARE(lock);
-	char *name;
-	link_t th_head;		/**< List of threads contained in this task. */
-	as_t *as;		/**< Address space. */
-	task_id_t taskid;	/**< Unique identity of task */
+/**
+ * CAP_CAP allows its holder to grant/revoke arbitrary
+ * privilege to/from other tasks.
+ */
+#define CAP_CAP			(1<<0)
 
-	cap_t capabilities;	/**< Task capabilities. */
+/**
+ * CAP_MEM_MANAGER allows its holder to map physical memory
+ * to other tasks.
+ */
+#define CAP_MEM_MANAGER		(1<<1)
 
-	/* IPC stuff */
-	answerbox_t answerbox;  /**< Communication endpoint */
-	phone_t phones[IPC_MAX_PHONES];
-	atomic_t active_calls;  /**< Active asynchronous messages */
-};
+/**
+ * CAP_IO_MANAGER allows its holder to access I/O space
+ * to other tasks.
+ */
+#define CAP_IO_MANAGER		(1<<2)
 
-extern spinlock_t tasks_lock;
-extern btree_t tasks_btree;
+typedef __u32 cap_t;
 
-extern void task_init(void);
-extern task_t *task_create(as_t *as, char *name);
-extern task_t *task_run_program(void *program_addr, char *name);
+extern void cap_set(task_t *t, cap_t caps);
+extern cap_t cap_get(task_t *t);
 
 #endif

@@ -144,7 +144,8 @@ GENERIC_SOURCES = \
 	generic/src/smp/ipi.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
-	generic/src/ipc/ipcrsc.c
+	generic/src/ipc/ipcrsc.c \
+	generic/src/security/cap.c
 
 ## Test sources
 #

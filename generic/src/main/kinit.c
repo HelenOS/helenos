@@ -45,6 +45,7 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
+#include <security/cap.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/mps.h>
@@ -144,6 +145,11 @@ void kinit(void *arg)
 
 		utask = task_run_program((void *) init.tasks[i].addr, "USPACE");
 		if (utask) {
+			/*
+			 * Set capabilities to init userspace tasks.
+			 */
+			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER | CAP_IO_MANAGER);
+			
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
 		} else
