@@ -137,6 +137,10 @@ extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, i
 extern void thread_ready(thread_t *t);
 extern void thread_exit(void);
 
+#ifndef thread_create_arch
+extern void thread_create_arch(thread_t *t);
+#endif
+
 extern void thread_sleep(__u32 sec);
 extern void thread_usleep(__u32 usec);
 

@@ -263,6 +263,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t = (thread_t *) slab_alloc(thread_slab, 0);
 	if (!t)
 		return NULL;
+
+	thread_create_arch(t);
 	
 	/* Not needed, but good for debugging */
 	memsetb((__address)t->kstack, THREAD_STACK_SIZE * 1<<STACK_FRAMES, 0);

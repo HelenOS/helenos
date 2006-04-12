@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia64_THREAD_H__
-#define __ia64_THREAD_H__
+#include <proc/thread.h>
 
-#define ARCH_THREAD_DATA struct { } arch_thread_data;
-
-#define thread_create_arch(t)
-
-#endif
+/** Perform ia32 specific thread initialization.
+ *
+ * @param t Thread to be initialized.
+ */
+void thread_create_arch(thread_t *t)
+{
+	t->tls = 0;
+}

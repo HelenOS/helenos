@@ -31,4 +31,6 @@
 
 #define ARCH_THREAD_DATA
 
+#define thread_create_arch(t)
+
 #endif
