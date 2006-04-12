@@ -37,6 +37,10 @@ int puts(const char * str)
 {
 	size_t count;
 	
+	if (str == NULL) {
+		return putnchars("(NULL)",6 );
+	}
+	
 	for (count = 0; str[count] != 0; count++);
 	if (write(1, (void * ) str, count) == count) {
 		if (write(1, &nl, 1) == 1)
@@ -47,7 +51,7 @@ int puts(const char * str)
 }
 
 /** Put count chars from buffer to stdout without adding newline
- * @param buf Buffer with size at least count bytes
+ * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
  * @param count 
  * @return 0 on succes, EOF on fail
  */
@@ -74,6 +78,16 @@ int putstr(const char * str)
 	for (count = 0; str[count] != 0; count++);
 	if (write(1, (void * ) str, count) == count) {
 			return 0;
+	}
+	
+	return EOF;
+}
+
+int putchar(int c)
+{
+	unsigned char ch = c;
+	if (write(1, (void *)&ch , 1) == 1) {
+			return c;
 	}
 	
 	return EOF;

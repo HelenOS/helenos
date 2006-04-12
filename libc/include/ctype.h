@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <string.h>
+#ifndef __CTYPE_H__
+#define __CTYPE_H__
 
-/* Dummy implementation of mem/ functions */
-
-void * memset(void *s, int c, size_t n)
+static inline int isdigit(int c)
 {
-	char *os = s;
-	while (n--)
-		*(os++) = c;
-	return s;
+	return ((c >= '0' )&&( c <= '9'));
 }
 
-void * memcpy(void *dest, void *src, size_t n)
-{
-	char *os = src;
-	char *odst = dest;
-	while (n--)
-		*(odst++) = *(os++);
-	return dest;
-}
+#endif
 
-size_t strlen(const char *str) 
-{
-	int counter = 0;
-
-	while (str[counter] != 0) {
-		counter++;
-	}
-
-	return counter;
-}

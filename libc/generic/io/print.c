@@ -31,6 +31,8 @@
 #include <unistd.h>
 #include <io/io.h>
 #include <stdarg.h>
+#include <ctype.h>
+#include <string.h>
 
 #define __PRINTF_FLAG_PREFIX		0x00000001	/* show prefixes 0x or 0*/
 #define __PRINTF_FLAG_SIGNED		0x00000002	/* signed / unsigned number */
@@ -59,29 +61,115 @@ typedef enum {
 static char digits_small[] = "0123456789abcdef"; 	/* Small hexadecimal characters */
 static char digits_big[] = "0123456789ABCDEF"; 	/* Big hexadecimal characters */
 
+
+/** Print one formatted character
+ * @param c character to print
+ * @param width 
+ * @param flags
+ * @return number of printed characters or EOF
+ */
+						
+static int print_char(char c, int width, uint64_t flags)
+{
+	int counter = 0;
+	char space = ' ';
+	
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		while (--width > 0) { 	/* one space is consumed by character itself hence predecrement */
+			/* FIXME: painful slow */
+			putchar(' ');	
+			++counter;
+		}
+	}
+	
+ 	if (putchar(c) == EOF) {
+		return EOF;
+	}
+
+	while (--width > 0) { /* one space is consumed by character itself hence predecrement */
+		putchar(' ');
+		++counter;
+	}
+	
+	return ++counter;
+}
+
+/** Print one string
+ * @param s string
+ * @param width 
+ * @param precision
+ * @param flags
+ * @return number of printed characters or EOF
+ */
+						
+static int print_string(char *s, int width, int precision, uint64_t flags)
+{
+	int counter = 0;
+	size_t size;
+
+	if (s == NULL) {
+		return putstr("(NULL)");
+	}
+	
+	size = strlen(s);
+
+	/* print leading spaces */
+
+	if (precision == 0) 
+		precision = size;
+
+	width -= precision;
+	
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		while (width-- > 0) { 	
+			putchar(' ');	
+			counter++;
+		}
+	}
+
+	while (precision > size) {
+		precision--;
+		putchar(' ');	
+		++counter;
+	}
+	
+ 	if (putnchars(s, precision) == EOF) {
+		return EOF;
+	}
+
+	counter += precision;
+
+	while (width-- > 0) {
+		putchar(' ');	
+		++counter;
+	}
+	
+	return ++counter;
+}
+
+
 /** Print number in given base
  *
  * Print significant digits of a number in given
  * base.
  *
  * @param num  Number to print.
- * @param size not used, in future releases will be replaced with precision and width params
+ * @param width
+ * @param precision
  * @param base Base to print the number in (should
  *             be in range 2 .. 16).
  * @param flags output modifiers
  * @return number of written characters or EOF
  *
  */
-static int print_number(uint64_t num, size_t size, int base , uint64_t flags)
+static int print_number(uint64_t num, int width, int precision, int base , uint64_t flags)
 {
-	/* FIXME: This is only first version.
-	 * Printf does not have support for specification of size 
-	 * and precision, so this function writes with parameters defined by
-	 * their type size.
-	 */
 	char *digits = digits_small;
 	char d[PRINT_NUMBER_BUFFER_SIZE];	/* this is good enough even for base == 2, prefix and sign */
 	char *ptr = &d[PRINT_NUMBER_BUFFER_SIZE - 1];
+	int size = 0;
+	int written = 0;
+	char sgn;
 	
 	if (flags & __PRINTF_FLAG_BIGCHARS) 
 		digits = digits_big;	
@@ -90,53 +178,122 @@ static int print_number(uint64_t num, size_t size, int base , uint64_t flags)
 
 	if (num == 0) {
 		*ptr-- = '0';
+		size++;
 	} else {
 		do {
 			*ptr-- = digits[num % base];
+			size++;
 		} while (num /= base);
 	}
-	if (flags & __PRINTF_FLAG_PREFIX) { /*FIXME*/
+
+	/* Collect sum of all prefixes/signs/... to calculate padding and leading zeroes */
+	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
 			case 2:	/* Binary formating is not standard, but usefull */
-				*ptr = 'b';
-				if (flags & __PRINTF_FLAG_BIGCHARS) *ptr = 'B';
-				ptr--;
-				*ptr-- = '0';
+				size += 2;
 				break;
 			case 8:
-				*ptr-- = 'o';
+				size++;
 				break;
 			case 16:
-				*ptr = 'x';
-				if (flags & __PRINTF_FLAG_BIGCHARS) *ptr = 'X';
-				ptr--;
-				*ptr-- = '0';
+				size += 2;
 				break;
 		}
 	}
-	
+
+	sgn = 0;
 	if (flags & __PRINTF_FLAG_SIGNED) {
 		if (flags & __PRINTF_FLAG_NEGATIVE) {
-			*ptr-- = '-';
+			sgn = '-';
+			size++;
 		} else if (flags & __PRINTF_FLAG_SHOWPLUS) {
-				*ptr-- = '+';
+				sgn = '+';
+				size++;
 			} else if (flags & __PRINTF_FLAG_SPACESIGN) {
-					*ptr-- = ' ';
+					sgn = ' ';
+					size++;
 				}
 	}
-
-	/* Print leading zeroes */
 
 	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
 		flags &= ~__PRINTF_FLAG_ZEROPADDED;
 	}
+
+	/* if number is leftaligned or precision is specified then zeropadding is ignored */
 	if (flags & __PRINTF_FLAG_ZEROPADDED) {
-	       	while (ptr != d ) {
-			*ptr-- = '0';
+		if ((precision == 0) && (width > size)) {
+			precision = width - size;
+		}
+	}
+
+	/* print leading spaces */
+	if (size > precision) /* We must print whole number not only a part */
+		precision = size;
+
+	width -= precision;
+	
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		while (width-- > 0) { 	
+			putchar(' ');	
+			written++;
 		}
 	}
 	
-	return putstr(++ptr);
+	/* print sign */
+	if (sgn) {
+		putchar(sgn);
+		written++;
+	}
+	
+	/* print prefix */
+	
+	if (flags & __PRINTF_FLAG_PREFIX) {
+		switch(base) {
+			case 2:	/* Binary formating is not standard, but usefull */
+				putchar('0');
+				if (flags & __PRINTF_FLAG_BIGCHARS) {
+					putchar('B');
+				} else {
+					putchar('b');
+				}
+				written == 2;
+				break;
+			case 8:
+				putchar('o');
+				written++;
+				break;
+			case 16:
+				putchar('0');
+				if (flags & __PRINTF_FLAG_BIGCHARS) {
+					putchar('X');
+				} else {
+					putchar('x');
+				}
+				written += 2;
+				break;
+		}
+	}
+
+	/* print leading zeroes */
+	precision -= size;
+	while (precision-- > 0) { 	
+		putchar('0');	
+		written++;
+	}
+
+	
+	/* print number itself */
+
+	written += putstr(++ptr);
+	
+	/* print ending spaces */
+	
+	while (width-- > 0) { 	
+		putchar(' ');	
+		written++;
+	}
+
+	return written;
 }
 
 
@@ -208,11 +365,12 @@ int printf(const char *fmt, ...)
 	int base;	/* base in which will be parameter (numbers only) printed */
 	uint64_t number; /* argument value */
 	size_t	size; /* byte size of integer parameter */
+	int width, precision;
 	uint64_t flags;
 	
 	counter = 0;
 	va_start(ap, fmt);
-
+	
 	while ((c = fmt[i])) {
 		/* control character */
 		if (c == '%' ) { 
@@ -241,10 +399,49 @@ int printf(const char *fmt, ...)
 				};	
 				
 			} while (end == 0);	
-			/* TODO: width & '*' operator */
-			/* TODO: precision and '*' operator */	
+			
+			/* width & '*' operator */
+			width = 0;
+			if (isdigit(fmt[i])) {
+				while (isdigit(fmt[i])) {
+					width *= 10;
+					width += fmt[i++] - '0';
+				}
+			} else if (fmt[i] == '*') {
+				/* get width value from argument list*/
+				i++;
+				width = (int)va_arg(ap, int);
+				if (width < 0) {
+					/* negative width means to set '-' flag */
+					width *= -1;
+					flags |= __PRINTF_FLAG_LEFTALIGNED;
+				}
+			}
+			
+			/* precision and '*' operator */	
+			precision = 0;
+			if (fmt[i] == '.') {
+				++i;
+				if (isdigit(fmt[i])) {
+					while (isdigit(fmt[i])) {
+						precision *= 10;
+						precision += fmt[i++] - '0';
+					}
+				} else if (fmt[i] == '*') {
+					/* get precision value from argument list*/
+					i++;
+					precision = (int)va_arg(ap, int);
+					if (precision < 0) {
+						/* negative precision means to ignore it */
+						precision = 0;
+					}
+				}
+			}
 
 			switch (fmt[i++]) {
+				/** TODO: unimplemented qualifiers:
+				 * t ptrdiff_t - ISO C 99
+				 */
 				case 'h':	/* char or short */
 					qualifier = PrintfQualifierShort;
 					if (fmt[i] == 'h') {
@@ -275,7 +472,7 @@ int printf(const char *fmt, ...)
 				* String and character conversions.
 				*/
 				case 's':
-					if ((retval = putstr(va_arg(ap, char*))) == EOF) {
+					if ((retval = print_string(va_arg(ap, char*), width, precision, flags)) == EOF) {
 						return -counter;
 					};
 					
@@ -283,8 +480,8 @@ int printf(const char *fmt, ...)
 					j = i + 1; 
 					goto next_char;
 				case 'c':
-					c = va_arg(ap, unsigned long);
-					if ((retval = putnchars(&c, sizeof(char))) == EOF) {
+					c = va_arg(ap, unsigned int);
+					if ((retval = print_char(c, width, flags )) == EOF) {
 						return -counter;
 					};
 					
@@ -384,7 +581,7 @@ int printf(const char *fmt, ...)
 				}
 			}
 
-			if ((retval = print_number(number, size, base, flags)) == EOF ) {
+			if ((retval = print_number(number, width, precision, base, flags)) == EOF ) {
 				return -counter;
 			};
 
