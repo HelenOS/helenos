@@ -224,6 +224,8 @@ int as_page_fault(__address page)
 		return 0;
 	}
 
+	ASSERT(!(area->flags & AS_AREA_DEVICE));
+
 	page_table_lock(AS, false);
 	
 	/*
@@ -442,6 +444,17 @@ __address as_remap(as_t *as, __address address, size_t size, int flags)
 	 */
 	area = find_area_and_lock(as, address);
 	if (!area) {
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+
+	if (area->flags & AS_AREA_DEVICE) {
+		/*
+		 * Remapping of address space areas associated
+		 * with memory mapped devices is not supported.
+		 */
+		spinlock_unlock(&area->lock);
 		spinlock_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return (__address) -1;
