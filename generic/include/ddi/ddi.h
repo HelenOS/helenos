@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SYSCALL_H__
-#define __SYSCALL_H__
+#ifndef __DDI_H__
+#define __DDI_H__
 
-typedef enum {
-	SYS_IO = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64,IA32 uspace - psthread.S */
-	SYS_THREAD_CREATE,
-	SYS_THREAD_EXIT,
-	SYS_FUTEX_SLEEP,
-	SYS_FUTEX_WAKEUP,
-	SYS_MMAP,
-	SYS_MREMAP,
-	SYS_GET_TASK_ID,
-	SYS_IPC_CALL_SYNC_FAST,
-	SYS_IPC_CALL_SYNC,
-	SYS_IPC_CALL_ASYNC_FAST,
-	SYS_IPC_CALL_ASYNC,
-	SYS_IPC_ANSWER_FAST,
-	SYS_IPC_ANSWER,
-	SYS_IPC_FORWARD_FAST,
-	SYS_IPC_WAIT,
-	SYS_IPC_HANGUP,
-	SYS_MAP_PHYSMEM,
-	SYSCALL_END
-} syscall_t;
-
-#ifdef KERNEL
-
+#include <ddi/ddi_arg.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
-typedef __native (*syshandler_t)();
-
-extern syshandler_t syscall_table[SYSCALL_END];
-extern __native syscall_handler(__native a1, __native a2, __native a3,
-				__native a4, __native id);
-extern __native sys_tls_set(__native addr);
-
-
-#endif
+extern __native sys_map_physmem(ddi_arg_t *uspace_ddi_arg);
 
 #endif

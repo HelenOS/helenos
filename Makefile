@@ -108,6 +108,7 @@ GENERIC_SOURCES = \
 	generic/src/console/kconsole.c \
 	generic/src/console/cmd.c \
 	generic/src/cpu/cpu.c \
+	generic/src/ddi/ddi.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \

@@ -172,6 +172,22 @@ __native sys_get_task_id(task_id_t *uspace_task_id)
 	return 0;
 }
 
+/** Find task structure corresponding to task ID.
+ *
+ * The tasks_lock must be already held by the caller of this function
+ * and interrupts must be disabled.
+ *
+ * @param id Task ID.
+ *
+ * @return Task structure address or NULL if there is no such task ID.
+ */
+task_t *task_find_by_id(task_id_t id)
+{
+	btree_node_t *leaf;
+	
+	return (task_t *) btree_search(&tasks_btree, (btree_key_t) id, &leaf);
+}
+
 /** Print task list */
 void task_print_list(void)
 {

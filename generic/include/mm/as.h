@@ -56,6 +56,7 @@
 #define AS_AREA_READ	1
 #define AS_AREA_WRITE	2
 #define AS_AREA_EXEC	4
+#define AS_AREA_DEVICE	8
 
 /** Address space area structure.
  *

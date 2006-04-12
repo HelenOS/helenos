@@ -352,7 +352,7 @@ int get_area_flags(as_area_t *a)
 {
 	int flags;
 
-	flags = PAGE_USER | PAGE_PRESENT | PAGE_CACHEABLE;
+	flags = PAGE_USER | PAGE_PRESENT;
 	
 	if (a->flags & AS_AREA_READ)
 		flags |= PAGE_READ;
@@ -363,6 +363,9 @@ int get_area_flags(as_area_t *a)
 	if (a->flags & AS_AREA_EXEC)
 		flags |= PAGE_EXEC;
 	
+	if (!(a->flags & AS_AREA_DEVICE))
+		flags |= PAGE_CACHEABLE;
+		
 	return flags;
 }
 

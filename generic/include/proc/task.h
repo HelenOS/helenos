@@ -58,6 +58,7 @@ extern btree_t tasks_btree;
 extern void task_init(void);
 extern task_t *task_create(as_t *as, char *name);
 extern task_t *task_run_program(void *program_addr, char *name);
+extern task_t *task_find_by_id(task_id_t id);
 
 extern __native sys_get_task_id(task_id_t *uspace_task_id);
 

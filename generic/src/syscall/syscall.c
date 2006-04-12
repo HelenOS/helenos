@@ -37,6 +37,7 @@
 #include <debug.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
+#include <ddi/ddi.h>
 
 static __native sys_io(int fd, const void * buf, size_t count) {
 	
@@ -91,5 +92,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_answer,
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
-	sys_ipc_hangup
+	sys_ipc_hangup,
+	sys_map_physmem
 };
