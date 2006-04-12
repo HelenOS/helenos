@@ -46,20 +46,20 @@
 #include <typedefs.h>
 #include <print.h>
 
-static void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node);
-static void _btree_remove(btree_t *t, __native key, btree_node_t *node);
+static void _btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *rsubtree, btree_node_t *node);
+static void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
-static void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree);
-static void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-static void node_remove_key_and_lsubtree(btree_node_t *node, __native key);
-static void node_remove_key_and_rsubtree(btree_node_t *node, __native key);
-static btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median);
+static void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *lsubtree);
+static void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree);
+static void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key);
+static void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key);
+static btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree, btree_key_t *median);
 static btree_node_t *node_combine(btree_node_t *node);
 static index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
 static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
 static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
-static bool try_insert_by_rotation_to_left(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
-static bool try_insert_by_rotation_to_right(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree);
+static bool try_insert_by_rotation_to_left(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree);
+static bool try_insert_by_rotation_to_right(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree);
 static bool try_rotation_from_left(btree_node_t *rnode);
 static bool try_rotation_from_right(btree_node_t *lnode);
 
@@ -108,7 +108,7 @@ void btree_destroy(btree_t *t)
  * @param value Value to be inserted.
  * @param leaf_node Leaf node where the insertion should begin.
  */ 
-void btree_insert(btree_t *t, __native key, void *value, btree_node_t *leaf_node)
+void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
 	
@@ -132,7 +132,7 @@ void btree_insert(btree_t *t, __native key, void *value, btree_node_t *leaf_node
  * @param rsubtree Right subtree of the inserted key.
  * @param node Start inserting into this node.
  */
-void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree, btree_node_t *node)
+void _btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *rsubtree, btree_node_t *node)
 {
 	if (node->keys < BTREE_MAX_KEYS) {
 		/*
@@ -151,7 +151,7 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
 		 */
 	} else {
 		btree_node_t *rnode;
-		__native median;
+		btree_key_t median;
 		
 		/*
 		 * Node is full and both siblings (if both exist) are full too.
@@ -193,7 +193,7 @@ void _btree_insert(btree_t *t, __native key, void *value, btree_node_t *rsubtree
  * @param key Key to be removed from the B-tree along with its associated value.
  * @param leaf_node If not NULL, pointer to the leaf node where the key is found.
  */
-void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
+void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
 	
@@ -213,7 +213,7 @@ void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node)
  * @param key Key to be removed from the B-tree along with its associated value.
  * @param node Node where the key being removed resides.
  */
-void _btree_remove(btree_t *t, __native key, btree_node_t *node)
+void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node)
 {
 	if (ROOT_NODE(node)) {
 		if (node->keys == 1 && node->subtree[0]) {
@@ -290,7 +290,7 @@ void _btree_remove(btree_t *t, __native key, btree_node_t *node)
  *
  * @return Pointer to value or NULL if there is no such key.
  */
-void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node)
+void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 {
 	btree_node_t *cur, *next;
 	
@@ -416,7 +416,7 @@ void node_initialize(btree_node_t *node)
  * @param value Pointer to value to be inserted.
  * @param lsubtree Pointer to the left subtree.
  */ 
-void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value, btree_node_t *lsubtree)
+void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *lsubtree)
 {
 	int i;
 
@@ -452,7 +452,7 @@ void node_insert_key_and_lsubtree(btree_node_t *node, __native key, void *value,
  * @param value Pointer to value to be inserted.
  * @param rsubtree Pointer to the right subtree.
  */ 
-void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree)
+void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree)
 {
 	int i;
 
@@ -484,7 +484,7 @@ void node_insert_key_and_rsubtree(btree_node_t *node, __native key, void *value,
  * @param node B-tree node.
  * @param key Key to be removed.
  */
-void node_remove_key_and_lsubtree(btree_node_t *node, __native key)
+void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
 {
 	int i, j;
 	
@@ -512,7 +512,7 @@ void node_remove_key_and_lsubtree(btree_node_t *node, __native key)
  * @param node B-tree node.
  * @param key Key to be removed.
  */
-void node_remove_key_and_rsubtree(btree_node_t *node, __native key)
+void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 {
 	int i, j;
 	
@@ -549,7 +549,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, __native key)
  *
  * @return Newly created right sibling of node.
  */ 
-btree_node_t *node_split(btree_node_t *node, __native key, void *value, btree_node_t *rsubtree, __native *median)
+btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree, btree_key_t *median)
 {
 	btree_node_t *rnode;
 	int i, j;
@@ -684,7 +684,7 @@ index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool righ
  */
 void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
 {
-	__native key;
+	btree_key_t key;
 
 	key = lnode->key[lnode->keys - 1];
 		
@@ -721,7 +721,7 @@ void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
  */
 void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
 {
-	__native key;
+	btree_key_t key;
 
 	key = rnode->key[0];
 		
@@ -760,7 +760,7 @@ void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
  *
  * @return True if the rotation was performed, false otherwise.
  */
-bool try_insert_by_rotation_to_left(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+bool try_insert_by_rotation_to_left(btree_node_t *node, btree_key_t inskey, void *insvalue, btree_node_t *rsubtree)
 {
 	index_t idx;
 	btree_node_t *lnode;
@@ -807,7 +807,7 @@ bool try_insert_by_rotation_to_left(btree_node_t *node, __native inskey, void *i
  *
  * @return True if the rotation was performed, false otherwise.
  */
-bool try_insert_by_rotation_to_right(btree_node_t *node, __native inskey, void *insvalue, btree_node_t *rsubtree)
+bool try_insert_by_rotation_to_right(btree_node_t *node, btree_key_t inskey, void *insvalue, btree_node_t *rsubtree)
 {
 	index_t idx;
 	btree_node_t *rnode;

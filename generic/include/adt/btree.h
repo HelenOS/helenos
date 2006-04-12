@@ -36,13 +36,15 @@
 #define BTREE_M		5
 #define BTREE_MAX_KEYS	(BTREE_M - 1)
 
+typedef __u64 btree_key_t;
+
 /** B-tree node structure. */
 struct btree_node {
 	/** Number of keys. */
 	count_t keys;
 
 	/** Keys. We currently support only single keys. Additional room for one extra key is provided. */
-	__native key[BTREE_MAX_KEYS + 1];
+	btree_key_t key[BTREE_MAX_KEYS + 1];
 
 	/** 
 	 * Pointers to values. Sorted according to the key array. Defined only in leaf-level.
@@ -81,9 +83,9 @@ extern void btree_init(void);
 extern void btree_create(btree_t *t);
 extern void btree_destroy(btree_t *t);
 
-extern void btree_insert(btree_t *t, __native key, void *value, btree_node_t *leaf_node);
-extern void btree_remove(btree_t *t, __native key, btree_node_t *leaf_node);
-extern void *btree_search(btree_t *t, __native key, btree_node_t **leaf_node);
+extern void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_node);
+extern void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node);
+extern void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node);
 
 extern btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node);
 extern btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node);

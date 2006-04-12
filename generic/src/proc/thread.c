@@ -236,7 +236,7 @@ void thread_destroy(thread_t *t)
 	spinlock_unlock(&t->lock);
 	
 	spinlock_lock(&threads_lock);
-	btree_remove(&threads_btree, (__native) t, NULL);
+	btree_remove(&threads_btree, (btree_key_t) ((__address ) t), NULL);
 	spinlock_unlock(&threads_lock);
 	
 	slab_free(thread_slab, t);
@@ -312,7 +312,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
-	btree_insert(&threads_btree, (__native) t, (void *) t, NULL);
+	btree_insert(&threads_btree, (btree_key_t) ((__address) t), (void *) t, NULL);
 	spinlock_unlock(&threads_lock);
 	
 	/*
@@ -446,7 +446,7 @@ bool thread_exists(thread_t *t)
 {
 	btree_node_t *leaf;
 	
-	return btree_search(&threads_btree, (__native) t, &leaf) != NULL;
+	return btree_search(&threads_btree, (btree_key_t) ((__address) t), &leaf) != NULL;
 }
 
 /** Process syscall to create new thread.

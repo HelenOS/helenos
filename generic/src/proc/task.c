@@ -100,7 +100,7 @@ task_t *task_create(as_t *as, char *name)
 	spinlock_lock(&tasks_lock);
 
 	ta->taskid = ++task_counter;
-	btree_insert(&tasks_btree, (__native) ta, (void *) ta, NULL);
+	btree_insert(&tasks_btree, (btree_key_t) ta->taskid, (void *) ta, NULL);
 
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
