@@ -34,6 +34,12 @@
 __address supervisor_sp;
 __address supervisor_sp_physical;
 
+/** Perform ppc32 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+}
+
+/** Perform ppc32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
 	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];

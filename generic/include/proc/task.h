@@ -52,7 +52,7 @@ struct task {
 	phone_t phones[IPC_MAX_PHONES];
 	atomic_t active_calls;  /**< Active asynchronous messages */
 	
-	task_arch_t arch;
+	task_arch_t arch;	/**< Architecture specific task data. */
 };
 
 extern spinlock_t tasks_lock;

@@ -66,7 +66,7 @@
 #define DPL_KERNEL	(PL_KERNEL<<5)
 #define DPL_USER	(PL_USER<<5)
 
-#define IO_MAP_BASE	(104)
+#define TSS_BASIC_SIZE	104
 
 #ifndef __ASM__
 
@@ -82,13 +82,14 @@ struct descriptor {
 	unsigned granularity : 1;
 	unsigned base_24_31: 8;
 } __attribute__ ((packed));
+typedef struct descriptor descriptor_t;
 
 struct tss_descriptor {
 	unsigned limit_0_15: 16;
 	unsigned base_0_15: 16;
 	unsigned base_16_23: 8;
 	unsigned type: 4;
-	unsigned  : 1;
+	unsigned : 1;
 	unsigned dpl : 2;
 	unsigned present : 1;
 	unsigned limit_16_19: 4;
@@ -99,6 +100,7 @@ struct tss_descriptor {
 	unsigned base_32_63 : 32;
 	unsigned  : 32;
 } __attribute__ ((packed));
+typedef struct tss_descriptor tss_descriptor_t;
 
 struct idescriptor {
 	unsigned offset_0_15: 16;
@@ -112,16 +114,19 @@ struct idescriptor {
 	unsigned offset_32_63: 32;
 	unsigned  : 32;
 } __attribute__ ((packed));
+typedef struct idescriptor idescriptor_t;
 
 struct ptr_16_64 {
 	__u16 limit;
 	__u64 base;
 } __attribute__ ((packed));
+typedef struct ptr_16_64 ptr_16_64_t;
 
 struct ptr_16_32 {
 	__u16 limit;
 	__u32 base;
 } __attribute__ ((packed));
+typedef struct ptr_16_32 ptr_16_32_t;
 
 struct tss {
 	__u32 reserve1;
@@ -141,25 +146,26 @@ struct tss {
 	__u16 iomap_base;
 	__u8 iomap[0x10000 + 1];	/* 64K + 1 terminating byte */
 } __attribute__ ((packed));
+typedef struct tss tss_t;
 
-extern struct tss *tss_p;
+extern tss_t *tss_p;
 
-extern struct descriptor gdt[];
-extern struct idescriptor idt[];
+extern descriptor_t gdt[];
+extern idescriptor_t idt[];
 
-extern struct ptr_16_64 gdtr;
-extern struct ptr_16_32 bootstrap_gdtr;
-extern struct ptr_16_32 protected_ap_gdtr;
+extern ptr_16_64_t gdtr;
+extern ptr_16_32_t bootstrap_gdtr;
+extern ptr_16_32_t protected_ap_gdtr;
 
 extern void pm_init(void);
 
-extern void gdt_tss_setbase(struct descriptor *d, __address base);
-extern void gdt_tss_setlimit(struct descriptor *d, __u32 limit);
+extern void gdt_tss_setbase(descriptor_t *d, __address base);
+extern void gdt_tss_setlimit(descriptor_t *d, __u32 limit);
 
 extern void idt_init(void);
-extern void idt_setoffset(struct idescriptor *d, __address offset);
+extern void idt_setoffset(idescriptor_t *d, __address offset);
 
-extern void tss_initialize(struct tss *t);
+extern void tss_initialize(tss_t *t);
 
 #endif /* __ASM__ */
 

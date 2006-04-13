@@ -87,38 +87,38 @@ void fpu_enable(void)
 	);	
 }
 
-
-
-
 void cpu_arch_init(void)
 {
-	__u32 help=0;
-	
-	CPU->arch.tss = tss_p;
-	CPU->fpu_owner=NULL;
-
 	cpuid_feature_info fi;
 	cpuid_extended_feature_info efi;
-
 	cpu_info_t info;
+	__u32 help = 0;
+	
+	CPU->arch.tss = tss_p;
+	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((__u8 *) CPU->arch.tss);
+
+	CPU->fpu_owner = NULL;
+
 	cpuid(1, &info);
 
-	fi.word=info.cpuid_edx;
-	efi.word=info.cpuid_ecx;
+	fi.word = info.cpuid_edx;
+	efi.word = info.cpuid_ecx;
 	
-	if(fi.bits.fxsr) 	fpu_fxsr();
-	else fpu_fsr();	
+	if (fi.bits.fxsr)
+		fpu_fxsr();
+	else
+		fpu_fsr();	
 	
-	if(fi.bits.sse)	asm volatile (
-		"mov %%cr4,%0;\n"
-		"or %1,%0;\n"
-		"mov %0,%%cr4;\n"
-		:"+r"(help)
-		:"i"(CR4_OSFXSR_MASK|(1<<10)) 
-	);
-	
+	if (fi.bits.sse) {
+		asm volatile (
+			"mov %%cr4,%0\n"
+			"or %1,%0\n"
+			"mov %0,%%cr4\n"
+			: "+r" (help)
+			: "i" (CR4_OSFXSR_MASK|(1<<10)) 
+		);
+	}
 }
-
 
 void cpu_identify(void)
 {

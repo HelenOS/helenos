@@ -47,9 +47,18 @@
 #include <print.h>
 #include <debug.h>
 
+static void before_task_runs(void);
+static void before_thread_runs(void);
+static void after_thread_ran(void);
 static void scheduler_separated_stack(void);
 
 atomic_t nrdy;	/**< Number of ready threads in the system. */
+
+/** Carry out actions before new task runs. */
+void before_task_runs(void)
+{
+	before_task_runs_arch();
+}
 
 /** Take actions before new thread runs.
  *
@@ -434,6 +443,7 @@ void scheduler_separated_stack(void)
 			as_switch(as1, as2);
 		}
 		TASK = THREAD->task;
+		before_task_runs();
 	}
 
 	THREAD->state = Running;

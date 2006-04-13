@@ -52,14 +52,12 @@ extern void scheduler_fpu_lazy_request(void);
 extern void scheduler(void);
 extern void kcpulb(void *arg);
 
-extern void before_thread_runs(void);
-extern void after_thread_ran(void);
-
 extern void sched_print_list(void);
 
 /*
  * To be defined by architectures:
  */
+extern void before_task_runs_arch(void);
 extern void before_thread_runs_arch(void);
 extern void after_thread_ran_arch(void);
 

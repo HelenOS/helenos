@@ -36,6 +36,11 @@
 #include <config.h>
 #include <align.h>
 
+/** Perform ia64 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+}
+
 /** Prepare kernel stack pointers in bank 0 r22 and r23 and make sure the stack is mapped in DTR. */
 void before_thread_runs_arch(void)
 {

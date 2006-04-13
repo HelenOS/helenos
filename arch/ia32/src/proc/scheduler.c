@@ -28,19 +28,58 @@
 
 #include <proc/scheduler.h>
 #include <cpu.h>
+#include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/context.h>	/* SP_DELTA */
 #include <arch/debugger.h>
 #include <arch/pm.h>
+#include <arch/asm.h>
 
+/** Perform ia32 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+}
+
+/** Perform ia32 specific tasks needed before the new thread is scheduled.
+ *
+ * THREAD is locked and interrupts are disabled.
+ */
 void before_thread_runs_arch(void)
 {
+	size_t iomap_size;
+	ptr_16_32_t cpugdtr;
+	descriptor_t *gdt_p;
+
 	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
 
 	/* Set up TLS in GS register */
 	set_tls_desc(THREAD->arch.tls);
+
+	/*
+	 * Switch the I/O Permission Bitmap, if necessary.
+	 *
+	 * First, copy the I/O Permission Bitmap.
+	 * This needs to be changed so that the
+	 * copying is avoided if the same task
+	 * was already running and the iomap did
+	 * not change.
+	 */
+	spinlock_lock(&TASK->lock);
+	iomap_size = TASK->arch.iomap_size;
+	if (iomap_size) {
+		ASSERT(TASK->arch.iomap);
+		memcpy(CPU->arch.tss->iomap, TASK->arch.iomap, iomap_size);
+		CPU->arch.tss->iomap[iomap_size] = 0xff;	/* terminating byte */
+	}
+	spinlock_unlock(&TASK->lock);	
+
+	/* Second, adjust TSS segment limit. */
+	gdtr_store(&cpugdtr);
+	gdt_p = (descriptor_t *) cpugdtr.base;
+	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + iomap_size - 1);
+	gdtr_load(&cpugdtr);
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */

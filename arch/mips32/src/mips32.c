@@ -136,6 +136,12 @@ void userspace(uspace_arg_t *kernel_uarg)
 		;
 }
 
+/** Perform mips32 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+}
+
+/** Perform mips32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
 	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];

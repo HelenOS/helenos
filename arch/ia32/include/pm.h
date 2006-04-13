@@ -55,7 +55,7 @@
 #define DPL_KERNEL	(PL_KERNEL<<5)
 #define DPL_USER	(PL_USER<<5)
 
-#define IO_MAP_BASE	(104)
+#define TSS_BASIC_SIZE	104
 
 #ifndef __ASM__
 
@@ -67,6 +67,7 @@ struct ptr_16_32 {
 	__u16 limit;
 	__u32 base;
 } __attribute__ ((packed));
+typedef struct ptr_16_32 ptr_16_32_t;
 
 struct descriptor {
 	unsigned limit_0_15: 16;
@@ -80,6 +81,7 @@ struct descriptor {
 	unsigned granularity : 1;
 	unsigned base_24_31: 8;
 } __attribute__ ((packed));
+typedef struct descriptor  descriptor_t;
 
 struct idescriptor {
 	unsigned offset_0_15: 16;
@@ -88,7 +90,7 @@ struct idescriptor {
 	unsigned access: 8;
 	unsigned offset_16_31: 16;
 } __attribute__ ((packed));
-
+typedef struct idescriptor idescriptor_t;
 
 struct tss {
 	__u16 link;
@@ -131,23 +133,24 @@ struct tss {
 	__u16 iomap_base;
 	__u8 iomap[0x10000+1];	/* 64K + 1 terminating byte */
 } __attribute__ ((packed));
+typedef struct tss tss_t;
 
-extern struct ptr_16_32 gdtr;
-extern struct ptr_16_32 bootstrap_gdtr;
-extern struct ptr_16_32 protected_ap_gdtr;
+extern ptr_16_32_t gdtr;
+extern ptr_16_32_t bootstrap_gdtr;
+extern ptr_16_32_t protected_ap_gdtr;
 extern struct tss *tss_p;
 
-extern struct descriptor gdt[];
+extern descriptor_t gdt[];
 
 extern void pm_init(void);
 
-extern void gdt_setbase(struct descriptor *d, __address base);
-extern void gdt_setlimit(struct descriptor *d, __u32 limit);
+extern void gdt_setbase(descriptor_t *d, __address base);
+extern void gdt_setlimit(descriptor_t *d, __u32 limit);
 
 extern void idt_init(void);
-extern void idt_setoffset(struct idescriptor *d, __address offset);
+extern void idt_setoffset(idescriptor_t *d, __address offset);
 
-extern void tss_initialize(struct tss *t);
+extern void tss_initialize(tss_t *t);
 extern void set_tls_desc(__address tls);
 
 #endif /* __ASM__ */

@@ -34,6 +34,11 @@
 #include <config.h>
 #include <align.h>
 
+/** Perform sparc64 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+}
+
 /** Ensure that thread's kernel stack is locked in TLB. */
 void before_thread_runs_arch(void)
 {

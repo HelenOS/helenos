@@ -46,7 +46,7 @@
  * whole memory. One is for code and one is for data.
  */
 
-struct descriptor gdt[GDT_ITEMS] = {
+descriptor_t gdt[GDT_ITEMS] = {
 	/* NULL descriptor */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* KTEXT descriptor */
@@ -110,17 +110,17 @@ struct descriptor gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-struct idescriptor idt[IDT_ITEMS];
+idescriptor_t idt[IDT_ITEMS];
 
-struct ptr_16_64 gdtr = {.limit = sizeof(gdt), .base= (__u64) gdt };
-struct ptr_16_64 idtr = {.limit = sizeof(idt), .base= (__u64) idt };
+ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base= (__u64) gdt };
+ptr_16_64_t idtr = {.limit = sizeof(idt), .base= (__u64) idt };
 
-static struct tss tss;
-struct tss *tss_p = NULL;
+static tss_t tss;
+tss_t *tss_p = NULL;
 
-void gdt_tss_setbase(struct descriptor *d, __address base)
+void gdt_tss_setbase(descriptor_t *d, __address base)
 {
-	struct tss_descriptor *td = (struct tss_descriptor *) d;
+	tss_descriptor_t *td = (tss_descriptor_t *) d;
 
 	td->base_0_15 = base & 0xffff;
 	td->base_16_23 = ((base) >> 16) & 0xff;
@@ -128,15 +128,15 @@ void gdt_tss_setbase(struct descriptor *d, __address base)
 	td->base_32_63 = ((base) >> 32);
 }
 
-void gdt_tss_setlimit(struct descriptor *d, __u32 limit)
+void gdt_tss_setlimit(descriptor_t *d, __u32 limit)
 {
-	struct tss_descriptor *td = (struct tss_descriptor *) d;
+	struct tss_descriptor *td = (tss_descriptor_t *) d;
 
 	td->limit_0_15 = limit & 0xffff;
 	td->limit_16_19 = (limit >> 16) & 0xf;
 }
 
-void idt_setoffset(struct idescriptor *d, __address offset)
+void idt_setoffset(idescriptor_t *d, __address offset)
 {
 	/*
 	 * Offset is a linear address.
@@ -146,9 +146,9 @@ void idt_setoffset(struct idescriptor *d, __address offset)
 	d->offset_32_63 = offset >> 32;
 }
 
-void tss_initialize(struct tss *t)
+void tss_initialize(tss_t *t)
 {
-	memsetb((__address) t, sizeof(struct tss), 0);
+	memsetb((__address) t, sizeof(tss_t), 0);
 }
 
 /*
@@ -156,7 +156,7 @@ void tss_initialize(struct tss *t)
  */
 void idt_init(void)
 {
-	struct idescriptor *d;
+	idescriptor_t *d;
 	int i;
 
 	for (i = 0; i < IDT_ITEMS; i++) {
@@ -183,8 +183,8 @@ void idt_init(void)
  */
 void pm_init(void)
 {
-	struct descriptor *gdt_p = (struct descriptor *) gdtr.base;
-	struct tss_descriptor *tss_desc;
+	descriptor_t *gdt_p = (struct descriptor *) gdtr.base;
+	tss_descriptor_t *tss_desc;
 
 	/*
 	 * Each CPU has its private GDT and TSS.
@@ -200,20 +200,20 @@ void pm_init(void)
 		tss_p = &tss;
 	}
 	else {
-		tss_p = (struct tss *) malloc(sizeof(struct tss),FRAME_ATOMIC);
+		tss_p = (struct tss *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("could not allocate TSS\n");
 	}
 
 	tss_initialize(tss_p);
 
-	tss_desc = (struct tss_descriptor *) (&gdt_p[TSS_DES]);
+	tss_desc = (tss_descriptor_t *) (&gdt_p[TSS_DES]);
 	tss_desc->present = 1;
 	tss_desc->type = AR_TSS;
 	tss_desc->dpl = PL_KERNEL;
 	
 	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
-	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);
+	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(tss_t) - 1);
 
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);

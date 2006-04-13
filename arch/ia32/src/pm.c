@@ -52,7 +52,7 @@
  * One is for GS register which holds pointer to the TLS thread
  * structure in it's base.
  */
-struct descriptor gdt[GDT_ITEMS] = {
+descriptor_t gdt[GDT_ITEMS] = {
 	/* NULL descriptor */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* KTEXT descriptor */
@@ -68,30 +68,30 @@ struct descriptor gdt[GDT_ITEMS] = {
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 }
 };
 
-static struct idescriptor idt[IDT_ITEMS];
+static idescriptor_t idt[IDT_ITEMS];
 
-static struct tss tss;
+static tss_t tss;
 
-struct tss *tss_p = NULL;
+tss_t *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-struct ptr_16_32 bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
-struct ptr_16_32 gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };
+ptr_16_32_t bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
+ptr_16_32_t gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };
 
-void gdt_setbase(struct descriptor *d, __address base)
+void gdt_setbase(descriptor_t *d, __address base)
 {
 	d->base_0_15 = base & 0xffff;
 	d->base_16_23 = ((base) >> 16) & 0xff;
 	d->base_24_31 = ((base) >> 24) & 0xff;
 }
 
-void gdt_setlimit(struct descriptor *d, __u32 limit)
+void gdt_setlimit(descriptor_t *d, __u32 limit)
 {
 	d->limit_0_15 = limit & 0xffff;
 	d->limit_16_19 = (limit >> 16) & 0xf;
 }
 
-void idt_setoffset(struct idescriptor *d, __address offset)
+void idt_setoffset(idescriptor_t *d, __address offset)
 {
 	/*
 	 * Offset is a linear address.
@@ -100,7 +100,7 @@ void idt_setoffset(struct idescriptor *d, __address offset)
 	d->offset_16_31 = offset >> 16;
 }
 
-void tss_initialize(struct tss *t)
+void tss_initialize(tss_t *t)
 {
 	memsetb((__address) t, sizeof(struct tss), 0);
 }
@@ -110,7 +110,7 @@ void tss_initialize(struct tss *t)
  */
 void idt_init(void)
 {
-	struct idescriptor *d;
+	idescriptor_t *d;
 	int i;
 
 	for (i = 0; i < IDT_ITEMS; i++) {
@@ -141,37 +141,31 @@ void idt_init(void)
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)
 {
-	asm
-	(
-		"pushfl;"
-		"pop %%eax;"
-		"and $0xffff8fff,%%eax;"
-		"push %%eax;"
-		"popfl;"
-		:
-		:
-		:"%eax"
+	__asm__ volatile (
+		"pushfl\n"
+		"pop %%eax\n"
+		"and $0xffff8fff, %%eax\n"
+		"push %%eax\n"
+		"popfl\n"
+		: : : "eax"
 	);
 }
 
 /* Clean AM(18) flag in CR0 register */
 static void clean_AM_flag(void)
 {
-	asm
-	(
-		"mov %%cr0,%%eax;"
-		"and $0xFFFBFFFF,%%eax;"
-		"mov %%eax,%%cr0;"
-		:
-		:
-		:"%eax"
+	__asm__ volatile (
+		"mov %%cr0, %%eax\n"
+		"and $0xfffbffff, %%eax\n"
+		"mov %%eax, %%cr0\n"
+		: : : "eax"
 	);
 }
 
 void pm_init(void)
 {
-	struct descriptor *gdt_p = (struct descriptor *) gdtr.base;
-	struct ptr_16_32 idtr;
+	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
+	ptr_16_32_t idtr;
 
 	/*
 	 * Update addresses in GDT and IDT to their virtual counterparts.
@@ -195,7 +189,7 @@ void pm_init(void)
 		tss_p = &tss;
 	}
 	else {
-		tss_p = (struct tss *) malloc(sizeof(struct tss),FRAME_ATOMIC);
+		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("could not allocate TSS\n");
 	}
@@ -207,7 +201,7 @@ void pm_init(void)
 	gdt_p[TSS_DES].granularity = 1;
 	
 	gdt_setbase(&gdt_p[TSS_DES], (__address) tss_p);
-	gdt_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);
+	gdt_setlimit(&gdt_p[TSS_DES], sizeof(tss_t) - 1);
 
 	/*
 	 * As of this moment, the current CPU has its own GDT pointing
@@ -221,8 +215,8 @@ void pm_init(void)
 
 void set_tls_desc(__address tls)
 {
-	struct ptr_16_32 cpugdtr;
-	struct descriptor *gdt_p = (struct descriptor *) cpugdtr.base;
+	ptr_16_32_t cpugdtr;
+	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
 
 	gdtr_store(&cpugdtr);
 	gdt_setbase(&gdt_p[TLS_DES], tls);
