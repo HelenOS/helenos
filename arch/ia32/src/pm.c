@@ -216,9 +216,10 @@ void pm_init(void)
 void set_tls_desc(__address tls)
 {
 	ptr_16_32_t cpugdtr;
-	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
+	descriptor_t *gdt_p;
 
 	gdtr_store(&cpugdtr);
+	gdt_p = (descriptor_t *) cpugdtr.base;
 	gdt_setbase(&gdt_p[TLS_DES], tls);
 	/* Reload gdt register to update GS in CPU */
 	gdtr_load(&cpugdtr);
