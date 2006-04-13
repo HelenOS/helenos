@@ -37,38 +37,21 @@
 #include <print.h>
 #include <arch/pm.h>
 
-/** Perform amd64 specific tasks needed before the new task is run. */
+/** Perform amd64 specific tasks needed before the new task is run.
+ *
+ * Interrupts are disabled.
+ */
 void before_task_runs_arch(void)
-{
-}
-
-/** Perform amd64 specific tasks needed before the new thread is scheduled. */
-void before_thread_runs_arch(void)
 {
 	size_t iomap_size;
 	ptr_16_64_t cpugdtr;
 	descriptor_t *gdt_p;
 
-	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
-
-	/* Syscall support - write address of thread stack pointer to 
-	 * hidden part of gs */
-	swapgs();
-	write_msr(AMD_MSR_GS, (__u64)&THREAD->kstack);
-	swapgs();
-
-	/* TLS support - set FS to thread local storage */
-	write_msr(AMD_MSR_FS, THREAD->arch.tls);
-
 	/*
 	 * Switch the I/O Permission Bitmap, if necessary.
-	 *
-	 * First, copy the I/O Permission Bitmap.
-	 * This needs to be changed so that the
-	 * copying is avoided if the same task
-	 * was already running and the iomap did
-	 * not change.
 	 */
+	 
+	/* First, copy the I/O Permission Bitmap. */
 	spinlock_lock(&TASK->lock);
 	iomap_size = TASK->arch.iomap_size;
 	if (iomap_size) {
@@ -83,6 +66,21 @@ void before_thread_runs_arch(void)
 	gdt_p = (descriptor_t *) cpugdtr.base;
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + iomap_size - 1);
 	gdtr_load(&cpugdtr);
+}
+
+/** Perform amd64 specific tasks needed before the new thread is scheduled. */
+void before_thread_runs_arch(void)
+{
+	CPU->arch.tss->rsp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+
+	/* Syscall support - write address of thread stack pointer to 
+	 * hidden part of gs */
+	swapgs();
+	write_msr(AMD_MSR_GS, (__u64)&THREAD->kstack);
+	swapgs();
+
+	/* TLS support - set FS to thread local storage */
+	write_msr(AMD_MSR_FS, THREAD->arch.tls);
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */
