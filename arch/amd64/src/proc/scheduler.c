@@ -47,7 +47,7 @@ void before_thread_runs_arch(void)
 	swapgs();
 
 	/* TLS support - set FS to thread local storage */
-	write_msr(AMD_MSR_FS, THREAD->tls);
+	write_msr(AMD_MSR_FS, THREAD->arch.tls);
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */

@@ -29,7 +29,7 @@
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
-#include <arch/thread.h>
+#include <arch/proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/context.h>
 #include <fpu_context.h>
@@ -117,7 +117,7 @@ struct thread {
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
 	__u32 tid;				/**< Thread ID. */
 	
-	ARCH_THREAD_DATA;			/**< Architecture-specific data. */
+	thread_arch_t arch;			/**< Architecture-specific data. */
 
 	__u8 *kstack;				/**< Thread's kernel stack. */
 };

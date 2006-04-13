@@ -45,7 +45,6 @@
 #include <adt/list.h>
 #include <typedefs.h>
 #include <time/clock.h>
-#include <adt/list.h>
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>

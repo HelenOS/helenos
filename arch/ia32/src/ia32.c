@@ -116,7 +116,7 @@ void calibrate_delay_loop(void)
  */
 __native sys_tls_set(__native addr)
 {
-	THREAD->tls = addr;
+	THREAD->arch.tls = addr;
 	set_tls_desc(addr);
 
 	return 0;

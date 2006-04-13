@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_THREAD_H__
-#define __ppc32_THREAD_H__
+#ifndef __amd64_TASK_H__
+#define __amd64_TASK_H__
 
-#define ARCH_THREAD_DATA
+#include <typedefs.h>
+#include <arch/types.h>
 
-#define thread_create_arch(t)
+typedef struct {
+	count_t iomap_size;
+	__u8 *iomap;
+} task_arch_t;
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_THREAD_H__
-#define __mips32_THREAD_H__
+#ifndef __ppc32_TASK_H__
+#define __ppc32_TASK_H__
 
-#include <arch/exception.h>
-
-#define ARCH_THREAD_DATA
-
-#define thread_create_arch(t)
+typedef struct {
+} task_arch_t;
 
 #endif

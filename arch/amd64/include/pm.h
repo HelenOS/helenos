@@ -138,7 +138,8 @@ struct tss {
 	__u64 ist7;
 	__u64 reserve3;
 	__u16 reserve4;
-	__u16 iomap;
+	__u16 iomap_base;
+	__u8 iomap[0x10000 + 1];	/* 64K + 1 terminating byte */
 } __attribute__ ((packed));
 
 extern struct tss *tss_p;

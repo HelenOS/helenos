@@ -35,6 +35,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <security/cap.h>
+#include <arch/proc/task.h>
 
 /** Task structure. */
 struct task {
@@ -50,6 +51,8 @@ struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	atomic_t active_calls;  /**< Active asynchronous messages */
+	
+	task_arch_t arch;
 };
 
 extern spinlock_t tasks_lock;

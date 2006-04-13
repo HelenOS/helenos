@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_THREAD_H__
-#define __sparc64_THREAD_H__
+#ifndef __sparc64_TASK_H__
+#define __sparc64_TASK_H__
 
-#define ARCH_THREAD_DATA
-
-#define thread_create_arch(t)
+typedef struct {
+} task_arch_t;
 
 #endif

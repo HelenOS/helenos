@@ -128,7 +128,8 @@ struct tss {
 	__u16 ldtr;
 	unsigned : 16;
 	unsigned : 16;
-	__u16 io_map_base;
+	__u16 iomap_base;
+	__u8 iomap[0x10000+1];	/* 64K + 1 terminating byte */
 } __attribute__ ((packed));
 
 extern struct ptr_16_32 gdtr;

@@ -40,7 +40,7 @@ void before_thread_runs_arch(void)
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
 
 	/* Set up TLS in GS register */
-	set_tls_desc(THREAD->tls);
+	set_tls_desc(THREAD->arch.tls);
 
 #ifdef CONFIG_DEBUG_AS_WATCHPOINT
 	/* Set watchpoint on AS to ensure that nobody sets it to zero */

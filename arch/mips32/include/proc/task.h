@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ia32_THREAD_H__
-#define __ia32_THREAD_H__
+#ifndef __mips32_TASK_H__
+#define __mips32_TASK_H__
 
-#define ARCH_THREAD_DATA __native tls;
+typedef struct {
+} task_arch_t;
 
 #endif

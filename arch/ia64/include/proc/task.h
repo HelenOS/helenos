@@ -26,13 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
+#ifndef __ia64_TASK_H__
+#define __ia64_TASK_H__
 
-/** Perform amd64 specific thread initialization.
- *
- * @param t Thread to be initialized.
- */
-void thread_create_arch(thread_t *t)
-{
-	t->arch.tls = 0;
-}
+typedef struct {
+} task_arch_t;
+
+#endif

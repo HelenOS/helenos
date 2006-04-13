@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Ondrej Palkovsky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_THREAD_H__
-#define __amd64_THREAD_H__
+#ifndef __ia32_TASK_H__
+#define __ia32_TASK_H__
 
-#define ARCH_THREAD_DATA __native tls;
+#include <typedefs.h>
+#include <arch/types.h>
+
+typedef struct {
+	count_t iomap_size;
+	__u8 *iomap;
+} task_arch_t;
 
 #endif

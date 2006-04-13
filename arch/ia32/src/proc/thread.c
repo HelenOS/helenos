@@ -34,5 +34,5 @@
  */
 void thread_create_arch(thread_t *t)
 {
-	t->tls = 0;
+	t->arch.tls = 0;
 }

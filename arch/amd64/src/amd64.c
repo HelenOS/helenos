@@ -173,7 +173,7 @@ void calibrate_delay_loop(void)
  */
 __native sys_tls_set(__native addr)
 {
-	THREAD->tls = addr;
+	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
 	return 0;
 }

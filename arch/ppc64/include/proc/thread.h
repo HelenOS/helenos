@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <proc/thread.h>
+#ifndef __ppc64_THREAD_H__
+#define __ppc64_THREAD_H__
 
-/** Perform amd64 specific thread initialization.
- *
- * @param t Thread to be initialized.
- */
-void thread_create_arch(thread_t *t)
-{
-	t->arch.tls = 0;
-}
+typedef struct {
+} thread_arch_t;
+
+#define thread_create_arch(t)
+
+#endif
