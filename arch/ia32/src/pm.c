@@ -65,6 +65,7 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 	/* TSS descriptor - set up will be completed later */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	/* TLS descriptor */
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 }
 };
 
