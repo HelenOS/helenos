@@ -215,11 +215,11 @@ void pm_init(void)
 	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(struct tss) - 1);
 
-	__asm__("lgdt %0" : : "m"(gdtr));
-	__asm__("lidt %0" : : "m"(idtr));
+	gdtr_load(&gdtr);
+	idtr_load(&idtr);
 	/*
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	__asm__("ltr %0" : : "r" ((__u16) gdtselector(TSS_DES)));
+	tr_load(gdtselector(TSS_DES));
 }

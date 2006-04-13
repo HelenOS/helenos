@@ -30,6 +30,7 @@
 #ifndef __ia32_ASM_H__
 #define __ia32_ASM_H__
 
+#include <arch/pm.h>
 #include <arch/types.h>
 #include <config.h>
 
@@ -249,6 +250,42 @@ static inline __address * get_ip()
 static inline void invlpg(__address addr)
 {
 	__asm__ volatile ("invlpg %0\n" :: "m" (*(__native *)addr));
+}
+
+/** Load GDTR register from memory.
+ *
+ * @param gdtr_reg Address of memory from where to load GDTR.
+ */
+static inline void gdtr_load(struct ptr_16_32 *gdtr_reg)
+{
+	__asm__ volatile ("lgdt %0\n" : : "m" (*gdtr_reg));
+}
+
+/** Store GDTR register to memory.
+ *
+ * @param gdtr_reg Address of memory to where to load GDTR.
+ */
+static inline void gdtr_store(struct ptr_16_32 *gdtr_reg)
+{
+	__asm__ volatile ("sgdt %0\n" : : "m" (*gdtr_reg));
+}
+
+/** Load IDTR register from memory.
+ *
+ * @param idtr_reg Address of memory from where to load IDTR.
+ */
+static inline void idtr_load(struct ptr_16_32 *idtr_reg)
+{
+	__asm__ volatile ("lidt %0\n" : : "m" (*idtr_reg));
+}
+
+/** Load TR from descriptor table.
+ *
+ * @param sel Selector specifying descriptor of TSS segment.
+ */
+static inline void tr_load(__u16 sel)
+{
+	__asm__ volatile ("ltr %0" : : "r" (sel));
 }
 
 #endif
