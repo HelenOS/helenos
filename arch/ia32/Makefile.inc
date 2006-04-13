@@ -108,6 +108,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/delay.s \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/proc/task.c \
 	arch/$(ARCH)/src/proc/thread.c \
 	arch/$(ARCH)/src/bios/bios.c \
 	arch/$(ARCH)/src/smp/ap.S \

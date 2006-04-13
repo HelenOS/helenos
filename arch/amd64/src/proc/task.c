@@ -26,12 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_TASK_H__
-#define __sparc64_TASK_H__
+#include <proc/task.h>
+#include <arch/types.h>
 
-typedef struct {
-} task_arch_t;
-
-#define task_create_arch(t)
-
-#endif
+/** Perform amd64 specific task initialization.
+ *
+ * @param t Task to be initialized.
+ */
+void task_create_arch(task_t *t)
+{
+	t->arch.iomap = NULL;
+	t->arch.iomap_size = 0;
+}

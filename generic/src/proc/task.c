@@ -82,6 +82,8 @@ task_t *task_create(as_t *as, char *name)
 	
 	ta = (task_t *) malloc(sizeof(task_t), 0);
 
+	task_create_arch(ta);
+
 	spinlock_initialize(&ta->lock, "task_ta_lock");
 	list_initialize(&ta->th_head);
 	ta->as = as;

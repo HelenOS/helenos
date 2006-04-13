@@ -32,4 +32,6 @@
 typedef struct {
 } task_arch_t;
 
+#define task_create_arch(t)
+
 #endif

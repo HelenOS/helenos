@@ -63,6 +63,10 @@ extern task_t *task_create(as_t *as, char *name);
 extern task_t *task_run_program(void *program_addr, char *name);
 extern task_t *task_find_by_id(task_id_t id);
 
+#ifndef task_create_arch
+extern void task_create_arch(task_t *t);
+#endif
+
 extern __native sys_get_task_id(task_id_t *uspace_task_id);
 
 #endif
