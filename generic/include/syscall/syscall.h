@@ -49,6 +49,7 @@ typedef enum {
 	SYS_IPC_WAIT,
 	SYS_IPC_HANGUP,
 	SYS_MAP_PHYSMEM,
+	SYS_ENABLE_IOSPACE,
 	SYSCALL_END
 } syscall_t;
 

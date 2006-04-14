@@ -31,7 +31,14 @@
 
 #include <ddi/ddi_arg.h>
 #include <arch/types.h>
+#include <typedefs.h>
 
-extern __native sys_map_physmem(ddi_arg_t *uspace_ddi_arg);
+extern __native sys_map_physmem(ddi_memarg_t *uspace_mem_arg);
+extern __native sys_enable_iospace(ddi_ioarg_t *uspace_io_arg);
+
+/*
+ * Interface to be implemented by all architectures.
+ */
+extern int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size);
 
 #endif

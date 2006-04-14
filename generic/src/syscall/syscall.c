@@ -93,5 +93,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
 	sys_ipc_hangup,
-	sys_map_physmem
+	sys_map_physmem,
+	sys_enable_iospace
 };

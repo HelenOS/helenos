@@ -68,6 +68,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/cuda.c \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \

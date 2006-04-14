@@ -127,6 +127,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
+	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/i8254.c \
 	arch/$(ARCH)/src/drivers/i8259.c \
 	arch/$(ARCH)/src/drivers/ega.c \

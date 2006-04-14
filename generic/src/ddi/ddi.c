@@ -111,18 +111,86 @@ static int ddi_map_physmem(task_id_t id, __address pf, __address vp, count_t pag
 	return 0;
 }
 
+/** Enable range of I/O space for task.
+ *
+ * @param id Task ID of the destination task.
+ * @param ioaddr Starting I/O address.
+ * @param size Size of the enabled I/O space..
+ *
+ * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
+ *	   ENOENT if there is no task matching the specified ID.
+ */
+static int ddi_enable_iospace(task_id_t id, __address ioaddr, size_t size)
+{
+	ipl_t ipl;
+	cap_t caps;
+	task_t *t;
+	int rc;
+	
+	/*
+	 * Make sure the caller is authorised to make this syscall.
+	 */
+	caps = cap_get(TASK);
+	if (!(caps & CAP_IO_MANAGER))
+		return EPERM;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	
+	t = task_find_by_id(id);
+	
+	if (!t) {
+		/*
+		 * There is no task with the specified ID.
+		 */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+
+	/*
+	 * TODO: We are currently lacking support for task destroying.
+	 * Once it is added to the kernel, we must take care to
+	 * synchronize in a way that prevents race conditions here.
+	 */
+	
+	/* Lock the task and release the lock protecting tasks_btree. */
+	spinlock_lock(&t->lock);
+	spinlock_unlock(&tasks_lock);
+
+	rc = ddi_enable_iospace_arch(t, ioaddr, size);
+	
+	spinlock_unlock(&t->lock);
+	interrupts_restore(ipl);
+	return rc;
+}
+
 /** Wrapper for SYS_MAP_PHYSMEM syscall.
+ *
+ * @param User space address of memory DDI argument structure.
+ *
+ * @return 0 on success, otherwise it returns error code found in errno.h
+ */ 
+__native sys_map_physmem(ddi_memarg_t *uspace_mem_arg)
+{
+	ddi_memarg_t arg;
+	
+	copy_from_uspace(&arg, uspace_mem_arg, sizeof(ddi_memarg_t));
+	return (__native) ddi_map_physmem((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
+					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
+					  (bool) arg.writable);
+}
+
+/** Wrapper for SYS_ENABLE_IOSPACE syscall.
  *
  * @param User space address of DDI argument structure.
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_map_physmem(ddi_arg_t *uspace_ddi_arg)
+__native sys_enable_iospace(ddi_ioarg_t *uspace_io_arg)
 {
-	ddi_arg_t arg;
+	ddi_ioarg_t arg;
 	
-	copy_from_uspace(&arg, uspace_ddi_arg, sizeof(ddi_arg_t));
-	return (__native) ddi_map_physmem((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
-					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
-					  (bool) arg.writable);
+	copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	return (__native) ddi_enable_iospace((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
 }

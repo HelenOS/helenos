@@ -26,23 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DDI_ARG_H__
-#define __DDI_ARG_H__
+#include <ddi/ddi.h>
+#include <proc/task.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
-/** Structure encapsulating arguments for SYS_MAP_PHYSMEM syscall. */
-typedef struct {
-	unsigned long long task_id;	/** ID of the destination task. */
-	void *phys_base;		/** Physical address of starting frame. */
-	void *virt_base;		/** Virtual address of starting page. */
-	unsigned long pages;		/** Number of pages to map. */
-	int writable;			/** True if the mapping should be writable. */
-} ddi_memarg_t;
-
-/** Structure encapsulating arguments for SYS_ENABLE_IOSPACE syscall. */
-typedef struct {
-	unsigned long long task_id;	/** ID of the destination task. */
-	void *ioaddr;			/** Starting I/O space address. */
-	unsigned long size;		/** Number of bytes. */
-} ddi_ioarg_t;
-
-#endif
+/** Enable I/O space range for task.
+ *
+ * Interrupts are disabled and task is locked.
+ *
+ * @param task Task.
+ * @param ioaddr Startign I/O space address.
+ * @param size Size of the enabled I/O range.
+ *
+ * @return 0 on success or an error code from errno.h.
+ */
+int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
+{
+	return 0;
+}
