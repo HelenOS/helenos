@@ -48,7 +48,7 @@
 int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writable)
 {
 	task_id_t task_id;
-	ddi_arg_t arg;
+	ddi_memarg_t arg;
 
 	arg.task_id = id;
 	arg.phys_base = pf;
@@ -57,4 +57,28 @@ int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writa
 	arg.writable = writable;
 
 	return __SYSCALL1(SYS_MAP_PHYSMEM, (sysarg_t) &arg);
+}
+
+/** Enable I/O space range to task.
+ *
+ * Caller of this function must have the IO_MEM_MANAGER capability.
+ *
+ * @param id Task ID.
+ * @param ioaddr Starting address of the I/O range.
+ * @param size Size of the range.
+ *
+ * @return 0 on success, EPERM if the caller lacks the CAP_IO_MANAGER capability,
+ *	   ENOENT if there is no task with specified ID and ENOMEM if there
+ *	   was some problem in allocating memory.
+ */
+int enable_iospace(task_id_t id, void *ioaddr, unsigned long size)
+{
+	task_id_t task_id;
+	ddi_ioarg_t arg;
+
+	arg.task_id = id;
+	arg.ioaddr = ioaddr;
+	arg.size = size;
+
+	return __SYSCALL1(SYS_ENABLE_IOSPACE, (sysarg_t) &arg);
 }

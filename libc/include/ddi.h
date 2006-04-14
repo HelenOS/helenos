@@ -32,5 +32,6 @@
 #include <task.h>
 
 extern int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writable);
+extern int enable_iospace(task_id_t id, void *ioaddr, unsigned long size);
 
 #endif
