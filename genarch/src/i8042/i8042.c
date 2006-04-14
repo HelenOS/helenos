@@ -271,6 +271,8 @@ static void i8042_wait(void);
 /** Initialize i8042. */
 void i8042_init(void)
 {
+	int i;
+
 	exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
 	i8042_wait();
 	i8042_command_write(i8042_SET_COMMAND);
@@ -281,16 +283,14 @@ void i8042_init(void)
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
+
 	/*
-	* Clear input buffer
-	*/
-	{
-		int a=0;
-		while((i8042_status_read()&i8042_BUFFER_FULL_MASK)&&(a<20)) {
+	 * Clear input buffer.
+	 * Number of iterations is limited to prevent infinite looping.
+	 */
+	for (i = 0; (i8042_status_read() & i8042_BUFFER_FULL_MASK) && i < 100; i++) {
 		i8042_data_read();
-		a++;
-		}  
-	}
+	}  
 }
 
 /** Process i8042 interrupt.
