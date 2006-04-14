@@ -281,9 +281,15 @@ void i8042_init(void)
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
+	/*
+	* Clear input buffer
+	*/
 	{
 		int a=0;
-		while(a<20) {i8042_data_read();a++;}  /*Clear input buffer*/
+		while((i8042_status_read()&i8042_BUFFER_FULL_MASK)&&(a<20)) {
+		i8042_data_read();
+		a++;
+		}  
 	}
 }
 
