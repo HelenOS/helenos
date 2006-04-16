@@ -65,10 +65,10 @@ static unsigned int divandmod32(unsigned int a, unsigned int b, unsigned int *re
 }
 
 
-static unsigned long divandmod64(unsigned long a, unsigned long b, unsigned long *remainder)
+static unsigned long long divandmod64(unsigned long long a, unsigned long long b, unsigned long long *remainder)
 {
-	unsigned long result;
-	int steps = sizeof(unsigned long) * 8; 
+	unsigned long long result;
+	int steps = sizeof(unsigned long long) * 8; 
 	
 	*remainder = 0;
 	result = 0;
@@ -111,12 +111,12 @@ int __divsi3(int a, int b)
 }
 
 /* 64bit integer division */
-long __divdi3(long a, long b) 
+long long __divdi3(long long a, long long b) 
 {
-	unsigned long rem;
-	long result;
+	unsigned long long rem;
+	long long result;
 	
-	result = (long)divandmod64(ABSVAL(a), ABSVAL(b), &rem);
+	result = (long long)divandmod64(ABSVAL(a), ABSVAL(b), &rem);
 
 	if ( SGN(a) == SGN(b)) return result;
 	return -result;
@@ -130,9 +130,9 @@ unsigned int __udivsi3(unsigned int a, unsigned int b)
 }
 
 /* 64bit unsigned integer division */
-unsigned long __udivdi3(unsigned long a, unsigned long b)
+unsigned long long __udivdi3(unsigned long long a, unsigned long long b)
 {
-	unsigned long rem;
+	unsigned long long  rem;
 	return divandmod64(a, b, &rem);
 }
 
@@ -151,17 +151,17 @@ int __modsi3(int a, int b)
 }
 
 /* 64bit remainder of the signed division */
-long __moddi3(long a, long b)
+long long __moddi3(long long a,long  long b)
 {
-	unsigned long rem;
+	unsigned long long rem;
 	divandmod64(a, b, &rem);
 	
 	/* if divident is negative, remainder must be too */
 	if (!(SGN(a))) {
-		return -((long)rem);
+		return -((long long)rem);
 	}
 	
-	return (long)rem;
+	return (long long)rem;
 }
 
 /* 32bit remainder of the unsigned division */
@@ -173,14 +173,14 @@ unsigned int __umodsi3(unsigned int a, unsigned int b)
 }
 
 /* 64bit remainder of the unsigned division */
-unsigned long __umoddi3(unsigned long a, unsigned long b)
+unsigned long long __umoddi3(unsigned long long a, unsigned long long b)
 {
-	unsigned long rem;
+	unsigned long long rem;
 	divandmod64(a, b, &rem);
 	return rem;
 }
 
-unsigned long __udivmoddi3(unsigned long a, unsigned long b, unsigned long *c)
+unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsigned long long *c)
 {
 	return divandmod64(a, b, c);
 }

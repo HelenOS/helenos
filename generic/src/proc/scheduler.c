@@ -449,7 +449,7 @@ void scheduler_separated_stack(void)
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (priority=%d,ticks=%d,nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
+	printf("cpu%d: tid %d (priority=%d,ticks=%lld,nrdy=%ld)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif	
 
 	/*
@@ -569,7 +569,7 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%d, avg=%d\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, avg=%nd\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
 #endif
 				t->flags |= X_STOLEN;
 				t->state = Entering;
@@ -633,7 +633,7 @@ void sched_print_list(void)
 			continue;
 
 		spinlock_lock(&cpus[cpu].lock);
-		printf("cpu%d: address=%P, nrdy=%d, needs_relink=%d\n",
+		printf("cpu%d: address=%P, nrdy=%ld, needs_relink=%ld\n",
 		       cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
 		
 		for (i=0; i<RQ_COUNT; i++) {

@@ -96,7 +96,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 		symbol = get_symtab_entry((__native)exc_table[i].f);
 		if (!symbol)
 			symbol = "not found";
-		printf("%d %s 0x%p(%s)\n", i + IVT_FIRST, exc_table[i].name,
+		printf("%d %s %p(%s)\n", i + IVT_FIRST, exc_table[i].name,
 		       exc_table[i].f,symbol);		
 		if (!((i+1) % 20)) {
 			printf("Press any key to continue.");

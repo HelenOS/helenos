@@ -176,7 +176,7 @@ void main_bsp_separated_stack(void)
 	arch_post_mm_init();	
 
 	version_print();
-	printf("%P: hardcoded_ktext_size=%dK, hardcoded_kdata_size=%dK\n",
+	printf("%#zX: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n",
 		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
 
 	arch_pre_smp_init();
@@ -184,8 +184,8 @@ void main_bsp_separated_stack(void)
 	
 	slab_enable_cpucache();	/* Slab must be initialized AFTER we know the number of processors */
 
-	printf("config.memory_size=%dM\n", config.memory_size/(1024*1024));
-	printf("config.cpu_count=%d\n", config.cpu_count);
+	printf("config.memory_size=%zdM\n", config.memory_size/(1024*1024));
+	printf("config.cpu_count=%zd\n", config.cpu_count);
 	cpu_init();
 	
 	calibrate_delay_loop();
@@ -196,7 +196,7 @@ void main_bsp_separated_stack(void)
 	futex_init();
 	
 	for (i = 0; i < init.cnt; i++)
-		printf("init[%d].addr=%P, init[%d].size=%d\n", i, init.tasks[i].addr, i, init.tasks[i].size);
+		printf("init[%zd].addr=%P, init[%zd].size=%zd\n", i, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
 

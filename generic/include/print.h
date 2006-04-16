@@ -37,9 +37,11 @@
 #define INT32	4
 #define INT64	8
 
-extern void printf(const char *fmt, ...);
+extern int printf(const char *fmt, ...);
 
 /* We need this address in spinlock to avoid deadlock in deadlock detection */
 extern spinlock_t printflock;
+
+#define EOF (-1)
 
 #endif

@@ -212,11 +212,11 @@ void task_print_list(void)
 			t = (task_t *) node->value[i];
 		
 			spinlock_lock(&t->lock);
-			printf("%s: address=%P, taskid=%Q, as=%P, ActiveCalls: %d",
+			printf("%s: address=%#zX, taskid=%#llX, as=%#zX, ActiveCalls: %zd",
 				t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
 			for (j=0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
-					printf(" Ph(%d): %P ", j, t->phones[j].callee);
+					printf(" Ph(%zd): %#zX ", j, t->phones[j].callee);
 			}
 			printf("\n");
 			spinlock_unlock(&t->lock);

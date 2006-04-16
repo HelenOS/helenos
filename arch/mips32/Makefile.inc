@@ -106,6 +106,11 @@ ifeq ($(MIPS_MACHINE),msim)
 	CFLAGS += -mhard-float -mips3
 endif
 
+## Compile with support for software integer division.
+#
+
+CONFIG_SOFTINT = y
+
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/start.S \

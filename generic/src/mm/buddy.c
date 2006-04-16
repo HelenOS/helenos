@@ -291,7 +291,7 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 				cnt++;
 		}
 	
-		printf("#%d\t%d\t%dK\t\t%dK\t\t%d\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
+		printf("#%zd\t%zd\t%zdK\t\t%zdK\t\t%zd\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
 		if (!list_empty(&b->order[i])) {
 			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) {
 				b->op->print_id(b, cur);
@@ -304,6 +304,6 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 		elem_count += (1 << i) * cnt;
 	}
 	printf("-----\t------\t--------\t----------\t---------------\n");
-	printf("Buddy system contains %d free elements (%d blocks)\n" , elem_count, block_count);
+	printf("Buddy system contains %zd free elements (%zd blocks)\n" , elem_count, block_count);
 
 }

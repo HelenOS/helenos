@@ -30,13 +30,21 @@
 
 void test(void)
 {
+	__native nat = 0x12345678u;
 	printf(" Printf test \n");
-	printf(" Q  %Q  %q \n",0x1111111111111111ull, 0x2222222222222222ull);
-	printf(" Q,l  %Q  %l \n", 0x3333333333333333ull, 0x01234567);
-	printf(" l,Q  %l  %Q \n", 0x01234567, 0x4444444444444444ull);
-	printf(" L  %L  %l \n",0x01234567 ,0x01234567);   
-	printf(" W  %W  %w \n",0x0123 ,0x0123);   
-	printf(" B  %B  %b \n",0x01 ,0x01);
+	
+	printf(" text 10.8s %*.*s \n", 5, 3, "text");
+	printf(" very long text 10.8s %10.8s \n", "very long text");
+	printf(" text 8.10s %8.10s \n", "text");
+	printf(" very long text 8.10s %8.10s \n", "very long text");
+
+	printf(" char: c '%c', 3.2c '%3.2c', -3.2c '%-3.2c', 2.3c '%2.3c', -2.3c '%-2.3c' \n",'a', 'b', 'c', 'd', 'e' );
+	printf(" int: d '%d', 3.2d '%3.2d', -3.2d '%-3.2d', 2.3d '%2.3d', -2.3d '%-2.3d' \n",1, 1, 1, 1, 1 );
+	printf(" -int: d '%d', 3.2d '%3.2d', -3.2d '%-3.2d', 2.3d '%2.3d', -2.3d '%-2.3d' \n",-1, -1, -1, -1, -1 );
+	printf(" 0xint: x '%#x', 5.3x '%#5.3x', -5.3x '%#-5.3x', 3.5x '%#3.5x', -3.5x '%#-3.5x' \n",17, 17, 17, 17, 17 );
+
+	printf("'%#llx' 64bit, '%#x' 32bit, '%#hhx' 8bit, '%#hx' 16bit, __native '%#zX'. '%#llX' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, nat, 0x1234567887654321ull, "Lovely string" );
+	
 	printf(" Print to NULL '%s'\n",NULL);
 	return;
 }

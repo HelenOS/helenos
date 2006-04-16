@@ -96,7 +96,7 @@ static void configure_via_rsdt(void)
 				if (!acpi_sdt_check((__u8 *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				printf("%#zX: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -117,7 +117,7 @@ static void configure_via_xsdt(void)
 				if (!acpi_sdt_check((__u8 *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%P: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				printf("%#zX: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -151,7 +151,7 @@ void acpi_init(void)
 	return;
 
 rsdp_found:
-	printf("%P: ACPI Root System Description Pointer\n", acpi_rsdp);
+	printf("%#zX: ACPI Root System Description Pointer\n", acpi_rsdp);
 
 	acpi_rsdt = (struct acpi_rsdt *) (__native) acpi_rsdp->rsdt_address;
 	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((__address) acpi_rsdp->xsdt_address);

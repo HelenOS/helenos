@@ -242,7 +242,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	for (i=0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			printf("%d. 0x%p in %s\n",i,
+			printf("%d. %p in %s\n",i,
 			       breakpoints[i].address, symbol);
 			printf("     Count(%d) ", breakpoints[i].counter);
 			if (breakpoints[i].flags & BKPOINT_INPROG)
@@ -328,7 +328,7 @@ void debugger_bpoint(istate_t *istate)
 			printf("Warning: breakpoint recursion\n");
 		
 		if (!(cur->flags & BKPOINT_FUNCCALL))
-			printf("***Breakpoint %d: 0x%p in %s.\n", i, 
+			printf("***Breakpoint %d: %p in %s.\n", i, 
 			       fireaddr, get_symtab_entry(istate->epc));
 
 		/* Return first instruction back */
@@ -341,7 +341,7 @@ void debugger_bpoint(istate_t *istate)
 		} 
 		cur->flags |= BKPOINT_INPROG;
 	} else {
-		printf("***Breakpoint 0x%p in %s.\n", fireaddr, 
+		printf("***Breakpoint %p in %s.\n", fireaddr, 
 		       get_symtab_entry(fireaddr));
 		/* Move on to next instruction */
 		istate->epc += 4;

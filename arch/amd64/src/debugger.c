@@ -105,7 +105,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	for (i=0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			printf("%d. 0x%p in %s\n",i,
+			printf("%d. %p in %s\n",i,
 			       breakpoints[i].address, symbol);
 			printf("     Count(%d) ", breakpoints[i].counter);
 			printf("\n");

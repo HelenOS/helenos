@@ -50,9 +50,9 @@ void test(void)
 	frame0 = PA2KA(PFN2ADDR(frame_alloc(ONE_FRAME, FRAME_KA)));
 	frame1 = PA2KA(PFN2ADDR(frame_alloc(ONE_FRAME, FRAME_KA)));
 
-	printf("Writing %L to physical address %P.\n", VALUE0, KA2PA(frame0));
+	printf("Writing %#X to physical address %P.\n", VALUE0, KA2PA(frame0));
 	*((__u32 *) frame0) = VALUE0;
-	printf("Writing %L to physical address %P.\n", VALUE1, KA2PA(frame1));
+	printf("Writing %#X to physical address %P.\n", VALUE1, KA2PA(frame1));
 	*((__u32 *) frame1) = VALUE1;
 	
 	printf("Mapping virtual address %P to physical address %P.\n", PAGE0, KA2PA(frame0));
@@ -60,22 +60,22 @@ void test(void)
 	printf("Mapping virtual address %P to physical address %P.\n", PAGE1, KA2PA(frame1));	
 	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
 	
-	printf("Value at virtual address %P is %L.\n", PAGE0, v0 = *((__u32 *) PAGE0));
-	printf("Value at virtual address %P is %L.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	printf("Value at virtual address %P is %#X.\n", PAGE0, v0 = *((__u32 *) PAGE0));
+	printf("Value at virtual address %P is %#X.\n", PAGE1, v1 = *((__u32 *) PAGE1));
 	
 	ASSERT(v0 == VALUE0);
 	ASSERT(v1 == VALUE1);
 
-	printf("Writing %X to virtual address %P.\n", 0, PAGE0);
+	printf("Writing %#X to virtual address %P.\n", 0, PAGE0);
 	*((__u32 *) PAGE0) = 0;
-	printf("Writing %X to virtual address %P.\n", 0, PAGE1);
+	printf("Writing %#X to virtual address %P.\n", 0, PAGE1);
 	*((__u32 *) PAGE1) = 0;	
 
 	v0 = *((__u32 *) PAGE0);
 	v1 = *((__u32 *) PAGE1);
 	
-	printf("Value at virtual address %P is %X.\n", PAGE0, *((__u32 *) PAGE0));	
-	printf("Value at virtual address %P is %X.\n", PAGE1, *((__u32 *) PAGE1));
+	printf("Value at virtual address %P is %#X.\n", PAGE0, *((__u32 *) PAGE0));	
+	printf("Value at virtual address %P is %#X.\n", PAGE1, *((__u32 *) PAGE1));
 
 	ASSERT(v0 == 0);
 	ASSERT(v1 == 0);

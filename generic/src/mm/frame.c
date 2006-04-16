@@ -280,7 +280,7 @@ static void zone_buddy_print_id(buddy_system_t *b, link_t *block)
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
 	index = frame_index(zone, frame);
-	printf("%d", index);
+	printf("%zd", index);
 }				     
 
 /** Buddy system find_buddy implementation
@@ -1028,7 +1028,7 @@ void zone_print_list(void) {
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%d: %L\t%d\t\t%d\n",i,PFN2ADDR(zone->base), 
+		printf("%d: %#X \t%zd\t\t%zd\n",i,PFN2ADDR(zone->base), 
 		       zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
@@ -1061,10 +1061,10 @@ void zone_print_one(int num) {
 	
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n");
-	printf("Zone base address: %P\n", PFN2ADDR(zone->base));
-	printf("Zone size: %d frames (%dK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
-	printf("Allocated space: %d frames (%dK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
-	printf("Available space: %d (%dK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Zone base address: %#zX\n", PFN2ADDR(zone->base));
+	printf("Zone size: %zd frames (%zdK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
+	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
+	printf("Available space: %zd (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	
 	spinlock_unlock(&zone->lock);

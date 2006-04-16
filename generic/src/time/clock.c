@@ -35,7 +35,6 @@
 #include <func.h>
 #include <proc/scheduler.h>
 #include <cpu.h>
-#include <print.h>
 #include <arch.h>
 #include <adt/list.h>
 #include <atomic.h>

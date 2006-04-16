@@ -412,13 +412,13 @@ void l_apic_debug(void)
 	printf("LVT on cpu%d, LAPIC ID: %d\n", CPU->id, l_apic_id());
 
 	tm.value = l_apic[LVT_Tm];
-	printf("LVT Tm: vector=%B, %s, %s, %s\n", tm.vector, delivs_str[tm.delivs], mask_str[tm.masked], tm_mode_str[tm.mode]);
+	printf("LVT Tm: vector=%hhd, %s, %s, %s\n", tm.vector, delivs_str[tm.delivs], mask_str[tm.masked], tm_mode_str[tm.mode]);
 	lint.value = l_apic[LVT_LINT0];
-	printf("LVT LINT0: vector=%B, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);
+	printf("LVT LINT0: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);
 	lint.value = l_apic[LVT_LINT1];	
-	printf("LVT LINT1: vector=%B, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);	
+	printf("LVT LINT1: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);	
 	error.value = l_apic[LVT_Err];
-	printf("LVT Err: vector=%B, %s, %s\n", error.vector, delivs_str[error.delivs], mask_str[error.masked]);
+	printf("LVT Err: vector=%hhd, %s, %s\n", error.vector, delivs_str[error.delivs], mask_str[error.masked]);
 #endif
 }
 

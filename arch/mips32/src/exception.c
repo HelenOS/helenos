@@ -73,7 +73,7 @@ static void print_regdump(istate_t *istate)
 	if (s)
 		rasymbol = s;
 	
-	printf("PC: %X(%s) RA: %X(%s), SP(%P)\n",istate->epc,pcsymbol,
+	printf("PC: %#X(%s) RA: %#X(%s), SP(%P)\n",istate->epc,pcsymbol,
 	       istate->ra,rasymbol, istate->sp);
 }
 

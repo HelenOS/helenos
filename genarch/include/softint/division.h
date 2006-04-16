@@ -34,27 +34,27 @@
 int __divsi3(int a, int b);
 
 /* 64bit integer division */
-long __divdi3(long a, long b);
+long long __divdi3(long long a, long long b);
 
 /* 32bit unsigned integer division */
 unsigned int __udivsi3(unsigned int a, unsigned int b);
 
 /* 64bit unsigned integer division */
-unsigned long __udivdi3(unsigned long a, unsigned long b);
+unsigned long long __udivdi3(unsigned long long a, unsigned long long b);
 
 /* 32bit remainder of the signed division */
 int __modsi3(int a, int b);
 
 /* 64bit remainder of the signed division */
-long __moddi3(long a, long b);
+long long __moddi3(long long a, long long b);
 
 /* 32bit remainder of the unsigned division */
 unsigned int __umodsi3(unsigned int a, unsigned int b);
 
 /* 64bit remainder of the unsigned division */
-unsigned long __umoddi3(unsigned long a, unsigned long b);
+unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
 
-unsigned long __udivmoddi3(unsigned long a, unsigned long b, unsigned long *c); 
+unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsigned long long *c); 
 
 #endif
 

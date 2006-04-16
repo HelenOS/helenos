@@ -93,10 +93,10 @@ static void e(void *data)
 		}
 
 		if((int)(100000000*e)!=E_10e8)
-			panic("tid%d: e*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
+			panic("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
 	}
 
-	printf("tid%d: e*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
+	printf("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (__native) (100000000*e),(__native) E_10e8);
 	atomic_inc(&threads_ok);
 }
 
@@ -131,15 +131,15 @@ static void pi(void *data)
 
 #ifdef __ia64_ARCH_H__
 		if((int)(1000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (1000000*pi),(__native) (PI_10e8/100));
+			panic("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (__native) (1000000*pi),(__native) (PI_10e8/100));
 #else
 		if((int)(100000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
+			panic("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
 #endif
 
 	}
 
-	printf("tid%d: pi*10e8=%d should be %d\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
+	printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (__native) (100000000*pi),(__native) PI_10e8);
 	atomic_inc(&threads_ok);
 }
 

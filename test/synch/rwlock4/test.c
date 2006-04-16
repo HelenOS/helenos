@@ -132,7 +132,7 @@ void test(void)
 		thread_t *thrd;
 		
 		context_save(&ctx);
-		printf("sp=%X, readers_in=%d\n", ctx.sp, rwlock.readers_in);
+		printf("sp=%#X, readers_in=%d\n", ctx.sp, rwlock.readers_in);
 		
 		k = random(7) + 1;
 		printf("Creating %d readers\n", k);

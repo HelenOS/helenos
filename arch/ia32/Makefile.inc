@@ -102,6 +102,11 @@ ifeq ($(CONFIG_SIMICS_FIX),y)
 	DEFS += -DCONFIG_SIMICS_FIX
 endif
 
+## Compile with support for software integer division.
+#
+
+CONFIG_SOFTINT = y
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/context.s \
 	arch/$(ARCH)/src/debug/panic.s \

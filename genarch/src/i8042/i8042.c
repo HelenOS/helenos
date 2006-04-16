@@ -32,7 +32,6 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <print.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
 #include <console/chardev.h>

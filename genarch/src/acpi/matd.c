@@ -176,15 +176,15 @@ void acpi_madt_parse(void)
 			case MADT_IO_SAPIC:
 			case MADT_L_SAPIC:
 			case MADT_PLATFORM_INTR_SRC:
-				printf("MADT: skipping %s entry (type=%d)\n", entry[h->type], h->type);
+				printf("MADT: skipping %s entry (type=%zd)\n", entry[h->type], h->type);
 				break;
 
 			default:
 				if (h->type >= MADT_RESERVED_SKIP_BEGIN && h->type <= MADT_RESERVED_SKIP_END) {
-					printf("MADT: skipping reserved entry (type=%d)\n", h->type);
+					printf("MADT: skipping reserved entry (type=%zd)\n", h->type);
 				}
 				if (h->type >= MADT_RESERVED_OEM_BEGIN) {
-					printf("MADT: skipping OEM entry (type=%d)\n", h->type);
+					printf("MADT: skipping OEM entry (type=%zd)\n", h->type);
 				}
 				break;
 		}
@@ -228,7 +228,7 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
 {
 	ASSERT(override->source < sizeof(isa_irq_map)/sizeof(int));
-	printf("MADT: ignoring %s entry: bus=%d, source=%d, global_int=%d, flags=%W\n",
+	printf("MADT: ignoring %s entry: bus=%zd, source=%zd, global_int=%zd, flags=%#hX\n",
 		entry[override->header.type], override->bus, override->source,
 		override->global_int, override->flags);
 }

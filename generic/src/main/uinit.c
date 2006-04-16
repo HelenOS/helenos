@@ -31,7 +31,6 @@
 #include <proc/thread.h>
 #include <userspace.h>
 #include <mm/slab.h>
-#include <print.h>
 
 /** Thread used to bring up userspace thread.
  *

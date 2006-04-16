@@ -91,7 +91,7 @@ void test(void)
 		readers = i*READERS;
 		writers = (4-i)*WRITERS;
 
-		printf("Creating %d readers and %d writers...", readers, writers);
+		printf("Creating %ld readers and %ld writers...", readers, writers);
 		
 		for (j=0; j<(READERS+WRITERS)/2; j++) {
 			for (k=0; k<i; k++) {
@@ -116,7 +116,7 @@ void test(void)
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 		while (items_read.count != readers || items_written.count != writers) {
-			printf("%d readers remaining, %d writers remaining, readers_in=%d\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
+			printf("%zd readers remaining, %zd writers remaining, readers_in=%zd\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
 			thread_usleep(100000);
 		}
 	}

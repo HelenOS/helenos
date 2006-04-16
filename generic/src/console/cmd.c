@@ -458,9 +458,9 @@ int cmd_call0(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(): 0x%p: %s\n", symaddr, symbol);
+		printf("Calling f(): %p: %s\n", symaddr, symbol);
 		f =  (__native (*)(void)) symaddr;
-		printf("Result: 0x%p\n", f());
+		printf("Result: %p\n", f());
 	}
 	
 	return 1;
@@ -482,9 +482,9 @@ int cmd_call1(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(0x%x): 0x%p: %s\n", arg1, symaddr, symbol);
+		printf("Calling f(0x%zX): %p: %s\n", arg1, symaddr, symbol);
 		f =  (__native (*)(__native,...)) symaddr;
-		printf("Result: 0x%p\n", f(arg1));
+		printf("Result: %p\n", f(arg1));
 	}
 	
 	return 1;
@@ -507,10 +507,10 @@ int cmd_call2(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(0x%x,0x%x): 0x%p: %s\n", 
+		printf("Calling f(0x%zx,0x%zx): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		f =  (__native (*)(__native,__native,...)) symaddr;
-		printf("Result: 0x%p\n", f(arg1, arg2));
+		printf("Result: %p\n", f(arg1, arg2));
 	}
 	
 	return 1;
@@ -534,10 +534,10 @@ int cmd_call3(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(0x%x,0x%x, 0x%x): 0x%p: %s\n", 
+		printf("Calling f(0x%zx,0x%zx, 0x%zx): %p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
 		f =  (__native (*)(__native,__native,__native,...)) symaddr;
-		printf("Result: 0x%p\n", f(arg1, arg2, arg3));
+		printf("Result: %p\n", f(arg1, arg2, arg3));
 	}
 	
 	return 1;
@@ -598,7 +598,7 @@ int cmd_set4(cmd_arg_t *argv)
 	} else {
 		if (pointer)
 			addr = (__u32 *)(*(__native *)addr);
-		printf("Writing 0x%x -> 0x%p\n", arg1, addr);
+		printf("Writing 0x%x -> %p\n", arg1, addr);
 		*addr = arg1;
 		
 	}

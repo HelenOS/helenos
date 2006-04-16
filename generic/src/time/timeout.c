@@ -34,10 +34,8 @@
 #include <synch/spinlock.h>
 #include <func.h>
 #include <cpu.h>
-#include <print.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <print.h>
 
 
 /** Initialize timeouts

@@ -55,6 +55,11 @@ CONFIG_FB = y
 CONFIG_PAGE_PT = y
 DEFS += -DCONFIG_PAGE_PT
 
+## Compile with support for software integer division.
+#
+
+CONFIG_SOFTINT = y
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \

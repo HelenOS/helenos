@@ -59,7 +59,7 @@ void test(void) {
 				frames[allocated] = PA2KA(PFN2ADDR(frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status)));
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					panic("Test failed. Block at address %X (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					panic("Test failed. Block at address %P (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
 				}
 				
 				if (status == 0) {
