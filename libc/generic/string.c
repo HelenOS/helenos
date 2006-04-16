@@ -49,7 +49,7 @@ void * memcpy(void *dest, void *src, size_t n)
 
 size_t strlen(const char *str) 
 {
-	int counter = 0;
+	size_t counter = 0;
 
 	while (str[counter] != 0) {
 		counter++;

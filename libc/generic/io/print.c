@@ -68,11 +68,9 @@ static char digits_big[] = "0123456789ABCDEF"; 	/* Big hexadecimal characters */
  * @param flags
  * @return number of printed characters or EOF
  */
-						
 static int print_char(char c, int width, uint64_t flags)
 {
 	int counter = 0;
-	char space = ' ';
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (--width > 0) { 	/* one space is consumed by character itself hence predecrement */
@@ -256,7 +254,7 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 				} else {
 					putchar('b');
 				}
-				written == 2;
+				written += 2;
 				break;
 			case 8:
 				putchar('o');

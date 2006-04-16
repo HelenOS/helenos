@@ -57,6 +57,7 @@ void utest(void *arg)
 		;
 }
 
+/* test different parameters types and modifiers */
 static void test_printf(void)
 {
 	printf("Simple text.\n");
@@ -74,6 +75,20 @@ static void test_printf(void)
 	printf("Thats all, folks!\n");
 }
 
+/* test width and precision modifiers */
+static void test_printf2(void)
+{
+	printf(" text 10.8s %*.*s \n", 5, 3, "text");
+	printf(" very long text 10.8s %10.8s \n", "very long text");
+	printf(" text 8.10s %8.10s \n", "text");
+	printf(" very long text 8.10s %8.10s \n", "very long text");
+
+	printf(" char: c '%c', 3.2c '%3.2c', -3.2c '%-3.2c', 2.3c '%2.3c', -2.3c '%-2.3c' \n",'a', 'b', 'c', 'd', 'e' );
+	printf(" int: d '%d', 3.2d '%3.2d', -3.2d '%-3.2d', 2.3d '%2.3d', -2.3d '%-2.3d' \n",1, 1, 1, 1, 1 );
+	printf(" -int: d '%d', 3.2d '%3.2d', -3.2d '%-3.2d', 2.3d '%2.3d', -2.3d '%-2.3d' \n",-1, -1, -1, -1, -1 );
+	printf(" 0xint: x '%x', 5.3x '%#5.3x', -5.3x '%#-5.3x', 3.5x '%#3.5x', -3.5x '%#-3.5x' \n",17, 17, 17, 17, 17 );
+
+}
 
 extern char _heap;
 static void test_mremap(void)
@@ -278,10 +293,11 @@ int main(int argc, char *argv[])
 {
 	pstid_t ptid;
 	int tid;
-
+	
 	version_print();
 
 //	test_printf();
+//	test_printf2();
 //	test_ping();
 //	test_async_ipc();
 //	test_advanced_ipc();
