@@ -54,12 +54,12 @@ int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, ha
 	assert(op && op->hash && op->compare);
 	assert(max_keys > 0);
 	
-	h->entry = malloc(m * sizeof(link_t *));
+	h->entry = malloc(m * sizeof(link_t));
 	if (!h->entry) {
 		printf("cannot allocate memory for hash table\n");
 		return false;
 	}
-	memset((void *) h->entry, 0,  m * sizeof(link_t *));
+	memset((void *) h->entry, 0,  m * sizeof(link_t));
 	
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);
