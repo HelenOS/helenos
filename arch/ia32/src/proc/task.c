@@ -28,6 +28,7 @@
 
 #include <proc/task.h>
 #include <arch/types.h>
+#include <adt/bitmap.h>
 
 /** Perform ia32 specific task initialization.
  *
@@ -35,6 +36,5 @@
  */
 void task_create_arch(task_t *t)
 {
-	t->arch.iomap = NULL;
-	t->arch.iomap_size = 0;
+	bitmap_initialize(&t->arch.iomap, NULL, 0);
 }

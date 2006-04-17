@@ -67,6 +67,7 @@
 #define DPL_USER	(PL_USER<<5)
 
 #define TSS_BASIC_SIZE	104
+#define TSS_IOMAP_SIZE	(16*1024+1)	/* 16K for bitmap + 1 terminating byte for convenience */
 
 #ifndef __ASM__
 
@@ -144,7 +145,7 @@ struct tss {
 	__u64 reserve3;
 	__u16 reserve4;
 	__u16 iomap_base;
-	__u8 iomap[0x10000 + 1];	/* 64K + 1 terminating byte */
+	__u8 iomap[TSS_IOMAP_SIZE];
 } __attribute__ ((packed));
 typedef struct tss tss_t;
 

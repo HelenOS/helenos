@@ -31,10 +31,10 @@
 
 #include <typedefs.h>
 #include <arch/types.h>
+#include <adt/bitmap.h>
 
 typedef struct {
-	count_t iomap_size;
-	__u8 *iomap;
+	bitmap_t iomap;
 } task_arch_t;
 
 #endif

@@ -35,6 +35,7 @@
 #include <arch/debugger.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
+#include <adt/bitmap.h>
 
 /** Perform ia32 specific tasks needed before the new task is run.
  *
@@ -42,7 +43,7 @@
  */
 void before_task_runs_arch(void)
 {
-	size_t iomap_size;
+	count_t bits;
 	ptr_16_32_t cpugdtr;
 	descriptor_t *gdt_p;
 
@@ -52,18 +53,24 @@ void before_task_runs_arch(void)
 
 	/* First, copy the I/O Permission Bitmap. */
 	spinlock_lock(&TASK->lock);
-	iomap_size = TASK->arch.iomap_size;
-	if (iomap_size) {
-		ASSERT(TASK->arch.iomap);
-		memcpy(CPU->arch.tss->iomap, TASK->arch.iomap, iomap_size);
-		CPU->arch.tss->iomap[iomap_size] = 0xff;	/* terminating byte */
+	if ((bits = TASK->arch.iomap.bits)) {
+		bitmap_t iomap;
+
+		ASSERT(TASK->arch.iomap.map);
+		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
+		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
+		/*
+		 * It is safe to set the trailing four bits because of the extra
+		 * convenience byte in TSS_IOMAP_SIZE.
+		 */
+		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 4);
 	}
-	spinlock_unlock(&TASK->lock);	
+	spinlock_unlock(&TASK->lock);
 
 	/* Second, adjust TSS segment limit. */
 	gdtr_store(&cpugdtr);
 	gdt_p = (descriptor_t *) cpugdtr.base;
-	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + iomap_size - 1);
+	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits) - 1);
 	gdtr_load(&cpugdtr);
 }
 
