@@ -35,9 +35,9 @@
 
 #include <arch.h>
 
-SPINLOCK_INITIALIZE(printflock);		/**< printf spinlock */
+SPINLOCK_INITIALIZE(printflock);			/**< printf spinlock */
 
-#define __PRINTF_FLAG_PREFIX		0x00000001	/* show prefixes 0x or 0*/
+#define __PRINTF_FLAG_PREFIX		0x00000001	/* show prefixes 0x or 0 */
 #define __PRINTF_FLAG_SIGNED		0x00000002	/* signed / unsigned number */
 #define __PRINTF_FLAG_ZEROPADDED	0x00000004	/* print leading zeroes */
 #define __PRINTF_FLAG_LEFTALIGNED	0x00000010	/* align to left */
@@ -62,7 +62,7 @@ typedef enum {
 } qualifier_t;
 
 static char digits_small[] = "0123456789abcdef"; 	/* Small hexadecimal characters */
-static char digits_big[] = "0123456789ABCDEF"; 	/* Big hexadecimal characters */
+static char digits_big[] = "0123456789ABCDEF"; 		/* Big hexadecimal characters */
 
 static inline int isdigit(int c)
 {
@@ -80,9 +80,11 @@ static __native strlen(const char *str)
 	return counter;
 }
 
-/** Print one string without adding \n at end
+/** Print one string without appending '\n' to the end
+ *
  * Dont use this function directly - printflock is not locked here
- * */
+ *
+ */
 static int putstr(const char *str)
 {
 	int count;
@@ -115,6 +117,7 @@ static int putnchars(const char *buffer, __native count)
 }
 
 /** Print one formatted character
+ *
  * @param c character to print
  * @param width 
  * @param flags
@@ -125,8 +128,8 @@ static int print_char(char c, int width, __u64 flags)
 	int counter = 0;
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
-		while (--width > 0) { 	/* one space is consumed by character itself hence predecrement */
-			/* FIXME: painful slow */
+		while (--width > 0) { 	/* one space is consumed by character itself hence the predecrement */
+			/* FIXME: painfully slow */
 			putchar(' ');	
 			++counter;
 		}
@@ -135,7 +138,7 @@ static int print_char(char c, int width, __u64 flags)
  	putchar(c);
 	++counter;
 
-	while (--width > 0) { /* one space is consumed by character itself hence predecrement */
+	while (--width > 0) { /* one space is consumed by character itself hence the predecrement */
 		putchar(' ');
 		++counter;
 	}
@@ -150,7 +153,6 @@ static int print_char(char c, int width, __u64 flags)
  * @param flags
  * @return number of printed characters or EOF
  */
-						
 static int print_string(char *s, int width, int precision, __u64 flags)
 {
 	int counter = 0;
@@ -275,7 +277,7 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	}
 
 	/* print leading spaces */
-	if (size > precision) /* We must print whole number not only a part */
+	if (size > precision) /* We must print the whole number,  not only a part */
 		precision = size;
 
 	width -= precision;
@@ -346,30 +348,32 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 
 /** General formatted text print
  *
- * Print string formatted according the fmt parameter
- * and variant arguments. Each formatting directive
+ * Print string formatted according to the fmt parameter
+ * and variadic arguments. Each formatting directive
  * must have the following form:
  * % [ flags ] [ width ] [ .precision ] [ type ] conversion
  *
  * FLAGS:
- * #	Force to print prefix. For conversion %o is prefix 0, for %x and %X are prefixes 0x and 0X and for conversion %b is prefix 0b.
+ * #	Force to print prefix.
+ *	For conversion %o the prefix is 0, for %x and %X prefixes are 0x and 0X and for conversion %b the prefix is 0b.
  * -	Align to left.
  * +	Print positive sign just as negative.
  *   (space)	If printed number is positive and '+' flag is not set, print space in place of sign.
- * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of number. This flag is ignored if '-' flag is specified.
+ * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of number.
+ *	This flag is ignored if '-' flag is specified.
  * 
  * WIDTH:
  * Specify minimal width of printed argument. If it is bigger, width is ignored.
  * If width is specified with a '*' character instead of number, width is taken from parameter list. 
  * Int parameter expected before parameter for processed conversion specification.
- * If this value is negative it is taken its absolute value and the '-' flag is set.
+ * If this value is negative its absolute value is taken and the '-' flag is set.
  *
  * PRECISION:
  * Value precision. For numbers it specifies minimum valid numbers.
  * Smaller numbers are printed with leading zeroes. Bigger numbers are not affected.
- * Strings with more than precision characters are cutted of.
- * Just as width could be '*' used instead a number.
- * A int value is then expected in parameters. When both width and precision are specified using '*',
+ * Strings with more than precision characters are cut off.
+ * Just as with width, an '*' can be used used instead of a number.
+ * An integer value is then expected in parameters. When both width and precision are specified using '*',
  * first parameter is used for width and second one for precision.
  * 
  * TYPE:
@@ -673,4 +677,3 @@ out:
 	va_end(ap);
 	return counter;
 }
-
