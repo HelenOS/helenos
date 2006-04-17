@@ -208,8 +208,7 @@ static int print_string(char *s, int width, int precision, __u64 flags)
  * @param base Base to print the number in (should
  *             be in range 2 .. 16).
  * @param flags output modifiers
- * @return number of written characters or EOF
- *
+ * @return number of written characters or negative value on fail.
  */
 static int print_number(__u64 num, int width, int precision, int base , __u64 flags)
 {
@@ -345,62 +344,69 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	return written;
 }
 
-
-
 /** General formatted text print
  *
- * Print text formatted according the fmt parameter
+ * Print string formatted according the fmt parameter
  * and variant arguments. Each formatting directive
- * begins with \% (percentage) character and one of the
- * following character:
+ * must have the following form:
+ * % [ flags ] [ width ] [ .precision ] [ type ] conversion
  *
- * \%    Prints the percentage character.
+ * FLAGS:
+ * #	Force to print prefix. For conversion %o is prefix 0, for %x and %X are prefixes 0x and 0X and for conversion %b is prefix 0b.
+ * -	Align to left.
+ * +	Print positive sign just as negative.
+ *   (space)	If printed number is positive and '+' flag is not set, print space in place of sign.
+ * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of number. This flag is ignored if '-' flag is specified.
+ * 
+ * WIDTH:
+ * Specify minimal width of printed argument. If it is bigger, width is ignored.
+ * If width is specified with a '*' character instead of number, width is taken from parameter list. 
+ * Int parameter expected before parameter for processed conversion specification.
+ * If this value is negative it is taken its absolute value and the '-' flag is set.
  *
- * s    The next variant argument is treated as char*
- *      and printed as a NULL terminated string.
+ * PRECISION:
+ * Value precision. For numbers it specifies minimum valid numbers.
+ * Smaller numbers are printed with leading zeroes. Bigger numbers are not affected.
+ * Strings with more than precision characters are cutted of.
+ * Just as width could be '*' used instead a number.
+ * A int value is then expected in parameters. When both width and precision are specified using '*',
+ * first parameter is used for width and second one for precision.
+ * 
+ * TYPE:
+ * hh	signed or unsigned char
+ * h	signed or usigned short
+ * 	signed or usigned int (default value)
+ * l	signed or usigned long int
+ * ll	signed or usigned long long int
+ * z	__native (non-standard extension)
+ * 
+ * 
+ * CONVERSIONS:
+ * 
+ * %	Print percentage character.
  *
- * c    The next variant argument is treated as a single char.
+ * c	Print single character.
  *
- * p    The next variant argument is treated as a maximum
- *      bit-width integer with respect to architecture
- *      and printed in full hexadecimal width.
+ * s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
+ * 
+ * P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
+ * ( as with %#X or %#x for 32bit or %#X / %#x for 64bit long pointers).
  *
- * P    As with 'p', but '0x' is prefixed.
+ * b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
+ * 
+ * o	Print value as unsigned octal number. Prefix is not printed by default. 
  *
- * q    The next variant argument is treated as a 64b integer
- *      and printed in full hexadecimal width.
+ * d,i	Print signed decimal number. There is no difference between d and i conversion.
  *
- * Q    As with 'q', but '0x' is prefixed.
+ * u	Print unsigned decimal number.
  *
- * l    The next variant argument is treated as a 32b integer
- *      and printed in full hexadecimal width.
- *
- * L    As with 'l', but '0x' is prefixed.
- *
- * w    The next variant argument is treated as a 16b integer
- *      and printed in full hexadecimal width.
- *
- * W    As with 'w', but '0x' is prefixed.
- *
- * b    The next variant argument is treated as a 8b integer
- *      and printed in full hexadecimal width.
- *
- * B    As with 'b', but '0x' is prefixed.
- *
- * d    The next variant argument is treated as integer
- *      and printed in standard decimal format (only significant
- *      digits).
- *
- * x    The next variant argument is treated as integer
- *      and printed in standard hexadecimal format (only significant
- *      digits).
- *
- * X    As with 'x', but '0x' is prefixed.
- *
+ * X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default. 
+ * 
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *
  * @param fmt Formatting NULL terminated string.
+ * @return count of printed characters or negative value on fail.
  */
 int printf(const char *fmt, ...)
 {
