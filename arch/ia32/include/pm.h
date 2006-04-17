@@ -58,6 +58,8 @@
 #define TSS_BASIC_SIZE	104
 #define TSS_IOMAP_SIZE	(16*1024+1)	/* 16K for bitmap + 1 terminating byte for convenience */
 
+#define IO_PORTS	(64*1024)
+
 #ifndef __ASM__
 
 #include <arch/types.h>

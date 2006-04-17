@@ -30,6 +30,10 @@
 #include <proc/task.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <adt/bitmap.h>
+#include <mm/slab.h>
+#include <arch/pm.h>
+#include <errno.h>
 
 /** Enable I/O space range for task.
  *
@@ -43,5 +47,46 @@
  */
 int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
 {
+	count_t bits;
+
+	bits = ioaddr + size;
+	if (bits > IO_PORTS)
+		return ENOENT;
+
+	if (task->arch.iomap.bits < bits) {
+		bitmap_t oldiomap;
+		__u8 *newmap;
+	
+		/*
+		 * The I/O permission bitmap is too small and needs to be grown.
+		 */
+		
+		newmap = (__u8 *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
+		if (!newmap)
+			return ENOMEM;
+		
+		bitmap_initialize(&oldiomap, task->arch.iomap.map, task->arch.iomap.bits);
+		bitmap_initialize(&task->arch.iomap, newmap, bits);
+
+		/*
+		 * Mark the new range inaccessible.
+		 */
+		bitmap_set_range(&task->arch.iomap, oldiomap.bits, bits - oldiomap.bits);
+
+		/*
+		 * In case there really existed smaller iomap,
+		 * copy its contents and deallocate it.
+		 */		
+		if (oldiomap.bits) {
+			bitmap_copy(&task->arch.iomap, &oldiomap, task->arch.iomap.bits);
+			free(oldiomap.map);
+		}
+	}
+
+	/*
+	 * Enable the range and we are done.
+	 */
+	bitmap_clear_range(&task->arch.iomap, (index_t) ioaddr, (count_t) size);
+
 	return 0;
 }
