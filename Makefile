@@ -100,6 +100,7 @@ endif
 #
 
 GENERIC_SOURCES = \
+	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
