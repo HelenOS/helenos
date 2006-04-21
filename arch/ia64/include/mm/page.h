@@ -60,7 +60,6 @@
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)
-#define VHPT_BASE 			0		/* Must be aligned to VHPT_SIZE */
 
 #define PTA_BASE_SHIFT			15
 

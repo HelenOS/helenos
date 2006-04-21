@@ -36,6 +36,7 @@
 #include <mm/as.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
+#include <arch/mm/vhpt.h>
 #include <arch/barrier.h>
 #include <arch/interrupt.h>
 #include <arch/pal/pal.h>
@@ -78,6 +79,9 @@ void tlb_invalidate_all(void)
 
 		srlz_d();
 		srlz_i();
+#ifdef CONFIG_VHPT
+		vhpt_invalidate_all();
+#endif	
 }
 
 /** Invalidate entries belonging to an address space.
@@ -385,6 +389,9 @@ void dtc_pte_copy(pte_t *t)
 	entry.ps = PAGE_WIDTH;
 	
 	dtc_mapping_insert(t->page, t->as->asid, entry);
+#ifdef CONFIG_VHPT
+	vhpt_mapping_insert(t->page, t->as->asid, entry);
+#endif	
 }
 
 /** Copy content of PTE into instruction translation cache.
@@ -409,6 +416,9 @@ void itc_pte_copy(pte_t *t)
 	entry.ps = PAGE_WIDTH;
 	
 	itc_mapping_insert(t->page, t->as->asid, entry);
+#ifdef CONFIG_VHPT
+	vhpt_mapping_insert(t->page, t->as->asid, entry);
+#endif	
 }
 
 /** Instruction TLB fault handler for faults with VHPT turned off.

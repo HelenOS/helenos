@@ -31,6 +31,7 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
+#include <arch/mm/vhpt.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <print.h>
@@ -58,6 +59,9 @@ void set_environment(void)
 	region_register rr;
 	pta_register pta;	
 	int i;
+#ifdef CONFIG_VHPT	
+	__address vhpt_base;
+#endif
 
 	/*
 	 * First set up kernel region register.
@@ -88,14 +92,22 @@ void set_environment(void)
 		srlz_d();
 	}
 
+#ifdef CONFIG_VHPT	
+	vhpt_base = vhpt_set_up();
+#endif
 	/*
 	 * Set up PTA register.
 	 */
 	pta.word = pta_read();
+#ifndef CONFIG_VHPT
 	pta.map.ve = 0;                   /* disable VHPT walker */
+	pta.map.base = 0 >> PTA_BASE_SHIFT;
+#else
+	pta.map.ve = 1;                   /* enable VHPT walker */
+	pta.map.base = vhpt_base >> PTA_BASE_SHIFT;
+#endif
 	pta.map.vf = 1;                   /* large entry format */
 	pta.map.size = VHPT_WIDTH;
-	pta.map.base = VHPT_BASE >> PTA_BASE_SHIFT;
 	pta_write(pta.word);
 	srlz_i();
 	srlz_d();

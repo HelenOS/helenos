@@ -453,25 +453,25 @@ bool thread_exists(thread_t *t)
  */
 __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 {
-        thread_t *t;
-        char namebuf[THREAD_NAME_BUFLEN];
+	thread_t *t;
+	char namebuf[THREAD_NAME_BUFLEN];
 	uspace_arg_t *kernel_uarg;
 	__u32 tid;
 
-        copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
+	copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
 
 	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);	
 	copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
 
-        if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
+	if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
 		tid = t->tid;
-                thread_ready(t);
+		thread_ready(t);
 		return (__native) tid; 
-        } else {
+	} else {
 		free(kernel_uarg);
-        }
+	}
 
-        return (__native) -1;
+	return (__native) -1;
 }
 
 /** Process syscall to terminate thread.
@@ -479,7 +479,7 @@ __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
  */
 __native sys_thread_exit(int uspace_status)
 {
-        thread_exit();
-        /* Unreachable */
-        return 0;
+	thread_exit();
+	/* Unreachable */
+	return 0;
 }

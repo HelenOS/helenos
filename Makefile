@@ -78,6 +78,9 @@ endif
 ifeq ($(CONFIG_DEBUG_ALLREGS),y)
 	DEFS += -DCONFIG_DEBUG_ALLREGS
 endif
+ifeq ($(CONFIG_VHPT),y)
+	DEFS += -DCONFIG_VHPT
+endif
 
 ## Toolchain configuration
 #
