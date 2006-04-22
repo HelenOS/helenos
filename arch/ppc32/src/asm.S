@@ -30,9 +30,38 @@
 
 .text
 
+.global userspace_asm
 .global iret
 .global memsetb
 .global memcpy
+
+userspace_asm:
+
+	# r3 = uspace_uarg
+	# r4 = stack
+	# r5 = entry	
+
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	# set entry point
+	
+	mtsrr0 r5
+	
+	# set problem state, enable interrupts
+	
+	ori r31, r31, 1 << 14
+	ori r31, r31, 1 << 15
+	mtsrr1 r31
+	
+	# set stack
+	
+	mr sp, r4
+	
+	# jump to userspace
+	
+	rfi
 
 iret:
 	lwz r3, 144(sp)

@@ -44,9 +44,6 @@ tlb_invalidate_asid:
 tlb_invalidate_pages:
 	b tlb_invalidate_pages
 
-userspace:
-	b userspace
-
 sys_tls_set:
 	b sys_tls_set
 

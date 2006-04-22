@@ -41,6 +41,11 @@
 #include <arch/types.h>
 
 typedef struct {
+	__address addr;
+	__u32 size;
+} utask_t;
+
+typedef struct {
 	__address start;
 	__u32 size;
 } memzone_t;
@@ -60,6 +65,7 @@ typedef struct {
 } screen_t;
 
 typedef struct {
+	utask_t init;
 	memmap_t memmap;
 	screen_t screen;
 } bootinfo_t;

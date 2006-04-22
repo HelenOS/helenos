@@ -32,6 +32,8 @@
 #include <arch/drivers/cuda.h>
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
+#include <userspace.h>
+#include <proc/uarg.h>
 
 bootinfo_t bootinfo;
 
@@ -45,6 +47,11 @@ void arch_pre_mm_init(void)
 
 	ppc32_console_init();
 	cuda_init();
+	
+	/* Setup usermode */
+	init.cnt = 1;
+	init.tasks[0].addr = PA2KA(bootinfo.init.addr);
+	init.tasks[0].size = bootinfo.init.size;
 }
 
 void arch_post_mm_init(void)
@@ -64,3 +71,11 @@ void calibrate_delay_loop(void)
 {
 }
 
+void userspace(uspace_arg_t *kernel_uarg)
+{
+	userspace_asm((__address) kernel_uarg->uspace_uarg, (__address) kernel_uarg->uspace_stack, (__address) kernel_uarg->uspace_entry);
+	
+	/* Unreachable */
+	for (;;)
+		;
+}
