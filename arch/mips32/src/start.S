@@ -186,9 +186,11 @@ kernel_image_start:
 	/* Not sure about this, but might be needed for PIC code???? */
 	lui $gp, 0x8000
 	
-	jal main_bsp
+	jal arch_pre_main
 	nop
-
+	
+	j main_bsp
+	nop
 
 	.space TEMP_STACK_SIZE
 end_stack:
@@ -321,4 +323,3 @@ userspace_asm:
 	add $v0, $a1, 0 
 	add $t9, $a2, 0   # Set up correct entry into PIC code 
 	eret
-

@@ -57,6 +57,14 @@
 #define NORM_EXC ((char *) 0x80000180)
 #define CACHE_EXC ((char *) 0x80000100)
 
+void arch_pre_main(void)
+{
+	/* Setup usermode */
+	init.cnt = 1;
+	init.tasks[0].addr = INIT_ADDRESS;
+	init.tasks[0].size = INIT_SIZE;
+}
+
 void arch_pre_mm_init(void)
 {
 	/* It is not assumed by default */
@@ -95,11 +103,6 @@ void arch_pre_mm_init(void)
 
 	console_init();
 	debugger_init();
-	
-	/* Setup usermode */
-	init.cnt = 1;
-	init.tasks[0].addr = INIT_ADDRESS;
-	init.tasks[0].size = INIT_SIZE;
 }
 
 void arch_post_mm_init(void)

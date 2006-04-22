@@ -37,6 +37,14 @@
 
 bootinfo_t bootinfo;
 
+void arch_pre_main(void)
+{
+	/* Setup usermode */
+	init.cnt = 1;
+	init.tasks[0].addr = PA2KA(bootinfo.init.addr);
+	init.tasks[0].size = bootinfo.init.size;
+}
+
 void arch_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
@@ -47,11 +55,6 @@ void arch_pre_mm_init(void)
 
 	ppc32_console_init();
 	cuda_init();
-	
-	/* Setup usermode */
-	init.cnt = 1;
-	init.tasks[0].addr = PA2KA(bootinfo.init.addr);
-	init.tasks[0].size = bootinfo.init.size;
 }
 
 void arch_post_mm_init(void)

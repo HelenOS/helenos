@@ -67,6 +67,7 @@ kernel_image_start:
 		
 	bootinfo_end:
 	
+	bl arch_pre_main
 	b main_bsp
 
 .section K_DATA_START, "aw", @progbits
