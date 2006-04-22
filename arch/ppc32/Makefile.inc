@@ -28,12 +28,12 @@
 
 build: image.boot
 
-image.boot: kernel
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNEL=../../../$(KERNELDIR)/kernel.bin
+image.boot: kernel uspace
+	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNEL=../../../$(KERNELDIR)/kernel.bin INIT=../../../$(USPACEDIR)/init/init
 	cp arch/$(ARCH)/loader/image.boot image.boot
 
-clean: clean_kernel
+clean: clean_kernel clean_uspace
 	make -C arch/$(ARCH)/loader clean
 	-rm -f image.boot
 
-arch_distclean: distclean_kernel
+arch_distclean: distclean_kernel distclean_uspace

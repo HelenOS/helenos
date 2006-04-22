@@ -34,6 +34,10 @@
 #define KERNEL_END ((void *) &_binary_____________kernel_kernel_bin_end)
 #define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
 
+#define INIT_START ((void *) &_binary_____________uspace_init_init_start)
+#define INIT_END ((void *) &_binary_____________uspace_init_init_end)
+#define INIT_SIZE ((unsigned int) INIT_END - (unsigned int) INIT_START)
+
 #define HEAP_GAP 1024000
 
 bootinfo_t bootinfo;
@@ -79,6 +83,7 @@ void bootstrap(void)
 	printf("\nHelenOS PPC Bootloader\n");
 	
 	check_align(KERNEL_START, "Kernel image");
+	check_align(INIT_START, "Init image");
 	check_align(&real_mode, "Bootstrap trampoline");
 	check_align(&trans, "Translation table");
 	
@@ -107,16 +112,31 @@ void bootstrap(void)
 	
 	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
-	printf(" boot info            at %L (physical %L)\n", &bootinfo, bootinfo_pa);
+	printf(" init image           at %L (size %d bytes)\n", INIT_START, INIT_SIZE);
+	printf(" boot info structure  at %L (physical %L)\n", &bootinfo, bootinfo_pa);
 	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
 	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
 	
-	unsigned int top = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE);
-	unsigned int addr;
-	for (addr = 0; addr < KERNEL_SIZE; addr += PAGE_SIZE) {
-		void *pa = ofw_translate(KERNEL_START + addr);
-		fix_overlap(KERNEL_START + addr, &pa, "Kernel image", &top);
-		trans[addr >> PAGE_WIDTH] = pa;
+	unsigned int top = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) + ALIGN_UP(INIT_SIZE, PAGE_SIZE);
+	unsigned int kernel_pages = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
+	unsigned int init_pages = ALIGN_UP(INIT_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
+	
+	unsigned int i;
+	
+	for (i = 0; i < kernel_pages; i++) {
+		void *pa = ofw_translate(KERNEL_START + (i << PAGE_WIDTH));
+		fix_overlap(KERNEL_START + (i << PAGE_WIDTH), &pa, "Kernel image", &top);
+		trans[i] = pa;
+	}
+	
+	for (i = 0; i < init_pages; i++) {
+		void *pa = ofw_translate(INIT_START + (i << PAGE_WIDTH));
+		fix_overlap(INIT_START + (i << PAGE_WIDTH), &pa, "Init image", &top);
+		trans[kernel_pages + i] = pa;
+		if (i == 0) {
+			bootinfo.init.addr = (void *) ((kernel_pages + i) << PAGE_WIDTH);
+			bootinfo.init.size = INIT_SIZE;
+		}
 	}
 	
 	fix_overlap(&real_mode, &real_mode_pa, "Bootstrap trampoline", &top);
@@ -124,5 +144,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "Boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, KERNEL_SIZE, fb, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, (kernel_pages + init_pages) << PAGE_WIDTH, fb, real_mode_pa);
 }

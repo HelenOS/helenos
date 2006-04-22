@@ -23,6 +23,9 @@ SECTIONS {
 		*(COMMON); 		/* global variables */
 		
 		. = ALIGN(4096);
-		*(.image);
+		*(.kernel_image);
+		
+		. = ALIGN(4096);
+		*(.init_image);
 	}
 }
