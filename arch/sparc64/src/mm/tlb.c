@@ -172,8 +172,8 @@ void fast_data_access_mmu_miss(void)
 		tpc = tpc_read();
 		tpc_str = get_symtab_entry(tpc);
 
-		printf("Faulting page: %P, ASID=%d\n", tag.vpn * PAGE_SIZE, tag.context);
-		printf("TPC=%P, (%s)\n", tpc, tpc_str ? tpc_str : "?");
+		printf("Faulting page: %p, ASID=%d\n", tag.vpn * PAGE_SIZE, tag.context);
+		printf("TPC=%p, (%s)\n", tpc, tpc_str ? tpc_str : "?");
 		panic("%s\n", __FUNCTION__);
 	}
 

@@ -63,11 +63,11 @@ void map_structure(__address s, size_t size)
 {
 	int i, cnt, length;
 
-	length = size + (s - (s & ~(PAGE_SIZE-1)));
-	cnt = length/PAGE_SIZE + (length%PAGE_SIZE>0);
+	length = size + (s - (s & ~(PAGE_SIZE - 1)));
+	cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
 
 	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, s + i*PAGE_SIZE, s + i*PAGE_SIZE, PAGE_NOT_CACHEABLE);
+		page_mapping_insert(AS_KERNEL, s + i * PAGE_SIZE, s + i * PAGE_SIZE, PAGE_NOT_CACHEABLE);
 
 }
 

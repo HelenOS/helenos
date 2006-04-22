@@ -231,14 +231,14 @@ static void handle_exception(int slot, istate_t *istate)
 		if ((breakpoints[slot].flags & BKPOINT_CHECK_ZERO)) {
 			if (*((__native *) breakpoints[slot].address) != 0)
 				return;
-			printf("**** Found ZERO on address %P ****\n",
+			printf("**** Found ZERO on address %p ****\n",
 			       slot, breakpoints[slot].address);
 		} else {
-			printf("Data watchpoint - new data: %P\n",
+			printf("Data watchpoint - new data: %p\n",
 			       *((__native *) breakpoints[slot].address));
 		}
 	}
-	printf("Reached breakpoint %d:%P(%s)\n", slot, getip(istate),
+	printf("Reached breakpoint %d:%p(%s)\n", slot, getip(istate),
 	       get_symtab_entry(getip(istate)));
 	printf("***Type 'exit' to exit kconsole.\n");
 	atomic_set(&haltstate,1);

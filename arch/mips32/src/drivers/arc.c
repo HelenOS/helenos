@@ -135,7 +135,7 @@ static void arc_print_confdata(arc_component *c)
 	for (i=0; i < configdata->count; i++) {
 		switch (configdata->descr[i].type) {
 		case CmResourceTypePort:
-			printf("Port: %P-size:%d ",
+			printf("Port: %p-size:%d ",
 			       (__address)configdata->descr[i].u.port.start,
 			       configdata->descr[i].u.port.length);
 			break;
@@ -145,7 +145,7 @@ static void arc_print_confdata(arc_component *c)
 			       configdata->descr[i].u.interrupt.vector);
 			break;
 		case CmResourceTypeMemory:
-			printf("Memory: %P-size:%d ",
+			printf("Memory: %p-size:%d ",
 			       (__address)configdata->descr[i].u.port.start,
 			       configdata->descr[i].u.port.length);
 			break;
@@ -212,7 +212,7 @@ static int cmd_arc_print_memmap(cmd_arg_t *argv)
 
 	desc = arc_entry->getmemorydescriptor(NULL);
 	while (desc) {
-		printf("%s: %d(%P) (size: %dKB)\n",basetypes[desc->type],
+		printf("%s: %d(%p) (size: %dKB)\n",basetypes[desc->type],
 		       desc->basepage * ARC_FRAME,
 		       desc->basepage * ARC_FRAME,
 		       desc->basecount*ARC_FRAME/1024);

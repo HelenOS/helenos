@@ -633,7 +633,7 @@ void sched_print_list(void)
 			continue;
 
 		spinlock_lock(&cpus[cpu].lock);
-		printf("cpu%d: address=%P, nrdy=%ld, needs_relink=%ld\n",
+		printf("cpu%d: address=%p, nrdy=%ld, needs_relink=%ld\n",
 		       cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
 		
 		for (i=0; i<RQ_COUNT; i++) {

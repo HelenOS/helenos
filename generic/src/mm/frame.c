@@ -1028,8 +1028,7 @@ void zone_print_list(void) {
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%d: %#X \t%zd\t\t%zd\n",i,PFN2ADDR(zone->base), 
-		       zone->free_count, zone->busy_count);
+		printf("%d: %#x \t%zd\t\t%zd\n", i, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
 	spinlock_unlock(&zones.lock);

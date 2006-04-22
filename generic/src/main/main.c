@@ -176,8 +176,7 @@ void main_bsp_separated_stack(void)
 	arch_post_mm_init();	
 
 	version_print();
-	printf("%#zX: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n",
-		config.base, hardcoded_ktext_size/1024, hardcoded_kdata_size/1024);
+	printf("%#zx: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", config.base, hardcoded_ktext_size / 1024, hardcoded_kdata_size / 1024);
 
 	arch_pre_smp_init();
 	smp_init();
@@ -196,7 +195,7 @@ void main_bsp_separated_stack(void)
 	futex_init();
 	
 	for (i = 0; i < init.cnt; i++)
-		printf("init[%zd].addr=%P, init[%zd].size=%zd\n", i, init.tasks[i].addr, i, init.tasks[i].size);
+		printf("init[%zd].addr=%p, init[%zd].size=%zd\n", i, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
 

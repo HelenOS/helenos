@@ -131,14 +131,14 @@ void dump_interrupted_context(istate_t *istate)
 
 	putchar('\n');
 	printf("Interrupted context dump:\n");
-	printf("ar.bsp=%P\tar.bspstore=%P\n", istate->ar_bsp, istate->ar_bspstore);
-	printf("ar.rnat=%#llX\tar.rsc=%$llX\n", istate->ar_rnat, istate->ar_rsc);
-	printf("ar.ifs=%#llX\tar.pfs=%#llX\n", istate->ar_ifs, istate->ar_pfs);
-	printf("cr.isr=%#llX\tcr.ipsr=%#llX\t\n", istate->cr_isr.value, istate->cr_ipsr);
+	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp, istate->ar_bspstore);
+	printf("ar.rnat=%#llx\tar.rsc=%$llx\n", istate->ar_rnat, istate->ar_rsc);
+	printf("ar.ifs=%#llx\tar.pfs=%#llx\n", istate->ar_ifs, istate->ar_pfs);
+	printf("cr.isr=%#llx\tcr.ipsr=%#llx\t\n", istate->cr_isr.value, istate->cr_ipsr);
 	
-	printf("cr.iip=%#llX, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei ,iip ? iip : "?");
-	printf("cr.iipa=%#llX\t(%s)\n", istate->cr_iipa, iipa ? iipa : "?");
-	printf("cr.ifa=%#llX\t(%s)\n", istate->cr_ifa, ifa ? ifa : "?");
+	printf("cr.iip=%#llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei, iip ? iip : "?");
+	printf("cr.iipa=%#llx\t(%s)\n", istate->cr_iipa, iipa ? iipa : "?");
+	printf("cr.ifa=%#llx\t(%s)\n", istate->cr_ifa, ifa ? ifa : "?");
 }
 
 void general_exception(__u64 vector, istate_t *istate)
@@ -182,7 +182,7 @@ void disabled_fp_register(__u64 vector, istate_t *istate)
 	scheduler_fpu_lazy_request();	
 #else
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hX (%s)\n", (__u16) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
 #endif
 }
 
@@ -217,7 +217,7 @@ int break_instruction(__u64 vector, istate_t *istate)
 void universal_handler(__u64 vector, istate_t *istate)
 {
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hX (%s)\n", (__u16) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
 }
 
 void external_interrupt(__u64 vector, istate_t *istate)

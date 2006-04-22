@@ -77,7 +77,7 @@ void falloc(void * arg)
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
 					if (((__u8 *) frames[i])[k] != val) {
-						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %P offset %#zX\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						failed();
 					}
 				}

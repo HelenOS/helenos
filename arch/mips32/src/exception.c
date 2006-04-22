@@ -73,8 +73,7 @@ static void print_regdump(istate_t *istate)
 	if (s)
 		rasymbol = s;
 	
-	printf("PC: %#X(%s) RA: %#X(%s), SP(%P)\n",istate->epc,pcsymbol,
-	       istate->ra,rasymbol, istate->sp);
+	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol, istate->ra, rasymbol, istate->sp);
 }
 
 static void unhandled_exception(int n, istate_t *istate)
