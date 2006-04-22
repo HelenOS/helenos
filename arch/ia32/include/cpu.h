@@ -33,6 +33,7 @@
 #include <arch/pm.h>
 #include <arch/asm.h>
 
+#define EFLAGS_IF       (1 << 9)
 #define EFLAGS_RF       (1 << 16)
 
 struct cpu_arch {

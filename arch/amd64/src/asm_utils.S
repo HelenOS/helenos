@@ -243,13 +243,24 @@ syscall_entry:
 
 	sti
 	movq %r9, %rcx      # Exchange last parameter as a third
+	
+	cmp $2, %r8          # Is this SYS_INT_CONTROL
+	je sys_int_ctrl
+	
 	call syscall_handler
+sys_end:	
 	cli                 # We will be touching stack pointer
 		
 	popq %r11
 	popq %rcx
 	movq 0(%rsp), %rsp
 	sysretq
+	
+sys_int_ctrl:
+	mov %rsp, %rsi      # Pointer to flags
+	call ddi_int_control
+	jmp sys_end
+	
 		
 .data
 .global interrupt_handler_size

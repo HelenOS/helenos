@@ -57,6 +57,11 @@
  */
 #define CAP_IO_MANAGER		(1<<2)
 
+/**
+ * CAP_INT_CONTROL allows its holder to disable interrupts
+ */
+#define CAP_INT_CONTROL         (1<<3)
+
 typedef __u32 cap_t;
 
 extern void cap_set(task_t *t, cap_t caps);

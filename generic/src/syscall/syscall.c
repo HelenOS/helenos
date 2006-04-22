@@ -64,6 +64,11 @@ static __native sys_mremap(void *address, size_t size, int flags)
 	return as_remap(AS, (__address) address, size, 0);
 }
 
+static __native sys_int_control(int enable)
+{
+	panic("Not implemented.");
+}
+
 /** Dispatch system call */
 __native syscall_handler(__native a1, __native a2, __native a3,
 			 __native a4, __native id)
@@ -77,6 +82,7 @@ __native syscall_handler(__native a1, __native a2, __native a3,
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_io,
 	sys_tls_set,
+	sys_int_control,
 	sys_thread_create,
 	sys_thread_exit,
 	sys_futex_sleep_timeout,

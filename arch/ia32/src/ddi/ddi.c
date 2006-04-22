@@ -34,6 +34,7 @@
 #include <mm/slab.h>
 #include <arch/pm.h>
 #include <errno.h>
+#include <arch/cpu.h>
 
 /** Enable I/O space range for task.
  *
@@ -88,5 +89,19 @@ int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
 	 */
 	bitmap_clear_range(&task->arch.iomap, (index_t) ioaddr, (count_t) size);
 
+	return 0;
+}
+
+/** Enable/disable interrupts form syscall
+ *
+ * @param enable If non-zero, interrupts are enabled, otherwise disabled
+ * @param flags CP0 flags register
+ */
+__native ddi_int_control_arch(__native enable, __native *flags)
+{
+	if (enable)
+		*flags |= EFLAGS_IF;
+	else
+		*flags &= ~EFLAGS_IF;
 	return 0;
 }

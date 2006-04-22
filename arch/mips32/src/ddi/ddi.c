@@ -30,6 +30,9 @@
 #include <proc/task.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <security/cap.h>
+#include <arch.h>
+#include <arch/cp0.h>
 
 /** Enable I/O space range for task.
  *
@@ -43,5 +46,19 @@
  */
 int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
 {
+	return 0;
+}
+
+/** Enable/disable interrupts form syscall
+ *
+ * @param enable If non-zero, interrupts are enabled, otherwise disabled
+ * @param flags CP0 flags register
+ */
+__native ddi_int_control_arch(__native enable, __native *flags)
+{
+	if (enable)
+		*flags |= cp0_status_ie_enabled_bit;
+	else
+		*flags &= ~cp0_status_ie_enabled_bit;
 	return 0;
 }

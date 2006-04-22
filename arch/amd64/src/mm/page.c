@@ -168,7 +168,7 @@ void page_fault(int n, istate_t *istate)
 	page = read_cr2();
 	if (!as_page_fault(page)) {
 		print_info_errcode(n, istate);
-		printf("Page fault address: %Q\n", page);
+		printf("Page fault address: %llX\n", page);
 		panic("page fault\n");
 	}
 }
