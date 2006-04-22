@@ -30,10 +30,10 @@
 #
 
 BFD_NAME = elf64-powerpc
-BFD_ARCH = powerpc
+BFD_ARCH = powerpc:common64
 BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+TARGET = ppc64-linux-gnu
+TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ## Make some default assumptions
 #

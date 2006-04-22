@@ -31,59 +31,7 @@
 
 .section K_UNMAPPED_TEXT_START, "ax"
 
-.org 0x100
-.global exc_system_reset
-exc_system_reset:
-	b exc_system_reset
-
-.org 0x200
-.global exc_machine_check
-exc_machine_check:
-	b exc_machine_check
-
-.org 0x300
-.global exc_data_storage
-exc_data_storage:
-	b exc_data_storage
-
-.org 0x380
-.global exc_data_segment
-exc_data_segment:
-	b exc_data_segment
-
-.org 0x400
-.global exc_instruction_storage
-exc_instruction_storage:
-	b exc_instruction_storage
-
-.org 0x480
-.global exc_instruction_segment
-exc_instruction_segment:
-	b exc_instruction_segment
-
-.org 0x500
-.global exc_external
-exc_external:
-	b exc_external
-
-.org 0x600
-.global exc_alignment
-exc_alignment:
-	b exc_alignment
-
-.org 0x700
-.global exc_program
-exc_program:
-	b exc_program
-
-.org 0x800
-.global exc_fp_unavailable
-exc_fp_unavailable:
-	b exc_fp_unavailable
-
-.org 0x900
-.global exc_decrementer
-exc_decrementer:
+.macro CONTEXT_STORE
 	mtspr sprg1, sp
 	
 	subis sp, sp, 0x8000
@@ -138,6 +86,72 @@ exc_decrementer:
 	
 	mfxer r3
 	stw r3, 144(sp)
+.endm
+
+.org 0x100
+.global exc_system_reset
+exc_system_reset:
+	b exc_system_reset
+
+.org 0x200
+.global exc_machine_check
+exc_machine_check:
+	b exc_machine_check
+
+.org 0x300
+.global exc_data_storage
+exc_data_storage:
+	CONTEXT_STORE
+
+	lis r3, pht_refill@ha
+	addi r3, r3, pht_refill@l
+	mtspr srr0, r3
+	
+	mfmsr r3
+	ori r3, r3, (msr_ir | msr_dr)@l
+	mtspr srr1, r3
+	
+	lis r3, iret@ha
+	addi r3, r3, iret@l
+	mtlr r3
+	
+	addis sp, sp, 0x8000
+	rfi
+
+.org 0x400
+.global exc_instruction_storage
+exc_instruction_storage:
+	b exc_instruction_storage
+
+.org 0x480
+.global exc_instruction_segment
+exc_instruction_segment:
+	b exc_instruction_segment
+
+.org 0x500
+.global exc_external
+exc_external:
+	b exc_external
+
+.org 0x600
+.global exc_alignment
+exc_alignment:
+	b exc_alignment
+
+.org 0x700
+.global exc_program
+exc_program:
+	b exc_program
+
+.org 0x800
+.global exc_fp_unavailable
+exc_fp_unavailable:
+	b exc_fp_unavailable
+
+.org 0x900
+.global exc_decrementer
+exc_decrementer:
+	CONTEXT_STORE	
 
 	lis r3, exc_dispatch@ha
 	addi r3, r3, exc_dispatch@l

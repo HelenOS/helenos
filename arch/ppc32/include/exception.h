@@ -26,12 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32_TLB_H__
-#define __ppc32_TLB_H__
+#ifndef __ppc32_EXCEPTION_H__
+#define __ppc32_EXCEPTION_H__
 
-#include <arch/exception.h>
+#ifndef __ppc32_TYPES_H__
+#  include <arch/types.h>
+#endif
+
 #include <typedefs.h>
 
-extern void pht_refill(istate_t *istate);
+struct istate {
+	__u32 r0;
+	__u32 r2;
+	__u32 r3;
+	__u32 r4;
+	__u32 r5;
+	__u32 r6;
+	__u32 r7;
+	__u32 r8;
+	__u32 r9;
+	__u32 r10;
+	__u32 r11;
+	__u32 r12;
+	__u32 r13;
+	__u32 r14;
+	__u32 r15;
+	__u32 r16;
+	__u32 r17;
+	__u32 r18;
+	__u32 r19;
+	__u32 r20;
+	__u32 r21;
+	__u32 r22;
+	__u32 r23;
+	__u32 r24;
+	__u32 r25;
+	__u32 r26;
+	__u32 r27;
+	__u32 r28;
+	__u32 r29;
+	__u32 r30;
+	__u32 r31;
+	__u32 pc;
+	__u32 srr1;
+	__u32 lr;
+	__u32 cr;
+	__u32 ctr;
+	__u32 xer;
+};
 
 #endif

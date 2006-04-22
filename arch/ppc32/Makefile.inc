@@ -30,7 +30,7 @@
 #
 
 BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc
+BFD_ARCH = powerpc:common
 BFD = binary
 TARGET = ppc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc/bin
@@ -78,4 +78,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
-	arch/$(ARCH)/src/mm/page.c 
+	arch/$(ARCH)/src/mm/page.c  \
+	arch/$(ARCH)/src/mm/tlb.c 

@@ -48,6 +48,12 @@ typedef __u32 ipl_t;
 
 typedef __u32 __native;
 
-typedef __u32 pte_t;
+/** Page Table Entry. */
+typedef struct {
+	unsigned p : 1;       /**< Present bit. */
+	unsigned a : 1;       /**< Accessed bit. */
+	unsigned valid : 1;   /**< Valid content even if not present. */
+	unsigned pfn : 20;    /**< Physical frame number. */
+} pte_t;
 
 #endif
