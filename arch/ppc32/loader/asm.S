@@ -124,7 +124,7 @@ jump_to_kernel:
 	isync
 	rfi
 
-.section REALMODE
+.section REALMODE, "ax"
 .align PAGE_WIDTH
 .global real_mode
 
@@ -168,16 +168,17 @@ real_mode:
 	
 	copy_end:
 	
-	# invalidate segment registers
+	# initially fill segment registers
 
 	li r31, 16
 	mtctr r31
 	li r31, 0
-	li r30, 0
+	li r30, 0x2000
 
 	seg_fill:
 	
 		mtsrin r30, r31
+		addi r30, r30, 0x111
 		addis r31, r31, 0x1000    # move to next SR
 		
 		bdnz seg_fill

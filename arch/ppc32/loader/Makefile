@@ -74,7 +74,7 @@ clean:
 	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
 
 kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
+	$(OBJCOPY) -I binary -O elf32-powerpc -B powerpc:common --rename-section .data=.image $(KERNEL) $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
