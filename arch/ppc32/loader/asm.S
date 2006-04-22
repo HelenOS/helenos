@@ -110,6 +110,14 @@ jump_to_kernel:
 	# r7 = framebuffer (pa)
 	# r8 = real_mode (pa)
 	
+	# disable interrupts
+	
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	# set real_mode meeting point address
+	
 	mtspr srr0, r8
 	
 	# jumps to real_mode
