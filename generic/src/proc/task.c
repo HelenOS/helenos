@@ -163,7 +163,7 @@ task_t * task_run_program(void *program_addr, char *name)
  *
  * @return Always returns 0.
  */
-__native sys_get_task_id(task_id_t *uspace_task_id)
+__native sys_task_get_id(task_id_t *uspace_task_id)
 {
 	/*
 	 * No need to acquire lock on TASK because taskid

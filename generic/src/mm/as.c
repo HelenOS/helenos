@@ -430,7 +430,7 @@ void page_table_unlock(as_t *as, bool unlock)
  *
  * @return address on success, (__address) -1 otherwise.
  */ 
-__address as_remap(as_t *as, __address address, size_t size, int flags)
+__address as_area_resize(as_t *as, __address address, size_t size, int flags)
 {
 	as_area_t *area = NULL;
 	ipl_t ipl;

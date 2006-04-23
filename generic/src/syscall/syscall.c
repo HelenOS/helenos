@@ -51,7 +51,7 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	return count;
 }
 
-static __native sys_mmap(void *address, size_t size, int flags)
+static __native sys_as_area_create(void *address, size_t size, int flags)
 {
 	if (as_area_create(AS, flags, size, (__address) address))
 		return (__native) address;
@@ -59,9 +59,19 @@ static __native sys_mmap(void *address, size_t size, int flags)
 		return (__native) -1;
 }
 
-static __native sys_mremap(void *address, size_t size, int flags)
+static __native sys_as_area_resize(void *address, size_t size, int flags)
 {
-	return as_remap(AS, (__address) address, size, 0);
+	return as_area_resize(AS, (__address) address, size, 0);
+}
+
+static __native sys_as_area_share_approve()
+{
+	return 0;
+}
+
+static __native sys_as_area_share_perform()
+{
+	return 0;
 }
 
 static __native sys_int_control(int enable)
@@ -85,11 +95,13 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_int_control,
 	sys_thread_create,
 	sys_thread_exit,
+	sys_task_get_id,
 	sys_futex_sleep_timeout,
 	sys_futex_wakeup,
-	sys_mmap,
-	sys_mremap,
-	sys_get_task_id,
+	sys_as_area_create,
+	sys_as_area_resize,
+	sys_as_area_share_approve,
+	sys_as_area_share_perform,
 	sys_ipc_call_sync_fast,
 	sys_ipc_call_sync,
 	sys_ipc_call_async_fast,
@@ -99,6 +111,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
 	sys_ipc_hangup,
-	sys_map_physmem,
-	sys_enable_iospace
+	sys_physmem_map,
+	sys_iospace_enable
 };

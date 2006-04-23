@@ -67,6 +67,6 @@ extern task_t *task_find_by_id(task_id_t id);
 extern void task_create_arch(task_t *t);
 #endif
 
-extern __native sys_get_task_id(task_id_t *uspace_task_id);
+extern __native sys_task_get_id(task_id_t *uspace_task_id);
 
 #endif

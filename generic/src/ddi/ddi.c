@@ -50,7 +50,7 @@
  *	   ENOENT if there is no task matching the specified ID and ENOMEM if
  *	   there was a problem in creating address space area.
  */
-static int ddi_map_physmem(task_id_t id, __address pf, __address vp, count_t pages, bool writable)
+static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pages, bool writable)
 {
 	ipl_t ipl;
 	cap_t caps;
@@ -120,7 +120,7 @@ static int ddi_map_physmem(task_id_t id, __address pf, __address vp, count_t pag
  * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
  *	   ENOENT if there is no task matching the specified ID.
  */
-static int ddi_enable_iospace(task_id_t id, __address ioaddr, size_t size)
+static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
 {
 	ipl_t ipl;
 	cap_t caps;
@@ -158,7 +158,7 @@ static int ddi_enable_iospace(task_id_t id, __address ioaddr, size_t size)
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 
-	rc = ddi_enable_iospace_arch(t, ioaddr, size);
+	rc = ddi_iospace_enable_arch(t, ioaddr, size);
 	
 	spinlock_unlock(&t->lock);
 	interrupts_restore(ipl);
@@ -171,12 +171,12 @@ static int ddi_enable_iospace(task_id_t id, __address ioaddr, size_t size)
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_map_physmem(ddi_memarg_t *uspace_mem_arg)
+__native sys_physmem_map(ddi_memarg_t *uspace_mem_arg)
 {
 	ddi_memarg_t arg;
 	
 	copy_from_uspace(&arg, uspace_mem_arg, sizeof(ddi_memarg_t));
-	return (__native) ddi_map_physmem((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
+	return (__native) ddi_physmem_map((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
 					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
 					  (bool) arg.writable);
 }
@@ -187,12 +187,12 @@ __native sys_map_physmem(ddi_memarg_t *uspace_mem_arg)
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_enable_iospace(ddi_ioarg_t *uspace_io_arg)
+__native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	
 	copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
-	return (__native) ddi_enable_iospace((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
+	return (__native) ddi_iospace_enable((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
 }
 
 __native ddi_int_control(__native enable, __native *flags)
@@ -201,4 +201,3 @@ __native ddi_int_control(__native enable, __native *flags)
 		return EPERM;
 	return ddi_int_control_arch(enable, flags);
 }
-
