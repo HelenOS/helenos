@@ -29,7 +29,7 @@
 #include <libc.h>
 #include <unistd.h>
 
-/** mmap syscall
+/** Create address space area.
  *
  * @param address Virtual address where to place new address space area.
  * @param size Size of the area.
@@ -37,12 +37,12 @@
  *
  * @return address on success, (void *) -1 otherwise.
  */
-void *mmap(void *address, size_t size, int flags)
+void *as_area_create(void *address, size_t size, int flags)
 {
-	return (void *) __SYSCALL3(SYS_MMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
 }
 
-/** mremap syscall
+/** Resize address space area.
  *
  * @param address Virtual address pointing into already existing address space area.
  * @param size New requested size of the area.
@@ -50,9 +50,9 @@ void *mmap(void *address, size_t size, int flags)
  *
  * @return address on success, (void *) -1 otherwise.
  */
-void *mremap(void *address, size_t size, int flags)
+void *as_area_resize(void *address, size_t size, int flags)
 {
-	return (void *) __SYSCALL3(SYS_MREMAP, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	return (void *) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
 }
 
 static size_t heapsize = 0;
@@ -78,7 +78,7 @@ void *sbrk(ssize_t incr)
 	if (incr < 0 && incr+heapsize > heapsize)
 		return NULL;
 
-	res = mremap(&_heap, heapsize + incr,0);
+	res = as_area_resize(&_heap, heapsize + incr,0);
 	if (!res)
 		return NULL;
 	

@@ -33,6 +33,6 @@
 
 typedef uint64_t task_id_t;
 
-extern task_id_t get_task_id(void);
+extern task_id_t task_get_id(void);
 
 #endif

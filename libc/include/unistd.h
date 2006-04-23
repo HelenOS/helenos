@@ -37,8 +37,8 @@
 
 extern ssize_t write(int fd, const void * buf, size_t count);
 extern void _exit(int status);
-void *mmap(void *address, size_t size, int flags);
-void *mremap(void *address, size_t size, int flags);
+void *as_area_create(void *address, size_t size, int flags);
+void *as_area_resize(void *address, size_t size, int flags);
 void *sbrk(ssize_t incr);
 
 #endif

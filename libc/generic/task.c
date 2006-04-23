@@ -29,11 +29,11 @@
 #include <task.h>
 #include <libc.h>
 
-task_id_t get_task_id(void)
+task_id_t task_get_id(void)
 {
 	task_id_t task_id;
 
-	(void) __SYSCALL1(SYS_GET_TASK_ID, (sysarg_t) &task_id);
+	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
 
 	return task_id;
 }

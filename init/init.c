@@ -94,12 +94,12 @@ extern char _heap;
 static void test_mremap(void)
 {
 	printf("Writing to good memory\n");
-	mremap(&_heap, 120000, 0);
+	as_area_resize(&_heap, 120000, 0);
 	printf("%P\n", ((char *)&_heap));
 	printf("%P\n", ((char *)&_heap) + 80000);
 	*(((char *)&_heap) + 80000) = 10;
 	printf("Making small\n");
-	mremap(&_heap, 16000, 0);
+	as_area_resize(&_heap, 16000, 0);
 	printf("Failing..\n");
 	*((&_heap) + 80000) = 10;
 
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 //	test_hangup();
 //	test_slam();
 	
-	printf("Userspace task, taskid=%llX\n", get_task_id());
+	printf("Userspace task, taskid=%llX\n", task_get_id());
 
 	futex_initialize(&ftx, 1);
 	if (futex_down(&ftx) < 0)
