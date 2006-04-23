@@ -218,6 +218,7 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	char d[PRINT_NUMBER_BUFFER_SIZE];	/* this is good enough even for base == 2, prefix and sign */
 	char *ptr = &d[PRINT_NUMBER_BUFFER_SIZE - 1];
 	int size = 0;
+	int number_size; /* size of plain number */
 	int written = 0;
 	char sgn;
 	
@@ -236,6 +237,8 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 		} while (num /= base);
 	}
 
+	number_size = size;
+	
 	/* Collect sum of all prefixes/signs/... to calculate padding and leading zeroes */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
@@ -272,15 +275,15 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	/* if number is leftaligned or precision is specified then zeropadding is ignored */
 	if (flags & __PRINTF_FLAG_ZEROPADDED) {
 		if ((precision == 0) && (width > size)) {
-			precision = width - size;
+			precision = width - size + number_size;
 		}
 	}
 
 	/* print leading spaces */
-	if (size > precision) /* We must print the whole number,  not only a part */
-		precision = size;
+	if (number_size > precision) /* We must print whole number not only a part */
+		precision = number_size;
 
-	width -= precision;
+	width -= precision + size - number_size;
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) { 	
@@ -325,7 +328,7 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	}
 
 	/* print leading zeroes */
-	precision -= size;
+	precision -= number_size;
 	while (precision-- > 0) { 	
 		putchar('0');	
 		written++;
