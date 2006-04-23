@@ -114,7 +114,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	spinlock_unlock(&phone->lock);
 }
 
-/** Initialize phone structure and connect phone to naswerbox
+/** Initialize phone structure and connect phone to answerbox
  */
 void ipc_phone_init(phone_t *phone)
 {

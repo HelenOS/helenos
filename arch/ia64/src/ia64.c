@@ -44,6 +44,16 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 
+void arch_pre_main(void)
+{
+	/* Setup usermode init tasks. */
+	init.cnt = 2;
+	init.tasks[0].addr = INIT0_ADDRESS;
+	init.tasks[0].size = INIT0_SIZE;
+	init.tasks[1].addr = INIT1_ADDRESS;
+	init.tasks[1].size = INIT1_SIZE;
+}
+
 void arch_pre_mm_init(void)
 {
 	/* Set Interruption Vector Address (i.e. location of interruption vector table). */
@@ -51,14 +61,7 @@ void arch_pre_mm_init(void)
 	srlz_d();
 	
 	ski_init_console();
-	it_init();
-	
-	/* Setup usermode */
-	init.cnt = 2;
-	init.tasks[0].addr = INIT0_ADDRESS;
-	init.tasks[0].size = INIT0_SIZE;
-	init.tasks[1].addr = INIT1_ADDRESS;
-	init.tasks[1].size = INIT1_SIZE;
+	it_init();	
 }
 
 void arch_post_mm_init(void)

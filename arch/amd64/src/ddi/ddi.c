@@ -95,7 +95,7 @@ int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
 /** Enable/disable interrupts form syscall
  *
  * @param enable If non-zero, interrupts are enabled, otherwise disabled
- * @param flags CP0 flags register
+ * @param flags RFLAGS register
  */
 __native ddi_int_control_arch(__native enable, __native *flags)
 {

@@ -45,3 +45,14 @@ int ddi_enable_iospace_arch(task_t *task, __address ioaddr, size_t size)
 {
 	return 0;
 }
+
+/** Enable/disable interrupts for syscall
+ *
+ * @param enable If non-zero, interrupts are enabled, otherwise disabled
+ * @param flags PSR register.
+ */
+__native ddi_int_control_arch(__native enable, __native *flags)
+{
+	/* TODO: not implemented. */
+	return 0;	
+}

@@ -29,6 +29,4 @@
 #ifndef __mips32_ARCH_H__
 #define __mips32_ARCH_H__
 
-extern void arch_pre_main(void);
-
 #endif

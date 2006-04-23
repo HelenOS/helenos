@@ -128,6 +128,7 @@ paging_start:
 	srlz.i;
 	srlz.d;;
 
+	br.call.sptk.many b0 = arch_pre_main
 
 	movl r18=main_bsp ;;
 	mov b1=r18 ;;
