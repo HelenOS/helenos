@@ -132,7 +132,7 @@ void symtab_print_search(const char *name)
 	while (symtab_search_one(name, &i)) {
 		addr =  __u64_le2host(symbol_table[i].address_le);
 		realname = symbol_table[i].symbol_name;
-		printf("%p: %s\n", addr, realname);
+		printf("%.*p: %s\n", sizeof(__address) * 2, addr, realname);
 		i++;
 	}
 }

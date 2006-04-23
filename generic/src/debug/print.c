@@ -210,7 +210,7 @@ static int print_string(char *s, int width, int precision, __u64 flags)
  * @param base Base to print the number in (should
  *             be in range 2 .. 16).
  * @param flags output modifiers
- * @return number of written characters or negative value on fail.
+ * @return number of written characters or EOF.
  */
 static int print_number(__u64 num, int width, int precision, int base , __u64 flags)
 {

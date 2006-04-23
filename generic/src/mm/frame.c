@@ -1028,7 +1028,7 @@ void zone_print_list(void) {
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%d: %#x \t%zd\t\t%zd\n", i, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
+		printf("%d: %.*p \t%10zd\t%10zd\n", i, sizeof(__address) * 2, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
 	spinlock_unlock(&zones.lock);
@@ -1060,7 +1060,7 @@ void zone_print_one(int num) {
 	
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n");
-	printf("Zone base address: %#zX\n", PFN2ADDR(zone->base));
+	printf("Zone base address: %#.*p\n", sizeof(__address) * 2, PFN2ADDR(zone->base));
 	printf("Zone size: %zd frames (%zdK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
 	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
 	printf("Available space: %zd (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);

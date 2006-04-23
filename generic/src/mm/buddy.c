@@ -291,7 +291,7 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 				cnt++;
 		}
 	
-		printf("#%zd\t%zd\t%zdK\t\t%zdK\t\t%zd\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
+		printf("#%zd\t%5zd\t%7zdK\t%8zdK\t%6zd\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
 		if (!list_empty(&b->order[i])) {
 			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) {
 				b->op->print_id(b, cur);

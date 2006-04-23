@@ -91,7 +91,8 @@ static int cmd_e820mem(cmd_arg_t *argv)
 			name = e820names[e820table[i].type];
 		else
 			name = "invalid";
-		printf("%p %#llXB %s\n", 
+		printf("%.*p %#.16llXB %s\n", 
+			sizeof(__native) * 2,
 		       (__native) e820table[i].base_address, 
 		       (__u64) e820table[i].size,
 		       name);

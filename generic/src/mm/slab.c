@@ -789,10 +789,10 @@ void slab_print_list(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
-	printf("SLAB name\tOsize\tPages\tObj/pg\tSlabs\tCached\tAllocobjs\tCtl\n");
+	printf("SLAB name\t  Osize\t  Pages\t Obj/pg\t  Slabs\t Cached\tAllocobjs\tCtl\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
-		printf("%s\t%zd\t%zd\t%zd\t%zd\t%zd\t%zd\t\t%s\n", cache->name, cache->size, 
+		printf("%s\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t\t%s\n", cache->name, cache->size, 
 		       (1 << cache->order), cache->objects,
 		       atomic_get(&cache->allocated_slabs),
 		       atomic_get(&cache->cached_objs),
