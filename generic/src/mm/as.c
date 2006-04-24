@@ -137,6 +137,9 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 	if (base % PAGE_SIZE)
 		return NULL;
 
+	if (!size)
+		return NULL;
+
 	/* Writeable executable areas are not supported. */
 	if ((flags & AS_AREA_EXEC) && (flags & AS_AREA_WRITE))
 		return NULL;
@@ -461,6 +464,16 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 	}
 
 	pages = SIZE2FRAMES((address - area->base) + size);
+	if (!pages) {
+		/*
+		 * Zero size address space areas are not allowed.
+		 */
+		spinlock_unlock(&area->lock);
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+	
 	if (pages < area->pages) {
 		int i;
 
