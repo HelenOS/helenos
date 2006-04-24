@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
-
-#include <types.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <io/printf_core.h>
 
-#define EOF (-1)
+int snprintf(char *str, size_t size, const char *fmt, ...)
+{
+	int ret;
+	va_list args;
+	
+	va_start(args, fmt);
+	ret = vsnprintf(str, size, fmt, args);
 
-extern int puts(const char * str);
+	va_end(args);
 
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
-
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
-
-#endif
+	return ret;
+}

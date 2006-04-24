@@ -27,7 +27,7 @@
  */
 
 #ifndef __LIBC__IO_H__
-#define __LIBC__IO_IO_H__
+#define __LIBC__IO_H__
 
 #include <libarch/types.h>
 

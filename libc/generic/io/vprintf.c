@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
-
-#include <types.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <io/printf_core.h>
 
-#define EOF (-1)
+int vprintf_write(const char *str, size_t count, void *unused);
 
-extern int puts(const char * str);
+int vprintf_write(const char *str, size_t count, void *unused)
+{
+	return write(1, str, count);
+}
 
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
+int vprintf(const char *fmt, va_list ap)
+{
+	struct printf_spec ps = {(int(*)(void *, size_t, void *))vprintf_write, NULL};
+	return printf_core(fmt, &ps, ap);
 
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
+}
 
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
-#endif

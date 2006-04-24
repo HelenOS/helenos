@@ -50,7 +50,13 @@ GENERIC_SOURCES = \
 	generic/task.c \
 	generic/futex.c \
 	generic/io/io.c \
-	generic/io/print.c \
+	generic/io/printf.c \
+	generic/io/sprintf.c \
+	generic/io/snprintf.c \
+	generic/io/vprintf.c \
+	generic/io/vsprintf.c \
+	generic/io/vsnprintf.c \
+	generic/io/printf_core.c \
 	malloc/malloc.c \
 	generic/psthread.c
 

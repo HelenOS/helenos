@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
+#ifndef __LIBC__PRINTF_CORE_H__
+#define __LIBC__PRINTF_CORE_H__
 
-#include <types.h>
+#include <libarch/types.h>
 #include <stdarg.h>
 
-#define EOF (-1)
+/** Structure for specifying output methods for different printf clones. */
+struct printf_spec {
+	/* Output function, returns count of printed characters or EOF */
+	int (*write)(void *, size_t, void *);
+	/* Support data - output stream specification, its state, locks,... */
+	void *data;
 
-extern int puts(const char * str);
+};
 
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
-
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
+int printf_core(const char *fmt, struct printf_spec *ps ,va_list ap);
 
 #endif
