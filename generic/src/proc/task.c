@@ -115,7 +115,7 @@ task_t *task_create(as_t *as, char *name)
  * @param programe_addr Address of program executable image.
  * @param name Program name. 
  *
- * @return Task of the running program or NULL on error
+ * @return Task of the running program or NULL on error.
  */
 task_t * task_run_program(void *program_addr, char *name)
 {
@@ -225,5 +225,4 @@ void task_print_list(void)
 
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
-	
 }

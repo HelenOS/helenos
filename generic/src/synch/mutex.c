@@ -51,7 +51,7 @@ void mutex_initialize(mutex_t *mtx)
  * @param trylock Switches between blocking and non-blocking mode.
  *
  * For exact description of possible combinations of
- * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ * @usec and @trylock, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */

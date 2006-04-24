@@ -41,8 +41,8 @@ struct buddy_system_operations {
 	link_t *(* coalesce)(buddy_system_t *, link_t *, link_t *);	/**< Coalesce two buddies into a bigger block. */
 	void (*set_order)(buddy_system_t *, link_t *, __u8);		/**< Set order of block passed as argument. */
 	__u8 (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
-	void (*mark_busy)(buddy_system_t *, link_t *);			/**< Mark block as busy */
-	void (*mark_available)(buddy_system_t *, link_t *);		/**< Mark block as busy */
+	void (*mark_busy)(buddy_system_t *, link_t *);			/**< Mark block as busy. */
+	void (*mark_available)(buddy_system_t *, link_t *);		/**< Mark block as available. */
 	/** Find parent of block that has given order  */
 	link_t *(* find_block)(buddy_system_t *, link_t *, __u8);
 	void (* print_id)(buddy_system_t *, link_t *);

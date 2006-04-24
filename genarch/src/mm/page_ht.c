@@ -154,12 +154,12 @@ void remove_callback(link_t *item)
 
 /** Map page to frame using page hash table.
  *
- * Map virtual address 'page' to physical address 'frame'
- * using 'flags'. 
+ * Map virtual address @page to physical address @frame
+ * using @flags. 
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to which page belongs.
+ * @param as Address space to which @page belongs.
  * @param page Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
@@ -190,7 +190,7 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 /** Remove mapping of page from page hash table.
  *
- * Remove any mapping of 'page' within address space 'as'.
+ * Remove any mapping of @page within address space @as.
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
@@ -217,7 +217,7 @@ void ht_mapping_remove(as_t *as, __address page)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
+ * @param as Address space to wich @page belongs.
  * @param page Virtual page.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.

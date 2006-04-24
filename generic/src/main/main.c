@@ -95,7 +95,7 @@ static void main_ap_separated_stack(void);
 
 #define CONFIG_STACK_SIZE	((1<<STACK_FRAMES)*STACK_SIZE)
 
-/** Bootstrap CPU main kernel routine
+/** Main kernel routine for bootstrap CPU.
  *
  * Initializes the kernel by bootstrap CPU.
  * This function passes control directly to
@@ -137,7 +137,7 @@ void main_bsp(void)
 }
 
 
-/** Bootstrap CPU main kernel routine stack wrapper
+/** Main kernel routine for bootstrap CPU using new stack.
  *
  * Second part of main_bsp().
  *
@@ -224,7 +224,7 @@ void main_bsp_separated_stack(void)
 
 
 #ifdef CONFIG_SMP
-/** Application CPUs main kernel routine
+/** Main kernel routine for application CPUs.
  *
  * Executed by application processors, temporary stack
  * is at ctx.sp which was set during BP boot.
@@ -275,7 +275,7 @@ void main_ap(void)
 }
 
 
-/** Application CPUs main kernel routine stack wrapper
+/** Main kernel routine for application CPUs using new stack.
  *
  * Second part of main_ap().
  *

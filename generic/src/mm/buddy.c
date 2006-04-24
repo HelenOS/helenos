@@ -45,7 +45,7 @@ size_t buddy_conf_size(int max_order)
  *
  * Allocate memory for and initialize new buddy system.
  *
- * @param b Preallocated buddy system control data
+ * @param b Preallocated buddy system control data.
  * @param max_order The biggest allocable size will be 2^max_order.
  * @param op Operations for new buddy system.
  * @param data Pointer to be used by implementation.

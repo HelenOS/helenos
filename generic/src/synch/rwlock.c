@@ -91,7 +91,7 @@ void rwlock_initialize(rwlock_t *rwl) {
  * @param trylock Switches between blocking and non-blocking mode.
  *
  * For exact description of possible combinations of
- * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ * @usec and @trylock, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
@@ -145,7 +145,7 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
  * @param trylock Switches between blocking and non-blocking mode.
  *
  * For exact description of possible combinations of
- * 'usec' and 'trylock', see comment for waitq_sleep_timeout().
+ * @usec and @trylock, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */

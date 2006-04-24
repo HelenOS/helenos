@@ -80,9 +80,9 @@ static __native strlen(const char *str)
 	return counter;
 }
 
-/** Print one string without appending '\n' to the end
+/** Print one string without appending '\n' to the end.
  *
- * Dont use this function directly - printflock is not locked here
+ * Do not use this function directly - printflock is not locked here.
  *
  */
 static int putstr(const char *str)
@@ -98,8 +98,12 @@ static int putstr(const char *str)
 	return count;
 }
 
-/** Print count characters from buffer to output
+/** Print count characters from buffer to output.
  *
+ * @param buffer Address of the buffer with charaters to be printed.
+ * @param count Number of characters to be printed.
+ *
+ * @return Number of characters printed.
  */
 static int putnchars(const char *buffer, __native count)
 {
@@ -118,10 +122,10 @@ static int putnchars(const char *buffer, __native count)
 
 /** Print one formatted character
  *
- * @param c character to print
+ * @param c Character to print.
  * @param width 
  * @param flags
- * @return number of printed characters or EOF
+ * @return Number of printed characters or EOF.
  */
 static int print_char(char c, int width, __u64 flags)
 {
@@ -349,9 +353,9 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 	return written;
 }
 
-/** General formatted text print
+/** Print formatted string.
  *
- * Print string formatted according to the fmt parameter
+ * Print string formatted according to the @fmt parameter
  * and variadic arguments. Each formatting directive
  * must have the following form:
  * % [ flags ] [ width ] [ .precision ] [ type ] conversion
@@ -361,14 +365,14 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
  *	For conversion %o the prefix is 0, for %x and %X prefixes are 0x and 0X and for conversion %b the prefix is 0b.
  * -	Align to left.
  * +	Print positive sign just as negative.
- *   (space)	If printed number is positive and '+' flag is not set, print space in place of sign.
- * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of number.
+ *   (space)	If the printed number is positive and '+' flag is not set, print space in place of sign.
+ * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of the number.
  *	This flag is ignored if '-' flag is specified.
  * 
  * WIDTH:
  * Specify minimal width of printed argument. If it is bigger, width is ignored.
  * If width is specified with a '*' character instead of number, width is taken from parameter list. 
- * Int parameter expected before parameter for processed conversion specification.
+ * And integer parameter is expected before parameter for processed conversion specification.
  * If this value is negative its absolute value is taken and the '-' flag is set.
  *
  * PRECISION:
@@ -390,14 +394,14 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
  * 
  * CONVERSIONS:
  * 
- * %	Print percentage character.
+ * %	Print percentage character itself.
  *
  * c	Print single character.
  *
  * s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
  * 
  * P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
- * ( as with %#X or %#x for 32bit or %#X / %#x for 64bit long pointers).
+ * (as with %#X or %#x for 32bit or %#X / %#x for 64bit long pointers).
  *
  * b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
  * 
@@ -407,13 +411,13 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
  *
  * u	Print unsigned decimal number.
  *
- * X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default. 
+ * X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default.
  * 
- * All other characters from fmt except the formatting directives
+ * All other characters from @fmt except the formatting directives
  * are printed in verbatim.
  *
  * @param fmt Formatting NULL terminated string.
- * @return count of printed characters or negative value on fail.
+ * @return Number of printed characters or negative value on failure.
  */
 int printf(const char *fmt, ...)
 {
