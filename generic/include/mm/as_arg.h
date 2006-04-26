@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TASK_H__
-#define __TASK_H__
+#ifndef __AS_ARG_H__
+#define __AS_ARG_H__
 
-#include <typedefs.h>
-#include <synch/spinlock.h>
-#include <adt/btree.h>
-#include <adt/list.h>
-#include <ipc/ipc.h>
-#include <security/cap.h>
-#include <mm/as_arg.h>
-#include <arch/proc/task.h>
-
-/** Task structure. */
-struct task {
-	SPINLOCK_DECLARE(lock);
-	char *name;
-	link_t th_head;		/**< List of threads contained in this task. */
-	as_t *as;		/**< Address space. */
-	task_id_t taskid;	/**< Unique identity of task */
-
-	cap_t capabilities;	/**< Task capabilities. */
-
-	/* IPC stuff */
-	answerbox_t answerbox;  /**< Communication endpoint */
-	phone_t phones[IPC_MAX_PHONES];
-	atomic_t active_calls;  /**< Active asynchronous messages */
+/** Structure passed by SYS_AS_AREA_ACCEPT and SYS_AS_AREA_SEND syscalls. */
+typedef struct {
+	/**
+	 * Task ID of the allowed sender in case of SYS_AS_AREA_ACCEPT
+	 * or task ID of the recipient in case of SYS_AS_AREA_SEND.
+	 * @task_id must be different for corresponding SYS_AS_AREA_ACCEPT
+	 * and SYS_AS_AREA_SEND.
+	 */
+	unsigned long long task_id;
 	
-	/** Accept argument of SYS_AS_AREA_ACCEPT. */
-	as_area_acptsnd_arg_t accept_arg;
+	/**
+	 * Destination address in case of SYS_AS_AREA_ACCEPT,
+	 * source address in case of SYS_AS_AREA_SEND.
+	 */
+	void *base;
 	
-	task_arch_t arch;	/**< Architecture specific task data. */
-};
-
-extern spinlock_t tasks_lock;
-extern btree_t tasks_btree;
-
-extern void task_init(void);
-extern task_t *task_create(as_t *as, char *name);
-extern task_t *task_run_program(void *program_addr, char *name);
-extern task_t *task_find_by_id(task_id_t id);
-
-#ifndef task_create_arch
-extern void task_create_arch(task_t *t);
-#endif
-
-extern __native sys_task_get_id(task_id_t *uspace_task_id);
+	unsigned long size;	/**< Size of memory being sent/accepted must match. */
+	int flags;		/**< Address space area flags of sender and acceptor must match. */
+} as_area_acptsnd_arg_t;
 
 #endif

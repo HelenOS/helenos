@@ -51,29 +51,6 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	return count;
 }
 
-static __native sys_as_area_create(void *address, size_t size, int flags)
-{
-	if (as_area_create(AS, flags, size, (__address) address))
-		return (__native) address;
-	else
-		return (__native) -1;
-}
-
-static __native sys_as_area_resize(void *address, size_t size, int flags)
-{
-	return as_area_resize(AS, (__address) address, size, 0);
-}
-
-static __native sys_as_area_share_approve()
-{
-	return 0;
-}
-
-static __native sys_as_area_share_perform()
-{
-	return 0;
-}
-
 static __native sys_int_control(int enable)
 {
 	panic("Not implemented.");
@@ -93,15 +70,23 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_io,
 	sys_tls_set,
 	sys_int_control,
+
+	/* Thread and task related syscalls. */
 	sys_thread_create,
 	sys_thread_exit,
 	sys_task_get_id,
+	
+	/* Synchronization related syscalls. */
 	sys_futex_sleep_timeout,
 	sys_futex_wakeup,
+	
+	/* Address space related syscalls. */
 	sys_as_area_create,
 	sys_as_area_resize,
-	sys_as_area_share_approve,
-	sys_as_area_share_perform,
+	sys_as_area_accept,
+	sys_as_area_send,
+
+	/* IPC related syscalls. */
 	sys_ipc_call_sync_fast,
 	sys_ipc_call_sync,
 	sys_ipc_call_async_fast,
@@ -111,6 +96,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
 	sys_ipc_hangup,
+	
+	/* DDI related syscalls. */
 	sys_physmem_map,
 	sys_iospace_enable
 };

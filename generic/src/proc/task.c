@@ -31,6 +31,7 @@
 #include <proc/task.h>
 #include <proc/uarg.h>
 #include <mm/as.h>
+#include <mm/as_arg.h>
 #include <mm/slab.h>
 #include <synch/spinlock.h>
 #include <arch.h>
@@ -97,6 +98,8 @@ task_t *task_create(as_t *as, char *name)
 	if (ipc_phone_0)
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
+	
+	memsetb((__address) &ta->accept_arg, sizeof(as_area_acptsnd_arg_t), 0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);

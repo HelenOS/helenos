@@ -43,19 +43,21 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
-#include <arch/types.h>
-#include <typedefs.h>
 #include <synch/spinlock.h>
-#include <config.h>
 #include <adt/list.h>
 #include <adt/btree.h>
-#include <panic.h>
+#include <proc/task.h>
 #include <arch/asm.h>
+#include <panic.h>
 #include <debug.h>
+#include <print.h>
 #include <memstr.h>
 #include <macros.h>
 #include <arch.h>
-#include <print.h>
+#include <errno.h>
+#include <config.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 as_operations_t *as_operations = NULL;
 
@@ -71,6 +73,7 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
+static int area_flags_to_page_flags(int aflags);
 static int get_area_flags(as_area_t *a);
 static as_area_t *find_area_and_lock(as_t *as, __address va);
 static bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area);
@@ -167,6 +170,246 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 	interrupts_restore(ipl);
 
 	return a;
+}
+
+/** Find address space area and change it.
+ *
+ * @param as Address space.
+ * @param address Virtual address belonging to the area to be changed. Must be page-aligned.
+ * @param size New size of the virtual memory block starting at address. 
+ * @param flags Flags influencing the remap operation. Currently unused.
+ *
+ * @return address on success, (__address) -1 otherwise.
+ */ 
+__address as_area_resize(as_t *as, __address address, size_t size, int flags)
+{
+	as_area_t *area = NULL;
+	ipl_t ipl;
+	size_t pages;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&as->lock);
+	
+	/*
+	 * Locate the area.
+	 */
+	area = find_area_and_lock(as, address);
+	if (!area) {
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+
+	if (area->flags & AS_AREA_DEVICE) {
+		/*
+		 * Remapping of address space areas associated
+		 * with memory mapped devices is not supported.
+		 */
+		spinlock_unlock(&area->lock);
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+
+	pages = SIZE2FRAMES((address - area->base) + size);
+	if (!pages) {
+		/*
+		 * Zero size address space areas are not allowed.
+		 */
+		spinlock_unlock(&area->lock);
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return (__address) -1;
+	}
+	
+	if (pages < area->pages) {
+		int i;
+
+		/*
+		 * Shrinking the area.
+		 * No need to check for overlaps.
+		 */
+		for (i = pages; i < area->pages; i++) {
+			pte_t *pte;
+			
+			/*
+			 * Releasing physical memory.
+			 * This depends on the fact that the memory was allocated using frame_alloc().
+			 */
+			page_table_lock(as, false);
+			pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
+			if (pte && PTE_VALID(pte)) {
+				__address frame;
+
+				ASSERT(PTE_PRESENT(pte));
+				frame = PTE_GET_FRAME(pte);
+				page_mapping_remove(as, area->base + i*PAGE_SIZE);
+				page_table_unlock(as, false);
+
+				frame_free(ADDR2PFN(frame));
+			} else {
+				page_table_unlock(as, false);
+			}
+		}
+		/*
+		 * Invalidate TLB's.
+		 */
+		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
+		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
+		tlb_shootdown_finalize();
+	} else {
+		/*
+		 * Growing the area.
+		 * Check for overlaps with other address space areas.
+		 */
+		if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
+			spinlock_unlock(&area->lock);
+			spinlock_unlock(&as->lock);		
+			interrupts_restore(ipl);
+			return (__address) -1;
+		}
+	} 
+
+	area->pages = pages;
+	
+	spinlock_unlock(&area->lock);
+	spinlock_unlock(&as->lock);
+	interrupts_restore(ipl);
+
+	return address;
+}
+
+/** Send address space area to another task.
+ *
+ * Address space area is sent to the specified task.
+ * If the destination task is willing to accept the
+ * area, a new area is created according to the
+ * source area. Moreover, any existing mapping
+ * is copied as well, providing thus a mechanism
+ * for sharing group of pages. The source address
+ * space area and any associated mapping is preserved.
+ *
+ * @param id Task ID of the accepting task.
+ * @param base Base address of the source address space area.
+ * @param size Size of the source address space area.
+ * @param flags Flags of the source address space area.
+ *
+ * @return 0 on success or ENOENT if there is no such task or
+ *	   if there is no such address space area,
+ *	   EPERM if there was a problem in accepting the area or
+ *	   ENOMEM if there was a problem in allocating destination
+ *	   address space area.
+ */
+int as_area_send(task_id_t id, __address base, size_t size, int flags)
+{
+	ipl_t ipl;
+	task_t *t;
+	count_t i;
+	as_t *as;
+	__address dst_base;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	
+	t = task_find_by_id(id);
+	if (!NULL) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+
+	spinlock_lock(&t->lock);
+	spinlock_unlock(&tasks_lock);
+
+	as = t->as;
+	dst_base = (__address) t->accept_arg.base;
+	
+	if (as == AS) {
+		/*
+		 * The two tasks share the entire address space.
+		 * Return error since there is no point in continuing.
+		 */
+		spinlock_unlock(&t->lock);
+		interrupts_restore(ipl);
+		return EPERM;
+	}
+
+	if ((t->accept_arg.task_id != TASK->taskid) || (t->accept_arg.size != size) ||
+	    (t->accept_arg.flags != flags)) {
+		/*
+		 * Discrepancy in either task ID, size or flags.
+		 */
+		spinlock_unlock(&t->lock);
+		interrupts_restore(ipl);
+		return EPERM;
+	}
+	
+	/*
+	 * Create copy of the address space area.
+	 */
+	if (!as_area_create(as, flags, size, dst_base)) {
+		/*
+		 * Destination address space area could not be created.
+		 */
+		spinlock_unlock(&t->lock);
+		interrupts_restore(ipl);
+		return ENOMEM;
+	}
+	
+	/*
+	 * NOTE: we have just introduced a race condition.
+	 * The destination task can try to attempt the newly
+	 * created area before its mapping is copied from
+	 * the source address space area. In result, frames
+	 * can get lost.
+	 *
+	 * Currently, this race is not solved, but one of the
+	 * possible solutions would be to sleep in as_page_fault()
+	 * when this situation is detected.
+	 */
+
+	memsetb((__address) &t->accept_arg, sizeof(as_area_acptsnd_arg_t), 0);
+	spinlock_unlock(&t->lock);
+	
+	/*
+	 * Avoid deadlock by first locking the address space with lower address.
+	 */
+	if (as < AS) {
+		spinlock_lock(&as->lock);
+		spinlock_lock(&AS->lock);
+	} else {
+		spinlock_lock(&AS->lock);
+		spinlock_lock(&as->lock);
+	}
+	
+	for (i = 0; i < SIZE2FRAMES(size); i++) {
+		pte_t *pte;
+		__address frame;
+			
+		page_table_lock(AS, false);
+		pte = page_mapping_find(AS, base + i*PAGE_SIZE);
+		if (pte && PTE_VALID(pte)) {
+			ASSERT(PTE_PRESENT(pte));
+			frame = PTE_GET_FRAME(pte);
+			if (!(flags & AS_AREA_DEVICE)) {
+				/* TODO: increment frame reference count */
+			}
+			page_table_unlock(AS, false);
+		} else {
+			page_table_unlock(AS, false);
+			continue;
+		}
+		
+		page_table_lock(as, false);
+		page_mapping_insert(as, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(flags));
+		page_table_unlock(as, false);
+	}
+	
+	spinlock_unlock(&AS->lock);
+	spinlock_unlock(&as->lock);
+	interrupts_restore(ipl);
+	
+	return 0;
 }
 
 /** Initialize mapping for one page of address space.
@@ -344,6 +587,33 @@ void as_switch(as_t *old, as_t *new)
 	AS = new;
 }
 
+/** Convert address space area flags to page flags.
+ *
+ * @param aflags Flags of some address space area.
+ *
+ * @return Flags to be passed to page_mapping_insert().
+ */
+int area_flags_to_page_flags(int aflags)
+{
+	int flags;
+
+	flags = PAGE_USER | PAGE_PRESENT;
+	
+	if (aflags & AS_AREA_READ)
+		flags |= PAGE_READ;
+		
+	if (aflags & AS_AREA_WRITE)
+		flags |= PAGE_WRITE;
+	
+	if (aflags & AS_AREA_EXEC)
+		flags |= PAGE_EXEC;
+	
+	if (!(aflags & AS_AREA_DEVICE))
+		flags |= PAGE_CACHEABLE;
+		
+	return flags;
+}
+
 /** Compute flags for virtual address translation subsytem.
  *
  * The address space area must be locked.
@@ -355,23 +625,7 @@ void as_switch(as_t *old, as_t *new)
  */
 int get_area_flags(as_area_t *a)
 {
-	int flags;
-
-	flags = PAGE_USER | PAGE_PRESENT;
-	
-	if (a->flags & AS_AREA_READ)
-		flags |= PAGE_READ;
-		
-	if (a->flags & AS_AREA_WRITE)
-		flags |= PAGE_WRITE;
-	
-	if (a->flags & AS_AREA_EXEC)
-		flags |= PAGE_EXEC;
-	
-	if (!(a->flags & AS_AREA_DEVICE))
-		flags |= PAGE_CACHEABLE;
-		
-	return flags;
+	return area_flags_to_page_flags(a->flags);
 }
 
 /** Create page table.
@@ -424,112 +678,6 @@ void page_table_unlock(as_t *as, bool unlock)
 	as_operations->page_table_unlock(as, unlock);
 }
 
-/** Find address space area and change it.
- *
- * @param as Address space.
- * @param address Virtual address belonging to the area to be changed. Must be page-aligned.
- * @param size New size of the virtual memory block starting at address. 
- * @param flags Flags influencing the remap operation. Currently unused.
- *
- * @return address on success, (__address) -1 otherwise.
- */ 
-__address as_area_resize(as_t *as, __address address, size_t size, int flags)
-{
-	as_area_t *area = NULL;
-	ipl_t ipl;
-	size_t pages;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
-	
-	/*
-	 * Locate the area.
-	 */
-	area = find_area_and_lock(as, address);
-	if (!area) {
-		spinlock_unlock(&as->lock);
-		interrupts_restore(ipl);
-		return (__address) -1;
-	}
-
-	if (area->flags & AS_AREA_DEVICE) {
-		/*
-		 * Remapping of address space areas associated
-		 * with memory mapped devices is not supported.
-		 */
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&as->lock);
-		interrupts_restore(ipl);
-		return (__address) -1;
-	}
-
-	pages = SIZE2FRAMES((address - area->base) + size);
-	if (!pages) {
-		/*
-		 * Zero size address space areas are not allowed.
-		 */
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&as->lock);
-		interrupts_restore(ipl);
-		return (__address) -1;
-	}
-	
-	if (pages < area->pages) {
-		int i;
-
-		/*
-		 * Shrinking the area.
-		 * No need to check for overlaps.
-		 */
-		for (i = pages; i < area->pages; i++) {
-			pte_t *pte;
-			
-			/*
-			 * Releasing physical memory.
-			 * This depends on the fact that the memory was allocated using frame_alloc().
-			 */
-			page_table_lock(as, false);
-			pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
-			if (pte && PTE_VALID(pte)) {
-				__address frame;
-
-				ASSERT(PTE_PRESENT(pte));
-				frame = PTE_GET_FRAME(pte);
-				page_mapping_remove(as, area->base + i*PAGE_SIZE);
-				page_table_unlock(as, false);
-
-				frame_free(ADDR2PFN(frame));
-			} else {
-				page_table_unlock(as, false);
-			}
-		}
-		/*
-		 * Invalidate TLB's.
-		 */
-		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
-		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
-		tlb_shootdown_finalize();
-	} else {
-		/*
-		 * Growing the area.
-		 * Check for overlaps with other address space areas.
-		 */
-		if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
-			spinlock_unlock(&area->lock);
-			spinlock_unlock(&as->lock);		
-			interrupts_restore(ipl);
-			return (__address) -1;
-		}
-	} 
-
-	area->pages = pages;
-	
-	spinlock_unlock(&area->lock);
-	spinlock_unlock(&as->lock);
-	interrupts_restore(ipl);
-
-	return address;
-}
 
 /** Find address space area and lock it.
  *
@@ -666,4 +814,71 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	}
 
 	return true;
+}
+
+/*
+ * Address space related syscalls.
+ */
+
+/** Wrapper for as_area_create(). */
+__native sys_as_area_create(__address address, size_t size, int flags)
+{
+	if (as_area_create(AS, flags, size, address))
+		return (__native) address;
+	else
+		return (__native) -1;
+}
+
+/** Wrapper for as_area_resize. */
+__native sys_as_area_resize(__address address, size_t size, int flags)
+{
+	return as_area_resize(AS, address, size, 0);
+}
+
+/** Prepare task for accepting address space area from another task.
+ *
+ * @param uspace_accept_arg Accept structure passed from userspace.
+ *
+ * @return EPERM if the task ID encapsulated in @uspace_accept_arg references
+ *	   TASK. Otherwise zero is returned.
+ */
+__native sys_as_area_accept(as_area_acptsnd_arg_t *uspace_accept_arg)
+{
+	as_area_acptsnd_arg_t arg;
+	
+	copy_from_uspace(&arg, uspace_accept_arg, sizeof(as_area_acptsnd_arg_t));
+	
+	if (!arg.size)
+		return (__native) EPERM;
+	
+	if (arg.task_id == TASK->taskid) {
+		/*
+		 * Accepting from itself is not allowed.
+		 */
+		return (__native) EPERM;
+	}
+	
+	memcpy(&TASK->accept_arg, &arg, sizeof(as_area_acptsnd_arg_t));
+	
+        return 0;
+}
+
+/** Wrapper for as_area_send. */
+__native sys_as_area_send(as_area_acptsnd_arg_t *uspace_send_arg)
+{
+	as_area_acptsnd_arg_t arg;
+	
+	copy_from_uspace(&arg, uspace_send_arg, sizeof(as_area_acptsnd_arg_t));
+
+	if (!arg.size)
+		return (__native) EPERM;
+	
+	if (arg.task_id == TASK->taskid) {
+		/*
+		 * Sending to itself is not allowed.
+		 */
+		return (__native) EPERM;
+	}
+
+	return (__native) as_area_send(arg.task_id, (__address) arg.base, arg.size, arg.flags);
 }
