@@ -82,7 +82,7 @@ jump_to_kernel:
 #endif /* CONFIG_SMP */
 
 
-.section K_DATA_START, "wx", @progbits
+.section K_DATA_START, "aw", @progbits
 
 #ifdef CONFIG_SMP
 
