@@ -126,13 +126,14 @@ void as_free(as_t *as)
  * The created address space area is added to the target address space.
  *
  * @param as Target address space.
- * @param flags Flags of the area.
+ * @param flags Flags of the area memory.
  * @param size Size of area.
  * @param base Base address of area.
+ * @param attrs Attributes of the area.
  *
  * @return Address space area on success or NULL on failure.
  */
-as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
+as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs)
 {
 	ipl_t ipl;
 	as_area_t *a;
@@ -161,6 +162,7 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base)
 	spinlock_initialize(&a->lock, "as_area_lock");
 	
 	a->flags = flags;
+	a->attributes = attrs;
 	a->pages = SIZE2FRAMES(size);
 	a->base = base;
 	
@@ -289,8 +291,8 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
  * for sharing group of pages. The source address
  * space area and any associated mapping is preserved.
  *
- * @param id Task ID of the accepting task.
- * @param base Base address of the source address space area.
+ * @param dst_id Task ID of the accepting task.
+ * @param src_base Base address of the source address space area.
  *
  * @return 0 on success or ENOENT if there is no such task or
  *	   if there is no such address space area,
@@ -298,21 +300,21 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
  *	   ENOMEM if there was a problem in allocating destination
  *	   address space area.
  */
-int as_area_send(task_id_t id, __address base)
+int as_area_send(task_id_t dst_id, __address src_base)
 {
 	ipl_t ipl;
 	task_t *t;
 	count_t i;
-	as_t *as;
+	as_t *dst_as;
 	__address dst_base;
-	int flags;
-	size_t size;
-	as_area_t *area;
+	int src_flags;
+	size_t src_size;
+	as_area_t *src_area, *dst_area;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
-	t = task_find_by_id(id);
+	t = task_find_by_id(dst_id);
 	if (!NULL) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
@@ -322,10 +324,10 @@ int as_area_send(task_id_t id, __address base)
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 
-	as = t->as;
+	dst_as = t->as;
 	dst_base = (__address) t->accept_arg.base;
 	
-	if (as == AS) {
+	if (dst_as == AS) {
 		/*
 		 * The two tasks share the entire address space.
 		 * Return error since there is no point in continuing.
@@ -336,8 +338,8 @@ int as_area_send(task_id_t id, __address base)
 	}
 	
 	spinlock_lock(&AS->lock);
-	area = find_area_and_lock(AS, base);
-	if (!area) {
+	src_area = find_area_and_lock(AS, src_base);
+	if (!src_area) {
 		/*
 		 * Could not find the source address space area.
 		 */
@@ -346,13 +348,13 @@ int as_area_send(task_id_t id, __address base)
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
-	size = area->pages * PAGE_SIZE;
-	flags = area->flags;
-	spinlock_unlock(&area->lock);
+	src_size = src_area->pages * PAGE_SIZE;
+	src_flags = src_area->flags;
+	spinlock_unlock(&src_area->lock);
 	spinlock_unlock(&AS->lock);
 
-	if ((t->accept_arg.task_id != TASK->taskid) || (t->accept_arg.size != size) ||
-	    (t->accept_arg.flags != flags)) {
+	if ((t->accept_arg.task_id != TASK->taskid) || (t->accept_arg.size != src_size) ||
+	    (t->accept_arg.flags != src_flags)) {
 		/*
 		 * Discrepancy in either task ID, size or flags.
 		 */
@@ -362,9 +364,13 @@ int as_area_send(task_id_t id, __address base)
 	}
 	
 	/*
-	 * Create copy of the address space area.
+	 * Create copy of the source address space area.
+	 * The destination area is created with AS_AREA_ATTR_PARTIAL
+	 * attribute set which prevents race condition with
+	 * preliminary as_page_fault() calls.
 	 */
-	if (!as_area_create(as, flags, size, dst_base)) {
+	dst_area = as_area_create(dst_as, src_flags, src_size, dst_base, AS_AREA_ATTR_PARTIAL);
+	if (!dst_area) {
 		/*
 		 * Destination address space area could not be created.
 		 */
@@ -373,42 +379,30 @@ int as_area_send(task_id_t id, __address base)
 		return ENOMEM;
 	}
 	
-	/*
-	 * NOTE: we have just introduced a race condition.
-	 * The destination task can try to attempt the newly
-	 * created area before its mapping is copied from
-	 * the source address space area. In result, frames
-	 * can get lost.
-	 *
-	 * Currently, this race is not solved, but one of the
-	 * possible solutions would be to sleep in as_page_fault()
-	 * when this situation is detected.
-	 */
-
 	memsetb((__address) &t->accept_arg, sizeof(as_area_acptsnd_arg_t), 0);
 	spinlock_unlock(&t->lock);
 	
 	/*
 	 * Avoid deadlock by first locking the address space with lower address.
 	 */
-	if (as < AS) {
-		spinlock_lock(&as->lock);
+	if (dst_as < AS) {
+		spinlock_lock(&dst_as->lock);
 		spinlock_lock(&AS->lock);
 	} else {
 		spinlock_lock(&AS->lock);
-		spinlock_lock(&as->lock);
+		spinlock_lock(&dst_as->lock);
 	}
 	
-	for (i = 0; i < SIZE2FRAMES(size); i++) {
+	for (i = 0; i < SIZE2FRAMES(src_size); i++) {
 		pte_t *pte;
 		__address frame;
 			
 		page_table_lock(AS, false);
-		pte = page_mapping_find(AS, base + i*PAGE_SIZE);
+		pte = page_mapping_find(AS, src_base + i*PAGE_SIZE);
 		if (pte && PTE_VALID(pte)) {
 			ASSERT(PTE_PRESENT(pte));
 			frame = PTE_GET_FRAME(pte);
-			if (!(flags & AS_AREA_DEVICE))
+			if (!(src_flags & AS_AREA_DEVICE))
 				frame_reference_add(ADDR2PFN(frame));
 			page_table_unlock(AS, false);
 		} else {
@@ -416,13 +410,22 @@ int as_area_send(task_id_t id, __address base)
 			continue;
 		}
 		
-		page_table_lock(as, false);
-		page_mapping_insert(as, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(flags));
-		page_table_unlock(as, false);
+		page_table_lock(dst_as, false);
+		page_mapping_insert(dst_as, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(src_flags));
+		page_table_unlock(dst_as, false);
 	}
+
+	/*
+	 * Now the destination address space area has been
+	 * fully initialized. Clear the AS_AREA_ATTR_PARTIAL
+	 * attribute.
+	 */	
+	spinlock_lock(&dst_area->lock);
+	dst_area->attributes &= ~AS_AREA_ATTR_PARTIAL;
+	spinlock_unlock(&dst_area->lock);
 	
 	spinlock_unlock(&AS->lock);
-	spinlock_unlock(&as->lock);
+	spinlock_unlock(&dst_as->lock);
 	interrupts_restore(ipl);
 	
 	return 0;
@@ -484,6 +487,16 @@ int as_page_fault(__address page)
 		 */
 		spinlock_unlock(&AS->lock);
 		return 0;
+	}
+
+	if (area->attributes & AS_AREA_ATTR_PARTIAL) {
+		/*
+		 * The address space area is not fully initialized.
+		 * Avoid possible race by returning error.
+		 */
+		spinlock_unlock(&area->lock);
+		spinlock_unlock(&AS->lock);
+		return 0;		
 	}
 
 	ASSERT(!(area->flags & AS_AREA_DEVICE));
@@ -839,7 +852,7 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 /** Wrapper for as_area_create(). */
 __native sys_as_area_create(__address address, size_t size, int flags)
 {
-	if (as_area_create(AS, flags, size, address))
+	if (as_area_create(AS, flags, size, address, AS_AREA_ATTR_NONE))
 		return (__native) address;
 	else
 		return (__native) -1;

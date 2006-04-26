@@ -186,7 +186,7 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	} else /* Map identically original data */
 		segment = ((void *) elf) + entry->p_offset;
 
-	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr);
+	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr, AS_AREA_ATTR_NONE);
 	if (!a)
 		return EE_MEMORY;
 	

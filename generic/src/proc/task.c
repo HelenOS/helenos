@@ -151,7 +151,8 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create the data as_area.
 	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, LOADED_PROG_STACK_PAGES_NO*PAGE_SIZE, USTACK_ADDRESS);
+	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE, LOADED_PROG_STACK_PAGES_NO*PAGE_SIZE,
+		USTACK_ADDRESS, AS_AREA_ATTR_NONE);
 
 	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
 	ASSERT(t);
