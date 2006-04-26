@@ -75,7 +75,7 @@ int as_area_accept(task_id_t id, void *base, size_t size, int flags)
 	arg.size = size;
 	arg.flags = flags;
 	
-	return __SYSCALL1(SYS_AS_AREA_ACCEPT, (__native) &arg);
+	return __SYSCALL1(SYS_AS_AREA_ACCEPT, (sysarg_t) &arg);
 }
 
 /** Send address space area to another task.
@@ -94,7 +94,7 @@ int as_area_send(task_id_t id, void *base)
 	arg.size = 0;
 	arg.flags = 0;
 	
-	return __SYSCALL1(SYS_AS_AREA_SEND, (__native) &arg);
+	return __SYSCALL1(SYS_AS_AREA_SEND, (sysarg_t) &arg);
 }
 
 static size_t heapsize = 0;
