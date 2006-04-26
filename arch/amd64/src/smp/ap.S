@@ -102,7 +102,7 @@ start64:
 
 #endif /* CONFIG_SMP */
 
-.section K_DATA_START, "ax"
+.section K_DATA_START, "wx", @progbits
 
 #ifdef CONFIG_SMP
 
