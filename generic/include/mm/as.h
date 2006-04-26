@@ -114,7 +114,7 @@ extern void as_init(void);
 extern as_t *as_create(int flags);
 extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base);
 extern __address as_area_resize(as_t *as, __address address, size_t size, int flags);
-int as_area_send(task_id_t id, __address base, size_t size, int flags);
+int as_area_send(task_id_t id, __address base);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page);
 extern void as_switch(as_t *old, as_t *new);

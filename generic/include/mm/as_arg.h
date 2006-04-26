@@ -45,6 +45,9 @@ typedef struct {
 	 */
 	void *base;
 	
+	/*
+	 * The following members are filled only by acceptor.
+	 */
 	unsigned long size;	/**< Size of memory being sent/accepted must match. */
 	int flags;		/**< Address space area flags of sender and acceptor must match. */
 } as_area_acptsnd_arg_t;

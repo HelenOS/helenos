@@ -291,8 +291,6 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
  *
  * @param id Task ID of the accepting task.
  * @param base Base address of the source address space area.
- * @param size Size of the source address space area.
- * @param flags Flags of the source address space area.
  *
  * @return 0 on success or ENOENT if there is no such task or
  *	   if there is no such address space area,
@@ -300,13 +298,16 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
  *	   ENOMEM if there was a problem in allocating destination
  *	   address space area.
  */
-int as_area_send(task_id_t id, __address base, size_t size, int flags)
+int as_area_send(task_id_t id, __address base)
 {
 	ipl_t ipl;
 	task_t *t;
 	count_t i;
 	as_t *as;
 	__address dst_base;
+	int flags;
+	size_t size;
+	as_area_t *area;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
@@ -333,6 +334,22 @@ int as_area_send(task_id_t id, __address base, size_t size, int flags)
 		interrupts_restore(ipl);
 		return EPERM;
 	}
+	
+	spinlock_lock(&AS->lock);
+	area = find_area_and_lock(AS, base);
+	if (!area) {
+		/*
+		 * Could not find the source address space area.
+		 */
+		spinlock_unlock(&t->lock);
+		spinlock_unlock(&AS->lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+	size = area->pages * PAGE_SIZE;
+	flags = area->flags;
+	spinlock_unlock(&area->lock);
+	spinlock_unlock(&AS->lock);
 
 	if ((t->accept_arg.task_id != TASK->taskid) || (t->accept_arg.size != size) ||
 	    (t->accept_arg.flags != flags)) {
@@ -879,5 +896,5 @@ __native sys_as_area_send(as_area_acptsnd_arg_t *uspace_send_arg)
 		return (__native) EPERM;
 	}
 
-	return (__native) as_area_send(arg.task_id, (__address) arg.base, arg.size, arg.flags);
+	return (__native) as_area_send(arg.task_id, (__address) arg.base);
 }
