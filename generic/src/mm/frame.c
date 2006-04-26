@@ -58,11 +58,11 @@ typedef struct {
 	__u8 buddy_order;	/**< buddy system block order */
 	link_t buddy_link;	/**< link to the next free block inside one order */
 	void *parent;           /**< If allocated by slab, this points there */
-}frame_t;
+} frame_t;
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
-	pfn_t base;	/**< frame_no of the first frame in the frames array */
+	pfn_t base;		/**< frame_no of the first frame in the frames array */
 	count_t count;          /**< Size of zone */
 
 	frame_t *frames;	/**< array of frame_t structures in this zone */
@@ -71,7 +71,7 @@ typedef struct {
 	
 	buddy_system_t * buddy_system; /**< buddy system for the zone */
 	int flags;
-}zone_t;
+} zone_t;
 
 /*
  * The zoneinfo.lock must be locked when accessing zoneinfo structure.
@@ -82,7 +82,7 @@ struct {
 	SPINLOCK_DECLARE(lock);
 	int count;
 	zone_t *info[ZONES_MAX];
-}zones;
+} zones;
 
 
 /*********************************/
@@ -944,11 +944,11 @@ loop:
 
 /** Free a frame.
  *
- * Find respective frame structure for supplied addr.
+ * Find respective frame structure for supplied PFN.
  * Decrement frame reference count.
  * If it drops to zero, move the frame structure to free list.
  *
- * @param frame Frame no to be freed.
+ * @param frame Frame number to be freed.
  */
 void frame_free(pfn_t pfn)
 {
@@ -969,7 +969,33 @@ void frame_free(pfn_t pfn)
 	interrupts_restore(ipl);
 }
 
+/** Add reference to frame.
+ *
+ * Find respective frame structure for supplied PFN and
+ * increment frame reference count.
+ *
+ * @param frame Frame no to be freed.
+ */
+void frame_reference_add(pfn_t pfn)
+{
+	ipl_t ipl;
+	zone_t *zone;
+	frame_t *frame;
 
+	ipl = interrupts_disable();
+	
+	/*
+	 * First, find host frame zone for addr.
+	 */
+	zone = find_zone_and_lock(pfn,NULL);
+	ASSERT(zone);
+	
+	frame = &zone->frames[pfn-zone->base];
+	frame->refcount++;
+	
+	spinlock_unlock(&zone->lock);
+	interrupts_restore(ipl);
+}
 
 /** Mark given range unavailable in frame zones */
 void frame_mark_unavailable(pfn_t start, count_t count)

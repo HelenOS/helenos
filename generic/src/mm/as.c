@@ -391,9 +391,8 @@ int as_area_send(task_id_t id, __address base, size_t size, int flags)
 		if (pte && PTE_VALID(pte)) {
 			ASSERT(PTE_PRESENT(pte));
 			frame = PTE_GET_FRAME(pte);
-			if (!(flags & AS_AREA_DEVICE)) {
-				/* TODO: increment frame reference count */
-			}
+			if (!(flags & AS_AREA_DEVICE))
+				frame_reference_add(ADDR2PFN(frame));
 			page_table_unlock(AS, false);
 		} else {
 			page_table_unlock(AS, false);
