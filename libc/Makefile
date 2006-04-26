@@ -44,7 +44,7 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
-	generic/mmap.c \
+	generic/as.c \
 	generic/string.c \
 	generic/thread.c \
 	generic/task.c \

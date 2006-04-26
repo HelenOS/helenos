@@ -28,6 +28,8 @@
 
 #include <libc.h>
 #include <unistd.h>
+#include <kernel/mm/as_arg.h>
+#include <task.h>
 
 /** Create address space area.
  *
@@ -53,6 +55,46 @@ void *as_area_create(void *address, size_t size, int flags)
 void *as_area_resize(void *address, size_t size, int flags)
 {
 	return (void *) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+}
+
+/** Prepare to accept address space area.
+ *
+ * @param id Task ID of the donor task.
+ * @param base Destination address for the new address space area.
+ * @param size Size of the new address space area.
+ * @param flags Flags of the area TASK is willing to accept.
+ *
+ * @return 0 on success or a code from errno.h.
+ */
+int as_area_accept(task_id_t id, void *base, size_t size, int flags)
+{
+	as_area_acptsnd_arg_t arg;
+	
+	arg.task_id = id;
+	arg.base = base;
+	arg.size = size;
+	arg.flags = flags;
+	
+	return __SYSCALL1(SYS_AS_AREA_ACCEPT, (__native) &arg);
+}
+
+/** Send address space area to another task.
+ *
+ * @param id Task ID of the acceptor task.
+ * @param base Source address of the existing address space area.
+ *
+ * @return 0 on success or a code from errno.h.
+ */
+int as_area_send(task_id_t id, void *base)
+{
+	as_area_acptsnd_arg_t arg;
+	
+	arg.task_id = id;
+	arg.base = base;
+	arg.size = 0;
+	arg.flags = 0;
+	
+	return __SYSCALL1(SYS_AS_AREA_SEND, (__native) &arg);
 }
 
 static size_t heapsize = 0;
