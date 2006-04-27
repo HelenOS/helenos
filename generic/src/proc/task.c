@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	task.c
+ * @brief	Task management.
+ */
+
 #include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
@@ -115,7 +120,7 @@ task_t *task_create(as_t *as, char *name)
 
 /** Create new task with 1 thread and run it
  *
- * @param programe_addr Address of program executable image.
+ * @param program_addr Address of program executable image.
  * @param name Program name. 
  *
  * @return Task of the running program or NULL on error.
@@ -163,7 +168,7 @@ task_t * task_run_program(void *program_addr, char *name)
 
 /** Syscall for reading task ID from userspace.
  *
- * @param uaddr Userspace address of 8-byte buffer where to store current task ID.
+ * @param uspace_task_id Userspace address of 8-byte buffer where to store current task ID.
  *
  * @return Always returns 0.
  */

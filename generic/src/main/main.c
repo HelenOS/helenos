@@ -26,6 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	main.c
+ * @brief 	Main initialization kernel function for all processors.
+ *
+ * During kernel boot, all processors, after architecture dependent
+ * initialization, start executing code found in this file. After
+ * bringing up all subsystems, control is passed to scheduler().
+ *
+ * The bootstrap processor starts executing main_bsp() while
+ * the application processors start executing main_ap().
+ *
+ * @see scheduler()
+ * @see main_bsp()
+ * @see main_ap()
+ */
+
 #include <arch/asm.h>
 #include <context.h>
 #include <print.h>

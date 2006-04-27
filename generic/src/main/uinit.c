@@ -26,6 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	uinit.c
+ * @brief	Userspace bootstrap thread.
+ *
+ * This file contains uinit kernel thread wich is used to start every
+ * userspace thread including threads created by SYS_THREAD_CREATE syscall.
+ *
+ * @see SYS_THREAD_CREATE
+ */
+ 
 #include <main/uinit.h>
 #include <arch/types.h>
 #include <proc/thread.h>

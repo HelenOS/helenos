@@ -93,7 +93,7 @@ void futex_initialize(futex_t *futex)
  *
  * @param uaddr Userspace address of the futex counter.
  * @param usec If non-zero, number of microseconds this thread is willing to sleep.
- * @param trydown If @usec is zero and trydown is non-zero, conditional operation will be attempted.
+ * @param trydown If usec is zero and trydown is non-zero, conditional operation will be attempted.
  *
  * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
  *	   If there is no physical mapping for uaddr ENOENT is returned.
@@ -218,7 +218,7 @@ futex_t *futex_find(__address paddr)
 
 /** Compute hash index into futex hash table.
  *
- * @param key Address where the @key (i.e. physical address of futex counter) is stored.
+ * @param key Address where the key (i.e. physical address of futex counter) is stored.
  *
  * @return Index into futex hash table.
  */
@@ -231,7 +231,7 @@ index_t futex_ht_hash(__native *key)
  *
  * @param key Address where the key (i.e. physical address of futex counter) is stored.
  *
- * @return True if the item matches the @key. False otherwise.
+ * @return True if the item matches the key. False otherwise.
  */
 bool futex_ht_compare(__native *key, count_t keys, link_t *item)
 {

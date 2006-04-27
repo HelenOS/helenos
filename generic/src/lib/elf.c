@@ -147,7 +147,7 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *
  *
  * @param entry Program header entry describing segment to be loaded.
  * @param elf ELF header.
- * @parma as Address space into wich the ELF is being loaded.
+ * @param as Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
  */

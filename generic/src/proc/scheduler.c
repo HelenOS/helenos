@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	scheduler.c
+ * @brief	Scheduler and load balancing.
+ *
+ * This file contains the scheduler and kcpulb kernel thread wich
+ * performs load-balancing of per-CPU run queues.
+ */
+
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>

@@ -49,8 +49,8 @@ page_mapping_operations_t pt_mapping_operations = {
 
 /** Map page to frame using hierarchical page tables.
  *
- * Map virtual address @page to physical address @frame
- * using @flags.
+ * Map virtual address page to physical address frame
+ * using flags.
  *
  * The page table must be locked and interrupts must be disabled.
  *
@@ -99,7 +99,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 /** Remove mapping of page from hierarchical page tables.
  *
- * Remove any mapping of 'page' within address space 'as'.
+ * Remove any mapping of page within address space as.
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
@@ -107,7 +107,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich @page belongs.
+ * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
  */
 void pt_mapping_remove(as_t *as, __address page)
@@ -227,7 +227,7 @@ void pt_mapping_remove(as_t *as, __address page)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to which @page belongs.
+ * @param as Address space to which page belongs.
  * @param page Virtual page.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.

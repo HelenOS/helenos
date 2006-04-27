@@ -26,8 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * This is an implementation of generic chained hash table.
+/**
+ * @file	hash_table.c
+ * @brief	Implementation of generic chained hash table.
+ *
+ * This file contains implementation of generic chained hash table.
  */
 
 #include <adt/hash_table.h>
@@ -125,7 +128,7 @@ link_t *hash_table_find(hash_table_t *h, __native key[])
  *
  * @param h Hash table.
  * @param key Array of keys that will be compared against items of the hash table.
- * @param keys Number of keys in the 'key' array.
+ * @param keys Number of keys in the key array.
  */
 void hash_table_remove(hash_table_t *h, __native key[], count_t keys)
 {

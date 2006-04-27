@@ -26,10 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
+/**
+ * @file	as.c
+ * @brief	Address space related functions.
+ *
  * This file contains address space manipulation functions.
  * Roughly speaking, this is a higher-level client of
  * Virtual Address Translation (VAT) subsystem.
+ *
+ * Functionality provided by this file allows one to
+ * create address space and create, resize and share
+ * address space areas.
+ *
+ * @see page.c
+ *
  */
 
 #include <mm/as.h>
@@ -684,7 +694,7 @@ pte_t *page_table_create(int flags)
  * call in which case the lock argument is false.
  *
  * @param as Address space.
- * @param as_locked If false, do not attempt to lock as->lock.
+ * @param lock If false, do not attempt to lock as->lock.
  */
 void page_table_lock(as_t *as, bool lock)
 {
@@ -697,7 +707,7 @@ void page_table_lock(as_t *as, bool lock)
 /** Unlock page table.
  *
  * @param as Address space.
- * @param as_locked If false, do not attempt to unlock as->lock.
+ * @param unlock If false, do not attempt to unlock as->lock.
  */
 void page_table_unlock(as_t *as, bool unlock)
 {

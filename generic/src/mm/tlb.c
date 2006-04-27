@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	tlb.c
+ * @brief	Generic TLB shootdown algorithm.
+ */
+
 #include <mm/tlb.h>
 #include <mm/asid.h>
 #include <arch/mm/tlb.h>

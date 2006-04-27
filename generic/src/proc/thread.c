@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	thread.c
+ * @brief	Thread management functions.
+ */
+
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>

@@ -139,7 +139,7 @@ void symtab_print_search(const char *name)
 
 /** Symtab completion
  *
- * @param name - Search string, completes to symbol name
+ * @param input - Search string, completes to symbol name
  * @returns - 0 - nothing found, 1 - success, >1 print duplicates 
  */
 int symtab_compl(char *input)

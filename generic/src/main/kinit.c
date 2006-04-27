@@ -26,6 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	kinit.c
+ * @brief	Kernel initialization thread.
+ *
+ * This file contains kinit kernel thread which carries out
+ * high level system initialization.
+ *
+ * This file is responsible for finishing SMP configuration
+ * and creation of userspace init tasks.
+ */
+
 #include <main/kinit.h>
 #include <config.h>
 #include <arch.h>

@@ -27,6 +27,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	frame.c
+ * @brief	Physical frame allocator.
+ *
+ * This file contains the physical frame allocator and memory zone management.
+ * The frame allocator is built on top of the buddy allocator.
+ *
+ * @see buddy.c
+ */
+
 /*
  * Locking order
  *

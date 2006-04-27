@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	bitmap.c
+ * @brief	Implementation of bitmap ADT.
+ *
+ * This file implements bitmap ADT and provides functions for
+ * setting and clearing ranges of bits.
+ */
+
 #include <adt/bitmap.h>
 #include <typedefs.h>
 #include <arch/types.h>

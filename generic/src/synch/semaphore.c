@@ -65,7 +65,7 @@ void semaphore_initialize(semaphore_t *s, int val)
  * @param trydown Switches between blocking and non-blocking mode.
  *
  * For exact description of possible combinations of
- * @usec and @trydown, see comment for waitq_sleep_timeout().
+ * usec and trydown, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */

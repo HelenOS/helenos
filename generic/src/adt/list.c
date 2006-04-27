@@ -26,8 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <adt/list.h>
+/**
+ * @file	list.c
+ * @brief	Functions completing doubly linked circular list implementaion.
+ *
+ * This file contains some of the functions implementing doubly linked circular lists.
+ * However, this ADT is mostly implemented in @ref list.h.
+ */
 
+#include <adt/list.h>
 
 /** Check for membership
  *

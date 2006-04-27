@@ -25,6 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+/**
+ * @file	ddi.c
+ * @brief	Device Driver Interface functions.
+ *
+ * This file contains functions that comprise the Device Driver Interface.
+ * These are the functions for mapping physical memory and enabling I/O
+ * space to tasks.
+ */
 
 #include <ddi/ddi.h>
 #include <ddi/ddi_arg.h>

@@ -429,8 +429,6 @@ __native sys_ipc_hangup(int phoneid)
 /** Wait for incoming ipc call or answer
  *
  * @param calldata Pointer to buffer where the call/answer data is stored 
- * @param taskid On 'CONNECT_ME_TO' call it is filled with 'taskid' of
- *               the caller.
  * @param flags
  * @return Callid, if callid & 1, then the call is answer
  */

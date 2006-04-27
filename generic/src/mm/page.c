@@ -26,8 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Virtual Address Translation subsystem.
+/**
+ * @file	page.c
+ * @brief	Virtual Address Translation subsystem.
+ *
+ * This file contains code for creating, destroying and searching
+ * mappings between virtual addresses and physical addresses.
+ * Functions here are mere wrappers that call the real implementation.
+ * They however, define the single interface. 
  */
 
 #include <mm/page.h>
@@ -73,8 +79,8 @@ void map_structure(__address s, size_t size)
 
 /** Insert mapping of page to frame.
  *
- * Map virtual address @page to physical address @frame
- * using @flags. Allocate and setup any missing page tables.
+ * Map virtual address page to physical address frame
+ * using flags. Allocate and setup any missing page tables.
  *
  * The page table must be locked and interrupts must be disabled.
  *
@@ -93,7 +99,7 @@ void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 /** Remove mapping of page.
  *
- * Remove any mapping of @page within address space @as.
+ * Remove any mapping of page within address space as.
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *

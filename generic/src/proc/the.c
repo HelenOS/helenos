@@ -26,6 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	the.c
+ * @brief	THE structure functions.
+ *
+ * This file contains functions to manage the THE structure.
+ * The THE structure exists at the base address of every kernel
+ * stack and carries information about current settings
+ * (e.g. current CPU, current thread, task and address space
+ * and current preemption counter).
+ */
+
 #include <arch.h>
 #include <typedefs.h>
 

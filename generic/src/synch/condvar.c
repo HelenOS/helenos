@@ -76,7 +76,7 @@ void condvar_broadcast(condvar_t *cv)
  * @param trywait Blocking versus non-blocking operation mode switch.
  *
  * For exact description of possible combinations of
- * @usec and @trywait, see comment for waitq_sleep_timeout().
+ * usec and trywait, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */

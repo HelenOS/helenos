@@ -26,15 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** Reader/Writer locks
+/**
+ * @file	rwlock.c
+ * @brief	Reader/Writer locks.
  *
  * A reader/writer lock can be held by multiple readers at a time.
  * Or it can be exclusively held by a sole writer at a time.
- */
-
-/*
+ *
  * These locks are not recursive.
- * Neither readers nor writers will suffer starvation.
+ * Because technique called direct hand-off is used, neither readers
+ * nor writers will suffer starvation.
  *
  * If there is a writer followed by a reader waiting for the rwlock
  * and the writer times out, all leading readers are automatically woken up
@@ -145,7 +146,7 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
  * @param trylock Switches between blocking and non-blocking mode.
  *
  * For exact description of possible combinations of
- * @usec and @trylock, see comment for waitq_sleep_timeout().
+ * usec and trylock, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */

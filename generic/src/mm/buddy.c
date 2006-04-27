@@ -26,6 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	buddy.c
+ * @brief	Buddy allocator framework.
+ *
+ * This file contains buddy system allocator framework.
+ * Specialized functions are needed for this abstract framework
+ * to be useful.
+ */
+
 #include <mm/buddy.h>
 #include <mm/frame.h>
 #include <arch/types.h>

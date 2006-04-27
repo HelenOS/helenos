@@ -26,32 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * The SLAB allocator is closely modelled after OpenSolaris SLAB allocator
- * http://www.usenix.org/events/usenix01/full_papers/bonwick/bonwick_html/
+/**
+ * @file	slab.c
+ * @brief	Slab allocator.
+ *
+ * The slab allocator is closely modelled after OpenSolaris slab allocator.
+ * @see http://www.usenix.org/events/usenix01/full_papers/bonwick/bonwick_html/
  *
  * with the following exceptions:
- *   - empty SLABS are deallocated immediately 
+ * @li empty slabs are deallocated immediately 
  *     (in Linux they are kept in linked list, in Solaris ???)
- *   - empty magazines are deallocated when not needed
+ * @li empty magazines are deallocated when not needed
  *     (in Solaris they are held in linked list in slab cache)
  *
- *   Following features are not currently supported but would be easy to do:
- *   - cache coloring
- *   - dynamic magazine growing (different magazine sizes are already
+ * Following features are not currently supported but would be easy to do:
+ * @li cache coloring
+ * @li dynamic magazine growing (different magazine sizes are already
  *     supported, but we would need to adjust allocation strategy)
  *
- * The SLAB allocator supports per-CPU caches ('magazines') to facilitate
+ * The slab allocator supports per-CPU caches ('magazines') to facilitate
  * good SMP scaling. 
  *
  * When a new object is being allocated, it is first checked, if it is 
  * available in CPU-bound magazine. If it is not found there, it is
- * allocated from CPU-shared SLAB - if partial full is found, it is used,
+ * allocated from CPU-shared slab - if partial full is found, it is used,
  * otherwise a new one is allocated. 
  *
  * When an object is being deallocated, it is put to CPU-bound magazine.
  * If there is no such magazine, new one is allocated (if it fails, 
- * the object is deallocated into SLAB). If the magazine is full, it is
+ * the object is deallocated into slab). If the magazine is full, it is
  * put into cpu-shared list of magazines and new one is allocated.
  *
  * The CPU-bound magazine is actually a pair of magazine to avoid
@@ -60,15 +63,15 @@
  * as much as possible. 
  *  
  * Every cache contains list of full slabs and list of partialy full slabs.
- * Empty SLABS are immediately freed (thrashing will be avoided because
+ * Empty slabs are immediately freed (thrashing will be avoided because
  * of magazines). 
  *
- * The SLAB information structure is kept inside the data area, if possible.
+ * The slab information structure is kept inside the data area, if possible.
  * The cache can be marked that it should not use magazines. This is used
- * only for SLAB related caches to avoid deadlocks and infinite recursion
- * (the SLAB allocator uses itself for allocating all it's control structures).
+ * only for slab related caches to avoid deadlocks and infinite recursion
+ * (the slab allocator uses itself for allocating all it's control structures).
  *
- * The SLAB allocator allocates lot of space and does not free it. When
+ * The slab allocator allocates lot of space and does not free it. When
  * frame allocator fails to allocate the frame, it calls slab_reclaim().
  * It tries 'light reclaim' first, then brutal reclaim. The light reclaim
  * releases slabs from cpu-shared magazine-list, until at least 1 slab 
@@ -76,7 +79,8 @@
  * The brutal reclaim removes all cached objects, even from CPU-bound
  * magazines.
  *
- * TODO: For better CPU-scaling the magazine allocation strategy should
+ * TODO:@n
+ * For better CPU-scaling the magazine allocation strategy should
  * be extended. Currently, if the cache does not have magazine, it asks
  * for non-cpu cached magazine cache to provide one. It might be feasible
  * to add cpu-cached magazine cache (which would allocate it's magazines
@@ -85,11 +89,10 @@
  * 'empty-magazine-list', which decreases competing for 1 per-system
  * magazine cache.
  *
- * - it might be good to add granularity of locks even to slab level,
- *   we could then try_spinlock over all partial slabs and thus improve
- *   scalability even on slab level
+ * @li it might be good to add granularity of locks even to slab level,
+ *     we could then try_spinlock over all partial slabs and thus improve
+ *     scalability even on slab level
  */
-
 
 #include <synch/spinlock.h>
 #include <mm/slab.h>
@@ -113,7 +116,7 @@ static slab_cache_t mag_cache;
 static slab_cache_t slab_cache_cache;
 /** Cache for external slab descriptors
  * This time we want per-cpu cache, so do not make it static
- * - using SLAB for internal SLAB structures will not deadlock,
+ * - using slab for internal slab structures will not deadlock,
  *   as all slab structures are 'small' - control structures of
  *   their caches do not require further allocation
  */
@@ -141,7 +144,7 @@ static int _slab_initialized = 0;
 #endif
 
 /**************************************/
-/* SLAB allocation functions          */
+/* Slab allocation functions          */
 
 /**
  * Allocate frames for slab space and initialize
@@ -190,7 +193,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 }
 
 /**
- * Deallocate space associated with SLAB
+ * Deallocate space associated with slab
  *
  * @return number of freed frames
  */
@@ -212,7 +215,7 @@ static slab_t * obj2slab(void *obj)
 }
 
 /**************************************/
-/* SLAB functions */
+/* Slab functions */
 
 
 /**
@@ -273,7 +276,7 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 
 	if (list_empty(&cache->partial_slabs)) {
 		/* Allow recursion and reclaiming
-		 * - this should work, as the SLAB control structures
+		 * - this should work, as the slab control structures
 		 *   are small and do not need to allocte with anything
 		 *   other ten frame_alloc when they are allocating,
 		 *   that's why we should get recursion at most 1-level deep
@@ -509,7 +512,7 @@ static int magazine_obj_put(slab_cache_t *cache, void *obj)
 
 
 /**************************************/
-/* SLAB CACHE functions */
+/* Slab cache functions */
 
 /** Return number of objects that fit in certain cache size */
 static int comp_objects(slab_cache_t *cache)
@@ -789,7 +792,7 @@ void slab_print_list(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
-	printf("SLAB name\t  Osize\t  Pages\t Obj/pg\t  Slabs\t Cached\tAllocobjs\tCtl\n");
+	printf("slab name\t  Osize\t  Pages\t Obj/pg\t  Slabs\t Cached\tAllocobjs\tCtl\n");
 	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
 		printf("%s\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t\t%s\n", cache->name, cache->size, 
