@@ -56,7 +56,7 @@ unmapped_ap_boot:
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdt ap_gdtr		# initialize Global Descriptor Table register
+	lgdtl ap_gdtr		# initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
