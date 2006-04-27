@@ -33,7 +33,7 @@
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 
-#define __BYTE_ORDER __LITTLE_ENDIAN
+#define __BYTE_ORDER __BIG_ENDIAN
 
 #endif
 
