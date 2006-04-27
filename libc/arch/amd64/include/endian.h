@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __amd64_ENDIAN_H__
+#define __amd64_ENDIAN_H__
+
 #ifndef __LIBC__ENDIAN_H__
-#define __LIBC__ENDIAN_H__
+# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
+#endif
 
-#define __LITTLE_ENDIAN 1234
-#define __BIG_ENDIAN	4321
-#define __PDP_ENDIAN	3412
-
-#include <libarch/endian.h>
+#define __BYTE_ORDER __LITTLE_ENDIAN
 
 #endif
 
