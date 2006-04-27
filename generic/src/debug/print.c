@@ -80,7 +80,7 @@ static __native strlen(const char *str)
 	return counter;
 }
 
-/** Print one string without appending '\n' to the end.
+/** Print one string without appending newline to the end.
  *
  * Do not use this function directly - printflock is not locked here.
  *
@@ -355,53 +355,61 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
 
 /** Print formatted string.
  *
- * Print string formatted according to the @fmt parameter
+ * Print string formatted according to the fmt parameter
  * and variadic arguments. Each formatting directive
  * must have the following form:
- * % [ flags ] [ width ] [ .precision ] [ type ] conversion
- *
- * FLAGS:
- * #	Force to print prefix.
- *	For conversion %o the prefix is 0, for %x and %X prefixes are 0x and 0X and for conversion %b the prefix is 0b.
- * -	Align to left.
- * +	Print positive sign just as negative.
- *   (space)	If the printed number is positive and '+' flag is not set, print space in place of sign.
- * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of the number.
- *	This flag is ignored if '-' flag is specified.
  * 
- * WIDTH:
- * Specify minimal width of printed argument. If it is bigger, width is ignored.
- * If width is specified with a '*' character instead of number, width is taken from parameter list. 
- * And integer parameter is expected before parameter for processed conversion specification.
- * If this value is negative its absolute value is taken and the '-' flag is set.
+ * 	\% [ FLAGS ] [ WIDTH ] [ .PRECISION ] [ TYPE ] CONVERSION
  *
- * PRECISION:
+ * FLAGS:@n
+ * "#"	Force to print prefix.
+ * 	For conversion \%o the prefix is 0, for %x and \%X prefixes are 0x and 0X
+ *	and for conversion \%b the prefix is 0b.
+ *
+ * "-"	Align to left.
+ *
+ * "+"	Print positive sign just as negative.
+ *
+ * " "	If the printed number is positive and "+" flag is not set, print space in
+ *	place of sign.
+ *
+ * "0"	Print 0 as padding instead of spaces. Zeroes are placed between sign and the
+ *	rest of the number. This flag is ignored if "-" flag is specified.
+ * 
+ * WIDTH:@n
+ * Specify minimal width of printed argument. If it is bigger, width is ignored.
+ * If width is specified with a "*" character instead of number, width is taken from
+ * parameter list. And integer parameter is expected before parameter for processed
+ * conversion specification. If this value is negative its absolute value is taken
+ * and the "-" flag is set.
+ *
+ * PRECISION:@n
  * Value precision. For numbers it specifies minimum valid numbers.
  * Smaller numbers are printed with leading zeroes. Bigger numbers are not affected.
  * Strings with more than precision characters are cut off.
- * Just as with width, an '*' can be used used instead of a number.
- * An integer value is then expected in parameters. When both width and precision are specified using '*',
- * first parameter is used for width and second one for precision.
+ * Just as with width, an "*" can be used used instead of a number.
+ * An integer value is then expected in parameters. When both width and precision
+ * are specified using "*", the first parameter is used for width and the second one
+ * for precision.
  * 
- * TYPE:
- * hh	signed or unsigned char
- * h	signed or usigned short
- * 	signed or usigned int (default value)
- * l	signed or usigned long int
- * ll	signed or usigned long long int
- * z	__native (non-standard extension)
+ * TYPE:@n
+ * "hh"	Signed or unsigned char.@n
+ * "h"	Signed or usigned short.@n
+ * ""	Signed or usigned int (default value).@n
+ * "l"	Signed or usigned long int.@n
+ * "ll"	Signed or usigned long long int.@n
+ * "z"	__native (non-standard extension).@n
  * 
  * 
- * CONVERSIONS:
- * 
- * %	Print percentage character itself.
+ * CONVERSION:@n
+ * %	Print percentile character itself.
  *
  * c	Print single character.
  *
  * s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
  * 
  * P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
- * (as with %#X or %#x for 32bit or %#X / %#x for 64bit long pointers).
+ * 	(as with \%#X or \%#x for 32bit or \%#X / \%#x for 64bit long pointers).
  *
  * b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
  * 
@@ -413,7 +421,7 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
  *
  * X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default.
  * 
- * All other characters from @fmt except the formatting directives
+ * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *
  * @param fmt Formatting NULL terminated string.
