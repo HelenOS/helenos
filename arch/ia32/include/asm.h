@@ -258,7 +258,7 @@ static inline void invlpg(__address addr)
  */
 static inline void gdtr_load(ptr_16_32_t *gdtr_reg)
 {
-	__asm__ volatile ("lgdt %0\n" : : "m" (*gdtr_reg));
+	__asm__ volatile ("lgdtl %0\n" : : "m" (*gdtr_reg));
 }
 
 /** Store GDTR register to memory.
@@ -267,7 +267,7 @@ static inline void gdtr_load(ptr_16_32_t *gdtr_reg)
  */
 static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 {
-	__asm__ volatile ("sgdt %0\n" : : "m" (*gdtr_reg));
+	__asm__ volatile ("sgdtl %0\n" : : "m" (*gdtr_reg));
 }
 
 /** Load IDTR register from memory.
@@ -276,7 +276,7 @@ static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
  */
 static inline void idtr_load(ptr_16_32_t *idtr_reg)
 {
-	__asm__ volatile ("lidt %0\n" : : "m" (*idtr_reg));
+	__asm__ volatile ("lidtl %0\n" : : "m" (*idtr_reg));
 }
 
 /** Load TR from descriptor table.

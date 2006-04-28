@@ -199,10 +199,10 @@ void pm_init(void)
 	
 	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
 	gdt_p[TSS_DES].special = 1;
-	gdt_p[TSS_DES].granularity = 1;
+	gdt_p[TSS_DES].granularity = 0;
 	
 	gdt_setbase(&gdt_p[TSS_DES], (__address) tss_p);
-	gdt_setlimit(&gdt_p[TSS_DES], sizeof(tss_t) - 1);
+	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
 
 	/*
 	 * As of this moment, the current CPU has its own GDT pointing
@@ -210,7 +210,7 @@ void pm_init(void)
 	 */
 	tr_load(selector(TSS_DES));
 	
-	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels */
+	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
 	clean_AM_flag();          /* Disable alignment check */
 }
 

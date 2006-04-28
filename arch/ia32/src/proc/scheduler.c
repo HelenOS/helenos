@@ -36,6 +36,7 @@
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <adt/bitmap.h>
+#include <print.h>
 
 /** Perform ia32 specific tasks needed before the new task is run.
  *
@@ -55,7 +56,7 @@ void before_task_runs_arch(void)
 	spinlock_lock(&TASK->lock);
 	if ((bits = TASK->arch.iomap.bits)) {
 		bitmap_t iomap;
-
+	
 		ASSERT(TASK->arch.iomap.map);
 		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
 		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);

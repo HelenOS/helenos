@@ -213,7 +213,7 @@ void pm_init(void)
 	tss_desc->dpl = PL_KERNEL;
 	
 	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
-	gdt_tss_setlimit(&gdt_p[TSS_DES], sizeof(tss_t) - 1);
+	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
 
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);

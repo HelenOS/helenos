@@ -127,7 +127,7 @@ struct icr {
 } __attribute__ ((packed));
 typedef struct icr icr_t;
 
-/* End Of Interrupt */
+/* End Of Interrupt. */
 #define EOI		(0x0b0/sizeof(__u32))
 
 /** Error Status Register. */
@@ -251,7 +251,7 @@ union l_apic_id {
 };
 typedef union l_apic_id l_apic_id_t;
 
-/* Local APIC Version Register */
+/** Local APIC Version Register */
 #define LAVR		(0x030/sizeof(__u32))
 #define LAVR_Mask	0xff
 #define is_local_apic(x)	(((x)&LAVR_Mask&0xf0)==0x1)
@@ -263,7 +263,7 @@ typedef union l_apic_id l_apic_id_t;
 union ldr {
 	__u32 value;
 	struct {
-		unsigned : 24;		/**< Reserver. */
+		unsigned : 24;		/**< Reserved. */
 		__u8 id;		/**< Logical APIC ID. */
 	} __attribute__ ((packed));
 };
@@ -319,7 +319,7 @@ struct io_redirection_reg {
 		__u32 hi;
 		struct {
 			unsigned : 24;			/**< Reserved. */
-			__u8 dest : 8;		/**< Destination Field. */
+			__u8 dest : 8;			/**< Destination Field. */
 		} __attribute__ ((packed));
 	};
 	

@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-#define BITS2BYTES(bits)	((((bits)-1)>>3)+1)
+#define BITS2BYTES(bits)	(bits ? ((((bits)-1)>>3)+1) : 0)
 
 typedef struct {
 	__u8 *map;
