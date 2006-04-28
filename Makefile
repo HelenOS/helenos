@@ -38,8 +38,14 @@ DIRS = \
 	libipc \
 	libadt \
 	init \
-	pci \
 	ns
+
+ifeq ($(ARCH), amd64)
+	DIRS += pci
+endif
+ifeq ($(ARCH), ia32)
+	DIRS += pci
+endif
 
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))

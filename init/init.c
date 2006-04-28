@@ -36,6 +36,7 @@
 #include <task.h>
 #include <psthread.h>
 #include <futex.h>
+#include <as.h>
 
 int a;
 atomic_t ftx;

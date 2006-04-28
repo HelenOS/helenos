@@ -26,17 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__UNISTD_H__
-#define __LIBC__UNISTD_H__
+#ifndef __AS_H__
+#define __AS_H__
 
 #include <types.h>
-#include <arch/mm/page.h>
+#include <task.h>
 
-#define NULL 0
-#define getpagesize()     (PAGE_SIZE)
-
-extern ssize_t write(int fd, const void * buf, size_t count);
-extern void _exit(int status);
-void *sbrk(ssize_t incr);
+extern void *as_area_create(void *address, size_t size, int flags);
+extern void *as_area_resize(void *address, size_t size, int flags);
+extern int as_area_accept(task_id_t id, void *base, size_t size, int flags);
+extern int as_area_send(task_id_t id, void *base);
 
 #endif

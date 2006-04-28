@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
+#include <as.h>
 #include <libc.h>
 #include <unistd.h>
 #include <kernel/mm/as_arg.h>
