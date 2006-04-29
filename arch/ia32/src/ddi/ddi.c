@@ -27,6 +27,7 @@
  */
 
 #include <ddi/ddi.h>
+#include <arch/ddi/ddi.h>
 #include <proc/task.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -35,6 +36,8 @@
 #include <arch/pm.h>
 #include <errno.h>
 #include <arch/cpu.h>
+#include <cpu.h>
+#include <arch.h>
 
 /** Enable I/O space range for task.
  *
@@ -89,6 +92,11 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 	 */
 	bitmap_clear_range(&task->arch.iomap, (index_t) ioaddr, (count_t) size);
 
+	/*
+	 * Increment I/O Permission bitmap generation counter.
+	 */
+	task->arch.iomapver++;
+
 	return 0;
 }
 
@@ -104,4 +112,55 @@ __native ddi_int_control_arch(__native enable, __native *flags)
 	else
 		*flags &= ~EFLAGS_IF;
 	return 0;
+}
+
+/** Install I/O Permission bitmap.
+ *
+ * Current task's I/O permission bitmap, if any, is installed
+ * in the current CPU's TSS.
+ *
+ * Interrupts must be disabled prior this call.
+ */
+void io_perm_bitmap_install(void)
+{
+	count_t bits;
+	ptr_16_32_t cpugdtr;
+	descriptor_t *gdt_p;
+	count_t ver;
+
+	/* First, copy the I/O Permission Bitmap. */
+	spinlock_lock(&TASK->lock);
+	ver = TASK->arch.iomapver;
+	if ((bits = TASK->arch.iomap.bits)) {
+		bitmap_t iomap;
+	
+		ASSERT(TASK->arch.iomap.map);
+		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
+		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
+		/*
+		 * It is safe to set the trailing eight bits because of the extra
+		 * convenience byte in TSS_IOMAP_SIZE.
+		 */
+		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 8);
+	}
+	spinlock_unlock(&TASK->lock);
+
+	/* Second, adjust TSS segment limit. */
+	gdtr_store(&cpugdtr);
+	gdt_p = (descriptor_t *) cpugdtr.base;
+	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits) - 1);
+	gdtr_load(&cpugdtr);
+
+	/*
+	 * Before we load new TSS limit, the current TSS descriptor
+	 * type must be changed to describe inactive TSS.
+	 */
+	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
+	tr_load(selector(TSS_DES));
+	
+	/*
+	 * Update the generation count so that faults caused by
+	 * early accesses can be serviced.
+	 */
+	CPU->arch.iomapver_copy = ver;
 }

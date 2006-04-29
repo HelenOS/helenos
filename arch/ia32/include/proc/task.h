@@ -34,7 +34,8 @@
 #include <adt/bitmap.h>
 
 typedef struct {
-	bitmap_t iomap;
+	count_t iomapver;	/**< I/O Permission bitmap Generation counter. */
+	bitmap_t iomap;		/**< I/O Permission bitmap. */
 } task_arch_t;
 
 #endif

@@ -35,8 +35,7 @@
 #include <arch/debugger.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
-#include <adt/bitmap.h>
-#include <print.h>
+#include <arch/ddi/ddi.h>
 
 /** Perform ia32 specific tasks needed before the new task is run.
  *
@@ -44,42 +43,7 @@
  */
 void before_task_runs_arch(void)
 {
-	count_t bits;
-	ptr_16_32_t cpugdtr;
-	descriptor_t *gdt_p;
-
-	/*
-	 * Switch the I/O Permission Bitmap, if necessary.
-	 */
-
-	/* First, copy the I/O Permission Bitmap. */
-	spinlock_lock(&TASK->lock);
-	if ((bits = TASK->arch.iomap.bits)) {
-		bitmap_t iomap;
-	
-		ASSERT(TASK->arch.iomap.map);
-		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
-		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
-		/*
-		 * It is safe to set the trailing eight bits because of the extra
-		 * convenience byte in TSS_IOMAP_SIZE.
-		 */
-		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 8);
-	}
-	spinlock_unlock(&TASK->lock);
-
-	/* Second, adjust TSS segment limit. */
-	gdtr_store(&cpugdtr);
-	gdt_p = (descriptor_t *) cpugdtr.base;
-	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits) - 1);
-	gdtr_load(&cpugdtr);
-
-	/*
-	 * Before we load new TSS limit, the current TSS descriptor
-	 * type must be changed to describe inactive TSS.
-	 */
-	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
-	tr_load(selector(TSS_DES));
+	io_perm_bitmap_install();
 }
 
 /** Perform ia32 specific tasks needed before the new thread is scheduled.

@@ -26,16 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __amd64_TASK_H__
-#define __amd64_TASK_H__
+/**
+ * @file	ddi.h
+ * @brief	ia32 specific DDI declarations and macros.
+ */
 
-#include <typedefs.h>
-#include <arch/types.h>
-#include <adt/bitmap.h>
+#ifndef __ia32_DDI_H__
+#define __ia32_DDI_H__
 
-typedef struct {
-	count_t iomapver;	/**< I/O Permission bitmap Generation counter. */
-	bitmap_t iomap;		/**< I/O Permission bitmap. */
-} task_arch_t;
+extern void io_perm_bitmap_install(void);
 
 #endif

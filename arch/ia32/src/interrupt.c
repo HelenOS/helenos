@@ -40,6 +40,9 @@
 #include <arch.h>
 #include <symtab.h>
 #include <proc/thread.h>
+#include <proc/task.h>
+#include <synch/spinlock.h>
+#include <arch/ddi/ddi.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -78,8 +81,29 @@ void null_interrupt(int n, istate_t *istate)
 	panic("unserviced interrupt: %d\n", n);
 }
 
+/** General Protection Fault. */
 void gp_fault(int n, istate_t *istate)
 {
+	if (TASK) {
+		count_t ver;
+		
+		spinlock_lock(&TASK->lock);
+		ver = TASK->arch.iomapver;
+		spinlock_unlock(&TASK->lock);
+	
+		if (CPU->arch.iomapver_copy != ver) {
+			/*
+			 * This fault can be caused by an early access
+			 * to I/O port because of an out-dated
+			 * I/O Permission bitmap installed on CPU.
+			 * Install the fresh copy and restart
+			 * the instruction.
+			 */
+			io_perm_bitmap_install();
+			return;
+		}
+	}
+
 	PRINT_INFO_ERRCODE(istate);
 	panic("general protection fault\n");
 }
