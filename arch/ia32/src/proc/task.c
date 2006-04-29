@@ -36,5 +36,6 @@
  */
 void task_create_arch(task_t *t)
 {
+	t->arch.iomapver = 0;
 	bitmap_initialize(&t->arch.iomap, NULL, 0);
 }
