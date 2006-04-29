@@ -29,6 +29,8 @@
 #ifndef __SYSIPC_H__
 #define __SYSIPC_H__
 
+#include <ipc/ipc.h>
+
 __native sys_ipc_call_sync_fast(__native phoneid, __native method, 
 				__native arg1, ipc_data_t *data);
 __native sys_ipc_call_sync(__native phoneid, ipc_data_t *question, 
@@ -43,6 +45,9 @@ __native sys_ipc_wait_for_call(ipc_data_t *calldata, __native flags);
 __native sys_ipc_forward_fast(__native callid, __native phoneid,
 			      __native method, __native arg1);
 __native sys_ipc_hangup(int phoneid);
+__native sys_ipc_register_irq(__native irq);
+__native sys_ipc_unregister_irq(__native irq);
 
+void irq_ipc_bind_arch(__native irq);
 
 #endif

@@ -36,7 +36,7 @@
 #include <ipc/ipc.h>
 #include <ipc/sysipc.h>
 #include <ipc/ipcrsc.h>
-
+#include <arch/interrupt.h>
 
 #include <print.h>
 #include <arch.h>
@@ -274,7 +274,7 @@ __native sys_ipc_call_async_fast(__native phoneid, __native method,
 
 	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
 
-	call = ipc_call_alloc();
+	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
@@ -302,7 +302,7 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 
 	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
 
-	call = ipc_call_alloc();
+	call = ipc_call_alloc(0);
 	copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
 	if (!(res=request_preprocess(call)))
 		ipc_call(phone, call);
@@ -441,6 +441,14 @@ restart:
 	if (!call)
 		return 0;
 
+	if (call->flags & IPC_CALL_NOTIF) {
+		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
+		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
+		ipc_call_free(call);
+		
+		return ((__native)call) | IPC_CALLID_NOTIFICATION;
+	}
+
 	if (call->flags & IPC_CALL_ANSWERED) {
 		process_answer(call);
 
@@ -466,4 +474,25 @@ restart:
 	 * copy whole call->data, not only call->data.args */
 	STRUCT_TO_USPACE(calldata, &call->data);
 	return (__native)call;
+}
+
+/** Connect irq handler to task */
+__native sys_ipc_register_irq(__native irq)
+{
+	if (irq >= IRQ_COUNT)
+		return -ELIMIT;
+
+	irq_ipc_bind_arch(irq);
+	return ipc_irq_register(&TASK->answerbox, irq);
+}
+
+/* Disconnect irq handler from task */
+__native sys_ipc_unregister_irq(__native irq)
+{
+	if (irq >= IRQ_COUNT)
+		return -ELIMIT;
+
+	ipc_irq_unregister(&TASK->answerbox, irq);
+
+	return 0;
 }

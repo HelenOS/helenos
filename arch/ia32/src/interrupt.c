@@ -43,6 +43,8 @@
 #include <proc/task.h>
 #include <synch/spinlock.h>
 #include <arch/ddi/ddi.h>
+#include <ipc/sysipc.h>
+#include <interrupt.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -183,4 +185,19 @@ void trap_virtual_eoi(void)
 	else
 		panic("no eoi_function\n");
 
+}
+
+static void ipc_int(int n, istate_t *istate)
+{
+	trap_virtual_eoi();
+	ipc_irq_send_notif(n-IVT_IRQBASE);
+}
+
+
+/* Reregister irq to be IPC-ready */
+void irq_ipc_bind_arch(__native irq)
+{
+	if (irq == IRQ_CLK)
+		return;
+	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
 }

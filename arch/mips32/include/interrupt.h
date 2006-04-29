@@ -33,6 +33,7 @@
 
 #define IVT_ITEMS   40
 #define INT_OFFSET  32
+#define IRQ_COUNT   8
 
 #define int_register(it, name, handler) exc_register(((it)+INT_OFFSET),name,handler)
 

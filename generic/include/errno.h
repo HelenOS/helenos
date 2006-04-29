@@ -40,5 +40,6 @@
 #define EHANGUP    -7  /* Answerbox closed connection, call sys_ipc_hangup
 			* to close the connection. Used by answerbox
 			* to close the connection.  */
+#define EEXISTS    -8  /* Entry already exists */
 
 #endif

@@ -96,7 +96,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_forward_fast,
 	sys_ipc_wait_for_call,
 	sys_ipc_hangup,
-	
+	sys_ipc_register_irq,
+	sys_ipc_unregister_irq,
+
 	/* DDI related syscalls. */
 	sys_physmem_map,
 	sys_iospace_enable

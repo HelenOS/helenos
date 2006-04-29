@@ -43,11 +43,20 @@
 
 #include <print.h>
 #include <proc/thread.h>
+#include <arch/interrupt.h>
 
 /* Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	answerbox_t *box;
+} ipc_irq_t;
+
+static ipc_irq_t *irq_conns = NULL;
+static int irq_conns_size;
 
 /* Initialize new call */
 static void _ipc_call_init(call_t *call)
@@ -61,12 +70,14 @@ static void _ipc_call_init(call_t *call)
  * 
  * The call is initialized, so that the reply will be directed
  * to TASK->answerbox
+ *
+ * @param flags Parameters for slab_alloc (ATOMIC, etc.)
  */
-call_t * ipc_call_alloc(void)
+call_t * ipc_call_alloc(int flags)
 {
 	call_t *call;
 
-	call = slab_alloc(ipc_call_slab, 0);
+	call = slab_alloc(ipc_call_slab, flags);
 	_ipc_call_init(call);
 
 	return call;
@@ -90,11 +101,13 @@ void ipc_call_free(call_t *call)
 void ipc_answerbox_init(answerbox_t *box)
 {
 	spinlock_initialize(&box->lock, "ipc_box_lock");
+	spinlock_initialize(&box->irq_lock, "ipc_box_irqlock");
 	waitq_initialize(&box->wq);
 	list_initialize(&box->connected_phones);
 	list_initialize(&box->calls);
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
+	list_initialize(&box->irq_notifs);
 	box->task = TASK;
 }
 
@@ -261,7 +274,7 @@ int ipc_phone_hangup(phone_t *phone)
 	phone->callee = NULL;
 	spinlock_unlock(&box->lock);
 
-	call = ipc_call_alloc();
+	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
 	call->flags |= IPC_CALL_DISCARD_ANSWER;
 	_ipc_call(phone, box, call);
@@ -301,6 +314,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 call_t * ipc_wait_for_call(answerbox_t *box, int flags)
 {
 	call_t *request;
+	ipl_t ipl;
 
 restart:      
 	if (flags & IPC_WAIT_NONBLOCKING) {
@@ -310,7 +324,16 @@ restart:
 		waitq_sleep(&box->wq);
 	
 	spinlock_lock(&box->lock);
-	if (!list_empty(&box->answers)) {
+	if (!list_empty(&box->irq_notifs)) {
+		ipl = interrupts_disable();
+		spinlock_lock(&box->irq_lock);
+
+		request = list_get_instance(box->answers.next, call_t, list);
+		list_remove(&request->list);
+
+		spinlock_unlock(&box->irq_lock);
+		interrupts_restore(ipl);
+	} else if (!list_empty(&box->answers)) {
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, list);
 		list_remove(&request->list);
@@ -333,15 +356,6 @@ restart:
 	return request;
 }
 
-/** Initilize ipc subsystem */
-void ipc_init(void)
-{
-	ipc_call_slab = slab_cache_create("ipc_call",
-					  sizeof(call_t),
-					  0,
-					  NULL, NULL, 0);
-}
-
 /** Answer all calls from list with EHANGUP msg */
 static void ipc_cleanup_call_list(link_t *lst)
 {
@@ -353,6 +367,26 @@ static void ipc_cleanup_call_list(link_t *lst)
 
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		_ipc_answer_free_call(call);
+	}
+}
+
+/** Disconnect all irq's notifications
+ *
+ * TODO: It may be better to do some linked list, so that
+ *       we wouldn't need to go through whole array every cleanup
+ */
+static void ipc_irq_cleanup(answerbox_t *box)
+{
+	int i;
+	ipl_t ipl;
+	
+	for (i=0; i < irq_conns_size; i++) {
+		ipl = interrupts_disable();
+		spinlock_lock(&irq_conns[i].lock);
+		if (irq_conns[i].box == box)
+			irq_conns[i].box = NULL;
+		spinlock_unlock(&irq_conns[i].lock);
+		interrupts_restore(ipl);
 	}
 }
 
@@ -369,6 +403,9 @@ void ipc_cleanup(task_t *task)
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&task->phones[i]);
+
+	/* Disconnect all connected irqs */
+	ipc_irq_cleanup(&task->answerbox);
 
 	/* Disconnect all phones connected to our answerbox */
 restart_phones:
@@ -405,3 +442,89 @@ restart_phones:
 		ipc_call_free(call);
 	}
 }
+
+/** Initialize table of interrupt handlers */
+static void ipc_irq_make_table(int irqcount)
+{
+	int i;
+
+	irq_conns_size = irqcount;
+	irq_conns = malloc(irqcount * (sizeof(*irq_conns)), 0);
+	for (i=0; i < irqcount; i++) {
+		spinlock_initialize(&irq_conns[i].lock, "irq_ipc_lock");
+		irq_conns[i].box = NULL;
+	}
+}
+
+void ipc_irq_unregister(answerbox_t *box, int irq)
+{
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&irq_conns[irq].lock);
+	if (irq_conns[irq].box == box)
+		irq_conns[irq].box = NULL;
+
+	spinlock_unlock(&irq_conns[irq].lock);
+	interrupts_restore(ipl);
+}
+
+/** Register an answerbox as a receiving end of interrupts notifications */
+int ipc_irq_register(answerbox_t *box, int irq)
+{
+	ipl_t ipl;
+
+	ASSERT(irq_conns);
+
+	ipl = interrupts_disable();
+	spinlock_lock(&irq_conns[irq].lock);
+
+	if (irq_conns[irq].box) {
+		spinlock_unlock(&irq_conns[irq].lock);
+		interrupts_restore(ipl);
+		return EEXISTS;
+	}
+	irq_conns[irq].box = box;
+	spinlock_unlock(&irq_conns[irq].lock);
+	interrupts_restore(ipl);
+
+	return 0;
+}
+
+/** Notify process that an irq had happend
+ *
+ * We expect interrupts to be disabled
+ */
+void ipc_irq_send_notif(int irq)
+{
+	call_t *call;
+
+	ASSERT(irq_conns);
+	spinlock_lock(&irq_conns[irq].lock);
+
+	if (irq_conns[irq].box) {
+		call = ipc_call_alloc(FRAME_ATOMIC);
+		call->flags |= IPC_CALL_NOTIF;
+		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
+		IPC_SET_ARG1(call->data, irq);
+
+		spinlock_lock(&irq_conns[irq].box->irq_lock);
+		list_append(&call->list, &irq_conns[irq].box->irq_notifs);
+		spinlock_unlock(&irq_conns[irq].box->irq_lock);
+
+		waitq_wakeup(&irq_conns[irq].box->wq, 0);
+	}
+		
+	spinlock_unlock(&irq_conns[irq].lock);
+}
+
+/** Initilize ipc subsystem */
+void ipc_init(void)
+{
+	ipc_call_slab = slab_cache_create("ipc_call",
+					  sizeof(call_t),
+					  0,
+					  NULL, NULL, 0);
+	ipc_irq_make_table(IRQ_COUNT);
+}
+

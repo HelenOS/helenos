@@ -43,6 +43,7 @@
 					* userspace, will be discarded */
 #define IPC_CALL_FORWARDED      (1<<3) /* Call was forwarded */
 #define IPC_CALL_CONN_ME_TO     (1<<4) /* Identify connect_me_to */
+#define IPC_CALL_NOTIF          (1<<5) /* Interrupt notification */
 
 /* Flags for ipc_wait_for_call */
 #define IPC_WAIT_NONBLOCKING   1
@@ -119,6 +120,8 @@
  * is hung up
  */
 #define IPC_M_PHONE_HUNGUP      3
+/** Interrupt notification */
+#define IPC_M_INTERRUPT         4
 
 
 /* Well-known methods */
@@ -154,6 +157,9 @@ struct answerbox_s {
 	link_t dispatched_calls; /* Should be hash table in the future */
 
 	link_t answers;          /**< Answered calls */
+
+	SPINLOCK_DECLARE(irq_lock);
+	link_t irq_notifs;       /**< Notifications from IRQ handlers */
 };
 
 typedef enum {
@@ -195,7 +201,7 @@ extern void ipc_call_sync(phone_t *phone, call_t *request);
 extern void ipc_phone_init(phone_t *phone);
 extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
 extern void ipc_call_free(call_t *call);
-extern call_t * ipc_call_alloc(void);
+extern call_t * ipc_call_alloc(int flags);
 extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
@@ -203,6 +209,11 @@ extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 extern void ipc_cleanup(task_t *task);
 extern int ipc_phone_hangup(phone_t *phone);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
+
+extern int ipc_irq_register(answerbox_t *box, int irq);
+extern void ipc_irq_send_notif(int irq);
+extern void ipc_irq_unregister(answerbox_t *box, int irq);
+
 
 extern answerbox_t *ipc_phone_0;
 

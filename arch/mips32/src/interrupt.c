@@ -34,6 +34,8 @@
 #include <time/clock.h>
 #include <arch/drivers/arc.h>
 
+#include <ipc/sysipc.h>
+
 /** Disable interrupts.
  *
  * @return Old interrupt priority level.
@@ -83,11 +85,13 @@ static void timer_exception(int n, istate_t *istate)
 static void swint0(int n, istate_t *istate)
 {
 	cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
+	ipc_irq_send_notif(0);
 }
 
 static void swint1(int n, istate_t *istate)
 {
 	cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
+	ipc_irq_send_notif(1);
 }
 
 /* Initialize basic tables for exception dispatching */
@@ -96,4 +100,20 @@ void interrupt_init(void)
 	int_register(TIMER_IRQ, "timer", timer_exception);
 	int_register(0, "swint0", swint0);
 	int_register(1, "swint1", swint1);
+}
+
+#include <print.h>
+static void ipc_int(int n, istate_t *istate)
+{
+	ipc_irq_send_notif(n-INT_OFFSET);
+}
+
+/* Reregister irq to be IPC-ready */
+void irq_ipc_bind_arch(__native irq)
+{
+	/* Do not allow to redefine timer */
+	/* Swint0, Swint1 are already handled */
+	if (irq == TIMER_IRQ || irq < 2)
+		return;
+	int_register(irq, "ipc_int", ipc_int);
 }
