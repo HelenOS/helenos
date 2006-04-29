@@ -61,10 +61,10 @@ void before_task_runs_arch(void)
 		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
 		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
 		/*
-		 * It is safe to set the trailing four bits because of the extra
+		 * It is safe to set the trailing eight bits because of the extra
 		 * convenience byte in TSS_IOMAP_SIZE.
 		 */
-		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 4);
+		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 8);
 	}
 	spinlock_unlock(&TASK->lock);
 
@@ -73,6 +73,13 @@ void before_task_runs_arch(void)
 	gdt_p = (descriptor_t *) cpugdtr.base;
 	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits) - 1);
 	gdtr_load(&cpugdtr);
+
+	/*
+	 * Before we load new TSS limit, the current TSS descriptor
+	 * type must be changed to describe inactive TSS.
+	 */
+	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
+	tr_load(selector(TSS_DES));
 }
 
 /** Perform ia32 specific tasks needed before the new thread is scheduled.
