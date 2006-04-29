@@ -71,7 +71,7 @@ int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writa
  *	   ENOENT if there is no task with specified ID and ENOMEM if there
  *	   was some problem in allocating memory.
  */
-int enable_iospace(task_id_t id, void *ioaddr, unsigned long size)
+int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 {
 	task_id_t task_id;
 	ddi_ioarg_t arg;
@@ -80,7 +80,7 @@ int enable_iospace(task_id_t id, void *ioaddr, unsigned long size)
 	arg.ioaddr = ioaddr;
 	arg.size = size;
 
-	return __SYSCALL1(SYS_ENABLE_IOSPACE, (sysarg_t) &arg);
+	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
 /** Interrupt control
