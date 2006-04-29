@@ -102,7 +102,6 @@ void interrupt_init(void)
 	int_register(1, "swint1", swint1);
 }
 
-#include <print.h>
 static void ipc_int(int n, istate_t *istate)
 {
 	ipc_irq_send_notif(n-INT_OFFSET);

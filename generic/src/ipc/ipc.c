@@ -435,7 +435,7 @@ restart_phones:
 	/* Wait for all async answers to arrive */
 	while (atomic_get(&task->active_calls)) {
 		call = ipc_wait_for_call(&task->answerbox, 0);
-		ASSERT(call->flags & IPC_CALL_ANSWERED);
+		ASSERT((call->flags & IPC_CALL_ANSWERED) || (call->flags & IPC_CALL_NOTIF));
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 		
 		atomic_dec(&task->active_calls);
