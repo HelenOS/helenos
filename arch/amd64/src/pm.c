@@ -33,6 +33,7 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <interrupt.h>
+#include <mm/as.h>
 
 #include <config.h>
 
@@ -200,6 +201,11 @@ void pm_init(void)
 		tss_p = &tss;
 	}
 	else {
+		/* We are going to use malloc, which may return
+		 * non boot-mapped pointer, initialize the CR3 register
+		 * ahead of page_init */
+		write_cr3((__address) AS_KERNEL->page_table);
+
 		tss_p = (struct tss *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("could not allocate TSS\n");
