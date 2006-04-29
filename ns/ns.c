@@ -15,10 +15,14 @@ int main(int argc, char **argv)
 	ipcarg_t retval, arg1, arg2;
 
 	printf("NS:Name service started.\n");
+//	ipc_register_irq(1);
 	while (1) {
 		callid = ipc_wait_for_call(&call, 0);
 		printf("NS:Call phone=%lX..", call.phoneid);
 		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_INTERRUPT:
+			printf("GOT INTERRUPT\n");
+			break;
 		case IPC_M_PHONE_HUNGUP:
 			printf("Phone hung up.\n");
 			retval = 0;
@@ -54,6 +58,7 @@ int main(int argc, char **argv)
 			retval = ENOENT;
 			break;
 		}
-		ipc_answer(callid, retval, arg1, arg2);
+		if (! (callid & IPC_CALLID_NOTIFICATION))
+			ipc_answer(callid, retval, arg1, arg2);
 	}
 }
