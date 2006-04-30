@@ -39,6 +39,7 @@
 #include <arch/types.h>
 #include <align.h>
 #include <debug.h>
+#include <macros.h>
 
 #define ALL_ONES 	0xff
 #define ALL_ZEROES	0x00
@@ -68,13 +69,15 @@ void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits)
 	index_t i;
 	index_t aligned_start;
 	count_t lub;		/* leading unaligned bits */
-	count_t tub;		/* trailing unaligned bits */
+	count_t amb;		/* aligned middle bits */
+	count_t tab;		/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
 	aligned_start = ALIGN_UP(start, 8);
-	lub = aligned_start - start;
-	tub = (bits - lub) % 8;
+	lub = min(aligned_start - start, bits);
+	amb = bits > lub ? bits - lub : 0;
+	tab = amb % 8;
 	
 	if (lub) {
 		/*
@@ -82,17 +85,17 @@ void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits)
 		 */
 		bitmap->map[start / 8] |= ~((1 << (8 - lub)) - 1);
 	}
-	for (i = 0; i < (bits - lub) / 8; i++) {
+	for (i = 0; i < amb / 8; i++) {
 		/*
 		 * The middle bits can be set byte by byte.
 		 */
 		bitmap->map[aligned_start / 8 + i] = ALL_ONES;
 	}
-	if (tub) {
+	if (tab) {
 		/*
-		 * Make sure to set any trailing unaligned bits.
+		 * Make sure to set any trailing aligned bits.
 		 */
-		bitmap->map[aligned_start / 8 + i] |= (1 << tub) - 1;
+		bitmap->map[aligned_start / 8 + i] |= (1 << tab) - 1;
 	}
 	
 }
@@ -108,33 +111,35 @@ void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits)
 	index_t i;
 	index_t aligned_start;
 	count_t lub;		/* leading unaligned bits */
-	count_t tub;		/* trailing unaligned bits */
+	count_t amb;		/* aligned middle bits */
+	count_t tab;		/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
 	aligned_start = ALIGN_UP(start, 8);
-	lub = aligned_start - start;
-	tub = (bits - lub) % 8;
-	
+	lub = min(aligned_start - start, bits);
+	amb = bits > lub ? bits - lub : 0;
+	tab = amb % 8;
+
 	if (lub) {
 		/*
 		 * Make sure to clear any leading unaligned bits.
 		 */
 		bitmap->map[start / 8] &= (1 << (8 - lub)) - 1;
 	}
-	for (i = 0; i < (bits - lub) / 8; i++) {
+	for (i = 0; i < amb / 8; i++) {
 		/*
 		 * The middle bits can be cleared byte by byte.
 		 */
 		bitmap->map[aligned_start / 8 + i] = ALL_ZEROES;
 	}
-	if (tub) {
+	if (tab) {
 		/*
-		 * Make sure to clear any trailing unaligned bits.
+		 * Make sure to clear any trailing aligned bits.
 		 */
-		bitmap->map[aligned_start / 8 + i] &= ~((1 << tub) - 1);
+		bitmap->map[aligned_start / 8 + i] &= ~((1 << tab) - 1);
 	}
-	
+
 }
 
 /** Copy portion of one bitmap into another bitmap.
