@@ -82,7 +82,7 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 		 * copy its contents and deallocate it.
 		 */		
 		if (oldiomap.bits) {
-			bitmap_copy(&task->arch.iomap, &oldiomap, task->arch.iomap.bits);
+			bitmap_copy(&task->arch.iomap, &oldiomap, oldiomap.bits);
 			free(oldiomap.map);
 		}
 	}
