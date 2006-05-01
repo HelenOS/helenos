@@ -67,13 +67,12 @@
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
-
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *) (ptl0))[(i)].pfn << 12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
 #define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *) (ptl3))[(i)].pfn << 12)
 
+#define SET_PTL0_ADDRESS_ARCH(ptl0)
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *) (ptl0))[(i)].pfn = (a) >> 12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)

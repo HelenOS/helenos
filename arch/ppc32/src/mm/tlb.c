@@ -161,12 +161,12 @@ void pht_refill(bool data, istate_t *istate)
 	/* Record access to PTE */
 	pte->a = 1;
 	
-	page = ADDR2PFN(badvaddr);
+	page = (badvaddr >> 12) & 0xffff;
 	api = (badvaddr >> 22) & 0x3f;
 	asm volatile (
 		"mfsrin %0, %1\n"
 		: "=r" (vsid)
-		: "r" (badvaddr >> 28)
+		: "r" (badvaddr)
 	);
 	
 	/* Primary hash (xor) */
