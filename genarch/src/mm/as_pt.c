@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	as_pt.c
+ * @brief	Address space functions for 4-level hierarchical pagetables.
+ */
+
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
 #include <mm/frame.h>

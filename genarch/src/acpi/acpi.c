@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	acpi.c
+ * @brief	Advanced Configuration and Power Interface (ACPI) initialization.
+ */
+ 
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/bios/bios.h>

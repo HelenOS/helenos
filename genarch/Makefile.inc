@@ -36,7 +36,7 @@ endif
 ifeq ($(CONFIG_ACPI),y)
 	GENARCH_SOURCES += \
 		genarch/src/acpi/acpi.c \
-		genarch/src/acpi/matd.c
+		genarch/src/acpi/madt.c
 endif
 ifeq ($(CONFIG_PAGE_PT),y)
 	GENARCH_SOURCES += \

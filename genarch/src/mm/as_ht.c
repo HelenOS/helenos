@@ -25,6 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+/**
+ * @file	as_ht.c
+ * @brief	Address space functions for global page hash table.
+ */
 
 #include <genarch/mm/as_ht.h>
 #include <genarch/mm/page_ht.h>

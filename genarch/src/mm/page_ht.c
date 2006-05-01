@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	page_ht.c
+ * @brief	Virtual Address Translation (VAT) for global page hash table.
+ */
+
 #include <genarch/mm/page_ht.h>
 #include <mm/page.h>
 #include <arch/mm/page.h>

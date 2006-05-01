@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	page_pt.c
+ * @brief	Virtual Address Translation for hierarchical 4-level page tables.
+ */
+
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
 #include <mm/frame.h>

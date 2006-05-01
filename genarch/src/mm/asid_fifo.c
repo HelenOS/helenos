@@ -25,6 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+/**
+ * @file	asid_fifo.c
+ * @brief	FIFO queue ASID management.
+ *
+ * Architectures that link with this file keep the unallocated ASIDs
+ * in FIFO queue. The queue can be statically (e.g. mips32) or
+ * dynamically allocated (e.g ia64 and sparc64).
+ */ 
 
 #include <genarch/mm/asid_fifo.h>
 #include <arch/mm/asid.h>

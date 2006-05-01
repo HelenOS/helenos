@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	madt.c
+ * @brief	Multiple APIC Description Table (MADT) parsing.
+ */
+
 #include <arch/types.h>
 #include <typedefs.h>
 #include <genarch/acpi/acpi.h>

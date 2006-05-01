@@ -26,8 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * ASID management.
+/**
+ * @file	asid.c
+ * @brief	ASID management.
  *
  * Modern processor architectures optimize TLB utilization
  * by using ASIDs (a.k.a. memory contexts on sparc64 and
