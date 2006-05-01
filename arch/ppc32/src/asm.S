@@ -39,7 +39,9 @@ userspace_asm:
 
 	# r3 = uspace_uarg
 	# r4 = stack
-	# r5 = entry	
+	# r5 = entry
+	
+	# disable interrupts
 
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
@@ -51,8 +53,8 @@ userspace_asm:
 	
 	# set problem state, enable interrupts
 	
-	ori r31, r31, 1 << 14
-	ori r31, r31, 1 << 15
+	ori r31, r31, msr_pr
+	ori r31, r31, msr_ee
 	mtsrr1 r31
 	
 	# set stack
@@ -64,24 +66,6 @@ userspace_asm:
 	rfi
 
 iret:
-	lwz r3, 144(sp)
-	mtxer r3
-	
-	lwz r3, 140(sp)
-	mtctr r3
-	
-	lwz r3, 136(sp)
-	mtcr r3
-	
-	lwz r3, 132(sp)
-	mtlr r3
-	
-	lwz r3, 128(sp)
-	mtspr srr1, r3
-	
-	lwz r3, 124(sp)
-	mtspr srr0, r3
-	
 	lwz r0, 0(sp)
 	lwz r2, 4(sp)
 	lwz r3, 8(sp)
@@ -93,28 +77,46 @@ iret:
 	lwz r9, 32(sp)
 	lwz r10, 36(sp)
 	lwz r11, 40(sp)
-	lwz r12, 44(sp)
-	lwz r13, 48(sp)
-	lwz r14, 52(sp)
-	lwz r15, 56(sp)
-	lwz r16, 60(sp)
-	lwz r17, 64(sp)
-	lwz r18, 68(sp)
-	lwz r19, 72(sp)
-	lwz r20, 76(sp)
-	lwz r21, 80(sp)
-	lwz r22, 84(sp)
-	lwz r23, 88(sp)
-	lwz r24, 92(sp)
-	lwz r25, 96(sp)
-	lwz r26, 100(sp)
-	lwz r27, 104(sp)
-	lwz r28, 108(sp)
-	lwz r29, 112(sp)
-	lwz r30, 116(sp)
-	lwz r31, 120(sp)
+	lwz r13, 44(sp)
+	lwz r14, 48(sp)
+	lwz r15, 52(sp)
+	lwz r16, 56(sp)
+	lwz r17, 60(sp)
+	lwz r18, 64(sp)
+	lwz r19, 68(sp)
+	lwz r20, 72(sp)
+	lwz r21, 76(sp)
+	lwz r22, 80(sp)
+	lwz r23, 84(sp)
+	lwz r24, 88(sp)
+	lwz r25, 92(sp)
+	lwz r26, 96(sp)
+	lwz r27, 100(sp)
+	lwz r28, 104(sp)
+	lwz r29, 108(sp)
+	lwz r30, 112(sp)
+	lwz r31, 116(sp)
 	
-	mfspr sp, sprg1
+	lwz r12, 120(sp)
+	mtsrr0 r12
+	
+	lwz r12, 124(sp)
+	mtsrr1 r12
+	
+	lwz r12, 128(sp)
+	mtlr r12
+	
+	lwz r12, 132(sp)
+	mtcr r12
+	
+	lwz r12, 136(sp)
+	mtctr r12
+	
+	lwz r12, 140(sp)
+	mtxer r12
+
+	mfsprg1 sp
+	mfsprg2 r12
 	
 	rfi
 	

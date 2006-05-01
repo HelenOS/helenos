@@ -40,10 +40,10 @@
  * @return Old interrupt priority level.
  */
 static inline ipl_t interrupts_enable(void) {
-	ipl_t v;
+	ipl_t v = 0;
 	ipl_t tmp;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mfmsr %0\n"
 		"mfmsr %1\n"
 		"ori %1, %1, 1 << 15\n"
@@ -64,7 +64,7 @@ static inline ipl_t interrupts_disable(void) {
 	ipl_t v;
 	ipl_t tmp;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mfmsr %0\n"
 		"mfmsr %1\n"
 		"rlwinm %1, %1, 0, 17, 15\n"
@@ -83,7 +83,7 @@ static inline ipl_t interrupts_disable(void) {
 static inline void interrupts_restore(ipl_t ipl) {
 	ipl_t tmp;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mfmsr %1\n"
 		"rlwimi  %0, %1, 0, 17, 15\n"
 		"cmpw 0, %0, %1\n"
@@ -103,7 +103,8 @@ static inline void interrupts_restore(ipl_t ipl) {
  */
 static inline ipl_t interrupts_read(void) {
 	ipl_t v;
-	__asm__ volatile (
+	
+	asm volatile (
 		"mfmsr %0\n"
 		: "=r" (v)
 	);
@@ -120,8 +121,11 @@ static inline __address get_stack_base(void)
 {
 	__address v;
 	
-	__asm__ volatile ("and %0, %%sp, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
-	
+	asm volatile (
+		"and %0, %%sp, %1\n"
+		: "=r" (v)
+		: "r" (~(STACK_SIZE - 1))
+	);
 	return v;
 }
 

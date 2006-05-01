@@ -34,18 +34,21 @@
 .global kernel_image_start
 kernel_image_start:
 
-	# load temporary stack
+	# load temporal kernel stack
 	
-	lis sp, end_stack@ha
-	addi sp, sp, end_stack@l
+	lis sp, kernel_stack@ha
+	addi sp, sp, kernel_stack@l
+	
+	# set kernel stack for interrupt handling
+	
+	mr r31, sp
+	subis r31, r31, 0x8000
+	mtsprg0 r31
 	
 	# r3 contains physical address of bootinfo_t
 	# r4 contains size of bootinfo_t
 	
-	lis r31, 0x80000000@ha
-	addi r31, r31, 0x80000000@l
-	
-	add r3, r3, r31
+	addis r3, r3, 0x8000
 
 	lis r31, bootinfo@ha
 	addi r31, r31, bootinfo@l  # r31 = bootinfo
@@ -72,5 +75,7 @@ kernel_image_start:
 
 .section K_DATA_START, "aw", @progbits
 
+.align 12
+kernel_stack_bottom:
 	.space TEMP_STACK_SIZE
-end_stack:
+kernel_stack:

@@ -29,11 +29,11 @@
 #ifndef __ppc32_BARRIER_H__
 #define __ppc32_BARRIER_H__
 
-#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
+#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
 
-#define memory_barrier() __asm__ volatile ("sync" ::: "memory")
-#define read_barrier() __asm__ volatile ("sync" ::: "memory")
-#define write_barrier() __asm__ volatile ("eieio" ::: "memory")
+#define memory_barrier() asm volatile ("sync" ::: "memory")
+#define read_barrier() asm volatile ("sync" ::: "memory")
+#define write_barrier() asm volatile ("eieio" ::: "memory")
 
 #endif

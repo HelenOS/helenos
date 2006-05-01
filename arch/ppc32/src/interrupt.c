@@ -31,8 +31,8 @@
 #include <arch/types.h>
 #include <arch.h>
 #include <time/clock.h>
-#include <print.h>
 #include <ipc/sysipc.h>
+
 
 void start_decrementer(void)
 {

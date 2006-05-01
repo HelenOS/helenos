@@ -32,11 +32,35 @@
 .section K_UNMAPPED_TEXT_START, "ax"
 
 .macro CONTEXT_STORE
-	mtspr sprg1, sp
 	
-	subis sp, sp, 0x8000
+	# save SP in SPRG1
+	# save R12 in SPRG2, backup CR in R12
+
+	mtsprg1 sp
+	mtsprg2 r12
+	mfcr r12
 	
-	subi sp, sp, 144
+	# check whether SP is in kernel
+	
+	andis. sp, sp, 0x8000
+	bne 1f
+	
+		# stack is in user-space
+		
+		mfsprg0 sp
+	
+	b 2f
+	
+	1:
+	
+		# stack is in kernel
+		
+		mfsprg1 sp
+		subis sp, sp, 0x8000
+	
+	2:
+	
+	subi sp, sp, 140
 	stw r0, 0(sp)
 	stw r2, 4(sp)
 	stw r3, 8(sp)
@@ -48,44 +72,42 @@
 	stw r9, 32(sp)
 	stw r10, 36(sp)
 	stw r11, 40(sp)
-	stw r12, 44(sp)
-	stw r13, 48(sp)
-	stw r14, 52(sp)
-	stw r15, 56(sp)
-	stw r16, 60(sp)
-	stw r17, 64(sp)
-	stw r18, 68(sp)
-	stw r19, 72(sp)
-	stw r20, 76(sp)
-	stw r21, 80(sp)
-	stw r22, 84(sp)
-	stw r23, 88(sp)
-	stw r24, 92(sp)
-	stw r25, 96(sp)
-	stw r26, 100(sp)
-	stw r27, 104(sp)
-	stw r28, 108(sp)
-	stw r29, 112(sp)
-	stw r30, 116(sp)
-	stw r31, 120(sp)
+	stw r13, 44(sp)
+	stw r14, 48(sp)
+	stw r15, 52(sp)
+	stw r16, 56(sp)
+	stw r17, 60(sp)
+	stw r18, 64(sp)
+	stw r19, 68(sp)
+	stw r20, 72(sp)
+	stw r21, 76(sp)
+	stw r22, 80(sp)
+	stw r23, 84(sp)
+	stw r24, 88(sp)
+	stw r25, 92(sp)
+	stw r26, 96(sp)
+	stw r27, 100(sp)
+	stw r28, 104(sp)
+	stw r29, 108(sp)
+	stw r30, 112(sp)
+	stw r31, 116(sp)
 	
-	mfspr r3, srr0
+	mfsrr0 r3
+	stw r3, 120(sp)
+	
+	mfsrr1 r3
 	stw r3, 124(sp)
 	
-	mfspr r3, srr1
+	mflr r3
 	stw r3, 128(sp)
 	
-	mflr r3
-	stw r3, 132(sp)
-	
-	mfcr r3
-	stw r3, 136(sp)
+	stw r12, 132(sp)
 	
 	mfctr r3
-	stw r3, 140(sp)
+	stw r3, 136(sp)
 	
 	mfxer r3
-	stw r3, 144(sp)
+	stw r3, 140(sp)
 .endm
 
 .org 0x100
@@ -102,31 +124,43 @@ exc_machine_check:
 .global exc_data_storage
 exc_data_storage:
 	CONTEXT_STORE
-
+	
 	lis r3, pht_refill@ha
 	addi r3, r3, pht_refill@l
-	mtspr srr0, r3
+	mtsrr0 r3
 	
 	mfmsr r3
 	ori r3, r3, (msr_ir | msr_dr)@l
-	mtspr srr1, r3
+	mtsrr1 r3
 	
 	lis r3, iret@ha
 	addi r3, r3, iret@l
 	mtlr r3
 	
 	addis sp, sp, 0x8000
+	mr r3, sp
 	rfi
 
 .org 0x400
 .global exc_instruction_storage
 exc_instruction_storage:
-	b exc_instruction_storage
-
-.org 0x480
-.global exc_instruction_segment
-exc_instruction_segment:
-	b exc_instruction_segment
+	CONTEXT_STORE
+	
+	lis r3, pht_refill@ha
+	addi r3, r3, pht_refill@l
+	mtsrr0 r3
+	
+	mfmsr r3
+	ori r3, r3, (msr_ir | msr_dr)@l
+	mtsrr1 r3
+	
+	lis r3, iret@ha
+	addi r3, r3, iret@l
+	mtlr r3
+	
+	addis sp, sp, 0x8000
+	mr r3, sp
+	rfi
 
 .org 0x500
 .global exc_external
@@ -155,11 +189,11 @@ exc_decrementer:
 
 	lis r3, exc_dispatch@ha
 	addi r3, r3, exc_dispatch@l
-	mtspr srr0, r3
+	mtsrr0 r3
 	
 	mfmsr r3
 	ori r3, r3, (msr_ir | msr_dr)@l
-	mtspr srr1, r3
+	mtsrr1 r3
 	
 	lis r3, iret@ha
 	addi r3, r3, iret@l
@@ -167,6 +201,7 @@ exc_decrementer:
 	
 	addis sp, sp, 0x8000
 	li r3, 10
+	mr r4, sp
 	rfi
 
 .org 0xa00

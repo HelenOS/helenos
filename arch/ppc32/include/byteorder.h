@@ -51,8 +51,12 @@ static inline __native __native_le2host(__native n)
 {
 	__address v;
 	
-	__asm__ volatile ("lwbrx %0, %1, %2\n" : "=r" (v) : "i" (0) , "r" (&n));
-	
+	asm volatile (
+		"lwbrx %0, %1, %2\n"
+		: "=r" (v)
+		: "i" (0), "r" (&n)
+	);
 	return v;
 }
+
 #endif
