@@ -38,6 +38,7 @@
 #include <arch/cpu.h>
 #include <cpu.h>
 #include <arch.h>
+#include <align.h>
 
 /** Enable I/O space range for task.
  *
@@ -141,14 +142,17 @@ void io_perm_bitmap_install(void)
 		 * It is safe to set the trailing eight bits because of the extra
 		 * convenience byte in TSS_IOMAP_SIZE.
 		 */
-		bitmap_set_range(&iomap, TASK->arch.iomap.bits, 8);
+		bitmap_set_range(&iomap, ALIGN_UP(TASK->arch.iomap.bits, 8), 8);
 	}
 	spinlock_unlock(&TASK->lock);
 
-	/* Second, adjust TSS segment limit. */
+	/*
+	 * Second, adjust TSS segment limit.
+	 * Take the extra ending byte with all bits set into account.
+	 */
 	gdtr_store(&cpugdtr);
 	gdt_p = (descriptor_t *) cpugdtr.base;
-	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits) - 1);
+	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits));
 	gdtr_load(&cpugdtr);
 
 	/*
