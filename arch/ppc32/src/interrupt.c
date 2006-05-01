@@ -38,7 +38,8 @@ void start_decrementer(void)
 {
 	asm volatile (
 		"mtdec %0\n"
-		:: "r" (1000)
+		:
+		: "r" (1000)
 	);
 }
 
@@ -55,6 +56,7 @@ void interrupt_init(void)
 {
 	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
 }
+
 
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(__native irq)

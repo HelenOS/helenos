@@ -40,7 +40,7 @@
  * @return Old interrupt priority level.
  */
 static inline ipl_t interrupts_enable(void) {
-	ipl_t v = 0;
+	ipl_t v;
 	ipl_t tmp;
 	
 	asm volatile (
