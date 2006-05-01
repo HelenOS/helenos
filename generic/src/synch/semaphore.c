@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	semaphore.c
+ * @brief	Semaphores.
+ */
+
 #include <synch/semaphore.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>

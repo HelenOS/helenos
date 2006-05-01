@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	func.c
+ * @brief	Miscellaneous functions.
+ */
+
 #include <func.h>
 #include <print.h>
 #include <cpu.h>

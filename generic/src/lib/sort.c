@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	sort.c
+ * @brief	Sorting functions.
+ *
+ * This files contains functions implementing several sorting
+ * algorithms (e.g. quick sort and bubble sort).
+ */
+ 
 #include <mm/slab.h>
 #include <memstr.h>
 #include <sort.h>

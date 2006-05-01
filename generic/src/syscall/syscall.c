@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	syscall.c
+ * @brief	Syscall table and syscall wrappers.
+ */
+ 
 #include <syscall/syscall.h>
 #include <proc/thread.h>
 #include <proc/task.h>

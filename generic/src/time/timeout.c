@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	timeout.c
+ * @brief	Timeout management functions.
+ */
+
 #include <time/timeout.h>
 #include <typedefs.h>
 #include <arch/types.h>

@@ -26,6 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	memstr.c
+ * @brief	Memory string operations.
+ *
+ * This file provides architecture independent functions
+ * to manipulate blocks of memory. These functions
+ * are optimized as much as generic functions of
+ * this type can be. However, architectures are
+ * free to provide even more optimized versions of these
+ * functions.
+ */
+
 #include <memstr.h>
 #include <arch/types.h>
 

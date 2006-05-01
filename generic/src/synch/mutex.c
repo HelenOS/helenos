@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	mutex.c
+ * @brief	Mutexes.
+ */
+ 
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
 #include <synch/synch.h>

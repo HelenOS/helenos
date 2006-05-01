@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	spinlock.c
+ * @brief	Spinlocks.
+ */
+ 
 #include <synch/spinlock.h>
 #include <atomic.h>
 #include <arch/barrier.h>

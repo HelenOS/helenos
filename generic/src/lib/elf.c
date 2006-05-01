@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	elf.c
+ * @brief	Kernel ELF loader.
+ */
+
 #include <elf.h>
 #include <debug.h>
 #include <arch/types.h>

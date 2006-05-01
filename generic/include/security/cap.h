@@ -27,7 +27,12 @@
  */
 
 /**
- * Capabilities definitions.
+ * @file	cap.h
+ * @brief	Capabilities definitions.
+ *
+ * Capabilities represent virtual rights that entitle their
+ * holder to perform certain security sensitive tasks.
+ *
  * Each task can have arbitrary combination of the capabilities
  * defined in this file. Therefore, they are required to be powers
  * of two.

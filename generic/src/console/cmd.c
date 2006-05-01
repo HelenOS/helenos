@@ -27,6 +27,9 @@
  */
 
 /**
+ * @file	cmd.c
+ * @brief	Kernel console command wrappers.
+ *
  * This file is meant to contain all wrapper functions for
  * all kconsole commands. The point is in separating
  * kconsole specific wrappers from kconsole-unaware functions

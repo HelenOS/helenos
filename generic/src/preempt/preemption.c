@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	preemption.c
+ * @brief	Preemption control.
+ */
+ 
 #include <preemption.h>
 #include <arch.h>
 #include <arch/asm.h>

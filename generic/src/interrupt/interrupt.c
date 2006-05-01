@@ -26,6 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	interrupt.c
+ * @brief	Interrupt redirector.
+ *
+ * This file provides means of registering interrupt handlers
+ * by kernel functions and calling the handlers when interrupts
+ * occur.
+ */
+
 #include <interrupt.h>
 #include <debug.h>
 #include <console/kconsole.h>

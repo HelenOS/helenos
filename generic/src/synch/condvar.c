@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	condvar.c
+ * @brief	Condition variables.
+ */
+
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>

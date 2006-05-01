@@ -30,7 +30,7 @@
  * @file	scheduler.c
  * @brief	Scheduler and load balancing.
  *
- * This file contains the scheduler and kcpulb kernel thread wich
+ * This file contains the scheduler and kcpulb kernel thread which
  * performs load-balancing of per-CPU run queues.
  */
 

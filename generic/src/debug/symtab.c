@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	symtab.c
+ * @brief	Kernel symbol resolver.
+ */
 
 #include <symtab.h>
 #include <typedefs.h>
@@ -33,7 +37,7 @@
 #include <func.h>
 #include <print.h>
 
-/** Return entry that seems most likely to correspond to address
+/** Return entry that seems most likely to correspond to argument.
  *
  * Return entry that seems most likely to correspond
  * to address passed in the argument.
@@ -55,7 +59,7 @@ char * get_symtab_entry(__native addr)
 	return NULL;
 }
 
-/** Find symbols that match the parameter forward and print them 
+/** Find symbols that match the parameter forward and print them.
  *
  * @param name - search string
  * @param startpos - starting position, changes to found position

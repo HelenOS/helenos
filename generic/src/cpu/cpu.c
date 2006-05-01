@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	cpu.c
+ * @brief	CPU subsystem initialization and listing.
+ */
+ 
 #include <cpu.h>
 #include <arch.h>
 #include <arch/cpu.h>

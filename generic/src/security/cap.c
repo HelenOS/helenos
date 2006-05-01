@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	cap.c
+ * @brief	Capabilities control.
+ *
+ * @see cap.h
+ */
+ 
 #include <security/cap.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>

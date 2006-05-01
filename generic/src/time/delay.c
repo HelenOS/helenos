@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	delay.c
+ * @brief	Active delay function.
+ */
+ 
 #include <time/delay.h>
 #include <arch/types.h>
 #include <cpu.h>

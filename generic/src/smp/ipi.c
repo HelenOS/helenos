@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	ipi.c
+ * @brief	Generic IPI interface.
+ */
+ 
 #ifdef CONFIG_SMP
 
 #include <smp/ipi.h>
@@ -38,6 +43,10 @@
  *
  * @param ipi Message to broadcast.
  *
+ * @bugs The decision whether to actually send the IPI must be based
+ *	 on a different criterion. The current version has
+ *	 problems when some of the detected CPUs are marked
+ *	 disabled in machine configuration.
  */
 void ipi_broadcast(int ipi)
 {

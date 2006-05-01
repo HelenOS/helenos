@@ -26,6 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	clock.c
+ * @brief	High-level clock interrupt handler.
+ *
+ * This file contains the clock() function which is the source
+ * of preemption. It is also responsible for executing expired
+ * timeouts.
+ */
+ 
 #include <time/clock.h>
 #include <time/timeout.h>
 #include <arch/types.h>

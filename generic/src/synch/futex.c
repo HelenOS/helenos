@@ -27,8 +27,10 @@
  */
 
 /**
- * Kernel backend for futexes.
- * Deallocation of orphaned kernel-side futex structures is not currently implemented.
+ * @file	futex.c
+ * @brief	Kernel backend for futexes.
+ *
+ * @todo Deallocation of orphaned kernel-side futex structures is not currently implemented.
  */
 
 #include <synch/futex.h>

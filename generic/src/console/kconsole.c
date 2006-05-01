@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	kconsole.c
+ * @brief	Kernel console.
+ *
+ * This file contains kernel thread managing the kernel console.
+ */
+
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/chardev.h>

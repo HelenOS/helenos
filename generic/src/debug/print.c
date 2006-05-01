@@ -27,6 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	print.c
+ * @brief	Printing functions.
+ */
+
 #include <putchar.h>
 #include <print.h>
 #include <synch/spinlock.h>
