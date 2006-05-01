@@ -138,7 +138,8 @@ exc_data_storage:
 	mtlr r3
 	
 	addis sp, sp, 0x8000
-	mr r3, sp
+	li r3, 1
+	mr r4, sp
 	rfi
 
 .org 0x400
@@ -159,7 +160,8 @@ exc_instruction_storage:
 	mtlr r3
 	
 	addis sp, sp, 0x8000
-	mr r3, sp
+	li r3, 0
+	mr r4, sp
 	rfi
 
 .org 0x500

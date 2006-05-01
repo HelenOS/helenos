@@ -434,11 +434,15 @@ static struct buddy_system_operations  zone_buddy_system_operations = {
 /** Allocate frame in particular zone
  *
  * Assume zone is locked
- * Panics, if allocation is impossible.
+ * Panics if allocation is impossible.
+ *
+ * @param zone  Zone to allocate from.
+ * @param order Allocate exactly 2^order frames.
  *
  * @return Frame index in zone
+ *
  */
-static pfn_t zone_frame_alloc(zone_t *zone,__u8 order)
+static pfn_t zone_frame_alloc(zone_t *zone, __u8 order)
 {
 	pfn_t v;
 	link_t *tmp;
@@ -891,13 +895,15 @@ void * frame_get_parent(pfn_t pfn, int hint)
 
 /** Allocate power-of-two frames of physical memory.
  *
- * @param flags Flags for host zone selection and address processing.
- * @param order Allocate exactly 2^order frames.
- * @param pzone Preferred zone
+ * @param order  Allocate exactly 2^order frames.
+ * @param flags  Flags for host zone selection and address processing.
+ * @param status Allocation status (FRAME_OK on success), unused if NULL.
+ * @param pzone  Preferred zone
  *
  * @return Allocated frame.
+ *
  */
-pfn_t frame_alloc_generic(__u8 order, int flags, int * status, int *pzone) 
+pfn_t frame_alloc_generic(__u8 order, int flags, int *status, int *pzone) 
 {
 	ipl_t ipl;
 	int freed;
@@ -906,20 +912,22 @@ pfn_t frame_alloc_generic(__u8 order, int flags, int * status, int *pzone)
 	
 loop:
 	ipl = interrupts_disable();
+	
 	/*
 	 * First, find suitable frame zone.
 	 */
-	zone = find_free_zone_lock(order,pzone);
+	zone = find_free_zone_lock(order, pzone);
+	
 	/* If no memory, reclaim some slab memory,
 	   if it does not help, reclaim all */
 	if (!zone && !(flags & FRAME_NO_RECLAIM)) {
 		freed = slab_reclaim(0);
 		if (freed)
-			zone = find_free_zone_lock(order,pzone);
+			zone = find_free_zone_lock(order, pzone);
 		if (!zone) {
 			freed = slab_reclaim(SLAB_RECLAIM_ALL);
 			if (freed)
-				zone = find_free_zone_lock(order,pzone);
+				zone = find_free_zone_lock(order, pzone);
 		}
 	}
 	if (!zone) {
@@ -941,7 +949,8 @@ loop:
 		panic("Sleep not implemented.\n");
 		goto loop;
 	}
-	v = zone_frame_alloc(zone,order);
+	
+	v = zone_frame_alloc(zone, order);
 	v += zone->base;
 
 	spinlock_unlock(&zone->lock);

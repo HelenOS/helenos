@@ -29,11 +29,15 @@
 #include <arch/mm/tlb.h>
 #include <arch/types.h>
 #include <mm/tlb.h>
+#include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
 #include <arch.h>
 #include <print.h>
 #include <symtab.h>
+
+
+static phte_t *phte;
 
 
 /** Initialize Page Hash Table.
@@ -43,6 +47,18 @@
  */
 void tlb_arch_init(void)
 {
+	phte_t *physical_phte = (phte_t *) PFN2ADDR(frame_alloc(PHT_ORDER, FRAME_KA | FRAME_PANIC));
+	phte =(phte_t *) PA2KA((__address) physical_phte);
+	
+	ASSERT((__address) physical_phte % (1 << PHT_BITS) == 0);
+	
+	memsetb((__address) phte, 1 << PHT_BITS, 0);
+	
+	asm volatile (
+		"mtsdr1 %0\n"
+		:
+		: "r" ((__address) physical_phte)
+	);
 }
 
 
@@ -103,26 +119,35 @@ static void pht_refill_fail(__address badvaddr, istate_t *istate)
 	s = get_symtab_entry(istate->lr);
 	if (s)
 		sym2 = s;
-	panic("%X: PHT Refill Exception at %X(%s<-%s)\n", badvaddr, istate->pc, symbol, sym2);
+	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr, istate->pc, symbol, sym2);
 }
 
 
-/** Process Data Storage Interrupt
+/** Process Instruction/Data Storage Interrupt
  *
+ * @param data   True if Data Storage Interrupt.
  * @param istate Interrupted register context.
  *
  */
-void pht_refill(istate_t *istate)
+void pht_refill(bool data, istate_t *istate)
 {
 	asid_t asid;
 	__address badvaddr;
 	pte_t *pte;
+	__u32 page;
+	__u32 api;
+	__u32 vsid;
+	__u32 hash;
+	__u32 i;
 	
-	__asm__ volatile (
-		"mfdar %0\n"
-		: "=r" (badvaddr)
-	);
-	
+	if (data) {
+		asm volatile (
+			"mfdar %0\n"
+			: "=r" (badvaddr)
+		);
+	} else
+		badvaddr = istate->pc;
+		
 	spinlock_lock(&AS->lock);
 	asid = AS->asid;
 	spinlock_unlock(&AS->lock);
@@ -133,13 +158,40 @@ void pht_refill(istate_t *istate)
 	if (!pte)
 		goto fail;
 
-	/*
-	 * Record access to PTE.
-	 */
+	/* Record access to PTE */
 	pte->a = 1;
 	
-	// FIXME: Insert entry into PHT
-
+	page = ADDR2PFN(badvaddr);
+	api = (badvaddr >> 22) & 0x3f;
+	asm volatile (
+		"mfsrin %0, %1\n"
+		: "=r" (vsid)
+		: "r" (badvaddr >> 28)
+	);
+	
+	/* Primary hash (xor) */
+	hash = ((vsid ^ page) & 0x3ff) << 3;
+	
+	/* Find invalid PTE in PTEG */
+	for (i = 0; i < 8; i++) {
+		if (!phte[hash + i].v)
+			break;
+	}
+	
+	// TODO: Check access/change bits, secondary hash
+	
+	if (i == 8)
+		i = page % 8;
+	
+	phte[hash + i].v = 1;
+	phte[hash + i].vsid = vsid;
+	phte[hash + i].h = 0;
+	phte[hash + i].api = api;
+	phte[hash + i].rpn = pte->pfn;
+	phte[hash + i].r = 0;
+	phte[hash + i].c = 0;
+	phte[hash + i].pp = 2; // FIXME
+	
 	page_table_unlock(AS, true);
 	return;
 	

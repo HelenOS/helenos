@@ -32,6 +32,23 @@
 #include <arch/exception.h>
 #include <typedefs.h>
 
-extern void pht_refill(istate_t *istate);
+#define PHT_BITS	16
+#define PHT_ORDER	4
+
+typedef struct {
+	unsigned v : 1;          /**< Valid */
+	unsigned vsid : 24;      /**< Virtual Segment ID */
+	unsigned h : 1;          /**< Primary/secondary hash */
+	unsigned api : 6;        /**< Abbreviated Page Index */
+	unsigned rpn : 20;       /**< Real Page Number */
+	unsigned reserved0 : 3;
+	unsigned r : 1;          /**< Reference */
+	unsigned c : 1;          /**< Change */
+	unsigned wimg : 4;       /**< Access control */
+	unsigned reserved1 : 1;
+	unsigned pp : 2;         /**< Page protection */
+} phte_t;
+
+extern void pht_refill(bool data, istate_t *istate);
 
 #endif

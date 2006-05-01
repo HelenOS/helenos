@@ -71,6 +71,10 @@ void cuda_packet(const __u8 data)
 void cpu_halt(void) {
 #ifdef CONFIG_POWEROFF
 	cuda_packet(CUDA_POWERDOWN);
+#else
+	asm volatile (
+		"b 0\n"
+	);
 #endif
 	cpu_sleep();
 }
