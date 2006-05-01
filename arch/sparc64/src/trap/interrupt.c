@@ -30,6 +30,7 @@
 #include <interrupt.h>
 #include <arch/types.h>
 #include <debug.h>
+#include <ipc/sysipc.h>
 
 /** Register Interrupt Level Handler.
  *
@@ -42,4 +43,11 @@ void interrupt_register(int n, const char *name, iroutine f)
 	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
 	
 	exc_register(n - 1, name, f);
+}
+
+/* Reregister irq to be IPC-ready */
+void irq_ipc_bind_arch(__native irq)
+{
+	panic("not implemented\n");
+	/* TODO */
 }

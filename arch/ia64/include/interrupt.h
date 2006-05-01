@@ -33,6 +33,8 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
+#define IRQ_COUNT		1	/* TODO */
+
 /** External Interrupt vectors. */
 #define INTERRUPT_TIMER		0
 #define INTERRUPT_SPURIOUS	15
@@ -48,7 +50,6 @@
 #define EOI	0		/**< The actual value doesn't matter. */
 
 struct istate {
-
 	__r128 f2;
 	__r128 f3;
 	__r128 f4;
@@ -79,8 +80,7 @@ struct istate {
 	__r128 f29;
 	__r128 f30;
 	__r128 f31;
-	
-	
+		
 	__address ar_bsp;
 	__address ar_bspstore;
 	__address ar_bspstore_new;

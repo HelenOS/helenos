@@ -29,6 +29,8 @@
 #ifndef __ppc32_INTERRUPT_H__
 #define __ppc32_INTERRUPT_H__
 
+#define IRQ_COUNT	1	/* TODO */
+
 #define IVT_ITEMS   15
 #define INT_OFFSET  0
 

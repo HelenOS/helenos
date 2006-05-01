@@ -31,6 +31,8 @@
 
 #include <typedefs.h>
 
+#define IRQ_COUNT	1	/* TODO */
+
 #define IVT_ITEMS 	15
 #define IVT_FIRST	1
 

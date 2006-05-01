@@ -43,6 +43,8 @@
 #include <syscall/syscall.h>
 #include <print.h>
 #include <proc/scheduler.h>
+#include <ipc/sysipc.h>
+
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -238,4 +240,11 @@ void external_interrupt(__u64 vector, istate_t *istate)
 		panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
 		break;
 	}
+}
+
+/* Reregister irq to be IPC-ready */
+void irq_ipc_bind_arch(__native irq)
+{
+	panic("not implemented\n");
+	/* TODO */
 }
