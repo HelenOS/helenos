@@ -82,7 +82,6 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
-	size_t retval;
 	struct vsnprintf_data data = {size, 0, str};
 	struct printf_spec ps = {(int(*)(void *, size_t, void *))vsnprintf_write, &data};
 

@@ -27,26 +27,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file	print.c
+ * @brief	Printing functions.
+ */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <io/printf_core.h>
 #include <ctype.h>
 #include <string.h>
 
-#define __PRINTF_FLAG_PREFIX		0x00000001	/* show prefixes 0x or 0*/
-#define __PRINTF_FLAG_SIGNED		0x00000002	/* signed / unsigned number */
-#define __PRINTF_FLAG_ZEROPADDED	0x00000004	/* print leading zeroes */
-#define __PRINTF_FLAG_LEFTALIGNED	0x00000010	/* align to left */
-#define __PRINTF_FLAG_SHOWPLUS		0x00000020	/* always show + sign */
-#define __PRINTF_FLAG_SPACESIGN		0x00000040	/* print space instead of plus */
-#define __PRINTF_FLAG_BIGCHARS		0x00000080	/* show big characters */
-#define __PRINTF_FLAG_NEGATIVE		0x00000100	/* number has - sign */
+#define __PRINTF_FLAG_PREFIX		0x00000001	/**< show prefixes 0x or 0*/
+#define __PRINTF_FLAG_SIGNED		0x00000002	/**< signed / unsigned number */
+#define __PRINTF_FLAG_ZEROPADDED	0x00000004	/**< print leading zeroes */
+#define __PRINTF_FLAG_LEFTALIGNED	0x00000010	/**< align to left */
+#define __PRINTF_FLAG_SHOWPLUS		0x00000020	/**< always show + sign */
+#define __PRINTF_FLAG_SPACESIGN		0x00000040	/**< print space instead of plus */
+#define __PRINTF_FLAG_BIGCHARS		0x00000080	/**< show big characters */
+#define __PRINTF_FLAG_NEGATIVE		0x00000100	/**< number has - sign */
 
-#define PRINT_NUMBER_BUFFER_SIZE	(64+5)		/* Buffer big enought for 64 bit number
+#define PRINT_NUMBER_BUFFER_SIZE	(64+5)		/**< Buffer big enought for 64 bit number
 							 * printed in base 2, sign, prefix and
 							 * 0 to terminate string.. (last one is only for better testing 
 							 * end of buffer by zero-filling subroutine)
 							 */
+/** Enumeration of possible arguments types.
+ */
 typedef enum {
 	PrintfQualifierByte = 0,
 	PrintfQualifierShort,
@@ -57,8 +64,8 @@ typedef enum {
 	PrintfQualifierPointer
 } qualifier_t;
 
-static char digits_small[] = "0123456789abcdef"; 	/* Small hexadecimal characters */
-static char digits_big[] = "0123456789ABCDEF"; 	/* Big hexadecimal characters */
+static char digits_small[] = "0123456789abcdef";	/**< Small hexadecimal characters */
+static char digits_big[] = "0123456789ABCDEF";		/**< Big hexadecimal characters */
 
 /** Print count chars from buffer without adding newline
  * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
@@ -349,81 +356,91 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 }
 
 
-/** General formatted text print
+/** Print formatted string.
  *
- * Print string formatted according the fmt parameter
- * and variant arguments. Each formatting directive
+ * Print string formatted according to the fmt parameter
+ * and variadic arguments. Each formatting directive
  * must have the following form:
- * % [ flags ] [ width ] [ .precision ] [ type ] conversion
- *
- * FLAGS:
- * #	Force to print prefix. For conversion %o is prefix 0, for %x and %X are prefixes 0x and 0X and for conversion %b is prefix 0b.
- * -	Align to left.
- * +	Print positive sign just as negative.
- *   (space)	If printed number is positive and '+' flag is not set, print space in place of sign.
- * 0	Print 0 as padding instead of spaces. Zeroes are placed between sign and the rest of number. This flag is ignored if '-' flag is specified.
  * 
- * WIDTH:
- * Specify minimal width of printed argument. If it is bigger, width is ignored.
- * If width is specified with a '*' character instead of number, width is taken from parameter list. 
- * Int parameter expected before parameter for processed conversion specification.
- * If this value is negative it is taken its absolute value and the '-' flag is set.
+ * 	\% [ FLAGS ] [ WIDTH ] [ .PRECISION ] [ TYPE ] CONVERSION
  *
- * PRECISION:
- * Value precision. For numbers it specifies minimum valid numbers.
+ * FLAGS:@n
+ * 	- "#" Force to print prefix.
+ * 	For conversion \%o the prefix is 0, for %x and \%X prefixes are 0x and 0X
+ *	and for conversion \%b the prefix is 0b.
+ *
+ * 	- "-"	Align to left.
+ *
+ * 	- "+"	Print positive sign just as negative.
+ *
+ * 	- " "	If the printed number is positive and "+" flag is not set, print space in
+ *	place of sign.
+ *
+ * 	- "0"	Print 0 as padding instead of spaces. Zeroes are placed between sign and the
+ *	rest of the number. This flag is ignored if "-" flag is specified.
+ * 
+ * WIDTH:@n
+ * 	- Specify minimal width of printed argument. If it is bigger, width is ignored.
+ * If width is specified with a "*" character instead of number, width is taken from
+ * parameter list. And integer parameter is expected before parameter for processed
+ * conversion specification. If this value is negative its absolute value is taken
+ * and the "-" flag is set.
+ *
+ * PRECISION:@n
+ * 	- Value precision. For numbers it specifies minimum valid numbers.
  * Smaller numbers are printed with leading zeroes. Bigger numbers are not affected.
- * Strings with more than precision characters are cutted of.
- * Just as width could be '*' used instead a number. 
- * A int value is then expected in parameters. When both width and precision are specified using '*',
- * first parameter is used for width and second one for precision.
+ * Strings with more than precision characters are cut off.
+ * Just as with width, an "*" can be used used instead of a number.
+ * An integer value is then expected in parameters. When both width and precision
+ * are specified using "*", the first parameter is used for width and the second one
+ * for precision.
  * 
- * TYPE:
- * hh	signed or unsigned char
- * h	signed or usigned short
- * 	signed or usigned int (default value)
- * l	signed or usigned long int
- * ll	signed or usigned long long int
- * z	size_t type
+ * TYPE:@n
+ * 	- "hh"	Signed or unsigned char.@n
+ * 	- "h"	Signed or usigned short.@n
+ * 	- ""	Signed or usigned int (default value).@n
+ * 	- "l"	Signed or usigned long int.@n
+ * 	- "ll"	Signed or usigned long long int.@n
+ * 	- "z"	Type size_t.@n
  * 
  * 
- * CONVERSIONS:
+ * CONVERSION:@n
+ * 	- %	Print percentile character itself.
+ *
+ * 	- c	Print single character.
+ *
+ * 	- s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
  * 
- * %	Print percentage character.
+ * 	- P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
+ * 	(as with \%#X or \%#x for 32bit or \%#X / \%#x for 64bit long pointers).
  *
- * c	Print single character.
- *
- * s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
+ * 	- b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
  * 
- * P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
- * ( as with %#X or %#x for 32bit or %#X / %#x for 64bit long pointers)
+ * 	- o	Print value as unsigned octal number. Prefix is not printed by default. 
  *
- * b	Print value as unsigned binary number.  Prefix is not printed by default. (Nonstandard extension.)
- * 
- * o	Print value as unsigned octal number. Prefix is not printed by default. 
+ * 	- d,i	Print signed decimal number. There is no difference between d and i conversion.
  *
- * d,i	Print signed decimal number. There is no difference between d and i conversion.
+ * 	- u	Print unsigned decimal number.
  *
- * u	Print unsigned decimal number.
- *
- * X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default. 
+ * 	- X, x	Print hexadecimal number with upper- or lower-case. Prefix is not printed by default.
  * 
  * All other characters from fmt except the formatting directives
  * are printed in verbatim.
  *
  * @param fmt Formatting NULL terminated string.
- * @return count of printed characters or negative value on fail.
+ * @return Number of printed characters or negative value on failure.
  */
 int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 {
-	int i = 0, j = 0; /* i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
+	int i = 0, j = 0; /**< i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
 	int end;
-	int counter; /* counter of printed characters */
-	int retval; /* used to store return values from called functions */
+	int counter; /**< counter of printed characters */
+	int retval; /**< used to store return values from called functions */
 	char c;
-	qualifier_t qualifier;	/* type of argument */
-	int base;	/* base in which will be parameter (numbers only) printed */
-	uint64_t number; /* argument value */
-	size_t	size; /* byte size of integer parameter */
+	qualifier_t qualifier;	/**< type of argument */
+	int base;	/**< base in which will be parameter (numbers only) printed */
+	uint64_t number; /**< argument value */
+	size_t	size; /**< byte size of integer parameter */
 	int width, precision;
 	uint64_t flags;
 	
