@@ -35,6 +35,7 @@
 #include <debug.h>
 #include <ipc/ipc.h>
 #include <ipc/sysipc.h>
+#include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
 #include <arch/interrupt.h>
 
@@ -477,13 +478,14 @@ restart:
 }
 
 /** Connect irq handler to task */
-__native sys_ipc_register_irq(__native irq)
+__native sys_ipc_register_irq(__native irq, irq_code_t *ucode)
 {
 	if (irq >= IRQ_COUNT)
 		return -ELIMIT;
 
 	irq_ipc_bind_arch(irq);
-	return ipc_irq_register(&TASK->answerbox, irq);
+
+	return ipc_irq_register(&TASK->answerbox, irq, ucode);
 }
 
 /* Disconnect irq handler from task */

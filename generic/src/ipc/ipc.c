@@ -44,19 +44,12 @@
 #include <print.h>
 #include <proc/thread.h>
 #include <arch/interrupt.h>
+#include <ipc/irq.h>
 
 /* Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
-
-typedef struct {
-	SPINLOCK_DECLARE(lock);
-	answerbox_t *box;
-} ipc_irq_t;
-
-static ipc_irq_t *irq_conns = NULL;
-static int irq_conns_size;
 
 /* Initialize new call */
 static void _ipc_call_init(call_t *call)
@@ -328,7 +321,7 @@ restart:
 		ipl = interrupts_disable();
 		spinlock_lock(&box->irq_lock);
 
-		request = list_get_instance(box->answers.next, call_t, list);
+		request = list_get_instance(box->irq_notifs.next, call_t, list);
 		list_remove(&request->list);
 
 		spinlock_unlock(&box->irq_lock);
@@ -367,26 +360,6 @@ static void ipc_cleanup_call_list(link_t *lst)
 
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		_ipc_answer_free_call(call);
-	}
-}
-
-/** Disconnect all irq's notifications
- *
- * TODO: It may be better to do some linked list, so that
- *       we wouldn't need to go through whole array every cleanup
- */
-static void ipc_irq_cleanup(answerbox_t *box)
-{
-	int i;
-	ipl_t ipl;
-	
-	for (i=0; i < irq_conns_size; i++) {
-		ipl = interrupts_disable();
-		spinlock_lock(&irq_conns[i].lock);
-		if (irq_conns[i].box == box)
-			irq_conns[i].box = NULL;
-		spinlock_unlock(&irq_conns[i].lock);
-		interrupts_restore(ipl);
 	}
 }
 
@@ -443,80 +416,6 @@ restart_phones:
 	}
 }
 
-/** Initialize table of interrupt handlers */
-static void ipc_irq_make_table(int irqcount)
-{
-	int i;
-
-	irq_conns_size = irqcount;
-	irq_conns = malloc(irqcount * (sizeof(*irq_conns)), 0);
-	for (i=0; i < irqcount; i++) {
-		spinlock_initialize(&irq_conns[i].lock, "irq_ipc_lock");
-		irq_conns[i].box = NULL;
-	}
-}
-
-void ipc_irq_unregister(answerbox_t *box, int irq)
-{
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[irq].lock);
-	if (irq_conns[irq].box == box)
-		irq_conns[irq].box = NULL;
-
-	spinlock_unlock(&irq_conns[irq].lock);
-	interrupts_restore(ipl);
-}
-
-/** Register an answerbox as a receiving end of interrupts notifications */
-int ipc_irq_register(answerbox_t *box, int irq)
-{
-	ipl_t ipl;
-
-	ASSERT(irq_conns);
-
-	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[irq].lock);
-
-	if (irq_conns[irq].box) {
-		spinlock_unlock(&irq_conns[irq].lock);
-		interrupts_restore(ipl);
-		return EEXISTS;
-	}
-	irq_conns[irq].box = box;
-	spinlock_unlock(&irq_conns[irq].lock);
-	interrupts_restore(ipl);
-
-	return 0;
-}
-
-/** Notify process that an irq had happend
- *
- * We expect interrupts to be disabled
- */
-void ipc_irq_send_notif(int irq)
-{
-	call_t *call;
-
-	ASSERT(irq_conns);
-	spinlock_lock(&irq_conns[irq].lock);
-
-	if (irq_conns[irq].box) {
-		call = ipc_call_alloc(FRAME_ATOMIC);
-		call->flags |= IPC_CALL_NOTIF;
-		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
-		IPC_SET_ARG1(call->data, irq);
-
-		spinlock_lock(&irq_conns[irq].box->irq_lock);
-		list_append(&call->list, &irq_conns[irq].box->irq_notifs);
-		spinlock_unlock(&irq_conns[irq].box->irq_lock);
-
-		waitq_wakeup(&irq_conns[irq].box->wq, 0);
-	}
-		
-	spinlock_unlock(&irq_conns[irq].lock);
-}
 
 /** Initilize ipc subsystem */
 void ipc_init(void)

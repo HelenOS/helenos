@@ -210,10 +210,6 @@ extern void ipc_cleanup(task_t *task);
 extern int ipc_phone_hangup(phone_t *phone);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
 
-extern int ipc_irq_register(answerbox_t *box, int irq);
-extern void ipc_irq_send_notif(int irq);
-extern void ipc_irq_unregister(answerbox_t *box, int irq);
-
 
 extern answerbox_t *ipc_phone_0;
 

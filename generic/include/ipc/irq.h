@@ -26,27 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SYSIPC_H__
-#define __SYSIPC_H__
+#ifndef __IRQ_H__
+#define __IRQ_H__
 
-#include <ipc/ipc.h>
-#include <ipc/irq.h>
+#define IRQ_MAX_PROG_SIZE 10
 
-__native sys_ipc_call_sync_fast(__native phoneid, __native method, 
-				__native arg1, ipc_data_t *data);
-__native sys_ipc_call_sync(__native phoneid, ipc_data_t *question, 
-			   ipc_data_t *reply);
-__native sys_ipc_call_async_fast(__native phoneid, __native method, 
-				 __native arg1, __native arg2);
-__native sys_ipc_call_async(__native phoneid, ipc_data_t *data);
-__native sys_ipc_answer_fast(__native callid, __native retval, 
-			     __native arg1, __native arg2);
-__native sys_ipc_answer(__native callid, ipc_data_t *data);
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, __native flags);
-__native sys_ipc_forward_fast(__native callid, __native phoneid,
-			      __native method, __native arg1);
-__native sys_ipc_hangup(int phoneid);
-__native sys_ipc_register_irq(__native irq, irq_code_t *ucode);
-__native sys_ipc_unregister_irq(__native irq);
+typedef enum {
+	CMD_MEM_READ_1 = 0,
+	CMD_MEM_READ_2,
+	CMD_MEM_READ_4,
+	CMD_MEM_READ_8,
+	CMD_MEM_WRITE_1,
+	CMD_MEM_WRITE_2,
+	CMD_MEM_WRITE_4,
+	CMD_MEM_WRITE_8,
+	CMD_LAST
+} irq_cmd_type;
+
+typedef struct {
+	irq_cmd_type cmd;
+	void *addr;
+	unsigned long long value; 
+} irq_cmd_t;
+
+typedef struct {
+	unsigned int cmdcount;
+	irq_cmd_t *cmds;
+} irq_code_t;
+
+#ifdef KERNEL
+
+extern void ipc_irq_make_table(int irqcount);
+extern int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode);
+extern void ipc_irq_send_notif(int irq);
+extern void ipc_irq_unregister(answerbox_t *box, int irq);
+extern void irq_ipc_bind_arch(__native irq);
+extern void ipc_irq_cleanup(answerbox_t *box);
+
+#endif
 
 #endif

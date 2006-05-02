@@ -45,7 +45,7 @@
 #include <synch/spinlock.h>
 #include <arch/ddi/ddi.h>
 #include <interrupt.h>
-#include <ipc/sysipc.h>
+#include <ipc/irq.h>
 
 void print_info_errcode(int n, istate_t *istate)
 {

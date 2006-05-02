@@ -41,5 +41,6 @@
 			* to close the connection. Used by answerbox
 			* to close the connection.  */
 #define EEXISTS    -8  /* Entry already exists */
+#define EBADMEM    -9  /* Bad memory pointer */
 
 #endif
