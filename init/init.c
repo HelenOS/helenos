@@ -37,6 +37,7 @@
 #include <psthread.h>
 #include <futex.h>
 #include <as.h>
+#include <ddi.h>
 
 int a;
 atomic_t ftx;

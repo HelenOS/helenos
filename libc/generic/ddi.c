@@ -87,7 +87,7 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
  *
  * @param enable 1 - enable interrupts, 0 - disable interrupts
  */
-int interrupt_control(int enable)
+int preemption_control(int enable)
 {
-	return __SYSCALL1(SYS_INT_CONTROL, (sysarg_t) enable);
+	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
 }

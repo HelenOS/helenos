@@ -33,6 +33,6 @@
 
 extern int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writable);
 extern int iospace_enable(task_id_t id, void *ioaddr, unsigned long size);
-extern int interrupt_control(int enable);
+extern int preemption_control(int enable);
 
 #endif
