@@ -45,14 +45,3 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 {
 	return 0;
 }
-
-/** Enable/disable interrupts for syscall
- *
- * @param enable If non-zero, interrupts are enabled, otherwise disabled
- * @param flags PPC32 register holding interrupt state.
- */
-__native ddi_int_control_arch(__native enable, __native *flags)
-{
-	// FIXME: TODO
-	return 0;
-}
