@@ -39,7 +39,8 @@
  *
  * @return Old interrupt priority level.
  */
-static inline ipl_t interrupts_enable(void) {
+static inline ipl_t interrupts_enable(void)
+{
 	ipl_t v;
 	ipl_t tmp;
 	
@@ -60,7 +61,8 @@ static inline ipl_t interrupts_enable(void) {
  *
  * @return Old interrupt priority level.
  */
-static inline ipl_t interrupts_disable(void) {
+static inline ipl_t interrupts_disable(void)
+{
 	ipl_t v;
 	ipl_t tmp;
 	
@@ -80,7 +82,8 @@ static inline ipl_t interrupts_disable(void) {
  *
  * @param ipl Saved interrupt priority level.
  */
-static inline void interrupts_restore(ipl_t ipl) {
+static inline void interrupts_restore(ipl_t ipl)
+{
 	ipl_t tmp;
 	
 	asm volatile (
@@ -92,6 +95,7 @@ static inline void interrupts_restore(ipl_t ipl) {
 		"0:\n"
 		: "=r" (ipl), "=r" (tmp)
 		: "0" (ipl)
+		: "cr0"
 	);
 }
 
@@ -101,7 +105,8 @@ static inline void interrupts_restore(ipl_t ipl) {
  *
  * @return Current interrupt priority level.
  */
-static inline ipl_t interrupts_read(void) {
+static inline ipl_t interrupts_read(void)
+{
 	ipl_t v;
 	
 	asm volatile (
