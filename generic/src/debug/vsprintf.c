@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PRINT_H__
-#define __PRINT_H__
+#include <print.h>
 
-#include <arch/types.h>
-#include <synch/spinlock.h>
-#include <arch/arg.h>
+int vsprintf(char *str, const char *fmt, va_list ap)
+{
+	return vsnprintf(str, (size_t)-1, fmt, ap);
+}
 
-/* We need this address in spinlock to avoid deadlock in deadlock detection */
-extern spinlock_t printflock;
-
-#define EOF (-1)
-
-extern int puts(const char * str);
-
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
-
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-
-#endif

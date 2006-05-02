@@ -28,9 +28,14 @@
 #include <print.h>
 #include <test.h>
 
+#define BUFFER_SIZE 32
+
 void test(void)
 {
 	__native nat = 0x12345678u;
+	
+	unsigned char buffer[BUFFER_SIZE];
+	
 	printf(" Printf test \n");
 	
 	printf(" text 10.8s %*.*s \n", 5, 3, "text");
@@ -46,5 +51,14 @@ void test(void)
 	printf("'%#llx' 64bit, '%#x' 32bit, '%#hhx' 8bit, '%#hx' 16bit, __native '%#zX'. '%#llX' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, nat, 0x1234567887654321ull, "Lovely string" );
 	
 	printf(" Print to NULL '%s'\n",NULL);
+
+	printf("Print short text to %d char long buffer via snprintf.\n", BUFFER_SIZE);
+	snprintf(buffer, BUFFER_SIZE, "Short %s", "text");
+	printf("Result is: '%s'\n", buffer);
+	
+	printf("Print long text to %d char long buffer via snprintf.\n", BUFFER_SIZE);
+	snprintf(buffer, BUFFER_SIZE, "Very long %s. This text`s length is more than %d. We are interested in the result.", "text" , BUFFER_SIZE);
+	printf("Result is: '%s'\n", buffer);
+	
 	return;
 }
