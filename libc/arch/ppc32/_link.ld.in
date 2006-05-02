@@ -19,6 +19,7 @@ SECTIONS {
 	
 	.data ALIGN(0x1000) : SUBALIGN(0x1000) {
 		*(.data);
+		*(.sdata);
 	} :data
 	.tdata : {
 		_tdata_start = .;
