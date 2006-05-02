@@ -32,6 +32,7 @@
 
 .global userspace_asm
 .global iret
+.global iret_syscall
 .global memsetb
 .global memcpy
 
@@ -66,6 +67,13 @@ userspace_asm:
 	rfi
 
 iret:
+	
+	# disable interrupts
+	
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
 	lwz r0, 0(sp)
 	lwz r2, 4(sp)
 	lwz r3, 8(sp)
@@ -98,26 +106,87 @@ iret:
 	lwz r31, 116(sp)
 	
 	lwz r12, 120(sp)
-	mtsrr0 r12
+	mtcr r12
 	
 	lwz r12, 124(sp)
-	mtsrr1 r12
+	mtsrr0 r12
 	
 	lwz r12, 128(sp)
-	mtlr r12
+	mtsrr1 r12
 	
 	lwz r12, 132(sp)
-	mtcr r12
+	mtlr r12
 	
 	lwz r12, 136(sp)
 	mtctr r12
 	
 	lwz r12, 140(sp)
 	mtxer r12
-
-	mfsprg1 sp
-	mfsprg2 r12
 	
+	lwz r12, 144(sp)
+	lwz sp, 148(sp)
+	
+	rfi
+
+iret_syscall:
+	
+	# disable interrupts
+	
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	lwz r0, 0(sp)
+	lwz r2, 4(sp)
+	lwz r4, 12(sp)
+	lwz r5, 16(sp)
+	lwz r6, 20(sp)
+	lwz r7, 24(sp)
+	lwz r8, 28(sp)
+	lwz r9, 32(sp)
+	lwz r10, 36(sp)
+	lwz r11, 40(sp)
+	lwz r13, 44(sp)
+	lwz r14, 48(sp)
+	lwz r15, 52(sp)
+	lwz r16, 56(sp)
+	lwz r17, 60(sp)
+	lwz r18, 64(sp)
+	lwz r19, 68(sp)
+	lwz r20, 72(sp)
+	lwz r21, 76(sp)
+	lwz r22, 80(sp)
+	lwz r23, 84(sp)
+	lwz r24, 88(sp)
+	lwz r25, 92(sp)
+	lwz r26, 96(sp)
+	lwz r27, 100(sp)
+	lwz r28, 104(sp)
+	lwz r29, 108(sp)
+	lwz r30, 112(sp)
+	lwz r31, 116(sp)
+	
+	lwz r12, 120(sp)
+	mtcr r12
+	
+	lwz r12, 124(sp)
+	mtsrr0 r12
+	
+	lwz r12, 128(sp)
+	mtsrr1 r12
+	
+	lwz r12, 132(sp)
+	mtlr r12
+	
+	lwz r12, 136(sp)
+	mtctr r12
+	
+	lwz r12, 140(sp)
+	mtxer r12
+	
+	lwz r12, 144(sp)
+	lwz sp, 148(sp)
+
 	rfi
 	
 memsetb:

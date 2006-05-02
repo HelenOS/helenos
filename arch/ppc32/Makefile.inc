@@ -38,7 +38,7 @@ TOOLCHAIN_DIR = /usr/local/ppc/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -mcpu=powerpc -m32
+CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
 LFLAGS += -no-check-sections -N
 

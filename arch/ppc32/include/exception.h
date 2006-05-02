@@ -66,12 +66,14 @@ struct istate {
 	__u32 r29;
 	__u32 r30;
 	__u32 r31;
+	__u32 cr;
 	__u32 pc;
 	__u32 srr1;
 	__u32 lr;
-	__u32 cr;
 	__u32 ctr;
 	__u32 xer;
+	__u32 r12;
+	__u32 sp;
 };
 
 #endif

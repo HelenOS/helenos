@@ -33,12 +33,12 @@
 
 .macro CONTEXT_STORE
 	
-	# save SP in SPRG1
-	# save R12 in SPRG2, backup CR in R12
+	# save R12 in SPRG1, backup CR in R12
+	# save SP in SPRG2
 
-	mtsprg1 sp
-	mtsprg2 r12
+	mtsprg1 r12
 	mfcr r12
+	mtsprg2 sp
 	
 	# check whether SP is in kernel
 	
@@ -55,12 +55,12 @@
 	
 		# stack is in kernel
 		
-		mfsprg1 sp
+		mfsprg2 sp
 		subis sp, sp, 0x8000
 	
 	2:
 	
-	subi sp, sp, 140
+	subi sp, sp, 148
 	stw r0, 0(sp)
 	stw r2, 4(sp)
 	stw r3, 8(sp)
@@ -92,23 +92,59 @@
 	stw r30, 112(sp)
 	stw r31, 116(sp)
 	
-	mfsrr0 r3
-	stw r3, 120(sp)
+	stw r12, 120(sp)
 	
-	mfsrr1 r3
-	stw r3, 124(sp)
+	mfsrr0 r12
+	stw r12, 124(sp)
 	
-	mflr r3
-	stw r3, 128(sp)
+	mfsrr1 r12
+	stw r12, 128(sp)
 	
+	mflr r12
 	stw r12, 132(sp)
 	
-	mfctr r3
-	stw r3, 136(sp)
+	mfctr r12
+	stw r12, 136(sp)
 	
-	mfxer r3
-	stw r3, 140(sp)
+	mfxer r12
+	stw r12, 140(sp)
+	
+	mfsprg1 r12
+	stw r12, 144(sp)
+	
+	mfsprg2 r12
+	stw r12, 148(sp)
 .endm
+
+.org 0x060
+jump_to_kernel:
+	lis r12, iret@ha
+	addi r12, r12, iret@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	mr r4, sp
+	rfi
+
+jump_to_kernel_syscall:
+	lis r12, syscall_handler@ha
+	addi r12, r12, syscall_handler@l
+	mtsrr0 r12
+	
+	lis r12, iret_syscall@ha
+	addi r12, r12, iret_syscall@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	rfi
 
 .org 0x100
 .global exc_system_reset
@@ -125,44 +161,24 @@ exc_machine_check:
 exc_data_storage:
 	CONTEXT_STORE
 	
-	lis r3, pht_refill@ha
-	addi r3, r3, pht_refill@l
-	mtsrr0 r3
+	lis r12, pht_refill@ha
+	addi r12, r12, pht_refill@l
+	mtsrr0 r12
 	
-	mfmsr r3
-	ori r3, r3, (msr_ir | msr_dr)@l
-	mtsrr1 r3
-	
-	lis r3, iret@ha
-	addi r3, r3, iret@l
-	mtlr r3
-	
-	addis sp, sp, 0x8000
 	li r3, 1
-	mr r4, sp
-	rfi
+	b jump_to_kernel
 
 .org 0x400
 .global exc_instruction_storage
 exc_instruction_storage:
 	CONTEXT_STORE
 	
-	lis r3, pht_refill@ha
-	addi r3, r3, pht_refill@l
-	mtsrr0 r3
+	lis r12, pht_refill@ha
+	addi r12, r12, pht_refill@l
+	mtsrr0 r12
 	
-	mfmsr r3
-	ori r3, r3, (msr_ir | msr_dr)@l
-	mtsrr1 r3
-	
-	lis r3, iret@ha
-	addi r3, r3, iret@l
-	mtlr r3
-	
-	addis sp, sp, 0x8000
 	li r3, 0
-	mr r4, sp
-	rfi
+	b jump_to_kernel
 
 .org 0x500
 .global exc_external
@@ -189,22 +205,12 @@ exc_fp_unavailable:
 exc_decrementer:
 	CONTEXT_STORE	
 
-	lis r3, exc_dispatch@ha
-	addi r3, r3, exc_dispatch@l
-	mtsrr0 r3
+	lis r12, exc_dispatch@ha
+	addi r12, r12, exc_dispatch@l
+	mtsrr0 r12
 	
-	mfmsr r3
-	ori r3, r3, (msr_ir | msr_dr)@l
-	mtsrr1 r3
-	
-	lis r3, iret@ha
-	addi r3, r3, iret@l
-	mtlr r3
-	
-	addis sp, sp, 0x8000
 	li r3, 10
-	mr r4, sp
-	rfi
+	b jump_to_kernel
 
 .org 0xa00
 .global exc_reserved0
@@ -219,7 +225,9 @@ exc_reserved1:
 .org 0xc00
 .global exc_syscall
 exc_syscall:
-	b exc_syscall
+	CONTEXT_STORE	
+	
+	b jump_to_kernel_syscall
 
 .org 0xd00
 .global exc_trace
