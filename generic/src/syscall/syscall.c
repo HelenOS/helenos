@@ -56,9 +56,15 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 	return count;
 }
 
-static __native sys_int_control(int enable)
+static __native sys_preempt_control(int enable)
 {
-	panic("Not implemented.");
+	if (! cap_get(TASK) & CAP_PREEMPT_CONTROL)
+		return EPERM;
+	if (enable)
+		preemption_enable();
+	else
+		preemption_disable();
+	return 0;
 }
 
 /** Dispatch system call */
@@ -74,7 +80,7 @@ __native syscall_handler(__native a1, __native a2, __native a3,
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_io,
 	sys_tls_set,
-	sys_int_control,
+	sys_preempt_control,
 
 	/* Thread and task related syscalls. */
 	sys_thread_create,

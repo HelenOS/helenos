@@ -39,8 +39,6 @@ extern __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
 /*
  * Interface to be implemented by all architectures.
  */
-extern __native ddi_int_control_arch(__native enable, __native *flags);
-extern __native ddi_int_control(__native enable, __native *flags);
 extern int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size);
 
 #endif

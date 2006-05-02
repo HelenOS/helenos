@@ -100,20 +100,6 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 	return 0;
 }
 
-/** Enable/disable interrupts form syscall
- *
- * @param enable If non-zero, interrupts are enabled, otherwise disabled
- * @param flags RFLAGS register
- */
-__native ddi_int_control_arch(__native enable, __native *flags)
-{
-	if (enable)
-		*flags |= RFLAGS_IF;
-	else
-		*flags &= ~RFLAGS_IF;
-	return 0;
-}
-
 /** Install I/O Permission bitmap.
  *
  * Current task's I/O permission bitmap, if any, is installed

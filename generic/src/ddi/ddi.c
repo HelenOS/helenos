@@ -203,10 +203,3 @@ __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
 	return (__native) ddi_iospace_enable((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
 }
-
-__native ddi_int_control(__native enable, __native *flags)
-{
-	if (! cap_get(TASK) & CAP_INT_CONTROL)
-		return EPERM;
-	return ddi_int_control_arch(enable, flags);
-}

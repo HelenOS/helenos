@@ -86,7 +86,7 @@ enable_l_apic_in_msr:
 # The handlers setup data segment registers
 # and call exc_dispatch().
 #
-#define INTERRUPT_ALIGN 128
+#define INTERRUPT_ALIGN 64
 .macro handler i n
 
 .ifeq \i-0x30     # Syscall handler
@@ -108,11 +108,8 @@ enable_l_apic_in_msr:
 	movw %ax,%es
 	
 	sti
-	cmp $2, %edi           # Is this SYS_INT_CONTROL?
-	je sys_int_ctrl
 	
 	call syscall_handler   # syscall_handler(ax,cx,dx,si,di)
-sysc_end:		
 	cli
 	addl $20, %esp         # clean-up of parameters
 	
@@ -123,12 +120,6 @@ sysc_end:
 	
 	CLEAR_NT_FLAG
 	iret
-sys_int_ctrl:               # Interrupt control
-	mov %esp, %eax
-	add $44, %eax
-	mov %eax, 4(%esp)   # Pointer to flags - 2nd argument
-	call ddi_int_control
-	jmp sysc_end
 .else	
 	/*
 	 * This macro distinguishes between two versions of ia32 exceptions.

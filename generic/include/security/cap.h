@@ -63,9 +63,9 @@
 #define CAP_IO_MANAGER		(1<<2)
 
 /**
- * CAP_INT_CONTROL allows its holder to disable interrupts
+ * CAP_PREEMPT_CONTROL allows its holder to disable interrupts
  */
-#define CAP_INT_CONTROL         (1<<3)
+#define CAP_PREEMPT_CONTROL         (1<<3)
 
 typedef __u32 cap_t;
 

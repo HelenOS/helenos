@@ -32,7 +32,7 @@
 typedef enum {
 	SYS_IO = 0,
 	SYS_TLS_SET = 1, /* Hardcoded in AMD64,IA32 uspace - psthread.S */
-	SYS_INT_CONTROL = 2, /* Hardcoded in all SYSCALL handlers */
+	SYS_PREEMPT_CONTROL,
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
 	SYS_TASK_GET_ID,

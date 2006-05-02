@@ -253,15 +253,10 @@ syscall_shortcut:
 	sw $t2,SS_STATUS($sp)
 	mtc0 $t0, $status
 
-	li $t4, 2                   # SYS_INT_CONTROL
-	beq $t4, $v0, sysc_int_control
-	nop
-	
 	# CALL Syscall handler
 	jal syscall_handler
 	sw $v0, SS_ARG4($sp)        # save v0 - arg4 to stack
 
-sysc_exit:	
 	# restore status
 	mfc0 $t0, $status
 	lw $t1,SS_STATUS($sp)
@@ -281,14 +276,7 @@ sysc_exit:
 	lw $sp,SS_SP($sp) # restore sp
 	
 	eret
-	
-sysc_int_control:
-	jal ddi_int_control
-	addi $a1, $sp, SS_STATUS
-	
-	j sysc_exit
-	nop
-	
+		
 tlb_refill_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
