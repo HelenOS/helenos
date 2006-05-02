@@ -262,9 +262,9 @@ int ipc_hangup(int phoneid)
 	return __SYSCALL1(SYS_IPC_HANGUP, phoneid);
 }
 
-int ipc_register_irq(int irq)
+int ipc_register_irq(int irq, irq_code_t *ucode)
 {
-	return __SYSCALL1(SYS_IPC_REGISTER_IRQ, irq);
+	return __SYSCALL2(SYS_IPC_REGISTER_IRQ, irq, (sysarg_t) ucode);
 }
 
 int ipc_unregister_irq(int irq)

@@ -4,7 +4,16 @@
 #include <stdlib.h>
 #include <ns.h>
 #include <errno.h>
+/*
+irq_cmd_t msim_cmds[1] = {
+	{ CMD_MEM_READ_1, (void *)0xB0000000, 0 }
+};
 
+irq_code_t msim_kbd = {
+	1,
+	msim_cmds
+};
+*/
 static int service;
 
 int main(int argc, char **argv)
@@ -15,13 +24,13 @@ int main(int argc, char **argv)
 	ipcarg_t retval, arg1, arg2;
 
 	printf("NS:Name service started.\n");
-//	ipc_register_irq(1);
+//	ipc_register_irq(2, &msim_kbd);
 	while (1) {
 		callid = ipc_wait_for_call(&call, 0);
 		printf("NS:Call phone=%lX..", call.phoneid);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_INTERRUPT:
-			printf("GOT INTERRUPT\n");
+			printf("GOT INTERRUPT: %c\n", IPC_GET_ARG2(call));
 			break;
 		case IPC_M_PHONE_HUNGUP:
 			printf("Phone hung up.\n");
@@ -58,7 +67,9 @@ int main(int argc, char **argv)
 			retval = ENOENT;
 			break;
 		}
-		if (! (callid & IPC_CALLID_NOTIFICATION))
+		if (! (callid & IPC_CALLID_NOTIFICATION)) {
+			printf("Answerinh\n");
 			ipc_answer(callid, retval, arg1, arg2);
+		}
 	}
 }
