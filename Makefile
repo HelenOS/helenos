@@ -133,13 +133,13 @@ GENERIC_SOURCES = \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
 	generic/src/lib/elf.c \
-	generic/src/debug/printf_core.c \
-	generic/src/debug/printf.c \
-	generic/src/debug/sprintf.c \
-	generic/src/debug/snprintf.c \
-	generic/src/debug/vprintf.c \
-	generic/src/debug/vsprintf.c \
-	generic/src/debug/vsnprintf.c \
+	generic/src/printf/printf_core.c \
+	generic/src/printf/printf.c \
+	generic/src/printf/sprintf.c \
+	generic/src/printf/snprintf.c \
+	generic/src/printf/vprintf.c \
+	generic/src/printf/vsprintf.c \
+	generic/src/printf/vsnprintf.c \
 	generic/src/debug/symtab.c \
 	generic/src/time/clock.c \
 	generic/src/time/timeout.c \
