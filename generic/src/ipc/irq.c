@@ -26,16 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** IRQ notification framework
+ *
+ * This framework allows applications to register to receive a notification
+ * when interrupt is detected. The application may provide a simple 'top-half'
+ * handler as part of its registration, which can perform simple operations
+ * (read/write port/memory, add information to notification ipc message).
+ *
+ * The structure of a notification message is as follows:
+ * - METHOD: IPC_M_INTERRUPT
+ * - ARG1: interrupt number
+ * - ARG2: payload modified by a 'top-half' handler
+ * - ARG3: interrupt counter (may be needed to assure correct order
+ *         in multithreaded drivers)
+ */
+
 #include <arch.h>
 #include <mm/slab.h>
 #include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
+#include <atomic.h>
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
 	answerbox_t *box;
 	irq_code_t *code;
+	atomic_t counter;
 } ipc_irq_t;
 
 
@@ -77,6 +94,14 @@ static void code_execute(call_t *call, irq_code_t *code)
 		case CMD_MEM_WRITE_8:
 			*((__u64 *)code->cmds[i].addr) = code->cmds[i].value;
 			break;
+#if defined(ia32) || defined(amd64)
+		case CMD_PORT_READ_1:
+			IPC_SET_ARG2(call->data, inb((long)code->cmds[i].addr));
+			break;
+		case CMD_PORT_WRITE_1:
+			outb((long)code->cmds[i].addr, code->cmds[i].value);
+			break;
+#endif
 		default:
 			break;
 		}
@@ -153,6 +178,7 @@ int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
 	}
 	irq_conns[irq].box = box;
 	irq_conns[irq].code = code;
+	atomic_set(&irq_conns[irq].counter, 0);
 	spinlock_unlock(&irq_conns[irq].lock);
 	interrupts_restore(ipl);
 
@@ -175,6 +201,7 @@ void ipc_irq_send_notif(int irq)
 		call->flags |= IPC_CALL_NOTIF;
 		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
 		IPC_SET_ARG1(call->data, irq);
+		IPC_SET_ARG3(call->data, atomic_preinc(&irq_conns[irq].counter));
 
 		/* Execute code to handle irq */
 		code_execute(call, irq_conns[irq].code);
