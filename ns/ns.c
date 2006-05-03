@@ -14,6 +14,17 @@ irq_code_t msim_kbd = {
 	msim_cmds
 };
 */
+/*
+irq_cmd_t i8042_cmds[1] = {
+	{ CMD_PORT_READ_1, (void *)0x60, 0 }
+};
+
+irq_code_t i8042_kbd = {
+	1,
+	i8042_cmds
+};
+*/
+
 static int service;
 
 int main(int argc, char **argv)
@@ -25,6 +36,7 @@ int main(int argc, char **argv)
 
 	printf("NS:Name service started.\n");
 //	ipc_register_irq(2, &msim_kbd);
+//	ipc_register_irq(1, &i8042_kbd);
 	while (1) {
 		callid = ipc_wait_for_call(&call, 0);
 		printf("NS:Call phone=%lX..", call.phoneid);
