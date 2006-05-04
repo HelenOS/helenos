@@ -33,15 +33,14 @@
  *
  * @param data Start of data section
  * @return pointer to tcb_t structure
+ *
  */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
 	tcb_t *tcb;
 	
 	*data = malloc(sizeof(tcb_t) + size);
-
 	tcb = (tcb_t *) (*data + size);
-
 	return tcb;
 }
 
