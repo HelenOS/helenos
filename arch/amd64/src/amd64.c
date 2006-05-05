@@ -34,6 +34,7 @@
 
 #include <proc/thread.h>
 #include <arch/ega.h>
+#include <arch/vesa.h>
 #include <genarch/i8042/i8042.h>
 #include <arch/i8254.h>
 #include <arch/i8259.h>
@@ -132,6 +133,10 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+#ifdef CONFIG_FB
+	if (vesa_present()) vesa_init();
+	else
+#endif
 		ega_init();	/* video */
 		/* Enable debugger */
 		debugger_init();

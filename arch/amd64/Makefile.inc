@@ -90,6 +90,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/ega.c \
+	arch/$(ARCH)/src/drivers/vesa.c \
 	arch/$(ARCH)/src/drivers/i8254.c \
 	arch/$(ARCH)/src/drivers/i8259.c \
 	arch/$(ARCH)/src/delay.S \

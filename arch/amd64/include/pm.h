@@ -36,7 +36,9 @@
 #endif
 
 #define IDT_ITEMS 64
-#define GDT_ITEMS 8
+#define GDT_ITEMS 9
+
+#define VESA_INIT_SEGMENT 0x8000
 
 #define NULL_DES	0
 /* Warning: Do not reorder next items, unless you look into syscall.c!!! */
@@ -47,6 +49,7 @@
 #define KTEXT32_DES     5
 /* EndOfWarning */
 #define TSS_DES		6
+#define VESA_INIT_DES		8
 
 #define gdtselector(des)	((des)<<3)
 #define idtselector(des)        ((des)<<4)

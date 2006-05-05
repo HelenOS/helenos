@@ -72,6 +72,24 @@ multiboot_image_start:
 	movl %eax, grub_eax							# save parameters from GRUB
 	movl %ebx, grub_ebx
 	
+#ifdef CONFIG_FB
+	mov $vesa_init,%esi;
+	mov $VESA_INIT_SEGMENT<<4,%edi;
+	mov $e_vesa_init-vesa_init,%ecx;
+	cld;
+	rep movsb;
+
+	mov $VESA_INIT_SEGMENT<<4,%edi;
+	call *%edi;
+	mov %esi,KA2PA(vesa_ph_addr);
+	mov %di,KA2PA(vesa_height);
+	shr $16,%edi;
+	mov %di,KA2PA(vesa_width);
+	mov %bx,KA2PA(vesa_scanline);
+	shr $16,%ebx;
+	mov %bx,KA2PA(vesa_bpp);
+#endif	
+
 	# Protected 32-bit. We want to reuse the code-seg descriptor,
 	# the Default operand size must not be 1 when entering long mode
 	
@@ -252,6 +270,188 @@ start64:
 	
 	cli
 	hlt
+
+#ifdef CONFIG_FB
+.code32
+vesa_init:
+	jmp $gdtselector(VESA_INIT_DES),$vesa_init_real-vesa_init;
+.code16
+vesa_init_real:	
+
+	mov %cr0,%eax;
+	and $~1,%eax;
+	mov %eax,%cr0;
+
+
+	jmp $VESA_INIT_SEGMENT,$vesa_init_real2-vesa_init;
+
+vesa_init_real2:	
+
+
+	mov %esp,%ebp;
+	mov %ss,%cx;
+	mov $VESA_INIT_SEGMENT,%bx;
+	mov %bx,%ss;
+	mov $0x0000fffc,%esp;
+	push %ds;
+	push %es;
+	push %fs;
+	push %gs;
+	push %ebp;
+	push %cx;
+
+	mov %bx,%ds;
+	mov %bx,%es;
+	mov %bx,%fs;
+	mov %bx,%gs;
+
+	
+	mov $vesa_idt-vesa_init,%ebx;
+	lidtl (%ebx);
+
+#define VESA_INFO_SIZE 1024
+
+#define VESA_MODE_LIST_PTR_OFFSET 14 
+#define VESA_MODE_WIDTH_OFFSET 18
+#define VESA_MODE_HEIGHT_OFFSET 20
+#define VESA_MODE_BPP_OFFSET 25
+#define VESA_MODE_SCANLINE_OFFSET 16
+#define VESA_MODE_PHADDR_OFFSET 40
+
+#define VESA_END_OF_MODES 0xffff 
+
+#define VESA_OK 0x4f 
+
+#define VESA_GET_INFO 0x4f00 
+#define VESA_GET_MODE_INFO 0x4f01
+#define VESA_SET_MODE 0x4f02
+
+#define CONFIG_VESA_BPP_a 255
+
+#if CONFIG_VESA_BPP==24
+#undef CONFIG_VESA_BPP_a
+#define CONFIG_VESA_BPP_a 32
+#endif
+
+
+	mov $VESA_GET_INFO,%ax;
+	mov $e_vesa_init-vesa_init,%di
+	push %di;
+	int $0x10;	
+	pop %di;
+	cmp $VESA_OK,%al;
+	jnz 0f;
+	mov 2+VESA_MODE_LIST_PTR_OFFSET(%di),%si;
+	mov %si,%gs;
+	mov VESA_MODE_LIST_PTR_OFFSET(%di),%si;
+
+	add $VESA_INFO_SIZE,%di;
+
+1:# Try next mode
+	mov %gs:(%si),%cx;
+	cmp $VESA_END_OF_MODES,%cx;
+	jz 0f;
+	inc %si;
+	inc %si;
+	push %cx;
+	push %di;
+	push %si;
+	mov $VESA_GET_MODE_INFO,%ax;
+	int $0x10;
+	pop %si;
+	pop %di;
+	pop %cx;
+	cmp $VESA_OK,%al;
+	jnz 0f;
+
+
+	mov $CONFIG_VESA_WIDTH,%ax;
+	cmp VESA_MODE_WIDTH_OFFSET(%di),%ax;
+	jnz 1b;
+	mov $CONFIG_VESA_HEIGHT,%ax;
+	cmp VESA_MODE_HEIGHT_OFFSET(%di),%ax;
+	jnz 1b;
+	mov $CONFIG_VESA_BPP,%al;
+	cmp VESA_MODE_BPP_OFFSET(%di),%al;
+	jz 2f;
+	mov $CONFIG_VESA_BPP_a,%al;
+	cmp VESA_MODE_BPP_OFFSET(%di),%al;
+	jnz 1b;
+
+2:
+
+	mov %cx,%bx;
+	or $0xC000,%bx;
+	push %di;
+	mov $VESA_SET_MODE,%ax;
+	int $0x10;
+	pop %di;
+	cmp $VESA_OK,%al;
+	jnz 0f;
+	
+	mov VESA_MODE_PHADDR_OFFSET(%di),%esi;
+	mov VESA_MODE_WIDTH_OFFSET(%di),%ax;
+	shl $16,%eax;
+	mov VESA_MODE_HEIGHT_OFFSET(%di),%ax;
+	mov VESA_MODE_BPP_OFFSET(%di),%bl;
+	xor %bh,%bh;
+	shl $16,%ebx;
+	mov VESA_MODE_SCANLINE_OFFSET(%di),%bx;
+	mov %eax,%edi; 
+	
+	
+
+8:	
+
+	mov %cr0,%eax;
+	or $1,%eax;
+	mov %eax,%cr0;
+
+	jmp 9f;
+9:
+
+	pop %cx;
+	pop %ebp;
+	pop %gs;
+	pop %fs;
+	pop %es;
+	pop %ds;
+	mov %cx,%ss;
+	mov %ebp,%esp;
+
+	ljmpl $gdtselector(KTEXT32_DES),$(vesa_init_protect-vesa_init+VESA_INIT_SEGMENT<<4);
+
+vesa_init_protect:	
+.code32
+	ret;
+
+0:	#Error no Prefered mode found
+
+	mov $0x111,%cx;
+	push %di;
+	push %cx;
+	mov $VESA_GET_MODE_INFO,%ax;
+	int $0x10;
+	pop %cx;
+	pop %di;
+	cmp $VESA_OK,%al;
+	jnz 1f;
+	jmp 2b;
+
+1:mov $0x0003,%ax;
+	int $0x10;
+	mov $0xffffffff,%edi; /* EGA text mode used, because of problems with VESA */
+	jmp 8;
+
+
+vesa_idt:
+.word 0x03ff
+.long 0
+.align 4
+e_vesa_init:
+#endif	
+
+
 				
 .section K_DATA_START, "aw", @progbits
 .align 4096

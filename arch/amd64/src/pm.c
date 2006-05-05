@@ -108,7 +108,9 @@ descriptor_t gdt[GDT_ITEMS] = {
 	/* TSS descriptor - set up will be completed later,
 	 * on AMD64 it is 64-bit - 2 items in table */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	/* VESA Init descriptor */
+	{ 0xffff, 0, VESA_INIT_SEGMENT>>12, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
 };
 
 idescriptor_t idt[IDT_ITEMS];

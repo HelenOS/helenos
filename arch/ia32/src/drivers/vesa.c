@@ -32,6 +32,7 @@
 #include <arch/vesa.h>
 #include <putchar.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
@@ -54,15 +55,28 @@ int vesa_present(void)
 }
 
 
+static __u32 log2(__u32 x)
+{
+	__u32 l=2;
+	if(x<=PAGE_SIZE) return PAGE_WIDTH+1;
+	
+	x--;
+	while(x>>=1) l++;
+	return l;
+}
+
 void vesa_init(void)
 {
 	int a;
 
+	__address videoram_lin_addr;
+
+	videoram_lin_addr=PA2KA(PFN2ADDR(frame_alloc( log2(vesa_scanline*vesa_height) -FRAME_WIDTH,FRAME_KA)));
 	/* Map videoram */
 	for(a=0;a<((vesa_scanline*vesa_height+PAGE_SIZE-1)>>PAGE_WIDTH);a++)
-	page_mapping_insert(AS_KERNEL, VIDEORAM_LIN_ADDR+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
+	page_mapping_insert(AS_KERNEL, videoram_lin_addr+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
 	
-	fb_init( VIDEORAM_LIN_ADDR,vesa_width,vesa_height,vesa_bpp,vesa_scanline);
+	fb_init( videoram_lin_addr,vesa_width,vesa_height,vesa_bpp,vesa_scanline);
 	putchar('\n');
 }
 
