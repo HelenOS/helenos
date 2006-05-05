@@ -40,9 +40,9 @@
 #include <proc/task.h>
 #include <security/cap.h>
 #include <mm/frame.h>
-#include <mm/page.h>
 #include <mm/as.h>
 #include <synch/spinlock.h>
+#include <syscall/copy.h>
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
@@ -183,8 +183,12 @@ static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
 __native sys_physmem_map(ddi_memarg_t *uspace_mem_arg)
 {
 	ddi_memarg_t arg;
+	int rc;
 	
-	copy_from_uspace(&arg, uspace_mem_arg, sizeof(ddi_memarg_t));
+	rc = copy_from_uspace(&arg, uspace_mem_arg, sizeof(ddi_memarg_t));
+	if (rc != 0)
+		return (__native) rc;
+		
 	return (__native) ddi_physmem_map((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
 					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
 					  (bool) arg.writable);
@@ -199,7 +203,11 @@ __native sys_physmem_map(ddi_memarg_t *uspace_mem_arg)
 __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
+	int rc;
 	
-	copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	if (rc != 0)
+		return (__native) rc;
+		
 	return (__native) ddi_iospace_enable((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
 }

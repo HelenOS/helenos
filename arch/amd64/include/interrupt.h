@@ -86,6 +86,11 @@ struct istate {
 	__u64 stack[]; /* Additional data on stack */
 };
 
+static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+{
+	istate->rip = retaddr;
+}
+
 extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
 extern void (* eoi_function)(void);

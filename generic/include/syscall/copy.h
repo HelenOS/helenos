@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_INTERRUPT_H__
-#define __sparc64_INTERRUPT_H__
+#ifndef __COPY_H__
+#define __COPY_H__
 
 #include <typedefs.h>
-#include <arch/types.h>
 
-#define IRQ_COUNT	1	/* TODO */
+/** Label within memcpy_from_uspace() that contains return -1. */
+extern char memcpy_from_uspace_failover_address;
 
-#define IVT_ITEMS 	15
-#define IVT_FIRST	1
+/** Label within memcpy_to_uspace() that contains return -1. */
+extern char memcpy_to_uspace_failover_address;
 
-/* Dummy macros. */
-#define IRQ_KBD		2
-#define VECTOR_KBD	IRQ_KBD
+extern int copy_from_uspace(void *dst, void *uspace_src, size_t size);
+extern int copy_to_uspace(void *dst_uspace, void *src, size_t size);
 
-#define trap_virtual_enable_irqs(x)
-#define trap_virtual_eoi()
-
-struct istate {
-};
-
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
-{
-	/* TODO */
-}
-
-extern void interrupt_register(int n, const char *name, iroutine f);
+/*
+ * This interface must be implemented by each architecture.
+ */
+extern int memcpy_from_uspace(void *dst, void *uspace_src, size_t size);
+extern int memcpy_to_uspace(void *uspace_dst, void *src, size_t size);
 
 #endif

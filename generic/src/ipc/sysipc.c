@@ -28,9 +28,8 @@
 
 #include <arch.h>
 #include <proc/task.h>
-
+#include <proc/thread.h>
 #include <errno.h>
-#include <mm/page.h>
 #include <memstr.h>
 #include <debug.h>
 #include <ipc/ipc.h>
@@ -38,10 +37,8 @@
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
 #include <arch/interrupt.h>
-
 #include <print.h>
-#include <arch.h>
-#include <proc/thread.h>
+#include <syscall/copy.h>
 
 #define GET_CHECK_PHONE(phone,phoneid,err) { \
       if (phoneid > IPC_MAX_PHONES) { err; } \
@@ -228,9 +225,12 @@ __native sys_ipc_call_sync(__native phoneid, ipc_data_t *question,
 	call_t call;
 	phone_t *phone;
 	int res;
+	int rc;
 
 	ipc_call_static_init(&call);
-	copy_from_uspace(&call.data.args, &question->args, sizeof(call.data.args));
+	rc = copy_from_uspace(&call.data.args, &question->args, sizeof(call.data.args));
+	if (rc != 0)
+		return (__native) rc;
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
@@ -240,7 +240,9 @@ __native sys_ipc_call_sync(__native phoneid, ipc_data_t *question,
 	} else 
 		IPC_SET_RETVAL(call.data, res);
 
-	STRUCT_TO_USPACE(&reply->args, &call.data.args);
+	rc = STRUCT_TO_USPACE(&reply->args, &call.data.args);
+	if (rc != 0)
+		return rc;
 
 	return 0;
 }
@@ -297,6 +299,7 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 	call_t *call;
 	phone_t *phone;
 	int res;
+	int rc;
 
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
@@ -304,7 +307,9 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
 
 	call = ipc_call_alloc(0);
-	copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
+	rc = copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
+	if (rc != 0)
+		return (__native) rc;
 	if (!(res=request_preprocess(call)))
 		ipc_call(phone, call);
 	else
@@ -393,6 +398,7 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 	call_t *call;
 	ipc_data_t saved_data;
 	int saveddata = 0;
+	int rc;
 
 	call = get_call(callid);
 	if (!call)
@@ -402,8 +408,10 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 		memcpy(&saved_data, &call->data, sizeof(call->data));
 		saveddata = 1;
 	}
-	copy_from_uspace(&call->data.args, &data->args, 
+	rc = copy_from_uspace(&call->data.args, &data->args, 
 			 sizeof(call->data.args));
+	if (rc != 0)
+		return rc;
 
 	answer_preprocess(call, saveddata ? &saved_data : NULL);
 	

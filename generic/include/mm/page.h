@@ -60,17 +60,6 @@
 
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
 
-/* TODO - check that userspace is OK, platform specific functions etc */
-static inline void copy_to_uspace(void *dst, void *src, count_t cnt)
-{
-	memcpy(dst, src, cnt);
-} 
-
-static inline void copy_from_uspace(void *dst, void *src, count_t cnt)
-{
-	memcpy(dst, src, cnt);
-}
-
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {
 	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags);

@@ -31,6 +31,7 @@
 
 #include <arch/interrupt.h>
 #include <typedefs.h>
+#include <arch/types.h>
 
 #ifndef IVT_ITEMS
 #	define IVT_ITEMS 0

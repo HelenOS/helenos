@@ -175,7 +175,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 		fsize = (PAGE_SIZE << cache->order);
 		slab = data + fsize - sizeof(*slab);
 	}
-		
+	
 	/* Fill in slab structures */
 	for (i=0; i < (1 << cache->order); i++)
 		frame_set_parent(pfn+i, slab, zone);
@@ -277,8 +277,8 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 	if (list_empty(&cache->partial_slabs)) {
 		/* Allow recursion and reclaiming
 		 * - this should work, as the slab control structures
-		 *   are small and do not need to allocte with anything
-		 *   other ten frame_alloc when they are allocating,
+		 *   are small and do not need to allocate with anything
+		 *   other than frame_alloc when they are allocating,
 		 *   that's why we should get recursion at most 1-level deep
 		 */
 		spinlock_unlock(&cache->slablock);
@@ -879,7 +879,7 @@ void * malloc(unsigned int size, int flags)
 	int idx;
 
 	ASSERT(_slab_initialized);
-	ASSERT( size && size <= (1 << SLAB_MAX_MALLOC_W));
+	ASSERT(size && size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))
 		size = (1 << SLAB_MIN_MALLOC_W);
@@ -888,7 +888,6 @@ void * malloc(unsigned int size, int flags)
 
 	return slab_alloc(malloc_caches[idx], flags);
 }
-
 
 void free(void *obj)
 {

@@ -57,10 +57,24 @@ memsetb:
 	j _memsetb
 	nop
 
+
 .global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
 memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
 	j _memcpy
 	nop
+
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	j memcpy_from_uspace_failover_address
+	nop
+
+
 
 .macro fpu_gp_save reg ctx
 	mfc1 $t0,$\reg

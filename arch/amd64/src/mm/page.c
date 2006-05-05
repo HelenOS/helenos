@@ -166,7 +166,7 @@ void page_fault(int n, istate_t *istate)
 	__address page;
 	
 	page = read_cr2();
-	if (!as_page_fault(page)) {
+	if (as_page_fault(page, istate) == AS_PF_FAULT) {
 		print_info_errcode(n, istate);
 		printf("Page fault address: %llX\n", page);
 		panic("page fault\n");

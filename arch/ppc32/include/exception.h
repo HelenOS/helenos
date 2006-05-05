@@ -76,4 +76,9 @@ struct istate {
 	__u32 sp;
 };
 
+static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+{
+	/* TODO */
+}
+
 #endif

@@ -44,7 +44,7 @@ static void tlb_refill_fail(istate_t *istate);
 static void tlb_invalid_fail(istate_t *istate);
 static void tlb_modified_fail(istate_t *istate);
 
-static pte_t *find_mapping_and_check(__address badvaddr);
+static pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfrc);
 
 static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn);
 static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
@@ -91,6 +91,7 @@ void tlb_refill(istate_t *istate)
 	asid_t asid;
 	__address badvaddr;
 	pte_t *pte;
+	int pfrc;
 
 	badvaddr = cp0_badvaddr_read();
 
@@ -100,9 +101,23 @@ void tlb_refill(istate_t *istate)
 
 	page_table_lock(AS, true);
 
-	pte = find_mapping_and_check(badvaddr);
-	if (!pte)
-		goto fail;
+	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	if (!pte) {
+		switch (pfrc) {
+		case AS_PF_FAULT:
+			goto fail;
+			break;
+		case AS_PF_DEFER:
+			/*
+			 * The page fault came during copy_from_uspace()
+			 * or copy_to_uspace().
+			 */
+			page_table_unlock(AS, true);
+			return;
+		default:
+			panic("unexpected pfrc (%d)\n", pfrc);
+		}
+	}
 
 	/*
 	 * Record access to PTE.
@@ -148,6 +163,7 @@ void tlb_invalid(istate_t *istate)
 	entry_lo_t lo;
 	entry_hi_t hi;
 	pte_t *pte;
+	int pfrc;
 
 	badvaddr = cp0_badvaddr_read();
 
@@ -170,9 +186,23 @@ void tlb_invalid(istate_t *istate)
 		goto fail;
 	}
 
-	pte = find_mapping_and_check(badvaddr);
-	if (!pte)
-		goto fail;
+	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	if (!pte) {
+		switch (pfrc) {
+		case AS_PF_FAULT:
+			goto fail;
+			break;
+		case AS_PF_DEFER:
+			/*
+			 * The page fault came during copy_from_uspace()
+			 * or copy_to_uspace().
+			 */
+			page_table_unlock(AS, true);			 
+			return;
+		default:
+			panic("unexpected pfrc (%d)\n", pfrc);
+		}
+	}
 
 	/*
 	 * Read the faulting TLB entry.
@@ -217,6 +247,7 @@ void tlb_modified(istate_t *istate)
 	entry_lo_t lo;
 	entry_hi_t hi;
 	pte_t *pte;
+	int pfrc;
 
 	badvaddr = cp0_badvaddr_read();
 
@@ -239,9 +270,23 @@ void tlb_modified(istate_t *istate)
 		goto fail;
 	}
 
-	pte = find_mapping_and_check(badvaddr);
-	if (!pte)
-		goto fail;
+	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	if (!pte) {
+		switch (pfrc) {
+		case AS_PF_FAULT:
+			goto fail;
+			break;
+		case AS_PF_DEFER:
+			/*
+			 * The page fault came during copy_from_uspace()
+			 * or copy_to_uspace().
+			 */
+			page_table_unlock(AS, true);			 
+			return;
+		default:
+			panic("unexpected pfrc (%d)\n", pfrc);
+		}
+	}
 
 	/*
 	 * Fail if the page is not writable.
@@ -321,10 +366,12 @@ void tlb_modified_fail(istate_t *istate)
  * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr Faulting virtual address.
+ * @param istate Pointer to interrupted state.
+ * @param pfrc Pointer to variable where as_page_fault() return code will be stored.
  *
  * @return PTE on success, NULL otherwise.
  */
-pte_t *find_mapping_and_check(__address badvaddr)
+pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfrc)
 {
 	entry_hi_t hi;
 	pte_t *pte;
@@ -350,12 +397,15 @@ pte_t *find_mapping_and_check(__address badvaddr)
 		 */
 		return pte;
 	} else {
+		int rc;
+		
 		/*
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (as_page_fault(badvaddr)) {
+		switch (rc = as_page_fault(badvaddr, istate)) {
+		case AS_PF_OK:
 			/*
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
@@ -364,10 +414,20 @@ pte_t *find_mapping_and_check(__address badvaddr)
 			pte = page_mapping_find(AS, badvaddr);
 			ASSERT(pte && pte->p);
 			return pte;
-		} else {
+			break;
+		case AS_PF_DEFER:
+			page_table_lock(AS, true);
+			*pfrc = AS_PF_DEFER;
+			return NULL;
+			break;
+		case AS_PF_FAULT:
 			page_table_lock(AS, true);
 			printf("Page fault.\n");
+			*pfrc = AS_PF_FAULT;
 			return NULL;
+			break;
+		default:
+			panic("unexpected rc (%d)\n", rc);
 		}
 		
 	}

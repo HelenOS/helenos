@@ -37,6 +37,67 @@
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
+.global memcpy
+.global memcpy_from_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace
+.global memcpy_to_uspace_failover_address
+
+
+#define MEMCPY_DST	4
+#define MEMCPY_SRC	8
+#define MEMCPY_SIZE	12
+
+/** Copy memory to/from userspace.
+ *
+ * This is almost conventional memcpy().
+ * The difference is that there is a failover part
+ * to where control is returned from a page fault
+ * if the page fault occurs during copy_from_uspace()
+ * or copy_to_uspace().
+ *
+ * @param MEMCPY_DST(%esp)	Destination address.
+ * @param MEMCPY_SRC(%esp)	Source address.
+ * @param MEMCPY_SIZE(%esp)	Size.
+ *
+ * @return MEMCPY_SRC(%esp) on success and 0 on failure.
+ */
+memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
+	movl %edi, %edx				/* save %edi */
+	movl %esi, %eax				/* save %esi */
+	
+	movl MEMCPY_SIZE(%esp), %ecx
+	shrl $2, %ecx				/* size / 4 */
+	
+	movl MEMCPY_DST(%esp), %edi
+	movl MEMCPY_SRC(%esp), %esi
+	
+	rep movsl				/* copy as much as possible word by word */
+
+	movl MEMCPY_SIZE(%esp), %ecx
+	andl $3, %ecx				/* size % 4 */
+	jz 0f
+	
+	rep movsb				/* copy the rest byte by byte */
+
+0:
+	movl %edx, %edi
+	movl %eax, %esi
+	movl MEMCPY_SRC(%esp), %eax		/* MEMCPY_SRC(%esp), success */
+	ret
+	
+/*
+ * We got here from as_page_fault() after the memory operations
+ * above had caused a page fault.
+ */
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	movl %edx, %edi
+	movl %eax, %esi
+	xorl %eax, %eax				/* return 0, failure */
+	ret
 
 ## Turn paging on
 #

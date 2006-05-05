@@ -43,10 +43,10 @@
  *
  * @param ipi Message to broadcast.
  *
- * @bugs The decision whether to actually send the IPI must be based
- *	 on a different criterion. The current version has
- *	 problems when some of the detected CPUs are marked
- *	 disabled in machine configuration.
+ * @bug The decision whether to actually send the IPI must be based
+ * 	on a different criterion. The current version has
+ *	problems when some of the detected CPUs are marked
+ *	disabled in machine configuration.
  */
 void ipi_broadcast(int ipi)
 {

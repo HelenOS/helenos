@@ -60,16 +60,60 @@ panic_printf:
 	movq $halt, (%rsp)
 	jmp printf
 
-.global memcpy
-memcpy:
-	jmp _memcpy
-	
 .global cpuid
 .global has_cpuid
 .global rdtsc
 .global read_efer_flag
 .global set_efer_flag
+.global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
+
+#define MEMCPY_DST	%rdi
+#define MEMCPY_SRC	%rsi
+#define MEMCPY_SIZE	%rdx
+
+/**
+ * Copy memory from/to userspace.
+ *
+ * This is almost conventional memcpy().
+ * The difference is that there is a failover part
+ * to where control is returned from a page fault if
+ * the page fault occurs during copy_from_uspace()
+ * or copy_to_uspace().
+ *
+ * @param MEMCPY_DST	Destination address.
+ * @param MEMCPY_SRC	Source address.
+ * @param MEMCPY_SIZE	Number of bytes to copy.
+ *
+ * @retrun MEMCPY_SRC on success, 0 on failure.
+ */
+memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
+	movq MEMCPY_SRC, %rax
+
+	movq MEMCPY_SIZE, %rcx
+	shrq $3, %rcx			/* size / 8 */
 	
+	rep movsq			/* copy as much as possible word by word */
+
+	movq MEMCPY_SIZE, %rcx
+	andq $7, %rcx			/* size % 8 */
+	jz 0f
+	
+	rep movsb			/* copy the rest byte by byte */
+	
+0:
+	ret				/* return MEMCPY_SRC, success */
+
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	xorq %rax, %rax			/* return 0, failure */
+	ret
+
 ## Determine CPUID support
 #
 # Return 0 in EAX if CPUID is not support, 1 if supported.

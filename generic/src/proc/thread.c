@@ -60,6 +60,8 @@
 #include <mm/slab.h>
 #include <debug.h>
 #include <main/uinit.h>
+#include <syscall/copy.h>
+#include <errno.h>
 
 char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
 
@@ -303,6 +305,9 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	timeout_initialize(&t->sleep_timeout);
 	t->sleep_queue = NULL;
 	t->timeout_pending = 0;
+
+	t->in_copy_from_uspace = false;
+	t->in_copy_to_uspace = false;
 	
 	t->rwlock_holder_type = RWLOCK_NONE;
 		
@@ -462,11 +467,18 @@ __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 	char namebuf[THREAD_NAME_BUFLEN];
 	uspace_arg_t *kernel_uarg;
 	__u32 tid;
+	int rc;
 
-	copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
+	rc = copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
+	if (rc != 0)
+		return (__native) rc;
 
 	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);	
-	copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
+	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
+	if (rc != 0) {
+		free(kernel_uarg);
+		return (__native) rc;
+	}
 
 	if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
 		tid = t->tid;
@@ -476,7 +488,7 @@ __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 		free(kernel_uarg);
 	}
 
-	return (__native) -1;
+	return (__native) ENOMEM;
 }
 
 /** Process syscall to terminate thread.

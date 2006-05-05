@@ -48,7 +48,7 @@
 #include <memstr.h>
 #include <print.h>
 #include <elf.h>
-
+#include <syscall/copy.h>
 
 #ifndef LOADED_PROG_STACK_PAGES_NO
 #define LOADED_PROG_STACK_PAGES_NO 1
@@ -170,7 +170,7 @@ task_t * task_run_program(void *program_addr, char *name)
  *
  * @param uspace_task_id Userspace address of 8-byte buffer where to store current task ID.
  *
- * @return Always returns 0.
+ * @return 0 on success or an error code from @ref errno.h.
  */
 __native sys_task_get_id(task_id_t *uspace_task_id)
 {
@@ -178,9 +178,7 @@ __native sys_task_get_id(task_id_t *uspace_task_id)
 	 * No need to acquire lock on TASK because taskid
 	 * remains constant for the lifespan of the task.
 	 */
-	copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
-
-	return 0;
+	return (__native) copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
 }
 
 /** Find task structure corresponding to task ID.

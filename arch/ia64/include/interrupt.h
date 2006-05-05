@@ -106,6 +106,11 @@ struct istate {
 	__u64 in4;
 };
 
+static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+{
+	/* TODO */
+}
+
 extern void *ivt;
 
 extern void general_exception(__u64 vector, istate_t *istate);

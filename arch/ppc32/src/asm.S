@@ -35,6 +35,10 @@
 .global iret_syscall
 .global memsetb
 .global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
 
 userspace_asm:
 
@@ -233,6 +237,9 @@ memsetb:
 	blr
 
 memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
+
 	srwi. r7, r5, 3
 	addi r6, r3, -4
 	addi r4, r4, -4
@@ -293,3 +300,7 @@ memcpy:
 	beq 2b
 	mtctr r7
 	b 1b
+
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	b memcpy_from_uspace_failover_address

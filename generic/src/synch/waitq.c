@@ -30,7 +30,7 @@
  * @file	waitq.c
  * @brief	Wait queue.
  *
- * Wait queue is the basic synchronization primitive upon all
+ * Wait queue is the basic synchronization primitive upon which all
  * other synchronization primitives build.
  *
  * It allows threads to wait for an event in first-come, first-served

@@ -30,9 +30,25 @@
 
 .text
 
+/** Copy memory from/to userspace.
+ *
+ * @param in0 Destination address.
+ * @param in1 Source address.
+ * @param in2 Number of byte to copy.
+ */
 .global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
 memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
 	br _memcpy
+	
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	br memcpy_from_uspace_failover_address
 
 .global memsetb
 memsetb:

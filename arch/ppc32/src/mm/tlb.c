@@ -68,10 +68,12 @@ void tlb_arch_init(void)
  * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr Faulting virtual address.
+ * @param istate Pointer to interrupted state.
+ * @param pfrc Pointer to variable where as_page_fault() return code will be stored.
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(__address badvaddr)
+static pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfcr)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -84,12 +86,15 @@ static pte_t *find_mapping_and_check(__address badvaddr)
 		 */
 		return pte;
 	} else {
+		int rc;
+	
 		/*
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (as_page_fault(badvaddr)) {
+		switch (rc = as_page_fault(badvaddr, istate)) {
+		case AS_PF_OK:
 			/*
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
@@ -98,12 +103,22 @@ static pte_t *find_mapping_and_check(__address badvaddr)
 			pte = page_mapping_find(AS, badvaddr);
 			ASSERT((pte) && (pte->p));
 			return pte;
-		} else {
+			break;
+		case AS_PF_DEFER:
+			page_table_lock(AS, true);
+			*pfcr = rc;
+			return NULL;
+			break;
+		case AS_PF_FAULT:
 			page_table_lock(AS, true);
 			printf("Page fault.\n");
+			*pfcr = rc;
 			return NULL;
-		}
-		
+			break;
+		default:
+			panic("unexpected rc (%d)\n", rc);
+			break;
+		}	
 	}
 }
 
@@ -139,6 +154,7 @@ void pht_refill(bool data, istate_t *istate)
 	__u32 vsid;
 	__u32 hash;
 	__u32 i;
+	int pfcr;
 	
 	if (data) {
 		asm volatile (
@@ -154,9 +170,24 @@ void pht_refill(bool data, istate_t *istate)
 	
 	page_table_lock(AS, true);
 	
-	pte = find_mapping_and_check(badvaddr);
-	if (!pte)
-		goto fail;
+	pte = find_mapping_and_check(badvaddr, istate, &pfcr);
+	if (!pte) {
+		switch (pfcr) {
+		case AS_PF_FAULT:
+			goto fail;
+			break;
+		case AS_PF_DEFER:
+			/*
+		 	 * The page fault came during copy_from_uspace()
+			 * or copy_to_uspace().
+			 */
+			page_table_unlock(AS, true);
+			return;
+		default:
+			panic("Unexpected pfrc (%d)\n", pfcr);
+			break;
+		}
+	}
 
 	/* Record access to PTE */
 	pte->a = 1;

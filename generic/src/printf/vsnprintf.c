@@ -39,9 +39,9 @@ struct vsnprintf_data {
 int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data);
 
 /** Write string to given buffer.
- * Write at most data->size characters including trailing zero. According to C99 has snprintf to return number
+ * Write at most data->size characters including trailing zero. According to C99, snprintf() has to return number
  * of characters that would have been written if enough space had been available. Hence the return value is not
- * number of really printed characters but size of input string. Number of really used characters 
+ * number of really printed characters but size of the input string. Number of really used characters 
  * is stored in data->len.
  * @param str source string to print
  * @param count size of source string
@@ -90,5 +90,3 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 	/* vsnprintf_write ensures that str will be terminated by zero. */
 	return printf_core(fmt, &ps, ap);
 }
-
-

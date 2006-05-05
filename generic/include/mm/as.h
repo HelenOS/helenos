@@ -63,6 +63,10 @@
 #define AS_AREA_ATTR_NONE	0
 #define AS_AREA_ATTR_PARTIAL	1	/* Not fully initialized area. */
 
+#define AS_PF_FAULT		0	/**< The page fault was not resolved by asp_page_fault(). */
+#define AS_PF_OK		1	/**< The page fault was resolved by as_page_fault(). */
+#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace(). */
+
 /** Address space area structure.
  *
  * Each as_area_t structure describes one contiguous area of virtual memory.
@@ -121,7 +125,7 @@ extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address bas
 extern __address as_area_resize(as_t *as, __address address, size_t size, int flags);
 int as_area_send(task_id_t dst_id, __address base);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
-extern int as_page_fault(__address page);
+extern int as_page_fault(__address page, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
 

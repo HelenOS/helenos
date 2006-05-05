@@ -128,6 +128,7 @@ GENERIC_SOURCES = \
 	generic/src/proc/task.c \
 	generic/src/proc/the.c \
 	generic/src/syscall/syscall.c \
+	generic/src/syscall/copy.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \

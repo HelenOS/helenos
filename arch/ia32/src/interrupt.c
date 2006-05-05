@@ -144,7 +144,7 @@ void page_fault(int n, istate_t *istate)
 	__address page;
 
 	page = read_cr2();
-	if (!as_page_fault(page)) {
+	if (as_page_fault(page, istate) == AS_PF_FAULT) {
 		PRINT_INFO_ERRCODE(istate);
 		printf("page fault address: %#x\n", page);
 		panic("page fault\n");

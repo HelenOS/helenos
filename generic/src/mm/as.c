@@ -57,6 +57,7 @@
 #include <adt/list.h>
 #include <adt/btree.h>
 #include <proc/task.h>
+#include <proc/thread.h>
 #include <arch/asm.h>
 #include <panic.h>
 #include <debug.h>
@@ -68,6 +69,8 @@
 #include <config.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <syscall/copy.h>
+#include <arch/interrupt.h>
 
 as_operations_t *as_operations = NULL;
 
@@ -477,10 +480,11 @@ void as_set_mapping(as_t *as, __address page, __address frame)
  * Interrupts are assumed disabled.
  *
  * @param page Faulting page.
+ * @param istate Pointer to interrupted state.
  *
- * @return 0 on page fault, 1 on success.
+ * @return 0 on page fault, 1 on success or 2 if the fault was caused by copy_to_uspace() or copy_from_uspace().
  */
-int as_page_fault(__address page)
+int as_page_fault(__address page, istate_t *istate)
 {
 	pte_t *pte;
 	as_area_t *area;
@@ -496,7 +500,7 @@ int as_page_fault(__address page)
 		 * Signal page fault to low-level handler.
 		 */
 		spinlock_unlock(&AS->lock);
-		return 0;
+		goto page_fault;
 	}
 
 	if (area->attributes & AS_AREA_ATTR_PARTIAL) {
@@ -506,7 +510,7 @@ int as_page_fault(__address page)
 		 */
 		spinlock_unlock(&area->lock);
 		spinlock_unlock(&AS->lock);
-		return 0;		
+		goto page_fault;		
 	}
 
 	ASSERT(!(area->flags & AS_AREA_DEVICE));
@@ -554,7 +558,23 @@ int as_page_fault(__address page)
 	
 	spinlock_unlock(&area->lock);
 	spinlock_unlock(&AS->lock);
-	return 1;
+	return AS_PF_OK;
+
+page_fault:
+	if (!THREAD)
+		return AS_PF_FAULT;
+	
+	if (THREAD->in_copy_from_uspace) {
+		THREAD->in_copy_from_uspace = false;
+		istate_set_retaddr(istate, (__address) &memcpy_from_uspace_failover_address);
+	} else if (THREAD->in_copy_to_uspace) {
+		THREAD->in_copy_to_uspace = false;
+		istate_set_retaddr(istate, (__address) &memcpy_to_uspace_failover_address);
+	} else {
+		return AS_PF_FAULT;
+	}
+
+	return AS_PF_DEFER;
 }
 
 /** Switch address spaces.
@@ -884,8 +904,11 @@ __native sys_as_area_resize(__address address, size_t size, int flags)
 __native sys_as_area_accept(as_area_acptsnd_arg_t *uspace_accept_arg)
 {
 	as_area_acptsnd_arg_t arg;
+	int rc;
 	
-	copy_from_uspace(&arg, uspace_accept_arg, sizeof(as_area_acptsnd_arg_t));
+	rc = copy_from_uspace(&arg, uspace_accept_arg, sizeof(as_area_acptsnd_arg_t));
+	if (rc != 0)
+		return rc;
 	
 	if (!arg.size)
 		return (__native) EPERM;
@@ -906,8 +929,11 @@ __native sys_as_area_accept(as_area_acptsnd_arg_t *uspace_accept_arg)
 __native sys_as_area_send(as_area_acptsnd_arg_t *uspace_send_arg)
 {
 	as_area_acptsnd_arg_t arg;
+	int rc;
 	
-	copy_from_uspace(&arg, uspace_send_arg, sizeof(as_area_acptsnd_arg_t));
+	rc = copy_from_uspace(&arg, uspace_send_arg, sizeof(as_area_acptsnd_arg_t));
+	if (rc != 0)
+		return rc;
 
 	if (!arg.size)
 		return (__native) EPERM;

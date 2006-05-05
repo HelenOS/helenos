@@ -34,14 +34,6 @@
 
 #define START_STACK (BOOT_OFFSET - BOOT_STACK_SIZE)
 
-
-
-
-
-
-
-
-
 .section K_TEXT_START, "ax"
 
 KTEXT=8
@@ -435,11 +427,7 @@ vesa_idt:
 e_vesa_init:
 #endif	
 
-
-
 .section K_DATA_START, "aw", @progbits
-
-
 
 .align 4096
 page_directory:

@@ -47,6 +47,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <atomic.h>
+#include <syscall/copy.h>
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -120,9 +121,14 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 {
 	irq_code_t *code;
 	irq_cmd_t *ucmds;
+	int rc;
 
 	code = malloc(sizeof(*code), 0);
-	copy_from_uspace(code, ucode, sizeof(*code));
+	rc = copy_from_uspace(code, ucode, sizeof(*code));
+	if (rc != 0) {
+		free(code);
+		return NULL;
+	}
 	
 	if (code->cmdcount > IRQ_MAX_PROG_SIZE) {
 		free(code);
@@ -130,7 +136,12 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 	}
 	ucmds = code->cmds;
 	code->cmds = malloc(sizeof(code->cmds[0]) * (code->cmdcount), 0);
-	copy_from_uspace(code->cmds, ucmds, sizeof(code->cmds[0]) * (code->cmdcount));
+	rc = copy_from_uspace(code->cmds, ucmds, sizeof(code->cmds[0]) * (code->cmdcount));
+	if (rc != 0) {
+		free(code->cmds);
+		free(code);
+		return NULL;
+	}
 
 	return code;
 }

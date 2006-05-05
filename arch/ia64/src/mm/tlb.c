@@ -447,7 +447,7 @@ void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (!as_page_fault(va)) {
+		if (as_page_fault(va, istate) == AS_PF_FAULT) {
 			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, istate->cr_ifa, rr.map.rid, istate->cr_iip);
 		}
 	}
@@ -493,7 +493,7 @@ void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (!as_page_fault(va)) {
+		if (as_page_fault(va, istate) == AS_PF_FAULT) {
 			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
 		}
 	}
@@ -608,7 +608,7 @@ void page_not_present(__u64 vector, istate_t *istate)
 		page_table_unlock(AS, true);
 	} else {
 		page_table_unlock(AS, true);
-		if (!as_page_fault(va)) {
+		if (as_page_fault(va, istate) == AS_PF_FAULT) {
 			panic("%s: va=%p, rid=%d\n", __FUNCTION__, va, rr.map.rid);
 		}
 	}

@@ -93,6 +93,11 @@ struct istate {
 	__u32 k1; /* We use it as thread-local pointer */
 };
 
+static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+{
+	/* TODO */
+}
+
 extern void exception(istate_t *istate);
 extern void tlb_refill_entry(void);
 extern void exception_entry(void);

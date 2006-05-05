@@ -91,6 +91,12 @@ struct thread {
 	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
 	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */
 
+	/** True if this thread is executing copy_from_uspace(). False otherwise. */
+	bool in_copy_from_uspace;
+	/** True if this thread is executing copy_to_uspace(). False otherwise. */
+	bool in_copy_to_uspace;
+
+
 	fpu_context_t *saved_fpu_context;
 	int fpu_context_exists;
 

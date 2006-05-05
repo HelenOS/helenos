@@ -29,10 +29,22 @@
 .text
 
 .global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
 .global memsetb
 
 memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
+
 	b _memcpy
+	nop
+
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	b memcpy_from_uspace_failover_address
 	nop
 
 memsetb:
