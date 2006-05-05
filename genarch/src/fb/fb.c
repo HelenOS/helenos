@@ -237,7 +237,7 @@ static void invert_cursor(void)
  */
 static void fb_putchar(chardev_t *dev, char ch)
 {
-	spinlock_lock(&fb->lock);
+	spinlock_lock(&fb_lock);
 	
 	switch (ch) {
 		case '\n':
@@ -273,7 +273,7 @@ static void fb_putchar(chardev_t *dev, char ch)
 	
 	invert_cursor();
 	
-	spinlock_unlock(&fb->lock);
+	spinlock_unlock(&fb_lock);
 }
 
 static chardev_t framebuffer;

@@ -81,6 +81,11 @@ endif
 ifeq ($(CONFIG_VHPT),y)
 	DEFS += -DCONFIG_VHPT
 endif
+ifeq ($(CONFIG_FB),y)
+	DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
+	DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
+	DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
+endif
 
 ## Toolchain configuration
 #
