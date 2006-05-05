@@ -54,7 +54,7 @@
  *
  * @return 0 on success or error code from @ref errno.h.
  */
-int copy_from_uspace(void *dst, void *uspace_src, size_t size)
+int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 {
 	ipl_t ipl;
 	int rc;
@@ -95,7 +95,7 @@ int copy_from_uspace(void *dst, void *uspace_src, size_t size)
  *
  * @return 0 on success or error code from @ref errno.h.
  */
-int copy_to_uspace(void *uspace_dst, void *src, size_t size)
+int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
 	ipl_t ipl;
 	int rc;

@@ -66,13 +66,40 @@ memsetb:
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-	j _memcpy
-	nop
+        srl     $t1,$a2,0x2
+	beqz    $t1,1f
+        move    $t0,$zero
+        move    $a3,$zero
+2:	
+        addu    $v0,$a1,$a3
+        lw      $v1,0($v0)
+        addiu   $t0,$t0,1
+        addu    $v0,$a0,$a3
+        sw      $v1,0($v0)
+        bne     $t0,$t1,2b
+        addiu   $a3,$a3,4
+1:	
+        andi    $a2,$a2,0x3
+        beqz    $a2,3f
+        move    $a3,$zero
+        sll     $v0,$t0,0x2
+        addu    $t1,$a0,$v0
+        addu    $t0,$v0,$a1
+4:	
+        addu    $v0,$t0,$a3
+        lbu     $a0,0($v0)
+        addu    $v1,$t1,$a3
+        addiu   $a3,$a3,1
+        bne     $a3,$a2,4b
+        sb      $a0,0($v1)
+3:	
+        jr      $ra
+        move    $v0,$a1
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	j memcpy_from_uspace_failover_address
-	nop
+	jr	$ra
+	move	$v0, $zero
 
 
 

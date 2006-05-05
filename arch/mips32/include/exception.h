@@ -95,7 +95,7 @@ struct istate {
 
 static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
-	/* TODO */
+	istate->epc = retaddr;
 }
 
 extern void exception(istate_t *istate);

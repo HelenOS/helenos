@@ -308,8 +308,10 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
-	if (rc != 0)
+	if (rc != 0) {
+		ipc_call_free(call);
 		return (__native) rc;
+	}
 	if (!(res=request_preprocess(call)))
 		ipc_call(phone, call);
 	else

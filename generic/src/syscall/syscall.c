@@ -43,12 +43,14 @@
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <ddi/ddi.h>
+#include <syscall/copy.h>
 
 static __native sys_io(int fd, const void * buf, size_t count) {
 	
 	// TODO: buf sanity checks and a lot of other stuff ...
 
 	size_t i;
+	char str[10];
 	
 	for (i = 0; i < count; i++)
 		putchar(((char *) buf)[i]);
