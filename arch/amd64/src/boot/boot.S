@@ -421,27 +421,30 @@ vesa_init_real2:
 
 	ljmpl $gdtselector(KTEXT32_DES),$(vesa_init_protect-vesa_init+VESA_INIT_SEGMENT<<4);
 
+
+0:#Error no Prefered mode found
+  mov $0x111,%cx;
+  push %di;
+  push %cx;
+  mov $VESA_GET_MODE_INFO,%ax;
+  int $0x10;
+  pop %cx;
+  pop %di;
+  cmp $VESA_OK,%al;
+  jnz 1f;
+  jz 2b;    /* Force relative jump */
+
+																																	
+1:mov $0x0003,%ax;
+  int $0x10;
+  mov $0xffffffff,%edi; /* EGA text mode used, because of problems with VESA */
+  xor %ax,%ax
+  jz 8b;    /* Force relative jump */
+																																																								
+
 vesa_init_protect:	
 .code32
 	ret;
-
-0:	#Error no Prefered mode found
-
-	mov $0x111,%cx;
-	push %di;
-	push %cx;
-	mov $VESA_GET_MODE_INFO,%ax;
-	int $0x10;
-	pop %cx;
-	pop %di;
-	cmp $VESA_OK,%al;
-	jnz 1f;
-	jmp 2b;
-
-1:mov $0x0003,%ax;
-	int $0x10;
-	mov $0xffffffff,%edi; /* EGA text mode used, because of problems with VESA */
-	jmp 8;
 
 
 vesa_idt:
