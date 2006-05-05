@@ -77,7 +77,6 @@ void vesa_init(void)
 	page_mapping_insert(AS_KERNEL, videoram_lin_addr+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
 	
 	fb_init( videoram_lin_addr,vesa_width,vesa_height,vesa_bpp,vesa_scanline);
-	putchar('\n');
 }
 
 #endif

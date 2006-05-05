@@ -30,7 +30,7 @@
 #define __PM_H__
 
 #define IDT_ITEMS 64
-#define GDT_ITEMS 8
+#define GDT_ITEMS 7
 
 #define VESA_INIT_SEGMENT 0x8000
 
@@ -41,7 +41,16 @@
 #define UDATA_DES	4
 #define TSS_DES		5
 #define TLS_DES         6 /* Pointer to Thread-Local-Storage data */
+
+#ifdef CONFIG_FB
+
+#define VESA_INIT_SEGMENT 0x8000
 #define VESA_INIT_DES 7
+#undef GDT_ITEMS
+#define GDT_ITEMS 8
+
+#endif /* CONFIG_FB */
+
 
 #define selector(des)	((des)<<3)
 
