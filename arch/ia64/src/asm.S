@@ -32,6 +32,9 @@
 
 /** Copy memory from/to userspace.
  *
+ * This memcpy() has been taken from the assembler output of
+ * the generic _memcpy() and modified to have the failover part.
+ *
  * @param in0 Destination address.
  * @param in1 Source address.
  * @param in2 Number of byte to copy.
@@ -44,11 +47,56 @@
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-	br _memcpy
+	alloc loc0 = ar.pfs, 3, 1, 0, 0
+
+	shr.u r18 = in2, 3
+	mov r8 = in1 ;;			/* prepare to return in1 on success */
+	cmp.ne p6, p7 = 0, r18	;;
+(p7)	mov r17 = r0
+(p7)	br.cond.dptk 1f ;;
+	mov r16 = r0
+	mov r17 = r0 ;;
+
+0:
+	shladd r14 = r17, 3, r0
+	adds r16 = 1, r16 ;;
+	add r15 = r14, r8
+	sxt4 r17 = r16
+	add r14 = r14, in0 ;;
+	ld8 r15 = [r15]
+	cmp.gtu p6, p7 = r18, r17 ;;
+	st8 [r14] = r15
+(p6)	br.cond.dptk 0b
+
+1:
+	and in2 = 7, in2 ;;
+	cmp.eq p6, p7 = 0, in2 ;;
+(p6)	mov ar.pfs = loc0
+(p6)	br.ret.dptk.many rp
+	shladd r14 = r17, 3, r0
+	mov r16 = r0
+	mov r17 = r0 ;;
+	add in0 = in0, r14
+	add r18 = r8, r14 ;;
+
+2:
+	add r14 = r16, r18
+	adds r17 = 1, r17
+	add r15 = in0, r16 ;;
+	ld1 r14 = [r14]
+	sxt4 r16 = r17	;;
+	st1 [r15] = r14
+	cmp.gtu p6, p7 = in2, r16
+(p6)	br.cond.dptk 2b
+
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp
 	
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	br memcpy_from_uspace_failover_address
+	mov r8 = r0			/* return 0 on failure */
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp
 
 .global memsetb
 memsetb:

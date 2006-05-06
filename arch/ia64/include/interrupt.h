@@ -108,7 +108,8 @@ struct istate {
 
 static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
-	/* TODO */
+	istate->cr_iip = retaddr;
+	istate->cr_ipsr.ri = 0;		/* return to instruction slot #0 */
 }
 
 extern void *ivt;
