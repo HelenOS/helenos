@@ -26,20 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DDI_H__
-#define __DDI_H__
-
-#include <ddi/ddi_arg.h>
-#include <arch/types.h>
-#include <typedefs.h>
-
-extern __native sys_physmem_map(ddi_memarg_t *uspace_mem_arg);
-extern __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
-extern __native sys_preempt_control(int enable);
-
-/*
- * Interface to be implemented by all architectures.
+/**
+ * @file	sysarg64.h
+ * @brief	Wrapper for explicit 64-bit arguments passed to syscalls.
  */
-extern int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size);
+
+#ifndef __SYSARG64_H__
+#define __SYSARG64_H__
+
+typedef struct {
+	unsigned long long value;
+} sysarg64_t;
 
 #endif

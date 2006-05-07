@@ -39,6 +39,7 @@
 #include <arch/interrupt.h>
 #include <print.h>
 #include <syscall/copy.h>
+#include <security/cap.h>
 
 #define GET_CHECK_PHONE(phone,phoneid,err) { \
       if (phoneid > IPC_MAX_PHONES) { err; } \
@@ -490,8 +491,11 @@ restart:
 /** Connect irq handler to task */
 __native sys_ipc_register_irq(__native irq, irq_code_t *ucode)
 {
+	if (!(cap_get(TASK) & CAP_IRQ_REG))
+		return EPERM;
+
 	if (irq >= IRQ_COUNT)
-		return -ELIMIT;
+		return (__native) ELIMIT;
 
 	irq_ipc_bind_arch(irq);
 
@@ -501,8 +505,11 @@ __native sys_ipc_register_irq(__native irq, irq_code_t *ucode)
 /* Disconnect irq handler from task */
 __native sys_ipc_unregister_irq(__native irq)
 {
+	if (!(cap_get(TASK) & CAP_IRQ_REG))
+		return EPERM;
+
 	if (irq >= IRQ_COUNT)
-		return -ELIMIT;
+		return (__native) ELIMIT;
 
 	ipc_irq_unregister(&TASK->answerbox, irq);
 

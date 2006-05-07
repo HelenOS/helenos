@@ -36,8 +36,11 @@
 #include <security/cap.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
+#include <syscall/sysarg64.h>
+#include <syscall/copy.h>
 #include <arch.h>
 #include <typedefs.h>
+#include <errno.h>
 
 /** Set capabilities.
  *
@@ -76,4 +79,90 @@ cap_t cap_get(task_t *t)
 	interrupts_restore(ipl);
 	
 	return caps;
+}
+
+/** Grant capabilities to a task.
+ *
+ * The calling task must have the CAP_CAP capability.
+ *
+ * @param uspace_taskid_arg Userspace structure holding destination task ID.
+ * @param caps Capabilities to grant.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ */
+__native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
+{
+	sysarg64_t taskid_arg;
+	task_t *t;
+	ipl_t ipl;
+	int rc;
+	
+	if (!(cap_get(TASK) & CAP_CAP))
+		return (__native) EPERM;
+	
+	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	if (rc != 0)
+		return (__native) rc;
+		
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	t = task_find_by_id((task_id_t) taskid_arg.value);
+	if (!t) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return (__native) ENOENT;
+	}
+	spinlock_unlock(&tasks_lock);
+	
+	cap_set(t, cap_get(t) | caps);
+	
+	interrupts_restore(ipl);	
+	return 0;
+}
+
+/** Revoke capabilities from a task.
+ *
+ * The calling task must have the CAP_CAP capability or the caller must
+ * attempt to revoke capabilities from itself.
+ *
+ * @param uspace_taskid_arg Userspace structure holding destination task ID.
+ * @param caps Capabilities to revoke.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ */
+__native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
+{
+	sysarg64_t taskid_arg;
+	task_t *t;
+	ipl_t ipl;
+	int rc;
+	
+	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	if (rc != 0)
+		return (__native) rc;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);	
+	t = task_find_by_id((task_id_t) taskid_arg.value);
+	if (!t) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return (__native) ENOENT;
+	}
+	spinlock_unlock(&tasks_lock);
+
+	/*
+	 * Revoking capabilities is different from granting them in that
+	 * a task can revoke capabilities from itself even if it
+	 * doesn't have CAP_CAP.
+	 */
+	if (!(cap_get(TASK) & CAP_CAP) || !(t == TASK)) {
+		interrupts_restore(ipl);
+		return (__native) EPERM;
+	}
+
+	cap_set(t, cap_get(t) & ~caps);
+	
+	interrupts_restore(ipl);
+	return 0;
 }

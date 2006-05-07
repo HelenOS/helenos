@@ -29,6 +29,10 @@
 /**
  * @file	tlb.c
  * @brief	Generic TLB shootdown algorithm.
+ *
+ * The algorithm implemented here is based on the CMU TLB shootdown
+ * algorithm and is further simplified (e.g. all CPUs receive all TLB
+ * shootdown messages).
  */
 
 #include <mm/tlb.h>

@@ -43,6 +43,7 @@
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <ddi/ddi.h>
+#include <security/cap.h>
 #include <syscall/copy.h>
 
 static __native sys_io(int fd, const void * buf, size_t count) {
@@ -55,17 +56,6 @@ static __native sys_io(int fd, const void * buf, size_t count) {
 		putchar(((char *) buf)[i]);
 	
 	return count;
-}
-
-static __native sys_preempt_control(int enable)
-{
-	if (! cap_get(TASK) & CAP_PREEMPT_CONTROL)
-		return EPERM;
-	if (enable)
-		preemption_enable();
-	else
-		preemption_disable();
-	return 0;
 }
 
 /** Dispatch system call */
@@ -81,8 +71,7 @@ __native syscall_handler(__native a1, __native a2, __native a3,
 syshandler_t syscall_table[SYSCALL_END] = {
 	sys_io,
 	sys_tls_set,
-	sys_preempt_control,
-
+	
 	/* Thread and task related syscalls. */
 	sys_thread_create,
 	sys_thread_exit,
@@ -111,7 +100,12 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_ipc_register_irq,
 	sys_ipc_unregister_irq,
 
+	/* Capabilities related syscalls. */
+	sys_cap_grant,
+	sys_cap_revoke,
+
 	/* DDI related syscalls. */
 	sys_physmem_map,
-	sys_iospace_enable
+	sys_iospace_enable,
+	sys_preempt_control
 };

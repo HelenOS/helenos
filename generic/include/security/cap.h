@@ -41,6 +41,7 @@
 #ifndef __CAP_H__
 #define __CAP_H__
 
+#include <syscall/sysarg64.h>
 #include <arch/types.h>
 #include <typedefs.h>
 
@@ -63,13 +64,21 @@
 #define CAP_IO_MANAGER		(1<<2)
 
 /**
- * CAP_PREEMPT_CONTROL allows its holder to disable interrupts
+ * CAP_PREEMPT_CONTROL allows its holder to disable/enable preemption.
  */
-#define CAP_PREEMPT_CONTROL         (1<<3)
+#define CAP_PREEMPT_CONTROL	(1<<3)
+
+/**
+ * CAP_IRQ_REG entitles its holder to register IRQ handlers.
+ */
+#define CAP_IRQ_REG		(1<<4) 
 
 typedef __u32 cap_t;
 
 extern void cap_set(task_t *t, cap_t caps);
 extern cap_t cap_get(task_t *t);
+
+extern __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
+extern __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
 
 #endif

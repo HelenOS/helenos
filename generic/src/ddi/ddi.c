@@ -211,3 +211,22 @@ __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 		
 	return (__native) ddi_iospace_enable((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
 }
+
+/** Disable or enable preemption.
+ *
+ * @param enable If non-zero, the preemption counter will be decremented, leading to potential
+ * 		 enabling of preemption. Otherwise the preemption counter will be incremented,
+ *		 preventing preemption from occurring.
+ *
+ * @return Zero on success or EPERM if callers capabilities are not sufficient.
+ */ 
+__native sys_preempt_control(int enable)
+{
+        if (! cap_get(TASK) & CAP_PREEMPT_CONTROL)
+                return EPERM;
+        if (enable)
+                preemption_enable();
+        else
+                preemption_disable();
+        return 0;
+}
