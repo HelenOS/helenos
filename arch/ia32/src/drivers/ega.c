@@ -69,7 +69,9 @@ void ega_init(void)
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
 
+#ifndef CONFIG_FB
 	putchar('\n');
+#endif	
 }
 
 static void ega_display_char(char ch)
