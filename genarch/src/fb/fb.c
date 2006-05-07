@@ -85,9 +85,15 @@ static void putpixel_3byte(unsigned int x, unsigned int y, int color)
 {
 	unsigned int startbyte = POINTPOS(x, y);
 
+#ifdef BIG_ENDIAN
 	fbaddress[startbyte] = RED(color, 8);
 	fbaddress[startbyte + 1] = GREEN(color, 8);
 	fbaddress[startbyte + 2] = BLUE(color, 8);
+#else
+	fbaddress[startbyte + 2] = RED(color, 8);
+	fbaddress[startbyte + 1] = GREEN(color, 8);
+	fbaddress[startbyte + 0] = BLUE(color, 8);
+#endif	
 }
 
 /** Return pixel color - 24-bit depth */
@@ -95,7 +101,11 @@ static int getpixel_3byte(unsigned int x, unsigned int y)
 {
 	unsigned int startbyte = POINTPOS(x, y);
 
+#ifdef BIG_ENDIAN
 	return fbaddress[startbyte] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 2];
+#else
+	return fbaddress[startbyte + 2] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 0];
+#endif	
 }
 
 /** Put pixel - 16-bit depth (5:6:6) */

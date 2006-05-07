@@ -32,6 +32,8 @@
 #include <arch/types.h>
 #include <byteorder.h>
 
+#define BIG_ENDIAN
+
 static inline __u64 __u64_le2host(__u64 n)
 {
 	return __u64_byteorder_swap(n);
