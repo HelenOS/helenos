@@ -33,5 +33,6 @@
 #include <malloc.h>
 
 #define abort() _exit(1)
+#define exit(status)	_exit((status))
 
 #endif

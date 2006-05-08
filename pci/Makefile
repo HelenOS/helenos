@@ -36,7 +36,7 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
 
-LIBS = $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
+LIBS = libpci/libpci.a $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #
@@ -55,11 +55,13 @@ all: $(OUTPUT) disasm
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
+	$(MAKE) -C libpci clean
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
+	$(MAKE) -C libpci
 	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
@@ -73,3 +75,6 @@ disasm:
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+libpci/libpci.a:
+	$(MAKE) -C libpci

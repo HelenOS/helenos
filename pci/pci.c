@@ -1,39 +1,51 @@
 /*
+ * HelenOS PCI driver.
+ *
+ * Copyright (C) 1997-2003 Martin Mares
  * Copyright (C) 2006 Jakub Jermar
- * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * (Based on libpci example.c written by Martin Mares.)
  *
- * - Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- * - The name of the author may not be used to endorse or promote products
- *   derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Can be freely distributed and used under the terms of the GNU GPL.
  */
 
-#include <ipc.h>
 #include <stdio.h>
 #include <ddi.h>
 #include <task.h>
 #include <stdlib.h>
 
+#include "libpci/pci.h"
+
+#define PCI_CONF1	0xcf8
+#define PCI_CONF1_SIZE	8
+
 int main(int argc, char *argv[])
 {
+	struct pci_access *pacc;
+	struct pci_dev *dev;
+	unsigned int c;
+	char buf[80];
+
 	printf("HelenOS PCI driver\n");
+
+	/*
+	 * Gain control over PCI configuration ports.
+	 */
+	iospace_enable(task_get_id(), (void *) PCI_CONF1, PCI_CONF1_SIZE);
+
+	pacc = pci_alloc();           /* Get the pci_access structure */
+	pci_init(pacc);               /* Initialize the PCI library */
+	pci_scan_bus(pacc);           /* We want to get the list of devices */
+	for(dev=pacc->devices; dev; dev=dev->next) {   /* Iterate over all devices */
+		pci_fill_info(dev, PCI_FILL_IDENT | PCI_FILL_BASES);      /* Fill in header info we need */
+		c = pci_read_word(dev, PCI_CLASS_DEVICE); /* Read config register directly */
+		printf("%02x:%02x.%d vendor=%04x device=%04x class=%04x irq=%d base0=%lx\n",
+			dev->bus, dev->dev, dev->func, dev->vendor_id, dev->device_id,
+			c, dev->irq, dev->base_addr[0]);
+		printf("\t%s\n", pci_lookup_name(pacc, buf, sizeof(buf), PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE,
+			dev->vendor_id, dev->device_id));
+	}
+	pci_cleanup(pacc);            /* Close everything */
+
 	return 0;
 }
