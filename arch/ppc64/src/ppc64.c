@@ -47,6 +47,10 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
+	if (config.cpu_active == 1) {
+		/* Merge all zones to 1 big zone */
+		zone_merge_all();
+	}
 }
 
 void arch_pre_smp_init(void)

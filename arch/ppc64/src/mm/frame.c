@@ -59,6 +59,4 @@ void frame_arch_init(void)
 	/* First is exception vector, second is 'implementation specific', third and fourth is reserved */
 	frame_mark_unavailable(0, 4);
 	
-	/* Merge all zones to 1 big zone */
-	zone_merge_all();
 }
