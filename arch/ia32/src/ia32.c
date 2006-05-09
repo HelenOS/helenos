@@ -78,14 +78,17 @@ void arch_post_mm_init(void)
 	if (config.cpu_active == 1) {
 
 #ifdef CONFIG_FB
-		if (vesa_present()) vesa_init();
+		if (vesa_present()) 
+			vesa_init();
 		else
 #endif
-		ega_init();	/* video */
+			ega_init();	/* video */
 		
 		
 		/* Enable debugger */
 		debugger_init();
+		/* Merge all memory zones to 1 big zone */
+		zone_merge_all();
 	}
 }
 
