@@ -27,7 +27,7 @@ typedef unsigned long long u64;
 #endif
 #endif
 
-#endif	/* PCI_HAVE_Uxx_TYPES */
+#endif				/* PCI_HAVE_Uxx_TYPES */
 
 #ifdef PCI_HAVE_64BIT_ADDRESS
 typedef u64 pciaddr_t;

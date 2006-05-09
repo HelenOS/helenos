@@ -33,20 +33,20 @@
 #define  PCI_STATUS_FAST_BACK	0x80	/* Accept fast-back to back */
 #define  PCI_STATUS_PARITY	0x100	/* Detected parity error */
 #define  PCI_STATUS_DEVSEL_MASK	0x600	/* DEVSEL timing */
-#define  PCI_STATUS_DEVSEL_FAST	0x000	
+#define  PCI_STATUS_DEVSEL_FAST	0x000
 #define  PCI_STATUS_DEVSEL_MEDIUM 0x200
 #define  PCI_STATUS_DEVSEL_SLOW 0x400
-#define  PCI_STATUS_SIG_TARGET_ABORT 0x800 /* Set on target abort */
-#define  PCI_STATUS_REC_TARGET_ABORT 0x1000 /* Master ack of " */
-#define  PCI_STATUS_REC_MASTER_ABORT 0x2000 /* Set on master abort */
-#define  PCI_STATUS_SIG_SYSTEM_ERROR 0x4000 /* Set when we drive SERR */
-#define  PCI_STATUS_DETECTED_PARITY 0x8000 /* Set on parity error */
+#define  PCI_STATUS_SIG_TARGET_ABORT 0x800	/* Set on target abort */
+#define  PCI_STATUS_REC_TARGET_ABORT 0x1000	/* Master ack of " */
+#define  PCI_STATUS_REC_MASTER_ABORT 0x2000	/* Set on master abort */
+#define  PCI_STATUS_SIG_SYSTEM_ERROR 0x4000	/* Set when we drive SERR */
+#define  PCI_STATUS_DETECTED_PARITY 0x8000	/* Set on parity error */
 
 #define PCI_CLASS_REVISION	0x08	/* High 24 bits are class, low 8
 					   revision */
-#define PCI_REVISION_ID         0x08    /* Revision ID */
-#define PCI_CLASS_PROG          0x09    /* Reg. Level Programming Interface */
-#define PCI_CLASS_DEVICE        0x0a    /* Device class */
+#define PCI_REVISION_ID         0x08	/* Revision ID */
+#define PCI_CLASS_PROG          0x09	/* Reg. Level Programming Interface */
+#define PCI_CLASS_DEVICE        0x0a	/* Device class */
 
 #define PCI_CACHE_LINE_SIZE	0x0c	/* 8 bits */
 #define PCI_LATENCY_TIMER	0x0d	/* 8 bits */
@@ -87,7 +87,7 @@
 /* Header type 0 (normal devices) */
 #define PCI_CARDBUS_CIS		0x28
 #define PCI_SUBSYSTEM_VENDOR_ID	0x2c
-#define PCI_SUBSYSTEM_ID	0x2e  
+#define PCI_SUBSYSTEM_ID	0x2e
 #define PCI_ROM_ADDRESS		0x30	/* Bits 31..11 are address, 10..1 reserved */
 #define  PCI_ROM_ADDRESS_ENABLE	0x01
 #define PCI_ROM_ADDRESS_MASK	(~(pciaddr_t)0x7ff)
@@ -135,7 +135,7 @@
 #define  PCI_BRIDGE_CTL_SERR	0x02	/* The same for SERR forwarding */
 #define  PCI_BRIDGE_CTL_NO_ISA	0x04	/* Disable bridging of ISA ports */
 #define  PCI_BRIDGE_CTL_VGA	0x08	/* Forward VGA addresses */
-#define  PCI_BRIDGE_CTL_MASTER_ABORT 0x20  /* Report master aborts */
+#define  PCI_BRIDGE_CTL_MASTER_ABORT 0x20	/* Report master aborts */
 #define  PCI_BRIDGE_CTL_BUS_RESET 0x40	/* Secondary bus reset */
 #define  PCI_BRIDGE_CTL_FAST_BACK 0x80	/* Fast Back2Back enabled on secondary interface */
 
@@ -185,8 +185,8 @@
 #define  PCI_CAP_ID_SLOTID	0x04	/* Slot Identification */
 #define  PCI_CAP_ID_MSI		0x05	/* Message Signalled Interrupts */
 #define  PCI_CAP_ID_CHSWP	0x06	/* CompactPCI HotSwap */
-#define  PCI_CAP_ID_PCIX        0x07    /* PCI-X */
-#define  PCI_CAP_ID_HT          0x08    /* HyperTransport */
+#define  PCI_CAP_ID_PCIX        0x07	/* PCI-X */
+#define  PCI_CAP_ID_HT          0x08	/* HyperTransport */
 #define  PCI_CAP_ID_VNDR	0x09	/* Vendor specific */
 #define  PCI_CAP_ID_DBG		0x0A	/* Debug port */
 #define  PCI_CAP_ID_CCRC	0x0B	/* CompactPCI Central Resource Control */
@@ -249,14 +249,14 @@
 #define  PCI_AGP_STATUS_RATE2	0x0002	/* 2x transfer rate supported (8x in AGP3 mode) */
 #define  PCI_AGP_STATUS_RATE1	0x0001	/* 1x transfer rate supported (4x in AGP3 mode) */
 #define PCI_AGP_COMMAND		8	/* Control register */
-#define  PCI_AGP_COMMAND_RQ_MASK 0xff000000  /* Master: Maximum number of requests */
+#define  PCI_AGP_COMMAND_RQ_MASK 0xff000000	/* Master: Maximum number of requests */
 #define  PCI_AGP_COMMAND_ARQSZ_MASK	0xe000	/* log2(optimum async req size in bytes) - 4 */
 #define  PCI_AGP_COMMAND_CAL_MASK	0x1c00	/* Calibration cycle timing */
 #define  PCI_AGP_COMMAND_SBA	0x0200	/* Sideband addressing enabled */
 #define  PCI_AGP_COMMAND_AGP	0x0100	/* Allow processing of AGP transactions */
 #define  PCI_AGP_COMMAND_GART64	0x0080	/* 64-bit GART entries enabled */
-#define  PCI_AGP_COMMAND_64BIT	0x0020 	/* Allow generation of 64-bit addr cycles */
-#define  PCI_AGP_COMMAND_FW	0x0010 	/* Enable FW transfers */
+#define  PCI_AGP_COMMAND_64BIT	0x0020	/* Allow generation of 64-bit addr cycles */
+#define  PCI_AGP_COMMAND_FW	0x0010	/* Enable FW transfers */
 #define  PCI_AGP_COMMAND_RATE4	0x0004	/* Use 4x rate (RFU in AGP3 mode) */
 #define  PCI_AGP_COMMAND_RATE2	0x0002	/* Use 2x rate (8x in AGP3 mode) */
 #define  PCI_AGP_COMMAND_RATE1	0x0001	/* Use 1x rate (4x in AGP3 mode) */
@@ -283,52 +283,52 @@
 #define PCI_MSI_DATA_64		12	/* 16 bits of data for 64-bit devices */
 
 /* PCI-X */
-#define PCI_PCIX_COMMAND                                                2 /* Command register offset */
-#define PCI_PCIX_COMMAND_DPERE                                     0x0001 /* Data Parity Error Recover Enable */
-#define PCI_PCIX_COMMAND_ERO                                       0x0002 /* Enable Relaxed Ordering */
-#define PCI_PCIX_COMMAND_MAX_MEM_READ_BYTE_COUNT                   0x000c /* Maximum Memory Read Byte Count */
-#define PCI_PCIX_COMMAND_MAX_OUTSTANDING_SPLIT_TRANS               0x0070  
+#define PCI_PCIX_COMMAND                                                2	/* Command register offset */
+#define PCI_PCIX_COMMAND_DPERE                                     0x0001	/* Data Parity Error Recover Enable */
+#define PCI_PCIX_COMMAND_ERO                                       0x0002	/* Enable Relaxed Ordering */
+#define PCI_PCIX_COMMAND_MAX_MEM_READ_BYTE_COUNT                   0x000c	/* Maximum Memory Read Byte Count */
+#define PCI_PCIX_COMMAND_MAX_OUTSTANDING_SPLIT_TRANS               0x0070
 #define PCI_PCIX_COMMAND_RESERVED                                   0xf80
-#define PCI_PCIX_STATUS                                                 4 /* Status register offset */
+#define PCI_PCIX_STATUS                                                 4	/* Status register offset */
 #define PCI_PCIX_STATUS_FUNCTION                               0x00000007
 #define PCI_PCIX_STATUS_DEVICE                                 0x000000f8
 #define PCI_PCIX_STATUS_BUS                                    0x0000ff00
 #define PCI_PCIX_STATUS_64BIT                                  0x00010000
 #define PCI_PCIX_STATUS_133MHZ                                 0x00020000
-#define PCI_PCIX_STATUS_SC_DISCARDED                           0x00040000 /* Split Completion Discarded */
-#define PCI_PCIX_STATUS_UNEXPECTED_SC                          0x00080000 /* Unexpected Split Completion */
-#define PCI_PCIX_STATUS_DEVICE_COMPLEXITY                      0x00100000 /* 0 = simple device, 1 = bridge device */
-#define PCI_PCIX_STATUS_DESIGNED_MAX_MEM_READ_BYTE_COUNT       0x00600000 /* 0 = 512 bytes, 1 = 1024, 2 = 2048, 3 = 4096 */
+#define PCI_PCIX_STATUS_SC_DISCARDED                           0x00040000	/* Split Completion Discarded */
+#define PCI_PCIX_STATUS_UNEXPECTED_SC                          0x00080000	/* Unexpected Split Completion */
+#define PCI_PCIX_STATUS_DEVICE_COMPLEXITY                      0x00100000	/* 0 = simple device, 1 = bridge device */
+#define PCI_PCIX_STATUS_DESIGNED_MAX_MEM_READ_BYTE_COUNT       0x00600000	/* 0 = 512 bytes, 1 = 1024, 2 = 2048, 3 = 4096 */
 #define PCI_PCIX_STATUS_DESIGNED_MAX_OUTSTANDING_SPLIT_TRANS   0x03800000
 #define PCI_PCIX_STATUS_DESIGNED_MAX_CUMULATIVE_READ_SIZE      0x1c000000
-#define PCI_PCIX_STATUS_RCVD_SC_ERR_MESS                       0x20000000 /* Received Split Completion Error Message */
-#define PCI_PCIX_STATUS_266MHZ				       0x40000000 /* 266 MHz capable */
-#define PCI_PCIX_STATUS_533MHZ				       0x80000000 /* 533 MHz capable */
+#define PCI_PCIX_STATUS_RCVD_SC_ERR_MESS                       0x20000000	/* Received Split Completion Error Message */
+#define PCI_PCIX_STATUS_266MHZ				       0x40000000	/* 266 MHz capable */
+#define PCI_PCIX_STATUS_533MHZ				       0x80000000	/* 533 MHz capable */
 #define PCI_PCIX_SIZEOF		4
 
 /* PCI-X Bridges */
-#define PCI_PCIX_BRIDGE_SEC_STATUS                                      2 /* Secondary bus status register offset */
+#define PCI_PCIX_BRIDGE_SEC_STATUS                                      2	/* Secondary bus status register offset */
 #define PCI_PCIX_BRIDGE_SEC_STATUS_64BIT                           0x0001
 #define PCI_PCIX_BRIDGE_SEC_STATUS_133MHZ                          0x0002
-#define PCI_PCIX_BRIDGE_SEC_STATUS_SC_DISCARDED                    0x0004 /* Split Completion Discarded on secondary bus */
-#define PCI_PCIX_BRIDGE_SEC_STATUS_UNEXPECTED_SC                   0x0008 /* Unexpected Split Completion on secondary bus */
-#define PCI_PCIX_BRIDGE_SEC_STATUS_SC_OVERRUN                      0x0010 /* Split Completion Overrun on secondary bus */
+#define PCI_PCIX_BRIDGE_SEC_STATUS_SC_DISCARDED                    0x0004	/* Split Completion Discarded on secondary bus */
+#define PCI_PCIX_BRIDGE_SEC_STATUS_UNEXPECTED_SC                   0x0008	/* Unexpected Split Completion on secondary bus */
+#define PCI_PCIX_BRIDGE_SEC_STATUS_SC_OVERRUN                      0x0010	/* Split Completion Overrun on secondary bus */
 #define PCI_PCIX_BRIDGE_SEC_STATUS_SPLIT_REQUEST_DELAYED           0x0020
 #define PCI_PCIX_BRIDGE_SEC_STATUS_CLOCK_FREQ                      0x01c0
 #define PCI_PCIX_BRIDGE_SEC_STATUS_RESERVED                        0xfe00
-#define PCI_PCIX_BRIDGE_STATUS                                          4 /* Primary bus status register offset */
+#define PCI_PCIX_BRIDGE_STATUS                                          4	/* Primary bus status register offset */
 #define PCI_PCIX_BRIDGE_STATUS_FUNCTION                        0x00000007
 #define PCI_PCIX_BRIDGE_STATUS_DEVICE                          0x000000f8
 #define PCI_PCIX_BRIDGE_STATUS_BUS                             0x0000ff00
 #define PCI_PCIX_BRIDGE_STATUS_64BIT                           0x00010000
 #define PCI_PCIX_BRIDGE_STATUS_133MHZ                          0x00020000
-#define PCI_PCIX_BRIDGE_STATUS_SC_DISCARDED                    0x00040000 /* Split Completion Discarded */
-#define PCI_PCIX_BRIDGE_STATUS_UNEXPECTED_SC                   0x00080000 /* Unexpected Split Completion */
-#define PCI_PCIX_BRIDGE_STATUS_SC_OVERRUN                      0x00100000 /* Split Completion Overrun */
+#define PCI_PCIX_BRIDGE_STATUS_SC_DISCARDED                    0x00040000	/* Split Completion Discarded */
+#define PCI_PCIX_BRIDGE_STATUS_UNEXPECTED_SC                   0x00080000	/* Unexpected Split Completion */
+#define PCI_PCIX_BRIDGE_STATUS_SC_OVERRUN                      0x00100000	/* Split Completion Overrun */
 #define PCI_PCIX_BRIDGE_STATUS_SPLIT_REQUEST_DELAYED           0x00200000
 #define PCI_PCIX_BRIDGE_STATUS_RESERVED                        0xffc00000
-#define PCI_PCIX_BRIDGE_UPSTREAM_SPLIT_TRANS_CTRL                       8 /* Upstream Split Transaction Register offset */
-#define PCI_PCIX_BRIDGE_DOWNSTREAM_SPLIT_TRANS_CTRL                    12 /* Downstream Split Transaction Register offset */
+#define PCI_PCIX_BRIDGE_UPSTREAM_SPLIT_TRANS_CTRL                       8	/* Upstream Split Transaction Register offset */
+#define PCI_PCIX_BRIDGE_DOWNSTREAM_SPLIT_TRANS_CTRL                    12	/* Downstream Split Transaction Register offset */
 #define PCI_PCIX_BRIDGE_STR_CAPACITY                           0x0000ffff
 #define PCI_PCIX_BRIDGE_STR_COMMITMENT_LIMIT                   0xffff0000
 #define PCI_PCIX_BRIDGE_SIZEOF 12
@@ -501,14 +501,14 @@
 #define  PCI_HT_SW_CMD_VIBNFT	0x0400	/* VIB Nonfatal */
 #define PCI_HT_SW_PMASK		4	/* Partition Mask Register */
 #define PCI_HT_SW_SWINF		8	/* Switch Info Register */
-#define  PCI_HT_SW_SWINF_DP	0x0000001f /* Default Port */
-#define  PCI_HT_SW_SWINF_EN	0x00000020 /* Enable Decode */
-#define  PCI_HT_SW_SWINF_CR	0x00000040 /* Cold Reset */
-#define  PCI_HT_SW_SWINF_PCIDX	0x00000f00 /* Performance Counter Index */
-#define  PCI_HT_SW_SWINF_BLRIDX	0x0003f000 /* Base/Limit Range Index */
-#define  PCI_HT_SW_SWINF_SBIDX	0x00002000 /* Secondary Base Range Index */
-#define  PCI_HT_SW_SWINF_HP	0x00040000 /* Hot Plug */
-#define  PCI_HT_SW_SWINF_HIDE	0x00080000 /* Hide Port */
+#define  PCI_HT_SW_SWINF_DP	0x0000001f	/* Default Port */
+#define  PCI_HT_SW_SWINF_EN	0x00000020	/* Enable Decode */
+#define  PCI_HT_SW_SWINF_CR	0x00000040	/* Cold Reset */
+#define  PCI_HT_SW_SWINF_PCIDX	0x00000f00	/* Performance Counter Index */
+#define  PCI_HT_SW_SWINF_BLRIDX	0x0003f000	/* Base/Limit Range Index */
+#define  PCI_HT_SW_SWINF_SBIDX	0x00002000	/* Secondary Base Range Index */
+#define  PCI_HT_SW_SWINF_HP	0x00040000	/* Hot Plug */
+#define  PCI_HT_SW_SWINF_HIDE	0x00080000	/* Hide Port */
 #define PCI_HT_SW_PCD		12	/* Performance Counter Data Register */
 #define PCI_HT_SW_BLRD		16	/* Base/Limit Range Data Register */
 #define PCI_HT_SW_SBD		20	/* Secondary Base Data Register */
@@ -545,19 +545,19 @@
 
 					/* Register indices */
 #define  PCI_HT_IDC_IDX_LINT	0x01	/* Last Interrupt Register */
-#define   PCI_HT_IDC_LINT	0x00ff0000 /* Last interrupt definition */
+#define   PCI_HT_IDC_LINT	0x00ff0000	/* Last interrupt definition */
 #define  PCI_HT_IDC_IDX_IDR	0x10	/* Interrupt Definition Registers */
 					/* Low part (at index) */
-#define   PCI_HT_IDC_IDR_MASK	0x10000001 /* Mask */
-#define   PCI_HT_IDC_IDR_POL	0x10000002 /* Polarity */
-#define   PCI_HT_IDC_IDR_II_2	0x1000001c /* IntrInfo[4:2]: Message Type */
-#define   PCI_HT_IDC_IDR_II_5	0x10000020 /* IntrInfo[5]: Request EOI */
-#define   PCI_HT_IDC_IDR_II_6	0x00ffffc0 /* IntrInfo[23:6] */
-#define   PCI_HT_IDC_IDR_II_24	0xff000000 /* IntrInfo[31:24] */
+#define   PCI_HT_IDC_IDR_MASK	0x10000001	/* Mask */
+#define   PCI_HT_IDC_IDR_POL	0x10000002	/* Polarity */
+#define   PCI_HT_IDC_IDR_II_2	0x1000001c	/* IntrInfo[4:2]: Message Type */
+#define   PCI_HT_IDC_IDR_II_5	0x10000020	/* IntrInfo[5]: Request EOI */
+#define   PCI_HT_IDC_IDR_II_6	0x00ffffc0	/* IntrInfo[23:6] */
+#define   PCI_HT_IDC_IDR_II_24	0xff000000	/* IntrInfo[31:24] */
 					/* High part (at index + 1) */
-#define   PCI_HT_IDC_IDR_II_32	0x00ffffff /* IntrInfo[55:32] */
-#define   PCI_HT_IDC_IDR_PASSPW	0x40000000 /* PassPW setting for messages */
-#define   PCI_HT_IDC_IDR_WEOI	0x80000000 /* Waiting for EOI */
+#define   PCI_HT_IDC_IDR_II_32	0x00ffffff	/* IntrInfo[55:32] */
+#define   PCI_HT_IDC_IDR_PASSPW	0x40000000	/* PassPW setting for messages */
+#define   PCI_HT_IDC_IDR_WEOI	0x80000000	/* Waiting for EOI */
 
 /* HyperTransport: Revision ID */
 #define PCI_HT_RID_RID		2	/* Revision Register */
@@ -570,11 +570,11 @@
 
 /* HyperTransport: Extended Configuration Space Access */
 #define PCI_HT_ECSA_ADDR	4	/* Configuration Address Register */
-#define  PCI_HT_ECSA_ADDR_REG	0x00000ffc /* Register */
-#define  PCI_HT_ECSA_ADDR_FUN	0x00007000 /* Function */
-#define  PCI_HT_ECSA_ADDR_DEV	0x000f1000 /* Device */
-#define  PCI_HT_ECSA_ADDR_BUS	0x0ff00000 /* Bus Number */
-#define  PCI_HT_ECSA_ADDR_TYPE	0x10000000 /* Access Type */
+#define  PCI_HT_ECSA_ADDR_REG	0x00000ffc	/* Register */
+#define  PCI_HT_ECSA_ADDR_FUN	0x00007000	/* Function */
+#define  PCI_HT_ECSA_ADDR_DEV	0x000f1000	/* Device */
+#define  PCI_HT_ECSA_ADDR_BUS	0x0ff00000	/* Bus Number */
+#define  PCI_HT_ECSA_ADDR_TYPE	0x10000000	/* Access Type */
 #define PCI_HT_ECSA_DATA	8	/* Configuration Data Register */
 #define PCI_HT_ECSA_SIZEOF	12
 
@@ -594,8 +594,8 @@
 
 /* HyperTransport: 40-bit Address Mapping */
 #define PCI_HT_AM40_SBNPW	4	/* Secondary Bus Non-Prefetchable Window Register */
-#define  PCI_HT_AM40_SBW_BASE	0x000fffff /* Window Base */
-#define  PCI_HT_AM40_SBW_CTR	0xf0000000 /* Window Control */
+#define  PCI_HT_AM40_SBW_BASE	0x000fffff	/* Window Base */
+#define  PCI_HT_AM40_SBW_CTR	0xf0000000	/* Window Control */
 #define PCI_HT_AM40_SBPW	8	/* Secondary Bus Prefetchable Window Register */
 #define PCI_HT_AM40_DMA_PBASE0	12	/* DMA Window Primary Base 0 Register */
 #define PCI_HT_AM40_DMA_CTR0	15	/* DMA Window Control 0 Register */
@@ -612,8 +612,8 @@
 
 					/* Register indices */
 #define  PCI_HT_AM64_IDX_SBNPW	0x00	/* Secondary Bus Non-Prefetchable Window Register */
-#define   PCI_HT_AM64_W_BASE_LO	0xfff00000 /* Window Base Lower */
-#define   PCI_HT_AM64_W_CTR	0x0000000f /* Window Control */
+#define   PCI_HT_AM64_W_BASE_LO	0xfff00000	/* Window Base Lower */
+#define   PCI_HT_AM64_W_CTR	0x0000000f	/* Window Control */
 #define  PCI_HT_AM64_IDX_SBPW	0x01	/* Secondary Bus Prefetchable Window Register */
 #define   PCI_HT_AM64_IDX_PBNPW	0x02	/* Primary Bus Non-Prefetchable Window Register */
 #define   PCI_HT_AM64_IDX_DMAPB0 0x04	/* DMA Window Primary Base 0 Register */
@@ -638,8 +638,8 @@
 
 					/* Register indices */
 #define  PCI_HT_DR_IDX_BASE_LO	0x00	/* DirectRoute Base Lower Register */
-#define   PCI_HT_DR_OTNRD	0x00000001 /* Opposite to Normal Request Direction */
-#define   PCI_HT_DR_BL_LO	0xffffff00 /* Base/Limit Lower */
+#define   PCI_HT_DR_OTNRD	0x00000001	/* Opposite to Normal Request Direction */
+#define   PCI_HT_DR_BL_LO	0xffffff00	/* Base/Limit Lower */
 #define  PCI_HT_DR_IDX_BASE_HI	0x01	/* DirectRoute Base Upper Register */
 #define  PCI_HT_DR_IDX_LIMIT_LO	0x02	/* DirectRoute Limit Lower Register */
 #define  PCI_HT_DR_IDX_LIMIT_HI	0x03	/* DirectRoute Limit Upper Register */
@@ -698,8 +698,8 @@
 #define  PCI_EXP_DEVCAP_ATN_BUT	0x1000	/* Attention Button Present */
 #define  PCI_EXP_DEVCAP_ATN_IND	0x2000	/* Attention Indicator Present */
 #define  PCI_EXP_DEVCAP_PWR_IND	0x4000	/* Power Indicator Present */
-#define  PCI_EXP_DEVCAP_PWR_VAL	0x3fc0000 /* Slot Power Limit Value */
-#define  PCI_EXP_DEVCAP_PWR_SCL	0xc000000 /* Slot Power Limit Scale */
+#define  PCI_EXP_DEVCAP_PWR_VAL	0x3fc0000	/* Slot Power Limit Value */
+#define  PCI_EXP_DEVCAP_PWR_SCL	0xc000000	/* Slot Power Limit Scale */
 #define PCI_EXP_DEVCTL		0x8	/* Device Control */
 #define  PCI_EXP_DEVCTL_CERE	0x0001	/* Correctable Error Reporting En. */
 #define  PCI_EXP_DEVCTL_NFERE	0x0002	/* Non-Fatal Error Reporting Enable */
@@ -725,7 +725,7 @@
 #define  PCI_EXP_LNKCAP_ASPM	0x00c00	/* Active State Power Management */
 #define  PCI_EXP_LNKCAP_L0S	0x07000	/* L0s Acceptable Latency */
 #define  PCI_EXP_LNKCAP_L1	0x38000	/* L1 Acceptable Latency */
-#define  PCI_EXP_LNKCAP_PORT	0xff000000 /* Port Number */
+#define  PCI_EXP_LNKCAP_PORT	0xff000000	/* Port Number */
 #define PCI_EXP_LNKCTL		0x10	/* Link Control */
 #define  PCI_EXP_LNKCTL_ASPM	0x0003	/* ASPM Control */
 #define  PCI_EXP_LNKCTL_RCB	0x0008	/* Read Completion Boundary */
@@ -747,9 +747,9 @@
 #define  PCI_EXP_SLTCAP_PWRI	0x0010	/* Power Indicator Present */
 #define  PCI_EXP_SLTCAP_HPS	0x0020	/* Hot-Plug Surprise */
 #define  PCI_EXP_SLTCAP_HPC	0x0040	/* Hot-Plug Capable */
-#define  PCI_EXP_SLTCAP_PWR_VAL	0x00007f80 /* Slot Power Limit Value */
-#define  PCI_EXP_SLTCAP_PWR_SCL	0x00018000 /* Slot Power Limit Scale */
-#define  PCI_EXP_SLTCAP_PSN	0xfff80000 /* Physical Slot Number */
+#define  PCI_EXP_SLTCAP_PWR_VAL	0x00007f80	/* Slot Power Limit Value */
+#define  PCI_EXP_SLTCAP_PWR_SCL	0x00018000	/* Slot Power Limit Scale */
+#define  PCI_EXP_SLTCAP_PSN	0xfff80000	/* Physical Slot Number */
 #define PCI_EXP_SLTCTL		0x18	/* Slot Control */
 #define  PCI_EXP_SLTCTL_ATNB	0x0001	/* Attention Button Pressed Enable */
 #define  PCI_EXP_SLTCTL_PWRF	0x0002	/* Power Fault Detected Enable */
@@ -825,12 +825,12 @@
 /* Power Budgeting */
 #define PCI_PWR_DSR		4	/* Data Select Register */
 #define PCI_PWR_DATA		8	/* Data Register */
-#define  PCI_PWR_DATA_BASE(x)	((x) & 0xff)	    /* Base Power */
-#define  PCI_PWR_DATA_SCALE(x)	(((x) >> 8) & 3)    /* Data Scale */
-#define  PCI_PWR_DATA_PM_SUB(x)	(((x) >> 10) & 7)   /* PM Sub State */
-#define  PCI_PWR_DATA_PM_STATE(x) (((x) >> 13) & 3) /* PM State */
-#define  PCI_PWR_DATA_TYPE(x)	(((x) >> 15) & 7)   /* Type */
-#define  PCI_PWR_DATA_RAIL(x)	(((x) >> 18) & 7)   /* Power Rail */
+#define  PCI_PWR_DATA_BASE(x)	((x) & 0xff)	/* Base Power */
+#define  PCI_PWR_DATA_SCALE(x)	(((x) >> 8) & 3)	/* Data Scale */
+#define  PCI_PWR_DATA_PM_SUB(x)	(((x) >> 10) & 7)	/* PM Sub State */
+#define  PCI_PWR_DATA_PM_STATE(x) (((x) >> 13) & 3)	/* PM State */
+#define  PCI_PWR_DATA_TYPE(x)	(((x) >> 15) & 7)	/* Type */
+#define  PCI_PWR_DATA_RAIL(x)	(((x) >> 18) & 7)	/* Power Rail */
 #define PCI_PWR_CAP		12	/* Capability */
 #define  PCI_PWR_CAP_BUDGET(x)	((x) & 1)	/* Included in system budget */
 
