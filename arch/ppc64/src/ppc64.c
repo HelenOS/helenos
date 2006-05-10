@@ -31,6 +31,7 @@
 #include <arch/console.h>
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
+#include <mm/frame.h>
 
 bootinfo_t bootinfo;
 

@@ -29,6 +29,9 @@
 #ifndef __ppc64_INTERRUPT_H__
 #define __ppc64_INTERRUPT_H__
 
+#include <arch/exception.h>
+
+#define IRQ_COUNT	1
 #define IVT_ITEMS   15
 #define INT_OFFSET  0
 
