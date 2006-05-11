@@ -51,11 +51,22 @@ void *as_area_create(void *address, size_t size, int flags)
  * @param size New requested size of the area.
  * @param flags Currently unused.
  *
- * @return address on success, (void *) -1 otherwise.
+ * @return Zero on success or a code from @ref errno.h on failure.
  */
-void *as_area_resize(void *address, size_t size, int flags)
+int as_area_resize(void *address, size_t size, int flags)
 {
-	return (void *) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+}
+
+/** Destroy address space area.
+ *
+ * @param address Virtual address pointing into the address space area being destroyed.
+ *
+ * @return Zero on success or a code from @ref errno.h on failure.
+ */
+int as_area_destroy(void *address)
+{
+	return __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t ) address);
 }
 
 /** Prepare to accept address space area.
@@ -110,6 +121,7 @@ extern char _heap;
  */
 void *sbrk(ssize_t incr)
 {
+	int rc;
 	void *res;
 	/* Check for invalid values */
 	if (incr < 0 && -incr > heapsize)
@@ -121,8 +133,8 @@ void *sbrk(ssize_t incr)
 	if (incr < 0 && incr+heapsize > heapsize)
 		return NULL;
 
-	res = as_area_resize(&_heap, heapsize + incr,0);
-	if (!res)
+	rc = as_area_resize(&_heap, heapsize + incr,0);
+	if (rc != 0)
 		return NULL;
 	
 	/* Compute start of new area */

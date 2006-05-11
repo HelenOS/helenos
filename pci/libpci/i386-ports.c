@@ -79,8 +79,7 @@ static int intel_sanity_check(struct pci_access *a, struct pci_methods *m)
 	d.func = 0;
 	for (d.dev = 0; d.dev < 32; d.dev++) {
 		u16 class, vendor;
-		if (m->
-		    read(&d, PCI_CLASS_DEVICE, (byte *) & class,
+		if (m->read(&d, PCI_CLASS_DEVICE, (byte *) & class,
 			 sizeof(class))
 		    && (class == cpu_to_le16(PCI_CLASS_BRIDGE_HOST)
 			|| class == cpu_to_le16(PCI_CLASS_DISPLAY_VGA))
@@ -178,7 +177,6 @@ static int conf1_write(struct pci_dev *d, int pos, byte * buf, int len)
 static int conf2_detect(struct pci_access *a)
 {
 	/* This is ugly and tends to produce false positives. Beware. */
-
 	outb(0x00, 0xCFB);
 	outb(0x00, 0xCF8);
 	outb(0x00, 0xCFA);
@@ -226,8 +224,7 @@ static int conf2_write(struct pci_dev *d, int pos, byte * buf, int len)
 		return 0;
 
 	if (d->dev >= 16)
-		d->access->
-		    error("conf2_write: only first 16 devices exist.");
+		d->access->error("conf2_write: only first 16 devices exist.");
 	outb((d->func << 1) | 0xf0, 0xcf8);
 	outb(d->bus, 0xcfa);
 	switch (len) {

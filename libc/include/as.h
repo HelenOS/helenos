@@ -33,7 +33,8 @@
 #include <task.h>
 
 extern void *as_area_create(void *address, size_t size, int flags);
-extern void *as_area_resize(void *address, size_t size, int flags);
+extern int as_area_resize(void *address, size_t size, int flags);
+extern int as_area_destroy(void *address);
 extern int as_area_accept(task_id_t id, void *base, size_t size, int flags);
 extern int as_area_send(task_id_t id, void *base);
 

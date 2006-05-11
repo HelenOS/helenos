@@ -25,6 +25,9 @@ struct pci_access *pci_alloc(void)
 	struct pci_access *a = malloc(sizeof(struct pci_access));
 	int i;
 
+	if (!a)
+		return NULL;
+		
 	bzero(a, sizeof(*a));
 	for (i = 0; i < PCI_ACCESS_MAX; i++)
 		if (pci_methods[i] && pci_methods[i]->config)
@@ -37,8 +40,7 @@ void *pci_malloc(struct pci_access *a, int size)
 	void *x = malloc(size);
 
 	if (!x)
-		a->error("Out of memory (allocation of %d bytes failed)",
-			 size);
+		a->error("Out of memory (allocation of %d bytes failed)", size);
 	return x;
 }
 
@@ -218,8 +220,7 @@ static inline int
 pci_write_data(struct pci_dev *d, void *buf, int pos, int len)
 {
 	if (pos & (len - 1))
-		d->access->error("Unaligned write: pos=%02x,len=%d", pos,
-				 len);
+		d->access->error("Unaligned write: pos=%02x,len=%d", pos, len);
 	if (pos + len <= d->cache_len)
 		memcpy(d->cache + pos, buf, len);
 	return d->methods->write(d, pos, buf, len);
@@ -245,9 +246,7 @@ int pci_write_long(struct pci_dev *d, int pos, u32 data)
 int pci_write_block(struct pci_dev *d, int pos, byte * buf, int len)
 {
 	if (pos < d->cache_len) {
-		int l =
-		    (pos + len >=
-		     d->cache_len) ? (d->cache_len - pos) : len;
+		int l = (pos + len >= d->cache_len) ? (d->cache_len - pos) : len;
 		memcpy(d->cache + pos, buf, l);
 	}
 	return d->methods->write(d, pos, buf, len);
@@ -260,8 +259,7 @@ int pci_fill_info(struct pci_dev *d, int flags)
 		d->known_fields = 0;
 	}
 	if (flags & ~d->known_fields)
-		d->known_fields |=
-		    d->methods->fill_info(d, flags & ~d->known_fields);
+		d->known_fields |= d->methods->fill_info(d, flags & ~d->known_fields);
 	return d->known_fields;
 }
 
