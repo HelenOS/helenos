@@ -349,12 +349,15 @@ int as_area_destroy(as_t *as, __address address)
 	tlb_invalidate_pages(AS->asid, area->base, area->pages);
 	tlb_shootdown_finalize();
 
+	area->attributes |= AS_AREA_ATTR_PARTIAL;
 	spinlock_unlock(&area->lock);
 
 	/*
 	 * Remove the empty area from address space.
 	 */
 	btree_remove(&AS->as_area_btree, base, NULL);
+	
+	free(area);
 	
 	spinlock_unlock(&AS->lock);
 	interrupts_restore(ipl);
