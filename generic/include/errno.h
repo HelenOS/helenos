@@ -31,16 +31,18 @@
 
 /* 1-255 are kernel error codes, 256-512 are user error codes */
 
-#define ENOENT     -1  /* No such entry */
-#define ENOMEM     -2  /* Not enough memory */
-#define ELIMIT     -3  /* Limit exceeded */
-#define EREFUSED   -4  /* Connection refused */
-#define EFORWARD   -5  /* Forward error */
-#define EPERM      -6  /* Permission denied */
-#define EHANGUP    -7  /* Answerbox closed connection, call sys_ipc_hangup
-			* to close the connection. Used by answerbox
-			* to close the connection.  */
-#define EEXISTS    -8  /* Entry already exists */
-#define EBADMEM    -9  /* Bad memory pointer */
+#define ENOENT		-1	/* No such entry */
+#define ENOMEM		-2	/* Not enough memory */
+#define ELIMIT		-3	/* Limit exceeded */
+#define EREFUSED	-4	/* Connection refused */
+#define EFORWARD	-5	/* Forward error */
+#define EPERM		-6	/* Permission denied */
+#define EHANGUP		-7	/* Answerbox closed connection, call sys_ipc_hangup
+				 * to close the connection. Used by answerbox
+				 * to close the connection.  */
+#define EEXISTS		-8	/* Entry already exists */
+#define EBADMEM		-9	/* Bad memory pointer */
+#define ENOTSUP		-10	/* Not supported */
+#define EADDRNOTAVAIL	-11	/* Address not available. */
 
 #endif

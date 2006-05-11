@@ -194,11 +194,11 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
  * @param size New size of the virtual memory block starting at address. 
  * @param flags Flags influencing the remap operation. Currently unused.
  *
- * @return address on success, (__address) -1 otherwise.
+ * @return Zero on success or a value from @ref errno.h otherwise.
  */ 
-__address as_area_resize(as_t *as, __address address, size_t size, int flags)
+int as_area_resize(as_t *as, __address address, size_t size, int flags)
 {
-	as_area_t *area = NULL;
+	as_area_t *area;
 	ipl_t ipl;
 	size_t pages;
 	
@@ -212,7 +212,7 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 	if (!area) {
 		spinlock_unlock(&as->lock);
 		interrupts_restore(ipl);
-		return (__address) -1;
+		return ENOENT;
 	}
 
 	if (area->flags & AS_AREA_DEVICE) {
@@ -223,7 +223,7 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 		spinlock_unlock(&area->lock);
 		spinlock_unlock(&as->lock);
 		interrupts_restore(ipl);
-		return (__address) -1;
+		return ENOTSUP;
 	}
 
 	pages = SIZE2FRAMES((address - area->base) + size);
@@ -234,7 +234,7 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 		spinlock_unlock(&area->lock);
 		spinlock_unlock(&as->lock);
 		interrupts_restore(ipl);
-		return (__address) -1;
+		return EPERM;
 	}
 	
 	if (pages < area->pages) {
@@ -281,7 +281,7 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 			spinlock_unlock(&area->lock);
 			spinlock_unlock(&as->lock);		
 			interrupts_restore(ipl);
-			return (__address) -1;
+			return EADDRNOTAVAIL;
 		}
 	} 
 
@@ -291,7 +291,74 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 
-	return address;
+	return 0;
+}
+
+/** Destroy address space area.
+ *
+ * @param as Address space.
+ * @param address Address withing the area to be deleted.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure. 
+ */
+int as_area_destroy(as_t *as, __address address)
+{
+	as_area_t *area;
+	__address base;
+	ipl_t ipl;
+	int i;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&as->lock);
+
+	area = find_area_and_lock(as, address);
+	if (!area) {
+		spinlock_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+
+	base = area->base;	
+	for (i = 0; i < area->pages; i++) {
+		pte_t *pte;
+
+		/*
+		 * Releasing physical memory.
+		 * Areas mapping memory-mapped devices are treated differently than
+		 * areas backing frame_alloc()'ed memory.
+		 */
+		page_table_lock(as, false);
+		pte = page_mapping_find(as, area->base + i*PAGE_SIZE);
+		if (pte && PTE_VALID(pte)) {
+			ASSERT(PTE_PRESENT(pte));
+			page_mapping_remove(as, area->base + i*PAGE_SIZE);
+			if (area->flags & AS_AREA_DEVICE) {
+				__address frame;
+				frame = PTE_GET_FRAME(pte);
+				frame_free(ADDR2PFN(frame));
+			}
+			page_table_unlock(as, false);
+		} else {
+			page_table_unlock(as, false);
+		}
+	}
+	/*
+	 * Invalidate TLB's.
+	 */
+	tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base, area->pages);
+	tlb_invalidate_pages(AS->asid, area->base, area->pages);
+	tlb_shootdown_finalize();
+
+	spinlock_unlock(&area->lock);
+
+	/*
+	 * Remove the empty area from address space.
+	 */
+	btree_remove(&AS->as_area_btree, base, NULL);
+	
+	spinlock_unlock(&AS->lock);
+	interrupts_restore(ipl);
+	return 0;
 }
 
 /** Send address space area to another task.
@@ -307,7 +374,7 @@ __address as_area_resize(as_t *as, __address address, size_t size, int flags)
  * @param dst_id Task ID of the accepting task.
  * @param src_base Base address of the source address space area.
  *
- * @return 0 on success or ENOENT if there is no such task or
+ * @return Zero on success or ENOENT if there is no such task or
  *	   if there is no such address space area,
  *	   EPERM if there was a problem in accepting the area or
  *	   ENOMEM if there was a problem in allocating destination
@@ -891,7 +958,13 @@ __native sys_as_area_create(__address address, size_t size, int flags)
 /** Wrapper for as_area_resize. */
 __native sys_as_area_resize(__address address, size_t size, int flags)
 {
-	return as_area_resize(AS, address, size, 0);
+	return (__native) as_area_resize(AS, address, size, 0);
+}
+
+/** Wrapper for as_area_destroy. */
+__native sys_as_area_destroy(__address address)
+{
+	return (__native) as_area_destroy(AS, address);
 }
 
 /** Prepare task for accepting address space area from another task.
