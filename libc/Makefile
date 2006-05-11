@@ -45,6 +45,7 @@ GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
 	generic/as.c \
+	generic/cap.c \
 	generic/string.c \
 	generic/thread.c \
 	generic/task.c \
