@@ -269,7 +269,7 @@ static void fb_putchar(chardev_t *dev, char ch)
 			do {
 				draw_char(' ');
 				position++;
-			} while (position % 8);
+			} while ((position % 8) && position < columns * rows);
 			break;
 		default:
 			draw_char(ch);
