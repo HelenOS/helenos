@@ -61,7 +61,7 @@ static count_t vesa_frame_order(void)
 {
 	__u32 x = vesa_scanline*vesa_height;
 	if (x <= FRAME_SIZE)
-		return 1;
+		return 0;
 
 	return (fnzb32(x - 1) + 1) - FRAME_WIDTH;
 }
