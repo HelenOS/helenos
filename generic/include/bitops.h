@@ -32,7 +32,7 @@
 #include <typedefs.h>
 
 
-/** Return position of first non-zero bit from left.
+/** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
  *
  * If number is zero, it returns 0
  */

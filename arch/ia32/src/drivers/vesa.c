@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2006 Jakub Vana
+ * Copyright (C) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,11 @@
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
 #include <arch/asm.h>
+#include <arch/types.h>
+#include <typedefs.h>
 #include <memstr.h>
+#include <bitops.h>
 
 __u32 vesa_ph_addr;
 __u16 vesa_width;
@@ -46,38 +48,35 @@ __u16 vesa_height;
 __u16 vesa_bpp;
 __u16 vesa_scanline;
 
-
 int vesa_present(void)
 {
-	if(vesa_width!=0xffff) return true;
-	if(vesa_height!=0xffff) return true;
+	if (vesa_width != 0xffff)
+		return true;
+	if (vesa_height != 0xffff)
+		return true;
 	return false;
 }
 
-
-static __u32 log2(__u32 x)
+static count_t vesa_frame_order(void)
 {
-	__u32 l=2;
-	if(x<=PAGE_SIZE) return PAGE_WIDTH+1;
-	
-	x--;
-	while(x>>=1) l++;
-	return l;
+	__u32 x = vesa_scanline*vesa_height;
+	if (x <= FRAME_SIZE)
+		return 1;
+
+	return (fnzb32(x - 1) + 1) - FRAME_WIDTH;
 }
 
 void vesa_init(void)
 {
 	int a;
+	__address vram_lin_addr;
 
-	__address videoram_lin_addr;
-
-	videoram_lin_addr=PA2KA(PFN2ADDR(frame_alloc( log2(vesa_scanline*vesa_height) -FRAME_WIDTH,FRAME_KA)));
+	vram_lin_addr = PA2KA(PFN2ADDR(frame_alloc(vesa_frame_order(), FRAME_KA)));
 	/* Map videoram */
-	for(a=0;a<((vesa_scanline*vesa_height+PAGE_SIZE-1)>>PAGE_WIDTH);a++)
-	page_mapping_insert(AS_KERNEL, videoram_lin_addr+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
-	
-	fb_init( videoram_lin_addr,vesa_width,vesa_height,vesa_bpp,vesa_scanline);
+	for (a = 0; a < ((vesa_scanline * vesa_height + PAGE_SIZE - 1) >> PAGE_WIDTH); a++)
+		page_mapping_insert(AS_KERNEL, vram_lin_addr+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
+
+	fb_init(vram_lin_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
 }
 
 #endif
-
