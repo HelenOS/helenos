@@ -30,6 +30,7 @@
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
 #include <panic.h>
 #include <memstr.h>
@@ -358,4 +359,14 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
+	
+	sysinfo_set_item_val("Framebuffer",NULL,true);
+	sysinfo_set_item_val("Framebuffer.width",NULL,x);
+	sysinfo_set_item_val("Framebuffer.height",NULL,y);
+	sysinfo_set_item_val("Framebuffer.scanline",NULL,scan);
+	sysinfo_set_item_val("Framebuffer.bpp",NULL,bpp);
+	sysinfo_set_item_val("Framebuffer.address",NULL,addr);
+	
+
+
 }
