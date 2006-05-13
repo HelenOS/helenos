@@ -32,6 +32,7 @@
 #include <typedefs.h>
 #include <arch/types.h>
 
+extern spinlock_t fb_lock;
 void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
 
 #endif

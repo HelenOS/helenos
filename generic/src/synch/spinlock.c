@@ -40,6 +40,10 @@
 #include <debug.h>
 #include <symtab.h>
 
+#ifdef CONFIG_FB
+#include <genarch/fb/fb.h>
+#endif
+
 #ifdef CONFIG_SMP
 
 /** Initialize spinlock
@@ -73,7 +77,31 @@ void spinlock_lock_debug(spinlock_t *sl)
 
 	preemption_disable();
 	while (test_and_set(&sl->val)) {
-		if (i++ > 300000 && sl!=&printflock) {
+
+		/*
+		 * We need to be careful about printflock and fb_lock.
+		 * Both of them are used to report deadlocks via
+		 * printf() and fb_putchar().
+		 *
+		 * We trust our code that there is no possible deadlock
+		 * caused by these two locks (except when an exception
+		 * is triggered for instance by printf() or fb_putchar()).
+		 * However, we encountered false positives caused by very
+		 * slow VESA framebuffer interaction (especially when
+		 * run in a simulator) that caused problems with both
+		 * printflock and fb_lock.
+		 *
+		 * Possible deadlocks on both printflock and fb_lock
+		 * are therefore not reported as they would cause an
+		 * infinite recursion.
+		 */
+		if (sl == &printflock)
+			continue;
+#ifdef CONFIG_FB
+		if (sl == &fb_lock)
+			continue;
+#endif
+		if (i++ > 300000) {
 			printf("cpu%d: looping on spinlock %.*p:%s, caller=%.*p",
 			       CPU->id, sizeof(__address) * 2, sl, sl->name, sizeof(__address) * 2, CALLER);
 			symbol = get_symtab_entry(CALLER);

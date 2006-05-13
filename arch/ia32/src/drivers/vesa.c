@@ -74,7 +74,8 @@ void vesa_init(void)
 	vram_lin_addr = PA2KA(PFN2ADDR(frame_alloc(vesa_frame_order(), FRAME_KA)));
 	/* Map videoram */
 	for (a = 0; a < ((vesa_scanline * vesa_height + PAGE_SIZE - 1) >> PAGE_WIDTH); a++)
-		page_mapping_insert(AS_KERNEL, vram_lin_addr+a*4096, vesa_ph_addr+a*4096, PAGE_NOT_CACHEABLE);
+		page_mapping_insert(AS_KERNEL, vram_lin_addr + a*PAGE_SIZE, vesa_ph_addr + a*FRAME_SIZE,
+			PAGE_NOT_CACHEABLE);
 
 	fb_init(vram_lin_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
 }
