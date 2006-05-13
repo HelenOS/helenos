@@ -30,14 +30,18 @@
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <mm/slab.h>
 #include <panic.h>
 #include <memstr.h>
+#include <config.h>
 
 #include "helenos.xbm"
 
 SPINLOCK_INITIALIZE(fb_lock);
 
 static __u8 *fbaddress = NULL;
+
+static __u8 *blankline = NULL;
 
 static unsigned int xres = 0;
 static unsigned int yres = 0;
@@ -159,12 +163,24 @@ static void clear_screen(void)
 static void scroll_screen(void)
 {
 	unsigned int i;
+	__u8 *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
 
 	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
 
 	/* Clear last row */
-	for (i = 0; i < FONT_SCANLINES; i++)
-		clear_line((rows - 1) * FONT_SCANLINES + i);
+	if (blankline) {
+		memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
+	} else {
+		for (i = 0; i < FONT_SCANLINES; i++)
+			clear_line((rows - 1) * FONT_SCANLINES + i);
+
+		if (config.mm_initialized) {
+			/* Save a blank line aside. */
+			blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
+			if (blankline)
+				memcpy((void *) blankline, (void *) lastline, ROW_BYTES);
+		}
+	}
 }
 
 
