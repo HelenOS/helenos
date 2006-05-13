@@ -26,29 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CTYPE_H__
-#define __CTYPE_H__
+#ifndef __ia64__LIMITS_H__
+#define __ia64__LIMITS_H__
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
-
-static inline int isspace(int c)
-{
-	switch(c) {
-		case ' ':
-		case '\n':
-		case '\t':
-		case '\f':
-		case '\r':
-		case '\v':
-			return 1;
-			break;
-		default:
-			return 0;
-	}
-}
+# define LONG_MIN MIN_INT64
+# define LONG_MAX MAX_INT64
+# define ULONG_MIN MIN_UINT64
+# define ULONG_MAX MAX_UINT64
 
 #endif
+
+
 

@@ -26,29 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __CTYPE_H__
-#define __CTYPE_H__
+#ifndef __LIBC__LIMITS_H__
+#define __LIBC__LIMITS_H__
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#include <stdint.h>
+#include <libarch/limits.h>
 
-static inline int isspace(int c)
-{
-	switch(c) {
-		case ' ':
-		case '\n':
-		case '\t':
-		case '\f':
-		case '\r':
-		case '\v':
-			return 1;
-			break;
-		default:
-			return 0;
-	}
-}
+/* char */
+#define SCHAR_MIN MIN_INT8
+#define SCHAR_MAX MAX_INT8
+#define UCHAR_MIN MIN_UINT8
+#define UCHAR_MAX MAX_UINT8
+
+#ifdef __CHAR_UNSIGNED__
+# define CHAR_MIN UCHAR_MIN
+# define CHAR_MAX UCHAR_MAX
+#else
+# define CHAR_MIN SCHAR_MIN
+# define CHAR_MAX SCHAR_MAX
+#endif
+
+/* short int */
+#define SHRT_MIN MIN_INT16
+#define SHRT_MAX MAX_INT16
+#define USHRT_MIN MIN_UINT16
+#define USHRT_MAX MAX_UINT16
+
+#define INT_MIN MIN_INT32
+#define INT_MAX MAX_INT32
+#define UINT_MIN MIN_UINT32
+#define UINT_MAX MAX_UINT32
+
+#define LLONG_MIN MIN_INT64
+#define LLONG_MAX MAX_INT64
+#define ULLONG_MIN MIN_UINT64
+#define ULLONG_MAX MAX_UINT64
 
 #endif
 

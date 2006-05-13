@@ -38,9 +38,12 @@ void * memset(void *s, int c, size_t n);
 void * memcpy(void *dest, void *src, size_t n);
 
 size_t strlen(const char *str);
+
 int strcmp(const char *str1, const char *str2);
 char *strchr(const char *str, int c);
 char *strrchr(const char *str, int c);
-unsigned long strtol(const char *nptr, char **endptr, int base);
+
+long int strtol(const char *nptr, char **endptr, int base);
+unsigned long strtoul(const char *nptr, char **endptr, int base);
 
 #endif
