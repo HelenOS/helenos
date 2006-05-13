@@ -81,8 +81,15 @@
 #endif /* CONFIG_SMP */
 #include <smp/smp.h>
 
-config_t config;	/**< Global configuration structure. */
-init_t init = {0};  	/**< Initial user-space tasks */
+/** Global configuration structure. */
+config_t config = {
+	.mm_initialized = false
+};
+
+/** Initial user-space tasks */
+init_t init = {
+	0
+};
 
 context_t ctx;
 
@@ -189,6 +196,7 @@ void main_bsp_separated_stack(void)
 	as_init();
 	page_init();
 	tlb_init();
+	config.mm_initialized = true;
 	arch_post_mm_init();	
 
 	version_print();

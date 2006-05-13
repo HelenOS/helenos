@@ -56,6 +56,8 @@ typedef struct {
 	__address base;
 	size_t memory_size;
 	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
+	
+	bool mm_initialized;
 } config_t;
 
 extern config_t config;
