@@ -1,6 +1,7 @@
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
 #include <print.h>
+#include <syscall/copy.h>
 
 sysinfo_item_t *_root=NULL;
 
@@ -220,3 +221,31 @@ sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root)
 	}
 	return ret;
 }
+
+__native sys_sysinfo_valid(__native ptr,__native len)
+{
+	char *str;
+	sysinfo_rettype_t ret;
+	str=malloc(len+1,0);
+	ASSERT(str);
+	copy_from_uspace(str,(void *)ptr,len+1);
+	if(str[len]) return 0;          /*This is not len lenght C string*/
+	ret=sysinfo_get_val(str,NULL);
+	free(str);
+	return ret.valid;
+}
+
+__native sys_sysinfo_value(__native ptr,__native len)
+{
+	char *str;
+	sysinfo_rettype_t ret;
+	str=malloc(len+1,0);
+	ASSERT(str);
+	copy_from_uspace(str,(void *)ptr,len+1);
+	if(str[len]) return 0;          /*This is not len lenght C string*/
+	ret=sysinfo_get_val(str,NULL);
+	free(str);
+	return ret.val;
+}
+
+

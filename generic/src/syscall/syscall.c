@@ -45,6 +45,7 @@
 #include <ddi/ddi.h>
 #include <security/cap.h>
 #include <syscall/copy.h>
+#include <sysinfo/sysinfo.h>
 
 static __native sys_io(int fd, const void * buf, size_t count) {
 	
@@ -108,5 +109,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	/* DDI related syscalls. */
 	sys_physmem_map,
 	sys_iospace_enable,
-	sys_preempt_control
+	sys_preempt_control,
+	
+	/* Sysinfo syscalls */
+	sys_sysinfo_valid,
+	sys_sysinfo_value
 };

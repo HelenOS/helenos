@@ -365,7 +365,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("Framebuffer.height",NULL,y);
 	sysinfo_set_item_val("Framebuffer.scanline",NULL,scan);
 	sysinfo_set_item_val("Framebuffer.bpp",NULL,bpp);
-	sysinfo_set_item_val("Framebuffer.address",NULL,addr);
+	sysinfo_set_item_val("Framebuffer.address.virtual",NULL,addr);
 	
 
 

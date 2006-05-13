@@ -51,3 +51,7 @@ void sysinfo_set_item_undefined(const char *name,sysinfo_item_t **root);
 
 sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root);
 
+__native sys_sysinfo_valid(__native ptr,__native len);
+__native sys_sysinfo_value(__native ptr,__native len);
+
+

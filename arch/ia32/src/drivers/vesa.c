@@ -41,6 +41,7 @@
 #include <typedefs.h>
 #include <memstr.h>
 #include <bitops.h>
+#include <sysinfo/sysinfo.h>
 
 __u32 vesa_ph_addr;
 __u16 vesa_width;
@@ -78,6 +79,8 @@ void vesa_init(void)
 			PAGE_NOT_CACHEABLE);
 
 	fb_init(vram_lin_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
+	
+	sysinfo_set_item_val("Framebuffer.address.physical",NULL,vesa_ph_addr);
 }
 
 #endif
