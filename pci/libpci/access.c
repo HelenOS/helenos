@@ -3,7 +3,7 @@
  *
  *	Copyright (c) 1997--2003 Martin Mares <mj@ucw.cz>
  *
- *	Modified and ported to HelenOS by Jakub Jermar.
+ *	May 8, 2006 - Modified and ported to HelenOS by Jakub Jermar.
  *
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */

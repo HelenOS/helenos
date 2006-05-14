@@ -3,7 +3,7 @@
  *
  *	Copyright (c) 1997--2005 Martin Mares <mj@ucw.cz>
  *
- *	Modified and ported to HelenOS by Jakub Jermar.
+ *	May 8, 2006 - Modified and ported to HelenOS by Jakub Jermar.
  *
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */
@@ -175,8 +175,7 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 
 		if (!nest) {	/* Top-level entries */
 			if (p[0] == 'C' && p[1] == ' ') {	/* Class block */
-				if ((id1 = id_hex(p + 2, 2)) < 0
-				    || !id_white_p(p[4]))
+				if ((id1 = id_hex(p + 2, 2)) < 0 || !id_white_p(p[4]))
 					return parse_error;
 				cat = ID_CLASS;
 				p += 5;
@@ -192,8 +191,7 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 				continue;
 			} else {	/* Vendor ID */
 
-				if ((id1 = id_hex(p, 4)) < 0
-				    || !id_white_p(p[4]))
+				if ((id1 = id_hex(p, 4)) < 0 || !id_white_p(p[4]))
 					return parse_error;
 				cat = ID_VENDOR;
 				p += 5;
@@ -206,16 +204,14 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 			case ID_VENDOR:
 			case ID_DEVICE:
 			case ID_SUBSYSTEM:
-				if ((id2 = id_hex(p, 4)) < 0
-				    || !id_white_p(p[4]))
+				if ((id2 = id_hex(p, 4)) < 0 || !id_white_p(p[4]))
 					return parse_error;
 				p += 5;
 				cat = ID_DEVICE;
 				id3 = id4 = 0;
 				break;
 			case ID_GEN_SUBSYSTEM:
-				if ((id2 = id_hex(p, 4)) < 0
-				    || !id_white_p(p[4]))
+				if ((id2 = id_hex(p, 4)) < 0 || !id_white_p(p[4]))
 					return parse_error;
 				p += 5;
 				id3 = id4 = 0;
@@ -223,8 +219,7 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 			case ID_CLASS:
 			case ID_SUBCLASS:
 			case ID_PROGIF:
-				if ((id2 = id_hex(p, 2)) < 0
-				    || !id_white_p(p[2]))
+				if ((id2 = id_hex(p, 2)) < 0 || !id_white_p(p[2]))
 					return parse_error;
 				p += 3;
 				cat = ID_SUBCLASS;
@@ -236,10 +231,8 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 			switch (cat) {
 			case ID_DEVICE:
 			case ID_SUBSYSTEM:
-				if ((id3 = id_hex(p, 4)) < 0
-				    || !id_white_p(p[4])
-				    || (id4 = id_hex(p + 5, 4)) < 0
-				    || !id_white_p(p[9]))
+				if ((id3 = id_hex(p, 4)) < 0 || !id_white_p(p[4])
+				    || (id4 = id_hex(p + 5, 4)) < 0 || !id_white_p(p[9]))
 					return parse_error;
 				p += 10;
 				cat = ID_SUBSYSTEM;
@@ -247,8 +240,7 @@ static const char *id_parse_list(struct pci_access *a, int *lino)
 			case ID_CLASS:
 			case ID_SUBCLASS:
 			case ID_PROGIF:
-				if ((id3 = id_hex(p, 2)) < 0
-				    || !id_white_p(p[2]))
+				if ((id3 = id_hex(p, 2)) < 0 || !id_white_p(p[2]))
 					return parse_error;
 				p += 3;
 				cat = ID_PROGIF;
@@ -341,8 +333,7 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		else if (v = id_lookup(a, ID_VENDOR, iv, 0, 0, 0))
 			return (char *) v->name;
 		else
-			res =
-			    snprintf(buf, size, "Unknown vendor %04x", iv);
+			res = snprintf(buf, size, "Unknown vendor %04x", iv);
 		break;
 	case PCI_LOOKUP_DEVICE:
 		iv = va_arg(args, int);
@@ -352,8 +343,7 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		else if (d = id_lookup(a, ID_DEVICE, iv, id, 0, 0))
 			return (char *) d->name;
 		else if (synth)
-			res =
-			    snprintf(buf, size, "Unknown device %04x", id);
+			res = snprintf(buf, size, "Unknown device %04x", id);
 		else
 			return NULL;
 		break;
@@ -366,21 +356,14 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 			v = id_lookup(a, ID_VENDOR, iv, 0, 0, 0);
 			d = id_lookup(a, ID_DEVICE, iv, id, 0, 0);
 			if (v && d)
-				res =
-				    snprintf(buf, size, "%s %s", v->name,
+				res = snprintf(buf, size, "%s %s", v->name,
 					     d->name);
 			else if (!synth)
 				return NULL;
 			else if (!v)
-				res =
-				    snprintf(buf, size,
-					     "Unknown device %04x:%04x",
-					     iv, id);
+				res = snprintf(buf, size, "Unknown device %04x:%04x", iv, id);
 			else	/* !d */
-				res =
-				    snprintf(buf, size,
-					     "%s Unknown device %04x",
-					     v->name, id);
+				res = snprintf(buf, size, "%s Unknown device %04x", v->name, id);
 		}
 		break;
 	case PCI_LOOKUP_SUBSYSTEM | PCI_LOOKUP_VENDOR:
@@ -390,9 +373,7 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		else if (v = id_lookup(a, ID_VENDOR, isv, 0, 0, 0))
 			return (char *) v->name;
 		else if (synth)
-			res =
-			    snprintf(buf, size, "Unknown vendor %04x",
-				     isv);
+			res = snprintf(buf, size, "Unknown vendor %04x", isv);
 		else
 			return NULL;
 		break;
@@ -406,9 +387,7 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		else if (d = id_lookup_subsys(a, iv, id, isv, isd))
 			return (char *) d->name;
 		else if (synth)
-			res =
-			    snprintf(buf, size, "Unknown device %04x",
-				     isd);
+			res = snprintf(buf, size, "Unknown device %04x", isd);
 		else
 			return NULL;
 		break;
@@ -423,35 +402,23 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 			v = id_lookup(a, ID_VENDOR, isv, 0, 0, 0);
 			d = id_lookup_subsys(a, iv, id, isv, isd);
 			if (v && d)
-				res =
-				    snprintf(buf, size, "%s %s", v->name,
-					     d->name);
+				res = snprintf(buf, size, "%s %s", v->name, d->name);
 			else if (!synth)
 				return NULL;
 			else if (!v)
-				res =
-				    snprintf(buf, size,
-					     "Unknown device %04x:%04x",
-					     isv, isd);
+				res = snprintf(buf, size, "Unknown device %04x:%04x", isv, isd);
 			else	/* !d */
-				res =
-				    snprintf(buf, size,
-					     "%s Unknown device %04x",
-					     v->name, isd);
+				res = snprintf(buf, size, "%s Unknown device %04x", v->name, isd);
 		}
 		break;
 	case PCI_LOOKUP_CLASS:
 		icls = va_arg(args, int);
 		if (num)
 			res = snprintf(buf, size, "%04x", icls);
-		else if (cls =
-			 id_lookup(a, ID_SUBCLASS, icls >> 8, icls & 0xff,
-				   0, 0))
+		else if (cls = id_lookup(a, ID_SUBCLASS, icls >> 8, icls & 0xff, 0, 0))
 			return (char *) cls->name;
 		else if (cls = id_lookup(a, ID_CLASS, icls, 0, 0, 0))
-			res =
-			    snprintf(buf, size, "%s [%04x]", cls->name,
-				     icls);
+			res = snprintf(buf, size, "%s [%04x]", cls->name, icls);
 		else if (synth)
 			res = snprintf(buf, size, "Class %04x", icls);
 		else
@@ -462,9 +429,7 @@ char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		ipif = va_arg(args, int);
 		if (num)
 			res = snprintf(buf, size, "%02x", ipif);
-		else if (pif =
-			 id_lookup(a, ID_PROGIF, icls >> 8, icls & 0xff,
-				   ipif, 0))
+		else if (pif = id_lookup(a, ID_PROGIF, icls >> 8, icls & 0xff, ipif, 0))
 			return (char *) pif->name;
 		else if (icls == 0x0101 && !(ipif & 0x70)) {
 			/* IDE controllers have complex prog-if semantics */

@@ -3,7 +3,7 @@
  *
  *	Copyright (c) 1997--2000 Martin Mares <mj@ucw.cz>
  *
- *	Modified and ported to HelenOS by Jakub Jermar.
+ *	May 8, 2006 - Modified and ported to HelenOS by Jakub Jermar.
  *
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */
@@ -106,49 +106,31 @@ int pci_generic_fill_info(struct pci_dev *d, int flags)
 		}
 		if (cnt) {
 			for (i = 0; i < cnt; i++) {
-				u32 x =
-				    pci_read_long(d,
-						  PCI_BASE_ADDRESS_0 +
-						  i * 4);
+				u32 x = pci_read_long(d, PCI_BASE_ADDRESS_0 + i * 4);
 				if (!x || x == (u32) ~ 0)
 					continue;
-				if ((x & PCI_BASE_ADDRESS_SPACE) ==
-				    PCI_BASE_ADDRESS_SPACE_IO)
+				if ((x & PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO)
 					d->base_addr[i] = x;
 				else {
-					if ((x &
-					     PCI_BASE_ADDRESS_MEM_TYPE_MASK)
-					    !=
-					    PCI_BASE_ADDRESS_MEM_TYPE_64)
+					if ((x & PCI_BASE_ADDRESS_MEM_TYPE_MASK) != PCI_BASE_ADDRESS_MEM_TYPE_64)
 						d->base_addr[i] = x;
 					else if (i >= cnt - 1)
-						a->warning
-						    ("%04x:%02x:%02x.%d: Invalid 64-bit address seen for BAR %d.",
+						a->warning("%04x:%02x:%02x.%d: Invalid 64-bit address seen for BAR %d.",
 						     d->domain, d->bus,
 						     d->dev, d->func, i);
 					else {
-						u32 y =
-						    pci_read_long(d,
-								  PCI_BASE_ADDRESS_0
-								  +
-								  (++i) *
-								  4);
+						u32 y = pci_read_long(d, PCI_BASE_ADDRESS_0 + (++i) * 4);
 #ifdef PCI_HAVE_64BIT_ADDRESS
-						d->base_addr[i - 1] =
-						    x | (((pciaddr_t) y) <<
-							 32);
+						d->base_addr[i - 1] = x | (((pciaddr_t) y) << 32);
 #else
 						if (y)
-							a->warning
-							    ("%04x:%02x:%02x.%d 64-bit device address ignored.",
+							a->warning("%04x:%02x:%02x.%d 64-bit device address ignored.",
 							     d->domain,
 							     d->bus,
 							     d->dev,
 							     d->func);
 						else
-							d->base_addr[i -
-								     1] =
-							    x;
+							d->base_addr[i - 1] = x;
 #endif
 					}
 				}
@@ -215,12 +197,10 @@ pci_generic_block_op(struct pci_dev *d, int pos, byte * buf, int len,
 
 int pci_generic_block_read(struct pci_dev *d, int pos, byte * buf, int len)
 {
-	return pci_generic_block_op(d, pos, buf, len,
-				    d->access->methods->read);
+	return pci_generic_block_op(d, pos, buf, len, d->access->methods->read);
 }
 
 int pci_generic_block_write(struct pci_dev *d, int pos, byte * buf, int len)
 {
-	return pci_generic_block_op(d, pos, buf, len,
-				    d->access->methods->write);
+	return pci_generic_block_op(d, pos, buf, len, d->access->methods->write);
 }
