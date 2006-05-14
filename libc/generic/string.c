@@ -66,6 +66,18 @@ size_t strlen(const char *str)
 	return counter;
 }
 
+int strcmp(const char *a,const char *b)
+{
+	int c=0;
+	
+	while(a[c]&&b[c]&&(!(a[c]-b[c]))) c++;
+	
+	return a[c]-b[c];
+	
+}
+
+
+
 /** Return pointer to the first occurence of character c in string
  * @param str scanned string 
  * @param c searched character (taken as one byte)

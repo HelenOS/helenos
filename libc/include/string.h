@@ -37,6 +37,8 @@
 void * memset(void *s, int c, size_t n);
 void * memcpy(void *dest, void *src, size_t n);
 
+int strcmp(const char *, const char *);
+
 size_t strlen(const char *str);
 
 int strcmp(const char *str1, const char *str2);
