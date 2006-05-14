@@ -1,3 +1,31 @@
+/*
+ * Copyright (C) 2006 Jakub Vana
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
 #include <print.h>
@@ -228,7 +256,7 @@ __native sys_sysinfo_valid(__native ptr,__native len)
 	sysinfo_rettype_t ret;
 	str=malloc(len+1,0);
 	ASSERT(str);
-	copy_from_uspace(str,(void *)ptr,len+1);
+	if(copy_from_uspace(str,(void *)ptr,len+1)) return 0;
 	if(str[len]) return 0;          /*This is not len lenght C string*/
 	ret=sysinfo_get_val(str,NULL);
 	free(str);
@@ -241,7 +269,7 @@ __native sys_sysinfo_value(__native ptr,__native len)
 	sysinfo_rettype_t ret;
 	str=malloc(len+1,0);
 	ASSERT(str);
-	copy_from_uspace(str,(void *)ptr,len+1);
+	if(copy_from_uspace(str,(void *)ptr,len+1)) return 0;
 	if(str[len]) return 0;          /*This is not len lenght C string*/
 	ret=sysinfo_get_val(str,NULL);
 	free(str);
