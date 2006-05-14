@@ -148,10 +148,10 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 
 /** Send answer to a received call */
-void ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
+ipcarg_t ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 		ipcarg_t arg2)
 {
-	__SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
+	return __SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
 }
 
 /** Try to dispatch queed calls from async queue */
@@ -271,3 +271,12 @@ int ipc_unregister_irq(int irq)
 {
 	return __SYSCALL1(SYS_IPC_UNREGISTER_IRQ, irq);
 }
+
+/*
+int ipc_open_dgrconn(int pohoneid, size_t max_dgram)
+{
+	
+}
+
+
+*/

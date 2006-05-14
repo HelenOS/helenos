@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
+	char *as;
 	
 	ipcarg_t retval, arg1, arg2;
 
@@ -41,6 +42,17 @@ int main(int argc, char **argv)
 		callid = ipc_wait_for_call(&call, 0);
 		printf("NS:Call phone=%lX..", call.phoneid);
 		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_AS_SEND:
+			as = (char *)IPC_GET_ARG2(call);
+			printf("Received as: %P, size:%d\n", as, IPC_GET_ARG3(call));
+			retval = ipc_answer(callid, 0,(sysarg_t)(1024*1024), 0);
+			if (!retval) {
+				printf("Reading shared memory...");
+				printf("Text: %s", as);
+			} else
+				printf("Failed answer: %d\n", retval);
+			continue;
+			break;
 		case IPC_M_INTERRUPT:
 			printf("GOT INTERRUPT: %c\n", IPC_GET_ARG2(call));
 			break;

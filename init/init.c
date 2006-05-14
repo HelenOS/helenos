@@ -38,6 +38,7 @@
 #include <futex.h>
 #include <as.h>
 #include <ddi.h>
+#include <string.h>
 
 int a;
 atomic_t ftx;
@@ -291,6 +292,29 @@ static int ptest(void *arg)
 	return 0;	
 }
 
+static int test_as_send()
+{
+	char *as;
+	int retval;
+	ipcarg_t result;
+
+	as = as_area_create((void *)(1024*1024), 16384, AS_AREA_READ | AS_AREA_WRITE);
+	if (!as) {
+		printf("Error creating as.\n");
+		return 0;
+	}
+
+	memcpy(as, "Hello world.\n", 14);
+
+	retval = ipc_call_sync_2(PHONE_NS, IPC_M_AS_SEND, 0, (sysarg_t) as,
+		NULL, NULL);
+	if (retval) {
+		printf("AS_SEND failed.\n");
+		return 0;
+	}
+	printf("Done\n");
+}
+
 int main(int argc, char *argv[])
 {
 	pstid_t ptid;
@@ -306,7 +330,8 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
-	
+	test_as_send();
+/*	
 	printf("Userspace task, taskid=%llX\n", task_get_id());
 
 	futex_initialize(&ftx, 1);
@@ -349,5 +374,6 @@ int main(int argc, char *argv[])
 	psthread_join(ptid);
 
 	printf("Main thread exiting.\n");
+*/
 	return 0;
 }

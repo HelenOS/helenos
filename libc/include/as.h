@@ -26,16 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __AS_H__
-#define __AS_H__
+#ifndef __libc_AS_H__
+#define __libc_AS_H__
 
 #include <types.h>
 #include <task.h>
+#include <kernel/mm/as.h>
 
 extern void *as_area_create(void *address, size_t size, int flags);
 extern int as_area_resize(void *address, size_t size, int flags);
 extern int as_area_destroy(void *address);
-extern int as_area_accept(task_id_t id, void *base, size_t size, int flags);
-extern int as_area_send(task_id_t id, void *base);
 
 #endif
