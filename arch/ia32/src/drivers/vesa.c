@@ -80,7 +80,8 @@ void vesa_init(void)
 
 	fb_init(vram_lin_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
 	
-	sysinfo_set_item_val("Framebuffer.address.physical",NULL,vesa_ph_addr);
+	fb_register();
+	sysinfo_set_item_val("fb.address.physical", NULL, vesa_ph_addr);
 }
 
 #endif

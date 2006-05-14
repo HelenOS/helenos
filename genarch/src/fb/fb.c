@@ -47,6 +47,7 @@ static __u8 *blankline = NULL;
 static unsigned int xres = 0;
 static unsigned int yres = 0;
 static unsigned int scanline = 0;
+static unsigned int bitspp = 0;
 static unsigned int pixelbytes = 0;
 
 static unsigned int position = 0;
@@ -348,6 +349,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	fbaddress = (unsigned char *) addr;
 	xres = x;
 	yres = y;
+	bitspp = bpp;
 	scanline = scan;
 	
 	rows = y / FONT_SCANLINES;
@@ -359,14 +361,18 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
-	
-	sysinfo_set_item_val("Framebuffer",NULL,true);
-	sysinfo_set_item_val("Framebuffer.width",NULL,x);
-	sysinfo_set_item_val("Framebuffer.height",NULL,y);
-	sysinfo_set_item_val("Framebuffer.scanline",NULL,scan);
-	sysinfo_set_item_val("Framebuffer.bpp",NULL,bpp);
-	sysinfo_set_item_val("Framebuffer.address.virtual",NULL,addr);
-	
+}
 
 
+/** Register framebuffer in sysinfo
+ *
+ */
+void fb_register(void)
+{
+	sysinfo_set_item_val("fb", NULL, true);
+	sysinfo_set_item_val("fb.width", NULL, xres);
+	sysinfo_set_item_val("fb.height", NULL, yres);
+	sysinfo_set_item_val("fb.scanline", NULL, scanline);
+	sysinfo_set_item_val("fb.bpp", NULL, bitspp);
+	sysinfo_set_item_val("fb.address.virtual", NULL, (__address) fbaddress);
 }

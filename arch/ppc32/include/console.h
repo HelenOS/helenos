@@ -30,5 +30,6 @@
 #define __ppc32_CONSOLE_H__
 
 extern void ppc32_console_init(void);
+extern void ppc32_console_register(void);
 
 #endif
