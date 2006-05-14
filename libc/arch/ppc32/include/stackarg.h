@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-/*
- * Variable argument list manipulation macros
- * for architectures using stack to pass arguments.
- */
- 
-#ifndef __LIBC_STACKARG_H__
-#define __LIBC_STACKARG_H__
-
-#include <types.h>
-
-/* dont allow to define it second time in stdarg.h */
-#define __VARARGS_DEFINED
-
-typedef struct va_list {
-	int pos;
-	uint8_t *last;
-} va_list;
-
-#define va_start(ap, lst) \
-	(ap).pos = sizeof(lst); \
-	(ap).last = (uint8_t *) &(lst)
-
-#define va_arg(ap, type) \
-	(*((type *)((ap).last + ((ap).pos += sizeof(type)) - sizeof(type))))
-
-#define va_end(ap)
-
+#ifndef __LIBC__STACKARG_H__
+#define __LIBC__STACKARG_H__
 
 #endif
+
