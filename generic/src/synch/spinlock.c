@@ -101,7 +101,7 @@ void spinlock_lock_debug(spinlock_t *sl)
 		if (sl == &fb_lock)
 			continue;
 #endif
-		if (i++ > 300000) {
+		if (i++ > 10000000) {
 			printf("cpu%d: looping on spinlock %.*p:%s, caller=%.*p",
 			       CPU->id, sizeof(__address) * 2, sl, sl->name, sizeof(__address) * 2, CALLER);
 			symbol = get_symtab_entry(CALLER);

@@ -19,14 +19,14 @@ SMP COMPATIBILITY
                 o 2x-8x AMD64 CPU
         o Simics 2.2.19
                 o 2x-15x AMD hammer CPU
-	o QEMU 0.8.0
+	o QEMU 0.8.0 - QEMU 0.8.1
 		o 2x-15x CPU
 	o HP ProLiant ML350 (HyperThreading)
 
 EMULATORS AND VIRTUALIZERS
         o Bochs 2.2.6
         o Simics 2.2.19
-	o QEMU 0.8.0
+	o QEMU 0.8.1
 
 TOOLCHAIN REQUIREMENTS
 	o binutils 2.16, 2.16.1
