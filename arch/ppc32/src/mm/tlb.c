@@ -232,6 +232,16 @@ fail:
 }
 
 
+void tlb_invalidate_all(void)
+{
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	memsetb((__address) phte, 1 << PHT_BITS, 0);
+	interrupts_restore(ipl);
+}
+
+
 /** Print contents of Page Hash Table. */
 void tlb_print(void)
 {

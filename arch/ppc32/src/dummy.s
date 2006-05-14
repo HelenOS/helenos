@@ -31,12 +31,8 @@
 .global asm_delay_loop
 .global userspace
 .global sys_tls_set
-.global tlb_invalidate_all
 .global tlb_invalidate_asid
 .global tlb_invalidate_pages
-
-tlb_invalidate_all:
-	b tlb_invalidate_all
 
 tlb_invalidate_asid:
 	b tlb_invalidate_asid

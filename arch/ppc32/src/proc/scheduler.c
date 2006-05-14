@@ -40,6 +40,7 @@ void before_task_runs_arch(void)
 /** Perform ppc32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
+	tlb_invalidate_all();
 	asm volatile (
 		"mtsprg0 %0\n"
 		:
