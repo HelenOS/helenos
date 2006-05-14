@@ -122,6 +122,12 @@
 #define IPC_M_PHONE_HUNGUP      3
 /** Interrupt notification */
 #define IPC_M_INTERRUPT         4
+/** Send as_area over ipc 
+ * - ARG2 - src base address
+ * - ARG3 - size of src as(filled automatically by kernel)
+ * - on answer ARG1 - dst base adress
+ */
+#define IPC_M_AS_SEND           5
 
 
 /* Well-known methods */

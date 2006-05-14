@@ -29,6 +29,15 @@
 #ifndef __AS_H__
 #define __AS_H__
 
+/** Address space area flags. */
+#define AS_AREA_READ	1
+#define AS_AREA_WRITE	2
+#define AS_AREA_EXEC	4
+#define AS_AREA_DEVICE	8
+
+
+#ifdef KERNEL
+
 #include <mm/as_arg.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
@@ -53,11 +62,6 @@
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
 
-/** Address space area flags. */
-#define AS_AREA_READ	1
-#define AS_AREA_WRITE	2
-#define AS_AREA_EXEC	4
-#define AS_AREA_DEVICE	8
 
 /** Address space area attributes. */
 #define AS_AREA_ATTR_NONE	0
@@ -129,6 +133,8 @@ extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
+int as_area_steal(task_t *src_task, __address src_base, size_t acc_size, __address dst_base);
+extern size_t as_get_size(__address base);
 
 /* Interface to be implemented by architectures. */
 #ifndef as_install_arch
@@ -139,7 +145,7 @@ extern void as_install_arch(as_t *as);
 extern __native sys_as_area_create(__address address, size_t size, int flags);
 extern __native sys_as_area_resize(__address address, size_t size, int flags);
 extern __native sys_as_area_destroy(__address address);
-extern __native sys_as_area_accept(as_area_acptsnd_arg_t *uspace_accept_arg);
-extern __native sys_as_area_send(as_area_acptsnd_arg_t *uspace_send_arg);
+
+#endif /* KERNEL */
 
 #endif

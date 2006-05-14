@@ -86,8 +86,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_as_area_create,
 	sys_as_area_resize,
 	sys_as_area_destroy,
-	sys_as_area_accept,
-	sys_as_area_send,
 
 	/* IPC related syscalls. */
 	sys_ipc_call_sync_fast,

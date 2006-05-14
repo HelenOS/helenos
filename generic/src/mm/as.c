@@ -364,18 +364,18 @@ int as_area_destroy(as_t *as, __address address)
 	return 0;
 }
 
-/** Send address space area to another task.
+/** Steal address space area from another task.
  *
- * Address space area is sent to the specified task.
- * If the destination task is willing to accept the
- * area, a new area is created according to the
- * source area. Moreover, any existing mapping
+ * Address space area is stolen from another task
+ * Moreover, any existing mapping
  * is copied as well, providing thus a mechanism
  * for sharing group of pages. The source address
  * space area and any associated mapping is preserved.
  *
- * @param dst_id Task ID of the accepting task.
+ * @param src_task Pointer of source task
  * @param src_base Base address of the source address space area.
+ * @param acc_size Expected size of the source area
+ * @param dst_base Target base address
  *
  * @return Zero on success or ENOENT if there is no such task or
  *	   if there is no such address space area,
@@ -383,119 +383,91 @@ int as_area_destroy(as_t *as, __address address)
  *	   ENOMEM if there was a problem in allocating destination
  *	   address space area.
  */
-int as_area_send(task_id_t dst_id, __address src_base)
+int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
+		  __address dst_base)
 {
 	ipl_t ipl;
-	task_t *t;
 	count_t i;
-	as_t *dst_as;
-	__address dst_base;
+	as_t *src_as;       
 	int src_flags;
 	size_t src_size;
 	as_area_t *src_area, *dst_area;
-	
+
 	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
+	spinlock_lock(&src_task->lock);
+	src_as = src_task->as;
 	
-	t = task_find_by_id(dst_id);
-	if (!NULL) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		return ENOENT;
-	}
-
-	spinlock_lock(&t->lock);
-	spinlock_unlock(&tasks_lock);
-
-	dst_as = t->as;
-	dst_base = (__address) t->accept_arg.base;
-	
-	if (dst_as == AS) {
-		/*
-		 * The two tasks share the entire address space.
-		 * Return error since there is no point in continuing.
-		 */
-		spinlock_unlock(&t->lock);
-		interrupts_restore(ipl);
-		return EPERM;
-	}
-	
-	spinlock_lock(&AS->lock);
-	src_area = find_area_and_lock(AS, src_base);
+	spinlock_lock(&src_as->lock);
+	src_area = find_area_and_lock(src_as, src_base);
 	if (!src_area) {
 		/*
 		 * Could not find the source address space area.
 		 */
-		spinlock_unlock(&t->lock);
-		spinlock_unlock(&AS->lock);
+		spinlock_unlock(&src_task->lock);
+		spinlock_unlock(&src_as->lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	src_size = src_area->pages * PAGE_SIZE;
 	src_flags = src_area->flags;
 	spinlock_unlock(&src_area->lock);
-	spinlock_unlock(&AS->lock);
+	spinlock_unlock(&src_as->lock);
 
-	if ((t->accept_arg.task_id != TASK->taskid) || (t->accept_arg.size != src_size) ||
-	    (t->accept_arg.flags != src_flags)) {
-		/*
-		 * Discrepancy in either task ID, size or flags.
-		 */
-		spinlock_unlock(&t->lock);
+
+	if (src_size != acc_size) {
+		spinlock_unlock(&src_task->lock);
 		interrupts_restore(ipl);
 		return EPERM;
 	}
-	
 	/*
 	 * Create copy of the source address space area.
 	 * The destination area is created with AS_AREA_ATTR_PARTIAL
 	 * attribute set which prevents race condition with
 	 * preliminary as_page_fault() calls.
 	 */
-	dst_area = as_area_create(dst_as, src_flags, src_size, dst_base, AS_AREA_ATTR_PARTIAL);
+	dst_area = as_area_create(AS, src_flags, src_size, dst_base, AS_AREA_ATTR_PARTIAL);
 	if (!dst_area) {
 		/*
 		 * Destination address space area could not be created.
 		 */
-		spinlock_unlock(&t->lock);
+		spinlock_unlock(&src_task->lock);
 		interrupts_restore(ipl);
 		return ENOMEM;
 	}
 	
-	memsetb((__address) &t->accept_arg, sizeof(as_area_acptsnd_arg_t), 0);
-	spinlock_unlock(&t->lock);
+	spinlock_unlock(&src_task->lock);
 	
 	/*
 	 * Avoid deadlock by first locking the address space with lower address.
 	 */
-	if (dst_as < AS) {
-		spinlock_lock(&dst_as->lock);
+	if (AS < src_as) {
 		spinlock_lock(&AS->lock);
+		spinlock_lock(&src_as->lock);
 	} else {
 		spinlock_lock(&AS->lock);
-		spinlock_lock(&dst_as->lock);
+		spinlock_lock(&src_as->lock);
 	}
 	
 	for (i = 0; i < SIZE2FRAMES(src_size); i++) {
 		pte_t *pte;
 		__address frame;
 			
-		page_table_lock(AS, false);
-		pte = page_mapping_find(AS, src_base + i*PAGE_SIZE);
+		page_table_lock(src_as, false);
+		pte = page_mapping_find(src_as, src_base + i*PAGE_SIZE);
 		if (pte && PTE_VALID(pte)) {
 			ASSERT(PTE_PRESENT(pte));
 			frame = PTE_GET_FRAME(pte);
 			if (!(src_flags & AS_AREA_DEVICE))
 				frame_reference_add(ADDR2PFN(frame));
-			page_table_unlock(AS, false);
+			page_table_unlock(src_as, false);
 		} else {
-			page_table_unlock(AS, false);
+			page_table_unlock(src_as, false);
 			continue;
 		}
 		
-		page_table_lock(dst_as, false);
-		page_mapping_insert(dst_as, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(src_flags));
-		page_table_unlock(dst_as, false);
+		page_table_lock(AS, false);
+		page_mapping_insert(AS, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(src_flags));
+		page_table_unlock(AS, false);
 	}
 
 	/*
@@ -508,7 +480,7 @@ int as_area_send(task_id_t dst_id, __address src_base)
 	spinlock_unlock(&dst_area->lock);
 	
 	spinlock_unlock(&AS->lock);
-	spinlock_unlock(&dst_as->lock);
+	spinlock_unlock(&src_as->lock);
 	interrupts_restore(ipl);
 	
 	return 0;
@@ -945,6 +917,25 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	return true;
 }
 
+/** Return size of address space of current task pointed to by base */
+size_t as_get_size(__address base)
+{
+	ipl_t ipl;
+	as_area_t *src_area;
+	size_t size;
+
+	ipl = interrupts_disable();
+	src_area = find_area_and_lock(AS, base);
+	if (src_area){
+		size = src_area->pages * PAGE_SIZE;
+		spinlock_unlock(&src_area->lock);
+	} else {
+		size = 0;
+	}
+	interrupts_restore(ipl);
+	return size;
+}
+
 /*
  * Address space related syscalls.
  */
@@ -970,56 +961,3 @@ __native sys_as_area_destroy(__address address)
 	return (__native) as_area_destroy(AS, address);
 }
 
-/** Prepare task for accepting address space area from another task.
- *
- * @param uspace_accept_arg Accept structure passed from userspace.
- *
- * @return EPERM if the task ID encapsulated in @uspace_accept_arg references
- *	   TASK. Otherwise zero is returned.
- */
-__native sys_as_area_accept(as_area_acptsnd_arg_t *uspace_accept_arg)
-{
-	as_area_acptsnd_arg_t arg;
-	int rc;
-	
-	rc = copy_from_uspace(&arg, uspace_accept_arg, sizeof(as_area_acptsnd_arg_t));
-	if (rc != 0)
-		return rc;
-	
-	if (!arg.size)
-		return (__native) EPERM;
-	
-	if (arg.task_id == TASK->taskid) {
-		/*
-		 * Accepting from itself is not allowed.
-		 */
-		return (__native) EPERM;
-	}
-	
-	memcpy(&TASK->accept_arg, &arg, sizeof(as_area_acptsnd_arg_t));
-	
-        return 0;
-}
-
-/** Wrapper for as_area_send. */
-__native sys_as_area_send(as_area_acptsnd_arg_t *uspace_send_arg)
-{
-	as_area_acptsnd_arg_t arg;
-	int rc;
-	
-	rc = copy_from_uspace(&arg, uspace_send_arg, sizeof(as_area_acptsnd_arg_t));
-	if (rc != 0)
-		return rc;
-
-	if (!arg.size)
-		return (__native) EPERM;
-	
-	if (arg.task_id == TASK->taskid) {
-		/*
-		 * Sending to itself is not allowed.
-		 */
-		return (__native) EPERM;
-	}
-
-	return (__native) as_area_send(arg.task_id, (__address) arg.base);
-}

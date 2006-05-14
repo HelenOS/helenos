@@ -40,6 +40,7 @@
 #include <print.h>
 #include <syscall/copy.h>
 #include <security/cap.h>
+#include <mm/as.h>
 
 #define GET_CHECK_PHONE(phone,phoneid,err) { \
       if (phoneid > IPC_MAX_PHONES) { err; } \
@@ -82,11 +83,13 @@ static inline int answer_need_old(call_t *call)
 		return 1;
 	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_ME_TO)
 		return 1;
+	if (IPC_GET_METHOD(call->data) == IPC_M_AS_SEND)
+		return 1;
 	return 0;
 }
 
 /** Interpret process answer as control information */
-static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid;
 
@@ -105,7 +108,7 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	}
 
 	if (!olddata)
-		return;
+		return 0;
 
 	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
 		phoneid = IPC_GET_ARG3(*olddata);
@@ -124,7 +127,14 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			ipc_phone_connect((phone_t *)IPC_GET_ARG3(*olddata),
 					  &TASK->answerbox);
 		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_SEND) {
+		if (!IPC_GET_RETVAL(answer->data)) { /* Accepted, handle As_area receival */
+			return as_area_steal(answer->sender,
+					     IPC_GET_ARG2(*olddata),IPC_GET_ARG3(*olddata),
+					     IPC_GET_ARG1(answer->data));
+		}
 	}
+	return 0;
 }
 
 /** Called before the request is sent
@@ -134,6 +144,7 @@ static inline void answer_preprocess(call_t *answer, ipc_data_t *olddata)
 static int request_preprocess(call_t *call)
 {
 	int newphid;
+	size_t size;
 
 	switch (IPC_GET_METHOD(call->data)) {
 	case IPC_M_CONNECT_ME_TO:
@@ -144,6 +155,13 @@ static int request_preprocess(call_t *call)
 		IPC_SET_ARG3(call->data, (__native)&TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->private = newphid;
+		break;
+	case IPC_M_AS_SEND:
+		size = as_get_size(IPC_GET_ARG2(call->data));
+		if (!size) {
+			return EPERM;
+		}
+		IPC_SET_ARG3(call->data, size);
 		break;
 	default:
 		break;
@@ -376,6 +394,7 @@ __native sys_ipc_answer_fast(__native callid, __native retval,
 	call_t *call;
 	ipc_data_t saved_data;
 	int saveddata = 0;
+	int rc;
 
 	call = get_call(callid);
 	if (!call)
@@ -389,10 +408,10 @@ __native sys_ipc_answer_fast(__native callid, __native retval,
 	IPC_SET_RETVAL(call->data, retval);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
-	answer_preprocess(call, saveddata ? &saved_data : NULL);
+	rc = answer_preprocess(call, saveddata ? &saved_data : NULL);
 
 	ipc_answer(&TASK->answerbox, call);
-	return 0;
+	return rc;
 }
 
 /** Send IPC answer */
@@ -416,11 +435,11 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 	if (rc != 0)
 		return rc;
 
-	answer_preprocess(call, saveddata ? &saved_data : NULL);
+	rc = answer_preprocess(call, saveddata ? &saved_data : NULL);
 	
 	ipc_answer(&TASK->answerbox, call);
 
-	return 0;
+	return rc;
 }
 
 /** Hang up the phone
