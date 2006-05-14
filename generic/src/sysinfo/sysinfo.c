@@ -256,9 +256,8 @@ __native sys_sysinfo_valid(__native ptr,__native len)
 	sysinfo_rettype_t ret;
 	str=malloc(len+1,0);
 	ASSERT(str);
-	if(copy_from_uspace(str,(void *)ptr,len+1)) return 0;
-	if(str[len]) return 0;          /*This is not len lenght C string*/
-	ret=sysinfo_get_val(str,NULL);
+	if(!((copy_from_uspace(str,(void *)ptr,len+1))||(str[len]))) 
+		ret=sysinfo_get_val(str,NULL);
 	free(str);
 	return ret.valid;
 }
@@ -269,9 +268,8 @@ __native sys_sysinfo_value(__native ptr,__native len)
 	sysinfo_rettype_t ret;
 	str=malloc(len+1,0);
 	ASSERT(str);
-	if(copy_from_uspace(str,(void *)ptr,len+1)) return 0;
-	if(str[len]) return 0;          /*This is not len lenght C string*/
-	ret=sysinfo_get_val(str,NULL);
+	if(!((copy_from_uspace(str,(void *)ptr,len+1))||(str[len]))) 
+		ret=sysinfo_get_val(str,NULL);
 	free(str);
 	return ret.val;
 }
