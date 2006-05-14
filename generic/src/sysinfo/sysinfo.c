@@ -253,7 +253,7 @@ sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root)
 __native sys_sysinfo_valid(__native ptr,__native len)
 {
 	char *str;
-	sysinfo_rettype_t ret;
+	sysinfo_rettype_t ret={0,0};
 	str=malloc(len+1,0);
 	ASSERT(str);
 	if(!((copy_from_uspace(str,(void *)ptr,len+1))||(str[len]))) 
@@ -265,7 +265,7 @@ __native sys_sysinfo_valid(__native ptr,__native len)
 __native sys_sysinfo_value(__native ptr,__native len)
 {
 	char *str;
-	sysinfo_rettype_t ret;
+	sysinfo_rettype_t ret={0,0};
 	str=malloc(len+1,0);
 	ASSERT(str);
 	if(!((copy_from_uspace(str,(void *)ptr,len+1))||(str[len]))) 
