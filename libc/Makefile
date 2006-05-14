@@ -59,7 +59,8 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	malloc/malloc.c \
-	generic/psthread.c
+	generic/psthread.c \
+	generic/sysinfo.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
