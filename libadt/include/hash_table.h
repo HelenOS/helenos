@@ -29,7 +29,7 @@
 #ifndef __HASH_TABLE_H__
 #define __HASH_TABLE_H__
 
-#include <list.h>
+#include <libadt/list.h>
 #include <unistd.h>
 
 typedef unsigned long hash_count_t;

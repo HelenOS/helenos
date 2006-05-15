@@ -13,11 +13,15 @@
 #include <ddi.h>
 #include <task.h>
 #include <stdlib.h>
+#include <ipc.h>
+#include <errno.h>
 
 #include "libpci/pci.h"
 
 #define PCI_CONF1	0xcf8
 #define PCI_CONF1_SIZE	8
+
+#define NAME		"PCI"
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +30,10 @@ int main(int argc, char *argv[])
 	unsigned int c;
 	char buf[80];
 
-	printf("HelenOS PCI driver\n");
+	int ipc_res;
+	ipcarg_t ns_phone_addr;
+
+	printf("%s: HelenOS PCI driver\n", NAME);
 
 	/*
 	 * Gain control over PCI configuration ports.
@@ -47,5 +54,19 @@ int main(int argc, char *argv[])
 	}
 	pci_cleanup(pacc);            /* Close everything */
 
+	printf("%s: registering at naming service.\n", NAME);
+	if (ipc_connect_to_me(PHONE_NS, 40, 70, &ns_phone_addr) != 0) {
+		printf("Failed to register %s at naming service.\n", NAME);
+		return -1;
+	}
+	
+	printf("%s: accepting connections\n", NAME);
+	while (1) {
+		ipc_call_t call;
+		ipc_callid_t callid;
+		
+		callid = ipc_wait_for_call(&call, 0);
+		ipc_answer(callid, EHANGUP, 0, 0);
+	}
 	return 0;
 }

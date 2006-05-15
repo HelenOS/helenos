@@ -36,7 +36,7 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
 
-LIBS = libpci/libpci.a $(LIBC_PREFIX)/libc.a
+LIBS = libpci/libpci.a $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #
