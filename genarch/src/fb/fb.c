@@ -91,7 +91,7 @@ static void putpixel_3byte(unsigned int x, unsigned int y, int color)
 {
 	unsigned int startbyte = POINTPOS(x, y);
 
-#ifdef BIG_ENDIAN
+#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
 	fbaddress[startbyte] = RED(color, 8);
 	fbaddress[startbyte + 1] = GREEN(color, 8);
 	fbaddress[startbyte + 2] = BLUE(color, 8);
@@ -107,7 +107,7 @@ static int getpixel_3byte(unsigned int x, unsigned int y)
 {
 	unsigned int startbyte = POINTPOS(x, y);
 
-#ifdef BIG_ENDIAN
+#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
 	return fbaddress[startbyte] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 2];
 #else
 	return fbaddress[startbyte + 2] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 0];
