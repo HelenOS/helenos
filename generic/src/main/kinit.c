@@ -159,7 +159,7 @@ void kinit(void *arg)
 			/*
 			 * Set capabilities to init userspace tasks.
 			 */
-			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER | CAP_IO_MANAGER | CAP_PREEMPT_CONTROL);
+			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER | CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
 			
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
