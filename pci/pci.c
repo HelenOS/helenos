@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	char buf[80];
 
 	int ipc_res;
-	ipcarg_t ns_phone_addr;
+	ipcarg_t ns_in_phone_hash;
 
 	printf("%s: HelenOS PCI driver\n", NAME);
 
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	pci_cleanup(pacc);            /* Close everything */
 
 	printf("%s: registering at naming service.\n", NAME);
-	if (ipc_connect_to_me(PHONE_NS, 40, 70, &ns_phone_addr) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, 40, 70, &ns_in_phone_hash) != 0) {
 		printf("Failed to register %s at naming service.\n", NAME);
 		return -1;
 	}

@@ -272,6 +272,11 @@ int ipc_unregister_irq(int irq)
 	return __SYSCALL1(SYS_IPC_UNREGISTER_IRQ, irq);
 }
 
+int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1)
+{
+	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
+}
+
 /*
 int ipc_open_dgrconn(int pohoneid, size_t max_dgram)
 {

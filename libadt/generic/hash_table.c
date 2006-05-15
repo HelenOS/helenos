@@ -106,10 +106,6 @@ link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 	chain = h->op->hash(key);
 	assert(chain < h->entries);
 	
-	/*
-	 * The hash table is not redundant.
-	 * Check if the keys are not in place already.
-	 */
 	for (cur = h->entry[chain].next; cur != &h->entry[chain]; cur = cur->next) {
 		if (h->op->compare(key, h->max_keys, cur)) {
 			/*

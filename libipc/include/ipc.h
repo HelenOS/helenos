@@ -37,7 +37,7 @@
 typedef sysarg_t ipcarg_t;
 typedef struct {
 	ipcarg_t args[IPC_CALL_LEN];
-	ipcarg_t phoneid;
+	ipcarg_t in_phone_hash;
 } ipc_call_t ;
 typedef sysarg_t ipc_callid_t;
 
@@ -58,13 +58,14 @@ extern ipcarg_t ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 			   ipcarg_t arg2);
 
 #define ipc_call_async(phoneid,method,arg1,private, callback) (ipc_call_async_2(phoneid, method, arg1, 0, private, callback))
-void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
+extern void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback);
-int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
-int ipc_connect_me_to(int phoneid, int arg1, int arg2);
-int ipc_hangup(int phoneid);
-int ipc_register_irq(int irq, irq_code_t *code);
-int ipc_unregister_irq(int irq);
+extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
+extern int ipc_connect_me_to(int phoneid, int arg1, int arg2);
+extern int ipc_hangup(int phoneid);
+extern int ipc_register_irq(int irq, irq_code_t *code);
+extern int ipc_unregister_irq(int irq);
+extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
 
 #endif
