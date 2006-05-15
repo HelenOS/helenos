@@ -26,55 +26,58 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include Makefile.config
+LIBC_PREFIX = ../libc
+LIBIPC_PREFIX = ../libipc
+SOFTINT_PREFIX = ../softint
+include $(LIBC_PREFIX)/Makefile.toolchain 
 
-DIRS = \
-	libc \
-	softint \
-	softfloat \
-	libipc \
-	libadt \
-	init \
-	ns
+CFLAGS += -Iinclude -I../libipc/include -I../libadt/include
 
-ifeq ($(ARCH), amd64)
-	DIRS += pci
-endif
-ifeq ($(ARCH), ia32)
-	DIRS += pci \
-		kbd
-endif
+LIBS = $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+## Sources
+#
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+OUTPUT = kbd
+GENERIC_SOURCES = \
+	generic/kbd.c \
+	generic/key_buffer.c
 
-all:
-	tools/config.py default $(NARCH)
-ifdef NARCH
- ifneq ($(ARCH), $(NARCH))
-	$(MAKE) -C . clean
- endif
-endif
-	$(MAKE) -C . build
+ARCH_SOURCES = \
+	arch/$(ARCH)/src/kbd.c
 
-config:
-	tools/config.py
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
+ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
-build: $(BUILDS)
+.PHONY: all clean depend disasm links
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+all: links $(OUTPUT) disasm
 
-distclean: clean
-	-rm Makefile.config
+-include Makefile.depend
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+links:
+	ln -sfn ../arch/$(ARCH)/include include/arch
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch
+
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

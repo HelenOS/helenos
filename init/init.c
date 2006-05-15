@@ -39,6 +39,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <string.h>
+#include <kbd.h>
 
 int a;
 atomic_t ftx;
@@ -292,6 +293,28 @@ static int ptest(void *arg)
 	return 0;	
 }
 
+static void test_kbd()
+{
+	int res;
+	ipcarg_t result;
+	int phoneid;
+
+	printf("Test: Starting connect...\n");
+	while ((phoneid = ipc_connect_me_to(PHONE_NS, 30, 60)) < 0) {
+	};
+	
+	printf("Test: Connected: %d\n", res);
+	printf("Test: pinging.\n");
+	while (1) {
+		res = ipc_call_sync(phoneid, KBD_GETCHAR, 0xbeef,&result);
+//		printf("Test: Retval: %d - received: %c\n", res, result);
+		printf("%c", result);
+	}
+	
+	printf("Test: Hangin up\n");
+	ipc_hangup(phoneid);
+}
+
 static int test_as_send()
 {
 	char *as;
@@ -330,7 +353,9 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
-	test_as_send();
+//	test_as_send();
+	test_kbd();
+
 /*	
 	printf("Userspace task, taskid=%llX\n", task_get_id());
 

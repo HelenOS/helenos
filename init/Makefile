@@ -34,7 +34,7 @@ LIBIPC_PREFIX = ../libipc
 SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I../libipc/include
+CFLAGS += -I../libipc/include -I../kbd/include
 
 LIBS = $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
 
