@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 	
 	ipcarg_t retval, arg1, arg2;
 
-	printf("%s: Name service started.\n", NAME);
+	printf("%s: Naming service started.\n", NAME);
 	
 	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3, &ns_hash_table_ops)) {
 		printf("%s: cannot create hash table\n", NAME);
@@ -148,16 +148,16 @@ int main(int argc, char **argv)
 			 */
 			retval = connect_to_service(IPC_GET_ARG1(call), &call, callid);
 			break;
+		case NS_HANGUP:
+			printf("Closing connection.\n");
+			retval = EHANGUP;
+			break;
 		case NS_PING:
 			printf("Ping...%P %P\n", IPC_GET_ARG1(call),
 			       IPC_GET_ARG2(call));
 			retval = 0;
 			arg1 = 0xdead;
 			arg2 = 0xbeef;
-			break;
-		case NS_HANGUP:
-			printf("Closing connection.\n");
-			retval = EHANGUP;
 			break;
 		case NS_PING_SVC:
 			printf("NS:Pinging service %d\n", ping_phone);
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	}
 }
 
-/** Register server.
+/** Register service.
  *
  * @param service Service to be registered.
  * @param phone phone Phone to be used for connections to the service.
@@ -227,7 +227,7 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 			
 	hlp = hash_table_find(&ns_hash_table, keys);
 	if (!hlp) {
-		printf("Service %d noty registered.\n", service);
+		printf("Service %d not registered.\n", service);
 		return ENOENT;
 	}
 	hs = hash_table_get_instance(hlp, hashed_service_t, link);
