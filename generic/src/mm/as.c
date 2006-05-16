@@ -960,4 +960,3 @@ __native sys_as_area_destroy(__address address)
 {
 	return (__native) as_area_destroy(AS, address);
 }
-

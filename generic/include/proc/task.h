@@ -35,7 +35,6 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <security/cap.h>
-#include <mm/as_arg.h>
 #include <arch/proc/task.h>
 
 /** Task structure. */
@@ -52,9 +51,6 @@ struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	atomic_t active_calls;  /**< Active asynchronous messages */
-	
-	/** Accept argument of SYS_AS_AREA_ACCEPT. */
-	as_area_acptsnd_arg_t accept_arg;
 	
 	task_arch_t arch;	/**< Architecture specific task data. */
 };
