@@ -49,14 +49,15 @@
 
 static __native sys_io(int fd, const void * buf, size_t count) {
 	
+	return count; /*Syscall deprecated*/
 	// TODO: buf sanity checks and a lot of other stuff ...
-
+/*
 	size_t i;
 	
 	for (i = 0; i < count; i++)
 		putchar(((char *) buf)[i]);
 	
-	return count;
+	return count;*/
 }
 
 /** Dispatch system call */
