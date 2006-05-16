@@ -26,76 +26,44 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Common compiler flags
-#
-
-LIBC_PREFIX = .
-SOFTINT_PREFIX = ../softint
-
 ## Setup toolchain
 #
 
+LIBC_PREFIX = ../libc
+SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
+
+CFLAGS += -I../libipc/include
+
+LIBS =  $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #
 
+OUTPUT = fb
+SOURCES = \
+	fb.c \
+	font-8x16.c
 
-GENERIC_SOURCES = \
-	generic/libc.c \
-	generic/ddi.c \
-	generic/as.c \
-	generic/cap.c \
-	generic/string.c \
-	generic/thread.c \
-	generic/task.c \
-	generic/futex.c \
-	generic/io/io.c \
-	generic/io/printf.c \
-	generic/io/stream.c \
-	generic/io/sprintf.c \
-	generic/io/snprintf.c \
-	generic/io/vprintf.c \
-	generic/io/vsprintf.c \
-	generic/io/vsnprintf.c \
-	generic/io/printf_core.c \
-	malloc/malloc.c \
-	generic/psthread.c \
-	generic/sysinfo.c \
-	generic/ipc.c
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/entry.s \
-	arch/$(ARCH)/src/thread_entry.s
+.PHONY: all clean depend disasm
 
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
-
-.PHONY: all clean depend kerninc
-
-all: kerninc libc.a arch/$(ARCH)/_link.ld
-
-kerninc:
-	ln -sfn ../../../kernel/generic/include include/kernel
-	ln -sfn kernel/arch include/arch
-	ln -sfn ../arch/$(ARCH)/include include/libarch
-	ln -sfn ../../libipc/include include/libipc
-	ln -sfn ../../libadt/include include/libadt
+all: $(OUTPUT) disasm
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch include/libarch include/libipc include/libadt libc.a arch/$(ARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
-depend: kerninc
-	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld  $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

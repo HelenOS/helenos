@@ -42,6 +42,7 @@
 #include <string.h>
 #include <errno.h>
 #include <kbd.h>
+#include <ipc/fb.h>
 
 int a;
 atomic_t ftx;
@@ -348,12 +349,40 @@ static int test_as_area_send()
 	printf("Done\n");
 }
 
+static void test_fb()
+{
+	int res;
+	ipcarg_t result;
+	int phoneid;
+
+//	printf("Test: Starting connect...\n");
+
+	phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
+
+	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
+		volatile int a;
+		for(a=0;a<1048576;a++);
+	};
+	
+//	printf("Test: Connected: %d\n", res);
+//	printf("Test: pinging.\n");
+	while (1) {
+		res = ipc_call_sync(phoneid, FB_GET_VFB, 0xbeef,&result);
+//		printf("Test: Retval: %d - received: %c\n", res, result);
+//		printf("%c", result);
+	}
+	
+//	printf("Test: Hangin up\n");
+	ipc_hangup(phoneid);
+}
+
+
 int main(int argc, char *argv[])
 {
 	pstid_t ptid;
 	int tid;
 	
-	version_print();
+//	version_print();
 
 //	test_printf();
 //	test_printf2();
@@ -365,7 +394,11 @@ int main(int argc, char *argv[])
 //	test_slam();
 //	test_as_send();
 //	test_pci();
-	test_kbd();
+//	test_kbd();
+//	test_fb();
+
+	printf("Hello\nThis is Init\n\nBye.");
+	
 
 /*	
 	printf("Userspace task, taskid=%llX\n", task_get_id());

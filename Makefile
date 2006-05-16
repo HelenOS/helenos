@@ -37,7 +37,8 @@ DIRS = \
 	softfloat \
 	libadt \
 	init \
-	ns
+	ns \
+	fb
 
 ifeq ($(ARCH), amd64)
 	DIRS += pci \

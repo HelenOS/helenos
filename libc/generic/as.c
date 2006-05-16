@@ -69,6 +69,7 @@ int as_area_destroy(void *address)
 }
 
 static size_t heapsize = 0;
+static size_t maxheapsize = (size_t)(-1);
 /* Start of heap linker symbol */
 extern char _heap;
 
@@ -91,6 +92,8 @@ void *sbrk(ssize_t incr)
 	/* Check for too small values */
 	if (incr < 0 && incr+heapsize > heapsize)
 		return NULL;
+	/* Check for user limit */
+	if ((maxheapsize!=(size_t)(-1)) && (heapsize + incr)>maxheapsize) return NULL;
 
 	rc = as_area_resize(&_heap, heapsize + incr,0);
 	if (rc != 0)
@@ -102,4 +105,12 @@ void *sbrk(ssize_t incr)
 	heapsize += incr;
 
 	return res;
+}
+
+void *set_maxheapsize(size_t mhs)
+{
+	maxheapsize=mhs;
+	/* Return pointer to area not managed by sbrk */
+	return (void *)&_heap + maxheapsize;
+
 }

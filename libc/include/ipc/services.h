@@ -37,5 +37,6 @@
 #define SERVICE_PCI		1
 #define SERVICE_FRAME_BUFFER	2
 #define SERVICE_KEYBOARD	3
+#define SERVICE_VIDEO	4
 
 #endif

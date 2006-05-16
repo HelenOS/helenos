@@ -31,6 +31,9 @@
 #include <thread.h>
 #include <malloc.h>
 #include <psthread.h>
+#include <io/stream.h>
+
+int __DONT_OPEN_STDIO__;
 
 /* We should probably merge libc and libipc together */
 extern void _ipc_init(void);
@@ -41,6 +44,13 @@ void _exit(int status) {
 
 void __main(void) {
 	tcb_t *tcb;
+	
+	if(!__DONT_OPEN_STDIO__)
+	{
+		open("stdin",0);
+		open("stdout",0);
+		open("stderr",0);
+	}	
 	
 	tcb = __make_tls();
 	__tcb_set(tcb);
