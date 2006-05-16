@@ -64,7 +64,7 @@ static inline int is_system_method(__native method)
  */
 static inline int is_forwardable(__native method)
 {
-	if (method == IPC_M_PHONE_HUNGUP)
+	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_SEND)
 		return 0; /* This message is meant only for the receiver */
 	return 1;
 }
@@ -396,6 +396,10 @@ __native sys_ipc_answer_fast(__native callid, __native retval,
 	int saveddata = 0;
 	int rc;
 
+	/* Do not answer notification callids */
+	if (callid & IPC_CALLID_NOTIFICATION)
+		return 0;
+
 	call = get_call(callid);
 	if (!call)
 		return ENOENT;
@@ -421,6 +425,10 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 	ipc_data_t saved_data;
 	int saveddata = 0;
 	int rc;
+
+	/* Do not answer notification callids */
+	if (callid & IPC_CALLID_NOTIFICATION)
+		return 0;
 
 	call = get_call(callid);
 	if (!call)
