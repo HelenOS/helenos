@@ -31,11 +31,11 @@
  * @brief	Naming service for HelenOS IPC.
  */
 
-#include <ipc.h>
+#include <ipc/ipc.h>
+#include <ipc/ns.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <ns.h>
 #include <errno.h>
 #include <assert.h>
 #include <libadt/list.h>

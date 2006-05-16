@@ -13,8 +13,8 @@
 #include <ddi.h>
 #include <task.h>
 #include <stdlib.h>
-#include <ipc.h>
-#include <services.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
 #include <errno.h>
 
 #include "libpci/pci.h"

@@ -27,12 +27,12 @@
  */
 
 #include "version.h"
-#include <ipc.h>
-#include <services.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <ipc/ns.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <ns.h>
 #include <thread.h>
 #include <task.h>
 #include <psthread.h>

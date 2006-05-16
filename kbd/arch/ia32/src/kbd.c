@@ -29,7 +29,7 @@
 
 #include <arch/kbd.h>
 #include <key_buffer.h>
-#include <ipc.h>
+#include <ipc/ipc.h>
 
 #define SPECIAL		'?'
 #define KEY_RELEASE	0x80

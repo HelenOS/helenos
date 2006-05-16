@@ -27,7 +27,7 @@
  */
 
 #include <arch/kbd.h>
-#include <ipc.h>
+#include <ipc/ipc.h>
 #include <key_buffer.h>
 
 irq_cmd_t msim_cmds[1] = {
