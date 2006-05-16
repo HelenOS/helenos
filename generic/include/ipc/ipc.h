@@ -127,7 +127,7 @@
  * - ARG3 - size of src as(filled automatically by kernel)
  * - on answer ARG1 - dst base adress
  */
-#define IPC_M_AS_SEND           5
+#define IPC_M_AS_AREA_SEND      5
 
 
 /* Well-known methods */

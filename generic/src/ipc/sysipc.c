@@ -64,7 +64,7 @@ static inline int is_system_method(__native method)
  */
 static inline int is_forwardable(__native method)
 {
-	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_SEND)
+	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_AREA_SEND)
 		return 0; /* This message is meant only for the receiver */
 	return 1;
 }
@@ -83,7 +83,7 @@ static inline int answer_need_old(call_t *call)
 		return 1;
 	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_ME_TO)
 		return 1;
-	if (IPC_GET_METHOD(call->data) == IPC_M_AS_SEND)
+	if (IPC_GET_METHOD(call->data) == IPC_M_AS_AREA_SEND)
 		return 1;
 	return 0;
 }
@@ -127,8 +127,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			ipc_phone_connect((phone_t *)IPC_GET_ARG3(*olddata),
 					  &TASK->answerbox);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_SEND) {
-		if (!IPC_GET_RETVAL(answer->data)) { /* Accepted, handle As_area receival */
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_SEND) {
+		if (!IPC_GET_RETVAL(answer->data)) { /* Accepted, handle as_area receipt */
 			return as_area_steal(answer->sender,
 					     IPC_GET_ARG2(*olddata),IPC_GET_ARG3(*olddata),
 					     IPC_GET_ARG1(answer->data));
@@ -156,7 +156,7 @@ static int request_preprocess(call_t *call)
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->private = newphid;
 		break;
-	case IPC_M_AS_SEND:
+	case IPC_M_AS_AREA_SEND:
 		size = as_get_size(IPC_GET_ARG2(call->data));
 		if (!size) {
 			return EPERM;
