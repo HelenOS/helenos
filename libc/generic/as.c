@@ -29,7 +29,6 @@
 #include <as.h>
 #include <libc.h>
 #include <unistd.h>
-#include <kernel/mm/as_arg.h>
 #include <task.h>
 
 /** Create address space area.
