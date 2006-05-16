@@ -35,7 +35,6 @@ DIRS = \
 	libc \
 	softint \
 	softfloat \
-	libipc \
 	libadt \
 	init \
 	ns

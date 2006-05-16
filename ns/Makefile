@@ -31,13 +31,10 @@
 
 LIBC_PREFIX = ../libc
 LIBADT_PREFIX = ../libadt
-LIBIPC_PREFIX = ../libipc
 SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I../libipc/include
-
-LIBS = $(LIBADT_PREFIX)/libadt.a $(LIBIPC_PREFIX)/libipc.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBADT_PREFIX)/libadt.a $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #
