@@ -41,11 +41,18 @@ DIRS = \
 	ns
 
 ifeq ($(ARCH), amd64)
-	DIRS += pci
+	DIRS += pci \
+		kbd
 endif
 ifeq ($(ARCH), ia32)
 	DIRS += pci \
 		kbd
+endif
+ifeq ($(ARCH), mips32)
+	DIRS += kbd
+endif
+ifeq ($(ARCH), mips32eb)
+	DIRS += kbd
 endif
 
 BUILDS := $(addsuffix .build,$(DIRS))

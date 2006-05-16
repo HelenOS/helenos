@@ -29,7 +29,8 @@
 #ifndef __mips32_KBD_H__
 #define __mips32_KBD_H__
 
-void kbd_arch_init(void);
+int kbd_arch_init(void);
+int kbd_arch_process(int scan_code);
 
 #endif
 

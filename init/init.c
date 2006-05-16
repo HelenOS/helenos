@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
 //	test_hangup();
 //	test_slam();
 //	test_as_send();
-	test_pci();
+//	test_pci();
 	test_kbd();
 
 /*	
