@@ -325,24 +325,24 @@ static void test_pci()
 	printf("Connected to PCI service through phone %d.\n", phone);
 }
 
-static int test_as_send()
+static int test_as_area_send()
 {
-	char *as;
+	char *as_area;
 	int retval;
 	ipcarg_t result;
 
-	as = as_area_create((void *)(1024*1024), 16384, AS_AREA_READ | AS_AREA_WRITE);
-	if (!as) {
-		printf("Error creating as.\n");
+	as_area = as_area_create((void *)(1024*1024), 16384, AS_AREA_READ | AS_AREA_WRITE);
+	if (!as_area) {
+		printf("Error creating as_area.\n");
 		return 0;
 	}
 
-	memcpy(as, "Hello world.\n", 14);
+	memcpy(as_area, "Hello world.\n", 14);
 
-	retval = ipc_call_sync_2(PHONE_NS, IPC_M_AS_SEND, 0, (sysarg_t) as,
+	retval = ipc_call_sync_2(PHONE_NS, IPC_M_AS_AREA_SEND, 0, (sysarg_t) as_area,
 		NULL, NULL);
 	if (retval) {
-		printf("AS_SEND failed.\n");
+		printf("AS_AREA_SEND failed.\n");
 		return 0;
 	}
 	printf("Done\n");

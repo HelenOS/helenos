@@ -325,7 +325,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 /** Open shared memory connection over specified phoneid
  *
  * 
- * Allocates AS_area, notify the other side about our intention
+ * Allocate as_area, notify the other side about our intention
  * to open the connection
  *
  * @return Connection id identifying this connection

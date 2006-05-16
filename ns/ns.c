@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
-	char *as;
+	char *as_area;
 	
 	ipcarg_t retval, arg1, arg2;
 
@@ -92,13 +92,13 @@ int main(int argc, char **argv)
 		callid = ipc_wait_for_call(&call, 0);
 //		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_AS_SEND:
-			as = (char *)IPC_GET_ARG2(call);
-			printf("Received as: %P, size:%d\n", as, IPC_GET_ARG3(call));
+		case IPC_M_AS_AREA_SEND:
+			as_area = (char *)IPC_GET_ARG2(call);
+			printf("Received as_area: %P, size:%d\n", as_area, IPC_GET_ARG3(call));
 			retval = ipc_answer_fast(callid, 0,(sysarg_t)(1024*1024), 0);
 			if (!retval) {
 				printf("Reading shared memory...");
-				printf("Text: %s", as);
+				printf("Text: %s", as_area);
 			} else
 				printf("Failed answer: %d\n", retval);
 			continue;
