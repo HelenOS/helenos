@@ -97,10 +97,6 @@ int main(int argc, char **argv)
 				
 				retval = 0;
 				break;
-			case IPC_M_CONNECT_TO_ME:
-				printf("%s: Somebody connecting phid=%zd.\n", NAME, IPC_GET_ARG3(call));
-				retval = 0;
-				break;
 			case IPC_M_CONNECT_ME_TO:
 			//	printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
 				/* Only one connected client allowed */
