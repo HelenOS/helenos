@@ -28,6 +28,7 @@
 
 #include "version.h"
 #include <ipc.h>
+#include <services.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -39,6 +40,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <string.h>
+#include <errno.h>
 #include <kbd.h>
 
 int a;
@@ -202,7 +204,7 @@ static void test_advanced_ipc(void)
 			       got_answer_2);
 		callid = ipc_wait_for_call(&data, NULL);
 		printf("Received ping\n");
-		ipc_answer(callid, 0, 0, 0);
+		ipc_answer_fast(callid, 0, 0, 0);
 	}
 //	callid = ipc_wait_for_call(&data, NULL);
 }
@@ -300,7 +302,7 @@ static void test_kbd()
 	int phoneid;
 
 	printf("Test: Starting connect...\n");
-	while ((phoneid = ipc_connect_me_to(PHONE_NS, 30, 60)) < 0) {
+	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
 	};
 	
 	printf("Test: Connected: %d\n", res);
@@ -313,6 +315,14 @@ static void test_kbd()
 	
 	printf("Test: Hangin up\n");
 	ipc_hangup(phoneid);
+}
+
+static void test_pci()
+{
+	int phone;
+	while ((phone = ipc_connect_me_to(PHONE_NS, SERVICE_PCI, 0)) < 0)
+		;
+	printf("Connected to PCI service through phone %d.\n", phone);
 }
 
 static int test_as_send()
@@ -354,6 +364,7 @@ int main(int argc, char *argv[])
 //	test_hangup();
 //	test_slam();
 //	test_as_send();
+	test_pci();
 	test_kbd();
 
 /*	
@@ -377,7 +388,7 @@ int main(int argc, char *argv[])
 	}
 
 	int i;
-	
+
 	for (i = 0; i < 50000000; i++)
 		;
 		
@@ -400,5 +411,6 @@ int main(int argc, char *argv[])
 
 	printf("Main thread exiting.\n");
 */
+
 	return 0;
 }

@@ -147,12 +147,36 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 }
 
 
-/** Send answer to a received call */
-ipcarg_t ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
+/** Send a fast answer to a received call.
+ *
+ * The fast answer makes use of passing retval and first two arguments in registers.
+ * If you need to return more, use the ipc_answer() instead.
+ *
+ * @param callid ID of the call being answered.
+ * @param retval Return value.
+ * @param arg1 First return argument.
+ * @param arg2 Second return argument.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ */
+ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 		ipcarg_t arg2)
 {
 	return __SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
 }
+
+/** Send a full answer to a received call.
+ *
+ * @param callid ID of the call being answered.
+ * @param call Call data. Must be already initialized by the responder.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ */
+ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call)
+{
+	return __SYSCALL2(SYS_IPC_ANSWER, callid, (sysarg_t) call);
+}
+
 
 /** Try to dispatch queed calls from async queue */
 static void try_dispatch_queued_calls(void)

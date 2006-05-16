@@ -14,6 +14,7 @@
 #include <task.h>
 #include <stdlib.h>
 #include <ipc.h>
+#include <services.h>
 #include <errno.h>
 
 #include "libpci/pci.h"
@@ -23,14 +24,13 @@
 
 #define NAME		"PCI"
 
+static struct pci_access *pacc;
+
 int main(int argc, char *argv[])
 {
-	struct pci_access *pacc;
 	struct pci_dev *dev;
 	unsigned int c;
 	char buf[80];
-
-	int ipc_res;
 	ipcarg_t ns_in_phone_hash;
 
 	printf("%s: HelenOS PCI driver\n", NAME);
@@ -52,21 +52,31 @@ int main(int argc, char *argv[])
 		printf("\t%s\n", pci_lookup_name(pacc, buf, sizeof(buf), PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE,
 			dev->vendor_id, dev->device_id));
 	}
-	pci_cleanup(pacc);            /* Close everything */
 
 	printf("%s: registering at naming service.\n", NAME);
-	if (ipc_connect_to_me(PHONE_NS, 40, 70, &ns_in_phone_hash) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_PCI, 0, &ns_in_phone_hash) != 0) {
 		printf("Failed to register %s at naming service.\n", NAME);
 		return -1;
 	}
-	
+
 	printf("%s: accepting connections\n", NAME);
-	while (1) {
+	while (1) {		
 		ipc_call_t call;
 		ipc_callid_t callid;
-		
+		int retval;
+
 		callid = ipc_wait_for_call(&call, 0);
-		ipc_answer(callid, EHANGUP, 0, 0);
+		switch(IPC_GET_METHOD(call)) {
+		case IPC_M_CONNECT_ME_TO:
+			IPC_SET_RETVAL(call, 0);
+			break;
+		}
+		if (! (callid & IPC_CALLID_NOTIFICATION)) {
+			ipc_answer(callid, &call);
+		}
+		printf("%s: received call from %lX\n", NAME, call.in_phone_hash);
 	}
+
+	pci_cleanup(pacc);
 	return 0;
 }

@@ -27,6 +27,7 @@
  */
 
 #include <ipc.h>
+#include <services.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
 	/* Register service at nameserver */
 	printf("%s: Registering at naming service.\n", NAME);
 
-	if ((res = ipc_connect_to_me(PHONE_NS, 30, 60, &phonead)) != 0) {
+	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
 		printf("%s: Error: Registering at naming service failed.\n", NAME);
 		return -1;
 	};
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
 		}
 		if (! (callid & IPC_CALLID_NOTIFICATION)) {
 		//	printf("%s: Answering\n", NAME);
-			ipc_answer(callid, retval, arg1, arg2);
+			ipc_answer_fast(callid, retval, arg1, arg2);
 		}
 	}
 }

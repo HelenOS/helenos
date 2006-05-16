@@ -49,10 +49,6 @@ struct pci_access {
 	struct pci_methods *methods;
 	struct id_entry **id_hash;	/* names.c */
 	struct id_bucket *current_id_bucket;
-	int fd;			/* proc: fd */
-	int fd_rw;		/* proc: fd opened read-write */
-	struct pci_dev *cached_dev;	/* proc: device the fd is for */
-	int fd_pos;		/* proc: current position */
 };
 
 /* Initialize PCI access */
@@ -114,20 +110,6 @@ int pci_fill_info(struct pci_dev *, int flags);	/* Fill in device information */
 #define PCI_FILL_RESCAN		0x10000
 
 void pci_setup_cache(struct pci_dev *, u8 * cache, int len);
-
-/*
- *	Filters
- */
-
-struct pci_filter {
-	int domain, bus, slot, func;	/* -1 = ANY */
-	int vendor, device;
-};
-
-void pci_filter_init(struct pci_access *, struct pci_filter *);
-char *pci_filter_parse_slot(struct pci_filter *, char *);
-char *pci_filter_parse_id(struct pci_filter *, char *);
-int pci_filter_match(struct pci_filter *, struct pci_dev *);
 
 /*
  *	Conversion of PCI ID's to names (according to the pci.ids file)

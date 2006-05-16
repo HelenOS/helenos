@@ -54,8 +54,9 @@ extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			 ipcarg_t *result);
 extern ipc_callid_t ipc_wait_for_call(ipc_call_t *data, int flags);
-extern ipcarg_t ipc_answer(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
+extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 			   ipcarg_t arg2);
+extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
 
 #define ipc_call_async(phoneid,method,arg1,private, callback) (ipc_call_async_2(phoneid, method, arg1, 0, private, callback))
 extern void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,

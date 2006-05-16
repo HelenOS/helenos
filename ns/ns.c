@@ -71,28 +71,6 @@ typedef struct {
 	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
 } hashed_service_t;
 
-/*
-irq_cmd_t msim_cmds[1] = {
-	{ CMD_MEM_READ_1, (void *)0xB0000000, 0 }
-};
-
-irq_code_t msim_kbd = {
-	1,
-	msim_cmds
-};
-*/
-/*
-irq_cmd_t i8042_cmds[1] = {
-	{ CMD_PORT_READ_1, (void *)0x60, 0 }
-};
-
-irq_code_t i8042_kbd = {
-	1,
-	i8042_cmds
-};
-*/
-
-
 int static ping_phone;
 
 int main(int argc, char **argv)
@@ -109,18 +87,15 @@ int main(int argc, char **argv)
 		printf("%s: cannot create hash table\n", NAME);
 		return ENOMEM;
 	}
-	
-	
-//	ipc_register_irq(2, &msim_kbd);
-//	ipc_register_irq(1, &i8042_kbd);
+		
 	while (1) {
 		callid = ipc_wait_for_call(&call, 0);
-		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
+//		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_AS_SEND:
 			as = (char *)IPC_GET_ARG2(call);
 			printf("Received as: %P, size:%d\n", as, IPC_GET_ARG3(call));
-			retval = ipc_answer(callid, 0,(sysarg_t)(1024*1024), 0);
+			retval = ipc_answer_fast(callid, 0,(sysarg_t)(1024*1024), 0);
 			if (!retval) {
 				printf("Reading shared memory...");
 				printf("Text: %s", as);
@@ -170,8 +145,8 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			printf("Answering.\n");
-			ipc_answer(callid, retval, arg1, arg2);
+//			printf("Answering.\n");
+			ipc_answer_fast(callid, retval, arg1, arg2);
 		}
 	}
 }
@@ -227,7 +202,7 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 			
 	hlp = hash_table_find(&ns_hash_table, keys);
 	if (!hlp) {
-		printf("Service %d not registered.\n", service);
+//		printf("Service %d not registered.\n", service);
 		return ENOENT;
 	}
 	hs = hash_table_get_instance(hlp, hashed_service_t, link);
