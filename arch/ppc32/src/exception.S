@@ -60,60 +60,60 @@
 	
 	2:
 	
-	subi sp, sp, 148
-	stw r0, 0(sp)
-	stw r2, 4(sp)
-	stw r3, 8(sp)
-	stw r4, 12(sp)
-	stw r5, 16(sp)
-	stw r6, 20(sp)
-	stw r7, 24(sp)
-	stw r8, 28(sp)
-	stw r9, 32(sp)
-	stw r10, 36(sp)
-	stw r11, 40(sp)
-	stw r13, 44(sp)
-	stw r14, 48(sp)
-	stw r15, 52(sp)
-	stw r16, 56(sp)
-	stw r17, 60(sp)
-	stw r18, 64(sp)
-	stw r19, 68(sp)
-	stw r20, 72(sp)
-	stw r21, 76(sp)
-	stw r22, 80(sp)
-	stw r23, 84(sp)
-	stw r24, 88(sp)
-	stw r25, 92(sp)
-	stw r26, 96(sp)
-	stw r27, 100(sp)
-	stw r28, 104(sp)
-	stw r29, 108(sp)
-	stw r30, 112(sp)
-	stw r31, 116(sp)
+	subi sp, sp, 160
+	stw r0, 8(sp)
+	stw r2, 12(sp)
+	stw r3, 16(sp)
+	stw r4, 20(sp)
+	stw r5, 24(sp)
+	stw r6, 28(sp)
+	stw r7, 32(sp)
+	stw r8, 36(sp)
+	stw r9, 40(sp)
+	stw r10, 44(sp)
+	stw r11, 48(sp)
+	stw r13, 52(sp)
+	stw r14, 56(sp)
+	stw r15, 60(sp)
+	stw r16, 64(sp)
+	stw r17, 68(sp)
+	stw r18, 72(sp)
+	stw r19, 76(sp)
+	stw r20, 80(sp)
+	stw r21, 84(sp)
+	stw r22, 88(sp)
+	stw r23, 92(sp)
+	stw r24, 96(sp)
+	stw r25, 100(sp)
+	stw r26, 104(sp)
+	stw r27, 108(sp)
+	stw r28, 112(sp)
+	stw r29, 116(sp)
+	stw r30, 120(sp)
+	stw r31, 124(sp)
 	
-	stw r12, 120(sp)
-	
-	mfsrr0 r12
-	stw r12, 124(sp)
-	
-	mfsrr1 r12
 	stw r12, 128(sp)
 	
-	mflr r12
+	mfsrr0 r12
 	stw r12, 132(sp)
 	
-	mfctr r12
+	mfsrr1 r12
 	stw r12, 136(sp)
 	
-	mfxer r12
+	mflr r12
 	stw r12, 140(sp)
 	
-	mfsprg1 r12
+	mfctr r12
 	stw r12, 144(sp)
 	
-	mfsprg2 r12
+	mfxer r12
 	stw r12, 148(sp)
+	
+	mfsprg1 r12
+	stw r12, 152(sp)
+	
+	mfsprg2 r12
+	stw r12, 156(sp)
 .endm
 
 .org 0x060
@@ -128,6 +128,8 @@ jump_to_kernel:
 	
 	addis sp, sp, 0x8000
 	mr r4, sp
+	addi r4, r4, 8
+	
 	rfi
 
 jump_to_kernel_syscall:
