@@ -281,8 +281,8 @@ int ipc_phone_hangup(phone_t *phone)
 
 /** Forwards call from one answerbox to a new one
  *
- * @param request Request to be forwarded
- * @param newbox Target answerbox
+ * @param call Call to be redirected.
+ * @param newphone Phone to target answerbox.
  * @param oldbox Old answerbox
  * @return 0 on forward ok, error code, if there was error
  * 

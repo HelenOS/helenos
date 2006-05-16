@@ -109,7 +109,7 @@
  *                     - arg1/2 are user specified, arg3 contains
  *                       address of the phone that should be connected
  *                       (TODO: it leaks to userspace)
- *   recepient         -  if ipc_answer == 0, then accept connection
+ *   recipient         -  if ipc_answer == 0, then accept connection
  *                     -  otherwise connection refused
  *                     -  recepient may forward message. Forwarding
  *                        system message 
@@ -122,7 +122,7 @@
 #define IPC_M_PHONE_HUNGUP      3
 /** Interrupt notification */
 #define IPC_M_INTERRUPT         4
-/** Send as_area over ipc 
+/** Send as_area over IPC 
  * - ARG2 - src base address
  * - ARG3 - size of src as(filled automatically by kernel)
  * - on answer ARG1 - dst base adress
