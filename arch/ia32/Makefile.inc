@@ -35,8 +35,8 @@ image.boot: kernel uspace
 	e2cp $(USPACEDIR)/init/init image.boot:/init
 	e2cp $(USPACEDIR)/ns/ns image.boot:/ns
 	e2cp $(USPACEDIR)/pci/pci image.boot:/pci
+	e2cp $(USPACEDIR)/fb/fb image.boot:/fb
 	e2cp $(USPACEDIR)/kbd/kbd image.boot:/kbd
-#	e2cp $(USPACEDIR)/fb/fb image.boot:/fb
 
 clean: clean_kernel clean_uspace
 	-rm -f image.boot
