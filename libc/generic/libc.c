@@ -32,17 +32,20 @@
 #include <malloc.h>
 #include <psthread.h>
 
+/* We should probably merge libc and libipc together */
+extern void _ipc_init(void);
+
 void _exit(int status) {
 	thread_exit(status);
 }
 
-#include <stdio.h>
 void __main(void) {
 	tcb_t *tcb;
 	
 	tcb = __make_tls();
 	__tcb_set(tcb);
 	psthread_setup(tcb);
+	_ipc_init();
 }
 
 void __exit(void) {

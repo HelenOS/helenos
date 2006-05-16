@@ -68,5 +68,6 @@ extern int ipc_hangup(int phoneid);
 extern int ipc_register_irq(int irq, irq_code_t *code);
 extern int ipc_unregister_irq(int irq);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
+extern void _ipc_init(void);
 
 #endif

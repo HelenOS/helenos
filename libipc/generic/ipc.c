@@ -33,6 +33,7 @@
 #include <list.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <futex.h>
 
 /** Structure used for keeping track of sent async msgs 
  * and queing unsent msgs
@@ -54,6 +55,13 @@ typedef struct {
 
 LIST_INITIALIZE(dispatched_calls);
 LIST_INITIALIZE(queued_calls);
+
+static atomic_t ipc_futex;
+
+void _ipc_init(void)
+{
+	futex_initialize(&ipc_futex, 1);
+}
 
 int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		  ipcarg_t *result)
@@ -137,13 +145,17 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		IPC_SET_METHOD(call->u.msg.data, method);
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
-
+		
+		futex_down(&ipc_futex);
 		list_append(&call->list, &queued_calls);
+		futex_up(&ipc_futex);
 		return;
 	}
 	call->u.callid = callid;
 	/* Add call to list of dispatched calls */
+	futex_down(&ipc_futex);
 	list_append(&call->list, &dispatched_calls);
+	futex_up(&ipc_futex);
 }
 
 
@@ -184,6 +196,7 @@ static void try_dispatch_queued_calls(void)
 	async_call_t *call;
 	ipc_callid_t callid;
 
+	futex_down(&ipc_futex);
 	while (!list_empty(&queued_calls)) {
 		call = list_get_instance(queued_calls.next, async_call_t,
 					 list);
@@ -193,14 +206,18 @@ static void try_dispatch_queued_calls(void)
 		if (callid == IPC_CALLRET_TEMPORARY)
 			break;
 		list_remove(&call->list);
+
 		if (callid == IPC_CALLRET_FATAL) {
+			futex_up(&ipc_futex);
 			call->callback(call->private, ENOENT, NULL);
 			free(call);
+			futex_down(&ipc_futex);
 		} else {
 			call->u.callid = callid;
 			list_append(&call->list, &dispatched_calls);
 		}
 	}
+	futex_up(&ipc_futex);
 }
 
 /** Handle received answer
@@ -216,17 +233,20 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 
 	callid &= ~IPC_CALLID_ANSWERED;
 	
+	futex_down(&ipc_futex);
 	for (item = dispatched_calls.next; item != &dispatched_calls;
 	     item = item->next) {
 		call = list_get_instance(item, async_call_t, list);
 		if (call->u.callid == callid) {
 			list_remove(&call->list);
+			futex_up(&ipc_futex);
 			call->callback(call->private, 
 				       IPC_GET_RETVAL(*data),
 				       data);
 			return;
 		}
 	}
+	futex_up(&ipc_futex);
 	printf("Received unidentified answer: %P!!!\n", callid);
 }
 
@@ -301,11 +321,43 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
+
+/** Open shared memory connection over specified phoneid
+ *
+ * 
+ * Allocates AS_area, notify the other side about our intention
+ * to open the connection
+ *
+ * @return Connection id identifying this connection
+ */
+//int ipc_dgr_open(int pohoneid, size_t bufsize)
+//{
+	/* Find new file descriptor in local descriptor table */
+	/* Create AS_area, initialize structures */
+	/* Send AS to other side, handle error states */
+
+//}
 /*
-int ipc_open_dgrconn(int pohoneid, size_t max_dgram)
+void ipc_dgr_close(int cid)
 {
-	
 }
 
+void * ipc_dgr_alloc(int cid, size_t size)
+{
+}
+
+void ipc_dgr_free(int cid, void *area)
+{
+
+}
+
+int ipc_dgr_send(int cid, void *area)
+{
+}
+
+
+int ipc_dgr_send_data(int cid, void *data, size_t size)
+{
+}
 
 */
