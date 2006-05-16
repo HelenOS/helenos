@@ -34,6 +34,7 @@
 void key_buffer_free(void);
 void key_buffer_init(void);
 int key_buffer_available(void);
+int key_buffer_empty(void);
 void key_buffer_push(char key);
 int key_buffer_pop(char *c);
 

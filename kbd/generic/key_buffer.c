@@ -29,23 +29,30 @@
 #include <key_buffer.h>
 #include <fifo.h>
 
-#define KBD_BUFFER_SIZE 128
+#define KBD_BUFFER_SIZE 128 /**< Size of buffer for pressed keys */
 
-FIFO_INITIALIZE_STATIC(buffer, char, KBD_BUFFER_SIZE);
-fifo_count_t buffer_items;
+FIFO_INITIALIZE_STATIC(buffer, char, KBD_BUFFER_SIZE);	/**< Fifo for storing pressed keys */
+fifo_count_t buffer_items;	/**< Counter of used items for prevent fifo overflow */
 
+/** Clear key buffer.
+ */
 void key_buffer_free(void)
 {
 	buffer_items = 0;
 	buffer.head = buffer.tail = 0;
 }
 
+/** Key buffer initialization.
+ *
+ */
 void key_buffer_init(void)
 {
 	key_buffer_free();
 }
 
-/** 
+/** Get free space in buffer.
+ * This function is useful for processing some scancodes that are translated 
+ * to more than one character.
  * @return empty buffer space
  */
 int key_buffer_available(void)
@@ -53,9 +60,20 @@ int key_buffer_available(void)
 	return KBD_BUFFER_SIZE - buffer_items;
 }
 
+/**
+ * @return nonzero, if buffer is not empty.
+ */
+int key_buffer_empty(void)
+{
+	return (buffer_items == 0);
+}
+
+/** Push key to key buffer.
+ * If buffer is full, character is ignored.
+ * @param key code of stored key
+ */
 void key_buffer_push(char key)
 {
-	/* TODO: somebody may wait for key */
 	if (buffer_items < KBD_BUFFER_SIZE) {
 		fifo_push(buffer, key);
 		buffer_items++;
@@ -63,7 +81,7 @@ void key_buffer_push(char key)
 }
 
 /** Pop character from buffer.
- * @param c
+ * @param c pointer to space where to store character from buffer.
  * @return zero on empty buffer, nonzero else
  */
 int key_buffer_pop(char *c)

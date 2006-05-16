@@ -52,9 +52,10 @@ int main(int argc, char **argv)
 	ipcarg_t phonead;
 	
 	ipcarg_t retval, arg1, arg2;
-	
+
+	/* Counter of unsatisfied calls */
 	fifo_count_t callers_counter = 0;
-	
+	/* Fifo with callid's of unsatisfied calls requred for answer */
 	FIFO_INITIALIZE_STATIC(callers_buffer, ipc_callid_t, KBD_REQUEST_MAX);
 
 	printf("Uspace kbd service started.\n");
@@ -80,66 +81,82 @@ int main(int argc, char **argv)
 		callid = ipc_wait_for_call(&call, 0);
 	//	printf("%s:Call phone=%lX..", NAME, call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			if (connected) {
-				if (--connected == 0) {
-					callers_counter = 0;
-					callers_buffer.head = callers_buffer.tail = 0;
-					key_buffer_free();	
-				}
-			}
-			
-			printf("%s: Phone hung up.\n", NAME);
-			retval = 0;
-			break;
-		case IPC_M_CONNECT_TO_ME:
-			printf("%s: Somebody connecting phid=%zd.\n", NAME, IPC_GET_ARG3(call));
-			retval = 0;
-			break;
-		case IPC_M_CONNECT_ME_TO:
-		//	printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
-			if (connected) {
-				retval = ELIMIT;
-			} else {
-				retval = 0;
-				connected = 1;
-			}
-			break;
-		case IPC_M_INTERRUPT:
-			if (connected) {
-				kbd_arch_process(IPC_GET_ARG2(call));
-			}
-			//printf("%s: GOT INTERRUPT: %c\n", NAME, IPC_GET_ARG2(call));
-			if (!callers_counter)
-				break;
-			/* Small trick - interrupt does not need answer so we can change callid to caller awaiting key */
-			callers_counter--;
-			callid = fifo_pop(callers_buffer);
-		case KBD_GETCHAR:
-//			printf("%s: Getchar: ", NAME);
-			retval = 0;
-			arg1 = 0;	
-			if (!key_buffer_pop((char *)&arg1)) {
-				if (callers_counter < KBD_REQUEST_MAX) {
-					callers_counter++;
-					fifo_push(callers_buffer, callid);
+			case IPC_M_PHONE_HUNGUP:
+				if (connected) {
+					/* If nobody's connected, clear keybuffer and dont store new keys */
+					if (--connected == 0) {
+						callers_counter = 0;
+						callers_buffer.head = callers_buffer.tail = 0;
+						key_buffer_free();	
+					}
+					
+					printf("%s: Phone hung up.\n", NAME);
 				} else {
-					retval = ELIMIT;
+					printf("%s: Oops, got phone hung up, but nobody connected.\n", NAME);
 				}
-				continue;
-			};
-			arg2 = 0xbeef;
-		//	printf("GetChar return %c\n", arg1);
-			
-			break;
-		default:
-			printf("%s: Unknown method: %zd\n", NAME, IPC_GET_METHOD(call));
-			retval = ENOENT;
-			break;
+				
+				retval = 0;
+				break;
+			case IPC_M_CONNECT_TO_ME:
+				printf("%s: Somebody connecting phid=%zd.\n", NAME, IPC_GET_ARG3(call));
+				retval = 0;
+				break;
+			case IPC_M_CONNECT_ME_TO:
+			//	printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
+				/* Only one connected client allowed */
+				if (connected) {
+					retval = ELIMIT;
+				} else {
+					retval = 0;
+					connected = 1;
+				}
+				break;
+			case IPC_M_INTERRUPT:
+				if (connected) {
+					/* recode scancode and store it into key buffer */
+					kbd_arch_process(IPC_GET_ARG2(call));
+					//printf("%s: GOT INTERRUPT: %c\n", NAME, IPC_GET_ARG2(call));
+
+					/* Some callers could awaiting keypress - if its true, we have to send keys to them.
+					 * One interrupt can store more than one key into buffer. */
+					retval = 0;
+					arg2 = 0xbeef;
+					while ((callers_counter) && (!key_buffer_empty())) {
+						callers_counter--;
+						if (!key_buffer_pop((char *)&arg1)) {
+							printf("%s: KeyBuffer empty but it should not be.\n");
+							break;
+						}
+						ipc_answer_fast(fifo_pop(callers_buffer), retval, arg1, arg2);
+					}
+				}
+				break;
+			case KBD_GETCHAR:
+	//			printf("%s: Getchar: ", NAME);
+				retval = 0;
+				arg1 = 0;	
+				if (!key_buffer_pop((char *)&arg1)) {
+					if (callers_counter < KBD_REQUEST_MAX) {
+						callers_counter++;
+						fifo_push(callers_buffer, callid);
+					} else {
+						retval = ELIMIT;
+					}
+					continue;
+				};
+				arg2 = 0xbeef;
+			//	printf("GetChar return %c\n", arg1);
+				
+				break;
+			default:
+				printf("%s: Unknown method: %zd\n", NAME, IPC_GET_METHOD(call));
+				retval = ENOENT;
+				break;
 		}
+
 		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-		//	printf("%s: Answering\n", NAME);
 			ipc_answer_fast(callid, retval, arg1, arg2);
 		}
 	}
 }
+
