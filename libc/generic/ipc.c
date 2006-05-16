@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
-#include <ipc.h>
+#include <ipc/ipc.h>
 #include <libc.h>
 #include <malloc.h>
 #include <errno.h>
-#include <list.h>
+#include <libadt/list.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <futex.h>

@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ipc.h>
-#include <services.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <ns.h>
+#include <ipc/ns.h>
 #include <errno.h>
 #include <arch/kbd.h>
 #include <kbd.h>
