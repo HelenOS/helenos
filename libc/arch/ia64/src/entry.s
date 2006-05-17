@@ -31,6 +31,7 @@
 .org 0
 
 .globl __entry
+.globl __entry_driver
 
 ## User-space task entry point
 #
@@ -39,7 +40,13 @@ __entry:
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
 	mov r1 = _gp 
 	{ br.call.sptk.many b0 = __main }
+	{ br.call.sptk.many b0 = __io_init }
 	{ br.call.sptk.many b0 = main }
 	{ br.call.sptk.many b0 = __exit }
-	
-.end __entry
+
+__entry_driver:
+	alloc loc0 = ar.pfs, 0, 1, 2, 0
+	mov r1 = _gp 
+	{ br.call.sptk.many b0 = __main }
+	{ br.call.sptk.many b0 = main }
+	{ br.call.sptk.many b0 = __exit }

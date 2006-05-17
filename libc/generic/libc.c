@@ -45,7 +45,9 @@ void __main(void) {
 	__tcb_set(tcb);
 	psthread_setup(tcb);
 	_ipc_init();
-	
+}
+
+void __io_init(void) {
 	open("stdin", 0);
 	open("stdout", 0);
 	open("stderr", 0);

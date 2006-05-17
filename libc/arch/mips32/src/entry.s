@@ -28,15 +28,41 @@
 
 .text
 .section .init, "ax"
-.global __start
+.global __entry
+.global __entry_driver
 .set noreorder
 .option pic2
 
 ## User-space task entry point
 #
 #
-.ent __start
-__start:
+.ent __entry
+__entry:
+	.frame $sp, 32, $31
+	.cpload $25
+	
+	
+	# Mips o32 may store its arguments on stack, make space (16 bytes),
+	# so that it could work with -O0
+	# Make space additional 16 bytes for the stack frame
+
+	addiu $sp, -32
+	.cprestore 16   # Allow PIC code
+	
+	jal __main
+	nop
+	
+	jal __io_init
+	nop
+	
+	jal main
+	nop
+	
+	jal __exit
+	nop
+
+.ent __entry_driver
+__entry_driver:
 	.frame $sp, 32, $31
 	.cpload $25
 	
@@ -56,8 +82,6 @@ __start:
 	
 	jal __exit
 	nop
-	
-.end __start
 
 # Alignment of output section data to 0x4000
 .section .data

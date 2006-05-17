@@ -1,5 +1,5 @@
 STARTUP(../libc/arch/ARCH/src/entry.o)
-ENTRY(__start)
+ENTRY(__entry)
 
 PHDRS {
 	text PT_LOAD FLAGS(5);
