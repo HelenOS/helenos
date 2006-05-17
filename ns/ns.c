@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	}
 		
 	while (1) {
-		callid = ipc_wait_for_call(&call, 0);
+		callid = ipc_wait_for_call(&call);
 //		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_AS_AREA_SEND:

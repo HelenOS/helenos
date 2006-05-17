@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <futex.h>
+#include <kernel/synch/synch.h>
 
 /** Structure used for keeping track of sent async msgs 
  * and queing unsent msgs
@@ -251,21 +252,65 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 }
 
 
-/** Wait for IPC call and return
+/** Unconditionally wait for an IPC call.
  *
  * - dispatch ASYNC reoutines in the background
- * @param data Space where the message is stored
- * @return Callid or 0 if nothing available and started with 
- *         IPC_WAIT_NONBLOCKING
+ * @param call Space where the message is stored
+ * @return Callid of the answer.
  */
-ipc_callid_t ipc_wait_for_call(ipc_call_t *call, int flags)
+ipc_callid_t ipc_wait_for_call(ipc_call_t *call)
 {
 	ipc_callid_t callid;
 
 	do {
 		try_dispatch_queued_calls();
 
-		callid = __SYSCALL2(SYS_IPC_WAIT, (sysarg_t)call, flags);
+		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, SYNCH_NO_TIMEOUT, SYNCH_BLOCKING);
+		/* Handle received answers */
+		if (callid & IPC_CALLID_ANSWERED)
+			handle_answer(callid, call);
+	} while (callid & IPC_CALLID_ANSWERED);
+
+	return callid;
+}
+
+/** Wait some time for an IPC call.
+ *
+ * - dispatch ASYNC reoutines in the background
+ * @param call Space where the message is stored
+ * @param usec Timeout in microseconds.
+ * @return Callid of the answer.
+ */
+ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *call, uint32_t usec)
+{
+	ipc_callid_t callid;
+
+	do {
+		try_dispatch_queued_calls();
+
+		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, SYNCH_BLOCKING);
+		/* Handle received answers */
+		if (callid & IPC_CALLID_ANSWERED)
+			handle_answer(callid, call);
+	} while (callid & IPC_CALLID_ANSWERED);
+
+	return callid;
+}
+
+/** Check if there is an IPC call waiting to be picked up.
+ *
+ * - dispatch ASYNC reoutines in the background
+ * @param call Space where the message is stored
+ * @return Callid of the answer.
+ */
+ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
+{
+	ipc_callid_t callid;
+
+	do {
+		try_dispatch_queued_calls();
+
+		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t)call, SYNCH_NO_TIMEOUT, SYNCH_NON_BLOCKING);
 		/* Handle received answers */
 		if (callid & IPC_CALLID_ANSWERED)
 			handle_answer(callid, call);

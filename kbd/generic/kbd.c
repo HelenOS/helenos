@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 	};
 	
 	while (1) {
-		callid = ipc_wait_for_call(&call, 0);
+		callid = ipc_wait_for_call(&call);
 	//	printf("%s:Call phone=%lX..", NAME, call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:

@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 		ipc_callid_t callid;
 		int retval;
 
-		callid = ipc_wait_for_call(&call, 0);
+		callid = ipc_wait_for_call(&call);
 		switch(IPC_GET_METHOD(call)) {
 		case IPC_M_CONNECT_ME_TO:
 			IPC_SET_RETVAL(call, 0);

@@ -179,7 +179,7 @@ static void test_async_ipc(void)
 	for (i=0; i<100;i++)
 		printf(".");
 	printf("\n");
-	ipc_wait_for_call(&data, NULL);
+	ipc_wait_for_call(&data);
 	printf("Received call???\n");
 }
 
@@ -203,7 +203,7 @@ static void test_advanced_ipc(void)
 		printf("----------------\n");
 		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
 			       got_answer_2);
-		callid = ipc_wait_for_call(&data, NULL);
+		callid = ipc_wait_for_call(&data);
 		printf("Received ping\n");
 		ipc_answer_fast(callid, 0, 0, 0);
 	}
@@ -243,7 +243,7 @@ static void test_hangup(void)
 	phoneid = ipc_connect_me_to(PHONE_NS, 10, 20);
 	printf("Newphid: %d\n", phoneid);
 	for (i=0; i < 1000; i++) {
-		if ((callid=ipc_wait_for_call(&data, IPC_WAIT_NONBLOCKING)))
+		if ((callid=ipc_trywait_for_call(&data)))
 			printf("callid: %d\n");
 	}
 	printf("New new phoneid: %d\n", ipc_connect_me_to(PHONE_NS, 10, 20));
@@ -266,7 +266,7 @@ static void test_slam(void)
 			 "Ping2", got_answer);
 	
 	for (i=0; i < 1000; i++) {
-		if ((callid=ipc_wait_for_call(&data, IPC_WAIT_NONBLOCKING)))
+		if ((callid=ipc_trywait_for_call(&data)))
 			printf("callid: %d\n");
 	}
 	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
@@ -275,7 +275,7 @@ static void test_slam(void)
 	ipc_hangup(PHONE_NS);
 	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
 			 "Pong1", got_answer);
-	ipc_wait_for_call(&data, 0);
+	ipc_wait_for_call(&data);
 }
 
 static int ptest(void *arg)
@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
 //	test_slam();
 //	test_as_send();
 //	test_pci();
-//	test_kbd();
+	test_kbd();
 //	test_fb();
 
 	printf("Hello\nThis is Init\n\nBye.");

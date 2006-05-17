@@ -53,7 +53,10 @@ extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			 ipcarg_t *result);
-extern ipc_callid_t ipc_wait_for_call(ipc_call_t *data, int flags);
+extern ipc_callid_t ipc_wait_for_call(ipc_call_t *data);
+extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);
+extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
+
 extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
 			   ipcarg_t arg2);
 extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
