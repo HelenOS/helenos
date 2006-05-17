@@ -468,15 +468,17 @@ __native sys_ipc_hangup(int phoneid)
 /** Wait for incoming ipc call or answer
  *
  * @param calldata Pointer to buffer where the call/answer data is stored 
- * @param flags
+ * @param usec Timeout. See waitq_sleep_timeout() for explanation.
+ * @param nonblocking See waitq_sleep_timeout() for explanation.
+ *
  * @return Callid, if callid & 1, then the call is answer
  */
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, __native flags)
+__native sys_ipc_wait_for_call(ipc_data_t *calldata, __u32 usec, int nonblocking)
 {
 	call_t *call;
 
 restart:	
-	call = ipc_wait_for_call(&TASK->answerbox, flags);
+	call = ipc_wait_for_call(&TASK->answerbox, usec, nonblocking);
 	if (!call)
 		return 0;
 

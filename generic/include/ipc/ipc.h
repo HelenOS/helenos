@@ -45,9 +45,6 @@
 #define IPC_CALL_CONN_ME_TO     (1<<4) /* Identify connect_me_to */
 #define IPC_CALL_NOTIF          (1<<5) /* Interrupt notification */
 
-/* Flags for ipc_wait_for_call */
-#define IPC_WAIT_NONBLOCKING   1
-
 /* Flags of callid (the addresses are aligned at least to 4, 
  * that is why we can use bottom 2 bits of the call address
  */
@@ -200,7 +197,7 @@ typedef struct {
 }call_t;
 
 extern void ipc_init(void);
-extern call_t * ipc_wait_for_call(answerbox_t *box, int flags);
+extern call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int nonblocking);
 extern void ipc_answer(answerbox_t *box, call_t *request);
 extern int ipc_call(phone_t *phone, call_t *call);
 extern void ipc_call_sync(phone_t *phone, call_t *request);
@@ -215,7 +212,6 @@ extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 extern void ipc_cleanup(task_t *task);
 extern int ipc_phone_hangup(phone_t *phone);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
-
 
 extern answerbox_t *ipc_phone_0;
 

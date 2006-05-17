@@ -33,6 +33,7 @@
 
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
+#include <synch/synch.h>
 #include <ipc/ipc.h>
 #include <errno.h>
 #include <mm/slab.h>
@@ -141,7 +142,7 @@ void ipc_call_sync(phone_t *phone, call_t *request)
 	request->callerbox = &sync_box;
 
 	ipc_call(phone, request);
-	ipc_wait_for_call(&sync_box, 0);
+	ipc_wait_for_call(&sync_box, SYNCH_NO_TIMEOUT, SYNCH_BLOCKING);
 }
 
 /** Answer message that was not dispatched and is not entered in
@@ -301,20 +302,24 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 
 /** Wait for phone call 
  *
+ * @param box Answerbox expecting the call.
+ * @param usec Timeout in microseconds. See documentation for waitq_sleep_timeout() for
+ *	       decription of its special meaning.
+ * @param nonblocking Blocking vs. non-blocking operation mode switch. See documentation
+ *		      for waitq_sleep_timeout() for description of its special meaning.
  * @return Recived message address
  * - to distinguish between call and answer, look at call->flags
  */
-call_t * ipc_wait_for_call(answerbox_t *box, int flags)
+call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int nonblocking)
 {
 	call_t *request;
 	ipl_t ipl;
+	int rc;
 
-restart:      
-	if (flags & IPC_WAIT_NONBLOCKING) {
-		if (waitq_sleep_timeout(&box->wq,0,1) == ESYNCH_WOULD_BLOCK)
-			return NULL;
-	} else 
-		waitq_sleep(&box->wq);
+restart:
+	rc = waitq_sleep_timeout(&box->wq, usec, nonblocking);
+	if (SYNCH_FAILED(rc))
+		return NULL;
 	
 	spinlock_lock(&box->lock);
 	if (!list_empty(&box->irq_notifs)) {
@@ -407,7 +412,7 @@ restart_phones:
 	
 	/* Wait for all async answers to arrive */
 	while (atomic_get(&task->active_calls)) {
-		call = ipc_wait_for_call(&task->answerbox, 0);
+		call = ipc_wait_for_call(&task->answerbox, SYNCH_NO_TIMEOUT, SYNCH_BLOCKING);
 		ASSERT((call->flags & IPC_CALL_ANSWERED) || (call->flags & IPC_CALL_NOTIF));
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 		
