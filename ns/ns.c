@@ -45,8 +45,6 @@
 
 #define NS_HASH_TABLE_CHAINS	20
 
-extern int __DONT_OPEN_STDIO__=1;
-
 static int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
 static int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid);
 

@@ -79,13 +79,12 @@ kerninc:
 	ln -sfn ../../../kernel/generic/include include/kernel
 	ln -sfn kernel/arch include/arch
 	ln -sfn ../arch/$(ARCH)/include include/libarch
-	ln -sfn ../../libipc/include include/libipc
 	ln -sfn ../../libadt/include include/libadt
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch include/libarch include/libipc include/libadt libc.a arch/$(ARCH)/_link.ld Makefile.depend
+	-rm -f include/kernel include/arch include/libarch include/libadt libc.a arch/$(ARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc

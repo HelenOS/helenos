@@ -54,8 +54,6 @@
 
 #define EFB (-1)
 
-extern int __DONT_OPEN_STDIO__=1;
-
 #define DEFAULT_BGCOLOR		0x000080
 #define DEFAULT_FGCOLOR		0xffff00
 #define DEFAULT_LOGOCOLOR	0x0000ff

@@ -92,12 +92,3 @@ int putchar(int c)
 	
 	return EOF;
 }
-/*
-ssize_t write(int fd, const void * buf, size_t count)
-{
-	return (ssize_t) __SYSCALL3(SYS_IO, (sysarg_t) fd, (sysarg_t) buf, (sysarg_t) count);
-}*/
-
-
-
-
