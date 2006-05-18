@@ -106,7 +106,6 @@ void bootstrap(void)
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
 	void *bootinfo_pa = ofw_translate(&bootinfo);
-	void *fb = (void *) (((unsigned int) bootinfo.screen.addr) & ((unsigned int) ~0 << 17));
 	
 	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" %L: boot info structure (physical %L)\n", &bootinfo, bootinfo_pa);
@@ -151,5 +150,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, fb, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa);
 }

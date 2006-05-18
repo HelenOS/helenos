@@ -106,9 +106,8 @@ jump_to_kernel:
 	# r3 = bootinfo (pa)
 	# r4 = bootinfo_size
 	# r5 = trans (pa)
-	# r6 = kernel size
-	# r7 = framebuffer (pa)
-	# r8 = real_mode (pa)
+	# r6 = bytes to copy
+	# r7 = real_mode (pa)
 	
 	# disable interrupts
 	
@@ -118,7 +117,7 @@ jump_to_kernel:
 	
 	# set real_mode meeting point address
 	
-	mtspr srr0, r8
+	mtspr srr0, r7
 	
 	# jumps to real_mode
 	
@@ -141,8 +140,7 @@ real_mode:
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
-	# r6 = kernel size
-	# r7 = framebuffer (pa)
+	# r6 = bytes to copy
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -232,17 +230,6 @@ real_mode:
 	
 	mtspr dbat0u, r31
 	mtspr dbat0l, r30
-	
-	# FIXME: temporal framebuffer mapping
-	
-	lis r31, 0xf000
-	ori r31, r31, 0x0ffe
-	
-	mr r30, r7
-	ori r30, r30, 0x0002
-	
-	mtspr dbat1u, r31
-	mtspr dbat1l, r30
 	
 	tlbia
 	
