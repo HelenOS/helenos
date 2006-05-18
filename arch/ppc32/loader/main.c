@@ -29,14 +29,7 @@
 #include "main.h" 
 #include "printf.h"
 #include "asm.h"
-
-#define KERNEL_START ((void *) &_binary_____________kernel_kernel_bin_start)
-#define KERNEL_END ((void *) &_binary_____________kernel_kernel_bin_end)
-#define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
-
-#define INIT_START ((void *) &_binary_____________uspace_init_init_start)
-#define INIT_END ((void *) &_binary_____________uspace_init_init_end)
-#define INIT_SIZE ((unsigned int) INIT_END - (unsigned int) INIT_START)
+#include "_components.h"
 
 #define HEAP_GAP 1024000
 
@@ -82,23 +75,28 @@ void bootstrap(void)
 {
 	printf("\nHelenOS PPC Bootloader\n");
 	
-	check_align(KERNEL_START, "Kernel image");
-	check_align(INIT_START, "Init image");
-	check_align(&real_mode, "Bootstrap trampoline");
-	check_align(&trans, "Translation table");
+	init_components();
+	
+	unsigned int i;
+	
+	for (i = 0; i < COMPONENTS; i++)
+		check_align(components[i].start, components[i].name);
+	
+	check_align(&real_mode, "bootstrap trampoline");
+	check_align(&trans, "translation table");
 	
 	if (!ofw_memmap(&bootinfo.memmap)) {
-		printf("Error: Unable to get memory map, halting.\n");
+		printf("Error: unable to get memory map, halting.\n");
 		halt();
 	}
 	
 	if (bootinfo.memmap.total == 0) {
-		printf("Error: No memory detected, halting.\n");
+		printf("Error: no memory detected, halting.\n");
 		halt();
 	}
 	
 	if (!ofw_screen(&bootinfo.screen)) {
-		printf("Error: Unable to get screen properties, halting.\n");
+		printf("Error: unable to get screen properties, halting.\n");
 		halt();
 	}
 	
@@ -111,38 +109,47 @@ void bootstrap(void)
 	void *fb = (void *) (((unsigned int) bootinfo.screen.addr) & ((unsigned int) ~0 << 17));
 	
 	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
-	printf(" kernel image         at %L (size %d bytes)\n", KERNEL_START, KERNEL_SIZE);
-	printf(" init image           at %L (size %d bytes)\n", INIT_START, INIT_SIZE);
-	printf(" boot info structure  at %L (physical %L)\n", &bootinfo, bootinfo_pa);
-	printf(" bootstrap trampoline at %L (physical %L)\n", &real_mode, real_mode_pa);
-	printf(" translation table    at %L (physical %L)\n", &trans, trans_pa);
+	printf(" %L: boot info structure (physical %L)\n", &bootinfo, bootinfo_pa);
+	printf(" %L: bootstrap trampoline (physical %L)\n", &real_mode, real_mode_pa);
+	printf(" %L: translation table (physical %L)\n", &trans, trans_pa);
+	for (i = 0; i < COMPONENTS; i++)
+		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 	
-	unsigned int top = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) + ALIGN_UP(INIT_SIZE, PAGE_SIZE);
-	unsigned int kernel_pages = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
-	unsigned int init_pages = ALIGN_UP(INIT_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
+	unsigned int top = 0;
+	for (i = 0; i < COMPONENTS; i++)
+		top += ALIGN_UP(components[i].size, PAGE_SIZE);
 	
-	unsigned int i;
+	unsigned int pages = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
 	
-	for (i = 0; i < kernel_pages; i++) {
+	for (i = 0; i < pages; i++) {
 		void *pa = ofw_translate(KERNEL_START + (i << PAGE_WIDTH));
-		fix_overlap(KERNEL_START + (i << PAGE_WIDTH), &pa, "Kernel image", &top);
+		fix_overlap(KERNEL_START + (i << PAGE_WIDTH), &pa, "kernel", &top);
 		trans[i] = pa;
 	}
 	
-	for (i = 0; i < init_pages; i++) {
-		void *pa = ofw_translate(INIT_START + (i << PAGE_WIDTH));
-		fix_overlap(INIT_START + (i << PAGE_WIDTH), &pa, "Init image", &top);
-		trans[kernel_pages + i] = pa;
-		if (i == 0) {
-			bootinfo.init.addr = (void *) ((kernel_pages + i) << PAGE_WIDTH);
-			bootinfo.init.size = INIT_SIZE;
+	bootinfo.taskmap.count = 0;
+	for (i = 1; i < COMPONENTS; i++) {
+		unsigned int component_pages = ALIGN_UP(components[i].size, PAGE_SIZE) >> PAGE_WIDTH;
+		unsigned int j;
+		
+		for (j = 0; j < component_pages; j++) {
+			void *pa = ofw_translate(components[i].start + (j << PAGE_WIDTH));
+			fix_overlap(components[i].start + (j << PAGE_WIDTH), &pa, components[i].name, &top);
+			trans[pages + j] = pa;
+			if (j == 0) {
+				bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = (void *) (pages << PAGE_WIDTH);
+				bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
+				bootinfo.taskmap.count++;
+			}
 		}
+		
+		pages += component_pages;
 	}
 	
-	fix_overlap(&real_mode, &real_mode_pa, "Bootstrap trampoline", &top);
-	fix_overlap(&trans, &trans_pa, "Translation table", &top);
-	fix_overlap(&bootinfo, &bootinfo_pa, "Boot info", &top);
+	fix_overlap(&real_mode, &real_mode_pa, "bootstrap trampoline", &top);
+	fix_overlap(&trans, &trans_pa, "translation table", &top);
+	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, (kernel_pages + init_pages) << PAGE_WIDTH, fb, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, fb, real_mode_pa);
 }
