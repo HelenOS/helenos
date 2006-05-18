@@ -34,6 +34,7 @@
 /* Temporary stack size for boot process */
 #define TEMP_STACK_SIZE 0x100
 
+#define TASKMAP_MAX_RECORDS 32
 #define MEMMAP_MAX_RECORDS 32
 
 #ifndef __ASM__
@@ -44,6 +45,11 @@ typedef struct {
 	__address addr;
 	__u32 size;
 } utask_t;
+
+typedef struct {
+	__u32 count;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
 
 typedef struct {
 	__address start;
@@ -65,7 +71,7 @@ typedef struct {
 } screen_t;
 
 typedef struct {
-	utask_t init;
+	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
 } bootinfo_t;

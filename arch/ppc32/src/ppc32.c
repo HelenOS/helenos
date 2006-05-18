@@ -40,9 +40,14 @@ bootinfo_t bootinfo;
 void arch_pre_main(void)
 {
 	/* Setup usermode */
-	init.cnt = 1;
-	init.tasks[0].addr = PA2KA(bootinfo.init.addr);
-	init.tasks[0].size = bootinfo.init.size;
+	init.cnt = bootinfo.taskmap.count;
+	
+	__u32 i;
+	
+	for (i = 0; i < bootinfo.taskmap.count; i++) {
+		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
+		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+	}
 }
 
 void arch_pre_mm_init(void)
