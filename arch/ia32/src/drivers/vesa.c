@@ -58,30 +58,9 @@ int vesa_present(void)
 	return false;
 }
 
-static count_t vesa_frame_order(void)
-{
-	__u32 x = vesa_scanline*vesa_height;
-	if (x <= FRAME_SIZE)
-		return 0;
-
-	return (fnzb32(x - 1) + 1) - FRAME_WIDTH;
-}
-
 void vesa_init(void)
 {
-	int a;
-	__address vram_lin_addr;
-
-	vram_lin_addr = PA2KA(PFN2ADDR(frame_alloc(vesa_frame_order(), FRAME_KA)));
-	/* Map videoram */
-	for (a = 0; a < ((vesa_scanline * vesa_height + PAGE_SIZE - 1) >> PAGE_WIDTH); a++)
-		page_mapping_insert(AS_KERNEL, vram_lin_addr + a*PAGE_SIZE, vesa_ph_addr + a*FRAME_SIZE,
-			PAGE_NOT_CACHEABLE);
-
-	fb_init(vram_lin_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
-	
-	fb_register();
-	sysinfo_set_item_val("fb.address.physical", NULL, vesa_ph_addr);
+	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
 }
 
 #endif

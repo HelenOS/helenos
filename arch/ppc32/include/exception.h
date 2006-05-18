@@ -78,7 +78,7 @@ struct istate {
 
 static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
-	/* TODO */
+	istate->pc = retaddr;
 }
 
 #endif

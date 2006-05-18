@@ -57,14 +57,14 @@ void arch_pre_mm_init(void)
 	
 	/* Start decrementer */
 	start_decrementer();
-
-	ppc32_console_init();
 	cuda_init();
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);	
+	
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 		

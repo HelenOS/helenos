@@ -32,6 +32,9 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
+#include <mm/as.h>
+#include <bitops.h>
+#include <align.h>
 #include <panic.h>
 #include <memstr.h>
 #include <config.h>
@@ -312,7 +315,7 @@ static chardev_operations_t fb_ops = {
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr Address of theframebuffer
+ * @param addr Physical address of the framebuffer
  * @param x    Screen width in pixels
  * @param y    Screen height in pixels
  * @param bpp  Bits per pixel (8, 16, 24, 32)
@@ -345,8 +348,22 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 		default:
 			panic("Unsupported bpp");
 	}
-		
-	fbaddress = (unsigned char *) addr;
+	
+	unsigned int fbsize = scan * y;
+	unsigned int fborder;
+	
+	if (fbsize <= FRAME_SIZE)
+		fborder = 0;
+	else
+		fborder = (fnzb32(fbsize - 1) + 1) - FRAME_WIDTH;
+	
+	/* Map the framebuffer */
+	fbaddress = (__u8 *) PA2KA(PFN2ADDR(frame_alloc(fborder, FRAME_KA)));
+	
+	pfn_t i;
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(fbsize, PAGE_SIZE)); i++)
+		page_mapping_insert(AS_KERNEL, (__address) fbaddress + PFN2ADDR(i), addr + PFN2ADDR(i),	PAGE_NOT_CACHEABLE);
+	
 	xres = x;
 	yres = y;
 	bitspp = bpp;
@@ -361,18 +378,11 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
-}
-
-
-/** Register framebuffer in sysinfo
- *
- */
-void fb_register(void)
-{
+	
 	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.width", NULL, xres);
-	sysinfo_set_item_val("fb.height", NULL, yres);
-	sysinfo_set_item_val("fb.scanline", NULL, scanline);
-	sysinfo_set_item_val("fb.bpp", NULL, bitspp);
-	sysinfo_set_item_val("fb.address.virtual", NULL, (__address) fbaddress);
+	sysinfo_set_item_val("fb.width", NULL, x);
+	sysinfo_set_item_val("fb.height", NULL, y);
+	sysinfo_set_item_val("fb.bpp", NULL, bpp);
+	sysinfo_set_item_val("fb.scanline", NULL, scan);
+	sysinfo_set_item_val("fb.address.physical", NULL, addr);
 }

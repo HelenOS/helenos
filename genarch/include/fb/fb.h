@@ -34,6 +34,5 @@
 
 extern spinlock_t fb_lock;
 void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
-void fb_register(void);
 
 #endif

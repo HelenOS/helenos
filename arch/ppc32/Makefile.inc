@@ -61,7 +61,6 @@ DEFS += -DCONFIG_PAGE_PT
 CONFIG_SOFTINT = y
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/debug/panic.s \
 	arch/$(ARCH)/src/fpu_context.S \
