@@ -191,6 +191,8 @@ real_mode:
 	
 	# invalidate block address translation registers
 	
+	li r30, 0
+	
 	mtspr ibat0u, r30
 	mtspr ibat0l, r30
 	
