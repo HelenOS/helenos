@@ -108,7 +108,8 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 		(1 << PAGE_USER_SHIFT) |
 		(1 << PAGE_READ_SHIFT) |
 		(1 << PAGE_WRITE_SHIFT) |
-		(1 << PAGE_EXEC_SHIFT)
+		(1 << PAGE_EXEC_SHIFT) |
+		(p->g << PAGE_GLOBAL_SHIFT)
 	);
 }
 
@@ -117,10 +118,31 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	pte_t *p = &pt[i];
 	
 	p->p = !(flags & PAGE_NOT_PRESENT);
+	p->g = (flags & PAGE_GLOBAL) != 0;
 	p->valid = 1;
 }
 
 extern void page_arch_init(void);
+
+#define PHT_BITS	16
+#define PHT_ORDER	4
+
+typedef struct {
+	unsigned v : 1;          /**< Valid */
+	unsigned vsid : 24;      /**< Virtual Segment ID */
+	unsigned h : 1;          /**< Primary/secondary hash */
+	unsigned api : 6;        /**< Abbreviated Page Index */
+	unsigned rpn : 20;       /**< Real Page Number */
+	unsigned reserved0 : 3;
+	unsigned r : 1;          /**< Reference */
+	unsigned c : 1;          /**< Change */
+	unsigned wimg : 4;       /**< Access control */
+	unsigned reserved1 : 1;
+	unsigned pp : 2;         /**< Page protection */
+} phte_t;
+
+extern void pht_refill(bool data, istate_t *istate);
+extern void pht_init(void);
 
 #endif /* __ASM__ */
 

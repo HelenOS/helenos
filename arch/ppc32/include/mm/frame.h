@@ -35,6 +35,10 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
+#include <arch/types.h> 
+
+extern __address last_frame;
+
 extern void frame_arch_init(void);
 
 #endif /* __ASM__ */

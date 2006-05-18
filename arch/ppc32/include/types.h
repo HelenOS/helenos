@@ -52,6 +52,7 @@ typedef __u32 __native;
 typedef struct {
 	unsigned p : 1;       /**< Present bit. */
 	unsigned a : 1;       /**< Accessed bit. */
+	unsigned g : 1;       /**< Global bit. */
 	unsigned valid : 1;   /**< Valid content even if not present. */
 	unsigned pfn : 20;    /**< Physical frame number. */
 } pte_t;

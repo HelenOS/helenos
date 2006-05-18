@@ -28,10 +28,10 @@
 
 #include <arch.h>
 #include <arch/boot/boot.h>
-#include <arch/console.h>
 #include <arch/drivers/cuda.h>
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
+#include <genarch/fb/fb.h>
 #include <userspace.h>
 #include <proc/uarg.h>
 
@@ -67,8 +67,6 @@ void arch_post_mm_init(void)
 	
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
-		
-		ppc32_console_register();
 	}
 }
 
