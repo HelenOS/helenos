@@ -157,13 +157,12 @@ out:
 	interrupts_restore(ipl);
 }
 
-
 /** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to be
  * interrupted from the sleep, restoring a failover context.
  *
- * Sleepers are organised in FIFO fashion in a structure called wait queue.
+ * Sleepers are organised in a FIFO fashion in a structure called wait queue.
  *
  * This function is really basic in that other functions as waitq_sleep()
  * and all the *_timeout() functions use it.
@@ -200,12 +199,31 @@ out:
  */
 int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking)
 {
-	volatile ipl_t ipl; /* must be live after context_restore() */
+	ipl_t ipl;
+	int rc;
 	
+	ipl = waitq_sleep_prepare(wq);
+	rc = waitq_sleep_timeout_unsafe(wq, usec, nonblocking);
+	waitq_sleep_finish(wq, rc, ipl);
+	return rc;
+}
+
+/** Prepare to sleep in a waitq.
+ *
+ * This function will return holding the lock of the wait queue
+ * and interrupts disabled.
+ *
+ * @param wq Wait queue.
+ *
+ * @return Interrupt level as it existed on entry to this function.
+ */
+ipl_t waitq_sleep_prepare(waitq_t *wq)
+{
+	ipl_t ipl;
 	
 restart:
 	ipl = interrupts_disable();
-	
+
 	/*
 	 * Busy waiting for a delayed timeout.
 	 * This is an important fix for the race condition between
@@ -216,25 +234,60 @@ restart:
 	spinlock_lock(&THREAD->lock);
 	if (THREAD->timeout_pending) {
 		spinlock_unlock(&THREAD->lock);
-		interrupts_restore(ipl);		
+		interrupts_restore(ipl);
 		goto restart;
 	}
 	spinlock_unlock(&THREAD->lock);
-	
+													
 	spinlock_lock(&wq->lock);
-	
+	return ipl;
+}
+
+/** Finish waiting in a wait queue.
+ *
+ * This function restores interrupts to the state that existed prior
+ * to the call to waitq_sleep_prepare(). If necessary, the wait queue
+ * lock is released.
+ *
+ * @param wq Wait queue.
+ * @param rc Return code of waitq_sleep_timeout_unsafe().
+ * @param ipl Interrupt level returned by waitq_sleep_prepare().
+ */
+void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
+{
+	switch (rc) {
+	case ESYNCH_WOULD_BLOCK:
+	case ESYNCH_OK_ATOMIC:
+		spinlock_unlock(&wq->lock);
+		break;
+	default:
+		break;
+	}
+	interrupts_restore(ipl);
+}
+
+/** Internal implementation of waitq_sleep_timeout().
+ *
+ * This function implements logic of sleeping in a wait queue.
+ * This call must be preceeded by a call to waitq_sleep_prepare()
+ * and followed by a call to waitq_slee_finish().
+ *
+ * @param wq See waitq_sleep_timeout().
+ * @param usec See waitq_sleep_timeout().
+ * @param nonblocking See waitq_sleep_timeout().
+ *
+ * @return See waitq_sleep_timeout().
+ */
+int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int nonblocking)
+{
 	/* checks whether to go to sleep at all */
 	if (wq->missed_wakeups) {
 		wq->missed_wakeups--;
-		spinlock_unlock(&wq->lock);
-		interrupts_restore(ipl);
 		return ESYNCH_OK_ATOMIC;
 	}
 	else {
 		if (nonblocking && (usec == 0)) {
 			/* return immediatelly instead of going to sleep */
-			spinlock_unlock(&wq->lock);
-			interrupts_restore(ipl);
 			return ESYNCH_WOULD_BLOCK;
 		}
 	}
@@ -251,7 +304,6 @@ restart:
 	if (!context_save(&THREAD->sleep_interruption_context)) {
 		/* Short emulation of scheduler() return code. */
 		spinlock_unlock(&THREAD->lock);
-		interrupts_restore(ipl);
 		return ESYNCH_INTERRUPTED;
 	}
 
@@ -260,7 +312,6 @@ restart:
 		if (!context_save(&THREAD->sleep_timeout_context)) {
 			/* Short emulation of scheduler() return code. */
 			spinlock_unlock(&THREAD->lock);
-			interrupts_restore(ipl);
 			return ESYNCH_TIMEOUT;
 		}
 		THREAD->timeout_pending = true;
@@ -278,7 +329,6 @@ restart:
 	spinlock_unlock(&THREAD->lock);
 
 	scheduler(); 	/* wq->lock is released in scheduler_separated_stack() */
-	interrupts_restore(ipl);
 	
 	return ESYNCH_OK_BLOCKED;
 }
