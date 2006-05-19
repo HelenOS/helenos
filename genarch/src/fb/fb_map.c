@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FB_H_
-#define _FB_H_
+#include <genarch/fb/fb.h>
+#include <mm/as.h>
+#include <mm/page.h>
+#include <mm/frame.h>
+#include <align.h>
 
-#include <typedefs.h>
-#include <arch/types.h>
-
-extern spinlock_t fb_lock;
-void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
-
-/* To be implemented by architecture. */
-void fb_map_arch(__address virtaddr, __address physaddr, size_t size);
-
-#endif
+void fb_map_arch(__address virtaddr, __address physaddr, size_t size)
+{
+	pfn_t i;
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
+		page_mapping_insert(AS_KERNEL, (__address) virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i),
+			PAGE_NOT_CACHEABLE);
+}

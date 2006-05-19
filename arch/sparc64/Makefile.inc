@@ -61,9 +61,11 @@ CONFIG_ASID = y
 CONFIG_ASID_FIFO = y
 
 ## Compile with support for framebuffer.
+## Mapping of the framebuffer is implemented by a sparc64-specific function.
 #
 
 CONFIG_FB = y
+CONFIG_FB_MAP_ARCH = y
 
 ## Compile with support for i8042 controller.
 #

@@ -32,7 +32,6 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
-#include <mm/as.h>
 #include <bitops.h>
 #include <align.h>
 #include <panic.h>
@@ -360,9 +359,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	/* Map the framebuffer */
 	fbaddress = (__u8 *) PA2KA(PFN2ADDR(frame_alloc(fborder, FRAME_KA)));
 	
-	pfn_t i;
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(fbsize, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, (__address) fbaddress + PFN2ADDR(i), addr + PFN2ADDR(i),	PAGE_NOT_CACHEABLE);
+	fb_map_arch((__address) fbaddress, (__address) addr, fbsize);
 	
 	xres = x;
 	yres = y;
