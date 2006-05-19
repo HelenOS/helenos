@@ -33,7 +33,6 @@
 .global userspace_asm
 .global iret
 .global iret_syscall
-.global invalidate_bat
 .global memsetb
 .global memcpy
 .global memcpy_from_uspace
@@ -193,38 +192,6 @@ iret_syscall:
 	lwz sp, 156(sp)
 
 	rfi
-	
-invalidate_bat:
-	
-	# invalidate block address translation registers
-	
-	li r14, 0
-	
-	mtspr ibat0u, r14
-	mtspr ibat0l, r14
-	
-	mtspr ibat1u, r14
-	mtspr ibat1l, r14
-	
-	mtspr ibat2u, r14
-	mtspr ibat2l, r14
-	
-	mtspr ibat3u, r14
-	mtspr ibat3l, r14
-	
-	mtspr dbat0u, r14
-	mtspr dbat0l, r14
-	
-	mtspr dbat1u, r14
-	mtspr dbat1l, r14
-	
-	mtspr dbat2u, r14
-	mtspr dbat2l, r14
-	
-	mtspr dbat3u, r14
-	mtspr dbat3l, r14
-	
-	blr
 	
 memsetb:
 	rlwimi r5, r5, 8, 16, 23

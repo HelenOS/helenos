@@ -140,7 +140,6 @@ static inline void cpu_sleep(void)
 
 void cpu_halt(void);
 void asm_delay_loop(__u32 t);
-void invalidate_bat(void);
 
 extern void userspace_asm(__address uspace_uarg, __address stack, __address entry);
 

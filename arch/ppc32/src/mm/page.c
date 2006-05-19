@@ -49,8 +49,8 @@ static phte_t *phte;
  * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr Faulting virtual address.
- * @param istate Pointer to interrupted state.
- * @param pfrc Pointer to variable where as_page_fault() return code will be stored.
+ * @param istate   Pointer to interrupted state.
+ * @param pfrc     Pointer to variable where as_page_fault() return code will be stored.
  * @return         PTE on success, NULL otherwise.
  *
  */
@@ -114,6 +114,7 @@ static void pht_refill_fail(__address badvaddr, istate_t *istate)
 	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr, istate->pc, symbol, sym2);
 }
 
+
 static void pht_insert(const __address vaddr, const pfn_t pfn)
 {
 	__u32 page = (vaddr >> 12) & 0xffff;
@@ -130,16 +131,32 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	__u32 hash = ((vsid ^ page) & 0x3ff) << 3;
 	
 	__u32 i;
+	bool found = false;
 	/* Find unused PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if (!phte[hash + i].v)
+		if (!phte[hash + i].v) {
+			found = true;
 			break;
+		}
 	}
 	
-	// TODO: Check access/change bits, secondary hash
-	
-	if (i == 8) 
-		i = page % 8;
+	if (!found) {
+		/* Secondary hash (not) */
+		hash = ~hash;
+		
+		/* Find unused PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if (!phte[hash + i].v) {
+				found = true;
+				break;
+			}
+		}
+		
+		if (!found) {
+			// TODO: A/C precedence groups
+			i = page % 8;
+		}
+	}
 	
 	phte[hash + i].v = 1;
 	phte[hash + i].vsid = vsid;
@@ -183,19 +200,18 @@ void pht_refill(bool data, istate_t *istate)
 	pte = find_mapping_and_check(badvaddr, istate, &pfcr);
 	if (!pte) {
 		switch (pfcr) {
-		case AS_PF_FAULT:
-			goto fail;
-			break;
-		case AS_PF_DEFER:
-			/*
-		 	 * The page fault came during copy_from_uspace()
-			 * or copy_to_uspace().
-			 */
-			page_table_unlock(AS, true);
-			return;
-		default:
-			panic("Unexpected pfrc (%d)\n", pfcr);
-			break;
+			case AS_PF_FAULT:
+				goto fail;
+				break;
+			case AS_PF_DEFER:
+				/*
+		 		 * The page fault came during copy_from_uspace()
+				 * or copy_to_uspace().
+				 */
+				page_table_unlock(AS, true);
+				return;
+			default:
+				panic("Unexpected pfrc (%d)\n", pfcr);
 		}
 	}
 	
@@ -214,15 +230,6 @@ fail:
 void pht_init(void)
 {
 	memsetb((__address) phte, 1 << PHT_BITS, 0);
-	
-	/* Insert global kernel mapping */
-	
-	__address cur;
-	for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-		pte_t *pte = page_mapping_find(AS_KERNEL, PA2KA(cur));
-		if ((pte) && (pte->p) && (pte->g))
-			pht_insert(PA2KA(cur), pte->pfn);
-	}
 }
 
 
@@ -256,9 +263,5 @@ void page_arch_init(void)
 			:
 			: "r" ((__address) physical_phte)
 		);
-		
-		/* Invalidate block address translation registers,
-		   thus remove the temporary mapping */
-//		invalidate_bat();
 	}
 }
