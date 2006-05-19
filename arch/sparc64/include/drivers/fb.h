@@ -30,7 +30,6 @@
 #define __sparc64_FB_H__
 
 #define FB_PHYS_ADDRESS		0x1c901000000ULL
-#define FB_VIRT_ADDRESS		0x000c0000000ULL
 
 #define FB_X_RES		1152
 #define FB_Y_RES		900
