@@ -36,6 +36,7 @@
 #include <arch.h>
 #include <arch/types.h>
 #include <arch/exception.h>
+#include <align.h>
 #include <config.h>
 #include <print.h>
 #include <symtab.h>
@@ -46,20 +47,23 @@ static phte_t *phte;
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
- * The AS->lock must be held on entry to this function.
+ * The as->lock must be held on entry to this function
+ * if lock is true.
  *
+ * @param as       Address space.
+ * @param lock     Lock/unlock the address space.
  * @param badvaddr Faulting virtual address.
  * @param istate   Pointer to interrupted state.
  * @param pfrc     Pointer to variable where as_page_fault() return code will be stored.
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfcr)
+static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, istate_t *istate, int *pfcr)
 {
 	/*
 	 * Check if the mapping exists in page tables.
 	 */	
-	pte_t *pte = page_mapping_find(AS, badvaddr);
+	pte_t *pte = page_mapping_find(as, badvaddr);
 	if ((pte) && (pte->p)) {
 		/*
 		 * Mapping found in page tables.
@@ -73,23 +77,23 @@ static pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
-		page_table_unlock(AS, true);
+		page_table_unlock(as, lock);
 		switch (rc = as_page_fault(badvaddr, istate)) {
 			case AS_PF_OK:
 				/*
 				 * The higher-level page fault handler succeeded,
 				 * The mapping ought to be in place.
 				 */
-				page_table_lock(AS, true);
-				pte = page_mapping_find(AS, badvaddr);
+				page_table_lock(as, lock);
+				pte = page_mapping_find(as, badvaddr);
 				ASSERT((pte) && (pte->p));
 				return pte;
 			case AS_PF_DEFER:
-				page_table_lock(AS, true);
+				page_table_lock(as, lock);
 				*pfcr = rc;
 				return NULL;
 			case AS_PF_FAULT:
-				page_table_lock(AS, true);
+				page_table_lock(as, lock);
 				printf("Page fault.\n");
 				*pfcr = rc;
 				return NULL;
@@ -180,8 +184,17 @@ void pht_refill(bool data, istate_t *istate)
 	asid_t asid;
 	__address badvaddr;
 	pte_t *pte;
-	
 	int pfcr;
+	as_t *as;
+	bool lock;
+	
+	if (AS == NULL) {
+		as = AS_KERNEL;
+		lock = false;
+	} else {
+		as = AS;
+		lock = true;
+	}
 	
 	if (data) {
 		asm volatile (
@@ -191,13 +204,13 @@ void pht_refill(bool data, istate_t *istate)
 	} else
 		badvaddr = istate->pc;
 		
-	spinlock_lock(&AS->lock);
-	asid = AS->asid;
-	spinlock_unlock(&AS->lock);
+	spinlock_lock(&as->lock);
+	asid = as->asid;
+	spinlock_unlock(&as->lock);
 	
-	page_table_lock(AS, true);
+	page_table_lock(as, lock);
 	
-	pte = find_mapping_and_check(badvaddr, istate, &pfcr);
+	pte = find_mapping_and_check(as, lock, badvaddr, istate, &pfcr);
 	if (!pte) {
 		switch (pfcr) {
 			case AS_PF_FAULT:
@@ -208,7 +221,7 @@ void pht_refill(bool data, istate_t *istate)
 		 		 * The page fault came during copy_from_uspace()
 				 * or copy_to_uspace().
 				 */
-				page_table_unlock(AS, true);
+				page_table_unlock(as, lock);
 				return;
 			default:
 				panic("Unexpected pfrc (%d)\n", pfcr);
@@ -218,11 +231,11 @@ void pht_refill(bool data, istate_t *istate)
 	pte->a = 1; /* Record access to PTE */
 	pht_insert(badvaddr, pte->pfn);
 	
-	page_table_unlock(AS, true);
+	page_table_unlock(as, lock);
 	return;
 	
 fail:
-	page_table_unlock(AS, true);
+	page_table_unlock(as, lock);
 	pht_refill_fail(badvaddr, istate);
 }
 
@@ -238,19 +251,6 @@ void page_arch_init(void)
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
 		
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		__address cur;
-		int flags;
-		
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-		}
-		
 		/* Allocate page hash table */
 		phte_t *physical_phte = (phte_t *) PFN2ADDR(frame_alloc(PHT_ORDER, FRAME_KA | FRAME_PANIC));
 		phte = (phte_t *) PA2KA((__address) physical_phte);
@@ -264,4 +264,20 @@ void page_arch_init(void)
 			: "r" ((__address) physical_phte)
 		);
 	}
+}
+
+
+__address hw_map(__address physaddr, size_t size)
+{
+	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
+		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
+	
+	__address virtaddr = PA2KA(last_frame);
+	pfn_t i;
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
+		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
+	
+	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
+	
+	return virtaddr;
 }

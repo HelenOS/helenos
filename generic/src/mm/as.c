@@ -97,8 +97,9 @@ void as_init(void)
 {
 	as_arch_init();
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
-        if (!AS_KERNEL)
-                panic("can't create kernel address space\n");
+	if (!AS_KERNEL)
+		panic("can't create kernel address space\n");
+	
 }
 
 /** Create address space.
