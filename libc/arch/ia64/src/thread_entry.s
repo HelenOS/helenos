@@ -43,7 +43,7 @@ __thread_entry:
 	#
 	
 	mov out0 = r8
-	{ br.call.sptk.many b0 = __thread_main }
+	br.call.sptk.many b0 = __thread_main
 	
 	#
 	# Not reached.
