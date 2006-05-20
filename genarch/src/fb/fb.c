@@ -32,7 +32,6 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
-#include <bitops.h>
 #include <align.h>
 #include <panic.h>
 #include <memstr.h>
@@ -349,17 +348,9 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	}
 	
 	unsigned int fbsize = scan * y;
-	unsigned int fborder;
-	
-	if (fbsize <= FRAME_SIZE)
-		fborder = 0;
-	else
-		fborder = (fnzb32(fbsize - 1) + 1) - FRAME_WIDTH;
 	
 	/* Map the framebuffer */
-	fbaddress = (__u8 *) PA2KA(PFN2ADDR(frame_alloc(fborder, FRAME_KA)));
-	
-	fb_map_arch((__address) fbaddress, (__address) addr, fbsize);
+	fbaddress = (__u8 *) hw_map((__address) addr, fbsize);
 	
 	xres = x;
 	yres = y;

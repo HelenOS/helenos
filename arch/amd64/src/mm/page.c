@@ -71,6 +71,8 @@ extern pte_t ptl_0; /* From boot.S */
 	SET_FRAME_ADDRESS_ARCH(ptl3, PTL3_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
         SET_FRAME_FLAGS_ARCH(ptl3, PTL3_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
+
+
 void page_arch_init(void)
 {
 	__address cur;
@@ -107,6 +109,7 @@ void page_arch_init(void)
 		write_cr3((__address) AS_KERNEL->page_table);
 	}
 }
+
 
 /** Identity page mapper
  *
@@ -161,6 +164,7 @@ void ident_page_fault(int n, istate_t *istate)
 	oldpage = page;
 }
 
+
 void page_fault(int n, istate_t *istate)
 {
 	__address page;
@@ -171,4 +175,20 @@ void page_fault(int n, istate_t *istate)
 		printf("Page fault address: %llX\n", page);
 		panic("page fault\n");
 	}
+}
+
+
+__address hw_map(__address physaddr, size_t size)
+{
+	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
+		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
+	
+	__address virtaddr = PA2KA(last_frame);
+	pfn_t i;
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
+		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
+	
+	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
+	
+	return virtaddr;
 }

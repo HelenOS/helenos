@@ -65,7 +65,6 @@ CONFIG_ASID_FIFO = y
 #
 
 CONFIG_FB = y
-CONFIG_FB_MAP_ARCH = y
 
 ## Compile with support for i8042 controller.
 #

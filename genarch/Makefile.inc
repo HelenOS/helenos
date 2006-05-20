@@ -67,10 +67,6 @@ ifeq ($(CONFIG_FB),y)
 		genarch/src/fb/font-8x16.c \
 		genarch/src/fb/fb.c
 	DEFS += -DCONFIG_FB
-	ifneq ($(CONFIG_FB_MAP_ARCH),y)
-		GENARCH_SOURCES += \
-			genarch/src/fb/fb_map.c
-	endif
 endif
 
 ## i8042 controller

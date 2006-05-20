@@ -35,7 +35,4 @@
 extern spinlock_t fb_lock;
 void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
 
-/* To be implemented by architecture. */
-void fb_map_arch(__address virtaddr, __address physaddr, size_t size);
-
 #endif

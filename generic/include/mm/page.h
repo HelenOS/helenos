@@ -78,5 +78,6 @@ extern void page_mapping_remove(as_t *as, __address page);
 extern pte_t *page_mapping_find(as_t *as, __address page);
 extern pte_t *page_table_create(int flags);
 extern void map_structure(__address s, size_t size);
+extern __address hw_map(__address physaddr, size_t size);
 
 #endif
