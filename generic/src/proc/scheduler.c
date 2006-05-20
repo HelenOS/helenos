@@ -421,8 +421,6 @@ void scheduler_separated_stack(void)
 
 	relink_rq(priority);		
 
-	spinlock_lock(&THREAD->lock);	
-
 	/*
 	 * If both the old and the new task are the same, lots of work is avoided.
 	 */
@@ -454,6 +452,7 @@ void scheduler_separated_stack(void)
 		before_task_runs();
 	}
 
+	spinlock_lock(&THREAD->lock);	
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE

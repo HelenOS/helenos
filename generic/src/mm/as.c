@@ -54,6 +54,7 @@
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
 #include <proc/task.h>
@@ -74,7 +75,7 @@
 
 as_operations_t *as_operations = NULL;
 
-/** Address space lock. It protects inactive_as_with_asid_head. */
+/** Address space lock. It protects inactive_as_with_asid_head. Must be acquired before as_t mutex. */
 SPINLOCK_INITIALIZE(as_lock);
 
 /**
@@ -110,7 +111,7 @@ as_t *as_create(int flags)
 
 	as = (as_t *) malloc(sizeof(as_t), 0);
 	link_initialize(&as->inactive_as_with_asid_link);
-	spinlock_initialize(&as->lock, "as_lock");
+	mutex_initialize(&as->lock);
 	btree_create(&as->as_area_btree);
 	
 	if (flags & FLAG_AS_KERNEL)
@@ -162,17 +163,17 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
 		return NULL;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
+	mutex_lock(&as->lock);
 	
 	if (!check_area_conflicts(as, base, size, NULL)) {
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return NULL;
 	}
 	
 	a = (as_area_t *) malloc(sizeof(as_area_t), 0);
 
-	spinlock_initialize(&a->lock, "as_area_lock");
+	mutex_initialize(&a->lock);
 	
 	a->flags = flags;
 	a->attributes = attrs;
@@ -181,7 +182,7 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
 	
 	btree_insert(&as->as_area_btree, base, (void *) a, NULL);
 
-	spinlock_unlock(&as->lock);
+	mutex_unlock(&as->lock);
 	interrupts_restore(ipl);
 
 	return a;
@@ -203,14 +204,14 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 	size_t pages;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
+	mutex_lock(&as->lock);
 	
 	/*
 	 * Locate the area.
 	 */
 	area = find_area_and_lock(as, address);
 	if (!area) {
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
@@ -220,8 +221,8 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 		 * Remapping of address space areas associated
 		 * with memory mapped devices is not supported.
 		 */
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&area->lock);
+		mutex_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
@@ -231,8 +232,8 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 		/*
 		 * Zero size address space areas are not allowed.
 		 */
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&area->lock);
+		mutex_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return EPERM;
 	}
@@ -278,8 +279,8 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 		 * Check for overlaps with other address space areas.
 		 */
 		if (!check_area_conflicts(as, address, pages * PAGE_SIZE, area)) {
-			spinlock_unlock(&area->lock);
-			spinlock_unlock(&as->lock);		
+			mutex_unlock(&area->lock);
+			mutex_unlock(&as->lock);		
 			interrupts_restore(ipl);
 			return EADDRNOTAVAIL;
 		}
@@ -287,8 +288,8 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 
 	area->pages = pages;
 	
-	spinlock_unlock(&area->lock);
-	spinlock_unlock(&as->lock);
+	mutex_unlock(&area->lock);
+	mutex_unlock(&as->lock);
 	interrupts_restore(ipl);
 
 	return 0;
@@ -309,11 +310,11 @@ int as_area_destroy(as_t *as, __address address)
 	int i;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
+	mutex_lock(&as->lock);
 
 	area = find_area_and_lock(as, address);
 	if (!area) {
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
@@ -350,7 +351,7 @@ int as_area_destroy(as_t *as, __address address)
 	tlb_shootdown_finalize();
 
 	area->attributes |= AS_AREA_ATTR_PARTIAL;
-	spinlock_unlock(&area->lock);
+	mutex_unlock(&area->lock);
 
 	/*
 	 * Remove the empty area from address space.
@@ -359,7 +360,7 @@ int as_area_destroy(as_t *as, __address address)
 	
 	free(area);
 	
-	spinlock_unlock(&AS->lock);
+	mutex_unlock(&AS->lock);
 	interrupts_restore(ipl);
 	return 0;
 }
@@ -397,21 +398,21 @@ int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
 	spinlock_lock(&src_task->lock);
 	src_as = src_task->as;
 	
-	spinlock_lock(&src_as->lock);
+	mutex_lock(&src_as->lock);
 	src_area = find_area_and_lock(src_as, src_base);
 	if (!src_area) {
 		/*
 		 * Could not find the source address space area.
 		 */
 		spinlock_unlock(&src_task->lock);
-		spinlock_unlock(&src_as->lock);
+		mutex_unlock(&src_as->lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	src_size = src_area->pages * PAGE_SIZE;
 	src_flags = src_area->flags;
-	spinlock_unlock(&src_area->lock);
-	spinlock_unlock(&src_as->lock);
+	mutex_unlock(&src_area->lock);
+	mutex_unlock(&src_as->lock);
 
 
 	if (src_size != acc_size) {
@@ -441,11 +442,11 @@ int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
 	 * Avoid deadlock by first locking the address space with lower address.
 	 */
 	if (AS < src_as) {
-		spinlock_lock(&AS->lock);
-		spinlock_lock(&src_as->lock);
+		mutex_lock(&AS->lock);
+		mutex_lock(&src_as->lock);
 	} else {
-		spinlock_lock(&AS->lock);
-		spinlock_lock(&src_as->lock);
+		mutex_lock(&AS->lock);
+		mutex_lock(&src_as->lock);
 	}
 	
 	for (i = 0; i < SIZE2FRAMES(src_size); i++) {
@@ -475,12 +476,12 @@ int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
 	 * fully initialized. Clear the AS_AREA_ATTR_PARTIAL
 	 * attribute.
 	 */	
-	spinlock_lock(&dst_area->lock);
+	mutex_lock(&dst_area->lock);
 	dst_area->attributes &= ~AS_AREA_ATTR_PARTIAL;
-	spinlock_unlock(&dst_area->lock);
+	mutex_unlock(&dst_area->lock);
 	
-	spinlock_unlock(&AS->lock);
-	spinlock_unlock(&src_as->lock);
+	mutex_unlock(&AS->lock);
+	mutex_unlock(&src_as->lock);
 	interrupts_restore(ipl);
 	
 	return 0;
@@ -511,7 +512,7 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 
 	page_mapping_insert(as, page, frame, get_area_flags(area));
 	
-	spinlock_unlock(&area->lock);
+	mutex_unlock(&area->lock);
 	page_table_unlock(as, true);
 	interrupts_restore(ipl);
 }
@@ -532,16 +533,19 @@ int as_page_fault(__address page, istate_t *istate)
 	as_area_t *area;
 	__address frame;
 	
+	if (!THREAD)
+		return 0;
+		
 	ASSERT(AS);
 
-	spinlock_lock(&AS->lock);
+	mutex_lock(&AS->lock);
 	area = find_area_and_lock(AS, page);	
 	if (!area) {
 		/*
 		 * No area contained mapping for 'page'.
 		 * Signal page fault to low-level handler.
 		 */
-		spinlock_unlock(&AS->lock);
+		mutex_unlock(&AS->lock);
 		goto page_fault;
 	}
 
@@ -550,8 +554,8 @@ int as_page_fault(__address page, istate_t *istate)
 		 * The address space area is not fully initialized.
 		 * Avoid possible race by returning error.
 		 */
-		spinlock_unlock(&area->lock);
-		spinlock_unlock(&AS->lock);
+		mutex_unlock(&area->lock);
+		mutex_unlock(&AS->lock);
 		goto page_fault;		
 	}
 
@@ -567,8 +571,8 @@ int as_page_fault(__address page, istate_t *istate)
 	if ((pte = page_mapping_find(AS, page))) {
 		if (PTE_PRESENT(pte)) {
 			page_table_unlock(AS, false);
-			spinlock_unlock(&area->lock);
-			spinlock_unlock(&AS->lock);
+			mutex_unlock(&area->lock);
+			mutex_unlock(&AS->lock);
 			return 1;
 		}
 	}
@@ -598,8 +602,8 @@ int as_page_fault(__address page, istate_t *istate)
 	page_mapping_insert(AS, page, frame, get_area_flags(area));
 	page_table_unlock(AS, false);
 	
-	spinlock_unlock(&area->lock);
-	spinlock_unlock(&AS->lock);
+	mutex_unlock(&area->lock);
+	mutex_unlock(&AS->lock);
 	return AS_PF_OK;
 
 page_fault:
@@ -621,6 +625,9 @@ page_fault:
 
 /** Switch address spaces.
  *
+ * Note that this function cannot sleep as it is essentially a part of
+ * the scheduling. Sleeping here would lead to deadlock on wakeup.
+ *
  * @param old Old address space or NULL.
  * @param new New address space.
  */
@@ -636,7 +643,7 @@ void as_switch(as_t *old, as_t *new)
 	 * First, take care of the old address space.
 	 */	
 	if (old) {
-		spinlock_lock(&old->lock);
+		mutex_lock_active(&old->lock);
 		ASSERT(old->refcount);
 		if((--old->refcount == 0) && (old != AS_KERNEL)) {
 			/*
@@ -648,13 +655,13 @@ void as_switch(as_t *old, as_t *new)
 			 ASSERT(old->asid != ASID_INVALID);
 			 list_append(&old->inactive_as_with_asid_link, &inactive_as_with_asid_head);
 		}
-		spinlock_unlock(&old->lock);
+		mutex_unlock(&old->lock);
 	}
 
 	/*
 	 * Second, prepare the new address space.
 	 */
-	spinlock_lock(&new->lock);
+	mutex_lock_active(&new->lock);
 	if ((new->refcount++ == 0) && (new != AS_KERNEL)) {
 		if (new->asid != ASID_INVALID)
 			list_remove(&new->inactive_as_with_asid_link);
@@ -662,7 +669,7 @@ void as_switch(as_t *old, as_t *new)
 			needs_asid = true;	/* defer call to asid_get() until new->lock is released */
 	}
 	SET_PTL0_ADDRESS(new->page_table);
-	spinlock_unlock(&new->lock);
+	mutex_unlock(&new->lock);
 
 	if (needs_asid) {
 		/*
@@ -672,9 +679,9 @@ void as_switch(as_t *old, as_t *new)
 		asid_t asid;
 		
 		asid = asid_get();
-		spinlock_lock(&new->lock);
+		mutex_lock_active(&new->lock);
 		new->asid = asid;
-		spinlock_unlock(&new->lock);
+		mutex_unlock(&new->lock);
 	}
 	spinlock_unlock(&as_lock);
 	interrupts_restore(ipl);
@@ -798,7 +805,7 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 	a = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
 	if (a) {
 		/* va is the base address of an address space area */
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		return a;
 	}
 	
@@ -811,11 +818,11 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 	/* First, search the leaf node itself. */
 	for (i = 0; i < leaf->keys; i++) {
 		a = (as_area_t *) leaf->value[i];
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		if ((a->base <= va) && (va < a->base + a->pages * PAGE_SIZE)) {
 			return a;
 		}
-		spinlock_unlock(&a->lock);
+		mutex_unlock(&a->lock);
 	}
 
 	/*
@@ -824,11 +831,11 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
 	 */
 	if ((lnode = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) lnode->value[lnode->keys - 1];
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		if (va < a->base + a->pages * PAGE_SIZE) {
 			return a;
 		}
-		spinlock_unlock(&a->lock);
+		mutex_unlock(&a->lock);
 	}
 
 	return NULL;
@@ -873,21 +880,21 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	/* First, check the two border cases. */
 	if ((node = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) node->value[node->keys - 1];
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
-			spinlock_unlock(&a->lock);
+			mutex_unlock(&a->lock);
 			return false;
 		}
-		spinlock_unlock(&a->lock);
+		mutex_unlock(&a->lock);
 	}
 	if ((node = btree_leaf_node_right_neighbour(&as->as_area_btree, leaf))) {
 		a = (as_area_t *) node->value[0];
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
-			spinlock_unlock(&a->lock);
+			mutex_unlock(&a->lock);
 			return false;
 		}
-		spinlock_unlock(&a->lock);
+		mutex_unlock(&a->lock);
 	}
 	
 	/* Second, check the leaf node. */
@@ -897,12 +904,12 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 		if (a == avoid_area)
 			continue;
 	
-		spinlock_lock(&a->lock);
+		mutex_lock(&a->lock);
 		if (overlaps(va, size, a->base, a->pages * PAGE_SIZE)) {
-			spinlock_unlock(&a->lock);
+			mutex_unlock(&a->lock);
 			return false;
 		}
-		spinlock_unlock(&a->lock);
+		mutex_unlock(&a->lock);
 	}
 
 	/*
@@ -917,7 +924,7 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 	return true;
 }
 
-/** Return size of address space of current task pointed to by base */
+/** Return size of the address space area with given base.  */
 size_t as_get_size(__address base)
 {
 	ipl_t ipl;
@@ -928,7 +935,7 @@ size_t as_get_size(__address base)
 	src_area = find_area_and_lock(AS, base);
 	if (src_area){
 		size = src_area->pages * PAGE_SIZE;
-		spinlock_unlock(&src_area->lock);
+		mutex_unlock(&src_area->lock);
 	} else {
 		size = 0;
 	}

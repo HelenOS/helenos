@@ -61,7 +61,7 @@ static pte_t *ht_mapping_find(as_t *as, __address page);
  * after address space lock and after any address space area
  * locks.
  */
-SPINLOCK_INITIALIZE(page_ht_lock);
+mutex_t page_ht_lock;
 
 /**
  * Page hash table.

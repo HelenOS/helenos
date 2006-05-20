@@ -44,6 +44,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
 
@@ -66,9 +67,10 @@
 #define AS_AREA_ATTR_NONE	0
 #define AS_AREA_ATTR_PARTIAL	1	/* Not fully initialized area. */
 
-#define AS_PF_FAULT		0	/**< The page fault was not resolved by asp_page_fault(). */
+#define AS_PF_FAULT		0	/**< The page fault was not resolved by as_page_fault(). */
 #define AS_PF_OK		1	/**< The page fault was resolved by as_page_fault(). */
-#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace(). */
+#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace()
+					     or memcpy_to_uspace(). */
 
 /** Address space area structure.
  *
@@ -76,7 +78,7 @@
  * In the future, it should not be difficult to support shared areas.
  */
 struct as_area {
-	SPINLOCK_DECLARE(lock);
+	mutex_t lock;
 	int flags;		/**< Flags related to the memory represented by the address space area. */
 	int attributes;		/**< Attributes related to the address space area itself. */
 	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
@@ -91,10 +93,10 @@ struct as_area {
  * set up during system initialization.
  */
 struct as {
-	/** Protected by asidlock. Must be acquired before as->lock. */
+	/** Protected by asidlock. */
 	link_t inactive_as_with_asid_link;
 
-	SPINLOCK_DECLARE(lock);
+	mutex_t lock;
 
 	/** Number of processors on wich is this address space active. */
 	count_t refcount;

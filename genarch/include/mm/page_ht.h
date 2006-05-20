@@ -70,7 +70,7 @@ struct pte {
 };
 
 extern page_mapping_operations_t ht_mapping_operations;
-extern spinlock_t page_ht_lock;
+extern mutex_t page_ht_lock;
 extern hash_table_t page_ht;
 extern hash_table_operations_t ht_operations;
 

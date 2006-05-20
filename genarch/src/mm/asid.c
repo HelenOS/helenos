@@ -57,6 +57,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <arch.h>
 #include <adt/list.h>
 #include <debug.h>
@@ -103,7 +104,7 @@ asid_t asid_get(void)
 		list_remove(tmp);
 		
 		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);
-		spinlock_lock(&as->lock);
+		mutex_lock_active(&as->lock);
 
 		/*
 		 * Steal the ASID.
@@ -117,7 +118,7 @@ asid_t asid_get(void)
 		 * was stolen by invalidating its asid member.
 		 */
 		as->asid = ASID_INVALID;
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 
 		/*
 		 * Get the system rid of the stolen ASID.

@@ -44,7 +44,9 @@ struct mutex {
 	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)
 #define mutex_lock_timeout(mtx,usec) \
 	_mutex_lock_timeout((mtx),(usec),SYNCH_NON_BLOCKING)
-	
+#define mutex_lock_active(mtx) \
+	while (mutex_trylock((mtx)) != ESYNCH_OK_ATOMIC)
+
 extern void mutex_initialize(mutex_t *mtx);
 extern int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int trylock);
 extern void mutex_unlock(mutex_t *mtx);

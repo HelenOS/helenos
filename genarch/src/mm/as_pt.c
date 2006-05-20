@@ -35,6 +35,7 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/as.h>
+#include <synch/mutex.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/types.h>
@@ -78,7 +79,7 @@ pte_t *ptl0_create(int flags)
 		 */
 		 
 		ipl = interrupts_disable();
-		spinlock_lock(&AS_KERNEL->lock);		
+		mutex_lock(&AS_KERNEL->lock);		
 		src_ptl0 = (pte_t *) PA2KA((__address) AS_KERNEL->page_table);
 
 		src = (__address) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
@@ -86,7 +87,7 @@ pte_t *ptl0_create(int flags)
 
 		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
 		memcpy((void *) dst, (void *) src, PAGE_SIZE - (src - (__address) src_ptl0));
-		spinlock_unlock(&AS_KERNEL->lock);
+		mutex_unlock(&AS_KERNEL->lock);
 		interrupts_restore(ipl);
 	}
 
@@ -104,7 +105,7 @@ pte_t *ptl0_create(int flags)
 void pt_lock(as_t *as, bool lock)
 {
 	if (lock)
-		spinlock_lock(&as->lock);
+		mutex_lock(&as->lock);
 }
 
 /** Unlock page tables.
@@ -118,5 +119,5 @@ void pt_lock(as_t *as, bool lock)
 void pt_unlock(as_t *as, bool unlock)
 {
 	if (unlock)
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 }

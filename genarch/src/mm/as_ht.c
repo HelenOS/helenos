@@ -39,7 +39,7 @@
 #include <typedefs.h>
 #include <memstr.h>
 #include <adt/hash_table.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
 
 static pte_t *ht_create(int flags);
 
@@ -66,6 +66,7 @@ pte_t *ht_create(int flags)
 {
 	if (flags & FLAG_AS_KERNEL) {
 		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
+		mutex_initialize(&page_ht_lock);
 	}
 	return NULL;
 }
@@ -81,8 +82,8 @@ pte_t *ht_create(int flags)
 void ht_lock(as_t *as, bool lock)
 {
 	if (lock)
-		spinlock_lock(&as->lock);
-	spinlock_lock(&page_ht_lock);
+		mutex_lock(&as->lock);
+	mutex_lock(&page_ht_lock);
 }
 
 /** Unlock page table.
@@ -95,7 +96,7 @@ void ht_lock(as_t *as, bool lock)
  */
 void ht_unlock(as_t *as, bool unlock)
 {
-	spinlock_unlock(&page_ht_lock);
+	mutex_unlock(&page_ht_lock);
 	if (unlock)
-		spinlock_unlock(&as->lock);
+		mutex_unlock(&as->lock);
 }
