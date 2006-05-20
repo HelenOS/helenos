@@ -234,6 +234,7 @@ real_mode:
 	mtspr dbat0l, r30
 	
 	tlbia
+	tlbsync
 	
 	# start the kernel
 	#
