@@ -134,6 +134,11 @@ iret:
 
 iret_syscall:
 	
+	# reset decrementer
+
+	li r31, 1000
+	mtdec r31
+	
 	# disable interrupts
 	
 	mfmsr r31

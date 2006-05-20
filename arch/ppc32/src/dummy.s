@@ -29,16 +29,7 @@
 .text
 
 .global asm_delay_loop
-.global userspace
 .global sys_tls_set
-.global tlb_invalidate_asid
-.global tlb_invalidate_pages
-
-tlb_invalidate_asid:
-	b tlb_invalidate_asid
-
-tlb_invalidate_pages:
-	b tlb_invalidate_pages
 
 sys_tls_set:
 	b sys_tls_set

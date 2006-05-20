@@ -181,7 +181,6 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
  */
 void pht_refill(bool data, istate_t *istate)
 {
-	asid_t asid;
 	__address badvaddr;
 	pte_t *pte;
 	int pfcr;
@@ -204,10 +203,6 @@ void pht_refill(bool data, istate_t *istate)
 	} else
 		badvaddr = istate->pc;
 		
-	spinlock_lock(&as->lock);
-	asid = as->asid;
-	spinlock_unlock(&as->lock);
-	
 	page_table_lock(as, lock);
 	
 	pte = find_mapping_and_check(as, lock, badvaddr, istate, &pfcr);

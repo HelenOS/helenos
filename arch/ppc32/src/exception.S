@@ -205,7 +205,7 @@ exc_fp_unavailable:
 .org 0x900
 .global exc_decrementer
 exc_decrementer:
-	CONTEXT_STORE	
+	CONTEXT_STORE
 
 	lis r12, exc_dispatch@ha
 	addi r12, r12, exc_dispatch@l

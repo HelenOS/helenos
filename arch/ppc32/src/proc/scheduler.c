@@ -41,6 +41,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	pht_init();
+	tlb_invalidate_all();
 	asm volatile (
 		"mtsprg0 %0\n"
 		:
