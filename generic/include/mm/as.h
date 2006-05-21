@@ -35,7 +35,6 @@
 #define AS_AREA_EXEC	4
 #define AS_AREA_DEVICE	8
 
-
 #ifdef KERNEL
 
 #include <arch/mm/page.h>
@@ -83,6 +82,7 @@ struct as_area {
 	int attributes;		/**< Attributes related to the address space area itself. */
 	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
 	__address base;		/**< Base address of this area. */
+	btree_t used_space;	/**< Map of used space. */
 };
 
 /** Address space structure.
