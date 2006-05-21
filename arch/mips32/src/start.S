@@ -222,7 +222,7 @@ exception_handler:
 	sub $k0, 8            # 8=SYSCALL
 	
 	beqz $k0, syscall_shortcut
-	add $k0, 8            # Revert $k1 back to correct exc number
+	add $k0, 8            # Revert $k0 back to correct exc number
 	
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
@@ -239,11 +239,13 @@ exception_handler:
 #define SS_SP     EOFFSET_SP
 #define SS_STATUS EOFFSET_STATUS
 #define SS_EPC    EOFFSET_EPC
+#define SS_K1     EOFFSET_K1
 syscall_shortcut:
 	# We have a lot of space on the stack, with free use
 	mfc0 $t1, $epc
 	mfc0 $t0, $status
 	sw $t1,SS_EPC($sp)  # Save EPC
+	sw $k1,SS_K1($sp)   # Save k1, which is not saved during context switch
 	
 	and $t2, $t0, REG_SAVE_MASK # Save only KSU,EXL,ERL,IE
 	li $t3, ~(0x1f)
@@ -270,6 +272,7 @@ syscall_shortcut:
 			
 	# restore epc+4
 	lw $t0,SS_EPC($sp)
+	lw $k1,SS_K1($sp)
 	addi $t0, $t0, 4
 	mtc0 $t0, $epc
 	
