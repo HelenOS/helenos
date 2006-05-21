@@ -45,7 +45,9 @@ SECTIONS {
 		*(BOOTSTRAP);
 		*(REALMODE);
 		*(.text);
+		*(.toc);
 		
+		*(.opd);
 		*(.rodata);
 		*(.rodata.*);
 		*(.data);		/* initialized data */
@@ -91,7 +93,7 @@ extern int ${SYMBOL}_end;
 #define ${MACRO}_END ((void *) &${SYMBOL}_end)
 #define ${MACRO}_SIZE ((unsigned long) ${MACRO}_END - (unsigned long) ${MACRO}_START)" >> "$HEADER"
 	
-	"$OBJCOPY" -I binary -O elf32-powerpc -B powerpc:common --rename-section ".data=.${BASENAME}_image" "$TASK" "$OBJECT"
+	"$OBJCOPY" -I binary -O elf64-powerpc -B powerpc:common64 --rename-section ".data=.${BASENAME}_image" "$TASK" "$OBJECT"
 		
 	DATA="${DATA}
 	components[$COUNT].name = \"${BASENAME}\";
@@ -101,7 +103,11 @@ extern int ${SYMBOL}_end;
 	COUNT="`expr "$COUNT" + 1`"
 done
 
-echo '	}
+echo '}
+
+	/DISCARD/ : {
+		*(*);
+	}
 }' >> "$LINK"
 
 echo "

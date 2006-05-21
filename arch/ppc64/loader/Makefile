@@ -29,7 +29,7 @@
 ## Toolchain configuration
 #
 
-TARGET = ppc-linux-gnu
+TARGET = ppc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ifeq ($(COMPILER),native)

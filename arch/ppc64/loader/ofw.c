@@ -176,15 +176,15 @@ void *ofw_translate(const void *virt)
 {
 	ofw_arg_t result[3];
 	
-	if (ofw_call("call-method", 4, 4, result, "translate", ofw_mmu, virt, 1) != 0) {
+	if (ofw_call("call-method", 4, 4, result, "translate", ofw_mmu, (unsigned long) virt, 1) != 0) {
 		puts("Error: MMU method translate() failed, halting.\n");
 		halt();
 	}
-	return (void *) result[2];
+	return (void *) (unsigned long) result[2];
 }
 
 
-int ofw_map(const void *phys, const void *virt, const int size, const int mode)
+int ofw_map(const void *phys, const void *virt, const long size, const int mode)
 {
 	return ofw_call("call-method", 6, 1, NULL, "map", ofw_mmu, mode, size, virt, phys);
 }
@@ -204,7 +204,7 @@ int ofw_memmap(memmap_t *map)
 	map->total = 0;
 	map->count = 0;
 	for (pos = 0; (pos < ret / sizeof(unsigned int)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
-		void * start = (void *) buf[pos + ac - 1];
+		void * start = (void *) (unsigned long) buf[pos + ac - 1];
 		unsigned int size = buf[pos + ac + sc - 1];
 		
 		if (size > 0) {
