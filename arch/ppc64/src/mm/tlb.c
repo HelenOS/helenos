@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc64_CONSOLE_H__
-#define __ppc64_CONSOLE_H__
+#include <mm/tlb.h>
 
-extern void ppc64_console_init(void);
 
-#endif
+/** Initialize Page Hash Table.
+ *
+ * Setup the Page Hash Table with no entries.
+ *
+ */
+void tlb_arch_init(void)
+{
+	tlb_invalidate_all();
+}
+
+
+void tlb_invalidate_all(void)
+{
+	asm volatile (
+		"tlbia\n"
+		"tlbsync\n"
+	);
+}
+
+
+/** Invalidate all entries in TLB that belong to specified address space.
+ *
+ * @param asid This parameter is ignored as the architecture doesn't support it.
+ */
+void tlb_invalidate_asid(asid_t asid)
+{
+	tlb_invalidate_all();
+}
+
+/** Invalidate TLB entries for specified page range belonging to specified address space.
+ *
+ * @param asid This parameter is ignored as the architecture doesn't support it.
+ * @param page Address of the first page whose entry is to be invalidated.
+ * @param cnt Number of entries to invalidate.
+ */
+void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+{
+	tlb_invalidate_all();
+}
+
+
+
+/** Print contents of Page Hash Table. */
+void tlb_print(void)
+{
+}

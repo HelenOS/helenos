@@ -33,7 +33,7 @@
 
 typedef signed char __s8;
 typedef signed short __s16;
-typedef signed long __s32;
+typedef signed int __s32;
 typedef signed long long __s64;
 
 typedef unsigned char __u8;

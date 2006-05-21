@@ -29,7 +29,7 @@
 #ifndef __ppc64_ELF_H__
 #define __ppc64_ELF_H__
 
-#define	ELF_MACHINE		EM_PPC
+#define	ELF_MACHINE		EM_PPC64
 #define ELF_DATA_ENCODING	ELFDATA2MSB
 #define ELF_CLASS		ELFCLASS32
 

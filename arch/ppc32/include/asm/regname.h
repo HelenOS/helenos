@@ -219,8 +219,4 @@
 #define hid0_icfi	(1 << 11)
 #define hid0_dci	(1 << 10)
 
-/* Cache sizes */
-#define L1_CACHE_LINES (128 * 8)
-#define L1_CACHE_BYTES 5
-
 #endif

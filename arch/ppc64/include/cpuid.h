@@ -38,8 +38,8 @@ struct cpu_info {
 
 static inline void cpu_version(struct cpu_info *info)
 {
-	__asm__ volatile (
-		"mfspr %0, 287\n"
+	asm volatile (
+		"mfpvr %0\n"
 		: "=r" (*info)
 	);
 }

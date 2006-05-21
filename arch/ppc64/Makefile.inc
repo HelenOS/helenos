@@ -38,7 +38,7 @@ TOOLCHAIN_DIR = /usr/local/ppc64/bin
 ## Make some default assumptions
 #
 
-CFLAGS += -mcpu=powerpc64 -m64
+CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64
 LFLAGS += -no-check-sections -N
 
@@ -56,7 +56,6 @@ CONFIG_PAGE_PT = y
 DEFS += -DCONFIG_PAGE_PT
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/debug/panic.s \
 	arch/$(ARCH)/src/fpu_context.S \
@@ -67,9 +66,10 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/asm.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/memory_init.c \
-	arch/$(ARCH)/src/mm/page.c 
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/mm/tlb.c

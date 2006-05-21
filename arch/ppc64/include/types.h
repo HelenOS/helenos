@@ -33,8 +33,8 @@
 
 typedef signed char __s8;
 typedef signed short __s16;
-typedef signed long __s32;
-typedef signed long long __s64;
+typedef signed int __s32;
+typedef signed long __s64;
 
 typedef unsigned char __u8;
 typedef unsigned short __u16;
@@ -42,12 +42,19 @@ typedef unsigned int __u32;
 typedef unsigned long __u64;
 
 typedef __u64 __address;
-typedef __u32 pfn_t;
+typedef __u64 pfn_t;
 
 typedef __u64 ipl_t;
 
-typedef __u64 __native;
+typedef __u32 __native;
 
-typedef __u32 pte_t;
+/** Page Table Entry. */
+typedef struct {
+	unsigned p : 1;       /**< Present bit. */
+	unsigned a : 1;       /**< Accessed bit. */
+	unsigned g : 1;       /**< Global bit. */
+	unsigned valid : 1;   /**< Valid content even if not present. */
+	unsigned pfn : 20;    /**< Physical frame number. */
+} pte_t;
 
 #endif

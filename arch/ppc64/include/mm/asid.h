@@ -31,8 +31,8 @@
 
 typedef int asid_t;
 
-#define ASID_MAX_ARCH	3
+#define ASID_MAX_ARCH		3
 
-#define asid_get()	(ASID_START+1)
+#define asid_get()		(ASID_START+1)
 
 #endif

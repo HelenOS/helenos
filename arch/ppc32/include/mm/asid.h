@@ -26,12 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * ia32 has no hardware support for address space identifiers.
- * This file is provided to do nop-implementation of mm/asid.h
- * interface.
- */
-
 #ifndef __ppc32_ASID_H__
 #define __ppc32_ASID_H__
 

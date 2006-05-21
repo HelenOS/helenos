@@ -31,6 +31,123 @@
 
 .section K_UNMAPPED_TEXT_START, "ax"
 
+.macro CONTEXT_STORE
+	
+	# save R12 in SPRG1, backup CR in R12
+	# save SP in SPRG2
+
+	mtsprg1 r12
+	mfcr r12
+	mtsprg2 sp
+	
+	# check whether SP is in kernel
+	
+	andis. sp, sp, 0x8000
+	bne 1f
+	
+		# stack is in user-space
+		
+		mfsprg0 sp
+	
+	b 2f
+	
+	1:
+	
+		# stack is in kernel
+		
+		mfsprg2 sp
+		subis sp, sp, 0x8000
+	
+	2:
+	
+	subi sp, sp, 160
+	stw r0, 8(sp)
+	stw r2, 12(sp)
+	stw r3, 16(sp)
+	stw r4, 20(sp)
+	stw r5, 24(sp)
+	stw r6, 28(sp)
+	stw r7, 32(sp)
+	stw r8, 36(sp)
+	stw r9, 40(sp)
+	stw r10, 44(sp)
+	stw r11, 48(sp)
+	stw r13, 52(sp)
+	stw r14, 56(sp)
+	stw r15, 60(sp)
+	stw r16, 64(sp)
+	stw r17, 68(sp)
+	stw r18, 72(sp)
+	stw r19, 76(sp)
+	stw r20, 80(sp)
+	stw r21, 84(sp)
+	stw r22, 88(sp)
+	stw r23, 92(sp)
+	stw r24, 96(sp)
+	stw r25, 100(sp)
+	stw r26, 104(sp)
+	stw r27, 108(sp)
+	stw r28, 112(sp)
+	stw r29, 116(sp)
+	stw r30, 120(sp)
+	stw r31, 124(sp)
+	
+	stw r12, 128(sp)
+	
+	mfsrr0 r12
+	stw r12, 132(sp)
+	
+	mfsrr1 r12
+	stw r12, 136(sp)
+	
+	mflr r12
+	stw r12, 140(sp)
+	
+	mfctr r12
+	stw r12, 144(sp)
+	
+	mfxer r12
+	stw r12, 148(sp)
+	
+	mfsprg1 r12
+	stw r12, 152(sp)
+	
+	mfsprg2 r12
+	stw r12, 156(sp)
+.endm
+
+.org 0x060
+jump_to_kernel:
+	lis r12, iret@ha
+	addi r12, r12, iret@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	mr r4, sp
+	addi r4, r4, 8
+	
+	rfi
+
+jump_to_kernel_syscall:
+	lis r12, syscall_handler@ha
+	addi r12, r12, syscall_handler@l
+	mtsrr0 r12
+	
+	lis r12, iret_syscall@ha
+	addi r12, r12, iret_syscall@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	rfi
+
 .org 0x100
 .global exc_system_reset
 exc_system_reset:
@@ -44,22 +161,26 @@ exc_machine_check:
 .org 0x300
 .global exc_data_storage
 exc_data_storage:
-	b exc_data_storage
-
-.org 0x380
-.global exc_data_segment
-exc_data_segment:
-	b exc_data_segment
+	CONTEXT_STORE
+	
+	lis r12, pht_refill@ha
+	addi r12, r12, pht_refill@l
+	mtsrr0 r12
+	
+	li r3, 1
+	b jump_to_kernel
 
 .org 0x400
 .global exc_instruction_storage
 exc_instruction_storage:
-	b exc_instruction_storage
-
-.org 0x480
-.global exc_instruction_segment
-exc_instruction_segment:
-	b exc_instruction_segment
+	CONTEXT_STORE
+	
+	lis r12, pht_refill@ha
+	addi r12, r12, pht_refill@l
+	mtsrr0 r12
+	
+	li r3, 0
+	b jump_to_kernel
 
 .org 0x500
 .global exc_external
@@ -84,76 +205,14 @@ exc_fp_unavailable:
 .org 0x900
 .global exc_decrementer
 exc_decrementer:
-	mtspr sprg1, sp
-	
-	subis sp, sp, 0x8000
-	
-	subi sp, sp, 144
-	stw r0, 0(sp)
-	stw r2, 4(sp)
-	stw r3, 8(sp)
-	stw r4, 12(sp)
-	stw r5, 16(sp)
-	stw r6, 20(sp)
-	stw r7, 24(sp)
-	stw r8, 28(sp)
-	stw r9, 32(sp)
-	stw r10, 36(sp)
-	stw r11, 40(sp)
-	stw r12, 44(sp)
-	stw r13, 48(sp)
-	stw r14, 52(sp)
-	stw r15, 56(sp)
-	stw r16, 60(sp)
-	stw r17, 64(sp)
-	stw r18, 68(sp)
-	stw r19, 72(sp)
-	stw r20, 76(sp)
-	stw r21, 80(sp)
-	stw r22, 84(sp)
-	stw r23, 88(sp)
-	stw r24, 92(sp)
-	stw r25, 96(sp)
-	stw r26, 100(sp)
-	stw r27, 104(sp)
-	stw r28, 108(sp)
-	stw r29, 112(sp)
-	stw r30, 116(sp)
-	stw r31, 120(sp)
-	
-	mfspr r3, srr0
-	stw r3, 124(sp)
-	
-	mfspr r3, srr1
-	stw r3, 128(sp)
-	
-	mflr r3
-	stw r3, 132(sp)
-	
-	mfcr r3
-	stw r3, 136(sp)
-	
-	mfctr r3
-	stw r3, 140(sp)
-	
-	mfxer r3
-	stw r3, 144(sp)
+	CONTEXT_STORE
 
-	lis r3, exc_dispatch@ha
-	addi r3, r3, exc_dispatch@l
-	mtspr srr0, r3
+	lis r12, exc_dispatch@ha
+	addi r12, r12, exc_dispatch@l
+	mtsrr0 r12
 	
-	mfmsr r3
-	ori r3, r3, (msr_ir | msr_dr)@l
-	mtspr srr1, r3
-	
-	lis r3, iret@ha
-	addi r3, r3, iret@l
-	mtlr r3
-	
-	addis sp, sp, 0x8000
 	li r3, 10
-	rfid
+	b jump_to_kernel
 
 .org 0xa00
 .global exc_reserved0
@@ -168,7 +227,9 @@ exc_reserved1:
 .org 0xc00
 .global exc_syscall
 exc_syscall:
-	b exc_syscall
+	CONTEXT_STORE	
+	
+	b jump_to_kernel_syscall
 
 .org 0xd00
 .global exc_trace

@@ -28,12 +28,26 @@
 
 #include <arch.h>
 #include <arch/boot/boot.h>
-#include <arch/console.h>
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
-#include <mm/frame.h>
+#include <genarch/fb/fb.h>
+#include <userspace.h>
+#include <proc/uarg.h>
 
 bootinfo_t bootinfo;
+
+void arch_pre_main(void)
+{
+	/* Setup usermode */
+	init.cnt = bootinfo.taskmap.count;
+	
+	__u32 i;
+	
+	for (i = 0; i < bootinfo.taskmap.count; i++) {
+		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
+		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+	}
+}
 
 void arch_pre_mm_init(void)
 {
@@ -42,13 +56,13 @@ void arch_pre_mm_init(void)
 	
 	/* Start decrementer */
 	start_decrementer();
-
-	ppc64_console_init();
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);	
+	
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}
@@ -67,3 +81,11 @@ void calibrate_delay_loop(void)
 {
 }
 
+void userspace(uspace_arg_t *kernel_uarg)
+{
+	userspace_asm((__address) kernel_uarg->uspace_uarg, (__address) kernel_uarg->uspace_stack + THREAD_STACK_SIZE - SP_DELTA, (__address) kernel_uarg->uspace_entry);
+	
+	/* Unreachable */
+	for (;;)
+		;
+}

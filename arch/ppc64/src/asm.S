@@ -30,63 +30,172 @@
 
 .text
 
+.global userspace_asm
 .global iret
+.global iret_syscall
 .global memsetb
 .global memcpy
+.global memcpy_from_uspace
+.global memcpy_to_uspace
+.global memcpy_from_uspace_failover_address
+.global memcpy_to_uspace_failover_address
+
+userspace_asm:
+
+	# r3 = uspace_uarg
+	# r4 = stack
+	# r5 = entry
+	
+	# disable interrupts
+
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	# set entry point
+	
+	mtsrr0 r5
+	
+	# set problem state, enable interrupts
+	
+	ori r31, r31, msr_pr
+	ori r31, r31, msr_ee
+	mtsrr1 r31
+	
+	# set stack
+	
+	mr sp, r4
+	
+	# jump to userspace
+	
+	rfi
 
 iret:
-	lwz r3, 144(sp)
-	mtxer r3
 	
-	lwz r3, 140(sp)
-	mtctr r3
+	# disable interrupts
 	
-	lwz r3, 136(sp)
-	mtcr r3
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
 	
-	lwz r3, 132(sp)
-	mtlr r3
+	lwz r0, 8(sp)
+	lwz r2, 12(sp)
+	lwz r3, 16(sp)
+	lwz r4, 20(sp)
+	lwz r5, 24(sp)
+	lwz r6, 28(sp)
+	lwz r7, 32(sp)
+	lwz r8, 36(sp)
+	lwz r9, 40(sp)
+	lwz r10, 44(sp)
+	lwz r11, 48(sp)
+	lwz r13, 52(sp)
+	lwz r14, 56(sp)
+	lwz r15, 60(sp)
+	lwz r16, 64(sp)
+	lwz r17, 68(sp)
+	lwz r18, 72(sp)
+	lwz r19, 76(sp)
+	lwz r20, 80(sp)
+	lwz r21, 84(sp)
+	lwz r22, 88(sp)
+	lwz r23, 92(sp)
+	lwz r24, 96(sp)
+	lwz r25, 100(sp)
+	lwz r26, 104(sp)
+	lwz r27, 108(sp)
+	lwz r28, 112(sp)
+	lwz r29, 116(sp)
+	lwz r30, 120(sp)
+	lwz r31, 124(sp)
 	
-	lwz r3, 128(sp)
-	mtspr srr1, r3
+	lwz r12, 128(sp)
+	mtcr r12
 	
-	lwz r3, 124(sp)
-	mtspr srr0, r3
+	lwz r12, 132(sp)
+	mtsrr0 r12
 	
-	lwz r0, 0(sp)
-	lwz r2, 4(sp)
-	lwz r3, 8(sp)
-	lwz r4, 12(sp)
-	lwz r5, 16(sp)
-	lwz r6, 20(sp)
-	lwz r7, 24(sp)
-	lwz r8, 28(sp)
-	lwz r9, 32(sp)
-	lwz r10, 36(sp)
-	lwz r11, 40(sp)
-	lwz r12, 44(sp)
-	lwz r13, 48(sp)
-	lwz r14, 52(sp)
-	lwz r15, 56(sp)
-	lwz r16, 60(sp)
-	lwz r17, 64(sp)
-	lwz r18, 68(sp)
-	lwz r19, 72(sp)
-	lwz r20, 76(sp)
-	lwz r21, 80(sp)
-	lwz r22, 84(sp)
-	lwz r23, 88(sp)
-	lwz r24, 92(sp)
-	lwz r25, 96(sp)
-	lwz r26, 100(sp)
-	lwz r27, 104(sp)
-	lwz r28, 108(sp)
-	lwz r29, 112(sp)
-	lwz r30, 116(sp)
-	lwz r31, 120(sp)
+	lwz r12, 136(sp)
+	mtsrr1 r12
 	
-	mfspr sp, sprg1
+	lwz r12, 140(sp)
+	mtlr r12
 	
+	lwz r12, 144(sp)
+	mtctr r12
+	
+	lwz r12, 148(sp)
+	mtxer r12
+	
+	lwz r12, 152(sp)
+	lwz sp, 156(sp)
+	
+	rfi
+
+iret_syscall:
+	
+	# reset decrementer
+
+	li r31, 1000
+	mtdec r31
+	
+	# disable interrupts
+	
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	lwz r0, 8(sp)
+	lwz r2, 12(sp)
+	lwz r4, 20(sp)
+	lwz r5, 24(sp)
+	lwz r6, 28(sp)
+	lwz r7, 32(sp)
+	lwz r8, 36(sp)
+	lwz r9, 40(sp)
+	lwz r10, 44(sp)
+	lwz r11, 48(sp)
+	lwz r13, 52(sp)
+	lwz r14, 56(sp)
+	lwz r15, 60(sp)
+	lwz r16, 64(sp)
+	lwz r17, 68(sp)
+	lwz r18, 72(sp)
+	lwz r19, 76(sp)
+	lwz r20, 80(sp)
+	lwz r21, 84(sp)
+	lwz r22, 88(sp)
+	lwz r23, 92(sp)
+	lwz r24, 96(sp)
+	lwz r25, 100(sp)
+	lwz r26, 104(sp)
+	lwz r27, 108(sp)
+	lwz r28, 112(sp)
+	lwz r29, 116(sp)
+	lwz r30, 120(sp)
+	lwz r31, 124(sp)
+	
+	lwz r12, 128(sp)
+	mtcr r12
+	
+	lwz r12, 132(sp)
+	mtsrr0 r12
+	
+	lwz r12, 136(sp)
+	mtsrr1 r12
+	
+	lwz r12, 140(sp)
+	mtlr r12
+	
+	lwz r12, 144(sp)
+	mtctr r12
+	
+	lwz r12, 148(sp)
+	mtxer r12
+	
+	lwz r12, 152(sp)
+	lwz sp, 156(sp)
+
 	rfi
 	
 memsetb:
@@ -133,6 +242,9 @@ memsetb:
 	blr
 
 memcpy:
+memcpy_from_uspace:
+memcpy_to_uspace:
+
 	srwi. r7, r5, 3
 	addi r6, r3, -4
 	addi r4, r4, -4
@@ -193,3 +305,7 @@ memcpy:
 	beq 2b
 	mtctr r7
 	b 1b
+
+memcpy_from_uspace_failover_address:
+memcpy_to_uspace_failover_address:
+	b memcpy_from_uspace_failover_address

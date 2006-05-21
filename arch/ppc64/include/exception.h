@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/boot/boot.h>
-#include <arch/console.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <genarch/fb/fb.h>
+#ifndef __ppc64_EXCEPTION_H__
+#define __ppc64_EXCEPTION_H__
 
+#ifndef __ppc64_TYPES_H__
+#  include <arch/types.h>
+#endif
 
-/** Initialize console to use frame buffer. */
-void ppc64_console_init(void)
+#include <typedefs.h>
+
+struct istate {
+	__u64 r0;
+	__u64 r2;
+	__u64 r3;
+	__u64 r4;
+	__u64 r5;
+	__u64 r6;
+	__u64 r7;
+	__u64 r8;
+	__u64 r9;
+	__u64 r10;
+	__u64 r11;
+	__u64 r13;
+	__u64 r14;
+	__u64 r15;
+	__u64 r16;
+	__u64 r17;
+	__u64 r18;
+	__u64 r19;
+	__u64 r20;
+	__u64 r21;
+	__u64 r22;
+	__u64 r23;
+	__u64 r24;
+	__u64 r25;
+	__u64 r26;
+	__u64 r27;
+	__u64 r28;
+	__u64 r29;
+	__u64 r30;
+	__u64 r31;
+	__u64 cr;
+	__u64 pc;
+	__u64 srr1;
+	__u64 lr;
+	__u64 ctr;
+	__u64 xer;
+	__u64 r12;
+	__u64 sp;
+};
+
+static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
-	/* TODO: Framebuffer mapping */
-	fb_init(0xf0000000 + (bootinfo.screen.addr & ((__address) ~0 >> 15)), bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	istate->pc = retaddr;
 }
+
+#endif

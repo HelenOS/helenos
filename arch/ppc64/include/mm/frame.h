@@ -30,10 +30,14 @@
 #define __ppc64_FRAME_H__
 
 #define FRAME_WIDTH		12	/* 4K */
-#define FRAME_SIZE		(1<<FRAME_WIDTH)
+#define FRAME_SIZE		(1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__
+
+#include <arch/types.h> 
+
+extern __address last_frame;
 
 extern void frame_arch_init(void);
 

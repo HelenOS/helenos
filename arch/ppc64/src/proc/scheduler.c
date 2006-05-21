@@ -27,12 +27,10 @@
  */
 
 #include <arch/mm/page.h>
+#include <arch/boot/boot.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <arch.h>
-
-__address supervisor_sp;
-__address supervisor_sp_physical;
 
 /** Perform ppc64 specific tasks needed before the new task is run. */
 void before_task_runs_arch(void)
@@ -42,8 +40,13 @@ void before_task_runs_arch(void)
 /** Perform ppc64 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
-	supervisor_sp_physical = KA2PA(supervisor_sp_physical);
+	pht_init();
+	tlb_invalidate_all();
+	asm volatile (
+		"mtsprg0 %0\n"
+		:
+		: "r" (KA2PA(&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]))
+	);
 }
 
 void after_thread_ran_arch(void)
