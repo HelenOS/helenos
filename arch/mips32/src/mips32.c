@@ -45,6 +45,7 @@
 #include <arch/drivers/arc.h>
 #include <console/chardev.h>
 #include <arch/debugger.h>
+#include <genarch/fb/fb.h>
 
 #include <arch/asm/regname.h>
 
@@ -111,6 +112,9 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
+#ifdef CONFIG_FB
+		fb_init(0x12000000, 640, 480, 24, 1920); // gxemul framebuffer
+#endif
 }
 
 void arch_pre_smp_init(void)

@@ -31,7 +31,6 @@
 #include <arch/drivers/arc.h>
 #include <arch/drivers/serial.h>
 #include <arch/drivers/msim.h>
-#include <genarch/fb/fb.h>
 
 void console_init(void)
 {
@@ -41,8 +40,5 @@ void console_init(void)
 		serial_console();
 	} else {
 		msim_console();
-#ifdef CONFIG_FB
-		fb_init(0xb2000000, 640, 480, 24, 1920); // gxemul framebuffer
-#endif
 	}
 }

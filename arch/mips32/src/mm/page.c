@@ -34,3 +34,12 @@ void page_arch_init(void)
 {
 	page_mapping_operations = &pt_mapping_operations;
 }
+
+/** Map device into kernel space
+ * - on mips, all devices are already mapped into kernel space,
+ *   translate the physical address to uncached area
+ */
+__address hw_map(__address physaddr, size_t size)
+{
+	return physaddr + 0xa0000000;
+}
