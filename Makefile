@@ -36,7 +36,6 @@ DIRS = \
 	softint \
 	softfloat \
 	init \
-	test \
 	ns \
 	fb
 
