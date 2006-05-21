@@ -200,14 +200,14 @@ void main_bsp_separated_stack(void)
 	arch_post_mm_init();	
 
 	version_print();
-	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(__address) * 2, config.base, hardcoded_ktext_size / 1024, hardcoded_kdata_size / 1024);
+	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(__address) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
 
 	arch_pre_smp_init();
 	smp_init();
 	
 	slab_enable_cpucache();	/* Slab must be initialized AFTER we know the number of processors */
 
-	printf("config.memory_size=%zdM\n", config.memory_size/(1024*1024));
+	printf("config.memory_size=%zdM\n", config.memory_size >> 20);
 	printf("config.cpu_count=%zd\n", config.cpu_count);
 	cpu_init();
 	
@@ -219,7 +219,7 @@ void main_bsp_separated_stack(void)
 	futex_init();
 	
 	for (i = 0; i < init.cnt; i++)
-		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(__address)*2, init.tasks[i].addr, i, init.tasks[i].size);
+		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(__address) * 2, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
 

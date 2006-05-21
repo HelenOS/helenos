@@ -132,13 +132,16 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	);
 	
 	/* Primary hash (xor) */
-	__u32 hash = ((vsid ^ page) & 0x3ff) << 3;
-	
+	__u32 h = 0;
+	__u32 hash = vsid ^ page;
+	__u32 base = (hash & 0x3ff) << 3;
 	__u32 i;
 	bool found = false;
-	/* Find unused PTE in PTEG */
+	
+	/* Find unused or colliding
+	   PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if (!phte[hash + i].v) {
+		if ((!phte[base + i].v) || ((phte[base + i].vsid == vsid) && (phte[base + i].api == api))) {
 			found = true;
 			break;
 		}
@@ -146,12 +149,15 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	
 	if (!found) {
 		/* Secondary hash (not) */
-		hash = ~hash;
+		__u32 base2 = (~hash & 0x3ff) << 3;
 		
-		/* Find unused PTE in PTEG */
+		/* Find unused or colliding
+		   PTE in PTEG */
 		for (i = 0; i < 8; i++) {
-			if (!phte[hash + i].v) {
+			if (!phte[base2 + i].v) {
 				found = true;
+				base = base2;
+				h = 1;
 				break;
 			}
 		}
@@ -162,14 +168,14 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 		}
 	}
 	
-	phte[hash + i].v = 1;
-	phte[hash + i].vsid = vsid;
-	phte[hash + i].h = 0;
-	phte[hash + i].api = api;
-	phte[hash + i].rpn = pfn;
-	phte[hash + i].r = 0;
-	phte[hash + i].c = 0;
-	phte[hash + i].pp = 2; // FIXME
+	phte[base + i].v = 1;
+	phte[base + i].vsid = vsid;
+	phte[base + i].h = h;
+	phte[base + i].api = api;
+	phte[base + i].rpn = pfn;
+	phte[base + i].r = 0;
+	phte[base + i].c = 0;
+	phte[base + i].pp = 2; // FIXME
 }
 
 
@@ -245,6 +251,18 @@ void page_arch_init(void)
 {
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
+		
+		__address cur;
+		int flags;
+		
+		/* Pages below 128 MB are mapped using BAT,
+		   map rest of the physical memory */
+		for (cur = 128 << 20; cur < last_frame; cur += FRAME_SIZE) {
+			flags = PAGE_CACHEABLE;
+			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
+				flags |= PAGE_GLOBAL;
+			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+		}
 		
 		/* Allocate page hash table */
 		phte_t *physical_phte = (phte_t *) PFN2ADDR(frame_alloc(PHT_ORDER, FRAME_KA | FRAME_PANIC));
