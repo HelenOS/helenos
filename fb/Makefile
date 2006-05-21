@@ -34,6 +34,9 @@ SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
+ifeq ($(ARCH), mips32)
+	CFLAGS += -DFB_BIG_ENDIAN
+endif
 
 LIBS =  $(LIBC_PREFIX)/libc.a
 
