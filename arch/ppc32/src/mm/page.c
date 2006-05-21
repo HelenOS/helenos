@@ -154,7 +154,7 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 		/* Find unused or colliding
 		   PTE in PTEG */
 		for (i = 0; i < 8; i++) {
-			if (!phte[base2 + i].v) {
+			if ((!phte[base2 + i].v) || ((phte[base2 + i].vsid == vsid) && (phte[base2 + i].api == api))) {
 				found = true;
 				base = base2;
 				h = 1;
@@ -255,7 +255,7 @@ void page_arch_init(void)
 		__address cur;
 		int flags;
 		
-		/* Pages below 128 MB are mapped using BAT,
+		/* Frames below 128 MB are mapped using BAT,
 		   map rest of the physical memory */
 		for (cur = 128 << 20; cur < last_frame; cur += FRAME_SIZE) {
 			flags = PAGE_CACHEABLE;
