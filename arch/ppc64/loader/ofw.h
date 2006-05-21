@@ -47,16 +47,16 @@ typedef struct {
 
 typedef struct {
 	unsigned long total;
-	unsigned long count;
+	unsigned int count;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
 typedef struct {
 	void *addr;
-	unsigned long width;
-	unsigned long height;
-	unsigned long bpp;
-	unsigned long scanline;
+	unsigned int width;
+	unsigned int height;
+	unsigned int bpp;
+	unsigned int scanline;
 } screen_t;
 
 
@@ -64,8 +64,8 @@ extern void init(void);
 extern void ofw_write(const char *str, const long len);
 
 extern void *ofw_translate(const void *virt);
-extern long ofw_map(const void *phys, const void *virt, const long size, const long mode);
-extern long ofw_memmap(memmap_t *map);
-extern long ofw_screen(screen_t *screen);
+extern int ofw_map(const void *phys, const void *virt, const long size, const int mode);
+extern int ofw_memmap(memmap_t *map);
+extern int ofw_screen(screen_t *screen);
 
 #endif

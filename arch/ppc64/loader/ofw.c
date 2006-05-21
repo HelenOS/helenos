@@ -33,17 +33,17 @@
 #define MAX_OFW_ARGS	10
 #define BUF_SIZE		1024
 
-typedef unsigned long ofw_arg_t;
-typedef unsigned long ihandle;
-typedef unsigned long phandle;
+typedef unsigned int ofw_arg_t;
+typedef unsigned int ihandle;
+typedef unsigned int phandle;
 
 /** OpenFirmware command structure
  *
  */
 typedef struct {
 	const char *service;          /**< Command name */
-	unsigned long nargs;           /**< Number of in arguments */
-	unsigned long nret;            /**< Number of out arguments */
+	unsigned int nargs;           /**< Number of in arguments */
+	unsigned int nret;            /**< Number of out arguments */
 	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
 } ofw_args_t;
 
@@ -60,11 +60,11 @@ phandle ofw_memory;
 phandle ofw_aliases;
 
 
-static long ofw_call(const char *service, const long nargs, const long nret, ofw_arg_t *rets, ...)
+static int ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
 {
 	va_list list;
 	ofw_args_t args;
-	long i;
+	int i;
 	
 	args.service = service;
 	args.nargs = nargs;
@@ -93,15 +93,15 @@ static phandle ofw_find_device(const char *name)
 }
 
 
-static long ofw_get_property(const phandle device, const char *name, const void *buf, const long buflen)
+static int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
 
 
-static unsigned long ofw_get_address_cells(const phandle device)
+static unsigned int ofw_get_address_cells(const phandle device)
 {
-	unsigned long ret;
+	unsigned int ret;
 	
 	if (ofw_get_property(device, "#address-cells", &ret, sizeof(ret)) <= 0)
 		if (ofw_get_property(ofw_root, "#address-cells", &ret, sizeof(ret)) <= 0)
@@ -111,9 +111,9 @@ static unsigned long ofw_get_address_cells(const phandle device)
 }
 
 
-static unsigned long ofw_get_size_cells(const phandle device)
+static unsigned int ofw_get_size_cells(const phandle device)
 {
-	unsigned long ret;
+	unsigned int ret;
 	
 	if (ofw_get_property(device, "#size-cells", &ret, sizeof(ret)) <= 0)
 		if (ofw_get_property(ofw_root, "#size-cells", &ret, sizeof(ret)) <= 0)
@@ -184,28 +184,28 @@ void *ofw_translate(const void *virt)
 }
 
 
-long ofw_map(const void *phys, const void *virt, const long size, const long mode)
+int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {
 	return ofw_call("call-method", 6, 1, NULL, "map", ofw_mmu, mode, size, virt, phys);
 }
 
 
-long ofw_memmap(memmap_t *map)
+int ofw_memmap(memmap_t *map)
 {
-	unsigned long buf[BUF_SIZE];
-	long ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(unsigned long) * BUF_SIZE);
+	unsigned int buf[BUF_SIZE];
+	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(unsigned int) * BUF_SIZE);
 	if (ret <= 0)
 		return false;
 		
-	unsigned long ac = ofw_get_address_cells(ofw_memory);
-	unsigned long sc = ofw_get_size_cells(ofw_memory);
+	unsigned int ac = ofw_get_address_cells(ofw_memory);
+	unsigned int sc = ofw_get_size_cells(ofw_memory);
 	
-	long pos;
+	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (pos = 0; (pos < ret / sizeof(unsigned long)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
+	for (pos = 0; (pos < ret / sizeof(unsigned int)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void * start = (void *) buf[pos + ac - 1];
-		unsigned long size = buf[pos + ac + sc - 1];
+		unsigned int size = buf[pos + ac + sc - 1];
 		
 		if (size > 0) {
 			map->zones[map->count].start = start;
@@ -217,7 +217,7 @@ long ofw_memmap(memmap_t *map)
 }
 
 
-long ofw_screen(screen_t *screen)
+int ofw_screen(screen_t *screen)
 {
 	char device_name[BUF_SIZE];
 	

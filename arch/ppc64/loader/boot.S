@@ -28,7 +28,7 @@
 
 #include "regname.h"
 
-.section BOOTSTRAP
+.section BOOTSTRAP, "ax"
 
 .global start
 

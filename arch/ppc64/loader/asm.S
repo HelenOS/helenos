@@ -106,11 +106,18 @@ jump_to_kernel:
 	# r3 = bootinfo (pa)
 	# r4 = bootinfo_size
 	# r5 = trans (pa)
-	# r6 = kernel size
-	# r7 = framebuffer (pa)
-	# r8 = real_mode (pa)
+	# r6 = bytes to copy
+	# r7 = real_mode (pa)
 	
-	mtspr srr0, r8
+	# disable interrupts
+	
+	mfmsr r31
+	rlwinm r31, r31, 0, 17, 15
+	mtmsr r31
+	
+	# set real_mode meeting point address
+	
+	mtspr srr0, r7
 	
 	# jumps to real_mode
 	
@@ -124,7 +131,7 @@ jump_to_kernel:
 	isync
 	rfid
 
-.section REALMODE
+.section REALMODE, "ax"
 .align PAGE_WIDTH
 .global real_mode
 
@@ -133,8 +140,7 @@ real_mode:
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
-	# r6 = kernel size
-	# r7 = framebuffer (pa)
+	# r6 = bytes to copy
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -168,74 +174,23 @@ real_mode:
 	
 	copy_end:
 	
-	# invalidate segment registers
+	# initially fill segment registers
 
 	li r31, 16
 	mtctr r31
 	li r31, 0
-	li r30, 0
+	li r30, 0x2000
 
 	seg_fill:
 	
 		mtsrin r30, r31
+		addi r30, r30, 0x111
 		addis r31, r31, 0x1000    # move to next SR
 		
 		bdnz seg_fill
 	
-	# invalidate block address translation registers
-	
-	mtspr ibat0u, r30
-	mtspr ibat0l, r30
-	
-	mtspr ibat1u, r30
-	mtspr ibat1l, r30
-	
-	mtspr ibat2u, r30
-	mtspr ibat2l, r30
-	
-	mtspr ibat3u, r30
-	mtspr ibat3l, r30
-	
-	mtspr dbat0u, r30
-	mtspr dbat0l, r30
-	
-	mtspr dbat1u, r30
-	mtspr dbat1l, r30
-	
-	mtspr dbat2u, r30
-	mtspr dbat2l, r30
-	
-	mtspr dbat3u, r30
-	mtspr dbat3l, r30
-	
-	# create identity mapping
-	
-	# FIXME: map exactly the size of RAM
-	
-	lis r31, 0x8000
-	ori r31, r31, 0x0ffe
-	
-	lis r30, 0x0000
-	ori r30, r30, 0x0002
-	
-	mtspr ibat0u, r31
-	mtspr ibat0l, r30
-	
-	mtspr dbat0u, r31
-	mtspr dbat0l, r30
-	
-	# FIXME: temporal framebuffer mapping
-	
-	lis r31, 0xf000
-	ori r31, r31, 0x0ffe
-	
-	mr r30, r7
-	ori r30, r30, 0x0002
-	
-	mtspr dbat1u, r31
-	mtspr dbat1l, r30
-	
 	tlbia
+	tlbsync
 	
 	# start the kernel
 	#

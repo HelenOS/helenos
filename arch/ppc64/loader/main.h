@@ -38,13 +38,24 @@
  */
 #define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
+#define TASKMAP_MAX_RECORDS 32
+
 typedef struct {
+	void *addr;
+	unsigned long size;
+} task_t;
+
+typedef struct {
+	unsigned int count;
+	task_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
+
+typedef struct {
+	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
 } bootinfo_t;
 
-extern long _binary_____________kernel_kernel_bin_start;
-extern long _binary_____________kernel_kernel_bin_end;
 extern void start(void);
 extern void bootstrap(void);
 

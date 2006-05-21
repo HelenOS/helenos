@@ -30,7 +30,7 @@
 #
 
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ifeq ($(COMPILER),native)
 	CC = gcc
@@ -46,7 +46,7 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc64 -m64
+CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc64 -msoft-float -m64
 DEFS = 
 
 SOURCES = \
@@ -56,7 +56,14 @@ SOURCES = \
 	asm.S \
 	boot.S
 
+COMPONENTS = \
+	$(KERNELDIR)/kernel.bin \
+	$(USPACEDIR)/ns/ns \
+	$(USPACEDIR)/init/init \
+	$(USPACEDIR)/fb/fb
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
 
 .PHONY: all clean depend
 
@@ -64,17 +71,17 @@ all: image.boot
 
 -include Makefile.depend
 
-image.boot: depend $(OBJECTS) kernel.o
-	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) kernel.o 
+	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
+	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf64-powerpc -B powerpc --rename-section .data=.image $(KERNEL) $@
+_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
+	./pack $(OBJCOPY) $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
