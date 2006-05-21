@@ -29,18 +29,6 @@
 #ifndef __LIBC__ppc32__THREAD_H__
 #define __LIBC__ppc32__THREAD_H__
 
-/* I did not find any specification (neither MIPS nor PowerPC), but
- * as I found it
- * - it uses Variant II
- * - TCB is at Address(First TLS Block)+0x7000.
- * - DTV is at Address(First TLS Block)+0x8000
- * - What would happen if the TLS data was larger then 0x7000?
- * - The linker never accesses DTV directly, has the second definition any
- *   sense?
- * We will make it this way:
- * - TCB is at TP-0x7000-sizeof(tcb)
- * - No assumption about DTV etc., but it will not have a fixed address
- */
 #define PPC_TP_OFFSET 0x7000
 
 typedef struct {

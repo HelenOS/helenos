@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#include <thread.h>
+#include <malloc.h>
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+/** Allocate TLS & TCB for initial module threads
+ *
+ * @param data Start of data section
+ * @return pointer to tcb_t structure
+ *
+ */
+tcb_t * __alloc_tls(void **data, size_t size)
+{
+	tcb_t *tcb;
+	
+	*data = malloc(sizeof(tcb_t) + size);
+	tcb = (tcb_t *) (*data + size);
+	return tcb;
+}
 
-#endif
+void __free_tls_arch(tcb_t *tcb, size_t size)
+{
+	void *start = ((void *) tcb) - size;
+	free(start);
+}

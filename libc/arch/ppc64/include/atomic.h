@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef __ppc64_ATOMIC_H__
+#define __ppc64_ATOMIC_H__
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+static inline void atomic_inc(atomic_t *val)
+{
+	long tmp;
+
+	asm __volatile__ (
+		"1:\n"
+		"lwarx %0, 0, %2\n"
+		"addic %0, %0, 1\n"
+		"stwcx. %0, 0, %2\n"
+		"bne- 1b"
+		: "=&r" (tmp), "=m" (val->count)
+		: "r" (&val->count), "m" (val->count)
+		: "cc");
+}
+
+static inline void atomic_dec(atomic_t *val)
+{
+	long tmp;
+
+	asm __volatile__(
+		"1:\n"
+		"lwarx %0, 0, %2\n"
+		"addic %0, %0, -1\n"
+		"stwcx.	%0, 0, %2\n"
+		"bne- 1b"
+		: "=&r" (tmp), "=m" (val->count)
+		: "r" (&val->count), "m" (val->count)
+		: "cc");
+}
+
+static inline long atomic_postinc(atomic_t *val)
+{
+	atomic_inc(val);
+	return val->count - 1;
+}
+
+static inline long atomic_postdec(atomic_t *val)
+{
+	atomic_dec(val);
+	return val->count + 1;
+}
+
+static inline long atomic_preinc(atomic_t *val)
+{
+	atomic_inc(val);
+	return val->count;
+}
+
+static inline long atomic_predec(atomic_t *val)
+{
+	atomic_dec(val);
+	return val->count;
+}
 
 #endif

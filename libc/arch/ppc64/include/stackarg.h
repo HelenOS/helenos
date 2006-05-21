@@ -26,12 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
-
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#ifndef __LIBC__STACKARG_H__
+#define __LIBC__STACKARG_H__
 
 #endif
+

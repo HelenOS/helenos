@@ -26,12 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef __ppc64_ENDIAN_H__
+#define __ppc64_ENDIAN_H__
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#ifndef __LIBC__ENDIAN_H__
+# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
+#endif
+
+#define __BYTE_ORDER __BIG_ENDIAN
 
 #endif

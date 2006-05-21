@@ -30,12 +30,12 @@
 #
 
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/psthread.S \
 		arch/$(ARCH)/src/thread.c
 
-CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
+CFLAGS += -mcpu=powerpc64 -msoft-float -m64
+AFLAGS += -a64
 LFLAGS += -N

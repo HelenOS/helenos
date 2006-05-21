@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#include <libc.h>
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
-
-#endif
+sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id)
+{
+	register sysarg_t __ppc32_reg_r3 asm("3") = p1;
+	register sysarg_t __ppc32_reg_r4 asm("4") = p2;
+	register sysarg_t __ppc32_reg_r5 asm("5") = p3;
+	register sysarg_t __ppc32_reg_r6 asm("6") = p4;
+	register sysarg_t __ppc32_reg_r7 asm("7") = id;
+	
+	asm volatile (
+		"sc\n"
+		: "=r" (__ppc32_reg_r3)
+		: "r" (__ppc32_reg_r3),
+		  "r" (__ppc32_reg_r4),
+		  "r" (__ppc32_reg_r5),
+		  "r" (__ppc32_reg_r6),
+		  "r" (__ppc32_reg_r7)
+	);
+	
+	return __ppc32_reg_r3;
+}

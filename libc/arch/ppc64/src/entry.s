@@ -26,16 +26,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
+.section .init, "ax"
+
+.org 0
+
+.globl __entry
+.globl __entry_driver
+
+## User-space task entry point
 #
+#
+__entry:
+	bl __main
+	bl __io_init
+	bl main
+	bl __exit
 
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
-
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/psthread.S \
-		arch/$(ARCH)/src/thread.c
-
-CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -N
+__entry_driver:
+	bl __main
+	bl main
+	bl __exit

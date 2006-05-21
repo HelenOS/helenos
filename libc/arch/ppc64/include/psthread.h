@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef __LIBC__ppc64__PSTHREAD_H__
+#define __LIBC__ppc64__PSTHREAD_H__
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#include <types.h>
+
+/* We define our own context_set, because we need to set
+ * the TLS pointer to the tcb+0x7000
+ *
+ * See tls_set in thread.h
+ */
+#define context_set(c, _pc, stack, size, ptls) 			\
+	(c)->pc = (sysarg_t) (_pc);				\
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
+	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
+
+#define SP_DELTA	16
+
+typedef struct {
+	uint64_t sp;
+	uint64_t pc;
+	
+	uint64_t tls;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t r16;
+	uint64_t r17;
+	uint64_t r18;
+	uint64_t r19;
+	uint64_t r20;
+	uint64_t r21;
+	uint64_t r22;
+	uint64_t r23;
+	uint64_t r24;
+	uint64_t r25;
+	uint64_t r26;
+	uint64_t r27;
+	uint64_t r28;
+	uint64_t r29;
+	uint64_t r30;
+	uint64_t r31;
+	
+	uint64_t cr;
+} __attribute__ ((packed)) context_t;
 
 #endif

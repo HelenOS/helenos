@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef __LIBC__ppc64__THREAD_H__
+#define __LIBC__ppc64__THREAD_H__
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#define PPC_TP_OFFSET 0x7000
+
+typedef struct {
+	void *pst_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
+{
+	void *tp = tcb;
+	tp += PPC_TP_OFFSET + sizeof(tcb_t);
+	
+	asm volatile (
+		"mr %%r2, %0\n"
+		:
+		: "r" (tp)
+	);
+}
+
+static inline tcb_t * __tcb_get(void)
+{
+	void * retval;
+	
+	asm volatile (
+		"mr %0, %%r2\n"
+		: "=r" (retval)
+	);
+
+	return (tcb_t *)(retval - PPC_TP_OFFSET - sizeof(tcb_t));
+}
 
 #endif

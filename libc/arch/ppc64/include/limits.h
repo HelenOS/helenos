@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef __ppc64__LIMITS_H__
+#define __ppc64__LIMITS_H__
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#define LONG_MIN MIN_INT64
+#define LONG_MAX MAX_INT64
+#define ULONG_MIN MIN_UINT64
+#define ULONG_MAX MAX_UINT64
 
 #endif

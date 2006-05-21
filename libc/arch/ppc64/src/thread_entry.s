@@ -26,16 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
+.text
+	
+.globl __thread_entry
+
+## User-space thread entry point for all but the first threads.
 #
+#
+__thread_entry:
+	b __thread_main
 
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
-
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/psthread.S \
-		arch/$(ARCH)/src/thread.c
-
-CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -N
+.end __thread_entry
