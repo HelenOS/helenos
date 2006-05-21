@@ -32,8 +32,8 @@
  * interface.
  */
 
-#ifndef __ia32_ASID_H__
-#define __ia32_ASID_H__
+#ifndef __ppc32_ASID_H__
+#define __ppc32_ASID_H__
 
 typedef int asid_t;
 
