@@ -138,7 +138,13 @@ static inline void cpu_sleep(void)
 {
 }
 
-void cpu_halt(void);
+static inline void cpu_halt(void)
+{
+	asm volatile (
+		"b 0\n"
+	);
+}
+
 void asm_delay_loop(__u32 t);
 
 extern void userspace_asm(__address uspace_uarg, __address stack, __address entry);

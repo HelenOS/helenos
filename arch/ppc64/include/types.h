@@ -46,7 +46,7 @@ typedef __u64 pfn_t;
 
 typedef __u64 ipl_t;
 
-typedef __u32 __native;
+typedef __u64 __native;
 
 /** Page Table Entry. */
 typedef struct {
