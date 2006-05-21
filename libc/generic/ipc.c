@@ -57,12 +57,7 @@ typedef struct {
 LIST_INITIALIZE(dispatched_calls);
 LIST_INITIALIZE(queued_calls);
 
-static atomic_t ipc_futex;
-
-void _ipc_init(void)
-{
-	futex_initialize(&ipc_futex, 1);
-}
+static atomic_t ipc_futex = FUTEX_INITIALIZER;
 
 int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		  ipcarg_t *result)
@@ -252,24 +247,24 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 }
 
 
-/** Unconditionally wait for an IPC call.
+/** One cycle of ipc wait for call call
  *
  * - dispatch ASYNC reoutines in the background
  * @param call Space where the message is stored
+ * @param usec Timeout in microseconds
+ * @param flags Flags passed to SYS_IPC_WAIT (blocking, nonblocking)
  * @return Callid of the answer.
  */
-ipc_callid_t ipc_wait_for_call(ipc_call_t *call)
+ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags)
 {
 	ipc_callid_t callid;
 
-	do {
-		try_dispatch_queued_calls();
-
-		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, SYNCH_NO_TIMEOUT, SYNCH_BLOCKING);
-		/* Handle received answers */
-		if (callid & IPC_CALLID_ANSWERED)
-			handle_answer(callid, call);
-	} while (callid & IPC_CALLID_ANSWERED);
+	try_dispatch_queued_calls();
+	
+	callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
+	/* Handle received answers */
+	if (callid & IPC_CALLID_ANSWERED)
+		handle_answer(callid, call);
 
 	return callid;
 }
@@ -286,12 +281,7 @@ ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *call, uint32_t usec)
 	ipc_callid_t callid;
 
 	do {
-		try_dispatch_queued_calls();
-
-		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, SYNCH_BLOCKING);
-		/* Handle received answers */
-		if (callid & IPC_CALLID_ANSWERED)
-			handle_answer(callid, call);
+		callid = ipc_wait_cycle(call, usec, SYNCH_BLOCKING);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;
@@ -308,12 +298,7 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 	ipc_callid_t callid;
 
 	do {
-		try_dispatch_queued_calls();
-
-		callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t)call, SYNCH_NO_TIMEOUT, SYNCH_NON_BLOCKING);
-		/* Handle received answers */
-		if (callid & IPC_CALLID_ANSWERED)
-			handle_answer(callid, call);
+		callid = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT, SYNCH_NON_BLOCKING);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;

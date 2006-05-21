@@ -36,7 +36,7 @@
 #include <arch/kbd.h>
 #include <kbd.h>
 #include <key_buffer.h>
-#include <fifo.h>
+#include <libadt/fifo.h>
 
 #define NAME "KBD"
 

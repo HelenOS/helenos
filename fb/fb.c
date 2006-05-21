@@ -44,13 +44,9 @@
 #include <ipc/ns.h>
 
 #include <kernel/errno.h>
-
+#include <async.h>
 
 #include "fb.h"
-
-
-
-#define pl /*printf("FB:L:%d\n",(int)__LINE__);*/
 
 #define EFB (-1)
 
@@ -79,11 +75,8 @@ unsigned int mod_col(unsigned int col,int mod);
 
 
 
-
-
-int main(int argc, char *argv[])
+static int init_fb(void)
 {
-	
 	__address fb_ph_addr;
 	unsigned int fb_width;
 	unsigned int fb_height;
@@ -91,10 +84,10 @@ int main(int argc, char *argv[])
 	unsigned int fb_scanline;
 	__address fb_addr;
 	int a=0;
+	int i,j,k;
+	int w;
+	char text[]="HelenOS Framebuffer driver\non Virtual Framebuffer\nVFB ";
 
-
-	if(!sysinfo_value("fb")) return -1;
-	
 	fb_ph_addr=sysinfo_value("fb.address.physical");
 	fb_width=sysinfo_value("fb.width");
 	fb_height=sysinfo_value("fb.height");
@@ -104,9 +97,9 @@ int main(int argc, char *argv[])
 	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
 
 
-
+	
 	map_physmem(task_get_id(),(void *)((__address)fb_ph_addr),(void *)fb_addr,
-		(fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,1);
+		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,1);
 	
 	fb_init(0,fb_addr, fb_width, fb_height, fb_bpp, fb_scanline,
 		MAIN_BGCOLOR,MAIN_FGCOLOR,MAIN_LOGOCOLOR);
@@ -114,33 +107,57 @@ int main(int argc, char *argv[])
 	fb_putchar(0,'\n');
 	fb_putchar(0,' ');
 
+	for(i=0;i<H_NO_VFBS;i++)
+		for(j=0;j<V_NO_VFBS;j++) {
+			w = create_window(0,(fb_width/H_NO_VFBS)*i+SPACING,
+					  (fb_height/V_NO_VFBS)*j+SPACING,(fb_width/H_NO_VFBS)-2*SPACING ,
+					  (fb_height/V_NO_VFBS)-2*SPACING,mod_col(DEFAULT_BGCOLOR,/*i+j*H_NO_VFBS*/0),
+					  mod_col(DEFAULT_FGCOLOR,/*i+j*H_NO_VFBS*/0),
+					  mod_col(DEFAULT_LOGOCOLOR,/*i+j*H_NO_VFBS)*/0));
+			
+			if( w== EFB)
+				return -1;
+			
+			for(k=0;text[k];k++) 
+				fb_putchar(w,text[k]);
+			fb_putchar(w,w+'0');
+			fb_putchar(w,'\n');
+		}
+	return 0;
+}
 
-	{
-		int i,j;
+int vfb_no = 1;
+void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int vfb = vfb_no++;
 
-		for(i=0;i<H_NO_VFBS;i++)
-			for(j=0;j<V_NO_VFBS;j++)
-			{
-	
-				int w=create_window(0,(fb_width/H_NO_VFBS)*i+SPACING,
-					(fb_height/V_NO_VFBS)*j+SPACING,(fb_width/H_NO_VFBS)-2*SPACING ,
-						(fb_height/V_NO_VFBS)-2*SPACING,mod_col(DEFAULT_BGCOLOR,/*i+j*H_NO_VFBS*/0),
-							mod_col(DEFAULT_FGCOLOR,/*i+j*H_NO_VFBS*/0),
-								mod_col(DEFAULT_LOGOCOLOR,/*i+j*H_NO_VFBS)*/0));
-
-				if(w==EFB) return -1;
-
-				{
-					char text[]="Hello, World from\nHelenOS Framebuffer driver\non Virtual Framebuffer\nVFB ";
-					int i;
-					for(i=0;text[i];i++) fb_putchar(w,text[i]);
-					fb_putchar(w,w+'0');
-					fb_putchar(w,'\n');
-				}
-			}
+	if (vfb > 9) {
+		ipc_answer_fast(iid, ELIMIT, 0,0);
+		return;
 	}
+	ipc_answer_fast(iid, 0, 0, 0);
 
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			ipc_answer_fast(callid,0,0,0);
+			return; /* Exit thread */
 
+		case FB_PUTCHAR:
+			ipc_answer_fast(callid,0,0,0);
+			fb_putchar(vfb,IPC_GET_ARG2(call));
+			break;
+		default:
+			ipc_answer_fast(callid,ENOENT,0,0);
+		}
+	}
+}
+
+int main(int argc, char *argv[])
+{
 	ipc_call_t call;
 	ipc_callid_t callid;
 	char connected = 0;
@@ -150,53 +167,16 @@ int main(int argc, char *argv[])
 	
 	ipcarg_t retval, arg1, arg2;
 
+	if(!sysinfo_value("fb")) return -1;
 
 
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, &phonead)) != 0) 
-	{
 		return -1;
-	};
+	
+	init_fb();
 
-		
-	while (1) {
-		static int vfb_no=1;
-
-		callid = ipc_wait_for_call(&call);
-	//	printf("%s:Call phone=%lX..", NAME, call.in_phone_hash);
-		switch (IPC_GET_METHOD(call)&((1<<METHOD_WIDTH)-1)) {
-			case IPC_M_PHONE_HUNGUP:
-//				fb_putchar(4,((a++)&15)+'A');
-				
-				retval = 0;
-				break;
-			case IPC_M_CONNECT_ME_TO:
-					retval = 0;
-//				fb_putchar(1,((a++)&15)+'A');
-				break;
-			case FB_GET_VFB:
-				retval = 0;
-				arg1 = vfb_no++;	
-//				fb_putchar(2,((a++)&15)+'A');
-				
-				break;
-
-			case FB_PUTCHAR:
-				retval = 0;
-				fb_putchar(IPC_GET_ARG1(call),IPC_GET_ARG2(call));
-//				fb_putchar(2,((a++)&15)+'A');
-				break;
-
-			default:
-				retval = ENOENT;
-//				fb_putchar(3,((a++)&15)+'A');
-				break;
-		}
-
-		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer_fast(callid, retval, arg1, arg2);
-		}
-	}
-
+	async_manager();
+	/* Never reached */
 	return 0;
 }
 /*
@@ -309,7 +289,6 @@ static void putpixel_3byte(int item,unsigned int x, unsigned int y, int color)
 	FB(item,fbaddress)[startbyte + 1] = GREEN(color, 8);
 	FB(item,fbaddress)[startbyte + 0] = BLUE(color, 8);
 #endif
-																								
 
 }
 
@@ -371,7 +350,7 @@ static void clear_screen(int item)
 	unsigned int y;
 	for (y = 0; y < FB(item,yres); y++)
 	{
-		clear_line(item,y); pl
+		clear_line(item,y);
 	}	
 }
 
@@ -553,23 +532,23 @@ void fb_init(int item,__address addr, unsigned int x, unsigned int y, unsigned i
 	}
 
 		
-	FB(item,fbaddress) = (unsigned char *) addr; pl
-	FB(item,xres) = x; pl
-	FB(item,yres) = y; pl
-	FB(item,scanline) = scan; pl
+	FB(item,fbaddress) = (unsigned char *) addr;
+	FB(item,xres) = x;
+	FB(item,yres) = y;
+	FB(item,scanline) = scan;
 	
 	
-	FB(item,rows) = y / FONT_SCANLINES; pl
-	FB(item,columns) = x / COL_WIDTH; pl
+	FB(item,rows) = y / FONT_SCANLINES;
+	FB(item,columns) = x / COL_WIDTH;
 
 	FB(item,BGCOLOR)=BGCOLOR;
 	FB(item,FGCOLOR)=FGCOLOR;
 	FB(item,LOGOCOLOR)=LOGOCOLOR;
 
 
-	clear_screen(item); pl
-	draw_logo(item,FB(item,xres) - helenos_width, 0); pl
-	invert_cursor(item); pl
+	clear_screen(item);
+	draw_logo(item,FB(item,xres) - helenos_width, 0);
+	invert_cursor(item);
 
 }
 

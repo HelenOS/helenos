@@ -27,7 +27,7 @@
  */
 
 #include <key_buffer.h>
-#include <fifo.h>
+#include <libadt/fifo.h>
 
 #define KBD_BUFFER_SIZE 128 /**< Size of buffer for pressed keys */
 

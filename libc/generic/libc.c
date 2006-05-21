@@ -33,18 +33,18 @@
 #include <psthread.h>
 #include <io/stream.h>
 #include <ipc/ipc.h>
+#include <async.h>
 
 void _exit(int status) {
 	thread_exit(status);
 }
 
 void __main(void) {
-	tcb_t *tcb;
-	
-	tcb = __make_tls();
-	__tcb_set(tcb);
-	psthread_setup(tcb);
-	_ipc_init();
+	psthread_data_t *pt;
+
+	_async_init();
+	pt = psthread_setup();
+	__tcb_set(pt->tcb);
 }
 
 void __io_init(void) {
@@ -54,10 +54,6 @@ void __io_init(void) {
 }
 
 void __exit(void) {
-	tcb_t *tcb;
-
-	tcb = __tcb_get();
-	psthread_teardown(tcb->pst_data);
-	__free_tls(tcb);
+	psthread_teardown(__tcb_get()->pst_data);
 	_exit(0);
 }

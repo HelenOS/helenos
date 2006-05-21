@@ -33,6 +33,7 @@
 #include <kernel/ipc/irq.h>
 #include <libc.h>
 #include <types.h>
+#include <kernel/synch/synch.h>
 
 typedef sysarg_t ipcarg_t;
 typedef struct {
@@ -53,8 +54,12 @@ extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			 ipcarg_t *result);
-extern ipc_callid_t ipc_wait_for_call(ipc_call_t *data);
+extern ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);
+static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
+{
+	return ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
+}
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 
 extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
@@ -71,6 +76,5 @@ extern int ipc_hangup(int phoneid);
 extern int ipc_register_irq(int irq, irq_code_t *code);
 extern int ipc_unregister_irq(int irq);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
-extern void _ipc_init(void);
 
 #endif

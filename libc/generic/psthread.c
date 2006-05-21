@@ -33,24 +33,34 @@
 #include <thread.h>
 #include <stdio.h>
 #include <kernel/arch/faddr.h>
-
+#include <futex.h>
+#include <assert.h>
 
 #ifndef PSTHREAD_INITIAL_STACK_PAGES_NO
 #define PSTHREAD_INITIAL_STACK_PAGES_NO 1
 #endif
 
 static LIST_INITIALIZE(ready_list);
+static LIST_INITIALIZE(manager_list);
 
 static void psthread_exit(void) __attribute__ ((noinline));
 static void psthread_main(void);
 
+static atomic_t psthread_futex = FUTEX_INITIALIZER;
+
 /** Setup PSthread information into TCB structure */
-psthread_data_t * psthread_setup(tcb_t *tcb)
+psthread_data_t * psthread_setup()
 {
 	psthread_data_t *pt;
+	tcb_t *tcb;
+
+	tcb = __make_tls();
+	if (!tcb)
+		return NULL;
 
 	pt = malloc(sizeof(*pt));
 	if (!pt) {
+		__free_tls(tcb);
 		return NULL;
 	}
 
@@ -62,6 +72,7 @@ psthread_data_t * psthread_setup(tcb_t *tcb)
 
 void psthread_teardown(psthread_data_t *pt)
 {
+	__free_tls(pt->tcb);
 	free(pt);
 }
 
@@ -72,14 +83,21 @@ void psthread_exit(void)
 {
 	psthread_data_t *pt;
 
-	if (list_empty(&ready_list)) {
-		/* Wait on IPC queue etc... */
-		printf("Cannot exit!!!\n");
+	futex_down(&psthread_futex);
+
+	if (!list_empty(&ready_list))
+		pt = list_get_instance(ready_list.next, psthread_data_t, link);
+	else if (!list_empty(&manager_list)) 
+		pt = list_get_instance(manager_list.next, psthread_data_t, link);
+	else {
+		printf("Cannot find suitable psthread to run.\n");
 		_exit(0);
 	}
-	pt = list_get_instance(ready_list.next, psthread_data_t, link);
 	list_remove(&pt->link);
+	futex_up(&psthread_futex);
+
 	context_restore(&pt->ctx);
+	/* Never reached */
 }
 
 /** Function that is called on entry to new uspace thread */
@@ -98,24 +116,47 @@ void psthread_main(void)
 
 /** Schedule next userspace pseudo thread.
  *
+ * @param tomanager If true, we are switching to next ready manager thread
+ *                  (if none is found, thread is exited)
+ * @param frommanager If true, we are switching from manager thread
  * @return 0 if there is no ready pseudo thread, 1 otherwise.
  */
-int psthread_schedule_next(void)
+int psthread_schedule_next_adv(pschange_type ctype)
 {
 	psthread_data_t *pt;
+	int retval = 0;
+	
+	futex_down(&psthread_futex);
 
-	if (list_empty(&ready_list))
-		return 0;
+	if (ctype == PS_PREEMPT && list_empty(&ready_list))
+		goto ret_0;
+
+	if (ctype == PS_FROM_MANAGER && list_empty(&ready_list)) {
+		goto ret_0;
+	}
+	assert(!(ctype == PS_TO_MANAGER && list_empty(&manager_list)));
 
 	pt = __tcb_get()->pst_data;
-	if (!context_save(&pt->ctx))
-		return 1;
+	if (!context_save(&pt->ctx)) 
+		return 1; // futex_up already done here
+
+	if (ctype == PS_PREEMPT)
+		list_append(&pt->link, &ready_list);
+	else if (ctype == PS_FROM_MANAGER)
+		list_append(&pt->link, &manager_list);
 	
-	list_append(&pt->link, &ready_list);
-	pt = list_get_instance(ready_list.next, psthread_data_t, link);
+	if (ctype == PS_TO_MANAGER)
+		pt = list_get_instance(manager_list.next,psthread_data_t, link);
+	else
+		pt = list_get_instance(ready_list.next, psthread_data_t, link);
 	list_remove(&pt->link);
 
+	futex_up(&psthread_futex);
 	context_restore(&pt->ctx);
+
+ret_0:
+	futex_up(&psthread_futex);
+	return retval;
 }
 
 /** Wait for uspace pseudo thread to finish.
@@ -142,14 +183,13 @@ int psthread_join(pstid_t psthrid)
 	retval = pt->retval;
 
 	free(pt->stack);
-	__free_tls(pt->tcb);
 	psthread_teardown((void *)pt);
 
 	return retval;
 }
 
 /**
- * Create a userspace thread and append it to ready list.
+ * Create a userspace thread
  *
  * @param func Pseudo thread function.
  * @param arg Argument to pass to func.
@@ -159,21 +199,13 @@ int psthread_join(pstid_t psthrid)
 pstid_t psthread_create(int (*func)(void *), void *arg)
 {
 	psthread_data_t *pt;
-	tcb_t *tcb;
 
-	tcb = __make_tls();
-	if (!tcb)
+	pt = psthread_setup();
+	if (!pt) 
 		return 0;
-
-	pt = psthread_setup(tcb);
-	if (!pt) {
-		__free_tls(tcb);
-		return 0;
-	}
 	pt->stack = (char *) malloc(PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize());
 
 	if (!pt->stack) {
-		__free_tls(tcb);
 		psthread_teardown(pt);
 		return 0;
 	}
@@ -185,9 +217,43 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 
 	context_save(&pt->ctx);
 	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(),
-		    tcb);
-
-	list_append(&pt->link, &ready_list);
+		    pt->tcb);
 
 	return (pstid_t )pt;
+}
+
+/** Add a thread to ready list */
+void psthread_add_ready(pstid_t psthrid)
+{
+	psthread_data_t *pt;
+
+	pt = (psthread_data_t *) psthrid;
+	futex_down(&psthread_futex);
+	list_append(&pt->link, &ready_list);
+	futex_up(&psthread_futex);
+}
+
+/** Add a thread to manager list */
+void psthread_add_manager(pstid_t psthrid)
+{
+	psthread_data_t *pt;
+
+	pt = (psthread_data_t *) psthrid;
+
+	futex_down(&psthread_futex);
+	list_append(&pt->link, &manager_list);
+	futex_up(&psthread_futex);
+}
+
+/** Remove one manager from manager list */
+void psthread_remove_manager()
+{
+	futex_down(&psthread_futex);
+	if (list_empty(&manager_list)) {
+		printf("No manager found!.\n");
+		futex_up(&psthread_futex);
+		return;
+	}
+	list_remove(manager_list.next);
+	futex_up(&psthread_futex);
 }

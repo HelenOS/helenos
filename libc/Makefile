@@ -62,7 +62,10 @@ GENERIC_SOURCES = \
 	malloc/malloc.c \
 	generic/psthread.c \
 	generic/sysinfo.c \
-	generic/ipc.c
+	generic/ipc.c \
+	generic/async.c \
+	generic/libadt/list.o \
+	generic/libadt/hash_table.o
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
@@ -79,19 +82,18 @@ kerninc:
 	ln -sfn ../../../kernel/generic/include include/kernel
 	ln -sfn kernel/arch include/arch
 	ln -sfn ../arch/$(ARCH)/include include/libarch
-	ln -sfn ../../libadt/include include/libadt
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch include/libarch include/libadt libc.a arch/$(ARCH)/_link.ld Makefile.depend
+	-rm -f include/kernel include/arch include/libarch libc.a arch/$(ARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc
 	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+	$(AR) rc libc.a $(LIBS) $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@

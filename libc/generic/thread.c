@@ -33,6 +33,7 @@
 #include <kernel/proc/uarg.h>
 #include <psthread.h>
 #include <string.h>
+#include <async.h>
 
 #include <stdio.h>
 
@@ -80,21 +81,24 @@ void __free_tls(tcb_t *tcb)
  * directly.
  *
  * @param uarg Pointer to userspace argument structure.
+ *
+ * TODO: Thread stack pages memory leak
  */
 void __thread_main(uspace_arg_t *uarg)
 {
-	tcb_t *tcb;
-	/* This should initialize the area according to TLS specicification */
-	tcb = __make_tls();
-	__tcb_set(tcb);
-	psthread_setup(tcb);
+	psthread_data_t *pt;
+
+	pt = psthread_setup();
+	__tcb_set(pt->tcb);
+	
+	async_create_manager();
 
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	free(uarg->uspace_stack);
 	free(uarg);
 
-	psthread_teardown(tcb->pst_data);
-	__free_tls(tcb);
+	async_destroy_manager();
+	psthread_teardown(pt);
 
 	thread_exit(0);
 }

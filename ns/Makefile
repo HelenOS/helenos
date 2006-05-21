@@ -30,11 +30,10 @@
 #
 
 LIBC_PREFIX = ../libc
-LIBADT_PREFIX = ../libadt
 SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-LIBS = $(LIBADT_PREFIX)/libadt.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #

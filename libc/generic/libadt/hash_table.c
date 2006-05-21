@@ -30,8 +30,8 @@
  * This is an implementation of generic chained hash table.
  */
 
-#include <hash_table.h>
-#include <list.h>
+#include <libadt/hash_table.h>
+#include <libadt/list.h>
 #include <unistd.h>
 #include <malloc.h>
 #include <assert.h>
