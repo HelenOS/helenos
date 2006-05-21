@@ -29,7 +29,7 @@
 ## Toolchain configuration
 #
 
-TARGET = ppc-linux-gnu
+TARGET = ppc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \

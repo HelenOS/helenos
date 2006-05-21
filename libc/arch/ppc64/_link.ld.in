@@ -14,11 +14,13 @@ SECTIONS {
 	} :text
 	.text : {
 		*(.text);
+		*(.toc);
 		*(.rodata*);
 	} :text
 	
 	.data ALIGN(0x1000) : SUBALIGN(0x1000) {
-		*(.data);
+		*(.opd);
+		*(.data*);
 		*(.sdata);
 	} :data
 	.tdata : {
