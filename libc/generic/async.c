@@ -73,6 +73,8 @@
  *       msg = get_msg();
  *       ....
  * }
+ *
+ * TODO: Detaching/joining dead psthreads? */
  */
 #include <futex.h>
 #include <async.h>
@@ -99,7 +101,6 @@ typedef struct {
 	link_t msg_queue;              /**< Messages that should be delivered to this thread */
 	pstid_t ptid;                /**< Thread associated with this connection */
 	int active;                     /**< If this thread is currently active */
-	int opened;                    /* If the connection was accepted */
 	/* Structures for connection opening packet */
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -109,12 +110,12 @@ __thread connection_t *PS_connection;
 
 /* Hash table functions */
 
-#define ASYNC_HASH_TABLE_CHAINS	32
+#define CONN_HASH_TABLE_CHAINS	32
 
 static hash_index_t conn_hash(unsigned long *key)
 {
 	assert(key);
-	return ((*key) >> 4) % ASYNC_HASH_TABLE_CHAINS;
+	return ((*key) >> 4) % CONN_HASH_TABLE_CHAINS;
 }
 
 static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
@@ -174,6 +175,7 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 	return 1;
 }
 
+/** Return new incoming message for current(thread-local) connection */
 ipc_callid_t async_get_call(ipc_call_t *call)
 {
 	msg_t *msg;
@@ -199,23 +201,44 @@ ipc_callid_t async_get_call(ipc_call_t *call)
 	return callid;
 }
 
+/** Thread function that gets created on new connection
+ *
+ * This function is defined as a weak symbol - to be redefined in
+ * user code.
+ */
 void client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
-	printf("Got connection - no handler.\n");
-	_exit(1);
+	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
 
+/** Wrapper for client connection thread
+ *
+ * When new connection arrives, thread with this function is created.
+ * It calls client_connection and does final cleanup.
+ *
+ * @parameter arg Connection structure pointer
+ */
 static int connection_thread(void  *arg)
 {
+	unsigned long key;
+	msg_t *msg;
+
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
 	client_connection(PS_connection->callid, &PS_connection->call);
 
+	/* Remove myself from connection hash table */
 	futex_down(&conn_futex);
-	/* TODO: remove myself from connection hash table */
+	key = PS_connection->in_phone_hash;
+	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&conn_futex);
-	/* TODO: answer all unanswered messages in queue with
-	 *       EHANGUP */
+	/* Answer all remaining messages with ehangup */
+	while (!list_empty(&PS_connection->msg_queue)) {
+		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
+		list_remove(&msg->link);
+		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
+		free(msg);
+	}
 }
 
 /** Create new thread for a new connection 
@@ -238,7 +261,6 @@ static void new_connection(ipc_callid_t callid, ipc_call_t *call)
 	}
 	conn->in_phone_hash = IPC_GET_ARG3(*call);
 	list_initialize(&conn->msg_queue);
-	conn->opened = 0;
 	conn->ptid = psthread_create(connection_thread, conn);
 	conn->callid = callid;
 	conn->call = *call;
@@ -297,6 +319,13 @@ int async_manager()
 	}
 }
 
+/** Function to start async_manager as a standalone thread 
+ * 
+ * When more kernel threads are used, one async manager should
+ * exist per thread. The particular implementation may change,
+ * currently one async_manager is started automatically per kernel
+ * thread except main thread. 
+ */
 static int async_manager_thread(void *arg)
 {
 	futex_up(&conn_futex); /* conn_futex is always locked when entering
@@ -322,7 +351,7 @@ void async_destroy_manager(void)
 /** Initialize internal structures needed for async manager */
 int _async_init(void)
 {
-	if (!hash_table_create(&conn_hash_table, ASYNC_HASH_TABLE_CHAINS, 1, &conn_hash_table_ops)) {
+	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1, &conn_hash_table_ops)) {
 		printf("%s: cannot create hash table\n", "async");
 		return ENOMEM;
 	}
