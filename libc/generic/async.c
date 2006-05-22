@@ -74,7 +74,7 @@
  *       ....
  * }
  *
- * TODO: Detaching/joining dead psthreads? */
+ * TODO: Detaching/joining dead psthreads?
  */
 #include <futex.h>
 #include <async.h>
