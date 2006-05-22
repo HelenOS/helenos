@@ -34,6 +34,9 @@
 #include <io/stream.h>
 #include <ipc/ipc.h>
 #include <async.h>
+#include <as.h>
+
+extern char _heap;
 
 void _exit(int status) {
 	thread_exit(status);
@@ -42,6 +45,7 @@ void _exit(int status) {
 void __main(void) {
 	psthread_data_t *pt;
 
+	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
 	_async_init();
 	pt = psthread_setup();
 	__tcb_set(pt->tcb);

@@ -45,9 +45,10 @@ SECTIONS {
 	.bss : {
 		*(.bss);
 		*(COMMON);
-		_heap = .;
-		LONG(0xdeadbeef);
 	} :data
+
+	. = ALIGN(0x4000);
+	_heap = .;
 
 	/DISCARD/ : {
 		*(*);
