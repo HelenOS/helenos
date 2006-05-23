@@ -228,19 +228,21 @@ static int connection_thread(void  *arg)
 {
 	unsigned long key;
 	msg_t *msg;
+	connection_t *conn;
 
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
-	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
+	conn = PS_connection;
+	conn->cthread(conn->callid, &conn->call);
 
 	/* Remove myself from connection hash table */
 	futex_down(&conn_futex);
-	key = PS_connection->in_phone_hash;
+	key = conn->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&conn_futex);
 	/* Answer all remaining messages with ehangup */
-	while (!list_empty(&PS_connection->msg_queue)) {
-		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
+	while (!list_empty(&conn->msg_queue)) {
+		msg = list_get_instance(conn->msg_queue.next, msg_t, link);
 		list_remove(&msg->link);
 		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
 		free(msg);
