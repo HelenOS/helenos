@@ -60,17 +60,22 @@
  *
  * 2) Multithreaded server application
  * main() {
- *      wait_for_connection(new_connection);
+ *      async_manager();
  * }
  * 
  *
- * new_connection(int connection) {
- *       accept(connection);
- *       msg = get_msg();
- *       handle(msg);
- *       answer(msg);
+ * client_connection(icallid, *icall) {
+ *       if (want_refuse) {
+ *           ipc_answer_fast(icallid, ELIMIT, 0, 0);
+ *           return;
+ *       }
+ *       ipc_answer_fast(icallid, 0, 0, 0);
  *
- *       msg = get_msg();
+ *       callid = async_get_call(&call);
+ *       handle(callid, call);
+ *       ipc_answer_fast(callid, 1,2,3);
+ *
+ *       callid = async_get_call(&call);
  *       ....
  * }
  *
@@ -104,6 +109,7 @@ typedef struct {
 	/* Structures for connection opening packet */
 	ipc_callid_t callid;
 	ipc_call_t call;
+	void (*cthread)(ipc_callid_t,ipc_call_t *);
 } connection_t;
 
 __thread connection_t *PS_connection;
@@ -225,7 +231,7 @@ static int connection_thread(void  *arg)
 
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
-	client_connection(PS_connection->callid, &PS_connection->call);
+	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
 
 	/* Remove myself from connection hash table */
 	futex_down(&conn_futex);
@@ -247,8 +253,15 @@ static int connection_thread(void  *arg)
  * structures and inserts it into the hash table, so that
  * later we can easily do routing of messages to particular
  * threads.
+ *
+ * @param callid Callid of the IPC_M_CONNECT_ME_TO packet
+ * @param call Call data of the opening packet
+ * @param cthread Thread function that should be called upon
+ *                opening the connection
+ * @return New thread id
  */
-static void new_connection(ipc_callid_t callid, ipc_call_t *call)
+pstid_t async_new_connection(ipc_callid_t callid, ipc_call_t *call,
+			     void (*cthread)(ipc_callid_t,ipc_call_t *))
 {
 	pstid_t ptid;
 	connection_t *conn;
@@ -257,7 +270,7 @@ static void new_connection(ipc_callid_t callid, ipc_call_t *call)
 	conn = malloc(sizeof(*conn));
 	if (!conn) {
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
-		return;
+		return NULL;
 	}
 	conn->in_phone_hash = IPC_GET_ARG3(*call);
 	list_initialize(&conn->msg_queue);
@@ -265,11 +278,12 @@ static void new_connection(ipc_callid_t callid, ipc_call_t *call)
 	conn->callid = callid;
 	conn->call = *call;
 	conn->active = 1; /* We will activate it asap */
+	conn->cthread = cthread;
 	list_initialize(&conn->link);
 	if (!conn->ptid) {
 		free(conn);
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
-		return;
+		return NULL;
 	}
 	key = conn->in_phone_hash;
 	futex_down(&conn_futex);
@@ -278,6 +292,8 @@ static void new_connection(ipc_callid_t callid, ipc_call_t *call)
 	futex_up(&conn_futex);
 
 	psthread_add_ready(conn->ptid);
+
+	return conn->ptid;
 }
 
 /** Handle call to a task */
@@ -291,7 +307,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		break;
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with thread etc. */
-		new_connection(callid, call);
+		async_new_connection(callid, call, client_connection);
 		break;
 	default:
 		ipc_answer_fast(callid, EHANGUP, 0, 0);

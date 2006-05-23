@@ -91,12 +91,11 @@ void __thread_main(uspace_arg_t *uarg)
 	pt = psthread_setup();
 	__tcb_set(pt->tcb);
 	
-	async_create_manager();
-
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	free(uarg->uspace_stack);
 	free(uarg);
 
+	/* If there is a manager, destroy it */
 	async_destroy_manager();
 	psthread_teardown(pt);
 

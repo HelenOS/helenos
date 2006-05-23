@@ -35,6 +35,7 @@
 #include <kernel/arch/faddr.h>
 #include <futex.h>
 #include <assert.h>
+#include <async.h>
 
 #ifndef PSTHREAD_INITIAL_STACK_PAGES_NO
 #define PSTHREAD_INITIAL_STACK_PAGES_NO 1
@@ -134,7 +135,9 @@ int psthread_schedule_next_adv(pschange_type ctype)
 	if (ctype == PS_FROM_MANAGER && list_empty(&ready_list)) {
 		goto ret_0;
 	}
-	assert(!(ctype == PS_TO_MANAGER && list_empty(&manager_list)));
+	/* If we are going to manager and none exists, create it */
+	if (ctype == PS_TO_MANAGER && list_empty(&manager_list))
+		async_create_manager();
 
 	pt = __tcb_get()->pst_data;
 	if (!context_save(&pt->ctx)) 
@@ -250,7 +253,6 @@ void psthread_remove_manager()
 {
 	futex_down(&psthread_futex);
 	if (list_empty(&manager_list)) {
-		printf("No manager found!.\n");
 		futex_up(&psthread_futex);
 		return;
 	}
