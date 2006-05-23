@@ -34,6 +34,7 @@
 #define AS_AREA_WRITE	2
 #define AS_AREA_EXEC	4
 #define AS_AREA_DEVICE	8
+#define AS_AREA_ANON	16
 
 #ifdef KERNEL
 
@@ -60,30 +61,6 @@
 #define USTACK_ADDRESS	USTACK_ADDRESS_ARCH
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
-
-
-/** Address space area attributes. */
-#define AS_AREA_ATTR_NONE	0
-#define AS_AREA_ATTR_PARTIAL	1	/* Not fully initialized area. */
-
-#define AS_PF_FAULT		0	/**< The page fault was not resolved by as_page_fault(). */
-#define AS_PF_OK		1	/**< The page fault was resolved by as_page_fault(). */
-#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace()
-					     or memcpy_to_uspace(). */
-
-/** Address space area structure.
- *
- * Each as_area_t structure describes one contiguous area of virtual memory.
- * In the future, it should not be difficult to support shared areas.
- */
-struct as_area {
-	mutex_t lock;
-	int flags;		/**< Flags related to the memory represented by the address space area. */
-	int attributes;		/**< Attributes related to the address space area itself. */
-	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
-	__address base;		/**< Base address of this area. */
-	btree_t used_space;	/**< Map of used space. */
-};
 
 /** Address space structure.
  *
@@ -118,6 +95,42 @@ struct as_operations {
 };
 typedef struct as_operations as_operations_t;
 
+/** Address space area attributes. */
+#define AS_AREA_ATTR_NONE	0
+#define AS_AREA_ATTR_PARTIAL	1	/**< Not fully initialized area. */
+
+#define AS_PF_FAULT		0	/**< The page fault was not resolved by as_page_fault(). */
+#define AS_PF_OK		1	/**< The page fault was resolved by as_page_fault(). */
+#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace()
+					     or memcpy_to_uspace(). */
+
+typedef struct share_info share_info_t;
+typedef struct mem_backend mem_backend_t;
+
+/** Address space area structure.
+ *
+ * Each as_area_t structure describes one contiguous area of virtual memory.
+ * In the future, it should not be difficult to support shared areas.
+ */
+struct as_area {
+	mutex_t lock;
+	int flags;		/**< Flags related to the memory represented by the address space area. */
+	int attributes;		/**< Attributes related to the address space area itself. */
+	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
+	__address base;		/**< Base address of this area. */
+	btree_t used_space;	/**< Map of used space. */
+	share_info_t *sh_info;	/**< If the address space area has been shared, this pointer will
+				     reference the share info structure. */
+	mem_backend_t *backend;	/**< Memory backend backing this address space area. */
+	void *backend_data[2];	/**< Data to be used by the backend. */
+};
+
+/** Address space area backend structure. */
+struct mem_backend {
+	int (* backend_page_fault)(as_area_t *area, __address addr);
+	void (* backend_frame_free)(as_area_t *area, __address page, __address frame);
+};
+
 extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
 
@@ -126,20 +139,28 @@ extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
 extern as_t *as_create(int flags);
-extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs);
+extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs,
+	mem_backend_t *backend, void **backend_data);
 extern int as_area_resize(as_t *as, __address address, size_t size, int flags);
 extern int as_area_destroy(as_t *as, __address address);
+extern int as_area_get_flags(as_area_t *area);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
 extern int as_area_steal(task_t *src_task, __address src_base, size_t acc_size, __address dst_base);
 extern size_t as_get_size(__address base);
+extern int used_space_insert(as_area_t *a, __address page, count_t count);
+extern int used_space_remove(as_area_t *a, __address page, count_t count);
 
 /* Interface to be implemented by architectures. */
 #ifndef as_install_arch
 extern void as_install_arch(as_t *as);
 #endif /* !def as_install_arch */
+
+/* Backend declarations. */
+extern mem_backend_t anon_backend;
+extern mem_backend_t elf_backend;
 
 /* Address space area related syscalls. */
 extern __native sys_as_area_create(__address address, size_t size, int flags);

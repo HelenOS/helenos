@@ -101,7 +101,7 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	flags = AS_AREA_DEVICE | AS_AREA_READ;
 	if (writable)
 		flags |= AS_AREA_WRITE;
-	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE)) {
+	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE, NULL, NULL)) {
 		/*
 		 * The address space area could not have been created.
 		 * We report it using ENOMEM.
