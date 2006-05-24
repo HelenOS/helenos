@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
-//	test_as_send();
+//	test_as_area_send();
 //	test_pci();
 	test_kbd();
 //	test_fb();
