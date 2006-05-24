@@ -54,7 +54,7 @@ void (* disable_irqs_function)(__u16 irqmask) = NULL;
 void (* enable_irqs_function)(__u16 irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-static void PRINT_INFO_ERRCODE(istate_t *istate)
+void PRINT_INFO_ERRCODE(istate_t *istate)
 {
 	char *symbol = get_symtab_entry(istate->eip);
 
@@ -137,18 +137,6 @@ void nm_fault(int n, istate_t *istate)
 #else
 	panic("fpu fault");
 #endif
-}
-
-void page_fault(int n, istate_t *istate)
-{
-	__address page;
-
-	page = read_cr2();
-	if (as_page_fault(page, istate) == AS_PF_FAULT) {
-		PRINT_INFO_ERRCODE(istate);
-		printf("page fault address: %#x\n", page);
-		panic("page fault\n");
-	}
 }
 
 void syscall(int n, istate_t *istate)

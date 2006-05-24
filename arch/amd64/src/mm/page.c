@@ -168,9 +168,21 @@ void ident_page_fault(int n, istate_t *istate)
 void page_fault(int n, istate_t *istate)
 {
 	__address page;
+	pf_access_t access;
 	
 	page = read_cr2();
-	if (as_page_fault(page, istate) == AS_PF_FAULT) {
+	
+	if (istate->error_word & PFERR_CODE_RSVD)
+		panic("Reserved bit set in page table entry.\n");
+	
+	if (istate->error_word & PFERR_CODE_RW)
+		access = PF_ACCESS_WRITE;
+	else if (istate->error_word & PFERR_CODE_ID)
+		access = PF_ACCESS_EXEC;
+	else
+		access = PF_ACCESS_READ;
+	
+	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		print_info_errcode(n, istate);
 		printf("Page fault address: %llX\n", page);
 		panic("page fault\n");

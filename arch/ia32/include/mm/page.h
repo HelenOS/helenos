@@ -90,6 +90,20 @@
 #include <arch/mm/frame.h>
 #include <typedefs.h>
 
+/* Page fault error codes. */
+
+/** When bit on this position is 0, the page fault was caused by a not-present page. */
+#define PFERR_CODE_P		(1<<0)
+
+/** When bit on this position is 1, the page fault was caused by a write. */
+#define PFERR_CODE_RW		(1<<1)
+
+/** When bit on this position is 1, the page fault was caused in user mode. */
+#define PFERR_CODE_US		(1<<2)
+
+/** When bit on this position is 1, a reserved bit was set in page directory. */ 
+#define PFERR_CODE_RSVD		(1<<3)	
+
 /** Page Table Entry. */
 struct page_specifier {
 	unsigned present : 1;
@@ -138,6 +152,7 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 }
 
 extern void page_arch_init(void);
+extern void page_fault(int n, istate_t *istate);
 
 #endif /* __ASM__ */
 

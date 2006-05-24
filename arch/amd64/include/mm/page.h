@@ -106,6 +106,23 @@ static inline __address ka2pa(__address x)
 
 #ifndef __ASM__
 
+/* Page fault error codes. */
+
+/** When bit on this position is 0, the page fault was caused by a not-present page. */
+#define PFERR_CODE_P            (1<<0)  
+
+/** When bit on this position is 1, the page fault was caused by a write. */
+#define PFERR_CODE_RW           (1<<1)
+
+/** When bit on this position is 1, the page fault was caused in user mode. */
+#define PFERR_CODE_US           (1<<2)
+
+/** When bit on this position is 1, a reserved bit was set in page directory. */
+#define PFERR_CODE_RSVD         (1<<3)
+
+/** When bit on this position os 1, the page fault was caused during instruction fecth. */
+#define PFERR_CODE_ID		(1<<4)
+
 /** Page Table Entry. */
 struct page_specifier {
 	unsigned present : 1;

@@ -44,7 +44,7 @@ static void tlb_refill_fail(istate_t *istate);
 static void tlb_invalid_fail(istate_t *istate);
 static void tlb_modified_fail(istate_t *istate);
 
-static pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfrc);
+static pte_t *find_mapping_and_check(__address badvaddr, int access, istate_t *istate, int *pfrc);
 
 static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn);
 static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
@@ -101,7 +101,7 @@ void tlb_refill(istate_t *istate)
 
 	page_table_lock(AS, true);
 
-	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate, &pfrc);
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
@@ -186,7 +186,7 @@ void tlb_invalid(istate_t *istate)
 		goto fail;
 	}
 
-	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate, &pfrc);
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
@@ -270,7 +270,7 @@ void tlb_modified(istate_t *istate)
 		goto fail;
 	}
 
-	pte = find_mapping_and_check(badvaddr, istate, &pfrc);
+	pte = find_mapping_and_check(badvaddr, PF_ACCESS_WRITE, istate, &pfrc);
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
@@ -366,12 +366,13 @@ void tlb_modified_fail(istate_t *istate)
  * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr Faulting virtual address.
+ * @param access Access mode that caused the fault.
  * @param istate Pointer to interrupted state.
  * @param pfrc Pointer to variable where as_page_fault() return code will be stored.
  *
  * @return PTE on success, NULL otherwise.
  */
-pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfrc)
+pte_t *find_mapping_and_check(__address badvaddr, int access, istate_t *istate, int *pfrc)
 {
 	entry_hi_t hi;
 	pte_t *pte;
@@ -404,7 +405,7 @@ pte_t *find_mapping_and_check(__address badvaddr, istate_t *istate, int *pfrc)
 		 * Resort to higher-level page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		switch (rc = as_page_fault(badvaddr, istate)) {
+		switch (rc = as_page_fault(badvaddr, access, istate)) {
 		case AS_PF_OK:
 			/*
 			 * The higher-level page fault handler succeeded,

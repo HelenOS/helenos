@@ -92,12 +92,12 @@ extern void (* disable_irqs_function)(__u16 irqmask);
 extern void (* enable_irqs_function)(__u16 irqmask);
 extern void (* eoi_function)(void);
 
+extern void PRINT_INFO_ERRCODE(istate_t *istate);
 extern void null_interrupt(int n, istate_t *istate);
 extern void gp_fault(int n, istate_t *istate);
 extern void nm_fault(int n, istate_t *istate);
 extern void ss_fault(int n, istate_t *istate);
 extern void simd_fp_exception(int n, istate_t *istate);
-extern void page_fault(int n, istate_t *istate);
 extern void syscall(int n, istate_t *istate);
 extern void tlb_shootdown_ipi(int n, istate_t *istate);
 

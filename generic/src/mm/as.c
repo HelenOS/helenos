@@ -375,6 +375,7 @@ int as_area_destroy(as_t *as, __address address)
 	as_area_t *area;
 	__address base;
 	ipl_t ipl;
+	bool cond;
 
 	ipl = interrupts_disable();
 	mutex_lock(&as->lock);
@@ -387,47 +388,38 @@ int as_area_destroy(as_t *as, __address address)
 	}
 
 	base = area->base;
-	if (!(area->flags & AS_AREA_DEVICE)) {
-		bool cond;	
-	
-		/*
-		 * Releasing physical memory.
-		 * Areas mapping memory-mapped devices are treated differently than
-		 * areas backing frame_alloc()'ed memory.
-		 */
 
-		/*
-		 * Visit only the pages mapped by used_space B+tree.
-		 * Note that we must be very careful when walking the tree
-		 * leaf list and removing used space as the leaf list changes
-		 * unpredictibly after each remove. The solution is to actually
-		 * not walk the tree at all, but to remove items from the head
-		 * of the leaf list until there are some keys left.
-		 */
-		for (cond = true; cond;) {
-			btree_node_t *node;
+	/*
+	 * Visit only the pages mapped by used_space B+tree.
+	 * Note that we must be very careful when walking the tree
+	 * leaf list and removing used space as the leaf list changes
+	 * unpredictibly after each remove. The solution is to actually
+	 * not walk the tree at all, but to remove items from the head
+	 * of the leaf list until there are some keys left.
+	 */
+	for (cond = true; cond;) {
+		btree_node_t *node;
 		
-			ASSERT(!list_empty(&area->used_space.leaf_head));
-			node = list_get_instance(area->used_space.leaf_head.next, btree_node_t, leaf_link);
-			if ((cond = (bool) node->keys)) {
-				__address b = node->key[0];
-				count_t i;
-				pte_t *pte;
+		ASSERT(!list_empty(&area->used_space.leaf_head));
+		node = list_get_instance(area->used_space.leaf_head.next, btree_node_t, leaf_link);
+		if ((cond = (bool) node->keys)) {
+			__address b = node->key[0];
+			count_t i;
+			pte_t *pte;
 			
-				for (i = 0; i < (count_t) node->value[0]; i++) {
-					page_table_lock(as, false);
-					pte = page_mapping_find(as, b + i*PAGE_SIZE);
-					ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-					if (area->backend && area->backend->backend_frame_free) {
-						area->backend->backend_frame_free(area,
-							b + i*PAGE_SIZE, PTE_GET_FRAME(pte));
-					}
-					page_mapping_remove(as, b + i*PAGE_SIZE);
-					page_table_unlock(as, false);
+			for (i = 0; i < (count_t) node->value[0]; i++) {
+				page_table_lock(as, false);
+				pte = page_mapping_find(as, b + i*PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
+				if (area->backend && area->backend->backend_frame_free) {
+					area->backend->backend_frame_free(area,
+						b + i*PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
-				if (!used_space_remove(area, b, i))
-					panic("Could not remove used space.\n");
+				page_mapping_remove(as, b + i*PAGE_SIZE);
+				page_table_unlock(as, false);
 			}
+			if (!used_space_remove(area, b, i))
+				panic("Could not remove used space.\n");
 		}
 	}
 	btree_destroy(&area->used_space);
@@ -623,12 +615,13 @@ void as_set_mapping(as_t *as, __address page, __address frame)
  * Interrupts are assumed disabled.
  *
  * @param page Faulting page.
+ * @param access Access mode that caused the fault (i.e. read/write/exec).
  * @param istate Pointer to interrupted state.
  *
  * @return AS_PF_FAULT on page fault, AS_PF_OK on success or AS_PF_DEFER if the
  * 	   fault was caused by copy_to_uspace() or copy_from_uspace().
  */
-int as_page_fault(__address page, istate_t *istate)
+int as_page_fault(__address page, pf_access_t access, istate_t *istate)
 {
 	pte_t *pte;
 	as_area_t *area;
@@ -688,7 +681,7 @@ int as_page_fault(__address page, istate_t *istate)
 	/*
 	 * Resort to the backend page fault handler.
 	 */
-	if (area->backend->backend_page_fault(area, page) != AS_PF_OK) {
+	if (area->backend->backend_page_fault(area, page, access) != AS_PF_OK) {
 		page_table_unlock(AS, false);
 		mutex_unlock(&area->lock);
 		mutex_unlock(&AS->lock);
@@ -1450,7 +1443,7 @@ void sh_info_remove_reference(share_info_t *sh_info)
 	}
 }
 
-static int anon_page_fault(as_area_t *area, __address addr);
+static int anon_page_fault(as_area_t *area, __address addr, pf_access_t access);
 static void anon_frame_free(as_area_t *area, __address page, __address frame);
 
 /*
@@ -1467,10 +1460,11 @@ mem_backend_t anon_backend = {
  *
  * @param area Pointer to the address space area.
  * @param addr Faulting virtual address.
+ * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
  */
-int anon_page_fault(as_area_t *area, __address addr)
+int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
 	__address frame;
 

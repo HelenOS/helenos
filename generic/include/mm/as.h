@@ -127,7 +127,7 @@ struct as_area {
 
 /** Address space area backend structure. */
 struct mem_backend {
-	int (* backend_page_fault)(as_area_t *area, __address addr);
+	int (* backend_page_fault)(as_area_t *area, __address addr, pf_access_t access);
 	void (* backend_frame_free)(as_area_t *area, __address page, __address frame);
 };
 
@@ -145,7 +145,7 @@ extern int as_area_resize(as_t *as, __address address, size_t size, int flags);
 extern int as_area_destroy(as_t *as, __address address);
 extern int as_area_get_flags(as_area_t *area);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
-extern int as_page_fault(__address page, istate_t *istate);
+extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
 extern int as_area_steal(task_t *src_task, __address src_base, size_t acc_size, __address dst_base);

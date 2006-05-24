@@ -56,7 +56,7 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *
 static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as);
 static int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as);
 
-static int elf_page_fault(as_area_t *area, __address addr);
+static int elf_page_fault(as_area_t *area, __address addr, pf_access_t access);
 static void elf_frame_free(as_area_t *area, __address page, __address frame);
 
 mem_backend_t elf_backend = {
@@ -225,10 +225,11 @@ static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *
  *
  * @param area Pointer to the address space area.
  * @param addr Faulting virtual address.
+ * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
  */
-int elf_page_fault(as_area_t *area, __address addr)
+int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
 	elf_header_t *elf = (elf_header_t *) area->backend_data[0];
 	elf_segment_header_t *entry = (elf_segment_header_t *) area->backend_data[1];

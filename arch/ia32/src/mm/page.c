@@ -43,7 +43,6 @@
 #include <print.h>
 #include <interrupt.h>
 
-
 void page_arch_init(void)
 {
 	__address cur;
@@ -86,4 +85,26 @@ __address hw_map(__address physaddr, size_t size)
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
 	return virtaddr;
+}
+
+void page_fault(int n, istate_t *istate)
+{
+        __address page;
+	pf_access_t access;
+	
+        page = read_cr2();
+		
+        if (istate->error_word & PFERR_CODE_RSVD)
+		panic("Reserved bit set in page directory.\n");
+
+	if (istate->error_word & PFERR_CODE_RW)
+		access = PF_ACCESS_WRITE;
+	else
+		access = PF_ACCESS_READ;
+
+        if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
+                PRINT_INFO_ERRCODE(istate);
+                printf("page fault address: %#x\n", page);
+                panic("page fault\n");
+        }
 }

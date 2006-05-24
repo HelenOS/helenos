@@ -429,10 +429,14 @@ void itc_pte_copy(pte_t *t)
 void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
 {
 	region_register rr;
+	rid_t rid;
 	__address va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
+
 	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va);
 	if (t) {
@@ -447,8 +451,8 @@ void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, istate) == AS_PF_FAULT) {
-			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, istate->cr_ifa, rr.map.rid, istate->cr_iip);
+		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
+			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
 		}
 	}
 }
@@ -493,7 +497,7 @@ void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
 		 * Forward the page fault to address space page fault handler.
 		 */
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, istate) == AS_PF_FAULT) {
+		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
 		}
 	}
@@ -518,18 +522,31 @@ void data_nested_tlb_fault(__u64 vector, istate_t *istate)
  */
 void data_dirty_bit_fault(__u64 vector, istate_t *istate)
 {
+	region_register rr;
+	rid_t rid;
+	__address va;
 	pte_t *t;
+	
+	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, istate->cr_ifa);
+	t = page_mapping_find(AS, va);
 	ASSERT(t && t->p);
-	if (t && t->p) {
+	if (t && t->p && t->w) {
 		/*
 		 * Update the Dirty bit in page tables and reinsert
 		 * the mapping into DTC.
 		 */
 		t->d = true;
 		dtc_pte_copy(t);
+	} else {
+		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
+			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
+			t->d = true;
+			dtc_pte_copy(t);
+		}
 	}
 	page_table_unlock(AS, true);
 }
@@ -541,18 +558,31 @@ void data_dirty_bit_fault(__u64 vector, istate_t *istate)
  */
 void instruction_access_bit_fault(__u64 vector, istate_t *istate)
 {
-	pte_t *t;
+	region_register rr;
+	rid_t rid;
+	__address va;
+	pte_t *t;	
+
+	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, istate->cr_ifa);
+	t = page_mapping_find(AS, va);
 	ASSERT(t && t->p);
-	if (t && t->p) {
+	if (t && t->p && t->x) {
 		/*
 		 * Update the Accessed bit in page tables and reinsert
 		 * the mapping into ITC.
 		 */
 		t->a = true;
 		itc_pte_copy(t);
+	} else {
+		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
+			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
+			t->a = true;
+			itc_pte_copy(t);
+		}
 	}
 	page_table_unlock(AS, true);
 }
@@ -564,10 +594,17 @@ void instruction_access_bit_fault(__u64 vector, istate_t *istate)
  */
 void data_access_bit_fault(__u64 vector, istate_t *istate)
 {
+	region_register rr;
+	rid_t rid;
+	__address va;
 	pte_t *t;
 
+	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
+
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, istate->cr_ifa);
+	t = page_mapping_find(AS, va);
 	ASSERT(t && t->p);
 	if (t && t->p) {
 		/*
@@ -576,6 +613,12 @@ void data_access_bit_fault(__u64 vector, istate_t *istate)
 		 */
 		t->a = true;
 		dtc_pte_copy(t);
+	} else {
+		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
+			panic("%s: va=%p, rid=%d, iip=%p\n", __FUNCTION__, va, rid, istate->cr_iip);
+			t->a = true;
+			itc_pte_copy(t);
+		}
 	}
 	page_table_unlock(AS, true);
 }
@@ -588,10 +631,14 @@ void data_access_bit_fault(__u64 vector, istate_t *istate)
 void page_not_present(__u64 vector, istate_t *istate)
 {
 	region_register rr;
+	rid_t rid;
 	__address va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
+
 	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va);
 	ASSERT(t);
@@ -608,8 +655,8 @@ void page_not_present(__u64 vector, istate_t *istate)
 		page_table_unlock(AS, true);
 	} else {
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, istate) == AS_PF_FAULT) {
-			panic("%s: va=%p, rid=%d\n", __FUNCTION__, va, rr.map.rid);
+		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
+			panic("%s: va=%p, rid=%d\n", __FUNCTION__, va, rid);
 		}
 	}
 }

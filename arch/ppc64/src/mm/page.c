@@ -53,12 +53,14 @@ static phte_t *phte;
  * @param as       Address space.
  * @param lock     Lock/unlock the address space.
  * @param badvaddr Faulting virtual address.
+ * @param access   Access mode that caused the fault.
  * @param istate   Pointer to interrupted state.
  * @param pfrc     Pointer to variable where as_page_fault() return code will be stored.
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, istate_t *istate, int *pfcr)
+static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access,
+				     istate_t *istate, int *pfcr)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -78,7 +80,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, is
 		 * Resort to higher-level page fault handler.
 		 */
 		page_table_unlock(as, lock);
-		switch (rc = as_page_fault(badvaddr, istate)) {
+		switch (rc = as_page_fault(badvaddr, access, istate)) {
 			case AS_PF_OK:
 				/*
 				 * The higher-level page fault handler succeeded,
@@ -211,7 +213,7 @@ void pht_refill(bool data, istate_t *istate)
 		
 	page_table_lock(as, lock);
 	
-	pte = find_mapping_and_check(as, lock, badvaddr, istate, &pfcr);
+	pte = find_mapping_and_check(as, lock, badvaddr, PF_ACCESS_READ /* FIXME */, istate, &pfcr);
 	if (!pte) {
 		switch (pfcr) {
 			case AS_PF_FAULT:

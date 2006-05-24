@@ -60,6 +60,14 @@
 
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
 
+/** Page fault access type. */
+enum pf_access {
+	PF_ACCESS_READ,
+	PF_ACCESS_WRITE,
+	PF_ACCESS_EXEC
+};
+typedef enum pf_access pf_access_t;
+
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {
 	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags);
