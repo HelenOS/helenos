@@ -148,7 +148,7 @@ extern void as_set_mapping(as_t *as, __address page, __address frame);
 extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
-extern int as_area_steal(task_t *src_task, __address src_base, size_t acc_size, __address dst_base);
+extern int as_area_share(as_t *src_as, __address src_base, size_t acc_size, __address dst_base);
 extern size_t as_get_size(__address base);
 extern int used_space_insert(as_area_t *a, __address page, count_t count);
 extern int used_space_remove(as_area_t *a, __address page, count_t count);

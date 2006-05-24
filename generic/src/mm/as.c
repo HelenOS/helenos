@@ -450,15 +450,15 @@ int as_area_destroy(as_t *as, __address address)
 	return 0;
 }
 
-/** Steal address space area from another task.
+/** Share address space area with another or the same address space.
  *
- * Address space area is stolen from another task
- * Moreover, any existing mapping
- * is copied as well, providing thus a mechanism
- * for sharing group of pages. The source address
- * space area and any associated mapping is preserved.
- *
- * @param src_task Pointer of source task
+ * Address space area of anonymous memory is shared with a new address
+ * space area. If the source address space area has not been shared so
+ * far, a new sh_info is created and the original mapping is duplicated
+ * in its pagemap B+tree. The new address space are simply gets the
+ * sh_info of the source area.
+ * 
+ * @param src_as Pointer to source address space
  * @param src_base Base address of the source address space area.
  * @param acc_size Expected size of the source area
  * @param dst_base Target base address
@@ -467,43 +467,101 @@ int as_area_destroy(as_t *as, __address address)
  *	   if there is no such address space area,
  *	   EPERM if there was a problem in accepting the area or
  *	   ENOMEM if there was a problem in allocating destination
- *	   address space area.
+ *	   address space area. ENOTSUP is returned if an attempt
+ *	   to share non-anonymous address space area is detected.
  */
-int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
+int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 		  __address dst_base)
 {
 	ipl_t ipl;
-	count_t i;
-	as_t *src_as;       
 	int src_flags;
 	size_t src_size;
 	as_area_t *src_area, *dst_area;
+	share_info_t *sh_info;
+	link_t *cur;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&src_task->lock);
-	src_as = src_task->as;
-	
 	mutex_lock(&src_as->lock);
 	src_area = find_area_and_lock(src_as, src_base);
 	if (!src_area) {
 		/*
 		 * Could not find the source address space area.
 		 */
-		spinlock_unlock(&src_task->lock);
 		mutex_unlock(&src_as->lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
+	
+	if (!src_area->backend || src_area->backend != &anon_backend) {
+		/*
+		 * As of now, only anonymous address space areas can be shared.
+		 */
+		mutex_unlock(&src_area->lock);
+		mutex_unlock(&src_as->lock);
+		interrupts_restore(ipl);
+		return ENOTSUP;
+	}
+	
 	src_size = src_area->pages * PAGE_SIZE;
 	src_flags = src_area->flags;
-	mutex_unlock(&src_area->lock);
-	mutex_unlock(&src_as->lock);
-
+	
 	if (src_size != acc_size) {
-		spinlock_unlock(&src_task->lock);
+		mutex_unlock(&src_area->lock);
+		mutex_unlock(&src_as->lock);
 		interrupts_restore(ipl);
 		return EPERM;
 	}
+
+	/*
+	 * Now we are committed to sharing the area.
+	 * First prepare the area for sharing.
+	 * Then it will be safe to unlock it.
+	 */
+	sh_info = src_area->sh_info;
+	if (!sh_info) {
+		sh_info = (share_info_t *) malloc(sizeof(share_info_t), 0);
+		mutex_initialize(&sh_info->lock);
+		sh_info->refcount = 2;
+		btree_create(&sh_info->pagemap);
+		src_area->sh_info = sh_info;
+	} else {
+		mutex_lock(&sh_info->lock);
+		sh_info->refcount++;
+		mutex_unlock(&sh_info->lock);
+	}
+
+	/*
+	 * Copy used portions of the area to sh_info's page map.
+	 */
+	mutex_lock(&sh_info->lock);
+	for (cur = src_area->used_space.leaf_head.next; cur != &src_area->used_space.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			__address base = node->key[i];
+			count_t count = (count_t) node->value[i];
+			int j;
+			
+			for (j = 0; j < count; j++) {
+				pte_t *pte;
+			
+				page_table_lock(src_as, false);
+				pte = page_mapping_find(src_as, base + j*PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
+				btree_insert(&sh_info->pagemap, (base + j*PAGE_SIZE) - src_area->base,
+					(void *) PTE_GET_FRAME(pte), NULL);
+				page_table_unlock(src_as, false);
+			}
+				
+		}
+	}
+	mutex_unlock(&sh_info->lock);
+
+	mutex_unlock(&src_area->lock);
+	mutex_unlock(&src_as->lock);
+
 	/*
 	 * Create copy of the source address space area.
 	 * The destination area is created with AS_AREA_ATTR_PARTIAL
@@ -515,57 +573,22 @@ int as_area_steal(task_t *src_task, __address src_base, size_t acc_size,
 		/*
 		 * Destination address space area could not be created.
 		 */
-		spinlock_unlock(&src_task->lock);
+		sh_info_remove_reference(sh_info);
+		
 		interrupts_restore(ipl);
 		return ENOMEM;
 	}
 	
-	spinlock_unlock(&src_task->lock);
-	
-	/*
-	 * Avoid deadlock by first locking the address space with lower address.
-	 */
-	if (AS < src_as) {
-		mutex_lock(&AS->lock);
-		mutex_lock(&src_as->lock);
-	} else {
-		mutex_lock(&AS->lock);
-		mutex_lock(&src_as->lock);
-	}
-	
-	for (i = 0; i < SIZE2FRAMES(src_size); i++) {
-		pte_t *pte;
-		__address frame;
-			
-		page_table_lock(src_as, false);
-		pte = page_mapping_find(src_as, src_base + i*PAGE_SIZE);
-		if (pte && PTE_VALID(pte)) {
-			ASSERT(PTE_PRESENT(pte));
-			frame = PTE_GET_FRAME(pte);
-			if (!(src_flags & AS_AREA_DEVICE))
-				frame_reference_add(ADDR2PFN(frame));
-			page_table_unlock(src_as, false);
-		} else {
-			page_table_unlock(src_as, false);
-			continue;
-		}
-		
-		page_table_lock(AS, false);
-		page_mapping_insert(AS, dst_base + i*PAGE_SIZE, frame, area_flags_to_page_flags(src_flags));
-		page_table_unlock(AS, false);
-	}
-
 	/*
 	 * Now the destination address space area has been
 	 * fully initialized. Clear the AS_AREA_ATTR_PARTIAL
-	 * attribute.
+	 * attribute and set the sh_info.
 	 */	
 	mutex_lock(&dst_area->lock);
 	dst_area->attributes &= ~AS_AREA_ATTR_PARTIAL;
+	dst_area->sh_info = sh_info;
 	mutex_unlock(&dst_area->lock);
 	
-	mutex_unlock(&AS->lock);
-	mutex_unlock(&src_as->lock);
 	interrupts_restore(ipl);
 	
 	return 0;
@@ -1478,7 +1501,8 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 * mapping, a new frame is allocated and the mapping is created.
 		 */
 		mutex_lock(&area->sh_info->lock);
-		frame = (__address) btree_search(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE), &leaf);
+		frame = (__address) btree_search(&area->sh_info->pagemap,
+			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
 			bool allocate = true;
 			int i;
@@ -1500,7 +1524,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 				/*
 				 * Insert the address of the newly allocated frame to the pagemap.
 				 */
-				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE), (void *) frame, leaf);
+				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base, (void *) frame, leaf);
 			}
 		}
 		mutex_unlock(&area->sh_info->lock);

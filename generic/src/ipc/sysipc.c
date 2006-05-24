@@ -129,9 +129,17 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_SEND) {
 		if (!IPC_GET_RETVAL(answer->data)) { /* Accepted, handle as_area receipt */
-			return as_area_steal(answer->sender,
-					     IPC_GET_ARG2(*olddata),IPC_GET_ARG3(*olddata),
-					     IPC_GET_ARG1(answer->data));
+			ipl_t ipl;
+			as_t *as;
+			
+			ipl = interrupts_disable();
+			spinlock_lock(&answer->sender->lock);
+			as = answer->sender->as;
+			spinlock_unlock(&answer->sender->lock);
+			interrupts_restore(ipl);
+			
+			return as_area_share(as, IPC_GET_ARG2(*olddata),IPC_GET_ARG3(*olddata),
+				IPC_GET_ARG1(answer->data));
 		}
 	}
 	return 0;
