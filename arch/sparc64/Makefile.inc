@@ -61,7 +61,6 @@ CONFIG_ASID = y
 CONFIG_ASID_FIFO = y
 
 ## Compile with support for framebuffer.
-## Mapping of the framebuffer is implemented by a sparc64-specific function.
 #
 
 CONFIG_FB = y
@@ -91,4 +90,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/trap/exception.c \
 	arch/$(ARCH)/src/trap/interrupt.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/tick.c
+	arch/$(ARCH)/src/drivers/tick.c \
+	arch/$(ARCH)/src/drivers/i8042.c

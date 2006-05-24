@@ -26,41 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __sparc64_I8042_H__
-#define __sparc64_I8042_H__
-
+#include <arch/drivers/i8042.h>
+#include <genarch/i8042/i8042.h>
 #include <arch/types.h>
+#include <arch/mm/page.h>
 
-#define KBD_PHYS_ADDRESS	0x1fff8904000ULL
+volatile __u8 *kbd_virt_address = NULL;
 
-#define STATUS_REG	4
-#define COMMAND_REG	4
-#define DATA_REG	6
-
-#define LAST_REG	DATA_REG
-
-extern volatile __u8 *kbd_virt_address;
-
-static inline void i8042_data_write(__u8 data)
+void kbd_init()
 {
-	kbd_virt_address[DATA_REG] = data;
+	kbd_virt_address = (__u8 *) hw_map(KBD_PHYS_ADDRESS, LAST_REG);
+	i8042_init();
 }
-
-static inline __u8 i8042_data_read(void)
-{
-	return kbd_virt_address[DATA_REG];
-}
-
-static inline __u8 i8042_status_read(void)
-{
-	return kbd_virt_address[STATUS_REG];
-}
-
-static inline void i8042_command_write(__u8 command)
-{
-	kbd_virt_address[COMMAND_REG] = command;
-}
-
-extern void kbd_init(void);
-
-#endif

@@ -77,10 +77,8 @@ void standalone_sparc64_console_init(void)
 	ofw_console_active = 0;
 	stdin = NULL;
 
-	dtlb_insert_mapping(KBD_VIRT_ADDRESS, KBD_PHYS_ADDRESS, PAGESIZE_8K, true, false);
-
+	kbd_init();
 	fb_init(FB_PHYS_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH, FB_X_RES * FB_COLOR_DEPTH / 8);
-	i8042_init();
 }
 
 /** Write one character using OpenFirmware.

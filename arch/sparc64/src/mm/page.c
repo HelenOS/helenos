@@ -31,6 +31,7 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/frame.h>
 #include <bitops.h>
+#include <debug.h>
 
 void page_arch_init(void)
 {
@@ -40,6 +41,26 @@ void page_arch_init(void)
 __address hw_map(__address physaddr, size_t size)
 {
 	unsigned int order;
+	int i;
+
+	struct {
+		int pagesize;
+		size_t increment;
+		count_t count;
+	} sizemap[] = {
+		{ PAGESIZE_8K, 0, 1 },			/* 8K */
+		{ PAGESIZE_8K, PAGE_SIZE, 2 },		/* 16K */
+		{ PAGESIZE_8K, PAGE_SIZE, 4 },		/* 32K */
+		{ PAGESIZE_64K, 0, 1},			/* 64K */
+		{ PAGESIZE_64K, 8*PAGE_SIZE, 2 },	/* 128K */
+		{ PAGESIZE_64K, 8*PAGE_SIZE, 4 },	/* 256K */
+		{ PAGESIZE_512K, 0, 1 },		/* 512K */
+		{ PAGESIZE_512K, 64*PAGE_SIZE, 2 },	/* 1M */
+		{ PAGESIZE_512K, 64*PAGE_SIZE, 4 },	/* 2M */
+		{ PAGESIZE_4M, 0, 1 }			/* 4M */
+	};
+	
+	ASSERT(size <= 4*1024*1024);
 	
 	if (size <= FRAME_SIZE)
 		order = 0;
@@ -47,9 +68,11 @@ __address hw_map(__address physaddr, size_t size)
 		order = (fnzb32(size - 1) + 1) - FRAME_WIDTH;
 	
 	__address virtaddr = PA2KA(PFN2ADDR(frame_alloc(order, FRAME_KA)));
-	
-	dtlb_insert_mapping(virtaddr, physaddr, PAGESIZE_512K, true, false);
-	dtlb_insert_mapping(virtaddr + 512 * 1024, physaddr + 512 * 1024, PAGESIZE_512K, true, false);
+
+	for (i = 0; i < sizemap[order].count; i++)
+		dtlb_insert_mapping(virtaddr + i*sizemap[order].increment,
+				    physaddr + i*sizemap[order].increment,
+				    sizemap[order].pagesize, true, false);
 	
 	return virtaddr;
 }
