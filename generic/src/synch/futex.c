@@ -119,7 +119,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
 		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
-	paddr = PFN2ADDR(PTE_GET_FRAME(t)) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
+	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
 	interrupts_restore(ipl);	
@@ -133,8 +133,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
  *
  * @param uaddr Userspace address of the futex counter.
  *
- * @return ENOENT if there is no futex associated with the address
- *	   or if there is no physical mapping for uaddr.
+ * @return ENOENT if there is no physical mapping for uaddr.
  */
 __native sys_futex_wakeup(__address uaddr)
 {
@@ -155,7 +154,7 @@ __native sys_futex_wakeup(__address uaddr)
 		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
-	paddr = PFN2ADDR(PTE_GET_FRAME(t)) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
+	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
 	interrupts_restore(ipl);
@@ -192,7 +191,7 @@ futex_t *futex_find(__address paddr)
 	} else {
 		/*
 		 * Upgrade to writer is not currently supported,
-		 * Therefore, it is necessary to release the read lock
+		 * therefore, it is necessary to release the read lock
 		 * and reacquire it as a writer.
 		 */
 		rwlock_read_unlock(&futex_ht_lock);
