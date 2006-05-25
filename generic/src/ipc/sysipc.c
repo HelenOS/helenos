@@ -138,8 +138,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			spinlock_unlock(&answer->sender->lock);
 			interrupts_restore(ipl);
 			
-			return as_area_share(as, IPC_GET_ARG2(*olddata),IPC_GET_ARG3(*olddata),
-				IPC_GET_ARG1(answer->data));
+			return as_area_share(as, IPC_GET_ARG1(*olddata), IPC_GET_ARG2(*olddata),
+				IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
 		}
 	}
 	return 0;
@@ -165,11 +165,11 @@ static int request_preprocess(call_t *call)
 		call->private = newphid;
 		break;
 	case IPC_M_AS_AREA_SEND:
-		size = as_get_size(IPC_GET_ARG2(call->data));
+		size = as_get_size(IPC_GET_ARG1(call->data));
 		if (!size) {
 			return EPERM;
 		}
-		IPC_SET_ARG3(call->data, size);
+		IPC_SET_ARG2(call->data, size);
 		break;
 	default:
 		break;
