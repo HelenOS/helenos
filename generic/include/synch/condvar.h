@@ -39,15 +39,13 @@ struct condvar {
 };
 
 #define condvar_wait(cv,mtx) \
-	_condvar_wait_timeout((cv),(mtx),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
-#define condvar_trywait(cv,mtx) \
-	_condvar_wait_timeout((cv),(mtx),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)
+	_condvar_wait_timeout((cv),(mtx),SYNCH_NO_TIMEOUT)
 #define condvar_wait_timeout(cv,mtx,usec) \
-	_condvar_wait_timeout((cv),(mtx),(usec),SYNCH_NON_BLOCKING)
+	_condvar_wait_timeout((cv),(mtx),(usec))
 
 extern void condvar_initialize(condvar_t *cv);
 extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
-extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int trywait);
+extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec);
 
 #endif

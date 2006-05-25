@@ -74,22 +74,22 @@ void condvar_broadcast(condvar_t *cv)
  * @param cv Condition variable.
  * @param mtx Mutex.
  * @param usec Timeout value in microseconds.
- * @param trywait Blocking versus non-blocking operation mode switch.
  *
- * For exact description of possible combinations of
- * usec and trywait, see comment for waitq_sleep_timeout().
+ * For exact description of meaning of possible values of usec,
+ * see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int trywait)
+int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec)
 {
 	int rc;
 	ipl_t ipl;
 
 	ipl = waitq_sleep_prepare(&cv->wq);
 	mutex_unlock(mtx);
-	
-	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, trywait);
+
+	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
+	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, SYNCH_BLOCKING);
 
 	mutex_lock(mtx);
 	waitq_sleep_finish(&cv->wq, rc, ipl);
