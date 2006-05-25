@@ -83,8 +83,8 @@ struct share_info {
 
 as_operations_t *as_operations = NULL;
 
-/** Address space lock. It protects inactive_as_with_asid_head. Must be acquired before as_t mutex. */
-SPINLOCK_INITIALIZE(as_lock);
+/** This lock protects inactive_as_with_asid_head list. It must be acquired before as_t mutex. */
+SPINLOCK_INITIALIZE(inactive_as_with_asid_lock);
 
 /**
  * This list contains address spaces that are not active on any
@@ -128,7 +128,7 @@ as_t *as_create(int flags)
 	else
 		as->asid = ASID_INVALID;
 	
-	as->refcount = 0;
+	as->cpu_refcount = 0;
 	as->page_table = page_table_create(flags);
 
 	return as;
@@ -137,7 +137,7 @@ as_t *as_create(int flags)
 /** Free Adress space */
 void as_free(as_t *as)
 {
-	ASSERT(as->refcount == 0);
+	ASSERT(as->cpu_refcount == 0);
 
 	/* TODO: free as_areas and other resources held by as */
 	/* TODO: free page table */
@@ -733,7 +733,7 @@ page_fault:
 /** Switch address spaces.
  *
  * Note that this function cannot sleep as it is essentially a part of
- * the scheduling. Sleeping here would lead to deadlock on wakeup.
+ * scheduling. Sleeping here would lead to deadlock on wakeup.
  *
  * @param old Old address space or NULL.
  * @param new New address space.
@@ -744,15 +744,15 @@ void as_switch(as_t *old, as_t *new)
 	bool needs_asid = false;
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&as_lock);
+	spinlock_lock(&inactive_as_with_asid_lock);
 
 	/*
 	 * First, take care of the old address space.
 	 */	
 	if (old) {
 		mutex_lock_active(&old->lock);
-		ASSERT(old->refcount);
-		if((--old->refcount == 0) && (old != AS_KERNEL)) {
+		ASSERT(old->cpu_refcount);
+		if((--old->cpu_refcount == 0) && (old != AS_KERNEL)) {
 			/*
 			 * The old address space is no longer active on
 			 * any processor. It can be appended to the
@@ -769,7 +769,7 @@ void as_switch(as_t *old, as_t *new)
 	 * Second, prepare the new address space.
 	 */
 	mutex_lock_active(&new->lock);
-	if ((new->refcount++ == 0) && (new != AS_KERNEL)) {
+	if ((new->cpu_refcount++ == 0) && (new != AS_KERNEL)) {
 		if (new->asid != ASID_INVALID)
 			list_remove(&new->inactive_as_with_asid_link);
 		else
@@ -790,7 +790,7 @@ void as_switch(as_t *old, as_t *new)
 		new->asid = asid;
 		mutex_unlock(&new->lock);
 	}
-	spinlock_unlock(&as_lock);
+	spinlock_unlock(&inactive_as_with_asid_lock);
 	interrupts_restore(ipl);
 	
 	/*

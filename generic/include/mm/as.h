@@ -76,7 +76,7 @@ struct as {
 	mutex_t lock;
 
 	/** Number of processors on wich is this address space active. */
-	count_t refcount;
+	count_t cpu_refcount;
 
 	/** B+tree of address space areas. */
 	btree_t as_area_btree;
@@ -134,7 +134,7 @@ struct mem_backend {
 extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
 
-extern spinlock_t as_lock;
+extern spinlock_t inactive_as_with_asid_lock;
 extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
