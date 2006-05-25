@@ -340,8 +340,8 @@ static int test_as_area_send()
 
 	memcpy(as_area, "Hello world.\n", 14);
 
-	retval = ipc_call_sync_2(PHONE_NS, IPC_M_AS_AREA_SEND, 0, (sysarg_t) as_area,
-		NULL, NULL);
+	retval = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_SEND, (sysarg_t) as_area, 0, AS_AREA_READ,
+		NULL, NULL, NULL);
 	if (retval) {
 		printf("AS_AREA_SEND failed.\n");
 		return 0;
@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
-//	test_as_area_send();
+	test_as_area_send();
 //	test_pci();
 	test_kbd();
 //	test_fb();

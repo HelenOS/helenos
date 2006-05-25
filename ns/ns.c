@@ -93,8 +93,8 @@ int main(int argc, char **argv)
 //		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_AS_AREA_SEND:
-			as_area = (char *)IPC_GET_ARG2(call);
-//			printf("Received as_area: %P, size:%d\n", as_area, IPC_GET_ARG3(call));
+			as_area = (char *)IPC_GET_ARG1(call);
+//			printf("Received as_area: %P, size:%d\n", as_area, IPC_GET_ARG2(call));
 			retval = ipc_answer_fast(callid, 0,(sysarg_t)(1024*1024), 0);
 			if (!retval) {
 //				printf("Reading shared memory...");
