@@ -21,7 +21,7 @@ SECTIONS {
 		*(K_DATA_START)
 		*(.rodata .rodata.*)
 		*(.opd)
-		*(.data)
+		*(.data .data.*)
 		*(.got .got.*)
 		*(.sdata)
 		*(.sbss)
@@ -33,6 +33,10 @@ SECTIONS {
                 *(symtab.*);            /* Symbol table, must be LAST symbol!*/
 
 		kdata_end = .;
+	}
+
+	/DISCARD/ : {
+		*(*);
 	}
 
 	_hardcoded_ktext_size = ktext_end - ktext_start;
