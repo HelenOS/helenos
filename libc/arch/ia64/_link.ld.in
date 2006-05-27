@@ -23,7 +23,7 @@ SECTIONS {
 	} :data	
 	.data : {
 		*(.opd);
-		*(.data);
+		*(.data .data.*);
 		*(.sdata);
 	} :data
 	.tdata : {
