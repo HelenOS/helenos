@@ -161,7 +161,7 @@ void anon_frame_free(as_area_t *area, __address page, __address frame)
  * Sharing of anonymous area is done by duplicating its entire mapping
  * to the pagemap. Page faults will primarily search for frames there.
  *
- * The address space area and page tables must be already locked.
+ * The address space and address space area must be already locked.
  *
  * @param area Address space area to be shared.
  */
