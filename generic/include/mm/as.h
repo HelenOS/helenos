@@ -46,6 +46,7 @@
 #include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
+#include <elf.h>
 
 /** Defined to be true if user address space and kernel address space shadow each other. */
 #define KERNEL_ADDRESS_SPACE_SHADOWED	KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
@@ -118,9 +119,15 @@ typedef struct {
 } mem_backend_t;
 
 /** Backend data stored in address space area. */
-typedef struct backend_data {
-	__native d1;
-	__native d2;
+typedef union {
+	struct {	/**< elf_backend members */
+		elf_header_t *elf;
+		elf_segment_header_t *segment;
+	};
+	struct {	/**< phys_backend members */
+		__address base;
+		count_t frames;
+	};
 } mem_backend_data_t;
 
 /** Address space area structure.

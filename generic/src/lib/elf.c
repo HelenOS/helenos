@@ -162,7 +162,10 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	as_area_t *a;
 	int flags = 0;
-	mem_backend_data_t backend_data = { .d1 = (__native) elf, .d2 = (__native) entry };
+	mem_backend_data_t backend_data;
+	
+	backend_data.elf = elf;
+	backend_data.segment = entry;
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) != (entry->p_vaddr % entry->p_align)) {

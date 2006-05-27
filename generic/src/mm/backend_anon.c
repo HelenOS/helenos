@@ -51,9 +51,6 @@ static int anon_page_fault(as_area_t *area, __address addr, pf_access_t access);
 static void anon_frame_free(as_area_t *area, __address page, __address frame);
 static void anon_share(as_area_t *area);
 
-/*
- * Anonymous memory backend.
- */
 mem_backend_t anon_backend = {
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,

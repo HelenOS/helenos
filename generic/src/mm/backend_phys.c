@@ -63,8 +63,8 @@ mem_backend_t phys_backend = {
  */
 int phys_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
-	__address base = (__address) area->backend_data.d1;
-	count_t frames = (count_t) area->backend_data.d2;
+	__address base = area->backend_data.base;
+	count_t frames = area->backend_data.frames;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;

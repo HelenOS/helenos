@@ -65,7 +65,10 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	cap_t caps;
 	task_t *t;
 	int flags;
-	mem_backend_data_t backend_data = { .d1 = (__native) pf, .d2 = (__native) pages };
+	mem_backend_data_t backend_data;
+
+	backend_data.base = pf;
+	backend_data.frames = pages;
 	
 	/*
 	 * Make sure the caller is authorised to make this syscall.

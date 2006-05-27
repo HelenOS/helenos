@@ -31,7 +31,7 @@
 
 #include <arch/elf.h>
 #include <arch/types.h>
-#include <mm/as.h>
+#include <typedefs.h>
 
 /**
  * current ELF version

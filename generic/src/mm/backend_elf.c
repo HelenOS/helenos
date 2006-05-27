@@ -64,8 +64,8 @@ mem_backend_t elf_backend = {
  */
 int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
-	elf_header_t *elf = (elf_header_t *) area->backend_data.d1;
-	elf_segment_header_t *entry = (elf_segment_header_t *) area->backend_data.d2;
+	elf_header_t *elf = area->backend_data.elf;
+	elf_segment_header_t *entry = area->backend_data.segment;
 	__address base, frame;
 	index_t i;
 
@@ -132,8 +132,8 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
  */
 void elf_frame_free(as_area_t *area, __address page, __address frame)
 {
-	elf_header_t *elf = (elf_header_t *) area->backend_data.d1;
-	elf_segment_header_t *entry = (elf_segment_header_t *) area->backend_data.d2;
+	elf_header_t *elf = area->backend_data.elf;
+	elf_segment_header_t *entry = area->backend_data.segment;
 	__address base;
 	index_t i;
 	
