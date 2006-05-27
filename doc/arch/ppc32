@@ -13,4 +13,4 @@ EMULATORS AND VIRTUALIZERS
 
 TOOLCHAIN REQUIREMENTS
         o binutils 2.16
-	o gcc 4.0.1
+	o gcc 4.0.1, 4.1.0, 4.1.1

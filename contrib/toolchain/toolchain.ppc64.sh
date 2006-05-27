@@ -16,7 +16,7 @@ check_error() {
 }
 
 BINUTILS_VERSION="2.16.1"
-GCC_VERSION="4.1.0"
+GCC_VERSION="4.1.1"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
 GCC="gcc-core-${GCC_VERSION}.tar.bz2"
