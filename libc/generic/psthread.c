@@ -117,6 +117,9 @@ void psthread_main(void)
 
 /** Schedule next userspace pseudo thread.
  *
+ * If calling with PS_TO_MANAGER parameter, the async_futex should be
+ * held.
+ *
  * @param tomanager If true, we are switching to next ready manager thread
  *                  (if none is found, thread is exited)
  * @param frommanager If true, we are switching from manager thread
@@ -136,8 +139,11 @@ int psthread_schedule_next_adv(pschange_type ctype)
 		goto ret_0;
 	}
 	/* If we are going to manager and none exists, create it */
-	if (ctype == PS_TO_MANAGER && list_empty(&manager_list))
+	while (ctype == PS_TO_MANAGER && list_empty(&manager_list)) {
+		futex_up(&psthread_futex);
 		async_create_manager();
+		futex_down(&psthread_futex);
+	}
 
 	pt = __tcb_get()->pst_data;
 	if (!context_save(&pt->ctx)) 
@@ -258,4 +264,10 @@ void psthread_remove_manager()
 	}
 	list_remove(manager_list.next);
 	futex_up(&psthread_futex);
+}
+
+/** Return thread id of current running thread */
+pstid_t psthread_get_id(void)
+{
+	return (pstid_t)__tcb_get()->pst_data;
 }

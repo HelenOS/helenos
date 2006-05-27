@@ -42,6 +42,7 @@
 #define THREAD_INITIAL_STACK_PAGES_NO 1
 #endif
 
+static LIST_INITIALIZE(thread_garbage);
 
 extern char _tdata_start;
 extern char _tdata_end;
@@ -145,3 +146,4 @@ void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 }
+

@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <kbd.h>
 #include <ipc/fb.h>
+#include <async.h>
 
 int a;
 atomic_t ftx;
@@ -318,6 +319,30 @@ static void test_kbd()
 	ipc_hangup(phoneid);
 }
 
+static void test_async_kbd()
+{
+	int res;
+	ipcarg_t result;
+	ipc_call_t kbddata;
+	int phoneid;
+	aid_t aid;
+
+	printf("Test: Starting connect...\n");
+	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
+	};
+	
+	printf("Test: Connected: %d\n", res);
+	printf("Test: pinging.\n");
+	while (1) {
+		aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
+		async_wait_for(aid, NULL);
+		printf("%c", IPC_GET_ARG1(kbddata));
+	}
+	
+	printf("Test: Hangin up\n");
+	ipc_hangup(phoneid);
+}
+
 static void test_pci()
 {
 	int phone;
@@ -392,9 +417,10 @@ int main(int argc, char *argv[])
 //	test_connection_ipc();
 //	test_hangup();
 //	test_slam();
-	test_as_area_send();
+//	test_as_area_send();
 //	test_pci();
-	test_kbd();
+//	test_kbd();
+	test_async_kbd();
 //	test_fb();
 
 	printf("Hello\nThis is Init\n\nBye.");

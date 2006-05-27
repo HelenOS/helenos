@@ -74,6 +74,7 @@ int psthread_schedule_next_adv(pschange_type ctype);
 void psthread_add_ready(pstid_t ptid);
 void psthread_add_manager(pstid_t psthrid);
 void psthread_remove_manager(void);
+pstid_t psthread_get_id(void);
 
 static inline int psthread_schedule_next() {
 	return psthread_schedule_next_adv(PS_PREEMPT);
