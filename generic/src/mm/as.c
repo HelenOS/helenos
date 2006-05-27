@@ -632,6 +632,29 @@ void as_set_mapping(as_t *as, __address page, __address frame)
 	interrupts_restore(ipl);
 }
 
+/** Check access mode for address space area.
+ *
+ * The address space area must be locked prior to this call.
+ *
+ * @param area Address space area.
+ * @param access Access mode.
+ *
+ * @return False if access violates area's permissions, true otherwise.
+ */
+bool as_area_check_access(as_area_t *area, pf_access_t access)
+{
+	int flagmap[] = {
+		[PF_ACCESS_READ] = AS_AREA_READ,
+		[PF_ACCESS_WRITE] = AS_AREA_WRITE,
+		[PF_ACCESS_EXEC] = AS_AREA_EXEC
+	};
+
+	if (!(area->flags & flagmap[access]))
+		return false;
+	
+	return true;
+}
+
 /** Handle page fault within the current address space.
  *
  * This is the high-level page fault handler. It decides
@@ -698,10 +721,14 @@ int as_page_fault(__address page, pf_access_t access, istate_t *istate)
 	 */
 	if ((pte = page_mapping_find(AS, page))) {
 		if (PTE_PRESENT(pte)) {
-			page_table_unlock(AS, false);
-			mutex_unlock(&area->lock);
-			mutex_unlock(&AS->lock);
-			return AS_PF_OK;
+			if (((access == PF_ACCESS_READ) && PTE_READABLE(pte)) ||
+				(access == PF_ACCESS_WRITE && PTE_WRITABLE(pte)) ||
+				(access == PF_ACCESS_EXEC && PTE_EXECUTABLE(pte))) {
+				page_table_unlock(AS, false);
+				mutex_unlock(&area->lock);
+				mutex_unlock(&AS->lock);
+				return AS_PF_OK;
+			}
 		}
 	}
 	
@@ -1494,6 +1521,9 @@ mem_backend_t anon_backend = {
 int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
 	__address frame;
+
+	if (!as_area_check_access(area, access))
+		return AS_PF_FAULT;
 
 	if (area->sh_info) {
 		btree_node_t *leaf;

@@ -103,6 +103,8 @@ static inline __address ka2pa(__address x)
 #define PTE_VALID_ARCH(p)			(*((__u64 *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
 #define PTE_GET_FRAME_ARCH(p)			((((__address)(p)->addr_12_31)<<12) | ((__address)(p)->addr_32_51<<32))
+#define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)
+#define PTE_EXECUTABLE_ARCH(p)			((p)->no_execute == 0)
 
 #ifndef __ASM__
 

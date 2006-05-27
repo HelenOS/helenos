@@ -51,6 +51,9 @@
 #define PTE_VALID(pte)		((pte) != NULL)
 #define PTE_PRESENT(pte)	((pte)->p != 0)
 #define PTE_GET_FRAME(pte)	((pte)->frame)
+#define PTE_READABLE(pte)	1
+#define PTE_WRITABLE(pte)	((pte)->w != 0)
+#define PTE_EXECUTABLE(pte)	((pte)->x != 0)
 
 #define SET_PTL0_ADDRESS(x)
 

@@ -97,6 +97,9 @@
 #define PTE_VALID(p)		PTE_VALID_ARCH((p))
 #define PTE_PRESENT(p)		PTE_PRESENT_ARCH((p))
 #define PTE_GET_FRAME(p)	PTE_GET_FRAME_ARCH((p))
+#define PTE_READABLE(p)		1
+#define PTE_WRITABLE(p)		PTE_WRITABLE_ARCH((p))
+#define PTE_EXECUTABLE(p)	PTE_EXECUTABLE_ARCH((p))
 
 extern page_mapping_operations_t pt_mapping_operations;
 

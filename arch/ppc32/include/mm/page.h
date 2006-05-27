@@ -89,8 +89,10 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
 
 #define PTE_VALID_ARCH(pte)			(*((__u32 *) (pte)) != 0)
-#define PTE_PRESENT_ARCH(pte)		((pte)->p != 0)
-#define PTE_GET_FRAME_ARCH(pte)		((pte)->pfn << 12)
+#define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
+#define PTE_GET_FRAME_ARCH(pte)			((pte)->pfn << 12)
+#define PTE_WRITABLE_ARCH(pte)			1
+#define PTE_EXECUTABLE_ARCH(pte)		1
 
 #ifndef __ASM__
 

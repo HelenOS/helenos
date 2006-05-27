@@ -236,6 +236,9 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 	__address base, frame;
 	index_t i;
 
+	if (!as_area_check_access(area, access))
+		return AS_PF_FAULT;
+
 	ASSERT((addr >= entry->p_vaddr) && (addr < entry->p_vaddr + entry->p_memsz));
 	i = (addr - entry->p_vaddr) >> PAGE_WIDTH;
 	base = (__address) (((void *) elf) + entry->p_offset);

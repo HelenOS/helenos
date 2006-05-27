@@ -145,6 +145,7 @@ extern int as_area_resize(as_t *as, __address address, size_t size, int flags);
 extern int as_area_destroy(as_t *as, __address address);
 extern int as_area_get_flags(as_area_t *area);
 extern void as_set_mapping(as_t *as, __address page, __address frame);
+extern bool as_area_check_access(as_area_t *area, pf_access_t access);
 extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
 extern void as_switch(as_t *old, as_t *new);
 extern void as_free(as_t *as);
