@@ -38,7 +38,7 @@
 #define SLAB_MIN_MALLOC_W 4
 
 /** Maximum size to be allocated by malloc */
-#define SLAB_MAX_MALLOC_W 17
+#define SLAB_MAX_MALLOC_W 18
 
 /** Initial Magazine size (TODO: dynamically growing magazines) */
 #define SLAB_MAG_SIZE  4

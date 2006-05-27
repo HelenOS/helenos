@@ -456,6 +456,7 @@ int as_area_destroy(as_t *as, __address address)
  * @param src_as Pointer to source address space.
  * @param src_base Base address of the source address space area.
  * @param acc_size Expected size of the source area.
+ * @param dst_as Pointer to destination address space.
  * @param dst_base Target base address.
  * @param dst_flags_mask Destination address space area flags mask.
  *
@@ -467,7 +468,7 @@ int as_area_destroy(as_t *as, __address address)
  *	   to share non-anonymous address space area is detected.
  */
 int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
-		  __address dst_base, int dst_flags_mask)
+		  as_t *dst_as, __address dst_base, int dst_flags_mask)
 {
 	ipl_t ipl;
 	int src_flags;
@@ -543,7 +544,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	 * The flags of the source area are masked against dst_flags_mask
 	 * to support sharing in less privileged mode.
 	 */
-	dst_area = as_area_create(AS, src_flags & dst_flags_mask, src_size, dst_base,
+	dst_area = as_area_create(dst_as, src_flags & dst_flags_mask, src_size, dst_base,
 				  AS_AREA_ATTR_PARTIAL, src_backend, &src_backend_data);
 	if (!dst_area) {
 		/*

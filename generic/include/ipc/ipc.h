@@ -42,7 +42,7 @@
 #define IPC_CALL_DISCARD_ANSWER (1<<2) /**< Answer will not be passed to
 					* userspace, will be discarded */
 #define IPC_CALL_FORWARDED      (1<<3) /* Call was forwarded */
-#define IPC_CALL_CONN_ME_TO     (1<<4) /* Identify connect_me_to */
+#define IPC_CALL_CONN_ME_TO     (1<<4) /* Identify connect_me_to answer */
 #define IPC_CALL_NOTIF          (1<<5) /* Interrupt notification */
 
 /* Flags of callid (the addresses are aligned at least to 4, 
@@ -119,12 +119,25 @@
 #define IPC_M_PHONE_HUNGUP      3
 /** Interrupt notification */
 #define IPC_M_INTERRUPT         4
+
 /** Send as_area over IPC 
- * - ARG2 - src base address
- * - ARG3 - size of src as(filled automatically by kernel)
+ * - ARG1 - src base address
+ * - ARG2 - size of src as(filled automatically by kernel)
+ * - ARG3 - flags of the area being sent
  * - on answer ARG1 - dst base adress
  */
 #define IPC_M_AS_AREA_SEND      5
+
+/** Get as_area over IPC
+ * - ARG1 - Where the area will be mapped
+ * - ARG2 - Expected size of area
+ * - ARG3 - Requested rights for the area
+ * on answer - the server sets ARG1 as src as address of the as_area
+ * to be shared
+ *
+ *
+ */
+#define IPC_M_AS_AREA_RECV      6
 
 
 /* Well-known methods */

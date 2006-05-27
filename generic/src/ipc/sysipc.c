@@ -64,7 +64,8 @@ static inline int is_system_method(__native method)
  */
 static inline int is_forwardable(__native method)
 {
-	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_AREA_SEND)
+	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_AREA_SEND \
+	    || method == IPC_M_AS_AREA_RECV)
 		return 0; /* This message is meant only for the receiver */
 	return 1;
 }
@@ -85,10 +86,15 @@ static inline int answer_need_old(call_t *call)
 		return 1;
 	if (IPC_GET_METHOD(call->data) == IPC_M_AS_AREA_SEND)
 		return 1;
+	if (IPC_GET_METHOD(call->data) == IPC_M_AS_AREA_RECV)
+		return 1;
 	return 0;
 }
 
-/** Interpret process answer as control information */
+/** Interpret process answer as control information
+ *
+ * This function is called directly after sys_ipc_answer 
+ */
 static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid;
@@ -139,7 +145,21 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			interrupts_restore(ipl);
 			
 			return as_area_share(as, IPC_GET_ARG1(*olddata), IPC_GET_ARG2(*olddata),
-				IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
+					     AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
+		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_RECV) {
+		if (!IPC_GET_RETVAL(answer->data)) { 
+			ipl_t ipl;
+			as_t *as;
+			
+			ipl = interrupts_disable();
+			spinlock_lock(&answer->sender->lock);
+			as = answer->sender->as;
+			spinlock_unlock(&answer->sender->lock);
+			interrupts_restore(ipl);
+			
+			return as_area_share(AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG2(*olddata),
+					     as, IPC_GET_ARG1(*olddata), IPC_GET_ARG3(*olddata));
 		}
 	}
 	return 0;

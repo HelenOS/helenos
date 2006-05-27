@@ -127,7 +127,7 @@ char *malloc_names[] =  {
 	"malloc-16","malloc-32","malloc-64","malloc-128",
 	"malloc-256","malloc-512","malloc-1K","malloc-2K",
 	"malloc-4K","malloc-8K","malloc-16K","malloc-32K",
-	"malloc-64K","malloc-128K"
+	"malloc-64K","malloc-128K","malloc-256K"
 };
 
 /** Slab descriptor */
