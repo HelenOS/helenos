@@ -141,6 +141,9 @@ GENERIC_SOURCES = \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \
 	generic/src/mm/as.c \
+	generic/src/mm/backend_anon.c \
+	generic/src/mm/backend_elf.c \
+	generic/src/mm/backend_phys.c \
 	generic/src/mm/slab.c \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \

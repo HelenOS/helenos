@@ -74,13 +74,6 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
-/** This structure contains information associated with the shared address space area. */
-struct share_info {
-	mutex_t lock;		/**< This lock must be acquired only when the as_area lock is held. */
-	count_t refcount;	/**< This structure can be deallocated if refcount drops to 0. */
-	btree_t pagemap;	/**< B+tree containing complete map of anonymous pages of the shared area. */
-};
-
 as_operations_t *as_operations = NULL;
 
 /** This lock protects inactive_as_with_asid_head list. It must be acquired before as_t mutex. */
@@ -159,7 +152,7 @@ void as_free(as_t *as)
  * @return Address space area on success or NULL on failure.
  */
 as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs,
-	       mem_backend_t *backend, void **backend_data)
+	       mem_backend_t *backend, mem_backend_data_t *backend_data)
 {
 	ipl_t ipl;
 	as_area_t *a;
@@ -187,16 +180,18 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
 
 	mutex_initialize(&a->lock);
 	
+	a->as = as;
 	a->flags = flags;
 	a->attributes = attrs;
 	a->pages = SIZE2FRAMES(size);
 	a->base = base;
 	a->sh_info = NULL;
 	a->backend = backend;
-	if (backend_data) {
-		a->backend_data[0] = backend_data[0];
-		a->backend_data[1] = backend_data[1];
-	}
+	if (backend_data)
+		a->backend_data = *backend_data;
+	else
+		memsetb((__address) &a->backend_data, sizeof(a->backend_data), 0);
+
 	btree_create(&a->used_space);
 	
 	btree_insert(&as->as_area_btree, base, (void *) a, NULL);
@@ -235,7 +230,7 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 		return ENOENT;
 	}
 
-	if (area->flags & AS_AREA_DEVICE) {
+	if (area->backend == &phys_backend) {
 		/*
 		 * Remapping of address space areas associated
 		 * with memory mapped devices is not supported.
@@ -326,8 +321,8 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 					page_table_lock(as, false);
 					pte = page_mapping_find(as, b + i*PAGE_SIZE);
 					ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-					if (area->backend && area->backend->backend_frame_free) {
-						area->backend->backend_frame_free(area,
+					if (area->backend && area->backend->frame_free) {
+						area->backend->frame_free(area,
 							b + i*PAGE_SIZE, PTE_GET_FRAME(pte));
 					}
 					page_mapping_remove(as, b + i*PAGE_SIZE);
@@ -411,8 +406,8 @@ int as_area_destroy(as_t *as, __address address)
 				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + i*PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-				if (area->backend && area->backend->backend_frame_free) {
-					area->backend->backend_frame_free(area,
+				if (area->backend && area->backend->frame_free) {
+					area->backend->frame_free(area,
 						b + i*PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
 				page_mapping_remove(as, b + i*PAGE_SIZE);
@@ -452,11 +447,11 @@ int as_area_destroy(as_t *as, __address address)
 
 /** Share address space area with another or the same address space.
  *
- * Address space area of anonymous memory is shared with a new address
- * space area. If the source address space area has not been shared so
- * far, a new sh_info is created and the original mapping is duplicated
- * in its pagemap B+tree. The new address space are simply gets the
- * sh_info of the source area.
+ * Address space area mapping is shared with a new address space area.
+ * If the source address space area has not been shared so far,
+ * a new sh_info is created. The new address space area simply gets the
+ * sh_info of the source area. The process of duplicating the
+ * mapping is done through the backend share function.
  * 
  * @param src_as Pointer to source address space.
  * @param src_base Base address of the source address space area.
@@ -479,7 +474,8 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	size_t src_size;
 	as_area_t *src_area, *dst_area;
 	share_info_t *sh_info;
-	link_t *cur;
+	mem_backend_t *src_backend;
+	mem_backend_data_t src_backend_data;
 
 	ipl = interrupts_disable();
 	mutex_lock(&src_as->lock);
@@ -493,9 +489,10 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 		return ENOENT;
 	}
 	
-	if (!src_area->backend || src_area->backend != &anon_backend) {
+	if (!src_area->backend || !src_area->backend->share) {
 		/*
-		 * As of now, only anonymous address space areas can be shared.
+		 * There is now backend or the backend does not
+		 * know how to share the area.
 		 */
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
@@ -505,6 +502,8 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	
 	src_size = src_area->pages * PAGE_SIZE;
 	src_flags = src_area->flags;
+	src_backend = src_area->backend;
+	src_backend_data = src_area->backend_data;
 	
 	if (src_size != acc_size) {
 		mutex_unlock(&src_area->lock);
@@ -531,34 +530,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 		mutex_unlock(&sh_info->lock);
 	}
 
-	/*
-	 * Copy used portions of the area to sh_info's page map.
-	 */
-	mutex_lock(&sh_info->lock);
-	for (cur = src_area->used_space.leaf_head.next; cur != &src_area->used_space.leaf_head; cur = cur->next) {
-		btree_node_t *node;
-		int i;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		for (i = 0; i < node->keys; i++) {
-			__address base = node->key[i];
-			count_t count = (count_t) node->value[i];
-			int j;
-			
-			for (j = 0; j < count; j++) {
-				pte_t *pte;
-			
-				page_table_lock(src_as, false);
-				pte = page_mapping_find(src_as, base + j*PAGE_SIZE);
-				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-				btree_insert(&sh_info->pagemap, (base + j*PAGE_SIZE) - src_area->base,
-					(void *) PTE_GET_FRAME(pte), NULL);
-				page_table_unlock(src_as, false);
-			}
-				
-		}
-	}
-	mutex_unlock(&sh_info->lock);
+	src_area->backend->share(src_area);
 
 	mutex_unlock(&src_area->lock);
 	mutex_unlock(&src_as->lock);
@@ -572,7 +544,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	 * to support sharing in less privileged mode.
 	 */
 	dst_area = as_area_create(AS, src_flags & dst_flags_mask, src_size, dst_base,
-				  AS_AREA_ATTR_PARTIAL, &anon_backend, NULL);
+				  AS_AREA_ATTR_PARTIAL, src_backend, &src_backend_data);
 	if (!dst_area) {
 		/*
 		 * Destination address space area could not be created.
@@ -596,40 +568,6 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	interrupts_restore(ipl);
 	
 	return 0;
-}
-
-/** Initialize mapping for one page of address space.
- *
- * This functions maps 'page' to 'frame' according
- * to attributes of the address space area to
- * wich 'page' belongs.
- *
- * @param as Target address space.
- * @param page Virtual page within the area.
- * @param frame Physical frame to which page will be mapped.
- */
-void as_set_mapping(as_t *as, __address page, __address frame)
-{
-	as_area_t *area;
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	page_table_lock(as, true);
-	
-	area = find_area_and_lock(as, page);
-	if (!area) {
-		panic("Page not part of any as_area.\n");
-	}
-
-	ASSERT(!area->backend);
-	
-	page_mapping_insert(as, page, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, page, 1))
-		panic("Could not insert used space.\n");
-	
-	mutex_unlock(&area->lock);
-	page_table_unlock(as, true);
-	interrupts_restore(ipl);
 }
 
 /** Check access mode for address space area.
@@ -702,7 +640,7 @@ int as_page_fault(__address page, pf_access_t access, istate_t *istate)
 		goto page_fault;		
 	}
 
-	if (!area->backend || !area->backend->backend_page_fault) {
+	if (!area->backend || !area->backend->page_fault) {
 		/*
 		 * The address space area is not backed by any backend
 		 * or the backend cannot handle page faults.
@@ -735,7 +673,7 @@ int as_page_fault(__address page, pf_access_t access, istate_t *istate)
 	/*
 	 * Resort to the backend page fault handler.
 	 */
-	if (area->backend->backend_page_fault(area, page, access) != AS_PF_OK) {
+	if (area->backend->page_fault(area, page, access) != AS_PF_OK) {
 		page_table_unlock(AS, false);
 		mutex_unlock(&area->lock);
 		mutex_unlock(&AS->lock);
@@ -854,7 +792,7 @@ int area_flags_to_page_flags(int aflags)
 	if (aflags & AS_AREA_EXEC)
 		flags |= PAGE_EXEC;
 	
-	if (!(aflags & AS_AREA_DEVICE))
+	if (aflags & AS_AREA_CACHEABLE)
 		flags |= PAGE_CACHEABLE;
 		
 	return flags;
@@ -1497,116 +1435,6 @@ void sh_info_remove_reference(share_info_t *sh_info)
 	}
 }
 
-static int anon_page_fault(as_area_t *area, __address addr, pf_access_t access);
-static void anon_frame_free(as_area_t *area, __address page, __address frame);
-
-/*
- * Anonymous memory backend.
- */
-mem_backend_t anon_backend = {
-	.backend_page_fault = anon_page_fault,
-	.backend_frame_free = anon_frame_free
-};
-
-/** Service a page fault in the anonymous memory address space area.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area Pointer to the address space area.
- * @param addr Faulting virtual address.
- * @param access Access mode that caused the fault (i.e. read/write/exec).
- *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
- */
-int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
-{
-	__address frame;
-
-	if (!as_area_check_access(area, access))
-		return AS_PF_FAULT;
-
-	if (area->sh_info) {
-		btree_node_t *leaf;
-		
-		/*
-		 * The area is shared, chances are that the mapping can be found
-		 * in the pagemap of the address space area share info structure.
-		 * In the case that the pagemap does not contain the respective
-		 * mapping, a new frame is allocated and the mapping is created.
-		 */
-		mutex_lock(&area->sh_info->lock);
-		frame = (__address) btree_search(&area->sh_info->pagemap,
-			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
-		if (!frame) {
-			bool allocate = true;
-			int i;
-			
-			/*
-			 * Zero can be returned as a valid frame address.
-			 * Just a small workaround.
-			 */
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == ALIGN_DOWN(addr, PAGE_SIZE)) {
-					allocate = false;
-					break;
-				}
-			}
-			if (allocate) {
-				frame = PFN2ADDR(frame_alloc(ONE_FRAME, 0));
-				memsetb(PA2KA(frame), FRAME_SIZE, 0);
-				
-				/*
-				 * Insert the address of the newly allocated frame to the pagemap.
-				 */
-				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base, (void *) frame, leaf);
-			}
-		}
-		mutex_unlock(&area->sh_info->lock);
-	} else {
-
-		/*
-		 * In general, there can be several reasons that
-		 * can have caused this fault.
-		 *
-		 * - non-existent mapping: the area is an anonymous
-		 *   area (e.g. heap or stack) and so far has not been
-		 *   allocated a frame for the faulting page
-		 *
-		 * - non-present mapping: another possibility,
-		 *   currently not implemented, would be frame
-		 *   reuse; when this becomes a possibility,
-		 *   do not forget to distinguish between
-		 *   the different causes
-		 */
-		frame = PFN2ADDR(frame_alloc(ONE_FRAME, 0));
-		memsetb(PA2KA(frame), FRAME_SIZE, 0);
-	}
-	
-	/*
-	 * Map 'page' to 'frame'.
-	 * Note that TLB shootdown is not attempted as only new information is being
-	 * inserted into page tables.
-	 */
-	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
-		panic("Could not insert used space.\n");
-		
-	return AS_PF_OK;
-}
-
-/** Free a frame that is backed by the anonymous memory backend.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area Ignored.
- * @param page Ignored.
- * @param frame Frame to be released.
- */
-void anon_frame_free(as_area_t *area, __address page, __address frame)
-{
-	frame_free(ADDR2PFN(frame));
-}
-
 /*
  * Address space related syscalls.
  */
@@ -1614,7 +1442,7 @@ void anon_frame_free(as_area_t *area, __address page, __address frame)
 /** Wrapper for as_area_create(). */
 __native sys_as_area_create(__address address, size_t size, int flags)
 {
-	if (as_area_create(AS, flags, size, address, AS_AREA_ATTR_NONE, &anon_backend, NULL))
+	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address, AS_AREA_ATTR_NONE, &anon_backend, NULL))
 		return (__native) address;
 	else
 		return (__native) -1;

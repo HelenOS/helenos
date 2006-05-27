@@ -186,8 +186,8 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
 		t->p = !(flags & PAGE_NOT_PRESENT);
 
 		t->as = as;
-		t->page = page;
-		t->frame = frame;
+		t->page = ALIGN_DOWN(page, PAGE_SIZE);
+		t->frame = ALIGN_DOWN(frame, FRAME_SIZE);
 
 		hash_table_insert(&page_ht, key, &t->link);
 	}

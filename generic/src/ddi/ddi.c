@@ -65,7 +65,7 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	cap_t caps;
 	task_t *t;
 	int flags;
-	count_t i;
+	mem_backend_data_t backend_data = { .d1 = (__native) pf, .d2 = (__native) pages };
 	
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -98,10 +98,11 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 	
-	flags = AS_AREA_DEVICE | AS_AREA_READ;
+	flags = AS_AREA_READ;
 	if (writable)
 		flags |= AS_AREA_WRITE;
-	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE, NULL, NULL)) {
+	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
+		&phys_backend, &backend_data)) {
 		/*
 		 * The address space area could not have been created.
 		 * We report it using ENOMEM.
@@ -111,10 +112,10 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 		return ENOMEM;
 	}
 	
-	/* Initialize page tables. */
-	for (i = 0; i < pages; i++)
-		as_set_mapping(t->as, vp + i * PAGE_SIZE, pf + i * FRAME_SIZE);
-
+	/*
+	 * Mapping is created on-demand during page fault.
+	 */
+	
 	spinlock_unlock(&t->lock);
 	interrupts_restore(ipl);
 	return 0;
