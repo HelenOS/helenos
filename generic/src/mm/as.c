@@ -272,6 +272,11 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 		 */
 
 		/*
+		 * Start TLB shootdown sequence.
+		 */
+		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
+
+		/*
 		 * Remove frames belonging to used space starting from
 		 * the highest addresses downwards until an overlap with
 		 * the resized address space area is found. Note that this
@@ -330,10 +335,10 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 				}
 			}
 		}
+
 		/*
-		 * Invalidate TLB's.
+		 * Finish TLB shootdown sequence.
 		 */
-		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
 	} else {
@@ -385,6 +390,11 @@ int as_area_destroy(as_t *as, __address address)
 	base = area->base;
 
 	/*
+	 * Start TLB shootdown sequence.
+	 */
+	tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base, area->pages);
+
+	/*
 	 * Visit only the pages mapped by used_space B+tree.
 	 * Note that we must be very careful when walking the tree
 	 * leaf list and removing used space as the leaf list changes
@@ -417,14 +427,14 @@ int as_area_destroy(as_t *as, __address address)
 				panic("Could not remove used space.\n");
 		}
 	}
-	btree_destroy(&area->used_space);
 
 	/*
-	 * Invalidate TLB's.
+	 * Finish TLB shootdown sequence.
 	 */
-	tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base, area->pages);
 	tlb_invalidate_pages(AS->asid, area->base, area->pages);
 	tlb_shootdown_finalize();
+	
+	btree_destroy(&area->used_space);
 
 	area->attributes |= AS_AREA_ATTR_PARTIAL;
 	
