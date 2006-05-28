@@ -334,10 +334,15 @@ static void test_async_kbd()
 	
 	printf("Test: Connected: %d\n", res);
 	printf("Test: pinging.\n");
+
+	aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
 	while (1) {
-		aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
-		async_wait_for(aid, NULL);
+		if (async_wait_timeout(aid, NULL, 1000000)) {
+			printf("^");
+			continue;
+		}
 		printf("%c", IPC_GET_ARG1(kbddata));
+		aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
 	}
 	
 	printf("Test: Hangin up\n");
@@ -433,8 +438,8 @@ int main(int argc, char *argv[])
 //	test_as_area_send();
 //	test_pci();
 //	test_kbd();
-	test_time();
-//	test_async_kbd();
+//	test_time();
+	test_async_kbd();
 //	test_fb();
 
 	printf("Hello\nThis is Init\n\nBye.");

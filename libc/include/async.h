@@ -3,6 +3,7 @@
 
 #include <ipc/ipc.h>
 #include <psthread.h>
+#include <time.h>
 
 typedef ipc_callid_t aid_t;
 
@@ -17,6 +18,7 @@ pstid_t async_new_connection(ipc_callid_t callid, ipc_call_t *call,
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 		   ipc_call_t *dataptr);
 void async_wait_for(aid_t amsgid, ipcarg_t *result);
+int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
 
 
 /* Should be defined by application */
