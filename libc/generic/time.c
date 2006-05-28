@@ -38,9 +38,9 @@
 
 /* Pointers to public variables with time */
 struct {
-	volatile sysarg_t seconds;
+	volatile sysarg_t seconds1;
 	volatile sysarg_t useconds;
-	volatile sysarg_t useconds2;
+	volatile sysarg_t seconds2;
 } *ktime = NULL;
 
 
@@ -57,7 +57,7 @@ struct {
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	void *mapping;
-	sysarg_t seconds,useconds;
+	sysarg_t s1, s2;
 	sysarg_t t1;
 	int res;
 
@@ -78,19 +78,15 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	tz->tz_minuteswest = 0;
 	tz->tz_dsttime = DST_NONE;
 retry:
-	seconds = ktime->seconds;
-	read_barrier();
+	s1 = ktime->seconds1;
 	tv->tv_usec = ktime->useconds;
 	read_barrier();
-	tv->tv_sec = ktime->seconds;
-	if (tv->tv_usec == 0 && seconds == tv->tv_sec && 
-	    ktime->useconds2 != 0) {
-		read_barrier();
-		goto retry;
-	}
-
-	if (seconds != tv->tv_sec)
-		tv->tv_usec = ktime->useconds;
+	s2 = ktime->seconds2;
+	if (s1 != s2) {
+		tv->tv_usec = 0;
+		tv->tv_sec = s1 > s2 ? s1 : s2;
+	} else
+		tv->tv_sec = s1;
 
 	return 0;
 }
