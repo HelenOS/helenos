@@ -1057,6 +1057,11 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 		return 0;
 	}
 
+	if (!leaf->keys) {
+		btree_insert(&a->used_space, page, (void *) count, leaf);
+		return 1;
+	}
+
 	node = btree_leaf_node_left_neighbour(&a->used_space, leaf);
 	if (node) {
 		__address left_pg = node->key[node->keys - 1], right_pg = leaf->key[0];
