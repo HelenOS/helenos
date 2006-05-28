@@ -38,8 +38,6 @@ extern spinlock_t printflock;
 
 #define EOF (-1)
 
-extern int puts(const char * str);
-
 extern int printf(const char *fmt, ...);
 extern int sprintf(char *str, const char *fmt, ...);
 extern int snprintf(char *str, size_t size, const char *fmt, ...);

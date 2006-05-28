@@ -53,9 +53,9 @@
 
 /* Pointers to public variables with time */
 struct ptime {
-	__native seconds;
+	__native seconds1;
 	__native useconds;
-	__native useconds2;
+	__native seconds2;
 };
 struct ptime *public_time;
 /* Variable holding fragment of second, so that we would update
@@ -82,7 +82,8 @@ void clock_counter_init(void)
 	public_time = (struct ptime *)PA2KA(faddr);
 
         /* TODO: We would need some arch dependent settings here */
-	public_time->seconds = 0;
+	public_time->seconds1 = 0;
+	public_time->seconds2 = 0;
 	public_time->useconds = 0; 
 
 	sysinfo_set_item_val("clock.faddr", NULL, (__native)faddr);
@@ -99,15 +100,14 @@ static void clock_update_counters(void)
 	if (CPU->id == 0) {
 		secfrag += 1000000/HZ;
 		if (secfrag >= 1000000) {
-			public_time->useconds = 0;
+			secfrag -= 1000000;
+			public_time->seconds1++;
 			write_barrier();
-			public_time->seconds++;
-			secfrag = 0;
+			public_time->useconds = secfrag;
+			write_barrier();
+			public_time->seconds2 = public_time->seconds1;
 		} else
 			public_time->useconds += 1000000/HZ;
-		write_barrier();
-		public_time->useconds2 = public_time->useconds;
-		write_barrier();
 	}
 }
 
