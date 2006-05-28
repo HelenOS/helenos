@@ -35,7 +35,7 @@ typedef struct {
 	void *phys_base;		/** Physical address of starting frame. */
 	void *virt_base;		/** Virtual address of starting page. */
 	unsigned long pages;		/** Number of pages to map. */
-	int writable;			/** True if the mapping should be writable. */
+	int flags;			/** Address space area flags for the mapping. */
 } ddi_memarg_t;
 
 /** Structure encapsulating arguments for SYS_ENABLE_IOSPACE syscall. */

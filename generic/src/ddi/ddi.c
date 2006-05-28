@@ -53,18 +53,17 @@
  * @param pf Physical frame address of the starting frame.
  * @param vp Virtual page address of the starting page.
  * @param pages Number of pages to map.
- * @param writable If true, the mapping will be created writable.
+ * @param flags Address space area flags for the mapping.
  *
  * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
  *	   ENOENT if there is no task matching the specified ID and ENOMEM if
  *	   there was a problem in creating address space area.
  */
-static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pages, bool writable)
+static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pages, int flags)
 {
 	ipl_t ipl;
 	cap_t caps;
 	task_t *t;
-	int flags;
 	mem_backend_data_t backend_data;
 
 	backend_data.base = pf;
@@ -101,9 +100,6 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 	
-	flags = AS_AREA_READ;
-	if (writable)
-		flags |= AS_AREA_WRITE;
 	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
 		&phys_backend, &backend_data)) {
 		/*
@@ -195,7 +191,7 @@ __native sys_physmem_map(ddi_memarg_t *uspace_mem_arg)
 		
 	return (__native) ddi_physmem_map((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
 					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
-					  (bool) arg.writable);
+					  (int) arg.flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
