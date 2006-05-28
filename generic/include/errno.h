@@ -44,5 +44,6 @@
 #define EBADMEM		-9	/* Bad memory pointer */
 #define ENOTSUP		-10	/* Not supported */
 #define EADDRNOTAVAIL	-11	/* Address not available. */
+#define ETIMEOUT        -12     /* Timeout expired */
 
 #endif
