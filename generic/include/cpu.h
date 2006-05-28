@@ -61,6 +61,11 @@ struct cpu {
 	SPINLOCK_DECLARE(timeoutlock);
 	link_t timeout_active_head;
 
+	count_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
+					     so that clock() can react. This variable is
+					     CPU-local and can be only accessed when interrupts
+					     are disabled. */
+
 	/**
 	 * Processor ID assigned by kernel.
 	 */

@@ -62,31 +62,35 @@ void clock(void)
 	timeout_t *h;
 	timeout_handler_t f;
 	void *arg;
+	int i;
 
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
 	 */
-	spinlock_lock(&CPU->timeoutlock);
-	while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
-		h = list_get_instance(l, timeout_t, link);
-		spinlock_lock(&h->lock);
-		if (h->ticks-- != 0) {
-			spinlock_unlock(&h->lock);
-			break;
-		}
-		list_remove(l);
-		f = h->handler;
-		arg = h->arg;
-		timeout_reinitialize(h);
-		spinlock_unlock(&h->lock);	
-		spinlock_unlock(&CPU->timeoutlock);
-
-		f(arg);
-
+	for (i = 0; i < CPU->missed_clock_ticks; i++) {
 		spinlock_lock(&CPU->timeoutlock);
+		while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
+			h = list_get_instance(l, timeout_t, link);
+			spinlock_lock(&h->lock);
+			if (h->ticks-- != 0) {
+				spinlock_unlock(&h->lock);
+				break;
+			}
+			list_remove(l);
+			f = h->handler;
+			arg = h->arg;
+			timeout_reinitialize(h);
+			spinlock_unlock(&h->lock);	
+			spinlock_unlock(&CPU->timeoutlock);
+
+			f(arg);
+
+			spinlock_lock(&CPU->timeoutlock);
+		}
+		spinlock_unlock(&CPU->timeoutlock);
 	}
-	spinlock_unlock(&CPU->timeoutlock);
+	CPU->missed_clock_ticks = 0;
 
 	/*
 	 * Do CPU usage accounting and find out whether to preempt THREAD.
