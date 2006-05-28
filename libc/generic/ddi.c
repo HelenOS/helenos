@@ -39,13 +39,13 @@
  * @param pf Physical address of the starting frame.
  * @param vp Virtual address of the sterting page.
  * @param pages Number of pages to map.
- * @param writable If true, the mapping will be created writable.
+ * @param flags Flags for the new address space area.
  *
  * @return 0 on success, EPERM if the caller lacks the CAP_MEM_MANAGER capability,
  *	   ENOENT if there is no task with specified ID and ENOMEM if there
  *	   was some problem in creating address space area.
  */
-int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writable)
+int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int flags)
 {
 	task_id_t task_id;
 	ddi_memarg_t arg;
@@ -54,7 +54,7 @@ int map_physmem(task_id_t id, void *pf, void *vp, unsigned long pages, int writa
 	arg.phys_base = pf;
 	arg.virt_base = vp;
 	arg.pages = pages;
-	arg.writable = writable;
+	arg.flags = flags;
 
 	return __SYSCALL1(SYS_MAP_PHYSMEM, (sysarg_t) &arg);
 }

@@ -28,29 +28,21 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <ddi.h>
 #include <task.h>
-#include <stdlib.h>
-#include <ddi.h>
 #include <sysinfo.h>
 #include <align.h>
 #include <as.h>
 #include <ipc/fb.h>
-
-
 #include <ipc/ipc.h>
-#include <ipc/services.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <ipc/ns.h>
-
+#include <ipc/services.h>
 #include <kernel/errno.h>
 #include <async.h>
-
-
 #include "font-8x16.h"
-#include <string.h>
-
 #include "helenos.xbm"
 #include "fb.h"
 
@@ -69,17 +61,13 @@
 #define H_NO_VFBS 3
 #define V_NO_VFBS 3
 
-
 static void fb_putchar(int item,char ch);
 int create_window(int item,unsigned int x, unsigned int y,unsigned int x_size, unsigned int y_size,
 	unsigned int BGCOLOR,unsigned int FGCOLOR,unsigned int LOGOCOLOR);
 void fb_init(int item,__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan,
 	unsigned int BGCOLOR,unsigned int FGCOLOR,unsigned int LOGOCOLOR);
 
-
 unsigned int mod_col(unsigned int col,int mod);
-
-
 
 static int init_fb(void)
 {
@@ -101,11 +89,10 @@ static int init_fb(void)
 	fb_scanline=sysinfo_value("fb.scanline");
 
 	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
-
-
 	
 	map_physmem(task_get_id(),(void *)((__address)fb_ph_addr),(void *)fb_addr,
-		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,1);
+		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,
+		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	
 	fb_init(0,fb_addr, fb_width, fb_height, fb_bpp, fb_scanline,
 		MAIN_BGCOLOR,MAIN_FGCOLOR,MAIN_LOGOCOLOR);
