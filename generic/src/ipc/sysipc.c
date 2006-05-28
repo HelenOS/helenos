@@ -151,6 +151,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		if (!IPC_GET_RETVAL(answer->data)) { 
 			ipl_t ipl;
 			as_t *as;
+			int rc;
 			
 			ipl = interrupts_disable();
 			spinlock_lock(&answer->sender->lock);
@@ -158,8 +159,9 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			spinlock_unlock(&answer->sender->lock);
 			interrupts_restore(ipl);
 			
-			return as_area_share(AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG2(*olddata),
-					     as, IPC_GET_ARG1(*olddata), IPC_GET_ARG3(*olddata));
+			rc = as_area_share(AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG2(*olddata),
+					   as, IPC_GET_ARG1(*olddata), IPC_GET_ARG3(*olddata));
+			IPC_SET_RETVAL(answer->data, rc);
 		}
 	}
 	return 0;

@@ -76,9 +76,26 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
+/* TODO: This is SMP unsafe!!! */
+static unsigned long nextcount;
+/** Start hardware clock */
+static void timer_start(void)
+{
+	nextcount = cp0_compare_value + cp0_count_read();
+	cp0_compare_write(nextcount);
+}
+
 static void timer_exception(int n, istate_t *istate)
 {
-	cp0_compare_write(cp0_count_read() + cp0_compare_value); 
+	unsigned long drift;
+
+	drift = cp0_count_read() - nextcount;
+	while (drift > cp0_compare_value) {
+		drift -= cp0_compare_value;
+		CPU->missed_clock_ticks++;
+	}
+	nextcount = cp0_count_read() + cp0_compare_value - drift;
+	cp0_compare_write(nextcount);
 	clock();
 }
 
@@ -100,6 +117,7 @@ void interrupt_init(void)
 	int_register(TIMER_IRQ, "timer", timer_exception);
 	int_register(0, "swint0", swint0);
 	int_register(1, "swint1", swint1);
+	timer_start();
 }
 
 static void ipc_int(int n, istate_t *istate)

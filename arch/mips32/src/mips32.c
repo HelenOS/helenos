@@ -80,8 +80,6 @@ void arch_pre_mm_init(void)
 	
 	/* Initialize dispatch table */
 	exception_init();
-	interrupt_init();
-
 	arc_init();
 
 	/* Copy the exception vectors to the right places */
@@ -89,6 +87,7 @@ void arch_pre_mm_init(void)
 	memcpy(NORM_EXC, (char *)exception_entry, EXCEPTION_JUMP_SIZE);
 	memcpy(CACHE_EXC, (char *)cache_error_entry, EXCEPTION_JUMP_SIZE);
 
+	interrupt_init();
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the kernel.
 	 * Clear the error level.
@@ -99,15 +98,11 @@ void arch_pre_mm_init(void)
 	 * Mask all interrupts 
 	 */
 	cp0_mask_all_int();
+
 	/*
 	 * Unmask hardware clock interrupt.
 	 */
 	cp0_unmask_int(TIMER_IRQ);
-
-	/*
-	 * Start hardware clock.
-	 */
-	cp0_compare_write(cp0_compare_value + cp0_count_read());
 
 	console_init();
 	debugger_init();

@@ -49,9 +49,8 @@
 
 /*
  * Magic value for use in msim.
- * On AMD Duron 800Mhz, this roughly seems like one us.
  */
-#define cp0_compare_value 		10000
+#define cp0_compare_value 		100000
 
 #define cp0_mask_all_int() cp0_status_write(cp0_status_read() & ~(cp0_status_im_mask))
 #define cp0_unmask_all_int() cp0_status_write(cp0_status_read() | cp0_status_im_mask)

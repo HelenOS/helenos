@@ -477,7 +477,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	share_info_t *sh_info;
 	mem_backend_t *src_backend;
 	mem_backend_data_t src_backend_data;
-
+	
 	ipl = interrupts_disable();
 	mutex_lock(&src_as->lock);
 	src_area = find_area_and_lock(src_as, src_base);

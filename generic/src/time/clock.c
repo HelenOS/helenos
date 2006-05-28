@@ -48,6 +48,68 @@
 #include <adt/list.h>
 #include <atomic.h>
 #include <proc/thread.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/barrier.h>
+
+/* Pointers to public variables with time */
+struct ptime {
+	__native seconds;
+	__native useconds;
+	__native useconds2;
+};
+struct ptime *public_time;
+/* Variable holding fragment of second, so that we would update
+ * seconds correctly
+ */
+static __native secfrag = 0;
+
+/** Initialize realtime clock counter
+ *
+ * The applications (and sometimes kernel) need to access accurate
+ * information about realtime data. We allocate 1 page with these 
+ * data and update it periodically.
+ *
+ * 
+ */
+void clock_counter_init(void)
+{
+	void *faddr;
+
+	faddr = (void *)PFN2ADDR(frame_alloc(0, FRAME_ATOMIC));
+	if (!faddr)
+		panic("Cannot allocate page for clock");
+	
+	public_time = (struct ptime *)PA2KA(faddr);
+
+        /* TODO: We would need some arch dependent settings here */
+	public_time->seconds = 0;
+	public_time->useconds = 0; 
+
+	sysinfo_set_item_val("clock.faddr", NULL, (__native)faddr);
+}
+
+
+/** Update public counters
+ *
+ * Update it only on first processor
+ * TODO: Do we really need so many write barriers? 
+ */
+static void clock_update_counters(void)
+{
+	if (CPU->id == 0) {
+		secfrag += 1000000/HZ;
+		if (secfrag >= 1000000) {
+			public_time->useconds = 0;
+			write_barrier();
+			public_time->seconds++;
+			secfrag = 0;
+		} else
+			public_time->useconds += 1000000/HZ;
+		write_barrier();
+		public_time->useconds2 = public_time->useconds;
+		write_barrier();
+	}
+}
 
 /** Clock routine
  *
@@ -69,6 +131,7 @@ void clock(void)
 	 * run all expired timeouts as you visit them.
 	 */
 	for (i = 0; i <= CPU->missed_clock_ticks; i++) {
+		clock_update_counters();
 		spinlock_lock(&CPU->timeoutlock);
 		while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
 			h = list_get_instance(l, timeout_t, link);

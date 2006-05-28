@@ -197,7 +197,7 @@ void main_bsp_separated_stack(void)
 	page_init();
 	tlb_init();
 	config.mm_initialized = true;
-	arch_post_mm_init();	
+	arch_post_mm_init();
 
 	version_print();
 	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(__address) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
@@ -212,6 +212,7 @@ void main_bsp_separated_stack(void)
 	cpu_init();
 	
 	calibrate_delay_loop();
+	clock_counter_init();
 	timeout_init();
 	scheduler_init();
 	task_init();

@@ -32,5 +32,6 @@
 #define HZ		100
 
 extern void clock(void);
+extern void clock_counter_init(void);
 
 #endif
