@@ -40,6 +40,9 @@
 #include <assert.h>
 #include <libadt/list.h>
 #include <libadt/hash_table.h>
+#include <sysinfo.h>
+#include <ddi.h>
+#include <as.h>
 
 #define NAME	"NS"
 
@@ -73,6 +76,28 @@ typedef struct {
 
 int static ping_phone;
 
+static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
+{
+	static void *addr = NULL;
+	void *ph_addr;
+
+	if (IPC_GET_ARG3(*call) != (AS_AREA_READ | AS_AREA_CACHEABLE)) {
+		ipc_answer_fast(callid, EPERM, 0, 0);
+		return;
+	}
+	if (!addr) {
+		ph_addr = (void *)sysinfo_value("clock.faddr");
+		if (!ph_addr) {
+			ipc_answer_fast(callid, ENOENT, 0, 0);
+			return;
+		}
+		addr = (void *)(200*1024*1024); /* TODO: intelligent freemem space */
+		map_physmem(task_get_id(), ph_addr, addr, 1,
+			    AS_AREA_READ | AS_AREA_CACHEABLE);
+	}
+	ipc_answer_fast(callid, 0, (ipcarg_t)addr, 0);
+}
+
 int main(int argc, char **argv)
 {
 	ipc_call_t call;
@@ -102,12 +127,12 @@ int main(int argc, char **argv)
 			} else
 //				printf("Failed answer: %d\n", retval);
 			continue;
-			break;
+		case IPC_M_AS_AREA_RECV:
+			get_realtime_as(callid, &call);
+			continue;
 		case IPC_M_INTERRUPT:
-//			printf("GOT INTERRUPT: %c\n", IPC_GET_ARG2(call));
 			break;
 		case IPC_M_PHONE_HUNGUP:
-//			printf("Phone hung up.\n");
 			retval = 0;
 			break;
 		case IPC_M_CONNECT_TO_ME:

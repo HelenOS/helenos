@@ -44,6 +44,7 @@
 #include <kbd.h>
 #include <ipc/fb.h>
 #include <async.h>
+#include <time.h>
 
 int a;
 atomic_t ftx;
@@ -401,6 +402,18 @@ static void test_fb()
 	ipc_hangup(phoneid);
 }
 
+static void test_time(void)
+{
+	int rc;
+	struct timeval tv;
+	struct timezone tz;
+
+	while (1) {
+		rc = gettimeofday(&tv, &tz);
+		printf("Rc: %d, Secs: %d, Usecs: %d\n", rc, tv.tv_sec,
+		       tv.tv_usec);
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -420,7 +433,8 @@ int main(int argc, char *argv[])
 //	test_as_area_send();
 //	test_pci();
 //	test_kbd();
-	test_async_kbd();
+	test_time();
+//	test_async_kbd();
 //	test_fb();
 
 	printf("Hello\nThis is Init\n\nBye.");

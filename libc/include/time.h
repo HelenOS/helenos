@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,22 +24,28 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ */ 
 
-/**
- * @file	services.h
- * @brief	List of all known services and their codes.
- */
+#ifndef __libc_TIME_H__
+#define __libc_TIME_H__
 
-#ifndef __LIBIPC__SERVICES_H__
-#define __LIBIPC__SERVICES_H__
+#include <types.h>
 
-#define SERVICE_PCI		1
-#define SERVICE_FRAME_BUFFER	2
-#define SERVICE_KEYBOARD	3
-#define SERVICE_VIDEO	        4
+#define DST_NONE 0
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
+typedef sysarg_t time_t;
+typedef sysarg_t suseconds_t;
+
+struct timeval {
+	time_t         tv_sec;        /* seconds */
+	suseconds_t    tv_usec;  /* microseconds */
+};
+
+struct timezone {
+	int  tz_minuteswest; /* minutes W of Greenwich */
+	int  tz_dsttime;     /* type of dst correction */
+};
+
+int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif

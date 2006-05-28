@@ -331,6 +331,7 @@ int async_manager()
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
+	int timeout;
 
 	while (1) {
 		if (psthread_schedule_next_adv(PS_FROM_MANAGER)) {
@@ -339,7 +340,18 @@ int async_manager()
 						*/
 			continue;
 		}
-		callid = ipc_wait_cycle(&call,SYNCH_NO_TIMEOUT,SYNCH_BLOCKING);
+/*
+		if (expires)
+			timeout = .... ;
+		else
+*/
+			timeout = SYNCH_NO_TIMEOUT;
+		callid = ipc_wait_cycle(&call, timeout, SYNCH_BLOCKING);
+
+		if (!callid) {
+//			handle_expired_timeouts.......;
+			continue;
+		}
 
 		if (callid & IPC_CALLID_ANSWERED)
 			continue;
@@ -404,7 +416,8 @@ static void reply_received(void *private, int retval,
 	 */
 	if (msg->dataptr)
 		*msg->dataptr = *data; 
-	
+
+	/* TODO: memory barrier?? */
 	msg->done = 1;
 	if (! msg->active) {
 		msg->active = 1;
@@ -460,3 +473,38 @@ done:
 		*retval = msg->retval;
 	free(msg);
 }
+
+
+/* int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, int timeout) */
+/* { */
+/* 	amsg_t *msg = (amsg_t *) amsgid; */
+/* 	connection_t *conn; */
+
+/* 	futex_down(&async_futex); */
+/* 	if (msg->done) { */
+/* 		futex_up(&async_futex); */
+/* 		goto done; */
+/* 	} */
+
+/* 	msg->ptid = psthread_get_id(); */
+/* 	msg->active = 0; */
+/* 	msg->expires = gettime() + timeout; */
+/* 	setup_timeouts_etc...(); */
+
+/* 	/\* Leave locked async_futex when entering this function *\/ */
+/* 	psthread_schedule_next_adv(PS_TO_MANAGER); */
+/* 	/\* futex is up automatically after psthread_schedule_next...*\/ */
+
+/* 	if (!msg->done) */
+/* 		return casy-casy; */
+
+/* 	/\* TODO: When memory barrier in reply_received, we can skip this *\/ */
+/* 	futex_down(&async_futex); */
+/* 	futex_up(&async_futex); */
+/* done: */
+	
+/* 	if (retval) */
+/* 		*retval = msg->retval; */
+/* 	free(msg); */
+/* } */
+

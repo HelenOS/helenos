@@ -65,7 +65,8 @@ GENERIC_SOURCES = \
 	generic/ipc.c \
 	generic/async.c \
 	generic/libadt/list.o \
-	generic/libadt/hash_table.o
+	generic/libadt/hash_table.o \
+	generic/time.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
