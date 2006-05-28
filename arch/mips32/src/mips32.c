@@ -61,13 +61,16 @@
 void arch_pre_main(void)
 {
 	/* Setup usermode */
-	init.cnt = 3;
+	init.cnt = 4;
 	init.tasks[0].addr = INIT_ADDRESS;
 	init.tasks[0].size = INIT_SIZE;
 	init.tasks[1].addr = INIT_ADDRESS + 0x100000;
 	init.tasks[1].size = INIT_SIZE;
 	init.tasks[2].addr = INIT_ADDRESS + 0x200000;
 	init.tasks[2].size = INIT_SIZE;
+	init.tasks[3].addr = INIT_ADDRESS + 0x300000;
+	init.tasks[3].size = INIT_SIZE;
+
 }
 
 void arch_pre_mm_init(void)
