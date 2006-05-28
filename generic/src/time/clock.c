@@ -68,7 +68,7 @@ void clock(void)
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
 	 */
-	for (i = 0; i < CPU->missed_clock_ticks; i++) {
+	for (i = 0; i <= CPU->missed_clock_ticks; i++) {
 		spinlock_lock(&CPU->timeoutlock);
 		while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
 			h = list_get_instance(l, timeout_t, link);
