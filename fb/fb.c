@@ -160,18 +160,14 @@ int main(int argc, char *argv[])
 	
 	ipcarg_t retval, arg1, arg2;
 
-	if(!sysinfo_value("fb")) {
-		printf("Framebuffer initialization failed.\n");
+	if(!sysinfo_value("fb"))
 		return -1;
-	}
 
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, &phonead)) != 0) 
 		return -1;
 	
-	if (init_fb() != 0) {
-		printf("Framebuffer initialization failed.\n");
+	if (init_fb() != 0)
 		return -1;
-	}
 
 	async_manager();
 	/* Never reached */

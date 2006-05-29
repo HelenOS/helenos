@@ -39,9 +39,7 @@
 #include <key_buffer.h>
 
 #define NAME "KBD"
-void hello(void *private, int retval, ipc_call_t *data) {
-	printf("%s: got answer from console with retval %d.\n", NAME, retval);
-}
+
 int main(int argc, char **argv)
 {
 	ipc_call_t call;
@@ -114,7 +112,7 @@ int main(int argc, char **argv)
 							break;
 						}
 						/*FIXME: detection of closed connection */
-						ipc_call_async(phoneid, KBD_PUSHCHAR, arg1, 0, &hello);
+						ipc_call_async(phoneid, KBD_PUSHCHAR, arg1, 0, NULL);
 					}
 
 				}

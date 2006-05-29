@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
 			case KBD_PUSHCHAR:
 				printf("%s: Push char '%c'.\n", NAME, IPC_GET_ARG1(call));
 				retval = 0;
+				
 				break;
 			default:
 				printf("%s: Unknown method: %zd\n", NAME, IPC_GET_METHOD(call));
