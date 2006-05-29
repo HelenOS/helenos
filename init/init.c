@@ -305,17 +305,18 @@ static void test_kbd()
 	int phoneid;
 
 	printf("Test: Starting connect...\n");
-	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
+	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0)) < 0) {
 	};
 	
 	printf("Test: Connected: %d\n", res);
 	printf("Test: pinging.\n");
-	while (1) {
+/*	while (1) {
+		
 		res = ipc_call_sync(phoneid, KBD_GETCHAR, 0xbeef,&result);
 //		printf("Test: Retval: %d - received: %c\n", res, result);
 		printf("%c", result);
 	}
-	
+*/	
 	printf("Test: Hangin up\n");
 	ipc_hangup(phoneid);
 }
@@ -335,14 +336,8 @@ static void test_async_kbd()
 	printf("Test: Connected: %d\n", res);
 	printf("Test: pinging.\n");
 
-	aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
+
 	while (1) {
-		if (async_wait_timeout(aid, NULL, 1000000)) {
-			printf("^");
-			continue;
-		}
-		printf("%c", IPC_GET_ARG1(kbddata));
-		aid = async_send_2(phoneid, KBD_GETCHAR, 0, 0, &kbddata);
 	}
 	
 	printf("Test: Hangin up\n");

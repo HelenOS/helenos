@@ -37,7 +37,8 @@
 #define SERVICE_PCI		1
 #define SERVICE_FRAME_BUFFER	2
 #define SERVICE_KEYBOARD	3
-#define SERVICE_VIDEO	        4
+#define SERVICE_VIDEO		4
+#define SERVICE_CONSOLE		5
 
 /* Memory area to be received from NS */
 #define SERVICE_MEM_REALTIME    1

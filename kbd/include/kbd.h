@@ -29,7 +29,7 @@
 #ifndef __KBD_H__
 #define __KBD_H__
 
-#define KBD_GETCHAR 1024
+#define KBD_PUSHCHAR 1024
 
 #endif
 

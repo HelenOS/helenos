@@ -26,99 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#include <kbd.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <ipc/ns.h>
 #include <errno.h>
-#include <arch/kbd.h>
-#include <kbd.h>
-#include <libadt/fifo.h>
-#include <key_buffer.h>
 
-#define NAME "KBD"
-void hello(void *private, int retval, ipc_call_t *data) {
-	printf("%s: got answer from console with retval %d.\n", NAME, retval);
-}
-int main(int argc, char **argv)
+#define NAME "CONSOLE"
+
+int main(int argc, char *argv[])
 {
+	ipcarg_t phonead;
 	ipc_call_t call;
 	ipc_callid_t callid;
-	int res;
-	ipcarg_t phonead;
-	int phoneid;
-	char connected = 0;
+	int phone_kbd, phone_fb;
+	ipcarg_t retval, arg1 = 0xdead, arg2 = 0xbeef;
 	
-	ipcarg_t retval, arg1, arg2;
-
-	printf("Uspace kbd service started.\n");
-
-	/* Initialize arch dependent parts */
-	if (!(res = kbd_arch_init())) {
-			printf("Kbd registration failed with retval %d.\n", res);
-			return -1;
-			};
+	printf("Uspace console service started.\n");
 	
-	/* Initialize key buffer */
-	key_buffer_init();
+	
+	/* Connect to keyboard driver */
+
+	while ((phone_kbd = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
+	};
+	
+	if (ipc_connect_to_me(phone_kbd, SERVICE_CONSOLE, 0, &phonead) != 0) {
+		printf("%s: Error: Registering at naming service failed.\n", NAME);
+		return -1;
+	};
+
+	/* Connect to framebuffer driver */
+	
+	while ((phone_fb = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
+	};
+	
 	
 	/* Register service at nameserver */
 	printf("%s: Registering at naming service.\n", NAME);
 
-	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonead) != 0) {
 		printf("%s: Error: Registering at naming service failed.\n", NAME);
 		return -1;
 	};
 	
 	while (1) {
 		callid = ipc_wait_for_call(&call);
-	//	printf("%s:Call phone=%lX..", NAME, call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:
 				printf("%s: Phone hung up.\n", NAME);
-				connected = 0;
 				retval = 0;
 				break;
 			case IPC_M_CONNECT_ME_TO:
-			//	printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
-				/* Only one connected client allowed */
-				if (connected) {
-					retval = ELIMIT;
-				} else {
-					retval = 0;
-					connected = 1;
-				}
-				break;
-			case IPC_M_CONNECT_TO_ME:
-				phoneid = IPC_GET_ARG3(call);
+				printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
 				retval = 0;
 				break;
-
-			case IPC_M_INTERRUPT:
-				if (connected) {
-					/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
-					kbd_arch_process(IPC_GET_ARG2(call));
-
-					//printf("%s: GOT INTERRUPT: %c\n", NAME, key);
-
-					/* Some callers could awaiting keypress - if its true, we have to send keys to them.
-					 * One interrupt can store more than one key into buffer. */
-					
-					retval = 0;
-
-					while (!key_buffer_empty()) {
-						if (!key_buffer_pop((char *)&arg1)) {
-							printf("%s: KeyBuffer is empty but it should not be.\n");
-							break;
-						}
-						/*FIXME: detection of closed connection */
-						ipc_call_async(phoneid, KBD_PUSHCHAR, arg1, 0, &hello);
-					}
-
-				}
-				printf("%s: Interrupt processed.\n", NAME);
+			case KBD_PUSHCHAR:
+				printf("%s: Push char '%c'.\n", NAME, IPC_GET_ARG1(call));
+				retval = 0;
 				break;
 			default:
 				printf("%s: Unknown method: %zd\n", NAME, IPC_GET_METHOD(call));
@@ -130,5 +95,6 @@ int main(int argc, char **argv)
 			ipc_answer_fast(callid, retval, arg1, arg2);
 		}
 	}
-}
 
+	return 0;	
+}
