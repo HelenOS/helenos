@@ -120,14 +120,16 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 	call = malloc(sizeof(*call));
 	if (!call) {
-		callback(private, ENOMEM, NULL);
+		if (callback)
+			callback(private, ENOMEM, NULL);
 		return;
 	}
 		
 	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
 	if (callid == IPC_CALLRET_FATAL) {
 		/* Call asynchronous handler with error code */
-		callback(private, ENOENT, NULL);
+		if (callback)
+			callback(private, ENOENT, NULL);
 		free(call);
 		return;
 	}
@@ -205,7 +207,8 @@ static void try_dispatch_queued_calls(void)
 
 		if (callid == IPC_CALLRET_FATAL) {
 			futex_up(&ipc_futex);
-			call->callback(call->private, ENOENT, NULL);
+			if (call->callback)
+				call->callback(call->private, ENOENT, NULL);
 			free(call);
 			futex_down(&ipc_futex);
 		} else {
@@ -236,9 +239,11 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 		if (call->u.callid == callid) {
 			list_remove(&call->list);
 			futex_up(&ipc_futex);
-			call->callback(call->private, 
-				       IPC_GET_RETVAL(*data),
-				       data);
+			if (call->callback)
+				call->callback(call->private, 
+					       IPC_GET_RETVAL(*data),
+					       data);
+			free(call);
 			return;
 		}
 	}
