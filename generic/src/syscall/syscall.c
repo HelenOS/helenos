@@ -47,15 +47,33 @@
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 
+/** Print using kernel facility
+ *
+ * Some simulators can print only through kernel. Userspace can use
+ * this syscall to facilitate it.
+ */
 static __native sys_io(int fd, const void * buf, size_t count) 
 {
-//	return count; /*Syscall deprecated*/
-	// TODO: buf sanity checks and a lot of other stuff ...
-
 	size_t i;
+	char *data;
+	int rc;
+
+	if (count > PAGE_SIZE)
+		return ELIMIT;
+
+	data = malloc(count, 0);
+	if (!data)
+		return ENOMEM;
 	
+	rc = copy_from_uspace(data, buf, count);
+	if (rc) {
+		free(data);
+		return rc;
+	}
+
 	for (i = 0; i < count; i++)
-		putchar(((char *) buf)[i]);
+		putchar(data[i]);
+	free(data);
 	
 	return count;
 }
