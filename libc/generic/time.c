@@ -80,10 +80,11 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		tz->tz_dsttime = DST_NONE;
 	}
 
-	s1 = ktime->seconds1;
+	s2 = ktime->seconds2;
+	read_barrier();
 	tv->tv_usec = ktime->useconds;
 	read_barrier();
-	s2 = ktime->seconds2;
+	s1 = ktime->seconds1;
 	if (s1 != s2) {
 		tv->tv_usec = 0;
 		tv->tv_sec = s1 > s2 ? s1 : s2;
