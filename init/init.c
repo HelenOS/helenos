@@ -44,7 +44,7 @@
 #include <kbd.h>
 #include <ipc/fb.h>
 #include <async.h>
-#include <time.h>
+#include <sys/time.h>
 
 int a;
 atomic_t ftx;

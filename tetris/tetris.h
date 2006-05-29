@@ -167,7 +167,7 @@ extern long	fallrate;	/* less than 1 million; smaller => faster */
 #define PRE_PENALTY 0.75
 
 extern int	score;		/* the obvious thing */
-extern gid_t	gid, egid;
+//extern gid_t	gid, egid;
 
 extern char	key_msg[100];
 extern int	showpreview;

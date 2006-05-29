@@ -26,7 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
-#ifndef __libc_TIME_H__
-#define __libc_TIME_H__
+#ifndef __libc_sys_TIME_H__
+#define __libc_sys_TIME_H__
+
+#include <types.h>
+
+#define DST_NONE 0
+
+typedef sysarg_t time_t;
+typedef sysarg_t suseconds_t;
+
+struct timeval {
+	time_t         tv_sec;        /* seconds */
+	suseconds_t    tv_usec;  /* microseconds */
+};
+
+struct timezone {
+	int  tz_minuteswest; /* minutes W of Greenwich */
+	int  tz_dsttime;     /* type of dst correction */
+};
+
+int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif

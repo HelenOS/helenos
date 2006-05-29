@@ -50,7 +50,7 @@ static const char copyright[] =
 #include <sys/types.h>
 
 #include <err.h>
-#include <signal.h>
+//#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,7 +67,7 @@ const struct shape *curshape;
 const struct shape *nextshape;
 long	fallrate;
 int	score;
-gid_t	gid, egid;
+//gid_t	gid, egid;
 char	key_msg[100];
 int	showpreview, classic;
 
@@ -165,47 +165,48 @@ main(int argc, char *argv[])
 
 	keys = "jkl pq";
 
-	gid = getgid();
-	egid = getegid();
-	setegid(gid);
+//	gid = getgid();
+//	egid = getegid();
+//	setegid(gid);
 
 	classic = showpreview = 0;
-	while ((ch = getopt(argc, argv, "ck:l:ps")) != -1)
-		switch(ch) {
-		case 'c':
-			/*
-			 * this means:
-			 *	- rotate the other way;
-			 *	- no reverse video.
-			 */
-			classic = 1;
-			break;
-		case 'k':
-			if (strlen(keys = optarg) != 6)
-				usage();
-			break;
-		case 'l':
-			level = (int)strtonum(optarg, MINLEVEL, MAXLEVEL,
-			    &errstr);
-			if (errstr)
-				errx(1, "level must be from %d to %d",
-				    MINLEVEL, MAXLEVEL);
-			break;
-		case 'p':
-			showpreview = 1;
-			break;
-		case 's':
-			showscores(0);
-			exit(0);
-		default:
-			usage();
-		}
 
-	argc -= optind;
-	argv += optind;
+/* 	while ((ch = getopt(argc, argv, "ck:l:ps")) != -1) */
+/* 		switch(ch) { */
+/* 		case 'c': */
+/* 			/\* */
+/* 			 * this means: */
+/* 			 *	- rotate the other way; */
+/* 			 *	- no reverse video. */
+/* 			 *\/ */
+/* 			classic = 1; */
+/* 			break; */
+/* 		case 'k': */
+/* 			if (strlen(keys = optarg) != 6) */
+/* 				usage(); */
+/* 			break; */
+/* 		case 'l': */
+/* 			level = (int)strtonum(optarg, MINLEVEL, MAXLEVEL, */
+/* 			    &errstr); */
+/* 			if (errstr) */
+/* 				errx(1, "level must be from %d to %d", */
+/* 				    MINLEVEL, MAXLEVEL); */
+/* 			break; */
+/* 		case 'p': */
+/* 			showpreview = 1; */
+/* 			break; */
+/* 		case 's': */
+/* 			showscores(0); */
+/* 			exit(0); */
+/* 		default: */
+/* 			usage(); */
+/* 		} */
 
-	if (argc)
-		usage();
+/* 	argc -= optind; */
+/* 	argv += optind; */
+
+/* 	if (argc) */
+/* 		usage(); */
 
 	fallrate = 1000000 / level;
 
@@ -227,7 +228,7 @@ main(int argc, char *argv[])
 		key_write[0], key_write[1], key_write[2], key_write[3],
 		key_write[4], key_write[5]);
 
-	(void)signal(SIGINT, onintr);
+//	(void)signal(SIGINT, onintr);
 	scr_init();
 	setup_board();
 
@@ -357,13 +358,13 @@ main(int argc, char *argv[])
 	exit(0);
 }
 
-void
-onintr(int signo)
-{
-	scr_clear();		/* XXX signal race */
-	scr_end();		/* XXX signal race */
-	_exit(0);
-}
+/* void */
+/* onintr(int signo) */
+/* { */
+/* 	scr_clear();		/\* XXX signal race *\/ */
+/* 	scr_end();		/\* XXX signal race *\/ */
+/* 	_exit(0); */
+/* } */
 
 void
 usage(void)

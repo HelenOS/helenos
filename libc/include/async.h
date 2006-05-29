@@ -3,7 +3,7 @@
 
 #include <ipc/ipc.h>
 #include <psthread.h>
-#include <time.h>
+#include <sys/time.h>
 
 typedef ipc_callid_t aid_t;
 
