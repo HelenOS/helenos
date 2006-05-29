@@ -432,15 +432,15 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  */
 int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 {
-	int i = 0, j = 0; /**< i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
+	int i = 0, j = 0; /* i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
 	int end;
-	int counter; /**< counter of printed characters */
-	int retval; /**< used to store return values from called functions */
+	int counter; /* counter of printed characters */
+	int retval; /* used to store return values from called functions */
 	char c;
-	qualifier_t qualifier;	/**< type of argument */
-	int base;	/**< base in which will be parameter (numbers only) printed */
-	uint64_t number; /**< argument value */
-	size_t	size; /**< byte size of integer parameter */
+	qualifier_t qualifier;	/* type of argument */
+	int base;	/* base in which will be parameter (numbers only) printed */
+	uint64_t number; /* argument value */
+	size_t	size; /* byte size of integer parameter */
 	int width, precision;
 	uint64_t flags;
 	
