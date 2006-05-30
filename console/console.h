@@ -26,13 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_KBD_H__
-#define __mips32_KBD_H__
+#ifndef __CONSOLE_H__
+#define __CONSOLE_H__
 
-#include <key_buffer.h>
-
-int kbd_arch_init(void);
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
+#define CONSOLE_GETCHAR 1025
+#define CONSOLE_PUTCHAR 1027
 
 #endif
 

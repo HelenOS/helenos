@@ -32,6 +32,8 @@
 #include <types.h>
 #include <arch/types.h>
 
+#define VFB_CONNECTIONS	9
+
 //void fb_init(int item,__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
 
 #endif

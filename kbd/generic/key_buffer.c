@@ -27,27 +27,22 @@
  */
 
 #include <key_buffer.h>
-#include <libadt/fifo.h>
-
-#define KBD_BUFFER_SIZE 128 /**< Size of buffer for pressed keys */
-
-FIFO_INITIALIZE_STATIC(buffer, char, KBD_BUFFER_SIZE);	/**< Fifo for storing pressed keys */
-fifo_count_t buffer_items;	/**< Counter of used items for prevent fifo overflow */
 
 /** Clear key buffer.
  */
-void key_buffer_free(void)
+void keybuffer_free(keybuffer_t *keybuffer) 
 {
-	buffer_items = 0;
-	buffer.head = buffer.tail = 0;
+
+	keybuffer->items = 0;
+	keybuffer->head = keybuffer->tail = keybuffer->items = 0;
 }
 
 /** Key buffer initialization.
  *
  */
-void key_buffer_init(void)
+void keybuffer_init(keybuffer_t *keybuffer)
 {
-	key_buffer_free();
+	keybuffer_free(keybuffer);
 }
 
 /** Get free space in buffer.
@@ -55,28 +50,28 @@ void key_buffer_init(void)
  * to more than one character.
  * @return empty buffer space
  */
-int key_buffer_available(void)
+int keybuffer_available(keybuffer_t *keybuffer)
 {
-	return KBD_BUFFER_SIZE - buffer_items;
+	return KEYBUFFER_SIZE - keybuffer->items;
 }
 
 /**
  * @return nonzero, if buffer is not empty.
  */
-int key_buffer_empty(void)
+int keybuffer_empty(keybuffer_t *keybuffer)
 {
-	return (buffer_items == 0);
+	return (keybuffer->items == 0);
 }
 
 /** Push key to key buffer.
  * If buffer is full, character is ignored.
  * @param key code of stored key
  */
-void key_buffer_push(char key)
+void keybuffer_push(keybuffer_t *keybuffer, char key)
 {
-	if (buffer_items < KBD_BUFFER_SIZE) {
-		fifo_push(buffer, key);
-		buffer_items++;
+	if (keybuffer->items < KEYBUFFER_SIZE) {
+		keybuffer->fifo[keybuffer->tail = (keybuffer->tail + 1) < keybuffer->items ? (keybuffer->tail + 1) : 0] = (key);
+		keybuffer->items++;
 	}
 }
 
@@ -84,11 +79,11 @@ void key_buffer_push(char key)
  * @param c pointer to space where to store character from buffer.
  * @return zero on empty buffer, nonzero else
  */
-int key_buffer_pop(char *c)
+int keybuffer_pop(keybuffer_t *keybuffer, char *c)
 {
-	if (buffer_items > 0) {
-		buffer_items--;
-		*c = fifo_pop(buffer);
+	if (keybuffer->items > 0) {
+		keybuffer->items--;
+		*c = keybuffer->fifo[keybuffer->head = (keybuffer->head + 1) < keybuffer->items ? (keybuffer->head + 1) : 0];
 		return 1;
 	}
 	return 0;

@@ -31,11 +31,14 @@
 
 LIBC_PREFIX = .
 SOFTINT_PREFIX = ../softint
+CONSOLE_PREFIX = ../console
 
 ## Setup toolchain
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
+
+CFLAGS += -I$(CONSOLE_PREFIX)
 
 ## Sources
 #

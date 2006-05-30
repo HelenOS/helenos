@@ -33,7 +33,7 @@ LIBC_PREFIX = ../libc
 SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain 
 
-CFLAGS += -Iinclude -I../kbd/include ../fb
+CFLAGS += -I. -I../kbd/include -I../fb
 
 LIBS = $(LIBC_PREFIX)/libc.a
 
@@ -42,7 +42,8 @@ LIBS = $(LIBC_PREFIX)/libc.a
 
 OUTPUT = console
 GENERIC_SOURCES = \
-	console.c 
+	console.c \
+	../kbd/generic/key_buffer.c
 
 ARCH_SOURCES = 
 
@@ -62,7 +63,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld -e __entry_driver $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm

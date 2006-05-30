@@ -29,7 +29,9 @@
 #ifndef __ia32_KBD_H__
 #define __ia32_KBD_H__
 
+#include <key_buffer.h>
+
 int kbd_arch_init(void);
-int kbd_arch_process(int scan_code);
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
 
 #endif

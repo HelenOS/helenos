@@ -126,7 +126,7 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int vfb = vfb_no++;
 
-	if (vfb > 9) {
+	if (vfb > VFB_CONNECTIONS) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
 		return;
 	}
@@ -535,7 +535,7 @@ int create_window(int item,unsigned int x, unsigned int y,unsigned int x_size, u
 	if(EFB==(item_new=get_free_item()))return EFB;
 	
 	
-	if( (graphics_items[item_new]=malloc(sizeof(framebuffer_descriptor_t))) ==NULL) 
+	if( (graphics_items[item_new]=malloc(sizeof(framebuffer_descriptor_t))) == NULL) 
 	{
 		return EFB;
 	}

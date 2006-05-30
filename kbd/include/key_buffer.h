@@ -31,12 +31,21 @@
 
 #include <types.h>
 
-void key_buffer_free(void);
-void key_buffer_init(void);
-int key_buffer_available(void);
-int key_buffer_empty(void);
-void key_buffer_push(char key);
-int key_buffer_pop(char *c);
+#define KEYBUFFER_SIZE 128 /**< Size of buffer for pressed keys */
+
+typedef struct {
+	char fifo[KEYBUFFER_SIZE];
+	unsigned long head;
+	unsigned long tail;
+	unsigned long items;
+} keybuffer_t;
+
+void keybuffer_free(keybuffer_t *keybuffer);
+void keybuffer_init(keybuffer_t *keybuffer);
+int keybuffer_available(keybuffer_t *keybuffer);
+int keybuffer_empty(keybuffer_t *keybuffer);
+void keybuffer_push(keybuffer_t *keybuffer, char key);
+int keybuffer_pop(keybuffer_t *keybuffer, char *c);
 
 #endif
 

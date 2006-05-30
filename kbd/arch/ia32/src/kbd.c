@@ -28,7 +28,6 @@
  */
 
 #include <arch/kbd.h>
-#include <key_buffer.h>
 #include <ipc/ipc.h>
 
 #define SPECIAL		'?'
@@ -79,16 +78,26 @@ static char sc_primary_map[] = {
 	SPECIAL, /* 0x38 - LAlt */
 	' ',
 	SPECIAL, /* 0x3a - CapsLock */
-	SPECIAL, /* 0x3b - F1 */
-	SPECIAL, /* 0x3c - F2 */
-	SPECIAL, /* 0x3d - F3 */
-	SPECIAL, /* 0x3e - F4 */
-	SPECIAL, /* 0x3f - F5 */
-	SPECIAL, /* 0x40 - F6 */
-	SPECIAL, /* 0x41 - F7 */
-	SPECIAL, /* 0x42 - F8 */
-	SPECIAL, /* 0x43 - F9 */
-	SPECIAL, /* 0x44 - F10 */
+	0x3b, /* 0x3b - F1 */
+//	SPECIAL, /* 0x3b - F1 */
+	0x3c, /* 0x3c - F2 */
+//	SPECIAL, /* 0x3c - F2 */
+	0x3d, /* 0x3d - F3 */
+//	SPECIAL, /* 0x3d - F3 */
+	0x3e, /* 0x3e - F4 */
+//	SPECIAL, /* 0x3e - F4 */
+//	SPECIAL, /* 0x3f - F5 */
+	0x3f, /* 0x3f - F5 */
+//	SPECIAL, /* 0x40 - F6 */
+	0x40, /* 0x40 - F6 */
+//	SPECIAL, /* 0x41 - F7 */
+	0x41, /* 0x41 - F7 */
+//	SPECIAL, /* 0x42 - F8 */
+	0x42, /* 0x42 - F8 */
+//	SPECIAL, /* 0x43 - F9 */
+	0x43, /* 0x43 - F9 */
+//	SPECIAL, /* 0x44 - F10 */
+	0x44, /* 0x44 - F10 */
 	SPECIAL, /* 0x45 - NumLock */
 	SPECIAL, /* 0x46 - ScrollLock */
 	'7', '8', '9', '-',
@@ -159,16 +168,26 @@ static char sc_secondary_map[] = {
 	SPECIAL, /* 0x38 - LAlt */
 	' ',
 	SPECIAL, /* 0x3a - CapsLock */
-	SPECIAL, /* 0x3b - F1 */
-	SPECIAL, /* 0x3c - F2 */
-	SPECIAL, /* 0x3d - F3 */
-	SPECIAL, /* 0x3e - F4 */
-	SPECIAL, /* 0x3f - F5 */
-	SPECIAL, /* 0x40 - F6 */
-	SPECIAL, /* 0x41 - F7 */
-	SPECIAL, /* 0x42 - F8 */
-	SPECIAL, /* 0x43 - F9 */
-	SPECIAL, /* 0x44 - F10 */
+	0x3b, /* 0x3b - F1 */
+	0x3c, /* 0x3c - F2 */
+	0x3d, /* 0x3d - F3 */
+	0x3e, /* 0x3e - F4 */
+	0x3f, /* 0x3f - F5 */
+	0x40, /* 0x40 - F6 */
+	0x41, /* 0x41 - F7 */
+	0x42, /* 0x42 - F8 */
+	0x43, /* 0x43 - F9 */
+	0x44, /* 0x44 - F10 */
+//	SPECIAL, /* 0x3b - F1 */
+//	SPECIAL, /* 0x3c - F2 */
+//	SPECIAL, /* 0x3d - F3 */
+//	SPECIAL, /* 0x3e - F4 */
+//	SPECIAL, /* 0x3f - F5 */
+//	SPECIAL, /* 0x40 - F6 */
+//	SPECIAL, /* 0x41 - F7 */
+//	SPECIAL, /* 0x42 - F8 */
+//	SPECIAL, /* 0x43 - F9 */
+//	SPECIAL, /* 0x44 - F10 */
 	SPECIAL, /* 0x45 - NumLock */
 	SPECIAL, /* 0x46 - ScrollLock */
 	'7', '8', '9', '-',
@@ -230,7 +249,7 @@ irq_code_t i8042_kbd = {
 	i8042_cmds
 };
 
-static int key_released(unsigned char key)
+static int key_released(keybuffer_t *keybuffer, unsigned char key)
 {
 	switch (key) {
 		case SC_LSHIFT:
@@ -249,7 +268,7 @@ static int key_released(unsigned char key)
 	}
 }
 
-static int key_pressed(unsigned char key)
+static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 {
 	char *map = sc_primary_map;
 	char ascii = sc_primary_map[key];
@@ -267,53 +286,53 @@ static int key_pressed(unsigned char key)
 		case SC_SPEC_ESCAPE:
 			break;
 		case SC_LEFTARR:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x5b);	
-				key_buffer_push(0x44);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x5b);	
+				keybuffer_push(keybuffer, 0x44);	
 			}
 			break;
 		case SC_RIGHTARR:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x5b);	
-				key_buffer_push(0x43);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x5b);	
+				keybuffer_push(keybuffer, 0x43);	
 			}
 			break;
 		case SC_UPARR:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x5b);	
-				key_buffer_push(0x41);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x5b);	
+				keybuffer_push(keybuffer, 0x41);	
 			}
 			break;
 		case SC_DOWNARR:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x5b);	
-				key_buffer_push(0x42);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x5b);	
+				keybuffer_push(keybuffer, 0x42);	
 			}
 			break;
 		case SC_HOME:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x4f);	
-				key_buffer_push(0x48);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x4f);	
+				keybuffer_push(keybuffer, 0x48);	
 			}
 			break;
 		case SC_END:
-			if (key_buffer_available() >= 3) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x4f);	
-				key_buffer_push(0x46);	
+			if (keybuffer_available(keybuffer) >= 3) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x4f);	
+				keybuffer_push(keybuffer, 0x46);	
 			}
 			break;
 		case SC_DELETE:
-			if (key_buffer_available() >= 4) {
-				key_buffer_push(0x1b);	
-				key_buffer_push(0x5b);	
-				key_buffer_push(0x33);	
-				key_buffer_push(0x7e);	
+			if (keybuffer_available(keybuffer) >= 4) {
+				keybuffer_push(keybuffer, 0x1b);	
+				keybuffer_push(keybuffer, 0x5b);	
+				keybuffer_push(keybuffer, 0x33);	
+				keybuffer_push(keybuffer, 0x7e);	
 			}
 			break;
 		default:
@@ -324,7 +343,7 @@ static int key_pressed(unsigned char key)
 				shift = !shift;
 			if (shift)
 				map = sc_secondary_map;
-			key_buffer_push(map[key]);	
+			keybuffer_push(keybuffer, map[key]);	
 			break;
 	}
 }
@@ -337,13 +356,13 @@ int kbd_arch_init(void)
 	return !(ipc_register_irq(1, &i8042_kbd));
 }
 
-int kbd_arch_process(int scan_code)
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 {
 	if (scan_code != IGNORE_CODE) {
 		if (scan_code & KEY_RELEASE)
-			key_released(scan_code ^ KEY_RELEASE);
+			key_released(keybuffer, scan_code ^ KEY_RELEASE);
 		else
-			key_pressed(scan_code);
+			key_pressed(keybuffer, scan_code);
 	}
 	return 	1;
 }

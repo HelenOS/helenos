@@ -28,7 +28,6 @@
 
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
-#include <key_buffer.h>
 
 irq_cmd_t msim_cmds[1] = {
 	{ CMD_MEM_READ_1, (void *)0xB0000000, 0 }
@@ -45,8 +44,8 @@ int kbd_arch_init(void)
 	return 1;
 }
 
-int kbd_arch_process(int scan_code)
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 {
-	key_buffer_push(scan_code);
+	keybuffer_push(keybuffer, scan_code);
 	return 	1;
 }
