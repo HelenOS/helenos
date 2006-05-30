@@ -1,0 +1,12 @@
+default 0
+timeout 10
+
+title=HelenOS
+root (cd)
+kernel /boot/kernel.bin
+module /boot/ns
+module /boot/init
+module /boot/pci
+module /boot/fb
+module /boot/kbd
+module /boot/console

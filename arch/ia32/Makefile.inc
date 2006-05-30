@@ -26,20 +26,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: image.boot
+build: image.iso
 
-image.boot: kernel uspace
-	gunzip -c arch/$(ARCH)/grub/grub.img.gz > image.boot
-	e2cp arch/$(ARCH)/grub/grub.conf image.boot:/boot/grub/grub.conf
-	e2cp $(KERNELDIR)/kernel.bin image.boot:/boot/kernel.bin
-	e2cp $(USPACEDIR)/init/init image.boot:/init
-	e2cp $(USPACEDIR)/ns/ns image.boot:/ns
-	e2cp $(USPACEDIR)/pci/pci image.boot:/pci
-	e2cp $(USPACEDIR)/fb/fb image.boot:/fb
-	e2cp $(USPACEDIR)/kbd/kbd image.boot:/kbd
-	e2cp $(USPACEDIR)/console/console image.boot:/console
+image.iso: kernel uspace
+	mkdir -p arch/$(ARCH)/iso/boot/grub
+	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
+	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
+	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/init/init arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/ns/ns arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/pci/pci arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/fb/fb arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/kbd/kbd arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/console/console arch/$(ARCH)/iso/boot/
+	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o image.iso arch/$(ARCH)/iso/
 
 clean: clean_kernel clean_uspace
-	-rm -f image.boot
+	-rm -fr arch/$(ARCH)/iso
+	-rm -f image.iso
 
 arch_distclean: distclean_kernel distclean_uspace
