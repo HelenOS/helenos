@@ -269,7 +269,7 @@ void client_connection(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
 
-/** Function that gets created on interrupt receival
+/** Function that gets called on interrupt receival
  *
  * This function is defined as a weak symbol - to be redefined in
  * user code.
@@ -342,7 +342,8 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid,
 	list_initialize(&conn->msg_queue);
 	conn->ptid = psthread_create(connection_thread, conn);
 	conn->callid = callid;
-	conn->call = *call;
+	if (call)
+		conn->call = *call;
 	conn->active = 1; /* We will activate it asap */
 	conn->cthread = cthread;
 	list_initialize(&conn->link);

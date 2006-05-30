@@ -35,11 +35,16 @@
 #include <errno.h>
 #include <key_buffer.h>
 #include <console.h>
+#include <unistd.h>
+#include <async.h>
 
 //#define CONSOLE_COUNT VFB_CONNECTIONS
 #define CONSOLE_COUNT 6
 
 #define NAME "CONSOLE"
+
+int active_client = 0;
+
 
 typedef struct {
 	keybuffer_t keybuffer;
@@ -76,24 +81,104 @@ static int find_connection(int client_phone)
 	return  CONSOLE_COUNT;
 }
 
+/* Handler for keyboard */
+static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int retval;
+	int i;
+
+	/* Ignore parameters, the connection is alread opened */
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			ipc_answer_fast(callid,0,0,0);
+			/* TODO: Handle hangup */
+			return;
+		case KBD_PUSHCHAR:
+			/* got key from keyboard driver */
+			/* find active console */
+			/* if client is awaiting key, send it */
+			/*FIXME: else store key to its buffer */
+			retval = 0;
+			i = IPC_GET_ARG1(call) & 0xff;
+			/* switch to another virtual console */
+			if ((i >= KBD_KEY_F1) && (i < KBD_KEY_F1 + CONSOLE_COUNT)) {
+				active_client = i - KBD_KEY_F1;
+				break;
+			}
+			keybuffer_push(&(connections[active_client].keybuffer), i);
+			/* Send it to first FB, DEBUG */
+			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
+			ipc_answer_fast(callid, 0, 0, 0);
+			break;
+		default:
+			ipc_answer_fast(callid,ENOENT,0,0);
+		}		
+	}
+}
+
+/** Default thread for new connections */
+void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int consnum;
+	ipcarg_t arg1;
+
+	if ((consnum = find_free_connection()) == CONSOLE_COUNT) {
+		ipc_answer_fast(iid,ELIMIT,0,0);
+		return;
+	}
+	connections[consnum].used = 1;
+	connections[consnum].client_phone = IPC_GET_ARG3(call);
+
+	/* Accept the connection */
+	ipc_answer_fast(iid,0,0,0);
+	
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			/* TODO */
+			ipc_answer_fast(callid, 0,0,0);
+			return;
+		case CONSOLE_PUTCHAR:
+			/* TODO: send message to fb */
+			ipc_call_async_2(connections[consnum].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
+			break;
+		case CONSOLE_GETCHAR:
+			/* FIXME: */
+			if (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
+				/* FIXME: buffer empty -> store request */
+				arg1 = 'X'; /* Only temporary */
+			};
+//ipc_call_async_2(connections[active_client].vfb_phone, FB_PUTCHAR, ' ', arg1, NULL, (void *)NULL); 
+			break;
+		}
+		ipc_answer_fast(callid, 0,0,0);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	ipcarg_t phonead;
-	ipc_call_t call;
-	ipc_callid_t callid;
+	ipcarg_t phonehash;
 	int kbd_phone, fb_phone;
 	ipcarg_t retval, arg1 = 0xdead, arg2 = 0xbeef;
 	int i;
-	int active_client = 0;
 	
 	/* Connect to keyboard driver */
 
 	while ((kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
+		usleep(10000);
 	};
 	
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonead) != 0) {
+	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
+	async_new_connection(phonehash, 0, NULL, keyboard_events);
 
 	/* Connect to framebuffer driver */
 	
@@ -103,93 +188,15 @@ int main(int argc, char *argv[])
 		/* TODO: init key_buffer */
 		while ((connections[i].vfb_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
 				
-ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, 'a', 'b', NULL, (void *)NULL); 
+			ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, 'a', 'b', NULL, (void *)NULL); 
 		}
 	}
 	
-
-	
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonead) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
 	
-	while (1) {
-		callid = ipc_wait_for_call(&call);
-		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_PHONE_HUNGUP:
-				/*FIXME: if its fb or kbd then panic! */
-				/* free connection */
-				if (i = find_connection(IPC_GET_ARG3(call)) < CONSOLE_COUNT) {
-					connections[i].used = 0;
-					 /*TODO: free connection[i].key_buffer; */
-					/* FIXME: active_connection hungup */
-					retval = 0;
-				} else {
-					/*FIXME: No such connection */
-				}
-				break;
-			case IPC_M_CONNECT_ME_TO:
-				
-				/* find first free connection */
-				
-				if ((i = find_free_connection()) == CONSOLE_COUNT) {
-					retval = ELIMIT;
-					break;
-				}
-				
-				connections[i].used = 1;
-				connections[i].client_phone = IPC_GET_ARG3(call);
-				
-				retval = 0;
-				break;
-			case KBD_PUSHCHAR:
-				/* got key from keyboard driver */
-				/* find active console */
-				/* if client is awaiting key, send it */
-				/*FIXME: else store key to its buffer */
-				retval = 0;
-				i = IPC_GET_ARG1(call) & 0xff;
-				/* switch to another virtual console */
-				if ((i >= KBD_KEY_F1) && (i < KBD_KEY_F1 + CONSOLE_COUNT)) {
-					active_client = i - KBD_KEY_F1;
-					break;
-				}
-				
-				keybuffer_push(&(connections[active_client].keybuffer), i);
-				
-				break;
-			case CONSOLE_PUTCHAR:
-				/* find sender client */
-				/* ???
-				 * if its active client, send it to vfb
-				 **/
-				/*FIXME: check, if its from active client, .... */
-
-				if ((i = find_connection(IPC_GET_ARG3(call))) == CONSOLE_COUNT) {
-					break;
-				};
-				
-				/* TODO: send message to fb */
-				ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
-				
-				break;
-			case CONSOLE_GETCHAR:
-				/* FIXME: */
-				if (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
-					/* FIXME: buffer empty -> store request */
-					arg1 = 'X'; /* Only temporary */
-				};
-//ipc_call_async_2(connections[active_client].vfb_phone, FB_PUTCHAR, ' ', arg1, NULL, (void *)NULL); 
-				break;
-			default:
-				retval = ENOENT;
-				break;
-		}
-
-		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer_fast(callid, retval, arg1, arg2);
-		}
-	}
+	async_manager();
 
 	return 0;	
 }

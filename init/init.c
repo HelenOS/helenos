@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
 //	test_pci();
 //	test_kbd();
 //	test_time();
-	test_async_kbd();
+//	test_async_kbd();
 //	test_fb();
 
 	printf("Hello\nThis is Init\n\nBye.");

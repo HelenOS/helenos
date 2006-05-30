@@ -97,7 +97,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	return 0;
 }
 
-/** Wait unconditionally for specified miliseconds */
+/** Wait unconditionally for specified microseconds */
 void usleep(unsigned long usec)
 {
 	atomic_t futex = FUTEX_INITIALIZER;
