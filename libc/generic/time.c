@@ -31,6 +31,9 @@
 #include <ipc/ipc.h>
 #include <stdio.h>
 #include <arch/barrier.h>
+#include <unistd.h>
+#include <atomic.h>
+#include <futex.h>
 
 #include <sysinfo.h>
 #include <as.h>
@@ -92,4 +95,13 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		tv->tv_sec = s1;
 
 	return 0;
+}
+
+/** Wait unconditionally for specified miliseconds */
+void usleep(unsigned long usec)
+{
+	atomic_t futex = FUTEX_INITIALIZER;
+
+	futex_initialize(&futex,0);
+	futex_down_timeout(&futex, usec, 0);
 }

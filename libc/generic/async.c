@@ -269,6 +269,16 @@ void client_connection(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
 
+/** Function that gets created on interrupt receival
+ *
+ * This function is defined as a weak symbol - to be redefined in
+ * user code.
+ */
+void interrupt_received(ipc_call_t *call)
+{
+}
+
+
 /** Wrapper for client connection thread
  *
  * When new connection arrives, thread with this function is created.
@@ -308,13 +318,15 @@ static int connection_thread(void  *arg)
  * later we can easily do routing of messages to particular
  * threads.
  *
+ * @param in_phone_hash Identification of the incoming connection
  * @param callid Callid of the IPC_M_CONNECT_ME_TO packet
  * @param call Call data of the opening packet
  * @param cthread Thread function that should be called upon
  *                opening the connection
  * @return New thread id
  */
-pstid_t async_new_connection(ipc_callid_t callid, ipc_call_t *call,
+pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
+			     ipc_call_t *call,
 			     void (*cthread)(ipc_callid_t,ipc_call_t *))
 {
 	pstid_t ptid;
@@ -326,7 +338,7 @@ pstid_t async_new_connection(ipc_callid_t callid, ipc_call_t *call,
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
 		return NULL;
 	}
-	conn->in_phone_hash = IPC_GET_ARG3(*call);
+	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->ptid = psthread_create(connection_thread, conn);
 	conn->callid = callid;
@@ -353,19 +365,23 @@ pstid_t async_new_connection(ipc_callid_t callid, ipc_call_t *call,
 /** Handle call that was received */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
+	/* Unrouted call - do some default behaviour */
+	switch (IPC_GET_METHOD(*call)) {
+	case IPC_M_INTERRUPT:
+		interrupt_received(call);
+		return;
+	case IPC_M_CONNECT_ME_TO:
+		/* Open new connection with thread etc. */
+		async_new_connection(IPC_GET_ARG3(*call), callid, call, client_connection);
+		return;
+	}
+
+	/* Try to route call through connection tables */
 	if (route_call(callid, call))
 		return;
 
-	switch (IPC_GET_METHOD(*call)) {
-	case IPC_M_INTERRUPT:
-		break;
-	case IPC_M_CONNECT_ME_TO:
-		/* Open new connection with thread etc. */
-		async_new_connection(callid, call, client_connection);
-		break;
-	default:
-		ipc_answer_fast(callid, EHANGUP, 0, 0);
-	}
+	/* Unknown call from unknown phone - hang it up */
+	ipc_answer_fast(callid, EHANGUP, 0, 0);
 }
 
 /** Fire all timeouts that expired */
@@ -621,3 +637,29 @@ done:
 	return 0;
 }
 
+/** Wait specified time, but in the meantime handle incoming events
+ *
+ * @param timeout Time in microseconds to wait
+ */
+void async_usleep(suseconds_t timeout)
+{
+	amsg_t *msg;
+	
+	msg = malloc(sizeof(*msg));
+	if (!msg)
+		return;
+
+	msg->ptid = psthread_get_id();
+	msg->active = 0;
+	msg->has_timeout = 1;
+
+	gettimeofday(&msg->expires, NULL);
+	tv_add(&msg->expires, timeout);
+
+	futex_down(&async_futex);
+	insert_timeout(msg);
+	/* Leave locked async_futex when entering this function */
+	psthread_schedule_next_adv(PS_TO_MANAGER);
+	/* futex is up automatically after psthread_schedule_next...*/
+	free(msg);
+}
