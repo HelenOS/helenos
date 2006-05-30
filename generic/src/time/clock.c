@@ -124,13 +124,14 @@ void clock(void)
 	timeout_t *h;
 	timeout_handler_t f;
 	void *arg;
+	count_t missed_clock_ticks = CPU->missed_clock_ticks;
 	int i;
 
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
 	 */
-	for (i = 0; i <= CPU->missed_clock_ticks; i++) {
+	for (i = 0; i <= missed_clock_ticks; i++) {
 		clock_update_counters();
 		spinlock_lock(&CPU->timeoutlock);
 		while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
@@ -163,12 +164,16 @@ void clock(void)
 		__u64 ticks;
 		
 		spinlock_lock(&CPU->lock);
-		CPU->needs_relink++;
+		CPU->needs_relink += 1 + missed_clock_ticks;
 		spinlock_unlock(&CPU->lock);	
 	
 		spinlock_lock(&THREAD->lock);
-		if ((ticks = THREAD->ticks))
-			THREAD->ticks--;
+		if ((ticks = THREAD->ticks)) {
+			if (ticks >= 1 + missed_clock_ticks)
+				THREAD->ticks -= 1 + missed_clock_ticks;
+			else
+				THREAD->ticks = 0;
+		}
 		spinlock_unlock(&THREAD->lock);
 		
 		if (!ticks && !PREEMPTION_DISABLED) {
