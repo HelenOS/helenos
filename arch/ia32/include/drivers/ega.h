@@ -32,7 +32,7 @@
 #define VIDEORAM	0xb8000
 #define ROW		80
 #define ROWS		25
-#define SCREEN		(ROW*ROWS)
+#define SCREEN		(ROW * ROWS)
 
 extern void ega_init(void);
 

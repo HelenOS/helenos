@@ -33,7 +33,7 @@
 
 #include <arch/pm.h>
 
-#include <arch/ega.h>
+#include <arch/drivers/ega.h>
 #include <arch/vesa.h>
 #include <genarch/i8042/i8042.h>
 #include <arch/i8254.h>

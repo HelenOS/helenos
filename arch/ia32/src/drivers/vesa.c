@@ -41,7 +41,6 @@
 #include <typedefs.h>
 #include <memstr.h>
 #include <bitops.h>
-#include <sysinfo/sysinfo.h>
 
 __u32 vesa_ph_addr;
 __u16 vesa_width;

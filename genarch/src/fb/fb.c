@@ -368,6 +368,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	stdout = &framebuffer;
 	
 	sysinfo_set_item_val("fb", NULL, true);
+	sysinfo_set_item_val("fb.kind", NULL, 1);
 	sysinfo_set_item_val("fb.width", NULL, x);
 	sysinfo_set_item_val("fb.height", NULL, y);
 	sysinfo_set_item_val("fb.bpp", NULL, bpp);

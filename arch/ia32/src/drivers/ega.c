@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/ega.h>
+#include <arch/drivers/ega.h>
 #include <putchar.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -37,6 +37,7 @@
 #include <memstr.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <sysinfo/sysinfo.h>
 
 /*
  * The EGA driver.
@@ -45,6 +46,7 @@
 
 SPINLOCK_INITIALIZE(egalock);
 static __u32 ega_cursor;
+static __u8 *videoram;
 
 static void ega_putchar(chardev_t *d, const char ch);
 
@@ -58,17 +60,23 @@ void ega_move_cursor(void);
 void ega_init(void)
 {
 	__u8 hi, lo;
-
-	page_mapping_insert(AS_KERNEL, PA2KA(VIDEORAM), VIDEORAM, PAGE_NOT_CACHEABLE);
-	outb(0x3d4,0xe);
+	
+	videoram = (__u8 *) hw_map(VIDEORAM, SCREEN * 2);
+	outb(0x3d4, 0xe);
 	hi = inb(0x3d5);
-	outb(0x3d4,0xf);
+	outb(0x3d4, 0xf);
 	lo = inb(0x3d5);
-	ega_cursor = (hi<<8)|lo;
+	ega_cursor = (hi << 8) | lo;
 
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
-
+	
+	sysinfo_set_item_val("fb", NULL, true);
+	sysinfo_set_item_val("fb.kind", NULL, 2);
+	sysinfo_set_item_val("fb.width", NULL, ROW);
+	sysinfo_set_item_val("fb.height", NULL, ROWS);
+	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM);
+	
 #ifndef CONFIG_FB
 	putchar('\n');
 #endif	
@@ -76,9 +84,7 @@ void ega_init(void)
 
 static void ega_display_char(char ch)
 {
-	__u8 *vram = (__u8 *) PA2KA(VIDEORAM);
-	
-	vram[ega_cursor*2] = ch;
+	videoram[ega_cursor * 2] = ch;
 }
 
 /*
@@ -89,8 +95,8 @@ static void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 		return;
 
-	memcpy((void *)PA2KA(VIDEORAM), (void *)(PA2KA(VIDEORAM) + ROW*2), (SCREEN - ROW)*2);
-	memsetw(PA2KA(VIDEORAM) + (SCREEN - ROW)*2, ROW, 0x0720);
+	memcpy((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
+	memsetw((__address) (videoram + (SCREEN - ROW) * 2), ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 
@@ -102,21 +108,21 @@ void ega_putchar(chardev_t *d, const char ch)
 	spinlock_lock(&egalock);
 
 	switch (ch) {
-	case '\n':
-		ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
-		break;
-	case '\t':
-		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
-		break; 
-	case '\b':
-		if (ega_cursor % ROW)
-			ega_cursor--;
-		break;
-	default:
-		ega_display_char(ch);
-		ega_cursor++;
-		break;
-        }
+		case '\n':
+			ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
+			break;
+		case '\t':
+			ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
+			break; 
+		case '\b':
+			if (ega_cursor % ROW)
+				ega_cursor--;
+			break;
+		default:
+			ega_display_char(ch);
+			ega_cursor++;
+			break;
+	}
 	ega_check_cursor();
 	ega_move_cursor();
 
@@ -126,8 +132,8 @@ void ega_putchar(chardev_t *d, const char ch)
 
 void ega_move_cursor(void)
 {
-	outb(0x3d4,0xe);
-	outb(0x3d5,(ega_cursor>>8)&0xff);
-	outb(0x3d4,0xf);
-	outb(0x3d5,ega_cursor&0xff);	
+	outb(0x3d4, 0xe);
+	outb(0x3d5, (ega_cursor >> 8) & 0xff);
+	outb(0x3d4, 0xf);
+	outb(0x3d5, ega_cursor & 0xff);	
 }
