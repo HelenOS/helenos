@@ -415,6 +415,15 @@ static void test_time(void)
 	}
 }
 
+static void test_console(void)
+{
+	int c;
+
+	while ((c = getchar()) != EOF)
+		putchar(c);
+}
+
+
 int main(int argc, char *argv[])
 {
 	pstid_t ptid;
@@ -422,6 +431,8 @@ int main(int argc, char *argv[])
 	
 //	version_print();
 
+	printf("Hello\nThis is Init\n");
+	
 //	test_printf();
 //	test_printf2();
 //	test_ping();
@@ -436,9 +447,9 @@ int main(int argc, char *argv[])
 //	test_time();
 //	test_async_kbd();
 //	test_fb();
+	test_console();
 
-	printf("Hello\nThis is Init\n\nBye.");
-	
+	printf("\nBye.\n");
 
 /*	
 	printf("Userspace task, taskid=%llX\n", task_get_id());

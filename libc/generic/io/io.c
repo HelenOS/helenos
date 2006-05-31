@@ -92,3 +92,15 @@ int putchar(int c)
 	
 	return EOF;
 }
+
+int getchar(void)
+{
+	unsigned char c;
+	if (read(0, (void *)&c , 1) == 1) {
+			return c;
+	}
+	
+	return EOF;
+}
+
+

@@ -34,5 +34,6 @@
 int putnchars(const char * buf, size_t count);
 int putstr(const char * str);
 int putchar(int c);
+int getchar(void);
 
 #endif

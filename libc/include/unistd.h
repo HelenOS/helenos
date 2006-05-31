@@ -36,6 +36,7 @@
 #define getpagesize()     (PAGE_SIZE)
 
 extern ssize_t write(int fd, const void * buf, size_t count);
+extern ssize_t read(int fd, void * buf, size_t count);
 extern void _exit(int status);
 void *sbrk(ssize_t incr);
 void usleep(unsigned long usec);

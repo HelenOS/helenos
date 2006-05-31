@@ -1,3 +1,33 @@
+/*
+ * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Jakub Vana
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
 #include <io/io.h>
 #include <io/stream.h>
 #include <string.h>
@@ -8,6 +38,7 @@
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <console.h>
+#include <unistd.h>
 
 #define FDS 32
 
@@ -34,14 +65,21 @@ static ssize_t write_stderr(void *param, const void *buf, size_t count)
 	//return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
 }
 
-static char read_stdin(void)
+static ssize_t read_stdin(void *param, void *buf, size_t count)
 {
 	ipcarg_t r0,r1;
-	ipc_call_sync_2(console_phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1);
-	
-	return r0;
+	size_t i = 0;
+
+	while (i < count) {
+		if (ipc_call_sync_2(console_phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
+			return -1;
+		}
+		((char *)buf)[i++] = r0;
+	}
+	return i;
 	//return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
 }
+
 static ssize_t write_stdout(void *param, const void *buf, size_t count)
 {
 	int i;
@@ -125,3 +163,12 @@ ssize_t write(int fd, const void *buf, size_t count)
 	
 	return 0;
 }
+
+ssize_t read(int fd, void *buf, size_t count)
+{
+	if (fd < FDS)
+		return streams[fd].r(streams[fd].param, buf, count);
+	
+	return 0;
+}
+

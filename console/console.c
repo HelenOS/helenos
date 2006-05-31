@@ -99,8 +99,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		case KBD_PUSHCHAR:
 			/* got key from keyboard driver */
+			
 			/* find active console */
+			
 			/* if client is awaiting key, send it */
+			
 			/*FIXME: else store key to its buffer */
 			retval = 0;
 			i = IPC_GET_ARG1(call) & 0xff;
@@ -112,7 +115,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			keybuffer_push(&(connections[active_client].keybuffer), i);
 			/* Send it to first FB, DEBUG */
 //			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
-			ipc_call_sync_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
+//			ipc_call_sync_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
 
 			break;
 		default:
@@ -148,19 +151,20 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0,0,0);
 			return;
 		case CONSOLE_PUTCHAR:
-			/* TODO: send message to fb */
+			/* Send message to fb */
 			ipc_call_async_2(connections[consnum].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
 			break;
 		case CONSOLE_GETCHAR:
-			/* FIXME: */
-			if (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
+			/* FIXME: Only temporary solution until request storage will be created  */
+			
+			while (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
 				/* FIXME: buffer empty -> store request */
-				arg1 = 'X'; /* Only temporary */
+				usleep(10000);
 			};
-//ipc_call_async_2(connections[active_client].vfb_phone, FB_PUTCHAR, ' ', arg1, NULL, (void *)NULL); 
+			
 			break;
 		}
-		ipc_answer_fast(callid, 0,0,0);
+		ipc_answer_fast(callid, 0, arg1, 0);
 	}
 }
 
@@ -189,8 +193,8 @@ int main(int argc, char *argv[])
 		keybuffer_init(&(connections[i].keybuffer));
 		/* TODO: init key_buffer */
 		while ((connections[i].vfb_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
-				
-			ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, 'a', 'b', NULL, (void *)NULL); 
+			usleep(10000);
+			//ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, 'a', 'b', NULL, (void *)NULL); 
 		}
 	}
 	

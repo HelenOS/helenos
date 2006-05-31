@@ -34,6 +34,8 @@
 
 #define EOF (-1)
 
+extern int getchar(void);
+
 extern int puts(const char * str);
 extern int putchar(int c);
 
