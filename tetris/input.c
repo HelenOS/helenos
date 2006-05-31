@@ -50,6 +50,7 @@
 #include "tetris.h"
 
 #include <async.h>
+#include "../console/console.h"
 
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \
@@ -64,7 +65,12 @@
 		(res)->tv_sec--; \
 	}
 
+/* We will use a hack here - if lastchar is non-zero, it is
+ * the last character read. We will somehow simulate the select
+ * semantics.
+ */
 static aid_t getchar_inprog = 0;
+static char lastchar = '\0';
 
 /*
  * Do a `read wait': select for reading from stdin, with timeout *tvp.
@@ -75,12 +81,14 @@ static aid_t getchar_inprog = 0;
  * If tvp is nil, wait forever, but return if select is interrupted.
  *
  * Return 0 => no input, 1 => can read() from stdin
+ *
  */
 int
 rwait(struct timeval *tvp)
 {
 	struct timeval starttv, endtv, *s;
-	fd_set fds;
+	static ipc_call_t charcall;
+	int rc;
 
 #define	NILTZ ((struct timezone *)0)
 
@@ -96,22 +104,19 @@ rwait(struct timeval *tvp)
 	} else
 		s = NULL;
 again:
-	FD_ZERO(&fds);
-	FD_SET(STDIN_FILENO, &fds);
-	switch (select(STDIN_FILENO + 1, &fds, (fd_set *)0, (fd_set *)0, s)) {
-
-	case -1:
-		if (tvp == 0)
-			return (-1);
-		if (errno == EINTR)
-			goto again;
-		stop("select failed, help");
-		/* NOTREACHED */
-
-	case 0:	/* timed out */
-		tvp->tv_sec = 0;
-		tvp->tv_usec = 0;
-		return (0);
+	if (!lastchar) {
+		if (!getchar_inprog)
+			getchar_inprog = async_send_2(1,CONSOLE_GETCHAR,0,0,&charcall);
+		if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
+			tvp->tv_sec = 0;
+			tvp->tv_usec = 0;
+			return (0);
+		}
+		getchar_inprog = 0;
+		if (rc) {
+			stop("end of file, help");
+		}
+		lastchar = IPC_GET_ARG1(charcall);
 	}
 	if (tvp) {
 		/* since there is input, we may not have timed out */
@@ -135,7 +140,9 @@ tsleep(void)
 	tv.tv_sec = 0;
 	tv.tv_usec = fallrate;
 	while (TV_POS(&tv))
-		if (rwait(&tv) && read(STDIN_FILENO, &c, 1) != 1)
+		if (rwait(&tv)) {
+			lastchar = '\0';
+		} else
 			break;
 }
 
@@ -164,7 +171,7 @@ tgetchar(void)
 	}
 	if (!rwait(&timeleft))
 		return (-1);
-	if (read(STDIN_FILENO, &c, 1) != 1)
-		stop("end of file, help");
+	c = lastchar;
+	lastchar = '\0';
 	return ((int)(unsigned char)c);
 }
