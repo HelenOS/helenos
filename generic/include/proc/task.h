@@ -31,6 +31,7 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
@@ -53,6 +54,13 @@ struct task {
 	atomic_t active_calls;  /**< Active asynchronous messages */
 	
 	task_arch_t arch;	/**< Architecture specific task data. */
+	
+	/**
+	  * Serializes access to the B+tree of task's futexes. This mutex is
+	  * independent on the task spinlock.
+	  */
+	mutex_t futexes_lock;
+	btree_t futexes;	/**< B+tree of futexes referenced by this task. */
 };
 
 extern spinlock_t tasks_lock;

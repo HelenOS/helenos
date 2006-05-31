@@ -102,6 +102,9 @@ task_t *task_create(as_t *as, char *name)
 	if (ipc_phone_0)
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
+
+	mutex_initialize(&ta->futexes_lock);
+	btree_create(&ta->futexes);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
