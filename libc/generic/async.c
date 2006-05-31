@@ -246,20 +246,18 @@ ipc_callid_t async_get_call(ipc_call_t *call)
 {
 	msg_t *msg;
 	ipc_callid_t callid;
-	connection_t *conn;
 	
 	assert(PS_connection);
 
 	futex_down(&async_futex);
 
-	conn = PS_connection;
 	/* If nothing in queue, wait until something appears */
-	if (list_empty(&conn->msg_queue)) {
-		conn->active = 0;
+	if (list_empty(&PS_connection->msg_queue)) {
+		PS_connection->active = 0;
 		psthread_schedule_next_adv(PS_TO_MANAGER);
 	}
 	
-	msg = list_get_instance(conn->msg_queue.next, msg_t, link);
+	msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
 	list_remove(&msg->link);
 	callid = msg->callid;
 	*call = msg->call;
@@ -300,21 +298,19 @@ static int connection_thread(void  *arg)
 {
 	unsigned long key;
 	msg_t *msg;
-	connection_t *conn;
 
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
-	conn = PS_connection;
-	conn->cthread(conn->callid, &conn->call);
+	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
 
 	/* Remove myself from connection hash table */
 	futex_down(&async_futex);
-	key = conn->in_phone_hash;
+	key = PS_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	/* Answer all remaining messages with ehangup */
-	while (!list_empty(&conn->msg_queue)) {
-		msg = list_get_instance(conn->msg_queue.next, msg_t, link);
+	while (!list_empty(&PS_connection->msg_queue)) {
+		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
 		list_remove(&msg->link);
 		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
 		free(msg);
