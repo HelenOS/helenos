@@ -111,12 +111,14 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			keybuffer_push(&(connections[active_client].keybuffer), i);
 			/* Send it to first FB, DEBUG */
-			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
-			ipc_answer_fast(callid, 0, 0, 0);
+//			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
+			ipc_call_sync_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
+
 			break;
 		default:
-			ipc_answer_fast(callid,ENOENT,0,0);
+			retval = ENOENT;
 		}		
+		ipc_answer_fast(callid, retval, 0, 0);
 	}
 }
 
