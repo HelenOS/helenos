@@ -131,11 +131,10 @@
 /** Get as_area over IPC
  * - ARG1 - Where the area will be mapped
  * - ARG2 - Expected size of area
- * - ARG3 - Requested rights for the area
+ * - ARG3 - User defined argument
  * on answer - the server sets ARG1 as src as address of the as_area
- * to be shared
- *
- *
+ * to be shared, ARG2 is set to rights that will be used for sharing,
+ * which is returned as part of answer back to the receiver
  */
 #define IPC_M_AS_AREA_RECV      6
 

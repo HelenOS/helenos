@@ -136,6 +136,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_SEND) {
 		if (!IPC_GET_RETVAL(answer->data)) { /* Accepted, handle as_area receipt */
 			ipl_t ipl;
+			int rc;
 			as_t *as;
 			
 			ipl = interrupts_disable();
@@ -144,8 +145,10 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			spinlock_unlock(&answer->sender->lock);
 			interrupts_restore(ipl);
 			
-			return as_area_share(as, IPC_GET_ARG1(*olddata), IPC_GET_ARG2(*olddata),
-					     AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
+			rc = as_area_share(as, IPC_GET_ARG1(*olddata), IPC_GET_ARG2(*olddata),
+					   AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
+			IPC_SET_RETVAL(answer->data, rc);
+			return rc;
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_RECV) {
 		if (!IPC_GET_RETVAL(answer->data)) { 
@@ -160,7 +163,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			interrupts_restore(ipl);
 			
 			rc = as_area_share(AS, IPC_GET_ARG1(answer->data), IPC_GET_ARG2(*olddata),
-					   as, IPC_GET_ARG1(*olddata), IPC_GET_ARG3(*olddata));
+					   as, IPC_GET_ARG1(*olddata), IPC_GET_ARG2(answer->data));
 			IPC_SET_RETVAL(answer->data, rc);
 		}
 	}

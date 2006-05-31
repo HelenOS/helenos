@@ -516,7 +516,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	src_backend = src_area->backend;
 	src_backend_data = src_area->backend_data;
 	
-	if (src_size != acc_size) {
+	if (src_size != acc_size || (src_flags & dst_flags_mask) != dst_flags_mask) {
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
 		interrupts_restore(ipl);
@@ -554,7 +554,7 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	 * The flags of the source area are masked against dst_flags_mask
 	 * to support sharing in less privileged mode.
 	 */
-	dst_area = as_area_create(dst_as, src_flags & dst_flags_mask, src_size, dst_base,
+	dst_area = as_area_create(dst_as, dst_flags_mask, src_size, dst_base,
 				  AS_AREA_ATTR_PARTIAL, src_backend, &src_backend_data);
 	if (!dst_area) {
 		/*
