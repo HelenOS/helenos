@@ -81,10 +81,6 @@ static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
 	static void *addr = NULL;
 	void *ph_addr;
 
-	if (IPC_GET_ARG3(*call) != (AS_AREA_READ | AS_AREA_CACHEABLE)) {
-		ipc_answer_fast(callid, EPERM, 0, 0);
-		return;
-	}
 	if (!addr) {
 		ph_addr = (void *)sysinfo_value("clock.faddr");
 		if (!ph_addr) {
@@ -95,7 +91,7 @@ static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
 		map_physmem(task_get_id(), ph_addr, addr, 1,
 			    AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
-	ipc_answer_fast(callid, 0, (ipcarg_t)addr, 0);
+	ipc_answer_fast(callid, 0, (ipcarg_t)addr, AS_AREA_READ | AS_AREA_CACHEABLE);
 }
 
 int main(int argc, char **argv)

@@ -61,7 +61,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	void *mapping;
 	sysarg_t s1, s2;
-	sysarg_t t1;
+	sysarg_t rights;
 	int res;
 
 	if (!ktime) {
@@ -70,10 +70,16 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, 
 				      TMAREA,
 				      PAGE_SIZE,
-				      AS_AREA_READ | AS_AREA_CACHEABLE,
-				      &t1,&t1,&t1);
+				      0,
+				      NULL,&rights,NULL);
 		if (res) {
 			printf("Failed to initialize timeofday memarea\n");
+			_exit(1);
+		}
+		if (rights != (AS_AREA_READ | AS_AREA_CACHEABLE)) {
+			printf("Received bad rights on time area: %X\n",
+			       rights);
+			as_area_destroy(TMAREA);
 			_exit(1);
 		}
 		ktime = (void *) (TMAREA);
