@@ -49,6 +49,8 @@
 #include "input.h"
 #include "tetris.h"
 
+#include <async.h>
+
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \
 	((tv)->tv_sec > 0 || ((tv)->tv_sec == 0 && (tv)->tv_usec > 0))
@@ -61,6 +63,8 @@
 		(res)->tv_usec += 1000000; \
 		(res)->tv_sec--; \
 	}
+
+static aid_t getchar_inprog = 0;
 
 /*
  * Do a `read wait': select for reading from stdin, with timeout *tvp.

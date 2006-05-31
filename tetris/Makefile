@@ -5,7 +5,7 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 LIBS = $(LIBC_PREFIX)/libc.a
 
 OUTPUT = tetris
-SOURCES = shapes.c tetris.c scores.c input.c screen.c
+SOURCES = shapes.c scores.c input.c tetris.c screen.c
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all clean depend disasm

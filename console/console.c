@@ -38,6 +38,11 @@
 #include <unistd.h>
 #include <async.h>
 
+static void sysput(char c)
+{
+	__SYSCALL3(SYS_IO, 1, &c, 1);
+
+}
 //#define CONSOLE_COUNT VFB_CONNECTIONS
 #define CONSOLE_COUNT 6
 
@@ -156,10 +161,9 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case CONSOLE_GETCHAR:
 			/* FIXME: Only temporary solution until request storage will be created  */
-			
 			while (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
 				/* FIXME: buffer empty -> store request */
-				usleep(10000);
+				async_usleep(100000);
 			};
 			
 			break;

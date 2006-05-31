@@ -164,6 +164,14 @@ static int tv_gt(struct timeval *tv1, struct timeval *tv2)
 		return 1;
 	return 0;
 }
+static int tv_gteq(struct timeval *tv1, struct timeval *tv2)
+{
+	if (tv1->tv_sec > tv2->tv_sec)
+		return 1;
+	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec >= tv2->tv_usec)
+		return 1;
+	return 0;
+}
 
 /* Hash table functions */
 #define CONN_HASH_TABLE_CHAINS	32
@@ -240,6 +248,8 @@ ipc_callid_t async_get_call(ipc_call_t *call)
 	ipc_callid_t callid;
 	connection_t *conn;
 	
+	assert(PS_connection);
+
 	futex_down(&async_futex);
 
 	conn = PS_connection;
@@ -435,7 +445,7 @@ int async_manager(void)
 		if (!list_empty(&timeout_list)) {
 			amsg = list_get_instance(timeout_list.next,amsg_t,link);
 			gettimeofday(&tv,NULL);
-			if (tv_gt(&tv, &amsg->expires)) {
+			if (tv_gteq(&tv, &amsg->expires)) {
 				handle_expired_timeouts();
 				continue;
 			} else
@@ -588,7 +598,7 @@ static void insert_timeout(amsg_t *msg)
 	tmp = timeout_list.next;
 	while (tmp != &timeout_list) {
 		cur = list_get_instance(tmp, amsg_t, link);
-		if (tv_gt(&cur->expires, &msg->expires))
+		if (tv_gteq(&cur->expires, &msg->expires))
 			break;
 		tmp = tmp->next;
 	}
