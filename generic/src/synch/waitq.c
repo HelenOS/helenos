@@ -224,20 +224,22 @@ ipl_t waitq_sleep_prepare(waitq_t *wq)
 restart:
 	ipl = interrupts_disable();
 
-	/*
-	 * Busy waiting for a delayed timeout.
-	 * This is an important fix for the race condition between
-	 * a delayed timeout and a next call to waitq_sleep_timeout().
-	 * Simply, the thread is not allowed to go to sleep if
-	 * there are timeouts in progress.
-	 */
-	spinlock_lock(&THREAD->lock);
-	if (THREAD->timeout_pending) {
+	if (THREAD) {	/* needed during system initiailzation */
+		/*
+		 * Busy waiting for a delayed timeout.
+		 * This is an important fix for the race condition between
+		 * a delayed timeout and a next call to waitq_sleep_timeout().
+		 * Simply, the thread is not allowed to go to sleep if
+		 * there are timeouts in progress.
+		 */
+		spinlock_lock(&THREAD->lock);
+		if (THREAD->timeout_pending) {
+			spinlock_unlock(&THREAD->lock);
+			interrupts_restore(ipl);
+			goto restart;
+		}
 		spinlock_unlock(&THREAD->lock);
-		interrupts_restore(ipl);
-		goto restart;
 	}
-	spinlock_unlock(&THREAD->lock);
 													
 	spinlock_lock(&wq->lock);
 	return ipl;
