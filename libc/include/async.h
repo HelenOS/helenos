@@ -4,6 +4,7 @@
 #include <ipc/ipc.h>
 #include <psthread.h>
 #include <sys/time.h>
+#include <atomic.h>
 
 typedef ipc_callid_t aid_t;
 
@@ -25,5 +26,8 @@ void async_usleep(suseconds_t timeout);
 /* Should be defined by application */
 void client_connection(ipc_callid_t callid, ipc_call_t *call) __attribute__((weak));
 void interrupt_received(ipc_call_t *call)  __attribute__((weak));
+
+
+extern atomic_t async_futex;
 
 #endif

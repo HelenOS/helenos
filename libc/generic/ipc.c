@@ -35,6 +35,8 @@
 #include <unistd.h>
 #include <futex.h>
 #include <kernel/synch/synch.h>
+#include <async.h>
+#include <psthread.h>
 
 /** Structure used for keeping track of sent async msgs 
  * and queing unsent msgs
@@ -52,10 +54,17 @@ typedef struct {
 			int phoneid;
 		} msg;
 	}u;
+	pstid_t ptid;   /**< Thread waiting for sending this msg */
 } async_call_t;
 
 LIST_INITIALIZE(dispatched_calls);
-LIST_INITIALIZE(queued_calls);
+
+/* queued_calls is protcted by async_futex, because if the
+ * call cannot be sent into kernel, async framework is used
+ * automatically
+ */
+LIST_INITIALIZE(queued_calls); /**< List of async calls that were not accepted
+				*   by kernel */
 
 static atomic_t ipc_futex = FUTEX_INITIALIZER;
 
@@ -124,9 +133,16 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 			callback(private, ENOMEM, NULL);
 		return;
 	}
-		
+
+	call->callback = callback;
+	call->private = private;
+
+	/* We need to make sure that we get callid before
+	 * another thread accesses the queue again */
+	futex_down(&ipc_futex);
 	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
 	if (callid == IPC_CALLRET_FATAL) {
+		futex_up(&ipc_futex);
 		/* Call asynchronous handler with error code */
 		if (callback)
 			callback(private, ENOENT, NULL);
@@ -134,24 +150,24 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		return;
 	}
 
-	call->callback = callback;
-	call->private = private;
-
 	if (callid == IPC_CALLRET_TEMPORARY) {
-		/* Add asynchronous call to queue of non-dispatched async calls */
+		futex_up(&ipc_futex);
+
 		call->u.msg.phoneid = phoneid;
 		IPC_SET_METHOD(call->u.msg.data, method);
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
-		
-		futex_down(&ipc_futex);
+
+		call->ptid = psthread_get_id();
+		futex_down(&async_futex);
 		list_append(&call->list, &queued_calls);
-		futex_up(&ipc_futex);
+
+		psthread_schedule_next_adv(PS_TO_MANAGER);
+		/* Async futex unlocked by previous call */
 		return;
 	}
 	call->u.callid = callid;
 	/* Add call to list of dispatched calls */
-	futex_down(&ipc_futex);
 	list_append(&call->list, &dispatched_calls);
 	futex_up(&ipc_futex);
 }
@@ -194,29 +210,38 @@ static void try_dispatch_queued_calls(void)
 	async_call_t *call;
 	ipc_callid_t callid;
 
-	futex_down(&ipc_futex);
+	/* TODO: integrate intelligently ipc_futex, so that it
+	 * is locked during ipc_call_async, until it is added
+	 * to dispatched_calls
+	 */
+	futex_down(&async_futex);
 	while (!list_empty(&queued_calls)) {
 		call = list_get_instance(queued_calls.next, async_call_t,
 					 list);
 
 		callid = _ipc_call_async(call->u.msg.phoneid,
 					 &call->u.msg.data);
-		if (callid == IPC_CALLRET_TEMPORARY)
+		if (callid == IPC_CALLRET_TEMPORARY) {
 			break;
+		}
 		list_remove(&call->list);
 
+		futex_up(&async_futex);
+		psthread_add_ready(call->ptid);
+		
 		if (callid == IPC_CALLRET_FATAL) {
-			futex_up(&ipc_futex);
 			if (call->callback)
 				call->callback(call->private, ENOENT, NULL);
 			free(call);
-			futex_down(&ipc_futex);
 		} else {
 			call->u.callid = callid;
+			futex_down(&ipc_futex);
 			list_append(&call->list, &dispatched_calls);
+			futex_up(&ipc_futex);
 		}
+		futex_down(&async_futex);
 	}
-	futex_up(&ipc_futex);
+	futex_up(&async_futex);
 }
 
 /** Handle received answer
@@ -264,12 +289,12 @@ ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags)
 {
 	ipc_callid_t callid;
 
-	try_dispatch_queued_calls();
-	
 	callid = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	/* Handle received answers */
-	if (callid & IPC_CALLID_ANSWERED)
+	if (callid & IPC_CALLID_ANSWERED) {
 		handle_answer(callid, call);
+		try_dispatch_queued_calls();
+	}
 
 	return callid;
 }

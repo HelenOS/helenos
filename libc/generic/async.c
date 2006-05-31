@@ -93,7 +93,7 @@
 #include <time.h>
 #include <arch/barrier.h>
 
-static atomic_t async_futex = FUTEX_INITIALIZER;
+atomic_t async_futex = FUTEX_INITIALIZER;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
