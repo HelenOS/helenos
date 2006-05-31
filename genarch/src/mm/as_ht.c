@@ -42,12 +42,14 @@
 #include <synch/mutex.h>
 
 static pte_t *ht_create(int flags);
+static void ht_destroy(pte_t *page_table);
 
 static void ht_lock(as_t *as, bool lock);
 static void ht_unlock(as_t *as, bool unlock);
 
 as_operations_t as_ht_operations = {
 	.page_table_create = ht_create,
+	.page_table_destroy = ht_destroy,
 	.page_table_lock = ht_lock,
 	.page_table_unlock = ht_unlock,
 };
@@ -69,6 +71,17 @@ pte_t *ht_create(int flags)
 		mutex_initialize(&page_ht_lock);
 	}
 	return NULL;
+}
+
+/** Destroy page table.
+ *
+ * Actually do nothing as the global page hash table is used.
+ *
+ * @param page_table This parameter is ignored.
+ */
+void ht_destroy(pte_t *page_table)
+{
+	/* No-op. */
 }
 
 /** Lock page table.

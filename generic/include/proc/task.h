@@ -56,9 +56,9 @@ struct task {
 	task_arch_t arch;	/**< Architecture specific task data. */
 	
 	/**
-	  * Serializes access to the B+tree of task's futexes. This mutex is
-	  * independent on the task spinlock.
-	  */
+	 * Serializes access to the B+tree of task's futexes. This mutex is
+	 * independent on the task spinlock.
+	 */
 	mutex_t futexes_lock;
 	btree_t futexes;	/**< B+tree of futexes referenced by this task. */
 };

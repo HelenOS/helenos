@@ -107,6 +107,15 @@ task_t *task_create(as_t *as, char *name)
 	btree_create(&ta->futexes);
 	
 	ipl = interrupts_disable();
+
+	/*
+	 * Increment address space reference count.
+	 * TODO: Reconsider the locking scheme.
+	 */
+	mutex_lock(&as->lock);
+	as->refcount++;
+	mutex_unlock(&as->lock);
+
 	spinlock_lock(&tasks_lock);
 
 	ta->taskid = ++task_counter;
@@ -139,7 +148,7 @@ task_t * task_run_program(void *program_addr, char *name)
 
 	rc = elf_load((elf_header_t *) program_addr, as);
 	if (rc != EE_OK) {
-		as_free(as);
+		as_destroy(as);
 		return NULL;
 	} 
 	

@@ -44,12 +44,14 @@
 #include <arch.h>
 
 static pte_t *ptl0_create(int flags);
+static void ptl0_destroy(pte_t *page_table);
 
 static void pt_lock(as_t *as, bool lock);
 static void pt_unlock(as_t *as, bool unlock);
 
 as_operations_t as_pt_operations = {
 	.page_table_create = ptl0_create,
+	.page_table_destroy = ptl0_destroy,
 	.page_table_lock = pt_lock,
 	.page_table_unlock = pt_unlock
 };
@@ -92,6 +94,17 @@ pte_t *ptl0_create(int flags)
 	}
 
 	return (pte_t *) KA2PA((__address) dst_ptl0);
+}
+
+/** Destroy page table.
+ *
+ * Destroy PTL0, other levels are expected to be already deallocated.
+ *
+ * @param page_table Physical address of PTL0.
+ */
+void ptl0_destroy(pte_t *page_table)
+{
+	frame_free(ADDR2PFN((__address) page_table));
 }
 
 /** Lock page tables.

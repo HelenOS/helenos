@@ -75,6 +75,9 @@ struct as {
 
 	mutex_t lock;
 
+	/** Number of references (i.e tasks that reference this as). */
+	count_t refcount;
+
 	/** Number of processors on wich is this address space active. */
 	count_t cpu_refcount;
 
@@ -90,6 +93,7 @@ struct as {
 
 struct as_operations {
 	pte_t *(* page_table_create)(int flags);
+	void (* page_table_destroy)(pte_t *page_table);
 	void (* page_table_lock)(as_t *as, bool lock);
 	void (* page_table_unlock)(as_t *as, bool unlock);
 };
@@ -158,18 +162,21 @@ extern spinlock_t inactive_as_with_asid_lock;
 extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
+
 extern as_t *as_create(int flags);
+extern void as_destroy(as_t *as);
+extern void as_switch(as_t *old, as_t *new);
+extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
+
 extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs,
 	mem_backend_t *backend, mem_backend_data_t *backend_data);
+extern int as_area_destroy(as_t *as, __address address);	
 extern int as_area_resize(as_t *as, __address address, size_t size, int flags);
-extern int as_area_destroy(as_t *as, __address address);
-extern int as_area_get_flags(as_area_t *area);
-extern bool as_area_check_access(as_area_t *area, pf_access_t access);
-extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
-extern void as_switch(as_t *old, as_t *new);
-extern void as_free(as_t *as);
 int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 		  as_t *dst_as, __address dst_base, int dst_flags_mask);
+
+extern int as_area_get_flags(as_area_t *area);
+extern bool as_area_check_access(as_area_t *area, pf_access_t access);
 extern size_t as_get_size(__address base);
 extern int used_space_insert(as_area_t *a, __address page, count_t count);
 extern int used_space_remove(as_area_t *a, __address page, count_t count);

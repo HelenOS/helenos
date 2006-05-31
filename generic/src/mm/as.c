@@ -121,19 +121,56 @@ as_t *as_create(int flags)
 	else
 		as->asid = ASID_INVALID;
 	
+	as->refcount = 0;
 	as->cpu_refcount = 0;
 	as->page_table = page_table_create(flags);
 
 	return as;
 }
 
-/** Free Adress space */
-void as_free(as_t *as)
+/** Destroy adress space.
+ *
+ * When there are no tasks referencing this address space (i.e. its refcount is zero),
+ * the address space can be destroyed.
+ */
+void as_destroy(as_t *as)
 {
-	ASSERT(as->cpu_refcount == 0);
+	ipl_t ipl;
+	bool cond;
 
-	/* TODO: free as_areas and other resources held by as */
-	/* TODO: free page table */
+	ASSERT(as->refcount == 0);
+	
+	/*
+	 * Since there is no reference to this area,
+	 * it is safe not to lock its mutex.
+	 */
+	 
+	ipl = interrupts_disable();
+	spinlock_lock(&inactive_as_with_asid_lock);
+	if (as->asid != ASID_INVALID && as->asid != ASID_KERNEL) {
+		list_remove(&as->inactive_as_with_asid_link);
+		asid_put(as->asid);
+	}
+	spinlock_unlock(&inactive_as_with_asid_lock);
+
+	/*
+	 * Destroy address space areas of the address space.
+	 */	
+	for (cond = true; cond; ) {
+		btree_node_t *node;
+		
+		ASSERT(!list_empty(&as->as_area_btree.leaf_head));
+		node = list_get_instance(&as->as_area_btree.leaf_head.next, btree_node_t, leaf_link);
+		if ((cond = node->keys)) {
+			as_area_destroy(as, node->key[0]);
+			btree_remove(&as->as_area_btree, node->key[0], node);
+		}
+	}
+	
+	page_table_destroy(as->page_table);
+
+	interrupts_restore(ipl);
+	
 	free(as);
 }
 
@@ -838,6 +875,20 @@ pte_t *page_table_create(int flags)
         ASSERT(as_operations->page_table_create);
 
         return as_operations->page_table_create(flags);
+}
+
+/** Destroy page table.
+ *
+ * Destroy page table in architecture specific way.
+ *
+ * @param page_table Physical address of PTL0.
+ */
+void page_table_destroy(pte_t *page_table)
+{
+        ASSERT(as_operations);
+        ASSERT(as_operations->page_table_destroy);
+
+        as_operations->page_table_destroy(page_table);
 }
 
 /** Lock page table.
