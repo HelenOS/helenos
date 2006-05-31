@@ -32,6 +32,7 @@ $nb.connect agp-slot0 $vga
 
 $sb = (create-south-bridge-piix4)
 $sio = (create-std-super-io)
+$cdrom = (create-std-ide-cdrom)
 
 $console = (create-std-graphics-console)
 $console.connect mouse $sio mse-console
@@ -45,8 +46,12 @@ $system.connect reset $sio
 $nb.connect pci-slot7 $sb
 
 $sb.connect $sio
+$sb.connect ide0-slave $cdrom
 
 instantiate-components
 
-$system.cmos-boot-dev A
-flp0.insert-floppy A "image.boot"
+run-python-file "%simics%/home/scripts/cdrom_bootloader.py"
+@install_cdrom_bootloader((conf.cpu0,))
+
+new-file-cdrom "image.iso" image
+cd0.insert image
