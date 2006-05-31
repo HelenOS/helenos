@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _libc__ERR_H_
+#define _libc__ERR_H_
 
-#ifndef __LIBC__STRING_H__
-#define __LIBC__STRING_H__
-
-#include <types.h>
-
-#define bzero(ptr, len)	memset((ptr), 0, (len))
-
-void * memset(void *s, int c, size_t n);
-void * memcpy(void *dest, void *src, size_t n);
-
-int strcmp(const char *, const char *);
-
-char *strcpy(char *dest, const char *src);
-char *strncpy(char *dest, const char *src, size_t n);
-
-size_t strlen(const char *str);
-
-char *strchr(const char *str, int c);
-char *strrchr(const char *str, int c);
-
-long int strtol(const char *nptr, char **endptr, int base);
-unsigned long strtoul(const char *nptr, char **endptr, int base);
+extern void errx (int __status, __const char *__format, ...)
+        __attribute__ ((__noreturn__, __format__ (__printf__, 2, 3)));
 
 #endif

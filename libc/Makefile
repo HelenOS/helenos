@@ -69,7 +69,9 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/libadt/list.o \
 	generic/libadt/hash_table.o \
-	generic/time.c
+	generic/time.c \
+	generic/err.c \
+	generic/stdlib.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \

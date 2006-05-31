@@ -45,7 +45,7 @@ static const char copyright[] =
  * Tetris (or however it is spelled).
  */
 
-#include <sys/param.h>
+//#include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -151,7 +151,14 @@ randshape(void)
 		tmp = &shapes[classic? tmp->rotc : tmp->rot];
 	return (tmp);
 }
-	
+
+static void srandomdev(void)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srandom(tv.tv_sec + tv.tv_usec / 100000);
+}
 
 int
 main(int argc, char *argv[])
@@ -216,7 +223,7 @@ main(int argc, char *argv[])
 				errx(1, "duplicate command keys specified.");
 		}
 		if (keys[i] == ' ')
-			strlcpy(key_write[i], "<space>", sizeof key_write[i]);
+			strncpy(key_write[i], "<space>", sizeof key_write[i]);
 		else {
 			key_write[i][0] = keys[i];
 			key_write[i][1] = '\0';
@@ -291,7 +298,7 @@ main(int argc, char *argv[])
 				scr_update();
 				scr_msg(key_msg, 0);
 				scr_msg(msg, 1);
-				(void) fflush(stdout);
+//				(void) fflush(stdout);
 			} while (rwait((struct timeval *)NULL) == -1);
 			scr_msg(msg, 0);
 			scr_msg(key_msg, 1);

@@ -42,8 +42,8 @@
 #include <sys/ioctl.h>
 
 #include <err.h>
-#include <setjmp.h>
-#include <signal.h>
+//#include <setjmp.h>
+//#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -204,31 +204,31 @@ scr_init(void)
 }
 
 /* this foolery is needed to modify tty state `atomically' */
-static jmp_buf scr_onstop;
+//static jmp_buf scr_onstop;
 
-static void
-stopset(int sig)
-{
-	sigset_t sigset;
+/* static void */
+/* stopset(int sig) */
+/* { */
+/* 	sigset_t sigset; */
 
-	(void) signal(sig, SIG_DFL);
-	(void) kill(getpid(), sig);
-	sigemptyset(&sigset);
-	sigaddset(&sigset, sig);
-	(void) sigprocmask(SIG_UNBLOCK, &sigset, (sigset_t *)0);
-	longjmp(scr_onstop, 1);
-}
+/* 	(void) signal(sig, SIG_DFL); */
+/* 	(void) kill(getpid(), sig); */
+/* 	sigemptyset(&sigset); */
+/* 	sigaddset(&sigset, sig); */
+/* 	(void) sigprocmask(SIG_UNBLOCK, &sigset, (sigset_t *)0); */
+/* 	longjmp(scr_onstop, 1); */
+/* } */
 
 static void
 scr_stop(int sig)
 {
-	sigset_t sigset;
+//	sigset_t sigset;
 
 	scr_end();
-	(void) kill(getpid(), sig);
-	sigemptyset(&sigset);
-	sigaddset(&sigset, sig);
-	(void) sigprocmask(SIG_UNBLOCK, &sigset, (sigset_t *)0);
+/* 	(void) kill(getpid(), sig); */
+/* 	sigemptyset(&sigset); */
+/* 	sigaddset(&sigset, sig); */
+/* 	(void) sigprocmask(SIG_UNBLOCK, &sigset, (sigset_t *)0); */
 	scr_set();
 	scr_msg(key_msg, 1);
 }
@@ -241,24 +241,24 @@ scr_set(void)
 {
 	struct winsize ws;
 	struct termios newtt;
-	sigset_t sigset, osigset;
+//	sigset_t sigset, osigset;
 	void (*ttou)(int);
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGTSTP);
-	sigaddset(&sigset, SIGTTOU);
-	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset);
-	if ((tstp = signal(SIGTSTP, stopset)) == SIG_IGN)
-		(void) signal(SIGTSTP, SIG_IGN);
-	if ((ttou = signal(SIGTTOU, stopset)) == SIG_IGN)
-		(void) signal(SIGTTOU, SIG_IGN);
-	/*
-	 * At last, we are ready to modify the tty state.  If
-	 * we stop while at it, stopset() above will longjmp back
-	 * to the setjmp here and we will start over.
-	 */
-	(void) setjmp(scr_onstop);
-	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0);
+/* 	sigemptyset(&sigset); */
+/* 	sigaddset(&sigset, SIGTSTP); */
+/* 	sigaddset(&sigset, SIGTTOU); */
+/* 	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset); */
+/* 	if ((tstp = signal(SIGTSTP, stopset)) == SIG_IGN) */
+/* 		(void) signal(SIGTSTP, SIG_IGN); */
+/* 	if ((ttou = signal(SIGTTOU, stopset)) == SIG_IGN) */
+/* 		(void) signal(SIGTTOU, SIG_IGN); */
+/* 	/\* */
+/* 	 * At last, we are ready to modify the tty state.  If */
+/* 	 * we stop while at it, stopset() above will longjmp back */
+/* 	 * to the setjmp here and we will start over. */
+/* 	 *\/ */
+/* 	(void) setjmp(scr_onstop); */
+/* 	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0); */
 	Rows = 0, Cols = 0;
 	if (ioctl(0, TIOCGWINSZ, &ws) == 0) {
 		Rows = ws.ws_row;
@@ -283,7 +283,7 @@ scr_set(void)
 	newtt.c_oflag &= ~OXTABS;
 	if (tcsetattr(0, TCSADRAIN, &newtt) < 0)
 		stop("tcsetattr() fails");
-	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset);
+/* 	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset); */
 
 	/*
 	 * We made it.  We are now in screen mode, modulo TIstr
@@ -291,13 +291,13 @@ scr_set(void)
 	 */
 	if (TIstr)
 		putstr(TIstr);	/* termcap(5) says this is not padded */
-	if (tstp != SIG_IGN)
-		(void) signal(SIGTSTP, scr_stop);
-	if (ttou != SIG_IGN)
-		(void) signal(SIGTTOU, ttou);
+/* 	if (tstp != SIG_IGN) */
+/* 		(void) signal(SIGTSTP, scr_stop); */
+/* 	if (ttou != SIG_IGN) */
+/* 		(void) signal(SIGTTOU, ttou); */
 
 	isset = 1;
-	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0);
+//	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0);
 	scr_clear();
 }
 
@@ -307,12 +307,12 @@ scr_set(void)
 void
 scr_end(void)
 {
-	sigset_t sigset, osigset;
+//	sigset_t sigset, osigset;
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGTSTP);
-	sigaddset(&sigset, SIGTTOU);
-	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset);
+/* 	sigemptyset(&sigset); */
+/* 	sigaddset(&sigset, SIGTSTP); */
+/* 	sigaddset(&sigset, SIGTTOU); */
+/* 	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset); */
 	/* move cursor to last line */
 	if (LLstr)
 		putstr(LLstr);	/* termcap(5) says this is not padded */
@@ -321,12 +321,12 @@ scr_end(void)
 	/* exit screen mode */
 	if (TEstr)
 		putstr(TEstr);	/* termcap(5) says this is not padded */
-	(void) fflush(stdout);
+//	(void) fflush(stdout);
 	(void) tcsetattr(0, TCSADRAIN, &oldtt);
 	isset = 0;
 	/* restore signals */
-	(void) signal(SIGTSTP, tstp);
-	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0);
+/* 	(void) signal(SIGTSTP, tstp); */
+/* 	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0); */
 }
 
 void
@@ -365,12 +365,12 @@ scr_update(void)
 	cell *bp, *sp;
 	regcell so, cur_so = 0;
 	int i, ccol, j;
-	sigset_t sigset, osigset;
+//	sigset_t sigset, osigset;
 	static const struct shape *lastshape;
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGTSTP);
-	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset);
+/* 	sigemptyset(&sigset); */
+/* 	sigaddset(&sigset, SIGTSTP); */
+/* 	(void) sigprocmask(SIG_BLOCK, &sigset, &osigset); */
 
 	/* always leave cursor after last displayed point */
 	curscreen[D_LAST * B_COLS - 1] = -1;
@@ -465,8 +465,8 @@ scr_update(void)
 	}
 	if (cur_so)
 		putpad(SEstr);
-	(void) fflush(stdout);
-	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0);
+/* 	(void) fflush(stdout); */
+/* 	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0); */
 }
 
 /*

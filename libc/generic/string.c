@@ -246,3 +246,15 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 
 	return (sgn?-number:number);
 }
+
+char *strcpy(char *dest, const char *src)
+{
+	while (*(dest++) = *(src++))
+		;
+}
+
+char *strncpy(char *dest, const char *src, size_t n)
+{
+	while (*(dest++) = *(src++) && --n)
+		;
+}
