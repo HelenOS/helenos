@@ -33,6 +33,7 @@
 #include <genarch/fb/fb.h>
 #include <userspace.h>
 #include <proc/uarg.h>
+#include <console/console.h>
 
 bootinfo_t bootinfo;
 
@@ -88,4 +89,17 @@ void userspace(uspace_arg_t *kernel_uarg)
 	/* Unreachable */
 	for (;;)
 		;
+}
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
 }

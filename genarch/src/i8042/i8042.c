@@ -267,17 +267,34 @@ static char sc_secondary_map[] = {
 static void i8042_interrupt(int n, istate_t *istate);
 static void i8042_wait(void);
 
-/** Initialize i8042. */
-void i8042_init(void)
+static iroutine oldvector;
+/** Initialize keyboard and service interrupts using kernel routine */
+void i8042_grab(void)
 {
-	int i;
-
-	exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
+	oldvector = exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
 	i8042_wait();
 	i8042_command_write(i8042_SET_COMMAND);
 	i8042_wait();
 	i8042_data_write(i8042_COMMAND);
 	i8042_wait();
+}
+/** Resume the former interrupt vector */
+void i8042_release(void)
+{
+	if (oldvector)
+		exc_register(VECTOR_KBD, "user_interrupt", oldvector);
+}
+
+/** Initialize i8042. */
+void i8042_init(void)
+{
+	int i;
+
+	i8042_grab();
+        /* Prevent user from accidentaly releasing calling i8042_resume
+	 * and disabling keyboard 
+	 */
+	oldvector = NULL; 
 
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);

@@ -108,3 +108,13 @@ void msim_console(void)
 	stdin = &console;
 	stdout = &console;
 }
+
+static iroutine oldvector;
+void msim_kbd_grab(void)
+{
+	oldvector = int_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
+}
+void msim_kbd_release(void)
+{
+	int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
+}

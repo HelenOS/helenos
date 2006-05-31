@@ -32,6 +32,7 @@
 #include <arch/console.h>
 #include <arch/drivers/tick.h>
 #include <proc/thread.h>
+#include <console/console.h>
 
 void arch_pre_mm_init(void)
 {
@@ -72,5 +73,18 @@ void arch_post_smp_init(void)
 }
 
 void calibrate_delay_loop(void)
+{
+}
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
 {
 }

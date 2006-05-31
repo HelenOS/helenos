@@ -37,5 +37,7 @@
 #define MSIM_KBD_IRQ	2
 
 void msim_console(void);
+void msim_kbd_release(void);
+void msim_kbd_grab(void);
 
 #endif

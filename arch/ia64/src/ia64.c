@@ -114,3 +114,16 @@ __native sys_tls_set(__native addr)
 {
         return 0;
 }
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
+}

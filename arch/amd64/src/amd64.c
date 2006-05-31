@@ -50,6 +50,7 @@
 #include <arch/syscall.h>
 #include <arch/debugger.h>
 #include <syscall/syscall.h>
+#include <console/console.h>
 
 
 /** Disable I/O on non-privileged levels
@@ -184,4 +185,19 @@ __native sys_tls_set(__native addr)
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
 	return 0;
+}
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+	i8042_grab();
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
+	i8042_release();
 }

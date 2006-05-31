@@ -37,6 +37,7 @@
  */
 
 #include <console/cmd.h>
+#include <console/console.h>
 #include <console/kconsole.h>
 #include <print.h>
 #include <panic.h>
@@ -70,6 +71,14 @@ static cmd_info_t help_info = {
 static cmd_info_t exit_info = {
 	.name = "exit",
 	.description ="Exit kconsole",
+	.argc = 0
+};
+
+static int cmd_continue(cmd_arg_t *argv);
+static cmd_info_t continue_info = {
+	.name = "continue",
+	.description ="Return console back to userspace",
+	.func = cmd_continue,
 	.argc = 0
 };
 
@@ -332,6 +341,7 @@ static cmd_info_t *basic_commands[] = {
 	&call1_info,
 	&call2_info,
 	&call3_info,
+	&continue_info,
 	&cpus_info,
 	&desc_info,
 	&exit_info,
@@ -697,5 +707,17 @@ int cmd_cpus(cmd_arg_t *argv)
 int cmd_version(cmd_arg_t *argv)
 {
 	version_print();
+	return 1;
+}
+
+/** Command for returning console back to userspace.
+ *
+ * @param argv Ignored.
+ *
+ * return Always 1.
+ */
+int cmd_continue(cmd_arg_t *argv)
+{
+	arch_release_console();
 	return 1;
 }

@@ -46,5 +46,7 @@
 
 extern void i8042_init(void);
 extern void i8042_poll(void);
+extern void i8042_grab(void);
+extern void i8042_release(void);
 
 #endif

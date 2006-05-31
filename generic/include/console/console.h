@@ -40,4 +40,7 @@ __u8 _getc(chardev_t *chardev);
 extern count_t gets(chardev_t *chardev, char *buf, size_t buflen);
 extern void putchar(char c);
 
+extern void arch_grab_console(void);
+extern void arch_release_console(void);
+
 #endif /* __CHARDEV_H__ */

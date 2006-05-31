@@ -46,6 +46,7 @@
 #include <security/cap.h>
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
+#include <console/console.h>
 
 /** Print using kernel facility
  *
@@ -76,6 +77,13 @@ static __native sys_io(int fd, const void * buf, size_t count)
 	free(data);
 	
 	return count;
+}
+
+/** Tell kernel to get keyboard/console access again */
+static __native sys_debug_enable_console(void)
+{
+	arch_grab_console();
+	return 0;
 }
 
 /** Dispatch system call */
@@ -130,5 +138,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Sysinfo syscalls */
 	sys_sysinfo_valid,
-	sys_sysinfo_value
+	sys_sysinfo_value,
+	
+	/* Debug calls */
+	sys_debug_enable_console
 };

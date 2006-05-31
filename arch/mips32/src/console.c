@@ -42,3 +42,18 @@ void console_init(void)
 		msim_console();
 	}
 }
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+	msim_kbd_grab();
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
+	msim_kbd_release();
+}

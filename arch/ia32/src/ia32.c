@@ -54,6 +54,7 @@
 #include <arch/debugger.h>
 #include <proc/thread.h>
 #include <syscall/syscall.h>
+#include <console/console.h>
 
 void arch_pre_mm_init(void)
 {
@@ -131,4 +132,19 @@ __native sys_tls_set(__native addr)
 	set_tls_desc(addr);
 
 	return 0;
+}
+
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+	i8042_grab();
+}
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
+	i8042_release();
 }
