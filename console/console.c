@@ -38,12 +38,13 @@
 #include <unistd.h>
 #include <async.h>
 #include <libadt/fifo.h>
+#include <screenbuffer.h>
 
 static void sysput(char c)
 {
 	__SYSCALL3(SYS_IO, 1, &c, 1);
-
 }
+
 //#define CONSOLE_COUNT VFB_CONNECTIONS
 #define CONSOLE_COUNT 8
 #define MAX_KEYREQUESTS_BUFFERED 32
@@ -52,13 +53,19 @@ static void sysput(char c)
 
 int active_console = 1;
 
+struct {
+	int phone;		/**< Framebuffer phone */
+	int rows;		/**< Framebuffer rows */
+	int cols;		/**< Framebuffer columns */
+} fb_info;
+
 typedef struct {
 	keybuffer_t keybuffer;
 	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t , MAX_KEYREQUESTS_BUFFERED);
 	int keyrequest_counter;
 	int client_phone;
-	int vfb_phone;
 	int used;
+	screenbuffer_t screenbuffer;
 } connection_t;
 
 connection_t connections[CONSOLE_COUNT];
@@ -94,7 +101,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-	int i;
+	int i, j;
 	char c;
 
 	/* Ignore parameters, the connection is alread opened */
@@ -115,7 +122,19 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* switch to another virtual console */
 			
 			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
+				/*FIXME: draw another console content from buffer */
+
 				active_console = c - KBD_KEY_F1;
+				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
+				ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, 'a', 0, 0,NULL,NULL, NULL);
+				
+				for (i = 0; i < connections[active_console].screenbuffer.size_x; i++)
+					for (j = 0; j < connections[active_console].screenbuffer.size_y; j++) {
+					
+					ipc_call_async_3(fb_info.phone, FB_PUTCHAR, get_field_at(&(connections[active_console].screenbuffer),\
+								i, j)->character, j, i, NULL, NULL, NULL);
+				}
+
 				break;
 			}
 			
@@ -153,8 +172,10 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_fast(iid,ELIMIT,0,0);
 		return;
 	}
+	
 	connections[consnum].used = 1;
 	connections[consnum].client_phone = IPC_GET_ARG3(call);
+	screenbuffer_clear(&(connections[consnum].screenbuffer));
 
 	/* Accept the connection */
 	ipc_answer_fast(iid,0,0,0);
@@ -167,15 +188,28 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0,0,0);
 			return;
 		case CONSOLE_PUTCHAR:
-			if (consnum != active_console) {
-			}
+			
 			/* Send message to fb */
-			ipc_call_sync_2(connections[consnum].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
-//			ipc_call_sync_2(connections[6].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG2(call),NULL,NULL);
+			if (consnum == active_console) {
+				ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, IPC_GET_ARG2(call), connections[consnum].screenbuffer.position_y, \
+						connections[consnum].screenbuffer.position_x, NULL, NULL, NULL); 
+			}
+			
+			screenbuffer_putchar(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call));
 			break;
 		case CONSOLE_CLEAR:
+			/* Send message to fb */
+			if (consnum == active_console) {
+				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL); 
+			}
+			
+			screenbuffer_clear(&(connections[consnum].screenbuffer));
+			
 			break;
 		case CONSOLE_GOTO:
+			
+			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			
 			break;
 
 		case CONSOLE_GETCHAR:
@@ -219,23 +253,36 @@ int main(int argc, char *argv[])
 
 	/* Connect to framebuffer driver */
 	
+	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
+		usleep(10000);
+	}
+	
+	ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '1', 0, 0,NULL,NULL, NULL);
+	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
+	
+	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
+		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '$', 2*i, 1,NULL,NULL, NULL);
 		connections[i].used = 0;
 		keybuffer_init(&(connections[i].keybuffer));
+		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '>', 2*i+1, 1,NULL,NULL, NULL);
 		
-		/* TODO: init key_buffer */
-		while ((connections[i].vfb_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
-			usleep(10000);
-		}
 		connections[i].keyrequests.head = connections[i].keyrequests.tail = 0;
 		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
 		connections[i].keyrequest_counter = 0;
+		
+		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '?', 2*i+1, 1,NULL,NULL, NULL);
+		if (screenbuffer_init(&(connections[i].screenbuffer), fb_info.cols, fb_info.rows ) == NULL) {
+			/*FIXME: handle error */
+			return -1;
+		}
 	}
 	
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
 	
+	ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, 'M', 3, 3,NULL,NULL, NULL);
 	async_manager();
 
 	return 0;	

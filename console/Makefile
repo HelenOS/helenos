@@ -43,6 +43,7 @@ LIBS = $(LIBC_PREFIX)/libc.a
 OUTPUT = console
 GENERIC_SOURCES = \
 	console.c \
+	screenbuffer.c \
 	../kbd/generic/key_buffer.c
 
 ARCH_SOURCES = 
