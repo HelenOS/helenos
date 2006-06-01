@@ -46,7 +46,9 @@ LIBS =  $(LIBC_PREFIX)/libc.a
 OUTPUT = fb
 SOURCES = \
 	fb.c \
-	font-8x16.c
+	font-8x16.c \
+	main.c \
+	sysio.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

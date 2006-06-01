@@ -115,10 +115,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* switch to another virtual console */
 			
 			conn = &connections[active_console];
-			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
+//			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
+			if ((c >= '1') && (c < '1' + CONSOLE_COUNT)) {
 				/*FIXME: draw another console content from buffer */
 
-				active_console = c - KBD_KEY_F1;
+				active_console = c - '1';
 				conn = &connections[active_console];
 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
@@ -231,6 +232,8 @@ int main(int argc, char *argv[])
 	int kbd_phone, fb_phone;
 	ipcarg_t retval, arg1 = 0xdead, arg2 = 0xbeef;
 	int i;
+
+	async_set_client_connection(client_connection);
 	
 	/* Connect to keyboard driver */
 

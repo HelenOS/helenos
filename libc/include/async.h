@@ -35,6 +35,7 @@
 #include <atomic.h>
 
 typedef ipc_callid_t aid_t;
+typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 int async_manager(void);
 ipc_callid_t async_get_call(ipc_call_t *data);
@@ -72,10 +73,10 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid,
 void async_usleep(suseconds_t timeout);
 void async_create_manager(void);
 void async_destroy_manager(void);
+void async_set_client_connection(async_client_conn_t conn);
 int _async_init(void);
 
 /* Should be defined by application */
-void client_connection(ipc_callid_t callid, ipc_call_t *call) __attribute__((weak));
 void interrupt_received(ipc_call_t *call)  __attribute__((weak));
 
 

@@ -52,17 +52,9 @@ int console_phone = -1;
 
 stream_t streams[FDS] = {{0, 0, 0}};
 
-/*
-ssize_t write_stdout(void *param, const void * buf, size_t count);
-ssize_t write_stdout(void *param, const void * buf, size_t count)
-{
-	return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
-}*/
-
 static ssize_t write_stderr(void *param, const void *buf, size_t count)
 {
 	return count;
-	//return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
 }
 
 static ssize_t read_stdin(void *param, void *buf, size_t count)
@@ -77,7 +69,6 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 		((char *)buf)[i++] = r0;
 	}
 	return i;
-	//return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
 }
 
 static ssize_t write_stdout(void *param, const void *buf, size_t count)
@@ -89,7 +80,6 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 		ipc_call_sync_2(console_phone, CONSOLE_PUTCHAR, 0, ((const char *)buf)[i], &r0, &r1);
 	
 	return count;
-	//return (ssize_t) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, (sysarg_t) count);
 }
 
 

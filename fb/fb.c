@@ -27,12 +27,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <ddi.h>
-#include <task.h>
 #include <sysinfo.h>
 #include <align.h>
 #include <as.h>
@@ -389,36 +387,6 @@ static void screen_init(__address addr, unsigned int xres, unsigned int yres, un
 	clear_port(0);
 }
 
-static int init_fb(void)
-{
-	__address fb_ph_addr;
-	unsigned int fb_width;
-	unsigned int fb_height;
-	unsigned int fb_bpp;
-	unsigned int fb_scanline;
-	__address fb_addr;
-	int a=0;
-	int i,j,k;
-	int w;
-	char text[]="HelenOS Framebuffer driver\non Virtual Framebuffer\nVFB ";
-
-	fb_ph_addr=sysinfo_value("fb.address.physical");
-	fb_width=sysinfo_value("fb.width");
-	fb_height=sysinfo_value("fb.height");
-	fb_bpp=sysinfo_value("fb.bpp");
-	fb_scanline=sysinfo_value("fb.scanline");
-
-	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
-	
-	map_physmem(task_get_id(),(void *)((__address)fb_ph_addr),(void *)fb_addr,
-		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,
-		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
-	
-	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline);
-
-	return 0;
-}
-
 static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 {
 	viewport_t *vport = &viewports[vp];
@@ -442,7 +410,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 		invert_char(vp, vport->cur_row, vport->cur_col);
 }
 
-void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -577,22 +545,31 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-int main(int argc, char *argv[])
+int fb_init(void)
 {
-	char connected = 0;
-	int res;
-	ipcarg_t phonead;
+	__address fb_ph_addr;
+	unsigned int fb_width;
+	unsigned int fb_height;
+	unsigned int fb_bpp;
+	unsigned int fb_scanline;
+	__address fb_addr;
 
-	if(!sysinfo_value("fb"))
-		return -1;
+	async_set_client_connection(fb_client_connection);
 
-	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, &phonead)) != 0) 
-		return -1;
+	fb_ph_addr=sysinfo_value("fb.address.physical");
+	fb_width=sysinfo_value("fb.width");
+	fb_height=sysinfo_value("fb.height");
+	fb_bpp=sysinfo_value("fb.bpp");
+	fb_scanline=sysinfo_value("fb.scanline");
+
+	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
 	
-	if (init_fb() != 0)
-		return -1;
+	map_physmem(task_get_id(),(void *)((__address)fb_ph_addr),(void *)fb_addr,
+		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,
+		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	
+	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline);
 
-	async_manager();
-	/* Never reached */
 	return 0;
 }
+

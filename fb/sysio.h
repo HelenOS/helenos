@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FB_H_
-#define _FB_H_
+#ifndef _SYSIO_H_
+#define _SYSIO_H_
 
-int fb_init(void);
+void sysio_init(void);
 
 #endif

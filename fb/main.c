@@ -26,9 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FB_H_
-#define _FB_H_
+#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
+#include <async.h>
 
-int fb_init(void);
+#include "fb.h"
+#include "sysio.h"
 
-#endif
+int main(int argc, char *argv[])
+{
+	ipcarg_t phonead;
+	int initialized = 0;
+
+	if (sysinfo_value("fb.kind") == 1) {
+		if (fb_init() == 0)
+			initialized = 1;
+	}
+	if (!initialized)
+		sysio_init();
+
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, &phonead) != 0) 
+		return -1;
+	
+	async_manager();
+	/* Never reached */
+	return 0;
+}

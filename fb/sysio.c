@@ -26,9 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FB_H_
-#define _FB_H_
+#include <async.h>
+#include <ipc/fb.h>
+#include <ipc/ipc.h>
+#include <libc.h>
+#include <errno.h>
 
-int fb_init(void);
+#include "sysio.h"
 
-#endif
+/* Allow only 1 connection */
+static int client_connected = 0;
+
+static void sysput(char c)
+{
+	__SYSCALL3(SYS_IO, 1, (sysarg_t)&c, (sysarg_t) 1);
+}
+
+static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	int retval;
+	ipc_callid_t callid;
+	ipc_call_t call;
+	char c;
+
+	if (client_connected) {
+		ipc_answer_fast(iid, ELIMIT, 0,0);
+		return;
+	}
+	client_connected = 1;
+	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
+	while (1) {
+		callid = async_get_call(&call);
+ 		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			client_connected = 0;
+			ipc_answer_fast(callid,0,0,0);
+			return; /* Exit thread */
+		case FB_PUTCHAR:
+			c = IPC_GET_ARG1(call);
+			sysput(c);
+			retval = 0;
+			break;
+		case FB_GET_CSIZE:
+			ipc_answer_fast(callid, 0, 25, 80);
+			continue;
+		default:
+			retval = ENOENT;
+		}
+		ipc_answer_fast(callid,retval,0,0);
+	}
+}
+
+void sysio_init(void)
+{
+	async_set_client_connection(sysio_client_connection);
+}

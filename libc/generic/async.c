@@ -128,7 +128,11 @@ typedef struct {
 	void (*cthread)(ipc_callid_t,ipc_call_t *);
 } connection_t;
 
+
 __thread connection_t *PS_connection;
+
+static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
+static async_client_conn_t client_connection = default_client_connection;
 
 /** Add microseconds to give timeval */
 static void tv_add(struct timeval *tv, suseconds_t usecs)
@@ -272,7 +276,7 @@ ipc_callid_t async_get_call(ipc_call_t *call)
  * This function is defined as a weak symbol - to be redefined in
  * user code.
  */
-void client_connection(ipc_callid_t callid, ipc_call_t *call)
+static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
@@ -669,4 +673,13 @@ void async_usleep(suseconds_t timeout)
 	psthread_schedule_next_adv(PS_TO_MANAGER);
 	/* futex is up automatically after psthread_schedule_next...*/
 	free(msg);
+}
+
+/** Set function that is called, IPC_M_CONNECT_ME_TO is received
+ *
+ * @param conn Function that will form new psthread.
+ */
+void async_set_client_connection(async_client_conn_t conn)
+{
+	client_connection = conn;
 }
