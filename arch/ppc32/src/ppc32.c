@@ -35,6 +35,7 @@
 #include <userspace.h>
 #include <proc/uarg.h>
 #include <console/console.h>
+#include <arch/drivers/pic.h>
 
 bootinfo_t bootinfo;
 
@@ -55,10 +56,9 @@ void arch_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
 	interrupt_init();
-	
+
 	/* Start decrementer */
 	start_decrementer();
-	cuda_init();
 }
 
 void arch_post_mm_init(void)
@@ -66,6 +66,10 @@ void arch_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);	
 	
+		/* Initialize PIC */
+		pic_init();
+	
+		cuda_init();
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}

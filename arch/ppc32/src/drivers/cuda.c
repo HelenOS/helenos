@@ -30,6 +30,8 @@
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <arch/drivers/pic.h>
+#include <interrupt.h>
 
 #define CUDA_PACKET 0x01
 #define CUDA_POWERDOWN 0x0a
@@ -47,9 +49,16 @@
 
 static volatile __u8 *cuda = (__u8 *) 0xf2000000;
 
+#include <print.h>
+static void cuda_irq(int n, istate_t *istate)
+{
+	printf("Got cuda msg\n");
+}
 
 void cuda_init(void)
 {
+	int_register(CUDA_IRQ, "cuda", cuda_irq);
+	pic_enable_interrupt(CUDA_IRQ);
 }
 
 

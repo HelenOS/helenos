@@ -185,7 +185,14 @@ exc_instruction_storage:
 .org 0x500
 .global exc_external
 exc_external:
-	b exc_external
+	CONTEXT_STORE
+
+	lis r12, extint_handler@ha
+	addi r12, r12, extint_handler@l
+	mtsrr0 r12
+
+	li r3, 0
+	b jump_to_kernel
 
 .org 0x600
 .global exc_alignment

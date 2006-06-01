@@ -31,6 +31,8 @@
 
 #include <arch/types.h>
 
+#define CUDA_IRQ 10
+
 extern void cuda_init(void);
 extern void cuda_packet(const __u8 data);
 

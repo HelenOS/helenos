@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <interrupt.h>
-#include <arch/interrupt.h>
-#include <arch/types.h>
-#include <arch.h>
-#include <time/clock.h>
-#include <ipc/sysipc.h>
-#include <arch/drivers/pic.h>
+#ifndef __PIC_H_
+#define __PIC_H_
 
+/* PIC handler, read from pearpc source codes */
+#define PIC_HW_ADDR 0x80800000
 
-void start_decrementer(void)
-{
-	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
-	);
-}
+#define PIC_PENDING_LOW    8
+#define PIC_PENDING_HIGH   4
+#define PIC_MASK_LOW       9
+#define PIC_MASK_HIGH      5
+#define PIC_ACK_LOW        10
+#define PIC_ACK_HIGH       6
 
+void pic_init(void);
+void pic_enable_interrupt(int intnum);
+void pic_disable_interrupt(int intnum);
+void pic_ack_interrupt(int intnum);
+int pic_get_pending(void);
 
-static void exception_decrementer(int n, istate_t *istate)
-{
-	clock();
-	start_decrementer();
-}
-
-
-/* Initialize basic tables for exception dispatching */
-void interrupt_init(void)
-{
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
-}
-
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
-{
-	panic("not implemented\n");
-	/* TODO */
-}
-
-#include <print.h>
-/** Handler of externul interrupts */
-void extint_handler(int n, istate_t *istate)
-{
-	int inum;
-
-	while ((inum = pic_get_pending()) != -1) {
-		exc_dispatch(inum+INT_OFFSET, istate);
-		pic_ack_interrupt(inum);
-	}
-}
+#endif

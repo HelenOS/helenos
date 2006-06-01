@@ -31,13 +31,18 @@
 
 #include <arch/exception.h>
 
-#define IRQ_COUNT	1
-#define IVT_ITEMS   15
-#define INT_OFFSET  0
+#define IRQ_COUNT	64
+
+
+#define IVT_ITEMS   (16 + IRQ_COUNT)
+#define INT_OFFSET  16
+
+#define int_register(it, name, handler) exc_register(((it)+INT_OFFSET),name,handler)
 
 #define VECTOR_DECREMENTER 10
 
 extern void start_decrementer(void);
 extern void interrupt_init(void);
+extern void extint_handler(int n, istate_t *istate);
 
 #endif

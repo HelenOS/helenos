@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <interrupt.h>
-#include <arch/interrupt.h>
-#include <arch/types.h>
-#include <arch.h>
-#include <time/clock.h>
-#include <ipc/sysipc.h>
+
+#include <arch/asm.h>
 #include <arch/drivers/pic.h>
+#include <byteorder.h>
+#include <bitops.h>
 
+static volatile __u32 *pic;
 
-void start_decrementer(void)
+void pic_init(void)
 {
-	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
-	);
+	pic = (__u32 *)hw_map(PIC_HW_ADDR, PAGE_SIZE);
 }
 
 
-static void exception_decrementer(int n, istate_t *istate)
+
+void pic_enable_interrupt(int intnum)
 {
-	clock();
-	start_decrementer();
-}
-
-
-/* Initialize basic tables for exception dispatching */
-void interrupt_init(void)
-{
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
-}
-
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
-{
-	panic("not implemented\n");
-	/* TODO */
-}
-
-#include <print.h>
-/** Handler of externul interrupts */
-void extint_handler(int n, istate_t *istate)
-{
-	int inum;
-
-	while ((inum = pic_get_pending()) != -1) {
-		exc_dispatch(inum+INT_OFFSET, istate);
-		pic_ack_interrupt(inum);
+	if (intnum < 32) {
+		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] | (1 << intnum);
+	} else {
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum-32));
 	}
+	
+}
+
+void pic_disable_interrupt(int intnum)
+{
+	if (intnum < 32) {
+		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] & (~(1 << intnum));
+	} else {
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] & (~(1 << (intnum-32)));
+	}
+}
+
+void pic_ack_interrupt(int intnum)
+{
+	if (intnum < 32) 
+		pic[PIC_ACK_LOW] = 1 << intnum;
+	else 
+		pic[PIC_ACK_HIGH] = 1 << (intnum-32);
+}
+
+/** Return number of pending interrupt */
+int pic_get_pending(void)
+{
+	int pending;
+
+	pending = pic[PIC_PENDING_LOW];
+	if (pending) {
+		return fnzb32(pending);
+	}
+	pending = pic[PIC_PENDING_HIGH];
+	if (pending) {
+		return fnzb32(pending) + 32;
+	}
+	return -1;
 }
