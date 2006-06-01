@@ -35,7 +35,10 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <time/clock.h>
+#include <arch.h>
 
+
+#define IT_SERVICE_CLOCKS 64
 
 /** Initialize Interval Timer. */
 void it_init(void)
@@ -58,12 +61,36 @@ void it_init(void)
 	srlz_d();
 }
 
+
 /** Process Interval Timer interrupt. */
 void it_interrupt(void)
 {
+	__s64 c;
+	__s64 m;
+	
 	eoi_write(EOI);
-	itm_write(itc_read() + IT_DELTA);	/* program next interruption */
+	
+	m=itm_read();
+	
+	while(1)
+	{
+	
+		c=itc_read();
+		c+=IT_SERVICE_CLOCKS;
+
+		m+=IT_DELTA;
+		if(m-c<0)
+		{
+			CPU->missed_clock_ticks++;
+		}
+		else break;
+	}
+	
+	itm_write(m);
 	srlz_d();				/* propagate changes */
+	
+	
+	
 	clock();
 	poll_keyboard();
 }
