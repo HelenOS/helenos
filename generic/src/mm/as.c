@@ -161,12 +161,11 @@ void as_destroy(as_t *as)
 		
 		ASSERT(!list_empty(&as->as_area_btree.leaf_head));
 		node = list_get_instance(&as->as_area_btree.leaf_head.next, btree_node_t, leaf_link);
-		if ((cond = node->keys)) {
+		if ((cond = node->keys))
 			as_area_destroy(as, node->key[0]);
-			btree_remove(&as->as_area_btree, node->key[0], node);
-		}
 	}
 	
+	btree_destroy(&as->as_area_btree);
 	page_table_destroy(as->page_table);
 
 	interrupts_restore(ipl);
@@ -460,8 +459,6 @@ int as_area_destroy(as_t *as, __address address)
 				page_mapping_remove(as, b + i*PAGE_SIZE);
 				page_table_unlock(as, false);
 			}
-			if (!used_space_remove(area, b, i))
-				panic("Could not remove used space.\n");
 		}
 	}
 
@@ -1489,7 +1486,6 @@ void sh_info_remove_reference(share_info_t *sh_info)
 			node = list_get_instance(sh_info->pagemap.leaf_head.next, btree_node_t, leaf_link);
 			if ((cond = node->keys)) {
 				frame_free(ADDR2PFN((__address) node->value[0]));
-				btree_remove(&sh_info->pagemap, node->key[0], node);
 			}
 		}
 		

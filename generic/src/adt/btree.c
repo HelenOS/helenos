@@ -50,6 +50,7 @@
 #include <typedefs.h>
 #include <print.h>
 
+static void btree_destroy_subtree(btree_node_t *root);
 static void _btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *rsubtree, btree_node_t *node);
 static void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node);
 static void node_initialize(btree_node_t *node);
@@ -101,8 +102,7 @@ void btree_create(btree_t *t)
 /** Destroy empty B-tree. */
 void btree_destroy(btree_t *t)
 {
-	ASSERT(!t->root->keys);
-	slab_free(btree_node_slab, t->root);
+	btree_destroy_subtree(t->root);
 }
 
 /** Insert key-value pair into B-tree.
@@ -126,6 +126,23 @@ void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_n
 	}
 	
 	_btree_insert(t, key, value, NULL, lnode);
+}
+
+/** Destroy subtree rooted in a node.
+ *
+ * @param root Root of the subtree.
+ */
+void btree_destroy_subtree(btree_node_t *root)
+{
+	int i;
+
+	if (root->keys) {
+		for (i = 0; i < root->keys + 1; i++) { 
+			if (root->subtree[i])
+				btree_destroy_subtree(root->subtree[i]);
+		}
+	}
+	slab_free(btree_node_slab, root);
 }
 
 /** Recursively insert into B-tree.
