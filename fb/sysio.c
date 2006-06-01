@@ -31,15 +31,36 @@
 #include <ipc/ipc.h>
 #include <libc.h>
 #include <errno.h>
+#include <string.h>
+#include <libc.h>
+#include <stdio.h>
 
 #include "sysio.h"
 
 /* Allow only 1 connection */
 static int client_connected = 0;
 
+#define CLRSCR   "\033[2J"
+
 static void sysput(char c)
 {
 	__SYSCALL3(SYS_IO, 1, (sysarg_t)&c, (sysarg_t) 1);
+}
+
+static void sysputs(char *s)
+{
+	__SYSCALL3(SYS_IO, 1, (sysarg_t)s, strlen(s));
+}
+
+static void curs_goto(unsigned int row, unsigned int col)
+{
+	char control[20];
+
+	if (row > 100 || col > 100)
+		return;
+
+	snprintf(control, 20, "\033[%d;%df",row, col);
+	sysputs(control);
 }
 
 static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -48,6 +69,9 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	char c;
+	int lastcol=0;
+	int lastrow=0;
+	int newcol,newrow;
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
@@ -64,12 +88,27 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return; /* Exit thread */
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
+			newrow = IPC_GET_ARG2(call);
+			newcol = IPC_GET_ARG3(call);
+			if (lastcol != newcol || lastrow!=newrow) 
+				curs_goto(newrow, newcol);
+			lastcol = newcol + 1;
+			lastrow = newrow;
 			sysput(c);
 			retval = 0;
+			break;
+ 		case FB_CURSOR_GOTO:
+			newrow = IPC_GET_ARG1(call);
+			newcol = IPC_GET_ARG2(call);
+			curs_goto(newrow, newcol);
 			break;
 		case FB_GET_CSIZE:
 			ipc_answer_fast(callid, 0, 25, 80);
 			continue;
+		case FB_CLEAR:
+			sysputs(CLRSCR);
+			retval = 0;
+			break;
 		default:
 			retval = ENOENT;
 		}
@@ -80,4 +119,6 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 void sysio_init(void)
 {
 	async_set_client_connection(sysio_client_connection);
+	sysputs(CLRSCR);
+	curs_goto(0,0);
 }
