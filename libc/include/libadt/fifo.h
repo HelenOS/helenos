@@ -44,6 +44,14 @@
 typedef unsigned long fifo_count_t;
 typedef unsigned long fifo_index_t;
 
+#define FIFO_CREATE_STATIC(name, t, itms)		\
+	struct {					\
+		t fifo[(itms)];				\
+		fifo_count_t items;			\
+		fifo_index_t head;			\
+		fifo_index_t tail;			\
+	} name
+
 /** Create and initialize static FIFO.
  *
  * FIFO is allocated statically.
@@ -54,12 +62,7 @@ typedef unsigned long fifo_index_t;
  * @param itms Number of items that can be stored in FIFO.
  */
 #define FIFO_INITIALIZE_STATIC(name, t, itms)		\
-	struct {					\
-		t fifo[(itms)];				\
-		fifo_count_t items;			\
-		fifo_index_t head;			\
-		fifo_index_t tail;			\
-	} name = {					\
+	FIFO_CREATE_STATIC(name, t, itms) = {		\
 		.items = (itms),			\
 		.head = 0,				\
 		.tail = 0				\

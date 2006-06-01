@@ -37,6 +37,7 @@
 #include <console.h>
 #include <unistd.h>
 #include <async.h>
+#include <libadt/fifo.h>
 
 static void sysput(char c)
 {
@@ -45,16 +46,17 @@ static void sysput(char c)
 }
 //#define CONSOLE_COUNT VFB_CONNECTIONS
 #define CONSOLE_COUNT 8
+#define MAX_KEYREQUESTS_BUFFERED 32
 
 #define NAME "CONSOLE"
 
 int active_console = 1;
 
-
 typedef struct {
 	keybuffer_t keybuffer;
+	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t , MAX_KEYREQUESTS_BUFFERED);
+	int keyrequest_counter;
 	int client_phone;
-	int vfb_number;	/* Not used */
 	int vfb_phone;
 	int used;
 } connection_t;
@@ -106,19 +108,25 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		case KBD_PUSHCHAR:
 			/* got key from keyboard driver */
 			
-			/* find active console */
-			
-			/* if client is awaiting key, send it */
-			
-			/*FIXME: else store key to its buffer */
 			retval = 0;
 			c = IPC_GET_ARG1(call);
 //			ipc_call_sync_2(connections[3].vfb_phone, FB_PUTCHAR, 0, c,NULL,NULL);
+		
 			/* switch to another virtual console */
+			
 			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 				active_console = c - KBD_KEY_F1;
 				break;
 			}
+			
+			/* if client is awaiting key, send it */
+			if (connections[active_console].keyrequest_counter > 0) {		
+				connections[active_console].keyrequest_counter--;
+				ipc_answer_fast(fifo_pop(connections[active_console].keyrequests), 0, c, 0);
+				break;
+			}
+			
+			/*FIXME: else store key to its buffer */
 			keybuffer_push(&(connections[active_console].keybuffer), c);
 			
 			/* Send it to first FB, DEBUG */
@@ -171,10 +179,16 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 
 		case CONSOLE_GETCHAR:
-			/* FIXME: Only temporary solution until request storage will be created  */
-			while (keybuffer_empty(&(connections[consnum].keybuffer))) {
-				/* FIXME: buffer empty -> store request */
-				async_usleep(1000);
+			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
+				/* buffer is empty -> store request */
+				if (connections[consnum].keyrequest_counter < MAX_KEYREQUESTS_BUFFERED) {		
+					fifo_push(connections[consnum].keyrequests, callid);
+					connections[consnum].keyrequest_counter++;
+				} else {
+					/* no key available and too many requests => fail */
+					ipc_answer_fast(callid, ELIMIT, 0, 0);
+				}
+				continue;
 			};
 			keybuffer_pop(&(connections[consnum].keybuffer), (char *)&arg1);
 //			ipc_call_sync_2(connections[6].vfb_phone, FB_PUTCHAR, 0, arg1,NULL,NULL);
@@ -208,11 +222,14 @@ int main(int argc, char *argv[])
 	for (i = 0; i < CONSOLE_COUNT; i++) {
 		connections[i].used = 0;
 		keybuffer_init(&(connections[i].keybuffer));
+		
 		/* TODO: init key_buffer */
 		while ((connections[i].vfb_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
 			usleep(10000);
-			//ipc_call_async_2(connections[i].vfb_phone, FB_PUTCHAR, 'a', 'b', NULL, (void *)NULL); 
 		}
+		connections[i].keyrequests.head = connections[i].keyrequests.tail = 0;
+		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
+		connections[i].keyrequest_counter = 0;
 	}
 	
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
