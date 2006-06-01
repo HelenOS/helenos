@@ -43,6 +43,10 @@ USPACEDIR = $(BASE)/uspace
 
 -include arch/$(ARCH)/Makefile.inc
 
+ifeq ($(CONFIG_DEBUG),y)
+	DEFS += -DCONFIG_DEBUG
+endif
+
 .PHONY: all build config distclean arch_distclean clean kernel uspace clean_kernel clean_uspace distclean_kernel distclean_uspace
 
 all:

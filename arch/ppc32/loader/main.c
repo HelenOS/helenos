@@ -150,5 +150,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa, bootinfo.screen.addr, bootinfo.screen.scanline);
 }

@@ -28,6 +28,7 @@
 
 #include "asm.h"
 #include "regname.h"
+#include "debug.inc"
 
 .text
 
@@ -108,6 +109,8 @@ jump_to_kernel:
 	# r5 = trans (pa)
 	# r6 = bytes to copy
 	# r7 = real_mode (pa)
+	# r8 = framebuffer (pa)
+	# r9 = scanline
 	
 	# disable interrupts
 	
@@ -123,7 +126,7 @@ jump_to_kernel:
 	
 	mfmsr r31
 	lis r30, ~0@h
-	ori r30, r30, ~(msr_ir | msr_dr)@l
+	ori r30, r30, ~(msr_ir | msr_dr | msr_ee)@l
 	and r31, r31, r30
 	mtspr srr1, r31
 	
@@ -136,11 +139,15 @@ jump_to_kernel:
 .global real_mode
 
 real_mode:
+
+	DEBUG_real_mode
 	
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
 	# r6 = bytes to copy
+	# r8 = framebuffer (pa)
+	# r9 = scanline
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -251,6 +258,8 @@ real_mode:
 	
 	sync
 	isync
+	
+	DEBUG_rfi
 	rfi
 
 .align PAGE_WIDTH
