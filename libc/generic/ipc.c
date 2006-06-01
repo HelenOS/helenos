@@ -115,37 +115,31 @@ static	ipc_callid_t _ipc_call_async(int phoneid, ipc_call_t *data)
 	return __SYSCALL2(SYS_IPC_CALL_ASYNC, phoneid, (sysarg_t)data);
 }
 
-/** Send asynchronous message
- *
- * - if fatal error, call callback handler with proper error code
- * - if message cannot be temporarily sent, add to queue
- */
-void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		      ipcarg_t arg2, void *private,
-		      ipc_async_callback_t callback)
+/** Prolog to ipc_async_send functions */
+static inline async_call_t *ipc_prepare_async(void *private, ipc_async_callback_t callback)
 {
 	async_call_t *call;
-	ipc_callid_t callid;
 
 	call = malloc(sizeof(*call));
 	if (!call) {
 		if (callback)
 			callback(private, ENOMEM, NULL);
-		return;
+		return NULL;
 	}
-
 	call->callback = callback;
 	call->private = private;
 
-	/* We need to make sure that we get callid before
-	 * another thread accesses the queue again */
-	futex_down(&ipc_futex);
-	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
+	return call;
+}
+
+/** Epilogue of ipc_async_send functions */
+static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, async_call_t *call)
+{
 	if (callid == IPC_CALLRET_FATAL) {
 		futex_up(&ipc_futex);
 		/* Call asynchronous handler with error code */
-		if (callback)
-			callback(private, ENOENT, NULL);
+		if (call->callback)
+			call->callback(call->private, ENOENT, NULL);
 		free(call);
 		return;
 	}
@@ -154,9 +148,6 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		futex_up(&ipc_futex);
 
 		call->u.msg.phoneid = phoneid;
-		IPC_SET_METHOD(call->u.msg.data, method);
-		IPC_SET_ARG1(call->u.msg.data, arg1);
-		IPC_SET_ARG2(call->u.msg.data, arg2);
 
 		call->ptid = psthread_get_id();
 		futex_down(&async_futex);
@@ -170,6 +161,64 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	/* Add call to list of dispatched calls */
 	list_append(&call->list, &dispatched_calls);
 	futex_up(&ipc_futex);
+	
+}
+
+/** Send asynchronous message
+ *
+ * - if fatal error, call callback handler with proper error code
+ * - if message cannot be temporarily sent, add to queue
+ */
+void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		      ipcarg_t arg2, void *private,
+		      ipc_async_callback_t callback)
+{
+	async_call_t *call;
+	ipc_callid_t callid;
+
+	call = ipc_prepare_async(private, callback);
+	if (!call)
+		return;
+
+	/* We need to make sure that we get callid before
+	 * another thread accesses the queue again */
+	futex_down(&ipc_futex);
+	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
+
+	if (callid == IPC_CALLRET_TEMPORARY) {
+		IPC_SET_METHOD(call->u.msg.data, method);
+		IPC_SET_ARG1(call->u.msg.data, arg1);
+		IPC_SET_ARG2(call->u.msg.data, arg2);
+	}
+	ipc_finish_async(callid, phoneid, call);
+}
+
+/** Send asynchronous message
+ *
+ * - if fatal error, call callback handler with proper error code
+ * - if message cannot be temporarily sent, add to queue
+ */
+void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		      ipcarg_t arg2, ipcarg_t arg3, void *private,
+		      ipc_async_callback_t callback)
+{
+	async_call_t *call;
+	ipc_callid_t callid;
+
+	call = ipc_prepare_async(private, callback);
+	if (!call)
+		return;
+
+	IPC_SET_METHOD(call->u.msg.data, method);
+	IPC_SET_ARG1(call->u.msg.data, arg1);
+	IPC_SET_ARG2(call->u.msg.data, arg2);
+	IPC_SET_ARG3(call->u.msg.data, arg3);
+	/* We need to make sure that we get callid before
+	 * another thread accesses the queue again */
+	futex_down(&ipc_futex);
+	callid = _ipc_call_async(phoneid, &call->u.msg.data);
+
+	ipc_finish_async(callid, phoneid, call);
 }
 
 

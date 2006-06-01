@@ -70,6 +70,9 @@ extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
 extern void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback);
+extern void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+			     ipcarg_t arg2, ipcarg_t arg3, void *private,
+			     ipc_async_callback_t callback);
 extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
 extern int ipc_connect_me_to(int phoneid, int arg1, int arg2);
 extern int ipc_hangup(int phoneid);

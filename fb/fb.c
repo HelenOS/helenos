@@ -268,7 +268,7 @@ static void draw_glyph(int vp,__u8 glyph, unsigned int row, unsigned int col)
 }
 
 /** Invert character at given position */
-static void invert_char(int vp,unsigned int col, unsigned int row)
+static void invert_char(int vp,unsigned int row, unsigned int col)
 {
 	unsigned int x;
 	unsigned int y;
@@ -333,6 +333,10 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 	viewports[i].bgcolor = DEFAULT_BGCOLOR;
 	viewports[i].fgcolor = DEFAULT_FGCOLOR;
 	
+	viewports[i].cur_col = 0;
+	viewports[i].cur_row = 0;
+	viewports[i].cursor_active = 0;
+
 	viewports[i].initialized = 1;
 
 	return i;
@@ -415,25 +419,27 @@ static int init_fb(void)
 	return 0;
 }
 
-static void draw_char(int vp, char c, unsigned int col, unsigned int row)
+static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 {
 	viewport_t *vport = &viewports[vp];
 
 	if (vport->cursor_active && (vport->cur_col != col || vport->cur_row != row))
-		invert_char(vp, vport->cur_col,vport->cur_row);
+		invert_char(vp, vport->cur_row, vport->cur_col);
 	
-	draw_glyph(vp, c, col, row);
-	
-	if (vport->cursor_active) {
-		vport->cur_col++;
-		if (vport->cur_col>= vport->cols) {
-			vport->cur_col = 0;
-			vport->cur_row++;
-			if (vport->cur_row >= vport->rows)
-				vport->cur_row--;
-		}
-		invert_char(vp, vport->cur_col,vport->cur_row);
+	draw_glyph(vp, c, row, col);
+
+	vport->cur_col = col;
+	vport->cur_row = row;
+
+	vport->cur_col++;
+	if (vport->cur_col>= vport->cols) {
+		vport->cur_col = 0;
+		vport->cur_row++;
+		if (vport->cur_row >= vport->rows)
+			vport->cur_row--;
 	}
+	if (vport->cursor_active)
+		invert_char(vp, vport->cur_row, vport->cur_col);
 }
 
 void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -480,7 +486,7 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_CLEAR:
 			clear_port(vp);
 			if (vport->cursor_active)
-				invert_char(vp, vport->cur_col,vport->cur_row);
+				invert_char(vp, vport->cur_row, vport->cur_col);
 			retval = 0;
 			break;
  		case FB_CURSOR_GOTO:
@@ -492,8 +498,8 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
  			retval = 0;
 			if (viewports[vp].cursor_active) {
-				invert_char(vp, vport->cur_col,vport->cur_row);
-				invert_char(vp, col, row);
+				invert_char(vp, vport->cur_row, vport->cur_col);
+				invert_char(vp, row, col);
 			}
 			vport->cur_col = col;
 			vport->cur_row = row;
@@ -505,7 +511,7 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 
 			vport->cursor_active = i;
-			invert_char(vp, vport->cur_col,vport->cur_row);
+			invert_char(vp, vport->cur_row, vport->cur_col);
 			break;
 		case FB_GET_CSIZE:
 			ipc_answer_fast(callid, 0, vport->rows, vport->cols);
@@ -517,10 +523,10 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			if (vport->cursor_active)
-				invert_char(vp, vport->cur_col,vport->cur_row);
+				invert_char(vp, vport->cur_row, vport->cur_col);
 			scroll_port(vp, i);
 			if (vport->cursor_active)
-				invert_char(vp, vport->cur_col,vport->cur_row);
+				invert_char(vp, vport->cur_row, vport->cur_col);
 			retval = 0;
 			break;
 		case FB_VIEWPORT_SWITCH:

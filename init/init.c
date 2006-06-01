@@ -445,7 +445,7 @@ int main(int argc, char *argv[])
 //	test_time();
 //	test_async_kbd();
 //	test_fb();
-//	test_console();
+	test_console();
 
 	printf("\nBye.\n");
 

@@ -40,12 +40,6 @@
 #include <libadt/fifo.h>
 #include <screenbuffer.h>
 
-static void sysput(char c)
-{
-	__SYSCALL3(SYS_IO, 1, &c, 1);
-}
-
-//#define CONSOLE_COUNT VFB_CONNECTIONS
 #define CONSOLE_COUNT 8
 #define MAX_KEYREQUESTS_BUFFERED 32
 
@@ -102,7 +96,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 	int i, j;
-	char c;
+	char c,d;
+	connection_t *conn;
 
 	/* Ignore parameters, the connection is alread opened */
 	while (1) {
@@ -117,41 +112,39 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			
 			retval = 0;
 			c = IPC_GET_ARG1(call);
-//			ipc_call_sync_2(connections[3].vfb_phone, FB_PUTCHAR, 0, c,NULL,NULL);
-		
 			/* switch to another virtual console */
 			
+			conn = &connections[active_console];
 			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 				/*FIXME: draw another console content from buffer */
 
 				active_console = c - KBD_KEY_F1;
+				conn = &connections[active_console];
+
+				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
 				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
-				ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, 'a', 0, 0,NULL,NULL, NULL);
-				
-				for (i = 0; i < connections[active_console].screenbuffer.size_x; i++)
-					for (j = 0; j < connections[active_console].screenbuffer.size_y; j++) {
-					
-					ipc_call_async_3(fb_info.phone, FB_PUTCHAR, get_field_at(&(connections[active_console].screenbuffer),\
-								i, j)->character, j, i, NULL, NULL, NULL);
-				}
+				for (i = 0; i < conn->screenbuffer.size_x; i++)
+					for (j = 0; j < conn->screenbuffer.size_y; j++) {
+						d = get_field_at(&(conn->screenbuffer),i, j)->character;
+						if (d && d != ' ')
+							ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
+					}
+				ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
+				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL, NULL); 
 
 				break;
 			}
 			
 			/* if client is awaiting key, send it */
-			if (connections[active_console].keyrequest_counter > 0) {		
-				connections[active_console].keyrequest_counter--;
-				ipc_answer_fast(fifo_pop(connections[active_console].keyrequests), 0, c, 0);
+			if (conn->keyrequest_counter > 0) {		
+				conn->keyrequest_counter--;
+				ipc_answer_fast(fifo_pop(conn->keyrequests), 0, c, 0);
 				break;
 			}
 			
 			/*FIXME: else store key to its buffer */
-			keybuffer_push(&(connections[active_console].keybuffer), c);
+			keybuffer_push(&conn->keybuffer, c);
 			
-			/* Send it to first FB, DEBUG */
-//			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
-//			ipc_call_sync_2(connections[4].vfb_phone, FB_PUTCHAR, 0, c,NULL,NULL);
-
 			break;
 		default:
 			retval = ENOENT;
@@ -191,8 +184,8 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			/* Send message to fb */
 			if (consnum == active_console) {
-				ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, IPC_GET_ARG2(call), connections[consnum].screenbuffer.position_y, \
-						connections[consnum].screenbuffer.position_x, NULL, NULL, NULL); 
+				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, IPC_GET_ARG2(call), connections[consnum].screenbuffer.position_y, \
+						connections[consnum].screenbuffer.position_x, NULL, NULL); 
 			}
 			
 			screenbuffer_putchar(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call));
@@ -225,7 +218,6 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				continue;
 			};
 			keybuffer_pop(&(connections[consnum].keybuffer), (char *)&arg1);
-//			ipc_call_sync_2(connections[6].vfb_phone, FB_PUTCHAR, 0, arg1,NULL,NULL);
 			
 			break;
 		}
@@ -257,21 +249,18 @@ int main(int argc, char *argv[])
 		usleep(10000);
 	}
 	
-	ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '1', 0, 0,NULL,NULL, NULL);
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
+	ipc_call_sync(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL); 
 	
 	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
-		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '$', 2*i, 1,NULL,NULL, NULL);
 		connections[i].used = 0;
 		keybuffer_init(&(connections[i].keybuffer));
-		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '>', 2*i+1, 1,NULL,NULL, NULL);
 		
 		connections[i].keyrequests.head = connections[i].keyrequests.tail = 0;
 		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
 		connections[i].keyrequest_counter = 0;
 		
-		ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, '?', 2*i+1, 1,NULL,NULL, NULL);
 		if (screenbuffer_init(&(connections[i].screenbuffer), fb_info.cols, fb_info.rows ) == NULL) {
 			/*FIXME: handle error */
 			return -1;
@@ -282,7 +271,6 @@ int main(int argc, char *argv[])
 		return -1;
 	};
 	
-	ipc_call_sync_3(fb_info.phone, FB_PUTCHAR, 'M', 3, 3,NULL,NULL, NULL);
 	async_manager();
 
 	return 0;	
