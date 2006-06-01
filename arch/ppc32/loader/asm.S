@@ -139,7 +139,8 @@ jump_to_kernel:
 .global real_mode
 
 real_mode:
-
+	
+	DEBUG_INIT
 	DEBUG_real_mode
 	
 	# copy kernel to proper location
@@ -162,6 +163,9 @@ real_mode:
 		mtctr r31
 		lwz r29, 0(r5)
 		
+		DEBUG_INIT
+		DEBUG_copy_loop
+		
 		copy_loop:
 			
 			lwz r28, 0(r29)
@@ -175,11 +179,15 @@ real_mode:
 			beq copy_end
 			
 			bdnz copy_loop
+			
+			DEBUG_end_copy_loop
 		
 		addi r5, r5, 4
 		b page_copy
 	
 	copy_end:
+	
+	DEBUG_segments
 	
 	# initially fill segment registers
 
@@ -197,6 +205,8 @@ real_mode:
 		bdnz seg_fill
 	
 	# invalidate block address translation registers
+	
+	DEBUG_bat
 	
 	li r30, 0
 	
@@ -226,6 +236,8 @@ real_mode:
 	
 	# create identity mapping
 	
+	DEBUG_mapping
+	
 	# FIXME: map exactly the size of RAM
 	
 	lis r31, 0x8000
@@ -240,8 +252,12 @@ real_mode:
 	mtspr dbat0u, r31
 	mtspr dbat0l, r30
 	
+	DEBUG_tlb
+	
 	tlbia
 	tlbsync
+	
+	DEBUG_prepare
 	
 	# start the kernel
 	#
