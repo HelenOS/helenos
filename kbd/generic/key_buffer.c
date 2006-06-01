@@ -27,14 +27,19 @@
  */
 
 #include <key_buffer.h>
+#include <futex.h>
+
+atomic_t keybuffer_futex = FUTEX_INITIALIZER;
 
 /** Clear key buffer.
  */
 void keybuffer_free(keybuffer_t *keybuffer) 
 {
-
+	futex_down(&keybuffer_futex);
+	keybuffer->head = 0;
+	keybuffer->tail = 0;
 	keybuffer->items = 0;
-	keybuffer->head = keybuffer->tail = keybuffer->items = 0;
+	futex_up(&keybuffer_futex);
 }
 
 /** Key buffer initialization.
@@ -69,10 +74,13 @@ int keybuffer_empty(keybuffer_t *keybuffer)
  */
 void keybuffer_push(keybuffer_t *keybuffer, char key)
 {
+	futex_down(&keybuffer_futex);
 	if (keybuffer->items < KEYBUFFER_SIZE) {
-		keybuffer->fifo[keybuffer->tail = (keybuffer->tail + 1) < keybuffer->items ? (keybuffer->tail + 1) : 0] = (key);
+		keybuffer->fifo[keybuffer->tail] = key;
+		keybuffer->tail = (keybuffer->tail + 1) % KEYBUFFER_SIZE;
 		keybuffer->items++;
 	}
+	futex_up(&keybuffer_futex);
 }
 
 /** Pop character from buffer.
@@ -81,11 +89,15 @@ void keybuffer_push(keybuffer_t *keybuffer, char key)
  */
 int keybuffer_pop(keybuffer_t *keybuffer, char *c)
 {
+	futex_down(&keybuffer_futex);
 	if (keybuffer->items > 0) {
 		keybuffer->items--;
-		*c = keybuffer->fifo[keybuffer->head = (keybuffer->head + 1) < keybuffer->items ? (keybuffer->head + 1) : 0];
+		*c = keybuffer->fifo[keybuffer->head];
+		keybuffer->head = (keybuffer->head + 1) % KEYBUFFER_SIZE;
+		futex_up(&keybuffer_futex);
 		return 1;
 	}
+	futex_up(&keybuffer_futex);
 	return 0;
 }
 

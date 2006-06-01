@@ -140,9 +140,19 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return; /* Exit thread */
 
 		case FB_PUTCHAR:
+			fb_putchar(vfb,IPC_GET_ARG2(call));
+			ipc_answer_fast(callid,0,0,0);
+			break;
+/*		
+ *		case FB_CLEAR:
 			ipc_answer_fast(callid,0,0,0);
 			fb_putchar(vfb,IPC_GET_ARG2(call));
 			break;
+ *		case FB_GOTO:
+			ipc_answer_fast(callid,0,0,0);
+			fb_putchar(vfb,IPC_GET_ARG2(call));
+			break;
+*/
 		default:
 			ipc_answer_fast(callid,ENOENT,0,0);
 		}

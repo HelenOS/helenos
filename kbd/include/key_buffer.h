@@ -31,7 +31,8 @@
 
 #include <types.h>
 
-#define KEYBUFFER_SIZE 128 /**< Size of buffer for pressed keys */
+/** Size of buffer for pressed keys */
+#define KEYBUFFER_SIZE 128 
 
 typedef struct {
 	char fifo[KEYBUFFER_SIZE];

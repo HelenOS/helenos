@@ -44,11 +44,11 @@ static void sysput(char c)
 
 }
 //#define CONSOLE_COUNT VFB_CONNECTIONS
-#define CONSOLE_COUNT 6
+#define CONSOLE_COUNT 8
 
 #define NAME "CONSOLE"
 
-int active_client = 0;
+int active_console = 1;
 
 
 typedef struct {
@@ -93,6 +93,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 	int i;
+	char c;
 
 	/* Ignore parameters, the connection is alread opened */
 	while (1) {
@@ -111,16 +112,18 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			
 			/*FIXME: else store key to its buffer */
 			retval = 0;
-			i = IPC_GET_ARG1(call) & 0xff;
+			c = IPC_GET_ARG1(call);
+//			ipc_call_sync_2(connections[3].vfb_phone, FB_PUTCHAR, 0, c,NULL,NULL);
 			/* switch to another virtual console */
-			if ((i >= KBD_KEY_F1) && (i < KBD_KEY_F1 + CONSOLE_COUNT)) {
-				active_client = i - KBD_KEY_F1;
+			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
+				active_console = c - KBD_KEY_F1;
 				break;
 			}
-			keybuffer_push(&(connections[active_client].keybuffer), i);
+			keybuffer_push(&(connections[active_console].keybuffer), c);
+			
 			/* Send it to first FB, DEBUG */
 //			ipc_call_async_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
-//			ipc_call_sync_2(connections[0].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG1(call),NULL,NULL);
+//			ipc_call_sync_2(connections[4].vfb_phone, FB_PUTCHAR, 0, c,NULL,NULL);
 
 			break;
 		default:
@@ -156,15 +159,25 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0,0,0);
 			return;
 		case CONSOLE_PUTCHAR:
+			if (consnum != active_console) {
+			}
 			/* Send message to fb */
-			ipc_call_async_2(connections[consnum].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
+			ipc_call_sync_2(connections[consnum].vfb_phone, FB_PUTCHAR, IPC_GET_ARG1(call), IPC_GET_ARG2(call), NULL, NULL); 
+//			ipc_call_sync_2(connections[6].vfb_phone, FB_PUTCHAR, 0, IPC_GET_ARG2(call),NULL,NULL);
 			break;
+		case CONSOLE_CLEAR:
+			break;
+		case CONSOLE_GOTO:
+			break;
+
 		case CONSOLE_GETCHAR:
 			/* FIXME: Only temporary solution until request storage will be created  */
-			while (!keybuffer_pop(&(connections[active_client].keybuffer), (char *)&arg1)) {
+			while (keybuffer_empty(&(connections[consnum].keybuffer))) {
 				/* FIXME: buffer empty -> store request */
-				async_usleep(100000);
+				async_usleep(1000);
 			};
+			keybuffer_pop(&(connections[consnum].keybuffer), (char *)&arg1);
+//			ipc_call_sync_2(connections[6].vfb_phone, FB_PUTCHAR, 0, arg1,NULL,NULL);
 			
 			break;
 		}
