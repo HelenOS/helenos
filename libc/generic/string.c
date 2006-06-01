@@ -42,14 +42,35 @@ void * memset(void *s, int c, size_t n)
 	return s;
 }
 
-void * memcpy(void *dest, void *src, size_t n)
+void * memcpy(void *dst, const void *src, size_t n)
 {
-	char *os = src;
-	char *odst = dest;
-	while (n--)
-		*(odst++) = *(os++);
-	return dest;
+	int i, j;
+
+	for (i = 0; i < n/sizeof(unsigned long); i++)
+		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
+		
+	for (j = 0; j < n%sizeof(unsigned long); j++)
+		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+		
+	return (char *)src;
 }
+
+void * memmove(void *dst, const void *src, size_t n)
+{
+	int i, j;
+	
+	if (src > dst)
+		return memcpy(dst, src, n);
+
+	for (j = (n%sizeof(unsigned long))-1; j >= 0; j--)
+		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+
+	for (i = n/sizeof(unsigned long)-1; i >=0 ; i--)
+		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
+		
+	return (char *)src;
+}
+
 
 /** Count the number of characters in the string, not including terminating 0.
  * @param str string

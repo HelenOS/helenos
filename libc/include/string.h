@@ -35,7 +35,8 @@
 #define bzero(ptr, len)	memset((ptr), 0, (len))
 
 void * memset(void *s, int c, size_t n);
-void * memcpy(void *dest, void *src, size_t n);
+void * memcpy(void *dest, const void *src, size_t n);
+void * memmove(void *dest, const void *src, size_t n);
 
 int strcmp(const char *, const char *);
 

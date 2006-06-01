@@ -76,6 +76,7 @@ build: $(BUILDS)
 
 clean: $(CLEANS)
 	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
+	find libc -name "_link.ld" -exec rm \{\} \;
 
 distclean: clean
 	-rm Makefile.config
