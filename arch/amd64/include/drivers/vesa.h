@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Vana
+ * Copyright (C) 2006-2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,10 +29,9 @@
 #ifndef __VESA_H__
 #define __VESA_H__
 
-extern int vesa_present(void);
-extern void vesa_init(void);
+
+int vesa_present(void);
+void vesa_init(void);
+
 
 #endif
-
-
-

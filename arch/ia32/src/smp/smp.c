@@ -47,7 +47,7 @@
 #include <mm/as.h>
 #include <print.h>
 #include <memstr.h>
-#include <arch/i8259.h>
+#include <arch/drivers/i8259.h>
 
 #ifdef CONFIG_SMP
 

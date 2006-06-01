@@ -30,8 +30,8 @@
 #include <time/clock.h>
 #include <time/delay.h>
 #include <arch/interrupt.h>
-#include <arch/i8259.h>
-#include <arch/i8254.h>
+#include <arch/drivers/i8259.h>
+#include <arch/drivers/i8254.h>
 #include <cpu.h>
 #include <config.h>
 #include <arch/pm.h>

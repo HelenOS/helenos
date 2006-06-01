@@ -29,7 +29,7 @@
 #ifdef CONFIG_FB
 
 #include <genarch/fb/fb.h>
-#include <arch/vesa.h>
+#include <arch/drivers/vesa.h>
 #include <putchar.h>
 #include <mm/page.h>
 #include <mm/frame.h>

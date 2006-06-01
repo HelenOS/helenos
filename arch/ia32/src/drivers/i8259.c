@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/i8259.h>
+#include <arch/drivers/i8259.h>
 #include <cpu.h>
 #include <arch/types.h>
 #include <arch/asm.h>

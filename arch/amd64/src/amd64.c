@@ -34,10 +34,10 @@
 
 #include <proc/thread.h>
 #include <arch/drivers/ega.h>
-#include <arch/vesa.h>
+#include <arch/drivers/vesa.h>
 #include <genarch/i8042/i8042.h>
-#include <arch/i8254.h>
-#include <arch/i8259.h>
+#include <arch/drivers/i8254.h>
+#include <arch/drivers/i8259.h>
 
 #include <arch/bios/bios.h>
 #include <arch/mm/memory_init.h>

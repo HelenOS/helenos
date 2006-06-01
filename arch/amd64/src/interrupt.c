@@ -30,7 +30,7 @@
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
-#include <arch/i8259.h>
+#include <arch/drivers/i8259.h>
 #include <func.h>
 #include <cpu.h>
 #include <arch/asm.h>
