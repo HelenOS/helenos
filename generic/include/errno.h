@@ -45,5 +45,6 @@
 #define ENOTSUP		-10	/* Not supported */
 #define EADDRNOTAVAIL	-11	/* Address not available. */
 #define ETIMEOUT        -12     /* Timeout expired */
+#define EINVAL          -13     /* Invalid value */
 
 #endif
