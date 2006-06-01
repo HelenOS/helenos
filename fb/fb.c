@@ -77,7 +77,7 @@ typedef struct {
 	/* Style for text printing */
 	int bgcolor, fgcolor;
 	/* Auto-cursor position */
-	int cursor_active, cur_x, cur_y;
+	int cursor_active, cur_col, cur_row;
 } viewport_t;
 
 #define MAX_VIEWPORTS 128
@@ -196,12 +196,6 @@ static void clear_port(int vp)
 		       screen.pixelbytes * viewports[vp].width);
 	}	
 }
-
-/** Optimized scroll for windows that cover whole lines */
-//static void scroll_optim(int vp, int rows)
-//{
-	/* TODO */
-//}
 
 /** Scroll port up/down 
  *
@@ -322,7 +316,12 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 	if (i == MAX_VIEWPORTS)
 		return ELIMIT;
 
-	viewports[i].initialized = 1;
+	if (width ==0 || height == 0 ||
+	    x+width > screen.xres || y+height > screen.yres)
+		return EINVAL;
+	if (width < FONT_SCANLINES || height < COL_WIDTH)
+		return EINVAL;
+
 	viewports[i].x = x;
 	viewports[i].y = y;
 	viewports[i].width = width;
@@ -334,6 +333,8 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 	viewports[i].bgcolor = DEFAULT_BGCOLOR;
 	viewports[i].fgcolor = DEFAULT_FGCOLOR;
 	
+	viewports[i].initialized = 1;
+
 	return i;
 }
 
@@ -414,6 +415,27 @@ static int init_fb(void)
 	return 0;
 }
 
+static void draw_char(int vp, char c, unsigned int col, unsigned int row)
+{
+	viewport_t *vport = &viewports[vp];
+
+	if (vport->cursor_active && (vport->cur_col != col || vport->cur_row != row))
+		invert_char(vp, vport->cur_col,vport->cur_row);
+	
+	draw_glyph(vp, c, col, row);
+	
+	if (vport->cursor_active) {
+		vport->cur_col++;
+		if (vport->cur_col>= vport->cols) {
+			vport->cur_col = 0;
+			vport->cur_row++;
+			if (vport->cur_row >= vport->rows)
+				vport->cur_row--;
+		}
+		invert_char(vp, vport->cur_col,vport->cur_row);
+	}
+}
+
 void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -422,12 +444,15 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int i;
 	unsigned int row,col;
 	char c;
+
 	int vp = 0;
+	viewport_t *vport = &viewports[0];
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
 		return;
 	}
+	client_connected = 1;
 	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
 
 	while (1) {
@@ -437,37 +462,111 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			client_connected = 0;
 			/* cleanup other viewports */
 			for (i=1; i < MAX_VIEWPORTS; i++)
-				viewports[i].initialized = 0;
+				vport->initialized = 0;
 			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);
 			col = IPC_GET_ARG3(call);
-			if (row >= viewports[vp].rows || col >= viewports[vp].cols) {
+			if (row >= vport->rows || col >= vport->cols) {
 				retval = EINVAL;
 				break;
 			}
 			ipc_answer_fast(callid,0,0,0);
-			draw_glyph(vp,c, row, col);
+
+			draw_char(vp, c, row, col);
 			continue; /* msg already answered */
 		case FB_CLEAR:
 			clear_port(vp);
+			if (vport->cursor_active)
+				invert_char(vp, vport->cur_col,vport->cur_row);
 			retval = 0;
 			break;
-/* 		case FB_CURSOR_GOTO: */
-/* 			retval = 0; */
-/* 			break; */
-/* 		case FB_CURSOR_VISIBILITY: */
-/* 			retval = 0; */
-/* 			break; */
+ 		case FB_CURSOR_GOTO:
+			row = IPC_GET_ARG1(call);
+			col = IPC_GET_ARG2(call);
+			if (row >= vport->rows || col >= vport->cols) {
+				retval = EINVAL;
+				break;
+			}
+ 			retval = 0;
+			if (viewports[vp].cursor_active) {
+				invert_char(vp, vport->cur_col,vport->cur_row);
+				invert_char(vp, col, row);
+			}
+			vport->cur_col = col;
+			vport->cur_row = row;
+ 			break;
+		case FB_CURSOR_VISIBILITY:
+			i = IPC_GET_ARG1(call);
+			retval = 0;
+			if ((i && vport->cursor_active) || (!i && !vport->cursor_active))
+				break;
+
+			vport->cursor_active = i;
+			invert_char(vp, vport->cur_col,vport->cur_row);
+			break;
 		case FB_GET_CSIZE:
-			ipc_answer_fast(callid, 0, viewports[vp].rows, viewports[vp].cols);
+			ipc_answer_fast(callid, 0, vport->rows, vport->cols);
+			continue;
+		case FB_SCROLL:
+			i = IPC_GET_ARG1(call);
+			if (i > vport->rows || i < (- (int)vport->rows)) {
+				retval = EINVAL;
+				break;
+			}
+			if (vport->cursor_active)
+				invert_char(vp, vport->cur_col,vport->cur_row);
+			scroll_port(vp, i);
+			if (vport->cursor_active)
+				invert_char(vp, vport->cur_col,vport->cur_row);
+			retval = 0;
+			break;
+		case FB_VIEWPORT_SWITCH:
+			i = IPC_GET_ARG1(call);
+			if (i < 0 || i >= MAX_VIEWPORTS) {
+				retval = EINVAL;
+				break;
+			}
+			if (! viewports[i].initialized ) {
+				retval = EADDRNOTAVAIL;
+				break;
+			}
+			vp = i;
+			vport = &viewports[vp];
+			retval = 0;
+			break;
+		case FB_VIEWPORT_CREATE:
+			retval = viewport_create(IPC_GET_ARG1(call) >> 16,
+						 IPC_GET_ARG1(call) & 0xffff,
+						 IPC_GET_ARG2(call) >> 16,
+						 IPC_GET_ARG2(call) & 0xffff);
+			break;
+		case FB_VIEWPORT_DELETE:
+			i = IPC_GET_ARG1(call);
+			if (i < 0 || i >= MAX_VIEWPORTS) {
+				retval = EINVAL;
+				break;
+			}
+			if (! viewports[i].initialized ) {
+				retval = EADDRNOTAVAIL;
+				break;
+			}
+			viewports[i].initialized = 0;
+			retval = 0;
+			break;
+		case FB_SET_STYLE:
+			vport->fgcolor = IPC_GET_ARG1(call);
+			vport->bgcolor = IPC_GET_ARG2(call);
+			retval = 0;
+			break;
+		case FB_GET_RESOLUTION:
+			ipc_answer_fast(callid, 0, screen.xres,screen.yres);
 			continue;
 		default:
 			retval = ENOENT;
 		}
-		retval = ENOENT;
 		ipc_answer_fast(callid,retval,0,0);
 	}
 }

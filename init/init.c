@@ -380,25 +380,23 @@ static void test_fb()
 	int res;
 	ipcarg_t result;
 	int phoneid;
+	int vp;
 
 //	printf("Test: Starting connect...\n");
-
-	phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
 
 	while ((phoneid = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
 		volatile int a;
 		for(a=0;a<1048576;a++);
 	};
 	
-//	printf("Test: Connected: %d\n", res);
-//	printf("Test: pinging.\n");
-	while (1) {
-		res = ipc_call_sync(phoneid, FB_GET_VFB, 0xbeef,&result);
-//		printf("Test: Retval: %d - received: %c\n", res, result);
-//		printf("%c", result);
+	usleep(100000);
+	vp = ipc_call_sync_3(phoneid, FB_VIEWPORT_CREATE, (200 << 16) | 300, (200 << 16) | 150,0,NULL,NULL,NULL);
+	if (! ipc_call_sync(phoneid, FB_VIEWPORT_SWITCH, vp, NULL)) {
+		ipc_call_sync_2(phoneid, FB_SET_STYLE, 0, 0xffffff, NULL, NULL);
+		ipc_call_sync(phoneid, FB_CLEAR, 0, NULL);
+		ipc_call_sync_3(phoneid, FB_PUTCHAR, 'X', 0,0, NULL, NULL, NULL);
 	}
-	
-//	printf("Test: Hangin up\n");
+
 	ipc_hangup(phoneid);
 }
 
@@ -447,7 +445,7 @@ int main(int argc, char *argv[])
 //	test_time();
 //	test_async_kbd();
 //	test_fb();
-	test_console();
+//	test_console();
 
 	printf("\nBye.\n");
 
