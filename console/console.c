@@ -39,13 +39,14 @@
 #include <async.h>
 #include <libadt/fifo.h>
 #include <screenbuffer.h>
+#include <sys/mman.h>
 
 #define CONSOLE_COUNT 12 
 #define MAX_KEYREQUESTS_BUFFERED 32
 
 #define NAME "CONSOLE"
 
-int active_console = 1;
+int active_console = 0;
 
 struct {
 	int phone;		/**< Framebuffer phone */
@@ -65,7 +66,8 @@ typedef struct {
 
 
 connection_t connections[CONSOLE_COUNT];
-
+keyfield_t *interbuffer = NULL;
+	
 static int find_free_connection() 
 {
 	int i = 0;
@@ -156,9 +158,6 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	int i, j;
 	char c,d;
 	connection_t *conn;
-	keyfield_t *interbuffer = NULL;
-
-//	interbuffer = mmap(,, PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS, , );	
 	
 	/* Ignore parameters, the connection is alread opened */
 	while (1) {
@@ -185,16 +184,25 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				conn = &connections[active_console];
 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
-				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
-				
-				for (i = 0; i < conn->screenbuffer.size_x; i++)
-					for (j = 0; j < conn->screenbuffer.size_y; j++) {
-						d = get_field_at(&(conn->screenbuffer),i, j)->character;
-						if (d && d != ' ')
-							ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
-					}
+		
+				if (interbuffer) {
+					for (i = 0; i < fb_info.cols * fb_info.rows; i++)
+						interbuffer[i] = conn->screenbuffer.buffer[i];	
+					ipc_call_sync(fb_info.phone, FB_DRAW_TEXT_DATA, 0, NULL);		
+				} else {
 
-				ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
+					ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
+				
+					
+					for (i = 0; i < conn->screenbuffer.size_x; i++)
+						for (j = 0; j < conn->screenbuffer.size_y; j++) {
+							d = get_field_at(&(conn->screenbuffer),i, j)->character;
+							if (d && d != ' ')
+								ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
+						}
+
+					ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
+				}
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL, NULL); 
 
 				break;
@@ -324,6 +332,17 @@ int main(int argc, char *argv[])
 			/*FIXME: handle error */
 			return -1;
 		}
+	}
+	
+	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
+		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ | AS_AREA_CACHEABLE, NULL, NULL, NULL) != 0) {
+//			ipc_call_async_3(fb_info.phone, FB_PUTCHAR, '?', 10, 10, NULL, NULL);
+			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
+			interbuffer = NULL;
+		}
+/*	} else {
+		ipc_call_async_3(fb_info.phone, FB_PUTCHAR, '!', 10, 10, NULL, NULL);
+*/
 	}
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
