@@ -47,9 +47,8 @@
 #include <align.h>
 #include <errno.h>
 
-/** Map piece of physical memory into virtual address space of specified task.
+/** Map piece of physical memory into virtual address space of current task.
  *
- * @param id Task ID of the destination task.
  * @param pf Physical frame address of the starting frame.
  * @param vp Virtual page address of the starting page.
  * @param pages Number of pages to map.
@@ -59,11 +58,10 @@
  *	   ENOENT if there is no task matching the specified ID and ENOMEM if
  *	   there was a problem in creating address space area.
  */
-static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pages, int flags)
+static int ddi_physmem_map(__address pf, __address vp, count_t pages, int flags)
 {
 	ipl_t ipl;
 	cap_t caps;
-	task_t *t;
 	mem_backend_data_t backend_data;
 
 	backend_data.base = pf;
@@ -75,38 +73,18 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	caps = cap_get(TASK);
 	if (!(caps & CAP_MEM_MANAGER))
 		return EPERM;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	
-	t = task_find_by_id(id);
-	
-	if (!t) {
-		/*
-		 * There is no task with the specified ID.
-		 */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		return ENOENT;
-	}
 
-	/*
-	 * TODO: We are currently lacking support for task destroying.
-	 * Once it is added to the kernel, we must take care to
-	 * synchronize in a way that prevents race conditions here.
-	 */
-	
+	ipl = interrupts_disable();
 	/* Lock the task and release the lock protecting tasks_btree. */
-	spinlock_lock(&t->lock);
-	spinlock_unlock(&tasks_lock);
+	spinlock_lock(&TASK->lock);
 	
-	if (!as_area_create(t->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
+	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
 		&phys_backend, &backend_data)) {
 		/*
 		 * The address space area could not have been created.
 		 * We report it using ENOMEM.
 		 */
-		spinlock_unlock(&t->lock);
+		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 		return ENOMEM;
 	}
@@ -115,7 +93,7 @@ static int ddi_physmem_map(task_id_t id, __address pf, __address vp, count_t pag
 	 * Mapping is created on-demand during page fault.
 	 */
 	
-	spinlock_unlock(&t->lock);
+	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	return 0;
 }
@@ -176,22 +154,19 @@ static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
 
 /** Wrapper for SYS_MAP_PHYSMEM syscall.
  *
- * @param User space address of memory DDI argument structure.
+ * @param phys_base Physical base address to map
+ * @param virt_base Destination virtual address
+ * @param pages Number of pages
+ * @param flags Flags of newly mapped pages
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_physmem_map(ddi_memarg_t *uspace_mem_arg)
+__native sys_physmem_map(__native phys_base, __native virt_base, __native pages, 
+			 __native flags)
 {
-	ddi_memarg_t arg;
-	int rc;
-	
-	rc = copy_from_uspace(&arg, uspace_mem_arg, sizeof(ddi_memarg_t));
-	if (rc != 0)
-		return (__native) rc;
-		
-	return (__native) ddi_physmem_map((task_id_t) arg.task_id, ALIGN_DOWN((__address) arg.phys_base, FRAME_SIZE),
-					  ALIGN_DOWN((__address) arg.virt_base, PAGE_SIZE), (count_t) arg.pages,
-					  (int) arg.flags);
+	return (__native) ddi_physmem_map(ALIGN_DOWN((__address) phys_base, FRAME_SIZE),
+					  ALIGN_DOWN((__address) virt_base, PAGE_SIZE), (count_t) pages,
+					  (int) flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.

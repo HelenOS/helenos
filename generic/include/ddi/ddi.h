@@ -33,7 +33,8 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-extern __native sys_physmem_map(ddi_memarg_t *uspace_mem_arg);
+__native sys_physmem_map(__native phys_base, __native virt_base, __native pages, 
+			 __native flags);
 extern __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
 extern __native sys_preempt_control(int enable);
 
