@@ -171,16 +171,25 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* got key from keyboard driver */
 			
 			retval = 0;
-			c = IPC_GET_ARG1(call);
+			c = IPC_GET_ARG1(call) - '0';
 			/* switch to another virtual console */
 			
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
-			if ((c >= '1') && (c < '1' + CONSOLE_COUNT)) {
+			if ((c >= 0) && (c < CONSOLE_COUNT)) {
 				/*FIXME: draw another console content from buffer */
-				if (c - '1' == active_console)
+				if (c == active_console)
 						break;
-				active_console = c - '1';
+				
+				if (c == 0) {
+					/* switch to kernel console*/
+					 __SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+					 
+				} else {
+					active_console = c;
+				}
+				
+				
 				conn = &connections[active_console];
 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
@@ -190,7 +199,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 						for (j = 0; j < conn->screenbuffer.size_y; j++) 
 							interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
 							
-					ipc_call_sync(fb_info.phone, FB_DRAW_TEXT_DATA, 0, NULL);		
+					sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 				} else {
 
 					ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
