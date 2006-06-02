@@ -138,8 +138,9 @@ static void write_char(int console, char key)
 	}
 	
 	scr->position_x = scr->position_x % scr->size_x;
-	scr->position_y = scr->position_y  % scr->size_y;
-	ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x, NULL, NULL);
+	
+	if (console == active_console)	
+		ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x, NULL, NULL);
 	
 }
 
@@ -321,6 +322,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+	ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
 
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;

@@ -78,26 +78,16 @@ static char sc_primary_map[] = {
 	SPECIAL, /* 0x38 - LAlt */
 	' ',
 	SPECIAL, /* 0x3a - CapsLock */
-	0x3b, /* 0x3b - F1 */
-//	SPECIAL, /* 0x3b - F1 */
-	0x3c, /* 0x3c - F2 */
-//	SPECIAL, /* 0x3c - F2 */
-	0x3d, /* 0x3d - F3 */
-//	SPECIAL, /* 0x3d - F3 */
-	0x3e, /* 0x3e - F4 */
-//	SPECIAL, /* 0x3e - F4 */
-//	SPECIAL, /* 0x3f - F5 */
-	0x3f, /* 0x3f - F5 */
-//	SPECIAL, /* 0x40 - F6 */
-	0x40, /* 0x40 - F6 */
-//	SPECIAL, /* 0x41 - F7 */
-	0x41, /* 0x41 - F7 */
-//	SPECIAL, /* 0x42 - F8 */
-	0x42, /* 0x42 - F8 */
-//	SPECIAL, /* 0x43 - F9 */
-	0x43, /* 0x43 - F9 */
-//	SPECIAL, /* 0x44 - F10 */
-	0x44, /* 0x44 - F10 */
+	SPECIAL, /* 0x3b - F1 */
+	SPECIAL, /* 0x3c - F2 */
+	SPECIAL, /* 0x3d - F3 */
+	SPECIAL, /* 0x3e - F4 */
+	SPECIAL, /* 0x3f - F5 */
+	SPECIAL, /* 0x40 - F6 */
+	SPECIAL, /* 0x41 - F7 */
+	SPECIAL, /* 0x42 - F8 */
+	SPECIAL, /* 0x43 - F9 */
+	SPECIAL, /* 0x44 - F10 */
 	SPECIAL, /* 0x45 - NumLock */
 	SPECIAL, /* 0x46 - ScrollLock */
 	'7', '8', '9', '-',
@@ -168,26 +158,16 @@ static char sc_secondary_map[] = {
 	SPECIAL, /* 0x38 - LAlt */
 	' ',
 	SPECIAL, /* 0x3a - CapsLock */
-	0x3b, /* 0x3b - F1 */
-	0x3c, /* 0x3c - F2 */
-	0x3d, /* 0x3d - F3 */
-	0x3e, /* 0x3e - F4 */
-	0x3f, /* 0x3f - F5 */
-	0x40, /* 0x40 - F6 */
-	0x41, /* 0x41 - F7 */
-	0x42, /* 0x42 - F8 */
-	0x43, /* 0x43 - F9 */
-	0x44, /* 0x44 - F10 */
-//	SPECIAL, /* 0x3b - F1 */
-//	SPECIAL, /* 0x3c - F2 */
-//	SPECIAL, /* 0x3d - F3 */
-//	SPECIAL, /* 0x3e - F4 */
-//	SPECIAL, /* 0x3f - F5 */
-//	SPECIAL, /* 0x40 - F6 */
-//	SPECIAL, /* 0x41 - F7 */
-//	SPECIAL, /* 0x42 - F8 */
-//	SPECIAL, /* 0x43 - F9 */
-//	SPECIAL, /* 0x44 - F10 */
+	SPECIAL, /* 0x3b - F1 */
+	SPECIAL, /* 0x3c - F2 */
+	SPECIAL, /* 0x3d - F3 */
+	SPECIAL, /* 0x3e - F4 */
+	SPECIAL, /* 0x3f - F5 */
+	SPECIAL, /* 0x40 - F6 */
+	SPECIAL, /* 0x41 - F7 */
+	SPECIAL, /* 0x42 - F8 */
+	SPECIAL, /* 0x43 - F9 */
+	SPECIAL, /* 0x44 - F10 */
 	SPECIAL, /* 0x45 - NumLock */
 	SPECIAL, /* 0x46 - ScrollLock */
 	'7', '8', '9', '-',
@@ -285,7 +265,7 @@ static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 			break;
 		case SC_SPEC_ESCAPE:
 			break;
-		case SC_LEFTARR:
+	/*	case SC_LEFTARR:
 			if (keybuffer_available(keybuffer) >= 3) {
 				keybuffer_push(keybuffer, 0x1b);	
 				keybuffer_push(keybuffer, 0x5b);	
@@ -335,7 +315,7 @@ static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 				keybuffer_push(keybuffer, 0x7e);	
 			}
 			break;
-		default:
+	*/	default:
 		    	letter = ((ascii >= 'a') && (ascii <= 'z'));
 			capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
 			shift = keyflags & PRESSED_SHIFT;
@@ -343,7 +323,8 @@ static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 				shift = !shift;
 			if (shift)
 				map = sc_secondary_map;
-			keybuffer_push(keybuffer, map[key]);	
+			if (map[key] != SPECIAL)
+				keybuffer_push(keybuffer, map[key]);	
 			break;
 	}
 }
