@@ -167,7 +167,7 @@ void kmp(void *arg)
 			 * the time. After it comes completely up, it is
 			 * supposed to wake us up.
 			 */
-			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_BLOCKING) == ESYNCH_TIMEOUT)
+			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT)
 				printf("%s: waiting for cpu%d (APIC ID = %d) timed out\n", __FUNCTION__, config.cpu_active > i ? config.cpu_active : i, ops->cpu_apic_id(i));
 		} else
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));

@@ -44,7 +44,7 @@ struct futex {
 };
 
 extern void futex_init(void);
-extern __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown);
+extern __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags);
 extern __native sys_futex_wakeup(__address uaddr);
 
 #endif

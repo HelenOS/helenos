@@ -89,14 +89,14 @@ void rwlock_initialize(rwlock_t *rwl) {
  *
  * @param rwl Reader/Writer lock.
  * @param usec Timeout in microseconds.
- * @param trylock Switches between blocking and non-blocking mode.
+ * @param flags Specify mode of operation.
  *
  * For exact description of possible combinations of
- * @usec and @trylock, see comment for waitq_sleep_timeout().
+ * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
+int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
@@ -111,11 +111,11 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 	 * Writers take the easy part.
 	 * They just need to acquire the exclusive mutex.
 	 */
-	rc = _mutex_lock_timeout(&rwl->exclusive, usec, trylock);
+	rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
 	if (SYNCH_FAILED(rc)) {
 
 		/*
-		 * Lock operation timed out.
+		 * Lock operation timed out or was interrupted.
 		 * The state of rwl is UNKNOWN at this point.
 		 * No claims about its holder can be made.
 		 */
@@ -143,14 +143,14 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
  *
  * @param rwl Reader/Writer lock.
  * @param usec Timeout in microseconds.
- * @param trylock Switches between blocking and non-blocking mode.
+ * @param flags Select mode of operation.
  *
  * For exact description of possible combinations of
- * usec and trylock, see comment for waitq_sleep_timeout().
+ * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
+int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int flags)
 {
 	int rc;
 	ipl_t ipl;
@@ -199,7 +199,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 		thread_register_call_me(release_spinlock, NULL);
 		#endif
 				 
-		rc = _mutex_lock_timeout(&rwl->exclusive, usec, trylock);
+		rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
 		switch (rc) {
 			case ESYNCH_WOULD_BLOCK:
 				/*
@@ -208,8 +208,9 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock)
 				thread_register_call_me(NULL, NULL);
 				spinlock_unlock(&rwl->lock);
 			case ESYNCH_TIMEOUT:
+			case ESYNCH_INTERRUPTED:
 				/*
-				 * The sleep timeouted.
+				 * The sleep timed out.
 				 * We just restore interrupt priority level.
 				 */
 			case ESYNCH_OK_BLOCKED:		

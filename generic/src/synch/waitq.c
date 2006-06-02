@@ -135,6 +135,14 @@ void waitq_interrupt_sleep(thread_t *t)
 grab_locks:
 	spinlock_lock(&t->lock);
 	if ((wq = t->sleep_queue)) {		/* assignment */
+		if (!(t->sleep_interruptible)) {
+			/*
+			 * The sleep cannot be interrupted.
+			 */
+			spinlock_unlock(&t->lock);
+			goto out;
+		}
+			
 		if (!spinlock_trylock(&wq->lock)) {
 			spinlock_unlock(&t->lock);
 			goto grab_locks;	/* avoid deadlock */
@@ -159,7 +167,7 @@ out:
 
 /** Sleep until either wakeup, timeout or interruption occurs
  *
- * This is a sleep implementation which allows itself to be
+ * This is a sleep implementation which allows itself to time out or to be
  * interrupted from the sleep, restoring a failover context.
  *
  * Sleepers are organised in a FIFO fashion in a structure called wait queue.
@@ -169,18 +177,22 @@ out:
  *
  * @param wq Pointer to wait queue.
  * @param usec Timeout in microseconds.
- * @param nonblocking Blocking vs. non-blocking operation mode switch.
+ * @param flags Specify mode of the sleep.
  *
- * If usec is greater than zero, regardless of the value of nonblocking,
- * the call will not return until either timeout or wakeup comes.
+ * The sleep can be interrupted only if the
+ * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
+ 
+ * If usec is greater than zero, regardless of the value of the
+ * SYNCH_FLAGS_NON_BLOCKING bit in flags, the call will not return until either timeout,
+ * interruption or wakeup comes. 
  *
- * If usec is zero and @nonblocking is zero (false), the call
- * will not return until wakeup comes.
+ * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is not set in flags, the call
+ * will not return until wakeup or interruption comes.
  *
- * If usec is zero and nonblocking is non-zero (true), the call will
+ * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the call will
  * immediately return, reporting either success or failure.
  *
- * @return 	Returns one of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT,
+ * @return 	Returns one of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT, ESYNCH_INTERRUPTED,
  *      	ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
  *
  * @li ESYNCH_WOULD_BLOCK means that the sleep failed because at the time
@@ -197,13 +209,13 @@ out:
  * @li ESYNCH_OK_BLOCKED means that the sleep succeeded; the full sleep was 
  * attempted.
  */
-int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking)
+int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
 	
 	ipl = waitq_sleep_prepare(wq);
-	rc = waitq_sleep_timeout_unsafe(wq, usec, nonblocking);
+	rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
 	waitq_sleep_finish(wq, rc, ipl);
 	return rc;
 }
@@ -276,11 +288,11 @@ void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
  *
  * @param wq See waitq_sleep_timeout().
  * @param usec See waitq_sleep_timeout().
- * @param nonblocking See waitq_sleep_timeout().
+ * @param flags See waitq_sleep_timeout().
  *
  * @return See waitq_sleep_timeout().
  */
-int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int nonblocking)
+int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int flags)
 {
 	/* checks whether to go to sleep at all */
 	if (wq->missed_wakeups) {
@@ -288,7 +300,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int nonblocking)
 		return ESYNCH_OK_ATOMIC;
 	}
 	else {
-		if (nonblocking && (usec == 0)) {
+		if ((flags & SYNCH_FLAGS_NON_BLOCKING) && (usec == 0)) {
 			/* return immediatelly instead of going to sleep */
 			return ESYNCH_WOULD_BLOCK;
 		}
@@ -299,14 +311,19 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int nonblocking)
 	 */
 	spinlock_lock(&THREAD->lock);
 
-	/*
-	 * Set context that will be restored if the sleep
-	 * of this thread is ever interrupted.
-	 */
-	if (!context_save(&THREAD->sleep_interruption_context)) {
-		/* Short emulation of scheduler() return code. */
-		spinlock_unlock(&THREAD->lock);
-		return ESYNCH_INTERRUPTED;
+	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
+		/*
+		 * Set context that will be restored if the sleep
+		 * of this thread is ever interrupted.
+		 */
+		THREAD->sleep_interruptible = true;
+		if (!context_save(&THREAD->sleep_interruption_context)) {
+			/* Short emulation of scheduler() return code. */
+			spinlock_unlock(&THREAD->lock);
+			return ESYNCH_INTERRUPTED;
+		}
+	} else {
+		THREAD->sleep_interruptible = false;
 	}
 
 	if (usec) {

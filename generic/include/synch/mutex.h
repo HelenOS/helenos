@@ -39,16 +39,16 @@ struct mutex {
 };
 
 #define mutex_lock(mtx) \
-	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
+	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
 #define mutex_trylock(mtx) \
-	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)
+	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)
 #define mutex_lock_timeout(mtx,usec) \
-	_mutex_lock_timeout((mtx),(usec),SYNCH_NON_BLOCKING)
+	_mutex_lock_timeout((mtx),(usec),SYNCH_FLAGS_NON_BLOCKING)
 #define mutex_lock_active(mtx) \
 	while (mutex_trylock((mtx)) != ESYNCH_OK_ATOMIC)
 
 extern void mutex_initialize(mutex_t *mtx);
-extern int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int trylock);
+extern int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int flags);
 extern void mutex_unlock(mutex_t *mtx);
 
 #endif

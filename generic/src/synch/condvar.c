@@ -74,13 +74,16 @@ void condvar_broadcast(condvar_t *cv)
  * @param cv Condition variable.
  * @param mtx Mutex.
  * @param usec Timeout value in microseconds.
+ * @param flags Select mode of operation.
  *
- * For exact description of meaning of possible values of usec,
- * see comment for waitq_sleep_timeout().
+ * For exact description of meaning of possible combinations
+ * of usec and flags, see comment for waitq_sleep_timeout().
+ * Note that when SYNCH_FLAGS_NON_BLOCKING is specified here,
+ * ESYNCH_WOULD_BLOCK is always returned.
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec)
+int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int flags)
 {
 	int rc;
 	ipl_t ipl;
@@ -89,7 +92,7 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec)
 	mutex_unlock(mtx);
 
 	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, SYNCH_BLOCKING);
+	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags);
 
 	mutex_lock(mtx);
 	waitq_sleep_finish(&cv->wq, rc, ipl);

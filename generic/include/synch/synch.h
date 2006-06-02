@@ -30,8 +30,10 @@
 #define __SYNCH_H__
 
 #define SYNCH_NO_TIMEOUT	0	/**< Request with no timeout. */
-#define SYNCH_BLOCKING		0	/**< Blocking operation request. */
-#define SYNCH_NON_BLOCKING	1	/**< Non-blocking operation request. */
+
+#define SYNCH_FLAGS_NONE		0	/**< No flags specified. */
+#define SYNCH_FLAGS_NON_BLOCKING	(1<<0)	/**< Non-blocking operation request. */
+#define SYNCH_FLAGS_INTERRUPTIBLE	(1<<1)	/**< Interruptible operation. */
 
 #define ESYNCH_WOULD_BLOCK	1	/**< Could not satisfy the request without going to sleep. */
 #define ESYNCH_TIMEOUT		2	/**< Timeout occurred. */

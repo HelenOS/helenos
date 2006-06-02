@@ -67,16 +67,16 @@ void semaphore_initialize(semaphore_t *s, int val)
  *
  * @param s Semaphore.
  * @param usec Timeout in microseconds.
- * @param trydown Switches between blocking and non-blocking mode.
+ * @param flags Select mode of operation.
  *
  * For exact description of possible combinations of
- * usec and trydown, see comment for waitq_sleep_timeout().
+ * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int trydown)
+int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int flags)
 {
-	return waitq_sleep_timeout(&s->wq, usec, trydown); 
+	return waitq_sleep_timeout(&s->wq, usec, flags); 
 }
 
 /** Semaphore up

@@ -209,7 +209,7 @@ typedef struct {
 }call_t;
 
 extern void ipc_init(void);
-extern call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int nonblocking);
+extern call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
 extern int ipc_call(phone_t *phone, call_t *call);
 extern void ipc_call_sync(phone_t *phone, call_t *request);

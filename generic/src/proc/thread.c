@@ -303,6 +303,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->call_me_with = NULL;
 	
 	timeout_initialize(&t->sleep_timeout);
+	t->sleep_interruptible = false;
 	t->sleep_queue = NULL;
 	t->timeout_pending = 0;
 
@@ -385,7 +386,7 @@ void thread_usleep(__u32 usec)
 				  
 	waitq_initialize(&wq);
 
-	(void) waitq_sleep_timeout(&wq, usec, SYNCH_NON_BLOCKING);
+	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING);
 }
 
 /** Register thread out-of-context invocation

@@ -53,16 +53,16 @@ void mutex_initialize(mutex_t *mtx)
  *
  * @param mtx Mutex.
  * @param usec Timeout in microseconds.
- * @param trylock Switches between blocking and non-blocking mode.
+ * @param flags Specify mode of operation.
  *
  * For exact description of possible combinations of
- * usec and trylock, see comment for waitq_sleep_timeout().
+ * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int trylock)
+int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int flags)
 {
-	return _semaphore_down_timeout(&mtx->sem, usec, trylock);
+	return _semaphore_down_timeout(&mtx->sem, usec, flags);
 }
 
 /** Release mutex
@@ -75,3 +75,4 @@ void mutex_unlock(mutex_t *mtx)
 {
 	semaphore_up(&mtx->sem);
 }
+

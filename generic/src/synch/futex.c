@@ -99,12 +99,12 @@ void futex_initialize(futex_t *futex)
  *
  * @param uaddr Userspace address of the futex counter.
  * @param usec If non-zero, number of microseconds this thread is willing to sleep.
- * @param trydown If usec is zero and trydown is non-zero, conditional operation will be attempted.
+ * @param flags Select mode of operation.
  *
  * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
  *	   If there is no physical mapping for uaddr ENOENT is returned.
  */
-__native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
+__native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags)
 {
 	futex_t *futex;
 	__address paddr;
@@ -130,7 +130,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int trydown)
 
 	futex = futex_find(paddr);
 	
-	return (__native) waitq_sleep_timeout(&futex->wq, usec, trydown);
+	return (__native) waitq_sleep_timeout(&futex->wq, usec, flags | SYNCH_FLAGS_INTERRUPTIBLE);
 }
 
 /** Wakeup one thread waiting in futex wait queue.

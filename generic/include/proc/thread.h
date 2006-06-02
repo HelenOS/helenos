@@ -87,6 +87,7 @@ struct thread {
 	/** From here, the stored interruption context is restored when sleep is interrupted. */
 	context_t sleep_interruption_context;
 
+	bool sleep_interruptible;		/**< If true, the thread can be interrupted from sleep. */
 	waitq_t *sleep_queue;			/**< Wait queue in which this thread sleeps. */
 	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
 	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */

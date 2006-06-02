@@ -40,14 +40,15 @@ struct semaphore
 };
 
 #define semaphore_down(s) \
-	_semaphore_down_timeout((s),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
+	_semaphore_down_timeout((s),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
 #define semaphore_trydown(s) \
-	_semaphore_down_timeout((s),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)	
+	_semaphore_down_timeout((s),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)	
 #define semaphore_down_timeout(s,usec) \
-	_semaphore_down_timeout((s),(usec),SYNCH_NON_BLOCKING)
+	_semaphore_down_timeout((s),(usec),SYNCH_FLAGS_NONE)
 
 extern void semaphore_initialize(semaphore_t *s, int val);
-extern int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int trydown);
+extern int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int flags);
 extern void semaphore_up(semaphore_t *s);
 
 #endif
+

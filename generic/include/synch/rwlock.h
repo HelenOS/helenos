@@ -48,22 +48,23 @@ struct rwlock {
 };
 
 #define rwlock_write_lock(rwl) \
-	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
+	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
 #define rwlock_read_lock(rwl) \
-	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
+	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
 #define rwlock_write_trylock(rwl) \
-	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)
+	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)
 #define rwlock_read_trylock(rwl) \
-	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_NON_BLOCKING)
+	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)
 #define rwlock_write_lock_timeout(rwl,usec) \
-	_rwlock_write_lock_timeout((rwl),(usec),SYNCH_NON_BLOCKING)
+	_rwlock_write_lock_timeout((rwl),(usec),SYNCH_FLAGS_NONE)
 #define rwlock_read_lock_timeout(rwl,usec) \
-	_rwlock_read_lock_timeout((rwl),(usec),SYNCH_NON_BLOCKING)
+	_rwlock_read_lock_timeout((rwl),(usec),SYNCH_FLAGS_NONE)
 
 extern void rwlock_initialize(rwlock_t *rwl);
 extern void rwlock_read_unlock(rwlock_t *rwl);
 extern void rwlock_write_unlock(rwlock_t *rwl);
-extern int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock);
-extern int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int trylock);
+extern int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
+extern int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
 
 #endif
+

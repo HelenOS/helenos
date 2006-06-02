@@ -52,12 +52,12 @@ struct waitq {
 };
 
 #define waitq_sleep(wq) \
-	waitq_sleep_timeout((wq),SYNCH_NO_TIMEOUT,SYNCH_BLOCKING)
+	waitq_sleep_timeout((wq),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
 
 extern void waitq_initialize(waitq_t *wq);
-extern int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int nonblocking);
+extern int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int flags);
 extern ipl_t waitq_sleep_prepare(waitq_t *wq);
-extern int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int nonblocking);
+extern int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int flags);
 extern void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl);
 extern void waitq_wakeup(waitq_t *wq, bool all);
 extern void _waitq_wakeup_unsafe(waitq_t *wq, bool all);
