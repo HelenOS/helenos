@@ -29,8 +29,4 @@
 #ifndef __LIBIPC__NS_H__
 #define __LIBIPC__NS_H__
 
-#define NS_PING      1024
-#define NS_PING_SVC  1025
-#define NS_HANGUP    1026
-
 #endif

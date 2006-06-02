@@ -101,32 +101,16 @@ int main(int argc, char **argv)
 	
 	ipcarg_t retval, arg1, arg2;
 
-//	printf("%s: Naming service started.\n", NAME);
-	
 	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3, &ns_hash_table_ops)) {
-//		printf("%s: cannot create hash table\n", NAME);
 		return ENOMEM;
 	}
 		
 	while (1) {
 		callid = ipc_wait_for_call(&call);
-//		printf("NS: Call in_phone_hash=%lX...", call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_AS_AREA_SEND:
-			as_area = (char *)IPC_GET_ARG1(call);
-//			printf("Received as_area: %P, size:%d\n", as_area, IPC_GET_ARG2(call));
-			retval = ipc_answer_fast(callid, 0,(sysarg_t)(1024*1024), 0);
-			if (!retval) {
-//				printf("Reading shared memory...");
-//				printf("Text: %s", as_area);
-			} else
-//				printf("Failed answer: %d\n", retval);
-			continue;
 		case IPC_M_AS_AREA_RECV:
 			get_realtime_as(callid, &call);
 			continue;
-		case IPC_M_INTERRUPT:
-			break;
 		case IPC_M_PHONE_HUNGUP:
 			retval = 0;
 			break;
@@ -135,7 +119,6 @@ int main(int argc, char **argv)
 			 * Server requests service registration.
 			 */
 			retval = register_service(IPC_GET_ARG1(call), IPC_GET_ARG3(call), &call);
-			ping_phone = IPC_GET_ARG3(call);
 			break;
 		case IPC_M_CONNECT_ME_TO:
 			/*
@@ -143,29 +126,11 @@ int main(int argc, char **argv)
 			 */
 			retval = connect_to_service(IPC_GET_ARG1(call), &call, callid);
 			break;
-		case NS_HANGUP:
-//			printf("Closing connection.\n");
-			retval = EHANGUP;
-			break;
-		case NS_PING:
-//			printf("Ping...%P %P\n", IPC_GET_ARG1(call),
-//			       IPC_GET_ARG2(call));
-			retval = 0;
-			arg1 = 0xdead;
-			arg2 = 0xbeef;
-			break;
-		case NS_PING_SVC:
-//			printf("NS:Pinging service %d\n", ping_phone);
-			ipc_call_sync(ping_phone, NS_PING, 0xbeef, 0);
-//			printf("NS:Got pong\n");
-			break;
 		default:
-//			printf("Unknown method: %zd\n", IPC_GET_METHOD(call));
 			retval = ENOENT;
 			break;
 		}
 		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-//			printf("Answering.\n");
 			ipc_answer_fast(callid, retval, arg1, arg2);
 		}
 	}
@@ -184,16 +149,12 @@ int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 	unsigned long keys[3] = { service, call->in_phone_hash, 0 };
 	hashed_service_t *hs;
 			
-//	printf("Registering service %d on phone %d...", service, phone);
-
 	if (hash_table_find(&ns_hash_table, keys)) {
-//		printf("Service %d already registered.\n", service);
 		return EEXISTS;
 	}
 			
 	hs = (hashed_service_t *) malloc(sizeof(hashed_service_t));
 	if (!hs) {
-//		printf("Failed to register service %d.\n", service);
 		return ENOMEM;
 	}
 			
@@ -222,11 +183,9 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 			
 	hlp = hash_table_find(&ns_hash_table, keys);
 	if (!hlp) {
-//		printf("Service %d not registered.\n", service);
 		return ENOENT;
 	}
 	hs = hash_table_get_instance(hlp, hashed_service_t, link);
-//	printf("Connecting in_phone_hash=%lX to service at phone %d...", call->in_phone_hash, hs->phone);
 	return ipc_forward_fast(callid, hs->phone, 0, 0);
 }
 
