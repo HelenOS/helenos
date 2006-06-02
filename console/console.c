@@ -49,8 +49,8 @@ int active_console = 1;
 
 struct {
 	int phone;		/**< Framebuffer phone */
-	int rows;		/**< Framebuffer rows */
-	int cols;		/**< Framebuffer columns */
+	ipcarg_t rows;		/**< Framebuffer rows */
+	ipcarg_t cols;		/**< Framebuffer columns */
 } fb_info;
 
 typedef struct {
@@ -61,6 +61,8 @@ typedef struct {
 	int used;
 	screenbuffer_t screenbuffer;
 } connection_t;
+
+
 
 connection_t connections[CONSOLE_COUNT];
 
@@ -154,7 +156,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	int i, j;
 	char c,d;
 	connection_t *conn;
+	keyfield_t *interbuffer = NULL;
 
+//	interbuffer = mmap(,, PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS, , );	
+	
 	/* Ignore parameters, the connection is alread opened */
 	while (1) {
 		callid = async_get_call(&call);
@@ -296,7 +301,6 @@ int main(int argc, char *argv[])
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
 
 	/* Connect to framebuffer driver */
 	
@@ -321,6 +325,8 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 	}
+	
+	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
 
