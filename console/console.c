@@ -41,7 +41,6 @@
 #include <screenbuffer.h>
 #include <sys/mman.h>
 
-#define CONSOLE_COUNT 12 
 #define MAX_KEYREQUESTS_BUFFERED 32
 
 #define NAME "CONSOLE"
@@ -118,7 +117,7 @@ static void write_char(int console, char key)
 			scr->position_x--;
 
 			if (console == active_console) {
-				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, ' ', scr->position_y, scr->position_x, NULL, NULL);
+				nsend_call_3(fb_info.phone, FB_PUTCHAR, ' ', scr->position_y, scr->position_x);
 			}
 	
 			screenbuffer_putchar(scr, ' ');
@@ -126,7 +125,7 @@ static void write_char(int console, char key)
 			break;
 		default:	
 			if (console == active_console) {
-				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, key, scr->position_y, scr->position_x, NULL, NULL);
+				nsend_call_3(fb_info.phone, FB_PUTCHAR, key, scr->position_y, scr->position_x);
 			}
 	
 			screenbuffer_putchar(scr, key);
@@ -138,13 +137,14 @@ static void write_char(int console, char key)
 	if (scr->position_y >= scr->size_y) {
 		scr->position_y = scr->size_y - 1;
 		screenbuffer_clear_line(scr, scr->top_line++);
-		ipc_call_async(fb_info.phone, FB_SCROLL, 1, NULL, NULL);
+		if (console == active_console)
+			nsend_call(fb_info.phone, FB_SCROLL, 1);
 	}
 	
 	scr->position_x = scr->position_x % scr->size_x;
 	
 	if (console == active_console)	
-		ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x, NULL, NULL);
+		send_call_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x);
 	
 }
 
@@ -192,7 +192,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				
 				conn = &connections[active_console];
 
-				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
+				nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 0); 
 		
 				if (interbuffer) {
 					for (i = 0; i < conn->screenbuffer.size_x; i++)
@@ -201,22 +201,21 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 							
 					sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 				} else {
-
-					ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
+					nsend_call(fb_info.phone, FB_CLEAR, 0);
 				
 					
 					for (i = 0; i < conn->screenbuffer.size_x; i++)
 						for (j = 0; j < conn->screenbuffer.size_y; j++) {
 							d = get_field_at(&(conn->screenbuffer),i, j)->character;
 							if (d && d != ' ')
-								ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
+								nsend_call_3(fb_info.phone, FB_PUTCHAR, d, j, i);
 						}
 
 				}
-				ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
-				ipc_call_async_2(fb_info.phone, FB_SET_STYLE, conn->screenbuffer.style.fg_color, \
-						conn->screenbuffer.style.bg_color, NULL, NULL); 
-				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL, NULL); 
+				nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x); 
+				nsend_call_2(fb_info.phone, FB_SET_STYLE, conn->screenbuffer.style.fg_color, \
+						conn->screenbuffer.style.bg_color); 
+				send_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
 
 				break;
 			}
@@ -240,7 +239,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Default thread for new connections */
-void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -272,7 +271,7 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
 			if (consnum == active_console) {
-				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL); 
+				send_call(fb_info.phone, FB_CLEAR, 0); 
 			}
 			
 			screenbuffer_clear(&(connections[consnum].screenbuffer));
@@ -330,8 +329,8 @@ int main(int argc, char *argv[])
 	}
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
-	ipc_call_async_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR, NULL, NULL); 
-	ipc_call_sync(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL); 
+	nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
+	nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
 	
 	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
@@ -361,8 +360,9 @@ int main(int argc, char *argv[])
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
-	ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
+	nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0); 
 
+	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};

@@ -606,7 +606,7 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 	msg->wdata.active = 1; /* We may sleep in next method, but it
 				* will use it's own mechanism */
-	ipc_call_async_2(phoneid,method,arg1,arg2,msg,reply_received);
+	ipc_call_async_2(phoneid,method,arg1,arg2,msg,reply_received,1);
 
 	return (aid_t) msg;
 }

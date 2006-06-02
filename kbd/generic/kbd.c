@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 						if (!keybuffer_pop(&keybuffer, (char *)&arg1)) {
 							break;
 						}
-						ipc_call_async(phoneid, KBD_PUSHCHAR, arg1, NULL, NULL);
+						send_call(phoneid, KBD_PUSHCHAR, arg1);
 					}
 
 				}

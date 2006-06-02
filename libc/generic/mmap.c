@@ -40,8 +40,8 @@ void *mmap(void  *start, size_t length, int prot, int flags, int fd,
 	
 //	if (! ((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return NULL;
-//	if (! (flags & MAP_ANONYMOUS))
-//		return NULL;
+	if (! (flags & MAP_ANONYMOUS))
+		return NULL;
 
 	return as_area_create(start, length, prot);
 }

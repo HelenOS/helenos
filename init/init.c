@@ -159,57 +159,11 @@ static void got_answer(void *private, int retval, ipc_call_t *data)
 	printf("Retval: %d...%s...%zX, %zX\n", retval, private,
 	       IPC_GET_ARG1(*data), IPC_GET_ARG2(*data));
 }
-static void test_async_ipc(void)
-{
-	ipc_call_t data;
-	int i;
-
-	printf("Sending ping\n");
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Pong1", got_answer);
-	ipc_call_async_2(PHONE_NS, NS_PING, 2, 0xbeefbee4, 
-			 "Pong2", got_answer);
-	ipc_call_async_2(PHONE_NS, NS_PING, 3, 0xbeefbee4, 
-			 "Pong3", got_answer);
-	ipc_call_async_2(PHONE_NS, NS_PING, 4, 0xbeefbee4, 
-			 "Pong4", got_answer);
-	ipc_call_async_2(PHONE_NS, NS_PING, 5, 0xbeefbee4, 
-			 "Pong5", got_answer);
-	ipc_call_async_2(PHONE_NS, NS_PING, 6, 0xbeefbee4, 
-			 "Pong6", got_answer);
-	printf("Waiting forever...\n");
-	for (i=0; i<100;i++)
-		printf(".");
-	printf("\n");
-	ipc_wait_for_call(&data);
-	printf("Received call???\n");
-}
 
 
 static void got_answer_2(void *private, int retval, ipc_call_t *data)
 {
 	printf("Pong\n");
-}
-static void test_advanced_ipc(void)
-{
-	int res;
-	ipcarg_t phonead;
-	ipc_callid_t callid;
-	ipc_call_t data;
-	int i;
-
-	printf("Asking 0 to connect to me...\n");
-	res = ipc_connect_to_me(0, 1, 2, &phonead);
-	printf("Result: %d - phonead: %llu\n", res, phonead);
-	for (i=0; i < 100; i++) {
-		printf("----------------\n");
-		ipc_call_async(PHONE_NS, NS_PING_SVC, 0, "prov",
-			       got_answer_2);
-		callid = ipc_wait_for_call(&data);
-		printf("Received ping\n");
-		ipc_answer_fast(callid, 0, 0, 0);
-	}
-//	callid = ipc_wait_for_call(&data, NULL);
 }
 
 static void test_connection_ipc(void)
@@ -225,59 +179,6 @@ static void test_connection_ipc(void)
 	res = ipc_call_sync(res, NS_PING, 0xbeef,&result);
 	printf("Retval: %d - received: %X\n", res, result);
 	
-}
-
-static void test_hangup(void)
-{
-	int phoneid;
-	ipc_call_t data;
-	ipc_callid_t callid;
-	int i;
-
-	printf("Starting connect...\n");
-	phoneid = ipc_connect_me_to(PHONE_NS, 10, 20);
-	printf("Phoneid: %d, pinging\n", phoneid);
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Pong1", got_answer);
-	printf("Hangin up\n");
-	ipc_hangup(phoneid);
-	printf("Connecting\n");
-	phoneid = ipc_connect_me_to(PHONE_NS, 10, 20);
-	printf("Newphid: %d\n", phoneid);
-	for (i=0; i < 1000; i++) {
-		if ((callid=ipc_trywait_for_call(&data)))
-			printf("callid: %d\n");
-	}
-	printf("New new phoneid: %d\n", ipc_connect_me_to(PHONE_NS, 10, 20));
-}
-
-static void test_slam(void)
-{
-	int i;
-	ipc_call_t data;
-	ipc_callid_t callid;
-
-	printf("ping");
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Pong1", got_answer);
-	printf("slam");
-	ipc_call_async_2(PHONE_NS, NS_HANGUP, 1, 0xbeefbee2,
-			 "Hang", got_answer);
-	printf("ping2\n");
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Ping2", got_answer);
-	
-	for (i=0; i < 1000; i++) {
-		if ((callid=ipc_trywait_for_call(&data)))
-			printf("callid: %d\n");
-	}
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Pong1", got_answer);
-	printf("Closing file\n");
-	ipc_hangup(PHONE_NS);
-	ipc_call_async_2(PHONE_NS, NS_PING, 1, 0xbeefbee2,
-			 "Pong1", got_answer);
-	ipc_wait_for_call(&data);
 }
 
 static int ptest(void *arg)

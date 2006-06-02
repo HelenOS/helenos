@@ -133,7 +133,8 @@ static inline async_call_t *ipc_prepare_async(void *private, ipc_async_callback_
 }
 
 /** Epilogue of ipc_async_send functions */
-static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, async_call_t *call)
+static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, 
+				    async_call_t *call, int can_preempt)
 {
 	if (callid == IPC_CALLRET_FATAL) {
 		futex_up(&ipc_futex);
@@ -148,13 +149,18 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, async_call
 		futex_up(&ipc_futex);
 
 		call->u.msg.phoneid = phoneid;
-
-		call->ptid = psthread_get_id();
+		
 		futex_down(&async_futex);
 		list_append(&call->list, &queued_calls);
 
-		psthread_schedule_next_adv(PS_TO_MANAGER);
-		/* Async futex unlocked by previous call */
+		if (can_preempt) {
+			call->ptid = psthread_get_id();
+			psthread_schedule_next_adv(PS_TO_MANAGER);
+			/* Async futex unlocked by previous call */
+		} else {
+			call->ptid = 0;
+			futex_up(&async_futex);
+		}
 		return;
 	}
 	call->u.callid = callid;
@@ -171,7 +177,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, async_call
  */
 void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
-		      ipc_async_callback_t callback)
+		      ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call;
 	ipc_callid_t callid;
@@ -190,7 +196,7 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
 	}
-	ipc_finish_async(callid, phoneid, call);
+	ipc_finish_async(callid, phoneid, call, can_preempt);
 }
 
 /** Send asynchronous message
@@ -200,7 +206,7 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
  */
 void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, ipcarg_t arg3, void *private,
-		      ipc_async_callback_t callback)
+		      ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call;
 	ipc_callid_t callid;
@@ -218,7 +224,7 @@ void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	futex_down(&ipc_futex);
 	callid = _ipc_call_async(phoneid, &call->u.msg.data);
 
-	ipc_finish_async(callid, phoneid, call);
+	ipc_finish_async(callid, phoneid, call, can_preempt);
 }
 
 
@@ -276,7 +282,8 @@ static void try_dispatch_queued_calls(void)
 		list_remove(&call->list);
 
 		futex_up(&async_futex);
-		psthread_add_ready(call->ptid);
+		if (call->ptid)
+			psthread_add_ready(call->ptid);
 		
 		if (callid == IPC_CALLRET_FATAL) {
 			if (call->callback)
@@ -430,43 +437,26 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
-
-/** Open shared memory connection over specified phoneid
- *
- * 
- * Allocate as_area, notify the other side about our intention
- * to open the connection
- *
- * @return Connection id identifying this connection
- */
-//int ipc_dgr_open(int pohoneid, size_t bufsize)
-//{
-	/* Find new file descriptor in local descriptor table */
-	/* Create AS_area, initialize structures */
-	/* Send AS to other side, handle error states */
-
-//}
-/*
-void ipc_dgr_close(int cid)
+/* Primitive functions for simple communication */
+void send_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		 ipcarg_t arg2, ipcarg_t arg3)
 {
+	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, 1);
 }
 
-void * ipc_dgr_alloc(int cid, size_t size)
+void send_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 {
+	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, 1);
 }
 
-void ipc_dgr_free(int cid, void *area)
+void nsend_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		  ipcarg_t arg2, ipcarg_t arg3)
 {
-
+	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, 0);
 }
 
-int ipc_dgr_send(int cid, void *area)
+void nsend_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 {
+	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, 0);
 }
 
-
-int ipc_dgr_send_data(int cid, void *data, size_t size)
-{
-}
-
-*/
