@@ -139,6 +139,7 @@ static void write_char(int console, char key)
 	
 	scr->position_x = scr->position_x % scr->size_x;
 	scr->position_y = scr->position_y  % scr->size_y;
+	ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x, NULL, NULL);
 	
 }
 
@@ -172,7 +173,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= '1') && (c < '1' + CONSOLE_COUNT)) {
 				/*FIXME: draw another console content from buffer */
-				if (c - KBD_KEY_F1 == active_console)
+				if (c - '1' == active_console)
 						break;
 				active_console = c - '1';
 				conn = &connections[active_console];
@@ -186,6 +187,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 						if (d && d != ' ')
 							ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
 					}
+
 				ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL, NULL); 
 

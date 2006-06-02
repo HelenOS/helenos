@@ -51,11 +51,8 @@ int main(int argc, char **argv)
 	keybuffer_t keybuffer;	
 	ipcarg_t retval, arg1, arg2;
 
-//	printf("Uspace kbd service started.\n");
-
 	/* Initialize arch dependent parts */
 	if (!(res = kbd_arch_init())) {
-//			printf("Kbd registration failed with retval %d.\n", res);
 			return -1;
 			};
 	
@@ -63,24 +60,19 @@ int main(int argc, char **argv)
 	keybuffer_init(&keybuffer);
 	
 	/* Register service at nameserver */
-//	printf("%s: Registering at naming service.\n", NAME);
-
+	
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
-//		printf("%s: Error: Registering at naming service failed.\n", NAME);
 		return -1;
 	};
 	
 	while (1) {
 		callid = ipc_wait_for_call(&call);
-	//	printf("%s:Call phone=%lX..", NAME, call.in_phone_hash);
 		switch (IPC_GET_METHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:
-//				printf("%s: Phone hung up.\n", NAME);
 				connected = 0;
 				retval = 0;
 				break;
 			case IPC_M_CONNECT_ME_TO:
-			//	printf("%s: Connect me (%P) to: %zd\n",NAME, IPC_GET_ARG3(call), IPC_GET_ARG1(call));
 				/* Only one connected client allowed */
 				if (connected) {
 					retval = ELIMIT;
@@ -99,27 +91,18 @@ int main(int argc, char **argv)
 					/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
 					kbd_arch_process(&keybuffer, IPC_GET_ARG2(call));
 
-					//printf("%s: GOT INTERRUPT: %c\n", NAME, key);
-
-					/* Some callers could awaiting keypress - if its true, we have to send keys to them.
-					 * One interrupt can store more than one key into buffer. */
-					
 					retval = 0;
 
 					while (!keybuffer_empty(&keybuffer)) {
 						if (!keybuffer_pop(&keybuffer, (char *)&arg1)) {
-//							printf("%s: KeyBuffer is empty but it should not be.\n");
 							break;
 						}
-						/*FIXME: detection of closed connection */
 						ipc_call_async(phoneid, KBD_PUSHCHAR, arg1, NULL, NULL);
 					}
 
 				}
-//				printf("%s: Interrupt processed.\n", NAME);
 				break;
 			default:
-//				printf("%s: Unknown method: %zd\n", NAME, IPC_GET_METHOD(call));
 				retval = ENOENT;
 				break;
 		}
