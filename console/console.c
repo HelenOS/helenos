@@ -248,7 +248,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int consnum;
-	ipcarg_t arg1;
+	ipcarg_t arg1, arg2;
 
 	if ((consnum = find_free_connection()) == CONSOLE_COUNT) {
 		ipc_answer_fast(iid,ELIMIT,0,0);
@@ -264,6 +264,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (1) {
 		callid = async_get_call(&call);
+		arg1 = arg2 = 0;
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO */
@@ -286,6 +287,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			
 			break;
+		case CONSOLE_GETSIZE:
+			arg1 = fb_info.cols;
+			arg2 = fb_info.rows;
+			break;
 
 		case CONSOLE_GETCHAR:
 			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
@@ -303,7 +308,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			break;
 		}
-		ipc_answer_fast(callid, 0, arg1, 0);
+		ipc_answer_fast(callid, 0, arg1, arg2);
 	}
 }
 
