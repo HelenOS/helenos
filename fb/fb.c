@@ -461,13 +461,15 @@ static void draw_text_data(int vp, keyfield_t *data)
 	viewport_t *vport = &viewports[vp];
 	int i;
 	char c;
+	int col,row;
 
 	clear_port(vp);
 	for (i=0; i < vport->cols * vport->rows; i++) {
 		if (data[i].character == ' ' && style_same(data[i].style,vport->style))
 			continue;
-		draw_char(vp, data[i].character, i/vport->cols, i % vport->cols,
-			  data[i].style);
+		col = i % vport->cols;
+		row = i / vport->cols;
+		draw_glyph(vp, data[i].character, col * COL_WIDTH, row * FONT_SCANLINES, data[i].style);
 	}
 	cursor_print(vp);
 }
