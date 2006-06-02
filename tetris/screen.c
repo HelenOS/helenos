@@ -69,7 +69,11 @@ static char
  * putstr() is for unpadded strings (either as in termcap(5) or
  * simply literal strings); 
  */
-#define	putstr(s)	puts(s)
+static inline void putstr(char *s)
+{
+	while (*s)
+		putchar(*(s++));
+}
 
 static int con_phone;
 

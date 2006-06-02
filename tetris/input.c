@@ -89,7 +89,7 @@ rwait(struct timeval *tvp)
 {
 	struct timeval starttv, endtv, *s;
 	static ipc_call_t charcall;
-	int rc;
+	ipcarg_t rc;
 
 	/*
 	 * Someday, select() will do this for us.
