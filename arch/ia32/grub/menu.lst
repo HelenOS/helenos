@@ -10,3 +10,4 @@ module /boot/pci
 module /boot/fb
 module /boot/kbd
 module /boot/console
+module /boot/tetris

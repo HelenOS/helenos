@@ -39,6 +39,7 @@ image.iso: kernel uspace
 	cp $(USPACEDIR)/fb/fb arch/$(ARCH)/iso/boot/
 	cp $(USPACEDIR)/kbd/kbd arch/$(ARCH)/iso/boot/
 	cp $(USPACEDIR)/console/console arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/tetris/tetris arch/$(ARCH)/iso/boot/
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o image.iso arch/$(ARCH)/iso/
 
 clean: clean_kernel clean_uspace
