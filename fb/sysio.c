@@ -68,6 +68,14 @@ static void curs_goto(unsigned int row, unsigned int col)
 	sysputs(control);
 }
 
+static void set_style(int mode)
+{
+	char control[20];
+	
+	snprintf(control, 20, "\033[%df", mode);
+	sysputs(control);
+}
+
 /** ANSI terminal emulation main thread */
 static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -78,6 +86,7 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int lastcol=0;
 	int lastrow=0;
 	int newcol,newrow;
+	int fgcolor,bgcolor;
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
@@ -113,6 +122,15 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case FB_CLEAR:
 			clrscr();
+			retval = 0;
+			break;
+		case FB_SET_STYLE:
+			fgcolor = IPC_GET_ARG1(call);
+			bgcolor = IPC_GET_ARG2(call);
+			if (fgcolor > bgcolor)
+				set_style(0);
+			else
+				set_style(7);
 			retval = 0;
 			break;
 		default:

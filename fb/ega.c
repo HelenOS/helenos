@@ -40,6 +40,8 @@
 #include <ipc/services.h>
 
 #include "ega.h"
+#include "../console/screenbuffer.h"
+#include "main.h"
 
 /* Allow only 1 connection */
 static int client_connected = 0;
@@ -48,17 +50,35 @@ static unsigned int scr_width;
 static unsigned int scr_height;
 static char *scr_addr;
 
+static unsigned int style = 0x0f;
+
 static void clrscr(void)
 {
 	int i;
 	
-	for (i=0; i < scr_width*scr_height; i++)
+	for (i=0; i < scr_width*scr_height; i++) {
 		scr_addr[i*2] = ' ';
+		scr_addr[i*2+1] = style;
+	}
 }
 
 static void printchar(char c, unsigned int row, unsigned int col)
 {
 	scr_addr[(row*scr_width + col)*2] = c;
+	scr_addr[(row*scr_width + col)*2+1] = style;
+}
+
+static void draw_text_data(keyfield_t *data)
+{
+	int i;
+
+	for (i=0; i < scr_width*scr_height; i++) {
+		scr_addr[i*2] = data[i].character;
+		if (data[i].style.fg_color > data[i].style.bg_color)
+			scr_addr[i*2+1] = 0x0f;
+		else
+			scr_addr[i*2+1] = 0xf0;
+	}
 }
 
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -68,6 +88,9 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	char c;
 	unsigned int row, col;
+	int bgcolor,fgcolor;
+	keyfield_t *interbuf = NULL;
+	size_t intersize = 0;
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
@@ -83,6 +106,23 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			client_connected = 0;
 			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
+		case IPC_M_AS_AREA_SEND:
+			/* We accept one area for data interchange */
+			intersize = IPC_GET_ARG2(call);
+			if (intersize >= scr_width*scr_height*sizeof(*interbuf)) {
+				receive_comm_area(callid,&call,(void **)&interbuf, scr_width*scr_height*sizeof(*interbuf));
+				continue;
+			}
+			retval = EINVAL;
+			break;
+		case FB_DRAW_TEXT_DATA:
+			if (!interbuf) {
+				retval = EINVAL;
+				break;
+			}
+			draw_text_data(interbuf);
+			retval = 0;
+			break;
 		case FB_GET_CSIZE:
 			ipc_answer_fast(callid, 0, scr_height, scr_width);
 			continue;
@@ -94,13 +134,20 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			c = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);
 			col = IPC_GET_ARG3(call);
-			if (row >= scr_width || col >= scr_height) {
+			if (col >= scr_width || row >= scr_height) {
 				retval = EINVAL;
 				break;
 			}
 			printchar(c,row,col);
 			retval = 0;
 			break;
+		case FB_SET_STYLE:
+			fgcolor = IPC_GET_ARG1(call);
+			bgcolor = IPC_GET_ARG2(call);
+			if (fgcolor > bgcolor)
+				style = 0x0f;
+			else
+				style = 0xf0;
 		default:
 			retval = ENOENT;
 		}
