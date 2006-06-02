@@ -39,6 +39,7 @@
 #include <ipc/services.h>
 #include <console.h>
 #include <unistd.h>
+#include <async.h>
 
 #define FDS 32
 
@@ -46,11 +47,11 @@ typedef struct stream_t {
 	pwritefn_t w;
 	preadfn_t r;
 	void * param;
+	int phone;
 } stream_t;
 
-int console_phone = -1;
-
-stream_t streams[FDS] = {{0, 0, 0}};
+static int console_phone = -1;
+static stream_t streams[FDS] = {{0, 0, 0, -1}};
 
 static ssize_t write_stderr(void *param, const void *buf, size_t count)
 {
@@ -63,7 +64,7 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 	size_t i = 0;
 
 	while (i < count) {
-		if (ipc_call_sync_2(console_phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
+		if (sync_send_2(streams[0].phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
 			return -1;
 		}
 		((char *)buf)[i++] = r0;
@@ -77,7 +78,7 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 	ipcarg_t r0,r1;
 
 	for (i = 0; i < count; i++)
-		send_call(console_phone, CONSOLE_PUTCHAR, ((const char *)buf)[i]);
+		send_call(streams[1].phone, CONSOLE_PUTCHAR, ((const char *)buf)[i]);
 	
 	return count;
 }
@@ -98,6 +99,8 @@ static stream_t open_stdin(void)
 	
 	stream.r = read_stdin;
 	stream.param = 0;
+	stream.phone = console_phone;
+	
 	return stream;
 }
 
@@ -105,7 +108,7 @@ static stream_t open_stdout(void)
 {
 	stream_t stream;
 	int res;
-	
+
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0)) < 0) {
 			usleep(10000);
@@ -138,8 +141,6 @@ fd_t open(const char *fname, int flags)
 	}
 	
 	if (!strcmp(fname, "stdout")) {
-		//streams[c].w = write_stdout;
-		//return c;
 		streams[c] = open_stdout();
 		return c;
 	}
@@ -171,3 +172,9 @@ ssize_t read(int fd, void *buf, size_t count)
 	return 0;
 }
 
+int get_fd_phone(int fd)
+{
+	if (fd >= FDS || fd < 0)
+		return -1;
+	return streams[fd].phone;
+}
