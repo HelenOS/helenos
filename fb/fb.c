@@ -392,8 +392,6 @@ static void screen_init(void *addr, unsigned int xres, unsigned int yres, unsign
 	
 	/* Create first viewport */
 	viewport_create(0,0,xres,yres);
-
-	clear_port(0);
 }
 
 static void cursor_hide(int vp)
@@ -468,7 +466,7 @@ static void draw_text_data(int vp, keyfield_t *data)
 	for (i=0; i < vport->cols * vport->rows; i++) {
 		if (data[i].character == ' ' && style_same(data[i].style,vport->style))
 			continue;
-		draw_char(vp, data[i].character, i/vport->rows, i % vport->cols,
+		draw_char(vp, data[i].character, i/vport->cols, i % vport->cols,
 			  data[i].style);
 	}
 	cursor_print(vp);
