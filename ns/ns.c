@@ -88,8 +88,7 @@ static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
 			return;
 		}
 		addr = (void *)(200*1024*1024); /* TODO: intelligent freemem space */
-		map_physmem(task_get_id(), ph_addr, addr, 1,
-			    AS_AREA_READ | AS_AREA_CACHEABLE);
+		map_physmem(ph_addr, addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
 	ipc_answer_fast(callid, 0, (ipcarg_t)addr, AS_AREA_READ | AS_AREA_CACHEABLE);
 }

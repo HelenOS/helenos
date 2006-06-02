@@ -564,7 +564,7 @@ int fb_init(void)
 
 	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
 	
-	map_physmem(task_get_id(),(void *)((__address)fb_ph_addr),(void *)fb_addr,
+	map_physmem((void *)((__address)fb_ph_addr),(void *)fb_addr,
 		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	
