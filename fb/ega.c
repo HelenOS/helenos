@@ -122,7 +122,7 @@ int ega_init(void)
 	if (ega_ph_addr != ALIGN_DOWN((unsigned long)ega_ph_addr, PAGE_SIZE))
 		return -1;
 	
-	map_physmem(ega_ph_addr, scr_addr, (scr_width*scr_height+PAGE_SIZE-1)>>PAGE_WIDTH,
+	map_physmem(ega_ph_addr, scr_addr, (scr_width*scr_height*2+PAGE_SIZE-1)>>PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
 
 

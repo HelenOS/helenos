@@ -165,10 +165,18 @@ static int getpixel_1byte(unsigned int x, unsigned int y)
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
+/** Put pixel into viewport 
+ *
+ * @param vp Viewport identification
+ * @param x X coord relative to viewport
+ * @param y Y coord relative to viewport
+ * @param color RGB color 
+ */
 static void putpixel(int vp, unsigned int x, unsigned int y, int color)
 {
 	screen.putpixel(viewports[vp].x + x, viewports[vp].y + y, color);
 }
+/** Get pixel from viewport */
 static int getpixel(int vp, unsigned int x, unsigned int y)
 {
 	return screen.getpixel(viewports[vp].x + x, viewports[vp].y + y);
@@ -257,12 +265,12 @@ static void draw_glyph_line(int vp,unsigned int glline, unsigned int x, unsigned
 /* Character-console functions */
 
 /** Draw character at given position */
-static void draw_glyph(int vp,__u8 glyph, unsigned int row, unsigned int col)
+static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy)
 {
 	unsigned int y;
 
 	for (y = 0; y < FONT_SCANLINES; y++)
-		draw_glyph_line(vp ,fb_font[glyph * FONT_SCANLINES + y], col * COL_WIDTH, row * FONT_SCANLINES + y);
+		draw_glyph_line(vp ,fb_font[glyph * FONT_SCANLINES + y], sx, sy + y);
 }
 
 /** Invert character at given position */
@@ -307,7 +315,7 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 {
 	int i;
 
-	for (i=0; i < MAX_VIEWPORTS; i++) {
+for (i=0; i < MAX_VIEWPORTS; i++) {
 		if (!viewports[i].initialized)
 			break;
 	}
@@ -387,6 +395,13 @@ static void screen_init(__address addr, unsigned int xres, unsigned int yres, un
 	clear_port(0);
 }
 
+/** Draw character at given position relative to viewport 
+ * 
+ * @param vp Viewport identification
+ * @param c Character to print
+ * @param row Screen position relative to viewport
+ * @param col Screen position relative to viewport
+ */
 static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 {
 	viewport_t *vport = &viewports[vp];
@@ -394,7 +409,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 	if (vport->cursor_active && (vport->cur_col != col || vport->cur_row != row))
 		invert_char(vp, vport->cur_row, vport->cur_col);
 	
-	draw_glyph(vp, c, row, col);
+	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES);
 
 	vport->cur_col = col;
 	vport->cur_row = row;
@@ -410,6 +425,9 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 		invert_char(vp, vport->cur_row, vport->cur_col);
 }
 
+/** Function for handling connections to FB
+ *
+ */
 static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -545,6 +563,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Initialization of framebuffer */
 int fb_init(void)
 {
 	__address fb_ph_addr;

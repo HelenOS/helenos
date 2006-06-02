@@ -40,8 +40,6 @@
 /* Allow only 1 connection */
 static int client_connected = 0;
 
-#define CLRSCR   "\033[2J"
-
 static void sysput(char c)
 {
 	__SYSCALL3(SYS_IO, 1, (sysarg_t)&c, (sysarg_t) 1);
@@ -52,17 +50,25 @@ static void sysputs(char *s)
 	__SYSCALL3(SYS_IO, 1, (sysarg_t)s, strlen(s));
 }
 
+/** Send clearscreen sequence to console */
+static void clrscr(void)
+{
+	sysputs("\033[2J");
+}
+
+/** Send ansi sequence to console to change cursor position */
 static void curs_goto(unsigned int row, unsigned int col)
 {
 	char control[20];
 
-	if (row > 100 || col > 100)
+	if (row > 200 || col > 200)
 		return;
 
 	snprintf(control, 20, "\033[%d;%df",row, col);
 	sysputs(control);
 }
 
+/** ANSI terminal emulation main thread */
 static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int retval;
@@ -106,7 +112,7 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0, 25, 80);
 			continue;
 		case FB_CLEAR:
-			sysputs(CLRSCR);
+			clrscr();
 			retval = 0;
 			break;
 		default:
@@ -116,9 +122,10 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** ANSI terminal emulation initialization */
 void sysio_init(void)
 {
 	async_set_client_connection(sysio_client_connection);
-	sysputs(CLRSCR);
+	clrscr();
 	curs_goto(0,0);
 }
