@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <stdio.h>
 
 #include <errno.h>
 #include <unistd.h>
@@ -90,15 +91,13 @@ rwait(struct timeval *tvp)
 	static ipc_call_t charcall;
 	int rc;
 
-#define	NILTZ ((struct timezone *)0)
-
 	/*
 	 * Someday, select() will do this for us.
 	 * Just in case that day is now, and no one has
 	 * changed this, we use a temporary.
 	 */
 	if (tvp) {
-		(void) gettimeofday(&starttv, NILTZ);
+		(void) gettimeofday(&starttv, NULL);
 		endtv = *tvp;
 		s = &endtv;
 	} else
@@ -107,7 +106,9 @@ again:
 	if (!lastchar) {
 		if (!getchar_inprog)
 			getchar_inprog = async_send_2(1,CONSOLE_GETCHAR,0,0,&charcall);
-		if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
+		if (!s) 
+			async_wait_for(getchar_inprog, &rc);
+		else if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
 			tvp->tv_sec = 0;
 			tvp->tv_usec = 0;
 			return (0);
@@ -120,7 +121,7 @@ again:
 	}
 	if (tvp) {
 		/* since there is input, we may not have timed out */
-		(void) gettimeofday(&endtv, NILTZ);
+		(void) gettimeofday(&endtv, NULL);
 		TV_SUB(&endtv, &starttv);
 		TV_SUB(tvp, &endtv);	/* adjust *tvp by elapsed time */
 	}

@@ -159,7 +159,7 @@ scr_set(void)
 	if (Rows < MINROWS || Cols < MINCOLS) {
 		char smallscr[55];
 
-		(void)snprintf(smallscr, sizeof(smallscr),
+		snprintf(smallscr, sizeof(smallscr),
 		    "the screen is too small (must be at least %dx%d)",
 		    MINROWS, MINCOLS);
 		stop(smallscr);
@@ -203,7 +203,7 @@ scr_update(void)
 
 	if (score != curscore) {
 		moveto(0, 0);
-		(void) printf("Score: %d", score);
+		printf("Score: %d", score);
 		curscore = score;
 	}
 
@@ -251,6 +251,10 @@ scr_update(void)
 				continue;
 			*sp = so;
 			if (i != ccol) {
+				if (cur_so) {
+					resume_normal();
+					cur_so = 0;
+				}
 				moveto(RTOD(j), CTOD(i));
 			}
 			if (so != cur_so) {
@@ -261,6 +265,7 @@ scr_update(void)
 				cur_so = so;
 			}
 			putstr("  ");
+
 			ccol = i + 1;
 			/*
 			 * Look ahead a bit, to avoid extra motion if
@@ -281,8 +286,8 @@ scr_update(void)
 			}
 		}
 	}
-	resume_normal();
-
+	if (cur_so)
+		resume_normal();
  	fflush();
 }
 

@@ -286,6 +286,9 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	
 	assert(PS_connection);
 
+	if (usecs < 0) /* TODO: let it get through the ipc_call once */
+		return 0;
+
 	futex_down(&async_futex);
 
 	if (usecs) {
@@ -654,6 +657,10 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
 	connection_t *conn;
+
+	/* TODO: Let it go through the event read at least once */
+	if (timeout < 0)
+		return ETIMEOUT;
 
 	futex_down(&async_futex);
 	if (msg->done) {

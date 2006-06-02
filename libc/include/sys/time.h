@@ -33,8 +33,8 @@
 
 #define DST_NONE 0
 
-typedef sysarg_t time_t;
-typedef sysarg_t suseconds_t;
+typedef long time_t;
+typedef long suseconds_t;
 
 struct timeval {
 	time_t         tv_sec;        /* seconds */
