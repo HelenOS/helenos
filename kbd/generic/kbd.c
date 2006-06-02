@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <ipc/ns.h>
 #include <errno.h>
 #include <arch/kbd.h>
@@ -46,11 +47,14 @@ int main(int argc, char **argv)
 	ipc_callid_t callid;
 	int res;
 	ipcarg_t phonead;
-	int phoneid;
+	ipcarg_t phoneid;
 	char connected = 0;
 	keybuffer_t keybuffer;	
 	ipcarg_t retval, arg1, arg2;
-
+	
+	//open("null",0);
+	//open("stdout",0);
+	
 	/* Initialize arch dependent parts */
 	if (!(res = kbd_arch_init())) {
 			return -1;
@@ -64,7 +68,6 @@ int main(int argc, char **argv)
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
 		return -1;
 	};
-	
 	while (1) {
 		callid = ipc_wait_for_call(&call);
 		switch (IPC_GET_METHOD(call)) {

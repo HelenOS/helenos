@@ -54,6 +54,9 @@ endif
 ifeq ($(ARCH), mips32eb)
 	DIRS += kbd
 endif
+ifeq ($(ARCH), ia64)
+	DIRS += kbd
+endif
 
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))

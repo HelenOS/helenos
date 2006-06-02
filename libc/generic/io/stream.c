@@ -117,6 +117,12 @@ static stream_t open_stdout(void)
 	return stream;
 }
 
+static ssize_t write_null(void *param, const void *buf, size_t count)
+{
+	return count;
+}
+
+
 fd_t open(const char *fname, int flags)
 {
 	int c = 0;
@@ -140,6 +146,10 @@ fd_t open(const char *fname, int flags)
 	
 	if (!strcmp(fname, "stderr")) {
 		streams[c].w = write_stderr;
+		return c;
+	}
+	if (!strcmp(fname, "null")) {
+		streams[c].w = write_null;
 		return c;
 	}
 }

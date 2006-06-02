@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
+#include <arch/kbd.h>
+#include <ipc/ipc.h>
+#include <sysinfo.h>
 
-#include <types.h>
-#include <stdarg.h>
+irq_cmd_t ski_cmds[1] = {
+	{ CMD_IA64_GETCHAR, 0, 0 }
+};
 
-#define EOF (-1)
+irq_code_t ski_kbd = {
+	1,
+	ski_cmds
+};
 
-#include <io/stream.h>
+int kbd_arch_init(void)
+{
+	if(sysinfo_value("kbd"))
+	{
+		ipc_register_irq(sysinfo_value("kbd.irq"), &ski_kbd);
+		return 1;
+	}	
+	
+}
 
-extern int getchar(void);
-
-extern int puts(const char * str);
-extern int putchar(int c);
-
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
-
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
-
-#endif
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
+{
+	keybuffer_push(keybuffer, scan_code);
+	
+/*	__SYSCALL3(SYS_IO,1,&scan_code,1);
+	__SYSCALL3(SYS_IO,1,&scan_code,1);
+*/	
+	return 	1;
+}
