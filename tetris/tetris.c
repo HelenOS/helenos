@@ -45,12 +45,10 @@ static const char copyright[] =
  * Tetris (or however it is spelled).
  */
 
-//#include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
 #include <err.h>
-//#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -29,7 +29,6 @@
 #ifndef _libc__ERR_H_
 #define _libc__ERR_H_
 
-extern void errx (int __status, __const char *__format, ...)
-        __attribute__ ((__noreturn__, __format__ (__printf__, 2, 3)));
+#define errx(status,fmt,...) { printf((fmt),##__VA_ARGS__);_exit(status);}
 
 #endif

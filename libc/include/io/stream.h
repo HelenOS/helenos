@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __libc_STREAM_H_
+#define __libc_STREAM_H_
+
 #include <libarch/types.h>
 
 #define EMFILE -17
@@ -38,3 +41,5 @@ typedef ssize_t (*preadfn_t)(void *, void *, size_t);
 
 fd_t open(const char *fname, int flags);
 int get_fd_phone(int fd);
+
+#endif

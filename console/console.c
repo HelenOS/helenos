@@ -284,6 +284,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		case CONSOLE_PUTCHAR:
 			write_char(consnum, IPC_GET_ARG1(call));
+			gcons_notify_char(consnum);
 			break;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
@@ -296,13 +297,13 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case CONSOLE_GOTO:
 			
-			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call), IPC_GET_ARG1(call));
 			
 			break;
 
 		case CONSOLE_GETSIZE:
-			arg1 = fb_info.cols;
-			arg2 = fb_info.rows;
+			arg1 = fb_info.rows;
+			arg2 = fb_info.cols;
 			break;
 		case CONSOLE_FLUSH:
 			sync_send_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		

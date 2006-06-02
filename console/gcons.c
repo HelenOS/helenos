@@ -48,6 +48,7 @@ static ipcarg_t xres,yres;
 
 static int console_vp;
 static int cstatus_vp[CONSOLE_COUNT];
+static int console_has_input[CONSOLE_COUNT];
 static int cstat_row, cstat_col; /* Size of cstatus buttons */
 
 static int fbphone;
@@ -55,7 +56,8 @@ static int fbphone;
 enum butstate {
 	CONS_ACTIVE = 0,
 	CONS_IDLE,
-	CONS_HAS_INPUT
+	CONS_HAS_INPUT,
+	CONS_DISCONNECTED
 };
 
 static struct {
@@ -64,7 +66,8 @@ static struct {
 } stat_colors[] = {
 	{0xd0d0d0, 0x808080},
 	{0xd0d0d0, 0x0},
-	{0xd0d0d0, 0xa04040}
+	{0xd0d0d0, 0xa04040},
+	{0xd0d0d0, 0x0}
 };
 
 static int active_console = 0;
@@ -108,9 +111,11 @@ static void draw_stat(int consnum, enum butstate state)
 	vp_switch(cstatus_vp[consnum]);
 	set_style(stat_colors[state].fgcolor, stat_colors[state].bgcolor);
 	clear();
-	snprintf(data, 5, "%d", consnum+1);
-	for (i=0;data[i];i++)
-		putch(data[i], 0, i);
+	if (state != CONS_DISCONNECTED) {
+		snprintf(data, 5, "%d", consnum+1);
+		for (i=0;data[i];i++)
+			putch(data[i], 0, i);
+	}
 }
 
 void gcons_change_console(int consnum)
@@ -121,6 +126,8 @@ void gcons_change_console(int consnum)
 	draw_stat(active_console, CONS_IDLE);
 	active_console = consnum;
 	draw_stat(consnum, CONS_ACTIVE);
+	console_has_input[consnum] = 0;
+
 	vp_switch(console_vp);
 }
 
@@ -129,6 +136,12 @@ void gcons_notify_char(int consnum)
 	if (!use_gcons)
 		return;
 
+	if (consnum == active_console || console_has_input[consnum])
+		return;
+
+	console_has_input[consnum] = 1;
+	draw_stat(consnum, CONS_HAS_INPUT);
+	
 	vp_switch(console_vp);
 }
 
@@ -144,7 +157,7 @@ void gcons_redraw_console(void)
 	clear();
 
 	for (i=0;i < CONSOLE_COUNT; i++) 
-		draw_stat(i, i == active_console ? CONS_ACTIVE : CONS_IDLE);
+		draw_stat(i, i == active_console ? CONS_ACTIVE : CONS_DISCONNECTED);
 	vp_switch(console_vp);
 }
 

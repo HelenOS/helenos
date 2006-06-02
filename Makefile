@@ -38,7 +38,8 @@ DIRS = \
 	init \
 	ns \
 	fb \
-	console
+	console \
+	tetris
 
 ifeq ($(ARCH), amd64)
 	DIRS += pci \

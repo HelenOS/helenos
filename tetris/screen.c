@@ -97,6 +97,7 @@ void
 scr_clear(void)
 {
 
+	resume_normal();
 	send_call(con_phone, CONSOLE_CLEAR, 0);
 	curscore = -1;
 	memset((char *)curscreen, 0, sizeof(curscreen));
@@ -186,12 +187,6 @@ stop(char *why)
 }
 
 
-#if vax && !__GNUC__
-typedef int regcell;	/* pcc is bad at `register char', etc */
-#else
-typedef cell regcell;
-#endif
-
 /*
  * Update the screen.
  */
@@ -199,7 +194,7 @@ void
 scr_update(void)
 {
 	cell *bp, *sp;
-	regcell so, cur_so = 0;
+	cell so, cur_so = 0;
 	int i, ccol, j;
 	static const struct shape *lastshape;
 
@@ -299,17 +294,12 @@ void
 scr_msg(char *s, int set)
 {
 	
-	if (set || CEstr == NULL) {
-		int l = strlen(s);
-
-		moveto(Rows - 2, ((Cols - l) >> 1) - 1);
-		if (set)
-			putstr(s);
-		else
-			while (--l >= 0)
-				(void) putchar(' ');
-	} else {
-		moveto(Rows - 2, 0);
-		putpad(CEstr);
-	}
+	int l = strlen(s);
+	
+	moveto(Rows - 2, ((Cols - l) >> 1) - 1);
+	if (set)
+		putstr(s);
+	else
+		while (--l >= 0)
+			(void) putchar(' ');
 }
