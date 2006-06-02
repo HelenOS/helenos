@@ -31,10 +31,10 @@
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(__address) 0x0000000000000000
-#define USER_ADDRESS_SPACE_END_ARCH		(__address) 0xffffffffffffffff
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
+#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
+#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
 
 #define USTACK_ADDRESS_ARCH	(0x7fffffffffffffff-(PAGE_SIZE-1))
 
