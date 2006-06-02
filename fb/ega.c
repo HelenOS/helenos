@@ -84,7 +84,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
 		case FB_GET_CSIZE:
-			ipc_answer_fast(callid, 0, scr_width, scr_height);
+			ipc_answer_fast(callid, 0, scr_height, scr_width);
 			continue;
 		case FB_CLEAR:
 			clrscr();
