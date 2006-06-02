@@ -181,7 +181,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
 				if (c == '0') {
 					/* switch to kernel console*/
-					sync_send_2(fb_info.phone, FB_CURSOR_VISIBILITY, 0, 0, NULL, NULL);
+					nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 0); 
 					nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
 					nsend_call(fb_info.phone, FB_CLEAR, 0); 
 					/* FIXME: restore kernel console */
@@ -290,11 +290,14 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			
 			break;
+
 		case CONSOLE_GETSIZE:
 			arg1 = fb_info.cols;
 			arg2 = fb_info.rows;
 			break;
-
+		case CONSOLE_FLUSH:
+			sync_send_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
+			break;
 		case CONSOLE_GETCHAR:
 			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
 				/* buffer is empty -> store request */

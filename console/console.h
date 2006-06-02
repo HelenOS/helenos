@@ -36,6 +36,7 @@
 #define CONSOLE_CLEAR	1028
 #define CONSOLE_GOTO	1029
 #define CONSOLE_GETSIZE	1030
+#define CONSOLE_FLUSH	1031
 
 #endif
 
