@@ -33,7 +33,8 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
-#define IRQ_COUNT		1	/* TODO */
+#define IRQ_COUNT               257 /* 256 NOT suppotred IRQS*//* TODO */
+#define IRQ_KBD                 256 /* One simulated interrupt for ski simulator keyboard*/
 
 /** External Interrupt vectors. */
 #define INTERRUPT_TIMER		0
@@ -119,6 +120,7 @@ extern int break_instruction(__u64 vector, istate_t *istate);
 extern void universal_handler(__u64 vector, istate_t *istate);
 extern void nop_handler(__u64 vector, istate_t *istate);
 extern void external_interrupt(__u64 vector, istate_t *istate);
+extern void virtual_interrupt(__u64 irq, void *param);
 extern void disabled_fp_register(__u64 vector, istate_t *istate);
 
 

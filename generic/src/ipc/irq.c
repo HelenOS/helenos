@@ -48,6 +48,7 @@
 #include <ipc/irq.h>
 #include <atomic.h>
 #include <syscall/copy.h>
+#include <console/console.h>
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -101,6 +102,11 @@ static void code_execute(call_t *call, irq_code_t *code)
 			break;
 		case CMD_PORT_WRITE_1:
 			outb((long)code->cmds[i].addr, code->cmds[i].value);
+			break;
+#endif
+#if defined(ia64) 
+		case CMD_IA64_GETCHAR:
+			IPC_SET_ARG2(call->data, _getc(&ski_uconsole));
 			break;
 #endif
 		default:

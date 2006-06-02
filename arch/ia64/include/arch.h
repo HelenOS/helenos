@@ -31,4 +31,6 @@
 
 #define LOADED_PROG_STACK_PAGES_NO 2
 
+#include <arch/ski/ski.h>
+
 #endif

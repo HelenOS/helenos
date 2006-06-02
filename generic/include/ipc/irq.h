@@ -42,6 +42,7 @@ typedef enum {
 	CMD_MEM_WRITE_8,
 	CMD_PORT_READ_1,
 	CMD_PORT_WRITE_1,
+	CMD_IA64_GETCHAR,
 	CMD_LAST
 } irq_cmd_type;
 

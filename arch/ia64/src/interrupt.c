@@ -44,6 +44,8 @@
 #include <print.h>
 #include <proc/scheduler.h>
 #include <ipc/sysipc.h>
+#include <ipc/irq.h>
+#include <ipc/ipc.h>
 
 
 #define VECTORS_64_BUNDLE	20
@@ -52,6 +54,7 @@
 #define VECTOR_MAX		0x7f00
 
 #define BUNDLE_SIZE		16
+
 
 char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
@@ -134,13 +137,13 @@ void dump_interrupted_context(istate_t *istate)
 	putchar('\n');
 	printf("Interrupted context dump:\n");
 	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp, istate->ar_bspstore);
-	printf("ar.rnat=%#llx\tar.rsc=%$llx\n", istate->ar_rnat, istate->ar_rsc);
-	printf("ar.ifs=%#llx\tar.pfs=%#llx\n", istate->ar_ifs, istate->ar_pfs);
-	printf("cr.isr=%#llx\tcr.ipsr=%#llx\t\n", istate->cr_isr.value, istate->cr_ipsr);
+	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat, istate->ar_rsc);
+	printf("ar.ifs=%#018llx\tar.pfs=%#018llx\n", istate->ar_ifs, istate->ar_pfs);
+	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value, istate->cr_ipsr);
 	
-	printf("cr.iip=%#llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei, iip ? iip : "?");
-	printf("cr.iipa=%#llx\t(%s)\n", istate->cr_iipa, iipa ? iipa : "?");
-	printf("cr.ifa=%#llx\t(%s)\n", istate->cr_ifa, ifa ? ifa : "?");
+	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei, iip);
+	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa, iipa);
+	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa, ifa);
 }
 
 void general_exception(__u64 vector, istate_t *istate)
@@ -242,9 +245,28 @@ void external_interrupt(__u64 vector, istate_t *istate)
 	}
 }
 
+void virtual_interrupt(__u64 irq,void *param)
+{
+	switch(irq) {
+		case IRQ_KBD:
+			if(kbd_uspace) ipc_irq_send_notif(irq);
+			break;
+		default:
+			panic("\nUnhandled Virtual Interrupt request %d\n", irq);
+		break;
+	}
+}
+
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(__native irq)
 {
+	if(irq==IRQ_KBD) {
+		kbd_uspace=1;
+		return;
+	}
 	panic("not implemented\n");
 	/* TODO */
 }
+
+
+

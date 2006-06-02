@@ -30,12 +30,17 @@
 #define __SKI_H__
 
 #include <arch/types.h>
+#include <console/console.h>
 
 #define SKI_INIT_CONSOLE	20
 #define SKI_GETCHAR		21
 #define SKI_PUTCHAR		31
 
 extern void ski_init_console(void);
+extern void ski_set_console_sysinfo(void);
 extern void poll_keyboard(void);
+
+extern chardev_t ski_uconsole;
+extern int kbd_uspace;
 
 #endif

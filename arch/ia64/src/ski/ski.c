@@ -29,9 +29,13 @@
 #include <arch/ski/ski.h>
 #include <console/console.h>
 #include <console/chardev.h>
+#include <arch/interrupt.h>
+#include <sysinfo/sysinfo.h>
 
-static chardev_t ski_console;
+chardev_t ski_console;
+chardev_t ski_uconsole;
 static bool kb_disable;
+int kbd_uspace=0;
 
 static void ski_putchar(chardev_t *d, const char ch);
 static __s32 ski_getchar(void);
@@ -111,8 +115,17 @@ void poll_keyboard(void)
 	ch = ski_getchar();
 	if(ch == '\r')
 		ch = '\n'; 
-	if (ch)
-		chardev_push_character(&ski_console, ch);
+	if (ch){
+		if(kbd_uspace){
+			chardev_push_character(&ski_uconsole, ch);
+			virtual_interrupt(IRQ_KBD,NULL);
+		}
+		else {
+			chardev_push_character(&ski_console, ch);
+
+		}	
+		
+	}	
 }
 
 /* Called from getc(). */
@@ -152,6 +165,19 @@ void ski_init_console(void)
 	);
 
 	chardev_initialize("ski_console", &ski_console, &ski_ops);
+	chardev_initialize("ski_uconsole", &ski_uconsole, &ski_ops);
 	stdin = &ski_console;
 	stdout = &ski_console;
+
+}
+/** Setup console sysinfo (i.e. Keyboard IRQ)
+ *
+ * Because sysinfo neads memory allocation/dealocation
+ * this functions should be called separetely from init.
+ *
+ */
+void ski_set_console_sysinfo(void)
+{
+	sysinfo_set_item_val("kbd",NULL,true);
+	sysinfo_set_item_val("kbd.irq",NULL,IRQ_KBD);
 }
