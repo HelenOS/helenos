@@ -38,8 +38,11 @@ typedef ipc_callid_t aid_t;
 typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 int async_manager(void);
-ipc_callid_t async_get_call(ipc_call_t *data);
-
+ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
+static inline ipc_callid_t async_get_call(ipc_call_t *data)
+{
+	return async_get_call_timeout(data, 0);
+}
 
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 		   ipc_call_t *dataptr);

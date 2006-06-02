@@ -64,7 +64,7 @@ static void curs_goto(unsigned int row, unsigned int col)
 	if (row > 200 || col > 200)
 		return;
 
-	snprintf(control, 20, "\033[%d;%df",row, col);
+	snprintf(control, 20, "\033[%d;%df",row+1, col+1);
 	sysputs(control);
 }
 

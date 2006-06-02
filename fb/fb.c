@@ -76,6 +76,7 @@ typedef struct {
 	int bgcolor, fgcolor;
 	/* Auto-cursor position */
 	int cursor_active, cur_col, cur_row;
+	int cursor_shown;
 } viewport_t;
 
 #define MAX_VIEWPORTS 128
@@ -395,6 +396,37 @@ static void screen_init(__address addr, unsigned int xres, unsigned int yres, un
 	clear_port(0);
 }
 
+static void cursor_hide(int vp)
+{
+	viewport_t *vport = &viewports[vp];
+
+	if (vport->cursor_active && vport->cursor_shown) {
+		invert_char(vp, vport->cur_row, vport->cur_col);
+		vport->cursor_shown = 0;
+	}
+}
+
+static void cursor_print(int vp)
+{
+	viewport_t *vport = &viewports[vp];
+
+	/* Do not check for cursor_shown */
+	if (vport->cursor_active) {
+		invert_char(vp, vport->cur_row, vport->cur_col);
+		vport->cursor_shown = 1;
+	}
+}
+
+static void cursor_blink(int vp)
+{
+	viewport_t *vport = &viewports[vp];
+
+	if (vport->cursor_shown)
+		cursor_hide(vp);
+	else
+		cursor_print(vp);
+}
+
 /** Draw character at given position relative to viewport 
  * 
  * @param vp Viewport identification
@@ -406,7 +438,9 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 {
 	viewport_t *vport = &viewports[vp];
 
-	if (vport->cursor_active && (vport->cur_col != col || vport->cur_row != row))
+	/* Optimize - do not hide cursor if we are going to overwrite it */
+	if (vport->cursor_active && vport->cursor_shown && 
+	    (vport->cur_col != col || vport->cur_row != row))
 		invert_char(vp, vport->cur_row, vport->cur_col);
 	
 	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES);
@@ -421,8 +455,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 		if (vport->cur_row >= vport->rows)
 			vport->cur_row--;
 	}
-	if (vport->cursor_active)
-		invert_char(vp, vport->cur_row, vport->cur_col);
+	cursor_print(vp);
 }
 
 /** Function for handling connections to FB
@@ -448,7 +481,11 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
 
 	while (1) {
-		callid = async_get_call(&call);
+		callid = async_get_call_timeout(&call,250000);
+		if (!callid) {
+			cursor_blink(vp);
+			continue;
+		}
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
@@ -471,8 +508,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			continue; /* msg already answered */
 		case FB_CLEAR:
 			clear_port(vp);
-			if (vport->cursor_active)
-				invert_char(vp, vport->cur_row, vport->cur_col);
+			cursor_print(vp);
 			retval = 0;
 			break;
  		case FB_CURSOR_GOTO:
@@ -483,21 +519,16 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
  			retval = 0;
-			if (viewports[vp].cursor_active) {
-				invert_char(vp, vport->cur_row, vport->cur_col);
-				invert_char(vp, row, col);
-			}
+			cursor_hide(vp);
 			vport->cur_col = col;
 			vport->cur_row = row;
+			cursor_print(vp);
  			break;
 		case FB_CURSOR_VISIBILITY:
-			i = IPC_GET_ARG1(call);
+			cursor_hide(vp);
+			vport->cursor_active = IPC_GET_ARG1(call);
+			cursor_print(vp);
 			retval = 0;
-			if ((i && vport->cursor_active) || (!i && !vport->cursor_active))
-				break;
-
-			vport->cursor_active = i;
-			invert_char(vp, vport->cur_row, vport->cur_col);
 			break;
 		case FB_GET_CSIZE:
 			ipc_answer_fast(callid, 0, vport->rows, vport->cols);
@@ -508,11 +539,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			if (vport->cursor_active)
-				invert_char(vp, vport->cur_row, vport->cur_col);
+			cursor_hide(vp);
 			scroll_port(vp, i);
-			if (vport->cursor_active)
-				invert_char(vp, vport->cur_row, vport->cur_col);
+			cursor_print(vp);
 			retval = 0;
 			break;
 		case FB_VIEWPORT_SWITCH:
@@ -525,8 +554,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EADDRNOTAVAIL;
 				break;
 			}
+			cursor_hide(vp);
 			vp = i;
 			vport = &viewports[vp];
+			cursor_print(vp);
 			retval = 0;
 			break;
 		case FB_VIEWPORT_CREATE:
