@@ -30,11 +30,11 @@
 #include <malloc.h>
 #include <unistd.h>
 
-/** Get field from buffer that corresponds to character at position x,y at screen
- *
+/** Store one character to screenbuffer. Its position is determined by scr->position_x and scr->position_y.
+ * @param scr	screenbuffer
+ * @param c	stored character
  */
-
-int screenbuffer_putchar(screenbuffer_t *scr, char c) 
+void screenbuffer_putchar(screenbuffer_t *scr, char c) 
 {
 	keyfield_t *field;
 	
@@ -42,10 +42,13 @@ int screenbuffer_putchar(screenbuffer_t *scr, char c)
 
 	field->character = c;
 	field->style = scr->style;
-	
-	return 1;
 }
 
+/** Initilize screenbuffer. Allocate space for screen content in accordance to given size.
+ * @param scr		initialized screenbuffer
+ * @param size_x	
+ * @param size_y
+ */
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y) 
 {
 	if ((scr->buffer = (keyfield_t *)malloc(sizeof(keyfield_t) * size_x * size_y)) == NULL) {
@@ -102,6 +105,12 @@ void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
 void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
 	scr->position_x = x % scr->size_x;
-	scr->position_y = y  % scr->size_y;
+	scr->position_y = y % scr->size_y;
+}
+
+void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
+{
+	scr->style.fg_color = fg_color;
+	scr->style.bg_color = bg_color;
 }
 

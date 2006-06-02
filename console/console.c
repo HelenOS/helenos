@@ -298,6 +298,15 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_FLUSH:
 			sync_send_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
 			break;
+		case CONSOLE_SET_STYLE:
+			
+			arg1 = IPC_GET_ARG1(call);
+			arg2 = IPC_GET_ARG2(call);
+			screenbuffer_set_style(&(connections[consnum]),arg1, arg2);
+			if (consnum == active_console)
+				nsend_call_2(fb_info.phone, FB_SET_STYLE, arg1, arg2); 
+				
+			break;
 		case CONSOLE_GETCHAR:
 			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
 				/* buffer is empty -> store request */
