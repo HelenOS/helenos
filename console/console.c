@@ -186,8 +186,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
 		
 				if (interbuffer) {
-					for (i = 0; i < fb_info.cols * fb_info.rows; i++)
-						interbuffer[i] = conn->screenbuffer.buffer[i];	
+					for (i = 0; i < conn->screenbuffer.size_x; i++)
+						for (j = 0; j < conn->screenbuffer.size_y; j++) 
+							interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
+							
 					ipc_call_sync(fb_info.phone, FB_DRAW_TEXT_DATA, 0, NULL);		
 				} else {
 
@@ -201,8 +203,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 								ipc_call_async_3(fb_info.phone, FB_PUTCHAR, d, j, i, NULL, NULL);
 						}
 
-					ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
 				}
+				ipc_call_async_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x, NULL, NULL); 
+				ipc_call_async_2(fb_info.phone, FB_SET_STYLE, conn->screenbuffer.style.fg_color, \
+						conn->screenbuffer.style.bg_color, NULL, NULL); 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL, NULL); 
 
 				break;
