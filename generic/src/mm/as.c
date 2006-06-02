@@ -136,7 +136,7 @@ as_t *as_create(int flags)
 void as_destroy(as_t *as)
 {
 	ipl_t ipl;
-	bool cond;
+	link_t *cur;
 
 	ASSERT(as->refcount == 0);
 	
@@ -156,15 +156,15 @@ void as_destroy(as_t *as)
 	/*
 	 * Destroy address space areas of the address space.
 	 */	
-	for (cond = true; cond; ) {
+	for (cur = as->as_area_btree.leaf_head.next; cur != &as->as_area_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
+		int i;
 		
-		ASSERT(!list_empty(&as->as_area_btree.leaf_head));
-		node = list_get_instance(&as->as_area_btree.leaf_head.next, btree_node_t, leaf_link);
-		if ((cond = node->keys))
-			as_area_destroy(as, node->key[0]);
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++)
+			as_area_destroy(as, node->key[i]);
 	}
-	
+
 	btree_destroy(&as->as_area_btree);
 	page_table_destroy(as->page_table);
 
@@ -410,8 +410,8 @@ int as_area_destroy(as_t *as, __address address)
 {
 	as_area_t *area;
 	__address base;
+	link_t *cur;
 	ipl_t ipl;
-	bool cond;
 
 	ipl = interrupts_disable();
 	mutex_lock(&as->lock);
@@ -432,31 +432,26 @@ int as_area_destroy(as_t *as, __address address)
 
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
-	 * Note that we must be very careful when walking the tree
-	 * leaf list and removing used space as the leaf list changes
-	 * unpredictibly after each remove. The solution is to actually
-	 * not walk the tree at all, but to remove items from the head
-	 * of the leaf list until there are some keys left.
 	 */
-	for (cond = true; cond;) {
+	for (cur = area->used_space.leaf_head.next; cur != &area->used_space.leaf_head; cur = cur->next) {
 		btree_node_t *node;
+		int i;
 		
-		ASSERT(!list_empty(&area->used_space.leaf_head));
-		node = list_get_instance(area->used_space.leaf_head.next, btree_node_t, leaf_link);
-		if ((cond = (bool) node->keys)) {
-			__address b = node->key[0];
-			count_t i;
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			__address b = node->key[i];
+			count_t j;
 			pte_t *pte;
 			
-			for (i = 0; i < (count_t) node->value[0]; i++) {
+			for (j = 0; j < (count_t) node->value[i]; j++) {
 				page_table_lock(as, false);
-				pte = page_mapping_find(as, b + i*PAGE_SIZE);
+				pte = page_mapping_find(as, b + j*PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
 				if (area->backend && area->backend->frame_free) {
 					area->backend->frame_free(area,
-						b + i*PAGE_SIZE, PTE_GET_FRAME(pte));
+						b + j*PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
-				page_mapping_remove(as, b + i*PAGE_SIZE);
+				page_mapping_remove(as, b + j*PAGE_SIZE);
 				page_table_unlock(as, false);
 			}
 		}
@@ -1473,20 +1468,19 @@ void sh_info_remove_reference(share_info_t *sh_info)
 	ASSERT(sh_info->refcount);
 	if (--sh_info->refcount == 0) {
 		dealloc = true;
-		bool cond;
+		link_t *cur;
 		
 		/*
 		 * Now walk carefully the pagemap B+tree and free/remove
 		 * reference from all frames found there.
 		 */
-		for (cond = true; cond;) {
+		for (cur = sh_info->pagemap.leaf_head.next; cur != &sh_info->pagemap.leaf_head; cur = cur->next) {
 			btree_node_t *node;
+			int i;
 			
-			ASSERT(!list_empty(&sh_info->pagemap.leaf_head));
-			node = list_get_instance(sh_info->pagemap.leaf_head.next, btree_node_t, leaf_link);
-			if ((cond = node->keys)) {
-				frame_free(ADDR2PFN((__address) node->value[0]));
-			}
+			node = list_get_instance(cur, btree_node_t, leaf_link);
+			for (i = 0; i < node->keys; i++) 
+				frame_free(ADDR2PFN((__address) node->value[i]));
 		}
 		
 	}
