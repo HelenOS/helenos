@@ -46,8 +46,11 @@
 #include <unistd.h>
 #include <io/stream.h>
 
+
+#include <async.h>
 #include "screen.h"
 #include "tetris.h"
+#include "../console/console.h"
 
 static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
 static int curscore;
@@ -58,88 +61,77 @@ static void (*tstp)(int);
 static void	scr_stop(int);
 static void	stopset(int);
 
-/*
- * Capabilities from TERMCAP.
- */
-char	PC, *BC, *UP;		/* tgoto requires globals: ugh! */
-
 static char
-	*bcstr,			/* backspace char */
-	*CEstr,			/* clear to end of line */
-	*CLstr,			/* clear screen */
-	*CMstr,			/* cursor motion string */
-#ifdef unneeded
-	*CRstr,			/* "\r" equivalent */
-#endif
-	*HOstr,			/* cursor home */
-	*LLstr,			/* last line, first column */
-	*pcstr,			/* pad character */
-	*TEstr,			/* end cursor motion mode */
-	*TIstr;			/* begin cursor motion mode */
-char
-	*SEstr,			/* end standout mode */
-	*SOstr;			/* begin standout mode */
-static int
-	COnum,			/* co# value */
-	LInum,			/* li# value */
-	MSflag;			/* can move in standout mode */
+        *CEstr;			/* clear to end of line */
 
-
-struct tcsinfo {		/* termcap string info; some abbrevs above */
-	char tcname[3];
-	char **tcaddr;
-} tcstrings[] = {
-	{"bc", &bcstr},
-	{"ce", &CEstr},
-	{"cl", &CLstr},
-	{"cm", &CMstr},
-#ifdef unneeded
-	{"cr", &CRstr},
-#endif
-	{"le", &BC},		/* move cursor left one space */
-	{"pc", &pcstr},
-	{"se", &SEstr},
-	{"so", &SOstr},
-	{"te", &TEstr},
-	{"ti", &TIstr},
-	{"up", &UP},		/* cursor up */
-	{ {0}, NULL}
-};
-
-/* This is where we will actually stuff the information */
-
-static char combuf[1024], tbuf[1024];
-
-
-/*
- * Routine used by tputs().
- */
-int
-put(int c)
-{
-
-	return (putchar(c));
-}
 
 /*
  * putstr() is for unpadded strings (either as in termcap(5) or
- * simply literal strings); putpad() is for padded strings with
- * count=1.  (See screen.h for putpad().)
+ * simply literal strings); 
  */
-#define	putstr(s)	(void)fputs(s, stdout)
-#define	moveto(r, c)	putpad(tgoto(CMstr, c, r))
+#define	putstr(s)	puts(s)
 
 static int con_phone;
 
+
+
+static void set_style(int fgcolor, int bgcolor)
+{
+	send_call_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
+}
+
+static void start_standout(void)
+{
+	set_style(0, 0xe0e0e0);
+}
+
+static void resume_normal(void)
+{
+	set_style(0xe0e0e0, 0);
+}
+
 /*
- * Set up from termcap.
+ * Clear the screen, forgetting the current contents in the process.
+ */
+void
+scr_clear(void)
+{
+
+	send_call(con_phone, CONSOLE_CLEAR, 0);
+	curscore = -1;
+	memset((char *)curscreen, 0, sizeof(curscreen));
+}
+
+/*
+ * Set up screen
  */
 void
 scr_init(void)
 {
 	con_phone = get_fd_phone(1);
+	resume_normal();
+	scr_clear();
 }
 
+static void moveto(int r, int c)
+{
+	send_call_2(con_phone, CONSOLE_GOTO, r, c);
+}
+
+static void fflush(void)
+{
+	send_call(con_phone, CONSOLE_FLUSH, 0);
+}
+
+struct winsize {
+	ipcarg_t ws_row;
+	ipcarg_t ws_col;
+};
+
+static int get_display_size(struct winsize *ws)
+{
+	return sync_send_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
+}
 
 static void
 scr_stop(int sig)
@@ -157,18 +149,12 @@ void
 scr_set(void)
 {
 	struct winsize ws;
-	struct termios newtt;
-	void (*ttou)(int);
 
 	Rows = 0, Cols = 0;
-	if (ioctl(0, TIOCGWINSZ, &ws) == 0) {
+	if (get_display_size(&ws) == 0) {
 		Rows = ws.ws_row;
 		Cols = ws.ws_col;
 	}
-	if (Rows == 0)
-		Rows = LInum;
-	if (Cols == 0)
-	Cols = COnum;
 	if (Rows < MINROWS || Cols < MINCOLS) {
 		char smallscr[55];
 
@@ -177,21 +163,6 @@ scr_set(void)
 		    MINROWS, MINCOLS);
 		stop(smallscr);
 	}
-	if (tcgetattr(0, &oldtt) < 0)
-		stop("tcgetattr() fails");
-	newtt = oldtt;
-	newtt.c_lflag &= ~(ICANON|ECHO);
-	newtt.c_oflag &= ~OXTABS;
-	if (tcsetattr(0, TCSADRAIN, &newtt) < 0)
-		stop("tcsetattr() fails");
-
-	/*
-	 * We made it.  We are now in screen mode, modulo TIstr
-	 * (which we will fix immediately).
-	 */
-	if (TIstr)
-		putstr(TIstr);	/* termcap(5) says this is not padded */
-
 	isset = 1;
 
 	scr_clear();
@@ -214,17 +185,6 @@ stop(char *why)
 	errx(1, "aborting: %s", why);
 }
 
-/*
- * Clear the screen, forgetting the current contents in the process.
- */
-void
-scr_clear(void)
-{
-
-	putpad(CLstr);
-	curscore = -1;
-	memset((char *)curscreen, 0, sizeof(curscreen));
-}
 
 #if vax && !__GNUC__
 typedef int regcell;	/* pcc is bad at `register char', etc */
@@ -247,10 +207,7 @@ scr_update(void)
 	curscreen[D_LAST * B_COLS - 1] = -1;
 
 	if (score != curscore) {
-		if (HOstr)
-			putpad(HOstr);
-		else
-			moveto(0, 0);
+		moveto(0, 0);
 		(void) printf("Score: %d", score);
 		curscore = score;
 	}
@@ -264,7 +221,7 @@ scr_update(void)
 		lastshape = nextshape;
 
 		/* clean */
-		putpad(SEstr);
+		resume_normal();
 		moveto(r-1, c-1); putstr("          ");
 		moveto(r,   c-1); putstr("          ");
 		moveto(r+1, c-1); putstr("          ");
@@ -274,10 +231,9 @@ scr_update(void)
 		putstr("Next shape:");
 
 		/* draw */
-		if (SOstr)
-			putpad(SOstr);
+		start_standout();
 		moveto(r, 2 * c);
-		putstr(SOstr ? "  " : "[]");
+		putstr("  ");
 		for (i = 0; i < 3; i++) {
 			t = c + r * B_COLS;
 			t += nextshape->off[i];
@@ -286,9 +242,9 @@ scr_update(void)
 			tc = t % B_COLS;
 
 			moveto(tr, 2*tc);
-			putstr(SOstr ? "  " : "[]");
+			putstr("  ");
 		}
-		putpad(SEstr);
+		resume_normal();
 	}
 
 	bp = &board[D_FIRST * B_COLS];
@@ -300,20 +256,16 @@ scr_update(void)
 				continue;
 			*sp = so;
 			if (i != ccol) {
-				if (cur_so && MSflag) {
-					putpad(SEstr);
-					cur_so = 0;
-				}
 				moveto(RTOD(j), CTOD(i));
 			}
-			if (SOstr) {
-				if (so != cur_so) {
-					putpad(so ? SOstr : SEstr);
-					cur_so = so;
-				}
-				putstr("  ");
-			} else
-				putstr(so ? "[]" : "  ");
+			if (so != cur_so) {
+				if (so)
+					start_standout();
+				else
+					resume_normal();
+				cur_so = so;
+			}
+			putstr("  ");
 			ccol = i + 1;
 			/*
 			 * Look ahead a bit, to avoid extra motion if
@@ -334,10 +286,9 @@ scr_update(void)
 			}
 		}
 	}
-	if (cur_so)
-		putpad(SEstr);
-/* 	(void) fflush(stdout); */
-/* 	(void) sigprocmask(SIG_SETMASK, &osigset, (sigset_t *)0); */
+	resume_normal();
+
+ 	fflush();
 }
 
 /*

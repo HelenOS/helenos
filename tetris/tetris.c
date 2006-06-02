@@ -235,7 +235,6 @@ main(int argc, char *argv[])
 		key_write[0], key_write[1], key_write[2], key_write[3],
 		key_write[4], key_write[5]);
 
-//	(void)signal(SIGINT, onintr);
 	scr_init();
 	setup_board();
 
