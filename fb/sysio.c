@@ -72,7 +72,7 @@ static void set_style(int mode)
 {
 	char control[20];
 	
-	snprintf(control, 20, "\033[%df", mode);
+	snprintf(control, 20, "\033[%dm", mode);
 	sysputs(control);
 }
 
