@@ -76,7 +76,7 @@ typedef struct {
 	/* Text support in window */
 	unsigned int rows, cols;
 	/* Style for text printing */
-	int bgcolor, fgcolor;
+	style_t style;
 	/* Auto-cursor position */
 	int cursor_active, cur_col, cur_row;
 	int cursor_shown;
@@ -191,7 +191,7 @@ static void clear_line(int vp, unsigned int y)
 {
 	unsigned int x;
 	for (x = 0; x < viewports[vp].width; x++)
-		putpixel(vp, x, y, viewports[vp].bgcolor);
+		putpixel(vp, x, y, viewports[vp].style.bg_color);
 }
 
 /** Fill viewport with background color */
@@ -239,7 +239,7 @@ static void scroll_port(int vp, int rows)
 				&screen.fbaddress[POINTPOS(viewports[vp].x,y - rows*FONT_SCANLINES)],
 				screen.pixelbytes * viewports[vp].width);
 		/* Clear first row */
-		clear_line(0, viewports[vp].bgcolor);
+		clear_line(0, viewports[vp].style.bg_color);
 		for (y=1;y < rows*FONT_SCANLINES; y++)
 			memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,viewports[vp].y+y)],
 			       &screen.fbaddress[POINTPOS(viewports[vp].x,viewports[vp].y)],
@@ -253,28 +253,25 @@ static void invert_pixel(int vp,unsigned int x, unsigned int y)
 }
 
 
-/** Draw one line of glyph at a given position */
-static void draw_glyph_line(int vp,unsigned int glline, unsigned int x, unsigned int y)
-{
-	unsigned int i;
-
-	for (i = 0; i < 8; i++)
-		if (glline & (1 << (7 - i))) {
-			putpixel(vp, x + i, y, viewports[vp].fgcolor);
-		} else
-			putpixel(vp, x + i, y, viewports[vp].bgcolor);
-}
-
 /***************************************************************/
 /* Character-console functions */
 
 /** Draw character at given position */
-static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy)
+static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy, style_t style)
 {
+	int i;
 	unsigned int y;
+	unsigned int glline;
 
-	for (y = 0; y < FONT_SCANLINES; y++)
-		draw_glyph_line(vp ,fb_font[glyph * FONT_SCANLINES + y], sx, sy + y);
+	for (y = 0; y < FONT_SCANLINES; y++) {
+		glline = fb_font[glyph * FONT_SCANLINES + y];
+		for (i = 0; i < 8; i++) {
+			if (glline & (1 << (7 - i)))
+				putpixel(vp, sx + i, sy + y, style.fg_color);
+			else
+				putpixel(vp, sx + i, sy + y, style.bg_color);
+		}
+	}
 }
 
 /** Invert character at given position */
@@ -302,7 +299,7 @@ static void draw_logo(int vp,unsigned int startx, unsigned int starty)
 			byte = helenos_bits[rowbytes * y + x / 8];
 			byte >>= x % 8;
 			if (byte & 1)
-				putpixel(vp ,startx + x, starty + y, viewports[vp].fgcolor);
+				putpixel(vp ,startx + x, starty + y, viewports[vp].style.fg_color);
 		}
 }
 
@@ -340,8 +337,8 @@ for (i=0; i < MAX_VIEWPORTS; i++) {
 	viewports[i].rows = height / FONT_SCANLINES;
 	viewports[i].cols = width / COL_WIDTH;
 
-	viewports[i].bgcolor = DEFAULT_BGCOLOR;
-	viewports[i].fgcolor = DEFAULT_FGCOLOR;
+	viewports[i].style.bg_color = DEFAULT_BGCOLOR;
+	viewports[i].style.fg_color = DEFAULT_FGCOLOR;
 	
 	viewports[i].cur_col = 0;
 	viewports[i].cur_row = 0;
@@ -437,7 +434,7 @@ static void cursor_blink(int vp)
  * @param row Screen position relative to viewport
  * @param col Screen position relative to viewport
  */
-static void draw_char(int vp, char c, unsigned int row, unsigned int col)
+static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_t style)
 {
 	viewport_t *vport = &viewports[vp];
 
@@ -446,7 +443,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 	    (vport->cur_col != col || vport->cur_row != row))
 		invert_char(vp, vport->cur_row, vport->cur_col);
 	
-	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES);
+	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES, style);
 
 	vport->cur_col = col;
 	vport->cur_row = row;
@@ -469,9 +466,10 @@ static void draw_text_data(int vp, keyfield_t *data)
 
 	clear_port(vp);
 	for (i=0; i < vport->cols * vport->rows; i++) {
-		if (data[i].character == ' ') /* TODO: && data[i].style==vport->style */
+		if (data[i].character == ' ' && style_same(data[i].style,vport->style))
 			continue;
-		draw_char(vp, data[i].character, i/vport->rows, i % vport->cols);
+		draw_char(vp, data[i].character, i/vport->rows, i % vport->cols,
+			  data[i].style);
 	}
 	cursor_print(vp);
 }
@@ -544,7 +542,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			ipc_answer_fast(callid,0,0,0);
 
-			draw_char(vp, c, row, col);
+			draw_char(vp, c, row, col, vport->style);
 			continue; /* msg already answered */
 		case FB_CLEAR:
 			clear_port(vp);
@@ -620,8 +618,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
-			vport->fgcolor = IPC_GET_ARG1(call);
-			vport->bgcolor = IPC_GET_ARG2(call);
+			vport->style.fg_color = IPC_GET_ARG1(call);
+			vport->style.bg_color = IPC_GET_ARG2(call);
 			retval = 0;
 			break;
 		case FB_GET_RESOLUTION:

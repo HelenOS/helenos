@@ -119,9 +119,6 @@ void *set_maxheapsize(size_t mhs)
 
 }
 
-/* TODO: make this type defined somewhere else */
-typedef sysarg_t __address;
-
 /** Return pointer to some unmapped area, where fits new as_area
  *
  * TODO: make some first_fit/... algorithm, we are now just incrementing

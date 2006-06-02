@@ -59,6 +59,11 @@ static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsi
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
 
+static inline int style_same(style_t s1, style_t s2)
+{
+	return s1.fg_color == s2.fg_color && s1.bg_color == s2.bg_color;
+}
+
 
 int screenbuffer_putchar(screenbuffer_t *scr, char c);
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y);
