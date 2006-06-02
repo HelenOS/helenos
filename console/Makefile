@@ -44,7 +44,8 @@ OUTPUT = console
 GENERIC_SOURCES = \
 	console.c \
 	screenbuffer.c \
-	../kbd/generic/key_buffer.c
+	../kbd/generic/key_buffer.c \
+	gcons.c
 
 ARCH_SOURCES = 
 

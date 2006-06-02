@@ -28,8 +28,11 @@
 
 #include <ipc/fb.h>
 #include <ipc/ipc.h>
+#include <async.h>
+#include <stdio.h>
 
 #include "console.h"
+#include "gcons.h"
 
 #define CONSOLE_TOP      50
 #define CONSOLE_MARGIN   10
@@ -38,42 +41,86 @@
 #define STATUS_WIDTH    40
 #define STATUS_HEIGHT   30
 
+#define MAIN_COLOR      0x118811
+
 static int use_gcons = 0;
 static ipcarg_t xres,yres;
 
 static int console_vp;
 static int cstatus_vp[CONSOLE_COUNT];
+static int cstat_row, cstat_col; /* Size of cstatus buttons */
 
 static int fbphone;
 
+enum butstate {
+	CONS_ACTIVE = 0,
+	CONS_IDLE,
+	CONS_HAS_INPUT
+};
+
+static struct {
+	int fgcolor;
+	int bgcolor;
+} stat_colors[] = {
+	{0xd0d0d0, 0x808080},
+	{0xd0d0d0, 0x0},
+	{0xd0d0d0, 0xa04040}
+};
+
+static int active_console = 0;
+
 static void vp_switch(int vp)
 {
-	ipc_call_sync_2(fbphone,FB_VIEWPORT_SWITCH, vp, 0, NULL, NULL);
+	nsend_call(fbphone,FB_VIEWPORT_SWITCH, vp);
 }
 
+/** Create view port */
 static int vp_create(unsigned int x, unsigned int y, 
-		     unsigned int width, unsgined int height)
+		     unsigned int width, unsigned int height)
 {
-	return  ipc_call_sync_2(fbphone, (x << 16) | y, (width << 16) | height,
-				NULL, NULL);
+	/* Init function, use ipc_call_sync */
+	return ipc_call_sync_2(fbphone, FB_VIEWPORT_CREATE,
+			       (x << 16) | y, (width << 16) | height,
+			       NULL, NULL);
 }
 
-static void fb_clear(void)
+static void clear(void)
 {
-	ipc_call_sync_2(fbphone, FB_CLEAR, 0, 0, NULL, NULL);
+	nsend_call(fbphone, FB_CLEAR, 0);
 	
 }
 
-static void fb_set_style(int fgcolor, int bgcolor)
+static void set_style(int fgcolor, int bgcolor)
 {
-	ipc_call_sync_2(fbphone, );
+	nsend_call_2(fbphone, FB_SET_STYLE, fgcolor, bgcolor);
+}
+
+static void putch(char c, int row, int col)
+{
+	nsend_call_3(fbphone, FB_PUTCHAR, c, row, col);
+}
+
+static void draw_stat(int consnum, enum butstate state)
+{
+	char data[5];
+	int i;
+	
+	vp_switch(cstatus_vp[consnum]);
+	set_style(stat_colors[state].fgcolor, stat_colors[state].bgcolor);
+	clear();
+	snprintf(data, 5, "%d", consnum+1);
+	for (i=0;data[i];i++)
+		putch(data[i], 0, i);
 }
 
 void gcons_change_console(int consnum)
 {
 	if (!use_gcons)
 		return;
-
+	
+	draw_stat(active_console, CONS_IDLE);
+	active_console = consnum;
+	draw_stat(consnum, CONS_ACTIVE);
 	vp_switch(console_vp);
 }
 
@@ -85,15 +132,19 @@ void gcons_notify_char(int consnum)
 	vp_switch(console_vp);
 }
 
-void gcons_redraw_console(int phone)
+void gcons_redraw_console(void)
 {
+	int i;
+
 	if (!use_gcons)
 		return;
 	
 	vp_switch(0);
-	/* Set style...*/
-	fb_clear();
-	
+	set_style(MAIN_COLOR, MAIN_COLOR);
+	clear();
+
+	for (i=0;i < CONSOLE_COUNT; i++) 
+		draw_stat(i, i == active_console ? CONS_ACTIVE : CONS_IDLE);
 	vp_switch(console_vp);
 }
 
@@ -120,12 +171,12 @@ void gcons_init(int phone)
 	
 	/* Create status buttons */
 	for (i=0; i < CONSOLE_COUNT; i++) {
-		cstatus_vp[i] = vp_create(phone, CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
+		cstatus_vp[i] = vp_create(CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
 					  CONSOLE_MARGIN, STATUS_WIDTH, STATUS_HEIGHT);
 		if (cstatus_vp[i] < 0)
 			return;
 	}
 	
 	use_gcons = 1;
-	gcons_draw_console();
+	gcons_redraw_console();
 }

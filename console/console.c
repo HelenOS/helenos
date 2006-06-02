@@ -41,6 +41,8 @@
 #include <screenbuffer.h>
 #include <sys/mman.h>
 
+#include "gcons.h"
+
 #define MAX_KEYREQUESTS_BUFFERED 32
 
 #define NAME "CONSOLE"
@@ -177,7 +179,6 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
-				
 				if (c == '0') {
 					/* switch to kernel console*/
 					sync_send_2(fb_info.phone, FB_CURSOR_VISIBILITY, 0, 0, NULL, NULL);
@@ -192,6 +193,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 					if (c == active_console)
 						break;
 					active_console = c;
+					gcons_change_console(c);
+				
 				}
 				
 				conn = &connections[active_console];
@@ -336,6 +339,12 @@ int main(int argc, char *argv[])
 	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
 		usleep(10000);
 	}
+
+	/* Initialize gcons */
+	gcons_init(fb_info.phone);
+	/* Synchronize, the gcons can have something in queue */
+	sync_send_2(fb_info.phone, FB_GET_CSIZE, 0, 0, NULL, NULL);
+
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
 	nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
@@ -367,7 +376,7 @@ int main(int argc, char *argv[])
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
-	nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0); 
+	sync_send_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
 	nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
 
 	/* Register at NS */
