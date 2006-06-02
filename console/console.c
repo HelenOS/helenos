@@ -317,6 +317,7 @@ int main(int argc, char *argv[])
 	}
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
+	ipc_call_async_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR, NULL, NULL); 
 	ipc_call_sync(fb_info.phone, FB_CURSOR_VISIBILITY, 1, NULL); 
 	
 	/* Init virtual consoles */
