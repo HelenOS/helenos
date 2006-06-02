@@ -77,7 +77,7 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 	ipcarg_t r0,r1;
 
 	for (i = 0; i < count; i++)
-		ipc_call_sync_2(console_phone, CONSOLE_PUTCHAR, 0, ((const char *)buf)[i], &r0, &r1);
+		ipc_call_async_2(console_phone, CONSOLE_PUTCHAR, ((const char *)buf)[i], 0, NULL, NULL);
 	
 	return count;
 }

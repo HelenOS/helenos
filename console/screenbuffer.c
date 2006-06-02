@@ -43,17 +43,6 @@ int screenbuffer_putchar(screenbuffer_t *scr, char c)
 	field->character = c;
 	field->style = scr->style;
 	
-	scr->position_x++;
-	if (scr->position_x == scr->size_x) {
-		scr->position_x = 0;
-		scr->position_y++;
-		if (scr->position_y == scr->size_y) {
-			/* scroll */
-			scr->position_y--;
-			screenbuffer_clear_line(scr, scr->top_line++);
-		}
-	}
-	
 	return 1;
 }
 
@@ -65,11 +54,11 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	
 	scr->size_x = size_x;
 	scr->size_y = size_y;
-	scr->position_y = 0;
-	scr->position_x = 0;
 	scr->style.fg_color = DEFAULT_FOREGROUND_COLOR; 
 	scr->style.bg_color = DEFAULT_BACKGROUND_COLOR; 
-	scr->top_line = 0;
+	
+	screenbuffer_clear(scr);
+	
 	return scr;
 }
 
@@ -77,7 +66,7 @@ void screenbuffer_clear(screenbuffer_t *scr)
 {
 	unsigned int i;
 	
-	for (i = 0; i < scr->size_x * scr->size_y; i++) {
+	for (i = 0; i < (scr->size_x * scr->size_y); i++) {
 		scr->buffer[i].character = ' ';
 		scr->buffer[i].style = scr->style;
 	}
@@ -113,6 +102,6 @@ void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
 void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
 	scr->position_x = x % scr->size_x;
-	scr->position_y = (y + scr->top_line) % scr->size_y;
+	scr->position_y = y  % scr->size_y;
 }
 

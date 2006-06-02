@@ -40,7 +40,7 @@
 #include <libadt/fifo.h>
 #include <screenbuffer.h>
 
-#define CONSOLE_COUNT 8
+#define CONSOLE_COUNT 12 
 #define MAX_KEYREQUESTS_BUFFERED 32
 
 #define NAME "CONSOLE"
@@ -89,6 +89,60 @@ static int find_connection(int client_phone)
 	return  CONSOLE_COUNT;
 }
 
+/** Check key and process special keys. 
+ *
+ * */
+static void write_char(int console, char key)
+{
+	screenbuffer_t *scr = &(connections[console].screenbuffer);
+	
+	switch (key) {
+		case '\n':
+			scr->position_y += 1;
+			scr->position_x =  0;
+			break;
+		case '\r':
+			break;
+		case '\t':
+			scr->position_x += 8;
+			scr->position_x -= scr->position_x % 8; 
+			break;
+		case '\b':
+			if (scr->position_x == 0) 
+				break;
+
+			scr->position_x--;
+
+			if (console == active_console) {
+				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, ' ', scr->position_y, scr->position_x, NULL, NULL);
+			}
+	
+			screenbuffer_putchar(scr, ' ');
+			
+			break;
+		default:	
+			if (console == active_console) {
+				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, key, scr->position_y, scr->position_x, NULL, NULL);
+			}
+	
+			screenbuffer_putchar(scr, key);
+			scr->position_x++;
+	}
+	
+	scr->position_y += (scr->position_x >= scr->size_x);
+	
+	if (scr->position_y >= scr->size_y) {
+		scr->position_y = scr->size_y - 1;
+		screenbuffer_clear_line(scr, scr->top_line++);
+		ipc_call_async(fb_info.phone, FB_SCROLL, 1, NULL, NULL);
+	}
+	
+	scr->position_x = scr->position_x % scr->size_x;
+	scr->position_y = scr->position_y  % scr->size_y;
+	
+}
+
+
 /* Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -118,12 +172,14 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= '1') && (c < '1' + CONSOLE_COUNT)) {
 				/*FIXME: draw another console content from buffer */
-
+				if (c - KBD_KEY_F1 == active_console)
+						break;
 				active_console = c - '1';
 				conn = &connections[active_console];
 
 				ipc_call_async(fb_info.phone, FB_CURSOR_VISIBILITY, 0, NULL, NULL); 
 				ipc_call_async_2(fb_info.phone, FB_CLEAR, 0, 0, NULL, NULL);
+				
 				for (i = 0; i < conn->screenbuffer.size_x; i++)
 					for (j = 0; j < conn->screenbuffer.size_y; j++) {
 						d = get_field_at(&(conn->screenbuffer),i, j)->character;
@@ -166,11 +222,11 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_fast(iid,ELIMIT,0,0);
 		return;
 	}
-	
+
 	connections[consnum].used = 1;
 	connections[consnum].client_phone = IPC_GET_ARG3(call);
 	screenbuffer_clear(&(connections[consnum].screenbuffer));
-
+	
 	/* Accept the connection */
 	ipc_answer_fast(iid,0,0,0);
 	
@@ -182,14 +238,7 @@ void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0,0,0);
 			return;
 		case CONSOLE_PUTCHAR:
-			
-			/* Send message to fb */
-			if (consnum == active_console) {
-				ipc_call_async_3(fb_info.phone, FB_PUTCHAR, IPC_GET_ARG2(call), connections[consnum].screenbuffer.position_y, \
-						connections[consnum].screenbuffer.position_x, NULL, NULL); 
-			}
-			
-			screenbuffer_putchar(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call));
+			write_char(consnum, IPC_GET_ARG1(call));
 			break;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
@@ -270,6 +319,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
