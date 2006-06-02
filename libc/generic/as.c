@@ -26,20 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ddi.h>
-#include <sysinfo.h>
-#include <align.h>
-#include <as.h>
-#include <ipc/fb.h>
-#include <ipc/ipc.h>
-#include <ipc/ns.h>
-#include <ipc/services.h>
-#include <kernel/errno.h>
-
-
 #include <as.h>
 #include <libc.h>
 #include <unistd.h>
@@ -132,6 +118,9 @@ void *set_maxheapsize(size_t mhs)
 	return (void *)&_heap + maxheapsize;
 
 }
+
+/* TODO: make this type defined somewhere else */
+typedef sysarg_t __address;
 
 /** Return pointer to some unmapped area, where fits new as_area
  *

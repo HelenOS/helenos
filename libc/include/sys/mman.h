@@ -26,22 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef __libc_MMAN_H_
+#define __libc_MMAN_H_
 
-typedef unsigned long long sysarg_t;
-typedef unsigned long size_t;
-typedef signed long ssize_t;
-typedef ssize_t off_t;
+#include <as.h>
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
+#define MAP_SHARED       (1 << 0)
+#define MAP_PRIVATE      (1 << 1)
+#define MAP_FIXED        (1 << 2)
+#define MAP_ANONYMOUS    (1 << 3)
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+#define PROTO_READ   AS_AREA_READ
+#define PROTO_WRITE  AS_AREA_WRITE
+#define PROTO_EXEC   AS_AREA_EXEC
+
+extern void  *mmap(void  *start, size_t length, int prot, int flags, int fd,
+		   off_t offset);
+extern int munmap(void *start, size_t length);
 
 #endif

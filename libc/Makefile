@@ -71,7 +71,8 @@ GENERIC_SOURCES = \
 	generic/libadt/hash_table.o \
 	generic/time.c \
 	generic/err.c \
-	generic/stdlib.c
+	generic/stdlib.c \
+	generic/mmap.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \

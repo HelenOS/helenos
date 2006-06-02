@@ -17,5 +17,6 @@
 #define FB_VIEWPORT_DELETE   1033
 #define FB_SET_STYLE         1034
 #define FB_GET_RESOLUTION    1035
+#define FB_DRAW_TEXT_DATA    1036
 
 #endif

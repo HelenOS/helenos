@@ -26,22 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#include <sys/mman.h>
+#include <as.h>
+#include <unistd.h>
 
-typedef unsigned long long sysarg_t;
-typedef unsigned long size_t;
-typedef signed long ssize_t;
-typedef ssize_t off_t;
+void *mmap(void  *start, size_t length, int prot, int flags, int fd,
+	   off_t offset)
+{
+	if (!start)
+		start = as_get_mappable_page(length);
+	
+	prot |= AS_AREA_CACHEABLE;
+	
+	if (! ((flags & MAP_SHARED) ^ (flags & MAP_FIXED)))
+		return NULL;
+	if (! (flags & MAP_ANONYMOUS))
+		return NULL;
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
+	return as_area_create(start, length, prot);
+}
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
-
-#endif
+int munmap(void *start, size_t length)
+{
+	return as_area_destroy(start);
+}

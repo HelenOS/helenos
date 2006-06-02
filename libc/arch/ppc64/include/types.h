@@ -32,6 +32,7 @@
 typedef unsigned long sysarg_t;
 typedef unsigned long size_t;
 typedef signed long ssize_t;
+typedef ssize_t off_t;
 
 typedef char int8_t;
 typedef short int int16_t;

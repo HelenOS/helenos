@@ -40,9 +40,12 @@
 #include <ipc/services.h>
 #include <kernel/errno.h>
 #include <async.h>
+
 #include "font-8x16.h"
 #include "helenos.xbm"
 #include "fb.h"
+#include "main.h"
+#include "../console/screenbuffer.h"
 
 #define DEFAULT_BGCOLOR                0x000080
 #define DEFAULT_FGCOLOR                0xffff00
@@ -458,6 +461,22 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col)
 	cursor_print(vp);
 }
 
+static void draw_text_data(int vp, keyfield_t *data)
+{
+	viewport_t *vport = &viewports[vp];
+	int i;
+	char c;
+
+	clear_port(vp);
+	for (i=0; i < vport->cols * vport->rows; i++) {
+		if (data[i].character == ' ') /* TODO: && data[i].style==vport->style */
+			continue;
+		draw_char(vp, data[i].character, i/vport->rows, i % vport->cols);
+	}
+	cursor_print(vp);
+}
+
+
 /** Function for handling connections to FB
  *
  */
@@ -469,6 +488,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int i;
 	unsigned int row,col;
 	char c;
+	keyfield_t *interbuffer = NULL;
+	size_t intersize = 0;
 
 	int vp = 0;
 	viewport_t *vport = &viewports[0];
@@ -494,6 +515,25 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				vport->initialized = 0;
 			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
+		case IPC_M_AS_AREA_SEND:
+			/* We accept one area for data interchange */
+			intersize = IPC_GET_ARG2(call);
+			receive_comm_area(callid,&call,(void **)&interbuffer,
+					  sizeof(*interbuffer)*viewports[0].cols*viewports[0].rows);
+			continue;
+
+		case FB_DRAW_TEXT_DATA:
+			if (!interbuffer) {
+				retval = EINVAL;
+				break;
+			}
+			if (intersize < vport->cols*vport->rows*sizeof(*interbuffer)) {
+				retval = EINVAL;
+				break;
+			}
+			draw_text_data(vp, interbuffer);
+			retval = 0;
+			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);

@@ -26,22 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef __MAIN_H_
+#define __MAIN_H_
 
-typedef unsigned long long sysarg_t;
-typedef unsigned long size_t;
-typedef signed long ssize_t;
-typedef ssize_t off_t;
-
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area,
+		       size_t maxsize);
 
 #endif

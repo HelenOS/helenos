@@ -30,10 +30,33 @@
 #include <ipc/services.h>
 #include <sysinfo.h>
 #include <async.h>
+#include <as.h>
+#include <align.h>
+#include <errno.h>
 
 #include "fb.h"
 #include "sysio.h"
 #include "ega.h"
+#include "main.h"
+
+void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area,
+		       size_t maxsize)
+{
+	void *dest;
+
+	if (*area) {
+		ipc_answer_fast(callid, ELIMIT, 0, 0);
+		return;
+	}
+	if (IPC_GET_ARG2(*call) > ALIGN_UP(maxsize, PAGE_SIZE)) {
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		return;
+	}
+	
+	dest = as_get_mappable_page(maxsize);
+	if (ipc_answer_fast(callid, 0, (sysarg_t)dest, 0) == 0)
+		*area = dest;
+}
 
 int main(int argc, char *argv[])
 {
