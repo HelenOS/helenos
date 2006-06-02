@@ -171,24 +171,28 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* got key from keyboard driver */
 			
 			retval = 0;
-			c = IPC_GET_ARG1(call) - '0';
+			c = IPC_GET_ARG1(call);
 			/* switch to another virtual console */
 			
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
-			if ((c >= 0) && (c < CONSOLE_COUNT)) {
-				/*FIXME: draw another console content from buffer */
-				if (c == active_console)
-						break;
+			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
 				
-				if (c == 0) {
+				if (c == '0') {
 					/* switch to kernel console*/
+					sync_send_2(fb_info.phone, FB_CURSOR_VISIBILITY, 0, 0, NULL, NULL);
+					nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
+					nsend_call(fb_info.phone, FB_CLEAR, 0); 
+					/* FIXME: restore kernel console */
 					 __SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+					 break;
 					 
 				} else {
+					c = c - '1';
+					if (c == active_console)
+						break;
 					active_console = c;
 				}
-				
 				
 				conn = &connections[active_console];
 
@@ -330,7 +334,7 @@ int main(int argc, char *argv[])
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
 	nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
-	nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
+	nsend_call(fb_info.phone, FB_CLEAR, 0); 
 	
 	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
@@ -349,18 +353,17 @@ int main(int argc, char *argv[])
 	
 	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
 		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ | AS_AREA_CACHEABLE, NULL, NULL, NULL) != 0) {
-//			ipc_call_async_3(fb_info.phone, FB_PUTCHAR, '?', 10, 10, NULL, NULL);
 			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
 			interbuffer = NULL;
 		}
-/*	} else {
-		ipc_call_async_3(fb_info.phone, FB_PUTCHAR, '!', 10, 10, NULL, NULL);
-*/
 	}
+
+	/* FIXME: save kernel console screen */
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0); 
+	nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
 
 	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
@@ -371,3 +374,4 @@ int main(int argc, char *argv[])
 
 	return 0;	
 }
+
