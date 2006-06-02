@@ -26,10 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <ddi.h>
+#include <sysinfo.h>
+#include <align.h>
+#include <as.h>
+#include <ipc/fb.h>
+#include <ipc/ipc.h>
+#include <ipc/ns.h>
+#include <ipc/services.h>
+#include <kernel/errno.h>
+
+
 #include <as.h>
 #include <libc.h>
 #include <unistd.h>
-#include <task.h>
+#include <align.h>
 
 /** Create address space area.
  *
@@ -70,6 +84,9 @@ int as_area_destroy(void *address)
 
 static size_t heapsize = 0;
 static size_t maxheapsize = (size_t)(-1);
+
+static void * last_allocated = 0;
+
 /* Start of heap linker symbol */
 extern char _heap;
 
@@ -107,10 +124,33 @@ void *sbrk(ssize_t incr)
 	return res;
 }
 
+/** Set maximum heap size and return pointer just after the heap */
 void *set_maxheapsize(size_t mhs)
 {
 	maxheapsize=mhs;
 	/* Return pointer to area not managed by sbrk */
 	return (void *)&_heap + maxheapsize;
 
+}
+
+/** Return pointer to some unmapped area, where fits new as_area
+ *
+ * TODO: make some first_fit/... algorithm, we are now just incrementing
+ *       the pointer to last area
+ */
+void * as_get_mappable_page(size_t sz)
+{
+	void *res;
+
+	/* Set heapsize to some meaningful value */
+	if (maxheapsize == -1)
+		set_maxheapsize(ALIGN_UP(USER_ADDRESS_SPACE_SIZE_ARCH>>1,PAGE_SIZE));
+	if (!last_allocated)
+		last_allocated = ALIGN_UP((void *)&_heap + maxheapsize, PAGE_SIZE);
+	
+	sz = ALIGN_UP(sz, PAGE_SIZE);
+	res = last_allocated;
+	last_allocated += sz;
+
+	return res;
 }

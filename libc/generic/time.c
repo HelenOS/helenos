@@ -56,7 +56,6 @@ struct {
  * useconds again. This provides assurance, that at least the
  * sequence of subsequent gettimeofday calls is ordered.
  */
-#define TMAREA (100*1024*1024)
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	void *mapping;
@@ -65,12 +64,10 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	int res;
 
 	if (!ktime) {
-		/* TODO: specify better, where to map the area */
+		mapping = as_get_mappable_page(PAGE_SIZE);
 		/* Get the mapping of kernel clock */
 		res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, 
-				      TMAREA,
-				      PAGE_SIZE,
-				      0,
+				      mapping, PAGE_SIZE, 0,
 				      NULL,&rights,NULL);
 		if (res) {
 			printf("Failed to initialize timeofday memarea\n");
@@ -79,10 +76,10 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		if (rights != (AS_AREA_READ | AS_AREA_CACHEABLE)) {
 			printf("Received bad rights on time area: %X\n",
 			       rights);
-			as_area_destroy(TMAREA);
+			as_area_destroy(mapping);
 			_exit(1);
 		}
-		ktime = (void *) (TMAREA);
+		ktime = mapping;
 	}
 	if (tz) {
 		tz->tz_minuteswest = 0;

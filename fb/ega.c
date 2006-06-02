@@ -111,20 +111,18 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 int ega_init(void)
 {
 	void *ega_ph_addr;
+	size_t sz;
 
 
 	ega_ph_addr=(void *)sysinfo_value("fb.address.physical");
 	scr_width=sysinfo_value("fb.width");
 	scr_height=sysinfo_value("fb.height");
 
-	scr_addr=(void *)ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
+	sz = scr_width*scr_height*2;
+	scr_addr = as_get_mappable_page(sz);
 
-	if (ega_ph_addr != ALIGN_DOWN((unsigned long)ega_ph_addr, PAGE_SIZE))
-		return -1;
-	
-	map_physmem(ega_ph_addr, scr_addr, (scr_width*scr_height*2+PAGE_SIZE-1)>>PAGE_WIDTH,
+	map_physmem(ega_ph_addr, scr_addr, ALIGN_UP(sz,PAGE_SIZE)>>PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
-
 
 	async_set_client_connection(ega_client_connection);
 

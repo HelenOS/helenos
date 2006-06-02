@@ -359,7 +359,7 @@ for (i=0; i < MAX_VIEWPORTS; i++) {
  * @param scan Bytes per one scanline
  *
  */
-static void screen_init(__address addr, unsigned int xres, unsigned int yres, unsigned int bpp, unsigned int scan)
+static void screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, unsigned int scan)
 {
 	switch (bpp) {
 		case 8:
@@ -597,25 +597,26 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 /** Initialization of framebuffer */
 int fb_init(void)
 {
-	__address fb_ph_addr;
+	void *fb_ph_addr;
 	unsigned int fb_width;
 	unsigned int fb_height;
 	unsigned int fb_bpp;
 	unsigned int fb_scanline;
-	__address fb_addr;
+	void *fb_addr;
+	size_t asz;
 
 	async_set_client_connection(fb_client_connection);
 
-	fb_ph_addr=sysinfo_value("fb.address.physical");
+	fb_ph_addr=(void *)sysinfo_value("fb.address.physical");
 	fb_width=sysinfo_value("fb.width");
 	fb_height=sysinfo_value("fb.height");
 	fb_bpp=sysinfo_value("fb.bpp");
 	fb_scanline=sysinfo_value("fb.scanline");
 
-	fb_addr=ALIGN_UP(((__address)set_maxheapsize(USER_ADDRESS_SPACE_SIZE_ARCH>>1)),PAGE_SIZE);
+	asz = fb_scanline*fb_height;
+	fb_addr = as_get_mappable_page(asz);
 	
-	map_physmem((void *)((__address)fb_ph_addr),(void *)fb_addr,
-		    (fb_scanline*fb_height+PAGE_SIZE-1)>>PAGE_WIDTH,
+	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz,PAGE_SIZE) >>PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	
 	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline);
