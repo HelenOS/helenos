@@ -47,28 +47,35 @@
 
 #define NAME "CONSOLE"
 
+/** Index of currently used virtual console.
+ */
 int active_console = 0;
 
+/** Information about framebuffer
+ */
 struct {
 	int phone;		/**< Framebuffer phone */
 	ipcarg_t rows;		/**< Framebuffer rows */
 	ipcarg_t cols;		/**< Framebuffer columns */
 } fb_info;
 
+
 typedef struct {
-	keybuffer_t keybuffer;
-	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t , MAX_KEYREQUESTS_BUFFERED);
-	int keyrequest_counter;
-	int client_phone;
-	int used;
-	screenbuffer_t screenbuffer;
+	keybuffer_t keybuffer;		/**< Buffer for incoming keys. */
+	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t , MAX_KEYREQUESTS_BUFFERED);	/**< Buffer for unsatisfied request for keys. */
+	int keyrequest_counter;		/**< Number of requests in buffer. */
+	int client_phone;		/**< Phone to connected client. */
+	int used;			/**< 1 if this virtual console is connected to some client.*/
+	screenbuffer_t screenbuffer;	/**< Screenbuffer for saving screen contents and related settings. */
 } connection_t;
 
+connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual consoles */
+keyfield_t *interbuffer = NULL;			/**< Pointer to memory shared with framebufer used for faster virt. console switching */
 
 
-connection_t connections[CONSOLE_COUNT];
-keyfield_t *interbuffer = NULL;
-	
+/** Find unused virtual console.
+ *
+ */
 static int find_free_connection() 
 {
 	int i = 0;
@@ -81,7 +88,9 @@ static int find_free_connection()
 	return CONSOLE_COUNT;
 }
 
-
+/** Find index of virtual console used by client with given phone.
+ *
+ */
 static int find_connection(int client_phone) 
 {
 	int i = 0;
@@ -151,7 +160,7 @@ static void write_char(int console, char key)
 }
 
 
-/* Handler for keyboard */
+/** Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;

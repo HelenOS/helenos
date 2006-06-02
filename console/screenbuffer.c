@@ -46,8 +46,9 @@ void screenbuffer_putchar(screenbuffer_t *scr, char c)
 
 /** Initilize screenbuffer. Allocate space for screen content in accordance to given size.
  * @param scr		initialized screenbuffer
- * @param size_x	
- * @param size_y
+ * @param size_x	width in characters		
+ * @param size_y	height in characters
+ * @return pointer to screenbuffer (same as scr parameter) or NULL
  */
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y) 
 {
@@ -65,6 +66,9 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	return scr;
 }
 
+/** Clear screenbuffer. 
+ * @param scr screenbuffer
+ */
 void screenbuffer_clear(screenbuffer_t *scr)
 {
 	unsigned int i;
@@ -79,7 +83,7 @@ void screenbuffer_clear(screenbuffer_t *scr)
 	scr->position_x = 0;
 }
 
-/** Clear one buffer line
+/** Clear one buffer line.
  * @param scr
  * @param line One buffer line (not a screen line!)
  */
@@ -93,6 +97,10 @@ void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
 	}
 }
 
+/** Copy content buffer from screenbuffer to given memory.
+ * @param scr	source screenbuffer
+ * @param dest  destination
+ */
 void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest) 
 {
 	unsigned int i;
@@ -102,12 +110,22 @@ void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
 	}
 }
 
+/** Set new cursor position in screenbuffer.
+ * @param scr
+ * @param x
+ * @param y
+ */
 void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
 	scr->position_x = x % scr->size_x;
 	scr->position_y = y % scr->size_y;
 }
 
+/** Set new style.
+ * @param scr
+ * @param fg_color
+ * @param bg_color
+ */
 void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
 {
 	scr->style.fg_color = fg_color;
