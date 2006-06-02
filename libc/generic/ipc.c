@@ -360,7 +360,7 @@ ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *call, uint32_t usec)
 	ipc_callid_t callid;
 
 	do {
-		callid = ipc_wait_cycle(call, usec, SYNCH_BLOCKING);
+		callid = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;
@@ -377,7 +377,7 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 	ipc_callid_t callid;
 
 	do {
-		callid = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT, SYNCH_NON_BLOCKING);
+		callid = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
 	} while (callid & IPC_CALLID_ANSWERED);
 
 	return callid;

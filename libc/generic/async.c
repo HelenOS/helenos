@@ -507,7 +507,7 @@ int async_manager(void)
 			timeout = SYNCH_NO_TIMEOUT;
 		futex_up(&async_futex);
 
-		callid = ipc_wait_cycle(&call, timeout, SYNCH_BLOCKING);
+		callid = ipc_wait_cycle(&call, timeout, SYNCH_FLAGS_NONE);
 
 		if (!callid) {
 			handle_expired_timeouts();

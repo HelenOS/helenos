@@ -81,31 +81,31 @@ void futex_initialize(atomic_t *futex, int val)
 
 int futex_down(atomic_t *futex)
 {
-	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_BLOCKING);
+	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 }
 
 int futex_trydown(atomic_t *futex)
 {
-	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_NON_BLOCKING);
+	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
 }
 
 /** Try to down the futex.
  *
  * @param futex Futex.
  * @param usec Microseconds to wait. Zero value means sleep without timeout.
- * @param trydown If usec is zero and trydown is non-zero, only conditional
+ * @param flags Select mode of operation. See comment for waitq_sleep_timeout(). 
  *
  * @return ENOENT if there is no such virtual address. One of ESYNCH_OK_ATOMIC
  *	   and ESYNCH_OK_BLOCKED on success or ESYNCH_TIMEOUT if the lock was
  *	   not acquired because of a timeout or ESYNCH_WOULD_BLOCK if the
  *	   operation could not be carried out atomically (if requested so).
  */
-int futex_down_timeout(atomic_t *futex, uint32_t usec, int trydown)
+int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags)
 {
 	int rc;
 	
 	while (atomic_predec(futex) < 0) {
-		rc = __SYSCALL3(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count, (sysarg_t) usec, (sysarg_t) trydown);
+		rc = __SYSCALL3(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count, (sysarg_t) usec, (sysarg_t) flags);
 		
 		switch (rc) {
 		case ESYNCH_OK_ATOMIC:
