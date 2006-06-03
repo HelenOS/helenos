@@ -216,7 +216,6 @@ static hash_table_operations_t conn_hash_table_ops = {
 
 /** Insert sort timeout msg into timeouts list
  *
- * Assume async_futex is held
  */
 static void insert_timeout(awaiter_t *wd)
 {
@@ -283,8 +282,15 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
 	msg_t *msg;
 	ipc_callid_t callid;
+	connection_t *conn;
 	
 	assert(PS_connection);
+	/* GCC 4.1.0 coughs on PS_connection-> dereference,
+	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
+	 *           I would never expect to find so many errors in 
+	 *           compiler *($&$(*&$
+	 */
+	conn = PS_connection; 
 
 	if (usecs < 0) /* TODO: let it get through the ipc_call once */
 		return 0;
@@ -292,31 +298,31 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	futex_down(&async_futex);
 
 	if (usecs) {
-		gettimeofday(&PS_connection->wdata.expires, NULL);
-		tv_add(&PS_connection->wdata.expires, usecs);
+		gettimeofday(&conn->wdata.expires, NULL);
+		tv_add(&conn->wdata.expires, usecs);
 	} else {
-		PS_connection->wdata.inlist = 0;
+		conn->wdata.inlist = 0;
 	}
 	/* If nothing in queue, wait until something appears */
-	while (list_empty(&PS_connection->msg_queue)) {
+	while (list_empty(&conn->msg_queue)) {
 		if (usecs) {
-			PS_connection->wdata.inlist = 1;
-			insert_timeout(&PS_connection->wdata);
+			conn->wdata.inlist = 1;
+			insert_timeout(&conn->wdata);
 		}
-		PS_connection->wdata.active = 0;
+		conn->wdata.active = 0;
 		psthread_schedule_next_adv(PS_TO_MANAGER);
 		/* Futex is up after getting back from async_manager 
 		 * get it again */
 		futex_down(&async_futex);
-		if (usecs && PS_connection->wdata.timedout && \
-		    list_empty(&PS_connection->msg_queue)) {
+		if (usecs && conn->wdata.timedout && \
+		    list_empty(&conn->msg_queue)) {
 			/* If we timed out-> exit */
 			futex_up(&async_futex);
 			return 0;
 		}
 	}
 	
-	msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
+	msg = list_get_instance(conn->msg_queue.next, msg_t, link);
 	list_remove(&msg->link);
 	callid = msg->callid;
 	*call = msg->call;
@@ -450,7 +456,9 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_fast(callid, EHANGUP, 0, 0);
 }
 
-/** Fire all timeouts that expired */
+/** Fire all timeouts that expired 
+ *
+ */
 static void handle_expired_timeouts(void)
 {
 	struct timeval tv;
@@ -502,6 +510,7 @@ int async_manager(void)
 			waiter = list_get_instance(timeout_list.next,awaiter_t,link);
 			gettimeofday(&tv,NULL);
 			if (tv_gteq(&tv, &waiter->expires)) {
+				futex_up(&async_futex);
 				handle_expired_timeouts();
 				continue;
 			} else

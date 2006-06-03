@@ -10,7 +10,7 @@ OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all clean depend disasm
 
-all: $(OUTPUT)
+all: $(OUTPUT) disasm
 
 -include Makefile.depend
 

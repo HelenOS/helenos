@@ -51,7 +51,7 @@ typedef struct stream_t {
 } stream_t;
 
 static int console_phone = -1;
-static stream_t streams[FDS] = {{0, 0, 0, -1}};
+static stream_t streams[FDS];
 
 static ssize_t write_stderr(void *param, const void *buf, size_t count)
 {
@@ -116,6 +116,7 @@ static stream_t open_stdout(void)
 	}
 	
 	stream.w = write_stdout;
+	stream.phone = console_phone;
 	stream.param = 0;
 	return stream;
 }
