@@ -544,7 +544,11 @@ int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
 	src_flags = src_area->flags;
 	src_backend = src_area->backend;
 	src_backend_data = src_area->backend_data;
-	
+
+	/* Share the cacheable flag from the original mapping */
+	if (src_flags & AS_AREA_CACHEABLE)
+		dst_flags_mask |= AS_AREA_CACHEABLE;
+
 	if (src_size != acc_size || (src_flags & dst_flags_mask) != dst_flags_mask) {
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
