@@ -48,21 +48,21 @@
  * good SMP scaling. 
  *
  * When a new object is being allocated, it is first checked, if it is 
- * available in CPU-bound magazine. If it is not found there, it is
- * allocated from CPU-shared slab - if partial full is found, it is used,
- * otherwise a new one is allocated. 
+ * available in a CPU-bound magazine. If it is not found there, it is
+ * allocated from a CPU-shared slab - if a partially full one is found,
+ * it is used, otherwise a new one is allocated. 
  *
- * When an object is being deallocated, it is put to CPU-bound magazine.
- * If there is no such magazine, new one is allocated (if it fails, 
+ * When an object is being deallocated, it is put to a CPU-bound magazine.
+ * If there is no such magazine, a new one is allocated (if this fails, 
  * the object is deallocated into slab). If the magazine is full, it is
- * put into cpu-shared list of magazines and new one is allocated.
+ * put into cpu-shared list of magazines and a new one is allocated.
  *
- * The CPU-bound magazine is actually a pair of magazine to avoid
+ * The CPU-bound magazine is actually a pair of magazines in order to avoid
  * thrashing when somebody is allocating/deallocating 1 item at the magazine
  * size boundary. LIFO order is enforced, which should avoid fragmentation
  * as much as possible. 
  *  
- * Every cache contains list of full slabs and list of partialy full slabs.
+ * Every cache contains list of full slabs and list of partially full slabs.
  * Empty slabs are immediately freed (thrashing will be avoided because
  * of magazines). 
  *
@@ -71,8 +71,8 @@
  * only for slab related caches to avoid deadlocks and infinite recursion
  * (the slab allocator uses itself for allocating all it's control structures).
  *
- * The slab allocator allocates lot of space and does not free it. When
- * frame allocator fails to allocate the frame, it calls slab_reclaim().
+ * The slab allocator allocates a lot of space and does not free it. When
+ * the frame allocator fails to allocate a frame, it calls slab_reclaim().
  * It tries 'light reclaim' first, then brutal reclaim. The light reclaim
  * releases slabs from cpu-shared magazine-list, until at least 1 slab 
  * is deallocated in each cache (this algorithm should probably change).
