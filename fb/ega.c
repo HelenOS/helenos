@@ -43,6 +43,15 @@
 #include "../console/screenbuffer.h"
 #include "main.h"
 
+
+#define EGA_IO_ADDRESS 0x3d4
+#define EGA_IO_SIZE 2
+
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+
+
 /* Allow only 1 connection */
 static int client_connected = 0;
 
@@ -51,6 +60,48 @@ static unsigned int scr_height;
 static char *scr_addr;
 
 static unsigned int style = 0x0f;
+
+static inline void outb(u16 port, u8 b)
+{
+	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
+}
+
+static inline void outw(u16 port, u16 w)
+{
+	asm volatile ("outw %0, %1\n" :: "a" (w), "d" (port));
+}
+
+static inline void outl(u16 port, u32 l)
+{
+	asm volatile ("outl %0, %1\n" :: "a" (l), "d" (port));
+}
+
+static inline u8 inb(u16 port)
+{
+	u8 val;
+
+	asm volatile ("inb %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
+static inline u16 inw(u16 port)
+{
+	u16 val;
+
+	asm volatile ("inw %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
+static inline u32 inl(u16 port)
+{
+	u32 val;
+
+	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
+
+
 
 static void clrscr(void)
 {
@@ -62,10 +113,42 @@ static void clrscr(void)
 	}
 }
 
+void cursor_goto(unsigned int row, unsigned int col)
+{
+	int ega_cursor;
+
+	ega_cursor=col+scr_width*row;
+	
+	outb(EGA_IO_ADDRESS    , 0xe);
+	outb(EGA_IO_ADDRESS + 1, (ega_cursor >>8) & 0xff);
+	outb(EGA_IO_ADDRESS    , 0xf);
+	outb(EGA_IO_ADDRESS + 1, ega_cursor & 0xff);
+}
+
+void cursor_disable(void)
+{
+	u8 stat;
+	outb(EGA_IO_ADDRESS , 0xa);
+	stat=inb(EGA_IO_ADDRESS + 1);
+	outb(EGA_IO_ADDRESS , 0xa);
+	outb(EGA_IO_ADDRESS +1 ,stat | (1<<5) );
+}
+
+void cursor_enable(void)
+{
+	u8 stat;
+	outb(EGA_IO_ADDRESS , 0xa);
+	stat=inb(EGA_IO_ADDRESS + 1);
+	outb(EGA_IO_ADDRESS , 0xa);
+	outb(EGA_IO_ADDRESS +1 ,stat & (~(1<<5)) );
+}
+
 static void printchar(char c, unsigned int row, unsigned int col)
 {
 	scr_addr[(row*scr_width + col)*2] = c;
 	scr_addr[(row*scr_width + col)*2+1] = style;
+	
+	cursor_goto(row,col+1);
 }
 
 static void draw_text_data(keyfield_t *data)
@@ -141,6 +224,23 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			printchar(c,row,col);
 			retval = 0;
 			break;
+ 		case FB_CURSOR_GOTO:
+			row = IPC_GET_ARG1(call);
+			col = IPC_GET_ARG2(call);
+			if (row >= scr_height || col >= scr_width) {
+				retval = EINVAL;
+				break;
+			}
+			cursor_goto(row,col);
+ 			retval = 0;
+ 			break;
+		case FB_CURSOR_VISIBILITY:
+			if(IPC_GET_ARG1(call))
+				cursor_enable();
+			else
+				cursor_disable();
+			retval = 0;
+			break;
 		case FB_SET_STYLE:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
@@ -164,6 +264,7 @@ int ega_init(void)
 	ega_ph_addr=(void *)sysinfo_value("fb.address.physical");
 	scr_width=sysinfo_value("fb.width");
 	scr_height=sysinfo_value("fb.height");
+	iospace_enable(task_get_id(),(void *)EGA_IO_ADDRESS,2);
 
 	sz = scr_width*scr_height*2;
 	scr_addr = as_get_mappable_page(sz);
@@ -177,3 +278,4 @@ int ega_init(void)
 
 	return 0;
 }
+

@@ -55,7 +55,6 @@
 static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
 static int curscore;
 static int isset;		/* true => terminal is in game mode */
-static struct termios oldtt;
 static void (*tstp)(int);
 
 static void	scr_stop(int);
