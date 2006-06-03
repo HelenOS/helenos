@@ -32,46 +32,44 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <align.h>
 
 #include "console.h"
 #include "gcons.h"
 
 #define CONSOLE_TOP      65
-#define CONSOLE_MARGIN   10
+#define CONSOLE_MARGIN   6
 
-#define STATUS_START    120
-#define STATUS_SPACE    5
-#define STATUS_WIDTH    40
-#define STATUS_HEIGHT   30
+#define STATUS_START    110
+#define STATUS_TOP      8
+#define STATUS_SPACE    3
+#define STATUS_WIDTH    48
+#define STATUS_HEIGHT   48
 
 #define MAIN_COLOR      0xffffff
 
 static int use_gcons = 0;
 static ipcarg_t xres,yres;
 
+enum butstate {
+	CONS_DISCONNECTED = 0,
+	CONS_SELECTED,
+	CONS_IDLE,
+	CONS_HAS_DATA,
+	CONS_KERNEL,
+	CONS_DISCONNECTED_SEL,
+	CONS_LAST
+};
+
 static int console_vp;
 static int cstatus_vp[CONSOLE_COUNT];
-static int console_has_input[CONSOLE_COUNT];
 static int cstat_row, cstat_col; /* Size of cstatus buttons */
+static enum butstate console_state[CONSOLE_COUNT];
 
 static int fbphone;
 
-enum butstate {
-	CONS_ACTIVE = 0,
-	CONS_IDLE,
-	CONS_HAS_INPUT,
-	CONS_DISCONNECTED
-};
-
-static struct {
-	int fgcolor;
-	int bgcolor;
-} stat_colors[] = {
-	{0xd0d0d0, 0x808080},
-	{0xd0d0d0, 0x0},
-	{0xd0d0d0, 0xa04040},
-	{0xd0d0d0, 0x0}
-};
+/** List of pixmaps identifying these icons */
+static int ic_pixmaps[CONS_LAST] = {-1,-1,-1,-1,-1,-1};
 
 static int active_console = 0;
 
@@ -106,31 +104,49 @@ static void putch(char c, int row, int col)
 	nsend_call_3(fbphone, FB_PUTCHAR, c, row, col);
 }
 
-static void draw_stat(int consnum, enum butstate state)
+static void redraw_state(int consnum)
 {
 	char data[5];
 	int i;
-	
+	enum butstate state = console_state[consnum];
+
 	vp_switch(cstatus_vp[consnum]);
-	set_style(stat_colors[state].fgcolor, stat_colors[state].bgcolor);
-	clear();
-	if (state != CONS_DISCONNECTED) {
-		snprintf(data, 5, "%d", consnum+1);
-		for (i=0;data[i];i++)
-			putch(data[i], 0, i);
-	}
+	if (ic_pixmaps[state] != -1)
+		nsend_call_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum], ic_pixmaps[state]);
+
+ 	if (state != CONS_DISCONNECTED && state != CONS_KERNEL && state != CONS_DISCONNECTED_SEL) {
+ 		snprintf(data, 5, "%d", consnum+1);
+ 		for (i=0;data[i];i++)
+ 			putch(data[i], 1, 2+i);
+ 	}
 }
 
+/** Notification run on changing console (except kernel console) */
 void gcons_change_console(int consnum)
 {
+	int i;
+
 	if (!use_gcons)
 		return;
 
-	if (active_console != -1)
-		draw_stat(active_console, CONS_IDLE);
+	if (active_console == KERNEL_CONSOLE) {
+		for (i=0; i < CONSOLE_COUNT; i++)
+			redraw_state(i);
+	} else {
+		if (console_state[active_console] == CONS_DISCONNECTED_SEL)
+			console_state[active_console] = CONS_DISCONNECTED;
+		else
+			console_state[active_console] = CONS_IDLE;
+		redraw_state(active_console);
+	}
 	active_console = consnum;
-	draw_stat(consnum, CONS_ACTIVE);
-	console_has_input[consnum] = 0;
+
+	if (console_state[consnum] == CONS_DISCONNECTED) {
+		console_state[consnum] = CONS_DISCONNECTED_SEL;
+		redraw_state(consnum);
+	} else
+		console_state[consnum] = CONS_SELECTED;
+	redraw_state(consnum);
 
 	vp_switch(console_vp);
 }
@@ -141,25 +157,45 @@ void gcons_notify_char(int consnum)
 	if (!use_gcons)
 		return;
 
-	if (consnum == active_console || console_has_input[consnum])
+	if (consnum == active_console || console_state[consnum] == CONS_HAS_DATA)
 		return;
 
-	console_has_input[consnum] = 1;
+	console_state[consnum] = CONS_HAS_DATA;
 
-	if (active_console == -1)
+	if (active_console == KERNEL_CONSOLE)
 		return;
 
-	draw_stat(consnum, CONS_HAS_INPUT);
+	redraw_state(consnum);
 	
 	vp_switch(console_vp);
+}
 
+void gcons_notify_connect(int consnum)
+{
+	if (!use_gcons)
+		return;
+	if (active_console == consnum)
+		console_state[consnum] = CONS_SELECTED;
+	else
+		console_state[consnum] = CONS_IDLE;
+
+	if (active_console == KERNEL_CONSOLE)
+		return;
+
+	redraw_state(consnum);
+	vp_switch(console_vp);
 }
 
 /** Change to kernel console */
 void gcons_in_kernel(void)
 {
-	draw_stat(active_console, CONS_IDLE);
-	active_console = -1; /* Set to kernel console */
+	if (console_state[active_console] = CONS_DISCONNECTED_SEL)
+		console_state[active_console] = CONS_DISCONNECTED;
+	else
+		console_state[active_console] = CONS_IDLE;
+	redraw_state(active_console);
+
+	active_console = KERNEL_CONSOLE; /* Set to kernel console */
 	vp_switch(0);
 }
 
@@ -189,7 +225,7 @@ static void draw_pixmap(char *logo, size_t size, int x, int y)
 	if (rc)
 		goto drop;
 	/* Draw logo */
-	send_call_2(fbphone, FB_DRAW_PPM, x, y);
+	nsend_call_2(fbphone, FB_DRAW_PPM, x, y);
 drop:
 	/* Drop area */
 	nsend_call(fbphone, FB_DROP_SHM, 0);
@@ -202,7 +238,7 @@ extern char _binary_helenos_ppm_start[0];
 extern int _binary_helenos_ppm_size;
 extern char _binary_nameic_ppm_start[0];
 extern int _binary_nameic_ppm_size;
-void gcons_redraw_console(void)
+static void gcons_redraw_console(void)
 {
 	int i;
 	size_t hsize = (size_t)&_binary_helenos_ppm_size;
@@ -213,15 +249,58 @@ void gcons_redraw_console(void)
 	vp_switch(0);
 	set_style(MAIN_COLOR, MAIN_COLOR);
 	clear();
-	draw_pixmap(_binary_helenos_ppm_start, (size_t)&_binary_helenos_ppm_size, xres-64, 0);
-	draw_pixmap(_binary_nameic_ppm_start, (size_t)&_binary_nameic_ppm_size, 5, 10);
+	draw_pixmap(_binary_helenos_ppm_start, (size_t)&_binary_helenos_ppm_size, xres-66, 2);
+	draw_pixmap(_binary_nameic_ppm_start, (size_t)&_binary_nameic_ppm_size, 5, 17);
 
 
 	for (i=0;i < CONSOLE_COUNT; i++) 
-		draw_stat(i, i == active_console ? CONS_ACTIVE : CONS_DISCONNECTED);
+		redraw_state(i);
 	vp_switch(console_vp);
 }
 
+static int make_pixmap(char *data, int size)
+{
+	char *shm;
+	int rc;
+	int pxid = -1;
+
+	/* Create area */
+	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+	if (shm == MAP_FAILED)
+		return -1;
+
+	memcpy(shm, data, size);
+	/* Send area */
+	rc = sync_send_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
+	if (rc)
+		goto exit;
+	rc = sync_send_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
+	if (rc)
+		goto drop;
+
+	/* Obtain pixmap */
+	rc = sync_send(fbphone, FB_SHM2PIXMAP, 0, NULL);
+	if (rc < 0)
+		goto drop;
+	pxid = rc;
+drop:
+	/* Drop area */
+	nsend_call(fbphone, FB_DROP_SHM, 0);
+exit:       
+	/* Remove area */
+	munmap(shm, size);
+
+	return pxid;
+}
+
+extern char _binary_cons_selected_ppm_start[0];
+extern int _binary_cons_selected_ppm_size;
+extern char _binary_cons_idle_ppm_start[0];
+extern int _binary_cons_idle_ppm_size;
+extern char _binary_cons_has_data_ppm_start[0];
+extern int _binary_cons_has_data_ppm_size;
+extern char _binary_cons_kernel_ppm_start[0];
+extern int _binary_cons_kernel_ppm_size;
 /** Initialize nice graphical console environment */
 void gcons_init(int phone)
 {
@@ -238,19 +317,38 @@ void gcons_init(int phone)
 		return;
 
 	/* create console viewport */
-	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP, xres-2*CONSOLE_MARGIN,
-			       yres-(CONSOLE_TOP+CONSOLE_MARGIN));
+	/* Align width & height to character size */
+	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP, 
+			       ALIGN_DOWN(xres-2*CONSOLE_MARGIN, 8),
+			       ALIGN_DOWN(yres-(CONSOLE_TOP+CONSOLE_MARGIN),16));
 	if (console_vp < 0)
 		return;
 	
 	/* Create status buttons */
 	for (i=0; i < CONSOLE_COUNT; i++) {
 		cstatus_vp[i] = vp_create(STATUS_START+CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
-					  CONSOLE_MARGIN, STATUS_WIDTH, STATUS_HEIGHT);
+					  STATUS_TOP, STATUS_WIDTH, STATUS_HEIGHT);
 		if (cstatus_vp[i] < 0)
 			return;
+		vp_switch(cstatus_vp[i]);
+		set_style(0x202020, 0xffffff);
 	}
 	
+	/* Initialize icons */
+	ic_pixmaps[CONS_SELECTED] = make_pixmap(_binary_cons_selected_ppm_start,
+					      (int)&_binary_cons_selected_ppm_size);
+	ic_pixmaps[CONS_IDLE] = make_pixmap(_binary_cons_idle_ppm_start,
+					      (int)&_binary_cons_idle_ppm_size);
+	ic_pixmaps[CONS_HAS_DATA] = make_pixmap(_binary_cons_has_data_ppm_start,
+						(int)&_binary_cons_has_data_ppm_size);
+	ic_pixmaps[CONS_DISCONNECTED] = make_pixmap(_binary_cons_idle_ppm_start,
+					      (int)&_binary_cons_idle_ppm_size);
+	ic_pixmaps[CONS_KERNEL] = make_pixmap(_binary_cons_kernel_ppm_start,
+					      (int)&_binary_cons_kernel_ppm_size);
+	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
+
 	use_gcons = 1;
+	console_state[0] = CONS_DISCONNECTED_SEL;
+	console_state[KERNEL_CONSOLE] = CONS_KERNEL;
 	gcons_redraw_console();
 }

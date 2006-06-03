@@ -29,6 +29,8 @@
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
+#define KERNEL_CONSOLE 9
+
 #define CONSOLE_COUNT 12 
 
 #define CONSOLE_GETCHAR		1026

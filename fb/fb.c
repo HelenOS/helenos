@@ -54,8 +54,8 @@
 /***************************************************************/
 /* Pixel specific fuctions */
 
-typedef void (*putpixel_fn_t)(unsigned int x, unsigned int y, int color);
-typedef int (*getpixel_fn_t)(unsigned int x, unsigned int y);
+typedef void (*conv2scr_fn_t)(void *, int);
+typedef int (*conv2rgb_fn_t)(void *);
 
 struct {
 	__u8 *fbaddress ;
@@ -65,8 +65,8 @@ struct {
 	unsigned int scanline ;
 	unsigned int pixelbytes ;
 
-	putpixel_fn_t putpixel;
-	getpixel_fn_t getpixel;
+	conv2scr_fn_t rgb2scr;
+	conv2rgb_fn_t scr2rgb;
 } screen;
 
 typedef struct {
@@ -90,7 +90,7 @@ typedef struct {
 typedef struct {
 	unsigned int width;
 	unsigned int height;
-	void *data;
+	__u8 *data;
 } pixmap_t;
 static pixmap_t pixmaps[MAX_PIXMAPS];
 
@@ -110,75 +110,67 @@ static int client_connected = 0;
 
 #define POINTPOS(x, y)	((y) * screen.scanline + (x) * screen.pixelbytes)
 
-/** Put pixel - 24-bit depth, 1 free byte */
-static void putpixel_4byte(unsigned int x, unsigned int y, int color)
+/* Conversion routines between different color representations */
+static void rgb_4byte(void *dst, int rgb)
 {
-	*((__u32 *)(screen.fbaddress + POINTPOS(x, y))) = color;
+	*(int *)dst = rgb;
 }
 
-/** Return pixel color - 24-bit depth, 1 free byte */
-static int getpixel_4byte(unsigned int x, unsigned int y)
+static int byte4_rgb(void *src)
 {
-	return *((__u32 *)(screen.fbaddress + POINTPOS(x, y))) & 0xffffff;
+	return (*(int *)src) & 0xffffff;
 }
 
-/** Put pixel - 24-bit depth */
-static void putpixel_3byte(unsigned int x, unsigned int y, int color)
+static void rgb_3byte(void *dst, int rgb)
 {
-	unsigned int startbyte = POINTPOS(x, y);
-
+	__u8 *scr = dst;
 #if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
-	screen.fbaddress[startbyte] = RED(color, 8);
-	screen.fbaddress[startbyte + 1] = GREEN(color, 8);
-	screen.fbaddress[startbyte + 2] = BLUE(color, 8);
+	scr[0] = RED(rgb, 8);
+	scr[1] = GREEN(rgb, 8);
+	scr[2] = BLUE(rgb, 8);
 #else
-	screen.fbaddress[startbyte + 2] = RED(color, 8);
-	screen.fbaddress[startbyte + 1] = GREEN(color, 8);
-	screen.fbaddress[startbyte + 0] = BLUE(color, 8);
+	scr[2] = RED(rgb, 8);
+	scr[1] = GREEN(rgb, 8);
+	scr[0] = BLUE(rgb, 8);
 #endif
 
+
 }
 
-/** Return pixel color - 24-bit depth */
-static int getpixel_3byte(unsigned int x, unsigned int y)
+static int byte3_rgb(void *src)
 {
-	unsigned int startbyte = POINTPOS(x, y);
-
-
-
+	__u8 *scr = src;
 #if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
-	return screen.fbaddress[startbyte] << 16 | screen.fbaddress[startbyte + 1] << 8 | screen.fbaddress[startbyte + 2];
+	return scr[0] << 16 | scr[1] << 8 | scr[2];
 #else
-	return screen.fbaddress[startbyte + 2] << 16 | screen.fbaddress[startbyte + 1] << 8 | screen.fbaddress[startbyte + 0];
-#endif
-								
-
+	return scr[2] << 16 | scr[1] << 8 | scr[0];
+#endif	
 }
 
-/** Put pixel - 16-bit depth (5:6:5) */
-static void putpixel_2byte(unsigned int x, unsigned int y, int color)
+/**  16-bit depth (5:6:5) */
+static void rgb_2byte(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
-	*((__u16 *)(screen.fbaddress + POINTPOS(x, y))) = RED(color, 5) << 11 | GREEN(color, 6) << 5 | BLUE(color, 5);
+	*((__u16 *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
-/** Return pixel color - 16-bit depth (5:6:5) */
-static int getpixel_2byte(unsigned int x, unsigned int y)
+/** 16-bit depth (5:6:5) */
+static int byte2_rgb(void *src)
 {
-	int color = *((__u16 *)(screen.fbaddress + POINTPOS(x, y)));
+	int color = *(__u16 *)(src);
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
-static void putpixel_1byte(unsigned int x, unsigned int y, int color)
+static void rgb_1byte(void *dst, int rgb)
 {
-	screen.fbaddress[POINTPOS(x, y)] = RED(color, 3) << 5 | GREEN(color, 2) << 3 | BLUE(color, 3);
+	*(__u8 *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
-static int getpixel_1byte(unsigned int x, unsigned int y)
+static int byte1_rgb(void *src)
 {
-	int color = screen.fbaddress[POINTPOS(x, y)];
+	int color = *(__u8 *)src;
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
@@ -191,12 +183,17 @@ static int getpixel_1byte(unsigned int x, unsigned int y)
  */
 static void putpixel(int vp, unsigned int x, unsigned int y, int color)
 {
-	screen.putpixel(viewports[vp].x + x, viewports[vp].y + y, color);
+	int dx = viewports[vp].x + x;
+	int dy = viewports[vp].y + y;
+	(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],color);
 }
 /** Get pixel from viewport */
 static int getpixel(int vp, unsigned int x, unsigned int y)
 {
-	return screen.getpixel(viewports[vp].x + x, viewports[vp].y + y);
+	int dx = viewports[vp].x + x;
+	int dy = viewports[vp].y + y;
+
+	return (*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]);
 }
 
 /** Fill line with color BGCOLOR */
@@ -358,23 +355,23 @@ static void screen_init(void *addr, unsigned int xres, unsigned int yres, unsign
 {
 	switch (bpp) {
 		case 8:
-			screen.putpixel = putpixel_1byte;
-			screen.getpixel = getpixel_1byte;
+			screen.rgb2scr = rgb_1byte;
+			screen.scr2rgb = byte1_rgb;
 			screen.pixelbytes = 1;
 			break;
 		case 16:
-			screen.putpixel = putpixel_2byte;
-			screen.getpixel = getpixel_2byte;
+			screen.rgb2scr = rgb_2byte;
+			screen.scr2rgb = byte2_rgb;
 			screen.pixelbytes = 2;
 			break;
 		case 24:
-			screen.putpixel = putpixel_3byte;
-			screen.getpixel = getpixel_3byte;
+			screen.rgb2scr = rgb_3byte;
+			screen.scr2rgb = byte3_rgb;
 			screen.pixelbytes = 3;
 			break;
 		case 32:
-			screen.putpixel = putpixel_4byte;
-			screen.getpixel = getpixel_4byte;
+			screen.rgb2scr = rgb_4byte;
+			screen.scr2rgb = byte4_rgb;
 			screen.pixelbytes = 4;
 			break;
 	}
@@ -477,6 +474,50 @@ static void draw_text_data(int vp, keyfield_t *data)
 	cursor_print(vp);
 }
 
+
+/** Return first free pixmap */
+static int find_free_pixmap(void)
+{
+	int i;
+	
+	for (i=0;i < MAX_PIXMAPS;i++)
+		if (!pixmaps[i].data)
+			return i;
+	return -1;
+}
+
+static void putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
+{
+	pixmap_t *pmap = &pixmaps[pm];
+	int pos = (y * pmap->width + x) * screen.pixelbytes;
+
+	(*screen.rgb2scr)(&pmap->data[pos],color);
+}
+
+/** Create a new pixmap and return appropriate ID */
+static int shm2pixmap(char *shm, size_t size)
+{
+	int pm;
+	pixmap_t *pmap;
+
+	pm = find_free_pixmap();
+	if (pm == -1)
+		return ELIMIT;
+	pmap = &pixmaps[pm];
+	
+	if (ppm_get_data(shm, size, &pmap->width, &pmap->height))
+		return EINVAL;
+	
+	pmap->data = malloc(pmap->width * pmap->height * screen.pixelbytes);
+	if (!pmap->data)
+		return ENOMEM;
+
+	ppm_draw(shm, size, 0, 0, pmap->width, pmap->height, 
+		 putpixel_pixmap, pm);
+
+	return pm;
+}
+
 /** Handle shared memory communication calls
  *
  * Protocol for drawing pixmaps:
@@ -502,9 +543,9 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	static keyfield_t *interbuffer = NULL;
 	static size_t intersize = 0;
 
-	static char *pixmap = NULL;
-	static ipcarg_t pixmap_id = 0;
-	static size_t pixmap_size;
+	static char *shm = NULL;
+	static ipcarg_t shm_id = 0;
+	static size_t shm_size;
 
 	int handled = 1;
 	int retval = 0;
@@ -514,14 +555,14 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_AS_AREA_SEND:
 		/* We accept one area for data interchange */
-		if (IPC_GET_ARG1(*call) == pixmap_id) {
+		if (IPC_GET_ARG1(*call) == shm_id) {
 			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
-			pixmap_size = IPC_GET_ARG2(*call);
+			shm_size = IPC_GET_ARG2(*call);
 			if (!ipc_answer_fast(callid, 0, (sysarg_t)dest, 0)) 
-				pixmap = dest;
+				shm = dest;
 			else
-				pixmap_id = 0;
-			if (pixmap[0] != 'P')
+				shm_id = 0;
+			if (shm[0] != 'P')
 				while (1)
 					;
 			return 1;
@@ -531,22 +572,29 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		}
 		return 1;
 	case FB_PREPARE_SHM:
-		if (pixmap_id)
+		if (shm_id)
 			retval = EBUSY;
 		else 
-			pixmap_id = IPC_GET_ARG1(*call);
+			shm_id = IPC_GET_ARG1(*call);
 		break;
 		
 	case FB_DROP_SHM:
-		if (pixmap) {
-			as_area_destroy(pixmap);
-			pixmap = NULL;
+		if (shm) {
+			as_area_destroy(shm);
+			shm = NULL;
 		}
-		pixmap_id = 0;
+		shm_id = 0;
 		break;
-		
+
+	case FB_SHM2PIXMAP:
+		if (!shm) {
+			retval = EINVAL;
+			break;
+		}
+		retval = shm2pixmap(shm, shm_size);
+		break;
 	case FB_DRAW_PPM:
-		if (!pixmap) {
+		if (!shm) {
 			retval = EINVAL;
 			break;
 		}
@@ -557,7 +605,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			break;
 		}
 		
-		draw_ppm(pixmap, pixmap_size, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
+		ppm_draw(shm, shm_size, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
 			 vport->width - x, vport->height - y, putpixel, vp);
 		break;
 	case FB_DRAW_TEXT_DATA:
@@ -578,17 +626,6 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	if (handled)
 		ipc_answer_fast(callid, retval, 0, 0);
 	return handled;
-}
-
-/** Return first free pixmap */
-static int find_free_pixmap(void)
-{
-	int i;
-	
-	for (i=0;i < MAX_PIXMAPS;i++)
-		if (!pixmaps[i].data)
-			return i;
-	return -1;
 }
 
 /** Save viewport to pixmap */

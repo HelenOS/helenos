@@ -29,9 +29,10 @@
 #ifndef _PPM_H_
 #define _PPM_H_
 
-int draw_ppm(unsigned char *data, size_t datasz, unsigned int sx, 
+int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
 	     unsigned int sy, 
 	     unsigned int maxwidth, unsigned int maxheight,
 	     void (*putpixel)(int,unsigned int, unsigned int, int),int vp);
+int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height);
 
 #endif

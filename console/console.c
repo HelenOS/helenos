@@ -226,10 +226,10 @@ static void change_console(int newcons)
 	if (newcons == active_console)
 		return;
 
-	if (newcons == -1) {
-		if (active_console == -1)
+	if (newcons == KERNEL_CONSOLE) {
+		if (active_console == KERNEL_CONSOLE)
 			return;
-		active_console = -1;
+		active_console = KERNEL_CONSOLE;
 		curs_visibility(0);
 
 		if (kernel_pixmap == -1) { 
@@ -306,7 +306,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
 				if (c == '0')
-					change_console(-1);
+					change_console(KERNEL_CONSOLE);
 				else
 					change_console(c - '1');
 				break;
@@ -342,7 +342,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_fast(iid,ELIMIT,0,0);
 		return;
 	}
-
+	
+	gcons_notify_connect(consnum);
 	connections[consnum].used = 1;
 	connections[consnum].client_phone = IPC_GET_ARG3(call);
 	screenbuffer_clear(&(connections[consnum].screenbuffer));

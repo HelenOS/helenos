@@ -47,7 +47,8 @@ GENERIC_SOURCES = \
 	../kbd/generic/key_buffer.c \
 	gcons.c
 
-IMAGES = helenos.ppm nameic.ppm
+IMAGES = helenos.ppm nameic.ppm cons_selected.ppm cons_idle.ppm \
+	cons_has_data.ppm cons_kernel.ppm
 
 ARCH_SOURCES = 
 

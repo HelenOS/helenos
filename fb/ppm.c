@@ -56,6 +56,21 @@ static void read_num(unsigned char **data, unsigned int *num)
 	}
 }
 
+int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height)
+{
+	/* Read magic */
+	if (data[0] != 'P' || data[1] != '6')
+		return EINVAL;
+
+	data+=2;
+	skip_whitespace(&data);
+	read_num(&data, width);
+	skip_whitespace(&data);
+	read_num(&data,height);
+
+	return 0;
+}
+
 /** Draw PPM pixmap
  *
  * @param data Pointer to PPM data
@@ -66,7 +81,7 @@ static void read_num(unsigned char **data, unsigned int *num)
  * @param maxheight Maximum allowed height for picture
  * @param putpixel Putpixel function used to print bitmap
  */
-int draw_ppm(unsigned char *data, size_t datasz, unsigned int sx, 
+int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
 	     unsigned int sy, 
 	     unsigned int maxwidth, unsigned int maxheight,
 	     void (*putpixel)(int,unsigned int, unsigned int, int),int vp)
@@ -104,7 +119,7 @@ int draw_ppm(unsigned char *data, size_t datasz, unsigned int sx,
 			data += 3;
 			continue;
 		}
-		color = ((data[0]*coef) << 16) + ((data[1]*coef) << 8) + data[0]*coef;
+		color = ((data[0]*coef) << 16) + ((data[1]*coef) << 8) + data[2]*coef;
 		
 		(*putpixel)(vp, sx+(i % width), sy+(i / width), color);
 		data += 3;
