@@ -109,7 +109,6 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		if (frame || found) {
 			frame_reference_add(ADDR2PFN(frame));
 			page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-			frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
 			if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
 				panic("Could not insert used space.\n");
 			mutex_unlock(&area->sh_info->lock);
