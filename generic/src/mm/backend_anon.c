@@ -110,6 +110,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base, (void *) frame, leaf);
 			}
 		}
+		frame_reference_add(ADDR2PFN(frame));
 		mutex_unlock(&area->sh_info->lock);
 	} else {
 
@@ -192,6 +193,7 @@ void anon_share(as_area_t *area)
 				btree_insert(&area->sh_info->pagemap, (base + j*PAGE_SIZE) - area->base,
 					(void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
+				frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
 			}
 				
 		}
