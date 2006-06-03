@@ -47,7 +47,10 @@ static void sysput(char c)
 
 static void sysputs(char *s)
 {
-	__SYSCALL3(SYS_IO, 1, (sysarg_t)s, strlen(s));
+	while (*s) {
+		sysput(*(s++));
+	}
+//	__SYSCALL3(SYS_IO, 1, (sysarg_t)s, strlen(s));
 }
 
 /** Send clearscreen sequence to console */
