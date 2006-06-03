@@ -30,8 +30,8 @@
 #define __SCREENBUFFER_H__
 
 
-#define DEFAULT_FOREGROUND_COLOR 0xffffff	/**< default console foreground color */
-#define DEFAULT_BACKGROUND_COLOR 0x00003f	/**< default console background color */
+#define DEFAULT_FOREGROUND 0xffff00	/**< default console foreground color */
+#define DEFAULT_BACKGROUND 0x000080	/**< default console background color */
 
 typedef struct {
 	unsigned int bg_color;		/**< background color */

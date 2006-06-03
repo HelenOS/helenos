@@ -83,6 +83,18 @@ typedef struct {
 	int cursor_shown;
 } viewport_t;
 
+/** Maximum number of saved pixmaps 
+ * Pixmap is a saved rectangle
+ */
+#define MAX_PIXMAPS        256
+typedef struct {
+	unsigned int width;
+	unsigned int height;
+	void *data;
+} pixmap_t;
+static pixmap_t pixmaps[MAX_PIXMAPS];
+
+/* Viewport is a rectangular area on the screen */
 #define MAX_VIEWPORTS 128
 static viewport_t viewports[128];
 
@@ -286,24 +298,6 @@ static void invert_char(int vp,unsigned int row, unsigned int col)
 			invert_pixel(vp, col * COL_WIDTH + x, row * FONT_SCANLINES + y);
 }
 
-static void draw_logo(int vp,unsigned int startx, unsigned int starty)
-{
-	unsigned int x;
-	unsigned int y;
-	unsigned int byte;
-	unsigned int rowbytes;
-
-	rowbytes = (helenos_width - 1) / 8 + 1;
-
-	for (y = 0; y < helenos_height; y++)
-		for (x = 0; x < helenos_width; x++) {
-			byte = helenos_bits[rowbytes * y + x / 8];
-			byte >>= x % 8;
-			if (byte & 1)
-				putpixel(vp ,startx + x, starty + y, viewports[vp].style.fg_color);
-		}
-}
-
 /***************************************************************/
 /* Stdout specific functions */
 
@@ -395,6 +389,7 @@ static void screen_init(void *addr, unsigned int xres, unsigned int yres, unsign
 	viewport_create(0,0,xres,yres);
 }
 
+/** Hide cursor if it is shown */
 static void cursor_hide(int vp)
 {
 	viewport_t *vport = &viewports[vp];
@@ -405,6 +400,7 @@ static void cursor_hide(int vp)
 	}
 }
 
+/** Show cursor if cursor showing is enabled */
 static void cursor_print(int vp)
 {
 	viewport_t *vport = &viewports[vp];
@@ -416,6 +412,7 @@ static void cursor_print(int vp)
 	}
 }
 
+/** Invert cursor, if it is enabled */
 static void cursor_blink(int vp)
 {
 	viewport_t *vport = &viewports[vp];
@@ -457,6 +454,11 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_
 	cursor_print(vp);
 }
 
+/** Draw text data to viewport
+ *
+ * @param vp Viewport id
+ * @param data Text data fitting exactly into viewport
+ */
 static void draw_text_data(int vp, keyfield_t *data)
 {
 	viewport_t *vport = &viewports[vp];
@@ -475,6 +477,26 @@ static void draw_text_data(int vp, keyfield_t *data)
 	cursor_print(vp);
 }
 
+/** Handle shared memory communication calls
+ *
+ * Protocol for drawing pixmaps:
+ * - FB_PREPARE_SHM(client shm identification)
+ * - IPC_M_SEND_AS_AREA
+ * - FB_DRAW_PPM(startx,starty)
+ * - FB_DROP_SHM
+ *
+ * Protocol for text drawing
+ * - IPC_M_SEND_AS_AREA
+ * - FB_DRAW_TEXT_DATA
+ *
+ * @param callid Callid of the current call
+ * @param call Current call data
+ * @param vp Active viewport
+ * @return 0 if the call was not handled byt this function, 1 otherwise
+ *
+ * note: this function is not threads safe, you would have
+ * to redefine static variables with __thread
+ */
 static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
 	static keyfield_t *interbuffer = NULL;
@@ -558,6 +580,124 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	return handled;
 }
 
+/** Return first free pixmap */
+static int find_free_pixmap(void)
+{
+	int i;
+	
+	for (i=0;i < MAX_PIXMAPS;i++)
+		if (!pixmaps[i].data)
+			return i;
+	return -1;
+}
+
+/** Save viewport to pixmap */
+static int save_vp_to_pixmap(int vp)
+{
+	int pm;
+	pixmap_t *pmap;
+	viewport_t *vport = &viewports[vp];
+	int x,y;
+	int rowsize;
+	int tmp;
+
+	pm = find_free_pixmap();
+	if (pm == -1)
+		return ELIMIT;
+	
+	pmap = &pixmaps[pm];
+	pmap->data = malloc(screen.pixelbytes * vport->width * vport->height);
+	if (!pmap->data)
+		return ENOMEM;
+
+	pmap->width = vport->width;
+	pmap->height = vport->height;
+	
+	rowsize = vport->width * screen.pixelbytes;
+	for (y=0;y < vport->height; y++) {
+		tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
+		memcpy(pmap->data + rowsize*y, screen.fbaddress + tmp, rowsize); 
+	}
+	return pm;
+}
+
+/** Draw pixmap on screen
+ *
+ * @param vp Viewport to draw on
+ * @param pm Pixmap identifier
+ */
+static int draw_pixmap(int vp, int pm)
+{
+	pixmap_t *pmap = &pixmaps[pm];
+	viewport_t *vport = &viewports[vp];
+	int x,y;
+	int tmp, srcrowsize;
+	int realwidth, realheight, realrowsize;
+
+	if (!pmap->data)
+		return EINVAL;
+
+	realwidth = pmap->width <= vport->width ? pmap->width : vport->width;
+	realheight = pmap->height <= vport->height ? pmap->height : vport->height;
+
+	srcrowsize = vport->width * screen.pixelbytes;
+	realrowsize = realwidth * screen.pixelbytes;
+
+	for (y=0; y < realheight; y++) {
+		tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
+		memcpy(screen.fbaddress + tmp, pmap->data + y * srcrowsize, realrowsize);
+	}
+}
+
+/** Handler for messages concerning pixmap handling */
+static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+{
+	int handled = 1;
+	int retval = 0;
+	int i,nvp;
+
+	switch (IPC_GET_METHOD(*call)) {
+	case FB_VP_DRAW_PIXMAP:
+		nvp = IPC_GET_ARG1(*call);
+		if (nvp == -1)
+			nvp = vp;
+		if (nvp < 0 || nvp >= MAX_VIEWPORTS || !viewports[nvp].initialized) {
+			retval = EINVAL;
+			break;
+		}
+		i = IPC_GET_ARG2(*call);
+		retval = draw_pixmap(nvp, i);
+		break;
+	case FB_VP2PIXMAP:
+		nvp = IPC_GET_ARG1(*call);
+		if (nvp == -1)
+			nvp = vp;
+		if (nvp < 0 || nvp >= MAX_VIEWPORTS || !viewports[nvp].initialized)
+			retval = EINVAL;
+		else
+			retval = save_vp_to_pixmap(nvp);
+		break;
+	case FB_DROP_PIXMAP:
+		i = IPC_GET_ARG1(*call);
+		if (i >= MAX_PIXMAPS) {
+			retval = EINVAL;
+			break;
+		}
+		if (pixmaps[i].data) {
+			free(pixmaps[i].data);
+			pixmaps[i].data = NULL;
+		}
+		break;
+	default:
+		handled = 0;
+	}
+
+	if (handled)
+		ipc_answer_fast(callid, retval, 0, 0);
+	return handled;
+	
+}
+
 /** Function for handling connections to FB
  *
  */
@@ -587,6 +727,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		}
 		if (shm_handle(callid, &call, vp))
+			continue;
+		if (pixmap_handle(callid, &call, vp))
 			continue;
 
  		switch (IPC_GET_METHOD(call)) {

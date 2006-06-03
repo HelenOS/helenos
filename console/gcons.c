@@ -125,8 +125,9 @@ void gcons_change_console(int consnum)
 {
 	if (!use_gcons)
 		return;
-	
-	draw_stat(active_console, CONS_IDLE);
+
+	if (active_console != -1)
+		draw_stat(active_console, CONS_IDLE);
 	active_console = consnum;
 	draw_stat(consnum, CONS_ACTIVE);
 	console_has_input[consnum] = 0;
@@ -134,6 +135,7 @@ void gcons_change_console(int consnum)
 	vp_switch(console_vp);
 }
 
+/** Notification function that gets called on new output to virtual console */
 void gcons_notify_char(int consnum)
 {
 	if (!use_gcons)
@@ -143,11 +145,31 @@ void gcons_notify_char(int consnum)
 		return;
 
 	console_has_input[consnum] = 1;
+
+	if (active_console == -1)
+		return;
+
 	draw_stat(consnum, CONS_HAS_INPUT);
 	
 	vp_switch(console_vp);
+
 }
 
+/** Change to kernel console */
+void gcons_in_kernel(void)
+{
+	draw_stat(active_console, CONS_IDLE);
+	active_console = -1; /* Set to kernel console */
+	vp_switch(0);
+}
+
+/** Draw a PPM pixmap to framebuffer
+ *
+ * @param logo Pointer to PPM data
+ * @param size Size of PPM data
+ * @param x Coordinate of upper left corner
+ * @param y Coordinate of upper left corner
+ */
 static void draw_pixmap(char *logo, size_t size, int x, int y)
 {
 	char *shm;

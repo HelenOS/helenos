@@ -70,6 +70,8 @@ static inline ipcarg_t sync_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		*r2 = IPC_GET_ARG2(result);
 	return rc;
 }
+#define sync_send(phoneid, method, arg1, r1) sync_send_2(phoneid, method, arg1, 0, r1, 0)
+
 static inline ipcarg_t sync_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 				   ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, 
 				   ipcarg_t *r2, ipcarg_t *r3)

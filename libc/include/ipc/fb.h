@@ -23,5 +23,10 @@
 #define FB_DRAW_PPM          1038
 #define FB_PREPARE_SHM       1039
 #define FB_DROP_SHM          1040
+#define FB_SHM2PIXMAP        1041
+
+#define FB_VP_DRAW_PIXMAP    1042
+#define FB_VP2PIXMAP         1043
+#define FB_DROP_PIXMAP       1044
 
 #endif

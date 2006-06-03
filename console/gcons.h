@@ -32,5 +32,6 @@
 void gcons_init(int phone);
 void gcons_change_console(int consnum);
 void gcons_notify_char(int consnum);
+void gcons_in_kernel(void);
 
 #endif

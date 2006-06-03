@@ -69,8 +69,10 @@ typedef struct {
 	screenbuffer_t screenbuffer;	/**< Screenbuffer for saving screen contents and related settings. */
 } connection_t;
 
-connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual consoles */
-keyfield_t *interbuffer = NULL;			/**< Pointer to memory shared with framebufer used for faster virt. console switching */
+static connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual consoles */
+static keyfield_t *interbuffer = NULL;			/**< Pointer to memory shared with framebufer used for faster virt. console switching */
+
+static int kernel_pixmap = -1;      /**< Number of fb pixmap, where kernel console is stored */
 
 
 /** Find unused virtual console.
@@ -103,6 +105,38 @@ static int find_connection(int client_phone)
 	return  CONSOLE_COUNT;
 }
 
+static void clrscr(void)
+{
+	nsend_call(fb_info.phone, FB_CLEAR, 0);
+}
+
+static void curs_visibility(int v)
+{
+	send_call(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
+}
+
+static void curs_goto(int row, int col)
+{
+	nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
+	
+}
+
+static void set_style(style_t *style)
+{
+	nsend_call_2(fb_info.phone, FB_SET_STYLE, style->fg_color, style->bg_color); 
+}
+
+static void set_style_col(int fgcolor, int bgcolor)
+{
+	nsend_call_2(fb_info.phone, FB_SET_STYLE, fgcolor, bgcolor); 
+}
+
+static void prtchr(char c, int row, int col)
+{
+	nsend_call_3(fb_info.phone, FB_PUTCHAR, c, row, col);
+	
+}
+
 /** Check key and process special keys. 
  *
  * */
@@ -127,17 +161,15 @@ static void write_char(int console, char key)
 
 			scr->position_x--;
 
-			if (console == active_console) {
-				nsend_call_3(fb_info.phone, FB_PUTCHAR, ' ', scr->position_y, scr->position_x);
-			}
+			if (console == active_console)
+				prtchr(' ', scr->position_y, scr->position_x);
 	
 			screenbuffer_putchar(scr, ' ');
 			
 			break;
 		default:	
-			if (console == active_console) {
-				nsend_call_3(fb_info.phone, FB_PUTCHAR, key, scr->position_y, scr->position_x);
-			}
+			if (console == active_console)
+				prtchr(key, scr->position_y, scr->position_x);
 	
 			screenbuffer_putchar(scr, key);
 			scr->position_x++;
@@ -154,11 +186,97 @@ static void write_char(int console, char key)
 	
 	scr->position_x = scr->position_x % scr->size_x;
 	
-	if (console == active_console)	
-		send_call_2(fb_info.phone, FB_CURSOR_GOTO, scr->position_y, scr->position_x);
+	if (console == active_console)
+		curs_goto(scr->position_y, scr->position_x);
 	
 }
 
+/** Save current screen to pixmap, draw old pixmap
+ *
+ * @param oldpixmap Old pixmap
+ * @return ID of pixmap of current screen
+ */
+static int switch_screens(int oldpixmap)
+{
+	int newpmap;
+       
+	/* Save screen */
+	newpmap = sync_send(fb_info.phone, FB_VP2PIXMAP, 0, NULL);
+	if (newpmap < 0)
+		return -1;
+
+	if (oldpixmap != -1) {
+		/* Show old screen */
+		nsend_call_2(fb_info.phone, FB_VP_DRAW_PIXMAP, 0, oldpixmap);
+		/* Drop old pixmap */
+		nsend_call(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
+	}
+	
+	return newpmap;
+}
+
+/** Switch to new console */
+static void change_console(int newcons)
+{
+	connection_t *conn;
+	static int console_pixmap = -1;
+	int i, j;
+	char c;
+
+	if (newcons == active_console)
+		return;
+
+	if (newcons == -1) {
+		if (active_console == -1)
+			return;
+		active_console = -1;
+		curs_visibility(0);
+
+		if (kernel_pixmap == -1) { 
+			/* store/restore unsupported */
+			set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+			clrscr();
+		} else {
+			gcons_in_kernel();
+			console_pixmap = switch_screens(kernel_pixmap);
+			kernel_pixmap = -1;
+		}
+
+		__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+		return;
+	} 
+	
+	if (console_pixmap != -1) {
+		kernel_pixmap = switch_screens(console_pixmap);
+		console_pixmap = -1;
+	}
+	
+	active_console = newcons;
+	gcons_change_console(newcons);
+	conn = &connections[active_console];
+
+	curs_visibility(0);
+	if (interbuffer) {
+		for (i = 0; i < conn->screenbuffer.size_x; i++)
+			for (j = 0; j < conn->screenbuffer.size_y; j++) 
+				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
+		
+		sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
+	} else {
+		clrscr();
+		
+		for (i = 0; i < conn->screenbuffer.size_x; i++)
+			for (j = 0; j < conn->screenbuffer.size_y; j++) {
+				c = get_field_at(&(conn->screenbuffer),i, j)->character;
+				if (c && c != ' ')
+					prtchr(c, j, i);
+			}
+		
+	}
+	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
+	set_style(&conn->screenbuffer.style);
+	curs_visibility(1);
+}
 
 /** Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
@@ -166,8 +284,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-	int i, j;
-	char c,d;
+	char c;
 	connection_t *conn;
 	
 	/* Ignore parameters, the connection is alread opened */
@@ -188,51 +305,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
-				if (c == '0') {
-					/* switch to kernel console*/
-					nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 0); 
-					nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
-					nsend_call(fb_info.phone, FB_CLEAR, 0); 
-					/* FIXME: restore kernel console */
-					 __SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
-					 break;
-					 
-				} else {
-					c = c - '1';
-					if (c == active_console)
-						break;
-					active_console = c;
-					gcons_change_console(c);
-				
-				}
-				
-				conn = &connections[active_console];
-
-				nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 0); 
-		
-				if (interbuffer) {
-					for (i = 0; i < conn->screenbuffer.size_x; i++)
-						for (j = 0; j < conn->screenbuffer.size_y; j++) 
-							interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
-							
-					sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
-				} else {
-					nsend_call(fb_info.phone, FB_CLEAR, 0);
-				
-					
-					for (i = 0; i < conn->screenbuffer.size_x; i++)
-						for (j = 0; j < conn->screenbuffer.size_y; j++) {
-							d = get_field_at(&(conn->screenbuffer),i, j)->character;
-							if (d && d != ' ')
-								nsend_call_3(fb_info.phone, FB_PUTCHAR, d, j, i);
-						}
-
-				}
-				nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, conn->screenbuffer.position_y, conn->screenbuffer.position_x); 
-				nsend_call_2(fb_info.phone, FB_SET_STYLE, conn->screenbuffer.style.fg_color, \
-						conn->screenbuffer.style.bg_color); 
-				send_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
-
+				if (c == '0')
+					change_console(-1);
+				else
+					change_console(c - '1');
 				break;
 			}
 			
@@ -314,7 +390,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg2 = IPC_GET_ARG2(call);
 			screenbuffer_set_style(&(connections[consnum].screenbuffer),arg1, arg2);
 			if (consnum == active_console)
-				nsend_call_2(fb_info.phone, FB_SET_STYLE, arg1, arg2); 
+				set_style_col(arg1, arg2);
 				
 			break;
 		case CONSOLE_GETCHAR:
@@ -361,6 +437,9 @@ int main(int argc, char *argv[])
 	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
 		usleep(10000);
 	}
+	
+	/* Save old kernel screen */
+	kernel_pixmap = switch_screens(-1);
 
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
@@ -369,8 +448,8 @@ int main(int argc, char *argv[])
 
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
-	nsend_call_2(fb_info.phone, FB_SET_STYLE, DEFAULT_FOREGROUND_COLOR, DEFAULT_BACKGROUND_COLOR); 
-	nsend_call(fb_info.phone, FB_CLEAR, 0); 
+	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+	clrscr();
 	
 	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
@@ -394,8 +473,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* FIXME: save kernel console screen */
-	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	sync_send_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
