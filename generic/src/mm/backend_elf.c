@@ -107,7 +107,9 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 			}
 		}
 		if (frame || found) {
+			frame_reference_add(ADDR2PFN(frame));
 			page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
+			frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
 			if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
 				panic("Could not insert used space.\n");
 			mutex_unlock(&area->sh_info->lock);
@@ -133,6 +135,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 			memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), FRAME_SIZE);
 			
 			if (area->sh_info) {
+				frame_reference_add(ADDR2PFN(frame));
 				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
 					(void *) frame, leaf);
 			}
@@ -151,6 +154,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 
 		if (area->sh_info) {
+			frame_reference_add(ADDR2PFN(frame));
 			btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
 				(void *) frame, leaf);
 		}
@@ -168,6 +172,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), size);
 
 		if (area->sh_info) {
+			frame_reference_add(ADDR2PFN(frame));
 			btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
 				(void *) frame, leaf);
 		}
@@ -289,6 +294,7 @@ void elf_share(as_area_t *area)
 				btree_insert(&area->sh_info->pagemap, (base + j*PAGE_SIZE) - area->base,
 					(void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
+				frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
 			}
 				
 		}
