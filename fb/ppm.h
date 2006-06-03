@@ -26,27 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/mman.h>
-#include <as.h>
-#include <unistd.h>
+#ifndef _PPM_H_
+#define _PPM_H_
 
-void *mmap(void  *start, size_t length, int prot, int flags, int fd,
-	   off_t offset)
-{
-	int rc;
+int draw_ppm(unsigned char *data, size_t datasz, unsigned int sx, 
+	     unsigned int sy, 
+	     unsigned int maxwidth, unsigned int maxheight,
+	     void (*putpixel)(int,unsigned int, unsigned int, int),int vp);
 
-	if (!start)
-		start = as_get_mappable_page(length);
-	
-//	if (! ((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
-	if (! (flags & MAP_ANONYMOUS))
-		return MAP_FAILED;
-
-	return as_area_create(start, length, prot);
-}
-
-int munmap(void *start, size_t length)
-{
-	return as_area_destroy(start);
-}
+#endif

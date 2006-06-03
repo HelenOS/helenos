@@ -623,6 +623,27 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	return (aid_t) msg;
 }
 
+/** Send message and return id of the sent message
+ *
+ * The return value can be used as input for async_wait() to wait
+ * for completion.
+ */
+aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
+		   ipcarg_t arg3, ipc_call_t *dataptr)
+{
+	amsg_t *msg;
+
+	msg = malloc(sizeof(*msg));
+	msg->done = 0;
+	msg->dataptr = dataptr;
+
+	msg->wdata.active = 1; /* We may sleep in next method, but it
+				* will use it's own mechanism */
+	ipc_call_async_3(phoneid,method,arg1,arg2,arg3, msg,reply_received,1);
+
+	return (aid_t) msg;
+}
+
 /** Wait for a message sent by async framework
  *
  * @param amsgid Message ID to wait for

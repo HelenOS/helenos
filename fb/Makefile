@@ -49,7 +49,8 @@ SOURCES = \
 	font-8x16.c \
 	main.c \
 	sysio.c \
-	ega.c
+	ega.c \
+	ppm.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

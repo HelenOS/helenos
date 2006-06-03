@@ -31,6 +31,8 @@
 
 #include <as.h>
 
+#define MAP_FAILED  ((void *) -1)
+
 #define MAP_SHARED       (1 << 0)
 #define MAP_PRIVATE      (1 << 1)
 #define MAP_FIXED        (1 << 2)

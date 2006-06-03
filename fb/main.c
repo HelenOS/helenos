@@ -39,23 +39,16 @@
 #include "ega.h"
 #include "main.h"
 
-void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area,
-		       size_t maxsize)
+void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 {
 	void *dest;
 
-	if (*area) {
-		ipc_answer_fast(callid, ELIMIT, 0, 0);
-		return;
-	}
-	if (IPC_GET_ARG2(*call) > ALIGN_UP(maxsize, PAGE_SIZE)) {
-		ipc_answer_fast(callid, EINVAL, 0, 0);
-		return;
-	}
-	
-	dest = as_get_mappable_page(maxsize);
-	if (ipc_answer_fast(callid, 0, (sysarg_t)dest, 0) == 0)
+	dest = as_get_mappable_page(IPC_GET_ARG2(*call));
+	if (ipc_answer_fast(callid, 0, (sysarg_t)dest, 0) == 0) {
+		if (*area)
+			as_area_destroy(*area);
 		*area = dest;
+	}
 }
 
 int main(int argc, char *argv[])

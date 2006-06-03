@@ -46,6 +46,7 @@
 #include "fb.h"
 #include "main.h"
 #include "../console/screenbuffer.h"
+#include "ppm.h"
 
 #define DEFAULT_BGCOLOR                0x000080
 #define DEFAULT_FGCOLOR                0xffff00
@@ -474,6 +475,88 @@ static void draw_text_data(int vp, keyfield_t *data)
 	cursor_print(vp);
 }
 
+static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+{
+	static keyfield_t *interbuffer = NULL;
+	static size_t intersize = 0;
+
+	static char *pixmap = NULL;
+	static ipcarg_t pixmap_id = 0;
+	static size_t pixmap_size;
+
+	int handled = 1;
+	int retval = 0;
+	viewport_t *vport = &viewports[vp];
+	unsigned int x,y;
+
+	switch (IPC_GET_METHOD(*call)) {
+	case IPC_M_AS_AREA_SEND:
+		/* We accept one area for data interchange */
+		if (IPC_GET_ARG1(*call) == pixmap_id) {
+			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
+			pixmap_size = IPC_GET_ARG2(*call);
+			if (!ipc_answer_fast(callid, 0, (sysarg_t)dest, 0)) 
+				pixmap = dest;
+			else
+				pixmap_id = 0;
+			if (pixmap[0] != 'P')
+				while (1)
+					;
+			return 1;
+		} else {
+			intersize = IPC_GET_ARG2(*call);
+			receive_comm_area(callid,call,(void **)&interbuffer);
+		}
+		return 1;
+	case FB_PREPARE_SHM:
+		if (pixmap_id)
+			retval = EBUSY;
+		else 
+			pixmap_id = IPC_GET_ARG1(*call);
+		break;
+		
+	case FB_DROP_SHM:
+		if (pixmap) {
+			as_area_destroy(pixmap);
+			pixmap = NULL;
+		}
+		pixmap_id = 0;
+		break;
+		
+	case FB_DRAW_PPM:
+		if (!pixmap) {
+			retval = EINVAL;
+			break;
+		}
+		x = IPC_GET_ARG1(*call);
+		y = IPC_GET_ARG2(*call);
+		if (x > vport->width || y > vport->height) {
+			retval = EINVAL;
+			break;
+		}
+		
+		draw_ppm(pixmap, pixmap_size, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
+			 vport->width - x, vport->height - y, putpixel, vp);
+		break;
+	case FB_DRAW_TEXT_DATA:
+		if (!interbuffer) {
+			retval = EINVAL;
+			break;
+		}
+		if (intersize < vport->cols*vport->rows*sizeof(*interbuffer)) {
+			retval = EINVAL;
+			break;
+		}
+		draw_text_data(vp, interbuffer);
+		break;
+	default:
+		handled = 0;
+	}
+	
+	if (handled)
+		ipc_answer_fast(callid, retval, 0, 0);
+	return handled;
+}
 
 /** Function for handling connections to FB
  *
@@ -486,8 +569,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int i;
 	unsigned int row,col;
 	char c;
-	keyfield_t *interbuffer = NULL;
-	size_t intersize = 0;
 
 	int vp = 0;
 	viewport_t *vport = &viewports[0];
@@ -505,6 +586,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			cursor_blink(vp);
 			continue;
 		}
+		if (shm_handle(callid, &call, vp))
+			continue;
+
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
@@ -513,25 +597,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				vport->initialized = 0;
 			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
-		case IPC_M_AS_AREA_SEND:
-			/* We accept one area for data interchange */
-			intersize = IPC_GET_ARG2(call);
-			receive_comm_area(callid,&call,(void **)&interbuffer,
-					  sizeof(*interbuffer)*viewports[0].cols*viewports[0].rows);
-			continue;
 
-		case FB_DRAW_TEXT_DATA:
-			if (!interbuffer) {
-				retval = EINVAL;
-				break;
-			}
-			if (intersize < vport->cols*vport->rows*sizeof(*interbuffer)) {
-				retval = EINVAL;
-				break;
-			}
-			draw_text_data(vp, interbuffer);
-			retval = 0;
-			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);

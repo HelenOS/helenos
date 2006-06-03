@@ -20,4 +20,8 @@
 #define FB_DRAW_TEXT_DATA    1036
 #define FB_FLUSH             1037
 
+#define FB_DRAW_PPM          1038
+#define FB_PREPARE_SHM       1039
+#define FB_DROP_SHM          1040
+
 #endif

@@ -37,4 +37,5 @@ ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 	arch/$(ARCH)/src/psthread.S \
 	arch/$(ARCH)/src/thread.c
 
-
+BFD_ARCH = mips
+BFD_NAME = elf32-little

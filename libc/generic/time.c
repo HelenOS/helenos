@@ -73,7 +73,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 			printf("Failed to initialize timeofday memarea\n");
 			_exit(1);
 		}
-		if (rights != (AS_AREA_READ | AS_AREA_CACHEABLE)) {
+		if (! (rights & AS_AREA_READ)) {
 			printf("Received bad rights on time area: %X\n",
 			       rights);
 			as_area_destroy(mapping);

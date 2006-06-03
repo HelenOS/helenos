@@ -29,7 +29,6 @@
 #ifndef __MAIN_H_
 #define __MAIN_H_
 
-void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area,
-		       size_t maxsize);
+void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area);
 
 #endif

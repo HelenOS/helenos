@@ -38,3 +38,6 @@ AFLAGS +=
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/psthread.S \
 		arch/$(ARCH)/src/thread.c
+
+BFD_NAME = elf64-little
+BFD_ARCH = ia64-elf64

@@ -30,18 +30,21 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <stdio.h>
+#include <sys/mman.h>
+#include <string.h>
 
 #include "console.h"
 #include "gcons.h"
 
-#define CONSOLE_TOP      50
+#define CONSOLE_TOP      65
 #define CONSOLE_MARGIN   10
 
-#define STATUS_SPACE    20
+#define STATUS_START    120
+#define STATUS_SPACE    5
 #define STATUS_WIDTH    40
 #define STATUS_HEIGHT   30
 
-#define MAIN_COLOR      0x118811
+#define MAIN_COLOR      0xffffff
 
 static int use_gcons = 0;
 static ipcarg_t xres,yres;
@@ -145,9 +148,42 @@ void gcons_notify_char(int consnum)
 	vp_switch(console_vp);
 }
 
+static void draw_pixmap(char *logo, size_t size, int x, int y)
+{
+	char *shm;
+	int rc;
+
+	/* Create area */
+	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+	if (shm == MAP_FAILED)
+		return;
+
+	memcpy(shm, logo, size);
+	/* Send area */
+	rc = sync_send_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
+	if (rc)
+		goto exit;
+	rc = sync_send_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
+	if (rc)
+		goto drop;
+	/* Draw logo */
+	send_call_2(fbphone, FB_DRAW_PPM, x, y);
+drop:
+	/* Drop area */
+	nsend_call(fbphone, FB_DROP_SHM, 0);
+exit:       
+	/* Remove area */
+	munmap(shm, size);
+}
+
+extern char _binary_helenos_ppm_start[0];
+extern int _binary_helenos_ppm_size;
+extern char _binary_nameic_ppm_start[0];
+extern int _binary_nameic_ppm_size;
 void gcons_redraw_console(void)
 {
 	int i;
+	size_t hsize = (size_t)&_binary_helenos_ppm_size;
 
 	if (!use_gcons)
 		return;
@@ -155,6 +191,9 @@ void gcons_redraw_console(void)
 	vp_switch(0);
 	set_style(MAIN_COLOR, MAIN_COLOR);
 	clear();
+	draw_pixmap(_binary_helenos_ppm_start, (size_t)&_binary_helenos_ppm_size, xres-64, 0);
+	draw_pixmap(_binary_nameic_ppm_start, (size_t)&_binary_nameic_ppm_size, 5, 10);
+
 
 	for (i=0;i < CONSOLE_COUNT; i++) 
 		draw_stat(i, i == active_console ? CONS_ACTIVE : CONS_DISCONNECTED);
@@ -184,7 +223,7 @@ void gcons_init(int phone)
 	
 	/* Create status buttons */
 	for (i=0; i < CONSOLE_COUNT; i++) {
-		cstatus_vp[i] = vp_create(CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
+		cstatus_vp[i] = vp_create(STATUS_START+CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
 					  CONSOLE_MARGIN, STATUS_WIDTH, STATUS_HEIGHT);
 		if (cstatus_vp[i] < 0)
 			return;

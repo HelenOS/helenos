@@ -90,7 +90,7 @@ static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
 		addr = as_get_mappable_page(PAGE_SIZE);
 		map_physmem(ph_addr, addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
-	ipc_answer_fast(callid, 0, (ipcarg_t)addr, AS_AREA_READ | AS_AREA_CACHEABLE);
+	ipc_answer_fast(callid, 0, (ipcarg_t)addr, AS_AREA_READ);
 }
 
 int main(int argc, char **argv)

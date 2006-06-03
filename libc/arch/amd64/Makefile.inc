@@ -37,3 +37,6 @@ ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/thread.c
 
 LFLAGS += -N
+
+BFD_NAME = elf64-x86-64
+BFD_ARCH = i386:x86-64

@@ -46,6 +46,8 @@ static inline ipc_callid_t async_get_call(ipc_call_t *data)
 
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 		   ipc_call_t *dataptr);
+aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
+		   ipcarg_t arg3, ipc_call_t *dataptr);
 void async_wait_for(aid_t amsgid, ipcarg_t *result);
 int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
 
@@ -66,6 +68,23 @@ static inline ipcarg_t sync_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		*r1 = IPC_GET_ARG1(result);
 	if (r2)
 		*r2 = IPC_GET_ARG2(result);
+	return rc;
+}
+static inline ipcarg_t sync_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+				   ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, 
+				   ipcarg_t *r2, ipcarg_t *r3)
+{
+	ipc_call_t result;
+	ipcarg_t rc;
+
+	aid_t eid = async_send_3(phoneid, method, arg1, arg2, arg3, &result);
+	async_wait_for(eid, &rc);
+	if (r1) 
+		*r1 = IPC_GET_ARG1(result);
+	if (r2)
+		*r2 = IPC_GET_ARG2(result);
+	if (r3)
+		*r3 = IPC_GET_ARG3(result);
 	return rc;
 }
 

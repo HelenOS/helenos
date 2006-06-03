@@ -110,7 +110,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
 			if (intersize >= scr_width*scr_height*sizeof(*interbuf)) {
-				receive_comm_area(callid,&call,(void **)&interbuf, scr_width*scr_height*sizeof(*interbuf));
+				receive_comm_area(callid,&call,(void **)&interbuf);
 				continue;
 			}
 			retval = EINVAL;

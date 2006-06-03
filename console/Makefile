@@ -47,9 +47,12 @@ GENERIC_SOURCES = \
 	../kbd/generic/key_buffer.c \
 	gcons.c
 
+IMAGES = helenos.ppm nameic.ppm
+
 ARCH_SOURCES = 
 
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES))) \
+			$(addsuffix .o,$(basename $(IMAGES)))	
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
 .PHONY: all clean depend disasm
@@ -78,3 +81,6 @@ disasm:
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+%.o: %.ppm
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) $< $@

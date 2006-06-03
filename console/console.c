@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
 	}
 	
 	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
-		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ | AS_AREA_CACHEABLE, NULL, NULL, NULL) != 0) {
+		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
 			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
 			interbuffer = NULL;
 		}
