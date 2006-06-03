@@ -189,7 +189,7 @@ void gcons_notify_connect(int consnum)
 /** Change to kernel console */
 void gcons_in_kernel(void)
 {
-	if (console_state[active_console] = CONS_DISCONNECTED_SEL)
+	if (console_state[active_console] == CONS_DISCONNECTED_SEL)
 		console_state[active_console] = CONS_DISCONNECTED;
 	else
 		console_state[active_console] = CONS_IDLE;
