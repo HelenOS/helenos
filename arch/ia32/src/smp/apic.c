@@ -370,7 +370,10 @@ void l_apic_init(void)
 	tm.masked = false;
 	l_apic[LVT_Tm] = tm.value;
 
-	/* Measure and configure the timer to generate timer interrupt each ms. */
+	/*
+	 * Measure and configure the timer to generate timer
+	 * interrupt with period 1s/HZ seconds.
+	 */
 	t1 = l_apic[CCRT];
 	l_apic[ICRT] = 0xffffffff;
 
@@ -378,7 +381,7 @@ void l_apic_init(void)
 		;
 		
 	t1 = l_apic[CCRT];
-	delay(1000);
+	delay(1000000/HZ);
 	t2 = l_apic[CCRT];
 	
 	l_apic[ICRT] = t1-t2;
