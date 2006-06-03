@@ -58,8 +58,8 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	
 	scr->size_x = size_x;
 	scr->size_y = size_y;
-	scr->style.fg_color = DEFAULT_FOREGROUND_COLOR; 
-	scr->style.bg_color = DEFAULT_BACKGROUND_COLOR; 
+	scr->style.fg_color = DEFAULT_FOREGROUND;
+	scr->style.bg_color = DEFAULT_BACKGROUND;
 	
 	screenbuffer_clear(scr);
 	
