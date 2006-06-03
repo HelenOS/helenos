@@ -344,10 +344,10 @@ main(int argc, char *argv[])
 		(void)printf("Your score:  %d point%s  x  level %d  =  %d\n",
 		    score, score == 1 ? "" : "s", level, score * level);
 	else {
-		(void)printf("Your score:  %d point%s x level %d x preview penalty %0.3f = %d\n",
-		    score, score == 1 ? "" : "s", level, (double)PRE_PENALTY,
-		    (int)(score * level * PRE_PENALTY));
-		score = score * PRE_PENALTY;
+/* 		(void)printf("Your score:  %d point%s x level %d x preview penalty %0.3f = %d\n", */
+/* 		    score, score == 1 ? "" : "s", level, (double)PRE_PENALTY, */
+/* 		    (int)(score * level * PRE_PENALTY)); */
+/* 		score = score * PRE_PENALTY; */
 	}
 	savescore(level);
 

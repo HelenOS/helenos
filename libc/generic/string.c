@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <limits.h>
+#include <align.h>
 
 
 /* Dummy implementation of mem/ functions */
@@ -42,9 +43,29 @@ void * memset(void *s, int c, size_t n)
 	return s;
 }
 
+struct along {unsigned long n; } __attribute__ ((packed));
+
+static void * unaligned_memcpy(void *dst, const void *src, size_t n)
+{
+	int i, j;
+	struct along *adst = dst;
+	const struct along *asrc = src;
+
+	for (i = 0; i < n/sizeof(unsigned long); i++)
+		adst[i].n = asrc[i].n;
+		
+	for (j = 0; j < n%sizeof(unsigned long); j++)
+		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+		
+	return (char *)src;
+}
+
 void * memcpy(void *dst, const void *src, size_t n)
 {
 	int i, j;
+
+	if (((long)dst & (sizeof(long)-1)) || ((long)src & (sizeof(long)-1)))
+ 		return unaligned_memcpy(dst, src, n);
 
 	for (i = 0; i < n/sizeof(unsigned long); i++)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
