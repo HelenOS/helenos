@@ -44,6 +44,8 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 
+static int kbd_release=0;
+
 void arch_pre_main(void)
 {
 	/* Setup usermode init tasks. */
@@ -129,10 +131,13 @@ __native sys_tls_set(__native addr)
  */
 void arch_grab_console(void)
 {
+    kbd_release=kbd_uspace;
+    kbd_uspace=0;
 }
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
+    kbd_uspace=kbd_release;
 }
