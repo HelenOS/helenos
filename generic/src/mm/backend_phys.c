@@ -64,12 +64,11 @@ mem_backend_t phys_backend = {
 int phys_page_fault(as_area_t *area, __address addr, pf_access_t access)
 {
 	__address base = area->backend_data.base;
-	count_t frames = area->backend_data.frames;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	ASSERT(addr - area->base < frames * FRAME_SIZE);
+	ASSERT(addr - area->base < area->backend_data.frames * FRAME_SIZE);
 	page_mapping_insert(AS, addr, base + (addr - area->base), as_area_get_flags(area));
         if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
                 panic("Could not insert used space.\n");
