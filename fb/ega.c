@@ -155,14 +155,14 @@ static void scroll(int rows)
 {
 	int i;
 	if (rows > 0) {
-		memcpy(scr_addr,((char *)scr_addr)+rows*scr_width*2,scr_width*scr_height*2-rows*scr_width*2);
-		for(i=0;i<rows*scr_width;i++)
-			(((short *)scr_addr)+scr_width*scr_height-rows*scr_width)[i]=((style<<8)+' ');
+		memcpy(scr_addr,((char *)scr_addr) + rows * scr_width * 2, scr_width * scr_height * 2 - rows * scr_width * 2);
+		for(i = 0; i < rows * scr_width ; i ++)
+			(((short *)scr_addr) + scr_width * scr_height - rows * scr_width) [i] = ((style << 8) + ' ');
 	} else if (rows < 0) {
 
-		memcpy(((char *)scr_addr)-rows*scr_width*2,scr_addr,scr_width*scr_height*2+rows*scr_width*2);
-		for(i=0;i<-rows*scr_width;i++)
-			((short *)scr_addr)[i]=((style<<8)+' ');
+		memcpy(((char *)scr_addr) - rows * scr_width * 2 ,scr_addr ,scr_width * scr_height * 2 + rows * scr_width * 2);
+		for( i = 0; i < - rows * scr_width ; i++)
+			((short *)scr_addr) [i] = ((style << 8 ) + ' ');
 	}
 }
 
@@ -191,10 +191,13 @@ static int save_screen(void)
 {
 	int i;
 	short *mem;
-	for(i=0;(i<MAX_SAVED_SCREENS)&&(saved_screens[i].data);i++);
-	if(i==MAX_SAVED_SCREENS) return EINVAL;
-	if(!(saved_screens[i].data=malloc(2*scr_width*scr_height))) return ENOMEM;
-	memcpy(saved_screens[i].data,scr_addr,2*scr_width*scr_height);
+	for( i=0 ;( i < MAX_SAVED_SCREENS ) && (saved_screens[i].data); i++);
+	if( i == MAX_SAVED_SCREENS) 
+		return EINVAL;
+	if(!(saved_screens[i].data=malloc( 2 * scr_width*scr_height ))) 
+		return ENOMEM;
+	memcpy(saved_screens[i].data,scr_addr, 2 * scr_width * scr_height )
+		;
 	return i;
 }
 
