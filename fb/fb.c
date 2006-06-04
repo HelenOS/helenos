@@ -204,17 +204,33 @@ static void clear_line(int vp, unsigned int y)
 		putpixel(vp, x, y, viewports[vp].style.bg_color);
 }
 
+static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
+			   unsigned int width, unsigned int height,
+			   int color)
+{
+	unsigned int x, y;
+
+	/* Clear first line */
+	for (x = 0; x < width; x++)
+		putpixel(vp, sx + x, sy, color);
+
+	/* Recompute to screen coords */
+	sx += viewports[vp].x;
+	sy += viewports[vp].y;
+	/* Copy the rest */
+	for (y = sy+1;y < sy+height; y++)
+		memcpy(&screen.fbaddress[POINTPOS(sx,y)],
+		       &screen.fbaddress[POINTPOS(sx,sy)],
+		       screen.pixelbytes * width);
+
+}
+
 /** Fill viewport with background color */
 static void clear_port(int vp)
 {
-	unsigned int y;
+	viewport_t *vport = &viewports[vp];
 
-	clear_line(vp, 0);
-	for (y = viewports[vp].y+1; y < viewports[vp].y+viewports[vp].height; y++) {
-		memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,y)],
-		       &screen.fbaddress[POINTPOS(viewports[vp].x,viewports[vp].y)],
-		       screen.pixelbytes * viewports[vp].width);
-	}	
+	draw_rectangle(vp, 0, 0, vport->width, vport->height, vport->style.bg_color);
 }
 
 /** Scroll port up/down 
@@ -227,33 +243,22 @@ static void scroll_port(int vp, int rows)
 	int y;
 	int startline;
 	int endline;
+	viewport_t *vport = &viewports[vp];
 	
 	if (rows > 0) {
-		for (y=viewports[vp].y; y < viewports[vp].y+viewports[vp].height - rows*FONT_SCANLINES; y++)
-			memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,y)],
-			       &screen.fbaddress[POINTPOS(viewports[vp].x,y + rows*FONT_SCANLINES)],
-			       screen.pixelbytes * viewports[vp].width);
-		/* Clear last row */
-		startline = viewports[vp].y+FONT_SCANLINES*(viewports[vp].rows-1);
-		endline = viewports[vp].y + viewports[vp].height;
-		clear_line(vp, startline);
-		for (y=startline+1;y < endline; y++)
-			memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,y)],
-			       &screen.fbaddress[POINTPOS(viewports[vp].x,startline)],
-			       screen.pixelbytes * viewports[vp].width);
-			      
+		for (y=vport->y; y < vport->y+vport->height - rows*FONT_SCANLINES; y++)
+			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
+			       &screen.fbaddress[POINTPOS(vport->x,y + rows*FONT_SCANLINES)],
+			       screen.pixelbytes * vport->width);
+		draw_rectangle(vp, 0, FONT_SCANLINES*(vport->rows - 1),
+			       vport->width, FONT_SCANLINES, vport->style.bg_color);
 	} else if (rows < 0) {
 		rows = -rows;
-		for (y=viewports[vp].y + viewports[vp].height-1; y >= viewports[vp].y + rows*FONT_SCANLINES; y--)
-			memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,y)],
-				&screen.fbaddress[POINTPOS(viewports[vp].x,y - rows*FONT_SCANLINES)],
-				screen.pixelbytes * viewports[vp].width);
-		/* Clear first row */
-		clear_line(0, viewports[vp].style.bg_color);
-		for (y=1;y < rows*FONT_SCANLINES; y++)
-			memcpy(&screen.fbaddress[POINTPOS(viewports[vp].x,viewports[vp].y+y)],
-			       &screen.fbaddress[POINTPOS(viewports[vp].x,viewports[vp].y)],
-			       screen.pixelbytes * viewports[vp].width);
+		for (y=vport->y + vport->height-1; y >= vport->y + rows*FONT_SCANLINES; y--)
+			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
+				&screen.fbaddress[POINTPOS(vport->x,y - rows*FONT_SCANLINES)],
+				screen.pixelbytes * vport->width);
+		draw_rectangle(vp, 0, 0, vport->width, FONT_SCANLINES, vport->style.bg_color);
 	}
 }
 
