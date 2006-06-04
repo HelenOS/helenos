@@ -30,6 +30,22 @@
 #include <ipc/ipc.h>
 #include <sysinfo.h>
 
+#define KEY_F1 0x504f1b
+#define KEY_F2 0x514f1b
+#define KEY_F3 0x524f1b
+#define KEY_F4 0x534f1b
+#define KEY_F5 0x7e35315b1b
+#define KEY_F6 0x7e37315b1b
+#define KEY_F7 0x7e38315b1b
+#define KEY_F8 0x7e39315b1b
+#define KEY_F9 0x7e30325b1b
+#define KEY_F10 0x7e31325b1b
+#define KEY_F11 0x7e33325b1b
+#define KEY_F12 0x7e34325b1b
+
+
+#define FUNCTION_KEYS 0x100
+
 irq_cmd_t ski_cmds[1] = {
 	{ CMD_IA64_GETCHAR, 0, 0 }
 };
@@ -41,20 +57,90 @@ irq_code_t ski_kbd = {
 
 int kbd_arch_init(void)
 {
-	if(sysinfo_value("kbd"))
-	{
+	if(sysinfo_value("kbd")) {
 		ipc_register_irq(sysinfo_value("kbd.irq"), &ski_kbd);
 		return 1;
 	}	
 	
 }
 
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
+/*
+* Please preserve this code (it can be used to determine scancodes)
+*
+int to_hex(int v) 
 {
-	keybuffer_push(keybuffer, scan_code);
+    return "0123456789ABCDEF"[v];
+}
+*/
+
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code) 
+{
+	static unsigned long long buf=0;
+	static int count=0;	
+
+
+	/*
+	* Please preserve this code (it can be used to determine scancodes)
+	*
+	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
+	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
+	keybuffer_push(keybuffer, ' ');
+	keybuffer_push(keybuffer, ' ');
+	*/
 	
-/*	__SYSCALL3(SYS_IO,1,&scan_code,1);
-	__SYSCALL3(SYS_IO,1,&scan_code,1);
-*/	
+	
+	if (scan_code){
+		buf|=(unsigned long long) scan_code<<(8*(count++));
+	}	else {
+			
+		if ( ! ( buf & 0xff00 ))
+			keybuffer_push(keybuffer, buf);
+		else {
+			switch (buf){
+				case KEY_F1:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 1 );
+					break;
+				case KEY_F2:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 2 );
+					break;
+				case KEY_F3:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 3 );
+					break;
+				case KEY_F4:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 4 );
+					break;
+				case KEY_F5:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 5 );
+					break;
+				case KEY_F6:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 6 );
+					break;
+				case KEY_F7:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 7 );
+					break;
+				case KEY_F8:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 8 );
+					break;
+
+				case KEY_F9:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 9 );
+					break;
+				case KEY_F10:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 10 );
+					break;
+
+				case KEY_F11:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 11 );
+					break;
+				case KEY_F12:
+					keybuffer_push(keybuffer,FUNCTION_KEYS | 12 );
+					break;
+
+
+			}
+		}
+		buf=count=0;
+	}
+
 	return 	1;
 }
