@@ -51,7 +51,8 @@ enum state {
 	Sleeping,	/**< Thread in this state is waiting for an event. */
 	Ready,		/**< State of threads in a run queue. */
 	Entering,	/**< Threads are in this state before they are first readied. */
-	Exiting		/**< After a thread calls thread_exit(), it is put into Exiting state. */
+	Exiting,	/**< After a thread calls thread_exit(), it is put into Exiting state. */
+	Undead		/**< Threads that were not detached but exited are in the Undead state. */
 };
 
 extern char *thread_states[];
@@ -97,6 +98,8 @@ struct thread {
 	/** True if this thread is executing copy_to_uspace(). False otherwise. */
 	bool in_copy_to_uspace;
 
+	bool detached;				/**< If true, thread_join_timeout() cannot be used on this thread. */
+	waitq_t join_wq;			/**< Waitq for thread_join_timeout(). */
 
 	fpu_context_t *saved_fpu_context;
 	int fpu_context_exists;
@@ -150,6 +153,9 @@ extern void thread_create_arch(thread_t *t);
 
 extern void thread_sleep(__u32 sec);
 extern void thread_usleep(__u32 usec);
+
+extern int thread_join_timeout(thread_t *t, __u32 usec, int flags);
+extern void thread_detach(thread_t *t);
 
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
 extern void thread_print_list(void);

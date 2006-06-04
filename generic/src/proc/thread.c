@@ -63,7 +63,17 @@
 #include <syscall/copy.h>
 #include <errno.h>
 
-char *thread_states[] = {"Invalid", "Running", "Sleeping", "Ready", "Entering", "Exiting"}; /**< Thread states */
+
+/** Thread states */
+char *thread_states[] = {
+	"Invalid",
+	"Running",
+	"Sleeping",
+	"Ready",
+	"Entering",
+	"Exiting",
+	"Undead"
+}; 
 
 /** Lock protecting threads_head list. For locking rules, see declaration thereof. */
 SPINLOCK_INITIALIZE(threads_lock);
@@ -310,6 +320,9 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->in_copy_from_uspace = false;
 	t->in_copy_to_uspace = false;
 	
+	t->detached = false;
+	waitq_initialize(&t->join_wq);
+	
 	t->rwlock_holder_type = RWLOCK_NONE;
 		
 	t->task = task;
@@ -371,6 +384,72 @@ restart:
 void thread_sleep(__u32 sec)
 {
 	thread_usleep(sec*1000000);
+}
+
+/** Wait for another thread to exit.
+ *
+ * @param t Thread to join on exit.
+ * @param usec Timeout in microseconds.
+ * @param flags Mode of operation.
+ *
+ * @return An error code from errno.h or an error code from synch.h.
+ */
+int thread_join_timeout(thread_t *t, __u32 usec, int flags)
+{
+	ipl_t ipl;
+	int rc;
+
+	if (t == THREAD)
+		return EINVAL;
+
+	/*
+	 * Since thread join can only be called once on an undetached thread,
+	 * the thread pointer is guaranteed to be still valid.
+	 */
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&t->lock);
+
+	ASSERT(!t->detached);
+	
+	(void) waitq_sleep_prepare(&t->join_wq);
+	spinlock_unlock(&t->lock);
+	
+	rc = waitq_sleep_timeout_unsafe(&t->join_wq, usec, flags);
+	
+	waitq_sleep_finish(&t->join_wq, rc, ipl);
+	
+	return rc;	
+}
+
+/** Detach thread.
+ *
+ * Mark the thread as detached, if the thread is already in the Undead state,
+ * deallocate its resources.
+ *
+ * @param t Thread to be detached.
+ */
+void thread_detach(thread_t *t)
+{
+	ipl_t ipl;
+
+	/*
+	 * Since the thread is expected to not be already detached,
+	 * pointer to it must be still valid.
+	 */
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&t->lock);
+	ASSERT(!t->detached);
+	if (t->state == Undead) {
+		thread_destroy(t);	/* unlocks &t->lock */
+		interrupts_restore(ipl);
+		return;
+	} else {
+		t->detached = true;
+	}
+	spinlock_unlock(&t->lock);
+	interrupts_restore(ipl);
 }
 
 /** Thread usleep

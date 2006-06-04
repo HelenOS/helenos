@@ -40,6 +40,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
+#include <time/delay.h>
 #include <arch/asm.h>
 #include <arch/faddr.h>
 #include <atomic.h>
@@ -374,7 +375,29 @@ void scheduler_separated_stack(void)
 			break;
 
 		    case Exiting:
-			thread_destroy(THREAD);
+repeat:
+		    	if (THREAD->detached) {
+				thread_destroy(THREAD);
+			} else {
+				/*
+				 * The thread structure is kept allocated until somebody
+				 * calls thread_detach() on it.
+				 */
+				if (!spinlock_trylock(&THREAD->join_wq.lock)) {
+					/*
+					 * Avoid deadlock.
+					 */
+					spinlock_unlock(&THREAD->lock);
+					delay(10);
+					spinlock_lock(&THREAD->lock);
+					goto repeat;
+				}
+				_waitq_wakeup_unsafe(&THREAD->join_wq, false);
+				spinlock_unlock(&THREAD->join_wq.lock);
+				
+				THREAD->state = Undead;
+				spinlock_unlock(&THREAD->lock);
+			}
 			break;
 			
 		    case Sleeping:
