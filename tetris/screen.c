@@ -113,6 +113,7 @@ void
 scr_init(void)
 {
 	con_phone = get_fd_phone(1);
+	send_call(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
 	resume_normal();
 	scr_clear();
 }

@@ -247,9 +247,8 @@ static void change_console(int newcons)
 				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
 		/* This call can preempt, but we are already at the end */
 		sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
-		curs_visibility(1);
+		curs_visibility(conn->screenbuffer.is_cursor_visible);
 	} else {
-		curs_visibility(0);
 		clrscr();
 		
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
@@ -259,7 +258,7 @@ static void change_console(int newcons)
 					prtchr(c, j, i);
 			}
 		
-		curs_visibility(1);
+		curs_visibility(conn->screenbuffer.is_cursor_visible);
 	}
 }
 
@@ -381,6 +380,12 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				set_style_col(arg1, arg2);
 				
 			break;
+		case CONSOLE_CURSOR_VISIBILITY:
+			arg1 = IPC_GET_ARG1(call);
+			connections[consnum].screenbuffer.is_cursor_visible = arg1;
+			if (consnum == active_console)
+				curs_visibility(arg1);
+			break;
 		case CONSOLE_GETCHAR:
 			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
 				/* buffer is empty -> store request */
@@ -393,7 +398,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				}
 				continue;
 			};
-			keybuffer_pop(&(connections[consnum].keybuffer), (char *)&arg1);
+			keybuffer_pop(&(connections[consnum].keybuffer), (int *)&arg1);
 			
 			break;
 		}
@@ -464,8 +469,8 @@ int main(int argc, char *argv[])
 
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
-	sync_send_2(fb_info.phone, FB_CURSOR_GOTO, 0, 0, NULL, NULL); 
-	nsend_call(fb_info.phone, FB_CURSOR_VISIBILITY, 1); 
+	curs_goto(0,0);
+	curs_visibility(connections[active_console].screenbuffer.is_cursor_visible);
 
 	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {

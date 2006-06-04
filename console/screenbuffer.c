@@ -60,6 +60,7 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	scr->size_y = size_y;
 	scr->style.fg_color = DEFAULT_FOREGROUND;
 	scr->style.bg_color = DEFAULT_BACKGROUND;
+	scr->is_cursor_visible = 1;
 	
 	screenbuffer_clear(scr);
 	

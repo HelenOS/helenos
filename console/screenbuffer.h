@@ -52,6 +52,7 @@ typedef struct {
 	unsigned int position_x, position_y;	/**< Coordinates of last printed character for determining cursor position */
 	style_t style;				/**< Current style */
 	unsigned int top_line;			/**< Points to buffer[][] line that will be printed at screen as the first line */
+	unsigned char is_cursor_visible;	/**< Cursor state - default is visible */
 } screenbuffer_t;
 
 /** Returns keyfield for position on screen. Screenbuffer->buffer is cyclic buffer so we must couted in index of the topmost line.
