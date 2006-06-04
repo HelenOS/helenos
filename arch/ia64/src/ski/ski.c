@@ -108,6 +108,7 @@ static char ski_getchar_blocking(chardev_t *d)
 void poll_keyboard(void)
 {
 	char ch;
+	static char last; 
 
 	if (kb_disable)
 		return;
@@ -122,10 +123,21 @@ void poll_keyboard(void)
 		}
 		else {
 			chardev_push_character(&ski_console, ch);
-
 		}	
-		
+		last = ch;		
+		return;
 	}	
+
+	if (last){
+		if(kbd_uspace){
+			chardev_push_character(&ski_uconsole, 0);
+			virtual_interrupt(IRQ_KBD,NULL);
+		}
+		else {
+		}	
+		last = 0;		
+	}	
+
 }
 
 /* Called from getc(). */
