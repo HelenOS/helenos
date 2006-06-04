@@ -699,6 +699,7 @@ static int draw_pixmap(int vp, int pm)
 		tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
 		memcpy(screen.fbaddress + tmp, pmap->data + y * srcrowsize, realrowsize);
 	}
+	return pm;
 }
 
 /** Handler for messages concerning pixmap handling */

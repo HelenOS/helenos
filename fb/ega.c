@@ -25,7 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
+#include <stdlib.h>
+#include <unistd.h>
 #include <align.h>
 #include <async.h>
 #include <ipc/ipc.h>
@@ -43,6 +44,13 @@
 #include "../console/screenbuffer.h"
 #include "main.h"
 
+#define MAX_SAVED_SCREENS 256
+typedef struct saved_screen {
+	short *data;
+} saved_screen;
+
+saved_screen saved_screens[MAX_SAVED_SCREENS];
+
 
 #define EGA_IO_ADDRESS 0x3d4
 #define EGA_IO_SIZE 2
@@ -59,7 +67,7 @@ static unsigned int scr_width;
 static unsigned int scr_height;
 static char *scr_addr;
 
-static unsigned int style = 0x0f;
+static unsigned int style = 0x1e;
 
 static inline void outb(u16 port, u8 b)
 {
@@ -113,7 +121,7 @@ static void clrscr(void)
 	}
 }
 
-void cursor_goto(unsigned int row, unsigned int col)
+static void cursor_goto(unsigned int row, unsigned int col)
 {
 	int ega_cursor;
 
@@ -125,7 +133,7 @@ void cursor_goto(unsigned int row, unsigned int col)
 	outb(EGA_IO_ADDRESS + 1, ega_cursor & 0xff);
 }
 
-void cursor_disable(void)
+static void cursor_disable(void)
 {
 	u8 stat;
 	outb(EGA_IO_ADDRESS , 0xa);
@@ -134,13 +142,28 @@ void cursor_disable(void)
 	outb(EGA_IO_ADDRESS +1 ,stat | (1<<5) );
 }
 
-void cursor_enable(void)
+static void cursor_enable(void)
 {
 	u8 stat;
 	outb(EGA_IO_ADDRESS , 0xa);
 	stat=inb(EGA_IO_ADDRESS + 1);
 	outb(EGA_IO_ADDRESS , 0xa);
 	outb(EGA_IO_ADDRESS +1 ,stat & (~(1<<5)) );
+}
+
+static void scroll(int rows)
+{
+	int i;
+	if (rows > 0) {
+		memcpy(scr_addr,((char *)scr_addr)+rows*scr_width*2,scr_width*scr_height*2-rows*scr_width*2);
+		for(i=0;i<rows*scr_width;i++)
+			(((short *)scr_addr)+scr_width*scr_height-rows*scr_width)[i]=((style<<8)+' ');
+	} else if (rows < 0) {
+
+		memcpy(((char *)scr_addr)-rows*scr_width*2,scr_addr,scr_width*scr_height*2+rows*scr_width*2);
+		for(i=0;i<-rows*scr_width;i++)
+			((short *)scr_addr)[i]=((style<<8)+' ');
+	}
 }
 
 static void printchar(char c, unsigned int row, unsigned int col)
@@ -158,11 +181,31 @@ static void draw_text_data(keyfield_t *data)
 	for (i=0; i < scr_width*scr_height; i++) {
 		scr_addr[i*2] = data[i].character;
 		if (data[i].style.fg_color > data[i].style.bg_color)
-			scr_addr[i*2+1] = 0x0f;
+			scr_addr[i*2+1] = 0x1e;
 		else
-			scr_addr[i*2+1] = 0xf0;
+			scr_addr[i*2+1] = 0xe1;
 	}
 }
+
+static int save_screen(void)
+{
+	int i;
+	short *mem;
+	for(i=0;(i<MAX_SAVED_SCREENS)&&(saved_screens[i].data);i++);
+	if(i==MAX_SAVED_SCREENS) return EINVAL;
+	if(!(saved_screens[i].data=malloc(2*scr_width*scr_height))) return ENOMEM;
+	memcpy(saved_screens[i].data,scr_addr,2*scr_width*scr_height);
+	return i;
+}
+
+static int print_screen(int i)
+{
+	if(saved_screens[i].data)
+			memcpy(scr_addr,saved_screens[i].data,2*scr_width*scr_height);
+	else return EINVAL;
+	return i;
+}
+
 
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -174,6 +217,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int bgcolor,fgcolor;
 	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;
+	int i;
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
@@ -234,6 +278,15 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			cursor_goto(row,col);
  			retval = 0;
  			break;
+		case FB_SCROLL:
+			i = IPC_GET_ARG1(call);
+			if (i > scr_height || i < (- (int)scr_height)) {
+				retval = EINVAL;
+				break;
+			}
+			scroll(i);
+			retval = 0;
+			break;
 		case FB_CURSOR_VISIBILITY:
 			if(IPC_GET_ARG1(call))
 				cursor_enable();
@@ -245,9 +298,29 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
 			if (fgcolor > bgcolor)
-				style = 0x0f;
+				style = 0x1e;
 			else
-				style = 0xf0;
+				style = 0xe1;
+
+		case FB_VP_DRAW_PIXMAP:
+			i = IPC_GET_ARG2(call);
+			retval = print_screen(i);
+			break;
+		case FB_VP2PIXMAP:
+			retval = save_screen();
+			break;
+		case FB_DROP_PIXMAP:
+			i = IPC_GET_ARG1(call);
+			if (i >= MAX_SAVED_SCREENS) {
+				retval = EINVAL;
+				break;
+			}
+			if (saved_screens[i].data) {
+				free(saved_screens[i].data);
+				saved_screens[i].data = NULL;
+			}
+			break;
+
 		default:
 			retval = ENOENT;
 		}
@@ -273,8 +346,6 @@ int ega_init(void)
 		    AS_AREA_READ | AS_AREA_WRITE);
 
 	async_set_client_connection(ega_client_connection);
-
-	clrscr();
 
 	return 0;
 }
