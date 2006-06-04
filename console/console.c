@@ -78,31 +78,15 @@ static int kernel_pixmap = -1;      /**< Number of fb pixmap, where kernel conso
 /** Find unused virtual console.
  *
  */
-static int find_free_connection() 
+static int find_free_connection(void) 
 {
 	int i = 0;
 	
-	while (i < CONSOLE_COUNT) {
-		if (connections[i].used == 0)
+	for (i=0; i < CONSOLE_COUNT; i++) {
+		if (!connections[i].used)
 			return i;
-		++i;
 	}
-	return CONSOLE_COUNT;
-}
-
-/** Find index of virtual console used by client with given phone.
- *
- */
-static int find_connection(int client_phone) 
-{
-	int i = 0;
-	
-	while (i < CONSOLE_COUNT) {
-		if (connections[i].client_phone == client_phone)
-			return i;
-		++i;
-	}
-	return  CONSOLE_COUNT;
+	return -1;
 }
 
 static void clrscr(void)
@@ -339,7 +323,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int consnum;
 	ipcarg_t arg1, arg2;
 
-	if ((consnum = find_free_connection()) == CONSOLE_COUNT) {
+	if ((consnum = find_free_connection()) == -1) {
 		ipc_answer_fast(iid,ELIMIT,0,0);
 		return;
 	}
@@ -448,7 +432,7 @@ int main(int argc, char *argv[])
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
 	/* Synchronize, the gcons can have something in queue */
-	sync_send_2(fb_info.phone, FB_GET_CSIZE, 0, 0, NULL, NULL);
+	sync_send(fb_info.phone, FB_FLUSH, 0, NULL);
 
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
@@ -469,6 +453,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 	}
+	connections[KERNEL_CONSOLE].used = 1;
 	
 	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
 		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
