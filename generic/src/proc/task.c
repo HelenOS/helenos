@@ -47,6 +47,7 @@
 #include <memstr.h>
 #include <print.h>
 #include <elf.h>
+#include <errno.h>
 #include <syscall/copy.h>
 
 #ifndef LOADED_PROG_STACK_PAGES_NO
@@ -56,6 +57,8 @@
 SPINLOCK_INITIALIZE(tasks_lock);
 btree_t tasks_btree;
 static task_id_t task_counter = 0;
+
+static void ktask_cleanup(void *);
 
 /** Initialize tasks
  *
@@ -94,7 +97,10 @@ task_t *task_create(as_t *as, char *name)
 	ta->as = as;
 	ta->name = name;
 
+	ta->refcount = 0;
+
 	ta->capabilities = 0;
+	ta->accept_new_threads = true;
 	
 	ipc_answerbox_init(&ta->answerbox);
 	for (i=0; i < IPC_MAX_PHONES;i++)
@@ -125,6 +131,14 @@ task_t *task_create(as_t *as, char *name)
 	interrupts_restore(ipl);
 
 	return ta;
+}
+
+/** Destroy task.
+ *
+ * @param t Task to be destroyed.
+ */
+void task_destroy(task_t *t)
+{
 }
 
 /** Create new task with 1 thread and run it
@@ -207,6 +221,60 @@ task_t *task_find_by_id(task_id_t id)
 	return (task_t *) btree_search(&tasks_btree, (btree_key_t) id, &leaf);
 }
 
+/** Kill task.
+ *
+ * @param id ID of the task to be killed.
+ *
+ * @return 0 on success or an error code from errno.h
+ */
+int task_kill(task_id_t id)
+{
+	ipl_t ipl;
+	task_t *ta;
+	thread_t *t;
+	link_t *cur;
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+
+	if (!(ta = task_find_by_id(id))) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+	
+	spinlock_lock(&ta->lock);
+	ta->refcount++;
+	spinlock_unlock(&ta->lock);
+	
+	t = thread_create(ktask_cleanup, NULL, ta, 0, "ktask_cleanup");
+	
+	spinlock_lock(&ta->lock);
+	ta->refcount--;
+	
+	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
+		thread_t *thr;
+		bool  sleeping = false;
+		
+		thr = list_get_instance(cur, thread_t, th_link);
+		if (thr == t)
+			continue;
+			
+		spinlock_lock(&thr->lock);
+		thr->interrupted = true;
+		if (thr->state == Sleeping)
+			sleeping = true;
+		spinlock_unlock(&thr->lock);
+		
+		if (sleeping)
+			waitq_interrupt_sleep(thr);
+	}
+	
+	thread_ready(t);
+	
+	return 0;
+}
+
 /** Print task list */
 void task_print_list(void)
 {
@@ -242,4 +310,16 @@ void task_print_list(void)
 
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
+}
+
+/** Kernel thread used to cleanup the task. */
+void ktask_cleanup(void *arg)
+{
+	/*
+	 * TODO:
+	 * Wait until it is save to cleanup the task (i.e. all other threads exit)
+	 * and do the cleanup (e.g. close IPC communication and release used futexes).
+	 * When this thread exits, the task refcount drops to zero and the task structure is
+	 * cleaned.
+	 */
 }

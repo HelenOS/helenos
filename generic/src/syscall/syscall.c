@@ -90,10 +90,26 @@ static __native sys_debug_enable_console(void)
 __native syscall_handler(__native a1, __native a2, __native a3,
 			 __native a4, __native id)
 {
+	__native rc;
+	ipl_t ipl;
+	bool exit = false;
+
 	if (id < SYSCALL_END)
-		return syscall_table[id](a1,a2,a3,a4);
+		rc = syscall_table[id](a1,a2,a3,a4);
 	else
 		panic("Undefined syscall %d", id);
+		
+	ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
+	if (THREAD->interrupted)
+		exit = true;
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
+	
+	if (exit)
+		thread_exit();
+	
+	return rc;
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {

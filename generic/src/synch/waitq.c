@@ -311,6 +311,12 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int flags)
 	 */
 	spinlock_lock(&THREAD->lock);
 
+	if (THREAD->interrupted) {
+		spinlock_unlock(&THREAD->lock);
+		spinlock_unlock(&wq->lock);
+		return ESYNCH_INTERRUPTED;
+	}
+
 	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
 		/*
 		 * Set context that will be restored if the sleep

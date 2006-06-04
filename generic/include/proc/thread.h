@@ -72,8 +72,6 @@ struct thread {
 	/** Lock protecting thread structure.
 	 *
 	 * Protects the whole thread structure except list links above.
-	 * Must be acquired before T.lock for each T of type task_t.
-	 * 
 	 */
 	SPINLOCK_DECLARE(lock);
 
@@ -98,7 +96,13 @@ struct thread {
 	bool in_copy_from_uspace;
 	/** True if this thread is executing copy_to_uspace(). False otherwise. */
 	bool in_copy_to_uspace;
-
+	
+	/**
+	 * If true, the thread will not go to sleep at all and will
+	 * call thread_exit() before returning to userspace.
+	 */
+	bool interrupted;			
+	
 	bool detached;				/**< If true, thread_join_timeout() cannot be used on this thread. */
 	waitq_t join_wq;			/**< Waitq for thread_join_timeout(). */
 

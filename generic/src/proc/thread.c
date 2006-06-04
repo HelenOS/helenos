@@ -233,6 +233,8 @@ void thread_ready(thread_t *t)
  */
 void thread_destroy(thread_t *t)
 {
+	bool destroy_task = false;	
+
 	ASSERT(t->state == Exiting);
 	ASSERT(t->task);
 	ASSERT(t->cpu);
@@ -242,18 +244,25 @@ void thread_destroy(thread_t *t)
 		t->cpu->fpu_owner=NULL;
 	spinlock_unlock(&t->cpu->lock);
 
+	spinlock_unlock(&t->lock);
+
+	spinlock_lock(&threads_lock);
+	btree_remove(&threads_btree, (btree_key_t) ((__address ) t), NULL);
+	spinlock_unlock(&threads_lock);
+
 	/*
 	 * Detach from the containing task.
 	 */
 	spinlock_lock(&t->task->lock);
 	list_remove(&t->th_link);
-	spinlock_unlock(&t->task->lock);
+	if (--t->task->refcount == 0) {
+		t->task->accept_new_threads = false;
+		destroy_task = true;
+	}
+	spinlock_unlock(&t->task->lock);	
 	
-	spinlock_unlock(&t->lock);
-	
-	spinlock_lock(&threads_lock);
-	btree_remove(&threads_btree, (btree_key_t) ((__address ) t), NULL);
-	spinlock_unlock(&threads_lock);
+	if (destroy_task)
+		task_destroy(t->task);
 	
 	slab_free(thread_slab, t);
 }
@@ -319,7 +328,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 
 	t->in_copy_from_uspace = false;
 	t->in_copy_to_uspace = false;
-	
+
+	t->interrupted = false;	
 	t->detached = false;
 	waitq_initialize(&t->join_wq);
 	
@@ -331,19 +341,25 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->fpu_context_engaged = 0;
 	
 	/*
+	 * Attach to the containing task.
+	 */
+	spinlock_lock(&task->lock);
+	if (!task->accept_new_threads) {
+		spinlock_unlock(&task->lock);
+		slab_free(thread_slab, t);
+		return NULL;
+	}
+	list_append(&t->th_link, &task->th_head);
+	task->refcount++;
+	spinlock_unlock(&task->lock);
+
+	/*
 	 * Register this thread in the system-wide list.
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 	btree_insert(&threads_btree, (btree_key_t) ((__address) t), (void *) t, NULL);
 	spinlock_unlock(&threads_lock);
-	
-	/*
-	 * Attach to the containing task.
-	 */
-	spinlock_lock(&task->lock);
-	list_append(&t->th_link, &task->th_head);
-	spinlock_unlock(&task->lock);
 	
 	interrupts_restore(ipl);
 	

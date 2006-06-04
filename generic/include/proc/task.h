@@ -40,11 +40,21 @@
 
 /** Task structure. */
 struct task {
+	/** Task lock.
+	 *
+	 * Must be acquired before threads_lock and thread lock of any of its threads.
+	 */
 	SPINLOCK_DECLARE(lock);
+	
 	char *name;
 	link_t th_head;		/**< List of threads contained in this task. */
 	as_t *as;		/**< Address space. */
 	task_id_t taskid;	/**< Unique identity of task */
+
+	/** If this is true, new threads can become part of the task. */
+	bool accept_new_threads;
+
+	count_t refcount;	/**< Number of references (i.e. threads). */
 
 	cap_t capabilities;	/**< Task capabilities. */
 
@@ -70,8 +80,11 @@ extern btree_t tasks_btree;
 
 extern void task_init(void);
 extern task_t *task_create(as_t *as, char *name);
+extern void task_destroy(task_t *t);
 extern task_t *task_run_program(void *program_addr, char *name);
 extern task_t *task_find_by_id(task_id_t id);
+extern int task_kill(task_id_t id);
+
 
 #ifndef task_create_arch
 extern void task_create_arch(task_t *t);
