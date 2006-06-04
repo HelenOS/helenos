@@ -205,6 +205,8 @@ static void change_console(int newcons)
 	connection_t *conn;
 	static int console_pixmap = -1;
 	int i, j;
+	keyfield_t *field;
+	style_t *style;
 	char c;
 
 	if (newcons == active_console)
@@ -241,25 +243,35 @@ static void change_console(int newcons)
 
 	set_style(&conn->screenbuffer.style);
 	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
+	curs_visibility(0);
+	
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
 				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
 		/* This call can preempt, but we are already at the end */
-		sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
-		curs_visibility(conn->screenbuffer.is_cursor_visible);
-	} else {
+		j = sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
+	};
+	
+	if ((!interbuffer) || (j != 0)){
+		set_style(&conn->screenbuffer.style);
 		clrscr();
-		
-		for (i = 0; i < conn->screenbuffer.size_x; i++)
-			for (j = 0; j < conn->screenbuffer.size_y; j++) {
-				c = get_field_at(&(conn->screenbuffer),i, j)->character;
-				if (c && c != ' ')
-					prtchr(c, j, i);
+		style = &conn->screenbuffer.style;
+
+		for (j = 0; j < conn->screenbuffer.size_y; j++) 
+			for (i = 0; i < conn->screenbuffer.size_x; i++) {
+				field = get_field_at(&(conn->screenbuffer),i, j);
+				if (!style_same(*style, field->style))
+					set_style(&field->style);
+				style = &field->style;
+				if ((field->character == ' ') && (style_same(field->style, conn->screenbuffer.style)))
+					continue;
+
+				prtchr(field->character, j, i);
 			}
-		
-		curs_visibility(conn->screenbuffer.is_cursor_visible);
 	}
+	
+	curs_visibility(conn->screenbuffer.is_cursor_visible);
 }
 
 /** Handler for keyboard */
