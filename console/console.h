@@ -29,7 +29,7 @@
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
-#define KERNEL_CONSOLE 9
+#define KERNEL_CONSOLE 11
 
 #define CONSOLE_COUNT 12 
 
