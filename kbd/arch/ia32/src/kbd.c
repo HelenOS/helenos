@@ -99,8 +99,8 @@ static int sc_primary_map[] = {
 	SPECIAL, /* 0x54 - Alt-SysRq */
 	SPECIAL, /* 0x55 - F11/F12/PF1/FN */
 	SPECIAL, /* 0x56 - unlabelled key next to LAlt */
-	FUNCTION_KEYS | 11, /* 0x57 - F11 */
-	FUNCTION_KEYS | 12, /* 0x58 - F12 */
+	(FUNCTION_KEYS | 11), /* 0x57 - F11 */
+	(FUNCTION_KEYS | 12), /* 0x58 - F12 */
 	SPECIAL, /* 0x59 */
 	SPECIAL, /* 0x5a */
 	SPECIAL, /* 0x5b */
@@ -143,7 +143,7 @@ static int sc_primary_map[] = {
 };
 
 /** Secondary meaning of scancodes. */
-static char sc_secondary_map[] = {
+static int sc_secondary_map[] = {
 	SPECIAL, /* 0x00 */
 	SPECIAL, /* 0x01 - Esc */
 	'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
