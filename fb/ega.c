@@ -304,7 +304,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				style = 0x1e;
 			else
 				style = 0xe1;
-
+			break;
 		case FB_VP_DRAW_PIXMAP:
 			i = IPC_GET_ARG2(call);
 			retval = print_screen(i);
