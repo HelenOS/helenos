@@ -255,14 +255,16 @@ static void change_console(int newcons)
 	gcons_change_console(newcons);
 	conn = &connections[active_console];
 
-	curs_visibility(0);
+	set_style(&conn->screenbuffer.style);
+	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
 				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
-		
+		/* This call can preempt, but we are already at the end */
 		sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 	} else {
+		curs_visibility(0);
 		clrscr();
 		
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
@@ -272,10 +274,8 @@ static void change_console(int newcons)
 					prtchr(c, j, i);
 			}
 		
+		curs_visibility(1);
 	}
-	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
-	set_style(&conn->screenbuffer.style);
-	curs_visibility(1);
 }
 
 /** Handler for keyboard */
@@ -375,6 +375,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_GOTO:
 			
 			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call), IPC_GET_ARG1(call));
+			curs_goto(IPC_GET_ARG1(call),IPC_GET_ARG2(call));
 			
 			break;
 
