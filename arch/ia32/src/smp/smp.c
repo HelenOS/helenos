@@ -84,13 +84,6 @@ void smp_init(void)
 		l_apic = (__u32 *) l_apic_address;
 		io_apic = (__u32 *) io_apic_address;
         }
-
-        /* 
-         * Must be initialized outside the kmp thread, since it is waited
-         * on before the kmp thread is created.
-         */
-        waitq_initialize(&kmp_completion_wq);
-
 }
 
 /*
@@ -172,12 +165,6 @@ void kmp(void *arg)
 		} else
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));
 	}
-
-	/*
-	 * Wakeup the kinit thread so that
-	 * system initialization can go on.
-	 */
-	waitq_wakeup(&kmp_completion_wq, WAKEUP_FIRST);
 }
 
 int smp_irq_to_pin(int irq)

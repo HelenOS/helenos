@@ -37,6 +37,7 @@
 #include <typedefs.h>
 #include <time/timeout.h>
 #include <synch/rwlock.h>
+#include <synch/synch.h>
 #include <config.h>
 #include <adt/btree.h>
 #include <adt/list.h>
@@ -154,6 +155,7 @@ extern void thread_create_arch(thread_t *t);
 extern void thread_sleep(__u32 sec);
 extern void thread_usleep(__u32 usec);
 
+#define thread_join(t)	thread_join_timeout((t), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
 extern int thread_join_timeout(thread_t *t, __u32 usec, int flags);
 extern void thread_detach(thread_t *t);
 

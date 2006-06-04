@@ -82,6 +82,11 @@ void kinit(void *arg)
 	thread_t *t;
 	task_t *utask;
 
+	/*
+	 * Detach kinit as nobody will call thread_join_timeout() on it.
+	 */
+	thread_detach(THREAD);
+
 	interrupts_disable();
 
 #ifdef CONFIG_SMP		 	
@@ -98,9 +103,11 @@ void kinit(void *arg)
 			t->cpu = &cpus[0];
 			spinlock_unlock(&t->lock);
 			thread_ready(t);
-			waitq_sleep(&kmp_completion_wq);
 		}
-		else panic("thread_create/kmp\n");
+		else {
+			panic("thread_create/kmp\n");
+		}
+		thread_join(t);
 	}
 #endif /* CONFIG_SMP */
 	/*

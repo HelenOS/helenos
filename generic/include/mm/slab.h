@@ -78,7 +78,7 @@ typedef struct {
 
 	link_t link;
 	/* Configuration */
-	size_t size;      /**< Size of SLAB position - align_up(sizeof(obj)) */
+	size_t size;      /**< Size of slab position - align_up(sizeof(obj)) */
 	int (*constructor)(void *obj, int kmflag);
 	int (*destructor)(void *obj);
 	int flags;        /**< Flags changing behaviour of cache */
@@ -91,7 +91,7 @@ typedef struct {
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
-	atomic_t magazine_counter; /*<< How many magazines in magazines list */
+	atomic_t magazine_counter; /**< How many magazines in magazines list */
 
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */
@@ -117,14 +117,14 @@ extern void * slab_alloc(slab_cache_t *cache, int flags);
 extern void slab_free(slab_cache_t *cache, void *obj);
 extern count_t slab_reclaim(int flags);
 
-/** Initialize SLAB subsytem */
+/** Initialize slab subsytem */
 extern void slab_cache_init(void);
 extern void slab_enable_cpucache(void);
 
-/* KConsole debug */
+/* kconsole debug */
 extern void slab_print_list(void);
 
-/* Malloc support */
+/* malloc support */
 extern void * malloc(unsigned int size, int flags);
 extern void free(void *obj);
 #endif

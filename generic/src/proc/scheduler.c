@@ -516,6 +516,11 @@ void kcpulb(void *arg)
 	int count, average, i, j, k = 0;
 	ipl_t ipl;
 
+	/*
+	 * Detach kcpulb as nobody will call thread_join_timeout() on it.
+	 */
+	thread_detach(THREAD);
+	
 loop:
 	/*
 	 * Work in 1s intervals.

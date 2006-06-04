@@ -116,7 +116,6 @@ struct __l_intr_entry {
 
 
 extern waitq_t ap_completion_wq;
-extern waitq_t kmp_completion_wq;
 
 extern struct smp_config_operations mps_config_operations;
 
