@@ -140,7 +140,7 @@ call_t * get_call(__native callid)
 	spinlock_lock(&TASK->answerbox.lock);
 	for (lst = TASK->answerbox.dispatched_calls.next;
 	     lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
-		call = list_get_instance(lst, call_t, list);
+		call = list_get_instance(lst, call_t, link);
 		if ((__native)call == callid) {
 			result = call;
 			break;
@@ -177,7 +177,6 @@ int phone_alloc(void)
 static void phone_deallocp(phone_t *phone)
 {
 	ASSERT(phone->state == IPC_PHONE_CONNECTING);
-	ASSERT(! phone->callee);
 	
 	/* atomic operation */
 	phone->state = IPC_PHONE_FREE;

@@ -110,12 +110,11 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
 	spinlock_lock(&phone->lock);
 
-	ASSERT(!phone->callee);
 	phone->state = IPC_PHONE_CONNECTED;
 	phone->callee = box;
 
 	spinlock_lock(&box->lock);
-	list_append(&phone->list, &box->connected_phones);
+	list_append(&phone->link, &box->connected_phones);
 	spinlock_unlock(&box->lock);
 
 	spinlock_unlock(&phone->lock);
@@ -155,7 +154,7 @@ static void _ipc_answer_free_call(call_t *call)
 	call->flags |= IPC_CALL_ANSWERED;
 
 	spinlock_lock(&callerbox->lock);
-	list_append(&call->list, &callerbox->answers);
+	list_append(&call->link, &callerbox->answers);
 	spinlock_unlock(&callerbox->lock);
 	waitq_wakeup(&callerbox->wq, 0);
 }
@@ -169,7 +168,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
 {
 	/* Remove from active box */
 	spinlock_lock(&box->lock);
-	list_remove(&call->list);
+	list_remove(&call->link);
 	spinlock_unlock(&box->lock);
 	/* Send back answer */
 	_ipc_answer_free_call(call);
@@ -197,7 +196,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	}
 
 	spinlock_lock(&box->lock);
-	list_append(&call->list, &box->calls);
+	list_append(&call->link, &box->calls);
 	spinlock_unlock(&box->lock);
 	waitq_wakeup(&box->wq, 0);
 }
@@ -261,7 +260,7 @@ int ipc_phone_hangup(phone_t *phone, int aggressive)
 	if (phone->state != IPC_PHONE_SLAMMED) {
 		/* Remove myself from answerbox */
 		spinlock_lock(&box->lock);
-		list_remove(&phone->list);
+		list_remove(&phone->link);
 		spinlock_unlock(&box->lock);
 
 		if (phone->state != IPC_PHONE_SLAMMED) {
@@ -276,8 +275,6 @@ int ipc_phone_hangup(phone_t *phone, int aggressive)
 		/* TODO: Do some stuff be VERY aggressive */
 	}
 
-	phone->callee = 0;
-	
 	phone->state = IPC_PHONE_HUNGUP;
 	spinlock_unlock(&phone->lock);
 
@@ -297,7 +294,7 @@ int ipc_phone_hangup(phone_t *phone, int aggressive)
 int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 {
 	spinlock_lock(&oldbox->lock);
-	list_remove(&call->list);
+	list_remove(&call->link);
 	spinlock_unlock(&oldbox->lock);
 
 	return ipc_call(newphone, call);
@@ -330,22 +327,22 @@ restart:
 		ipl = interrupts_disable();
 		spinlock_lock(&box->irq_lock);
 
-		request = list_get_instance(box->irq_notifs.next, call_t, list);
-		list_remove(&request->list);
+		request = list_get_instance(box->irq_notifs.next, call_t, link);
+		list_remove(&request->link);
 
 		spinlock_unlock(&box->irq_lock);
 		interrupts_restore(ipl);
 	} else if (!list_empty(&box->answers)) {
 		/* Handle asynchronous answers */
-		request = list_get_instance(box->answers.next, call_t, list);
-		list_remove(&request->list);
+		request = list_get_instance(box->answers.next, call_t, link);
+		list_remove(&request->link);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Handle requests */
-		request = list_get_instance(box->calls.next, call_t, list);
-		list_remove(&request->list);
+		request = list_get_instance(box->calls.next, call_t, link);
+		list_remove(&request->link);
 		/* Append request to dispatch queue */
-		list_append(&request->list, &box->dispatched_calls);
+		list_append(&request->link, &box->dispatched_calls);
 	} else {
 		/* This can happen regularly after ipc_cleanup, remove
 		 * the warning in the future when the IPC is
@@ -364,8 +361,8 @@ static void ipc_cleanup_call_list(link_t *lst)
 	call_t *call;
 
 	while (!list_empty(lst)) {
-		call = list_get_instance(lst->next, call_t, list);
-		list_remove(&call->list);
+		call = list_get_instance(lst->next, call_t, link);
+		list_remove(&call->link);
 
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		_ipc_answer_free_call(call);
@@ -394,8 +391,7 @@ restart_phones:
 	spinlock_lock(&task->answerbox.lock);
 	while (!list_empty(&task->answerbox.connected_phones)) {
 		phone = list_get_instance(task->answerbox.connected_phones.next,
-					  phone_t,
-					  list);
+					  phone_t, link);
 		if (! spinlock_trylock(&phone->lock)) {
 			spinlock_unlock(&task->answerbox.lock);
 			goto restart_phones;
@@ -404,7 +400,7 @@ restart_phones:
 		/* Disconnect phone */
 		ASSERT(phone->state == IPC_PHONE_CONNECTED);
 		phone->state = IPC_PHONE_SLAMMED;
-		list_remove(&phone->list);
+		list_remove(&phone->link);
 
 		spinlock_unlock(&phone->lock);
 	}
@@ -451,3 +447,82 @@ void ipc_init(void)
 	ipc_irq_make_table(IRQ_COUNT);
 }
 
+
+/** Kconsole - list answerbox contents */
+void ipc_print_task(task_id_t taskid)
+{
+	task_t *task;
+	int i;
+	call_t *call;
+	link_t *tmp;
+	
+	spinlock_lock(&tasks_lock);
+	task = task_find_by_id(taskid);
+	if (task) 
+		spinlock_lock(&task->lock);
+	spinlock_unlock(&tasks_lock);
+	if (!task)
+		return;
+
+	/* Print opened phones & details */
+	printf("PHONE:\n");
+	for (i=0; i < IPC_MAX_PHONES;i++) {
+		spinlock_lock(&task->phones[i].lock);
+		if (task->phones[i].state != IPC_PHONE_FREE) {
+			printf("%d: ",i);
+			switch (task->phones[i].state) {
+			case IPC_PHONE_CONNECTING:
+				printf("connecting ");
+				break;
+			case IPC_PHONE_CONNECTED:
+				printf("connected to: %P ", 
+				       task->phones[i].callee);
+				break;
+			case IPC_PHONE_SLAMMED:
+				printf("slammed by: %P ", 
+				       task->phones[i].callee);
+				break;
+			case IPC_PHONE_HUNGUP:
+				printf("hung up - was: %P ", 
+				       task->phones[i].callee);
+				break;
+			default:
+				break;
+			}
+			printf("active: %d\n", atomic_get(&task->phones[i].active_calls));
+		}
+		spinlock_unlock(&task->phones[i].lock);
+	}
+
+
+	/* Print answerbox - calls */
+	spinlock_lock(&task->answerbox.lock);
+	printf("ABOX - CALLS:\n");
+	for (tmp=task->answerbox.calls.next; tmp != &task->answerbox.calls;tmp = tmp->next) {
+		call = list_get_instance(tmp, call_t, link);
+		printf("Callid: %P Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+	}
+	/* Print answerbox - calls */
+	printf("ABOX - DISPATCHED CALLS:\n");
+	for (tmp=task->answerbox.dispatched_calls.next; 
+	     tmp != &task->answerbox.dispatched_calls; 
+	     tmp = tmp->next) {
+		call = list_get_instance(tmp, call_t, link);
+		printf("Callid: %P Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+	}
+	/* Print answerbox - calls */
+	printf("ABOX - ANSWERS:\n");
+	for (tmp=task->answerbox.answers.next; tmp != &task->answerbox.answers; tmp = tmp->next) {
+		call = list_get_instance(tmp, call_t, link);
+		printf("Callid:%P M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		       IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+	}
+
+	spinlock_unlock(&task->answerbox.lock);
+	spinlock_unlock(&task->lock);
+}

@@ -58,6 +58,7 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <ipc/ipc.h>
 
 /** Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -300,6 +301,19 @@ static cmd_info_t zones_info = {
 	.argc = 0
 };
 
+/** Data and methods for 'ipc_task' command */
+static int cmd_ipc_task(cmd_arg_t *argv);
+static cmd_arg_t ipc_task_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t ipc_task_info = {
+	.name = "ipc_task",
+	.description = "Show memory zone structure.",
+	.func = cmd_ipc_task,
+	.argc = 1,
+	.argv = &ipc_task_argv
+};
+
 /** Data and methods for 'zone' command */
 static int cmd_zone(cmd_arg_t *argv);
 static cmd_arg_t zone_argv = {
@@ -347,6 +361,7 @@ static cmd_info_t *basic_commands[] = {
 	&exit_info,
 	&halt_info,
 	&help_info,
+	&ipc_task_info,
 	&set4_info,
 	&slabs_info,
 	&symaddr_info,
@@ -685,6 +700,18 @@ int cmd_zone(cmd_arg_t * argv) {
 	zone_print_one(argv[0].intval);
 	return 1;
 }
+
+/** Command for printing task ipc details
+ *
+ * @param argv Integer argument from cmdline expected
+ *
+ * return Always 1
+ */
+int cmd_ipc_task(cmd_arg_t * argv) {
+	ipc_print_task(argv[0].intval);
+	return 1;
+}
+
 
 /** Command for listing processors.
  *

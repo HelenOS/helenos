@@ -229,8 +229,8 @@ void task_print_list(void)
 			t = (task_t *) node->value[i];
 		
 			spinlock_lock(&t->lock);
-			printf("%s: address=%#zX, taskid=%#llX, as=%#zX, ActiveCalls: %zd",
-				t->name, t, t->taskid, t->as, atomic_get(&t->active_calls));
+			printf("%s(%lld): address=%#zX, as=%#zX, ActiveCalls: %zd",
+				t->name, t->taskid, t, t->as, atomic_get(&t->active_calls));
 			for (j=0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
 					printf(" Ph(%zd): %#zX ", j, t->phones[j].callee);

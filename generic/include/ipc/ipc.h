@@ -185,16 +185,17 @@ typedef enum {
 	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
 } ipc_phone_state_t;
 
+/** Structure identifying phone (in TASK structure) */
 struct phone_s {
 	SPINLOCK_DECLARE(lock);
-	link_t list;
+	link_t link;
 	answerbox_t *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
 };
 
 typedef struct {
-	link_t list;
+	link_t link;
 
 	int flags;
 
@@ -226,6 +227,7 @@ extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 extern void ipc_cleanup(task_t *task);
 extern int ipc_phone_hangup(phone_t *phone, int aggressive);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
+extern void ipc_print_task(task_id_t taskid);
 
 extern answerbox_t *ipc_phone_0;
 

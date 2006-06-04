@@ -106,7 +106,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		spinlock_lock(&answer->data.phone->lock);
 		spinlock_lock(&TASK->answerbox.lock);
 		if (answer->data.phone->state == IPC_PHONE_CONNECTED) {
-			list_remove(&answer->data.phone->list);
+			list_remove(&answer->data.phone->link);
 			answer->data.phone->state = IPC_PHONE_SLAMMED;
 		}
 		spinlock_unlock(&TASK->answerbox.lock);

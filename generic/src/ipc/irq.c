@@ -224,7 +224,7 @@ void ipc_irq_send_notif(int irq)
 		code_execute(call, irq_conns[irq].code);
 
 		spinlock_lock(&irq_conns[irq].box->irq_lock);
-		list_append(&call->list, &irq_conns[irq].box->irq_notifs);
+		list_append(&call->link, &irq_conns[irq].box->irq_notifs);
 		spinlock_unlock(&irq_conns[irq].box->irq_lock);
 
 		waitq_wakeup(&irq_conns[irq].box->wq, 0);
