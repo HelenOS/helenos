@@ -99,11 +99,13 @@ static void set_style(int fgcolor, int bgcolor)
 	nsend_call_2(fbphone, FB_SET_STYLE, fgcolor, bgcolor);
 }
 
-static void putch(char c, int row, int col)
+/** Transparent putchar */
+static void tran_putch(char c, int row, int col)
 {
-	nsend_call_3(fbphone, FB_PUTCHAR, c, row, col);
+	nsend_call_3(fbphone, FB_TRANS_PUTCHAR, c, row, col);
 }
 
+/** Redraw the button showing state of a given console */
 static void redraw_state(int consnum)
 {
 	char data[5];
@@ -117,7 +119,7 @@ static void redraw_state(int consnum)
  	if (state != CONS_DISCONNECTED && state != CONS_KERNEL && state != CONS_DISCONNECTED_SEL) {
  		snprintf(data, 5, "%d", consnum+1);
  		for (i=0;data[i];i++)
- 			putch(data[i], 1, 2+i);
+ 			tran_putch(data[i], 1, 2+i);
  	}
 }
 
@@ -170,6 +172,7 @@ void gcons_notify_char(int consnum)
 	vp_switch(console_vp);
 }
 
+/** Notification function called on console connect */
 void gcons_notify_connect(int consnum)
 {
 	if (!use_gcons)
@@ -238,6 +241,7 @@ extern char _binary_helenos_ppm_start[0];
 extern int _binary_helenos_ppm_size;
 extern char _binary_nameic_ppm_start[0];
 extern int _binary_nameic_ppm_size;
+/** Redraws console graphics  */
 static void gcons_redraw_console(void)
 {
 	int i;
@@ -252,12 +256,17 @@ static void gcons_redraw_console(void)
 	draw_pixmap(_binary_helenos_ppm_start, (size_t)&_binary_helenos_ppm_size, xres-66, 2);
 	draw_pixmap(_binary_nameic_ppm_start, (size_t)&_binary_nameic_ppm_size, 5, 17);
 
-
 	for (i=0;i < CONSOLE_COUNT; i++) 
 		redraw_state(i);
 	vp_switch(console_vp);
 }
 
+/** Creates a pixmap on framebuffer
+ *
+ * @param data PPM data
+ * @param size PPM data size
+ * @return Pixmap identification
+ */
 static int make_pixmap(char *data, int size)
 {
 	char *shm;

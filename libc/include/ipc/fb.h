@@ -29,4 +29,6 @@
 #define FB_VP2PIXMAP         1043
 #define FB_DROP_PIXMAP       1044
 
+#define FB_TRANS_PUTCHAR     1045
+
 #endif

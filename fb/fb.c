@@ -266,8 +266,16 @@ static void invert_pixel(int vp,unsigned int x, unsigned int y)
 /***************************************************************/
 /* Character-console functions */
 
-/** Draw character at given position */
-static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy, style_t style)
+/** Draw character at given position
+ *
+ * @param vp Viewport where the character is printed
+ * @param sx Coordinates of top-left of the character
+ * @param sy Coordinates of top-left of the character
+ * @param style Color of the character
+ * @param transparent If false, print background color
+ */
+static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy, 
+		       style_t style, int transparent)
 {
 	int i;
 	unsigned int y;
@@ -278,7 +286,7 @@ static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy, styl
 		for (i = 0; i < 8; i++) {
 			if (glline & (1 << (7 - i)))
 				putpixel(vp, sx + i, sy + y, style.fg_color);
-			else
+			else if (!transparent)
 				putpixel(vp, sx + i, sy + y, style.bg_color);
 		}
 	}
@@ -426,8 +434,9 @@ static void cursor_blink(int vp)
  * @param c Character to print
  * @param row Screen position relative to viewport
  * @param col Screen position relative to viewport
+ * @param transparent If false, print background color with character
  */
-static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_t style)
+static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_t style, int transparent)
 {
 	viewport_t *vport = &viewports[vp];
 
@@ -436,7 +445,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_
 	    (vport->cur_col != col || vport->cur_row != row))
 		invert_char(vp, vport->cur_row, vport->cur_col);
 	
-	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES, style);
+	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES, style, transparent);
 
 	vport->cur_col = col;
 	vport->cur_row = row;
@@ -469,7 +478,8 @@ static void draw_text_data(int vp, keyfield_t *data)
 			continue;
 		col = i % vport->cols;
 		row = i / vport->cols;
-		draw_glyph(vp, data[i].character, col * COL_WIDTH, row * FONT_SCANLINES, data[i].style);
+		draw_glyph(vp, data[i].character, col * COL_WIDTH, row * FONT_SCANLINES, 
+			   data[i].style, style_same(data[i].style,vport->style));
 	}
 	cursor_print(vp);
 }
@@ -778,6 +788,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return; /* Exit thread */
 
 		case FB_PUTCHAR:
+		case FB_TRANS_PUTCHAR:
 			c = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);
 			col = IPC_GET_ARG3(call);
@@ -787,7 +798,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			ipc_answer_fast(callid,0,0,0);
 
-			draw_char(vp, c, row, col, vport->style);
+			draw_char(vp, c, row, col, vport->style, IPC_GET_METHOD(call) == FB_TRANS_PUTCHAR);
 			continue; /* msg already answered */
 		case FB_CLEAR:
 			clear_port(vp);
