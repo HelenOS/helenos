@@ -34,9 +34,6 @@ SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
-ifeq ($(ARCH), mips32)
-	CFLAGS += -DFB_BIG_ENDIAN
-endif
 
 LIBS =  $(LIBC_PREFIX)/libc.a
 
@@ -49,15 +46,22 @@ SOURCES = \
 	sysio.c \
 	ppm.c
 
+ifneq ($(ARCH), ia64)
+	SOURCES += fb.c \
+		font-8x16.c
+	CFLAGS += -DFB_ENABLED
+endif
+
 ifeq ($(ARCH), ia32)
-	SOURCES += 	fb.c \
-	font-8x16.c \
-	ega.c 
+	SOURCES += ega.c
+	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), amd64)
-	SORCES += 	fb.c \
-	font-8x16.c \
-	ega.c 
+	SOURCES += ega.c
+	CFLAGS += -DEGA_ENABLED
+endif
+ifeq ($(ARCH), mips32)
+	CFLAGS += -DFB_BIG_ENDIAN
 endif
 
 CFLAGS += -D$(ARCH)
