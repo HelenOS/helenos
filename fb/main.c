@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
 	ipcarg_t phonead;
 	int initialized = 0;
 
+#ifdef ia32
 	if (sysinfo_value("fb.kind") == 1) {
 		if (fb_init() == 0)
 			initialized = 1;
@@ -63,6 +64,19 @@ int main(int argc, char *argv[])
 		if (ega_init() == 0)
 			initialized = 1;
 	}
+#endif
+
+#ifdef amd64 
+	if (sysinfo_value("fb.kind") == 1) {
+		if (fb_init() == 0)
+			initialized = 1;
+	} else if (sysinfo_value("fb.kind") == 2) {
+		if (ega_init() == 0)
+			initialized = 1;
+	}
+#endif
+
+
 	
 	if (!initialized)
 		sysio_init();

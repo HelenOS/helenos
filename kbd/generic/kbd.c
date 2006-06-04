@@ -91,16 +91,21 @@ int main(int argc, char **argv)
 
 			case IPC_M_INTERRUPT:
 				if (connected) {
+					int chr;
 					/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
 					kbd_arch_process(&keybuffer, IPC_GET_ARG2(call));
 
 					retval = 0;
+					
 
 					while (!keybuffer_empty(&keybuffer)) {
-						if (!keybuffer_pop(&keybuffer, (char *)&arg1)) {
+						if (!keybuffer_pop(&keybuffer, (int *)&chr)) {
 							break;
 						}
-						send_call(phoneid, KBD_PUSHCHAR, arg1);
+						{
+							arg1=chr;
+							send_call(phoneid, KBD_PUSHCHAR, arg1);
+						}    
 					}
 
 				}

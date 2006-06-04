@@ -45,12 +45,23 @@ LIBS =  $(LIBC_PREFIX)/libc.a
 
 OUTPUT = fb
 SOURCES = \
-	fb.c \
-	font-8x16.c \
 	main.c \
 	sysio.c \
-	ega.c \
 	ppm.c
+
+ifeq ($(ARCH), ia32)
+	SOURCES += 	fb.c \
+	font-8x16.c \
+	ega.c 
+endif
+ifeq ($(ARCH), amd64)
+	SORCES += 	fb.c \
+	font-8x16.c \
+	ega.c 
+endif
+
+CFLAGS += -D$(ARCH)
+
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

@@ -284,7 +284,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-	char c;
+	int c;
 	connection_t *conn;
 	
 	/* Ignore parameters, the connection is alread opened */
@@ -304,11 +304,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
-			if ((c >= '0') && (c < '0' + CONSOLE_COUNT)) {
-				if (c == '0')
+			if ((c >= 0x101) && (c < 0x101 + CONSOLE_COUNT)) {
+				if (c == 0x112)
 					change_console(KERNEL_CONSOLE);
 				else
-					change_console(c - '1');
+					change_console(c - 0x101);
 				break;
 			}
 			

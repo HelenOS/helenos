@@ -72,7 +72,7 @@ int keybuffer_empty(keybuffer_t *keybuffer)
  * If buffer is full, character is ignored.
  * @param key code of stored key
  */
-void keybuffer_push(keybuffer_t *keybuffer, char key)
+void keybuffer_push(keybuffer_t *keybuffer, int key)
 {
 	futex_down(&keybuffer_futex);
 	if (keybuffer->items < KEYBUFFER_SIZE) {
@@ -87,12 +87,12 @@ void keybuffer_push(keybuffer_t *keybuffer, char key)
  * @param c pointer to space where to store character from buffer.
  * @return zero on empty buffer, nonzero else
  */
-int keybuffer_pop(keybuffer_t *keybuffer, char *c)
+int keybuffer_pop(keybuffer_t *keybuffer, int *c)
 {
 	futex_down(&keybuffer_futex);
 	if (keybuffer->items > 0) {
 		keybuffer->items--;
-		*c = keybuffer->fifo[keybuffer->head];
+		*c = (keybuffer->fifo[keybuffer->head]) ;
 		keybuffer->head = (keybuffer->head + 1) % KEYBUFFER_SIZE;
 		futex_up(&keybuffer_futex);
 		return 1;

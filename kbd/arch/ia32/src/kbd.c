@@ -57,11 +57,13 @@
 #define SC_HOME         0x47
 #define SC_END          0x4f
 
+#define FUNCTION_KEYS 0x100
+
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
 /** Primary meaning of scancodes. */
-static char sc_primary_map[] = {
+static int sc_primary_map[] = {
 	SPECIAL, /* 0x00 */
 	SPECIAL, /* 0x01 - Esc */
 	'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
@@ -78,16 +80,16 @@ static char sc_primary_map[] = {
 	SPECIAL, /* 0x38 - LAlt */
 	' ',
 	SPECIAL, /* 0x3a - CapsLock */
-	SPECIAL, /* 0x3b - F1 */
-	SPECIAL, /* 0x3c - F2 */
-	SPECIAL, /* 0x3d - F3 */
-	SPECIAL, /* 0x3e - F4 */
-	SPECIAL, /* 0x3f - F5 */
-	SPECIAL, /* 0x40 - F6 */
-	SPECIAL, /* 0x41 - F7 */
-	SPECIAL, /* 0x42 - F8 */
-	SPECIAL, /* 0x43 - F9 */
-	SPECIAL, /* 0x44 - F10 */
+	(FUNCTION_KEYS | 1), /* 0x3b - F1 */
+	(FUNCTION_KEYS | 2), /* 0x3c - F2 */
+	(FUNCTION_KEYS | 3), /* 0x3d - F3 */
+	(FUNCTION_KEYS | 4), /* 0x3e - F4 */
+	(FUNCTION_KEYS | 5), /* 0x3f - F5 */
+	(FUNCTION_KEYS | 6), /* 0x40 - F6 */
+	(FUNCTION_KEYS | 7), /* 0x41 - F7 */
+	(FUNCTION_KEYS | 8), /* 0x42 - F8 */
+	(FUNCTION_KEYS | 9), /* 0x43 - F9 */
+	(FUNCTION_KEYS | 10), /* 0x44 - F10 */
 	SPECIAL, /* 0x45 - NumLock */
 	SPECIAL, /* 0x46 - ScrollLock */
 	'7', '8', '9', '-',
@@ -97,8 +99,8 @@ static char sc_primary_map[] = {
 	SPECIAL, /* 0x54 - Alt-SysRq */
 	SPECIAL, /* 0x55 - F11/F12/PF1/FN */
 	SPECIAL, /* 0x56 - unlabelled key next to LAlt */
-	SPECIAL, /* 0x57 - F11 */
-	SPECIAL, /* 0x58 - F12 */
+	FUNCTION_KEYS | 11, /* 0x57 - F11 */
+	FUNCTION_KEYS | 12, /* 0x58 - F12 */
 	SPECIAL, /* 0x59 */
 	SPECIAL, /* 0x5a */
 	SPECIAL, /* 0x5b */
@@ -250,10 +252,10 @@ static int key_released(keybuffer_t *keybuffer, unsigned char key)
 
 static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 {
-	char *map = sc_primary_map;
-	char ascii = sc_primary_map[key];
-	char shift, capslock;
-	char letter = 0;
+	int *map = sc_primary_map;
+	int ascii = sc_primary_map[key];
+	int shift, capslock;
+	int letter = 0;
 
 	switch (key) {
 		case SC_LSHIFT:
