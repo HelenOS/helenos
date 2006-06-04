@@ -111,7 +111,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	spinlock_lock(&phone->lock);
 
 	ASSERT(!phone->callee);
-	phone->busy = IPC_BUSY_CONNECTED;
+	phone->state = IPC_PHONE_CONNECTED;
 	phone->callee = box;
 
 	spinlock_lock(&box->lock);
@@ -127,7 +127,7 @@ void ipc_phone_init(phone_t *phone)
 {
 	spinlock_initialize(&phone->lock, "phone_lock");
 	phone->callee = NULL;
-	phone->busy = IPC_BUSY_FREE;
+	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
 }
 
@@ -184,11 +184,7 @@ void ipc_backsend_err(phone_t *phone, call_t *call, __native err)
 {
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
-	if (phone->busy == IPC_BUSY_CONNECTED)
-		IPC_SET_RETVAL(call->data, EHANGUP);
-	else
-		IPC_SET_RETVAL(call->data, ENOENT);
-
+	IPC_SET_RETVAL(call->data, err);
 	_ipc_answer_free_call(call);
 }
 
@@ -216,23 +212,20 @@ int ipc_call(phone_t *phone, call_t *call)
 	answerbox_t *box;
 
 	spinlock_lock(&phone->lock);
-
-	box = phone->callee;
-	if (!box) {
-		/* Trying to send over disconnected phone */
+	if (phone->state != IPC_PHONE_CONNECTED) {
 		spinlock_unlock(&phone->lock);
 		if (call->flags & IPC_CALL_FORWARDED) {
 			IPC_SET_RETVAL(call->data, EFORWARD);
 			_ipc_answer_free_call(call);
-		} else { /* Simulate sending back a message */
-			if (phone->busy == IPC_BUSY_CONNECTED)
+		} else {
+			if (phone->state == IPC_PHONE_HUNGUP)
 				ipc_backsend_err(phone, call, EHANGUP);
 			else
 				ipc_backsend_err(phone, call, ENOENT);
 		}
-
 		return ENOENT;
 	}
+	box = phone->callee;
 	_ipc_call(phone, box, call);
 	
 	spinlock_unlock(&phone->lock);
@@ -241,40 +234,51 @@ int ipc_call(phone_t *phone, call_t *call)
 
 /** Disconnect phone from answerbox
  *
- * It is allowed to call disconnect on already disconnected phone
+ * This call leaves the phone in HUNGUP state. The change to 'free' is done
+ * lazily later.
  *
+ * @param phone Phone to be hung up
+ * @param aggressive If false, the phone is only marked hungup, and all 
+ *              messages are allowed to complete.
+ *              If true, all messages in all queues are discarded. There
+ *              may still be some messages that will be 'in-transit' on 
+ *              other CPU.
+ *              
  * @return 0 - phone disconnected, -1 - the phone was already disconnected
  */
-int ipc_phone_hangup(phone_t *phone)
+int ipc_phone_hangup(phone_t *phone, int aggressive)
 {
 	answerbox_t *box;
 	call_t *call;
 	
 	spinlock_lock(&phone->lock);
-	box = phone->callee;
-	if (!box) {
-		if (phone->busy == IPC_BUSY_CONNECTING) {
-			spinlock_unlock(&phone->lock);
-			return -1;
-		}
-		/* Already disconnected phone */
-		phone->busy = IPC_BUSY_FREE;
+	if (phone->state == IPC_PHONE_FREE || phone->state ==IPC_PHONE_HUNGUP \
+	    || phone->state == IPC_PHONE_CONNECTING) {
 		spinlock_unlock(&phone->lock);
-		return 0;
+		return -1;
+	}
+	box = phone->callee;
+	if (phone->state != IPC_PHONE_SLAMMED) {
+		/* Remove myself from answerbox */
+		spinlock_lock(&box->lock);
+		list_remove(&phone->list);
+		spinlock_unlock(&box->lock);
+
+		if (phone->state != IPC_PHONE_SLAMMED) {
+			call = ipc_call_alloc(0);
+			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+			call->flags |= IPC_CALL_DISCARD_ANSWER;
+			_ipc_call(phone, box, call);
+		}
 	}
 
-	spinlock_lock(&box->lock);
-	list_remove(&phone->list);
-	phone->callee = NULL;
-	spinlock_unlock(&box->lock);
+	if (aggressive && atomic_get(&phone->active_calls) > 0) {
+		/* TODO: Do some stuff be VERY aggressive */
+	}
 
-	call = ipc_call_alloc(0);
-	IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
-	call->flags |= IPC_CALL_DISCARD_ANSWER;
-	_ipc_call(phone, box, call);
-
-	phone->busy = IPC_BUSY_FREE;
-
+	phone->callee = 0;
+	
+	phone->state = IPC_PHONE_HUNGUP;
 	spinlock_unlock(&phone->lock);
 
 	return 0;
@@ -380,7 +384,7 @@ void ipc_cleanup(task_t *task)
 	
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
-		ipc_phone_hangup(&task->phones[i]);
+		ipc_phone_hangup(&task->phones[i], 1);
 
 	/* Disconnect all connected irqs */
 	ipc_irq_cleanup(&task->answerbox);
@@ -398,7 +402,8 @@ restart_phones:
 		}
 		
 		/* Disconnect phone */
-		phone->callee = NULL;
+		ASSERT(phone->state == IPC_PHONE_CONNECTED);
+		phone->state = IPC_PHONE_SLAMMED;
 		list_remove(&phone->list);
 
 		spinlock_unlock(&phone->lock);
@@ -411,7 +416,21 @@ restart_phones:
 	spinlock_unlock(&task->answerbox.lock);
 	
 	/* Wait for all async answers to arrive */
-	while (atomic_get(&task->active_calls)) {
+	while (1) {
+		/* Go through all phones, until all are FREE... */
+		/* Locking not needed, no one else should modify
+		 * it, when we are in cleanup */
+		for (i=0;i < IPC_MAX_PHONES; i++) {
+			if (task->phones[i].state == IPC_PHONE_HUNGUP && \
+			    atomic_get(&task->phones[i].active_calls) == 0)
+				task->phones[i].state = IPC_PHONE_FREE;
+			if (task->phones[i].state != IPC_PHONE_FREE)
+				break;
+		}
+		/* Voila, got into cleanup */
+		if (i == IPC_MAX_PHONES)
+			break;
+		
 		call = ipc_wait_for_call(&task->answerbox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 		ASSERT((call->flags & IPC_CALL_ANSWERED) || (call->flags & IPC_CALL_NOTIF));
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));

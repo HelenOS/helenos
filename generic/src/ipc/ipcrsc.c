@@ -158,8 +158,12 @@ int phone_alloc(void)
 	spinlock_lock(&TASK->lock);
 	
 	for (i=0; i < IPC_MAX_PHONES; i++) {
-		if (TASK->phones[i].busy==IPC_BUSY_FREE && !atomic_get(&TASK->phones[i].active_calls)) {
-			TASK->phones[i].busy = IPC_BUSY_CONNECTING;
+		if (TASK->phones[i].state == IPC_PHONE_HUNGUP && \
+		    atomic_get(&TASK->phones[i].active_calls) == 0)
+			TASK->phones[i].state = IPC_PHONE_FREE;
+
+		if (TASK->phones[i].state == IPC_PHONE_FREE) {
+			TASK->phones[i].state = IPC_PHONE_CONNECTING;
 			break;
 		}
 	}
@@ -172,11 +176,11 @@ int phone_alloc(void)
 
 static void phone_deallocp(phone_t *phone)
 {
-	ASSERT(phone->busy == IPC_BUSY_CONNECTING);
+	ASSERT(phone->state == IPC_PHONE_CONNECTING);
 	ASSERT(! phone->callee);
 	
 	/* atomic operation */
-	phone->busy = IPC_BUSY_FREE;
+	phone->state = IPC_PHONE_FREE;
 }
 
 /** Free slot from a disconnected phone
@@ -200,6 +204,6 @@ void phone_connect(int phoneid, answerbox_t *box)
 {
 	phone_t *phone = &TASK->phones[phoneid];
 	
-	ASSERT(phone->busy == IPC_BUSY_CONNECTING);
+	ASSERT(phone->state == IPC_PHONE_CONNECTING);
 	ipc_phone_connect(phone, box);
 }

@@ -105,9 +105,9 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 */
 		spinlock_lock(&answer->data.phone->lock);
 		spinlock_lock(&TASK->answerbox.lock);
-		if (answer->data.phone->callee) {
+		if (answer->data.phone->state == IPC_PHONE_CONNECTED) {
 			list_remove(&answer->data.phone->list);
-			answer->data.phone->callee = 0;
+			answer->data.phone->state = IPC_PHONE_SLAMMED;
 		}
 		spinlock_unlock(&TASK->answerbox.lock);
 		spinlock_unlock(&answer->data.phone->lock);
@@ -492,7 +492,7 @@ __native sys_ipc_hangup(int phoneid)
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	if (ipc_phone_hangup(phone))
+	if (ipc_phone_hangup(phone, 0))
 		return -1;
 
 	return 0;

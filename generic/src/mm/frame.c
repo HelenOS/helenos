@@ -134,6 +134,7 @@ static void frame_initialize(frame_t *frame)
 /**
  * Insert-sort zone into zones list
  *
+ * @param newzone New zone to be inserted into zone list
  * @return zone number on success, -1 on error
  */
 static int zones_add_zone(zone_t *newzone)
@@ -172,8 +173,10 @@ static int zones_add_zone(zone_t *newzone)
 /**
  * Try to find a zone where can we find the frame
  *
- * @param hint Start searching in zone 'hint'
- * @param lock Lock zone if true
+ * @param frame Frame number contained in zone
+ * @param pzone If not null, it is used as zone hint. Zone index
+ *              is filled into the variable on success. 
+ * @return Pointer to LOCKED zone containing frame
  *
  * Assume interrupts disable
  */
@@ -220,6 +223,7 @@ static int zone_can_alloc(zone_t *z, __u8 order)
  *
  * Assume interrupts are disabled!!
  *
+ * @param order Size (2^order) of free space we are trying to find
  * @param pzone Pointer to preferred zone or NULL, on return contains zone number
  */
 static zone_t * find_free_zone_lock(__u8 order, int *pzone)
@@ -468,6 +472,9 @@ static pfn_t zone_frame_alloc(zone_t *zone, __u8 order)
 /** Free frame from zone
  *
  * Assume zone is locked
+ *
+ * @param zone Pointer to zone from which the frame is to be freed
+ * @param frame_idx Frame index relative to zone
  */
 static void zone_frame_free(zone_t *zone, index_t frame_idx)
 {
@@ -518,6 +525,10 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
  * Expect zone_t *z to point to space at least zone_conf_size large
  *
  * Assume z1 & z2 are locked 
+ *
+ * @param z Target zone structure pointer
+ * @param z1 Zone to merge
+ * @param z2 Zone to merge
  */
 
 static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
@@ -627,8 +638,9 @@ static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 /** Reduce allocated block to count of order 0 frames
  *
  * The allocated block need 2^order frames of space. Reduce all frames
- * in block to order 0 and free the unneded frames. This means, that 
- * when freeing the block, you have to free every frame from block.
+ * in block to order 0 and free the unneeded frames. This means, that 
+ * when freeing the previously allocated block starting with frame_idx, 
+ * you have to free every frame.
  *
  * @param zone 
  * @param frame_idx Index to block 
@@ -751,8 +763,8 @@ void zone_merge_all(void)
  * Create new frame zone.
  *
  * @param start Physical address of the first frame within the zone.
- * @param size Size of the zone. Must be a multiple of FRAME_SIZE.
- * @param conffram Address of configuration frame
+ * @param count Count of frames in zone
+ * @param z Address of configuration information of zone
  * @param flags Zone flags.
  *
  * @return Initialized zone.
@@ -793,7 +805,11 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	}
 }
 
-/** Compute configuration data size for zone */
+/** Compute configuration data size for zone
+ *
+ * @param count Size of zone in frames
+ * @return Size of zone configuration info (in bytes)
+ */
 __address zone_conf_size(count_t count)
 {
 	int size = sizeof(zone_t) + count*sizeof(frame_t);
@@ -806,11 +822,16 @@ __address zone_conf_size(count_t count)
 
 /** Create and add zone to system
  *
- * @param confframe Where configuration frame is supposed to be.
- *                  Always check, that we will not disturb the kernel and possibly init. 
+ * @param start First frame number (absolute)
+ * @param count Size of zone in frames
+ * @param confframe Where configuration frames are supposed to be.
+ *                  Automatically checks, that we will not disturb the 
+ *                  kernel and possibly init. 
  *                  If confframe is given _outside_ this zone, it is expected,
  *                  that the area is already marked BUSY and big enough
- *                  to contain zone_conf_size() amount of data
+ *                  to contain zone_conf_size() amount of data.
+ *                  If the confframe is inside the area, the zone free frame
+ *                  information is modified not to include it.
  *
  * @return Zone number or -1 on error
  */

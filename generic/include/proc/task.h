@@ -51,7 +51,9 @@ struct task {
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
-	atomic_t active_calls;  /**< Active asynchronous messages */
+	atomic_t active_calls;  /**< Active asynchronous messages.
+				 *   It is used for limiting uspace to
+				 *   certain extent. */
 	
 	task_arch_t arch;	/**< Architecture specific task data. */
 	

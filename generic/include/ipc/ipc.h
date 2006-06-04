@@ -178,16 +178,18 @@ struct answerbox_s {
 };
 
 typedef enum {
-	IPC_BUSY_FREE = 0,
-	IPC_BUSY_CONNECTING,
-	IPC_BUSY_CONNECTED
-} ipc_busy_t;
+	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
+	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
+	IPC_PHONE_CONNECTED,    /**< Phone is connected */
+	IPC_PHONE_HUNGUP,  /**< Phone is hung up, waiting for answers to come */
+	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
+} ipc_phone_state_t;
 
 struct phone_s {
 	SPINLOCK_DECLARE(lock);
 	link_t list;
 	answerbox_t *callee;
-	ipc_busy_t busy;
+	ipc_phone_state_t state;
 	atomic_t active_calls;
 };
 
@@ -222,7 +224,7 @@ extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
 extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 extern void ipc_cleanup(task_t *task);
-extern int ipc_phone_hangup(phone_t *phone);
+extern int ipc_phone_hangup(phone_t *phone, int aggressive);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
 
 extern answerbox_t *ipc_phone_0;
