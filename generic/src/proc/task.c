@@ -238,6 +238,11 @@ __native sys_task_get_id(task_id_t *uspace_task_id)
  * The tasks_lock must be already held by the caller of this function
  * and interrupts must be disabled.
  *
+ * The task is guaranteed to exist after it was found in the tasks_btree as long as:
+ * @li the tasks_lock is held,
+ * @li the task's lock is held when task's lock is acquired before releasing tasks_lock or
+ * @li the task's refcount is grater than 0
+ *
  * @param id Task ID.
  *
  * @return Task structure address or NULL if there is no such task ID.

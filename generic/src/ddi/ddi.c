@@ -75,7 +75,6 @@ static int ddi_physmem_map(__address pf, __address vp, count_t pages, int flags)
 		return EPERM;
 
 	ipl = interrupts_disable();
-	/* Lock the task and release the lock protecting tasks_btree. */
 	spinlock_lock(&TASK->lock);
 	
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,

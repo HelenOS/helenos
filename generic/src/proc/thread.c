@@ -548,6 +548,9 @@ void thread_print_list(void)
  * Note that threads_lock must be already held and
  * interrupts must be already disabled.
  *
+ * When a thread is found in threads_btree, it is guaranteed to exist as long
+ * as the threads_lock is held.
+ *
  * @param t Pointer to thread.
  *
  * @return True if thread t is known to the system, false otherwise.
