@@ -232,7 +232,7 @@ main(int argc, char *argv[])
 "%s - left   %s - rotate   %s - right   %s - drop   %s - pause   %s - quit",
 		key_write[0], key_write[1], key_write[2], key_write[3],
 		key_write[4], key_write[5]);
-
+newgame:
 	scr_init();
 	setup_board();
 
@@ -351,14 +351,25 @@ main(int argc, char *argv[])
 	}
 	savescore(level);
 
-	printf("\nHit RETURN to see high scores, ^C to skip.\n");
+	showscores(level);
+	
+	printf("\nHit 's' to new game, 'q' to quit.\n");
 
+	
+	while (i = getchar()) {
+		if (i == 's')
+			goto newgame;
+		if (i == 'q')
+			break;
+	}
+	
+	scr_clear();
+	printf("\n\n\n\t\tGame over.\n");
+/*	
 	while ((i = getchar()) != '\n')
 		if (i == EOF)
-			break;
-
-	showscores(level);
-
+			break
+*/
 	exit(0);
 }
 
