@@ -307,4 +307,26 @@ void futex_ht_remove_callback(link_t *item)
 /** Remove references from futexes known to the current task. */
 void futex_cleanup(void)
 {
+	link_t *cur;
+	
+	rwlock_write_lock(&futex_ht_lock);
+	mutex_lock(&TASK->futexes_lock);
+
+	for (cur = TASK->futexes.leaf_head.next; cur != &TASK->futexes.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			futex_t *ftx;
+			__address paddr = node->key[i];
+			
+			ftx = (futex_t *) node->value[i];
+			if (--ftx->refcount == 0)
+				hash_table_remove(&futex_ht, &paddr, 1);
+		}
+	}
+	
+	mutex_unlock(&TASK->futexes_lock);
+	rwlock_write_unlock(&futex_ht_lock);
 }
