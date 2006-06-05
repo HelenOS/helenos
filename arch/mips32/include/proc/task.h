@@ -33,5 +33,6 @@ typedef struct {
 } task_arch_t;
 
 #define task_create_arch(t)
+#define task_destroy_arch(t)
 
 #endif

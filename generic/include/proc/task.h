@@ -92,6 +92,10 @@ extern int task_kill(task_id_t id);
 extern void task_create_arch(task_t *t);
 #endif
 
+#ifndef task_destroy_arch
+extern void task_destroy_arch(task_t *t);
+#endif
+
 extern __native sys_task_get_id(task_id_t *uspace_task_id);
 
 #endif

@@ -140,6 +140,26 @@ task_t *task_create(as_t *as, char *name)
  */
 void task_destroy(task_t *t)
 {
+	spinlock_lock(&tasks_lock);
+	btree_remove(&tasks_btree, t->taskid, NULL);
+	spinlock_unlock(&tasks_lock);
+
+	task_destroy_arch(t);
+	btree_destroy(&t->futexes);
+
+	mutex_lock_active(&t->as->lock);
+	if (--t->as->refcount == 0) {
+		mutex_unlock(&t->as->lock);
+		as_destroy(t->as);
+		/*
+		 * t->as is destroyed.
+		 */
+	} else {
+		mutex_unlock(&t->as->lock);
+	}
+	
+	free(t);
+	TASK = NULL;
 }
 
 /** Create new task with 1 thread and run it
@@ -258,6 +278,8 @@ int task_kill(task_id_t id)
 	spinlock_lock(&ta->lock);
 	ta->refcount++;
 	spinlock_unlock(&ta->lock);
+
+	spinlock_unlock(&tasks_lock);
 	
 	t = thread_create(ktaskclnp, NULL, ta, 0, "ktaskclnp");
 	

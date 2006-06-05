@@ -147,8 +147,10 @@ void as_destroy(as_t *as)
 	 
 	ipl = interrupts_disable();
 	spinlock_lock(&inactive_as_with_asid_lock);
-	if (as->asid != ASID_INVALID && as->asid != ASID_KERNEL) {
-		list_remove(&as->inactive_as_with_asid_link);
+
+	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
+		if (!as->cpu_refcount)
+			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
 	spinlock_unlock(&inactive_as_with_asid_lock);
