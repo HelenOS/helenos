@@ -148,6 +148,9 @@ grab_locks:
 			goto grab_locks;	/* avoid deadlock */
 		}
 
+		if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
+			t->timeout_pending = false;
+
 		list_remove(&t->wq_link);
 		t->saved_context = t->sleep_interruption_context;
 		do_wakeup = true;
