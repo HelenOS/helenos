@@ -350,7 +350,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		return NULL;
 	}
 	list_append(&t->th_link, &task->th_head);
-	task->refcount++;
+	if (task->refcount++ == 0)
+		task->main_thread = t;
 	spinlock_unlock(&task->lock);
 
 	/*

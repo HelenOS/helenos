@@ -58,7 +58,8 @@ SPINLOCK_INITIALIZE(tasks_lock);
 btree_t tasks_btree;
 static task_id_t task_counter = 0;
 
-static void ktaskclnp(void *);
+static void ktaskclnp(void *arg);
+static void ktaskkill(void *arg);
 
 /** Initialize tasks
  *
@@ -96,7 +97,7 @@ task_t *task_create(as_t *as, char *name)
 	list_initialize(&ta->th_head);
 	ta->as = as;
 	ta->name = name;
-
+	ta->main_thread = NULL;
 	ta->refcount = 0;
 
 	ta->capabilities = 0;
@@ -153,7 +154,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	as_t *as;
 	as_area_t *a;
 	int rc;
-	thread_t *t;
+	thread_t *t1, *t2;
 	task_t *task;
 	uspace_arg_t *kernel_uarg;
 
@@ -183,10 +184,21 @@ task_t * task_run_program(void *program_addr, char *name)
 		LOADED_PROG_STACK_PAGES_NO*PAGE_SIZE,
 		USTACK_ADDRESS, AS_AREA_ATTR_NONE, &anon_backend, NULL);
 
-	t = thread_create(uinit, kernel_uarg, task, 0, "uinit");
-	ASSERT(t);
-	thread_ready(t);
+	/*
+	 * Create the main thread.
+	 */
+	t1 = thread_create(uinit, kernel_uarg, task, 0, "uinit");
+	ASSERT(t1);
 	
+	/*
+	 * Create killer thread for the new task.
+	 */
+	t2 = thread_create(ktaskkill, t1, task, 0, "ktaskkill");
+	ASSERT(t2);
+	thread_ready(t2);
+
+	thread_ready(t1);
+
 	return task;
 }
 
@@ -252,7 +264,10 @@ int task_kill(task_id_t id)
 	spinlock_lock(&ta->lock);
 	ta->accept_new_threads = false;
 	ta->refcount--;
-	
+
+	/*
+	 * Interrupt all threads except this one.
+	 */	
 	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
 		thread_t *thr;
 		bool  sleeping = false;
@@ -317,11 +332,11 @@ void task_print_list(void)
 	interrupts_restore(ipl);
 }
 
-/** Kernel thread used to cleanup the task. */
+/** Kernel thread used to cleanup the task after it is killed. */
 void ktaskclnp(void *arg)
 {
 	ipl_t ipl;
-	thread_t *t = NULL;
+	thread_t *t = NULL, *main_thread;
 	link_t *cur;
 
 	thread_detach(THREAD);
@@ -330,12 +345,16 @@ loop:
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	
+	main_thread = TASK->main_thread;
+	
 	/*
 	 * Find a thread to join.
 	 */
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
 		t = list_get_instance(cur, thread_t, th_link);
 		if (t == THREAD)
+			continue;
+		else if (t == main_thread)
 			continue;
 		else
 			break;
@@ -345,9 +364,10 @@ loop:
 	interrupts_restore(ipl);
 	
 	if (t != THREAD) {
+		ASSERT(t != main_thread);	/* uninit is joined and detached in ktaskkill */
 		thread_join(t);
 		thread_detach(t);
-		goto loop;
+		goto loop;	/* go for another thread */
 	}
 	
 	/*
@@ -357,4 +377,24 @@ loop:
 	
 	ipc_cleanup();
 	futex_cleanup();
+}
+
+/** Kernel task used to kill a userspace task when its main thread exits.
+ *
+ * This thread waits until the main userspace thread (i.e. uninit) exits.
+ * When this happens, the task is killed.
+ *
+ * @param arg Pointer to the thread structure of the task's main thread.
+ */
+void ktaskkill(void *arg)
+{
+	thread_t *t = (thread_t *) arg;
+	
+	/*
+	 * Userspace threads cannot detach themselves,
+	 * therefore the thread pointer is guaranteed to be valid.
+	 */
+	thread_join(t);	/* sleep uninterruptibly here! */
+	thread_detach(t);
+	task_kill(TASK->taskid);
 }

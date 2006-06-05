@@ -48,6 +48,7 @@ struct task {
 	SPINLOCK_DECLARE(lock);
 	
 	char *name;
+	thread_t *main_thread;	/**< Pointer to the main thread. */
 	link_t th_head;		/**< List of threads contained in this task. */
 	as_t *as;		/**< Address space. */
 	task_id_t taskid;	/**< Unique identity of task */
