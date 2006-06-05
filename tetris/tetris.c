@@ -158,6 +158,93 @@ static void srandomdev(void)
 	srandom(tv.tv_sec + tv.tv_usec / 100000);
 }
 
+static void tetris_scores(int firstgame)
+{
+}
+
+static void tetris_menu_draw(int level) 
+{
+		clear_screen();
+		moveto(5,10);
+		puts("Tetris\n\n");
+			
+		moveto(8,10);
+		printf("Level = %d (press keys 1 - 9 to change)",level);
+		moveto(9,10);
+		printf("Preview is %s (press 'p' to change)", (showpreview?"on ":"off"));
+		moveto(12,10);
+		printf("Press 'h' to show hiscore table.");
+		moveto(13,10);
+		printf("Press 's' to start game.");
+		moveto(14,10);
+		printf("Press 'q' to quit game.");
+		moveto(20,10);
+		printf("In game controls:");
+		moveto(21,0);
+		puts(key_msg);
+}
+
+static int tetris_menu(int *level) 
+{
+	static int firstgame = 1;
+	int i;
+/*	if (showpreview == 0)
+		(void)printf("Your score:  %d point%s  x  level %d  =  %d\n",
+		    score, score == 1 ? "" : "s", level, score * level);
+	else {
+ 		(void)printf("Your score:  %d point%s x level %d x preview penalty %0.3f = %d\n", 
+ 		    score, score == 1 ? "" : "s", level, (double)PRE_PENALTY, 
+ 		    (int)(score * level * PRE_PENALTY)); 
+ 		score = score * PRE_PENALTY; 
+	}
+	savescore(level);
+
+	showscores(level);
+	
+	printf("\nHit 's' to new game, 'q' to quit.\n");
+*/
+	tetris_menu_draw(*level);
+	while (1) {
+	
+		i = getchar();
+		
+		switch(i) {
+			case 'p':
+				showpreview = !showpreview;
+				moveto(9,21);
+				if (showpreview)
+					printf("on ");
+				else
+					printf("off");
+					
+				break;
+			case 'h':
+				showscores(firstgame);
+				tetris_menu_draw(*level);
+				break;
+			case 's':
+				firstgame = 0;
+				return 1;
+			case 'q':
+				return 0;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':		
+			case '7':
+			case '8':
+			case '9':
+				*level = i - '0';
+				moveto(8,18);
+				printf("%d", *level);
+				break;
+		}
+	}
+	
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -174,7 +261,8 @@ main(int argc, char *argv[])
 //	egid = getegid();
 //	setegid(gid);
 
-	classic = showpreview = 0;
+	classic = 0;
+	showpreview = 1; 
 
 /* 	while ((ch = getopt(argc, argv, "ck:l:ps")) != -1) */
 /* 		switch(ch) { */
@@ -232,135 +320,118 @@ main(int argc, char *argv[])
 "%s - left   %s - rotate   %s - right   %s - drop   %s - pause   %s - quit",
 		key_write[0], key_write[1], key_write[2], key_write[3],
 		key_write[4], key_write[5]);
-newgame:
+
 	scr_init();
-	setup_board();
+	initscores();
+	while (tetris_menu(&level)) {
 
-	srandomdev();
-	scr_set();
 
-	pos = A_FIRST*B_COLS + (B_COLS/2)-1;
-	nextshape = randshape();
-	curshape = randshape();
-
-	scr_msg(key_msg, 1);
-
-	for (;;) {
-		place(curshape, pos, 1);
-		scr_update();
-		place(curshape, pos, 0);
-		c = tgetchar();
-		if (c < 0) {
-			/*
-			 * Timeout.  Move down if possible.
-			 */
-			if (fits_in(curshape, pos + B_COLS)) {
-				pos += B_COLS;
+		scr_clear();
+		setup_board();
+	
+		srandomdev();
+		scr_set();
+	
+		pos = A_FIRST*B_COLS + (B_COLS/2)-1;
+		nextshape = randshape();
+		curshape = randshape();
+	
+		scr_msg(key_msg, 1);
+	
+		for (;;) {
+			place(curshape, pos, 1);
+			scr_update();
+			place(curshape, pos, 0);
+			c = tgetchar();
+			if (c < 0) {
+				/*
+				 * Timeout.  Move down if possible.
+				 */
+				if (fits_in(curshape, pos + B_COLS)) {
+					pos += B_COLS;
+					continue;
+				}
+	
+				/*
+				 * Put up the current shape `permanently',
+				 * bump score, and elide any full rows.
+				 */
+				place(curshape, pos, 1);
+				score++;
+				elide();
+	
+				/*
+				 * Choose a new shape.  If it does not fit,
+				 * the game is over.
+				 */
+				curshape = nextshape;
+				nextshape = randshape();
+				pos = A_FIRST*B_COLS + (B_COLS/2)-1;
+				if (!fits_in(curshape, pos))
+					break;
 				continue;
 			}
-
+	
 			/*
-			 * Put up the current shape `permanently',
-			 * bump score, and elide any full rows.
+			 * Handle command keys.
 			 */
-			place(curshape, pos, 1);
-			score++;
-			elide();
-
-			/*
-			 * Choose a new shape.  If it does not fit,
-			 * the game is over.
-			 */
-			curshape = nextshape;
-			nextshape = randshape();
-			pos = A_FIRST*B_COLS + (B_COLS/2)-1;
-			if (!fits_in(curshape, pos))
+			if (c == keys[5]) {
+				/* quit */
 				break;
-			continue;
-		}
-
-		/*
-		 * Handle command keys.
-		 */
-		if (c == keys[5]) {
-			/* quit */
-			break;
-		}
-		if (c == keys[4]) {
-			static char msg[] =
-			    "paused - press RETURN to continue";
-
-			place(curshape, pos, 1);
-			do {
-				scr_update();
-				scr_msg(key_msg, 0);
-				scr_msg(msg, 1);
-//				(void) fflush(stdout);
-			} while (rwait((struct timeval *)NULL) == -1);
-			scr_msg(msg, 0);
-			scr_msg(key_msg, 1);
-			place(curshape, pos, 0);
-			continue;
-		}
-		if (c == keys[0]) {
-			/* move left */
-			if (fits_in(curshape, pos - 1))
-				pos--;
-			continue;
-		}
-		if (c == keys[1]) {
-			/* turn */
-			const struct shape *new = &shapes[
-			    classic? curshape->rotc : curshape->rot];
-
-			if (fits_in(new, pos))
-				curshape = new;
-			continue;
-		}
-		if (c == keys[2]) {
-			/* move right */
-			if (fits_in(curshape, pos + 1))
-				pos++;
-			continue;
-		}
-		if (c == keys[3]) {
-			/* move to bottom */
-			while (fits_in(curshape, pos + B_COLS)) {
-				pos += B_COLS;
-				score++;
 			}
-			continue;
-		}
-		if (c == '\f') {
-			scr_clear();
-			scr_msg(key_msg, 1);
-		}
-	}
-
-	scr_clear();
-	scr_end();
-
-	if (showpreview == 0)
-		(void)printf("Your score:  %d point%s  x  level %d  =  %d\n",
-		    score, score == 1 ? "" : "s", level, score * level);
-	else {
-/* 		(void)printf("Your score:  %d point%s x level %d x preview penalty %0.3f = %d\n", */
-/* 		    score, score == 1 ? "" : "s", level, (double)PRE_PENALTY, */
-/* 		    (int)(score * level * PRE_PENALTY)); */
-/* 		score = score * PRE_PENALTY; */
-	}
-	savescore(level);
-
-	showscores(level);
+			if (c == keys[4]) {
+				static char msg[] =
+				    "paused - press RETURN to continue";
 	
-	printf("\nHit 's' to new game, 'q' to quit.\n");
-
+				place(curshape, pos, 1);
+				do {
+					scr_update();
+					scr_msg(key_msg, 0);
+					scr_msg(msg, 1);
+	//				(void) fflush(stdout);
+				} while (rwait((struct timeval *)NULL) == -1);
+				scr_msg(msg, 0);
+				scr_msg(key_msg, 1);
+				place(curshape, pos, 0);
+				continue;
+			}
+			if (c == keys[0]) {
+				/* move left */
+				if (fits_in(curshape, pos - 1))
+					pos--;
+				continue;
+			}
+			if (c == keys[1]) {
+				/* turn */
+				const struct shape *new = &shapes[
+				    classic? curshape->rotc : curshape->rot];
 	
-	while (i = getchar()) {
-		if (i == 's')
-			goto newgame;
-		if (i == 'q')
-			break;
+				if (fits_in(new, pos))
+					curshape = new;
+				continue;
+			}
+			if (c == keys[2]) {
+				/* move right */
+				if (fits_in(curshape, pos + 1))
+					pos++;
+				continue;
+			}
+			if (c == keys[3]) {
+				/* move to bottom */
+				while (fits_in(curshape, pos + B_COLS)) {
+					pos += B_COLS;
+					score++;
+				}
+				continue;
+			}
+			if (c == '\f') {
+				scr_clear();
+				scr_msg(key_msg, 1);
+			}
+		}
+		
+		scr_clear();
+		insertscore(score, level);
 	}
 	
 	scr_clear();
@@ -370,6 +441,7 @@ newgame:
 		if (i == EOF)
 			break
 */
+	scr_end();
 	exit(0);
 }
 

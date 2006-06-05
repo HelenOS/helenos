@@ -93,6 +93,13 @@ static void resume_normal(void)
 	set_style(0xe0e0e0, 0);
 }
 
+
+void clear_screen(void)
+{
+	send_call(con_phone, CONSOLE_CLEAR, 0);
+	moveto(0,0);
+}
+
 /*
  * Clear the screen, forgetting the current contents in the process.
  */
@@ -118,7 +125,7 @@ scr_init(void)
 	scr_clear();
 }
 
-static void moveto(int r, int c)
+void moveto(int r, int c)
 {
 	send_call_2(con_phone, CONSOLE_GOTO, r, c);
 }
@@ -128,12 +135,9 @@ static void fflush(void)
 	send_call(con_phone, CONSOLE_FLUSH, 0);
 }
 
-struct winsize {
-	ipcarg_t ws_row;
-	ipcarg_t ws_col;
-};
+winsize_t winsize;
 
-static int get_display_size(struct winsize *ws)
+static int get_display_size(winsize_t *ws)
 {
 	return sync_send_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
 }
@@ -153,7 +157,7 @@ scr_stop(int sig)
 void
 scr_set(void)
 {
-	struct winsize ws;
+	winsize_t ws;
 
 	Rows = 0, Cols = 0;
 	if (get_display_size(&ws) == 0) {

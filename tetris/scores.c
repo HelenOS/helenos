@@ -46,9 +46,9 @@
 /* #include <err.h> */
 /* #include <fcntl.h> */
 /* #include <pwd.h> */
-/* #include <stdio.h> */
+ #include <stdio.h>
 /* #include <stdlib.h> */
-/* #include <string.h> */
+#include <string.h>
 /* #include <time.h> */
 /* #include <term.h> */
 /* #include <unistd.h> */
@@ -76,12 +76,96 @@
 /* static int nscores; */
 /* static int gotscores; */
 /* static struct highscore scores[NUMSPOTS]; */
+static struct highscore scores[NUMSPOTS];
 
 /* static int checkscores(struct highscore *, int); */
 /* static int cmpscores(const void *, const void *); */
 /* static void getscores(FILE **); */
 /* static void printem(int, int, struct highscore *, int, const char *); */
 /* static char *thisuser(void); */
+
+void showscores(int firstgame)
+{
+	int i;
+	
+	clear_screen();
+	moveto(10, 0);
+	printf("\tRank \tLevel \tName\t                     points\n");
+	printf("\t========================================================\n");
+	for (i = 0; i < NUMSPOTS - 1; i++) {
+		printf("\t%6d %6d %-16s %20d\n", i+1, scores[i].hs_level, scores[i].hs_name, scores[i].hs_score);
+	}
+	if (!firstgame) {
+		printf("\t========================================================\n");
+		printf("\t  Last %6d %-16s %20d\n", scores[NUMSPOTS - 1].hs_level, scores[NUMSPOTS - 1].hs_name, scores[NUMSPOTS - 1].hs_score);
+	}
+	printf("\n\n\n\n\tPress any key to return to main menu.");
+	getchar();
+}
+
+/** Copy from hiscore table score with index src to dest
+ *
+ */
+static void copyhiscore(int dest, int src)
+{
+	strcpy(scores[dest].hs_name, scores[src].hs_name);
+	scores[dest].hs_score = scores[src].hs_score; 	
+	scores[dest].hs_level = scores[src].hs_level; 
+}
+
+void insertscore(int score, int level)
+{
+	int i,j;
+	int key;
+
+	
+	clear_screen();
+	moveto(10 , 10);
+	puts("Insert your name: ");
+	strncpy(scores[NUMSPOTS - 1].hs_name, "Player", MAXLOGNAME);
+	i = 6;
+
+	moveto(10 , 28);
+	printf("%s%.*s",scores[NUMSPOTS - 1].hs_name,MAXLOGNAME-i,"........................................");
+	key = getchar();	
+	while(key != '\n') {
+		if (key == '\b') {
+			if (i > 0) 
+				scores[NUMSPOTS - 1].hs_name[--i] = '\0';	
+		} else {
+			if (i < (MAXLOGNAME - 1))
+				scores[NUMSPOTS - 1].hs_name[i++] = key;	
+				scores[NUMSPOTS - 1].hs_name[i] = '\0';	
+		}
+		
+		moveto(10 , 28);
+		printf("%s%.*s",scores[NUMSPOTS - 1].hs_name,MAXLOGNAME-i,"........................................");
+	
+		key = getchar();	
+	}
+	
+	scores[NUMSPOTS - 1].hs_score = score;	
+	scores[NUMSPOTS - 1].hs_level = level;
+	
+	i = NUMSPOTS-1;	
+	while ((i > 0) && (scores[i - 1].hs_score < score))
+		i--;
+
+	for (j = NUMSPOTS - 2; j > i; j--) {
+		copyhiscore(j,j-1);
+	}
+	copyhiscore(i, NUMSPOTS - 1);	
+}
+
+void initscores(void)
+{
+	int i;
+	for(i = 0; i < NUMSPOTS; i++) {
+		strncpy(scores[i].hs_name, "HelenOS Team", MAXLOGNAME);
+		scores[i].hs_score = (NUMSPOTS - i) * 200;	
+		scores[i].hs_level = (i + 1 > MAXLEVEL?MAXLEVEL:i + 1);
+	}
+}
 
 /*
  * Read the score file.  Can be called from savescore (before showscores)
@@ -344,12 +428,13 @@ savescore(int level)
  * - Even if that were not the case, a new score must be recorded
  *   before it can be shown anyway.
  */
+/*
 void
 showscores(int level)
 {
 	return;
 }
-
+*/
 /* 	struct highscore *sp; */
 /* 	int i, n, c; */
 /* 	const char *me; */

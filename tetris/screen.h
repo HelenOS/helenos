@@ -40,6 +40,18 @@
  */
 #define	putpad(s)	tputs(s, 1, put)
 
+#include <async.h>
+
+typedef struct {
+	ipcarg_t ws_row;
+	ipcarg_t ws_col;
+} winsize_t;
+
+extern winsize_t winsize;
+
+void moveto(int r, int c);
+void clear_screen(void);
+
 int	put(int);			/* just calls putchar; for tputs */
 void	scr_clear(void);
 void	scr_end(void);
