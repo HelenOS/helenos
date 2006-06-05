@@ -235,7 +235,7 @@ void thread_destroy(thread_t *t)
 {
 	bool destroy_task = false;	
 
-	ASSERT(t->state == Exiting);
+	ASSERT(t->state == Exiting || t->state == Undead);
 	ASSERT(t->task);
 	ASSERT(t->cpu);
 

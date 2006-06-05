@@ -108,6 +108,7 @@ void kinit(void *arg)
 			panic("thread_create/kmp\n");
 		}
 		thread_join(t);
+		thread_detach(t);
 	}
 #endif /* CONFIG_SMP */
 	/*
