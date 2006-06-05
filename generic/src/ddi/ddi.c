@@ -135,12 +135,6 @@ static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
 		return ENOENT;
 	}
 
-	/*
-	 * TODO: We are currently lacking support for task destroying.
-	 * Once it is added to the kernel, we must take care to
-	 * synchronize in a way that prevents race conditions here.
-	 */
-	
 	/* Lock the task and release the lock protecting tasks_btree. */
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);

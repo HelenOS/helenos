@@ -112,9 +112,14 @@ __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
+	
+	spinlock_lock(&t->lock);
+	cap_set(t, cap_get(t) | caps);
+	spinlock_unlock(&t->lock);
+	
 	spinlock_unlock(&tasks_lock);
 	
-	cap_set(t, cap_get(t) | caps);
+
 	
 	interrupts_restore(ipl);	
 	return 0;
@@ -149,7 +154,6 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 		interrupts_restore(ipl);
 		return (__native) ENOENT;
 	}
-	spinlock_unlock(&tasks_lock);
 
 	/*
 	 * Revoking capabilities is different from granting them in that
@@ -157,12 +161,17 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	 * doesn't have CAP_CAP.
 	 */
 	if (!(cap_get(TASK) & CAP_CAP) || !(t == TASK)) {
+		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		return (__native) EPERM;
 	}
-
-	cap_set(t, cap_get(t) & ~caps);
 	
+	spinlock_lock(&t->lock);
+	cap_set(t, cap_get(t) & ~caps);
+	spinlock_unlock(&t->lock);
+
+	spinlock_unlock(&tasks_lock);
+
 	interrupts_restore(ipl);
 	return 0;
 }
