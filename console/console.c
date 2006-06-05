@@ -333,16 +333,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int consnum;
 	ipcarg_t arg1, arg2;
+	connection_t *conn;
 
 	if ((consnum = find_free_connection()) == -1) {
 		ipc_answer_fast(iid,ELIMIT,0,0);
 		return;
 	}
+	conn = &connections[consnum];
 	
 	gcons_notify_connect(consnum);
-	connections[consnum].used = 1;
-	connections[consnum].client_phone = IPC_GET_ARG3(call);
-	screenbuffer_clear(&(connections[consnum].screenbuffer));
+	conn->used = 1;
+	conn->client_phone = IPC_GET_ARG3(call);
+	screenbuffer_clear(&conn->screenbuffer);
 	
 	/* Accept the connection */
 	ipc_answer_fast(iid,0,0,0);
@@ -352,7 +354,15 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		arg1 = arg2 = 0;
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			/* TODO */
+			gcons_notify_disconnect(consnum);
+			/* Answer all pending requests */
+			while (conn->keyrequest_counter > 0) {		
+				conn->keyrequest_counter--;
+				ipc_answer_fast(fifo_pop(conn->keyrequests), ENOENT, 0, 0);
+				break;
+			}
+			
+			/* Commit hangup */
 			ipc_answer_fast(callid, 0,0,0);
 			return;
 		case CONSOLE_PUTCHAR:
@@ -365,12 +375,12 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				send_call(fb_info.phone, FB_CLEAR, 0); 
 			}
 			
-			screenbuffer_clear(&(connections[consnum].screenbuffer));
+			screenbuffer_clear(&conn->screenbuffer);
 			
 			break;
 		case CONSOLE_GOTO:
 			
-			screenbuffer_goto(&(connections[consnum].screenbuffer), IPC_GET_ARG2(call), IPC_GET_ARG1(call));
+			screenbuffer_goto(&conn->screenbuffer, IPC_GET_ARG2(call), IPC_GET_ARG1(call));
 			if (consnum == active_console)
 				curs_goto(IPC_GET_ARG1(call),IPC_GET_ARG2(call));
 			
@@ -387,30 +397,30 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_style(&(connections[consnum].screenbuffer),arg1, arg2);
+			screenbuffer_set_style(&conn->screenbuffer,arg1, arg2);
 			if (consnum == active_console)
 				set_style_col(arg1, arg2);
 				
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
 			arg1 = IPC_GET_ARG1(call);
-			connections[consnum].screenbuffer.is_cursor_visible = arg1;
+			conn->screenbuffer.is_cursor_visible = arg1;
 			if (consnum == active_console)
 				curs_visibility(arg1);
 			break;
 		case CONSOLE_GETCHAR:
-			if (keybuffer_empty(&(connections[consnum].keybuffer))) {
+			if (keybuffer_empty(&conn->keybuffer)) {
 				/* buffer is empty -> store request */
-				if (connections[consnum].keyrequest_counter < MAX_KEYREQUESTS_BUFFERED) {		
-					fifo_push(connections[consnum].keyrequests, callid);
-					connections[consnum].keyrequest_counter++;
+				if (conn->keyrequest_counter < MAX_KEYREQUESTS_BUFFERED) {		
+					fifo_push(conn->keyrequests, callid);
+					conn->keyrequest_counter++;
 				} else {
 					/* no key available and too many requests => fail */
 					ipc_answer_fast(callid, ELIMIT, 0, 0);
 				}
 				continue;
 			};
-			keybuffer_pop(&(connections[consnum].keybuffer), (int *)&arg1);
+			keybuffer_pop(&conn->keybuffer, (int *)&arg1);
 			
 			break;
 		}

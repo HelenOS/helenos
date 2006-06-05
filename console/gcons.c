@@ -172,6 +172,23 @@ void gcons_notify_char(int consnum)
 	vp_switch(console_vp);
 }
 
+/** Notification function called on service disconnect from console */
+void gcons_notify_disconnect(int consnum)
+{
+	if (!use_gcons)
+		return;
+	if (active_console == consnum)
+		console_state[consnum] = CONS_DISCONNECTED_SEL;
+	else
+		console_state[consnum] = CONS_DISCONNECTED;
+
+	if (active_console == KERNEL_CONSOLE)
+		return;
+
+	redraw_state(consnum);
+	vp_switch(console_vp);
+}
+
 /** Notification function called on console connect */
 void gcons_notify_connect(int consnum)
 {
