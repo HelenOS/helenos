@@ -308,7 +308,7 @@ static cmd_arg_t ipc_task_argv = {
 };
 static cmd_info_t ipc_task_info = {
 	.name = "ipc_task",
-	.description = "Show memory zone structure.",
+	.description = "ipc_task <taskid> Show IPC information of given task",
 	.func = cmd_ipc_task,
 	.argc = 1,
 	.argv = &ipc_task_argv

@@ -369,31 +369,32 @@ static void ipc_cleanup_call_list(link_t *lst)
 	}
 }
 
-/** Cleans up all IPC communication of the given task
+/** Cleans up all IPC communication of the current task
  *
- *
+ * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
+ * have to change it as well if you want to cleanup other current then current.
  */
-void ipc_cleanup(task_t *task)
+void ipc_cleanup(void)
 {
 	int i;
 	call_t *call;
 	phone_t *phone;
-	
+
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
-		ipc_phone_hangup(&task->phones[i], 1);
+		ipc_phone_hangup(&TASK->phones[i], 1);
 
 	/* Disconnect all connected irqs */
-	ipc_irq_cleanup(&task->answerbox);
+	ipc_irq_cleanup(&TASK->answerbox);
 
 	/* Disconnect all phones connected to our answerbox */
 restart_phones:
-	spinlock_lock(&task->answerbox.lock);
-	while (!list_empty(&task->answerbox.connected_phones)) {
-		phone = list_get_instance(task->answerbox.connected_phones.next,
+	spinlock_lock(&TASK->answerbox.lock);
+	while (!list_empty(&TASK->answerbox.connected_phones)) {
+		phone = list_get_instance(TASK->answerbox.connected_phones.next,
 					  phone_t, link);
 		if (! spinlock_trylock(&phone->lock)) {
-			spinlock_unlock(&task->answerbox.lock);
+			spinlock_unlock(&TASK->answerbox.lock);
 			goto restart_phones;
 		}
 		
@@ -406,10 +407,9 @@ restart_phones:
 	}
 
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
-	spinlock_lock(&task->answerbox.lock);
-	ipc_cleanup_call_list(&task->answerbox.dispatched_calls);
-	ipc_cleanup_call_list(&task->answerbox.calls);
-	spinlock_unlock(&task->answerbox.lock);
+	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
+	ipc_cleanup_call_list(&TASK->answerbox.calls);
+	spinlock_unlock(&TASK->answerbox.lock);
 	
 	/* Wait for all async answers to arrive */
 	while (1) {
@@ -417,21 +417,25 @@ restart_phones:
 		/* Locking not needed, no one else should modify
 		 * it, when we are in cleanup */
 		for (i=0;i < IPC_MAX_PHONES; i++) {
-			if (task->phones[i].state == IPC_PHONE_HUNGUP && \
-			    atomic_get(&task->phones[i].active_calls) == 0)
-				task->phones[i].state = IPC_PHONE_FREE;
-			if (task->phones[i].state != IPC_PHONE_FREE)
+			if (TASK->phones[i].state == IPC_PHONE_HUNGUP && \
+			    atomic_get(&TASK->phones[i].active_calls) == 0)
+				TASK->phones[i].state = IPC_PHONE_FREE;
+			
+			if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
+				ipc_phone_hangup(&TASK->phones[i], 1);
+			
+			if (TASK->phones[i].state != IPC_PHONE_FREE)
 				break;
 		}
 		/* Voila, got into cleanup */
 		if (i == IPC_MAX_PHONES)
 			break;
 		
-		call = ipc_wait_for_call(&task->answerbox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+		call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 		ASSERT((call->flags & IPC_CALL_ANSWERED) || (call->flags & IPC_CALL_NOTIF));
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 		
-		atomic_dec(&task->active_calls);
+		atomic_dec(&TASK->active_calls);
 		ipc_call_free(call);
 	}
 }
