@@ -355,10 +355,6 @@ loop:
 	 * and no new threads can be created.
 	 */
 	
-	/*
-	 * TODO:
-	 * Close IPC communication and release used futexes.
-	 * When this thread exits, the task refcount drops to zero and the task structure is
-	 * cleaned.
-	 */
+	ipc_cleanup();
+	futex_cleanup();
 }

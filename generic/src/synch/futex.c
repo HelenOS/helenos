@@ -303,3 +303,8 @@ void futex_ht_remove_callback(link_t *item)
 	futex = hash_table_get_instance(item, futex_t, ht_link);
 	free(futex);
 }
+
+/** Remove references from futexes known to the current task. */
+void futex_cleanup(void)
+{
+}

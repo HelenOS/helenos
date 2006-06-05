@@ -32,6 +32,7 @@
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
+#include <synch/futex.h>
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
