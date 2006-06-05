@@ -58,7 +58,7 @@ SPINLOCK_INITIALIZE(tasks_lock);
 btree_t tasks_btree;
 static task_id_t task_counter = 0;
 
-static void ktask_cleanup(void *);
+static void ktaskclnp(void *);
 
 /** Initialize tasks
  *
@@ -247,9 +247,10 @@ int task_kill(task_id_t id)
 	ta->refcount++;
 	spinlock_unlock(&ta->lock);
 	
-	t = thread_create(ktask_cleanup, NULL, ta, 0, "ktask_cleanup");
+	t = thread_create(ktaskclnp, NULL, ta, 0, "ktaskclnp");
 	
 	spinlock_lock(&ta->lock);
+	ta->accept_new_threads = false;
 	ta->refcount--;
 	
 	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
@@ -270,8 +271,12 @@ int task_kill(task_id_t id)
 			waitq_interrupt_sleep(thr);
 	}
 	
-	thread_ready(t);
+	spinlock_unlock(&ta->lock);
+	interrupts_restore(ipl);
 	
+	if (t)
+		thread_ready(t);
+
 	return 0;
 }
 
@@ -313,12 +318,46 @@ void task_print_list(void)
 }
 
 /** Kernel thread used to cleanup the task. */
-void ktask_cleanup(void *arg)
+void ktaskclnp(void *arg)
 {
+	ipl_t ipl;
+	thread_t *t = NULL;
+	link_t *cur;
+
+	thread_detach(THREAD);
+
+loop:
+	ipl = interrupts_disable();
+	spinlock_lock(&TASK->lock);
+	
+	/*
+	 * Find a thread to join.
+	 */
+	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
+		t = list_get_instance(cur, thread_t, th_link);
+		if (t == THREAD)
+			continue;
+		else
+			break;
+	}
+	
+	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
+	
+	if (t != THREAD) {
+		thread_join(t);
+		thread_detach(t);
+		goto loop;
+	}
+	
+	/*
+	 * Now there are no other threads in this task
+	 * and no new threads can be created.
+	 */
+	
 	/*
 	 * TODO:
-	 * Wait until it is save to cleanup the task (i.e. all other threads exit)
-	 * and do the cleanup (e.g. close IPC communication and release used futexes).
+	 * Close IPC communication and release used futexes.
 	 * When this thread exits, the task refcount drops to zero and the task structure is
 	 * cleaned.
 	 */
