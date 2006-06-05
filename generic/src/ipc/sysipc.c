@@ -492,7 +492,7 @@ __native sys_ipc_hangup(int phoneid)
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	if (ipc_phone_hangup(phone, 0))
+	if (ipc_phone_hangup(phone))
 		return -1;
 
 	return 0;

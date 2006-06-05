@@ -237,15 +237,10 @@ int ipc_call(phone_t *phone, call_t *call)
  * lazily later.
  *
  * @param phone Phone to be hung up
- * @param aggressive If false, the phone is only marked hungup, and all 
- *              messages are allowed to complete.
- *              If true, all messages in all queues are discarded. There
- *              may still be some messages that will be 'in-transit' on 
- *              other CPU.
  *              
  * @return 0 - phone disconnected, -1 - the phone was already disconnected
  */
-int ipc_phone_hangup(phone_t *phone, int aggressive)
+int ipc_phone_hangup(phone_t *phone)
 {
 	answerbox_t *box;
 	call_t *call;
@@ -269,10 +264,6 @@ int ipc_phone_hangup(phone_t *phone, int aggressive)
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call);
 		}
-	}
-
-	if (aggressive && atomic_get(&phone->active_calls) > 0) {
-		/* TODO: Do some stuff be VERY aggressive */
 	}
 
 	phone->state = IPC_PHONE_HUNGUP;
@@ -382,7 +373,7 @@ void ipc_cleanup(void)
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
-		ipc_phone_hangup(&TASK->phones[i], 1);
+		ipc_phone_hangup(&TASK->phones[i]);
 
 	/* Disconnect all connected irqs */
 	ipc_irq_cleanup(&TASK->answerbox);
@@ -421,8 +412,13 @@ restart_phones:
 			    atomic_get(&TASK->phones[i].active_calls) == 0)
 				TASK->phones[i].state = IPC_PHONE_FREE;
 			
+			/* Just for sure, we might have had some 
+			 * IPC_PHONE_CONNECTING phones */
 			if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
-				ipc_phone_hangup(&TASK->phones[i], 1);
+				ipc_phone_hangup(&TASK->phones[i]);
+			/* If the hangup succeeded, it has sent a HANGUP 
+			 * message, the IPC is now in HUNGUP state, we
+			 * wait for the reply to come */
 			
 			if (TASK->phones[i].state != IPC_PHONE_FREE)
 				break;

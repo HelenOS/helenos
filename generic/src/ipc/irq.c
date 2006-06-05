@@ -215,6 +215,10 @@ void ipc_irq_send_notif(int irq)
 
 	if (irq_conns[irq].box) {
 		call = ipc_call_alloc(FRAME_ATOMIC);
+		if (!call) {
+			spinlock_unlock(&irq_conns[irq].lock);
+			return;
+		}
 		call->flags |= IPC_CALL_NOTIF;
 		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
 		IPC_SET_ARG1(call->data, irq);
