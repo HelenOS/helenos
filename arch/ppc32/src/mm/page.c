@@ -30,6 +30,7 @@
 #include <genarch/mm/page_pt.h>
 #include <arch/mm/frame.h>
 #include <arch/asm.h>
+#include <arch/interrupt.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -187,7 +188,7 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
  * @param istate Interrupted register context.
  *
  */
-void pht_refill(bool data, istate_t *istate)
+void pht_refill(int n, istate_t *istate)
 {
 	__address badvaddr;
 	pte_t *pte;
@@ -203,7 +204,7 @@ void pht_refill(bool data, istate_t *istate)
 		lock = true;
 	}
 	
-	if (data) {
+	if (n == VECTOR_DATA_STORAGE) {
 		asm volatile (
 			"mfdar %0\n"
 			: "=r" (badvaddr)

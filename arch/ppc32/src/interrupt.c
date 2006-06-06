@@ -45,6 +45,18 @@ void start_decrementer(void)
 }
 
 
+/** Handler of external interrupts */
+static void exception_external(int n, istate_t *istate)
+{
+	int inum;
+
+	while ((inum = pic_get_pending()) != -1) {
+		exc_dispatch(inum + INT_OFFSET, istate);
+		pic_ack_interrupt(inum);
+	}
+}
+
+
 static void exception_decrementer(int n, istate_t *istate)
 {
 	clock();
@@ -55,24 +67,21 @@ static void exception_decrementer(int n, istate_t *istate)
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
+	exc_register(VECTOR_DATA_STORAGE, "data_storage", pht_refill);
+	exc_register(VECTOR_INSTRUCTION_STORAGE, "instruction_storage", pht_refill);
+	exc_register(VECTOR_EXTERNAL, "external", exception_external);
 	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
+}
+
+
+static void ipc_int(int n, istate_t *istate)
+{
+	ipc_irq_send_notif(n - INT_OFFSET);
 }
 
 
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(__native irq)
 {
-	panic("not implemented\n");
-	/* TODO */
-}
-
-/** Handler of externul interrupts */
-void extint_handler(int n, istate_t *istate)
-{
-	int inum;
-
-	while ((inum = pic_get_pending()) != -1) {
-		exc_dispatch(inum+INT_OFFSET, istate);
-		pic_ack_interrupt(inum);
-	}
+	int_register(irq, "ipc_int", ipc_int);
 }

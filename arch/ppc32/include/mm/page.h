@@ -143,7 +143,7 @@ typedef struct {
 	unsigned pp : 2;         /**< Page protection */
 } phte_t;
 
-extern void pht_refill(bool data, istate_t *istate);
+extern void pht_refill(int n, istate_t *istate);
 extern void pht_init(void);
 
 #endif /* __ASM__ */

@@ -37,9 +37,12 @@
 #define IVT_ITEMS   (16 + IRQ_COUNT)
 #define INT_OFFSET  16
 
-#define int_register(it, name, handler) exc_register(((it)+INT_OFFSET),name,handler)
+#define int_register(it, name, handler) exc_register(((it) + INT_OFFSET), name, handler)
 
-#define VECTOR_DECREMENTER 10
+#define VECTOR_DATA_STORAGE 2
+#define VECTOR_INSTRUCTION_STORAGE 3
+#define VECTOR_EXTERNAL 4
+#define VECTOR_DECREMENTER 8
 
 extern void start_decrementer(void);
 extern void interrupt_init(void);
