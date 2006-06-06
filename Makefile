@@ -81,6 +81,9 @@ endif
 ifeq ($(CONFIG_VHPT),y)
 	DEFS += -DCONFIG_VHPT
 endif
+ifeq ($(CONFIG_POWEROFF),y)
+	DEFS += -DCONFIG_POWEROFF
+endif
 ifeq ($(CONFIG_FB),y)
 ifeq ($(ARCH),ia32)
 	DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)

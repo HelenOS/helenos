@@ -71,9 +71,15 @@ typedef struct {
 } screen_t;
 
 typedef struct {
+	__address addr;
+	unsigned int size;
+} keyboard_t;
+
+typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
+	keyboard_t keyboard;
 } bootinfo_t;
 
 extern bootinfo_t bootinfo;

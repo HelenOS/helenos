@@ -68,8 +68,9 @@ void arch_post_mm_init(void)
 	
 		/* Initialize PIC */
 		pic_init();
-	
-		cuda_init();
+		
+		cuda_init(bootinfo.keyboard.addr, bootinfo.keyboard.size);
+		
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}

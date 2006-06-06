@@ -30,10 +30,10 @@
 #define __CUDA_H__
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define CUDA_IRQ 10
 
-extern void cuda_init(void);
-extern void cuda_packet(const __u8 data);
+extern void cuda_init(__address base, size_t size);
 
 #endif

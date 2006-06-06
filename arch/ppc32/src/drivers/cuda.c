@@ -32,8 +32,12 @@
 #include <console/console.h>
 #include <arch/drivers/pic.h>
 #include <interrupt.h>
+#include <stdarg.h>
 
-#define CUDA_PACKET 0x01
+#define PACKET_ADB  0x00
+#define PACKET_CUDA 0x01
+#define PACKET_NULL 0xff
+
 #define CUDA_POWERDOWN 0x0a
 
 #define RS 0x200
@@ -47,7 +51,61 @@
 #define TIP 0x20
 
 
-static volatile __u8 *cuda = (__u8 *) 0xf2000000;
+static volatile __u8 *cuda = NULL;
+
+
+static char lchars[0x80] = {
+	'a',  's',  'd',  'f',  'h',  'g',  'z',  'x',  'c',  'v',    0,  'b',  'q',  'w',  'e',  'r',
+	'y',  't',  '1',  '2',  '3',  '4',  '6',  '5',  '=',  '9',  '7',  '-',  '8',  '0',  ']',  'o',
+	'u',  '[',  'i',  'p',   13,  'l',  'j', '\'',  'k',  ';', '\\',  ',',  '/',  'n',  'm',  '.',
+	  9,   32,  '`',    8,    0,   27,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+	  0,  '.',    0,  '*',    0,  '+',    0,    0,    0,    0,    0,  '/',   13,    0,  '-',    0,
+	  0,    0,  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',    0,  '8',  '9',    0,    0,    0,
+	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0
+};
+
+
+static void send_packet(const __u8 kind, index_t count, ...)
+{
+	index_t i;
+	va_list va;
+	
+	switch (kind) {
+		case PACKET_NULL:
+			break;
+		default:
+			cuda[B] = cuda[B] | TIP;
+			cuda[ACR] = cuda[ACR] | SR_OUT;
+			cuda[SR] = kind;
+			cuda[B] = cuda[B] & ~TIP;
+			
+			va_start(va, count);
+			
+			for (i = 0; i < count; i++) {
+				cuda[ACR] = cuda[ACR] | SR_OUT;
+				cuda[SR] = va_arg(va, int);
+				cuda[B] = cuda[B] | TACK;
+			}
+			
+			va_end(va);
+			
+			cuda[B] = cuda[B] | TIP;
+	}
+}
+
+
+static void receive_packet(__u8 *kind, index_t count, __u8 data[])
+{
+	cuda[B] = cuda[B] & ~TIP;
+	*kind = cuda[SR];
+	
+	index_t i;
+	for (i = 0; i < count; i++)
+		data[i] = cuda[SR];
+	
+	cuda[B] = cuda[B] | TIP;
+}
 
 
 /* Called from getc(). */
@@ -78,14 +136,27 @@ static chardev_operations_t ops = {
 	.read = key_read
 };
 
-#include <print.h>
+
 static void cuda_irq(int n, istate_t *istate)
 {
-	printf("Got cuda msg\n");
+	__u8 kind;
+	__u8 data[4];
+	
+	receive_packet(&kind, 4, data);
+	
+	if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c)) {
+		__u8 key = data[2];
+		
+		if ((key & 0x80) != 0x80)
+			chardev_push_character(&kbrd, lchars[key & 0x7f]);
+	}
 }
 
-void cuda_init(void)
+
+void cuda_init(__address base, size_t size)
 {
+	cuda = (__u8 *) hw_map(base, size);
+	
 	int_register(CUDA_IRQ, "cuda", cuda_irq);
 	pic_enable_interrupt(CUDA_IRQ);
 	
@@ -94,28 +165,13 @@ void cuda_init(void)
 }
 
 
-void cuda_packet(const __u8 data)
-{
-	cuda[B] = cuda[B] | TIP;
-	cuda[ACR] = cuda[ACR] | SR_OUT;
-	cuda[SR] = CUDA_PACKET;
-	cuda[B] = cuda[B] & ~TIP;
-	
-	cuda[ACR] = cuda[ACR] | SR_OUT;
-	cuda[SR] = data;
-	cuda[B] = cuda[B] | TACK;
-	
-	cuda[B] = cuda[B] | TIP;
-}
-
-
 void cpu_halt(void) {
 #ifdef CONFIG_POWEROFF
-	cuda_packet(CUDA_POWERDOWN);
+	send_packet(PACKET_CUDA, 1, CUDA_POWERDOWN);
 #else
+	send_packet(PACKET_NULL, 0);
+#endif
 	asm volatile (
 		"b 0\n"
 	);
-#endif
-	cpu_sleep();
 }
