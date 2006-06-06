@@ -40,6 +40,18 @@ irq_code_t cuda_kbd = {
 };
 
 
+static char lchars[0x80] = {
+	'a',  's',  'd',  'f',  'h',  'g',  'z',  'x',  'c',  'v',    0,  'b',  'q',  'w',  'e',  'r',
+	'y',  't',  '1',  '2',  '3',  '4',  '6',  '5',  '=',  '9',  '7',  '-',  '8',  '0',  ']',  'o',
+	'u',  '[',  'i',  'p',   13,  'l',  'j', '\'',  'k',  ';', '\\',  ',',  '/',  'n',  'm',  '.',
+	  9,   32,  '`',    8,    0,   27,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+	  0,  '.',    0,  '*',    0,  '+',    0,    0,    0,    0,    0,  '/',   13,    0,  '-',    0,
+	  0,    0,  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',    0,  '8',  '9',    0,    0,    0,
+	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0
+};
+
+
 int kbd_arch_init(void)
 {
 	return (!ipc_register_irq(sysinfo_value("cuda.irq"), &cuda_kbd));
@@ -48,6 +60,10 @@ int kbd_arch_init(void)
 
 int kbd_arch_process(keybuffer_t *keybuffer, int scan_code) 
 {
-	keybuffer_push(keybuffer, scan_code);
+	uint8_t scancode = (uint8_t) scan_code;
+	
+	if ((scancode != 0) && ((scancode & 0x80) != 0x80))
+		keybuffer_push(keybuffer, lchars[scancode & 0x7f]);
+	
 	return 1;
 }
