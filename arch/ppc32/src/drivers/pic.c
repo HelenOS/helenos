@@ -46,7 +46,7 @@ void pic_enable_interrupt(int intnum)
 	if (intnum < 32) {
 		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] | (1 << intnum);
 	} else {
-		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum-32));
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum - 32));
 	}
 	
 }
@@ -56,7 +56,7 @@ void pic_disable_interrupt(int intnum)
 	if (intnum < 32) {
 		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] & (~(1 << intnum));
 	} else {
-		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] & (~(1 << (intnum-32)));
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] & (~(1 << (intnum - 32)));
 	}
 }
 
@@ -65,7 +65,7 @@ void pic_ack_interrupt(int intnum)
 	if (intnum < 32) 
 		pic[PIC_ACK_LOW] = 1 << intnum;
 	else 
-		pic[PIC_ACK_HIGH] = 1 << (intnum-32);
+		pic[PIC_ACK_HIGH] = 1 << (intnum - 32);
 }
 
 /** Return number of pending interrupt */

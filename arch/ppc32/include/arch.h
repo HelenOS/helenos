@@ -29,4 +29,6 @@
 #ifndef __ppc32_ARCH_H__
 #define __ppc32_ARCH_H__
 
+#include <arch/drivers/cuda.h>
+
 #endif

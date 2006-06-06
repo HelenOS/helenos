@@ -28,9 +28,9 @@
 
 #include <arch/drivers/cuda.h>
 #include <arch/asm.h>
-#include <console/chardev.h>
 #include <console/console.h>
 #include <arch/drivers/pic.h>
+#include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <stdarg.h>
 
@@ -129,7 +129,7 @@ static char key_read(chardev_t *d)
 }
 
 
-static chardev_t kbrd;
+chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = cuda_suspend,
 	.resume = cuda_resume,
@@ -162,6 +162,9 @@ void cuda_init(__address base, size_t size)
 	
 	chardev_initialize("cuda_kbd", &kbrd, &ops);
 	stdin = &kbrd;
+	
+	sysinfo_set_item_val("cuda", NULL, true);
+	sysinfo_set_item_val("cuda.irq", NULL, CUDA_IRQ);
 }
 
 
