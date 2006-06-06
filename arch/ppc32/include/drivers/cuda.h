@@ -30,13 +30,11 @@
 #define __CUDA_H__
 
 #include <arch/types.h>
-#include <console/chardev.h>
 #include <typedefs.h>
 
 #define CUDA_IRQ 10
 
-chardev_t kbrd;
-
 extern void cuda_init(__address base, size_t size);
+extern __u8 cuda_get_scancode(void);
 
 #endif

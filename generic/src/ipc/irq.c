@@ -66,7 +66,7 @@ static int irq_conns_size;
 static void code_execute(call_t *call, irq_code_t *code)
 {
 	int i;
-
+	
 	if (!code)
 		return;
 	
@@ -109,9 +109,9 @@ static void code_execute(call_t *call, irq_code_t *code)
 			IPC_SET_ARG2(call->data, _getc(&ski_uconsole));
 			break;
 #endif
-#if defined(ppc32) 
+#if defined(ppc32)
 		case CMD_PPC32_GETCHAR:
-			IPC_SET_ARG2(call->data, _getc(&kbrd));
+			IPC_SET_ARG2(call->data, cuda_get_scancode());
 			break;
 #endif
 		default:

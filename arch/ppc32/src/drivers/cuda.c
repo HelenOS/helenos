@@ -29,6 +29,7 @@
 #include <arch/drivers/cuda.h>
 #include <arch/asm.h>
 #include <console/console.h>
+#include <console/chardev.h>
 #include <arch/drivers/pic.h>
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
@@ -36,7 +37,6 @@
 
 #define PACKET_ADB  0x00
 #define PACKET_CUDA 0x01
-#define PACKET_NULL 0xff
 
 #define CUDA_POWERDOWN 0x0a
 
@@ -66,33 +66,7 @@ static char lchars[0x80] = {
 };
 
 
-static void send_packet(const __u8 kind, index_t count, ...)
-{
-	index_t i;
-	va_list va;
-	
-	switch (kind) {
-		case PACKET_NULL:
-			break;
-		default:
-			cuda[B] = cuda[B] | TIP;
-			cuda[ACR] = cuda[ACR] | SR_OUT;
-			cuda[SR] = kind;
-			cuda[B] = cuda[B] & ~TIP;
-			
-			va_start(va, count);
-			
-			for (i = 0; i < count; i++) {
-				cuda[ACR] = cuda[ACR] | SR_OUT;
-				cuda[SR] = va_arg(va, int);
-				cuda[B] = cuda[B] | TACK;
-			}
-			
-			va_end(va);
-			
-			cuda[B] = cuda[B] | TIP;
-	}
-}
+void send_packet(const __u8 kind, index_t count, ...);
 
 
 static void receive_packet(__u8 *kind, index_t count, __u8 data[])
@@ -129,7 +103,7 @@ static char key_read(chardev_t *d)
 }
 
 
-chardev_t kbrd;
+static chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = cuda_suspend,
 	.resume = cuda_resume,
@@ -137,19 +111,26 @@ static chardev_operations_t ops = {
 };
 
 
-static void cuda_irq(int n, istate_t *istate)
+__u8 cuda_get_scancode(void)
 {
 	__u8 kind;
 	__u8 data[4];
 	
 	receive_packet(&kind, 4, data);
 	
-	if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c)) {
-		__u8 key = data[2];
-		
-		if ((key & 0x80) != 0x80)
-			chardev_push_character(&kbrd, lchars[key & 0x7f]);
-	}
+	if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c))
+		return data[2];
+	
+	return 0;
+}
+
+
+static void cuda_irq(int n, istate_t *istate)
+{
+	__u8 scancode = cuda_get_scancode();
+	
+	if ((scancode != 0) && ((scancode & 0x80) != 0x80))
+		chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
 }
 
 
@@ -168,11 +149,33 @@ void cuda_init(__address base, size_t size)
 }
 
 
+void send_packet(const __u8 kind, index_t count, ...)
+{
+	index_t i;
+	va_list va;
+	
+	cuda[B] = cuda[B] | TIP;
+	cuda[ACR] = cuda[ACR] | SR_OUT;
+	cuda[SR] = kind;
+	cuda[B] = cuda[B] & ~TIP;
+	
+	va_start(va, count);
+	
+	for (i = 0; i < count; i++) {
+		cuda[ACR] = cuda[ACR] | SR_OUT;
+		cuda[SR] = va_arg(va, int);
+		cuda[B] = cuda[B] | TACK;
+	}
+	
+	va_end(va);
+	
+	cuda[B] = cuda[B] | TIP;
+}
+
+
 void cpu_halt(void) {
 #ifdef CONFIG_POWEROFF
 	send_packet(PACKET_CUDA, 1, CUDA_POWERDOWN);
-#else
-	send_packet(PACKET_NULL, 0);
 #endif
 	asm volatile (
 		"b 0\n"
