@@ -38,27 +38,17 @@ DIRS = \
 	init \
 	ns \
 	fb \
+	kbd \
 	console \
 	tetris \
 	ipcc \
 	klog
 
 ifeq ($(ARCH), amd64)
-	DIRS += pci \
-		kbd
+	DIRS += pci
 endif
 ifeq ($(ARCH), ia32)
-	DIRS += pci \
-		kbd
-endif
-ifeq ($(ARCH), mips32)
-	DIRS += kbd
-endif
-ifeq ($(ARCH), mips32eb)
-	DIRS += kbd
-endif
-ifeq ($(ARCH), ia64)
-	DIRS += kbd
+	DIRS += pci
 endif
 
 BUILDS := $(addsuffix .build,$(DIRS))
