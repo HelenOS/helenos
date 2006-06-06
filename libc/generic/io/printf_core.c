@@ -73,21 +73,17 @@ static char digits_big[] = "0123456789ABCDEF";		/**< Big hexadecimal characters 
  * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
  * @param count 
  * @param ps output method and its data
- * @return 0 on success, EOF on fail
+ * @return number of printed characters
  */
 static int printf_putnchars(const char * buf, size_t count, struct printf_spec *ps)
 {
-	if (ps->write((void *)buf, count, ps->data) == count) {
-		return 0;
-	}
-	
-	return EOF;
+	return ps->write((void *)buf, count, ps->data);
 }
 
 /** Print string without added newline
  * @param str string to print
  * @param ps write function specification and support data
- * @return 0 on success or EOF on fail
+ * @return number of printed characters
  */
 static int printf_putstr(const char * str, struct printf_spec *ps)
 {
@@ -109,24 +105,20 @@ static int printf_putstr(const char * str, struct printf_spec *ps)
 /** Print one character to output
  * @param c one character
  * @param ps output method
- * @return printed character or EOF
+ * @return number of printed characters
  */
 static int printf_putchar(int c, struct printf_spec *ps)
 {
 	unsigned char ch = c;
 	
-	if (ps->write((void *) &ch, 1, ps->data) == 1) {
-		return c;
-	}
-	
-	return EOF;
+	return ps->write((void *) &ch, 1, ps->data);
 }
 
 /** Print one formatted character
  * @param c character to print
  * @param width 
  * @param flags
- * @return number of printed characters or EOF
+ * @return number of printed characters
  */
 static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
 {
@@ -134,19 +126,17 @@ static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (--width > 0) { 	/* one space is consumed by character itself hence predecrement */
-			/* FIXME: painful slow */
-			printf_putchar(' ', ps);	
-			++counter;
+			if (printf_putchar(' ', ps) > 0)	
+				++counter;
 		}
 	}
+ 	
+	if (printf_putchar(c, ps) > 0)
+		counter++;
 	
- 	if (printf_putchar(c, ps) == EOF) {
-		return EOF;
-	}
-
 	while (--width > 0) { /* one space is consumed by character itself hence predecrement */
-		printf_putchar(' ', ps);
-		++counter;
+		if (printf_putchar(' ', ps) > 0)
+			++counter;
 	}
 	
 	return ++counter;
@@ -157,13 +147,14 @@ static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
  * @param width 
  * @param precision
  * @param flags
- * @return number of printed characters or EOF
+ * @return number of printed characters
  */
 						
 static int print_string(char *s, int width, int precision, uint64_t flags, struct printf_spec *ps)
 {
 	int counter = 0;
 	size_t size;
+	int retval;
 
 	if (s == NULL) {
 		return printf_putstr("(NULL)", ps);
@@ -180,29 +171,29 @@ static int print_string(char *s, int width, int precision, uint64_t flags, struc
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) { 	
-			printf_putchar(' ', ps);	
-			counter++;
+			if (printf_putchar(' ', ps) == 1)	
+				counter++;
 		}
 	}
 
 	while (precision > size) {
 		precision--;
-		printf_putchar(' ', ps);	
-		++counter;
+		if (printf_putchar(' ', ps) == 1)	
+			++counter;
 	}
 	
- 	if (printf_putnchars(s, precision, ps) == EOF) {
-		return EOF;
+ 	if ((retval = printf_putnchars(s, precision, ps)) < 0) {
+		return -counter;
 	}
 
-	counter += precision;
+	counter += retval;	
 
 	while (width-- > 0) {
-		printf_putchar(' ', ps);	
-		++counter;
+		if (printf_putchar(' ', ps) == 1)	
+			++counter;
 	}
 	
-	return ++counter;
+	return counter;
 }
 
 
@@ -217,7 +208,7 @@ static int print_string(char *s, int width, int precision, uint64_t flags, struc
  * @param base Base to print the number in (should
  *             be in range 2 .. 16).
  * @param flags output modifiers
- * @return number of written characters or EOF
+ * @return number of printed characters
  *
  */
 static int print_number(uint64_t num, int width, int precision, int base , uint64_t flags, struct printf_spec *ps)
@@ -227,8 +218,9 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	char *ptr = &d[PRINT_NUMBER_BUFFER_SIZE - 1];
 	int size = 0; /* size of number with all prefixes and signs */
 	int number_size; /* size of plain number */
-	int written = 0;
 	char sgn;
+	int retval;
+	int counter = 0;
 	
 	if (flags & __PRINTF_FLAG_BIGCHARS) 
 		digits = digits_big;	
@@ -295,15 +287,15 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) { 	
-			printf_putchar(' ', ps);	
-			written++;
+			if (printf_putchar(' ', ps) == 1)	
+				counter++;
 		}
 	}
 	
 	/* print sign */
 	if (sgn) {
-		printf_putchar(sgn, ps);
-		written++;
+		if (printf_putchar(sgn, ps) == 1)
+			counter++;
 	}
 	
 	/* print prefix */
@@ -311,26 +303,30 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
 			case 2:	/* Binary formating is not standard, but usefull */
-				printf_putchar('0', ps);
+				if (printf_putchar('0', ps) == 1)
+					counter++;
 				if (flags & __PRINTF_FLAG_BIGCHARS) {
-					printf_putchar('B', ps);
+					if (printf_putchar('B', ps) == 1)
+						counter++;
 				} else {
-					printf_putchar('b', ps);
+					if (printf_putchar('b', ps) == 1)
+						counter++;
 				}
-				written += 2;
 				break;
 			case 8:
-				printf_putchar('o', ps);
-				written++;
+				if (printf_putchar('o', ps) == 1)
+					counter++;
 				break;
 			case 16:
-				printf_putchar('0', ps);
+				if (printf_putchar('0', ps) == 1)
+					counter++;
 				if (flags & __PRINTF_FLAG_BIGCHARS) {
-					printf_putchar('X', ps);
+					if (printf_putchar('X', ps) == 1)
+						counter++;
 				} else {
-					printf_putchar('x', ps);
+					if (printf_putchar('x', ps) == 1)
+						counter++;
 				}
-				written += 2;
 				break;
 		}
 	}
@@ -338,23 +334,25 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	/* print leading zeroes */
 	precision -= number_size;
 	while (precision-- > 0) { 	
-		printf_putchar('0', ps);	
-		written++;
+		if (printf_putchar('0', ps) == 1)
+			counter++;
 	}
 
 	
 	/* print number itself */
 
-	written += printf_putstr(++ptr, ps);
+	if ((retval = printf_putstr(++ptr, ps)) > 0) {
+		counter += retval;
+	}
 	
 	/* print ending spaces */
 	
 	while (width-- > 0) { 	
-		printf_putchar(' ', ps);	
-		written++;
+		if (printf_putchar(' ', ps) == 1)	
+			counter++;
 	}
 
-	return written;
+	return counter;
 }
 
 
@@ -456,7 +454,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 		if (c == '%' ) { 
 			/* print common characters if any processed */	
 			if (i > j) {
-				if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) == EOF) { /* error */
+				if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) < 0) { /* error */
 					goto minus_out;
 				}
 				counter += retval;
@@ -552,7 +550,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				* String and character conversions.
 				*/
 				case 's':
-					if ((retval = print_string(va_arg(ap, char*), width, precision, flags, ps)) == EOF) {
+					if ((retval = print_string(va_arg(ap, char*), width, precision, flags, ps)) < 0) {
 						goto minus_out;
 					};
 					
@@ -561,7 +559,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					goto next_char;
 				case 'c':
 					c = va_arg(ap, unsigned int);
-					if ((retval = print_char(c, width, flags, ps)) == EOF) {
+					if ((retval = print_char(c, width, flags, ps)) < 0) {
 						goto minus_out;
 					};
 					
@@ -661,7 +659,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				}
 			}
 
-			if ((retval = print_number(number, width, precision, base, flags, ps)) == EOF ) {
+			if ((retval = print_number(number, width, precision, base, flags, ps)) < 0 ) {
 				goto minus_out;
 			};
 
@@ -674,7 +672,7 @@ next_char:
 	}
 	
 	if (i > j) {
-		if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) == EOF) { /* error */
+		if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) < 0) { /* error */
 			goto minus_out;
 		}
 		counter += retval;

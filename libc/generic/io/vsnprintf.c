@@ -52,31 +52,34 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data);
  */
 int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 {
-	size_t i,j;
+	size_t i;
 	i = data->size - data->len;
-	j = count;
 
-	if (i > 0) {
-		if (i <= j) { 
-			if (i == 1) {
-				/* We have only one free byte left in buffer => write there trailing zero */
-				data->string[data->size - 1] = 0;
-				data->len = data->size;
-			} else {
-				/* We have not enought space for whole string with the trailing zero => print only a part of string */
-				memcpy((void *)(data->string + data->len), (void *)str, i - 1);
-				data->string[data->size - 1] = 0;
-				data->len = data->size;
-			}
-		} else {
-			/* Buffer is big enought to print whole string */
-			memcpy((void *)(data->string + data->len), (void *)str, j);
-			data->len += j;
-			/* Put trailing zero at end, but not count it into data->len so it could be rewritten next time */
-			data->string[data->len] = 0;
-		}
+	if (i == 0) {
+		return count;
 	}
 	
+	if (i == 1) {
+		/* We have only one free byte left in buffer => write there trailing zero */
+		data->string[data->size - 1] = 0;
+		data->len = data->size;
+		return count;
+	}
+	
+	if (i <= count) {
+		/* We have not enought space for whole string with the trailing zero => print only a part of string */
+			memcpy((void *)(data->string + data->len), (void *)str, i - 1);
+			data->string[data->size - 1] = 0;
+			data->len = data->size;
+			return count;
+	}
+	
+	/* Buffer is big enought to print whole string */
+	memcpy((void *)(data->string + data->len), (void *)str, count);
+	data->len += count;
+	/* Put trailing zero at end, but not count it into data->len so it could be rewritten next time */
+	data->string[data->len] = 0;
+
 	return count;	
 }
 
