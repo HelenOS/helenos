@@ -70,14 +70,9 @@ static void klog_vprintf(const char *fmt, va_list args)
 	spinlock_lock(&klog_lock);
 
 	ret = vsnprintf(klog+klogpos, klogsize-klogpos, fmt, atst);
-	// Workaround around bad return value from vsnprintf
-	if (ret+klogpos < klogsize)
-		ret = 100;
-	if (ret == klogsize-klogpos) {
+	if (ret >= klogsize-klogpos) {
 		klogpos = 0;
-		ret = vsnprintf(klog+klogpos, klogsize-klogpos, fmt, args);
-		ret = 100;
-		if (ret == klogsize)
+		if (ret >= klogsize)
 			goto out;
 	}
 	ipc_irq_send_msg(IPC_IRQ_KLOG, klogpos, ret);
