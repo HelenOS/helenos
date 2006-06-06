@@ -37,6 +37,8 @@
 #include <io/printf_core.h>
 #include <ctype.h>
 #include <string.h>
+/* For serialization */
+#include <async.h>
 
 #define __PRINTF_FLAG_PREFIX		0x00000001	/**< show prefixes 0x or 0*/
 #define __PRINTF_FLAG_SIGNED		0x00000002	/**< signed / unsigned number */
@@ -444,6 +446,9 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 	int width, precision;
 	uint64_t flags;
 	
+	/* Don't let other threads interfere */
+	async_serialize_start();
+
 	counter = 0;
 	
 	while ((c = fmt[i])) {
@@ -452,7 +457,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			/* print common characters if any processed */	
 			if (i > j) {
 				if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) == EOF) { /* error */
-					return -counter;
+					goto minus_out;
 				}
 				counter += retval;
 			}
@@ -548,7 +553,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				*/
 				case 's':
 					if ((retval = print_string(va_arg(ap, char*), width, precision, flags, ps)) == EOF) {
-						return -counter;
+						goto minus_out;
 					};
 					
 					counter += retval;
@@ -557,7 +562,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				case 'c':
 					c = va_arg(ap, unsigned int);
 					if ((retval = print_char(c, width, flags, ps)) == EOF) {
-						return -counter;
+						goto minus_out;
 					};
 					
 					counter += retval;
@@ -638,7 +643,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					number = (uint64_t)va_arg(ap, size_t);
 					break;
 				default: /* Unknown qualifier */
-					return -counter;
+					goto minus_out;
 					
 			}
 			
@@ -657,7 +662,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			}
 
 			if ((retval = print_number(number, width, precision, base, flags, ps)) == EOF ) {
-				return -counter;
+				goto minus_out;
 			};
 
 			counter += retval;
@@ -670,11 +675,15 @@ next_char:
 	
 	if (i > j) {
 		if ((retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps)) == EOF) { /* error */
-			return -counter;
+			goto minus_out;
 		}
 		counter += retval;
 	}
 	
+	async_serialize_end();
 	return counter;
+minus_out:
+	async_serialize_end();
+	return -counter;
 }
 

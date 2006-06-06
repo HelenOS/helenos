@@ -371,6 +371,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			/* Commit hangup */
 			ipc_answer_fast(callid, 0,0,0);
+			conn->used = 0;
 			async_serialize_end();
 			return;
 		case CONSOLE_PUTCHAR:

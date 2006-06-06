@@ -41,7 +41,6 @@ void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	int i;
 	
 	async_serialize_start();
-	/* TODO: remove workaround around non-functional vsnprintf */
 	for (i=0; klog[i + IPC_GET_ARG2(*call)] && i < IPC_GET_ARG3(*call); i++)
 		putchar(klog[i + IPC_GET_ARG2(*call)]);
 	putchar('\n');
