@@ -29,7 +29,13 @@
 #ifndef __IRQ_H__
 #define __IRQ_H__
 
+/** Maximum length of IPC IRQ program */
 #define IRQ_MAX_PROG_SIZE 10
+
+/** Reserved 'virtual' messages for kernel notifications */
+#define IPC_IRQ_RESERVED_VIRTUAL 10
+
+#define IPC_IRQ_KLOG  (-1)
 
 typedef enum {
 	CMD_MEM_READ_1 = 0,
@@ -59,9 +65,12 @@ typedef struct {
 
 #ifdef KERNEL
 
+#include <ipc/ipc.h>
+
 extern void ipc_irq_make_table(int irqcount);
 extern int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode);
 extern void ipc_irq_send_notif(int irq);
+extern void ipc_irq_send_msg(int irq, __native a2, __native a3);
 extern void ipc_irq_unregister(answerbox_t *box, int irq);
 extern void irq_ipc_bind_arch(__native irq);
 extern void ipc_irq_cleanup(answerbox_t *box);

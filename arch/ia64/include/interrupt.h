@@ -113,6 +113,17 @@ static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 	istate->cr_ipsr.ri = 0;		/* return to instruction slot #0 */
 }
 
+static inline __native istate_get_pc(istate_t *istate)
+{
+	return istate->cr_iip;
+}
+#include <panic.h>
+static inline int istate_from_uspace(istate_t *istate)
+{
+	panic("TODO: istate_from_uspace not yet implemented");
+	return 0;
+}
+
 extern void *ivt;
 
 extern void general_exception(__u64 vector, istate_t *istate);

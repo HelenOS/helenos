@@ -46,6 +46,7 @@
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipc.h>
+#include <interrupt.h>
 
 
 #define VECTORS_64_BUNDLE	20
@@ -150,8 +151,6 @@ void general_exception(__u64 vector, istate_t *istate)
 {
 	char *desc = "";
 
-	dump_interrupted_context(istate);
-
 	switch (istate->cr_isr.ge_code) {
 	    case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
@@ -176,6 +175,9 @@ void general_exception(__u64 vector, istate_t *istate)
 		break;
 	}
 
+	fault_if_from_uspace(istate, "General Exception (%s)", desc);
+
+	dump_interrupted_context(istate);
 	panic("General Exception (%s)\n", desc);
 }
 
@@ -186,6 +188,7 @@ void disabled_fp_register(__u64 vector, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY 
 	scheduler_fpu_lazy_request();	
 #else
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s)", (__u16) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
 	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
 #endif
@@ -267,6 +270,3 @@ void irq_ipc_bind_arch(__native irq)
 	panic("not implemented\n");
 	/* TODO */
 }
-
-
-

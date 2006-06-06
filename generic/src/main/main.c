@@ -74,6 +74,7 @@
 #include <ipc/ipc.h>
 #include <macros.h>
 #include <adt/btree.h>
+#include <console/klog.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -218,6 +219,7 @@ void main_bsp_separated_stack(void)
 	task_init();
 	thread_init();
 	futex_init();
+	klog_init();
 	
 	for (i = 0; i < init.cnt; i++)
 		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(__address) * 2, init.tasks[i].addr, i, init.tasks[i].size);

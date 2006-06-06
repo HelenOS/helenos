@@ -388,6 +388,10 @@ restart:
 	THREAD->state = Exiting;
 	spinlock_unlock(&THREAD->lock);
 	scheduler();
+
+	/* Not reached */
+	while (1)
+		;
 }
 
 

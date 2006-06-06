@@ -553,26 +553,26 @@ restart:
 }
 
 /** Connect irq handler to task */
-__native sys_ipc_register_irq(__native irq, irq_code_t *ucode)
+__native sys_ipc_register_irq(int irq, irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
-	if (irq >= IRQ_COUNT)
+	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
 		return (__native) ELIMIT;
-
+	
 	irq_ipc_bind_arch(irq);
 
 	return ipc_irq_register(&TASK->answerbox, irq, ucode);
 }
 
 /* Disconnect irq handler from task */
-__native sys_ipc_unregister_irq(__native irq)
+__native sys_ipc_unregister_irq(int irq)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
-	if (irq >= IRQ_COUNT)
+	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
 		return (__native) ELIMIT;
 
 	ipc_irq_unregister(&TASK->answerbox, irq);

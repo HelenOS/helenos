@@ -335,10 +335,7 @@ restart:
 		/* Append request to dispatch queue */
 		list_append(&request->link, &box->dispatched_calls);
 	} else {
-		/* This can happen regularly after ipc_cleanup, remove
-		 * the warning in the future when the IPC is
-		 * more debugged */
-		printf("WARNING: Spurious IPC wakeup.\n");
+		/* This can happen regularly after ipc_cleanup */
 		spinlock_unlock(&box->lock);
 		goto restart;
 	}

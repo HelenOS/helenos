@@ -79,6 +79,8 @@ void PRINT_INFO_ERRCODE(istate_t *istate)
 
 void null_interrupt(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "unserviced interrupt: %d", n);
+
 	PRINT_INFO_ERRCODE(istate);
 	panic("unserviced interrupt: %d\n", n);
 }
@@ -104,6 +106,7 @@ void gp_fault(int n, istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
+		fault_if_from_uspace(istate, "general protection fault");
 	}
 
 	PRINT_INFO_ERRCODE(istate);
@@ -112,20 +115,24 @@ void gp_fault(int n, istate_t *istate)
 
 void ss_fault(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "stack fault");
+
 	PRINT_INFO_ERRCODE(istate);
 	panic("stack fault\n");
 }
 
 void simd_fp_exception(int n, istate_t *istate)
 {
-
-	PRINT_INFO_ERRCODE(istate);
 	__u32 mxcsr;
 	asm
 	(
 		"stmxcsr %0;\n"
 		:"=m"(mxcsr)
 	);
+	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zX",
+			     (__native)mxcsr);
+
+	PRINT_INFO_ERRCODE(istate);
 	printf("MXCSR: %#zX\n",(__native)(mxcsr));
 	panic("SIMD FP exception(19)\n");
 }
@@ -135,6 +142,7 @@ void nm_fault(int n, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
+	fault_if_from_uspace(istate, "fpu fault");
 	panic("fpu fault");
 #endif
 }

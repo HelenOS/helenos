@@ -122,6 +122,7 @@ GENERIC_SOURCES = \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/kconsole.c \
+	generic/src/console/klog.c \
 	generic/src/console/cmd.c \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \

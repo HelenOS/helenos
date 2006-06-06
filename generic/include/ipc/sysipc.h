@@ -47,7 +47,7 @@ __native sys_ipc_wait_for_call(ipc_data_t *calldata, __u32 usec, int nonblocking
 __native sys_ipc_forward_fast(__native callid, __native phoneid,
 			      __native method, __native arg1);
 __native sys_ipc_hangup(int phoneid);
-__native sys_ipc_register_irq(__native irq, irq_code_t *ucode);
-__native sys_ipc_unregister_irq(__native irq);
+__native sys_ipc_register_irq(int irq, irq_code_t *ucode);
+__native sys_ipc_unregister_irq(int irq);
 
 #endif

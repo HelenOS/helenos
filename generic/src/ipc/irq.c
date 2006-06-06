@@ -156,16 +156,17 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 void ipc_irq_unregister(answerbox_t *box, int irq)
 {
 	ipl_t ipl;
+	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[irq].lock);
-	if (irq_conns[irq].box == box) {
-		irq_conns[irq].box = NULL;
-		code_free(irq_conns[irq].code);
-		irq_conns[irq].code = NULL;
+	spinlock_lock(&irq_conns[mq].lock);
+	if (irq_conns[mq].box == box) {
+		irq_conns[mq].box = NULL;
+		code_free(irq_conns[mq].code);
+		irq_conns[mq].code = NULL;
 	}
 
-	spinlock_unlock(&irq_conns[irq].lock);
+	spinlock_unlock(&irq_conns[mq].lock);
 	interrupts_restore(ipl);
 }
 
@@ -174,6 +175,7 @@ int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
 {
 	ipl_t ipl;
 	irq_code_t *code;
+	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
 
 	ASSERT(irq_conns);
 
@@ -185,21 +187,60 @@ int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
 		code = NULL;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[irq].lock);
+	spinlock_lock(&irq_conns[mq].lock);
 
-	if (irq_conns[irq].box) {
-		spinlock_unlock(&irq_conns[irq].lock);
+	if (irq_conns[mq].box) {
+		spinlock_unlock(&irq_conns[mq].lock);
 		interrupts_restore(ipl);
 		code_free(code);
 		return EEXISTS;
 	}
-	irq_conns[irq].box = box;
-	irq_conns[irq].code = code;
-	atomic_set(&irq_conns[irq].counter, 0);
-	spinlock_unlock(&irq_conns[irq].lock);
+	irq_conns[mq].box = box;
+	irq_conns[mq].code = code;
+	atomic_set(&irq_conns[mq].counter, 0);
+	spinlock_unlock(&irq_conns[mq].lock);
 	interrupts_restore(ipl);
 
 	return 0;
+}
+
+/** Add call to proper answerbox queue
+ *
+ * Assume irq_conns[mq].lock is locked */
+static void send_call(int mq, call_t *call)
+{
+	spinlock_lock(&irq_conns[mq].box->irq_lock);
+	list_append(&call->link, &irq_conns[mq].box->irq_notifs);
+	spinlock_unlock(&irq_conns[mq].box->irq_lock);
+		
+	waitq_wakeup(&irq_conns[mq].box->wq, 0);
+}
+
+/** Send notification message
+ *
+ */
+void ipc_irq_send_msg(int irq, __native a2, __native a3)
+{
+	call_t *call;
+	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
+
+	spinlock_lock(&irq_conns[mq].lock);
+
+	if (irq_conns[mq].box) {
+		call = ipc_call_alloc(FRAME_ATOMIC);
+		if (!call) {
+			spinlock_unlock(&irq_conns[mq].lock);
+			return;
+		}
+		call->flags |= IPC_CALL_NOTIF;
+		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
+		IPC_SET_ARG1(call->data, irq);
+		IPC_SET_ARG2(call->data, a2);
+		IPC_SET_ARG3(call->data, a3);
+		
+		send_call(mq, call);
+	}
+	spinlock_unlock(&irq_conns[mq].lock);
 }
 
 /** Notify process that an irq had happend
@@ -209,39 +250,41 @@ int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
 void ipc_irq_send_notif(int irq)
 {
 	call_t *call;
+	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
 
 	ASSERT(irq_conns);
-	spinlock_lock(&irq_conns[irq].lock);
+	spinlock_lock(&irq_conns[mq].lock);
 
-	if (irq_conns[irq].box) {
+	if (irq_conns[mq].box) {
 		call = ipc_call_alloc(FRAME_ATOMIC);
 		if (!call) {
-			spinlock_unlock(&irq_conns[irq].lock);
+			spinlock_unlock(&irq_conns[mq].lock);
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
 		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
 		IPC_SET_ARG1(call->data, irq);
-		IPC_SET_ARG3(call->data, atomic_preinc(&irq_conns[irq].counter));
+		IPC_SET_ARG3(call->data, atomic_preinc(&irq_conns[mq].counter));
 
 		/* Execute code to handle irq */
-		code_execute(call, irq_conns[irq].code);
-
-		spinlock_lock(&irq_conns[irq].box->irq_lock);
-		list_append(&call->link, &irq_conns[irq].box->irq_notifs);
-		spinlock_unlock(&irq_conns[irq].box->irq_lock);
-
-		waitq_wakeup(&irq_conns[irq].box->wq, 0);
+		code_execute(call, irq_conns[mq].code);
+		
+		send_call(mq, call);
 	}
 		
-	spinlock_unlock(&irq_conns[irq].lock);
+	spinlock_unlock(&irq_conns[mq].lock);
 }
 
 
-/** Initialize table of interrupt handlers */
+/** Initialize table of interrupt handlers
+ *
+ * @param irqcount Count of required hardware IRQs to be supported
+ */
 void ipc_irq_make_table(int irqcount)
 {
 	int i;
+
+	irqcount +=  IPC_IRQ_RESERVED_VIRTUAL;
 
 	irq_conns_size = irqcount;
 	irq_conns = malloc(irqcount * (sizeof(*irq_conns)), 0);

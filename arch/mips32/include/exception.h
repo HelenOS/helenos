@@ -34,6 +34,7 @@
 #endif
 
 #include <typedefs.h>
+#include <arch/cp0.h>
 
 #define EXC_Int		0
 #define EXC_Mod		1
@@ -96,6 +97,16 @@ struct istate {
 static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
 	istate->epc = retaddr;
+}
+
+/** Return true if exception happened while in userspace */
+static inline int istate_from_uspace(istate_t *istate)
+{
+	return istate->status & cp0_status_um_bit;
+}
+static inline __native istate_get_pc(istate_t *istate)
+{
+	return istate->epc;
 }
 
 extern void exception(istate_t *istate);

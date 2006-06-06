@@ -39,6 +39,7 @@
 #include <print.h>
 #include <debug.h>
 #include <align.h>
+#include <interrupt.h>
 
 static void tlb_refill_fail(istate_t *istate);
 static void tlb_invalid_fail(istate_t *istate);
@@ -336,6 +337,8 @@ void tlb_refill_fail(istate_t *istate)
 	s = get_symtab_entry(istate->ra);
 	if (s)
 		sym2 = s;
+
+	fault_if_from_uspace(istate, "TLB Refill Exception on %P", cp0_badvaddr_read());
 	panic("%X: TLB Refill Exception at %X(%s<-%s)\n", cp0_badvaddr_read(), istate->epc, symbol, sym2);
 }
 
@@ -347,6 +350,7 @@ void tlb_invalid_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
+	fault_if_from_uspace(istate, "TLB Invalid Exception on %P", cp0_badvaddr_read());
 	panic("%X: TLB Invalid Exception at %X(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
 }
 
@@ -357,6 +361,7 @@ void tlb_modified_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
+	fault_if_from_uspace(istate, "TLB Modified Exception on %P", cp0_badvaddr_read());
 	panic("%X: TLB Modified Exception at %X(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
 }
 

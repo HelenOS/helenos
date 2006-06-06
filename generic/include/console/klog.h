@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _KLOG_H_
+#define _KLOG_H_
 
-/*
- * Variable argument list manipulation macros
- * for all architectures with compiler support for __builtin_va_*.
- */
- 
-#ifndef __STDARG_H__
-#define __STDARG_H__
-
-typedef __builtin_va_list va_list;
-
-#define va_start(ap, last) 		__builtin_va_start(ap, last)
-#define va_arg(ap, type) 		__builtin_va_arg(ap, type)
-#define va_end(ap)			__builtin_va_end(ap)
-#define va_copy(dst,src)		__builtin_va_copy(dst,src)
+void klog_init(void);
+void klog_printf(const char *fmt, ...);
 
 #endif

@@ -66,7 +66,6 @@ void irq_ipc_bind_arch(__native irq)
 	/* TODO */
 }
 
-#include <print.h>
 /** Handler of externul interrupts */
 void extint_handler(int n, istate_t *istate)
 {

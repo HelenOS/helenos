@@ -150,7 +150,7 @@ extern btree_t threads_btree;			/**< B+tree containing all threads. */
 extern void thread_init(void);
 extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name);
 extern void thread_ready(thread_t *t);
-extern void thread_exit(void);
+extern void thread_exit(void) __attribute__((noreturn));
 
 #ifndef thread_create_arch
 extern void thread_create_arch(thread_t *t);

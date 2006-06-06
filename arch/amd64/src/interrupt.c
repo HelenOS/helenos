@@ -79,6 +79,7 @@ void (* eoi_function)(void) = NULL;
 
 void null_interrupt(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "unserviced interrupt: %d", n);
 	print_info_errcode(n, istate);
 	panic("unserviced interrupt\n");
 }
@@ -104,6 +105,7 @@ void gp_fault(int n, istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
+		fault_if_from_uspace(istate, "general protection fault");
 	}
 
 	print_info_errcode(n, istate);
@@ -112,6 +114,7 @@ void gp_fault(int n, istate_t *istate)
 
 void ss_fault(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "stack fault");
 	print_info_errcode(n, istate);
 	panic("stack fault\n");
 }
@@ -121,6 +124,7 @@ void nm_fault(int n, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
+	fault_if_from_uspace(istate, "fpu fault");
 	panic("fpu fault");
 #endif
 }

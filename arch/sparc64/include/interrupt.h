@@ -51,6 +51,15 @@ static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
 	/* TODO */
 }
+static inline int istate_from_uspace(istate_t *istate)
+{
+	/* TODO */
+}
+static inline __native istate_get_pc(istate_t *istate)
+{
+	/* TODO */
+}
+
 
 extern void interrupt_register(int n, const char *name, iroutine f);
 

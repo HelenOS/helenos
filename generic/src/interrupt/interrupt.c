@@ -90,6 +90,7 @@ void exc_dispatch(int n, istate_t *istate)
 /** Default 'null' exception handler */
 static void exc_undef(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "Unhandled exception %d.", n);
 	panic("Unhandled exception %d.", n);
 }
 

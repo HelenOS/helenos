@@ -86,9 +86,19 @@ struct istate {
 	__u64 stack[]; /* Additional data on stack */
 };
 
+/** Return true if exception happened while in userspace */
+static inline int istate_from_uspace(istate_t *istate)
+{
+	return !(istate->rip & 0x8000000000000000);
+}
+
 static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
 {
 	istate->rip = retaddr;
+}
+static inline __native istate_get_pc(istate_t *istate)
+{
+	return istate->rip;
 }
 
 extern void (* disable_irqs_function)(__u16 irqmask);

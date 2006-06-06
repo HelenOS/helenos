@@ -78,6 +78,8 @@ static void print_regdump(istate_t *istate)
 
 static void unhandled_exception(int n, istate_t *istate)
 {
+	fault_if_from_uspace(istate, "unhandled exception %s", exctable[n]);
+	
 	print_regdump(istate);
 	panic("unhandled exception %s\n", exctable[n]);
 }
@@ -119,8 +121,10 @@ static void cpuns_exception(int n, istate_t *istate)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
-	else
+	else {
+		fault_if_from_uspace(istate, "unhandled Coprocessor Unusable Exception");
 		panic("unhandled Coprocessor Unusable Exception\n");
+	}
 }
 #endif
 
