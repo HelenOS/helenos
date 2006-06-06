@@ -136,7 +136,7 @@ as_t *as_create(int flags)
 void as_destroy(as_t *as)
 {
 	ipl_t ipl;
-	link_t *cur;
+	bool cond;
 
 	ASSERT(as->refcount == 0);
 	
@@ -144,12 +144,10 @@ void as_destroy(as_t *as)
 	 * Since there is no reference to this area,
 	 * it is safe not to lock its mutex.
 	 */
-	 
 	ipl = interrupts_disable();
 	spinlock_lock(&inactive_as_with_asid_lock);
-
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
-		if (!as->cpu_refcount)
+		if (as != AS && as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
@@ -157,14 +155,18 @@ void as_destroy(as_t *as)
 
 	/*
 	 * Destroy address space areas of the address space.
+	 * The B+tee must be walked carefully because it is
+	 * also being destroyed.
 	 */	
-	for (cur = as->as_area_btree.leaf_head.next; cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	for (cond = true; cond; ) {
 		btree_node_t *node;
-		int i;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		for (i = 0; i < node->keys; i++)
-			as_area_destroy(as, node->key[i]);
+
+		ASSERT(!list_empty(&as->as_area_btree.leaf_head));
+		node = list_get_instance(as->as_area_btree.leaf_head.next, btree_node_t, leaf_link);
+
+		if ((cond = node->keys)) {
+			as_area_destroy(as, node->key[0]);
+		}
 	}
 
 	btree_destroy(&as->as_area_btree);
