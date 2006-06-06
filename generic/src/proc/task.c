@@ -267,6 +267,9 @@ int task_kill(task_id_t id)
 	task_t *ta;
 	thread_t *t;
 	link_t *cur;
+
+	if (id == 1)
+		return EPERM;
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
