@@ -47,8 +47,8 @@
 #include "../console/screenbuffer.h"
 #include "ppm.h"
 
-#define DEFAULT_BGCOLOR                0x000080
-#define DEFAULT_FGCOLOR                0xffff00
+#define DEFAULT_BGCOLOR                0xf0f0f0
+#define DEFAULT_FGCOLOR                0x0
 
 /***************************************************************/
 /* Pixel specific fuctions */

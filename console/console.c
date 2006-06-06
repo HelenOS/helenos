@@ -243,7 +243,6 @@ static void change_console(int newcons)
 	conn = &connections[active_console];
 
 	set_style(&conn->screenbuffer.style);
-	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
 	curs_visibility(0);
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
@@ -271,6 +270,7 @@ static void change_console(int newcons)
 			}
 	}
 	
+	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
 	curs_visibility(conn->screenbuffer.is_cursor_visible);
 }
 

@@ -37,6 +37,9 @@
 
 #include "sysio.h"
 
+#define WIDTH 80
+#define HEIGHT 25
+
 /* Allow only 1 connection */
 static int client_connected = 0;
 
@@ -79,6 +82,19 @@ static void set_style(int mode)
 	sysputs(control);
 }
 
+static void scroll(int i)
+{
+	if (i > 0) {
+		curs_goto(HEIGHT-1, 0);
+		while (i--)
+			sysputs("\033D");
+	} else if (i < 0) {
+		curs_goto(0,0);
+		while (i++)
+			sysputs("\033M");
+	}
+}
+
 /** ANSI terminal emulation main thread */
 static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -90,6 +106,7 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int lastrow=0;
 	int newcol,newrow;
 	int fgcolor,bgcolor;
+	int i;
 
 	if (client_connected) {
 		ipc_answer_fast(iid, ELIMIT, 0,0);
@@ -119,9 +136,11 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			newrow = IPC_GET_ARG1(call);
 			newcol = IPC_GET_ARG2(call);
 			curs_goto(newrow, newcol);
+			lastrow = newrow;
+			lastcol = newcol;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_fast(callid, 0, 25, 80);
+			ipc_answer_fast(callid, 0, HEIGHT, WIDTH);
 			continue;
 		case FB_CLEAR:
 			clrscr();
@@ -130,12 +149,25 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_SET_STYLE:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
-			if (fgcolor > bgcolor)
+			if (bgcolor == 0xf0f0f0)
+				set_style(0);
+			else if (fgcolor > bgcolor)
 				set_style(0);
 			else
 				set_style(7);
 			retval = 0;
 			break;
+		case FB_SCROLL:
+			i = IPC_GET_ARG1(call);
+			if (i > HEIGHT || i < -HEIGHT) {
+				retval = EINVAL;
+				break;
+			}
+			scroll(i);
+			curs_goto(lastrow, lastcol);
+			retval = 0;
+			break;
+
 		default:
 			retval = ENOENT;
 		}
@@ -149,4 +181,6 @@ void sysio_init(void)
 	async_set_client_connection(sysio_client_connection);
 	clrscr();
 	curs_goto(0,0);
+	/* Set scrolling region to 0-25 lines */
+	sysputs("\033[0;25r");
 }
