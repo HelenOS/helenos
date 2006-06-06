@@ -42,7 +42,7 @@ endif
 
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x81000000
-INIT_SIZE = 131072
+INIT_SIZE = 262144
 
 CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
