@@ -149,9 +149,7 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_SET_STYLE:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
-			if (bgcolor == 0xf0f0f0)
-				set_style(0);
-			else if (fgcolor > bgcolor)
+			if (fgcolor < bgcolor)
 				set_style(0);
 			else
 				set_style(7);

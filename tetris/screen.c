@@ -85,12 +85,12 @@ static void set_style(int fgcolor, int bgcolor)
 
 static void start_standout(void)
 {
-	set_style(0, 0xe0e0e0);
+	set_style(0xf0f0f0, 0);
 }
 
 static void resume_normal(void)
 {
-	set_style(0xe0e0e0, 0);
+	set_style(0, 0xf0f0f0);
 }
 
 
