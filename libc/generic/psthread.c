@@ -52,7 +52,7 @@ static atomic_t psthread_futex = FUTEX_INITIALIZER;
 /** Count of real threads that are in async_serialized mode */
 static int serialized_threads; /* Protected by async_futex */
 /** Thread-local count of serialization. If >0, we must not preempt */
-static __thread serialization_count;
+static __thread int serialization_count;
 /** Counter of threads residing in async_manager */
 static int threads_in_manager;
 
@@ -89,7 +89,6 @@ void psthread_main(void)
 {
 	psthread_data_t *pt = __tcb_get()->pst_data;
 
-	serialization_count = 0; // TODO: WHY HERE?
 	pt->retval = pt->func(pt->arg);
 
 	pt->finished = 1;

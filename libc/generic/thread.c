@@ -63,8 +63,7 @@ tcb_t * __make_tls(void)
 	tcb = __alloc_tls(&data, tls_size);
 	
 	memcpy(data, &_tdata_start, &_tdata_end - &_tdata_start);
-	memset(data + (&_tbss_start-&_tdata_start), &_tbss_end-&_tbss_start, 0);
-
+	memset(data + (&_tbss_start-&_tdata_start), 0, &_tbss_end-&_tbss_start);
 	return tcb;
 }
 

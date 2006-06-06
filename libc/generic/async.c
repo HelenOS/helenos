@@ -539,7 +539,6 @@ static int async_manager_worker(void)
  */
 static int async_manager_thread(void *arg)
 {
-	in_interrupt_handler = 0; // TODO: Handle TLS better
 	futex_up(&async_futex); /* async_futex is always locked when entering
 				* manager */
 	async_manager_worker();
