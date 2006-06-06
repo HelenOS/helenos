@@ -49,6 +49,35 @@
 
 static volatile __u8 *cuda = (__u8 *) 0xf2000000;
 
+
+/* Called from getc(). */
+static void cuda_resume(chardev_t *d)
+{
+}
+
+
+/* Called from getc(). */
+static void cuda_suspend(chardev_t *d)
+{
+}
+
+
+static char key_read(chardev_t *d)
+{
+	char ch;
+	
+	ch = 0;
+	return ch;
+}
+
+
+static chardev_t kbrd;
+static chardev_operations_t ops = {
+	.suspend = cuda_suspend,
+	.resume = cuda_resume,
+	.read = key_read
+};
+
 #include <print.h>
 static void cuda_irq(int n, istate_t *istate)
 {
@@ -59,6 +88,9 @@ void cuda_init(void)
 {
 	int_register(CUDA_IRQ, "cuda", cuda_irq);
 	pic_enable_interrupt(CUDA_IRQ);
+	
+	chardev_initialize("cuda_kbd", &kbrd, &ops);
+	stdin = &kbrd;
 }
 
 
