@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file	services.h
- * @brief	List of all known services and their codes.
- */
+#include <stdio.h>
+#include <ipc/ipc.h>
+#include <async.h>
+#include <ipc/services.h>
+#include <as.h>
+#include <kernel/ipc/irq.h>
 
-#ifndef __LIBIPC__SERVICES_H__
-#define __LIBIPC__SERVICES_H__
+/* Pointer to klog area */
+static char *klog;
 
-#define SERVICE_PCI		1
-#define SERVICE_KEYBOARD	2
-#define SERVICE_VIDEO		3
-#define SERVICE_CONSOLE		4
+void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+{
+	int i;
+	
+//	psthread_serialize_start();
+	/* TODO: remove workaround around non-functional vsnprintf */
+	for (i=0; klog[i + IPC_GET_ARG2(*call)] && i < IPC_GET_ARG3(*call); i++)
+		putchar(klog[i + IPC_GET_ARG2(*call)]);
+	putchar('\n');
+//	psthread_serialize_done();
+}
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+int main(int argc, char *argv[])
+{
+	int res;
+	void *mapping;
 
-#endif
+	printf("Kernel console output.\n");
+	
+	mapping = as_get_mappable_page(PAGE_SIZE);
+	res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, 
+			      (sysarg_t)mapping, PAGE_SIZE, SERVICE_MEM_KLOG,
+			      NULL,NULL,NULL);
+	if (res) {
+		printf("Failed to initialize klog memarea\n");
+		_exit(1);
+	}
+	klog = mapping;
+
+	if (ipc_register_irq(IPC_IRQ_KLOG, NULL)) {
+		printf("Error registering for klog service.\n");
+		return 0;
+	}
+
+	async_set_interrupt_received(interrupt_received);
+
+	async_manager();
+
+	return 0;
+}

@@ -33,6 +33,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
+#include <ipc/services.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -76,21 +77,23 @@ typedef struct {
 
 int static ping_phone;
 
-static void get_realtime_as(ipc_callid_t callid, ipc_call_t *call)
+static void *clockaddr = NULL;
+static void *klogaddr = NULL;
+
+static void get_as(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
 {
-	static void *addr = NULL;
 	void *ph_addr;
 
-	if (!addr) {
-		ph_addr = (void *)sysinfo_value("clock.faddr");
+	if (!*addr) {
+		ph_addr = (void *)sysinfo_value(name);
 		if (!ph_addr) {
 			ipc_answer_fast(callid, ENOENT, 0, 0);
 			return;
 		}
-		addr = as_get_mappable_page(PAGE_SIZE);
-		map_physmem(ph_addr, addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
+		*addr = as_get_mappable_page(PAGE_SIZE);
+		map_physmem(ph_addr, *addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
-	ipc_answer_fast(callid, 0, (ipcarg_t)addr, AS_AREA_READ);
+	ipc_answer_fast(callid, 0, (ipcarg_t)*addr, AS_AREA_READ);
 }
 
 int main(int argc, char **argv)
@@ -109,7 +112,16 @@ int main(int argc, char **argv)
 		callid = ipc_wait_for_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_AS_AREA_RECV:
-			get_realtime_as(callid, &call);
+			switch (IPC_GET_ARG3(call)) {
+			case SERVICE_MEM_REALTIME:
+				get_as(callid, &call, "clock.faddr", &clockaddr);
+				break;
+			case SERVICE_MEM_KLOG:
+				get_as(callid, &call, "klog.faddr", &klogaddr);
+				break;
+			default:
+				ipc_answer_fast(callid, ENOENT, 0, 0);
+			}
 			continue;
 		case IPC_M_PHONE_HUNGUP:
 			retval = 0;

@@ -26,69 +26,48 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include Makefile.config
+LIBC_PREFIX = ../libc
+SOFTINT_PREFIX = ../softint
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-DIRS = \
-	libc \
-	softint \
-	softfloat \
-	init \
-	ns \
-	fb \
-	console \
-	tetris \
-	ipcc \
-	klog
+LIBS = $(LIBC_PREFIX)/libc.a
 
-ifeq ($(ARCH), amd64)
-	DIRS += pci \
-		kbd
-endif
-ifeq ($(ARCH), ia32)
-	DIRS += pci \
-		kbd
-endif
-ifeq ($(ARCH), mips32)
-	DIRS += kbd
-endif
-ifeq ($(ARCH), mips32eb)
-	DIRS += kbd
-endif
-ifeq ($(ARCH), ia64)
-	DIRS += kbd
-endif
+## Sources
+#
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+OUTPUT = klog
+SOURCES = \
+	klog.c
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
 
-all:
-	tools/config.py default $(NARCH)
-ifdef NARCH
- ifneq ($(ARCH), $(NARCH))
-	$(MAKE) -C . clean
- endif
-endif
-	$(MAKE) -C . build
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-config:
-	tools/config.py
+.PHONY: all clean depend disasm
 
-build: $(BUILDS)
+all: $(OUTPUT) disasm
 
-clean: $(CLEANS)
-	find $(SOURCES) -name '*.o' -follow -exec rm \{\} \;
-	find libc -name "_link.ld" -exec rm \{\} \;
+-include Makefile.depend
 
-distclean: clean
-	-rm Makefile.config
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

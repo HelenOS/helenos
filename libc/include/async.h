@@ -98,10 +98,8 @@ void async_usleep(suseconds_t timeout);
 void async_create_manager(void);
 void async_destroy_manager(void);
 void async_set_client_connection(async_client_conn_t conn);
+void async_set_interrupt_received(async_client_conn_t conn);
 int _async_init(void);
-
-/* Should be defined by application */
-void interrupt_received(ipc_call_t *call)  __attribute__((weak));
 
 
 extern atomic_t async_futex;

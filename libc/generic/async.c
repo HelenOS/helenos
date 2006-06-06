@@ -138,7 +138,9 @@ typedef struct {
 __thread connection_t *PS_connection;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
+static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
 static async_client_conn_t client_connection = default_client_connection;
+static async_client_conn_t interrupt_received = default_interrupt_received;
 
 /** Add microseconds to give timeval */
 static void tv_add(struct timeval *tv, suseconds_t usecs)
@@ -341,16 +343,9 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
-
-/** Function that gets called on interrupt receival
- *
- * This function is defined as a weak symbol - to be redefined in
- * user code.
- */
-void interrupt_received(ipc_call_t *call)
+static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 }
-
 
 /** Wrapper for client connection thread
  *
@@ -440,7 +435,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	/* Unrouted call - do some default behaviour */
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_INTERRUPT:
-		interrupt_received(call);
+		(*interrupt_received)(callid,call);
 		return;
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with thread etc. */
@@ -756,4 +751,8 @@ void async_usleep(suseconds_t timeout)
 void async_set_client_connection(async_client_conn_t conn)
 {
 	client_connection = conn;
+}
+void async_set_interrupt_received(async_client_conn_t conn)
+{
+	interrupt_received = conn;
 }
