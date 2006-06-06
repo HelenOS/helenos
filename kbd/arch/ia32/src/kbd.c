@@ -30,7 +30,7 @@
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
 
-#define SPECIAL		'?'
+#define SPECIAL		255
 #define KEY_RELEASE	0x80
 
 /**
