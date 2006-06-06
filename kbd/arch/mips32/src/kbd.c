@@ -28,20 +28,35 @@
 
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
+#include <sysinfo.h>
 
 
-#define KEY_F1 0x504f1bL
-#define KEY_F2 0x514f1bL
-#define KEY_F3 0x524f1bL
-#define KEY_F4 0x534f1bL
-#define KEY_F5 0x35315b1bL
-#define KEY_F6 0x37315b1bL
-#define KEY_F7 0x38315b1bL
-#define KEY_F8 0x39315b1bL
-#define KEY_F9 0x30325b1bL
-#define KEY_F10 0x31325b1bL
-#define KEY_F11 0x33325b1bL
-#define KEY_F12 0x34325b1bL
+#define MSIM_KEY_F1 0x504f1bL
+#define MSIM_KEY_F2 0x514f1bL
+#define MSIM_KEY_F3 0x524f1bL
+#define MSIM_KEY_F4 0x534f1bL
+#define MSIM_KEY_F5 0x35315b1bL
+#define MSIM_KEY_F6 0x37315b1bL
+#define MSIM_KEY_F7 0x38315b1bL
+#define MSIM_KEY_F8 0x39315b1bL
+#define MSIM_KEY_F9 0x30325b1bL
+#define MSIM_KEY_F10 0x31325b1bL
+#define MSIM_KEY_F11 0x33325b1bL
+#define MSIM_KEY_F12 0x34325b1bL
+
+
+#define GXEMUL_KEY_F1 0x504f5b1bL
+#define GXEMUL_KEY_F2 0x514f5b1bL
+#define GXEMUL_KEY_F3 0x524f5b1bL
+#define GXEMUL_KEY_F4 0x534f5b1bL
+#define GXEMUL_KEY_F5 0x35315b1bL
+#define GXEMUL_KEY_F6 0x37315b1bL
+#define GXEMUL_KEY_F7 0x38315b1bL
+#define GXEMUL_KEY_F8 0x39315b1bL
+#define GXEMUL_KEY_F9 0x38325b1bL
+#define GXEMUL_KEY_F10 0x39325b1bL
+#define GXEMUL_KEY_F11 0x33325b1bL
+#define GXEMUL_KEY_F12 0x34325b1bL
 
 
 #define FUNCTION_KEYS 0x100
@@ -56,24 +71,28 @@ irq_code_t msim_kbd = {
 	msim_cmds
 };
 
+static int msim,gxemul;
+
 int kbd_arch_init(void)
 {
 	ipc_register_irq(2, &msim_kbd);
+	msim=sysinfo_value("machine.msim");
+	gxemul=sysinfo_value("machine.lgxemul");
 	return 1;
 }
 
 
-/*
-*
-* Please preserve this code (it can be used to determine scancodes)
-*
+//*
+//*
+//* Please preserve this code (it can be used to determine scancodes)
+//*
 int to_hex(int v) 
 {
         return "0123456789ABCDEF"[v];
 }
-*/
+//*/
 
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
+static int kbd_arch_process_msim(keybuffer_t *keybuffer, int scan_code)
 {
 
 	static unsigned long buf=0;
@@ -93,37 +112,37 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 	if(scan_code==0x7e)
 	{
 		switch (buf){
-			case KEY_F5:
+			case MSIM_KEY_F5:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 5 );
 				buf=count=0;
 				return 1;
-			case KEY_F6:
+			case MSIM_KEY_F6:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 6 );
 				buf=count=0;
 				return 1;
-			case KEY_F7:
+			case MSIM_KEY_F7:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 7 );
 				buf=count=0;
 				return 1;
-			case KEY_F8:
+			case MSIM_KEY_F8:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 8 );
 				buf=count=0;
 				return 1;
 
-			case KEY_F9:
+			case MSIM_KEY_F9:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 9 );
 				buf=count=0;
 				return 1;
-			case KEY_F10:
+			case MSIM_KEY_F10:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 10 );
 				buf=count=0;
 				return 1;
 
-			case KEY_F11:
+			case MSIM_KEY_F11:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 11 );
 				buf=count=0;
 				return 1;
-			case KEY_F12:
+			case MSIM_KEY_F12:
 				keybuffer_push(keybuffer,FUNCTION_KEYS | 12 );
 				buf=count=0;
 				return 1;
@@ -142,7 +161,7 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 	buf|=((unsigned long) scan_code)<<(8*(count++));
 	
 	
-	if((buf & 0xff)!= (KEY_F1 & 0xff)) {
+	if((buf & 0xff)!= (MSIM_KEY_F1 & 0xff)) {
 
 		keybuffer_push(keybuffer,buf );
 		buf=count=0;
@@ -152,8 +171,8 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 	if ( count <= 1 ) 
 		return 1;
 
-	if(    (buf & 0xffff) != (KEY_F1 & 0xffff) 
-	    && (buf & 0xffff) != (KEY_F5 & 0xffff) ) {
+	if(    (buf & 0xffff) != (MSIM_KEY_F1 & 0xffff) 
+	    && (buf & 0xffff) != (MSIM_KEY_F5 & 0xffff) ) {
 
 		keybuffer_push(keybuffer, buf & 0xff );
 		keybuffer_push(keybuffer, (buf >> 8) &0xff );
@@ -165,27 +184,27 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 		return 1;
 
 	switch (buf){
-		case KEY_F1:
+		case MSIM_KEY_F1:
 			keybuffer_push(keybuffer,FUNCTION_KEYS | 1 );
 			buf=count=0;
 			return 1;
-		case KEY_F2:
+		case MSIM_KEY_F2:
 			keybuffer_push(keybuffer,FUNCTION_KEYS | 2 );
 			buf=count=0;
 			return 1;
-		case KEY_F3:
+		case MSIM_KEY_F3:
 			keybuffer_push(keybuffer,FUNCTION_KEYS | 3 );
 			buf=count=0;
 			return 1;
-		case KEY_F4:
+		case MSIM_KEY_F4:
 			keybuffer_push(keybuffer,FUNCTION_KEYS | 4 );
 			buf=count=0;
 			return 1;
 	}
 
 
-	if(    (buf & 0xffffff) != (KEY_F5 & 0xffffff)
-	    && (buf & 0xffffff) != (KEY_F9 & 0xffffff) ) {
+	if(    (buf & 0xffffff) != (MSIM_KEY_F5 & 0xffffff)
+	    && (buf & 0xffffff) != (MSIM_KEY_F9 & 0xffffff) ) {
 
 		keybuffer_push(keybuffer, buf & 0xff );
 		keybuffer_push(keybuffer, (buf >> 8) &0xff );
@@ -201,14 +220,14 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 	
 	
 	switch (buf){
-		case KEY_F5:
-		case KEY_F6:
-		case KEY_F7:
-		case KEY_F8:
-		case KEY_F9:
-		case KEY_F10:
-		case KEY_F11:
-		case KEY_F12:
+		case MSIM_KEY_F5:
+		case MSIM_KEY_F6:
+		case MSIM_KEY_F7:
+		case MSIM_KEY_F8:
+		case MSIM_KEY_F9:
+		case MSIM_KEY_F10:
+		case MSIM_KEY_F11:
+		case MSIM_KEY_F12:
 			return 1;
 		default:
 			keybuffer_push(keybuffer, buf & 0xff );
@@ -221,3 +240,133 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 		}
 	return 1;
 }
+
+
+
+static int kbd_arch_process_gxemul(keybuffer_t *keybuffer, int scan_code)
+{
+
+	static unsigned long buf=0;
+	static int count=0;	
+
+
+	//* Please preserve this code (it can be used to determine scancodes)
+	//*
+	//keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
+	//keybuffer_push(keybuffer, to_hex(scan_code&0xf));
+	//keybuffer_push(keybuffer, ' ');
+	//keybuffer_push(keybuffer, ' ');
+	//*/
+	//return 1;
+	
+	buf|=((unsigned long) scan_code)<<(8*(count++));
+	
+	
+	if((buf & 0xff)!= (GXEMUL_KEY_F1 & 0xff)) {
+
+		keybuffer_push(keybuffer,buf );
+		buf=count=0;
+		return 1;
+	}
+
+	if ( count <= 1 ) 
+		return 1;
+
+	if(    (buf & 0xffff) != (GXEMUL_KEY_F1 & 0xffff)  ) {
+
+		keybuffer_push(keybuffer, buf & 0xff );
+		keybuffer_push(keybuffer, (buf >> 8) &0xff );
+		buf=count=0;
+		return 1;
+	}
+
+	if ( count <= 2) 
+		return 1;
+
+
+	if(    (buf & 0xffffff) != (GXEMUL_KEY_F1 & 0xffffff)
+	    && (buf & 0xffffff) != (GXEMUL_KEY_F5 & 0xffffff)
+	    && (buf & 0xffffff) != (GXEMUL_KEY_F9 & 0xffffff) ) {
+
+		keybuffer_push(keybuffer, buf & 0xff );
+		keybuffer_push(keybuffer, (buf >> 8) &0xff );
+		keybuffer_push(keybuffer, (buf >> 16) &0xff );
+		buf=count=0;
+		return 1;
+	}
+
+	if ( count <= 3 ) 
+		return 1;
+	
+
+	switch (buf){
+
+		case GXEMUL_KEY_F1:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 1 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F2:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 2 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F3:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 3 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F4:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 4 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F5:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 5 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F6:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 6 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F7:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 7 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F8:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 8 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F9:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 9 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F10:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 10 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F11:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 11 );
+			buf=count=0;
+			return 1;
+		case GXEMUL_KEY_F12:
+			keybuffer_push(keybuffer,FUNCTION_KEYS | 12 );
+			buf=count=0;
+			return 1;
+
+		default:
+			keybuffer_push(keybuffer, buf & 0xff );
+			keybuffer_push(keybuffer, (buf >> 8) &0xff );
+			keybuffer_push(keybuffer, (buf >> 16) &0xff );
+			keybuffer_push(keybuffer, (buf >> 24) &0xff );
+			buf=count=0;
+			return 1;
+		
+		}
+	return 1;
+}
+
+int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
+{
+    if(msim) return kbd_arch_process_msim(keybuffer, scan_code);
+    if(gxemul) return kbd_arch_process_gxemul(keybuffer, scan_code);
+
+    return 0;
+}
+
