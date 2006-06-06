@@ -60,6 +60,9 @@ COMPONENTS = \
 	$(USPACEDIR)/ns/ns \
 	$(USPACEDIR)/init/init \
 	$(USPACEDIR)/fb/fb \
+	$(USPACEDIR)/kbd/kbd \
+	$(USPACEDIR)/console/console \
+	$(USPACEDIR)/tetris/tetris \
 	$(USPACEDIR)/ipcc/ipcc \
 	$(USPACEDIR)/klog/klog
 
