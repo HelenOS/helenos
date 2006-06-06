@@ -120,8 +120,7 @@ static inline __native istate_get_pc(istate_t *istate)
 #include <panic.h>
 static inline int istate_from_uspace(istate_t *istate)
 {
-	panic("TODO: istate_from_uspace not yet implemented");
-	return 0;
+	return (istate->cr_iip)<0xe000000000000000ULL;
 }
 
 extern void *ivt;

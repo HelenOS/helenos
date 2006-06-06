@@ -224,6 +224,7 @@ int break_instruction(__u64 vector, istate_t *istate)
 
 void universal_handler(__u64 vector, istate_t *istate)
 {
+	fault_if_from_uspace(istate,"Interruption: %#hx (%s)\n",(__u16) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
 	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
 }
@@ -267,6 +268,7 @@ void irq_ipc_bind_arch(__native irq)
 		kbd_uspace=1;
 		return;
 	}
+	return;
 	panic("not implemented\n");
 	/* TODO */
 }
