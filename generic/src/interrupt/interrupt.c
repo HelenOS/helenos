@@ -85,6 +85,9 @@ void exc_dispatch(int n, istate_t *istate)
 	ASSERT(n < IVT_ITEMS);
 	
 	exc_table[n].f(n + IVT_FIRST, istate);
+	/* This is a safe place to exit exiting thread */
+	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
+		thread_exit();
 }
 
 /** Default 'null' exception handler */

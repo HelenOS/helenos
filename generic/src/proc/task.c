@@ -49,6 +49,7 @@
 #include <elf.h>
 #include <errno.h>
 #include <syscall/copy.h>
+#include <console/klog.h>
 
 #ifndef LOADED_PROG_STACK_PAGES_NO
 #define LOADED_PROG_STACK_PAGES_NO 1
@@ -401,6 +402,7 @@ loop:
 	
 	ipc_cleanup();
 	futex_cleanup();
+	klog_printf("Cleanup of task %lld completed.", TASK->taskid);
 }
 
 /** Kernel task used to kill a userspace task when its main thread exits.

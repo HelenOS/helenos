@@ -47,6 +47,7 @@
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
+#include <console/klog.h>
 
 /** Print using kernel facility
  *
@@ -91,22 +92,16 @@ __native syscall_handler(__native a1, __native a2, __native a3,
 			 __native a4, __native id)
 {
 	__native rc;
-	ipl_t ipl;
-	bool exit = false;
 
 	if (id < SYSCALL_END)
 		rc = syscall_table[id](a1,a2,a3,a4);
-	else
-		panic("Undefined syscall %d", id);
+	else {
+		klog_printf("TASK %lld: Unknown syscall id %d",TASK->taskid,id);
+		task_kill(TASK->taskid);
+		thread_exit();
+	}
 		
-	ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
 	if (THREAD->interrupted)
-		exit = true;
-	spinlock_unlock(&THREAD->lock);
-	interrupts_restore(ipl);
-	
-	if (exit)
 		thread_exit();
 	
 	return rc;
