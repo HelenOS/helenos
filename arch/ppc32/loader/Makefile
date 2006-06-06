@@ -59,7 +59,9 @@ COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/ns/ns \
 	$(USPACEDIR)/init/init \
-	$(USPACEDIR)/fb/fb
+	$(USPACEDIR)/fb/fb \
+	$(USPACEDIR)/ipcc/ipcc \
+	$(USPACEDIR)/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
