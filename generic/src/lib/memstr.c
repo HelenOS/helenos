@@ -40,6 +40,7 @@
 
 #include <memstr.h>
 #include <arch/types.h>
+#include <align.h>
 
 /** Copy block of memory
  *
@@ -56,11 +57,18 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 {
 	int i, j;
 	
-	for (i = 0; i < cnt/sizeof(__native); i++)
-		((__native *) dst)[i] = ((__native *) src)[i];
+	if (ALIGN_UP((__address) src, sizeof(__native)) != (__address) src ||
+		ALIGN_UP((__address) dst, sizeof(__native)) != (__address) dst) {
+		for (i = 0; i < cnt; i++)
+			((__u8 *) dst)[i] = ((__u8 *) src)[i];
+	} else { 
+	
+		for (i = 0; i < cnt/sizeof(__native); i++)
+			((__native *) dst)[i] = ((__native *) src)[i];
 		
-	for (j = 0; j < cnt%sizeof(__native); j++)
-		((__u8 *)(((__native *) dst) + i))[j] = ((__u8 *)(((__native *) src) + i))[j];
+		for (j = 0; j < cnt%sizeof(__native); j++)
+			((__u8 *)(((__native *) dst) + i))[j] = ((__u8 *)(((__native *) src) + i))[j];
+	}
 		
 	return (char *)src;
 }
