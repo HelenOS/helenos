@@ -30,6 +30,12 @@
 #include <stdio.h>
 #include <io/printf_core.h>
 
+/** Print formatted to the given buffer.
+ * @param str	buffer
+ * @param fmt	format string
+ * @param ap	argument list
+ * \see For more details about format string see printf_core.
+ */
 int vsprintf(char *str, const char *fmt, va_list ap)
 {
 	return vsnprintf(str, (size_t)-1, fmt, ap);

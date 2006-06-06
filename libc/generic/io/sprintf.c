@@ -30,6 +30,11 @@
 #include <stdio.h>
 #include <io/printf_core.h>
 
+/** Print formatted to the given buffer.
+ * @param str	buffer
+ * @param fmt	format string
+ * \see For more details about format string see printf_core.
+ */
 int sprintf(char *str, const char *fmt, ...)
 {
 	int ret;

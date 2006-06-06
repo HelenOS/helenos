@@ -38,6 +38,11 @@ int vprintf_write(const char *str, size_t count, void *unused)
 	return write(1, str, count);
 }
 
+/** Print formatted text.
+ * @param fmt	format string
+ * @param ap	format parameters
+ * \see For more details about format string see printf_core.
+ */
 int vprintf(const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {(int(*)(void *, size_t, void *))vprintf_write, NULL};

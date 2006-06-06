@@ -83,6 +83,12 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 	return count;	
 }
 
+/** Print formatted to the given buffer with limited size.
+ * @param str	buffer
+ * @param size	buffer size
+ * @param fmt	format string
+ * \see For more details about format string see printf_core.
+ */
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
 	struct vsnprintf_data data = {size, 0, str};

@@ -30,6 +30,10 @@
 #include <stdio.h>
 #include <stdio.h>
 
+/** Print formatted text.
+ * @param fmt	format string
+ * \see For more details about format string see printf_core.
+ */
 int printf(const char *fmt, ...)
 {
 	int ret;
