@@ -38,8 +38,66 @@
 #include <kbd.h>
 #include <libadt/fifo.h>
 #include <key_buffer.h>
+#include <async.h>
 
 #define NAME "KBD"
+
+int cons_connected = 0;
+int phone2cons = -1;
+keybuffer_t keybuffer;	
+
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
+{
+	int chr;
+	
+	if (cons_connected && phone2cons != -1) {
+		/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
+		kbd_arch_process(&keybuffer, IPC_GET_ARG2(*call));
+		
+		while (!keybuffer_empty(&keybuffer)) {
+			if (!keybuffer_pop(&keybuffer, (int *)&chr))
+				break;
+
+			async_msg(phone2cons, KBD_PUSHCHAR, chr);
+		}
+	}
+}
+
+static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int retval;
+
+	if (cons_connected) {
+		ipc_answer_fast(iid, ELIMIT, 0, 0);
+		return;
+	}
+	cons_connected = 1;
+	ipc_answer_fast(iid, 0, 0, 0);
+
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			cons_connected = 0;
+			ipc_hangup(phone2cons);
+			phone2cons = -1;
+			ipc_answer_fast(callid, 0,0,0);
+			return;
+		case IPC_M_CONNECT_TO_ME:
+			if (phone2cons != -1) {
+				retval = ELIMIT;
+				break;
+			}
+			phone2cons = IPC_GET_ARG3(call);
+			retval = 0;
+			break;
+		}
+		ipc_answer_fast(callid, retval, 0, 0);
+	}	
+}
+
 
 int main(int argc, char **argv)
 {
@@ -49,11 +107,7 @@ int main(int argc, char **argv)
 	ipcarg_t phonead;
 	ipcarg_t phoneid;
 	char connected = 0;
-	keybuffer_t keybuffer;	
 	ipcarg_t retval, arg1, arg2;
-	
-	//open("null",0);
-	//open("stdout",0);
 	
 	/* Initialize arch dependent parts */
 	if (!(res = kbd_arch_init())) {
@@ -67,57 +121,10 @@ int main(int argc, char **argv)
 	
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
 		return -1;
-	};
-	while (1) {
-		callid = ipc_wait_for_call(&call);
-		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_PHONE_HUNGUP:
-				connected = 0;
-				retval = 0;
-				break;
-			case IPC_M_CONNECT_ME_TO:
-				/* Only one connected client allowed */
-				if (connected) {
-					retval = ELIMIT;
-				} else {
-					retval = 0;
-					connected = 1;
-				}
-				break;
-			case IPC_M_CONNECT_TO_ME:
-				phoneid = IPC_GET_ARG3(call);
-				retval = 0;
-				break;
-
-			case IPC_M_INTERRUPT:
-				if (connected) {
-					int chr;
-					/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
-					kbd_arch_process(&keybuffer, IPC_GET_ARG2(call));
-
-					retval = 0;
-					
-
-					while (!keybuffer_empty(&keybuffer)) {
-						if (!keybuffer_pop(&keybuffer, (int *)&chr)) {
-							break;
-						}
-						{
-							arg1=chr;
-							send_call(phoneid, KBD_PUSHCHAR, arg1);
-						}    
-					}
-
-				}
-				break;
-			default:
-				retval = ENOENT;
-				break;
-		}
-
-		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer_fast(callid, retval, arg1, arg2);
-		}
 	}
-}
 
+	async_set_client_connection(console_connection);
+	async_set_interrupt_received(irq_handler);
+	async_manager();
+
+}

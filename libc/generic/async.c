@@ -134,8 +134,11 @@ typedef struct {
 	void (*cthread)(ipc_callid_t,ipc_call_t *);
 } connection_t;
 
-
+/** Identifier of incoming connection handled by current thread */
 __thread connection_t *PS_connection;
+/** If true, it is forbidden to use async_req functions and
+ *  all preemption is disabled */
+__thread int in_interrupt_handler;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
@@ -225,6 +228,7 @@ static void insert_timeout(awaiter_t *wd)
 	awaiter_t *cur;
 
 	wd->timedout = 0;
+	wd->inlist = 1;
 
 	tmp = timeout_list.next;
 	while (tmp != &timeout_list) {
@@ -294,9 +298,6 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	 */
 	conn = PS_connection; 
 
-	if (usecs < 0) /* TODO: let it get through the ipc_call once */
-		return 0;
-
 	futex_down(&async_futex);
 
 	if (usecs) {
@@ -307,10 +308,9 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	}
 	/* If nothing in queue, wait until something appears */
 	while (list_empty(&conn->msg_queue)) {
-		if (usecs) {
-			conn->wdata.inlist = 1;
+		if (usecs)
 			insert_timeout(&conn->wdata);
-		}
+
 		conn->wdata.active = 0;
 		psthread_schedule_next_adv(PS_TO_MANAGER);
 		/* Futex is up after getting back from async_manager 
@@ -362,7 +362,6 @@ static int connection_thread(void  *arg)
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
 	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
-
 	/* Remove myself from connection hash table */
 	futex_down(&async_futex);
 	key = PS_connection->in_phone_hash;
@@ -435,7 +434,9 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	/* Unrouted call - do some default behaviour */
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_INTERRUPT:
+		in_interrupt_handler = 1;
 		(*interrupt_received)(callid,call);
+		in_interrupt_handler = 0;
 		return;
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with thread etc. */
@@ -485,7 +486,7 @@ static void handle_expired_timeouts(void)
 }
 
 /** Endless loop dispatching incoming calls and answers */
-int async_manager(void)
+static int async_manager_worker(void)
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
@@ -521,8 +522,9 @@ int async_manager(void)
 			continue;
 		}
 
-		if (callid & IPC_CALLID_ANSWERED)
+		if (callid & IPC_CALLID_ANSWERED) {
 			continue;
+		}
 
 		handle_call(callid, &call);
 	}
@@ -537,9 +539,10 @@ int async_manager(void)
  */
 static int async_manager_thread(void *arg)
 {
+	in_interrupt_handler = 0; // TODO: Handle TLS better
 	futex_up(&async_futex); /* async_futex is always locked when entering
 				* manager */
-	async_manager();
+	async_manager_worker();
 }
 
 /** Add one manager to manager list */
@@ -607,6 +610,11 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 {
 	amsg_t *msg;
 
+	if (in_interrupt_handler) {
+		printf("Cannot send asynchronou request in interrupt handler.\n");
+		_exit(1);
+	}
+
 	msg = malloc(sizeof(*msg));
 	msg->done = 0;
 	msg->dataptr = dataptr;
@@ -627,6 +635,11 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 		   ipcarg_t arg3, ipc_call_t *dataptr)
 {
 	amsg_t *msg;
+
+	if (in_interrupt_handler) {
+		printf("Cannot send asynchronou request in interrupt handler.\n");
+		_exit(1);
+	}
 
 	msg = malloc(sizeof(*msg));
 	msg->done = 0;
@@ -698,8 +711,6 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 
 	msg->wdata.ptid = psthread_get_id();
 	msg->wdata.active = 0;
-	msg->wdata.inlist = 1;
-
 	insert_timeout(&msg->wdata);
 
 	/* Leave locked async_futex when entering this function */
@@ -725,12 +736,16 @@ void async_usleep(suseconds_t timeout)
 {
 	amsg_t *msg;
 	
+	if (in_interrupt_handler) {
+		printf("Cannot call async_usleep in interrupt handler.\n");
+		_exit(1);
+	}
+
 	msg = malloc(sizeof(*msg));
 	if (!msg)
 		return;
 
 	msg->wdata.ptid = psthread_get_id();
-	msg->wdata.inlist = 1;
 	msg->wdata.active = 0;
 
 	gettimeofday(&msg->wdata.expires, NULL);
@@ -755,4 +770,16 @@ void async_set_client_connection(async_client_conn_t conn)
 void async_set_interrupt_received(async_client_conn_t conn)
 {
 	interrupt_received = conn;
+}
+
+/* Primitive functions for simple communication */
+void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+		 ipcarg_t arg2, ipcarg_t arg3)
+{
+	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, !in_interrupt_handler);
+}
+
+void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
+{
+	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, !in_interrupt_handler);
 }

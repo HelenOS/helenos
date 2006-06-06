@@ -437,26 +437,3 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
-/* Primitive functions for simple communication */
-void send_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		 ipcarg_t arg2, ipcarg_t arg3)
-{
-	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, 1);
-}
-
-void send_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
-{
-	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, 1);
-}
-
-void nsend_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		  ipcarg_t arg2, ipcarg_t arg3)
-{
-	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, 0);
-}
-
-void nsend_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
-{
-	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, 0);
-}
-

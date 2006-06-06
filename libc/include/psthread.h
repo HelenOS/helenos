@@ -40,10 +40,13 @@
         (c)->tls = (sysarg_t) (ptls);
 #endif /* context_set */
 
+#define PSTHREAD_SERIALIZED   1
+
 typedef enum {
 	PS_TO_MANAGER,
 	PS_FROM_MANAGER,
-	PS_PREEMPT
+	PS_PREEMPT,
+	PS_FROM_DEAD
 } pschange_type;
 
 typedef sysarg_t pstid_t;
@@ -75,6 +78,8 @@ void psthread_add_ready(pstid_t ptid);
 void psthread_add_manager(pstid_t psthrid);
 void psthread_remove_manager(void);
 pstid_t psthread_get_id(void);
+void psthread_inc_sercount(void);
+void psthread_dec_sercount(void);
 
 static inline int psthread_schedule_next() {
 	return psthread_schedule_next_adv(PS_PREEMPT);

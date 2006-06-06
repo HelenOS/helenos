@@ -42,12 +42,19 @@
 #endif
 
 static LIST_INITIALIZE(ready_list);
+static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
 
 static void psthread_exit(void) __attribute__ ((noinline));
 static void psthread_main(void);
 
 static atomic_t psthread_futex = FUTEX_INITIALIZER;
+/** Count of real threads that are in async_serialized mode */
+static int serialized_threads; /* Protected by async_futex */
+/** Thread-local count of serialization. If >0, we must not preempt */
+static __thread serialization_count;
+/** Counter of threads residing in async_manager */
+static int threads_in_manager;
 
 /** Setup PSthread information into TCB structure */
 psthread_data_t * psthread_setup()
@@ -77,42 +84,19 @@ void psthread_teardown(psthread_data_t *pt)
 	free(pt);
 }
 
-/** Function to preempt to other pseudo thread without adding
- * currently running pseudo thread to ready_list.
- */
-void psthread_exit(void)
-{
-	psthread_data_t *pt;
-
-	futex_down(&psthread_futex);
-
-	if (!list_empty(&ready_list))
-		pt = list_get_instance(ready_list.next, psthread_data_t, link);
-	else if (!list_empty(&manager_list)) 
-		pt = list_get_instance(manager_list.next, psthread_data_t, link);
-	else {
-		printf("Cannot find suitable psthread to run.\n");
-		_exit(0);
-	}
-	list_remove(&pt->link);
-	futex_up(&psthread_futex);
-
-	context_restore(&pt->ctx);
-	/* Never reached */
-}
-
 /** Function that is called on entry to new uspace thread */
 void psthread_main(void)
 {
 	psthread_data_t *pt = __tcb_get()->pst_data;
 
+	serialization_count = 0; // TODO: WHY HERE?
 	pt->retval = pt->func(pt->arg);
 
 	pt->finished = 1;
 	if (pt->waiter)
 		list_append(&pt->waiter->link, &ready_list);
 
-	psthread_exit();
+	psthread_schedule_next_adv(PS_FROM_DEAD);
 }
 
 /** Schedule next userspace pseudo thread.
@@ -127,7 +111,7 @@ void psthread_main(void)
  */
 int psthread_schedule_next_adv(pschange_type ctype)
 {
-	psthread_data_t *pt;
+	psthread_data_t *srcpt, *dstpt;
 	int retval = 0;
 	
 	futex_down(&psthread_futex);
@@ -135,33 +119,61 @@ int psthread_schedule_next_adv(pschange_type ctype)
 	if (ctype == PS_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
 
-	if (ctype == PS_FROM_MANAGER && list_empty(&ready_list)) {
-		goto ret_0;
+	if (ctype == PS_FROM_MANAGER) {
+		if (list_empty(&ready_list) && list_empty(&serialized_list))
+			goto ret_0;
+		/* Do not preempt if there is not sufficient count of thread managers */
+		if (list_empty(&serialized_list) && threads_in_manager <= serialized_threads) {
+			goto ret_0;
+		}
 	}
 	/* If we are going to manager and none exists, create it */
-	while (ctype == PS_TO_MANAGER && list_empty(&manager_list)) {
-		futex_up(&psthread_futex);
-		async_create_manager();
-		futex_down(&psthread_futex);
+	if (ctype == PS_TO_MANAGER || ctype == PS_FROM_DEAD) {
+		while (list_empty(&manager_list)) {
+			futex_up(&psthread_futex);
+			async_create_manager();
+			futex_down(&psthread_futex);
+		}
+	}
+	
+	if (ctype != PS_FROM_DEAD) {
+		/* Save current state */
+		srcpt = __tcb_get()->pst_data;
+		if (!context_save(&srcpt->ctx)) {
+			if (serialization_count)
+				srcpt->flags &= ~PSTHREAD_SERIALIZED;
+			return 1; // futex_up already done here
+		}
+
+		/* Save myself to correct run list */
+		if (ctype == PS_PREEMPT)
+			list_append(&srcpt->link, &ready_list);
+		else if (ctype == PS_FROM_MANAGER) {
+			list_append(&srcpt->link, &manager_list);
+			threads_in_manager--;
+		} /* If ctype == PS_TO_MANAGER, don't save ourselves to any list, we should
+		   * already be somewhere, or we will be lost */
 	}
 
-	pt = __tcb_get()->pst_data;
-	if (!context_save(&pt->ctx)) 
-		return 1; // futex_up already done here
-
-	if (ctype == PS_PREEMPT)
-		list_append(&pt->link, &ready_list);
-	else if (ctype == PS_FROM_MANAGER)
-		list_append(&pt->link, &manager_list);
-	
-	if (ctype == PS_TO_MANAGER)
-		pt = list_get_instance(manager_list.next,psthread_data_t, link);
-	else
-		pt = list_get_instance(ready_list.next, psthread_data_t, link);
-	list_remove(&pt->link);
+	/* Choose new thread to run */
+	if (ctype == PS_TO_MANAGER || ctype == PS_FROM_DEAD) {
+		dstpt = list_get_instance(manager_list.next,psthread_data_t, link);
+		if (serialization_count && ctype == PS_TO_MANAGER) {
+			serialized_threads++;
+			srcpt->flags |= PSTHREAD_SERIALIZED;
+		}
+		threads_in_manager++;
+	} else {
+		if (!list_empty(&serialized_list)) {
+			dstpt = list_get_instance(serialized_list.next, psthread_data_t, link);
+			serialized_threads--;
+		} else
+			dstpt = list_get_instance(ready_list.next, psthread_data_t, link);
+	}
+	list_remove(&dstpt->link);
 
 	futex_up(&psthread_futex);
-	context_restore(&pt->ctx);
+	context_restore(&dstpt->ctx);
 
 ret_0:
 	futex_up(&psthread_futex);
@@ -182,13 +194,10 @@ int psthread_join(pstid_t psthrid)
 	/* Handle psthrid = Kernel address -> it is wait for call */
 	pt = (psthread_data_t *) psthrid;
 
-	if (!pt->finished) {
-		mypt = __tcb_get()->pst_data;
-		if (context_save(&((psthread_data_t *) mypt)->ctx)) {
-			pt->waiter = (psthread_data_t *) mypt;
-			psthread_exit();
-		}
-	}
+	/* TODO */
+	printf("join unsupported\n");
+	_exit(1);
+
 	retval = pt->retval;
 
 	free(pt->stack);
@@ -223,6 +232,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt->func = func;
 	pt->finished = 0;
 	pt->waiter = NULL;
+	pt->flags = 0;
 
 	context_save(&pt->ctx);
 	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(),
@@ -238,7 +248,10 @@ void psthread_add_ready(pstid_t psthrid)
 
 	pt = (psthread_data_t *) psthrid;
 	futex_down(&psthread_futex);
-	list_append(&pt->link, &ready_list);
+	if ((pt->flags & PSTHREAD_SERIALIZED))
+		list_append(&pt->link, &serialized_list);
+	else
+		list_append(&pt->link, &ready_list);
 	futex_up(&psthread_futex);
 }
 
@@ -270,4 +283,22 @@ void psthread_remove_manager()
 pstid_t psthread_get_id(void)
 {
 	return (pstid_t)__tcb_get()->pst_data;
+}
+
+/** Disable preemption 
+ *
+ * If the thread wants to send several message in row and does not want
+ * to be preempted, it should start async_serialize_start() in the beginning
+ * of communication and async_serialize_end() in the end. If it is a
+ * true multithreaded application, it should protect the communication channel
+ * by a futex as well. Interrupt messages will can still be preempted.
+ */
+void psthread_inc_sercount(void)
+{
+	serialization_count++;
+}
+
+void psthread_dec_sercount(void)
+{
+	serialization_count--;
 }

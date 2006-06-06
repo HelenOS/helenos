@@ -80,7 +80,7 @@ static int con_phone;
 
 static void set_style(int fgcolor, int bgcolor)
 {
-	send_call_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
+	async_msg_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
 }
 
 static void start_standout(void)
@@ -96,7 +96,7 @@ static void resume_normal(void)
 
 void clear_screen(void)
 {
-	send_call(con_phone, CONSOLE_CLEAR, 0);
+	async_msg(con_phone, CONSOLE_CLEAR, 0);
 	moveto(0,0);
 }
 
@@ -108,7 +108,7 @@ scr_clear(void)
 {
 
 	resume_normal();
-	send_call(con_phone, CONSOLE_CLEAR, 0);
+	async_msg(con_phone, CONSOLE_CLEAR, 0);
 	curscore = -1;
 	memset((char *)curscreen, 0, sizeof(curscreen));
 }
@@ -120,26 +120,26 @@ void
 scr_init(void)
 {
 	con_phone = get_fd_phone(1);
-	send_call(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
+	async_msg(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
 	resume_normal();
 	scr_clear();
 }
 
 void moveto(int r, int c)
 {
-	send_call_2(con_phone, CONSOLE_GOTO, r, c);
+	async_msg_2(con_phone, CONSOLE_GOTO, r, c);
 }
 
 static void fflush(void)
 {
-	send_call(con_phone, CONSOLE_FLUSH, 0);
+	async_msg(con_phone, CONSOLE_FLUSH, 0);
 }
 
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
 {
-	return sync_send_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
+	return async_req_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
 }
 
 static void

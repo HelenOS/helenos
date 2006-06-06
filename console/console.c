@@ -25,6 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/* TODO: remove */
+#include <stdio.h>
 
 
 #include <kbd.h>
@@ -91,33 +93,33 @@ static int find_free_connection(void)
 
 static void clrscr(void)
 {
-	nsend_call(fb_info.phone, FB_CLEAR, 0);
+	async_msg(fb_info.phone, FB_CLEAR, 0);
 }
 
 static void curs_visibility(int v)
 {
-	send_call(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
+	async_msg(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
 }
 
 static void curs_goto(int row, int col)
 {
-	nsend_call_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
+	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
 	
 }
 
 static void set_style(style_t *style)
 {
-	nsend_call_2(fb_info.phone, FB_SET_STYLE, style->fg_color, style->bg_color); 
+	async_msg_2(fb_info.phone, FB_SET_STYLE, style->fg_color, style->bg_color); 
 }
 
 static void set_style_col(int fgcolor, int bgcolor)
 {
-	nsend_call_2(fb_info.phone, FB_SET_STYLE, fgcolor, bgcolor); 
+	async_msg_2(fb_info.phone, FB_SET_STYLE, fgcolor, bgcolor); 
 }
 
 static void prtchr(char c, int row, int col)
 {
-	nsend_call_3(fb_info.phone, FB_PUTCHAR, c, row, col);
+	async_msg_3(fb_info.phone, FB_PUTCHAR, c, row, col);
 	
 }
 
@@ -165,7 +167,7 @@ static void write_char(int console, char key)
 		scr->position_y = scr->size_y - 1;
 		screenbuffer_clear_line(scr, scr->top_line++);
 		if (console == active_console)
-			nsend_call(fb_info.phone, FB_SCROLL, 1);
+			async_msg(fb_info.phone, FB_SCROLL, 1);
 	}
 	
 	scr->position_x = scr->position_x % scr->size_x;
@@ -185,15 +187,15 @@ static int switch_screens(int oldpixmap)
 	int newpmap;
        
 	/* Save screen */
-	newpmap = sync_send(fb_info.phone, FB_VP2PIXMAP, 0, NULL);
+	newpmap = async_req(fb_info.phone, FB_VP2PIXMAP, 0, NULL);
 	if (newpmap < 0)
 		return -1;
 
 	if (oldpixmap != -1) {
 		/* Show old screen */
-		nsend_call_2(fb_info.phone, FB_VP_DRAW_PIXMAP, 0, oldpixmap);
+		async_msg_2(fb_info.phone, FB_VP_DRAW_PIXMAP, 0, oldpixmap);
 		/* Drop old pixmap */
-		nsend_call(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
+		async_msg(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
 	}
 	
 	return newpmap;
@@ -236,7 +238,6 @@ static void change_console(int newcons)
 		kernel_pixmap = switch_screens(console_pixmap);
 		console_pixmap = -1;
 	}
-	
 	active_console = newcons;
 	gcons_change_console(newcons);
 	conn = &connections[active_console];
@@ -244,13 +245,12 @@ static void change_console(int newcons)
 	set_style(&conn->screenbuffer.style);
 	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
 	curs_visibility(0);
-	
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
 				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
 		/* This call can preempt, but we are already at the end */
-		j = sync_send_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
+		j = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 	};
 	
 	if ((!interbuffer) || (j != 0)){
@@ -301,10 +301,12 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= 0x101) && (c < 0x101 + CONSOLE_COUNT)) {
+				async_serialize_start();
 				if (c == 0x112)
 					change_console(KERNEL_CONSOLE);
 				else
 					change_console(c - 0x101);
+				async_serialize_end();
 				break;
 			}
 			
@@ -321,7 +323,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		default:
 			retval = ENOENT;
-		}		
+		}
 		ipc_answer_fast(callid, retval, 0, 0);
 	}
 }
@@ -340,21 +342,26 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	conn = &connections[consnum];
-	
-	gcons_notify_connect(consnum);
 	conn->used = 1;
+	
+	async_serialize_start();
+	gcons_notify_connect(consnum);
 	conn->client_phone = IPC_GET_ARG3(call);
 	screenbuffer_clear(&conn->screenbuffer);
 	
 	/* Accept the connection */
 	ipc_answer_fast(iid,0,0,0);
-	
+
 	while (1) {
+		async_serialize_end();
 		callid = async_get_call(&call);
+		async_serialize_start();
+
 		arg1 = arg2 = 0;
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			gcons_notify_disconnect(consnum);
+			
 			/* Answer all pending requests */
 			while (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
@@ -364,6 +371,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			/* Commit hangup */
 			ipc_answer_fast(callid, 0,0,0);
+			async_serialize_end();
 			return;
 		case CONSOLE_PUTCHAR:
 			write_char(consnum, IPC_GET_ARG1(call));
@@ -372,7 +380,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
 			if (consnum == active_console) {
-				send_call(fb_info.phone, FB_CLEAR, 0); 
+				async_msg(fb_info.phone, FB_CLEAR, 0); 
 			}
 			
 			screenbuffer_clear(&conn->screenbuffer);
@@ -391,7 +399,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg2 = fb_info.cols;
 			break;
 		case CONSOLE_FLUSH:
-			sync_send_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
+			async_req_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
 			break;
 		case CONSOLE_SET_STYLE:
 			
@@ -459,7 +467,7 @@ int main(int argc, char *argv[])
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
 	/* Synchronize, the gcons can have something in queue */
-	sync_send(fb_info.phone, FB_FLUSH, 0, NULL);
+	async_req(fb_info.phone, FB_FLUSH, 0, NULL);
 
 	
 	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 

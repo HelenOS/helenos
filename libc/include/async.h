@@ -37,7 +37,11 @@
 typedef ipc_callid_t aid_t;
 typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
-int async_manager(void);
+static inline void async_manager(void)
+{
+	psthread_schedule_next_adv(PS_TO_MANAGER);
+}
+
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
 static inline ipc_callid_t async_get_call(ipc_call_t *data)
 {
@@ -57,7 +61,7 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
  *
  * @return Return code of message
  */
-static inline ipcarg_t sync_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t *r1, ipcarg_t *r2)
+static inline ipcarg_t async_req_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t *r1, ipcarg_t *r2)
 {
 	ipc_call_t result;
 	ipcarg_t rc;
@@ -70,9 +74,9 @@ static inline ipcarg_t sync_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		*r2 = IPC_GET_ARG2(result);
 	return rc;
 }
-#define sync_send(phoneid, method, arg1, r1) sync_send_2(phoneid, method, arg1, 0, r1, 0)
+#define async_req(phoneid, method, arg1, r1) async_req_2(phoneid, method, arg1, 0, r1, 0)
 
-static inline ipcarg_t sync_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
+static inline ipcarg_t async_req_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 				   ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, 
 				   ipcarg_t *r2, ipcarg_t *r3)
 {
@@ -102,6 +106,20 @@ void async_set_interrupt_received(async_client_conn_t conn);
 int _async_init(void);
 
 
-extern atomic_t async_futex;
+/* Primitve functions for IPC communication */
+void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, 
+		 ipcarg_t arg3);
+void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
+#define async_msg(ph,m,a1) async_msg_2(ph,m,a1,0)
 
+static inline void async_serialize_start(void)
+{
+	psthread_inc_sercount();
+}
+static inline void async_serialize_end(void)
+{
+	psthread_dec_sercount();
+}
+
+extern atomic_t async_futex;
 #endif

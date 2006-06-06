@@ -81,16 +81,4 @@ extern int ipc_register_irq(int irq, irq_code_t *code);
 extern int ipc_unregister_irq(int irq);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
 
-
-/* Primitve functions for IPC communication */
-void send_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, 
-		 ipcarg_t arg3);
-void send_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
-#define send_call(ph,m,a1) send_call_2(ph,m,a1,0)
-/* These functions never preempt */
-void nsend_call_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		  ipcarg_t arg2, ipcarg_t arg3);
-void nsend_call_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
-#define nsend_call(ph,m,a1) nsend_call_2(ph,m,a1,0)
-
 #endif

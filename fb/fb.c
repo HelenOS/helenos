@@ -42,7 +42,6 @@
 #include <async.h>
 
 #include "font-8x16.h"
-#include "helenos.xbm"
 #include "fb.h"
 #include "main.h"
 #include "../console/screenbuffer.h"

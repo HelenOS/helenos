@@ -64,7 +64,7 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 	size_t i = 0;
 
 	while (i < count) {
-		if (sync_send_2(streams[0].phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
+		if (async_req_2(streams[0].phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
 			return -1;
 		}
 		((char *)buf)[i++] = r0;
@@ -78,7 +78,7 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 	ipcarg_t r0,r1;
 
 	for (i = 0; i < count; i++)
-		send_call(streams[1].phone, CONSOLE_PUTCHAR, ((const char *)buf)[i]);
+		async_msg(streams[1].phone, CONSOLE_PUTCHAR, ((const char *)buf)[i]);
 	
 	return count;
 }
@@ -130,7 +130,7 @@ static ssize_t write_null(void *param, const void *buf, size_t count)
 fd_t open(const char *fname, int flags)
 {
 	int c = 0;
-	
+
 	while (((streams[c].w) || (streams[c].r)) && (c < FDS))
 		c++;
 	if (c == FDS)
@@ -159,6 +159,8 @@ fd_t open(const char *fname, int flags)
 
 ssize_t write(int fd, const void *buf, size_t count)
 {
+//	__SYSCALL3(SYS_IO, 1, (sysarg_t)buf, (sysarg_t) count);
+//	return count;
 	if (fd < FDS)
 		return streams[fd].w(streams[fd].param, buf, count);
 	

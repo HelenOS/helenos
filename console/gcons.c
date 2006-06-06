@@ -75,7 +75,7 @@ static int active_console = 0;
 
 static void vp_switch(int vp)
 {
-	nsend_call(fbphone,FB_VIEWPORT_SWITCH, vp);
+	async_msg(fbphone,FB_VIEWPORT_SWITCH, vp);
 }
 
 /** Create view port */
@@ -90,19 +90,19 @@ static int vp_create(unsigned int x, unsigned int y,
 
 static void clear(void)
 {
-	nsend_call(fbphone, FB_CLEAR, 0);
+	async_msg(fbphone, FB_CLEAR, 0);
 	
 }
 
 static void set_style(int fgcolor, int bgcolor)
 {
-	nsend_call_2(fbphone, FB_SET_STYLE, fgcolor, bgcolor);
+	async_msg_2(fbphone, FB_SET_STYLE, fgcolor, bgcolor);
 }
 
 /** Transparent putchar */
 static void tran_putch(char c, int row, int col)
 {
-	nsend_call_3(fbphone, FB_TRANS_PUTCHAR, c, row, col);
+	async_msg_3(fbphone, FB_TRANS_PUTCHAR, c, row, col);
 }
 
 /** Redraw the button showing state of a given console */
@@ -114,7 +114,7 @@ static void redraw_state(int consnum)
 
 	vp_switch(cstatus_vp[consnum]);
 	if (ic_pixmaps[state] != -1)
-		nsend_call_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum], ic_pixmaps[state]);
+		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum], ic_pixmaps[state]);
 
  	if (state != CONS_DISCONNECTED && state != CONS_KERNEL && state != CONS_DISCONNECTED_SEL) {
  		snprintf(data, 5, "%d", consnum+1);
@@ -238,17 +238,17 @@ static void draw_pixmap(char *logo, size_t size, int x, int y)
 
 	memcpy(shm, logo, size);
 	/* Send area */
-	rc = sync_send_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
+	rc = async_req_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
 	if (rc)
 		goto exit;
-	rc = sync_send_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
+	rc = async_req_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
 	if (rc)
 		goto drop;
 	/* Draw logo */
-	nsend_call_2(fbphone, FB_DRAW_PPM, x, y);
+	async_msg_2(fbphone, FB_DRAW_PPM, x, y);
 drop:
 	/* Drop area */
-	nsend_call(fbphone, FB_DROP_SHM, 0);
+	async_msg(fbphone, FB_DROP_SHM, 0);
 exit:       
 	/* Remove area */
 	munmap(shm, size);
@@ -297,21 +297,21 @@ static int make_pixmap(char *data, int size)
 
 	memcpy(shm, data, size);
 	/* Send area */
-	rc = sync_send_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
+	rc = async_req_2(fbphone, FB_PREPARE_SHM, (ipcarg_t)shm, 0, NULL, NULL);
 	if (rc)
 		goto exit;
-	rc = sync_send_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
+	rc = async_req_3(fbphone, IPC_M_AS_AREA_SEND, (ipcarg_t)shm, 0, PROTO_READ, NULL, NULL, NULL);
 	if (rc)
 		goto drop;
 
 	/* Obtain pixmap */
-	rc = sync_send(fbphone, FB_SHM2PIXMAP, 0, NULL);
+	rc = async_req(fbphone, FB_SHM2PIXMAP, 0, NULL);
 	if (rc < 0)
 		goto drop;
 	pxid = rc;
 drop:
 	/* Drop area */
-	nsend_call(fbphone, FB_DROP_SHM, 0);
+	async_msg(fbphone, FB_DROP_SHM, 0);
 exit:       
 	/* Remove area */
 	munmap(shm, size);
