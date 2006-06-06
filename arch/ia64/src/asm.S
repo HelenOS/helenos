@@ -49,45 +49,73 @@ memcpy_from_uspace:
 memcpy_to_uspace:
 	alloc loc0 = ar.pfs, 3, 1, 0, 0
 
-	shr.u r18 = in2, 3
-	mov r8 = in1 ;;			/* prepare to return in1 on success */
-	cmp.ne p6, p7 = 0, r18	;;
-(p7)	mov r17 = r0
-(p7)	br.cond.dptk 1f ;;
-	mov r16 = r0
-	mov r17 = r0 ;;
-
+	adds r14 = 7, in1
+	mov r2 = ar.lc
+	mov r8 = in1 ;;
+	and r14 = -8, r14 ;;
+	cmp.ne p6, p7 = r14, in1
+(p7)	br.cond.dpnt 3f	;;
 0:
-	shladd r14 = r17, 3, r0
-	adds r16 = 1, r16 ;;
-	add r15 = r14, r8
-	sxt4 r17 = r16
-	add r14 = r14, in0 ;;
-	ld8 r15 = [r15]
-	cmp.gtu p6, p7 = r18, r17 ;;
-	st8 [r14] = r15
-(p6)	br.cond.dptk 0b
-
+	cmp.ne p6, p7 = 0, in2
+(p7)	br.cond.dpnt 2f	;;
+(p6)	adds r14 = -1, in2
+(p6)	mov r16 = r0
+(p6)	mov r17 = r0 ;;
+(p6)	mov ar.lc = r14
 1:
-	and in2 = 7, in2 ;;
-	cmp.eq p6, p7 = 0, in2 ;;
-(p6)	mov ar.pfs = loc0
-(p6)	br.ret.dptk.many rp
-	shladd r14 = r17, 3, r0
-	mov r16 = r0
-	mov r17 = r0 ;;
-	add in0 = in0, r14
-	add r18 = r8, r14 ;;
-
-2:
-	add r14 = r16, r18
-	adds r17 = 1, r17
-	add r15 = in0, r16 ;;
+	add r14 = r16, r8
+	add r15 = r16, in0
+	adds r17 = 1, r17 ;;
 	ld1 r14 = [r14]
-	sxt4 r16 = r17	;;
+	mov r16 = r17 ;;
 	st1 [r15] = r14
-	cmp.gtu p6, p7 = in2, r16
-(p6)	br.cond.dptk 2b
+	br.cloop.sptk.few 1b ;;
+2:
+	mov ar.lc = r2
+
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp
+3:
+	adds r14 = 7, in0 ;;
+	and r14 = -8, r14 ;;
+	cmp.eq p6, p7 = r14, in0
+(p7)	br.cond.dptk 0b
+	shr.u r18 = in2, 3 ;;
+	cmp.ne p6, p7 = 0, r18
+(p7)	br.cond.dpnt 5f	;;
+(p6)	adds r14 = -1, r18
+(p6)	mov r16 = r0
+(p6)	mov r17 = r0 ;;
+(p6)	mov ar.lc = r14
+4:
+	shladd r14 = r16, 3, r0
+	adds r16 = 1, r17 ;;
+	add r15 = r8, r14
+	add r14 = in0, r14
+	mov r17 = r16 ;;
+	ld8 r15 = [r15] ;;
+	st8 [r14] = r15
+	br.cloop.sptk.few 4b
+5:
+	and r15 = 7, in2
+	shladd r14 = r18, 3, r0
+	mov r16 = r0
+	mov r18 = r0 ;;
+	cmp.eq p6, p7 = 0, r15
+	add in0 = r14, in0
+	adds r15 = -1, r15
+	add r17 = r14, r8
+(p6)	br.cond.dpnt 2b	;;
+	mov ar.lc = r15
+6:
+	add r14 = r16, r17
+	add r15 = r16, in0
+	adds r16 = 1, r18 ;;
+	ld1 r14 = [r14]
+	mov r18 = r16 ;;
+	st1 [r15] = r14
+	br.cloop.sptk.few 6b ;;
+	mov ar.lc = r2
 
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
