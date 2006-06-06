@@ -37,15 +37,14 @@
  */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *tcb;
-	
-	*data = malloc(sizeof(tcb_t) + size);
-	tcb = (tcb_t *) (*data + size);
-	return tcb;
+	tcb_t *result;
+
+	result = malloc(sizeof(tcb_t) + size);
+	*data = ((void *)result) + sizeof(tcb_t);
+	return result;
 }
 
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	void *start = ((void *) tcb) - size;
-	free(start);
+	free(tcb);
 }
