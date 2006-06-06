@@ -53,15 +53,15 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 	size_t i;
 	i = data->size - data->len;
 
-	if ((count == 0) || (i == 0)) {
-		return 0;
+	if (i == 0) {
+		return count;
 	}
 	
 	if (i == 1) {
 		/* We have only one free byte left in buffer => write there trailing zero */
 		data->string[data->size - 1] = 0;
 		data->len = data->size;
-		return 1;
+		return count;
 	}
 	
 	if (i <= count) {
@@ -69,7 +69,7 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 			memcpy((void *)(data->string + data->len), (void *)str, i - 1);
 			data->string[data->size - 1] = 0;
 			data->len = data->size;
-			return i;
+			return count;
 	}
 	
 	/* Buffer is big enought to print whole string */
