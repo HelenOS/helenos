@@ -100,8 +100,14 @@ void bootstrap(void)
 		halt();
 	}
 	
+	if (!ofw_keyboard(&bootinfo.keyboard)) {
+		printf("Error: unable to get keyboard properties, halting.\n");
+		halt();
+	}
+	
 	printf("\nDevice statistics\n");
 	printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	printf(" keyboard at %L (size %d bytes)\n", bootinfo.keyboard.addr, bootinfo.keyboard.size);
 	
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);

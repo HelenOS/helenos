@@ -59,6 +59,11 @@ typedef struct {
 	unsigned int scanline;
 } screen_t;
 
+typedef struct {
+	void *addr;
+	unsigned int size;
+} keyboard_t;
+
 
 extern void init(void);
 extern void ofw_write(const char *str, const int len);
@@ -67,5 +72,6 @@ extern void *ofw_translate(const void *virt);
 extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
 extern int ofw_screen(screen_t *screen);
+extern int ofw_keyboard(keyboard_t *keyboard);
 
 #endif

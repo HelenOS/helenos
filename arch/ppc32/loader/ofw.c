@@ -245,3 +245,22 @@ int ofw_screen(screen_t *screen)
 	
 	return true;
 }
+
+
+int ofw_keyboard(keyboard_t *keyboard)
+{
+	char device_name[BUF_SIZE];
+	
+	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(char) * BUF_SIZE) <= 0)
+		return false;
+	
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+	
+	// FIXME
+	keyboard->addr = (void *) 0x80816000;
+	keyboard->size = 7680;
+	
+	return true;
+}
