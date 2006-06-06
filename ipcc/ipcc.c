@@ -60,6 +60,7 @@ static void printhelp(void)
 	printf("d - answer message that we have received\n");
 	printf("j - jump to endless loop\n");
 	printf("p - page fault\n");
+	printf("u - unaligned read\n");
 }
 
 static void callback(void *private, int retval, ipc_call_t *data)
@@ -176,13 +177,17 @@ static void do_connect(void)
 		printf("error: %d\n", phid);
 }
 
+
+
 int main(void)
 {
 	ipcarg_t phonead;
 	int i;
 	char c;
 	int res;
-
+	volatile long long var;
+	volatile int var1;
+	
 	printf("********************************\n");
 	printf("***********IPC Tester***********\n");
 	printf("********************************\n");
@@ -228,6 +233,9 @@ int main(void)
 			printf("Doing page fault\n");
 			*((char *)0) = 1;
 			printf("done\n");
+		case 'u':
+			var1=*( (int *) ( ( (char *)(&var) ) + 1 ) );
+			break;
 		}
 	}
 }
