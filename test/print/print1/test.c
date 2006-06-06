@@ -32,9 +32,10 @@
 
 void test(void)
 {
+	int retval;
 	__native nat = 0x12345678u;
 	
-	unsigned char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE];
 	
 	printf(" Printf test \n");
 	
@@ -52,13 +53,19 @@ void test(void)
 	
 	printf(" Print to NULL '%s'\n",NULL);
 
+	retval = snprintf(buffer, BUFFER_SIZE, "Short text without parameters.");
+	printf("Result is: '%s', retval = %d\n", buffer, retval);
+
+	retval = snprintf(buffer, BUFFER_SIZE, "Very very very long text without parameters.");
+	printf("Result is: '%s', retval = %d\n", buffer, retval);
+	
 	printf("Print short text to %d char long buffer via snprintf.\n", BUFFER_SIZE);
-	snprintf(buffer, BUFFER_SIZE, "Short %s", "text");
-	printf("Result is: '%s'\n", buffer);
+	retval = snprintf(buffer, BUFFER_SIZE, "Short %s", "text");
+	printf("Result is: '%s', retval = %d\n", buffer, retval);
 	
 	printf("Print long text to %d char long buffer via snprintf.\n", BUFFER_SIZE);
-	snprintf(buffer, BUFFER_SIZE, "Very long %s. This text`s length is more than %d. We are interested in the result.", "text" , BUFFER_SIZE);
-	printf("Result is: '%s'\n", buffer);
+	retval = snprintf(buffer, BUFFER_SIZE, "Very long %s. This text`s length is more than %d. We are interested in the result.", "text" , BUFFER_SIZE);
+	printf("Result is: '%s', retval = %d\n", buffer, retval);
 	
 	return;
 }
