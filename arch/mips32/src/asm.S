@@ -66,35 +66,67 @@ memsetb:
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-        srl     $t1,$a2,0x2
-	beqz    $t1,1f
-        move    $t0,$zero
-        move    $a3,$zero
-2:	
-        addu    $v0,$a1,$a3
-        lw      $v1,0($v0)
-        addiu   $t0,$t0,1
-        addu    $v0,$a0,$a3
-        sw      $v1,0($v0)
-        bne     $t0,$t1,2b
-        addiu   $a3,$a3,4
-1:	
-        andi    $a2,$a2,0x3
-        beqz    $a2,3f
-        move    $a3,$zero
-        sll     $v0,$t0,0x2
-        addu    $t1,$a0,$v0
-        addu    $t0,$v0,$a1
-4:	
-        addu    $v0,$t0,$a3
-        lbu     $a0,0($v0)
-        addu    $v1,$t1,$a3
-        addiu   $a3,$a3,1
-        bne     $a3,$a2,4b
-        sb      $a0,0($v1)
-3:	
-        jr      $ra
-        move    $v0,$a1
+	addiu	$v0,$a1,3
+	li	$v1,-4			# 0xfffffffffffffffc
+	and	$v0,$v0,$v1
+	beq	$a1,$v0,3f
+	move	$t0,$a0
+
+0:
+	beq	$a2,$zero,2f
+	move	$a3,$zero
+
+1:
+	addu	$v0,$a1,$a3
+	lbu	$a0,0($v0)
+	addu	$v1,$t0,$a3
+	addiu	$a3,$a3,1
+	bne	$a3,$a2,1b
+	sb	$a0,0($v1)
+
+2:
+	jr	$ra
+	move	$v0,$a1
+
+3:
+	addiu	$v0,$a0,3
+	and	$v0,$v0,$v1
+	bne	$a0,$v0,0b
+	srl	$t1,$a2,2
+
+	beq	$t1,$zero,5f
+	move	$a3,$zero
+
+	move	$a3,$zero
+	move	$a0,$zero
+4:
+	addu	$v0,$a1,$a0
+	lw	$v1,0($v0)
+	addiu	$a3,$a3,1
+	addu	$v0,$t0,$a0
+	sw	$v1,0($v0)
+	bne	$a3,$t1,4b
+	addiu	$a0,$a0,4
+
+5:
+	andi	$a2,$a2,0x3
+	beq	$a2,$zero,2b
+	nop
+
+	sll	$v0,$a3,2
+	addu	$t1,$v0,$t0
+	move	$a3,$zero
+	addu	$t0,$v0,$a1
+6:
+	addu	$v0,$t0,$a3
+	lbu	$a0,0($v0)
+	addu	$v1,$t1,$a3
+	addiu	$a3,$a3,1
+	bne	$a3,$a2,6b
+	sb	$a0,0($v1)
+
+	jr	$ra
+	move	$v0,$a1
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
