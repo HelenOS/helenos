@@ -35,6 +35,6 @@
 #define CUDA_IRQ 10
 
 extern void cuda_init(__address base, size_t size);
-extern __u8 cuda_get_scancode(void);
+extern int cuda_get_scancode(void);
 
 #endif

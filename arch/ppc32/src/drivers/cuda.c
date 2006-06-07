@@ -35,6 +35,8 @@
 #include <interrupt.h>
 #include <stdarg.h>
 
+#define SPECIAL		'?'
+
 #define PACKET_ADB  0x00
 #define PACKET_CUDA 0x01
 
@@ -55,14 +57,129 @@ static volatile __u8 *cuda = NULL;
 
 
 static char lchars[0x80] = {
-	'a',  's',  'd',  'f',  'h',  'g',  'z',  'x',  'c',  'v',    0,  'b',  'q',  'w',  'e',  'r',
-	'y',  't',  '1',  '2',  '3',  '4',  '6',  '5',  '=',  '9',  '7',  '-',  '8',  '0',  ']',  'o',
-	'u',  '[',  'i',  'p',   13,  'l',  'j', '\'',  'k',  ';', '\\',  ',',  '/',  'n',  'm',  '.',
-	  9,   32,  '`',    8,    0,   27,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-	  0,  '.',    0,  '*',    0,  '+',    0,    0,    0,    0,    0,  '/',   13,    0,  '-',    0,
-	  0,    0,  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',    0,  '8',  '9',    0,    0,    0,
-	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-	  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0
+	'a',
+	's',
+	'd',
+	'f',
+	'h',
+	'g',
+	'z',
+	'x',
+	'c',
+	'v', 
+	SPECIAL,
+	'b',
+	'q',
+	'w',
+	'e',
+	'r',
+	'y',
+	't',
+	'1',
+	'2',
+	'3',
+	'4',
+	'6',
+	'5',
+	'=',
+	'9',
+	'7',
+	'-',
+	'8',
+	'0',
+	']',
+	'o',
+	'u',
+	'[',
+	'i', 
+	'p',
+	'\n',    /* Enter */
+	'l',
+	'j',
+	'\'',
+	'k',
+	';',
+	'\\',
+	',',
+	'/',
+	'n',
+	'm',
+	'.',
+	'\t',    /* Tab */
+	' ',
+	'`',
+	'\b',    /* Backspace */
+	SPECIAL,
+	SPECIAL, /* Escape */
+	SPECIAL, /* Ctrl */
+	SPECIAL, /* Alt */
+	SPECIAL, /* Shift */
+	SPECIAL, /* Caps-Lock */
+	SPECIAL, /* RAlt */
+	SPECIAL, /* Left */
+	SPECIAL, /* Right */
+	SPECIAL, /* Down */
+	SPECIAL, /* Up */
+	SPECIAL, 
+	SPECIAL,
+	'.',     /* Keypad . */
+	SPECIAL, 
+	'*',     /* Keypad * */
+	SPECIAL,
+	'+',     /* Keypad + */
+	SPECIAL,
+	SPECIAL, /* NumLock */
+	SPECIAL,
+	SPECIAL,
+	SPECIAL,
+	'/',     /* Keypad / */
+	'\n',    /* Keypad Enter */
+	SPECIAL,
+	'-',     /* Keypad - */
+	SPECIAL,
+	SPECIAL,
+	SPECIAL,
+	'0',     /* Keypad 0 */
+	'1',     /* Keypad 1 */
+	'2',     /* Keypad 2 */
+	'3',     /* Keypad 3 */
+	'4',     /* Keypad 4 */
+	'5',     /* Keypad 5 */
+	'6',     /* Keypad 6 */
+	'7',     /* Keypad 7 */
+	SPECIAL,
+	'8',     /* Keypad 8 */
+	'9',     /* Keypad 9 */
+	SPECIAL,
+	SPECIAL,
+	SPECIAL,
+	SPECIAL, /* F5 */
+	SPECIAL, /* F6 */
+	SPECIAL, /* F7 */
+	SPECIAL, /* F3 */
+	SPECIAL, /* F8 */
+	SPECIAL, /* F9 */
+	SPECIAL,
+	SPECIAL, /* F11 */
+	SPECIAL,
+	SPECIAL, /* F13 */
+	SPECIAL,
+	SPECIAL, /* ScrollLock */
+	SPECIAL,
+	SPECIAL, /* F10 */
+	SPECIAL,
+	SPECIAL, /* F12 */
+	SPECIAL,
+	SPECIAL, /* Pause */
+	SPECIAL, /* Insert */
+	SPECIAL, /* Home */
+	SPECIAL, /* PageUp */
+	SPECIAL, /* Delete */
+	SPECIAL, /* F4 */
+	SPECIAL, /* End */
+	SPECIAL, /* F2 */
+	SPECIAL, /* PageDown */
+	SPECIAL  /* F1 */
 };
 
 
@@ -111,7 +228,7 @@ static chardev_operations_t ops = {
 };
 
 
-__u8 cuda_get_scancode(void)
+int cuda_get_scancode(void)
 {
 	__u8 kind;
 	__u8 data[4];
@@ -121,16 +238,18 @@ __u8 cuda_get_scancode(void)
 	if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c))
 		return data[2];
 	
-	return 0;
+	return -1;
 }
-
 
 static void cuda_irq(int n, istate_t *istate)
 {
-	__u8 scancode = cuda_get_scancode();
+	int scan_code = cuda_get_scancode();
 	
-	if ((scancode != 0) && ((scancode & 0x80) != 0x80))
-		chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
+	if (scan_code != -1) {
+		__u8 scancode = (__u8) scan_code;
+		if ((scancode & 0x80) != 0x80)
+			chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
+	}
 }
 
 
