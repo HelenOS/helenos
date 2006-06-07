@@ -82,6 +82,20 @@ typedef struct {
 	int cursor_shown;
 } viewport_t;
 
+#define MAX_ANIM_LEN    8
+#define MAX_ANIMATIONS  4
+typedef struct {
+	int initialized;
+	int enabled;
+	unsigned int vp;
+
+	unsigned int pos;
+	unsigned int animlen;
+	unsigned int pixmaps[MAX_ANIM_LEN];
+} animation_t;
+static animation_t animations[MAX_ANIMATIONS];
+static int anims_enabled;
+
 /** Maximum number of saved pixmaps 
  * Pixmap is a saved rectangle
  */
@@ -320,7 +334,7 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 {
 	int i;
 
-for (i=0; i < MAX_VIEWPORTS; i++) {
+	for (i=0; i < MAX_VIEWPORTS; i++) {
 		if (!viewports[i].initialized)
 			break;
 	}
@@ -701,6 +715,117 @@ static int draw_pixmap(int vp, int pm)
 	return 0;
 }
 
+/** Tick animation one step forward */
+static void anims_tick(void)
+{
+	int i;
+	static int counts = 0;
+	
+	/* Limit redrawing */
+	counts = (counts+1) % 8;
+	if (counts)
+		return;
+
+	for (i=0; i < MAX_ANIMATIONS; i++) {
+		if (!animations[i].animlen || !animations[i].initialized || !animations[i].enabled)
+			continue;
+		draw_pixmap(animations[i].vp, animations[i].pixmaps[animations[i].pos]);
+		animations[i].pos = (animations[i].pos+1) % animations[i].animlen;
+	}
+}
+
+static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+{
+	int handled = 1;
+	int retval = 0;
+	int i,nvp;
+	int newval;
+
+	switch (IPC_GET_METHOD(*call)) {
+	case FB_ANIM_CREATE:
+		nvp = IPC_GET_ARG1(*call);
+		if (nvp == -1)
+			nvp = vp;
+		if (nvp >= MAX_VIEWPORTS || nvp < 0 || !viewports[nvp].initialized) {
+			retval = EINVAL;
+			break;
+		}
+		for (i=0; i < MAX_ANIMATIONS; i++) {
+			if (! animations[i].initialized)
+				break;
+		}
+		if (i == MAX_ANIMATIONS) {
+			retval = ELIMIT;
+			break;
+		}
+		animations[i].initialized = 1;
+		animations[i].animlen = 0;
+		animations[i].pos = 0;
+		animations[i].enabled = 0;
+		animations[i].vp = nvp;
+		retval = i;
+		break;
+	case FB_ANIM_DROP:
+		i = IPC_GET_ARG1(*call);
+		if (nvp >= MAX_ANIMATIONS || i < 0) {
+			retval = EINVAL;
+			break;
+		}
+		animations[i].initialized = 0;
+		break;
+	case FB_ANIM_ADDPIXMAP:
+		i = IPC_GET_ARG1(*call);
+		if (i >= MAX_ANIMATIONS || i < 0 || !animations[i].initialized) {
+			retval = EINVAL;
+			break;
+		}
+		if (animations[i].animlen == MAX_ANIM_LEN) {
+			retval = ELIMIT;
+			break;
+		}
+		newval = IPC_GET_ARG2(*call);
+		if (newval < 0 || newval > MAX_PIXMAPS || !pixmaps[newval].data) {
+			retval = EINVAL;
+			break;
+		}
+		animations[i].pixmaps[animations[i].animlen++] = newval;
+		break;
+	case FB_ANIM_CHGVP:
+		i = IPC_GET_ARG1(*call);
+		if (i >= MAX_ANIMATIONS || i < 0) {
+			retval = EINVAL;
+			break;
+		}
+		nvp = IPC_GET_ARG2(*call);
+		if (nvp == -1)
+			nvp = vp;
+		if (nvp >= MAX_VIEWPORTS || nvp < 0 || !viewports[nvp].initialized) {
+			retval = EINVAL;
+			break;
+		}
+		animations[i].vp = nvp;
+		break;
+	case FB_ANIM_START:
+	case FB_ANIM_STOP:
+		i = IPC_GET_ARG1(*call);
+		if (i >= MAX_ANIMATIONS || i < 0) {
+			retval = EINVAL;
+			break;
+		}
+		newval = (IPC_GET_METHOD(*call) == FB_ANIM_START);
+		if (newval ^ animations[i].enabled) {
+			animations[i].enabled = newval;
+			anims_enabled += newval ? 1 : -1;
+		}
+		break;
+	default:
+		handled = 0;
+	}
+	if (handled)
+		ipc_answer_fast(callid, retval, 0, 0);
+	return handled;
+}
+
 /** Handler for messages concerning pixmap handling */
 static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
@@ -773,18 +898,21 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
 
 	while (1) {
-		if (vport->cursor_shown)
+		if (vport->cursor_active || anims_enabled)
 			callid = async_get_call_timeout(&call,250000);
 		else
 			callid = async_get_call(&call);
 
 		if (!callid) {
 			cursor_blink(vp);
+			anims_tick();
 			continue;
 		}
 		if (shm_handle(callid, &call, vp))
 			continue;
 		if (pixmap_handle(callid, &call, vp))
+			continue;
+		if (anim_handle(callid, &call, vp))
 			continue;
 
  		switch (IPC_GET_METHOD(call)) {

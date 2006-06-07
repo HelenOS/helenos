@@ -31,4 +31,11 @@
 
 #define FB_TRANS_PUTCHAR     1045
 
+#define FB_ANIM_CREATE       1046
+#define FB_ANIM_DROP         1047
+#define FB_ANIM_ADDPIXMAP    1048
+#define FB_ANIM_CHGVP        1049
+#define FB_ANIM_START        1050
+#define FB_ANIM_STOP         1051
+
 #endif

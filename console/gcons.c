@@ -70,6 +70,7 @@ static int fbphone;
 
 /** List of pixmaps identifying these icons */
 static int ic_pixmaps[CONS_LAST] = {-1,-1,-1,-1,-1,-1};
+static int animation = -1;
 
 static int active_console = 0;
 
@@ -319,6 +320,40 @@ exit:
 	return pxid;
 }
 
+extern char _binary_anim_1_ppm_start[0];
+extern int _binary_anim_1_ppm_size;
+extern char _binary_anim_2_ppm_start[0];
+extern int _binary_anim_2_ppm_size;
+extern char _binary_anim_3_ppm_start[0];
+extern int _binary_anim_3_ppm_size;
+extern char _binary_anim_4_ppm_start[0];
+extern int _binary_anim_4_ppm_size;
+static void make_anim(void)
+{
+	int an;
+	int pm;
+
+	an = async_req(fbphone, FB_ANIM_CREATE, cstatus_vp[KERNEL_CONSOLE], NULL);
+	if (an < 0)
+		return;
+
+	pm = make_pixmap(_binary_anim_1_ppm_start, (int)&_binary_anim_1_ppm_size);
+	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+
+	pm = make_pixmap(_binary_anim_2_ppm_start, (int)&_binary_anim_2_ppm_size);
+	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+
+	pm = make_pixmap(_binary_anim_3_ppm_start, (int)&_binary_anim_3_ppm_size);
+	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+
+	pm = make_pixmap(_binary_anim_4_ppm_start, (int)&_binary_anim_4_ppm_size);
+	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+
+	async_msg(fbphone, FB_ANIM_START, an);
+
+	animation = an;
+}
+
 extern char _binary_cons_selected_ppm_start[0];
 extern int _binary_cons_selected_ppm_size;
 extern char _binary_cons_idle_ppm_start[0];
@@ -332,6 +367,7 @@ void gcons_init(int phone)
 {
 	int rc;
 	int i;
+	int status_start = STATUS_START;
 
 	fbphone = phone;
 
@@ -351,8 +387,9 @@ void gcons_init(int phone)
 		return;
 	
 	/* Create status buttons */
+	status_start += (xres-800) / 2;
 	for (i=0; i < CONSOLE_COUNT; i++) {
-		cstatus_vp[i] = vp_create(STATUS_START+CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
+		cstatus_vp[i] = vp_create(status_start+CONSOLE_MARGIN+i*(STATUS_WIDTH+STATUS_SPACE),
 					  STATUS_TOP, STATUS_WIDTH, STATUS_HEIGHT);
 		if (cstatus_vp[i] < 0)
 			return;
@@ -372,6 +409,8 @@ void gcons_init(int phone)
 	ic_pixmaps[CONS_KERNEL] = make_pixmap(_binary_cons_kernel_ppm_start,
 					      (int)&_binary_cons_kernel_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
+	
+	make_anim();
 
 	use_gcons = 1;
 	console_state[0] = CONS_DISCONNECTED_SEL;

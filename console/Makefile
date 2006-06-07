@@ -48,7 +48,8 @@ GENERIC_SOURCES = \
 	gcons.c
 
 IMAGES = helenos.ppm nameic.ppm cons_selected.ppm cons_idle.ppm \
-	cons_has_data.ppm cons_kernel.ppm
+	cons_has_data.ppm cons_kernel.ppm anim_1.ppm anim_2.ppm anim_3.ppm \
+	anim_4.ppm
 
 ARCH_SOURCES = 
 
