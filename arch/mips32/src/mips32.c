@@ -40,12 +40,14 @@
 #include <proc/uarg.h>
 #include <print.h>
 #include <syscall/syscall.h>
+#include <sysinfo/sysinfo.h>
 
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
 #include <console/chardev.h>
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
+#include <debug.h>
 
 #include <arch/asm/regname.h>
 
@@ -116,6 +118,7 @@ void arch_post_mm_init(void)
 #ifdef CONFIG_FB
 		fb_init(0x12000000, 640, 480, 24, 1920); // gxemul framebuffer
 #endif
+		sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
 }
 
 void arch_pre_smp_init(void)
