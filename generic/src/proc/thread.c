@@ -75,9 +75,15 @@ char *thread_states[] = {
 	"Undead"
 }; 
 
-/** Lock protecting threads_head list. For locking rules, see declaration thereof. */
+/** Lock protecting the threads_btree B+tree. For locking rules, see declaration thereof. */
 SPINLOCK_INITIALIZE(threads_lock);
-btree_t threads_btree;			/**< B+tree of all threads. */
+
+/** B+tree of all threads.
+ *
+ * When a thread is found in the threads_btree B+tree, it is guaranteed to exist as long
+ * as the threads_lock is held.
+ */
+btree_t threads_btree;		
 
 SPINLOCK_INITIALIZE(tidlock);
 __u32 last_tid = 0;
@@ -551,9 +557,6 @@ void thread_print_list(void)
  *
  * Note that threads_lock must be already held and
  * interrupts must be already disabled.
- *
- * When a thread is found in threads_btree, it is guaranteed to exist as long
- * as the threads_lock is held.
  *
  * @param t Pointer to thread.
  *

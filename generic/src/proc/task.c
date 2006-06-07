@@ -55,8 +55,19 @@
 #define LOADED_PROG_STACK_PAGES_NO 1
 #endif
 
+/** Spinlock protecting the tasks_btree B+tree. */
 SPINLOCK_INITIALIZE(tasks_lock);
+
+/** B+tree of active tasks.
+ *
+ * The task is guaranteed to exist after it was found in the tasks_btree as long as:
+ * @li the tasks_lock is held,
+ * @li the task's lock is held when task's lock is acquired before releasing tasks_lock or
+ * @li the task's refcount is grater than 0
+ *
+ */
 btree_t tasks_btree;
+
 static task_id_t task_counter = 0;
 
 static void ktaskclnp(void *arg);
@@ -238,11 +249,6 @@ __native sys_task_get_id(task_id_t *uspace_task_id)
  *
  * The tasks_lock must be already held by the caller of this function
  * and interrupts must be disabled.
- *
- * The task is guaranteed to exist after it was found in the tasks_btree as long as:
- * @li the tasks_lock is held,
- * @li the task's lock is held when task's lock is acquired before releasing tasks_lock or
- * @li the task's refcount is grater than 0
  *
  * @param id Task ID.
  *

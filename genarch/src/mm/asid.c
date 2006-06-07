@@ -124,8 +124,8 @@ asid_t asid_get(void)
 		 * Get the system rid of the stolen ASID.
 		 */
 		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
-		tlb_shootdown_finalize();
 		tlb_invalidate_asid(asid);
+		tlb_shootdown_finalize();
 	} else {
 
 		/*
@@ -135,6 +135,13 @@ asid_t asid_get(void)
 
 		asid = asid_find_free();
 		asids_allocated++;
+
+		/*
+		 * Purge the allocated rid from TLBs.
+		 */
+		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
+		tlb_invalidate_asid(asid);
+		tlb_shootdown_finalize();
 	}
 	
 	spinlock_unlock(&asidlock);
