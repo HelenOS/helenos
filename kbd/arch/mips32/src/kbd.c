@@ -368,9 +368,22 @@ static int kbd_arch_process_gxemul(keybuffer_t *keybuffer, int scan_code)
 
 int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 {
-    if(msim) return kbd_arch_process_msim(keybuffer, scan_code);
-    if(gxemul) return kbd_arch_process_gxemul(keybuffer, scan_code);
 
-    return 0;
+	static int esc_count=0;
+
+	
+	if ( scan_code == 0x1b ) {
+		esc_count++;
+		if ( esc_count == 3 ) {
+			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+		}	
+	} else {
+		esc_count=0;
+	}
+
+	if(msim) return kbd_arch_process_msim(keybuffer, scan_code);
+	if(gxemul) return kbd_arch_process_gxemul(keybuffer, scan_code);
+
+	return 0;
 }
 

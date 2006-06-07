@@ -77,22 +77,33 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 {
 	static unsigned long long buf=0;
 	static int count=0;	
+	static int esc_count=0;
 
 
 	/*
 	* Please preserve this code (it can be used to determine scancodes)
-	*
-	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
-	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
-	keybuffer_push(keybuffer, ' ');
-	keybuffer_push(keybuffer, ' ');
 	*/
+	//keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
+	//keybuffer_push(keybuffer, to_hex(scan_code&0xf));
+	//keybuffer_push(keybuffer, ' ');
+	//keybuffer_push(keybuffer, ' ');
+	//*/
 	
 	
 	if (scan_code){
 		buf|=(unsigned long long) scan_code<<(8*(count++));
-	}	else {
-			
+	} else {
+		
+
+		if ( buf == 0x1b ) {
+			esc_count++;
+			if ( esc_count == 3 ) {
+			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+			}	
+		} else {
+			esc_count=0;
+		}
+	
 		if ( ! ( buf & 0xff00 ))
 			keybuffer_push(keybuffer, buf);
 		else {
