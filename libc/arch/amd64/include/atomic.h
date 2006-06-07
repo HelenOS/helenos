@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcamd64 amd64
+ * @ingroup lc
+ * @brief	amd64 architecture dependent parts of libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ATOMIC_H__
 #define __amd64_ATOMIC_H__
 
@@ -67,3 +75,9 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_predec(val) (atomic_postdec(val)-1)
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

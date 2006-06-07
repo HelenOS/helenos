@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <thread.h>
 #include <malloc.h>
 
@@ -49,3 +55,7 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	void *start = ((void *) tcb) - size;
 	free(start);
 }
+
+ /** @}
+ */
+

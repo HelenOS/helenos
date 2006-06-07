@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_REGNAME_H__
 #define __ppc64_REGNAME_H__
 
@@ -177,3 +183,7 @@
 #define	evr31	31
 
 #endif
+
+ /** @}
+ */
+

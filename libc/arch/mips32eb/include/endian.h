@@ -25,6 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+/** @addtogroup libcmipseb32 mipseb32
+  * @brief mipseb32 architecture dependent parts of libc
+  * @ingroup lc
+ * @{
+ */
+/** @file
+ */
+
 
 #ifndef __mips32eb_ENDIAN_H__
 #define __mips32eb_ENDIAN_H__
@@ -37,4 +46,6 @@
 
 #endif
 
+ /** @}
+ */
 

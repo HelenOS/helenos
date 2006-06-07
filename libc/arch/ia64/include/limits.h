@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64__LIMITS_H__
 #define __ia64__LIMITS_H__
 
@@ -37,4 +43,8 @@
 #endif
 
 
+
+
+ /** @}
+ */
 

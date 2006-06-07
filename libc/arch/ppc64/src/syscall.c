@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc64 ppc64
+  * @brief ppc64 architecture dependent parts of libc
+  * @ingroup lc
+ * @{
+ */
+/** @file
+ */
+
 #include <libc.h>
 
 sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id)
@@ -48,3 +56,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, cons
 	
 	return __ppc32_reg_r3;
 }
+
+ /** @}
+ */
+

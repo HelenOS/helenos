@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcamd64
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__amd64PSTHREAD_H__
 #define __LIBC__amd64PSTHREAD_H__
 
@@ -56,3 +62,9 @@ typedef struct {
 } context_t;
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

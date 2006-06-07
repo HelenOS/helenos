@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia32
+ * @{
+ */
+/** @file
+ */
+
 
 /*
  * Variable argument list manipulation macros
@@ -56,3 +62,9 @@ typedef struct va_list {
 
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

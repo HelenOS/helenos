@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__ppc32__PSTHREAD_H__
 #define __LIBC__ppc32__PSTHREAD_H__
 
@@ -72,3 +78,7 @@ typedef struct {
 } __attribute__ ((packed)) context_t;
 
 #endif
+
+ /** @}
+ */
+

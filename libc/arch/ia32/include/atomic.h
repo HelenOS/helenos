@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia32
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_ATOMIC_H__
 #define __ia32_ATOMIC_H__
 
@@ -67,3 +73,9 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_predec(val) (atomic_postdec(val)-1)
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

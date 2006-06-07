@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_ATOMIC_H__
 #define __ppc32_ATOMIC_H__
 
@@ -84,3 +90,7 @@ static inline long atomic_predec(atomic_t *val)
 }
 
 #endif
+
+ /** @}
+ */
+

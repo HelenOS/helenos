@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32 mips32
+  * @brief mips32 architecture dependent parts of libc
+  * @ingroup lc
+ * @{
+ */
+/** @file
+ */
+
 #include <libc.h>
 
 sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, 
@@ -52,3 +60,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,
 	
 	return __mips_reg_v0;
 }
+
+ /** @}
+ */
+

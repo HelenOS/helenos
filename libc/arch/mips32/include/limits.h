@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32__LIMITS_H__
 #define __mips32__LIMITS_H__
 
@@ -36,4 +42,8 @@
 
 #endif
 
+
+
+ /** @}
+ */
 

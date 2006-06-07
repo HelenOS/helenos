@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__mips32PSTHREAD_H__
 #define __LIBC__mips32PSTHREAD_H__
 
@@ -65,3 +71,7 @@ typedef struct  {
 } context_t;
 
 #endif
+
+ /** @}
+ */
+

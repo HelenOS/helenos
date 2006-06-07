@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia32
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__ia32THREAD_H__
 #define __LIBC__ia32THREAD_H__
 
@@ -50,3 +56,9 @@ static inline tcb_t * __tcb_get(void)
 }
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

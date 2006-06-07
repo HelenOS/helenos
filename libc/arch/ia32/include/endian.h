@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia32
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_ENDIAN_H__
 #define __ia32_ENDIAN_H__
 
@@ -38,3 +44,9 @@
 #endif
 
 
+
+
+ /** @}
+ */
+ 
+ 

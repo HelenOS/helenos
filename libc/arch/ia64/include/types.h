@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__TYPES_H__
 #define __LIBC__TYPES_H__
 
@@ -45,3 +51,7 @@ typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
 
 #endif
+
+ /** @}
+ */
+

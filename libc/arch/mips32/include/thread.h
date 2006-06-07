@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32	
+ * @{
+ */
+/** @file
+ */
+
 /* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
 
 #ifndef __LIBC__mips32THREAD_H__
@@ -67,3 +73,7 @@ static inline tcb_t * __tcb_get(void)
 }
 
 #endif
+
+ /** @}
+ */
+

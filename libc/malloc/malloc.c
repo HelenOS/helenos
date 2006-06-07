@@ -438,6 +438,15 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 
 */
 
+/** @addtogroup libcmalloc malloc
+  * @brief Malloc originally written by Doug Lea and ported to HelenOS.
+  * @ingroup libc
+ * @{
+ */
+/** @file
+ */
+
+
 #include <sys/types.h>  /* For size_t */
 
 /** Non-default helenos customizations */
@@ -4405,3 +4414,7 @@ History:
          structure of old version,  but most details differ.)
  
 */
+
+/** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia32
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32__LIMITS_H__
 #define __ia32__LIMITS_H__
 
@@ -36,3 +42,9 @@
 
 #endif
 
+
+
+ /** @}
+ */
+ 
+ 

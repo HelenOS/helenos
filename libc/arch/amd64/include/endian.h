@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcamd64
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ENDIAN_H__
 #define __amd64_ENDIAN_H__
 
@@ -37,3 +43,9 @@
 
 #endif
 
+
+
+ /** @}
+ */
+ 
+ 

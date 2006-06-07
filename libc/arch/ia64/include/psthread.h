@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__ia64PSTHREAD_H__
 #define __LIBC__ia64PSTHREAD_H__
 
@@ -104,3 +110,7 @@ typedef struct context {
 } context_t;
 
 #endif
+
+ /** @}
+ */
+

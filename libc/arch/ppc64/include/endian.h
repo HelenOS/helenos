@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_ENDIAN_H__
 #define __ppc64_ENDIAN_H__
 
@@ -36,3 +42,7 @@
 #define __BYTE_ORDER __BIG_ENDIAN
 
 #endif
+
+ /** @}
+ */
+

@@ -26,8 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__STACKARG_H__
 #define __LIBC__STACKARG_H__
 
 #endif
+
+
+ /** @}
+ */
 

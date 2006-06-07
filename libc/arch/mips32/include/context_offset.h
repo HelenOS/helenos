@@ -13,3 +13,7 @@
 #define OFFSET_S8      0x28
 #define OFFSET_GP      0x2c
 #define OFFSET_TLS     0x30
+
+ /** @}
+ */
+

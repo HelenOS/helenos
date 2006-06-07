@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32__LIMITS_H__
 #define __ppc32__LIMITS_H__
 
@@ -35,3 +41,7 @@
 #define ULONG_MAX MAX_UINT32
 
 #endif
+
+ /** @}
+ */
+

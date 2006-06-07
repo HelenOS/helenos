@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__TYPES_H__
 #define __LIBC__TYPES_H__
 
@@ -45,3 +51,7 @@ typedef unsigned long int uint32_t;
 typedef unsigned long long int uint64_t;
 
 #endif
+
+ /** @}
+ */
+

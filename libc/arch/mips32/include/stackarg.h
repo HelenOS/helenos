@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcmips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC_mips32_STACKARG_H__
 #define __LIBC_mips32_STACKARG_H__
 
@@ -50,3 +56,7 @@ typedef uint8_t* va_list;
 #define va_end(ap)
 
 #endif
+
+ /** @}
+ */
+
