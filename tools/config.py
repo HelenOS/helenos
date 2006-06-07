@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-boot configuration script
+Kernel configuration script
 """
 import sys
 import os
 import re
 import commands
 
-INPUT = 'boot.config'
+INPUT = 'kernel.config'
 OUTPUT = 'Makefile.config'
 TMPOUTPUT = 'Makefile.config.tmp'
 
@@ -108,18 +108,29 @@ class NoDialog:
             return choices[number][0]
 
 
+def eof_checker(fnc):
+    def wrapper(self, *args, **kw):
+        try:
+            return fnc(self, *args, **kw)
+        except EOFError:
+            return getattr(self.bckdialog,fnc.func_name)(*args, **kw)
+    return wrapper
+
 class Dialog(NoDialog):
     def __init__(self):
         NoDialog.__init__(self)
         self.dlgcmd = os.environ.get('DIALOG','dialog')
         self.title = ''
-        self.backtitle = 'HelenOS Boot Configuration'
+        self.backtitle = 'HelenOS Kernel Configuration'
         
         if os.system('%s --print-maxsize >/dev/null 2>&1' % self.dlgcmd) != 0:
             raise NotImplementedError
+        
+        self.bckdialog = NoDialog()
 
     def set_title(self,text):
         self.title = text
+        self.bckdialog.set_title(text)
         
     def calldlg(self,*args,**kw):
         "Wrapper for calling 'dialog' program"
@@ -176,6 +187,7 @@ class Dialog(NoDialog):
         if res == 0:
             return 'y'
         return 'n'
+    yesno = eof_checker(yesno)
 
     def menu(self, text, choices, button, defopt=None):
         self.title = 'Main menu'
@@ -203,6 +215,7 @@ class Dialog(NoDialog):
             print data
             raise EOFError
         return data
+    menu = eof_checker(menu)
     
     def choice(self, text, choices, defopt=None):
         text = text + ':'
@@ -222,6 +235,7 @@ class Dialog(NoDialog):
             print data
             raise EOFError
         return data
+    choice = eof_checker(choice)
     
 def read_defaults(fname,defaults):
     "Read saved values from last configuration run"
@@ -473,7 +487,7 @@ def main():
         os.unlink(OUTPUT)
     os.rename(TMPOUTPUT, OUTPUT)
     
-    if not defmode and dlg.yesno('Rebuild everything?') == 'y':
+    if not defmode and dlg.yesno('Rebuild kernel?') == 'y':
         os.execlp('make','make','clean','build')
 
 if __name__ == '__main__':
