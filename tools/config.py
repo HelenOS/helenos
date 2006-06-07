@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Kernel configuration script
+User space configuration script
 """
 import sys
 import os
 import re
 import commands
 
-INPUT = 'kernel.config'
+INPUT = 'uspace.config'
 OUTPUT = 'Makefile.config'
 TMPOUTPUT = 'Makefile.config.tmp'
 
@@ -487,7 +487,7 @@ def main():
         os.unlink(OUTPUT)
     os.rename(TMPOUTPUT, OUTPUT)
     
-    if not defmode and dlg.yesno('Rebuild kernel?') == 'y':
+    if not defmode and dlg.yesno('Rebuild user space?') == 'y':
         os.execlp('make','make','clean','build')
 
 if __name__ == '__main__':
