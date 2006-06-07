@@ -131,6 +131,7 @@ typedef struct {
 	/* Structures for connection opening packet */
 	ipc_callid_t callid;
 	ipc_call_t call;
+	ipc_callid_t close_callid; /* Identification of closing packet */
 	void (*cthread)(ipc_callid_t,ipc_call_t *);
 } connection_t;
 
@@ -266,6 +267,9 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 	msg->callid = callid;
 	msg->call = *call;
 	list_append(&msg->link, &conn->msg_queue);
+
+	if (IPC_GET_METHOD(*call) == IPC_M_PHONE_HUNGUP)
+		conn->close_callid = callid;
 	
 	/* If the call is waiting for event, run it */
 	if (!conn->wdata.active) {
@@ -358,6 +362,7 @@ static int connection_thread(void  *arg)
 {
 	unsigned long key;
 	msg_t *msg;
+	int close_answered = 0;
 
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
@@ -371,9 +376,13 @@ static int connection_thread(void  *arg)
 	while (!list_empty(&PS_connection->msg_queue)) {
 		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
 		list_remove(&msg->link);
+		if (msg->callid == PS_connection->close_callid)
+			close_answered = 1;
 		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
 		free(msg);
 	}
+	if (PS_connection->close_callid)
+		ipc_answer_fast(PS_connection->close_callid, 0, 0, 0);
 }
 
 /** Create new thread for a new connection 
@@ -406,6 +415,7 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid,
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
+	conn->close_callid = 0;
 	if (call)
 		conn->call = *call;
 	conn->wdata.active = 1; /* We will activate it asap */

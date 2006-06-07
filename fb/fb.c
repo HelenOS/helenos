@@ -921,7 +921,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* cleanup other viewports */
 			for (i=1; i < MAX_VIEWPORTS; i++)
 				vport->initialized = 0;
-			ipc_answer_fast(callid,0,0,0);
 			return; /* Exit thread */
 
 		case FB_PUTCHAR:

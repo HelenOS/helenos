@@ -288,7 +288,6 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			ipc_answer_fast(callid,0,0,0);
 			/* TODO: Handle hangup */
 			return;
 		case KBD_PUSHCHAR:
@@ -368,9 +367,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				ipc_answer_fast(fifo_pop(conn->keyrequests), ENOENT, 0, 0);
 				break;
 			}
-			
-			/* Commit hangup */
-			ipc_answer_fast(callid, 0,0,0);
 			conn->used = 0;
 			return;
 		case CONSOLE_PUTCHAR:
