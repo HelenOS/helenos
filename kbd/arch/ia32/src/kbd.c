@@ -145,7 +145,7 @@ static int sc_primary_map[] = {
 /** Secondary meaning of scancodes. */
 static int sc_secondary_map[] = {
 	SPECIAL, /* 0x00 */
-	SPECIAL, /* 0x01 - Esc */
+	0x1b, /* 0x01 - Esc */
 	'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
 	SPECIAL, /* 0x0e - Backspace */
 	'\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
@@ -256,6 +256,20 @@ static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
 	int ascii = sc_primary_map[key];
 	int shift, capslock;
 	int letter = 0;
+
+	static int esc_count=0;
+
+	
+	if ( key == SC_ESC ) {
+		esc_count++;
+		if ( esc_count == 3 ) {
+			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+		}	
+	} else {
+		esc_count=0;
+	}
+	
+	
 
 	switch (key) {
 		case SC_LSHIFT:

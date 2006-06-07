@@ -259,6 +259,10 @@ static int kbd_arch_process_gxemul(keybuffer_t *keybuffer, int scan_code)
 	//*/
 	//return 1;
 	
+	
+	if ( scan_code == '\r' )
+		scan_code = '\n' ;
+	
 	buf|=((unsigned long) scan_code)<<(8*(count++));
 	
 	
