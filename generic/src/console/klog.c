@@ -41,9 +41,12 @@ static int klogpos;
 
 SPINLOCK_INITIALIZE(klog_lock);
 
-/** Initialize kernel loggin facility
+/** Initialize kernel logging facility
  *
- * Allocate pages that are to be shared if uspace for console data
+ * Allocate pages that are to be shared with uspace for console data.
+ * The shared area is a circular buffer. Userspace application may
+ * be notified on new data with indication of position and size
+ * of the data within the circular buffer.
  */
 void klog_init(void)
 {
