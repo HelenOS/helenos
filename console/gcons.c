@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup console
+ * @{ 
+ */
+/** @file
+ */
+
 #include <ipc/fb.h>
 #include <ipc/ipc.h>
 #include <async.h>
@@ -422,3 +428,7 @@ void gcons_init(int phone)
 	console_state[KERNEL_CONSOLE] = CONS_KERNEL;
 	gcons_redraw_console();
 }
+ 
+/** @}
+ */
+

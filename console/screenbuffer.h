@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup console
+ * @{ 
+ */
+/** @file
+ */
+
 #ifndef __SCREENBUFFER_H__
 #define __SCREENBUFFER_H__
 
@@ -57,7 +63,7 @@ typedef struct {
 
 /** Returns keyfield for position on screen. Screenbuffer->buffer is cyclic buffer so we must couted in index of the topmost line.
  * @param scr	screenbuffer
- * @oaram x	position on screen
+ * @param x	position on screen
  * @param y	position on screen
  * @return	keyfield structure with character and its attributes on x,y
  */
@@ -87,4 +93,8 @@ void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y);
 void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color);
 
 #endif
+
+ 
+/** @}
+ */
 

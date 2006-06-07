@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup console
+ * @{ 
+ */
+/** @file
+ */
+
 #include <screenbuffer.h>
 #include <malloc.h>
 #include <unistd.h>
@@ -132,4 +138,8 @@ void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned
 	scr->style.fg_color = fg_color;
 	scr->style.bg_color = bg_color;
 }
+
+ 
+/** @}
+ */
 

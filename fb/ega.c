@@ -25,6 +25,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/** @defgroup egafb EGA framebuffer
+ * @brief	HelenOS EGA framebuffer.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <align.h>
@@ -352,3 +362,7 @@ int ega_init(void)
 	return 0;
 }
 
+
+/** 
+ * @}
+ */

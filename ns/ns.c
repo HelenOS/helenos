@@ -26,10 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup ns Naming Service
+ * @brief	Naming service for HelenOS IPC.
+ * @{
+ */ 
+
 /**
  * @file	ns.c
  * @brief	Naming service for HelenOS IPC.
  */
+
 
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
@@ -251,3 +257,6 @@ void ns_remove(link_t *item)
 	assert(item);
 	free(hash_table_get_instance(item, hashed_service_t, link));
 }
+/** 
+ * @}
+ */

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup console
+ * @{ 
+ */
+/** @file
+ */
+
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
@@ -43,4 +49,8 @@
 #define CONSOLE_CURSOR_VISIBILITY	1033
 
 #endif
+
+ 
+/** @}
+ */
 

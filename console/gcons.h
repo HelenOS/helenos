@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup console
+ * @{ 
+ */
+/** @file
+ */
+
 #ifndef _GCONS_H_
 #define _GCONS_H_
 
@@ -37,3 +43,7 @@ void gcons_notify_connect(int consnum);
 void gcons_notify_disconnect(int consnum);
 
 #endif
+ 
+/** @}
+ */
+

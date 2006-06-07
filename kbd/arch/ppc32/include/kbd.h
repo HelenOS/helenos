@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kbdppc32 ppc32
+ * @brief	HelenOS ppc32 arch dependent parts of uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef __ppc32_KBD_H__
 #define __ppc32_KBD_H__
 
@@ -35,3 +43,7 @@ int kbd_arch_init(void);
 int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
 
 #endif
+
+/** @}
+ */
+

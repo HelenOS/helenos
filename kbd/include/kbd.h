@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kbdgen generic
+ * @brief	HelenOS generic uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef __KBD_H__
 #define __KBD_H__
 
@@ -45,4 +53,8 @@
 #define KBD_KEY_F12	0x46
 
 #endif
+
+/**
+ * @}
+ */ 
 

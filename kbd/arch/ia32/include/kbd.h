@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kbdia32 ia32
+ * @brief	HelenOS ia32 arch dependent parts of uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef __ia32_KBD_H__
 #define __ia32_KBD_H__
 
@@ -35,3 +43,8 @@ int kbd_arch_init(void);
 int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
 
 #endif
+
+/**
+ * @}
+ */ 
+

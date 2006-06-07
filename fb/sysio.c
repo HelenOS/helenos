@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup sysio SysIO 
+ * @brief	HelenOS framebuffer emulation via kernel.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
 #include <async.h>
 #include <ipc/fb.h>
 #include <ipc/ipc.h>
@@ -182,3 +190,8 @@ void sysio_init(void)
 	/* Set scrolling region to 0-25 lines */
 	sysputs("\033[0;25r");
 }
+
+/**
+ * @}
+ */ 
+

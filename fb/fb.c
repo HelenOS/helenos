@@ -27,6 +27,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup fbs Framebuffers
+ * @brief	HelenOS framebuffers.
+ * @{ 
+ * @}
+ */
+/** @defgroup fb Framebuffer
+ * @brief	HelenOS framebuffer.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -1054,3 +1068,7 @@ int fb_init(void)
 	return 0;
 }
 
+
+/** 
+ * @}
+ */

@@ -26,6 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup kbd Keyboard handler
+ * @brief	HelenOS uspace keyboard handler.
+ * @{ 
+ * @}
+ */
+/** @addtogroup kbdgen generic
+ * @brief	HelenOS generic uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <stdio.h>
@@ -127,3 +140,8 @@ int main(int argc, char **argv)
 	async_manager();
 
 }
+
+/**
+ * @}
+ */ 
+

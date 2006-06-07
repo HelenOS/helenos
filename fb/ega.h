@@ -26,9 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup egafb
+ * @brief	HelenOS EGA framebuffer.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef _EGA_H_
 #define _EGA_H_
 
 int ega_init(void);
 
 #endif
+
+/** @}
+ */
+

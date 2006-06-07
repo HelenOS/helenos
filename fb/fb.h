@@ -26,9 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup fb
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef _FB_H_
 #define _FB_H_
 
 int fb_init(void);
 
 #endif
+
+/** @}
+ */
+

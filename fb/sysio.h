@@ -26,9 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup sysio
+ * @brief	HelenOS framebuffer emulation via kernel.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef _SYSIO_H_
 #define _SYSIO_H_
 
 void sysio_init(void);
 
 #endif
+
+/** @}
+ */
+

@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kbdia64 ia64
+ * @brief	HelenOS ia64 arch dependent parts of uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
 #include <sysinfo.h>
@@ -155,3 +163,7 @@ int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
 
 	return 	1;
 }
+
+/**
+ * @}
+ */ 

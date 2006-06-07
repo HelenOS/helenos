@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kbdgen
+ * @brief	HelenOS generic uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
+
 #ifndef __KEY_BUFFER_H__
 #define __KEY_BUFFER_H__
 
@@ -49,4 +57,8 @@ void keybuffer_push(keybuffer_t *keybuffer, int key);
 int keybuffer_pop(keybuffer_t *keybuffer, int *c);
 
 #endif
+
+/**
+ * @}
+ */ 
 
