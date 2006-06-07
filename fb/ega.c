@@ -55,6 +55,11 @@ saved_screen saved_screens[MAX_SAVED_SCREENS];
 #define EGA_IO_ADDRESS 0x3d4
 #define EGA_IO_SIZE 2
 
+#define NORMAL_COLOR       0x0f
+#define INVERTED_COLOR     0xf0
+
+#define EGA_STYLE(fg,bg) ((fg) > (bg) ? NORMAL_COLOR : INVERTED_COLOR)
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -67,7 +72,7 @@ static unsigned int scr_width;
 static unsigned int scr_height;
 static char *scr_addr;
 
-static unsigned int style = 0x1e;
+static unsigned int style = NORMAL_COLOR;
 
 static inline void outb(u16 port, u8 b)
 {
@@ -180,10 +185,7 @@ static void draw_text_data(keyfield_t *data)
 
 	for (i=0; i < scr_width*scr_height; i++) {
 		scr_addr[i*2] = data[i].character;
-		if (data[i].style.fg_color > data[i].style.bg_color)
-			scr_addr[i*2+1] = 0x1e;
-		else
-			scr_addr[i*2+1] = 0xe1;
+		scr_addr[i*2+1] = EGA_STYLE(data[i].style.fg_color, data[i].style.bg_color);
 	}
 }
 
@@ -300,10 +302,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_SET_STYLE:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
-			if (fgcolor > bgcolor)
-				style = 0x1e;
-			else
-				style = 0xe1;
+			style = EGA_STYLE(fgcolor, bgcolor);
 			break;
 		case FB_VP_DRAW_PIXMAP:
 			i = IPC_GET_ARG2(call);

@@ -117,14 +117,13 @@ int main(int argc, char **argv)
 	/* Initialize key buffer */
 	keybuffer_init(&keybuffer);
 	
+	async_set_client_connection(console_connection);
+	async_set_interrupt_received(irq_handler);
 	/* Register service at nameserver */
-	
 	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
 		return -1;
 	}
 
-	async_set_client_connection(console_connection);
-	async_set_interrupt_received(irq_handler);
 	async_manager();
 
 }

@@ -773,7 +773,11 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
 
 	while (1) {
-		callid = async_get_call_timeout(&call,250000);
+		if (vport->cursor_shown)
+			callid = async_get_call_timeout(&call,250000);
+		else
+			callid = async_get_call(&call);
+
 		if (!callid) {
 			cursor_blink(vp);
 			continue;

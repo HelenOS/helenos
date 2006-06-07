@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
 	async_req(fb_info.phone, FB_FLUSH, 0, NULL);
 
 	
-	ipc_call_sync_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
+	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
 	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	clrscr();
 	
@@ -492,7 +492,7 @@ int main(int argc, char *argv[])
 	connections[KERNEL_CONSOLE].used = 1;
 	
 	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
-		if (ipc_call_sync_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
+		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
 			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
 			interbuffer = NULL;
 		}
