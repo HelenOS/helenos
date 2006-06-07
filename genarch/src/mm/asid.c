@@ -71,7 +71,7 @@ static count_t asids_allocated = 0;
 
 /** Allocate free address space identifier.
  *
- * Interrupts must be disabled and as_lock must be held
+ * Interrupts must be disabled and inactive_as_with_asid_lock must be held
  * prior to this call
  *
  * @return New ASID.
