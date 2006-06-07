@@ -135,6 +135,8 @@ void gcons_change_console(int consnum)
 	if (active_console == KERNEL_CONSOLE) {
 		for (i=0; i < CONSOLE_COUNT; i++)
 			redraw_state(i);
+		if (animation != -1)
+			async_msg(fbphone, FB_ANIM_START, animation);
 	} else {
 		if (console_state[active_console] == CONS_DISCONNECTED_SEL)
 			console_state[active_console] = CONS_DISCONNECTED;
@@ -215,6 +217,9 @@ void gcons_in_kernel(void)
 	else
 		console_state[active_console] = CONS_IDLE;
 	redraw_state(active_console);
+
+	if (animation != -1)
+		async_msg(fbphone, FB_ANIM_STOP, animation);
 
 	active_console = KERNEL_CONSOLE; /* Set to kernel console */
 	vp_switch(0);
