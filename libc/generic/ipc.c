@@ -24,6 +24,19 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup libc
+ * @{
+ * @}
+ */
+
+ /** @addtogroup libcipc IPC
+ * @brief HelenOS uspace IPC
+ * @{
+ * @ingroup libc
+ */
+/** @file
  */ 
 
 #include <ipc/ipc.h>
@@ -437,3 +450,9 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
+
+
+ /** @}
+ */
+ 
+ 

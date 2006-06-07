@@ -35,6 +35,12 @@
  *	@(#)scores.c	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * Score code for Tetris, by Darren Provine (kilroy@gboro.glassboro.edu)
  * modified 22 January 1992, to limit the number of entries any one
@@ -531,3 +537,7 @@ showscores(int level)
 /* 		} */
 /* 	} */
 /* } */
+
+/** @}
+ */
+

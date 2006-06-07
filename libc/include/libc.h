@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__LIBC_H__
 #define __LIBC__LIBC_H__
 
@@ -46,3 +52,9 @@ extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,
 
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

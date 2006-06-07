@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__STDARG_H__
 #define __LIBC__STDARG_H__
 
@@ -45,3 +51,9 @@ typedef __builtin_va_list va_list;
 
 #endif
 
+
+
+ /** @}
+ */
+ 
+ 

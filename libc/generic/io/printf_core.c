@@ -27,8 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
 /**
- * @file	print.c
+ * @file
  * @brief	Printing functions.
  */
 
@@ -412,7 +415,7 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  * 	- s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
  * 
  * 	- P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
- * 	(as with \%#X or \%#x for 32bit or \%#X / \%#x for 64bit long pointers).
+ * 	(as with '\%#X' or '\%#x' for 32bit or '\%#X' or '\%#x' for 64bit long pointers).
  *
  * 	- b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
  * 
@@ -685,3 +688,9 @@ minus_out:
 	return -counter;
 }
 
+
+
+ /** @}
+ */
+ 
+ 

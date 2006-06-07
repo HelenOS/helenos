@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 
 #ifndef __LIBC__STRING_H__
 #define __LIBC__STRING_H__
@@ -52,3 +58,9 @@ long int strtol(const char *nptr, char **endptr, int base);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

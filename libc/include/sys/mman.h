@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __libc_MMAN_H_
 #define __libc_MMAN_H_
 
@@ -47,3 +53,9 @@ extern void  *mmap(void  *start, size_t length, int prot, int flags, int fd,
 extern int munmap(void *start, size_t length);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

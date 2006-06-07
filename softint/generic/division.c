@@ -26,6 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup softint SoftInt
+ * @brief	Software implementation of basic arithmetic operations.
+ * @{
+ */ 
+/**
+ * @file
+ * SW implementation of 32 and 64 bit division and modulo.
+ */
+
 #include <division.h>
 
 #define ABSVAL(x) ( (x) > 0 ? (x) : -(x))
@@ -185,4 +194,5 @@ unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsi
 	return divandmod64(a, b, c);
 }
 
-
+/** @}
+ */

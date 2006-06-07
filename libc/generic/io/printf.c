@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <io/printf_core.h>
 #include <stdio.h>
 #include <stdio.h>
@@ -50,3 +56,9 @@ int printf(const char *fmt, ...)
 
 
 
+
+
+ /** @}
+ */
+ 
+ 

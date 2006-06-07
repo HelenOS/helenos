@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup init
+ * @{
+ */ 
+/**
+ * @file
+ */
+
 #include <unistd.h>
 #include <stdio.h>
 #include "version.h"
@@ -36,3 +43,7 @@ void version_print(void)
 	puts("HelenOS init");
 	puts("Copyright (C) 2006 HelenOS project");
 }
+
+/** @}
+ */
+

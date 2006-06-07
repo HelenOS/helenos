@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__ASSERT_H__
 #define __LIBC__ASSERT_H__
 
@@ -48,3 +54,9 @@
 #endif
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

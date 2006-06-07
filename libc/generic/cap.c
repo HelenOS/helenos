@@ -24,8 +24,11 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
+ /** @addtogroup libc
+ * @{
+ */
 /**
  * @file	cap.c
  * @brief	Functions to grant/revoke capabilities to/from a task.
@@ -67,3 +70,9 @@ int cap_revoke(task_id_t id, unsigned int caps)
 
 	__SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
 }
+
+
+ /** @}
+ */
+ 
+ 

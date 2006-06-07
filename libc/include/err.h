@@ -26,9 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _libc__ERR_H_
 #define _libc__ERR_H_
 
 #define errx(status,fmt,...) { printf((fmt),##__VA_ARGS__);_exit(status);}
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

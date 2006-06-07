@@ -529,3 +529,9 @@ int mspace_mallopt(int, int);
 #endif
 
 #endif /* MALLOC_280_H */
+
+
+ /** @}
+ */
+ 
+ 

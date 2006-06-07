@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __HASH_TABLE_H__
 #define __HASH_TABLE_H__
 
@@ -78,3 +84,9 @@ extern link_t *hash_table_find(hash_table_t *h, unsigned long key[]);
 extern void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

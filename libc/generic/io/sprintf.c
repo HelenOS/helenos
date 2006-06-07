@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <io/printf_core.h>
@@ -47,3 +53,9 @@ int sprintf(char *str, const char *fmt, ...)
 
 	return ret;
 }
+
+
+ /** @}
+ */
+ 
+ 

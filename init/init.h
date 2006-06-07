@@ -26,9 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup init
+ * @{
+ */ 
+/**
+ * @file
+ */
+
 #ifndef __INIT_H__
 #define __INIT_H__
 
 #include "version.h"
 
 #endif
+
+/** @}
+ */
+

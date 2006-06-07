@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ALIGN_H__
 #define __ALIGN_H__
 
@@ -45,3 +51,9 @@
 #define ALIGN_UP(s, a)		((long)((s) + ((a) - 1)) & ~((long) (a) - 1))
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

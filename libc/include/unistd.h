@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__UNISTD_H__
 #define __LIBC__UNISTD_H__
 
@@ -42,3 +48,9 @@ void *sbrk(ssize_t incr);
 void usleep(unsigned long usec);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

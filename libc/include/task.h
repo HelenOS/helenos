@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__TASK_H__
 #define __LIBC__TASK_H__
 
@@ -36,3 +42,9 @@ typedef uint64_t task_id_t;
 extern task_id_t task_get_id(void);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

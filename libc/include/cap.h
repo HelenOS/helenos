@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CAP_H__
 #define __CAP_H__
 
@@ -35,3 +41,9 @@ extern int cap_grant(task_id_t id, unsigned int caps);
 extern int cap_revoke(task_id_t id, unsigned int caps);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

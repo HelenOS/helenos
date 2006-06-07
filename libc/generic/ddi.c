@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
  */ 
 
 #include <ddi.h>
@@ -35,7 +41,6 @@
  *
  * Caller of this function must have the CAP_MEM_MANAGER capability.
  *
- * @param id Task ID.
  * @param pf Physical address of the starting frame.
  * @param vp Virtual address of the sterting page.
  * @param pages Number of pages to map.
@@ -82,3 +87,9 @@ int preemption_control(int enable)
 {
 	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
 }
+
+
+ /** @}
+ */
+ 
+ 

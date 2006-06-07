@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__FUTEX_H__
 #define __LIBC__FUTEX_H__
 
@@ -41,3 +47,9 @@ extern int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags);
 extern int futex_up(atomic_t *futex);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

@@ -35,4 +35,15 @@
  *	@(#)pathnames.h	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 #define _PATH_SCOREFILE	"/var/games/tetris.scores"
+
+
+/** @}
+ */
+

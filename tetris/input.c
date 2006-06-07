@@ -35,6 +35,12 @@
  *	@(#)input.c	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * Tetris input.
  */
@@ -176,3 +182,7 @@ tgetchar(void)
 	lastchar = '\0';
 	return ((int)(unsigned char)c);
 }
+
+/** @}
+ */
+

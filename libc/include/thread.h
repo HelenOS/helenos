@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__THREAD_H__
 #define __LIBC__THREAD_H__
 
@@ -44,3 +50,9 @@ extern void __free_tls(tcb_t *);
 extern void __free_tls_arch(tcb_t *, size_t size);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

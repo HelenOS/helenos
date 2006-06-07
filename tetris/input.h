@@ -35,6 +35,16 @@
  *	@(#)input.h	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 int	rwait(struct timeval *);
 int	tgetchar(void);
 void	tsleep(void);
+
+/** @}
+ */
+

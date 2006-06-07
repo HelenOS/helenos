@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__PSTHREAD_H__
 #define __LIBC__PSTHREAD_H__
 
@@ -87,3 +93,9 @@ static inline int psthread_schedule_next() {
 
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIST_H__
 #define __LIST_H__
 
@@ -183,3 +189,9 @@ extern int list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

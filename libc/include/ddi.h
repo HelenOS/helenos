@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC_DDI_H__
 #define __LIBC_DDI_H__
 
@@ -36,3 +42,9 @@ extern int iospace_enable(task_id_t id, void *ioaddr, unsigned long size);
 extern int preemption_control(int enable);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

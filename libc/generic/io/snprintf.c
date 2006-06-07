@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <io/printf_core.h>
@@ -48,3 +54,9 @@ int snprintf(char *str, size_t size, const char *fmt, ...)
 
 	return ret;
 }
+
+
+ /** @}
+ */
+ 
+ 

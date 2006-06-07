@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup klog KLog
+ * @brief	HelenOS KLog
+ * @{
+ */ 
+/**
+ * @file
+ */
+
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <async.h>
@@ -75,3 +83,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+/** @}
+ */

@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup init Init
+ * @brief	Init process for testing purposes.
+ * @{
+ */ 
+/**
+ * @file
+ */
+
 #include "version.h"
 #include <stdio.h>
 
@@ -49,3 +57,7 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+/** @}
+ */
+

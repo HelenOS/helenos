@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
  */ 
 
 /**
@@ -356,7 +362,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
  * When new connection arrives, thread with this function is created.
  * It calls client_connection and does final cleanup.
  *
- * @parameter arg Connection structure pointer
+ * @param arg Connection structure pointer
  */
 static int connection_thread(void  *arg)
 {
@@ -792,3 +798,9 @@ void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 {
 	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, !in_interrupt_handler);
 }
+
+
+ /** @}
+ */
+ 
+ 

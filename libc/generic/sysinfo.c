@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
  */ 
 
 #include <libc.h>
@@ -35,3 +41,9 @@ sysarg_t sysinfo_value(char *name)
 	return __SYSCALL2(SYS_SYSINFO_VALUE, (sysarg_t ) name, (sysarg_t) strlen(name) );
 }
 
+
+
+ /** @}
+ */
+ 
+ 

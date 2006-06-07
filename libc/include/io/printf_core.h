@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__PRINTF_CORE_H__
 #define __LIBC__PRINTF_CORE_H__
 
@@ -44,3 +50,9 @@ struct printf_spec {
 int printf_core(const char *fmt, struct printf_spec *ps ,va_list ap);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

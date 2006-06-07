@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -51,3 +57,9 @@ int vprintf(const char *fmt, va_list ap)
 }
 
 
+
+
+ /** @}
+ */
+ 
+ 

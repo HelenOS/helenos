@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <libadt/list.h>
 
 
@@ -78,3 +84,9 @@ void list_concat(link_t *head1, link_t *head2)
 	head1->prev = head2->prev;
 	list_initialize(head2);
 }
+
+
+ /** @}
+ */
+ 
+ 

@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libcipc
+ * @{
+ */
 /**
  * @file	services.h
  * @brief	List of all known services and their codes.
@@ -44,3 +47,9 @@
 #define SERVICE_MEM_KLOG        2
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

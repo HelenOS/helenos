@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _libc_ASYNC_H_
 #define _libc_ASYNC_H_
 
@@ -123,3 +129,9 @@ static inline void async_serialize_end(void)
 
 extern atomic_t async_futex;
 #endif
+
+
+ /** @}
+ */
+ 
+ 

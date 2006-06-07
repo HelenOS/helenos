@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__IO_H__
 #define __LIBC__IO_H__
 
@@ -37,3 +43,9 @@ int putchar(int c);
 int getchar(void);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

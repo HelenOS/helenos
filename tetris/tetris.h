@@ -35,6 +35,12 @@
  *	@(#)tetris.h	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * Definitions for Tetris.
  */
@@ -176,3 +182,7 @@ extern int	classic;
 int	fits_in(const struct shape *, int);
 void	place(const struct shape *, int, int);
 void	stop(char *);
+
+/** @}
+ */
+

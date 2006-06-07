@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -103,3 +109,9 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 }
 
 
+
+
+ /** @}
+ */
+ 
+ 

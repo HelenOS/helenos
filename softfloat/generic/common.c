@@ -52,8 +52,9 @@ char zeroTable[256] = {
 
 
 /** Take fraction shifted by 10 bits to left, round it, normalize it and detect exceptions
- * @param exp exponent with bias
+ * @param cexp exponent with bias
  * @param cfrac fraction shifted 10 places left with added hidden bit
+ * @param sign
  * @return valied float64
  */
 float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign)

@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 
 #include <io/io.h>
 #include <io/stream.h>
@@ -181,3 +187,9 @@ int get_fd_phone(int fd)
 		return -1;
 	return streams[fd].phone;
 }
+
+
+ /** @}
+ */
+ 
+ 

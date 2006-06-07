@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
  */ 
 
 #include <sys/time.h>
@@ -109,3 +115,9 @@ void usleep(unsigned long usec)
 	futex_initialize(&futex,0);
 	futex_down_timeout(&futex, usec, 0);
 }
+
+
+ /** @}
+ */
+ 
+ 

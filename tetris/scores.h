@@ -34,6 +34,12 @@
  *
  *	@(#)scores.h	8.1 (Berkeley) 5/31/93
  */
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 
 /*
  * Tetris scores.
@@ -55,3 +61,7 @@ void savescore(int);
 void showscores(int);
 void insertscore(int score, int level);
 void initscores(void);
+
+/** @}
+ */
+

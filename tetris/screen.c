@@ -35,6 +35,12 @@
  *	@(#)screen.c	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * Tetris screen control.
  */
@@ -316,3 +322,7 @@ scr_msg(char *s, int set)
 		while (--l >= 0)
 			(void) putchar(' ');
 }
+
+/** @}
+ */
+

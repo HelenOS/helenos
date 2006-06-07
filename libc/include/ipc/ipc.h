@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libcipc
+ * @{
+ */
+/** @file
  */ 
 
 #ifndef __LIBIPC_IPC_H__
@@ -82,3 +88,9 @@ extern int ipc_unregister_irq(int irq);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

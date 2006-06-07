@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__STDIO_H__
 #define __LIBC__STDIO_H__
 
@@ -52,3 +58,9 @@ extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 #define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

@@ -35,6 +35,13 @@
  *	@(#)tetris.c	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris Tetris
+ * @brief	Tetris ported from OpenBSD
+ * @{ 
+ */
+/** @file
+ */
+
 #ifndef lint
 static const char copyright[] =
 "@(#) Copyright (c) 1992, 1993\n\
@@ -459,3 +466,7 @@ usage(void)
 	(void)fprintf(stderr, "usage: tetris [-ps] [-k keys] [-l level]\n");
 	exit(1);
 }
+
+/** @}
+ */
+

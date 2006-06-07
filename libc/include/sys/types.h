@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__SYS_TYPES_H__
 #define __LIBC__SYS_TYPES_H__
 
@@ -33,3 +39,9 @@
 
 #endif
 
+
+
+ /** @}
+ */
+ 
+ 

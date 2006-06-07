@@ -35,6 +35,12 @@
  *	@(#)screen.h	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * putpad() is for padded strings with count=1.
  */
@@ -59,3 +65,7 @@ void	scr_init(void);
 void	scr_msg(char *, int);
 void	scr_set(void);
 void	scr_update(void);
+
+/** @}
+ */
+

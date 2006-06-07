@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CTYPE_H__
 #define __CTYPE_H__
 
@@ -52,3 +58,9 @@ static inline int isspace(int c)
 
 #endif
 
+
+
+ /** @}
+ */
+ 
+ 

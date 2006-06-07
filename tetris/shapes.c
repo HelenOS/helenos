@@ -35,6 +35,12 @@
  *	@(#)shapes.c	8.1 (Berkeley) 5/31/93
  */
 
+/** @addtogroup tetris
+ * @{ 
+ */
+/** @file
+ */
+
 /*
  * Tetris shapes and related routines.
  *
@@ -104,3 +110,7 @@ place(const struct shape *shape, int pos, int onoff)
 	board[pos + *o++] = onoff;
 	board[pos + *o] = onoff;
 }
+
+/** @}
+ */
+

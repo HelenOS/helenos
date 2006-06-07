@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <libadt/list.h>
 #include <psthread.h>
 #include <malloc.h>
@@ -301,3 +307,9 @@ void psthread_dec_sercount(void)
 {
 	serialization_count--;
 }
+
+
+ /** @}
+ */
+ 
+ 

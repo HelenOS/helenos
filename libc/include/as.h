@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __libc_AS_H__
 #define __libc_AS_H__
 
@@ -43,3 +49,9 @@ extern void *set_maxheapsize(size_t mhs);
 extern void * as_get_mappable_page(size_t sz);
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

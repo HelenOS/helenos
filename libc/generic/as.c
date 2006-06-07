@@ -24,6 +24,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
  */ 
 
 #include <as.h>
@@ -78,7 +84,7 @@ extern char _heap;
 
 /** Sbrk emulation 
  *
- * @param size New area that should be allocated or negative, 
+ * @param incr New area that should be allocated or negative, 
                if it should be shrinked
  * @return Pointer to newly allocated area
  */
@@ -140,3 +146,9 @@ void * as_get_mappable_page(size_t sz)
 
 	return res;
 }
+
+
+ /** @}
+ */
+ 
+ 

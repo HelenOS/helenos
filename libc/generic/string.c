@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -300,3 +306,9 @@ char *strncpy(char *dest, const char *src, size_t n)
 	while ((*(dest++) = *(src++)) && --n)
 		;
 }
+
+
+ /** @}
+ */
+ 
+ 

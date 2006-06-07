@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __LIBC__STDLIB_H__
 #define __LIBC__STDLIB_H__
 
@@ -51,3 +57,9 @@ static inline void srand(unsigned int seed)
 
 
 #endif
+
+
+ /** @}
+ */
+ 
+ 

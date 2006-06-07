@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
 #include <sys/mman.h>
 #include <as.h>
 #include <unistd.h>
@@ -50,3 +56,9 @@ int munmap(void *start, size_t length)
 {
 	return as_area_destroy(start);
 }
+
+
+ /** @}
+ */
+ 
+ 
