@@ -472,7 +472,8 @@ int main(int argc, char *argv[])
 	gcons_init(fb_info.phone);
 	/* Synchronize, the gcons can have something in queue */
 	async_req(fb_info.phone, FB_FLUSH, 0, NULL);
-
+	/* Enable double buffering */
+	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t)-1, 1);
 	
 	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
 	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);

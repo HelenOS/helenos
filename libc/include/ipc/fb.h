@@ -51,24 +51,24 @@
 #define FB_GET_RESOLUTION    1035
 #define FB_DRAW_TEXT_DATA    1036
 #define FB_FLUSH             1037
+#define FB_VIEWPORT_DB       1038
 
-#define FB_DRAW_PPM          1038
-#define FB_PREPARE_SHM       1039
-#define FB_DROP_SHM          1040
-#define FB_SHM2PIXMAP        1041
+#define FB_DRAW_PPM          1100
+#define FB_PREPARE_SHM       1101
+#define FB_DROP_SHM          1102
+#define FB_SHM2PIXMAP        1103
 
-#define FB_VP_DRAW_PIXMAP    1042
-#define FB_VP2PIXMAP         1043
-#define FB_DROP_PIXMAP       1044
+#define FB_VP_DRAW_PIXMAP    1104
+#define FB_VP2PIXMAP         1105
+#define FB_DROP_PIXMAP       1106
+#define FB_TRANS_PUTCHAR     1107
 
-#define FB_TRANS_PUTCHAR     1045
-
-#define FB_ANIM_CREATE       1046
-#define FB_ANIM_DROP         1047
-#define FB_ANIM_ADDPIXMAP    1048
-#define FB_ANIM_CHGVP        1049
-#define FB_ANIM_START        1050
-#define FB_ANIM_STOP         1051
+#define FB_ANIM_CREATE       1200
+#define FB_ANIM_DROP         1201
+#define FB_ANIM_ADDPIXMAP    1202
+#define FB_ANIM_CHGVP        1203
+#define FB_ANIM_START        1204
+#define FB_ANIM_STOP         1205
 
 #endif
 

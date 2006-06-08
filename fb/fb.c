@@ -94,6 +94,10 @@ typedef struct {
 	/* Auto-cursor position */
 	int cursor_active, cur_col, cur_row;
 	int cursor_shown;
+	/* Double buffering */
+	__u8 *dbdata;
+	unsigned int dboffset;
+	unsigned int paused;
 } viewport_t;
 
 #define MAX_ANIM_LEN    8
@@ -212,8 +216,17 @@ static void putpixel(int vp, unsigned int x, unsigned int y, int color)
 {
 	int dx = viewports[vp].x + x;
 	int dy = viewports[vp].y + y;
-	(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],color);
+
+	if (! viewports[vp].paused)
+		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],color);
+
+	if (viewports[vp].dbdata) {
+		int dline = (y + viewports[vp].dboffset) % viewports[vp].height;
+		int doffset = screen.pixelbytes * (dline * viewports[vp].width + x);
+		(*screen.rgb2scr)(&viewports[vp].dbdata[doffset],color);
+	}
 }
+
 /** Get pixel from viewport */
 static int getpixel(int vp, unsigned int x, unsigned int y)
 {
@@ -243,13 +256,22 @@ static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
 	for (x = 0; x < width; x++)
 		putpixel_mem(tmpline, x, 0, color);
 
-	/* Recompute to screen coords */
-	sx += viewports[vp].x;
-	sy += viewports[vp].y;
-	/* Copy the rest */
-	for (y = sy;y < sy+height; y++)
-		memcpy(&screen.fbaddress[POINTPOS(sx,y)], tmpline, 
-		       screen.pixelbytes * width);
+	if (!viewports[vp].paused) {
+		/* Recompute to screen coords */
+		sx += viewports[vp].x;
+		sy += viewports[vp].y;
+		/* Copy the rest */
+		for (y = sy;y < sy+height; y++)
+			memcpy(&screen.fbaddress[POINTPOS(sx,y)], tmpline, 
+			       screen.pixelbytes * width);
+	}
+	if (viewports[vp].dbdata) {
+		for (y=sy;y < sy+height; y++) {
+			int rline = (y + viewports[vp].dboffset) % viewports[vp].height;
+			int rpos = (rline * viewports[vp].width + sx) * screen.pixelbytes;
+			memcpy(&viewports[vp].dbdata[rpos], tmpline, screen.pixelbytes * width);
+		}
+	}
 
 }
 
@@ -261,33 +283,87 @@ static void clear_port(int vp)
 	draw_rectangle(vp, 0, 0, vport->width, vport->height, vport->style.bg_color);
 }
 
-/** Scroll port up/down 
+/** Scroll unbuffered viewport up/down
  *
  * @param vp Viewport to scroll
  * @param rows Positive number - scroll up, negative - scroll down
  */
-static void scroll_port(int vp, int rows)
+static void scroll_port_nodb(int vp, int lines)
 {
 	int y;
 	int startline;
 	int endline;
 	viewport_t *vport = &viewports[vp];
-	
-	if (rows > 0) {
-		for (y=vport->y; y < vport->y+vport->height - rows*FONT_SCANLINES; y++)
+
+	if (lines > 0) {
+		for (y=vport->y; y < vport->y+vport->height - lines; y++)
 			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
-			       &screen.fbaddress[POINTPOS(vport->x,y + rows*FONT_SCANLINES)],
+			       &screen.fbaddress[POINTPOS(vport->x,y + lines)],
 			       screen.pixelbytes * vport->width);
-		draw_rectangle(vp, 0, FONT_SCANLINES*(vport->rows - 1),
-			       vport->width, FONT_SCANLINES, vport->style.bg_color);
-	} else if (rows < 0) {
-		rows = -rows;
-		for (y=vport->y + vport->height-1; y >= vport->y + rows*FONT_SCANLINES; y--)
+		draw_rectangle(vp, 0, vport->height - lines,
+			       vport->width, lines, vport->style.bg_color);
+	} else if (lines < 0) {
+		lines = -lines;
+		for (y=vport->y + vport->height-1; y >= vport->y + lines; y--)
 			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
-				&screen.fbaddress[POINTPOS(vport->x,y - rows*FONT_SCANLINES)],
-				screen.pixelbytes * vport->width);
-		draw_rectangle(vp, 0, 0, vport->width, FONT_SCANLINES, vport->style.bg_color);
+			       &screen.fbaddress[POINTPOS(vport->x,y - lines)],
+			       screen.pixelbytes * vport->width);
+		draw_rectangle(vp, 0, 0, vport->width, lines, vport->style.bg_color);
 	}
+}
+
+/** Refresh given viewport from double buffer */
+static void refresh_viewport_db(int vp)
+{
+	unsigned int y, srcy, srcoff, dsty, dstx;
+
+	for (y = 0; y < viewports[vp].height; y++) {
+		srcy = (y + viewports[vp].dboffset) % viewports[vp].height;
+		srcoff = (viewports[vp].width * srcy) * screen.pixelbytes;
+
+		dstx = viewports[vp].x;
+		dsty = viewports[vp].y + y;
+
+		memcpy(&screen.fbaddress[POINTPOS(dstx,dsty)],
+		       &viewports[vp].dbdata[srcoff], 
+		       viewports[vp].width*screen.pixelbytes);
+	}
+}
+
+/** Scroll viewport that has double buffering enabled */
+static void scroll_port_db(int vp, int lines)
+{
+	++viewports[vp].paused;
+	if (lines > 0) {
+		draw_rectangle(vp, 0, 0, viewports[vp].width, lines,
+			       viewports[vp].style.bg_color);
+		viewports[vp].dboffset += lines;
+		viewports[vp].dboffset %= viewports[vp].height;
+	} else if (lines < 0) {
+		lines = -lines;
+		draw_rectangle(vp, 0, viewports[vp].height-lines, 
+			       viewports[vp].width, lines,
+			       viewports[vp].style.bg_color);
+
+		if (viewports[vp].dboffset < lines)
+			viewports[vp].dboffset += viewports[vp].height;
+		viewports[vp].dboffset -= lines;
+	}
+	
+	--viewports[vp].paused;
+	
+	refresh_viewport_db(vp);
+	
+}
+
+/** Scrolls viewport given number of lines */
+static void scroll_port(int vp, int lines)
+{
+	if (viewports[vp].dbdata)
+		scroll_port_db(vp, lines);
+	else
+		scroll_port_nodb(vp, lines);
+	
 }
 
 static void invert_pixel(int vp,unsigned int x, unsigned int y)
@@ -985,8 +1061,32 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			cursor_hide(vp);
-			scroll_port(vp, i);
+			scroll_port(vp, i*FONT_SCANLINES);
 			cursor_print(vp);
+			retval = 0;
+			break;
+		case FB_VIEWPORT_DB:
+			/* Enable double buffering */
+			i = IPC_GET_ARG1(call);
+			if (i == -1)
+				i = vp;
+			if (i < 0 || i >= MAX_VIEWPORTS) {
+				retval = EINVAL;
+				break;
+			}
+			if (! viewports[i].initialized ) {
+				while (1)
+					;
+				retval = EADDRNOTAVAIL;
+				break;
+			}
+			viewports[i].dboffset = 0;
+			if (IPC_GET_ARG2(call) == 1 && !viewports[i].dbdata)
+				viewports[i].dbdata = malloc(screen.pixelbytes*viewports[i].width * viewports[i].height);
+			else if (IPC_GET_ARG2(call) == 0 && viewports[i].dbdata) {
+				free(viewports[i].dbdata);
+				viewports[i].dbdata = NULL;
+			}
 			retval = 0;
 			break;
 		case FB_VIEWPORT_SWITCH:
@@ -1022,6 +1122,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			viewports[i].initialized = 0;
+			if (viewports[i].dbdata) {
+				free(viewports[i].dbdata);
+				viewports[i].dbdata = NULL;
+			}
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
