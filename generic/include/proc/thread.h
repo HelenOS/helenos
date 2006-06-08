@@ -46,6 +46,7 @@
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 
+/**< Thread states. */
 enum state {
 	Invalid,	/**< It is an error, if thread is found in this state. */
 	Running,	/**< State of a thread that is currently executing on some CPU. */
@@ -57,6 +58,13 @@ enum state {
 };
 
 extern char *thread_states[];
+
+/**< Join types. */
+typedef enum {
+	None,
+	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
+	TaskGC		/**< The thread will be joined by ktaskgc thread. */
+} thread_join_type_t;
 
 #define X_WIRED		(1<<0)
 #define X_STOLEN	(1<<1)
@@ -103,6 +111,7 @@ struct thread {
 	 */
 	bool interrupted;			
 	
+	thread_join_type_t	join_type;	/**< Who joinins the thread. */
 	bool detached;				/**< If true, thread_join_timeout() cannot be used on this thread. */
 	waitq_t join_wq;			/**< Waitq for thread_join_timeout(). */
 

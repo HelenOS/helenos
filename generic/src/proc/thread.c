@@ -336,6 +336,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->in_copy_to_uspace = false;
 
 	t->interrupted = false;	
+	t->join_type = None;
 	t->detached = false;
 	waitq_initialize(&t->join_wq);
 	

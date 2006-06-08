@@ -71,7 +71,7 @@ btree_t tasks_btree;
 static task_id_t task_counter = 0;
 
 static void ktaskclnp(void *arg);
-static void ktaskkill(void *arg);
+static void ktaskgc(void *arg);
 
 /** Initialize tasks
  *
@@ -221,7 +221,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create killer thread for the new task.
 	 */
-	t2 = thread_create(ktaskkill, t1, task, 0, "ktaskkill");
+	t2 = thread_create(ktaskgc, t1, task, 0, "ktaskgc");
 	ASSERT(t2);
 	thread_ready(t2);
 
@@ -372,6 +372,7 @@ void ktaskclnp(void *arg)
 	ipl_t ipl;
 	thread_t *t = NULL, *main_thread;
 	link_t *cur;
+	bool again;
 
 	thread_detach(THREAD);
 
@@ -384,21 +385,42 @@ loop:
 	/*
 	 * Find a thread to join.
 	 */
+	again = false;
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
 		t = list_get_instance(cur, thread_t, th_link);
-		if (t == THREAD)
+
+		spinlock_lock(&t->lock);
+		if (t == THREAD) {
+			spinlock_unlock(&t->lock);
 			continue;
-		else if (t == main_thread)
+		} else if (t == main_thread) {
+			spinlock_unlock(&t->lock);
 			continue;
-		else
+		} else if (t->join_type != None) {
+			spinlock_unlock(&t->lock);
+			again = true;
+			continue;
+		} else {
+			t->join_type = TaskClnp;
+			spinlock_unlock(&t->lock);
+			again = false;
 			break;
+		}
 	}
 	
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
+	if (again) {
+		/*
+		 * Other cleanup (e.g. ktaskgc) is in progress.
+		 */
+		scheduler();
+		goto loop;
+	}
+	
 	if (t != THREAD) {
-		ASSERT(t != main_thread);	/* uninit is joined and detached in ktaskkill */
+		ASSERT(t != main_thread);	/* uninit is joined and detached in ktaskgc */
 		thread_join(t);
 		thread_detach(t);
 		goto loop;	/* go for another thread */
@@ -417,19 +439,53 @@ loop:
 /** Kernel task used to kill a userspace task when its main thread exits.
  *
  * This thread waits until the main userspace thread (i.e. uninit) exits.
- * When this happens, the task is killed.
+ * When this happens, the task is killed. In the meantime, exited threads
+ * are garbage collected.
  *
  * @param arg Pointer to the thread structure of the task's main thread.
  */
-void ktaskkill(void *arg)
+void ktaskgc(void *arg)
 {
 	thread_t *t = (thread_t *) arg;
-	
+loop:	
 	/*
 	 * Userspace threads cannot detach themselves,
 	 * therefore the thread pointer is guaranteed to be valid.
 	 */
-	thread_join(t);	/* sleep uninterruptibly here! */
+	if (thread_join_timeout(t, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {	/* sleep uninterruptibly here! */
+		ipl_t ipl;
+		link_t *cur;
+		thread_t *thr = NULL;
+	
+		/*
+		 * The join timed out. Try to do some garbage collection of Undead threads.
+		 */
+more_gc:		
+		ipl = interrupts_disable();
+		spinlock_lock(&TASK->lock);
+		
+		for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
+			thr = list_get_instance(cur, thread_t, th_link);
+			spinlock_lock(&thr->lock);
+			if (thr->state == Undead && thr->join_type == None) {
+				thr->join_type = TaskGC;
+				spinlock_unlock(&thr->lock);
+				break;
+			}
+			spinlock_unlock(&thr->lock);
+			thr = NULL;
+		}
+		spinlock_unlock(&TASK->lock);
+		
+		if (thr) {
+			thread_join(thr);
+			thread_detach(thr);
+			scheduler();
+			goto more_gc;
+		}
+			
+		goto loop;
+	}
 	thread_detach(t);
 	task_kill(TASK->taskid);
 }
