@@ -104,8 +104,33 @@ context_save:
 	 * Save predicate registers
 	 */
 	mov loc2 = pr		;;
-	st8 [in0] = loc2, 8	;;
-	
+	st8 [in0] = loc2, 16;; 		/* Next fpu registers should be spilled to 16B aligned address */
+
+	/*
+	 * Save floating-point registers.
+	 */
+	stf.spill [in0] = f2, 16 ;;
+	stf.spill [in0] = f3, 16 ;;
+	stf.spill [in0] = f4, 16 ;;
+	stf.spill [in0] = f5, 16 ;;
+
+	stf.spill [in0] = f16, 16 ;;
+	stf.spill [in0] = f17, 16 ;;
+	stf.spill [in0] = f18, 16 ;;
+	stf.spill [in0] = f19, 16 ;;
+	stf.spill [in0] = f20, 16 ;;
+	stf.spill [in0] = f21, 16 ;;
+	stf.spill [in0] = f22, 16 ;;
+	stf.spill [in0] = f23, 16 ;;
+	stf.spill [in0] = f24, 16 ;;
+	stf.spill [in0] = f25, 16 ;;
+	stf.spill [in0] = f26, 16 ;;
+	stf.spill [in0] = f27, 16 ;;
+	stf.spill [in0] = f28, 16 ;;
+	stf.spill [in0] = f29, 16 ;;
+	stf.spill [in0] = f30, 16 ;;
+	stf.spill [in0] = f31, 16 ;;	
+
 	mov ar.unat = loc1
 	
 	add r8 = r0, r0, 1 		/* context_save returns 1 */
@@ -187,8 +212,33 @@ context_restore:
 	/*
 	 * Restore predicate registers
 	 */
-	ld8 loc2 = [in0], 8	;;
+	ld8 loc2 = [in0], 16	;;
 	mov pr = loc2, ~0
+
+	/*
+	 * Restore floating-point registers.
+	 */
+	ldf.fill f2 = [in0], 16 ;;
+	ldf.fill f3 = [in0], 16 ;;
+	ldf.fill f4 = [in0], 16 ;;
+	ldf.fill f5 = [in0], 16 ;;
+
+	ldf.fill f16 = [in0], 16 ;;
+	ldf.fill f17 = [in0], 16 ;;
+	ldf.fill f18 = [in0], 16 ;;
+	ldf.fill f19 = [in0], 16 ;;
+	ldf.fill f20 = [in0], 16 ;;
+	ldf.fill f21 = [in0], 16 ;;
+	ldf.fill f22 = [in0], 16 ;;
+	ldf.fill f23 = [in0], 16 ;;
+	ldf.fill f24 = [in0], 16 ;;
+	ldf.fill f25 = [in0], 16 ;;
+	ldf.fill f26 = [in0], 16 ;;
+	ldf.fill f27 = [in0], 16 ;;
+	ldf.fill f28 = [in0], 16 ;;
+	ldf.fill f29 = [in0], 16 ;;
+	ldf.fill f30 = [in0], 16 ;;
+	ldf.fill f31 = [in0], 16 ;;
 	
 	mov ar.unat = loc1
 	

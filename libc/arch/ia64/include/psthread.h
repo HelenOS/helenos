@@ -38,6 +38,7 @@
 #include <types.h>
 #include <align.h>
 #include <libarch/stack.h>
+#include <arch/types.h>
 
 /*
  * context_save() and context_restore() are both leaf procedures.
@@ -107,6 +108,29 @@ typedef struct context {
 	 * Predicate registers
 	 */
 	uint64_t pr;
+
+	__r128 f2 __attribute__ ((aligned(16)));
+	__r128 f3;
+	__r128 f4;
+	__r128 f5;
+
+	__r128 f16;
+	__r128 f17;
+	__r128 f18;
+	__r128 f19;
+	__r128 f20;
+	__r128 f21;
+	__r128 f22;
+	__r128 f23;
+	__r128 f24;
+	__r128 f25;
+	__r128 f26;
+	__r128 f27;
+	__r128 f28;
+	__r128 f29;
+	__r128 f30;
+	__r128 f31;
+
 } context_t;
 
 #endif
