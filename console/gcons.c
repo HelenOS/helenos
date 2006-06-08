@@ -43,12 +43,12 @@
 #include "console.h"
 #include "gcons.h"
 
-#define CONSOLE_TOP      65
+#define CONSOLE_TOP      66
 #define CONSOLE_MARGIN   6
 
 #define STATUS_START    110
 #define STATUS_TOP      8
-#define STATUS_SPACE    3
+#define STATUS_SPACE    4
 #define STATUS_WIDTH    48
 #define STATUS_HEIGHT   48
 

@@ -223,12 +223,10 @@ static int getpixel(int vp, unsigned int x, unsigned int y)
 	return (*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]);
 }
 
-/** Fill line with color BGCOLOR */
-static void clear_line(int vp, unsigned int y)
+static inline void putpixel_mem(char *mem, unsigned int x, unsigned int y, 
+				int color)
 {
-	unsigned int x;
-	for (x = 0; x < viewports[vp].width; x++)
-		putpixel(vp, x, y, viewports[vp].style.bg_color);
+	(*screen.rgb2scr)(&mem[POINTPOS(x,y)],color);
 }
 
 static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
@@ -236,18 +234,21 @@ static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
 			   int color)
 {
 	unsigned int x, y;
+	static void *tmpline;
+
+	if (!tmpline)
+		tmpline = malloc(screen.scanline*screen.pixelbytes);
 
 	/* Clear first line */
 	for (x = 0; x < width; x++)
-		putpixel(vp, sx + x, sy, color);
+		putpixel_mem(tmpline, x, 0, color);
 
 	/* Recompute to screen coords */
 	sx += viewports[vp].x;
 	sy += viewports[vp].y;
 	/* Copy the rest */
-	for (y = sy+1;y < sy+height; y++)
-		memcpy(&screen.fbaddress[POINTPOS(sx,y)],
-		       &screen.fbaddress[POINTPOS(sx,sy)],
+	for (y = sy;y < sy+height; y++)
+		memcpy(&screen.fbaddress[POINTPOS(sx,y)], tmpline, 
 		       screen.pixelbytes * width);
 
 }
