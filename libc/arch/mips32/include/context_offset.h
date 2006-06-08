@@ -14,6 +14,18 @@
 #define OFFSET_GP      0x2c
 #define OFFSET_TLS     0x30
 
+#define OFFSET_F20     0x34
+#define OFFSET_F21     0x38
+#define OFFSET_F22     0x3c
+#define OFFSET_F23     0x40
+#define OFFSET_F24     0x44
+#define OFFSET_F25     0x48
+#define OFFSET_F26     0x4c
+#define OFFSET_F27     0x50
+#define OFFSET_F28     0x54
+#define OFFSET_F29     0x58
+#define OFFSET_F30     0x5c
+
  /** @}
  */
 

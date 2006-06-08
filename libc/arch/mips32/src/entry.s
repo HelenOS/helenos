@@ -60,6 +60,7 @@ __entry:
 	
 	jal __exit
 	nop
+.end
 
 .ent __entry_driver
 __entry_driver:
@@ -82,7 +83,7 @@ __entry_driver:
 	
 	jal __exit
 	nop
-
+.end
 # Alignment of output section data to 0x4000
 .section .data
 .align 14

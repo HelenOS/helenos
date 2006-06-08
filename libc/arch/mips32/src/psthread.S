@@ -37,7 +37,7 @@
 	
 .global context_save
 .global context_restore
-
+	
 .macro CONTEXT_STORE r
 	sw $s0,OFFSET_S0(\r)
 	sw $s1,OFFSET_S1(\r)
@@ -50,7 +50,42 @@
 	sw $s8,OFFSET_S8(\r)
 	sw $gp,OFFSET_GP(\r)
 	sw $k1,OFFSET_TLS(\r)
+
+#ifdef CONFIG_MIPS_FPU	
+	mfc1 $t0,$20
+	sw $t0, OFFSET_F20(\r)
+
+	mfc1 $t0,$21
+	sw $t0, OFFSET_F21(\r)
+
+	mfc1 $t0,$22
+	sw $t0, OFFSET_F22(\r)
+
+	mfc1 $t0,$23
+	sw $t0, OFFSET_F23(\r)
+
+	mfc1 $t0,$24
+	sw $t0, OFFSET_F24(\r)
+
+	mfc1 $t0,$25
+	sw $t0, OFFSET_F25(\r)
+
+	mfc1 $t0,$26
+	sw $t0, OFFSET_F26(\r)
+
+	mfc1 $t0,$27
+	sw $t0, OFFSET_F27(\r)
+
+	mfc1 $t0,$28
+	sw $t0, OFFSET_F28(\r)
+
+	mfc1 $t0,$29
+	sw $t0, OFFSET_F29(\r)
 	
+	mfc1 $t0,$30
+	sw $t0, OFFSET_F30(\r)
+#endif	
+		
 	sw $ra,OFFSET_PC(\r)
 	sw $sp,OFFSET_SP(\r)
 .endm
@@ -67,7 +102,42 @@
 	lw $s8,OFFSET_S8(\r)
 	lw $gp,OFFSET_GP(\r)
 	lw $k1,OFFSET_TLS(\r)
-	
+
+#ifdef CONFIG_MIPS_FPU	
+	lw $t0, OFFSET_F20(\r)
+	mtc1 $t0,$20
+
+	lw $t0, OFFSET_F21(\r)
+	mtc1 $t0,$21
+
+	lw $t0, OFFSET_F22(\r)
+	mtc1 $t0,$22
+
+	lw $t0, OFFSET_F23(\r)
+	mtc1 $t0,$23
+
+	lw $t0, OFFSET_F24(\r)
+	mtc1 $t0,$24
+
+	lw $t0, OFFSET_F25(\r)
+	mtc1 $t0,$25
+
+	lw $t0, OFFSET_F26(\r)
+	mtc1 $t0,$26
+
+	lw $t0, OFFSET_F27(\r)
+	mtc1 $t0,$27
+
+	lw $t0, OFFSET_F28(\r)
+	mtc1 $t0,$28
+
+	lw $t0, OFFSET_F29(\r)
+	mtc1 $t0,$29
+
+	lw $t0, OFFSET_F30(\r)
+	mtc1 $t0,$30
+#endif	
+		
 	lw $ra,OFFSET_PC(\r)
 	lw $sp,OFFSET_SP(\r)
 .endm

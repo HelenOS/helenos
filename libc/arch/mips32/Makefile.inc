@@ -33,9 +33,15 @@ TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = /usr/local/mipsel/bin
 CFLAGS += -mips3
 
+-include ../Makefile.config
+ifeq ($(CONFIG_MIPS_FPU),y)
+	CFLAGS += -DCONFIG_MIPS_FPU
+endif
+
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 	arch/$(ARCH)/src/psthread.S \
 	arch/$(ARCH)/src/thread.c
+
 
 BFD_ARCH = mips
 BFD_NAME = elf32-little

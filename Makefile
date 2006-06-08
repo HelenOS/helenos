@@ -51,6 +51,8 @@ ifeq ($(ARCH), ia32)
 	DIRS += pci
 endif
 
+CFLAGS += -DCONFIG_MIPS_FPU
+
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))
 

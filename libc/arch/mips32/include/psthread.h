@@ -69,6 +69,19 @@ typedef struct  {
 	uint32_t s8;
 	uint32_t gp;
 	uint32_t tls; /* Thread local storage(=k1) */
+
+	uint32_t f20;
+	uint32_t f21;
+	uint32_t f22;
+	uint32_t f23;
+	uint32_t f24;
+	uint32_t f25;
+	uint32_t f26;
+	uint32_t f27;
+	uint32_t f28;
+	uint32_t f29;
+	uint32_t f30;
+	
 } context_t;
 
 #endif
