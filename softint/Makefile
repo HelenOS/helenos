@@ -49,19 +49,19 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 
 .PHONY: all clean depend
 
-all: softint.a
+all: libsoftint.a
 
 -include Makefile.depend
 
 clean:
-	-rm -f softint.a Makefile.depend
+	-rm -f libsoftint.a Makefile.depend
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
-softint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc softint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+libsoftint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+	$(AR) rc libsoftint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
