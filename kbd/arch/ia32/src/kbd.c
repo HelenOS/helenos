@@ -28,11 +28,12 @@
  */
 
 /** @addtogroup kbdia32 ia32
- * @brief	HelenOS ia32 arch dependent parts of uspace keyboard handler.
+ * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard handler.
  * @ingroup  kbd
  * @{
  */ 
 /** @file
+ * @ingroup kbdamd64
  */
 
 #include <arch/kbd.h>

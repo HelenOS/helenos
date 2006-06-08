@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #include<sftypes.h>
 #include<add.h>
 #include<comparison.h>
@@ -249,4 +255,8 @@ float64 addFloat64(float64 a, float64 b)
 	return a;
 }
 
+
+
+ /** @}
+ */
 

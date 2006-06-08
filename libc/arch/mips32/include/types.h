@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ * @ingroup libcmips32eb	
  */
 
 #ifndef __LIBC__TYPES_H__

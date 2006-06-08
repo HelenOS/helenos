@@ -26,8 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __OTHER_H__
 #define __OTHER_H__
 
 #endif
+
+
+ /** @}
+ */
 

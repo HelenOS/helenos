@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #include<sftypes.h>
 #include<comparison.h>
 
@@ -120,4 +126,8 @@ inline int isFloat32gt(float32 a, float32 b)
 }
 
 
+
+
+ /** @}
+ */
 

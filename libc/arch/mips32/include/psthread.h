@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ * @ingroup libcmips32eb	
  */
 
 #ifndef __LIBC__mips32PSTHREAD_H__

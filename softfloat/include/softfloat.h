@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SOFTFLOAT_H__
 #define __SOFTFLOAT_H__
 
@@ -161,4 +167,8 @@ int __gttf2(long double a, long double b);
 float __powisf2(float a, int b);
 
 #endif
+
+
+ /** @}
+ */
 

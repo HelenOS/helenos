@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CONVERSION_H__
 #define __CONVERSION_H__
 
@@ -58,4 +64,8 @@ float64 uint64_to_float64(uint64_t i);
 float64 int64_to_float64(int64_t i);
 
 #endif
+
+
+ /** @}
+ */
 

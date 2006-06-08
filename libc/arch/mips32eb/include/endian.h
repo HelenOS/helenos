@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-/** @addtogroup libcmipseb32 mipseb32
+/** @addtogroup libcmips32eb mipseb32
   * @brief mipseb32 architecture dependent parts of libc
   * @ingroup lc
  * @{

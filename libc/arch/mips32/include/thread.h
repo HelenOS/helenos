@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ * @ingroup libcmips32eb	
  */
 
 /* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */

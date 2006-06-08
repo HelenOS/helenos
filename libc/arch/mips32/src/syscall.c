@@ -26,12 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32 mips32
-  * @brief mips32 architecture dependent parts of libc
-  * @ingroup lc
+ /** @addtogroup libcmips32
  * @{
  */
 /** @file
+  * @ingroup libcmips32eb	
  */
 
 #include <libc.h>

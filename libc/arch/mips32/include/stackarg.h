@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ * @ingroup libcmips32eb	
  */
 
 #ifndef __LIBC_mips32_STACKARG_H__

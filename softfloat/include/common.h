@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
@@ -41,3 +47,7 @@ void roundFloat32(int32_t *exp, uint32_t *fraction);
 void roundFloat64(int32_t *exp, uint64_t *fraction);
 
 #endif
+
+ /** @}
+ */
+

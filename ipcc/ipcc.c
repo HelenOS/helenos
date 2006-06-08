@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ippc IPPC
- * @brief	Interprocess communication tester.
+/** @addtogroup ippc IPC Tester
+ * @brief	IPC tester and task faulter.
  * @{
  */ 
 /**

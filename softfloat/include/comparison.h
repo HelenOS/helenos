@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __COMPARISON_H__
 #define __COMPARISON_H__
 
@@ -46,4 +52,8 @@ inline int isFloat32lt(float32 a, float32 b);
 inline int isFloat32gt(float32 a, float32 b);
 
 #endif
+
+
+ /** @}
+ */
 

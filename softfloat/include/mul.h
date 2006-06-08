@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MUL_H__
 #define __MUL_H__
 
@@ -36,4 +42,8 @@ float64 mulFloat64(float64 a, float64 b);
 void mul64integers(uint64_t a,uint64_t b, uint64_t *lo, uint64_t *hi);
 
 #endif
+
+
+ /** @}
+ */
 

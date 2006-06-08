@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SFTYPES_H__
 #define __SFTYPES_H__
 
@@ -99,4 +105,8 @@ typedef union {
 
 
 #endif
+
+
+ /** @}
+ */
 

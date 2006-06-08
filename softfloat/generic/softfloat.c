@@ -26,6 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup sfl Softfloat
+ * @brief Software FPU emulation.
+ * @{ 
+ * @}
+ */
+ /** @addtogroup softfloat generic
+  * @ingroup sfl
+ * @brief Architecture independent parts of FPU software emulation library.
+ * @{
+ */
+/** @file
+ */
+
 #include<softfloat.h>
 #include<sftypes.h>
 
@@ -484,4 +497,8 @@ float __powisf2(float a, int b)
 	fa.binary = FLOAT32_NAN;
 	return fa.f;
 }
+
+
+ /** @}
+ */
 

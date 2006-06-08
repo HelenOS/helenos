@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloatppc64 ppc64	
+ * @ingroup sfl
+ * @brief softfloat architecture dependent definitions 
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SOFTFLOAT_FUNCTIONS_H__
 #define __SOFTFLOAT_FUNCTIONS_H__
 
@@ -62,3 +70,7 @@
 #define ulonglong_to_float64(X) uint64_to_float64(X);
 
 #endif
+
+ /** @}
+ */
+

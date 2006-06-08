@@ -27,11 +27,11 @@
  */
 
  /** @addtogroup libcamd64 amd64
-  * @addtogroup libcia32
  * @ingroup lc
  * @{
  */
 /** @file
+  * @ingroup libcia32
  */
 
 #include <thread.h>

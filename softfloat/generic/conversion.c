@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup softfloat	
+ * @{
+ */
+/** @file
+ */
+
 #include "sftypes.h"
 #include "conversion.h"
 #include "comparison.h"
@@ -583,4 +589,8 @@ float64 int64_to_float64(int64_t i)
  	return result;
 }
 
+
+
+ /** @}
+ */
 
