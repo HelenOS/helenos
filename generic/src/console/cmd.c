@@ -477,6 +477,12 @@ int cmd_call0(cmd_arg_t *argv)
 	__address symaddr;
 	char *symbol;
 	__native (*f)(void);
+#ifdef ia64
+	struct {
+		__native f;
+		__native gp;
+	}fptr;
+#endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
@@ -487,7 +493,13 @@ int cmd_call0(cmd_arg_t *argv)
 	} else {
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(): %.*p: %s\n", sizeof(__address) * 2, symaddr, symbol);
+#ifdef ia64
+		fptr.f = symaddr;
+		fptr.gp = ((__native *)cmd_call2)[1];
+		f =  (__native (*)(void)) &fptr;
+#else
 		f =  (__native (*)(void)) symaddr;
+#endif
 		printf("Result: %#zx\n", f());
 	}
 	
@@ -501,6 +513,12 @@ int cmd_call1(cmd_arg_t *argv)
 	char *symbol;
 	__native (*f)(__native,...);
 	__native arg1 = argv[1].intval;
+#ifdef ia64
+	struct {
+		__native f;
+		__native gp;
+	}fptr;
+#endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
@@ -510,8 +528,15 @@ int cmd_call1(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
+
 		printf("Calling f(0x%zX): %.*p: %s\n", arg1, sizeof(__address) * 2, symaddr, symbol);
+#ifdef ia64
+		fptr.f = symaddr;
+		fptr.gp = ((__native *)cmd_call2)[1];
+		f =  (__native (*)(__native,...)) &fptr;
+#else
 		f =  (__native (*)(__native,...)) symaddr;
+#endif
 		printf("Result: %#zx\n", f(arg1));
 	}
 	
@@ -526,6 +551,12 @@ int cmd_call2(cmd_arg_t *argv)
 	__native (*f)(__native,__native,...);
 	__native arg1 = argv[1].intval;
 	__native arg2 = argv[2].intval;
+#ifdef ia64
+	struct {
+		__native f;
+		__native gp;
+	}fptr;
+#endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
@@ -537,7 +568,13 @@ int cmd_call2(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%zx,0x%zx): %.*p: %s\n", 
 		       arg1, arg2, sizeof(__address) * 2, symaddr, symbol);
+#ifdef ia64
+		fptr.f = symaddr;
+		fptr.gp = ((__native *)cmd_call2)[1];
+		f =  (__native (*)(__native,__native,...)) &fptr;
+#else
 		f =  (__native (*)(__native,__native,...)) symaddr;
+#endif
 		printf("Result: %#zx\n", f(arg1, arg2));
 	}
 	
@@ -553,6 +590,12 @@ int cmd_call3(cmd_arg_t *argv)
 	__native arg1 = argv[1].intval;
 	__native arg2 = argv[2].intval;
 	__native arg3 = argv[3].intval;
+#ifdef ia64
+	struct {
+		__native f;
+		__native gp;
+	}fptr;
+#endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
@@ -564,7 +607,13 @@ int cmd_call3(cmd_arg_t *argv)
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%zx,0x%zx, 0x%zx): %.*p: %s\n", 
 		       arg1, arg2, arg3, sizeof(__address) * 2, symaddr, symbol);
+#ifdef ia64
+		fptr.f = symaddr;
+		fptr.gp = ((__native *)cmd_call2)[1];
+		f =  (__native (*)(__native,__native,__native,...)) &fptr;
+#else
 		f =  (__native (*)(__native,__native,__native,...)) symaddr;
+#endif
 		printf("Result: %#zx\n", f(arg1, arg2, arg3));
 	}
 	

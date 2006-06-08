@@ -147,6 +147,7 @@ static void slabtest(void *priv)
 	printf("Thread #%d releasing...\n", THREAD->tid);
 	while (data) {
 		new = *((void **)data);
+		*((void **)data) = NULL;
 		slab_free(thr_cache, data);
 		data = new;
 	}
@@ -162,6 +163,7 @@ static void slabtest(void *priv)
 	printf("Thread #%d releasing...\n", THREAD->tid);
 	while (data) {
 		new = *((void **)data);
+		*((void **)data) = NULL;
 		slab_free(thr_cache, data);
 		data = new;
 	}
