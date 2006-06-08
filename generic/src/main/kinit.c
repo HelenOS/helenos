@@ -80,7 +80,6 @@
 void kinit(void *arg)
 {
 	thread_t *t;
-	task_t *utask;
 
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
@@ -152,7 +151,15 @@ void kinit(void *arg)
 		panic("thread_create/kconsole\n");
 
 	interrupts_enable();
-	
+
+#ifdef CONFIG_TEST
+	test();
+	printf("\nTest finished, please reboot\n");
+	while(1)
+		;
+#else  /* CONFIG_TEST */
+
+	task_t *utask;
 	count_t i;
 	for (i = 0; i < init.cnt; i++) {
 		/*
@@ -175,9 +182,6 @@ void kinit(void *arg)
 			printf("Init task %zd not started.\n", i);
 	}
 
-#ifdef CONFIG_TEST
-	test();
-#endif /* CONFIG_TEST */
 
 	if (!stdin) {
 		while (1) {
@@ -185,5 +189,6 @@ void kinit(void *arg)
 			printf("kinit... ");
 		}
 	}
+#endif /* CONFIG_TEST */
 
 }
