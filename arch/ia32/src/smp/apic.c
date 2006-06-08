@@ -171,7 +171,9 @@ void apic_init(void)
  */
 void apic_spurious(int n, istate_t *istate)
 {
+#ifdef CONFIG_DEBUG
 	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
+#endif
 }
 
 /** Poll for APIC errors.

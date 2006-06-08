@@ -69,6 +69,7 @@ void spinlock_initialize(spinlock_t *sl, char *name)
  * @param sl Pointer to spinlock_t structure.
  */
 #ifdef CONFIG_DEBUG_SPINLOCK
+#define DEADLOCK_THRESHOLD	100000000
 void spinlock_lock_debug(spinlock_t *sl)
 {
 	count_t i = 0;
@@ -101,7 +102,7 @@ void spinlock_lock_debug(spinlock_t *sl)
 		if (sl == &fb_lock)
 			continue;
 #endif
-		if (i++ > 10000000) {
+		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%d: looping on spinlock %.*p:%s, caller=%.*p",
 			       CPU->id, sizeof(__address) * 2, sl, sl->name, sizeof(__address) * 2, CALLER);
 			symbol = get_symtab_entry(CALLER);

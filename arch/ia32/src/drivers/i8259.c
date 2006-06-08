@@ -120,5 +120,7 @@ void pic_eoi(void)
 
 void pic_spurious(int n, istate_t *istate)
 {
+#ifdef CONFIG_DEBUG
 	printf("cpu%d: PIC spurious interrupt\n", CPU->id);
+#endif
 }
