@@ -57,6 +57,8 @@ void falloc(void * arg)
 	
 	__address * frames =  (__address *) malloc(MAX_FRAMES * sizeof(__address), FRAME_ATOMIC);
 	ASSERT(frames != NULL);
+	
+	thread_detach(THREAD);
 
 	for (run = 0; run < THREAD_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {

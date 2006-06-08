@@ -73,6 +73,7 @@ __u32 random(__u32 max)
 void writer(void *arg)
 {
 	int rc, to;
+	thread_detach(THREAD);
 	waitq_sleep(&can_start);
 
 	to = random(40000);
@@ -95,6 +96,7 @@ void writer(void *arg)
 void reader(void *arg)
 {
 	int rc, to;
+	thread_detach(THREAD);
 	waitq_sleep(&can_start);
 	
 	to = random(2000);

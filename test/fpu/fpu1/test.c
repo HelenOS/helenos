@@ -80,6 +80,8 @@ static void e(void *data)
 	int i;
 	double e,d,le,f;
 
+	thread_detach(THREAD);
+
 	waitq_sleep(&can_start);
 
 	for (i = 0; i<ATTEMPTS; i++) {
@@ -108,9 +110,12 @@ static void pi(void *data)
 #define PI_10e8	3141592
 #endif
 
+
 	int i;
 	double lpi, pi;
 	double n, ab, ad;
+	
+	thread_detach(THREAD);
 
 	waitq_sleep(&can_start);
 

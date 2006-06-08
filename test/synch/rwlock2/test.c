@@ -44,6 +44,9 @@ static void failed(void);
 
 void writer(void *arg)
 {
+
+	thread_detach(THREAD);
+
 	printf("Trying to lock rwlock for writing....\n");    
 
 	rwlock_write_lock(&rwlock);

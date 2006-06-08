@@ -51,6 +51,8 @@ static void failed(void);
 
 void producer(void *arg)
 {
+	thread_detach(THREAD);	
+
 	waitq_sleep(&can_start);
 	    
 	semaphore_down(&sem);
@@ -61,6 +63,8 @@ void producer(void *arg)
 
 void consumer(void *arg)
 {
+	thread_detach(THREAD);	
+	
 	waitq_sleep(&can_start);
 	
 	semaphore_down(&sem);

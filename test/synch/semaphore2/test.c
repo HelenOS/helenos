@@ -67,6 +67,9 @@ __u32 random(__u32 max)
 void consumer(void *arg)
 {
 	int rc, to;
+	
+	thread_detach(THREAD);
+	
 	waitq_sleep(&can_start);
 	
 	to = random(20000);

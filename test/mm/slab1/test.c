@@ -112,7 +112,9 @@ static void slabtest(void *data)
 {
 	int offs = (int)(__native) data;
 	int i,j;
-
+	
+	thread_detach(THREAD);
+	
 	printf("Starting thread #%d...\n",THREAD->tid);
 	for (j=0; j<10; j++) {
 		for (i=0; i<THR_MEM_COUNT; i++)

@@ -126,6 +126,8 @@ static void slabtest(void *priv)
 {
 	void *data=NULL, *new;
 
+	thread_detach(THREAD);
+
 	mutex_lock(&starter_mutex);
 	condvar_wait(&thread_starter,&starter_mutex);
 	mutex_unlock(&starter_mutex);

@@ -41,6 +41,9 @@
 
 static void threadtest(void *data)
 {
+
+	thread_detach(THREAD);	
+
 	while(1)
 	{
 		while (1)

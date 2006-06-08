@@ -44,6 +44,8 @@ static void failed(void);
 
 void reader(void *arg)
 {
+	thread_detach(THREAD);
+
 	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);    	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);	

@@ -49,6 +49,8 @@ static void testit1(void *data)
 	int i;
 	int arg __attribute__((aligned(16))) = (int)((__native) data);
 	int after_arg __attribute__((aligned(16)));
+
+	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
 
@@ -77,7 +79,9 @@ static void testit2(void *data)
 	int i;
 	int arg __attribute__((aligned(16))) = (int)((__native) data);
 	int after_arg __attribute__((aligned(16)));
-	
+
+	thread_detach(THREAD);
+
 	waitq_sleep(&can_start);
 
 	for (i = 0; i<ATTEMPTS; i++) {

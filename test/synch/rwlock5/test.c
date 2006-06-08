@@ -50,6 +50,8 @@ static void failed(void);
 
 void writer(void *arg)
 {
+	thread_detach(THREAD);
+
 	waitq_sleep(&can_start);
 
 	rwlock_write_lock(&rwlock);
@@ -59,6 +61,8 @@ void writer(void *arg)
 
 void reader(void *arg)
 {
+	thread_detach(THREAD);
+
 	waitq_sleep(&can_start);
 	
 	rwlock_read_lock(&rwlock);
