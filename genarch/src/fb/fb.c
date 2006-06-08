@@ -165,25 +165,12 @@ static void clear_screen(void)
 /** Scroll screen one row up */
 static void scroll_screen(void)
 {
-	unsigned int i;
 	__u8 *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
 
 	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
 
 	/* Clear last row */
-	if (blankline) {
-		memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
-	} else {
-		for (i = 0; i < FONT_SCANLINES; i++)
-			clear_line((rows - 1) * FONT_SCANLINES + i);
-
-		if (config.mm_initialized) {
-			/* Save a blank line aside. */
-			blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
-			if (blankline)
-				memcpy((void *) blankline, (void *) lastline, ROW_BYTES);
-		}
-	}
+	memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
 }
 
 
@@ -361,6 +348,10 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	columns = x / COL_WIDTH;
 
 	clear_screen();
+	blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
+	ASSERT(blankline);
+	memcpy((void *) blankline, (void *) &fbaddress[(rows - 1) * ROW_BYTES], ROW_BYTES);
+	
 	draw_logo(xres - helenos_width, 0);
 	invert_cursor();
 
