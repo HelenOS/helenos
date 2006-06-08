@@ -333,6 +333,7 @@ __native sys_ipc_call_async_fast(__native phoneid, __native method,
 	IPC_SET_METHOD(call->data, method);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
+	IPC_SET_ARG3(call->data, 0);
 
 	if (!(res=request_preprocess(call)))
 		ipc_call(phone, call);
