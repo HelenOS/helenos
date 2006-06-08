@@ -155,8 +155,6 @@ void kinit(void *arg)
 #ifdef CONFIG_TEST
 	test();
 	printf("\nTest finished, please reboot\n");
-	while(1)
-		;
 #else  /* CONFIG_TEST */
 
 	task_t *utask;
