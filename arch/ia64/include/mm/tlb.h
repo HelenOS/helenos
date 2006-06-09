@@ -79,6 +79,7 @@ extern void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, ind
 extern void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
 
 extern void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index_t tr);
+extern void dtr_purge(__address page, count_t width);
 
 extern void dtc_pte_copy(pte_t *t);
 extern void itc_pte_copy(pte_t *t);

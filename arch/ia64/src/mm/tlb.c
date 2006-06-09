@@ -189,7 +189,6 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 	}
 }
 
-
 /** Insert data into data translation cache.
  *
  * @param va Virtual page address.
@@ -341,9 +340,8 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
 
 /** Insert data into DTLB.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param page Virtual page address including VRN bits.
+ * @param frame Physical frame address.
  * @param dtr If true, insert into data translation register, use data translation cache otherwise.
  * @param tr Translation register if dtr is true, ignored otherwise.
  */
@@ -368,6 +366,19 @@ void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index
 	else
 		dtc_mapping_insert(page, ASID_KERNEL, entry);
 }
+
+/** Purge kernel entries from DTR.
+ *
+ * Purge DTR entries used by the kernel.
+ *
+ * @param page Virtual page address including VRN bits.
+ * @param width Width of the purge in bits.
+ */
+void dtr_purge(__address page, count_t width)
+{
+	__asm__ volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width<<2));
+}
+
 
 /** Copy content of PTE into data translation cache.
  *

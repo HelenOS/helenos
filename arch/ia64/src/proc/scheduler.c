@@ -53,6 +53,11 @@ void before_thread_runs_arch(void)
 		 * Kernel stack of this thread is not mapped by DTR[TR_KERNEL].
 		 * Use DTR[TR_KSTACK1] and DTR[TR_KSTACK2] to map it.
 		 */
+		 
+		/* purge DTR[TR_STACK1] and DTR[TR_STACK2] */
+		dtr_purge((__address) THREAD->kstack, PAGE_WIDTH+1);
+		
+		/* insert DTR[TR_STACK1] and DTR[TR_STACK2] */
 		dtlb_kernel_mapping_insert((__address) THREAD->kstack, KA2PA(THREAD->kstack), true, DTR_KSTACK1);
 		dtlb_kernel_mapping_insert((__address) THREAD->kstack + PAGE_SIZE, KA2PA(THREAD->kstack) + FRAME_SIZE, true, DTR_KSTACK2);
 	}
