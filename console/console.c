@@ -173,7 +173,8 @@ static void write_char(int console, char key)
 	
 	if (scr->position_y >= scr->size_y) {
 		scr->position_y = scr->size_y - 1;
-		screenbuffer_clear_line(scr, scr->top_line++);
+		screenbuffer_clear_line(scr, scr->top_line);
+		scr->top_line = (scr->top_line+1) % scr->size_y;
 		if (console == active_console)
 			async_msg(fb_info.phone, FB_SCROLL, 1);
 	}
@@ -260,7 +261,7 @@ static void change_console(int newcons)
 		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 	};
 	
-	if ((!interbuffer) || (j != 0)) {
+	if ((!interbuffer) || (rc != 0)) {
 		set_style(&conn->screenbuffer.style);
 		clrscr();
 		style = &conn->screenbuffer.style;
