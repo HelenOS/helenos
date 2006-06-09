@@ -36,6 +36,8 @@
 #ifndef _FB_H_
 #define _FB_H_
 
+typedef void (* putpixel_cb_t)(void *,unsigned int, unsigned int, int);
+
 int fb_init(void);
 
 #endif

@@ -84,7 +84,7 @@ int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height)
 int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
 	     unsigned int sy, 
 	     unsigned int maxwidth, unsigned int maxheight,
-	     void (*putpixel)(int,unsigned int, unsigned int, int),int vp)
+	     putpixel_cb_t putpixel,void *vport)
 {
 	unsigned int width, height;
 	unsigned int maxcolor;
@@ -121,7 +121,7 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 		}
 		color = ((data[0]*coef) << 16) + ((data[1]*coef) << 8) + data[2]*coef;
 		
-		(*putpixel)(vp, sx+(i % width), sy+(i / width), color);
+		(*putpixel)(vport, sx+(i % width), sy+(i / width), color);
 		data += 3;
 	}
 }

@@ -214,7 +214,7 @@ static void change_console(int newcons)
 {
 	connection_t *conn;
 	static int console_pixmap = -1;
-	int i, j;
+	int i, j, rc;
 	keyfield_t *field;
 	style_t *style;
 	char c;
@@ -257,10 +257,10 @@ static void change_console(int newcons)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
 				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
 		/* This call can preempt, but we are already at the end */
-		j = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
+		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
 	};
 	
-	if ((!interbuffer) || (j != 0)){
+	if ((!interbuffer) || (j != 0)) {
 		set_style(&conn->screenbuffer.style);
 		clrscr();
 		style = &conn->screenbuffer.style;

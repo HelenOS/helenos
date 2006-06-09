@@ -212,26 +212,26 @@ static int byte1_rgb(void *src)
  * @param y Y coord relative to viewport
  * @param color RGB color 
  */
-static void putpixel(int vp, unsigned int x, unsigned int y, int color)
+static void putpixel(viewport_t *vport, unsigned int x, unsigned int y, int color)
 {
-	int dx = viewports[vp].x + x;
-	int dy = viewports[vp].y + y;
+	int dx = vport->x + x;
+	int dy = vport->y + y;
 
-	if (! viewports[vp].paused)
+	if (! (vport->paused && vport->dbdata))
 		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],color);
 
-	if (viewports[vp].dbdata) {
-		int dline = (y + viewports[vp].dboffset) % viewports[vp].height;
-		int doffset = screen.pixelbytes * (dline * viewports[vp].width + x);
-		(*screen.rgb2scr)(&viewports[vp].dbdata[doffset],color);
+	if (vport->dbdata) {
+		int dline = (y + vport->dboffset) % vport->height;
+		int doffset = screen.pixelbytes * (dline * vport->width + x);
+		(*screen.rgb2scr)(&vport->dbdata[doffset],color);
 	}
 }
 
 /** Get pixel from viewport */
-static int getpixel(int vp, unsigned int x, unsigned int y)
+static int getpixel(viewport_t *vport, unsigned int x, unsigned int y)
 {
-	int dx = viewports[vp].x + x;
-	int dy = viewports[vp].y + y;
+	int dx = vport->x + x;
+	int dy = vport->y + y;
 
 	return (*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]);
 }
@@ -242,7 +242,7 @@ static inline void putpixel_mem(char *mem, unsigned int x, unsigned int y,
 	(*screen.rgb2scr)(&mem[POINTPOS(x,y)],color);
 }
 
-static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
+static void draw_rectangle(viewport_t *vport, unsigned int sx, unsigned int sy,
 			   unsigned int width, unsigned int height,
 			   int color)
 {
@@ -256,31 +256,29 @@ static void draw_rectangle(int vp, unsigned int sx, unsigned int sy,
 	for (x = 0; x < width; x++)
 		putpixel_mem(tmpline, x, 0, color);
 
-	if (!viewports[vp].paused) {
+	if (!vport->paused) {
 		/* Recompute to screen coords */
-		sx += viewports[vp].x;
-		sy += viewports[vp].y;
+		sx += vport->x;
+		sy += vport->y;
 		/* Copy the rest */
 		for (y = sy;y < sy+height; y++)
 			memcpy(&screen.fbaddress[POINTPOS(sx,y)], tmpline, 
 			       screen.pixelbytes * width);
 	}
-	if (viewports[vp].dbdata) {
+	if (vport->dbdata) {
 		for (y=sy;y < sy+height; y++) {
-			int rline = (y + viewports[vp].dboffset) % viewports[vp].height;
-			int rpos = (rline * viewports[vp].width + sx) * screen.pixelbytes;
-			memcpy(&viewports[vp].dbdata[rpos], tmpline, screen.pixelbytes * width);
+			int rline = (y + vport->dboffset) % vport->height;
+			int rpos = (rline * vport->width + sx) * screen.pixelbytes;
+			memcpy(&vport->dbdata[rpos], tmpline, screen.pixelbytes * width);
 		}
 	}
 
 }
 
 /** Fill viewport with background color */
-static void clear_port(int vp)
+static void clear_port(viewport_t *vport)
 {
-	viewport_t *vport = &viewports[vp];
-
-	draw_rectangle(vp, 0, 0, vport->width, vport->height, vport->style.bg_color);
+	draw_rectangle(vport, 0, 0, vport->width, vport->height, vport->style.bg_color);
 }
 
 /** Scroll unbuffered viewport up/down
@@ -288,19 +286,18 @@ static void clear_port(int vp)
  * @param vp Viewport to scroll
  * @param rows Positive number - scroll up, negative - scroll down
  */
-static void scroll_port_nodb(int vp, int lines)
+static void scroll_port_nodb(viewport_t *vport, int lines)
 {
 	int y;
 	int startline;
 	int endline;
-	viewport_t *vport = &viewports[vp];
 
 	if (lines > 0) {
 		for (y=vport->y; y < vport->y+vport->height - lines; y++)
 			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
 			       &screen.fbaddress[POINTPOS(vport->x,y + lines)],
 			       screen.pixelbytes * vport->width);
-		draw_rectangle(vp, 0, vport->height - lines,
+		draw_rectangle(vport, 0, vport->height - lines,
 			       vport->width, lines, vport->style.bg_color);
 	} else if (lines < 0) {
 		lines = -lines;
@@ -308,67 +305,66 @@ static void scroll_port_nodb(int vp, int lines)
 			memcpy(&screen.fbaddress[POINTPOS(vport->x,y)],
 			       &screen.fbaddress[POINTPOS(vport->x,y - lines)],
 			       screen.pixelbytes * vport->width);
-		draw_rectangle(vp, 0, 0, vport->width, lines, vport->style.bg_color);
+		draw_rectangle(vport, 0, 0, vport->width, lines, vport->style.bg_color);
 	}
 }
 
 /** Refresh given viewport from double buffer */
-static void refresh_viewport_db(int vp)
+static void refresh_viewport_db(viewport_t *vport)
 {
 	unsigned int y, srcy, srcoff, dsty, dstx;
 
-	for (y = 0; y < viewports[vp].height; y++) {
-		srcy = (y + viewports[vp].dboffset) % viewports[vp].height;
-		srcoff = (viewports[vp].width * srcy) * screen.pixelbytes;
+	for (y = 0; y < vport->height; y++) {
+		srcy = (y + vport->dboffset) % vport->height;
+		srcoff = (vport->width * srcy) * screen.pixelbytes;
 
-		dstx = viewports[vp].x;
-		dsty = viewports[vp].y + y;
+		dstx = vport->x;
+		dsty = vport->y + y;
 
 		memcpy(&screen.fbaddress[POINTPOS(dstx,dsty)],
-		       &viewports[vp].dbdata[srcoff], 
-		       viewports[vp].width*screen.pixelbytes);
+		       &vport->dbdata[srcoff], 
+		       vport->width*screen.pixelbytes);
 	}
 }
 
 /** Scroll viewport that has double buffering enabled */
-static void scroll_port_db(int vp, int lines)
+static void scroll_port_db(viewport_t *vport, int lines)
 {
-	++viewports[vp].paused;
+	++vport->paused;
 	if (lines > 0) {
-		draw_rectangle(vp, 0, 0, viewports[vp].width, lines,
-			       viewports[vp].style.bg_color);
-		viewports[vp].dboffset += lines;
-		viewports[vp].dboffset %= viewports[vp].height;
+		draw_rectangle(vport, 0, 0, vport->width, lines,
+			       vport->style.bg_color);
+		vport->dboffset += lines;
+		vport->dboffset %= vport->height;
 	} else if (lines < 0) {
 		lines = -lines;
-		draw_rectangle(vp, 0, viewports[vp].height-lines, 
-			       viewports[vp].width, lines,
-			       viewports[vp].style.bg_color);
+		draw_rectangle(vport, 0, vport->height-lines, 
+			       vport->width, lines,
+			       vport->style.bg_color);
 
-		if (viewports[vp].dboffset < lines)
-			viewports[vp].dboffset += viewports[vp].height;
-		viewports[vp].dboffset -= lines;
+		if (vport->dboffset < lines)
+			vport->dboffset += vport->height;
+		vport->dboffset -= lines;
 	}
 	
-	--viewports[vp].paused;
+	--vport->paused;
 	
-	refresh_viewport_db(vp);
-	
+	refresh_viewport_db(vport);
 }
 
 /** Scrolls viewport given number of lines */
-static void scroll_port(int vp, int lines)
+static void scroll_port(viewport_t *vport, int lines)
 {
-	if (viewports[vp].dbdata)
-		scroll_port_db(vp, lines);
+	if (vport->dbdata)
+		scroll_port_db(vport, lines);
 	else
-		scroll_port_nodb(vp, lines);
+		scroll_port_nodb(vport, lines);
 	
 }
 
-static void invert_pixel(int vp,unsigned int x, unsigned int y)
+static void invert_pixel(viewport_t *vport, unsigned int x, unsigned int y)
 {
-	putpixel(vp, x, y, ~getpixel(vp, x, y));
+	putpixel(vport, x, y, ~getpixel(vport, x, y));
 }
 
 
@@ -383,7 +379,7 @@ static void invert_pixel(int vp,unsigned int x, unsigned int y)
  * @param style Color of the character
  * @param transparent If false, print background color
  */
-static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy, 
+static void draw_glyph(viewport_t *vport,__u8 glyph, unsigned int sx, unsigned int sy, 
 		       style_t style, int transparent)
 {
 	int i;
@@ -394,22 +390,22 @@ static void draw_glyph(int vp,__u8 glyph, unsigned int sx, unsigned int sy,
 		glline = fb_font[glyph * FONT_SCANLINES + y];
 		for (i = 0; i < 8; i++) {
 			if (glline & (1 << (7 - i)))
-				putpixel(vp, sx + i, sy + y, style.fg_color);
+				putpixel(vport, sx + i, sy + y, style.fg_color);
 			else if (!transparent)
-				putpixel(vp, sx + i, sy + y, style.bg_color);
+				putpixel(vport, sx + i, sy + y, style.bg_color);
 		}
 	}
 }
 
 /** Invert character at given position */
-static void invert_char(int vp,unsigned int row, unsigned int col)
+static void invert_char(viewport_t *vport,unsigned int row, unsigned int col)
 {
 	unsigned int x;
 	unsigned int y;
 
 	for (x = 0; x < COL_WIDTH; x++)
 		for (y = 0; y < FONT_SCANLINES; y++)
-			invert_pixel(vp, col * COL_WIDTH + x, row * FONT_SCANLINES + y);
+			invert_pixel(vport, col * COL_WIDTH + x, row * FONT_SCANLINES + y);
 }
 
 /***************************************************************/
@@ -504,37 +500,31 @@ static void screen_init(void *addr, unsigned int xres, unsigned int yres, unsign
 }
 
 /** Hide cursor if it is shown */
-static void cursor_hide(int vp)
+static void cursor_hide(viewport_t *vport)
 {
-	viewport_t *vport = &viewports[vp];
-
 	if (vport->cursor_active && vport->cursor_shown) {
-		invert_char(vp, vport->cur_row, vport->cur_col);
+		invert_char(vport, vport->cur_row, vport->cur_col);
 		vport->cursor_shown = 0;
 	}
 }
 
 /** Show cursor if cursor showing is enabled */
-static void cursor_print(int vp)
+static void cursor_print(viewport_t *vport)
 {
-	viewport_t *vport = &viewports[vp];
-
 	/* Do not check for cursor_shown */
 	if (vport->cursor_active) {
-		invert_char(vp, vport->cur_row, vport->cur_col);
+		invert_char(vport, vport->cur_row, vport->cur_col);
 		vport->cursor_shown = 1;
 	}
 }
 
 /** Invert cursor, if it is enabled */
-static void cursor_blink(int vp)
+static void cursor_blink(viewport_t *vport)
 {
-	viewport_t *vport = &viewports[vp];
-
 	if (vport->cursor_shown)
-		cursor_hide(vp);
+		cursor_hide(vport);
 	else
-		cursor_print(vp);
+		cursor_print(vport);
 }
 
 /** Draw character at given position relative to viewport 
@@ -545,16 +535,15 @@ static void cursor_blink(int vp)
  * @param col Screen position relative to viewport
  * @param transparent If false, print background color with character
  */
-static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_t style, int transparent)
+static void draw_char(viewport_t *vport, char c, unsigned int row, unsigned int col, 
+		      style_t style, int transparent)
 {
-	viewport_t *vport = &viewports[vp];
-
 	/* Optimize - do not hide cursor if we are going to overwrite it */
 	if (vport->cursor_active && vport->cursor_shown && 
 	    (vport->cur_col != col || vport->cur_row != row))
-		invert_char(vp, vport->cur_row, vport->cur_col);
+		invert_char(vport, vport->cur_row, vport->cur_col);
 	
-	draw_glyph(vp, c, col * COL_WIDTH, row * FONT_SCANLINES, style, transparent);
+	draw_glyph(vport, c, col * COL_WIDTH, row * FONT_SCANLINES, style, transparent);
 
 	vport->cur_col = col;
 	vport->cur_row = row;
@@ -566,7 +555,7 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_
 		if (vport->cur_row >= vport->rows)
 			vport->cur_row--;
 	}
-	cursor_print(vp);
+	cursor_print(vport);
 }
 
 /** Draw text data to viewport
@@ -574,23 +563,22 @@ static void draw_char(int vp, char c, unsigned int row, unsigned int col, style_
  * @param vp Viewport id
  * @param data Text data fitting exactly into viewport
  */
-static void draw_text_data(int vp, keyfield_t *data)
+static void draw_text_data(viewport_t *vport, keyfield_t *data)
 {
-	viewport_t *vport = &viewports[vp];
 	int i;
 	char c;
 	int col,row;
 
-	clear_port(vp);
+	clear_port(vport);
 	for (i=0; i < vport->cols * vport->rows; i++) {
 		if (data[i].character == ' ' && style_same(data[i].style,vport->style))
 			continue;
 		col = i % vport->cols;
 		row = i / vport->cols;
-		draw_glyph(vp, data[i].character, col * COL_WIDTH, row * FONT_SCANLINES, 
+		draw_glyph(vport, data[i].character, col * COL_WIDTH, row * FONT_SCANLINES, 
 			   data[i].style, style_same(data[i].style,vport->style));
 	}
-	cursor_print(vp);
+	cursor_print(vport);
 }
 
 
@@ -632,7 +620,7 @@ static int shm2pixmap(char *shm, size_t size)
 		return ENOMEM;
 
 	ppm_draw(shm, size, 0, 0, pmap->width, pmap->height, 
-		 putpixel_pixmap, pm);
+		 (putpixel_cb_t)putpixel_pixmap, (void *)pm);
 
 	return pm;
 }
@@ -725,7 +713,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		}
 		
 		ppm_draw(shm, shm_size, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
-			 vport->width - x, vport->height - y, putpixel, vp);
+			 vport->width - x, vport->height - y, (putpixel_cb_t)putpixel, vport);
 		break;
 	case FB_DRAW_TEXT_DATA:
 		if (!interbuffer) {
@@ -736,7 +724,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			retval = EINVAL;
 			break;
 		}
-		draw_text_data(vp, interbuffer);
+		draw_text_data(vport, interbuffer);
 		break;
 	default:
 		handled = 0;
@@ -995,7 +983,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			callid = async_get_call(&call);
 
 		if (!callid) {
-			cursor_blink(vp);
+			cursor_blink(vport);
 			anims_tick();
 			continue;
 		}
@@ -1025,11 +1013,11 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			ipc_answer_fast(callid,0,0,0);
 
-			draw_char(vp, c, row, col, vport->style, IPC_GET_METHOD(call) == FB_TRANS_PUTCHAR);
+			draw_char(vport, c, row, col, vport->style, IPC_GET_METHOD(call) == FB_TRANS_PUTCHAR);
 			continue; /* msg already answered */
 		case FB_CLEAR:
-			clear_port(vp);
-			cursor_print(vp);
+			clear_port(vport);
+			cursor_print(vport);
 			retval = 0;
 			break;
  		case FB_CURSOR_GOTO:
@@ -1040,15 +1028,15 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
  			retval = 0;
-			cursor_hide(vp);
+			cursor_hide(vport);
 			vport->cur_col = col;
 			vport->cur_row = row;
-			cursor_print(vp);
+			cursor_print(vport);
  			break;
 		case FB_CURSOR_VISIBILITY:
-			cursor_hide(vp);
+			cursor_hide(vport);
 			vport->cursor_active = IPC_GET_ARG1(call);
-			cursor_print(vp);
+			cursor_print(vport);
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
@@ -1060,9 +1048,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			cursor_hide(vp);
-			scroll_port(vp, i*FONT_SCANLINES);
-			cursor_print(vp);
+			cursor_hide(vport);
+			scroll_port(vport, i*FONT_SCANLINES);
+			cursor_print(vport);
 			retval = 0;
 			break;
 		case FB_VIEWPORT_DB:
@@ -1099,10 +1087,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EADDRNOTAVAIL;
 				break;
 			}
-			cursor_hide(vp);
+			cursor_hide(vport);
 			vp = i;
 			vport = &viewports[vp];
-			cursor_print(vp);
+			cursor_print(vport);
 			retval = 0;
 			break;
 		case FB_VIEWPORT_CREATE:
