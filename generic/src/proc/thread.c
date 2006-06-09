@@ -446,6 +446,7 @@ int thread_join_timeout(thread_t *t, __u32 usec, int flags)
 	rc = waitq_sleep_timeout_unsafe(&t->join_wq, usec, flags);
 	
 	waitq_sleep_finish(&t->join_wq, rc, ipl);
+	interrupts_restore(ipl);
 	
 	return rc;	
 }
