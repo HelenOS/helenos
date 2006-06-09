@@ -53,10 +53,7 @@ SECTIONS {
 		*(.sdata2);
 		*(.sbss);
 		*(.bss);		/* uninitialized static variables */	
-		*(COMMON); 		/* global variables */
-		
-		. = ALIGN(4096);
-		*(.kernel_image);' > "$LINK"
+		*(COMMON); 		/* global variables */' > "$LINK"
 
 echo '#ifndef ___COMPONENTS_H__
 #define ___COMPONENTS_H__
