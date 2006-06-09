@@ -594,7 +594,11 @@ _slab_cache_create(slab_cache_t *cache,
 
 	/* Minimum slab order */
 	pages = ((cache->size-1) >> PAGE_WIDTH) + 1;
-	cache->order = fnzb(pages);
+	/* We need the 2^order >= pages */
+	if (pages == 1)
+		cache->order = 0;
+	else
+		cache->order = fnzb(pages-1)+1;
 
 	while (badness(cache) > SLAB_MAX_BADNESS(cache)) {
 		cache->order += 1;
