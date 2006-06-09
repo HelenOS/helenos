@@ -99,9 +99,8 @@ grab_locks:
 		list_remove(&t->wq_link);
 		t->saved_context = t->sleep_timeout_context;
 		do_wakeup = true;
-		
-		spinlock_unlock(&wq->lock);
 		t->sleep_queue = NULL;
+		spinlock_unlock(&wq->lock);
 	}
 	
 	t->timeout_pending = false;
@@ -154,9 +153,8 @@ grab_locks:
 		list_remove(&t->wq_link);
 		t->saved_context = t->sleep_interruption_context;
 		do_wakeup = true;
-		
-		spinlock_unlock(&wq->lock);
 		t->sleep_queue = NULL;
+		spinlock_unlock(&wq->lock);
 	}
 	spinlock_unlock(&t->lock);
 
@@ -418,8 +416,25 @@ loop:
 
 	t = list_get_instance(wq->head.next, thread_t, wq_link);
 	
-	list_remove(&t->wq_link);
+	/*
+	 * Lock the thread prior to removing it from the wq.
+	 * This is not necessary because of mutual exclusion
+	 * (the link belongs to the wait queue), but because
+	 * of synchronization with waitq_timeouted_sleep()
+	 * and waitq_interrupt_sleep().
+	 *
+	 * In order for these two functions to work, the following
+	 * invariant must hold:
+	 *
+	 * t->sleep_queue != NULL <=> t sleeps in a wait queue
+	 *
+	 * For an observer who locks the thread, the invariant
+	 * holds only when the lock is held prior to removing
+	 * it from the wait queue.
+	 */
 	spinlock_lock(&t->lock);
+	list_remove(&t->wq_link);
+	
 	if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
 		t->timeout_pending = false;
 	t->sleep_queue = NULL;
