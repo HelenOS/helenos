@@ -476,6 +476,7 @@ more_gc:
 			thr = NULL;
 		}
 		spinlock_unlock(&TASK->lock);
+		interrupts_restore(ipl);
 		
 		if (thr) {
 			thread_join(thr);
