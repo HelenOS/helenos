@@ -29,6 +29,11 @@
 #ifndef __ASM_H__
 #define __ASM_H__
 
-void jump_to_kernel(void *code) __attribute__((noreturn));
+#define PAGE_SIZE 16384
+#define PAGE_WIDTH 14
+
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+
+void jump_to_kernel(void *entry, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
 
 #endif

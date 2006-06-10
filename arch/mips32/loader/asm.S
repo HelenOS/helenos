@@ -35,11 +35,75 @@
 .text
 
 .global halt
+.global memcpy
 .global jump_to_kernel
 
 halt:
 	b halt
 	nop
+	
+memcpy:
+	addiu	$v0,$a1,3
+	li	$v1,-4			# 0xfffffffffffffffc
+	and	$v0,$v0,$v1
+	beq	$a1,$v0,3f
+	move	$t0,$a0
+
+0:
+	beq	$a2,$zero,2f
+	move	$a3,$zero
+
+1:
+	addu	$v0,$a1,$a3
+	lbu	$a0,0($v0)
+	addu	$v1,$t0,$a3
+	addiu	$a3,$a3,1
+	bne	$a3,$a2,1b
+	sb	$a0,0($v1)
+
+2:
+	jr	$ra
+	move	$v0,$a1
+
+3:
+	addiu	$v0,$a0,3
+	and	$v0,$v0,$v1
+	bne	$a0,$v0,0b
+	srl	$t1,$a2,2
+
+	beq	$t1,$zero,5f
+	move	$a3,$zero
+
+	move	$a3,$zero
+	move	$a0,$zero
+4:
+	addu	$v0,$a1,$a0
+	lw	$v1,0($v0)
+	addiu	$a3,$a3,1
+	addu	$v0,$t0,$a0
+	sw	$v1,0($v0)
+	bne	$a3,$t1,4b
+	addiu	$a0,$a0,4
+
+5:
+	andi	$a2,$a2,0x3
+	beq	$a2,$zero,2b
+	nop
+
+	sll	$v0,$a3,2
+	addu	$t1,$v0,$t0
+	move	$a3,$zero
+	addu	$t0,$v0,$a1
+6:
+	addu	$v0,$t0,$a3
+	lbu	$a0,0($v0)
+	addu	$v1,$t1,$a3
+	addiu	$a3,$a3,1
+	bne	$a3,$a2,6b
+	sb	$a0,0($v1)
+
+	jr	$ra
+	move	$v0,$a1
 
 jump_to_kernel:
 #	.word 0x39

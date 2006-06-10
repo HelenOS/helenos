@@ -30,27 +30,42 @@
 #include "printf.h"
 #include "msim.h"
 #include "asm.h"
+#include "_components.h"
 
 #define KERNEL_VIRTUAL_ADDRESS 0x80100000
-#define KERNEL_START &_binary_____________kernel_kernel_bin_start
-#define KERNEL_END &_binary_____________kernel_kernel_bin_end
-#define KERNEL_SIZE ((unsigned int) KERNEL_END - (unsigned int) KERNEL_START)
 
 void bootstrap(void)
 {
 	printf("HelenOS MIPS Bootloader\n");
-	printf("loaded at %L\n", &start);
-	printf("kernel memory at %L (size %d bytes)\n", KERNEL_VIRTUAL_ADDRESS, KERNEL_SIZE);
 	
-	// TODO: implement memcpy
-	int i;
-	for (i = 0; i < KERNEL_SIZE; i++) {
-		if (i % 4096 == 0)
-			printf(".");
-		((char *) KERNEL_VIRTUAL_ADDRESS)[i] = ((char *) KERNEL_START)[i];
+	component_t components[COMPONENTS];
+	bootinfo_t bootinfo;
+	init_components(components);
+	
+	printf("\nMemory statistics\n");
+	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
+	printf(" %L: boot info structure\n", &bootinfo);
+	
+	unsigned int i;
+	for (i = 0; i < COMPONENTS; i++)
+		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
+	
+	printf("\nCopying components\n");
+	unsigned int top = 0;
+	bootinfo.cnt = 0;
+	for (i = 0; i < COMPONENTS; i++) {
+		printf(" %s...", components[i].name);
+		top = ALIGN_UP(top, PAGE_SIZE);
+		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
+		if (i > 0) {
+			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
+			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
+			bootinfo.cnt++;
+		}
+		top += components[i].size;
+		printf("done.\n");
 	}
 	
 	printf("\nBooting the kernel...\n");
-	
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS);
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
 }

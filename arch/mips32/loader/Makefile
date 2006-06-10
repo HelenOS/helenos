@@ -51,12 +51,24 @@ DEFS =
 
 SOURCES = \
 	main.c \
-	printf.c \
 	msim.c \
+	printf.c \
 	asm.S \
 	boot.S
 
+COMPONENTS = \
+	$(KERNELDIR)/kernel.bin \
+	$(USPACEDIR)/ns/ns \
+	$(USPACEDIR)/init/init \
+	$(USPACEDIR)/fb/fb \
+	$(USPACEDIR)/kbd/kbd \
+	$(USPACEDIR)/console/console \
+	$(USPACEDIR)/tetris/tetris \
+	$(USPACEDIR)/ipcc/ipcc \
+	$(USPACEDIR)/klog/klog
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
 
 .PHONY: all clean depend
 
@@ -64,17 +76,17 @@ all: image.boot
 
 -include Makefile.depend
 
-image.boot: depend $(OBJECTS) kernel.o
-	$(LD) -no-check-sections -N -T _link.ld $(OBJECTS) kernel.o -o $@
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) kernel.o 
+	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f $(OBJECTS) image.boot kernel.o Makefile.depend
+	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-kernel.o: $(KERNEL)
-	$(OBJCOPY) -I binary -O elf32-tradlittlemips -B mips $(KERNEL) $@
+_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
+	./pack $(OBJCOPY) $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

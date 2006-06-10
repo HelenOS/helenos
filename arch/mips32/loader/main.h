@@ -29,8 +29,25 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-extern int _binary_____________kernel_kernel_bin_start;
-extern int _binary_____________kernel_kernel_bin_end;
+/** Align to the nearest higher address.
+ *
+ * @param addr  Address or size to be aligned.
+ * @param align Size of alignment, must be power of 2.
+ */
+#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+
+#define TASKMAP_MAX_RECORDS 32
+
+typedef struct {
+	void *addr;
+	unsigned int size;
+} task_t;
+
+typedef struct {
+	unsigned int cnt;
+	task_t tasks[TASKMAP_MAX_RECORDS];
+} bootinfo_t;
+
 extern void start(void);
 extern void bootstrap(void);
 

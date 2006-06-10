@@ -28,7 +28,7 @@
 
 #include "regname.h"
 
-#define INITIAL_STACK 0x10000
+#define INITIAL_STACK 0x40000
 
 .set noat
 .set noreorder
@@ -39,7 +39,7 @@
 .global start
 start:
 	lui $sp, INITIAL_STACK >> 16
-    ori $sp, $sp, INITIAL_STACK & 0xffff	
-
+	ori $sp, $sp, INITIAL_STACK & 0xffff
+	
 	j bootstrap
 	nop
