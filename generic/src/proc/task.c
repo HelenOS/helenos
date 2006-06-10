@@ -436,7 +436,7 @@ loop:
 	klog_printf("Cleanup of task %lld completed.", TASK->taskid);
 }
 
-/** Kernel task used to kill a userspace task when its main thread exits.
+/** Kernel thread used to kill the userspace task when its main thread exits.
  *
  * This thread waits until the main userspace thread (i.e. uninit) exits.
  * When this happens, the task is killed. In the meantime, exited threads

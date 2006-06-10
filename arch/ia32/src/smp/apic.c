@@ -227,8 +227,11 @@ int l_apic_broadcast_custom_ipi(__u8 vector)
 	l_apic[ICRlo] = icr.lo;
 
 	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING)
+	if (icr.delivs == DELIVS_PENDING) {
+#ifdef CONFIG_DEBUG
 		printf("IPI is pending.\n");
+#endif
+	}
 
 	return apic_poll_errors();
 }
@@ -267,11 +270,15 @@ int l_apic_send_init_ipi(__u8 apicid)
 	 */
 	delay(20);
 
-	if (!apic_poll_errors()) return 0;
+	if (!apic_poll_errors())
+		return 0;
 
 	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING)
+	if (icr.delivs == DELIVS_PENDING) {
+#ifdef CONFIG_DEBUG
 		printf("IPI is pending.\n");
+#endif
+	}
 
 	icr.delmod = DELMOD_INIT;
 	icr.destmod = DESTMOD_PHYS;
