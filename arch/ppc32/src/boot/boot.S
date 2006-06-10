@@ -48,13 +48,13 @@ kernel_image_start:
 	# r3 contains physical address of bootinfo_t
 	# r4 contains size of bootinfo_t
 	
+	cmpwi r4, 0
+	beq bootinfo_end
+	
 	addis r3, r3, 0x8000
 
 	lis r31, bootinfo@ha
 	addi r31, r31, bootinfo@l  # r31 = bootinfo
-	
-	cmpwi r4, 0
-	beq bootinfo_end
 	
 	bootinfo_loop:
 		

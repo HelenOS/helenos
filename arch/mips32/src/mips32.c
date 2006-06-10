@@ -28,6 +28,7 @@
 
 
 #include <arch.h>
+#include <arch/boot.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
 #include <arch/asm.h>
@@ -60,26 +61,19 @@
 #define NORM_EXC ((char *) 0x80000180)
 #define CACHE_EXC ((char *) 0x80000100)
 
+bootinfo_t bootinfo;
+
 void arch_pre_main(void)
 {
 	/* Setup usermode */
-	init.cnt = 8;
-	init.tasks[0].addr = INIT_ADDRESS;
-	init.tasks[0].size = INIT_SIZE;
-	init.tasks[1].addr = INIT_ADDRESS + 0x100000;
-	init.tasks[1].size = INIT_SIZE;
-	init.tasks[2].addr = INIT_ADDRESS + 0x200000;
-	init.tasks[2].size = INIT_SIZE;
-	init.tasks[3].addr = INIT_ADDRESS + 0x300000;
-	init.tasks[3].size = INIT_SIZE;
-	init.tasks[4].addr = INIT_ADDRESS + 0x400000;
-	init.tasks[4].size = INIT_SIZE;
-	init.tasks[5].addr = INIT_ADDRESS + 0x500000;
-	init.tasks[5].size = INIT_SIZE;
-	init.tasks[6].addr = INIT_ADDRESS + 0x600000;
-	init.tasks[6].size = INIT_SIZE;
-	init.tasks[7].addr = INIT_ADDRESS + 0x700000;
-	init.tasks[7].size = INIT_SIZE;
+	init.cnt = bootinfo.cnt;
+	
+	__u32 i;
+	
+	for (i = 0; i < bootinfo.cnt; i++) {
+		init.tasks[i].addr = bootinfo.tasks[i].addr;
+		init.tasks[i].size = bootinfo.tasks[i].size;
+	}
 }
 
 void arch_pre_mm_init(void)

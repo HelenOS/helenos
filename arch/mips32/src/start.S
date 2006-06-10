@@ -182,9 +182,34 @@ kernel_image_start:
 	/* Load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
-
+	
+	/* $a1 contains physical address of bootinfo_t */
+	/* $a2 contains size of bootinfo_t */
+	
+	beq $a2, $0, bootinfo_end
+	
 	/* Not sure about this, but might be needed for PIC code???? */
 	lui $gp, 0x8000
+	
+	lui $a3, 0x8000
+	addu $a1, $a1, $a3
+	
+	lui $a3, %hi(bootinfo)
+	ori $a3, $a3, %lo(bootinfo)
+	
+	bootinfo_loop:
+		
+		lw $v0, 0($a1)
+		sw $v0, 0($a3)
+		
+		addi $a1, $a1, 4
+		addi $a3, $a3, 4
+		addi $a2, $a2, -4
+		
+		bgtz $a2, bootinfo_loop
+		nop
+		
+	bootinfo_end:
 	
 	jal arch_pre_main
 	nop
