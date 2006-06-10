@@ -593,7 +593,7 @@ _slab_cache_create(slab_cache_t *cache,
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 
 	/* Minimum slab order */
-	pages = ((cache->size-1) >> PAGE_WIDTH) + 1;
+	pages = SIZE2FRAMES(cache->size);
 	/* We need the 2^order >= pages */
 	if (pages == 1)
 		cache->order = 0;

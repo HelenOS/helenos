@@ -36,6 +36,8 @@
 #include <panic.h>
 #include <memstr.h>
 #include <config.h>
+#include <bitops.h>
+#include <print.h>
 
 #include "helenos.xbm"
 
@@ -44,6 +46,8 @@ SPINLOCK_INITIALIZE(fb_lock);
 static __u8 *fbaddress = NULL;
 
 static __u8 *blankline = NULL;
+static __u8 *dbbuffer = NULL; /* Buffer for fast scrolling console */
+static int dboffset;
 
 static unsigned int xres = 0;
 static unsigned int yres = 0;
@@ -67,88 +71,94 @@ static unsigned int rows = 0;
 #define GREEN(x, bits)	((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
 #define BLUE(x, bits)	((x >> (8 - bits)) & ((1 << bits) - 1))
 
-#define POINTPOS(x, y)	(y * scanline + x * pixelbytes)
+#define POINTPOS(x, y)	((y) * scanline + (x) * pixelbytes)
 
 /***************************************************************/
 /* Pixel specific fuctions */
 
-static void (*putpixel)(unsigned int x, unsigned int y, int color);
-static int (*getpixel)(unsigned int x, unsigned int y);
+static void (*rgb2scr)(void *, int);
+static int (*scr2rgb)(void *);
 
-/** Put pixel - 24-bit depth, 1 free byte */
-static void putpixel_4byte(unsigned int x, unsigned int y, int color)
+/* Conversion routines between different color representations */
+static void rgb_4byte(void *dst, int rgb)
 {
-	*((__u32 *)(fbaddress + POINTPOS(x, y))) = color;
+	*(int *)dst = rgb;
 }
 
-/** Return pixel color - 24-bit depth, 1 free byte */
-static int getpixel_4byte(unsigned int x, unsigned int y)
+static int byte4_rgb(void *src)
 {
-	return *((__u32 *)(fbaddress + POINTPOS(x, y))) & 0xffffff;
+	return (*(int *)src) & 0xffffff;
 }
 
-/** Put pixel - 24-bit depth */
-static void putpixel_3byte(unsigned int x, unsigned int y, int color)
+static void rgb_3byte(void *dst, int rgb)
 {
-	unsigned int startbyte = POINTPOS(x, y);
-
+	__u8 *scr = dst;
 #if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
-	fbaddress[startbyte] = RED(color, 8);
-	fbaddress[startbyte + 1] = GREEN(color, 8);
-	fbaddress[startbyte + 2] = BLUE(color, 8);
+	scr[0] = RED(rgb, 8);
+	scr[1] = GREEN(rgb, 8);
+	scr[2] = BLUE(rgb, 8);
 #else
-	fbaddress[startbyte + 2] = RED(color, 8);
-	fbaddress[startbyte + 1] = GREEN(color, 8);
-	fbaddress[startbyte + 0] = BLUE(color, 8);
+	scr[2] = RED(rgb, 8);
+	scr[1] = GREEN(rgb, 8);
+	scr[0] = BLUE(rgb, 8);
+#endif
+}
+
+static int byte3_rgb(void *src)
+{
+	__u8 *scr = src;
+#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
+	return scr[0] << 16 | scr[1] << 8 | scr[2];
+#else
+	return scr[2] << 16 | scr[1] << 8 | scr[0];
 #endif	
 }
 
-/** Return pixel color - 24-bit depth */
-static int getpixel_3byte(unsigned int x, unsigned int y)
+/**  16-bit depth (5:6:5) */
+static void rgb_2byte(void *dst, int rgb)
 {
-	unsigned int startbyte = POINTPOS(x, y);
-
-#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
-	return fbaddress[startbyte] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 2];
-#else
-	return fbaddress[startbyte + 2] << 16 | fbaddress[startbyte + 1] << 8 | fbaddress[startbyte + 0];
-#endif	
+	/* 5-bit, 6-bits, 5-bits */ 
+	*((__u16 *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
-/** Put pixel - 16-bit depth (5:6:6) */
-static void putpixel_2byte(unsigned int x, unsigned int y, int color)
+/** 16-bit depth (5:6:5) */
+static int byte2_rgb(void *src)
 {
-	/* 5-bit, 5-bits, 5-bits */
-	*((__u16 *)(fbaddress + POINTPOS(x, y))) = RED(color, 5) << 11 | GREEN(color, 6) << 5 | BLUE(color, 5);
-}
-
-/** Return pixel color - 16-bit depth (5:6:6) */
-static int getpixel_2byte(unsigned int x, unsigned int y)
-{
-	int color = *((__u16 *)(fbaddress + POINTPOS(x, y)));
+	int color = *(__u16 *)(src);
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
-static void putpixel_1byte(unsigned int x, unsigned int y, int color)
+static void rgb_1byte(void *dst, int rgb)
 {
-	fbaddress[POINTPOS(x, y)] = RED(color, 3) << 5 | GREEN(color, 2) << 3 | BLUE(color, 3);
+	*(__u8 *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
-static int getpixel_1byte(unsigned int x, unsigned int y)
+static int byte1_rgb(void *src)
 {
-	int color = fbaddress[POINTPOS(x, y)];
+	int color = *(__u8 *)src;
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
-/** Fill line with color BGCOLOR */
-static void clear_line(unsigned int y)
+static void putpixel(unsigned int x, unsigned int y, int color)
 {
-	unsigned int x;
-	
-	for (x = 0; x < xres; x++)
-		(*putpixel)(x, y, BGCOLOR);
+	(*rgb2scr)(&fbaddress[POINTPOS(x,y)],color);
+
+	if (dbbuffer) {
+		int dline = (y + dboffset) % yres;
+		(*rgb2scr)(&dbbuffer[POINTPOS(x,dline)],color);
+	}
+}
+
+/** Get pixel from viewport */
+static int getpixel(unsigned int x, unsigned int y)
+{
+	if (dbbuffer) {
+		int dline = (y + dboffset) % yres;
+		return (*scr2rgb)(&dbbuffer[POINTPOS(x,dline)]);
+	}
+	return (*scr2rgb)(&fbaddress[POINTPOS(x,y)]);
 }
 
 
@@ -157,8 +167,11 @@ static void clear_screen(void)
 {
 	unsigned int y;
 
-	for (y = 0; y < yres; y++)
-		clear_line(y);
+	for (y = 0; y < yres; y++) {
+		memcpy(&fbaddress[scanline*y], blankline, xres*pixelbytes);
+		if (dbbuffer)
+			memcpy(&dbbuffer[scanline*y], blankline, xres*pixelbytes);
+	}
 }
 
 
@@ -166,17 +179,27 @@ static void clear_screen(void)
 static void scroll_screen(void)
 {
 	__u8 *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
+	int firstsz;
 
-	memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
+	if (dbbuffer) {
+		memcpy(&dbbuffer[dboffset*scanline], blankline, FONT_SCANLINES*scanline);
+		
+		dboffset = (dboffset + FONT_SCANLINES) % yres;
+		firstsz = yres-dboffset;
 
-	/* Clear last row */
-	memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
+		memcpy(fbaddress, &dbbuffer[scanline*dboffset], firstsz*scanline);
+		memcpy(&fbaddress[firstsz*scanline], dbbuffer, dboffset*scanline);
+	} else {
+		memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
+		/* Clear last row */
+		memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
+	}
 }
 
 
 static void invert_pixel(unsigned int x, unsigned int y)
 {
-	(*putpixel)(x, y, ~(*getpixel)(x, y));
+	putpixel(x, y, ~getpixel(x, y));
 }
 
 
@@ -187,9 +210,9 @@ static void draw_glyph_line(unsigned int glline, unsigned int x, unsigned int y)
 
 	for (i = 0; i < 8; i++)
 		if (glline & (1 << (7 - i))) {
-			(*putpixel)(x + i, y, FGCOLOR);
+			putpixel(x + i, y, FGCOLOR);
 		} else
-			(*putpixel)(x + i, y, BGCOLOR);
+			putpixel(x + i, y, BGCOLOR);
 }
 
 /***************************************************************/
@@ -235,7 +258,7 @@ static void draw_logo(unsigned int startx, unsigned int starty)
 			byte = helenos_bits[rowbytes * y + x / 8];
 			byte >>= x % 8;
 			if (byte & 1)
-				(*putpixel)(startx + x, starty + y, LOGOCOLOR);
+				putpixel(startx + x, starty + y, LOGOCOLOR);
 		}
 }
 
@@ -311,23 +334,23 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 {
 	switch (bpp) {
 		case 8:
-			putpixel = putpixel_1byte;
-			getpixel = getpixel_1byte;
+			rgb2scr = rgb_1byte;
+			scr2rgb = byte1_rgb;
 			pixelbytes = 1;
 			break;
 		case 16:
-			putpixel = putpixel_2byte;
-			getpixel = getpixel_2byte;
+			rgb2scr = rgb_2byte;
+			scr2rgb = byte2_rgb;
 			pixelbytes = 2;
 			break;
 		case 24:
-			putpixel = putpixel_3byte;
-			getpixel = getpixel_3byte;
+			rgb2scr = rgb_3byte;
+			scr2rgb = byte3_rgb;
 			pixelbytes = 3;
 			break;
 		case 32:
-			putpixel = putpixel_4byte;
-			getpixel = getpixel_4byte;
+			rgb2scr = rgb_4byte;
+			scr2rgb = byte4_rgb;
 			pixelbytes = 4;
 			break;
 		default:
@@ -347,11 +370,35 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	rows = y / FONT_SCANLINES;
 	columns = x / COL_WIDTH;
 
-	clear_screen();
+	/* Allocate double buffer */
+	int totsize = scanline * yres;
+	int pages = SIZE2FRAMES(totsize);
+	int order;
+	int rc;
+	if (pages == 1)
+		order = 0;
+	else
+		order = fnzb(pages-1)+1;
+
+	pfn_t frame = frame_alloc_rc(order,FRAME_ATOMIC,&rc);
+	if (!rc)
+		dbbuffer = (void *)PA2KA(PFN2ADDR(frame));
+	else 
+		printf("Failed to allocate scroll buffer.\n");
+	dboffset = 0;
+
+	/* Initialized blank line */
 	blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
 	ASSERT(blankline);
-	memcpy((void *) blankline, (void *) &fbaddress[(rows - 1) * ROW_BYTES], ROW_BYTES);
-	
+	for (y=0; y < FONT_SCANLINES; y++)
+		for (x=0; x < xres; x++)
+			(*rgb2scr)(&blankline[POINTPOS(x,y)],BGCOLOR);
+
+	clear_screen();
+
+	/* Update size of screen to match text area */
+	yres = rows * FONT_SCANLINES;
+
 	draw_logo(xres - helenos_width, 0);
 	invert_cursor();
 
@@ -365,4 +412,5 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("fb.bpp", NULL, bpp);
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
+
 }
