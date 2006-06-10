@@ -308,7 +308,7 @@ main(int argc, char *argv[])
 /* 	if (argc) */
 /* 		usage(); */
 
-	fallrate = 1000000 / level;
+	
 
 	for (i = 0; i <= 5; i++) {
 		for (j = i+1; j <= 5; j++) {
@@ -331,8 +331,8 @@ main(int argc, char *argv[])
 	scr_init();
 	initscores();
 	while (tetris_menu(&level)) {
-
-
+		fallrate = 1000000 / level;
+		
 		scr_clear();
 		setup_board();
 	
