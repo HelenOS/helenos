@@ -350,10 +350,12 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	/*
 	 * Attach to the containing task.
 	 */
+	ipl = interrupts_disable();	 
 	spinlock_lock(&task->lock);
 	if (!task->accept_new_threads) {
 		spinlock_unlock(&task->lock);
 		slab_free(thread_slab, t);
+		interrupts_restore(ipl);
 		return NULL;
 	}
 	list_append(&t->th_link, &task->th_head);
@@ -364,7 +366,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	/*
 	 * Register this thread in the system-wide list.
 	 */
-	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 	btree_insert(&threads_btree, (btree_key_t) ((__address) t), (void *) t, NULL);
 	spinlock_unlock(&threads_lock);
@@ -374,7 +375,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	return t;
 }
 
-/** Make thread exiting
+/** Terminate thread.
  *
  * End current thread execution and switch it to the exiting
  * state. All pending timeouts are executed.
@@ -437,16 +438,11 @@ int thread_join_timeout(thread_t *t, __u32 usec, int flags)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&t->lock);
-
 	ASSERT(!t->detached);
-	
-	(void) waitq_sleep_prepare(&t->join_wq);
 	spinlock_unlock(&t->lock);
-	
-	rc = waitq_sleep_timeout_unsafe(&t->join_wq, usec, flags);
-	
-	waitq_sleep_finish(&t->join_wq, rc, ipl);
 	interrupts_restore(ipl);
+	
+	rc = waitq_sleep_timeout(&t->join_wq, usec, flags);
 	
 	return rc;	
 }
@@ -466,7 +462,6 @@ void thread_detach(thread_t *t)
 	 * Since the thread is expected to not be already detached,
 	 * pointer to it must be still valid.
 	 */
-	
 	ipl = interrupts_disable();
 	spinlock_lock(&t->lock);
 	ASSERT(!t->detached);

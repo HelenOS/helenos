@@ -300,7 +300,7 @@ int task_kill(task_id_t id)
 	ta->refcount--;
 
 	/*
-	 * Interrupt all threads except this one.
+	 * Interrupt all threads except ktaskclnp.
 	 */	
 	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
 		thread_t *thr;
@@ -467,7 +467,7 @@ more_gc:
 		for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
 			thr = list_get_instance(cur, thread_t, th_link);
 			spinlock_lock(&thr->lock);
-			if (thr->state == Undead && thr->join_type == None) {
+			if (thr != t && thr->state == Undead && thr->join_type == None) {
 				thr->join_type = TaskGC;
 				spinlock_unlock(&thr->lock);
 				break;
