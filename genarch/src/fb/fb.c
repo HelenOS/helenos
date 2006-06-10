@@ -370,6 +370,14 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	rows = y / FONT_SCANLINES;
 	columns = x / COL_WIDTH;
 
+	sysinfo_set_item_val("fb", NULL, true);
+	sysinfo_set_item_val("fb.kind", NULL, 1);
+	sysinfo_set_item_val("fb.width", NULL, xres);
+	sysinfo_set_item_val("fb.height", NULL, yres);
+	sysinfo_set_item_val("fb.bpp", NULL, bpp);
+	sysinfo_set_item_val("fb.scanline", NULL, scan);
+	sysinfo_set_item_val("fb.address.physical", NULL, addr);
+
 	/* Allocate double buffer */
 	int totsize = scanline * yres;
 	int pages = SIZE2FRAMES(totsize);
@@ -405,12 +413,4 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
 	
-	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.kind", NULL, 1);
-	sysinfo_set_item_val("fb.width", NULL, xres);
-	sysinfo_set_item_val("fb.height", NULL, yres);
-	sysinfo_set_item_val("fb.bpp", NULL, bpp);
-	sysinfo_set_item_val("fb.scanline", NULL, scan);
-	sysinfo_set_item_val("fb.address.physical", NULL, addr);
-
 }
