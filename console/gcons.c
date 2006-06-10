@@ -89,10 +89,9 @@ static void vp_switch(int vp)
 static int vp_create(unsigned int x, unsigned int y, 
 		     unsigned int width, unsigned int height)
 {
-	/* Init function, use ipc_call_sync */
-	return ipc_call_sync_2(fbphone, FB_VIEWPORT_CREATE,
-			       (x << 16) | y, (width << 16) | height,
-			       NULL, NULL);
+	return async_req_2(fbphone, FB_VIEWPORT_CREATE,
+			   (x << 16) | y, (width << 16) | height,
+			   NULL, NULL);
 }
 
 static void clear(void)
@@ -382,7 +381,7 @@ void gcons_init(int phone)
 
 	fbphone = phone;
 
-	rc = ipc_call_sync_2(phone, FB_GET_RESOLUTION, 0, 0, &xres, &yres);
+	rc = async_req_2(phone, FB_GET_RESOLUTION, 0, 0, &xres, &yres);
 	if (rc)
 		return;
 	

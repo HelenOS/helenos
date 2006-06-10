@@ -459,7 +459,8 @@ int main(int argc, char *argv[])
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
 	};
-
+	async_new_connection(phonehash, 0, NULL, keyboard_events);
+	
 	/* Connect to framebuffer driver */
 	
 	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
@@ -503,8 +504,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
-	
 	curs_goto(0,0);
 	curs_visibility(connections[active_console].screenbuffer.is_cursor_visible);
 
