@@ -36,7 +36,8 @@
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
 #include <sysinfo.h>
-
+#include <kbd.h>
+#include <keys.h>
 
 #define MSIM_KEY_F1 0x504f1bL
 #define MSIM_KEY_F2 0x514f1bL
@@ -70,7 +71,7 @@
 
 
 irq_cmd_t msim_cmds[1] = {
-	{ CMD_MEM_READ_1, (void *)0xB0000000, 0 }
+	{ CMD_MEM_READ_1, (void *)0xB0000000, 0, 2 }
 };
 
 irq_code_t msim_kbd = {
@@ -85,7 +86,7 @@ int kbd_arch_init(void)
 	ipc_register_irq(2, &msim_kbd);
 	msim=sysinfo_value("machine.msim");
 	gxemul=sysinfo_value("machine.lgxemul");
-	return 1;
+	return 0;
 }
 
 
@@ -373,9 +374,9 @@ static int kbd_arch_process_gxemul(keybuffer_t *keybuffer, int scan_code)
 	return 1;
 }
 
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code)
+int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
-
+	int scan_code = IPC_GET_ARG2(*call);
 	static int esc_count=0;
 
 	

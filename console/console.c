@@ -36,10 +36,9 @@
 /* TODO: remove */
 #include <stdio.h>
 
-
-#include <kbd.h>
 #include <fb.h>
 #include <ipc/ipc.h>
+#include <keys.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <errno.h>

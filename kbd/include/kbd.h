@@ -37,20 +37,8 @@
 #ifndef __KBD_H__
 #define __KBD_H__
 
-#define KBD_PUSHCHAR 1024
 
-#define KBD_KEY_F1	0x3b
-#define KBD_KEY_F2	0x3c
-#define KBD_KEY_F3	0x3d
-#define KBD_KEY_F4	0x3e
-#define KBD_KEY_F5	0x3f
-#define KBD_KEY_F6	0x40
-#define KBD_KEY_F7	0x41
-#define KBD_KEY_F8	0x42
-#define KBD_KEY_F9	0x43
-#define KBD_KEY_F10	0x44
-#define KBD_KEY_F11	0x45
-#define KBD_KEY_F12	0x46
+int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call);
 
 #endif
 

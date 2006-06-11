@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup kbdamd64 amd64
- * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard handler.
+ * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard and mouse handler.
  * @ingroup  kbd
  * @{
  */
@@ -40,9 +40,40 @@
 #define __ia32_KBD_H__
 
 #include <key_buffer.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
+
+#define KBD_IRQ      1
+#define MOUSE_IRQ    12
+
+#define i8042_DATA      0x60
+#define i8042_STATUS    0X64
+
+
+typedef unsigned char u8;
+typedef short u16;
+
+static inline void i8042_data_write(u8 data)
+{
+	outb(i8042_DATA, data);
+}
+
+static inline u8 i8042_data_read(void)
+{
+	return inb(i8042_DATA);
+}
+
+static inline u8 i8042_status_read(void)
+{
+	return inb(i8042_STATUS);
+}
+
+static inline void i8042_command_write(u8 command)
+{
+	outb(i8042_STATUS, command);
+}
 
 int kbd_arch_init(void);
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
 
 #endif
 

@@ -49,6 +49,7 @@
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
+#include <libarch/ddi.h>
 
 #include "ega.h"
 #include "../console/screenbuffer.h"
@@ -70,11 +71,6 @@ saved_screen saved_screens[MAX_SAVED_SCREENS];
 
 #define EGA_STYLE(fg,bg) ((fg) > (bg) ? NORMAL_COLOR : INVERTED_COLOR)
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-
-
 /* Allow only 1 connection */
 static int client_connected = 0;
 
@@ -83,48 +79,6 @@ static unsigned int scr_height;
 static char *scr_addr;
 
 static unsigned int style = NORMAL_COLOR;
-
-static inline void outb(u16 port, u8 b)
-{
-	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
-}
-
-static inline void outw(u16 port, u16 w)
-{
-	asm volatile ("outw %0, %1\n" :: "a" (w), "d" (port));
-}
-
-static inline void outl(u16 port, u32 l)
-{
-	asm volatile ("outl %0, %1\n" :: "a" (l), "d" (port));
-}
-
-static inline u8 inb(u16 port)
-{
-	u8 val;
-
-	asm volatile ("inb %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
-
-static inline u16 inw(u16 port)
-{
-	u16 val;
-
-	asm volatile ("inw %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
-
-static inline u32 inl(u16 port)
-{
-	u32 val;
-
-	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
-
-
-
 
 static void clrscr(void)
 {
@@ -150,7 +104,8 @@ static void cursor_goto(unsigned int row, unsigned int col)
 
 static void cursor_disable(void)
 {
-	u8 stat;
+	uint8_t stat;
+
 	outb(EGA_IO_ADDRESS , 0xa);
 	stat=inb(EGA_IO_ADDRESS + 1);
 	outb(EGA_IO_ADDRESS , 0xa);
@@ -159,7 +114,8 @@ static void cursor_disable(void)
 
 static void cursor_enable(void)
 {
-	u8 stat;
+	uint8_t stat;
+
 	outb(EGA_IO_ADDRESS , 0xa);
 	stat=inb(EGA_IO_ADDRESS + 1);
 	outb(EGA_IO_ADDRESS , 0xa);

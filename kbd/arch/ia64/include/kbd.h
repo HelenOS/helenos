@@ -41,7 +41,6 @@
 #include <key_buffer.h>
 
 int kbd_arch_init(void);
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code);
 
 #endif
 

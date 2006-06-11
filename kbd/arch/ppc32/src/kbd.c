@@ -37,9 +37,11 @@
 #include <arch/kbd.h>
 #include <ipc/ipc.h>
 #include <sysinfo.h>
+#include <kbd.h>
+#include <keys.h>
 
 irq_cmd_t cuda_cmds[1] = {
-	{ CMD_PPC32_GETCHAR, 0, 0 }
+	{ CMD_PPC32_GETCHAR, 0, 0, 2 }
 };
 
 irq_code_t cuda_kbd = {
@@ -181,14 +183,16 @@ static int lchars[0x80] = {
 
 int kbd_arch_init(void)
 {
-	return (!ipc_register_irq(sysinfo_value("cuda.irq"), &cuda_kbd));
+	return ipc_register_irq(sysinfo_value("cuda.irq"), &cuda_kbd);
 }
 
 
-int kbd_arch_process(keybuffer_t *keybuffer, int scan_code) 
+int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
 {
-	if (scan_code != -1) {
-		uint8_t scancode = (uint8_t) scan_code;
+	int param = IPC_GET_ARG2(*call);
+
+	if (param != -1) {
+		uint8_t scancode = (uint8_t) param;
 	
 		if ((scancode & 0x80) != 0x80) {
 			int key = lchars[scancode & 0x7f];

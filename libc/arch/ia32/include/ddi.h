@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdmips32 mips32
- * @brief	HelenOS mips32 arch dependent parts of uspace keyboard handler.
- * @ingroup  kbd
- * @{
- */ 
-/** @file
- */
+#ifndef __ia32_libc_DDI_H_
+#define __ia32_libc_DDI_H_
 
-#ifndef __mips32_KBD_H__
-#define __mips32_KBD_H__
+static inline void outb(int16_t port, uint8_t b)
+{
+	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
+}
 
-#include <key_buffer.h>
+static inline void outw(int16_t port, int16_t w)
+{
+	asm volatile ("outw %0, %1\n" :: "a" (w), "d" (port));
+}
 
-int kbd_arch_init(void);
+static inline void outl(int16_t port, uint32_t l)
+{
+	asm volatile ("outl %0, %1\n" :: "a" (l), "d" (port));
+}
+
+static inline uint8_t inb(int16_t port)
+{
+	uint8_t val;
+
+	asm volatile ("inb %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
+static inline int16_t inw(int16_t port)
+{
+	int16_t val;
+
+	asm volatile ("inw %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
+static inline uint32_t inl(int16_t port)
+{
+	uint32_t val;
+
+	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
+	return val;
+}
+
 
 #endif
-
-/**
- * @}
- */ 

@@ -52,6 +52,7 @@
 #include <libadt/fifo.h>
 #include <key_buffer.h>
 #include <async.h>
+#include <keys.h>
 
 #define NAME "KBD"
 
@@ -62,10 +63,10 @@ keybuffer_t keybuffer;
 static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int chr;
-	
+
 	if (cons_connected && phone2cons != -1) {
 		/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
-		kbd_arch_process(&keybuffer, IPC_GET_ARG2(*call));
+		kbd_arch_process(&keybuffer, call);
 		
 		while (!keybuffer_empty(&keybuffer)) {
 			if (!keybuffer_pop(&keybuffer, (int *)&chr))
@@ -123,9 +124,8 @@ int main(int argc, char **argv)
 	ipcarg_t retval, arg1, arg2;
 	
 	/* Initialize arch dependent parts */
-	if (!(res = kbd_arch_init())) {
-			return -1;
-			};
+	if (kbd_arch_init())
+		return -1;
 	
 	/* Initialize key buffer */
 	keybuffer_init(&keybuffer);

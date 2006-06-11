@@ -26,23 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdmips32 mips32
- * @brief	HelenOS mips32 arch dependent parts of uspace keyboard handler.
- * @ingroup  kbd
- * @{
- */ 
-/** @file
- */
 
-#ifndef __mips32_KBD_H__
-#define __mips32_KBD_H__
+#ifndef _KBD_KEYS_H_
+#define _KBD_KEYS_H_
 
-#include <key_buffer.h>
+#define KBD_PUSHCHAR 1024
 
-int kbd_arch_init(void);
+#define KBD_KEY_F1	0x3b
+#define KBD_KEY_F2	0x3c
+#define KBD_KEY_F3	0x3d
+#define KBD_KEY_F4	0x3e
+#define KBD_KEY_F5	0x3f
+#define KBD_KEY_F6	0x40
+#define KBD_KEY_F7	0x41
+#define KBD_KEY_F8	0x42
+#define KBD_KEY_F9	0x43
+#define KBD_KEY_F10	0x44
+#define KBD_KEY_F11	0x45
+#define KBD_KEY_F12	0x46
 
 #endif
-
-/**
- * @}
- */ 

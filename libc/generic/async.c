@@ -448,12 +448,14 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid,
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
 	/* Unrouted call - do some default behaviour */
-	switch (IPC_GET_METHOD(*call)) {
-	case IPC_M_INTERRUPT:
+	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		in_interrupt_handler = 1;
 		(*interrupt_received)(callid,call);
 		in_interrupt_handler = 0;
 		return;
+	}		
+
+	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with thread etc. */
 		async_new_connection(IPC_GET_ARG3(*call), callid, call, client_connection);
