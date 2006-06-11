@@ -121,8 +121,6 @@
  * is hung up
  */
 #define IPC_M_PHONE_HUNGUP      3
-/** Interrupt notification */
-#define IPC_M_INTERRUPT         4
 
 /** Send as_area over IPC 
  * - ARG1 - src base address

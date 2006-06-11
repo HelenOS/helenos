@@ -34,10 +34,11 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - METHOD: IPC_M_INTERRUPT
- * - ARG1: interrupt number
- * - ARG2: payload modified by a 'top-half' handler
- * - ARG3: interrupt counter (may be needed to assure correct order
+ * - METHOD: interrupt number
+ * - ARG1: payload modified by a 'top-half' handler
+ * - ARG2: payload
+ * - ARG3: payload
+ * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *         in multithreaded drivers)
  */
 
@@ -66,6 +67,7 @@ static int irq_conns_size;
 static void code_execute(call_t *call, irq_code_t *code)
 {
 	int i;
+	__native dstval = 0;
 	
 	if (!code)
 		return;
@@ -73,16 +75,16 @@ static void code_execute(call_t *call, irq_code_t *code)
 	for (i=0; i < code->cmdcount;i++) {
 		switch (code->cmds[i].cmd) {
 		case CMD_MEM_READ_1:
-			IPC_SET_ARG2(call->data, *((__u8 *)code->cmds[i].addr));
+			dstval = *((__u8 *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_2:
-			IPC_SET_ARG2(call->data, *((__u16 *)code->cmds[i].addr));
+			dstval = *((__u16 *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_4:
-			IPC_SET_ARG2(call->data, *((__u32 *)code->cmds[i].addr));
+			dstval = *((__u32 *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_8:
-			IPC_SET_ARG2(call->data, *((__u64 *)code->cmds[i].addr));
+			dstval = *((__u64 *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_WRITE_1:
 			*((__u8 *)code->cmds[i].addr) = code->cmds[i].value;
@@ -98,7 +100,7 @@ static void code_execute(call_t *call, irq_code_t *code)
 			break;
 #if defined(ia32) || defined(amd64)
 		case CMD_PORT_READ_1:
-			IPC_SET_ARG2(call->data, inb((long)code->cmds[i].addr));
+			dstval = inb((long)code->cmds[i].addr);
 			break;
 		case CMD_PORT_WRITE_1:
 			outb((long)code->cmds[i].addr, code->cmds[i].value);
@@ -106,16 +108,19 @@ static void code_execute(call_t *call, irq_code_t *code)
 #endif
 #if defined(ia64) 
 		case CMD_IA64_GETCHAR:
-			IPC_SET_ARG2(call->data, _getc(&ski_uconsole));
+			dstval = _getc(&ski_uconsole);
 			break;
 #endif
 #if defined(ppc32)
 		case CMD_PPC32_GETCHAR:
-			IPC_SET_ARG2(call->data, cuda_get_scancode());
+			dstval = cuda_get_scancode();
 			break;
 #endif
 		default:
 			break;
+		}
+		if (code->cmds[i].dstarg && code->cmds[i].dstarg < 4) {
+			call->data.args[code->cmds[i].dstarg] = dstval;
 		}
 	}
 }
@@ -224,7 +229,7 @@ static void send_call(int mq, call_t *call)
 /** Send notification message
  *
  */
-void ipc_irq_send_msg(int irq, __native a2, __native a3)
+void ipc_irq_send_msg(int irq, __native a1, __native a2, __native a3)
 {
 	call_t *call;
 	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
@@ -238,10 +243,12 @@ void ipc_irq_send_msg(int irq, __native a2, __native a3)
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
-		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
-		IPC_SET_ARG1(call->data, irq);
+		IPC_SET_METHOD(call->data, irq);
+		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
+		/* Put a counter to the message */
+		call->private = atomic_preinc(&irq_conns[mq].counter);
 		
 		send_call(mq, call);
 	}
@@ -267,9 +274,10 @@ void ipc_irq_send_notif(int irq)
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
-		IPC_SET_METHOD(call->data, IPC_M_INTERRUPT);
-		IPC_SET_ARG1(call->data, irq);
-		IPC_SET_ARG3(call->data, atomic_preinc(&irq_conns[mq].counter));
+		/* Put a counter to the message */
+		call->private = atomic_preinc(&irq_conns[mq].counter);
+		/* Set up args */
+		IPC_SET_METHOD(call->data, irq);
 
 		/* Execute code to handle irq */
 		code_execute(call, irq_conns[mq].code);

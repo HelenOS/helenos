@@ -518,7 +518,12 @@ restart:
 
 	if (call->flags & IPC_CALL_NOTIF) {
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
-		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
+
+		/* Set in_phone_hash to the interrupt counter */
+		call->data.phone = (void *)call->private;
+		
+		STRUCT_TO_USPACE(calldata, &call->data);
+
 		ipc_call_free(call);
 		
 		return ((__native)call) | IPC_CALLID_NOTIFICATION;

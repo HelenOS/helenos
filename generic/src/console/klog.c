@@ -78,7 +78,7 @@ static void klog_vprintf(const char *fmt, va_list args)
 		if (ret >= klogsize)
 			goto out;
 	}
-	ipc_irq_send_msg(IPC_IRQ_KLOG, klogpos, ret);
+	ipc_irq_send_msg(IPC_IRQ_KLOG, klogpos, ret, 0);
 	klogpos += ret;
 	if (klogpos >= klogsize)
 		klogpos = 0;
