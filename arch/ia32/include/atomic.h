@@ -52,12 +52,11 @@ static inline void atomic_dec(atomic_t *val) {
 
 static inline long atomic_postinc(atomic_t *val) 
 {
-	long r;
+	long r = 1;
 
 	__asm__ volatile (
-		"movl $1, %0\n"
-		"lock xaddl %0, %1\n"
-		: "=r" (r), "=m" (val->count)
+		"lock xaddl %1, %0\n"
+		: "=m" (val->count) : "r" (r)
 	);
 
 	return r;
@@ -65,12 +64,11 @@ static inline long atomic_postinc(atomic_t *val)
 
 static inline long atomic_postdec(atomic_t *val) 
 {
-	long r;
+	long r = -1;
 	
 	__asm__ volatile (
-		"movl $-1, %0\n"
-		"lock xaddl %0, %1\n"
-		: "=r" (r), "=m" (val->count)
+		"lock xaddl %1, %0\n"
+		: "=m" (val->count) : "r"(r)
 	);
 	
 	return r;
