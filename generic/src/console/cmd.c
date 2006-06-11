@@ -78,7 +78,7 @@ static cmd_info_t exit_info = {
 static int cmd_continue(cmd_arg_t *argv);
 static cmd_info_t continue_info = {
 	.name = "continue",
-	.description ="Return console back to userspace",
+	.description ="Return console back to userspace.",
 	.func = cmd_continue,
 	.argc = 0
 };
@@ -262,7 +262,7 @@ cmd_info_t tlb_info = {
 static int cmd_threads(cmd_arg_t *argv);
 static cmd_info_t threads_info = {
 	.name = "threads",
-	.description = "List all threads",
+	.description = "List all threads.",
 	.func = cmd_threads,
 	.argc = 0
 };
@@ -270,7 +270,7 @@ static cmd_info_t threads_info = {
 static int cmd_tasks(cmd_arg_t *argv);
 static cmd_info_t tasks_info = {
 	.name = "tasks",
-	.description = "List all tasks",
+	.description = "List all tasks.",
 	.func = cmd_tasks,
 	.argc = 0
 };
@@ -279,7 +279,7 @@ static cmd_info_t tasks_info = {
 static int cmd_sched(cmd_arg_t *argv);
 static cmd_info_t sched_info = {
 	.name = "scheduler",
-	.description = "List all scheduler information",
+	.description = "List all scheduler information.",
 	.func = cmd_sched,
 	.argc = 0
 };
@@ -287,7 +287,7 @@ static cmd_info_t sched_info = {
 static int cmd_slabs(cmd_arg_t *argv);
 static cmd_info_t slabs_info = {
 	.name = "slabs",
-	.description = "List SLAB caches.",
+	.description = "List slab caches.",
 	.func = cmd_slabs,
 	.argc = 0
 };
@@ -308,7 +308,7 @@ static cmd_arg_t ipc_task_argv = {
 };
 static cmd_info_t ipc_task_info = {
 	.name = "ipc_task",
-	.description = "ipc_task <taskid> Show IPC information of given task",
+	.description = "ipc_task <taskid> Show IPC information of given task.",
 	.func = cmd_ipc_task,
 	.argc = 1,
 	.argv = &ipc_task_argv
@@ -794,6 +794,8 @@ int cmd_version(cmd_arg_t *argv)
  */
 int cmd_continue(cmd_arg_t *argv)
 {
+	printf("The kernel will now relinquish the console.\n");
+	printf("Use userspace controls to redraw the screen.\n");
 	arch_release_console();
 	return 1;
 }
