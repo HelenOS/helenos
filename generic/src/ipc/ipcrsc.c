@@ -88,7 +88,7 @@
  *
  * *** The answerbox hangs up (ipc_answer(EHANGUP))
  * - The phone is disconnected. EHANGUP response code is sent
- *   to the calling process. All new calls through this phone
+ *   to the calling task. All new calls through this phone
  *   get a EHUNGUP error code, the task is expected to
  *   send an sys_ipc_hangup after cleaning up it's internal structures.
  *

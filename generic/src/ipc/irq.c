@@ -255,7 +255,7 @@ void ipc_irq_send_msg(int irq, __native a1, __native a2, __native a3)
 	spinlock_unlock(&irq_conns[mq].lock);
 }
 
-/** Notify process that an irq had happend
+/** Notify task that an irq had occurred.
  *
  * We expect interrupts to be disabled
  */
