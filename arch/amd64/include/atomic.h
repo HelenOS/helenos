@@ -56,7 +56,7 @@ static inline long atomic_postinc(atomic_t *val)
 
 	__asm__ volatile (
 		"lock xaddq %1, %0\n"
-		: "=m" (val->count) : "r" (r)
+		: "=m" (val->count), "+r" (r)
 	);
 
 	return r;
@@ -68,7 +68,7 @@ static inline long atomic_postdec(atomic_t *val)
 	
 	__asm__ volatile (
 		"lock xaddq %1, %0\n"
-		: "=m" (val->count) : "r" (r)
+		: "=m" (val->count), "+r" (r)
 	);
 	
 	return r;
