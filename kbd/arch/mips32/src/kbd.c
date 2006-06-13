@@ -80,17 +80,18 @@ irq_code_t msim_kbd = {
 };
 
 static int msim,gxemul;
+static int fb_fb;
+
 
 int kbd_arch_init(void)
 {
+	fb_fb=sysinfo_value("fb.kind")==1;
 	ipc_register_irq(2, &msim_kbd);
-	msim=sysinfo_value("machine.msim");
-	gxemul=sysinfo_value("machine.lgxemul");
 	return 0;
 }
 
 
-//*
+/*
 //*
 //* Please preserve this code (it can be used to determine scancodes)
 //*
@@ -98,24 +99,24 @@ int to_hex(int v)
 {
         return "0123456789ABCDEF"[v];
 }
-//*/
+*/
 
-static int kbd_arch_process_msim(keybuffer_t *keybuffer, int scan_code)
+static int kbd_arch_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 {
 
 	static unsigned long buf=0;
 	static int count=0;	
 
 
-	//* Please preserve this code (it can be used to determine scancodes)
-	//*
-	//keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
-	//keybuffer_push(keybuffer, to_hex(scan_code&0xf));
-	//keybuffer_push(keybuffer, ' ');
-	//keybuffer_push(keybuffer, ' ');
-	//*/
-	//return 1;
+	/* Please preserve this code (it can be used to determine scancodes)
 	
+	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
+	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
+	keybuffer_push(keybuffer, ' ');
+	keybuffer_push(keybuffer, ' ');
+	
+	return 1;
+	*/
 	
 	if(scan_code==0x7e)
 	{
@@ -251,22 +252,22 @@ static int kbd_arch_process_msim(keybuffer_t *keybuffer, int scan_code)
 
 
 
-static int kbd_arch_process_gxemul(keybuffer_t *keybuffer, int scan_code)
+static int kbd_arch_process_fb(keybuffer_t *keybuffer, int scan_code)
 {
 
 	static unsigned long buf=0;
 	static int count=0;	
 
 
-	//* Please preserve this code (it can be used to determine scancodes)
-	//*
-	//keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
-	//keybuffer_push(keybuffer, to_hex(scan_code&0xf));
-	//keybuffer_push(keybuffer, ' ');
-	//keybuffer_push(keybuffer, ' ');
-	//*/
-	//return 1;
+	/* Please preserve this code (it can be used to determine scancodes)
 	
+	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
+	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
+	keybuffer_push(keybuffer, ' ');
+	keybuffer_push(keybuffer, ' ');
+	
+	return 1;
+	*/
 	
 	if ( scan_code == '\r' )
 		scan_code = '\n' ;
@@ -389,12 +390,10 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 		esc_count=0;
 	}
 
-	if(msim) return kbd_arch_process_msim(keybuffer, scan_code);
-	if(gxemul) return kbd_arch_process_gxemul(keybuffer, scan_code);
+	if(fb_fb) return kbd_arch_process_fb(keybuffer, scan_code);
+	return kbd_arch_process_no_fb(keybuffer, scan_code);
 
 	return 0;
 }
-
-/**
- * @}
- */ 
+/** @}
+*/
