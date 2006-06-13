@@ -704,7 +704,10 @@ void zone_merge(int z1, int z2)
 	spinlock_lock(&zone2->lock);
 
 	cframes = SIZE2FRAMES(zone_conf_size(zone2->base+zone2->count-zone1->base));
-	order = fnzb(cframes) + 1;
+	if (cframes == 1)
+		order = 0;
+	else 
+		order = fnzb(cframes - 1) + 1;
 
 	/* Allocate zonedata inside one of the zones */
 	if (zone_can_alloc(zone1, order))
