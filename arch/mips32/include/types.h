@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_TYPES_H__
 #define __mips32_TYPES_H__
 
@@ -55,3 +61,7 @@ typedef struct pte pte_t;
 typedef __u32 pfn_t;
 
 #endif
+
+ /** @}
+ */
+

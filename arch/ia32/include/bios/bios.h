@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __BIOS_H__
 #define __BIOS_H__
 
@@ -38,3 +44,7 @@ extern __address ebda;
 extern void bios_init(void);
 
 #endif /* __BIOS_H__ */
+
+ /** @}
+ */
+

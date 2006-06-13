@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ * @ingroup ia32mm, am64mm
+ */
+
 #ifndef __ia32_MEMORY_INIT_H__
 #define __ia32_MEMORY_INIT_H__
 
@@ -36,3 +43,7 @@ size_t get_memory_size(void);
 void memory_print_map(void);
 
 #endif
+
+ /** @}
+ */
+

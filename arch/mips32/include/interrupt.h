@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_INTERRUPT_H__
 #define __mips32_INTERRUPT_H__
 
@@ -46,3 +52,7 @@
 extern void interrupt_init(void);
 
 #endif
+
+ /** @}
+ */
+

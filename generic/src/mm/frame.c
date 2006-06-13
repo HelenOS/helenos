@@ -27,8 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	frame.c
+ * @file
  * @brief	Physical frame allocator.
  *
  * This file contains the physical frame allocator and memory zone management.
@@ -1144,4 +1148,8 @@ out:
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
 }
+
+
+ /** @}
+ */
 

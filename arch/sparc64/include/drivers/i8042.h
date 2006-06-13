@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_I8042_H__
 #define __sparc64_I8042_H__
 
@@ -64,3 +70,7 @@ static inline void i8042_command_write(__u8 command)
 extern void kbd_init(void);
 
 #endif
+
+ /** @}
+ */
+

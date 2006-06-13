@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64cpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_CPU_H__
 #define __ia64_CPU_H__
 
@@ -58,3 +64,7 @@ static inline __u64 cpuid_read(int n)
 }
 
 #endif
+
+ /** @}
+ */
+

@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	buddy.c
+ * @file
  * @brief	Buddy allocator framework.
  *
  * This file contains buddy system allocator framework.
@@ -316,3 +320,7 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 	printf("Buddy system contains %zd free elements (%zd blocks)\n" , elem_count, block_count);
 
 }
+
+ /** @}
+ */
+

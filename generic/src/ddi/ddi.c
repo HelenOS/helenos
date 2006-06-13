@@ -25,9 +25,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/** @defgroup ddi Device Driver Interface
+ * @ingroup kernel
+ * @{
+ * @}
+ */
+
+ /** @addtogroup genericddi generic
+ * @ingroup ddi
+ * @{
+ */
  
 /**
- * @file	ddi.c
+ * @file
  * @brief	Device Driver Interface functions.
  *
  * This file contains functions that comprise the Device Driver Interface.
@@ -198,3 +209,7 @@ __native sys_preempt_control(int enable)
                 preemption_disable();
         return 0;
 }
+
+ /** @}
+ */
+

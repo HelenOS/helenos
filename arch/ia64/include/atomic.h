@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_ATOMIC_H__
 #define __ia64_ATOMIC_H__
 
@@ -55,3 +61,7 @@ static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
 static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif
+
+ /** @}
+ */
+

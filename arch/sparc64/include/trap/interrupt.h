@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 /**
  * This file contains interrupt vector trap handler.
  */
@@ -71,3 +77,7 @@
 #endif /* __ASM__ */
 
 #endif
+
+ /** @}
+ */
+

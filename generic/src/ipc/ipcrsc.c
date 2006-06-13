@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 /* IPC resources management
  *
  * The goal of this source code is to properly manage IPC resources
@@ -206,3 +212,7 @@ void phone_connect(int phoneid, answerbox_t *box)
 	ASSERT(phone->state == IPC_PHONE_CONNECTING);
 	ipc_phone_connect(phone, box);
 }
+
+ /** @}
+ */
+

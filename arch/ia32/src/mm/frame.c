@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ * @ingroup ia32mm, amd64mm
+ */
+
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
 #include <mm/as.h>
@@ -135,3 +142,7 @@ void frame_arch_init(void)
 #endif
 	}
 }
+
+ /** @}
+ */
+

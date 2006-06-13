@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32cpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_CP0_H__
 #define __mips32_CP0_H__
 
@@ -112,3 +118,7 @@ GEN_WRITE_CP0(epc, 14);
 GEN_READ_CP0(prid, 15);
 
 #endif
+
+ /** @}
+ */
+

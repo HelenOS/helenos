@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __BUDDY_H__
 #define __BUDDY_H__
 
@@ -66,3 +72,7 @@ extern size_t buddy_conf_size(int max_order);
 extern link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block);
 
 #endif
+
+ /** @}
+ */
+

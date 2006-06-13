@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_BOOT_H__
 #define __amd64_BOOT_H__
 
@@ -39,3 +45,7 @@
 #define MULTIBOOT_LOADER_MAGIC	0x2BADB002
 
 #endif
+
+ /** @}
+ */
+

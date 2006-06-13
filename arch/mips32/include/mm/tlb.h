@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_TLB_H__
 #define __mips32_TLB_H__
 
@@ -174,3 +180,7 @@ extern void tlb_refill(istate_t *istate);
 extern void tlb_modified(istate_t *istate);
 
 #endif
+
+ /** @}
+ */
+

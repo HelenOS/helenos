@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_ARCH_H__
 #define __ia64_ARCH_H__
 
@@ -34,3 +40,7 @@
 #include <arch/ski/ski.h>
 
 #endif
+
+ /** @}
+ */
+

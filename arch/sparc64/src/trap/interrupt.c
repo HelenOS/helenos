@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <arch/types.h>
@@ -51,3 +57,7 @@ void irq_ipc_bind_arch(__native irq)
 	panic("not implemented\n");
 	/* TODO */
 }
+
+ /** @}
+ */
+

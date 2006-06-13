@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MADT_H__
 #define __MADT_H__
 
@@ -138,3 +144,7 @@ extern struct smp_config_operations madt_config_operations;
 extern void acpi_madt_parse(void);
 
 #endif /* __MADT_H__ */
+
+ /** @}
+ */
+

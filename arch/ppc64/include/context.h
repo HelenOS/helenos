@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_CONTEXT_H__
 #define __ppc64_CONTEXT_H__
 
@@ -66,3 +72,7 @@ struct context {
 } __attribute__ ((packed));
 
 #endif
+
+ /** @}
+ */
+

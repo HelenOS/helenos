@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/i8042/i8042.h>
 #include <arch/drivers/i8042.h>
 #include <arch/interrupt.h>
@@ -566,3 +572,7 @@ void i8042_poll(void)
 		}
 	}
 }
+
+ /** @}
+ */
+

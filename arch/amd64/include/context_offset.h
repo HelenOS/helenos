@@ -8,3 +8,7 @@
 #define OFFSET_R14 0x30
 #define OFFSET_R15 0x38
 #define OFFSET_IPL 0x40
+
+ /** @}
+ */
+

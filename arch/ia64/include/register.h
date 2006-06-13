@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_REGISTER_H__
 #define __ia64_REGISTER_H__
 
@@ -267,3 +273,7 @@ typedef union cpuid3 cpuid3_t;
 #endif /* !__ASM__ */
 
 #endif
+
+ /** @}
+ */
+

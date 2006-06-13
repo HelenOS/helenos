@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MUTEX_H__
 #define __MUTEX_H__
 
@@ -52,3 +58,7 @@ extern int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int flags);
 extern void mutex_unlock(mutex_t *mtx);
 
 #endif
+
+ /** @}
+ */
+

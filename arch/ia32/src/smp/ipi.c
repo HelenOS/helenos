@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifdef CONFIG_SMP
 
 #include <smp/ipi.h>
@@ -37,3 +43,7 @@ void ipi_broadcast_arch(int ipi)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

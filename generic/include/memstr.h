@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MEMSTR_H__
 #define __MEMSTR_H__
 
@@ -41,3 +47,7 @@ extern void _memsetb(__address dst, size_t cnt, __u8 x);
 extern void _memsetw(__address dst, size_t cnt, __u16 x);
 
 #endif
+
+ /** @}
+ */
+

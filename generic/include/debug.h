@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericdebug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
@@ -58,3 +64,7 @@
 #define STRING_ARG(arg) #arg
 
 #endif
+
+ /** @}
+ */
+

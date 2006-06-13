@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	ipi.c
+ * @file
  * @brief	Generic IPI interface.
  */
  
@@ -61,3 +65,7 @@ void ipi_broadcast(int ipi)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __IRQ_H__
 #define __IRQ_H__
 
@@ -80,3 +86,7 @@ extern void ipc_irq_cleanup(answerbox_t *box);
 #endif
 
 #endif
+
+ /** @}
+ */
+

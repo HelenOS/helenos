@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_TYPES_H__
 #define __amd64_TYPES_H__
 
@@ -53,3 +59,7 @@ typedef __s64 __snative;
 typedef struct page_specifier pte_t;
 
 #endif
+
+ /** @}
+ */
+

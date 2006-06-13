@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/types.h>
 #include <time/clock.h>
 #include <time/delay.h>
@@ -130,3 +136,7 @@ void i8254_interrupt(int n, istate_t *istate)
 	trap_virtual_eoi();
 	clock();
 }
+
+ /** @}
+ */
+

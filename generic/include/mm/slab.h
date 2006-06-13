@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SLAB_H__
 #define __SLAB_H__
 
@@ -128,3 +134,7 @@ extern void slab_print_list(void);
 extern void * malloc(unsigned int size, int flags);
 extern void free(void *obj);
 #endif
+
+ /** @}
+ */
+

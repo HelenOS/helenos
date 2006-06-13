@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __VESA_H__
 #define __VESA_H__
 
@@ -33,3 +39,7 @@ extern int vesa_present(void);
 extern void vesa_init(void);
 
 #endif
+
+ /** @}
+ */
+

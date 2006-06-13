@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/page.h>
 #include <arch/mm/tlb.h>
 #include <genarch/mm/page_ht.h>
@@ -76,3 +82,7 @@ __address hw_map(__address physaddr, size_t size)
 	
 	return virtaddr;
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+ /** @addtogroup generic	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ALIGN_H__
 #define __ALIGN_H__
 
@@ -45,3 +53,7 @@
 #define ALIGN_UP(s, a)		(((s) + ((a) - 1)) & ~((a) - 1))
 
 #endif
+
+ /** @}
+ */
+

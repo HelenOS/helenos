@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ERRNO_H__
 #define __ERRNO_H__
 
@@ -49,3 +55,7 @@
 #define EBUSY           -14     /* Resource is busy */
 
 #endif
+
+ /** @}
+ */
+

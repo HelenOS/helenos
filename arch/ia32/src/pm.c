@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/pm.h>
 #include <config.h>
 #include <arch/types.h>
@@ -229,3 +235,7 @@ void set_tls_desc(__address tls)
 	/* Reload gdt register to update GS in CPU */
 	gdtr_load(&cpugdtr);
 }
+
+ /** @}
+ */
+

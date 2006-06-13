@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	futex.c
+ * @file
  * @brief	Kernel backend for futexes.
  */
 
@@ -330,3 +334,7 @@ void futex_cleanup(void)
 	mutex_unlock(&TASK->futexes_lock);
 	rwlock_write_unlock(&futex_ht_lock);
 }
+
+ /** @}
+ */
+

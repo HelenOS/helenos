@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	mutex.c
+ * @file
  * @brief	Mutexes.
  */
  
@@ -75,4 +79,8 @@ void mutex_unlock(mutex_t *mtx)
 {
 	semaphore_up(&mtx->sem);
 }
+
+
+ /** @}
+ */
 

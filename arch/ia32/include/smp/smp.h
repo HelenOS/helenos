@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_SMP_H__
 #define __ia32_SMP_H__
 
@@ -44,3 +50,7 @@ struct smp_config_operations {
 extern int smp_irq_to_pin(int irq);
 
 #endif
+
+ /** @}
+ */
+

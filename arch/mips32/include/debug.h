@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_DEBUG_H__
 #define __mips23_DEBUG_H__
 
@@ -44,3 +50,7 @@
 
 
 #endif
+
+ /** @}
+ */
+

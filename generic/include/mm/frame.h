@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __FRAME_H__
 #define __FRAME_H__
 
@@ -107,3 +113,7 @@ extern void zone_print_list(void);
 void zone_print_one(int znum);
 
 #endif
+
+ /** @}
+ */
+

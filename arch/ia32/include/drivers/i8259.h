@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __I8259_H__
 #define __I8259_H__
 
@@ -46,3 +52,7 @@ extern void pic_disable_irqs(__u16 irqmask);
 extern void pic_eoi(void);
 
 #endif
+
+ /** @}
+ */
+

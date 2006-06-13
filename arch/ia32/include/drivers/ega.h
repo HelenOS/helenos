@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __EGA_H__
 #define __EGA_H__
 
@@ -37,3 +43,7 @@
 extern void ega_init(void);
 
 #endif
+
+ /** @}
+ */
+

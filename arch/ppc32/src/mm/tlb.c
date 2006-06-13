@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <mm/tlb.h>
 
 
@@ -75,3 +81,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 void tlb_print(void)
 {
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _mips32_DEBUGGER_H_
 #define _mips32_DEBUGGER_H_
 
@@ -58,3 +64,7 @@ void debugger_bpoint(istate_t *istate);
 extern bpinfo_t breakpoints[BKPOINTS_MAX];
 
 #endif
+
+ /** @}
+ */
+

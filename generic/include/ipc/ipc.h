@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __IPC_H__
 #define __IPC_H__
 
@@ -236,3 +242,7 @@ extern answerbox_t *ipc_phone_0;
 #endif
 
 #endif
+
+ /** @}
+ */
+

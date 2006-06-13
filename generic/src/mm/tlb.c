@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	tlb.c
+ * @file
  * @brief	Generic TLB shootdown algorithm.
  *
  * The algorithm implemented here is based on the CMU TLB shootdown
@@ -180,3 +184,7 @@ void tlb_shootdown_ipi_recv(void)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

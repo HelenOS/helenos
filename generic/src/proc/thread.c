@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+
 /**
- * @file	thread.c
+ * @file
  * @brief	Thread management functions.
  */
 
@@ -608,3 +612,7 @@ __native sys_thread_exit(int uspace_status)
 	/* Unreachable */
 	return 0;
 }
+
+ /** @}
+ */
+

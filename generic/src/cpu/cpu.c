@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
@@ -26,8 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup cpu CPU
+ * @ingroup kernel
+ * @{
+ * @}
+ */
+
+ /** @addtogroup genericcpu generic
+ * @ingroup cpu
+ * @{
+ */
+
 /**
- * @file	cpu.c
+ * @file
  * @brief	CPU subsystem initialization and listing.
  */
  
@@ -104,3 +115,7 @@ void cpu_list(void)
 			printf("cpu%d: not active\n", i);
 	}
 }
+
+ /** @}
+ */
+

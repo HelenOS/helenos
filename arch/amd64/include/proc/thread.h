@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_THREAD_H__
 #define __amd64_THREAD_H__
 
@@ -36,3 +42,7 @@ typedef struct {
 } thread_arch_t;
 
 #endif
+
+ /** @}
+ */
+

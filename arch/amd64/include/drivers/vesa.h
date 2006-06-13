@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __VESA_H__
 #define __VESA_H__
 
@@ -35,3 +41,7 @@ void vesa_init(void);
 
 
 #endif
+
+ /** @}
+ */
+

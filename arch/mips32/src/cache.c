@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/cache.h>
 #include <panic.h>
 
@@ -33,3 +39,7 @@ void cache_error(void)
 {
 	panic("cache_error exception\n");
 }
+
+ /** @}
+ */
+

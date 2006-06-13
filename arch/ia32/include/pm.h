@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PM_H__
 #define __PM_H__
 
@@ -171,3 +177,7 @@ extern void set_tls_desc(__address tls);
 #endif /* __ASM__ */
 
 #endif
+
+ /** @}
+ */
+

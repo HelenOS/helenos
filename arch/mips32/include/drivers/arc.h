@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ARC_H__
 #define __mips32_ARC_H__
 
@@ -256,3 +262,7 @@ void arc_frame_init(void);
 void arc_console(void);
 
 #endif
+
+ /** @}
+ */
+

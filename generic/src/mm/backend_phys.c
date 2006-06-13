@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	backend_elf.c
+ * @file
  * @brief	Backend for address space areas backed by continuous physical memory.
  */
 
@@ -86,3 +90,7 @@ int phys_page_fault(as_area_t *area, __address addr, pf_access_t access)
 void phys_share(as_area_t *area)
 {
 }
+
+ /** @}
+ */
+

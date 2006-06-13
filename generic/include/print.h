@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PRINT_H__
 #define __PRINT_H__
 
@@ -47,3 +53,7 @@ extern int vsprintf(char *str, const char *fmt, va_list ap);
 extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 
 #endif
+
+ /** @}
+ */
+

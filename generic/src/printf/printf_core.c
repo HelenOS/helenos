@@ -27,8 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
 /**
- * @file	print.c
+ * @file
  * @brief	Printing functions.
  */
 
@@ -100,7 +103,7 @@ static __native strlen(const char *str)
  * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
  * @param count 
  * @param ps output method and its data
- * @return number or printed characters
+ * @return number of printed characters
  */
 static int printf_putnchars(const char * buf, size_t count, struct printf_spec *ps)
 {
@@ -110,7 +113,7 @@ static int printf_putnchars(const char * buf, size_t count, struct printf_spec *
 /** Print string without added newline
  * @param str string to print
  * @param ps write function specification and support data
- * @return number or printed characters
+ * @return number of printed characters
  */
 static int printf_putstr(const char * str, struct printf_spec *ps)
 {
@@ -128,7 +131,7 @@ static int printf_putstr(const char * str, struct printf_spec *ps)
 /** Print one character to output
  * @param c one character
  * @param ps output method
- * @return number or printed characters
+ * @return number of printed characters
  */
 static int printf_putchar(int c, struct printf_spec *ps)
 {
@@ -149,7 +152,6 @@ static int print_char(char c, int width, __u64 flags, struct printf_spec *ps)
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (--width > 0) { 	/* one space is consumed by character itself hence predecrement */
-			/* FIXME: painful slow */
 			if (printf_putchar(' ', ps) > 0)	
 				++counter;
 		}
@@ -715,4 +717,8 @@ out:
 	
 	return counter;
 }
+
+
+ /** @}
+ */
 

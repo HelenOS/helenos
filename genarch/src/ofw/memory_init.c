@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/ofw/memory_init.h>
 #include <genarch/ofw/ofw.h>
 #include <panic.h>
@@ -86,3 +92,7 @@ void ofw_init_zones(void)
 			    confdata, 0);
 	}
 }
+
+ /** @}
+ */
+

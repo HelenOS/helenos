@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_FPU_CONTEXT_H__
 #define __mips32_FPU_CONTEXT_H__
 
@@ -39,3 +45,7 @@ struct fpu_context {
 };
 
 #endif
+
+ /** @}
+ */
+

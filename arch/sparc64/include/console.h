@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_CONSOLE_H__
 #define __sparc64_CONSOLE_H__
 
@@ -35,3 +41,7 @@ extern void ofw_sparc64_console_init(void);
 extern void standalone_sparc64_console_init(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_ASID_H__
 #define __ia64_ASID_H__
 
@@ -55,3 +61,7 @@ typedef __u32 rid_t;
 #define ASID_MAX_ARCH		(RID_MAX/RIDS_PER_ASID)
 
 #endif
+
+ /** @}
+ */
+

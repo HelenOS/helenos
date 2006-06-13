@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PANIC_H__
 #define __PANIC_H__
 
@@ -38,3 +44,7 @@
 extern void panic_printf(char *fmt, ...) __attribute__((noreturn)) ;
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_FADDR_H__
 #define __ia32_FADDR_H__
 
@@ -34,3 +40,7 @@
 #define FADDR(fptr)		((__address) (fptr))
 
 #endif
+
+ /** @}
+ */
+

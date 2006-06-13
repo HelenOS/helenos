@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __BYTEORDER_H__
 #define __BYTEORDER_H__
 
@@ -50,3 +56,7 @@ static inline __u32 __u32_byteorder_swap(__u32 n)
 }
 
 #endif
+
+ /** @}
+ */
+

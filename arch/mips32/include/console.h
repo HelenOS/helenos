@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_CONSOLE_H__
 #define __mips32_CONSOLE_H__
 
@@ -33,3 +39,7 @@
 void console_init(void);
 
 #endif
+
+ /** @}
+ */
+

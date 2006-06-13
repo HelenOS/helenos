@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32ddi mips32
+ * @ingroup ddi
+ * @{
+ */
+/** @file
+ */
+
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <arch/types.h>
@@ -48,3 +55,7 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 {
 	return 0;
 }
+
+ /** @}
+ */
+

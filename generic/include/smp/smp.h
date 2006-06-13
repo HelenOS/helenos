@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SMP_H__
 #define __SMP_H__
 
@@ -36,3 +42,7 @@ extern void smp_init(void);
 #endif /* CONFIG_SMP */
 
 #endif /* __SMP_H__ */
+
+ /** @}
+ */
+

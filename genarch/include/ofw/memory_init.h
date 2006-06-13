@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __OFW_MEMORY_INIT_H__
 #define __OFW_MEMORY_INIT_H__
 
@@ -36,3 +42,7 @@ extern size_t ofw_get_memory_size(void);
 extern void ofw_init_zones(void);
 
 #endif
+
+ /** @}
+ */
+

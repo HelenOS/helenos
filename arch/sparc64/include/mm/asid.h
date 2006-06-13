@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_ASID_H__
 #define __sparc64_ASID_H__
 
@@ -39,3 +45,7 @@ typedef __u16 asid_t;
 #define ASID_MAX_ARCH		8191	/* 2^13 - 1 */
 
 #endif
+
+ /** @}
+ */
+

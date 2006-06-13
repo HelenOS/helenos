@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TLB_H__
 #define __TLB_H__
 
@@ -79,3 +85,7 @@ extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_asid(asid_t asid);
 extern void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt);
 #endif
+
+ /** @}
+ */
+

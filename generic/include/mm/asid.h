@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 /*
  * This is generic interface for managing
  * Address Space IDentifiers (ASIDs).
@@ -76,4 +82,8 @@ extern void asid_put_arch(asid_t asid);
 #endif
 
 #endif
+
+
+ /** @}
+ */
 

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _BITOPS_H_
 #define _BITOPS_H_
 
@@ -59,3 +65,7 @@ static inline int fnzb64(__u64 arg)
 #define fnzb(x) fnzb32(x)
 
 #endif
+
+ /** @}
+ */
+

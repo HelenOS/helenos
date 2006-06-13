@@ -26,8 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic 
+ * @{
+ */
+/** @file
+ */
+
 /**
- * @file	cap.h
+ * @file
  * @brief	Capabilities definitions.
  *
  * Capabilities represent virtual rights that entitle their
@@ -82,3 +88,7 @@ extern __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
 extern __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
 
 #endif
+
+ /** @}
+ */
+

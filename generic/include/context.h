@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
@@ -83,3 +89,7 @@ static inline void context_restore(context_t *c)
 }
 
 #endif
+
+ /** @}
+ */
+

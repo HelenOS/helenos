@@ -26,7 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ARCH_H__
 #define __mips32_ARCH_H__
 
 #endif
+
+ /** @}
+ */
+

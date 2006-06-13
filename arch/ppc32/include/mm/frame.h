@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_FRAME_H__
 #define __ppc32_FRAME_H__
 
@@ -45,3 +51,7 @@ extern void frame_arch_init(void);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

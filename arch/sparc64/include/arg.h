@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_ARG_H__
 #define __sparc64_ARG_H__
 
 #include <stdarg.h>
 
 #endif
+
+ /** @}
+ */
+

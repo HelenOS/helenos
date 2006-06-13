@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_INTERRUPT_H__
 #define __ia64_INTERRUPT_H__
 
@@ -136,3 +142,7 @@ extern void disabled_fp_register(__u64 vector, istate_t *istate);
 
 
 #endif
+
+ /** @}
+ */
+

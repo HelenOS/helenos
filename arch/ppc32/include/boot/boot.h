@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_BOOT_H__
 #define __ppc32_BOOT_H__
 
@@ -87,3 +93,7 @@ extern bootinfo_t bootinfo;
 #endif
 
 #endif
+
+ /** @}
+ */
+

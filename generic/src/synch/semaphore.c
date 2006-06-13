@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	semaphore.c
+ * @file
  * @brief	Semaphores.
  */
 
@@ -89,3 +93,7 @@ void semaphore_up(semaphore_t *s)
 {
 	waitq_wakeup(&s->wq, WAKEUP_FIRST);
 }
+
+ /** @}
+ */
+

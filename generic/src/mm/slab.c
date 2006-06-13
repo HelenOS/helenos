@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	slab.c
+ * @file
  * @brief	Slab allocator.
  *
  * The slab allocator is closely modelled after OpenSolaris slab allocator.
@@ -902,3 +906,7 @@ void free(void *obj)
 	slab = obj2slab(obj);
 	_slab_free(slab->cache, obj, slab);
 }
+
+ /** @}
+ */
+

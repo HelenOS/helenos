@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+
 /**
- * @file	the.c
+ * @file
  * @brief	THE structure functions.
  *
  * This file contains functions to manage the THE structure.
@@ -67,3 +71,7 @@ void the_copy(the_t *src, the_t *dst)
 {
 	*dst = *src;
 }
+
+ /** @}
+ */
+

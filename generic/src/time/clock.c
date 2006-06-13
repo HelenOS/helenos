@@ -26,8 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @defgroup others Others
+ * @ingroup kernel
+ * @{
+ * @}
+ */
+
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	clock.c
+ * @file
  * @brief	High-level clock interrupt handler.
  *
  * This file contains the clock() function which is the source
@@ -182,3 +192,7 @@ void clock(void)
 	}
 
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ASM_H__
 #define __amd64_ASM_H__
 
@@ -273,3 +279,7 @@ extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
 
 #endif
+
+ /** @}
+ */
+

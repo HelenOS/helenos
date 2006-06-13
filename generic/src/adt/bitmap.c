@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt ADT
+ * @ingroup kernel
+ * @{
+ */
 /**
  * @file	bitmap.c
  * @brief	Implementation of bitmap ADT.
@@ -181,3 +185,7 @@ void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits)
 		dst->map[i] |= src->map[i] & ((1 << (bits % 8)) - 1);
 	}
 }
+
+ /** @}
+ */
+

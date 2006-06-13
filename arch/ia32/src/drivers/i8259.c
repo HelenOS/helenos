@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/i8259.h>
 #include <cpu.h>
 #include <arch/types.h>
@@ -124,3 +130,7 @@ void pic_spurious(int n, istate_t *istate)
 	printf("cpu%d: PIC spurious interrupt\n", CPU->id);
 #endif
 }
+
+ /** @}
+ */
+

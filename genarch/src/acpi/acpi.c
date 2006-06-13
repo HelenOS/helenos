@@ -26,8 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+ /** @addtogroup genarch	
+ * @ingroup others
+ * @{
+ */
+
 /**
- * @file	acpi.c
+ * @file
  * @brief	Advanced Configuration and Power Interface (ACPI) initialization.
  */
  
@@ -177,4 +183,8 @@ rsdp_found:
 	else if (acpi_rsdt) configure_via_rsdt();
 
 }
+
+
+ /** @}
+ */
 

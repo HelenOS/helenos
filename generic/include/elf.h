@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ELF_H__
 #define __ELF_H__
 
@@ -333,3 +339,7 @@ extern int elf_load(elf_header_t *header, as_t * as);
 extern char *elf_error(int rc);
 
 #endif
+
+ /** @}
+ */
+

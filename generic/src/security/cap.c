@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
  * @file	cap.c
  * @brief	Capabilities control.
@@ -175,3 +179,7 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	interrupts_restore(ipl);
 	return 0;
 }
+
+ /** @}
+ */
+

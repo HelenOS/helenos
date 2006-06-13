@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ * @ingroup ia32mm, amd64mm
+ */
+
 /*
  * ia32 has no hardware support for address space identifiers.
  * This file is provided to do nop-implementation of mm/asid.h
@@ -43,3 +50,7 @@ typedef int asid_t;
 #define asid_put(asid)
 
 #endif
+
+ /** @}
+ */
+

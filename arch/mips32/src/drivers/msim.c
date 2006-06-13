@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <interrupt.h>
 #include <console/chardev.h>
 #include <arch/drivers/msim.h>
@@ -118,3 +124,7 @@ void msim_kbd_release(void)
 {
 	int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
 }
+
+ /** @}
+ */
+

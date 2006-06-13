@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 
 int sprintf(char *str, const char *fmt, ...)
@@ -40,3 +46,7 @@ int sprintf(char *str, const char *fmt, ...)
 
 	return ret;
 }
+
+ /** @}
+ */
+

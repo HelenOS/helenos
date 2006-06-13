@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32proc
+ * @{
+ */
+/** @file
+ */
+
 #include <proc/task.h>
 #include <arch/types.h>
 #include <adt/bitmap.h>
@@ -50,3 +56,7 @@ void task_destroy_arch(task_t *t)
 	if (t->arch.iomap.map)
 		free(t->arch.iomap.map);
 }
+
+ /** @}
+ */
+

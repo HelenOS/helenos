@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/fb/font-8x16.h>
 
 unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES] = {
@@ -4639,3 +4645,7 @@ unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES] = {
 	0x00, /* 00000000 */
 
 };
+
+ /** @}
+ */
+

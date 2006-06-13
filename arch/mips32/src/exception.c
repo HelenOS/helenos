@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/exception.h>
 #include <arch/interrupt.h>
 #include <panic.h>
@@ -165,3 +171,7 @@ void exception_init(void)
 #endif
 	exc_register(EXC_Sys, "syscall", (iroutine) syscall_exception);
 }
+
+ /** @}
+ */
+

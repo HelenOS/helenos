@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	
+ * @{
+ */
+/** @file
+ */
+
 /*
  * TLB management.
  */
@@ -678,3 +684,7 @@ void page_not_present(__u64 vector, istate_t *istate)
 		}
 	}
 }
+
+ /** @}
+ */
+

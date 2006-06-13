@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/tlb.h>
 #include <mm/asid.h>
 #include <mm/tlb.h>
@@ -602,3 +608,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 	interrupts_restore(ipl);
 	cp0_entry_hi_write(hi_save.value);
 }
+
+ /** @}
+ */
+

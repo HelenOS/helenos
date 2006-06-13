@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __WAITQ_H__
 #define __WAITQ_H__
 
@@ -64,3 +70,7 @@ extern void _waitq_wakeup_unsafe(waitq_t *wq, bool all);
 extern void waitq_interrupt_sleep(thread_t *t);
 
 #endif
+
+ /** @}
+ */
+

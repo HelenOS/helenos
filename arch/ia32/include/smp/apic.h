@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __APIC_H__
 #define __APIC_H__
 
@@ -359,3 +365,7 @@ extern void io_apic_disable_irqs(__u16 irqmask);
 extern void io_apic_enable_irqs(__u16 irqmask);
 
 #endif
+
+ /** @}
+ */
+

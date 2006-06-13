@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TYPEDEFS_H__
 #define __TYPEDEFS_H__
 
@@ -89,3 +95,7 @@ typedef struct btree_node btree_node_t;
 typedef struct btree btree_t;
 
 #endif
+
+ /** @}
+ */
+

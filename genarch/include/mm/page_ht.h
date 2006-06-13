@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+/** @file
+ */
+
 /*
  * This is the generic page hash table interface.
  */
@@ -80,3 +86,7 @@ extern hash_table_operations_t ht_operations;
 #endif
 
 #endif
+
+ /** @}
+ */
+

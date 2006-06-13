@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @{
+ */
+
 /**
- * @file	main.c
+ * @file
  * @brief 	Main initialization kernel function for all processors.
  *
  * During kernel boot, all processors, after architecture dependent
@@ -319,3 +323,7 @@ void main_ap_separated_stack(void)
 	/* not reached */
 }
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_MEMSTR_H__
 #define __amd64_MEMSTR_H__
 
@@ -134,3 +140,7 @@ static inline void memsetb(__address dst, size_t cnt, __u8 x)
 }
 
 #endif
+
+ /** @}
+ */
+

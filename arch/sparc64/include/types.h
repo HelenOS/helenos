@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_TYPES_H__
 #define __sparc64_TYPES_H__
 
@@ -54,3 +60,7 @@ typedef struct pte pte_t;
 typedef __u8 asi_t;
 
 #endif
+
+ /** @}
+ */
+

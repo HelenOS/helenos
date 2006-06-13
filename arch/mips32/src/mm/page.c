@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
@@ -43,3 +49,7 @@ __address hw_map(__address physaddr, size_t size)
 {
 	return physaddr + 0xa0000000;
 }
+
+ /** @}
+ */
+

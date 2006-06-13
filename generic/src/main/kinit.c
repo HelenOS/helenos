@@ -26,8 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @ingroup kernel
+ * @{
+ */
+
 /**
- * @file	kinit.c
+ * @file
  * @brief	Kernel initialization thread.
  *
  * This file contains kinit kernel thread which carries out
@@ -190,3 +195,7 @@ void kinit(void *arg)
 #endif /* CONFIG_TEST */
 
 }
+
+ /** @}
+ */
+

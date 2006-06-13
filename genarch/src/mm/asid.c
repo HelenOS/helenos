@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+
 /**
- * @file	asid.c
+ * @file
  * @brief	ASID management.
  *
  * Modern processor architectures optimize TLB utilization
@@ -169,3 +173,7 @@ void asid_put(asid_t asid)
 	spinlock_unlock(&asidlock);
 	interrupts_restore(ipl);
 }
+
+ /** @}
+ */
+

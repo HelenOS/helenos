@@ -26,8 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_TLB_H__
 #define __ppc32_TLB_H__
 
 
 #endif
+
+ /** @}
+ */
+

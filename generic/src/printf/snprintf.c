@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 #include <printf/printf_core.h>
 
@@ -41,3 +47,7 @@ int snprintf(char *str, size_t size, const char *fmt, ...)
 
 	return ret;
 }
+
+ /** @}
+ */
+

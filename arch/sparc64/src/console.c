@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/console.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -176,3 +182,7 @@ void kkbdpoll(void *arg)
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}
 }
+
+ /** @}
+ */
+

@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	spinlock.c
+ * @file
  * @brief	Spinlocks.
  */
  
@@ -153,3 +157,7 @@ int spinlock_trylock(spinlock_t *sl)
 }
 
 #endif
+
+ /** @}
+ */
+

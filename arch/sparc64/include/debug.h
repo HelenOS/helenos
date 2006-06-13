@@ -26,7 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64debug sparc64
+ * @ingroup debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_DEBUG_H__
 #define __sparc64_DEBUG_H__
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _MSIM_H_
 #define _MSIM_H_
 
@@ -41,3 +47,7 @@ void msim_kbd_release(void);
 void msim_kbd_grab(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CLOCK_H__
 #define __CLOCK_H__
 
@@ -35,3 +42,7 @@ extern void clock(void);
 extern void clock_counter_init(void);
 
 #endif
+
+ /** @}
+ */
+

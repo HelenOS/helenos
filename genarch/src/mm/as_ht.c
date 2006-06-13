@@ -25,9 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+ /** @addtogroup genarchmm genarch
+ * @ingroup mm
+ * @{
+ */
  
 /**
- * @file	as_ht.c
+ * @file
  * @brief	Address space functions for global page hash table.
  */
 
@@ -113,3 +118,7 @@ void ht_unlock(as_t *as, bool unlock)
 	if (unlock)
 		mutex_unlock(&as->lock);
 }
+
+ /** @}
+ */
+

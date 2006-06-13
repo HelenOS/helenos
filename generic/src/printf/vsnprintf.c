@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 #include <printf/printf_core.h>
 #include <memstr.h>
@@ -93,3 +99,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 	/* vsnprintf_write ensures that str will be terminated by zero. */
 	return printf_core(fmt, &ps, ap);
 }
+
+ /** @}
+ */
+

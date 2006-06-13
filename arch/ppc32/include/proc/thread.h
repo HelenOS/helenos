@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_THREAD_H__
 #define __ppc32_THREAD_H__
 
@@ -35,3 +41,7 @@ typedef struct {
 #define thread_create_arch(t)
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32proc mips32
+ * @ingroup proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_TASK_H__
 #define __mips32_TASK_H__
 
@@ -36,3 +43,7 @@ typedef struct {
 #define task_destroy_arch(t)
 
 #endif
+
+ /** @}
+ */
+

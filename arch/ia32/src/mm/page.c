@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	ia32
+ * @ingroup mm
+ * @{
+ */
+/** @file
+ * @ingroup ia32
+ */
+
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <arch/mm/frame.h>
@@ -110,3 +118,7 @@ void page_fault(int n, istate_t *istate)
                 panic("page fault\n");
         }
 }
+
+ /** @}
+ */
+

@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __KINIT_H__
 #define __KINIT_H__
 
 extern void kinit(void *arg);
 
 #endif
+
+ /** @}
+ */
+

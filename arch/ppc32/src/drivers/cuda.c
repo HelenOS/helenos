@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/cuda.h>
 #include <arch/asm.h>
 #include <console/console.h>
@@ -300,3 +306,7 @@ void cpu_halt(void) {
 		"b 0\n"
 	);
 }
+
+ /** @}
+ */
+

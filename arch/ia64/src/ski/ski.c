@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/ski/ski.h>
 #include <console/console.h>
 #include <console/chardev.h>
@@ -193,3 +199,7 @@ void ski_set_console_sysinfo(void)
 	sysinfo_set_item_val("kbd",NULL,true);
 	sysinfo_set_item_val("kbd.irq",NULL,IRQ_KBD);
 }
+
+ /** @}
+ */
+

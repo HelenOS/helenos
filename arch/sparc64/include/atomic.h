@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_ATOMIC_H__
 #define __sparc64_ATOMIC_H__
 
@@ -92,3 +98,7 @@ static inline void atomic_dec(atomic_t *val)
 }
 
 #endif
+
+ /** @}
+ */
+

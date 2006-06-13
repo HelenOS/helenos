@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64cpu ia64
+ * @ingroup cpu
+ * @{
+ */
+/** @file
+ */
+
 #include <cpu.h>
 #include <arch.h>
 #include <arch/register.h>
@@ -65,3 +72,7 @@ void cpu_print_report(cpu_t *m)
 	
 	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id, family_str, vendor, CPU->arch.cpuid3.archrev, CPU->arch.cpuid3.model, CPU->arch.cpuid3.revision);
 }
+
+ /** @}
+ */
+

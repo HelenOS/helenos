@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SYNCH_H__
 #define __SYNCH_H__
 
@@ -45,3 +51,7 @@
 #define SYNCH_OK(rc)		((rc) & (ESYNCH_OK_ATOMIC | ESYNCH_OK_BLOCKED))
 
 #endif
+
+ /** @}
+ */
+

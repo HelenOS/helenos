@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc IPC
+  * @ingroup kernel
+  * @brief Interprocess communication protocol
+ * @{
+ */
+/** @file
+ */
+
 /* Lock ordering
  *
  * First the answerbox, then the phone
@@ -523,3 +531,7 @@ void ipc_print_task(task_id_t taskid)
 	spinlock_unlock(&task->answerbox.lock);
 	spinlock_unlock(&task->lock);
 }
+
+ /** @}
+ */
+

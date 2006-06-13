@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_REGNAME_H__
 #define __ppc64_REGNAME_H__
 
@@ -204,3 +210,7 @@
 #define hid0_dci	(1 << 10)
 
 #endif
+
+ /** @}
+ */
+

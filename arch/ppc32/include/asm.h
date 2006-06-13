@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_ASM_H__
 #define __ppc32_ASM_H__
 
@@ -144,3 +150,7 @@ void asm_delay_loop(__u32 t);
 extern void userspace_asm(__address uspace_uarg, __address stack, __address entry);
 
 #endif
+
+ /** @}
+ */
+

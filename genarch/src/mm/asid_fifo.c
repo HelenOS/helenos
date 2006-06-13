@@ -25,9 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+ /** @addtogroup genarchmm
+ * @{
+ */
  
 /**
- * @file	asid_fifo.c
+ * @file
  * @brief	FIFO queue ASID management.
  *
  * Architectures that link with this file keep the unallocated ASIDs
@@ -89,3 +93,7 @@ void asid_put_arch(asid_t asid)
 {
 	fifo_push(free_asids, asid);
 }
+
+ /** @}
+ */
+

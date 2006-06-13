@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32interrupt ia32
+ * @ingroup interrupt
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/interrupt.h>
 #include <syscall/syscall.h>
 #include <print.h>
@@ -198,3 +205,7 @@ void irq_ipc_bind_arch(__native irq)
 	trap_virtual_enable_irqs(1 << irq);
 	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
 }
+
+ /** @}
+ */
+

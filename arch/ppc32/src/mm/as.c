@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm ppc32
+  * @ingroup mm
+ * @{
+ */
+/** @file
+  * @ingroup ppc32
+ */
+
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
 
@@ -34,3 +42,7 @@ void as_arch_init(void)
 {
 	as_operations = &as_pt_operations;
 }
+
+ /** @}
+ */
+

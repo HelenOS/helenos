@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64interrupt
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/interrupt.h>
 #include <print.h>
 #include <debug.h>
@@ -174,3 +180,7 @@ void irq_ipc_bind_arch(__native irq)
 		return;
 	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
 }
+
+ /** @}
+ */
+

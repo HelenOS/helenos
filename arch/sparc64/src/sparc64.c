@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 #include <debug.h>
 #include <arch/trap/trap.h>
@@ -88,3 +95,7 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 }
+
+ /** @}
+ */
+

@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TEST_H__
 #define __TEST_H__
 
 extern void test(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
@@ -90,3 +96,7 @@ extern void map_structure(__address s, size_t size);
 extern __address hw_map(__address physaddr, size_t size);
 
 #endif
+
+ /** @}
+ */
+

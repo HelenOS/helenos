@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64ddi amd64
+ * @ingroup ddi
+ * @{
+ */
+/** @file
+ */
+
 #include <ddi/ddi.h>
 #include <arch/ddi/ddi.h>
 #include <proc/task.h>
@@ -155,3 +162,7 @@ void io_perm_bitmap_install(void)
 	 */
 	CPU->arch.iomapver_copy = ver;
 }
+
+ /** @}
+ */
+

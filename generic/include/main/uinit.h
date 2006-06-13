@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __UINIT_H__
 #define __UINIT_H__
 
@@ -34,3 +40,7 @@
 extern void uinit(void *arg);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __FONT_8X16_H__
 #define __FONT_8X16_H__
 
@@ -35,3 +41,7 @@
 extern unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES];
 
 #endif
+
+ /** @}
+ */
+

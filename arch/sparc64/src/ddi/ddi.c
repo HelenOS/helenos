@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64ddi sparc64
+ * @ingroup ddi
+ * @{
+ */
+/** @file
+ */
+
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <arch/types.h>
@@ -45,3 +52,7 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 {
 	return 0;
 }
+
+ /** @}
+ */
+

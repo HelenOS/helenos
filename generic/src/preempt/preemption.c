@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
  * @file	preemption.c
  * @brief	Preemption control.
@@ -51,3 +55,7 @@ void preemption_enable(void)
 	memory_barrier();
 	THE->preemption_disabled--;
 }
+
+ /** @}
+ */
+

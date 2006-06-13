@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ACPI_H__
 #define __ACPI_H__
 
@@ -83,3 +89,7 @@ extern void acpi_init(void);
 extern int acpi_sdt_check(__u8 *sdt);
 
 #endif /* __ACPI_H__ */
+
+ /** @}
+ */
+

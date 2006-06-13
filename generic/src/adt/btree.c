@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt
+ * @{
+ */
+
 /**
  * @file	btree.c
  * @brief	B+tree implementation.
@@ -993,3 +997,7 @@ void btree_print(btree_t *t)
 	}
 	printf("\n");
 }
+
+ /** @}
+ */
+

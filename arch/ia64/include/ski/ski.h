@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SKI_H__
 #define __SKI_H__
 
@@ -44,3 +50,7 @@ extern chardev_t ski_uconsole;
 extern int kbd_uspace;
 
 #endif
+
+ /** @}
+ */
+

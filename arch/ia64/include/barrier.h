@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_BARRIER_H__
 #define __ia64_BARRIER_H__
 
@@ -43,3 +49,7 @@
 #define srlz_d()		__asm__ volatile (";; srlz.d\n" ::: "memory")
 
 #endif
+
+ /** @}
+ */
+

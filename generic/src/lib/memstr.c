@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	memstr.c
+ * @file
  * @brief	Memory string operations.
  *
  * This file provides architecture independent functions
@@ -110,3 +114,7 @@ void _memsetw(__address dst, size_t cnt, __u16 x)
 	for(i=0; i<cnt; i++)
 		p[i] = x;	
 }
+
+ /** @}
+ */
+

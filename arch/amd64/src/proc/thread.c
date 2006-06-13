@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64proc
+ * @{
+ */
+/** @file
+ */
+
 #include <proc/thread.h>
 
 /** Perform amd64 specific thread initialization.
@@ -36,3 +42,7 @@ void thread_create_arch(thread_t *t)
 {
 	t->arch.tls = 0;
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64proc sparc64
+ * @ingroup proc
+ * @{
+ */
+/** @file
+ */
+
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <arch.h>
@@ -72,3 +79,7 @@ void after_thread_ran_arch(void)
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (__address) THREAD->kstack);
 	}
 }
+
+ /** @}
+ */
+

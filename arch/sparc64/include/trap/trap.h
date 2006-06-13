@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_TRAP_H__
 #define __sparc64_TRAP_H__
 
@@ -42,3 +48,7 @@ static inline void trap_switch_trap_table(void)
 extern void trap_init(void);
 
 #endif
+
+ /** @}
+ */
+

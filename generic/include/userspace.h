@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __USERSPACE_H__
 #define __USERSPACE_H__
 
@@ -36,3 +42,7 @@
 extern void userspace(uspace_arg_t *uarg) __attribute__ ((noreturn)); 
 
 #endif
+
+ /** @}
+ */
+

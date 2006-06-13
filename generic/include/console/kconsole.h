@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __KCONSOLE_H__
 #define __KCONSOLE_H__
 
@@ -73,3 +79,7 @@ extern void kconsole(void *prompt);
 extern int cmd_register(cmd_info_t *cmd);
 
 #endif
+
+ /** @}
+ */
+

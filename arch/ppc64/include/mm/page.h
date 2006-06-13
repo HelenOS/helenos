@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_PAGE_H__
 #define __ppc64_PAGE_H__
 
@@ -151,3 +157,7 @@ extern void pht_init(void);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

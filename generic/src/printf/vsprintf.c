@@ -26,10 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 
 int vsprintf(char *str, const char *fmt, va_list ap)
 {
 	return vsnprintf(str, (size_t)-1, fmt, ap);
 }
+
+
+ /** @}
+ */
 

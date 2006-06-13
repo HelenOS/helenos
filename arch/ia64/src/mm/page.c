@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/page.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
@@ -256,3 +262,7 @@ void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address fra
 	v->present.key = 0;
 	v->present.tag.tag_word = tag;
 }
+
+ /** @}
+ */
+

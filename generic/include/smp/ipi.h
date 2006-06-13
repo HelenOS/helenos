@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __IPI_H__
 #define __IPI_H__
 
@@ -37,3 +43,7 @@ extern void ipi_broadcast_arch(int ipi);
 #endif /* CONFIG_SMP */
 
 #endif
+
+ /** @}
+ */
+

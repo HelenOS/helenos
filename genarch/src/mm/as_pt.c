@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+
 /**
- * @file	as_pt.c
+ * @file
  * @brief	Address space functions for 4-level hierarchical pagetables.
  */
 
@@ -134,3 +138,7 @@ void pt_unlock(as_t *as, bool unlock)
 	if (unlock)
 		mutex_unlock(&as->lock);
 }
+
+ /** @}
+ */
+

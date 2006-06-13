@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
 extern void version_print(void);
 
 #endif
+
+ /** @}
+ */
+

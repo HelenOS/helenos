@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/bios/bios.h>
 #include <arch/types.h>
 
@@ -36,3 +42,7 @@ void bios_init(void)
 	/* Copy the EBDA address out from BIOS Data Area */
 	ebda = *((__u16 *) BIOS_EBDA_PTR) * 0x10;
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32interrupt ppc32
+ * @ingroup interrupt
+ * @{
+ */
+/** @file
+ */
+
 #include <interrupt.h>
 #include <arch/interrupt.h>
 #include <arch/types.h>
@@ -85,3 +92,7 @@ void irq_ipc_bind_arch(__native irq)
 {
 	int_register(irq, "ipc_int", ipc_int);
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/boot/memmap.h>
 #include <arch/mm/memory_init.h>
 #include <arch/mm/page.h>
@@ -68,4 +74,8 @@ void memory_print_map(void)
 	}
 
 }
+
+
+ /** @}
+ */
 

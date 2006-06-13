@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 
 #include <arch/types.h>
@@ -148,3 +155,7 @@ void arch_release_console(void)
 {
 	i8042_release();
 }
+
+ /** @}
+ */
+

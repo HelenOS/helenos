@@ -25,9 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+    
+ /** @addtogroup generic
+ * @{
+ */
 
 /**
- * @file	copy.c
+ * @file
  * @brief	Copying between kernel and userspace.
  *
  * This file contains sanitized functions for copying data
@@ -123,3 +127,7 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	interrupts_restore(ipl);
 	return !rc ? EPERM : 0;
 }
+
+ /** @}
+ */
+

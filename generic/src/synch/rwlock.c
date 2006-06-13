@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	rwlock.c
+ * @file
  * @brief	Reader/Writer locks.
  *
  * A reader/writer lock can be held by multiple readers at a time.
@@ -379,3 +383,7 @@ void release_spinlock(void *arg)
 {
 	spinlock_unlock((spinlock_t *) arg);
 }
+
+ /** @}
+ */
+

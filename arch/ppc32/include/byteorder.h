@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_BYTEORDER_H__
 #define __ppc32_BYTEORDER_H__
 
@@ -62,3 +68,7 @@ static inline __native __native_le2host(__native n)
 }
 
 #endif
+
+ /** @}
+ */
+

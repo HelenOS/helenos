@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64proc amd64
+ * @ingroup proc
+ * @{
+ */
+/** @file
+ */
+
 #include <proc/scheduler.h>
 #include <cpu.h>
 #include <proc/task.h>
@@ -73,3 +80,7 @@ void before_thread_runs_arch(void)
 void after_thread_ran_arch(void)
 {
 }
+
+ /** @}
+ */
+

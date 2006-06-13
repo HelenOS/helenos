@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
@@ -233,3 +239,7 @@ void pm_init(void)
 	 */
 	tr_load(gdtselector(TSS_DES));
 }
+
+ /** @}
+ */
+

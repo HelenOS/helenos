@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __RWLOCK_H__
 #define __RWLOCK_H__
 
@@ -67,4 +73,8 @@ extern int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
 extern int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
 
 #endif
+
+
+ /** @}
+ */
 

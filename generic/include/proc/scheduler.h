@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
 
@@ -62,3 +68,7 @@ extern void before_thread_runs_arch(void);
 extern void after_thread_ran_arch(void);
 
 #endif
+
+ /** @}
+ */
+

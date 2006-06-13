@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_THREAD_H__
 #define __ia32_THREAD_H__
 
@@ -36,3 +42,7 @@ typedef struct {
 } thread_arch_t;
 
 #endif
+
+ /** @}
+ */
+

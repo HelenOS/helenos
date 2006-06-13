@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_ARG_H__
 #define __ia64_ARG_H__
 
 #include <stdarg.h>
 
 #endif
+
+ /** @}
+ */
+

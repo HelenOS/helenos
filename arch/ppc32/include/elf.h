@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_ELF_H__
 #define __ppc32_ELF_H__
 
@@ -34,3 +40,7 @@
 #define ELF_CLASS		ELFCLASS32
 
 #endif
+
+ /** @}
+ */
+

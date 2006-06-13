@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 #include <printf/printf_core.h>
 #include <putchar.h>
@@ -47,4 +53,8 @@ int vprintf(const char *fmt, va_list ap)
 
 }
 
+
+
+ /** @}
+ */
 

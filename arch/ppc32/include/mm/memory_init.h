@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_MEMORY_INIT_H__
 #define __ppc32_MEMORY_INIT_H__
 
@@ -36,3 +42,7 @@ size_t get_memory_size(void);
 void memory_print_map(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_STACK_H__
 #define __sparc64_STACK_H__
 
@@ -45,3 +51,7 @@
 #define STACK_BIAS            2047
 
 #endif
+
+ /** @}
+ */
+

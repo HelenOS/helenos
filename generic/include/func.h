@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __FUNC_H__
 #define __FUNC_H__
 
@@ -43,3 +49,7 @@ extern void strncpy(char *dest, const char *src, size_t len);
 extern __native atoi(const char *text);
 
 #endif
+
+ /** @}
+ */
+

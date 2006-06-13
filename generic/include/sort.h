@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SORT_H__
 #define __SORT_H__
 
@@ -46,3 +52,7 @@ extern int __u16_cmp(void * a, void * b);
 extern int __u8_cmp(void * a, void * b);
 
 #endif
+
+ /** @}
+ */
+

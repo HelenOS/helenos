@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup main
+ * @{
+ */
+
 /**
- * @file	uinit.c
+ * @file
  * @brief	Userspace bootstrap thread.
  *
  * This file contains uinit kernel thread wich is used to start every
@@ -60,3 +64,7 @@ void uinit(void *arg)
 	
 	userspace(&uarg);
 }
+
+ /** @}
+ */
+

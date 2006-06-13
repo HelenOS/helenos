@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_CONTEXT_H__
 #define __ia64_CONTEXT_H__
 
@@ -125,3 +131,7 @@ struct context {
 };
 
 #endif
+
+ /** @}
+ */
+

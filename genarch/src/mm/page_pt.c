@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+
 /**
- * @file	page_pt.c
+ * @file
  * @brief	Virtual Address Translation for hierarchical 4-level page tables.
  */
 
@@ -260,3 +264,7 @@ pte_t *pt_mapping_find(as_t *as, __address page)
 
 	return &ptl3[PTL3_INDEX(page)];
 }
+
+ /** @}
+ */
+

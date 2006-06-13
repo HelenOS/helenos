@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 /** Interval Timer driver. */
  
 #include <arch/drivers/it.h>
@@ -94,3 +100,7 @@ void it_interrupt(void)
 	clock();
 	poll_keyboard();
 }
+
+ /** @}
+ */
+

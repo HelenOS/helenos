@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <interrupt.h>
 #include <arch/cp0.h>
 #include <arch/drivers/serial.h>
@@ -136,3 +142,7 @@ void serial_console(void)
 	stdin = &console;
 	stdout = &console;
 }
+
+ /** @}
+ */
+

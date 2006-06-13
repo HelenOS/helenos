@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	backend_anon.c
+ * @file
  * @brief	Backend for anonymous memory address space areas.
  *
  */
@@ -200,3 +204,7 @@ void anon_share(as_area_t *area)
 	}
 	mutex_unlock(&area->sh_info->lock);
 }
+
+ /** @}
+ */
+

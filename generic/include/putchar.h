@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PUTCHAR_H__
 #define __PUTCHAR_H__
 
 extern void putchar(const char ch);
 
 #endif
+
+ /** @}
+ */
+

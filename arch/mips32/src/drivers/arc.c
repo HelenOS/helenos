@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/arc.h>
 #include <arch/mm/page.h>
 #include <print.h>
@@ -400,4 +406,8 @@ void arc_frame_init(void)
 
 	config.memory_size = total;
 }
+
+
+ /** @}
+ */
 

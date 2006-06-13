@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	sort.c
+ * @file
  * @brief	Sorting functions.
  *
  * This files contains functions implementing several sorting
@@ -194,3 +198,7 @@ int __u32_cmp(void * a, void * b)
 {
 	return (* (__u32 *) a > * (__u32 *)b) ? 1 : (*(__u32 *)a < * (__u32 *)b) ? -1 : 0;
 }
+
+ /** @}
+ */
+

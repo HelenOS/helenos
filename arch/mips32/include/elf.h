@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ELF_H__
 #define __mips32_ELF_H__
 
@@ -40,3 +46,7 @@
 #define ELF_CLASS		ELFCLASS32
 
 #endif
+
+ /** @}
+ */
+

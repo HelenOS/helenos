@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/boot/boot.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/memory_init.h>
@@ -60,3 +66,7 @@ void frame_arch_init(void)
 	frame_mark_unavailable(0, 4);
 	
 }
+
+ /** @}
+ */
+

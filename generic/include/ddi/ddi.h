@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericddi
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __DDI_H__
 #define __DDI_H__
 
@@ -44,3 +50,7 @@ extern __native sys_preempt_control(int enable);
 extern int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size);
 
 #endif
+
+ /** @}
+ */
+

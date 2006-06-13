@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+
 /**
- * @file	waitq.c
+ * @file
  * @brief	Wait queue.
  *
  * Wait queue is the basic synchronization primitive upon which all
@@ -445,3 +449,7 @@ loop:
 	if (all)
 		goto loop;
 }
+
+ /** @}
+ */
+

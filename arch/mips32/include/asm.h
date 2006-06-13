@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ASM_H__
 #define __mips32_ASM_H__
 
@@ -61,3 +67,7 @@ extern void userspace_asm(__address ustack, __address uspace_uarg,
 			  __address entry);
 
 #endif
+
+ /** @}
+ */
+

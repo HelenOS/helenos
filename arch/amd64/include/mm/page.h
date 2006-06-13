@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm	
+ * @{
+ */
+/** @file
+ */
+
 /** Paging on AMD64
  *
  * The space is divided in positive numbers - userspace and
@@ -190,3 +196,7 @@ extern void page_arch_init(void);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

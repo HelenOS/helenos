@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/types.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/ap.h>
@@ -570,3 +576,7 @@ void io_apic_enable_irqs(__u16 irqmask)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

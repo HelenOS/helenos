@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ARG_H__
 #define __mips32_ARG_H__
 
@@ -49,3 +55,7 @@ typedef __address va_list;
 #define va_end(ap)
 
 #endif
+
+ /** @}
+ */
+

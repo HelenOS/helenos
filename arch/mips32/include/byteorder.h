@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_BYTEORDER_H__
 #define __mips32_BYTEORDER_H__
 
@@ -49,3 +55,7 @@ static inline __native __native_le2host(__native n)
 #endif
 
 #endif
+
+ /** @}
+ */
+

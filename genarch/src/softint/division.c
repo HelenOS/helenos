@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/softint/division.h>
 
 #define ABSVAL(x) ( (x) > 0 ? (x) : -(x))
@@ -185,4 +191,8 @@ unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsi
 	return divandmod64(a, b, c);
 }
 
+
+
+ /** @}
+ */
 

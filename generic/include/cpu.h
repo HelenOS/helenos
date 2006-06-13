@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericcpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CPU_H__
 #define __CPU_H__
 
@@ -97,3 +103,7 @@ extern void cpu_identify(void);
 extern void cpu_print_report(cpu_t *m);
 
 #endif
+
+ /** @}
+ */
+

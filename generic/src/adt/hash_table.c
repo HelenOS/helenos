@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt
+ * @{
+ */
+
 /**
  * @file	hash_table.c
  * @brief	Implementation of generic chained hash table.
@@ -168,3 +172,7 @@ void hash_table_remove(hash_table_t *h, __native key[], count_t keys)
 		}
 	}
 }
+
+ /** @}
+ */
+

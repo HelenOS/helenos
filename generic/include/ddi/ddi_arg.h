@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericddi
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __DDI_ARG_H__
 #define __DDI_ARG_H__
 
@@ -46,3 +52,7 @@ typedef struct {
 } ddi_ioarg_t;
 
 #endif
+
+ /** @}
+ */
+

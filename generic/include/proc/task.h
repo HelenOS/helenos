@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TASK_H__
 #define __TASK_H__
 
@@ -99,3 +105,7 @@ extern void task_destroy_arch(task_t *t);
 extern __native sys_task_get_id(task_id_t *uspace_task_id);
 
 #endif
+
+ /** @}
+ */
+

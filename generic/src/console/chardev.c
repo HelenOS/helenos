@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole Console
+ * @ingroup kernel
+ * @{
+ */
+/** @file
+ */
+
 #include <console/chardev.h>
 #include <putchar.h>
 #include <synch/waitq.h>
@@ -67,3 +74,7 @@ void chardev_push_character(chardev_t *chardev, __u8 ch)
 	waitq_wakeup(&chardev->wq, WAKEUP_FIRST);
 	spinlock_unlock(&chardev->lock);
 }
+
+ /** @}
+ */
+

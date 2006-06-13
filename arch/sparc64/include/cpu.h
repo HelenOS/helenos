@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64cpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_CPU_H__
 #define __sparc64_CPU_H__
 
@@ -49,3 +55,7 @@ struct cpu_arch {
 };
 	
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_ASID_H__
 #define __mips32_ASID_H__
 
@@ -36,3 +42,7 @@
 typedef __u8 asid_t;
 
 #endif
+
+ /** @}
+ */
+

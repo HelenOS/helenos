@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 #include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
@@ -103,3 +110,7 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 }
+
+ /** @}
+ */
+

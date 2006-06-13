@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_AS_H__
 #define __mips32_AS_H__
 
@@ -41,3 +47,7 @@
 extern void as_arch_init(void);
 
 #endif
+
+ /** @}
+ */
+

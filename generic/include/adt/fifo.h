@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt
+ * @{
+ */
+/** @file
+ */
+
 /*
  * This implementation of FIFO stores values in an array
  * (static or dynamic). As such, these FIFOs have upper bound
@@ -111,3 +117,7 @@
 	name.fifo = malloc(sizeof(*name.fifo) * name.items, 0)
 
 #endif
+
+ /** @}
+ */
+

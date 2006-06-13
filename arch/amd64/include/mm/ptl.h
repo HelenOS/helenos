@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm	
+ * @{
+ */
+/** @file
+ */
+
 
 #ifndef __amd64_PTL_H_
 #define __amd64_PTL_H_
@@ -41,3 +47,7 @@
 
 
 #endif
+
+ /** @}
+ */
+

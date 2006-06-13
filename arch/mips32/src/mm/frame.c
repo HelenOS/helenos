@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <config.h>
@@ -49,3 +55,7 @@ void frame_arch_init(void)
 		frame_mark_unavailable(0, 1);
 	}
 }
+
+ /** @}
+ */
+

@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+
 /**
- * @file	page_ht.c
+ * @file
  * @brief	Virtual Address Translation (VAT) for global page hash table.
  */
 
@@ -239,3 +243,7 @@ pte_t *ht_mapping_find(as_t *as, __address page)
 
 	return t;
 }
+
+ /** @}
+ */
+

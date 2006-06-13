@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __PIC_H_
 #define __PIC_H_
 
@@ -46,3 +52,7 @@ void pic_ack_interrupt(int intnum);
 int pic_get_pending(void);
 
 #endif
+
+ /** @}
+ */
+

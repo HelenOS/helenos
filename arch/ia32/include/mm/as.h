@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_AS_H__
 #define __ia32_AS_H__
 
@@ -43,3 +49,7 @@
 extern void as_arch_init(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+
 /**
- * @file	page.c
+ * @file
  * @brief	Virtual Address Translation subsystem.
  *
  * This file contains code for creating, destroying and searching
@@ -134,3 +138,7 @@ pte_t *page_mapping_find(as_t *as, __address page)
 
 	return page_mapping_operations->mapping_find(as, page);
 }
+
+ /** @}
+ */
+

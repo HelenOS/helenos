@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/ega.h>
 #include <putchar.h>
 #include <mm/page.h>
@@ -137,3 +143,7 @@ void ega_move_cursor(void)
 	outb(0x3d4, 0xf);
 	outb(0x3d5, ega_cursor & 0xff);	
 }
+
+ /** @}
+ */
+

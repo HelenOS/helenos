@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32debug mips32
+ * @ingroup debug
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/debugger.h>
 #include <memstr.h>
 #include <console/kconsole.h>
@@ -376,3 +383,7 @@ void debugger_bpoint(istate_t *istate)
 	} 
 	spinlock_unlock(&bkpoint_lock);
 }
+
+ /** @}
+ */
+

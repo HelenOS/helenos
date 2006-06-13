@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __AS_HT_H__
 #define __AS_HT_H__
 
@@ -34,3 +40,7 @@
 extern as_operations_t as_ht_operations;
 
 #endif
+
+ /** @}
+ */
+

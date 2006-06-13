@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TIMEOUT_H__
 #define __TIMEOUT_H__
 
@@ -58,3 +64,7 @@ extern void timeout_register(timeout_t *t, __u64 usec, timeout_handler_t f, void
 extern bool timeout_unregister(timeout_t *t);
 
 #endif
+
+ /** @}
+ */
+

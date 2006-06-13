@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64ddi
+ * @{
+ */
+
 /**
- * @file	ddi.h
+ * @file
  * @brief	amd64 specific DDI declarations and macros.
  */
 
@@ -37,3 +41,7 @@
 extern void io_perm_bitmap_install(void);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+
 /**
  * @file	kconsole.c
  * @brief	Kernel console.
@@ -621,3 +625,7 @@ bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end)
 
 	return found_start;
 }
+
+ /** @}
+ */
+

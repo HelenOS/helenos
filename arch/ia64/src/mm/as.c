@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	ia64
+  * @ingroup mm
+ * @{
+ */
+/** @file
+  * @ingroup ia64
+ */
+
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/page.h>
@@ -78,3 +86,7 @@ void as_install_arch(as_t *as)
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 #include <arch/boot/boot.h>
 #include <arch/drivers/cuda.h>
@@ -110,3 +117,7 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 }
+
+ /** @}
+ */
+

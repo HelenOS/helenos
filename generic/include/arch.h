@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ARCH_H__
 #define __ARCH_H__
 
@@ -74,3 +80,7 @@ extern void interrupts_restore(ipl_t ipl);
 extern ipl_t interrupts_read(void);
 
 #endif
+
+ /** @}
+ */
+

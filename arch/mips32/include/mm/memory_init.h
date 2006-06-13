@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_MEMORY_INIT_H__
 #define __mips32_MEMORY_INIT_H__
 
@@ -37,3 +43,7 @@
 #define get_memory_size()	CONFIG_MEMORY_SIZE
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/types.h>
 
 typedef union sysinfo_item_val
@@ -82,4 +88,8 @@ sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root);
 __native sys_sysinfo_valid(__native ptr,__native len);
 __native sys_sysinfo_value(__native ptr,__native len);
 
+
+
+ /** @}
+ */
 

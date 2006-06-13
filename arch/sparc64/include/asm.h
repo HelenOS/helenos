@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_ASM_H__
 #define __sparc64_ASM_H__
 
@@ -305,3 +311,7 @@ void cpu_sleep(void);
 void asm_delay_loop(__u32 t);
 
 #endif
+
+ /** @}
+ */
+

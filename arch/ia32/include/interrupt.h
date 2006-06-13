@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_INTERRUPT_H__
 #define __ia32_INTERRUPT_H__
 
@@ -117,3 +123,7 @@ extern void trap_virtual_disable_irqs(__u16 irqmask);
 extern void trap_virtual_eoi(void);
 
 #endif
+
+ /** @}
+ */
+

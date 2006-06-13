@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_PAGE_H__
 #define __sparc64_PAGE_H__
 
@@ -58,3 +64,7 @@ extern void page_arch_init(void);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

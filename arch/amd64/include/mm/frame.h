@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_FRAME_H__
 #define __amd64_FRAME_H__
 
@@ -43,3 +49,7 @@ extern void frame_arch_init(void);
 #endif /* __ASM__ */
 
 #endif
+
+ /** @}
+ */
+

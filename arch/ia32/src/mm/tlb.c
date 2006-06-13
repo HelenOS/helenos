@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ * @ingroup ia32mm, amd64mm
+ */
+
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 #include <arch/asm.h>
@@ -59,3 +66,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 	for (i = 0; i < cnt; i++)
 		invlpg(page + i * PAGE_SIZE);
 }
+
+ /** @}
+ */
+

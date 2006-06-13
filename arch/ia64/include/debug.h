@@ -26,7 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64debug ia64
+ * @ingroup debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_DEBUG_H__
 #define __ia64_DEBUG_H__
 
 #endif
+
+ /** @}
+ */
+

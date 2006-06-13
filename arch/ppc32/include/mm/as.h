@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_AS_H__
 #define __ppc32_AS_H__
 
@@ -43,3 +49,7 @@
 extern void as_arch_init(void);
 
 #endif
+
+ /** @}
+ */
+

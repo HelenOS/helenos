@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MPS_H__
 #define __MPS_H__
 
@@ -123,3 +129,7 @@ extern void mps_init(void);
 extern void kmp(void *arg);
 
 #endif
+
+ /** @}
+ */
+

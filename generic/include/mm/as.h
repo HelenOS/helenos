@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericmm
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __AS_H__
 #define __AS_H__
 
@@ -199,3 +205,7 @@ extern __native sys_as_area_destroy(__address address);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_BOOT_H_
 #define __mips32_BOOT_H_
 
@@ -34,3 +40,7 @@
 #define TEMP_STACK_SIZE 0x100
 
 #endif
+
+ /** @}
+ */
+

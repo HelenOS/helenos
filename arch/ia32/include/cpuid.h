@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32cpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_CPUID_H__
 #define __ia32_CPUID_H__
 
@@ -108,3 +114,7 @@ static inline void cpuid(__u32 cmd, struct cpu_info *info)
 }
 
 #endif
+
+ /** @}
+ */
+

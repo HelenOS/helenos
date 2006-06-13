@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_TTE_H__
 #define __sparc64_TTE_H__
 
@@ -70,3 +76,7 @@ union tte_data {
 typedef union tte_data tte_data_t;
 
 #endif
+
+ /** @}
+ */
+

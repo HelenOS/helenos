@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_FB_H__
 #define __sparc64_FB_H__
 
@@ -37,3 +43,7 @@
 #define FB_COLOR_DEPTH		8
 
 #endif
+
+ /** @}
+ */
+

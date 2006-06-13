@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 #include <proc/task.h>
 #include <proc/thread.h>
@@ -585,3 +591,7 @@ __native sys_ipc_unregister_irq(int irq)
 
 	return 0;
 }
+
+ /** @}
+ */
+

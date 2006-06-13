@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_CONTEXT_H__
 #define __mips32_CONTEXT_H__
 
@@ -69,3 +75,7 @@ struct context {
 #endif /* __ASM__ */
 
 #endif
+
+ /** @}
+ */
+

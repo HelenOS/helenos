@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32proc ppc32
+ * @ingroup proc
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/page.h>
 #include <arch/boot/boot.h>
 #include <proc/scheduler.h>
@@ -52,3 +59,7 @@ void before_thread_runs_arch(void)
 void after_thread_ran_arch(void)
 {
 }
+
+ /** @}
+ */
+

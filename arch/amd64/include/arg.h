@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ARG_H__
 #define __amd64_ARG_H__
 
 #include <stdarg.h>
 
 #endif
+
+ /** @}
+ */
+

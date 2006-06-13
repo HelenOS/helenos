@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm mips32
+  * @ingroup mm
+ * @{
+ */
+/** @file
+  * @ingroup mips32
+ */
+
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
 #include <genarch/mm/asid_fifo.h>
@@ -65,4 +73,8 @@ void as_install_arch(as_t *as)
 	spinlock_unlock(&as->lock);
 	interrupts_restore(ipl);
 }
+
+
+ /** @}
+ */
 

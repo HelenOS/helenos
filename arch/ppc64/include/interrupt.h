@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_INTERRUPT_H__
 #define __ppc64_INTERRUPT_H__
 
@@ -41,3 +47,7 @@ extern void start_decrementer(void);
 extern void interrupt_init(void);
 
 #endif
+
+ /** @}
+ */
+

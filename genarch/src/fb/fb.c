@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/fb/font-8x16.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
@@ -414,3 +420,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	stdout = &framebuffer;
 	
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
 
@@ -47,3 +53,7 @@ extern int symtab_compl(char *name);
 extern struct symtab_entry symbol_table[];
 
 #endif
+
+ /** @}
+ */
+

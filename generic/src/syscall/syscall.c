@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic
+ * @{
+ */
+
 /**
- * @file	syscall.c
+ * @file
  * @brief	Syscall table and syscall wrappers.
  */
  
@@ -154,3 +158,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	/* Debug calls */
 	sys_debug_enable_console
 };
+
+ /** @}
+ */
+

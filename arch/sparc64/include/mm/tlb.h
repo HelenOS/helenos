@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_TLB_H__
 #define __sparc64_TLB_H__
 
@@ -411,3 +417,7 @@ extern void fast_data_access_protection(void);
 extern void dtlb_insert_mapping(__address page, __address frame, int pagesize, bool locked, bool cacheable);
 
 #endif
+
+ /** @}
+ */
+

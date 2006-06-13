@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/memory_init.h>
 #include <genarch/ofw/memory_init.h>
 #include <typedefs.h>
@@ -34,3 +40,7 @@ size_t get_memory_size(void)
 {
 	return ofw_get_memory_size();
 }
+
+ /** @}
+ */
+

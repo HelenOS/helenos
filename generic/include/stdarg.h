@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 
 /*
  * Variable argument list manipulation macros
@@ -43,3 +49,7 @@ typedef __builtin_va_list va_list;
 #define va_copy(dst,src)		__builtin_va_copy(dst,src)
 
 #endif
+
+ /** @}
+ */
+

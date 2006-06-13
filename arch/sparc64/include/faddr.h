@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_FADDR_H__
 #define __sparc64_FADDR_H__
 
@@ -34,3 +40,7 @@
 #define FADDR(fptr)		((__address) (fptr))
 
 #endif
+
+ /** @}
+ */
+

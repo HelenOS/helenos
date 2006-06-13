@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
@@ -78,3 +84,7 @@ extern __native sys_tls_set(__native addr);
 #endif
 
 #endif
+
+ /** @}
+ */
+

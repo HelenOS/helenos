@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_PAGE_H__
 #define __ia32_PAGE_H__
 
@@ -161,3 +167,7 @@ extern void page_fault(int n, istate_t *istate);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

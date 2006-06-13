@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifdef CONFIG_SMP
 
 #include <config.h>
@@ -423,3 +429,7 @@ int mps_irq_to_pin(int irq)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

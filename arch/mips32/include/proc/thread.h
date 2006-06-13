@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_THREAD_H__
 #define __mips32_THREAD_H__
 
@@ -35,3 +41,7 @@ typedef struct {
 #define thread_create_arch(t)
 
 #endif
+
+ /** @}
+ */
+

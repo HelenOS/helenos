@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_TYPES_H__
 #define __ppc32_TYPES_H__
 
@@ -58,3 +64,7 @@ typedef struct {
 } pte_t;
 
 #endif
+
+ /** @}
+ */
+

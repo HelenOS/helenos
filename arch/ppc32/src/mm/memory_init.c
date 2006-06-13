@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
 #include <typedefs.h>
@@ -45,3 +51,7 @@ void memory_print_map(void)
 	for (i = 0; i < bootinfo.memmap.count; i++)
 		printf("base: %#x size: %#x\n", bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
 }
+
+ /** @}
+ */
+

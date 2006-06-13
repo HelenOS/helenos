@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+
 /**
- * @file	task.c
+ * @file
  * @brief	Task management.
  */
 
@@ -490,3 +494,7 @@ more_gc:
 	thread_detach(t);
 	task_kill(TASK->taskid);
 }
+
+ /** @}
+ */
+

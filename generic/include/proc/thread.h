@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericproc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
@@ -185,3 +191,7 @@ __native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name);
 __native sys_thread_exit(int uspace_status);
 
 #endif
+
+ /** @}
+ */
+

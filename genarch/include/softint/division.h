@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SOFTINT_DIVISION_H__
 #define __SOFTINT_DIVISION_H__
 
@@ -57,4 +63,8 @@ unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
 unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsigned long long *c); 
 
 #endif
+
+
+ /** @}
+ */
 

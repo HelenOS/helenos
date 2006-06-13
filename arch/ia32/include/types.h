@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
@@ -52,3 +58,7 @@ typedef __s32 __snative;
 typedef struct page_specifier pte_t;
 
 #endif
+
+ /** @}
+ */
+

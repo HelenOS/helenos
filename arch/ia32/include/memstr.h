@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_MEMSTR_H__
 #define __ia32_MEMSTR_H__
 
@@ -140,3 +146,7 @@ static inline void memsetb(__address dst, size_t cnt, __u8 x)
 }
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #include <userspace.h>
 #include <arch/pm.h>
 #include <arch/types.h>
@@ -76,3 +82,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	for(;;)
 		;
 }
+
+ /** @}
+ */
+

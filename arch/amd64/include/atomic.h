@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ATOMIC_H__
 #define __amd64_ATOMIC_H__
 
@@ -118,3 +124,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 }
 
 #endif
+
+ /** @}
+ */
+

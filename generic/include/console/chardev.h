@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CHARDEV_H__
 #define __CHARDEV_H__
 
@@ -66,3 +72,7 @@ extern void chardev_initialize(char *name,
 extern void chardev_push_character(chardev_t *chardev, __u8 ch);
 
 #endif /* __CHARDEV_H__ */
+
+ /** @}
+ */
+

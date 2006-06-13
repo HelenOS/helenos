@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/trap/trap.h>
 #include <arch/trap/trap_table.h>
 #include <arch/trap/regwin.h>
@@ -43,3 +49,7 @@
 void trap_init(void)
 {
 }
+
+ /** @}
+ */
+

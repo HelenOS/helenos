@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarchmm
+ * @{
+ */
+/** @file
+ */
+
 /*
  * This is the generic 4-level page table interface.
  * Architectures that use hierarchical page tables
@@ -109,3 +115,7 @@ extern pte_t *page_mapping_find_pt(as_t *as, __address page);
 #endif
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/tick.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
@@ -81,3 +87,7 @@ void tick_interrupt(int n, istate_t *istate)
 	
 	clock();
 }
+
+ /** @}
+ */
+

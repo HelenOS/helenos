@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_PAGE_H__
 #define __mips32_PAGE_H__
 
@@ -145,3 +151,7 @@ extern void page_arch_init(void);
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

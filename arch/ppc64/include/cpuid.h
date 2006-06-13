@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64cpu
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_CPUID_H__
 #define __ppc64_CPUID_H__
 
@@ -45,3 +51,7 @@ static inline void cpu_version(struct cpu_info *info)
 }
 
 #endif
+
+ /** @}
+ */
+

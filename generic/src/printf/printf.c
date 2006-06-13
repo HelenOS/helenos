@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <print.h>
 
 int printf(const char *fmt, ...)
@@ -41,4 +47,8 @@ int printf(const char *fmt, ...)
 
 	return ret;
 }
+
+
+ /** @}
+ */
 

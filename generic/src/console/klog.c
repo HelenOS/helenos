@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericklog KLog
+ * @brief Kernel logging facility
+ * @ingroup kernel
+ * @{
+ */
+/** @file
+ */
+
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
 #include <console/klog.h>
@@ -98,3 +106,7 @@ void klog_printf(const char *fmt, ...)
 
 	va_end(args);
 }
+
+ /** @}
+ */
+

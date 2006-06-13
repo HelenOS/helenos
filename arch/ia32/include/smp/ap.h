@@ -26,9 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __AP_H__
 #define __AP_H__
 
 extern void ap_boot(void);
 
 #endif
+
+ /** @}
+ */
+

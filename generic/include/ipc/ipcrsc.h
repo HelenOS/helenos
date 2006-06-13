@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __IPCRSC_H__
 #define __IPCRSC_H__
 
@@ -35,3 +41,7 @@ void phone_connect(int phoneid, answerbox_t *box);
 void phone_dealloc(int phoneid);
 
 #endif
+
+ /** @}
+ */
+

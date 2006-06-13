@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
@@ -64,3 +70,7 @@ extern config_t config;
 extern init_t init;
 
 #endif
+
+ /** @}
+ */
+

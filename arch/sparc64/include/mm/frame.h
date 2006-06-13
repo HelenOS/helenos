@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_FRAME_H__
 #define __sparc64_FRAME_H__
 
@@ -54,3 +60,7 @@ extern void frame_arch_init(void);
 #endif
 
 #endif
+
+ /** @}
+ */
+

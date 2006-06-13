@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericinterrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __INTERRUPT_H__
 #define __INTERRUPT_H__
 
@@ -62,3 +68,7 @@ extern void exc_dispatch(int n, istate_t *t);
 void exc_init(void);
 
 #endif
+
+ /** @}
+ */
+

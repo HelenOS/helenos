@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #include <console/console.h>
 #include <arch/console.h>
 #include <arch/drivers/arc.h>
@@ -57,3 +63,7 @@ void arch_release_console(void)
 {
 	msim_kbd_release();
 }
+
+ /** @}
+ */
+

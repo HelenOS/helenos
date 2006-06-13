@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __DELAY_H__
 #define __DELAY_H__
 
@@ -34,3 +40,7 @@
 extern void delay(__u32 microseconds);
 
 #endif
+
+ /** @}
+ */
+

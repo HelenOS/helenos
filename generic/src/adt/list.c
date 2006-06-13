@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt
+ * @{
+ */
+
 /**
  * @file	list.c
  * @brief	Functions completing doubly linked circular list implementaion.
@@ -85,3 +89,7 @@ void list_concat(link_t *head1, link_t *head2)
 	head1->prev = head2->prev;
 	list_initialize(head2);
 }
+
+ /** @}
+ */
+

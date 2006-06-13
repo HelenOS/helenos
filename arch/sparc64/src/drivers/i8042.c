@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/drivers/i8042.h>
 #include <genarch/i8042/i8042.h>
 #include <arch/types.h>
@@ -38,3 +44,7 @@ void kbd_init()
 	kbd_virt_address = (__u8 *) hw_map(KBD_PHYS_ADDRESS, LAST_REG);
 	i8042_init();
 }
+
+ /** @}
+ */
+

@@ -26,8 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @defgroup mm Memory management
+  * @ingroup kernel
+  * @{
+  * @}
+  */
+ 
+ /** @addtogroup genericmm generic
+  * @ingroup mm
+ * @{
+ */
+
 /**
- * @file	as.c
+ * @file
  * @brief	Address space related functions.
  *
  * This file contains address space manipulation functions.
@@ -1524,3 +1535,7 @@ __native sys_as_area_destroy(__address address)
 {
 	return (__native) as_area_destroy(AS, address);
 }
+
+ /** @}
+ */
+

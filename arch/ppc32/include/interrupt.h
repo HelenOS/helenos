@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_INTERRUPT_H__
 #define __ppc32_INTERRUPT_H__
 
@@ -49,3 +55,7 @@ extern void interrupt_init(void);
 extern void extint_handler(int n, istate_t *istate);
 
 #endif
+
+ /** @}
+ */
+

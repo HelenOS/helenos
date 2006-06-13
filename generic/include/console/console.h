@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
@@ -44,3 +50,7 @@ extern void arch_grab_console(void);
 extern void arch_release_console(void);
 
 #endif /* __CHARDEV_H__ */
+
+ /** @}
+ */
+

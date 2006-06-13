@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32cpu ia32
+ * @ingroup cpu
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
 #include <arch/pm.h>
@@ -155,3 +162,7 @@ void cpu_print_report(cpu_t* m)
 		m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model, m->arch.stepping,
 		m->frequency_mhz);
 }
+
+ /** @}
+ */
+

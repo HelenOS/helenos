@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __FUTEX_H__
 #define __FUTEX_H__
 
@@ -50,3 +56,7 @@ extern __native sys_futex_wakeup(__address uaddr);
 extern void futex_cleanup(void);
 
 #endif
+
+ /** @}
+ */
+

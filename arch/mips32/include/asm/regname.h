@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_REGNAME_H_
 #define __mips32_REGNAME_H_
 
@@ -87,3 +93,7 @@
 
 
 #endif /* _REGNAME_H_ */
+
+ /** @}
+ */
+

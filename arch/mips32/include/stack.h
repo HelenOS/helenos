@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_STACK_H__
 #define __mips32_STACK_H__
 
@@ -33,3 +39,7 @@
 #define STACK_ALIGNMENT		8
 
 #endif
+
+ /** @}
+ */
+

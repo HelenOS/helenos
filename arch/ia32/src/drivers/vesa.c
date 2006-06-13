@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifdef CONFIG_FB
 
 #include <genarch/fb/fb.h>
@@ -63,3 +69,7 @@ void vesa_init(void)
 }
 
 #endif
+
+ /** @}
+ */
+

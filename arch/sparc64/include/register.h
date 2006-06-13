@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_REGISTER_H__
 #define __sparc64_REGISTER_H__
 
@@ -99,3 +105,7 @@ union softint_reg {
 typedef union softint_reg softint_reg_t;
 
 #endif
+
+ /** @}
+ */
+

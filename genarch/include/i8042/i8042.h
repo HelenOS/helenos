@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __I8042_H__
 #define __I8042_H__
 
@@ -50,3 +56,7 @@ extern void i8042_grab(void);
 extern void i8042_release(void);
 
 #endif
+
+ /** @}
+ */
+

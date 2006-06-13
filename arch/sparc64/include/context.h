@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_CONTEXT_H__
 #define __sparc64_CONTEXT_H__
 
@@ -82,3 +88,7 @@ struct context {
 };
 
 #endif
+
+ /** @}
+ */
+

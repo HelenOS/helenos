@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_MEMMAP_H__
 #define __ia32_MEMMAP_H__
 
@@ -66,3 +72,7 @@ extern __u32 e801memorysize; /**< Size of available memory in KB. */
 #endif
 
 #endif
+
+ /** @}
+ */
+

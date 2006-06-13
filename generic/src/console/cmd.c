@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+
 /**
  * @file	cmd.c
  * @brief	Kernel console command wrappers.
@@ -60,7 +64,7 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 
-/** Data and methods for 'help' command. */
+/* Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
 	.name = "help",
@@ -83,7 +87,7 @@ static cmd_info_t continue_info = {
 	.argc = 0
 };
 
-/** Data and methods for 'description' command. */
+/* Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
 static void desc_help(void);
 static char desc_buf[MAX_CMDLINE+1];
@@ -101,7 +105,7 @@ static cmd_info_t desc_info = {
 	.argv = &desc_argv
 };
 
-/** Data and methods for 'symaddr' command. */
+/* Data and methods for 'symaddr' command. */
 static int cmd_symaddr(cmd_arg_t *argv);
 static char symaddr_buf[MAX_CMDLINE+1];
 static cmd_arg_t symaddr_argv = {
@@ -137,7 +141,7 @@ static cmd_info_t set4_info = {
 	.argv = set4_argv
 };
 
-/** Data and methods for 'call0' command. */
+/* Data and methods for 'call0' command. */
 static char call0_buf[MAX_CMDLINE+1];
 static char carg1_buf[MAX_CMDLINE+1];
 static char carg2_buf[MAX_CMDLINE+1];
@@ -157,7 +161,7 @@ static cmd_info_t call0_info = {
 	.argv = &call0_argv
 };
 
-/** Data and methods for 'call1' command. */
+/* Data and methods for 'call1' command. */
 static int cmd_call1(cmd_arg_t *argv);
 static cmd_arg_t call1_argv[] = {
 	{
@@ -179,7 +183,7 @@ static cmd_info_t call1_info = {
 	.argv = call1_argv
 };
 
-/** Data and methods for 'call2' command. */
+/* Data and methods for 'call2' command. */
 static int cmd_call2(cmd_arg_t *argv);
 static cmd_arg_t call2_argv[] = {
 	{
@@ -206,7 +210,7 @@ static cmd_info_t call2_info = {
 	.argv = call2_argv
 };
 
-/** Data and methods for 'call3' command. */
+/* Data and methods for 'call3' command. */
 static int cmd_call3(cmd_arg_t *argv);
 static cmd_arg_t call3_argv[] = {
 	{
@@ -239,7 +243,7 @@ static cmd_info_t call3_info = {
 	.argv = call3_argv
 };
 
-/** Data and methods for 'halt' command. */
+/* Data and methods for 'halt' command. */
 static int cmd_halt(cmd_arg_t *argv);
 static cmd_info_t halt_info = {
 	.name = "halt",
@@ -248,7 +252,7 @@ static cmd_info_t halt_info = {
 	.argc = 0
 };
 
-/** Data and methods for 'tlb' command. */
+/* Data and methods for 'tlb' command. */
 static int cmd_tlb(cmd_arg_t *argv);
 cmd_info_t tlb_info = {
 	.name = "tlb",
@@ -292,7 +296,7 @@ static cmd_info_t slabs_info = {
 	.argc = 0
 };
 
-/** Data and methods for 'zones' command */
+/* Data and methods for 'zones' command */
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
 	.name = "zones",
@@ -301,7 +305,7 @@ static cmd_info_t zones_info = {
 	.argc = 0
 };
 
-/** Data and methods for 'ipc_task' command */
+/* Data and methods for 'ipc_task' command */
 static int cmd_ipc_task(cmd_arg_t *argv);
 static cmd_arg_t ipc_task_argv = {
 	.type = ARG_TYPE_INT,
@@ -314,7 +318,7 @@ static cmd_info_t ipc_task_info = {
 	.argv = &ipc_task_argv
 };
 
-/** Data and methods for 'zone' command */
+/* Data and methods for 'zone' command */
 static int cmd_zone(cmd_arg_t *argv);
 static cmd_arg_t zone_argv = {
 	.type = ARG_TYPE_INT,
@@ -328,7 +332,7 @@ static cmd_info_t zone_info = {
 	.argv = &zone_argv
 };
 
-/** Data and methods for 'cpus' command. */
+/* Data and methods for 'cpus' command. */
 static int cmd_cpus(cmd_arg_t *argv);
 cmd_info_t cpus_info = {
 	.name = "cpus",
@@ -339,7 +343,7 @@ cmd_info_t cpus_info = {
 	.argv = NULL
 };
 
-/** Data and methods for 'version' command. */
+/* Data and methods for 'version' command. */
 static int cmd_version(cmd_arg_t *argv);
 cmd_info_t version_info = {
 	.name = "version",
@@ -799,3 +803,7 @@ int cmd_continue(cmd_arg_t *argv)
 	arch_release_console();
 	return 1;
 }
+
+ /** @}
+ */
+

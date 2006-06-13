@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __MACROS_H__
 #define __MACROS_H__
 
@@ -51,3 +57,7 @@ static inline int overlaps(__address s1, size_t sz1, __address s2, size_t sz2)
 #define PA_overlaps(x,szx,y,szy)  overlaps(KA2PA(x),szx,KA2PA(y), szy)
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_DEBUG_H__
 #define __ia32_DEBUG_H__
 
@@ -34,3 +40,7 @@
 #define HERE get_ip()
 
 #endif
+
+ /** @}
+ */
+

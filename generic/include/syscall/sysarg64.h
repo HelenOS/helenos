@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic
+ * @{
+ */
+
 /**
- * @file	sysarg64.h
+ * @file
  * @brief	Wrapper for explicit 64-bit arguments passed to syscalls.
  */
 
@@ -39,3 +43,7 @@ typedef struct {
 } sysarg64_t;
 
 #endif
+
+ /** @}
+ */
+

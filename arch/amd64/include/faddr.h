@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_FADDR_H__
 #define __amd64_FADDR_H__
 
@@ -34,3 +40,7 @@
 #define FADDR(fptr)		((__address) (fptr))
 
 #endif
+
+ /** @}
+ */
+

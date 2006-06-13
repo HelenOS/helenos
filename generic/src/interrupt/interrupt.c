@@ -25,9 +25,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ /** @defgroup interrupt Interrupt
+  * @ingroup kernel
+  * @{
+  * @}
+  */
 
+ /** @addtogroup genericinterrupt generic
+ * @ingroup interrupt
+ * @{
+ */
 /**
- * @file	interrupt.c
+ * @file
  * @brief	Interrupt redirector.
  *
  * This file provides means of registering interrupt handlers
@@ -145,4 +154,8 @@ void exc_init(void)
 	if (!cmd_register(&exc_info))
 		panic("could not register command %s\n", exc_info.name);
 }
+
+
+ /** @}
+ */
 

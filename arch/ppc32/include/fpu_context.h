@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc32_FPU_CONTEXT_H__
 #define __ppc32_FPU_CONTEXT_H__
 
@@ -56,3 +62,7 @@ struct fpu_context {
 } __attribute__ ((packed));
 
 #endif
+
+ /** @}
+ */
+

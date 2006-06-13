@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_MEMSTR_H__
 #define __mips32_MEMSTR_H__
 
@@ -37,3 +43,7 @@ extern void memsetb(__address dst, size_t cnt, __u8 x);
 extern int memcmp(__address src, __address dst, int cnt);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64debug ia32/amd64
+ * @ingroup debug
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/debugger.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
@@ -375,3 +382,7 @@ void debugger_init()
 		     debug_ipi);
 #endif
 }
+
+ /** @}
+ */
+

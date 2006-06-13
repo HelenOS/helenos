@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_TASK_H__
 #define __ppc64_TASK_H__
 
@@ -36,3 +42,7 @@ typedef struct {
 #define task_destroy_arch(t)
 
 #endif
+
+ /** @}
+ */
+

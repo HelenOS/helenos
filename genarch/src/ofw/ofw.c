@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #include <genarch/ofw/ofw.h>
 #include <arch/asm.h>
 #include <stdarg.h>
@@ -121,3 +127,7 @@ void *ofw_claim(const void *addr, const int size, const int align)
 {
 	return (void *) ofw_call("claim", 3, 1, addr, size, align);
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 /** IRQ notification framework
  *
  * This framework allows applications to register to receive a notification
@@ -327,3 +333,7 @@ void ipc_irq_cleanup(answerbox_t *box)
 		interrupts_restore(ipl);
 	}
 }
+
+ /** @}
+ */
+

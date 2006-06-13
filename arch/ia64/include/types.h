@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
@@ -60,3 +66,7 @@ typedef __s64 __snative;
 typedef struct pte pte_t;
 
 #endif
+
+ /** @}
+ */
+

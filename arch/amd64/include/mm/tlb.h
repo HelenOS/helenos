@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_TLB_H__
 #define __amd64_TLB_H__
 
@@ -33,3 +39,7 @@
 #define tlb_print()
 
 #endif
+
+ /** @}
+ */
+

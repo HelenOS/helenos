@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_PAGE_H__
 #define __ia64_PAGE_H__
 
@@ -272,3 +278,7 @@ extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __addr
 #endif /* KERNEL */
 
 #endif
+
+ /** @}
+ */
+

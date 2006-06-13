@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 /**
  * This file contains register window trap handlers.
  */
@@ -131,3 +137,7 @@
 #endif /* __ASM__ */
 
 #endif
+
+ /** @}
+ */
+

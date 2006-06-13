@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __I8254_H__
 #define __I8254_H__
 
@@ -36,3 +42,7 @@ extern void i8254_calibrate_delay_loop(void);
 extern void i8254_normal_operation(void);
 
 #endif
+
+ /** @}
+ */
+

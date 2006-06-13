@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc32	
+ * @{
+ */
+/** @file
+ */
+
 
 #include <arch/asm.h>
 #include <arch/drivers/pic.h>
@@ -83,3 +89,7 @@ int pic_get_pending(void)
 	}
 	return -1;
 }
+
+ /** @}
+ */
+

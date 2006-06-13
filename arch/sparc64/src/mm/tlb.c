@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <arch/mm/frame.h>
@@ -272,3 +278,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page + i * PAGE_SIZE);
 	}
 }
+
+ /** @}
+ */
+

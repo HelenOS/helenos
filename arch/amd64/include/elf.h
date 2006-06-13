@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_ELF_H__
 #define __amd64_ELF_H__
 
@@ -34,3 +40,7 @@
 #define ELF_CLASS		ELFCLASS64
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32mm	
+ * @{
+ */
+/** @file
+ * @ingroup ia32mm, amd64mm
+ */
+
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
 
@@ -34,3 +41,7 @@ void as_arch_init(void)
 {
 	as_operations = &as_pt_operations;
 }
+
+ /** @}
+ */
+

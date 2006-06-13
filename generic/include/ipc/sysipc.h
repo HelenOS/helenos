@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericipc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __SYSIPC_H__
 #define __SYSIPC_H__
 
@@ -51,3 +57,7 @@ __native sys_ipc_register_irq(int irq, irq_code_t *ucode);
 __native sys_ipc_unregister_irq(int irq);
 
 #endif
+
+ /** @}
+ */
+

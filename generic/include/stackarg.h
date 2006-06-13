@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 
 /*
  * Variable argument list manipulation macros
@@ -54,3 +60,7 @@ typedef struct va_list {
 
 
 #endif
+
+ /** @}
+ */
+

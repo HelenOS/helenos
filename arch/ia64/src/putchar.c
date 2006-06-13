@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @{
+ */
+/** @file
+ */
+
 #include <putchar.h>
 #include <arch/ski/ski.h>
 
@@ -33,3 +39,7 @@ void putchar(const char ch)
 {
 	ski_write(ch);
 }
+
+ /** @}
+ */
+

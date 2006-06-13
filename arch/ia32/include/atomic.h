@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_ATOMIC_H__
 #define __ia32_ATOMIC_H__
 
@@ -117,3 +123,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 }
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64interrupt sparc64
+ * @ingroup interrupt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_INTERRUPT_H__
 #define __sparc64_INTERRUPT_H__
 
@@ -66,3 +73,7 @@ static inline __native istate_get_pc(istate_t *istate)
 extern void interrupt_register(int n, const char *name, iroutine f);
 
 #endif
+
+ /** @}
+ */
+

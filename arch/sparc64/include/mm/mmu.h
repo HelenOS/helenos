@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_MMU_H__
 #define __sparc64_MMU_H__
 
@@ -125,3 +131,7 @@ static inline void dmmu_set(bool enable)
 }
 
 #endif
+
+ /** @}
+ */
+

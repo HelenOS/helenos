@@ -27,6 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+/** @file
+ */
+
 #include <console/console.h>
 #include <console/chardev.h>
 #include <synch/waitq.h>
@@ -158,3 +164,7 @@ void putchar(char c)
 	if (stdout->op->write)
 		stdout->op->write(stdout, c);
 }
+
+ /** @}
+ */
+

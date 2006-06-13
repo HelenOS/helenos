@@ -43,3 +43,7 @@
 #define OFFSET_FR30  0x80
 #define OFFSET_FR31  0x88
 #define OFFSET_FPSCR 0x90
+
+ /** @}
+ */
+

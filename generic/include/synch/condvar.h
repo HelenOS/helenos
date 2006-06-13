@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sync
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CONDVAR_H__
 #define __CONDVAR_H__
 
@@ -49,3 +55,7 @@ extern void condvar_broadcast(condvar_t *cv);
 extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int flags);
 
 #endif
+
+ /** @}
+ */
+

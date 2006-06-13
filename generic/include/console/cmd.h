@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericconsole
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __CMD_H__
 #define __CMD_H__
 
@@ -35,3 +41,7 @@ extern void cmd_initialize(cmd_info_t *cmd);
 extern void cmd_init(void);
 
 #endif
+
+ /** @}
+ */
+

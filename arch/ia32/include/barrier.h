@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia32_BARRIER_H__
 #define __ia32_BARRIER_H__
 
@@ -79,3 +85,7 @@ static inline void cpuid_serialization(void)
 #endif
 
 #endif
+
+ /** @}
+ */
+

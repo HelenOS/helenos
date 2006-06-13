@@ -26,8 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32ddi
+ * @{
+ */
 /**
- * @file	ddi.h
+ * @file
  * @brief	ia32 specific DDI declarations and macros.
  */
 
@@ -37,3 +40,7 @@
 extern void io_perm_bitmap_install(void);
 
 #endif
+
+ /** @}
+ */
+

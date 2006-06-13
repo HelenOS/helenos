@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64mm amd64	
+  * @ingroup mm
+ * @{
+ */
+/** @file
+ * @ingroup amd64
+ */
+
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <arch/mm/frame.h>
@@ -206,3 +214,7 @@ __address hw_map(__address physaddr, size_t size)
 	
 	return virtaddr;
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ia64_TLB_H__
 #define __ia64_TLB_H__
 
@@ -93,3 +99,7 @@ extern void data_access_bit_fault(__u64 vector, istate_t *istate);
 extern void page_not_present(__u64 vector, istate_t *istate);
 
 #endif
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genericadt
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __BITMAP_H__
 #define __BITMAP_H__
 
@@ -45,3 +51,7 @@ extern void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits);
 extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits);
 
 #endif
+
+ /** @}
+ */
+

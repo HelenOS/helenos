@@ -26,8 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /**
+ * @defgroup proc Proc
+ * @ingroup kernel
+ * @{
+ * @}
+ */
+ 
+ /** @addtogroup genericproc generic
+ * @ingroup proc
+ * @{
+ */
+
 /**
- * @file	scheduler.c
+ * @file
  * @brief	Scheduler and load balancing.
  *
  * This file contains the scheduler and kcpulb kernel thread which
@@ -692,3 +704,7 @@ void sched_print_list(void)
 	
 	interrupts_restore(ipl);
 }
+
+ /** @}
+ */
+

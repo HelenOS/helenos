@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __DRV_SERIAL_H__
 #define __DRV_SERIAL_H__
 
@@ -60,3 +66,7 @@ void serial_console(void);
 int serial_init(void);
 
 #endif
+
+ /** @}
+ */
+

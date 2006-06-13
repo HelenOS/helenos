@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 
 #include <arch.h>
 #include <arch/boot.h>
@@ -173,4 +180,8 @@ __native sys_tls_set(__native addr)
 {
 	return 0;
 }
+
+
+ /** @}
+ */
 

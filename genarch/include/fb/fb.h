@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef _FB_H_
 #define _FB_H_
 
@@ -36,3 +42,7 @@ extern spinlock_t fb_lock;
 void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
 
 #endif
+
+ /** @}
+ */
+

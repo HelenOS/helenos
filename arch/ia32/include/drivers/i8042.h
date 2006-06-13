@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia32	
+ * @{
+ */
+/** @file
+ */
+
 /**
  * This file implements ia32 specific access to i8042 registers.
  */
@@ -60,3 +66,7 @@ static inline void i8042_command_write(__u8 command)
 }
 
 #endif
+
+ /** @}
+ */
+

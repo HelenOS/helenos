@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64debug
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_DEBUGGER_H__
 #define __amd64_DEBUGGER_H__
 
@@ -46,3 +52,7 @@ extern int breakpoint_add(void * where, int flags, int curidx);
 extern void breakpoint_del(int slot);
 
 #endif
+
+ /** @}
+ */
+

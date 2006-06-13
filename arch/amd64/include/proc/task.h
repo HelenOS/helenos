@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup amd64proc
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __amd64_TASK_H__
 #define __amd64_TASK_H__
 
@@ -39,3 +45,7 @@ typedef struct {
 } task_arch_t;
 
 #endif
+
+ /** @}
+ */
+

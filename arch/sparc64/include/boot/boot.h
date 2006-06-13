@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __sparc64_BOOT_H__
 #define __sparc64_BOOT_H__
 
@@ -33,3 +39,7 @@
 #define LMA			0x4000
 
 #endif
+
+ /** @}
+ */
+

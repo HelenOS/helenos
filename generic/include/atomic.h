@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ATOMIC_H__
 #define __ATOMIC_H__
 
@@ -46,3 +52,7 @@ static inline long atomic_get(atomic_t *val)
 }
 
 #endif
+
+ /** @}
+ */
+

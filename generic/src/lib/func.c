@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	func.c
+ * @file
  * @brief	Miscellaneous functions.
  */
 
@@ -187,3 +191,7 @@ __native atoi(const char *text)
 
 	return result;
 }
+
+ /** @}
+ */
+

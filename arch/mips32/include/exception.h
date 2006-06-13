@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup mips32	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __mips32_EXCEPTION_H__
 #define __mips32_EXCEPTION_H__
 
@@ -116,3 +122,7 @@ extern void cache_error_entry(void);
 extern void exception_init(void);
 
 #endif
+
+ /** @}
+ */
+

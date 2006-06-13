@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	delay.c
+ * @file
  * @brief	Active delay function.
  */
  
@@ -59,3 +63,7 @@ void delay(__u32 usec)
 	asm_delay_loop(usec * CPU->delay_loop_const);
 	interrupts_restore(ipl);
 }
+
+ /** @}
+ */
+

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __COPY_H__
 #define __COPY_H__
 
@@ -47,3 +53,7 @@ extern int memcpy_from_uspace(void *dst, const void *uspace_src, size_t size);
 extern int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size);
 
 #endif
+
+ /** @}
+ */
+

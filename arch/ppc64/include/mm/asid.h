@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ppc64mm	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __ppc64_ASID_H__
 #define __ppc64_ASID_H__
 
@@ -37,3 +43,7 @@ typedef int asid_t;
 #define asid_put(asid)
 
 #endif
+
+ /** @}
+ */
+

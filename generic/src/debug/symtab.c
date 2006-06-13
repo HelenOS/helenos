@@ -26,8 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @defgroup debug Debug
+ * @ingroup kernel
+ * @{
+ * @}
+ */
+ 
+ 
+ /** @addtogroup genericdebug generic
+ * @ingroup debug
+ * @{
+ */
+
 /**
- * @file	symtab.c
+ * @file
  * @brief	Kernel symbol resolver.
  */
 
@@ -192,3 +204,7 @@ int symtab_compl(char *input)
 	return found;
 	
 }
+
+ /** @}
+ */
+

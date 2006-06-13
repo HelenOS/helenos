@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup ia64	
+ * @ingroup others
+ * @{
+ */
+/** @file
+ */
+
 #include <arch.h>
 #include <arch/ski/ski.h>
 #include <arch/drivers/it.h>
@@ -145,3 +152,7 @@ void arch_release_console(void)
 {
     kbd_uspace=kbd_release;
 }
+
+ /** @}
+ */
+

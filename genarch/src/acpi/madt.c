@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
 /**
  * @file	madt.c
  * @brief	Multiple APIC Description Table (MADT) parsing.
@@ -239,3 +242,7 @@ void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
 }
 
 #endif /* CONFIG_SMP */
+
+ /** @}
+ */
+

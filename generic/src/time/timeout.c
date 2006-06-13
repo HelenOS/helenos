@@ -26,8 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+
 /**
- * @file	timeout.c
+ * @file
  * @brief	Timeout management functions.
  */
 
@@ -209,3 +213,7 @@ grab_locks:
 	interrupts_restore(ipl);
 	return true;
 }
+
+ /** @}
+ */
+

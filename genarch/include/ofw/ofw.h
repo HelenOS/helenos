@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup genarch	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef __OFW_H__
 #define __OFW_H__
 
@@ -61,3 +67,7 @@ extern int ofw_get_property(const phandle device, const char *name, void *buf, c
 extern void *ofw_claim(const void *addr, const int size, const int align);
 
 #endif
+
+ /** @}
+ */
+

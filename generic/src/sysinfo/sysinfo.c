@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
 #include <print.h>
@@ -299,3 +305,7 @@ __native sys_sysinfo_value(__native ptr, __native len)
 	free(str);
 	return ret.val;
 }
+
+ /** @}
+ */
+
