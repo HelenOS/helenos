@@ -59,8 +59,8 @@ struct {
  * The time variables are memory mapped(RO) from kernel, which updates
  * them periodically. As it is impossible to read 2 values atomically, we
  * use a trick: First read a seconds, then read microseconds, then
- * read seconds again. If a second elapsed in the meantime, read
- * useconds again. This provides assurance, that at least the
+ * read seconds again. If a second elapsed in the meantime, set it to zero. 
+ * This provides assurance, that at least the
  * sequence of subsequent gettimeofday calls is ordered.
  */
 int gettimeofday(struct timeval *tv, struct timezone *tz)
