@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32interrupt ia32
+/** @addtogroup ia32interrupt ia32
  * @ingroup interrupt
  * @{
  */
@@ -206,6 +206,6 @@ void irq_ipc_bind_arch(__native irq)
 	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
 }
 
- /** @}
+/** @}
  */
 

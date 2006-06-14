@@ -26,10 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt sparc64
+ * @ingroup interrupt
  * @{
  */
 /** @file
+ *
  */
 
 #include <arch/interrupt.h>
@@ -58,6 +60,6 @@ void irq_ipc_bind_arch(__native irq)
 	/* TODO */
 }
 
- /** @}
+/** @}
  */
 

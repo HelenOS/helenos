@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32interrupt
+/** @addtogroup ia32interrupt
  * @{
  */
 /** @file
@@ -124,6 +124,6 @@ extern void trap_virtual_eoi(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

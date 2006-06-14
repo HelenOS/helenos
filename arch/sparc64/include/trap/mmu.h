@@ -26,14 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
- */
-
 /**
- * This file contains fast MMU trap handlers.
+ * @file
+ * @brief This file contains fast MMU trap handlers.
  */
 
 #ifndef __sparc64_MMU_TRAP_H__
@@ -75,6 +73,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

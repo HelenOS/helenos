@@ -26,10 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
 /** @file
+ *
  */
 
 #include <arch/trap/exception.h>
@@ -60,6 +61,6 @@ void do_illegal_instruction(void)
 	panic("Illegal Instruction: %P\n", tpc_read());
 }
 
- /** @}
+/** @}
  */
 

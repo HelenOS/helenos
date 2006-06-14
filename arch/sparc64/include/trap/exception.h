@@ -26,10 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
 #ifndef __sparc64_EXCEPTION_H__
@@ -49,6 +50,6 @@ extern void do_illegal_instruction(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

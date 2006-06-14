@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64interrupt ia64
+/** @addtogroup ia64interrupt ia64
  * @ingroup interrupt
  * @{
  */
@@ -280,6 +280,6 @@ void irq_ipc_bind_arch(__native irq)
 	/* TODO */
 }
 
- /** @}
+/** @}
  */
 

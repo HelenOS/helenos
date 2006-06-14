@@ -26,14 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
- */
-
 /**
- * This file contains register window trap handlers.
+ * @file
+ * @brief This file contains register window trap handlers.
  */
 
 #ifndef __sparc64_REGWIN_H__
@@ -138,6 +136,6 @@
 
 #endif
 
- /** @}
+/** @}
  */
 

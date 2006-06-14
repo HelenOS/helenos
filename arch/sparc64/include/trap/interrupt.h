@@ -26,14 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
- */
-
-/**
- * This file contains interrupt vector trap handler.
+/** 
+ * @file
+ * @brief This file contains interrupt vector trap handler.
  */
 
 #ifndef __sparc64_TRAP_INTERRUPT_H__
@@ -78,6 +76,6 @@
 
 #endif
 
- /** @}
+/** @}
  */
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64interrupt
  * @{
  */
 /** @file
@@ -97,6 +97,6 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 
 #endif
 
- /** @}
+/** @}
  */
 
