@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32cpu ia32
- * @ingroup cpu
+ /** @addtogroup ia32cpu
  * @{
  */
 /** @file

@@ -26,14 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup cpu CPU
- * @ingroup kernel
- * @{
- * @}
- */
-
- /** @addtogroup genericcpu generic
- * @ingroup cpu
+ /** @addtogroup genericcpu
  * @{
  */
 

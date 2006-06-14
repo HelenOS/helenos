@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm sparc64
- * @ingroup mm
+ /** @addtogroup sparc64mm
  * @{
  */
 /** @file
- * @ingroup sparc64
  */
 
 #include <arch/mm/as.h>

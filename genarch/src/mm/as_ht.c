@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm genarch
- * @ingroup mm
+ /** @addtogroup genarchmm
  * @{
  */
  

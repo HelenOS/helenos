@@ -26,9 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc IPC
-  * @ingroup kernel
-  * @brief Interprocess communication protocol
+ /** @addtogroup genericipc
  * @{
  */
 /** @file

@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm ppc32
-  * @ingroup mm
+ /** @addtogroup ppc32mm
  * @{
  */
 /** @file
-  * @ingroup ppc32
  */
 
 #include <arch/mm/as.h>

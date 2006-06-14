@@ -27,12 +27,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64interrupt ia64
- * @ingroup interrupt
+/** @addtogroup ia64interrupt
  * @{
  */
 /** @file
- *
  */
 
 #include <arch/interrupt.h>

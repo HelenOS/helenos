@@ -27,7 +27,6 @@
  */
 
  /** @addtogroup main
- * @ingroup kernel
  * @{
  */
 

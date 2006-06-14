@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	ia64
-  * @ingroup mm
+ /** @addtogroup ia64mm
  * @{
  */
 /** @file
-  * @ingroup ia64
  */
 
 #include <arch/mm/as.h>

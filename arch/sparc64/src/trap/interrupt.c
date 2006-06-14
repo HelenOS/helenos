@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64interrupt sparc64
- * @ingroup interrupt
+/** @addtogroup sparc64interrupt
  * @{
  */
 /** @file
- *
  */
 
 #include <arch/interrupt.h>

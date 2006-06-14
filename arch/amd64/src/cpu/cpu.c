@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64cpu amd64
- * @ingroup cpu
+ /** @addtogroup amd64cpu
  * @{
  */
 /** @file

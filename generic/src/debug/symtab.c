@@ -26,15 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @defgroup debug Debug
- * @ingroup kernel
- * @{
- * @}
- */
- 
- 
- /** @addtogroup genericdebug generic
- * @ingroup debug
+ /** @addtogroup genericdebug
  * @{
  */
 

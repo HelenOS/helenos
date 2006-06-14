@@ -27,8 +27,7 @@
  */
 
 
- /** @addtogroup genarch genarch
- * @ingroup others
+ /** @addtogroup genarch
  * @{
  */
 

@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32cpu ppc32
- * @ingroup cpu
+ /** @addtogroup ppc32cpu
  * @{
  */
 /** @file

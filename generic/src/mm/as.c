@@ -26,14 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @defgroup mm Memory management
-  * @ingroup kernel
-  * @{
-  * @}
-  */
- 
- /** @addtogroup genericmm generic
-  * @ingroup mm
+ /** @addtogroup genericmm
  * @{
  */
 

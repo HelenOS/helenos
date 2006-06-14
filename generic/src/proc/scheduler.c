@@ -26,15 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /**
- * @defgroup proc Proc
- * @ingroup kernel
- * @{
- * @}
- */
  
- /** @addtogroup genericproc generic
- * @ingroup proc
+ /** @addtogroup genericproc
  * @{
  */
 

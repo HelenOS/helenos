@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64ddi ppc64
- * @ingroup ddi
+ /** @addtogroup ppc64ddi
  * @{
  */
 /** @file

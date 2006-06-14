@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64interrupt ppc64
- * @ingroup interrupt
+ /** @addtogroup ppc64interrupt
  * @{
  */
 /** @file

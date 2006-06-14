@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64proc amd64
- * @ingroup proc
+ /** @addtogroup amd64proc
  * @{
  */
 /** @file

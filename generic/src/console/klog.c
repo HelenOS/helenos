@@ -26,9 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericklog KLog
- * @brief Kernel logging facility
- * @ingroup kernel
+ /** @addtogroup genericklog
  * @{
  */
 /** @file

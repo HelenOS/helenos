@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64ddi amd64
- * @ingroup ddi
+ /** @addtogroup amd64ddi
  * @{
  */
 /** @file

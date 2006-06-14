@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32ddi ia32
- * @ingroup ddi
+ /** @addtogroup ia32ddi
  * @{
  */
 /** @file

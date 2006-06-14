@@ -26,14 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup ddi Device Driver Interface
- * @ingroup kernel
- * @{
- * @}
- */
-
- /** @addtogroup genericddi generic
- * @ingroup ddi
+ /** @addtogroup genericddi
  * @{
  */
  

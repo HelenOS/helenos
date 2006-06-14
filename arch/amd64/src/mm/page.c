@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm amd64	
-  * @ingroup mm
+ /** @addtogroup amd64mm
  * @{
  */
 /** @file
- * @ingroup amd64
  */
 
 #include <arch/mm/page.h>

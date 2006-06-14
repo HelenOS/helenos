@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64debug ia32/amd64
- * @ingroup debug
+ /** @addtogroup amd64debug
  * @{
  */
 /** @file

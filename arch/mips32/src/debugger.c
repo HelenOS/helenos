@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32debug mips32
- * @ingroup debug
+ /** @addtogroup mips32debug
  * @{
  */
 /** @file

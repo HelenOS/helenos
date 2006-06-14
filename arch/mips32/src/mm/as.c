@@ -26,12 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32mm mips32
-  * @ingroup mm
+ /** @addtogroup mips32mm
  * @{
  */
 /** @file
-  * @ingroup mips32
  */
 
 #include <arch/mm/as.h>

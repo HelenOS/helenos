@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64ddi sparc64
- * @ingroup ddi
+ /** @addtogroup sparc64ddi
  * @{
  */
 /** @file
