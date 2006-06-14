@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @file
+ * @ingroup libcia32, libcamd64
+ */
+
 #ifndef __ia32_libc_DDI_H_
 #define __ia32_libc_DDI_H_
 

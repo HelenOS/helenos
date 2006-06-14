@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @addtogroup kbdgen
+ * @{
+ */
+ /**
+  * @file
+  */
 
 #ifndef _KBD_KEYS_H_
 #define _KBD_KEYS_H_
@@ -46,3 +53,6 @@
 #define KBD_KEY_F12	0x46
 
 #endif
+
+/** @}
+*/
