@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file	bitmap.c
+ * @file
  * @brief	Implementation of bitmap ADT.
  *
  * This file implements bitmap ADT and provides functions for

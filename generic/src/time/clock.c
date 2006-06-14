@@ -32,7 +32,7 @@
  * @}
  */
 
- /** @addtogroup generic	
+ /** @addtogroup generic generic	
  * @{
  */
 

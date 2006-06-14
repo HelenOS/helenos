@@ -31,7 +31,7 @@
  */
 
 /**
- * @file	hash_table.c
+ * @file
  * @brief	Implementation of generic chained hash table.
  *
  * This file contains implementation of generic chained hash table.

@@ -31,7 +31,7 @@
  */
 
 /**
- * @file	list.c
+ * @file
  * @brief	Functions completing doubly linked circular list implementaion.
  *
  * This file contains some of the functions implementing doubly linked circular lists.

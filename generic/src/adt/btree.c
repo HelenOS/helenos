@@ -31,7 +31,7 @@
  */
 
 /**
- * @file	btree.c
+ * @file
  * @brief	B+tree implementation.
  *
  * This file implements B+tree type and operations.

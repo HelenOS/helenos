@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file	madt.c
+ * @file
  * @brief	Multiple APIC Description Table (MADT) parsing.
  */
 
