@@ -64,10 +64,15 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int chr;
 
+#ifdef MOUSE_ENABLED
+	if (mouse_arch_process(phone2cons, call))
+		return;
+#endif
+	
+	kbd_arch_process(&keybuffer, call);
+
 	if (cons_connected && phone2cons != -1) {
 		/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
-		kbd_arch_process(&keybuffer, call);
-		
 		while (!keybuffer_empty(&keybuffer)) {
 			if (!keybuffer_pop(&keybuffer, (int *)&chr))
 				break;

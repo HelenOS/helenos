@@ -48,6 +48,17 @@ GENERIC_SOURCES = \
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/kbd.c
 
+ifeq ($(ARCH), ia32)
+	ARCH_SOURCES += arch/$(ARCH)/src/mouse.c
+	CFLAGS += -DMOUSE_ENABLED
+endif
+ifeq ($(ARCH), amd64)
+	ARCH_SOURCES += arch/$(ARCH)/src/mouse.c
+	CFLAGS += -DMOUSE_ENABLED
+endif
+
+
+
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 

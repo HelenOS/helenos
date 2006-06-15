@@ -70,6 +70,8 @@
 #define FB_ANIM_START        1204
 #define FB_ANIM_STOP         1205
 
+#define FB_POINTER_MOVE      1300
+
 #endif
 
 

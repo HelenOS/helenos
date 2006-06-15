@@ -1124,6 +1124,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_GET_RESOLUTION:
 			ipc_answer_fast(callid, 0, screen.xres,screen.yres);
 			continue;
+		case FB_POINTER_MOVE:
+			putpixel(&viewports[0], IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+				 0xd0a080);
+			break;
 		default:
 			retval = ENOENT;
 		}

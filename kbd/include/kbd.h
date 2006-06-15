@@ -37,8 +37,10 @@
 #ifndef __KBD_H__
 #define __KBD_H__
 
+#include <key_buffer.h>
 
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call);
+int mouse_arch_process(int phoneid, ipc_call_t *call);
 
 #endif
 

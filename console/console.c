@@ -298,6 +298,9 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
+		case KBD_MS_MOVE:
+			gcons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			break;
 		case KBD_PUSHCHAR:
 			/* got key from keyboard driver */
 			

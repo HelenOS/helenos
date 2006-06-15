@@ -449,17 +449,16 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
 	int status = IPC_GET_ARG1(*call);
 
-	if ((status & i8042_MOUSE_DATA)) {
-		;
-	} else {
-		int scan_code = IPC_GET_ARG2(*call);
-		
-		if (scan_code != IGNORE_CODE) {
-			if (scan_code & KEY_RELEASE)
-				key_released(keybuffer, scan_code ^ KEY_RELEASE);
-			else
-				key_pressed(keybuffer, scan_code);
-		}
+	if ((status & i8042_MOUSE_DATA))
+		return 0;
+	
+	int scan_code = IPC_GET_ARG2(*call);
+	
+	if (scan_code != IGNORE_CODE) {
+		if (scan_code & KEY_RELEASE)
+			key_released(keybuffer, scan_code ^ KEY_RELEASE);
+		else
+			key_pressed(keybuffer, scan_code);
 	}
 	return 	1;
 }

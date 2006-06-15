@@ -230,6 +230,28 @@ void gcons_in_kernel(void)
 	vp_switch(0);
 }
 
+
+static inline int limit(int a,int left, int right)
+{
+	if (a < left)
+		a = left;
+	if (a >= right)
+		a = right - 1;
+	return a;
+}
+
+void gcons_mouse_move(int dx, int dy)
+{
+	static int x = 0;
+	static int y = 0;
+
+	x = limit(x+dx, 0, xres);
+	y = limit(y+dy, 0, yres);
+
+	async_msg_2(fbphone, FB_POINTER_MOVE, x, y);
+}
+
+
 /** Draw a PPM pixmap to framebuffer
  *
  * @param logo Pointer to PPM data
