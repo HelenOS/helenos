@@ -61,6 +61,9 @@
 #include "../console/screenbuffer.h"
 #include "ppm.h"
 
+#include "pointer.xbm"
+#include "pointer_mask.xbm"
+
 #define DEFAULT_BGCOLOR                0xf0f0f0
 #define DEFAULT_FGCOLOR                0x0
 
@@ -428,12 +431,6 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 	if (i == MAX_VIEWPORTS)
 		return ELIMIT;
 
-	if (width ==0 || height == 0 ||
-	    x+width > screen.xres || y+height > screen.yres)
-		return EINVAL;
-	if (width < FONT_SCANLINES || height < COL_WIDTH)
-		return EINVAL;
-
 	viewports[i].x = x;
 	viewports[i].y = y;
 	viewports[i].width = width;
@@ -735,15 +732,32 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	return handled;
 }
 
-/** Save viewport to pixmap */
-static int save_vp_to_pixmap(int vp)
+static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 {
-	int pm;
-	pixmap_t *pmap;
-	viewport_t *vport = &viewports[vp];
 	int x,y;
 	int rowsize;
 	int tmp;
+	int width = vport->width;
+	int height = vport->height;
+
+	if (width + vport->x > screen.xres)
+		width = screen.xres - vport->x;
+	if (height + vport->y  > screen.yres)
+		height = screen.yres - vport->y;
+
+	rowsize = width * screen.pixelbytes;
+
+	for (y=0;y < height; y++) {
+		tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
+		memcpy(pmap->data + rowsize*y, screen.fbaddress + tmp, rowsize); 
+	}
+}
+
+/** Save viewport to pixmap */
+static int save_vp_to_pixmap(viewport_t *vport)
+{
+	int pm;
+	pixmap_t *pmap;
 
 	pm = find_free_pixmap();
 	if (pm == -1)
@@ -756,12 +770,9 @@ static int save_vp_to_pixmap(int vp)
 
 	pmap->width = vport->width;
 	pmap->height = vport->height;
+
+	copy_vp_to_pixmap(vport, pmap);
 	
-	rowsize = vport->width * screen.pixelbytes;
-	for (y=0;y < vport->height; y++) {
-		tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
-		memcpy(pmap->data + rowsize*y, screen.fbaddress + tmp, rowsize); 
-	}
 	return pm;
 }
 
@@ -777,12 +788,19 @@ static int draw_pixmap(int vp, int pm)
 	int x,y;
 	int tmp, srcrowsize;
 	int realwidth, realheight, realrowsize;
+	int width = vport->width;
+	int height = vport->height;
+
+	if (width + vport->x > screen.xres)
+		width = screen.xres - vport->x;
+	if (height + vport->y > screen.yres)
+		height = screen.yres - vport->y;
 
 	if (!pmap->data)
 		return EINVAL;
 
-	realwidth = pmap->width <= vport->width ? pmap->width : vport->width;
-	realheight = pmap->height <= vport->height ? pmap->height : vport->height;
+	realwidth = pmap->width <= width ? pmap->width : width;
+	realheight = pmap->height <= height ? pmap->height : height;
 
 	srcrowsize = vport->width * screen.pixelbytes;
 	realrowsize = realwidth * screen.pixelbytes;
@@ -811,6 +829,65 @@ static void anims_tick(void)
 		draw_pixmap(animations[i].vp, animations[i].pixmaps[animations[i].pos]);
 		animations[i].pos = (animations[i].pos+1) % animations[i].animlen;
 	}
+}
+
+
+static int pointer_x, pointer_y;
+static int pointer_shown;
+static int pointer_vport = -1;
+static int pointer_pixmap = -1;
+
+static void mouse_show(void)
+{
+	int i,j;
+	int visibility;
+	int color;
+	int bytepos;
+
+	/* Save image under the cursor */
+	if (pointer_vport == -1) {
+		pointer_vport = viewport_create(pointer_x, pointer_y, pointer_width, pointer_height);
+		if (pointer_vport < 0)
+			return;
+	} else {
+		viewports[pointer_vport].x = pointer_x;
+		viewports[pointer_vport].y = pointer_y;
+	}
+
+	if (pointer_pixmap == -1)
+		pointer_pixmap = save_vp_to_pixmap(&viewports[pointer_vport]);
+	else
+		copy_vp_to_pixmap(&viewports[pointer_vport], &pixmaps[pointer_pixmap]);
+
+	/* Draw cursor */
+	for (i=0; i < pointer_height; i++)
+		for (j=0;j < pointer_width; j++) {
+			bytepos = i*((pointer_width-1)/8+1) + j/8;
+			visibility = pointer_mask_bits[bytepos] & (1 << (j % 8));
+			if (visibility) {
+				color = pointer_bits[bytepos] & (1 << (j % 8)) ? 0 : 0xffffff;
+				if (pointer_x+j < screen.xres && pointer_y+i < screen.yres)
+					putpixel(&viewports[0], pointer_x+j, pointer_y+i, color);
+			}
+		}
+	pointer_shown = 1;
+}
+
+static void mouse_hide(void)
+{
+	/* Restore image under the cursor */
+	if (pointer_shown) {
+		draw_pixmap(pointer_vport, pointer_pixmap);
+		pointer_shown = 0;
+	}
+}
+
+static void mouse_move(unsigned int x, unsigned int y)
+{
+	mouse_hide();
+	pointer_x = x;
+	pointer_y = y;
+	mouse_show();
 }
 
 static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
@@ -931,7 +1008,7 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		if (nvp < 0 || nvp >= MAX_VIEWPORTS || !viewports[nvp].initialized)
 			retval = EINVAL;
 		else
-			retval = save_vp_to_pixmap(nvp);
+			retval = save_vp_to_pixmap(&viewports[nvp]);
 		break;
 	case FB_DROP_PIXMAP:
 		i = IPC_GET_ARG1(*call);
@@ -1125,8 +1202,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0, screen.xres,screen.yres);
 			continue;
 		case FB_POINTER_MOVE:
-			putpixel(&viewports[0], IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-				 0xd0a080);
+			mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			break;
 		default:
 			retval = ENOENT;
