@@ -56,7 +56,7 @@ static void read_num(unsigned char **data, unsigned int *num)
 	}
 }
 
-int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height)
+int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width, unsigned int *height)
 {
 	/* Read magic */
 	if (data[0] != 'P' || data[1] != '6')
@@ -89,7 +89,6 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 	unsigned int width, height;
 	unsigned int maxcolor;
 	int i;
-	void *maxdatap = data + datasz;
 	unsigned int color;
 	unsigned int coef;
 
@@ -124,4 +123,6 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 		(*putpixel)(vport, sx+(i % width), sy+(i / width), color);
 		data += 3;
 	}
+
+	return 0;
 }

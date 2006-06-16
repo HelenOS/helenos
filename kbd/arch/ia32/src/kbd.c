@@ -265,7 +265,7 @@ irq_code_t i8042_kbd = {
 	i8042_cmds
 };
 
-static int key_released(keybuffer_t *keybuffer, unsigned char key)
+static void key_released(keybuffer_t *keybuffer, unsigned char key)
 {
 	switch (key) {
 		case SC_LSHIFT:
@@ -284,7 +284,7 @@ static int key_released(keybuffer_t *keybuffer, unsigned char key)
 	}
 }
 
-static int key_pressed(keybuffer_t *keybuffer, unsigned char key)
+static void key_pressed(keybuffer_t *keybuffer, unsigned char key)
 {
 	int *map = sc_primary_map;
 	int ascii = sc_primary_map[key];
@@ -390,7 +390,7 @@ static void wait_ready(void) {
  */
 int kbd_arch_init(void)
 {
-	int rc1, i;
+	int i;
 	int mouseenabled = 0;
 
 	iospace_enable(task_get_id(),(void *)i8042_DATA, 5);

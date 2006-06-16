@@ -112,6 +112,8 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 			phone2cons = IPC_GET_ARG3(call);
 			retval = 0;
 			break;
+		default:
+			retval = EINVAL;
 		}
 		ipc_answer_fast(callid, retval, 0, 0);
 	}	
@@ -120,13 +122,7 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	ipc_call_t call;
-	ipc_callid_t callid;
-	int res;
 	ipcarg_t phonead;
-	ipcarg_t phoneid;
-	char connected = 0;
-	ipcarg_t retval, arg1, arg2;
 	
 	/* Initialize arch dependent parts */
 	if (kbd_arch_init())
@@ -138,12 +134,13 @@ int main(int argc, char **argv)
 	async_set_client_connection(console_connection);
 	async_set_interrupt_received(irq_handler);
 	/* Register service at nameserver */
-	if ((res = ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead)) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead) != 0)
 		return -1;
-	}
 
 	async_manager();
 
+	/* Never reached */
+	return 0;
 }
 
 /**

@@ -35,6 +35,6 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 	     unsigned int sy, 
 	     unsigned int maxwidth, unsigned int maxheight,
 	     putpixel_cb_t fnc,void *);
-int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height);
+int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width, unsigned int *height);
 
 #endif

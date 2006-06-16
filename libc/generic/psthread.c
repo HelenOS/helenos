@@ -155,7 +155,8 @@ int psthread_schedule_next_adv(pschange_type ctype)
 			threads_in_manager--;
 		} /* If ctype == PS_TO_MANAGER, don't save ourselves to any list, we should
 		   * already be somewhere, or we will be lost */
-	}
+	} else
+		srcpt = NULL; /* Avoid GCC warning, if ctype == PS_FROM_DEAD, srcpt is not used */
 
 	/* Choose new thread to run */
 	if (ctype == PS_TO_MANAGER || ctype == PS_FROM_DEAD) {

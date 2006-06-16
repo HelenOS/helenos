@@ -158,21 +158,22 @@ static void draw_text_data(keyfield_t *data)
 static int save_screen(void)
 {
 	int i;
-	short *mem;
-	for (i=0 ;( i < MAX_SAVED_SCREENS ) && (saved_screens[i].data); i++);
+
+	for (i=0; ( i < MAX_SAVED_SCREENS ) && (saved_screens[i].data); i++)
+		;
 	if (i == MAX_SAVED_SCREENS) 
 		return EINVAL;
 	if (!(saved_screens[i].data=malloc( 2 * scr_width*scr_height ))) 
 		return ENOMEM;
-	memcpy (saved_screens[i].data ,scr_addr ,2 * scr_width * scr_height)
-		;
+	memcpy(saved_screens[i].data, scr_addr, 2 * scr_width * scr_height);
+
 	return i;
 }
 
 static int print_screen(int i)
 {
 	if (saved_screens[i].data)
-			memcpy (scr_addr,saved_screens[i].data, 2 * scr_width * scr_height);
+		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width * scr_height);
 	else return EINVAL;
 	return i;
 }
@@ -208,7 +209,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
 			if (intersize >= scr_width*scr_height*sizeof(*interbuf)) {
-				receive_comm_area(callid,&call,(void **)&interbuf);
+				receive_comm_area(callid,&call,(void *)&interbuf);
 				continue;
 			}
 			retval = EINVAL;
@@ -269,6 +270,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
 			style = EGA_STYLE(fgcolor, bgcolor);
+			retval = 0;
 			break;
 		case FB_VP_DRAW_PIXMAP:
 			i = IPC_GET_ARG2(call);
@@ -287,6 +289,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				free(saved_screens[i].data);
 				saved_screens[i].data = NULL;
 			}
+			retval = 0;
 			break;
 
 		default:

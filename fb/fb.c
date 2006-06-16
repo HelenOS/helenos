@@ -292,8 +292,6 @@ static void clear_port(viewport_t *vport)
 static void scroll_port_nodb(viewport_t *vport, int lines)
 {
 	int y;
-	int startline;
-	int endline;
 
 	if (lines > 0) {
 		for (y=vport->y; y < vport->y+vport->height - lines; y++)
@@ -563,7 +561,6 @@ static void draw_char(viewport_t *vport, char c, unsigned int row, unsigned int 
 static void draw_text_data(viewport_t *vport, keyfield_t *data)
 {
 	int i;
-	char c;
 	int col,row;
 
 	clear_port(vport);
@@ -599,7 +596,7 @@ static void putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
 }
 
 /** Create a new pixmap and return appropriate ID */
-static int shm2pixmap(char *shm, size_t size)
+static int shm2pixmap(unsigned char *shm, size_t size)
 {
 	int pm;
 	pixmap_t *pmap;
@@ -647,7 +644,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	static keyfield_t *interbuffer = NULL;
 	static size_t intersize = 0;
 
-	static char *shm = NULL;
+	static unsigned char *shm = NULL;
 	static ipcarg_t shm_id = 0;
 	static size_t shm_size;
 
@@ -672,7 +669,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			return 1;
 		} else {
 			intersize = IPC_GET_ARG2(*call);
-			receive_comm_area(callid,call,(void **)&interbuffer);
+			receive_comm_area(callid,call,(void *)&interbuffer);
 		}
 		return 1;
 	case FB_PREPARE_SHM:
@@ -734,7 +731,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 
 static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 {
-	int x,y;
+	int y;
 	int rowsize;
 	int tmp;
 	int width = vport->width;
@@ -785,7 +782,7 @@ static int draw_pixmap(int vp, int pm)
 {
 	pixmap_t *pmap = &pixmaps[pm];
 	viewport_t *vport = &viewports[vp];
-	int x,y;
+	int y;
 	int tmp, srcrowsize;
 	int realwidth, realheight, realrowsize;
 	int width = vport->width;
@@ -923,7 +920,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		break;
 	case FB_ANIM_DROP:
 		i = IPC_GET_ARG1(*call);
-		if (nvp >= MAX_ANIMATIONS || i < 0) {
+		if (i >= MAX_ANIMATIONS || i < 0) {
 			retval = EINVAL;
 			break;
 		}
@@ -1141,8 +1138,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			if (! viewports[i].initialized ) {
-				while (1)
-					;
 				retval = EADDRNOTAVAIL;
 				break;
 			}
@@ -1204,6 +1199,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case FB_POINTER_MOVE:
 			mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			retval = 0;
 			break;
 		default:
 			retval = ENOENT;
