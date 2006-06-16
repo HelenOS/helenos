@@ -268,7 +268,7 @@ static int gcons_find_conbut(int x, int y)
 	
 	if (x >= status_start + (STATUS_WIDTH+STATUS_SPACE)*CONSOLE_COUNT)
 		return -1;
-	if (((x - status_start) % (STATUS_WIDTH+STATUS_SPACE)) >= STATUS_WIDTH)
+	if (((x - status_start) % (STATUS_WIDTH+STATUS_SPACE)) < STATUS_SPACE)
 		return -1;
 	
 	return (x-status_start) / (STATUS_WIDTH+STATUS_SPACE);
