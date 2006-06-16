@@ -1059,6 +1059,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		else
 			callid = async_get_call(&call);
 
+		mouse_hide();
 		if (!callid) {
 			cursor_blink(vport);
 			anims_tick();

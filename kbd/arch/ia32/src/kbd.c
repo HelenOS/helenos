@@ -431,6 +431,8 @@ int kbd_arch_init(void)
 	}
 	/* Enable kbd */
 	ipc_register_irq(KBD_IRQ, &i8042_kbd);
+	/* Register for irq restart */
+	ipc_register_irq(IPC_IRQ_KBDRESTART, NULL);
 
 	int newcontrol = i8042_KBD_IE | i8042_KBD_TRANSLATE;
 	if (mouseenabled)
@@ -448,6 +450,11 @@ int kbd_arch_init(void)
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
 	int status = IPC_GET_ARG1(*call);
+
+	if (IPC_GET_METHOD(*call) == IPC_IRQ_KBDRESTART) {
+		kbd_arch_init();
+		return 1;
+	}
 
 	if ((status & i8042_MOUSE_DATA))
 		return 0;
