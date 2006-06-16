@@ -228,6 +228,7 @@ static void change_console(int newcons)
 		active_console = KERNEL_CONSOLE;
 		curs_visibility(0);
 
+		async_serialize_start();
 		if (kernel_pixmap == -1) { 
 			/* store/restore unsupported */
 			set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
@@ -237,11 +238,14 @@ static void change_console(int newcons)
 			console_pixmap = switch_screens(kernel_pixmap);
 			kernel_pixmap = -1;
 		}
+		async_serialize_end();
 
 		__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
 		return;
 	} 
 	
+	async_serialize_start();
+
 	if (console_pixmap != -1) {
 		kernel_pixmap = switch_screens(console_pixmap);
 		console_pixmap = -1;
@@ -280,6 +284,8 @@ static void change_console(int newcons)
 	
 	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
 	curs_visibility(conn->screenbuffer.is_cursor_visible);
+
+	async_serialize_end();
 }
 
 /** Handler for keyboard */
@@ -290,6 +296,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 	int c;
 	connection_t *conn;
+	int newcon;
 	
 	/* Ignore parameters, the connection is alread opened */
 	while (1) {
@@ -298,6 +305,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
+		case KBD_MS_LEFT:
+			newcon = gcons_mouse_btn(IPC_GET_ARG1(call));
+			if (newcon != -1)
+				change_console(newcon);
+			break;
 		case KBD_MS_MOVE:
 			gcons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			break;
@@ -311,12 +323,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			conn = &connections[active_console];
 //			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
 			if ((c >= 0x101) && (c < 0x101 + CONSOLE_COUNT)) {
-				async_serialize_start();
 				if (c == 0x112)
 					change_console(KERNEL_CONSOLE);
 				else
 					change_console(c - 0x101);
-				async_serialize_end();
 				break;
 			}
 			

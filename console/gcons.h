@@ -42,6 +42,7 @@ void gcons_in_kernel(void);
 void gcons_notify_connect(int consnum);
 void gcons_notify_disconnect(int consnum);
 void gcons_mouse_move(int dx, int dy);
+int gcons_mouse_btn(int state);
 
 #endif
  

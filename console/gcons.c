@@ -240,15 +240,65 @@ static inline int limit(int a,int left, int right)
 	return a;
 }
 
+int mouse_x, mouse_y;
+int btn_pressed, btn_x, btn_y;
+
+/** Handle mouse move
+ *
+ * @param dx Delta X of mouse move
+ * @param dy Delta Y of mouse move
+ */
 void gcons_mouse_move(int dx, int dy)
 {
-	static int x = 0;
-	static int y = 0;
+	mouse_x = limit(mouse_x+dx, 0, xres);
+	mouse_y = limit(mouse_y+dy, 0, yres);
 
-	x = limit(x+dx, 0, xres);
-	y = limit(y+dy, 0, yres);
+	async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
+}
 
-	async_msg_2(fbphone, FB_POINTER_MOVE, x, y);
+static int gcons_find_conbut(int x, int y)
+{
+	int status_start = STATUS_START + (xres-800) / 2;;
+
+	if (y < STATUS_TOP || y >= STATUS_TOP+STATUS_HEIGHT)
+		return -1;
+	
+	if (x < status_start)
+		return -1;
+	
+	if (x >= status_start + (STATUS_WIDTH+STATUS_SPACE)*CONSOLE_COUNT)
+		return -1;
+	if (((x - status_start) % (STATUS_WIDTH+STATUS_SPACE)) >= STATUS_WIDTH)
+		return -1;
+	
+	return (x-status_start) / (STATUS_WIDTH+STATUS_SPACE);
+}
+
+/** Handle mouse click
+ *
+ * @param state New state (1-pressed, 0-depressed)
+ */
+int gcons_mouse_btn(int state)
+{
+	int conbut;
+
+	if (state) {
+		conbut = gcons_find_conbut(mouse_x, mouse_y);
+		if (conbut != -1) {
+			btn_pressed = 1;
+			btn_x = mouse_x;
+			btn_y = mouse_y;
+		}
+		return -1;
+	} 
+	if (!state && !btn_pressed)
+		return -1;
+	btn_pressed = 0;
+
+	conbut = gcons_find_conbut(mouse_x, mouse_y);
+	if (conbut == gcons_find_conbut(btn_x, btn_y))
+		return conbut;
+	return -1;
 }
 
 
