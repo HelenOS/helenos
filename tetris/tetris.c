@@ -439,6 +439,7 @@ main(int argc, char *argv[])
 		
 		scr_clear();
 		insertscore(score, level);
+		score=0;
 	}
 	
 	scr_clear();
