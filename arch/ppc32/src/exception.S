@@ -116,38 +116,6 @@
 	stw r12, 156(sp)
 .endm
 
-.org 0x060
-jump_to_kernel:
-	lis r12, iret@ha
-	addi r12, r12, iret@l
-	mtlr r12
-
-	mfmsr r12
-	ori r12, r12, (msr_ir | msr_dr)@l
-	mtsrr1 r12
-	
-	addis sp, sp, 0x8000
-	mr r4, sp
-	addi r4, r4, 8
-	
-	rfi
-
-jump_to_kernel_syscall:
-	lis r12, syscall_handler@ha
-	addi r12, r12, syscall_handler@l
-	mtsrr0 r12
-	
-	lis r12, iret_syscall@ha
-	addi r12, r12, iret_syscall@l
-	mtlr r12
-
-	mfmsr r12
-	ori r12, r12, (msr_ir | msr_dr)@l
-	mtsrr1 r12
-	
-	addis sp, sp, 0x8000
-	rfi
-
 .org 0x100
 .global exc_system_reset
 exc_system_reset:
@@ -298,3 +266,35 @@ exc_trace:
 	
 	li r3, 12
 	b jump_to_kernel
+
+.org 0x4000
+jump_to_kernel:
+	lis r12, iret@ha
+	addi r12, r12, iret@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	mr r4, sp
+	addi r4, r4, 8
+	
+	rfi
+
+jump_to_kernel_syscall:
+	lis r12, syscall_handler@ha
+	addi r12, r12, syscall_handler@l
+	mtsrr0 r12
+	
+	lis r12, iret_syscall@ha
+	addi r12, r12, iret_syscall@l
+	mtlr r12
+
+	mfmsr r12
+	ori r12, r12, (msr_ir | msr_dr)@l
+	mtsrr1 r12
+	
+	addis sp, sp, 0x8000
+	rfi

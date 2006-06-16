@@ -62,8 +62,9 @@ void frame_arch_init(void)
 			last_frame = ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE);
 	}
 
-	/* First is exception vector, second is 'implementation specific', third and fourth is reserved */
-	frame_mark_unavailable(0, 4);
+	/* First is exception vector, second is 'implementation specific',
+	   third and fourth is reserved, other contain real mode code */
+	frame_mark_unavailable(0, 8);
 	
 }
 
