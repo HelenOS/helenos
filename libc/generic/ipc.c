@@ -371,6 +371,7 @@ ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags)
 /** Wait some time for an IPC call.
  *
  * - dispatch ASYNC reoutines in the background
+ *
  * @param call Space where the message is stored
  * @param usec Timeout in microseconds.
  * @return Callid of the answer.
@@ -389,6 +390,7 @@ ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *call, uint32_t usec)
 /** Check if there is an IPC call waiting to be picked up.
  *
  * - dispatch ASYNC reoutines in the background
+ *
  * @param call Space where the message is stored
  * @return Callid of the answer.
  */

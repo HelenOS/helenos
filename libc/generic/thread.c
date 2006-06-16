@@ -117,7 +117,7 @@ void __thread_main(uspace_arg_t *uarg)
  * @param arg Argument to be passed to thread.
  * @param name Symbolic name of the thread.
  *
- * @param TID of the new thread on success or -1 on failure.
+ * @return TID of the new thread on success or -1 on failure.
  */
 int thread_create(void (* function)(void *), void *arg, char *name)
 {
@@ -145,7 +145,7 @@ int thread_create(void (* function)(void *), void *arg, char *name)
 
 /** Terminate current thread.
  *
- * @param stat Exit status. Currently not used.
+ * @param status Exit status. Currently not used.
  */
 void thread_exit(int status)
 {

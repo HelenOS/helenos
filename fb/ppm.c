@@ -75,8 +75,8 @@ int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height)
  *
  * @param data Pointer to PPM data
  * @param datasz Maximum data size
- * @param x Coordinate of upper left corner
- * @param y Coordinate of upper left corner
+ * @param sx Coordinate of upper left corner
+ * @param sy Coordinate of upper left corner
  * @param maxwidth Maximum allowed width for picture
  * @param maxheight Maximum allowed height for picture
  * @param putpixel Putpixel function used to print bitmap
@@ -84,7 +84,7 @@ int ppm_get_data(unsigned char *data, size_t dtsz, int *width, int *height)
 int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
 	     unsigned int sy, 
 	     unsigned int maxwidth, unsigned int maxheight,
-	     putpixel_cb_t putpixel,void *vport)
+	     putpixel_cb_t putpixel, void *vport)
 {
 	unsigned int width, height;
 	unsigned int maxcolor;

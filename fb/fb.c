@@ -207,7 +207,7 @@ static int byte1_rgb(void *src)
 
 /** Put pixel into viewport 
  *
- * @param vp Viewport identification
+ * @param vport Viewport identification
  * @param x X coord relative to viewport
  * @param y Y coord relative to viewport
  * @param color RGB color 
@@ -283,8 +283,8 @@ static void clear_port(viewport_t *vport)
 
 /** Scroll unbuffered viewport up/down
  *
- * @param vp Viewport to scroll
- * @param rows Positive number - scroll up, negative - scroll down
+ * @param vport Viewport to scroll
+ * @param lines Positive number - scroll up, negative - scroll down
  */
 static void scroll_port_nodb(viewport_t *vport, int lines)
 {
@@ -373,7 +373,7 @@ static void invert_pixel(viewport_t *vport, unsigned int x, unsigned int y)
 
 /** Draw character at given position
  *
- * @param vp Viewport where the character is printed
+ * @param vport Viewport where the character is printed
  * @param sx Coordinates of top-left of the character
  * @param sy Coordinates of top-left of the character
  * @param style Color of the character
@@ -458,8 +458,8 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 /** Initialize framebuffer as a chardev output device
  *
  * @param addr Address of theframebuffer
- * @param x    Screen width in pixels
- * @param y    Screen height in pixels
+ * @param xres Screen width in pixels
+ * @param yres Screen height in pixels
  * @param bpp  Bits per pixel (8, 16, 24, 32)
  * @param scan Bytes per one scanline
  *
@@ -529,7 +529,7 @@ static void cursor_blink(viewport_t *vport)
 
 /** Draw character at given position relative to viewport 
  * 
- * @param vp Viewport identification
+ * @param vport Viewport identification
  * @param c Character to print
  * @param row Screen position relative to viewport
  * @param col Screen position relative to viewport
@@ -560,7 +560,7 @@ static void draw_char(viewport_t *vport, char c, unsigned int row, unsigned int 
 
 /** Draw text data to viewport
  *
- * @param vp Viewport id
+ * @param vport Viewport id
  * @param data Text data fitting exactly into viewport
  */
 static void draw_text_data(viewport_t *vport, keyfield_t *data)

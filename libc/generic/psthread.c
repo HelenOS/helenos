@@ -109,9 +109,7 @@ void psthread_main(void)
  * If calling with PS_TO_MANAGER parameter, the async_futex should be
  * held.
  *
- * @param tomanager If true, we are switching to next ready manager thread
- *                  (if none is found, thread is exited)
- * @param frommanager If true, we are switching from manager thread
+ * @param ctype Type of switch.
  * @return 0 if there is no ready pseudo thread, 1 otherwise.
  */
 int psthread_schedule_next_adv(pschange_type ctype)

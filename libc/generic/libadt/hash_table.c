@@ -79,7 +79,7 @@ int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, ha
 /** Insert item into hash table.
  *
  * @param h Hash table.
- * @param hey Array of all keys necessary to compute hash index.
+ * @param key Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
 void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
