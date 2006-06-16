@@ -107,9 +107,8 @@ static void callback(void *private, int retval, ipc_call_t *data)
 
 static void do_answer_msg(void)
 {
-	int i,cnt, errn;
+	int i,cnt, errn = 0;
 	char c;
-	ipc_callid_t callid;
 
 	cnt = 0;
 	for (i=0;i < 50;i++) {

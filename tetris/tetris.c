@@ -165,10 +165,6 @@ static void srandomdev(void)
 	srandom(tv.tv_sec + tv.tv_usec / 100000);
 }
 
-static void tetris_scores(int firstgame)
-{
-}
-
 static void tetris_menu_draw(int level) 
 {
 		clear_screen();
@@ -259,8 +255,7 @@ main(int argc, char *argv[])
 	char *keys;
 	int level = 2;
 	char key_write[6][10];
-	const char *errstr;
-	int ch, i, j;
+	int i, j;
 
 	keys = "jkl pq";
 
@@ -450,7 +445,8 @@ main(int argc, char *argv[])
 			break
 */
 	scr_end();
-	exit(0);
+
+	return 0;
 }
 
 /* void */

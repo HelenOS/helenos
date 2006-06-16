@@ -61,13 +61,6 @@
 static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
 static int curscore;
 static int isset;		/* true => terminal is in game mode */
-static void (*tstp)(int);
-
-static void	scr_stop(int);
-static void	stopset(int);
-
-static char
-        *CEstr;			/* clear to end of line */
 
 
 /*
@@ -146,15 +139,6 @@ winsize_t winsize;
 static int get_display_size(winsize_t *ws)
 {
 	return async_req_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
-}
-
-static void
-scr_stop(int sig)
-{
-
-	scr_end();
-	scr_set();
-	scr_msg(key_msg, 1);
 }
 
 /*

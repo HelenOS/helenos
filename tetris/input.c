@@ -108,7 +108,7 @@ rwait(struct timeval *tvp)
 		s = &endtv;
 	} else
 		s = NULL;
-again:
+
 	if (!lastchar) {
 		if (!getchar_inprog)
 			getchar_inprog = async_send_2(1,CONSOLE_GETCHAR,0,0,&charcall);
@@ -142,7 +142,6 @@ void
 tsleep(void)
 {
 	struct timeval tv;
-	char c;
 
 	tv.tv_sec = 0;
 	tv.tv_usec = fallrate;

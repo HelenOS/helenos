@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
 	while (1) {		
 		ipc_call_t call;
 		ipc_callid_t callid;
-		int retval;
 
 		callid = ipc_wait_for_call(&call);
 		switch(IPC_GET_METHOD(call)) {

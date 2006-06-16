@@ -217,7 +217,6 @@ static void change_console(int newcons)
 	int i, j, rc;
 	keyfield_t *field;
 	style_t *style;
-	char c;
 
 	if (newcons == active_console)
 		return;
@@ -309,9 +308,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			newcon = gcons_mouse_btn(IPC_GET_ARG1(call));
 			if (newcon != -1)
 				change_console(newcon);
+			retval = 0;
 			break;
 		case KBD_MS_MOVE:
 			gcons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			retval = 0;
 			break;
 		case KBD_PUSHCHAR:
 			/* got key from keyboard driver */
@@ -337,8 +338,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			
-			/*FIXME: else store key to its buffer */
 			keybuffer_push(&conn->keybuffer, c);
+			retval = 0;
 			
 			break;
 		default:
@@ -456,8 +457,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 int main(int argc, char *argv[])
 {
 	ipcarg_t phonehash;
-	int kbd_phone, fb_phone;
-	ipcarg_t retval, arg1 = 0xdead, arg2 = 0xbeef;
+	int kbd_phone;
 	int i;
 
 	async_set_client_connection(client_connection);

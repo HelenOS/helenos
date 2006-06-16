@@ -69,7 +69,6 @@ enum butstate {
 
 static int console_vp;
 static int cstatus_vp[CONSOLE_COUNT];
-static int cstat_row, cstat_col; /* Size of cstatus buttons */
 static enum butstate console_state[CONSOLE_COUNT];
 
 static int fbphone;
@@ -345,7 +344,6 @@ extern int _binary_nameic_ppm_size;
 static void gcons_redraw_console(void)
 {
 	int i;
-	size_t hsize = (size_t)&_binary_helenos_ppm_size;
 
 	if (!use_gcons)
 		return;

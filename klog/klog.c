@@ -44,7 +44,7 @@
 /* Pointer to klog area */
 static char *klog;
 
-void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 	int i;
 	
