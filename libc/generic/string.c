@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -41,61 +41,65 @@
 
 /* Dummy implementation of mem/ functions */
 
-void * memset(void *s, int c, size_t n)
+void *memset(void *s, int c, size_t n)
 {
 	char *os = s;
+	
 	while (n--)
 		*(os++) = c;
+	
 	return s;
 }
 
-struct along {unsigned long n; } __attribute__ ((packed));
+struct along {
+	unsigned long n;
+} __attribute__ ((packed));
 
-static void * unaligned_memcpy(void *dst, const void *src, size_t n)
+static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 {
 	int i, j;
 	struct along *adst = dst;
 	const struct along *asrc = src;
 
-	for (i = 0; i < n/sizeof(unsigned long); i++)
+	for (i = 0; i < n / sizeof(unsigned long); i++)
 		adst[i].n = asrc[i].n;
 		
-	for (j = 0; j < n%sizeof(unsigned long); j++)
-		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+	for (j = 0; j < n % sizeof(unsigned long); j++)
+		((unsigned char *) (((unsigned long *) dst) + i))[j] = ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
-	return (char *)src;
+	return (char *) src;
 }
 
-void * memcpy(void *dst, const void *src, size_t n)
+void *memcpy(void *dst, const void *src, size_t n)
 {
 	int i, j;
 
-	if (((long)dst & (sizeof(long)-1)) || ((long)src & (sizeof(long)-1)))
+	if (((long) dst & (sizeof(long) - 1)) || ((long) src & (sizeof(long) - 1)))
  		return unaligned_memcpy(dst, src, n);
 
-	for (i = 0; i < n/sizeof(unsigned long); i++)
+	for (i = 0; i < n / sizeof(unsigned long); i++)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
 		
-	for (j = 0; j < n%sizeof(unsigned long); j++)
-		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+	for (j = 0; j < n % sizeof(unsigned long); j++)
+		((unsigned char *) (((unsigned long *) dst) + i))[j] = ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
-	return (char *)src;
+	return (char *) src;
 }
 
-void * memmove(void *dst, const void *src, size_t n)
+void *memmove(void *dst, const void *src, size_t n)
 {
 	int i, j;
 	
 	if (src > dst)
 		return memcpy(dst, src, n);
 
-	for (j = (n%sizeof(unsigned long))-1; j >= 0; j--)
-		((unsigned char *)(((unsigned long *) dst) + i))[j] = ((unsigned char *)(((unsigned long *) src) + i))[j];
+	for (j = (n % sizeof(unsigned long)) - 1; j >= 0; j--)
+		((unsigned char *) ((unsigned long *) dst))[j] = ((unsigned char *) ((unsigned long *) src))[j];
 
-	for (i = n/sizeof(unsigned long)-1; i >=0 ; i--)
+	for (i = n / sizeof(unsigned long) - 1; i >=0 ; i--)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
 		
-	return (char *)src;
+	return (char *) src;
 }
 
 
@@ -107,23 +111,22 @@ size_t strlen(const char *str)
 {
 	size_t counter = 0;
 
-	while (str[counter] != 0) {
+	while (str[counter] != 0)
 		counter++;
-	}
 
 	return counter;
 }
 
-int strcmp(const char *a,const char *b)
+int strcmp(const char *a, const char *b)
 {
-	int c=0;
+	int c = 0;
 	
-	while(a[c]&&b[c]&&(!(a[c]-b[c]))) c++;
+	while (a[c] && b[c] && (!(a[c] - b[c])))
+		c++;
 	
-	return a[c]-b[c];
+	return (a[c] - b[c]);
 	
 }
-
 
 
 /** Return pointer to the first occurence of character c in string
@@ -134,8 +137,8 @@ int strcmp(const char *a,const char *b)
 char *strchr(const char *str, int c)
 {
 	while (*str != '\0') {
-		if (*str == (char)c)
-			return (char *)str;
+		if (*str == (char) c)
+			return (char *) str;
 		str++;
 	}
 
@@ -152,12 +155,12 @@ char *strrchr(const char *str, int c)
 	char *retval = NULL;
 
 	while (*str != '\0') {
-		if (*str == (char)c)
-			retval = (char *)str;
+		if (*str == (char) c)
+			retval = (char *) str;
 		str++;
 	}
 
-	return (char *)retval;
+	return (char *) retval;
 }
 
 /** Convert string to a number. 
@@ -209,7 +212,7 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 
 	while (*str) {
 		c = *str;
-		c = ( c >= 'a'? c-'a'+10:(c >= 'A'?c-'A'+10:(c <= '9'?c-'0':0xff)));
+		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 : (c <= '9' ? c - '0' : 0xff)));
 		if (c > base) {
 			break;
 		}
@@ -235,7 +238,7 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 	}
 	
 	if (endptr)
-		*endptr = (char *)str;
+		*endptr = (char *) str;
 
 	if (nptr == str) { 
 		/*FIXME: errno = EINVAL*/
@@ -263,15 +266,15 @@ long int strtol(const char *nptr, char **endptr, int base)
 	number = _strtoul(nptr, endptr, base, &sgn);
 
 	if (number > LONG_MAX) {
-		if ((sgn) && (number == (unsigned long)(LONG_MAX) + 1)) {
+		if ((sgn) && (number == (unsigned long) (LONG_MAX) + 1)) {
 			/* FIXME: set 0 to errno */
 			return number;		
 		}
 		/* FIXME: set ERANGE to errno */
-		return (sgn?LONG_MIN:LONG_MAX);	
+		return (sgn ? LONG_MIN : LONG_MAX);	
 	}
 	
-	return (sgn?-number:number);
+	return (sgn ? -number : number);
 }
 
 
@@ -292,23 +295,25 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 	
 	number = _strtoul(nptr, endptr, base, &sgn);
 
-	return (sgn?-number:number);
+	return (sgn ? -number : number);
 }
 
 char *strcpy(char *dest, const char *src)
 {
-	while (*(dest++) = *(src++))
-		;
+	char *orig = dest;
+	
+	while ((*(dest++) = *(src++)));
+	return orig;
 }
 
 char *strncpy(char *dest, const char *src, size_t n)
 {
-	while ((*(dest++) = *(src++)) && --n)
-		;
+	char *orig = dest;
+	
+	while ((*(dest++) = *(src++)) && --n);
+	return orig;
 }
 
 
- /** @}
+/** @}
  */
- 
- 

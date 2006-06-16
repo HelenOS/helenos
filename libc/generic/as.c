@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -75,7 +75,7 @@ int as_area_destroy(void *address)
 }
 
 static size_t heapsize = 0;
-static size_t maxheapsize = (size_t)(-1);
+static size_t maxheapsize = (size_t) (-1);
 
 static void * last_allocated = 0;
 
@@ -92,24 +92,29 @@ void *sbrk(ssize_t incr)
 {
 	int rc;
 	void *res;
+	
 	/* Check for invalid values */
 	if (incr < 0 && -incr > heapsize)
 		return NULL;
+	
 	/* Check for too large value */
 	if (incr > 0 && incr+heapsize < heapsize)
 		return NULL;
+	
 	/* Check for too small values */
 	if (incr < 0 && incr+heapsize > heapsize)
 		return NULL;
+	
 	/* Check for user limit */
-	if ((maxheapsize!=(size_t)(-1)) && (heapsize + incr)>maxheapsize) return NULL;
-
-	rc = as_area_resize(&_heap, heapsize + incr,0);
+	if ((maxheapsize != (size_t) (-1)) && (heapsize + incr) > maxheapsize)
+		return NULL;
+	
+	rc = as_area_resize(&_heap, heapsize + incr, 0);
 	if (rc != 0)
 		return NULL;
 	
 	/* Compute start of new area */
-	res = (void *)&_heap + heapsize;
+	res = (void *) &_heap + heapsize;
 
 	heapsize += incr;
 
@@ -119,9 +124,9 @@ void *sbrk(ssize_t incr)
 /** Set maximum heap size and return pointer just after the heap */
 void *set_maxheapsize(size_t mhs)
 {
-	maxheapsize=mhs;
+	maxheapsize = mhs;
 	/* Return pointer to area not managed by sbrk */
-	return (void *)&_heap + maxheapsize;
+	return ((void *) &_heap + maxheapsize);
 
 }
 
@@ -136,9 +141,10 @@ void * as_get_mappable_page(size_t sz)
 
 	/* Set heapsize to some meaningful value */
 	if (maxheapsize == -1)
-		set_maxheapsize(ALIGN_UP(USER_ADDRESS_SPACE_SIZE_ARCH>>1,PAGE_SIZE));
+		set_maxheapsize(ALIGN_UP(USER_ADDRESS_SPACE_SIZE_ARCH >> 1, PAGE_SIZE));
+	
 	if (!last_allocated)
-		last_allocated = ALIGN_UP((void *)&_heap + maxheapsize, PAGE_SIZE);
+		last_allocated = (void *) ALIGN_UP((void *) &_heap + maxheapsize, PAGE_SIZE);
 	
 	sz = ALIGN_UP(sz, PAGE_SIZE);
 	res = last_allocated;
@@ -147,8 +153,5 @@ void * as_get_mappable_page(size_t sz)
 	return res;
 }
 
-
- /** @}
+/** @}
  */
- 
- 

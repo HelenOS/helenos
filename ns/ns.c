@@ -81,8 +81,6 @@ typedef struct {
 	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
 } hashed_service_t;
 
-int static ping_phone;
-
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
 
@@ -106,9 +104,8 @@ int main(int argc, char **argv)
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
-	char *as_area;
 	
-	ipcarg_t retval, arg1, arg2;
+	ipcarg_t retval;
 
 	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3, &ns_hash_table_ops)) {
 		return ENOMEM;
@@ -149,7 +146,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer_fast(callid, retval, arg1, arg2);
+			ipc_answer_fast(callid, retval, 0, 0);
 		}
 	}
 }
@@ -257,6 +254,7 @@ void ns_remove(link_t *item)
 	assert(item);
 	free(hash_table_get_instance(item, hashed_service_t, link));
 }
+
 /** 
  * @}
  */

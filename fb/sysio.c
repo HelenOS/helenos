@@ -120,64 +120,66 @@ static void sysio_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_fast(iid, ELIMIT, 0,0);
 		return;
 	}
+	
 	client_connected = 1;
 	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
 	while (1) {
 		callid = async_get_call(&call);
- 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			client_connected = 0;
-			ipc_answer_fast(callid,0,0,0);
-			return; /* Exit thread */
-		case FB_PUTCHAR:
-			c = IPC_GET_ARG1(call);
-			newrow = IPC_GET_ARG2(call);
-			newcol = IPC_GET_ARG3(call);
-			if (lastcol != newcol || lastrow!=newrow) 
-				curs_goto(newrow, newcol);
-			lastcol = newcol + 1;
-			lastrow = newrow;
-			sysput(c);
-			retval = 0;
-			break;
- 		case FB_CURSOR_GOTO:
-			newrow = IPC_GET_ARG1(call);
-			newcol = IPC_GET_ARG2(call);
-			curs_goto(newrow, newcol);
-			lastrow = newrow;
-			lastcol = newcol;
-			break;
-		case FB_GET_CSIZE:
-			ipc_answer_fast(callid, 0, HEIGHT, WIDTH);
-			continue;
-		case FB_CLEAR:
-			clrscr();
-			retval = 0;
-			break;
-		case FB_SET_STYLE:
-			fgcolor = IPC_GET_ARG1(call);
-			bgcolor = IPC_GET_ARG2(call);
-			if (fgcolor < bgcolor)
-				set_style(0);
-			else
-				set_style(7);
-			retval = 0;
-			break;
-		case FB_SCROLL:
-			i = IPC_GET_ARG1(call);
-			if (i > HEIGHT || i < -HEIGHT) {
-				retval = EINVAL;
+		switch (IPC_GET_METHOD(call)) {
+			case IPC_M_PHONE_HUNGUP:
+				client_connected = 0;
+				ipc_answer_fast(callid, 0, 0, 0);
+				return; /* Exit thread */
+			case FB_PUTCHAR:
+				c = IPC_GET_ARG1(call);
+				newrow = IPC_GET_ARG2(call);
+				newcol = IPC_GET_ARG3(call);
+				if ((lastcol != newcol) || (lastrow != newrow))
+					curs_goto(newrow, newcol);
+				lastcol = newcol + 1;
+				lastrow = newrow;
+				sysput(c);
+				retval = 0;
 				break;
-			}
-			scroll(i);
-			curs_goto(lastrow, lastcol);
-			retval = 0;
-			break;
-
-		default:
-			retval = ENOENT;
+			case FB_CURSOR_GOTO:
+				newrow = IPC_GET_ARG1(call);
+				newcol = IPC_GET_ARG2(call);
+				curs_goto(newrow, newcol);
+				lastrow = newrow;
+				lastcol = newcol;
+				retval = 0;
+				break;
+			case FB_GET_CSIZE:
+				ipc_answer_fast(callid, 0, HEIGHT, WIDTH);
+				continue;
+			case FB_CLEAR:
+				clrscr();
+				retval = 0;
+				break;
+			case FB_SET_STYLE:
+				fgcolor = IPC_GET_ARG1(call);
+				bgcolor = IPC_GET_ARG2(call);
+				if (fgcolor < bgcolor)
+					set_style(0);
+				else
+					set_style(7);
+				retval = 0;
+				break;
+			case FB_SCROLL:
+				i = IPC_GET_ARG1(call);
+				if ((i > HEIGHT) || (i < -HEIGHT)) {
+					retval = EINVAL;
+					break;
+				}
+				scroll(i);
+				curs_goto(lastrow, lastcol);
+				retval = 0;
+				break;
+			default:
+				retval = ENOENT;
 		}
-		ipc_answer_fast(callid,retval,0,0);
+		
+		ipc_answer_fast(callid, retval, 0, 0);
 	}
 }
 
@@ -193,5 +195,4 @@ void sysio_init(void)
 
 /**
  * @}
- */ 
-
+ */

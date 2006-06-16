@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -73,7 +73,7 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 		if (async_req_2(streams[0].phone, CONSOLE_GETCHAR, 0, 0, &r0, &r1) < 0) {
 			return -1;
 		}
-		((char *)buf)[i++] = r0;
+		((char *) buf)[i++] = r0;
 	}
 	return i;
 }
@@ -81,21 +81,17 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 static ssize_t write_stdout(void *param, const void *buf, size_t count)
 {
 	int i;
-	ipcarg_t r0,r1;
 
 	for (i = 0; i < count; i++)
-		async_msg(streams[1].phone, CONSOLE_PUTCHAR, ((const char *)buf)[i]);
+		async_msg(streams[1].phone, CONSOLE_PUTCHAR, ((const char *) buf)[i]);
 	
 	return count;
 }
 
 
-
 static stream_t open_stdin(void)
 {
 	stream_t stream;
-	int phoneid;
-	int res;
 	
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0)) < 0) {
@@ -104,6 +100,7 @@ static stream_t open_stdin(void)
 	}
 	
 	stream.r = read_stdin;
+	stream.w = NULL;
 	stream.param = 0;
 	stream.phone = console_phone;
 	
@@ -113,7 +110,6 @@ static stream_t open_stdin(void)
 static stream_t open_stdout(void)
 {
 	stream_t stream;
-	int res;
 
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0)) < 0) {
@@ -121,9 +117,11 @@ static stream_t open_stdout(void)
 		}
 	}
 	
+	stream.r = NULL;
 	stream.w = write_stdout;
 	stream.phone = console_phone;
 	stream.param = 0;
+	
 	return stream;
 }
 
@@ -139,6 +137,7 @@ fd_t open(const char *fname, int flags)
 
 	while (((streams[c].w) || (streams[c].r)) && (c < FDS))
 		c++;
+	
 	if (c == FDS)
 		return EMFILE;
 	
@@ -156,10 +155,13 @@ fd_t open(const char *fname, int flags)
 		streams[c].w = write_stderr;
 		return c;
 	}
+	
 	if (!strcmp(fname, "null")) {
 		streams[c].w = write_null;
 		return c;
 	}
+	
+	return -1;
 }
 
 
@@ -189,7 +191,5 @@ int get_fd_phone(int fd)
 }
 
 
- /** @}
+/** @}
  */
- 
- 

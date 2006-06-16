@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /**
@@ -52,7 +52,7 @@ int cap_grant(task_id_t id, unsigned int caps)
 	
 	arg.value = (unsigned long long) id;
 
-	__SYSCALL2(SYS_CAP_GRANT, (sysarg_t) &arg, (sysarg_t) caps);
+	return __SYSCALL2(SYS_CAP_GRANT, (sysarg_t) &arg, (sysarg_t) caps);
 }
 
 /** Revoke capabilities from a task.
@@ -68,11 +68,9 @@ int cap_revoke(task_id_t id, unsigned int caps)
 	
 	arg.value = (unsigned long long) id;
 
-	__SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
+	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
 }
 
 
- /** @}
+/** @}
  */
- 
- 

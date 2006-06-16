@@ -25,13 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- /** @addtogroup lc Libc
-  * @brief	HelenOS C library
-  * @{
-  * @}
-  */
- /** @addtogroup libc generic
-  * @ingroup lc
+
+/** @addtogroup lc Libc
+ * @brief	HelenOS C library
+ * @{
+ * @}
+ */
+/** @addtogroup libc generic
+ * @ingroup lc
  * @{
  */
 /** @file
@@ -49,11 +50,13 @@
 
 extern char _heap;
 
-void _exit(int status) {
+void _exit(int status)
+{
 	thread_exit(status);
 }
 
-void __main(void) {
+void __main(void)
+{
 	psthread_data_t *pt;
 
 	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
@@ -62,19 +65,18 @@ void __main(void) {
 	__tcb_set(pt->tcb);
 }
 
-void __io_init(void) {
+void __io_init(void)
+{
 	open("stdin", 0);
 	open("stdout", 0);
 	open("stderr", 0);
 }
 
-void __exit(void) {
+void __exit(void)
+{
 	psthread_teardown(__tcb_get()->pst_data);
 	_exit(0);
 }
 
-
- /** @}
+/** @}
  */
- 
- 

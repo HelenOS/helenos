@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -69,7 +69,6 @@ int map_physmem(void *pf, void *vp, unsigned long pages, int flags)
  */
 int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 {
-	task_id_t task_id;
 	ddi_ioarg_t arg;
 
 	arg.task_id = id;
@@ -89,7 +88,5 @@ int preemption_control(int enable)
 }
 
 
- /** @}
+/** @}
  */
- 
- 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -373,11 +373,13 @@ static int connection_thread(void  *arg)
 	/* Setup thread local connection pointer */
 	PS_connection = (connection_t *)arg;
 	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
+	
 	/* Remove myself from connection hash table */
 	futex_down(&async_futex);
 	key = PS_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
+	
 	/* Answer all remaining messages with ehangup */
 	while (!list_empty(&PS_connection->msg_queue)) {
 		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
@@ -389,6 +391,8 @@ static int connection_thread(void  *arg)
 	}
 	if (PS_connection->close_callid)
 		ipc_answer_fast(PS_connection->close_callid, 0, 0, 0);
+	
+	return 0;
 }
 
 /** Create new thread for a new connection 
@@ -405,11 +409,8 @@ static int connection_thread(void  *arg)
  *                opening the connection
  * @return New thread id
  */
-pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
-			     ipc_call_t *call,
-			     void (*cthread)(ipc_callid_t,ipc_call_t *))
+pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, ipc_call_t *call, void (*cthread)(ipc_callid_t, ipc_call_t *))
 {
-	pstid_t ptid;
 	connection_t *conn;
 	unsigned long key;
 
@@ -514,9 +515,10 @@ static int async_manager_worker(void)
 
 	while (1) {
 		if (psthread_schedule_next_adv(PS_FROM_MANAGER)) {
-			futex_up(&async_futex); /* async_futex is always held
-						* when entering manager thread
-						*/
+			futex_up(&async_futex); 
+			/* async_futex is always held
+			 * when entering manager thread
+			 */
 			continue;
 		}
 		futex_down(&async_futex);
@@ -546,6 +548,8 @@ static int async_manager_worker(void)
 
 		handle_call(callid, &call);
 	}
+	
+	return 0;
 }
 
 /** Function to start async_manager as a standalone thread 
@@ -557,9 +561,12 @@ static int async_manager_worker(void)
  */
 static int async_manager_thread(void *arg)
 {
-	futex_up(&async_futex); /* async_futex is always locked when entering
-				* manager */
+	futex_up(&async_futex);
+	/* async_futex is always locked when entering
+	 * manager */
 	async_manager_worker();
+	
+	return 0;
 }
 
 /** Add one manager to manager list */
@@ -585,6 +592,7 @@ int _async_init(void)
 		return ENOMEM;
 	}
 	
+	return 0;
 }
 
 /** IPC handler for messages in async framework
@@ -679,7 +687,6 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
-	connection_t *conn;
 
 	futex_down(&async_futex);
 	if (msg->done) {
@@ -711,7 +718,6 @@ done:
 int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
-	connection_t *conn;
 
 	/* TODO: Let it go through the event read at least once */
 	if (timeout < 0)
@@ -802,7 +808,5 @@ void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 }
 
 
- /** @}
+/** @}
  */
- 
- 

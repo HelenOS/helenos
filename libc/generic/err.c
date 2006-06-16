@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -35,14 +35,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void errx (int __status, __const char *__format, ...)
+/* TODO
+void errx(int __status, __const char *__format, ...)
 {
-	printf("TODO...errx\n");
 	_exit(0);
 }
+*/
 
 
- /** @}
+/** @}
  */
- 
- 

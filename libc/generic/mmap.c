@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,11 +36,8 @@
 #include <as.h>
 #include <unistd.h>
 
-void *mmap(void  *start, size_t length, int prot, int flags, int fd,
-	   off_t offset)
+void *mmap(void  *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
-	int rc;
-
 	if (!start)
 		start = as_get_mappable_page(length);
 	
@@ -58,7 +55,5 @@ int munmap(void *start, size_t length)
 }
 
 
- /** @}
+/** @}
  */
- 
- 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -51,7 +51,6 @@ static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
 
-static void psthread_exit(void) __attribute__ ((noinline));
 static void psthread_main(void);
 
 static atomic_t psthread_futex = FUTEX_INITIALIZER;
@@ -191,7 +190,7 @@ ret_0:
  */
 int psthread_join(pstid_t psthrid)
 {
-	volatile psthread_data_t *pt, *mypt;
+	volatile psthread_data_t *pt;
 	volatile int retval;
 
 	/* Handle psthrid = Kernel address -> it is wait for call */
@@ -238,8 +237,7 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt->flags = 0;
 
 	context_save(&pt->ctx);
-	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(),
-		    pt->tcb);
+	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(), pt->tcb);
 
 	return (pstid_t )pt;
 }
@@ -307,7 +305,5 @@ void psthread_dec_sercount(void)
 }
 
 
- /** @}
+/** @}
  */
- 
- 
