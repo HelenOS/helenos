@@ -35,7 +35,7 @@
 #define TRANS_SIZE 1024
 #define TRANS_ITEM_SIZE 4
 
-#define KERNEL_START_ADDR 0x80004000
+#define KERNEL_START_ADDR 0x80008000
 
 #ifndef __ASM__
 
