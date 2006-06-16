@@ -63,6 +63,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <ipc/ipc.h>
+#include <ipc/irq.h>
 
 /* Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
@@ -801,6 +802,7 @@ int cmd_continue(cmd_arg_t *argv)
 	printf("The kernel will now relinquish the console.\n");
 	printf("Use userspace controls to redraw the screen.\n");
 	arch_release_console();
+	ipc_irq_send_msg(IPC_IRQ_KBDRESTART, 0, 0, 0);
 	return 1;
 }
 

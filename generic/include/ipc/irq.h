@@ -41,7 +41,8 @@
 /** Reserved 'virtual' messages for kernel notifications */
 #define IPC_IRQ_RESERVED_VIRTUAL 10
 
-#define IPC_IRQ_KLOG  (-1)
+#define IPC_IRQ_KLOG       (-1)
+#define IPC_IRQ_KBDRESTART (-2)
 
 typedef enum {
 	CMD_MEM_READ_1 = 0,
