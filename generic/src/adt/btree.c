@@ -214,7 +214,7 @@ void _btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *rsubt
 
 /** Remove B-tree node.
  *
- * @param B-tree.
+ * @param t B-tree.
  * @param key Key to be removed from the B-tree along with its associated value.
  * @param leaf_node If not NULL, pointer to the leaf node where the key is found.
  */
@@ -234,7 +234,7 @@ void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 
 /** Recursively remove B-tree node.
  *
- * @param B-tree.
+ * @param t B-tree.
  * @param key Key to be removed from the B-tree along with its associated value.
  * @param node Node where the key being removed resides.
  */
@@ -902,7 +902,7 @@ bool try_rotation_from_left(btree_node_t *rnode)
 
 /** Rotate in a key from the right sibling or from the index node, if this operation can be done.
  *
- * @param rnode Node into which to add key from its right sibling or from the index node.
+ * @param lnode Node into which to add key from its right sibling or from the index node.
  *
  * @return True if the rotation was performed, false otherwise.
  */

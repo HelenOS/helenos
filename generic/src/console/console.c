@@ -117,7 +117,7 @@ __u8 _getc(chardev_t *chardev)
  *
  * @param chardev Character device.
  * @param buf Buffer where to store string terminated by '\0'.
- * @param len Size of the buffer.
+ * @param buflen Size of the buffer.
  *
  * @return Number of characters read.
  */

@@ -297,7 +297,7 @@ void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr
  * @param va Virtual page address.
  * @param asid Address space identifier.
  * @param entry The rest of TLB entry as required by TLB insertion format.
- * @param dtc If true, insert into data translation register, use instruction translation register otherwise.
+ * @param dtr If true, insert into data translation register, use instruction translation register otherwise.
  * @param tr Translation register.
  */
 void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr)

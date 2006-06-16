@@ -168,7 +168,7 @@ __native sys_physmem_map(__native phys_base, __native virt_base, __native pages,
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
  *
- * @param User space address of DDI argument structure.
+ * @param uspace_io_arg User space address of DDI argument structure.
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 

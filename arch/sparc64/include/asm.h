@@ -55,7 +55,7 @@ static inline __u64 pstate_read(void)
 
 /** Write Processor State register.
  *
- * @param New value of PSTATE register.
+ * @param v New value of PSTATE register.
  */
 static inline void pstate_write(__u64 v)
 {
@@ -77,7 +77,7 @@ static inline __u64 tick_compare_read(void)
 
 /** Write TICK_compare Register.
  *
- * @param New value of TICK_comapre register.
+ * @param v New value of TICK_comapre register.
  */
 static inline void tick_compare_write(__u64 v)
 {
@@ -99,7 +99,7 @@ static inline __u64 tick_read(void)
 
 /** Write TICK Register.
  *
- * @param New value of TICK register.
+ * @param v New value of TICK register.
  */
 static inline void tick_write(__u64 v)
 {
@@ -121,7 +121,7 @@ static inline __u64 softint_read(void)
 
 /** Write SOFTINT Register.
  *
- * @param New value of SOFTINT register.
+ * @param v New value of SOFTINT register.
  */
 static inline void softint_write(__u64 v)
 {
@@ -132,7 +132,7 @@ static inline void softint_write(__u64 v)
  *
  * Bits set in CLEAR_SOFTINT register will be cleared in SOFTINT register.
  *
- * @param New value of CLEAR_SOFTINT register.
+ * @param v New value of CLEAR_SOFTINT register.
  */
 static inline void clear_softint_write(__u64 v)
 {
@@ -270,7 +270,7 @@ static inline __u64 tl_read(void)
 
 /** Write Trap Base Address register.
  *
- * @param New value of TBA.
+ * @param v New value of TBA.
  */
 static inline void tba_write(__u64 v)
 {

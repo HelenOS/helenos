@@ -286,7 +286,7 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 /** Prints out structure of buddy system
  *
  * @param b Pointer to buddy system
- * @param es Element size
+ * @param elem_size Element size
  */
 void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 	index_t i;

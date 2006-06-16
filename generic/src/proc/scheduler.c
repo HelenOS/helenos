@@ -253,7 +253,7 @@ loop:
  *
  * When the function decides to relink rq's, it reconnects
  * respective pointers so that in result threads with 'pri'
- * greater or equal @start are moved to a higher-priority queue.
+ * greater or equal start are moved to a higher-priority queue.
  *
  * @param start Threshold priority.
  *

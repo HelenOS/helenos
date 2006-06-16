@@ -173,7 +173,7 @@ void apic_init(void)
 /** APIC spurious interrupt handler.
  *
  * @param n Interrupt vector.
- * @param stack Interrupted stack.
+ * @param istate Interrupted state.
  */
 void apic_spurious(int n, istate_t *istate)
 {
@@ -443,7 +443,7 @@ void l_apic_debug(void)
 /** Local APIC Timer Interrupt.
  *
  * @param n Interrupt vector number.
- * @param stack Interrupted stack.
+ * @param istate Interrupted state.
  */
 void l_apic_timer_interrupt(int n, istate_t *istate)
 {
@@ -482,7 +482,7 @@ __u32 io_apic_read(__u8 address)
 /** Write to IO APIC register.
  *
  * @param address IO APIC register address.
- * @param Content to be written to the addressed IO APIC register.
+ * @param x Content to be written to the addressed IO APIC register.
  */
 void io_apic_write(__u8 address, __u32 x)
 {

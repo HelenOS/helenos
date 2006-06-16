@@ -209,8 +209,8 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 
 /** Send a asynchronous request using phone to answerbox
  *
- * @param phone Phone connected to answerbox
- * @param request Request to be sent
+ * @param phone Phone connected to answerbox.
+ * @param call Structure representing the call.
  */
 int ipc_call(phone_t *phone, call_t *call)
 {

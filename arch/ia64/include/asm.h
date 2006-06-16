@@ -82,7 +82,7 @@ static inline __u64 iva_read(void)
 
 /** Write IVA (Interruption Vector Address) register.
  *
- * @param New location of interruption vector table.
+ * @param v New location of interruption vector table.
  */
 static inline void iva_write(__u64 v)
 {
@@ -105,7 +105,7 @@ static inline __u64 ivr_read(void)
 
 /** Write ITC (Interval Timer Counter) register.
  *
- * @param New counter value.
+ * @param v New counter value.
  */
 static inline void itc_write(__u64 v)
 {
@@ -127,7 +127,7 @@ static inline __u64 itc_read(void)
 
 /** Write ITM (Interval Timer Match) register.
  *
- * @param New match value.
+ * @param v New match value.
  */
 static inline void itm_write(__u64 v)
 {
@@ -162,7 +162,7 @@ static inline __u64 itv_read(void)
 
 /** Write ITV (Interval Timer Vector) register.
  *
- * @param New vector and mask bit.
+ * @param v New vector and mask bit.
  */
 static inline void itv_write(__u64 v)
 {
@@ -171,7 +171,7 @@ static inline void itv_write(__u64 v)
 
 /** Write EOI (End Of Interrupt) register.
  *
- * @param This value is ignored.
+ * @param v This value is ignored.
  */
 static inline void eoi_write(__u64 v)
 {
@@ -193,7 +193,7 @@ static inline __u64 tpr_read(void)
 
 /** Write TPR (Task Priority Register).
  *
- * @param New value of TPR.
+ * @param v New value of TPR.
  */
 static inline void tpr_write(__u64 v)
 {

@@ -995,7 +995,7 @@ loop:
  * Decrement frame reference count.
  * If it drops to zero, move the frame structure to free list.
  *
- * @param frame Frame number to be freed.
+ * @param pfn Frame number of the frame to be freed.
  */
 void frame_free(pfn_t pfn)
 {
@@ -1021,7 +1021,7 @@ void frame_free(pfn_t pfn)
  * Find respective frame structure for supplied PFN and
  * increment frame reference count.
  *
- * @param frame Frame no to be freed.
+ * @param pfn Frame number of the frame to be freed.
  */
 void frame_reference_add(pfn_t pfn)
 {
@@ -1112,9 +1112,9 @@ void zone_print_list(void) {
 	interrupts_restore(ipl);
 }
 
-/** Prints zone details
+/** Prints zone details.
  *
- * @param base Zone base address OR zone number
+ * @param num Zone base address or zone number.
  */
 void zone_print_one(int num) {
 	zone_t *zone = NULL;

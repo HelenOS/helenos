@@ -318,7 +318,7 @@ void i8042_init(void)
 /** Process i8042 interrupt.
  *
  * @param n Interrupt vector.
- * @param stack Interrupted stack.
+ * @param istate Interrupted state.
  */
 void i8042_interrupt(int n, istate_t *istate)
 {

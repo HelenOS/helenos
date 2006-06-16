@@ -66,7 +66,7 @@ static phte_t *phte;
  *
  */
 static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access,
-				     istate_t *istate, int *pfcr)
+				     istate_t *istate, int *pfrc)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -98,12 +98,12 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, in
 				return pte;
 			case AS_PF_DEFER:
 				page_table_lock(as, lock);
-				*pfcr = rc;
+				*pfrc = rc;
 				return NULL;
 			case AS_PF_FAULT:
 				page_table_lock(as, lock);
 				printf("Page fault.\n");
-				*pfcr = rc;
+				*pfrc = rc;
 				return NULL;
 			default:
 				panic("unexpected rc (%d)\n", rc);
@@ -197,7 +197,7 @@ void pht_refill(bool data, istate_t *istate)
 {
 	__address badvaddr;
 	pte_t *pte;
-	int pfcr;
+	int pfrc;
 	as_t *as;
 	bool lock;
 	
@@ -219,9 +219,9 @@ void pht_refill(bool data, istate_t *istate)
 		
 	page_table_lock(as, lock);
 	
-	pte = find_mapping_and_check(as, lock, badvaddr, PF_ACCESS_READ /* FIXME */, istate, &pfcr);
+	pte = find_mapping_and_check(as, lock, badvaddr, PF_ACCESS_READ /* FIXME */, istate, &pfrc);
 	if (!pte) {
-		switch (pfcr) {
+		switch (pfrc) {
 			case AS_PF_FAULT:
 				goto fail;
 				break;
@@ -233,7 +233,7 @@ void pht_refill(bool data, istate_t *istate)
 				page_table_unlock(as, lock);
 				return;
 			default:
-				panic("Unexpected pfrc (%d)\n", pfcr);
+				panic("Unexpected pfrc (%d)\n", pfrc);
 		}
 	}
 	

@@ -42,7 +42,7 @@
  * Calculate absolute address of function
  * referenced by fptr pointer.
  *
- * @param fptr Function pointer.
+ * @param f Function pointer.
  *
  */
 #define FADDR(f)	 (*((__address *)(f)));

@@ -210,7 +210,7 @@ bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v)
 
 /** Set up one VHPT entry.
  *
- * @param t VHPT entry to be set up.
+ * @param v VHPT entry to be set up.
  * @param page Virtual address of the page mapped by the entry.
  * @param asid Address space identifier of the address space to which page belongs.
  * @param frame Physical address of the frame to wich page is mapped.

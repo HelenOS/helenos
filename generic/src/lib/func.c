@@ -135,7 +135,7 @@ int strncmp(const char *src, const char *dst, size_t len)
  * last copied character.
  *
  * @param src Source string.
- * @param dst Destination buffer.
+ * @param dest Destination buffer.
  * @param len Size of destination buffer.
  */
 void strncpy(char *dest, const char *src, size_t len)

@@ -403,7 +403,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 
 /** Kernel console managing thread.
  *
- * @param arg Not used.
+ * @param prompt Kernel console prompt (e.g kconsole/panic).
  */
 void kconsole(void *prompt)
 {

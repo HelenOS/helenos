@@ -94,7 +94,7 @@ int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
  * This function can be called only from syscall.
  *
  * @param uspace_dst Destination userspace address.
- * @param uspace_src Source kernel address.
+ * @param src Source kernel address.
  * @param size Size of the data to be copied.
  *
  * @return 0 on success or error code from @ref errno.h.
