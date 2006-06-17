@@ -8297,3 +8297,8 @@
 	stw r12, 92(r10)
 #endif
 .endm
+
+.macro DEBUG_pht
+#ifdef CONFIG_DEBUG
+#endif
+.endm

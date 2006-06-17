@@ -234,6 +234,15 @@ real_mode:
 	mtspr dbat3u, r30
 	mtspr dbat3l, r30
 	
+	# create empty page hash table FIXME
+	
+	DEBUG_pht
+	
+	lis r31, 0x07ff
+	ori r31, r31, 0x0000
+	
+	mtsdr1 r31
+	
 	# create identity mapping
 	
 	DEBUG_mapping
