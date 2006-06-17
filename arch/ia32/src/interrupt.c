@@ -201,8 +201,8 @@ void irq_ipc_bind_arch(__native irq)
 {
 	if (irq == IRQ_CLK)
 		return;
-	trap_virtual_enable_irqs(1 << irq);
 	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
+	trap_virtual_enable_irqs(1 << irq);
 }
 
 /** @}
