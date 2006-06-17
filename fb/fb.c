@@ -830,7 +830,7 @@ static void anims_tick(void)
 
 
 static int pointer_x, pointer_y;
-static int pointer_shown;
+static int pointer_shown, pointer_enabled;
 static int pointer_vport = -1;
 static int pointer_pixmap = -1;
 
@@ -840,6 +840,9 @@ static void mouse_show(void)
 	int visibility;
 	int color;
 	int bytepos;
+
+	if (pointer_shown || !pointer_enabled)
+		return;
 
 	/* Save image under the cursor */
 	if (pointer_vport == -1) {
@@ -1060,6 +1063,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (!callid) {
 			cursor_blink(vport);
 			anims_tick();
+			mouse_show();
 			continue;
 		}
 		if (shm_handle(callid, &call, vp))
@@ -1198,6 +1202,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_fast(callid, 0, screen.xres,screen.yres);
 			continue;
 		case FB_POINTER_MOVE:
+			pointer_enabled = 1;
 			mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			retval = 0;
 			break;

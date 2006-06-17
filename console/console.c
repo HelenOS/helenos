@@ -417,7 +417,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg2 = fb_info.cols;
 			break;
 		case CONSOLE_FLUSH:
-			async_req_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
+			if (consnum == active_console)
+				async_req_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
 			break;
 		case CONSOLE_SET_STYLE:
 			
