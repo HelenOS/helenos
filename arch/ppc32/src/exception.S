@@ -121,10 +121,6 @@
 exc_system_reset:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
-	
 	li r3, 0
 	b jump_to_kernel
 
@@ -132,10 +128,6 @@ exc_system_reset:
 .global exc_machine_check
 exc_machine_check:
 	CONTEXT_STORE
-	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
 	
 	li r3, 1
 	b jump_to_kernel
@@ -145,9 +137,13 @@ exc_machine_check:
 exc_data_storage:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
+#	li r3, 2
+#	mr r4, sp
+#	addi r4, r4, 8
+#	bl pht_real_refill
+	
+#	cmpwi r3, 0
+#	bne iret_real
 	
 	li r3, 2
 	b jump_to_kernel
@@ -157,10 +153,14 @@ exc_data_storage:
 exc_instruction_storage:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
+#	li r3, 3
+#	mr r4, sp
+#	addi r4, r4, 8
+#	bl pht_real_refill
 	
+#	cmpwi r3, 0
+#	bne iret_real
+
 	li r3, 3
 	b jump_to_kernel
 
@@ -168,10 +168,6 @@ exc_instruction_storage:
 .global exc_external
 exc_external:
 	CONTEXT_STORE
-	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
 	
 	li r3, 4
 	b jump_to_kernel
@@ -181,10 +177,6 @@ exc_external:
 exc_alignment:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
-	
 	li r3, 5
 	b jump_to_kernel
 
@@ -192,10 +184,6 @@ exc_alignment:
 .global exc_program
 exc_program:
 	CONTEXT_STORE
-	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
 	
 	li r3, 6
 	b jump_to_kernel
@@ -205,10 +193,6 @@ exc_program:
 exc_fp_unavailable:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
-	
 	li r3, 7
 	b jump_to_kernel
 
@@ -216,10 +200,6 @@ exc_fp_unavailable:
 .global exc_decrementer
 exc_decrementer:
 	CONTEXT_STORE
-
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
 	
 	li r3, 8
 	b jump_to_kernel
@@ -229,10 +209,6 @@ exc_decrementer:
 exc_reserved0:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
-	
 	li r3, 9
 	b jump_to_kernel
 
@@ -240,10 +216,6 @@ exc_reserved0:
 .global exc_reserved1
 exc_reserved1:
 	CONTEXT_STORE
-	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
 	
 	li r3, 10
 	b jump_to_kernel
@@ -260,10 +232,6 @@ exc_syscall:
 exc_trace:
 	CONTEXT_STORE
 	
-	lis r12, exc_dispatch@ha
-	addi r12, r12, exc_dispatch@l
-	mtsrr0 r12
-	
 	li r3, 12
 	b jump_to_kernel
 
@@ -272,7 +240,11 @@ jump_to_kernel:
 	lis r12, iret@ha
 	addi r12, r12, iret@l
 	mtlr r12
-
+	
+	lis r12, exc_dispatch@ha
+	addi r12, r12, exc_dispatch@l
+	mtsrr0 r12
+	
 	mfmsr r12
 	ori r12, r12, (msr_ir | msr_dr)@l
 	mtsrr1 r12
@@ -291,10 +263,66 @@ jump_to_kernel_syscall:
 	lis r12, iret_syscall@ha
 	addi r12, r12, iret_syscall@l
 	mtlr r12
-
+	
 	mfmsr r12
 	ori r12, r12, (msr_ir | msr_dr)@l
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
+	rfi
+
+iret_real:
+	
+	lwz r0, 8(sp)
+	lwz r2, 12(sp)
+	lwz r3, 16(sp)
+	lwz r4, 20(sp)
+	lwz r5, 24(sp)
+	lwz r6, 28(sp)
+	lwz r7, 32(sp)
+	lwz r8, 36(sp)
+	lwz r9, 40(sp)
+	lwz r10, 44(sp)
+	lwz r11, 48(sp)
+	lwz r13, 52(sp)
+	lwz r14, 56(sp)
+	lwz r15, 60(sp)
+	lwz r16, 64(sp)
+	lwz r17, 68(sp)
+	lwz r18, 72(sp)
+	lwz r19, 76(sp)
+	lwz r20, 80(sp)
+	lwz r21, 84(sp)
+	lwz r22, 88(sp)
+	lwz r23, 92(sp)
+	lwz r24, 96(sp)
+	lwz r25, 100(sp)
+	lwz r26, 104(sp)
+	lwz r27, 108(sp)
+	lwz r28, 112(sp)
+	lwz r29, 116(sp)
+	lwz r30, 120(sp)
+	lwz r31, 124(sp)
+	
+	lwz r12, 128(sp)
+	mtcr r12
+	
+	lwz r12, 132(sp)
+	mtsrr0 r12
+	
+	lwz r12, 136(sp)
+	mtsrr1 r12
+	
+	lwz r12, 140(sp)
+	mtlr r12
+	
+	lwz r12, 144(sp)
+	mtctr r12
+	
+	lwz r12, 148(sp)
+	mtxer r12
+	
+	lwz r12, 152(sp)
+	lwz sp, 156(sp)
+	
 	rfi

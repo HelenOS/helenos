@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
@@ -48,8 +48,6 @@
 #include <print.h>
 #include <symtab.h>
 
-static phte_t *phte;
-
 
 /** Try to find PTE for faulting address
  *
@@ -66,8 +64,7 @@ static phte_t *phte;
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access,
-				     istate_t *istate, int *pfrc)
+static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access, istate_t *istate, int *pfrc)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -132,13 +129,20 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 {
 	__u32 page = (vaddr >> 12) & 0xffff;
 	__u32 api = (vaddr >> 22) & 0x3f;
-	__u32 vsid;
 	
+	__u32 vsid;
 	asm volatile (
 		"mfsrin %0, %1\n"
 		: "=r" (vsid)
 		: "r" (vaddr)
 	);
+	
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
 	
 	/* Primary hash (xor) */
 	__u32 h = 0;
@@ -185,6 +189,73 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	phte[base + i].r = 0;
 	phte[base + i].c = 0;
 	phte[base + i].pp = 2; // FIXME
+}
+
+
+static void pht_real_insert(const __address vaddr, const pfn_t pfn)
+{
+	__u32 page = (vaddr >> 12) & 0xffff;
+	__u32 api = (vaddr >> 22) & 0x3f;
+	
+	__u32 vsid;
+	asm volatile (
+		"mfsrin %0, %1\n"
+		: "=r" (vsid)
+		: "r" (vaddr)
+	);
+	
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte_physical = (phte_t *) (sdr1 & 0xffff0000);
+	
+	/* Primary hash (xor) */
+	__u32 h = 0;
+	__u32 hash = vsid ^ page;
+	__u32 base = (hash & 0x3ff) << 3;
+	__u32 i;
+	bool found = false;
+	
+	/* Find unused or colliding
+	   PTE in PTEG */
+	for (i = 0; i < 8; i++) {
+		if ((!phte_physical[base + i].v) || ((phte_physical[base + i].vsid == vsid) && (phte_physical[base + i].api == api))) {
+			found = true;
+			break;
+		}
+	}
+	
+	if (!found) {
+		/* Secondary hash (not) */
+		__u32 base2 = (~hash & 0x3ff) << 3;
+		
+		/* Find unused or colliding
+		   PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if ((!phte_physical[base2 + i].v) || ((phte_physical[base2 + i].vsid == vsid) && (phte_physical[base2 + i].api == api))) {
+				found = true;
+				base = base2;
+				h = 1;
+				break;
+			}
+		}
+		
+		if (!found) {
+			// TODO: A/C precedence groups
+			i = page % 8;
+		}
+	}
+	
+	phte_physical[base + i].v = 1;
+	phte_physical[base + i].vsid = vsid;
+	phte_physical[base + i].h = h;
+	phte_physical[base + i].api = api;
+	phte_physical[base + i].rpn = pfn;
+	phte_physical[base + i].r = 0;
+	phte_physical[base + i].c = 0;
+	phte_physical[base + i].pp = 2; // FIXME
 }
 
 
@@ -250,42 +321,58 @@ fail:
 }
 
 
+/** Process Instruction/Data Storage Interrupt in Real Mode
+ *
+ * @param n Interrupt vector number.
+ * @param istate Interrupted register context.
+ *
+ */
+bool pht_real_refill(int n, istate_t *istate)
+{
+	__address badvaddr;
+	
+	if (n == VECTOR_DATA_STORAGE) {
+		asm volatile (
+			"mfdar %0\n"
+			: "=r" (badvaddr)
+		);
+	} else
+		badvaddr = istate->pc;
+	
+	__u32 physmem;
+	asm volatile (
+		"mfsprg3 %0\n"
+		: "=r" (physmem)
+	);
+	
+	if ((badvaddr >= PA2KA(0)) && (badvaddr <= PA2KA(physmem))) {
+		pht_real_insert(badvaddr, KA2PA(badvaddr) >> 12);
+		return true;
+	}
+	
+	return false;
+}
+
+
 void pht_init(void)
 {
-	memsetb((__address) phte, 1 << PHT_BITS, 0);
+	// FIXME
+	
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
+	
+	memsetb((__address) phte, 65536, 0);
 }
 
 
 void page_arch_init(void)
 {
-	if (config.cpu_active == 1) {
+	if (config.cpu_active == 1)
 		page_mapping_operations = &pt_mapping_operations;
-		
-		__address cur;
-		int flags;
-		
-		/* Frames below 128 MB are mapped using BAT,
-		   map rest of the physical memory */
-		for (cur = 128 << 20; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-		}
-		
-		/* Allocate page hash table */
-		phte_t *physical_phte = (phte_t *) PFN2ADDR(frame_alloc(PHT_ORDER, FRAME_KA | FRAME_PANIC));
-		phte = (phte_t *) PA2KA((__address) physical_phte);
-		
-		ASSERT((__address) physical_phte % (1 << PHT_BITS) == 0);
-		pht_init();
-		
-		asm volatile (
-			"mtsdr1 %0\n"
-			:
-			: "r" ((__address) physical_phte)
-		);
-	}
 }
 
 
@@ -304,6 +391,5 @@ __address hw_map(__address physaddr, size_t size)
 	return virtaddr;
 }
 
- /** @}
+/** @}
  */
-

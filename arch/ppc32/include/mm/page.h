@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
@@ -132,9 +132,6 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 
 extern void page_arch_init(void);
 
-#define PHT_BITS	16
-#define PHT_ORDER	4
-
 typedef struct {
 	unsigned v : 1;          /**< Valid */
 	unsigned vsid : 24;      /**< Virtual Segment ID */
@@ -150,6 +147,7 @@ typedef struct {
 } phte_t;
 
 extern void pht_refill(int n, istate_t *istate);
+extern bool pht_real_refill(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
 extern void pht_init(void);
 
 #endif /* __ASM__ */
@@ -158,6 +156,5 @@ extern void pht_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-
