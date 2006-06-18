@@ -67,7 +67,14 @@
 #define NORM_EXC ((char *) 0x80000180)
 #define CACHE_EXC ((char *) 0x80000100)
 
-bootinfo_t bootinfo;
+
+/* Why the linker moves the variable 64K away in assembler
+ * when not in .text section ????????
+ */
+__address supervisor_sp __attribute__ ((section (".text")));
+/* Stack pointer saved when entering user mode */
+/* TODO: How do we do it on SMP system???? */
+bootinfo_t bootinfo __attribute__ ((section (".text")));
 
 void arch_pre_main(void)
 {
@@ -120,9 +127,9 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 #ifdef CONFIG_FB
-		fb_init(0x12000000, 640, 480, 24, 1920); // gxemul framebuffer
+	fb_init(0x12000000, 640, 480, 24, 1920); // gxemul framebuffer
 #endif
-		sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
+	sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
 }
 
 void arch_pre_smp_init(void)
@@ -132,14 +139,6 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 }
-
-/* Stack pointer saved when entering user mode */
-/* TODO: How do we do it on SMP system???? */
-
-/* Why the linker moves the variable 64K away in assembler
- * when not in .text section ????????
- */
-__address supervisor_sp __attribute__ ((section (".text")));
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
