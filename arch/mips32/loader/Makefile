@@ -86,7 +86,7 @@ clean:
 	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
 _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	./pack $(OBJCOPY) $(COMPONENTS)
+	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

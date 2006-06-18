@@ -30,13 +30,26 @@
 
 [ "$#" -lt 1 ] && exit 1
 
-OBJCOPY="$1"
+case "$1" in
+	"mips")
+		BFD="binary"
+		;;
+	"ecoff")
+		BFD="ecoff-littlemips"
+		;;
+	*)
+		echo "Undefined image format" >&1
+		exit 1
+		;;
+esac
+
+OBJCOPY="$2"
 LINK="_link.ld"
 HEADER="_components.h"
 
-shift
+shift 2
 
-echo 'OUTPUT_FORMAT("binary")
+echo "OUTPUT_FORMAT(\"${BFD}\")
 ENTRY(start)
 
 SECTIONS {
@@ -53,7 +66,7 @@ SECTIONS {
 		*(.scommon);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
-		*(.reginfo);' > "$LINK"
+		*(.reginfo);" > "$LINK"
 
 echo '#ifndef ___COMPONENTS_H__
 #define ___COMPONENTS_H__
