@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint SoftInt
- * @brief	Software implementation of basic arithmetic operations.
+/** @addtogroup softint
  * @{
  */ 
 /**

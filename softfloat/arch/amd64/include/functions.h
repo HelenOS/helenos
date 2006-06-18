@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloatamd64 amd64	
+/** @addtogroup softfloatamd64 amd64	
  * @ingroup sfl 
  * @brief softfloat architecture dependent definitions 
  * @{
@@ -72,6 +72,6 @@
 #endif
 
 
- /** @}
+/** @}
  */
 

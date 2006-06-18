@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat	
  * @{
  */
 /** @file
@@ -255,8 +255,5 @@ float64 addFloat64(float64 a, float64 b)
 	return a;
 }
 
-
-
- /** @}
+/** @}
  */
-

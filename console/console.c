@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup console Console
- * @brief	HelenOS console.
+/** @addtogroup console
  * @{ 
  */
 /** @file
@@ -532,4 +531,3 @@ int main(int argc, char *argv[])
  
 /** @}
  */
-

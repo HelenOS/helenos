@@ -9,6 +9,11 @@
  * Can be freely distributed and used under the terms of the GNU GPL.
  */
 
+/**
+ * @addtogroup pci
+ * @{
+ */
+
 #include <stdio.h>
 #include <ddi.h>
 #include <task.h>
@@ -79,3 +84,7 @@ int main(int argc, char *argv[])
 	pci_cleanup(pacc);
 	return 0;
 }
+
+/**
+ * @}
+ */

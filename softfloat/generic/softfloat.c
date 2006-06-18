@@ -26,13 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup sfl Softfloat
- * @brief Software FPU emulation.
- * @{ 
- * @}
- */
- /** @addtogroup softfloat generic
-  * @ingroup sfl
+/** @addtogroup softfloat generic
+ * @ingroup sfl
  * @brief Architecture independent parts of FPU software emulation library.
  * @{
  */
@@ -499,6 +494,6 @@ float __powisf2(float a, int b)
 }
 
 
- /** @}
+/** @}
  */
 

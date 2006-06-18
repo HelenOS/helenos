@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat	
  * @{
  */
 /** @file
@@ -125,9 +125,5 @@ inline int isFloat32gt(float32 a, float32 b)
 			
 }
 
-
-
-
- /** @}
+/** @}
  */
-

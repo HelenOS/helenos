@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat	
  * @{
  */
 /** @file
@@ -290,8 +290,5 @@ void mul64integers(uint64_t a,uint64_t b, uint64_t *lo, uint64_t *hi)
 	return;
 }
 
-
-
- /** @}
+/** @}
  */
-

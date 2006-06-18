@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat	
  * @{
  */
 /** @file
@@ -360,7 +360,5 @@ uint64_t divFloat64estim(uint64_t a, uint64_t b)
 	return result;
 }
 
-
- /** @}
+/** @}
  */
-

@@ -27,13 +27,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup fbs Framebuffers
- * @brief	HelenOS framebuffers.
- * @{ 
- * @}
- */
-/** @defgroup fb Framebuffer
- * @brief	HelenOS framebuffer.
+/**
+ * @defgroup fb Graphical framebuffer
+ * @brief	HelenOS graphical framebuffer.
  * @ingroup fbs
  * @{
  */ 

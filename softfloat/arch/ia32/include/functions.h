@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloatia32 ia32	
+/** @addtogroup softfloatia32 ia32	
  * @ingroup sfl
  * @brief softfloat architecture dependent definitions 
  * @{
@@ -71,7 +71,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
-

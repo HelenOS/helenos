@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat	
  * @{
  */
 /** @file
@@ -210,7 +210,6 @@ void roundFloat64(int32_t *exp, uint64_t *fraction)
 	return;
 }
 
-
- /** @}
+/** @}
  */
 

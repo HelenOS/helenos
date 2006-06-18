@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup ns Naming Service
- * @brief	Naming service for HelenOS IPC.
+/** @addtogroup ns
  * @{
  */ 
 

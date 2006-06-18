@@ -67,7 +67,7 @@ irq_code_t ski_kbd = {
 
 int kbd_arch_init(void)
 {
-	if(sysinfo_value("kbd")) {
+	if (sysinfo_value("kbd")) {
 		ipc_register_irq(sysinfo_value("kbd.irq"), &ski_kbd);
 		return 0;
 	}	
@@ -92,76 +92,71 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 
 
 	/*
-	* Please preserve this code (it can be used to determine scancodes)
-	*/
+	 * Please preserve this code (it can be used to determine scancodes)
+	 */
 	//keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
 	//keybuffer_push(keybuffer, to_hex(scan_code&0xf));
 	//keybuffer_push(keybuffer, ' ');
 	//keybuffer_push(keybuffer, ' ');
 	//*/
 	
-	
-	if (scan_code){
-		buf|=(unsigned long long) scan_code<<(8*(count++));
+	if (scan_code) {
+		buf |= (unsigned long long) scan_code<<(8*(count++));
 	} else {
 		
 
-		if ( buf == 0x1b ) {
+		if (buf == 0x1b) {
 			esc_count++;
-			if ( esc_count == 3 ) {
-			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+			if (esc_count == 3) {
+				__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
 			}	
 		} else {
-			esc_count=0;
+			esc_count = 0;
 		}
 	
-		if ( ! ( buf & 0xff00 ))
+		if (!(buf & 0xff00)) {
 			keybuffer_push(keybuffer, buf);
-		else {
-			switch (buf){
+		} else {
+			switch (buf) {
 				case KEY_F1:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 1 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 1);
 					break;
 				case KEY_F2:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 2 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 2);
 					break;
 				case KEY_F3:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 3 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 3);
 					break;
 				case KEY_F4:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 4 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 4);
 					break;
 				case KEY_F5:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 5 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 5);
 					break;
 				case KEY_F6:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 6 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 6);
 					break;
 				case KEY_F7:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 7 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 7);
 					break;
 				case KEY_F8:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 8 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 8);
 					break;
-
 				case KEY_F9:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 9 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 9);
 					break;
 				case KEY_F10:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 10 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 10);
 					break;
-
 				case KEY_F11:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 11 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 11);
 					break;
 				case KEY_F12:
-					keybuffer_push(keybuffer,FUNCTION_KEYS | 12 );
+					keybuffer_push(keybuffer, FUNCTION_KEYS | 12);
 					break;
-
-
 			}
 		}
-		buf=count=0;
+		buf = count = 0;
 	}
 
 	return 	1;
