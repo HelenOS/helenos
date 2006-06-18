@@ -190,19 +190,32 @@ real_mode:
 	DEBUG_segments
 	
 	# initially fill segment registers
-
-	li r31, 16
-	mtctr r31
+	
 	li r31, 0
-	li r30, 0x2000
+	
+	li r29, 8
+	mtctr r29
+	li r30, 0
 
-	seg_fill:
+	seg_fill_uspace:
 	
 		mtsrin r30, r31
-		addi r30, r30, 0x111
+		addi r30, r30, 1
 		addis r31, r31, 0x1000    # move to next SR
 		
-		bdnz seg_fill
+		bdnz seg_fill_uspace
+	
+	li r29, 8
+	mtctr r29
+	li r30, 0x4000
+	
+	seg_fill_kernel:
+	
+		mtsrin r30, r31
+		addi r30, r30, 1
+		addis r31, r31, 0x1000    # move to next SR
+		
+		bdnz seg_fill_kernel
 	
 	# invalidate block address translation registers
 	
@@ -241,9 +254,33 @@ real_mode:
 	lis r31, 0x07ff
 	ori r31, r31, 0x0000
 	
+	li r30, 0x4000
+	li r29, 0
+	
+	pht_clear:
+		
+		stw r29, 0(r31)
+		
+		addi r31, r31, 4
+		subi r30, r30, 4
+		
+		cmpwi r30, 0
+		beq clear_end
+		
+		bdnz pht_clear
+
+		DEBUG_end_pht_clear
+		
+	clear_end:
+	
+	lis r31, 0x07ff
+	ori r31, r31, 0x0000
+	
 	mtsdr1 r31
 	
 	# create identity mapping
+	
+#ifdef CONFIG_BAT
 	
 	DEBUG_mapping
 	
@@ -260,6 +297,8 @@ real_mode:
 	
 	mtspr dbat0u, r31
 	mtspr dbat0l, r30
+
+#endif
 	
 	DEBUG_tlb
 	
@@ -270,12 +309,24 @@ real_mode:
 	
 	# start the kernel
 	#
+	# pc = KERNEL_START_ADDR
 	# r3 = bootinfo (pa)
+	# sprg0 = KA2PA(KERNEL_START_ADDR)
+	# sprg3 = physical memory size
+	# sp = 0 (pa)
 	
 	lis r31, KERNEL_START_ADDR@ha
 	addi r31, r31, KERNEL_START_ADDR@l
 	
 	mtspr srr0, r31
+	
+	subis r31, r31, 0x8000
+	mtsprg0 r31
+	
+	lwz r31, 0(r3)
+	mtsprg3 r31
+	
+	li sp, 0
 	
 	mfmsr r31
 	ori r31, r31, (msr_ir | msr_dr)@l

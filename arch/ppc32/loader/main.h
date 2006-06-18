@@ -51,8 +51,8 @@ typedef struct {
 } taskmap_t;
 
 typedef struct {
-	taskmap_t taskmap;
 	memmap_t memmap;
+	taskmap_t taskmap;
 	screen_t screen;
 	keyboard_t keyboard;
 } bootinfo_t;

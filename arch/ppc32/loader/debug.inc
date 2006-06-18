@@ -8302,3 +8302,8 @@
 #ifdef CONFIG_DEBUG
 #endif
 .endm
+
+.macro DEBUG_end_pht_clear
+#ifdef CONFIG_DEBUG
+#endif
+.endm
