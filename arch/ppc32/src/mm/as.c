@@ -55,7 +55,7 @@ void as_install_arch(as_t *as)
 {
 	asid_t asid;
 	ipl_t ipl;
-	__u8 sr;
+	__u32 sr;
 
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);
@@ -67,7 +67,7 @@ void as_install_arch(as_t *as)
 		asm volatile (
 			"mtsrin %0, %1\n"
 			:
-			: "r" (0x6000 + (asid << 4) + sr), "r" (sr * 0x1000)
+			: "r" ((0x6000 << 16) + (asid << 4) + sr), "r" (sr << 28)
 		);
 	}
 	
@@ -76,7 +76,7 @@ void as_install_arch(as_t *as)
 		asm volatile (
 			"mtsrin %0, %1\n"
 			:
-			: "r" (0x4000 + (asid << 4) + sr), "r" (sr * 0x1000)
+			: "r" ((0x4000 << 16) + (asid << 4) + sr), "r" (sr << 28)
 		);
 	}
 	

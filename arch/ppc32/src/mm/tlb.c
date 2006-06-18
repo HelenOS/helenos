@@ -377,7 +377,17 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 
 void tlb_print(void)
 {
-	// TODO
+	__u32 sr;
+	
+	for (sr = 0; sr < 16; sr++) {
+		__u32 vsid;
+		asm volatile (
+			"mfsrin %0, %1\n"
+			: "=r" (vsid)
+			: "r" (sr << 28)
+		);
+		printf("vsid[%#x]=%#x\n", sr << 28, vsid);
+	}
 }
 
 /** @}
