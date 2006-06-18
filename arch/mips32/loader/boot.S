@@ -28,7 +28,7 @@
 
 #include "regname.h"
 
-#define INITIAL_STACK 0x40000
+#define INITIAL_STACK 0x80040000
 
 .set noat
 .set noreorder
