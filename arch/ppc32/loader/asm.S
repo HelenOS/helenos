@@ -207,7 +207,8 @@ real_mode:
 	
 	li r29, 8
 	mtctr r29
-	li r30, 0x4000
+	lis r30, 0x4000
+	ori r30, r30, 8
 	
 	seg_fill_kernel:
 	

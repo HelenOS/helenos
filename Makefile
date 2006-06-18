@@ -47,6 +47,10 @@ ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
 endif
 
+ifeq ($(CONFIG_BAT),y)
+	DEFS += -DCONFIG_BAT
+endif
+
 .PHONY: all build config distclean arch_distclean clean kernel uspace clean_kernel clean_uspace distclean_kernel distclean_uspace
 
 all:
