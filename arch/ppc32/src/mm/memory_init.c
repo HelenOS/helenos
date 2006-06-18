@@ -49,7 +49,7 @@ void memory_print_map(void)
 	count_t i;
 	
 	for (i = 0; i < bootinfo.memmap.count; i++)
-		printf("base: %#x size: %#x\n", bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
+		printf("base: %.*p size: %#x\n", sizeof(bootinfo.memmap.zones[i].start) * 2, bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
 }
 
 /** @}

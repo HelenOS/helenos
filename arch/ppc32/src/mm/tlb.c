@@ -375,6 +375,29 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 }
 
 
+#define PRINT_BAT(name, ureg, lreg) \
+	asm volatile ( \
+		"mfspr %0," #ureg "\n" \
+		"mfspr %1," #lreg "\n" \
+		: "=r" (upper), "=r" (lower) \
+	); \
+	mask = (upper & 0x1ffc) >> 2; \
+	if (upper & 3) { \
+		__u32 tmp = mask; \
+		length = 128; \
+		while (tmp) { \
+			if ((tmp & 1) == 0) { \
+				printf("ibat[0]: error in mask\n"); \
+				break; \
+			} \
+			length <<= 1; \
+			tmp >>= 1; \
+		} \
+	} else \
+		length = 0; \
+	printf(name ": page=%.*p frame=%.*p length=%d KB (mask=%#x)%s%s\n", sizeof(upper) * 2, upper & 0xffff0000, sizeof(lower) * 2, lower & 0xffff0000, length, mask, ((upper >> 1) & 1) ? " supervisor" : "", (upper & 1) ? " user" : "");
+
+
 void tlb_print(void)
 {
 	__u32 sr;
@@ -386,8 +409,23 @@ void tlb_print(void)
 			: "=r" (vsid)
 			: "r" (sr << 28)
 		);
-		printf("vsid[%#x]=%#x\n", sr << 28, vsid);
+		printf("vsid[%d]: VSID=%.*p (ASID=%d)%s%s\n", sr, sizeof(vsid) * 2, vsid & 0xffffff, (vsid & 0xffffff) >> 4, ((vsid >> 30) & 1) ? " supervisor" : "", ((vsid >> 29) & 1) ? " user" : "");
 	}
+	
+	__u32 upper;
+	__u32 lower;
+	__u32 mask;
+	__u32 length;
+	
+	PRINT_BAT("ibat[0]", 528, 529);
+	PRINT_BAT("ibat[1]", 530, 531);
+	PRINT_BAT("ibat[2]", 532, 533);
+	PRINT_BAT("ibat[3]", 534, 535);
+	
+	PRINT_BAT("dbat[0]", 536, 537);
+	PRINT_BAT("dbat[1]", 538, 539);
+	PRINT_BAT("dbat[2]", 540, 541);
+	PRINT_BAT("dbat[3]", 542, 543);
 }
 
 /** @}
