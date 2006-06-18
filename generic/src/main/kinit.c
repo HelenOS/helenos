@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 
@@ -106,10 +106,8 @@ void kinit(void *arg)
 			t->cpu = &cpus[0];
 			spinlock_unlock(&t->lock);
 			thread_ready(t);
-		}
-		else {
+		} else
 			panic("thread_create/kmp\n");
-		}
 		thread_join(t);
 		thread_detach(t);
 	}
@@ -134,8 +132,8 @@ void kinit(void *arg)
 				t->cpu = &cpus[i];
 				spinlock_unlock(&t->lock);
 				thread_ready(t);
-			}
-			else panic("thread_create/kcpulb\n");
+			} else
+				panic("thread_create/kcpulb\n");
 
 		}
 	}
@@ -195,6 +193,5 @@ void kinit(void *arg)
 
 }
 
- /** @}
+/** @}
  */
-

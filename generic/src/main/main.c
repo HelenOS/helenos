@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 
@@ -324,6 +324,5 @@ void main_ap_separated_stack(void)
 }
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

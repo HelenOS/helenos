@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 
@@ -61,10 +61,8 @@ void uinit(void *arg)
 	uarg.uspace_thread_arg = NULL;
 
 	free((uspace_arg_t *) arg);
-	
 	userspace(&uarg);
 }
 
- /** @}
+/** @}
  */
-
