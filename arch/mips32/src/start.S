@@ -191,9 +191,6 @@ kernel_image_start:
 	/* Not sure about this, but might be needed for PIC code???? */
 	lui $gp, 0x8000
 	
-	lui $a3, 0x8000
-	addu $a1, $a1, $a3
-	
 	lui $a3, %hi(bootinfo)
 	ori $a3, $a3, %lo(bootinfo)
 	
