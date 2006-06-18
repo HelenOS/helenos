@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32interrupt
+/** @addtogroup ppc32interrupt
  * @{
  */
 /** @file
@@ -56,6 +56,5 @@ extern void extint_handler(int n, istate_t *istate);
 
 #endif
 
- /** @}
+/** @}
  */
-

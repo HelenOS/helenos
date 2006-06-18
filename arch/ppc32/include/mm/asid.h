@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
@@ -35,15 +35,13 @@
 #ifndef __ppc32_ASID_H__
 #define __ppc32_ASID_H__
 
-typedef int asid_t;
+#include <arch/types.h>
 
-#define ASID_MAX_ARCH		3
+#define ASID_MAX_ARCH		4096
 
-#define asid_get()		(ASID_START+1)
-#define asid_put(asid)
+typedef __u32 asid_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

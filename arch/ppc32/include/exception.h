@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
@@ -100,6 +100,5 @@ static inline __native istate_get_pc(istate_t *istate)
 
 #endif
 
- /** @}
+/** @}
  */
-

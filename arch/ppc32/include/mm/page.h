@@ -132,24 +132,6 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 
 extern void page_arch_init(void);
 
-typedef struct {
-	unsigned v : 1;          /**< Valid */
-	unsigned vsid : 24;      /**< Virtual Segment ID */
-	unsigned h : 1;          /**< Primary/secondary hash */
-	unsigned api : 6;        /**< Abbreviated Page Index */
-	unsigned rpn : 20;       /**< Real Page Number */
-	unsigned reserved0 : 3;
-	unsigned r : 1;          /**< Reference */
-	unsigned c : 1;          /**< Change */
-	unsigned wimg : 4;       /**< Access control */
-	unsigned reserved1 : 1;
-	unsigned pp : 2;         /**< Page protection */
-} phte_t;
-
-extern void pht_refill(int n, istate_t *istate);
-extern bool pht_real_refill(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
-extern void pht_init(void);
-
 #endif /* __ASM__ */
 
 #endif /* KERNEL */

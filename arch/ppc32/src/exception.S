@@ -137,13 +137,13 @@ exc_machine_check:
 exc_data_storage:
 	CONTEXT_STORE
 	
-#	li r3, 2
-#	mr r4, sp
-#	addi r4, r4, 8
-#	bl pht_real_refill
+	li r3, 2
+	mr r4, sp
+	addi r4, r4, 8
+	bl pht_real_refill
 	
-#	cmpwi r3, 0
-#	bne iret_real
+	cmpwi r3, 0
+	bne iret_real
 	
 	li r3, 2
 	b jump_to_kernel
@@ -153,13 +153,13 @@ exc_data_storage:
 exc_instruction_storage:
 	CONTEXT_STORE
 	
-#	li r3, 3
-#	mr r4, sp
-#	addi r4, r4, 8
-#	bl pht_real_refill
+	li r3, 3
+	mr r4, sp
+	addi r4, r4, 8
+	bl pht_real_refill
 	
-#	cmpwi r3, 0
-#	bne iret_real
+	cmpwi r3, 0
+	bne iret_real
 
 	li r3, 3
 	b jump_to_kernel

@@ -26,20 +26,326 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
  */
 
 #include <mm/tlb.h>
+#include <arch/mm/tlb.h>
+#include <arch/interrupt.h>
+#include <mm/as.h>
+#include <arch.h>
+#include <print.h>
+#include <symtab.h>
 
 
-/** Initialize Page Hash Table.
+/** Try to find PTE for faulting address
  *
- * Setup the Page Hash Table with no entries.
+ * Try to find PTE for faulting address.
+ * The as->lock must be held on entry to this function
+ * if lock is true.
+ *
+ * @param as       Address space.
+ * @param lock     Lock/unlock the address space.
+ * @param badvaddr Faulting virtual address.
+ * @param access   Access mode that caused the fault.
+ * @param istate   Pointer to interrupted state.
+ * @param pfrc     Pointer to variable where as_page_fault() return code will be stored.
+ * @return         PTE on success, NULL otherwise.
  *
  */
+static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access, istate_t *istate, int *pfrc)
+{
+	/*
+	 * Check if the mapping exists in page tables.
+	 */	
+	pte_t *pte = page_mapping_find(as, badvaddr);
+	if ((pte) && (pte->p)) {
+		/*
+		 * Mapping found in page tables.
+		 * Immediately succeed.
+		 */
+		return pte;
+	} else {
+		int rc;
+	
+		/*
+		 * Mapping not found in page tables.
+		 * Resort to higher-level page fault handler.
+		 */
+		page_table_unlock(as, lock);
+		switch (rc = as_page_fault(badvaddr, access, istate)) {
+			case AS_PF_OK:
+				/*
+				 * The higher-level page fault handler succeeded,
+				 * The mapping ought to be in place.
+				 */
+				page_table_lock(as, lock);
+				pte = page_mapping_find(as, badvaddr);
+				ASSERT((pte) && (pte->p));
+				return pte;
+			case AS_PF_DEFER:
+				page_table_lock(as, lock);
+				*pfrc = rc;
+				return NULL;
+			case AS_PF_FAULT:
+				page_table_lock(as, lock);
+				printf("Page fault.\n");
+				*pfrc = rc;
+				return NULL;
+			default:
+				panic("unexpected rc (%d)\n", rc);
+		}	
+	}
+}
+
+
+static void pht_refill_fail(__address badvaddr, istate_t *istate)
+{
+	char *symbol = "";
+	char *sym2 = "";
+
+	char *s = get_symtab_entry(istate->pc);
+	if (s)
+		symbol = s;
+	s = get_symtab_entry(istate->lr);
+	if (s)
+		sym2 = s;
+	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr, istate->pc, symbol, sym2);
+}
+
+
+static void pht_insert(const __address vaddr, const pfn_t pfn)
+{
+	__u32 page = (vaddr >> 12) & 0xffff;
+	__u32 api = (vaddr >> 22) & 0x3f;
+	
+	__u32 vsid;
+	asm volatile (
+		"mfsrin %0, %1\n"
+		: "=r" (vsid)
+		: "r" (vaddr)
+	);
+	
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
+	
+	/* Primary hash (xor) */
+	__u32 h = 0;
+	__u32 hash = vsid ^ page;
+	__u32 base = (hash & 0x3ff) << 3;
+	__u32 i;
+	bool found = false;
+	
+	/* Find unused or colliding
+	   PTE in PTEG */
+	for (i = 0; i < 8; i++) {
+		if ((!phte[base + i].v) || ((phte[base + i].vsid == vsid) && (phte[base + i].api == api))) {
+			found = true;
+			break;
+		}
+	}
+	
+	if (!found) {
+		/* Secondary hash (not) */
+		__u32 base2 = (~hash & 0x3ff) << 3;
+		
+		/* Find unused or colliding
+		   PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if ((!phte[base2 + i].v) || ((phte[base2 + i].vsid == vsid) && (phte[base2 + i].api == api))) {
+				found = true;
+				base = base2;
+				h = 1;
+				break;
+			}
+		}
+		
+		if (!found) {
+			// TODO: A/C precedence groups
+			i = page % 8;
+		}
+	}
+	
+	phte[base + i].v = 1;
+	phte[base + i].vsid = vsid;
+	phte[base + i].h = h;
+	phte[base + i].api = api;
+	phte[base + i].rpn = pfn;
+	phte[base + i].r = 0;
+	phte[base + i].c = 0;
+	phte[base + i].pp = 2; // FIXME
+}
+
+
+static void pht_real_insert(const __address vaddr, const pfn_t pfn)
+{
+	__u32 page = (vaddr >> 12) & 0xffff;
+	__u32 api = (vaddr >> 22) & 0x3f;
+	
+	__u32 vsid;
+	asm volatile (
+		"mfsrin %0, %1\n"
+		: "=r" (vsid)
+		: "r" (vaddr)
+	);
+	
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte_physical = (phte_t *) (sdr1 & 0xffff0000);
+	
+	/* Primary hash (xor) */
+	__u32 h = 0;
+	__u32 hash = vsid ^ page;
+	__u32 base = (hash & 0x3ff) << 3;
+	__u32 i;
+	bool found = false;
+	
+	/* Find unused or colliding
+	   PTE in PTEG */
+	for (i = 0; i < 8; i++) {
+		if ((!phte_physical[base + i].v) || ((phte_physical[base + i].vsid == vsid) && (phte_physical[base + i].api == api))) {
+			found = true;
+			break;
+		}
+	}
+	
+	if (!found) {
+		/* Secondary hash (not) */
+		__u32 base2 = (~hash & 0x3ff) << 3;
+		
+		/* Find unused or colliding
+		   PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if ((!phte_physical[base2 + i].v) || ((phte_physical[base2 + i].vsid == vsid) && (phte_physical[base2 + i].api == api))) {
+				found = true;
+				base = base2;
+				h = 1;
+				break;
+			}
+		}
+		
+		if (!found) {
+			// TODO: A/C precedence groups
+			i = page % 8;
+		}
+	}
+	
+	phte_physical[base + i].v = 1;
+	phte_physical[base + i].vsid = vsid;
+	phte_physical[base + i].h = h;
+	phte_physical[base + i].api = api;
+	phte_physical[base + i].rpn = pfn;
+	phte_physical[base + i].r = 0;
+	phte_physical[base + i].c = 0;
+	phte_physical[base + i].pp = 2; // FIXME
+}
+
+
+/** Process Instruction/Data Storage Interrupt
+ *
+ * @param n Interrupt vector number.
+ * @param istate Interrupted register context.
+ *
+ */
+void pht_refill(int n, istate_t *istate)
+{
+	__address badvaddr;
+	pte_t *pte;
+	int pfrc;
+	as_t *as;
+	bool lock;
+	
+	if (AS == NULL) {
+		as = AS_KERNEL;
+		lock = false;
+	} else {
+		as = AS;
+		lock = true;
+	}
+	
+	if (n == VECTOR_DATA_STORAGE) {
+		asm volatile (
+			"mfdar %0\n"
+			: "=r" (badvaddr)
+		);
+	} else
+		badvaddr = istate->pc;
+		
+	page_table_lock(as, lock);
+	
+	pte = find_mapping_and_check(as, lock, badvaddr, PF_ACCESS_READ /* FIXME */, istate, &pfrc);
+	if (!pte) {
+		switch (pfrc) {
+			case AS_PF_FAULT:
+				goto fail;
+				break;
+			case AS_PF_DEFER:
+				/*
+		 		 * The page fault came during copy_from_uspace()
+				 * or copy_to_uspace().
+				 */
+				page_table_unlock(as, lock);
+				return;
+			default:
+				panic("Unexpected pfrc (%d)\n", pfrc);
+		}
+	}
+	
+	pte->a = 1; /* Record access to PTE */
+	pht_insert(badvaddr, pte->pfn);
+	
+	page_table_unlock(as, lock);
+	return;
+	
+fail:
+	page_table_unlock(as, lock);
+	pht_refill_fail(badvaddr, istate);
+}
+
+
+/** Process Instruction/Data Storage Interrupt in Real Mode
+ *
+ * @param n Interrupt vector number.
+ * @param istate Interrupted register context.
+ *
+ */
+bool pht_real_refill(int n, istate_t *istate)
+{
+	__address badvaddr;
+	
+	if (n == VECTOR_DATA_STORAGE) {
+		asm volatile (
+			"mfdar %0\n"
+			: "=r" (badvaddr)
+		);
+	} else
+		badvaddr = istate->pc;
+	
+	__u32 physmem;
+	asm volatile (
+		"mfsprg3 %0\n"
+		: "=r" (physmem)
+	);
+	
+	if ((badvaddr >= PA2KA(0)) && (badvaddr < PA2KA(physmem))) {
+		pht_real_insert(badvaddr, KA2PA(badvaddr) >> 12);
+		return true;
+	}
+	
+	return false;
+}
+
+
 void tlb_arch_init(void)
 {
 	tlb_invalidate_all();
@@ -55,33 +361,24 @@ void tlb_invalidate_all(void)
 }
 
 
-/** Invalidate all entries in TLB that belong to specified address space.
- *
- * @param asid This parameter is ignored as the architecture doesn't support it.
- */
 void tlb_invalidate_asid(asid_t asid)
 {
+	// TODO
 	tlb_invalidate_all();
 }
 
-/** Invalidate TLB entries for specified page range belonging to specified address space.
- *
- * @param asid This parameter is ignored as the architecture doesn't support it.
- * @param page Address of the first page whose entry is to be invalidated.
- * @param cnt Number of entries to invalidate.
- */
+
 void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 {
+	// TODO
 	tlb_invalidate_all();
 }
 
 
-
-/** Print contents of Page Hash Table. */
 void tlb_print(void)
 {
+	// TODO
 }
 
- /** @}
+/** @}
  */
-

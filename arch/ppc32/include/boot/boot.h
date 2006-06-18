@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
@@ -82,8 +82,8 @@ typedef struct {
 } keyboard_t;
 
 typedef struct {
-	taskmap_t taskmap;
 	memmap_t memmap;
+	taskmap_t taskmap;
 	screen_t screen;
 	keyboard_t keyboard;
 } bootinfo_t;
@@ -94,6 +94,5 @@ extern bootinfo_t bootinfo;
 
 #endif
 
- /** @}
+/** @}
  */
-

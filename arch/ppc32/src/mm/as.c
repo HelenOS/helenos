@@ -34,11 +34,54 @@
 
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
+#include <genarch/mm/asid_fifo.h>
+#include <arch.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)
 {
 	as_operations = &as_pt_operations;
+	asid_fifo_init();
+}
+
+/** Install address space.
+ *
+ * Install ASID.
+ *
+ * @param as Address space structure.
+ *
+ */
+void as_install_arch(as_t *as)
+{
+	asid_t asid;
+	ipl_t ipl;
+	__u8 sr;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&as->lock);
+	
+	asid = as->asid;
+	
+	/* Lower 2 GB, user and supervisor access */
+	for (sr = 0; sr < 8; sr++) {
+		asm volatile (
+			"mtsrin %0, %1\n"
+			:
+			: "r" (0x6000 + (asid << 4) + sr), "r" (sr * 0x1000)
+		);
+	}
+	
+	/* Upper 2 GB, only supervisor access */
+	for (sr = 8; sr < 16; sr++) {
+		asm volatile (
+			"mtsrin %0, %1\n"
+			:
+			: "r" (0x4000 + (asid << 4) + sr), "r" (sr * 0x1000)
+		);
+	}
+	
+	spinlock_unlock(&as->lock);
+	interrupts_restore(ipl);
 }
 
 /** @}

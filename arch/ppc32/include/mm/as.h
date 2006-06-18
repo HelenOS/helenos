@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
@@ -44,12 +44,9 @@
 
 #define USTACK_ADDRESS_ARCH	(0x7fffffff-(PAGE_SIZE-1))
 
-#define as_install_arch(as)
-
 extern void as_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

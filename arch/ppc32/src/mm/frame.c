@@ -66,6 +66,13 @@ void frame_arch_init(void)
 	   third and fourth is reserved, other contain real mode code */
 	frame_mark_unavailable(0, 8);
 	
+	/* Mark the Page Hash Table frames as unavailable */
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	frame_mark_unavailable(ADDR2PFN(sdr1 & 0xffff000), 16); // FIXME
 }
 
 /** @}

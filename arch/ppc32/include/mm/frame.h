@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm	
  * @{
  */
 /** @file
@@ -52,6 +52,5 @@ extern void frame_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

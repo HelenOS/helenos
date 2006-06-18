@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32interrupt
+/** @addtogroup ppc32interrupt
  * @{
  */
 /** @file
@@ -39,6 +39,7 @@
 #include <time/clock.h>
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
+#include <arch/mm/tlb.h>
 
 
 void start_decrementer(void)
@@ -92,6 +93,5 @@ void irq_ipc_bind_arch(__native irq)
 	int_register(irq, "ipc_int", ipc_int);
 }
 
- /** @}
+/** @}
  */
-

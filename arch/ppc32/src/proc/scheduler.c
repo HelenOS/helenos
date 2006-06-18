@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32proc
+/** @addtogroup ppc32proc
  * @{
  */
 /** @file
@@ -46,7 +46,6 @@ void before_task_runs_arch(void)
 /** Perform ppc32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	pht_init();
 	tlb_invalidate_all();
 	asm volatile (
 		"mtsprg0 %0\n"
@@ -59,6 +58,5 @@ void after_thread_ran_arch(void)
 {
 }
 
- /** @}
+/** @}
  */
-

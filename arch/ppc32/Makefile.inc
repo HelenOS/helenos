@@ -55,6 +55,12 @@ CONFIG_FB = y
 CONFIG_PAGE_PT = y
 DEFS += -DCONFIG_PAGE_PT
 
+## Compile with support for address space identifiers.
+#
+
+CONFIG_ASID = y
+CONFIG_ASID_FIFO = y
+
 ## Compile with support for software integer division.
 #
 
