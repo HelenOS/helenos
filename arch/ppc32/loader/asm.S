@@ -315,6 +315,8 @@ real_mode:
 		
 		bdnz bat_mask
 	
+	DEBUG_bat_mask
+	
 	andi. r31, r31, 0x07ff        # mask = mask & 0x07ff (BAT can map up to 256 MB)
 	
 	li r29, 2
