@@ -85,6 +85,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, in
 				page_table_lock(as, lock);
 				pte = page_mapping_find(as, badvaddr);
 				ASSERT((pte) && (pte->p));
+				*pfrc = 0;
 				return pte;
 			case AS_PF_DEFER:
 				page_table_lock(as, lock);
