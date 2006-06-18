@@ -78,13 +78,12 @@ ifeq ($(MIPS_MACHINE),indy)
 	INIT_SIZE = 0
 endif
 ifeq ($(MIPS_MACHINE),lgxemul)
-	BFD_NAME=elf32-tradlittlemips
-	BFD = ecoff-littlemips
+	BFD_NAME = elf32-tradlittlemips
+	BFD = binary
 	CFLAGS += -DFB_BIG_ENDIAN -DARCH_HAS_FPU -mips3
-	INIT_ADDRESS = 0x81800000
 endif
 ifeq ($(MIPS_MACHINE),bgxemul)
-	BFD_NAME=elf32-bigmips
+	BFD_NAME = elf32-bigmips
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
