@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64cpu
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -96,6 +96,5 @@ void cpu_print_report(cpu_t *m)
 	printf("cpu%d: manuf=%s, impl=%s, mask=%d\n", CPU->id, manuf, impl, CPU->arch.ver.mask);
 }
 
- /** @}
+/** @}
  */
-

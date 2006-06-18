@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64cpu
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -83,6 +83,5 @@ void cpu_setup_fpu(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

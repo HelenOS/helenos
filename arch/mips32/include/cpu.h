@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32cpu
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -44,6 +44,5 @@ struct cpu_arch {
 	
 #endif
 
- /** @}
+/** @}
  */
-

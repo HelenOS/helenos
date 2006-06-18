@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64ddi
+/** @addtogroup ia64ddi
  * @{
  */
 /** @file
@@ -52,6 +52,5 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 	return 0;
 }
 
- /** @}
+/** @}
  */
-

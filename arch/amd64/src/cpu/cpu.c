@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64cpu
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -164,6 +164,5 @@ void cpu_print_report(cpu_t* m)
 		m->frequency_mhz);
 }
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64cpu
+/** @addtogroup ppc64
  * @{
  */
 /** @file
@@ -52,6 +52,5 @@ static inline void cpu_version(struct cpu_info *info)
 
 #endif
 
- /** @}
+/** @}
  */
-

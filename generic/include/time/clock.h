@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
- /** @addtogroup generic	
+/** @addtogroup time
  * @{
  */
 /** @file
@@ -43,6 +42,5 @@ extern void clock_counter_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

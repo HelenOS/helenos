@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32cpu
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -115,6 +115,6 @@ static inline void cpuid(__u32 cmd, struct cpu_info *info)
 
 #endif
 
- /** @}
+/** @}
  */
 

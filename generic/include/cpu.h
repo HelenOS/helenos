@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericcpu
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -104,6 +104,5 @@ extern void cpu_print_report(cpu_t *m);
 
 #endif
 
- /** @}
+/** @}
  */
-

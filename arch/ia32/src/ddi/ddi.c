@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32ddi
+/** @addtogroup ia32ddi
  * @{
  */
 /** @file
@@ -161,6 +161,5 @@ void io_perm_bitmap_install(void)
 	CPU->arch.iomapver_copy = ver;
 }
 
- /** @}
+/** @}
  */
-

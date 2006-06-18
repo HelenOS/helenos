@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64cpu
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -63,6 +63,5 @@ extern __u64 rdtsc(void);
 #endif /* __ASM__ */
 #endif
 
- /** @}
+/** @}
  */
-

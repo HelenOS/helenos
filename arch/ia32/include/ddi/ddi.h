@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32ddi
+/** @addtogroup ia32ddi
  * @{
  */
 /**
@@ -41,6 +41,6 @@ extern void io_perm_bitmap_install(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

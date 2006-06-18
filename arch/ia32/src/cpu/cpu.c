@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32cpu
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -162,6 +162,5 @@ void cpu_print_report(cpu_t* m)
 		m->frequency_mhz);
 }
 
- /** @}
+/** @}
  */
-

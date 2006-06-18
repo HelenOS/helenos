@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup time
  * @{
  */
 
@@ -64,6 +64,6 @@ void delay(__u32 usec)
 	interrupts_restore(ipl);
 }
 
- /** @}
+/** @}
  */
 

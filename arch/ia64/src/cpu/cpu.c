@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64cpu
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -72,6 +72,5 @@ void cpu_print_report(cpu_t *m)
 	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id, family_str, vendor, CPU->arch.cpuid3.archrev, CPU->arch.cpuid3.model, CPU->arch.cpuid3.revision);
 }
 
- /** @}
+/** @}
  */
-

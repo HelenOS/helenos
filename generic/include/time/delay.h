@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup time
  * @{
  */
 /** @file
@@ -41,6 +41,5 @@ extern void delay(__u32 microseconds);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32cpu
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -119,6 +119,5 @@ GEN_READ_CP0(prid, 15);
 
 #endif
 
- /** @}
+/** @}
  */
-

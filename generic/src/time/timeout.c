@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup time
  * @{
  */
 
@@ -214,6 +214,6 @@ grab_locks:
 	return true;
 }
 
- /** @}
+/** @}
  */
 

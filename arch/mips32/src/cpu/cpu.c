@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32cpu
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -134,6 +134,5 @@ void cpu_print_report(cpu_t *m)
 	       m->arch.rev_num & 0xf, m->arch.imp_num);
 }
 
- /** @}
+/** @}
  */
-

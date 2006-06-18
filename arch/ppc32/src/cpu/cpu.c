@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32cpu
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -59,6 +59,5 @@ void cpu_print_report(cpu_t *m)
 	printf("cpu%d: version=%d, revision=%d\n", m->id, m->arch.version, m->arch.revision);
 }
 
- /** @}
+/** @}
  */
-

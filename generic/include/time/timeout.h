@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup time
  * @{
  */
 /** @file
@@ -65,6 +65,5 @@ extern bool timeout_unregister(timeout_t *t);
 
 #endif
 
- /** @}
+/** @}
  */
-
