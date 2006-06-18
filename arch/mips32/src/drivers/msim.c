@@ -122,7 +122,8 @@ void msim_kbd_grab(void)
 }
 void msim_kbd_release(void)
 {
-	int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
+	if (oldvector)
+		int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
 }
 
  /** @}
