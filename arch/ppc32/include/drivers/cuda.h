@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
@@ -42,9 +42,10 @@
 
 extern void cuda_init(__address base, size_t size);
 extern int cuda_get_scancode(void);
+extern void cuda_grab(void);
+extern void cuda_release(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -109,14 +109,16 @@ void userspace(uspace_arg_t *kernel_uarg)
  */
 void arch_grab_console(void)
 {
+	cuda_grab();
 }
+
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
+	cuda_release();
 }
 
- /** @}
+/** @}
  */
-

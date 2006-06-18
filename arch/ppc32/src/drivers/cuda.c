@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
@@ -60,6 +60,7 @@
 
 
 static volatile __u8 *cuda = NULL;
+static iroutine vector;
 
 
 static char lchars[0x80] = {
@@ -259,6 +260,21 @@ static void cuda_irq(int n, istate_t *istate)
 }
 
 
+/** Initialize keyboard and service interrupts using kernel routine */
+void cuda_grab(void)
+{
+	vector = int_register(CUDA_IRQ, "cuda", cuda_irq);
+}
+
+
+/** Resume the former interrupt vector */
+void cuda_release(void)
+{
+	if (vector)
+		int_register(CUDA_IRQ, "user_interrupt", vector);
+}
+
+
 void cuda_init(__address base, size_t size)
 {
 	cuda = (__u8 *) hw_map(base, size);
@@ -307,6 +323,5 @@ void cpu_halt(void) {
 	);
 }
 
- /** @}
+/** @}
  */
-
