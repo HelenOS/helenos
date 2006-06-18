@@ -248,14 +248,25 @@ real_mode:
 	mtspr dbat3u, r30
 	mtspr dbat3l, r30
 	
-	# create empty page hash table FIXME
+	# create empty Page Hash Table
+	# on top of memory, size 64 KB
 	
 	DEBUG_pht
 	
-	lis r31, 0x07ff
-	ori r31, r31, 0x0000
+	lwz r31, 0(r3)                # r31 = memory size
 	
-	li r30, 0x4000
+	lis r30, 65536@h
+	ori r30, r30, 65536@l         # r30 = 65536
+	
+	subi r29, r30, 1              # r29 = 65535
+	
+	sub r31, r31, r30
+	andc r31, r31, r29            # pht = ALIGN_DOWN(memory_size - 65536, 65536)
+	
+	mtsdr1 r31
+	
+	li r29, 2
+	srw r30, r30, r29             # r30 = 16384
 	li r29, 0
 	
 	pht_clear:
@@ -276,18 +287,13 @@ real_mode:
 		
 	clear_end:
 	
-	lis r31, 0x07ff
-	ori r31, r31, 0x0000
-	
-	mtsdr1 r31
-	
 #ifdef CONFIG_BAT
 	
 	# create BAT identity mapping
 	
 	DEBUG_mapping
 	
-	lwz r31, 0(r3)
+	lwz r31, 0(r3)                # r31 = memory size
 	
 	lis r29, 0x0002
 	cmpw r31, r29
