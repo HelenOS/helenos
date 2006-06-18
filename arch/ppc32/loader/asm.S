@@ -195,7 +195,7 @@ real_mode:
 	
 	li r29, 8
 	mtctr r29
-	li r30, 0
+	li r30, 0                     # ASID 0 (VSIDs 0 .. 7)
 
 	seg_fill_uspace:
 	
@@ -207,8 +207,8 @@ real_mode:
 	
 	li r29, 8
 	mtctr r29
-	lis r30, 0x4000
-	ori r30, r30, 8
+	lis r30, 0x4000               # priviledged access only
+	ori r30, r30, 8               # ASID 0 (VSIDs 8 .. 15)
 	
 	seg_fill_kernel:
 	
@@ -260,6 +260,8 @@ real_mode:
 	
 	pht_clear:
 		
+		# write zeroes
+		
 		stw r29, 0(r31)
 		
 		addi r31, r31, 4
@@ -279,25 +281,53 @@ real_mode:
 	
 	mtsdr1 r31
 	
-	# create identity mapping
-	
 #ifdef CONFIG_BAT
+	
+	# create BAT identity mapping
 	
 	DEBUG_mapping
 	
-	# FIXME: map exactly the size of RAM
+	lwz r31, 0(r3)
 	
-	lis r31, 0x8000
-	ori r31, r31, 0x0ffe
+	lis r29, 0x0002
+	cmpw r31, r29
+	blt no_bat                    # less than 128 KB -> no BAT
+	
+	li r29, 18
+	srw r31, r31, r29             # r31 = total >> 18
+	
+	# create Block Length mask by replicating
+	# the leading logical one 14 times
+	
+	li r29, 14
+	mtctr r31
+	li r29, 1
+	
+	bat_mask:
+		srw r30, r31, r29         # r30 = mask >> 1
+		or r31, r31, r30          # mask = mask | r30
+		
+		bdnz bat_mask
+	
+	andi. r31, r31, 0x07ff        # mask = mask & 0x07ff (BAT can map up to 256 MB)
+	
+	li r29, 2
+	slw r31, r31, r29             # mask = mask << 2
+	ori r31, r31, 0x0002          # mask = mask | 0x0002 (priviledged access only)
+	
+	lis r29, 0x8000
+	or r29, r29, r31
 	
 	lis r30, 0x0000
 	ori r30, r30, 0x0002
 	
-	mtspr ibat0u, r31
+	mtspr ibat0u, r29
 	mtspr ibat0l, r30
 	
-	mtspr dbat0u, r31
+	mtspr dbat0u, r29
 	mtspr dbat0l, r30
+	
+	no_bat:
 
 #endif
 	

@@ -8307,3 +8307,8 @@
 #ifdef CONFIG_DEBUG
 #endif
 .endm
+
+.macro DEBUG_bat_mask
+#ifdef CONFIG_DEBUG
+#endif
+.endm
