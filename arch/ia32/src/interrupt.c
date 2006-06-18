@@ -135,11 +135,11 @@ void simd_fp_exception(int n, istate_t *istate)
 		"stmxcsr %0;\n"
 		:"=m"(mxcsr)
 	);
-	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zX",
+	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx",
 			     (__native)mxcsr);
 
 	PRINT_INFO_ERRCODE(istate);
-	printf("MXCSR: %#zX\n",(__native)(mxcsr));
+	printf("MXCSR: %#zx\n",(__native)(mxcsr));
 	panic("SIMD FP exception(19)\n");
 }
 

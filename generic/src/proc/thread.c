@@ -536,15 +536,15 @@ void thread_print_list(void)
 			thread_t *t;
 		
 			t = (thread_t *) node->value[i];
-			printf("%s: address=%#zX, tid=%zd, state=%s, task=%#zX, code=%#zX, stack=%#zX, cpu=",
+			printf("%s: address=%#zx, tid=%zd, state=%s, task=%#zx, code=%#zx, stack=%#zx, cpu=",
 				t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
 			if (t->cpu)
 				printf("cpu%zd", t->cpu->id);
 			else
 				printf("none");
 			if (t->state == Sleeping) {
-				printf(", kst=%#zX", t->kstack);
-				printf(", wq=%#zX", t->sleep_queue);
+				printf(", kst=%#zx", t->kstack);
+				printf(", wq=%#zx", t->sleep_queue);
 			}
 			printf("\n");
 		}

@@ -478,15 +478,15 @@ void ipc_print_task(task_id_t taskid)
 				printf("connecting ");
 				break;
 			case IPC_PHONE_CONNECTED:
-				printf("connected to: %P ", 
+				printf("connected to: %p ", 
 				       task->phones[i].callee);
 				break;
 			case IPC_PHONE_SLAMMED:
-				printf("slammed by: %P ", 
+				printf("slammed by: %p ", 
 				       task->phones[i].callee);
 				break;
 			case IPC_PHONE_HUNGUP:
-				printf("hung up - was: %P ", 
+				printf("hung up - was: %p ", 
 				       task->phones[i].callee);
 				break;
 			default:
@@ -503,7 +503,7 @@ void ipc_print_task(task_id_t taskid)
 	printf("ABOX - CALLS:\n");
 	for (tmp=task->answerbox.calls.next; tmp != &task->answerbox.calls;tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %P Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		printf("Callid: %p Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
 		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
 	}
@@ -513,7 +513,7 @@ void ipc_print_task(task_id_t taskid)
 	     tmp != &task->answerbox.dispatched_calls; 
 	     tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %P Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		printf("Callid: %p Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
 		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
 	}
@@ -521,7 +521,7 @@ void ipc_print_task(task_id_t taskid)
 	printf("ABOX - ANSWERS:\n");
 	for (tmp=task->answerbox.answers.next; tmp != &task->answerbox.answers; tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid:%P M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		printf("Callid:%p M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
 		       IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
 	}

@@ -534,7 +534,7 @@ int cmd_call1(cmd_arg_t *argv)
 	} else {
 		symbol = get_symtab_entry(symaddr);
 
-		printf("Calling f(0x%zX): %.*p: %s\n", arg1, sizeof(__address) * 2, symaddr, symbol);
+		printf("Calling f(%#zx): %.*p: %s\n", arg1, sizeof(__address) * 2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((__native *)cmd_call2)[1];

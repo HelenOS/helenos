@@ -62,17 +62,17 @@ void print_info_errcode(int n, istate_t *istate)
 		symbol = "";
 
 	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n, __FUNCTION__);
-	printf("%%rip: %#llX (%s)\n",istate->rip, symbol);
-	printf("ERROR_WORD=%#llX\n", istate->error_word);
-	printf("%%rcs=%#llX, flags=%#llX, %%cr0=%#llX\n", istate->cs, istate->rflags,read_cr0());
-	printf("%%rax=%#llX, %%rcx=%#llX, %%rdx=%#llX\n",istate->rax,istate->rcx,istate->rdx);
-	printf("%%rsi=%#llX, %%rdi=%#llX, %%r8 =%#llX\n",istate->rsi,istate->rdi,istate->r8);
-	printf("%%r9 =%#llX, %%r10 =%#llX, %%r11=%#llX\n",istate->r9,istate->r10,istate->r11);
+	printf("%%rip: %#llx (%s)\n",istate->rip, symbol);
+	printf("ERROR_WORD=%#llx\n", istate->error_word);
+	printf("%%rcs=%#llx, flags=%#llx, %%cr0=%#llx\n", istate->cs, istate->rflags, read_cr0());
+	printf("%%rax=%#llx, %%rcx=%#llx, %%rdx=%#llx\n", istate->rax, istate->rcx, istate->rdx);
+	printf("%%rsi=%#llx, %%rdi=%#llx, %%r8 =%#llx\n", istate->rsi, istate->rdi, istate->r8);
+	printf("%%r9 =%#llx, %%r10 =%#llx, %%r11=%#llx\n", istate->r9, istate->r10, istate->r11);
 #ifdef CONFIG_DEBUG_ALLREGS	
-	printf("%%r12=%#llX, %%r13=%#llX, %%r14=%#llX\n",istate->r12,istate->r13,istate->r14);
-	printf("%%r15=%#llX, %%rbx=%#llX, %%rbp=%#llX\n",istate->r15,istate->rbx,&istate->rbp);
+	printf("%%r12=%#llx, %%r13=%#llx, %%r14=%#llx\n", istate->r12, istate->r13, istate->r14);
+	printf("%%r15=%#llx, %%rbx=%#llx, %%rbp=%#llx\n", istate->r15, istate->rbx, &istate->rbp);
 #endif
-	printf("%%rsp=%#llX\n",&istate->stack[0]);
+	printf("%%rsp=%#llx\n", &istate->stack[0]);
 }
 
 /*

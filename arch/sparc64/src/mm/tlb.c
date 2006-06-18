@@ -207,7 +207,7 @@ void tlb_print(void)
 		d.value = itlb_data_access_read(i);
 		t.value = itlb_tag_read_read(i);
 		
-		printf("%d: vpn=%#llX, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#X, diag=%#X, pfn=%#X, soft=%#X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
 			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
@@ -216,7 +216,7 @@ void tlb_print(void)
 		d.value = dtlb_data_access_read(i);
 		t.value = dtlb_tag_read_read(i);
 		
-		printf("%d: vpn=%#llX, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#X, diag=%#X, pfn=%#X, soft=%#X, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
+		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
 			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 

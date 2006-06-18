@@ -1309,7 +1309,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 		}
 	}
 
-	panic("Inconsistency detected while adding %d pages of used space at %P.\n", count, page);
+	panic("Inconsistency detected while adding %d pages of used space at %p.\n", count, page);
 }
 
 /** Mark portion of address space area as unused.
@@ -1463,7 +1463,7 @@ int used_space_remove(as_area_t *a, __address page, count_t count)
 	}
 
 error:
-	panic("Inconsistency detected while removing %d pages of used space from %P.\n", count, page);
+	panic("Inconsistency detected while removing %d pages of used space from %p.\n", count, page);
 }
 
 /** Remove reference to address space area share info.

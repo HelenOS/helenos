@@ -236,7 +236,7 @@ void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
 void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
 {
 	ASSERT(override->source < sizeof(isa_irq_map)/sizeof(int));
-	printf("MADT: ignoring %s entry: bus=%zd, source=%zd, global_int=%zd, flags=%#hX\n",
+	printf("MADT: ignoring %s entry: bus=%zd, source=%zd, global_int=%zd, flags=%#hx\n",
 		entry[override->header.type], override->bus, override->source,
 		override->global_int, override->flags);
 }

@@ -244,7 +244,7 @@ void sysinfo_dump(sysinfo_item_t **proot, int depth)
 				break;
 		}
 		
-		printf("%s    %s val:%d(%X) sub:%s\n", root->name, vtype, val, val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ? "NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ? "TAB" : "FUN"));
+		printf("%s    %s val:%d(%x) sub:%s\n", root->name, vtype, val, val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ? "NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ? "TAB" : "FUN"));
 		
 		if (root->subinfo_type == SYSINFO_SUBINFO_TABLE)
 			sysinfo_dump(&(root -> subinfo.table), depth + 1);

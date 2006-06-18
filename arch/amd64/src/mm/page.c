@@ -192,7 +192,7 @@ void page_fault(int n, istate_t *istate)
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
 
 		print_info_errcode(n, istate);
-		printf("Page fault address: %llX\n", page);
+		printf("Page fault address: %llx\n", page);
 		panic("page fault\n");
 	}
 }

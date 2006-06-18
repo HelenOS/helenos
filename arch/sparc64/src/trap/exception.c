@@ -52,13 +52,13 @@ void do_mem_address_not_aligned(void)
 /** Handle data_access_error. */
 void do_data_access_error(void)
 {
-	panic("Data Access Error: %P\n", tpc_read());
+	panic("Data Access Error: %p\n", tpc_read());
 }
 
 /** Handle mem_address_not_aligned. */
 void do_illegal_instruction(void)
 {
-	panic("Illegal Instruction: %P\n", tpc_read());
+	panic("Illegal Instruction: %p\n", tpc_read());
 }
 
 /** @}
