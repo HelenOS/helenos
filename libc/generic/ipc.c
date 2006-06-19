@@ -149,6 +149,11 @@ static inline async_call_t *ipc_prepare_async(void *private, ipc_async_callback_
 static inline void ipc_finish_async(ipc_callid_t callid, int phoneid, 
 				    async_call_t *call, int can_preempt)
 {
+	if (!call) { /* Nothing to do regardless if failed or not */
+		futex_up(&ipc_futex);
+		return;
+	}
+
 	if (callid == IPC_CALLRET_FATAL) {
 		futex_up(&ipc_futex);
 		/* Call asynchronous handler with error code */
@@ -192,12 +197,14 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		      ipcarg_t arg2, void *private,
 		      ipc_async_callback_t callback, int can_preempt)
 {
-	async_call_t *call;
+	async_call_t *call = NULL;
 	ipc_callid_t callid;
 
-	call = ipc_prepare_async(private, callback);
-	if (!call)
-		return;
+	if (callback) {
+		call = ipc_prepare_async(private, callback);
+		if (!call)
+			return;
+	}
 
 	/* We need to make sure that we get callid before
 	 * another thread accesses the queue again */
@@ -205,6 +212,11 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1, arg2);
 
 	if (callid == IPC_CALLRET_TEMPORARY) {
+		if (!call) {
+			call = ipc_prepare_async(private, callback);
+			if (!call)
+				return;
+		}
 		IPC_SET_METHOD(call->u.msg.data, method);
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
@@ -342,7 +354,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 		}
 	}
 	futex_up(&ipc_futex);
-	printf("Received unidentified answer: %P!!!\n", callid);
+	/* We may get here after async_msg, which doesn't register any callback */
 }
 
 

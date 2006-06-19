@@ -229,7 +229,7 @@ void gcons_in_kernel(void)
 	vp_switch(0);
 }
 
-
+/** Return x, where left <= x <= right && |a-x|==min(|a-x|) is smallest */
 static inline int limit(int a,int left, int right)
 {
 	if (a < left)
