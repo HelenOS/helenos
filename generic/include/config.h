@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -56,14 +56,12 @@ typedef struct {
 } init_t;
 
 typedef struct {
-	count_t cpu_count;
-	volatile count_t cpu_active;
+	count_t cpu_count;		/**< Number of processors detected. */
+	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
 
 	__address base;
-	size_t memory_size;
-	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
-	
-	bool mm_initialized;
+	size_t memory_size;		/**< Size of detected memory in bytes. */
+	size_t kernel_size;		/**< Size of memory in bytes taken by kernel and stack */
 } config_t;
 
 extern config_t config;
@@ -71,6 +69,5 @@ extern init_t init;
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -321,6 +321,5 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 
 }
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 
@@ -72,6 +72,5 @@ void the_copy(the_t *src, the_t *dst)
 	*dst = *src;
 }
 
- /** @}
+/** @}
  */
-

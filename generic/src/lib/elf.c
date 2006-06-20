@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 
@@ -221,6 +221,5 @@ static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *
 	return EE_OK;
 }
 
- /** @}
+/** @}
  */
-

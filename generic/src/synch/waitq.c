@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 
@@ -450,6 +450,5 @@ loop:
 		goto loop;
 }
 
- /** @}
+/** @}
  */
-

@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file	i8042.c
+ * @file
  * @brief	i8042 processor driver.
  *
  * It takes care of low-level keyboard functions.

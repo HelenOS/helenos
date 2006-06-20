@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /**
@@ -185,6 +185,5 @@ void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits)
 	}
 }
 
- /** @}
+/** @}
  */
-

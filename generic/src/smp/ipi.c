@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 
@@ -66,6 +66,5 @@ void ipi_broadcast(int ipi)
 
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
@@ -592,6 +592,5 @@ __native sys_ipc_unregister_irq(int irq)
 	return 0;
 }
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 
@@ -38,7 +38,8 @@
  * Or it can be exclusively held by a sole writer at a time.
  *
  * These locks are not recursive.
- * Because technique called direct hand-off is used, neither readers
+ * Because a technique called direct hand-off is used and because
+ * waiting takes place in a single wait queue, neither readers
  * nor writers will suffer starvation.
  *
  * If there is a writer followed by a reader waiting for the rwlock
@@ -384,6 +385,5 @@ void release_spinlock(void *arg)
 	spinlock_unlock((spinlock_t *) arg);
 }
 
- /** @}
+/** @}
  */
-

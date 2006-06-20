@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 /** @file
@@ -59,6 +59,5 @@ void version_print(void)
 	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n", project, release, name, revision, timestamp, arch, copyright);
 }
 
- /** @}
+/** @}
  */
-

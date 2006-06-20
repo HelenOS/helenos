@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 
@@ -335,6 +335,5 @@ void futex_cleanup(void)
 	rwlock_write_unlock(&futex_ht_lock);
 }
 
- /** @}
+/** @}
  */
-

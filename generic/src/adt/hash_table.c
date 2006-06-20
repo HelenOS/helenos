@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 
@@ -173,6 +173,5 @@ void hash_table_remove(hash_table_t *h, __native key[], count_t keys)
 	}
 }
 
- /** @}
+/** @}
  */
-

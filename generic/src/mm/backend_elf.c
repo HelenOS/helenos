@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -305,6 +305,5 @@ void elf_share(as_area_t *area)
 	mutex_unlock(&area->sh_info->lock);
 }
 
- /** @}
+/** @}
  */
-

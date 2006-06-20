@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -83,7 +83,7 @@
  * The brutal reclaim removes all cached objects, even from CPU-bound
  * magazines.
  *
- * TODO:@n
+ * @todo
  * For better CPU-scaling the magazine allocation strategy should
  * be extended. Currently, if the cache does not have magazine, it asks
  * for non-cpu cached magazine cache to provide one. It might be feasible
@@ -93,9 +93,10 @@
  * 'empty-magazine-list', which decreases competing for 1 per-system
  * magazine cache.
  *
- * @li it might be good to add granularity of locks even to slab level,
- *     we could then try_spinlock over all partial slabs and thus improve
- *     scalability even on slab level
+ * @todo
+ * it might be good to add granularity of locks even to slab level,
+ * we could then try_spinlock over all partial slabs and thus improve
+ * scalability even on slab level
  */
 
 #include <synch/spinlock.h>
@@ -907,6 +908,5 @@ void free(void *obj)
 	_slab_free(slab->cache, obj, slab);
 }
 
- /** @}
+/** @}
  */
-

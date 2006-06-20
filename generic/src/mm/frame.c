@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -1149,7 +1149,5 @@ out:
 	interrupts_restore(ipl);
 }
 
-
- /** @}
+/** @}
  */
-

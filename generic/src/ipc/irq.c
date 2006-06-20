@@ -26,13 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
-/** @file
- */
-
-/** IRQ notification framework
+/**
+ * @file
+ * @brief IRQ notification framework.
  *
  * This framework allows applications to register to receive a notification
  * when interrupt is detected. The application may provide a simple 'top-half'
@@ -316,7 +315,7 @@ void ipc_irq_make_table(int irqcount)
 
 /** Disconnect all irq's notifications
  *
- * TODO: It may be better to do some linked list, so that
+ * @todo It may be better to do some linked list, so that
  *       we wouldn't need to go through whole array every cleanup
  */
 void ipc_irq_cleanup(answerbox_t *box)
@@ -334,6 +333,5 @@ void ipc_irq_cleanup(answerbox_t *box)
 	}
 }
 
- /** @}
+/** @}
  */
-

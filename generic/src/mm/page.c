@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -139,6 +139,5 @@ pte_t *page_mapping_find(as_t *as, __address page)
 	return page_mapping_operations->mapping_find(as, page);
 }
 
- /** @}
+/** @}
  */
-

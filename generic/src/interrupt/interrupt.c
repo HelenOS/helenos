@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericinterrupt
+/** @addtogroup genericinterrupt
  * @{
  */
 /**
@@ -149,7 +149,5 @@ void exc_init(void)
 		panic("could not register command %s\n", exc_info.name);
 }
 
-
- /** @}
+/** @}
  */
-

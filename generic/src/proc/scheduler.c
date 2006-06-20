@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 
@@ -698,6 +697,5 @@ void sched_print_list(void)
 	interrupts_restore(ipl);
 }
 
- /** @}
+/** @}
  */
-

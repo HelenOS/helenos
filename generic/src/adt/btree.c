@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 
@@ -557,7 +557,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 
 /** Split full B-tree node and insert new key-value-right-subtree triplet.
  *
- * This function will split a node and return pointer to a newly created
+ * This function will split a node and return a pointer to a newly created
  * node containing keys greater than or equal to the greater of medians
  * (or median) of the old keys and the newly added key. It will also write
  * the median key to a memory address supplied by the caller.
@@ -998,6 +998,5 @@ void btree_print(btree_t *t)
 	printf("\n");
 }
 
- /** @}
+/** @}
  */
-

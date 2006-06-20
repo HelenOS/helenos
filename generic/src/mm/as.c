@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -39,7 +39,7 @@
  * Virtual Address Translation (VAT) subsystem.
  *
  * Functionality provided by this file allows one to
- * create address space and create, resize and share
+ * create address spaces and create, resize and share
  * address space areas.
  *
  * @see page.c
@@ -78,6 +78,10 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
+/**
+ * Each architecture decides what functions will be used to carry out
+ * address space operations such as creating or locking page tables.
+ */
 as_operations_t *as_operations = NULL;
 
 /** This lock protects inactive_as_with_asid_head list. It must be acquired before as_t mutex. */
@@ -1529,6 +1533,5 @@ __native sys_as_area_destroy(__address address)
 	return (__native) as_area_destroy(AS, address);
 }
 
- /** @}
+/** @}
  */
-

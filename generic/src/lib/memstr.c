@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 
@@ -115,6 +115,5 @@ void _memsetw(__address dst, size_t cnt, __u16 x)
 		p[i] = x;	
 }
 
- /** @}
+/** @}
  */
-

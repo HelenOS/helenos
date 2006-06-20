@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 
@@ -185,6 +185,5 @@ void tlb_shootdown_ipi_recv(void)
 
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

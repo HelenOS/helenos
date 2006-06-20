@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 
@@ -495,6 +495,5 @@ more_gc:
 	task_kill(TASK->taskid);
 }
 
- /** @}
+/** @}
  */
-

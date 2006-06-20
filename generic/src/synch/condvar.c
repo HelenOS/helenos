@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 
@@ -104,6 +104,5 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int flags)
 	return rc;
 }
 
- /** @}
+/** @}
  */
-

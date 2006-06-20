@@ -189,4 +189,3 @@ void clock(void)
 
 /** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 
@@ -56,6 +56,5 @@ void preemption_enable(void)
 	THE->preemption_disabled--;
 }
 
- /** @}
+/** @}
  */
-

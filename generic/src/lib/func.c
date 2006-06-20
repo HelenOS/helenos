@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 
@@ -192,6 +192,5 @@ __native atoi(const char *text)
 	return result;
 }
 
- /** @}
+/** @}
  */
-

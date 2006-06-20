@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 
@@ -94,6 +94,5 @@ void semaphore_up(semaphore_t *s)
 	waitq_wakeup(&s->wq, WAKEUP_FIRST);
 }
 
- /** @}
+/** @}
  */
-

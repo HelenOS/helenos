@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 
@@ -613,6 +613,5 @@ __native sys_thread_exit(int uspace_status)
 	return 0;
 }
 
- /** @}
+/** @}
  */
-

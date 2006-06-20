@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
@@ -213,6 +213,5 @@ void phone_connect(int phoneid, answerbox_t *box)
 	ipc_phone_connect(phone, box);
 }
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -306,6 +306,5 @@ __native sys_sysinfo_value(__native ptr, __native len)
 	return ret.val;
 }
 
- /** @}
+/** @}
  */
-

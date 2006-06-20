@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
@@ -530,6 +530,5 @@ void ipc_print_task(task_id_t taskid)
 	spinlock_unlock(&task->lock);
 }
 
- /** @}
+/** @}
  */
-

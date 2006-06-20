@@ -87,9 +87,7 @@
 #include <smp/smp.h>
 
 /** Global configuration structure. */
-config_t config = {
-	.mm_initialized = false
-};
+config_t config;
 
 /** Initial user-space tasks */
 init_t init = {
@@ -98,14 +96,14 @@ init_t init = {
 
 context_t ctx;
 
-/**
+/*
  * These 'hardcoded' variables will be intialized by
  * the linker or the low level assembler code with
  * appropriate sizes and addresses.
  */
-__address hardcoded_load_address = 0;
-size_t hardcoded_ktext_size = 0;
-size_t hardcoded_kdata_size = 0;
+__address hardcoded_load_address = 0;	/**< Virtual address of where the kernel is loaded. */
+size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes. */
+size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes. */
 
 void main_bsp(void);
 void main_ap(void);
@@ -201,7 +199,6 @@ void main_bsp_separated_stack(void)
 	as_init();
 	page_init();
 	tlb_init();
-	config.mm_initialized = true;
 	arch_post_mm_init();
 
 	version_print();
