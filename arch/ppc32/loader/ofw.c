@@ -50,6 +50,19 @@ typedef struct {
 typedef void (*ofw_entry)(ofw_args_t *);
 
 
+typedef struct {
+	unsigned int info;
+	unsigned int addr_hi;
+    unsigned int addr_lo;
+} pci_addr_t;
+
+typedef struct {
+	pci_addr_t addr;
+    unsigned int size_hi;
+    unsigned int size_lo;
+} pci_reg_t;
+
+
 ofw_entry ofw;
 
 phandle ofw_chosen;
@@ -258,9 +271,12 @@ int ofw_keyboard(keyboard_t *keyboard)
 	if (device == -1)
 		return false;
 	
-	// FIXME
-	keyboard->addr = (void *) 0x80816000;
-	keyboard->size = 7680;
+	pci_reg_t macio;
+	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
+		return false;
+	
+	keyboard->addr = (void *) macio.addr.addr_lo;
+	keyboard->size = macio.size_lo;
 	
 	return true;
 }
