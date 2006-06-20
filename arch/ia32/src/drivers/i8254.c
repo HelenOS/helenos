@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	i8254 chip driver.
+ *
+ * Low level time functions.
  */
 
 #include <arch/types.h>
@@ -47,14 +51,8 @@
 #include <time/delay.h>
 #include <interrupt.h>
 
-/*
- * i8254 chip driver.
- * Low level time functions.
- */
-
 #define CLK_PORT1	0x40
 #define CLK_PORT4	0x43
-
 
 #define CLK_CONST	1193180
 #define MAGIC_NUMBER	1194
@@ -137,6 +135,5 @@ void i8254_interrupt(int n, istate_t *istate)
 	clock();
 }
 
- /** @}
+/** @}
  */
-

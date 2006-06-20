@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -172,6 +172,6 @@ void exception_init(void)
 	exc_register(EXC_Sys, "syscall", (iroutine) syscall_exception);
 }
 
- /** @}
+/** @}
  */
 

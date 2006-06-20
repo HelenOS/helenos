@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
-/** @file
+/**
+ * @file	i8042.c
+ * @brief	i8042 processor driver.
+ *
+ * It takes care of low-level keyboard functions.
  */
 
 #include <genarch/i8042/i8042.h>
@@ -45,12 +49,7 @@
 #include <macros.h>
 #include <interrupt.h>
 
-/**
- * i8042 processor driver.
- * It takes care of low-level keyboard functions.
- */
-
-/** Keyboard commands. */
+/* Keyboard commands. */
 #define KBD_ENABLE	0xf4
 #define KBD_DISABLE	0xf5
 #define KBD_ACK		0xfa
@@ -575,6 +574,6 @@ void i8042_poll(void)
 	}
 }
 
- /** @}
+/** @}
  */
 

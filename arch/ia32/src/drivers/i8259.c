@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief PIC driver.
+ *
+ * Programmable Interrupt Controller for UP systems based on i8259 chip.
  */
 
 #include <arch/drivers/i8259.h>
@@ -39,11 +43,6 @@
 #include <arch.h>
 #include <print.h>
 #include <interrupt.h>
-
-/*
- * This is the PIC driver.
- * Programmable Interrupt Controller for UP systems.
- */
 
 static void pic_spurious(int n, istate_t *istate);
 
@@ -131,6 +130,5 @@ void pic_spurious(int n, istate_t *istate)
 #endif
 }
 
- /** @}
+/** @}
  */
-
