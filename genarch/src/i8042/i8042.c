@@ -324,12 +324,14 @@ void i8042_interrupt(int n, istate_t *istate)
 {
 	__u8 x;
 
+	while ((i8042_status_read() & i8042_BUFFER_FULL_MASK)) {
+		x = i8042_data_read();
+		if (x & KEY_RELEASE)
+			key_released(x ^ KEY_RELEASE);
+		else
+			key_pressed(x);
+	}
 	trap_virtual_eoi();
-	x = i8042_data_read();
-	if (x & KEY_RELEASE)
-		key_released(x ^ KEY_RELEASE);
-	else
-		key_pressed(x);
 }
 
 /** Wait until the controller reads its data. */
@@ -541,7 +543,7 @@ static char key_read(chardev_t *d)
 
 	while(!(ch = active_read_buff_read())) {
 		__u8 x;
-		while (!((x=i8042_status_read() & i8042_BUFFER_FULL_MASK)))
+		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK))
 			;
 		x = i8042_data_read();
 		if (x != IGNORE_CODE) {
