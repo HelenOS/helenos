@@ -73,9 +73,9 @@ void arch_post_mm_init(void)
 		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);	
 	
 		/* Initialize PIC */
-		pic_init();
+		pic_init(bootinfo.keyboard.addr, PAGE_SIZE);
 		
-		cuda_init(bootinfo.keyboard.addr, bootinfo.keyboard.size);
+		cuda_init(bootinfo.keyboard.addr + 0x16000, 2 * PAGE_SIZE);
 		
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();

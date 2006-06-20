@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
@@ -35,9 +35,6 @@
 #ifndef __PIC_H_
 #define __PIC_H_
 
-/* PIC handler, read from pearpc source codes */
-#define PIC_HW_ADDR 0x80800000
-
 #define PIC_PENDING_LOW    8
 #define PIC_PENDING_HIGH   4
 #define PIC_MASK_LOW       9
@@ -45,7 +42,7 @@
 #define PIC_ACK_LOW        10
 #define PIC_ACK_HIGH       6
 
-void pic_init(void);
+void pic_init(__address base, size_t size);
 void pic_enable_interrupt(int intnum);
 void pic_disable_interrupt(int intnum);
 void pic_ack_interrupt(int intnum);
@@ -53,6 +50,5 @@ int pic_get_pending(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -40,9 +40,9 @@
 
 static volatile __u32 *pic;
 
-void pic_init(void)
+void pic_init(__address base, size_t size)
 {
-	pic = (__u32 *)hw_map(PIC_HW_ADDR, PAGE_SIZE);
+	pic = (__u32 *) hw_map(base, size);
 }
 
 
