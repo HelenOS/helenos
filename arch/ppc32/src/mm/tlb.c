@@ -364,7 +364,18 @@ void tlb_invalidate_all(void)
 
 void tlb_invalidate_asid(asid_t asid)
 {
-	// TODO
+	__u32 sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
+	
+	__u32 i;
+	for (i = 0; i < 8192; i++) {
+		if ((phte[i].v) && (phte[i].vsid >= (asid << 4)) && (phte[i].vsid < ((asid << 4) + 16)))
+			phte[i].v = 0;
+	}
 	tlb_invalidate_all();
 }
 
