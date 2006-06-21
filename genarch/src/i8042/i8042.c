@@ -70,10 +70,11 @@
  */
 
 #define i8042_SET_COMMAND 	0x60
-#define i8042_COMMAND 		0x49
+#define i8042_COMMAND 		0x69
 
 #define i8042_BUFFER_FULL_MASK	0x01
 #define i8042_WAIT_MASK 	0x02
+#define i8042_MOUSE_DATA        0x20
 
 #define SPECIAL		'?'
 #define KEY_RELEASE	0x80
@@ -322,9 +323,14 @@ void i8042_init(void)
 void i8042_interrupt(int n, istate_t *istate)
 {
 	__u8 x;
+	__u8 status;
 
-	while ((i8042_status_read() & i8042_BUFFER_FULL_MASK)) {
+	while (((status=i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
 		x = i8042_data_read();
+
+		if ((status & i8042_MOUSE_DATA))
+			continue;
+
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
 		else
