@@ -71,13 +71,13 @@ page_mapping_operations_t pt_mapping_operations = {
 void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
-	__address newpt;
+	pte_t *newpt;
 
 	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = PA2KA(PFN2ADDR(frame_alloc(ONE_FRAME, FRAME_KA)));
-		memsetb(newpt, PAGE_SIZE, 0);
+		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
+		memsetb((__address)newpt, PAGE_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -85,8 +85,8 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = PA2KA(PFN2ADDR(frame_alloc(ONE_FRAME, FRAME_KA)));
-		memsetb(newpt, PAGE_SIZE, 0);
+		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
+		memsetb((__address)newpt, PAGE_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -94,8 +94,8 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = PA2KA(PFN2ADDR(frame_alloc(ONE_FRAME, FRAME_KA)));
-		memsetb(newpt, PAGE_SIZE, 0);
+		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
+		memsetb((__address)newpt, PAGE_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -165,7 +165,7 @@ void pt_mapping_remove(as_t *as, __address page)
 		 * PTL3 is empty.
 		 * Release the frame and remove PTL3 pointer from preceding table.
 		 */
-		frame_free(ADDR2PFN(KA2PA((__address) ptl3)));
+		frame_free(KA2PA((__address) ptl3));
 		if (PTL2_ENTRIES)
 			memsetb((__address) &ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
 		else if (PTL1_ENTRIES)
@@ -194,7 +194,7 @@ void pt_mapping_remove(as_t *as, __address page)
 			 * PTL2 is empty.
 			 * Release the frame and remove PTL2 pointer from preceding table.
 			 */
-			frame_free(ADDR2PFN(KA2PA((__address) ptl2)));
+			frame_free(KA2PA((__address) ptl2));
 			if (PTL1_ENTRIES)
 				memsetb((__address) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
 			else
@@ -223,7 +223,7 @@ void pt_mapping_remove(as_t *as, __address page)
 			 * PTL1 is empty.
 			 * Release the frame and remove PTL1 pointer from preceding table.
 			 */
-			frame_free(ADDR2PFN(KA2PA((__address) ptl1)));
+			frame_free(KA2PA((__address) ptl1));
 			memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 		}
 	}

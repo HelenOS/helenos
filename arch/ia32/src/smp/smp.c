@@ -73,11 +73,11 @@ void smp_init(void)
 		ops = &mps_config_operations;
 	}
 
-	l_apic_address = PA2KA(PFN2ADDR(frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status)));
+	l_apic_address = (__address) frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status);
 	if (status != FRAME_OK)
 		panic("cannot allocate address for l_apic\n");
 
-	io_apic_address = PA2KA(PFN2ADDR(frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status)));
+	io_apic_address = (__address) frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status);
 	if (status != FRAME_OK)
 		panic("cannot allocate address for io_apic\n");
 

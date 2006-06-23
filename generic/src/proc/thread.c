@@ -124,7 +124,6 @@ static void cushion(void)
 static int thr_constructor(void *obj, int kmflags)
 {
 	thread_t *t = (thread_t *)obj;
-	pfn_t pfn;
 	int status;
 
 	spinlock_initialize(&t->lock, "thread_t_lock");
@@ -142,7 +141,7 @@ static int thr_constructor(void *obj, int kmflags)
 #  endif
 #endif	
 
-	pfn = frame_alloc_rc(STACK_FRAMES, FRAME_KA | kmflags,&status);
+	t->kstack = frame_alloc_rc(STACK_FRAMES, FRAME_KA | kmflags,&status);
 	if (status) {
 #ifdef ARCH_HAS_FPU
 		if (t->saved_fpu_context)
@@ -150,7 +149,6 @@ static int thr_constructor(void *obj, int kmflags)
 #endif
 		return -1;
 	}
-	t->kstack = (__u8 *)PA2KA(PFN2ADDR(pfn));
 
 	return 0;
 }
@@ -160,7 +158,7 @@ static int thr_destructor(void *obj)
 {
 	thread_t *t = (thread_t *)obj;
 
-	frame_free(ADDR2PFN(KA2PA(t->kstack)));
+	frame_free(KA2PA(t->kstack));
 #ifdef ARCH_HAS_FPU
 	if (t->saved_fpu_context)
 		slab_free(fpu_context_slab,t->saved_fpu_context);

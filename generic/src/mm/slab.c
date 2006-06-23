@@ -162,18 +162,16 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	size_t fsize;
 	int i;
 	int status;
-	pfn_t pfn;
 	int zone=0;
 	
-	pfn = frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
-	data = (void *) PA2KA(PFN2ADDR(pfn));
+	data = frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
 	if (status != FRAME_OK) {
 		return NULL;
 	}
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE)) {
 		slab = slab_alloc(slab_extern_cache, flags);
 		if (!slab) {
-			frame_free(ADDR2PFN(KA2PA(data)));
+			frame_free(KA2PA(data));
 			return NULL;
 		}
 	} else {
@@ -183,7 +181,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	
 	/* Fill in slab structures */
 	for (i=0; i < (1 << cache->order); i++)
-		frame_set_parent(pfn+i, slab, zone);
+		frame_set_parent(ADDR2PFN(KA2PA(data))+i, slab, zone);
 
 	slab->start = data;
 	slab->available = cache->objects;
@@ -204,7 +202,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
  */
 static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
-	frame_free(ADDR2PFN(KA2PA(slab->start)));
+	frame_free(KA2PA(slab->start));
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE))
 		slab_free(slab_extern_cache, slab);
 

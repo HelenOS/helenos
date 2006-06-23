@@ -58,7 +58,7 @@ void klog_init(void)
 {
 	void *faddr;
 
-	faddr = (void *)PFN2ADDR(frame_alloc(KLOG_ORDER, FRAME_ATOMIC));
+	faddr = frame_alloc(KLOG_ORDER, FRAME_ATOMIC);
 	if (!faddr)
 		panic("Cannot allocate page for klog");
 	klog = (char *)PA2KA(faddr);

@@ -55,7 +55,7 @@ void test(void) {
 			printf("Allocating %d frames blocks ... ", 1 << order);
 			allocated = 0;
 			for (i = 0; i < MAX_FRAMES >> order; i++) {
-				frames[allocated] = PA2KA(PFN2ADDR(frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status)));
+				frames[allocated] = frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
 					panic("Test failed. Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
@@ -80,7 +80,7 @@ void test(void) {
 			
 			printf("Deallocating ... ");
 			for (i = 0; i < allocated; i++) {
-				frame_free(ADDR2PFN(KA2PA(frames[i])));
+				frame_free(KA2PA(frames[i]));
 			}
 			printf("done.\n");
 		}

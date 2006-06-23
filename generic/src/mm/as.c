@@ -1496,7 +1496,7 @@ void sh_info_remove_reference(share_info_t *sh_info)
 			
 			node = list_get_instance(cur, btree_node_t, leaf_link);
 			for (i = 0; i < node->keys; i++) 
-				frame_free(ADDR2PFN((__address) node->value[i]));
+				frame_free((__address) node->value[i]);
 		}
 		
 	}

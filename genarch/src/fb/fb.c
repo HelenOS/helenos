@@ -394,10 +394,8 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	else
 		order = fnzb(pages-1)+1;
 
-	pfn_t frame = frame_alloc_rc(order,FRAME_ATOMIC,&rc);
-	if (!rc)
-		dbbuffer = (void *)PA2KA(PFN2ADDR(frame));
-	else 
+	dbbuffer = frame_alloc_rc(order,FRAME_ATOMIC | FRAME_KA, &rc);
+	if (!dbbuffer)
 		printf("Failed to allocate scroll buffer.\n");
 	dboffset = 0;
 

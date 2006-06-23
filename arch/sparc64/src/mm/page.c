@@ -73,7 +73,7 @@ __address hw_map(__address physaddr, size_t size)
 	else
 		order = (fnzb32(size - 1) + 1) - FRAME_WIDTH;
 	
-	__address virtaddr = PA2KA(PFN2ADDR(frame_alloc(order, FRAME_KA)));
+	__address virtaddr = frame_alloc(order, FRAME_KA);
 
 	for (i = 0; i < sizemap[order].count; i++)
 		dtlb_insert_mapping(virtaddr + i*sizemap[order].increment,

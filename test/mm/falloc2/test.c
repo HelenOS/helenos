@@ -65,7 +65,7 @@ void falloc(void * arg)
 			printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = PA2KA(PFN2ADDR(frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status)));
+				frames[allocated] = frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status);
 				if (status == 0) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
@@ -83,7 +83,7 @@ void falloc(void * arg)
 						failed();
 					}
 				}
-				frame_free(ADDR2PFN(KA2PA(frames[i])));
+				frame_free(KA2PA(frames[i]));
 			}
 			printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
 		}

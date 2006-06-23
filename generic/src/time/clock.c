@@ -79,7 +79,7 @@ void clock_counter_init(void)
 {
 	void *faddr;
 
-	faddr = (void *)PFN2ADDR(frame_alloc(0, FRAME_ATOMIC));
+	faddr = frame_alloc(0, FRAME_ATOMIC);
 	if (!faddr)
 		panic("Cannot allocate page for clock");
 	

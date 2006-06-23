@@ -928,10 +928,10 @@ void * frame_get_parent(pfn_t pfn, int hint)
  * @param status Allocation status (FRAME_OK on success), unused if NULL.
  * @param pzone  Preferred zone
  *
- * @return Allocated frame.
+ * @return Physical address of the allocated frame.
  *
  */
-pfn_t frame_alloc_generic(__u8 order, int flags, int *status, int *pzone) 
+void * frame_alloc_generic(__u8 order, int flags, int *status, int *pzone) 
 {
 	ipl_t ipl;
 	int freed;
@@ -971,7 +971,7 @@ loop:
 			ASSERT(status != NULL);
 			if (status)
 				*status = FRAME_NO_MEMORY;
-			return NULL;
+			return 0;
 		}
 		
 		panic("Sleep not implemented.\n");
@@ -986,7 +986,10 @@ loop:
 
 	if (status)
 		*status = FRAME_OK;
-	return v;
+
+	if (flags & FRAME_KA)
+		return (void *)PA2KA(PFN2ADDR(v));
+	return (void *)PFN2ADDR(v);
 }
 
 /** Free a frame.
@@ -995,12 +998,13 @@ loop:
  * Decrement frame reference count.
  * If it drops to zero, move the frame structure to free list.
  *
- * @param pfn Frame number of the frame to be freed.
+ * @param Frame Physical Address of of the frame to be freed.
  */
-void frame_free(pfn_t pfn)
+void frame_free(__address frame)
 {
 	ipl_t ipl;
 	zone_t *zone;
+	pfn_t pfn = ADDR2PFN(frame);
 
 	ipl = interrupts_disable();
 	

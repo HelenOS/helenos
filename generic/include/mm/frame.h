@@ -94,8 +94,8 @@ static inline count_t SIZE2FRAMES(size_t size)
 #define frame_alloc_rc_zone(order, flags, status, zone)		frame_alloc_generic(order, flags, status, zone)
 
 extern void frame_init(void);
-extern pfn_t frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
-extern void frame_free(pfn_t pfn);
+extern void * frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
+extern void frame_free(__address frame);
 extern void frame_reference_add(pfn_t pfn);
 
 extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
