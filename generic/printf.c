@@ -27,10 +27,12 @@
  */
 
 #include "printf.h"
-#include "msim.h"
+#include "stdarg.h"
+#include <types.h>
+
+typedef char *char_ptr;
 
 static char digits[] = "0123456789abcdef";  /**< Hexadecimal characters */
-
 
 void puts(const char *str)
 {

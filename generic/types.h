@@ -26,27 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PRINTF_H__
-#define __PRINTF_H__
+#ifndef GENERIC_TYPES_H__
+#define GENERIC_TYPES_H__
 
-#define INT8	1
-#define INT16	2
-#define INT32	4
-#define INT64	8
-
-typedef signed char __s8;
-
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned int __u32;
-typedef unsigned long long __u64;
-
-typedef __u32 __address;
-typedef __u32 __native;
-
-typedef char *char_ptr;
-
-void puts(const char *str);
-void printf(const char *fmt, ...);
+#define NULL 0
+#define false 0
+#define true 1
 
 #endif

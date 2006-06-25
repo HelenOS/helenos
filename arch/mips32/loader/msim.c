@@ -27,11 +27,9 @@
  */
  
 #include "msim.h"
-#include "printf.h"
-
+#include "../../../generic/printf.h"
 
 #define MSIM_VIDEORAM            0xB0000000
-
 
 void write(const char *str, const int len)
 {

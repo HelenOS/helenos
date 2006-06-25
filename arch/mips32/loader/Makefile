@@ -47,12 +47,12 @@ else
 endif
 
 CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3
-DEFS = 
+DEFS = -I.
 
 SOURCES = \
 	main.c \
 	msim.c \
-	printf.c \
+	../../../generic/printf.c \
 	asm.S \
 	boot.S
 

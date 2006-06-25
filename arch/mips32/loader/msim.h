@@ -29,20 +29,9 @@
 #ifndef __MSIM_H__
 #define __MSIM_H__
 
-#define NULL 0
-#define false 0
-#define true 1
-
-typedef __builtin_va_list va_list;
-
-#define va_start(ap, last) 		__builtin_va_start(ap, last)
-#define va_arg(ap, type) 		__builtin_va_arg(ap, type)
-#define va_end(ap)			__builtin_va_end(ap)
-
 extern void init(void);
 extern void halt(void);
 
-extern void write(const char *str, const int len);
 extern void *translate(void *addr);
 
 #endif

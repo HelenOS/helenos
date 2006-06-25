@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
-#include "../../../generic/printf.h"
-#include "msim.h"
-#include "asm.h"
-#include "_components.h"
+#ifndef PRINTF_H__
+#define PRINTF_H__
 
-#define KERNEL_VIRTUAL_ADDRESS 0x80100000
+#define INT8	1
+#define INT16	2
+#define INT32	4
+#define INT64	8
 
-void bootstrap(void)
-{
-	printf("HelenOS MIPS Bootloader\n");
-	
-	component_t components[COMPONENTS];
-	bootinfo_t bootinfo;
-	init_components(components);
-	
-	printf("\nMemory statistics\n");
-	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
-	printf(" %L: boot info structure\n", &bootinfo);
-	
-	unsigned int i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
-	
-	printf("\nCopying components\n");
-	unsigned int top = 0;
-	bootinfo.cnt = 0;
-	for (i = 0; i < COMPONENTS; i++) {
-		printf(" %s...", components[i].name);
-		top = ALIGN_UP(top, PAGE_SIZE);
-		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
-		if (i > 0) {
-			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
-			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
-			bootinfo.cnt++;
-		}
-		top += components[i].size;
-		printf("done.\n");
-	}
-	
-	printf("\nBooting the kernel...\n");
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
-}
+extern void puts(const char *str);
+extern void printf(const char *fmt, ...);
+
+extern void write(const char *str, const int len);
+
+#endif
