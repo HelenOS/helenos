@@ -46,12 +46,13 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc -msoft-float -m32
+CFLAGS = -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=powerpc -msoft-float -m32
 
 SOURCES = \
 	main.c \
 	ofw.c \
-	printf.c \
+	../../../genarch/ofw.c \
+	../../../generic/printf.c \
 	asm.S \
 	boot.S
 

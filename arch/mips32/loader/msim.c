@@ -27,7 +27,7 @@
  */
  
 #include "msim.h"
-#include "../../../generic/printf.h"
+#include <printf.h>
 
 #define MSIM_VIDEORAM            0xB0000000
 

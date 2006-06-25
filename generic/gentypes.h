@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GENERIC_TYPES_H__
-#define GENERIC_TYPES_H__
+#ifndef GENTYPES_H__
+#define GENTYPES_H__
 
 #define NULL 0
 #define false 0

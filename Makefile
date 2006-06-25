@@ -75,6 +75,9 @@ clean_kernel:
 clean_uspace:
 	$(MAKE) -C $(USPACEDIR) clean ARCH=$(ARCH)
 
+clean_boot_gen:
+	-rm generic/*.o genarch/*.o
+
 distclean_kernel:
 	$(MAKE) -C $(KERNELDIR) distclean ARCH=$(ARCH)
 

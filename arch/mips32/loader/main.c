@@ -27,7 +27,7 @@
  */
 
 #include "main.h" 
-#include "../../../generic/printf.h"
+#include <printf.h>
 #include "msim.h"
 #include "asm.h"
 #include "_components.h"

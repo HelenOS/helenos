@@ -29,7 +29,7 @@
 #ifndef TYPES_H__
 #define TYPES_H__
 
-#include "../../../generic/types.h"
+#include <gentypes.h>
 
 typedef signed char __s8;
 

@@ -46,8 +46,7 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3
-DEFS = -I.
+CFLAGS = -I. -I../../../generic -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3
 
 SOURCES = \
 	main.c \
