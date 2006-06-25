@@ -56,7 +56,26 @@ void cpu_identify(void)
 
 void cpu_print_report(cpu_t *m)
 {
-	printf("cpu%d: version=%d, revision=%d\n", m->id, m->arch.version, m->arch.revision);
+	char *name;
+	
+	switch (m->arch.version) {
+		case 8:
+			name = " (PowerPC 750)";
+			break;
+		case 9:
+			name = " (PowerPC 604e)";
+			break;
+		case 0x81:
+			name = " (PowerPC 8260)";
+			break;
+		case 0x8081:
+			name = " (PowerPC 826xA)";
+			break;
+		default:
+			name = "";
+	}
+	
+	printf("cpu%d: version=%d%s, revision=%d\n", m->id, m->arch.version, name, m->arch.revision);
 }
 
 /** @}
