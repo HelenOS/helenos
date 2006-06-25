@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#ifndef TYPES_H__
+#define TYPES_H__
 
-#define NULL 0
-#define MEMMAP_MAX_RECORDS 32
-#define false 0
-#define true 1
+#include <gentypes.h>
 
-typedef __builtin_va_list va_list;
+typedef signed char __s8;
 
-#define va_start(ap, last) 		__builtin_va_start(ap, last)
-#define va_arg(ap, type) 		__builtin_va_arg(ap, type)
-#define va_end(ap)			__builtin_va_end(ap)
+typedef unsigned char __u8;
+typedef unsigned short __u16;
+typedef unsigned int __u32;
+typedef unsigned long  __u64;
 
-typedef struct {
-	void *start;
-	unsigned long size;
-} memzone_t;
-
-typedef struct {
-	unsigned long total;
-	unsigned int count;
-	memzone_t zones[MEMMAP_MAX_RECORDS];
-} memmap_t;
-
-typedef struct {
-	void *addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
-} screen_t;
-
-
-extern void init(void);
-extern void ofw_write(const char *str, const long len);
-
-extern void *ofw_translate(const void *virt);
-extern int ofw_map(const void *phys, const void *virt, const long size, const int mode);
-extern int ofw_memmap(memmap_t *map);
-extern int ofw_screen(screen_t *screen);
+typedef __u64 __address;
+typedef __u64 __native;
 
 #endif
