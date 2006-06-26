@@ -388,20 +388,20 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	int totsize = scanline * yres;
 	int pages = SIZE2FRAMES(totsize);
 	int order;
-	int rc;
 	if (pages == 1)
 		order = 0;
 	else
 		order = fnzb(pages-1)+1;
 
-	dbbuffer = frame_alloc_rc(order,FRAME_ATOMIC | FRAME_KA, &rc);
+	dbbuffer = frame_alloc(order,FRAME_ATOMIC | FRAME_KA);
 	if (!dbbuffer)
 		printf("Failed to allocate scroll buffer.\n");
 	dboffset = 0;
 
 	/* Initialized blank line */
 	blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
-	ASSERT(blankline);
+	if (!blankline)
+		panic("Failed to allocate blank line for framebuffer.");
 	for (y=0; y < FONT_SCANLINES; y++)
 		for (x=0; x < xres; x++)
 			(*rgb2scr)(&blankline[POINTPOS(x,y)],BGCOLOR);

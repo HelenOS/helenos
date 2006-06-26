@@ -931,7 +931,7 @@ void * frame_get_parent(pfn_t pfn, int hint)
  * @return Physical address of the allocated frame.
  *
  */
-void * frame_alloc_generic(__u8 order, int flags, int *status, int *pzone) 
+void * frame_alloc_generic(__u8 order, int flags, int *pzone) 
 {
 	ipl_t ipl;
 	int freed;
@@ -967,12 +967,8 @@ loop:
 		 */
 		interrupts_restore(ipl);
 
-		if (flags & FRAME_ATOMIC) {
-			ASSERT(status != NULL);
-			if (status)
-				*status = FRAME_NO_MEMORY;
+		if (flags & FRAME_ATOMIC)
 			return 0;
-		}
 		
 		panic("Sleep not implemented.\n");
 		goto loop;
@@ -983,9 +979,6 @@ loop:
 
 	spinlock_unlock(&zone->lock);
 	interrupts_restore(ipl);
-
-	if (status)
-		*status = FRAME_OK;
 
 	if (flags & FRAME_KA)
 		return (void *)PA2KA(PFN2ADDR(v));

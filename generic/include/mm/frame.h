@@ -89,12 +89,10 @@ static inline count_t SIZE2FRAMES(size_t size)
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
-#define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL, NULL)
-#define frame_alloc_rc(order, flags, status)			frame_alloc_generic(order, flags, status, NULL)
-#define frame_alloc_rc_zone(order, flags, status, zone)		frame_alloc_generic(order, flags, status, zone)
+#define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void * frame_alloc_generic(__u8 order, int flags, int * status, int *pzone);
+extern void * frame_alloc_generic(__u8 order, int flags, int *pzone);
 extern void frame_free(__address frame);
 extern void frame_reference_add(pfn_t pfn);
 

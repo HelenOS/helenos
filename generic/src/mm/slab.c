@@ -161,11 +161,10 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	slab_t *slab;
 	size_t fsize;
 	int i;
-	int status;
 	int zone=0;
 	
-	data = frame_alloc_rc_zone(cache->order, FRAME_KA | flags, &status, &zone);
-	if (status != FRAME_OK) {
+	data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
+	if (!data) {
 		return NULL;
 	}
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE)) {

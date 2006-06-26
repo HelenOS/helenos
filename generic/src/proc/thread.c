@@ -124,7 +124,6 @@ static void cushion(void)
 static int thr_constructor(void *obj, int kmflags)
 {
 	thread_t *t = (thread_t *)obj;
-	int status;
 
 	spinlock_initialize(&t->lock, "thread_t_lock");
 	link_initialize(&t->rq_link);
@@ -141,8 +140,8 @@ static int thr_constructor(void *obj, int kmflags)
 #  endif
 #endif	
 
-	t->kstack = frame_alloc_rc(STACK_FRAMES, FRAME_KA | kmflags,&status);
-	if (status) {
+	t->kstack = frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
+	if (! t->kstack) {
 #ifdef ARCH_HAS_FPU
 		if (t->saved_fpu_context)
 			slab_free(fpu_context_slab,t->saved_fpu_context);

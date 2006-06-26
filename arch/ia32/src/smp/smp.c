@@ -61,7 +61,6 @@ static struct smp_config_operations *ops = NULL;
 
 void smp_init(void)
 {
-	int status;
 	__address l_apic_address, io_apic_address;
 
 	if (acpi_madt) {
@@ -73,12 +72,12 @@ void smp_init(void)
 		ops = &mps_config_operations;
 	}
 
-	l_apic_address = (__address) frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status);
-	if (status != FRAME_OK)
+	l_apic_address = (__address) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
+	if (!l_apic_address)
 		panic("cannot allocate address for l_apic\n");
 
-	io_apic_address = (__address) frame_alloc_rc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA, &status);
-	if (status != FRAME_OK)
+	io_apic_address = (__address) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
+	if (!io_apic_address)
 		panic("cannot allocate address for io_apic\n");
 
 	if (config.cpu_count > 1) {		
