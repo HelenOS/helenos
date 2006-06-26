@@ -959,9 +959,6 @@ loop:
 		}
 	}
 	if (!zone) {
-		if (flags & FRAME_PANIC)
-			panic("Can't allocate frame.\n");
-		
 		/*
 		 * TODO: Sleep until frames are available again.
 		 */

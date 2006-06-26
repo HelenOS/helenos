@@ -51,7 +51,7 @@ static atomic_t thread_count;
 
 void falloc(void * arg)
 {
-	int status, order, run, allocated, i;
+	int order, run, allocated, i;
 	__u8 val = THREAD->tid % THREADS;
 	index_t k;
 	
@@ -65,8 +65,8 @@ void falloc(void * arg)
 			printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = frame_alloc_rc(order, FRAME_ATOMIC | FRAME_KA, &status);
-				if (status == 0) {
+				frames[allocated] = (__address)frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				if (frames[allocated]) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
 				} else {

@@ -274,7 +274,7 @@ void page_arch_init(void)
 		}
 		
 		/* Allocate page hash table */
-		phte_t *physical_phte = (phte_t *) frame_alloc(PHT_ORDER, FRAME_KA | FRAME_PANIC);
+		phte_t *physical_phte = (phte_t *) frame_alloc(PHT_ORDER, FRAME_KA | FRAME_ATOMIC);
 		
 		ASSERT((__address) physical_phte % (1 << PHT_BITS) == 0);
 		pht_init();

@@ -42,8 +42,9 @@ static vhpt_entry_t* vhpt_base;
 
 __address vhpt_set_up(void)
 {
-	vhpt_base=(vhpt_entry_t*) frame_alloc(VHPT_WIDTH-FRAME_WIDTH,FRAME_KA);
-	if(!vhpt_base) panic("Kernel configured with VHPT but no memory for table.");
+	vhpt_base = frame_alloc(VHPT_WIDTH-FRAME_WIDTH,FRAME_KA | FRAME_ATOMIC);
+	if(!vhpt_base) 
+		panic("Kernel configured with VHPT but no memory for table.");
 	vhpt_invalidate_all();
 	return (__address) vhpt_base;
 }

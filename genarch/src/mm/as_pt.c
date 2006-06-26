@@ -73,7 +73,7 @@ pte_t *ptl0_create(int flags)
 	pte_t *src_ptl0, *dst_ptl0;
 	ipl_t ipl;
 
-	dst_ptl0 = (pte_t *) frame_alloc(ONE_FRAME, FRAME_KA | FRAME_PANIC);
+	dst_ptl0 = (pte_t *) frame_alloc(ONE_FRAME, FRAME_KA);
 
 	if (flags & FLAG_AS_KERNEL) {
 		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);

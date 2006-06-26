@@ -58,9 +58,8 @@
 #define ZONE_JOIN       0x1	/**< If possible, merge with neighbouring zones */
 
 #define FRAME_KA		0x1	/* skip frames conflicting with user address space */
-#define FRAME_PANIC		0x2	/* panic on failure */
-#define FRAME_ATOMIC 	        0x4	/* do not panic and do not sleep on failure */
-#define FRAME_NO_RECLAIM        0x8     /* do not start reclaiming when no free memory */
+#define FRAME_ATOMIC 	        0x2	/* do not panic and do not sleep on failure */
+#define FRAME_NO_RECLAIM        0x4     /* do not start reclaiming when no free memory */
 
 #define FRAME_OK		0	/* frame_alloc return status */
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
