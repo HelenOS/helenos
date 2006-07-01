@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -95,6 +95,5 @@ void arch_release_console(void)
 {
 }
 
- /** @}
+/** @}
  */
-

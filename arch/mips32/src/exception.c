@@ -48,23 +48,26 @@
 #include <arch/debugger.h>
 
 static char * exctable[] = {
-	"Interrupt","TLB Modified","TLB Invalid","TLB Invalid Store",
-		"Address Error - load/instr. fetch",
-		"Address Error - store",
-		"Bus Error - fetch instruction",
-		"Bus Error - data reference",
-		"Syscall",
-		"BreakPoint",
-		"Reserved Instruction",
-		"Coprocessor Unusable",
-		"Arithmetic Overflow",
-		"Trap",
-		"Virtual Coherency - instruction",
-		"Floating Point",
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		"WatchHi/WatchLo", /* 23 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		"Virtual Coherency - data",
+	"Interrupt",
+	"TLB Modified",
+	"TLB Invalid",
+	"TLB Invalid Store",
+	"Address Error - load/instr. fetch",
+	"Address Error - store",
+	"Bus Error - fetch instruction",
+	"Bus Error - data reference",
+	"Syscall",
+	"BreakPoint",
+	"Reserved Instruction",
+	"Coprocessor Unusable",
+	"Arithmetic Overflow",
+	"Trap",
+	"Virtual Coherency - instruction",
+	"Floating Point",
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"WatchHi/WatchLo", /* 23 */
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"Virtual Coherency - data",
 };
 
 static void print_regdump(istate_t *istate)
@@ -174,4 +177,3 @@ void exception_init(void)
 
 /** @}
  */
-

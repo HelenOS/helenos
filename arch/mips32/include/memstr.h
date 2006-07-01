@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -44,6 +44,5 @@ extern int memcmp(__address src, __address dst, int cnt);
 
 #endif
 
- /** @}
+/** @}
  */
-

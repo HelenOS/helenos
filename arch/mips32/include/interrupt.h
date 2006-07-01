@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32interrupt
+/** @addtogroup mips32interrupt
  * @{
  */
 /** @file
@@ -53,6 +53,5 @@ extern void interrupt_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

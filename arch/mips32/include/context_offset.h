@@ -50,7 +50,3 @@
 #define EOFFSET_EPC    0x80
 #define EOFFSET_K1     0x84
 #define REGISTER_SPACE 136
-
- /** @}
- */
-

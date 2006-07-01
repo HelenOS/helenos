@@ -309,7 +309,7 @@ tlb_refill_handler:
 	sw $sp,EOFFSET_SP($k0)
 	add $sp, $k0, 0
 
-	jal tlb_refill /* tlb_refill(register_space) */
+	jal tlb_refill
 	add $a0, $sp, 0 
 
 	REGISTERS_LOAD $sp
@@ -324,7 +324,7 @@ cache_error_handler:
 	add $sp, $k0, 0
 
 	jal cache_error
-	nop
+	add $a0, $sp, 0 
 
 	REGISTERS_LOAD $sp
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -56,6 +56,5 @@ typedef __address va_list;
 
 #endif
 
- /** @}
+/** @}
  */
-

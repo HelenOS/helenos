@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -56,6 +56,5 @@ static inline __native __native_le2host(__native n)
 
 #endif
 
- /** @}
+/** @}
  */
-

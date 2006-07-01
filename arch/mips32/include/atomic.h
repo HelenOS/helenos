@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -62,7 +62,7 @@ static inline long atomic_add(atomic_t *val, int i)
 		"       move %2, %0\n"
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
-		/*	nop	*/		/* nop is inserted automatically by compiler */
+		"	nop\n"
 		: "=r" (tmp), "=m" (val->count), "=r" (v)
 		: "i" (i), "i" (0)
 		);
@@ -72,6 +72,5 @@ static inline long atomic_add(atomic_t *val, int i)
 
 #endif
 
- /** @}
+/** @}
  */
-

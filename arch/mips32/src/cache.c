@@ -26,20 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
  */
 
 #include <arch/cache.h>
+#include <arch/exception.h>
+#include <typedefs.h>
 #include <panic.h>
 
-void cache_error(void)
+void cache_error(istate_t *istate)
 {
-	panic("cache_error exception\n");
+	panic("cache_error exception (epc=%p)\n", istate->epc);
 }
 
- /** @}
+/** @}
  */
 

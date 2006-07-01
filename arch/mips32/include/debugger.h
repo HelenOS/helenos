@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32debug
+/** @addtogroup mips32debug
  * @{
  */
 /** @file
@@ -65,6 +65,5 @@ extern bpinfo_t breakpoints[BKPOINTS_MAX];
 
 #endif
 
- /** @}
+/** @}
  */
-

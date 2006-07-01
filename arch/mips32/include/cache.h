@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -35,10 +35,11 @@
 #ifndef __mips32_CACHE_H__
 #define __mips32_CACHE_H__
 
-extern void cache_error(void);
+#include <typedefs.h>
+
+extern void cache_error(istate_t *istate);
 
 #endif
 
- /** @}
+/** @}
  */
-

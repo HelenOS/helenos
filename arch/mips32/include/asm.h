@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -68,6 +68,5 @@ extern void userspace_asm(__address ustack, __address uspace_uarg,
 
 #endif
 
- /** @}
+/** @}
  */
-
