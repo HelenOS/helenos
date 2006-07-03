@@ -31,11 +31,6 @@
 #include <asm.h>
 
 #define MAX_OFW_ARGS		10
-#define BUF_SIZE		1024
-
-typedef unsigned int ofw_arg_t;
-typedef unsigned int ihandle;
-typedef unsigned int phandle;
 
 /** OpenFirmware command structure
  *
@@ -48,20 +43,6 @@ typedef struct {
 } ofw_args_t;
 
 typedef void (*ofw_entry)(ofw_args_t *);
-
-
-typedef struct {
-	unsigned int info;
-	unsigned int addr_hi;
-    unsigned int addr_lo;
-} pci_addr_t;
-
-typedef struct {
-	pci_addr_t addr;
-    unsigned int size_hi;
-    unsigned int size_lo;
-} pci_reg_t;
-
 
 ofw_entry ofw;
 
@@ -99,13 +80,13 @@ static int ofw_call(const char *service, const int nargs, const int nret, ofw_ar
 }
 
 
-static phandle ofw_find_device(const char *name)
+phandle ofw_find_device(const char *name)
 {
 	return ofw_call("finddevice", 1, 1, NULL, name);
 }
 
 
-static int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
+int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
@@ -204,8 +185,8 @@ int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 
 int ofw_memmap(memmap_t *map)
 {
-	unsigned int buf[BUF_SIZE];
-	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(unsigned int) * BUF_SIZE);
+	unsigned long buf[BUF_SIZE];
+	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(buf));
 	if (ret <= 0)
 		return false;
 		
@@ -215,7 +196,7 @@ int ofw_memmap(memmap_t *map)
 	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (pos = 0; (pos < ret / sizeof(unsigned int)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
+	for (pos = 0; (pos < ret / sizeof(unsigned long)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void * start = (void *) buf[pos + ac - 1];
 		unsigned int size = buf[pos + ac + sc - 1];
 		
@@ -233,7 +214,7 @@ int ofw_screen(screen_t *screen)
 {
 	char device_name[BUF_SIZE];
 	
-	if (ofw_get_property(ofw_aliases, "screen", device_name, sizeof(char) * BUF_SIZE) <= 0)
+	if (ofw_get_property(ofw_aliases, "screen", device_name, sizeof(device_name)) <= 0)
 		return false;
 	
 	phandle device = ofw_find_device(device_name);
@@ -258,24 +239,3 @@ int ofw_screen(screen_t *screen)
 	return true;
 }
 
-
-int ofw_keyboard(keyboard_t *keyboard)
-{
-	char device_name[BUF_SIZE];
-	
-	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(char) * BUF_SIZE) <= 0)
-		return false;
-	
-	phandle device = ofw_find_device(device_name);
-	if (device == -1)
-		return false;
-	
-	pci_reg_t macio;
-	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
-		return false;
-	
-	keyboard->addr = (void *) macio.addr.addr_lo;
-	keyboard->size = macio.size_lo;
-	
-	return true;
-}

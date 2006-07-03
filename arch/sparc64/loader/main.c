@@ -26,68 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#include "main.h" 
+#include <printf.h>
+#include "asm.h"
+#include "_components.h"
 
-#include <types.h>
-#include <stdarg.h>
+#define KERNEL_VIRTUAL_ADDRESS 0x400000
 
-#define BUF_SIZE		1024
-
-#define MEMMAP_MAX_RECORDS 	32
-
-typedef struct {
-	void *start;
-	unsigned int size;
-} memzone_t;
-
-typedef struct {
-	unsigned int total;
-	unsigned int count;
-	memzone_t zones[MEMMAP_MAX_RECORDS];
-} memmap_t;
-
-typedef struct {
-	void *addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
-} screen_t;
-
-typedef struct {
-	void *addr;
-	unsigned int size;
-} keyboard_t;
-
-typedef struct {
-	unsigned int info;
-	unsigned int addr_hi;
-	unsigned int addr_lo;
-} pci_addr_t;
-
-typedef struct {
-	pci_addr_t addr;
-	unsigned int size_hi;
-	unsigned int size_lo;
-} pci_reg_t;
-
-typedef unsigned long ofw_arg_t;
-typedef unsigned int ihandle;
-typedef unsigned int phandle;
-
-extern phandle ofw_aliases;
-
-extern void init(void);
-extern void ofw_write(const char *str, const int len);
-
-extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
-extern phandle ofw_find_device(const char *name);
-
-extern void *ofw_translate(const void *virt);
-extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
-extern int ofw_memmap(memmap_t *map);
-extern int ofw_screen(screen_t *screen);
-extern int ofw_keyboard(keyboard_t *keyboard);
-
-#endif
+void bootstrap(void)
+{
+	printf("HelenOS SPARC64 Bootloader\n");
+	
+	component_t components[COMPONENTS];
+	bootinfo_t bootinfo;
+	init_components(components);
+	
+	printf("\nMemory statistics\n");
+	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
+	printf(" %L: boot info structure\n", &bootinfo);
+	
+	unsigned int i;
+	for (i = 0; i < COMPONENTS; i++)
+		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
+	
+	printf("\nCopying components\n");
+	unsigned int top = 0;
+	bootinfo.cnt = 0;
+	for (i = 0; i < COMPONENTS; i++) {
+		printf(" %s...", components[i].name);
+		top = ALIGN_UP(top, PAGE_SIZE);
+		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
+		if (i > 0) {
+			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
+			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
+			bootinfo.cnt++;
+		}
+		top += components[i].size;
+		printf("done.\n");
+	}
+	
+	printf("\nBooting the kernel...\n");
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
+}

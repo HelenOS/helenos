@@ -26,68 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#ifndef __MAIN_H__
+#define __MAIN_H__
 
-#include <types.h>
-#include <stdarg.h>
+/** Align to the nearest higher address.
+ *
+ * @param addr  Address or size to be aligned.
+ * @param align Size of alignment, must be power of 2.
+ */
+#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
-#define BUF_SIZE		1024
-
-#define MEMMAP_MAX_RECORDS 	32
-
-typedef struct {
-	void *start;
-	unsigned int size;
-} memzone_t;
-
-typedef struct {
-	unsigned int total;
-	unsigned int count;
-	memzone_t zones[MEMMAP_MAX_RECORDS];
-} memmap_t;
-
-typedef struct {
-	void *addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
-} screen_t;
+#define TASKMAP_MAX_RECORDS 32
 
 typedef struct {
 	void *addr;
 	unsigned int size;
-} keyboard_t;
+} task_t;
 
 typedef struct {
-	unsigned int info;
-	unsigned int addr_hi;
-	unsigned int addr_lo;
-} pci_addr_t;
+	unsigned int cnt;
+	task_t tasks[TASKMAP_MAX_RECORDS];
+} bootinfo_t;
 
-typedef struct {
-	pci_addr_t addr;
-	unsigned int size_hi;
-	unsigned int size_lo;
-} pci_reg_t;
-
-typedef unsigned long ofw_arg_t;
-typedef unsigned int ihandle;
-typedef unsigned int phandle;
-
-extern phandle ofw_aliases;
-
-extern void init(void);
-extern void ofw_write(const char *str, const int len);
-
-extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
-extern phandle ofw_find_device(const char *name);
-
-extern void *ofw_translate(const void *virt);
-extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
-extern int ofw_memmap(memmap_t *map);
-extern int ofw_screen(screen_t *screen);
-extern int ofw_keyboard(keyboard_t *keyboard);
+extern void start(void);
+extern void bootstrap(void);
 
 #endif

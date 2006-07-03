@@ -26,21 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP=distroot
+.text
 
-build: image.iso
+.global halt
+.global memcpy
+.global jump_to_kernel
 
-image.iso: kernel
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(CONFIG_IMAGE)
-	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/kernel
-	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
-	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
-	ln -sf ../../$(KERNELDIR)/kernel.bin $(TMP)/kernel/kernel.bin
-	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o image.iso $(TMP)/
+halt:
+	b halt
+	nop
+	
+memcpy:
+	b memcpy
+	nop
 
-clean: clean_kernel
-	-rm -fr $(TMP)
-	-rm -f image.iso
-
-arch_distclean: distclean_kernel
+jump_to_kernel:
+	b jump_to_kernel
+	nop

@@ -26,21 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP=distroot
+#define INITIAL_STACK 0x0
 
-build: image.iso
+.section BOOTSTRAP, "ax"
 
-image.iso: kernel
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(CONFIG_IMAGE)
-	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/kernel
-	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
-	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
-	ln -sf ../../$(KERNELDIR)/kernel.bin $(TMP)/kernel/kernel.bin
-	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o image.iso $(TMP)/
-
-clean: clean_kernel
-	-rm -fr $(TMP)
-	-rm -f image.iso
-
-arch_distclean: distclean_kernel
+.global start
+start:
+	# TODO: set initial stack
+	
+	b bootstrap
+	nop

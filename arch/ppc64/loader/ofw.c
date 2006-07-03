@@ -29,7 +29,27 @@
 #include <ofw.h>
 #include <printf.h>
 
-void write(const char *str, const long len)
+void write(const char *str, const int len)
 {
 	ofw_write(str, len);
+}
+
+int ofw_keyboard(keyboard_t *keyboard)
+{
+	char device_name[BUF_SIZE];
+	
+	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
+		return false;
+				
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+								
+	pci_reg_t macio;
+	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
+		return false;
+	keyboard->addr = (void *) macio.addr.addr_lo;
+	keyboard->size = macio.size_lo;
+
+	return true;
 }
