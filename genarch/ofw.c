@@ -37,8 +37,8 @@
  */
 typedef struct {
 	const char *service;          /**< Command name */
-	unsigned int nargs;           /**< Number of in arguments */
-	unsigned int nret;            /**< Number of out arguments */
+	unsigned long nargs;          /**< Number of in arguments */
+	unsigned long nret;           /**< Number of out arguments */
 	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
 } ofw_args_t;
 
@@ -53,7 +53,7 @@ ihandle ofw_mmu;
 phandle ofw_memory;
 phandle ofw_aliases;
 
-static int ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
+static unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
 {
 	va_list list;
 	ofw_args_t args;
