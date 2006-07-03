@@ -40,7 +40,7 @@ echo 'OUTPUT_FORMAT("elf64-sparc")
 ENTRY(start)
 
 SECTIONS {
-	.boot 0x4000: AT (0) {
+	.boot 0x4000: AT (0x4000) {
 		*(BOOTSTRAP);
 		*(.text);
 		*(.rodata);
@@ -74,7 +74,6 @@ for TASK in "$@" ; do
 	echo "$TASK -> $OBJECT"
 	
 	echo "
-		. = ALIGN(8192);
 		*(.${BASENAME}_image);" >> "$LINK"
 	
 	echo "
@@ -96,6 +95,10 @@ extern int ${SYMBOL}_end;
 done
 
 echo '	}
+	/DISCARD/ : {
+		*(.comment);
+		*(.note*);
+	}
 }' >> "$LINK"
 
 echo "

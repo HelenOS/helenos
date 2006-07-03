@@ -28,11 +28,36 @@
 
 #define INITIAL_STACK 0x0
 
+.register %g2, #scratch
+.register %g3, #scratch
+.register %g6, #scratch
+.register %g7, #scratch
+
 .section BOOTSTRAP, "ax"
 
 .global start
 start:
+	b 1f
+	nop
+
+/*
+ * This header forces SILO to load the image at 0x4000.
+ * More precisely, SILO will think this is an old version of Linux.
+ */
+	.ascii "HdrS"
+	.word 0
+	.half 0
+
+.align 8
+1:	
+	flushw
+
 	# TODO: set initial stack
+
+	set ofw, %l0
+ 
+	call init		! initialize OpenFirmware
+	stx %o4, [%l0]
 	
 	b bootstrap
 	nop

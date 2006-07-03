@@ -31,5 +31,11 @@
 
 void write(const char *str, const int len)
 {
-	ofw_write(str, len);
+	int i;
+	
+	for (i = 0; i < len; i++) {
+		if (str[i] == '\n')
+			ofw_write("\r", 1);
+		ofw_write(&str[i], 1);
+	}
 }
