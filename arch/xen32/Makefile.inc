@@ -26,66 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
+build: image.iso
 
--include Makefile.config
+image.iso: kernel uspace
+	mkdir -p arch/$(ARCH)/iso/boot/grub
+	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
+	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
+	cp arch/$(ARCH)/grub/xen.gz arch/$(ARCH)/iso/boot/
+	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/init/init arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/ns/ns arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/pci/pci arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/fb/fb arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/kbd/kbd arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/console/console arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/tetris/tetris arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/ipcc/ipcc arch/$(ARCH)/iso/boot/
+	cp $(USPACEDIR)/klog/klog arch/$(ARCH)/iso/boot/
+	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o image.iso arch/$(ARCH)/iso/
 
-## Common flags
-#
+clean: clean_kernel clean_uspace
+	-rm -fr arch/$(ARCH)/iso
+	-rm -f image.iso
 
-BASE = ..
-KERNELDIR = $(BASE)/kernel
-USPACEDIR = $(BASE)/uspace
-
-## Setup arch configuration
-#
-
--include arch/$(ARCH)/Makefile.inc
-
-ifeq ($(ARCH),xen32)
-	UARCH = ia32
-else
-	UARCH = $(ARCH)
-endif
-
-ifeq ($(CONFIG_DEBUG),y)
-	DEFS += -DCONFIG_DEBUG
-endif
-
-ifeq ($(CONFIG_BAT),y)
-	DEFS += -DCONFIG_BAT
-endif
-
-.PHONY: all build config distclean arch_distclean clean kernel uspace clean_kernel clean_uspace distclean_kernel distclean_uspace
-
-all:
-	tools/config.py default
-	$(MAKE) -C . build $(ARCH)
-
-config:
-	tools/config.py
-
-distclean: clean arch_distclean
-	-rm Makefile.config
-
-kernel:
-	$(MAKE) -C $(KERNELDIR) NARCH=$(ARCH)
-
-uspace:
-	$(MAKE) -C $(USPACEDIR) NARCH=$(UARCH)
-
-clean_kernel:
-	$(MAKE) -C $(KERNELDIR) clean ARCH=$(ARCH)
-
-clean_uspace:
-	$(MAKE) -C $(USPACEDIR) clean ARCH=$(UARCH)
-
-clean_boot_gen:
-	-rm generic/*.o genarch/*.o
-
-distclean_kernel:
-	$(MAKE) -C $(KERNELDIR) distclean ARCH=$(ARCH)
-
-distclean_uspace:
-	$(MAKE) -C $(USPACEDIR) distclean ARCH=$(UARCH)
+arch_distclean: distclean_kernel distclean_uspace
