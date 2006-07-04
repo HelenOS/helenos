@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32mm	
+/** @addtogroup mips32mm	
  * @{
  */
 /** @file
@@ -44,6 +44,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

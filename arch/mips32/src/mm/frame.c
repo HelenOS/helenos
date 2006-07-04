@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32mm	
+/** @addtogroup mips32mm	
  * @{
  */
 /** @file
@@ -50,12 +50,11 @@ void frame_arch_init(void)
 	else {
 		zone_create(0, ADDR2PFN(config.memory_size), 1, 0);
 		/*
-		 * Blacklist interrupt vektor
+		 * Blacklist interrupt vector
 		 */
 		frame_mark_unavailable(0, 1);
 	}
 }
 
- /** @}
+/** @}
  */
-
