@@ -1,0 +1,1 @@
+../../ia32/src/atomic.S
