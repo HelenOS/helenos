@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64__LIMITS_H__
-#define __amd64__LIMITS_H__
+#ifndef LIBC_ia64_FADDR_H_
+#define LIBC_ia64_FADDR_H_
 
-# define LONG_MIN MIN_INT64
-# define LONG_MAX MAX_INT64
-# define ULONG_MIN MIN_UINT64
-# define ULONG_MAX MAX_UINT64
+#include <libarch/types.h>
+
+/** 
+ *
+ * Calculate absolute address of function
+ * referenced by fptr pointer.
+ *
+ * @param f Function pointer.
+ *
+ */
+#define FADDR(f)	 (*((uintptr_t *)(f)));
 
 #endif
 

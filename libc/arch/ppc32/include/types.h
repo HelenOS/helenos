@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32	
+/** @addtogroup libcppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef LIBC_ppc32_TYPES_H_
+#define LIBC_ppc32_TYPES_H_
 
 typedef unsigned int sysarg_t;
 typedef unsigned int size_t;
@@ -50,8 +50,10 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
 
+typedef uint32_t uintptr_t;
+
 #endif
 
- /** @}
+/** @}
  */
 

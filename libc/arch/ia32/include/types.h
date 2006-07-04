@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia32
+/** @addtogroup libcia32
  * @{
  */
 /** @file
@@ -50,10 +50,9 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
 
+typedef uint32_t uintptr_t;
+
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

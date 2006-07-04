@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <thread.h>
 #include <stdio.h>
-#include <kernel/arch/faddr.h>
+#include <libarch/faddr.h>
 #include <futex.h>
 #include <assert.h>
 #include <async.h>

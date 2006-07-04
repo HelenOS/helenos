@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ia64PSTHREAD_H__
-#define __LIBC__ia64PSTHREAD_H__
+#ifndef LIBC_ia64_PSTHREAD_H_
+#define LIBC_ia64_PSTHREAD_H_
 
 #include <types.h>
 #include <align.h>
 #include <libarch/stack.h>
-#include <arch/types.h>
+#include <libarch/types.h>
 
 /*
  * context_save() and context_restore() are both leaf procedures.

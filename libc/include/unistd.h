@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,7 +36,7 @@
 #define __LIBC__UNISTD_H__
 
 #include <types.h>
-#include <arch/mm/page.h>
+#include <libarch/config.h>
 
 #define NULL 0
 #define getpagesize()     (PAGE_SIZE)
@@ -49,8 +49,7 @@ void usleep(unsigned long usec);
 
 #endif
 
-
- /** @}
+/** @}
  */
  
  

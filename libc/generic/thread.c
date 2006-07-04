@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #include <thread.h>
 #include <libc.h>
 #include <stdlib.h>
-#include <arch/faddr.h>
+#include <libarch/faddr.h>
 #include <kernel/proc/uarg.h>
 #include <psthread.h>
 #include <string.h>
@@ -152,9 +152,7 @@ void thread_exit(int status)
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 }
 
-
-
- /** @}
+/** @}
  */
  
  

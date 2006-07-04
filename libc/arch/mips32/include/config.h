@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64__LIMITS_H__
-#define __amd64__LIMITS_H__
+#ifndef LIBC_mips32_CONFIG_H_
+#define LIBC_mips32_CONFIG_H_
 
-# define LONG_MIN MIN_INT64
-# define LONG_MAX MAX_INT64
-# define ULONG_MIN MIN_UINT64
-# define ULONG_MAX MAX_UINT64
+#define PAGE_WIDTH	14
+#define PAGE_SIZE	(1<<PAGE_WIDTH)
 
 #endif
 

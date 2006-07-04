@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef LIBC_ia64_TYPES_H_
+#define LIBC_ia64_TYPES_H_
 
 typedef unsigned long long sysarg_t;
 typedef unsigned long size_t;
@@ -50,8 +50,19 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
 
+typedef uint64_t uintptr_t;
+
+typedef unsigned char __r8;                     /* Reserve byte */
+typedef unsigned short __r16;
+typedef unsigned int __r32;
+typedef unsigned long __r64;
+
+typedef struct __r128{
+	__r64 lo;
+	__r64 hi;
+} __r128;
+
 #endif
 
- /** @}
+/** @}
  */
-

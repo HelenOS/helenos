@@ -26,17 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcipc
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */ 
 
-#include <arch/types.h>
-#include <types.h>
-
-#ifndef __libc__FB_H__
-#define __libc__FB_H__
+#ifndef LIBC_FB_H_
+#define LIBC_FB_H_
 
 #define FB_PUTCHAR           1025
 #define FB_CLEAR             1026
@@ -74,8 +71,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

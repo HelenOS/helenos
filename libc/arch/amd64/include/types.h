@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcamd64
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
@@ -40,7 +40,7 @@ typedef unsigned long size_t;
 typedef signed long ssize_t;
 typedef ssize_t off_t;
 
-typedef char int8_t;
+typedef signed char int8_t;
 typedef short int int16_t;
 typedef int int32_t;
 typedef long long int int64_t;
@@ -50,10 +50,9 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
 
+typedef uint64_t uintptr_t;
+
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

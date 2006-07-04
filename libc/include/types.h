@@ -1,7 +1,1 @@
 #include <libarch/types.h>
-
-
- /** @}
- */
- 
- 
