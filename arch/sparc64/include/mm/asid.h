@@ -40,7 +40,7 @@
 /*
  * On SPARC, Context means the same thing as ASID trough out the kernel.
  */
-typedef __u16 asid_t;
+typedef uint16_t asid_t;
 
 #define ASID_MAX_ARCH		8191	/* 2^13 - 1 */
 

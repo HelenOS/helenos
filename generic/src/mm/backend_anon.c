@@ -51,8 +51,8 @@
 #include <align.h>
 #include <arch.h>
 
-static int anon_page_fault(as_area_t *area, __address addr, pf_access_t access);
-static void anon_frame_free(as_area_t *area, __address page, __address frame);
+static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
+static void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
 static void anon_share(as_area_t *area);
 
 mem_backend_t anon_backend = {
@@ -71,9 +71,9 @@ mem_backend_t anon_backend = {
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
  */
-int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
+int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
-	__address frame;
+	uintptr_t frame;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -88,7 +88,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 * mapping, a new frame is allocated and the mapping is created.
 		 */
 		mutex_lock(&area->sh_info->lock);
-		frame = (__address) btree_search(&area->sh_info->pagemap,
+		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
 			bool allocate = true;
@@ -105,7 +105,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 				}
 			}
 			if (allocate) {
-				frame = (__address) frame_alloc(ONE_FRAME, 0);
+				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 				memsetb(PA2KA(frame), FRAME_SIZE, 0);
 				
 				/*
@@ -132,7 +132,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
-		frame = (__address)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 	}
 	
@@ -156,7 +156,7 @@ int anon_page_fault(as_area_t *area, __address addr, pf_access_t access)
  * @param page Ignored.
  * @param frame Frame to be released.
  */
-void anon_frame_free(as_area_t *area, __address page, __address frame)
+void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	frame_free(frame);
 }
@@ -184,7 +184,7 @@ void anon_share(as_area_t *area)
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
-			__address base = node->key[i];
+			uintptr_t base = node->key[i];
 			count_t count = (count_t) node->value[i];
 			int j;
 			

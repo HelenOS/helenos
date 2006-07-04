@@ -37,7 +37,7 @@
 
 #include <arch/types.h>
 
-#define FADDR(fptr)		((__address) (fptr))
+#define FADDR(fptr)		((uintptr_t) (fptr))
 
 #endif
 

@@ -62,7 +62,7 @@
  *	   ENOENT if there is no task matching the specified ID and ENOMEM if
  *	   there was a problem in creating address space area.
  */
-static int ddi_physmem_map(__address pf, __address vp, count_t pages, int flags)
+static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 {
 	ipl_t ipl;
 	cap_t caps;
@@ -110,7 +110,7 @@ static int ddi_physmem_map(__address pf, __address vp, count_t pages, int flags)
  * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
  *	   ENOENT if there is no task matching the specified ID.
  */
-static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
+static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 {
 	ipl_t ipl;
 	cap_t caps;
@@ -158,11 +158,11 @@ static int ddi_iospace_enable(task_id_t id, __address ioaddr, size_t size)
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_physmem_map(__native phys_base, __native virt_base, __native pages, 
-			 __native flags)
+unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t pages, 
+			 unative_t flags)
 {
-	return (__native) ddi_physmem_map(ALIGN_DOWN((__address) phys_base, FRAME_SIZE),
-					  ALIGN_DOWN((__address) virt_base, PAGE_SIZE), (count_t) pages,
+	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base, FRAME_SIZE),
+					  ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE), (count_t) pages,
 					  (int) flags);
 }
 
@@ -172,16 +172,16 @@ __native sys_physmem_map(__native phys_base, __native virt_base, __native pages,
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-__native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
+unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	int rc;
 	
 	rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
 	if (rc != 0)
-		return (__native) rc;
+		return (unative_t) rc;
 		
-	return (__native) ddi_iospace_enable((task_id_t) arg.task_id, (__address) arg.ioaddr, (size_t) arg.size);
+	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id, (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
 /** Disable or enable preemption.
@@ -192,7 +192,7 @@ __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  *
  * @return Zero on success or EPERM if callers capabilities are not sufficient.
  */ 
-__native sys_preempt_control(int enable)
+unative_t sys_preempt_control(int enable)
 {
         if (! cap_get(TASK) & CAP_PREEMPT_CONTROL)
                 return EPERM;

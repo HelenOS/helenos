@@ -51,10 +51,10 @@ static void tlb_refill_fail(istate_t *istate);
 static void tlb_invalid_fail(istate_t *istate);
 static void tlb_modified_fail(istate_t *istate);
 
-static pte_t *find_mapping_and_check(__address badvaddr, int access, istate_t *istate, int *pfrc);
+static pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, int *pfrc);
 
-static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn);
-static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr);
+static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn);
+static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr);
 
 /** Initialize TLB
  *
@@ -96,7 +96,7 @@ void tlb_refill(istate_t *istate)
 	entry_lo_t lo;
 	entry_hi_t hi;
 	asid_t asid;
-	__address badvaddr;
+	uintptr_t badvaddr;
 	pte_t *pte;
 	int pfrc;
 
@@ -166,7 +166,7 @@ fail:
 void tlb_invalid(istate_t *istate)
 {
 	tlb_index_t index;
-	__address badvaddr;
+	uintptr_t badvaddr;
 	entry_lo_t lo;
 	entry_hi_t hi;
 	pte_t *pte;
@@ -250,7 +250,7 @@ fail:
 void tlb_modified(istate_t *istate)
 {
 	tlb_index_t index;
-	__address badvaddr;
+	uintptr_t badvaddr;
 	entry_lo_t lo;
 	entry_hi_t hi;
 	pte_t *pte;
@@ -383,7 +383,7 @@ void tlb_modified_fail(istate_t *istate)
  *
  * @return PTE on success, NULL otherwise.
  */
-pte_t *find_mapping_and_check(__address badvaddr, int access, istate_t *istate, int *pfrc)
+pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, int *pfrc)
 {
 	entry_hi_t hi;
 	pte_t *pte;
@@ -445,7 +445,7 @@ pte_t *find_mapping_and_check(__address badvaddr, int access, istate_t *istate, 
 	}
 }
 
-void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __address pfn)
+void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn)
 {
 	lo->value = 0;
 	lo->g = g;
@@ -455,7 +455,7 @@ void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, __
 	lo->pfn = pfn;
 }
 
-void prepare_entry_hi(entry_hi_t *hi, asid_t asid, __address addr)
+void prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr)
 {
 	hi->value = ALIGN_DOWN(addr, PAGE_SIZE * 2);
 	hi->asid = asid;
@@ -567,7 +567,7 @@ void tlb_invalidate_asid(asid_t asid)
  * @param page First page whose TLB entry is to be invalidated.
  * @param cnt Number of entries to invalidate.
  */
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	int i;
 	ipl_t ipl;

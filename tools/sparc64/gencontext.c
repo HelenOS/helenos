@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef uint64_t __u64;
-typedef __u64 ipl_t;
-typedef __u64 __address;
+typedef uint64_t uint64_t;
+typedef uint64_t ipl_t;
+typedef uint64_t uintptr_t;
 
 #define __sparc64_TYPES_H__
 #define __ALIGN_H__

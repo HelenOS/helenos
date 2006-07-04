@@ -70,7 +70,7 @@ void tlb_invalidate_asid(asid_t asid)
  * @param page Address of the first page whose entry is to be invalidated.
  * @param cnt Number of entries to invalidate.
  */
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	tlb_invalidate_all();
 }

@@ -42,7 +42,7 @@
 #define BTREE_M		5
 #define BTREE_MAX_KEYS	(BTREE_M - 1)
 
-typedef __u64 btree_key_t;
+typedef uint64_t btree_key_t;
 
 /** B-tree node structure. */
 struct btree_node {

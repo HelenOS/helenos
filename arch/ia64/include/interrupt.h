@@ -88,38 +88,38 @@ struct istate {
 	__r128 f30;
 	__r128 f31;
 		
-	__address ar_bsp;
-	__address ar_bspstore;
-	__address ar_bspstore_new;
-	__u64 ar_rnat;
-	__u64 ar_ifs;
-	__u64 ar_pfs;
-	__u64 ar_rsc;
-	__address cr_ifa;
+	uintptr_t ar_bsp;
+	uintptr_t ar_bspstore;
+	uintptr_t ar_bspstore_new;
+	uint64_t ar_rnat;
+	uint64_t ar_ifs;
+	uint64_t ar_pfs;
+	uint64_t ar_rsc;
+	uintptr_t cr_ifa;
 	cr_isr_t cr_isr;
-	__address cr_iipa;
+	uintptr_t cr_iipa;
 	psr_t cr_ipsr;
-	__address cr_iip;
-	__u64 pr;
-	__address sp;
+	uintptr_t cr_iip;
+	uint64_t pr;
+	uintptr_t sp;
 	
 	/*
 	 * The following variables are defined only for break_instruction handler. 
 	 */
-	__u64 in0;
-	__u64 in1;
-	__u64 in2;
-	__u64 in3;
-	__u64 in4;
+	uint64_t in0;
+	uint64_t in1;
+	uint64_t in2;
+	uint64_t in3;
+	uint64_t in4;
 };
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->cr_iip = retaddr;
 	istate->cr_ipsr.ri = 0;		/* return to instruction slot #0 */
 }
 
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->cr_iip;
 }
@@ -131,13 +131,13 @@ static inline int istate_from_uspace(istate_t *istate)
 
 extern void *ivt;
 
-extern void general_exception(__u64 vector, istate_t *istate);
-extern int break_instruction(__u64 vector, istate_t *istate);
-extern void universal_handler(__u64 vector, istate_t *istate);
-extern void nop_handler(__u64 vector, istate_t *istate);
-extern void external_interrupt(__u64 vector, istate_t *istate);
-extern void virtual_interrupt(__u64 irq, void *param);
-extern void disabled_fp_register(__u64 vector, istate_t *istate);
+extern void general_exception(uint64_t vector, istate_t *istate);
+extern int break_instruction(uint64_t vector, istate_t *istate);
+extern void universal_handler(uint64_t vector, istate_t *istate);
+extern void nop_handler(uint64_t vector, istate_t *istate);
+extern void external_interrupt(uint64_t vector, istate_t *istate);
+extern void virtual_interrupt(uint64_t irq, void *param);
+extern void disabled_fp_register(uint64_t vector, istate_t *istate);
 
 
 

@@ -83,8 +83,8 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_preinc(val) (atomic_postinc(val)+1)
 #define atomic_predec(val) (atomic_postdec(val)-1)
 
-static inline __u64 test_and_set(atomic_t *val) {
-	__u64 v;
+static inline uint64_t test_and_set(atomic_t *val) {
+	uint64_t v;
 	
 	__asm__ volatile (
 		"movq $1, %0\n"
@@ -99,7 +99,7 @@ static inline __u64 test_and_set(atomic_t *val) {
 /** amd64 specific fast spinlock */
 static inline void atomic_lock_arch(atomic_t *val)
 {
-	__u64 tmp;
+	uint64_t tmp;
 
 	preemption_disable();
 	__asm__ volatile (

@@ -52,13 +52,13 @@
 #include <adt/hash_table.h>
 #include <align.h>
 
-static index_t hash(__native key[]);
-static bool compare(__native key[], count_t keys, link_t *item);
+static index_t hash(unative_t key[]);
+static bool compare(unative_t key[], count_t keys, link_t *item);
 static void remove_callback(link_t *item);
 
-static void ht_mapping_insert(as_t *as, __address page, __address frame, int flags);
-static void ht_mapping_remove(as_t *as, __address page);
-static pte_t *ht_mapping_find(as_t *as, __address page);
+static void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+static void ht_mapping_remove(as_t *as, uintptr_t page);
+static pte_t *ht_mapping_find(as_t *as, uintptr_t page);
 
 /**
  * This lock protects the page hash table. It must be acquired
@@ -93,10 +93,10 @@ page_mapping_operations_t ht_mapping_operations = {
  *
  * @return Index into page hash table.
  */
-index_t hash(__native key[])
+index_t hash(unative_t key[])
 {
 	as_t *as = (as_t *) key[KEY_AS];
-	__address page = (__address) key[KEY_PAGE];
+	uintptr_t page = (uintptr_t) key[KEY_PAGE];
 	index_t index;
 	
 	/*
@@ -111,7 +111,7 @@ index_t hash(__native key[])
 	 * similar addresses. Least significant bits compose the
 	 * hash index.
 	 */
-	index |= ((__native) as) & (PAGE_HT_ENTRIES-1);
+	index |= ((unative_t) as) & (PAGE_HT_ENTRIES-1);
 	
 	return index;
 }
@@ -124,7 +124,7 @@ index_t hash(__native key[])
  *
  * @return true on match, false otherwise.
  */
-bool compare(__native key[], count_t keys, link_t *item)
+bool compare(unative_t key[], count_t keys, link_t *item)
 {
 	pte_t *t;
 
@@ -137,9 +137,9 @@ bool compare(__native key[], count_t keys, link_t *item)
 	t = hash_table_get_instance(item, pte_t, link);
 
 	if (keys == PAGE_HT_KEYS) {
-		return (key[KEY_AS] == (__address) t->as) && (key[KEY_PAGE] == t->page);
+		return (key[KEY_AS] == (uintptr_t) t->as) && (key[KEY_PAGE] == t->page);
 	} else {
-		return (key[KEY_AS] == (__address) t->as);
+		return (key[KEY_AS] == (uintptr_t) t->as);
 	}
 }
 
@@ -173,10 +173,10 @@ void remove_callback(link_t *item)
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  */
-void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
+void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 {
 	pte_t *t;
-	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	if (!hash_table_find(&page_ht, key)) {
 		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
@@ -208,9 +208,9 @@ void ht_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
  */
-void ht_mapping_remove(as_t *as, __address page)
+void ht_mapping_remove(as_t *as, uintptr_t page)
 {
-	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	/*
 	 * Note that removed PTE's will be freed
@@ -231,11 +231,11 @@ void ht_mapping_remove(as_t *as, __address page)
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  */
-pte_t *ht_mapping_find(as_t *as, __address page)
+pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 {
 	link_t *hlp;
 	pte_t *t = NULL;
-	__native key[2] = { (__address) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
 	
 	hlp = hash_table_find(&page_ht, key);
 	if (hlp)

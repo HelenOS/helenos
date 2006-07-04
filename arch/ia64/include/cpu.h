@@ -43,8 +43,8 @@
 #define FAMILY_ITANIUM2	0x1f
 
 struct cpu_arch {
-	__u64 cpuid0;
-	__u64 cpuid1;
+	uint64_t cpuid0;
+	uint64_t cpuid1;
 	cpuid3_t cpuid3;
 };
 
@@ -54,9 +54,9 @@ struct cpu_arch {
  *
  * @return Value of CPUID[n] register.
  */
-static inline __u64 cpuid_read(int n)
+static inline uint64_t cpuid_read(int n)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = cpuid[%1]\n" : "=r" (v) : "r" (n));
 	

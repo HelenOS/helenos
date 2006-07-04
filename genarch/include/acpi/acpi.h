@@ -39,32 +39,32 @@
 
 /* Root System Description Pointer */
 struct acpi_rsdp {
-	__u8 signature[8];
-	__u8 checksum;
-	__u8 oemid[6];
-	__u8 revision;
-	__u32 rsdt_address;
-	__u32 length;
-	__u64 xsdt_address;
-	__u32 ext_checksum;
-	__u8 reserved[3];
+	uint8_t signature[8];
+	uint8_t checksum;
+	uint8_t oemid[6];
+	uint8_t revision;
+	uint32_t rsdt_address;
+	uint32_t length;
+	uint64_t xsdt_address;
+	uint32_t ext_checksum;
+	uint8_t reserved[3];
 } __attribute__ ((packed));
 
 /* System Description Table Header */
 struct acpi_sdt_header {
-	__u8 signature[4];
-	__u32 length;
-	__u8 revision;
-	__u8 checksum;
-	__u8 oemid[6];
-	__u8 oem_table_id[8];
-	__u32 oem_revision;
-	__u32 creator_id;
-	__u32 creator_revision;
+	uint8_t signature[4];
+	uint32_t length;
+	uint8_t revision;
+	uint8_t checksum;
+	uint8_t oemid[6];
+	uint8_t oem_table_id[8];
+	uint32_t oem_revision;
+	uint32_t creator_id;
+	uint32_t creator_revision;
 } __attribute__ ((packed));;
 
 struct acpi_signature_map {
-	__u8 *signature;
+	uint8_t *signature;
 	struct acpi_sdt_header **sdt_ptr;
 	char *description;
 };
@@ -72,13 +72,13 @@ struct acpi_signature_map {
 /* Root System Description Table */
 struct acpi_rsdt {
 	struct acpi_sdt_header header;
-	__u32 entry[];
+	uint32_t entry[];
 } __attribute__ ((packed));;
 
 /* Extended System Description Table */
 struct acpi_xsdt {
 	struct acpi_sdt_header header;
-	__u64 entry[];
+	uint64_t entry[];
 } __attribute__ ((packed));;
 
 extern struct acpi_rsdp *acpi_rsdp;
@@ -86,7 +86,7 @@ extern struct acpi_rsdt *acpi_rsdt;
 extern struct acpi_xsdt *acpi_xsdt;
 
 extern void acpi_init(void);
-extern int acpi_sdt_check(__u8 *sdt);
+extern int acpi_sdt_check(uint8_t *sdt);
 
 #endif /* __ACPI_H__ */
 

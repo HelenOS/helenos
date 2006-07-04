@@ -44,7 +44,7 @@ void page_arch_init(void)
 	page_mapping_operations = &ht_mapping_operations;
 }
 
-__address hw_map(__address physaddr, size_t size)
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	unsigned int order;
 	int i;
@@ -73,7 +73,7 @@ __address hw_map(__address physaddr, size_t size)
 	else
 		order = (fnzb32(size - 1) + 1) - FRAME_WIDTH;
 	
-	__address virtaddr = (__address) frame_alloc(order, FRAME_KA);
+	uintptr_t virtaddr = (uintptr_t) frame_alloc(order, FRAME_KA);
 
 	for (i = 0; i < sizemap[order].count; i++)
 		dtlb_insert_mapping(virtaddr + i*sizemap[order].increment,

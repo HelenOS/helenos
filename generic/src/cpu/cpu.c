@@ -68,10 +68,10 @@ void cpu_init(void) {
 			panic("malloc/cpus");
 
 		/* initialize everything */
-		memsetb((__address) cpus, sizeof(cpu_t) * config.cpu_count, 0);
+		memsetb((uintptr_t) cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
 		for (i=0; i < config.cpu_count; i++) {
-			cpus[i].stack = (__u8 *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);
+			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);
 			
 			cpus[i].id = i;
 			

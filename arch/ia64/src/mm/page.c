@@ -66,7 +66,7 @@ void set_environment(void)
 	pta_register pta;	
 	int i;
 #ifdef CONFIG_VHPT	
-	__address vhpt_base;
+	uintptr_t vhpt_base;
 #endif
 
 	/*
@@ -128,7 +128,7 @@ void set_environment(void)
  *
  * @return VHPT entry address.
  */
-vhpt_entry_t *vhpt_hash(__address page, asid_t asid)
+vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 {
 	region_register rr_save, rr;
 	index_t vrn;
@@ -172,7 +172,7 @@ vhpt_entry_t *vhpt_hash(__address page, asid_t asid)
  *
  * @return True if page and asid match the page and asid of t, false otherwise.
  */
-bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v)
+bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 {
 	region_register rr_save, rr;	
 	index_t vrn;
@@ -216,12 +216,12 @@ bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v)
  * @param frame Physical address of the frame to wich page is mapped.
  * @param flags Different flags for the mapping.
  */
-void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags)
+void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame, int flags)
 {
 	region_register rr_save, rr;	
 	index_t vrn;
 	rid_t rid;
-	__u64 tag;
+	uint64_t tag;
 
 	ASSERT(v);
 

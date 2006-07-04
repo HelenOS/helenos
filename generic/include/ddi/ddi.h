@@ -39,15 +39,15 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-__native sys_physmem_map(__native phys_base, __native virt_base, __native pages, 
-			 __native flags);
-extern __native sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
-extern __native sys_preempt_control(int enable);
+unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t pages, 
+			 unative_t flags);
+extern unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
+extern unative_t sys_preempt_control(int enable);
 
 /*
  * Interface to be implemented by all architectures.
  */
-extern int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size);
+extern int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size);
 
 #endif
 

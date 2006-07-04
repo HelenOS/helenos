@@ -65,12 +65,12 @@
 #define FRAME_NO_MEMORY		1	/* frame_alloc return status */
 #define FRAME_ERROR		2	/* frame_alloc return status */
 
-static inline __address PFN2ADDR(pfn_t frame)
+static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
-	return (__address)(frame << FRAME_WIDTH);
+	return (uintptr_t)(frame << FRAME_WIDTH);
 }
 
-static inline pfn_t ADDR2PFN(__address addr)
+static inline pfn_t ADDR2PFN(uintptr_t addr)
 {
 	return (pfn_t)(addr >> FRAME_WIDTH);
 }
@@ -82,7 +82,7 @@ static inline count_t SIZE2FRAMES(size_t size)
 	return (count_t)((size-1) >> FRAME_WIDTH)+1;
 }
 
-#define IS_BUDDY_ORDER_OK(index, order)		((~(((__native) -1) << (order)) & (index)) == 0)
+#define IS_BUDDY_ORDER_OK(index, order)		((~(((unative_t) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
@@ -91,15 +91,15 @@ static inline count_t SIZE2FRAMES(size_t size)
 #define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void * frame_alloc_generic(__u8 order, int flags, int *pzone);
-extern void frame_free(__address frame);
+extern void * frame_alloc_generic(uint8_t order, int flags, int *pzone);
+extern void frame_free(uintptr_t frame);
 extern void frame_reference_add(pfn_t pfn);
 
 extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
 void * frame_get_parent(pfn_t frame, int hint);
 void frame_set_parent(pfn_t frame, void *data, int hint);
 void frame_mark_unavailable(pfn_t start, count_t count);
-__address zone_conf_size(count_t count);
+uintptr_t zone_conf_size(count_t count);
 void zone_merge(int z1, int z2);
 void zone_merge_all(void);
 

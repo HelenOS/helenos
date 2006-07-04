@@ -136,7 +136,7 @@
 
 /** Processor Status Register. */
 union psr {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned : 1;
 		unsigned be : 1;	/**< Big-Endian data accesses. */
@@ -179,7 +179,7 @@ typedef union psr psr_t;
 
 /** Register Stack Configuration Register */
 union rsc {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned mode : 2;
 		unsigned pl : 2;	/**< Privilege Level. */
@@ -192,8 +192,8 @@ typedef union rsc rsc_t;
 
 /** External Interrupt Vector Register */
 union cr_ivr {
-	__u8  vector;
-	__u64 value;
+	uint8_t  vector;
+	uint64_t value;
 };
 
 typedef union cr_ivr cr_ivr_t;
@@ -206,7 +206,7 @@ union cr_tpr {
 		unsigned : 8;
 		unsigned mmi: 1;		/**< Mask Maskable Interrupts. */
 	} __attribute__ ((packed));
-	__u64 value;
+	uint64_t value;
 };
 
 typedef union cr_tpr cr_tpr_t;
@@ -220,7 +220,7 @@ union cr_itv {
 		unsigned : 3;
 		unsigned m : 1;			/**< Mask. */
 	} __attribute__ ((packed));
-	__u64 value;
+	uint64_t value;
 };
 
 typedef union cr_itv cr_itv_t;
@@ -234,9 +234,9 @@ union cr_isr {
 				unsigned ge_na : 4;
 				unsigned ge_code : 4;
 			} __attribute__ ((packed));
-			__u16 code;
+			uint16_t code;
 		};
-		__u8 vector;
+		uint8_t vector;
 		unsigned : 8;
 		unsigned x : 1;			/**< Execute exception. */
 		unsigned w : 1;			/**< Write exception. */
@@ -251,7 +251,7 @@ union cr_isr {
 		unsigned ed : 1;		/**< Exception Deferral. */
 		unsigned : 20;
 	} __attribute__ ((packed));
-	__u64 value;
+	uint64_t value;
 };
 
 typedef union cr_isr cr_isr_t;
@@ -259,13 +259,13 @@ typedef union cr_isr cr_isr_t;
 /** CPUID Register 3 */
 union cpuid3 {
 	struct {
-		__u8 number;
-		__u8 revision;
-		__u8 model;
-		__u8 family;
-		__u8 archrev;
+		uint8_t number;
+		uint8_t revision;
+		uint8_t model;
+		uint8_t family;
+		uint8_t archrev;
 	} __attribute__ ((packed));
-	__u64 value;
+	uint64_t value;
 };
 
 typedef union cpuid3 cpuid3_t;

@@ -89,9 +89,9 @@ void i8259_init(void)
 	pic_enable_irqs(1<<IRQ_PIC1);		/* but enable pic1 */
 }
 
-void pic_enable_irqs(__u16 irqmask)
+void pic_enable_irqs(uint16_t irqmask)
 {
-	__u8 x;
+	uint8_t x;
 
 	if (irqmask & 0xff) {
 		x = inb(PIC_PIC0PORT2);
@@ -103,9 +103,9 @@ void pic_enable_irqs(__u16 irqmask)
 	}
 }
 
-void pic_disable_irqs(__u16 irqmask)
+void pic_disable_irqs(uint16_t irqmask)
 {
-	__u8 x;
+	uint8_t x;
 
 	if (irqmask & 0xff) {
 		x = inb(PIC_PIC0PORT2);

@@ -52,10 +52,10 @@ static atomic_t thread_count;
 void falloc(void * arg)
 {
 	int order, run, allocated, i;
-	__u8 val = THREAD->tid % THREADS;
+	uint8_t val = THREAD->tid % THREADS;
 	index_t k;
 	
-	__address * frames =  (__address *) malloc(MAX_FRAMES * sizeof(__address), FRAME_ATOMIC);
+	uintptr_t * frames =  (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	ASSERT(frames != NULL);
 	
 	thread_detach(THREAD);
@@ -65,7 +65,7 @@ void falloc(void * arg)
 			printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = (__address)frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				frames[allocated] = (uintptr_t)frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				if (frames[allocated]) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
@@ -78,7 +78,7 @@ void falloc(void * arg)
 			printf("Thread #%d (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
-					if (((__u8 *) frames[i])[k] != val) {
+					if (((uint8_t *) frames[i])[k] != val) {
 						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						failed();
 					}

@@ -49,7 +49,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count);
 	for (i=0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((__address)data[i], size, 0);
+		memsetb((uintptr_t)data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);
@@ -61,7 +61,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count);
 	for (i=0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((__address)data[i], size, 0);
+		memsetb((uintptr_t)data[i], size, 0);
 	}
 	printf("done.\n");
 
@@ -74,7 +74,7 @@ static void testit(int size, int count)
 	printf("Allocating %d items...", count/2);
 	for (i=count/2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((__address)data[i], size, 0);
+		memsetb((uintptr_t)data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);
@@ -110,7 +110,7 @@ semaphore_t thr_sem;
 
 static void slabtest(void *data)
 {
-	int offs = (int)(__native) data;
+	int offs = (int)(unative_t) data;
 	int i,j;
 	
 	thread_detach(THREAD);
@@ -140,7 +140,7 @@ static void testthreads(void)
 				      SLAB_CACHE_NOMAGAZINE);
 	semaphore_initialize(&thr_sem,0);
 	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(slabtest, (void *)(__native)i, TASK, 0, "slabtest")))
+		if (!(t = thread_create(slabtest, (void *)(unative_t)i, TASK, 0, "slabtest")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

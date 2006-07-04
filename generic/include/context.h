@@ -42,8 +42,8 @@
 
 #ifndef context_set
 #define context_set(c, _pc, stack, size) 	\
-	(c)->pc = (__address) (_pc);		\
-	(c)->sp = ((__address) (stack)) + (size) - SP_DELTA;
+	(c)->pc = (uintptr_t) (_pc);		\
+	(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
 #endif /* context_set */
 
 extern int context_save_arch(context_t *c);

@@ -240,13 +240,13 @@ task_t * task_run_program(void *program_addr, char *name)
  *
  * @return 0 on success or an error code from @ref errno.h.
  */
-__native sys_task_get_id(task_id_t *uspace_task_id)
+unative_t sys_task_get_id(task_id_t *uspace_task_id)
 {
 	/*
 	 * No need to acquire lock on TASK because taskid
 	 * remains constant for the lifespan of the task.
 	 */
-	return (__native) copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
+	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
 }
 
 /** Find task structure corresponding to task ID.

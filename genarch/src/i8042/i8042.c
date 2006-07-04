@@ -84,8 +84,8 @@
  */
 #define IGNORE_CODE	0x7f
 
-static void key_released(__u8 sc);
-static void key_pressed(__u8 sc);
+static void key_released(uint8_t sc);
+static void key_pressed(uint8_t sc);
 static char key_read(chardev_t *d);
 
 #define PRESSED_SHIFT		(1<<0)
@@ -94,7 +94,7 @@ static char key_read(chardev_t *d);
 
 #define ACTIVE_READ_BUFF_SIZE 16 	/* Must be power of 2 */
 
-static __u8 active_read_buff[ACTIVE_READ_BUFF_SIZE];
+static uint8_t active_read_buff[ACTIVE_READ_BUFF_SIZE];
 
 SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
@@ -322,8 +322,8 @@ void i8042_init(void)
  */
 void i8042_interrupt(int n, istate_t *istate)
 {
-	__u8 x;
-	__u8 status;
+	uint8_t x;
+	uint8_t status;
 
 	while (((status=i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
 		x = i8042_data_read();
@@ -350,7 +350,7 @@ void i8042_wait(void) {
  *
  * @param sc Scancode of the key being released.
  */
-void key_released(__u8 sc)
+void key_released(uint8_t sc)
 {
 	spinlock_lock(&keylock);
 	switch (sc) {
@@ -375,7 +375,7 @@ void key_released(__u8 sc)
  *
  * @param sc Scancode of the key being pressed.
  */
-void key_pressed(__u8 sc)
+void key_pressed(uint8_t sc)
 {
 	char *map = sc_primary_map;
 	char ascii = sc_primary_map[sc];
@@ -453,7 +453,7 @@ void i8042_suspend(chardev_t *d)
 {
 }
 
-static __u8 active_read_buff_read(void)
+static uint8_t active_read_buff_read(void)
 {
 	static int i=0;
 	i &= (ACTIVE_READ_BUFF_SIZE-1);
@@ -463,7 +463,7 @@ static __u8 active_read_buff_read(void)
 	return active_read_buff[i++];
 }
 
-static void active_read_buff_write(__u8 ch)
+static void active_read_buff_write(uint8_t ch)
 {
 	static int i=0;
 	active_read_buff[i] = ch;
@@ -473,7 +473,7 @@ static void active_read_buff_write(__u8 ch)
 }
 
 
-static void active_read_key_pressed(__u8 sc)
+static void active_read_key_pressed(uint8_t sc)
 {
 	char *map = sc_primary_map;
 	char ascii = sc_primary_map[sc];
@@ -547,7 +547,7 @@ static char key_read(chardev_t *d)
 	char ch;	
 
 	while(!(ch = active_read_buff_read())) {
-		__u8 x;
+		uint8_t x;
 		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK))
 			;
 		x = i8042_data_read();
@@ -567,7 +567,7 @@ static char key_read(chardev_t *d)
  */
 void i8042_poll(void)
 {
-	__u8 x;
+	uint8_t x;
 
 	while (((x = i8042_status_read() & i8042_BUFFER_FULL_MASK))) {
 		x = i8042_data_read();

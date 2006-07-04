@@ -82,7 +82,7 @@
 
 /** LSU Control Register. */
 union lsu_cr_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned : 23;
 		unsigned pm : 8;

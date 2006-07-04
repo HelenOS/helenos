@@ -63,8 +63,8 @@ void _bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, v
  */
 void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
 {
-	__u8 buf_tmp[EBUFSIZE];
-	__u8 buf_pivot[EBUFSIZE];
+	uint8_t buf_tmp[EBUFSIZE];
+	uint8_t buf_pivot[EBUFSIZE];
 	void * tmp = buf_tmp;
 	void * pivot = buf_pivot;
 
@@ -132,7 +132,7 @@ void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void *
  */
 void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
 {
-	__u8 buf_slot[EBUFSIZE];
+	uint8_t buf_slot[EBUFSIZE];
 	void * slot = buf_slot;
 	
 	if (e_size > EBUFSIZE) {
@@ -184,19 +184,19 @@ int int_cmp(void * a, void * b)
 	return (* (int *) a > * (int*)b) ? 1 : (*(int *)a < * (int *)b) ? -1 : 0;
 }
 
-int __u8_cmp(void * a, void * b)
+int uint8_t_cmp(void * a, void * b)
 {
-	return (* (__u8 *) a > * (__u8 *)b) ? 1 : (*(__u8 *)a < * (__u8 *)b) ? -1 : 0;
+	return (* (uint8_t *) a > * (uint8_t *)b) ? 1 : (*(uint8_t *)a < * (uint8_t *)b) ? -1 : 0;
 }
 
-int __u16_cmp(void * a, void * b)
+int uint16_t_cmp(void * a, void * b)
 {
-	return (* (__u16 *) a > * (__u16 *)b) ? 1 : (*(__u16 *)a < * (__u16 *)b) ? -1 : 0;
+	return (* (uint16_t *) a > * (uint16_t *)b) ? 1 : (*(uint16_t *)a < * (uint16_t *)b) ? -1 : 0;
 }
 
-int __u32_cmp(void * a, void * b)
+int uint32_t_cmp(void * a, void * b)
 {
-	return (* (__u32 *) a > * (__u32 *)b) ? 1 : (*(__u32 *)a < * (__u32 *)b) ? -1 : 0;
+	return (* (uint32_t *) a > * (uint32_t *)b) ? 1 : (*(uint32_t *)a < * (uint32_t *)b) ? -1 : 0;
 }
 
 /** @}

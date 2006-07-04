@@ -128,9 +128,9 @@ static inline ipl_t interrupts_read(void)
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__address v;
+	uintptr_t v;
 	
 	asm volatile (
 		"and %0, %%sp, %1\n"
@@ -145,9 +145,9 @@ static inline void cpu_sleep(void)
 }
 
 void cpu_halt(void);
-void asm_delay_loop(__u32 t);
+void asm_delay_loop(uint32_t t);
 
-extern void userspace_asm(__address uspace_uarg, __address stack, __address entry);
+extern void userspace_asm(uintptr_t uspace_uarg, uintptr_t stack, uintptr_t entry);
 
 #endif
 

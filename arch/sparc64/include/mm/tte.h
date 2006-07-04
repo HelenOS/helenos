@@ -39,13 +39,13 @@
 
 /** Translation Table Entry - Tag. */
 union tte_tag {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned g : 1;		/**< Global. */
 		unsigned : 2;		/**< Reserved. */
 		unsigned context : 13;	/**< Context identifier. */
 		unsigned : 6;		/**< Reserved. */
-		__u64 va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
+		uint64_t va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
 	} __attribute__ ((packed));
 };
 
@@ -53,7 +53,7 @@ typedef union tte_tag tte_tag_t;
 
 /** Translation Table Entry - Data. */
 union tte_data {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned v : 1;		/**< Valid. */
 		unsigned size : 2;	/**< Page size of this entry. */

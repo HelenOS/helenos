@@ -41,8 +41,8 @@
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASM__
-#  define KA2PA(x)	(((__address) (x)) - 0x80000000)
-#  define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#  define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
+#  define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
 #  define KA2PA(x)	((x) - 0x80000000)
 #  define PA2KA(x)	((x) + 0x80000000)
@@ -100,7 +100,7 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
-#define PTE_VALID_ARCH(pte)			(*((__u32 *) (pte)) != 0)
+#define PTE_VALID_ARCH(pte)			(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
 #define PTE_GET_FRAME_ARCH(pte)			((pte)->pfn<<12)
 #define PTE_WRITABLE_ARCH(pte)			((pte)->w != 0)

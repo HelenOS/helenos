@@ -39,7 +39,7 @@
 
 void ipi_broadcast_arch(int ipi)
 {
-	(void) l_apic_broadcast_custom_ipi((__u8) ipi);
+	(void) l_apic_broadcast_custom_ipi((uint8_t) ipi);
 }
 
 #endif /* CONFIG_SMP */

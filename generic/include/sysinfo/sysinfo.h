@@ -36,7 +36,7 @@
 
 typedef union sysinfo_item_val
 {
-	__native val;
+	unative_t val;
 	void *fn; 
 }sysinfo_item_val_t;
 
@@ -45,7 +45,7 @@ typedef struct sysinfo_item
 	char *name;
 	union
 	{
-		__native val;
+		unative_t val;
 		void *fn; 
 	}val;
 
@@ -69,24 +69,24 @@ typedef struct sysinfo_item
 #define SYSINFO_SUBINFO_FUNCTION 2
 
 
-typedef __native (*sysinfo_val_fn_t)(sysinfo_item_t *root);
-typedef __native (*sysinfo_subinfo_fn_t)(const char *subname);
+typedef unative_t (*sysinfo_val_fn_t)(sysinfo_item_t *root);
+typedef unative_t (*sysinfo_subinfo_fn_t)(const char *subname);
 
 typedef struct sysinfo_rettype
 {
-	__native val;
-	__native valid;
+	unative_t val;
+	unative_t valid;
 }sysinfo_rettype_t;
 
-void sysinfo_set_item_val(const char *name,sysinfo_item_t **root,__native val);
+void sysinfo_set_item_val(const char *name,sysinfo_item_t **root,unative_t val);
 void sysinfo_dump(sysinfo_item_t **root,int depth);
 void sysinfo_set_item_function(const char *name,sysinfo_item_t **root,sysinfo_val_fn_t fn);
 void sysinfo_set_item_undefined(const char *name,sysinfo_item_t **root);
 
 sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root);
 
-__native sys_sysinfo_valid(__native ptr,__native len);
-__native sys_sysinfo_value(__native ptr,__native len);
+unative_t sys_sysinfo_valid(unative_t ptr,unative_t len);
+unative_t sys_sysinfo_value(unative_t ptr,unative_t len);
 
 
 

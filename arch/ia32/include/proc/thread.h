@@ -38,7 +38,7 @@
 #include <arch/types.h>
 
 typedef struct {
-	__native tls;
+	unative_t tls;
 } thread_arch_t;
 
 #endif

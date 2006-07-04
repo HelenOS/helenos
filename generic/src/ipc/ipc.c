@@ -61,7 +61,7 @@ static slab_cache_t *ipc_call_slab;
 /* Initialize new call */
 static void _ipc_call_init(call_t *call)
 {
-	memsetb((__address)call, sizeof(*call), 0);
+	memsetb((uintptr_t)call, sizeof(*call), 0);
 	call->callerbox = &TASK->answerbox;
 	call->sender = TASK;
 }
@@ -185,7 +185,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
  * Most errors are better handled by forming a normal backward
  * message and sending it as a normal answer.
  */
-void ipc_backsend_err(phone_t *phone, call_t *call, __native err)
+void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 {
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
@@ -308,7 +308,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
  * @return Recived message address
  * - to distinguish between call and answer, look at call->flags
  */
-call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int flags)
+call_t * ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
 {
 	call_t *request;
 	ipl_t ipl;

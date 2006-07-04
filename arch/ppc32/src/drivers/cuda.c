@@ -59,7 +59,7 @@
 #define TIP 0x20
 
 
-static volatile __u8 *cuda = NULL;
+static volatile uint8_t *cuda = NULL;
 static iroutine vector;
 
 
@@ -190,10 +190,10 @@ static char lchars[0x80] = {
 };
 
 
-void send_packet(const __u8 kind, index_t count, ...);
+void send_packet(const uint8_t kind, index_t count, ...);
 
 
-static void receive_packet(__u8 *kind, index_t count, __u8 data[])
+static void receive_packet(uint8_t *kind, index_t count, uint8_t data[])
 {
 	cuda[B] = cuda[B] & ~TIP;
 	*kind = cuda[SR];
@@ -237,8 +237,8 @@ static chardev_operations_t ops = {
 
 int cuda_get_scancode(void)
 {
-	__u8 kind;
-	__u8 data[4];
+	uint8_t kind;
+	uint8_t data[4];
 	
 	receive_packet(&kind, 4, data);
 	
@@ -253,7 +253,7 @@ static void cuda_irq(int n, istate_t *istate)
 	int scan_code = cuda_get_scancode();
 	
 	if (scan_code != -1) {
-		__u8 scancode = (__u8) scan_code;
+		uint8_t scancode = (uint8_t) scan_code;
 		if ((scancode & 0x80) != 0x80)
 			chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
 	}
@@ -275,9 +275,9 @@ void cuda_release(void)
 }
 
 
-void cuda_init(__address base, size_t size)
+void cuda_init(uintptr_t base, size_t size)
 {
-	cuda = (__u8 *) hw_map(base, size);
+	cuda = (uint8_t *) hw_map(base, size);
 	
 	int_register(CUDA_IRQ, "cuda", cuda_irq);
 	pic_enable_interrupt(CUDA_IRQ);
@@ -290,7 +290,7 @@ void cuda_init(__address base, size_t size)
 }
 
 
-void send_packet(const __u8 kind, index_t count, ...)
+void send_packet(const uint8_t kind, index_t count, ...)
 {
 	index_t i;
 	va_list va;

@@ -54,7 +54,7 @@
 struct istate {
 };
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	/* TODO */
 }
@@ -63,7 +63,7 @@ static inline int istate_from_uspace(istate_t *istate)
 	/* TODO */
 	return 0;
 }
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	/* TODO */
 	return 0;

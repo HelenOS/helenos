@@ -105,13 +105,13 @@
 #define MODEL_CLUSTER	0x0
 
 /** Interrupt Command Register. */
-#define ICRlo		(0x300/sizeof(__u32))
-#define ICRhi		(0x310/sizeof(__u32))
+#define ICRlo		(0x300/sizeof(uint32_t))
+#define ICRhi		(0x310/sizeof(uint32_t))
 struct icr {
 	union {
-		__u32 lo;
+		uint32_t lo;
 		struct {
-			__u8 vector;			/**< Interrupt Vector. */
+			uint8_t vector;			/**< Interrupt Vector. */
 			unsigned delmod : 3;		/**< Delivery Mode. */
 			unsigned destmod : 1;		/**< Destination Mode. */
 			unsigned delivs : 1;		/**< Delivery status (RO). */
@@ -124,23 +124,23 @@ struct icr {
 		} __attribute__ ((packed));
 	};
 	union {
-		__u32 hi;
+		uint32_t hi;
 		struct {
 			unsigned : 24;			/**< Reserved. */
-			__u8 dest;			/**< Destination field. */
+			uint8_t dest;			/**< Destination field. */
 		} __attribute__ ((packed));
 	};
 } __attribute__ ((packed));
 typedef struct icr icr_t;
 
 /* End Of Interrupt. */
-#define EOI		(0x0b0/sizeof(__u32))
+#define EOI		(0x0b0/sizeof(uint32_t))
 
 /** Error Status Register. */
-#define ESR		(0x280/sizeof(__u32))
+#define ESR		(0x280/sizeof(uint32_t))
 union esr {
-	__u32 value;
-	__u8 err_bitmap;
+	uint32_t value;
+	uint8_t err_bitmap;
 	struct {
 		unsigned send_checksum_error : 1;
 		unsigned receive_checksum_error : 1;
@@ -156,9 +156,9 @@ union esr {
 typedef union esr esr_t;
 
 /* Task Priority Register */
-#define TPR		(0x080/sizeof(__u32))
+#define TPR		(0x080/sizeof(uint32_t))
 union tpr {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned pri_sc : 4;		/**< Task Priority Sub-Class. */
 		unsigned pri : 4;		/**< Task Priority. */
@@ -167,11 +167,11 @@ union tpr {
 typedef union tpr tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
-#define SVR		(0x0f0/sizeof(__u32))
+#define SVR		(0x0f0/sizeof(uint32_t))
 union svr {
-	__u32 value;
+	uint32_t value;
 	struct {
-		__u8 vector;			/**< Spurious Vector. */
+		uint8_t vector;			/**< Spurious Vector. */
 		unsigned lapic_enabled : 1;	/**< APIC Software Enable/Disable. */
 		unsigned focus_checking : 1;	/**< Focus Processor Checking. */
 		unsigned : 22;			/**< Reserved. */
@@ -180,9 +180,9 @@ union svr {
 typedef union svr svr_t;
 
 /** Time Divide Configuration Register. */
-#define TDCR		(0x3e0/sizeof(__u32))
+#define TDCR		(0x3e0/sizeof(uint32_t))
 union tdcr {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned div_value : 4;		/**< Divide Value, bit 2 is always 0. */
 		unsigned : 28;			/**< Reserved. */
@@ -191,17 +191,17 @@ union tdcr {
 typedef union tdcr tdcr_t;
 
 /* Initial Count Register for Timer */
-#define ICRT		(0x380/sizeof(__u32))
+#define ICRT		(0x380/sizeof(uint32_t))
 
 /* Current Count Register for Timer */
-#define CCRT		(0x390/sizeof(__u32))
+#define CCRT		(0x390/sizeof(uint32_t))
 
 /** LVT Timer register. */
-#define LVT_Tm		(0x320/sizeof(__u32))
+#define LVT_Tm		(0x320/sizeof(uint32_t))
 union lvt_tm {
-	__u32 value;
+	uint32_t value;
 	struct {
-		__u8 vector;		/**< Local Timer Interrupt vector. */
+		uint8_t vector;		/**< Local Timer Interrupt vector. */
 		unsigned : 4;		/**< Reserved. */
 		unsigned delivs : 1;	/**< Delivery status (RO). */
 		unsigned : 3;		/**< Reserved. */
@@ -213,12 +213,12 @@ union lvt_tm {
 typedef union lvt_tm lvt_tm_t;
 
 /** LVT LINT registers. */
-#define LVT_LINT0	(0x350/sizeof(__u32))
-#define LVT_LINT1	(0x360/sizeof(__u32))
+#define LVT_LINT0	(0x350/sizeof(uint32_t))
+#define LVT_LINT1	(0x360/sizeof(uint32_t))
 union lvt_lint {
-	__u32 value;
+	uint32_t value;
 	struct {
-		__u8 vector;			/**< LINT Interrupt vector. */
+		uint8_t vector;			/**< LINT Interrupt vector. */
 		unsigned delmod : 3;		/**< Delivery Mode. */
 		unsigned : 1;			/**< Reserved. */
 		unsigned delivs : 1;		/**< Delivery status (RO). */
@@ -232,11 +232,11 @@ union lvt_lint {
 typedef union lvt_lint lvt_lint_t;
 
 /** LVT Error register. */
-#define LVT_Err		(0x370/sizeof(__u32))
+#define LVT_Err		(0x370/sizeof(uint32_t))
 union lvt_error {
-	__u32 value;
+	uint32_t value;
 	struct {
-		__u8 vector;		/**< Local Timer Interrupt vector. */
+		uint8_t vector;		/**< Local Timer Interrupt vector. */
 		unsigned : 4;		/**< Reserved. */
 		unsigned delivs : 1;	/**< Delivery status (RO). */
 		unsigned : 3;		/**< Reserved. */
@@ -247,38 +247,38 @@ union lvt_error {
 typedef union lvt_error lvt_error_t;
 
 /** Local APIC ID Register. */
-#define L_APIC_ID	(0x020/sizeof(__u32))
+#define L_APIC_ID	(0x020/sizeof(uint32_t))
 union l_apic_id {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
-		__u8 apic_id;		/**< Local APIC ID. */
+		uint8_t apic_id;		/**< Local APIC ID. */
 	} __attribute__ ((packed));
 };
 typedef union l_apic_id l_apic_id_t;
 
 /** Local APIC Version Register */
-#define LAVR		(0x030/sizeof(__u32))
+#define LAVR		(0x030/sizeof(uint32_t))
 #define LAVR_Mask	0xff
 #define is_local_apic(x)	(((x)&LAVR_Mask&0xf0)==0x1)
 #define is_82489DX_apic(x)	((((x)&LAVR_Mask&0xf0)==0x0))
 #define is_local_xapic(x)	(((x)&LAVR_Mask)==0x14)
 
 /** Logical Destination Register. */
-#define  LDR		(0x0d0/sizeof(__u32))
+#define  LDR		(0x0d0/sizeof(uint32_t))
 union ldr {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
-		__u8 id;		/**< Logical APIC ID. */
+		uint8_t id;		/**< Logical APIC ID. */
 	} __attribute__ ((packed));
 };
 typedef union ldr ldr_t;
 
 /** Destination Format Register. */
-#define DFR		(0x0e0/sizeof(__u32))
+#define DFR		(0x0e0/sizeof(uint32_t))
 union dfr {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned : 28;		/**< Reserved, all ones. */
 		unsigned model : 4;	/**< Model. */
@@ -287,8 +287,8 @@ union dfr {
 typedef union dfr dfr_t;
 
 /* IO APIC */
-#define IOREGSEL	(0x00/sizeof(__u32))
-#define IOWIN		(0x10/sizeof(__u32))
+#define IOREGSEL	(0x00/sizeof(uint32_t))
+#define IOWIN		(0x10/sizeof(uint32_t))
 
 #define IOAPICID	0x00
 #define IOAPICVER	0x01
@@ -297,9 +297,9 @@ typedef union dfr dfr_t;
 
 /** I/O Register Select Register. */
 union io_regsel {
-	__u32 value;
+	uint32_t value;
 	struct {
-		__u8 reg_addr;		/**< APIC Register Address. */
+		uint8_t reg_addr;		/**< APIC Register Address. */
 		unsigned : 24;		/**< Reserved. */
 	} __attribute__ ((packed));
 };
@@ -308,9 +308,9 @@ typedef union io_regsel io_regsel_t;
 /** I/O Redirection Register. */
 struct io_redirection_reg {
 	union {
-		__u32 lo;
+		uint32_t lo;
 		struct {
-			__u8 intvec;			/**< Interrupt Vector. */
+			uint8_t intvec;			/**< Interrupt Vector. */
 			unsigned delmod : 3;		/**< Delivery Mode. */
 			unsigned destmod : 1; 		/**< Destination mode. */
 			unsigned delivs : 1;		/**< Delivery status (RO). */
@@ -322,10 +322,10 @@ struct io_redirection_reg {
 		} __attribute__ ((packed));
 	};
 	union {
-		__u32 hi;
+		uint32_t hi;
 		struct {
 			unsigned : 24;			/**< Reserved. */
-			__u8 dest : 8;			/**< Destination Field. */
+			uint8_t dest : 8;			/**< Destination Field. */
 		} __attribute__ ((packed));
 	};
 	
@@ -335,7 +335,7 @@ typedef struct io_redirection_reg io_redirection_reg_t;
 
 /** IO APIC Identification Register. */
 union io_apic_id {
-	__u32 value;
+	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
 		unsigned apic_id : 4;	/**< IO APIC ID. */
@@ -344,25 +344,25 @@ union io_apic_id {
 };
 typedef union io_apic_id io_apic_id_t;
 
-extern volatile __u32 *l_apic;
-extern volatile __u32 *io_apic;
+extern volatile uint32_t *l_apic;
+extern volatile uint32_t *io_apic;
 
-extern __u32 apic_id_mask;
+extern uint32_t apic_id_mask;
 
 extern void apic_init(void);
 
 extern void l_apic_init(void);
 extern void l_apic_eoi(void);
-extern int l_apic_broadcast_custom_ipi(__u8 vector);
-extern int l_apic_send_init_ipi(__u8 apicid);
+extern int l_apic_broadcast_custom_ipi(uint8_t vector);
+extern int l_apic_send_init_ipi(uint8_t apicid);
 extern void l_apic_debug(void);
-extern __u8 l_apic_id(void);
+extern uint8_t l_apic_id(void);
 
-extern __u32 io_apic_read(__u8 address);
-extern void io_apic_write(__u8 address , __u32 x);
-extern void io_apic_change_ioredtbl(int pin, int dest, __u8 v, int flags);
-extern void io_apic_disable_irqs(__u16 irqmask);
-extern void io_apic_enable_irqs(__u16 irqmask);
+extern uint32_t io_apic_read(uint8_t address);
+extern void io_apic_write(uint8_t address , uint32_t x);
+extern void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags);
+extern void io_apic_disable_irqs(uint16_t irqmask);
+extern void io_apic_enable_irqs(uint16_t irqmask);
 
 #endif
 

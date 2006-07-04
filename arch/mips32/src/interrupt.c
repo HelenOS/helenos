@@ -132,7 +132,7 @@ static void ipc_int(int n, istate_t *istate)
 }
 
 /* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
+void irq_ipc_bind_arch(unative_t irq)
 {
 	/* Do not allow to redefine timer */
 	/* Swint0, Swint1 are already handled */

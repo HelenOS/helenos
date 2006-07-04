@@ -123,8 +123,8 @@ typedef struct {
 
 /** Address space area backend structure. */
 typedef struct {
-	int (* page_fault)(as_area_t *area, __address addr, pf_access_t access);
-	void (* frame_free)(as_area_t *area, __address page, __address frame);
+	int (* page_fault)(as_area_t *area, uintptr_t addr, pf_access_t access);
+	void (* frame_free)(as_area_t *area, uintptr_t page, uintptr_t frame);
 	void (* share)(as_area_t *area);
 } mem_backend_t;
 
@@ -135,7 +135,7 @@ typedef union {
 		elf_segment_header_t *segment;
 	};
 	struct {	/**< phys_backend members */
-		__address base;
+		uintptr_t base;
 		count_t frames;
 	};
 } mem_backend_data_t;
@@ -151,7 +151,7 @@ struct as_area {
 	int flags;		/**< Flags related to the memory represented by the address space area. */
 	int attributes;		/**< Attributes related to the address space area itself. */
 	count_t pages;		/**< Size of this area in multiples of PAGE_SIZE. */
-	__address base;		/**< Base address of this area. */
+	uintptr_t base;		/**< Base address of this area. */
 	btree_t used_space;	/**< Map of used space. */
 	share_info_t *sh_info;	/**< If the address space area has been shared, this pointer will
 			     	     reference the share info structure. */
@@ -172,20 +172,20 @@ extern void as_init(void);
 extern as_t *as_create(int flags);
 extern void as_destroy(as_t *as);
 extern void as_switch(as_t *old, as_t *new);
-extern int as_page_fault(__address page, pf_access_t access, istate_t *istate);
+extern int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate);
 
-extern as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs,
+extern as_area_t *as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 	mem_backend_t *backend, mem_backend_data_t *backend_data);
-extern int as_area_destroy(as_t *as, __address address);	
-extern int as_area_resize(as_t *as, __address address, size_t size, int flags);
-int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
-		  as_t *dst_as, __address dst_base, int dst_flags_mask);
+extern int as_area_destroy(as_t *as, uintptr_t address);	
+extern int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags);
+int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
+		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask);
 
 extern int as_area_get_flags(as_area_t *area);
 extern bool as_area_check_access(as_area_t *area, pf_access_t access);
-extern size_t as_get_size(__address base);
-extern int used_space_insert(as_area_t *a, __address page, count_t count);
-extern int used_space_remove(as_area_t *a, __address page, count_t count);
+extern size_t as_get_size(uintptr_t base);
+extern int used_space_insert(as_area_t *a, uintptr_t page, count_t count);
+extern int used_space_remove(as_area_t *a, uintptr_t page, count_t count);
 
 /* Interface to be implemented by architectures. */
 #ifndef as_install_arch
@@ -198,9 +198,9 @@ extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
 /* Address space area related syscalls. */
-extern __native sys_as_area_create(__address address, size_t size, int flags);
-extern __native sys_as_area_resize(__address address, size_t size, int flags);
-extern __native sys_as_area_destroy(__address address);
+extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);
+extern unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags);
+extern unative_t sys_as_area_destroy(uintptr_t address);
 
 #endif /* KERNEL */
 

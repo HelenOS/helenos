@@ -45,22 +45,22 @@
 #define i8042_DATA		0x60
 #define i8042_STATUS		0x64
 
-static inline void i8042_data_write(__u8 data)
+static inline void i8042_data_write(uint8_t data)
 {
 	outb(i8042_DATA, data);
 }
 
-static inline __u8 i8042_data_read(void)
+static inline uint8_t i8042_data_read(void)
 {
 	return inb(i8042_DATA);
 }
 
-static inline __u8 i8042_status_read(void)
+static inline uint8_t i8042_status_read(void)
 {
 	return inb(i8042_STATUS);
 }
 
-static inline void i8042_command_write(__u8 command)
+static inline void i8042_command_write(uint8_t command)
 {
 	outb(i8042_STATUS, command);
 }

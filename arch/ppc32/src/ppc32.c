@@ -50,7 +50,7 @@ void arch_pre_main(void)
 	/* Setup usermode */
 	init.cnt = bootinfo.taskmap.count;
 	
-	__u32 i;
+	uint32_t i;
 	
 	for (i = 0; i < bootinfo.taskmap.count; i++) {
 		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
@@ -97,7 +97,7 @@ void calibrate_delay_loop(void)
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	userspace_asm((__address) kernel_uarg->uspace_uarg, (__address) kernel_uarg->uspace_stack + THREAD_STACK_SIZE - SP_DELTA, (__address) kernel_uarg->uspace_entry);
+	userspace_asm((uintptr_t) kernel_uarg->uspace_uarg, (uintptr_t) kernel_uarg->uspace_stack + THREAD_STACK_SIZE - SP_DELTA, (uintptr_t) kernel_uarg->uspace_entry);
 	
 	/* Unreachable */
 	for (;;)

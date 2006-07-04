@@ -76,9 +76,9 @@ pte_t *ptl0_create(int flags)
 	dst_ptl0 = (pte_t *) frame_alloc(ONE_FRAME, FRAME_KA);
 
 	if (flags & FLAG_AS_KERNEL) {
-		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
+		memsetb((uintptr_t) dst_ptl0, PAGE_SIZE, 0);
 	} else {
-		__address src, dst;
+		uintptr_t src, dst;
 	
 		/*
 		 * Copy the kernel address space portion to new PTL0.
@@ -86,18 +86,18 @@ pte_t *ptl0_create(int flags)
 		 
 		ipl = interrupts_disable();
 		mutex_lock(&AS_KERNEL->lock);		
-		src_ptl0 = (pte_t *) PA2KA((__address) AS_KERNEL->page_table);
+		src_ptl0 = (pte_t *) PA2KA((uintptr_t) AS_KERNEL->page_table);
 
-		src = (__address) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
-		dst = (__address) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		src = (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		dst = (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 
-		memsetb((__address) dst_ptl0, PAGE_SIZE, 0);
-		memcpy((void *) dst, (void *) src, PAGE_SIZE - (src - (__address) src_ptl0));
+		memsetb((uintptr_t) dst_ptl0, PAGE_SIZE, 0);
+		memcpy((void *) dst, (void *) src, PAGE_SIZE - (src - (uintptr_t) src_ptl0));
 		mutex_unlock(&AS_KERNEL->lock);
 		interrupts_restore(ipl);
 	}
 
-	return (pte_t *) KA2PA((__address) dst_ptl0);
+	return (pte_t *) KA2PA((uintptr_t) dst_ptl0);
 }
 
 /** Destroy page table.
@@ -108,7 +108,7 @@ pte_t *ptl0_create(int flags)
  */
 void ptl0_destroy(pte_t *page_table)
 {
-	frame_free((__address)page_table);
+	frame_free((uintptr_t)page_table);
 }
 
 /** Lock page tables.

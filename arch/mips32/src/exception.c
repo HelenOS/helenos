@@ -95,7 +95,7 @@ static void unhandled_exception(int n, istate_t *istate)
 
 static void reserved_instr_exception(int n, istate_t *istate)
 {
-	if (*((__u32 *)istate->epc) == 0x7c03e83b) {
+	if (*((uint32_t *)istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
 		istate->v1 = istate->k1;
@@ -139,7 +139,7 @@ static void cpuns_exception(int n, istate_t *istate)
 
 static void interrupt_exception(int n, istate_t *istate)
 {
-	__u32 cause;
+	uint32_t cause;
 	int i;
 	
 	/* decode interrupt number and process the interrupt */

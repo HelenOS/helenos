@@ -45,7 +45,7 @@ void fpu_fsr(void);
 
 
 struct fpu_context {
-	__u8 fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
+	uint8_t fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
 };
 
 

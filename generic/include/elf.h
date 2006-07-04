@@ -193,31 +193,31 @@
  * ELF object file specifications. They are the only types used
  * in ELF header.
  */
-typedef __u64 elf_xword;
-typedef __s64 elf_sxword;
-typedef __u32 elf_word;
-typedef __s32 elf_sword;
-typedef __u16 elf_half;
+typedef uint64_t elf_xword;
+typedef int64_t elf_sxword;
+typedef uint32_t elf_word;
+typedef int32_t elf_sword;
+typedef uint16_t elf_half;
 
 /**
  * 32-bit ELF data types.
  *
  * These types are specific for 32-bit format.
  */
-typedef __u32 elf32_addr;
-typedef __u32 elf32_off;
+typedef uint32_t elf32_addr;
+typedef uint32_t elf32_off;
 
 /**
  * 64-bit ELF data types.
  *
  * These types are specific for 64-bit format.
  */
-typedef __u64 elf64_addr;
-typedef __u64 elf64_off;
+typedef uint64_t elf64_addr;
+typedef uint64_t elf64_off;
 
 /** ELF header */
 struct elf32_header {
-	__u8 e_ident[EI_NIDENT];
+	uint8_t e_ident[EI_NIDENT];
 	elf_half e_type;
 	elf_half e_machine;
 	elf_word e_version;
@@ -233,7 +233,7 @@ struct elf32_header {
 	elf_half e_shstrndx;
 };
 struct elf64_header {
-	__u8 e_ident[EI_NIDENT];
+	uint8_t e_ident[EI_NIDENT];
 	elf_half e_type;
 	elf_half e_machine;
 	elf_word e_version;
@@ -309,14 +309,14 @@ struct elf32_symbol {
 	elf_word st_name;
 	elf32_addr st_value;
 	elf_word st_size;
-	__u8 st_info;
-	__u8 st_other;
+	uint8_t st_info;
+	uint8_t st_other;
 	elf_half st_shndx;
 };
 struct elf64_symbol {
 	elf_word st_name;
-	__u8 st_info;
-	__u8 st_other;
+	uint8_t st_info;
+	uint8_t st_other;
 	elf_half st_shndx;
 	elf64_addr st_value;
 	elf_xword st_size;

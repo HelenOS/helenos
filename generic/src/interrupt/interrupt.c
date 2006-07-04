@@ -109,11 +109,11 @@ static int exc_print_cmd(cmd_arg_t *argv)
 	spinlock_lock(&exctbl_lock);
 	printf("Exc Description Handler\n");
 	for (i=0; i < IVT_ITEMS; i++) {
-		symbol = get_symtab_entry((__native)exc_table[i].f);
+		symbol = get_symtab_entry((unative_t)exc_table[i].f);
 		if (!symbol)
 			symbol = "not found";
 		printf("%d %s %.*p(%s)\n", i + IVT_FIRST, exc_table[i].name,
-		       sizeof(__address) * 2, exc_table[i].f,symbol);		
+		       sizeof(uintptr_t) * 2, exc_table[i].f,symbol);		
 		if (!((i+1) % 20)) {
 			printf("Press any key to continue.");
 			spinlock_unlock(&exctbl_lock);

@@ -57,15 +57,15 @@
 
 /* Pointers to public variables with time */
 struct ptime {
-	__native seconds1;
-	__native useconds;
-	__native seconds2;
+	unative_t seconds1;
+	unative_t useconds;
+	unative_t seconds2;
 };
 struct ptime *public_time;
 /* Variable holding fragment of second, so that we would update
  * seconds correctly
  */
-static __native secfrag = 0;
+static unative_t secfrag = 0;
 
 /** Initialize realtime clock counter
  *
@@ -90,7 +90,7 @@ void clock_counter_init(void)
 	public_time->seconds2 = 0;
 	public_time->useconds = 0; 
 
-	sysinfo_set_item_val("clock.faddr", NULL, (__native)faddr);
+	sysinfo_set_item_val("clock.faddr", NULL, (unative_t)faddr);
 }
 
 
@@ -165,7 +165,7 @@ void clock(void)
 	 */
 
 	if (THREAD) {
-		__u64 ticks;
+		uint64_t ticks;
 		
 		spinlock_lock(&CPU->lock);
 		CPU->needs_relink += 1 + missed_clock_ticks;

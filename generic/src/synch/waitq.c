@@ -214,7 +214,7 @@ out:
  * @li ESYNCH_OK_BLOCKED means that the sleep succeeded; the full sleep was 
  * attempted.
  */
-int waitq_sleep_timeout(waitq_t *wq, __u32 usec, int flags)
+int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
@@ -297,7 +297,7 @@ void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
  *
  * @return See waitq_sleep_timeout().
  */
-int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int flags)
+int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 {
 	/* checks whether to go to sleep at all */
 	if (wq->missed_wakeups) {
@@ -351,7 +351,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, __u32 usec, int flags)
 			return ESYNCH_TIMEOUT;
 		}
 		THREAD->timeout_pending = true;
-		timeout_register(&THREAD->sleep_timeout, (__u64) usec, waitq_timeouted_sleep, THREAD);
+		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec, waitq_timeouted_sleep, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->head);

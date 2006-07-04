@@ -39,13 +39,13 @@
 
 /** Version Register. */
 union ver_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u16 manuf;	/**< Manufacturer code. */
-		__u16 impl;	/**< Implementation code. */
-		__u8 mask;	/**< Mask set revision. */
+		uint16_t manuf;	/**< Manufacturer code. */
+		uint16_t impl;	/**< Implementation code. */
+		uint8_t mask;	/**< Mask set revision. */
 		unsigned : 8;
-		__u8 maxtl;
+		uint8_t maxtl;
 		unsigned : 3;
 		unsigned maxwin : 5;
 	} __attribute__ ((packed));
@@ -54,9 +54,9 @@ typedef union ver_reg ver_reg_t;
 
 /** Processor State Register. */
 union pstate_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u64 : 52;
+		uint64_t : 52;
 		unsigned ig : 1;	/**< Interrupt Globals. */
 		unsigned mg : 1;	/**< MMU Globals. */
 		unsigned cle : 1;	/**< Current Little Endian. */
@@ -74,29 +74,29 @@ typedef union pstate_reg pstate_reg_t;
 
 /** TICK Register. */
 union tick_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned npt : 1;	/**< Non-privileged Trap enable. */
-		__u64 counter : 63;	/**< Elapsed CPU clck cycle counter. */
+		uint64_t counter : 63;	/**< Elapsed CPU clck cycle counter. */
 	} __attribute__ ((packed));
 };
 typedef union tick_reg tick_reg_t;
 
 /** TICK_compare Register. */
 union tick_compare_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned int_dis : 1;	/**< TICK_INT interrupt disabled flag. */
-		__u64 tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
+		uint64_t tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
 	} __attribute__ ((packed));
 };
 typedef union tick_compare_reg tick_compare_reg_t;
 
 /** SOFTINT Register. */
 union softint_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u64 : 47; 
+		uint64_t : 47; 
 		unsigned stick_int : 1;
 		unsigned int_level : 15;
 		unsigned tick_int : 1;

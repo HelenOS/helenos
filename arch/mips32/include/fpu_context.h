@@ -37,11 +37,11 @@
 
 #include <arch/types.h>
 
-#define FPU_CONTEXT_ALIGN    sizeof(__native)
+#define FPU_CONTEXT_ALIGN    sizeof(unative_t)
 
 struct fpu_context {
-	__native dregs[32];
-	__native cregs[32];
+	unative_t dregs[32];
+	unative_t cregs[32];
 };
 
 #endif

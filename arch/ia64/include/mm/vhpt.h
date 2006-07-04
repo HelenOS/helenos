@@ -39,7 +39,7 @@
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 
-__address vhpt_set_up(void);
+uintptr_t vhpt_set_up(void);
 
 static inline vhpt_entry_t tlb_entry_t2vhpt_entry_t(tlb_entry_t tentry) 
 {
@@ -51,7 +51,7 @@ static inline vhpt_entry_t tlb_entry_t2vhpt_entry_t(tlb_entry_t tentry)
 	return ventry;
 }
 
-void vhpt_mapping_insert(__address va, asid_t asid, tlb_entry_t entry);
+void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);
 void vhpt_invalidate_all(void);
 void vhpt_invalidate_asid(asid_t asid);
 

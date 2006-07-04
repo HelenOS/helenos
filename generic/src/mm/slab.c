@@ -549,7 +549,7 @@ static void make_magcache(slab_cache_t *cache)
 
 	cache->mag_cache = malloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
 	for (i=0; i < config.cpu_count; i++) {
-		memsetb((__address)&cache->mag_cache[i],
+		memsetb((uintptr_t)&cache->mag_cache[i],
 			sizeof(cache->mag_cache[i]), 0);
 		spinlock_initialize(&cache->mag_cache[i].lock, 
 				    "slab_maglock_cpu");
@@ -569,11 +569,11 @@ _slab_cache_create(slab_cache_t *cache,
 	int pages;
 	ipl_t ipl;
 
-	memsetb((__address)cache, sizeof(*cache), 0);
+	memsetb((uintptr_t)cache, sizeof(*cache), 0);
 	cache->name = name;
 
-	if (align < sizeof(__native))
-		align = sizeof(__native);
+	if (align < sizeof(unative_t))
+		align = sizeof(unative_t);
 	size = ALIGN_UP(size, align);
 		
 	cache->size = size;
@@ -820,14 +820,14 @@ void slab_cache_init(void)
 	_slab_cache_create(&mag_cache,
 			   "slab_magazine",
 			   sizeof(slab_magazine_t)+SLAB_MAG_SIZE*sizeof(void*),
-			   sizeof(__address),
+			   sizeof(uintptr_t),
 			   NULL, NULL,
 			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
 	/* Initialize slab_cache cache */
 	_slab_cache_create(&slab_cache_cache,
 			   "slab_cache",
 			   sizeof(slab_cache_cache),
-			   sizeof(__address),
+			   sizeof(uintptr_t),
 			   NULL, NULL,
 			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
 	/* Initialize external slab cache */

@@ -47,18 +47,18 @@
 #include <arch/types.h>
 
 struct cpu_info {
-	__u32 cpuid_eax;
-	__u32 cpuid_ebx;
-	__u32 cpuid_ecx;
-	__u32 cpuid_edx;
+	uint32_t cpuid_eax;
+	uint32_t cpuid_ebx;
+	uint32_t cpuid_ecx;
+	uint32_t cpuid_edx;
 } __attribute__ ((packed));
 
 extern int has_cpuid(void);
 
-extern void cpuid(__u32 cmd, cpu_info_t *info);
+extern void cpuid(uint32_t cmd, cpu_info_t *info);
 
 
-extern __u64 rdtsc(void);
+extern uint64_t rdtsc(void);
 
 #endif /* __ASM__ */
 #endif

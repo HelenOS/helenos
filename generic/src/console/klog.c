@@ -63,7 +63,7 @@ void klog_init(void)
 		panic("Cannot allocate page for klog");
 	klog = (char *)PA2KA(faddr);
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (__native)faddr);
+	sysinfo_set_item_val("klog.faddr", NULL, (unative_t)faddr);
 	sysinfo_set_item_val("klog.pages", NULL, 1 << KLOG_ORDER);
 
 	klogsize = PAGE_SIZE << KLOG_ORDER;

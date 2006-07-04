@@ -52,7 +52,7 @@ struct condvar {
 extern void condvar_initialize(condvar_t *cv);
 extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
-extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int flags);
+extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags);
 
 #endif
 

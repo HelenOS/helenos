@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm
  * @{
  */
 /** @file
@@ -60,16 +60,16 @@
 #endif
 
 #ifndef __ASM__
-static inline __address ka2pa(__address x)
+static inline uintptr_t ka2pa(uintptr_t x)
 {
 	if (x > 0xffffffff80000000)
 		return x - 0xffffffff80000000;
 	else 
 		return x - 0xffff800000000000;
 }
-# define KA2PA(x)      ka2pa((__address)x)
-# define PA2KA_CODE(x)      (((__address) (x)) + 0xffffffff80000000)
-# define PA2KA(x)      (((__address) (x)) + 0xffff800000000000)
+# define KA2PA(x)      ka2pa((uintptr_t)x)
+# define PA2KA_CODE(x)      (((uintptr_t) (x)) + 0xffffffff80000000)
+# define PA2KA(x)      (((uintptr_t) (x)) + 0xffff800000000000)
 #else
 # define KA2PA(x)      ((x) - 0xffffffff80000000)
 # define PA2KA(x)      ((x) + 0xffffffff80000000)
@@ -85,12 +85,12 @@ static inline __address ka2pa(__address x)
 #define PTL2_INDEX_ARCH(vaddr)	(((vaddr)>>21)&0x1ff)
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x1ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) ((((__u64) ((pte_t *)(ptl0))[(i)].addr_12_31)<<12) | (((__u64) ((pte_t *)(ptl0))[(i)].addr_32_51)<<32 )))
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		((pte_t *) ((((__u64) ((pte_t *)(ptl1))[(i)].addr_12_31)<<12) | (((__u64) ((pte_t *)(ptl1))[(i)].addr_32_51)<<32 )))
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		((pte_t *) ((((__u64) ((pte_t *)(ptl2))[(i)].addr_12_31)<<12) | (((__u64) ((pte_t *)(ptl2))[(i)].addr_32_51)<<32 )))
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((__address *) ((((__u64) ((pte_t *)(ptl3))[(i)].addr_12_31)<<12) | (((__u64) ((pte_t *)(ptl3))[(i)].addr_32_51)<<32 )))
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) ((((uint64_t) ((pte_t *)(ptl0))[(i)].addr_12_31)<<12) | (((uint64_t) ((pte_t *)(ptl0))[(i)].addr_32_51)<<32 )))
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		((pte_t *) ((((uint64_t) ((pte_t *)(ptl1))[(i)].addr_12_31)<<12) | (((uint64_t) ((pte_t *)(ptl1))[(i)].addr_32_51)<<32 )))
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		((pte_t *) ((((uint64_t) ((pte_t *)(ptl2))[(i)].addr_12_31)<<12) | (((uint64_t) ((pte_t *)(ptl2))[(i)].addr_32_51)<<32 )))
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t *) ((((uint64_t) ((pte_t *)(ptl3))[(i)].addr_12_31)<<12) | (((uint64_t) ((pte_t *)(ptl3))[(i)].addr_32_51)<<32 )))
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((__address) (ptl0)))
+#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((uintptr_t) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	set_pt_addr((pte_t *)(ptl0), (index_t)(i), a)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)       set_pt_addr((pte_t *)(ptl1), (index_t)(i), a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)       set_pt_addr((pte_t *)(ptl2), (index_t)(i), a)
@@ -106,9 +106,9 @@ static inline __address ka2pa(__address x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)         set_pt_flags((pte_t *)(ptl2), (index_t)(i), (x))
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
-#define PTE_VALID_ARCH(p)			(*((__u64 *) (p)) != 0)
+#define PTE_VALID_ARCH(p)			(*((uint64_t *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
-#define PTE_GET_FRAME_ARCH(p)			((((__address)(p)->addr_12_31)<<12) | ((__address)(p)->addr_32_51<<32))
+#define PTE_GET_FRAME_ARCH(p)			((((uintptr_t)(p)->addr_12_31)<<12) | ((uintptr_t)(p)->addr_32_51<<32))
 #define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)			((p)->no_execute == 0)
 
@@ -164,7 +164,7 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 	);
 }
 
-static inline void set_pt_addr(pte_t *pt, index_t i, __address a)
+static inline void set_pt_addr(pte_t *pt, index_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 
@@ -197,6 +197,5 @@ extern void page_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

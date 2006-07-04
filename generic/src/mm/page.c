@@ -69,7 +69,7 @@ void page_init(void)
  * @param s Address of the structure.
  * @param size Size of the structure.
  */
-void map_structure(__address s, size_t size)
+void map_structure(uintptr_t s, size_t size)
 {
 	int i, cnt, length;
 
@@ -93,7 +93,7 @@ void map_structure(__address s, size_t size)
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  */
-void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
+void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 {
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_insert);
@@ -112,7 +112,7 @@ void page_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
  */
-void page_mapping_remove(as_t *as, __address page)
+void page_mapping_remove(as_t *as, uintptr_t page)
 {
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_remove);
@@ -131,7 +131,7 @@ void page_mapping_remove(as_t *as, __address page)
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  */
-pte_t *page_mapping_find(as_t *as, __address page)
+pte_t *page_mapping_find(as_t *as, uintptr_t page)
 {
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);

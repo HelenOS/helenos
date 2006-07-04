@@ -48,34 +48,34 @@ void before_task_runs_arch(void)
 /** Ensure that thread's kernel stack is locked in TLB. */
 void before_thread_runs_arch(void)
 {
-	__address base;
+	uintptr_t base;
 	
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+	if ((uintptr_t) THREAD->kstack < base || (uintptr_t) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
 		/*
 		 * Kernel stack of this thread is not locked in DTLB.
 		 * First, make sure it is not mapped already.
 		 * If not, create a locked mapping for it.
 		 */
-		 dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (__address) THREAD->kstack);
-		 dtlb_insert_mapping((__address) THREAD->kstack, KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
+		 dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
+		 dtlb_insert_mapping((uintptr_t) THREAD->kstack, KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
 	}	
 }
 
 /** Unlock thread's stack from TLB, if necessary. */
 void after_thread_ran_arch(void)
 {
-	__address base;
+	uintptr_t base;
 
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if ((__address) THREAD->kstack < base || (__address) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+	if ((uintptr_t) THREAD->kstack < base || (uintptr_t) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
 		/*
 		 * Kernel stack of this thread is locked in DTLB.
 		 * Destroy the mapping.
 		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (__address) THREAD->kstack);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
 	}
 }
 

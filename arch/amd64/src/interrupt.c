@@ -56,7 +56,7 @@
 void print_info_errcode(int n, istate_t *istate)
 {
 	char *symbol;
-/*	__u64 *x = &istate->stack[0]; */
+/*	uint64_t *x = &istate->stack[0]; */
 
 	if (!(symbol=get_symtab_entry(istate->rip)))
 		symbol = "";
@@ -79,8 +79,8 @@ void print_info_errcode(int n, istate_t *istate)
  * Interrupt and exception dispatching.
  */
 
-void (* disable_irqs_function)(__u16 irqmask) = NULL;
-void (* enable_irqs_function)(__u16 irqmask) = NULL;
+void (* disable_irqs_function)(uint16_t irqmask) = NULL;
+void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
 void null_interrupt(int n, istate_t *istate)
@@ -141,7 +141,7 @@ void tlb_shootdown_ipi(int n, istate_t *istate)
 	tlb_shootdown_ipi_recv();
 }
 
-void trap_virtual_enable_irqs(__u16 irqmask)
+void trap_virtual_enable_irqs(uint16_t irqmask)
 {
 	if (enable_irqs_function)
 		enable_irqs_function(irqmask);
@@ -149,7 +149,7 @@ void trap_virtual_enable_irqs(__u16 irqmask)
 		panic("no enable_irqs_function\n");
 }
 
-void trap_virtual_disable_irqs(__u16 irqmask)
+void trap_virtual_disable_irqs(uint16_t irqmask)
 {
 	if (disable_irqs_function)
 		disable_irqs_function(irqmask);
@@ -174,7 +174,7 @@ static void ipc_int(int n, istate_t *istate)
 
 
 /* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
+void irq_ipc_bind_arch(unative_t irq)
 {
 	if (irq == IRQ_CLK)
 		return;

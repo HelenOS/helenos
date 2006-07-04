@@ -54,8 +54,8 @@
 #endif
 
 #define context_set(c, _pc, stack, size)								\
-        (c)->pc = ((__address) _pc) - 8;								\
-        (c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
+        (c)->pc = ((uintptr_t) _pc) - 8;								\
+        (c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
 	(c)->fp = -STACK_BIAS;										\
 	(c)->cleanwin = 0
 	
@@ -65,26 +65,26 @@
  * function calls.
  */
 struct context {
-	__address sp;		/* %o6 */
-	__address pc;		/* %o7 */
-	__u64 i0;
-	__u64 i1;
-	__u64 i2;
-	__u64 i3;
-	__u64 i4;
-	__u64 i5;
-	__address fp;		/* %i6 */
-	__address i7;
-	__u64 l0;
-	__u64 l1;
-	__u64 l2;
-	__u64 l3;
-	__u64 l4;
-	__u64 l5;
-	__u64 l6;
-	__u64 l7;
+	uintptr_t sp;		/* %o6 */
+	uintptr_t pc;		/* %o7 */
+	uint64_t i0;
+	uint64_t i1;
+	uint64_t i2;
+	uint64_t i3;
+	uint64_t i4;
+	uint64_t i5;
+	uintptr_t fp;		/* %i6 */
+	uintptr_t i7;
+	uint64_t l0;
+	uint64_t l1;
+	uint64_t l2;
+	uint64_t l3;
+	uint64_t l4;
+	uint64_t l5;
+	uint64_t l6;
+	uint64_t l7;
 	ipl_t ipl;
-	__u64 cleanwin;
+	uint64_t cleanwin;
 };
 
 #endif

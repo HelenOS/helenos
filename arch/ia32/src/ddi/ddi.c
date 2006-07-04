@@ -56,7 +56,7 @@
  *
  * @return 0 on success or an error code from errno.h.
  */
-int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
+int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	count_t bits;
 
@@ -66,13 +66,13 @@ int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
 
 	if (task->arch.iomap.bits < bits) {
 		bitmap_t oldiomap;
-		__u8 *newmap;
+		uint8_t *newmap;
 	
 		/*
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
 		
-		newmap = (__u8 *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
+		newmap = (uint8_t *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
 		if (!newmap)
 			return ENOMEM;
 		

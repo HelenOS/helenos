@@ -80,8 +80,8 @@ struct cpu {
 	int active;
 	int tlb_active;
 
-	__u16 frequency_mhz;
-	__u32 delay_loop_const;
+	uint16_t frequency_mhz;
+	uint32_t delay_loop_const;
 
 	cpu_arch_t arch;
 
@@ -90,7 +90,7 @@ struct cpu {
 	/**
 	 * Stack used by scheduler when there is no running thread.
 	 */
-	__u8 *stack;
+	uint8_t *stack;
 };
 
 extern cpu_t *cpus;

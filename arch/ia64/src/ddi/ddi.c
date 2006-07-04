@@ -47,7 +47,7 @@
  *
  * @return 0 on success or an error code from errno.h.
  */
-int ddi_iospace_enable_arch(task_t *task, __address ioaddr, size_t size)
+int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	return 0;
 }

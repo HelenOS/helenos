@@ -38,8 +38,8 @@
 #include <arch/types.h>
 
 struct cpu_info {
-	__u16 version;
-	__u16 revision;
+	uint16_t version;
+	uint16_t revision;
 } __attribute__ ((packed));
 
 static inline void cpu_version(struct cpu_info *info)

@@ -71,8 +71,8 @@ void it_init(void)
 /** Process Interval Timer interrupt. */
 void it_interrupt(void)
 {
-	__s64 c;
-	__s64 m;
+	int64_t c;
+	int64_t m;
 	
 	eoi_write(EOI);
 	

@@ -35,7 +35,7 @@
 #ifndef __IPCRSC_H__
 #define __IPCRSC_H__
 
-call_t * get_call(__native callid);
+call_t * get_call(unative_t callid);
 int phone_alloc(void);
 void phone_connect(int phoneid, answerbox_t *box);
 void phone_dealloc(int phoneid);

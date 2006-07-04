@@ -91,8 +91,8 @@ static cmd_info_t addbkpte_info = {
 };
 
 static struct {
-	__u32 andmask;
-	__u32 value;
+	uint32_t andmask;
+	uint32_t value;
 }jmpinstr[] = {
 	{0xf3ff0000, 0x41000000}, /* BCzF */
 	{0xf3ff0000, 0x41020000}, /* BCzFL */
@@ -125,7 +125,7 @@ static struct {
  * @param instr Instruction code
  * @return true - it is jump instruction, false otherwise
  */
-static bool is_jump(__native instr)
+static bool is_jump(unative_t instr)
 {
 	int i;
 
@@ -153,12 +153,12 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 
 	/* Check, that the breakpoints do not conflict */
 	for (i=0; i<BKPOINTS_MAX; i++) {
-		if (breakpoints[i].address == (__address)argv->intval) {
+		if (breakpoints[i].address == (uintptr_t)argv->intval) {
 			printf("Duplicate breakpoint %d.\n", i);
 			spinlock_unlock(&bkpoints_lock);
 			return 0;
-		} else if (breakpoints[i].address == (__address)argv->intval + sizeof(__native) || \
-			   breakpoints[i].address == (__address)argv->intval - sizeof(__native)) {
+		} else if (breakpoints[i].address == (uintptr_t)argv->intval + sizeof(unative_t) || \
+			   breakpoints[i].address == (uintptr_t)argv->intval - sizeof(unative_t)) {
 			printf("Adjacent breakpoints not supported, conflict with %d.\n", i);
 			spinlock_unlock(&bkpoints_lock);
 			return 0;
@@ -177,10 +177,10 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		interrupts_restore(ipl);
 		return 0;
 	}
-	cur->address = (__address) argv->intval;
+	cur->address = (uintptr_t) argv->intval;
 	printf("Adding breakpoint on address: %p\n", argv->intval);
-	cur->instruction = ((__native *)cur->address)[0];
-	cur->nextinstruction = ((__native *)cur->address)[1];
+	cur->instruction = ((unative_t *)cur->address)[0];
+	cur->nextinstruction = ((unative_t *)cur->address)[1];
 	if (argv == &add_argv) {
 		cur->flags = 0;
 	} else { /* We are add extended */
@@ -192,7 +192,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 	cur->counter = 0;
 
 	/* Set breakpoint */
-	*((__native *)cur->address) = 0x0d;
+	*((unative_t *)cur->address) = 0x0d;
 
 	spinlock_unlock(&bkpoint_lock);
 	interrupts_restore(ipl);
@@ -228,8 +228,8 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 		interrupts_restore(ipl);
 		return 0;
 	}
-	((__u32 *)cur->address)[0] = cur->instruction;
-	((__u32 *)cur->address)[1] = cur->nextinstruction;
+	((uint32_t *)cur->address)[0] = cur->instruction;
+	((uint32_t *)cur->address)[1] = cur->nextinstruction;
 
 	cur->address = NULL;
 
@@ -298,7 +298,7 @@ void debugger_init()
 void debugger_bpoint(istate_t *istate)
 {
 	bpinfo_t *cur = NULL;
-	__address fireaddr = istate->epc;
+	uintptr_t fireaddr = istate->epc;
 	int i;
 
 	/* test branch delay slot */
@@ -315,7 +315,7 @@ void debugger_bpoint(istate_t *istate)
 		}
 		/* Reinst only breakpoint */
 		if ((breakpoints[i].flags & BKPOINT_REINST) \
-		    && (fireaddr ==breakpoints[i].address+sizeof(__native))) {
+		    && (fireaddr ==breakpoints[i].address+sizeof(unative_t))) {
 			cur = &breakpoints[i];
 			break;
 		}
@@ -323,9 +323,9 @@ void debugger_bpoint(istate_t *istate)
 	if (cur) {
 		if (cur->flags & BKPOINT_REINST) {
 			/* Set breakpoint on first instruction */
-			((__u32 *)cur->address)[0] = 0x0d;
+			((uint32_t *)cur->address)[0] = 0x0d;
 			/* Return back the second */
-			((__u32 *)cur->address)[1] = cur->nextinstruction;
+			((uint32_t *)cur->address)[1] = cur->nextinstruction;
 			cur->flags &= ~BKPOINT_REINST;
 			spinlock_unlock(&bkpoint_lock);
 			return;
@@ -338,11 +338,11 @@ void debugger_bpoint(istate_t *istate)
 			       fireaddr, get_symtab_entry(istate->epc));
 
 		/* Return first instruction back */
-		((__u32 *)cur->address)[0] = cur->instruction;
+		((uint32_t *)cur->address)[0] = cur->instruction;
 
 		if (! (cur->flags & BKPOINT_ONESHOT)) {
 			/* Set Breakpoint on next instruction */
-			((__u32 *)cur->address)[1] = 0x0d;
+			((uint32_t *)cur->address)[1] = 0x0d;
 			cur->flags |= BKPOINT_REINST;
 		} 
 		cur->flags |= BKPOINT_INPROG;

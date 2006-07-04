@@ -37,7 +37,7 @@
 
 #include <arch/types.h>
 
-extern void delay(__u32 microseconds);
+extern void delay(uint32_t microseconds);
 
 #endif
 

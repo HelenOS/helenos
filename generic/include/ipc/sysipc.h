@@ -39,22 +39,22 @@
 #include <ipc/irq.h>
 #include <arch/types.h>
 
-__native sys_ipc_call_sync_fast(__native phoneid, __native method, 
-				__native arg1, ipc_data_t *data);
-__native sys_ipc_call_sync(__native phoneid, ipc_data_t *question, 
+unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
+				unative_t arg1, ipc_data_t *data);
+unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question, 
 			   ipc_data_t *reply);
-__native sys_ipc_call_async_fast(__native phoneid, __native method, 
-				 __native arg1, __native arg2);
-__native sys_ipc_call_async(__native phoneid, ipc_data_t *data);
-__native sys_ipc_answer_fast(__native callid, __native retval, 
-			     __native arg1, __native arg2);
-__native sys_ipc_answer(__native callid, ipc_data_t *data);
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, __u32 usec, int nonblocking);
-__native sys_ipc_forward_fast(__native callid, __native phoneid,
-			      __native method, __native arg1);
-__native sys_ipc_hangup(int phoneid);
-__native sys_ipc_register_irq(int irq, irq_code_t *ucode);
-__native sys_ipc_unregister_irq(int irq);
+unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method, 
+				 unative_t arg1, unative_t arg2);
+unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data);
+unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval, 
+			     unative_t arg1, unative_t arg2);
+unative_t sys_ipc_answer(unative_t callid, ipc_data_t *data);
+unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int nonblocking);
+unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
+			      unative_t method, unative_t arg1);
+unative_t sys_ipc_hangup(int phoneid);
+unative_t sys_ipc_register_irq(int irq, irq_code_t *ucode);
+unative_t sys_ipc_unregister_irq(int irq);
 
 #endif
 

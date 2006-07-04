@@ -55,9 +55,9 @@ struct acpi_madt *acpi_madt = NULL;
 /** Standard ISA IRQ map; can be overriden by Interrupt Source Override entries of MADT. */
 int isa_irq_map[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-static void madt_l_apic_entry(struct madt_l_apic *la, __u32 index);
-static void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index);
-static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index);
+static void madt_l_apic_entry(struct madt_l_apic *la, uint32_t index);
+static void madt_io_apic_entry(struct madt_io_apic *ioa, uint32_t index);
+static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, uint32_t index);
 static int madt_cmp(void * a, void * b);
 
 struct madt_l_apic *madt_l_apic_entries = NULL;
@@ -90,7 +90,7 @@ char *entry[] = {
 static count_t madt_cpu_count(void);
 static bool madt_cpu_enabled(index_t i);
 static bool madt_cpu_bootstrap(index_t i);
-static __u8 madt_cpu_apic_id(index_t i);
+static uint8_t madt_cpu_apic_id(index_t i);
 static int madt_irq_to_pin(int irq);
 
 struct smp_config_operations madt_config_operations = {
@@ -119,7 +119,7 @@ bool madt_cpu_bootstrap(index_t i)
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id == l_apic_id();
 }
 
-__u8 madt_cpu_apic_id(index_t i)
+uint8_t madt_cpu_apic_id(index_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
@@ -141,13 +141,13 @@ int madt_cmp(void * a, void * b)
 	
 void acpi_madt_parse(void)
 {
-	struct madt_apic_header *end = (struct madt_apic_header *) (((__u8 *) acpi_madt) + acpi_madt->header.length);
+	struct madt_apic_header *end = (struct madt_apic_header *) (((uint8_t *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *h;
 	
-        l_apic = (__u32 *) (__native) acpi_madt->l_apic_address;
+        l_apic = (uint32_t *) (unative_t) acpi_madt->l_apic_address;
 
 	/* calculate madt entries */
-	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
+	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((uint8_t *) h) + h->length)) {
 		madt_entries_index_cnt++;
 	}
 
@@ -156,14 +156,14 @@ void acpi_madt_parse(void)
 	if (!madt_entries_index)
 		panic("Memory allocation error.");
 
-	__u32 index = 0;
+	uint32_t index = 0;
 
-	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((__u8 *) h) + h->length)) {
+	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((uint8_t *) h) + h->length)) {
 		madt_entries_index[index++] = h;
 	}
 
 	/* Quicksort MADT index structure */
-	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(__address), &madt_cmp);
+	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(uintptr_t), &madt_cmp);
 
 	/* Parse MADT entries */	
 	for (index = 0; index < madt_entries_index_cnt - 1; index++) {
@@ -206,7 +206,7 @@ void acpi_madt_parse(void)
 }
  
 
-void madt_l_apic_entry(struct madt_l_apic *la, __u32 index)
+void madt_l_apic_entry(struct madt_l_apic *la, uint32_t index)
 {
 	if (!madt_l_apic_entry_cnt++) {
 		madt_l_apic_entry_index = index;
@@ -221,19 +221,19 @@ void madt_l_apic_entry(struct madt_l_apic *la, __u32 index)
 	apic_id_mask |= 1<<la->apic_id;
 }
 
-void madt_io_apic_entry(struct madt_io_apic *ioa, __u32 index)
+void madt_io_apic_entry(struct madt_io_apic *ioa, uint32_t index)
 {
 	if (!madt_io_apic_entry_cnt++) {
 		/* remember index of the first io apic entry */
 		madt_io_apic_entry_index = index;
-		io_apic = (__u32 *) (__native) ioa->io_apic_address;
+		io_apic = (uint32_t *) (unative_t) ioa->io_apic_address;
 	} else {
 		/* currently not supported */
 		return;
 	}
 }
 
-void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, __u32 index)
+void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, uint32_t index)
 {
 	ASSERT(override->source < sizeof(isa_irq_map)/sizeof(int));
 	printf("MADT: ignoring %s entry: bus=%zd, source=%zd, global_int=%zd, flags=%#hx\n",

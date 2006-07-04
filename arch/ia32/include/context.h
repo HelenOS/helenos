@@ -52,12 +52,12 @@
  * function calls.
  */
 struct context {
-	__address sp;
-	__address pc;
-	__u32 ebx;
-	__u32 esi;
-	__u32 edi;
-	__u32 ebp;
+	uintptr_t sp;
+	uintptr_t pc;
+	uint32_t ebx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
 	ipl_t ipl;
 } __attribute__ ((packed));
 

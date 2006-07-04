@@ -47,7 +47,7 @@ static waitq_t can_start;
 static void testit1(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((__native) data);
+	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
 
 	thread_detach(THREAD);
@@ -77,7 +77,7 @@ static void testit1(void *data)
 static void testit2(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((__native) data);
+	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
 
 	thread_detach(THREAD);
@@ -116,10 +116,10 @@ void test(void)
 	printf("Creating %d threads... ", THREADS);
 
 	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(testit1, (void *)((__native)i*2), TASK, 0, "testit1")))
+		if (!(t = thread_create(testit1, (void *)((unative_t)i*2), TASK, 0, "testit1")))
 			panic("could not create thread\n");
 		thread_ready(t);
-		if (!(t = thread_create(testit2, (void *)((__native)i*2+1), TASK, 0, "testit2")))
+		if (!(t = thread_create(testit2, (void *)((unative_t)i*2+1), TASK, 0, "testit2")))
 			panic("could not create thread\n");
 		thread_ready(t);
 	}

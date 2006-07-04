@@ -55,7 +55,7 @@ void as_install_arch(as_t *as)
 {
 	asid_t asid;
 	ipl_t ipl;
-	__u32 sr;
+	uint32_t sr;
 
 	ipl = interrupts_disable();
 	spinlock_lock(&as->lock);

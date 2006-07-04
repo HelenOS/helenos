@@ -34,12 +34,12 @@
 #include <arch/types.h>
 
 typedef struct {
-	__address addr;
-	__u32 size;
+	uintptr_t addr;
+	uint32_t size;
 } utask_t;
 
 typedef struct {
-	__u32 cnt;
+	uint32_t cnt;
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 

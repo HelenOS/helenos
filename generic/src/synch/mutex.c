@@ -64,7 +64,7 @@ void mutex_initialize(mutex_t *mtx)
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _mutex_lock_timeout(mutex_t *mtx, __u32 usec, int flags)
+int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
 {
 	return _semaphore_down_timeout(&mtx->sem, usec, flags);
 }

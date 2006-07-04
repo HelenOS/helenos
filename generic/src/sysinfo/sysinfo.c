@@ -167,7 +167,7 @@ static sysinfo_item_t *sysinfo_create_path(const char *name, sysinfo_item_t **ps
 	return NULL;
 }
 
-void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, __native val)
+void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val)
 {
 	if (root == NULL)
 		root = &_root;
@@ -222,7 +222,7 @@ void sysinfo_dump(sysinfo_item_t **proot, int depth)
 	
 	while (root != NULL) {
 		int i;
-		__native val = 0;
+		unative_t val = 0;
 		char *vtype = NULL;
 		
 		
@@ -278,7 +278,7 @@ sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root)
 	return ret;
 }
 
-__native sys_sysinfo_valid(__native ptr, __native len)
+unative_t sys_sysinfo_valid(unative_t ptr, unative_t len)
 {
 	char *str;
 	sysinfo_rettype_t ret = {0, 0};
@@ -292,7 +292,7 @@ __native sys_sysinfo_valid(__native ptr, __native len)
 	return ret.valid;
 }
 
-__native sys_sysinfo_value(__native ptr, __native len)
+unative_t sys_sysinfo_value(unative_t ptr, unative_t len)
 {
 	char *str;
 	sysinfo_rettype_t ret = {0, 0};

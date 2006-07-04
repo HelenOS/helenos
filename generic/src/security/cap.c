@@ -94,7 +94,7 @@ cap_t cap_get(task_t *t)
  *
  * @return Zero on success or an error code from @ref errno.h.
  */
-__native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
+unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
 	sysarg64_t taskid_arg;
 	task_t *t;
@@ -102,11 +102,11 @@ __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	int rc;
 	
 	if (!(cap_get(TASK) & CAP_CAP))
-		return (__native) EPERM;
+		return (unative_t) EPERM;
 	
 	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
-		return (__native) rc;
+		return (unative_t) rc;
 		
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
@@ -114,7 +114,7 @@ __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	if (!t) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
-		return (__native) ENOENT;
+		return (unative_t) ENOENT;
 	}
 	
 	spinlock_lock(&t->lock);
@@ -139,7 +139,7 @@ __native sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
  *
  * @return Zero on success or an error code from @ref errno.h.
  */
-__native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
+unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
 	sysarg64_t taskid_arg;
 	task_t *t;
@@ -148,7 +148,7 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	
 	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
-		return (__native) rc;
+		return (unative_t) rc;
 
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);	
@@ -156,7 +156,7 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	if (!t) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
-		return (__native) ENOENT;
+		return (unative_t) ENOENT;
 	}
 
 	/*
@@ -167,7 +167,7 @@ __native sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	if (!(cap_get(TASK) & CAP_CAP) || !(t == TASK)) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
-		return (__native) EPERM;
+		return (unative_t) EPERM;
 	}
 	
 	spinlock_lock(&t->lock);

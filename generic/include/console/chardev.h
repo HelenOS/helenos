@@ -59,7 +59,7 @@ struct chardev {
 	
 	waitq_t wq;
 	SPINLOCK_DECLARE(lock);		/**< Protects everything below. */
-	__u8 buffer[CHARDEV_BUFLEN];
+	uint8_t buffer[CHARDEV_BUFLEN];
 	count_t counter;
 	chardev_operations_t *op;	/**< Implementation of chardev operations. */
 	index_t index;
@@ -69,7 +69,7 @@ struct chardev {
 extern void chardev_initialize(char *name,
 			       chardev_t *chardev, 
 			       chardev_operations_t *op);
-extern void chardev_push_character(chardev_t *chardev, __u8 ch);
+extern void chardev_push_character(chardev_t *chardev, uint8_t ch);
 
 #endif /* __CHARDEV_H__ */
 

@@ -164,7 +164,7 @@
 typedef struct answerbox_s answerbox_t;
 typedef struct phone_s phone_t;
 typedef struct {
-	__native args[IPC_CALL_LEN];
+	unative_t args[IPC_CALL_LEN];
 	phone_t *phone;
 }ipc_data_t;
 
@@ -214,13 +214,13 @@ typedef struct {
 	 */
 	answerbox_t *callerbox;
 
-	__native private; /**< Private data to internal IPC */
+	unative_t private; /**< Private data to internal IPC */
 
 	ipc_data_t data;  /**< Data passed from/to userspace */
 }call_t;
 
 extern void ipc_init(void);
-extern call_t * ipc_wait_for_call(answerbox_t *box, __u32 usec, int flags);
+extern call_t * ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags);
 extern void ipc_answer(answerbox_t *box, call_t *request);
 extern int ipc_call(phone_t *phone, call_t *call);
 extern void ipc_call_sync(phone_t *phone, call_t *request);
@@ -234,7 +234,7 @@ extern void task_print_list(void);
 extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
 void ipc_cleanup(void);
 int ipc_phone_hangup(phone_t *phone);
-extern void ipc_backsend_err(phone_t *phone, call_t *call, __native err);
+extern void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err);
 extern void ipc_print_task(task_id_t taskid);
 
 extern answerbox_t *ipc_phone_0;

@@ -76,7 +76,7 @@ struct lstar_msr {
 };
 
 extern void set_efer_flag(int flag);
-extern __u64 read_efer_flag(void);
+extern uint64_t read_efer_flag(void);
 void cpu_setup_fpu(void);
 
 #endif /* __ASM__ */

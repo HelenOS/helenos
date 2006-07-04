@@ -65,7 +65,7 @@ static phte_t *phte;
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access,
+static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 				     istate_t *istate, int *pfrc)
 {
 	/*
@@ -113,7 +113,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, in
 }
 
 
-static void pht_refill_fail(__address badvaddr, istate_t *istate)
+static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
 	char *symbol = "";
 	char *sym2 = "";
@@ -128,11 +128,11 @@ static void pht_refill_fail(__address badvaddr, istate_t *istate)
 }
 
 
-static void pht_insert(const __address vaddr, const pfn_t pfn)
+static void pht_insert(const uintptr_t vaddr, const pfn_t pfn)
 {
-	__u32 page = (vaddr >> 12) & 0xffff;
-	__u32 api = (vaddr >> 22) & 0x3f;
-	__u32 vsid;
+	uint32_t page = (vaddr >> 12) & 0xffff;
+	uint32_t api = (vaddr >> 22) & 0x3f;
+	uint32_t vsid;
 	
 	asm volatile (
 		"mfsrin %0, %1\n"
@@ -141,10 +141,10 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	);
 	
 	/* Primary hash (xor) */
-	__u32 h = 0;
-	__u32 hash = vsid ^ page;
-	__u32 base = (hash & 0x3ff) << 3;
-	__u32 i;
+	uint32_t h = 0;
+	uint32_t hash = vsid ^ page;
+	uint32_t base = (hash & 0x3ff) << 3;
+	uint32_t i;
 	bool found = false;
 	
 	/* Find unused or colliding
@@ -158,7 +158,7 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	
 	if (!found) {
 		/* Secondary hash (not) */
-		__u32 base2 = (~hash & 0x3ff) << 3;
+		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
 		/* Find unused or colliding
 		   PTE in PTEG */
@@ -196,7 +196,7 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
  */
 void pht_refill(bool data, istate_t *istate)
 {
-	__address badvaddr;
+	uintptr_t badvaddr;
 	pte_t *pte;
 	int pfrc;
 	as_t *as;
@@ -252,7 +252,7 @@ fail:
 
 void pht_init(void)
 {
-	memsetb((__address) phte, 1 << PHT_BITS, 0);
+	memsetb((uintptr_t) phte, 1 << PHT_BITS, 0);
 }
 
 
@@ -261,7 +261,7 @@ void page_arch_init(void)
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
 		
-		__address cur;
+		uintptr_t cur;
 		int flags;
 		
 		/* Frames below 128 MB are mapped using BAT,
@@ -276,24 +276,24 @@ void page_arch_init(void)
 		/* Allocate page hash table */
 		phte_t *physical_phte = (phte_t *) frame_alloc(PHT_ORDER, FRAME_KA | FRAME_ATOMIC);
 		
-		ASSERT((__address) physical_phte % (1 << PHT_BITS) == 0);
+		ASSERT((uintptr_t) physical_phte % (1 << PHT_BITS) == 0);
 		pht_init();
 		
 		asm volatile (
 			"mtsdr1 %0\n"
 			:
-			: "r" ((__address) physical_phte)
+			: "r" ((uintptr_t) physical_phte)
 		);
 	}
 }
 
 
-__address hw_map(__address physaddr, size_t size)
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
 		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
 	
-	__address virtaddr = PA2KA(last_frame);
+	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);

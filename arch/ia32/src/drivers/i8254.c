@@ -78,9 +78,9 @@ void i8254_normal_operation(void)
 #define SHIFT 11
 void i8254_calibrate_delay_loop(void)
 {
-	__u64 clk1, clk2;
-	__u32 t1, t2, o1, o2;
-	__u8 not_ok;
+	uint64_t clk1, clk2;
+	uint32_t t1, t2, o1, o2;
+	uint8_t not_ok;
 
 
 	/*

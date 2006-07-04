@@ -96,14 +96,14 @@ int elf_load(elf_header_t *header, as_t * as)
 
 	/* Walk through all segment headers and process them. */
 	for (i = 0; i < header->e_phnum; i++) {
-		rc = segment_header(&((elf_segment_header_t *)(((__u8 *) header) + header->e_phoff))[i], header, as);
+		rc = segment_header(&((elf_segment_header_t *)(((uint8_t *) header) + header->e_phoff))[i], header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
 
 	/* Inspect all section headers and proccess them. */
 	for (i = 0; i < header->e_shnum; i++) {
-		rc = section_header(&((elf_section_header_t *)(((__u8 *) header) + header->e_shoff))[i], header, as);
+		rc = section_header(&((elf_section_header_t *)(((uint8_t *) header) + header->e_shoff))[i], header, as);
 		if (rc != EE_OK)
 			return rc;
 	}

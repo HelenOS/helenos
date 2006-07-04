@@ -50,16 +50,16 @@
  * during function call
  */
 struct context {
-    __address sp;
-    __address pc;
+    uintptr_t sp;
+    uintptr_t pc;
     
-    __u64 rbx;
-    __u64 rbp;
+    uint64_t rbx;
+    uint64_t rbp;
 
-    __u64 r12;
-    __u64 r13;
-    __u64 r14;
-    __u64 r15;
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
 
     ipl_t ipl;
 } __attribute__ ((packed));

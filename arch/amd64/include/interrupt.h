@@ -70,26 +70,26 @@
 
 /** This is passed to interrupt handlers */
 struct istate {
-	__u64 rax;
-	__u64 rbx;
-	__u64 rcx;
-	__u64 rdx;
-	__u64 rsi;
-	__u64 rdi;
-	__u64 r8;
-	__u64 r9;
-	__u64 r10;
-	__u64 r11;
-	__u64 r12;
-	__u64 r13;
-	__u64 r14;
-	__u64 r15;
-	__u64 rbp;
-	__u64 error_word;
-	__u64 rip;
-	__u64 cs;
-	__u64 rflags;
-	__u64 stack[]; /* Additional data on stack */
+	uint64_t rax;
+	uint64_t rbx;
+	uint64_t rcx;
+	uint64_t rdx;
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t r8;
+	uint64_t r9;
+	uint64_t r10;
+	uint64_t r11;
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t rbp;
+	uint64_t error_word;
+	uint64_t rip;
+	uint64_t cs;
+	uint64_t rflags;
+	uint64_t stack[]; /* Additional data on stack */
 };
 
 /** Return true if exception happened while in userspace */
@@ -98,17 +98,17 @@ static inline int istate_from_uspace(istate_t *istate)
 	return !(istate->rip & 0x8000000000000000);
 }
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->rip = retaddr;
 }
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->rip;
 }
 
-extern void (* disable_irqs_function)(__u16 irqmask);
-extern void (* enable_irqs_function)(__u16 irqmask);
+extern void (* disable_irqs_function)(uint16_t irqmask);
+extern void (* enable_irqs_function)(uint16_t irqmask);
 extern void (* eoi_function)(void);
 
 extern void print_info_errcode(int n, istate_t *istate);
@@ -120,8 +120,8 @@ extern void page_fault(int n, istate_t *istate);
 extern void syscall(int n, istate_t *istate);
 extern void tlb_shootdown_ipi(int n, istate_t *istate);
 
-extern void trap_virtual_enable_irqs(__u16 irqmask);
-extern void trap_virtual_disable_irqs(__u16 irqmask);
+extern void trap_virtual_enable_irqs(uint16_t irqmask);
+extern void trap_virtual_disable_irqs(uint16_t irqmask);
 extern void trap_virtual_eoi(void);
 /* AMD64 - specific page handler */
 extern void ident_page_fault(int n, istate_t *istate);

@@ -53,8 +53,8 @@
  */
 
 SPINLOCK_INITIALIZE(egalock);
-static __u32 ega_cursor;
-static __u8 *videoram;
+static uint32_t ega_cursor;
+static uint8_t *videoram;
 
 static void ega_putchar(chardev_t *d, const char ch);
 
@@ -67,9 +67,9 @@ void ega_move_cursor(void);
 
 void ega_init(void)
 {
-	__u8 hi, lo;
+	uint8_t hi, lo;
 	
-	videoram = (__u8 *) hw_map(VIDEORAM, SCREEN * 2);
+	videoram = (uint8_t *) hw_map(VIDEORAM, SCREEN * 2);
 	outb(0x3d4, 0xe);
 	hi = inb(0x3d5);
 	outb(0x3d4, 0xf);
@@ -104,7 +104,7 @@ static void ega_check_cursor(void)
 		return;
 
 	memcpy((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
-	memsetw((__address) (videoram + (SCREEN - ROW) * 2), ROW, 0x0720);
+	memsetw((uintptr_t) (videoram + (SCREEN - ROW) * 2), ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 

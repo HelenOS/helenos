@@ -33,7 +33,7 @@
 void test(void)
 {
 	int retval;
-	__native nat = 0x12345678u;
+	unative_t nat = 0x12345678u;
 	
 	char buffer[BUFFER_SIZE];
 	
@@ -49,7 +49,7 @@ void test(void)
 	printf(" -int: d '%d', 3.2d '%3.2d', -3.2d '%-3.2d', 2.3d '%2.3d', -2.3d '%-2.3d' \n",-1, -1, -1, -1, -1 );
 	printf(" 0xint: x '%#x', 5.3x '%#5.3x', -5.3x '%#-5.3x', 3.5x '%#3.5x', -3.5x '%#-3.5x' \n",17, 17, 17, 17, 17 );
 
-	printf("'%#llx' 64bit, '%#x' 32bit, '%#hhx' 8bit, '%#hx' 16bit, __native '%#zx'. '%#llx' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, nat, 0x1234567887654321ull, "Lovely string" );
+	printf("'%#llx' 64bit, '%#x' 32bit, '%#hhx' 8bit, '%#hx' 16bit, unative_t '%#zx'. '%#llx' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, nat, 0x1234567887654321ull, "Lovely string" );
 	
 	printf(" Print to NULL '%s'\n",NULL);
 

@@ -46,9 +46,9 @@
 #include <arch/asm.h>
 #include <memstr.h>
 
-static void pt_mapping_insert(as_t *as, __address page, __address frame, int flags);
-static void pt_mapping_remove(as_t *as, __address page);
-static pte_t *pt_mapping_find(as_t *as, __address page);
+static void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+static void pt_mapping_remove(as_t *as, uintptr_t page);
+static pte_t *pt_mapping_find(as_t *as, uintptr_t page);
 
 page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
@@ -68,16 +68,16 @@ page_mapping_operations_t pt_mapping_operations = {
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
  */
-void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
+void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	pte_t *newpt;
 
-	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
-		memsetb((__address)newpt, PAGE_SIZE, 0);
+		memsetb((uintptr_t)newpt, PAGE_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -86,7 +86,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
-		memsetb((__address)newpt, PAGE_SIZE, 0);
+		memsetb((uintptr_t)newpt, PAGE_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -95,7 +95,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
 
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
-		memsetb((__address)newpt, PAGE_SIZE, 0);
+		memsetb((uintptr_t)newpt, PAGE_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
@@ -119,7 +119,7 @@ void pt_mapping_insert(as_t *as, __address page, __address frame, int flags)
  * @param as Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
  */
-void pt_mapping_remove(as_t *as, __address page)
+void pt_mapping_remove(as_t *as, uintptr_t page)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	bool empty = true;
@@ -129,7 +129,7 @@ void pt_mapping_remove(as_t *as, __address page)
 	 * First, remove the mapping, if it exists.
 	 */
 
-	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return;
@@ -147,7 +147,7 @@ void pt_mapping_remove(as_t *as, __address page)
 	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 
 	/* Destroy the mapping. Setting to PAGE_NOT_PRESENT is not sufficient. */
-	memsetb((__address) &ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
+	memsetb((uintptr_t) &ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
 
 	/*
 	 * Second, free all empty tables along the way from PTL3 down to PTL0.
@@ -165,13 +165,13 @@ void pt_mapping_remove(as_t *as, __address page)
 		 * PTL3 is empty.
 		 * Release the frame and remove PTL3 pointer from preceding table.
 		 */
-		frame_free(KA2PA((__address) ptl3));
+		frame_free(KA2PA((uintptr_t) ptl3));
 		if (PTL2_ENTRIES)
-			memsetb((__address) &ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
+			memsetb((uintptr_t) &ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
 		else if (PTL1_ENTRIES)
-			memsetb((__address) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+			memsetb((uintptr_t) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
 		else
-			memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+			memsetb((uintptr_t) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 	} else {
 		/*
 		 * PTL3 is not empty.
@@ -194,11 +194,11 @@ void pt_mapping_remove(as_t *as, __address page)
 			 * PTL2 is empty.
 			 * Release the frame and remove PTL2 pointer from preceding table.
 			 */
-			frame_free(KA2PA((__address) ptl2));
+			frame_free(KA2PA((uintptr_t) ptl2));
 			if (PTL1_ENTRIES)
-				memsetb((__address) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+				memsetb((uintptr_t) &ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
 			else
-				memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+				memsetb((uintptr_t) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 		}
 		else {
 			/*
@@ -223,8 +223,8 @@ void pt_mapping_remove(as_t *as, __address page)
 			 * PTL1 is empty.
 			 * Release the frame and remove PTL1 pointer from preceding table.
 			 */
-			frame_free(KA2PA((__address) ptl1));
-			memsetb((__address) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+			frame_free(KA2PA((uintptr_t) ptl1));
+			memsetb((uintptr_t) &ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 		}
 	}
 
@@ -241,11 +241,11 @@ void pt_mapping_remove(as_t *as, __address page)
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
  */
-pte_t *pt_mapping_find(as_t *as, __address page)
+pte_t *pt_mapping_find(as_t *as, uintptr_t page)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 
-	ptl0 = (pte_t *) PA2KA((__address) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;

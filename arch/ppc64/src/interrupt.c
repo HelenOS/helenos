@@ -65,7 +65,7 @@ void interrupt_init(void)
 
 
 /* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
+void irq_ipc_bind_arch(unative_t irq)
 {
 	panic("not implemented\n");
 	/* TODO */

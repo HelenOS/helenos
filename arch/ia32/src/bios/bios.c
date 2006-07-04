@@ -35,12 +35,12 @@
 #include <arch/bios/bios.h>
 #include <arch/types.h>
 
-__address ebda = 0;
+uintptr_t ebda = 0;
 
 void bios_init(void)
 {
 	/* Copy the EBDA address out from BIOS Data Area */
-	ebda = *((__u16 *) BIOS_EBDA_PTR) * 0x10;
+	ebda = *((uint16_t *) BIOS_EBDA_PTR) * 0x10;
 }
 
  /** @}

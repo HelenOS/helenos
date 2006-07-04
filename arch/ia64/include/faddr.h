@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_FADDR_H__
-#define __ia64_FADDR_H__
+#ifndef KERN_ia64_FADDR_H_
+#define KERN_ia64_FADDR_H_
 
 #include <arch/types.h>
 
@@ -45,10 +45,9 @@
  * @param f Function pointer.
  *
  */
-#define FADDR(f)	 (*((__address *)(f)));
+#define FADDR(f)	 (*((uintptr_t *)(f)));
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -56,10 +56,10 @@
 /* RSE stack starts at the bottom of memory stack. */
 #define context_set(c, _pc, stack, size)								\
 	do {												\
-		(c)->pc = (__address) _pc;								\
-		(c)->bsp = ((__address) stack) + ALIGN_UP((size), REGISTER_STACK_ALIGNMENT);		\
+		(c)->pc = (uintptr_t) _pc;								\
+		(c)->bsp = ((uintptr_t) stack) + ALIGN_UP((size), REGISTER_STACK_ALIGNMENT);		\
 		(c)->ar_pfs &= PFM_MASK; 								\
-		(c)->sp = ((__address) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
+		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
 	} while (0);
 
 /*
@@ -71,39 +71,39 @@ struct context {
 	/*
 	 * Application registers
 	 */
-	__u64 ar_pfs;
-	__u64 ar_unat_caller;
-	__u64 ar_unat_callee;
-	__u64 ar_rsc;
-	__address bsp;		/* ar_bsp */
-	__u64 ar_rnat;
-	__u64 ar_lc;
+	uint64_t ar_pfs;
+	uint64_t ar_unat_caller;
+	uint64_t ar_unat_callee;
+	uint64_t ar_rsc;
+	uintptr_t bsp;		/* ar_bsp */
+	uint64_t ar_rnat;
+	uint64_t ar_lc;
 
 	/*
 	 * General registers
 	 */
-	__u64 r1;
-	__u64 r4;
-	__u64 r5;
-	__u64 r6;
-	__u64 r7;
-	__address sp;		/* r12 */
-	__u64 r13;
+	uint64_t r1;
+	uint64_t r4;
+	uint64_t r5;
+	uint64_t r6;
+	uint64_t r7;
+	uintptr_t sp;		/* r12 */
+	uint64_t r13;
 	
 	/*
 	 * Branch registers
 	 */
-	__address pc;		/* b0 */
-	__u64 b1;
-	__u64 b2;
-	__u64 b3;
-	__u64 b4;
-	__u64 b5;
+	uintptr_t pc;		/* b0 */
+	uint64_t b1;
+	uint64_t b2;
+	uint64_t b3;
+	uint64_t b4;
+	uint64_t b5;
 
 	/*
 	 * Predicate registers
 	 */
-	__u64 pr;
+	uint64_t pr;
 
 	__r128 f2 __attribute__ ((aligned(16)));
 	__r128 f3;

@@ -52,7 +52,7 @@
 
 /** Portion of TLB insertion format data structure. */
 union tlb_entry {
-	__u64 word[2];
+	uint64_t word[2];
 	struct {
 		/* Word 0 */
 		unsigned p : 1;			/**< Present. */
@@ -76,27 +76,27 @@ union tlb_entry {
 } __attribute__ ((packed));
 typedef union tlb_entry tlb_entry_t;
 
-extern void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc);
-extern void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry);
-extern void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry);
+extern void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc);
+extern void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);
+extern void itc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);
 
-extern void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr);
-extern void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
-extern void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr);
+extern void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr);
+extern void dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr);
+extern void itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr);
 
-extern void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index_t tr);
-extern void dtr_purge(__address page, count_t width);
+extern void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index_t tr);
+extern void dtr_purge(uintptr_t page, count_t width);
 
 extern void dtc_pte_copy(pte_t *t);
 extern void itc_pte_copy(pte_t *t);
 
-extern void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate);
-extern void alternate_data_tlb_fault(__u64 vector, istate_t *istate);
-extern void data_nested_tlb_fault(__u64 vector, istate_t *istate);
-extern void data_dirty_bit_fault(__u64 vector, istate_t *istate);
-extern void instruction_access_bit_fault(__u64 vector, istate_t *istate);
-extern void data_access_bit_fault(__u64 vector, istate_t *istate);
-extern void page_not_present(__u64 vector, istate_t *istate);
+extern void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate);
+extern void alternate_data_tlb_fault(uint64_t vector, istate_t *istate);
+extern void data_nested_tlb_fault(uint64_t vector, istate_t *istate);
+extern void data_dirty_bit_fault(uint64_t vector, istate_t *istate);
+extern void instruction_access_bit_fault(uint64_t vector, istate_t *istate);
+extern void data_access_bit_fault(uint64_t vector, istate_t *istate);
+extern void page_not_present(uint64_t vector, istate_t *istate);
 
 #endif
 

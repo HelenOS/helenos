@@ -53,7 +53,7 @@ struct semaphore
 	_semaphore_down_timeout((s),(usec),SYNCH_FLAGS_NONE)
 
 extern void semaphore_initialize(semaphore_t *s, int val);
-extern int _semaphore_down_timeout(semaphore_t *s, __u32 usec, int flags);
+extern int _semaphore_down_timeout(semaphore_t *s, uint32_t usec, int flags);
 extern void semaphore_up(semaphore_t *s);
 
 #endif

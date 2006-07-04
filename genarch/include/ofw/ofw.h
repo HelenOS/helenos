@@ -39,7 +39,7 @@
 
 #define MAX_OFW_ARGS	10
 
-typedef __native ofw_arg_t;
+typedef unative_t ofw_arg_t;
 typedef int ihandle;
 typedef int phandle;
 
@@ -48,8 +48,8 @@ typedef int phandle;
  */
 typedef struct {
 	const char *service;          /**< Command name */
-	__native nargs;               /**< Number of in arguments */
-	__native nret;                /**< Number of out arguments */
+	unative_t nargs;               /**< Number of in arguments */
+	unative_t nret;                /**< Number of out arguments */
 	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
 } ofw_args_t;
 
@@ -59,7 +59,7 @@ extern ofw_entry ofw;
 
 extern void ofw_init(void);
 extern void ofw_done(void);
-extern __native ofw_call(const char *service, const int nargs, const int nret, ...);
+extern unative_t ofw_call(const char *service, const int nargs, const int nret, ...);
 extern void ofw_putchar(const char ch);
 extern char ofw_getchar(void);
 extern phandle ofw_find_device(const char *name);

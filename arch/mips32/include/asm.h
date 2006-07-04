@@ -52,9 +52,9 @@ static inline void cpu_sleep(void)
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__address v;
+	uintptr_t v;
 	
 	__asm__ volatile ("and %0, $29, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
@@ -62,9 +62,9 @@ static inline __address get_stack_base(void)
 }
 
 extern void cpu_halt(void);
-extern void asm_delay_loop(__u32 t);
-extern void userspace_asm(__address ustack, __address uspace_uarg,
-			  __address entry);
+extern void asm_delay_loop(uint32_t t);
+extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
+			  uintptr_t entry);
 
 #endif
 

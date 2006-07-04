@@ -140,34 +140,34 @@ struct idescriptor {
 typedef struct idescriptor idescriptor_t;
 
 struct ptr_16_64 {
-	__u16 limit;
-	__u64 base;
+	uint16_t limit;
+	uint64_t base;
 } __attribute__ ((packed));
 typedef struct ptr_16_64 ptr_16_64_t;
 
 struct ptr_16_32 {
-	__u16 limit;
-	__u32 base;
+	uint16_t limit;
+	uint32_t base;
 } __attribute__ ((packed));
 typedef struct ptr_16_32 ptr_16_32_t;
 
 struct tss {
-	__u32 reserve1;
-	__u64 rsp0;
-	__u64 rsp1;
-	__u64 rsp2;
-	__u64 reserve2;
-	__u64 ist1;
-	__u64 ist2;
-	__u64 ist3;
-	__u64 ist4;
-	__u64 ist5;
-	__u64 ist6;
-	__u64 ist7;
-	__u64 reserve3;
-	__u16 reserve4;
-	__u16 iomap_base;
-	__u8 iomap[TSS_IOMAP_SIZE];
+	uint32_t reserve1;
+	uint64_t rsp0;
+	uint64_t rsp1;
+	uint64_t rsp2;
+	uint64_t reserve2;
+	uint64_t ist1;
+	uint64_t ist2;
+	uint64_t ist3;
+	uint64_t ist4;
+	uint64_t ist5;
+	uint64_t ist6;
+	uint64_t ist7;
+	uint64_t reserve3;
+	uint16_t reserve4;
+	uint16_t iomap_base;
+	uint8_t iomap[TSS_IOMAP_SIZE];
 } __attribute__ ((packed));
 typedef struct tss tss_t;
 
@@ -182,11 +182,11 @@ extern ptr_16_32_t protected_ap_gdtr;
 
 extern void pm_init(void);
 
-extern void gdt_tss_setbase(descriptor_t *d, __address base);
-extern void gdt_tss_setlimit(descriptor_t *d, __u32 limit);
+extern void gdt_tss_setbase(descriptor_t *d, uintptr_t base);
+extern void gdt_tss_setlimit(descriptor_t *d, uint32_t limit);
 
 extern void idt_init(void);
-extern void idt_setoffset(idescriptor_t *d, __address offset);
+extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
 
 extern void tss_initialize(tss_t *t);
 

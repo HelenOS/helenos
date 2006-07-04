@@ -58,7 +58,7 @@
  * Some simulators can print only through kernel. Userspace can use
  * this syscall to facilitate it.
  */
-static __native sys_io(int fd, const void * buf, size_t count) 
+static unative_t sys_io(int fd, const void * buf, size_t count) 
 {
 	size_t i;
 	char *data;
@@ -85,17 +85,17 @@ static __native sys_io(int fd, const void * buf, size_t count)
 }
 
 /** Tell kernel to get keyboard/console access again */
-static __native sys_debug_enable_console(void)
+static unative_t sys_debug_enable_console(void)
 {
 	arch_grab_console();
 	return 0;
 }
 
 /** Dispatch system call */
-__native syscall_handler(__native a1, __native a2, __native a3,
-			 __native a4, __native id)
+unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
+			 unative_t a4, unative_t id)
 {
-	__native rc;
+	unative_t rc;
 
 	if (id < SYSCALL_END)
 		rc = syscall_table[id](a1,a2,a3,a4);

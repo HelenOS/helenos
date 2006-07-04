@@ -44,9 +44,9 @@
  *
  * @return Value of PSTATE register.
  */
-static inline __u64 pstate_read(void)
+static inline uint64_t pstate_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%pstate, %0\n" : "=r" (v));
 	
@@ -57,7 +57,7 @@ static inline __u64 pstate_read(void)
  *
  * @param v New value of PSTATE register.
  */
-static inline void pstate_write(__u64 v)
+static inline void pstate_write(uint64_t v)
 {
 	__asm__ volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
 }
@@ -66,9 +66,9 @@ static inline void pstate_write(__u64 v)
  *
  * @return Value of TICK_comapre register.
  */
-static inline __u64 tick_compare_read(void)
+static inline uint64_t tick_compare_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rd %%tick_cmpr, %0\n" : "=r" (v));
 	
@@ -79,7 +79,7 @@ static inline __u64 tick_compare_read(void)
  *
  * @param v New value of TICK_comapre register.
  */
-static inline void tick_compare_write(__u64 v)
+static inline void tick_compare_write(uint64_t v)
 {
 	__asm__ volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
 }
@@ -88,9 +88,9 @@ static inline void tick_compare_write(__u64 v)
  *
  * @return Value of TICK register.
  */
-static inline __u64 tick_read(void)
+static inline uint64_t tick_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%tick, %0\n" : "=r" (v));
 	
@@ -101,7 +101,7 @@ static inline __u64 tick_read(void)
  *
  * @param v New value of TICK register.
  */
-static inline void tick_write(__u64 v)
+static inline void tick_write(uint64_t v)
 {
 	__asm__ volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
 }
@@ -110,9 +110,9 @@ static inline void tick_write(__u64 v)
  *
  * @return Value of SOFTINT register.
  */
-static inline __u64 softint_read(void)
+static inline uint64_t softint_read(void)
 {
-	__u64 v;
+	uint64_t v;
 
 	__asm__ volatile ("rd %%softint, %0\n" : "=r" (v));
 
@@ -123,7 +123,7 @@ static inline __u64 softint_read(void)
  *
  * @param v New value of SOFTINT register.
  */
-static inline void softint_write(__u64 v)
+static inline void softint_write(uint64_t v)
 {
 	__asm__ volatile ("wr %0, %1, %%softint\n" : : "r" (v), "i" (0));
 }
@@ -134,7 +134,7 @@ static inline void softint_write(__u64 v)
  *
  * @param v New value of CLEAR_SOFTINT register.
  */
-static inline void clear_softint_write(__u64 v)
+static inline void clear_softint_write(uint64_t v)
 {
 	__asm__ volatile ("wr %0, %1, %%clear_softint\n" : : "r" (v), "i" (0));
 }
@@ -148,7 +148,7 @@ static inline void clear_softint_write(__u64 v)
  */
 static inline ipl_t interrupts_enable(void) {
 	pstate_reg_t pstate;
-	__u64 value;
+	uint64_t value;
 	
 	value = pstate_read();
 	pstate.value = value;
@@ -167,7 +167,7 @@ static inline ipl_t interrupts_enable(void) {
  */
 static inline ipl_t interrupts_disable(void) {
 	pstate_reg_t pstate;
-	__u64 value;
+	uint64_t value;
 	
 	value = pstate_read();
 	pstate.value = value;
@@ -207,9 +207,9 @@ static inline ipl_t interrupts_read(void) {
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__address v;
+	uintptr_t v;
 	
 	__asm__ volatile ("and %%sp, %1, %0\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
@@ -220,9 +220,9 @@ static inline __address get_stack_base(void)
  *
  * @return Value of VER register.
  */
-static inline __u64 ver_read(void)
+static inline uint64_t ver_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%ver, %0\n" : "=r" (v));
 	
@@ -233,9 +233,9 @@ static inline __u64 ver_read(void)
  *
  * @return Current value in TBA.
  */
-static inline __u64 tba_read(void)
+static inline uint64_t tba_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%tba, %0\n" : "=r" (v));
 	
@@ -246,9 +246,9 @@ static inline __u64 tba_read(void)
  *
  * @return Current value in TPC.
  */
-static inline __u64 tpc_read(void)
+static inline uint64_t tpc_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%tpc, %0\n" : "=r" (v));
 	
@@ -259,9 +259,9 @@ static inline __u64 tpc_read(void)
  *
  * @return Current value in TL.
  */
-static inline __u64 tl_read(void)
+static inline uint64_t tl_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%tl, %0\n" : "=r" (v));
 	
@@ -272,34 +272,34 @@ static inline __u64 tl_read(void)
  *
  * @param v New value of TBA.
  */
-static inline void tba_write(__u64 v)
+static inline void tba_write(uint64_t v)
 {
 	__asm__ volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
 }
 
-/** Load __u64 from alternate space.
+/** Load uint64_t from alternate space.
  *
  * @param asi ASI determining the alternate space.
  * @param va Virtual address within the ASI.
  *
  * @return Value read from the virtual address in the specified address space.
  */
-static inline __u64 asi_u64_read(asi_t asi, __address va)
+static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" (asi));
 	
 	return v;
 }
 
-/** Store __u64 to alternate space.
+/** Store uint64_t to alternate space.
  *
  * @param asi ASI determining the alternate space.
  * @param va Virtual address within the ASI.
  * @param v Value to be written.
  */
-static inline void asi_u64_write(asi_t asi, __address va, __u64 v)
+static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
 	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
 }
@@ -308,7 +308,7 @@ static inline void asi_u64_write(asi_t asi, __address va, __u64 v)
 
 void cpu_halt(void);
 void cpu_sleep(void);
-void asm_delay_loop(__u32 t);
+void asm_delay_loop(uint32_t t);
 
 #endif
 

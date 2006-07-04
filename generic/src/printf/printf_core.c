@@ -88,9 +88,9 @@ static inline int isdigit(int c)
  * @param str Pointer to valid string.
  * @return string length without trailing zero.
  */
-static __native strlen(const char *str) 
+static unative_t strlen(const char *str) 
 {
-	__native counter = 0;
+	unative_t counter = 0;
 
 	while (str[counter] != 0) {
 		counter++;
@@ -146,7 +146,7 @@ static int printf_putchar(int c, struct printf_spec *ps)
  * @param flags
  * @return number of printed characters, negative value on fail
  */
-static int print_char(char c, int width, __u64 flags, struct printf_spec *ps)
+static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
 {
 	int counter = 0;
 	
@@ -176,7 +176,7 @@ static int print_char(char c, int width, __u64 flags, struct printf_spec *ps)
  * @return number of printed characters or negative value on fail
  */
 						
-static int print_string(char *s, int width, int precision, __u64 flags, struct printf_spec *ps)
+static int print_string(char *s, int width, int precision, uint64_t flags, struct printf_spec *ps)
 {
 	int counter = 0;
 	size_t size;
@@ -236,7 +236,7 @@ static int print_string(char *s, int width, int precision, __u64 flags, struct p
  * @return number of written characters or EOF
  *
  */
-static int print_number(__u64 num, int width, int precision, int base , __u64 flags, struct printf_spec *ps)
+static int print_number(uint64_t num, int width, int precision, int base , uint64_t flags, struct printf_spec *ps)
 {
 	char *digits = digits_small;
 	char d[PRINT_NUMBER_BUFFER_SIZE];	/* this is good enough even for base == 2, prefix and sign */
@@ -427,7 +427,7 @@ static int print_number(__u64 num, int width, int precision, int base , __u64 fl
  * 	- ""	Signed or usigned int (default value).@n
  * 	- "l"	Signed or usigned long int.@n
  * 	- "ll"	Signed or usigned long long int.@n
- * 	- "z"	__native (non-standard extension).@n
+ * 	- "z"	unative_t (non-standard extension).@n
  * 
  * 
  * CONVERSION:@n
@@ -466,10 +466,10 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 	char c;
 	qualifier_t qualifier;	/* type of argument */
 	int base;	/**< base in which will be parameter (numbers only) printed */
-	__u64 number; /**< argument value */
+	uint64_t number; /**< argument value */
 	size_t	size; /**< byte size of integer parameter */
 	int width, precision;
-	__u64 flags;
+	uint64_t flags;
 	
 	counter = 0;
 	
@@ -562,7 +562,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 						qualifier = PrintfQualifierLongLong;
 					}
 					break;
-				case 'z':	/* __native */
+				case 'z':	/* unative_t */
 					qualifier = PrintfQualifierNative;
 					break;
 				default:
@@ -644,31 +644,31 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			switch (qualifier) {
 				case PrintfQualifierByte:
 					size = sizeof(unsigned char);
-					number = (__u64)va_arg(ap, unsigned int);
+					number = (uint64_t)va_arg(ap, unsigned int);
 					break;
 				case PrintfQualifierShort:
 					size = sizeof(unsigned short);
-					number = (__u64)va_arg(ap, unsigned int);
+					number = (uint64_t)va_arg(ap, unsigned int);
 					break;
 				case PrintfQualifierInt:
 					size = sizeof(unsigned int);
-					number = (__u64)va_arg(ap, unsigned int);
+					number = (uint64_t)va_arg(ap, unsigned int);
 					break;
 				case PrintfQualifierLong:
 					size = sizeof(unsigned long);
-					number = (__u64)va_arg(ap, unsigned long);
+					number = (uint64_t)va_arg(ap, unsigned long);
 					break;
 				case PrintfQualifierLongLong:
 					size = sizeof(unsigned long long);
-					number = (__u64)va_arg(ap, unsigned long long);
+					number = (uint64_t)va_arg(ap, unsigned long long);
 					break;
 				case PrintfQualifierPointer:
 					size = sizeof(void *);
-					number = (__u64)(unsigned long)va_arg(ap, void *);
+					number = (uint64_t)(unsigned long)va_arg(ap, void *);
 					break;
 				case PrintfQualifierNative:
-					size = sizeof(__native);
-					number = (__u64)va_arg(ap, __native);
+					size = sizeof(unative_t);
+					number = (uint64_t)va_arg(ap, unative_t);
 					break;
 				default: /* Unknown qualifier */
 					counter = -counter;
@@ -679,8 +679,8 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				if (number & (0x1 << (size*8 - 1))) {
 					flags |= __PRINTF_FLAG_NEGATIVE;
 				
-					if (size == sizeof(__u64)) {
-						number = -((__s64)number);
+					if (size == sizeof(uint64_t)) {
+						number = -((int64_t)number);
 					} else {
 						number = ~number;
 						number &= (~((0xFFFFFFFFFFFFFFFFll) <<  (size * 8)));
@@ -703,7 +703,7 @@ next_char:
 	}
 	
 	if (i > j) {
-		if ((retval = printf_putnchars(&fmt[j], (__native)(i - j), ps)) < 0) { /* error */
+		if ((retval = printf_putnchars(&fmt[j], (unative_t)(i - j), ps)) < 0) { /* error */
 			counter = -counter;
 			goto out;
 			

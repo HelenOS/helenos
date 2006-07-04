@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
@@ -37,36 +37,37 @@
 
 #define NULL	0
 
-typedef signed char __s8;
-typedef signed short int __s16;
-typedef signed int __s32;
-typedef signed long __s64;
+typedef signed char int8_t;
+typedef signed short int int16_t;
+typedef signed int int32_t;
+typedef signed long int64_t;
 
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned int __u32;
-typedef unsigned long __u64;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
 
-
-typedef unsigned char __r8; 			/*Reserve byte*/
+typedef unsigned char __r8; 			/* Reserve byte */
 typedef unsigned short __r16;
 typedef unsigned int __r32;
 typedef unsigned long __r64;
-typedef struct __r128{__r64 lo;__r64 hi;} __r128;
+typedef struct __r128 {
+	__r64 lo;
+	__r64 hi;
+} __r128;
 
+typedef uint64_t uintptr_t;
+typedef uint64_t pfn_t;
 
-typedef __u64 __address;
-typedef __u64 pfn_t;
+typedef uint64_t ipl_t;
 
-typedef __u64 ipl_t;
-
-typedef __u64 __native;
-typedef __s64 __snative;
+typedef uint64_t unative_t;
+typedef int64_t native_t;
 
 typedef struct pte pte_t;
 
 #endif
 
- /** @}
+/** @}
  */
 

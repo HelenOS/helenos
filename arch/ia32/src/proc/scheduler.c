@@ -58,7 +58,7 @@ void before_task_runs_arch(void)
  */
 void before_thread_runs_arch(void)
 {
-	CPU->arch.tss->esp0 = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+	CPU->arch.tss->esp0 = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
 
 	/* Set up TLS in GS register */

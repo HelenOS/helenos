@@ -282,7 +282,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_enable(void)
 {
-		__u64 a = 0 ;
+		uint64_t a = 0 ;
 		asm volatile(
 			"rsm %0;;"
 			"srlz.i\n"
@@ -304,7 +304,7 @@ void fpu_enable(void)
 void fpu_disable(void)
 {
 
-		__u64 a = 0 ;
+		uint64_t a = 0 ;
 		asm volatile(
 			"ssm %0;;\n"
 			"srlz.i\n"
@@ -325,7 +325,7 @@ void fpu_disable(void)
 
 void fpu_init(void)
 {
-		__u64 a = 0 ;
+		uint64_t a = 0 ;
 		asm volatile
 		(
 			"mov %0=ar.fpsr;;\n"

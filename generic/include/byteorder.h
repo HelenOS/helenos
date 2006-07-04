@@ -35,7 +35,7 @@
 #ifndef __BYTEORDER_H__
 #define __BYTEORDER_H__
 
-static inline __u64 __u64_byteorder_swap(__u64 n)
+static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {
 	return ((n & 0xff) << 56) |
 		((n & 0xff00) << 40) |
@@ -47,7 +47,7 @@ static inline __u64 __u64_byteorder_swap(__u64 n)
 		((n & 0xff00000000000000LL) >> 56);
 }
 
-static inline __u32 __u32_byteorder_swap(__u32 n)
+static inline uint32_t uint32_t_byteorder_swap(uint32_t n)
 {
 	return ((n & 0xff) << 24) |
 		((n & 0xff00) << 8) |

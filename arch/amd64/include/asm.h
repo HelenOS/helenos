@@ -39,8 +39,8 @@
 #include <arch/types.h>
 #include <config.h>
 
-extern void asm_delay_loop(__u32 t);
-extern void asm_fake_loop(__u32 t);
+extern void asm_delay_loop(uint32_t t);
+extern void asm_fake_loop(uint32_t t);
 
 /** Return base address of current stack.
  *
@@ -48,11 +48,11 @@ extern void asm_fake_loop(__u32 t);
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__address v;
+	uintptr_t v;
 	
-	__asm__ volatile ("andq %%rsp, %0\n" : "=r" (v) : "0" (~((__u64)STACK_SIZE-1)));
+	__asm__ volatile ("andq %%rsp, %0\n" : "=r" (v) : "0" (~((uint64_t)STACK_SIZE-1)));
 	
 	return v;
 }
@@ -68,7 +68,7 @@ static inline void cpu_halt(void) { __asm__ volatile ("hlt\n"); };
  * @param port Port to read from
  * @return Value read
  */
-static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
 
 /** Byte to port
  *
@@ -77,7 +77,7 @@ static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outb(uint16_t port, uint8_t val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Swap Hidden part of GS register with visible one */
 static inline void swapgs(void) { __asm__ volatile("swapgs"); }
@@ -149,23 +149,23 @@ static inline ipl_t interrupts_read(void) {
 }
 
 /** Write to MSR */
-static inline void write_msr(__u32 msr, __u64 value)
+static inline void write_msr(uint32_t msr, uint64_t value)
 {
 	__asm__ volatile (
 		"wrmsr;" : : "c" (msr), 
-		"a" ((__u32)(value)),
-		"d" ((__u32)(value >> 32))
+		"a" ((uint32_t)(value)),
+		"d" ((uint32_t)(value >> 32))
 		);
 }
 
-static inline __native read_msr(__u32 msr)
+static inline unative_t read_msr(uint32_t msr)
 {
-	__u32 ax, dx;
+	uint32_t ax, dx;
 
 	__asm__ volatile (
 		"rdmsr;" : "=a"(ax), "=d"(dx) : "c" (msr)
 		);
-	return ((__u64)dx << 32) | ax;
+	return ((uint64_t)dx << 32) | ax;
 }
 
 
@@ -187,9 +187,9 @@ static inline void enable_l_apic_in_msr()
 		);
 }
 
-static inline __address * get_ip() 
+static inline uintptr_t * get_ip() 
 {
-	__address *ip;
+	uintptr_t *ip;
 
 	__asm__ volatile (
 		"mov %%rip, %0"
@@ -202,9 +202,9 @@ static inline __address * get_ip()
  *
  * @param addr Address on a page whose TLB entry is to be invalidated.
  */
-static inline void invlpg(__address addr)
+static inline void invlpg(uintptr_t addr)
 {
-	__asm__ volatile ("invlpg %0\n" :: "m" (*((__native *)addr)));
+	__asm__ volatile ("invlpg %0\n" :: "m" (*((unative_t *)addr)));
 }
 
 /** Load GDTR register from memory.
@@ -238,19 +238,19 @@ static inline void idtr_load(struct ptr_16_64 *idtr_reg)
  *
  * @param sel Selector specifying descriptor of TSS segment.
  */
-static inline void tr_load(__u16 sel)
+static inline void tr_load(uint16_t sel)
 {
 	__asm__ volatile ("ltr %0" : : "r" (sel));
 }
 
-#define GEN_READ_REG(reg) static inline __native read_ ##reg (void) \
+#define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
     { \
-	__native res; \
+	unative_t res; \
 	__asm__ volatile ("movq %%" #reg ", %0" : "=r" (res) ); \
 	return res; \
     }
 
-#define GEN_WRITE_REG(reg) static inline void write_ ##reg (__native regn) \
+#define GEN_WRITE_REG(reg) static inline void write_ ##reg (unative_t regn) \
     { \
 	__asm__ volatile ("movq %0, %%" #reg : : "r" (regn)); \
     }

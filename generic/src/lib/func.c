@@ -148,7 +148,7 @@ void strncpy(char *dest, const char *src, size_t len)
 	dest[i-1] = '\0';
 }
 
-/** Convert ascii representation to __native
+/** Convert ascii representation to unative_t
  *
  * Supports 0x for hexa & 0 for octal notation.
  * Does not check for overflows, does not support negative numbers
@@ -156,10 +156,10 @@ void strncpy(char *dest, const char *src, size_t len)
  * @param text Textual representation of number
  * @return Converted number or 0 if no valid number ofund 
  */
-__native atoi(const char *text)
+unative_t atoi(const char *text)
 {
 	int base = 10;
-	__native result = 0;
+	unative_t result = 0;
 
 	if (text[0] == '0' && text[1] == 'x') {
 		base = 16;

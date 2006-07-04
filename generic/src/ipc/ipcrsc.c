@@ -138,7 +138,7 @@
  * TODO: Some speedup (hash table?)
  * @return NULL on not found, otherwise pointer to call structure
  */
-call_t * get_call(__native callid)
+call_t * get_call(unative_t callid)
 {
 	link_t *lst;
 	call_t *call, *result = NULL;
@@ -147,7 +147,7 @@ call_t * get_call(__native callid)
 	for (lst = TASK->answerbox.dispatched_calls.next;
 	     lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
 		call = list_get_instance(lst, call_t, link);
-		if ((__native)call == callid) {
+		if ((unative_t)call == callid) {
 			result = call;
 			break;
 		}

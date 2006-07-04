@@ -42,8 +42,8 @@
 
 void test(void)
 {
-	__address frame0, frame1;
-	__u32 v0, v1;
+	uintptr_t frame0, frame1;
+	uint32_t v0, v1;
 
 	printf("Memory management test mapping #1\n");
 
@@ -51,31 +51,31 @@ void test(void)
 	frame1 = frame_alloc(ONE_FRAME, FRAME_KA);
 
 	printf("Writing %#x to physical address %p.\n", VALUE0, KA2PA(frame0));
-	*((__u32 *) frame0) = VALUE0;
+	*((uint32_t *) frame0) = VALUE0;
 	printf("Writing %#x to physical address %p.\n", VALUE1, KA2PA(frame1));
-	*((__u32 *) frame1) = VALUE1;
+	*((uint32_t *) frame1) = VALUE1;
 	
 	printf("Mapping virtual address %p to physical address %p.\n", PAGE0, KA2PA(frame0));
 	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE);
 	printf("Mapping virtual address %p to physical address %p.\n", PAGE1, KA2PA(frame1));	
 	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
 	
-	printf("Value at virtual address %p is %#x.\n", PAGE0, v0 = *((__u32 *) PAGE0));
-	printf("Value at virtual address %p is %#x.\n", PAGE1, v1 = *((__u32 *) PAGE1));
+	printf("Value at virtual address %p is %#x.\n", PAGE0, v0 = *((uint32_t *) PAGE0));
+	printf("Value at virtual address %p is %#x.\n", PAGE1, v1 = *((uint32_t *) PAGE1));
 	
 	ASSERT(v0 == VALUE0);
 	ASSERT(v1 == VALUE1);
 
 	printf("Writing %#x to virtual address %p.\n", 0, PAGE0);
-	*((__u32 *) PAGE0) = 0;
+	*((uint32_t *) PAGE0) = 0;
 	printf("Writing %#x to virtual address %p.\n", 0, PAGE1);
-	*((__u32 *) PAGE1) = 0;	
+	*((uint32_t *) PAGE1) = 0;	
 
-	v0 = *((__u32 *) PAGE0);
-	v1 = *((__u32 *) PAGE1);
+	v0 = *((uint32_t *) PAGE0);
+	v1 = *((uint32_t *) PAGE1);
 	
-	printf("Value at virtual address %p is %#x.\n", PAGE0, *((__u32 *) PAGE0));	
-	printf("Value at virtual address %p is %#x.\n", PAGE1, *((__u32 *) PAGE1));
+	printf("Value at virtual address %p is %#x.\n", PAGE0, *((uint32_t *) PAGE0));	
+	printf("Value at virtual address %p is %#x.\n", PAGE1, *((uint32_t *) PAGE1));
 
 	ASSERT(v0 == 0);
 	ASSERT(v1 == 0);

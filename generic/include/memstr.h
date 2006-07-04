@@ -43,8 +43,8 @@
  * Architecture independent variants.
  */
 extern void *_memcpy(void *dst, const void *src, size_t cnt);
-extern void _memsetb(__address dst, size_t cnt, __u8 x);
-extern void _memsetw(__address dst, size_t cnt, __u16 x);
+extern void _memsetb(uintptr_t dst, size_t cnt, uint8_t x);
+extern void _memsetw(uintptr_t dst, size_t cnt, uint16_t x);
 
 #endif
 

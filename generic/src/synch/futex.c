@@ -58,9 +58,9 @@
 
 static void futex_initialize(futex_t *futex);
 
-static futex_t *futex_find(__address paddr);
-static index_t futex_ht_hash(__native *key);
-static bool futex_ht_compare(__native *key, count_t keys, link_t *item);
+static futex_t *futex_find(uintptr_t paddr);
+static index_t futex_ht_hash(unative_t *key);
+static bool futex_ht_compare(unative_t *key, count_t keys, link_t *item);
 static void futex_ht_remove_callback(link_t *item);
 
 /**
@@ -108,10 +108,10 @@ void futex_initialize(futex_t *futex)
  * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
  *	   If there is no physical mapping for uaddr ENOENT is returned.
  */
-__native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags)
+unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 {
 	futex_t *futex;
-	__address paddr;
+	uintptr_t paddr;
 	pte_t *t;
 	ipl_t ipl;
 	
@@ -125,7 +125,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags)
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		interrupts_restore(ipl);
-		return (__native) ENOENT;
+		return (unative_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
@@ -134,7 +134,7 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags)
 
 	futex = futex_find(paddr);
 	
-	return (__native) waitq_sleep_timeout(&futex->wq, usec, flags | SYNCH_FLAGS_INTERRUPTIBLE);
+	return (unative_t) waitq_sleep_timeout(&futex->wq, usec, flags | SYNCH_FLAGS_INTERRUPTIBLE);
 }
 
 /** Wakeup one thread waiting in futex wait queue.
@@ -143,10 +143,10 @@ __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags)
  *
  * @return ENOENT if there is no physical mapping for uaddr.
  */
-__native sys_futex_wakeup(__address uaddr)
+unative_t sys_futex_wakeup(uintptr_t uaddr)
 {
 	futex_t *futex;
-	__address paddr;
+	uintptr_t paddr;
 	pte_t *t;
 	ipl_t ipl;
 	
@@ -160,7 +160,7 @@ __native sys_futex_wakeup(__address uaddr)
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		interrupts_restore(ipl);
-		return (__native) ENOENT;
+		return (unative_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
@@ -182,7 +182,7 @@ __native sys_futex_wakeup(__address uaddr)
  *
  * @return Address of the kernel futex structure.
  */
-futex_t *futex_find(__address paddr)
+futex_t *futex_find(uintptr_t paddr)
 {
 	link_t *item;
 	futex_t *futex;
@@ -275,7 +275,7 @@ gain_write_access:
  *
  * @return Index into futex hash table.
  */
-index_t futex_ht_hash(__native *key)
+index_t futex_ht_hash(unative_t *key)
 {
 	return *key & (FUTEX_HT_SIZE-1);
 }
@@ -286,7 +286,7 @@ index_t futex_ht_hash(__native *key)
  *
  * @return True if the item matches the key. False otherwise.
  */
-bool futex_ht_compare(__native *key, count_t keys, link_t *item)
+bool futex_ht_compare(unative_t *key, count_t keys, link_t *item)
 {
 	futex_t *futex;
 
@@ -323,7 +323,7 @@ void futex_cleanup(void)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			futex_t *ftx;
-			__address paddr = node->key[i];
+			uintptr_t paddr = node->key[i];
 			
 			ftx = (futex_t *) node->value[i];
 			if (--ftx->refcount == 0)

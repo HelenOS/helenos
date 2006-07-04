@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef uint32_t __u32;
-typedef uint64_t __u64;
-typedef __u64 ipl_t;
-typedef __u64 __address;
+typedef uint32_t uint32_t;
+typedef uint64_t uint64_t;
+typedef uint64_t ipl_t;
+typedef uint64_t uintptr_t;
 
 #define __ppc64_TYPES_H__
 #include "../../arch/ppc64/include/context.h"

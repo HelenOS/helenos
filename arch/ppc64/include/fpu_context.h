@@ -40,25 +40,25 @@
 #endif
 
 struct fpu_context {
-	__u64 fr14;
-	__u64 fr15;
-	__u64 fr16;
-	__u64 fr17;
-	__u64 fr18;
-	__u64 fr19;
-	__u64 fr20;
-	__u64 fr21;
-	__u64 fr22;
-	__u64 fr23;
-	__u64 fr24;
-	__u64 fr25;
-	__u64 fr26;
-	__u64 fr27;
-	__u64 fr28;
-	__u64 fr29;
-	__u64 fr30;
-	__u64 fr31;
-	__u32 fpscr;
+	uint64_t fr14;
+	uint64_t fr15;
+	uint64_t fr16;
+	uint64_t fr17;
+	uint64_t fr18;
+	uint64_t fr19;
+	uint64_t fr20;
+	uint64_t fr21;
+	uint64_t fr22;
+	uint64_t fr23;
+	uint64_t fr24;
+	uint64_t fr25;
+	uint64_t fr26;
+	uint64_t fr27;
+	uint64_t fr28;
+	uint64_t fr29;
+	uint64_t fr30;
+	uint64_t fr31;
+	uint32_t fpscr;
 } __attribute__ ((packed));
 
 #endif

@@ -55,7 +55,7 @@
  * @param map Address of the memory used to hold the map.
  * @param bits Number of bits stored in bitmap.
  */
-void bitmap_initialize(bitmap_t *bitmap, __u8 *map, count_t bits)
+void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, count_t bits)
 {
 	bitmap->map = map;
 	bitmap->bits = bits;

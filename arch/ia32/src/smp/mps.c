@@ -55,11 +55,11 @@
 #define	FS_SIGNATURE	0x5f504d5f
 #define CT_SIGNATURE 	0x504d4350
 
-int mps_fs_check(__u8 *base);
+int mps_fs_check(uint8_t *base);
 int mps_ct_check(void);
 
 int configure_via_ct(void);
-int configure_via_default(__u8 n);
+int configure_via_default(uint8_t n);
 
 int ct_processor_entry(struct __processor_entry *pr);
 void ct_bus_entry(struct __bus_entry *bus);
@@ -92,7 +92,7 @@ waitq_t ap_completion_wq;
 static count_t get_cpu_count(void);
 static bool is_cpu_enabled(index_t i);
 static bool is_bsp(index_t i);
-static __u8 get_cpu_apic_id(index_t i);
+static uint8_t get_cpu_apic_id(index_t i);
 static int mps_irq_to_pin(int irq);
 
 struct smp_config_operations mps_config_operations = {
@@ -120,7 +120,7 @@ bool is_bsp(index_t i)
 	return processor_entries[i].cpu_flags & 0x2;
 }
 
-__u8 get_cpu_apic_id(index_t i)
+uint8_t get_cpu_apic_id(index_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	return processor_entries[i].l_apic_id;
@@ -130,10 +130,10 @@ __u8 get_cpu_apic_id(index_t i)
 /*
  * Used to check the integrity of the MP Floating Structure.
  */
-int mps_fs_check(__u8 *base)
+int mps_fs_check(uint8_t *base)
 {
 	int i;
-	__u8 sum;
+	uint8_t sum;
 	
 	for (i = 0, sum = 0; i < 16; i++)
 		sum += base[i];
@@ -146,9 +146,9 @@ int mps_fs_check(__u8 *base)
  */
 int mps_ct_check(void)
 {
-	__u8 *base = (__u8 *) ct;
-	__u8 *ext = base + ct->base_table_length;
-	__u8 sum;
+	uint8_t *base = (uint8_t *) ct;
+	uint8_t *ext = base + ct->base_table_length;
+	uint8_t sum;
 	int i;	
 	
 	/* count the checksum for the base table */
@@ -167,7 +167,7 @@ int mps_ct_check(void)
 
 void mps_init(void)
 {
-	__u8 *addr[2] = { NULL, (__u8 *) PA2KA(0xf0000) };
+	uint8_t *addr[2] = { NULL, (uint8_t *) PA2KA(0xf0000) };
 	int i, j, length[2] = { 1024, 64*1024 };
 	
 
@@ -178,10 +178,10 @@ void mps_init(void)
 	 *  2. search 64K starting at 0xf0000
 	 */
 
-	addr[0] = (__u8 *) PA2KA(ebda ? ebda : 639 * 1024);
+	addr[0] = (uint8_t *) PA2KA(ebda ? ebda : 639 * 1024);
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
-			if (*((__u32 *) &addr[i][j]) == FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
+			if (*((uint32_t *) &addr[i][j]) == FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
 				fs = (struct mps_fs *) &addr[i][j];
 				goto fs_found;
 			}
@@ -199,7 +199,7 @@ fs_found:
 			return;
 		}
 
-		ct = (struct mps_ct *)PA2KA((__address)fs->configuration_table);
+		ct = (struct mps_ct *)PA2KA((uintptr_t)fs->configuration_table);
 		config.cpu_count = configure_via_ct();
 	} 
 	else
@@ -210,7 +210,7 @@ fs_found:
 
 int configure_via_ct(void)
 {
-	__u8 *cur;
+	uint8_t *cur;
 	int i, cnt;
 		
 	if (ct->signature != CT_SIGNATURE) {
@@ -226,7 +226,7 @@ int configure_via_ct(void)
 		return 1;
 	}
 	
-	l_apic = (__u32 *)(__address)ct->l_apic;
+	l_apic = (uint32_t *)(uintptr_t)ct->l_apic;
 
 	cnt = 0;
 	cur = &ct->base_table[0];
@@ -289,7 +289,7 @@ int configure_via_ct(void)
 	return cnt;
 }
 
-int configure_via_default(__u8 n)
+int configure_via_default(uint8_t n)
 {
 	/*
 	 * Not yet implemented.
@@ -336,7 +336,7 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 		return;
 	}
 	
-	io_apic = (__u32 *)(__address)ioa->io_apic;
+	io_apic = (uint32_t *)(uintptr_t)ioa->io_apic;
 }
 
 //#define MPSCT_VERBOSE
@@ -404,8 +404,8 @@ void ct_l_intr_entry(struct __l_intr_entry *lintr)
 
 void ct_extended_entries(void)
 {
-	__u8 *ext = (__u8 *) ct + ct->base_table_length;
-	__u8 *cur;
+	uint8_t *ext = (uint8_t *) ct + ct->base_table_length;
+	uint8_t *cur;
 
 	for (cur = ext; cur < ext + ct->ext_table_length; cur += cur[CT_EXT_ENTRY_LEN]) {
 		switch (cur[CT_EXT_ENTRY_TYPE]) {

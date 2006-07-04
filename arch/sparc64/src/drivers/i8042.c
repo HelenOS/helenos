@@ -37,11 +37,11 @@
 #include <arch/types.h>
 #include <arch/mm/page.h>
 
-volatile __u8 *kbd_virt_address = NULL;
+volatile uint8_t *kbd_virt_address = NULL;
 
 void kbd_init()
 {
-	kbd_virt_address = (__u8 *) hw_map(KBD_PHYS_ADDRESS, LAST_REG);
+	kbd_virt_address = (uint8_t *) hw_map(KBD_PHYS_ADDRESS, LAST_REG);
 	i8042_init();
 }
 

@@ -90,7 +90,7 @@ SPINLOCK_INITIALIZE(threads_lock);
 btree_t threads_btree;		
 
 SPINLOCK_INITIALIZE(tidlock);
-__u32 last_tid = 0;
+uint32_t last_tid = 0;
 
 static slab_cache_t *thread_slab;
 #ifdef ARCH_HAS_FPU
@@ -254,7 +254,7 @@ void thread_destroy(thread_t *t)
 	spinlock_unlock(&t->lock);
 
 	spinlock_lock(&threads_lock);
-	btree_remove(&threads_btree, (btree_key_t) ((__address ) t), NULL);
+	btree_remove(&threads_btree, (btree_key_t) ((uintptr_t ) t), NULL);
 	spinlock_unlock(&threads_lock);
 
 	/*
@@ -299,7 +299,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	thread_create_arch(t);
 	
 	/* Not needed, but good for debugging */
-	memsetb((__address)t->kstack, THREAD_STACK_SIZE * 1<<STACK_FRAMES, 0);
+	memsetb((uintptr_t)t->kstack, THREAD_STACK_SIZE * 1<<STACK_FRAMES, 0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tidlock);
@@ -308,7 +308,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	interrupts_restore(ipl);
 	
 	context_save(&t->saved_context);
-	context_set(&t->saved_context, FADDR(cushion), (__address) t->kstack, THREAD_STACK_SIZE);
+	context_set(&t->saved_context, FADDR(cushion), (uintptr_t) t->kstack, THREAD_STACK_SIZE);
 	
 	the_initialize((the_t *) t->kstack);
 	
@@ -368,7 +368,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	 * Register this thread in the system-wide list.
 	 */
 	spinlock_lock(&threads_lock);
-	btree_insert(&threads_btree, (btree_key_t) ((__address) t), (void *) t, NULL);
+	btree_insert(&threads_btree, (btree_key_t) ((uintptr_t) t), (void *) t, NULL);
 	spinlock_unlock(&threads_lock);
 	
 	interrupts_restore(ipl);
@@ -411,7 +411,7 @@ restart:
  * @param sec Number of seconds to sleep.
  *
  */
-void thread_sleep(__u32 sec)
+void thread_sleep(uint32_t sec)
 {
 	thread_usleep(sec*1000000);
 }
@@ -424,7 +424,7 @@ void thread_sleep(__u32 sec)
  *
  * @return An error code from errno.h or an error code from synch.h.
  */
-int thread_join_timeout(thread_t *t, __u32 usec, int flags)
+int thread_join_timeout(thread_t *t, uint32_t usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
@@ -484,7 +484,7 @@ void thread_detach(thread_t *t)
  * @param usec Number of microseconds to sleep.
  *
  */	
-void thread_usleep(__u32 usec)
+void thread_usleep(uint32_t usec)
 {
 	waitq_t wq;
 				  
@@ -564,46 +564,46 @@ bool thread_exists(thread_t *t)
 {
 	btree_node_t *leaf;
 	
-	return btree_search(&threads_btree, (btree_key_t) ((__address) t), &leaf) != NULL;
+	return btree_search(&threads_btree, (btree_key_t) ((uintptr_t) t), &leaf) != NULL;
 }
 
 /** Process syscall to create new thread.
  *
  */
-__native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
+unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 {
 	thread_t *t;
 	char namebuf[THREAD_NAME_BUFLEN];
 	uspace_arg_t *kernel_uarg;
-	__u32 tid;
+	uint32_t tid;
 	int rc;
 
 	rc = copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
 	if (rc != 0)
-		return (__native) rc;
+		return (unative_t) rc;
 
 	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);	
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
 	if (rc != 0) {
 		free(kernel_uarg);
-		return (__native) rc;
+		return (unative_t) rc;
 	}
 
 	if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
 		tid = t->tid;
 		thread_ready(t);
-		return (__native) tid; 
+		return (unative_t) tid; 
 	} else {
 		free(kernel_uarg);
 	}
 
-	return (__native) ENOMEM;
+	return (unative_t) ENOMEM;
 }
 
 /** Process syscall to terminate thread.
  *
  */
-__native sys_thread_exit(int uspace_status)
+unative_t sys_thread_exit(int uspace_status)
 {
 	thread_exit();
 	/* Unreachable */

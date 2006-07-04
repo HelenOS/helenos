@@ -47,9 +47,9 @@ extern void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, 
  * default sorting comparators
  */
 extern int int_cmp(void * a, void * b);
-extern int __u32_cmp(void * a, void * b);
-extern int __u16_cmp(void * a, void * b);
-extern int __u8_cmp(void * a, void * b);
+extern int uint32_t_cmp(void * a, void * b);
+extern int uint16_t_cmp(void * a, void * b);
+extern int uint8_t_cmp(void * a, void * b);
 
 #endif
 

@@ -97,8 +97,8 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 as_t *AS_KERNEL = NULL;
 
 static int area_flags_to_page_flags(int aflags);
-static as_area_t *find_area_and_lock(as_t *as, __address va);
-static bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area);
+static as_area_t *find_area_and_lock(as_t *as, uintptr_t va);
+static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size, as_area_t *avoid_area);
 static void sh_info_remove_reference(share_info_t *sh_info);
 
 /** Initialize address space subsystem. */
@@ -199,7 +199,7 @@ void as_destroy(as_t *as)
  *
  * @return Address space area on success or NULL on failure.
  */
-as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int attrs,
+as_area_t *as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 	       mem_backend_t *backend, mem_backend_data_t *backend_data)
 {
 	ipl_t ipl;
@@ -238,7 +238,7 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
 	if (backend_data)
 		a->backend_data = *backend_data;
 	else
-		memsetb((__address) &a->backend_data, sizeof(a->backend_data), 0);
+		memsetb((uintptr_t) &a->backend_data, sizeof(a->backend_data), 0);
 
 	btree_create(&a->used_space);
 	
@@ -259,7 +259,7 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, __address base, int 
  *
  * @return Zero on success or a value from @ref errno.h otherwise.
  */ 
-int as_area_resize(as_t *as, __address address, size_t size, int flags)
+int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 {
 	as_area_t *area;
 	ipl_t ipl;
@@ -312,7 +312,7 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 	
 	if (pages < area->pages) {
 		bool cond;
-		__address start_free = area->base + pages*PAGE_SIZE;
+		uintptr_t start_free = area->base + pages*PAGE_SIZE;
 
 		/*
 		 * Shrinking the area.
@@ -337,7 +337,7 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
 			ASSERT(!list_empty(&area->used_space.leaf_head));
 			node = list_get_instance(area->used_space.leaf_head.prev, btree_node_t, leaf_link);
 			if ((cond = (bool) node->keys)) {
-				__address b = node->key[node->keys - 1];
+				uintptr_t b = node->key[node->keys - 1];
 				count_t c = (count_t) node->value[node->keys - 1];
 				int i = 0;
 			
@@ -418,10 +418,10 @@ int as_area_resize(as_t *as, __address address, size_t size, int flags)
  *
  * @return Zero on success or a value from @ref errno.h on failure. 
  */
-int as_area_destroy(as_t *as, __address address)
+int as_area_destroy(as_t *as, uintptr_t address)
 {
 	as_area_t *area;
-	__address base;
+	uintptr_t base;
 	link_t *cur;
 	ipl_t ipl;
 
@@ -451,7 +451,7 @@ int as_area_destroy(as_t *as, __address address)
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
-			__address b = node->key[i];
+			uintptr_t b = node->key[i];
 			count_t j;
 			pte_t *pte;
 			
@@ -518,8 +518,8 @@ int as_area_destroy(as_t *as, __address address)
  *	   address space area. ENOTSUP is returned if an attempt
  *	   to share non-anonymous address space area is detected.
  */
-int as_area_share(as_t *src_as, __address src_base, size_t acc_size,
-		  as_t *dst_as, __address dst_base, int dst_flags_mask)
+int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
+		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
 {
 	ipl_t ipl;
 	int src_flags;
@@ -665,7 +665,7 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
  * @return AS_PF_FAULT on page fault, AS_PF_OK on success or AS_PF_DEFER if the
  * 	   fault was caused by copy_to_uspace() or copy_from_uspace().
  */
-int as_page_fault(__address page, pf_access_t access, istate_t *istate)
+int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 {
 	pte_t *pte;
 	as_area_t *area;
@@ -744,10 +744,10 @@ int as_page_fault(__address page, pf_access_t access, istate_t *istate)
 page_fault:
 	if (THREAD->in_copy_from_uspace) {
 		THREAD->in_copy_from_uspace = false;
-		istate_set_retaddr(istate, (__address) &memcpy_from_uspace_failover_address);
+		istate_set_retaddr(istate, (uintptr_t) &memcpy_from_uspace_failover_address);
 	} else if (THREAD->in_copy_to_uspace) {
 		THREAD->in_copy_to_uspace = false;
-		istate_set_retaddr(istate, (__address) &memcpy_to_uspace_failover_address);
+		istate_set_retaddr(istate, (uintptr_t) &memcpy_to_uspace_failover_address);
 	} else {
 		return AS_PF_FAULT;
 	}
@@ -942,7 +942,7 @@ void page_table_unlock(as_t *as, bool unlock)
  *
  * @return Locked address space area containing va on success or NULL on failure.
  */
-as_area_t *find_area_and_lock(as_t *as, __address va)
+as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
 	as_area_t *a;
 	btree_node_t *leaf, *lnode;
@@ -998,7 +998,7 @@ as_area_t *find_area_and_lock(as_t *as, __address va)
  *
  * @return True if there is no conflict, false otherwise.
  */
-bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_area)
+bool check_area_conflicts(as_t *as, uintptr_t va, size_t size, as_area_t *avoid_area)
 {
 	as_area_t *a;
 	btree_node_t *leaf, *node;
@@ -1071,7 +1071,7 @@ bool check_area_conflicts(as_t *as, __address va, size_t size, as_area_t *avoid_
 }
 
 /** Return size of the address space area with given base.  */
-size_t as_get_size(__address base)
+size_t as_get_size(uintptr_t base)
 {
 	ipl_t ipl;
 	as_area_t *src_area;
@@ -1099,7 +1099,7 @@ size_t as_get_size(__address base)
  *
  * @return 0 on failure and 1 on success.
  */
-int used_space_insert(as_area_t *a, __address page, count_t count)
+int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 {
 	btree_node_t *leaf, *node;
 	count_t pages;
@@ -1123,7 +1123,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 
 	node = btree_leaf_node_left_neighbour(&a->used_space, leaf);
 	if (node) {
-		__address left_pg = node->key[node->keys - 1], right_pg = leaf->key[0];
+		uintptr_t left_pg = node->key[node->keys - 1], right_pg = leaf->key[0];
 		count_t left_cnt = (count_t) node->value[node->keys - 1], right_cnt = (count_t) leaf->value[0];
 		
 		/*
@@ -1166,7 +1166,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 			return 1;
 		}
 	} else if (page < leaf->key[0]) {
-		__address right_pg = leaf->key[0];
+		uintptr_t right_pg = leaf->key[0];
 		count_t right_cnt = (count_t) leaf->value[0];
 	
 		/*
@@ -1197,7 +1197,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 
 	node = btree_leaf_node_right_neighbour(&a->used_space, leaf);
 	if (node) {
-		__address left_pg = leaf->key[leaf->keys - 1], right_pg = node->key[0];
+		uintptr_t left_pg = leaf->key[leaf->keys - 1], right_pg = node->key[0];
 		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1], right_cnt = (count_t) node->value[0];
 		
 		/*
@@ -1240,7 +1240,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 			return 1;
 		}
 	} else if (page >= leaf->key[leaf->keys - 1]) {
-		__address left_pg = leaf->key[leaf->keys - 1];
+		uintptr_t left_pg = leaf->key[leaf->keys - 1];
 		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1];
 	
 		/*
@@ -1272,7 +1272,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
 	 */
 	for (i = 1; i < leaf->keys; i++) {
 		if (page < leaf->key[i]) {
-			__address left_pg = leaf->key[i - 1], right_pg = leaf->key[i];
+			uintptr_t left_pg = leaf->key[i - 1], right_pg = leaf->key[i];
 			count_t left_cnt = (count_t) leaf->value[i - 1], right_cnt = (count_t) leaf->value[i];
 
 			/*
@@ -1326,7 +1326,7 @@ int used_space_insert(as_area_t *a, __address page, count_t count)
  *
  * @return 0 on failure and 1 on success.
  */
-int used_space_remove(as_area_t *a, __address page, count_t count)
+int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 {
 	btree_node_t *leaf, *node;
 	count_t pages;
@@ -1363,7 +1363,7 @@ int used_space_remove(as_area_t *a, __address page, count_t count)
 
 	node = btree_leaf_node_left_neighbour(&a->used_space, leaf);
 	if (node && page < leaf->key[0]) {
-		__address left_pg = node->key[node->keys - 1];
+		uintptr_t left_pg = node->key[node->keys - 1];
 		count_t left_cnt = (count_t) node->value[node->keys - 1];
 
 		if (overlaps(left_pg, left_cnt*PAGE_SIZE, page, count*PAGE_SIZE)) {
@@ -1396,7 +1396,7 @@ int used_space_remove(as_area_t *a, __address page, count_t count)
 	}
 	
 	if (page > leaf->key[leaf->keys - 1]) {
-		__address left_pg = leaf->key[leaf->keys - 1];
+		uintptr_t left_pg = leaf->key[leaf->keys - 1];
 		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1];
 
 		if (overlaps(left_pg, left_cnt*PAGE_SIZE, page, count*PAGE_SIZE)) {
@@ -1432,7 +1432,7 @@ int used_space_remove(as_area_t *a, __address page, count_t count)
 	 */
 	for (i = 1; i < leaf->keys - 1; i++) {
 		if (page < leaf->key[i]) {
-			__address left_pg = leaf->key[i - 1];
+			uintptr_t left_pg = leaf->key[i - 1];
 			count_t left_cnt = (count_t) leaf->value[i - 1];
 
 			/*
@@ -1496,7 +1496,7 @@ void sh_info_remove_reference(share_info_t *sh_info)
 			
 			node = list_get_instance(cur, btree_node_t, leaf_link);
 			for (i = 0; i < node->keys; i++) 
-				frame_free((__address) node->value[i]);
+				frame_free((uintptr_t) node->value[i]);
 		}
 		
 	}
@@ -1513,24 +1513,24 @@ void sh_info_remove_reference(share_info_t *sh_info)
  */
 
 /** Wrapper for as_area_create(). */
-__native sys_as_area_create(__address address, size_t size, int flags)
+unative_t sys_as_area_create(uintptr_t address, size_t size, int flags)
 {
 	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address, AS_AREA_ATTR_NONE, &anon_backend, NULL))
-		return (__native) address;
+		return (unative_t) address;
 	else
-		return (__native) -1;
+		return (unative_t) -1;
 }
 
 /** Wrapper for as_area_resize. */
-__native sys_as_area_resize(__address address, size_t size, int flags)
+unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags)
 {
-	return (__native) as_area_resize(AS, address, size, 0);
+	return (unative_t) as_area_resize(AS, address, size, 0);
 }
 
 /** Wrapper for as_area_destroy. */
-__native sys_as_area_destroy(__address address)
+unative_t sys_as_area_destroy(uintptr_t address)
 {
-	return (__native) as_area_destroy(AS, address);
+	return (unative_t) as_area_destroy(AS, address);
 }
 
 /** @}

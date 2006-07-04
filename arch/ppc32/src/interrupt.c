@@ -88,7 +88,7 @@ static void ipc_int(int n, istate_t *istate)
 
 
 /* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
+void irq_ipc_bind_arch(unative_t irq)
 {
 	int_register(irq, "ipc_int", ipc_int);
 }

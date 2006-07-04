@@ -49,7 +49,7 @@
  *
  * @param usec Number of microseconds to sleep.
  */
-void delay(__u32 usec)
+void delay(uint32_t usec)
 {
 	ipl_t ipl;
 	

@@ -38,11 +38,11 @@
 #include <panic.h>
 #include <arch/debug.h>
 
-#define CALLER       ((__address)__builtin_return_address(0))
+#define CALLER       ((uintptr_t)__builtin_return_address(0))
 
 #ifndef HERE
 /** Current Instruction Pointer address */
-#  define HERE ((__address *)0)
+#  define HERE ((uintptr_t *)0)
 #endif
 
 /** Debugging ASSERT macro
@@ -55,7 +55,7 @@
  *
  */
 #ifdef CONFIG_DEBUG
-#	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s), caller=%.*p\n", #expr, sizeof(__address) * 2, CALLER); }
+#	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s), caller=%.*p\n", #expr, sizeof(uintptr_t) * 2, CALLER); }
 #else
 #	define ASSERT(expr)
 #endif

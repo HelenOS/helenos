@@ -124,7 +124,7 @@ void fpu_enable(void)
 void cpu_arch_init(void)
 {
 	CPU->arch.tss = tss_p;
-	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((__u8 *) CPU->arch.tss);
+	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((uint8_t *) CPU->arch.tss);
 	CPU->fpu_owner = NULL;
 }
 

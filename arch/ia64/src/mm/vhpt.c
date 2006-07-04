@@ -40,22 +40,22 @@
 
 static vhpt_entry_t* vhpt_base;
 
-__address vhpt_set_up(void)
+uintptr_t vhpt_set_up(void)
 {
 	vhpt_base = frame_alloc(VHPT_WIDTH-FRAME_WIDTH,FRAME_KA | FRAME_ATOMIC);
 	if(!vhpt_base) 
 		panic("Kernel configured with VHPT but no memory for table.");
 	vhpt_invalidate_all();
-	return (__address) vhpt_base;
+	return (uintptr_t) vhpt_base;
 }
 
 
-void vhpt_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
+void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
 	region_register rr_save, rr;
 	index_t vrn;
 	rid_t rid;
-	__u64 tag;
+	uint64_t tag;
 
 	vhpt_entry_t *ventry;
 
@@ -84,7 +84,7 @@ void vhpt_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
 
 void vhpt_invalidate_all()
 {
-	memsetb((__address)vhpt_base,1<<VHPT_WIDTH,0);
+	memsetb((uintptr_t)vhpt_base,1<<VHPT_WIDTH,0);
 }
 
 void vhpt_invalidate_asid(asid_t asid)

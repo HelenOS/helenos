@@ -61,17 +61,17 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 {
 	int i, j;
 	
-	if (ALIGN_UP((__address) src, sizeof(__native)) != (__address) src ||
-		ALIGN_UP((__address) dst, sizeof(__native)) != (__address) dst) {
+	if (ALIGN_UP((uintptr_t) src, sizeof(unative_t)) != (uintptr_t) src ||
+		ALIGN_UP((uintptr_t) dst, sizeof(unative_t)) != (uintptr_t) dst) {
 		for (i = 0; i < cnt; i++)
-			((__u8 *) dst)[i] = ((__u8 *) src)[i];
+			((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
 	} else { 
 	
-		for (i = 0; i < cnt/sizeof(__native); i++)
-			((__native *) dst)[i] = ((__native *) src)[i];
+		for (i = 0; i < cnt/sizeof(unative_t); i++)
+			((unative_t *) dst)[i] = ((unative_t *) src)[i];
 		
-		for (j = 0; j < cnt%sizeof(__native); j++)
-			((__u8 *)(((__native *) dst) + i))[j] = ((__u8 *)(((__native *) src) + i))[j];
+		for (j = 0; j < cnt%sizeof(unative_t); j++)
+			((uint8_t *)(((unative_t *) dst) + i))[j] = ((uint8_t *)(((unative_t *) src) + i))[j];
 	}
 		
 	return (char *)src;
@@ -87,10 +87,10 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
  * @param x   Value to fill.
  *
  */
-void _memsetb(__address dst, size_t cnt, __u8 x)
+void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
 	int i;
-	__u8 *p = (__u8 *) dst;
+	uint8_t *p = (uint8_t *) dst;
 	
 	for(i=0; i<cnt; i++)
 		p[i] = x;
@@ -106,10 +106,10 @@ void _memsetb(__address dst, size_t cnt, __u8 x)
  * @param x   Value to fill.
  *
  */
-void _memsetw(__address dst, size_t cnt, __u16 x)
+void _memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
 	int i;
-	__u16 *p = (__u16 *) dst;
+	uint16_t *p = (uint16_t *) dst;
 	
 	for(i=0; i<cnt; i++)
 		p[i] = x;	

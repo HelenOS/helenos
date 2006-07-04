@@ -46,10 +46,10 @@
 #define max(a,b)	((a)>(b)?(a):(b))
 
 /** Return true if the interlvals overlap. */
-static inline int overlaps(__address s1, size_t sz1, __address s2, size_t sz2)
+static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 {
-	__address e1 = s1+sz1;
-	__address e2 = s2+sz2;
+	uintptr_t e1 = s1+sz1;
+	uintptr_t e2 = s2+sz2;
 
 	return s1 < e2 && s2 < e1;
 }

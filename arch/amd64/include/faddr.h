@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
@@ -37,10 +37,9 @@
 
 #include <arch/types.h>
 
-#define FADDR(fptr)		((__address) (fptr))
+#define FADDR(fptr)		((uintptr_t) (fptr))
 
 #endif
 
- /** @}
+/** @}
  */
-

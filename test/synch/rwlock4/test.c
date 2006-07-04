@@ -50,17 +50,17 @@ SPINLOCK_INITIALIZE(lock);
 
 static waitq_t can_start;
 
-__u32 seed = 0xdeadbeef;
+uint32_t seed = 0xdeadbeef;
 
-static __u32 random(__u32 max);
+static uint32_t random(uint32_t max);
 
 static void writer(void *arg);
 static void reader(void *arg);
 static void failed(void);
 
-__u32 random(__u32 max)
+uint32_t random(uint32_t max)
 {
-	__u32 rc;
+	uint32_t rc;
 
 	spinlock_lock(&lock);	
 	rc = seed % max;
@@ -121,7 +121,7 @@ void failed(void)
 void test(void)
 {
 	context_t ctx;
-	__u32 i, k;
+	uint32_t i, k;
 	
 	printf("Read/write locks test #4\n");
     

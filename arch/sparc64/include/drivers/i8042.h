@@ -45,24 +45,24 @@
 
 #define LAST_REG	DATA_REG
 
-extern volatile __u8 *kbd_virt_address;
+extern volatile uint8_t *kbd_virt_address;
 
-static inline void i8042_data_write(__u8 data)
+static inline void i8042_data_write(uint8_t data)
 {
 	kbd_virt_address[DATA_REG] = data;
 }
 
-static inline __u8 i8042_data_read(void)
+static inline uint8_t i8042_data_read(void)
 {
 	return kbd_virt_address[DATA_REG];
 }
 
-static inline __u8 i8042_status_read(void)
+static inline uint8_t i8042_status_read(void)
 {
 	return kbd_virt_address[STATUS_REG];
 }
 
-static inline void i8042_command_write(__u8 command)
+static inline void i8042_command_write(uint8_t command)
 {
 	kbd_virt_address[COMMAND_REG] = command;
 }

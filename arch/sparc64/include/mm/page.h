@@ -46,13 +46,13 @@
 #include <arch/types.h>
 #include <genarch/mm/page_ht.h>
 
-#define KA2PA(x)	((__address) (x))
-#define PA2KA(x)	((__address) (x))
+#define KA2PA(x)	((uintptr_t) (x))
+#define PA2KA(x)	((uintptr_t) (x))
 
 union page_address {
-	__address address;
+	uintptr_t address;
 	struct {
-		__u64 vpn : 51;		/**< Virtual Page Number. */
+		uint64_t vpn : 51;		/**< Virtual Page Number. */
 		unsigned offset : 13;	/**< Offset. */
 	} __attribute__ ((packed));
 };

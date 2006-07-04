@@ -38,8 +38,8 @@
 #include <arch/types.h>
 
 struct cpu_arch {
-	__u32 imp_num;
-	__u32 rev_num;
+	uint32_t imp_num;
+	uint32_t rev_num;
 };
 	
 #endif

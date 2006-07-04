@@ -36,8 +36,8 @@
 #define __ia32_BYTEORDER_H__
 
 /* IA-32 is little-endian */
-#define __native_le2host(n)		(n)
-#define __u64_le2host(n)		(n)
+#define unative_t_le2host(n)		(n)
+#define uint64_t_le2host(n)		(n)
 
 #endif
 

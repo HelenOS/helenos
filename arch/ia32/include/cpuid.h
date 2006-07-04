@@ -38,10 +38,10 @@
 #include <arch/types.h>
 
 struct cpu_info {
-	__u32 cpuid_eax;
-	__u32 cpuid_ebx;
-	__u32 cpuid_ecx;
-	__u32 cpuid_edx;
+	uint32_t cpuid_eax;
+	uint32_t cpuid_ebx;
+	uint32_t cpuid_ecx;
+	uint32_t cpuid_edx;
 } __attribute__ ((packed));
 
 struct __cpuid_extended_feature_info {
@@ -52,7 +52,7 @@ struct __cpuid_extended_feature_info {
 typedef union cpuid_extended_feature_info 
 {
 	struct __cpuid_extended_feature_info bits;
-	__u32                                word;
+	uint32_t                                word;
 }cpuid_extended_feature_info;
 
 
@@ -68,13 +68,13 @@ struct __cpuid_feature_info {
 typedef union cpuid_feature_info 
 {
 	struct __cpuid_feature_info bits;
-	__u32                word       ;
+	uint32_t                word       ;
 }cpuid_feature_info;
 
 
-static inline __u32 has_cpuid(void)
+static inline uint32_t has_cpuid(void)
 {
-	__u32 val, ret;
+	uint32_t val, ret;
 	
 	__asm__ volatile (
 		"pushf\n"               /* read flags */
@@ -97,7 +97,7 @@ static inline __u32 has_cpuid(void)
 	return ret;
 }
 
-static inline void cpuid(__u32 cmd, struct cpu_info *info)
+static inline void cpuid(uint32_t cmd, struct cpu_info *info)
 {
 	__asm__ volatile (
 		"movl %4, %%eax\n"

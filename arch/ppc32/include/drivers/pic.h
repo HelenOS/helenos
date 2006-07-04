@@ -42,7 +42,7 @@
 #define PIC_ACK_LOW        10
 #define PIC_ACK_HIGH       6
 
-void pic_init(__address base, size_t size);
+void pic_init(uintptr_t base, size_t size);
 void pic_enable_interrupt(int intnum);
 void pic_disable_interrupt(int intnum);
 void pic_ack_interrupt(int intnum);

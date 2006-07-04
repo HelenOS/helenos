@@ -87,7 +87,7 @@ void condvar_broadcast(condvar_t *cv)
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, __u32 usec, int flags)
+int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
 {
 	int rc;
 	ipl_t ipl;

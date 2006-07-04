@@ -71,7 +71,7 @@
 /* Why the linker moves the variable 64K away in assembler
  * when not in .text section ????????
  */
-__address supervisor_sp __attribute__ ((section (".text")));
+uintptr_t supervisor_sp __attribute__ ((section (".text")));
 /* Stack pointer saved when entering user mode */
 /* TODO: How do we do it on SMP system???? */
 bootinfo_t bootinfo __attribute__ ((section (".text")));
@@ -81,7 +81,7 @@ void arch_pre_main(void)
 	/* Setup usermode */
 	init.cnt = bootinfo.cnt;
 	
-	__u32 i;
+	uint32_t i;
 	
 	for (i = 0; i < bootinfo.cnt; i++) {
 		init.tasks[i].addr = bootinfo.tasks[i].addr;
@@ -146,10 +146,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 					      cp0_status_um_bit |
 					      cp0_status_ie_enabled_bit));
-	cp0_epc_write((__address) kernel_uarg->uspace_entry);
-	userspace_asm(((__address) kernel_uarg->uspace_stack+PAGE_SIZE), 
-		      (__address) kernel_uarg->uspace_uarg,
-		      (__address) kernel_uarg->uspace_entry);
+	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
+	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack+PAGE_SIZE), 
+		      (uintptr_t) kernel_uarg->uspace_uarg,
+		      (uintptr_t) kernel_uarg->uspace_entry);
 	while (1)
 		;
 }
@@ -162,7 +162,7 @@ void before_task_runs_arch(void)
 /** Perform mips32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	supervisor_sp = (__address) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+	supervisor_sp = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
 }
 
 void after_thread_ran_arch(void)
@@ -174,7 +174,7 @@ void after_thread_ran_arch(void)
  * We have it currently in K1, it is
  * possible to have it separately in the future.
  */
-__native sys_tls_set(__native addr)
+unative_t sys_tls_set(unative_t addr)
 {
 	return 0;
 }

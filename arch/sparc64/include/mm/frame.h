@@ -44,10 +44,10 @@
 #include <arch/types.h>
 
 union frame_address {
-	__address address;
+	uintptr_t address;
 	struct {
 		unsigned : 23;
-		__u64 pfn : 28;         /**< Physical Frame Number. */
+		uint64_t pfn : 28;         /**< Physical Frame Number. */
 		unsigned offset : 13;   /**< Offset. */
 	} __attribute__ ((packed));
 };

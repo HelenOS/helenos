@@ -58,16 +58,16 @@
 #include <arch/types.h>
 
 struct e820memmap_ {
-	__u64 base_address;
-	__u64 size;
-	__u32 type;
+	uint64_t base_address;
+	uint64_t size;
+	uint32_t type;
 } __attribute__ ((packed));
 
 extern struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS];
 
-extern __u8 e820counter; 
+extern uint8_t e820counter; 
 
-extern __u32 e801memorysize; /**< Size of available memory in KB. */
+extern uint32_t e801memorysize; /**< Size of available memory in KB. */
 
 #endif
 

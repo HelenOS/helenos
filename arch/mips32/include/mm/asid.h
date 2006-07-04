@@ -39,7 +39,7 @@
 
 #define ASID_MAX_ARCH		255	/* 2^8 - 1 */
 
-typedef __u8 asid_t;
+typedef uint8_t asid_t;
 
 #endif
 

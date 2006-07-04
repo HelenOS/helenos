@@ -66,8 +66,8 @@
 struct pte {
 	link_t link;		/**< Page hash table link. */
 	as_t *as;		/**< Address space. */
-	__address page;		/**< Virtual memory page. */
-	__address frame;	/**< Physical memory frame. */
+	uintptr_t page;		/**< Virtual memory page. */
+	uintptr_t frame;	/**< Physical memory frame. */
 	unsigned g : 1;		/**< Global page. */
 	unsigned x : 1;		/**< Execute. */
 	unsigned w : 1;		/**< Writable. */

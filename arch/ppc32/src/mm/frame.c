@@ -39,7 +39,7 @@
 #include <align.h>
 #include <macros.h>
 
-__address last_frame = 0;
+uintptr_t last_frame = 0;
 
 void frame_arch_init(void)
 {
@@ -67,7 +67,7 @@ void frame_arch_init(void)
 	frame_mark_unavailable(0, 8);
 	
 	/* Mark the Page Hash Table frames as unavailable */
-	__u32 sdr1;
+	uint32_t sdr1;
 	asm volatile (
 		"mfsdr1 %0\n"
 		: "=r" (sdr1)

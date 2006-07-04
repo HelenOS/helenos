@@ -98,10 +98,10 @@ void cpu_arch_init(void)
 	cpuid_feature_info fi;
 	cpuid_extended_feature_info efi;
 	cpu_info_t info;
-	__u32 help = 0;
+	uint32_t help = 0;
 	
 	CPU->arch.tss = tss_p;
-	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((__u8 *) CPU->arch.tss);
+	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((uint8_t *) CPU->arch.tss);
 
 	CPU->fpu_owner = NULL;
 

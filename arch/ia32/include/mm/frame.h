@@ -44,7 +44,7 @@
 
 #include <arch/types.h>
 
-extern __address last_frame;
+extern uintptr_t last_frame;
 
 extern void frame_arch_init(void);
 

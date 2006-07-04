@@ -37,28 +37,28 @@
 
 #define NULL	0
 
-typedef signed char __s8;
-typedef unsigned char __u8;
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
 
-typedef signed short __s16;
-typedef unsigned short __u16;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
 
-typedef unsigned long __u32;
-typedef signed long __s32;
+typedef unsigned long uint32_t;
+typedef signed long int32_t;
 
-typedef unsigned long long __u64;
-typedef signed long long __s64;
+typedef unsigned long long uint64_t;
+typedef signed long long int64_t;
 
-typedef __u32 __address;
+typedef uint32_t uintptr_t;
 
-typedef __u32 ipl_t;
+typedef uint32_t ipl_t;
 
-typedef __u32 __native;
-typedef __s32 __snative;
+typedef uint32_t unative_t;
+typedef int32_t native_t;
 
 typedef struct pte pte_t;
 
-typedef __u32 pfn_t;
+typedef uint32_t pfn_t;
 
 #endif
 

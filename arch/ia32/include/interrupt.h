@@ -69,24 +69,24 @@
 #define VECTOR_DEBUG_IPI                (IVT_FREEBASE+2)
 
 struct istate {
-	__u32 eax;
-	__u32 ecx;
-	__u32 edx;
-	__u32 esi;
-	__u32 edi;
-	__u32 ebp;
-	__u32 ebx;
+	uint32_t eax;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	uint32_t ebx;
 
-	__u32 gs;
-	__u32 fs;
-	__u32 es;
-	__u32 ds;
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
 
-	__u32 error_word;
-	__u32 eip;
-	__u32 cs;
-	__u32 eflags;
-	__u32 stack[];
+	uint32_t error_word;
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t stack[];
 };
 
 /** Return true if exception happened while in userspace */
@@ -95,18 +95,18 @@ static inline int istate_from_uspace(istate_t *istate)
 	return !(istate->eip & 0x80000000);
 }
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->eip = retaddr;
 }
 
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->eip;
 }
 
-extern void (* disable_irqs_function)(__u16 irqmask);
-extern void (* enable_irqs_function)(__u16 irqmask);
+extern void (* disable_irqs_function)(uint16_t irqmask);
+extern void (* enable_irqs_function)(uint16_t irqmask);
 extern void (* eoi_function)(void);
 
 extern void PRINT_INFO_ERRCODE(istate_t *istate);
@@ -118,8 +118,8 @@ extern void simd_fp_exception(int n, istate_t *istate);
 extern void syscall(int n, istate_t *istate);
 extern void tlb_shootdown_ipi(int n, istate_t *istate);
 
-extern void trap_virtual_enable_irqs(__u16 irqmask);
-extern void trap_virtual_disable_irqs(__u16 irqmask);
+extern void trap_virtual_enable_irqs(uint16_t irqmask);
+extern void trap_virtual_disable_irqs(uint16_t irqmask);
 extern void trap_virtual_eoi(void);
 
 #endif

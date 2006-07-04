@@ -75,7 +75,7 @@ union entry_lo {
 		unsigned : 2;		/* zero */
 #endif
 	} __attribute__ ((packed));
-	__u32 value;
+	uint32_t value;
 };
 
 /** Page Table Entry. */
@@ -103,7 +103,7 @@ union entry_hi {
 		unsigned vpn2 : 19;
 #endif
 	} __attribute__ ((packed));
-	__u32 value;
+	uint32_t value;
 };
 
 union page_mask {
@@ -118,7 +118,7 @@ union page_mask {
 		unsigned : 7;
 #endif
 	} __attribute__ ((packed));
-	__u32 value;
+	uint32_t value;
 };
 
 union index {
@@ -133,7 +133,7 @@ union index {
 		unsigned p : 1;
 #endif
 	} __attribute__ ((packed));
-	__u32 value;
+	uint32_t value;
 };
 
 /** Probe TLB for Matching Entry

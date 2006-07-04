@@ -63,7 +63,7 @@ void ofw_done(void)
 	cpu_halt();
 }
 
-__native ofw_call(const char *service, const int nargs, const int nret, ...)
+unative_t ofw_call(const char *service, const int nargs, const int nret, ...)
 {
 	va_list list;
 	ofw_args_t args;

@@ -59,7 +59,7 @@ void chardev_initialize(char *name,chardev_t *chardev,
  * @param chardev Character device.
  * @param ch Character being pushed.
  */
-void chardev_push_character(chardev_t *chardev, __u8 ch)
+void chardev_push_character(chardev_t *chardev, uint8_t ch)
 {
 	spinlock_lock(&chardev->lock);
 	chardev->counter++;

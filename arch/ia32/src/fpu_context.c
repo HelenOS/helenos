@@ -108,7 +108,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_init()
 {
-	__u32 help0=0,help1=0;
+	uint32_t help0=0,help1=0;
 	__asm__ volatile (
 		"fninit;\n"
 		"stmxcsr %0\n"

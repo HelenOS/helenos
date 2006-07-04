@@ -67,8 +67,8 @@ static void totalmemtest(void)
 				slab_free(cache2,data2);
 			break;
 		}
-		memsetb((__address)data1, ITEM_SIZE, 0);
-		memsetb((__address)data2, ITEM_SIZE, 0);
+		memsetb((uintptr_t)data1, ITEM_SIZE, 0);
+		memsetb((uintptr_t)data2, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		*((void **)data2) = olddata2;
 		olddata1 = data1;
@@ -90,7 +90,7 @@ static void totalmemtest(void)
 		if (!data1) {
 			panic("Incorrect memory size - use another test.");
 		}
-		memsetb((__address)data1, ITEM_SIZE, 0);
+		memsetb((uintptr_t)data1, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}
@@ -99,7 +99,7 @@ static void totalmemtest(void)
 		if (!data1) {
 			break;
 		}
-		memsetb((__address)data1, ITEM_SIZE, 0);
+		memsetb((uintptr_t)data1, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;
 		olddata1 = data1;
 	}

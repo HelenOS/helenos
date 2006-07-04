@@ -142,14 +142,14 @@ struct thread {
 	cpu_t *cpu;				/**< Thread's CPU. */
 	task_t *task;				/**< Containing task. */
 
-	__u64 ticks;				/**< Ticks before preemption. */
+	uint64_t ticks;				/**< Ticks before preemption. */
 
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
-	__u32 tid;				/**< Thread ID. */
+	uint32_t tid;				/**< Thread ID. */
 	
 	thread_arch_t arch;			/**< Architecture-specific data. */
 
-	__u8 *kstack;				/**< Thread's kernel stack. */
+	uint8_t *kstack;				/**< Thread's kernel stack. */
 };
 
 /** Thread list lock.
@@ -171,11 +171,11 @@ extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_create_arch(thread_t *t);
 #endif
 
-extern void thread_sleep(__u32 sec);
-extern void thread_usleep(__u32 usec);
+extern void thread_sleep(uint32_t sec);
+extern void thread_usleep(uint32_t usec);
 
 #define thread_join(t)	thread_join_timeout((t), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-extern int thread_join_timeout(thread_t *t, __u32 usec, int flags);
+extern int thread_join_timeout(thread_t *t, uint32_t usec, int flags);
 extern void thread_detach(thread_t *t);
 
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
@@ -187,8 +187,8 @@ extern bool thread_exists(thread_t *t);
 extern slab_cache_t *fpu_context_slab;
 
 /** Thread syscall prototypes. */
-__native sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name);
-__native sys_thread_exit(int uspace_status);
+unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name);
+unative_t sys_thread_exit(int uspace_status);
 
 #endif
 

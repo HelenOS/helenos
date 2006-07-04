@@ -40,12 +40,12 @@
 #define MAX_SYMBOL_NAME 64
 
 struct symtab_entry {
-	__u64 address_le;
+	uint64_t address_le;
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern char * get_symtab_entry(__native addr);
-extern __address get_symbol_addr(const char *name);
+extern char * get_symtab_entry(unative_t addr);
+extern uintptr_t get_symbol_addr(const char *name);
 extern void symtab_print_search(const char *name);
 extern int symtab_compl(char *name);
 

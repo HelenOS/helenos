@@ -479,31 +479,31 @@ int cmd_symaddr(cmd_arg_t *argv)
 /** Call function with zero parameters */
 int cmd_call0(cmd_arg_t *argv)
 {
-	__address symaddr;
+	uintptr_t symaddr;
 	char *symbol;
-	__native (*f)(void);
+	unative_t (*f)(void);
 #ifdef ia64
 	struct {
-		__native f;
-		__native gp;
+		unative_t f;
+		unative_t gp;
 	}fptr;
 #endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (__address) -1) {
+	else if (symaddr == (uintptr_t) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(): %.*p: %s\n", sizeof(__address) * 2, symaddr, symbol);
+		printf("Calling f(): %.*p: %s\n", sizeof(uintptr_t) * 2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
-		fptr.gp = ((__native *)cmd_call2)[1];
-		f =  (__native (*)(void)) &fptr;
+		fptr.gp = ((unative_t *)cmd_call2)[1];
+		f =  (unative_t (*)(void)) &fptr;
 #else
-		f =  (__native (*)(void)) symaddr;
+		f =  (unative_t (*)(void)) symaddr;
 #endif
 		printf("Result: %#zx\n", f());
 	}
@@ -514,33 +514,33 @@ int cmd_call0(cmd_arg_t *argv)
 /** Call function with one parameter */
 int cmd_call1(cmd_arg_t *argv)
 {
-	__address symaddr;
+	uintptr_t symaddr;
 	char *symbol;
-	__native (*f)(__native,...);
-	__native arg1 = argv[1].intval;
+	unative_t (*f)(unative_t,...);
+	unative_t arg1 = argv[1].intval;
 #ifdef ia64
 	struct {
-		__native f;
-		__native gp;
+		unative_t f;
+		unative_t gp;
 	}fptr;
 #endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (__address) -1) {
+	else if (symaddr == (uintptr_t) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
 
-		printf("Calling f(%#zx): %.*p: %s\n", arg1, sizeof(__address) * 2, symaddr, symbol);
+		printf("Calling f(%#zx): %.*p: %s\n", arg1, sizeof(uintptr_t) * 2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
-		fptr.gp = ((__native *)cmd_call2)[1];
-		f =  (__native (*)(__native,...)) &fptr;
+		fptr.gp = ((unative_t *)cmd_call2)[1];
+		f =  (unative_t (*)(unative_t,...)) &fptr;
 #else
-		f =  (__native (*)(__native,...)) symaddr;
+		f =  (unative_t (*)(unative_t,...)) symaddr;
 #endif
 		printf("Result: %#zx\n", f(arg1));
 	}
@@ -551,34 +551,34 @@ int cmd_call1(cmd_arg_t *argv)
 /** Call function with two parameters */
 int cmd_call2(cmd_arg_t *argv)
 {
-	__address symaddr;
+	uintptr_t symaddr;
 	char *symbol;
-	__native (*f)(__native,__native,...);
-	__native arg1 = argv[1].intval;
-	__native arg2 = argv[2].intval;
+	unative_t (*f)(unative_t,unative_t,...);
+	unative_t arg1 = argv[1].intval;
+	unative_t arg2 = argv[2].intval;
 #ifdef ia64
 	struct {
-		__native f;
-		__native gp;
+		unative_t f;
+		unative_t gp;
 	}fptr;
 #endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (__address) -1) {
+	else if (symaddr == (uintptr_t) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%zx,0x%zx): %.*p: %s\n", 
-		       arg1, arg2, sizeof(__address) * 2, symaddr, symbol);
+		       arg1, arg2, sizeof(uintptr_t) * 2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
-		fptr.gp = ((__native *)cmd_call2)[1];
-		f =  (__native (*)(__native,__native,...)) &fptr;
+		fptr.gp = ((unative_t *)cmd_call2)[1];
+		f =  (unative_t (*)(unative_t,unative_t,...)) &fptr;
 #else
-		f =  (__native (*)(__native,__native,...)) symaddr;
+		f =  (unative_t (*)(unative_t,unative_t,...)) symaddr;
 #endif
 		printf("Result: %#zx\n", f(arg1, arg2));
 	}
@@ -589,35 +589,35 @@ int cmd_call2(cmd_arg_t *argv)
 /** Call function with three parameters */
 int cmd_call3(cmd_arg_t *argv)
 {
-	__address symaddr;
+	uintptr_t symaddr;
 	char *symbol;
-	__native (*f)(__native,__native,__native,...);
-	__native arg1 = argv[1].intval;
-	__native arg2 = argv[2].intval;
-	__native arg3 = argv[3].intval;
+	unative_t (*f)(unative_t,unative_t,unative_t,...);
+	unative_t arg1 = argv[1].intval;
+	unative_t arg2 = argv[2].intval;
+	unative_t arg3 = argv[3].intval;
 #ifdef ia64
 	struct {
-		__native f;
-		__native gp;
+		unative_t f;
+		unative_t gp;
 	}fptr;
 #endif
 
 	symaddr = get_symbol_addr(argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (__address) -1) {
+	else if (symaddr == (uintptr_t) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
 		printf("Calling f(0x%zx,0x%zx, 0x%zx): %.*p: %s\n", 
-		       arg1, arg2, arg3, sizeof(__address) * 2, symaddr, symbol);
+		       arg1, arg2, arg3, sizeof(uintptr_t) * 2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
-		fptr.gp = ((__native *)cmd_call2)[1];
-		f =  (__native (*)(__native,__native,__native,...)) &fptr;
+		fptr.gp = ((unative_t *)cmd_call2)[1];
+		f =  (unative_t (*)(unative_t,unative_t,unative_t,...)) &fptr;
 #else
-		f =  (__native (*)(__native,__native,__native,...)) symaddr;
+		f =  (unative_t (*)(unative_t,unative_t,unative_t,...)) symaddr;
 #endif
 		printf("Result: %#zx\n", f(arg1, arg2, arg3));
 	}
@@ -659,28 +659,28 @@ int cmd_tlb(cmd_arg_t *argv)
 /** Write 4 byte value to address */
 int cmd_set4(cmd_arg_t *argv)
 {
-	__u32 *addr ;
-	__u32 arg1 = argv[1].intval;
+	uint32_t *addr ;
+	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 
 	if (((char *)argv->buffer)[0] == '*') {
-		addr = (__u32 *) get_symbol_addr(argv->buffer+1);
+		addr = (uint32_t *) get_symbol_addr(argv->buffer+1);
 		pointer = true;
 	} else if (((char *)argv->buffer)[0] >= '0' && 
 		   ((char *)argv->buffer)[0] <= '9')
-		addr = (__u32 *)atoi((char *)argv->buffer);
+		addr = (uint32_t *)atoi((char *)argv->buffer);
 	else
-		addr = (__u32 *)get_symbol_addr(argv->buffer);
+		addr = (uint32_t *)get_symbol_addr(argv->buffer);
 
 	if (!addr)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (addr == (__u32 *) -1) {
+	else if (addr == (uint32_t *) -1) {
 		symtab_print_search(argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		if (pointer)
-			addr = (__u32 *)(*(__native *)addr);
-		printf("Writing 0x%x -> %.*p\n", arg1, sizeof(__address) * 2, addr);
+			addr = (uint32_t *)(*(unative_t *)addr);
+		printf("Writing 0x%x -> %.*p\n", arg1, sizeof(uintptr_t) * 2, addr);
 		*addr = arg1;
 		
 	}

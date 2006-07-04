@@ -37,9 +37,9 @@
 #include <arch/mm/page.h>
 #include <print.h>
 
-__u8 e820counter = 0xff;
+uint8_t e820counter = 0xff;
 struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS];
-__u32 e801memorysize;
+uint32_t e801memorysize;
 
 size_t get_memory_size(void) 
 {
@@ -48,7 +48,7 @@ size_t get_memory_size(void)
 
 void memory_print_map(void)
 {
-	__u8 i;
+	uint8_t i;
 	
 	for (i=0;i<e820counter;i++) {
 		printf("E820 base: %#llx size: %#llx type: ", e820table[i].base_address, e820table[i].size);

@@ -43,8 +43,8 @@
 #ifdef KERNEL
 
 #ifndef __ASM__
-#	define KA2PA(x)	(((__address) (x)) - 0x80000000)
-#	define PA2KA(x)	(((__address) (x)) + 0x80000000)
+#	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
+#	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
 #	define KA2PA(x)	((x) - 0x80000000)
 #	define PA2KA(x)	((x) + 0x80000000)
@@ -67,9 +67,9 @@
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((__address)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((__address) (ptl0)))
+#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((uintptr_t) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].frame_address = (a)>>12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
@@ -85,7 +85,7 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
 
-#define PTE_VALID_ARCH(p)			(*((__u32 *) (p)) != 0)
+#define PTE_VALID_ARCH(p)			(*((uint32_t *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
 #define PTE_GET_FRAME_ARCH(p)			((p)->frame_address<<FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)

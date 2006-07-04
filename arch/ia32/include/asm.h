@@ -40,7 +40,7 @@
 #include <arch/types.h>
 #include <config.h>
 
-extern __u32 interrupt_handler_size;
+extern uint32_t interrupt_handler_size;
 
 extern void paging_on(void);
 
@@ -49,8 +49,8 @@ extern void interrupt_handlers(void);
 extern void enable_l_apic_in_msr(void);
 
 
-extern void asm_delay_loop(__u32 t);
-extern void asm_fake_loop(__u32 t);
+extern void asm_delay_loop(uint32_t t);
+extern void asm_fake_loop(uint32_t t);
 
 
 /** Halt CPU
@@ -60,14 +60,14 @@ extern void asm_fake_loop(__u32 t);
 static inline void cpu_halt(void) { __asm__("hlt\n"); };
 static inline void cpu_sleep(void) { __asm__("hlt\n"); };
 
-#define GEN_READ_REG(reg) static inline __native read_ ##reg (void) \
+#define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
     { \
-	__native res; \
+	unative_t res; \
 	__asm__ volatile ("movl %%" #reg ", %0" : "=r" (res) ); \
 	return res; \
     }
 
-#define GEN_WRITE_REG(reg) static inline void write_ ##reg (__native regn) \
+#define GEN_WRITE_REG(reg) static inline void write_ ##reg (unative_t regn) \
     { \
 	__asm__ volatile ("movl %0, %%" #reg : : "r" (regn)); \
     }
@@ -98,7 +98,7 @@ GEN_WRITE_REG(dr7);
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outb(uint16_t port, uint8_t val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Word to port
  *
@@ -107,7 +107,7 @@ static inline void outb(__u16 port, __u8 val) { __asm__ volatile ("outb %b0, %w1
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outw(__u16 port, __u16 val) { __asm__ volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outw(uint16_t port, uint16_t val) { __asm__ volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Double word to port
  *
@@ -116,7 +116,7 @@ static inline void outw(__u16 port, __u16 val) { __asm__ volatile ("outw %w0, %w
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outl(__u16 port, __u32 val) { __asm__ volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outl(uint16_t port, uint32_t val) { __asm__ volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) ); }
 
 /** Byte from port
  *
@@ -125,7 +125,7 @@ static inline void outl(__u16 port, __u32 val) { __asm__ volatile ("outl %l0, %w
  * @param port Port to read from
  * @return Value read
  */
-static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
 
 /** Word from port
  *
@@ -134,7 +134,7 @@ static inline __u8 inb(__u16 port) { __u8 val; __asm__ volatile ("inb %w1, %b0 \
  * @param port Port to read from
  * @return Value read
  */
-static inline __u16 inw(__u16 port) { __u16 val; __asm__ volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint16_t inw(uint16_t port) { uint16_t val; __asm__ volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) ); return val; }
 
 /** Double word from port
  *
@@ -143,7 +143,7 @@ static inline __u16 inw(__u16 port) { __u16 val; __asm__ volatile ("inw %w1, %w0
  * @param port Port to read from
  * @return Value read
  */
-static inline __u32 inl(__u16 port) { __u32 val; __asm__ volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint32_t inl(uint16_t port) { uint32_t val; __asm__ volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) ); return val; }
 
 /** Enable interrupts.
  *
@@ -219,18 +219,18 @@ static inline ipl_t interrupts_read(void)
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__address v;
+	uintptr_t v;
 	
 	__asm__ volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
 	
 	return v;
 }
 
-static inline __u64 rdtsc(void)
+static inline uint64_t rdtsc(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile("rdtsc\n" : "=A" (v));
 	
@@ -238,9 +238,9 @@ static inline __u64 rdtsc(void)
 }
 
 /** Return current IP address */
-static inline __address * get_ip() 
+static inline uintptr_t * get_ip() 
 {
-	__address *ip;
+	uintptr_t *ip;
 
 	__asm__ volatile (
 		"mov %%eip, %0"
@@ -253,9 +253,9 @@ static inline __address * get_ip()
  *
  * @param addr Address on a page whose TLB entry is to be invalidated.
  */
-static inline void invlpg(__address addr)
+static inline void invlpg(uintptr_t addr)
 {
-	__asm__ volatile ("invlpg %0\n" :: "m" (*(__native *)addr));
+	__asm__ volatile ("invlpg %0\n" :: "m" (*(unative_t *)addr));
 }
 
 /** Load GDTR register from memory.
@@ -289,7 +289,7 @@ static inline void idtr_load(ptr_16_32_t *idtr_reg)
  *
  * @param sel Selector specifying descriptor of TSS segment.
  */
-static inline void tr_load(__u16 sel)
+static inline void tr_load(uint16_t sel)
 {
 	__asm__ volatile ("ltr %0" : : "r" (sel));
 }

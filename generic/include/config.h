@@ -46,7 +46,7 @@
 #define CONFIG_INIT_TASKS	32
 
 typedef struct {
-	__address addr;
+	uintptr_t addr;
 	size_t size;
 } init_task_t;
 
@@ -59,7 +59,7 @@ typedef struct {
 	count_t cpu_count;		/**< Number of processors detected. */
 	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
 
-	__address base;
+	uintptr_t base;
 	size_t memory_size;		/**< Size of detected memory in bytes. */
 	size_t kernel_size;		/**< Size of memory in bytes taken by kernel and stack */
 } config_t;

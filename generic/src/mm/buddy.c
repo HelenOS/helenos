@@ -66,7 +66,7 @@ size_t buddy_conf_size(int max_order)
  * @return New buddy system.
  */
 void buddy_system_create(buddy_system_t *b,
-			 __u8 max_order, 
+			 uint8_t max_order, 
 			 buddy_system_operations_t *op, 
 			 void *data)
 {
@@ -101,8 +101,8 @@ void buddy_system_create(buddy_system_t *b,
  *
  * @return True if block can be allocated
  */
-bool buddy_system_can_alloc(buddy_system_t *b, __u8 i) {
-	__u8 k;
+bool buddy_system_can_alloc(buddy_system_t *b, uint8_t i) {
+	uint8_t k;
 	
 	/*
 	 * If requested block is greater then maximal block
@@ -130,7 +130,7 @@ bool buddy_system_can_alloc(buddy_system_t *b, __u8 i) {
 link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 {
 	link_t *left,*right, *tmp;
-	__u8 order;
+	uint8_t order;
 
 	left = b->op->find_block(b, block, BUDDY_SYSTEM_INNER_BLOCK);
 	ASSERT(left);
@@ -167,7 +167,7 @@ link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
  *
  * @return Block of data represented by link_t.
  */
-link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
+link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i)
 {
 	link_t *res, *hlp;
 
@@ -230,7 +230,7 @@ link_t *buddy_system_alloc(buddy_system_t *b, __u8 i)
 void buddy_system_free(buddy_system_t *b, link_t *block)
 {
 	link_t *buddy, *hlp;
-	__u8 i;
+	uint8_t i;
 
 	/*
 	 * Determine block's order.

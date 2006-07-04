@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
@@ -43,20 +43,20 @@
 
 /** Kernel-side futex structure. */
 struct futex {
-	__address paddr;	/**< Physical address of the status variable. */
+	uintptr_t paddr;	/**< Physical address of the status variable. */
 	waitq_t wq;		/**< Wait queue for threads waiting for futex availability. */
 	link_t ht_link;		/**< Futex hash table link. */
 	count_t refcount;	/**< Number of tasks that reference this futex. */
 };
 
 extern void futex_init(void);
-extern __native sys_futex_sleep_timeout(__address uaddr, __u32 usec, int flags);
-extern __native sys_futex_wakeup(__address uaddr);
+extern unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags);
+extern unative_t sys_futex_wakeup(uintptr_t uaddr);
 
 extern void futex_cleanup(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

@@ -123,13 +123,13 @@ descriptor_t gdt[GDT_ITEMS] = {
 
 idescriptor_t idt[IDT_ITEMS];
 
-ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base= (__u64) gdt };
-ptr_16_64_t idtr = {.limit = sizeof(idt), .base= (__u64) idt };
+ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base= (uint64_t) gdt };
+ptr_16_64_t idtr = {.limit = sizeof(idt), .base= (uint64_t) idt };
 
 static tss_t tss;
 tss_t *tss_p = NULL;
 
-void gdt_tss_setbase(descriptor_t *d, __address base)
+void gdt_tss_setbase(descriptor_t *d, uintptr_t base)
 {
 	tss_descriptor_t *td = (tss_descriptor_t *) d;
 
@@ -139,7 +139,7 @@ void gdt_tss_setbase(descriptor_t *d, __address base)
 	td->base_32_63 = ((base) >> 32);
 }
 
-void gdt_tss_setlimit(descriptor_t *d, __u32 limit)
+void gdt_tss_setlimit(descriptor_t *d, uint32_t limit)
 {
 	struct tss_descriptor *td = (tss_descriptor_t *) d;
 
@@ -147,7 +147,7 @@ void gdt_tss_setlimit(descriptor_t *d, __u32 limit)
 	td->limit_16_19 = (limit >> 16) & 0xf;
 }
 
-void idt_setoffset(idescriptor_t *d, __address offset)
+void idt_setoffset(idescriptor_t *d, uintptr_t offset)
 {
 	/*
 	 * Offset is a linear address.
@@ -159,7 +159,7 @@ void idt_setoffset(idescriptor_t *d, __address offset)
 
 void tss_initialize(tss_t *t)
 {
-	memsetb((__address) t, sizeof(tss_t), 0);
+	memsetb((uintptr_t) t, sizeof(tss_t), 0);
 }
 
 /*
@@ -179,7 +179,7 @@ void idt_init(void)
 		d->present = 1;
 		d->type = AR_INTERRUPT;	/* masking interrupt */
 
-		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
+		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
 		exc_register(i, "undef", (iroutine)null_interrupt);
 	}
 
@@ -214,7 +214,7 @@ void pm_init(void)
 		/* We are going to use malloc, which may return
 		 * non boot-mapped pointer, initialize the CR3 register
 		 * ahead of page_init */
-		write_cr3((__address) AS_KERNEL->page_table);
+		write_cr3((uintptr_t) AS_KERNEL->page_table);
 
 		tss_p = (struct tss *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
@@ -228,7 +228,7 @@ void pm_init(void)
 	tss_desc->type = AR_TSS;
 	tss_desc->dpl = PL_KERNEL;
 	
-	gdt_tss_setbase(&gdt_p[TSS_DES], (__address) tss_p);
+	gdt_tss_setbase(&gdt_p[TSS_DES], (uintptr_t) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
 
 	gdtr_load(&gdtr);

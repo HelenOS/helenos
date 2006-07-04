@@ -55,19 +55,19 @@
  * function calls.
  */
 struct context {
-	__address sp;
-	__address pc;
+	uintptr_t sp;
+	uintptr_t pc;
 	
-	__u32 s0;
-	__u32 s1;
-	__u32 s2;
-	__u32 s3;
-	__u32 s4;
-	__u32 s5;
-	__u32 s6;
-	__u32 s7;
-	__u32 s8;
-	__u32 gp;
+	uint32_t s0;
+	uint32_t s1;
+	uint32_t s2;
+	uint32_t s3;
+	uint32_t s4;
+	uint32_t s5;
+	uint32_t s6;
+	uint32_t s7;
+	uint32_t s8;
+	uint32_t gp;
 
 	ipl_t ipl;
 };

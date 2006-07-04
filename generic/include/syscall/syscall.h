@@ -73,12 +73,12 @@ typedef enum {
 #include <arch/types.h>
 #include <typedefs.h>
 
-typedef __native (*syshandler_t)();
+typedef unative_t (*syshandler_t)();
 
 extern syshandler_t syscall_table[SYSCALL_END];
-extern __native syscall_handler(__native a1, __native a2, __native a3,
-				__native a4, __native id);
-extern __native sys_tls_set(__native addr);
+extern unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
+				unative_t a4, unative_t id);
+extern unative_t sys_tls_set(unative_t addr);
 
 
 #endif

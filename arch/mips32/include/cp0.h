@@ -63,14 +63,14 @@
 #define cp0_mask_int(it) cp0_status_write(cp0_status_read() & ~(1<<(cp0_status_im_shift+(it))))
 #define cp0_unmask_int(it) cp0_status_write(cp0_status_read() | (1<<(cp0_status_im_shift+(it))))
 
-#define GEN_READ_CP0(nm,reg) static inline __u32 cp0_ ##nm##_read(void) \
+#define GEN_READ_CP0(nm,reg) static inline uint32_t cp0_ ##nm##_read(void) \
   { \
-      __u32 retval; \
+      uint32_t retval; \
       asm("mfc0 %0, $" #reg : "=r"(retval)); \
       return retval; \
   }
 
-#define GEN_WRITE_CP0(nm,reg) static inline void cp0_ ##nm##_write(__u32 val) \
+#define GEN_WRITE_CP0(nm,reg) static inline void cp0_ ##nm##_write(uint32_t val) \
  { \
     asm("mtc0 %0, $" #reg : : "r"(val) ); \
  }

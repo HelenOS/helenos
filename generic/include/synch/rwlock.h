@@ -69,8 +69,8 @@ struct rwlock {
 extern void rwlock_initialize(rwlock_t *rwl);
 extern void rwlock_read_unlock(rwlock_t *rwl);
 extern void rwlock_write_unlock(rwlock_t *rwl);
-extern int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
-extern int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags);
+extern int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags);
+extern int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags);
 
 #endif
 

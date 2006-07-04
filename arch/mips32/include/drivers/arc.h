@@ -56,9 +56,9 @@ typedef enum {
 }cm_resource_type;
 
 typedef struct {
-	__u8 type;
-	__u8 sharedisposition;
-	__u16 flags;
+	uint8_t type;
+	uint8_t sharedisposition;
+	uint16_t flags;
 	union {
 		struct {
 			long long start; /* 64-bit phys address */
@@ -77,8 +77,8 @@ typedef struct {
 }__attribute__ ((packed)) cm_resource_descriptor;
 
 typedef struct {
-	__u16 version;
-	__u16 revision;
+	uint16_t version;
+	uint16_t revision;
 	unsigned long count;
 	cm_resource_descriptor descr[1];
 }__attribute__ ((packed)) cm_resource_list;
@@ -153,23 +153,23 @@ typedef struct  {
 	arc_component_class class;
 	arc_component_type type;
 	arc_component_flags flags;
-	__u16 revision;
-	__u16 version;
-	__u32 key;
-	__u32 affinitymask;
-	__u32 configdatasize;
-	__u32 identifier_len;
+	uint16_t revision;
+	uint16_t version;
+	uint32_t key;
+	uint32_t affinitymask;
+	uint32_t configdatasize;
+	uint32_t identifier_len;
 	char *identifier;
 } __attribute__ ((packed)) arc_component;
 
 typedef struct {
-	__u16 year;
-	__u16 month;
-	__u16 day;
-	__u16 hour;
-	__u16 minutes;
-	__u16 seconds;
-	__u16 mseconds;
+	uint16_t year;
+	uint16_t month;
+	uint16_t day;
+	uint16_t hour;
+	uint16_t minutes;
+	uint16_t seconds;
+	uint16_t mseconds;
 } __attribute__ ((packed)) arc_timeinfo;
 
 /* This is the SGI block structure, WinNT has it different */
@@ -186,8 +186,8 @@ typedef enum {
 
 typedef struct  {
 	arc_memorytype_t type;
-	__u32 basepage;  /* *4096 = baseaddr */
-	__u32 basecount;
+	uint32_t basepage;  /* *4096 = baseaddr */
+	uint32_t basecount;
 }arc_memdescriptor_t;
 
 typedef struct {
@@ -197,9 +197,9 @@ typedef struct {
 
 typedef struct {
 	long (*load)(void); /* ... */
-	long (*invoke)(__u32 eaddr,__u32 saddr,__u32 argc,char **argv,
+	long (*invoke)(uint32_t eaddr,uint32_t saddr,uint32_t argc,char **argv,
 		       char **envp);
-	long (*execute)(char *path,__u32 argc,char **argv,char **envp);
+	long (*execute)(char *path,uint32_t argc,char **argv,char **envp);
 	void (*halt)(void);
 	void (*powerdown)(void);
 	void (*restart)(void);
@@ -221,39 +221,39 @@ typedef struct {
 /* 20 */
 	long (*reserved2)(void);
 	arc_timeinfo * (*gettime)(void);
-	__u32 (*getrelativetime)(void);
+	uint32_t (*getrelativetime)(void);
 	long (*getdirectoryentry)();
 	long (*open)(void); /* ... */
-	long (*close)(__u32 fileid);
-	long (*read)(__u32 fileid,void *buf,__u32 n,__u32 *cnt);
-	long (*getreadstatus)(__u32 fileid);
-	long (*write)(__u32 fileid, void *buf,__u32 n,__u32 *cnt);
+	long (*close)(uint32_t fileid);
+	long (*read)(uint32_t fileid,void *buf,uint32_t n,uint32_t *cnt);
+	long (*getreadstatus)(uint32_t fileid);
+	long (*write)(uint32_t fileid, void *buf,uint32_t n,uint32_t *cnt);
 	long (*seek)(void); /* ... */
 /* 30 */
 	long (*mount)(void); /* ... */
 	char * (*getenvironmentvariable)(char *name);
 	char * (*setenvironmentvariable)(char *name, char *value);
 	long (*getfileinformation)(void); /* ... */
-	long (*setfileinformation)(__u32 fileid,__u32 attflags,__u32 attmask);
+	long (*setfileinformation)(uint32_t fileid,uint32_t attflags,uint32_t attmask);
 	void (*flushallcaches)(void);
 	long (*testunicodecharacter)(void); /* ... */
 	long (*getdisplaystatus)(void); /* ... */
 } arc_func_vector_t;
 
 typedef struct {
-	__u32 signature;
-	__u32 length;
-	__u16 version;
-	__u16 revision;
+	uint32_t signature;
+	uint32_t length;
+	uint16_t version;
+	uint16_t revision;
 	void *restartblock;
 	void *debugblock;
 	void *gevector;
 	void *utlbmissvector;
-	__u32 firmwarevectorlen;
+	uint32_t firmwarevectorlen;
 	arc_func_vector_t *firmwarevector;
-	__u32 privvectorlen;
+	uint32_t privvectorlen;
 	void *privvector;
-	__u32 adaptercount;
+	uint32_t adaptercount;
 }__attribute__ ((packed)) arc_sbp;
 
 extern int arc_init(void);

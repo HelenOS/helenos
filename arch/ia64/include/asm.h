@@ -45,9 +45,9 @@
  * The stack is assumed to be STACK_SIZE long.
  * The stack must start on page boundary.
  */
-static inline __address get_stack_base(void)
+static inline uintptr_t get_stack_base(void)
 {
-	__u64 v;
+	uint64_t v;
 
 	__asm__ volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
@@ -58,9 +58,9 @@ static inline __address get_stack_base(void)
  *
  * @return PSR.
  */
-static inline __u64 psr_read(void)
+static inline uint64_t psr_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = psr\n" : "=r" (v));
 	
@@ -71,9 +71,9 @@ static inline __u64 psr_read(void)
  *
  * @return Return location of interruption vector table.
  */
-static inline __u64 iva_read(void)
+static inline uint64_t iva_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = cr.iva\n" : "=r" (v));
 	
@@ -84,7 +84,7 @@ static inline __u64 iva_read(void)
  *
  * @param v New location of interruption vector table.
  */
-static inline void iva_write(__u64 v)
+static inline void iva_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.iva = %0\n" : : "r" (v));
 }
@@ -94,9 +94,9 @@ static inline void iva_write(__u64 v)
  *
  * @return Highest priority, pending, unmasked external interrupt vector.
  */
-static inline __u64 ivr_read(void)
+static inline uint64_t ivr_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = cr.ivr\n" : "=r" (v));
 	
@@ -107,7 +107,7 @@ static inline __u64 ivr_read(void)
  *
  * @param v New counter value.
  */
-static inline void itc_write(__u64 v)
+static inline void itc_write(uint64_t v)
 {
 	__asm__ volatile ("mov ar.itc = %0\n" : : "r" (v));
 }
@@ -116,9 +116,9 @@ static inline void itc_write(__u64 v)
  *
  * @return Current counter value.
  */
-static inline __u64 itc_read(void)
+static inline uint64_t itc_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = ar.itc\n" : "=r" (v));
 	
@@ -129,7 +129,7 @@ static inline __u64 itc_read(void)
  *
  * @param v New match value.
  */
-static inline void itm_write(__u64 v)
+static inline void itm_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.itm = %0\n" : : "r" (v));
 }
@@ -138,9 +138,9 @@ static inline void itm_write(__u64 v)
  *
  * @return Match value.
  */
-static inline __u64 itm_read(void)
+static inline uint64_t itm_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = cr.itm\n" : "=r" (v));
 	
@@ -151,9 +151,9 @@ static inline __u64 itm_read(void)
  *
  * @return Current vector and mask bit.
  */
-static inline __u64 itv_read(void)
+static inline uint64_t itv_read(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile ("mov %0 = cr.itv\n" : "=r" (v));
 	
@@ -164,7 +164,7 @@ static inline __u64 itv_read(void)
  *
  * @param v New vector and mask bit.
  */
-static inline void itv_write(__u64 v)
+static inline void itv_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.itv = %0\n" : : "r" (v));
 }
@@ -173,7 +173,7 @@ static inline void itv_write(__u64 v)
  *
  * @param v This value is ignored.
  */
-static inline void eoi_write(__u64 v)
+static inline void eoi_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.eoi = %0\n" : : "r" (v));
 }
@@ -182,9 +182,9 @@ static inline void eoi_write(__u64 v)
  *
  * @return Current value of TPR.
  */
-static inline __u64 tpr_read(void)
+static inline uint64_t tpr_read(void)
 {
-	__u64 v;
+	uint64_t v;
 
 	__asm__ volatile ("mov %0 = cr.tpr\n"  : "=r" (v));
 	
@@ -195,7 +195,7 @@ static inline __u64 tpr_read(void)
  *
  * @param v New value of TPR.
  */
-static inline void tpr_write(__u64 v)
+static inline void tpr_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.tpr = %0\n" : : "r" (v));
 }
@@ -209,7 +209,7 @@ static inline void tpr_write(__u64 v)
  */
 static ipl_t interrupts_disable(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile (
 		"mov %0 = psr\n"
@@ -230,7 +230,7 @@ static ipl_t interrupts_disable(void)
  */
 static ipl_t interrupts_enable(void)
 {
-	__u64 v;
+	uint64_t v;
 	
 	__asm__ volatile (
 		"mov %0 = psr\n"
@@ -275,9 +275,9 @@ static inline void pk_disable(void)
 
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
-extern void asm_delay_loop(__u32 t);
+extern void asm_delay_loop(uint32_t t);
 
-extern void switch_to_userspace(__address entry, __address sp, __address bsp, __address uspace_uarg, __u64 ipsr, __u64 rsc);
+extern void switch_to_userspace(uintptr_t entry, uintptr_t sp, uintptr_t bsp, uintptr_t uspace_uarg, uint64_t ipsr, uint64_t rsc);
 
 #endif
 

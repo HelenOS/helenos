@@ -33,9 +33,9 @@
 #include <test.h>
 #include <sysinfo/sysinfo.h>
 /*
-static __native counter(sysinfo_item_t *root)
+static unative_t counter(sysinfo_item_t *root)
 {
-	static __native i=0;
+	static unative_t i=0;
 	return i++;
 }*/
 

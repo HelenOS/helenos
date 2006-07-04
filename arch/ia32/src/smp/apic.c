@@ -67,10 +67,10 @@
  * optimize the code too much and accesses to l_apic and io_apic, that must
  * always be 32-bit, would use byte oriented instructions.
  */
-volatile __u32 *l_apic = (__u32 *) 0xfee00000;
-volatile __u32 *io_apic = (__u32 *) 0xfec00000;
+volatile uint32_t *l_apic = (uint32_t *) 0xfee00000;
+volatile uint32_t *io_apic = (uint32_t *) 0xfec00000;
 
-__u32 apic_id_mask = 0;
+uint32_t apic_id_mask = 0;
 
 static int apic_poll_errors(void);
 
@@ -218,7 +218,7 @@ int apic_poll_errors(void)
  *
  * @return 0 on failure, 1 on success.
  */
-int l_apic_broadcast_custom_ipi(__u8 vector)
+int l_apic_broadcast_custom_ipi(uint8_t vector)
 {
 	icr_t icr;
 
@@ -248,7 +248,7 @@ int l_apic_broadcast_custom_ipi(__u8 vector)
  *
  * @return 0 on failure, 1 on success.
  */
-int l_apic_send_init_ipi(__u8 apicid)
+int l_apic_send_init_ipi(uint8_t apicid)
 {
 	icr_t icr;
 	int i;
@@ -305,7 +305,7 @@ int l_apic_send_init_ipi(__u8 apicid)
 		 */
 		for (i = 0; i<2; i++) {
 			icr.lo = l_apic[ICRlo];
-			icr.vector = ((__address) ap_boot) / 4096; /* calculate the reset vector */
+			icr.vector = ((uintptr_t) ap_boot) / 4096; /* calculate the reset vector */
 			icr.delmod = DELMOD_STARTUP;
 			icr.destmod = DESTMOD_PHYS;
 			icr.level = LEVEL_ASSERT;
@@ -331,7 +331,7 @@ void l_apic_init(void)
 	lvt_tm_t tm;
 	ldr_t ldr;
 	dfr_t dfr;
-	__u32 t1, t2;
+	uint32_t t1, t2;
 
 	/* Initialize LVT Error register. */
 	error.value = l_apic[LVT_Err];
@@ -455,7 +455,7 @@ void l_apic_timer_interrupt(int n, istate_t *istate)
  *
  * @return Local APIC ID.
  */
-__u8 l_apic_id(void)
+uint8_t l_apic_id(void)
 {
 	l_apic_id_t idreg;
 	
@@ -469,7 +469,7 @@ __u8 l_apic_id(void)
  *
  * @return Content of the addressed IO APIC register.
  */
-__u32 io_apic_read(__u8 address)
+uint32_t io_apic_read(uint8_t address)
 {
 	io_regsel_t regsel;
 	
@@ -484,7 +484,7 @@ __u32 io_apic_read(__u8 address)
  * @param address IO APIC register address.
  * @param x Content to be written to the addressed IO APIC register.
  */
-void io_apic_write(__u8 address, __u32 x)
+void io_apic_write(uint8_t address, uint32_t x)
 {
 	io_regsel_t regsel;
 	
@@ -501,7 +501,7 @@ void io_apic_write(__u8 address, __u32 x)
  * @param v Interrupt vector to trigger.
  * @param flags Flags.
  */
-void io_apic_change_ioredtbl(int pin, int dest, __u8 v, int flags)
+void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 {
 	io_redirection_reg_t reg;
 	int dlvr = DELMOD_FIXED;
@@ -527,7 +527,7 @@ void io_apic_change_ioredtbl(int pin, int dest, __u8 v, int flags)
  *
  * @param irqmask Bitmask of IRQs to be masked (0 = do not mask, 1 = mask).
  */
-void io_apic_disable_irqs(__u16 irqmask)
+void io_apic_disable_irqs(uint16_t irqmask)
 {
 	io_redirection_reg_t reg;
 	int i, pin;
@@ -553,7 +553,7 @@ void io_apic_disable_irqs(__u16 irqmask)
  *
  * @param irqmask Bitmask of IRQs to be unmasked (0 = do not unmask, 1 = unmask).
  */
-void io_apic_enable_irqs(__u16 irqmask)
+void io_apic_enable_irqs(uint16_t irqmask)
 {
 	int i, pin;
 	io_redirection_reg_t reg;	

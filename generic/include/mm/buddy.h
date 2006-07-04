@@ -45,27 +45,27 @@ struct buddy_system_operations {
 	link_t *(* find_buddy)(buddy_system_t *, link_t *);		/**< Return pointer to left-side or right-side buddy for block passed as argument. */
 	link_t *(* bisect)(buddy_system_t *, link_t *);			/**< Bisect the block passed as argument and return pointer to the new right-side buddy. */
 	link_t *(* coalesce)(buddy_system_t *, link_t *, link_t *);	/**< Coalesce two buddies into a bigger block. */
-	void (*set_order)(buddy_system_t *, link_t *, __u8);		/**< Set order of block passed as argument. */
-	__u8 (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
+	void (*set_order)(buddy_system_t *, link_t *, uint8_t);		/**< Set order of block passed as argument. */
+	uint8_t (*get_order)(buddy_system_t *, link_t *);			/**< Return order of block passed as argument. */
 	void (*mark_busy)(buddy_system_t *, link_t *);			/**< Mark block as busy. */
 	void (*mark_available)(buddy_system_t *, link_t *);		/**< Mark block as available. */
 	/** Find parent of block that has given order  */
-	link_t *(* find_block)(buddy_system_t *, link_t *, __u8);
+	link_t *(* find_block)(buddy_system_t *, link_t *, uint8_t);
 	void (* print_id)(buddy_system_t *, link_t *);
 };
 
 struct buddy_system {
-	__u8 max_order;				/**< Maximal order of block which can be stored by buddy system. */
+	uint8_t max_order;				/**< Maximal order of block which can be stored by buddy system. */
 	link_t *order;
 	buddy_system_operations_t *op;
 	void *data;				/**< Pointer to be used by the implementation. */
 };
 
 extern void buddy_system_create(buddy_system_t *b,
-				__u8 max_order, 
+				uint8_t max_order, 
 				buddy_system_operations_t *op, void *data);
-extern link_t *buddy_system_alloc(buddy_system_t *b, __u8 i);
-extern bool buddy_system_can_alloc(buddy_system_t *b, __u8 order);
+extern link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i);
+extern bool buddy_system_can_alloc(buddy_system_t *b, uint8_t order);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);
 extern void buddy_system_structure_print(buddy_system_t *b, size_t elem_size);
 extern size_t buddy_conf_size(int max_order);

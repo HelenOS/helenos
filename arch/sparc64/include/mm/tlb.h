@@ -56,7 +56,7 @@
 #define KERNEL_PAGE_WIDTH       22	/* 4M */
 
 union tlb_context_reg {
-	__u64 v;
+	uint64_t v;
 	struct {
 		unsigned long : 51;
 		unsigned context : 13;		/**< Context/ASID. */
@@ -69,9 +69,9 @@ typedef tte_data_t tlb_data_t;
 
 /** I-/D-TLB Data Access Address in Alternate Space. */
 union tlb_data_access_addr {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u64 : 55;
+		uint64_t : 55;
 		unsigned tlb_entry : 6;
 		unsigned : 3;
 	} __attribute__ ((packed));
@@ -81,9 +81,9 @@ typedef union tlb_data_access_addr tlb_tag_read_addr_t;
 
 /** I-/D-TLB Tag Read Register. */
 union tlb_tag_read_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u64 vpn : 51;		/**< Virtual Address bits 63:13. */
+		uint64_t vpn : 51;		/**< Virtual Address bits 63:13. */
 		unsigned context : 13;	/**< Context identifier. */
 	} __attribute__ ((packed));
 };
@@ -101,9 +101,9 @@ typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 
 /** TLB Demap Operation Address. */
 union tlb_demap_addr {
-	__u64 value;
+	uint64_t value;
 	struct {
-		__u64 vpn: 51;		/**< Virtual Address bits 63:13. */
+		uint64_t vpn: 51;		/**< Virtual Address bits 63:13. */
 		unsigned : 6;		/**< Ignored. */
 		unsigned type : 1;	/**< The type of demap operation. */
 		unsigned context : 2;	/**< Context register selection. */
@@ -114,7 +114,7 @@ typedef union tlb_demap_addr tlb_demap_addr_t;
 
 /** TLB Synchronous Fault Status Register. */
 union tlb_sfsr_reg {
-	__u64 value;
+	uint64_t value;
 	struct {
 		unsigned long : 39;	/**< Implementation dependent. */
 		unsigned nf : 1;	/**< Nonfaulting load. */
@@ -136,7 +136,7 @@ typedef union tlb_sfsr_reg tlb_sfsr_reg_t;
  *
  * @return Current value of Primary Context Register.
  */
-static inline __u64 mmu_primary_context_read(void)
+static inline uint64_t mmu_primary_context_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_PRIMARY_CONTEXT_REG);
 }
@@ -145,7 +145,7 @@ static inline __u64 mmu_primary_context_read(void)
  *
  * @param v New value of Primary Context Register.
  */
-static inline void mmu_primary_context_write(__u64 v)
+static inline void mmu_primary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
 	flush();
@@ -155,7 +155,7 @@ static inline void mmu_primary_context_write(__u64 v)
  *
  * @return Current value of Secondary Context Register.
  */
-static inline __u64 mmu_secondary_context_read(void)
+static inline uint64_t mmu_secondary_context_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_SECONDARY_CONTEXT_REG);
 }
@@ -164,7 +164,7 @@ static inline __u64 mmu_secondary_context_read(void)
  *
  * @param v New value of Primary Context Register.
  */
-static inline void mmu_secondary_context_write(__u64 v)
+static inline void mmu_secondary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
 	flush();
@@ -176,7 +176,7 @@ static inline void mmu_secondary_context_write(__u64 v)
  *
  * @return Current value of specified IMMU TLB Data Access Register.
  */
-static inline __u64 itlb_data_access_read(index_t entry)
+static inline uint64_t itlb_data_access_read(index_t entry)
 {
 	tlb_data_access_addr_t reg;
 	
@@ -190,7 +190,7 @@ static inline __u64 itlb_data_access_read(index_t entry)
  * @param entry TLB Entry index.
  * @param value Value to be written.
  */
-static inline void itlb_data_access_write(index_t entry, __u64 value)
+static inline void itlb_data_access_write(index_t entry, uint64_t value)
 {
 	tlb_data_access_addr_t reg;
 	
@@ -206,7 +206,7 @@ static inline void itlb_data_access_write(index_t entry, __u64 value)
  *
  * @return Current value of specified DMMU TLB Data Access Register.
  */
-static inline __u64 dtlb_data_access_read(index_t entry)
+static inline uint64_t dtlb_data_access_read(index_t entry)
 {
 	tlb_data_access_addr_t reg;
 	
@@ -220,7 +220,7 @@ static inline __u64 dtlb_data_access_read(index_t entry)
  * @param entry TLB Entry index.
  * @param value Value to be written.
  */
-static inline void dtlb_data_access_write(index_t entry, __u64 value)
+static inline void dtlb_data_access_write(index_t entry, uint64_t value)
 {
 	tlb_data_access_addr_t reg;
 	
@@ -236,7 +236,7 @@ static inline void dtlb_data_access_write(index_t entry, __u64 value)
  *
  * @return Current value of specified IMMU TLB Tag Read Register.
  */
-static inline __u64 itlb_tag_read_read(index_t entry)
+static inline uint64_t itlb_tag_read_read(index_t entry)
 {
 	tlb_tag_read_addr_t tag;
 
@@ -251,7 +251,7 @@ static inline __u64 itlb_tag_read_read(index_t entry)
  *
  * @return Current value of specified DMMU TLB Tag Read Register.
  */
-static inline __u64 dtlb_tag_read_read(index_t entry)
+static inline uint64_t dtlb_tag_read_read(index_t entry)
 {
 	tlb_tag_read_addr_t tag;
 
@@ -264,7 +264,7 @@ static inline __u64 dtlb_tag_read_read(index_t entry)
  *
  * @param v Value to be written.
  */
-static inline void itlb_tag_access_write(__u64 v)
+static inline void itlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_TAG_ACCESS, v);
 	flush();
@@ -274,7 +274,7 @@ static inline void itlb_tag_access_write(__u64 v)
  *
  * @return Current value of IMMU TLB Tag Access Register.
  */
-static inline __u64 itlb_tag_access_read(void)
+static inline uint64_t itlb_tag_access_read(void)
 {
 	return asi_u64_read(ASI_IMMU, VA_IMMU_TAG_ACCESS);
 }
@@ -283,7 +283,7 @@ static inline __u64 itlb_tag_access_read(void)
  *
  * @param v Value to be written.
  */
-static inline void dtlb_tag_access_write(__u64 v)
+static inline void dtlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_TAG_ACCESS, v);
 	flush();
@@ -293,7 +293,7 @@ static inline void dtlb_tag_access_write(__u64 v)
  *
  * @return Current value of DMMU TLB Tag Access Register.
  */
-static inline __u64 dtlb_tag_access_read(void)
+static inline uint64_t dtlb_tag_access_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_TAG_ACCESS);
 }
@@ -303,7 +303,7 @@ static inline __u64 dtlb_tag_access_read(void)
  *
  * @param v Value to be written.
  */
-static inline void itlb_data_in_write(__u64 v)
+static inline void itlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_ITLB_DATA_IN_REG, 0, v);
 	flush();
@@ -313,7 +313,7 @@ static inline void itlb_data_in_write(__u64 v)
  *
  * @param v Value to be written.
  */
-static inline void dtlb_data_in_write(__u64 v)
+static inline void dtlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_DTLB_DATA_IN_REG, 0, v);
 	flush();
@@ -323,7 +323,7 @@ static inline void dtlb_data_in_write(__u64 v)
  *
  * @return Current content of I-SFSR register.
  */
-static inline __u64 itlb_sfsr_read(void)
+static inline uint64_t itlb_sfsr_read(void)
 {
 	return asi_u64_read(ASI_IMMU, VA_IMMU_SFSR);
 }
@@ -332,7 +332,7 @@ static inline __u64 itlb_sfsr_read(void)
  *
  * @param v New value of I-SFSR register.
  */
-static inline void itlb_sfsr_write(__u64 v)
+static inline void itlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_SFSR, v);
 	flush();
@@ -342,7 +342,7 @@ static inline void itlb_sfsr_write(__u64 v)
  *
  * @return Current content of D-SFSR register.
  */
-static inline __u64 dtlb_sfsr_read(void)
+static inline uint64_t dtlb_sfsr_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_SFSR);
 }
@@ -351,7 +351,7 @@ static inline __u64 dtlb_sfsr_read(void)
  *
  * @param v New value of D-SFSR register.
  */
-static inline void dtlb_sfsr_write(__u64 v)
+static inline void dtlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_SFSR, v);
 	flush();
@@ -361,7 +361,7 @@ static inline void dtlb_sfsr_write(__u64 v)
  *
  * @return Current content of D-SFAR register.
  */
-static inline __u64 dtlb_sfar_read(void)
+static inline uint64_t dtlb_sfar_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_SFAR);
 }
@@ -372,7 +372,7 @@ static inline __u64 dtlb_sfar_read(void)
  * @param context_encoding Specifies which Context register has Context ID for demap.
  * @param page Address which is on the page to be demapped.
  */
-static inline void itlb_demap(int type, int context_encoding, __address page)
+static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
 {
 	tlb_demap_addr_t da;
 	page_address_t pg;
@@ -394,7 +394,7 @@ static inline void itlb_demap(int type, int context_encoding, __address page)
  * @param context_encoding Specifies which Context register has Context ID for demap.
  * @param page Address which is on the page to be demapped.
  */
-static inline void dtlb_demap(int type, int context_encoding, __address page)
+static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 {
 	tlb_demap_addr_t da;
 	page_address_t pg;
@@ -414,7 +414,7 @@ extern void fast_instruction_access_mmu_miss(void);
 extern void fast_data_access_mmu_miss(void);
 extern void fast_data_access_protection(void);
 
-extern void dtlb_insert_mapping(__address page, __address frame, int pagesize, bool locked, bool cacheable);
+extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable);
 
 #endif
 

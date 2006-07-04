@@ -90,7 +90,7 @@ typedef struct {
 	int flags;        /**< Flags changing behaviour of cache */
 
 	/* Computed values */
-	__u8 order;        /**< Order of frames to be allocated */
+	uint8_t order;        /**< Order of frames to be allocated */
 	int objects;      /**< Number of objects that fit in */
 
 	/* Statistics */

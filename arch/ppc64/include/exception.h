@@ -42,47 +42,47 @@
 #include <typedefs.h>
 
 struct istate {
-	__u64 r0;
-	__u64 r2;
-	__u64 r3;
-	__u64 r4;
-	__u64 r5;
-	__u64 r6;
-	__u64 r7;
-	__u64 r8;
-	__u64 r9;
-	__u64 r10;
-	__u64 r11;
-	__u64 r13;
-	__u64 r14;
-	__u64 r15;
-	__u64 r16;
-	__u64 r17;
-	__u64 r18;
-	__u64 r19;
-	__u64 r20;
-	__u64 r21;
-	__u64 r22;
-	__u64 r23;
-	__u64 r24;
-	__u64 r25;
-	__u64 r26;
-	__u64 r27;
-	__u64 r28;
-	__u64 r29;
-	__u64 r30;
-	__u64 r31;
-	__u64 cr;
-	__u64 pc;
-	__u64 srr1;
-	__u64 lr;
-	__u64 ctr;
-	__u64 xer;
-	__u64 r12;
-	__u64 sp;
+	uint64_t r0;
+	uint64_t r2;
+	uint64_t r3;
+	uint64_t r4;
+	uint64_t r5;
+	uint64_t r6;
+	uint64_t r7;
+	uint64_t r8;
+	uint64_t r9;
+	uint64_t r10;
+	uint64_t r11;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t r16;
+	uint64_t r17;
+	uint64_t r18;
+	uint64_t r19;
+	uint64_t r20;
+	uint64_t r21;
+	uint64_t r22;
+	uint64_t r23;
+	uint64_t r24;
+	uint64_t r25;
+	uint64_t r26;
+	uint64_t r27;
+	uint64_t r28;
+	uint64_t r29;
+	uint64_t r30;
+	uint64_t r31;
+	uint64_t cr;
+	uint64_t pc;
+	uint64_t srr1;
+	uint64_t lr;
+	uint64_t ctr;
+	uint64_t xer;
+	uint64_t r12;
+	uint64_t sp;
 };
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->pc = retaddr;
 }
@@ -93,7 +93,7 @@ static inline int istate_from_uspace(istate_t *istate)
 	panic("istate_from_uspace not yet implemented");
 	return 0;
 }
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
 }

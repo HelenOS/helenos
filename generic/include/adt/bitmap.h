@@ -41,11 +41,11 @@
 #define BITS2BYTES(bits)	(bits ? ((((bits)-1)>>3)+1) : 0)
 
 typedef struct {
-	__u8 *map;
+	uint8_t *map;
 	count_t bits;
 } bitmap_t;
 
-extern void bitmap_initialize(bitmap_t *bitmap, __u8 *map, count_t bits);
+extern void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, count_t bits);
 extern void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits);
 extern void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits);
 extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits);

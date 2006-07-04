@@ -37,22 +37,22 @@
 
 #define NULL 0
 
-typedef signed char __s8;
-typedef signed short __s16;
-typedef signed int __s32;
-typedef signed long long __s64;
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+typedef signed long long int64_t;
 
-typedef unsigned char __u8;
-typedef unsigned short __u16;
-typedef unsigned int __u32;
-typedef unsigned long long __u64;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 
-typedef __u32 __address;
-typedef __u32 pfn_t;
+typedef uint32_t uintptr_t;
+typedef uint32_t pfn_t;
 
-typedef __u32 ipl_t;
+typedef uint32_t ipl_t;
 
-typedef __u32 __native;
+typedef uint32_t unative_t;
 
 /** Page Table Entry. */
 typedef struct {

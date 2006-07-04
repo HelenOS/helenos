@@ -85,8 +85,8 @@
 #include <arch/context.h>
 
 struct ptr_16_32 {
-	__u16 limit;
-	__u32 base;
+	uint16_t limit;
+	uint32_t base;
 } __attribute__ ((packed));
 typedef struct ptr_16_32 ptr_16_32_t;
 
@@ -114,45 +114,45 @@ struct idescriptor {
 typedef struct idescriptor idescriptor_t;
 
 struct tss {
-	__u16 link;
+	uint16_t link;
 	unsigned : 16;
-	__u32 esp0;
-	__u16 ss0;
+	uint32_t esp0;
+	uint16_t ss0;
 	unsigned : 16;
-	__u32 esp1;
-	__u16 ss1;
+	uint32_t esp1;
+	uint16_t ss1;
 	unsigned : 16;
-	__u32 esp2;
-	__u16 ss2;
+	uint32_t esp2;
+	uint16_t ss2;
 	unsigned : 16;
-	__u32 cr3;
-	__u32 eip;
-	__u32 eflags;
-	__u32 eax;
-	__u32 ecx;
-	__u32 edx;
-	__u32 ebx;
-	__u32 esp;
-	__u32 ebp;
-	__u32 esi;
-	__u32 edi;
-	__u16 es;
+	uint32_t cr3;
+	uint32_t eip;
+	uint32_t eflags;
+	uint32_t eax;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t ebx;
+	uint32_t esp;
+	uint32_t ebp;
+	uint32_t esi;
+	uint32_t edi;
+	uint16_t es;
 	unsigned : 16;
-	__u16 cs;
+	uint16_t cs;
 	unsigned : 16;
-	__u16 ss;
+	uint16_t ss;
 	unsigned : 16;
-	__u16 ds;
+	uint16_t ds;
 	unsigned : 16;
-	__u16 fs;
+	uint16_t fs;
 	unsigned : 16;
-	__u16 gs;
+	uint16_t gs;
 	unsigned : 16;
-	__u16 ldtr;
+	uint16_t ldtr;
 	unsigned : 16;
 	unsigned : 16;
-	__u16 iomap_base;
-	__u8 iomap[TSS_IOMAP_SIZE];
+	uint16_t iomap_base;
+	uint8_t iomap[TSS_IOMAP_SIZE];
 } __attribute__ ((packed));
 typedef struct tss tss_t;
 
@@ -165,14 +165,14 @@ extern descriptor_t gdt[];
 
 extern void pm_init(void);
 
-extern void gdt_setbase(descriptor_t *d, __address base);
-extern void gdt_setlimit(descriptor_t *d, __u32 limit);
+extern void gdt_setbase(descriptor_t *d, uintptr_t base);
+extern void gdt_setlimit(descriptor_t *d, uint32_t limit);
 
 extern void idt_init(void);
-extern void idt_setoffset(idescriptor_t *d, __address offset);
+extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
 
 extern void tss_initialize(tss_t *t);
-extern void set_tls_desc(__address tls);
+extern void set_tls_desc(uintptr_t tls);
 
 #endif /* __ASM__ */
 

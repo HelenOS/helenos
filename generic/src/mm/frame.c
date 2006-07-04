@@ -69,7 +69,7 @@
 
 typedef struct {
 	count_t refcount;	/**< tracking of shared frames  */
-	__u8 buddy_order;	/**< buddy system block order */
+	uint8_t buddy_order;	/**< buddy system block order */
 	link_t buddy_link;	/**< link to the next free block inside one order */
 	void *parent;           /**< If allocated by slab, this points there */
 } frame_t;
@@ -217,7 +217,7 @@ static zone_t * find_zone_and_lock(pfn_t frame, int *pzone)
 }
 
 /** @return True if zone can allocate specified order */
-static int zone_can_alloc(zone_t *z, __u8 order)
+static int zone_can_alloc(zone_t *z, uint8_t order)
 {
 	return buddy_system_can_alloc(z->buddy_system, order);
 }
@@ -230,7 +230,7 @@ static int zone_can_alloc(zone_t *z, __u8 order)
  * @param order Size (2^order) of free space we are trying to find
  * @param pzone Pointer to preferred zone or NULL, on return contains zone number
  */
-static zone_t * find_free_zone_lock(__u8 order, int *pzone)
+static zone_t * find_free_zone_lock(uint8_t order, int *pzone)
 {
 	int i;
 	zone_t *z;
@@ -271,7 +271,7 @@ static zone_t * find_free_zone_lock(__u8 order, int *pzone)
  * @param order - Order of parent must be different then this parameter!!
  */
 static link_t *zone_buddy_find_block(buddy_system_t *b, link_t *child,
-				     __u8 order)
+				     uint8_t order)
 {
 	frame_t * frame;
 	zone_t * zone;
@@ -380,7 +380,7 @@ static link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1,
  * @param block Buddy system block
  * @param order Order to set
  */
-static void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order) {
+static void zone_buddy_set_order(buddy_system_t *b, link_t * block, uint8_t order) {
 	frame_t * frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	frame->buddy_order = order;
@@ -393,7 +393,7 @@ static void zone_buddy_set_order(buddy_system_t *b, link_t * block, __u8 order) 
  *
  * @return Order of block
  */
-static __u8 zone_buddy_get_order(buddy_system_t *b, link_t * block) {
+static uint8_t zone_buddy_get_order(buddy_system_t *b, link_t * block) {
 	frame_t * frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	return frame->buddy_order;
@@ -450,7 +450,7 @@ static struct buddy_system_operations  zone_buddy_system_operations = {
  * @return Frame index in zone
  *
  */
-static pfn_t zone_frame_alloc(zone_t *zone, __u8 order)
+static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
 {
 	pfn_t v;
 	link_t *tmp;
@@ -483,7 +483,7 @@ static pfn_t zone_frame_alloc(zone_t *zone, __u8 order)
 static void zone_frame_free(zone_t *zone, index_t frame_idx)
 {
 	frame_t *frame;
-	__u8 order;
+	uint8_t order;
 
 	frame = &zone->frames[frame_idx];
 	
@@ -537,7 +537,7 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
 
 static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 {
-	__u8 max_order;
+	uint8_t max_order;
 	int i, z2idx;
 	pfn_t frame_idx;
 	frame_t *frame;
@@ -624,7 +624,7 @@ static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 	count_t cframes;
 	int i;
 
-	pfn = ADDR2PFN((__address)KA2PA(oldzone));
+	pfn = ADDR2PFN((uintptr_t)KA2PA(oldzone));
 	cframes = SIZE2FRAMES(zone_conf_size(oldzone->count));
 	
 	if (pfn < newzone->base || pfn >= newzone->base + newzone->count)
@@ -653,7 +653,7 @@ static void return_config_frames(zone_t *newzone, zone_t *oldzone)
 static void zone_reduce_region(zone_t *zone, pfn_t frame_idx, count_t count)
 {
 	count_t i;
-	__u8 order;
+	uint8_t order;
 	frame_t *frame;
 	
 	ASSERT(frame_idx+count < zone->count);
@@ -689,7 +689,7 @@ void zone_merge(int z1, int z2)
 	ipl_t ipl;
 	zone_t *zone1, *zone2, *newzone;
 	int cframes;
-	__u8 order;
+	uint8_t order;
 	int i;
 	pfn_t pfn;
 
@@ -779,7 +779,7 @@ void zone_merge_all(void)
 static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 {
 	int i;
-	__u8 max_order;
+	uint8_t max_order;
 
 	spinlock_initialize(&z->lock, "zone_lock");
 	z->base = start;
@@ -817,7 +817,7 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
  * @param count Size of zone in frames
  * @return Size of zone configuration info (in bytes)
  */
-__address zone_conf_size(count_t count)
+uintptr_t zone_conf_size(count_t count)
 {
 	int size = sizeof(zone_t) + count*sizeof(frame_t);
 	int max_order;
@@ -845,7 +845,7 @@ __address zone_conf_size(count_t count)
 int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 {
 	zone_t *z;
-	__address addr;
+	uintptr_t addr;
 	count_t confcount;
 	int i;
 	int znum;
@@ -931,7 +931,7 @@ void * frame_get_parent(pfn_t pfn, int hint)
  * @return Physical address of the allocated frame.
  *
  */
-void * frame_alloc_generic(__u8 order, int flags, int *pzone) 
+void * frame_alloc_generic(uint8_t order, int flags, int *pzone) 
 {
 	ipl_t ipl;
 	int freed;
@@ -990,7 +990,7 @@ loop:
  *
  * @param Frame Physical Address of of the frame to be freed.
  */
-void frame_free(__address frame)
+void frame_free(uintptr_t frame)
 {
 	ipl_t ipl;
 	zone_t *zone;
@@ -1099,7 +1099,7 @@ void zone_print_list(void) {
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%d: %.*p \t%10zd\t%10zd\n", i, sizeof(__address) * 2, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
+		printf("%d: %.*p \t%10zd\t%10zd\n", i, sizeof(uintptr_t) * 2, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
 	spinlock_unlock(&zones.lock);
@@ -1131,7 +1131,7 @@ void zone_print_one(int num) {
 	
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n");
-	printf("Zone base address: %#.*p\n", sizeof(__address) * 2, PFN2ADDR(zone->base));
+	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2, PFN2ADDR(zone->base));
 	printf("Zone size: %zd frames (%zdK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
 	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
 	printf("Available space: %zd (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);

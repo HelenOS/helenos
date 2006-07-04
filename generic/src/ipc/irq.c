@@ -72,7 +72,7 @@ static int irq_conns_size;
 static void code_execute(call_t *call, irq_code_t *code)
 {
 	int i;
-	__native dstval = 0;
+	unative_t dstval = 0;
 	
 	if (!code)
 		return;
@@ -80,28 +80,28 @@ static void code_execute(call_t *call, irq_code_t *code)
 	for (i=0; i < code->cmdcount;i++) {
 		switch (code->cmds[i].cmd) {
 		case CMD_MEM_READ_1:
-			dstval = *((__u8 *)code->cmds[i].addr);
+			dstval = *((uint8_t *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_2:
-			dstval = *((__u16 *)code->cmds[i].addr);
+			dstval = *((uint16_t *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_4:
-			dstval = *((__u32 *)code->cmds[i].addr);
+			dstval = *((uint32_t *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_8:
-			dstval = *((__u64 *)code->cmds[i].addr);
+			dstval = *((uint64_t *)code->cmds[i].addr);
 			break;
 		case CMD_MEM_WRITE_1:
-			*((__u8 *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint8_t *)code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_2:
-			*((__u16 *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint16_t *)code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_4:
-			*((__u32 *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint32_t *)code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_8:
-			*((__u64 *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint64_t *)code->cmds[i].addr) = code->cmds[i].value;
 			break;
 #if defined(ia32) || defined(amd64)
 		case CMD_PORT_READ_1:
@@ -234,7 +234,7 @@ static void send_call(int mq, call_t *call)
 /** Send notification message
  *
  */
-void ipc_irq_send_msg(int irq, __native a1, __native a2, __native a3)
+void ipc_irq_send_msg(int irq, unative_t a1, unative_t a2, unative_t a3)
 {
 	call_t *call;
 	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;

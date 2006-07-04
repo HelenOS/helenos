@@ -51,10 +51,10 @@ void cpu_identify(void)
 void cpu_print_report(cpu_t *m)
 {
 	char *family_str;
-	char vendor[2*sizeof(__u64)+1];
+	char vendor[2*sizeof(uint64_t)+1];
 	
-	*((__u64 *) &vendor[0*sizeof(__u64)]) = CPU->arch.cpuid0;
-	*((__u64 *) &vendor[1*sizeof(__u64)]) = CPU->arch.cpuid1;
+	*((uint64_t *) &vendor[0*sizeof(uint64_t)]) = CPU->arch.cpuid0;
+	*((uint64_t *) &vendor[1*sizeof(uint64_t)]) = CPU->arch.cpuid1;
 	vendor[sizeof(vendor)-1] = '\0';
 	
 	switch(m->arch.cpuid3.family) {

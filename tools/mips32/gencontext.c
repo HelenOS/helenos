@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef uint32_t __u32;
-typedef __u32 ipl_t;
-typedef __u32 __address;
+typedef uint32_t uint32_t;
+typedef uint32_t ipl_t;
+typedef uint32_t uintptr_t;
 
 #define __mips32_TYPES_H__
 #include "../../arch/mips32/include/context.h"

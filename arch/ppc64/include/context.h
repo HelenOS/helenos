@@ -42,31 +42,31 @@
 #define SP_DELTA	16
 
 struct context {
-	__address sp;
-	__address pc;
+	uintptr_t sp;
+	uintptr_t pc;
 	
-	__u64 r2;
-	__u64 r13;
-	__u64 r14;
-	__u64 r15;
-	__u64 r16;
-	__u64 r17;
-	__u64 r18;
-	__u64 r19;
-	__u64 r20;
-	__u64 r21;
-	__u64 r22;
-	__u64 r23;
-	__u64 r24;
-	__u64 r25;
-	__u64 r26;
-	__u64 r27;
-	__u64 r28;
-	__u64 r29;
-	__u64 r30;
-	__u64 r31;
+	uint64_t r2;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t r16;
+	uint64_t r17;
+	uint64_t r18;
+	uint64_t r19;
+	uint64_t r20;
+	uint64_t r21;
+	uint64_t r22;
+	uint64_t r23;
+	uint64_t r24;
+	uint64_t r25;
+	uint64_t r26;
+	uint64_t r27;
+	uint64_t r28;
+	uint64_t r29;
+	uint64_t r30;
+	uint64_t r31;
 	
-	__u64 cr;
+	uint64_t cr;
 	
 	ipl_t ipl;
 } __attribute__ ((packed));

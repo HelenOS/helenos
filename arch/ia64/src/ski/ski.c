@@ -44,7 +44,7 @@ static bool kb_disable;
 int kbd_uspace=0;
 
 static void ski_putchar(chardev_t *d, const char ch);
-static __s32 ski_getchar(void);
+static int32_t ski_getchar(void);
 
 /** Display character on debug console
  *
@@ -78,9 +78,9 @@ void ski_putchar(chardev_t *d, const char ch)
  *
  * @return ASCII code of pressed key or 0 if no key pressed.
  */
-__s32 ski_getchar(void)
+int32_t ski_getchar(void)
 {
-	__u64 ch;
+	uint64_t ch;
 	
 	__asm__ volatile (
 		"mov r15=%1\n"
@@ -92,7 +92,7 @@ __s32 ski_getchar(void)
 		: "r15",  "r8"
 	);
 
-	return (__s32) ch;
+	return (int32_t) ch;
 }
 
 /**

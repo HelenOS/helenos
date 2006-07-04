@@ -45,12 +45,12 @@
 
 typedef struct va_list {
 	int pos;
-	__u8 *last;
+	uint8_t *last;
 } va_list;
 
 #define va_start(ap, lst) 		\
 	(ap).pos = sizeof(lst); 			\
-	(ap).last = (__u8 *) &(lst)
+	(ap).last = (uint8_t *) &(lst)
 
 #define va_arg(ap, type) 		\
 	(*((type *)((ap).last + ((ap).pos  += sizeof(type) ) - sizeof(type))))

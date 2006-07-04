@@ -56,7 +56,7 @@
 #define STRUCT_TO_USPACE(dst,src) copy_to_uspace(dst,src,sizeof(*(src)))
 
 /** Return true if the method is a system method */
-static inline int is_system_method(__native method)
+static inline int is_system_method(unative_t method)
 {
 	if (method <= IPC_M_LAST_SYSTEM)
 		return 1;
@@ -68,7 +68,7 @@ static inline int is_system_method(__native method)
  * - some system messages may be forwarded, for some of them
  *   it is useless
  */
-static inline int is_forwardable(__native method)
+static inline int is_forwardable(unative_t method)
 {
 	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_AREA_SEND \
 	    || method == IPC_M_AS_AREA_RECV)
@@ -131,7 +131,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			/* The connection was accepted */
 			phone_connect(phoneid,&answer->sender->answerbox);
 			/* Set 'phone identification' as arg3 of response */
-			IPC_SET_ARG3(answer->data, (__native)&TASK->phones[phoneid]);
+			IPC_SET_ARG3(answer->data, (unative_t)&TASK->phones[phoneid]);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
 		/* If the users accepted call, connect */
@@ -191,7 +191,7 @@ static int request_preprocess(call_t *call)
 		if (newphid < 0)
 			return ELIMIT;
 		/* Set arg3 for server */
-		IPC_SET_ARG3(call->data, (__native)&TASK->phones[newphid]);
+		IPC_SET_ARG3(call->data, (unative_t)&TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->private = newphid;
 		break;
@@ -253,8 +253,8 @@ static int process_request(answerbox_t *box,call_t *call)
  * @return Call identification, returns -1 on fatal error, 
            -2 on 'Too many async request, handle answers first
  */
-__native sys_ipc_call_sync_fast(__native phoneid, __native method, 
-				__native arg1, ipc_data_t *data)
+unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
+				unative_t arg1, ipc_data_t *data)
 {
 	call_t call;
 	phone_t *phone;
@@ -277,7 +277,7 @@ __native sys_ipc_call_sync_fast(__native phoneid, __native method,
 }
 
 /** Synchronous IPC call allowing to send whole message */
-__native sys_ipc_call_sync(__native phoneid, ipc_data_t *question, 
+unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question, 
 			   ipc_data_t *reply)
 {
 	call_t call;
@@ -288,7 +288,7 @@ __native sys_ipc_call_sync(__native phoneid, ipc_data_t *question,
 	ipc_call_static_init(&call);
 	rc = copy_from_uspace(&call.data.args, &question->args, sizeof(call.data.args));
 	if (rc != 0)
-		return (__native) rc;
+		return (unative_t) rc;
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
@@ -323,8 +323,8 @@ static int check_call_limit(void)
  * @return Call identification, returns -1 on fatal error, 
            -2 on 'Too many async request, handle answers first
  */
-__native sys_ipc_call_async_fast(__native phoneid, __native method, 
-				 __native arg1, __native arg2)
+unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method, 
+				 unative_t arg1, unative_t arg2)
 {
 	call_t *call;
 	phone_t *phone;
@@ -346,14 +346,14 @@ __native sys_ipc_call_async_fast(__native phoneid, __native method,
 	else
 		ipc_backsend_err(phone, call, res);
 
-	return (__native) call;
+	return (unative_t) call;
 }
 
 /** Synchronous IPC call allowing to send whole message
  *
  * @return The same as sys_ipc_call_async
  */
-__native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
+unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data)
 {
 	call_t *call;
 	phone_t *phone;
@@ -369,14 +369,14 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
 	rc = copy_from_uspace(&call->data.args, &data->args, sizeof(call->data.args));
 	if (rc != 0) {
 		ipc_call_free(call);
-		return (__native) rc;
+		return (unative_t) rc;
 	}
 	if (!(res=request_preprocess(call)))
 		ipc_call(phone, call);
 	else
 		ipc_backsend_err(phone, call, res);
 
-	return (__native) call;
+	return (unative_t) call;
 }
 
 /** Forward received call to another destination
@@ -386,8 +386,8 @@ __native sys_ipc_call_async(__native phoneid, ipc_data_t *data)
  * Warning: If implementing non-fast version, make sure that
  *          arg3 is not rewritten for certain system IPC
  */
-__native sys_ipc_forward_fast(__native callid, __native phoneid,
-			      __native method, __native arg1)
+unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
+			      unative_t method, unative_t arg1)
 {
 	call_t *call;
 	phone_t *phone;
@@ -428,8 +428,8 @@ __native sys_ipc_forward_fast(__native callid, __native phoneid,
 }
 
 /** Send IPC answer */
-__native sys_ipc_answer_fast(__native callid, __native retval, 
-			     __native arg1, __native arg2)
+unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval, 
+			     unative_t arg1, unative_t arg2)
 {
 	call_t *call;
 	ipc_data_t saved_data;
@@ -459,7 +459,7 @@ __native sys_ipc_answer_fast(__native callid, __native retval,
 }
 
 /** Send IPC answer */
-__native sys_ipc_answer(__native callid, ipc_data_t *data)
+unative_t sys_ipc_answer(unative_t callid, ipc_data_t *data)
 {
 	call_t *call;
 	ipc_data_t saved_data;
@@ -493,7 +493,7 @@ __native sys_ipc_answer(__native callid, ipc_data_t *data)
 /** Hang up the phone
  *
  */
-__native sys_ipc_hangup(int phoneid)
+unative_t sys_ipc_hangup(int phoneid)
 {
 	phone_t *phone;
 
@@ -513,7 +513,7 @@ __native sys_ipc_hangup(int phoneid)
  *
  * @return Callid, if callid & 1, then the call is answer
  */
-__native sys_ipc_wait_for_call(ipc_data_t *calldata, __u32 usec, int flags)
+unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int flags)
 {
 	call_t *call;
 
@@ -532,7 +532,7 @@ restart:
 
 		ipc_call_free(call);
 		
-		return ((__native)call) | IPC_CALLID_NOTIFICATION;
+		return ((unative_t)call) | IPC_CALLID_NOTIFICATION;
 	}
 
 	if (call->flags & IPC_CALL_ANSWERED) {
@@ -550,7 +550,7 @@ restart:
 		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
 		ipc_call_free(call);
 
-		return ((__native)call) | IPC_CALLID_ANSWERED;
+		return ((unative_t)call) | IPC_CALLID_ANSWERED;
 	}
 
 	if (process_request(&TASK->answerbox, call))
@@ -561,17 +561,17 @@ restart:
 	if (STRUCT_TO_USPACE(calldata, &call->data)) {
 		return 0;
 	}
-	return (__native)call;
+	return (unative_t)call;
 }
 
 /** Connect irq handler to task */
-__native sys_ipc_register_irq(int irq, irq_code_t *ucode)
+unative_t sys_ipc_register_irq(int irq, irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
 	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
-		return (__native) ELIMIT;
+		return (unative_t) ELIMIT;
 	
 	irq_ipc_bind_arch(irq);
 
@@ -579,13 +579,13 @@ __native sys_ipc_register_irq(int irq, irq_code_t *ucode)
 }
 
 /* Disconnect irq handler from task */
-__native sys_ipc_unregister_irq(int irq)
+unative_t sys_ipc_unregister_irq(int irq)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
 	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
-		return (__native) ELIMIT;
+		return (unative_t) ELIMIT;
 
 	ipc_irq_unregister(&TASK->answerbox, irq);
 

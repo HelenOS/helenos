@@ -79,9 +79,9 @@ typedef struct {
 extern void ipc_irq_make_table(int irqcount);
 extern int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode);
 extern void ipc_irq_send_notif(int irq);
-extern void ipc_irq_send_msg(int irq, __native a1, __native a2, __native a3);
+extern void ipc_irq_send_msg(int irq, unative_t a1, unative_t a2, unative_t a3);
 extern void ipc_irq_unregister(answerbox_t *box, int irq);
-extern void irq_ipc_bind_arch(__native irq);
+extern void irq_ipc_bind_arch(unative_t irq);
 extern void ipc_irq_cleanup(answerbox_t *box);
 
 #endif

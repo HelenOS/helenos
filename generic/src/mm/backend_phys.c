@@ -46,7 +46,7 @@
 #include <arch.h>
 #include <align.h>
 
-static int phys_page_fault(as_area_t *area, __address addr, pf_access_t access);
+static int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
 static void phys_share(as_area_t *area);
 
 mem_backend_t phys_backend = {
@@ -65,9 +65,9 @@ mem_backend_t phys_backend = {
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
  */
-int phys_page_fault(as_area_t *area, __address addr, pf_access_t access)
+int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
-	__address base = area->backend_data.base;
+	uintptr_t base = area->backend_data.base;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;

@@ -40,7 +40,7 @@
 #define TEST_RUNS 2
 
 void test(void) {
-	__address * frames = (__address *) malloc(MAX_FRAMES*sizeof(__address), 0);
+	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES*sizeof(uintptr_t), 0);
 	int results[MAX_ORDER+1];
 	
 	int i, order, run;
@@ -54,7 +54,7 @@ void test(void) {
 			printf("Allocating %d frames blocks ... ", 1 << order);
 			allocated = 0;
 			for (i = 0; i < MAX_FRAMES >> order; i++) {
-				frames[allocated] = (__address) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
 					panic("Test failed. Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);

@@ -42,7 +42,7 @@
 static inline void trap_switch_trap_table(void)
 {
 	/* Point TBA to kernel copy of OFW's trap table. */
-	tba_write((__u64) trap_table);
+	tba_write((uint64_t) trap_table);
 }
 
 extern void trap_init(void);

@@ -44,7 +44,7 @@
 
 
 #ifndef __ASM__
-extern __address last_frame;
+extern uintptr_t last_frame;
 extern void frame_arch_init(void);
 #endif /* __ASM__ */
 

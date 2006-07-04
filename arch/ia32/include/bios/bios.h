@@ -39,7 +39,7 @@
 
 #define BIOS_EBDA_PTR	0x40e
 
-extern __address ebda;
+extern uintptr_t ebda;
 
 extern void bios_init(void);
 

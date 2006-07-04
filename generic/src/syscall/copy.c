@@ -67,7 +67,7 @@ int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	ASSERT(!THREAD->in_copy_from_uspace);
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		if (overlaps((__address) uspace_src, size,
+		if (overlaps((uintptr_t) uspace_src, size,
 			KERNEL_ADDRESS_SPACE_START, KERNEL_ADDRESS_SPACE_END-KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace source block conflicts with kernel address space.
@@ -108,7 +108,7 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	ASSERT(!THREAD->in_copy_from_uspace);
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		if (overlaps((__address) uspace_dst, size,
+		if (overlaps((uintptr_t) uspace_dst, size,
 			KERNEL_ADDRESS_SPACE_START, KERNEL_ADDRESS_SPACE_END-KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace destination block conflicts with kernel address space.

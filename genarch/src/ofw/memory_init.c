@@ -43,7 +43,7 @@
 #define MEMMAP_MAX_RECORDS 32
 
 typedef struct {
-	__address start;
+	uintptr_t start;
 	size_t size;
 } memmap_t;
 

@@ -69,7 +69,7 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $KA2PA(ctx), %eax			# KA2PA((__address) &ctx)
+	movl $KA2PA(ctx), %eax			# KA2PA((uintptr_t) &ctx)
 	movl (%eax), %esp
 	subl $0x80000000, %esp			# KA2PA(ctx.sp)
 

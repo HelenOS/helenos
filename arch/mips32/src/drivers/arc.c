@@ -142,7 +142,7 @@ static void arc_print_confdata(arc_component *c)
 		switch (configdata->descr[i].type) {
 		case CmResourceTypePort:
 			printf("Port: %p-size:%d ",
-			       (__address)configdata->descr[i].u.port.start,
+			       (uintptr_t)configdata->descr[i].u.port.start,
 			       configdata->descr[i].u.port.length);
 			break;
 		case CmResourceTypeInterrupt:
@@ -152,7 +152,7 @@ static void arc_print_confdata(arc_component *c)
 			break;
 		case CmResourceTypeMemory:
 			printf("Memory: %p-size:%d ",
-			       (__address)configdata->descr[i].u.port.start,
+			       (uintptr_t)configdata->descr[i].u.port.start,
 			       configdata->descr[i].u.port.length);
 			break;
 		default:
@@ -236,7 +236,7 @@ static cmd_info_t memmap_info = {
 /** Print charactor to console */
 static void arc_putchar(char ch)
 {
-	__u32 cnt;
+	uint32_t cnt;
 	ipl_t ipl;
 
 	/* TODO: Should be spinlock? */
@@ -293,7 +293,7 @@ static chardev_t console;
 static void arc_keyboard_poll(void)
 {
 	char ch;
-	__u32 count;
+	uint32_t count;
 	long result;
 	
 	if (! kbd_polling_enabled)
@@ -316,7 +316,7 @@ static void arc_keyboard_poll(void)
 static char arc_read(chardev_t *dev)
 {
 	char ch;
-	__u32 count;
+	uint32_t count;
 	long result;
 
 	result = arc_entry->read(0, &ch, 1, &count);
@@ -380,7 +380,7 @@ void arc_frame_init(void)
 {
 	arc_memdescriptor_t *desc;
 	int total = 0;
-	__address base;
+	uintptr_t base;
 	size_t basesize;
 
 	desc = arc_entry->getmemorydescriptor(NULL);

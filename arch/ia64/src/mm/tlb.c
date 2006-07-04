@@ -57,8 +57,8 @@
 void tlb_invalidate_all(void)
 {
 		ipl_t ipl;
-		__address adr;
-		__u32 count1, count2, stride1, stride2;
+		uintptr_t adr;
+		uint32_t count1, count2, stride1, stride2;
 		
 		int i,j;
 		
@@ -101,14 +101,14 @@ void tlb_invalidate_asid(asid_t asid)
 }
 
 
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	region_register rr;
 	bool restore_rr = false;
 	int b = 0;
 	int c = cnt;
 
-	__address va;
+	uintptr_t va;
 	va = page;
 
 	rr.word = rr_read(VA2VRN(va));
@@ -129,7 +129,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 	while(c >>= 1)
 		b++;
 	b >>= 1;
-	__u64 ps;
+	uint64_t ps;
 	
 	switch (b) {
 		case 0: /*cnt 1-3*/
@@ -201,7 +201,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
  * @param asid Address space identifier.
  * @param entry The rest of TLB entry as required by TLB insertion format.
  */
-void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
+void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
 	tc_mapping_insert(va, asid, entry, true);
 }
@@ -212,7 +212,7 @@ void dtc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
  * @param asid Address space identifier.
  * @param entry The rest of TLB entry as required by TLB insertion format.
  */
-void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
+void itc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
 	tc_mapping_insert(va, asid, entry, false);
 }
@@ -224,7 +224,7 @@ void itc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry)
  * @param entry The rest of TLB entry as required by TLB insertion format.
  * @param dtc If true, insert into data translation cache, use instruction translation cache otherwise.
  */
-void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
+void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 {
 	region_register rr;
 	bool restore_rr = false;
@@ -275,7 +275,7 @@ void tc_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtc)
  * @param entry The rest of TLB entry as required by TLB insertion format.
  * @param tr Translation register.
  */
-void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr)
+void itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
 {
 	tr_mapping_insert(va, asid, entry, false, tr);
 }
@@ -287,7 +287,7 @@ void itr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr
  * @param entry The rest of TLB entry as required by TLB insertion format.
  * @param tr Translation register.
  */
-void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr)
+void dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
 {
 	tr_mapping_insert(va, asid, entry, true, tr);
 }
@@ -300,7 +300,7 @@ void dtr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, index_t tr
  * @param dtr If true, insert into data translation register, use instruction translation register otherwise.
  * @param tr Translation register.
  */
-void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr)
+void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr)
 {
 	region_register rr;
 	bool restore_rr = false;
@@ -351,7 +351,7 @@ void tr_mapping_insert(__address va, asid_t asid, tlb_entry_t entry, bool dtr, i
  * @param dtr If true, insert into data translation register, use data translation cache otherwise.
  * @param tr Translation register if dtr is true, ignored otherwise.
  */
-void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index_t tr)
+void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index_t tr)
 {
 	tlb_entry_t entry;
 	
@@ -380,7 +380,7 @@ void dtlb_kernel_mapping_insert(__address page, __address frame, bool dtr, index
  * @param page Virtual page address including VRN bits.
  * @param width Width of the purge in bits.
  */
-void dtr_purge(__address page, count_t width)
+void dtr_purge(uintptr_t page, count_t width)
 {
 	__asm__ volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width<<2));
 }
@@ -444,11 +444,11 @@ void itc_pte_copy(pte_t *t)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
+void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */
@@ -481,11 +481,11 @@ void alternate_instruction_tlb_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
+void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */
@@ -530,7 +530,7 @@ void alternate_data_tlb_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void data_nested_tlb_fault(__u64 vector, istate_t *istate)
+void data_nested_tlb_fault(uint64_t vector, istate_t *istate)
 {
 	panic("%s\n", __FUNCTION__);
 }
@@ -540,11 +540,11 @@ void data_nested_tlb_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void data_dirty_bit_fault(__u64 vector, istate_t *istate)
+void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */
@@ -577,11 +577,11 @@ void data_dirty_bit_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void instruction_access_bit_fault(__u64 vector, istate_t *istate)
+void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;	
 
 	va = istate->cr_ifa;	/* faulting address */
@@ -614,11 +614,11 @@ void instruction_access_bit_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void data_access_bit_fault(__u64 vector, istate_t *istate)
+void data_access_bit_fault(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;
 
 	va = istate->cr_ifa;	/* faulting address */
@@ -651,11 +651,11 @@ void data_access_bit_fault(__u64 vector, istate_t *istate)
  * @param vector Interruption vector.
  * @param istate Structure with saved interruption state.
  */
-void page_not_present(__u64 vector, istate_t *istate)
+void page_not_present(uint64_t vector, istate_t *istate)
 {
 	region_register rr;
 	rid_t rid;
-	__address va;
+	uintptr_t va;
 	pte_t *t;
 	
 	va = istate->cr_ifa;	/* faulting address */

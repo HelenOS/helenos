@@ -51,7 +51,7 @@
 
 void page_arch_init(void)
 {
-	__address cur;
+	uintptr_t cur;
 	int flags;
 
 	if (config.cpu_active == 1) {
@@ -68,22 +68,22 @@ void page_arch_init(void)
 		}
 
 		exc_register(14, "page_fault", (iroutine) page_fault);
-		write_cr3((__address) AS_KERNEL->page_table);
+		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 	else {
-		write_cr3((__address) AS_KERNEL->page_table);
+		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 
 	paging_on();
 }
 
 
-__address hw_map(__address physaddr, size_t size)
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
 		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
 	
-	__address virtaddr = PA2KA(last_frame);
+	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
@@ -95,7 +95,7 @@ __address hw_map(__address physaddr, size_t size)
 
 void page_fault(int n, istate_t *istate)
 {
-        __address page;
+        uintptr_t page;
 	pf_access_t access;
 	
         page = read_cr2();

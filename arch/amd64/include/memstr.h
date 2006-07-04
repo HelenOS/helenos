@@ -49,7 +49,7 @@
  */
 static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
-        __native d0, d1, d2;
+        unative_t d0, d1, d2;
 
         __asm__ __volatile__(
                 "rep movsq\n\t"
@@ -59,7 +59,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
                 "rep movsb\n\t"
                 "1:\n"
                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)
-                : "0" ((__native)(cnt / 8)), "g" ((__native)cnt), "1" ((__native) dst), "2" ((__native) src)
+                : "0" ((unative_t)(cnt / 8)), "g" ((unative_t)cnt), "1" ((unative_t) dst), "2" ((unative_t) src)
                 : "memory");
 
         return dst;
@@ -79,8 +79,8 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
  */
 static inline int memcmp(const void * src, const void * dst, size_t cnt)
 {
-	__native d0, d1, d2;
-	__native ret;
+	unative_t d0, d1, d2;
+	unative_t ret;
 	
 	__asm__ (
 		"repe cmpsb\n\t"
@@ -89,7 +89,7 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
 		"addq $1, %0\n\t"
 		"1:\n"
 		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
-		: "0" (0), "1" (src), "2" (dst), "3" ((__native)cnt)
+		: "0" (0), "1" (src), "2" (dst), "3" ((unative_t)cnt)
 	);
 	
 	return ret;
@@ -104,14 +104,14 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
  * @param cnt Number of words
  * @param x Value to fill
  */
-static inline void memsetw(__address dst, size_t cnt, __u16 x)
+static inline void memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
-	__native d0, d1;
+	unative_t d0, d1;
 	
 	__asm__ __volatile__ (
 		"rep stosw\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
-		: "0" (dst), "1" ((__native)cnt), "2" (x)
+		: "0" (dst), "1" ((unative_t)cnt), "2" (x)
 		: "memory"
 	);
 
@@ -126,14 +126,14 @@ static inline void memsetw(__address dst, size_t cnt, __u16 x)
  * @param cnt Number of bytes
  * @param x Value to fill
  */
-static inline void memsetb(__address dst, size_t cnt, __u8 x)
+static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
-	__native d0, d1;
+	unative_t d0, d1;
 	
 	__asm__ __volatile__ (
 		"rep stosb\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
-		: "0" (dst), "1" ((__native)cnt), "2" (x)
+		: "0" (dst), "1" ((unative_t)cnt), "2" (x)
 		: "memory"
 	);
 

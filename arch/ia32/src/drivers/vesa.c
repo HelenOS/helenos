@@ -50,11 +50,11 @@
 #include <memstr.h>
 #include <bitops.h>
 
-__u32 vesa_ph_addr;
-__u16 vesa_width;
-__u16 vesa_height;
-__u16 vesa_bpp;
-__u16 vesa_scanline;
+uint32_t vesa_ph_addr;
+uint16_t vesa_width;
+uint16_t vesa_height;
+uint16_t vesa_bpp;
+uint16_t vesa_scanline;
 
 int vesa_present(void)
 {

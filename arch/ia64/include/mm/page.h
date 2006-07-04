@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
@@ -61,8 +61,8 @@
 
 #define REGION_REGISTERS 		8
 
-#define KA2PA(x)	((__address) (x-(VRN_KERNEL<<VRN_SHIFT)))
-#define PA2KA(x)	((__address) (x+(VRN_KERNEL<<VRN_SHIFT)))
+#define KA2PA(x)	((uintptr_t) (x-(VRN_KERNEL<<VRN_SHIFT)))
+#define PA2KA(x)	((uintptr_t) (x+(VRN_KERNEL<<VRN_SHIFT)))
 
 #define VHPT_WIDTH 			20         	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)
@@ -126,7 +126,7 @@ struct vhpt_entry_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	__u64 ig3 : 64;
+	uint64_t ig3 : 64;
 } __attribute__ ((packed));
 
 struct vhpt_entry_not_present {
@@ -144,13 +144,13 @@ struct vhpt_entry_not_present {
 	union vhpt_tag tag;
 	
 	/* Word 3 */													
-	__u64 ig3 : 64;
+	uint64_t ig3 : 64;
 } __attribute__ ((packed));
 
 typedef union vhpt_entry {
 	struct vhpt_entry_present present;
 	struct vhpt_entry_not_present not_present;
-	__u64 word[4];
+	uint64_t word[4];
 } vhpt_entry_t;
 
 struct region_register_map {
@@ -177,7 +177,7 @@ struct pta_register_map {
 
 typedef union pta_register {
 	struct pta_register_map map;
-	__u64 word;
+	uint64_t word;
 } pta_register;
 
 /** Return Translation Hashed Entry Address.
@@ -189,9 +189,9 @@ typedef union pta_register {
  *
  * @return Address of the head of VHPT collision chain.
  */
-static inline __u64 thash(__u64 va)
+static inline uint64_t thash(uint64_t va)
 {
-	__u64 ret;
+	uint64_t ret;
 
 	__asm__ volatile ("thash %0 = %1\n" : "=r" (ret) : "r" (va));
 
@@ -207,9 +207,9 @@ static inline __u64 thash(__u64 va)
  *
  * @return The unique tag for VPN and RID in the collision chain returned by thash().
  */
-static inline __u64 ttag(__u64 va)
+static inline uint64_t ttag(uint64_t va)
 {
-	__u64 ret;
+	uint64_t ret;
 
 	__asm__ volatile ("ttag %0 = %1\n" : "=r" (ret) : "r" (va));
 
@@ -222,9 +222,9 @@ static inline __u64 ttag(__u64 va)
  *
  * @return Current contents of rr[i].
  */
-static inline __u64 rr_read(index_t i)
+static inline uint64_t rr_read(index_t i)
 {
-	__u64 ret;
+	uint64_t ret;
 	ASSERT(i < REGION_REGISTERS);
 	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i << VRN_SHIFT));
 	return ret;
@@ -235,7 +235,7 @@ static inline __u64 rr_read(index_t i)
  * @param i Region register index.
  * @param v Value to be written to rr[i].
  */
-static inline void rr_write(index_t i, __u64 v)
+static inline void rr_write(index_t i, uint64_t v)
 {
 	ASSERT(i < REGION_REGISTERS);
 	__asm__ volatile (
@@ -249,9 +249,9 @@ static inline void rr_write(index_t i, __u64 v)
  *
  * @return Current value stored in PTA.
  */
-static inline __u64 pta_read(void)
+static inline uint64_t pta_read(void)
 {
-	__u64 ret;
+	uint64_t ret;
 	
 	__asm__ volatile ("mov %0 = cr.pta\n" : "=r" (ret));
 	
@@ -262,16 +262,16 @@ static inline __u64 pta_read(void)
  *
  * @param v New value to be stored in PTA.
  */
-static inline void pta_write(__u64 v)
+static inline void pta_write(uint64_t v)
 {
 	__asm__ volatile ("mov cr.pta = %0\n" : : "r" (v));
 }
 
 extern void page_arch_init(void);
 
-extern vhpt_entry_t *vhpt_hash(__address page, asid_t asid);
-extern bool vhpt_compare(__address page, asid_t asid, vhpt_entry_t *v);
-extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __address frame, int flags);
+extern vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid);
+extern bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v);
+extern void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame, int flags);
 
 #endif /* __ASM__ */
 
@@ -279,6 +279,5 @@ extern void vhpt_set_record(vhpt_entry_t *v, __address page, asid_t asid, __addr
 
 #endif
 
- /** @}
+/** @}
  */
-

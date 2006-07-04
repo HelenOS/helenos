@@ -50,15 +50,15 @@
  *
  * @return Pointer to respective symbol string on success, NULL otherwise.
  */
-char * get_symtab_entry(__native addr)
+char * get_symtab_entry(unative_t addr)
 {
 	count_t i;
 
 	for (i=1;symbol_table[i].address_le;++i) {
-		if (addr < __u64_le2host(symbol_table[i].address_le))
+		if (addr < uint64_t_le2host(symbol_table[i].address_le))
 			break;
 	}
-	if (addr >= __u64_le2host(symbol_table[i-1].address_le))
+	if (addr >= uint64_t_le2host(symbol_table[i-1].address_le))
 		return symbol_table[i-1].symbol_name;
 	return NULL;
 }
@@ -108,23 +108,23 @@ static char * symtab_search_one(const char *name, int *startpos)
  * @param name Name of the symbol
  * @return 0 - Not found, -1 - Duplicate symbol, other - address of symbol
  */
-__address get_symbol_addr(const char *name)
+uintptr_t get_symbol_addr(const char *name)
 {
 	count_t found = 0;
-	__address addr = NULL;
+	uintptr_t addr = NULL;
 	char *hint;
 	int i;
 
 	i = 0;
 	while ((hint=symtab_search_one(name, &i))) {
 		if (!strlen(hint)) {
-			addr =  __u64_le2host(symbol_table[i].address_le);
+			addr =  uint64_t_le2host(symbol_table[i].address_le);
 			found++;
 		}
 		i++;
 	}
 	if (found > 1)
-		return ((__address) -1);
+		return ((uintptr_t) -1);
 	return addr;
 }
 
@@ -132,15 +132,15 @@ __address get_symbol_addr(const char *name)
 void symtab_print_search(const char *name)
 {
 	int i;
-	__address addr;
+	uintptr_t addr;
 	char *realname;
 
 
 	i = 0;
 	while (symtab_search_one(name, &i)) {
-		addr =  __u64_le2host(symbol_table[i].address_le);
+		addr =  uint64_t_le2host(symbol_table[i].address_le);
 		realname = symbol_table[i].symbol_name;
-		printf("%.*p: %s\n", sizeof(__address) * 2, addr, realname);
+		printf("%.*p: %s\n", sizeof(uintptr_t) * 2, addr, realname);
 		i++;
 	}
 }

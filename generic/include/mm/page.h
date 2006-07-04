@@ -76,9 +76,9 @@ typedef enum pf_access pf_access_t;
 
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {
-	void (* mapping_insert)(as_t *as, __address page, __address frame, int flags);
-	void (* mapping_remove)(as_t *as, __address page);
-	pte_t *(* mapping_find)(as_t *as, __address page);
+	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+	void (* mapping_remove)(as_t *as, uintptr_t page);
+	pte_t *(* mapping_find)(as_t *as, uintptr_t page);
 };
 typedef struct page_mapping_operations page_mapping_operations_t;
 
@@ -87,13 +87,13 @@ extern page_mapping_operations_t *page_mapping_operations;
 extern void page_init(void);
 extern void page_table_lock(as_t *as, bool lock);
 extern void page_table_unlock(as_t *as, bool unlock);
-extern void page_mapping_insert(as_t *as, __address page, __address frame, int flags);
-extern void page_mapping_remove(as_t *as, __address page);
-extern pte_t *page_mapping_find(as_t *as, __address page);
+extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+extern void page_mapping_remove(as_t *as, uintptr_t page);
+extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
 extern pte_t *page_table_create(int flags);
 extern void page_table_destroy(pte_t *page_table);
-extern void map_structure(__address s, size_t size);
-extern __address hw_map(__address physaddr, size_t size);
+extern void map_structure(uintptr_t s, size_t size);
+extern uintptr_t hw_map(uintptr_t physaddr, size_t size);
 
 #endif
 

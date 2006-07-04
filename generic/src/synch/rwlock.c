@@ -101,7 +101,7 @@ void rwlock_initialize(rwlock_t *rwl) {
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags)
+int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
@@ -155,7 +155,7 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, __u32 usec, int flags)
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _rwlock_read_lock_timeout(rwlock_t *rwl, __u32 usec, int flags)
+int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 {
 	int rc;
 	ipl_t ipl;

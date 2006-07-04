@@ -61,7 +61,7 @@ static struct smp_config_operations *ops = NULL;
 
 void smp_init(void)
 {
-	__address l_apic_address, io_apic_address;
+	uintptr_t l_apic_address, io_apic_address;
 
 	if (acpi_madt) {
 		acpi_madt_parse();
@@ -72,22 +72,22 @@ void smp_init(void)
 		ops = &mps_config_operations;
 	}
 
-	l_apic_address = (__address) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
+	l_apic_address = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
 	if (!l_apic_address)
 		panic("cannot allocate address for l_apic\n");
 
-	io_apic_address = (__address) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
+	io_apic_address = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_ATOMIC | FRAME_KA);
 	if (!io_apic_address)
 		panic("cannot allocate address for io_apic\n");
 
 	if (config.cpu_count > 1) {		
-		page_mapping_insert(AS_KERNEL, l_apic_address, (__address) l_apic, 
+		page_mapping_insert(AS_KERNEL, l_apic_address, (uintptr_t) l_apic, 
 				  PAGE_NOT_CACHEABLE);
-		page_mapping_insert(AS_KERNEL, io_apic_address, (__address) io_apic,
+		page_mapping_insert(AS_KERNEL, io_apic_address, (uintptr_t) io_apic,
 				  PAGE_NOT_CACHEABLE);
 				  
-		l_apic = (__u32 *) l_apic_address;
-		io_apic = (__u32 *) io_apic_address;
+		l_apic = (uint32_t *) l_apic_address;
+		io_apic = (uint32_t *) io_apic_address;
         }
 }
 
@@ -114,8 +114,8 @@ void kmp(void *arg)
 	/*
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
-	*((__u16 *) (PA2KA(0x467+0))) =  ((__address) ap_boot) >> 4;	/* segment */
-	*((__u16 *) (PA2KA(0x467+2))) =  0;				/* offset */
+	*((uint16_t *) (PA2KA(0x467+0))) =  ((uintptr_t) ap_boot) >> 4;	/* segment */
+	*((uint16_t *) (PA2KA(0x467+2))) =  0;				/* offset */
 	
 	/*
 	 * Save 0xa to address 0xf of the CMOS RAM.
@@ -154,10 +154,10 @@ void kmp(void *arg)
 			panic("couldn't allocate memory for GDT\n");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
-		memsetb((__address)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
+		memsetb((uintptr_t)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
 		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(struct descriptor);
-		protected_ap_gdtr.base = KA2PA((__address) gdt_new);
-		gdtr.base = (__address) gdt_new;
+		protected_ap_gdtr.base = KA2PA((uintptr_t) gdt_new);
+		gdtr.base = (uintptr_t) gdt_new;
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {
 			/*

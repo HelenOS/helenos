@@ -38,11 +38,11 @@
 #include <byteorder.h>
 #include <bitops.h>
 
-static volatile __u32 *pic;
+static volatile uint32_t *pic;
 
-void pic_init(__address base, size_t size)
+void pic_init(uintptr_t base, size_t size)
 {
-	pic = (__u32 *) hw_map(base, size);
+	pic = (uint32_t *) hw_map(base, size);
 }
 
 

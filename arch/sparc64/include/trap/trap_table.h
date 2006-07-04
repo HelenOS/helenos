@@ -47,7 +47,7 @@
 
 #ifndef __ASM__
 struct trap_table_entry {
-	__u8 octets[TRAP_TABLE_ENTRY_SIZE];
+	uint8_t octets[TRAP_TABLE_ENTRY_SIZE];
 } __attribute__ ((packed));
 
 typedef struct trap_table_entry trap_table_entry_t;

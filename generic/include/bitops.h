@@ -42,7 +42,7 @@
  *
  * If number is zero, it returns 0
  */
-static inline int fnzb32(__u32 arg)
+static inline int fnzb32(uint32_t arg)
 {
 	int n = 0;
 
@@ -54,12 +54,12 @@ static inline int fnzb32(__u32 arg)
 	return n;
 }
 
-static inline int fnzb64(__u64 arg)
+static inline int fnzb64(uint64_t arg)
 {
 	int n = 0;
 
 	if (arg >> 32) { arg >>= 32;n += 32;}
-	return n + fnzb32((__u32) arg);
+	return n + fnzb32((uint32_t) arg);
 }
 
 #define fnzb(x) fnzb32(x)

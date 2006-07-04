@@ -39,7 +39,7 @@
 #include <align.h>
 #include <macros.h>
 
-__address last_frame = 0;
+uintptr_t last_frame = 0;
 
 void frame_arch_init(void)
 {

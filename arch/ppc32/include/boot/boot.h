@@ -48,28 +48,28 @@
 #include <arch/types.h>
 
 typedef struct {
-	__address addr;
-	__u32 size;
+	uintptr_t addr;
+	uint32_t size;
 } utask_t;
 
 typedef struct {
-	__u32 count;
+	uint32_t count;
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } taskmap_t;
 
 typedef struct {
-	__address start;
-	__u32 size;
+	uintptr_t start;
+	uint32_t size;
 } memzone_t;
 
 typedef struct {
-	__u32 total;
-	__u32 count;
+	uint32_t total;
+	uint32_t count;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
 typedef struct {
-	__address addr;
+	uintptr_t addr;
 	unsigned int width;
 	unsigned int height;
 	unsigned int bpp;
@@ -77,7 +77,7 @@ typedef struct {
 } screen_t;
 
 typedef struct {
-	__address addr;
+	uintptr_t addr;
 	unsigned int size;
 } keyboard_t;
 

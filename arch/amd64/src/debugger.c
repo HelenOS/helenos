@@ -46,7 +46,7 @@
 #include <smp/ipi.h>
 
 typedef struct  {
-	__address address;      /**< Breakpoint address */
+	uintptr_t address;      /**< Breakpoint address */
 	int flags;              /**< Flags regarding breakpoint */
 	int counter;            /**< How many times the exception occured */
 } bpinfo_t;
@@ -122,7 +122,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 /* Setup DR register according to table */
 static void setup_dr(int curidx)
 {
-	__native dr7;
+	unative_t dr7;
 	bpinfo_t *cur = &breakpoints[curidx];
 	int flags = breakpoints[curidx].flags;
 
@@ -153,14 +153,14 @@ static void setup_dr(int curidx)
 			;
 		} else {
 			if (sizeof(int) == 4)
-				dr7 |= ((__native) 0x3) << (18 + 4*curidx);
+				dr7 |= ((unative_t) 0x3) << (18 + 4*curidx);
 			else /* 8 */
-				dr7 |= ((__native) 0x2) << (18 + 4*curidx);
+				dr7 |= ((unative_t) 0x2) << (18 + 4*curidx);
 			
 			if ((flags & BKPOINT_WRITE))
-				dr7 |= ((__native) 0x1) << (16 + 4*curidx);
+				dr7 |= ((unative_t) 0x1) << (16 + 4*curidx);
 			else if ((flags & BKPOINT_READ_WRITE))
-				dr7 |= ((__native) 0x3) << (16 + 4*curidx);
+				dr7 |= ((unative_t) 0x3) << (16 + 4*curidx);
 		}
 
 		/* Enable global breakpoint */
@@ -205,7 +205,7 @@ int breakpoint_add(void * where, int flags, int curidx)
 	}
 	cur = &breakpoints[curidx];
 
-	cur->address = (__address) where;
+	cur->address = (uintptr_t) where;
 	cur->flags = flags;
 	cur->counter = 0;
 
@@ -235,13 +235,13 @@ static void handle_exception(int slot, istate_t *istate)
 	/* Handle zero checker */
 	if (! (breakpoints[slot].flags & BKPOINT_INSTR)) {
 		if ((breakpoints[slot].flags & BKPOINT_CHECK_ZERO)) {
-			if (*((__native *) breakpoints[slot].address) != 0)
+			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
 			printf("**** Found ZERO on address %p ****\n",
 			       slot, breakpoints[slot].address);
 		} else {
 			printf("Data watchpoint - new data: %p\n",
-			       *((__native *) breakpoints[slot].address));
+			       *((unative_t *) breakpoints[slot].address));
 		}
 	}
 	printf("Reached breakpoint %d:%p(%s)\n", slot, getip(istate),
@@ -315,7 +315,7 @@ static int cmd_add_breakpoint(cmd_arg_t *argv)
 
 static void debug_exception(int n, istate_t *istate)
 {
-	__native dr6;
+	unative_t dr6;
 	int i;
 	
 	/* Set RF to restart the instruction  */

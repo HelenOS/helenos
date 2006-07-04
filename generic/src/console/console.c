@@ -76,9 +76,9 @@ chardev_t *stdout = &null_stdout;
  *
  * @return Character read.
  */
-__u8 _getc(chardev_t *chardev)
+uint8_t _getc(chardev_t *chardev)
 {
-	__u8 ch;
+	uint8_t ch;
 	ipl_t ipl;
 
 	if (atomic_get(&haltstate)) {
@@ -150,9 +150,9 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 }
 
 /** Get character from device & echo it to screen */
-__u8 getc(chardev_t *chardev)
+uint8_t getc(chardev_t *chardev)
 {
-	__u8 ch;
+	uint8_t ch;
 
 	ch = _getc(chardev);
 	putchar(ch);

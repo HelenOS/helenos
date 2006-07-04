@@ -49,10 +49,10 @@
 
 SPINLOCK_INITIALIZE(fb_lock);
 
-static __u8 *fbaddress = NULL;
+static uint8_t *fbaddress = NULL;
 
-static __u8 *blankline = NULL;
-static __u8 *dbbuffer = NULL; /* Buffer for fast scrolling console */
+static uint8_t *blankline = NULL;
+static uint8_t *dbbuffer = NULL; /* Buffer for fast scrolling console */
 static int dboffset;
 
 static unsigned int xres = 0;
@@ -98,7 +98,7 @@ static int byte4_rgb(void *src)
 
 static void rgb_3byte(void *dst, int rgb)
 {
-	__u8 *scr = dst;
+	uint8_t *scr = dst;
 #if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
 	scr[0] = RED(rgb, 8);
 	scr[1] = GREEN(rgb, 8);
@@ -112,7 +112,7 @@ static void rgb_3byte(void *dst, int rgb)
 
 static int byte3_rgb(void *src)
 {
-	__u8 *scr = src;
+	uint8_t *scr = src;
 #if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
 	return scr[0] << 16 | scr[1] << 8 | scr[2];
 #else
@@ -124,26 +124,26 @@ static int byte3_rgb(void *src)
 static void rgb_2byte(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
-	*((__u16 *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
+	*((uint16_t *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:6:5) */
 static int byte2_rgb(void *src)
 {
-	int color = *(__u16 *)(src);
+	int color = *(uint16_t *)(src);
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
 static void rgb_1byte(void *dst, int rgb)
 {
-	*(__u8 *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
+	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
 static int byte1_rgb(void *src)
 {
-	int color = *(__u8 *)src;
+	int color = *(uint8_t *)src;
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
@@ -184,7 +184,7 @@ static void clear_screen(void)
 /** Scroll screen one row up */
 static void scroll_screen(void)
 {
-	__u8 *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
+	uint8_t *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
 	int firstsz;
 
 	if (dbbuffer) {
@@ -225,7 +225,7 @@ static void draw_glyph_line(unsigned int glline, unsigned int x, unsigned int y)
 /* Character-console functions */
 
 /** Draw character at given position */
-static void draw_glyph(__u8 glyph, unsigned int col, unsigned int row)
+static void draw_glyph(uint8_t glyph, unsigned int col, unsigned int row)
 {
 	unsigned int y;
 
@@ -336,7 +336,7 @@ static chardev_operations_t fb_ops = {
  * @param scan Bytes per one scanline
  *
  */
-void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan)
+void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan)
 {
 	switch (bpp) {
 		case 8:
@@ -366,7 +366,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	unsigned int fbsize = scan * y;
 	
 	/* Map the framebuffer */
-	fbaddress = (__u8 *) hw_map((__address) addr, fbsize);
+	fbaddress = (uint8_t *) hw_map((uintptr_t) addr, fbsize);
 	
 	xres = x;
 	yres = y;
@@ -399,7 +399,7 @@ void fb_init(__address addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	dboffset = 0;
 
 	/* Initialized blank line */
-	blankline = (__u8 *) malloc(ROW_BYTES, FRAME_ATOMIC);
+	blankline = (uint8_t *) malloc(ROW_BYTES, FRAME_ATOMIC);
 	if (!blankline)
 		panic("Failed to allocate blank line for framebuffer.");
 	for (y=0; y < FONT_SCANLINES; y++)

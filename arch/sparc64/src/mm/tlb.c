@@ -131,7 +131,7 @@ void tlb_arch_init(void)
  * @param locked True for permanent mappings, false otherwise.
  * @param cacheable True if the mapping is cacheable, false otherwise.
  */
-void dtlb_insert_mapping(__address page, __address frame, int pagesize, bool locked, bool cacheable)
+void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable)
 {
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
@@ -170,7 +170,7 @@ void fast_instruction_access_mmu_miss(void)
 void fast_data_access_mmu_miss(void)
 {
 	tlb_tag_access_reg_t tag;
-	__address tpc;
+	uintptr_t tpc;
 	char *tpc_str;
 
 	tag.value = dtlb_tag_access_read();
@@ -268,7 +268,7 @@ void tlb_invalidate_asid(asid_t asid)
  * @param page First page which to sweep out from ITLB and DTLB.
  * @param cnt Number of ITLB and DTLB entries to invalidate.
  */
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	int i;
 	

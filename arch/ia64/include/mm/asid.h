@@ -39,8 +39,8 @@
 
 #include <arch/types.h>
 
-typedef __u16 asid_t;
-typedef __u32 rid_t;
+typedef uint16_t asid_t;
+typedef uint32_t rid_t;
 
 #endif  /* __ASM__ */
 

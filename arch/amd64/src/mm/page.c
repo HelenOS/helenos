@@ -62,26 +62,26 @@ extern pte_t ptl_0; /* From boot.S */
 #define PTL3_ADDR(ptl2, page) ((pte_t *)PA2KA(GET_PTL3_ADDRESS_ARCH(ptl2, PTL2_INDEX_ARCH(page))))
 
 #define SETUP_PTL1(ptl0, page, tgt)  {	\
-	SET_PTL1_ADDRESS_ARCH(ptl0, PTL0_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
+	SET_PTL1_ADDRESS_ARCH(ptl0, PTL0_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
         SET_PTL1_FLAGS_ARCH(ptl0, PTL0_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
 #define SETUP_PTL2(ptl1, page, tgt)  {	\
-	SET_PTL2_ADDRESS_ARCH(ptl1, PTL1_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
+	SET_PTL2_ADDRESS_ARCH(ptl1, PTL1_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
         SET_PTL2_FLAGS_ARCH(ptl1, PTL1_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
 #define SETUP_PTL3(ptl2, page, tgt)  {	\
-	SET_PTL3_ADDRESS_ARCH(ptl2, PTL2_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
+	SET_PTL3_ADDRESS_ARCH(ptl2, PTL2_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
         SET_PTL3_FLAGS_ARCH(ptl2, PTL2_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
 #define SETUP_FRAME(ptl3, page, tgt)  {	\
-	SET_FRAME_ADDRESS_ARCH(ptl3, PTL3_INDEX_ARCH(page), (__address)KA2PA(tgt)); \
+	SET_FRAME_ADDRESS_ARCH(ptl3, PTL3_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
         SET_FRAME_FLAGS_ARCH(ptl3, PTL3_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
     }
 
 
 void page_arch_init(void)
 {
-	__address cur;
+	uintptr_t cur;
 	int i;
 	int identity_flags = PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL;
 
@@ -109,10 +109,10 @@ void page_arch_init(void)
 		}
 
 		exc_register(14, "page_fault", (iroutine)page_fault);
-		write_cr3((__address) AS_KERNEL->page_table);
+		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 	else {
-		write_cr3((__address) AS_KERNEL->page_table);
+		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 }
 
@@ -125,8 +125,8 @@ void page_arch_init(void)
  */
 void ident_page_fault(int n, istate_t *istate)
 {
-	__address page;
-	static __address oldpage = 0;
+	uintptr_t page;
+	static uintptr_t oldpage = 0;
 	pte_t *aptl_1, *aptl_2, *aptl_3;
 
 	page = read_cr2();
@@ -173,7 +173,7 @@ void ident_page_fault(int n, istate_t *istate)
 
 void page_fault(int n, istate_t *istate)
 {
-	__address page;
+	uintptr_t page;
 	pf_access_t access;
 	
 	page = read_cr2();
@@ -198,12 +198,12 @@ void page_fault(int n, istate_t *istate)
 }
 
 
-__address hw_map(__address physaddr, size_t size)
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
 		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
 	
-	__address virtaddr = PA2KA(last_frame);
+	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);

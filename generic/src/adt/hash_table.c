@@ -64,7 +64,7 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
 	if (!h->entry) {
 		panic("cannot allocate memory for hash table\n");
 	}
-	memsetb((__address) h->entry, m * sizeof(link_t), 0);
+	memsetb((uintptr_t) h->entry, m * sizeof(link_t), 0);
 	
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);
@@ -80,7 +80,7 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
  * @param key Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
-void hash_table_insert(hash_table_t *h, __native key[], link_t *item)
+void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
 {
 	index_t chain;
 
@@ -100,7 +100,7 @@ void hash_table_insert(hash_table_t *h, __native key[], link_t *item)
  *
  * @return Matching item on success, NULL if there is no such item.
  */
-link_t *hash_table_find(hash_table_t *h, __native key[])
+link_t *hash_table_find(hash_table_t *h, unative_t key[])
 {
 	link_t *cur;
 	index_t chain;
@@ -130,7 +130,7 @@ link_t *hash_table_find(hash_table_t *h, __native key[])
  * @param key Array of keys that will be compared against items of the hash table.
  * @param keys Number of keys in the key array.
  */
-void hash_table_remove(hash_table_t *h, __native key[], count_t keys)
+void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
 {
 	index_t chain;
 	link_t *cur;

@@ -39,7 +39,7 @@
 
 #define ASID_MAX_ARCH		4096
 
-typedef __u32 asid_t;
+typedef uint32_t asid_t;
 
 #endif
 

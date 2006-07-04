@@ -51,7 +51,7 @@
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
-__address last_frame = 0;
+uintptr_t last_frame = 0;
 
 static void init_e820_memory(pfn_t minconf)
 {
@@ -99,9 +99,9 @@ static int cmd_e820mem(cmd_arg_t *argv)
 		else
 			name = "invalid";
 		printf("%.*p %#.16llXB %s\n", 
-			sizeof(__native) * 2,
-		       (__native) e820table[i].base_address, 
-		       (__u64) e820table[i].size,
+			sizeof(unative_t) * 2,
+		       (unative_t) e820table[i].base_address, 
+		       (uint64_t) e820table[i].size,
 		       name);
 	}			
 	return 0;

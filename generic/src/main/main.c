@@ -101,7 +101,7 @@ context_t ctx;
  * the linker or the low level assembler code with
  * appropriate sizes and addresses.
  */
-__address hardcoded_load_address = 0;	/**< Virtual address of where the kernel is loaded. */
+uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel is loaded. */
 size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes. */
 size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes. */
 
@@ -132,7 +132,7 @@ static void main_ap_separated_stack(void);
  */
 void main_bsp(void)
 {
-	__address stackaddr;
+	uintptr_t stackaddr;
 
 	config.cpu_count = 1;
 	config.cpu_active = 1;
@@ -202,7 +202,7 @@ void main_bsp_separated_stack(void)
 	arch_post_mm_init();
 
 	version_print();
-	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(__address) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
+	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
 
 	arch_pre_smp_init();
 	smp_init();
@@ -223,7 +223,7 @@ void main_bsp_separated_stack(void)
 	klog_init();
 	
 	for (i = 0; i < init.cnt; i++)
-		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(__address) * 2, init.tasks[i].addr, i, init.tasks[i].size);
+		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(uintptr_t) * 2, init.tasks[i].addr, i, init.tasks[i].size);
 	
 	ipc_init();
 
@@ -297,7 +297,7 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
-	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack), (__address) CPU->stack, CPU_STACK_SIZE);
+	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack), (uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

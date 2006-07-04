@@ -77,7 +77,7 @@ void arch_pre_main(void)
 void arch_pre_mm_init(void)
 {
 	/* Set Interruption Vector Address (i.e. location of interruption vector table). */
-	iva_write((__address) &ivt);
+	iva_write((uintptr_t) &ivt);
 	srlz_d();
 	
 	ski_init_console();
@@ -116,10 +116,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 	rsc.pl = PL_USER;
 	rsc.mode = 3;				/* eager mode */
 
-	switch_to_userspace((__address) kernel_uarg->uspace_entry,
-			    ((__address) kernel_uarg->uspace_stack)+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-			    ((__address) kernel_uarg->uspace_stack)+PAGE_SIZE,
-			    (__address) kernel_uarg->uspace_uarg,
+	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
+			    ((uintptr_t) kernel_uarg->uspace_stack)+PAGE_SIZE-ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
+			    ((uintptr_t) kernel_uarg->uspace_stack)+PAGE_SIZE,
+			    (uintptr_t) kernel_uarg->uspace_uarg,
 			    psr.value, rsc.value);
 
 	while (1) {
@@ -131,7 +131,7 @@ void userspace(uspace_arg_t *kernel_uarg)
  *
  * We use r13 (a.k.a. tp) for this purpose.
  */
-__native sys_tls_set(__native addr)
+unative_t sys_tls_set(unative_t addr)
 {
         return 0;
 }

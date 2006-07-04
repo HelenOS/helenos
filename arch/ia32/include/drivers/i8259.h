@@ -47,8 +47,8 @@
 #define	PIC_ICW1	(1<<4)
 
 extern void i8259_init(void);
-extern void pic_enable_irqs(__u16 irqmask);
-extern void pic_disable_irqs(__u16 irqmask);
+extern void pic_enable_irqs(uint16_t irqmask);
+extern void pic_disable_irqs(uint16_t irqmask);
 extern void pic_eoi(void);
 
 #endif

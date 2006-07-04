@@ -49,7 +49,7 @@
  */
 static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
-        __native d0, d1, d2;
+        unative_t d0, d1, d2;
 
         __asm__ __volatile__(
                 /* copy all full dwords */
@@ -65,7 +65,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
                 /* exit from asm block */
                 "1:\n"
                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)
-                : "0" ((__native) (cnt / 4)), "g" ((__native) cnt), "1" ((__native) dst), "2" ((__native) src)
+                : "0" ((unative_t) (cnt / 4)), "g" ((unative_t) cnt), "1" ((unative_t) dst), "2" ((unative_t) src)
                 : "memory");
 
         return dst;
@@ -85,7 +85,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
  */
 static inline int memcmp(const void * src, const void * dst, size_t cnt)
 {
-	__u32 d0, d1, d2;
+	uint32_t d0, d1, d2;
 	int ret;
 	
 	__asm__ (
@@ -95,7 +95,7 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
 		"addl $1, %0\n\t"
 		"1:\n"
 		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
-		: "0" (0), "1" ((__native) src), "2" ((__native) dst), "3" ((__native) cnt)
+		: "0" (0), "1" ((unative_t) src), "2" ((unative_t) dst), "3" ((unative_t) cnt)
 	);
 	
 	return ret;
@@ -110,9 +110,9 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
  * @param cnt Number of words
  * @param x Value to fill
  */
-static inline void memsetw(__address dst, size_t cnt, __u16 x)
+static inline void memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
-	__u32 d0, d1;
+	uint32_t d0, d1;
 	
 	__asm__ __volatile__ (
 		"rep stosw\n\t"
@@ -132,9 +132,9 @@ static inline void memsetw(__address dst, size_t cnt, __u16 x)
  * @param cnt Number of bytes
  * @param x Value to fill
  */
-static inline void memsetb(__address dst, size_t cnt, __u8 x)
+static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
-	__u32 d0, d1;
+	uint32_t d0, d1;
 	
 	__asm__ __volatile__ (
 		"rep stosb\n\t"

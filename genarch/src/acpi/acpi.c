@@ -51,12 +51,12 @@ struct acpi_rsdt *acpi_rsdt = NULL;
 struct acpi_xsdt *acpi_xsdt = NULL;
 
 struct acpi_signature_map signature_map[] = { 
-	{ (__u8 *)"APIC", (void *) &acpi_madt, "Multiple APIC Description Table" }
+	{ (uint8_t *)"APIC", (void *) &acpi_madt, "Multiple APIC Description Table" }
 };
 
-static int rsdp_check(__u8 *rsdp) {
+static int rsdp_check(uint8_t *rsdp) {
 	struct acpi_rsdp *r = (struct acpi_rsdp *) rsdp;
-	__u8 sum = 0;
+	uint8_t sum = 0;
 	int i;
 	
 	for (i=0; i<20; i++)
@@ -75,10 +75,10 @@ static int rsdp_check(__u8 *rsdp) {
 	
 }
 
-int acpi_sdt_check(__u8 *sdt)
+int acpi_sdt_check(uint8_t *sdt)
 {
 	struct acpi_sdt_header *h = (struct acpi_sdt_header *) sdt;
-	__u8 sum = 0;
+	uint8_t sum = 0;
 	int i;
 
 	for (i=0; i<h->length; i++)
@@ -89,21 +89,21 @@ int acpi_sdt_check(__u8 *sdt)
 
 static void map_sdt(struct acpi_sdt_header *sdt)
 {
-	page_mapping_insert(AS_KERNEL, (__address) sdt, (__address) sdt, PAGE_NOT_CACHEABLE);
-	map_structure((__address) sdt, sdt->length);
+	page_mapping_insert(AS_KERNEL, (uintptr_t) sdt, (uintptr_t) sdt, PAGE_NOT_CACHEABLE);
+	map_structure((uintptr_t) sdt, sdt->length);
 }
 
 static void configure_via_rsdt(void)
 {
-	int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u32);
+	int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(uint32_t);
 	
 	for (i=0; i<cnt; i++) {
 		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (__native) acpi_rsdt->entry[i];
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (unative_t) acpi_rsdt->entry[i];
 		
 			map_sdt(h);	
-			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
-				if (!acpi_sdt_check((__u8 *) h))
+			if (*((uint32_t *) &h->signature[0])==*((uint32_t *) &signature_map[j].signature[0])) {
+				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
 				printf("%#zx: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
@@ -116,15 +116,15 @@ next:
 
 static void configure_via_xsdt(void)
 {
-	int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(__u64);
+	int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(uint64_t);
 	
 	for (i=0; i<cnt; i++) {
 		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((__address) acpi_rsdt->entry[i]);
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((uintptr_t) acpi_rsdt->entry[i]);
 
 			map_sdt(h);
-			if (*((__u32 *) &h->signature[0])==*((__u32 *) &signature_map[j].signature[0])) {
-				if (!acpi_sdt_check((__u8 *) h))
+			if (*((uint32_t *) &h->signature[0])==*((uint32_t *) &signature_map[j].signature[0])) {
+				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
 				printf("%#zx: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
@@ -138,9 +138,9 @@ next:
 
 void acpi_init(void)
 {
-	__u8 *addr[2] = { NULL, (__u8 *) PA2KA(0xe0000) };
+	uint8_t *addr[2] = { NULL, (uint8_t *) PA2KA(0xe0000) };
 	int i, j, length[2] = { 1024, 128*1024 };
-	__u64 *sig = (__u64 *) RSDP_SIGNATURE;
+	uint64_t *sig = (uint64_t *) RSDP_SIGNATURE;
 
 	/*
 	 * Find Root System Description Pointer
@@ -148,10 +148,10 @@ void acpi_init(void)
 	 * 2. search 128K starting at 0xe0000
 	 */
 
-	addr[0] = (__u8 *) PA2KA(ebda);
+	addr[0] = (uint8_t *) PA2KA(ebda);
 	for (i = (ebda ? 0 : 1); i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
-			if (*((__u64 *) &addr[i][j]) == *sig && rsdp_check(&addr[i][j])) {
+			if (*((uint64_t *) &addr[i][j]) == *sig && rsdp_check(&addr[i][j])) {
 				acpi_rsdp = (struct acpi_rsdp *) &addr[i][j];
 				goto rsdp_found;
 			}
@@ -163,17 +163,17 @@ void acpi_init(void)
 rsdp_found:
 	printf("%#zx: ACPI Root System Description Pointer\n", acpi_rsdp);
 
-	acpi_rsdt = (struct acpi_rsdt *) (__native) acpi_rsdp->rsdt_address;
-	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((__address) acpi_rsdp->xsdt_address);
+	acpi_rsdt = (struct acpi_rsdt *) (unative_t) acpi_rsdp->rsdt_address;
+	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);
 
 	if (acpi_rsdt) map_sdt((struct acpi_sdt_header *) acpi_rsdt);
 	if (acpi_xsdt) map_sdt((struct acpi_sdt_header *) acpi_xsdt);	
 
-	if (acpi_rsdt && !acpi_sdt_check((__u8 *) acpi_rsdt)) {
+	if (acpi_rsdt && !acpi_sdt_check((uint8_t *) acpi_rsdt)) {
 		printf("RSDT: %s\n", "bad checksum");
 		return;
 	}
-	if (acpi_xsdt && !acpi_sdt_check((__u8 *) acpi_xsdt)) {
+	if (acpi_xsdt && !acpi_sdt_check((uint8_t *) acpi_xsdt)) {
 		printf("XSDT: %s\n", "bad checksum");
 		return;
 	}

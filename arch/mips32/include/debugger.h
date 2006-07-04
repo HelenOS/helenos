@@ -50,9 +50,9 @@
 #define BKPOINT_FUNCCALL (1 << 3)   /**< Call a predefined function */
 
 typedef struct  {
-	__address address;      /**< Breakpoint address */
-	__native instruction; /**< Original instruction */
-	__native nextinstruction;  /**< Original instruction following break */
+	uintptr_t address;      /**< Breakpoint address */
+	unative_t instruction; /**< Original instruction */
+	unative_t nextinstruction;  /**< Original instruction following break */
 	int flags;        /**< Flags regarding breakpoint */
 	count_t counter;
 	void (*bkfunc)(void *b, istate_t *istate);

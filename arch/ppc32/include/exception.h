@@ -42,47 +42,47 @@
 #include <typedefs.h>
 
 struct istate {
-	__u32 r0;
-	__u32 r2;
-	__u32 r3;
-	__u32 r4;
-	__u32 r5;
-	__u32 r6;
-	__u32 r7;
-	__u32 r8;
-	__u32 r9;
-	__u32 r10;
-	__u32 r11;
-	__u32 r13;
-	__u32 r14;
-	__u32 r15;
-	__u32 r16;
-	__u32 r17;
-	__u32 r18;
-	__u32 r19;
-	__u32 r20;
-	__u32 r21;
-	__u32 r22;
-	__u32 r23;
-	__u32 r24;
-	__u32 r25;
-	__u32 r26;
-	__u32 r27;
-	__u32 r28;
-	__u32 r29;
-	__u32 r30;
-	__u32 r31;
-	__u32 cr;
-	__u32 pc;
-	__u32 srr1;
-	__u32 lr;
-	__u32 ctr;
-	__u32 xer;
-	__u32 r12;
-	__u32 sp;
+	uint32_t r0;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
+	uint32_t r13;
+	uint32_t r14;
+	uint32_t r15;
+	uint32_t r16;
+	uint32_t r17;
+	uint32_t r18;
+	uint32_t r19;
+	uint32_t r20;
+	uint32_t r21;
+	uint32_t r22;
+	uint32_t r23;
+	uint32_t r24;
+	uint32_t r25;
+	uint32_t r26;
+	uint32_t r27;
+	uint32_t r28;
+	uint32_t r29;
+	uint32_t r30;
+	uint32_t r31;
+	uint32_t cr;
+	uint32_t pc;
+	uint32_t srr1;
+	uint32_t lr;
+	uint32_t ctr;
+	uint32_t xer;
+	uint32_t r12;
+	uint32_t sp;
 };
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->pc = retaddr;
 }
@@ -93,7 +93,7 @@ static inline int istate_from_uspace(istate_t *istate)
 	panic("istate_from_uspace not yet implemented");
 	return 0;
 }
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
 }

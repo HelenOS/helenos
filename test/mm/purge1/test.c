@@ -37,7 +37,7 @@
 
 
 extern void tlb_invalidate_all(void);
-extern void tlb_invalidate_pages(asid_t asid, __address va, count_t cnt);
+extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, count_t cnt);
 void test(void)
 {
 	tlb_entry_t entryi;

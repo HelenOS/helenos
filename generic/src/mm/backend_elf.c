@@ -50,8 +50,8 @@
 #include <macros.h>
 #include <arch.h>
 
-static int elf_page_fault(as_area_t *area, __address addr, pf_access_t access);
-static void elf_frame_free(as_area_t *area, __address page, __address frame);
+static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
+static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
 static void elf_share(as_area_t *area);
 
 mem_backend_t elf_backend = {
@@ -70,12 +70,12 @@ mem_backend_t elf_backend = {
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
  */
-int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
+int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
 	btree_node_t *leaf;
-	__address base, frame;
+	uintptr_t base, frame;
 	index_t i;
 
 	if (!as_area_check_access(area, access))
@@ -83,7 +83,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 
 	ASSERT((addr >= entry->p_vaddr) && (addr < entry->p_vaddr + entry->p_memsz));
 	i = (addr - entry->p_vaddr) >> PAGE_WIDTH;
-	base = (__address) (((void *) elf) + entry->p_offset);
+	base = (uintptr_t) (((void *) elf) + entry->p_offset);
 	ASSERT(ALIGN_UP(base, FRAME_SIZE) == base);
 
 	if (area->sh_info) {
@@ -94,7 +94,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 */
 		 
 		mutex_lock(&area->sh_info->lock);
-		frame = (__address) btree_search(&area->sh_info->pagemap,
+		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
 			int i;
@@ -134,7 +134,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 * as COW.
 		 */
 		if (entry->p_flags & PF_W) {
-			frame = (__address)frame_alloc(ONE_FRAME, 0);
+			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 			memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), FRAME_SIZE);
 			
 			if (area->sh_info) {
@@ -153,7 +153,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 * To resolve the situation, a frame must be allocated
 		 * and cleared.
 		 */
-		frame = (__address)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 
 		if (area->sh_info) {
@@ -170,7 +170,7 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
 		 * the upper part is anonymous memory.
 		 */
 		size = entry->p_filesz - (i<<PAGE_WIDTH);
-		frame = (__address)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame) + size, FRAME_SIZE - size, 0);
 		memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), size);
 
@@ -201,16 +201,16 @@ int elf_page_fault(as_area_t *area, __address addr, pf_access_t access)
  * @param frame Frame to be released.
  *
  */
-void elf_frame_free(as_area_t *area, __address page, __address frame)
+void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
-	__address base;
+	uintptr_t base;
 	index_t i;
 	
 	ASSERT((page >= entry->p_vaddr) && (page < entry->p_vaddr + entry->p_memsz));
 	i = (page - entry->p_vaddr) >> PAGE_WIDTH;
-	base = (__address) (((void *) elf) + entry->p_offset);
+	base = (uintptr_t) (((void *) elf) + entry->p_offset);
 	ASSERT(ALIGN_UP(base, FRAME_SIZE) == base);
 	
 	if (page + PAGE_SIZE < ALIGN_UP(entry->p_vaddr + entry->p_filesz, PAGE_SIZE)) {
@@ -245,7 +245,7 @@ void elf_share(as_area_t *area)
 	elf_segment_header_t *entry = area->backend_data.segment;
 	link_t *cur;
 	btree_node_t *leaf, *node;
-	__address start_anon = entry->p_vaddr + entry->p_filesz;
+	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
 
 	/*
 	 * Find the node in which to start linear search.
@@ -269,7 +269,7 @@ void elf_share(as_area_t *area)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		
 		for (i = 0; i < node->keys; i++) {
-			__address base = node->key[i];
+			uintptr_t base = node->key[i];
 			count_t count = (count_t) node->value[i];
 			int j;
 			

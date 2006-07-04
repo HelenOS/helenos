@@ -62,45 +62,45 @@
 #define EXC_VCED	31
 
 struct istate {
-	__u32 at;
-	__u32 v0;
-	__u32 v1;
-	__u32 a0;
-	__u32 a1;
-	__u32 a2;
-	__u32 a3;
-	__u32 t0;
-	__u32 t1;
-	__u32 t2;
-	__u32 t3;
-	__u32 t4;
-	__u32 t5;
-	__u32 t6;
-	__u32 t7;
-	__u32 s0;
-	__u32 s1;
-	__u32 s2;
-	__u32 s3;
-	__u32 s4;
-	__u32 s5;
-	__u32 s6;
-	__u32 s7;
-	__u32 t8;
-	__u32 t9;
-	__u32 gp;
-	__u32 sp;
-	__u32 s8;
-	__u32 ra;
+	uint32_t at;
+	uint32_t v0;
+	uint32_t v1;
+	uint32_t a0;
+	uint32_t a1;
+	uint32_t a2;
+	uint32_t a3;
+	uint32_t t0;
+	uint32_t t1;
+	uint32_t t2;
+	uint32_t t3;
+	uint32_t t4;
+	uint32_t t5;
+	uint32_t t6;
+	uint32_t t7;
+	uint32_t s0;
+	uint32_t s1;
+	uint32_t s2;
+	uint32_t s3;
+	uint32_t s4;
+	uint32_t s5;
+	uint32_t s6;
+	uint32_t s7;
+	uint32_t t8;
+	uint32_t t9;
+	uint32_t gp;
+	uint32_t sp;
+	uint32_t s8;
+	uint32_t ra;
 	
-	__u32 lo;
-	__u32 hi;
+	uint32_t lo;
+	uint32_t hi;
 
-	__u32 status; /* cp0_status */
-	__u32 epc; /* cp0_epc */
-	__u32 k1; /* We use it as thread-local pointer */
+	uint32_t status; /* cp0_status */
+	uint32_t epc; /* cp0_epc */
+	uint32_t k1; /* We use it as thread-local pointer */
 };
 
-static inline void istate_set_retaddr(istate_t *istate, __address retaddr)
+static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->epc = retaddr;
 }
@@ -110,7 +110,7 @@ static inline int istate_from_uspace(istate_t *istate)
 {
 	return istate->status & cp0_status_um_bit;
 }
-static inline __native istate_get_pc(istate_t *istate)
+static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->epc;
 }

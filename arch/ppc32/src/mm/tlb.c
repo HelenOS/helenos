@@ -56,7 +56,7 @@
  * @return         PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, int access, istate_t *istate, int *pfrc)
+static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access, istate_t *istate, int *pfrc)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -103,7 +103,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, __address badvaddr, in
 }
 
 
-static void pht_refill_fail(__address badvaddr, istate_t *istate)
+static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
 	char *symbol = "";
 	char *sym2 = "";
@@ -118,19 +118,19 @@ static void pht_refill_fail(__address badvaddr, istate_t *istate)
 }
 
 
-static void pht_insert(const __address vaddr, const pfn_t pfn)
+static void pht_insert(const uintptr_t vaddr, const pfn_t pfn)
 {
-	__u32 page = (vaddr >> 12) & 0xffff;
-	__u32 api = (vaddr >> 22) & 0x3f;
+	uint32_t page = (vaddr >> 12) & 0xffff;
+	uint32_t api = (vaddr >> 22) & 0x3f;
 	
-	__u32 vsid;
+	uint32_t vsid;
 	asm volatile (
 		"mfsrin %0, %1\n"
 		: "=r" (vsid)
 		: "r" (vaddr)
 	);
 	
-	__u32 sdr1;
+	uint32_t sdr1;
 	asm volatile (
 		"mfsdr1 %0\n"
 		: "=r" (sdr1)
@@ -138,10 +138,10 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
 	
 	/* Primary hash (xor) */
-	__u32 h = 0;
-	__u32 hash = vsid ^ page;
-	__u32 base = (hash & 0x3ff) << 3;
-	__u32 i;
+	uint32_t h = 0;
+	uint32_t hash = vsid ^ page;
+	uint32_t base = (hash & 0x3ff) << 3;
+	uint32_t i;
 	bool found = false;
 	
 	/* Find unused or colliding
@@ -155,7 +155,7 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 	
 	if (!found) {
 		/* Secondary hash (not) */
-		__u32 base2 = (~hash & 0x3ff) << 3;
+		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
 		/* Find unused or colliding
 		   PTE in PTEG */
@@ -185,19 +185,19 @@ static void pht_insert(const __address vaddr, const pfn_t pfn)
 }
 
 
-static void pht_real_insert(const __address vaddr, const pfn_t pfn)
+static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
 {
-	__u32 page = (vaddr >> 12) & 0xffff;
-	__u32 api = (vaddr >> 22) & 0x3f;
+	uint32_t page = (vaddr >> 12) & 0xffff;
+	uint32_t api = (vaddr >> 22) & 0x3f;
 	
-	__u32 vsid;
+	uint32_t vsid;
 	asm volatile (
 		"mfsrin %0, %1\n"
 		: "=r" (vsid)
 		: "r" (vaddr)
 	);
 	
-	__u32 sdr1;
+	uint32_t sdr1;
 	asm volatile (
 		"mfsdr1 %0\n"
 		: "=r" (sdr1)
@@ -205,10 +205,10 @@ static void pht_real_insert(const __address vaddr, const pfn_t pfn)
 	phte_t *phte_physical = (phte_t *) (sdr1 & 0xffff0000);
 	
 	/* Primary hash (xor) */
-	__u32 h = 0;
-	__u32 hash = vsid ^ page;
-	__u32 base = (hash & 0x3ff) << 3;
-	__u32 i;
+	uint32_t h = 0;
+	uint32_t hash = vsid ^ page;
+	uint32_t base = (hash & 0x3ff) << 3;
+	uint32_t i;
 	bool found = false;
 	
 	/* Find unused or colliding
@@ -222,7 +222,7 @@ static void pht_real_insert(const __address vaddr, const pfn_t pfn)
 	
 	if (!found) {
 		/* Secondary hash (not) */
-		__u32 base2 = (~hash & 0x3ff) << 3;
+		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
 		/* Find unused or colliding
 		   PTE in PTEG */
@@ -260,7 +260,7 @@ static void pht_real_insert(const __address vaddr, const pfn_t pfn)
  */
 void pht_refill(int n, istate_t *istate)
 {
-	__address badvaddr;
+	uintptr_t badvaddr;
 	pte_t *pte;
 	int pfrc;
 	as_t *as;
@@ -322,7 +322,7 @@ fail:
  */
 bool pht_real_refill(int n, istate_t *istate)
 {
-	__address badvaddr;
+	uintptr_t badvaddr;
 	
 	if (n == VECTOR_DATA_STORAGE) {
 		asm volatile (
@@ -332,7 +332,7 @@ bool pht_real_refill(int n, istate_t *istate)
 	} else
 		badvaddr = istate->pc;
 	
-	__u32 physmem;
+	uint32_t physmem;
 	asm volatile (
 		"mfsprg3 %0\n"
 		: "=r" (physmem)
@@ -364,14 +364,14 @@ void tlb_invalidate_all(void)
 
 void tlb_invalidate_asid(asid_t asid)
 {
-	__u32 sdr1;
+	uint32_t sdr1;
 	asm volatile (
 		"mfsdr1 %0\n"
 		: "=r" (sdr1)
 	);
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
 	
-	__u32 i;
+	uint32_t i;
 	for (i = 0; i < 8192; i++) {
 		if ((phte[i].v) && (phte[i].vsid >= (asid << 4)) && (phte[i].vsid < ((asid << 4) + 16)))
 			phte[i].v = 0;
@@ -380,7 +380,7 @@ void tlb_invalidate_asid(asid_t asid)
 }
 
 
-void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	// TODO
 	tlb_invalidate_all();
@@ -395,7 +395,7 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 	); \
 	mask = (upper & 0x1ffc) >> 2; \
 	if (upper & 3) { \
-		__u32 tmp = mask; \
+		uint32_t tmp = mask; \
 		length = 128; \
 		while (tmp) { \
 			if ((tmp & 1) == 0) { \
@@ -412,10 +412,10 @@ void tlb_invalidate_pages(asid_t asid, __address page, count_t cnt)
 
 void tlb_print(void)
 {
-	__u32 sr;
+	uint32_t sr;
 	
 	for (sr = 0; sr < 16; sr++) {
-		__u32 vsid;
+		uint32_t vsid;
 		asm volatile (
 			"mfsrin %0, %1\n"
 			: "=r" (vsid)
@@ -424,10 +424,10 @@ void tlb_print(void)
 		printf("vsid[%d]: VSID=%.*p (ASID=%d)%s%s\n", sr, sizeof(vsid) * 2, vsid & 0xffffff, (vsid & 0xffffff) >> 4, ((vsid >> 30) & 1) ? " supervisor" : "", ((vsid >> 29) & 1) ? " user" : "");
 	}
 	
-	__u32 upper;
-	__u32 lower;
-	__u32 mask;
-	__u32 length;
+	uint32_t upper;
+	uint32_t lower;
+	uint32_t mask;
+	uint32_t length;
 	
 	PRINT_BAT("ibat[0]", 528, 529);
 	PRINT_BAT("ibat[1]", 530, 531);

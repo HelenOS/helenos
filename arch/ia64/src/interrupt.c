@@ -119,10 +119,10 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Reserved"
 };
 
-static char *vector_to_string(__u16 vector);
+static char *vector_to_string(uint16_t vector);
 static void dump_interrupted_context(istate_t *istate);
 
-char *vector_to_string(__u16 vector)
+char *vector_to_string(uint16_t vector)
 {
 	ASSERT(vector <= VECTOR_MAX);
 	
@@ -152,7 +152,7 @@ void dump_interrupted_context(istate_t *istate)
 	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa, ifa);
 }
 
-void general_exception(__u64 vector, istate_t *istate)
+void general_exception(uint64_t vector, istate_t *istate)
 {
 	char *desc = "";
 
@@ -188,26 +188,26 @@ void general_exception(__u64 vector, istate_t *istate)
 
 void fpu_enable(void);
 
-void disabled_fp_register(__u64 vector, istate_t *istate)
+void disabled_fp_register(uint64_t vector, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY 
 	scheduler_fpu_lazy_request();	
 #else
-	fault_if_from_uspace(istate, "Interruption: %#hx (%s)", (__u16) vector, vector_to_string(vector));
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s)", (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (uint16_t) vector, vector_to_string(vector));
 #endif
 }
 
 
-void nop_handler(__u64 vector, istate_t *istate)
+void nop_handler(uint64_t vector, istate_t *istate)
 {
 }
 
 
 
 /** Handle syscall. */
-int break_instruction(__u64 vector, istate_t *istate)
+int break_instruction(uint64_t vector, istate_t *istate)
 {
 	/*
 	 * Move to next instruction after BREAK.
@@ -227,14 +227,14 @@ int break_instruction(__u64 vector, istate_t *istate)
 	return -1;
 }
 
-void universal_handler(__u64 vector, istate_t *istate)
+void universal_handler(uint64_t vector, istate_t *istate)
 {
-	fault_if_from_uspace(istate,"Interruption: %#hx (%s)\n",(__u16) vector, vector_to_string(vector));
+	fault_if_from_uspace(istate,"Interruption: %#hx (%s)\n",(uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (__u16) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (uint16_t) vector, vector_to_string(vector));
 }
 
-void external_interrupt(__u64 vector, istate_t *istate)
+void external_interrupt(uint64_t vector, istate_t *istate)
 {
 	cr_ivr_t ivr;
 	
@@ -254,7 +254,7 @@ void external_interrupt(__u64 vector, istate_t *istate)
 	}
 }
 
-void virtual_interrupt(__u64 irq,void *param)
+void virtual_interrupt(uint64_t irq,void *param)
 {
 	switch(irq) {
 		case IRQ_KBD:
@@ -267,7 +267,7 @@ void virtual_interrupt(__u64 irq,void *param)
 }
 
 /* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(__native irq)
+void irq_ipc_bind_arch(unative_t irq)
 {
 	if(irq==IRQ_KBD) {
 		kbd_uspace=1;

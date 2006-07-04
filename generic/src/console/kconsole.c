@@ -431,10 +431,10 @@ void kconsole(void *prompt)
 	}
 }
 
-static int parse_int_arg(char *text, size_t len, __native *result)
+static int parse_int_arg(char *text, size_t len, unative_t *result)
 {
 	char symname[MAX_SYMBOL_NAME];
-	__address symaddr;
+	uintptr_t symaddr;
 	bool isaddr = false;
 	bool isptr = false;
 	
@@ -453,21 +453,21 @@ static int parse_int_arg(char *text, size_t len, __native *result)
 			printf("Symbol %s not found.\n",symname);
 			return -1;
 		}
-		if (symaddr == (__address) -1) {
+		if (symaddr == (uintptr_t) -1) {
 			printf("Duplicate symbol %s.\n",symname);
 			symtab_print_search(symname);
 			return -1;
 		}
 		if (isaddr)
-			*result = (__native)symaddr;
+			*result = (unative_t)symaddr;
 		else if (isptr)
-			*result = **((__native **)symaddr);
+			*result = **((unative_t **)symaddr);
 		else
-			*result = *((__native *)symaddr);
+			*result = *((unative_t *)symaddr);
 	} else { /* It's a number - convert it */
 		*result = atoi(text);
 		if (isptr)
-			*result = *((__native *)*result);
+			*result = *((unative_t *)*result);
 	}
 
 	return 0;
@@ -554,7 +554,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 				strncpy(buf, (const char *) &cmdline[start+1], 
 					min((end-start), cmd->argv[i].len));
 				buf[min((end - start), cmd->argv[i].len - 1)] = '\0';
-				cmd->argv[i].intval = (__native) buf;
+				cmd->argv[i].intval = (unative_t) buf;
 				cmd->argv[i].vartype = ARG_TYPE_STRING;
 			} else if (!parse_int_arg(cmdline+start, end-start+1, 
 						 &cmd->argv[i].intval))

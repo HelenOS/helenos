@@ -38,14 +38,14 @@
 #include <arch/types.h>
 #include <byteorder.h>
 
-static inline __u64 __u64_le2host(__u64 n)
+static inline uint64_t uint64_t_le2host(uint64_t n)
 {
-	return __u64_byteorder_swap(n);
+	return uint64_t_byteorder_swap(n);
 }
 
-static inline __native __native_le2host(__native n)
+static inline unative_t unative_t_le2host(unative_t n)
 {
-	return __u64_byteorder_swap(n);
+	return uint64_t_byteorder_swap(n);
 }
 
 #endif

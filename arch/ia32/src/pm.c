@@ -86,23 +86,23 @@ static tss_t tss;
 tss_t *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-ptr_16_32_t bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((__address) gdt) };
-ptr_16_32_t gdtr = { .limit = sizeof(gdt), .base = (__address) gdt };
+ptr_16_32_t bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((uintptr_t) gdt) };
+ptr_16_32_t gdtr = { .limit = sizeof(gdt), .base = (uintptr_t) gdt };
 
-void gdt_setbase(descriptor_t *d, __address base)
+void gdt_setbase(descriptor_t *d, uintptr_t base)
 {
 	d->base_0_15 = base & 0xffff;
 	d->base_16_23 = ((base) >> 16) & 0xff;
 	d->base_24_31 = ((base) >> 24) & 0xff;
 }
 
-void gdt_setlimit(descriptor_t *d, __u32 limit)
+void gdt_setlimit(descriptor_t *d, uint32_t limit)
 {
 	d->limit_0_15 = limit & 0xffff;
 	d->limit_16_19 = (limit >> 16) & 0xf;
 }
 
-void idt_setoffset(idescriptor_t *d, __address offset)
+void idt_setoffset(idescriptor_t *d, uintptr_t offset)
 {
 	/*
 	 * Offset is a linear address.
@@ -113,7 +113,7 @@ void idt_setoffset(idescriptor_t *d, __address offset)
 
 void tss_initialize(tss_t *t)
 {
-	memsetb((__address) t, sizeof(struct tss), 0);
+	memsetb((uintptr_t) t, sizeof(struct tss), 0);
 }
 
 /*
@@ -139,7 +139,7 @@ void idt_init(void)
 			d->access |= DPL_USER;
 		}
 		
-		idt_setoffset(d, ((__address) interrupt_handlers) + i*interrupt_handler_size);
+		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
 		exc_register(i, "undef", (iroutine) null_interrupt);
 	}
 	exc_register(13, "gp_fault", (iroutine) gp_fault);
@@ -182,7 +182,7 @@ void pm_init(void)
 	 * Update addresses in GDT and IDT to their virtual counterparts.
 	 */
 	idtr.limit = sizeof(idt);
-	idtr.base = (__address) idt;
+	idtr.base = (uintptr_t) idt;
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);
 	
@@ -211,7 +211,7 @@ void pm_init(void)
 	gdt_p[TSS_DES].special = 1;
 	gdt_p[TSS_DES].granularity = 0;
 	
-	gdt_setbase(&gdt_p[TSS_DES], (__address) tss_p);
+	gdt_setbase(&gdt_p[TSS_DES], (uintptr_t) tss_p);
 	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
 
 	/*
@@ -224,7 +224,7 @@ void pm_init(void)
 	clean_AM_flag();          /* Disable alignment check */
 }
 
-void set_tls_desc(__address tls)
+void set_tls_desc(uintptr_t tls)
 {
 	ptr_16_32_t cpugdtr;
 	descriptor_t *gdt_p;

@@ -42,13 +42,13 @@
  * To satisfy this, paddings must be sometimes inserted. 
  */
 
-typedef __address va_list;
+typedef uintptr_t va_list;
 
 #define va_start(ap, lst) \
 	((ap) = (va_list)&(lst) + sizeof(lst))
 
 #define va_arg(ap, type)	\
-	(((type *)((ap) = (va_list)( (sizeof(type) <= 4) ? ((__address)((ap) + 2*4 - 1) & (~3)) : ((__address)((ap) + 2*8 -1) & (~7)) )))[-1])
+	(((type *)((ap) = (va_list)( (sizeof(type) <= 4) ? ((uintptr_t)((ap) + 2*4 - 1) & (~3)) : ((uintptr_t)((ap) + 2*8 -1) & (~7)) )))[-1])
 
 #define va_copy(dst,src) ((dst)=(src))
 

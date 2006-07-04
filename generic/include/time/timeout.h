@@ -40,7 +40,7 @@
 #include <synch/spinlock.h>
 #include <adt/list.h>
 
-#define us2ticks(us)	((__u64)(((__u32) (us)/(1000000/HZ))))
+#define us2ticks(us)	((uint64_t)(((uint32_t) (us)/(1000000/HZ))))
 
 typedef void (* timeout_handler_t)(void *arg);
 
@@ -49,7 +49,7 @@ struct timeout {
 
 	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
 	
-	__u64 ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
+	uint64_t ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
 
 	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
 	void *arg;			/**< Argument to be passed to handler() function. */
@@ -60,7 +60,7 @@ struct timeout {
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *t);
 extern void timeout_reinitialize(timeout_t *t);
-extern void timeout_register(timeout_t *t, __u64 usec, timeout_handler_t f, void *arg);
+extern void timeout_register(timeout_t *t, uint64_t usec, timeout_handler_t f, void *arg);
 extern bool timeout_unregister(timeout_t *t);
 
 #endif
