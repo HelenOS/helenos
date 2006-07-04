@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
@@ -128,6 +128,5 @@ void *ofw_claim(const void *addr, const int size, const int align)
 	return (void *) ofw_call("claim", 3, 1, addr, size, align);
 }
 
- /** @}
+/** @}
  */
-
