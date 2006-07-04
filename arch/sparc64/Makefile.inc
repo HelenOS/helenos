@@ -33,13 +33,14 @@ build: image.iso
 image.iso: kernel
 	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(CONFIG_IMAGE)
 	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/kernel
+	mkdir -p $(TMP)/HelenOS
 	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
 	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
-	ln -sf ../../$(KERNELDIR)/kernel.bin $(TMP)/kernel/kernel.bin
+	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o image.iso $(TMP)/
 
-clean: clean_kernel
+clean: clean_boot_gen clean_kernel
+	 make -C arch/$(ARCH)/loader clean
 	-rm -fr $(TMP)
 	-rm -f image.iso
 

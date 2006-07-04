@@ -94,5 +94,6 @@ memcpy:
 	mov	%o1, %o0
 
 jump_to_kernel:
-	b jump_to_kernel
-	nop
+	set ofw, %l0
+	jmp %o0				! jump to kernel
+	ldx [%l0], %o4			! pass OpenFirmware address in %o4
