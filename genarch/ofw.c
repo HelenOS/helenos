@@ -29,6 +29,7 @@
 #include "ofw.h"
 #include <printf.h>
 #include <asm.h>
+#include <types.h>
 
 #define MAX_OFW_ARGS		10
 
@@ -167,19 +168,38 @@ void ofw_write(const char *str, const int len)
 
 void *ofw_translate(const void *virt)
 {
-	ofw_arg_t result[3];
-	
-	if (ofw_call("call-method", 4, 4, result, "translate", ofw_mmu, virt, 1) != 0) {
+	ofw_arg_t result[4];
+	int shift;
+
+	if (ofw_call("call-method", 3, 5, result, "translate", ofw_mmu, virt) != 0) {
 		puts("Error: MMU method translate() failed, halting.\n");
 		halt();
 	}
-	return (void *) result[2];
+
+	if (sizeof(unative_t) == 8)
+		shift = 32;
+	else
+		shift = 0;
+		
+	return (void *) (((result[2]&0xffffffff)<<shift)|((result[3])&0xffffffff));
 }
 
 
 int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {
-	return ofw_call("call-method", 6, 1, NULL, "map", ofw_mmu, mode, size, virt, phys);
+	uintptr_t phys_hi, phys_lo;
+
+	if (sizeof(unative_t) == 8) {
+		int shift = 32;
+		phys_hi = (uintptr_t) phys >> shift;
+		phys_lo = (uintptr_t) phys & 0xffffffff;
+	} else {
+		phys_hi = 0;
+		phys_lo = (uintptr_t) phys;
+	}
+
+	return ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode, size, virt,
+		phys_hi, phys_lo);
 }
 
 
@@ -238,4 +258,3 @@ int ofw_screen(screen_t *screen)
 	
 	return true;
 }
-

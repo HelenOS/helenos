@@ -30,17 +30,19 @@
 #include <printf.h>
 #include "asm.h"
 #include "_components.h"
+#include <ofw.h>
 
 #define KERNEL_VIRTUAL_ADDRESS 0x400000
+
+bootinfo_t bootinfo;
 
 void bootstrap(void)
 {
 	printf("HelenOS SPARC64 Bootloader\n");
-	
+
 	component_t components[COMPONENTS];
-	bootinfo_t bootinfo;
 	init_components(components);
-	
+
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
 	printf(" %L: boot info structure\n", &bootinfo);
@@ -48,6 +50,12 @@ void bootstrap(void)
 	unsigned int i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
+
+	screen_t scr;
+	
+	ofw_screen(&scr);
+	printf("\n%P: fb, %dx%dx%d\n", ofw_translate(scr.addr), scr.width, scr.height, scr.bpp);
+
 	
 	printf("\nCopying components\n");
 	unsigned int top = 0;
@@ -64,7 +72,7 @@ void bootstrap(void)
 		top += components[i].size;
 		printf("done.\n");
 	}
-	
+
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
 }
