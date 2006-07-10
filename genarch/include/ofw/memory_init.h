@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
@@ -43,6 +43,6 @@ extern void ofw_init_zones(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

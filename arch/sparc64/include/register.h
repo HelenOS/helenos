@@ -26,14 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_REGISTER_H__
-#define __sparc64_REGISTER_H__
+#ifndef KERN_sparc64_REGISTER_H_
+#define KERN_sparc64_REGISTER_H_
+
+#ifdef __ASM__
+#define PSTATE_IE_BIT	2
+#define PSTATE_AM_BIT	8
+#else
 
 #include <arch/types.h>
 
@@ -106,6 +111,7 @@ typedef union softint_reg softint_reg_t;
 
 #endif
 
- /** @}
- */
+#endif
 
+/** @}
+ */

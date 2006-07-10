@@ -27,6 +27,7 @@
 #
 
 #include <arch/boot/boot.h>
+#include <arch/register.h>
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -37,15 +38,17 @@
 
 /*
  * Here is where the kernel is passed control.
- * The code must be position independent until
- * the kernel relocates itself to its VMA.
  */
 
 .global kernel_image_start
 kernel_image_start:
 	flushw				! flush all but the active register window
 
-	set ofw, %l0
+	rdpr %pstate, %l0
+	and %l0, ~PSTATE_AM_BIT, %l0
+	wrpr %l0, 0, %pstate
+
+	set ofw_cif, %l0
 
 	call ofw_init
 	stx %o4, [%l0]

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64proc
+/** @addtogroup sparc64proc
  * @{
  */
 /** @file
@@ -79,6 +79,5 @@ void after_thread_ran_arch(void)
 	}
 }
 
- /** @}
+/** @}
  */
-

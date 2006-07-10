@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/stack.h>
+#include <arch/register.h>
+
 .text
 
 .global memcpy
@@ -34,6 +37,7 @@
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
 .global memsetb
+
 
 memcpy:
 memcpy_from_uspace:
@@ -51,3 +55,20 @@ memsetb:
 	b _memsetb
 	nop
 
+.global ofw
+ofw:
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	set ofw_cif, %l0
+	ldx [%l0], %l0
+
+	rdpr  %pstate, %l1
+	and  %l1, ~PSTATE_AM_BIT, %l2
+	wrpr  %l2, 0, %pstate
+	    
+	jmpl %l0, %o7
+	mov %i0, %o0
+	
+	wrpr  %l1, 0, %pstate
+
+	ret
+	restore %o0, 0, %o0

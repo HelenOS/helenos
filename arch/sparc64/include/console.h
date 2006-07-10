@@ -26,22 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_CONSOLE_H__
-#define __sparc64_CONSOLE_H__
+#ifndef KERN_sparc64_CONSOLE_H_
+#define KERN_sparc64_CONSOLE_H_
 
-extern void kofwinput(void *arg);
 extern void kkbdpoll(void *arg);
 extern void ofw_sparc64_console_init(void);
 extern void standalone_sparc64_console_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,48 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#ifndef KERN_OFW_H_
+#define KERN_OFW_H_
 
 #include <arch/types.h>
 
-#define MAX_OFW_ARGS	10
+#define MAX_OFW_ARGS	12
 
 typedef unative_t ofw_arg_t;
-typedef int ihandle;
-typedef int phandle;
+typedef unsigned int ihandle;
+typedef unsigned int phandle;
 
 /** OpenFirmware command structure
  *
  */
 typedef struct {
-	const char *service;          /**< Command name */
-	unative_t nargs;               /**< Number of in arguments */
-	unative_t nret;                /**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
+	const char *service;		/**< Command name */
+	unative_t nargs;		/**< Number of in arguments */
+	unative_t nret;			/**< Number of out arguments */
+	ofw_arg_t args[MAX_OFW_ARGS];	/**< Buffer for in and out arguments */
 } ofw_args_t;
 
-typedef void (*ofw_entry)(ofw_args_t *);
-
-extern ofw_entry ofw;
+extern int ofw(ofw_args_t *);		/**< OpenFirmware Client Interface entry point. */
 
 extern void ofw_init(void);
 extern void ofw_done(void);
-extern unative_t ofw_call(const char *service, const int nargs, const int nret, ...);
+extern ofw_arg_t ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...);
 extern void ofw_putchar(const char ch);
-extern char ofw_getchar(void);
 extern phandle ofw_find_device(const char *name);
-extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);
+extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
+extern void *ofw_translate(const void *addr);
 extern void *ofw_claim(const void *addr, const int size, const int align);
 
 #endif
 
- /** @}
+/** @}
  */
-

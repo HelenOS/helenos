@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -41,6 +41,6 @@ size_t get_memory_size(void)
 	return ofw_get_memory_size();
 }
 
- /** @}
+/** @}
  */
 

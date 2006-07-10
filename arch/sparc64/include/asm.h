@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_ASM_H__
-#define __sparc64_ASM_H__
+#ifndef KERN_sparc64_ASM_H_
+#define KERN_sparc64_ASM_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
@@ -304,14 +304,11 @@ static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
 }
 
-
-
 void cpu_halt(void);
 void cpu_sleep(void);
 void asm_delay_loop(uint32_t t);
 
 #endif
 
- /** @}
+/** @}
  */
-

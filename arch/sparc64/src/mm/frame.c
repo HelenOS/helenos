@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -51,6 +51,5 @@ void frame_arch_init(void)
 	frame_mark_unavailable(0, 1);
 }
 
- /** @}
+/** @}
  */
-

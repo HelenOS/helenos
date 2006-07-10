@@ -40,10 +40,15 @@
 #include <proc/thread.h>
 #include <console/console.h>
 
+#include <print.h>
+#include <genarch/ofw/ofw.h>
+#include <arch/asm.h>
+#include <arch/register.h>
 void arch_pre_mm_init(void)
 {
 	interrupts_disable();
 	ofw_sparc64_console_init();
+
 	trap_init();
 	tick_init();
 }
@@ -60,14 +65,6 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 	thread_t *t;
-
-	/*
-         * Create thread that reads characters from OFW's input.
-         */
-	t = thread_create(kofwinput, NULL, TASK, 0, "kofwinput");
-	if (!t)
-		panic("cannot create kofwinput\n");
-	thread_ready(t);
 
 	/*
          * Create thread that polls keyboard.
