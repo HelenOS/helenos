@@ -33,8 +33,8 @@
 .global start
 
 start:
-	lis r4, ofw@ha
-	addi r4, r4, ofw@l
+	lis r4, ofw_cif@ha
+	addi r4, r4, ofw_cif@l
 	stw r5, 0(r4)
 	
 	bl init

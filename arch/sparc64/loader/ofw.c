@@ -39,3 +39,8 @@ void write(const char *str, const int len)
 		ofw_write(&str[i], 1);
 	}
 }
+
+int ofw_translate_failed(ofw_arg_t flag)
+{
+	return flag != -1;
+}

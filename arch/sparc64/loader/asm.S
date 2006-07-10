@@ -26,6 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#define STACK_WINDOW_SAVE_AREA_SIZE     (16*8)
+
+#define PSTATE_AM_BIT	8
+
 .text
 
 .global halt
@@ -94,6 +98,24 @@ memcpy:
 	mov	%o1, %o0
 
 jump_to_kernel:
-	set ofw, %l0
+	set ofw_cif, %l0
 	jmp %o0				! jump to kernel
 	ldx [%l0], %o4			! pass OpenFirmware address in %o4
+
+.global ofw
+ofw:
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	set ofw_cif, %l0
+	ldx [%l0], %l0
+
+	rdpr  %pstate, %l1
+	and  %l1, ~PSTATE_AM_BIT, %l2
+	wrpr  %l2, 0, %pstate
+    
+	jmpl %l0, %o7
+	mov %i0, %o0
+
+	wrpr %l1, 0, %pstate
+
+	ret
+	restore %o0, 0, %o0

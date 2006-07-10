@@ -29,6 +29,13 @@
 #include <ofw.h>
 #include <printf.h>
 
+typedef int (* ofw_entry_t)(ofw_args_t *args);
+
+int ofw(ofw_args_t *args)
+{
+	return ((ofw_entry_t) ofw_cif)(args);
+}
+
 void write(const char *str, const int len)
 {
 	ofw_write(str, len);
@@ -52,4 +59,9 @@ int ofw_keyboard(keyboard_t *keyboard)
 	keyboard->size = macio.size_lo;
 
 	return true;
+}
+
+int ofw_translate_failed(ofw_arg_t flag)
+{
+	return 0;
 }

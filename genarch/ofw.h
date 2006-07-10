@@ -36,6 +36,22 @@
 
 #define MEMMAP_MAX_RECORDS 	32
 
+#define MAX_OFW_ARGS            12
+
+typedef unsigned long ofw_arg_t;
+typedef unsigned int ihandle;
+typedef unsigned int phandle;
+
+/** OpenFirmware command structure
+ *
+ */
+typedef struct {
+	const char *service;		/**< Command name */
+	unsigned long nargs;		/**< Number of in arguments */
+	unsigned long nret;		/**< Number of out arguments */
+	ofw_arg_t args[MAX_OFW_ARGS];	/**< List of arguments */
+} ofw_args_t;
+
 typedef struct {
 	void *start;
 	unsigned int size;
@@ -48,7 +64,7 @@ typedef struct {
 } memmap_t;
 
 typedef struct {
-	void *addr;
+	uint32_t addr;
 	unsigned int width;
 	unsigned int height;
 	unsigned int bpp;
@@ -56,7 +72,7 @@ typedef struct {
 } screen_t;
 
 typedef struct {
-	void *addr;
+	uint32_t addr;
 	unsigned int size;
 } keyboard_t;
 
@@ -72,9 +88,7 @@ typedef struct {
 	unsigned int size_lo;
 } pci_reg_t;
 
-typedef unsigned long ofw_arg_t;
-typedef unsigned int ihandle;
-typedef unsigned int phandle;
+extern uintptr_t ofw_cif;
 
 extern phandle ofw_aliases;
 
@@ -84,7 +98,10 @@ extern void ofw_write(const char *str, const int len);
 extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
 extern phandle ofw_find_device(const char *name);
 
+extern int ofw(ofw_args_t *arg);
 extern void *ofw_translate(const void *virt);
+extern int ofw_translate_failed(ofw_arg_t flag);
+extern void *ofw_claim(const void *virt, const int len);
 extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
 extern int ofw_screen(screen_t *screen);

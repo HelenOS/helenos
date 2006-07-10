@@ -31,21 +31,7 @@
 #include <asm.h>
 #include <types.h>
 
-#define MAX_OFW_ARGS		10
-
-/** OpenFirmware command structure
- *
- */
-typedef struct {
-	const char *service;          /**< Command name */
-	unsigned long nargs;          /**< Number of in arguments */
-	unsigned long nret;           /**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS]; /**< List of arguments */
-} ofw_args_t;
-
-typedef void (*ofw_entry)(ofw_args_t *);
-
-ofw_entry ofw;
+uintptr_t ofw_cif;
 
 phandle ofw_chosen;
 ihandle ofw_stdout;
@@ -72,11 +58,11 @@ static unsigned long ofw_call(const char *service, const int nargs, const int nr
 	for (i = 0; i < nret; i++)
 		args.args[i + nargs] = 0;
 	
-	ofw(&args);
-	
+	(void) ofw(&args);
+
 	for (i = 1; i < nret; i++)
 		rets[i - 1] = args.args[i + nargs];
-	
+
 	return args.args[nargs];
 }
 
@@ -176,14 +162,29 @@ void *ofw_translate(const void *virt)
 		halt();
 	}
 
+	if (ofw_translate_failed(result[0]))
+		return NULL;
+
 	if (sizeof(unative_t) == 8)
 		shift = 32;
 	else
 		shift = 0;
 		
-	return (void *) (((result[2]&0xffffffff)<<shift)|((result[3])&0xffffffff));
+	return (void *) ((result[2]<<shift)|result[3]);
 }
 
+void *ofw_claim(const void *virt, const int len)
+{
+	ofw_arg_t retaddr;
+	int shift;
+
+	if (ofw_call("call-method", 5, 2, &retaddr, "claim", ofw_mmu, 0, len, virt) != 0) {
+		puts("Error: MMU method claim() failed, halting.\n");
+		halt();
+	}
+
+	return (void *) retaddr;
+}
 
 int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 {

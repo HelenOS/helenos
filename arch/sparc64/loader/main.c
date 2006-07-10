@@ -51,12 +51,6 @@ void bootstrap(void)
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 
-	screen_t scr;
-	
-	ofw_screen(&scr);
-	printf("\n%P: fb, %dx%dx%d\n", ofw_translate(scr.addr), scr.width, scr.height, scr.bpp);
-
-	
 	printf("\nCopying components\n");
 	unsigned int top = 0;
 	bootinfo.cnt = 0;

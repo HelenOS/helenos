@@ -29,6 +29,13 @@
 #include <ofw.h>
 #include <printf.h>
 
+typedef int (* ofw_entry_t)(ofw_args_t *args);
+
+int ofw(ofw_args_t *args)
+{
+	return ((ofw_entry_t) ofw_cif)(args);
+}
+
 void write(const char *str, const int len)
 {
 	ofw_write(str, len);
@@ -48,8 +55,13 @@ int ofw_keyboard(keyboard_t *keyboard)
 	pci_reg_t macio;
 	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
 		return false;
-	keyboard->addr = (void *) macio.addr.addr_lo;
+	keyboard->addr = macio.addr.addr_lo;
 	keyboard->size = macio.size_lo;
 
 	return true;
+}
+
+int ofw_translate_failed(ofw_arg_t flag)
+{
+	return 0;
 }
