@@ -32,11 +32,65 @@
 /** @file
  */
 
-#ifndef __sparc64_BOOT_H__
-#define __sparc64_BOOT_H__
+#ifndef KERN_sparc64_BOOT_H_
+#define KERN_sparc64_BOOT_H_
+
 
 #define VMA			0x400000
 #define LMA			VMA
+
+#ifndef __LINKER__
+
+#include <arch/types.h>
+#include <typedefs.h>
+
+#define TASKMAP_MAX_RECORDS	32
+#define MEMMAP_MAX_RECORDS	32
+
+typedef struct {
+	void * addr;
+	uint32_t size;
+} utask_t;
+
+typedef struct {
+	uint32_t count;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
+
+typedef struct {
+	uintptr_t start;
+	uint32_t size;
+} memzone_t;
+
+typedef struct {
+	uint32_t total;
+	uint32_t count;
+	memzone_t zones[MEMMAP_MAX_RECORDS];
+} memmap_t;
+
+typedef struct {
+	uintptr_t addr;
+	uint32_t width;
+	uint32_t height;
+	uint32_t bpp;
+	uint32_t scanline;
+} screen_t;
+
+typedef struct {
+	uintptr_t addr;
+	uint32_t size;
+} keyboard_t;
+
+typedef struct {
+	taskmap_t taskmap;
+	memmap_t memmap;
+	screen_t screen;
+	keyboard_t keyboard;
+} bootinfo_t;
+
+extern bootinfo_t bootinfo;
+
+#endif
 
 #endif
 

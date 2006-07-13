@@ -46,8 +46,6 @@ DEFS += -D__64_BITS__
 ## Own configuration directives
 #
 
-CONFIG_OFW = y
-
 ## Compile with page hash table support.
 #
 

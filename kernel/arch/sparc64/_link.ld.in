@@ -6,7 +6,7 @@
  *
  */
 
-#define __ASM__
+#define __LINKER__
 #include <arch/boot/boot.h>
 
 ENTRY(kernel_image_start)

@@ -39,16 +39,12 @@
 #include <arch/drivers/tick.h>
 #include <proc/thread.h>
 #include <console/console.h>
+#include <arch/boot/boot.h>
 
-#include <print.h>
-#include <genarch/ofw/ofw.h>
-#include <arch/asm.h>
-#include <arch/register.h>
+bootinfo_t bootinfo;
+
 void arch_pre_mm_init(void)
 {
-	interrupts_disable();
-	ofw_sparc64_console_init();
-
 	trap_init();
 	tick_init();
 }

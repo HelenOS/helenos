@@ -33,22 +33,37 @@
  */
 
 #include <arch/mm/frame.h>
-#include <genarch/ofw/memory_init.h>
 #include <mm/frame.h>
+#include <arch/boot/boot.h>
 #include <config.h>
 #include <align.h>
 
+/** Create memory zones according to information stored in bootinfo.
+ *
+ * Walk the bootinfo memory map and create frame zones according to it.
+ * The first frame is not blacklisted here as it is done in generic
+ * frame_init().
+ */
 void frame_arch_init(void)
 {
-	ofw_init_zones();
+	int i;
+	pfn_t confdata;
 
-	/*
-	 * Workaround to prevent slab allocator from allocating frame 0.
-	 * Frame 0 is
-	 * a) not mapped by OFW
-	 * b) would be confused with NULL error return code
-	 */
-	frame_mark_unavailable(0, 1);
+	for (i = 0; i < bootinfo.memmap.count; i++) {
+
+		/*
+		 * The memmap is created by HelenOS boot loader.
+		 * It already contains no holes.
+		 */
+	
+		confdata = ADDR2PFN(bootinfo.memmap.zones[i].start);
+		if (confdata == 0)
+			confdata = 2;
+		zone_create(ADDR2PFN(bootinfo.memmap.zones[i].start),
+			SIZE2FRAMES(ALIGN_DOWN(bootinfo.memmap.zones[i].size, PAGE_SIZE)),
+			confdata, 0);
+	}
+
 }
 
 /** @}

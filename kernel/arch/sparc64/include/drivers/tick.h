@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
@@ -44,6 +44,5 @@ extern void tick_interrupt(int n, istate_t *istate);
 
 #endif
 
- /** @}
+/** @}
  */
-

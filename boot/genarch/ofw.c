@@ -74,14 +74,22 @@ void ofw_init(void)
 	}
 }
 
-
+/** Perform a call to OpenFirmware client interface.
+ *
+ * @param service String identifying the service requested.
+ * @param nargs Number of input arguments.
+ * @param nret Number of output arguments. This includes the return value.
+ * @param rets Buffer for output arguments or NULL. The buffer must accommodate nret - 1 items.
+ *
+ * @return Return value returned by the client interface.
+ */
 static unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
 {
 	va_list list;
 	ofw_args_t args;
 	int i;
 	
-	args.service = service;
+	args.service = (ofw_arg_t) service;
 	args.nargs = nargs;
 	args.nret = nret;
 	

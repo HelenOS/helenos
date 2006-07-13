@@ -46,46 +46,46 @@ typedef unsigned int phandle;
  *
  */
 typedef struct {
-	const char *service;		/**< Command name */
-	unsigned long nargs;		/**< Number of in arguments */
-	unsigned long nret;		/**< Number of out arguments */
-	ofw_arg_t args[MAX_OFW_ARGS];	/**< List of arguments */
+	ofw_arg_t service;		/**< Command name. */
+	ofw_arg_t nargs;		/**< Number of in arguments. */
+	ofw_arg_t nret;			/**< Number of out arguments. */
+	ofw_arg_t args[MAX_OFW_ARGS];	/**< List of arguments. */
 } ofw_args_t;
 
 typedef struct {
 	void *start;
-	unsigned int size;
+	uint32_t size;
 } memzone_t;
 
 typedef struct {
-	unsigned int total;
-	unsigned int count;
+	uint32_t total;
+	uint32_t count;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
 typedef struct {
 	void *addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
+	uint32_t width;
+	uint32_t height;
+	uint32_t bpp;
+	uint32_t scanline;
 } screen_t;
 
 typedef struct {
 	void *addr;
-	unsigned int size;
+	uint32_t size;
 } keyboard_t;
 
 typedef struct {
-	unsigned int info;
-	unsigned int addr_hi;
-	unsigned int addr_lo;
+	uint32_t info;
+	uint32_t addr_hi;
+	uint32_t addr_lo;
 } pci_addr_t;
 
 typedef struct {
 	pci_addr_t addr;
-	unsigned int size_hi;
-	unsigned int size_lo;
+	uint32_t size_hi;
+	uint32_t size_lo;
 } pci_reg_t;
 
 extern uintptr_t ofw_cif;

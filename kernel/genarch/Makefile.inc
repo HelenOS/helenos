@@ -28,11 +28,6 @@
 ## Accepted configuration directives
 #
 
-ifeq ($(CONFIG_OFW),y)
-	GENARCH_SOURCES += \
-		genarch/src/ofw/ofw.c \
-		genarch/src/ofw/memory_init.c
-endif
 ifeq ($(CONFIG_ACPI),y)
 	GENARCH_SOURCES += \
 		genarch/src/acpi/acpi.c \

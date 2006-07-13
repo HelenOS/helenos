@@ -33,14 +33,17 @@
  */
 
 #include <arch/mm/memory_init.h>
-#include <genarch/ofw/memory_init.h>
+#include <arch/boot/boot.h>
 #include <typedefs.h>
 
+/** Return total size of available memory in bytes.
+ *
+ * @return Size of available memory in bytes.
+ */
 size_t get_memory_size(void)
 {
-	return ofw_get_memory_size();
+	return bootinfo.memmap.total;
 }
 
 /** @}
  */
-

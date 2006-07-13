@@ -37,8 +37,6 @@
 
 #include <arch/types.h>
 
-#define KBD_PHYS_ADDRESS	0x1fff8904000ULL
-
 #define STATUS_REG	4
 #define COMMAND_REG	4
 #define DATA_REG	6

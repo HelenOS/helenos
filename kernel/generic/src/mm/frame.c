@@ -1077,7 +1077,7 @@ void frame_init(void)
 			frame_mark_unavailable(ADDR2PFN(KA2PA(init.tasks[i].addr)), SIZE2FRAMES(init.tasks[i].size));
 
 		/* Black list first frame, as allocating NULL would
-		 * fail on some places */
+		 * fail in some places */
 		frame_mark_unavailable(0, 1);
 	}
 }

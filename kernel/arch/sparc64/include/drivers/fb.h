@@ -35,13 +35,6 @@
 #ifndef KERN_sparc64_FB_H_
 #define KERN_sparc64_FB_H_
 
-#define FB_PHYS_ADDRESS		0x1c901000000ULL
-
-#define FB_X_RES		1152
-#define FB_Y_RES		900
-
-#define FB_COLOR_DEPTH		8
-
 #endif
 
 /** @}

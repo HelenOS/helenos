@@ -30,17 +30,22 @@
 #define BOOT_sparc64_MAIN_H_
 
 #include <ofw.h>
+#include <types.h>
 
 #define TASKMAP_MAX_RECORDS 32
 
 typedef struct {
 	void *addr;
-	unsigned int size;
+	uint32_t size;
 } task_t;
 
 typedef struct {
-	unsigned int cnt;
+	uint32_t count;
 	task_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
+
+typedef struct {
+	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
 	keyboard_t keyboard;

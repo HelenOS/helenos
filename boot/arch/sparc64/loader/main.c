@@ -80,15 +80,17 @@ void bootstrap(void)
 
 	printf("\nCopying components\n");
 	unsigned int top = 0;
-	bootinfo.cnt = 0;
+	bootinfo.taskmap.count = 0;
 	for (i = 0; i < COMPONENTS; i++) {
+		void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
+	
 		printf(" %s...", components[i].name);
 		top = ALIGN_UP(top, PAGE_SIZE);
-		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
+		memcpy(base + top, components[i].start, components[i].size);
 		if (i > 0) {
-			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
-			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
-			bootinfo.cnt++;
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = base + top;
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
+			bootinfo.taskmap.count++;
 		}
 		top += components[i].size;
 		printf("done.\n");

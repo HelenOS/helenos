@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
@@ -419,6 +419,5 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	
 }
 
- /** @}
+/** @}
  */
-

@@ -39,55 +39,24 @@
 #include <arch/drivers/fb.h>
 #include <arch/drivers/i8042.h>
 #include <genarch/i8042/i8042.h>
-#include <genarch/ofw/ofw.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/asm.h>
 #include <arch/register.h>
 #include <proc/thread.h>
-#include <synch/mutex.h>
 #include <arch/mm/tlb.h>
+#include <arch/boot/boot.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
-
-static void ofw_sparc64_putchar(chardev_t *d, const char ch);
-
-static volatile int ofw_console_active;
-
-static chardev_t ofw_sparc64_console;
-static chardev_operations_t ofw_sparc64_console_ops = {
-	.write = ofw_sparc64_putchar,
-};
-
-/** Initialize kernel console to use OpenFirmware services. */
-void ofw_sparc64_console_init(void)
-{
-	chardev_initialize("ofw_sparc64_console", &ofw_sparc64_console, &ofw_sparc64_console_ops);
-	stdin = NULL;
-	stdout = &ofw_sparc64_console;
-	ofw_console_active = 1;
-}
 
 /** Initialize kernel console to use framebuffer and keyboard directly. */
 void standalone_sparc64_console_init(void)
 {
-	ofw_console_active = 0;
 	stdin = NULL;
 
 	kbd_init();
-	fb_init(FB_PHYS_ADDRESS, FB_X_RES, FB_Y_RES, FB_COLOR_DEPTH, FB_X_RES * FB_COLOR_DEPTH / 8);
-}
-
-/** Write one character using OpenFirmware.
- *
- * @param d Character device (ignored).
- * @param ch Character to be written.
- */
-void ofw_sparc64_putchar(chardev_t *d, const char ch)
-{
-	if (ch == '\n')
-		ofw_putchar('\r');
-	ofw_putchar(ch);
+	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
+		bootinfo.screen.bpp, bootinfo.screen.scanline);
 }
 
 /** Kernel thread for polling keyboard.

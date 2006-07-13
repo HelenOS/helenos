@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/boot/boot.h>
 #include <arch/regdef.h>
 
 .register %g2, #scratch
@@ -39,22 +38,31 @@
 /*
  * Here is where the kernel is passed control
  * from the boot loader.
+ * 
+ * The registers are expected to be in this state:
+ * %o0 bootinfo structure address
+ * %o1 bootinfo structure size
  */
 
 .global kernel_image_start
 kernel_image_start:
 	flushw				! flush all but the active register window
 
+	/*
+	 * Disable interrupts and disable 32-bit address masking.
+	 */
 	rdpr %pstate, %l0
-	and %l0, ~PSTATE_AM_BIT, %l0
+	and %l0, ~(PSTATE_AM_BIT|PSTATE_IE_BIT), %l0
 	wrpr %l0, 0, %pstate
 
-	set ofw_cif, %l0
-
-	call ofw_init
-	stx %o4, [%l0]
-
-	call ofw_init_memmap
+	/*
+	 * Copy the bootinfo structure passed from the boot loader
+	 * to the kernel bootinfo structure.
+	 */
+	mov %o1, %o2
+	mov %o0, %o1
+	set bootinfo, %o0
+	call memcpy
 	nop
 
 	wrpr %r0, 0, %pil
