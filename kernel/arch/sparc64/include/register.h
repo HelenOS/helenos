@@ -35,11 +35,7 @@
 #ifndef KERN_sparc64_REGISTER_H_
 #define KERN_sparc64_REGISTER_H_
 
-#ifdef __ASM__
-#define PSTATE_IE_BIT	2
-#define PSTATE_AM_BIT	8
-#else
-
+#include <arch/regdef.h>
 #include <arch/types.h>
 
 /** Version Register. */
@@ -108,8 +104,6 @@ union softint_reg {
 	} __attribute__ ((packed));
 };
 typedef union softint_reg softint_reg_t;
-
-#endif
 
 #endif
 

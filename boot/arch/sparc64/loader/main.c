@@ -31,6 +31,7 @@
 #include "asm.h"
 #include "_components.h"
 #include <ofw.h>
+#include <align.h>
 
 #define KERNEL_VIRTUAL_ADDRESS 0x400000
 
@@ -43,13 +44,39 @@ void bootstrap(void)
 	component_t components[COMPONENTS];
 	init_components(components);
 
+	if (!ofw_memmap(&bootinfo.memmap)) {
+		printf("Error: unable to get memory map, halting.\n");
+		halt();
+	}
+	
+	if (bootinfo.memmap.total == 0) {
+		printf("Error: no memory detected, halting.\n");
+		halt();
+	}
+	
+	if (!ofw_screen(&bootinfo.screen)) {
+		printf("Error: unable to get screen properties, halting.\n");
+		halt();
+	}
+	bootinfo.screen.addr = ofw_translate(bootinfo.screen.addr);
+	
+	if (!ofw_keyboard(&bootinfo.keyboard)) {
+		printf("Error: unable to get keyboard properties, halting.\n");
+		halt();
+	}
+	
+	printf("\nDevice statistics\n");
+	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
+	printf(" screen at %P, resolution %dx%d, %d bpp (scanline %d bytes)\n", (uintptr_t) bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	printf(" keyboard at %P (size %d bytes)\n", (uintptr_t) bootinfo.keyboard.addr, bootinfo.keyboard.size);
+
 	printf("\nMemory statistics\n");
-	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
-	printf(" %L: boot info structure\n", &bootinfo);
+	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);
+	printf(" %P: boot info structure\n", &bootinfo);
 	
 	unsigned int i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
+		printf(" %P: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 
 	printf("\nCopying components\n");
 	unsigned int top = 0;

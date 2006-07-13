@@ -26,15 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef BOOT_sparc64_MAIN_H_
+#define BOOT_sparc64_MAIN_H_
 
-/** Align to the nearest higher address.
- *
- * @param addr  Address or size to be aligned.
- * @param align Size of alignment, must be power of 2.
- */
-#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+#include <ofw.h>
 
 #define TASKMAP_MAX_RECORDS 32
 
@@ -46,6 +41,9 @@ typedef struct {
 typedef struct {
 	unsigned int cnt;
 	task_t tasks[TASKMAP_MAX_RECORDS];
+	memmap_t memmap;
+	screen_t screen;
+	keyboard_t keyboard;
 } bootinfo_t;
 
 extern void start(void);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-#include <ofw.h>
-#include <printf.h>
 
-void write(const char *str, const int len)
-{
-	int i;
-	
-	for (i = 0; i < len; i++) {
-		if (str[i] == '\n')
-			ofw_write("\r", 1);
-		ofw_write(&str[i], 1);
-	}
-}
+#ifndef BOOT_ppc64_OFWARCH_H_
+#define BOOT_ppc64_OFWARCH_H_
 
-int ofw_translate_failed(ofw_arg_t flag)
-{
-	return flag != -1;
-}
+#define OFW_ADDRESS_CELLS	2
+#define OFW_SIZE_CELLS		2
+
+#endif

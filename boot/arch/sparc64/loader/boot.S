@@ -29,6 +29,7 @@
 #define INITIAL_STACK 0x0
 
 #define PSTATE_IE_BIT	2
+#define PSTATE_AM_BIT	8
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -55,17 +56,17 @@ start:
 	flushw
 
 	/*
-	 * Disable interrupts.
+	 * Disable interrupts and disable address masking.
 	 */
 	rdpr %pstate, %g2
-	and %g2, ~PSTATE_IE_BIT, %g2	! mask the Interrupt Enable bit
+	and %g2, ~(PSTATE_IE_BIT|PSTATE_AM_BIT), %g2
 	wrpr %g2, 0, %pstate
 
 	# TODO: set initial stack
 
 	set ofw_cif, %l0
  
-	call init		! initialize OpenFirmware
+	call ofw_init		! initialize OpenFirmware
 	stx %o4, [%l0]
 	
 	b bootstrap

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ppc32_MAIN_H_
-#define BOOT_ppc32_MAIN_H_
+/** @addtogroup sparc64	
+ * @{
+ */
+/** @file
+ */
 
-#include "ofw.h"
+#ifndef KERN_sparc64_REGDEF_H_
+#define KERN_sparc64_REGDEF_H_
 
-#define TASKMAP_MAX_RECORDS 32
-
-typedef struct {
-	void *addr;
-	unsigned int size;
-} task_t;
-
-typedef struct {
-	unsigned int count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	memmap_t memmap;
-	taskmap_t taskmap;
-	screen_t screen;
-	keyboard_t keyboard;
-} bootinfo_t;
-
-extern void start(void);
-extern void bootstrap(void);
-
-extern memmap_t memmap;
+#define PSTATE_IE_BIT	2
+#define PSTATE_AM_BIT	8
 
 #endif
+
+/** @}
+ */

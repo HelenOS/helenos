@@ -52,7 +52,7 @@ SOURCES = \
 	main.c \
 	../../../generic/printf.c \
 	../../../genarch/ofw.c \
-	ofw.c \
+	ofwarch.c \
 	asm.S \
 	boot.S
 
@@ -64,7 +64,7 @@ COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
 
 .PHONY: all clean depend
 
-all: image.boot
+all: image.boot disasm
 
 -include Makefile.depend
 
@@ -85,3 +85,6 @@ _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+disasm: image.boot
+	$(OBJDUMP) -d image.boot > boot.disasm

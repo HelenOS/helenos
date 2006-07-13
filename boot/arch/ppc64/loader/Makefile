@@ -51,6 +51,7 @@ DEFS =
 
 SOURCES = \
 	main.c \
+	ofwarch.c \
 	../../../genarch/ofw.c \
 	../../../generic/printf.c \
 	asm.S \

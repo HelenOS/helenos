@@ -30,6 +30,8 @@
 #include <printf.h>
 #include "asm.h"
 #include "_components.h"
+#include <ofw.h>
+#include <align.h>
 
 #define HEAP_GAP 1024000
 

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ASM_H__
-#define __ASM_H__
+#ifndef BOOT_ppc32_ASM_H_
+#define BOOT_ppc32_ASM_H_
 
 #define PAGE_SIZE 4096
 #define PAGE_WIDTH 12

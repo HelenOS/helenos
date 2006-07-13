@@ -26,33 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ppc32_MAIN_H_
-#define BOOT_ppc32_MAIN_H_
+/**
+ * @file
+ * @brief	Architecture dependent parts of OpenFirmware interface.
+ */
 
-#include "ofw.h"
+#include <ofwarch.h>  
+#include <ofw.h>
+#include <printf.h>
 
-#define TASKMAP_MAX_RECORDS 32
+void write(const char *str, const int len)
+{
+	int i;
+	
+	for (i = 0; i < len; i++) {
+		if (str[i] == '\n')
+			ofw_write("\r", 1);
+		ofw_write(&str[i], 1);
+	}
+}
 
-typedef struct {
-	void *addr;
-	unsigned int size;
-} task_t;
+int ofw_translate_failed(ofw_arg_t flag)
+{
+	return flag != -1;
+}
 
-typedef struct {
-	unsigned int count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
+int ofw_keyboard(keyboard_t *keyboard)
+{
+	char device_name[BUF_SIZE];
+	uint32_t virtaddr;
+		
+	if (ofw_get_property(ofw_aliases, "keyboard", device_name, sizeof(device_name)) <= 0)
+		return false;
+					
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+									
+	if (ofw_get_property(device, "address", &virtaddr, sizeof(virtaddr)) <= 0)
+		return false;
+												
+	if (!(keyboard->addr = ofw_translate((void *) ((uintptr_t) virtaddr))))
+		return false;
 
-typedef struct {
-	memmap_t memmap;
-	taskmap_t taskmap;
-	screen_t screen;
-	keyboard_t keyboard;
-} bootinfo_t;
-
-extern void start(void);
-extern void bootstrap(void);
-
-extern memmap_t memmap;
-
-#endif
+	return true;
+}

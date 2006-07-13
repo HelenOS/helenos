@@ -37,6 +37,6 @@ start:
 	addi r4, r4, ofw_cif@l
 	stw r5, 0(r4)
 	
-	bl init
+	bl ofw_init
 	
 	b bootstrap

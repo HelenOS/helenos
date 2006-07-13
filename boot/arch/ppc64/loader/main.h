@@ -26,17 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef BOOT_ppc64_MAIN_H_
+#define BOOT_ppc64_MAIN_H_
 
-#include "ofw.h"
-
-/** Align to the nearest higher address.
- *
- * @param addr  Address or size to be aligned.
- * @param align Size of alignment, must be power of 2.
- */
-#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+#include <ofw.h>
 
 #define TASKMAP_MAX_RECORDS 32
 

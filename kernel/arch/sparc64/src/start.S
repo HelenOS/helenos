@@ -27,7 +27,7 @@
 #
 
 #include <arch/boot/boot.h>
-#include <arch/register.h>
+#include <arch/regdef.h>
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -37,7 +37,8 @@
 .section K_TEXT_START, "ax"
 
 /*
- * Here is where the kernel is passed control.
+ * Here is where the kernel is passed control
+ * from the boot loader.
  */
 
 .global kernel_image_start

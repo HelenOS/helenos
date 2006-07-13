@@ -26,33 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ppc32_MAIN_H_
-#define BOOT_ppc32_MAIN_H_
+#include <ofwarch.h>
+#include <ofw.h>
+#include <printf.h>
 
-#include "ofw.h"
+typedef int (* ofw_entry_t)(ofw_args_t *args);
 
-#define TASKMAP_MAX_RECORDS 32
+int ofw(ofw_args_t *args)
+{
+	return ((ofw_entry_t) ofw_cif)(args);
+}
 
-typedef struct {
-	void *addr;
-	unsigned int size;
-} task_t;
+void write(const char *str, const int len)
+{
+	ofw_write(str, len);
+}
 
-typedef struct {
-	unsigned int count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
+int ofw_keyboard(keyboard_t *keyboard)
+{
+	char device_name[BUF_SIZE];
+	
+	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
+		return false;
+				
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+								
+	pci_reg_t macio;
+	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
+		return false;
+	keyboard->addr = (void *) macio.addr.addr_lo;
+	keyboard->size = macio.size_lo;
 
-typedef struct {
-	memmap_t memmap;
-	taskmap_t taskmap;
-	screen_t screen;
-	keyboard_t keyboard;
-} bootinfo_t;
+	return true;
+}
 
-extern void start(void);
-extern void bootstrap(void);
-
-extern memmap_t memmap;
-
-#endif
+int ofw_translate_failed(ofw_arg_t flag)
+{
+	return 0;
+}

@@ -27,7 +27,7 @@
 #
 
 #include <arch/stack.h>
-#include <arch/register.h>
+#include <arch/regdef.h>
 
 .text
 

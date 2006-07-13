@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OFW_H__
-#define __OFW_H__
+#ifndef BOOT_OFW_H_
+#define BOOT_OFW_H_
 
 #include <types.h>
 #include <stdarg.h>
@@ -38,7 +38,7 @@
 
 #define MAX_OFW_ARGS            12
 
-typedef unsigned long ofw_arg_t;
+typedef unative_t ofw_arg_t;
 typedef unsigned int ihandle;
 typedef unsigned int phandle;
 
@@ -64,7 +64,7 @@ typedef struct {
 } memmap_t;
 
 typedef struct {
-	uint32_t addr;
+	void *addr;
 	unsigned int width;
 	unsigned int height;
 	unsigned int bpp;
@@ -72,7 +72,7 @@ typedef struct {
 } screen_t;
 
 typedef struct {
-	uint32_t addr;
+	void *addr;
 	unsigned int size;
 } keyboard_t;
 
@@ -92,13 +92,15 @@ extern uintptr_t ofw_cif;
 
 extern phandle ofw_aliases;
 
-extern void init(void);
+extern void ofw_init(void);
 extern void ofw_write(const char *str, const int len);
 
 extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
 extern phandle ofw_find_device(const char *name);
 
 extern int ofw(ofw_args_t *arg);
+extern unsigned int ofw_get_address_cells(const phandle device);
+extern unsigned int ofw_get_size_cells(const phandle device);
 extern void *ofw_translate(const void *virt);
 extern int ofw_translate_failed(ofw_arg_t flag);
 extern void *ofw_claim(const void *virt, const int len);

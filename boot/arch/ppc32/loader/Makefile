@@ -50,7 +50,7 @@ CFLAGS = -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-buil
 
 SOURCES = \
 	main.c \
-	ofw.c \
+	ofwarch.c \
 	../../../genarch/ofw.c \
 	../../../generic/printf.c \
 	asm.S \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,43 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-#include <ofw.h>
-#include <printf.h>
 
-typedef int (* ofw_entry_t)(ofw_args_t *args);
+#ifndef BOOT_ALIGN_H_
+#define BOOT_ALIGN_H_
 
-int ofw(ofw_args_t *args)
-{
-	return ((ofw_entry_t) ofw_cif)(args);
-}
+/** Align to the nearest higher address.
+ *
+ * @param addr  Address or size to be aligned.
+ * @param align Size of alignment, must be power of 2.
+ */
+#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
-void write(const char *str, const int len)
-{
-	ofw_write(str, len);
-}
-
-int ofw_keyboard(keyboard_t *keyboard)
-{
-	char device_name[BUF_SIZE];
-	
-	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
-		return false;
-				
-	phandle device = ofw_find_device(device_name);
-	if (device == -1)
-		return false;
-								
-	pci_reg_t macio;
-	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
-		return false;
-	keyboard->addr = macio.addr.addr_lo;
-	keyboard->size = macio.size_lo;
-
-	return true;
-}
-
-int ofw_translate_failed(ofw_arg_t flag)
-{
-	return 0;
-}
+#endif

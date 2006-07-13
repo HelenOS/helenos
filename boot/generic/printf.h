@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PRINTF_H__
-#define PRINTF_H__
+#ifndef BOOT_PRINTF_H_
+#define BOOT_PRINTF_H_
 
 #define INT8	1
 #define INT16	2

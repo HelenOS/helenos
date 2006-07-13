@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TYPES_H__
-#define TYPES_H__
+#ifndef BOOT_ppc32_TYPES_H_
+#define BOOT_ppc32_TYPES_H_
 
 #include <gentypes.h>
 
