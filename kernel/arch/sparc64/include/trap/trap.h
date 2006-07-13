@@ -41,7 +41,7 @@
 /** Switch to in-kernel trap table. */
 static inline void trap_switch_trap_table(void)
 {
-	/* Point TBA to kernel copy of OFW's trap table. */
+	/* Point TBA to kernel trap table. */
 	tba_write((uint64_t) trap_table);
 }
 

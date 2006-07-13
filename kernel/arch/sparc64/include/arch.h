@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
@@ -35,8 +35,12 @@
 #ifndef __sparc64_ARCH_H__
 #define __sparc64_ARCH_H__
 
+#include <arch/types.h>
+
+extern void take_over_tlb_and_tt(uintptr_t base);
+
 #endif
 
- /** @}
+/** @}
  */
 

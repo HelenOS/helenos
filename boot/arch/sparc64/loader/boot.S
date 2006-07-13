@@ -73,7 +73,7 @@ start:
 	b bootstrap
 	nop
 
-.align 16
+.align STACK_ALIGNMENT
 initial_stack:
 	.space INITIAL_STACK_SIZE
 initial_stack_top:

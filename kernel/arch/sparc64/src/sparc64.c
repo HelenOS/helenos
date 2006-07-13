@@ -40,6 +40,9 @@
 #include <proc/thread.h>
 #include <console/console.h>
 #include <arch/boot/boot.h>
+#include <arch/arch.h>
+#include <arch/mm/tlb.h>
+#include <mm/asid.h>
 
 bootinfo_t bootinfo;
 
@@ -86,6 +89,77 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
+}
+
+/** Take over TLB and trap table.
+ *
+ * Initialize ITLB and DTLB and switch to kernel
+ * trap table.
+ *
+ * The goal of this function is to disable MMU
+ * so that both TLBs can be purged and new
+ * kernel 4M locked entry can be installed.
+ * After TLB is initialized, MMU is enabled
+ * again.
+ *
+ * Switching MMU off imposes the requirement for
+ * the kernel to run in identity mapped environment.
+ *
+ * @param base Base address that will be hardwired in both TLBs.
+ */
+void take_over_tlb_and_tt(uintptr_t base)
+{
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	frame_address_t fr;
+	page_address_t pg;
+
+	fr.address = base;
+	pg.address = base;
+
+	immu_disable();
+	dmmu_disable();
+
+	/*
+	 * Demap everything, especially OpenFirmware.
+	 */
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	
+	/*
+	 * We do identity mapping of 4M-page at 4M.
+	 */
+	tag.value = ASID_KERNEL;
+	tag.vpn = pg.vpn;
+
+	itlb_tag_access_write(tag.value);
+	dtlb_tag_access_write(tag.value);
+
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_4M;
+	data.pfn = fr.pfn;
+	data.l = true;
+	data.cp = 1;
+	data.cv = 1;
+	data.p = true;
+	data.w = true;
+	data.g = true;
+
+	itlb_data_in_write(data.value);
+	dtlb_data_in_write(data.value);
+
+	/*
+	 * Register window traps can occur before MMU is enabled again.
+	 * This ensures that any such traps will be handled from 
+	 * kernel identity mapped trap handler.
+	 */
+	trap_switch_trap_table();
+	
+	tlb_invalidate_all();
+
+	dmmu_enable();
+	immu_enable();
 }
 
 /** @}

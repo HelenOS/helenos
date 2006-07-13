@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_ASID_H__
-#define __sparc64_ASID_H__
+#ifndef KERN_sparc64_ASID_H_
+#define KERN_sparc64_ASID_H_
 
 #include <arch/types.h>
 
@@ -46,6 +46,5 @@ typedef uint16_t asid_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

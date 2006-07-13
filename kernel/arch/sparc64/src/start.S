@@ -40,8 +40,14 @@
  * from the boot loader.
  * 
  * The registers are expected to be in this state:
- * %o0 bootinfo structure address
- * %o1 bootinfo structure size
+ * - %o0 bootinfo structure address
+ * - %o1 bootinfo structure size
+ *
+ * Moreover, we depend on boot having established the
+ * following environment:
+ * - TLBs are on
+ * - identity mapping for the kernel image
+ * - identity mapping for memory stack
  */
 
 .global kernel_image_start
@@ -63,6 +69,17 @@ kernel_image_start:
 	mov %o0, %o1
 	set bootinfo, %o0
 	call memcpy
+	nop
+
+	/*
+	 * Take over control of identity mapping.
+	 * Take over control of trap table.
+	 *
+	 * After this call, the kernel is entirely self-sufficient
+	 * and independent on OpenFirmware.
+	 */
+	set kernel_image_start, %o0
+	call take_over_tlb_and_tt
 	nop
 
 	wrpr %r0, 0, %pil
