@@ -26,10 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define INITIAL_STACK 0x0
+#include <stack.h>
+#include <register.h>
 
-#define PSTATE_IE_BIT	2
-#define PSTATE_AM_BIT	8
+#define INITIAL_STACK_SIZE 	1024
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -62,7 +62,8 @@ start:
 	and %g2, ~(PSTATE_IE_BIT|PSTATE_AM_BIT), %g2
 	wrpr %g2, 0, %pstate
 
-	# TODO: set initial stack
+	set initial_stack_top, %g3
+	add %g3, -STACK_BIAS, %sp
 
 	set ofw_cif, %l0
  
@@ -71,3 +72,9 @@ start:
 	
 	b bootstrap
 	nop
+
+.align 16
+initial_stack:
+	.space INITIAL_STACK_SIZE
+initial_stack_top:
+	.space STACK_WINDOW_SAVE_AREA_SIZE

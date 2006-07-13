@@ -26,9 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define STACK_WINDOW_SAVE_AREA_SIZE     (16*8)
-
-#define PSTATE_AM_BIT	8
+#include <stack.h>
+#include <register.h>
 
 .text
 
