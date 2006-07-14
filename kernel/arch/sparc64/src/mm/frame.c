@@ -35,8 +35,12 @@
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <arch/boot/boot.h>
+#include <arch/types.h>
 #include <config.h>
 #include <align.h>
+#include <macros.h>
+
+uintptr_t last_frame = NULL;
 
 /** Create memory zones according to information stored in bootinfo.
  *
@@ -50,18 +54,20 @@ void frame_arch_init(void)
 	pfn_t confdata;
 
 	for (i = 0; i < bootinfo.memmap.count; i++) {
+		uintptr_t start = bootinfo.memmap.zones[i].start;
+		size_t size = bootinfo.memmap.zones[i].size;
 
 		/*
 		 * The memmap is created by HelenOS boot loader.
 		 * It already contains no holes.
 		 */
 	
-		confdata = ADDR2PFN(bootinfo.memmap.zones[i].start);
+		confdata = ADDR2PFN(start);
 		if (confdata == 0)
 			confdata = 2;
-		zone_create(ADDR2PFN(bootinfo.memmap.zones[i].start),
-			SIZE2FRAMES(ALIGN_DOWN(bootinfo.memmap.zones[i].size, PAGE_SIZE)),
-			confdata, 0);
+		zone_create(ADDR2PFN(start), SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),	confdata, 0);
+		
+		last_frame = max(last_frame, start + ALIGN_UP(size, FRAME_SIZE));
 	}
 
 }

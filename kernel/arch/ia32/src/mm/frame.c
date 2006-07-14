@@ -136,7 +136,7 @@ void frame_arch_init(void)
 				       (hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 		
 #ifdef CONFIG_SIMICS_FIX
-		/* Don't know why, but this addresses help */
+		/* Don't know why, but these addresses help */
 		frame_mark_unavailable(0xd000 >> FRAME_WIDTH,3);
 #endif
 #endif

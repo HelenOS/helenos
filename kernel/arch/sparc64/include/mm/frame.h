@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -47,13 +47,14 @@ union frame_address {
 	uintptr_t address;
 	struct {
 		unsigned : 23;
-		uint64_t pfn : 28;         /**< Physical Frame Number. */
-		unsigned offset : 13;   /**< Offset. */
+		uint64_t pfn : 28;	/**< Physical Frame Number. */
+		unsigned offset : 13;	/**< Offset. */
 	} __attribute__ ((packed));
 };
 
 typedef union frame_address frame_address_t;
 
+extern uintptr_t last_frame;
 extern void frame_arch_init(void);
 
 #endif
@@ -61,6 +62,5 @@ extern void frame_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

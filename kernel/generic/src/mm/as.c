@@ -1521,13 +1521,13 @@ unative_t sys_as_area_create(uintptr_t address, size_t size, int flags)
 		return (unative_t) -1;
 }
 
-/** Wrapper for as_area_resize. */
+/** Wrapper for as_area_resize(). */
 unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags)
 {
 	return (unative_t) as_area_resize(AS, address, size, 0);
 }
 
-/** Wrapper for as_area_destroy. */
+/** Wrapper for as_area_destroy(). */
 unative_t sys_as_area_destroy(uintptr_t address)
 {
 	return (unative_t) as_area_destroy(AS, address);

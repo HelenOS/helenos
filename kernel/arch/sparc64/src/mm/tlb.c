@@ -59,6 +59,11 @@ char *context_encoding[] = {
 
 void tlb_arch_init(void)
 {
+	/*
+	 * TLBs are actually initialized by
+	 * take_over_tlb_and_tt() early
+	 * in start.S.
+	 */
 }
 
 /** Insert privileged mapping into DMMU TLB.

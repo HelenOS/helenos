@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -36,8 +36,10 @@
 #include <arch/mm/tlb.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/frame.h>
+#include <arch/mm/frame.h>
 #include <bitops.h>
 #include <debug.h>
+#include <align.h>
 
 void page_arch_init(void)
 {
@@ -72,9 +74,16 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		order = 0;
 	else
 		order = (fnzb32(size - 1) + 1) - FRAME_WIDTH;
-	
-	uintptr_t virtaddr = (uintptr_t) frame_alloc(order, FRAME_KA);
 
+	/*
+	 * Use virtual addresses that are beyond the limit of physical memory.
+	 * Thus, the physical address space will not be wasted by holes created
+	 * by frame_alloc().
+	 */
+	ASSERT(last_frame);
+	uintptr_t virtaddr = ALIGN_UP(last_frame, 1<<(order + FRAME_WIDTH));
+	last_frame = ALIGN_UP(virtaddr + size, 1<<(order + FRAME_WIDTH));
+	
 	for (i = 0; i < sizemap[order].count; i++)
 		dtlb_insert_mapping(virtaddr + i*sizemap[order].increment,
 				    physaddr + i*sizemap[order].increment,
@@ -83,6 +92,5 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
- /** @}
+/** @}
  */
-
