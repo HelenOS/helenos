@@ -15,7 +15,7 @@ check_error() {
     fi
 }
 
-BINUTILS_VERSION="2.16.1"
+BINUTILS_VERSION="2.17"
 GCC_VERSION="4.1.1"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
