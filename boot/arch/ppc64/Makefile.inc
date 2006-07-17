@@ -26,14 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: image.boot
+build: $(BASE)/image.boot
 
-image.boot: kernel uspace
+$(BASE)/image.boot: depend arch/$(ARCH)/loader/image.boot
+	cp arch/$(ARCH)/loader/image.boot $(BASE)/image.boot
+
+depend:
+	-rm arch/$(ARCH)/loader/image.boot
+
+arch/$(ARCH)/loader/image.boot:
 	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	cp arch/$(ARCH)/loader/image.boot image.boot
 
-clean: clean_boot_gen clean_kernel clean_uspace
-	make -C arch/$(ARCH)/loader clean KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -f image.boot
-
-arch_distclean: distclean_kernel distclean_uspace
+clean: generic_clean
+	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	-rm -f $(BASE)/image.boot

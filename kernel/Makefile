@@ -26,30 +26,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Kernel release
-#
-
-VERSION = 0
-PATCHLEVEL = 2
-SUBLEVEL = 0
-EXTRAVERSION = 2
-NAME = Daylight
-ifdef EXTRAVERSION
-RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL).$(EXTRAVERSION)
-else
-RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
-endif
 
 ## Include configuration
 #
 
+-include ../version
 -include Makefile.config
 
 ## Common compiler flags
 #
 
 DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
-CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/ 
+CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
 LFLAGS = -M
 AFLAGS =
 
@@ -70,40 +58,49 @@ endif
 ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
 endif
+
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
 	DEFS += -DCONFIG_DEBUG_SPINLOCK
 endif
+
 ifeq ($(CONFIG_DEBUG_AS_WATCHPOINT),y)
 	DEFS += -DCONFIG_DEBUG_AS_WATCHPOINT
 endif
+
 ifeq ($(CONFIG_FPU_LAZY),y)
 	DEFS += -DCONFIG_FPU_LAZY
 endif
+
 ifeq ($(CONFIG_DEBUG_ALLREGS),y)
 	DEFS += -DCONFIG_DEBUG_ALLREGS
 endif
+
 ifeq ($(CONFIG_VHPT),y)
 	DEFS += -DCONFIG_VHPT
 endif
+
 ifeq ($(CONFIG_POWEROFF),y)
 	DEFS += -DCONFIG_POWEROFF
 endif
+
 ifeq ($(CONFIG_FB),y)
-ifeq ($(ARCH),ia32)
-	DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-	DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-	DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-endif
-ifeq ($(ARCH),amd64)
-	DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-	DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-	DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-endif
-ifeq ($(ARCH),xen32)
-	DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-	DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-	DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-endif
+	ifeq ($(ARCH),ia32)
+		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
+		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
+		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
+	endif
+	
+	ifeq ($(ARCH),amd64)
+		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
+		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
+		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
+	endif
+	
+	ifeq ($(ARCH),xen32)
+		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
+		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
+		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
+	endif
 endif
 
 ## Toolchain configuration
@@ -204,19 +201,14 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 .PHONY: all build config distclean clean archlinks depend disasm
 
 all:
-	tools/config.py default $(NARCH)
-ifdef NARCH
- ifneq ($(ARCH), $(NARCH))
-	$(MAKE) -C . clean
- endif
-endif
+	../tools/config.py kernel.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG) $(MACHINE)
 	$(MAKE) -C . build
 
 build: kernel.bin disasm
 
 config:
 	-rm Makefile.depend
-	tools/config.py
+	tools/config.py kernel.config
 
 -include Makefile.depend
 
@@ -226,9 +218,9 @@ distclean: clean
 clean:
 	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
-	for arch in arch/*; do \
-	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null;\
-	done;exit 0
+	for arch in arch/* ; do \
+	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null ; \
+	done ; exit 0
 
 archlinks:
 	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch

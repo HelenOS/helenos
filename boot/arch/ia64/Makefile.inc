@@ -26,18 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VMAXLMA_SRC=$(KERNELDIR)/contrib/arch/ia64/vmaxlma.c
+VMAXLMA_SRC = tools/ia64/vmaxlma.c
 
-build: kernel.bin
+build: $(BASE)/kernel.bin
 
-kernel.bin: kernel uspace vmaxlma
-	cp $(KERNELDIR)/kernel.bin .
-	./vmaxlma kernel.bin
+$(BASE)/kernel.bin: $(KERNELDIR)/kernel.bin vmaxlma
+	cp $(KERNELDIR)/kernel.bin $(BASE)/kernel.bin
+	./vmaxlma $(BASE)/kernel.bin
 
 vmaxlma: $(VMAXLMA_SRC)
-	gcc $(VMAXLMA_SRC) -o $@
+	$(CC) $(VMAXLMA_SRC) -o $@
 
-clean: clean_kernel clean_uspace
-	-rm -f kernel.bin vmaxlma
-
-arch_distclean: distclean_kernel distclean_uspace
+clean:
+	-rm -f $(BASE)/kernel.bin vmaxlma

@@ -35,20 +35,13 @@ BFD = binary
 TARGET = amd64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/amd64/bin
 
-## Make some default assumptions
-#
-
-ifndef CPU
-	CPU = opteron
-endif
-
 CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
-DEFS += -D_CPU=${CPU} -D__64_BITS__
+DEFS += -DMACHINE=$(MACHINE) -D__64_BITS__
 
 ## Accepted CPUs
 #
 
-ifeq ($(CPU),opteron)
+ifeq ($(MACHINE),opteron)
 	CFLAGS += -march=opteron
 	DEFS += -DFENCES=p4
 endif

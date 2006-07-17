@@ -26,26 +26,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: image.iso
+TASKS = \
+	$(USPACEDIR)/init/init \
+	$(USPACEDIR)/ns/ns \
+	$(USPACEDIR)/pci/pci \
+	$(USPACEDIR)/fb/fb \
+	$(USPACEDIR)/kbd/kbd \
+	$(USPACEDIR)/console/console \
+	$(USPACEDIR)/tetris/tetris \
+	$(USPACEDIR)/ipcc/ipcc \
+	$(USPACEDIR)/klog/klog
 
-image.iso: kernel uspace
+build: $(BASE)/image.iso
+
+$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(TASKS)
 	mkdir -p arch/$(ARCH)/iso/boot/grub
 	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
 	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
 	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/init/init arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/ns/ns arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/pci/pci arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/fb/fb arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/kbd/kbd arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/console/console arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/tetris/tetris arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/ipcc/ipcc arch/$(ARCH)/iso/boot/
-	cp $(USPACEDIR)/klog/klog arch/$(ARCH)/iso/boot/
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o image.iso arch/$(ARCH)/iso/
+	for task in $(TASKS) ; do \
+		cp $$task arch/$(ARCH)/iso/boot/ ; \
+	done
+	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
-clean: clean_kernel clean_uspace
+clean:
 	-rm -fr arch/$(ARCH)/iso
-	-rm -f image.iso
-
-arch_distclean: distclean_kernel distclean_uspace
+	-rm -f $(BASE)/image.iso

@@ -35,9 +35,6 @@ BFD = binary
 TARGET = ppc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
-## Make some default assumptions
-#
-
 CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64
 LFLAGS += -no-check-sections -N

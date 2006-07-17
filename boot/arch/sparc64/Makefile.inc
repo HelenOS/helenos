@@ -28,20 +28,23 @@
 
 TMP=distroot
 
-build: image.iso
+build: $(BASE)/image.iso
 
-image.iso: kernel
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(CONFIG_IMAGE)
+$(BASE)/image.iso: depend arch/$(ARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/HelenOS
 	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
 	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
 	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
-	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o image.iso $(TMP)/
+	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $(BASE)/image.iso $(TMP)/
 
-clean: clean_boot_gen clean_kernel
-	 make -C arch/$(ARCH)/loader clean
+depend:
+	-rm arch/$(ARCH)/loader/image.boot
+
+arch/$(ARCH)/loader/image.boot:
+	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+
+clean: generic_clean
+	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 	-rm -fr $(TMP)
-	-rm -f image.iso
-
-arch_distclean: distclean_kernel
+	-rm -f $(BASE)/image.iso

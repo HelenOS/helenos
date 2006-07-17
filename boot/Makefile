@@ -29,25 +29,15 @@
 ## Include configuration
 #
 
+-include ../version
 -include Makefile.config
 
-## Common flags
+## Paths
 #
 
 BASE = ..
 KERNELDIR = $(BASE)/kernel
 USPACEDIR = $(BASE)/uspace
-
-## Setup arch configuration
-#
-
--include arch/$(ARCH)/Makefile.inc
-
-ifeq ($(ARCH),xen32)
-	UARCH = ia32
-else
-	UARCH = $(ARCH)
-endif
 
 ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
@@ -57,35 +47,19 @@ ifeq ($(CONFIG_BAT),y)
 	DEFS += -DCONFIG_BAT
 endif
 
-.PHONY: all build config distclean arch_distclean clean kernel uspace clean_kernel clean_uspace distclean_kernel distclean_uspace
+.PHONY: all build config distclean clean generic_clean
 
 all:
-	tools/config.py default
-	$(MAKE) -C . build $(ARCH)
+	../tools/config.py boot.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG) $(IMAGE)
+	$(MAKE) -C . build
+
+-include arch/$(ARCH)/Makefile.inc
 
 config:
-	tools/config.py
+	../tools/config.py boot.config
 
-distclean: clean arch_distclean
+distclean: clean
 	-rm Makefile.config
 
-kernel:
-	$(MAKE) -C $(KERNELDIR) NARCH=$(ARCH)
-
-uspace:
-	$(MAKE) -C $(USPACEDIR) NARCH=$(UARCH)
-
-clean_kernel:
-	$(MAKE) -C $(KERNELDIR) clean ARCH=$(ARCH)
-
-clean_uspace:
-	$(MAKE) -C $(USPACEDIR) clean ARCH=$(UARCH)
-
-clean_boot_gen:
+generic_clean:
 	-rm generic/*.o genarch/*.o
-
-distclean_kernel:
-	$(MAKE) -C $(KERNELDIR) distclean ARCH=$(ARCH)
-
-distclean_uspace:
-	$(MAKE) -C $(USPACEDIR) distclean ARCH=$(UARCH)

@@ -35,9 +35,6 @@ BFD = elf64-ia64-little
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ia64/bin
 
-## Make some default assumptions
-#
-
 INIT0_ADDRESS = 0xe000000000400000
 INIT0_SIZE = 0x100000
 

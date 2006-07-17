@@ -33,20 +33,13 @@ BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = /usr/local/mipsel/bin
 
-## Make some default assumptions
-#
-
-ifndef MIPS_MACHINE
-	MIPS_MACHINE = msim
-endif
-
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x81000000
 INIT_SIZE = 262144
 
 CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
-DEFS += -D__32_BITS__ -DMACHINE=${MIPS_MACHINE} -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
+DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE) -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
 
 ## Compile with hierarchical page tables support.
 #
@@ -63,7 +56,7 @@ CONFIG_ASID_FIFO = y
 ## Accepted MACHINEs
 #
 
-ifeq ($(MIPS_MACHINE),indy)
+ifeq ($(MACHINE),indy)
 	# GCC 4.0.1 compiled for mipsEL has problems compiling in 
 	# BigEndian mode with the swl/swr/lwl/lwr instructions.
 	# We have to compile it with mips-sgi-irix5 to get it right.
@@ -77,12 +70,12 @@ ifeq ($(MIPS_MACHINE),indy)
 	INIT_ADDRESS = 0
 	INIT_SIZE = 0
 endif
-ifeq ($(MIPS_MACHINE),lgxemul)
+ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
 	CFLAGS += -DFB_BIG_ENDIAN -DARCH_HAS_FPU -mips3
 endif
-ifeq ($(MIPS_MACHINE),bgxemul)
+ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-bigmips
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
@@ -90,7 +83,7 @@ ifeq ($(MIPS_MACHINE),bgxemul)
 	CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
 	INIT_ADDRESS = 0x81800000
 endif
-ifeq ($(MIPS_MACHINE),simics)
+ifeq ($(MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions
 	# that do not bother us
 	
@@ -99,7 +92,7 @@ ifeq ($(MIPS_MACHINE),simics)
 	CFLAGS += -mhard-float -mips3 -DTLBCNT=16
 	TLBCNT = 16
 endif
-ifeq ($(MIPS_MACHINE),msim)
+ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
 	CFLAGS += -mhard-float -mips3

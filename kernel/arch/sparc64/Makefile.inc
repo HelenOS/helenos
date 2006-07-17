@@ -35,9 +35,6 @@ BFD = binary
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/sparc64/bin
 
-## Make some default assumptions
-#
-
 CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N
 

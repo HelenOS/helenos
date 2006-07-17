@@ -29,6 +29,7 @@
 ## Include configuration
 #
 
+-include ../version
 -include Makefile.config
 
 DIRS = \
@@ -47,11 +48,18 @@ DIRS = \
 ifeq ($(ARCH), amd64)
 	DIRS += pci
 endif
+
 ifeq ($(ARCH), ia32)
 	DIRS += pci
 endif
 
-CFLAGS += -DCONFIG_MIPS_FPU
+ifeq ($(ARCH), mips32)
+	CFLAGS += -DCONFIG_MIPS_FPU
+endif
+
+ifeq ($(ARCH), mips32eb)
+	CFLAGS += -DCONFIG_MIPS_FPU
+endif
 
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))
@@ -59,16 +67,11 @@ CLEANS := $(addsuffix .clean,$(DIRS))
 .PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
 
 all:
-	tools/config.py default $(NARCH)
-ifdef NARCH
- ifneq ($(ARCH), $(NARCH))
-	$(MAKE) -C . clean
- endif
-endif
+	../tools/config.py uspace.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG)
 	$(MAKE) -C . build
 
 config:
-	tools/config.py
+	../tools/config.py uspace.config
 
 build: $(BUILDS)
 

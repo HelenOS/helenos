@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Boot configuration script
+HelenOS configuration script
 """
 import sys
 import os
 import re
 import commands
 
-INPUT = 'boot.config'
+INPUT = sys.argv[1]
 OUTPUT = 'Makefile.config'
 TMPOUTPUT = 'Makefile.config.tmp'
 
@@ -121,7 +121,7 @@ class Dialog(NoDialog):
         NoDialog.__init__(self)
         self.dlgcmd = os.environ.get('DIALOG','dialog')
         self.title = ''
-        self.backtitle = 'HelenOS Kernel Configuration'
+        self.backtitle = 'HelenOS Configuration'
         
         if os.system('%s --print-maxsize >/dev/null 2>&1' % self.dlgcmd) != 0:
             raise NotImplementedError
@@ -444,7 +444,7 @@ def main():
     except NotImplementedError:
         dlg = NoDialog()
 
-    if len(sys.argv) >= 2 and sys.argv[1]=='default':
+    if len(sys.argv) >= 3 and sys.argv[2]=='default':
         defmode = True
     else:
         defmode = False
@@ -454,9 +454,22 @@ def main():
     if os.path.exists(OUTPUT):
         read_defaults(OUTPUT, defaults)
 
-	# Get ARCH from command line if specified	
-    if len(sys.argv) >= 3:
-        defaults['ARCH'] = sys.argv[2]
+	# Get ARCH from command line if specified
+    if len(sys.argv) >= 4:
+        defaults['ARCH'] = sys.argv[3]
+	
+	# Get COMPILER from command line if specified
+    if len(sys.argv) >= 5:
+        defaults['COMPILER'] = sys.argv[4]
+	
+	# Get CONFIG_DEBUG from command line if specified
+    if len(sys.argv) >= 6:
+        defaults['CONFIG_DEBUG'] = sys.argv[5]
+	
+	# Get MACHINE/IMAGE from command line if specified
+    if len(sys.argv) >= 7:
+        defaults['MACHINE'] = sys.argv[6]
+        defaults['IMAGE'] = sys.argv[6]
 
     # Dry run only with defaults
     varnames = parse_config(INPUT, TMPOUTPUT, DefaultDialog(dlg), defaults)
