@@ -39,8 +39,6 @@
 	.ascii  "PT_MODE_WRITABLE"
 	.byte   0
 
-#define START_STACK (BOOT_OFFSET - BOOT_STACK_SIZE)
-
 .section K_TEXT_START, "ax"
 
 KTEXT=8
@@ -48,19 +46,9 @@ KDATA=16
 
 .code32
 .align 4
-.global multiboot_image_start
-multiboot_header:
-	.long MULTIBOOT_HEADER_MAGIC
-	.long MULTIBOOT_HEADER_FLAGS
-	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
-	.long multiboot_header
-	.long unmapped_ktext_start
-	.long 0
-	.long 0
-	.long multiboot_image_start
+.global kernel_image_start
 	
-multiboot_image_start:
-	movl $START_STACK, %esp			# initialize stack pointer
+kernel_image_start:
 	lgdt KA2PA(bootstrap_gdtr)		# initialize Global Descriptor Table register
 
 	movw $KDATA, %cx
@@ -101,80 +89,6 @@ multiboot_image_start:
 	
 	popl %eax
 	popl %ebx
-	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
-	je valid_boot
-		
-		xorl %ecx, %ecx							# no memory size or map available
-		movl %ecx, e801memorysize
-		movl %ecx, e820counter
-		
-		jmp invalid_boot
-		
-	valid_boot:
-		
-		movl (%ebx), %eax						# ebx = physical address of struct multiboot_info
-		
-		bt $0, %eax								# mbi->flags[0] (mem_lower, mem_upper valid)
-		jc mem_valid
-			
-			xorl %ecx, %ecx
-			jmp mem_invalid
-			
-		mem_valid:
-		movl 4(%ebx), %ecx						# mbi->mem_lower
-		addl 8(%ebx), %ecx						# mbi->mem_upper
-		
-		mem_invalid:
-		movl %ecx, e801memorysize
-		
-		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
-		jc mods_valid
-			
-			xorl %ecx, %ecx
-			movl %ecx, init
-			jmp mods_end
-		
-		mods_valid:
-		
-		movl 20(%ebx), %ecx						# mbi->mods_count
-		movl %ecx, init
-		
-		cmpl $0, %ecx
-		je mods_end
-		
-		movl 24(%ebx), %esi						# mbi->mods_addr
-		movl $init, %edi
-		
-		mods_loop:
-		
-			movl 0(%esi), %edx					# mods->mod_start
-			addl $0x80000000, %edx
-			movl %edx, 4(%edi)
-			
-			movl 4(%esi), %edx
-			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
-			movl %edx, 8(%edi)
-			
-			addl $16, %esi
-			addl $8	, %edi
-			
-			loop mods_loop
-			
-		mods_end:
-		
-	invalid_boot:
-	
-#ifdef CONFIG_SMP
-	
-	# copy AP bootstrap routines below 1 MB
-	
-	movl $BOOT_OFFSET, %esi
-	movl $AP_BOOT_OFFSET, %edi
-	movl $_hardcoded_unmapped_size, %ecx
-	cld
-	rep movsb
-	
-#endif
 	
 	call main_bsp								# never returns
 

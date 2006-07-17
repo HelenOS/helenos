@@ -109,7 +109,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/proc/task.c \
 	arch/$(ARCH)/src/proc/thread.c \
 	arch/$(ARCH)/src/bios/bios.c \
-	arch/$(ARCH)/src/smp/ap.S \
 	arch/$(ARCH)/src/smp/apic.c \
 	arch/$(ARCH)/src/smp/mps.c \
 	arch/$(ARCH)/src/smp/smp.c \
