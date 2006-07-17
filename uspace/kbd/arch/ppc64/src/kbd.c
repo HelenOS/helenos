@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Josef Cejka
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdsparc64 sparc64
- * @brief	HelenOS sparc64 arch dependent parts of uspace keyboard handler.
+/** @addtogroup kbdppc64 ppc64
+ * @brief	HelenOS ppc64 arch dependent parts of uspace keyboard handler.
  * @ingroup  kbd
  * @{
  */ 
 /** @file
  */
 
-#ifndef __sparc64_KBD_H__
-#define __sparc64_KBD_H__
+#include <arch/kbd.h>
+#include <ipc/ipc.h>
+#include <sysinfo.h>
+#include <kbd.h>
+#include <keys.h>
 
-#include <key_buffer.h>
 
-int kbd_arch_init(void);
+int kbd_arch_init(void)
+{
+	return 0;
+}
 
-#endif
+
+int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
+{
+	return 1;
+}
 
 /** @}
  */

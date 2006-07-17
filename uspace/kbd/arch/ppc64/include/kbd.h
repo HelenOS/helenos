@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdsparc64 sparc64
- * @brief	HelenOS sparc64 arch dependent parts of uspace keyboard handler.
+/** @addtogroup kbdppc64 ppc64
+ * @brief	HelenOS ppc64 arch dependent parts of uspace keyboard handler.
  * @ingroup  kbd
  * @{
  */ 
 /** @file
  */
 
-#ifndef __sparc64_KBD_H__
-#define __sparc64_KBD_H__
+#ifndef __ppc64_KBD_H__
+#define __ppc64_KBD_H__
 
 #include <key_buffer.h>
 

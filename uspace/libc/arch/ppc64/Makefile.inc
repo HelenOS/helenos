@@ -39,3 +39,6 @@ ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64
 LFLAGS += -N
+
+BFD_NAME = elf64-powerpc
+BFD_ARCH = powerpc:common64
