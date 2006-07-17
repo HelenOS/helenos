@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ofwarch.h> 
+#include <ofwarch.h>
 #include <ofw.h>
 #include <printf.h>
 
