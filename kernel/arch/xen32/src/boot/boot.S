@@ -28,7 +28,6 @@
 #
 
 #include <arch/boot/boot.h>
-#include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
 
@@ -162,50 +161,6 @@ multiboot_image_start:
 			loop mods_loop
 			
 		mods_end:
-		
-		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
-		jc mmap_valid
-			
-			xorl %edx, %edx
-			jmp mmap_invalid
-			
-		mmap_valid:
-		movl 44(%ebx), %ecx						# mbi->mmap_length
-		movl 48(%ebx), %esi						# mbi->mmap_addr
-		movl $e820table, %edi
-		xorl %edx, %edx
-		
-		mmap_loop:
-			cmpl $0, %ecx
-			jle mmap_end
-			
-			movl 4(%esi), %eax					# mmap->base_addr_low
-			movl %eax, (%edi)
-			
-			movl 8(%esi), %eax					# mmap->base_addr_high
-			movl %eax, 4(%edi)
-			
-			movl 12(%esi), %eax					# mmap->length_low
-			movl %eax, 8(%edi)
-			
-			movl 16(%esi), %eax					# mmap->length_high
-			movl %eax, 12(%edi)
-			
-			movl 20(%esi), %eax					# mmap->type
-			movl %eax, 16(%edi)
-			
-			movl (%esi), %eax					# mmap->size
-			addl $0x4, %eax
-			addl %eax, %esi
-			subl %eax, %ecx
-			addl $MEMMAP_E820_RECORD_SIZE, %edi
-			incl %edx
-			jmp mmap_loop
-		
-		mmap_end:
-		
-		mmap_invalid:
-		movl %edx, e820counter
 		
 	invalid_boot:
 	
