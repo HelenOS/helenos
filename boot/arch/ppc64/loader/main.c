@@ -31,6 +31,7 @@
 #include "asm.h"
 #include "_components.h"
 #include <ofw.h>
+#include <align.h>
 
 #define HEAP_GAP 1024000
 
@@ -101,8 +102,14 @@ void bootstrap(void)
 		halt();
 	}
 	
+	if (!ofw_keyboard(&bootinfo.keyboard)) {
+		printf("Error: unable to get keyboard properties, halting.\n");
+		halt();
+	}
+	
 	printf("\nDevice statistics\n");
 	printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	printf(" keyboard at %L (size %d bytes)\n", bootinfo.keyboard.addr, bootinfo.keyboard.size);
 	
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);
@@ -151,5 +158,5 @@ void bootstrap(void)
 	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa, (void *) bootinfo.screen.addr, bootinfo.screen.scanline);
 }

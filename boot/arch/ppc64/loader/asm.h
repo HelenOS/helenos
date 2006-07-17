@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ASM_H__
-#define __ASM_H__
+#ifndef BOOT_ppc64_ASM_H_
+#define BOOT_ppc64_ASM_H_
 
 #define PAGE_SIZE 4096
 #define PAGE_WIDTH 12
@@ -35,7 +35,7 @@
 #define TRANS_SIZE 1024
 #define TRANS_ITEM_SIZE 8
 
-#define KERNEL_START_ADDR 0x80004000
+#define KERNEL_START_ADDR 0x80008000
 
 #ifndef __ASM__
 
@@ -44,7 +44,7 @@
 extern void *trans[TRANS_SIZE];
 
 extern void halt();
-extern void jump_to_kernel(void *bootinfo, unsigned long bootinfo_size, void *trans, unsigned long kernel_size, void *real_mode) __attribute__((noreturn));
+extern void jump_to_kernel(void *bootinfo, unsigned long bootinfo_size, void *trans, unsigned long kernel_size, void *real_mode, void *fb, unsigned long scanline) __attribute__((noreturn));
 extern void real_mode();
 
 #endif

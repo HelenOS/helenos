@@ -29,7 +29,7 @@
 #ifndef BOOT_ppc64_MAIN_H_
 #define BOOT_ppc64_MAIN_H_
 
-#include <ofw.h>
+#include "ofw.h"
 
 #define TASKMAP_MAX_RECORDS 32
 
@@ -39,14 +39,15 @@ typedef struct {
 } task_t;
 
 typedef struct {
-	unsigned int count;
+	unsigned long count;
 	task_t tasks[TASKMAP_MAX_RECORDS];
 } taskmap_t;
 
 typedef struct {
-	taskmap_t taskmap;
 	memmap_t memmap;
+	taskmap_t taskmap;
 	screen_t screen;
+	keyboard_t keyboard;
 } bootinfo_t;
 
 extern void start(void);

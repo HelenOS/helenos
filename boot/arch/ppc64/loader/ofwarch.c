@@ -56,7 +56,7 @@ int ofw_keyboard(keyboard_t *keyboard)
 	pci_reg_t macio;
 	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
 		return false;
-	keyboard->addr = (void *) macio.addr.addr_lo;
+	keyboard->addr = (void *) (((unsigned long) macio.addr.addr_lo) | (((unsigned long) macio.addr.addr_hi) << 32));
 	keyboard->size = macio.size_lo;
 
 	return true;

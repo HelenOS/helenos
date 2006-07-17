@@ -28,6 +28,7 @@
 
 #include "asm.h"
 #include "regname.h"
+#include "debug.inc"
 
 .text
 
@@ -108,6 +109,8 @@ jump_to_kernel:
 	# r5 = trans (pa)
 	# r6 = bytes to copy
 	# r7 = real_mode (pa)
+	# r8 = framebuffer (pa)
+	# r9 = scanline
 	
 	# disable interrupts
 	
@@ -137,10 +140,15 @@ jump_to_kernel:
 
 real_mode:
 	
+	DEBUG_INIT
+	DEBUG_real_mode
+	
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
 	# r6 = bytes to copy
+	# r8 = framebuffer (pa)
+	# r9 = scanline
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -155,6 +163,9 @@ real_mode:
 		mtctr r31
 		lwz r29, 0(r5)
 		
+		DEBUG_INIT
+		DEBUG_copy_loop
+		
 		copy_loop:
 			
 			lwz r28, 0(r29)
@@ -168,38 +179,111 @@ real_mode:
 			beq copy_end
 			
 			bdnz copy_loop
+			
+			DEBUG_end_copy_loop
 		
 		addi r5, r5, 4
 		b page_copy
 	
 	copy_end:
 	
+	DEBUG_segments
+	
 	# initially fill segment registers
-
-	li r31, 16
-	mtctr r31
+	
 	li r31, 0
-	li r30, 0x2000
+	
+	li r29, 8
+	mtctr r29
+	li r30, 0                     # ASID 0 (VSIDs 0 .. 7)
 
-	seg_fill:
+	seg_fill_uspace:
 	
 		mtsrin r30, r31
-		addi r30, r30, 0x111
+		addi r30, r30, 1
 		addis r31, r31, 0x1000    # move to next SR
 		
-		bdnz seg_fill
+		bdnz seg_fill_uspace
+	
+	li r29, 8
+	mtctr r29
+	lis r30, 0x4000               # priviledged access only
+	ori r30, r30, 8               # ASID 0 (VSIDs 8 .. 15)
+	
+	seg_fill_kernel:
+	
+		mtsrin r30, r31
+		addi r30, r30, 1
+		addis r31, r31, 0x1000    # move to next SR
+		
+		bdnz seg_fill_kernel
+	
+	# create empty Page Hash Table
+	# on top of memory, size 64 KB
+	
+	DEBUG_pht
+	
+	lwz r31, 0(r3)                # r31 = memory size
+	
+	lis r30, 65536@h
+	ori r30, r30, 65536@l         # r30 = 65536
+	
+	subi r29, r30, 1              # r29 = 65535
+	
+	sub r31, r31, r30
+	andc r31, r31, r29            # pht = ALIGN_DOWN(memory_size - 65536, 65536)
+	
+	mtsdr1 r31
+	
+	li r29, 2
+	srw r30, r30, r29             # r30 = 16384
+	li r29, 0
+	
+	pht_clear:
+		
+		# write zeroes
+		
+		stw r29, 0(r31)
+		
+		addi r31, r31, 4
+		subi r30, r30, 4
+		
+		cmpwi r30, 0
+		beq clear_end
+		
+		bdnz pht_clear
+
+		DEBUG_end_pht_clear
+		
+	clear_end:
+	
+	DEBUG_tlb
 	
 	tlbia
 	tlbsync
 	
+	DEBUG_prepare
+	
 	# start the kernel
 	#
+	# pc = KERNEL_START_ADDR
 	# r3 = bootinfo (pa)
+	# sprg0 = KA2PA(KERNEL_START_ADDR)
+	# sprg3 = physical memory size
+	# sp = 0 (pa)
 	
 	lis r31, KERNEL_START_ADDR@ha
 	addi r31, r31, KERNEL_START_ADDR@l
 	
 	mtspr srr0, r31
+	
+	subis r31, r31, 0x8000
+	mtsprg0 r31
+	
+	lwz r31, 0(r3)
+	mtsprg3 r31
+	
+	li sp, 0
 	
 	mfmsr r31
 	ori r31, r31, (msr_ir | msr_dr)@l
@@ -207,6 +291,8 @@ real_mode:
 	
 	sync
 	isync
+	
+	DEBUG_rfi
 	rfid
 
 .align PAGE_WIDTH
