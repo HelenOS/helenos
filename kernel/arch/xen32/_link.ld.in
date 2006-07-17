@@ -1,1 +1,69 @@
-../ia32/_link.ld.in
+/** Xen32 linker script
+ *  
+ * umapped section:
+ * 	kernel text
+ * 	kernel data
+ * mapped section:
+ *	kernel text
+ *	kernel data 
+ */
+
+#define __ASM__
+#include <arch/boot/boot.h>
+#include <arch/mm/page.h>
+
+SECTIONS {
+	.unmapped BOOT_OFFSET: AT (0) {
+		unmapped_ktext_start = .;
+		*(K_TEXT_START);
+		unmapped_ktext_end = .;
+	
+		unmapped_kdata_start = .;
+		*(K_DATA_START);
+		unmapped_kdata_end = .;
+	}
+	
+	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)): AT (SIZEOF(.unmapped)) { 
+		ktext_start = .;
+		*(.text);
+		ktext_end = .;
+		
+		kdata_start = .;
+		*(.data);			/* initialized data */
+		*(.rodata*);			/* string literals */
+		*(COMMON);			/* global variables */
+		hardcoded_load_address = .;
+		LONG(PA2KA(BOOT_OFFSET));
+		hardcoded_ktext_size = .;
+		LONG((ktext_end - ktext_start) + (unmapped_ktext_end - unmapped_ktext_start));
+		hardcoded_kdata_size = .;
+		LONG((kdata_end - kdata_start) + (unmapped_kdata_end - unmapped_kdata_start));
+		hardcoded_unmapped_ktext_size = .;
+		LONG(unmapped_ktext_end - unmapped_ktext_start);
+		hardcoded_unmapped_kdata_size = .;
+		LONG(unmapped_kdata_end - unmapped_kdata_start);
+		symbol_table = .;
+		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
+		*(.bss);			/* uninitialized static variables */
+		kdata_end = .;
+	}
+	
+	__xen_guest(0): AT (SIZEOF(.unmapped)+SIZEOF(.mapped)) {
+		*(__xen_guest);
+	}
+
+	/DISCARD/ : {
+		*(.note.GNU-stack);		
+		*(.comment);
+	}
+	
+#ifdef CONFIG_SMP	
+	
+	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
+	ap_boot = unmapped_ap_boot - BOOT_OFFSET + AP_BOOT_OFFSET;
+	ap_gdtr = unmapped_ap_gdtr - BOOT_OFFSET + AP_BOOT_OFFSET;
+	protected_ap_gdtr = PA2KA(ap_gdtr);
+
+#endif /* CONFIG_SMP */
+
+}
