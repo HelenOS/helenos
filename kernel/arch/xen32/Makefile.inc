@@ -114,7 +114,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/smp/smp.c \
 	arch/$(ARCH)/src/atomic.S \
 	arch/$(ARCH)/src/smp/ipi.c \
-	arch/$(ARCH)/src/ia32.c \
+	arch/$(ARCH)/src/xen32.c \
 	arch/$(ARCH)/src/interrupt.c \
 	arch/$(ARCH)/src/pm.c \
 	arch/$(ARCH)/src/userspace.c \

@@ -35,7 +35,8 @@
 #ifndef __xen32_BOOT_H__
 #define __xen32_BOOT_H__
 
-#define BOOT_STACK_SIZE	0x400
+#define BOOT_OFFSET		0x0000
+#define TEMP_STACK_SIZE	0x400
 
 #endif
 
