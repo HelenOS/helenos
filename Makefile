@@ -137,8 +137,7 @@ else
 endif
 
 config:
-	-rm Makefile.depend HelenOS.config
-	tools/config.py
+	tools/config.py HelenOS.config
 
 distclean:
 	-rm Makefile.config
