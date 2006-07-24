@@ -35,8 +35,34 @@
 #ifndef __xen32_BOOT_H__
 #define __xen32_BOOT_H__
 
+#define GUEST_CMDLINE	1024
+#define START_INFO_SIZE	1104
 #define BOOT_OFFSET		0x0000
-#define TEMP_STACK_SIZE	0x400
+
+#ifndef __ASM__
+
+#include <arch/types.h>
+
+typedef struct {
+	char magic[32];             /**< "xen-<version>-<platform>" */
+	unsigned long nr_pages;     /**< Total pages allocated to this domain */
+	unsigned long shared_info;  /**< Physical address of shared info struct */
+	uint32_t flags;             /**< SIF_xxx flags */
+	unsigned long store_mfn;    /**< Physical page number of shared page */
+	uint32_t store_evtchn;      /**< Event channel for store communication */
+	unsigned long console_mfn;  /**< Physical address of console page */
+	uint32_t console_evtchn;    /**< Event channel for console messages */
+	unsigned long pt_base;      /**< Virtual address of page directory */
+	unsigned long nr_pt_frames; /**< Number of bootstrap p.t. frames */
+	unsigned long mfn_list;     /**< Virtual address of page-frame list */
+	unsigned long mod_start;    /**< Virtual address of pre-loaded module */
+	unsigned long mod_len;      /**< Size (bytes) of pre-loaded module */
+	int8_t cmd_line[GUEST_CMDLINE];
+} start_info_t;
+
+extern start_info_t start_info;
+
+#endif
 
 #endif
 

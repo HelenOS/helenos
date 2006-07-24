@@ -34,11 +34,12 @@
 
 #include <arch/mm/memory_init.h>
 #include <arch/mm/page.h>
+#include <arch/boot/boot.h>
 #include <print.h>
 
 size_t get_memory_size(void) 
 {
-	return 0;
+	return start_info.nr_pages * PAGE_SIZE;
 }
 
 void memory_print_map(void)

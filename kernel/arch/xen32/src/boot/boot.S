@@ -34,7 +34,7 @@
 .section __xen_guest
 	.ascii  "GUEST_OS=HelenOS,"
 	.ascii  "XEN_VER=xen-3.0,"
-	.ascii  "HYPERCALL_PAGE=0x2,"
+	.ascii  "HYPERCALL_PAGE=0x0002,"
 	.ascii  "LOADER=generic,"
 	.ascii  "PT_MODE_WRITABLE"
 	.byte   0
@@ -47,19 +47,21 @@
 	
 kernel_image_start:
 	cld
-	movl $kernel_stack, %esp         # initialize stack pointer
 	
+	# copy start_info (esi initialized by Xen)
+	
+	movl $start_info, %edi
+	movl $START_INFO_SIZE >> 2, %ecx
+	cld
+	rep movsb
+
 	call main_bsp								# never returns
 
 	cli
 	hlt
 
-.data
+.global hypercall_page
 
-.align 4096
-page_directory:
-	.space 4096, 0
-
-kernel_stack_bottom:
-	.space TEMP_STACK_SIZE
-kernel_stack:
+.org (0x0002 * PAGE_SIZE)
+hypercall_page:
+	.space PAGE_SIZE

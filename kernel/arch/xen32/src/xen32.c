@@ -55,12 +55,15 @@
 
 #include <arch/bios/bios.h>
 
+#include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
 #include <interrupt.h>
 #include <arch/debugger.h>
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
+
+start_info_t start_info;
 
 void arch_pre_mm_init(void)
 {
