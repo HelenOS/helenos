@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -35,29 +35,34 @@
 #ifndef __MACROS_H__
 #define __MACROS_H__
 
-#define is_digit(d)	(((d) >= '0') && ((d)<='9'))
-#define is_lower(c)	(((c) >= 'a') && ((c) <= 'z'))
-#define is_upper(c)	(((c) >= 'A') && ((c) <= 'Z'))
-#define is_alpha(c)	(is_lower(c) || is_upper(c))
-#define is_alphanum(c)	(is_alpha(c) || is_digit(c))
-#define is_white(c)	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
+#include <arch/types.h>
+#include <typedefs.h>
 
-#define min(a,b)	((a)<(b)?(a):(b))
-#define max(a,b)	((a)>(b)?(a):(b))
+#define is_digit(d)		(((d) >= '0') && ((d) <= '9'))
+#define is_lower(c)		(((c) >= 'a') && ((c) <= 'z'))
+#define is_upper(c)		(((c) >= 'A') && ((c) <= 'Z'))
+#define is_alpha(c)		(is_lower(c) || is_upper(c))
+#define is_alphanum(c)	(is_alpha(c) || is_digit(c))
+#define is_white(c)		(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
+
+#define min(a,b)	((a) < (b) ? (a) : (b))
+#define max(a,b)	((a) > (b) ? (a) : (b))
 
 /** Return true if the interlvals overlap. */
 static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 {
-	uintptr_t e1 = s1+sz1;
-	uintptr_t e2 = s2+sz2;
+	uintptr_t e1 = s1 + sz1;
+	uintptr_t e2 = s2 + sz2;
 
-	return s1 < e2 && s2 < e1;
+	return (s1 < e2) && (s2 < e1);
 }
 /* Compute overlapping of physical addresses */
-#define PA_overlaps(x,szx,y,szy)  overlaps(KA2PA(x),szx,KA2PA(y), szy)
+#define PA_overlaps(x, szx, y, szy)	overlaps(KA2PA(x), szx, KA2PA(y), szy)
+
+#define STRING(arg) STRING_ARG(arg)
+#define STRING_ARG(arg) #arg
 
 #endif
 
- /** @}
+/** @}
  */
-

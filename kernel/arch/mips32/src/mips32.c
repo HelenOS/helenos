@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -54,7 +54,7 @@
 #include <console/chardev.h>
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
-#include <debug.h>
+#include <macros.h>
 
 #include <arch/asm/regname.h>
 
@@ -180,6 +180,5 @@ unative_t sys_tls_set(unative_t addr)
 }
 
 
- /** @}
+/** @}
  */
-

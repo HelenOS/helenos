@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericdebug
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
@@ -60,11 +60,7 @@
 #	define ASSERT(expr)
 #endif
 
-#define STRING(arg) STRING_ARG(arg)
-#define STRING_ARG(arg) #arg
-
 #endif
 
- /** @}
+/** @}
  */
-
