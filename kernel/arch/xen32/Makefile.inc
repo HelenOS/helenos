@@ -76,12 +76,6 @@ CONFIG_ACPI = y
 CONFIG_PAGE_PT = y
 DEFS += -DCONFIG_PAGE_PT
 
-## Compile with i8042 controller support
-#
-
-CONFIG_I8042 = y
-
-
 ## Accepted configuration directives
 #
 
@@ -125,10 +119,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/i8254.c \
-	arch/$(ARCH)/src/drivers/i8259.c \
-	arch/$(ARCH)/src/drivers/ega.c \
-	arch/$(ARCH)/src/drivers/vesa.c \
+	arch/$(ARCH)/src/drivers/xconsole.c \
 	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/debugger.c

@@ -53,7 +53,6 @@
 #include <mm/as.h>
 #include <print.h>
 #include <memstr.h>
-#include <arch/drivers/i8259.h>
 
 #ifdef CONFIG_SMP
 
@@ -118,7 +117,7 @@ void kmp(void *arg)
 	outb(0x70,0xf);
 	outb(0x71,0xa);
 
-	pic_disable_irqs(0xffff);
+//	pic_disable_irqs(0xffff);
 	apic_init();
 
 	for (i = 0; i < ops->cpu_count(); i++) {

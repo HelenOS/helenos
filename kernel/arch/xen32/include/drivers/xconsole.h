@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup xen32mm
+/** @addtogroup xen32
  * @{
  */
 /** @file
- * @ingroup xen32mm
  */
 
-#include <mm/frame.h>
-#include <arch/mm/frame.h>
-#include <mm/as.h>
-#include <config.h>
-#include <arch/boot/boot.h>
-#include <panic.h>
-#include <debug.h>
-#include <align.h>
-#include <macros.h>
+#ifndef __XCONSOLE_H__
+#define __XCONSOLE_H__
 
-#include <print.h>
-#include <console/cmd.h>
-#include <console/kconsole.h>
+extern void xen_console_init(void);
 
-uintptr_t last_frame = 0;
-
-void frame_arch_init(void)
-{
-	if (config.cpu_active == 1) {
-		pfn_t start = ADDR2PFN(ALIGN_UP(KA2PA(start_info.pt_base), PAGE_SIZE)) + start_info.nr_pt_frames;
-		size_t size = start_info.nr_pages - start;
-		
-		zone_create(start, size, start, 0);
-		last_frame = start + size;
-	}
-}
+#endif
 
 /** @}
  */

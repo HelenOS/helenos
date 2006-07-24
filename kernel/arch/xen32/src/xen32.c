@@ -39,11 +39,7 @@
 
 #include <arch/pm.h>
 
-#include <arch/drivers/ega.h>
-#include <arch/drivers/vesa.h>
-#include <genarch/i8042/i8042.h>
-#include <arch/drivers/i8254.h>
-#include <arch/drivers/i8259.h>
+#include <arch/drivers/xconsole.h>
 
 #include <arch/context.h>
 
@@ -67,12 +63,10 @@ start_info_t start_info;
 
 void arch_pre_mm_init(void)
 {
-//	pm_init();
+	pm_init();
 
 	if (config.cpu_active == 1) {
 //		bios_init();
-//		i8259_init();	/* PIC */
-//		i8254_init();	/* hard clock */
 		
 //		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
 		
@@ -86,15 +80,8 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-
-#ifdef CONFIG_FB
-		if (vesa_present()) 
-			vesa_init();
-		else
-#endif
-			ega_init();	/* video */
-		
-		
+		/* video */
+		xen_console_init();
 		/* Enable debugger */
 		debugger_init();
 		/* Merge all memory zones to 1 big zone */
@@ -115,18 +102,17 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	i8042_init();	/* keyboard controller */
 }
 
 void calibrate_delay_loop(void)
 {
-	i8254_calibrate_delay_loop();
+//	i8254_calibrate_delay_loop();
 	if (config.cpu_active == 1) {
 		/*
 		 * This has to be done only on UP.
 		 * On SMP, i8254 is not used for time keeping and its interrupt pin remains masked.
 		 */
-		i8254_normal_operation();
+//		i8254_normal_operation();
 	}
 }
 
@@ -148,14 +134,13 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
-	i8042_grab();
 }
+
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
-	i8042_release();
 }
 
 /** @}

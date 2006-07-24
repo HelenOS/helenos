@@ -34,7 +34,7 @@
 .section __xen_guest
 	.ascii  "GUEST_OS=HelenOS,"
 	.ascii  "XEN_VER=xen-3.0,"
-	.ascii  "HYPERCALL_PAGE=0x0002,"
+	.ascii  "HYPERCALL_PAGE=0x0000,"
 	.ascii  "LOADER=generic,"
 	.ascii  "PT_MODE_WRITABLE"
 	.byte   0
@@ -60,8 +60,8 @@ kernel_image_start:
 	cli
 	hlt
 
+.section K_TEXT_START, "aw", @progbits
 .global hypercall_page
-
-.org (0x0002 * PAGE_SIZE)
+.org 0
 hypercall_page:
 	.space PAGE_SIZE

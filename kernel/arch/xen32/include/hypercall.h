@@ -30,6 +30,18 @@
 #define __xen32_HYPERCALL_H__
 
 #include <arch/types.h>
+#include <macros.h>
+
+
+#define XEN_CONSOLE_IO	18
+
+
+/*
+ * Commands for XEN_CONSOLE_IO
+ */
+#define CONSOLE_IO_WRITE	0
+#define CONSOLE_IO_READ		1
+
 
 #define hypercall0(id)	\
 	({	\
@@ -82,7 +94,7 @@
 			  "=d" (__ign3)	\
 			: "1" (p1),	\
 			  "2" (p2),	\
-			  "3" (p3),	\
+			  "3" (p3)	\
 			: "memory"	\
 		);	\
 		ret;	\
@@ -101,7 +113,7 @@
 			: "1" (p1),	\
 			  "2" (p2),	\
 			  "3" (p3),	\
-			  "4" (p4),	\
+			  "4" (p4)	\
 			: "memory"	\
 		);	\
 		ret;	\
@@ -109,7 +121,7 @@
 
 #define hypercall5(id, p1, p2, p3, p4, p5)	\
 	({	\
-		unative_t ret, __ign1, __ign2, __ign3, __ign4, __ing5;	\
+		unative_t ret, __ign1, __ign2, __ign3, __ign4, __ign5;	\
 		asm volatile (	\
 			"call hypercall_page + (" STRING(id) " * 32)\n"	\
 			: "=a" (ret), \
@@ -122,14 +134,14 @@
 			  "2" (p2),	\
 			  "3" (p3),	\
 			  "4" (p4),	\
-			  "5" (p5),	\
+			  "5" (p5)	\
 			: "memory"	\
 		);	\
 		ret;	\
 	})
 
 
-static inline int xen_console_io(int cmd, int count, char *str)
+static inline int xen_console_io(const int cmd, const int count, const char *str)
 {
 	return hypercall3(XEN_CONSOLE_IO, cmd, count, str);
 }

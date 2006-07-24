@@ -73,10 +73,6 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* TLS descriptor */
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
-	/* VESA Init descriptor */
-#ifdef CONFIG_FB
-	{ 0xffff, 0, VESA_INIT_SEGMENT>>12, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
-#endif	
 };
 
 static idescriptor_t idt[IDT_ITEMS];
@@ -152,25 +148,25 @@ void idt_init(void)
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)
 {
-	__asm__ volatile (
-		"pushfl\n"
-		"pop %%eax\n"
-		"and $0xffff8fff, %%eax\n"
-		"push %%eax\n"
-		"popfl\n"
-		: : : "eax"
-	);
+//	__asm__ volatile (
+//		"pushfl\n"
+//		"pop %%eax\n"
+//		"and $0xffff8fff, %%eax\n"
+//		"push %%eax\n"
+//		"popfl\n"
+//		: : : "eax"
+//	);
 }
 
 /* Clean AM(18) flag in CR0 register */
 static void clean_AM_flag(void)
 {
-	__asm__ volatile (
-		"mov %%cr0, %%eax\n"
-		"and $0xfffbffff, %%eax\n"
-		"mov %%eax, %%cr0\n"
-		: : : "eax"
-	);
+//	__asm__ volatile (
+//		"mov %%cr0, %%eax\n"
+//		"and $0xfffbffff, %%eax\n"
+//		"mov %%eax, %%cr0\n"
+//		: : : "eax"
+//	);
 }
 
 void pm_init(void)
@@ -183,29 +179,29 @@ void pm_init(void)
 	 */
 	idtr.limit = sizeof(idt);
 	idtr.base = (uintptr_t) idt;
-	gdtr_load(&gdtr);
-	idtr_load(&idtr);
+//	gdtr_load(&gdtr);
+//	idtr_load(&idtr);
 	
 	/*
 	 * Each CPU has its private GDT and TSS.
 	 * All CPUs share one IDT.
 	 */
 
-	if (config.cpu_active == 1) {
-		idt_init();
-		/*
-		 * NOTE: bootstrap CPU has statically allocated TSS, because
-		 * the heap hasn't been initialized so far.
-		 */
+//	if (config.cpu_active == 1) {
+//		idt_init();
+//		/*
+//		 * NOTE: bootstrap CPU has statically allocated TSS, because
+//		 * the heap hasn't been initialized so far.
+//		 */
 		tss_p = &tss;
-	}
-	else {
-		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
-		if (!tss_p)
-			panic("could not allocate TSS\n");
-	}
+//	}
+//	else {
+//		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
+//		if (!tss_p)
+//			panic("could not allocate TSS\n");
+//	}
 
-	tss_initialize(tss_p);
+//	tss_initialize(tss_p);
 	
 	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
 	gdt_p[TSS_DES].special = 1;
@@ -218,7 +214,7 @@ void pm_init(void)
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	tr_load(selector(TSS_DES));
+//	tr_load(selector(TSS_DES));
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
 	clean_AM_flag();          /* Disable alignment check */

@@ -14,6 +14,7 @@ SECTIONS {
 	
 	.image PA2KA(BOOT_OFFSET): { 
 		ktext_start = .;
+		*(K_TEXT_START);
 		*(.text);
 		ktext_end = .;
 		

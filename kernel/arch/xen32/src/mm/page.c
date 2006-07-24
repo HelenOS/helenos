@@ -77,44 +77,28 @@ void page_arch_init(void)
 	paging_on();
 }
 
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	
-	return virtaddr;
-}
-
 void page_fault(int n, istate_t *istate)
 {
-        uintptr_t page;
+	uintptr_t page;
 	pf_access_t access;
 	
-        page = read_cr2();
-		
-        if (istate->error_word & PFERR_CODE_RSVD)
+	page = read_cr2();
+	
+	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page directory.\n");
-
+	
 	if (istate->error_word & PFERR_CODE_RW)
 		access = PF_ACCESS_WRITE;
 	else
 		access = PF_ACCESS_READ;
-
-        if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
+	
+	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
-
-                PRINT_INFO_ERRCODE(istate);
-                printf("page fault address: %#x\n", page);
-                panic("page fault\n");
-        }
+		
+		PRINT_INFO_ERRCODE(istate);
+		printf("page fault address: %#x\n", page);
+		panic("page fault\n");
+	}
 }
 
 /** @}
