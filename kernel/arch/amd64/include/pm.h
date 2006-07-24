@@ -68,8 +68,8 @@
 
 
 
-#define gdtselector(des)	((des)<<3)
-#define idtselector(des)        ((des)<<4)
+#define gdtselector(des)	((des) << 3)
+#define idtselector(des)	((des) << 4)
 
 #define PL_KERNEL	0
 #define PL_USER		3

@@ -46,7 +46,7 @@
 #define UTEXT_DES	3
 #define UDATA_DES	4
 #define TSS_DES		5
-#define TLS_DES         6 /* Pointer to Thread-Local-Storage data */
+#define TLS_DES		6 /* Pointer to Thread-Local-Storage data */
 
 #ifdef CONFIG_FB
 
@@ -58,7 +58,7 @@
 #endif /* CONFIG_FB */
 
 
-#define selector(des)	((des)<<3)
+#define selector(des)	((des) << 3)
 
 #define PL_KERNEL	0
 #define PL_USER		3

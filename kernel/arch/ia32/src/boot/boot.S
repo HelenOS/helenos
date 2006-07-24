@@ -36,9 +36,6 @@
 
 .section K_TEXT_START, "ax"
 
-KTEXT=8
-KDATA=16
-
 .code32
 .align 4
 .global multiboot_image_start
@@ -56,14 +53,14 @@ multiboot_image_start:
 	movl $START_STACK, %esp			# initialize stack pointer
 	lgdt KA2PA(bootstrap_gdtr)		# initialize Global Descriptor Table register
 
-	movw $KDATA, %cx
+	movw $selector(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
 	movw %cx, %gs
 	movw %cx, %ds					# kernel data + stack
 	movw %cx, %ss
 	
-	jmpl $KTEXT, $multiboot_meeting_point
+	jmpl $selector(KTEXT_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
 	pushl %ebx							# save parameters from GRUB
@@ -384,7 +381,7 @@ vesa_init_real2:
 	jmp 9f
 9:
 	
-	ljmpl $KTEXT, $(vesa_init_protect - vesa_init + VESA_INIT_SEGMENT << 4)
+	ljmpl $selector(KTEXT_DES), $(vesa_init_protect - vesa_init + VESA_INIT_SEGMENT << 4)
 
 0:# No prefered mode found
 	mov $0x111, %cx
@@ -411,14 +408,14 @@ vesa_init_real2:
 vesa_init_protect:
 	popl %esp
 
-	movw $KDATA, %cx
+	movw $selector(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
 	movw %cx, %gs
 	movw %cx, %ds					# kernel data + stack
 	movw %cx, %ss
 	
-	jmpl $KTEXT, $vesa_meeting_point
+	jmpl $selector(KTEXT_DES), $vesa_meeting_point
 
 .align 4
 e_vesa_init:
