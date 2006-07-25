@@ -33,7 +33,29 @@
 #include <macros.h>
 
 
+typedef uint16_t domid_t;
+
+typedef struct {
+    uint64_t ptr;  /**< Machine address of PTE */
+    uint64_t val;  /**< New contents of PTE */
+} mmu_update_t;
+
+typedef struct {
+    unsigned int cmd;
+    union {
+        unsigned long mfn;
+        unsigned long linear_addr;
+    } arg1;
+    union {
+        unsigned int nr_ents;
+        void *vcpumask;
+    } arg2;
+} mmuext_op_t;
+
+
+#define XEN_MMU_UPDATE	1
 #define XEN_CONSOLE_IO	18
+#define XEN_MMUEXT_OP	26
 
 
 /*
@@ -41,6 +63,27 @@
  */
 #define CONSOLE_IO_WRITE	0
 #define CONSOLE_IO_READ		1
+
+
+#define MMUEXT_PIN_L1_TABLE      0
+#define MMUEXT_PIN_L2_TABLE      1
+#define MMUEXT_PIN_L3_TABLE      2
+#define MMUEXT_PIN_L4_TABLE      3
+#define MMUEXT_UNPIN_TABLE       4
+#define MMUEXT_NEW_BASEPTR       5
+#define MMUEXT_TLB_FLUSH_LOCAL   6
+#define MMUEXT_INVLPG_LOCAL      7
+#define MMUEXT_TLB_FLUSH_MULTI   8
+#define MMUEXT_INVLPG_MULTI      9
+#define MMUEXT_TLB_FLUSH_ALL    10
+#define MMUEXT_INVLPG_ALL       11
+#define MMUEXT_FLUSH_CACHE      12
+#define MMUEXT_SET_LDT          13
+#define MMUEXT_NEW_USER_BASEPTR 15
+
+
+#define DOMID_SELF (0x7FF0U)
+#define DOMID_IO   (0x7FF1U)
 
 
 #define hypercall0(id)	\
@@ -141,9 +184,19 @@
 	})
 
 
-static inline int xen_console_io(const int cmd, const int count, const char *str)
+static inline int xen_console_io(const unsigned int cmd, const unsigned int count, const char *str)
 {
 	return hypercall3(XEN_CONSOLE_IO, cmd, count, str);
+}
+
+static inline int xen_mmu_update(const mmu_update_t *req, const unsigned int count, unsigned int *success_count, domid_t domid)
+{
+	return hypercall4(XEN_MMU_UPDATE, req, count, success_count, domid);
+}
+
+static inline int xen_mmuext_op(const mmuext_op_t *op, const unsigned int count, unsigned int *success_count, domid_t domid)
+{
+	return hypercall4(XEN_MMUEXT_OP, op, count, success_count, domid);
 }
 
 #endif

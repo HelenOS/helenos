@@ -154,13 +154,13 @@ static inline uint32_t inl(uint16_t port) { uint32_t val; __asm__ volatile ("inl
  */
 static inline ipl_t interrupts_enable(void)
 {
-	ipl_t v;
-	__asm__ volatile (
+	ipl_t v = 0;
+/*	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
 		"sti\n"
 		: "=r" (v)
-	);
+	);*/
 	return v;
 }
 
@@ -173,13 +173,13 @@ static inline ipl_t interrupts_enable(void)
  */
 static inline ipl_t interrupts_disable(void)
 {
-	ipl_t v;
-	__asm__ volatile (
+	ipl_t v = 0;
+/*	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
 		"cli\n"
 		: "=r" (v)
-	);
+	);*/
 	return v;
 }
 
@@ -191,11 +191,11 @@ static inline ipl_t interrupts_disable(void)
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
-	__asm__ volatile (
+/*	__asm__ volatile (
 		"pushl %0\n\t"
 		"popf\n"
 		: : "r" (ipl)
-	);
+	);*/
 }
 
 /** Return interrupt priority level.
@@ -204,12 +204,12 @@ static inline void interrupts_restore(ipl_t ipl)
  */
 static inline ipl_t interrupts_read(void)
 {
-	ipl_t v;
-	__asm__ volatile (
+	ipl_t v = 0;
+/*	__asm__ volatile (
 		"pushf\n\t"
 		"popl %0\n"
 		: "=r" (v)
-	);
+	);*/
 	return v;
 }
 

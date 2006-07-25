@@ -61,4 +61,3 @@ typedef struct page_specifier pte_t;
 
 /** @}
  */
-

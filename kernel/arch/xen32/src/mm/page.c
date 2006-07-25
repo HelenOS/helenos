@@ -68,13 +68,13 @@ void page_arch_init(void)
 		}
 
 		exc_register(14, "page_fault", (iroutine) page_fault);
-		write_cr3((uintptr_t) AS_KERNEL->page_table);
+//		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 	else {
-		write_cr3((uintptr_t) AS_KERNEL->page_table);
+//		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 
-	paging_on();
+//	paging_on();
 }
 
 void page_fault(int n, istate_t *istate)

@@ -46,16 +46,16 @@
 typedef struct {
 	char magic[32];             /**< "xen-<version>-<platform>" */
 	unsigned long nr_pages;     /**< Total pages allocated to this domain */
-	unsigned long shared_info;  /**< Physical address of shared info struct */
+	void *shared_info;          /**< Machine address of shared info struct */
 	uint32_t flags;             /**< SIF_xxx flags */
-	unsigned long store_mfn;    /**< Physical page number of shared page */
+	void *store_mfn;            /**< Machine page number of shared page */
 	uint32_t store_evtchn;      /**< Event channel for store communication */
-	unsigned long console_mfn;  /**< Physical address of console page */
+	void *console_mfn;          /**< Machine address of console page */
 	uint32_t console_evtchn;    /**< Event channel for console messages */
-	unsigned long pt_base;      /**< Virtual address of page directory */
+	unsigned long *pt_base;     /**< Virtual address of page directory */
 	unsigned long nr_pt_frames; /**< Number of bootstrap p.t. frames */
-	unsigned long mfn_list;     /**< Virtual address of page-frame list */
-	unsigned long mod_start;    /**< Virtual address of pre-loaded module */
+	unsigned long *mfn_list;    /**< Virtual address of page-frame list */
+	void *mod_start;            /**< Virtual address of pre-loaded module */
 	unsigned long mod_len;      /**< Size (bytes) of pre-loaded module */
 	int8_t cmd_line[GUEST_CMDLINE];
 } start_info_t;
