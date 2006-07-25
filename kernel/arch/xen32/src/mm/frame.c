@@ -52,8 +52,11 @@ uintptr_t last_frame = 0;
 #define L1_PT_SHIFT	10
 #define L2_PT_SHIFT	0
 
-#define L1_OFFSET_MASK			0x3ff
-#define L2_OFFSET_MASK			0x3ff
+#define L1_PT_ENTRIES	1024
+#define L2_PT_ENTRIES	1024
+
+#define L1_OFFSET_MASK			(L1_PT_ENTRIES - 1)
+#define L2_OFFSET_MASK			(L2_PT_ENTRIES - 1)
 
 #define PFN2PTL1_OFFSET(pfn)	((pfn >> L1_PT_SHIFT) & L1_OFFSET_MASK)
 #define PFN2PTL2_OFFSET(pfn)	((pfn >> L2_PT_SHIFT) & L2_OFFSET_MASK)
@@ -85,8 +88,9 @@ void frame_arch_init(void)
 		
 		/* Create identity mapping */
 		pfn_t phys;
+		count_t count = 0;
 		for (phys = start; phys < start + size; phys++) {
-			mmu_update_t updates[1];
+			mmu_update_t updates[L2_PT_ENTRIES];
 			pfn_t virt = ADDR2PFN(PA2KA(PFN2ADDR(phys)));
 			
 			size_t ptl1_offset = PFN2PTL1_OFFSET(virt);
@@ -109,10 +113,11 @@ void frame_arch_init(void)
 				if (ptl2_base2 == 0)
 					panic("Unable to find page table reference");
 				
-				updates[0].ptr = (uintptr_t) &ptl2_base2[ptl2_offset2];
-				updates[0].val = PFN2ADDR(start_info.mfn_list[start]) | L1_PROT;
-				if (xen_mmu_update(updates, 1, NULL, DOMID_SELF) < 0)
+				updates[count].ptr = (uintptr_t) &ptl2_base2[ptl2_offset2];
+				updates[count].val = PFN2ADDR(start_info.mfn_list[start]) | L1_PROT;
+				if (xen_mmu_update(updates, count + 1, NULL, DOMID_SELF) < 0)
 					panic("Unable to map new page table");
+				count = 0;
 				
 				mmu_ext.cmd = MMUEXT_PIN_L1_TABLE;
 				mmu_ext.arg1.mfn = start_info.mfn_list[start];
@@ -121,20 +126,26 @@ void frame_arch_init(void)
 				
 				unsigned long *ptl0 = (unsigned long *) PFN2ADDR(start_info.mfn_list[ADDR2PFN(KA2PA(start_info.pt_base))]);
 				
-				updates[0].ptr = (uintptr_t) &ptl0[ptl1_offset];
-				updates[0].val = PFN2ADDR(start_info.mfn_list[start]) | L2_PROT;
-				if (xen_mmu_update(updates, 1, NULL, DOMID_SELF) < 0)
+				updates[count].ptr = (uintptr_t) &ptl0[ptl1_offset];
+				updates[count].val = PFN2ADDR(start_info.mfn_list[start]) | L2_PROT;
+				if (xen_mmu_update(updates, count + 1, NULL, DOMID_SELF) < 0)
 					panic("Unable to update PTE for page table");
+				count = 0;
 				
 				ptl2_base = (unsigned long *) PTE2ADDR(start_info.pt_base[ptl1_offset]);
 				start++;
 				size--;
 			}
 			
-			updates[0].ptr = (uintptr_t) &ptl2_base[ptl2_offset];
-			updates[0].val = PFN2ADDR(start_info.mfn_list[phys]) | L2_PROT;
-			if (xen_mmu_update(updates, 1, NULL, DOMID_SELF) < 0)
-				panic("Unable to update PTE");
+			updates[count].ptr = (uintptr_t) &ptl2_base[ptl2_offset];
+			updates[count].val = PFN2ADDR(start_info.mfn_list[phys]) | L2_PROT;
+			count++;
+			
+			if ((count == L2_PT_ENTRIES) || (phys + 1 == start + size)) {
+				if (xen_mmu_update(updates, count, NULL, DOMID_SELF) < 0)
+					panic("Unable to update PTE");
+				count = 0;
+			}
 		}
 		
 		zone_create(start, size, start, 0);
