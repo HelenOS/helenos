@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -50,6 +50,5 @@ extern unative_t atoi(const char *text);
 
 #endif
 
- /** @}
+/** @}
  */
-

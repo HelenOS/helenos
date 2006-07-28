@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -43,6 +43,5 @@ extern void userspace(uspace_arg_t *uarg) __attribute__ ((noreturn));
 
 #endif
 
- /** @}
+/** @}
  */
-

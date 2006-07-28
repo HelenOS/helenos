@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -40,6 +40,5 @@ extern void preemption_enable(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

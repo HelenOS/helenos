@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -48,6 +48,5 @@ extern void _memsetw(uintptr_t dst, size_t cnt, uint16_t x);
 
 #endif
 
- /** @}
+/** @}
  */
-

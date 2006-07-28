@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -57,6 +57,5 @@ static inline uint32_t uint32_t_byteorder_swap(uint32_t n)
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericinterrupt
+/** @addtogroup genericinterrupt
  * @{
  */
 /** @file
@@ -69,6 +69,5 @@ void exc_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

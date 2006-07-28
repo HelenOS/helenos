@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -50,6 +50,5 @@ typedef __builtin_va_list va_list;
 
 #endif
 
- /** @}
+/** @}
  */
-

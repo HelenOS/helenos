@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -54,6 +54,5 @@ extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 
 #endif
 
- /** @}
+/** @}
  */
-

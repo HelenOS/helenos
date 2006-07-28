@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -66,6 +66,5 @@ static inline int fnzb64(uint64_t arg)
 
 #endif
 
- /** @}
+/** @}
  */
-

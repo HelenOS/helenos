@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -53,6 +53,5 @@ extern int uint8_t_cmp(void * a, void * b);
 
 #endif
 
- /** @}
+/** @}
  */
-

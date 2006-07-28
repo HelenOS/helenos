@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -54,6 +54,5 @@ extern int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size);
 
 #endif
 
- /** @}
+/** @}
  */
-

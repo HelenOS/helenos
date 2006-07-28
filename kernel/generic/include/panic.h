@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -45,6 +45,5 @@ extern void panic_printf(char *fmt, ...) __attribute__((noreturn)) ;
 
 #endif
 
- /** @}
+/** @}
  */
-

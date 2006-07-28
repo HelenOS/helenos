@@ -27,7 +27,7 @@
  */
 
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @ingroup others
  * @{
  */
@@ -54,6 +54,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

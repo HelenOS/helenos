@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -90,6 +90,5 @@ static inline void context_restore(context_t *c)
 
 #endif
 
- /** @}
+/** @}
  */
-

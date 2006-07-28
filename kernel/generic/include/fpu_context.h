@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -53,6 +53,5 @@ extern void fpu_disable(void);
 #endif /* __FPU_CONTEXT_H__ */
 
 
- /** @}
+/** @}
  */
-
