@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
@@ -69,6 +69,5 @@ extern void after_thread_ran_arch(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

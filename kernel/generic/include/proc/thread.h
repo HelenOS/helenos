@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
@@ -146,6 +146,7 @@ struct thread {
 
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
 	uint32_t tid;				/**< Thread ID. */
+	context_id_t context;		/**< Thread security context */
 	
 	thread_arch_t arch;			/**< Architecture-specific data. */
 
@@ -192,6 +193,5 @@ unative_t sys_thread_exit(int uspace_status);
 
 #endif
 
- /** @}
+/** @}
  */
-

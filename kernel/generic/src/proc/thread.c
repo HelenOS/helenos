@@ -123,7 +123,7 @@ static void cushion(void)
 /** Initialization and allocation for thread_t structure */
 static int thr_constructor(void *obj, int kmflags)
 {
-	thread_t *t = (thread_t *)obj;
+	thread_t *t = (thread_t *) obj;
 
 	spinlock_initialize(&t->lock, "thread_t_lock");
 	link_initialize(&t->rq_link);
@@ -155,7 +155,7 @@ static int thr_constructor(void *obj, int kmflags)
 /** Destruction of thread_t object */
 static int thr_destructor(void *obj)
 {
-	thread_t *t = (thread_t *)obj;
+	thread_t *t = (thread_t *) obj;
 
 	frame_free(KA2PA(t->kstack));
 #ifdef ARCH_HAS_FPU
@@ -299,7 +299,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	thread_create_arch(t);
 	
 	/* Not needed, but good for debugging */
-	memsetb((uintptr_t)t->kstack, THREAD_STACK_SIZE * 1<<STACK_FRAMES, 0);
+	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES, 0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tidlock);
@@ -318,6 +318,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 	memcpy(t->name, name, THREAD_NAME_BUFLEN);
 	
+	t->context = THE->context;
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
@@ -533,8 +534,8 @@ void thread_print_list(void)
 			thread_t *t;
 		
 			t = (thread_t *) node->value[i];
-			printf("%s: address=%#zx, tid=%zd, state=%s, task=%#zx, code=%#zx, stack=%#zx, cpu=",
-				t->name, t, t->tid, thread_states[t->state], t->task, t->thread_code, t->kstack);
+			printf("%s: address=%#zx, tid=%zd, context=%ld, state=%s, task=%#zx, code=%#zx, stack=%#zx, cpu=",
+				t->name, t, t->tid, t->context, thread_states[t->state], t->task, t->thread_code, t->kstack);
 			if (t->cpu)
 				printf("cpu%zd", t->cpu->id);
 			else

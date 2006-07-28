@@ -115,6 +115,7 @@ task_t *task_create(as_t *as, char *name)
 	ta->name = name;
 	ta->main_thread = NULL;
 	ta->refcount = 0;
+	ta->context = THE->context;
 
 	ta->capabilities = 0;
 	ta->accept_new_threads = true;
@@ -355,8 +356,8 @@ void task_print_list(void)
 			t = (task_t *) node->value[i];
 		
 			spinlock_lock(&t->lock);
-			printf("%s(%lld): address=%#zx, as=%#zx, ActiveCalls: %zd",
-				t->name, t->taskid, t, t->as, atomic_get(&t->active_calls));
+			printf("%s(%lld): context=%ld, address=%#zx, as=%#zx, ActiveCalls: %zd",
+				t->name, t->taskid, t->context, t, t->as, atomic_get(&t->active_calls));
 			for (j=0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
 					printf(" Ph(%zd): %#zx ", j, t->phones[j].callee);

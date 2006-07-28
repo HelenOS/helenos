@@ -60,6 +60,7 @@ struct the {
 	task_t *task;			/**< Current task. */
 	cpu_t *cpu;			/**< Executing cpu. */
 	as_t *as;			/**< Current address space. */
+	context_id_t context;	/**< Current security context. */
 };
 
 #define THE		((the_t *)(get_stack_base()))	

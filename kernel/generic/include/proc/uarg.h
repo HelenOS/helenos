@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
@@ -48,6 +48,5 @@ typedef struct uspace_arg {
 
 #endif
 
- /** @}
+/** @}
  */
-

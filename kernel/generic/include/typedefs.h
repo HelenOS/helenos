@@ -45,6 +45,7 @@ typedef unsigned long count_t;
 typedef unsigned long index_t;
 
 typedef unsigned long long task_id_t;
+typedef unsigned long context_id_t;
 
 typedef struct cpu_info cpu_info_t;
 

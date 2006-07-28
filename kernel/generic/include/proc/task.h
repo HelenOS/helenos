@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericproc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
@@ -58,6 +58,7 @@ struct task {
 	link_t th_head;		/**< List of threads contained in this task. */
 	as_t *as;		/**< Address space. */
 	task_id_t taskid;	/**< Unique identity of task */
+	context_id_t context;	/**< Task security context */
 
 	/** If this is true, new threads can become part of the task. */
 	bool accept_new_threads;
