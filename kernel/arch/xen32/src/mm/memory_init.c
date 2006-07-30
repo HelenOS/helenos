@@ -39,7 +39,7 @@
 
 size_t get_memory_size(void) 
 {
-	return start_info.nr_pages * PAGE_SIZE;
+	return start_info.frames * PAGE_SIZE;
 }
 
 void memory_print_map(void)

@@ -37,11 +37,15 @@
 #include <arch/mm/asid.h>
 #include <arch/asm.h>
 #include <arch/types.h>
+#include <arch/hypercall.h>
 
 /** Invalidate all entries in TLB. */
 void tlb_invalidate_all(void)
 {
-	write_cr3(read_cr3());
+	mmuext_op_t mmu_ext;
+	
+	mmu_ext.cmd = MMUEXT_TLB_FLUSH_LOCAL;
+	xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF);
 }
 
 /** Invalidate all entries in TLB that belong to specified address space.

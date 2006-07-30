@@ -36,13 +36,16 @@
 #define __xen32_FRAME_H__
 
 #define FRAME_WIDTH	12	/* 4K */
-#define FRAME_SIZE	(1<<FRAME_WIDTH)
+#define FRAME_SIZE	(1 << FRAME_WIDTH)
 
 
 #ifdef KERNEL
 #ifndef __ASM__
 
 #include <arch/types.h>
+#include <arch/boot/boot.h>
+
+#define PA2MA(x)	((start_info.pm_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
 
 extern uintptr_t last_frame;
 

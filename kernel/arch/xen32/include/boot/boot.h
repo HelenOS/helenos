@@ -44,19 +44,19 @@
 #include <arch/types.h>
 
 typedef struct {
-	char magic[32];             /**< "xen-<version>-<platform>" */
-	unsigned long nr_pages;     /**< Total pages allocated to this domain */
-	void *shared_info;          /**< Machine address of shared info struct */
+	int8_t magic[32];           /**< "xen-<version>-<platform>" */
+	uint32_t frames;            /**< Available frames */
+	void *shared_info;          /**< Shared info structure (machine address) */
 	uint32_t flags;             /**< SIF_xxx flags */
-	void *store_mfn;            /**< Machine page number of shared page */
+	pfn_t store_mfn;            /**< Shared page (machine page) */
 	uint32_t store_evtchn;      /**< Event channel for store communication */
-	void *console_mfn;          /**< Machine address of console page */
+	void *console_mfn;          /**< Console page (machine address) */
 	uint32_t console_evtchn;    /**< Event channel for console messages */
-	unsigned long *pt_base;     /**< Virtual address of page directory */
-	unsigned long nr_pt_frames; /**< Number of bootstrap p.t. frames */
-	unsigned long *mfn_list;    /**< Virtual address of page-frame list */
-	void *mod_start;            /**< Virtual address of pre-loaded module */
-	unsigned long mod_len;      /**< Size (bytes) of pre-loaded module */
+	pte_t *ptl0;                /**< Boot PTL0 (kernel address) */
+	uint32_t pt_frames;         /**< Number of bootstrap page table frames */
+	pfn_t *pm_map;              /**< Physical->machine frame map (kernel address) */
+	void *mod_start;            /**< Modules start (kernel address) */
+	uint32_t mod_len;           /**< Modules size (bytes) */
 	int8_t cmd_line[GUEST_CMDLINE];
 } start_info_t;
 

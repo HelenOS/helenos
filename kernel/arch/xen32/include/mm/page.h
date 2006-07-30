@@ -43,6 +43,7 @@
 #ifdef KERNEL
 
 #ifndef __ASM__
+#	include <arch/hypercall.h>
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
@@ -59,21 +60,36 @@
 #define PTL2_ENTRIES_ARCH	0
 #define PTL3_ENTRIES_ARCH	1024
 
-#define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>22)&0x3ff)
+#define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0
-#define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x3ff)
+#define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address) << 12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address) << 12))
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((uintptr_t) (ptl0)))
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].frame_address = (a)>>12)
+#define SET_PTL0_ADDRESS_ARCH(ptl0) { \
+	mmuext_op_t mmu_ext; \
+	mmu_ext.cmd = MMUEXT_NEW_BASEPTR; \
+	mmu_ext.arg1.mfn = ADDR2PFN(PA2MA(ptl0)); \
+	xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF); \
+}
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) { \
+	mmu_update_t update; \
+	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl0))[(i)])); \
+	update.val = PA2MA(a); \
+	xen_mmu_update(&update, 1, NULL, DOMID_SELF); \
+}
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].frame_address = (a)>>12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) { \
+	mmu_update_t update; \
+	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl3))[(i)])); \
+	update.val = PA2MA(a); \
+	xen_mmu_update(&update, 1, NULL, DOMID_SELF); \
+}
 
 #define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
@@ -87,7 +103,7 @@
 
 #define PTE_VALID_ARCH(p)			(*((uint32_t *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
-#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address<<FRAME_WIDTH)
+#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)			1
 
@@ -101,16 +117,16 @@
 /* Page fault error codes. */
 
 /** When bit on this position is 0, the page fault was caused by a not-present page. */
-#define PFERR_CODE_P		(1<<0)
+#define PFERR_CODE_P		(1 << 0)
 
 /** When bit on this position is 1, the page fault was caused by a write. */
-#define PFERR_CODE_RW		(1<<1)
+#define PFERR_CODE_RW		(1 << 1)
 
 /** When bit on this position is 1, the page fault was caused in user mode. */
-#define PFERR_CODE_US		(1<<2)
+#define PFERR_CODE_US		(1 << 2)
 
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
-#define PFERR_CODE_RSVD		(1<<3)	
+#define PFERR_CODE_RSVD		(1 << 3)
 
 /** Page Table Entry. */
 struct page_specifier {

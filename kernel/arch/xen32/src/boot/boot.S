@@ -35,8 +35,7 @@
 	.ascii  "GUEST_OS=HelenOS,"
 	.ascii  "XEN_VER=xen-3.0,"
 	.ascii  "HYPERCALL_PAGE=0x0000,"
-	.ascii  "LOADER=generic,"
-	.ascii  "PT_MODE_WRITABLE"
+	.ascii  "LOADER=generic"
 	.byte   0
 
 .text
@@ -46,8 +45,6 @@
 .global kernel_image_start
 	
 kernel_image_start:
-	cld
-	
 	# copy start_info (esi initialized by Xen)
 	
 	movl $start_info, %edi

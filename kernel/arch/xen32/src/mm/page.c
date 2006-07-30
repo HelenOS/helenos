@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup xen32mm
+/** @addtogroup xen32mm
  * @{
  */
 /** @file
@@ -51,30 +51,11 @@
 
 void page_arch_init(void)
 {
-	uintptr_t cur;
-	int flags;
-
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
-	
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-		}
-
-		exc_register(14, "page_fault", (iroutine) page_fault);
-//		write_cr3((uintptr_t) AS_KERNEL->page_table);
-	}
-	else {
-//		write_cr3((uintptr_t) AS_KERNEL->page_table);
-	}
-
-//	paging_on();
+		AS_KERNEL->page_table = (pte_t *) KA2PA(start_info.ptl0);
+	} else
+		SET_PTL0_ADDRESS_ARCH(AS_KERNEL->page_table);
 }
 
 void page_fault(int n, istate_t *istate)

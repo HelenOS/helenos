@@ -42,8 +42,6 @@
 
 extern uint32_t interrupt_handler_size;
 
-extern void paging_on(void);
-
 extern void interrupt_handlers(void);
 
 extern void enable_l_apic_in_msr(void);
@@ -74,8 +72,6 @@ static inline void cpu_sleep(void) { __asm__("hlt\n"); };
 
 GEN_READ_REG(cr0);
 GEN_READ_REG(cr2);
-GEN_READ_REG(cr3);
-GEN_WRITE_REG(cr3);
 
 GEN_READ_REG(dr0);
 GEN_READ_REG(dr1);
