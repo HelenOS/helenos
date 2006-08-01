@@ -1,0 +1,16 @@
+default 0
+timeout 10
+
+title=HelenOS/Xen
+root (cd)
+kernel /boot/xen.gz noreboot console=com1,vga com1=auto,8n1,0x3f8
+module /boot/kernel.bin
+module /boot/ns
+module /boot/init
+module /boot/pci
+module /boot/fb
+module /boot/kbd
+module /boot/console
+module /boot/tetris
+module /boot/ipcc
+module /boot/klog
