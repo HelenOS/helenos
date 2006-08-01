@@ -36,6 +36,7 @@
 #include <arch/mm/page.h>
 #include <arch/boot/boot.h>
 #include <print.h>
+#include <mm/frame.h>
 
 size_t get_memory_size(void) 
 {
@@ -44,6 +45,7 @@ size_t get_memory_size(void)
 
 void memory_print_map(void)
 {
+	printf("Xen memory: %p size: %d (reserved %d)\n", PFN2ADDR(meminfo.start), PFN2ADDR(meminfo.size - meminfo.reserved), PFN2ADDR(meminfo.reserved));
 }
 
 
