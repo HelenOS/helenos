@@ -48,6 +48,7 @@ typedef struct {
 #define XEN_MMU_UPDATE			1
 #define XEN_SET_CALLBACKS		4
 #define XEN_UPDATE_VA_MAPPING	14
+#define XEN_VERSION				17
 #define XEN_CONSOLE_IO			18
 #define XEN_VM_ASSIST			21
 #define XEN_MMUEXT_OP			26
@@ -99,6 +100,8 @@ typedef struct {
 #define DOMID_SELF (0x7FF0U)
 #define DOMID_IO   (0x7FF1U)
 
+
+#define force_evtchn_callback() ((void) xen_version(0, 0))
 
 #define hypercall0(id)	\
 	({	\
@@ -216,6 +219,11 @@ static inline int xen_set_callbacks(const unsigned int event_selector, const voi
 static inline int xen_set_trap_table(const trap_info_t *table)
 {
 	return hypercall1(XEN_SET_TRAP_TABLE, table);
+}
+
+static inline int xen_version(const unsigned int cmd, const void *arg)
+{
+	return hypercall2(XEN_VERSION, cmd, arg);
 }
 
 #endif

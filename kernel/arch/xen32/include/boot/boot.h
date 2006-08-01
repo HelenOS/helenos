@@ -76,7 +76,7 @@ typedef struct arch_shared_info {
 
 typedef struct {
 	uint8_t evtchn_upcall_pending;
-	uint8_t evtchn_upcall_mask;
+	ipl_t evtchn_upcall_mask;
 	evtchn_t evtchn_pending_sel;
 	arch_vcpu_info_t arch;
 	vcpu_time_info_t time;

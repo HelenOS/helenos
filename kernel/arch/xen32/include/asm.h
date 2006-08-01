@@ -38,6 +38,7 @@
 
 #include <arch/pm.h>
 #include <arch/types.h>
+#include <arch/barrier.h>
 #include <config.h>
 
 extern uint32_t interrupt_handler_size;
@@ -150,13 +151,15 @@ static inline uint32_t inl(uint16_t port) { uint32_t val; __asm__ volatile ("inl
  */
 static inline ipl_t interrupts_enable(void)
 {
-	ipl_t v = 0;
-/*	__asm__ volatile (
-		"pushf\n\t"
-		"popl %0\n\t"
-		"sti\n"
-		: "=r" (v)
-	);*/
+	// FIXME SMP
+	
+	ipl_t v = shared_info.vcpu_info[0].evtchn_upcall_mask;
+	write_barrier();
+	shared_info.vcpu_info[0].evtchn_upcall_mask = 0;
+	write_barrier();
+	if (shared_info.vcpu_info[0].evtchn_upcall_pending)
+		force_evtchn_callback();
+	
 	return v;
 }
 
@@ -169,13 +172,12 @@ static inline ipl_t interrupts_enable(void)
  */
 static inline ipl_t interrupts_disable(void)
 {
-	ipl_t v = 0;
-/*	__asm__ volatile (
-		"pushf\n\t"
-		"popl %0\n\t"
-		"cli\n"
-		: "=r" (v)
-	);*/
+	// FIXME SMP
+	
+	ipl_t v = shared_info.vcpu_info[0].evtchn_upcall_mask;
+	shared_info.vcpu_info[0].evtchn_upcall_mask = 1;
+	write_barrier();
+	
 	return v;
 }
 
@@ -187,11 +189,10 @@ static inline ipl_t interrupts_disable(void)
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
-/*	__asm__ volatile (
-		"pushl %0\n\t"
-		"popf\n"
-		: : "r" (ipl)
-	);*/
+	if (ipl == 0)
+		interrupts_enable();
+	else
+		interrupts_disable();
 }
 
 /** Return interrupt priority level.
@@ -200,13 +201,9 @@ static inline void interrupts_restore(ipl_t ipl)
  */
 static inline ipl_t interrupts_read(void)
 {
-	ipl_t v = 0;
-/*	__asm__ volatile (
-		"pushf\n\t"
-		"popl %0\n"
-		: "=r" (v)
-	);*/
-	return v;
+	// FIXME SMP
+	
+	return shared_info.vcpu_info[0].evtchn_upcall_mask;
 }
 
 /** Return base address of current stack
