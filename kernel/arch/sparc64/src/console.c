@@ -54,7 +54,9 @@ void standalone_sparc64_console_init(void)
 {
 	stdin = NULL;
 
-	kbd_init();
+	if (bootinfo.keyboard.addr)
+		kbd_init();
+		
 	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
 		bootinfo.screen.bpp, bootinfo.screen.scanline);
 }
@@ -65,6 +67,9 @@ void standalone_sparc64_console_init(void)
  */
 void kkbdpoll(void *arg)
 {
+	if (!bootinfo.keyboard.addr)
+		return;
+		
 	while (1) {
 		i8042_poll();		
 		thread_usleep(KEYBOARD_POLL_PAUSE);

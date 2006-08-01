@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -34,11 +34,6 @@
 
 #ifndef __sparc64_MMU_H__
 #define __sparc64_MMU_H__
-
-#include <arch/asm.h>
-#include <arch/barrier.h>
-#include <arch/types.h>
-#include <typedefs.h>
 
 /** LSU Control Register ASI. */
 #define ASI_LSU_CONTROL_REG		0x45	/**< Load/Store Unit Control Register. */
@@ -79,6 +74,12 @@
 #define VA_DMMU_VA_WATCHPOINT_REG	0x38	/**< DMMU VA data watchpoint register. */
 #define VA_DMMU_PA_WATCHPOINT_REG	0x40	/**< DMMU PA data watchpoint register. */
 
+#ifndef __ASM__
+
+#include <arch/asm.h>
+#include <arch/barrier.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 /** LSU Control Register. */
 union lsu_cr_reg {
@@ -102,36 +103,9 @@ union lsu_cr_reg {
 };
 typedef union lsu_cr_reg lsu_cr_reg_t;
 
-
-#define immu_enable()	immu_set(true)
-#define immu_disable()	immu_set(false)
-#define dmmu_enable()	dmmu_set(true)
-#define dmmu_disable()	dmmu_set(false)
-
-/** Disable or Enable IMMU. */
-static inline void immu_set(bool enable)
-{
-	lsu_cr_reg_t cr;
-	
-	cr.value = asi_u64_read(ASI_LSU_CONTROL_REG, 0);
-	cr.im = enable;
-	asi_u64_write(ASI_LSU_CONTROL_REG, 0, cr.value);
-	membar();
-}
-
-/** Disable or Enable DMMU. */
-static inline void dmmu_set(bool enable)
-{
-	lsu_cr_reg_t cr;
-	
-	cr.value = asi_u64_read(ASI_LSU_CONTROL_REG, 0);
-	cr.dm = enable;
-	asi_u64_write(ASI_LSU_CONTROL_REG, 0, cr.value);
-	membar();
-}
+#endif /* !__ASM__ */
 
 #endif
 
- /** @}
+/** @}
  */
-

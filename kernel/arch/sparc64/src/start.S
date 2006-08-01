@@ -71,14 +71,14 @@ kernel_image_start:
 	call memcpy
 	nop
 
-	/*
-	 * Take over control of identity mapping.
-	 * Take over control of trap table.
-	 *
-	 * After this call, the kernel is entirely self-sufficient
-	 * and independent on OpenFirmware.
-	 */
 	set kernel_image_start, %o0
+	/*
+	 * Take over control of MMU.
+	 *
+	 * First, take over DMMU for which we don't need to issue
+	 * any FLUSH instructions. Because of that, we can
+	 * demap the old DTLB pretty straightforwardly.
+	 */
 	call take_over_tlb_and_tt
 	nop
 

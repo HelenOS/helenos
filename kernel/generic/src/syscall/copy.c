@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
     
- /** @addtogroup generic
+/** @addtogroup generic
  * @{
  */
 
@@ -128,6 +128,5 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	return !rc ? EPERM : 0;
 }
 
- /** @}
+/** @}
  */
-

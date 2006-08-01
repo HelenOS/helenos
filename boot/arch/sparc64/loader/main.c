@@ -60,10 +60,8 @@ void bootstrap(void)
 	}
 	bootinfo.screen.addr = ofw_translate(bootinfo.screen.addr);
 	
-	if (!ofw_keyboard(&bootinfo.keyboard)) {
-		printf("Error: unable to get keyboard properties, halting.\n");
-		halt();
-	}
+	if (!ofw_keyboard(&bootinfo.keyboard))
+		printf("Error: unable to get keyboard properties\n");
 	
 	printf("\nDevice statistics\n");
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);

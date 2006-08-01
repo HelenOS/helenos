@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -227,7 +227,7 @@ static inline void dtlb_data_access_write(index_t entry, uint64_t value)
 	reg.value = 0;
 	reg.tlb_entry = entry;
 	asi_u64_write(ASI_DTLB_DATA_ACCESS_REG, reg.value, value);
-	flush();
+	membar();
 }
 
 /** Read IMMU TLB Tag Read Register.
@@ -286,7 +286,7 @@ static inline uint64_t itlb_tag_access_read(void)
 static inline void dtlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_TAG_ACCESS, v);
-	flush();
+	membar();
 }
 
 /** Read DMMU TLB Tag Access Register.
@@ -316,7 +316,7 @@ static inline void itlb_data_in_write(uint64_t v)
 static inline void dtlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_DTLB_DATA_IN_REG, 0, v);
-	flush();
+	membar();
 }
 
 /** Read ITLB Synchronous Fault Status Register.
@@ -354,7 +354,7 @@ static inline uint64_t dtlb_sfsr_read(void)
 static inline void dtlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_SFSR, v);
-	flush();
+	membar();
 }
 
 /** Read DTLB Synchronous Fault Address Register.
@@ -407,7 +407,7 @@ static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 	da.vpn = pg.vpn;
 	
 	asi_u64_write(ASI_DMMU_DEMAP, da.value, 0);
-	flush();
+	membar();
 }
 
 extern void fast_instruction_access_mmu_miss(void);
@@ -418,6 +418,5 @@ extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, b
 
 #endif
 
- /** @}
+/** @}
  */
-

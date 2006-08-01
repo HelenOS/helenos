@@ -96,14 +96,13 @@ void arch_release_console(void)
  * Initialize ITLB and DTLB and switch to kernel
  * trap table.
  *
- * The goal of this function is to disable MMU
- * so that both TLBs can be purged and new
- * kernel 4M locked entry can be installed.
- * After TLB is initialized, MMU is enabled
- * again.
+ * First, demap context 0 and install the
+ * global 4M locked kernel mapping.
  *
- * Switching MMU off imposes the requirement for
- * the kernel to run in identity mapped environment.
+ * Second, prepare a temporary IMMU mapping in
+ * context 1, switch to it, demap context 0,
+ * install the global 4M locked kernel mapping
+ * in context 0 and switch back to context 0.
  *
  * @param base Base address that will be hardwired in both TLBs.
  */
@@ -114,26 +113,20 @@ void take_over_tlb_and_tt(uintptr_t base)
 	frame_address_t fr;
 	page_address_t pg;
 
+	/*
+	 * Switch to the kernel trap table.
+	 */
+	trap_switch_trap_table();
+
 	fr.address = base;
 	pg.address = base;
 
-	immu_disable();
-	dmmu_disable();
-
-	/*
-	 * Demap everything, especially OpenFirmware.
-	 */
-	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
-	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
-	
 	/*
 	 * We do identity mapping of 4M-page at 4M.
 	 */
-	tag.value = ASID_KERNEL;
+	tag.value = 0;
+	tag.context = 0;
 	tag.vpn = pg.vpn;
-
-	itlb_tag_access_write(tag.value);
-	dtlb_tag_access_write(tag.value);
 
 	data.value = 0;
 	data.v = true;
@@ -141,25 +134,43 @@ void take_over_tlb_and_tt(uintptr_t base)
 	data.pfn = fr.pfn;
 	data.l = true;
 	data.cp = 1;
-	data.cv = 1;
+	data.cv = 0;
 	data.p = true;
 	data.w = true;
 	data.g = true;
 
-	itlb_data_in_write(data.value);
+	/*
+	 * Straightforwardly demap DMUU context 0,
+	 * and replace it with the locked kernel mapping.
+	 */
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	dtlb_tag_access_write(tag.value);
 	dtlb_data_in_write(data.value);
 
 	/*
-	 * Register window traps can occur before MMU is enabled again.
-	 * This ensures that any such traps will be handled from 
-	 * kernel identity mapped trap handler.
+	 * Install kernel code mapping in context 1
+	 * and switch to it.
 	 */
-	trap_switch_trap_table();
+	tag.context = 1;
+	data.g = false;
+	itlb_tag_access_write(tag.value);
+	itlb_data_in_write(data.value);
+	mmu_primary_context_write(1);
 	
-	tlb_invalidate_all();
-
-	dmmu_enable();
-	immu_enable();
+	/*
+	 * Demap old context 0.
+	 */
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	
+	/*
+	 * Install the locked kernel mapping in context 0
+	 * and switch to it.
+	 */
+	tag.context = 0;
+	data.g = true;
+	itlb_tag_access_write(tag.value);
+	itlb_data_in_write(data.value);
+	mmu_primary_context_write(0);
 }
 
 /** @}

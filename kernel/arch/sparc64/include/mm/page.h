@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
@@ -65,6 +65,5 @@ extern void page_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-
