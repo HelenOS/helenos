@@ -222,8 +222,11 @@ void main_bsp_separated_stack(void)
 	futex_init();
 	klog_init();
 	
-	for (i = 0; i < init.cnt; i++)
-		printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(uintptr_t) * 2, init.tasks[i].addr, i, init.tasks[i].size);
+	if (init.cnt > 0) {
+		for (i = 0; i < init.cnt; i++)
+			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(uintptr_t) * 2, init.tasks[i].addr, i, init.tasks[i].size);
+	} else
+		printf("No init tasks found\n");
 	
 	ipc_init();
 
