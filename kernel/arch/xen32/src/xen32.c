@@ -36,10 +36,12 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <align.h>
 
 #include <arch/pm.h>
 
 #include <arch/drivers/xconsole.h>
+#include <arch/mm/page.h>
 
 #include <arch/context.h>
 
@@ -60,6 +62,52 @@
 #include <console/console.h>
 
 start_info_t start_info;
+memzone_t meminfo;
+
+void arch_pre_main(void)
+{
+	xen_vm_assist(VMASST_CMD_ENABLE, VMASST_TYPE_WRITABLE_PAGETABLES);
+	
+	pte_t pte;
+	memsetb((uintptr_t) &pte, sizeof(pte), 0);
+	
+	pte.present = 1;
+	pte.writeable = 1;
+	pte.frame_address = ADDR2PFN((uintptr_t) start_info.shared_info);
+	xen_update_va_mapping(&shared_info, pte, UVMF_INVLPG);
+	
+	/* Create identity mapping */
+	
+	meminfo.start = ADDR2PFN(ALIGN_UP(KA2PA(start_info.ptl0), PAGE_SIZE)) + start_info.pt_frames;
+	meminfo.size = start_info.frames - meminfo.start;
+	meminfo.reserved = 0;
+	
+	uintptr_t pa;
+	index_t last_ptl0 = 0;
+	for (pa = PFN2ADDR(meminfo.start); pa < PFN2ADDR(meminfo.start + meminfo.size); pa += FRAME_SIZE) {
+		uintptr_t va = PA2KA(pa);
+		
+		if ((PTL0_INDEX(va) != last_ptl0) && (GET_PTL1_FLAGS(start_info.ptl0, PTL0_INDEX(va)) & PAGE_NOT_PRESENT)) {
+			/* New page directory entry needed */
+			uintptr_t tpa = PFN2ADDR(meminfo.start + meminfo.reserved);
+			uintptr_t tva = PA2KA(tpa);
+			
+			memsetb(tva, PAGE_SIZE, 0);
+			
+			pte_t *tptl3 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(tva)));
+			SET_FRAME_FLAGS(tptl3, PTL3_INDEX(tva), PAGE_PRESENT);
+			SET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(va), tpa);
+			
+			last_ptl0 = PTL0_INDEX(va);
+			meminfo.reserved++;
+		}
+		
+		pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(va)));
+		
+		SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(va), pa);
+		SET_FRAME_FLAGS(ptl3, PTL3_INDEX(va), PAGE_PRESENT | PAGE_WRITE);
+	}
+}
 
 void arch_pre_mm_init(void)
 {

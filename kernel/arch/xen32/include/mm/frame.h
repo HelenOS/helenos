@@ -46,8 +46,7 @@
 #include <arch/boot/boot.h>
 
 #define PA2MA(x)	((start_info.pm_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
-
-extern uintptr_t last_frame;
+#define MA2PA(x)	((mp_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
 
 extern void frame_arch_init(void);
 

@@ -35,27 +35,12 @@
 
 typedef uint16_t domid_t;
 
-typedef struct {
-    uint64_t ptr;  /**< Machine address of PTE */
-    uint64_t val;  /**< New contents of PTE */
-} mmu_update_t;
 
-typedef struct {
-    unsigned int cmd;
-    union {
-        unsigned long mfn;
-        unsigned long linear_addr;
-    } arg1;
-    union {
-        unsigned int nr_ents;
-        void *vcpumask;
-    } arg2;
-} mmuext_op_t;
-
-
-#define XEN_MMU_UPDATE	1
-#define XEN_CONSOLE_IO	18
-#define XEN_MMUEXT_OP	26
+#define XEN_MMU_UPDATE			1
+#define XEN_UPDATE_VA_MAPPING	14
+#define XEN_CONSOLE_IO			18
+#define XEN_VM_ASSIST			21
+#define XEN_MMUEXT_OP			26
 
 
 /*
@@ -80,6 +65,25 @@ typedef struct {
 #define MMUEXT_FLUSH_CACHE      12
 #define MMUEXT_SET_LDT          13
 #define MMUEXT_NEW_USER_BASEPTR 15
+
+
+#define UVMF_NONE				0        /**< No flushing at all */
+#define UVMF_TLB_FLUSH			1        /**< Flush entire TLB(s) */
+#define UVMF_INVLPG				2        /**< Flush only one entry */
+#define UVMF_FLUSHTYPE_MASK		3
+#define UVMF_MULTI				0        /**< Flush subset of TLBs */
+#define UVMF_LOCAL				0        /**< Flush local TLB */
+#define UVMF_ALL				(1 << 2) /**< Flush all TLBs */
+
+
+/*
+ * Commands to XEN_VM_ASSIST
+ */
+#define VMASST_CMD_ENABLE				0
+#define VMASST_CMD_DISABLE				1
+#define VMASST_TYPE_4GB_SEGMENTS		0
+#define VMASST_TYPE_4GB_SEGMENTS_NOTIFY	1
+#define VMASST_TYPE_WRITABLE_PAGETABLES	2
 
 
 #define DOMID_SELF (0x7FF0U)
@@ -189,14 +193,9 @@ static inline int xen_console_io(const unsigned int cmd, const unsigned int coun
 	return hypercall3(XEN_CONSOLE_IO, cmd, count, str);
 }
 
-static inline int xen_mmu_update(const mmu_update_t *req, const unsigned int count, unsigned int *success_count, domid_t domid)
+static inline int xen_vm_assist(const unsigned int cmd, const unsigned int type)
 {
-	return hypercall4(XEN_MMU_UPDATE, req, count, success_count, domid);
-}
-
-static inline int xen_mmuext_op(const mmuext_op_t *op, const unsigned int count, unsigned int *success_count, domid_t domid)
-{
-	return hypercall4(XEN_MMUEXT_OP, op, count, success_count, domid);
+    return hypercall2(XEN_VM_ASSIST, cmd, type);
 }
 
 #endif

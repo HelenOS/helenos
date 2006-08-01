@@ -32,10 +32,11 @@
 #include <arch/pm.h>
 
 .section __xen_guest
-	.ascii  "GUEST_OS=HelenOS,"
-	.ascii  "XEN_VER=xen-3.0,"
-	.ascii  "HYPERCALL_PAGE=0x0000,"
-	.ascii  "LOADER=generic"
+	.ascii "GUEST_OS=HelenOS,"
+	.ascii "XEN_VER=xen-3.0,"
+	.ascii "HYPERCALL_PAGE=0x0000,"
+	.ascii "LOADER=generic,"
+	.ascii "FEATURES=writable_page_tables"
 	.byte   0
 
 .text
@@ -51,14 +52,28 @@ kernel_image_start:
 	movl $START_INFO_SIZE >> 2, %ecx
 	cld
 	rep movsb
-
+	
+	# switch to temporal kernel stack
+	
+	movl $kernel_stack, %esp
+	
+	call arch_pre_main
 	call main_bsp								# never returns
 
 	cli
 	hlt
 
+kernel_stack_bottom:
+	.space TEMP_STACK_SIZE
+kernel_stack:
+
 .section K_TEXT_START, "aw", @progbits
 .global hypercall_page
 .org 0
 hypercall_page:
+	.space PAGE_SIZE
+
+.global shared_info
+.org 0x1000
+shared_info:
 	.space PAGE_SIZE

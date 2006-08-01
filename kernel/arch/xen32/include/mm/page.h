@@ -43,7 +43,6 @@
 #ifdef KERNEL
 
 #ifndef __ASM__
-#	include <arch/hypercall.h>
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
@@ -65,41 +64,39 @@
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address) << 12))
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *) MA2PA((((pte_t *) (ptl0))[(i)].frame_address) << 12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address) << 12))
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t) MA2PA((((pte_t *) (ptl3))[(i)].frame_address) << 12))
 
 #define SET_PTL0_ADDRESS_ARCH(ptl0) { \
 	mmuext_op_t mmu_ext; \
+	\
 	mmu_ext.cmd = MMUEXT_NEW_BASEPTR; \
-	mmu_ext.arg1.mfn = ADDR2PFN(PA2MA(ptl0)); \
+	mmu_ext.mfn = ADDR2PFN(PA2MA(ptl0)); \
 	xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF); \
 }
+
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) { \
 	mmu_update_t update; \
+	\
 	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl0))[(i)])); \
-	update.val = PA2MA(a); \
+	update.val = PA2MA(a) | 0x0003; \
 	xen_mmu_update(&update, 1, NULL, DOMID_SELF); \
 }
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) { \
-	mmu_update_t update; \
-	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl3))[(i)])); \
-	update.val = PA2MA(a); \
-	xen_mmu_update(&update, 1, NULL, DOMID_SELF); \
-}
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *) (ptl3))[(i)].frame_address = PA2MA(a) >> 12)
 
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
+#define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *) (ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i)		PAGE_PRESENT
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		get_pt_flags((pte_t *)(ptl3), (index_t)(i))
+#define GET_FRAME_FLAGS_ARCH(ptl3, i)		get_pt_flags((pte_t *) (ptl3), (index_t)(i))
 
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *)(ptl0), (index_t)(i), (x))
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *) (ptl0), (index_t)(i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)		set_pt_flags((pte_t *) (ptl3), (index_t)(i), (x))
 
 #define PTE_VALID_ARCH(p)			(*((uint32_t *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
@@ -113,6 +110,7 @@
 #include <arch/types.h>
 #include <arch/mm/frame.h>
 #include <typedefs.h>
+#include <arch/hypercall.h>
 
 /* Page fault error codes. */
 
@@ -143,6 +141,41 @@ struct page_specifier {
 	unsigned avl : 2;
 	unsigned frame_address : 20;
 } __attribute__ ((packed));
+
+typedef struct {
+	uint64_t ptr;      /**< Machine address of PTE */
+	union {            /**< New contents of PTE */
+		uint64_t val;
+		pte_t pte;
+	};
+} mmu_update_t;
+
+typedef struct {
+	unsigned int cmd;
+	union {
+		unsigned long mfn;
+		unsigned long linear_addr;
+	};
+	union {
+		unsigned int nr_ents;
+		void *vcpumask;
+	};
+} mmuext_op_t;
+
+static inline int xen_update_va_mapping(const void *va, const pte_t pte, const unsigned int flags)
+{
+	return hypercall4(XEN_UPDATE_VA_MAPPING, va, pte, 0, flags);
+}
+
+static inline int xen_mmu_update(const mmu_update_t *req, const unsigned int count, unsigned int *success_count, domid_t domid)
+{
+	return hypercall4(XEN_MMU_UPDATE, req, count, success_count, domid);
+}
+
+static inline int xen_mmuext_op(const mmuext_op_t *op, const unsigned int count, unsigned int *success_count, domid_t domid)
+{
+	return hypercall4(XEN_MMUEXT_OP, op, count, success_count, domid);
+}
 
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {
