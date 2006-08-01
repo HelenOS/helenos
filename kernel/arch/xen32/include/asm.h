@@ -55,8 +55,8 @@ extern void asm_fake_loop(uint32_t t);
  *
  * Halt the current CPU until interrupt event.
  */
-static inline void cpu_halt(void) { __asm__("hlt\n"); };
-static inline void cpu_sleep(void) { __asm__("hlt\n"); };
+#define cpu_halt() ((void) 0)
+#define cpu_sleep() ((void) 0)
 
 #define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
     { \
