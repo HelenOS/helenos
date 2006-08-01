@@ -39,7 +39,20 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/hypercall.h>
+#include <mm/frame.h>
 
+#define MASK_INDEX(index, ring) ((index) & (sizeof(ring) - 1))
+
+typedef struct {
+	char in[1024];
+	char out[2048];
+    uint32_t in_cons;
+	uint32_t in_prod;
+    uint32_t out_cons;
+	uint32_t out_prod;
+} xencons_t;
+
+static bool asynchronous = false;
 static void xen_putchar(chardev_t *d, const char ch);
 
 chardev_t xen_console;
@@ -51,11 +64,33 @@ void xen_console_init(void)
 {
 	chardev_initialize("xen_out", &xen_console, &xen_ops);
 	stdout = &xen_console;
+	if (!(start_info.flags & SIF_INITDOMAIN))
+		asynchronous = true;
 }
 
 void xen_putchar(chardev_t *d, const char ch)
 {
-	xen_console_io(CONSOLE_IO_WRITE, 1, &ch);
+	if (asynchronous) {
+		xencons_t *console = (xencons_t *) PA2KA(MA2PA(PFN2ADDR(start_info.console_mfn)));
+		uint32_t cons = console->out_cons;
+		uint32_t prod = console->out_prod;
+		
+		memory_barrier();
+		
+		if ((prod - cons) > sizeof(console->out))
+			return;
+		
+		if (ch == '\n')
+			console->out[MASK_INDEX(prod++, console->out)] = '\r';
+		console->out[MASK_INDEX(prod++, console->out)] = ch;
+		
+		write_barrier();
+		
+		console->out_prod = prod;
+		
+		xen_notify_remote(start_info.console_evtchn);
+	} else
+		xen_console_io(CONSOLE_IO_WRITE, 1, &ch);
 }
 
 /** @}

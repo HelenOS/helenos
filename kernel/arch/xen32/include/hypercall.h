@@ -40,14 +40,27 @@ typedef struct {
 	uint8_t vector;     /**< Exception vector */
 	uint8_t flags;      /**< 0-3: privilege level; 4: clear event enable */
 	uint16_t cs;        /**< Code selector */
-	uintptr_t address;  /**< Code offset */
+	void *address;      /**< Code offset */
 } trap_info_t;
+
+
+typedef struct {
+	evtchn_t port;
+} evtchn_send_t;
+
+typedef struct {
+	uint32_t cmd;
+	union {
+		evtchn_send_t send;
+    };
+} evtchn_op_t;
 
 
 #define XEN_SET_TRAP_TABLE		0
 #define XEN_MMU_UPDATE			1
 #define XEN_SET_CALLBACKS		4
 #define XEN_UPDATE_VA_MAPPING	14
+#define XEN_EVENT_CHANNEL_OP	16
 #define XEN_VERSION				17
 #define XEN_CONSOLE_IO			18
 #define XEN_VM_ASSIST			21
@@ -76,6 +89,9 @@ typedef struct {
 #define MMUEXT_FLUSH_CACHE      12
 #define MMUEXT_SET_LDT          13
 #define MMUEXT_NEW_USER_BASEPTR 15
+
+
+#define EVTCHNOP_SEND			4
 
 
 #define UVMF_NONE				0        /**< No flushing at all */
@@ -224,6 +240,15 @@ static inline int xen_set_trap_table(const trap_info_t *table)
 static inline int xen_version(const unsigned int cmd, const void *arg)
 {
 	return hypercall2(XEN_VERSION, cmd, arg);
+}
+
+static inline int xen_notify_remote(evtchn_t channel)
+{
+    evtchn_op_t op;
+	
+    op.cmd = EVTCHNOP_SEND;
+    op.send.port = channel;
+    return hypercall1(XEN_EVENT_CHANNEL_OP, &op);
 }
 
 #endif

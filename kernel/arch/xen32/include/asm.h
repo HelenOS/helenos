@@ -41,10 +41,6 @@
 #include <arch/barrier.h>
 #include <config.h>
 
-extern uint32_t interrupt_handler_size;
-
-extern void interrupt_handlers(void);
-
 extern void enable_l_apic_in_msr(void);
 
 

@@ -103,6 +103,10 @@ void tss_initialize(tss_t *t)
 	memsetb((uintptr_t) t, sizeof(struct tss), 0);
 }
 
+static void trap(void)
+{
+}
+
 void traps_init(void)
 {
 	index_t i;
@@ -116,7 +120,7 @@ void traps_init(void)
 			traps[i].flags = 0;
 		
 		traps[i].cs = XEN_CS;
-		traps[i].address = ((uintptr_t) interrupt_handlers) + i * interrupt_handler_size;
+		traps[i].address = trap;
 		exc_register(i, "undef", (iroutine) null_interrupt);
 	}
 	traps[IDT_ITEMS].vector = 0;

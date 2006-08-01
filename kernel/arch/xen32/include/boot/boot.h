@@ -49,6 +49,9 @@
 
 #define mp_map ((pfn_t *) XEN_VIRT_START)
 
+#define SIF_PRIVILEGED	(1 << 0)  /**< Privileged domain */
+#define SIF_INITDOMAIN	(1 << 1)  /**< Iinitial control domain */
+
 #include <arch/types.h>
 
 typedef uint32_t evtchn_t;
@@ -101,7 +104,7 @@ typedef struct {
 	uint32_t flags;             /**< SIF_xxx flags */
 	pfn_t store_mfn;            /**< Shared page (machine page) */
 	evtchn_t store_evtchn;      /**< Event channel for store communication */
-	void *console_mfn;          /**< Console page (machine address) */
+	pfn_t console_mfn;          /**< Console page (machine page) */
 	evtchn_t console_evtchn;    /**< Event channel for console messages */
 	pte_t *ptl0;                /**< Boot PTL0 (kernel address) */
 	uint32_t pt_frames;         /**< Number of bootstrap page table frames */
