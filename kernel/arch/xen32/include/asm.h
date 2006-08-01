@@ -272,15 +272,6 @@ static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 	__asm__ volatile ("sgdtl %0\n" : : "m" (*gdtr_reg));
 }
 
-/** Load IDTR register from memory.
- *
- * @param idtr_reg Address of memory from where to load IDTR.
- */
-static inline void idtr_load(ptr_16_32_t *idtr_reg)
-{
-	__asm__ volatile ("lidtl %0\n" : : "m" (*idtr_reg));
-}
-
 /** Load TR from descriptor table.
  *
  * @param sel Selector specifying descriptor of TSS segment.

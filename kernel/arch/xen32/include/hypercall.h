@@ -36,7 +36,17 @@
 typedef uint16_t domid_t;
 
 
+typedef struct {
+	uint8_t vector;     /**< Exception vector */
+	uint8_t flags;      /**< 0-3: privilege level; 4: clear event enable */
+	uint16_t cs;        /**< Code selector */
+	uintptr_t address;  /**< Code offset */
+} trap_info_t;
+
+
+#define XEN_SET_TRAP_TABLE		0
 #define XEN_MMU_UPDATE			1
+#define XEN_SET_CALLBACKS		4
 #define XEN_UPDATE_VA_MAPPING	14
 #define XEN_CONSOLE_IO			18
 #define XEN_VM_ASSIST			21
@@ -196,6 +206,16 @@ static inline int xen_console_io(const unsigned int cmd, const unsigned int coun
 static inline int xen_vm_assist(const unsigned int cmd, const unsigned int type)
 {
     return hypercall2(XEN_VM_ASSIST, cmd, type);
+}
+
+static inline int xen_set_callbacks(const unsigned int event_selector, const void *event_address, const	unsigned int failsafe_selector, void *failsafe_address)
+{
+	return hypercall4(XEN_SET_CALLBACKS, event_selector, event_address, failsafe_selector, failsafe_address);
+}
+
+static inline int xen_set_trap_table(const trap_info_t *table)
+{
+	return hypercall1(XEN_SET_TRAP_TABLE, table);
 }
 
 #endif

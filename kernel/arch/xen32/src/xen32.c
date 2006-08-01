@@ -64,6 +64,9 @@
 start_info_t start_info;
 memzone_t meminfo;
 
+extern void xen_callback(void);
+extern void xen_failsafe_callback(void);
+
 void arch_pre_main(void)
 {
 	xen_vm_assist(VMASST_CMD_ENABLE, VMASST_TYPE_WRITABLE_PAGETABLES);
@@ -75,6 +78,8 @@ void arch_pre_main(void)
 	pte.writeable = 1;
 	pte.frame_address = ADDR2PFN((uintptr_t) start_info.shared_info);
 	xen_update_va_mapping(&shared_info, pte, UVMF_INVLPG);
+	
+	xen_set_callbacks(XEN_CS, xen_callback, XEN_CS, xen_failsafe_callback);
 	
 	/* Create identity mapping */
 	
@@ -116,11 +121,11 @@ void arch_pre_mm_init(void)
 	if (config.cpu_active == 1) {
 //		bios_init();
 		
-//		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
+		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
 		
 		#ifdef CONFIG_SMP
-//		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-//			     (iroutine) tlb_shootdown_ipi);
+		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
+			     (iroutine) tlb_shootdown_ipi);
 		#endif /* CONFIG_SMP */
 	}
 }

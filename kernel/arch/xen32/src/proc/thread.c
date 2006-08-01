@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32proc
+/** @addtogroup xen32proc
  * @{
  */
 /** @file
@@ -34,7 +34,7 @@
 
 #include <proc/thread.h>
 
-/** Perform ia32 specific thread initialization.
+/** Perform xen32 specific thread initialization.
  *
  * @param t Thread to be initialized.
  */
@@ -43,6 +43,5 @@ void thread_create_arch(thread_t *t)
 	t->arch.tls = 0;
 }
 
- /** @}
+/** @}
  */
-

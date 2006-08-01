@@ -75,7 +75,7 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 };
 
-static idescriptor_t idt[IDT_ITEMS];
+static trap_info_t traps[IDT_ITEMS + 1];
 
 static tss_t tss;
 
@@ -98,46 +98,32 @@ void gdt_setlimit(descriptor_t *d, uint32_t limit)
 	d->limit_16_19 = (limit >> 16) & 0xf;
 }
 
-void idt_setoffset(idescriptor_t *d, uintptr_t offset)
-{
-	/*
-	 * Offset is a linear address.
-	 */
-	d->offset_0_15 = offset & 0xffff;
-	d->offset_16_31 = offset >> 16;
-}
-
 void tss_initialize(tss_t *t)
 {
 	memsetb((uintptr_t) t, sizeof(struct tss), 0);
 }
 
-/*
- * This function takes care of proper setup of IDT and IDTR.
- */
-void idt_init(void)
+void traps_init(void)
 {
-	idescriptor_t *d;
-	int i;
-
+	index_t i;
+	
 	for (i = 0; i < IDT_ITEMS; i++) {
-		d = &idt[i];
-
-		d->unused = 0;
-		d->selector = selector(KTEXT_DES);
-
-		d->access = AR_PRESENT | AR_INTERRUPT;	/* masking interrupt */
-
-		if (i == VECTOR_SYSCALL) {
-			/*
-			 * The syscall interrupt gate must be calleable from userland.
-			 */
-			d->access |= DPL_USER;
-		}
+		traps[i].vector = i;
 		
-		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
+		if (i == VECTOR_SYSCALL)
+			traps[i].flags = 3;
+		else
+			traps[i].flags = 0;
+		
+		traps[i].cs = XEN_CS;
+		traps[i].address = ((uintptr_t) interrupt_handlers) + i * interrupt_handler_size;
 		exc_register(i, "undef", (iroutine) null_interrupt);
 	}
+	traps[IDT_ITEMS].vector = 0;
+	traps[IDT_ITEMS].flags = 0;
+	traps[IDT_ITEMS].cs = 0;
+	traps[IDT_ITEMS].address = NULL;
+	
 	exc_register(13, "gp_fault", (iroutine) gp_fault);
 	exc_register( 7, "nm_fault", (iroutine) nm_fault);
 	exc_register(12, "ss_fault", (iroutine) ss_fault);
@@ -172,34 +158,22 @@ static void clean_AM_flag(void)
 void pm_init(void)
 {
 	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
-	ptr_16_32_t idtr;
 
-	/*
-	 * Update addresses in GDT and IDT to their virtual counterparts.
-	 */
-	idtr.limit = sizeof(idt);
-	idtr.base = (uintptr_t) idt;
 //	gdtr_load(&gdtr);
-//	idtr_load(&idtr);
 	
-	/*
-	 * Each CPU has its private GDT and TSS.
-	 * All CPUs share one IDT.
-	 */
-
-//	if (config.cpu_active == 1) {
-//		idt_init();
-//		/*
-//		 * NOTE: bootstrap CPU has statically allocated TSS, because
-//		 * the heap hasn't been initialized so far.
-//		 */
+	if (config.cpu_active == 1) {
+		traps_init();
+		xen_set_trap_table(traps);
+		/*
+		 * NOTE: bootstrap CPU has statically allocated TSS, because
+		 * the heap hasn't been initialized so far.
+		 */
 		tss_p = &tss;
-//	}
-//	else {
-//		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
-//		if (!tss_p)
-//			panic("could not allocate TSS\n");
-//	}
+	} else {
+		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
+		if (!tss_p)
+			panic("could not allocate TSS\n");
+	}
 
 //	tss_initialize(tss_p);
 	

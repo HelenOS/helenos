@@ -40,9 +40,10 @@
 #define START_INFO_SIZE	1104
 
 #define BOOT_OFFSET		0x0000
-#define XEN_VIRT_START	0xFC000000
-
 #define TEMP_STACK_SIZE 0x1000
+
+#define XEN_VIRT_START	0xFC000000
+#define XEN_CS			0xe019
 
 #ifndef __ASM__
 

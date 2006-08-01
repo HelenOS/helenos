@@ -34,6 +34,8 @@
 
 .text
 
+.global xen_callback
+.global xen_failsafe_callback
 .global enable_l_apic_in_msr
 .global interrupt_handlers
 .global memcpy
@@ -41,6 +43,13 @@
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
+
+
+xen_callback:
+	iret
+
+xen_failsafe_callback:
+	iret
 
 
 #define MEMCPY_DST	4

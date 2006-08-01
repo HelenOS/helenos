@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32proc
+/** @addtogroup xen32proc
  * @{
  */
 /** @file
@@ -57,6 +57,5 @@ void task_destroy_arch(task_t *t)
 		free(t->arch.iomap.map);
 }
 
- /** @}
+/** @}
  */
-

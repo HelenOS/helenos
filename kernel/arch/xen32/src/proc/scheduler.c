@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32proc
+/** @addtogroup xen32proc
  * @{
  */
 /** @file
@@ -77,6 +77,5 @@ void after_thread_ran_arch(void)
 {
 }
 
- /** @}
+/** @}
  */
-

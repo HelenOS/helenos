@@ -92,15 +92,6 @@ struct descriptor {
 } __attribute__ ((packed));
 typedef struct descriptor  descriptor_t;
 
-struct idescriptor {
-	unsigned offset_0_15: 16;
-	unsigned selector: 16;
-	unsigned unused: 8;
-	unsigned access: 8;
-	unsigned offset_16_31: 16;
-} __attribute__ ((packed));
-typedef struct idescriptor idescriptor_t;
-
 struct tss {
 	uint16_t link;
 	unsigned : 16;
@@ -156,8 +147,7 @@ extern void pm_init(void);
 extern void gdt_setbase(descriptor_t *d, uintptr_t base);
 extern void gdt_setlimit(descriptor_t *d, uint32_t limit);
 
-extern void idt_init(void);
-extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
+extern void traps_init(void);
 
 extern void tss_initialize(tss_t *t);
 extern void set_tls_desc(uintptr_t tls);
