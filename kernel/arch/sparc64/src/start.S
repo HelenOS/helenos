@@ -27,6 +27,11 @@
 #
 
 #include <arch/regdef.h>
+#include <arch/boot/boot.h>
+
+#include <arch/mm/mmu.h>
+#include <arch/mm/tlb.h>
+#include <arch/mm/tte.h>
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -52,14 +57,20 @@
 
 .global kernel_image_start
 kernel_image_start:
-	flushw				! flush all but the active register window
 
 	/*
-	 * Disable interrupts and disable 32-bit address masking.
+	 * Setup basic runtime environment.
 	 */
-	rdpr %pstate, %l0
-	and %l0, ~(PSTATE_AM_BIT|PSTATE_IE_BIT), %l0
-	wrpr %l0, 0, %pstate
+
+	flushw				! flush all but the active register window
+	wrpr %g0, 0, %tl		! TL = 0, primary context register is used
+
+	! Disable interrupts and disable 32-bit address masking.
+	rdpr %pstate, %g1
+	and %g1, ~(PSTATE_AM_BIT|PSTATE_IE_BIT), %g1
+	wrpr %g1, 0, %pstate
+
+	wrpr %r0, 0, %pil		! intialize %pil
 
 	/*
 	 * Copy the bootinfo structure passed from the boot loader
@@ -71,19 +82,135 @@ kernel_image_start:
 	call memcpy
 	nop
 
-	set kernel_image_start, %o0
 	/*
-	 * Take over control of MMU.
-	 *
-	 * First, take over DMMU for which we don't need to issue
-	 * any FLUSH instructions. Because of that, we can
-	 * demap the old DTLB pretty straightforwardly.
+	 * Switch to kernel trap table.
 	 */
-	call take_over_tlb_and_tt
-	nop
+	set trap_table, %g1
+	wrpr %g1, 0, %tba
 
-	wrpr %r0, 0, %pil
+	/* 
+	 * Take over the DMMU by installing global locked
+	 * TTE entry identically mapping the first 4M
+	 * of memory.
+	 *
+	 * In case of DMMU, no FLUSH instructions need to be
+	 * issued. Because of that, the old DTLB contents can
+	 * be demapped pretty straightforwardly and without
+	 * causing any traps.
+	 */
 
+	wr %g0, ASI_DMMU, %asi
+
+#define SET_TLB_DEMAP_CMD(r1, context_id) \
+	set (TLB_DEMAP_CONTEXT<<TLB_DEMAP_TYPE_SHIFT) | (context_id<<TLB_DEMAP_CONTEXT_SHIFT), %r1
+	
+	! demap context 0
+	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
+	stxa %g0, [%g1] ASI_DMMU_DEMAP			
+	membar #Sync
+
+#define SET_TLB_TAG(r1, context) \
+	set VMA | (context<<TLB_TAG_ACCESS_CONTEXT_SHIFT), %r1
+
+	! write DTLB tag
+	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
+	stxa %g1, [VA_DMMU_TAG_ACCESS] %asi			
+	membar #Sync
+
+#define SET_TLB_DATA(r1, r2, imm) \
+	set TTE_L | TTE_CP | TTE_P | TTE_W | LMA | imm, %r1; \
+	set PAGESIZE_4M, %r2; \
+	sllx %r2, TTE_SIZE_SHIFT, %r2; \
+	or %r1, %r2, %r1; \
+	set 1, %r2; \
+	sllx %r2, TTE_V_SHIFT, %r2; \
+	or %r1, %r2, %r1;
+	
+	! write DTLB data and install the kernel mapping
+	SET_TLB_DATA(g1, g2, TTE_G)
+	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG		
+	membar #Sync
+	
+	/*
+	 * Now is time to take over the IMMU.
+	 * Unfortunatelly, it cannot be done as easily as the DMMU,
+	 * because the IMMU is mapping the code it executes.
+	 *
+	 * [ Note that brave experiments with disabling the IMMU
+	 * and using the DMMU approach failed after a dozen
+	 * of desparate days with only little success. ]
+	 *
+	 * The approach used here is inspired from OpenBSD.
+	 * First, the kernel creates IMMU mapping for itself
+	 * in context 1 (MEM_CONTEXT_TEMP) and switches to
+	 * it. Context 0 (MEM_CONTEXT_KERNEL) can be demapped
+	 * afterwards and replaced with the kernel permanent
+	 * mapping. Finally, the kernel switches back to
+	 * context 0 and demaps context 1.
+	 *
+	 * Moreover, the IMMU requires use of the FLUSH instructions.
+	 * But that is OK because we always use operands with
+	 * addresses already mapped by the taken over DTLB.
+	 */
+	
+	set kernel_image_start, %g7
+	
+	! write ITLB tag of context 1
+	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
+	set VA_DMMU_TAG_ACCESS, %g2
+	stxa %g1, [%g2] ASI_IMMU
+	flush %g7
+
+	! write ITLB data and install the temporary mapping in context 1
+	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
+	flush %g7
+	
+	! switch to context 1
+	set MEM_CONTEXT_TEMP, %g1
+	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
+	flush %g7
+	
+	! demap context 0
+	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
+	stxa %g0, [%g1] ASI_IMMU_DEMAP			
+	flush %g7
+	
+	! write ITLB tag of context 0
+	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
+	set VA_DMMU_TAG_ACCESS, %g2
+	stxa %g1, [%g2] ASI_IMMU
+	flush %g7
+
+	! write ITLB data and install the permanent kernel mapping in context 0
+	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
+	flush %g7
+
+	! switch to context 0
+	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
+	flush %g7
+
+	! ensure nucleus mapping
+	wrpr %g0, 1, %tl
+
+	! set context 1 in the primary context register
+	set MEM_CONTEXT_TEMP, %g1
+	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
+	flush %g7
+
+	! demap context 1
+	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_PRIMARY)
+	stxa %g0, [%g1] ASI_IMMU_DEMAP			
+	flush %g7
+	
+	! set context 0 in the primary context register
+	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
+	flush %g7
+	
+	! set TL back to 0
+	wrpr %g0, 0, %tl
+	
 	call main_bsp
 	nop
 

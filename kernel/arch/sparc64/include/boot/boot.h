@@ -39,6 +39,7 @@
 #define VMA			0x400000
 #define LMA			VMA
 
+#ifndef __ASM__
 #ifndef __LINKER__
 
 #include <arch/types.h>
@@ -90,6 +91,7 @@ typedef struct {
 
 extern bootinfo_t bootinfo;
 
+#endif
 #endif
 
 #endif

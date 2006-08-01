@@ -35,16 +35,6 @@
 #ifndef __sparc64_TRAP_H__
 #define __sparc64_TRAP_H__
 
-#include <arch/trap/trap_table.h>
-#include <arch/asm.h>
-
-/** Switch to in-kernel trap table. */
-static inline void trap_switch_trap_table(void)
-{
-	/* Point TBA to kernel trap table. */
-	tba_write((uint64_t) trap_table);
-}
-
 extern void trap_init(void);
 
 #endif

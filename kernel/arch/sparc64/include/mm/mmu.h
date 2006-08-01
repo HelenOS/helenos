@@ -103,7 +103,7 @@ union lsu_cr_reg {
 };
 typedef union lsu_cr_reg lsu_cr_reg_t;
 
-#endif /* !__ASM__ */
+#endif /* !def __ASM__ */
 
 #endif
 

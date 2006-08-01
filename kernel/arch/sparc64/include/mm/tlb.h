@@ -35,16 +35,12 @@
 #ifndef __sparc64_TLB_H__
 #define __sparc64_TLB_H__
 
-#include <arch/mm/tte.h>
-#include <arch/mm/mmu.h>
-#include <arch/mm/page.h>
-#include <arch/asm.h>
-#include <arch/barrier.h>
-#include <arch/types.h>
-#include <typedefs.h>
 
 #define ITLB_ENTRY_COUNT		64
 #define DTLB_ENTRY_COUNT		64
+
+#define MEM_CONTEXT_KERNEL		0
+#define MEM_CONTEXT_TEMP		1
 
 /** Page sizes. */
 #define PAGESIZE_8K	0
@@ -54,6 +50,33 @@
 
 /** Bit width of the TLB-locked portion of kernel address space. */
 #define KERNEL_PAGE_WIDTH       22	/* 4M */
+
+/* TLB Demap Operation types. */
+#define TLB_DEMAP_PAGE		0
+#define TLB_DEMAP_CONTEXT	1
+
+#define TLB_DEMAP_TYPE_SHIFT	6
+
+/* TLB Demap Operation Context register encodings. */
+#define TLB_DEMAP_PRIMARY	0
+#define TLB_DEMAP_SECONDARY	1
+#define TLB_DEMAP_NUCLEUS	2
+
+#define TLB_DEMAP_CONTEXT_SHIFT	4
+
+/* TLB Tag Access shifts */
+#define TLB_TAG_ACCESS_CONTEXT_SHIFT	0
+#define TLB_TAG_ACCESS_VPN_SHIFT	13
+
+#ifndef __ASM__
+
+#include <arch/mm/tte.h>
+#include <arch/mm/mmu.h>
+#include <arch/mm/page.h>
+#include <arch/asm.h>
+#include <arch/barrier.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 union tlb_context_reg {
 	uint64_t v;
@@ -90,14 +113,6 @@ union tlb_tag_read_reg {
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
 typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 
-/** TLB Demap Operation types. */
-#define TLB_DEMAP_PAGE		0
-#define TLB_DEMAP_CONTEXT	1
-
-/** TLB Demap Operation Context register encodings. */
-#define TLB_DEMAP_PRIMARY	0
-#define TLB_DEMAP_SECONDARY	1
-#define TLB_DEMAP_NUCLEUS	2
 
 /** TLB Demap Operation Address. */
 union tlb_demap_addr {
@@ -384,7 +399,7 @@ static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
 	da.context = context_encoding;
 	da.vpn = pg.vpn;
 	
-	asi_u64_write(ASI_IMMU_DEMAP, da.value, 0);
+	asi_u64_write(ASI_IMMU_DEMAP, da.value, 0);	/* da.value is the address within the ASI */ 
 	flush();
 }
 
@@ -406,7 +421,7 @@ static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 	da.context = context_encoding;
 	da.vpn = pg.vpn;
 	
-	asi_u64_write(ASI_DMMU_DEMAP, da.value, 0);
+	asi_u64_write(ASI_DMMU_DEMAP, da.value, 0); /* da.value is the address within the ASI */ 
 	membar();
 }
 
@@ -415,6 +430,8 @@ extern void fast_data_access_mmu_miss(void);
 extern void fast_data_access_protection(void);
 
 extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable);
+
+#endif /* !def __ASM__ */
 
 #endif
 
