@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <main/main.h>
 
 #include <arch/types.h>
 #include <typedefs.h>

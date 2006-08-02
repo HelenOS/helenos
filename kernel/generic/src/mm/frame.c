@@ -865,6 +865,9 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 			if (overlaps(addr, PFN2ADDR(confcount), KA2PA(config.base), config.kernel_size))
 				continue;
 			
+			if (overlaps(addr, PFN2ADDR(confcount), KA2PA(config.stack_base), config.stack_size))
+				continue;
+			
 			bool overlap = false;
 			count_t i;
 			for (i = 0; i < init.cnt; i++)
@@ -1068,9 +1071,8 @@ void frame_init(void)
 	/* Tell the architecture to create some memory */
 	frame_arch_init();
 	if (config.cpu_active == 1) {
-		pfn_t firstframe = ADDR2PFN(KA2PA(config.base));
-		pfn_t lastframe = ADDR2PFN(KA2PA(config.base+config.kernel_size));
-		frame_mark_unavailable(firstframe,lastframe-firstframe+1);
+		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)), SIZE2FRAMES(config.kernel_size));
+		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)), SIZE2FRAMES(config.stack_size));
 		
 		count_t i;
 		for (i = 0; i < init.cnt; i++)

@@ -105,6 +105,8 @@ uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel i
 size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes. */
 size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes. */
 
+uintptr_t stack_safe = 0;	/**< Lowest safe stack virtual address */
+
 void main_bsp(void);
 void main_ap(void);
 
@@ -132,8 +134,6 @@ static void main_ap_separated_stack(void);
  */
 void main_bsp(void)
 {
-	uintptr_t stackaddr;
-
 	config.cpu_count = 1;
 	config.cpu_active = 1;
 	
@@ -141,23 +141,23 @@ void main_bsp(void)
 	config.memory_size = get_memory_size();
 	
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size, PAGE_SIZE);
-	stackaddr = config.base + config.kernel_size;
+	config.stack_size = CONFIG_STACK_SIZE;
 	
-	/* Avoid placing kernel on top of init */
+	/* Initialy the stack is placed just after the kernel */
+	config.stack_base = config.base + config.kernel_size;
+	
+	/* Avoid placing stack on top of init */
 	count_t i;
-	bool overlap = false;
-	for (i = 0; i < init.cnt; i++)
-		if (PA_overlaps(stackaddr, CONFIG_STACK_SIZE, init.tasks[i].addr, init.tasks[i].size)) {
-			stackaddr = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, CONFIG_STACK_SIZE);
-			init.tasks[i].size = ALIGN_UP(init.tasks[i].size, CONFIG_STACK_SIZE) + CONFIG_STACK_SIZE;
-			overlap = true;
-		}
+	for (i = 0; i < init.cnt; i++) {
+		if (PA_overlaps(config.stack_base, config.stack_size, init.tasks[i].addr, init.tasks[i].size))
+			config.stack_base = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, config.stack_size);
+	}
 	
-	if (!overlap)
-		config.kernel_size += CONFIG_STACK_SIZE;
+	if (config.stack_base < stack_safe)
+		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
 	
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), stackaddr, THREAD_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base, THREAD_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -202,7 +202,8 @@ void main_bsp_separated_stack(void)
 	arch_post_mm_init();
 
 	version_print();
-	printf("%.*p: hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
+	printf("kernel: %.*p hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
+	printf("stack:  %.*p size=%zdK\n", sizeof(uintptr_t) * 2, config.stack_base, config.stack_size >> 10);
 
 	arch_pre_smp_init();
 	smp_init();

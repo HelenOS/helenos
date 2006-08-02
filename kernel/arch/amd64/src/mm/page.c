@@ -99,13 +99,15 @@ void page_arch_init(void)
 		 * - from zero to top of kernel (include bottom addresses
 		 *   because some are needed for init )
 		 */
-		for (cur = PA2KA_CODE(0); cur < config.base+config.kernel_size; cur += FRAME_SIZE) {
+		for (cur = PA2KA_CODE(0); cur < config.base + config.kernel_size; cur += FRAME_SIZE)
 			page_mapping_insert(AS_KERNEL, cur, KA2PA(cur), identity_flags);
-		}
-		for (i=0; i < init.cnt; i++) {
-			for (cur=init.tasks[i].addr;cur < init.tasks[i].size; cur += FRAME_SIZE) {
+		
+		for (cur = config.stack_base; cur < config.stack_base + config.stack_size; cur += FRAME_SIZE)
+			page_mapping_insert(AS_KERNEL, cur, KA2PA(cur), identity_flags);
+		
+		for (i = 0; i < init.cnt; i++) {
+			for (cur = init.tasks[i].addr; cur < init.tasks[i].addr + init.tasks[i].size; cur += FRAME_SIZE)
 				page_mapping_insert(AS_KERNEL, PA2KA_CODE(KA2PA(cur)), KA2PA(cur), identity_flags);
-			}
 		}
 
 		exc_register(14, "page_fault", (iroutine)page_fault);

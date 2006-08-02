@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup main
  * @{
  */
 /** @file
  */
+ 
+#ifndef __MAIN_H__
+#define __MAIN_H__
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
-
-#include <arch/types.h>
 #include <typedefs.h>
-#include <arch/mm/page.h>
 
-#define STACK_SIZE		PAGE_SIZE
-
-#define CONFIG_MEMORY_SIZE	(8 * 1024 * 1024)
-
-#define CONFIG_INIT_TASKS	32
-
-typedef struct {
-	uintptr_t addr;
-	size_t size;
-} init_task_t;
-
-typedef struct {
-	count_t cnt;
-	init_task_t tasks[CONFIG_INIT_TASKS];
-} init_t;
-
-typedef struct {
-	count_t cpu_count;		/**< Number of processors detected. */
-	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
-
-	uintptr_t base;
-	size_t memory_size;		/**< Size of detected memory in bytes. */
-	size_t kernel_size;		/**< Size of memory in bytes taken by kernel and stack */
-	
-	uintptr_t stack_base;	/**< Base adddress of initial stack */
-	size_t stack_size;		/**< Size of initial stack */
-} config_t;
-
-extern config_t config;
-extern init_t init;
+extern uintptr_t stack_safe;
 
 #endif
 
