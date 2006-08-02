@@ -118,6 +118,9 @@ void arch_pre_main(void)
 		SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(va), pa);
 		SET_FRAME_FLAGS(ptl3, PTL3_INDEX(va), PAGE_PRESENT | PAGE_WRITE);
 	}
+	
+	/* Put initial stack safely in the mapped area */
+	stack_safe = PA2KA(PFN2ADDR(meminfo.start + meminfo.reserved));
 }
 
 void arch_pre_mm_init(void)
