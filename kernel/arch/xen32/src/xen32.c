@@ -79,6 +79,11 @@ void arch_pre_main(void)
 	pte.frame_address = ADDR2PFN((uintptr_t) start_info.shared_info);
 	xen_update_va_mapping(&shared_info, pte, UVMF_INVLPG);
 	
+	pte.present = 1;
+	pte.writeable = 1;
+	pte.frame_address = start_info.console_mfn;
+	xen_update_va_mapping(&console_page, pte, UVMF_INVLPG);
+	
 	xen_set_callbacks(XEN_CS, xen_callback, XEN_CS, xen_failsafe_callback);
 	
 	/* Create identity mapping */

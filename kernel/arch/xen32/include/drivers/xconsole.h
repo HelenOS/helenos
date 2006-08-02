@@ -35,6 +35,19 @@
 #ifndef __XCONSOLE_H__
 #define __XCONSOLE_H__
 
+#include <arch/types.h>
+
+typedef struct {
+	char in[1024];
+	char out[2048];
+    uint32_t in_cons;
+	uint32_t in_prod;
+    uint32_t out_cons;
+	uint32_t out_prod;
+} xencons_t;
+
+extern xencons_t console_page;
+
 extern void xen_console_init(void);
 
 #endif

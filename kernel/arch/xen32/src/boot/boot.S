@@ -77,3 +77,8 @@ hypercall_page:
 .org 0x1000
 shared_info:
 	.space PAGE_SIZE
+
+.global console_page
+.org 0x2000
+console_page:
+	.space PAGE_SIZE
