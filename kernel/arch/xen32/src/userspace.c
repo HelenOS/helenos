@@ -70,11 +70,15 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"movl %5, %%eax\n"
 		"iret\n"
 		: 
-		: "i" (selector(UDATA_DES) | PL_USER), "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE),
-		  "r" (ipl), "i" (selector(UTEXT_DES) | PL_USER), "r" (kernel_uarg->uspace_entry),
-		"r" (kernel_uarg->uspace_uarg),
-		"r" (selector(TLS_DES))
-		: "eax");
+		: "i" (selector(UDATA_DES) | PL_USER),
+		  "r" (kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
+		  "r" (ipl),
+		  "i" (selector(UTEXT_DES) | PL_USER),
+		  "r" (kernel_uarg->uspace_entry),
+		  "r" (kernel_uarg->uspace_uarg),
+		  "r" (selector(TLS_DES))
+		: "eax"
+	);
 	
 	/* Unreachable */
 	for(;;)
