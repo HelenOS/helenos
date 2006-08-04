@@ -35,6 +35,14 @@
 #include <ofw.h>
 #include <printf.h>
 
+int bpp2align[] = {
+	[0] = 0,		/** Invalid bpp. */
+	[1] = 1,		/** 8bpp is not aligned. */
+	[2] = 2,		/** 16bpp is naturally aligned. */
+	[3] = 4,		/** 24bpp is aligned on 4 byte boundary. */
+	[4] = 4,		/** 32bpp is naturally aligned. */
+};
+
 void write(const char *str, const int len)
 {
 	int i;

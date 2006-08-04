@@ -58,7 +58,7 @@ void standalone_sparc64_console_init(void)
 		kbd_init();
 		
 	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
-		bootinfo.screen.bpp, bootinfo.screen.scanline);
+		bootinfo.screen.bpp, bootinfo.screen.scanline, true);
 }
 
 /** Kernel thread for polling keyboard.

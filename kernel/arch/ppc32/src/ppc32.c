@@ -70,7 +70,7 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline, false);
 	
 		/* Initialize PIC */
 		pic_init(bootinfo.keyboard.addr, PAGE_SIZE);

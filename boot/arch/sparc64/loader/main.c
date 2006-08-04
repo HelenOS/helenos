@@ -31,6 +31,7 @@
 #include "asm.h"
 #include "_components.h"
 #include <ofw.h>
+#include "ofwarch.h"
 #include <align.h>
 
 #define KERNEL_VIRTUAL_ADDRESS 0x400000
@@ -59,10 +60,12 @@ void bootstrap(void)
 		halt();
 	}
 	bootinfo.screen.addr = ofw_translate(bootinfo.screen.addr);
+	/* transform scanline to bytes with respect to potential alignment */
+	bootinfo.screen.scanline = bootinfo.screen.scanline*bpp2align[bootinfo.screen.bpp >> 3];
 	
 	if (!ofw_keyboard(&bootinfo.keyboard))
 		printf("Error: unable to get keyboard properties\n");
-	
+
 	printf("\nDevice statistics\n");
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
 	printf(" screen at %P, resolution %dx%d, %d bpp (scanline %d bytes)\n", (uintptr_t) bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);

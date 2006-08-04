@@ -39,7 +39,7 @@
 #include <arch/types.h>
 
 extern spinlock_t fb_lock;
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan);
+void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align);
 
 #endif
 

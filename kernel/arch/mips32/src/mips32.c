@@ -127,7 +127,7 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 #ifdef CONFIG_FB
-	fb_init(0x12000000, 640, 480, 24, 1920); // gxemul framebuffer
+	fb_init(0x12000000, 640, 480, 24, 1920, false); // gxemul framebuffer
 #endif
 	sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
 }

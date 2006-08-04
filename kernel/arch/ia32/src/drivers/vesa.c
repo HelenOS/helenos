@@ -67,7 +67,7 @@ int vesa_present(void)
 
 void vesa_init(void)
 {
-	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline);
+	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline, false);
 }
 
 #endif

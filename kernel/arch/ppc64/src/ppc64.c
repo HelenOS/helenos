@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64
+/** @addtogroup ppc64
  * @{
  */
 /** @file
@@ -68,7 +68,7 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);	
+		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline, false);
 	
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
@@ -110,6 +110,5 @@ void arch_release_console(void)
 {
 }
 
- /** @}
+/** @}
  */
-

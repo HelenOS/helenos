@@ -134,13 +134,23 @@ static int byte2_rgb(void *src)
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
-/** Put pixel - 8-bit depth (3:2:3) */
+/** Put pixel - 8-bit depth (color palette/3:2:3)
+ *
+ * Even though we try 3:2:3 color scheme here, an 8-bit framebuffer
+ * will most likely use a color palette. The color appearance
+ * will be pretty random and depend on the default installed
+ * palette. This could be fixed by supporting custom palette
+ * and setting it to simulate the 8-bit truecolor.
+ */
 static void rgb_1byte(void *dst, int rgb)
 {
 	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
-/** Return pixel color - 8-bit depth (3:2:3) */
+/** Return pixel color - 8-bit depth (color palette/3:2:3)
+ *
+ * See the comment for rgb_1byte().
+ */
 static int byte1_rgb(void *src)
 {
 	int color = *(uint8_t *)src;
@@ -329,14 +339,14 @@ static chardev_operations_t fb_ops = {
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr Physical address of the framebuffer
- * @param x    Screen width in pixels
- * @param y    Screen height in pixels
- * @param bpp  Bits per pixel (8, 16, 24, 32)
- * @param scan Bytes per one scanline
- *
+ * @param addr 	Physical address of the framebuffer
+ * @param x    	Screen width in pixels
+ * @param y    	Screen height in pixels
+ * @param bpp  	Bits per pixel (8, 16, 24, 32)
+ * @param scan 	Bytes per one scanline
+ * @param align	Request alignment for 24bpp mode.
  */
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan)
+void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align)
 {
 	switch (bpp) {
 		case 8:
@@ -352,7 +362,10 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 		case 24:
 			rgb2scr = rgb_3byte;
 			scr2rgb = byte3_rgb;
-			pixelbytes = 3;
+			if (align)
+				pixelbytes = 4;
+			else
+				pixelbytes = 3;
 			break;
 		case 32:
 			rgb2scr = rgb_4byte;

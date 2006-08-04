@@ -32,4 +32,6 @@
 #define OFW_ADDRESS_CELLS	2
 #define OFW_SIZE_CELLS		2
 
+extern int bpp2align[];
+
 #endif
