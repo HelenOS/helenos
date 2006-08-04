@@ -64,6 +64,8 @@ CONFIG_FB = y
 #
 
 CONFIG_I8042 = y
+CONFIG_I8042_SUN = y
+DEFS += -DCONFIG_I8042_SUN
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,28 +29,27 @@
 /** @addtogroup genarch	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Scan codes for pc keyboards.
  */
 
-#ifndef __I8042_H__
-#define __I8042_H__
+#ifndef KERN_I8042_PC_H_
+#define KERN_I8042_PC_H_
 
-#ifdef CONFIG_I8042_PC
-#include <genarch/i8042/scanc_pc.h>
-#endif
-#ifdef CONFIG_I8042_SUN
-#include <genarch/i8042/scanc_sun.h>
-#endif
-
-#define SPECIAL		'?'
-
-extern char sc_primary_map[];
-extern char sc_secondary_map[];
-
-extern void i8042_init(void);
-extern void i8042_poll(void);
-extern void i8042_grab(void);
-extern void i8042_release(void);
+#define SC_ESC		0x01
+#define SC_BACKSPACE	0x0e
+#define SC_LSHIFT       0x2a
+#define SC_RSHIFT       0x36
+#define SC_CAPSLOCK     0x3a
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x4b
+#define SC_RIGHTARR     0x4d
+#define SC_UPARR        0x48
+#define SC_DOWNARR      0x50
+#define SC_DELETE       0x53
+#define SC_HOME         0x47
+#define SC_END          0x4f
 
 #endif
 

@@ -68,4 +68,14 @@ endif
 ifeq ($(CONFIG_I8042),y)
 	GENARCH_SOURCES += \
 		genarch/src/i8042/i8042.c
+		
+	ifeq ($(CONFIG_I8042_PC),y)
+		GENARCH_SOURCES += \
+			genarch/src/i8042/scanc_pc.c
+	endif
+	ifeq ($(CONFIG_I8042_SUN),y)
+		GENARCH_SOURCES += \
+			genarch/src/i8042/scanc_sun.c
+	endif
+	
 endif
