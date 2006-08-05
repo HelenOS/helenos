@@ -129,9 +129,11 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	
 	t = task_find_by_id(id);
 	
-	if (!t) {
+	if ((!t) || (!context_check(CONTEXT, t->context))) {
 		/*
-		 * There is no task with the specified ID.
+		 * There is no task with the specified ID
+		 * or the task belongs to a different security
+		 * context.
 		 */
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);

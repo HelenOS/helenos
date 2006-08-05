@@ -318,7 +318,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 	memcpy(t->name, name, THREAD_NAME_BUFLEN);
 	
-	t->context = THE->context;
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
@@ -534,8 +533,8 @@ void thread_print_list(void)
 			thread_t *t;
 		
 			t = (thread_t *) node->value[i];
-			printf("%s: address=%#zx, tid=%zd, context=%ld, state=%s, task=%#zx, code=%#zx, stack=%#zx, cpu=",
-				t->name, t, t->tid, t->context, thread_states[t->state], t->task, t->thread_code, t->kstack);
+			printf("%s: address=%#zx, tid=%zd, state=%s, task=%#zx, context=%ld, code=%#zx, stack=%#zx, cpu=",
+				t->name, t, t->tid, thread_states[t->state], t->task, t->task->context, t->thread_code, t->kstack);
 			if (t->cpu)
 				printf("cpu%zd", t->cpu->id);
 			else

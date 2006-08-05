@@ -43,11 +43,16 @@
 #include <arch/cpu.h>
 #include <arch/asm.h> 
 
+#define DEFAULT_CONTEXT		0
+
 #define CPU			THE->cpu
 #define THREAD			THE->thread
 #define TASK			THE->task
 #define AS			THE->as
+#define CONTEXT		(THE->task ? THE->task->context : DEFAULT_CONTEXT)
 #define PREEMPTION_DISABLED	THE->preemption_disabled
+
+#define context_check(ctx1, ctx2)	((ctx1) == (ctx2))
 
 /**
  * For each possible kernel stack, structure
@@ -60,10 +65,9 @@ struct the {
 	task_t *task;			/**< Current task. */
 	cpu_t *cpu;			/**< Executing cpu. */
 	as_t *as;			/**< Current address space. */
-	context_id_t context;	/**< Current security context. */
 };
 
-#define THE		((the_t *)(get_stack_base()))	
+#define THE		((the_t *)(get_stack_base()))
 
 extern void the_initialize(the_t *the);
 extern void the_copy(the_t *src, the_t *dst);

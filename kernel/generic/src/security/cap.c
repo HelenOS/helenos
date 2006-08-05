@@ -111,7 +111,7 @@ unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	t = task_find_by_id((task_id_t) taskid_arg.value);
-	if (!t) {
+	if ((!t) || (!context_check(CONTEXT, t->context))) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		return (unative_t) ENOENT;
@@ -122,9 +122,6 @@ unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	spinlock_unlock(&t->lock);
 	
 	spinlock_unlock(&tasks_lock);
-	
-
-	
 	interrupts_restore(ipl);	
 	return 0;
 }
@@ -153,7 +150,7 @@ unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);	
 	t = task_find_by_id((task_id_t) taskid_arg.value);
-	if (!t) {
+	if ((!t) || (!context_check(CONTEXT, t->context))) {
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		return (unative_t) ENOENT;

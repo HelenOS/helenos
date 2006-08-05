@@ -115,15 +115,15 @@ task_t *task_create(as_t *as, char *name)
 	ta->name = name;
 	ta->main_thread = NULL;
 	ta->refcount = 0;
-	ta->context = THE->context;
+	ta->context = CONTEXT;
 
 	ta->capabilities = 0;
 	ta->accept_new_threads = true;
 	
 	ipc_answerbox_init(&ta->answerbox);
-	for (i=0; i < IPC_MAX_PHONES;i++)
+	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_init(&ta->phones[i]);
-	if (ipc_phone_0)
+	if ((ipc_phone_0) && (context_check(ipc_phone_0->task->context, ta->context)))
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
 

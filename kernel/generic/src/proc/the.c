@@ -58,7 +58,6 @@ void the_initialize(the_t *the)
 	the->thread = NULL;
 	the->task = NULL;
 	the->as = NULL;
-	the->context = 0;
 }
 
 /** Copy THE structure
