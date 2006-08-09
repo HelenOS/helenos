@@ -31,25 +31,25 @@
  */
 /**
  * @file
- * @brief	Scan codes for pc keyboards.
+ * @brief	Scan codes for sun keyboards.
  */
 
-#ifndef KERN_I8042_PC_H_
-#define KERN_I8042_PC_H_
+#ifndef KERN_SCANC_SUN_H_
+#define KERN_SCANC_SUN_H_
 
-#define SC_ESC		0x01
-#define SC_BACKSPACE	0x0e
-#define SC_LSHIFT       0x2a
-#define SC_RSHIFT       0x36
-#define SC_CAPSLOCK     0x3a
-#define SC_SPEC_ESCAPE  0xe0
-#define SC_LEFTARR      0x4b
-#define SC_RIGHTARR     0x4d
-#define SC_UPARR        0x48
-#define SC_DOWNARR      0x50
-#define SC_DELETE       0x53
-#define SC_HOME         0x47
-#define SC_END          0x4f
+#define SC_ESC		0x1d
+#define SC_BACKSPACE	0x2b
+#define SC_LSHIFT       0x63
+#define SC_RSHIFT       0x6e
+#define SC_CAPSLOCK     0x77
+#define SC_SPEC_ESCAPE  0xe0	/* ??? */
+#define SC_LEFTARR      0x18
+#define SC_RIGHTARR     0x1c
+#define SC_UPARR        0x14
+#define SC_DOWNARR      0x1b
+#define SC_DELETE       0x42
+#define SC_HOME         0x34
+#define SC_END          0x4a
 
 #endif
 

@@ -60,12 +60,12 @@ CONFIG_ASID_FIFO = y
 
 CONFIG_FB = y
 
-## Compile with support for i8042 controller.
+## Compile with support for z8530 controller.
 #
 
-CONFIG_I8042 = y
-CONFIG_I8042_SUN = y
-DEFS += -DCONFIG_I8042_SUN
+CONFIG_Z8530 = y
+CONFIG_KBD_SUN = y
+DEFS += -DCONFIG_KBD_SUN
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
@@ -88,4 +88,4 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/trap/interrupt.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/tick.c \
-	arch/$(ARCH)/src/drivers/i8042.c
+	arch/$(ARCH)/src/drivers/kbd.c

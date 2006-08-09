@@ -32,18 +32,40 @@
 /** @file
  */
 
-#include <arch/drivers/i8042.h>
-#include <genarch/i8042/i8042.h>
+#ifdef CONFIG_Z8530
+#include <genarch/kbd/z8530.h>
+#endif
+#ifdef CONFIG_16650A
+#include <genarch/kbd/16650a.h>
+#endif
 #include <arch/boot/boot.h>
-#include <arch/types.h>
 #include <arch/mm/page.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 volatile uint8_t *kbd_virt_address = NULL;
 
 void kbd_init()
 {
-	kbd_virt_address = (uint8_t *) hw_map(bootinfo.keyboard.addr, LAST_REG);
-	i8042_init();
+	size_t offset;
+	uintptr_t aligned_addr;
+
+	/*
+	 * We need to pass aligned address to hw_map().
+	 * However, the physical keyboard address can
+	 * be pretty much unaligned on some systems
+	 * (e.g. Ultra 5, Ultras 60).
+	 */
+	aligned_addr = ALIGN_DOWN(bootinfo.keyboard.addr, PAGE_SIZE);
+	offset = bootinfo.keyboard.addr - aligned_addr;
+	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + bootinfo.keyboard.size) + offset;
+
+#ifdef CONFIG_Z8530
+	z8530_init();
+#endif
+#ifdef CONFIG_16650A
+	16650A_init();
+#endif
 }
 
 /** @}

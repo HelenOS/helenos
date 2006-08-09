@@ -26,30 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup sparc64	
  * @{
  */
-/**
- * @file
- * @brief	Scan codes for sun keyboards.
+/** @file
  */
 
-#ifndef KERN_I8042_SUN_H_
-#define KERN_I8042_SUN_H_
+#ifndef KERN_sparc64_Z8530_H_
+#define KERN_sparc64_Z8530_H_
 
-#define SC_ESC		0x1d
-#define SC_BACKSPACE	0x2b
-#define SC_LSHIFT       0x63
-#define SC_RSHIFT       0x6e
-#define SC_CAPSLOCK     0x77
-#define SC_SPEC_ESCAPE  0xe0	/* ??? */
-#define SC_LEFTARR      0x18
-#define SC_RIGHTARR     0x1c
-#define SC_UPARR        0x14
-#define SC_DOWNARR      0x1b
-#define SC_DELETE       0x42
-#define SC_HOME         0x34
-#define SC_END          0x4a
+#include <arch/types.h>
+
+#define STATUS_REG	4
+#define COMMAND_REG	4
+#define DATA_REG	6
+
+#define LAST_REG	DATA_REG
+
+extern volatile uint8_t *kbd_virt_address;
+
+static inline void z8530_data_write(uint8_t data)
+{
+	kbd_virt_address[DATA_REG] = data;
+}
+
+static inline uint8_t z8530_data_read(void)
+{
+	return kbd_virt_address[DATA_REG];
+}
+
+static inline uint8_t z8530_status_read(void)
+{
+	return kbd_virt_address[STATUS_REG];
+}
+
+static inline void z8530_command_write(uint8_t command)
+{
+	kbd_virt_address[COMMAND_REG] = command;
+}
+
+extern void kbd_init(void);
 
 #endif
 

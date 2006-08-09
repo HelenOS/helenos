@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_I8042_H_
-#define KERN_sparc64_I8042_H_
+#ifndef KERN_I8042_H_
+#define KERN_I8042_H_
 
-#include <arch/types.h>
+#include <genarch/kbd/scanc_pc.h>
 
-#define STATUS_REG	4
-#define COMMAND_REG	4
-#define DATA_REG	6
+#define SPECIAL		'?'
 
-#define LAST_REG	DATA_REG
+extern char sc_primary_map[];
+extern char sc_secondary_map[];
 
-extern volatile uint8_t *kbd_virt_address;
-
-static inline void i8042_data_write(uint8_t data)
-{
-	kbd_virt_address[DATA_REG] = data;
-}
-
-static inline uint8_t i8042_data_read(void)
-{
-	return kbd_virt_address[DATA_REG];
-}
-
-static inline uint8_t i8042_status_read(void)
-{
-	return kbd_virt_address[STATUS_REG];
-}
-
-static inline void i8042_command_write(uint8_t command)
-{
-	kbd_virt_address[COMMAND_REG] = command;
-}
-
-extern void kbd_init(void);
+extern void i8042_init(void);
+extern void i8042_poll(void);
+extern void i8042_grab(void);
+extern void i8042_release(void);
 
 #endif
 

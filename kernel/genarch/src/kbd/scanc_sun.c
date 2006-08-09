@@ -81,7 +81,7 @@ char sc_primary_map[] = {
 	[0x28] = '-',
 	[0x29] = '=',
 	[0x2a] = '`',
-	[0x2b] = '\b',	/* Backspace */
+	[0x2b] = '\b',		/* Backspace */
 	[0x2c] = SPECIAL,	/* Insert */
 	[0x2d] = SPECIAL,
 	[0x2e] = '/',		/* numeric keypad */

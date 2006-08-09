@@ -29,28 +29,25 @@
 /** @addtogroup genarch	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Headers for Zilog 8530 serial port / keyboard driver.
  */
 
-#ifndef __I8042_H__
-#define __I8042_H__
+#ifndef KERN_Z8530_H_
+#define KERN_Z8530_H_
 
-#ifdef CONFIG_I8042_PC
-#include <genarch/i8042/scanc_pc.h>
-#endif
-#ifdef CONFIG_I8042_SUN
-#include <genarch/i8042/scanc_sun.h>
-#endif
+#include <genarch/kbd/scanc_sun.h>
 
 #define SPECIAL		'?'
 
 extern char sc_primary_map[];
 extern char sc_secondary_map[];
 
-extern void i8042_init(void);
-extern void i8042_poll(void);
-extern void i8042_grab(void);
-extern void i8042_release(void);
+extern void z8530_init(void);
+extern void z8530_poll(void);
+extern void z8530_grab(void);
+extern void z8530_release(void);
 
 #endif
 

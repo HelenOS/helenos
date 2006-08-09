@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup genarch	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Scan codes for pc keyboards.
  */
 
-#include <arch/console.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <genarch/fb/fb.h>
-#include <arch/drivers/fb.h>
-#include <arch/drivers/i8042.h>
-#include <genarch/i8042/i8042.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <arch/asm.h>
-#include <arch/register.h>
-#include <proc/thread.h>
-#include <arch/mm/tlb.h>
-#include <arch/boot/boot.h>
+#ifndef KERN_SCANC_PC_H_
+#define KERN_SCANC_PC_H_
 
-#define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
+#define SC_ESC		0x01
+#define SC_BACKSPACE	0x0e
+#define SC_LSHIFT       0x2a
+#define SC_RSHIFT       0x36
+#define SC_CAPSLOCK     0x3a
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x4b
+#define SC_RIGHTARR     0x4d
+#define SC_UPARR        0x48
+#define SC_DOWNARR      0x50
+#define SC_DELETE       0x53
+#define SC_HOME         0x47
+#define SC_END          0x4f
 
-/** Initialize kernel console to use framebuffer and keyboard directly. */
-void standalone_sparc64_console_init(void)
-{
-	stdin = NULL;
-		
-	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
-		bootinfo.screen.bpp, bootinfo.screen.scanline, true);
-
-	if (bootinfo.keyboard.addr)
-		kbd_init();
-}
-
-/** Kernel thread for polling keyboard.
- *
- * @param arg Ignored.
- */
-void kkbdpoll(void *arg)
-{
-	if (!bootinfo.keyboard.addr)
-		return;
-		
-	while (1) {
-		i8042_poll();		
-		thread_usleep(KEYBOARD_POLL_PAUSE);
-	}
-}
+#endif
 
 /** @}
  */

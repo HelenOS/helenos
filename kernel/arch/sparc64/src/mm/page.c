@@ -46,6 +46,22 @@ void page_arch_init(void)
 	page_mapping_operations = &ht_mapping_operations;
 }
 
+/** Map memory-mapped device into virtual memory.
+ *
+ * So far, only DTLB is used to map devices into memory.
+ * Chances are that there will be only a limited amount of
+ * devices that the kernel itself needs to lock in DTLB.
+ *
+ * @param physaddr Physical address of the page where the
+ * 		   device is located. Must be at least
+ * 		   page-aligned.
+ * @param size Size of the device's registers. Must not
+ * 	       exceed 4M and must include extra space
+ *	       caused by the alignment.
+ *
+ * @return Virtual address of the page where the device is
+ * 	   mapped.
+ */
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	unsigned int order;
@@ -68,6 +84,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		{ PAGESIZE_4M, 0, 1 }			/* 4M */
 	};
 	
+	ASSERT(ALIGN_UP(physaddr, PAGE_SIZE) == physaddr);
 	ASSERT(size <= 4*1024*1024);
 	
 	if (size <= FRAME_SIZE)
