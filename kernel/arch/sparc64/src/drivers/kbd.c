@@ -32,16 +32,19 @@
 /** @file
  */
 
+#include <arch/drivers/kbd.h>
 #ifdef CONFIG_Z8530
 #include <genarch/kbd/z8530.h>
 #endif
 #ifdef CONFIG_16650A
 #include <genarch/kbd/16650a.h>
 #endif
+
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <align.h>
 
 volatile uint8_t *kbd_virt_address = NULL;
 
@@ -49,6 +52,9 @@ void kbd_init()
 {
 	size_t offset;
 	uintptr_t aligned_addr;
+
+	/* FIXME: supply value read from OpenFirmware */
+	bootinfo.keyboard.size = 8;
 
 	/*
 	 * We need to pass aligned address to hw_map().

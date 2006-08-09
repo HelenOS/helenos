@@ -37,13 +37,6 @@
 #ifndef KERN_Z8530_H_
 #define KERN_Z8530_H_
 
-#include <genarch/kbd/scanc_sun.h>
-
-#define SPECIAL		'?'
-
-extern char sc_primary_map[];
-extern char sc_secondary_map[];
-
 extern void z8530_init(void);
 extern void z8530_poll(void);
 extern void z8530_grab(void);

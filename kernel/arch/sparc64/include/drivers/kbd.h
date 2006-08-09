@@ -32,37 +32,14 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_Z8530_H_
-#define KERN_sparc64_Z8530_H_
+#ifndef KERN_sparc64_KBD_H_
+#define KERN_sparc64_KBD_H_
 
 #include <arch/types.h>
-#include <arch/drivers/kbd.h>
 
-#define STATUS_REG	4
-#define COMMAND_REG	4
-#define DATA_REG	6
+extern volatile uint8_t *kbd_virt_address;
 
-#define LAST_REG	DATA_REG
-
-static inline void z8530_data_write(uint8_t data)
-{
-	kbd_virt_address[DATA_REG] = data;
-}
-
-static inline uint8_t z8530_data_read(void)
-{
-	return kbd_virt_address[DATA_REG];
-}
-
-static inline uint8_t z8530_status_read(void)
-{
-	return kbd_virt_address[STATUS_REG];
-}
-
-static inline void z8530_command_write(uint8_t command)
-{
-	kbd_virt_address[COMMAND_REG] = command;
-}
+extern void kbd_init(void);
 
 #endif
 

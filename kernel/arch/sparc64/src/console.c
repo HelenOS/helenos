@@ -37,8 +37,15 @@
 #include <typedefs.h>
 #include <genarch/fb/fb.h>
 #include <arch/drivers/fb.h>
-#include <arch/drivers/i8042.h>
-#include <genarch/i8042/i8042.h>
+
+#include <arch/drivers/kbd.h>
+#ifdef CONFIG_Z8530
+#include <genarch/kbd/z8530.h>
+#endif
+#ifdef CONFIG_16550A
+#include <genarch/kbd/16550a.h>
+#endif
+
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/asm.h>
@@ -71,7 +78,12 @@ void kkbdpoll(void *arg)
 		return;
 		
 	while (1) {
-		i8042_poll();		
+#ifdef CONFIG_Z8530
+		z8530_poll();
+#endif
+#ifdef CONFIG_16550A
+		16550a_poll();
+#endif
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}
 }

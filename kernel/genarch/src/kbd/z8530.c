@@ -31,15 +31,20 @@
  */
 /**
  * @file
- * @brief	i8042 processor driver.
+ * @brief	Zilog 8530 serial port / keyboard driver.
  *
- * It takes care of low-level keyboard functions.
+ * Note that this file is derived from the i8042.c.
+ * The i8042 driver could be persuaded to control
+ * the z8530 at least in the polling mode.
+ * As a result, this file may contain inaccurate
+ * and z8530-irrelevant constants, code and comments.
+ * Still it miraculously works.
  */
 
-#include <genarch/kbd/i8042.h>
+#include <genarch/kbd/z8530.h>
 #include <genarch/kbd/scanc.h>
-#include <genarch/kbd/scanc_pc.h>
-#include <arch/drivers/i8042.h>
+#include <genarch/kbd/scanc_sun.h>
+#include <arch/drivers/z8530.h>
 #include <arch/interrupt.h>
 #include <cpu.h>
 #include <arch/asm.h>
@@ -71,14 +76,19 @@
  *     `----------- reserved, should be 0
  */
 
-#define i8042_SET_COMMAND 	0x60
-#define i8042_COMMAND 		0x69
+#define z8530_SET_COMMAND 	0x60
+#define z8530_COMMAND 		0x69
 
-#define i8042_BUFFER_FULL_MASK	0x01
-#define i8042_WAIT_MASK 	0x02
-#define i8042_MOUSE_DATA        0x20
+#define z8530_BUFFER_FULL_MASK	0x01
+#define z8530_WAIT_MASK 	0x02
+#define z8530_MOUSE_DATA        0x20
 
 #define KEY_RELEASE	0x80
+
+/*
+ * These codes read from z8530 data register are silently ignored.
+ */
+#define IGNORE_CODE	0x7f		/* all keys up */
 
 static void key_released(uint8_t sc);
 static void key_pressed(uint8_t sc);
@@ -96,75 +106,75 @@ SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
 static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
-static void i8042_suspend(chardev_t *);
-static void i8042_resume(chardev_t *);
+static void z8530_suspend(chardev_t *);
+static void z8530_resume(chardev_t *);
 
 static chardev_t kbrd;
 static chardev_operations_t ops = {
-	.suspend = i8042_suspend,
-	.resume = i8042_resume,
+	.suspend = z8530_suspend,
+	.resume = z8530_resume,
 	.read = key_read
 };
 
-static void i8042_interrupt(int n, istate_t *istate);
-static void i8042_wait(void);
+static void z8530_interrupt(int n, istate_t *istate);
+static void z8530_wait(void);
 
 static iroutine oldvector;
 /** Initialize keyboard and service interrupts using kernel routine */
-void i8042_grab(void)
+void z8530_grab(void)
 {
-	oldvector = exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
-	i8042_wait();
-	i8042_command_write(i8042_SET_COMMAND);
-	i8042_wait();
-	i8042_data_write(i8042_COMMAND);
-	i8042_wait();
+	oldvector = exc_register(VECTOR_KBD, "z8530_interrupt", (iroutine) z8530_interrupt);
+	z8530_wait();
+	z8530_command_write(z8530_SET_COMMAND);
+	z8530_wait();
+	z8530_data_write(z8530_COMMAND);
+	z8530_wait();
 }
 /** Resume the former interrupt vector */
-void i8042_release(void)
+void z8530_release(void)
 {
 	if (oldvector)
 		exc_register(VECTOR_KBD, "user_interrupt", oldvector);
 }
 
-/** Initialize i8042. */
-void i8042_init(void)
+/** Initialize z8530. */
+void z8530_init(void)
 {
 	int i;
 
-	i8042_grab();
-        /* Prevent user from accidentaly releasing calling i8042_resume
+	z8530_grab();
+        /* Prevent user from accidentaly releasing calling z8530_resume
 	 * and disabling keyboard 
 	 */
 	oldvector = NULL; 
 
 	trap_virtual_enable_irqs(1<<IRQ_KBD);
-	chardev_initialize("i8042_kbd", &kbrd, &ops);
+	chardev_initialize("z8530_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 
 	/*
 	 * Clear input buffer.
 	 * Number of iterations is limited to prevent infinite looping.
 	 */
-	for (i = 0; (i8042_status_read() & i8042_BUFFER_FULL_MASK) && i < 100; i++) {
-		i8042_data_read();
+	for (i = 0; (z8530_status_read() & z8530_BUFFER_FULL_MASK) && i < 100; i++) {
+		z8530_data_read();
 	}  
 }
 
-/** Process i8042 interrupt.
+/** Process z8530 interrupt.
  *
  * @param n Interrupt vector.
  * @param istate Interrupted state.
  */
-void i8042_interrupt(int n, istate_t *istate)
+void z8530_interrupt(int n, istate_t *istate)
 {
 	uint8_t x;
 	uint8_t status;
 
-	while (((status=i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
-		x = i8042_data_read();
+	while (((status=z8530_status_read()) & z8530_BUFFER_FULL_MASK)) {
+		x = z8530_data_read();
 
-		if ((status & i8042_MOUSE_DATA))
+		if ((status & z8530_MOUSE_DATA))
 			continue;
 
 		if (x & KEY_RELEASE)
@@ -176,8 +186,8 @@ void i8042_interrupt(int n, istate_t *istate)
 }
 
 /** Wait until the controller reads its data. */
-void i8042_wait(void) {
-	while (i8042_status_read() & i8042_WAIT_MASK) {
+void z8530_wait(void) {
+	while (z8530_status_read() & z8530_WAIT_MASK) {
 		/* wait */
 	}
 }
@@ -280,12 +290,12 @@ void key_pressed(uint8_t sc)
 }
 
 /* Called from getc(). */
-void i8042_resume(chardev_t *d)
+void z8530_resume(chardev_t *d)
 {
 }
 
 /* Called from getc(). */
-void i8042_suspend(chardev_t *d)
+void z8530_suspend(chardev_t *d)
 {
 }
 
@@ -384,13 +394,15 @@ static char key_read(chardev_t *d)
 
 	while(!(ch = active_read_buff_read())) {
 		uint8_t x;
-		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK))
+		while (!(z8530_status_read() & z8530_BUFFER_FULL_MASK))
 			;
-		x = i8042_data_read();
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			active_read_key_pressed(x);
+		x = z8530_data_read();
+		if (x != IGNORE_CODE) {
+			if (x & KEY_RELEASE)
+				key_released(x ^ KEY_RELEASE);
+			else
+				active_read_key_pressed(x);
+		}
 	}
 	return ch;
 }
@@ -399,16 +411,18 @@ static char key_read(chardev_t *d)
  *
  * This function can be used to implement keyboard polling.
  */
-void i8042_poll(void)
+void z8530_poll(void)
 {
 	uint8_t x;
 
-	while (((x = i8042_status_read() & i8042_BUFFER_FULL_MASK))) {
-		x = i8042_data_read();
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			key_pressed(x);
+	while (((x = z8530_status_read() & z8530_BUFFER_FULL_MASK))) {
+		x = z8530_data_read();
+		if (x != IGNORE_CODE) {
+			if (x & KEY_RELEASE)
+				key_released(x ^ KEY_RELEASE);
+			else
+				key_pressed(x);
+		}
 	}
 }
 

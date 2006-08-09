@@ -41,7 +41,7 @@
 
 #include <arch/drivers/ega.h>
 #include <arch/drivers/vesa.h>
-#include <genarch/i8042/i8042.h>
+#include <genarch/kbd/i8042.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
 

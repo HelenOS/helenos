@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -41,7 +41,7 @@
 #include <proc/thread.h>
 #include <arch/drivers/ega.h>
 #include <arch/drivers/vesa.h>
-#include <genarch/i8042/i8042.h>
+#include <genarch/kbd/i8042.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
 
@@ -208,6 +208,5 @@ void arch_release_console(void)
 	i8042_release();
 }
 
- /** @}
+/** @}
  */
-

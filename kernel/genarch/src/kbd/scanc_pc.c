@@ -34,7 +34,7 @@
  * @brief	Scan codes for pc keyboards.
  */
 
-#include <genarch/i8042/i8042.h>
+#include <genarch/kbd/scanc.h>
 
 /** Primary meaning of scancodes. */
 char sc_primary_map[] = {

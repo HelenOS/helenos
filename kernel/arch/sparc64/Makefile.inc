@@ -64,8 +64,7 @@ CONFIG_FB = y
 #
 
 CONFIG_Z8530 = y
-CONFIG_KBD_SUN = y
-DEFS += -DCONFIG_KBD_SUN
+DEFS += -DCONFIG_Z8530
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \

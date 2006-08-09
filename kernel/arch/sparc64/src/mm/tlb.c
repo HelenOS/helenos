@@ -47,9 +47,6 @@
 #include <arch/asm.h>
 #include <symtab.h>
 
-#include <arch/drivers/fb.h>
-#include <arch/drivers/i8042.h>
-
 char *context_encoding[] = {
 	"Primary",
 	"Secondary",
@@ -60,8 +57,7 @@ char *context_encoding[] = {
 void tlb_arch_init(void)
 {
 	/*
-	 * TLBs are actually initialized by
-	 * take_over_tlb_and_tt() early
+	 * TLBs are actually initialized early
 	 * in start.S.
 	 */
 }
