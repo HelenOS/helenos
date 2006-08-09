@@ -37,6 +37,7 @@
  */
 
 #include <genarch/kbd/i8042.h>
+#include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
 #include <arch/drivers/i8042.h>
@@ -44,11 +45,9 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <synch/spinlock.h>
 #include <typedefs.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <macros.h>
 #include <interrupt.h>
 
 /* Keyboard commands. */
@@ -78,28 +77,10 @@
 #define i8042_WAIT_MASK 	0x02
 #define i8042_MOUSE_DATA        0x20
 
-#define KEY_RELEASE	0x80
-
-static void key_released(uint8_t sc);
-static void key_pressed(uint8_t sc);
-static char key_read(chardev_t *d);
-
-#define PRESSED_SHIFT		(1<<0)
-#define PRESSED_CAPSLOCK	(1<<1)
-#define LOCKED_CAPSLOCK		(1<<0)
-
-#define ACTIVE_READ_BUFF_SIZE 16 	/* Must be power of 2 */
-
-static uint8_t active_read_buff[ACTIVE_READ_BUFF_SIZE];
-
-SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
-static volatile int keyflags;		/**< Tracking of multiple keypresses. */
-static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
-
 static void i8042_suspend(chardev_t *);
 static void i8042_resume(chardev_t *);
 
-static chardev_t kbrd;
+chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = i8042_suspend,
 	.resume = i8042_resume,
@@ -182,103 +163,6 @@ void i8042_wait(void) {
 	}
 }
 
-/** Process release of key.
- *
- * @param sc Scancode of the key being released.
- */
-void key_released(uint8_t sc)
-{
-	spinlock_lock(&keylock);
-	switch (sc) {
-	    case SC_LSHIFT:
-	    case SC_RSHIFT:
-		keyflags &= ~PRESSED_SHIFT;
-		break;
-	    case SC_CAPSLOCK:
-		keyflags &= ~PRESSED_CAPSLOCK;
-		if (lockflags & LOCKED_CAPSLOCK)
-			lockflags &= ~LOCKED_CAPSLOCK;
-		else
-			lockflags |= LOCKED_CAPSLOCK;
-		break;
-	    default:
-		break;
-	}
-	spinlock_unlock(&keylock);
-}
-
-/** Process keypress.
- *
- * @param sc Scancode of the key being pressed.
- */
-void key_pressed(uint8_t sc)
-{
-	char *map = sc_primary_map;
-	char ascii = sc_primary_map[sc];
-	bool shift, capslock;
-	bool letter = false;
-
-	spinlock_lock(&keylock);
-	switch (sc) {
-	case SC_LSHIFT:
-	case SC_RSHIFT:
-	    	keyflags |= PRESSED_SHIFT;
-		break;
-	case SC_CAPSLOCK:
-		keyflags |= PRESSED_CAPSLOCK;
-		break;
-	case SC_SPEC_ESCAPE:
-		break;
-	case SC_LEFTARR:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x5b);
-		chardev_push_character(&kbrd, 0x44);
-		break;
-	case SC_RIGHTARR:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x5b);
-		chardev_push_character(&kbrd, 0x43);
-		break;
-	case SC_UPARR:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x5b);
-		chardev_push_character(&kbrd, 0x41);
-		break;
-	case SC_DOWNARR:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x5b);
-		chardev_push_character(&kbrd, 0x42);
-		break;
-	case SC_HOME:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x4f);
-		chardev_push_character(&kbrd, 0x48);
-		break;
-	case SC_END:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x4f);
-		chardev_push_character(&kbrd, 0x46);
-		break;
-	case SC_DELETE:
-		chardev_push_character(&kbrd, 0x1b);
-		chardev_push_character(&kbrd, 0x5b);
-		chardev_push_character(&kbrd, 0x33);
-		chardev_push_character(&kbrd, 0x7e);
-		break;
-	default:
-	    	letter = is_lower(ascii);
-		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
-		shift = keyflags & PRESSED_SHIFT;
-		if (letter && capslock)
-			shift = !shift;
-		if (shift)
-			map = sc_secondary_map;
-		chardev_push_character(&kbrd, map[sc]);
-		break;
-	}
-	spinlock_unlock(&keylock);
-}
-
 /* Called from getc(). */
 void i8042_resume(chardev_t *d)
 {
@@ -289,96 +173,7 @@ void i8042_suspend(chardev_t *d)
 {
 }
 
-static uint8_t active_read_buff_read(void)
-{
-	static int i=0;
-	i &= (ACTIVE_READ_BUFF_SIZE-1);
-	if(!active_read_buff[i]) {
-		return 0;
-	}
-	return active_read_buff[i++];
-}
-
-static void active_read_buff_write(uint8_t ch)
-{
-	static int i=0;
-	active_read_buff[i] = ch;
-	i++;
-	i &= (ACTIVE_READ_BUFF_SIZE-1);
-	active_read_buff[i]=0;
-}
-
-
-static void active_read_key_pressed(uint8_t sc)
-{
-	char *map = sc_primary_map;
-	char ascii = sc_primary_map[sc];
-	bool shift, capslock;
-	bool letter = false;
-
-	/*spinlock_lock(&keylock);*/
-	switch (sc) {
-	case SC_LSHIFT:
-	case SC_RSHIFT:
-	    	keyflags |= PRESSED_SHIFT;
-		break;
-	case SC_CAPSLOCK:
-		keyflags |= PRESSED_CAPSLOCK;
-		break;
-	case SC_SPEC_ESCAPE:
-		break;
-	case SC_LEFTARR:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x5b);
-		active_read_buff_write(0x44);
-		break;
-	case SC_RIGHTARR:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x5b);
-		active_read_buff_write(0x43);
-		break;
-	case SC_UPARR:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x5b);
-		active_read_buff_write(0x41);
-		break;
-	case SC_DOWNARR:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x5b);
-		active_read_buff_write(0x42);
-		break;
-	case SC_HOME:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x4f);
-		active_read_buff_write(0x48);
-		break;
-	case SC_END:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x4f);
-		active_read_buff_write(0x46);
-		break;
-	case SC_DELETE:
-		active_read_buff_write(0x1b);
-		active_read_buff_write(0x5b);
-		active_read_buff_write(0x33);
-		active_read_buff_write(0x7e);
-		break;
-	default:
-	    	letter = is_lower(ascii);
-		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
-		shift = keyflags & PRESSED_SHIFT;
-		if (letter && capslock)
-			shift = !shift;
-		if (shift)
-			map = sc_secondary_map;
-		active_read_buff_write(map[sc]);
-		break;
-	}
-	/*spinlock_unlock(&keylock);*/
-
-}
-
-static char key_read(chardev_t *d)
+char key_read(chardev_t *d)
 {
 	char ch;	
 
