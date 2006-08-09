@@ -79,3 +79,11 @@ ifeq ($(CONFIG_Z8530),y)
 		genarch/src/kbd/key.c \
 		genarch/src/kbd/scanc_sun.c
 endif
+
+## ns16550 controller
+ifeq ($(CONFIG_NS16550),y)
+	GENARCH_SOURCES += \
+		genarch/src/kbd/ns16550.c \
+		genarch/src/kbd/key.c \
+		genarch/src/kbd/scanc_sun.c
+endif

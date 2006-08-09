@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,53 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup genarch	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Headers for NS 16550 serial port / keyboard driver.
  */
 
-#include <arch/drivers/kbd.h>
-#ifdef CONFIG_Z8530
-#include <genarch/kbd/z8530.h>
+#ifndef KERN_NS16550_H_
+#define KERN_NS16550_H_
+
+extern void ns16550_init(void);
+extern void ns16550_poll(void);
+extern void ns16550_grab(void);
+extern void ns16550_release(void);
+
 #endif
-#ifdef CONFIG_NS16550
-#include <genarch/kbd/ns16550.h>
-#endif
-
-#include <arch/boot/boot.h>
-#include <arch/mm/page.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <align.h>
-
-volatile uint8_t *kbd_virt_address = NULL;
-
-void kbd_init()
-{
-	size_t offset;
-	uintptr_t aligned_addr;
-
-	/* FIXME: supply value read from OpenFirmware */
-	bootinfo.keyboard.size = 8;
-
-	/*
-	 * We need to pass aligned address to hw_map().
-	 * However, the physical keyboard address can
-	 * be pretty much unaligned on some systems
-	 * (e.g. Ultra 5, Ultras 60).
-	 */
-	aligned_addr = ALIGN_DOWN(bootinfo.keyboard.addr, PAGE_SIZE);
-	offset = bootinfo.keyboard.addr - aligned_addr;
-	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + bootinfo.keyboard.size) + offset;
-
-#ifdef CONFIG_Z8530
-	z8530_init();
-#endif
-#ifdef CONFIG_NS16550
-	ns16550_init();
-#endif
-}
 
 /** @}
  */

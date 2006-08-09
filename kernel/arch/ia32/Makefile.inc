@@ -80,6 +80,7 @@ DEFS += -DCONFIG_PAGE_PT
 #
 
 CONFIG_I8042 = y
+DEFS += -DCONFIG_I8042
 
 ## Accepted configuration directives
 #

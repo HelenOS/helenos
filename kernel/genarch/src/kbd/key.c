@@ -36,7 +36,12 @@
 
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
+#ifdef CONFIG_I8042
 #include <genarch/kbd/scanc_pc.h>
+#endif
+#if (defined(CONFIG_Z8530) || defined(CONFIG_NS16550))
+#include <genarch/kbd/scanc_sun.h>
+#endif
 #include <synch/spinlock.h>
 #include <console/chardev.h>
 #include <typedefs.h>

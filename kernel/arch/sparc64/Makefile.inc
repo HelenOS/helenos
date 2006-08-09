@@ -60,11 +60,24 @@ CONFIG_ASID_FIFO = y
 
 CONFIG_FB = y
 
-## Compile with support for z8530 controller.
-#
 
-CONFIG_Z8530 = y
-DEFS += -DCONFIG_Z8530
+ifeq ($(MACHINE),enterprise)
+	## Compile with support for z8530 controller.
+	#
+
+	CONFIG_Z8530 = y
+	DEFS += -DCONFIG_Z8530
+endif
+ifeq ($(MACHINE),ultra)
+	## Compile with support for ns16550 controller.
+	#
+	
+	CONFIG_NS16550 = y
+	DEFS += -DCONFIG_NS16550
+	
+	DEFS += -DKBD_ADDR_OVRD=0x1fff13083f8ULL
+endif
+
 
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \

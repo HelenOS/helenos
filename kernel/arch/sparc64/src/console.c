@@ -42,8 +42,8 @@
 #ifdef CONFIG_Z8530
 #include <genarch/kbd/z8530.h>
 #endif
-#ifdef CONFIG_16550A
-#include <genarch/kbd/16550a.h>
+#ifdef CONFIG_NS16550
+#include <genarch/kbd/ns16550.h>
 #endif
 
 #include <console/chardev.h>
@@ -64,6 +64,11 @@ void standalone_sparc64_console_init(void)
 	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
 		bootinfo.screen.bpp, bootinfo.screen.scanline, true);
 
+#ifdef KBD_ADDR_OVRD
+	if (!bootinfo.keyboard.addr)
+		bootinfo.keyboard.addr = KBD_ADDR_OVRD;
+#endif
+
 	if (bootinfo.keyboard.addr)
 		kbd_init();
 }
@@ -81,8 +86,8 @@ void kkbdpoll(void *arg)
 #ifdef CONFIG_Z8530
 		z8530_poll();
 #endif
-#ifdef CONFIG_16550A
-		16550a_poll();
+#ifdef CONFIG_NS16550
+		ns16550_poll();
 #endif
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}

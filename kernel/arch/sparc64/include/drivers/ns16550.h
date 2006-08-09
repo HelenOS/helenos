@@ -32,47 +32,26 @@
 /** @file
  */
 
-#include <arch/drivers/kbd.h>
-#ifdef CONFIG_Z8530
-#include <genarch/kbd/z8530.h>
-#endif
-#ifdef CONFIG_NS16550
-#include <genarch/kbd/ns16550.h>
-#endif
+#ifndef KERN_sparc64_NS16550_H_
+#define KERN_sparc64_NS16550_H_
 
-#include <arch/boot/boot.h>
-#include <arch/mm/page.h>
 #include <arch/types.h>
-#include <typedefs.h>
-#include <align.h>
+#include <arch/drivers/kbd.h>
 
-volatile uint8_t *kbd_virt_address = NULL;
+#define RBR_REG		0	/** Receiver Buffer Register. */
+#define LSR_REG		5	/** Line Status Register. */
 
-void kbd_init()
+static inline uint8_t ns16550_rbr_read(void)
 {
-	size_t offset;
-	uintptr_t aligned_addr;
-
-	/* FIXME: supply value read from OpenFirmware */
-	bootinfo.keyboard.size = 8;
-
-	/*
-	 * We need to pass aligned address to hw_map().
-	 * However, the physical keyboard address can
-	 * be pretty much unaligned on some systems
-	 * (e.g. Ultra 5, Ultras 60).
-	 */
-	aligned_addr = ALIGN_DOWN(bootinfo.keyboard.addr, PAGE_SIZE);
-	offset = bootinfo.keyboard.addr - aligned_addr;
-	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + bootinfo.keyboard.size) + offset;
-
-#ifdef CONFIG_Z8530
-	z8530_init();
-#endif
-#ifdef CONFIG_NS16550
-	ns16550_init();
-#endif
+	return kbd_virt_address[RBR_REG];
 }
+
+static inline uint8_t ns16550_lsr_read(void)
+{
+	return kbd_virt_address[LSR_REG];
+}
+
+#endif
 
 /** @}
  */
