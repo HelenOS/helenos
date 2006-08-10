@@ -120,7 +120,7 @@ endif
 .PHONY: all build config distclean clean
 
 all:
-	tools/config.py HelenOS.config default
+	tools/config.py HelenOS.config default $(PLATFORM) $(COMPILER) $(CONFIG_DEBUG)
 	$(MAKE) -C . build
 
 build:

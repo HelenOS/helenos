@@ -457,6 +457,7 @@ def main():
 	# Get ARCH from command line if specified
     if len(sys.argv) >= 4:
         defaults['ARCH'] = sys.argv[3]
+        defaults['PLATFORM'] = sys.argv[3]
 	
 	# Get COMPILER from command line if specified
     if len(sys.argv) >= 5:
