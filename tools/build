@@ -1,0 +1,21 @@
+#! /bin/bash
+
+BASE="$HOME/HelenOS.export"
+TARGETS="amd64 ia32 ia64 mips32gbe mips32gle ppc32 ppc64 sparc64"
+OUTPUT="$HOME/arch"
+
+for TARGET in $TARGETS ; do
+	rm -fr "$OUTPUT/$TARGET"
+	mkdir -p "$OUTPUT/$TARGET/include"
+	
+	cd "$BASE"
+	make distclean
+	make "PLATFORM=$TARGET" "COMPILER=cross" "CONFIG_DEBUG=n"
+	
+	cp -v "$BASE/uspace/libc/arch/$UTARGET/src/entry.o" "$OUTPUT/$UTARGET"
+	cp -v "$BASE/uspace/libc/arch/$UTARGET/_link.ld" "$OUTPUT/$UTARGET"
+	cp -v "$BASE/uspace/libc/libc.a" "$OUTPUT/$UTARGET"
+	cp -v "$BASE/uspace/softint/libsoftint.a" "$OUTPUT/$UTARGET"
+	cp -v "$BASE/uspace/softfloat/libsoftfloat.a" "$OUTPUT/$UTARGET"
+	cp -v -R -L "$BASE/uspace/libc/include" "$OUTPUT/$UTARGET"
+done
