@@ -36,32 +36,93 @@
 #define KERN_sparc64_Z8530_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <arch/drivers/kbd.h>
 
-#define STATUS_REG	4
-#define COMMAND_REG	4
-#define DATA_REG	6
+#define Z8530_CHAN_A	4
+#define Z8530_CHAN_B	0
 
-#define LAST_REG	DATA_REG
+#define WR0	0
+#define WR1	1
+#define WR2	2
+#define WR3	3
+#define WR4	4
+#define WR5	5
+#define WR6	6
+#define WR7	7
+#define WR8	8
+#define WR9	9
+#define WR10	10
+#define WR11	11
+#define WR12	12
+#define WR13	13
+#define WR14	14
+#define WR15	15
 
-static inline void z8530_data_write(uint8_t data)
+#define RR0	0
+#define RR1	1
+#define RR2	2
+#define RR3	3
+#define RR8	8
+#define RR10	10
+#define RR12	12
+#define RR13	13
+#define RR14	14
+#define RR15	15
+
+/* Write Register 1 */
+#define WR1_RID		(0x0<<3)	/** Receive Interrupts Disabled. */
+#define WR1_RIFCSC	(0x1<<3)	/** Receive Interrupt on First Character or Special Condition. */
+#define WR1_IARCSC	(0x2<<3)	/** Interrupt on All Receive Characters or Special Conditions. */
+#define WR1_RISC	(0x3<<3)	/** Receive Interrupt on Special Condition. */
+#define WR1_PISC	(0x1<<2)	/** Parity Is Special Condition. */
+
+/* Write Register 3 */
+#define WR3_RX_ENABLE	(0x1<<0)	/** Rx Enable. */
+#define WR3_RX8BITSCH	(0x3<<6)	/** 8-bits per character. */
+
+/* Write Register 9 */
+#define WR9_MIE		(0x1<<3)	/** Master Interrupt Enable. */
+
+/* Read Register 0 */
+#define RR0_RCA		(0x1<<0)	/** Receive Character Available. */
+
+static inline void z8530_write(index_t chan, uint8_t reg, uint8_t val)
 {
-	kbd_virt_address[DATA_REG] = data;
+	/*
+	 * Registers 8-15 will automatically issue the Point High
+	 * command as their bit 3 is 1.
+	 */
+	kbd_virt_address[WR0+chan] = reg;	/* select register */
+	kbd_virt_address[WR0+chan] = val;	/* write value */
 }
 
-static inline uint8_t z8530_data_read(void)
+static inline void z8530_write_a(uint8_t reg, uint8_t val)
 {
-	return kbd_virt_address[DATA_REG];
+	z8530_write(Z8530_CHAN_A, reg, val);
+}
+static inline void z8530_write_b(uint8_t reg, uint8_t val)
+{
+	z8530_write(Z8530_CHAN_B, reg, val);
 }
 
-static inline uint8_t z8530_status_read(void)
+static inline uint8_t z8530_read(index_t chan, uint8_t reg) 
 {
-	return kbd_virt_address[STATUS_REG];
+	/*
+	 * Registers 8-15 will automatically issue the Point High
+	 * command as their bit 3 is 1.
+	 */
+	kbd_virt_address[WR0+chan] = reg;	/* select register */
+	return kbd_virt_address[WR0+chan];
 }
 
-static inline void z8530_command_write(uint8_t command)
+static inline uint8_t z8530_read_a(uint8_t reg)
 {
-	kbd_virt_address[COMMAND_REG] = command;
+	return z8530_read(Z8530_CHAN_A, reg);
+}
+static inline uint8_t z8530_read_b(uint8_t reg)
+{
+	return z8530_read(Z8530_CHAN_B, reg);
 }
 
 #endif
