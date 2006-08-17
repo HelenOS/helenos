@@ -70,6 +70,9 @@
 #define RR14	14
 #define RR15	15
 
+/* Write Register 0 */
+#define WR0_ERR_RST	(0x6<<3)
+
 /* Write Register 1 */
 #define WR1_RID		(0x0<<3)	/** Receive Interrupts Disabled. */
 #define WR1_RIFCSC	(0x1<<3)	/** Receive Interrupt on First Character or Special Condition. */

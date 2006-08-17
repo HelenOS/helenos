@@ -32,35 +32,15 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_NS16550_H_
-#define KERN_sparc64_NS16550_H_
+#ifndef KERN_sparc64_FHC_H_
+#define KERN_sparc64_FHC_H_
 
 #include <arch/types.h>
-#include <arch/drivers/kbd.h>
 
-#define RBR_REG		0	/** Receiver Buffer Register. */
-#define IER_REG		1	/** Interrupt Enable Register. */
-#define LSR_REG		5	/** Line Status Register. */
+extern volatile uint32_t *fhc;
 
-static inline uint8_t ns16550_rbr_read(void)
-{
-	return kbd_virt_address[RBR_REG];
-}
-
-static inline uint8_t ns16550_ier_read(void)
-{
-	return kbd_virt_address[IER_REG];
-}
-
-static inline void ns16550_ier_write(uint8_t v)
-{
-	kbd_virt_address[IER_REG] = v;
-}
-
-static inline uint8_t ns16550_lsr_read(void)
-{
-	return kbd_virt_address[LSR_REG];
-}
+extern void fhc_init(void);
+extern void fhc_uart_reset(void);
 
 #endif
 

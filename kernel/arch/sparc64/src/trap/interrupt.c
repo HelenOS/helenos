@@ -33,10 +33,16 @@
  */
 
 #include <arch/interrupt.h>
+#include <arch/trap/interrupt.h>
 #include <interrupt.h>
+#include <arch/drivers/fhc.h>
 #include <arch/types.h>
 #include <debug.h>
 #include <ipc/sysipc.h>
+#include <arch/asm.h>
+#include <arch/barrier.h>
+
+#include <genarch/kbd/z8530.h>
 
 /** Register Interrupt Level Handler.
  *
@@ -58,6 +64,33 @@ void irq_ipc_bind_arch(unative_t irq)
 	/* TODO */
 }
 
+void interrupt(void)
+{
+	uint64_t intrcv;
+	uint64_t data0;
+
+	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
+	data0 = asi_u64_read(ASI_UDB_INTR_R, ASI_UDB_INTR_R_DATA_0);
+
+	switch (data0) {
+#ifdef CONFIG_Z8530
+	case Z8530_INTRCV_DATA0:
+		/*
+		 * So far, we know we got this interrupt through the FHC.
+		 * Since we don't have enough information about the FHC and
+		 * because the interrupt looks like level sensitive,
+		 * we cannot handle it by scheduling one of the level
+		 * interrupt traps. Call the interrupt handler directly.
+		 */
+		fhc_uart_reset();
+		z8530_interrupt();
+		break;
+#endif
+	}
+
+	membar();
+	asi_u64_write(ASI_INTR_RECEIVE, 0, 0);
+}
+
 /** @}
  */
-

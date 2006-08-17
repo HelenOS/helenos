@@ -60,7 +60,7 @@ void kbd_init()
 	 * We need to pass aligned address to hw_map().
 	 * However, the physical keyboard address can
 	 * be pretty much unaligned on some systems
-	 * (e.g. Ultra 5, Ultras 60).
+	 * (e.g. Ultra 5, Ultra 60).
 	 */
 	aligned_addr = ALIGN_DOWN(bootinfo.keyboard.addr, PAGE_SIZE);
 	offset = bootinfo.keyboard.addr - aligned_addr;

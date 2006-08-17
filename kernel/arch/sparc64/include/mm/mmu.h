@@ -35,10 +35,10 @@
 #ifndef __sparc64_MMU_H__
 #define __sparc64_MMU_H__
 
-/** LSU Control Register ASI. */
+/* LSU Control Register ASI. */
 #define ASI_LSU_CONTROL_REG		0x45	/**< Load/Store Unit Control Register. */
 
-/** I-MMU ASIs. */
+/* I-MMU ASIs. */
 #define ASI_IMMU			0x50
 #define ASI_IMMU_TSB_8KB_PTR_REG	0x51	
 #define ASI_IMMU_TSB_64KB_PTR_REG	0x52
@@ -47,13 +47,13 @@
 #define ASI_ITLB_TAG_READ_REG		0x56
 #define ASI_IMMU_DEMAP			0x57
 
-/** Virtual Addresses within ASI_IMMU. */
+/* Virtual Addresses within ASI_IMMU. */
 #define VA_IMMU_TAG_TARGET		0x0	/**< IMMU tag target register. */
 #define VA_IMMU_SFSR			0x18	/**< IMMU sync fault status register. */
 #define VA_IMMU_TSB_BASE		0x28	/**< IMMU TSB base register. */
 #define VA_IMMU_TAG_ACCESS		0x30	/**< IMMU TLB tag access register. */
 
-/** D-MMU ASIs. */
+/* D-MMU ASIs. */
 #define ASI_DMMU			0x58
 #define ASI_DMMU_TSB_8KB_PTR_REG	0x59	
 #define ASI_DMMU_TSB_64KB_PTR_REG	0x5a
@@ -63,7 +63,7 @@
 #define ASI_DTLB_TAG_READ_REG		0x5e
 #define ASI_DMMU_DEMAP			0x5f
 
-/** Virtual Addresses within ASI_DMMU. */
+/* Virtual Addresses within ASI_DMMU. */
 #define VA_DMMU_TAG_TARGET		0x0	/**< DMMU tag target register. */
 #define VA_PRIMARY_CONTEXT_REG		0x8	/**< DMMU primary context register. */
 #define VA_SECONDARY_CONTEXT_REG	0x10	/**< DMMU secondary context register. */

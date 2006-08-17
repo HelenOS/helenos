@@ -139,6 +139,17 @@ static inline void clear_softint_write(uint64_t v)
 	__asm__ volatile ("wr %0, %1, %%clear_softint\n" : : "r" (v), "i" (0));
 }
 
+/** Write SET_SOFTINT Register.
+ *
+ * Bits set in SET_SOFTINT register will be set in SOFTINT register.
+ *
+ * @param v New value of SET_SOFTINT register.
+ */
+static inline void set_softint_write(uint64_t v)
+{
+	__asm__ volatile ("wr %0, %1, %%set_softint\n" : : "r" (v), "i" (0));
+}
+
 /** Enable interrupts.
  *
  * Enable interrupts and return previous

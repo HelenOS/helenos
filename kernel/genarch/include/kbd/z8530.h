@@ -37,10 +37,13 @@
 #ifndef KERN_Z8530_H_
 #define KERN_Z8530_H_
 
+#define Z8530_INTRCV_DATA0	0x39	/* hardcoded for use in Simics */
+
 extern void z8530_init(void);
 extern void z8530_poll(void);
 extern void z8530_grab(void);
 extern void z8530_release(void);
+extern void z8530_interrupt(void);
 
 #endif
 

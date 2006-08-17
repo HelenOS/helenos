@@ -26,43 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	FireHose Controller (FHC) driver.
+ *
+ * Note that this driver is a result of reverse engineering
+ * rather than implementation of a specification. This
+ * is due to the fact that the FHC documentation is not
+ * publicly available.
  */
 
-#ifndef KERN_sparc64_NS16550_H_
-#define KERN_sparc64_NS16550_H_
-
+#include <arch/drivers/fhc.h>
+#include <arch/mm/page.h>
 #include <arch/types.h>
-#include <arch/drivers/kbd.h>
+#include <typedefs.h>
 
-#define RBR_REG		0	/** Receiver Buffer Register. */
-#define IER_REG		1	/** Interrupt Enable Register. */
-#define LSR_REG		5	/** Line Status Register. */
+#include <genarch/kbd/z8530.h>
 
-static inline uint8_t ns16550_rbr_read(void)
+volatile uint32_t *fhc = NULL;
+
+#define FHC_UART_ADDR	0x1fff8808000ULL		/* hardcoded for Simics simulation */
+
+#define FHC_UART_IMAP	0x0
+#define FHC_UART_ICLR	0x4
+
+void fhc_init(void)
 {
-	return kbd_virt_address[RBR_REG];
+	fhc = (void *) hw_map(FHC_UART_ADDR, PAGE_SIZE);
+
+	(void) fhc[FHC_UART_ICLR];
+	fhc[FHC_UART_ICLR] = 0;
+	(void) fhc[FHC_UART_IMAP];
+	fhc[FHC_UART_IMAP] = Z8530_INTRCV_DATA0;	/* hardcoded for Simics simulation */
+	(void) fhc[FHC_UART_IMAP];
+	fhc[FHC_UART_IMAP] = 0x80000000;		/* hardcoded for Simics simulation */
 }
 
-static inline uint8_t ns16550_ier_read(void)
+void fhc_uart_reset(void)
 {
-	return kbd_virt_address[IER_REG];
+	(void) fhc[FHC_UART_ICLR];
+	fhc[FHC_UART_ICLR] = 0;
 }
-
-static inline void ns16550_ier_write(uint8_t v)
-{
-	kbd_virt_address[IER_REG] = v;
-}
-
-static inline uint8_t ns16550_lsr_read(void)
-{
-	return kbd_virt_address[LSR_REG];
-}
-
-#endif
 
 /** @}
  */

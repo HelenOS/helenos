@@ -84,7 +84,7 @@ void kkbdpoll(void *arg)
 		
 	while (1) {
 #ifdef CONFIG_Z8530
-		z8530_poll();
+		return;
 #endif
 #ifdef CONFIG_NS16550
 		ns16550_poll();

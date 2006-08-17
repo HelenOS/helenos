@@ -40,6 +40,22 @@
 #include <arch/trap/trap_table.h>
 #include <arch/stack.h>
 
+/* Interrupt ASI registers. */
+#define ASI_UDB_INTR_W			0x77
+#define ASI_INTR_DISPATCH_STATUS	0x48
+#define ASI_UDB_INTR_R			0x7f
+#define ASI_INTR_RECEIVE		0x49
+
+/* VA's used with ASI_UDB_INTR_W register. */
+#define ASI_UDB_INTR_W_DATA_0	0x40
+#define ASI_UDB_INTR_W_DATA_1	0x50
+#define ASI_UDB_INTR_W_DATA_2	0x60
+
+/* VA's used with ASI_UDB_INTR_R register. */
+#define ASI_UDB_INTR_R_DATA_0	0x40
+#define ASI_UDB_INTR_R_DATA_1	0x50
+#define ASI_UDB_INTR_R_DATA_2	0x60
+
 #define TT_INTERRUPT_LEVEL_1			0x41
 #define TT_INTERRUPT_LEVEL_2			0x42
 #define TT_INTERRUPT_LEVEL_3			0x43
@@ -70,9 +86,16 @@
 .endm
 
 .macro INTERRUPT_VECTOR_TRAP_HANDLER
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	SIMPLE_HANDLER interrupt
+	restore
 	retry
 .endm
 #endif /* __ASM__ */
+
+#ifndef __ASM__
+extern void interrupt(void);
+#endif /* !def __ASM__ */
 
 #endif
 
