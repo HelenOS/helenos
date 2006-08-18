@@ -26,7 +26,7 @@
 * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
@@ -92,8 +92,5 @@ void vhpt_invalidate_asid(asid_t asid)
 	vhpt_invalidate_all();
 }
 
-
-
- /** @}
+/** @}
  */
-

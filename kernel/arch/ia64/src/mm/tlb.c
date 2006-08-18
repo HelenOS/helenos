@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
@@ -56,38 +56,38 @@
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
 {
-		ipl_t ipl;
-		uintptr_t adr;
-		uint32_t count1, count2, stride1, stride2;
+	ipl_t ipl;
+	uintptr_t adr;
+	uint32_t count1, count2, stride1, stride2;
 		
-		int i,j;
+	int i, j;
 		
-		adr = PAL_PTCE_INFO_BASE();
-		count1 = PAL_PTCE_INFO_COUNT1();
-		count2 = PAL_PTCE_INFO_COUNT2();
-		stride1 = PAL_PTCE_INFO_STRIDE1();
-		stride2 = PAL_PTCE_INFO_STRIDE2();
+	adr = PAL_PTCE_INFO_BASE();
+	count1 = PAL_PTCE_INFO_COUNT1();
+	count2 = PAL_PTCE_INFO_COUNT2();
+	stride1 = PAL_PTCE_INFO_STRIDE1();
+	stride2 = PAL_PTCE_INFO_STRIDE2();
 		
-		ipl = interrupts_disable();
+	ipl = interrupts_disable();
 
-		for(i = 0; i < count1; i++) {
-			for(j = 0; j < count2; j++) {
-				__asm__ volatile (
-					"ptc.e %0 ;;"
-					:
-					: "r" (adr)
-				);
-				adr += stride2;
-			}
-			adr += stride1;
+	for(i = 0; i < count1; i++) {
+		for(j = 0; j < count2; j++) {
+			__asm__ volatile (
+				"ptc.e %0 ;;"
+				:
+				: "r" (adr)
+			);
+			adr += stride2;
 		}
+		adr += stride1;
+	}
 
-		interrupts_restore(ipl);
+	interrupts_restore(ipl);
 
-		srlz_d();
-		srlz_i();
+	srlz_d();
+	srlz_i();
 #ifdef CONFIG_VHPT
-		vhpt_invalidate_all();
+	vhpt_invalidate_all();
 #endif	
 }
 
@@ -132,50 +132,50 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	uint64_t ps;
 	
 	switch (b) {
-		case 0: /*cnt 1-3*/
-			ps = PAGE_WIDTH;
-			break;
-		case 1: /*cnt 4-15*/
-			/*cnt=((cnt-1)/4)+1;*/
-			ps = PAGE_WIDTH+2;
-			va &= ~((1<<ps)-1);
-			break;
-		case 2: /*cnt 16-63*/
-			/*cnt=((cnt-1)/16)+1;*/
-			ps = PAGE_WIDTH+4;
-			va &= ~((1<<ps)-1);
-			break;
-		case 3: /*cnt 64-255*/
-			/*cnt=((cnt-1)/64)+1;*/
-			ps = PAGE_WIDTH+6;
-			va &= ~((1<<ps)-1);
-			break;
-		case 4: /*cnt 256-1023*/
-			/*cnt=((cnt-1)/256)+1;*/
-			ps = PAGE_WIDTH+8;
-			va &= ~((1<<ps)-1);
-			break;
-		case 5: /*cnt 1024-4095*/
-			/*cnt=((cnt-1)/1024)+1;*/
-			ps = PAGE_WIDTH+10;
-			va &= ~((1<<ps)-1);
-			break;
-		case 6: /*cnt 4096-16383*/
-			/*cnt=((cnt-1)/4096)+1;*/
-			ps = PAGE_WIDTH+12;
-			va &= ~((1<<ps)-1);
-			break;
-		case 7: /*cnt 16384-65535*/
-		case 8: /*cnt 65536-(256K-1)*/
-			/*cnt=((cnt-1)/16384)+1;*/
-			ps = PAGE_WIDTH+14;
-			va &= ~((1<<ps)-1);
-			break;
-		default:
-			/*cnt=((cnt-1)/(16384*16))+1;*/
-			ps=PAGE_WIDTH+18;
-			va&=~((1<<ps)-1);
-			break;
+	case 0: /*cnt 1-3*/
+		ps = PAGE_WIDTH;
+		break;
+	case 1: /*cnt 4-15*/
+		/*cnt=((cnt-1)/4)+1;*/
+		ps = PAGE_WIDTH+2;
+		va &= ~((1<<ps)-1);
+		break;
+	case 2: /*cnt 16-63*/
+		/*cnt=((cnt-1)/16)+1;*/
+		ps = PAGE_WIDTH+4;
+		va &= ~((1<<ps)-1);
+		break;
+	case 3: /*cnt 64-255*/
+		/*cnt=((cnt-1)/64)+1;*/
+		ps = PAGE_WIDTH+6;
+		va &= ~((1<<ps)-1);
+		break;
+	case 4: /*cnt 256-1023*/
+		/*cnt=((cnt-1)/256)+1;*/
+		ps = PAGE_WIDTH+8;
+		va &= ~((1<<ps)-1);
+		break;
+	case 5: /*cnt 1024-4095*/
+		/*cnt=((cnt-1)/1024)+1;*/
+		ps = PAGE_WIDTH+10;
+		va &= ~((1<<ps)-1);
+		break;
+	case 6: /*cnt 4096-16383*/
+		/*cnt=((cnt-1)/4096)+1;*/
+		ps = PAGE_WIDTH+12;
+		va &= ~((1<<ps)-1);
+		break;
+	case 7: /*cnt 16384-65535*/
+	case 8: /*cnt 65536-(256K-1)*/
+		/*cnt=((cnt-1)/16384)+1;*/
+		ps = PAGE_WIDTH+14;
+		va &= ~((1<<ps)-1);
+		break;
+	default:
+		/*cnt=((cnt-1)/(16384*16))+1;*/
+		ps=PAGE_WIDTH+18;
+		va&=~((1<<ps)-1);
+		break;
 	}
 	/*cnt+=(page!=va);*/
 	for(; va<(page+cnt*(PAGE_SIZE)); va += (1<<ps))	{
@@ -685,6 +685,5 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	}
 }
 
- /** @}
+/** @}
  */
-
