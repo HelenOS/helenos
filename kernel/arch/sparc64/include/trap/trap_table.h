@@ -77,6 +77,10 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 	mov %l7, %g7
 .endm
 
+/*
+ * The following needs to be in sync with the
+ * definition of the istate structure.
+ */
 #define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE	(STACK_WINDOW_SAVE_AREA_SIZE+(4*8))
 #define SAVED_TSTATE	-(1*8)
 #define SAVED_TPC	-(2*8)

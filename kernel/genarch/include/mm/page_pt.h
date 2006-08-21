@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 /** @file
@@ -116,6 +116,5 @@ extern pte_t *page_mapping_find_pt(as_t *as, uintptr_t page);
 
 #endif
 
- /** @}
+/** @}
  */
-

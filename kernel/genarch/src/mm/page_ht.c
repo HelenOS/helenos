@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 
@@ -244,6 +244,5 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 	return t;
 }
 
- /** @}
+/** @}
  */
-

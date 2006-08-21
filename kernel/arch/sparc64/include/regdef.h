@@ -38,6 +38,10 @@
 #define PSTATE_IE_BIT	2
 #define PSTATE_AM_BIT	8
 
+#define PSTATE_AG_BIT	(1<<0)
+#define PSTATE_IG_BIT	(1<<11)
+#define PSTATE_MG_BIT	(1<<10)
+
 #endif
 
 /** @}

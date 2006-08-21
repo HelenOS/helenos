@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 
@@ -139,6 +139,6 @@ void pt_unlock(as_t *as, bool unlock)
 		mutex_unlock(&as->lock);
 }
 
- /** @}
+/** @}
  */
 

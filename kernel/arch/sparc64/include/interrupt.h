@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64interrupt sparc64
+/** @addtogroup sparc64interrupt sparc64
  * @ingroup interrupt
  * @{
  */
@@ -52,6 +52,10 @@
 #define trap_virtual_eoi()
 
 struct istate {
+	uint64_t	pstate;
+	uint64_t	tnpc;
+	uint64_t	tpc;
+	uint64_t	tstate;
 };
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
@@ -74,6 +78,5 @@ extern void interrupt_register(int n, const char *name, iroutine f);
 
 #endif
 
- /** @}
+/** @}
  */
-

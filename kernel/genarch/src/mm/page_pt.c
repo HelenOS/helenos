@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 
@@ -265,6 +265,5 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page)
 	return &ptl3[PTL3_INDEX(page)];
 }
 
- /** @}
+/** @}
  */
-

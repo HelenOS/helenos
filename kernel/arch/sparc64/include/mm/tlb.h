@@ -66,6 +66,7 @@
 
 /* TLB Tag Access shifts */
 #define TLB_TAG_ACCESS_CONTEXT_SHIFT	0
+#define TLB_TAG_ACCESS_CONTEXT_MASK	((1<<13)-1)
 #define TLB_TAG_ACCESS_VPN_SHIFT	13
 
 #ifndef __ASM__
@@ -107,7 +108,7 @@ union tlb_tag_read_reg {
 	uint64_t value;
 	struct {
 		uint64_t vpn : 51;		/**< Virtual Address bits 63:13. */
-		unsigned context : 13;	/**< Context identifier. */
+		unsigned context : 13;		/**< Context identifier. */
 	} __attribute__ ((packed));
 };
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
@@ -118,7 +119,7 @@ typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 union tlb_demap_addr {
 	uint64_t value;
 	struct {
-		uint64_t vpn: 51;		/**< Virtual Address bits 63:13. */
+		uint64_t vpn: 51;	/**< Virtual Address bits 63:13. */
 		unsigned : 6;		/**< Ignored. */
 		unsigned type : 1;	/**< The type of demap operation. */
 		unsigned context : 2;	/**< Context register selection. */
@@ -131,11 +132,9 @@ typedef union tlb_demap_addr tlb_demap_addr_t;
 union tlb_sfsr_reg {
 	uint64_t value;
 	struct {
-		unsigned long : 39;	/**< Implementation dependent. */
-		unsigned nf : 1;	/**< Nonfaulting load. */
+		unsigned long : 40;	/**< Implementation dependent. */
 		unsigned asi : 8;	/**< ASI. */
-		unsigned tm : 1;	/**< TLB miss. */
-		unsigned : 1;
+		unsigned : 2;
 		unsigned ft : 7;	/**< Fault type. */
 		unsigned e : 1;		/**< Side-effect bit. */
 		unsigned ct : 2;	/**< Context Register selection. */
@@ -425,9 +424,9 @@ static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 	membar();
 }
 
-extern void fast_instruction_access_mmu_miss(void);
-extern void fast_data_access_mmu_miss(void);
-extern void fast_data_access_protection(void);
+extern void fast_instruction_access_mmu_miss(int n, istate_t *istate);
+extern void fast_data_access_mmu_miss(int n, istate_t *istate);
+extern void fast_data_access_protection(int n, istate_t *istate);
 
 extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable);
 

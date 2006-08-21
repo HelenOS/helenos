@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
@@ -206,6 +206,5 @@ extern unative_t sys_as_area_destroy(uintptr_t address);
 
 #endif
 
- /** @}
+/** @}
  */
-

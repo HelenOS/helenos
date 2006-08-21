@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 
@@ -174,6 +174,5 @@ void asid_put(asid_t asid)
 	interrupts_restore(ipl);
 }
 
- /** @}
+/** @}
  */
-

@@ -543,7 +543,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	
 	if (!src_area->backend || !src_area->backend->share) {
 		/*
-		 * There is now backend or the backend does not
+		 * There is no backend or the backend does not
 		 * know how to share the area.
 		 */
 		mutex_unlock(&src_area->lock);

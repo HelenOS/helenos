@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
  
@@ -94,6 +94,5 @@ void asid_put_arch(asid_t asid)
 	fifo_push(free_asids, asid);
 }
 
- /** @}
+/** @}
  */
-

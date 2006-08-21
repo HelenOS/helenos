@@ -81,7 +81,6 @@
 .macro INTERRUPT_LEVEL_N_HANDLER n
 	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
 	mov \n - 1, %o0
-	mov %fp, %o1
 	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 

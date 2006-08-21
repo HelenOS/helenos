@@ -43,6 +43,7 @@
 #include <arch/trap/exception.h>
 #include <arch/trap/mmu.h>
 #include <arch/stack.h>
+#include <arch/regdef.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
@@ -275,14 +276,24 @@ fill_0_normal_high:
 	FILL_NORMAL_HANDLER
 
 
-/* Preemptible trap handler.
+/* Preemptible trap handler for TL=1.
  *
- * This trap handler makes arrangements to
- * make calling scheduler() possible.
+ * This trap handler makes arrangements to make calling of scheduler() from
+ * within a trap context possible. It is guaranteed to function only when traps
+ * are not nested (i.e. for TL=1).
  *
- * The caller is responsible for doing save
- * and allocating PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE
- * bytes on stack.
+ * Every trap handler on TL=1 that makes a call to the scheduler needs to
+ * be based on this function. The reason behind it is that the nested
+ * trap levels and the automatic saving of the interrupted context by hardware
+ * does not work well together with scheduling (i.e. a thread cannot be rescheduled
+ * with TL>0). Therefore it is necessary to eliminate the effect of trap levels
+ * by software and save the necessary state on the kernel stack.
+ *
+ * Note that for traps with TL>1, more state needs to be saved. This function
+ * is therefore not going to work when TL>1.
+ *
+ * The caller is responsible for doing SAVE and allocating
+ * PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE bytes on the stack.
  *
  * Input registers:
  * 	%l0	 	Address of function to call.
@@ -299,6 +310,11 @@ preemptible_handler:
 	rdpr %tnpc, %g3
 	rdpr %pstate, %g4
 
+	/*
+	 * The following memory accesses will not fault
+	 * because special provisions are made to have
+	 * the kernel stack of THREAD locked in DTLB.
+	 */
 	stx %g1, [%fp + STACK_BIAS + SAVED_TSTATE]
 	stx %g2, [%fp + STACK_BIAS + SAVED_TPC]
 	stx %g3, [%fp + STACK_BIAS + SAVED_TNPC]
@@ -313,7 +329,7 @@ preemptible_handler:
 	 * Alter PSTATE.
 	 * - switch to normal globals.
 	 */
-	and %g4, ~1, %g4		! mask alternate globals
+	and %g4, ~(PSTATE_AG_BIT|PSTATE_IG_BIT|PSTATE_MG_BIT), %g4
 	wrpr %g4, 0, %pstate
 	 
 	/*
@@ -324,17 +340,18 @@ preemptible_handler:
 	/*
 	 * Call the higher-level handler.
 	 */
+	mov %fp, %o1				! calculate istate address
 	call %l0
-	nop
+	add %o1, STACK_BIAS + SAVED_PSTATE, %o1	! calculate istate address
 	
 	/*
-	 * Restore the normal global register set.
+	 * Restore	 the normal global register set.
 	 */
 	RESTORE_GLOBALS
 	
 	/*
 	 * Restore PSTATE from saved copy.
-	 * Alternate globals become active.
+	 * Alternate/Interrupt/MM globals become active.
 	 */
 	ldx [%fp + STACK_BIAS + SAVED_PSTATE], %l4
 	wrpr %l4, 0, %pstate
@@ -357,10 +374,10 @@ preemptible_handler:
 	restore
 
 	/*
-	 * On execution of retry instruction, CWP will be restored from TSTATE register.
-	 * However, because of scheduling, it is possible that CWP in saved TSTATE
-	 * is different from current CWP. The following chunk of code fixes CWP
-	 * in the saved copy of TSTATE.
+	 * On execution of the RETRY instruction, CWP will be restored from the TSTATE
+	 * register. However, because of scheduling, it is possible that CWP in the saved
+	 * TSTATE is different from the current CWP. The following chunk of code fixes
+	 * CWP in the saved copy of TSTATE.
 	 */
 	rdpr %cwp, %g4		! read current CWP
 	and %g1, ~0x1f, %g1	! clear CWP field in saved TSTATE

@@ -506,14 +506,14 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 	t = page_mapping_find(AS, va);
 	if (t) {
 		/*
-		 * The mapping was found in software page hash table.
+		 * The mapping was found in the software page hash table.
 		 * Insert it into data translation cache.
 		 */
 		dtc_pte_copy(t);
 		page_table_unlock(AS, true);
 	} else {
 		/*
-		 * Forward the page fault to address space page fault handler.
+		 * Forward the page fault to the address space page fault handler.
 		 */
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {

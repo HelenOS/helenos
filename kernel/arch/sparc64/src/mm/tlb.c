@@ -34,10 +34,13 @@
 
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
+#include <mm/as.h>
+#include <mm/asid.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
-#include <mm/asid.h>
+#include <arch/interrupt.h>
+#include <arch.h>
 #include <print.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -46,6 +49,9 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <symtab.h>
+
+static void dtlb_pte_copy(pte_t *t);
+static void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str);
 
 char *context_encoding[] = {
 	"Primary",
@@ -99,37 +105,60 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool loc
 	dtlb_data_in_write(data.value);
 }
 
+void dtlb_pte_copy(pte_t *t)
+{
+}
+
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(void)
+void fast_instruction_access_mmu_miss(int n, istate_t *istate)
 {
 	panic("%s\n", __FUNCTION__);
 }
 
-/** DTLB miss handler. */
-void fast_data_access_mmu_miss(void)
+/** DTLB miss handler.
+ *
+ * Note that some faults (e.g. kernel faults) were already resolved
+ * by the low-level, assembly language part of the fast_data_access_mmu_miss
+ * handler.
+ */
+void fast_data_access_mmu_miss(int n, istate_t *istate)
 {
 	tlb_tag_access_reg_t tag;
-	uintptr_t tpc;
-	char *tpc_str;
+	uintptr_t va;
+	pte_t *t;
 
 	tag.value = dtlb_tag_access_read();
-	if (tag.context != ASID_KERNEL || tag.vpn == 0) {
-		tpc = tpc_read();
-		tpc_str = get_symtab_entry(tpc);
-
-		printf("Faulting page: %p, ASID=%d\n", tag.vpn * PAGE_SIZE, tag.context);
-		printf("TPC=%p, (%s)\n", tpc, tpc_str ? tpc_str : "?");
-		panic("%s\n", __FUNCTION__);
+	va = tag.vpn * PAGE_SIZE;
+	if (tag.context == ASID_KERNEL) {
+		if (!tag.vpn) {
+			/* NULL access in kernel */
+			do_fast_data_access_mmu_miss_fault(istate, __FUNCTION__);
+		}
+		do_fast_data_access_mmu_miss_fault(istate, "Unexpected kernel page fault.");
 	}
 
-	/*
-	 * Identity map piece of faulting kernel address space.
-	 */
-	dtlb_insert_mapping(tag.vpn * PAGE_SIZE, tag.vpn * FRAME_SIZE, PAGESIZE_8K, false, true);
+	page_table_lock(AS, true);
+	t = page_mapping_find(AS, va);
+	if (t) {
+		/*
+		 * The mapping was found in the software page hash table.
+		 * Insert it into DTLB.
+		 */
+		dtlb_pte_copy(t);
+		page_table_unlock(AS, true);
+	} else {
+		/*
+		 * Forward the page fault to the address space page fault handler.
+		 */		
+		page_table_unlock(AS, true);
+		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
+			do_fast_data_access_mmu_miss_fault(istate, __FUNCTION__);
+		}
+	}
 }
 
 /** DTLB protection fault handler. */
-void fast_data_access_protection(void)
+void fast_data_access_protection(int n, istate_t *istate)
 {
 	panic("%s\n", __FUNCTION__);
 }
@@ -159,6 +188,20 @@ void tlb_print(void)
 			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
+}
+
+void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str)
+{
+	tlb_tag_access_reg_t tag;
+	uintptr_t va;
+	char *tpc_str = get_symtab_entry(istate->tpc);
+
+	tag.value = dtlb_tag_access_read();
+	va = tag.vpn * PAGE_SIZE;
+
+	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
+	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
+	panic("%s\n", str);
 }
 
 /** Invalidate all unlocked ITLB and DTLB entries. */

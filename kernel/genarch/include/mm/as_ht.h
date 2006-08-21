@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 /** @file
@@ -41,6 +41,5 @@ extern as_operations_t as_ht_operations;
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
@@ -89,6 +89,5 @@ struct context {
 
 #endif
 
- /** @}
+/** @}
  */
-
