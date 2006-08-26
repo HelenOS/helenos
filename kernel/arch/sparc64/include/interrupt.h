@@ -45,7 +45,6 @@
 #define IVT_FIRST	1
 
 struct istate {
-	uint64_t	pstate;
 	uint64_t	tnpc;
 	uint64_t	tpc;
 	uint64_t	tstate;
