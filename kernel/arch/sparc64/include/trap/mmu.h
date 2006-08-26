@@ -38,6 +38,7 @@
 #define __sparc64_MMU_TRAP_H__
 
 #include <arch/stack.h>
+#include <arch/regdef.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/mmu.h>
 #include <arch/mm/tte.h>
@@ -59,13 +60,19 @@
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER
 	/*
-	 * First, test if it is the portion of the kernel address space
+	 * First, try to refill TLB from TSB.
+	 */
+	! TODO
+
+	/*
+	 * Second, test if it is the portion of the kernel address space
 	 * which is faulting. If that is the case, immediately create
 	 * identity mapping for that page in DTLB. VPN 0 is excluded from
 	 * this treatment.
 	 *
 	 * Note that branch-delay slots are used in order to save space.
 	 */
+0:
 	mov VA_DMMU_TAG_ACCESS, %g1
 	ldxa [%g1] ASI_DMMU, %g1			! read the faulting Context and VPN
 	set TLB_TAG_ACCESS_CONTEXT_MASK, %g2
@@ -74,11 +81,6 @@
 	andncc %g1, %g2, %g3				! get page address into %g3
 	bz 0f						! page address is zero
 
-	/*
-	 * Create and insert the identity-mapped entry for
-	 * the faulting kernel page.
-	 */
-	
 	or %g3, (TTE_CP|TTE_P|TTE_W), %g2		! 8K pages are the default (encoded as 0)
         set 1, %g3
         sllx %g3, TTE_V_SHIFT, %g3
@@ -86,8 +88,15 @@
 	stxa %g2, [%g0] ASI_DTLB_DATA_IN_REG		! identity map the kernel page
 	retry
 
+	/*
+	 * Third, catch and handle special cases when the trap is caused by
+	 * some register window trap handler.
+	 */
 0:
-	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp						 
+	! TODO
+
+0:
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
 .endm
 

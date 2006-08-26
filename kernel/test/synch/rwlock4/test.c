@@ -128,9 +128,7 @@ void test(void)
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
 	
-
-	
-	for (; ;) {
+	for (;;) {
 		thread_t *thrd;
 		
 		context_save(&ctx);

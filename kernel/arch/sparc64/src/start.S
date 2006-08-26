@@ -35,8 +35,6 @@
 
 .register %g2, #scratch
 .register %g3, #scratch
-.register %g6, #scratch
-.register %g7, #scratch
 
 .section K_TEXT_START, "ax"
 
@@ -153,43 +151,43 @@ kernel_image_start:
 	 * addresses already mapped by the taken over DTLB.
 	 */
 	
-	set kernel_image_start, %g7
+	set kernel_image_start, %g5
 	
 	! write ITLB tag of context 1
 	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
 	set VA_DMMU_TAG_ACCESS, %g2
 	stxa %g1, [%g2] ASI_IMMU
-	flush %g7
+	flush %g5
 
 	! write ITLB data and install the temporary mapping in context 1
 	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
 	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
-	flush %g7
+	flush %g5
 	
 	! switch to context 1
 	set MEM_CONTEXT_TEMP, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g7
+	flush %g5
 	
 	! demap context 0
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
 	stxa %g0, [%g1] ASI_IMMU_DEMAP			
-	flush %g7
+	flush %g5
 	
 	! write ITLB tag of context 0
 	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
 	set VA_DMMU_TAG_ACCESS, %g2
 	stxa %g1, [%g2] ASI_IMMU
-	flush %g7
+	flush %g5
 
 	! write ITLB data and install the permanent kernel mapping in context 0
 	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
 	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
-	flush %g7
+	flush %g5
 
 	! switch to context 0
 	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g7
+	flush %g5
 
 	! ensure nucleus mapping
 	wrpr %g0, 1, %tl
@@ -197,16 +195,16 @@ kernel_image_start:
 	! set context 1 in the primary context register
 	set MEM_CONTEXT_TEMP, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g7
+	flush %g5
 
 	! demap context 1
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_PRIMARY)
 	stxa %g0, [%g1] ASI_IMMU_DEMAP			
-	flush %g7
+	flush %g5
 	
 	! set context 0 in the primary context register
 	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g7
+	flush %g5
 	
 	! set TL back to 0
 	wrpr %g0, 0, %tl

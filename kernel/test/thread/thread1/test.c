@@ -44,13 +44,8 @@ static void threadtest(void *data)
 
 	thread_detach(THREAD);	
 
-	while(1)
-	{
-		while (1)
-			;
+	while (1)
 		printf("%d\n",(int)(THREAD->tid));
-		scheduler();
-	}
 }
 
 void test(void)

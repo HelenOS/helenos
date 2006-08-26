@@ -85,12 +85,11 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 #define SAVED_TSTATE	-(1*8)
 #define SAVED_TPC	-(2*8)
 #define SAVED_TNPC	-(3*8)
-#define SAVED_PSTATE	-(4*8)
 
 .macro PREEMPTIBLE_HANDLER f
-	set \f, %l0
+	sethi %hi(\f), %g1
 	b preemptible_handler
-	nop
+	or %g1, %lo(\f), %g1
 .endm
 
 .macro SIMPLE_HANDLER f

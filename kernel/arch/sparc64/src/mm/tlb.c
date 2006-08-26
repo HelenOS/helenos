@@ -50,8 +50,10 @@
 #include <arch/asm.h>
 #include <symtab.h>
 
-static void dtlb_pte_copy(pte_t *t);
+static void dtlb_pte_copy(pte_t *t, bool ro);
+static void itlb_pte_copy(pte_t *t);
 static void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str);
+static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str);
 
 char *context_encoding[] = {
 	"Primary",
@@ -105,14 +107,96 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool loc
 	dtlb_data_in_write(data.value);
 }
 
-void dtlb_pte_copy(pte_t *t)
+/** Copy PTE to TLB.
+ *
+ * @param t Page Table Entry to be copied.
+ * @param ro If true, the entry will be created read-only, regardless of its w field.
+ */
+void dtlb_pte_copy(pte_t *t, bool ro)
 {
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	page_address_t pg;
+	frame_address_t fr;
+
+	pg.address = t->page;
+	fr.address = t->frame;
+
+	tag.value = 0;
+	tag.context = t->as->asid;
+	tag.vpn = pg.vpn;
+	
+	dtlb_tag_access_write(tag.value);
+	
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_8K;
+	data.pfn = fr.pfn;
+	data.l = false;
+	data.cp = t->c;
+	data.cv = t->c;
+	data.p = t->p;
+	data.w = ro ? false : t->w;
+	data.g = t->g;
+	
+	dtlb_data_in_write(data.value);
+}
+
+void itlb_pte_copy(pte_t *t)
+{
+	tlb_tag_access_reg_t tag;
+	tlb_data_t data;
+	page_address_t pg;
+	frame_address_t fr;
+
+	pg.address = t->page;
+	fr.address = t->frame;
+
+	tag.value = 0;
+	tag.context = t->as->asid;
+	tag.vpn = pg.vpn;
+	
+	itlb_tag_access_write(tag.value);
+	
+	data.value = 0;
+	data.v = true;
+	data.size = PAGESIZE_8K;
+	data.pfn = fr.pfn;
+	data.l = false;
+	data.cp = t->c;
+	data.cv = t->c;
+	data.p = t->p;
+	data.w = false;
+	data.g = t->g;
+	
+	itlb_data_in_write(data.value);
 }
 
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(int n, istate_t *istate)
 {
-	panic("%s\n", __FUNCTION__);
+	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
+	pte_t *t;
+
+	page_table_lock(AS, true);
+	t = page_mapping_find(AS, va);
+	if (t && PTE_EXECUTABLE(t)) {
+		/*
+		 * The mapping was found in the software page hash table.
+		 * Insert it into ITLB.
+		 */
+		t->a = true;
+		itlb_pte_copy(t);
+		page_table_unlock(AS, true);
+	} else {
+		/*
+		 * Forward the page fault to the address space page fault handler.
+		 */		
+		page_table_unlock(AS, true);
+		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
+			do_fast_instruction_access_mmu_miss_fault(istate, __FUNCTION__);
+		}
+	}
 }
 
 /** DTLB miss handler.
@@ -144,7 +228,8 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 		 * The mapping was found in the software page hash table.
 		 * Insert it into DTLB.
 		 */
-		dtlb_pte_copy(t);
+		t->a = true;
+		dtlb_pte_copy(t, true);
 		page_table_unlock(AS, true);
 	} else {
 		/*
@@ -188,6 +273,14 @@ void tlb_print(void)
 			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
+}
+
+void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str)
+{
+	char *tpc_str = get_symtab_entry(istate->tpc);
+
+	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
+	panic("%s\n", str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str)

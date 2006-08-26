@@ -35,6 +35,9 @@
 #ifndef __sparc64_ARCH_H__
 #define __sparc64_ARCH_H__
 
+#define ASI_AIUP	0x10	/** Access to primary context with user privileges. */
+#define ASI_AIUS	0x11	/** Access to secondary context with user privileges. */
+
 #endif
 
 /** @}

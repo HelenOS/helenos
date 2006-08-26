@@ -38,6 +38,7 @@
 #define __sparc64_REGWIN_H__
 
 #include <arch/stack.h>
+#include <arch/arch.h>
 
 #define TT_CLEAN_WINDOW			0x24
 #define TT_SPILL_0_NORMAL		0x80
@@ -49,7 +50,9 @@
 #define SPILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
 #define FILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
 
-/** Window Save Area offsets. */
+#define NWINDOW		8
+
+/* Window Save Area offsets. */
 #define L0_OFFSET	0
 #define L1_OFFSET	8
 #define L2_OFFSET	16
@@ -68,7 +71,11 @@
 #define I7_OFFSET	120
 
 #ifdef __ASM__
-.macro SPILL_NORMAL_HANDLER
+
+/*
+ * Macro used by the nucleus and the primary context 0 during normal and other spills.
+ */
+.macro SPILL_NORMAL_HANDLER_KERNEL
 	stx %l0, [%sp + STACK_BIAS + L0_OFFSET]	
 	stx %l1, [%sp + STACK_BIAS + L1_OFFSET]
 	stx %l2, [%sp + STACK_BIAS + L2_OFFSET]
@@ -89,7 +96,61 @@
 	retry
 .endm
 
-.macro FILL_NORMAL_HANDLER
+/*
+ * Macro used by the userspace during normal spills.
+ */
+.macro SPILL_NORMAL_HANDLER_USERSPACE
+	wr ASI_AIUP, %asi
+	stxa %l0, [%sp + STACK_BIAS + L0_OFFSET] %asi
+	stxa %l1, [%sp + STACK_BIAS + L1_OFFSET] %asi
+	stxa %l2, [%sp + STACK_BIAS + L2_OFFSET] %asi
+	stxa %l3, [%sp + STACK_BIAS + L3_OFFSET] %asi
+	stxa %l4, [%sp + STACK_BIAS + L4_OFFSET] %asi
+	stxa %l5, [%sp + STACK_BIAS + L5_OFFSET] %asi
+	stxa %l6, [%sp + STACK_BIAS + L6_OFFSET] %asi
+	stxa %l7, [%sp + STACK_BIAS + L7_OFFSET] %asi
+	stxa %i0, [%sp + STACK_BIAS + I0_OFFSET] %asi
+	stxa %i1, [%sp + STACK_BIAS + I1_OFFSET] %asi
+	stxa %i2, [%sp + STACK_BIAS + I2_OFFSET] %asi
+	stxa %i3, [%sp + STACK_BIAS + I3_OFFSET] %asi
+	stxa %i4, [%sp + STACK_BIAS + I4_OFFSET] %asi
+	stxa %i5, [%sp + STACK_BIAS + I5_OFFSET] %asi
+	stxa %i6, [%sp + STACK_BIAS + I6_OFFSET] %asi
+	stxa %i7, [%sp + STACK_BIAS + I7_OFFSET] %asi
+	saved
+	retry
+.endm
+
+/*
+ * Macro used by the userspace during other spills.
+ */
+.macro SPILL_OTHER_HANDLER_USERSPACE
+	wr ASI_AIUS, %asi
+	stxa %l0, [%sp + STACK_BIAS + L0_OFFSET] %asi
+	stxa %l1, [%sp + STACK_BIAS + L1_OFFSET] %asi
+	stxa %l2, [%sp + STACK_BIAS + L2_OFFSET] %asi
+	stxa %l3, [%sp + STACK_BIAS + L3_OFFSET] %asi
+	stxa %l4, [%sp + STACK_BIAS + L4_OFFSET] %asi
+	stxa %l5, [%sp + STACK_BIAS + L5_OFFSET] %asi
+	stxa %l6, [%sp + STACK_BIAS + L6_OFFSET] %asi
+	stxa %l7, [%sp + STACK_BIAS + L7_OFFSET] %asi
+	stxa %i0, [%sp + STACK_BIAS + I0_OFFSET] %asi
+	stxa %i1, [%sp + STACK_BIAS + I1_OFFSET] %asi
+	stxa %i2, [%sp + STACK_BIAS + I2_OFFSET] %asi
+	stxa %i3, [%sp + STACK_BIAS + I3_OFFSET] %asi
+	stxa %i4, [%sp + STACK_BIAS + I4_OFFSET] %asi
+	stxa %i5, [%sp + STACK_BIAS + I5_OFFSET] %asi
+	stxa %i6, [%sp + STACK_BIAS + I6_OFFSET] %asi
+	stxa %i7, [%sp + STACK_BIAS + I7_OFFSET] %asi
+	saved
+	retry
+.endm
+
+
+/*
+ * Macro used by the nucleus and the primary context 0 during normal fills.
+ */
+.macro FILL_NORMAL_HANDLER_KERNEL
 	ldx [%sp + STACK_BIAS + L0_OFFSET], %l0
 	ldx [%sp + STACK_BIAS + L1_OFFSET], %l1
 	ldx [%sp + STACK_BIAS + L2_OFFSET], %l2
@@ -106,6 +167,56 @@
 	ldx [%sp + STACK_BIAS + I5_OFFSET], %i5
 	ldx [%sp + STACK_BIAS + I6_OFFSET], %i6
 	ldx [%sp + STACK_BIAS + I7_OFFSET], %i7
+	restored
+	retry
+.endm
+
+/*
+ * Macro used by the userspace during normal fills.
+ */
+.macro FILL_NORMAL_HANDLER_USERSPACE
+	wr ASI_AIUP, %asi
+	ldxa [%sp + STACK_BIAS + L0_OFFSET] %asi, %l0
+	ldxa [%sp + STACK_BIAS + L1_OFFSET] %asi, %l1
+	ldxa [%sp + STACK_BIAS + L2_OFFSET] %asi, %l2
+	ldxa [%sp + STACK_BIAS + L3_OFFSET] %asi, %l3
+	ldxa [%sp + STACK_BIAS + L4_OFFSET] %asi, %l4
+	ldxa [%sp + STACK_BIAS + L5_OFFSET] %asi, %l5
+	ldxa [%sp + STACK_BIAS + L6_OFFSET] %asi, %l6
+	ldxa [%sp + STACK_BIAS + L7_OFFSET] %asi, %l7
+	ldxa [%sp + STACK_BIAS + I0_OFFSET] %asi, %i0
+	ldxa [%sp + STACK_BIAS + I1_OFFSET] %asi, %i1
+	ldxa [%sp + STACK_BIAS + I2_OFFSET] %asi, %i2
+	ldxa [%sp + STACK_BIAS + I3_OFFSET] %asi, %i3
+	ldxa [%sp + STACK_BIAS + I4_OFFSET] %asi, %i4
+	ldxa [%sp + STACK_BIAS + I5_OFFSET] %asi, %i5
+	ldxa [%sp + STACK_BIAS + I6_OFFSET] %asi, %i6
+	ldxa [%sp + STACK_BIAS + I7_OFFSET] %asi, %i7
+	restored
+	retry
+.endm
+
+/*
+ * Macro used by the userspace during other fills.
+ */
+.macro FILL_OTHER_HANDLER_USERSPACE
+	wr ASI_AIUS, %asi
+	ldxa [%sp + STACK_BIAS + L0_OFFSET] %asi, %l0
+	ldxa [%sp + STACK_BIAS + L1_OFFSET] %asi, %l1
+	ldxa [%sp + STACK_BIAS + L2_OFFSET] %asi, %l2
+	ldxa [%sp + STACK_BIAS + L3_OFFSET] %asi, %l3
+	ldxa [%sp + STACK_BIAS + L4_OFFSET] %asi, %l4
+	ldxa [%sp + STACK_BIAS + L5_OFFSET] %asi, %l5
+	ldxa [%sp + STACK_BIAS + L6_OFFSET] %asi, %l6
+	ldxa [%sp + STACK_BIAS + L7_OFFSET] %asi, %l7
+	ldxa [%sp + STACK_BIAS + I0_OFFSET] %asi, %i0
+	ldxa [%sp + STACK_BIAS + I1_OFFSET] %asi, %i1
+	ldxa [%sp + STACK_BIAS + I2_OFFSET] %asi, %i2
+	ldxa [%sp + STACK_BIAS + I3_OFFSET] %asi, %i3
+	ldxa [%sp + STACK_BIAS + I4_OFFSET] %asi, %i4
+	ldxa [%sp + STACK_BIAS + I5_OFFSET] %asi, %i5
+	ldxa [%sp + STACK_BIAS + I6_OFFSET] %asi, %i6
+	ldxa [%sp + STACK_BIAS + I7_OFFSET] %asi, %i7
 	restored
 	retry
 .endm

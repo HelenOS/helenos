@@ -32,8 +32,6 @@
 
 .register %g2, #scratch
 .register %g3, #scratch
-.register %g6, #scratch
-.register %g7, #scratch 
 
 .text
 
@@ -203,13 +201,13 @@ fast_data_access_protection_handler:
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
 .global spill_0_normal
 spill_0_normal:
-	SPILL_NORMAL_HANDLER
+	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
 .global fill_0_normal
 fill_0_normal:
-	FILL_NORMAL_HANDLER
+	FILL_NORMAL_HANDLER_KERNEL
 
 /*
  * Handlers for TL>0.
@@ -267,130 +265,164 @@ fast_data_access_protection_handler_high:
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
 .global spill_0_normal_high
 spill_0_normal_high:
-	SPILL_NORMAL_HANDLER
+	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0xc0, TL > 0, fill_0_normal handler */
 .org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
 .global fill_0_normal_high
 fill_0_normal_high:
-	FILL_NORMAL_HANDLER
+	FILL_NORMAL_HANDLER_KERNEL
 
 
 /* Preemptible trap handler for TL=1.
  *
  * This trap handler makes arrangements to make calling of scheduler() from
- * within a trap context possible. It is guaranteed to function only when traps
- * are not nested (i.e. for TL=1).
+ * within a trap context possible. It is called from several other trap
+ * handlers.
  *
- * Every trap handler on TL=1 that makes a call to the scheduler needs to
- * be based on this function. The reason behind it is that the nested
- * trap levels and the automatic saving of the interrupted context by hardware
- * does not work well together with scheduling (i.e. a thread cannot be rescheduled
- * with TL>0). Therefore it is necessary to eliminate the effect of trap levels
- * by software and save the necessary state on the kernel stack.
- *
- * Note that for traps with TL>1, more state needs to be saved. This function
- * is therefore not going to work when TL>1.
- *
- * The caller is responsible for doing SAVE and allocating
- * PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE bytes on the stack.
+ * This function can be entered either with interrupt globals or alternate globals.
+ * Memory management trap handlers are obliged to switch to one of those global sets
+ * prior to calling this function. Register window management functions are not
+ * allowed to modify the alternate global registers.
  *
  * Input registers:
- * 	%l0	 	Address of function to call.
- * Output registers:
- *	 %l1 - %l7 	Copy of %g1 - %g7
+ *	%g1		Address of function to call.
+ * 	%g2	 	Argument for the function.
+ *	%g6		Pre-set as kernel stack base if trap from userspace.
+ *	%g7		Reserved.
  */
 .global preemptible_handler
 preemptible_handler:
+	rdpr %tstate, %g3
+	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
+	bnz 0f					! ...skip setting of kernel stack and primary context
+	nop
+
 	/*
-	 * Save TSTATE, TPC, TNPC and PSTATE aside.
+	 * Switch to kernel stack. The old stack is
+	 * automatically saved in the old window's %sp
+	 * and the new window's %fp.
+	 */
+	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+
+	/*
+	 * Mark the CANSAVE windows as OTHER windows.
+	 * Set CLEANWIN to NWINDOW-1 so that clean_window traps do not occur.
+	 */
+	rdpr %cansave, %l0
+	wrpr %l0, %otherwin
+	wrpr %g0, %cansave
+	wrpr %g0, NWINDOW-1, %cleanwin
+
+	/*
+	 * Switch to primary context 0.
+	 */
+	mov VA_PRIMARY_CONTEXT_REG, %l0
+        stxa %g0, [%l0] ASI_DMMU
+	set kernel_image_start, %l0
+        flush %l0
+
+	ba 1f
+	nop
+
+0:
+	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+
+	/*
+	 * At this moment, we are using the kernel stack 
+	 * and have successfully allocated a register window.
+	 */
+1:
+
+	/*
+	 * Copy arguments.
+	 */
+	mov %g1, %l0
+	mov %g2, %o0
+
+	/*
+	 * Save TSTATE, TPC and TNPC aside.
 	 */
 	rdpr %tstate, %g1
 	rdpr %tpc, %g2
 	rdpr %tnpc, %g3
-	rdpr %pstate, %g4
 
 	/*
 	 * The following memory accesses will not fault
 	 * because special provisions are made to have
 	 * the kernel stack of THREAD locked in DTLB.
 	 */
-	stx %g1, [%fp + STACK_BIAS + SAVED_TSTATE]
-	stx %g2, [%fp + STACK_BIAS + SAVED_TPC]
-	stx %g3, [%fp + STACK_BIAS + SAVED_TNPC]
-	stx %g4, [%fp + STACK_BIAS + SAVED_PSTATE]
+	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
+	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
+	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
 	
-	/*
-	 * Write 0 to TL.
-	 */
 	wrpr %g0, 0, %tl
-	
-	/*
-	 * Alter PSTATE.
-	 * - switch to normal globals.
-	 */
-	and %g4, ~(PSTATE_AG_BIT|PSTATE_IG_BIT|PSTATE_MG_BIT), %g4
-	wrpr %g4, 0, %pstate
-	 
-	/*
-	 * Save the normal globals.
-	 */
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate
 	SAVE_GLOBALS
 	
 	/*
-	 * Call the higher-level handler.
+	 * Call the higher-level handler and pass istate as second parameter.
 	 */
-	mov %fp, %o1				! calculate istate address
 	call %l0
-	add %o1, STACK_BIAS + SAVED_PSTATE, %o1	! calculate istate address
-	
-	/*
-	 * Restore	 the normal global register set.
-	 */
+	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
+
 	RESTORE_GLOBALS
-	
-	/*
-	 * Restore PSTATE from saved copy.
-	 * Alternate/Interrupt/MM globals become active.
-	 */
-	ldx [%fp + STACK_BIAS + SAVED_PSTATE], %l4
-	wrpr %l4, 0, %pstate
-	
-	/*
-	 * Write 1 to TL.
-	 */
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	wrpr %g0, 1, %tl
 	
 	/*
 	 * Read TSTATE, TPC and TNPC from saved copy.
 	 */
-	ldx [%fp + STACK_BIAS + SAVED_TSTATE], %g1
-	ldx [%fp + STACK_BIAS + SAVED_TPC], %g2
-	ldx [%fp + STACK_BIAS + SAVED_TNPC], %g3
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE], %g1
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC], %g2
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
 
-	/*
-	 * Do restore to match the save instruction from the top-level handler.
-	 */
-	restore
-
-	/*
-	 * On execution of the RETRY instruction, CWP will be restored from the TSTATE
-	 * register. However, because of scheduling, it is possible that CWP in the saved
-	 * TSTATE is different from the current CWP. The following chunk of code fixes
-	 * CWP in the saved copy of TSTATE.
-	 */
-	rdpr %cwp, %g4		! read current CWP
-	and %g1, ~0x1f, %g1	! clear CWP field in saved TSTATE
-	or %g1, %g4, %g1	! write current CWP to TSTATE
-	
 	/*
 	 * Restore TSTATE, TPC and TNPC from saved copies.
 	 */
 	wrpr %g1, 0, %tstate
 	wrpr %g2, 0, %tpc
 	wrpr %g3, 0, %tnpc
-	 
+
 	/*
-	 * Return from interrupt.
+	 * If OTHERWIN is zero, then all the userspace windows have been
+	 * spilled to kernel memory (i.e. register window buffer). If
+	 * OTHERWIN is non-zero, then some userspace windows are still
+	 * valid. Others might have been spilled. However, the CWP pointer
+	 * needs no fixing because the scheduler had not been called.
 	 */
+	rdpr %otherwin, %l0
+	brnz %l0, 0f
+	nop
+
+	/*
+	 * OTHERWIN == 0
+	 */
+
+	/*
+	 * If TSTATE.CWP + 1 == CWP, then we still do not have to fix CWP.
+	 */
+	and %g1, TSTATE_CWP_MASK, %l0
+	inc %l0
+	and %l0, TSTATE_CWP_MASK, %l0	! %l0 mod NWINDOW
+	rdpr %cwp, %l1
+	cmp %l0, %l1
+	bz 0f				! CWP is ok
+	nop
+
+	/*
+	 * Fix CWP.
+	 */
+	mov %fp, %g1
+	flushw
+	wrpr %l0, 0, %cwp
+	mov %g1, %fp
+	
+	/*
+	 * OTHERWIN != 0 or fall-through from the OTHERWIN == 0 case.
+	 */
+0:
+	! TODO: restore register windows from register window memory buffer
+
+	restore
 	retry

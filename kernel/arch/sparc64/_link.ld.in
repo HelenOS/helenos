@@ -26,6 +26,7 @@ SECTIONS {
 		*(.sdata);
 		*(.sdata2);
 		*(.sbss);
+		. = ALIGN(8);
 		hardcoded_ktext_size = .;
 		QUAD(ktext_end - ktext_start);	
 		hardcoded_kdata_size = .;
