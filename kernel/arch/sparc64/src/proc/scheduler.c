@@ -35,47 +35,94 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <arch.h>
+#include <arch/asm.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <config.h>
 #include <align.h>
+#include <macros.h>
 
 /** Perform sparc64 specific tasks needed before the new task is run. */
 void before_task_runs_arch(void)
 {
 }
 
-/** Ensure that thread's kernel stack is locked in TLB. */
+/** Perform sparc64 specific steps before scheduling a thread.
+ *
+ * Ensure that thread's kernel stack, as well as userspace window
+ * buffer for userspace threads, are locked in DTLB.
+ */
 void before_thread_runs_arch(void)
 {
 	uintptr_t base;
 	
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if ((uintptr_t) THREAD->kstack < base || (uintptr_t) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1<<KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this thread is not locked in DTLB.
 		 * First, make sure it is not mapped already.
 		 * If not, create a locked mapping for it.
 		 */
-		 dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
-		 dtlb_insert_mapping((uintptr_t) THREAD->kstack, KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
-	}	
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
+		dtlb_insert_mapping((uintptr_t) THREAD->kstack, KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
+	}
+	
+	if ((THREAD->flags & THREAD_FLAG_USPACE)) {
+		/*
+		 * If this thread executes also in userspace, we have to lock
+		 * its userspace window buffer into DTLB.
+		 */
+		ASSERT(THREAD->arch.uspace_window_buffer);
+		uintptr_t uw_buf = (uintptr_t) THREAD->arch.uspace_window_buffer;
+		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
+			/*
+			 * The buffer is not covered by the 4M locked kernel DTLB entry.
+			 */
+			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
+			dtlb_insert_mapping(uw_buf, KA2PA(uw_buf), PAGESIZE_8K, true, true);
+		}
+	}
 }
 
-/** Unlock thread's stack from TLB, if necessary. */
+/** Perform sparc64 specific steps before a thread stops running.
+ *
+ * Demap any locked DTLB entries isntalled by the thread (i.e. kernel stack
+ * and userspace window buffer).
+ */
 void after_thread_ran_arch(void)
 {
 	uintptr_t base;
 
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if ((uintptr_t) THREAD->kstack < base || (uintptr_t) THREAD->kstack > base + (1<<KERNEL_PAGE_WIDTH)) {
+	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1<<KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this thread is locked in DTLB.
 		 * Destroy the mapping.
 		 */
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
+	}
+	
+	if ((THREAD->flags & THREAD_FLAG_USPACE)) {
+		/*
+		 * If this thread executes also in userspace, we have to force all
+		 * its still-active userspace windows into the userspace window buffer
+		 * and demap the buffer from DTLB.
+		 */
+		ASSERT(THREAD->arch.uspace_window_buffer);
+		
+		flushw();	/* force all userspace windows into memory */
+		
+		uintptr_t uw_buf = (uintptr_t) THREAD->arch.uspace_window_buffer;
+		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
+			/*
+			 * The buffer is not covered by the 4M locked kernel DTLB entry
+			 * and therefore it was given a dedicated locked DTLB entry.
+			 * Demap it.
+			 */
+			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
+		}
 	}
 }
 

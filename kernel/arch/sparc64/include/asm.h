@@ -315,6 +315,12 @@ static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
 }
 
+/** Flush all valid register windows to memory. */
+static inline void flushw(void)
+{
+	__asm__ volatile ("flushw\n");
+}
+
 void cpu_halt(void);
 void cpu_sleep(void);
 void asm_delay_loop(uint32_t t);

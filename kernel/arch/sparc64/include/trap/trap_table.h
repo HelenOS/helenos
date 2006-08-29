@@ -81,10 +81,19 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
  * The following needs to be in sync with the
  * definition of the istate structure.
  */
-#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE	(STACK_WINDOW_SAVE_AREA_SIZE+(4*8))
+#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE	(STACK_WINDOW_SAVE_AREA_SIZE+(12*8))
 #define SAVED_TSTATE	-(1*8)
 #define SAVED_TPC	-(2*8)
-#define SAVED_TNPC	-(3*8)
+#define SAVED_TNPC	-(3*8)		/* <-- istate_t begins here */
+/* alignment gap */
+#define SAVED_I0	-(5*8)
+#define SAVED_I1	-(6*8)
+#define SAVED_I2	-(7*8)
+#define SAVED_I3	-(8*8)
+#define SAVED_I4	-(9*8)
+#define SAVED_I5	-(10*8)
+#define SAVED_I6	-(11*8)
+#define SAVED_I7	-(12*8)
 
 .macro PREEMPTIBLE_HANDLER f
 	sethi %hi(\f), %g1

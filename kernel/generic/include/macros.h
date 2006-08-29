@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __MACROS_H__
-#define __MACROS_H__
+#ifndef KERN_MACROS_H_
+#define KERN_MACROS_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -48,7 +48,13 @@
 #define min(a,b)	((a) < (b) ? (a) : (b))
 #define max(a,b)	((a) > (b) ? (a) : (b))
 
-/** Return true if the interlvals overlap. */
+/** Return true if the interlvals overlap.
+ *
+ * @param s1 Start address of the first interval.
+ * @param sz1 Size of the first interval.
+ * @param s2 Start address of the second interval.
+ * @param sz2 Size of the second interval.
+ */
 static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 {
 	uintptr_t e1 = s1 + sz1;
