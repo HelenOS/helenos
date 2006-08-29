@@ -141,8 +141,7 @@ restart:
 			/* Might sleep */
 			spinlock_unlock(&THREAD->lock);
 			spinlock_unlock(&CPU->lock);
-			THREAD->saved_fpu_context = slab_alloc(fpu_context_slab,
-							       0);
+			THREAD->saved_fpu_context = slab_alloc(fpu_context_slab, 0);
 			/* We may have switched CPUs during slab_alloc */
 			goto restart; 
 		}
@@ -235,9 +234,10 @@ loop:
 		t->priority = i;	/* correct rq index */
 
 		/*
-		 * Clear the X_STOLEN flag so that t can be migrated when load balancing needs emerge.
+		 * Clear the THREAD_FLAG_STOLEN flag so that t can be migrated
+		 * when load balancing needs emerge.
 		 */
-		t->flags &= ~X_STOLEN;
+		t->flags &= ~THREAD_FLAG_STOLEN;
 		spinlock_unlock(&t->lock);
 
 		return t;
@@ -349,7 +349,8 @@ void scheduler(void)
 	 * scheduler_separated_stack().
 	 */
 	context_save(&CPU->saved_context);
-	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack), (uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack),
+		(uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }
@@ -483,7 +484,8 @@ repeat:
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (priority=%d,ticks=%lld,nrdy=%ld)\n", CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
+	printf("cpu%d: tid %d (priority=%d,ticks=%lld,nrdy=%ld)\n",
+		CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif	
 
 	/*
@@ -556,7 +558,7 @@ not_satisfied:
 
 			/*
 			 * Not interested in ourselves.
-			 * Doesn't require interrupt disabling for kcpulb is X_WIRED.
+			 * Doesn't require interrupt disabling for kcpulb has THREAD_FLAG_WIRED.
 			 */
 			if (CPU == cpu)
 				continue;
@@ -577,12 +579,14 @@ not_satisfied:
 			while (l != &r->rq_head) {
 				t = list_get_instance(l, thread_t, rq_link);
 				/*
-				 * We don't want to steal CPU-wired threads neither threads already stolen.
-				 * The latter prevents threads from migrating between CPU's without ever being run.
-				 * We don't want to steal threads whose FPU context is still in CPU.
+				 * We don't want to steal CPU-wired threads neither threads already
+				 * stolen. The latter prevents threads from migrating between CPU's
+				 * without ever being run. We don't want to steal threads whose FPU
+				 * context is still in CPU.
 				 */
 				spinlock_lock(&t->lock);
-				if ( (!(t->flags & (X_WIRED | X_STOLEN))) && (!(t->fpu_context_engaged)) ) {
+				if ((!(t->flags & (THREAD_FLAG_WIRED | THREAD_FLAG_STOLEN))) &&
+					(!(t->fpu_context_engaged)) ) {
 					/*
 					 * Remove t from r.
 					 */
@@ -608,9 +612,11 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, avg=%nd\n", CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy), atomic_get(&nrdy) / config.cpu_active);
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, avg=%nd\n",
+					CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy),
+					atomic_get(&nrdy) / config.cpu_active);
 #endif
-				t->flags |= X_STOLEN;
+				t->flags |= THREAD_FLAG_STOLEN;
 				t->state = Entering;
 				spinlock_unlock(&t->lock);
 	

@@ -26,22 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64proc
+/** @addtogroup sparc64proc
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_THREAD_H__
-#define __sparc64_THREAD_H__
+#ifndef KERN_sparc64_THREAD_H_
+#define KERN_sparc64_THREAD_H_
+
+#include <arch/types.h>
+#include <arch/arch.h>
 
 typedef struct {
+	/** Buffer for register windows with userspace content. */
+	uint8_t *uspace_window_buffer;
 } thread_arch_t;
-
-#define thread_create_arch(t)
 
 #endif
 
- /** @}
+/** @}
  */
-

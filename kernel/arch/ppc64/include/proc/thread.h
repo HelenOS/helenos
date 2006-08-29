@@ -26,22 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64proc
+/** @addtogroup ppc64proc
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_THREAD_H__
-#define __ppc64_THREAD_H__
+#ifndef KERN_ppc64_THREAD_H_
+#define KERN_ppc64_THREAD_H_
 
 typedef struct {
 } thread_arch_t;
 
+#define thr_constructor_arch(t)
+#define thr_destructor_arch(t)
 #define thread_create_arch(t)
 
 #endif
 
- /** @}
+/** @}
  */
 

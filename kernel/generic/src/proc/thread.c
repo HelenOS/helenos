@@ -129,6 +129,9 @@ static int thr_constructor(void *obj, int kmflags)
 	link_initialize(&t->rq_link);
 	link_initialize(&t->wq_link);
 	link_initialize(&t->th_link);
+
+	/* call the architecture-specific part of the constructor */
+	thr_constructor_arch(t);
 	
 #ifdef ARCH_HAS_FPU
 #  ifdef CONFIG_FPU_LAZY
@@ -156,6 +159,9 @@ static int thr_constructor(void *obj, int kmflags)
 static int thr_destructor(void *obj)
 {
 	thread_t *t = (thread_t *) obj;
+
+	/* call the architecture-specific part of the destructor */
+	thr_destructor_arch(t);
 
 	frame_free(KA2PA(t->kstack));
 #ifdef ARCH_HAS_FPU
@@ -210,7 +216,7 @@ void thread_ready(thread_t *t)
 	i = (t->priority < RQ_COUNT -1) ? ++t->priority : t->priority;
 	
 	cpu = CPU;
-	if (t->flags & X_WIRED) {
+	if (t->flags & THREAD_FLAG_WIRED) {
 		cpu = t->cpu;
 	}
 	t->state = Ready;
@@ -295,8 +301,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t = (thread_t *) slab_alloc(thread_slab, 0);
 	if (!t)
 		return NULL;
-
-	thread_create_arch(t);
 	
 	/* Not needed, but good for debugging */
 	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES, 0);
@@ -323,7 +327,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->ticks = -1;
 	t->priority = -1;		/* start in rq[0] */
 	t->cpu = NULL;
-	t->flags = 0;
+	t->flags = flags;
 	t->state = Entering;
 	t->call_me = NULL;
 	t->call_me_with = NULL;
@@ -347,6 +351,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	
 	t->fpu_context_exists = 0;
 	t->fpu_context_engaged = 0;
+
+	thread_create_arch(t);		/* might depend on previous initialization */
 	
 	/*
 	 * Attach to the containing task.
@@ -589,7 +595,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 		return (unative_t) rc;
 	}
 
-	if ((t = thread_create(uinit, kernel_uarg, TASK, 0, namebuf))) {
+	if ((t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf))) {
 		tid = t->tid;
 		thread_ready(t);
 		return (unative_t) tid; 

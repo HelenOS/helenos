@@ -50,8 +50,6 @@
 #define SPILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
 #define FILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
 
-#define NWINDOW		8
-
 /* Window Save Area offsets. */
 #define L0_OFFSET	0
 #define L1_OFFSET	8
@@ -249,4 +247,3 @@
 
 /** @}
  */
-

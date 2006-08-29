@@ -26,25 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32proc
+/** @addtogroup sparc64proc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_TASK_H_
-#define KERN_ia32_TASK_H_
+#include <proc/thread.h>
+#include <arch/proc/thread.h>
+#include <mm/frame.h>
 
-#include <typedefs.h>
-#include <arch/types.h>
-#include <adt/bitmap.h>
+void thr_constructor_arch(thread_t *t)
+{
+	/*
+	 * Allocate memory for uspace_window_buffer.
+	 */
+	t->arch.uspace_window_buffer = NULL;
+}
 
-typedef struct {
-	count_t iomapver;	/**< I/O Permission bitmap Generation counter. */
-	bitmap_t iomap;		/**< I/O Permission bitmap. */
-} task_arch_t;
+void thr_destructor_arch(thread_t *t)
+{
+	if (t->arch.uspace_window_buffer)
+		frame_free((uintptr_t) t->arch.uspace_window_buffer);
+}
 
-#endif
+void thread_create_arch(thread_t *t)
+{
+	if ((t->flags & THREAD_FLAG_USPACE) && (!t->arch.uspace_window_buffer)) {
+		/*
+		 * The thread needs userspace window buffer and the object
+		 * returned from the slab allocator doesn't have any.
+		 */
+		t->arch.uspace_window_buffer = frame_alloc(ONE_FRAME, 0);
+	}
+}
 
 /** @}
  */

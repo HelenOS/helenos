@@ -928,7 +928,6 @@ void * frame_get_parent(pfn_t pfn, int hint)
  *
  * @param order  Allocate exactly 2^order frames.
  * @param flags  Flags for host zone selection and address processing.
- * @param status Allocation status (FRAME_OK on success), unused if NULL.
  * @param pzone  Preferred zone
  *
  * @return Physical address of the allocated frame.
@@ -987,7 +986,7 @@ loop:
 
 /** Free a frame.
  *
- * Find respective frame structure for supplied PFN.
+ * Find respective frame structure for supplied physical frame address.
  * Decrement frame reference count.
  * If it drops to zero, move the frame structure to free list.
  *

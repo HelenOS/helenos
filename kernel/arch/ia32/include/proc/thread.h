@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32proc
+/** @addtogroup ia32proc
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_THREAD_H__
-#define __ia32_THREAD_H__
+#ifndef KERN_ia32_THREAD_H_
+#define KERN_ia32_THREAD_H_
 
 #include <arch/types.h>
 
@@ -41,8 +41,10 @@ typedef struct {
 	unative_t tls;
 } thread_arch_t;
 
+#define thr_constructor_arch(t)
+#define thr_destructor_arch(t)
+
 #endif
 
- /** @}
+/** @}
  */
-

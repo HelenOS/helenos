@@ -52,7 +52,7 @@
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 
-/**< Thread states. */
+/** Thread states. */
 enum state {
 	Invalid,	/**< It is an error, if thread is found in this state. */
 	Running,	/**< State of a thread that is currently executing on some CPU. */
@@ -65,15 +65,17 @@ enum state {
 
 extern char *thread_states[];
 
-/**< Join types. */
+/** Join types. */
 typedef enum {
 	None,
 	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
 	TaskGC		/**< The thread will be joined by ktaskgc thread. */
 } thread_join_type_t;
 
-#define X_WIRED		(1<<0)
-#define X_STOLEN	(1<<1)
+/* Thread flags */
+#define THREAD_FLAG_WIRED	(1<<0)	/**< Thread cannot be migrated to another CPU. */
+#define THREAD_FLAG_STOLEN	(1<<1)	/**< Thread was migrated to another CPU and has not run yet. */
+#define THREAD_FLAG_USPACE	(1<<2)	/**< Thread executes in userspace. */
 
 #define THREAD_NAME_BUFLEN	20
 
@@ -127,7 +129,7 @@ struct thread {
 	/*
 	 * Defined only if thread doesn't run.
 	 * It means that fpu context is in CPU that last time executes this thread.
-	 * This disables migration
+	 * This disables migration.
 	 */
 	int fpu_context_engaged;
 
@@ -149,7 +151,7 @@ struct thread {
 	
 	thread_arch_t arch;			/**< Architecture-specific data. */
 
-	uint8_t *kstack;				/**< Thread's kernel stack. */
+	uint8_t *kstack;			/**< Thread's kernel stack. */
 };
 
 /** Thread list lock.
@@ -169,6 +171,12 @@ extern void thread_exit(void) __attribute__((noreturn));
 
 #ifndef thread_create_arch
 extern void thread_create_arch(thread_t *t);
+#endif
+#ifndef thr_constructor_arch
+extern void thr_constructor_arch(thread_t *t);
+#endif
+#ifndef thr_destructor_arch
+extern void thr_destructor_arch(thread_t *t);
 #endif
 
 extern void thread_sleep(uint32_t sec);

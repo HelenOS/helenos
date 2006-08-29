@@ -94,6 +94,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/sparc64.c \
 	arch/$(ARCH)/src/start.S \
 	arch/$(ARCH)/src/proc/scheduler.c \
+	arch/$(ARCH)/src/proc/thread.c \
 	arch/$(ARCH)/src/trap/trap_table.S \
 	arch/$(ARCH)/src/trap/trap.c \
 	arch/$(ARCH)/src/trap/exception.c \

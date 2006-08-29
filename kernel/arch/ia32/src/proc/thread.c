@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32proc
+/** @addtogroup ia32proc
  * @{
  */
 /** @file
@@ -43,6 +43,6 @@ void thread_create_arch(thread_t *t)
 	t->arch.tls = 0;
 }
 
- /** @}
+/** @}
  */
 

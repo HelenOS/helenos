@@ -51,10 +51,14 @@ static inline void flush(void)
 	/*
 	 * The FLUSH instruction takes address parameter.
 	 * As such, it may trap if the address is not found in DTLB.
-	 * However, JPS1 implementations are free to ignore the trap.
+	 *
+	 * The entire kernel text is mapped by a locked ITLB and
+	 * DTLB entries. Therefore, when this function is called,
+	 * the %o7 register will always be in the range mapped by
+	 * DTLB.
 	 */
 	 
-        __asm__ volatile ("flush %0\n" :: "r" (0x400000));
+        __asm__ volatile ("flush %o7\n");
 }
 
 /** Memory Barrier instruction. */

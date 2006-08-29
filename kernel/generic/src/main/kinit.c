@@ -100,9 +100,8 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		if ((t = thread_create(kmp, NULL, TASK, 0, "kmp"))) {
+		if ((t = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp"))) {
 			spinlock_lock(&t->lock);
-			t->flags |= X_WIRED;
 			t->cpu = &cpus[0];
 			spinlock_unlock(&t->lock);
 			thread_ready(t);
@@ -126,9 +125,8 @@ void kinit(void *arg)
 		 */
 		for (i = 0; i < config.cpu_count; i++) {
 
-			if ((t = thread_create(kcpulb, NULL, TASK, 0, "kcpulb"))) {
+			if ((t = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb"))) {
 				spinlock_lock(&t->lock);			
-				t->flags |= X_WIRED;
 				t->cpu = &cpus[i];
 				spinlock_unlock(&t->lock);
 				thread_ready(t);

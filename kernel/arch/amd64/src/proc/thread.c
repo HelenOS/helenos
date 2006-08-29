@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64proc
+/** @addtogroup amd64proc
  * @{
  */
 /** @file
@@ -43,6 +43,5 @@ void thread_create_arch(thread_t *t)
 	t->arch.tls = 0;
 }
 
- /** @}
+/** @}
  */
-

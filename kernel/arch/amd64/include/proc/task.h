@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64proc
+/** @addtogroup amd64proc
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_TASK_H__
-#define __amd64_TASK_H__
+#ifndef KERN_amd64_TASK_H_
+#define KERN_amd64_TASK_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
@@ -46,6 +46,5 @@ typedef struct {
 
 #endif
 
- /** @}
+/** @}
  */
-

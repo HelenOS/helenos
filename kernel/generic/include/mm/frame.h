@@ -27,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef __FRAME_H__
-#define __FRAME_H__
+#ifndef KERN_FRAME_H_
+#define KERN_FRAME_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -61,10 +61,6 @@
 #define FRAME_ATOMIC 	        0x2	/* do not panic and do not sleep on failure */
 #define FRAME_NO_RECLAIM        0x4     /* do not start reclaiming when no free memory */
 
-#define FRAME_OK		0	/* frame_alloc return status */
-#define FRAME_NO_MEMORY		1	/* frame_alloc return status */
-#define FRAME_ERROR		2	/* frame_alloc return status */
-
 static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
 	return (uintptr_t)(frame << FRAME_WIDTH);
@@ -88,7 +84,7 @@ static inline count_t SIZE2FRAMES(size_t size)
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
-#define frame_alloc(order, flags)				frame_alloc_generic(order, flags, NULL)
+#define frame_alloc(order, flags)		frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
 extern void * frame_alloc_generic(uint8_t order, int flags, int *pzone);
@@ -111,6 +107,5 @@ void zone_print_one(int znum);
 
 #endif
 
- /** @}
+/** @}
  */
-
