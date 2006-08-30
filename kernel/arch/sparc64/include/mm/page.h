@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_PAGE_H__
-#define __sparc64_PAGE_H__
+#ifndef KERN_sparc64_PAGE_H_
+#define KERN_sparc64_PAGE_H_
 
 #include <arch/mm/frame.h>
 
@@ -41,6 +41,8 @@
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifdef KERNEL
+
+#ifndef __ASM__
 
 #include <mm/page.h>
 #include <arch/types.h>
@@ -53,13 +55,15 @@ union page_address {
 	uintptr_t address;
 	struct {
 		uint64_t vpn : 51;		/**< Virtual Page Number. */
-		unsigned offset : 13;	/**< Offset. */
+		unsigned offset : 13;		/**< Offset. */
 	} __attribute__ ((packed));
 };
 
 typedef union page_address page_address_t;
 
 extern void page_arch_init(void);
+
+#endif /* !def __ASM__ */
 
 #endif /* KERNEL */
 

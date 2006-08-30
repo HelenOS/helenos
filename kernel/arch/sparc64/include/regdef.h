@@ -49,6 +49,9 @@
 
 #define TSTATE_CWP_MASK		0x1f
 
+#define WSTATE_NORMAL(n)	(n)
+#define WSTATE_OTHER(n)		((n)<<3)
+
 #endif
 
 /** @}

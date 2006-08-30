@@ -78,12 +78,12 @@ void before_thread_runs_arch(void)
 		 * its userspace window buffer into DTLB.
 		 */
 		ASSERT(THREAD->arch.uspace_window_buffer);
-		uintptr_t uw_buf = (uintptr_t) THREAD->arch.uspace_window_buffer;
+		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t) THREAD->arch.uspace_window_buffer, PAGE_SIZE);
 		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
 			/*
 			 * The buffer is not covered by the 4M locked kernel DTLB entry.
 			 */
-			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
+			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, uw_buf);
 			dtlb_insert_mapping(uw_buf, KA2PA(uw_buf), PAGESIZE_8K, true, true);
 		}
 		
@@ -126,14 +126,14 @@ void after_thread_ran_arch(void)
 		
 		flushw();	/* force all userspace windows into memory */
 		
-		uintptr_t uw_buf = (uintptr_t) THREAD->arch.uspace_window_buffer;
+		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t) THREAD->arch.uspace_window_buffer, PAGE_SIZE);
 		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
 			/*
 			 * The buffer is not covered by the 4M locked kernel DTLB entry
 			 * and therefore it was given a dedicated locked DTLB entry.
 			 * Demap it.
 			 */
-			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
+			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, uw_buf);
 		}
 	
 		/* sample the state of the userspace window buffer */	

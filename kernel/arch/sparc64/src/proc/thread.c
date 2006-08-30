@@ -35,6 +35,9 @@
 #include <proc/thread.h>
 #include <arch/proc/thread.h>
 #include <mm/frame.h>
+#include <mm/page.h>
+#include <arch/mm/page.h>
+#include <align.h>
 
 void thr_constructor_arch(thread_t *t)
 {
@@ -46,8 +49,13 @@ void thr_constructor_arch(thread_t *t)
 
 void thr_destructor_arch(thread_t *t)
 {
-	if (t->arch.uspace_window_buffer)
-		frame_free((uintptr_t) t->arch.uspace_window_buffer);
+	if (t->arch.uspace_window_buffer) {
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		frame_free(ALIGN_DOWN((uintptr_t) t->arch.uspace_window_buffer, PAGE_SIZE));
+	}
 }
 
 void thread_create_arch(thread_t *t)
@@ -58,6 +66,14 @@ void thread_create_arch(thread_t *t)
 		 * returned from the slab allocator doesn't have any.
 		 */
 		t->arch.uspace_window_buffer = frame_alloc(ONE_FRAME, 0);
+	} else {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
+
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		 t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf, PAGE_SIZE);
 	}
 }
 

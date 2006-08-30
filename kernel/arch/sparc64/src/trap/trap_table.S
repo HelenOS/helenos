@@ -40,6 +40,7 @@
 #include <arch/trap/interrupt.h>
 #include <arch/trap/exception.h>
 #include <arch/trap/mmu.h>
+#include <arch/mm/page.h>
 #include <arch/stack.h>
 #include <arch/regdef.h>
 
@@ -329,6 +330,11 @@ preemptible_handler:
 	nop
 
 	/*
+	 * Normal window spills will go to the userspace window buffer.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(2), %wstate
+
+	/*
 	 * Switch to kernel stack. The old stack is
 	 * automatically saved in the old window's %sp
 	 * and the new window's %fp.
@@ -363,7 +369,13 @@ preemptible_handler:
 	 * and have successfully allocated a register window.
 	 */
 1:
-
+	
+	/*
+	 * Other window spills will go to the userspace window buffer
+	 * and normal spills will go to the kernel stack.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(0), %wstate
+	
 	/*
 	 * Copy arguments.
 	 */
@@ -449,7 +461,7 @@ preemptible_handler:
 	 * registers manually.
 	 */
 	flushw
-	mov %sp, %g1
+	mov %sp, %g2
 	stx %i0, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0]
 	stx %i1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1]
 	stx %i2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2]
@@ -459,7 +471,7 @@ preemptible_handler:
 	stx %i6, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6]
 	stx %i7, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7]
 	wrpr %l0, 0, %cwp
-	mov %g1, %sp
+	mov %g2, %sp
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0], %i0
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1], %i1
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2], %i2
@@ -471,9 +483,82 @@ preemptible_handler:
 
 	/*
 	 * OTHERWIN != 0 or fall-through from the OTHERWIN == 0 case.
+	 * The CWP has already been restored to the value it had prior to the SAVE
+	 * at the beginning of this function.
 	 */
 0:
-	! TODO: restore register windows from register window memory buffer
+	rdpr %tstate, %g1
+	andcc %g1, TSTATE_PRIV_BIT, %g0		! if we are not returning to userspace...,
+	bnz 1f					! ...skip restoring userspace windows
+	nop
+	
+	rdpr %cwp, %g1
+	rdpr %otherwin, %g2
 
+	/*
+	 * Skip all OTHERWIN windows and descend to the first window
+	 * in the userspace window buffer.
+	 */
+	sub %g1, %g2, %g3
+	dec %g3
+	and %g3, NWINDOW - 1, %g3
+	wrpr %g3, 0, %cwp
+
+	/*
+	 * CWP is now in the window last saved in the userspace window buffer.
+	 * Fill all windows stored in the buffer.
+	 */
+	clr %g4
+0:	andcc %g7, PAGE_WIDTH - 1, %g0		! PAGE_SIZE alignment check
+	bz 0f					! %g7 is page-aligned, no more windows to refill
+	nop
+
+	add %g7, -STACK_WINDOW_SAVE_AREA_SIZE, %g7
+	ldx [%g7 + L0_OFFSET], %l0
+	ldx [%g7 + L1_OFFSET], %l1
+	ldx [%g7 + L2_OFFSET], %l2
+	ldx [%g7 + L3_OFFSET], %l3
+	ldx [%g7 + L4_OFFSET], %l4
+	ldx [%g7 + L5_OFFSET], %l5
+	ldx [%g7 + L6_OFFSET], %l6
+	ldx [%g7 + L7_OFFSET], %l7
+	ldx [%g7 + I0_OFFSET], %i0
+	ldx [%g7 + I1_OFFSET], %i1
+	ldx [%g7 + I2_OFFSET], %i2
+	ldx [%g7 + I3_OFFSET], %i3
+	ldx [%g7 + I4_OFFSET], %i4
+	ldx [%g7 + I5_OFFSET], %i5
+	ldx [%g7 + I6_OFFSET], %i6
+	ldx [%g7 + I7_OFFSET], %i7
+
+	dec %g3
+	and %g3, NWINDOW - 1, %g3
+	wrpr %g3, 0, %cwp			! switch to the preceeding window
+
+	ba 0b
+	inc %g4
+
+0:
+	/*
+	 * Switch back to the proper current window and adjust
+	 * OTHERWIN, CANRESTORE, CANSAVE and CLEANWIN.
+	 */
+	wrpr %g1, 0, %cwp
+	add %g4, %g2, %g2
+	mov NWINDOW - 2, %g1
+	sub %g1, %g2, %g1
+	
+	wrpr %g0, 0, %otherwin
+	wrpr %g1, 0, %cansave			! NWINDOW - 2 - CANRESTORE
+	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
+	wrpr %g2, 0, %cleanwin			! avoid information leak
+
+	/*
+	 * Spills and fills will be processed by the {spill,fill}_1_normal
+	 * handlers.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
+
+1:
 	restore
 	retry
