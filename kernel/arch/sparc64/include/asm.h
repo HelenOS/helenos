@@ -321,9 +321,14 @@ static inline void flushw(void)
 	__asm__ volatile ("flushw\n");
 }
 
-void cpu_halt(void);
-void cpu_sleep(void);
-void asm_delay_loop(uint32_t t);
+extern void cpu_halt(void);
+extern void cpu_sleep(void);
+extern void asm_delay_loop(uint32_t t);
+
+extern uint64_t read_from_ag_g7(void);
+extern void write_to_ag_g6(uint64_t val);
+extern void write_to_ag_g7(uint64_t val);
+extern void write_to_ig_g6(uint64_t val);
 
 #endif
 

@@ -203,11 +203,29 @@ fast_data_access_protection_handler:
 spill_0_normal:
 	SPILL_NORMAL_HANDLER_KERNEL
 
+/* TT = 0x84, TL = 0, spill_1_normal handler */
+.org trap_table + TT_SPILL_1_NORMAL*ENTRY_SIZE
+.global spill_1_normal
+spill_1_normal:
+	SPILL_NORMAL_HANDLER_USERSPACE
+
+/* TT = 0x88, TL = 0, spill_2_normal handler */
+.org trap_table + TT_SPILL_2_NORMAL*ENTRY_SIZE
+.global spill_2_normal
+spill_2_normal:
+	SPILL_TO_USPACE_WINDOW_BUFFER
+
 /* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
 .global fill_0_normal
 fill_0_normal:
 	FILL_NORMAL_HANDLER_KERNEL
+
+/* TT = 0xc4, TL = 0, fill_1_normal handler */
+.org trap_table + TT_FILL_1_NORMAL*ENTRY_SIZE
+.global fill_1_normal
+fill_1_normal:
+	FILL_NORMAL_HANDLER_USERSPACE
 
 /*
  * Handlers for TL>0.
@@ -267,6 +285,18 @@ fast_data_access_protection_handler_high:
 spill_0_normal_high:
 	SPILL_NORMAL_HANDLER_KERNEL
 
+/* TT = 0x88, TL > 0, spill_2_normal handler */
+.org trap_table + (TT_SPILL_2_NORMAL+512)*ENTRY_SIZE
+.global spill_2_normal_high
+spill_2_normal_high:
+	SPILL_TO_USPACE_WINDOW_BUFFER
+
+/* TT = 0xa0, TL > 0, spill_0_other handler */
+.org trap_table + (TT_SPILL_0_OTHER+512)*ENTRY_SIZE
+.global spill_0_other_high
+spill_0_other_high:
+	SPILL_TO_USPACE_WINDOW_BUFFER
+
 /* TT = 0xc0, TL > 0, fill_0_normal handler */
 .org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
 .global fill_0_normal_high
@@ -289,7 +319,7 @@ fill_0_normal_high:
  *	%g1		Address of function to call.
  * 	%g2	 	Argument for the function.
  *	%g6		Pre-set as kernel stack base if trap from userspace.
- *	%g7		Reserved.
+ *	%g7		Pre-set as address of the userspace window buffer.
  */
 .global preemptible_handler
 preemptible_handler:

@@ -106,3 +106,40 @@ memcpy_to_uspace_failover_address:
 memsetb:
 	b _memsetb
 	nop
+
+
+.macro WRITE_ALTERNATE_REGISTER reg, bit
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	rdpr %pstate, %l0
+	wrpr %l0, \bit, %pstate
+	mov %i0, \reg
+	wrpr %l0, 0, %pstate
+	ret
+	restore
+.endm
+
+.macro READ_ALTERNATE_REGISTER reg, bit
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	rdpr %pstate, %l0
+	wrpr %l0, \bit, %pstate
+	mov \reg, %i0
+	wrpr %l0, 0, %pstate
+	ret
+	restore
+.endm
+
+.global write_to_ag_g6
+write_to_ag_g6:
+	WRITE_ALTERNATE_REGISTER %g6, PSTATE_AG_BIT
+
+.global write_to_ag_g7
+write_to_ag_g7:
+	WRITE_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT
+
+.global write_to_ig_g6
+write_to_ig_g6:
+	WRITE_ALTERNATE_REGISTER %g6, PSTATE_IG_BIT
+
+.global read_from_ag_g7
+read_from_ag_g7:
+	READ_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT

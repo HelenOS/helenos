@@ -41,8 +41,12 @@
 #include <arch/arch.h>
 
 #define TT_CLEAN_WINDOW			0x24
-#define TT_SPILL_0_NORMAL		0x80
-#define TT_FILL_0_NORMAL		0xc0
+#define TT_SPILL_0_NORMAL		0x80	/* kernel spills */
+#define TT_SPILL_1_NORMAL		0x84	/* userspace spills */
+#define TT_SPILL_2_NORMAL		0x88	/* spills to userspace window buffer */
+#define TT_SPILL_0_OTHER		0xa0	/* spills to userspace window buffer */
+#define TT_FILL_0_NORMAL		0xc0	/* kernel fills */
+#define TT_FILL_1_NORMAL		0xc4	/* userspace fills */
 
 #define REGWIN_HANDLER_SIZE		128
 
@@ -98,7 +102,7 @@
  * Macro used by the userspace during normal spills.
  */
 .macro SPILL_NORMAL_HANDLER_USERSPACE
-	wr ASI_AIUP, %asi
+	wr %g0, ASI_AIUP, %asi
 	stxa %l0, [%sp + STACK_BIAS + L0_OFFSET] %asi
 	stxa %l1, [%sp + STACK_BIAS + L1_OFFSET] %asi
 	stxa %l2, [%sp + STACK_BIAS + L2_OFFSET] %asi
@@ -120,26 +124,29 @@
 .endm
 
 /*
- * Macro used by the userspace during other spills.
+ * Macro used to spill userspace window to userspace window buffer.
+ * It can be either triggered from preemptible_handler doing SAVE
+ * at (TL=1) or from normal kernel code doing SAVE when OTHERWIN>0
+ * at (TL=0).
  */
-.macro SPILL_OTHER_HANDLER_USERSPACE
-	wr ASI_AIUS, %asi
-	stxa %l0, [%sp + STACK_BIAS + L0_OFFSET] %asi
-	stxa %l1, [%sp + STACK_BIAS + L1_OFFSET] %asi
-	stxa %l2, [%sp + STACK_BIAS + L2_OFFSET] %asi
-	stxa %l3, [%sp + STACK_BIAS + L3_OFFSET] %asi
-	stxa %l4, [%sp + STACK_BIAS + L4_OFFSET] %asi
-	stxa %l5, [%sp + STACK_BIAS + L5_OFFSET] %asi
-	stxa %l6, [%sp + STACK_BIAS + L6_OFFSET] %asi
-	stxa %l7, [%sp + STACK_BIAS + L7_OFFSET] %asi
-	stxa %i0, [%sp + STACK_BIAS + I0_OFFSET] %asi
-	stxa %i1, [%sp + STACK_BIAS + I1_OFFSET] %asi
-	stxa %i2, [%sp + STACK_BIAS + I2_OFFSET] %asi
-	stxa %i3, [%sp + STACK_BIAS + I3_OFFSET] %asi
-	stxa %i4, [%sp + STACK_BIAS + I4_OFFSET] %asi
-	stxa %i5, [%sp + STACK_BIAS + I5_OFFSET] %asi
-	stxa %i6, [%sp + STACK_BIAS + I6_OFFSET] %asi
-	stxa %i7, [%sp + STACK_BIAS + I7_OFFSET] %asi
+.macro SPILL_TO_USPACE_WINDOW_BUFFER
+	stx %l0, [%g7 + L0_OFFSET]	
+	stx %l1, [%g7 + L1_OFFSET]
+	stx %l2, [%g7 + L2_OFFSET]
+	stx %l3, [%g7 + L3_OFFSET]
+	stx %l4, [%g7 + L4_OFFSET]
+	stx %l5, [%g7 + L5_OFFSET]
+	stx %l6, [%g7 + L6_OFFSET]
+	stx %l7, [%g7 + L7_OFFSET]
+	stx %i0, [%g7 + I0_OFFSET]
+	stx %i1, [%g7 + I1_OFFSET]
+	stx %i2, [%g7 + I2_OFFSET]
+	stx %i3, [%g7 + I3_OFFSET]
+	stx %i4, [%g7 + I4_OFFSET]
+	stx %i5, [%g7 + I5_OFFSET]
+	stx %i6, [%g7 + I6_OFFSET]
+	stx %i7, [%g7 + I7_OFFSET]
+	add %g7, STACK_WINDOW_SAVE_AREA_SIZE, %g7
 	saved
 	retry
 .endm
@@ -173,32 +180,7 @@
  * Macro used by the userspace during normal fills.
  */
 .macro FILL_NORMAL_HANDLER_USERSPACE
-	wr ASI_AIUP, %asi
-	ldxa [%sp + STACK_BIAS + L0_OFFSET] %asi, %l0
-	ldxa [%sp + STACK_BIAS + L1_OFFSET] %asi, %l1
-	ldxa [%sp + STACK_BIAS + L2_OFFSET] %asi, %l2
-	ldxa [%sp + STACK_BIAS + L3_OFFSET] %asi, %l3
-	ldxa [%sp + STACK_BIAS + L4_OFFSET] %asi, %l4
-	ldxa [%sp + STACK_BIAS + L5_OFFSET] %asi, %l5
-	ldxa [%sp + STACK_BIAS + L6_OFFSET] %asi, %l6
-	ldxa [%sp + STACK_BIAS + L7_OFFSET] %asi, %l7
-	ldxa [%sp + STACK_BIAS + I0_OFFSET] %asi, %i0
-	ldxa [%sp + STACK_BIAS + I1_OFFSET] %asi, %i1
-	ldxa [%sp + STACK_BIAS + I2_OFFSET] %asi, %i2
-	ldxa [%sp + STACK_BIAS + I3_OFFSET] %asi, %i3
-	ldxa [%sp + STACK_BIAS + I4_OFFSET] %asi, %i4
-	ldxa [%sp + STACK_BIAS + I5_OFFSET] %asi, %i5
-	ldxa [%sp + STACK_BIAS + I6_OFFSET] %asi, %i6
-	ldxa [%sp + STACK_BIAS + I7_OFFSET] %asi, %i7
-	restored
-	retry
-.endm
-
-/*
- * Macro used by the userspace during other fills.
- */
-.macro FILL_OTHER_HANDLER_USERSPACE
-	wr ASI_AIUS, %asi
+	wr %g0, ASI_AIUP, %asi
 	ldxa [%sp + STACK_BIAS + L0_OFFSET] %asi, %l0
 	ldxa [%sp + STACK_BIAS + L1_OFFSET] %asi, %l1
 	ldxa [%sp + STACK_BIAS + L2_OFFSET] %asi, %l2

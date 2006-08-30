@@ -36,6 +36,8 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/asm.h>
+#include <arch/regdef.h>
+#include <arch/stack.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <config.h>
@@ -51,6 +53,8 @@ void before_task_runs_arch(void)
  *
  * Ensure that thread's kernel stack, as well as userspace window
  * buffer for userspace threads, are locked in DTLB.
+ * For userspace threads, initialize reserved global registers
+ * in the alternate and interrupt sets.
  */
 void before_thread_runs_arch(void)
 {
@@ -82,6 +86,14 @@ void before_thread_runs_arch(void)
 			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
 			dtlb_insert_mapping(uw_buf, KA2PA(uw_buf), PAGESIZE_8K, true, true);
 		}
+		
+		/*
+		 * Write kernel stack address to %g6 and a pointer to the last item
+		 * in the userspace window buffer to %g7 in the alternate and interrupt sets.
+		 */
+		write_to_ig_g6((uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS);
+		write_to_ag_g6((uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS);
+		write_to_ag_g7((uintptr_t) THREAD->arch.uspace_window_buffer);
 	}
 }
 
@@ -123,6 +135,9 @@ void after_thread_ran_arch(void)
 			 */
 			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) uw_buf);
 		}
+	
+		/* sample the state of the userspace window buffer */	
+		THREAD->arch.uspace_window_buffer = (uint8_t *) read_from_ag_g7();
 	}
 }
 
