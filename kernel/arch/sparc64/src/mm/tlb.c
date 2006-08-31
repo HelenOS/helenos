@@ -54,6 +54,7 @@ static void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *t);
 static void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str);
+static void do_fast_data_access_protection_fault(istate_t *istate, const char *str);
 
 char *context_encoding[] = {
 	"Primary",
@@ -245,7 +246,34 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 /** DTLB protection fault handler. */
 void fast_data_access_protection(int n, istate_t *istate)
 {
-	panic("%s\n", __FUNCTION__);
+	tlb_tag_access_reg_t tag;
+	uintptr_t va;
+	pte_t *t;
+
+	tag.value = dtlb_tag_access_read();
+	va = tag.vpn * PAGE_SIZE;
+
+	page_table_lock(AS, true);
+	t = page_mapping_find(AS, va);
+	if (t && PTE_WRITABLE(t)) {
+		/*
+		 * The mapping was found in the software page hash table and is writable.
+		 * Demap the old mapping and insert an updated mapping into DTLB.
+		 */
+		t->a = true;
+		t->d = true;
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, va);
+		dtlb_pte_copy(t, false);
+		page_table_unlock(AS, true);
+	} else {
+		/*
+		 * Forward the page fault to the address space page fault handler.
+		 */		
+		page_table_unlock(AS, true);
+		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
+			do_fast_data_access_protection_fault(istate, __FUNCTION__);
+		}
+	}
 }
 
 /** Print contents of both TLBs. */
@@ -284,6 +312,20 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str)
+{
+	tlb_tag_access_reg_t tag;
+	uintptr_t va;
+	char *tpc_str = get_symtab_entry(istate->tpc);
+
+	tag.value = dtlb_tag_access_read();
+	va = tag.vpn * PAGE_SIZE;
+
+	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
+	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
+	panic("%s\n", str);
+}
+
+void do_fast_data_access_protection_fault(istate_t *istate, const char *str)
 {
 	tlb_tag_access_reg_t tag;
 	uintptr_t va;

@@ -34,8 +34,8 @@
  * @brief This file contains fast MMU trap handlers.
  */
 
-#ifndef __sparc64_MMU_TRAP_H__
-#define __sparc64_MMU_TRAP_H__
+#ifndef KERN_sparc64_MMU_TRAP_H_
+#define KERN_sparc64_MMU_TRAP_H_
 
 #include <arch/stack.h>
 #include <arch/regdef.h>
@@ -51,11 +51,13 @@
 
 #ifdef __ASM__
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	call fast_instruction_access_mmu_miss
-	nop
-	restore
-	retry	
+	/*
+	 * First, try to refill TLB from TSB.
+	 */
+	! TODO
+
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
 .endm
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER
@@ -101,11 +103,8 @@
 .endm
 
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	call fast_data_access_protection
-	nop
-	restore
-	retry
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+	PREEMPTIBLE_HANDLER fast_data_access_protection
 .endm
 #endif /* __ASM__ */
 

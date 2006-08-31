@@ -84,10 +84,7 @@
 .endm
 
 .macro INTERRUPT_VECTOR_TRAP_HANDLER
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	SIMPLE_HANDLER interrupt
-	restore
-	retry
+	PREEMPTIBLE_HANDLER interrupt
 .endm
 #endif /* __ASM__ */
 
