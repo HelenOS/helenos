@@ -34,8 +34,8 @@
  * @brief This file contains register window trap handlers.
  */
 
-#ifndef __sparc64_REGWIN_H__
-#define __sparc64_REGWIN_H__
+#ifndef KERN_sparc64_REGWIN_H_
+#define KERN_sparc64_REGWIN_H_
 
 #include <arch/stack.h>
 #include <arch/arch.h>

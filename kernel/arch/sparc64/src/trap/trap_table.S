@@ -40,6 +40,7 @@
 #include <arch/trap/interrupt.h>
 #include <arch/trap/exception.h>
 #include <arch/trap/mmu.h>
+#include <arch/mm/mmu.h>
 #include <arch/mm/page.h>
 #include <arch/stack.h>
 #include <arch/regdef.h>
@@ -348,15 +349,15 @@ preemptible_handler:
 	rdpr %cansave, %l0
 	wrpr %l0, %otherwin
 	wrpr %g0, %cansave
-	wrpr %g0, NWINDOW-1, %cleanwin
+	wrpr %g0, NWINDOW - 1, %cleanwin
 
 	/*
 	 * Switch to primary context 0.
 	 */
 	mov VA_PRIMARY_CONTEXT_REG, %l0
-        stxa %g0, [%l0] ASI_DMMU
-	set kernel_image_start, %l0
-        flush %l0
+	stxa %g0, [%l0] ASI_DMMU
+	rd %pc, %l0
+	flush %l0
 
 	ba 1f
 	nop
@@ -497,6 +498,14 @@ preemptible_handler:
 	 * handlers.
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
+
+	/*
+	 * Set primary context according to secondary context.
+	 */
+	wr %g0, ASI_DMMU, %asi
+	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
+	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
+	flush %o7
 	
 	rdpr %cwp, %g1
 	rdpr %otherwin, %g2

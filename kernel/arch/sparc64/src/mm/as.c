@@ -26,13 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
  */
 
 #include <arch/mm/as.h>
+#include <arch/mm/tlb.h>
 #include <genarch/mm/as_ht.h>
 #include <genarch/mm/asid_fifo.h>
 
@@ -43,6 +44,22 @@ void as_arch_init(void)
 	asid_fifo_init();
 }
 
- /** @}
+void as_install_arch(as_t *as)
+{
+	tlb_context_reg_t ctx;
+	
+	/*
+	 * Write ASID to secondary context register.
+	 * The primary context register has to be set
+	 * from TL>0 so it will be filled from the
+	 * secondary context register from the TL=1
+	 * code just before switch to userspace.
+	 */
+	ctx.v = 0;
+	ctx.context = as->asid;
+	mmu_secondary_context_write(ctx.v);
+}
+
+/** @}
  */
 

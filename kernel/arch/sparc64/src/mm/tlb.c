@@ -374,9 +374,16 @@ void tlb_invalidate_all(void)
  */
 void tlb_invalidate_asid(asid_t asid)
 {
-	/* TODO: write asid to some Context register and encode the register in second parameter below. */
-	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
-	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_NUCLEUS, 0);
+	tlb_context_reg_t sc_save, ctx;
+	
+	ctx.v = sc_save.v = mmu_secondary_context_read();
+	ctx.context = asid;
+	mmu_secondary_context_write(ctx.v);
+	
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_SECONDARY, 0);
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_SECONDARY, 0);
+	
+	mmu_secondary_context_write(sc_save.v);
 }
 
 /** Invalidate all ITLB and DTLB entries for specified page range in specified address space.
@@ -388,12 +395,18 @@ void tlb_invalidate_asid(asid_t asid)
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	int i;
+	tlb_context_reg_t sc_save, ctx;
+	
+	ctx.v = sc_save.v = mmu_secondary_context_read();
+	ctx.context = asid;
+	mmu_secondary_context_write(ctx.v);
 	
 	for (i = 0; i < cnt; i++) {
-		/* TODO: write asid to some Context register and encode the register in second parameter below. */
-		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page + i * PAGE_SIZE);
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, page + i * PAGE_SIZE);
+		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, page + i * PAGE_SIZE);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, page + i * PAGE_SIZE);
 	}
+	
+	mmu_secondary_context_write(sc_save.v);
 }
 
 /** @}

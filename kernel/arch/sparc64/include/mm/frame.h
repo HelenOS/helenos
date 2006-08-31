@@ -47,8 +47,8 @@ union frame_address {
 	uintptr_t address;
 	struct {
 		unsigned : 23;
-		uint64_t pfn : 28;	/**< Physical Frame Number. */
-		unsigned offset : 13;	/**< Offset. */
+		uint64_t pfn : 28;		/**< Physical Frame Number. */
+		unsigned offset : 13;		/**< Offset. */
 	} __attribute__ ((packed));
 };
 

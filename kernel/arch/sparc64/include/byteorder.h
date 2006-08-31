@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_BYTEORDER_H__
-#define __sparc64_BYTEORDER_H__
+#ifndef KERN_sparc64_BYTEORDER_H_
+#define KERN_sparc64_BYTEORDER_H_
 
 #include <arch/types.h>
 #include <byteorder.h>
@@ -50,6 +50,5 @@ static inline unative_t unative_t_le2host(unative_t n)
 
 #endif
 
- /** @}
+/** @}
  */
-

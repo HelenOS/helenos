@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_MMU_H__
-#define __sparc64_MMU_H__
+#ifndef KERN_sparc64_MMU_H_
+#define KERN_sparc64_MMU_H_
 
 /* LSU Control Register ASI. */
 #define ASI_LSU_CONTROL_REG		0x45	/**< Load/Store Unit Control Register. */

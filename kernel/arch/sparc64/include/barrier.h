@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_BARRIER_H__
-#define __sparc64_BARRIER_H__
+#ifndef KERN_sparc64_BARRIER_H_
+#define KERN_sparc64_BARRIER_H_
 
 /*
  * TODO: Implement true SPARC V9 memory barriers for macros below.

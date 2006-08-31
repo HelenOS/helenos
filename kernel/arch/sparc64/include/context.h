@@ -32,18 +32,18 @@
 /** @file
  */
 
-#ifndef __sparc64_CONTEXT_H__
-#define __sparc64_CONTEXT_H__
+#ifndef KERN_sparc64_CONTEXT_H_
+#define KERN_sparc64_CONTEXT_H_
 
-#ifndef __sparc64_STACK_H__
+#ifndef KERN_sparc64_STACK_H_
 # include <arch/stack.h>
 #endif
 
-#ifndef __sparc64_TYPES_H__
+#ifndef KERN_sparc64_TYPES_H_
 # include <arch/types.h>
 #endif
 
-#ifndef __ALIGN_H__
+#ifndef KERN_ALIGN_H_
 # include <align.h>
 #endif
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_MEMORY_INIT_H__
-#define __sparc64_MEMORY_INIT_H__
+#ifndef KERN_sparc64_MEMORY_INIT_H_
+#define KERN_sparc64_MEMORY_INIT_H_
 
 #include <typedefs.h>
 
@@ -41,6 +41,5 @@ extern size_t get_memory_size(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

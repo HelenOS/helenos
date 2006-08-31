@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_ELF_H__
-#define __sparc64_ELF_H__
+#ifndef KERN_sparc64_ELF_H_
+#define KERN_sparc64_ELF_H_
 
 #define	ELF_MACHINE		EM_SPARCV9
 #define ELF_DATA_ENCODING	ELFDATA2MSB

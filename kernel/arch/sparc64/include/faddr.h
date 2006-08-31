@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_FADDR_H__
-#define __sparc64_FADDR_H__
+#ifndef KERN_sparc64_FADDR_H_
+#define KERN_sparc64_FADDR_H_
 
 #include <arch/types.h>
 
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

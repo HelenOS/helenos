@@ -26,16 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /** @addtogroup generic	
  * @ingroup others
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Macros for making values and addresses aligned.
  */
 
-#ifndef __ALIGN_H__
-#define __ALIGN_H__
+#ifndef KERN_ALIGN_H_
+#define KERN_ALIGN_H_
 
 /** Align to the nearest lower address.
  *

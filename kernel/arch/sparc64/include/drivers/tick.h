@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_TICK_H__
-#define __sparc64_TICK_H__
+#ifndef KERN_sparc64_TICK_H_
+#define KERN_sparc64_TICK_H_
 
 #include <typedefs.h>
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_TRAP_H__
-#define __sparc64_TRAP_H__
+#ifndef KERN_sparc64_TRAP_H_
+#define KERN_sparc64_TRAP_H_
 
 extern void trap_init(void);
 

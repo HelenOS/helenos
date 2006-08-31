@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_ATOMIC_H__
-#define __sparc64_ATOMIC_H__
+#ifndef KERN_sparc64_ATOMIC_H_
+#define KERN_sparc64_ATOMIC_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

@@ -28,6 +28,7 @@
 
 #include <arch/stack.h>
 #include <arch/regdef.h>
+#include <arch/mm/mmu.h>
 
 .text
 
@@ -143,3 +144,39 @@ write_to_ig_g6:
 .global read_from_ag_g7
 read_from_ag_g7:
 	READ_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT
+
+
+/** Switch to userspace.
+ *
+ * %o0	Userspace entry address.
+ * %o1	Userspace stack pointer address.
+ */
+.global switch_to_userspace
+switch_to_userspace:
+	flushw
+	wrpr %g0, 0, %cleanwin		! avoid information leak
+	save %o1, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+
+	clr %i2
+	clr %i3
+	clr %i4
+	clr %i5
+	clr %i6
+
+	wrpr %g0, 1, %tl		! enforce mapping via nucleus
+
+	rdpr %cwp, %g1
+	wrpr %g1, TSTATE_IE_BIT, %tstate
+	wrpr %i0, 0, %tnpc
+	
+	/*
+	 * Set primary context according to secondary context.
+	 * Secondary context has been already installed by
+	 * higher-level functions.
+	 */
+	wr %g0, ASI_DMMU, %asi
+	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
+	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
+	flush %i7
+	
+	done				! jump to userspace

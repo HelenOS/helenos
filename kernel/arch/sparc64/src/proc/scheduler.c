@@ -91,8 +91,10 @@ void before_thread_runs_arch(void)
 		 * Write kernel stack address to %g6 and a pointer to the last item
 		 * in the userspace window buffer to %g7 in the alternate and interrupt sets.
 		 */
-		write_to_ig_g6((uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS);
-		write_to_ag_g6((uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS);
+		uint64_t sp = (uintptr_t) THREAD->kstack + STACK_SIZE
+			- (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT));
+		write_to_ig_g6(sp);
+		write_to_ag_g6(sp);
 		write_to_ag_g7((uintptr_t) THREAD->arch.uspace_window_buffer);
 	}
 }

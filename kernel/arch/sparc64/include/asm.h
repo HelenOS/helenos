@@ -330,6 +330,8 @@ extern void write_to_ag_g6(uint64_t val);
 extern void write_to_ag_g7(uint64_t val);
 extern void write_to_ig_g6(uint64_t val);
 
+extern void switch_to_userspace(uint64_t pc, uint64_t sp);
+
 #endif
 
 /** @}

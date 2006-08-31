@@ -34,8 +34,8 @@
  * @brief This file contains interrupt vector trap handler.
  */
 
-#ifndef __sparc64_TRAP_INTERRUPT_H__
-#define __sparc64_TRAP_INTERRUPT_H__
+#ifndef KERN_sparc64_TRAP_INTERRUPT_H_
+#define KERN_sparc64_TRAP_INTERRUPT_H_
 
 #include <arch/trap/trap_table.h>
 #include <arch/stack.h>

@@ -68,7 +68,7 @@ kernel_image_start:
 	and %g1, ~(PSTATE_AM_BIT|PSTATE_IE_BIT), %g1
 	wrpr %g1, 0, %pstate
 
-	wrpr %r0, 0, %pil		! intialize %pil
+	wrpr %g0, 0, %pil		! intialize %pil
 
 	/*
 	 * Copy the bootinfo structure passed from the boot loader

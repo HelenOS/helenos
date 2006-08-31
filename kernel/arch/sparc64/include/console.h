@@ -36,7 +36,6 @@
 #define KERN_sparc64_CONSOLE_H_
 
 extern void kkbdpoll(void *arg);
-extern void ofw_sparc64_console_init(void);
 extern void standalone_sparc64_console_init(void);
 
 #endif

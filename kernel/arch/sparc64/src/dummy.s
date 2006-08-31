@@ -39,7 +39,6 @@
 .global fpu_context_save
 .global fpu_enable
 .global fpu_init
-.global userspace
 .global sys_tls_set
 
 .global dummy
@@ -55,7 +54,6 @@ fpu_context_restore:
 fpu_context_save:
 fpu_enable:
 fpu_init:
-userspace:
 sys_tls_set:
 
 dummy:

@@ -32,9 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_TLB_H__
-#define __sparc64_TLB_H__
-
+#ifndef KERN_sparc64_TLB_H_
+#define KERN_sparc64_TLB_H_
 
 #define ITLB_ENTRY_COUNT		64
 #define DTLB_ENTRY_COUNT		64

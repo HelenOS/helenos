@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_TTE_H__
-#define __sparc64_TTE_H__
+#ifndef KERN_sparc64_TTE_H_
+#define KERN_sparc64_TTE_H_
 
 #define TTE_G		(1<<0)
 #define TTE_W		(1<<1)

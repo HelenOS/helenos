@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_CPU_H__
-#define __sparc64_CPU_H__
+#ifndef KERN_sparc64_CPU_H_
+#define KERN_sparc64_CPU_H_
 
 #include <arch/register.h>
 

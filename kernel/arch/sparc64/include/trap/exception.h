@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef __sparc64_EXCEPTION_H__
-#define __sparc64_EXCEPTION_H__
+#ifndef KERN_sparc64_EXCEPTION_H_
+#define KERN_sparc64_EXCEPTION_H_
 
 #define TT_INSTRUCTION_ACCESS_EXCEPTION		0x08
 #define TT_ILLEGAL_INSTRUCTION			0x10

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_AS_H__
-#define __sparc64_AS_H__
+#ifndef KERN_sparc64_AS_H_
+#define KERN_sparc64_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
 
@@ -44,12 +44,10 @@
 
 #define USTACK_ADDRESS_ARCH	(0x7fffffffffffffff-(PAGE_SIZE-1))
 
-#define as_install_arch(as)
-
 extern void as_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

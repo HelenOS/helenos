@@ -34,6 +34,7 @@
 
 #include <arch.h>
 #include <debug.h>
+#include <config.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
 #include <arch/drivers/tick.h>
@@ -41,8 +42,9 @@
 #include <console/console.h>
 #include <arch/boot/boot.h>
 #include <arch/arch.h>
-#include <arch/mm/tlb.h>
-#include <mm/asid.h>
+#include <arch/mm/page.h>
+#include <arch/stack.h>
+#include <userspace.h>
 
 bootinfo_t bootinfo;
 
@@ -89,6 +91,18 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
+}
+
+/** Switch to userspace. */
+void userspace(uspace_arg_t *kernel_uarg)
+{
+	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
+		((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
+		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS));
+
+	for (;;)
+		;
+	/* not reached */
 }
 
 /** @}

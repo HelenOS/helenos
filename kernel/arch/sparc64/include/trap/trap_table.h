@@ -32,12 +32,8 @@
 /** @file
  */
 
-#ifndef __sparc64_TRAP_TABLE_H__
-#define __sparc64_TRAP_TABLE_H__
-
-#ifndef __ASM__
-#include <arch/types.h>
-#endif /* __ASM__ */
+#ifndef KERN_sparc64_TRAP_TABLE_H_
+#define KERN_sparc64_TRAP_TABLE_H_
 
 #include <arch/stack.h>
 
@@ -46,6 +42,9 @@
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT*TRAP_TABLE_ENTRY_SIZE)
 
 #ifndef __ASM__
+
+#include <arch/types.h>
+
 struct trap_table_entry {
 	uint8_t octets[TRAP_TABLE_ENTRY_SIZE];
 } __attribute__ ((packed));

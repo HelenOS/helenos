@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64debug
+/** @addtogroup sparc64debug
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_DEBUG_H__
-#define __sparc64_DEBUG_H__
+#ifndef KERN_sparc64_DEBUG_H_
+#define KERN_sparc64_DEBUG_H_
 
 #endif
 
- /** @}
+/** @}
  */
-

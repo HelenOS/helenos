@@ -33,11 +33,12 @@
 /** @file
  */
 
-#ifndef __sparc64_INTERRUPT_H__
-#define __sparc64_INTERRUPT_H__
+#ifndef KERN_sparc64_INTERRUPT_H_
+#define KERN_sparc64_INTERRUPT_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
+#include <arch/regdef.h>
 
 #define IRQ_COUNT	1	/* TODO */
 
@@ -52,17 +53,17 @@ struct istate {
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
-	/* TODO */
+	istate->tpc = retaddr;
 }
+
 static inline int istate_from_uspace(istate_t *istate)
 {
-	/* TODO */
-	return 0;
+	return !(istate->tstate & TSTATE_PRIV_BIT);
 }
+
 static inline unative_t istate_get_pc(istate_t *istate)
 {
-	/* TODO */
-	return 0;
+	return istate->tpc;
 }
 
 

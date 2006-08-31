@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sparc64	
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_TYPES_H__
-#define __sparc64_TYPES_H__
+#ifndef KERN_sparc64_TYPES_H_
+#define KERN_sparc64_TYPES_H_
 
 #define NULL	0
 
@@ -61,6 +61,5 @@ typedef uint8_t asi_t;
 
 #endif
 
- /** @}
+/** @}
  */
-
