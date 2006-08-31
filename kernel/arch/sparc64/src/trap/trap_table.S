@@ -491,6 +491,12 @@ preemptible_handler:
 	andcc %g1, TSTATE_PRIV_BIT, %g0		! if we are not returning to userspace...,
 	bnz 1f					! ...skip restoring userspace windows
 	nop
+
+	/*
+	 * Spills and fills will be processed by the {spill,fill}_1_normal
+	 * handlers.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
 	
 	rdpr %cwp, %g1
 	rdpr %otherwin, %g2
@@ -545,7 +551,9 @@ preemptible_handler:
 	 */
 	wrpr %g1, 0, %cwp
 	add %g4, %g2, %g2
-	mov NWINDOW - 2, %g1
+	cmp %g2, NWINDOW - 2
+	bg 2f					! fix the CANRESTORE=NWINDOW-1 anomaly
+	mov NWINDOW - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
 	
 	wrpr %g0, 0, %otherwin
@@ -553,12 +561,39 @@ preemptible_handler:
 	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
 	wrpr %g2, 0, %cleanwin			! avoid information leak
 
-	/*
-	 * Spills and fills will be processed by the {spill,fill}_1_normal
-	 * handlers.
-	 */
-	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
-
 1:
 	restore
+	retry
+
+	/*
+	 * We got here in order to avoid inconsistency of the window state registers.
+	 * If the:
+	 *
+	 * 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	 *
+	 * instruction trapped and spilled a register window into the userspace
+	 * window buffer, we have just restored NWINDOW - 1 register windows.
+	 * However, CANRESTORE can be only NWINDOW - 2 at most.
+	 *
+	 * The solution is to manually switch to (CWP - 1) mod NWINDOW
+	 * and set the window state registers so that:
+	 *
+	 * 	CANRESTORE 	= NWINDOW - 2
+	 *	CLEANWIN	= NWINDOW - 2
+	 *	CANSAVE 	= 0
+	 *	OTHERWIN	= 0
+	 *
+	 * The RESTORE isntruction is therfore to be skipped.
+	 */
+2:
+	wrpr %g0, 0, %otherwin
+	wrpr %g0, 0, %cansave
+	wrpr %g1, 0, %canrestore
+	wrpr %g1, 0, %cleanwin
+
+	rdpr %cwp, %g1
+	dec %g1
+	and %g1, NWINDOW - 1, %g1
+	wrpr %g1, 0, %cwp			! CWP--
+	
 	retry
