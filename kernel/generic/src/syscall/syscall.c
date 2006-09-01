@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic
+/** @addtogroup generic
  * @{
  */
 
@@ -159,6 +159,5 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	sys_debug_enable_console
 };
 
- /** @}
+/** @}
  */
-

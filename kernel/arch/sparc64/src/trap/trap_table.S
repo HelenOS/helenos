@@ -39,6 +39,7 @@
 #include <arch/trap/regwin.h>
 #include <arch/trap/interrupt.h>
 #include <arch/trap/exception.h>
+#include <arch/trap/syscall.h>
 #include <arch/trap/mmu.h>
 #include <arch/mm/mmu.h>
 #include <arch/mm/page.h>
@@ -229,6 +230,198 @@ fill_0_normal:
 fill_1_normal:
 	FILL_NORMAL_HANDLER_USERSPACE
 
+/* TT = 0x100, TL = 0, trap_instruction_0 */
+.org trap_table + TT_TRAP_INSTRUCTION(0)*ENTRY_SIZE
+.global trap_instruction_0
+trap_instruction_0:
+	TRAP_INSTRUCTION 0
+
+/* TT = 0x101, TL = 0, trap_instruction_1 */
+.org trap_table + TT_TRAP_INSTRUCTION(1)*ENTRY_SIZE
+.global trap_instruction_1
+trap_instruction_1:
+	TRAP_INSTRUCTION 1
+
+/* TT = 0x102, TL = 0, trap_instruction_2 */
+.org trap_table + TT_TRAP_INSTRUCTION(2)*ENTRY_SIZE
+.global trap_instruction_2
+trap_instruction_2:
+	TRAP_INSTRUCTION 2
+
+/* TT = 0x103, TL = 0, trap_instruction_3 */
+.org trap_table + TT_TRAP_INSTRUCTION(3)*ENTRY_SIZE
+.global trap_instruction_3
+trap_instruction_3:
+	TRAP_INSTRUCTION 3
+
+/* TT = 0x104, TL = 0, trap_instruction_4 */
+.org trap_table + TT_TRAP_INSTRUCTION(4)*ENTRY_SIZE
+.global trap_instruction_4
+trap_instruction_4:
+	TRAP_INSTRUCTION 4
+
+/* TT = 0x105, TL = 0, trap_instruction_5 */
+.org trap_table + TT_TRAP_INSTRUCTION(5)*ENTRY_SIZE
+.global trap_instruction_5
+trap_instruction_5:
+	TRAP_INSTRUCTION 5
+
+/* TT = 0x106, TL = 0, trap_instruction_6 */
+.org trap_table + TT_TRAP_INSTRUCTION(6)*ENTRY_SIZE
+.global trap_instruction_6
+trap_instruction_6:
+	TRAP_INSTRUCTION 6
+
+/* TT = 0x107, TL = 0, trap_instruction_7 */
+.org trap_table + TT_TRAP_INSTRUCTION(7)*ENTRY_SIZE
+.global trap_instruction_7
+trap_instruction_7:
+	TRAP_INSTRUCTION 7
+
+/* TT = 0x108, TL = 0, trap_instruction_8 */
+.org trap_table + TT_TRAP_INSTRUCTION(8)*ENTRY_SIZE
+.global trap_instruction_8
+trap_instruction_8:
+	TRAP_INSTRUCTION 8
+
+/* TT = 0x109, TL = 0, trap_instruction_9 */
+.org trap_table + TT_TRAP_INSTRUCTION(9)*ENTRY_SIZE
+.global trap_instruction_9
+trap_instruction_9:
+	TRAP_INSTRUCTION 9
+
+/* TT = 0x10a, TL = 0, trap_instruction_10 */
+.org trap_table + TT_TRAP_INSTRUCTION(10)*ENTRY_SIZE
+.global trap_instruction_10
+trap_instruction_10:
+	TRAP_INSTRUCTION 10
+
+/* TT = 0x10b, TL = 0, trap_instruction_11 */
+.org trap_table + TT_TRAP_INSTRUCTION(11)*ENTRY_SIZE
+.global trap_instruction_11
+trap_instruction_11:
+	TRAP_INSTRUCTION 11
+
+/* TT = 0x10c, TL = 0, trap_instruction_12 */
+.org trap_table + TT_TRAP_INSTRUCTION(12)*ENTRY_SIZE
+.global trap_instruction_12
+trap_instruction_12:
+	TRAP_INSTRUCTION 12
+
+/* TT = 0x10d, TL = 0, trap_instruction_13 */
+.org trap_table + TT_TRAP_INSTRUCTION(13)*ENTRY_SIZE
+.global trap_instruction_13
+trap_instruction_13:
+	TRAP_INSTRUCTION 13
+
+/* TT = 0x10e, TL = 0, trap_instruction_14 */
+.org trap_table + TT_TRAP_INSTRUCTION(14)*ENTRY_SIZE
+.global trap_instruction_14
+trap_instruction_14:
+	TRAP_INSTRUCTION 14
+
+/* TT = 0x10f, TL = 0, trap_instruction_15 */
+.org trap_table + TT_TRAP_INSTRUCTION(15)*ENTRY_SIZE
+.global trap_instruction_15
+trap_instruction_15:
+	TRAP_INSTRUCTION 15
+
+/* TT = 0x110, TL = 0, trap_instruction_16 */
+.org trap_table + TT_TRAP_INSTRUCTION(16)*ENTRY_SIZE
+.global trap_instruction_16
+trap_instruction_16:
+	TRAP_INSTRUCTION 16
+
+/* TT = 0x111, TL = 0, trap_instruction_17 */
+.org trap_table + TT_TRAP_INSTRUCTION(17)*ENTRY_SIZE
+.global trap_instruction_17
+trap_instruction_17:
+	TRAP_INSTRUCTION 17
+
+/* TT = 0x112, TL = 0, trap_instruction_18 */
+.org trap_table + TT_TRAP_INSTRUCTION(18)*ENTRY_SIZE
+.global trap_instruction_18
+trap_instruction_18:
+	TRAP_INSTRUCTION 18
+
+/* TT = 0x113, TL = 0, trap_instruction_19 */
+.org trap_table + TT_TRAP_INSTRUCTION(19)*ENTRY_SIZE
+.global trap_instruction_19
+trap_instruction_19:
+	TRAP_INSTRUCTION 19
+
+/* TT = 0x114, TL = 0, trap_instruction_20 */
+.org trap_table + TT_TRAP_INSTRUCTION(20)*ENTRY_SIZE
+.global trap_instruction_20
+trap_instruction_20:
+	TRAP_INSTRUCTION 20
+
+/* TT = 0x115, TL = 0, trap_instruction_21 */
+.org trap_table + TT_TRAP_INSTRUCTION(21)*ENTRY_SIZE
+.global trap_instruction_21
+trap_instruction_21:
+	TRAP_INSTRUCTION 21
+
+/* TT = 0x116, TL = 0, trap_instruction_22 */
+.org trap_table + TT_TRAP_INSTRUCTION(22)*ENTRY_SIZE
+.global trap_instruction_22
+trap_instruction_22:
+	TRAP_INSTRUCTION 22
+
+/* TT = 0x117, TL = 0, trap_instruction_23 */
+.org trap_table + TT_TRAP_INSTRUCTION(23)*ENTRY_SIZE
+.global trap_instruction_23
+trap_instruction_23:
+	TRAP_INSTRUCTION 23
+
+/* TT = 0x118, TL = 0, trap_instruction_24 */
+.org trap_table + TT_TRAP_INSTRUCTION(24)*ENTRY_SIZE
+.global trap_instruction_24
+trap_instruction_24:
+	TRAP_INSTRUCTION 24
+
+/* TT = 0x119, TL = 0, trap_instruction_25 */
+.org trap_table + TT_TRAP_INSTRUCTION(25)*ENTRY_SIZE
+.global trap_instruction_25
+trap_instruction_25:
+	TRAP_INSTRUCTION 25
+
+/* TT = 0x11a, TL = 0, trap_instruction_26 */
+.org trap_table + TT_TRAP_INSTRUCTION(26)*ENTRY_SIZE
+.global trap_instruction_26
+trap_instruction_26:
+	TRAP_INSTRUCTION 26
+
+/* TT = 0x11b, TL = 0, trap_instruction_27 */
+.org trap_table + TT_TRAP_INSTRUCTION(27)*ENTRY_SIZE
+.global trap_instruction_27
+trap_instruction_27:
+	TRAP_INSTRUCTION 27
+
+/* TT = 0x11c, TL = 0, trap_instruction_28 */
+.org trap_table + TT_TRAP_INSTRUCTION(28)*ENTRY_SIZE
+.global trap_instruction_28
+trap_instruction_28:
+	TRAP_INSTRUCTION 28
+
+/* TT = 0x11d, TL = 0, trap_instruction_29 */
+.org trap_table + TT_TRAP_INSTRUCTION(29)*ENTRY_SIZE
+.global trap_instruction_29
+trap_instruction_29:
+	TRAP_INSTRUCTION 29
+
+/* TT = 0x11e, TL = 0, trap_instruction_30 */
+.org trap_table + TT_TRAP_INSTRUCTION(30)*ENTRY_SIZE
+.global trap_instruction_30
+trap_instruction_30:
+	TRAP_INSTRUCTION 30
+
+/* TT = 0x11f, TL = 0, trap_instruction_31 */
+.org trap_table + TT_TRAP_INSTRUCTION(31)*ENTRY_SIZE
+.global trap_instruction_31
+trap_instruction_31:
+	TRAP_INSTRUCTION 31
+
 /*
  * Handlers for TL>0.
  */
@@ -305,6 +498,7 @@ spill_0_other_high:
 fill_0_normal_high:
 	FILL_NORMAL_HANDLER_KERNEL
 
+#define NOT(x)	((x) == 0)
 
 /* Preemptible trap handler for TL=1.
  *
@@ -323,13 +517,13 @@ fill_0_normal_high:
  *	%g6		Pre-set as kernel stack base if trap from userspace.
  *	%g7		Pre-set as address of the userspace window buffer.
  */
-.global preemptible_handler
-preemptible_handler:
+.macro PREEMPTIBLE_HANDLER_TEMPLATE is_syscall
+.if NOT(\is_syscall)
 	rdpr %tstate, %g3
 	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
 	bnz 0f					! ...skip setting of kernel stack and primary context
 	nop
-
+.endif
 	/*
 	 * Normal window spills will go to the userspace window buffer.
 	 */
@@ -341,6 +535,16 @@ preemptible_handler:
 	 * and the new window's %fp.
 	 */
 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+
+.if \is_syscall
+	/*
+	 * Copy arguments for the syscall to the new window.
+	 */
+	mov %i0, %o2
+	mov %i1, %o3
+	mov %i2, %o4
+	mov %i3, %o5
+.endif
 
 	/*
 	 * Mark the CANSAVE windows as OTHER windows.
@@ -359,6 +563,7 @@ preemptible_handler:
 	rd %pc, %l0
 	flush %l0
 
+.if NOT(\is_syscall)
 	ba 1f
 	nop
 
@@ -370,7 +575,7 @@ preemptible_handler:
 	 * and have successfully allocated a register window.
 	 */
 1:
-	
+.endif
 	/*
 	 * Other window spills will go to the userspace window buffer
 	 * and normal spills will go to the kernel stack.
@@ -408,6 +613,13 @@ preemptible_handler:
 	 */
 	call %l0
 	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
+
+.if \is_syscall
+	/*
+	 * Copy the value returned by the syscall.
+	 */
+	mov %o0, %i0
+.endif
 
 	RESTORE_GLOBALS
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
@@ -488,10 +700,12 @@ preemptible_handler:
 	 * at the beginning of this function.
 	 */
 0:
+.if NOT(\is_syscall)
 	rdpr %tstate, %g1
 	andcc %g1, TSTATE_PRIV_BIT, %g0		! if we are not returning to userspace...,
 	bnz 1f					! ...skip restoring userspace windows
 	nop
+.endif
 
 	/*
 	 * Spills and fills will be processed by the {spill,fill}_1_normal
@@ -572,7 +786,12 @@ preemptible_handler:
 
 1:
 	restore
+
+.if \is_syscall
+	done
+.else
 	retry
+.endif
 
 	/*
 	 * We got here in order to avoid inconsistency of the window state registers.
@@ -605,4 +824,18 @@ preemptible_handler:
 	and %g1, NWINDOW - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
 	
+.if \is_syscall
+	done
+.else
 	retry
+.endif
+
+.endm
+
+.global preemptible_handler
+preemptible_handler:
+	PREEMPTIBLE_HANDLER_TEMPLATE 0
+
+.global trap_instruction_handler
+trap_instruction_handler:
+	PREEMPTIBLE_HANDLER_TEMPLATE 1
