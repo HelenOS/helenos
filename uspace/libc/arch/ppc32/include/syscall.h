@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64 sparc64
-  * @brief sparc64 architecture dependent parts of libc
-  * @ingroup lc
+/** @addtogroup libc
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#include <libc.h>
+#ifndef LIBC_ppc32_SYSCALL_H_
+#define LIBC_ppc32_SYSCALL_H_
 
-sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id)
-{
-	return 0;
-}
+#include <syscall.h>
+
+#endif
 
 /** @}
  */

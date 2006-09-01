@@ -513,7 +513,7 @@ fill_0_normal_high:
  *
  * Input registers:
  *	%g1		Address of function to call.
- * 	%g2	 	Argument for the function.
+ * 	%g2	 	First argument for the function.
  *	%g6		Pre-set as kernel stack base if trap from userspace.
  *	%g7		Pre-set as address of the userspace window buffer.
  */

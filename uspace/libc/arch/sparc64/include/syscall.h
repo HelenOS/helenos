@@ -26,61 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_SYSCALL_H_
-#define KERN_SYSCALL_H_
+#ifndef LIBC_sparc64_SYSCALL_H_
+#define LIBC_sparc64_SYSCALL_H_
 
-typedef enum {
-	SYS_IO = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - psthread.S */
-	SYS_THREAD_CREATE,
-	SYS_THREAD_EXIT,
-	SYS_TASK_GET_ID,
-	SYS_FUTEX_SLEEP,
-	SYS_FUTEX_WAKEUP,
-	SYS_AS_AREA_CREATE,
-	SYS_AS_AREA_RESIZE,
-	SYS_AS_AREA_DESTROY,
-	SYS_IPC_CALL_SYNC_FAST,
-	SYS_IPC_CALL_SYNC,
-	SYS_IPC_CALL_ASYNC_FAST,
-	SYS_IPC_CALL_ASYNC,
-	SYS_IPC_ANSWER_FAST,
-	SYS_IPC_ANSWER,
-	SYS_IPC_FORWARD_FAST,
-	SYS_IPC_WAIT,
-	SYS_IPC_HANGUP,
-	SYS_IPC_REGISTER_IRQ,
-	SYS_IPC_UNREGISTER_IRQ,
-	SYS_CAP_GRANT,
-	SYS_CAP_REVOKE,
-	SYS_MAP_PHYSMEM,
-	SYS_IOSPACE_ENABLE,
-	SYS_PREEMPT_CONTROL,
-	SYS_SYSINFO_VALID,
-	SYS_SYSINFO_VALUE,
-	SYS_DEBUG_ENABLE_CONSOLE,
-	SYSCALL_END
-} syscall_t;
+#include <types.h>
+#include <kernel/syscall/syscall.h>
 
-#ifdef KERNEL
+static inline sysarg_t
+__syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id)
+{
+	register uint64_t a1 asm("o0") = p1;
+	register uint64_t a2 asm("o1") = p2;
+	register uint64_t a3 asm("o2") = p3;
+	register uint64_t a4 asm("o3") = p4;
 
-#include <arch/types.h>
-#include <typedefs.h>
-
-typedef unative_t (*syshandler_t)();
-
-extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
-				unative_t a4, unative_t id);
-extern unative_t sys_tls_set(unative_t addr);
-
-#endif
+	__asm__ volatile (
+		"ta %5\n"
+		: "=r" (a1)
+		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "i" (id)
+	);
+	
+	return a1;
+}
 
 #endif
 

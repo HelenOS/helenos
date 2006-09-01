@@ -37,6 +37,7 @@
 
 #include <types.h>
 #include <kernel/syscall/syscall.h>
+#include <libarch/syscall.h>
 
 #define __SYSCALL0(id) __syscall(0, 0, 0, 0, id)
 #define __SYSCALL1(id, p1) __syscall(p1, 0, 0, 0, id)
@@ -47,8 +48,6 @@
 extern void __main(void);
 extern void __io_init(void);
 extern void __exit(void);
-extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id);
-
 
 #endif
 

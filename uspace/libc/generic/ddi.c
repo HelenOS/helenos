@@ -52,7 +52,7 @@
  */
 int map_physmem(void *pf, void *vp, unsigned long pages, int flags)
 {
-	return __SYSCALL4(SYS_MAP_PHYSMEM, (sysarg_t) pf, (sysarg_t)vp, pages, flags);
+	return __SYSCALL4(SYS_MAP_PHYSMEM, (sysarg_t) pf, (sysarg_t) vp, pages, flags);
 }
 
 /** Enable I/O space range to task.

@@ -26,22 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__SYS_TYPES_H__
-#define __LIBC__SYS_TYPES_H__
+#ifndef LIBC_SYS_TYPES_H_
+#define LIBC_SYS_TYPES_H_
 
 #include <types.h>
 
 #endif
 
-
-
- /** @}
+/** @}
  */
  
  

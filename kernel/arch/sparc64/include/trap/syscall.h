@@ -49,7 +49,6 @@
 	sethi %hi(syscall), %g1
 	ba trap_instruction_handler
 	or %g1, %lo(syscall), %g1
-
 .endm
 
 #endif /* __ASM__ */
