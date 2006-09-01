@@ -42,14 +42,17 @@
 #define TT_MEM_ADDRESS_NOT_ALIGNED		0x34
 
 #ifndef __ASM__
-extern void do_instruction_access_exc(void);
-extern void do_mem_address_not_aligned(void);
-extern void do_data_access_error(void);
-extern void do_illegal_instruction(void);
+
+#include <typedefs.h>
+
+extern void do_instruction_access_exc(int n, istate_t *istate);
+extern void do_mem_address_not_aligned(int n, istate_t *istate);
+extern void do_data_access_error(int n, istate_t *istate);
+extern void do_illegal_instruction(int n, istate_t *istate);
+
 #endif /* !__ASM__ */
 
 #endif
 
 /** @}
  */
-

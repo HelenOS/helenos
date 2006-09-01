@@ -53,9 +53,9 @@
 #ifdef __ASM__
 
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
-	!
-	! First, try to refill TLB from TSB.
-	!
+	/*
+	 * First, try to refill TLB from TSB.
+	 */
 	! TODO
 
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate

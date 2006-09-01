@@ -89,7 +89,7 @@
 #endif /* __ASM__ */
 
 #ifndef __ASM__
-extern void interrupt(void);
+extern void interrupt(int n, istate_t *istate);
 #endif /* !def __ASM__ */
 
 #endif

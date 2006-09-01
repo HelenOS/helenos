@@ -100,10 +100,6 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 	or %g1, %lo(\f), %g1
 .endm
 
-.macro SIMPLE_HANDLER f
-	call \f
-	nop
-.endm
 #endif /* __ASM__ */
 
 #endif

@@ -34,31 +34,33 @@
  */
 
 #include <arch/trap/exception.h>
+#include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <debug.h>
+#include <typedefs.h>
 
 /** Handle instruction_access_exception. */
-void do_instruction_access_exc(void)
+void do_instruction_access_exc(int n, istate_t *istate)
 {
-	panic("Instruction Access Exception\n");
+	panic("Instruction Access Exception at %p.\n", istate->tpc);
 }
 
 /** Handle mem_address_not_aligned. */
-void do_mem_address_not_aligned(void)
+void do_mem_address_not_aligned(int n, istate_t *istate)
 {
-	panic("Memory Address Not Aligned\n");
+	panic("Memory Address Not Aligned from %p.\n", istate->tpc);
 }
 
 /** Handle data_access_error. */
-void do_data_access_error(void)
+void do_data_access_error(int n, istate_t *istate)
 {
-	panic("Data Access Error: %p\n", tpc_read());
+	panic("Data Access Error from %p.\n", istate->tpc);
 }
 
 /** Handle mem_address_not_aligned. */
-void do_illegal_instruction(void)
+void do_illegal_instruction(int n, istate_t *istate)
 {
-	panic("Illegal Instruction: %p\n", tpc_read());
+	panic("Illegal Instruction at %p.\n", istate->tpc);
 }
 
 /** @}

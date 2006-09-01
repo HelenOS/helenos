@@ -36,6 +36,7 @@
 #include <arch/trap/interrupt.h>
 #include <interrupt.h>
 #include <arch/drivers/fhc.h>
+#include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
 #include <ipc/sysipc.h>
@@ -64,7 +65,7 @@ void irq_ipc_bind_arch(unative_t irq)
 	/* TODO */
 }
 
-void interrupt(void)
+void interrupt(int n, istate_t *istate)
 {
 	uint64_t intrcv;
 	uint64_t data0;

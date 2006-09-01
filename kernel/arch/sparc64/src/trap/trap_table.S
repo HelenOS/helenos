@@ -59,13 +59,13 @@ trap_table:
 .org trap_table + TT_INSTRUCTION_ACCESS_EXCEPTION*ENTRY_SIZE
 .global instruction_access_exception
 instruction_access_exception:
-	SIMPLE_HANDLER do_instruction_access_exc
+	PREEMPTIBLE_HANDLER do_instruction_access_exc
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
 .global illegal_instruction
 illegal_instruction:
-	SIMPLE_HANDLER do_illegal_instruction
+	PREEMPTIBLE_HANDLER do_illegal_instruction
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
@@ -77,13 +77,13 @@ clean_window_handler:
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
 .global data_access_error
 data_access_error:
-	SIMPLE_HANDLER do_data_access_error
+	PREEMPTIBLE_HANDLER do_data_access_error
 
 /* TT = 0x34, TL = 0, mem_address_not_aligned */
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global mem_address_not_aligned
 mem_address_not_aligned:
-	SIMPLE_HANDLER do_mem_address_not_aligned
+	PREEMPTIBLE_HANDLER do_mem_address_not_aligned
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
@@ -237,13 +237,13 @@ fill_1_normal:
 .org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
 .global instruction_access_exception_high
 instruction_access_exception_high:
-	SIMPLE_HANDLER do_instruction_access_exc
+	PREEMPTIBLE_HANDLER do_instruction_access_exc
 
 /* TT = 0x10, TL > 0, illegal_instruction */
 .org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
 .global illegal_instruction_high
 illegal_instruction_high:
-	SIMPLE_HANDLER do_illegal_instruction
+	PREEMPTIBLE_HANDLER do_illegal_instruction
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
@@ -255,13 +255,13 @@ clean_window_handler_high:
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
 .global data_access_error_high
 data_access_error_high:
-	SIMPLE_HANDLER do_data_access_error
+	PREEMPTIBLE_HANDLER do_data_access_error
 
 /* TT = 0x34, TL > 0, mem_address_not_aligned */
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
 .global mem_address_not_aligned_high
 mem_address_not_aligned_high:
-	SIMPLE_HANDLER do_mem_address_not_aligned
+	PREEMPTIBLE_HANDLER do_mem_address_not_aligned
 
 /* TT = 0x64, TL > 0, fast_instruction_access_MMU_miss */
 .org trap_table + (TT_FAST_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
