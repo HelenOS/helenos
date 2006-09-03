@@ -136,7 +136,7 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	data.l = false;
 	data.cp = t->c;
 	data.cv = t->c;
-	data.p = t->p;
+	data.p = t->k;		/* p like privileged */
 	data.w = ro ? false : t->w;
 	data.g = t->g;
 	
@@ -166,7 +166,7 @@ void itlb_pte_copy(pte_t *t)
 	data.l = false;
 	data.cp = t->c;
 	data.cv = t->c;
-	data.p = t->p;
+	data.p = t->k;		/* p like privileged */
 	data.w = false;
 	data.g = t->g;
 	

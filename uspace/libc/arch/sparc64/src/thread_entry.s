@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006 Martin Decky
+# Copyright (C) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,5 +34,10 @@
 #
 #
 __thread_entry:
-
+	sethi %hi(_gp), %l7	
+	call __thread_main		! %o0 contains address of uarg
+	or %l7, %lo(_gp), %l7
+	
+	! not reached
+	
 .end __thread_entry

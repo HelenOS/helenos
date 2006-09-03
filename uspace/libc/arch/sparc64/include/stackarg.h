@@ -32,11 +32,10 @@
 /** @file
  */
 
-#ifndef __LIBC__STACKARG_H__
-#define __LIBC__STACKARG_H__
+#ifndef LIBC_sparc64_STACKARG_H_
+#define LIBC_sparc64_STACKARG_H_
 
 #endif
-
 
 /** @}
  */

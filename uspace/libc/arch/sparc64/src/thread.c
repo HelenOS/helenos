@@ -26,10 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64 sparc64
+ * @ingroup lc
  * @{
  */
 /** @file
+ *
  */
 
 #include <thread.h>
@@ -39,20 +41,23 @@
  *
  * @param data Start of data section
  * @return pointer to tcb_t structure
- *
  */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *result;
+	tcb_t *tcb;
+	
+	*data = malloc(sizeof(tcb_t) + size);
 
-	result = malloc(sizeof(tcb_t) + size);
-	*data = ((void *)result) + sizeof(tcb_t);
-	return result;
+	tcb = (tcb_t *) (*data + size);
+	tcb->self = tcb;
+
+	return tcb;
 }
 
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	free(tcb);
+	void *start = ((void *)tcb) - size;
+	free(start);
 }
 
 /** @}

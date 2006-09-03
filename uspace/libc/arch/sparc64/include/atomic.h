@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef __sparc64_ATOMIC_H__
-#define __sparc64_ATOMIC_H__
+#ifndef LIBC_sparc64_ATOMIC_H_
+#define LIBC_sparc64_ATOMIC_H_
 
-static inline void atomic_inc(atomic_t *val)
-{
-}
+#include <types.h>
 
-static inline void atomic_dec(atomic_t *val)
+/** Atomic add operation.
+ *
+ * Use atomic compare and swap operation to atomically add signed value.
+ *
+ * @param val Atomic variable.
+ * @param i Signed value to be added.
+ *
+ * @return Value of the atomic variable as it existed before addition.
+ */
+static inline long atomic_add(atomic_t *val, int i)
 {
-}
+	uint64_t a, b;
+	volatile uint64_t x = (uint64_t) &val->count;
 
-static inline long atomic_postinc(atomic_t *val)
-{
-	atomic_inc(val);
-	return val->count - 1;
-}
+	__asm__ volatile (
+		"0:\n"
+		"ldx %0, %1\n"
+		"add %1, %3, %2\n"
+		"casx %0, %1, %2\n"
+		"cmp %1, %2\n"
+		"bne 0b\n"		/* The operation failed and must be attempted again if a != b. */
+		"nop\n"
+		: "=m" (*((uint64_t *)x)), "=r" (a), "=r" (b)
+		: "r" (i)
+	);
 
-static inline long atomic_postdec(atomic_t *val)
-{
-	atomic_dec(val);
-	return val->count + 1;
+	return a;
 }
 
 static inline long atomic_preinc(atomic_t *val)
 {
-	atomic_inc(val);
-	return val->count;
+	return atomic_add(val, 1) + 1;
+}
+
+static inline long atomic_postinc(atomic_t *val)
+{
+	return atomic_add(val, 1);
 }
 
 static inline long atomic_predec(atomic_t *val)
 {
-	atomic_dec(val);
-	return val->count;
+	return atomic_add(val, -1) - 1;
+}
+
+static inline long atomic_postdec(atomic_t *val)
+{
+	return atomic_add(val, -1);
+}
+
+static inline void atomic_inc(atomic_t *val)
+{
+	(void) atomic_add(val, 1);
+}
+
+static inline void atomic_dec(atomic_t *val)
+{
+	(void) atomic_add(val, -1);
 }
 
 #endif

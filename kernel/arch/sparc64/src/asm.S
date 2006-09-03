@@ -150,12 +150,15 @@ read_from_ag_g7:
  *
  * %o0	Userspace entry address.
  * %o1	Userspace stack pointer address.
+ * %o2  Userspace address of uarg structure.
  */
 .global switch_to_userspace
 switch_to_userspace:
 	flushw
 	wrpr %g0, 0, %cleanwin		! avoid information leak
 	save %o1, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+
+	mov %i3, %o0			! uarg
 
 	clr %i2
 	clr %i3
@@ -178,5 +181,10 @@ switch_to_userspace:
 	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
 	flush %i7
+
+	/*
+	 * Spills and fills will be handled by the userspace handlers.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
 	
 	done				! jump to userspace

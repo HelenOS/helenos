@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +27,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	sparc64 TLS functions.
+ *
+ * The implementation is based on the IA-32 implementation which was also
+ * designed by Sun and is virtually the same, except the TCB is stored in
+ * %g7 (of the normal set).
  */
 
-#ifndef __LIBC__sparc64__THREAD_H__
-#define __LIBC__sparc64__THREAD_H__
-
-#define PPC_TP_OFFSET 0x7000
+#ifndef LIBC_sparc64_THREAD_H_
+#define LIBC_sparc64_THREAD_H_
 
 typedef struct {
+	void *self;
 	void *pst_data;
 } tcb_t;
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	void *tp = tcb;
-	tp += PPC_TP_OFFSET + sizeof(tcb_t);
+	__asm__ volatile ("mov %0, %%g7\n" : : "r" (tcb) : "g7");
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline tcb_t * __tcb_get(void)
 {
-	return (tcb_t *)(PPC_TP_OFFSET - sizeof(tcb_t));
+	void *retval;
+
+	__asm__ volatile ("mov %%g7, %0\n" : "=r" (retval));
+
+	return retval;
 }
 
 #endif

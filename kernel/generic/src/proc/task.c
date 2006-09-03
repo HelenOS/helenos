@@ -220,7 +220,7 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create the main thread.
 	 */
-	t1 = thread_create(uinit, kernel_uarg, task, 0, "uinit");
+	t1 = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE, "uinit");
 	ASSERT(t1);
 	
 	/*

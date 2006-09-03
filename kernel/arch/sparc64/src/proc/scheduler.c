@@ -126,8 +126,6 @@ void after_thread_ran_arch(void)
 		 */
 		ASSERT(THREAD->arch.uspace_window_buffer);
 		
-		flushw();	/* force all userspace windows into memory */
-		
 		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t) THREAD->arch.uspace_window_buffer, PAGE_SIZE);
 		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
 			/*

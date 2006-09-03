@@ -127,17 +127,16 @@
  */
 .macro HANDLE_MMU_TRAPS_FROM_SPILL_OR_FILL
 	rdpr %tl, %g1
-	dec %g1
-	brz %g1, 0f			! if TL was 1, skip
+	sub %g1, 1, %g2
+	brz %g2, 0f			! if TL was 1, skip
 	nop
-	wrpr %g1, 0, %tl		! TL--
-	rdpr %tt, %g2
-	cmp %g2, TT_SPILL_1_NORMAL
-	be 0f				! trap from spill_1_normal
-	cmp %g2, TT_FILL_1_NORMAL
-	be 0f				! trap from fill_1_normal
-	inc %g1
-	wrpr %g1, 0, %tl		! another trap, TL++
+	wrpr %g2, 0, %tl		! TL--
+	rdpr %tt, %g3
+	cmp %g3, TT_SPILL_1_NORMAL
+	be 0f				! trap from spill_1_normal?
+	cmp %g3, TT_FILL_1_NORMAL
+	bne,a 0f			! trap from fill_1_normal? (negated condition)
+	wrpr %g1, 0, %tl		! TL++
 0:
 .endm
 

@@ -42,7 +42,7 @@
 #define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
 #define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
 
-#define USTACK_ADDRESS_ARCH	(0x7fffffffffffffff-(PAGE_SIZE-1))
+#define USTACK_ADDRESS_ARCH	(0xffffffffffffffffULL-(PAGE_SIZE-1))
 
 extern void as_arch_init(void);
 

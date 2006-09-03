@@ -218,6 +218,12 @@ spill_1_normal:
 spill_2_normal:
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
+/* TT = 0xa0, TL = 0, spill_0_other handler */
+.org trap_table + TT_SPILL_0_OTHER*ENTRY_SIZE
+.global spill_0_other
+spill_0_other:
+	SPILL_TO_USPACE_WINDOW_BUFFER
+
 /* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
 .global fill_0_normal
@@ -547,12 +553,12 @@ fill_0_normal_high:
 .endif
 
 	/*
-	 * Mark the CANSAVE windows as OTHER windows.
+	 * Mark the CANRESTORE windows as OTHER windows.
 	 * Set CLEANWIN to NWINDOW-1 so that clean_window traps do not occur.
 	 */
-	rdpr %cansave, %l0
+	rdpr %canrestore, %l0
 	wrpr %l0, %otherwin
-	wrpr %g0, %cansave
+	wrpr %g0, %canrestore
 	wrpr %g0, NWINDOW - 1, %cleanwin
 
 	/*
@@ -641,8 +647,10 @@ fill_0_normal_high:
 
 	/*
 	 * If OTHERWIN is zero, then all the userspace windows have been
-	 * spilled to kernel memory (i.e. register window buffer). If
-	 * OTHERWIN is non-zero, then some userspace windows are still
+	 * spilled to kernel memory (i.e. register window buffer). Moreover,
+	 * if the scheduler was called in the meantime, all valid windows
+	 * belonging to other threads were spilled by context_restore().
+	 * If OTHERWIN is non-zero, then some userspace windows are still
 	 * valid. Others might have been spilled. However, the CWP pointer
 	 * needs no fixing because the scheduler had not been called.
 	 */
@@ -659,7 +667,7 @@ fill_0_normal_high:
 	 */
 	and %g1, TSTATE_CWP_MASK, %l0
 	inc %l0
-	and %l0, TSTATE_CWP_MASK, %l0	! %l0 mod NWINDOW
+	and %l0, NWINDOW - 1, %l0	! %l0 mod NWINDOW
 	rdpr %cwp, %l1
 	cmp %l0, %l1
 	bz 0f				! CWP is ok
@@ -667,13 +675,12 @@ fill_0_normal_high:
 
 	/*
 	 * Fix CWP.
-	 * Just for reminder, the input registers in the current window
-	 * are the output registers of the window to which we want to
-	 * restore. Because the fill trap fills only input and local
+	 * In order to recapitulate, the input registers in the current
+	 * window are the output registers of the window to which we want
+	 * to restore. Because the fill trap fills only input and local
 	 * registers of a window, we need to preserve those output
 	 * registers manually.
 	 */
-	flushw
 	mov %sp, %g2
 	stx %i0, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0]
 	stx %i1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1]
@@ -738,7 +745,8 @@ fill_0_normal_high:
 	 * Fill all windows stored in the buffer.
 	 */
 	clr %g4
-0:	andcc %g7, PAGE_WIDTH - 1, %g0		! PAGE_SIZE alignment check
+	set PAGE_SIZE - 1, %g5
+0:	andcc %g7, %g5, %g0			! PAGE_SIZE alignment check
 	bz 0f					! %g7 is page-aligned, no more windows to refill
 	nop
 

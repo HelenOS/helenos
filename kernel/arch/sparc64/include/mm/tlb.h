@@ -179,7 +179,7 @@ static inline uint64_t mmu_secondary_context_read(void)
  */
 static inline void mmu_secondary_context_write(uint64_t v)
 {
-	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
+	asi_u64_write(ASI_DMMU, VA_SECONDARY_CONTEXT_REG, v);
 	flush();
 }
 

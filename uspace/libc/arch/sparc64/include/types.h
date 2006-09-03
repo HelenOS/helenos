@@ -35,12 +35,12 @@
 #ifndef LIBC_sparc64_TYPES_H_
 #define LIBC_sparc64_TYPES_H_
 
-typedef unsigned int sysarg_t;
-typedef unsigned int size_t;
-typedef signed int ssize_t;
+typedef unsigned long sysarg_t;
+typedef unsigned long size_t;
+typedef signed long ssize_t;
 typedef ssize_t off_t;
 
-typedef char int8_t;
+typedef signed char int8_t;
 typedef short int int16_t;
 typedef int int32_t;
 typedef long int int64_t;

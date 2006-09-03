@@ -27,7 +27,6 @@
 #
 
 #include <arch/context_offset.h>
-#include <arch/stack.h>
 
 /**
  * Both context_save_arch() and context_restore_arch() are

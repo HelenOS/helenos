@@ -208,6 +208,9 @@ kernel_image_start:
 	
 	! set TL back to 0
 	wrpr %g0, 0, %tl
+
+	call arch_pre_main
+	nop
 	
 	call main_bsp
 	nop

@@ -48,6 +48,19 @@
 
 bootinfo_t bootinfo;
 
+void arch_pre_main(void)
+{
+	/* Setup usermode */
+	init.cnt = bootinfo.taskmap.count;
+	
+	uint32_t i;
+
+	for (i = 0; i < bootinfo.taskmap.count; i++) {
+		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
+		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+	}
+}
+
 void arch_pre_mm_init(void)
 {
 	trap_init();
@@ -98,7 +111,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
 		((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
-		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS));
+		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
+		(uintptr_t) kernel_uarg->uspace_uarg);
 
 	for (;;)
 		;

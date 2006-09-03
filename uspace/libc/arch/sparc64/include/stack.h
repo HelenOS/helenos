@@ -32,50 +32,23 @@
 /** @file
  */
 
-#ifndef LIBC_sparc64_PSTHREAD_H_
-#define LIBC_sparc64_PSTHREAD_H_
+#ifndef LIBC_sparc64_STACK_H_
+#define LIBC_sparc64_STACK_H_
 
-#include <libarch/stack.h>
-#include <types.h>
-#include <align.h>
+#define STACK_ITEM_SIZE			8
 
-#define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE
+/** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
+#define STACK_ALIGNMENT			16
 
-#ifdef context_set
-#undef context_set
-#endif
-
-#define context_set(c, _pc, stack, size, ptls)								\
-	(c)->pc = ((uintptr_t) _pc) - 8;								\
-	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
-	(c)->fp = -STACK_BIAS;										\
-	(c)->tp = ptls
-	
-/*
- * Only save registers that must be preserved across
- * function calls.
+/**
+ * 16-extended-word save area for %i[0-7] and %l[0-7] registers.
  */
-typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
-	uintptr_t fp;		/* %i6 */
-	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	uint64_t tp;		/* %g7 */
-} context_t;
+#define STACK_WINDOW_SAVE_AREA_SIZE	(16*STACK_ITEM_SIZE)
+
+/**
+ * By convention, the actual top of the stack is %sp + STACK_BIAS.
+ */
+#define STACK_BIAS            2047
 
 #endif
 

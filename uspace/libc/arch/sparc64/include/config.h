@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libsparc64
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef LIBC_sparc64_CONFIG_H_
 #define LIBC_sparc64_CONFIG_H_
 
-#define PAGE_WIDTH	12
+#define PAGE_WIDTH	13
 #define PAGE_SIZE	(1<<PAGE_WIDTH)
 
 #endif
