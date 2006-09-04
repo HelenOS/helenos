@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_MMAP_H_
-#define LIBC_MMAP_H_
+#ifndef LIBC_MMAN_H_
+#define LIBC_MMAN_H_
 
 #include <as.h>
 

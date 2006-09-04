@@ -36,7 +36,7 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <stdio.h>
-#include <sys/mmap.h>
+#include <sys/mman.h>
 #include <string.h>
 #include <align.h>
 

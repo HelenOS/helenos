@@ -565,7 +565,7 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #endif /* USE_BUILTIN_FFS */
 #if HAVE_MMAP
 #ifndef LACKS_SYS_MMAN_H
-#include <sys/mmap.h>    /* for mmap */
+#include <sys/mman.h>    /* for mmap */
 #endif /* LACKS_SYS_MMAN_H */
 #ifndef LACKS_FCNTL_H
 #include <fcntl.h>

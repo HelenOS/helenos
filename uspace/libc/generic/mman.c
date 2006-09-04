@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <sys/mmap.h>
+#include <sys/mman.h>
 #include <as.h>
 #include <unistd.h>
 
