@@ -121,6 +121,11 @@
 	PREEMPTIBLE_HANDLER fast_data_access_protection
 .endm
 
+.macro MEM_ADDRESS_NOT_ALIGNED_HANDLER
+	ba mem_address_not_aligned_handler
+	nop
+.endm
+
 /*
  * Macro used to lower TL when a MMU trap is caused by
  * the userspace register window spill or fill handler.

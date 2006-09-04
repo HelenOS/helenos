@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /** @file
  */
 
-#ifndef __HASH_TABLE_H__
-#define __HASH_TABLE_H__
+#ifndef KERN_HASH_TABLE_H_
+#define KERN_HASH_TABLE_H_
 
 #include <adt/list.h>
 #include <arch/types.h>
@@ -81,6 +81,5 @@ extern void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys);
 
 #endif
 
- /** @}
+/** @}
  */
-

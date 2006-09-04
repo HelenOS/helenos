@@ -52,9 +52,9 @@
 
 static void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *t);
-static void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str);
-static void do_fast_data_access_protection_fault(istate_t *istate, const char *str);
+static void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str);
+static void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str);
 
 char *context_encoding[] = {
 	"Primary",
@@ -213,13 +213,14 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 	pte_t *t;
 
 	tag.value = dtlb_tag_access_read();
-	va = tag.vpn * PAGE_SIZE;
+	va = tag.vpn << PAGE_WIDTH;
+
 	if (tag.context == ASID_KERNEL) {
 		if (!tag.vpn) {
 			/* NULL access in kernel */
-			do_fast_data_access_mmu_miss_fault(istate, __FUNCTION__);
+			do_fast_data_access_mmu_miss_fault(istate, tag, __FUNCTION__);
 		}
-		do_fast_data_access_mmu_miss_fault(istate, "Unexpected kernel page fault.");
+		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected kernel page fault.");
 	}
 
 	page_table_lock(AS, true);
@@ -238,7 +239,7 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 		 */		
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			do_fast_data_access_mmu_miss_fault(istate, __FUNCTION__);
+			do_fast_data_access_mmu_miss_fault(istate, tag, __FUNCTION__);
 		}
 	}
 }
@@ -251,7 +252,7 @@ void fast_data_access_protection(int n, istate_t *istate)
 	pte_t *t;
 
 	tag.value = dtlb_tag_access_read();
-	va = tag.vpn * PAGE_SIZE;
+	va = tag.vpn << PAGE_WIDTH;
 
 	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va);
@@ -271,7 +272,7 @@ void fast_data_access_protection(int n, istate_t *istate)
 		 */		
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-			do_fast_data_access_protection_fault(istate, __FUNCTION__);
+			do_fast_data_access_protection_fault(istate, tag, __FUNCTION__);
 		}
 	}
 }
@@ -311,28 +312,24 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str
 	panic("%s\n", str);
 }
 
-void do_fast_data_access_mmu_miss_fault(istate_t *istate, const char *str)
+void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
 {
-	tlb_tag_access_reg_t tag;
 	uintptr_t va;
 	char *tpc_str = get_symtab_entry(istate->tpc);
 
-	tag.value = dtlb_tag_access_read();
-	va = tag.vpn * PAGE_SIZE;
+	va = tag.vpn << PAGE_WIDTH;
 
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
 	panic("%s\n", str);
 }
 
-void do_fast_data_access_protection_fault(istate_t *istate, const char *str)
+void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
 {
-	tlb_tag_access_reg_t tag;
 	uintptr_t va;
 	char *tpc_str = get_symtab_entry(istate->tpc);
 
-	tag.value = dtlb_tag_access_read();
-	va = tag.vpn * PAGE_SIZE;
+	va = tag.vpn << PAGE_WIDTH;
 
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
@@ -374,16 +371,21 @@ void tlb_invalidate_all(void)
  */
 void tlb_invalidate_asid(asid_t asid)
 {
-	tlb_context_reg_t sc_save, ctx;
+	tlb_context_reg_t pc_save, ctx;
 	
-	ctx.v = sc_save.v = mmu_secondary_context_read();
+	/* switch to nucleus because we are mapped by the primary context */
+	nucleus_enter();
+	
+	ctx.v = pc_save.v = mmu_primary_context_read();
 	ctx.context = asid;
-	mmu_secondary_context_write(ctx.v);
+	mmu_primary_context_write(ctx.v);
 	
-	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_SECONDARY, 0);
-	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_SECONDARY, 0);
+	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
+	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
 	
-	mmu_secondary_context_write(sc_save.v);
+	mmu_primary_context_write(pc_save.v);
+	
+	nucleus_leave();
 }
 
 /** Invalidate all ITLB and DTLB entries for specified page range in specified address space.
@@ -395,18 +397,23 @@ void tlb_invalidate_asid(asid_t asid)
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
 	int i;
-	tlb_context_reg_t sc_save, ctx;
+	tlb_context_reg_t pc_save, ctx;
 	
-	ctx.v = sc_save.v = mmu_secondary_context_read();
+	/* switch to nucleus because we are mapped by the primary context */
+	nucleus_enter();
+	
+	ctx.v = pc_save.v = mmu_primary_context_read();
 	ctx.context = asid;
-	mmu_secondary_context_write(ctx.v);
+	mmu_primary_context_write(ctx.v);
 	
 	for (i = 0; i < cnt; i++) {
-		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, page + i * PAGE_SIZE);
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, page + i * PAGE_SIZE);
+		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i * PAGE_SIZE);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i * PAGE_SIZE);
 	}
 	
-	mmu_secondary_context_write(sc_save.v);
+	mmu_primary_context_write(pc_save.v);
+	
+	nucleus_leave();
 }
 
 /** @}

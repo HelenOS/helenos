@@ -27,7 +27,8 @@
 #
 
 /**
- * This file contains kernel trap table.
+ * @file
+ * @brief This file contains kernel trap table.
  */
 
 .register %g2, #scratch
@@ -84,7 +85,7 @@ data_access_error:
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global mem_address_not_aligned
 mem_address_not_aligned:
-	PREEMPTIBLE_HANDLER do_mem_address_not_aligned
+	MEM_ADDRESS_NOT_ALIGNED_HANDLER
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
@@ -460,7 +461,7 @@ data_access_error_high:
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
 .global mem_address_not_aligned_high
 mem_address_not_aligned_high:
-	PREEMPTIBLE_HANDLER do_mem_address_not_aligned
+	MEM_ADDRESS_NOT_ALIGNED_HANDLER
 
 /* TT = 0x64, TL > 0, fast_instruction_access_MMU_miss */
 .org trap_table + (TT_FAST_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
@@ -524,6 +525,17 @@ fill_0_normal_high:
  *	%g7		Pre-set as address of the userspace window buffer.
  */
 .macro PREEMPTIBLE_HANDLER_TEMPLATE is_syscall
+	/*
+	 * ASSERT(%tl == 1)
+	 */
+	rdpr %tl, %g3
+	cmp %g3, 1
+	be 1f
+	nop
+0:	ba 0b					! this for debugging, if we ever get here
+	nop					! it will be easy to find
+
+1:
 .if NOT(\is_syscall)
 	rdpr %tstate, %g3
 	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
@@ -534,6 +546,8 @@ fill_0_normal_high:
 	 * Normal window spills will go to the userspace window buffer.
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(2), %wstate
+
+	wrpr %g0, NWINDOW - 1, %cleanwin	! prevent unnecessary clean_window exceptions
 
 	/*
 	 * Switch to kernel stack. The old stack is
@@ -554,12 +568,10 @@ fill_0_normal_high:
 
 	/*
 	 * Mark the CANRESTORE windows as OTHER windows.
-	 * Set CLEANWIN to NWINDOW-1 so that clean_window traps do not occur.
 	 */
 	rdpr %canrestore, %l0
 	wrpr %l0, %otherwin
 	wrpr %g0, %canrestore
-	wrpr %g0, NWINDOW - 1, %cleanwin
 
 	/*
 	 * Switch to primary context 0.
@@ -726,7 +738,8 @@ fill_0_normal_high:
 	wr %g0, ASI_DMMU, %asi
 	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
-	flush %o7
+	rd %pc, %g1
+	flush %g1
 	
 	rdpr %cwp, %g1
 	rdpr %otherwin, %g2

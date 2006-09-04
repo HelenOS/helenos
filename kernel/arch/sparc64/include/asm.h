@@ -321,6 +321,18 @@ static inline void flushw(void)
 	__asm__ volatile ("flushw\n");
 }
 
+/** Switch to nucleus by setting TL to 1. */
+static inline void nucleus_enter(void)
+{
+	__asm__ volatile ("wrpr %g0, 1, %tl\n");
+}
+
+/** Switch from nucleus by setting TL to 0. */
+static inline void nucleus_leave(void)
+{
+	__asm__ volatile ("wrpr %g0, %g0, %tl\n");
+}
+
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
 extern void asm_delay_loop(uint32_t t);
