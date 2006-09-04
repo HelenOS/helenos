@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __LIBC__LIBC_H__
-#define __LIBC__LIBC_H__
+#ifndef LIBC_LIBC_H_
+#define LIBC_LIBC_H_
 
 #include <types.h>
 #include <kernel/syscall/syscall.h>

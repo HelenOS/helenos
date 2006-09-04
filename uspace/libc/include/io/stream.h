@@ -26,21 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __libc_STREAM_H_
-#define __libc_STREAM_H_
+#ifndef LIBC_STREAM_H_
+#define LIBC_STREAM_H_
 
 #include <libarch/types.h>
 
 #define EMFILE -17
 
 typedef int fd_t;
-
 
 typedef ssize_t (*pwritefn_t)(void *, const void *, size_t);
 typedef ssize_t (*preadfn_t)(void *, void *, size_t);
@@ -50,8 +49,5 @@ int get_fd_phone(int fd);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

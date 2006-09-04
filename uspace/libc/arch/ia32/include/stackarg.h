@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia32
+/** @addtogroup libcia32
  * @{
  */
 /** @file
  */
-
 
 /*
  * Variable argument list manipulation macros
  * for architectures using stack to pass arguments.
  */
  
-#ifndef __LIBC_STACKARG_H__
-#define __LIBC_STACKARG_H__
+#ifndef LIBC_ia32_STACKARG_H_
+#define LIBC_ia32_STACKARG_H_
 
 #include <types.h>
 
@@ -63,8 +62,5 @@ typedef struct va_list {
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

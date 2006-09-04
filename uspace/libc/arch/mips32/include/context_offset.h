@@ -26,6 +26,3 @@
 #define OFFSET_F29     0x58
 #define OFFSET_F30     0x5c
 
- /** @}
- */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32	
+/** @addtogroup libcppc32	
  * @{
  */
 /** @file
@@ -55,6 +55,5 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	free(tcb);
 }
 
- /** @}
+/** @}
  */
-

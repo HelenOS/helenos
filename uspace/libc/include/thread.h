@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__THREAD_H__
-#define __LIBC__THREAD_H__
+#ifndef LIBC_THREAD_H_
+#define LIBC_THREAD_H_
 
 #include <kernel/proc/uarg.h>
 #include <libarch/thread.h>
@@ -51,8 +51,5 @@ extern void __free_tls_arch(tcb_t *, size_t size);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

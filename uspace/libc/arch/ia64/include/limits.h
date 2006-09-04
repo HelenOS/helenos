@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64__LIMITS_H__
-#define __ia64__LIMITS_H__
+#ifndef LIBC_ia64_LIMITS_H_
+#define LIBC_ia64_LIMITS_H_
 
 # define LONG_MIN MIN_INT64
 # define LONG_MAX MAX_INT64
@@ -42,9 +42,5 @@
 
 #endif
 
-
-
-
- /** @}
+/** @}
  */
-

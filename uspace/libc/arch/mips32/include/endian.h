@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32 mips32
+/** @addtogroup libcmips32 mips32
   * @brief mips32 architecture dependent parts of libc
   * @ingroup lc
  * @{
@@ -34,10 +34,10 @@
 /** @file
  */
 
-#ifndef __mips32_ENDIAN_H__
-#define __mips32_ENDIAN_H__
+#ifndef LIBC_mips32_ENDIAN_H_
+#define LIBC_mips32_ENDIAN_H_
 
-#ifndef __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 
@@ -45,7 +45,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
-

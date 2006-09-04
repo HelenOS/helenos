@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -85,8 +85,5 @@ void list_concat(link_t *head1, link_t *head2)
 	list_initialize(head2);
 }
 
-
- /** @}
+/** @}
  */
- 
- 

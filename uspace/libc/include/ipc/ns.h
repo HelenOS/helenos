@@ -26,19 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcipc
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBIPC__NS_H__
-#define __LIBIPC__NS_H__
+#ifndef LIBIPC_NS_H_
+#define LIBIPC_NS_H_
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

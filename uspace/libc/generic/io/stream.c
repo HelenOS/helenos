@@ -33,7 +33,6 @@
 /** @file
  */
 
-
 #include <io/io.h>
 #include <io/stream.h>
 #include <string.h>
@@ -88,7 +87,6 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 	return count;
 }
 
-
 static stream_t open_stdin(void)
 {
 	stream_t stream;
@@ -129,7 +127,6 @@ static ssize_t write_null(void *param, const void *buf, size_t count)
 {
 	return count;
 }
-
 
 fd_t open(const char *fname, int flags)
 {
@@ -189,7 +186,6 @@ int get_fd_phone(int fd)
 		return -1;
 	return streams[fd].phone;
 }
-
 
 /** @}
  */

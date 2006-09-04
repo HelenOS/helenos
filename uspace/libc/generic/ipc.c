@@ -31,7 +31,7 @@
  * @}
  */
 
- /** @addtogroup libcipc IPC
+/** @addtogroup libcipc IPC
  * @brief HelenOS uspace IPC
  * @{
  * @ingroup libc
@@ -464,9 +464,5 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
-
-
- /** @}
+/** @}
  */
- 
- 

@@ -71,6 +71,5 @@ int cap_revoke(task_id_t id, unsigned int caps)
 	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
 }
 
-
 /** @}
  */

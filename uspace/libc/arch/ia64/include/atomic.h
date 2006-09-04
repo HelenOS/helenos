@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_ATOMIC_H__
-#define __ia64_ATOMIC_H__
+#ifndef LIBC_ia64_ATOMIC_H_
+#define LIBC_ia64_ATOMIC_H_
 
 /** Atomic addition.
  *
@@ -62,6 +62,5 @@ static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif
 
- /** @}
+/** @}
  */
-

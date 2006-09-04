@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -54,8 +54,5 @@ int sprintf(char *str, const char *fmt, ...)
 	return ret;
 }
 
-
- /** @}
+/** @}
  */
- 
- 

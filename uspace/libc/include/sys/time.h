@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */ 
 
-#ifndef __libc_sys_TIME_H__
-#define __libc_sys_TIME_H__
+#ifndef LIBC_TIME_H_
+#define LIBC_TIME_H_
 
 #include <types.h>
 
@@ -56,8 +56,5 @@ int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

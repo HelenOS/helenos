@@ -42,6 +42,5 @@ void errx(int __status, __const char *__format, ...)
 }
 */
 
-
 /** @}
  */

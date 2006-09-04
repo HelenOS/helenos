@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcamd64
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_ENDIAN_H__
-#define __amd64_ENDIAN_H__
+#ifndef LIBC_amd64_ENDIAN_H_
+#define LIBC_amd64_ENDIAN_H_
 
-#ifndef __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 
@@ -43,9 +43,7 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
  
  

@@ -305,6 +305,5 @@ void psthread_dec_sercount(void)
 	serialization_count--;
 }
 
-
 /** @}
  */

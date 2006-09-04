@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32	
+/** @addtogroup libcppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ppc32__THREAD_H__
-#define __LIBC__ppc32__THREAD_H__
+#ifndef LIBC_ppc32_THREAD_H_
+#define LIBC_ppc32_THREAD_H_
 
 #define PPC_TP_OFFSET 0x7000
 
@@ -67,6 +67,5 @@ static inline tcb_t * __tcb_get(void)
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcipc
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */ 
 
-#ifndef __LIBIPC_IPC_H__
-#define __LIBIPC_IPC_H__
+#ifndef LIBIPC_IPC_H_
+#define LIBIPC_IPC_H_
 
 #include <kernel/ipc/ipc.h>
 #include <kernel/ipc/irq.h>
@@ -89,8 +89,5 @@ extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

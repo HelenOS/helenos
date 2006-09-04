@@ -27,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ASSERT_H__
-#define __LIBC__ASSERT_H__
+#ifndef LIBC_ASSERT_H_
+#define LIBC_ASSERT_H_
 
 /** Debugging assert macro
  *
@@ -55,8 +55,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

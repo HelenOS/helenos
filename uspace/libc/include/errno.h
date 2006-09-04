@@ -26,23 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ERRNO_H__
-#define __LIBC__ERRNO_H__
+#ifndef LIBC_ERRNO_H_
+#define LIBC_ERRNO_H_
 
 #include <kernel/errno.h>
 
-
-
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

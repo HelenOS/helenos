@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__FUTEX_H__
-#define __LIBC__FUTEX_H__
+#ifndef LIBC_FUTEX_H_
+#define LIBC_FUTEX_H_
 
 #include <atomic.h>
 #include <types.h>
@@ -48,8 +48,5 @@ extern int futex_up(atomic_t *futex);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

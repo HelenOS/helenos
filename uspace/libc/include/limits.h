@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__LIMITS_H__
-#define __LIBC__LIMITS_H__
+#ifndef LIBC_LIMITS_H_
+#define LIBC_LIMITS_H_
 
 #include <stdint.h>
 #include <libarch/limits.h>
@@ -70,9 +70,5 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

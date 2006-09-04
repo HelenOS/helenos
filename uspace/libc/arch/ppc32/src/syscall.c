@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32 ppc32
+/** @addtogroup libcppc32 ppc32
   * @brief ppc32 architecture dependent parts of libc
   * @ingroup lc
  * @{
@@ -57,6 +57,5 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, cons
 	return __ppc32_reg_r3;
 }
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__STDINT_H__
-#define __LIBC__STDINT_H__
+#ifndef LIBC_STDINT_H_
+#define LIBC_STDINT_H_
 
 /* Definitions of types with fixed size*/
 #include <types.h>
@@ -60,9 +60,5 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

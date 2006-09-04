@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__TASK_H__
-#define __LIBC__TASK_H__
+#ifndef LIBC_TASK_H_
+#define LIBC_TASK_H_
 
 #include <types.h>
 
@@ -43,8 +43,5 @@ extern task_id_t task_get_id(void);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

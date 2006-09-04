@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcipc
+/** @addtogroup libcipc
  * @{
  */
 /**
@@ -34,8 +34,8 @@
  * @brief	List of all known services and their codes.
  */
 
-#ifndef __LIBIPC__SERVICES_H__
-#define __LIBIPC__SERVICES_H__
+#ifndef LIBIPC_SERVICES_H_
+#define LIBIPC_SERVICES_H_
 
 #define SERVICE_PCI		1
 #define SERVICE_KEYBOARD	2
@@ -48,8 +48,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /**
@@ -688,9 +688,5 @@ minus_out:
 	return -counter;
 }
 
-
-
- /** @}
+/** @}
  */
- 
- 

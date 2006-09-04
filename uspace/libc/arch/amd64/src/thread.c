@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcamd64 amd64
+/** @addtogroup libcamd64 amd64
  * @ingroup lc
  * @{
  */
@@ -60,8 +60,5 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	free(start);
 }
 
-
- /** @}
+/** @}
  */
- 
- 

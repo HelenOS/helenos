@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32	
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
@@ -56,6 +56,5 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	free(tcb);
 }
 
- /** @}
+/** @}
  */
-

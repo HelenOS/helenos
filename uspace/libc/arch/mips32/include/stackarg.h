@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32	
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
  * @ingroup libcmips32eb	
  */
 
-#ifndef __LIBC_mips32_STACKARG_H__
-#define __LIBC_mips32_STACKARG_H__
+#ifndef LIBC_mips32_STACKARG_H_
+#define LIBC_mips32_STACKARG_H_
 
 /* dont allow to define it second time in stdarg.h */
 #define __VARARGS_DEFINED
@@ -58,6 +58,5 @@ typedef uint8_t* va_list;
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_STACK_H__
-#define __ia64_STACK_H__
+#ifndef LIBC_ia64_STACK_H_
+#define LIBC_ia64_STACK_H_
 
 #define STACK_ITEM_SIZE			8
 #define STACK_ALIGNMENT			16
@@ -42,6 +42,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

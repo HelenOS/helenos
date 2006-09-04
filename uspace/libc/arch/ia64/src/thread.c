@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64 ia64
+/** @addtogroup libcia64 ia64
   * @brief ia64 architecture dependent parts of libc
   * @ingroup lc
  * @{
@@ -61,6 +61,5 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	free(tcb);
 }
 
- /** @}
+/** @}
  */
-

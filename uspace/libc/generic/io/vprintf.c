@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -56,10 +56,5 @@ int vprintf(const char *fmt, va_list ap)
 
 }
 
-
-
-
- /** @}
+/** @}
  */
- 
- 

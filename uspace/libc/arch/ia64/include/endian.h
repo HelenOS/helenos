@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_ENDIAN_H__
-#define __ia64_ENDIAN_H__
+#ifndef LIBC_ia64_ENDIAN_H_
+#define LIBC_ia64_ENDIAN_H_
 
-#ifndef __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 
@@ -43,8 +43,5 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia32
+/** @addtogroup libcia32
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32__LIMITS_H__
-#define __ia32__LIMITS_H__
+#ifndef LIBC_ia32__LIMITS_H_
+#define LIBC_ia32__LIMITS_H_
 
 # define LONG_MIN MIN_INT32
 # define LONG_MAX MAX_INT32
@@ -42,9 +42,5 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

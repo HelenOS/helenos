@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <sys/mman.h>
+#include <sys/mmap.h>
 #include <as.h>
 #include <unistd.h>
 
@@ -53,7 +53,6 @@ int munmap(void *start, size_t length)
 {
 	return as_area_destroy(start);
 }
-
 
 /** @}
  */

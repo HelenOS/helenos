@@ -47,7 +47,7 @@
 #include <async.h>
 #include <libadt/fifo.h>
 #include <screenbuffer.h>
-#include <sys/mman.h>
+#include <sys/mmap.h>
 
 #include "gcons.h"
 

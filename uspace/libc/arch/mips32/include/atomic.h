@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32	
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
  * @ingroup libcmips32eb	
  */
 
-#ifndef __mips32_ATOMIC_H__
-#define __mips32_ATOMIC_H__
+#ifndef LIBC_mips32_ATOMIC_H_
+#define LIBC_mips32_ATOMIC_H_
 
 #define atomic_inc(x)	((void) atomic_add(x, 1))
 #define atomic_dec(x)	((void) atomic_add(x, -1))
@@ -73,6 +73,5 @@ static inline long atomic_add(atomic_t *val, int i)
 
 #endif
 
- /** @}
+/** @}
  */
-

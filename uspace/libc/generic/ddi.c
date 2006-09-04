@@ -87,6 +87,5 @@ int preemption_control(int enable)
 	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
 }
 
-
 /** @}
  */

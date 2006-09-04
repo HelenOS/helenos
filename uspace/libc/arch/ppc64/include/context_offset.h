@@ -22,7 +22,3 @@
 #define OFFSET_R30   0x50
 #define OFFSET_R31   0x54
 #define OFFSET_CR    0x58
-
- /** @}
- */
-

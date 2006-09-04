@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __LIBC__UNISTD_H__
-#define __LIBC__UNISTD_H__
+#ifndef LIBC_UNISTD_H_
+#define LIBC_UNISTD_H_
 
 #include <types.h>
 #include <libarch/config.h>
@@ -51,5 +51,3 @@ void usleep(unsigned long usec);
 
 /** @}
  */
- 
- 

@@ -154,5 +154,3 @@ void thread_exit(int status)
 
 /** @}
  */
- 
- 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -55,8 +55,5 @@ int snprintf(char *str, size_t size, const char *fmt, ...)
 	return ret;
 }
 
-
- /** @}
+/** @}
  */
- 
- 

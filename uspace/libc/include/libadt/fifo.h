@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -42,8 +42,8 @@
  * and use'.
  */
 
-#ifndef __FIFO_H__
-#define __FIFO_H__
+#ifndef LIBC_FIFO_H_
+#define LIBC_FIFO_H_
 
 #include <malloc.h>
 
@@ -123,8 +123,5 @@ typedef unsigned long fifo_index_t;
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

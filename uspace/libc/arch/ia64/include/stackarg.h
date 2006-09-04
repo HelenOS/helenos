@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia64	
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__STACKARG_H__
-#define __LIBC__STACKARG_H__
+#ifndef LIBC_STACKARG_H_
+#define LIBC_STACKARG_H_
 
 #endif
 

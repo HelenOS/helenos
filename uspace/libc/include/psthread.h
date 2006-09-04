@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__PSTHREAD_H__
-#define __LIBC__PSTHREAD_H__
+#ifndef LIBC_PSTHREAD_H_
+#define LIBC_PSTHREAD_H_
 
 #include <libarch/psthread.h>
 #include <libadt/list.h>
@@ -94,8 +94,5 @@ static inline int psthread_schedule_next() {
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

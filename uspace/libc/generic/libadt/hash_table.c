@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -175,8 +175,5 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	}
 }
 
-
- /** @}
+/** @}
  */
- 
- 

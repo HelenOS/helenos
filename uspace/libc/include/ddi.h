@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC_DDI_H__
-#define __LIBC_DDI_H__
+#ifndef LIBC_DDI_H_
+#define LIBC_DDI_H_
 
 #include <task.h>
 
@@ -43,8 +43,5 @@ extern int preemption_control(int enable);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

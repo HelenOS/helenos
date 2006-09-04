@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__IO_H__
-#define __LIBC__IO_H__
+#ifndef LIBC_IO_H_
+#define LIBC_IO_H_
 
 #include <libarch/types.h>
 
@@ -44,8 +44,7 @@ int getchar(void);
 
 #endif
 
-
- /** @}
+/** @}
  */
  
  

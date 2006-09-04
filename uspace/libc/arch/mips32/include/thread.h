@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32	
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
@@ -35,8 +35,8 @@
 
 /* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
 
-#ifndef __LIBC__mips32THREAD_H__
-#define __LIBC__mips32THREAD_H__
+#ifndef LIBC_mips32THREAD_H_
+#define LIBC_mips32THREAD_H_
 
 /* I did not find any specification (neither MIPS nor PowerPC), but
  * as I found it
@@ -75,6 +75,5 @@ static inline tcb_t * __tcb_get(void)
 
 #endif
 
- /** @}
+/** @}
  */
-

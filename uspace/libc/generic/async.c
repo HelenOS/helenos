@@ -807,6 +807,5 @@ void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, !in_interrupt_handler);
 }
 
-
 /** @}
  */

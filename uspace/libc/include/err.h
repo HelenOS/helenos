@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef _libc__ERR_H_
-#define _libc__ERR_H_
+#ifndef LIBC_ERR_H_
+#define LIBC_ERR_H_
 
 #define errx(status, fmt, ...) { \
 	printf((fmt), ##__VA_ARGS__); \
@@ -41,7 +41,6 @@
 }
 
 #endif
-
 
 /** @}
  */

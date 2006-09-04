@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __HASH_TABLE_H__
-#define __HASH_TABLE_H__
+#ifndef LIBC_HASH_TABLE_H_
+#define LIBC_HASH_TABLE_H_
 
 #include <libadt/list.h>
 #include <unistd.h>
@@ -85,8 +85,5 @@ extern void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

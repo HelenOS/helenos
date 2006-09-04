@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef LIBC_amd64_TYPES_H_
+#define LIBC_amd64_TYPES_H_
 
 typedef unsigned long long sysarg_t;
 typedef unsigned long size_t;

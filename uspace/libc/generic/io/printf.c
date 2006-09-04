@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -54,11 +54,7 @@ int printf(const char *fmt, ...)
 	return ret;
 }
 
-
-
-
-
- /** @}
+/** @}
  */
  
  

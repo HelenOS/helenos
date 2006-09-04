@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __ALIGN_H__
-#define __ALIGN_H__
+#ifndef LIBC_ALIGN_H_
+#define LIBC_ALIGN_H_
 
 /** Align to the nearest lower address.
  *
@@ -52,8 +52,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

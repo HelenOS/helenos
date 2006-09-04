@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32	
+/** @addtogroup libcppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ppc32__PSTHREAD_H__
-#define __LIBC__ppc32__PSTHREAD_H__
+#ifndef LIBC_ppc32_PSTHREAD_H_
+#define LIBC_ppc32_PSTHREAD_H_
 
 #include <types.h>
 
@@ -79,6 +79,5 @@ typedef struct {
 
 #endif
 
- /** @}
+/** @}
  */
-

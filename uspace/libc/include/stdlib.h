@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__STDLIB_H__
-#define __LIBC__STDLIB_H__
+#ifndef LIBC_STDLIB_H_
+#define LIBC_STDLIB_H_
 
 #include <unistd.h>
 #include <malloc.h>
@@ -55,11 +55,7 @@ static inline void srand(unsigned int seed)
 	srandom(seed);
 }
 
-
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

@@ -26,19 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */ 
 
-#ifndef __libc_TIME_H__
-#define __libc_TIME_H__
+#ifndef LIBC_TIME_H_
+#define LIBC_TIME_H_
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

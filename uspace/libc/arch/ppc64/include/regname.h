@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc64	
+/** @addtogroup libcppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_REGNAME_H__
-#define __ppc64_REGNAME_H__
+#ifndef LIBC_ppc64_REGNAME_H_
+#define LIBC_ppc64_REGNAME_H_
 
 /* Condition Register Bit Fields */
 #define	cr0	0
@@ -184,6 +184,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

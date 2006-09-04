@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcia32
+/** @addtogroup libcia32
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ia32THREAD_H__
-#define __LIBC__ia32THREAD_H__
+#ifndef LIBC_ia32_THREAD_H_
+#define LIBC_ia32_THREAD_H_
 
 #include <libc.h>
 
@@ -57,8 +57,5 @@ static inline tcb_t * __tcb_get(void)
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

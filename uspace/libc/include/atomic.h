@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __ATOMIC_H__
-#define __ATOMIC_H__
+#ifndef LIBC_ATOMIC_H_
+#define LIBC_ATOMIC_H_
 
 typedef struct atomic {
 	volatile long count;
@@ -53,8 +53,5 @@ static inline long atomic_get(atomic_t *val)
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__STDIO_H__
-#define __LIBC__STDIO_H__
+#ifndef LIBC_STDIO_H_
+#define LIBC_STDIO_H_
 
 #include <types.h>
 #include <stdarg.h>
@@ -59,8 +59,5 @@ extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

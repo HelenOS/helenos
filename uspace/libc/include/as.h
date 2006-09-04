@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __libc_AS_H__
-#define __libc_AS_H__
+#ifndef LIBC_AS_H_
+#define LIBC_AS_H_
 
 #include <types.h>
 #include <task.h>
@@ -50,8 +50,5 @@ extern void * as_get_mappable_page(size_t sz);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

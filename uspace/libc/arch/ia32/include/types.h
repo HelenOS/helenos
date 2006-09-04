@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __LIBC__TYPES_H__
-#define __LIBC__TYPES_H__
+#ifndef LIBC_ia32_TYPES_H_
+#define LIBC_ia32_TYPES_H_
 
 typedef unsigned int sysarg_t;
 typedef unsigned int size_t;

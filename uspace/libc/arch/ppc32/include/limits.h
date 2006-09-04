@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc32	
+/** @addtogroup libcppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32__LIMITS_H__
-#define __ppc32__LIMITS_H__
+#ifndef LIBC_ppc32_LIMITS_H_
+#define LIBC_ppc32_LIMITS_H_
 
 #define LONG_MIN MIN_INT32
 #define LONG_MAX MAX_INT32
@@ -42,6 +42,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

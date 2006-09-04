@@ -114,6 +114,5 @@ void usleep(unsigned long usec)
 	futex_down_timeout(&futex, usec, 0);
 }
 
-
 /** @}
  */

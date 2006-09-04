@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -41,9 +41,7 @@ sysarg_t sysinfo_value(char *name)
 	return __SYSCALL2(SYS_SYSINFO_VALUE, (sysarg_t ) name, (sysarg_t) strlen(name) );
 }
 
-
-
- /** @}
+/** @}
  */
  
  

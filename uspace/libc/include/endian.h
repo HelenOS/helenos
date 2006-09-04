@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__ENDIAN_H__
-#define __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
+#define LIBC_ENDIAN_H_
 
 #define __LITTLE_ENDIAN 1234
 #define __BIG_ENDIAN	4321
@@ -43,9 +43,5 @@
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

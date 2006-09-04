@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -173,8 +173,5 @@ int futex_up(atomic_t *futex)
 	return 0;
 }
 
-
- /** @}
+/** @}
  */
- 
- 

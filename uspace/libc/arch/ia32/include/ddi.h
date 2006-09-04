@@ -30,8 +30,8 @@
  * @ingroup libcia32, libcamd64
  */
 
-#ifndef __ia32_libc_DDI_H_
-#define __ia32_libc_DDI_H_
+#ifndef LIBC_ia32_DDI_H_
+#define LIBC_ia32_DDI_H_
 
 static inline void outb(int16_t port, uint8_t b)
 {
@@ -71,6 +71,5 @@ static inline uint32_t inl(int16_t port)
 	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
 	return val;
 }
-
 
 #endif

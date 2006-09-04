@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc64	
+/** @addtogroup libcppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64__LIMITS_H__
-#define __ppc64__LIMITS_H__
+#ifndef LIBC_ppc64_LIMITS_H_
+#define LIBC_ppc64_LIMITS_H_
 
 #define LONG_MIN MIN_INT64
 #define LONG_MAX MAX_INT64
@@ -42,6 +42,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

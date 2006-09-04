@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcamd64
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__amd64THREAD_H__
-#define __LIBC__amd64THREAD_H__
+#ifndef LIBC_amd64_THREAD_H_
+#define LIBC_amd64_THREAD_H_
 
 #include <libc.h>
 
@@ -57,8 +57,5 @@ static inline tcb_t * __tcb_get(void)
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

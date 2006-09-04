@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIST_H__
-#define __LIST_H__
+#ifndef LIBC_LIST_H_
+#define LIBC_LIST_H_
 
-#include<unistd.h>
+#include <unistd.h>
 
 #ifndef true
 # define true 1
@@ -190,8 +190,5 @@ extern void list_concat(link_t *head1, link_t *head2);
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

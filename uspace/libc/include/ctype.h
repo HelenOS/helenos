@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __CTYPE_H__
-#define __CTYPE_H__
+#ifndef LIBC_CTYPE_H_
+#define LIBC_CTYPE_H_
 
 static inline int isdigit(int c)
 {
@@ -58,9 +58,5 @@ static inline int isspace(int c)
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

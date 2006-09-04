@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,7 +36,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <io/printf_core.h>
-
 
 struct vsnprintf_data {
 	size_t size; /* total space for string */
@@ -108,10 +107,5 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 	return printf_core(fmt, &ps, ap);
 }
 
-
-
-
- /** @}
+/** @}
  */
- 
- 

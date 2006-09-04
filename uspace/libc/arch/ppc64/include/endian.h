@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcppc64	
+/** @addtogroup libcppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_ENDIAN_H__
-#define __ppc64_ENDIAN_H__
+#ifndef LIBC_ppc64_ENDIAN_H_
+#define LIBC_ppc64_ENDIAN_H_
 
-#ifndef __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 
@@ -43,6 +43,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

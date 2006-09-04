@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcamd64 amd64
+/** @addtogroup libcamd64 amd64
  * @ingroup lc
  * @brief	amd64 architecture dependent parts of libc
  * @{
@@ -34,8 +34,8 @@
 /** @file
  */
 
-#ifndef __amd64_ATOMIC_H__
-#define __amd64_ATOMIC_H__
+#ifndef LIBC_amd64_ATOMIC_H_
+#define LIBC_amd64_ATOMIC_H_
 
 static inline void atomic_inc(atomic_t *val) {
 	__asm__ volatile ("lock incq %0\n" : "=m" (val->count));
@@ -76,8 +76,5 @@ static inline long atomic_postdec(atomic_t *val)
 
 #endif
 
-
- /** @}
+/** @}
  */
- 
- 

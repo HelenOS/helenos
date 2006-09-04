@@ -35,7 +35,7 @@
 #ifndef LIBC_sparc64_ENDIAN_H_
 #define LIBC_sparc64_ENDIAN_H_
 
-#ifndef __LIBC__ENDIAN_H__
+#ifndef LIBC_ENDIAN_H_
 # error "Never use <libarch/endian.h> directly - use <endian.h> instead."
 #endif
 

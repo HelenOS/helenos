@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef __LIBC__STDARG_H__
-#define __LIBC__STDARG_H__
+#ifndef LIBC_STDARG_H_
+#define LIBC_STDARG_H_
 
 #include <types.h>
 #include <libarch/stackarg.h>
@@ -51,9 +51,5 @@ typedef __builtin_va_list va_list;
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -46,8 +46,5 @@ void srandom(unsigned int seed)
 	glbl_seed = seed;
 }
 
-
- /** @}
+/** @}
  */
- 
- 

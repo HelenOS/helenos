@@ -26,15 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */ 
 
-#ifndef __LIBC_SYSINFO_H__
-#define __LIBC_SYSINFO_H__
-
+#ifndef LIBC_SYSINFO_H_
+#define LIBC_SYSINFO_H_
 
 #include <libc.h>
 #include <sysinfo.h>
@@ -44,9 +43,5 @@ sysarg_t sysinfo_value(char *name);
 
 #endif
 
-
-
- /** @}
+/** @}
  */
- 
- 

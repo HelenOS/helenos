@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -44,8 +44,5 @@ task_id_t task_get_id(void)
 	return task_id;
 }
 
-
- /** @}
+/** @}
  */
- 
- 
