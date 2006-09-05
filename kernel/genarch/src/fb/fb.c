@@ -394,6 +394,7 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("fb.width", NULL, xres);
 	sysinfo_set_item_val("fb.height", NULL, yres);
 	sysinfo_set_item_val("fb.bpp", NULL, bpp);
+	sysinfo_set_item_val("fb.bpp-align", NULL, align);
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
 
