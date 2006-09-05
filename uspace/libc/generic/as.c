@@ -36,6 +36,12 @@
 #include <libc.h>
 #include <unistd.h>
 #include <align.h>
+#include <types.h>
+
+/**
+ * Either 4*256M on 32-bit architecures or 16*256M on 64-bit architectures.
+ */
+#define MAX_HEAP_SIZE	(sizeof(uintptr_t)<<28)
 
 /** Create address space area.
  *
@@ -141,7 +147,7 @@ void * as_get_mappable_page(size_t sz)
 
 	/* Set heapsize to some meaningful value */
 	if (maxheapsize == -1)
-		set_maxheapsize(ALIGN_UP(USER_ADDRESS_SPACE_SIZE_ARCH >> 1, PAGE_SIZE));
+		set_maxheapsize(MAX_HEAP_SIZE);
 	
 	if (!last_allocated)
 		last_allocated = (void *) ALIGN_UP((void *) &_heap + maxheapsize, PAGE_SIZE);

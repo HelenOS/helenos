@@ -103,7 +103,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool loc
 	data.cv = cacheable;
 	data.p = true;
 	data.w = true;
-	data.g = true;
+	data.g = false;
 
 	dtlb_data_in_write(data.value);
 }

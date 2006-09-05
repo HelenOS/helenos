@@ -40,7 +40,17 @@
 
 #define EOF (-1)
 
+#include <string.h>
 #include <io/stream.h>
+
+#define DEBUG(fmt, ...) \
+{ \
+	char buf[256]; \
+	int n; \
+	n = snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__); \
+	if (n > 0) \
+		(void) __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, strlen(buf)); \
+}
 
 extern int getchar(void);
 

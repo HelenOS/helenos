@@ -61,7 +61,7 @@ static __thread int serialization_count;
 /** Counter of threads residing in async_manager */
 static int threads_in_manager;
 
-/** Setup PSthread information into TCB structure */
+/** Setup psthread information into TCB structure */
 psthread_data_t * psthread_setup()
 {
 	psthread_data_t *pt;
@@ -89,7 +89,7 @@ void psthread_teardown(psthread_data_t *pt)
 	free(pt);
 }
 
-/** Function that is called on entry to new uspace thread */
+/** Function that is called on entry to new pseudo thread */
 void psthread_main(void)
 {
 	psthread_data_t *pt = __tcb_get()->pst_data;
@@ -209,8 +209,7 @@ int psthread_join(pstid_t psthrid)
 	return retval;
 }
 
-/**
- * Create a userspace thread
+/** Create a userspace pseudo thread.
  *
  * @param func Pseudo thread function.
  * @param arg Argument to pass to func.

@@ -125,7 +125,24 @@ kernel_image_start:
 	or %r1, %r2, %r1;
 	
 	! write DTLB data and install the kernel mapping
-	SET_TLB_DATA(g1, g2, TTE_G)
+	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG		
+	membar #Sync
+
+	/*
+	 * Because we cannot use global mappings (because we want to
+	 * have separate 64-bit address spaces for both the kernel
+	 * and the userspace), we prepare the identity mapping also in
+	 * context 1. This step is required by the
+	 * code installing the ITLB mapping.
+	 */
+	! write DTLB tag of context 1 (i.e. MEM_CONTEXT_TEMP)
+	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
+	stxa %g1, [VA_DMMU_TAG_ACCESS] %asi			
+	membar #Sync
+
+	! write DTLB data and install the kernel mapping in context 1
+	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
 	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG		
 	membar #Sync
 	

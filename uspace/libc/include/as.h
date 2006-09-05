@@ -40,8 +40,6 @@
 #include <kernel/arch/mm/as.h>
 #include <kernel/mm/as.h>
 
-#define USER_ADDRESS_SPACE_SIZE_ARCH (USER_ADDRESS_SPACE_END_ARCH-USER_ADDRESS_SPACE_START_ARCH+1)
-
 extern void *as_area_create(void *address, size_t size, int flags);
 extern int as_area_resize(void *address, size_t size, int flags);
 extern int as_area_destroy(void *address);

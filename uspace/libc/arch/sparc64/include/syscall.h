@@ -50,6 +50,7 @@ __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_
 		"ta %5\n"
 		: "=r" (a1)
 		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "i" (id)
+		: "memory"
 	);
 	
 	return a1;
