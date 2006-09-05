@@ -40,7 +40,3 @@
 #include <arch/trap/trap_table.h>
 #include <arch/regdef.h>
 
-.global mem_address_not_aligned_handler
-mem_address_not_aligned_handler:
-	HANDLE_MMU_TRAPS_FROM_SPILL_OR_FILL
-	PREEMPTIBLE_HANDLER do_mem_address_not_aligned

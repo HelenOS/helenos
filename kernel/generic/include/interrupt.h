@@ -55,8 +55,8 @@
 #define fault_if_from_uspace(istate, cmd, ...) \
 { \
 	if (istate_from_uspace(istate)) { \
-                klog_printf(cmd, ##__VA_ARGS__); \
-                klog_printf("Task %lld got exception at PC:%p. Task killed.", TASK->taskid, istate_get_pc(istate)); \
+		klog_printf("Task %lld killed due to an exception at %p.", TASK->taskid, istate_get_pc(istate)); \
+		klog_printf("  " cmd, ##__VA_ARGS__); \
 		task_kill(TASK->taskid); \
 		thread_exit(); \
 	} \

@@ -40,6 +40,7 @@
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 #include <arch.h>
 #include <print.h>
 #include <arch/types.h>
@@ -308,6 +309,7 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str
 {
 	char *tpc_str = get_symtab_entry(istate->tpc);
 
+	fault_if_from_uspace(istate, "%s\n", str);
 	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
 	panic("%s\n", str);
 }
@@ -319,6 +321,7 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t t
 
 	va = tag.vpn << PAGE_WIDTH;
 
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
 	panic("%s\n", str);
@@ -331,6 +334,7 @@ void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t
 
 	va = tag.vpn << PAGE_WIDTH;
 
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
 	panic("%s\n", str);

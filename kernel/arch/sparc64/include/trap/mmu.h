@@ -62,7 +62,7 @@
 	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
 .endm
 
-.macro FAST_DATA_ACCESS_MMU_MISS_HANDLER
+.macro FAST_DATA_ACCESS_MMU_MISS_HANDLER tl
 	/*
 	 * First, try to refill TLB from TSB.
 	 */
@@ -100,13 +100,15 @@
 	 * the offending SAVE or RESTORE.
 	 */
 0:
-	HANDLE_MMU_TRAPS_FROM_SPILL_OR_FILL
+.if (\tl > 0)
+	wrpr %g0, 1, %tl
+.endif
 
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
 .endm
 
-.macro FAST_DATA_ACCESS_PROTECTION_HANDLER
+.macro FAST_DATA_ACCESS_PROTECTION_HANDLER tl
 	/*
 	 * First, try to refill TLB from TSB.
 	 */
@@ -115,34 +117,12 @@
 	/*
 	 * The same special case as in FAST_DATA_ACCESS_MMU_MISS_HANDLER.
 	 */
-	HANDLE_MMU_TRAPS_FROM_SPILL_OR_FILL
+.if (\tl > 0)
+	wrpr %g0, 1, %tl
+.endif
 
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 	PREEMPTIBLE_HANDLER fast_data_access_protection
-.endm
-
-.macro MEM_ADDRESS_NOT_ALIGNED_HANDLER
-	ba mem_address_not_aligned_handler
-	nop
-.endm
-
-/*
- * Macro used to lower TL when a MMU trap is caused by
- * the userspace register window spill or fill handler.
- */
-.macro HANDLE_MMU_TRAPS_FROM_SPILL_OR_FILL
-	rdpr %tl, %g1
-	sub %g1, 1, %g2
-	brz %g2, 0f			! if TL was 1, skip
-	nop
-	wrpr %g2, 0, %tl		! TL--
-	rdpr %tt, %g3
-	cmp %g3, TT_SPILL_1_NORMAL
-	be 0f				! trap from spill_1_normal?
-	cmp %g3, TT_FILL_1_NORMAL
-	bne,a 0f			! trap from fill_1_normal? (negated condition)
-	wrpr %g1, 0, %tl		! TL++
-0:
 .endm
 
 #endif /* __ASM__ */

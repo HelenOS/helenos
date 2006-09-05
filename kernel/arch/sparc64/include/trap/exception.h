@@ -37,18 +37,29 @@
 #define KERN_sparc64_EXCEPTION_H_
 
 #define TT_INSTRUCTION_ACCESS_EXCEPTION		0x08
+#define TT_INSTRUCTION_ACCESS_ERROR		0x0a
 #define TT_ILLEGAL_INSTRUCTION			0x10
+#define TT_PRIVILEGED_OPCODE			0x11
+#define TT_DIVISION_BY_ZERO			0x28
+#define TT_DATA_ACCESS_EXCEPTION		0x30
 #define TT_DATA_ACCESS_ERROR			0x32
 #define TT_MEM_ADDRESS_NOT_ALIGNED		0x34
+#define TT_PRIVILEGED_ACTION			0x38
 
 #ifndef __ASM__
 
 #include <typedefs.h>
 
-extern void do_instruction_access_exc(int n, istate_t *istate);
-extern void do_mem_address_not_aligned(int n, istate_t *istate);
-extern void do_data_access_error(int n, istate_t *istate);
-extern void do_illegal_instruction(int n, istate_t *istate);
+extern void instruction_access_exception(int n, istate_t *istate);
+extern void instruction_access_error(int n, istate_t *istate);
+extern void illegal_instruction(int n, istate_t *istate);
+extern void privileged_opcode(int n, istate_t *istate);
+extern void division_by_zero(int n, istate_t *istate);
+extern void data_access_exception(int n, istate_t *istate);
+extern void data_access_error(int n, istate_t *istate);
+extern void mem_address_not_aligned(int n, istate_t *istate);
+extern void privileged_action(int n, istate_t *istate);
+
 
 #endif /* !__ASM__ */
 

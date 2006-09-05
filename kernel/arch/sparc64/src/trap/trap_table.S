@@ -59,374 +59,406 @@ trap_table:
 
 /* TT = 0x08, TL = 0, instruction_access_exception */
 .org trap_table + TT_INSTRUCTION_ACCESS_EXCEPTION*ENTRY_SIZE
-.global instruction_access_exception
-instruction_access_exception:
-	PREEMPTIBLE_HANDLER do_instruction_access_exc
+.global instruction_access_exception_tl0
+instruction_access_exception_tl0:
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x0a, TL = 0, instruction_access_error */
+.org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
+.global instruction_access_error_tl0
+instruction_access_error_tl0:
+	PREEMPTIBLE_HANDLER instruction_access_error
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
-.global illegal_instruction
-illegal_instruction:
-	PREEMPTIBLE_HANDLER do_illegal_instruction
+.global illegal_instruction_tl0
+illegal_instruction_tl0:
+	PREEMPTIBLE_HANDLER illegal_instruction
+
+/* TT = 0x11, TL = 0, privileged_opcode */
+.org trap_table + TT_PRIVILEGED_OPCODE*ENTRY_SIZE
+.global privileged_opcode_tl0
+privileged_opcode_tl0:
+	PREEMPTIBLE_HANDLER privileged_opcode
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
-.global clean_window_handler
-clean_window_handler:
+.global clean_window_handler_tl0
+clean_window_handler_tl0:
 	CLEAN_WINDOW_HANDLER
+
+/* TT = 0x28, TL = 0, division_by_zero */
+.org trap_table + TT_DIVISION_BY_ZERO*ENTRY_SIZE
+.global division_by_zero_tl0
+division_by_zero_tl0:
+	PREEMPTIBLE_HANDLER division_by_zero
+
+/* TT = 0x30, TL = 0, data_access_exception */
+.org trap_table + TT_DATA_ACCESS_EXCEPTION*ENTRY_SIZE
+.global data_access_exception_tl0
+data_access_exception_tl0:
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
-.global data_access_error
-data_access_error:
-	PREEMPTIBLE_HANDLER do_data_access_error
+.global data_access_error_tl0
+data_access_error_tl0:
+	PREEMPTIBLE_HANDLER data_access_error
 
 /* TT = 0x34, TL = 0, mem_address_not_aligned */
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global mem_address_not_aligned
-mem_address_not_aligned:
-	MEM_ADDRESS_NOT_ALIGNED_HANDLER
+.global mem_address_not_aligned_tl0
+mem_address_not_aligned_tl0:
+	PREEMPTIBLE_HANDLER mem_address_not_aligned
+
+/* TT = 0x38, TL = 0, privileged_action */
+.org trap_table + TT_PRIVILEGED_ACTION*ENTRY_SIZE
+.global privileged_action_tl0
+privileged_action_tl0:
+	PREEMPTIBLE_HANDLER privileged_action
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
-.global interrupt_level_1_handler
-interrupt_level_1_handler:
+.global interrupt_level_1_handler_tl0
+interrupt_level_1_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 1
 
 /* TT = 0x42, TL = 0, interrupt_level_2 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_2*ENTRY_SIZE
-.global interrupt_level_2_handler
-interrupt_level_2_handler:
+.global interrupt_level_2_handler_tl0
+interrupt_level_2_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 2
 
 /* TT = 0x43, TL = 0, interrupt_level_3 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_3*ENTRY_SIZE
-.global interrupt_level_3_handler
-interrupt_level_3_handler:
+.global interrupt_level_3_handler_tl0
+interrupt_level_3_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 3
 
 /* TT = 0x44, TL = 0, interrupt_level_4 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_4*ENTRY_SIZE
-.global interrupt_level_4_handler
-interrupt_level_4_handler:
+.global interrupt_level_4_handler_tl0
+interrupt_level_4_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 4
 
 /* TT = 0x45, TL = 0, interrupt_level_5 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_5*ENTRY_SIZE
-.global interrupt_level_5_handler
-interrupt_level_5_handler:
+.global interrupt_level_5_handler_tl0
+interrupt_level_5_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 5
 
 /* TT = 0x46, TL = 0, interrupt_level_6 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_6*ENTRY_SIZE
-.global interrupt_level_6_handler
-interrupt_level_6_handler:
+.global interrupt_level_6_handler_tl0
+interrupt_level_6_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 6
 
 /* TT = 0x47, TL = 0, interrupt_level_7 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_7*ENTRY_SIZE
-.global interrupt_level_7_handler
-interrupt_level_7_handler:
+.global interrupt_level_7_handler_tl0
+interrupt_level_7_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 7
 
 /* TT = 0x48, TL = 0, interrupt_level_8 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_8*ENTRY_SIZE
-.global interrupt_level_8_handler
-interrupt_level_8_handler:
+.global interrupt_level_8_handler_tl0
+interrupt_level_8_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 8
 
 /* TT = 0x49, TL = 0, interrupt_level_9 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_9*ENTRY_SIZE
-.global interrupt_level_9_handler
-interrupt_level_9_handler:
+.global interrupt_level_9_handler_tl0
+interrupt_level_9_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 9
 
 /* TT = 0x4a, TL = 0, interrupt_level_10 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_10*ENTRY_SIZE
-.global interrupt_level_10_handler
-interrupt_level_10_handler:
+.global interrupt_level_10_handler_tl0
+interrupt_level_10_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 10
 
 /* TT = 0x4b, TL = 0, interrupt_level_11 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_11*ENTRY_SIZE
-.global interrupt_level_11_handler
-interrupt_level_11_handler:
+.global interrupt_level_11_handler_tl0
+interrupt_level_11_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 11
 
 /* TT = 0x4c, TL = 0, interrupt_level_12 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_12*ENTRY_SIZE
-.global interrupt_level_12_handler
-interrupt_level_12_handler:
+.global interrupt_level_12_handler_tl0
+interrupt_level_12_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 12
 
 /* TT = 0x4d, TL = 0, interrupt_level_13 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_13*ENTRY_SIZE
-.global interrupt_level_13_handler
-interrupt_level_13_handler:
+.global interrupt_level_13_handler_tl0
+interrupt_level_13_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 13
 
 /* TT = 0x4e, TL = 0, interrupt_level_14 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_14*ENTRY_SIZE
-.global interrupt_level_14_handler
-interrupt_level_14_handler:
+.global interrupt_level_14_handler_tl0
+interrupt_level_14_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 14
 
 /* TT = 0x4f, TL = 0, interrupt_level_15 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_15*ENTRY_SIZE
-.global interrupt_level_15_handler
-interrupt_level_15_handler:
+.global interrupt_level_15_handler_tl0
+interrupt_level_15_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 15
 
 /* TT = 0x60, TL = 0, interrupt_vector_trap handler */
 .org trap_table + TT_INTERRUPT_VECTOR_TRAP*ENTRY_SIZE
-.global interrupt_vector_trap_handler
-interrupt_vector_trap_handler:
+.global interrupt_vector_trap_handler_tl0
+interrupt_vector_trap_handler_tl0:
 	INTERRUPT_VECTOR_TRAP_HANDLER
 
 /* TT = 0x64, TL = 0, fast_instruction_access_MMU_miss */
 .org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
-.global fast_instruction_access_mmu_miss_handler
-fast_instruction_access_mmu_miss_handler:
+.global fast_instruction_access_mmu_miss_handler_tl0
+fast_instruction_access_mmu_miss_handler_tl0:
 	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 
 /* TT = 0x68, TL = 0, fast_data_access_MMU_miss */
 .org trap_table + TT_FAST_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
-.global fast_data_access_mmu_miss_handler
-fast_data_access_mmu_miss_handler:
-	FAST_DATA_ACCESS_MMU_MISS_HANDLER
+.global fast_data_access_mmu_miss_handler_tl0
+fast_data_access_mmu_miss_handler_tl0:
+	FAST_DATA_ACCESS_MMU_MISS_HANDLER 0
 
 /* TT = 0x6c, TL = 0, fast_data_access_protection */
 .org trap_table + TT_FAST_DATA_ACCESS_PROTECTION*ENTRY_SIZE
-.global fast_data_access_protection_handler
-fast_data_access_protection_handler:
-	FAST_DATA_ACCESS_PROTECTION_HANDLER
+.global fast_data_access_protection_handler_tl0
+fast_data_access_protection_handler_tl0:
+	FAST_DATA_ACCESS_PROTECTION_HANDLER 0
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
-.global spill_0_normal
-spill_0_normal:
+.global spill_0_normal_tl0
+spill_0_normal_tl0:
 	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0x84, TL = 0, spill_1_normal handler */
 .org trap_table + TT_SPILL_1_NORMAL*ENTRY_SIZE
-.global spill_1_normal
-spill_1_normal:
+.global spill_1_normal_tl0
+spill_1_normal_tl0:
 	SPILL_NORMAL_HANDLER_USERSPACE
 
 /* TT = 0x88, TL = 0, spill_2_normal handler */
 .org trap_table + TT_SPILL_2_NORMAL*ENTRY_SIZE
-.global spill_2_normal
-spill_2_normal:
+.global spill_2_normal_tl0
+spill_2_normal_tl0:
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xa0, TL = 0, spill_0_other handler */
 .org trap_table + TT_SPILL_0_OTHER*ENTRY_SIZE
-.global spill_0_other
-spill_0_other:
+.global spill_0_other_tl0
+spill_0_other_tl0:
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
-.global fill_0_normal
-fill_0_normal:
+.global fill_0_normal_tl0
+fill_0_normal_tl0:
 	FILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0xc4, TL = 0, fill_1_normal handler */
 .org trap_table + TT_FILL_1_NORMAL*ENTRY_SIZE
-.global fill_1_normal
-fill_1_normal:
+.global fill_1_normal_tl0
+fill_1_normal_tl0:
 	FILL_NORMAL_HANDLER_USERSPACE
 
 /* TT = 0x100, TL = 0, trap_instruction_0 */
 .org trap_table + TT_TRAP_INSTRUCTION(0)*ENTRY_SIZE
-.global trap_instruction_0
-trap_instruction_0:
+.global trap_instruction_0_tl0
+trap_instruction_0_tl0:
 	TRAP_INSTRUCTION 0
 
 /* TT = 0x101, TL = 0, trap_instruction_1 */
 .org trap_table + TT_TRAP_INSTRUCTION(1)*ENTRY_SIZE
-.global trap_instruction_1
-trap_instruction_1:
+.global trap_instruction_1_tl0
+trap_instruction_1_tl0:
 	TRAP_INSTRUCTION 1
 
 /* TT = 0x102, TL = 0, trap_instruction_2 */
 .org trap_table + TT_TRAP_INSTRUCTION(2)*ENTRY_SIZE
-.global trap_instruction_2
-trap_instruction_2:
+.global trap_instruction_2_tl0
+trap_instruction_2_tl0:
 	TRAP_INSTRUCTION 2
 
 /* TT = 0x103, TL = 0, trap_instruction_3 */
 .org trap_table + TT_TRAP_INSTRUCTION(3)*ENTRY_SIZE
-.global trap_instruction_3
-trap_instruction_3:
+.global trap_instruction_3_tl0
+trap_instruction_3_tl0:
 	TRAP_INSTRUCTION 3
 
 /* TT = 0x104, TL = 0, trap_instruction_4 */
 .org trap_table + TT_TRAP_INSTRUCTION(4)*ENTRY_SIZE
-.global trap_instruction_4
-trap_instruction_4:
+.global trap_instruction_4_tl0
+trap_instruction_4_tl0:
 	TRAP_INSTRUCTION 4
 
 /* TT = 0x105, TL = 0, trap_instruction_5 */
 .org trap_table + TT_TRAP_INSTRUCTION(5)*ENTRY_SIZE
-.global trap_instruction_5
-trap_instruction_5:
+.global trap_instruction_5_tl0
+trap_instruction_5_tl0:
 	TRAP_INSTRUCTION 5
 
 /* TT = 0x106, TL = 0, trap_instruction_6 */
 .org trap_table + TT_TRAP_INSTRUCTION(6)*ENTRY_SIZE
-.global trap_instruction_6
-trap_instruction_6:
+.global trap_instruction_6_tl0
+trap_instruction_6_tl0:
 	TRAP_INSTRUCTION 6
 
 /* TT = 0x107, TL = 0, trap_instruction_7 */
 .org trap_table + TT_TRAP_INSTRUCTION(7)*ENTRY_SIZE
-.global trap_instruction_7
-trap_instruction_7:
+.global trap_instruction_7_tl0
+trap_instruction_7_tl0:
 	TRAP_INSTRUCTION 7
 
 /* TT = 0x108, TL = 0, trap_instruction_8 */
 .org trap_table + TT_TRAP_INSTRUCTION(8)*ENTRY_SIZE
-.global trap_instruction_8
-trap_instruction_8:
+.global trap_instruction_8_tl0
+trap_instruction_8_tl0:
 	TRAP_INSTRUCTION 8
 
 /* TT = 0x109, TL = 0, trap_instruction_9 */
 .org trap_table + TT_TRAP_INSTRUCTION(9)*ENTRY_SIZE
-.global trap_instruction_9
-trap_instruction_9:
+.global trap_instruction_9_tl0
+trap_instruction_9_tl0:
 	TRAP_INSTRUCTION 9
 
 /* TT = 0x10a, TL = 0, trap_instruction_10 */
 .org trap_table + TT_TRAP_INSTRUCTION(10)*ENTRY_SIZE
-.global trap_instruction_10
-trap_instruction_10:
+.global trap_instruction_10_tl0
+trap_instruction_10_tl0:
 	TRAP_INSTRUCTION 10
 
 /* TT = 0x10b, TL = 0, trap_instruction_11 */
 .org trap_table + TT_TRAP_INSTRUCTION(11)*ENTRY_SIZE
-.global trap_instruction_11
-trap_instruction_11:
+.global trap_instruction_11_tl0
+trap_instruction_11_tl0:
 	TRAP_INSTRUCTION 11
 
 /* TT = 0x10c, TL = 0, trap_instruction_12 */
 .org trap_table + TT_TRAP_INSTRUCTION(12)*ENTRY_SIZE
-.global trap_instruction_12
-trap_instruction_12:
+.global trap_instruction_12_tl0
+trap_instruction_12_tl0:
 	TRAP_INSTRUCTION 12
 
 /* TT = 0x10d, TL = 0, trap_instruction_13 */
 .org trap_table + TT_TRAP_INSTRUCTION(13)*ENTRY_SIZE
-.global trap_instruction_13
-trap_instruction_13:
+.global trap_instruction_13_tl0
+trap_instruction_13_tl0:
 	TRAP_INSTRUCTION 13
 
 /* TT = 0x10e, TL = 0, trap_instruction_14 */
 .org trap_table + TT_TRAP_INSTRUCTION(14)*ENTRY_SIZE
-.global trap_instruction_14
-trap_instruction_14:
+.global trap_instruction_14_tl0
+trap_instruction_14_tl0:
 	TRAP_INSTRUCTION 14
 
 /* TT = 0x10f, TL = 0, trap_instruction_15 */
 .org trap_table + TT_TRAP_INSTRUCTION(15)*ENTRY_SIZE
-.global trap_instruction_15
-trap_instruction_15:
+.global trap_instruction_15_tl0
+trap_instruction_15_tl0:
 	TRAP_INSTRUCTION 15
 
 /* TT = 0x110, TL = 0, trap_instruction_16 */
 .org trap_table + TT_TRAP_INSTRUCTION(16)*ENTRY_SIZE
-.global trap_instruction_16
-trap_instruction_16:
+.global trap_instruction_16_tl0
+trap_instruction_16_tl0:
 	TRAP_INSTRUCTION 16
 
 /* TT = 0x111, TL = 0, trap_instruction_17 */
 .org trap_table + TT_TRAP_INSTRUCTION(17)*ENTRY_SIZE
-.global trap_instruction_17
-trap_instruction_17:
+.global trap_instruction_17_tl0
+trap_instruction_17_tl0:
 	TRAP_INSTRUCTION 17
 
 /* TT = 0x112, TL = 0, trap_instruction_18 */
 .org trap_table + TT_TRAP_INSTRUCTION(18)*ENTRY_SIZE
-.global trap_instruction_18
-trap_instruction_18:
+.global trap_instruction_18_tl0
+trap_instruction_18_tl0:
 	TRAP_INSTRUCTION 18
 
 /* TT = 0x113, TL = 0, trap_instruction_19 */
 .org trap_table + TT_TRAP_INSTRUCTION(19)*ENTRY_SIZE
-.global trap_instruction_19
-trap_instruction_19:
+.global trap_instruction_19_tl0
+trap_instruction_19_tl0:
 	TRAP_INSTRUCTION 19
 
 /* TT = 0x114, TL = 0, trap_instruction_20 */
 .org trap_table + TT_TRAP_INSTRUCTION(20)*ENTRY_SIZE
-.global trap_instruction_20
-trap_instruction_20:
+.global trap_instruction_20_tl0
+trap_instruction_20_tl0:
 	TRAP_INSTRUCTION 20
 
 /* TT = 0x115, TL = 0, trap_instruction_21 */
 .org trap_table + TT_TRAP_INSTRUCTION(21)*ENTRY_SIZE
-.global trap_instruction_21
-trap_instruction_21:
+.global trap_instruction_21_tl0
+trap_instruction_21_tl0:
 	TRAP_INSTRUCTION 21
 
 /* TT = 0x116, TL = 0, trap_instruction_22 */
 .org trap_table + TT_TRAP_INSTRUCTION(22)*ENTRY_SIZE
-.global trap_instruction_22
-trap_instruction_22:
+.global trap_instruction_22_tl0
+trap_instruction_22_tl0:
 	TRAP_INSTRUCTION 22
 
 /* TT = 0x117, TL = 0, trap_instruction_23 */
 .org trap_table + TT_TRAP_INSTRUCTION(23)*ENTRY_SIZE
-.global trap_instruction_23
-trap_instruction_23:
+.global trap_instruction_23_tl0
+trap_instruction_23_tl0:
 	TRAP_INSTRUCTION 23
 
 /* TT = 0x118, TL = 0, trap_instruction_24 */
 .org trap_table + TT_TRAP_INSTRUCTION(24)*ENTRY_SIZE
-.global trap_instruction_24
-trap_instruction_24:
+.global trap_instruction_24_tl0
+trap_instruction_24_tl0:
 	TRAP_INSTRUCTION 24
 
 /* TT = 0x119, TL = 0, trap_instruction_25 */
 .org trap_table + TT_TRAP_INSTRUCTION(25)*ENTRY_SIZE
-.global trap_instruction_25
-trap_instruction_25:
+.global trap_instruction_25_tl0
+trap_instruction_25_tl0:
 	TRAP_INSTRUCTION 25
 
 /* TT = 0x11a, TL = 0, trap_instruction_26 */
 .org trap_table + TT_TRAP_INSTRUCTION(26)*ENTRY_SIZE
-.global trap_instruction_26
-trap_instruction_26:
+.global trap_instruction_26_tl0
+trap_instruction_26_tl0:
 	TRAP_INSTRUCTION 26
 
 /* TT = 0x11b, TL = 0, trap_instruction_27 */
 .org trap_table + TT_TRAP_INSTRUCTION(27)*ENTRY_SIZE
-.global trap_instruction_27
-trap_instruction_27:
+.global trap_instruction_27_tl0
+trap_instruction_27_tl0:
 	TRAP_INSTRUCTION 27
 
 /* TT = 0x11c, TL = 0, trap_instruction_28 */
 .org trap_table + TT_TRAP_INSTRUCTION(28)*ENTRY_SIZE
-.global trap_instruction_28
-trap_instruction_28:
+.global trap_instruction_28_tl0
+trap_instruction_28_tl0:
 	TRAP_INSTRUCTION 28
 
 /* TT = 0x11d, TL = 0, trap_instruction_29 */
 .org trap_table + TT_TRAP_INSTRUCTION(29)*ENTRY_SIZE
-.global trap_instruction_29
-trap_instruction_29:
+.global trap_instruction_29_tl0
+trap_instruction_29_tl0:
 	TRAP_INSTRUCTION 29
 
 /* TT = 0x11e, TL = 0, trap_instruction_30 */
 .org trap_table + TT_TRAP_INSTRUCTION(30)*ENTRY_SIZE
-.global trap_instruction_30
-trap_instruction_30:
+.global trap_instruction_30_tl0
+trap_instruction_30_tl0:
 	TRAP_INSTRUCTION 30
 
 /* TT = 0x11f, TL = 0, trap_instruction_31 */
 .org trap_table + TT_TRAP_INSTRUCTION(31)*ENTRY_SIZE
-.global trap_instruction_31
-trap_instruction_31:
+.global trap_instruction_31_tl0
+trap_instruction_31_tl0:
 	TRAP_INSTRUCTION 31
 
 /*
@@ -435,74 +467,95 @@ trap_instruction_31:
 
 /* TT = 0x08, TL > 0, instruction_access_exception */
 .org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
-.global instruction_access_exception_high
-instruction_access_exception_high:
-	PREEMPTIBLE_HANDLER do_instruction_access_exc
+.global instruction_access_exception_tl1
+instruction_access_exception_tl1:
+	wrpr %g0, 1, %tl
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x0a, TL > 0, instruction_access_error */
+.org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
+.global instruction_access_error_tl1
+instruction_access_error_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER instruction_access_error
 
 /* TT = 0x10, TL > 0, illegal_instruction */
 .org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
-.global illegal_instruction_high
-illegal_instruction_high:
-	PREEMPTIBLE_HANDLER do_illegal_instruction
+.global illegal_instruction_tl1
+illegal_instruction_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER illegal_instruction
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
-.global clean_window_handler_high
-clean_window_handler_high:
+.global clean_window_handler_tl1
+clean_window_handler_tl1:
 	CLEAN_WINDOW_HANDLER
+
+/* TT = 0x28, TL > 0, division_by_zero */
+.org trap_table + (TT_DIVISION_BY_ZERO+512)*ENTRY_SIZE
+.global division_by_zero_tl1
+division_by_zero_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER division_by_zero
+
+/* TT = 0x30, TL > 0, data_access_exception */
+.org trap_table + (TT_DATA_ACCESS_EXCEPTION+512)*ENTRY_SIZE
+.global data_access_exception_tl1
+data_access_exception_tl1:
+	wrpr %g0, 1, %tl
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
-.global data_access_error_high
-data_access_error_high:
-	PREEMPTIBLE_HANDLER do_data_access_error
+.global data_access_error_tl1
+data_access_error_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER data_access_error
 
 /* TT = 0x34, TL > 0, mem_address_not_aligned */
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
-.global mem_address_not_aligned_high
-mem_address_not_aligned_high:
-	MEM_ADDRESS_NOT_ALIGNED_HANDLER
-
-/* TT = 0x64, TL > 0, fast_instruction_access_MMU_miss */
-.org trap_table + (TT_FAST_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
-.global fast_instruction_access_mmu_miss_handler_high
-fast_instruction_access_mmu_miss_handler_high:
-	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
+.global mem_address_not_aligned_tl1
+mem_address_not_aligned_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER mem_address_not_aligned
 
 /* TT = 0x68, TL > 0, fast_data_access_MMU_miss */
 .org trap_table + (TT_FAST_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
-.global fast_data_access_mmu_miss_handler_high
-fast_data_access_mmu_miss_handler_high:
-	FAST_DATA_ACCESS_MMU_MISS_HANDLER
+.global fast_data_access_mmu_miss_handler_tl1
+fast_data_access_mmu_miss_handler_tl1:
+	FAST_DATA_ACCESS_MMU_MISS_HANDLER 1
 
 /* TT = 0x6c, TL > 0, fast_data_access_protection */
 .org trap_table + (TT_FAST_DATA_ACCESS_PROTECTION+512)*ENTRY_SIZE
-.global fast_data_access_protection_handler_high
-fast_data_access_protection_handler_high:
-	FAST_DATA_ACCESS_PROTECTION_HANDLER
+.global fast_data_access_protection_handler_tl1
+fast_data_access_protection_handler_tl1:
+	FAST_DATA_ACCESS_PROTECTION_HANDLER 1
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
-.global spill_0_normal_high
-spill_0_normal_high:
+.global spill_0_normal_tl1
+spill_0_normal_tl1:
 	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0x88, TL > 0, spill_2_normal handler */
 .org trap_table + (TT_SPILL_2_NORMAL+512)*ENTRY_SIZE
-.global spill_2_normal_high
-spill_2_normal_high:
+.global spill_2_normal_tl1
+spill_2_normal_tl1:
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xa0, TL > 0, spill_0_other handler */
 .org trap_table + (TT_SPILL_0_OTHER+512)*ENTRY_SIZE
-.global spill_0_other_high
-spill_0_other_high:
+.global spill_0_other_tl1
+spill_0_other_tl1:
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xc0, TL > 0, fill_0_normal handler */
 .org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
-.global fill_0_normal_high
-fill_0_normal_high:
+.global fill_0_normal_tl1
+fill_0_normal_tl1:
 	FILL_NORMAL_HANDLER_KERNEL
 
 #define NOT(x)	((x) == 0)

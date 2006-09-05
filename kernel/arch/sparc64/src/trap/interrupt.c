@@ -61,7 +61,6 @@ void interrupt_register(int n, const char *name, iroutine f)
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(unative_t irq)
 {
-	panic("not implemented\n");
 	/* TODO */
 }
 
