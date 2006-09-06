@@ -99,7 +99,7 @@ static int byte4_rgb(void *src)
 static void rgb_3byte(void *dst, int rgb)
 {
 	uint8_t *scr = dst;
-#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
+#if defined(FB_INVERT_ENDIAN)
 	scr[0] = RED(rgb, 8);
 	scr[1] = GREEN(rgb, 8);
 	scr[2] = BLUE(rgb, 8);
@@ -113,7 +113,7 @@ static void rgb_3byte(void *dst, int rgb)
 static int byte3_rgb(void *src)
 {
 	uint8_t *scr = src;
-#if (defined(BIG_ENDIAN) || defined(FB_BIG_ENDIAN))
+#if defined(FB_INVERT_ENDIAN)
 	return scr[0] << 16 | scr[1] << 8 | scr[2];
 #else
 	return scr[2] << 16 | scr[1] << 8 | scr[0];

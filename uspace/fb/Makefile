@@ -61,7 +61,7 @@ ifeq ($(ARCH), amd64)
 	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), mips32)
-	CFLAGS += -DFB_BIG_ENDIAN
+	CFLAGS += -DFB_INVERT_ENDIAN
 endif
 
 CFLAGS += -D$(ARCH)
