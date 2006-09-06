@@ -164,9 +164,7 @@ fd_t open(const char *fname, int flags)
 
 ssize_t write(int fd, const void *buf, size_t count)
 {
-//	__SYSCALL3(SYS_IO, 1, (sysarg_t)buf, (sysarg_t) count);
-//	return count;
-	if (fd < FDS)
+	if (fd < FDS && streams[fd].w)
 		return streams[fd].w(streams[fd].param, buf, count);
 	
 	return 0;
@@ -174,7 +172,7 @@ ssize_t write(int fd, const void *buf, size_t count)
 
 ssize_t read(int fd, void *buf, size_t count)
 {
-	if (fd < FDS)
+	if (fd < FDS && streams[fd].r)
 		return streams[fd].r(streams[fd].param, buf, count);
 	
 	return 0;
