@@ -34,12 +34,8 @@
 /** @file
  */
 
-#ifndef __ppc32_KBD_H__
-#define __ppc32_KBD_H__
-
-#include <key_buffer.h>
-
-int kbd_arch_init(void);
+#ifndef KBD_ppc32_KBD_H_
+#define KBD_ppc32_KBD_H_
 
 #endif
 

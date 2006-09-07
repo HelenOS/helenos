@@ -53,7 +53,6 @@
 #define KEY_F11 0x7e33325b1b
 #define KEY_F12 0x7e34325b1b
 
-
 #define FUNCTION_KEYS 0x100
 
 irq_cmd_t ski_cmds[1] = {
@@ -90,7 +89,6 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	static int esc_count=0;
 	int scan_code = IPC_GET_ARG2(*call);
 
-
 	/*
 	 * Please preserve this code (it can be used to determine scancodes)
 	 */
@@ -104,7 +102,6 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 		buf |= (unsigned long long) scan_code<<(8*(count++));
 	} else {
 		
-
 		if (buf == 0x1b) {
 			esc_count++;
 			if (esc_count == 3) {
@@ -118,42 +115,42 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 			keybuffer_push(keybuffer, buf);
 		} else {
 			switch (buf) {
-				case KEY_F1:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 1);
-					break;
-				case KEY_F2:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 2);
-					break;
-				case KEY_F3:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 3);
-					break;
-				case KEY_F4:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 4);
-					break;
-				case KEY_F5:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 5);
-					break;
-				case KEY_F6:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 6);
-					break;
-				case KEY_F7:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 7);
-					break;
-				case KEY_F8:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 8);
-					break;
-				case KEY_F9:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 9);
-					break;
-				case KEY_F10:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 10);
-					break;
-				case KEY_F11:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 11);
-					break;
-				case KEY_F12:
-					keybuffer_push(keybuffer, FUNCTION_KEYS | 12);
-					break;
+			case KEY_F1:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 1);
+				break;
+			case KEY_F2:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 2);
+				break;
+			case KEY_F3:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 3);
+				break;
+			case KEY_F4:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 4);
+				break;
+			case KEY_F5:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 5);
+				break;
+			case KEY_F6:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 6);
+				break;
+			case KEY_F7:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 7);
+				break;
+			case KEY_F8:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 8);
+				break;
+			case KEY_F9:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 9);
+				break;
+			case KEY_F10:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 10);
+				break;
+			case KEY_F11:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 11);
+				break;
+			case KEY_F12:
+				keybuffer_push(keybuffer, FUNCTION_KEYS | 12);
+				break;
 			}
 		}
 		buf = count = 0;

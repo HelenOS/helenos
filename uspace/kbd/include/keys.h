@@ -30,9 +30,9 @@
  * @addtogroup kbdgen
  * @{
  */
- /**
-  * @file
-  */
+/**
+ * @file
+ */
 
 #ifndef _KBD_KEYS_H_
 #define _KBD_KEYS_H_

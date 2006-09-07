@@ -36,10 +36,9 @@
  * @ingroup kbdia32
  */
 
-#ifndef __ia32_KBD_H__
-#define __ia32_KBD_H__
+#ifndef KBD_ia32_KBD_H_
+#define KBD_ia32_KBD_H_
 
-#include <key_buffer.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
 
@@ -73,11 +72,8 @@ static inline void i8042_command_write(u8 command)
 	outb(i8042_STATUS, command);
 }
 
-int kbd_arch_init(void);
-
 #endif
 
 /**
  * @}
  */ 
-

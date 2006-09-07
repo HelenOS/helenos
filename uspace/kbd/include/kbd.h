@@ -34,13 +34,14 @@
 /** @file
  */
 
-#ifndef __KBD_H__
-#define __KBD_H__
+#ifndef KBD_KBD_H_
+#define KBD_KBD_H_
 
 #include <key_buffer.h>
 
-int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call);
-int mouse_arch_process(int phoneid, ipc_call_t *call);
+extern int kbd_arch_init(void);
+extern int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call);
+extern int mouse_arch_process(int phoneid, ipc_call_t *call);
 
 #endif
 
