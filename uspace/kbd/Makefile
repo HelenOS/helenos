@@ -49,18 +49,32 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/kbd.c
 
 ifeq ($(ARCH), ia32)
-	ARCH_SOURCES += arch/$(ARCH)/src/mouse.c
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/mouse.c \
+		arch/$(ARCH)/src/scanc.c
+	GENARCH_SOURCES = \
+		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
 ifeq ($(ARCH), amd64)
-	ARCH_SOURCES += arch/$(ARCH)/src/mouse.c
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/mouse.c \
+		arch/$(ARCH)/src/scanc.c
+	GENARCH_SOURCES = \
+		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
-
+ifeq ($(ARCH), sparc64)
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/scanc.c
+	GENARCH_SOURCES = \
+		genarch/src/kbd.c
+endif
 
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
+GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
 .PHONY: all clean depend disasm links
 
@@ -70,15 +84,16 @@ all: links $(OUTPUT) disasm
 
 links:
 	ln -sfn ../arch/$(ARCH)/include include/arch
+	ln -sfn ../genarch/include include/genarch
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch include/genarch
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld -e __entry_driver $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld -e __entry_driver $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm

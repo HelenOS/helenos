@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdsparc64 sparc64
- * @brief	HelenOS sparc64 arch dependent parts of uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbd
  * @{
  */ 
 /** @file
  */
 
-#include <arch/kbd.h>
-#include <ipc/ipc.h>
-#include <sysinfo.h>
-#include <kbd.h>
-#include <keys.h>
-#include <stdio.h>
-#include <types.h>
-#include <genarch/kbd.h>
+#ifndef KBD_genarch_KBD_H_
+#define KBD_genarch_KBD_H_
 
-#define KBD_KEY_RELEASE		0x80
-#define KBD_ALL_KEYS_UP		0x7f
+#include <key_buffer.h>
 
-irq_cmd_t z8530_cmds[] = {
-	{ CMD_MEM_READ_1, 0, 0, 1 }
-};
-	
-irq_code_t z8530_kbd = {
-	1,
-	z8530_cmds
-};
+extern void key_released(keybuffer_t *keybuffer, unsigned char key);
+extern void key_pressed(keybuffer_t *keybuffer, unsigned char key);
 
-int kbd_arch_init(void)
-{
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
-	ipc_register_irq(sysinfo_value("kbd.irq"), &z8530_kbd);
-	return 0;
-}
+#endif
 
-/** Process keyboard events */
-int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
-{
-	int scan_code = IPC_GET_ARG1(*call);
-
-	if (scan_code == KBD_ALL_KEYS_UP)
-		return 1;
-		
-	if (scan_code & KBD_KEY_RELEASE)
-		key_released(keybuffer, scan_code ^ KBD_KEY_RELEASE);
-	else
-		key_pressed(keybuffer, scan_code);
-
-	return 1;
-}
-
-/** @}
- */
+/**
+ * @}
+ */ 

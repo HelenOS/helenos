@@ -34,12 +34,8 @@
 /** @file
  */
 
-#ifndef __sparc64_KBD_H__
-#define __sparc64_KBD_H__
-
-#include <key_buffer.h>
-
-int kbd_arch_init(void);
+#ifndef KBD_sparc64_KBD_H_
+#define KBD_sparc64_KBD_H_
 
 #endif
 
