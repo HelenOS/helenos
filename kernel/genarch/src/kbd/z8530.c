@@ -41,6 +41,7 @@
 #include <arch/drivers/fhc.h>
 #include <arch/drivers/z8530.h>
 #include <arch/interrupt.h>
+#include <arch/drivers/kbd.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -48,11 +49,15 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
+#include <sysinfo/sysinfo.h>
+#include <print.h>
 
 /*
  * These codes read from z8530 data register are silently ignored.
  */
 #define IGNORE_CODE	0x7f		/* all keys up */
+
+bool z8530_belongs_to_kernel = true;
 
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
@@ -69,11 +74,13 @@ void z8530_wait(void);
 /** Initialize keyboard and service interrupts using kernel routine */
 void z8530_grab(void)
 {
+	z8530_belongs_to_kernel = true;
 }
 
 /** Resume the former interrupt vector */
 void z8530_release(void)
 {
+	z8530_belongs_to_kernel = false;
 }
 
 /** Initialize z8530. */
@@ -82,14 +89,24 @@ void z8530_init(void)
 	chardev_initialize("z8530_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.irq", NULL, 0);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) kbd_virt_address);
+
 	(void) z8530_read_a(RR8);
 
-	z8530_write_a(WR1, WR1_IARCSC);	/* interrupt on all characters */
+	/*
+	 * Clear any pending TX interrupts or we never manage
+	 * to set FHC UART interrupt state to idle.
+	 */
+	z8530_write_a(WR0, WR0_TX_IP_RST);
+
+	z8530_write_a(WR1, WR1_IARCSC);		/* interrupt on all characters */
 
 	/* 8 bits per character and enable receiver */
 	z8530_write_a(WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
-	z8530_write_a(WR9, WR9_MIE);	/* Master Interrupt Enable. */
+	z8530_write_a(WR9, WR9_MIE);		/* Master Interrupt Enable. */
 	
 	/*
 	 * We need to initialize the FireHose Controller,

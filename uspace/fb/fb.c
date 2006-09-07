@@ -70,12 +70,13 @@ typedef void (*conv2scr_fn_t)(void *, int);
 typedef int (*conv2rgb_fn_t)(void *);
 
 struct {
-	uint8_t *fbaddress ;
+	uint8_t *fbaddress;
 
-	unsigned int xres ;
-	unsigned int yres ;
-	unsigned int scanline ;
-	unsigned int pixelbytes ;
+	unsigned int xres;
+	unsigned int yres;
+	unsigned int scanline;
+	unsigned int pixelbytes;
+	unsigned int invert_colors;
 
 	conv2scr_fn_t rgb2scr;
 	conv2rgb_fn_t scr2rgb;
@@ -140,6 +141,11 @@ static int client_connected = 0;
 
 #define POINTPOS(x, y)	((y) * screen.scanline + (x) * screen.pixelbytes)
 
+static inline int COLOR(int color)
+{
+	return screen.invert_colors ? ~color : color;
+}
+
 /* Conversion routines between different color representations */
 static void rgb_4byte(void *dst, int rgb)
 {
@@ -163,8 +169,6 @@ static void rgb_3byte(void *dst, int rgb)
 	scr[1] = GREEN(rgb, 8);
 	scr[0] = BLUE(rgb, 8);
 #endif
-
-
 }
 
 static int byte3_rgb(void *src)
@@ -217,12 +221,12 @@ static void putpixel(viewport_t *vport, unsigned int x, unsigned int y, int colo
 	int dy = vport->y + y;
 
 	if (! (vport->paused && vport->dbdata))
-		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],color);
+		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)], COLOR(color));
 
 	if (vport->dbdata) {
 		int dline = (y + vport->dboffset) % vport->height;
 		int doffset = screen.pixelbytes * (dline * vport->width + x);
-		(*screen.rgb2scr)(&vport->dbdata[doffset],color);
+		(*screen.rgb2scr)(&vport->dbdata[doffset], COLOR(color));
 	}
 }
 
@@ -232,13 +236,13 @@ static int getpixel(viewport_t *vport, unsigned int x, unsigned int y)
 	int dx = vport->x + x;
 	int dy = vport->y + y;
 
-	return (*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]);
+	return COLOR((*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]));
 }
 
 static inline void putpixel_mem(char *mem, unsigned int x, unsigned int y, 
 				int color)
 {
-	(*screen.rgb2scr)(&mem[POINTPOS(x,y)],color);
+	(*screen.rgb2scr)(&mem[POINTPOS(x,y)], COLOR(color));
 }
 
 static void draw_rectangle(viewport_t *vport, unsigned int sx, unsigned int sy,
@@ -454,10 +458,12 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
  * @param bpp  Bits per pixel (8, 16, 24, 32)
  * @param scan Bytes per one scanline
  * @param align Alignment for 24bpp mode.
+ * @param invert_colors Inverted colors.
  *
  */
 static void
-screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, unsigned int scan, int align)
+screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, unsigned int scan,
+	int align, int invert_colors)
 {
 	switch (bpp) {
 		case 8:
@@ -490,6 +496,7 @@ screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, 
 	screen.xres = xres;
 	screen.yres = yres;
 	screen.scanline = scan;
+	screen.invert_colors = invert_colors;
 	
 	/* Create first viewport */
 	viewport_create(0,0,xres,yres);
@@ -593,7 +600,7 @@ static void putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
 	pixmap_t *pmap = &pixmaps[pm];
 	int pos = (y * pmap->width + x) * screen.pixelbytes;
 
-	(*screen.rgb2scr)(&pmap->data[pos],color);
+	(*screen.rgb2scr)(&pmap->data[pos],COLOR(color));
 }
 
 /** Create a new pixmap and return appropriate ID */
@@ -1223,6 +1230,7 @@ int fb_init(void)
 	unsigned int fb_bpp;
 	unsigned int fb_bpp_align;
 	unsigned int fb_scanline;
+	unsigned int fb_invert_colors;
 	void *fb_addr;
 	size_t asz;
 
@@ -1234,6 +1242,7 @@ int fb_init(void)
 	fb_bpp=sysinfo_value("fb.bpp");
 	fb_bpp_align=sysinfo_value("fb.bpp-align");
 	fb_scanline=sysinfo_value("fb.scanline");
+	fb_invert_colors=sysinfo_value("fb.invert-colors");
 
 	asz = fb_scanline*fb_height;
 	fb_addr = as_get_mappable_page(asz);
@@ -1241,7 +1250,7 @@ int fb_init(void)
 	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz,PAGE_SIZE) >>PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	
-	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align);
+	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);
 
 	return 0;
 }

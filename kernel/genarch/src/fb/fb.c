@@ -60,11 +60,15 @@ static unsigned int yres = 0;
 static unsigned int scanline = 0;
 static unsigned int bitspp = 0;
 static unsigned int pixelbytes = 0;
+#ifdef FB_INVERT_COLORS
+static bool invert_colors = true;
+#else
+static bool invert_colors = false;
+#endif
 
 static unsigned int position = 0;
 static unsigned int columns = 0;
 static unsigned int rows = 0;
-
 
 #define COL_WIDTH	8
 #define ROW_BYTES	(scanline * FONT_SCANLINES)
@@ -84,6 +88,11 @@ static unsigned int rows = 0;
 
 static void (*rgb2scr)(void *, int);
 static int (*scr2rgb)(void *);
+
+static inline int COLOR(int color)
+{
+	return invert_colors ? ~color : color;
+}
 
 /* Conversion routines between different color representations */
 static void rgb_4byte(void *dst, int rgb)
@@ -159,11 +168,11 @@ static int byte1_rgb(void *src)
 
 static void putpixel(unsigned int x, unsigned int y, int color)
 {
-	(*rgb2scr)(&fbaddress[POINTPOS(x,y)],color);
+	(*rgb2scr)(&fbaddress[POINTPOS(x,y)], COLOR(color));
 
 	if (dbbuffer) {
 		int dline = (y + dboffset) % yres;
-		(*rgb2scr)(&dbbuffer[POINTPOS(x,dline)],color);
+		(*rgb2scr)(&dbbuffer[POINTPOS(x,dline)], COLOR(color));
 	}
 }
 
@@ -172,9 +181,9 @@ static int getpixel(unsigned int x, unsigned int y)
 {
 	if (dbbuffer) {
 		int dline = (y + dboffset) % yres;
-		return (*scr2rgb)(&dbbuffer[POINTPOS(x,dline)]);
+		return COLOR((*scr2rgb)(&dbbuffer[POINTPOS(x,dline)]));
 	}
-	return (*scr2rgb)(&fbaddress[POINTPOS(x,y)]);
+	return COLOR((*scr2rgb)(&fbaddress[POINTPOS(x,y)]));
 }
 
 
@@ -274,7 +283,7 @@ static void draw_logo(unsigned int startx, unsigned int starty)
 			byte = helenos_bits[rowbytes * y + x / 8];
 			byte >>= x % 8;
 			if (byte & 1)
-				putpixel(startx + x, starty + y, LOGOCOLOR);
+				putpixel(startx + x, starty + y, COLOR(LOGOCOLOR));
 		}
 }
 
@@ -397,6 +406,7 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("fb.bpp-align", NULL, align);
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
+	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */
 	int totsize = scanline * yres;
@@ -416,9 +426,11 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	blankline = (uint8_t *) malloc(ROW_BYTES, FRAME_ATOMIC);
 	if (!blankline)
 		panic("Failed to allocate blank line for framebuffer.");
-	for (y=0; y < FONT_SCANLINES; y++)
-		for (x=0; x < xres; x++)
-			(*rgb2scr)(&blankline[POINTPOS(x,y)],BGCOLOR);
+	for (y=0; y < FONT_SCANLINES; y++) {
+		for (x=0; x < xres; x++) {
+			(*rgb2scr)(&blankline[POINTPOS(x,y)], COLOR(BGCOLOR));
+		}
+	}
 
 	clear_screen();
 

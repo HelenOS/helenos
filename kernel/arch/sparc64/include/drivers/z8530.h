@@ -71,6 +71,7 @@
 #define RR15	15
 
 /* Write Register 0 */
+#define WR0_TX_IP_RST	(0x5<<3)	/** Reset pending TX interrupt. */
 #define WR0_ERR_RST	(0x6<<3)
 
 /* Write Register 1 */

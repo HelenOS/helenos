@@ -42,7 +42,7 @@
 #include <ipc/sysipc.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-
+#include <print.h>
 #include <genarch/kbd/z8530.h>
 
 /** Register Interrupt Level Handler.
@@ -61,7 +61,9 @@ void interrupt_register(int n, const char *name, iroutine f)
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(unative_t irq)
 {
-	/* TODO */
+#ifdef CONFIG_Z8530
+	z8530_belongs_to_kernel = false;
+#endif
 }
 
 void interrupt(int n, istate_t *istate)
@@ -82,9 +84,14 @@ void interrupt(int n, istate_t *istate)
 		 * we cannot handle it by scheduling one of the level
 		 * interrupt traps. Call the interrupt handler directly.
 		 */
+
+		if (z8530_belongs_to_kernel)
+			z8530_interrupt();
+		else
+			ipc_irq_send_notif(0);
 		fhc_uart_reset();
-		z8530_interrupt();
 		break;
+
 #endif
 	}
 

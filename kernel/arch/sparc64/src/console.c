@@ -93,5 +93,24 @@ void kkbdpoll(void *arg)
 	}
 }
 
+/** Acquire console back for kernel
+ *
+ */
+void arch_grab_console(void)
+{
+#ifdef CONFIG_Z8530
+	z8530_grab();
+#endif
+}
+
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
+#ifdef CONFIG_Z8530
+	z8530_release();
+#endif
+}
 /** @}
  */

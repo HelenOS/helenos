@@ -57,17 +57,12 @@ void fhc_init(void)
 {
 	fhc = (void *) hw_map(FHC_UART_ADDR, PAGE_SIZE);
 
-	(void) fhc[FHC_UART_ICLR];
 	fhc[FHC_UART_ICLR] = 0;
-	(void) fhc[FHC_UART_IMAP];
-	fhc[FHC_UART_IMAP] = Z8530_INTRCV_DATA0;	/* hardcoded for Simics simulation */
-	(void) fhc[FHC_UART_IMAP];
-	fhc[FHC_UART_IMAP] = 0x80000000;		/* hardcoded for Simics simulation */
+	fhc[FHC_UART_IMAP] = 0x80000000;
 }
 
 void fhc_uart_reset(void)
 {
-	(void) fhc[FHC_UART_ICLR];
 	fhc[FHC_UART_ICLR] = 0;
 }
 

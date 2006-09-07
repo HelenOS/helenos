@@ -55,6 +55,7 @@
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <console/console.h>
+#include <print.h>
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -67,7 +68,7 @@ typedef struct {
 static ipc_irq_t *irq_conns = NULL;
 static int irq_conns_size;
 
-#include <print.h>
+
 /* Execute code associated with IRQ notification */
 static void code_execute(call_t *call, irq_code_t *code)
 {

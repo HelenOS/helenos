@@ -37,7 +37,11 @@
 #ifndef KERN_Z8530_H_
 #define KERN_Z8530_H_
 
+#include <typedefs.h>
+
 #define Z8530_INTRCV_DATA0	0x39	/* hardcoded for use in Simics */
+
+extern bool z8530_belongs_to_kernel;
 
 extern void z8530_init(void);
 extern void z8530_poll(void);

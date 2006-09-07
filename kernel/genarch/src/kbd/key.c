@@ -67,18 +67,18 @@ void key_released(uint8_t sc)
 {
 	spinlock_lock(&keylock);
 	switch (sc) {
-	    case SC_LSHIFT:
-	    case SC_RSHIFT:
+	case SC_LSHIFT:
+	case SC_RSHIFT:
 		keyflags &= ~PRESSED_SHIFT;
 		break;
-	    case SC_CAPSLOCK:
+	case SC_CAPSLOCK:
 		keyflags &= ~PRESSED_CAPSLOCK;
 		if (lockflags & LOCKED_CAPSLOCK)
 			lockflags &= ~LOCKED_CAPSLOCK;
 		else
 			lockflags |= LOCKED_CAPSLOCK;
 		break;
-	    default:
+	default:
 		break;
 	}
 	spinlock_unlock(&keylock);

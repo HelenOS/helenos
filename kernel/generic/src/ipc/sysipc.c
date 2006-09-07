@@ -47,6 +47,7 @@
 #include <syscall/copy.h>
 #include <security/cap.h>
 #include <mm/as.h>
+#include <print.h>
 
 #define GET_CHECK_PHONE(phone,phoneid,err) { \
       if (phoneid > IPC_MAX_PHONES) { err; } \

@@ -93,19 +93,6 @@ void calibrate_delay_loop(void)
 {
 }
 
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-}
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
-}
-
 /** Switch to userspace. */
 void userspace(uspace_arg_t *kernel_uarg)
 {
