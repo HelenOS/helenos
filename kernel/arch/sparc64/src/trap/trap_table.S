@@ -585,15 +585,28 @@ fill_0_normal_tl1:
 	cmp %g3, 1
 	be 1f
 	nop
-0:	ba 0b					! this for debugging, if we ever get here
+0:	ba 0b					! this is for debugging, if we ever get here
 	nop					! it will be easy to find
 
 1:
 .if NOT(\is_syscall)
 	rdpr %tstate, %g3
+	
+	/*
+	 * One of the ways this handler can be invoked is after a nested MMU trap from
+	 * either spill_1_normal or fill_1_normal traps. Both of these traps manipulate
+	 * the CWP register. We deal with the situation by simulating the MMU trap
+	 * on TL=1 and restart the respective SAVE or RESTORE instruction once the MMU
+	 * trap is resolved. However, because we are in the wrong window from the
+	 * perspective of the MMU trap, we need to synchronize CWP with CWP from TL=0.
+	 */ 
+	and %g3, TSTATE_CWP_MASK, %g4
+	wrpr %g4, 0, %cwp			! resynchronize CWP
+
 	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
 	bnz 0f					! ...skip setting of kernel stack and primary context
 	nop
+	
 .endif
 	/*
 	 * Normal window spills will go to the userspace window buffer.
@@ -885,7 +898,7 @@ fill_0_normal_tl1:
 	 *	CANSAVE 	= 0
 	 *	OTHERWIN	= 0
 	 *
-	 * The RESTORE isntruction is therfore to be skipped.
+	 * The RESTORE instruction is therfore to be skipped.
 	 */
 2:
 	wrpr %g0, 0, %otherwin
