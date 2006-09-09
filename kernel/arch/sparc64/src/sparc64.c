@@ -98,7 +98,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
 		((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
-		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
+		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS + STACK_WINDOW_SAVE_AREA_SIZE),
 		(uintptr_t) kernel_uarg->uspace_uarg);
 
 	for (;;)
