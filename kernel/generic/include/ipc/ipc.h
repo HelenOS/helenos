@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __IPC_H__
-#define __IPC_H__
+#ifndef KERN_IPC_H_
+#define KERN_IPC_H_
 
 /* Length of data being transfered with IPC call */
 /* - the uspace may not be able to utilize full length */
@@ -189,7 +189,7 @@ typedef enum {
 	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
 	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
 	IPC_PHONE_CONNECTED,    /**< Phone is connected */
-	IPC_PHONE_HUNGUP,  /**< Phone is hung up, waiting for answers to come */
+	IPC_PHONE_HUNGUP,  	/**< Phone is hung up, waiting for answers to come */
 	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
 } ipc_phone_state_t;
 
@@ -243,6 +243,5 @@ extern answerbox_t *ipc_phone_0;
 
 #endif
 
- /** @}
+/** @}
  */
-

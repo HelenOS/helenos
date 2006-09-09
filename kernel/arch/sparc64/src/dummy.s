@@ -30,11 +30,6 @@
 
 .global asm_delay_loop
 .global cpu_sleep
-.global fmath_dpow
-.global fmath_fint
-.global fmath_get_decimal_exponent
-.global fmath_is_infinity
-.global fmath_is_nan
 .global fpu_context_restore
 .global fpu_context_save
 .global fpu_enable
@@ -45,11 +40,6 @@
 
 asm_delay_loop:
 cpu_sleep:
-fmath_dpow:
-fmath_fint:
-fmath_get_decimal_exponent:
-fmath_is_infinity:
-fmath_is_nan:
 fpu_context_restore:
 fpu_context_save:
 fpu_enable:

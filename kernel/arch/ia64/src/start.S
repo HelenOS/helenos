@@ -123,8 +123,7 @@ paging_start:
 	st8 [r18] = r15
 	st8 [r19] = r16
 
-
-	ssm (1<<19);; /*Disable f32 - f127*/
+	ssm (1<<19);; /* Disable f32 - f127 */
 	srlz.i;
 	srlz.d;;
 

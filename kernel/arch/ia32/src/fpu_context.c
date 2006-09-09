@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -39,9 +39,7 @@
 
 typedef void (*fpu_context_function)(fpu_context_t *fctx);
 
-static fpu_context_function fpu_save,fpu_restore;
-
-
+static fpu_context_function fpu_save, fpu_restore;
 
 static void fpu_context_f_save(fpu_context_t *fctx)
 {
@@ -88,11 +86,9 @@ void fpu_fxsr(void)
 */
 void fpu_fsr(void)
 {
-	fpu_save=fpu_context_f_save;
-	fpu_restore=fpu_context_f_restore;
+	fpu_save = fpu_context_f_save;
+	fpu_restore = fpu_context_f_restore;
 }
-
-
 
 void fpu_context_save(fpu_context_t *fctx)
 {
@@ -104,11 +100,9 @@ void fpu_context_restore(fpu_context_t *fctx)
 	fpu_restore(fctx);
 }
 
-
-
 void fpu_init()
 {
-	uint32_t help0=0,help1=0;
+	uint32_t help0 = 0, help1 = 0;
 	__asm__ volatile (
 		"fninit;\n"
 		"stmxcsr %0\n"
@@ -116,11 +110,10 @@ void fpu_init()
 		"or %2,%1;\n"
 		"mov %1,%0;\n"
 		"ldmxcsr %0;\n"
-		:"+m"(help0),"+r"(help1)
-		:"i"(0x1f80)
+		: "+m" (help0), "+r" (help1)
+		: "i" (0x1f80)
 	);
 }
 
- /** @}
+/** @}
  */
-
