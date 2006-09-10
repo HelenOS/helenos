@@ -650,7 +650,6 @@ fill_0_normal_tl1:
 .if NOT(\is_syscall)
 	ba 1f
 	nop
-
 0:
 	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
 
@@ -781,7 +780,7 @@ fill_0_normal_tl1:
 
 	/*
 	 * OTHERWIN != 0 or fall-through from the OTHERWIN == 0 case.
-	 * The CWP has already been restored to the value it had prior to the SAVE
+	 * The CWP has already been restored to the value it had after the SAVE
 	 * at the beginning of this function.
 	 */
 0:

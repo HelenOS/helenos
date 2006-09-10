@@ -43,8 +43,7 @@ SECTIONS {
 	}
 	
 	/DISCARD/ : {
-		*(.comment);
-		*(.note*);
+		*(*);
 	}
 
 }

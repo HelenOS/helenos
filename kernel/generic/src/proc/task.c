@@ -67,7 +67,7 @@ SPINLOCK_INITIALIZE(tasks_lock);
  * The task is guaranteed to exist after it was found in the tasks_btree as long as:
  * @li the tasks_lock is held,
  * @li the task's lock is held when task's lock is acquired before releasing tasks_lock or
- * @li the task's refcount is grater than 0
+ * @li the task's refcount is greater than 0
  *
  */
 btree_t tasks_btree;
@@ -435,7 +435,7 @@ loop:
 	 * Now there are no other threads in this task
 	 * and no new threads can be created.
 	 */
-	
+
 	ipc_cleanup();
 	futex_cleanup();
 	klog_printf("Cleanup of task %lld completed.", TASK->taskid);

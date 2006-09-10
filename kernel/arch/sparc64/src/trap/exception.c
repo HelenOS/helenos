@@ -39,68 +39,86 @@
 #include <arch/asm.h>
 #include <debug.h>
 #include <typedefs.h>
+#include <symtab.h>
+#include <print.h>
+
+void dump_istate(istate_t *istate)
+{
+	printf("TSTATE=%#llx\n", istate->tstate);
+	printf("TPC=%#llx (%s)\n", istate->tpc, get_symtab_entry(istate->tpc));
+	printf("TNPC=%#llx (%s)\n", istate->tnpc, get_symtab_entry(istate->tnpc));
+}
 
 /** Handle instruction_access_exception. (0x8) */
 void instruction_access_exception(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle instruction_access_error. (0xa) */
 void instruction_access_error(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle illegal_instruction. (0x10) */
 void illegal_instruction(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle privileged_opcode. (0x11) */
 void privileged_opcode(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle division_by_zero. (0x28) */
 void division_by_zero(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle data_access_exception. (0x30) */
 void data_access_exception(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s from %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle data_access_error. (0x32) */
 void data_access_error(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s from %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle mem_address_not_aligned. (0x34) */
 void mem_address_not_aligned(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s from %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle privileged_action. (0x37) */
 void privileged_action(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
-	panic("%s at %p.\n", __FUNCTION__, istate->tpc);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** @}

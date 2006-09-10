@@ -222,7 +222,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
-	__asm__ volatile ("and %%sp, %1, %0\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	__asm__ volatile ("andn %%sp, %1, %0\n" : "=r" (v) : "r" (STACK_SIZE-1));
 	
 	return v;
 }

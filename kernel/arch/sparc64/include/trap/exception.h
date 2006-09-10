@@ -50,6 +50,8 @@
 
 #include <typedefs.h>
 
+extern void dump_istate(istate_t *istate);
+
 extern void instruction_access_exception(int n, istate_t *istate);
 extern void instruction_access_error(int n, istate_t *istate);
 extern void illegal_instruction(int n, istate_t *istate);

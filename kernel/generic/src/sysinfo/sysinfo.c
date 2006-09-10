@@ -78,31 +78,31 @@ static sysinfo_item_t *sysinfo_create_path(const char *name, sysinfo_item_t **ps
 	subtree = *psubtree;
 	
 	if (subtree == NULL) {
-			sysinfo_item_t *item = malloc(sizeof(sysinfo_item_t), 0);
-			int i = 0, j;
+		sysinfo_item_t *item = malloc(sizeof(sysinfo_item_t), 0);
+		int i = 0, j;
 			
-			ASSERT(item);
-			*psubtree = item;
-			item->next = NULL;
-			item->val_type = SYSINFO_VAL_UNDEFINED;
-			item->subinfo.table = NULL;
+		ASSERT(item);
+		*psubtree = item;
+		item->next = NULL;
+		item->val_type = SYSINFO_VAL_UNDEFINED;
+		item->subinfo.table = NULL;
 
-			while (name[i] && (name[i] != '.'))
-				i++;
+		while (name[i] && (name[i] != '.'))
+			i++;
 			
-			item->name = malloc(i, 0);
-			ASSERT(item->name);
+		item->name = malloc(i, 0);
+		ASSERT(item->name);
 
-			for (j = 0; j < i; j++)
-				item->name[j] = name[j];
-			item->name[j] = 0;
+		for (j = 0; j < i; j++)
+			item->name[j] = name[j];
+		item->name[j] = 0;
 			
-			if (name[i]) { /* =='.' */
-				item->subinfo_type = SYSINFO_SUBINFO_TABLE;
-				return sysinfo_create_path(name + i + 1, &(item->subinfo.table));
-			}
-			item->subinfo_type = SYSINFO_SUBINFO_NONE;
-			return item;
+		if (name[i]) { /* =='.' */
+			item->subinfo_type = SYSINFO_SUBINFO_TABLE;
+			return sysinfo_create_path(name + i + 1, &(item->subinfo.table));
+		}
+		item->subinfo_type = SYSINFO_SUBINFO_NONE;
+		return item;
 	}
 
 	while (subtree != NULL) {

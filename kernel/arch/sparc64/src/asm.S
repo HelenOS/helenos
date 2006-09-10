@@ -227,23 +227,17 @@ memsetb:
 
 
 .macro WRITE_ALTERNATE_REGISTER reg, bit
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	rdpr %pstate, %l0
-	wrpr %l0, \bit, %pstate
-	mov %i0, \reg
-	wrpr %l0, 0, %pstate
-	ret
-	restore
+	wrpr %g0, (\bit | PSTATE_PRIV_BIT), %pstate
+	mov %o0, \reg
+	retl
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate
 .endm
 
 .macro READ_ALTERNATE_REGISTER reg, bit
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	rdpr %pstate, %l0
-	wrpr %l0, \bit, %pstate
-	mov \reg, %i0
-	wrpr %l0, 0, %pstate
-	ret
-	restore
+	wrpr %g0, (\bit | PSTATE_PRIV_BIT), %pstate
+	mov \reg, %o0
+	retl
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate
 .endm
 
 .global write_to_ag_g6
@@ -305,3 +299,4 @@ switch_to_userspace:
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
 	
 	done				! jump to userspace
+

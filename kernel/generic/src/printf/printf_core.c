@@ -392,7 +392,7 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  *
  * FLAGS:@n
  * 	- "#" Force to print prefix.
- * 	For conversion \%o the prefix is 0, for %x and \%X prefixes are 0x and 0X
+ * 	For conversion \%o the prefix is 0, for \%x and \%X prefixes are 0x and 0X
  *	and for conversion \%b the prefix is 0b.
  *
  * 	- "-"	Align to left.

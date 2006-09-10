@@ -83,7 +83,7 @@ typedef struct {
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
 
-static void get_as(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
+static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
 {
 	void *ph_addr;
 
@@ -116,10 +116,10 @@ int main(int argc, char **argv)
 		case IPC_M_AS_AREA_RECV:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:
-				get_as(callid, &call, "clock.faddr", &clockaddr);
+				get_as_area(callid, &call, "clock.faddr", &clockaddr);
 				break;
 			case SERVICE_MEM_KLOG:
-				get_as(callid, &call, "klog.faddr", &klogaddr);
+				get_as_area(callid, &call, "klog.faddr", &klogaddr);
 				break;
 			default:
 				ipc_answer_fast(callid, ENOENT, 0, 0);

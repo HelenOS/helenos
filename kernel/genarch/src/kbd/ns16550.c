@@ -47,6 +47,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
+#include <sysinfo/sysinfo.h>
 
 #define LSR_DATA_READY	0x01
 
@@ -86,6 +87,10 @@ void ns16550_init(void)
 	ns16550_grab();
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
+	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.irq", NULL, 0);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) kbd_virt_address);
 }
 
 /** Process ns16550 interrupt.

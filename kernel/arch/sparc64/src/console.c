@@ -53,6 +53,7 @@
 #include <proc/thread.h>
 #include <arch/mm/tlb.h>
 #include <arch/boot/boot.h>
+#include <arch.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 
@@ -79,6 +80,8 @@ void standalone_sparc64_console_init(void)
  */
 void kkbdpoll(void *arg)
 {
+	thread_detach(THREAD);
+
 	if (!bootinfo.keyboard.addr)
 		return;
 		

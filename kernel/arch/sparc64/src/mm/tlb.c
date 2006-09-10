@@ -47,9 +47,9 @@
 #include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>
+#include <arch/trap/exception.h>
 #include <panic.h>
 #include <arch/asm.h>
-#include <symtab.h>
 
 static void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *t);
@@ -307,36 +307,32 @@ void tlb_print(void)
 
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str)
 {
-	char *tpc_str = get_symtab_entry(istate->tpc);
-
 	fault_if_from_uspace(istate, "%s\n", str);
-	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
+	dump_istate(istate);
 	panic("%s\n", str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
 {
 	uintptr_t va;
-	char *tpc_str = get_symtab_entry(istate->tpc);
 
 	va = tag.vpn << PAGE_WIDTH;
 
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
+	dump_istate(istate);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
-	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
 	panic("%s\n", str);
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
 {
 	uintptr_t va;
-	char *tpc_str = get_symtab_entry(istate->tpc);
 
 	va = tag.vpn << PAGE_WIDTH;
 
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
-	printf("TPC=%p, (%s)\n", istate->tpc, tpc_str);
+	dump_istate(istate);
 	panic("%s\n", str);
 }
 

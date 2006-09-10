@@ -76,15 +76,15 @@ kernel_image_start:
 	 */
 	mov %o1, %o2
 	mov %o0, %o1
-	set bootinfo, %o0
+	sethi %hi(bootinfo), %o0
 	call memcpy
-	nop
+	or %o0, %lo(bootinfo), %o0
 
 	/*
 	 * Switch to kernel trap table.
 	 */
-	set trap_table, %g1
-	wrpr %g1, 0, %tba
+	sethi %hi(trap_table), %g1
+	wrpr %g1, %lo(trap_table), %tba
 
 	/* 
 	 * Take over the DMMU by installing global locked
@@ -120,7 +120,7 @@ kernel_image_start:
 	set PAGESIZE_4M, %r2; \
 	sllx %r2, TTE_SIZE_SHIFT, %r2; \
 	or %r1, %r2, %r1; \
-	set 1, %r2; \
+	mov 1, %r2; \
 	sllx %r2, TTE_V_SHIFT, %r2; \
 	or %r1, %r2, %r1;
 	
@@ -172,7 +172,7 @@ kernel_image_start:
 	
 	! write ITLB tag of context 1
 	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
-	set VA_DMMU_TAG_ACCESS, %g2
+	mov VA_DMMU_TAG_ACCESS, %g2
 	stxa %g1, [%g2] ASI_IMMU
 	flush %g5
 
@@ -182,7 +182,7 @@ kernel_image_start:
 	flush %g5
 	
 	! switch to context 1
-	set MEM_CONTEXT_TEMP, %g1
+	mov MEM_CONTEXT_TEMP, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
 	flush %g5
 	
@@ -193,7 +193,7 @@ kernel_image_start:
 	
 	! write ITLB tag of context 0
 	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
-	set VA_DMMU_TAG_ACCESS, %g2
+	mov VA_DMMU_TAG_ACCESS, %g2
 	stxa %g1, [%g2] ASI_IMMU
 	flush %g5
 
@@ -210,7 +210,7 @@ kernel_image_start:
 	wrpr %g0, 1, %tl
 
 	! set context 1 in the primary context register
-	set MEM_CONTEXT_TEMP, %g1
+	mov MEM_CONTEXT_TEMP, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
 	flush %g5
 
