@@ -90,12 +90,22 @@ typedef struct {
 
 extern uintptr_t ofw_cif;
 
+
+extern phandle ofw_chosen;
+extern ihandle ofw_stdout;
+extern phandle ofw_root;
+extern ihandle ofw_mmu;
+extern phandle ofw_memory;
 extern phandle ofw_aliases;
 
 extern void ofw_init(void);
+
 extern void ofw_write(const char *str, const int len);
 
 extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
+
+extern phandle ofw_get_child_node(const phandle node);
+extern phandle ofw_get_peer_node(const phandle node);
 extern phandle ofw_find_device(const char *name);
 
 extern int ofw(ofw_args_t *arg);

@@ -60,15 +60,13 @@ kernel_image_start:
 	 * Setup basic runtime environment.
 	 */
 
-	flushw				! flush all but the active register window
-	wrpr %g0, 0, %tl		! TL = 0, primary context register is used
+	flushw					! flush all but the active register window
 
-	! Disable interrupts and disable 32-bit address masking.
-	rdpr %pstate, %g1
-	and %g1, ~(PSTATE_AM_BIT|PSTATE_IE_BIT), %g1
-	wrpr %g1, 0, %pstate
+	wrpr %g0, 0, %tl			! TL = 0, primary context register is used
 
-	wrpr %g0, 0, %pil		! intialize %pil
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate	! Disable interrupts and disable 32-bit address masking.
+
+	wrpr %g0, 0, %pil			! intialize %pil
 
 	/*
 	 * Copy the bootinfo structure passed from the boot loader

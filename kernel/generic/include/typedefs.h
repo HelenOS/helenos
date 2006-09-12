@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TYPEDEFS_H__
-#define __TYPEDEFS_H__
+#ifndef KERN_TYPEDEFS_H_
+#define KERN_TYPEDEFS_H_
 
 #define false 0
 #define true 1

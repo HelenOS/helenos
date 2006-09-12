@@ -145,6 +145,15 @@ unsigned int ofw_get_size_cells(const phandle device)
 	return ret;
 }
 
+phandle ofw_get_child_node(const phandle node)
+{
+	return ofw_call("child", 1, 1, NULL, node);
+}
+
+phandle ofw_get_peer_node(const phandle node)
+{
+	return ofw_call("peer", 1, 1, NULL, node);
+}
 
 static ihandle ofw_open(const char *name)
 {

@@ -35,10 +35,12 @@
 #ifndef KERN_sparc64_ASM_H_
 #define KERN_sparc64_ASM_H_
 
+#include <arch.h>
 #include <typedefs.h>
 #include <arch/types.h>
 #include <arch/register.h>
 #include <config.h>
+#include <time/clock.h>
 
 /** Read Processor State register.
  *
@@ -335,7 +337,7 @@ static inline void nucleus_leave(void)
 
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
-extern void asm_delay_loop(uint32_t t);
+extern void asm_delay_loop(const uint32_t usec);
 
 extern uint64_t read_from_ag_g7(void);
 extern void write_to_ag_g6(uint64_t val);

@@ -66,6 +66,11 @@ extern void asm_delay_loop(uint32_t t);
 extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
 			  uintptr_t entry);
 
+extern ipl_t interrupts_disable(void);
+extern ipl_t interrupts_enable(void);
+extern void interrupts_restore(ipl_t ipl);
+extern ipl_t interrupts_read(void);
+
 #endif
 
 /** @}

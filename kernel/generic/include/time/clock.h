@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __CLOCK_H__
-#define __CLOCK_H__
+#ifndef KERN_CLOCK_H_
+#define KERN_CLOCK_H_
 
 #define HZ		100
 

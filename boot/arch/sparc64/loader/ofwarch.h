@@ -29,9 +29,13 @@
 #ifndef BOOT_sparc64_OFWARCH_H_
 #define BOOT_sparc64_OFWARCH_H_
 
+#include "main.h"
+
 #define OFW_ADDRESS_CELLS	2
 #define OFW_SIZE_CELLS		2
 
 extern int bpp2align[];
+
+extern int ofw_cpu(cpu_t *cpu);
 
 #endif

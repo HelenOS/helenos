@@ -51,6 +51,7 @@ CFLAGS = -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-buil
 SOURCES = \
 	main.c \
 	../../../generic/printf.c \
+	../../../generic/string.c \
 	../../../genarch/ofw.c \
 	ofwarch.c \
 	asm.S \

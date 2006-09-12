@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32interrupt
+/** @addtogroup mips32interrupt
  * @{
  */
 /** @file
@@ -141,6 +141,6 @@ void irq_ipc_bind_arch(unative_t irq)
 	int_register(irq, "ipc_int", ipc_int);
 }
 
- /** @}
+/** @}
  */
 

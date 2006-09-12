@@ -34,6 +34,8 @@
 #include <ofwarch.h>  
 #include <ofw.h>
 #include <printf.h>
+#include <string.h>
+#include "main.h"
 
 int bpp2align[] = {
 	[0] = 0,		/** Invalid bpp. */
@@ -78,4 +80,32 @@ int ofw_keyboard(keyboard_t *keyboard)
 		return false;
 
 	return true;
+}
+
+int ofw_cpu(cpu_t *cpu)
+{
+	char type_name[BUF_SIZE];
+
+	phandle node;
+	node = ofw_get_child_node(ofw_root);
+	if (node == 0 || node == -1) {
+		printf("Could not find any child nodes of the root node.\n");
+		return;
+	}
+	
+	for (; node != 0 && node != -1; node = ofw_get_peer_node(node)) {
+		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
+			if (strncmp(type_name, "cpu", 3) == 0) {
+				uint32_t mhz;
+				
+				if (ofw_get_property(node, "clock-frequency", &mhz, sizeof(mhz)) <= 0)
+					continue;
+					
+				cpu->clock_frequency = mhz;
+				return 1;
+			}
+		}
+	};
+
+	return 0;
 }

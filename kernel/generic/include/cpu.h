@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __CPU_H__
-#define __CPU_H__
+#ifndef KERN_CPU_H_
+#define KERN_CPU_H_
 
 #include <arch/cpu.h>
 #include <proc/scheduler.h>

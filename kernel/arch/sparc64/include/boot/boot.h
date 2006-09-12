@@ -83,10 +83,15 @@ typedef struct {
 } keyboard_t;
 
 typedef struct {
+	uint32_t clock_frequency;
+} processor_t;
+
+typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
 	keyboard_t keyboard;
+	processor_t processor;
 } bootinfo_t;
 
 extern bootinfo_t bootinfo;

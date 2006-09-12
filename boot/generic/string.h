@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_GENTYPES_H_
-#define BOOT_GENTYPES_H_
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
 
-#define NULL 0
-#define false 0
-#define true 1
+#ifndef BOOT_STRING_H_
+#define BOOT_STRING_H_
 
-typedef unsigned long size_t;
+#include <types.h>
+
+extern size_t strlen(const char *str);
+extern int strncmp(const char *src, const char *dst, size_t len);
+extern void strncpy(char *dest, const char *src, size_t len);
+extern unative_t atoi(const char *text);
 
 #endif
+
+/** @}
+ */

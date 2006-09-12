@@ -37,8 +37,6 @@
 
 #include <typedefs.h>
 
-#define TICK_DELTA        500000
-
 extern void tick_init(void);
 extern void tick_interrupt(int n, istate_t *istate);
 

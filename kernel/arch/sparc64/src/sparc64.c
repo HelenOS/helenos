@@ -42,6 +42,7 @@
 #include <console/console.h>
 #include <arch/boot/boot.h>
 #include <arch/arch.h>
+#include <arch/asm.h>
 #include <arch/mm/page.h>
 #include <arch/stack.h>
 #include <userspace.h>
@@ -89,8 +90,30 @@ void arch_post_smp_init(void)
 	thread_ready(t);
 }
 
+/** Calibrate delay loop.
+ *
+ * On sparc64, we implement delay() by waiting for the TICK register to
+ * reach a pre-computed value, as opposed to performing some pre-computed
+ * amount of instructions of known duration. We set the delay_loop_const
+ * to 1 in order to neutralize the multiplication done by delay().
+ */
 void calibrate_delay_loop(void)
 {
+	CPU->delay_loop_const = 1;
+}
+
+/** Wait several microseconds.
+ *
+ * We assume that interrupts are already disabled.
+ *
+ * @param t Microseconds to wait.
+ */
+void asm_delay_loop(const uint32_t usec)
+{
+	uint64_t stop = tick_read() + (uint64_t) usec * (uint64_t) CPU->arch.clock_frequency / 1000000;
+
+	while (tick_read() < stop)
+		;
 }
 
 /** Switch to userspace. */

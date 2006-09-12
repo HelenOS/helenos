@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
@@ -76,31 +76,25 @@ void it_interrupt(void)
 	
 	eoi_write(EOI);
 	
-	m=itm_read();
+	m = itm_read();
 	
-	while(1)
-	{
-	
-		c=itc_read();
-		c+=IT_SERVICE_CLOCKS;
+	while (1) {
+		c = itc_read();
+		c += IT_SERVICE_CLOCKS;
 
-		m+=IT_DELTA;
-		if(m-c<0)
-		{
+		m += IT_DELTA;
+		if (m-c<0)
 			CPU->missed_clock_ticks++;
-		}
-		else break;
+		else
+			break;
 	}
 	
 	itm_write(m);
 	srlz_d();				/* propagate changes */
 	
-	
-	
 	clock();
 	poll_keyboard();
 }
 
- /** @}
+/** @}
  */
-

@@ -52,6 +52,7 @@
 
 struct cpu_arch {
 	ver_reg_t ver;
+	uint32_t clock_frequency;
 };
 	
 #endif

@@ -32,14 +32,16 @@
 /** @file
  */
 
+#include <arch/asm.h>
 #include <cpu.h>
 #include <arch.h>
 #include <arch/register.h>
-#include <arch/asm.h>
 #include <print.h>
+#include <arch/boot/boot.h>
 
 void cpu_arch_init(void)
 {
+	CPU->arch.clock_frequency = bootinfo.processor.clock_frequency;
 }
 
 void cpu_identify(void)
@@ -93,7 +95,8 @@ void cpu_print_report(cpu_t *m)
 		break;
 	}
 
-	printf("cpu%d: manuf=%s, impl=%s, mask=%d\n", CPU->id, manuf, impl, CPU->arch.ver.mask);
+	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%dMHz)\n",
+		CPU->id, manuf, impl, CPU->arch.ver.mask, CPU->arch.clock_frequency/1000000);
 }
 
 /** @}

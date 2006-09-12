@@ -66,7 +66,11 @@ void bootstrap(void)
 	if (!ofw_keyboard(&bootinfo.keyboard))
 		printf("Error: unable to get keyboard properties\n");
 
+	if (!ofw_cpu(&bootinfo.cpu))
+		printf("Error: unable to get cpu properties\n");
+
 	printf("\nDevice statistics\n");
+	printf(" cpu: %dMHz\n", bootinfo.cpu.clock_frequency/1000000);
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
 	printf(" screen at %P, resolution %dx%d, %d bpp (scanline %d bytes)\n", (uintptr_t) bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
 	printf(" keyboard at %P (size %d bytes)\n", (uintptr_t) bootinfo.keyboard.addr, bootinfo.keyboard.size);

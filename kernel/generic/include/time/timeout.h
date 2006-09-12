@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TIMEOUT_H__
-#define __TIMEOUT_H__
+#ifndef KERN_TIMEOUT_H_
+#define KERN_TIMEOUT_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

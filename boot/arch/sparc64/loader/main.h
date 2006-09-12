@@ -45,10 +45,15 @@ typedef struct {
 } taskmap_t;
 
 typedef struct {
+	uint32_t clock_frequency;
+} cpu_t;
+
+typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
 	keyboard_t keyboard;
+	cpu_t cpu;
 } bootinfo_t;
 
 extern void start(void);

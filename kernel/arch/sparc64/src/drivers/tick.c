@@ -36,9 +36,14 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <debug.h>
-#include <time/clock.h>
 #include <typedefs.h>
+#include <arch/cpu.h>
+#include <arch/boot/boot.h>
+#include <time/clock.h>
+#include <arch.h>
+#include <debug.h>
+
+#define TICK_RESTART_TIME	50	/* Worst case estimate. */
 
 /** Initialize tick interrupt. */
 void tick_init(void)
@@ -47,7 +52,7 @@ void tick_init(void)
 	
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
-	compare.tick_cmpr = TICK_DELTA;
+	compare.tick_cmpr = bootinfo.processor.clock_frequency/HZ;
 	tick_compare_write(compare.value);
 	tick_write(0);
 }
@@ -60,6 +65,7 @@ void tick_init(void)
 void tick_interrupt(int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
+	uint64_t next, compare, start, stop;
 	
 	softint.value = softint_read();
 	
@@ -83,7 +89,15 @@ void tick_interrupt(int n, istate_t *istate)
 	/*
 	 * Restart counter.
 	 */
-	tick_write(0);
+	compare = CPU->arch.clock_frequency/HZ;
+	start = tick_read();
+	next = start - compare;
+	while (next >= compare - TICK_RESTART_TIME) {
+		next -= compare;
+		CPU->missed_clock_ticks++;
+	}
+	stop = tick_read();
+	tick_write(next + (stop - start));
 	
 	clock();
 }

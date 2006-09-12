@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __DELAY_H__
-#define __DELAY_H__
+#ifndef KERN_DELAY_H_
+#define KERN_DELAY_H_
 
 #include <arch/types.h>
 

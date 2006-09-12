@@ -28,7 +28,6 @@
 
 .text
 
-.global asm_delay_loop
 .global cpu_sleep
 .global fpu_context_restore
 .global fpu_context_save
@@ -38,7 +37,6 @@
 
 .global dummy
 
-asm_delay_loop:
 cpu_sleep:
 fpu_context_restore:
 fpu_context_save:

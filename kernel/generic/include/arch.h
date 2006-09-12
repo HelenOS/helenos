@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ARCH_H__
-#define __ARCH_H__
+#ifndef KERN_ARCH_H_
+#define KERN_ARCH_H_
 
 #include <arch/types.h>
 #include <arch/arch.h>
@@ -78,11 +78,6 @@ extern void arch_post_mm_init(void);
 extern void arch_pre_smp_init(void);
 extern void arch_post_smp_init(void);
 extern void calibrate_delay_loop(void);
-
-extern ipl_t interrupts_disable(void); 
-extern ipl_t interrupts_enable(void);
-extern void interrupts_restore(ipl_t ipl);
-extern ipl_t interrupts_read(void);
 
 #endif
 
