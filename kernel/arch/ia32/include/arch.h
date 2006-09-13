@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_ARCH_H__
-#define __ia32_ARCH_H__
+#ifndef KERN_ia32_ARCH_H_
+#define KERN_ia32_ARCH_H_
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -227,17 +227,21 @@ memsetb:
 
 
 .macro WRITE_ALTERNATE_REGISTER reg, bit
+	rdpr %pstate, %g1				! save PSTATE.PEF
 	wrpr %g0, (\bit | PSTATE_PRIV_BIT), %pstate
 	mov %o0, \reg
-	retl
 	wrpr %g0, PSTATE_PRIV_BIT, %pstate
+	retl
+	wrpr %g1, 0, %pstate				! restore PSTATE.PEF
 .endm
 
 .macro READ_ALTERNATE_REGISTER reg, bit
+	rdpr %pstate, %g1				! save PSTATE.PEF
 	wrpr %g0, (\bit | PSTATE_PRIV_BIT), %pstate
 	mov \reg, %o0
-	retl
 	wrpr %g0, PSTATE_PRIV_BIT, %pstate
+	retl
+	wrpr %g1, 0, %pstate				! restore PSTATE.PEF
 .endm
 
 .global write_to_ag_g6

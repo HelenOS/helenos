@@ -87,6 +87,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/panic.S \
 	arch/$(ARCH)/src/console.c \
 	arch/$(ARCH)/src/context.S \
+	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \

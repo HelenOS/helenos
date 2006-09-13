@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_ARCH_H__
-#define __ia64_ARCH_H__
+#ifndef KERN_ia64_ARCH_H_
+#define KERN_ia64_ARCH_H_
 
 #define LOADED_PROG_STACK_PAGES_NO 2
 
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

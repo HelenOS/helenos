@@ -87,7 +87,7 @@ typedef union tick_reg tick_reg_t;
 union tick_compare_reg {
 	uint64_t value;
 	struct {
-		unsigned int_dis : 1;	/**< TICK_INT interrupt disabled flag. */
+		unsigned int_dis : 1;		/**< TICK_INT interrupt disabled flag. */
 		uint64_t tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
 	} __attribute__ ((packed));
 };
@@ -104,6 +104,18 @@ union softint_reg {
 	} __attribute__ ((packed));
 };
 typedef union softint_reg softint_reg_t;
+
+/** Floating-point Registers State Register. */
+union fprs_reg {
+	uint64_t value;
+	struct {
+		uint64_t : 61;
+		unsigned fef : 1;
+		unsigned du : 1;
+		unsigned dl : 1;
+	} __attribute__ ((packed));
+};
+typedef union fprs_reg fprs_reg_t;
 
 #endif
 

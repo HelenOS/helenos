@@ -82,10 +82,16 @@ illegal_instruction_tl0:
 privileged_opcode_tl0:
 	PREEMPTIBLE_HANDLER privileged_opcode
 
+/* TT = 0x20, TL = 0, fb_disabled handler */
+.org trap_table + TT_FP_DISABLED*ENTRY_SIZE
+.global fb_disabled_tl0
+fp_disabled_tl0:
+	PREEMPTIBLE_HANDLER fp_disabled
+
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
-.global clean_window_handler_tl0
-clean_window_handler_tl0:
+.global clean_window_tl0
+clean_window_tl0:
 	CLEAN_WINDOW_HANDLER
 
 /* TT = 0x28, TL = 0, division_by_zero */
@@ -489,8 +495,8 @@ illegal_instruction_tl1:
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
-.global clean_window_handler_tl1
-clean_window_handler_tl1:
+.global clean_window_tl1
+clean_window_tl1:
 	CLEAN_WINDOW_HANDLER
 
 /* TT = 0x28, TL > 0, division_by_zero */
@@ -688,7 +694,7 @@ fill_0_normal_tl1:
 	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
 	
 	wrpr %g0, 0, %tl
-	wrpr %g0, PSTATE_PRIV_BIT, %pstate
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
 	SAVE_GLOBALS
 	
 	/*
@@ -705,6 +711,7 @@ fill_0_normal_tl1:
 .endif
 
 	RESTORE_GLOBALS
+	rdpr %pstate, %l1			! we must preserve the PEF bit
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	wrpr %g0, 1, %tl
 	
@@ -716,11 +723,21 @@ fill_0_normal_tl1:
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
 
 	/*
+	 * Copy PSTATE.PEF to the in-register copy of TSTATE.
+	 */
+	and %l1, PSTATE_PEF_BIT, %l1
+	sllx %l1, TSTATE_PSTATE_SHIFT, %l1
+	sethi %hi(TSTATE_PEF_BIT), %g4
+	andn %g1, %g4, %g1
+	or %g1, %l1, %g1
+
+	/*
 	 * Restore TSTATE, TPC and TNPC from saved copies.
 	 */
 	wrpr %g1, 0, %tstate
 	wrpr %g2, 0, %tpc
 	wrpr %g3, 0, %tnpc
+
 
 	/*
 	 * If OTHERWIN is zero, then all the userspace windows have been

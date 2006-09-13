@@ -108,6 +108,28 @@ static inline void tick_write(uint64_t v)
 	__asm__ volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
 }
 
+/** Read FPRS Register.
+ *
+ * @return Value of FPRS register.
+ */
+static inline uint64_t fprs_read(void)
+{
+	uint64_t v;
+	
+	__asm__ volatile ("rd %%fprs, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write FPRS Register.
+ *
+ * @param v New value of FPRS register.
+ */
+static inline void fprs_write(uint64_t v)
+{
+	__asm__ volatile ("wr %0, %1, %%fprs\n" : : "r" (v), "i" (0));
+}
+
 /** Read SOFTINT Register.
  *
  * @return Value of SOFTINT register.

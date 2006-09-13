@@ -37,7 +37,12 @@
 
 #include <arch/types.h>
 
+#define ARCH_HAS_FPU
+#define FPU_CONTEXT_ALIGN	8
+
 struct fpu_context {
+	uint64_t	d[32];
+	uint64_t	fsr;
 };
 
 #endif

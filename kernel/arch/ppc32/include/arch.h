@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_ARCH_H__
-#define __ppc32_ARCH_H__
+#ifndef KERN_ppc32_ARCH_H_
+#define KERN_ppc32_ARCH_H_
 
 #include <arch/drivers/cuda.h>
 

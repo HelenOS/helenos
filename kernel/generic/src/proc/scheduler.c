@@ -86,7 +86,7 @@ void before_thread_runs(void)
 {
 	before_thread_runs_arch();
 #ifdef CONFIG_FPU_LAZY
-	if(THREAD==CPU->fpu_owner) 
+	if(THREAD == CPU->fpu_owner) 
 		fpu_enable();
 	else
 		fpu_disable(); 
@@ -96,7 +96,7 @@ void before_thread_runs(void)
 		fpu_context_restore(THREAD->saved_fpu_context);
 	else {
 		fpu_init();
-		THREAD->fpu_context_exists=1;
+		THREAD->fpu_context_exists = 1;
 	}
 #endif
 }
@@ -127,7 +127,7 @@ restart:
 		spinlock_lock(&CPU->fpu_owner->lock);
 		fpu_context_save(CPU->fpu_owner->saved_fpu_context);
 		/* don't prevent migration */
-		CPU->fpu_owner->fpu_context_engaged=0; 
+		CPU->fpu_owner->fpu_context_engaged = 0;
 		spinlock_unlock(&CPU->fpu_owner->lock);
 		CPU->fpu_owner = NULL;
 	}
@@ -146,9 +146,9 @@ restart:
 			goto restart; 
 		}
 		fpu_init();
-		THREAD->fpu_context_exists=1;
+		THREAD->fpu_context_exists = 1;
 	}
-	CPU->fpu_owner=THREAD;
+	CPU->fpu_owner = THREAD;
 	THREAD->fpu_context_engaged = 1;
 	spinlock_unlock(&THREAD->lock);
 

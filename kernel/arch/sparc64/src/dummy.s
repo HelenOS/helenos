@@ -29,19 +29,11 @@
 .text
 
 .global cpu_sleep
-.global fpu_context_restore
-.global fpu_context_save
-.global fpu_enable
-.global fpu_init
 .global sys_tls_set
 
 .global dummy
 
 cpu_sleep:
-fpu_context_restore:
-fpu_context_save:
-fpu_enable:
-fpu_init:
 sys_tls_set:
 
 dummy:

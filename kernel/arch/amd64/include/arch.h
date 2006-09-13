@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_ARCH_H__
-#define __amd64_ARCH_H__
+#ifndef KERN_amd64_ARCH_H_
+#define KERN_amd64_ARCH_H_
 
 #endif
 
- /** @}
+/** @}
  */
-

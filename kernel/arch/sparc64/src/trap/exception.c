@@ -37,6 +37,7 @@
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <arch/asm.h>
+#include <arch/register.h>
 #include <debug.h>
 #include <typedefs.h>
 #include <symtab.h>
@@ -79,6 +80,27 @@ void privileged_opcode(int n, istate_t *istate)
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
 	dump_istate(istate);
 	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle fp_disabled. (0x20) */
+void fp_disabled(int n, istate_t *istate)
+{
+	fprs_reg_t fprs;
+	
+	fprs.value = fprs_read();
+	if (!fprs.fef) {
+		fprs.fef = true;
+		fprs_write(fprs.value);
+		return;
+	}
+
+#ifdef CONFIG_FPU_LAZY
+	scheduler_fpu_lazy_request();
+#else
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+#endif
 }
 
 /** Handle division_by_zero. (0x28) */

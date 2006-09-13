@@ -40,6 +40,7 @@
 #define TT_INSTRUCTION_ACCESS_ERROR		0x0a
 #define TT_ILLEGAL_INSTRUCTION			0x10
 #define TT_PRIVILEGED_OPCODE			0x11
+#define TT_FP_DISABLED				0x20
 #define TT_DIVISION_BY_ZERO			0x28
 #define TT_DATA_ACCESS_EXCEPTION		0x30
 #define TT_DATA_ACCESS_ERROR			0x32
@@ -56,6 +57,7 @@ extern void instruction_access_exception(int n, istate_t *istate);
 extern void instruction_access_error(int n, istate_t *istate);
 extern void illegal_instruction(int n, istate_t *istate);
 extern void privileged_opcode(int n, istate_t *istate);
+extern void fp_disabled(int n, istate_t *istate);
 extern void division_by_zero(int n, istate_t *istate);
 extern void data_access_exception(int n, istate_t *istate);
 extern void data_access_error(int n, istate_t *istate);

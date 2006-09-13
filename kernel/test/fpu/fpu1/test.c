@@ -45,15 +45,15 @@
 #define PI_10e8	314159265
 
 
-#ifdef __ia32_ARCH_H__
+#ifdef KERN_ia32_ARCH_H_
 static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
 #endif
 
-#ifdef __amd64_ARCH_H__
+#ifdef KERN_amd64_ARCH_H_
 static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
 #endif
 
-#ifdef __ia64_ARCH_H__
+#ifdef KERN_ia64_ARCH_H_
 static inline long double sqrt(long double a) 
 {   
 	long double x =	1;
@@ -105,7 +105,7 @@ static void e(void *data)
 static void pi(void *data)
 {
 
-#ifdef __ia64_ARCH_H__
+#ifdef KERN_ia64_ARCH_H_
 #undef PI_10e8	
 #define PI_10e8	3141592
 #endif
@@ -134,7 +134,7 @@ static void pi(void *data)
 			pi = 2 * n * ad;
 		}
 
-#ifdef __ia64_ARCH_H__
+#ifdef KERN_ia64_ARCH_H_
 		if((int)(1000000*pi)!=PI_10e8)
 			panic("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000*pi),(unative_t) (PI_10e8/100));
 #else

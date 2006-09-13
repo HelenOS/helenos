@@ -157,26 +157,26 @@ void general_exception(uint64_t vector, istate_t *istate)
 	char *desc = "";
 
 	switch (istate->cr_isr.ge_code) {
-	    case GE_ILLEGALOP:
+	case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
 		break;
-	    case GE_PRIVOP:
+	case GE_PRIVOP:
 		desc = "Privileged Operation fault";
 		break;
-	    case GE_PRIVREG:
+	case GE_PRIVREG:
 		desc = "Privileged Register fault";
 		break;
-	    case GE_RESREGFLD:
+	case GE_RESREGFLD:
 		desc = "Reserved Register/Field fault";
 		break;
-	    case GE_DISBLDISTRAN:
+	case GE_DISBLDISTRAN:
 		desc = "Disabled Instruction Set Transition fault";
 		break;
-	    case GE_ILLEGALDEP:
+	case GE_ILLEGALDEP:
 		desc = "Illegal Dependency fault";
 		break;
-	    default:
-	    	desc = "unknown";
+	default:
+		desc = "unknown";
 		break;
 	}
 
@@ -185,8 +185,6 @@ void general_exception(uint64_t vector, istate_t *istate)
 	dump_interrupted_context(istate);
 	panic("General Exception (%s)\n", desc);
 }
-
-void fpu_enable(void);
 
 void disabled_fp_register(uint64_t vector, istate_t *istate)
 {
@@ -203,7 +201,6 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 void nop_handler(uint64_t vector, istate_t *istate)
 {
 }
-
 
 
 /** Handle syscall. */
@@ -242,26 +239,27 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 	srlz_d();
 
 	switch(ivr.vector) {
-	    case INTERRUPT_TIMER:
+	case INTERRUPT_TIMER:
 		it_interrupt();
-	    	break;
-	    case INTERRUPT_SPURIOUS:
+		break;
+	case INTERRUPT_SPURIOUS:
 	    	printf("cpu%d: spurious interrupt\n", CPU->id);
 		break;
-	    default:
+	default:
 		panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
 		break;
 	}
 }
 
-void virtual_interrupt(uint64_t irq,void *param)
+void virtual_interrupt(uint64_t irq, void *param)
 {
 	switch(irq) {
-		case IRQ_KBD:
-			if(kbd_uspace) ipc_irq_send_notif(irq);
-			break;
-		default:
-			panic("\nUnhandled Virtual Interrupt request %d\n", irq);
+	case IRQ_KBD:
+		if (kbd_uspace)
+			ipc_irq_send_notif(irq);
+		break;
+	default:
+		panic("\nUnhandled Virtual Interrupt request %d\n", irq);
 		break;
 	}
 }
@@ -269,8 +267,8 @@ void virtual_interrupt(uint64_t irq,void *param)
 /* Reregister irq to be IPC-ready */
 void irq_ipc_bind_arch(unative_t irq)
 {
-	if(irq==IRQ_KBD) {
-		kbd_uspace=1;
+	if(irq == IRQ_KBD) {
+		kbd_uspace = 1;
 		return;
 	}
 	return;
@@ -280,4 +278,3 @@ void irq_ipc_bind_arch(unative_t irq)
 
 /** @}
  */
-

@@ -35,7 +35,6 @@
 #ifndef __FPU_CONTEXT_H__
 #define __FPU_CONTEXT_H__
 
-
 #include <arch/fpu_context.h>
 #include <typedefs.h>
 
