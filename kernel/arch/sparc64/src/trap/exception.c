@@ -82,6 +82,22 @@ void privileged_opcode(int n, istate_t *istate)
 	panic("%s\n", __FUNCTION__);
 }
 
+/** Handle unimplemented_LDD. (0x12) */
+void unimplemented_LDD(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle unimplemented_STD. (0x13) */
+void unimplemented_STD(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
 /** Handle fp_disabled. (0x20) */
 void fp_disabled(int n, istate_t *istate)
 {
@@ -101,6 +117,30 @@ void fp_disabled(int n, istate_t *istate)
 	dump_istate(istate);
 	panic("%s\n", __FUNCTION__);
 #endif
+}
+
+/** Handle fp_exception_ieee_754. (0x21) */
+void fp_exception_ieee_754(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle fp_exception_other. (0x22) */
+void fp_exception_other(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle tag_overflow. (0x23) */
+void tag_overflow(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
 }
 
 /** Handle division_by_zero. (0x28) */
@@ -135,8 +175,40 @@ void mem_address_not_aligned(int n, istate_t *istate)
 	panic("%s\n", __FUNCTION__);
 }
 
+/** Handle LDDF_mem_address_not_aligned. (0x35) */
+void LDDF_mem_address_not_aligned(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle STDF_mem_address_not_aligned. (0x36) */
+void STDF_mem_address_not_aligned(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
 /** Handle privileged_action. (0x37) */
 void privileged_action(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle LDQF_mem_address_not_aligned. (0x38) */
+void LDQF_mem_address_not_aligned(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
+	dump_istate(istate);
+	panic("%s\n", __FUNCTION__);
+}
+
+/** Handle STQF_mem_address_not_aligned. (0x39) */
+void STQF_mem_address_not_aligned(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
 	dump_istate(istate);

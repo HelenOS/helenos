@@ -82,11 +82,41 @@ illegal_instruction_tl0:
 privileged_opcode_tl0:
 	PREEMPTIBLE_HANDLER privileged_opcode
 
+/* TT = 0x12, TL = 0, unimplemented_LDD */
+.org trap_table + TT_UNIMPLEMENTED_LDD*ENTRY_SIZE
+.global unimplemented_LDD_tl0
+unimplemented_LDD_tl0:
+	PREEMPTIBLE_HANDLER unimplemented_LDD
+
+/* TT = 0x13, TL = 0, unimplemented_STD */
+.org trap_table + TT_UNIMPLEMENTED_STD*ENTRY_SIZE
+.global unimplemented_STD_tl0
+unimplemented_STD_tl0:
+	PREEMPTIBLE_HANDLER unimplemented_STD
+
 /* TT = 0x20, TL = 0, fb_disabled handler */
 .org trap_table + TT_FP_DISABLED*ENTRY_SIZE
 .global fb_disabled_tl0
 fp_disabled_tl0:
 	PREEMPTIBLE_HANDLER fp_disabled
+
+/* TT = 0x21, TL = 0, fb_exception_ieee_754 handler */
+.org trap_table + TT_FP_EXCEPTION_IEEE_754*ENTRY_SIZE
+.global fb_exception_ieee_754_tl0
+fp_exception_ieee_754_tl0:
+	PREEMPTIBLE_HANDLER fp_exception_ieee_754
+
+/* TT = 0x22, TL = 0, fb_exception_other handler */
+.org trap_table + TT_FP_EXCEPTION_OTHER*ENTRY_SIZE
+.global fb_exception_other_tl0
+fp_exception_other_tl0:
+	PREEMPTIBLE_HANDLER fp_exception_other
+
+/* TT = 0x23, TL = 0, tag_overflow */
+.org trap_table + TT_TAG_OVERFLOW*ENTRY_SIZE
+.global tag_overflow_tl0
+tag_overflow_tl0:
+	PREEMPTIBLE_HANDLER tag_overflow
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
@@ -119,11 +149,35 @@ data_access_error_tl0:
 mem_address_not_aligned_tl0:
 	PREEMPTIBLE_HANDLER mem_address_not_aligned
 
-/* TT = 0x38, TL = 0, privileged_action */
+/* TT = 0x35, TL = 0, LDDF_mem_address_not_aligned */
+.org trap_table + TT_LDDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
+.global LDDF_mem_address_not_aligned_tl0
+LDDF_mem_address_not_aligned_tl0:
+	PREEMPTIBLE_HANDLER LDDF_mem_address_not_aligned
+
+/* TT = 0x36, TL = 0, STDF_mem_address_not_aligned */
+.org trap_table + TT_STDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
+.global STDF_mem_address_not_aligned_tl0
+STDF_mem_address_not_aligned_tl0:
+	PREEMPTIBLE_HANDLER STDF_mem_address_not_aligned
+
+/* TT = 0x37, TL = 0, privileged_action */
 .org trap_table + TT_PRIVILEGED_ACTION*ENTRY_SIZE
 .global privileged_action_tl0
 privileged_action_tl0:
 	PREEMPTIBLE_HANDLER privileged_action
+
+/* TT = 0x38, TL = 0, LDQF_mem_address_not_aligned */
+.org trap_table + TT_LDQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
+.global LDQF_mem_address_not_aligned_tl0
+LDQF_mem_address_not_aligned_tl0:
+	PREEMPTIBLE_HANDLER LDQF_mem_address_not_aligned
+
+/* TT = 0x39, TL = 0, STQF_mem_address_not_aligned */
+.org trap_table + TT_STQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
+.global STQF_mem_address_not_aligned_tl0
+STQF_mem_address_not_aligned_tl0:
+	PREEMPTIBLE_HANDLER STQF_mem_address_not_aligned
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
