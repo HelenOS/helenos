@@ -114,7 +114,7 @@ kernel_image_start:
 	membar #Sync
 
 #define SET_TLB_DATA(r1, r2, imm) \
-	set TTE_L | TTE_CP | TTE_P | TTE_W | LMA | imm, %r1; \
+	set TTE_CV | TTE_CP | TTE_P | LMA | imm, %r1; \
 	set PAGESIZE_4M, %r2; \
 	sllx %r2, TTE_SIZE_SHIFT, %r2; \
 	or %r1, %r2, %r1; \
@@ -123,7 +123,7 @@ kernel_image_start:
 	or %r1, %r2, %r1;
 	
 	! write DTLB data and install the kernel mapping
-	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	SET_TLB_DATA(g1, g2, TTE_L | TTE_W)	! use non-global mapping
 	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG		
 	membar #Sync
 
@@ -140,7 +140,7 @@ kernel_image_start:
 	membar #Sync
 
 	! write DTLB data and install the kernel mapping in context 1
-	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	SET_TLB_DATA(g1, g2, TTE_W)			! use non-global mapping
 	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG		
 	membar #Sync
 	
@@ -196,7 +196,7 @@ kernel_image_start:
 	flush %g5
 
 	! write ITLB data and install the permanent kernel mapping in context 0
-	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
+	SET_TLB_DATA(g1, g2, TTE_L)		! use non-global mapping
 	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
 	flush %g5
 

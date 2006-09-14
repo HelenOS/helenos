@@ -85,7 +85,7 @@
 	andncc %g1, %g2, %g3				! get page address into %g3
 	bz 0f						! page address is zero
 
-	or %g3, (TTE_CP|TTE_P|TTE_W), %g2		! 8K pages are the default (encoded as 0)
+	or %g3, (TTE_CV|TTE_CP|TTE_P|TTE_W), %g2	! 8K pages are the default (encoded as 0)
 	mov 1, %g3
 	sllx %g3, TTE_V_SHIFT, %g3
 	or %g2, %g3, %g2
