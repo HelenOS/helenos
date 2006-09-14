@@ -466,32 +466,31 @@ screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, 
 	int align, int invert_colors)
 {
 	switch (bpp) {
-		case 8:
-			screen.rgb2scr = rgb_1byte;
-			screen.scr2rgb = byte1_rgb;
-			screen.pixelbytes = 1;
-			break;
-		case 16:
-			screen.rgb2scr = rgb_2byte;
-			screen.scr2rgb = byte2_rgb;
-			screen.pixelbytes = 2;
-			break;
-		case 24:
-			screen.rgb2scr = rgb_3byte;
-			screen.scr2rgb = byte3_rgb;
-			if (!align)
-				screen.pixelbytes = 3;
-			else
-				screen.pixelbytes = 4;
-			break;
-		case 32:
-			screen.rgb2scr = rgb_4byte;
-			screen.scr2rgb = byte4_rgb;
+	case 8:
+		screen.rgb2scr = rgb_1byte;
+		screen.scr2rgb = byte1_rgb;
+		screen.pixelbytes = 1;
+		break;
+	case 16:
+		screen.rgb2scr = rgb_2byte;
+		screen.scr2rgb = byte2_rgb;
+		screen.pixelbytes = 2;
+		break;
+	case 24:
+		screen.rgb2scr = rgb_3byte;
+		screen.scr2rgb = byte3_rgb;
+		if (!align)
+			screen.pixelbytes = 3;
+		else
 			screen.pixelbytes = 4;
-			break;
+		break;
+	case 32:
+		screen.rgb2scr = rgb_4byte;
+		screen.scr2rgb = byte4_rgb;
+		screen.pixelbytes = 4;
+		break;
 	}
 
-		
 	screen.fbaddress = (unsigned char *) addr;
 	screen.xres = xres;
 	screen.yres = yres;
@@ -1236,22 +1235,21 @@ int fb_init(void)
 
 	async_set_client_connection(fb_client_connection);
 
-	fb_ph_addr=(void *)sysinfo_value("fb.address.physical");
-	fb_width=sysinfo_value("fb.width");
-	fb_height=sysinfo_value("fb.height");
-	fb_bpp=sysinfo_value("fb.bpp");
-	fb_bpp_align=sysinfo_value("fb.bpp-align");
-	fb_scanline=sysinfo_value("fb.scanline");
-	fb_invert_colors=sysinfo_value("fb.invert-colors");
+	fb_ph_addr = (void *) sysinfo_value("fb.address.physical");
+	fb_width = sysinfo_value("fb.width");
+	fb_height = sysinfo_value("fb.height");
+	fb_bpp = sysinfo_value("fb.bpp");
+	fb_bpp_align = sysinfo_value("fb.bpp-align");
+	fb_scanline = sysinfo_value("fb.scanline");
+	fb_invert_colors = sysinfo_value("fb.invert-colors");
 
 	asz = fb_scanline*fb_height;
 	fb_addr = as_get_mappable_page(asz);
 	
 	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz,PAGE_SIZE) >>PAGE_WIDTH,
-		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
-	
-	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);
+		    AS_AREA_READ | AS_AREA_WRITE);
 
+	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);
 	return 0;
 }
 
