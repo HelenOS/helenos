@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __amd64_CPU_H__
-#define __amd64_CPU_H__
+#ifndef KERN_amd64_CPU_H_
+#define KERN_amd64_CPU_H_
 
 #define RFLAGS_IF       (1 << 9)
 #define RFLAGS_RF       (1 << 16)

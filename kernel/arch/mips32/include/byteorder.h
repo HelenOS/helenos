@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_BYTEORDER_H__
-#define __mips32_BYTEORDER_H__
+#ifndef KERN_mips32_BYTEORDER_H_
+#define KERN_mips32_BYTEORDER_H_
 
 #include <arch/types.h>
 #include <byteorder.h>

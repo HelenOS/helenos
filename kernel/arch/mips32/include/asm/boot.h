@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_BOOT_H_
-#define __mips32_BOOT_H_
+#ifndef KERN_mips32_BOOT_H_
+#define KERN_mips32_BOOT_H_
 
 
 /* Temporary stack size for boot process */
@@ -43,4 +43,3 @@
 
 /** @}
  */
-

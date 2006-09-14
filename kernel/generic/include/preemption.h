@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PREEMPTION_H__
-#define __PREEMPTION_H__
+#ifndef KERN_PREEMPTION_H_
+#define KERN_PREEMPTION_H_
 
 extern void preemption_disable(void);
 extern void preemption_enable(void);

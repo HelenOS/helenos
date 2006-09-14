@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __RWLOCK_H__
-#define __RWLOCK_H__
+#ifndef KERN_RWLOCK_H_
+#define KERN_RWLOCK_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -74,7 +74,5 @@ extern int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

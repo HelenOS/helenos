@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ia32_CPUID_H__
-#define __ia32_CPUID_H__
+#ifndef KERN_ia32_CPUID_H_
+#define KERN_ia32_CPUID_H_
 
 #include <arch/types.h>
 
@@ -117,4 +117,3 @@ static inline void cpuid(uint32_t cmd, struct cpu_info *info)
 
 /** @}
  */
-

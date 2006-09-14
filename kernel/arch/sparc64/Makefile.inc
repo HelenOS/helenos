@@ -77,7 +77,6 @@ ifeq ($(MACHINE),ultra)
 	
 	DEFS += -DKBD_ADDR_OVRD=0x1fff13083f8ULL
 	
-	DEFS += -DFB_INVERT_COLORS
 endif
 
 

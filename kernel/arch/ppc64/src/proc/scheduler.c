@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64proc
+/** @addtogroup ppc64proc
  * @{
  */
 /** @file
@@ -59,6 +59,5 @@ void after_thread_ran_arch(void)
 {
 }
 
- /** @}
+/** @}
  */
-

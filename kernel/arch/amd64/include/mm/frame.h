@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_FRAME_H__
-#define __amd64_FRAME_H__
+#ifndef KERN_amd64_FRAME_H_
+#define KERN_amd64_FRAME_H_
 
 #ifndef __ASM__
 #include <arch/types.h>
@@ -42,7 +42,6 @@
 #define FRAME_WIDTH		12	/* 4K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)
 
-
 #ifndef __ASM__
 extern uintptr_t last_frame;
 extern void frame_arch_init(void);
@@ -50,6 +49,5 @@ extern void frame_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericddi
+/** @addtogroup genericddi
  * @{
  */
  
@@ -205,6 +205,5 @@ unative_t sys_preempt_control(int enable)
         return 0;
 }
 
- /** @}
+/** @}
  */
-

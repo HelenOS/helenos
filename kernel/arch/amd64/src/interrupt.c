@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64interrupt
+/** @addtogroup amd64interrupt
  * @{
  */
 /** @file
@@ -182,6 +182,5 @@ void irq_ipc_bind_arch(unative_t irq)
 	trap_virtual_enable_irqs(1 << irq);
 }
 
- /** @}
+/** @}
  */
-

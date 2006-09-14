@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
@@ -263,6 +263,5 @@ void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t fra
 	v->present.tag.tag_word = tag;
 }
 
- /** @}
+/** @}
  */
-

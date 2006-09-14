@@ -206,35 +206,35 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 				 
 		rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
 		switch (rc) {
-			case ESYNCH_WOULD_BLOCK:
-				/*
-				 * release_spinlock() wasn't called
-				 */
-				thread_register_call_me(NULL, NULL);
-				spinlock_unlock(&rwl->lock);
-			case ESYNCH_TIMEOUT:
-			case ESYNCH_INTERRUPTED:
-				/*
-				 * The sleep timed out.
-				 * We just restore interrupt priority level.
-				 */
-			case ESYNCH_OK_BLOCKED:		
-				/*
-				 * We were woken with rwl->readers_in already incremented.
-				 * Note that this arrangement avoids race condition between
-				 * two concurrent readers. (Race is avoided if 'exclusive' is
-				 * locked at the same time as 'readers_in' is incremented.
-				 * Same time means both events happen atomically when
-				 * rwl->lock is held.)
-				 */
-				interrupts_restore(ipl);
-				break;
-			case ESYNCH_OK_ATOMIC:
-				panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC\n");
-				break;
-			default:
-				panic("invalid ESYNCH\n");
-				break;
+		case ESYNCH_WOULD_BLOCK:
+			/*
+			 * release_spinlock() wasn't called
+			 */
+			thread_register_call_me(NULL, NULL);
+			spinlock_unlock(&rwl->lock);
+		case ESYNCH_TIMEOUT:
+		case ESYNCH_INTERRUPTED:
+			/*
+			 * The sleep timed out.
+			 * We just restore interrupt priority level.
+			 */
+		case ESYNCH_OK_BLOCKED:		
+			/*
+			 * We were woken with rwl->readers_in already incremented.
+			 * Note that this arrangement avoids race condition between
+			 * two concurrent readers. (Race is avoided if 'exclusive' is
+			 * locked at the same time as 'readers_in' is incremented.
+			 * Same time means both events happen atomically when
+			 * rwl->lock is held.)
+			 */
+			interrupts_restore(ipl);
+			break;
+		case ESYNCH_OK_ATOMIC:
+			panic("_mutex_lock_timeout()==ESYNCH_OK_ATOMIC\n");
+			break;
+		default:
+			panic("invalid ESYNCH\n");
+			break;
 		}
 		return rc;
 	}

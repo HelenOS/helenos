@@ -26,18 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32mm	
+/** @addtogroup ia32mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_FRAME_H__
-#define __ia32_FRAME_H__
+#ifndef KERN_ia32_FRAME_H_
+#define KERN_ia32_FRAME_H_
 
 #define FRAME_WIDTH	12	/* 4K */
 #define FRAME_SIZE	(1<<FRAME_WIDTH)
-
 
 #ifdef KERNEL
 #ifndef __ASM__
@@ -53,6 +52,5 @@ extern void frame_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

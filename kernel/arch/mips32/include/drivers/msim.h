@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
  */
 
-#ifndef _MSIM_H_
-#define _MSIM_H_
+#ifndef KERN_mips32_MSIM_H_
+#define KERN_mips32_MSIM_H_
 
 #include <console/chardev.h>
 
-#define MSIM_VIDEORAM            0xB0000000
+#define MSIM_VIDEORAM            	0xB0000000
 /** Address of 'keyboard' device. */
 #define MSIM_KBD_ADDRESS		0xB0000000
 #define MSIM_KBD_IRQ	2
@@ -48,6 +48,5 @@ void msim_kbd_grab(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

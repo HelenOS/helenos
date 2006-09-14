@@ -26,15 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __xen32_HYPERCALL_H__
-#define __xen32_HYPERCALL_H__
+#ifndef KERN_xen32_HYPERCALL_H_
+#define KERN_xen32_HYPERCALL_H_
 
 #include <arch/types.h>
 #include <macros.h>
 
-
 typedef uint16_t domid_t;
-
 
 typedef struct {
 	uint8_t vector;     /**< Exception vector */

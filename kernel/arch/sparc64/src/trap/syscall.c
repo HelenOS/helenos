@@ -42,10 +42,7 @@
 
 unative_t syscall(int n, istate_t *istate, unative_t a1, unative_t a2, unative_t a3, unative_t a4)
 {
-	if (n >= TT_TRAP_INSTRUCTION(0) && n <= TT_TRAP_INSTRUCTION_LAST)
-		return syscall_table[n - TT_TRAP_INSTRUCTION(0)](a1, a2, a3, a4);
-	else
-		panic("Undefined syscall %d\n", n - TT_TRAP_INSTRUCTION(0));
+	return syscall_handler(a1, a2, a3, a4, n - TT_TRAP_INSTRUCTION(0));
 }
 
 /** @}

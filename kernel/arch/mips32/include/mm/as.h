@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_AS_H__
-#define __mips32_AS_H__
+#ifndef KERN_mips32_AS_H_
+#define KERN_mips32_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 

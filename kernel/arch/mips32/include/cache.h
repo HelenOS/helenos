@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_CACHE_H__
-#define __mips32_CACHE_H__
+#ifndef KERN_mips32_CACHE_H_
+#define KERN_mips32_CACHE_H_
 
 #include <typedefs.h>
 

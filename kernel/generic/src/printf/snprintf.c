@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -48,6 +48,6 @@ int snprintf(char *str, size_t size, const char *fmt, ...)
 	return ret;
 }
 
- /** @}
+/** @}
  */
 

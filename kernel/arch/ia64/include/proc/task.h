@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64proc
+/** @addtogroup ia64proc
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_TASK_H__
-#define __ia64_TASK_H__
+#ifndef KERN_ia64_TASK_H_
+#define KERN_ia64_TASK_H_
 
 typedef struct {
 } task_arch_t;
@@ -43,6 +43,5 @@ typedef struct {
 
 #endif
 
- /** @}
+/** @}
  */
-

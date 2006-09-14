@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __SYNCH_H__
-#define __SYNCH_H__
+#ifndef KERN_SYNCH_H_
+#define KERN_SYNCH_H_
 
 #define SYNCH_NO_TIMEOUT	0	/**< Request with no timeout. */
 
@@ -52,6 +52,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

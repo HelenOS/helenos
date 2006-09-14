@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64interrupt
+/** @addtogroup ppc64interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_INTERRUPT_H__
-#define __ppc64_INTERRUPT_H__
+#ifndef KERN_ppc64_INTERRUPT_H_
+#define KERN_ppc64_INTERRUPT_H_
 
 #include <arch/exception.h>
 
@@ -48,6 +48,5 @@ extern void interrupt_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

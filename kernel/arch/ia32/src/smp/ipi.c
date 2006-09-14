@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -44,6 +44,5 @@ void ipi_broadcast_arch(int ipi)
 
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

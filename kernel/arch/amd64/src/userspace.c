@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
@@ -77,6 +77,5 @@ void userspace(uspace_arg_t *kernel_uarg)
 		;
 }
 
- /** @}
+/** @}
  */
-

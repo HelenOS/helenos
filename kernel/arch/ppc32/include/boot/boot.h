@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_BOOT_H__
-#define __ppc32_BOOT_H__
+#ifndef KERN_ppc32_BOOT_H_
+#define KERN_ppc32_BOOT_H_
 
 #define BOOT_OFFSET		0x8000
 

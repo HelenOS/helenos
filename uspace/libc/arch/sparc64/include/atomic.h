@@ -49,19 +49,14 @@
 static inline long atomic_add(atomic_t *val, int i)
 {
 	uint64_t a, b;
-	volatile uint64_t x = (uint64_t) &val->count;
 
-	__asm__ volatile (
-		"0:\n"
-		"ldx %0, %1\n"
-		"add %1, %3, %2\n"
-		"casx %0, %1, %2\n"
-		"cmp %1, %2\n"
-		"bne 0b\n"		/* The operation failed and must be attempted again if a != b. */
-		"nop\n"
-		: "=m" (*((uint64_t *)x)), "=r" (a), "=r" (b)
-		: "r" (i)
-	);
+	do {
+		volatile uintptr_t x = (uint64_t) &val->count;
+
+		a = *((uint64_t *) x);
+		b = a + i;
+		__asm__ volatile ("casx %0, %1, %2\n": "+m" (*((uint64_t *)x)), "+r" (a), "+r" (b));
+	} while (a != b);
 
 	return a;
 }

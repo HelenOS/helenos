@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_BYTEORDER_H__
-#define __ppc32_BYTEORDER_H__
+#ifndef KERN_ppc32_BYTEORDER_H_
+#define KERN_ppc32_BYTEORDER_H_
 
 #include <arch/types.h>
 #include <byteorder.h>
@@ -69,6 +69,5 @@ static inline unative_t unative_t_le2host(unative_t n)
 
 #endif
 
- /** @}
+/** @}
  */
-

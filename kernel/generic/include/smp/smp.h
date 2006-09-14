@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
  */
 
-#ifndef __SMP_H__
-#define __SMP_H__
+#ifndef KERN_SMP_H_
+#define KERN_SMP_H_
 
 #ifdef CONFIG_SMP
 extern void smp_init(void);
@@ -43,6 +43,5 @@ extern void smp_init(void);
 
 #endif /* __SMP_H__ */
 
- /** @}
+/** @}
  */
-

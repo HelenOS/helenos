@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __amd64_FADDR_H__
-#define __amd64_FADDR_H__
+#ifndef KERN_amd64_FADDR_H_
+#define KERN_amd64_FADDR_H_
 
 #include <arch/types.h>
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
  */
 
-#ifndef __mips32_ARC_H__
-#define __mips32_ARC_H__
+#ifndef KERN_mips32_ARC_H_
+#define KERN_mips32_ARC_H_
 
 #include <arch/types.h>
 #include <console/chardev.h>
@@ -53,7 +53,7 @@ typedef enum {
 	CmResourceTypeVendor,
 	CmResourceTypeProductName,
 	CmResourceTypeSerialNumber
-}cm_resource_type;
+} cm_resource_type;
 
 typedef struct {
 	uint8_t type;
@@ -74,14 +74,14 @@ typedef struct {
 			unsigned long length;
 		}memory;
 	}u;
-}__attribute__ ((packed)) cm_resource_descriptor;
+} __attribute__ ((packed)) cm_resource_descriptor;
 
 typedef struct {
 	uint16_t version;
 	uint16_t revision;
 	unsigned long count;
 	cm_resource_descriptor descr[1];
-}__attribute__ ((packed)) cm_resource_list;
+} __attribute__ ((packed)) cm_resource_list;
 
 typedef enum {
 	SystemClass = 0,
@@ -137,7 +137,7 @@ typedef enum {
 	GIOAdapter,
 	TPUAdapter,
 	Anonymous
-}arc_component_type;
+} arc_component_type;
 
 typedef enum {
 	Failed = 1,
@@ -147,7 +147,7 @@ typedef enum {
 	ConsoleOut = 16,
 	Input = 32,
 	Output = 64
-}arc_component_flags;
+} arc_component_flags;
 
 typedef struct  {
 	arc_component_class class;
@@ -182,18 +182,18 @@ typedef enum {
 	LoadedProgram,
 	FirmwareTemporary,
 	FirmwarePermanent
-}arc_memorytype_t;
+} arc_memorytype_t;
 
 typedef struct  {
 	arc_memorytype_t type;
 	uint32_t basepage;  /* *4096 = baseaddr */
 	uint32_t basecount;
-}arc_memdescriptor_t;
+} arc_memdescriptor_t;
 
 typedef struct {
 	char vendorid[8];
 	char prodid[8];
-}arc_sysid_t;
+} arc_sysid_t;
 
 typedef struct {
 	long (*load)(void); /* ... */
@@ -254,7 +254,7 @@ typedef struct {
 	uint32_t privvectorlen;
 	void *privvector;
 	uint32_t adaptercount;
-}__attribute__ ((packed)) arc_sbp;
+} __attribute__ ((packed)) arc_sbp;
 
 extern int arc_init(void);
 extern int arc_enabled(void);
@@ -265,4 +265,3 @@ void arc_console(void);
 
  /** @}
  */
-

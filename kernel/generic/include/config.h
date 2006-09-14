@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef KERN_CONFIG_H_
+#define KERN_CONFIG_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

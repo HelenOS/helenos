@@ -35,8 +35,8 @@
  * @brief	Wrapper for explicit 64-bit arguments passed to syscalls.
  */
 
-#ifndef __SYSARG64_H__
-#define __SYSARG64_H__
+#ifndef KERN_SYSARG64_H_
+#define KERN_SYSARG64_H_
 
 typedef struct {
 	unsigned long long value;

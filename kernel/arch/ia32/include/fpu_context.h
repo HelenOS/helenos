@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_FPU_CONTEXT_H__
-#define __ia32_FPU_CONTEXT_H__
+#ifndef KERN_ia32_FPU_CONTEXT_H_
+#define KERN_ia32_FPU_CONTEXT_H_
 
 #include <arch/types.h>
 
@@ -48,9 +48,7 @@ struct fpu_context {
 	uint8_t fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
 };
 
-
 #endif
 
- /** @}
+/** @}
  */
-

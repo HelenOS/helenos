@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
@@ -240,6 +240,5 @@ void pm_init(void)
 	tr_load(gdtselector(TSS_DES));
 }
 
- /** @}
+/** @}
  */
-

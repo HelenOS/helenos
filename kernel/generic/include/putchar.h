@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PUTCHAR_H__
-#define __PUTCHAR_H__
+#ifndef KERN_PUTCHAR_H_
+#define KERN_PUTCHAR_H_
 
 extern void putchar(const char ch);
 

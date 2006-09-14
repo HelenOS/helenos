@@ -45,4 +45,3 @@ void thread_create_arch(thread_t *t)
 
 /** @}
  */
-

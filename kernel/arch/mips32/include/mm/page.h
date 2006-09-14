@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_PAGE_H__
-#define __mips32_PAGE_H__
+#ifndef KERN_mips32_PAGE_H_
+#define KERN_mips32_PAGE_H_
 
 #include <arch/mm/frame.h>
 

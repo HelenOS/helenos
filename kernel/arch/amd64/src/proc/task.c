@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64proc
+/** @addtogroup amd64proc
  * @{
  */
 /** @file
@@ -56,6 +56,5 @@ void task_destroy_arch(task_t *t)
 		free(t->arch.iomap.map);
 }
 
- /** @}
+/** @}
  */
-

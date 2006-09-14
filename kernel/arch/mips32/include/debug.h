@@ -32,10 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_DEBUG_H__
-#define __mips23_DEBUG_H__
-
-
+#ifndef KERN_mips32_DEBUG_H_
+#define KERN_mips23_DEBUG_H_
 
 /**	simulator enters the trace mode */
 #define ___traceon()	asm volatile ( "\t.word\t0x39\n");
@@ -47,7 +45,6 @@
 #define ___halt()	asm volatile ( "\t.word\t0x28\n");
 /**     simulator enters interactive mode */
 #define ___intmode()	asm volatile ( "\t.word\t0x29\n");
-
 
 #endif
 

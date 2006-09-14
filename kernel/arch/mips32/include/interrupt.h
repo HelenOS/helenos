@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_INTERRUPT_H__
-#define __mips32_INTERRUPT_H__
+#ifndef KERN_mips32_INTERRUPT_H_
+#define KERN_mips32_INTERRUPT_H_
 
 #include <arch/exception.h>
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_TLB_H__
-#define __ia64_TLB_H__
+#ifndef KERN_ia64_TLB_H_
+#define KERN_ia64_TLB_H_
 
 #define tlb_arch_init()
 #define tlb_print()
@@ -100,6 +100,5 @@ extern void page_not_present(uint64_t vector, istate_t *istate);
 
 #endif
 
- /** @}
+/** @}
  */
-

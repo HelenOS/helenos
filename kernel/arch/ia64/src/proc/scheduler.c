@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64proc
+/** @addtogroup ia64proc
  * @{
  */
 /** @file
@@ -88,6 +88,5 @@ void after_thread_ran_arch(void)
 {
 }
 
- /** @}
+/** @}
  */
-

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __BYTEORDER_H__
-#define __BYTEORDER_H__
+#ifndef KERN_BYTEORDER_H_
+#define KERN_BYTEORDER_H_
 
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {

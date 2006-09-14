@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_AS_H__
-#define __ppc32_AS_H__
+#ifndef KERN_ppc32_AS_H_
+#define KERN_ppc32_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 

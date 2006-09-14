@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __AS_HT_H__
-#define __AS_HT_H__
+#ifndef KERN_AS_HT_H_
+#define KERN_AS_HT_H_
 
 #include <mm/as.h>
 

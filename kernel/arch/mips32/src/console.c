@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -64,6 +64,5 @@ void arch_release_console(void)
 	msim_kbd_release();
 }
 
- /** @}
+/** @}
  */
-

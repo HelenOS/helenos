@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /**
@@ -243,6 +243,5 @@ void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, uint32_t inde
 
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

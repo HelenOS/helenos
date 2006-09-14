@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_REGNAME_H_
-#define __mips32_REGNAME_H_
+#ifndef KERN_mips32_REGNAME_H_
+#define KERN_mips32_REGNAME_H_
 
 #define zero    0
 #define at      1
@@ -91,8 +91,7 @@
 #define depc		24
 #define eepc		30
 
-
-#endif /* _REGNAME_H_ */
+#endif /* KERN_mips32_REGNAME_H_ */
 
 /** @}
  */

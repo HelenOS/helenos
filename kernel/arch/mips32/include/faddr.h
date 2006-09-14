@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_FADDR_H__
-#define __mips32_FADDR_H__
+#ifndef KERN_mips32_FADDR_H_
+#define KERN_mips32_FADDR_H_
 
 #include <arch/types.h>
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __EGA_H__
-#define __EGA_H__
+#ifndef KERN_ia32_EGA_H_
+#define KERN_ia32_EGA_H_
 
 #define VIDEORAM	0xb8000
 #define ROW		80
@@ -44,6 +44,5 @@ extern void ega_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -33,8 +33,8 @@
  * @ingroup xen32mm
  */
 
-#ifndef __xen32_MEMORY_INIT_H__
-#define __xen32_MEMORY_INIT_H__
+#ifndef KERN_xen32_MEMORY_INIT_H_
+#define KERN_xen32_MEMORY_INIT_H_
 
 #include <typedefs.h>
 

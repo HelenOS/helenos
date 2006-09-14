@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
@@ -126,6 +126,5 @@ void msim_kbd_release(void)
 		int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
 }
 
- /** @}
+/** @}
  */
-

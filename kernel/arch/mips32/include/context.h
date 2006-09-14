@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_CONTEXT_H__
-#define __mips32_CONTEXT_H__
+#ifndef KERN_mips32_CONTEXT_H_
+#define KERN_mips32_CONTEXT_H_
 
 #include <align.h>
 #include <arch/stack.h>

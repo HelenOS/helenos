@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_MEMSTR_H__
-#define __mips32_MEMSTR_H__
+#ifndef KERN_mips32_MEMSTR_H_
+#define KERN_mips32_MEMSTR_H_
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 

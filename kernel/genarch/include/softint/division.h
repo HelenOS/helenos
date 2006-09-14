@@ -26,15 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef __SOFTINT_DIVISION_H__
-#define __SOFTINT_DIVISION_H__
-
+#ifndef KERN_DIVISION_H_
+#define KERN_DIVISION_H_
 
 /* 32bit integer division */
 int __divsi3(int a, int b);
@@ -64,7 +63,5 @@ unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsi
 
 #endif
 
-
- /** @}
+/** @}
  */
-

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ia32_INTERRUPT_H__
-#define __ia32_INTERRUPT_H__
+#ifndef KERN_ia32_INTERRUPT_H_
+#define KERN_ia32_INTERRUPT_H_
 
 #include <arch/types.h>
 #include <arch/pm.h>
@@ -126,4 +126,3 @@ extern void trap_virtual_eoi(void);
 
 /** @}
  */
-

@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32mm	
+/** @addtogroup ia32mm	
  * @{
  */
 /** @file
  * @ingroup ia32mm, am64mm
  */
 
-#ifndef __ia32_MEMORY_INIT_H__
-#define __ia32_MEMORY_INIT_H__
+#ifndef KERN_ia32_MEMORY_INIT_H_
+#define KERN_ia32_MEMORY_INIT_H_
 
 #include <typedefs.h>
 
@@ -44,6 +44,5 @@ void memory_print_map(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

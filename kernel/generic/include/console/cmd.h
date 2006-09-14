@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
  */
 
-#ifndef __CMD_H__
-#define __CMD_H__
+#ifndef KERN_CMD_H_
+#define KERN_CMD_H_
 
 #include <typedefs.h>
 
@@ -42,6 +42,5 @@ extern void cmd_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

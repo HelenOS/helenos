@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_STACK_H__
-#define __mips32_STACK_H__
+#ifndef KERN_mips32_STACK_H_
+#define KERN_mips32_STACK_H_
 
 #define STACK_ITEM_SIZE		4
 #define STACK_ALIGNMENT		8

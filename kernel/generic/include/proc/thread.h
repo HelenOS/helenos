@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __THREAD_H__
-#define __THREAD_H__
+#ifndef KERN_THREAD_H_
+#define KERN_THREAD_H_
 
 #include <arch/proc/thread.h>
 #include <synch/spinlock.h>

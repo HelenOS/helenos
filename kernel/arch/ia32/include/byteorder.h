@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_BYTEORDER_H__
-#define __ia32_BYTEORDER_H__
+#ifndef KERN_ia32_BYTEORDER_H_
+#define KERN_ia32_BYTEORDER_H_
 
 /* IA-32 is little-endian */
 #define unative_t_le2host(n)		(n)
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef __PAGE_H__
-#define __PAGE_H__
+#ifndef KERN_PAGE_H_
+#define KERN_PAGE_H_
 
 #include <arch/mm/asid.h>
 #include <arch/types.h>
@@ -97,6 +97,5 @@ extern uintptr_t hw_map(uintptr_t physaddr, size_t size);
 
 #endif
 
- /** @}
+/** @}
  */
-

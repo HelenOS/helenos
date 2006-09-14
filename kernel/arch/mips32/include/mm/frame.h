@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_FRAME_H__
-#define __mips32_FRAME_H__
+#ifndef KERN_mips32_FRAME_H_
+#define KERN_mips32_FRAME_H_
 
 #define FRAME_WIDTH		14	/* 16K */
 #define FRAME_SIZE		(1<<FRAME_WIDTH)

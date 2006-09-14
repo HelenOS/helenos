@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __VESA_H__
-#define __VESA_H__
+#ifndef KERN_ia32_VESA_H_
+#define KERN_ia32_VESA_H_
 
 extern int vesa_present(void);
 extern void vesa_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

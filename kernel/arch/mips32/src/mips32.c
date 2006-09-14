@@ -32,7 +32,6 @@
 /** @file
  */
 
-
 #include <arch.h>
 #include <arch/boot.h>
 #include <arch/cp0.h>
@@ -178,7 +177,6 @@ unative_t sys_tls_set(unative_t addr)
 {
 	return 0;
 }
-
 
 /** @}
  */

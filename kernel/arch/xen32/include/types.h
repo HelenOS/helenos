@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef KERN_xen32_TYPES_H_
+#define KERN_xen32_TYPES_H_
 
 #define NULL 0
 

@@ -44,6 +44,3 @@
 #define OFFSET_FR31  0x88
 #define OFFSET_FPSCR 0x90
 
- /** @}
- */
-

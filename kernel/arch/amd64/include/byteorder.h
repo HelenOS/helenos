@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_BYTEORDER_H__
-#define __amd64_BYTEORDER_H__
+#ifndef KERN_amd64_BYTEORDER_H_
+#define KERN_amd64_BYTEORDER_H_
 
 /* AMD64 is little-endian */
 #define unative_t_le2host(n)		(n)
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

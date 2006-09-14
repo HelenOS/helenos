@@ -31,12 +31,10 @@
  */
 /** @file
 */
-													
 
 #include <arch/mm/vhpt.h>
 #include <mm/frame.h>
 #include <print.h>
-
 
 static vhpt_entry_t* vhpt_base;
 

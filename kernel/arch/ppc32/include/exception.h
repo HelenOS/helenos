@@ -32,10 +32,10 @@
 /** @file
  */
 
-#ifndef __ppc32_EXCEPTION_H__
-#define __ppc32_EXCEPTION_H__
+#ifndef KERN_ppc32_EXCEPTION_H_
+#define KERN_ppc32_EXCEPTION_H_
 
-#ifndef __ppc32_TYPES_H__
+#ifndef KERN_ppc32_TYPES_H_
 #  include <arch/types.h>
 #endif
 

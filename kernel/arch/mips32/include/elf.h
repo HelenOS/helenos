@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_ELF_H__
-#define __mips32_ELF_H__
+#ifndef KERN_mips32_ELF_H_
+#define KERN_mips32_ELF_H_
 
 #define	ELF_MACHINE		EM_MIPS
 

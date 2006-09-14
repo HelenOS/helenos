@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 /** @file
  */
 
-#ifndef __UINIT_H__
-#define __UINIT_H__
+#ifndef KERN_UINIT_H_
+#define KERN_UINIT_H_
 
 #include <arch/types.h>
 
@@ -41,6 +41,5 @@ extern void uinit(void *arg);
 
 #endif
 
- /** @}
+/** @}
  */
-

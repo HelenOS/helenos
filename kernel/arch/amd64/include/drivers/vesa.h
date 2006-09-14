@@ -26,22 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __VESA_H__
-#define __VESA_H__
-
+#ifndef KERN_amd64_VESA_H_
+#define KERN_amd64_VESA_H_
 
 int vesa_present(void);
 void vesa_init(void);
 
-
 #endif
 
- /** @}
+/** @}
  */
-

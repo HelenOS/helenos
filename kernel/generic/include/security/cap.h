@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic 
+/** @addtogroup generic 
  * @{
  */
 /** @file
@@ -89,6 +89,5 @@ extern unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
 
 #endif
 
- /** @}
+/** @}
  */
-

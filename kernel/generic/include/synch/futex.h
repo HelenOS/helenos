@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __FUTEX_H__
-#define __FUTEX_H__
+#ifndef KERN_FUTEX_H_
+#define KERN_FUTEX_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -59,4 +59,3 @@ extern void futex_cleanup(void);
 
 /** @}
  */
-

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __USERSPACE_H__
-#define __USERSPACE_H__
+#ifndef KERN_USERSPACE_H_
+#define KERN_USERSPACE_H_
 
 #include <proc/thread.h>
 #include <arch/types.h>

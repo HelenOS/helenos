@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __SPINLOCK_H__
-#define __SPINLOCK_H__
+#ifndef KERN_SPINLOCK_H_
+#define KERN_SPINLOCK_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -116,6 +116,5 @@ static inline void spinlock_unlock(spinlock_t *sl)
 
 #endif
 
- /** @}
+/** @}
  */
-

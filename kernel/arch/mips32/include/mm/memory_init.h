@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_MEMORY_INIT_H__
-#define __mips32_MEMORY_INIT_H__
+#ifndef KERN_mips32_MEMORY_INIT_H_
+#define KERN_mips32_MEMORY_INIT_H_
 
 #include <config.h>
 

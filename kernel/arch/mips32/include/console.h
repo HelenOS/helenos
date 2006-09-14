@@ -32,9 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_CONSOLE_H__
-#define __mips32_CONSOLE_H__
-
+#ifndef KERN_mips32_CONSOLE_H_
+#define KERN_mips32_CONSOLE_H_
 
 void console_init(void);
 

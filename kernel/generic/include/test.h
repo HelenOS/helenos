@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TEST_H__
-#define __TEST_H__
+#ifndef KERN_TEST_H_
+#define KERN_TEST_H_
 
 extern void test(void);
 

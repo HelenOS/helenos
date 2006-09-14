@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64debug
+/** @addtogroup amd64debug
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_DEBUGGER_H__
-#define __amd64_DEBUGGER_H__
+#ifndef KERN_amd64_DEBUGGER_H_
+#define KERN_amd64_DEBUGGER_H_
 
 #include <arch/types.h>
 
@@ -53,6 +53,5 @@ extern void breakpoint_del(int slot);
 
 #endif
 
- /** @}
+/** @}
  */
-

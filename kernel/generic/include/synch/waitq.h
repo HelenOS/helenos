@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __WAITQ_H__
-#define __WAITQ_H__
+#ifndef KERN_WAITQ_H_
+#define KERN_WAITQ_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -71,6 +71,5 @@ extern void waitq_interrupt_sleep(thread_t *t);
 
 #endif
 
- /** @}
+/** @}
  */
-

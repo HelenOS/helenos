@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_AS_H__
-#define __amd64_AS_H__
+#ifndef KERN_amd64_AS_H_
+#define KERN_amd64_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 
@@ -50,6 +50,5 @@ extern void as_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

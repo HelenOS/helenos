@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /** @file
  */
 
-#ifndef __BTREE_H__
-#define __BTREE_H__
+#ifndef KERN_BTREE_H_
+#define KERN_BTREE_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -99,6 +99,5 @@ extern btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *n
 extern void btree_print(btree_t *t);
 #endif
 
- /** @}
+/** @}
  */
-

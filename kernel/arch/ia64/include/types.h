@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef KERN_ia64_TYPES_H_
+#define KERN_ia64_TYPES_H_
 
 #define NULL	0
 
@@ -70,4 +70,3 @@ typedef struct pte pte_t;
 
 /** @}
  */
-

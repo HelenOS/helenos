@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_FPU_CONTEXT_H__
-#define __ppc32_FPU_CONTEXT_H__
+#ifndef KERN_ppc32_FPU_CONTEXT_H_
+#define KERN_ppc32_FPU_CONTEXT_H_
 
-#ifndef __ppc32_TYPES_H__
+#ifndef KERN_ppc32_TYPES_H_
 # include <arch/types.h>
 #endif
 
@@ -63,6 +63,5 @@ struct fpu_context {
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64debug
+/** @addtogroup amd64debug
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_DEBUG_H__
-#define __ia32_DEBUG_H__
+#ifndef KERN_ia32_DEBUG_H_
+#define KERN_ia32_DEBUG_H_
 
 #include <arch/asm.h>
 
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

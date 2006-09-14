@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PM_H__
-#define __PM_H__
+#ifndef KERN_xen32_PM_H_
+#define KERN_xen32_PM_H_
 
 #define IDT_ITEMS 64
 #define GDT_ITEMS 7

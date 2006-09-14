@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /**
@@ -496,12 +496,12 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			do {
 				++i;
 				switch (c = fmt[i]) {
-					case '#': flags |= __PRINTF_FLAG_PREFIX; break;
-					case '-': flags |= __PRINTF_FLAG_LEFTALIGNED; break;
-					case '+': flags |= __PRINTF_FLAG_SHOWPLUS; break;
-					case ' ': flags |= __PRINTF_FLAG_SPACESIGN; break;
-					case '0': flags |= __PRINTF_FLAG_ZEROPADDED; break;
-					default: end = 1;
+				case '#': flags |= __PRINTF_FLAG_PREFIX; break;
+				case '-': flags |= __PRINTF_FLAG_LEFTALIGNED; break;
+				case '+': flags |= __PRINTF_FLAG_SHOWPLUS; break;
+				case ' ': flags |= __PRINTF_FLAG_SPACESIGN; break;
+				case '0': flags |= __PRINTF_FLAG_ZEROPADDED; break;
+				default: end = 1;
 				};	
 				
 			} while (end == 0);	
@@ -545,134 +545,134 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			}
 
 			switch (fmt[i++]) {
-				/** TODO: unimplemented qualifiers:
-				 * t ptrdiff_t - ISO C 99
-				 */
-				case 'h':	/* char or short */
-					qualifier = PrintfQualifierShort;
-					if (fmt[i] == 'h') {
-						i++;
-						qualifier = PrintfQualifierByte;
-					}
-					break;
-				case 'l':	/* long or long long*/
-					qualifier = PrintfQualifierLong;
-					if (fmt[i] == 'l') {
-						i++;
-						qualifier = PrintfQualifierLongLong;
-					}
-					break;
-				case 'z':	/* unative_t */
-					qualifier = PrintfQualifierNative;
-					break;
-				default:
-					qualifier = PrintfQualifierInt; /* default type */
-					--i;
+			/** TODO: unimplemented qualifiers:
+			 * t ptrdiff_t - ISO C 99
+			 */
+			case 'h':	/* char or short */
+				qualifier = PrintfQualifierShort;
+				if (fmt[i] == 'h') {
+					i++;
+					qualifier = PrintfQualifierByte;
+				}
+				break;
+			case 'l':	/* long or long long*/
+				qualifier = PrintfQualifierLong;
+				if (fmt[i] == 'l') {
+					i++;
+					qualifier = PrintfQualifierLongLong;
+				}
+				break;
+			case 'z':	/* unative_t */
+				qualifier = PrintfQualifierNative;
+				break;
+			default:
+				qualifier = PrintfQualifierInt; /* default type */
+				--i;
 			}	
 			
 			base = 10;
 
 			switch (c = fmt[i]) {
 
-				/*
-				* String and character conversions.
-				*/
-				case 's':
-					if ((retval = print_string(va_arg(ap, char*), width, precision, flags, ps)) < 0) {
-						counter = -counter;
-						goto out;
-					};
-					
-					counter += retval;
-					j = i + 1; 
-					goto next_char;
-				case 'c':
-					c = va_arg(ap, unsigned int);
-					if ((retval = print_char(c, width, flags, ps)) < 0) {
-						counter = -counter;
-						goto out;
-					};
-					
-					counter += retval;
-					j = i + 1;
-					goto next_char;
+			/*
+			* String and character conversions.
+			*/
+			case 's':
+				if ((retval = print_string(va_arg(ap, char*), width, precision, flags, ps)) < 0) {
+					counter = -counter;
+					goto out;
+				};
 
-				/* 
-				 * Integer values
-				*/
-				case 'P': /* pointer */
-				       	flags |= __PRINTF_FLAG_BIGCHARS;
-				case 'p':
-					flags |= __PRINTF_FLAG_PREFIX;
-					base = 16;
-					qualifier = PrintfQualifierPointer;
-					break;	
-				case 'b': 
-					base = 2;
-					break;
-				case 'o':
-					base = 8;
-					break;
-				case 'd':
-				case 'i':
-					flags |= __PRINTF_FLAG_SIGNED;  
-				case 'u':
-					break;
-				case 'X':
-					flags |= __PRINTF_FLAG_BIGCHARS;
-				case 'x':
-					base = 16;
-					break;
-				/* percentile itself */
-				case '%': 
-					j = i;
-					goto next_char;
-				/*
-				* Bad formatting.
-				*/
-				default:
-					/* Unknown format
-					 *  now, the j is index of '%' so we will
-					 * print whole bad format sequence
-					 */
-					goto next_char;		
+				counter += retval;
+				j = i + 1; 
+				goto next_char;
+			case 'c':
+				c = va_arg(ap, unsigned int);
+				if ((retval = print_char(c, width, flags, ps)) < 0) {
+					counter = -counter;
+					goto out;
+				};
+					
+				counter += retval;
+				j = i + 1;
+				goto next_char;
+
+			/* 
+			 * Integer values
+			 */
+			case 'P': /* pointer */
+			       	flags |= __PRINTF_FLAG_BIGCHARS;
+			case 'p':
+				flags |= __PRINTF_FLAG_PREFIX;
+				base = 16;
+				qualifier = PrintfQualifierPointer;
+				break;	
+			case 'b': 
+				base = 2;
+				break;
+			case 'o':
+				base = 8;
+				break;
+			case 'd':
+			case 'i':
+				flags |= __PRINTF_FLAG_SIGNED;  
+			case 'u':
+				break;
+			case 'X':
+				flags |= __PRINTF_FLAG_BIGCHARS;
+			case 'x':
+				base = 16;
+				break;
+			/* percentile itself */
+			case '%': 
+				j = i;
+				goto next_char;
+			/*
+			 * Bad formatting.
+			 */
+			default:
+				/* Unknown format
+				 * now, j is index of '%' so we will
+				 * print whole bad format sequence
+				 */
+				goto next_char;		
 			}
 		
 		
 		/* Print integers */
 			/* print number */
 			switch (qualifier) {
-				case PrintfQualifierByte:
-					size = sizeof(unsigned char);
-					number = (uint64_t)va_arg(ap, unsigned int);
-					break;
-				case PrintfQualifierShort:
-					size = sizeof(unsigned short);
-					number = (uint64_t)va_arg(ap, unsigned int);
-					break;
-				case PrintfQualifierInt:
-					size = sizeof(unsigned int);
-					number = (uint64_t)va_arg(ap, unsigned int);
-					break;
-				case PrintfQualifierLong:
-					size = sizeof(unsigned long);
-					number = (uint64_t)va_arg(ap, unsigned long);
-					break;
-				case PrintfQualifierLongLong:
-					size = sizeof(unsigned long long);
-					number = (uint64_t)va_arg(ap, unsigned long long);
-					break;
-				case PrintfQualifierPointer:
-					size = sizeof(void *);
-					number = (uint64_t)(unsigned long)va_arg(ap, void *);
-					break;
-				case PrintfQualifierNative:
-					size = sizeof(unative_t);
-					number = (uint64_t)va_arg(ap, unative_t);
-					break;
-				default: /* Unknown qualifier */
-					counter = -counter;
-					goto out;
+			case PrintfQualifierByte:
+				size = sizeof(unsigned char);
+				number = (uint64_t)va_arg(ap, unsigned int);
+				break;
+			case PrintfQualifierShort:
+				size = sizeof(unsigned short);
+				number = (uint64_t)va_arg(ap, unsigned int);
+				break;
+			case PrintfQualifierInt:
+				size = sizeof(unsigned int);
+				number = (uint64_t)va_arg(ap, unsigned int);
+				break;
+			case PrintfQualifierLong:
+				size = sizeof(unsigned long);
+				number = (uint64_t)va_arg(ap, unsigned long);
+				break;
+			case PrintfQualifierLongLong:
+				size = sizeof(unsigned long long);
+				number = (uint64_t)va_arg(ap, unsigned long long);
+				break;
+			case PrintfQualifierPointer:
+				size = sizeof(void *);
+				number = (uint64_t)(unsigned long)va_arg(ap, void *);
+				break;
+			case PrintfQualifierNative:
+				size = sizeof(unative_t);
+				number = (uint64_t)va_arg(ap, unative_t);
+				break;
+			default: /* Unknown qualifier */
+				counter = -counter;
+				goto out;
 			}
 			
 			if (flags & __PRINTF_FLAG_SIGNED) {
@@ -718,7 +718,5 @@ out:
 	return counter;
 }
 
-
- /** @}
+/** @}
  */
-

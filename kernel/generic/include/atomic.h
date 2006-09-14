@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ATOMIC_H__
-#define __ATOMIC_H__
+#ifndef KERN_ATOMIC_H_
+#define KERN_ATOMIC_H_
 
 typedef struct atomic {
 	volatile long count;

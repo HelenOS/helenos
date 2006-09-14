@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __AS_PT_H__
-#define __AS_PT_H__
+#ifndef KERN_AS_PT_H_
+#define KERN_AS_PT_H_
 
 #include <mm/as.h>
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ELF_H__
-#define __ELF_H__
+#ifndef KERN_ELF_H_
+#define KERN_ELF_H_
 
 #include <arch/elf.h>
 #include <arch/types.h>

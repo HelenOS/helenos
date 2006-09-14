@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_MEMORY_INIT_H__
-#define __ppc32_MEMORY_INIT_H__
+#ifndef KERN_ppc32_MEMORY_INIT_H_
+#define KERN_ppc32_MEMORY_INIT_H_
 
 #include <typedefs.h>
 

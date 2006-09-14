@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_BARRIER_H__
-#define __ppc32_BARRIER_H__
+#ifndef KERN_ppc32_BARRIER_H_
+#define KERN_ppc32_BARRIER_H_
 
 #define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
@@ -44,6 +44,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

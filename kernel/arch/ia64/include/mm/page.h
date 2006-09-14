@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef __ia64_PAGE_H__
-#define __ia64_PAGE_H__
+#ifndef KERN_ia64_PAGE_H_
+#define KERN_ia64_PAGE_H_
 
 #include <arch/mm/frame.h>
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __amd64_TYPES_H__
-#define __amd64_TYPES_H__
+#ifndef KERN_amd64_TYPES_H_
+#define KERN_amd64_TYPES_H_
 
 #define NULL 0
 

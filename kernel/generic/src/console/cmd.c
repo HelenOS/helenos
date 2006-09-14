@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 
@@ -806,6 +806,5 @@ int cmd_continue(cmd_arg_t *argv)
 	return 1;
 }
 
- /** @}
+/** @}
  */
-

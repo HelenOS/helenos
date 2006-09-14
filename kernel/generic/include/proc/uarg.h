@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __UARG_H__
-#define __UARG_H__
+#ifndef KERN_UARG_H_
+#define KERN_UARG_H_
 
 /** Structure passed to uinit kernel thread as argument. */
 typedef struct uspace_arg {

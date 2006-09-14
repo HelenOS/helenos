@@ -141,4 +141,3 @@ void pt_unlock(as_t *as, bool unlock)
 
 /** @}
  */
-

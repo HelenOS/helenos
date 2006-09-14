@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __MEMSTR_H__
-#define __MEMSTR_H__
+#ifndef KERN_MEMSTR_H_
+#define KERN_MEMSTR_H_
 
 #include <typedefs.h>
 #include <arch/types.h>

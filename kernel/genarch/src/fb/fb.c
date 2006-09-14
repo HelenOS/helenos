@@ -304,30 +304,30 @@ static void fb_putchar(chardev_t *dev, char ch)
 	spinlock_lock(&fb_lock);
 	
 	switch (ch) {
-		case '\n':
-			invert_cursor();
-			position += columns;
-			position -= position % columns;
-			break;
-		case '\r':
-			invert_cursor();
-			position -= position % columns;
-			break;
-		case '\b':
-			invert_cursor();
-			if (position % columns)
-				position--;
-			break;
-		case '\t':
-			invert_cursor();
-			do {
-				draw_char(' ');
-				position++;
-			} while ((position % 8) && position < columns * rows);
-			break;
-		default:
-			draw_char(ch);
+	case '\n':
+		invert_cursor();
+		position += columns;
+		position -= position % columns;
+		break;
+	case '\r':
+		invert_cursor();
+		position -= position % columns;
+		break;
+	case '\b':
+		invert_cursor();
+		if (position % columns)
+			position--;
+		break;
+	case '\t':
+		invert_cursor();
+		do {
+			draw_char(' ');
 			position++;
+		} while ((position % 8) && position < columns * rows);
+		break;
+	default:
+		draw_char(ch);
+		position++;
 	}
 	
 	if (position >= columns * rows) {
@@ -358,31 +358,31 @@ static chardev_operations_t fb_ops = {
 void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align)
 {
 	switch (bpp) {
-		case 8:
-			rgb2scr = rgb_1byte;
-			scr2rgb = byte1_rgb;
-			pixelbytes = 1;
-			break;
-		case 16:
-			rgb2scr = rgb_2byte;
-			scr2rgb = byte2_rgb;
-			pixelbytes = 2;
-			break;
-		case 24:
-			rgb2scr = rgb_3byte;
-			scr2rgb = byte3_rgb;
-			if (align)
-				pixelbytes = 4;
-			else
-				pixelbytes = 3;
-			break;
-		case 32:
-			rgb2scr = rgb_4byte;
-			scr2rgb = byte4_rgb;
+	case 8:
+		rgb2scr = rgb_1byte;
+		scr2rgb = byte1_rgb;
+		pixelbytes = 1;
+		break;
+	case 16:
+		rgb2scr = rgb_2byte;
+		scr2rgb = byte2_rgb;
+		pixelbytes = 2;
+		break;
+	case 24:
+		rgb2scr = rgb_3byte;
+		scr2rgb = byte3_rgb;
+		if (align)
 			pixelbytes = 4;
-			break;
-		default:
-			panic("Unsupported bpp");
+		else
+			pixelbytes = 3;
+		break;
+	case 32:
+		rgb2scr = rgb_4byte;
+		scr2rgb = byte4_rgb;
+		pixelbytes = 4;
+		break;
+	default:
+		panic("Unsupported bpp");
 	}
 	
 	unsigned int fbsize = scan * y;

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef __TLB_H__
-#define __TLB_H__
+#ifndef KERN_TLB_H_
+#define KERN_TLB_H_
 
 #include <arch/mm/asid.h>
 #include <arch/types.h>
@@ -75,7 +75,6 @@ extern void tlb_shootdown_ipi_recv(void);
 #  define tlb_shootdown_ipi_recv()
 #endif /* CONFIG_SMP */
 
-
 /* Export TLB interface that each architecture must implement. */
 extern void tlb_arch_init(void);
 extern void tlb_print(void);
@@ -86,6 +85,5 @@ extern void tlb_invalidate_asid(asid_t asid);
 extern void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt);
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -43,6 +43,5 @@ void bios_init(void)
 	ebda = *((uint16_t *) BIOS_EBDA_PTR) * 0x10;
 }
 
- /** @}
+/** @}
  */
-

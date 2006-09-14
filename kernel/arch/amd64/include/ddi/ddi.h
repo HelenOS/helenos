@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64ddi
+/** @addtogroup amd64ddi
  * @{
  */
 
@@ -35,13 +35,12 @@
  * @brief	amd64 specific DDI declarations and macros.
  */
 
-#ifndef __amd64_DDI_H__
-#define __amd64_DDI_H__
+#ifndef KERN_amd64_DDI_H_
+#define KERN_amd64_DDI_H_
 
 extern void io_perm_bitmap_install(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

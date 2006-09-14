@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_FRAME_H__
-#define __ppc32_FRAME_H__
+#ifndef KERN_ppc32_FRAME_H_
+#define KERN_ppc32_FRAME_H_
 
 #define FRAME_WIDTH		12	/* 4K */
 #define FRAME_SIZE		(1 << FRAME_WIDTH)

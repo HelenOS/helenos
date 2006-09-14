@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -83,6 +83,5 @@ void userspace(uspace_arg_t *kernel_uarg)
 		;
 }
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_ASID_H__
-#define __ia64_ASID_H__
+#ifndef KERN_ia64_ASID_H_
+#define KERN_ia64_ASID_H_
 
 #ifndef __ASM__
 
@@ -62,6 +62,5 @@ typedef uint32_t rid_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

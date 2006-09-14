@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PIC_H_
-#define __PIC_H_
+#ifndef KERN_ppc32_PIC_H_
+#define KERN_ppc32_PIC_H_
 
 #define PIC_PENDING_LOW    8
 #define PIC_PENDING_HIGH   4

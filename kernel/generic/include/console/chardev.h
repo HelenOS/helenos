@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
  */
 
-#ifndef __CHARDEV_H__
-#define __CHARDEV_H__
+#ifndef KERN_CHARDEV_H_
+#define KERN_CHARDEV_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
@@ -71,8 +71,7 @@ extern void chardev_initialize(char *name,
 			       chardev_operations_t *op);
 extern void chardev_push_character(chardev_t *chardev, uint8_t ch);
 
-#endif /* __CHARDEV_H__ */
+#endif /* KERN_CHARDEV_H_ */
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __BIOS_H__
-#define __BIOS_H__
+#ifndef KERN_ia32_BIOS_H_
+#define KERN_ia32_BIOS_H_
 
 #include <arch/types.h>
 
@@ -43,8 +43,7 @@ extern uintptr_t ebda;
 
 extern void bios_init(void);
 
-#endif /* __BIOS_H__ */
+#endif /* KERN_ia32_BIOS_H_ */
 
- /** @}
+/** @}
  */
-

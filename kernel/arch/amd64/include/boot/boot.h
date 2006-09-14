@@ -32,12 +32,12 @@
 /** @file
  */
 
-#ifndef __amd64_BOOT_H__
-#define __amd64_BOOT_H__
+#ifndef KERN_amd64_BOOT_H_
+#define KERN_amd64_BOOT_H_
 
-#define BOOT_OFFSET			0x108000
+#define BOOT_OFFSET		0x108000
 #define AP_BOOT_OFFSET		0x8000
-#define BOOT_STACK_SIZE	0x400
+#define BOOT_STACK_SIZE		0x400
 
 #define MULTIBOOT_HEADER_MAGIC	0x1BADB002
 #define MULTIBOOT_HEADER_FLAGS	0x00010003

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
  */
 
-#ifndef __SYSIPC_H__
-#define __SYSIPC_H__
+#ifndef KERN_SYSIPC_H_
+#define KERN_SYSIPC_H_
 
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
@@ -58,6 +58,5 @@ unative_t sys_ipc_unregister_irq(int irq);
 
 #endif
 
- /** @}
+/** @}
  */
-

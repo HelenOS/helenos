@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
  */
 
-#ifndef __IRQ_H__
-#define __IRQ_H__
+#ifndef KERN_IRQ_H_
+#define KERN_IRQ_H_
 
 /** Maximum length of IPC IRQ program */
 #define IRQ_MAX_PROG_SIZE 10
@@ -88,6 +88,5 @@ extern void ipc_irq_cleanup(answerbox_t *box);
 
 #endif
 
- /** @}
+/** @}
  */
-

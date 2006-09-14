@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef _mips32_DEBUGGER_H_
-#define _mips32_DEBUGGER_H_
+#ifndef KERN_mips32_DEBUGGER_H_
+#define KERN_mips32_DEBUGGER_H_
 
 #include <typedefs.h>
 #include <arch/exception.h>

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32mm	
+/** @addtogroup ia32mm	
  * @{
  */
 /** @file
@@ -39,8 +39,8 @@
  * interface.
  */
 
-#ifndef __ia32_ASID_H__
-#define __ia32_ASID_H__
+#ifndef KERN_ia32_ASID_H_
+#define KERN_ia32_ASID_H_
 
 typedef int asid_t;
 
@@ -51,6 +51,5 @@ typedef int asid_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

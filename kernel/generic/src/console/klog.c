@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericklog
+/** @addtogroup genericklog
  * @{
  */
 /** @file
@@ -105,6 +105,5 @@ void klog_printf(const char *fmt, ...)
 	va_end(args);
 }
 
- /** @}
+/** @}
  */
-

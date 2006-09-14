@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -152,6 +152,5 @@ void arch_release_console(void)
     kbd_uspace=kbd_release;
 }
 
- /** @}
+/** @}
  */
-

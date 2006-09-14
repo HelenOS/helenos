@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_REGNAME_H__
-#define __ppc32_REGNAME_H__
+#ifndef KERN_ppc32_REGNAME_H_
+#define KERN_ppc32_REGNAME_H_
 
 /* Condition Register Bit Fields */
 #define	cr0	0

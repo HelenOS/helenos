@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32debug
+/** @addtogroup ppc32debug
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_DEBUG_H__
-#define __ppc32_DEBUG_H__
+#ifndef KERN_ppc32_DEBUG_H_
+#define KERN_ppc32_DEBUG_H_
 
 #endif
 
- /** @}
+/** @}
  */
-

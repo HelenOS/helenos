@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 /** @file
  */
 
-#ifndef __KINIT_H__
-#define __KINIT_H__
+#ifndef KERN_KINIT_H_
+#define KERN_KINIT_H_
 
 extern void kinit(void *arg);
 
 #endif
 
- /** @}
+/** @}
  */
-

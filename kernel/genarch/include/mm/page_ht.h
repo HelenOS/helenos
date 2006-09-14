@@ -36,8 +36,8 @@
 
 #ifdef CONFIG_PAGE_HT
 
-#ifndef __PAGE_HT_H__
-#define __PAGE_HT_H__
+#ifndef KERN_PAGE_HT_H_
+#define KERN_PAGE_HT_H_
 
 #include <mm/page.h>
 #include <typedefs.h>

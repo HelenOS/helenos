@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32debug
+/** @addtogroup mips32debug
  * @{
  */
 /** @file
@@ -383,6 +383,5 @@ void debugger_bpoint(istate_t *istate)
 	spinlock_unlock(&bkpoint_lock);
 }
 
- /** @}
+/** @}
  */
-

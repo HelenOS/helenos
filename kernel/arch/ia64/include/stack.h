@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_STACK_H__
-#define __ia64_STACK_H__
+#ifndef KERN_ia64_STACK_H_
+#define KERN_ia64_STACK_H_
 
 #define STACK_ITEM_SIZE			8
 #define STACK_ALIGNMENT			16
@@ -42,6 +42,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

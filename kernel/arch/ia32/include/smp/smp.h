@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_SMP_H__
-#define __ia32_SMP_H__
+#ifndef KERN_ia32_SMP_H_
+#define KERN_ia32_SMP_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -51,6 +51,5 @@ extern int smp_irq_to_pin(int irq);
 
 #endif
 
- /** @}
+/** @}
  */
-

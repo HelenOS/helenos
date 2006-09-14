@@ -62,4 +62,3 @@ void as_install_arch(as_t *as)
 
 /** @}
  */
-

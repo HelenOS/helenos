@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_ELF_H__
-#define __ppc32_ELF_H__
+#ifndef KERN_ppc32_ELF_H_
+#define KERN_ppc32_ELF_H_
 
 #define	ELF_MACHINE		EM_PPC
 #define ELF_DATA_ENCODING	ELFDATA2MSB
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

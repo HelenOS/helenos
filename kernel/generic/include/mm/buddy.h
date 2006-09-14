@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef __BUDDY_H__
-#define __BUDDY_H__
+#ifndef KERN_BUDDY_H_
+#define KERN_BUDDY_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -55,10 +55,10 @@ struct buddy_system_operations {
 };
 
 struct buddy_system {
-	uint8_t max_order;				/**< Maximal order of block which can be stored by buddy system. */
+	uint8_t max_order;		/**< Maximal order of block which can be stored by buddy system. */
 	link_t *order;
 	buddy_system_operations_t *op;
-	void *data;				/**< Pointer to be used by the implementation. */
+	void *data;			/**< Pointer to be used by the implementation. */
 };
 
 extern void buddy_system_create(buddy_system_t *b,
@@ -73,6 +73,5 @@ extern link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block);
 
 #endif
 
- /** @}
+/** @}
  */
-

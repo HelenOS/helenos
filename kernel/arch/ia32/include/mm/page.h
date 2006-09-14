@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32mm	
+/** @addtogroup ia32mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_PAGE_H__
-#define __ia32_PAGE_H__
+#ifndef KERN_ia32_PAGE_H_
+#define KERN_ia32_PAGE_H_
 
 #include <arch/mm/frame.h>
 
@@ -168,6 +168,5 @@ extern void page_fault(int n, istate_t *istate);
 
 #endif
 
- /** @}
+/** @}
  */
-

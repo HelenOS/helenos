@@ -32,14 +32,13 @@
 /** @file
  */
 
-
 /*
  * Variable argument list manipulation macros
  * for all architectures with compiler support for __builtin_va_*.
  */
  
-#ifndef __STDARG_H__
-#define __STDARG_H__
+#ifndef KERN_STDARG_H_
+#define KERN_STDARG_H_
 
 typedef __builtin_va_list va_list;
 

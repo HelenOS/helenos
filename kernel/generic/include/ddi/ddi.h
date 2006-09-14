@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericddi
+/** @addtogroup genericddi
  * @{
  */
 /** @file
  */
 
-#ifndef __DDI_H__
-#define __DDI_H__
+#ifndef KERN_DDI_H_
+#define KERN_DDI_H_
 
 #include <ddi/ddi_arg.h>
 #include <arch/types.h>
@@ -51,6 +51,5 @@ extern int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size);
 
 #endif
 
- /** @}
+/** @}
  */
-

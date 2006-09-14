@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_IT_H__
-#define __ia64_IT_H__
+#ifndef KERN_ia64_IT_H_
+#define KERN_ia64_IT_H_
 
 /*
  * Unfortunately, Ski does not emulate PAL,
@@ -48,6 +48,5 @@ extern void it_interrupt(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

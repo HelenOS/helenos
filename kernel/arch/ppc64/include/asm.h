@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64	
+/** @addtogroup ppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_ASM_H__
-#define __ppc64_ASM_H__
+#ifndef KERN_ppc64_ASM_H_
+#define KERN_ppc64_ASM_H_
 
 #include <arch/types.h>
 #include <config.h>
@@ -157,6 +157,5 @@ extern void userspace_asm(uintptr_t uspace_uarg, uintptr_t stack, uintptr_t entr
 
 #endif
 
- /** @}
+/** @}
  */
-

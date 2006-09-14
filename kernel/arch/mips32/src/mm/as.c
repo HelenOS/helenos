@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32mm
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -72,7 +72,5 @@ void as_install_arch(as_t *as)
 	interrupts_restore(ipl);
 }
 
-
- /** @}
+/** @}
  */
-

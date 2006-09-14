@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __AS_H__
-#define __AS_H__
+#ifndef KERN_AS_H_
+#define KERN_AS_H_
 
 /** Address space area flags. */
 #define AS_AREA_READ		1

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef _FB_H_
-#define _FB_H_
+#ifndef KERN_FB_H_
+#define KERN_FB_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
@@ -43,6 +43,5 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 
 #endif
 
- /** @}
+/** @}
  */
-

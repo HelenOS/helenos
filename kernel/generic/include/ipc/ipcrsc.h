@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
  */
 
-#ifndef __IPCRSC_H__
-#define __IPCRSC_H__
+#ifndef KERN_IPCRSC_H_
+#define KERN_IPCRSC_H_
 
 call_t * get_call(unative_t callid);
 int phone_alloc(void);
@@ -42,6 +42,5 @@ void phone_dealloc(int phoneid);
 
 #endif
 
- /** @}
+/** @}
  */
-

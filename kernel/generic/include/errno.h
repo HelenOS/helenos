@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ERRNO_H__
-#define __ERRNO_H__
+#ifndef KERN_ERRNO_H_
+#define KERN_ERRNO_H_
 
 /* 1-255 are kernel error codes, 256-512 are user error codes */
 

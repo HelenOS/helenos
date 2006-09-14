@@ -374,12 +374,12 @@ void scheduler_separated_stack(void)
 		after_thread_ran();
 
 		switch (THREAD->state) {
-		    case Running:
+		case Running:
 			spinlock_unlock(&THREAD->lock);
 			thread_ready(THREAD);
 			break;
 
-		    case Exiting:
+		case Exiting:
 repeat:
 		    	if (THREAD->detached) {
 				thread_destroy(THREAD);
@@ -405,7 +405,7 @@ repeat:
 			}
 			break;
 			
-		    case Sleeping:
+		case Sleeping:
 			/*
 			 * Prefer the thread after it's woken up.
 			 */
@@ -430,7 +430,7 @@ repeat:
 
 			break;
 
-		    default:
+		default:
 			/*
 			 * Entering state is unexpected.
 			 */

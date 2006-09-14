@@ -26,15 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
  */
 
-
-#ifndef __amd64_PTL_H_
-#define __amd64_PTL_H_
+#ifndef KERN_amd64_PTL_H_
+#define KERN_amd64_PTL_H_
 
 #define PTL_NO_EXEC       (1<<63)
 #define PTL_ACCESSED      (1<<5)
@@ -48,6 +47,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

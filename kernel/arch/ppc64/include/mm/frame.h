@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_FRAME_H__
-#define __ppc64_FRAME_H__
+#ifndef KERN_ppc64_FRAME_H_
+#define KERN_ppc64_FRAME_H_
 
 #define FRAME_WIDTH		12	/* 4K */
 #define FRAME_SIZE		(1 << FRAME_WIDTH)
@@ -52,6 +52,5 @@ extern void frame_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

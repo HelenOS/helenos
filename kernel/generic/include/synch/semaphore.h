@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __SEMAPHORE_H__
-#define __SEMAPHORE_H__
+#ifndef KERN_SEMAPHORE_H_
+#define KERN_SEMAPHORE_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -58,7 +58,5 @@ extern void semaphore_up(semaphore_t *s);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

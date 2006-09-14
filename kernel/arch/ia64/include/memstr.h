@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_MEMSTR_H__
-#define __ia64_MEMSTR_H__
+#ifndef KERN_ia64_MEMSTR_H_
+#define KERN_ia64_MEMSTR_H_
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
@@ -44,6 +44,5 @@ extern int memcmp(uintptr_t src, uintptr_t dst, int cnt);
 
 #endif
 
- /** @}
+/** @}
  */
-

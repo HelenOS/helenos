@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
  */
 
-#ifndef __KCONSOLE_H__
-#define __KCONSOLE_H__
+#ifndef KERN_KCONSOLE_H_
+#define KERN_KCONSOLE_H_
 
 #include <typedefs.h>
 #include <adt/list.h>
@@ -80,6 +80,5 @@ extern int cmd_register(cmd_info_t *cmd);
 
 #endif
 
- /** @}
+/** @}
  */
-

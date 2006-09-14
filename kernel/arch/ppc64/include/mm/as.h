@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_AS_H__
-#define __ppc64_AS_H__
+#ifndef KERN_ppc64_AS_H_
+#define KERN_ppc64_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 
@@ -50,6 +50,5 @@ extern void as_arch_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

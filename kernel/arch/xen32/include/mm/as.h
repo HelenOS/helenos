@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __xen32_AS_H__
-#define __xen32_AS_H__
+#ifndef KERN_xen32_AS_H_
+#define KERN_xen32_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 

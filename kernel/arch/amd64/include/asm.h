@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_ASM_H__
-#define __amd64_ASM_H__
+#ifndef KERN_amd64_ASM_H_
+#define KERN_amd64_ASM_H_
 
 #include <arch/pm.h>
 #include <arch/types.h>
@@ -274,12 +274,10 @@ GEN_WRITE_REG(dr3);
 GEN_WRITE_REG(dr6);
 GEN_WRITE_REG(dr7);
 
-
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

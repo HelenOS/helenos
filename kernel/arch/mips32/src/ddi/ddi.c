@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32ddi
+/** @addtogroup mips32ddi
  * @{
  */
 /** @file
@@ -55,6 +55,5 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 	return 0;
 }
 
- /** @}
+/** @}
  */
-

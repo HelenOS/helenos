@@ -27,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_ASM_H__
-#define __ia32_ASM_H__
+#ifndef KERN_ia32_ASM_H_
+#define KERN_ia32_ASM_H_
 
 #include <arch/pm.h>
 #include <arch/types.h>
@@ -296,6 +296,5 @@ static inline void tr_load(uint16_t sel)
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 
@@ -626,6 +626,5 @@ bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end)
 	return found_start;
 }
 
- /** @}
+/** @}
  */
-

@@ -115,5 +115,6 @@ void arch_release_console(void)
 	z8530_release();
 #endif
 }
+
 /** @}
  */

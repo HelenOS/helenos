@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_TYPES_H__
-#define __ppc32_TYPES_H__
+#ifndef KERN_ppc32_TYPES_H_
+#define KERN_ppc32_TYPES_H_
 
 #define NULL 0
 

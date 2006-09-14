@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -155,6 +155,5 @@ void arch_release_console(void)
 	i8042_release();
 }
 
- /** @}
+/** @}
  */
-

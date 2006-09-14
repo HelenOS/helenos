@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __MUTEX_H__
-#define __MUTEX_H__
+#ifndef KERN_MUTEX_H_
+#define KERN_MUTEX_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -59,6 +59,5 @@ extern void mutex_unlock(mutex_t *mtx);
 
 #endif
 
- /** @}
+/** @}
  */
-

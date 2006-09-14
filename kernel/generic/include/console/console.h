@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
  */
 
-#ifndef __CONSOLE_H__
-#define __CONSOLE_H__
+#ifndef KERN_CONSOLE_H_
+#define KERN_CONSOLE_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -49,8 +49,7 @@ extern void putchar(char c);
 extern void arch_grab_console(void);
 extern void arch_release_console(void);
 
-#endif /* __CHARDEV_H__ */
+#endif /* KERN_CONSOLE_H_ */
 
- /** @}
+/** @}
  */
-

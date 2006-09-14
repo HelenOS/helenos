@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_FADDR_H__
-#define __ia32_FADDR_H__
+#ifndef KERN_ia32_FADDR_H_
+#define KERN_ia32_FADDR_H_
 
 #include <arch/types.h>
 
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

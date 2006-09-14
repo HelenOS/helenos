@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_REGISTER_H__
-#define __ia64_REGISTER_H__
+#ifndef KERN_ia64_REGISTER_H_
+#define KERN_ia64_REGISTER_H_
 
 #define CR_IVR_MASK	0xf
 #define PSR_IC_MASK	0x2000
@@ -274,6 +274,5 @@ typedef union cpuid3 cpuid3_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

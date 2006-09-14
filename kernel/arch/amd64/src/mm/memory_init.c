@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
@@ -75,7 +75,5 @@ void memory_print_map(void)
 
 }
 
-
- /** @}
+/** @}
  */
-

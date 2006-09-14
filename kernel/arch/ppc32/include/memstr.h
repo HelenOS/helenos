@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc32	
+/** @addtogroup ppc32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc32_MEMSTR_H__
-#define __ppc32_MEMSTR_H__
+#ifndef KERN_ppc32_MEMSTR_H_
+#define KERN_ppc32_MEMSTR_H_
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
@@ -44,6 +44,5 @@ extern int memcmp(uintptr_t src, uintptr_t dst, int cnt);
 
 #endif
 
- /** @}
+/** @}
  */
-

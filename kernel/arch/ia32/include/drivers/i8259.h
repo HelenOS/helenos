@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __I8259_H__
-#define __I8259_H__
+#ifndef KERN_ia32_I8259_H_
+#define KERN_ia32_I8259_H_
 
 #include <arch/types.h>
 #include <arch/interrupt.h>
@@ -53,6 +53,5 @@ extern void pic_eoi(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

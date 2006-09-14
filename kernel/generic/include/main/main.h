@@ -32,8 +32,8 @@
 /** @file
  */
  
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef KERN_MAIN_H_
+#define KERN_MAIN_H_
 
 #include <typedefs.h>
 

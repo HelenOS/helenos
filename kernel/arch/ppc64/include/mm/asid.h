@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_ASID_H__
-#define __ppc64_ASID_H__
+#ifndef KERN_ppc64_ASID_H_
+#define KERN_ppc64_ASID_H_
 
 typedef int asid_t;
 
@@ -44,6 +44,5 @@ typedef int asid_t;
 
 #endif
 
- /** @}
+/** @}
  */
-

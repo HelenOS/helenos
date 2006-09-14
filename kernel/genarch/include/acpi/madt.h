@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef __MADT_H__
-#define __MADT_H__
+#ifndef KERN_MADT_H_
+#define KERN_MADT_H_
 
 #include <genarch/acpi/acpi.h>
 #include <arch/smp/apic.h>
@@ -143,8 +143,7 @@ extern struct smp_config_operations madt_config_operations;
 
 extern void acpi_madt_parse(void);
 
-#endif /* __MADT_H__ */
+#endif /* KERN_MADT_H_ */
 
- /** @}
+/** @}
  */
-

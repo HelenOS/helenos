@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __COPY_H__
-#define __COPY_H__
+#ifndef KERN_COPY_H_
+#define KERN_COPY_H_
 
 #include <typedefs.h>
 

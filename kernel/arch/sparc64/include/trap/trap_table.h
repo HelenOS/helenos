@@ -106,4 +106,3 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 
 /** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_MEMMAP_H__
-#define __ia32_MEMMAP_H__
+#ifndef KERN_ia32_MEMMAP_H_
+#define KERN_ia32_MEMMAP_H_
 
 /* E820h memory range types - other values*/
 	/* Free memory */
@@ -73,6 +73,5 @@ extern uint32_t e801memorysize; /**< Size of available memory in KB. */
 
 #endif
 
- /** @}
+/** @}
  */
-

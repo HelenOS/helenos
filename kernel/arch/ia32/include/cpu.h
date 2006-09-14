@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ia32_CPU_H__
-#define __ia32_CPU_H__
+#ifndef KERN_ia32_CPU_H_
+#define KERN_ia32_CPU_H_
 
 #include <typedefs.h>
 #include <arch/pm.h>

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64interrupt
+/** @addtogroup ia64interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_INTERRUPT_H__
-#define __ia64_INTERRUPT_H__
+#ifndef KERN_ia64_INTERRUPT_H_
+#define KERN_ia64_INTERRUPT_H_
 
 #include <typedefs.h>
 #include <arch/types.h>
@@ -123,7 +123,7 @@ static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->cr_iip;
 }
-#include <panic.h>
+
 static inline int istate_from_uspace(istate_t *istate)
 {
 	return (istate->cr_iip)<0xe000000000000000ULL;
@@ -139,10 +139,7 @@ extern void external_interrupt(uint64_t vector, istate_t *istate);
 extern void virtual_interrupt(uint64_t irq, void *param);
 extern void disabled_fp_register(uint64_t vector, istate_t *istate);
 
-
-
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_CONTEXT_H__
-#define __ia64_CONTEXT_H__
+#ifndef KERN_ia64_CONTEXT_H_
+#define KERN_ia64_CONTEXT_H_
 
 #include <arch/types.h>
 #include <arch/register.h>
@@ -132,6 +132,5 @@ struct context {
 
 #endif
 
- /** @}
+/** @}
  */
-

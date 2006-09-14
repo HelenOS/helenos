@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __CUDA_H__
-#define __CUDA_H__
+#ifndef KERN_ppc32_CUDA_H_
+#define KERN_ppc32_CUDA_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

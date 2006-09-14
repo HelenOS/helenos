@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_BYTEORDER_H__
-#define __ia64_BYTEORDER_H__
+#ifndef KERN_ia64_BYTEORDER_H_
+#define KERN_ia64_BYTEORDER_H_
 
 /* IA-64 is little-endian */
 #define unative_t_le2host(n)		(n)
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

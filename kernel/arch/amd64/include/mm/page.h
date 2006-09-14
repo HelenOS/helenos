@@ -44,8 +44,8 @@
  * ATTENTION - PA2KA(KA2PA(x)) != x if 'x' is in kernel
  */
 
-#ifndef __amd64_PAGE_H__
-#define __amd64_PAGE_H__
+#ifndef KERN_amd64_PAGE_H_
+#define KERN_amd64_PAGE_H_
 
 #include <arch/mm/frame.h>
 

@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericklog
+/** @addtogroup genericklog
  * @{
  */
 /** @file
  */
 
-#ifndef _KLOG_H_
-#define _KLOG_H_
+#ifndef KERN_KLOG_H_
+#define KERN_KLOG_H_
 
 void klog_init(void);
 void klog_printf(const char *fmt, ...);
 
 #endif
 
- /** @}
+/** @}
  */
-

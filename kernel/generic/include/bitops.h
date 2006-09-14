@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef _BITOPS_H_
-#define _BITOPS_H_
+#ifndef KERN_BITOPS_H_
+#define KERN_BITOPS_H_
 
 #include <typedefs.h>
 

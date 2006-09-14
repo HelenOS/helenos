@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64debug
+/** @addtogroup amd64debug
  * @{
  */
 /** @file
@@ -382,6 +382,5 @@ void debugger_init()
 #endif
 }
 
- /** @}
+/** @}
  */
-

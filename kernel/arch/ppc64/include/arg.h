@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64	
+/** @addtogroup ppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_ARG_H__
-#define __ppc64_ARG_H__
+#ifndef KERN_ppc64_ARG_H_
+#define KERN_ppc64_ARG_H_
 
 #include <stdarg.h>
 
 #endif
 
- /** @}
+/** @}
  */
-

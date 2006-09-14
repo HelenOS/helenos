@@ -32,6 +32,9 @@
 /** @file
  */
 
+#ifndef KERN_SYSINFO_H_
+#define KERN_SYSINFO_H_
+
 #include <arch/types.h>
 
 typedef union sysinfo_item_val {
@@ -64,7 +67,6 @@ typedef struct sysinfo_item {
 #define SYSINFO_SUBINFO_TABLE 1
 #define SYSINFO_SUBINFO_FUNCTION 2
 
-
 typedef unative_t (*sysinfo_val_fn_t)(sysinfo_item_t *root);
 typedef unative_t (*sysinfo_subinfo_fn_t)(const char *subname);
 
@@ -82,6 +84,8 @@ sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root);
 
 unative_t sys_sysinfo_valid(unative_t ptr,unative_t len);
 unative_t sys_sysinfo_value(unative_t ptr,unative_t len);
+
+#endif
 
 /** @}
  */

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
@@ -37,8 +37,8 @@
  * Address Space IDentifiers (ASIDs).
  */
 
-#ifndef __ASID_H__
-#define __ASID_H__
+#ifndef KERN_ASID_H_
+#define KERN_ASID_H_
 
 #ifndef __ASM__
 
@@ -83,7 +83,5 @@ extern void asid_put_arch(asid_t asid);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

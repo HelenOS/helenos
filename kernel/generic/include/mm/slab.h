@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericmm
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef __SLAB_H__
-#define __SLAB_H__
+#ifndef KERN_SLAB_H_
+#define KERN_SLAB_H_
 
 #include <adt/list.h>
 #include <synch/spinlock.h>
@@ -135,6 +135,5 @@ extern void * malloc(unsigned int size, int flags);
 extern void free(void *obj);
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /** @file
  */
 
-#ifndef __LIST_H__
-#define __LIST_H__
+#ifndef KERN_LIST_H_
+#define KERN_LIST_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -182,6 +182,5 @@ extern void list_concat(link_t *head1, link_t *head2);
 
 #endif
 
- /** @}
+/** @}
  */
-

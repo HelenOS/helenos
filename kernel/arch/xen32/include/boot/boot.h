@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __xen32_BOOT_H__
-#define __xen32_BOOT_H__
+#ifndef KERN_xen32_BOOT_H_
+#define KERN_xen32_BOOT_H_
 
 #define GUEST_CMDLINE	1024
 #define VIRT_CPUS		32

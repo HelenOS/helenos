@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32mm	
+/** @addtogroup ia32mm	
  * @{
  */
 /** @file
@@ -75,7 +75,5 @@ void memory_print_map(void)
 
 }
 
-
- /** @}
+/** @}
  */
-

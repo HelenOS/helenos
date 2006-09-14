@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#ifndef KERN_SCHEDULER_H_
+#define KERN_SCHEDULER_H_
 
 #include <synch/spinlock.h>
 #include <time/clock.h>		/* HZ */

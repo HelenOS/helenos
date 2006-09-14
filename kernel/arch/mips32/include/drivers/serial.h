@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32	
+/** @addtogroup mips32	
  * @{
  */
 /** @file
  */
 
-#ifndef __DRV_SERIAL_H__
-#define __DRV_SERIAL_H__
+#ifndef KERN_mips32_SERIAL_H_
+#define KERN_mips32_SERIAL_H_
 
 #include <console/chardev.h>
 
@@ -67,6 +67,5 @@ int serial_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

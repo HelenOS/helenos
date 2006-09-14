@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_TLB_H__
-#define __amd64_TLB_H__
+#ifndef KERN_amd64_TLB_H_
+#define KERN_amd64_TLB_H_
 
 #define tlb_arch_init()
 #define tlb_print()
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -577,6 +577,5 @@ void io_apic_enable_irqs(uint16_t irqmask)
 
 #endif /* CONFIG_SMP */
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -36,8 +36,8 @@
  * This file implements ia32 specific access to i8042 registers.
  */
 
-#ifndef __ia32_I8042_H__
-#define __ia32_I8042_H__
+#ifndef KERN_ia32_I8042_H_
+#define KERN_ia32_I8042_H_
 
 #include <arch/asm.h>
 #include <arch/types.h>
@@ -67,6 +67,5 @@ static inline void i8042_command_write(uint8_t command)
 
 #endif
 
- /** @}
+/** @}
  */
-

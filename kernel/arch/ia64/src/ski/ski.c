@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
@@ -158,14 +158,12 @@ static void ski_kb_disable(chardev_t *d)
 	kb_disable = true;	
 }
 
-
 static chardev_operations_t ski_ops = {
 	.resume = ski_kb_enable,
 	.suspend = ski_kb_disable,
 	.write = ski_putchar,
 	.read = ski_getchar_blocking
 };
-
 
 /** Initialize debug console
  *
@@ -188,6 +186,7 @@ void ski_init_console(void)
 	stdout = &ski_console;
 
 }
+
 /** Setup console sysinfo (i.e. Keyboard IRQ)
  *
  * Because sysinfo neads memory allocation/dealocation
@@ -200,6 +199,5 @@ void ski_set_console_sysinfo(void)
 	sysinfo_set_item_val("kbd.irq",NULL,IRQ_KBD);
 }
 
- /** @}
+/** @}
  */
-

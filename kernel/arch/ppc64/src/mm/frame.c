@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
@@ -67,6 +67,5 @@ void frame_arch_init(void)
 	
 }
 
- /** @}
+/** @}
  */
-

@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __AP_H__
-#define __AP_H__
+#ifndef KERN_ia32_AP_H_
+#define KERN_ia32_AP_H_
 
 extern void ap_boot(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

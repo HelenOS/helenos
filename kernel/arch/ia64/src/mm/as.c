@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -85,6 +85,5 @@ void as_install_arch(as_t *as)
 	interrupts_restore(ipl);
 }
 
- /** @}
+/** @}
  */
-

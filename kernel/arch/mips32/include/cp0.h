@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_CP0_H__
-#define __mips32_CP0_H__
+#ifndef KERN_mips32_CP0_H_
+#define KERN_mips32_CP0_H_
 
 #include <arch/types.h>
 #include <arch/mm/tlb.h>

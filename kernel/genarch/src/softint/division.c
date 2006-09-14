@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
@@ -191,8 +191,5 @@ unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsi
 	return divandmod64(a, b, c);
 }
 
-
-
- /** @}
+/** @}
  */
-

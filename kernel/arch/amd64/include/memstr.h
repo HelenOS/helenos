@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_MEMSTR_H__
-#define __amd64_MEMSTR_H__
+#ifndef KERN_amd64_MEMSTR_H_
+#define KERN_amd64_MEMSTR_H_
 
 /** Copy memory
  *
@@ -141,6 +141,5 @@ static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 
 #endif
 
- /** @}
+/** @}
  */
-

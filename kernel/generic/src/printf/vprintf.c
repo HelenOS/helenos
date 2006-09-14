@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
@@ -53,8 +53,5 @@ int vprintf(const char *fmt, va_list ap)
 
 }
 
-
-
- /** @}
+/** @}
  */
-

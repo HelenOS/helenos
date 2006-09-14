@@ -32,14 +32,13 @@
 /** @file
  */
 
-
 /*
  * Variable argument list manipulation macros
  * for architectures using stack to pass arguments.
  */
  
-#ifndef __STACKARG_H__
-#define __STACKARG_H__
+#ifndef KERN_STACKARG_H_
+#define KERN_STACKARG_H_
 
 #include <arch/types.h>
 

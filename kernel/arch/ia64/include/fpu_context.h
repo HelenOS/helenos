@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_FPU_CONTEXT_H__
-#define __ia64_FPU_CONTEXT_H__
+#ifndef KERN_ia64_FPU_CONTEXT_H_
+#define KERN_ia64_FPU_CONTEXT_H_
 
 #define ARCH_HAS_FPU 1
 #define FPU_CONTEXT_ALIGN 16
@@ -46,9 +46,7 @@ struct fpu_context {
 	__r128 fr[FRS];
 };
 
-
 #endif
 
- /** @}
+/** @}
  */
-

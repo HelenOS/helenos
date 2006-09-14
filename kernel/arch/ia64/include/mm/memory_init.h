@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64mm	
+/** @addtogroup ia64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_MEMORY_INIT_H__
-#define __ia64_MEMORY_INIT_H__
+#ifndef KERN_ia64_MEMORY_INIT_H_
+#define KERN_ia64_MEMORY_INIT_H_
 
 #include <config.h>
 
@@ -41,6 +41,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
@@ -52,6 +52,5 @@ void memory_print_map(void)
 		printf("base: %#x size: %#x\n", bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
 }
 
- /** @}
+/** @}
  */
-

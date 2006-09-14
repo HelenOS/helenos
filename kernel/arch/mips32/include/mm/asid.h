@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_ASID_H__
-#define __mips32_ASID_H__
+#ifndef KERN_mips32_ASID_H_
+#define KERN_mips32_ASID_H_
 
 #include <arch/types.h>
 
@@ -45,4 +45,3 @@ typedef uint8_t asid_t;
 
 /** @}
  */
-

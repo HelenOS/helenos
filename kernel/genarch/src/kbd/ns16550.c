@@ -104,7 +104,8 @@ void ns16550_interrupt(int n, istate_t *istate)
 }
 
 /** Wait until the controller reads its data. */
-void ns16550_wait(void) {
+void ns16550_wait(void)
+{
 }
 
 /* Called from getc(). */

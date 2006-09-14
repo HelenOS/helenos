@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __amd64_CPUID_H__
-#define __amd64_CPUID_H__
+#ifndef KERN_amd64_CPUID_H_
+#define KERN_amd64_CPUID_H_
 
 #define AMD_CPUID_EXTENDED   0x80000001
 #define AMD_EXT_NOEXECUTE    20
@@ -60,7 +60,7 @@ extern void cpuid(uint32_t cmd, cpu_info_t *info);
 
 extern uint64_t rdtsc(void);
 
-#endif /* __ASM__ */
+#endif /* !def __ASM__ */
 #endif
 
 /** @}

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __DEBUG_H__
-#define __DEBUG_H__
+#ifndef KERN_DEBUG_H_
+#define KERN_DEBUG_H_
 
 #include <panic.h>
 #include <arch/debug.h>

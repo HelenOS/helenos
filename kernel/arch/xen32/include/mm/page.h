@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __xen32_PAGE_H__
-#define __xen32_PAGE_H__
+#ifndef KERN_xen32_PAGE_H_
+#define KERN_xen32_PAGE_H_
 
 #include <arch/mm/frame.h>
 

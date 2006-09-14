@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_PAL_H__
-#define __ia64_PAL_H__
+#ifndef KERN_ia64_PAL_H_
+#define KERN_ia64_PAL_H_
 
 #define PAL_OK		 0	/**< Call completed without error. */
 #define PAL_UNIMPL	-1	/**< Unimplemented procedure. */
@@ -95,17 +95,15 @@
 #define PAL_PMI_ENTRYPOINT	32
 
 /*
-	Ski PTCE data
-*/
+ *	Ski PTCE data
+ */
 #define PAL_PTCE_INFO_BASE() (0x100000000LL)
 #define PAL_PTCE_INFO_COUNT1() (2)
 #define PAL_PTCE_INFO_COUNT2() (3)
 #define PAL_PTCE_INFO_STRIDE1() (0x10000000)
 #define PAL_PTCE_INFO_STRIDE2() (0x2000)
 
-
 #endif
 
- /** @}
+/** @}
  */
-

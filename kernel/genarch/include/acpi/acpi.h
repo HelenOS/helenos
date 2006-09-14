@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
  */
 
-#ifndef __ACPI_H__
-#define __ACPI_H__
+#ifndef KERN_ACPI_H_
+#define KERN_ACPI_H_
 
 #include <arch/types.h>
 
@@ -88,8 +88,7 @@ extern struct acpi_xsdt *acpi_xsdt;
 extern void acpi_init(void);
 extern int acpi_sdt_check(uint8_t *sdt);
 
-#endif /* __ACPI_H__ */
+#endif /* KERN_ACPI_H_ */
 
- /** @}
+/** @}
  */
-

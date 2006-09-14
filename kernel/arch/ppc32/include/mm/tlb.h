@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc32_TLB_H__
-#define __ppc32_TLB_H__
+#ifndef KERN_ppc32_TLB_H_
+#define KERN_ppc32_TLB_H_
 
 typedef struct {
 	unsigned v : 1;          /**< Valid */

@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup main
+/** @addtogroup main
  * @{
  */
 /** @file
  */
 
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#ifndef KERN_VERSION_H_
+#define KERN_VERSION_H_
 
 extern void version_print(void);
 
 #endif
 
- /** @}
+/** @}
  */
 

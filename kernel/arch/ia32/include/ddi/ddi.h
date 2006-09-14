@@ -34,8 +34,8 @@
  * @brief	ia32 specific DDI declarations and macros.
  */
 
-#ifndef __ia32_DDI_H__
-#define __ia32_DDI_H__
+#ifndef KERN_ia32_DDI_H_
+#define KERN_ia32_DDI_H_
 
 extern void io_perm_bitmap_install(void);
 
@@ -43,4 +43,3 @@ extern void io_perm_bitmap_install(void);
 
 /** @}
  */
-

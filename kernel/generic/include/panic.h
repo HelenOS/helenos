@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PANIC_H__
-#define __PANIC_H__
+#ifndef KERN_PANIC_H_
+#define KERN_PANIC_H_
 
 #ifdef CONFIG_DEBUG
 #	define panic(format, ...) panic_printf("Kernel panic in %s() at %s on line %d: " format, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);

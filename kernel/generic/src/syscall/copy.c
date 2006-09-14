@@ -105,7 +105,7 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	int rc;
 	
 	ASSERT(THREAD);
-	ASSERT(!THREAD->in_copy_from_uspace);
+	ASSERT(!THREAD->in_copy_to_uspace);
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_dst, size,
@@ -118,11 +118,11 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	}
 	
 	ipl = interrupts_disable();
-	THREAD->in_copy_from_uspace = true;
+	THREAD->in_copy_to_uspace = true;
 	
 	rc = memcpy_to_uspace(uspace_dst, src, size);
 
-	THREAD->in_copy_from_uspace = false;
+	THREAD->in_copy_to_uspace = false;
 
 	interrupts_restore(ipl);
 	return !rc ? EPERM : 0;

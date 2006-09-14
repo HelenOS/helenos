@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64	
+/** @addtogroup ppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_REGNAME_H__
-#define __ppc64_REGNAME_H__
+#ifndef KERN_ppc64_REGNAME_H_
+#define KERN_ppc64_REGNAME_H_
 
 /* Condition Register Bit Fields */
 #define	cr0	0
@@ -211,6 +211,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

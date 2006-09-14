@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __SORT_H__
-#define __SORT_H__
+#ifndef KERN_SORT_H_
+#define KERN_SORT_H_
 
 #include <arch/types.h>
 

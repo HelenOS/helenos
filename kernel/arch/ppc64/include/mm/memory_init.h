@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm	
+/** @addtogroup ppc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_MEMORY_INIT_H__
-#define __ppc64_MEMORY_INIT_H__
+#ifndef KERN_ppc64_MEMORY_INIT_H_
+#define KERN_ppc64_MEMORY_INIT_H_
 
 #include <typedefs.h>
 
@@ -43,6 +43,5 @@ void memory_print_map(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

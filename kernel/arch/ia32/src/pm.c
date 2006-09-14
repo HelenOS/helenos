@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
@@ -236,6 +236,5 @@ void set_tls_desc(uintptr_t tls)
 	gdtr_load(&cpugdtr);
 }
 
- /** @}
+/** @}
  */
-

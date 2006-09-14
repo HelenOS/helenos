@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64
+/** @addtogroup amd64
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_SYSCALL_H__
-#define __amd64_SYSCALL_H__
+#ifndef KERN_amd64_SYSCALL_H_
+#define KERN_amd64_SYSCALL_H_
 
 #include <arch/types.h>
 
@@ -41,6 +41,5 @@ extern void syscall_setup_cpu(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

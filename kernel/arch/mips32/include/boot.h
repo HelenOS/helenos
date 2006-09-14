@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __mips32_BOOT_H__
-#define __mips32_BOOT_H__
+#ifndef KERN_mips32_BOOT_H_
+#define KERN_mips32_BOOT_H_
 
 #define TASKMAP_MAX_RECORDS 32
 

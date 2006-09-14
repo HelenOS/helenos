@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __CONTEXT_H__
-#define __CONTEXT_H__
+#ifndef KERN_CONTEXT_H_
+#define KERN_CONTEXT_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

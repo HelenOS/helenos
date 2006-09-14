@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64	
+/** @addtogroup ppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_ATOMIC_H__
-#define __ppc64_ATOMIC_H__
+#ifndef KERN_ppc64_ATOMIC_H_
+#define KERN_ppc64_ATOMIC_H_
 
 static inline void atomic_inc(atomic_t *val)
 {
@@ -93,6 +93,5 @@ static inline long atomic_predec(atomic_t *val)
 
 #endif
 
- /** @}
+/** @}
  */
-

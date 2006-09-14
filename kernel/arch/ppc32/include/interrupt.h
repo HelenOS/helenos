@@ -32,13 +32,12 @@
 /** @file
  */
 
-#ifndef __ppc32_INTERRUPT_H__
-#define __ppc32_INTERRUPT_H__
+#ifndef KERN_ppc32_INTERRUPT_H_
+#define KERN_ppc32_INTERRUPT_H_
 
 #include <arch/exception.h>
 
 #define IRQ_COUNT	64
-
 
 #define IVT_ITEMS   (16 + IRQ_COUNT)
 #define INT_OFFSET  16

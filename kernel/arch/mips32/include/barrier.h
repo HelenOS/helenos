@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_BARRIER_H__
-#define __mips32_BARRIER_H__
+#ifndef KERN_mips32_BARRIER_H_
+#define KERN_mips32_BARRIER_H_
 
 /*
  * TODO: implement true MIPS memory barriers for macros below.
@@ -49,4 +49,3 @@
 
 /** @}
  */
-

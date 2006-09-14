@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia32_MEMSTR_H__
-#define __ia32_MEMSTR_H__
+#ifndef KERN_ia32_MEMSTR_H_
+#define KERN_ia32_MEMSTR_H_
 
 /** Copy memory
  *
@@ -147,6 +147,5 @@ static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 
 #endif
 
- /** @}
+/** @}
  */
-

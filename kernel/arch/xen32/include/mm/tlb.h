@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __xen32_TLB_H__
-#define __xen32_TLB_H__
+#ifndef KERN_xen32_TLB_H_
+#define KERN_xen32_TLB_H_
 
 #define tlb_arch_init()
 #define tlb_print()

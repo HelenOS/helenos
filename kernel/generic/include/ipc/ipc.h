@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericipc
+/** @addtogroup genericipc
  * @{
  */
 /** @file
@@ -166,7 +166,7 @@ typedef struct phone_s phone_t;
 typedef struct {
 	unative_t args[IPC_CALL_LEN];
 	phone_t *phone;
-}ipc_data_t;
+} ipc_data_t;
 
 struct answerbox_s {
 	SPINLOCK_DECLARE(lock);
@@ -217,7 +217,7 @@ typedef struct {
 	unative_t private; /**< Private data to internal IPC */
 
 	ipc_data_t data;  /**< Data passed from/to userspace */
-}call_t;
+} call_t;
 
 extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags);

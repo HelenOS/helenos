@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarchmm
+/** @addtogroup genarchmm
  * @{
  */
 /** @file
  */
 
-#ifndef __ASID_FIFO_H__
-#define __ASID_FIFO_H__
+#ifndef KERN_ASID_FIFO_H_
+#define KERN_ASID_FIFO_H_
 
 extern void asid_fifo_init(void);
 
 #endif
 
- /** @}
+/** @}
  */
-

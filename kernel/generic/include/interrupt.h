@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#ifndef KERN_INTERRUPT_H_
+#define KERN_INTERRUPT_H_
 
 #include <arch/interrupt.h>
 #include <typedefs.h>

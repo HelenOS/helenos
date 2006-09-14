@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup mips32mm	
+/** @addtogroup mips32mm	
  * @{
  */
 /** @file
@@ -50,6 +50,5 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return physaddr + 0xa0000000;
 }
 
- /** @}
+/** @}
  */
-

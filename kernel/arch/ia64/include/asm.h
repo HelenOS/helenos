@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia64	
+/** @addtogroup ia64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ia64_ASM_H__
-#define __ia64_ASM_H__
+#ifndef KERN_ia64_ASM_H_
+#define KERN_ia64_ASM_H_
 
 #include <config.h>
 #include <arch/types.h>
@@ -281,6 +281,5 @@ extern void switch_to_userspace(uintptr_t entry, uintptr_t sp, uintptr_t bsp, ui
 
 #endif
 
- /** @}
+/** @}
  */
-

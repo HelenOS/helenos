@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_FPU_CONTEXT_H__
-#define __mips32_FPU_CONTEXT_H__
+#ifndef KERN_mips32_FPU_CONTEXT_H_
+#define KERN_mips32_FPU_CONTEXT_H_
 
 #include <arch/types.h>
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __FPU_CONTEXT_H__
-#define __FPU_CONTEXT_H__
+#ifndef KERN_FPU_CONTEXT_H_
+#define KERN_FPU_CONTEXT_H_
 
 #include <arch/fpu_context.h>
 #include <typedefs.h>
@@ -48,9 +48,7 @@ extern void fpu_init(void);
 extern void fpu_enable(void);
 extern void fpu_disable(void);
 
-
-#endif /* __FPU_CONTEXT_H__ */
-
+#endif /* KERN_FPU_CONTEXT_H_ */
 
 /** @}
  */

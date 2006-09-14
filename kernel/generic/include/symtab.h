@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __SYMTAB_H__
-#define __SYMTAB_H__
+#ifndef KERN_SYMTAB_H_
+#define KERN_SYMTAB_H_
 
 #include <arch/types.h>
 

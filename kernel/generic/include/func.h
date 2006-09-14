@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __FUNC_H__
-#define __FUNC_H__
+#ifndef KERN_FUNC_H_
+#define KERN_FUNC_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

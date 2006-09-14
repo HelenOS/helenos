@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __mips32_TLB_H__
-#define __mips32_TLB_H__
+#ifndef KERN_mips32_TLB_H_
+#define KERN_mips32_TLB_H_
 
 #include <arch/exception.h>
 #include <typedefs.h>

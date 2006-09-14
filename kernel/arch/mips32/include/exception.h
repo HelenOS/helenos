@@ -32,10 +32,10 @@
 /** @file
  */
 
-#ifndef __mips32_EXCEPTION_H__
-#define __mips32_EXCEPTION_H__
+#ifndef KERN_mips32_EXCEPTION_H_
+#define KERN_mips32_EXCEPTION_H_
 
-#ifndef __mips32_TYPES_H__
+#ifndef KERN_mips32_TYPES_H_
 #  include <arch/types.h>
 #endif
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __XCONSOLE_H__
-#define __XCONSOLE_H__
+#ifndef KERN_xen32_XCONSOLE_H_
+#define KERN_xen32_XCONSOLE_H_
 
 #include <arch/types.h>
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup generic	
+/** @addtogroup generic	
  * @{
  */
 /** @file
  */
 
-#ifndef __PRINTF_CORE_H__
-#define __PRINTF_CORE_H__
+#ifndef KERN_PRINTF_CORE_H_
+#define KERN_PRINTF_CORE_H_
 
 #include <typedefs.h>
 #include <arch/arg.h>
@@ -51,6 +51,5 @@ int printf_core(const char *fmt, struct printf_spec *ps ,va_list ap);
 
 #endif
 
- /** @}
+/** @}
  */
-

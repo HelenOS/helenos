@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genarch	
+/** @addtogroup genarch	
  * @{
  */
 /** @file
@@ -4646,6 +4646,5 @@ unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES] = {
 
 };
 
- /** @}
+/** @}
  */
-

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __PRINT_H__
-#define __PRINT_H__
+#ifndef KERN_PRINT_H_
+#define KERN_PRINT_H_
 
 #include <arch/types.h>
 #include <synch/spinlock.h>

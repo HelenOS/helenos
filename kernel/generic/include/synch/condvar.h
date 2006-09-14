@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup sync
+/** @addtogroup sync
  * @{
  */
 /** @file
  */
 
-#ifndef __CONDVAR_H__
-#define __CONDVAR_H__
+#ifndef KERN_CONDVAR_H_
+#define KERN_CONDVAR_H_
 
 #include <arch/types.h>
 #include <synch/waitq.h>
@@ -56,6 +56,5 @@ extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int
 
 #endif
 
- /** @}
+/** @}
  */
-

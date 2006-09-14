@@ -40,8 +40,8 @@
 
 #ifdef CONFIG_PAGE_PT
 
-#ifndef __PAGE_PT_H__
-#define __PAGE_PT_H__
+#ifndef KERN_PAGE_PT_H_
+#define KERN_PAGE_PT_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

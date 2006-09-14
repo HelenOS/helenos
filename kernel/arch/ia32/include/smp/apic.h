@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ia32	
+/** @addtogroup ia32	
  * @{
  */
 /** @file
  */
 
-#ifndef __APIC_H__
-#define __APIC_H__
+#ifndef KERN_ia32_APIC_H_
+#define KERN_ia32_APIC_H_
 
 #include <arch/types.h>
 #include <cpu.h>
@@ -366,6 +366,5 @@ extern void io_apic_enable_irqs(uint16_t irqmask);
 
 #endif
 
- /** @}
+/** @}
  */
-

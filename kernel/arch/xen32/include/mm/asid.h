@@ -39,8 +39,8 @@
  * interface.
  */
 
-#ifndef __xen32_ASID_H__
-#define __xen32_ASID_H__
+#ifndef KERN_xen32_ASID_H_
+#define KERN_xen32_ASID_H_
 
 typedef int asid_t;
 

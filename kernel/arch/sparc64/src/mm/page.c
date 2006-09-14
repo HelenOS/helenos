@@ -90,7 +90,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	if (size <= FRAME_SIZE)
 		order = 0;
 	else
-		order = (fnzb32(size - 1) + 1) - FRAME_WIDTH;
+		order = (fnzb64(size - 1) + 1) - FRAME_WIDTH;
 
 	/*
 	 * Use virtual addresses that are beyond the limit of physical memory.

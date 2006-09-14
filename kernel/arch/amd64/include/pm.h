@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup amd64	
+/** @addtogroup amd64	
  * @{
  */
 /** @file
  */
 
-#ifndef __amd64_PM_H__
-#define __amd64_PM_H__
+#ifndef KERN_amd64_PM_H_
+#define KERN_amd64_PM_H_
 
 #ifndef __ASM__
 # include <arch/types.h>
@@ -194,6 +194,5 @@ extern void tss_initialize(tss_t *t);
 
 #endif
 
- /** @}
+/** @}
  */
-

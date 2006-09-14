@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc64_CPUID_H__
-#define __ppc64_CPUID_H__
+#ifndef KERN_ppc64_CPUID_H_
+#define KERN_ppc64_CPUID_H_
 
 #include <arch/types.h>
 

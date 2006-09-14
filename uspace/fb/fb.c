@@ -33,9 +33,9 @@
  * @ingroup fbs
  * @{
  */ 
+
 /** @file
  */
-
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -1252,7 +1252,6 @@ int fb_init(void)
 	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);
 	return 0;
 }
-
 
 /** 
  * @}

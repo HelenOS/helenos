@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ia64_CPU_H__
-#define __ia64_CPU_H__
+#ifndef KERN_ia64_CPU_H_
+#define KERN_ia64_CPU_H_
 
 #include <arch/types.h>
 #include <typedefs.h>

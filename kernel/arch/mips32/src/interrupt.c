@@ -143,4 +143,3 @@ void irq_ipc_bind_arch(unative_t irq)
 
 /** @}
  */
-

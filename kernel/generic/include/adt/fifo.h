@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /** @file
@@ -42,8 +42,8 @@
  * and use'.
  */
 
-#ifndef __FIFO_H__
-#define __FIFO_H__
+#ifndef KERN_FIFO_H_
+#define KERN_FIFO_H_
 
 #include <typedefs.h>
 #include <mm/slab.h>
@@ -118,6 +118,5 @@
 
 #endif
 
- /** @}
+/** @}
  */
-

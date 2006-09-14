@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
@@ -165,6 +165,5 @@ void putchar(char c)
 		stdout->op->write(stdout, c);
 }
 
- /** @}
+/** @}
  */
-

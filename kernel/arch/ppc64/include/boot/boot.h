@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64	
+/** @addtogroup ppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef __ppc64_BOOT_H__
-#define __ppc64_BOOT_H__
+#ifndef KERN_ppc64_BOOT_H_
+#define KERN_ppc64_BOOT_H_
 
 #define BOOT_OFFSET		0x4000
 
@@ -88,6 +88,5 @@ extern bootinfo_t bootinfo;
 
 #endif
 
- /** @}
+/** @}
  */
-

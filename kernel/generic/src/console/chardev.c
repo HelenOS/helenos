@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericconsole
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
@@ -74,6 +74,5 @@ void chardev_push_character(chardev_t *chardev, uint8_t ch)
 	spinlock_unlock(&chardev->lock);
 }
 
- /** @}
+/** @}
  */
-

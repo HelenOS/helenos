@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __TASK_H__
-#define __TASK_H__
+#ifndef KERN_TASK_H_
+#define KERN_TASK_H_
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
@@ -107,6 +107,5 @@ extern unative_t sys_task_get_id(task_id_t *uspace_task_id);
 
 #endif
 
- /** @}
+/** @}
  */
-

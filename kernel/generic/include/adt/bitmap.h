@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup genericadt
+/** @addtogroup genericadt
  * @{
  */
 /** @file
  */
 
-#ifndef __BITMAP_H__
-#define __BITMAP_H__
+#ifndef KERN_BITMAP_H_
+#define KERN_BITMAP_H_
 
 #include <arch/types.h>
 #include <typedefs.h>
@@ -52,6 +52,5 @@ extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits);
 
 #endif
 
- /** @}
+/** @}
  */
-

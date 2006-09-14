@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef __ppc64_CPU_H__
-#define __ppc64_CPU_H__
+#ifndef KERN_ppc64_CPU_H_
+#define KERN_ppc64_CPU_H_
 
 #include <typedefs.h>
 
