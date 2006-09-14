@@ -41,6 +41,7 @@
 #include <arch/register.h>
 #include <config.h>
 #include <time/clock.h>
+#include <arch/stack.h>
 
 /** Read Processor State register.
  *
@@ -244,11 +245,11 @@ static inline ipl_t interrupts_read(void) {
  */
 static inline uintptr_t get_stack_base(void)
 {
-	uintptr_t v;
+	uintptr_t unbiased_sp;
 	
-	__asm__ volatile ("andn %%sp, %1, %0\n" : "=r" (v) : "r" (STACK_SIZE-1));
+	__asm__ volatile ("add %%sp, %1, %0\n" : "=r" (unbiased_sp) : "i" (STACK_BIAS));
 	
-	return v;
+	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
 }
 
 /** Read Version Register.
