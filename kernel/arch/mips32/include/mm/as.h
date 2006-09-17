@@ -44,6 +44,11 @@
 
 #define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
 
+typedef struct {
+} as_arch_t;
+
+#define as_invalidate_translation_cache(as, page, cnt)
+
 extern void as_arch_init(void);
 
 #endif

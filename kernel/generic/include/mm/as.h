@@ -93,6 +93,9 @@ struct as {
 
 	/** Address space identifier. Constant on architectures that do not support ASIDs.*/
 	asid_t asid;
+	
+	/** Architecture specific content. */
+	as_arch_t arch;
 };
 
 struct as_operations {

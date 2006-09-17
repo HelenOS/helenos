@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,38 +32,22 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_AS_H_
-#define KERN_sparc64_AS_H_
-
-#ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
-#endif
+#include <mm/as.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
-
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
-
-#define USTACK_ADDRESS_ARCH	(0xffffffffffffffffULL-(PAGE_SIZE-1))
-
-typedef struct {
-#ifdef CONFIG_TSB
-	tsb_entry_t *itsb;
-	tsb_entry_t *dtsb;
-#endif
-} as_arch_t;
-
-#ifdef CONFIG_TSB
-#	define as_invalidate_translation_cache(as, page, cnt)	tsb_invalidate(as, page, cnt)
-#else
-#	define as_invalidate_translation_cache(as, page, cnt)
-#endif
-
-extern void as_arch_init(void);
-
-#endif
+/** Invalidate portion of TSB.
+ *
+ * We assume that the address space is already locked.
+ *
+ * @param as Address space.
+ * @param page First page to invalidate in TSB.
+ * @param pages Number of pages to invalidate.
+ */
+void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
+{
+}
 
 /** @}
  */

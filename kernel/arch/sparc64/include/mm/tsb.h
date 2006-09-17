@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,36 +32,31 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_AS_H_
-#define KERN_sparc64_AS_H_
+#ifndef KERN_sparc64_TSB_H_
+#define KERN_sparc64_TSB_H_
 
-#ifdef CONFIG_TSB
-#include <arch/mm/tsb.h>
-#endif
+#include <arch/mm/tte.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
+/*
+ * ITSB abd DTSB will claim 64K of memory, which
+ * is a nice number considered that it is one of
+ * the page sizes supported by hardware, which,
+ * again, is nice because TSBs need to be locked
+ * in TLBs - only one TLB entry will do.
+ */
+#define ITSB_ENTRY_COUNT		2048
+#define DTSB_ENTRY_COUNT		2048
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
+struct tsb_entry {
+	tte_tag_t tag;
+	tte_data_t data;
+} __attribute__ ((packed));
 
-#define USTACK_ADDRESS_ARCH	(0xffffffffffffffffULL-(PAGE_SIZE-1))
+typedef struct tsb_entry tsb_entry_t;
 
-typedef struct {
-#ifdef CONFIG_TSB
-	tsb_entry_t *itsb;
-	tsb_entry_t *dtsb;
-#endif
-} as_arch_t;
-
-#ifdef CONFIG_TSB
-#	define as_invalidate_translation_cache(as, page, cnt)	tsb_invalidate(as, page, cnt)
-#else
-#	define as_invalidate_translation_cache(as, page, cnt)
-#endif
-
-extern void as_arch_init(void);
+extern void tsb_invalidate(as_t *as, uintptr_t page, count_t pages);
 
 #endif
 

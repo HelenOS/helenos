@@ -359,7 +359,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 					cond = false;	/* we are almost done */
 					i = (start_free - b) >> PAGE_WIDTH;
 					if (!used_space_remove(area, start_free, c - i))
-						panic("Could not remove used space.");
+						panic("Could not remove used space.\n");
 				} else {
 					/*
 					 * The interval of used space can be completely removed.
@@ -389,6 +389,11 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		 */
 		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
+		
+		/*
+		 * Invalidate software translation caches (e.g. TSB on sparc64).
+		 */
+		as_invalidate_translation_cache(as, area->base + pages*PAGE_SIZE, area->pages - pages);
 	} else {
 		/*
 		 * Growing the area.
@@ -440,7 +445,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Start TLB shootdown sequence.
 	 */
-	tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base, area->pages);
+	tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base, area->pages);
 
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
@@ -463,7 +468,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 					area->backend->frame_free(area,
 						b + j*PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
-				page_mapping_remove(as, b + j*PAGE_SIZE);
+				page_mapping_remove(as, b + j*PAGE_SIZE);				
 				page_table_unlock(as, false);
 			}
 		}
@@ -472,8 +477,13 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Finish TLB shootdown sequence.
 	 */
-	tlb_invalidate_pages(AS->asid, area->base, area->pages);
+	tlb_invalidate_pages(as->asid, area->base, area->pages);
 	tlb_shootdown_finalize();
+	
+	/*
+	 * Invalidate potential software translation caches (e.g. TSB on sparc64).
+	 */
+	as_invalidate_translation_cache(as, area->base, area->pages);
 	
 	btree_destroy(&area->used_space);
 
@@ -487,11 +497,11 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Remove the empty area from address space.
 	 */
-	btree_remove(&AS->as_area_btree, base, NULL);
+	btree_remove(&as->as_area_btree, base, NULL);
 	
 	free(area);
 	
-	mutex_unlock(&AS->lock);
+	mutex_unlock(&as->lock);
 	interrupts_restore(ipl);
 	return 0;
 }

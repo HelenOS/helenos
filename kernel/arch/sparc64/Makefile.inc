@@ -107,6 +107,11 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c
 
+ifdef CONFIG_TSB
+ARCH_SOURCES += \
+	arch/$(ARCH)/src/mm/tsb.c
+endif
+
 ifdef CONFIG_Z8530
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/drivers/fhc.c

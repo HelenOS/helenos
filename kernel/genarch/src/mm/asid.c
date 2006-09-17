@@ -122,6 +122,14 @@ asid_t asid_get(void)
 		 * was stolen by invalidating its asid member.
 		 */
 		as->asid = ASID_INVALID;
+		
+		/*
+		 * If the architecture uses some software cache
+		 * of TLB entries (e.g. TSB on sparc64), the
+		 * cache must be invalidated as well.
+		 */
+		as_invalidate_translation_cache(as, 0, 0);
+		
 		mutex_unlock(&as->lock);
 
 		/*
@@ -141,7 +149,7 @@ asid_t asid_get(void)
 		asids_allocated++;
 
 		/*
-		 * Purge the allocated rid from TLBs.
+		 * Purge the allocated ASID from TLBs.
 		 */
 		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
 		tlb_invalidate_asid(asid);
