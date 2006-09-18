@@ -51,6 +51,10 @@
 #include <panic.h>
 #include <arch/asm.h>
 
+#ifdef CONFIG_TSB
+#include <arch/mm/tsb.h>
+#endif
+
 static void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *t);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str);
@@ -144,6 +148,10 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	dtlb_data_in_write(data.value);
 }
 
+/** Copy PTE to ITLB.
+ *
+ * @param t Page Table Entry to be copied.
+ */
 void itlb_pte_copy(pte_t *t)
 {
 	tlb_tag_access_reg_t tag;
@@ -189,6 +197,9 @@ void fast_instruction_access_mmu_miss(int n, istate_t *istate)
 		 */
 		t->a = true;
 		itlb_pte_copy(t);
+#ifdef CONFIG_TSB
+		itsb_pte_copy(t);
+#endif
 		page_table_unlock(AS, true);
 	} else {
 		/*
@@ -233,6 +244,9 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 		 */
 		t->a = true;
 		dtlb_pte_copy(t, true);
+#ifdef CONFIG_TSB
+		dtsb_pte_copy(t, true);
+#endif
 		page_table_unlock(AS, true);
 	} else {
 		/*
@@ -266,6 +280,9 @@ void fast_data_access_protection(int n, istate_t *istate)
 		t->d = true;
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY, va);
 		dtlb_pte_copy(t, false);
+#ifdef CONFIG_TSB
+		dtsb_pte_copy(t, false);
+#endif
 		page_table_unlock(AS, true);
 	} else {
 		/*

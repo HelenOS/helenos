@@ -44,6 +44,10 @@
 #include <arch/mm/tte.h>
 #include <arch/trap/regwin.h>
 
+#ifdef CONFIG_TSB
+#include <arch/mm/tsb.h>
+#endif
+
 #define TT_FAST_INSTRUCTION_ACCESS_MMU_MISS	0x64
 #define TT_FAST_DATA_ACCESS_MMU_MISS		0x68
 #define TT_FAST_DATA_ACCESS_PROTECTION		0x6c
@@ -56,8 +60,19 @@
 	/*
 	 * First, try to refill TLB from TSB.
 	 */
-	! TODO
 
+#ifdef CONFIG_TSB
+	ldxa [%g0] ASI_IMMU, %g1			! read TSB Tag Target Register
+	ldxa [%g0] ASI_IMMU_TSB_8KB_PTR_REG, %g2	! read TSB 8K Pointer
+	ldda [%g2] ASI_NUCLEUS_QUAD_LDD, %g4		! 16-byte atomic load into %g4 and %g5
+	cmp %g1, %g4					! is this the entry we are looking for?
+	bne,pn %xcc, 0f
+	nop
+	stxa %g5, [%g0] ASI_ITLB_DATA_IN_REG		! copy mapping from ITSB to ITLB
+	retry
+#endif
+
+0:
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
 .endm
@@ -66,7 +81,19 @@
 	/*
 	 * First, try to refill TLB from TSB.
 	 */
-	! TODO
+
+#ifdef CONFIG_TSB
+	ldxa [%g0] ASI_DMMU, %g1			! read TSB Tag Target Register
+	srlx %g1, TSB_TAG_TARGET_CONTEXT_SHIFT, %g2	! is this kernel miss?
+	brz,pn %g2, 0f
+	ldxa [%g0] ASI_DMMU_TSB_8KB_PTR_REG, %g3	! read TSB 8K Pointer
+	ldda [%g3] ASI_NUCLEUS_QUAD_LDD, %g4		! 16-byte atomic load into %g4 and %g5
+	cmp %g1, %g4					! is this the entry we are looking for?
+	bne,pn %xcc, 0f
+	nop
+	stxa %g5, [%g0] ASI_DTLB_DATA_IN_REG		! copy mapping from DTSB to DTLB
+	retry
+#endif
 
 	/*
 	 * Second, test if it is the portion of the kernel address space
@@ -76,7 +103,7 @@
 	 *
 	 * Note that branch-delay slots are used in order to save space.
 	 */
-
+0:
 	mov VA_DMMU_TAG_ACCESS, %g1
 	ldxa [%g1] ASI_DMMU, %g1			! read the faulting Context and VPN
 	set TLB_TAG_ACCESS_CONTEXT_MASK, %g2
@@ -110,13 +137,9 @@
 
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER tl
 	/*
-	 * First, try to refill TLB from TSB.
-	 */
-	! TODO
-
-	/*
 	 * The same special case as in FAST_DATA_ACCESS_MMU_MISS_HANDLER.
 	 */
+
 .if (\tl > 0)
 	wrpr %g0, 1, %tl
 .endif

@@ -79,6 +79,10 @@ ifeq ($(CONFIG_VHPT),y)
 	DEFS += -DCONFIG_VHPT
 endif
 
+ifeq ($(CONFIG_TSB),y)
+	DEFS += -DCONFIG_TSB
+endif
+
 ifeq ($(CONFIG_POWEROFF),y)
 	DEFS += -DCONFIG_POWEROFF
 endif

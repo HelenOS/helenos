@@ -40,6 +40,12 @@
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
+#include <arch/memstr.h>
+#include <synch/mutex.h>
+#include <arch/asm.h>
+#include <mm/frame.h>
+#include <bitops.h>
+#include <macros.h>
 #endif
 
 /** Architecture dependent address space init. */
@@ -47,6 +53,47 @@ void as_arch_init(void)
 {
 	as_operations = &as_ht_operations;
 	asid_fifo_init();
+}
+
+int as_constructor_arch(as_t *as, int flags)
+{
+#ifdef CONFIG_TSB
+	int order = fnzb32(((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH);
+	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags);
+
+	if (!tsb)
+		return -1;
+
+	as->arch.itsb = (tsb_entry_t *) tsb;
+	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT * sizeof(tsb_entry_t));
+#endif
+	return 0;
+}
+
+int as_destructor_arch(as_t *as)
+{
+#ifdef CONFIG_TSB
+	count_t cnt = ((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH;
+	frame_free((uintptr_t) as->arch.itsb);
+	return cnt;
+#else
+	return 0;
+#endif
+}
+
+int as_create_arch(as_t *as, int flags)
+{
+#ifdef CONFIG_TSB
+	ipl_t ipl;
+
+	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t), 0);
+	ipl = interrupts_disable();
+	mutex_lock_active(&as->lock);	/* completely unnecessary, but polite */
+	tsb_invalidate(as, 0, (count_t) -1);
+	mutex_unlock(&as->lock);
+	interrupts_restore(ipl);
+#endif
+	return 0;
 }
 
 /** Perform sparc64-specific tasks when an address space becomes active on the processor.
@@ -78,37 +125,35 @@ void as_install_arch(as_t *as)
 	mmu_secondary_context_write(ctx.v);
 
 #ifdef CONFIG_TSB	
-	if (as != AS_KERNEL) {
-		uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
+	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 
-		ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.itsb && as->arch.dtsb);
 
-		uintptr_t tsb = as->arch.itsb;
+	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-		if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
-			/*
-			 * TSBs were allocated from memory not covered
-			 * by the locked 4M kernel DTLB entry. We need
-			 * to map both TSBs explicitly.
-			 */
-			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
-			dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
-		}
-		
+	if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
-		 * Setup TSB Base registers.
+		 * TSBs were allocated from memory not covered
+		 * by the locked 4M kernel DTLB entry. We need
+		 * to map both TSBs explicitly.
 		 */
-		tsb_base_reg_t tsb_base;
-		
-		tsb_base.value = 0;
-		tsb_base.size = TSB_SIZE;
-		tsb_base.split = 0;
-
-		tsb_base.base = as->arch.itsb >> PAGE_WIDTH;
-		itsb_base_write(tsb_base.value);
-		tsb_base.base = as->arch.dtsb >> PAGE_WIDTH;
-		dtsb_base_write(tsb_base.value);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
+		dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
 	}
+		
+	/*
+	 * Setup TSB Base registers.
+	 */
+	tsb_base_reg_t tsb_base;
+		
+	tsb_base.value = 0;
+	tsb_base.size = TSB_SIZE;
+	tsb_base.split = 0;
+
+	tsb_base.base = ((uintptr_t) as->arch.itsb) >> PAGE_WIDTH;
+	itsb_base_write(tsb_base.value);
+	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> PAGE_WIDTH;
+	dtsb_base_write(tsb_base.value);
 #endif
 }
 
@@ -129,22 +174,19 @@ void as_deinstall_arch(as_t *as)
 	 */
 
 #ifdef CONFIG_TSB
-	if (as != AS_KERNEL) {
-		uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
+	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 
-		ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.itsb && as->arch.dtsb);
 
-		uintptr_t tsb = as->arch.itsb;
+	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-		if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
-			/*
-			 * TSBs were allocated from memory not covered
-			 * by the locked 4M kernel DTLB entry. We need
-			 * to demap the entry installed by as_install_arch().
-			 */
-			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
-		}
-		
+	if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+		/*
+		 * TSBs were allocated from memory not covered
+		 * by the locked 4M kernel DTLB entry. We need
+		 * to demap the entry installed by as_install_arch().
+		 */
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
 	}
 #endif
 }

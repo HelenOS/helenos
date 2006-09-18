@@ -35,11 +35,6 @@
 #ifndef KERN_sparc64_TSB_H_
 #define KERN_sparc64_TSB_H_
 
-#include <arch/mm/tte.h>
-#include <arch/mm/mmu.h>
-#include <arch/types.h>
-#include <typedefs.h>
-
 /*
  * ITSB abd DTSB will claim 64K of memory, which
  * is a nice number considered that it is one of
@@ -51,8 +46,31 @@
 #define ITSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
 #define DTSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
 
+#define TSB_TAG_TARGET_CONTEXT_SHIFT	48
+
+#ifndef __ASM__
+
+#include <arch/mm/tte.h>
+#include <arch/mm/mmu.h>
+#include <arch/types.h>
+#include <typedefs.h>
+
+/** TSB Tag Target register. */
+union tsb_tag_target {
+	uint64_t value;
+	struct {
+		unsigned invalid : 1;	/**< Invalidated by software. */
+		unsigned : 2;
+		unsigned context : 13;	/**< Software ASID. */
+		unsigned : 6;
+		uint64_t va_tag : 42;	/**< Virtual address bits <63:22>. */
+	} __attribute__ ((packed));
+};
+typedef union tsb_tag_target tsb_tag_target_t;
+
+/** TSB entry. */
 struct tsb_entry {
-	tte_tag_t tag;
+	tsb_tag_target_t tag;
 	tte_data_t data;
 } __attribute__ ((packed));
 typedef struct tsb_entry tsb_entry_t;
@@ -109,6 +127,10 @@ static inline void dtsb_base_write(uint64_t v)
 }
 
 extern void tsb_invalidate(as_t *as, uintptr_t page, count_t pages);
+extern void itsb_pte_copy(pte_t *t);
+extern void dtsb_pte_copy(pte_t *t, bool ro);
+
+#endif /* !def __ASM__ */
 
 #endif
 

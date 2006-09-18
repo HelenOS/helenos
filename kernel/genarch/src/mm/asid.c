@@ -128,7 +128,7 @@ asid_t asid_get(void)
 		 * of TLB entries (e.g. TSB on sparc64), the
 		 * cache must be invalidated as well.
 		 */
-		as_invalidate_translation_cache(as, 0, 0);
+		as_invalidate_translation_cache(as, 0, (count_t) -1);
 		
 		mutex_unlock(&as->lock);
 

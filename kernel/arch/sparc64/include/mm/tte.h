@@ -50,6 +50,8 @@
 
 #include <arch/types.h>
 
+#define VA_TAG_PAGE_SHIFT	22
+
 /** Translation Table Entry - Tag. */
 union tte_tag {
 	uint64_t value;

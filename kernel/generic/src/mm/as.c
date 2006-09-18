@@ -106,12 +106,33 @@ static as_area_t *find_area_and_lock(as_t *as, uintptr_t va);
 static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size, as_area_t *avoid_area);
 static void sh_info_remove_reference(share_info_t *sh_info);
 
+static int as_constructor(void *obj, int flags)
+{
+	as_t *as = (as_t *) obj;
+	int rc;
+
+	link_initialize(&as->inactive_as_with_asid_link);
+	mutex_initialize(&as->lock);	
+	
+	rc = as_constructor_arch(as, flags);
+	
+	return rc;
+}
+
+static int as_destructor(void *obj)
+{
+	as_t *as = (as_t *) obj;
+
+	return as_destructor_arch(as);
+}
+
 /** Initialize address space subsystem. */
 void as_init(void)
 {
 	as_arch_init();
 	
-	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0,
+		as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
@@ -128,8 +149,8 @@ as_t *as_create(int flags)
 	as_t *as;
 
 	as = (as_t *) slab_alloc(as_slab, 0);
-	link_initialize(&as->inactive_as_with_asid_link);
-	mutex_initialize(&as->lock);
+	(void) as_create_arch(as, 0);
+	
 	btree_create(&as->as_area_btree);
 	
 	if (flags & FLAG_AS_KERNEL)

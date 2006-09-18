@@ -33,20 +33,116 @@
  */
 
 #include <arch/mm/tsb.h>
+#include <arch/mm/tlb.h>
+#include <arch/barrier.h>
 #include <mm/as.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <macros.h>
+#include <debug.h>
+
+#define TSB_INDEX_MASK		((1<<(21+1+TSB_SIZE-PAGE_WIDTH))-1)
 
 /** Invalidate portion of TSB.
  *
  * We assume that the address space is already locked.
+ * Note that respective portions of both TSBs
+ * are invalidated at a time.
  *
  * @param as Address space.
  * @param page First page to invalidate in TSB.
- * @param pages Number of pages to invalidate.
+ * @param pages Number of pages to invalidate. Value of (count_t) -1 means the whole TSB. 
  */
 void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 {
+	index_t i0, i;
+	count_t cnt;
+	
+	ASSERT(as->arch.itsb && as->arch.dtsb);
+	
+	i0 = (page >> PAGE_WIDTH) & TSB_INDEX_MASK;
+	cnt = min(pages, ITSB_ENTRY_COUNT);
+	
+	for (i = 0; i < cnt; i++) {
+		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT-1)].tag.invalid = 0;
+		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT-1)].tag.invalid = 0;
+	}
+}
+
+/** Copy software PTE to ITSB.
+ *
+ * @param t Software PTE.
+ */
+void itsb_pte_copy(pte_t *t)
+{
+	as_t *as;
+	tsb_entry_t *tsb;
+	
+	as = t->as;
+	tsb = &as->arch.itsb[(t->page >> PAGE_WIDTH) & TSB_INDEX_MASK];
+
+	/*
+	 * We use write barriers to make sure that the TSB load
+	 * won't use inconsistent data or that the fault will
+	 * be repeated.
+	 */
+
+	tsb->tag.invalid = 1;	/* invalidate the entry (tag target has this set to 0 */
+
+	write_barrier();
+
+	tsb->tag.context = as->asid;
+	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tsb->data.value = 0;
+	tsb->data.size = PAGESIZE_8K;
+	tsb->data.pfn = t->frame >> PAGE_WIDTH;
+	tsb->data.cp = t->c;
+	tsb->data.cv = t->c;
+	tsb->data.p = t->k;	/* p as privileged */
+	tsb->data.v = t->p;
+	
+	write_barrier();
+	
+	tsb->tag.invalid = 0;	/* mark the entry as valid */
+}
+
+/** Copy software PTE to DTSB.
+ *
+ * @param t Software PTE.
+ * @param ro If true, the mapping is copied read-only.
+ */
+void dtsb_pte_copy(pte_t *t, bool ro)
+{
+	as_t *as;
+	tsb_entry_t *tsb;
+	
+	as = t->as;
+	tsb = &as->arch.dtsb[(t->page >> PAGE_WIDTH) & TSB_INDEX_MASK];
+
+	/*
+	 * We use write barriers to make sure that the TSB load
+	 * won't use inconsistent data or that the fault will
+	 * be repeated.
+	 */
+
+	tsb->tag.invalid = 1;	/* invalidate the entry (tag target has this set to 0) */
+
+	write_barrier();
+
+	tsb->tag.context = as->asid;
+	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tsb->data.value = 0;
+	tsb->data.size = PAGESIZE_8K;
+	tsb->data.pfn = t->frame >> PAGE_WIDTH;
+	tsb->data.cp = t->c;
+	tsb->data.cv = t->c;
+	tsb->data.p = t->k;	/* p as privileged */
+	tsb->data.w = ro ? false : t->w;
+	tsb->data.v = t->p;
+	
+	write_barrier();
+	
+	tsb->tag.invalid = 0;	/* mark the entry as valid */
 }
 
 /** @}

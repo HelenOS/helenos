@@ -48,7 +48,7 @@
 #define ASI_IMMU_DEMAP			0x57
 
 /* Virtual Addresses within ASI_IMMU. */
-#define VA_IMMU_TAG_TARGET		0x0	/**< IMMU tag target register. */
+#define VA_IMMU_TSB_TAG_TARGET		0x0	/**< IMMU TSB tag target register. */
 #define VA_IMMU_SFSR			0x18	/**< IMMU sync fault status register. */
 #define VA_IMMU_TSB_BASE		0x28	/**< IMMU TSB base register. */
 #define VA_IMMU_TAG_ACCESS		0x30	/**< IMMU TLB tag access register. */
@@ -64,7 +64,7 @@
 #define ASI_DMMU_DEMAP			0x5f
 
 /* Virtual Addresses within ASI_DMMU. */
-#define VA_DMMU_TAG_TARGET		0x0	/**< DMMU tag target register. */
+#define VA_DMMU_TSB_TAG_TARGET		0x0	/**< DMMU TSB tag target register. */
 #define VA_PRIMARY_CONTEXT_REG		0x8	/**< DMMU primary context register. */
 #define VA_SECONDARY_CONTEXT_REG	0x10	/**< DMMU secondary context register. */
 #define VA_DMMU_SFSR			0x18	/**< DMMU sync fault status register. */

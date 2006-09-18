@@ -66,7 +66,7 @@ ifeq ($(MACHINE),enterprise)
 	#
 
 	CONFIG_Z8530 = y
-	DEFS += -DCONFIG_Z8530	
+	DEFS += -DCONFIG_Z8530
 endif
 ifeq ($(MACHINE),ultra)
 	## Compile with support for ns16550 controller.
@@ -107,7 +107,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c
 
-ifdef CONFIG_TSB
+ifeq ($(CONFIG_TSB),y)
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/mm/tsb.c
 endif

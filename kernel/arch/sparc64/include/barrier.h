@@ -41,9 +41,9 @@
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+#define memory_barrier()	__asm__ volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory")
+#define read_barrier()		__asm__ volatile ("membar #LoadLoad\n" ::: "memory")
+#define write_barrier()		__asm__ volatile ("membar #StoreStore\n" ::: "memory")
 
 /** Flush Instruction Memory instruction. */
 static inline void flush(void)

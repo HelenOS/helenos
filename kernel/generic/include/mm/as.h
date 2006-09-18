@@ -160,8 +160,6 @@ struct as_area {
 
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
-	
-	as_arch_t arch;
 };
 
 extern as_t *AS_KERNEL;
@@ -190,7 +188,17 @@ extern size_t as_get_size(uintptr_t base);
 extern int used_space_insert(as_area_t *a, uintptr_t page, count_t count);
 extern int used_space_remove(as_area_t *a, uintptr_t page, count_t count);
 
+
 /* Interface to be implemented by architectures. */
+#ifndef as_constructor_arch
+extern int as_constructor_arch(as_t *as, int flags);
+#endif /* !def as_constructor_arch */
+#ifndef as_destructor_arch
+extern int as_destructor_arch(as_t *as);
+#endif /* !def as_destructor_arch */
+#ifndef as_create_arch
+extern int as_create_arch(as_t *as, int flags);
+#endif /* !def as_create_arch */
 #ifndef as_install_arch
 extern void as_install_arch(as_t *as);
 #endif /* !def as_install_arch */
