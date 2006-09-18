@@ -120,9 +120,8 @@ void after_thread_ran_arch(void)
 	
 	if ((THREAD->flags & THREAD_FLAG_USPACE)) {
 		/*
-		 * If this thread executes also in userspace, we have to force all
-		 * its still-active userspace windows into the userspace window buffer
-		 * and demap the buffer from DTLB.
+		 * If this thread executes also in userspace, we have to
+		 * demap the userspace window buffer from DTLB.
 		 */
 		ASSERT(THREAD->arch.uspace_window_buffer);
 		

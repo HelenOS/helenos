@@ -84,6 +84,11 @@
  */
 as_operations_t *as_operations = NULL;
 
+/**
+ * Slab for as_t objects.
+ */
+static slab_cache_t *as_slab;
+
 /** This lock protects inactive_as_with_asid_head list. It must be acquired before as_t mutex. */
 SPINLOCK_INITIALIZE(inactive_as_with_asid_lock);
 
@@ -105,6 +110,9 @@ static void sh_info_remove_reference(share_info_t *sh_info);
 void as_init(void)
 {
 	as_arch_init();
+	
+	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
 		panic("can't create kernel address space\n");
@@ -119,7 +127,7 @@ as_t *as_create(int flags)
 {
 	as_t *as;
 
-	as = (as_t *) malloc(sizeof(as_t), 0);
+	as = (as_t *) slab_alloc(as_slab, 0);
 	link_initialize(&as->inactive_as_with_asid_link);
 	mutex_initialize(&as->lock);
 	btree_create(&as->as_area_btree);
@@ -182,7 +190,7 @@ void as_destroy(as_t *as)
 
 	interrupts_restore(ipl);
 	
-	free(as);
+	slab_free(as_slab, as);
 }
 
 /** Create address space area of common attributes.
@@ -798,6 +806,12 @@ void as_switch(as_t *old, as_t *new)
 			 list_append(&old->inactive_as_with_asid_link, &inactive_as_with_asid_head);
 		}
 		mutex_unlock(&old->lock);
+
+		/*
+		 * Perform architecture-specific tasks when the address space
+		 * is being removed from the CPU.
+		 */
+		as_deinstall_arch(old);
 	}
 
 	/*

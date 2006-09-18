@@ -160,6 +160,8 @@ struct as_area {
 
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
+	
+	as_arch_t arch;
 };
 
 extern as_t *AS_KERNEL;
@@ -192,6 +194,9 @@ extern int used_space_remove(as_area_t *a, uintptr_t page, count_t count);
 #ifndef as_install_arch
 extern void as_install_arch(as_t *as);
 #endif /* !def as_install_arch */
+#ifndef as_deinstall_arch
+extern void as_deinstall_arch(as_t *as);
+#endif /* !def as_deinstall_arch */
 
 /* Backend declarations. */
 extern mem_backend_t anon_backend;

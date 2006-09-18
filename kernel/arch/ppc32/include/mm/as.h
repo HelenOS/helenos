@@ -47,6 +47,7 @@
 typedef struct {
 } as_arch_t;
 
+#define as_deinstall_arch(as)
 #define as_invalidate_translation_cache(as, page, cnt)
 
 extern void as_arch_init(void);

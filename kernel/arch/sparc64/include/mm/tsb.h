@@ -36,6 +36,7 @@
 #define KERN_sparc64_TSB_H_
 
 #include <arch/mm/tte.h>
+#include <arch/mm/mmu.h>
 #include <arch/types.h>
 #include <typedefs.h>
 
@@ -46,15 +47,66 @@
  * again, is nice because TSBs need to be locked
  * in TLBs - only one TLB entry will do.
  */
-#define ITSB_ENTRY_COUNT		2048
-#define DTSB_ENTRY_COUNT		2048
+#define TSB_SIZE			2			/* when changing this, change as.c as well */
+#define ITSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
+#define DTSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
 
 struct tsb_entry {
 	tte_tag_t tag;
 	tte_data_t data;
 } __attribute__ ((packed));
-
 typedef struct tsb_entry tsb_entry_t;
+
+/** TSB Base register. */
+union tsb_base_reg {
+	uint64_t value;
+	struct {
+		uint64_t base : 51;	/**< TSB base address, bits 63:13. */
+		unsigned split : 1;	/**< Split vs. common TSB for 8K and 64K pages.
+					  *  HelenOS uses only 8K pages for user mappings,
+					  *  so we always set this to 0.
+					  */
+		unsigned : 9;
+		unsigned size : 3;	/**< TSB size. Number of entries is 512*2^size. */
+	} __attribute__ ((packed));
+};
+typedef union tsb_base_reg tsb_base_reg_t;
+
+/** Read ITSB Base register.
+ *
+ * @return Content of the ITSB Base register.
+ */
+static inline uint64_t itsb_base_read(void)
+{
+	return asi_u64_read(ASI_IMMU, VA_IMMU_TSB_BASE);
+}
+
+/** Read DTSB Base register.
+ *
+ * @return Content of the DTSB Base register.
+ */
+static inline uint64_t dtsb_base_read(void)
+{
+	return asi_u64_read(ASI_DMMU, VA_DMMU_TSB_BASE);
+}
+
+/** Write ITSB Base register.
+ *
+ * @param v New content of the ITSB Base register.
+ */
+static inline void itsb_base_write(uint64_t v)
+{
+	asi_u64_write(ASI_IMMU, VA_IMMU_TSB_BASE, v);
+}
+
+/** Write DTSB Base register.
+ *
+ * @param v New content of the DTSB Base register.
+ */
+static inline void dtsb_base_write(uint64_t v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_TSB_BASE, v);
+}
 
 extern void tsb_invalidate(as_t *as, uintptr_t page, count_t pages);
 
