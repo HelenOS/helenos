@@ -66,6 +66,7 @@ int as_constructor_arch(as_t *as, int flags)
 
 	as->arch.itsb = (tsb_entry_t *) tsb;
 	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT * sizeof(tsb_entry_t));
+	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t), 0);
 #endif
 	return 0;
 }
@@ -86,7 +87,6 @@ int as_create_arch(as_t *as, int flags)
 #ifdef CONFIG_TSB
 	ipl_t ipl;
 
-	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t), 0);
 	ipl = interrupts_disable();
 	mutex_lock_active(&as->lock);	/* completely unnecessary, but polite */
 	tsb_invalidate(as, 0, (count_t) -1);
