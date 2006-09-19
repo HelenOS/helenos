@@ -53,6 +53,7 @@ SOURCES = \
 	../../../generic/printf.c \
 	../../../generic/string.c \
 	../../../genarch/ofw.c \
+	../../../genarch/ofw_tree.c \
 	ofwarch.c \
 	asm.S \
 	boot.S

@@ -109,18 +109,25 @@ static unsigned long ofw_call(const char *service, const int nargs, const int nr
 	return args.args[nargs];
 }
 
-
 phandle ofw_find_device(const char *name)
 {
 	return ofw_call("finddevice", 1, 1, NULL, name);
 }
-
 
 int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
 
+int ofw_get_proplen(const phandle device, const char *name)
+{
+	return ofw_call("getproplen", 2, 1, NULL, device, name);
+}
+
+int ofw_next_property(const phandle device, char *previous, char *buf)
+{
+	return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
+}
 
 unsigned int ofw_get_address_cells(const phandle device)
 {
