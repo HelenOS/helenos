@@ -94,6 +94,12 @@ init_t init = {
 	0
 };
 
+/** Boot allocations. */
+ballocs_t ballocs = {
+	.base = NULL,
+	.size = 0
+};
+
 context_t ctx;
 
 /*
@@ -105,7 +111,7 @@ uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel i
 size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes. */
 size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes. */
 
-uintptr_t stack_safe = 0;	/**< Lowest safe stack virtual address */
+uintptr_t stack_safe = 0;		/**< Lowest safe stack virtual address */
 
 void main_bsp(void);
 void main_ap(void);
@@ -151,6 +157,12 @@ void main_bsp(void)
 	for (i = 0; i < init.cnt; i++) {
 		if (PA_overlaps(config.stack_base, config.stack_size, init.tasks[i].addr, init.tasks[i].size))
 			config.stack_base = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, config.stack_size);
+	}
+
+	/* Avoid placing stack on top of boot allocations. */
+	if (ballocs.size) {
+		if (PA_overlaps(config.stack_base, config.stack_size, ballocs.base, ballocs.size))
+			config.stack_base = ALIGN_UP(ballocs.base + ballocs.size, PAGE_SIZE);
 	}
 	
 	if (config.stack_base < stack_safe)

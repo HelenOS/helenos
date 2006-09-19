@@ -30,20 +30,21 @@
 #include <ofw.h>
 #include <types.h>
 #include <string.h>
+#include <balloc.h>
 
 static ofw_tree_node_t *ofw_tree_node_alloc(void)
 {
-	return NULL;
+	return balloc(sizeof(ofw_tree_node_t), sizeof(ofw_tree_node_t));
 }
 
 static ofw_tree_property_t *ofw_tree_properties_alloc(unsigned count)
 {
-	return NULL;
+	return balloc(count * sizeof(ofw_tree_property_t), sizeof(ofw_tree_property_t));
 }
 
 static void * ofw_tree_space_alloc(size_t size)
 {
-	return NULL;
+	return balloc(size, size);
 }
 
 /** Transfer information from one OpenFirmware node into its memory representation.

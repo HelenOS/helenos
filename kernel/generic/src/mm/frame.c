@@ -1077,6 +1077,9 @@ void frame_init(void)
 		for (i = 0; i < init.cnt; i++)
 			frame_mark_unavailable(ADDR2PFN(KA2PA(init.tasks[i].addr)), SIZE2FRAMES(init.tasks[i].size));
 
+		if (ballocs.size)
+			frame_mark_unavailable(ADDR2PFN(KA2PA(ballocs.base)), SIZE2FRAMES(ballocs.size));
+
 		/* Black list first frame, as allocating NULL would
 		 * fail in some places */
 		frame_mark_unavailable(0, 1);

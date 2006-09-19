@@ -52,6 +52,7 @@ SOURCES = \
 	main.c \
 	../../../generic/printf.c \
 	../../../generic/string.c \
+	../../../genarch/balloc.c \
 	../../../genarch/ofw.c \
 	../../../genarch/ofw_tree.c \
 	ofwarch.c \

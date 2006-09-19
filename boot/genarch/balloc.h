@@ -26,87 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
- * @{
- */
-/** @file
- */
+#ifndef BOOT_BALLOC_H_
+#define BOOT_BALLOC_H_
 
-#ifndef KERN_sparc64_BOOT_H_
-#define KERN_sparc64_BOOT_H_
-
-#define VMA			0x400000
-#define LMA			VMA
-
-#ifndef __ASM__
-#ifndef __LINKER__
-
-#include <config.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <genarch/ofw/ofw_tree.h>
-
-#define TASKMAP_MAX_RECORDS	32
-#define MEMMAP_MAX_RECORDS	32
+#include <types.h>
 
 typedef struct {
-	void * addr;
-	uint32_t size;
-} utask_t;
+	uintptr_t base;
+	size_t size;
+} ballocs_t;
 
-typedef struct {
-	uint32_t count;
-	utask_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	uintptr_t start;
-	uint32_t size;
-} memzone_t;
-
-typedef struct {
-	uint32_t total;
-	uint32_t count;
-	memzone_t zones[MEMMAP_MAX_RECORDS];
-} memmap_t;
-
-typedef struct {
-	uintptr_t addr;
-	uint32_t width;
-	uint32_t height;
-	uint32_t bpp;
-	uint32_t scanline;
-} screen_t;
-
-typedef struct {
-	uintptr_t addr;
-	uint32_t size;
-} keyboard_t;
-
-typedef struct {
-	uint32_t clock_frequency;
-} processor_t;
-
-/** Bootinfo structure.
- *
- * Must be in sync with bootinfo structure used by the boot loader.
- */
-typedef struct {
-	taskmap_t taskmap;
-	memmap_t memmap;
-	screen_t screen;
-	keyboard_t keyboard;
-	processor_t processor;
-	ballocs_t ballocs;
-	ofw_tree_node_t *ofw_root;
-} bootinfo_t;
-
-extern bootinfo_t bootinfo;
+extern void balloc_init(ballocs_t *b, uintptr_t base);
+extern void *balloc(size_t size, size_t alignment);
 
 #endif
-#endif
-
-#endif
-
-/** @}
- */

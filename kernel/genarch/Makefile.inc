@@ -87,3 +87,10 @@ ifeq ($(CONFIG_NS16550),y)
 		genarch/src/kbd/key.c \
 		genarch/src/kbd/scanc_sun.c
 endif
+
+
+## OpenFirmware Device Tree
+ifeq ($(CONFIG_OFW_TREE), y)
+	GENARCH_SOURCES += \
+		genarch/src/ofw/ofw_tree,c
+endif

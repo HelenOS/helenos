@@ -30,6 +30,8 @@
 #define BOOT_sparc64_MAIN_H_
 
 #include <ofw.h>
+#include <ofw_tree.h>
+#include <balloc.h>
 #include <types.h>
 
 #define TASKMAP_MAX_RECORDS 32
@@ -54,6 +56,8 @@ typedef struct {
 	screen_t screen;
 	keyboard_t keyboard;
 	cpu_t cpu;
+	ballocs_t ballocs;
+	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
 
 extern void start(void);

@@ -30,7 +30,9 @@
 #include <printf.h>
 #include "asm.h"
 #include "_components.h"
+#include <balloc.h>
 #include <ofw.h>
+#include <ofw_tree.h>
 #include "ofwarch.h"
 #include <align.h>
 
@@ -83,12 +85,12 @@ void bootstrap(void)
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %P: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 
-	printf("\nCopying components\n");
+	void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
 	unsigned int top = 0;
+
+	printf("\nCopying components\n");
 	bootinfo.taskmap.count = 0;
 	for (i = 0; i < COMPONENTS; i++) {
-		void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
-	
 		printf(" %s...", components[i].name);
 		top = ALIGN_UP(top, PAGE_SIZE);
 		memcpy(base + top, components[i].start, components[i].size);
@@ -100,6 +102,12 @@ void bootstrap(void)
 		top += components[i].size;
 		printf("done.\n");
 	}
+
+	balloc_init(&bootinfo.ballocs, ALIGN_UP(((uintptr_t) base) + top, PAGE_SIZE));
+
+	printf("\nCanonizing OpenFirmware device tree...");
+	bootinfo.ofw_root = ofw_tree_build();
+	printf("done.\n");
 
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));

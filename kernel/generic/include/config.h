@@ -55,6 +55,16 @@ typedef struct {
 	init_task_t tasks[CONFIG_INIT_TASKS];
 } init_t;
 
+/** Boot allocations.
+ *
+ * Allocatations made by the boot that are meant to be used by the kernel
+ * are all recorded in the ballocs_t type.
+ */
+typedef struct {
+	uintptr_t base;
+	size_t size;
+} ballocs_t;
+
 typedef struct {
 	count_t cpu_count;		/**< Number of processors detected. */
 	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
@@ -69,6 +79,7 @@ typedef struct {
 
 extern config_t config;
 extern init_t init;
+extern ballocs_t ballocs;
 
 #endif
 

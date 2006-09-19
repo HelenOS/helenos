@@ -37,15 +37,17 @@
 typedef struct ofw_tree_node ofw_tree_node_t;
 typedef struct ofw_tree_property ofw_tree_property_t;
 
+/** Memory representation of OpenFirmware device tree node. */
 struct ofw_tree_node {
 	ofw_tree_node_t *parent;
 	ofw_tree_node_t *peer;
 	ofw_tree_node_t *child;
 
-	unsigned properties;
+	unsigned properties;			/**< Number of properties. */
 	ofw_tree_property_t *property;
 };
 
+/** Memory representation of OpenFirmware device tree node property. */
 struct ofw_tree_property {
 	char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	size_t size;
