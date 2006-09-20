@@ -45,6 +45,7 @@
 #include <arch/asm.h>
 #include <arch/mm/page.h>
 #include <arch/stack.h>
+#include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
 
 bootinfo_t bootinfo;
@@ -64,6 +65,8 @@ void arch_pre_main(void)
 	/* Copy boot allocations info. */
 	ballocs.base = bootinfo.ballocs.base;
 	ballocs.size = bootinfo.ballocs.size;
+	
+	ofw_tree_init(bootinfo.ofw_root);
 }
 
 void arch_pre_mm_init(void)

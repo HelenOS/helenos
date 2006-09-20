@@ -31,6 +31,9 @@
 #include <types.h>
 #include <string.h>
 #include <balloc.h>
+#include <asm.h>
+
+#define MAX_PATH_LEN	256
 
 static ofw_tree_node_t *ofw_tree_node_alloc(void)
 {
@@ -61,10 +64,13 @@ static void * ofw_tree_space_alloc(size_t size)
 static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 	ofw_tree_node_t *parent_node, phandle current)
 {
+	static char path[MAX_PATH_LEN+1];
+	static char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	phandle peer;
 	phandle child;
 	unsigned properties = 0;
-	char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
+	size_t len;
+	int i;
 
 	/*
 	 * Initialize node.
@@ -76,6 +82,26 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 	current_node->property = NULL;
 	
 	/*
+	 * Get the disambigued name.
+	 */
+	len = ofw_package_to_path(current, path, MAX_PATH_LEN);
+	if (len == -1)
+		return;
+	
+	path[len] = '\0';
+	for (i = len - 1; i >= 0 && path[i] != '/'; i--)
+		;
+	i++;								/* do not include '/' */
+	
+	len -= i;
+	current_node->da_name = ofw_tree_space_alloc(len + 1);		/* add space for trailing '\0' */
+	if (!current_node->da_name)
+		return;
+	
+	memcpy(current_node->da_name, &path[i], len);
+	current_node->da_name[len] = '\0';
+	
+	/*
 	 * Recursively process the potential peer node.
 	 */
 	peer = ofw_get_peer_node(current);
@@ -84,7 +110,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		
 		peer_node = ofw_tree_node_alloc();
 		if (peer_node) {
-			ofw_tree_node_process(peer_node, current_node, peer);
+			ofw_tree_node_process(peer_node, parent_node, peer);
 			current_node->peer = peer_node;
 		}
 	}
@@ -120,8 +146,6 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 	if (!current_node->property)
 		return;
 		
-	int i = 0;
-
 	name[0] = '\0';
 	for (i = 0; ofw_next_property(current, name, name) == 1; i++) {
 		size_t size;

@@ -102,13 +102,15 @@ extern void ofw_init(void);
 
 extern void ofw_write(const char *str, const int len);
 
-extern int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen);
+extern int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen);
 extern int ofw_get_proplen(const phandle device, const char *name);
 extern int ofw_next_property(const phandle device, char *previous, char *buf);
 
 extern phandle ofw_get_child_node(const phandle node);
 extern phandle ofw_get_peer_node(const phandle node);
 extern phandle ofw_find_device(const char *name);
+
+extern int ofw_package_to_path(const phandle device, char *buf, const int buflen);
 
 extern int ofw(ofw_args_t *arg);
 extern unsigned int ofw_get_address_cells(const phandle device);

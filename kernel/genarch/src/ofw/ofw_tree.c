@@ -35,5 +35,120 @@
  *
  */
 
+#include <genarch/ofw/ofw_tree.h>
+#include <arch/memstr.h>
+#include <func.h>
+#include <print.h>
+#include <panic.h>
+
+#define PATH_MAX_LEN	80
+#define NAME_BUF_LEN	50
+
+static ofw_tree_node_t *ofw_root;
+
+void ofw_tree_init(ofw_tree_node_t *root)
+{
+	ofw_root = root;
+}
+
+/** Return value of the 'name' property.
+ *
+ * @param node Node of interest.
+ *
+ * @return Value of the 'name' property belonging to the node.
+ */
+const char *ofw_tree_node_name(const ofw_tree_node_t *node)
+{
+	int i;
+	
+	for (i = 0; i < node->properties; i++) {
+		if (strncmp(node->property[i].name, "name", strlen("name")) == 0) {
+			if (node->property[i].size < 2)
+				panic("Invalid name property.\n");
+			return node->property[i].value;
+		}
+	}
+	
+	panic("Node without name property.\n");
+}
+
+/** Lookup child of given name.
+ *
+ * @param node Node whose child is being looked up.
+ * @param da_name Disambigued name of the child being looked up.
+ *
+ * @return NULL if there is no such child or pointer to the matching child node.
+ */
+static ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *da_name)
+{
+	ofw_tree_node_t *cur;
+	
+	for (cur = node->child; cur; cur = cur->peer) {
+		if (strncmp(cur->da_name, da_name, strlen(da_name)) == 0)
+			return cur;
+	}
+	
+	return NULL;
+}
+
+/** Lookup OpenFirmware node by its path.
+ *
+ * @param path Path to the node.
+ *
+ * @return NULL if there is no such node or pointer to the leaf node.
+ */
+ofw_tree_node_t *ofw_tree_lookup(const char *path)
+{
+	char buf[NAME_BUF_LEN+1];
+	ofw_tree_node_t *node = ofw_root;
+	index_t i, j;
+	
+	if (path[0] != '/')
+		return NULL;
+	
+	for (i = 1; i < strlen(path) && node; i = j + 1) {
+		for (j = i; j < strlen(path) && path[j] != '/'; j++)
+			;
+		if (i == j)	/* skip extra slashes */
+			continue;
+			
+		memcpy(buf, &path[i], j - i);
+		buf[j - i] = '\0';
+		node = ofw_tree_find_child(node, buf);
+	}
+	
+	return node;
+}
+
+/** Recursively print subtree rooted in a node.
+ *
+ * @param node Root of the subtree.
+ * @param path Current path, NULL for the very root of the entire tree.
+ */
+static void ofw_tree_node_print(const ofw_tree_node_t *node, const char *path)
+{
+	char p[PATH_MAX_LEN];
+	
+	if (node->parent) {
+		snprintf(p, PATH_MAX_LEN, "%s/%s", path, node->da_name);
+		printf("%s\n", p);
+	} else {
+		snprintf(p, PATH_MAX_LEN, "%s", node->da_name);
+		printf("/\n");
+	}
+
+	if (node->child)
+		ofw_tree_node_print(node->child, p);
+	
+	if (node->peer)
+		ofw_tree_node_print(node->peer, path);
+}
+
+/** Print the structure of the OpenFirmware device tree. */
+void ofw_tree_print(void)
+{
+	ofw_tree_node_print(ofw_root, NULL);
+}
+
 /** @}
  */

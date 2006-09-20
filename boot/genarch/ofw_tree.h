@@ -43,6 +43,8 @@ struct ofw_tree_node {
 	ofw_tree_node_t *peer;
 	ofw_tree_node_t *child;
 
+	char *da_name;				/**< Disambigued name. */
+
 	unsigned properties;			/**< Number of properties. */
 	ofw_tree_property_t *property;
 };

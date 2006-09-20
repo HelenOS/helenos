@@ -60,6 +60,10 @@ CONFIG_ASID_FIFO = y
 
 CONFIG_FB = y
 
+## Compile with support for OpenFirmware device tree.
+#
+
+CONFIG_OFW_TREE = y
 
 ifeq ($(MACHINE),enterprise)
 	## Compile with support for z8530 controller.

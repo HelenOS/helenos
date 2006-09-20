@@ -114,7 +114,7 @@ phandle ofw_find_device(const char *name)
 	return ofw_call("finddevice", 1, 1, NULL, name);
 }
 
-int ofw_get_property(const phandle device, const char *name, const void *buf, const int buflen)
+int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
@@ -127,6 +127,11 @@ int ofw_get_proplen(const phandle device, const char *name)
 int ofw_next_property(const phandle device, char *previous, char *buf)
 {
 	return ofw_call("nextprop", 3, 1, NULL, device, previous, buf);
+}
+
+int ofw_package_to_path(const phandle device, char *buf, const int buflen)
+{
+	return ofw_call("package-to-path", 3, 1, NULL, device, buf, buflen);
 }
 
 unsigned int ofw_get_address_cells(const phandle device)

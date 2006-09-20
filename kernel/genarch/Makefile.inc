@@ -92,5 +92,5 @@ endif
 ## OpenFirmware Device Tree
 ifeq ($(CONFIG_OFW_TREE), y)
 	GENARCH_SOURCES += \
-		genarch/src/ofw/ofw_tree,c
+		genarch/src/ofw/ofw_tree.c
 endif

@@ -30,6 +30,7 @@
 #define KERN_OFW_TREE_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define OFW_TREE_PROPERTY_MAX_NAMELEN	32
 
@@ -42,7 +43,9 @@ struct ofw_tree_node {
 	ofw_tree_node_t *peer;
 	ofw_tree_node_t *child;
 
-	unsigned properties;			/**< Number of properties. */
+	char *da_name;					/**< Disambigued name. */
+
+	unsigned properties;				/**< Number of properties. */
 	ofw_tree_property_t *property;
 };
 
@@ -52,5 +55,10 @@ struct ofw_tree_property {
 	size_t size;
 	void *value;
 };
+
+extern void ofw_tree_init(ofw_tree_node_t *root);
+extern void ofw_tree_print(void);
+extern const char *ofw_tree_node_name(const ofw_tree_node_t *node);
+extern ofw_tree_node_t *ofw_tree_lookup(const char *path);
 
 #endif
