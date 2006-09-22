@@ -35,10 +35,13 @@
 #ifndef KERN_I8042_H_
 #define KERN_I8042_H_
 
+#include <typedefs.h>
+
 extern void i8042_init(void);
 extern void i8042_poll(void);
 extern void i8042_grab(void);
 extern void i8042_release(void);
+extern char i8042_key_read(chardev_t *d);
 
 #endif
 

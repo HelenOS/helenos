@@ -33,6 +33,7 @@
  */
 
 #include <arch/drivers/kbd.h>
+#include <genarch/ofw/ofw_tree.h>
 #ifdef CONFIG_Z8530
 #include <genarch/kbd/z8530.h>
 #endif
@@ -40,38 +41,93 @@
 #include <genarch/kbd/ns16550.h>
 #endif
 
-#include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <align.h>
+#include <func.h>
+#include <print.h>
 
 volatile uint8_t *kbd_virt_address = NULL;
 
-void kbd_init()
+kbd_type_t kbd_type = KBD_UNKNOWN;
+
+/** Initialize keyboard.
+ *
+ * Traverse OpenFirmware device tree in order to find necessary
+ * info about the keyboard device.
+ *
+ * @param node Keyboard device node.
+ */
+void kbd_init(ofw_tree_node_t *node)
 {
 	size_t offset;
 	uintptr_t aligned_addr;
-
-	/* FIXME: supply value read from OpenFirmware */
-	bootinfo.keyboard.size = 8;
-
+	ofw_tree_property_t *prop;
+	const char *name;
+	
+	name = ofw_tree_node_name(node);
+	
+	if (strcmp(name, "zs") == 0)
+		kbd_type = KBD_Z8530;
+	else if (strcmp(name, "su") == 0)
+		kbd_type = KBD_NS16550;
+	
+	if (kbd_type == KBD_UNKNOWN) {
+		printf("Unknown keyboard device.\n");
+		return;
+	}
+	
+	prop = ofw_tree_getprop(node, "reg");
+	if (!prop)
+		panic("Can't find \"reg\" property.\n");
+	
+	uintptr_t pa;
+	size_t size;
+	
+	switch (kbd_type) {
+	case KBD_Z8530:
+		size = ((ofw_fhc_reg_t *) prop->value)->size;
+		if (!ofw_fhc_apply_ranges(node->parent, ((ofw_fhc_reg_t *) prop->value) , &pa)) {
+			printf("Failed to determine keyboard address.\n");
+			return;
+		}
+		break;
+	case KBD_NS16550:
+		size = ((ofw_ebus_reg_t *) prop->value)->size;
+		if (!ofw_ebus_apply_ranges(node->parent, ((ofw_ebus_reg_t *) prop->value) , &pa)) {
+			printf("Failed to determine keyboard address.\n");
+			return;
+		}
+		break;
+	default:
+		panic("Unexpected type.\n");
+	}
+	
 	/*
 	 * We need to pass aligned address to hw_map().
 	 * However, the physical keyboard address can
-	 * be pretty much unaligned on some systems
-	 * (e.g. Ultra 5, Ultra 60).
+	 * be pretty much unaligned, depending on the
+	 * underlying controller.
 	 */
-	aligned_addr = ALIGN_DOWN(bootinfo.keyboard.addr, PAGE_SIZE);
-	offset = bootinfo.keyboard.addr - aligned_addr;
-	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + bootinfo.keyboard.size) + offset;
+	aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
+	offset = pa - aligned_addr;
+	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + size) + offset;
 
+	switch (kbd_type) {
 #ifdef CONFIG_Z8530
-	z8530_init();
+	case KBD_Z8530:
+		z8530_init();
+		break;
 #endif
 #ifdef CONFIG_NS16550
-	ns16550_init();
+	case KBD_NS16550:
+		ns16550_init();
+		break;
 #endif
+	default:
+		printf("Kernel is not compiled with the necessary keyboard driver this machine requires.\n");
+	}
 }
 
 /** @}

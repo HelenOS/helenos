@@ -51,6 +51,25 @@ void ofw_tree_init(ofw_tree_node_t *root)
 	ofw_root = root;
 }
 
+/** Get OpenFirmware node property.
+ *
+ * @param node Node in which to lookup the property.
+ * @param name Name of the property.
+ *
+ * @return Pointer to the property structure or NULL if no such property.
+ */
+ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *name)
+{
+	int i;
+	
+	for (i = 0; i < node->properties; i++) {
+		if (strcmp(node->property[i].name, name) == 0)
+			return &node->property[i];
+	}
+
+	return NULL;
+}
+
 /** Return value of the 'name' property.
  *
  * @param node Node of interest.
@@ -59,35 +78,49 @@ void ofw_tree_init(ofw_tree_node_t *root)
  */
 const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 {
-	int i;
+	ofw_tree_property_t *prop;
 	
-	for (i = 0; i < node->properties; i++) {
-		if (strncmp(node->property[i].name, "name", strlen("name")) == 0) {
-			if (node->property[i].size < 2)
-				panic("Invalid name property.\n");
-			return node->property[i].value;
-		}
-	}
+	prop = ofw_tree_getprop(node, "name");
+	if (!prop)
+		panic("Node without name property.\n");
+		
+	if (prop->size < 2)
+		panic("Invalid name property.\n");
 	
-	panic("Node without name property.\n");
+	return prop->value;
 }
 
 /** Lookup child of given name.
  *
  * @param node Node whose child is being looked up.
- * @param da_name Disambigued name of the child being looked up.
+ * @param name Name of the child being looked up.
  *
  * @return NULL if there is no such child or pointer to the matching child node.
  */
-static ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *da_name)
+static ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 {
 	ofw_tree_node_t *cur;
 	
+	/*
+	 * Try to find the disambigued name.
+	 */
 	for (cur = node->child; cur; cur = cur->peer) {
-		if (strncmp(cur->da_name, da_name, strlen(da_name)) == 0)
+		if (strcmp(cur->da_name, name) == 0)
 			return cur;
 	}
 	
+	/*
+	 * Disambigued name not found.
+	 * Lets try our luck with possibly ambiguous "name" property.
+	 *
+	 * We need to do this because paths stored in "/aliases"
+	 * are not always fully-qualified.
+	 */
+	for (cur = node->child; cur; cur = cur->peer) {
+		if (strcmp(ofw_tree_node_name(cur), name) == 0)
+			return cur;
+	}
+		
 	return NULL;
 }
 

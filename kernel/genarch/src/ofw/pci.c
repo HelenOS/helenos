@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup ofw
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	PCI 'reg' and 'ranges' properties handling.
+ *
  */
 
-#ifndef KERN_FUNC_H_
-#define KERN_FUNC_H_
+#include <genarch/ofw/ofw_tree.h>
+#include <arch/memstr.h>
+#include <func.h>
+#include <panic.h>
+#include <macros.h>
 
-#include <arch/types.h>
-#include <typedefs.h>
-#include <atomic.h>
+#define PCI_SPACE_MASK	0x03000000
 
-extern atomic_t haltstate;
+bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
+{
+	ofw_tree_property_t *prop;
+	ofw_pci_range_t *range;
+	count_t ranges;
 
-extern void halt(void);
+	prop = ofw_tree_getprop(node, "ranges");
+	if (!prop) {
+		if (strcmp(ofw_tree_node_name(node->parent), "pci") == 0)
+			return ofw_pci_apply_ranges(node->parent, reg, pa);
+		return false;
+	}
+		
+	ranges = prop->size / sizeof(ofw_pci_range_t);
+	range = prop->value;
+	
+	int i;
+	
+	for (i = 0; i < ranges; i++) {
+		if ((reg->space & PCI_SPACE_MASK) != (range[i].space & PCI_SPACE_MASK))
+			continue;
+		if (overlaps(reg->addr, reg->size, range[i].child_base, range[i].size)) {
+			*pa = range[i].parent_base + (reg->addr - range[i].child_base);
+			return true;
+		}
+	}
 
-extern size_t strlen(const char *str);
-extern int strcmp(const char *src, const char *dst);
-extern int strncmp(const char *src, const char *dst, size_t len);
-extern void strncpy(char *dest, const char *src, size_t len);
-extern unative_t atoi(const char *text);
-
-#endif
+	return false;
+}
 
 /** @}
  */

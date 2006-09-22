@@ -38,6 +38,7 @@
 #include <types.h>
 
 extern size_t strlen(const char *str);
+extern int strcmp(const char *src, const char *dst);
 extern int strncmp(const char *src, const char *dst, size_t len);
 extern void strncpy(char *dest, const char *src, size_t len);
 extern unative_t atoi(const char *text);

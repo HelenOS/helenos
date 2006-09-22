@@ -95,7 +95,7 @@ int ofw_cpu(cpu_t *cpu)
 	
 	for (; node != 0 && node != -1; node = ofw_get_peer_node(node)) {
 		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
-			if (strncmp(type_name, "cpu", 3) == 0) {
+			if (strcmp(type_name, "cpu") == 0) {
 				uint32_t mhz;
 				
 				if (ofw_get_property(node, "clock-frequency", &mhz, sizeof(mhz)) <= 0)

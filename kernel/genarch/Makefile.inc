@@ -72,25 +72,31 @@ ifeq ($(CONFIG_I8042),y)
 		genarch/src/kbd/scanc_pc.c
 endif
 
+## Sun keyboard
+ifeq ($(CONFIG_SUN_KBD),y)
+	GENARCH_SOURCES += \
+		genarch/src/kbd/key.c \
+		genarch/src/kbd/scanc_sun.c
+endif
+
 ## z8530 controller
 ifeq ($(CONFIG_Z8530),y)
 	GENARCH_SOURCES += \
-		genarch/src/kbd/z8530.c \
-		genarch/src/kbd/key.c \
-		genarch/src/kbd/scanc_sun.c
+		genarch/src/kbd/z8530.c
 endif
 
 ## ns16550 controller
 ifeq ($(CONFIG_NS16550),y)
 	GENARCH_SOURCES += \
-		genarch/src/kbd/ns16550.c \
-		genarch/src/kbd/key.c \
-		genarch/src/kbd/scanc_sun.c
+		genarch/src/kbd/ns16550.c
 endif
 
 
 ## OpenFirmware Device Tree
 ifeq ($(CONFIG_OFW_TREE), y)
 	GENARCH_SOURCES += \
-		genarch/src/ofw/ofw_tree.c
+		genarch/src/ofw/ofw_tree.c \
+		genarch/src/ofw/ebus.c \
+		genarch/src/ofw/fhc.c \
+		genarch/src/ofw/pci.c 
 endif

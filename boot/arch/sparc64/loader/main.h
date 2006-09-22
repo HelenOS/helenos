@@ -54,7 +54,6 @@ typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
 	screen_t screen;
-	keyboard_t keyboard;
 	cpu_t cpu;
 	ballocs_t ballocs;
 	ofw_tree_node_t *ofw_root;

@@ -49,8 +49,6 @@ extern uint8_t active_read_buff_read(void);
 extern void active_read_buff_write(uint8_t ch);
 extern void active_read_key_pressed(uint8_t sc);
 
-extern char key_read(chardev_t *d);
-
 #endif
 
 /** @}

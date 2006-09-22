@@ -80,11 +80,10 @@
 static void i8042_suspend(chardev_t *);
 static void i8042_resume(chardev_t *);
 
-chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = i8042_suspend,
 	.resume = i8042_resume,
-	.read = key_read
+	.read = i8042_key_read
 };
 
 static void i8042_interrupt(int n, istate_t *istate);
@@ -173,7 +172,7 @@ void i8042_suspend(chardev_t *d)
 {
 }
 
-char key_read(chardev_t *d)
+char i8042_key_read(chardev_t *d)
 {
 	char ch;	
 

@@ -36,10 +36,19 @@
 #define KERN_sparc64_KBD_H_
 
 #include <arch/types.h>
+#include <genarch/ofw/ofw_tree.h>
+
+typedef enum {
+	KBD_UNKNOWN,
+	KBD_Z8530,
+	KBD_NS16550
+} kbd_type_t;
+
+extern kbd_type_t kbd_type;
 
 extern volatile uint8_t *kbd_virt_address;
 
-extern void kbd_init(void);
+extern void kbd_init(ofw_tree_node_t *node);
 
 #endif
 

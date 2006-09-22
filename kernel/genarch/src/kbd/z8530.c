@@ -62,11 +62,10 @@ bool z8530_belongs_to_kernel = true;
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
 
-chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = z8530_suspend,
 	.resume = z8530_resume,
-	.read = key_read
+	.read = z8530_key_read
 };
 
 void z8530_wait(void);
@@ -141,7 +140,7 @@ void z8530_suspend(chardev_t *d)
 {
 }
 
-char key_read(chardev_t *d)
+char z8530_key_read(chardev_t *d)
 {
 	char ch;	
 

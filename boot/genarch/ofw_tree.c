@@ -47,7 +47,22 @@ static ofw_tree_property_t *ofw_tree_properties_alloc(unsigned count)
 
 static void * ofw_tree_space_alloc(size_t size)
 {
-	return balloc(size, size);
+	char *addr;
+
+	/*
+	 * What we do here is a nasty hack :-)
+	 * Problem: string property values that are allocated via this
+	 * function typically do not contain the trailing '\0'. This
+	 * is very uncomfortable for kernel, which is supposed to deal
+	 * with the properties.
+	 * Solution: when allocating space via this function, we always
+	 * allocate space for the extra '\0' character that we store
+	 * behind the requested memory.
+	 */
+	addr = balloc(size + 1, size);
+	if (addr)
+		addr[size] = '\0';
+	return addr;
 }
 
 /** Transfer information from one OpenFirmware node into its memory representation.
@@ -153,7 +168,8 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		if (i == current_node->properties)
 			break;
 		
-		strncpy(current_node->property[i].name, name, sizeof(name));
+		memcpy(current_node->property[i].name, name, OFW_TREE_PROPERTY_MAX_NAMELEN);
+		current_node->property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN] = '\0';
 
 		size = ofw_get_proplen(current, name);
 		current_node->property[i].size = size;

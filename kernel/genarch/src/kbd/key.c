@@ -53,6 +53,8 @@
 
 #define ACTIVE_READ_BUFF_SIZE 16 	/* Must be power of 2 */
 
+chardev_t kbrd;
+
 static uint8_t active_read_buff[ACTIVE_READ_BUFF_SIZE];
 
 SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */

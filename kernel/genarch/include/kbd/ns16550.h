@@ -37,10 +37,13 @@
 #ifndef KERN_NS16550_H_
 #define KERN_NS16550_H_
 
+#include <typedefs.h>
+
 extern void ns16550_init(void);
 extern void ns16550_poll(void);
 extern void ns16550_grab(void);
 extern void ns16550_release(void);
+extern char ns16550_key_read(chardev_t *d);
 
 #endif
 

@@ -53,7 +53,10 @@
 #include <proc/thread.h>
 #include <arch/mm/tlb.h>
 #include <arch/boot/boot.h>
+#include <genarch/ofw/ofw_tree.h>
 #include <arch.h>
+#include <panic.h>
+#include <print.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 
@@ -61,17 +64,38 @@
 void standalone_sparc64_console_init(void)
 {
 	stdin = NULL;
-		
+
+	ofw_tree_node_t *aliases;
+	ofw_tree_property_t *prop;
+	ofw_tree_node_t *screen;
+	ofw_tree_node_t *keyboard;
+	
+	aliases = ofw_tree_lookup("/aliases");
+	if (!aliases)
+		panic("Can't find /aliases.\n");
+	
+	prop = ofw_tree_getprop(aliases, "screen");
+	if (!prop)
+		panic("Can't find property \"screen\".\n");
+	if (!prop->value)
+		panic("Can't find screen alias.\n");
+	screen = ofw_tree_lookup(prop->value);
+	if (!screen)
+		panic("Can't find %s\n", prop->value);
+
 	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
 		bootinfo.screen.bpp, bootinfo.screen.scanline, true);
+	
+	prop = ofw_tree_getprop(aliases, "keyboard");
+	if (!prop)
+		panic("Can't find property \"keyboard\".\n");
+	if (!prop->value)
+		panic("Can't find keyboard alias.\n");
+	keyboard = ofw_tree_lookup(prop->value);
+	if (!keyboard)
+		panic("Can't find %s\n", prop->value);
 
-#ifdef KBD_ADDR_OVRD
-	if (!bootinfo.keyboard.addr)
-		bootinfo.keyboard.addr = KBD_ADDR_OVRD;
-#endif
-
-	if (bootinfo.keyboard.addr)
-		kbd_init();
+	kbd_init(keyboard);
 }
 
 /** Kernel thread for polling keyboard.
@@ -82,15 +106,15 @@ void kkbdpoll(void *arg)
 {
 	thread_detach(THREAD);
 
-	if (!bootinfo.keyboard.addr)
-		return;
-		
-	while (1) {
 #ifdef CONFIG_Z8530
+	if (kbd_type == KBD_Z8530)
 		return;
 #endif
+
+	while (1) {
 #ifdef CONFIG_NS16550
-		ns16550_poll();
+		if (kbd_type == KBD_NS16550)
+			ns16550_poll();
 #endif
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}
@@ -102,7 +126,8 @@ void kkbdpoll(void *arg)
 void arch_grab_console(void)
 {
 #ifdef CONFIG_Z8530
-	z8530_grab();
+	if (kbd_type == KBD_Z8530)
+		z8530_grab();
 #endif
 }
 
@@ -112,7 +137,8 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 #ifdef CONFIG_Z8530
-	z8530_release();
+	if (kbd_type == KBD_Z8530)
+		z8530_release();
 #endif
 }
 

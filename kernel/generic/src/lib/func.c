@@ -100,6 +100,34 @@ size_t strlen(const char *str)
  *
  * Do a char-by-char comparison of two NULL terminated strings.
  * The strings are considered equal iff they consist of the same
+ * characters on the minimum of their lengths.
+ *
+ * @param src First string to compare.
+ * @param dst Second string to compare.
+ *
+ * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
+ *
+ */
+int strcmp(const char *src, const char *dst)
+{
+	for (; *src && *dst; src++, dst++) {
+		if (*src < *dst)
+			return -1;
+		if (*src > *dst)
+			return 1;
+	}
+	if (*src == *dst)
+		return 0;
+	if (!*src)
+		return -1;
+	return 1;
+}
+
+
+/** Compare two NULL terminated strings
+ *
+ * Do a char-by-char comparison of two NULL terminated strings.
+ * The strings are considered equal iff they consist of the same
  * characters on the minimum of their lengths and specified maximal
  * length.
  *
@@ -114,8 +142,7 @@ int strncmp(const char *src, const char *dst, size_t len)
 {
 	int i;
 	
-	i = 0;
-	for (;*src && *dst && i < len;src++,dst++,i++) {
+	for (i = 0; *src && *dst && i < len; src++, dst++, i++) {
 		if (*src < *dst)
 			return -1;
 		if (*src > *dst)
@@ -127,6 +154,8 @@ int strncmp(const char *src, const char *dst, size_t len)
 		return -1;
 	return 1;
 }
+
+
 
 /** Copy NULL terminated string.
  *

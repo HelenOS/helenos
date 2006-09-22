@@ -36,6 +36,7 @@
 #include <arch/trap/interrupt.h>
 #include <interrupt.h>
 #include <arch/drivers/fhc.h>
+#include <arch/drivers/kbd.h>
 #include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
@@ -62,7 +63,8 @@ void interrupt_register(int n, const char *name, iroutine f)
 void irq_ipc_bind_arch(unative_t irq)
 {
 #ifdef CONFIG_Z8530
-	z8530_belongs_to_kernel = false;
+	if (kbd_type == KBD_Z8530)
+		z8530_belongs_to_kernel = false;
 #endif
 }
 
@@ -77,6 +79,8 @@ void interrupt(int n, istate_t *istate)
 	switch (data0) {
 #ifdef CONFIG_Z8530
 	case Z8530_INTRCV_DATA0:
+		if (kbd_type != KBD_Z8530)
+			break;
 		/*
 		 * So far, we know we got this interrupt through the FHC.
 		 * Since we don't have enough information about the FHC and

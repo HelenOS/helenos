@@ -48,6 +48,7 @@ extern void z8530_poll(void);
 extern void z8530_grab(void);
 extern void z8530_release(void);
 extern void z8530_interrupt(void);
+extern char z8530_key_read(chardev_t *d);
 
 #endif
 

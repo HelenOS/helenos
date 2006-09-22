@@ -83,6 +83,14 @@ ifeq ($(CONFIG_TSB),y)
 	DEFS += -DCONFIG_TSB
 endif
 
+ifeq ($(CONFIG_Z8530),y)
+	DEFS += -DCONFIG_Z8530
+endif
+
+ifeq ($(CONFIG_NS16550),y)
+	DEFS += -DCONFIG_NS16550
+endif
+
 ifeq ($(CONFIG_POWEROFF),y)
 	DEFS += -DCONFIG_POWEROFF
 endif

@@ -59,11 +59,10 @@
 static void ns16550_suspend(chardev_t *);
 static void ns16550_resume(chardev_t *);
 
-chardev_t kbrd;
 static chardev_operations_t ops = {
 	.suspend = ns16550_suspend,
 	.resume = ns16550_resume,
-	.read = key_read
+	.read = ns16550_key_read
 };
 
 void ns16550_interrupt(int n, istate_t *istate);
@@ -118,7 +117,7 @@ void ns16550_suspend(chardev_t *d)
 {
 }
 
-char key_read(chardev_t *d)
+char ns16550_key_read(chardev_t *d)
 {
 	char ch;	
 

@@ -56,9 +56,81 @@ struct ofw_tree_property {
 	void *value;
 };
 
+/*
+ * Definition of 'reg' and 'ranges' properties for various buses.
+ */
+ 
+struct ofw_fhc_reg {
+	uint64_t addr;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_fhc_reg ofw_fhc_reg_t;
+			
+struct ofw_fhc_range {
+	uint64_t child_base;
+	uint64_t parent_base;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_fhc_range ofw_fhc_range_t;
+
+struct ofw_central_reg {
+	uint64_t addr;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_central_reg ofw_central_reg_t;
+
+struct ofw_central_range {
+	uint64_t child_base;
+	uint64_t parent_base;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_central_range ofw_central_range_t;
+
+struct ofw_ebus_reg {
+	uint32_t space;
+	uint32_t addr;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_ebus_reg ofw_ebus_reg_t;
+
+struct ofw_ebus_range {
+	uint32_t child_space;
+	uint32_t child_base;
+	uint32_t parent_space;
+	uint64_t parent_base;		/* group phys.mid and phys.lo together */
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_ebus_range ofw_ebus_range_t;
+
+struct ofw_pci_reg {
+	uint32_t space;			/* needs to masked to obtain pure space id */
+	uint64_t addr;			/* group phys.mid and phys.lo together */
+	uint64_t size;
+} __attribute__ ((packed));
+typedef struct ofw_pci_reg ofw_pci_reg_t;
+
+struct ofw_pci_range {
+	uint32_t space;
+	uint64_t child_base;		/* group phys.mid and phys.lo together */
+	uint64_t parent_base;
+	uint64_t size;
+} __attribute__ ((packed));
+typedef struct ofw_pci_range ofw_pci_range_t;
+
+struct ofw_ffb_reg {
+} __attribute__ ((packed));
+typedef struct ofw_ffb_reg ofw_ffb_reg_t;
+
 extern void ofw_tree_init(ofw_tree_node_t *root);
 extern void ofw_tree_print(void);
 extern const char *ofw_tree_node_name(const ofw_tree_node_t *node);
 extern ofw_tree_node_t *ofw_tree_lookup(const char *path);
+extern ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *name);
+
+extern bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uintptr_t *pa);
+extern bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uintptr_t *pa);
+extern bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa);
+extern bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa);
+extern bool ofw_ffb_apply_ranges(ofw_tree_node_t *node, ofw_ffb_reg_t *reg, uintptr_t *pa);
 
 #endif

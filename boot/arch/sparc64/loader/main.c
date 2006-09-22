@@ -65,9 +65,6 @@ void bootstrap(void)
 	/* transform scanline to bytes with respect to potential alignment */
 	bootinfo.screen.scanline = bootinfo.screen.scanline*bpp2align[bootinfo.screen.bpp >> 3];
 	
-	if (!ofw_keyboard(&bootinfo.keyboard))
-		printf("Error: unable to get keyboard properties\n");
-
 	if (!ofw_cpu(&bootinfo.cpu))
 		printf("Error: unable to get cpu properties\n");
 
@@ -75,7 +72,6 @@ void bootstrap(void)
 	printf(" cpu: %dMHz\n", bootinfo.cpu.clock_frequency/1000000);
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
 	printf(" screen at %P, resolution %dx%d, %d bpp (scanline %d bytes)\n", (uintptr_t) bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
-	printf(" keyboard at %P (size %d bytes)\n", (uintptr_t) bootinfo.keyboard.addr, bootinfo.keyboard.size);
 
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);

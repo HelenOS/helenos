@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup ofw
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	EBUS 'reg' and 'ranges' properties handling.
+ *
  */
 
-#ifndef KERN_FUNC_H_
-#define KERN_FUNC_H_
+#include <genarch/ofw/ofw_tree.h>
+#include <arch/memstr.h>
+#include <func.h>
+#include <panic.h>
+#include <macros.h>
 
-#include <arch/types.h>
-#include <typedefs.h>
-#include <atomic.h>
+bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
+{
+	ofw_tree_property_t *prop;
+	ofw_ebus_range_t *range;
+	count_t ranges;
 
-extern atomic_t haltstate;
+	prop = ofw_tree_getprop(node, "ranges");
+	if (!prop)
+		return false;
+		
+	ranges = prop->size / sizeof(ofw_ebus_range_t);
+	range = prop->value;
+	
+	int i;
+	
+	for (i = 0; i < ranges; i++) {
+		if (reg->space != range[i].child_space)
+			continue;
+		if (overlaps(reg->addr, reg->size, range[i].child_base, range[i].size)) {
+			ofw_pci_reg_t pci_reg;
+			
+			pci_reg.space = range[i].parent_space;
+			pci_reg.addr = range[i].parent_base + (reg->addr - range[i].child_base);
+			pci_reg.size = reg->size;
+			
+			return ofw_pci_apply_ranges(node->parent, &pci_reg, pa);
+		}
+	}
 
-extern void halt(void);
-
-extern size_t strlen(const char *str);
-extern int strcmp(const char *src, const char *dst);
-extern int strncmp(const char *src, const char *dst, size_t len);
-extern void strncpy(char *dest, const char *src, size_t len);
-extern unative_t atoi(const char *text);
-
-#endif
+	return false;
+}
 
 /** @}
  */
