@@ -133,4 +133,6 @@ extern bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, ui
 extern bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa);
 extern bool ofw_ffb_apply_ranges(ofw_tree_node_t *node, ofw_ffb_reg_t *reg, uintptr_t *pa);
 
+extern bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out);
+
 #endif

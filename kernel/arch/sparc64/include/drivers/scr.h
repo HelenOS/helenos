@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- * @brief	Architecture dependent parts of OpenFirmware interface.
+/** @addtogroup sparc64	
+ * @{
+ */
+/** @file
  */
 
-#include <ofwarch.h>  
-#include <ofw.h>
-#include <printf.h>
-#include <string.h>
-#include "main.h"
+#ifndef KERN_sparc64_SCR_H_
+#define KERN_sparc64_SCR_H_
 
-void write(const char *str, const int len)
-{
-	int i;
-	
-	for (i = 0; i < len; i++) {
-		if (str[i] == '\n')
-			ofw_write("\r", 1);
-		ofw_write(&str[i], 1);
-	}
-}
+#include <arch/types.h>
+#include <genarch/ofw/ofw_tree.h>
 
-int ofw_translate_failed(ofw_arg_t flag)
-{
-	return flag != -1;
-}
+typedef enum {
+	SCR_UNKNOWN,
+	SCR_ATYFB,
+	SCR_FFB
+} scr_type_t;
 
-int ofw_cpu(cpu_t *cpu)
-{
-	char type_name[BUF_SIZE];
+extern scr_type_t scr_type;
 
-	phandle node;
-	node = ofw_get_child_node(ofw_root);
-	if (node == 0 || node == -1) {
-		printf("Could not find any child nodes of the root node.\n");
-		return;
-	}
-	
-	for (; node != 0 && node != -1; node = ofw_get_peer_node(node)) {
-		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
-			if (strcmp(type_name, "cpu") == 0) {
-				uint32_t mhz;
-				
-				if (ofw_get_property(node, "clock-frequency", &mhz, sizeof(mhz)) <= 0)
-					continue;
-					
-				cpu->clock_frequency = mhz;
-				return 1;
-			}
-		}
-	};
+extern void scr_init(ofw_tree_node_t *node);
 
-	return 0;
-}
+#endif
+
+/** @}
+ */

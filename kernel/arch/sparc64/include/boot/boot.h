@@ -71,14 +71,6 @@ typedef struct {
 } memmap_t;
 
 typedef struct {
-	uintptr_t addr;
-	uint32_t width;
-	uint32_t height;
-	uint32_t bpp;
-	uint32_t scanline;
-} screen_t;
-
-typedef struct {
 	uint32_t clock_frequency;
 } processor_t;
 
@@ -89,7 +81,6 @@ typedef struct {
 typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
-	screen_t screen;
 	processor_t processor;
 	ballocs_t ballocs;
 	ofw_tree_node_t *ofw_root;

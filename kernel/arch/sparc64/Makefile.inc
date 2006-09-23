@@ -95,7 +95,8 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/trap/syscall.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/tick.c \
-	arch/$(ARCH)/src/drivers/kbd.c
+	arch/$(ARCH)/src/drivers/kbd.c \
+	arch/$(ARCH)/src/drivers/scr.c
 
 ifeq ($(CONFIG_TSB),y)
 ARCH_SOURCES += \

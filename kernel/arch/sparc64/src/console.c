@@ -35,10 +35,10 @@
 #include <arch/console.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <genarch/fb/fb.h>
-#include <arch/drivers/fb.h>
 
+#include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
+
 #ifdef CONFIG_Z8530
 #include <genarch/kbd/z8530.h>
 #endif
@@ -52,7 +52,6 @@
 #include <arch/register.h>
 #include <proc/thread.h>
 #include <arch/mm/tlb.h>
-#include <arch/boot/boot.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch.h>
 #include <panic.h>
@@ -83,9 +82,8 @@ void standalone_sparc64_console_init(void)
 	if (!screen)
 		panic("Can't find %s\n", prop->value);
 
-	fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height,
-		bootinfo.screen.bpp, bootinfo.screen.scanline, true);
-	
+	scr_init(screen);
+
 	prop = ofw_tree_getprop(aliases, "keyboard");
 	if (!prop)
 		panic("Can't find property \"keyboard\".\n");

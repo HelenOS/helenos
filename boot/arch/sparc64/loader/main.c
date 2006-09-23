@@ -57,21 +57,12 @@ void bootstrap(void)
 		halt();
 	}
 	
-	if (!ofw_screen(&bootinfo.screen)) {
-		printf("Error: unable to get screen properties, halting.\n");
-		halt();
-	}
-	bootinfo.screen.addr = ofw_translate(bootinfo.screen.addr);
-	/* transform scanline to bytes with respect to potential alignment */
-	bootinfo.screen.scanline = bootinfo.screen.scanline*bpp2align[bootinfo.screen.bpp >> 3];
-	
 	if (!ofw_cpu(&bootinfo.cpu))
 		printf("Error: unable to get cpu properties\n");
 
-	printf("\nDevice statistics\n");
+	printf("\nDevice info\n");
 	printf(" cpu: %dMHz\n", bootinfo.cpu.clock_frequency/1000000);
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
-	printf(" screen at %P, resolution %dx%d, %d bpp (scanline %d bytes)\n", (uintptr_t) bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
 
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);

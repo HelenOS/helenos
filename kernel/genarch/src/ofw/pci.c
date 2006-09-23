@@ -41,7 +41,9 @@
 #include <panic.h>
 #include <macros.h>
 
-#define PCI_SPACE_MASK	0x03000000
+#define PCI_SPACE_MASK		0x03000000
+#define PCI_ABS_MASK		0x80000000	
+#define PCI_REG_MASK		0x000000ff
 
 bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 {
@@ -70,6 +72,41 @@ bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *
 		}
 	}
 
+	return false;
+}
+
+bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out)
+{
+	if (reg->space & PCI_ABS_MASK) {
+		/* already absolute */
+		out->space = reg->space;
+		out->addr = reg->addr;
+		out->size = reg->size;
+		return true;
+	}
+	
+	ofw_tree_property_t *prop;
+	ofw_pci_reg_t *assigned_address;
+	count_t assigned_addresses;
+	
+	prop = ofw_tree_getprop(node, "assigned-addresses");
+	if (!prop)
+		panic("Can't find \"assigned-addresses\" property.\n");
+	
+	assigned_addresses = prop->size / sizeof(ofw_pci_reg_t);
+	assigned_address = prop->value;
+	
+	int i;
+	
+	for (i = 0; i < assigned_addresses; i++) {
+		if ((assigned_address[i].space & PCI_REG_MASK) == (reg->space & PCI_REG_MASK)) {
+			out->space = assigned_address[i].space;
+			out->addr = reg->addr + assigned_address[i].addr;
+			out->size = reg->size;
+			return true;
+		}
+	}
+	
 	return false;
 }
 
