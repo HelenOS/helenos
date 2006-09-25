@@ -41,6 +41,8 @@
 #include <align.h>
 #include <print.h>
 
+#define FFB_REG_24BPP	7
+
 scr_type_t scr_type = SCR_UNKNOWN;
 
 /** Initialize screen.
@@ -120,7 +122,17 @@ void scr_init(ofw_tree_node_t *node)
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
 		
 		break;
-	case SCR_FFB:
+	case SCR_FFB:	
+		fb_depth = 24;
+		fb_scanline = 8192;
+
+		ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
+		if (!ofw_upa_apply_ranges(node->parent, reg, &fb_addr)) {
+			printf("Failed to determine screen address.\n");
+			return;
+		}
+
+		break;
 	default:
 		panic("Unexpected type.\n");
 	}

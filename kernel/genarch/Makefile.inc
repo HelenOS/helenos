@@ -98,5 +98,6 @@ ifeq ($(CONFIG_OFW_TREE), y)
 		genarch/src/ofw/ofw_tree.c \
 		genarch/src/ofw/ebus.c \
 		genarch/src/ofw/fhc.c \
-		genarch/src/ofw/pci.c 
+		genarch/src/ofw/pci.c  \
+		genarch/src/ofw/upa.c 
 endif
