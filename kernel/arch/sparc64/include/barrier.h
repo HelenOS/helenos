@@ -36,7 +36,9 @@
 #define KERN_sparc64_BARRIER_H_
 
 /*
- * TODO: Implement true SPARC V9 memory barriers for macros below.
+ * We assume TSO memory model in which only reads can pass earlier stores
+ * (but not earlier reads). Therefore, CS_ENTER_BARRIER() and CS_LEAVE_BARRIER()
+ * can be empty.
  */
 #define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")

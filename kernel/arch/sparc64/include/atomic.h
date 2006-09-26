@@ -35,6 +35,7 @@
 #ifndef KERN_sparc64_ATOMIC_H_
 #define KERN_sparc64_ATOMIC_H_
 
+#include <arch/barrier.h>
 #include <arch/types.h>
 #include <typedefs.h>
 
@@ -90,6 +91,41 @@ static inline void atomic_inc(atomic_t *val)
 static inline void atomic_dec(atomic_t *val)
 {
 	(void) atomic_add(val, -1);
+}
+
+static inline long test_and_set(atomic_t *val)
+{
+	uint64_t v = 1;
+
+	__asm__ volatile ("casx %0, %2, %1\n" : "+m" (*val), "+r" (v) : "r" (0));
+
+	return v;
+}
+
+static inline void atomic_lock_arch(atomic_t *val)
+{
+	uint64_t tmp1 = 1;
+	uint64_t tmp2;
+
+	__asm__ volatile (
+	"0:\n"
+		"casx %0, %3, %1\n"
+		"brz %1, 2f\n"
+		"nop\n"
+	"1:\n"
+		"ldx %0, %2\n"
+		"brz %2, 0b\n"
+		"nop\n"
+		"ba 1b\n"
+		"nop\n"
+	"2:\n"
+		: "+m" (*val), "+r" (tmp1), "+r" (tmp2) : "r" (0)
+	);
+	
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
+	CS_ENTER_BARRIER();
 }
 
 #endif
