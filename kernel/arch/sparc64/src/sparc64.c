@@ -37,7 +37,6 @@
 #include <config.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
-#include <arch/drivers/tick.h>
 #include <proc/thread.h>
 #include <console/console.h>
 #include <arch/boot/boot.h>
@@ -72,7 +71,6 @@ void arch_pre_main(void)
 void arch_pre_mm_init(void)
 {
 	trap_init();
-	tick_init();
 }
 
 void arch_post_mm_init(void)

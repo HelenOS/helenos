@@ -83,7 +83,7 @@ void ofw_init(void)
  *
  * @return Return value returned by the client interface.
  */
-static unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
+unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
 {
 	va_list list;
 	ofw_args_t args;

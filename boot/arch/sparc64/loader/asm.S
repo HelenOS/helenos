@@ -100,6 +100,7 @@ jump_to_kernel:
 	mov %o0, %l1
 	mov %o1, %o0
 	mov %o2, %o1
+	mov %o3, %o2
 	jmp %l1				! jump to kernel
 	nop
 

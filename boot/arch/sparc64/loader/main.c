@@ -36,8 +36,6 @@
 #include "ofwarch.h"
 #include <align.h>
 
-#define KERNEL_VIRTUAL_ADDRESS 0x400000
-
 bootinfo_t bootinfo;
 
 void bootstrap(void)
@@ -57,11 +55,7 @@ void bootstrap(void)
 		halt();
 	}
 	
-	if (!ofw_cpu(&bootinfo.cpu))
-		printf("Error: unable to get cpu properties\n");
-
-	printf("\nDevice info\n");
-	printf(" cpu: %dMHz\n", bootinfo.cpu.clock_frequency/1000000);
+	printf("\nSystem info\n");
 	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
 
 	printf("\nMemory statistics\n");
@@ -96,6 +90,11 @@ void bootstrap(void)
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
 
+	printf("\nChecking for secondary processors...");
+	if (!ofw_cpu())
+		printf("Error: unable to get cpu properties\n");
+	printf("done.\n");
+
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, 1, &bootinfo, sizeof(bootinfo));
 }

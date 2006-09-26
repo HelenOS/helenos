@@ -53,7 +53,12 @@ int ofw_translate_failed(ofw_arg_t flag)
 	return flag != -1;
 }
 
-int ofw_cpu(cpu_t *cpu)
+
+#define ASI_UPA_CONFIG		0x4a
+#define UPA_CONFIG_MID_SHIFT 	17
+#define UPA_CONFIG_MID_MASK	0x1f
+
+int ofw_cpu(void)
 {
 	char type_name[BUF_SIZE];
 
@@ -61,22 +66,32 @@ int ofw_cpu(cpu_t *cpu)
 	node = ofw_get_child_node(ofw_root);
 	if (node == 0 || node == -1) {
 		printf("Could not find any child nodes of the root node.\n");
-		return;
+		return 0;
 	}
+	
+	uint64_t current_mid;
+	
+	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (current_mid) : "r" (0), "i" (ASI_UPA_CONFIG));
+	current_mid >>= UPA_CONFIG_MID_SHIFT;
+	current_mid &= UPA_CONFIG_MID_MASK;
 	
 	for (; node != 0 && node != -1; node = ofw_get_peer_node(node)) {
 		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
 			if (strcmp(type_name, "cpu") == 0) {
-				uint32_t mhz;
+				uint32_t mid;
 				
-				if (ofw_get_property(node, "clock-frequency", &mhz, sizeof(mhz)) <= 0)
+				if (ofw_get_property(node, "upa-portid", &mid, sizeof(mid)) <= 0)
 					continue;
 					
-				cpu->clock_frequency = mhz;
-				return 1;
+				if (current_mid != mid) {
+					/*
+					 * Start secondary processor.
+					 */
+					(void) ofw_call("SUNW,start-cpu", 3, 1, NULL, node, KERNEL_VIRTUAL_ADDRESS, 0);
+				}
 			}
 		}
-	};
+	}
 
-	return 0;
+	return 1;
 }

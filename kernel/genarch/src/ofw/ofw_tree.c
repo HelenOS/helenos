@@ -97,7 +97,7 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
  *
  * @return NULL if there is no such child or pointer to the matching child node.
  */
-static ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
+ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 {
 	ofw_tree_node_t *cur;
 	
@@ -123,6 +123,53 @@ static ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *n
 		
 	return NULL;
 }
+
+/** Lookup first child of given device type.
+ *
+ * @param node Node whose child is being looked up.
+ * @param name Device type of the child being looked up.
+ *
+ * @return NULL if there is no such child or pointer to the matching child node.
+ */
+ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const char *name)
+{
+	ofw_tree_node_t *cur;
+	ofw_tree_property_t *prop;
+	
+	for (cur = node->child; cur; cur = cur->peer) {
+		prop = ofw_tree_getprop(cur, "device_type");
+		if (!prop || !prop->value)
+			continue;
+		if (strcmp(prop->value, name) == 0)
+			return cur;
+	}
+			
+	return NULL;
+}
+
+/** Lookup first peer of given device type.
+ *
+ * @param node Node whose peer is being looked up.
+ * @param name Device type of the child being looked up.
+ *
+ * @return NULL if there is no such child or pointer to the matching child node.
+ */
+ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const char *name)
+{
+	ofw_tree_node_t *cur;
+	ofw_tree_property_t *prop;
+	
+	for (cur = node->peer; cur; cur = cur->peer) {
+		prop = ofw_tree_getprop(cur, "device_type");
+		if (!prop || !prop->value)
+			continue;
+		if (strcmp(prop->value, name) == 0)
+			return cur;
+	}
+			
+	return NULL;
+}
+
 
 /** Lookup OpenFirmware node by its path.
  *

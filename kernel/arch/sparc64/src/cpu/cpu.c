@@ -35,20 +35,51 @@
 #include <arch/asm.h>
 #include <cpu.h>
 #include <arch.h>
-#include <arch/register.h>
 #include <print.h>
-#include <arch/boot/boot.h>
+#include <arch/register.h>
+#include <genarch/ofw/ofw_tree.h>
+#include <arch/types.h>
+#include <arch/drivers/tick.h>
 
+/** Perform sparc64 specific initialization of the processor structure for the current processor. */
 void cpu_arch_init(void)
 {
-	CPU->arch.clock_frequency = bootinfo.processor.clock_frequency;
+	ofw_tree_node_t *node;
+	uint32_t mid;
+	uint32_t clock_frequency = 0;
+	upa_config_t upa_config;
+	
+	upa_config.value = upa_config_read();
+	node = ofw_tree_find_child_by_device_type(ofw_tree_lookup("/"), "cpu");
+	while (node) {
+		ofw_tree_property_t *prop;
+		
+		prop = ofw_tree_getprop(node, "upa-portid");
+		if (prop && prop->value) {
+			mid = *((uint32_t *) prop->value);
+			if (mid == upa_config.mid) {
+				prop = ofw_tree_getprop(node, "clock-frequency");
+				if (prop && prop->value)
+					clock_frequency = *((uint32_t *) prop->value);
+			}
+		}
+		node = ofw_tree_find_peer_by_device_type(node, "cpu");
+	}
+
+	CPU->arch.clock_frequency = clock_frequency;
+	tick_init();
 }
 
+/** Read version information from the current processor. */
 void cpu_identify(void)
 {
 	CPU->arch.ver.value = ver_read();
 }
 
+/** Print version information for a processor.
+ *
+ * @param m Processor structure of the CPU for which version information is to be printed.
+ */
 void cpu_print_report(cpu_t *m)
 {
 	char *manuf, *impl;

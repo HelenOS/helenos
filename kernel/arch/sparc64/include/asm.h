@@ -358,6 +358,15 @@ static inline void nucleus_leave(void)
 	__asm__ volatile ("wrpr %g0, %g0, %tl\n");
 }
 
+/** Read UPA_CONFIG register.
+ *
+ * @return Value of the UPA_CONFIG register.
+ */
+static inline uint64_t upa_config_read(void)
+{
+	return asi_u64_read(ASI_UPA_CONFIG, 0);
+}
+
 extern void cpu_halt(void);
 extern void cpu_sleep(void);
 extern void asm_delay_loop(const uint32_t usec);

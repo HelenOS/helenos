@@ -43,8 +43,9 @@
  * from the boot loader.
  * 
  * The registers are expected to be in this state:
- * - %o0 bootinfo structure address
- * - %o1 bootinfo structure size
+ * - %o0 non-zero for the bootstrup processor, zero for application/secondary processors
+ * - %o1 bootinfo structure address
+ * - %o2 bootinfo structure size
  *
  * Moreover, we depend on boot having established the
  * following environment:
@@ -55,6 +56,8 @@
 
 .global kernel_image_start
 kernel_image_start:
+	brz %o0, kernel_image_start		! block secondary processors
+	nop
 
 	/*
 	 * Setup basic runtime environment.
@@ -72,8 +75,6 @@ kernel_image_start:
 	 * Copy the bootinfo structure passed from the boot loader
 	 * to the kernel bootinfo structure.
 	 */
-	mov %o1, %o2
-	mov %o0, %o1
 	sethi %hi(bootinfo), %o0
 	call memcpy
 	or %o0, %lo(bootinfo), %o0

@@ -117,6 +117,23 @@ union fprs_reg {
 };
 typedef union fprs_reg fprs_reg_t;
 
+/** UPA_CONFIG register.
+ *
+ * Note that format of this register differs significantly from
+ * processor version to version. The format defined here
+ * is the common subset for all supported processor versions.
+ */
+union upa_config {
+	uint64_t value;
+	struct {
+		uint64_t : 34;
+		unsigned pcon : 8;	/**< Processor configuration. */
+		unsigned mid : 5;	/**< Module (processor) ID register. */
+		unsigned pcap : 17;	/**< Processor capabilities. */
+	} __attribute__ ((packed));
+};
+typedef union upa_config upa_config_t;
+
 #endif
 
 /** @}

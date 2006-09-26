@@ -70,10 +70,6 @@ typedef struct {
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
-typedef struct {
-	uint32_t clock_frequency;
-} processor_t;
-
 /** Bootinfo structure.
  *
  * Must be in sync with bootinfo structure used by the boot loader.
@@ -81,7 +77,6 @@ typedef struct {
 typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
-	processor_t processor;
 	ballocs_t ballocs;
 	ofw_tree_node_t *ofw_root;
 } bootinfo_t;

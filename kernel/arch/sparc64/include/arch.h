@@ -37,10 +37,10 @@
 #ifndef KERN_sparc64_ARCH_H_
 #define KERN_sparc64_ARCH_H_
 
-#define ASI_AIUP	0x10		/** Access to primary context with user privileges. */
-#define ASI_AIUS	0x11		/** Access to secondary context with user privileges. */
-
+#define ASI_AIUP		0x10	/** Access to primary context with user privileges. */
+#define ASI_AIUS		0x11	/** Access to secondary context with user privileges. */
 #define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
+#define ASI_UPA_CONFIG		0x4a	/** ASI of the UPA_CONFIG register. */
 
 #define NWINDOW		8		/** Number of register window sets. */
 

@@ -52,7 +52,7 @@ void tick_init(void)
 	
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
-	compare.tick_cmpr = bootinfo.processor.clock_frequency/HZ;
+	compare.tick_cmpr = CPU->arch.clock_frequency/HZ;
 	tick_compare_write(compare.value);
 	tick_write(0);
 }

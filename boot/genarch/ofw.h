@@ -90,7 +90,6 @@ typedef struct {
 
 extern uintptr_t ofw_cif;
 
-
 extern phandle ofw_chosen;
 extern ihandle ofw_stdout;
 extern phandle ofw_root;
@@ -113,6 +112,7 @@ extern phandle ofw_find_device(const char *name);
 extern int ofw_package_to_path(const phandle device, char *buf, const int buflen);
 
 extern int ofw(ofw_args_t *arg);
+extern unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...);
 extern unsigned int ofw_get_address_cells(const phandle device);
 extern unsigned int ofw_get_size_cells(const phandle device);
 extern void *ofw_translate(const void *virt);

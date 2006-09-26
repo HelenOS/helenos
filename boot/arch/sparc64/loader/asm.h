@@ -35,6 +35,6 @@
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
 extern void halt(void);
-extern void jump_to_kernel(void *entry, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
+extern void jump_to_kernel(void *entry, int bsp, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
 
 #endif

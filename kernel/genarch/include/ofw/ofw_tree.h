@@ -128,6 +128,9 @@ extern void ofw_tree_print(void);
 extern const char *ofw_tree_node_name(const ofw_tree_node_t *node);
 extern ofw_tree_node_t *ofw_tree_lookup(const char *path);
 extern ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *name);
+extern ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name);
+extern ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const char *device_type);
+extern ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const char *device_type);
 
 extern bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uintptr_t *pa);
 extern bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uintptr_t *pa);

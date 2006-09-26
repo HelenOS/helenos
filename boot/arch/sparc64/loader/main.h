@@ -34,6 +34,8 @@
 #include <balloc.h>
 #include <types.h>
 
+#define KERNEL_VIRTUAL_ADDRESS 0x400000
+
 #define TASKMAP_MAX_RECORDS 32
 
 typedef struct {
@@ -47,13 +49,8 @@ typedef struct {
 } taskmap_t;
 
 typedef struct {
-	uint32_t clock_frequency;
-} cpu_t;
-
-typedef struct {
 	taskmap_t taskmap;
 	memmap_t memmap;
-	cpu_t cpu;
 	ballocs_t ballocs;
 	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
