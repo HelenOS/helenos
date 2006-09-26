@@ -63,7 +63,7 @@
 #include <security/cap.h>
 
 #ifdef CONFIG_SMP
-#include <arch/smp/mps.h>
+#include <smp/smp.h>
 #endif /* CONFIG_SMP */
 
 #include <synch/waitq.h>
@@ -94,6 +94,7 @@ void kinit(void *arg)
 
 #ifdef CONFIG_SMP		 	
 	if (config.cpu_count > 1) {
+		waitq_initialize(&ap_completion_wq);
 		/*
 		 * Create the kmp thread and wait for its completion.
 		 * cpu1 through cpuN-1 will come up consecutively and

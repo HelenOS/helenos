@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,24 +29,18 @@
 /** @addtogroup generic	
  * @{
  */
-/** @file
+
+/**
+ * @file
  */
-
-#ifndef KERN_SMP_H_
-#define KERN_SMP_H_
-
-#include <synch/waitq.h>
-
-extern waitq_t ap_completion_wq;
+ 
+#include <smp/smp.h>
 
 #ifdef CONFIG_SMP
-extern void smp_init(void);
-extern void kmp(void *arg);
-#else
-#define smp_init()
-#endif /* CONFIG_SMP */
 
-#endif /* __SMP_H__ */
+waitq_t ap_completion_wq;
+
+#endif /* CONFIG_SMP */
 
 /** @}
  */

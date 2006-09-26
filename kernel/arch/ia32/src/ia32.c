@@ -62,6 +62,10 @@
 #include <syscall/syscall.h>
 #include <console/console.h>
 
+#ifdef CONFIG_SMP
+#include <arch/smp/apic.h>
+#endif
+
 void arch_pre_mm_init(void)
 {
 	pm_init();
@@ -97,6 +101,16 @@ void arch_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
+}
+
+void arch_post_cpu_init()
+{
+#ifdef CONFIG_SMP
+        if (config.cpu_active > 1) {
+		l_apic_init();
+		l_apic_debug();
+	}
+#endif
 }
 
 void arch_pre_smp_init(void)

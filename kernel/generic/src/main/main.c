@@ -79,11 +79,6 @@
 #include <macros.h>
 #include <adt/btree.h>
 #include <console/klog.h>
-
-#ifdef CONFIG_SMP
-#include <arch/smp/apic.h>
-#include <arch/smp/mps.h>
-#endif /* CONFIG_SMP */
 #include <smp/smp.h>
 
 /** Global configuration structure. */
@@ -271,7 +266,7 @@ void main_bsp_separated_stack(void)
 /** Main kernel routine for application CPUs.
  *
  * Executed by application processors, temporary stack
- * is at ctx.sp which was set during BP boot.
+ * is at ctx.sp which was set during BSP boot.
  * This function passes control directly to
  * main_ap_separated_stack().
  *
@@ -282,9 +277,8 @@ void main_ap(void)
 {
 	/*
 	 * Incrementing the active CPU counter will guarantee that the
-	 * pm_init() will not attempt to build GDT and IDT tables again.
-	 * Neither frame_init() will do the complete thing. Neither cpu_init()
-	 * will do.
+	 * *_init() functions can find out that they need to
+	 * do initialization for AP only.
 	 */
 	config.cpu_active++;
 
@@ -300,11 +294,8 @@ void main_ap(void)
 	arch_post_mm_init();
 	
 	cpu_init();
-	
 	calibrate_delay_loop();
-
-	l_apic_init();
-	l_apic_debug();
+	arch_post_cpu_init();
 
 	the_copy(THE, (the_t *) CPU->stack);
 

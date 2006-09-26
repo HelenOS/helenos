@@ -45,6 +45,10 @@
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
 
+#ifdef CONFIG_SMP
+#include <arch/smp/apic.h>
+#endif
+
 #include <arch/bios/bios.h>
 #include <arch/mm/memory_init.h>
 #include <arch/cpu.h>
@@ -154,6 +158,16 @@ void arch_post_mm_init(void)
 	/* Setup fast SYSCALL/SYSRET */
 	syscall_setup_cpu();
 	
+}
+
+void arch_post_cpu_init()
+{
+#ifdef CONFIG_SMP
+	if (config.cpu_active > 1) {
+		l_apic_init();
+		l_apic_debug();
+	}
+#endif
 }
 
 void arch_pre_smp_init(void)

@@ -78,6 +78,10 @@ void arch_post_mm_init(void)
 	standalone_sparc64_console_init();
 }
 
+void arch_post_cpu_init(void)
+{
+}
+
 void arch_pre_smp_init(void)
 {
 }

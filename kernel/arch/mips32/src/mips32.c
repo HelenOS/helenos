@@ -131,6 +131,10 @@ void arch_post_mm_init(void)
 	sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
 }
 
+void arch_post_cpu_init(void)
+{
+}
+
 void arch_pre_smp_init(void)
 {
 }

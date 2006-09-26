@@ -120,13 +120,9 @@ struct __l_intr_entry {
 	uint8_t dst_l_apic_pin;
 } __attribute__ ((packed));
 
-
-extern waitq_t ap_completion_wq;
-
 extern struct smp_config_operations mps_config_operations;
 
 extern void mps_init(void);
-extern void kmp(void *arg);
 
 #endif
 

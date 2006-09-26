@@ -104,8 +104,6 @@ void kmp(void *arg)
 	
 	ASSERT(ops != NULL);
 
-	waitq_initialize(&ap_completion_wq);
-
 	/*
 	 * We need to access data in frame 0.
 	 * We boldly make use of kernel address space mapping.

@@ -84,8 +84,6 @@ int io_apic_entry_cnt = 0;
 int io_intr_entry_cnt = 0;
 int l_intr_entry_cnt = 0;
 
-waitq_t ap_completion_wq;
-
 /*
  * Implementation of IA-32 SMP configuration interface.
  */

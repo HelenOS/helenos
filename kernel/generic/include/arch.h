@@ -75,6 +75,7 @@ extern void the_copy(the_t *src, the_t *dst);
 extern void arch_pre_main(void);
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);
+extern void arch_post_cpu_init(void);
 extern void arch_pre_smp_init(void);
 extern void arch_post_smp_init(void);
 extern void calibrate_delay_loop(void);
