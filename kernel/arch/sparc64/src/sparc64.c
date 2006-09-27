@@ -70,12 +70,14 @@ void arch_pre_main(void)
 
 void arch_pre_mm_init(void)
 {
-	trap_init();
+	if (config.cpu_active == 1)
+		trap_init();
 }
 
 void arch_post_mm_init(void)
 {
-	standalone_sparc64_console_init();
+	if (config.cpu_active == 1)
+		standalone_sparc64_console_init();
 }
 
 void arch_post_cpu_init(void)
@@ -90,13 +92,15 @@ void arch_post_smp_init(void)
 {
 	thread_t *t;
 
-	/*
-         * Create thread that polls keyboard.
-         */
-	t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
-	if (!t)
-		panic("cannot create kkbdpoll\n");
-	thread_ready(t);
+	if (config.cpu_active == 1) {
+		/*
+	         * Create thread that polls keyboard.
+	         */
+		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
+		if (!t)
+			panic("cannot create kkbdpoll\n");
+		thread_ready(t);
+	}
 }
 
 /** Calibrate delay loop.

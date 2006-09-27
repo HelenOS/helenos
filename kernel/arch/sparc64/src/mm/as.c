@@ -37,6 +37,7 @@
 #include <genarch/mm/as_ht.h>
 #include <genarch/mm/asid_fifo.h>
 #include <debug.h>
+#include <config.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
@@ -51,8 +52,10 @@
 /** Architecture dependent address space init. */
 void as_arch_init(void)
 {
-	as_operations = &as_ht_operations;
-	asid_fifo_init();
+	if (config.cpu_active == 1) {
+		as_operations = &as_ht_operations;
+		asid_fifo_init();
+	}
 }
 
 int as_constructor_arch(as_t *as, int flags)

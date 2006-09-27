@@ -55,6 +55,9 @@
 #define WSTATE_NORMAL(n)	(n)
 #define WSTATE_OTHER(n)		((n)<<3)
 
+#define UPA_CONFIG_MID_SHIFT    17
+#define UPA_CONFIG_MID_MASK     0x1f
+
 #endif
 
 /** @}

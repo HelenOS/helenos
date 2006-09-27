@@ -40,10 +40,45 @@
 #include <bitops.h>
 #include <debug.h>
 #include <align.h>
+#include <config.h>
 
+#ifdef CONFIG_SMP
+/** Entries locked in DTLB of BSP.
+ *
+ * Application processors need to have the same locked entries
+ * in their DTLBs as the bootstrap processor.
+ */
+static struct {
+	uintptr_t virt_page;
+	uintptr_t phys_page;
+	int pagesize_code;
+} bsp_locked_dtlb_entry[DTLB_ENTRY_COUNT];
+
+/** Number of entries in bsp_locked_dtlb_entry array. */
+static count_t bsp_locked_dtlb_entries = 0;
+#endif /* CONFIG_SMP */
+
+/** Perform sparc64 specific initialization of paging. */
 void page_arch_init(void)
 {
-	page_mapping_operations = &ht_mapping_operations;
+	if (config.cpu_active == 1) {
+		page_mapping_operations = &ht_mapping_operations;
+	} else {
+
+#ifdef CONFIG_SMP
+		int i;
+
+		/*
+		 * Copy locked DTLB entries from the BSP.
+		 */		
+		for (i = 0; i < bsp_locked_dtlb_entries; i++) {
+			dtlb_insert_mapping(bsp_locked_dtlb_entry[i].virt_page,
+				bsp_locked_dtlb_entry[i].phys_page, bsp_locked_dtlb_entry[i].pagesize_code,
+				true, false);
+		}
+#endif	
+
+	}
 }
 
 /** Map memory-mapped device into virtual memory.
@@ -67,8 +102,10 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	unsigned int order;
 	int i;
 
+	ASSERT(config.cpu_active == 1);
+
 	struct {
-		int pagesize;
+		int pagesize_code;
 		size_t increment;
 		count_t count;
 	} sizemap[] = {
@@ -101,10 +138,24 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	uintptr_t virtaddr = ALIGN_UP(last_frame, 1<<(order + FRAME_WIDTH));
 	last_frame = ALIGN_UP(virtaddr + size, 1<<(order + FRAME_WIDTH));
 	
-	for (i = 0; i < sizemap[order].count; i++)
+	for (i = 0; i < sizemap[order].count; i++) {
+		/*
+		 * First, insert the mapping into DTLB.
+		 */
 		dtlb_insert_mapping(virtaddr + i*sizemap[order].increment,
 				    physaddr + i*sizemap[order].increment,
-				    sizemap[order].pagesize, true, false);
+				    sizemap[order].pagesize_code, true, false);
+	
+#ifdef CONFIG_SMP	
+		/*
+		 * Second, save the information about the mapping for APs.
+		 */
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].virt_page = virtaddr + i*sizemap[order].increment;
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].phys_page = physaddr + i*sizemap[order].increment;
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].pagesize_code = sizemap[order].pagesize_code;
+		bsp_locked_dtlb_entries++;
+#endif
+	}
 	
 	return virtaddr;
 }

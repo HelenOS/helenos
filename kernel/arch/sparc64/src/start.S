@@ -26,12 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/arch.h>
 #include <arch/regdef.h>
 #include <arch/boot/boot.h>
 
 #include <arch/mm/mmu.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/tte.h>
+
+#ifdef CONFIG_SMP
+#include <arch/context_offset.h>
+#endif
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -226,7 +231,8 @@ kernel_image_start:
 	! set TL back to 0
 	wrpr %g0, 0, %tl
 
-	brz %l7, 2f				! skip if you are not the bootstrap CPU
+	brz %l7, 1f				! skip if you are not the bootstrap CPU
+	nop
 
 	call arch_pre_main
 	nop
@@ -236,6 +242,48 @@ kernel_image_start:
 
 	/* Not reached. */
 
+0:
+	ba 0b
+	nop
+
+
+	/*
+	 * Read MID from the processor.
+	 */
+1:
+	ldxa [%g0] ASI_UPA_CONFIG, %g1
+	srlx %g1, UPA_CONFIG_MID_SHIFT, %g1
+	and %g1, UPA_CONFIG_MID_MASK, %g1
+
+	/*
+	 * Active loop for APs until the BSP picks them up.
+	 * A processor cannot leave the loop until the
+	 * global variable 'waking_up_mid' equals its
+	 * MID.
+	 */
+	set waking_up_mid, %g2
 2:
-	b 2b
+	ldx [%g2], %g3
+	cmp %g3, %g1
+	bne 2b
+	nop
+
+#ifdef CONFIG_SMP
+	/*
+	 * Configure stack for the AP.
+	 * The AP is expected to use the stack saved
+	 * in the ctx global variable.
+	 */
+	set ctx, %g1
+	add %g1, OFFSET_SP, %g1
+	ldx [%g1], %o6
+
+	call main_ap
+	nop
+#endif
+
+	/* Not reached. */
+	
+0:
+	ba 0b
 	nop

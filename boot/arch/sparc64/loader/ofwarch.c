@@ -35,6 +35,7 @@
 #include <ofw.h>
 #include <printf.h>
 #include <string.h>
+#include <register.h>
 #include "main.h"
 
 void write(const char *str, const int len)
@@ -53,11 +54,6 @@ int ofw_translate_failed(ofw_arg_t flag)
 	return flag != -1;
 }
 
-
-#define ASI_UPA_CONFIG		0x4a
-#define UPA_CONFIG_MID_SHIFT 	17
-#define UPA_CONFIG_MID_MASK	0x1f
-
 int ofw_cpu(void)
 {
 	char type_name[BUF_SIZE];
@@ -74,8 +70,10 @@ int ofw_cpu(void)
 	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (current_mid) : "r" (0), "i" (ASI_UPA_CONFIG));
 	current_mid >>= UPA_CONFIG_MID_SHIFT;
 	current_mid &= UPA_CONFIG_MID_MASK;
+
+	int cpus;
 	
-	for (; node != 0 && node != -1; node = ofw_get_peer_node(node)) {
+	for (cpus = 0; node != 0 && node != -1; node = ofw_get_peer_node(node), cpus++) {
 		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
 			if (strcmp(type_name, "cpu") == 0) {
 				uint32_t mid;
@@ -93,5 +91,5 @@ int ofw_cpu(void)
 		}
 	}
 
-	return 1;
+	return cpus;
 }

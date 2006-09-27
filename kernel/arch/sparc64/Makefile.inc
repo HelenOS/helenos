@@ -70,6 +70,10 @@ CONFIG_SUN_KBD = y
 
 CONFIG_OFW_TREE = y
 
+ifeq ($(CONFIG_SMP),y)
+	DEFS += -DCONFIG_SMP
+endif
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/asm.S \
@@ -97,6 +101,12 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c \
 	arch/$(ARCH)/src/drivers/scr.c
+
+ifeq ($(CONFIG_SMP),y)
+ARCH_SOURCES += \
+	arch/$(ARCH)/src/smp/ipi.c \
+	arch/$(ARCH)/src/smp/smp.c
+endif
 
 ifeq ($(CONFIG_TSB),y)
 ARCH_SOURCES += \

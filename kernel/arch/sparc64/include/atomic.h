@@ -96,8 +96,9 @@ static inline void atomic_dec(atomic_t *val)
 static inline long test_and_set(atomic_t *val)
 {
 	uint64_t v = 1;
+	volatile uintptr_t x = (uint64_t) &val->count;
 
-	__asm__ volatile ("casx %0, %2, %1\n" : "+m" (*val), "+r" (v) : "r" (0));
+	__asm__ volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *) x)), "+r" (v) : "r" (0));
 
 	return v;
 }
@@ -106,6 +107,8 @@ static inline void atomic_lock_arch(atomic_t *val)
 {
 	uint64_t tmp1 = 1;
 	uint64_t tmp2;
+
+	volatile uintptr_t x = (uint64_t) &val->count;
 
 	__asm__ volatile (
 	"0:\n"
@@ -119,7 +122,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 		"ba 1b\n"
 		"nop\n"
 	"2:\n"
-		: "+m" (*val), "+r" (tmp1), "+r" (tmp2) : "r" (0)
+		: "+m" (*((uint64_t *) x)), "+r" (tmp1), "+r" (tmp2) : "r" (0)
 	);
 	
 	/*

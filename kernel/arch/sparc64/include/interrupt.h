@@ -40,10 +40,12 @@
 #include <arch/types.h>
 #include <arch/regdef.h>
 
-#define IRQ_COUNT	1	/* TODO */
+#define IRQ_COUNT	1			/* TODO */
 
 #define IVT_ITEMS 	15
 #define IVT_FIRST	1
+
+#define VECTOR_TLB_SHOOTDOWN_IPI	0	/* TODO */
 
 struct istate {
 	uint64_t	tnpc;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_CPU_H_
-#define KERN_sparc64_CPU_H_
+#include <smp/ipi.h>
 
-#include <arch/types.h>
-#include <arch/register.h>
-
-#define MANUF_FUJITSU		0x04
-#define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */
-#define MANUF_SUN		0x3e
-
-#define IMPL_ULTRASPARCI	0x10
-#define IMPL_ULTRASPARCII	0x11
-#define IMPL_ULTRASPARCII_I	0x12
-#define IMPL_ULTRASPARCII_E	0x13
-#define IMPL_ULTRASPARCIII	0x15
-#define IMPL_ULTRASPARCIV_PLUS	0x19
-
-#define IMPL_SPARC64V		0x5
-
-struct cpu_arch {
-	uint32_t mid;			/**< Processor ID as read from UPA_CONFIG. */
-	ver_reg_t ver;
-	uint32_t clock_frequency;	/**< Processor frequency in MHz. */
-};
-	
-#endif
+void ipi_broadcast_arch(int ipi)
+{
+	/* TODO */
+}
 
 /** @}
  */

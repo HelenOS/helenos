@@ -50,6 +50,8 @@ void cpu_arch_init(void)
 	upa_config_t upa_config;
 	
 	upa_config.value = upa_config_read();
+	CPU->arch.mid = upa_config.mid;
+	
 	node = ofw_tree_find_child_by_device_type(ofw_tree_lookup("/"), "cpu");
 	while (node) {
 		ofw_tree_property_t *prop;
@@ -57,7 +59,7 @@ void cpu_arch_init(void)
 		prop = ofw_tree_getprop(node, "upa-portid");
 		if (prop && prop->value) {
 			mid = *((uint32_t *) prop->value);
-			if (mid == upa_config.mid) {
+			if (mid == CPU->arch.mid) {
 				prop = ofw_tree_getprop(node, "clock-frequency");
 				if (prop && prop->value)
 					clock_frequency = *((uint32_t *) prop->value);
@@ -78,56 +80,58 @@ void cpu_identify(void)
 
 /** Print version information for a processor.
  *
+ * This function is called by the bootstrap processor.
+ *
  * @param m Processor structure of the CPU for which version information is to be printed.
  */
 void cpu_print_report(cpu_t *m)
 {
 	char *manuf, *impl;
 
-	switch (CPU->arch.ver.manuf) {
-	    case MANUF_FUJITSU:
+	switch (m->arch.ver.manuf) {
+	case MANUF_FUJITSU:
 		manuf = "Fujitsu";
 		break;
-	    case MANUF_ULTRASPARC:
+	case MANUF_ULTRASPARC:
 		manuf = "UltraSPARC";
 		break;
-	    case MANUF_SUN:
+	case MANUF_SUN:
 	    	manuf = "Sun";
 		break;
-	    default:
+	default:
 		manuf = "Unknown";
 		break;
 	}
 	
 	switch (CPU->arch.ver.impl) {
-	    case IMPL_ULTRASPARCI:
+	case IMPL_ULTRASPARCI:
 		impl = "UltraSPARC I";
 		break;
-	    case IMPL_ULTRASPARCII:
+	case IMPL_ULTRASPARCII:
 		impl = "UltraSPARC II";
 		break;
-	    case IMPL_ULTRASPARCII_I:
+	case IMPL_ULTRASPARCII_I:
 		impl = "UltraSPARC IIi";
 		break;
-	    case IMPL_ULTRASPARCII_E:
+	case IMPL_ULTRASPARCII_E:
 		impl = "UltraSPARC IIe";
 		break;
-	    case IMPL_ULTRASPARCIII:
+	case IMPL_ULTRASPARCIII:
 		impl = "UltraSPARC III";
 		break;
-	    case IMPL_ULTRASPARCIV_PLUS:
+	case IMPL_ULTRASPARCIV_PLUS:
 		impl = "UltraSPARC IV+";
 		break;
-	    case IMPL_SPARC64V:
+	case IMPL_SPARC64V:
 		impl = "SPARC 64V";
 		break;
-	    default:
+	default:
 		impl = "Unknown";
 		break;
 	}
 
 	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%dMHz)\n",
-		CPU->id, manuf, impl, CPU->arch.ver.mask, CPU->arch.clock_frequency/1000000);
+		m->id, manuf, impl, m->arch.ver.mask, m->arch.clock_frequency/1000000);
 }
 
 /** @}

@@ -32,4 +32,8 @@
 #define PSTATE_IE_BIT   2
 #define PSTATE_AM_BIT   8
 
+#define ASI_UPA_CONFIG          0x4a
+#define UPA_CONFIG_MID_SHIFT    17
+#define UPA_CONFIG_MID_MASK     0x1f
+
 #endif
