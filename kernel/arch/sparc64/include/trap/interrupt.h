@@ -50,11 +50,19 @@
 #define ASI_UDB_INTR_W_DATA_0	0x40
 #define ASI_UDB_INTR_W_DATA_1	0x50
 #define ASI_UDB_INTR_W_DATA_2	0x60
+#define ASI_UDB_INTR_W_DISPATCH	0x70
 
 /* VA's used with ASI_UDB_INTR_R register. */
 #define ASI_UDB_INTR_R_DATA_0	0x40
 #define ASI_UDB_INTR_R_DATA_1	0x50
 #define ASI_UDB_INTR_R_DATA_2	0x60
+
+/* Shifts in the Interrupt Vector Dispatch virtual address. */
+#define INTR_VEC_DISPATCH_MID_SHIFT	14
+
+/* Bits in the Interrupt Dispatch Status register. */
+#define INTR_DISPATCH_STATUS_NACK	0x2
+#define INTR_DISPATCH_STATUS_BUSY	0x1
 
 #define TT_INTERRUPT_LEVEL_1			0x41
 #define TT_INTERRUPT_LEVEL_2			0x42

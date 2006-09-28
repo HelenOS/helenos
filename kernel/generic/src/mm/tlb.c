@@ -161,17 +161,17 @@ void tlb_shootdown_ipi_recv(void)
 		count = CPU->tlb_messages[i].count;
 
 		switch (type) {
-		    case TLB_INVL_ALL:
+		case TLB_INVL_ALL:
 			tlb_invalidate_all();
 			break;
-		    case TLB_INVL_ASID:
+		case TLB_INVL_ASID:
 			tlb_invalidate_asid(asid);
 			break;
-		    case TLB_INVL_PAGES:
+		case TLB_INVL_PAGES:
 		    	ASSERT(count);
 			tlb_invalidate_pages(asid, page, count);
 			break;
-		    default:
+		default:
 			panic("unknown type (%d)\n", type);
 			break;
 		}

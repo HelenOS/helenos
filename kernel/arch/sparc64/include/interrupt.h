@@ -45,7 +45,8 @@
 #define IVT_ITEMS 	15
 #define IVT_FIRST	1
 
-#define VECTOR_TLB_SHOOTDOWN_IPI	0	/* TODO */
+#define VECTOR_TLB_SHOOTDOWN_IPI	0
+#define IPI_TLB_SHOOTDOWN		VECTOR_TLB_SHOOTDOWN_IPI
 
 struct istate {
 	uint64_t	tnpc;

@@ -45,6 +45,9 @@
 #include <arch/barrier.h>
 #include <print.h>
 #include <genarch/kbd/z8530.h>
+#include <arch.h>
+#include <mm/tlb.h>
+#include <config.h>
 
 /** Register Interrupt Level Handler.
  *
@@ -97,6 +100,24 @@ void interrupt(int n, istate_t *istate)
 		break;
 
 #endif
+	default:
+		if (data0 > config.base) {
+			/*
+			 * This is a cross-call.
+			 * data0 contains address of kernel function.
+			 * We call the function only after we verify
+			 * it is on of the supported ones.
+			 */
+#ifdef CONFIG_SMP
+			if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
+				tlb_shootdown_ipi_recv();
+				break;
+			}
+#endif
+		}
+			
+		printf("cpu%d: spurious interrupt (intrcv=%#llx, data0=%#llx)\n", CPU->id, intrcv, data0);
+		break;
 	}
 
 	membar();
