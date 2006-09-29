@@ -76,18 +76,6 @@ kernel_image_start:
 	wrpr %g0, 0, %pil			! intialize %pil
 
 	/*
-	 * Copy the bootinfo structure passed from the boot loader
-	 * to the kernel bootinfo structure.
-	 */
-	brz %l7, 0f				! skip if you are not the bootstrap CPU
-	nop
-	
-	sethi %hi(bootinfo), %o0
-	call memcpy
-	or %o0, %lo(bootinfo), %o0
-0:
-
-	/*
 	 * Switch to kernel trap table.
 	 */
 	sethi %hi(trap_table), %g1
@@ -209,17 +197,8 @@ kernel_image_start:
 	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG		
 	flush %g5
 
-	! switch to context 0
-	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g5
-
-	! ensure nucleus mapping
+	! enter nucleus - using context 0
 	wrpr %g0, 1, %tl
-
-	! set context 1 in the primary context register
-	mov MEM_CONTEXT_TEMP, %g1
-	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
-	flush %g5
 
 	! demap context 1
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_PRIMARY)
@@ -230,11 +209,15 @@ kernel_image_start:
 	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
 	flush %g5
 	
-	! set TL back to 0
+	! leave nucleus - using primary context, i.e. context 0
 	wrpr %g0, 0, %tl
 
 	brz %l7, 1f				! skip if you are not the bootstrap CPU
 	nop
+
+	sethi %hi(bootinfo), %o0
+	call memcpy				! copy bootinfo
+	or %o0, %lo(bootinfo), %o0
 
 	call arch_pre_main
 	nop
@@ -270,7 +253,6 @@ kernel_image_start:
 	cmp %g3, %g1
 	bne 2b
 	nop
-
 
 	/*
 	 * Configure stack for the AP.

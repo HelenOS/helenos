@@ -58,12 +58,10 @@ start:
 	/*
 	 * Disable interrupts and disable address masking.
 	 */
-	rdpr %pstate, %g2
-	and %g2, ~(PSTATE_IE_BIT|PSTATE_AM_BIT), %g2
-	wrpr %g2, 0, %pstate
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate
 
-	set initial_stack_top, %g3
-	add %g3, -STACK_BIAS, %sp
+	set initial_stack_top, %sp
+	add %sp, -STACK_BIAS, %sp
 
 	set ofw_cif, %l0
  

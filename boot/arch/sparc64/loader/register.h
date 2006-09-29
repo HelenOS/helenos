@@ -30,6 +30,7 @@
 #define BOOT_sparc64_REGISTER_H_
 
 #define PSTATE_IE_BIT   2
+#define PSTATE_PRIV_BIT	4
 #define PSTATE_AM_BIT   8
 
 #define ASI_UPA_CONFIG          0x4a
