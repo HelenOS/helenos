@@ -71,9 +71,9 @@ char *context_encoding[] = {
 void tlb_arch_init(void)
 {
 	/*
-	 * TLBs are actually initialized early
-	 * in start.S.
+	 * Invalidate all non-locked DTLB and ITLB entries.
 	 */
+	tlb_invalidate_all();
 }
 
 /** Insert privileged mapping into DMMU TLB.

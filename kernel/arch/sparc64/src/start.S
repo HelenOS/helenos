@@ -80,6 +80,8 @@ kernel_image_start:
 	 * to the kernel bootinfo structure.
 	 */
 	brz %l7, 0f				! skip if you are not the bootstrap CPU
+	nop
+	
 	sethi %hi(bootinfo), %o0
 	call memcpy
 	or %o0, %lo(bootinfo), %o0
@@ -255,6 +257,7 @@ kernel_image_start:
 	srlx %g1, UPA_CONFIG_MID_SHIFT, %g1
 	and %g1, UPA_CONFIG_MID_MASK, %g1
 
+#ifdef CONFIG_SMP
 	/*
 	 * Active loop for APs until the BSP picks them up.
 	 * A processor cannot leave the loop until the
@@ -268,7 +271,7 @@ kernel_image_start:
 	bne 2b
 	nop
 
-#ifdef CONFIG_SMP
+
 	/*
 	 * Configure stack for the AP.
 	 * The AP is expected to use the stack saved
@@ -280,9 +283,9 @@ kernel_image_start:
 
 	call main_ap
 	nop
-#endif
 
 	/* Not reached. */
+#endif
 	
 0:
 	ba 0b
