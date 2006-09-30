@@ -93,6 +93,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 	current_node->parent = parent_node;
 	current_node->peer = NULL;
 	current_node->child = NULL;
+	current_node->node_handle = current;
 	current_node->properties = 0;
 	current_node->property = NULL;
 	

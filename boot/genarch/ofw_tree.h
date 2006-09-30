@@ -43,6 +43,8 @@ struct ofw_tree_node {
 	ofw_tree_node_t *peer;
 	ofw_tree_node_t *child;
 
+	uint32_t node_handle;			/**< Old OpenFirmware node handle. */
+
 	char *da_name;				/**< Disambigued name. */
 
 	unsigned properties;			/**< Number of properties. */
