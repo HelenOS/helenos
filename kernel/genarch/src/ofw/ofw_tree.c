@@ -147,6 +147,35 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const
 	return NULL;
 }
 
+/** Lookup node with matching node_handle.
+ *
+ * @param root Root of the searched subtree.
+ * @param handle OpenFirmware handle.
+ *
+ * @return NULL if there is no such node or pointer to the matching node.
+ */
+ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root, uint32_t handle)
+{
+	ofw_tree_node_t *node;
+
+	if (root->node_handle == handle)
+		return root;
+
+	if (root->peer) {
+		node = ofw_tree_find_node_by_handle(root->peer, handle);
+		if (node)
+			return node;
+	}
+		
+	if (root->child) {
+		node = ofw_tree_find_node_by_handle(root->child, handle);
+		if (node)
+			return node;
+	}
+	
+	return NULL;	
+}
+
 /** Lookup first peer of given device type.
  *
  * @param node Node whose peer is being looked up.
