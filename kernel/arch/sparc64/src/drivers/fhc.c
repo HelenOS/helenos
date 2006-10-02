@@ -41,29 +41,80 @@
 
 #include <arch/drivers/fhc.h>
 #include <arch/mm/page.h>
+#include <mm/slab.h>
 #include <arch/types.h>
 #include <typedefs.h>
-
+#include <genarch/ofw/ofw_tree.h>
 #include <genarch/kbd/z8530.h>
 
-volatile uint32_t *fhc = NULL;
+fhc_t *central_fhc = NULL;
 
-#define FHC_UART_ADDR	0x1fff8808000ULL		/* hardcoded for Simics simulation */
+/**
+ * I suspect this must be hardcoded in the FHC.
+ * If it is not, than we can read all IMAP registers
+ * and get the complete mapping.
+ */
+#define FHC_UART_INO	0x39	
 
 #define FHC_UART_IMAP	0x0
 #define FHC_UART_ICLR	0x4
 
-void fhc_init(void)
-{
-	fhc = (void *) hw_map(FHC_UART_ADDR, PAGE_SIZE);
+#define UART_IMAP_REG	4
 
-	fhc[FHC_UART_ICLR] = 0;
-	fhc[FHC_UART_IMAP] = 0x80000000;
+fhc_t *fhc_init(ofw_tree_node_t *node)
+{
+	fhc_t *fhc;
+	ofw_tree_property_t *prop;
+
+	prop = ofw_tree_getprop(node, "reg");
+	
+	if (!prop || !prop->value)
+		return NULL;
+		
+	count_t regs = prop->size / sizeof(ofw_central_reg_t);
+	if (regs + 1 < UART_IMAP_REG)
+		return NULL;
+
+	ofw_central_reg_t *reg = &((ofw_central_reg_t *) prop->value)[UART_IMAP_REG];
+
+	uintptr_t paddr;
+	if (!ofw_central_apply_ranges(node->parent, reg, &paddr))
+		return NULL;
+
+	fhc = (fhc_t *) malloc(sizeof(fhc_t), FRAME_ATOMIC);
+	if (!fhc)
+		return NULL;
+
+	fhc->uart_imap = (uint32_t *) hw_map(paddr, reg->size);
+	
+	return fhc;
 }
 
-void fhc_uart_reset(void)
+void fhc_enable_interrupt(fhc_t *fhc, int ino)
 {
-	fhc[FHC_UART_ICLR] = 0;
+	switch (ino) {
+	case FHC_UART_INO:
+		fhc->uart_imap[FHC_UART_ICLR] = 0x0;
+		fhc->uart_imap[FHC_UART_IMAP] = 0x80000000;
+		break;
+	default:
+		panic("Unexpected INO (%d)\n", ino);
+		break;
+	}
+}
+
+void fhc_clear_interrupt(fhc_t *fhc, int ino)
+{
+	ASSERT(fhc->uart_imap);
+
+	switch (ino) {
+	case FHC_UART_INO:
+		fhc->uart_imap[FHC_UART_ICLR] = 0;
+		break;
+	default:
+		panic("Unexpected INO (%d)\n", ino);
+		break;
+	}
 }
 
 /** @}

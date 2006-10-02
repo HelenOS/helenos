@@ -96,6 +96,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 	current_node->node_handle = current;
 	current_node->properties = 0;
 	current_node->property = NULL;
+	current_node->device = NULL;
 	
 	/*
 	 * Get the disambigued name.

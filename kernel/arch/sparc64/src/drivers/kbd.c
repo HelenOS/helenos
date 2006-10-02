@@ -68,6 +68,9 @@ void kbd_init(ofw_tree_node_t *node)
 	
 	name = ofw_tree_node_name(node);
 	
+	/*
+	 * Determine keyboard serial controller type.
+	 */
 	if (strcmp(name, "zs") == 0)
 		kbd_type = KBD_Z8530;
 	else if (strcmp(name, "su") == 0)
@@ -78,12 +81,25 @@ void kbd_init(ofw_tree_node_t *node)
 		return;
 	}
 	
+	/*
+	 * Read 'interrupts' property.
+	 */
+	uint32_t interrupts;
+	prop = ofw_tree_getprop(node, "interrupts");
+	if (!prop || !prop->value)
+		panic("Can't find \"interrupts\" property.\n");
+	interrupts = *((uint32_t *) prop->value);
+
+	/*
+	 * Read 'reg' property.
+	 */
 	prop = ofw_tree_getprop(node, "reg");
-	if (!prop)
+	if (!prop || !prop->value)
 		panic("Can't find \"reg\" property.\n");
 	
 	uintptr_t pa;
 	size_t size;
+	int ino;
 	
 	switch (kbd_type) {
 	case KBD_Z8530:
@@ -92,11 +108,19 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
+		if (!ofw_fhc_map_interrupts(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &ino)) {
+			printf("Failed to determine keyboard interrupts.\n");
+			return;
+		}
 		break;
 	case KBD_NS16550:
 		size = ((ofw_ebus_reg_t *) prop->value)->size;
 		if (!ofw_ebus_apply_ranges(node->parent, ((ofw_ebus_reg_t *) prop->value) , &pa)) {
 			printf("Failed to determine keyboard address.\n");
+			return;
+		}
+		if (!ofw_ebus_map_interrupts(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &ino)) {
+			printf("Failed to determine keyboard interrupts.\n");
 			return;
 		}
 		break;

@@ -49,6 +49,8 @@ struct ofw_tree_node {
 
 	unsigned properties;			/**< Number of properties. */
 	ofw_tree_property_t *property;
+	
+	void *device;				/**< Member used solely by the kernel. */
 };
 
 /** Memory representation of OpenFirmware device tree node property. */

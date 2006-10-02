@@ -49,6 +49,12 @@ struct ofw_tree_node {
 
 	unsigned properties;			/**< Number of properties. */
 	ofw_tree_property_t *property;
+	
+	/**
+	 * Pointer to a structure representing respective device.
+	 * Its semantics is device dependent.
+	 */
+	void *device;
 };
 
 /** Memory representation of OpenFirmware device tree node property. */
@@ -104,8 +110,24 @@ struct ofw_ebus_range {
 } __attribute__ ((packed));
 typedef struct ofw_ebus_range ofw_ebus_range_t;
 
+struct ofw_ebus_intr_map {
+	uint32_t space;
+	uint32_t addr;
+	uint32_t intr;
+	uint32_t controller_handle;
+	uint32_t controller_ino;
+} __attribute__ ((packed));
+typedef struct ofw_ebus_intr_map ofw_ebus_intr_map_t;
+
+struct ofw_ebus_intr_mask {
+	uint32_t space_mask;
+	uint32_t addr_mask;
+	uint32_t intr_mask;
+} __attribute__ ((packed));
+typedef struct ofw_ebus_intr_mask ofw_ebus_intr_mask_t;
+
 struct ofw_pci_reg {
-	uint32_t space;			/* needs to masked to obtain pure space id */
+	uint32_t space;			/* needs to be masked to obtain pure space id */
 	uint64_t addr;			/* group phys.mid and phys.lo together */
 	uint64_t size;
 } __attribute__ ((packed));
@@ -142,5 +164,8 @@ extern bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uint
 extern bool ofw_upa_apply_ranges(ofw_tree_node_t *node, ofw_upa_reg_t *reg, uintptr_t *pa);
 
 extern bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out);
+
+extern bool ofw_fhc_map_interrupts(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *ino);
+extern bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *ino);
 
 #endif

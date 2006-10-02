@@ -96,7 +96,7 @@ void interrupt(int n, istate_t *istate)
 			z8530_interrupt();
 		else
 			ipc_irq_send_notif(0);
-		fhc_uart_reset();
+		fhc_clear_interrupt(central_fhc, data0);
 		break;
 
 #endif

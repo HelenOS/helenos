@@ -36,6 +36,7 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <arch/drivers/fhc.h>
 #include <arch/memstr.h>
 #include <func.h>
 #include <panic.h>
@@ -106,6 +107,26 @@ bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uin
 	}
 	
 	return false;
+}
+
+bool ofw_fhc_map_interrupts(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *ino)
+{
+	fhc_t *fhc = NULL;
+	if (!node->device) {
+		fhc = fhc_init(node);
+		if (!fhc)
+			return false;
+		node->device = fhc;
+		central_fhc = fhc;
+	}
+	
+	/*
+	 * The interrupt controller for the interrupt is the FHC itself.
+	 */
+	fhc_enable_interrupt(fhc, interrupt);
+	
+	*ino = interrupt;
+	return true;
 }
 
 /** @}

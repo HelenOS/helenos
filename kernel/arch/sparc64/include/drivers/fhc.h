@@ -36,11 +36,17 @@
 #define KERN_sparc64_FHC_H_
 
 #include <arch/types.h>
+#include <genarch/ofw/ofw_tree.h>
 
-extern volatile uint32_t *fhc;
+typedef struct {
+	volatile uint32_t *uart_imap;
+} fhc_t;
 
-extern void fhc_init(void);
-extern void fhc_uart_reset(void);
+extern fhc_t *central_fhc;
+
+extern fhc_t *fhc_init(ofw_tree_node_t *node);
+extern void fhc_enable_interrupt(fhc_t *fhc, int ino);
+extern void fhc_clear_interrupt(fhc_t *fhc, int ino);
 
 #endif
 
