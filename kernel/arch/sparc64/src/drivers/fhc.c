@@ -54,7 +54,7 @@ fhc_t *central_fhc = NULL;
  * If it is not, than we can read all IMAP registers
  * and get the complete mapping.
  */
-#define FHC_UART_INO	0x39	
+#define FHC_UART_INR	0x39	
 
 #define FHC_UART_IMAP	0x0
 #define FHC_UART_ICLR	0x4
@@ -90,29 +90,29 @@ fhc_t *fhc_init(ofw_tree_node_t *node)
 	return fhc;
 }
 
-void fhc_enable_interrupt(fhc_t *fhc, int ino)
+void fhc_enable_interrupt(fhc_t *fhc, int inr)
 {
-	switch (ino) {
-	case FHC_UART_INO:
+	switch (inr) {
+	case FHC_UART_INR:
 		fhc->uart_imap[FHC_UART_ICLR] = 0x0;
 		fhc->uart_imap[FHC_UART_IMAP] = 0x80000000;
 		break;
 	default:
-		panic("Unexpected INO (%d)\n", ino);
+		panic("Unexpected INR (%d)\n", inr);
 		break;
 	}
 }
 
-void fhc_clear_interrupt(fhc_t *fhc, int ino)
+void fhc_clear_interrupt(fhc_t *fhc, int inr)
 {
 	ASSERT(fhc->uart_imap);
 
-	switch (ino) {
-	case FHC_UART_INO:
+	switch (inr) {
+	case FHC_UART_INR:
 		fhc->uart_imap[FHC_UART_ICLR] = 0;
 		break;
 	default:
-		panic("Unexpected INO (%d)\n", ino);
+		panic("Unexpected INR (%d)\n", inr);
 		break;
 	}
 }

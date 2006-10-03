@@ -45,8 +45,8 @@ typedef struct {
 extern fhc_t *central_fhc;
 
 extern fhc_t *fhc_init(ofw_tree_node_t *node);
-extern void fhc_enable_interrupt(fhc_t *fhc, int ino);
-extern void fhc_clear_interrupt(fhc_t *fhc, int ino);
+extern void fhc_enable_interrupt(fhc_t *fhc, int inr);
+extern void fhc_clear_interrupt(fhc_t *fhc, int inr);
 
 #endif
 

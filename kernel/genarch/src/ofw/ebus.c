@@ -74,7 +74,7 @@ bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t
 	return false;
 }
 
-bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *ino)
+bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr)
 {
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *controller;
@@ -111,12 +111,12 @@ bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_
 found:
 	/*
 	 * We found the device that functions as an interrupt controller
-	 * for the interrupt. We also found mapping from interrupt to INO.
+	 * for the interrupt. We also found mapping from interrupt to INR.
 	 */
 
 	controller = ofw_tree_find_node_by_handle(ofw_tree_lookup("/"), intr_map[i].controller_handle);
 	
-	*ino = intr_map[i].controller_ino;
+	*inr = intr_map[i].controller_inr;
 	return true;
 }
 
