@@ -99,7 +99,7 @@ void kbd_init(ofw_tree_node_t *node)
 	
 	uintptr_t pa;
 	size_t size;
-	int ino;
+	int inr;
 	
 	switch (kbd_type) {
 	case KBD_Z8530:
@@ -108,7 +108,7 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_fhc_map_interrupts(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &ino)) {
+		if (!ofw_fhc_map_interrupts(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupts.\n");
 			return;
 		}
@@ -119,7 +119,7 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_ebus_map_interrupts(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &ino)) {
+		if (!ofw_ebus_map_interrupts(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupts.\n");
 			return;
 		}

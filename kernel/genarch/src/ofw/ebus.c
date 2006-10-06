@@ -36,12 +36,15 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <arch/drivers/pci.h>
 #include <arch/memstr.h>
+#include <arch/trap/interrupt.h>
 #include <func.h>
 #include <panic.h>
 #include <debug.h>
 #include <macros.h>
 
+/** Apply EBUS ranges to EBUS register. */
 bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
 {
 	ofw_tree_property_t *prop;
@@ -112,11 +115,34 @@ found:
 	/*
 	 * We found the device that functions as an interrupt controller
 	 * for the interrupt. We also found mapping from interrupt to INR.
+	 * What needs to be done now is to verify that this indeed is a PCI
+	 * node.
 	 */
 
 	controller = ofw_tree_find_node_by_handle(ofw_tree_lookup("/"), intr_map[i].controller_handle);
-	
+	if (!controller)
+		return false;
+		
+	if (strcmp(ofw_tree_node_name(controller), "pci") != 0) {
+		/*
+		 * This is not a PCI node.
+		 */
+		return false;
+	}
+
+	pci_t *pci = controller->device;
+	if (!pci) {
+		pci = pci_init(controller);
+		if (!pci)
+			return false;
+		controller->device = pci;
+		
+	}
+	pci_enable_interrupt(pci, intr_map[i].controller_inr);
+
 	*inr = intr_map[i].controller_inr;
+	*inr |= 0x1f << IGN_SHIFT;		/* 0x1f is hardwired IGN */
+	
 	return true;
 }
 

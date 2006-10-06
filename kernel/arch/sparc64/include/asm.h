@@ -324,7 +324,7 @@ static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" (asi));
+	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" ((unsigned) asi));
 	
 	return v;
 }
@@ -337,7 +337,7 @@ static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
  */
 static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
-	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" (asi) : "memory");
+	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" ((unsigned) asi) : "memory");
 }
 
 /** Flush all valid register windows to memory. */

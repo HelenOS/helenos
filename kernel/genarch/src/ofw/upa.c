@@ -45,7 +45,7 @@
 bool ofw_upa_apply_ranges(ofw_tree_node_t *node, ofw_upa_reg_t *reg, uintptr_t *pa)
 {
 	*pa = reg->addr;
-	return false;
+	return true;
 }
 
 /** @}

@@ -90,6 +90,11 @@ void ns16550_init(void)
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.irq", NULL, 0);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) kbd_virt_address);
+	
+	ns16550_ier_write(IER_ERBFI);				/* enable receiver interrupt */
+	
+	while (ns16550_lsr_read() & LSR_DATA_READY)
+		(void) ns16550_rbr_read();
 }
 
 /** Process ns16550 interrupt.
@@ -144,7 +149,7 @@ void ns16550_poll(void)
 {
 	uint8_t x;
 
-	while (((x = ns16550_lsr_read() & LSR_DATA_READY))) {
+	while (ns16550_lsr_read() & LSR_DATA_READY) {
 		x = ns16550_rbr_read();
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)

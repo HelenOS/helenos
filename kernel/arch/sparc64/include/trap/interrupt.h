@@ -40,6 +40,14 @@
 #include <arch/trap/trap_table.h>
 #include <arch/stack.h>
 
+/* IMAP register bits */
+#define IGN_MASK	0x7c0
+#define INO_MASK	0x1f
+#define IMAP_V_MASK	(1ULL<<31)
+
+#define IGN_SHIFT	6
+
+
 /* Interrupt ASI registers. */
 #define ASI_UDB_INTR_W			0x77
 #define ASI_INTR_DISPATCH_STATUS	0x48

@@ -32,63 +32,37 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_NS16550_H_
-#define KERN_sparc64_NS16550_H_
+#ifndef KERN_sparc64_PCI_H_
+#define KERN_sparc64_PCI_H_
 
 #include <arch/types.h>
-#include <arch/drivers/kbd.h>
+#include <genarch/ofw/ofw_tree.h>
+#include <arch/arch.h>
+#include <arch/asm.h>
 
-/* NS16550 registers */
-#define RBR_REG		0	/** Receiver Buffer Register. */
-#define IER_REG		1	/** Interrupt Enable Register. */
-#define IIR_REG		2	/** Interrupt Ident Register (read). */
-#define FCR_REG		2	/** FIFO control register (write). */
-#define LCR_REG		3	/** Line Control register. */
-#define LSR_REG		5	/** Line Status Register. */
+typedef enum pci_model pci_model_t;
+typedef struct pci pci_t;
+typedef struct pci_operations pci_operations_t;
 
-#define IER_ERBFI	0x01	/** Enable Receive Buffer Full Interrupt. */
+enum pci_model {
+	PCI_UNKNOWN,
+	PCI_SABRE
+};
 
-#define LCR_DLAB	0x80	/** Divisor Latch Access bit. */
+struct pci_operations {
+	void (* enable_interrupt)(pci_t *pci, int inr);
+	void (* clear_interrupt)(pci_t *pci, int inr);
+};
 
-static inline uint8_t ns16550_rbr_read(void)
-{
-	return kbd_virt_address[RBR_REG];
-}
+struct pci {
+	pci_model_t model;
+	pci_operations_t *op;
+	volatile uint64_t *reg;		/**< Registers including interrupt registers. */
+};
 
-static inline uint8_t ns16550_ier_read(void)
-{
-	return kbd_virt_address[IER_REG];
-}
-
-static inline void ns16550_ier_write(uint8_t v)
-{
-	kbd_virt_address[IER_REG] = v;
-}
-
-static inline uint8_t ns16550_iir_read(void)
-{
-	return kbd_virt_address[IIR_REG];
-}
-
-static inline void ns16550_fcr_write(uint8_t v)
-{
-	kbd_virt_address[FCR_REG] = v;
-}
-
-static inline uint8_t ns16550_lcr_read(void)
-{
-	return kbd_virt_address[LCR_REG];
-}
-
-static inline void ns16550_lcr_write(uint8_t v)
-{
-	kbd_virt_address[LCR_REG] = v;
-}
-
-static inline uint8_t ns16550_lsr_read(void)
-{
-	return kbd_virt_address[LSR_REG];
-}
+extern pci_t *pci_init(ofw_tree_node_t *node);
+extern void pci_enable_interrupt(pci_t *pci, int inr);
+extern void pci_clear_interrupt(pci_t *pci, int inr);
 
 #endif
 
