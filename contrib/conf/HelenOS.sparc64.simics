@@ -1,0 +1,110 @@
+#
+# This configuration file was assembled from the bagle machine
+# configuration files as found in Simics 3.0.21. It won't probably
+# work in Simics versions prior to Simics 3.0.
+#
+# The machine simulated is SunFire server Sun Enterprise E6500.
+#
+# - modified to boot from CD-ROM
+# - framebuffer color depth set to 24bpp
+#
+
+script-branch {
+    wait-for-variable machine_defined
+    $pcibrd = (create-sunfire-pci-board mac_address = "10:10:10:10:10:14")
+    $pgx64 = (create-sun-pci-pgx64)
+    $gfxcon = (create-std-graphics-console)
+    $keyboard = (create-sun-type5-keyboard)
+    $mouse = (create-sun-type5-mouse)
+    $scsi_bus = (create-std-scsi-bus)
+
+    $system.connect slot2 $pcibrd
+    $pcibrd.connect pci-slot0 $pgx64
+    $pcibrd.connect $scsi_bus
+    $system.connect keyboard $keyboard
+    $system.connect mouse $mouse
+
+    $gfxcon.connect $pgx64
+    $gfxcon.connect $keyboard
+    $gfxcon.connect $mouse
+}
+
+$save_slot2 = "yes"
+
+if not defined hostid        {$hostid        = 0x80804a6c}
+if not defined freq_mhz      {$freq_mhz      = 168}
+if not defined mac_address   {$mac_address   = "10:10:10:10:10:12"}
+if not defined disk_size     {$disk_size     = 2128486400}
+if not defined rtc_time      {$rtc_time      = "2002-06-02 13:00:00 UTC"}
+if not defined num_cpus      {$num_cpus      = 1}
+if not defined memory_megs   {$memory_megs   = 256}
+if not defined save_slot2    {$save_slot2    = "no"}
+
+add-directory "%simics%/targets/sunfire/images/"
+
+import-pci-components
+import-std-components
+import-sun-components
+import-sunfire-components
+
+$system = (create-sunfire-6500-backplane cpu_frequency = $freq_mhz
+                                         hostid = $hostid
+                                         mac_address = $mac_address
+                                         rtc_time = $rtc_time)
+
+$board = 0
+$cpus_left = $num_cpus
+$megs_left = $memory_megs
+
+while $cpus_left or $megs_left {
+    $cpubrd[$board] = (create-sunfire-cpu-board
+                           num_cpus = (min $cpus_left 2)
+                           memory_megs = (min $megs_left 4096))
+    $system.connect ("slot" + $board) $cpubrd[$board]
+    if $board == 0 {
+        $system.connect central-cpu $cpubrd[$board]
+    }
+    $cpus_left = (max ($cpus_left - 2) 0)
+    $megs_left = (max ($megs_left - 4096) 0)
+    $board += 1
+    if $board == 1 {$board = 2}
+    if $board == 2 and ($save_slot2 == yes) {$board = 3}
+}
+
+$sbusbrd = (create-sunfire-sbus-board mac_address = $mac_address)
+$scsi_bus = (create-std-scsi-bus)
+$scsi_disk = (create-std-scsi-disk scsi_id = 1 size = $disk_size)
+$scsi_cdrom = (create-std-scsi-cdrom scsi_id = 6)
+$console = (create-std-text-console)
+
+$system.connect slot1 $sbusbrd
+$sbusbrd.connect $scsi_bus
+$scsi_bus.connect $scsi_disk
+$scsi_bus.connect $scsi_cdrom
+$system.connect ttya $console
+
+$machine_defined = 1
+
+instantiate-components
+
+$eth_comp = $sbus_fas_hme
+$eth_cnt = ""
+run-command-file "%simics%/targets/common/add-eth-link.include"
+
+if not defined ip_address   {$ip_address   = "10.10.0.6"}
+
+if $service_node {
+    local $sn = ($service_node.get-component-object sn)
+    ($sn.add-host name = $host_name
+                         ip = $ip_address domain = network.sim
+                         mac = $mac_address)
+}
+
+default-port-forward-target $ip_address
+
+$cdrom_path = "/home/jermar/software/HelenOS/image.iso"
+($scsi_cdrom.get-component-object cd).insert (new-file-cdrom $cdrom_path)
+
+$system.set-prom-env boot-command "boot cdrom"
+$system.set-prom-env auto-boot? true
+$system.set-prom-env "output-device" "screen:r1152x900x76x24"
