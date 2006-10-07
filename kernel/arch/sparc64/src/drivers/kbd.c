@@ -108,8 +108,8 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_fhc_map_interrupts(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
-			printf("Failed to determine keyboard interrupts.\n");
+		if (!ofw_fhc_map_interrupt(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
+			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
 		break;
@@ -119,8 +119,8 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_ebus_map_interrupts(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
-			printf("Failed to determine keyboard interrupts.\n");
+		if (!ofw_ebus_map_interrupt(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
+			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
 		break;

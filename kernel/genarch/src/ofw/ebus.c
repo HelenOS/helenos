@@ -36,7 +36,6 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
-#include <arch/drivers/pci.h>
 #include <arch/memstr.h>
 #include <arch/trap/interrupt.h>
 #include <func.h>
@@ -77,7 +76,7 @@ bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t
 	return false;
 }
 
-bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr)
+bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr)
 {
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *controller;
@@ -114,9 +113,7 @@ bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_
 found:
 	/*
 	 * We found the device that functions as an interrupt controller
-	 * for the interrupt. We also found mapping from interrupt to INR.
-	 * What needs to be done now is to verify that this indeed is a PCI
-	 * node.
+	 * for the interrupt. We also found partial mapping from interrupt to INO.
 	 */
 
 	controller = ofw_tree_find_node_by_handle(ofw_tree_lookup("/"), intr_map[i].controller_handle);
@@ -130,19 +127,12 @@ found:
 		return false;
 	}
 
-	pci_t *pci = controller->device;
-	if (!pci) {
-		pci = pci_init(controller);
-		if (!pci)
-			return false;
-		controller->device = pci;
-		
-	}
-	pci_enable_interrupt(pci, intr_map[i].controller_inr);
+	/*
+	 * Let the PCI do the next step in mapping the interrupt.
+	 */
+	if (!ofw_pci_map_interrupt(controller, NULL, intr_map[i].controller_ino, inr))
+		return false;
 
-	*inr = intr_map[i].controller_inr;
-	*inr |= 0x1f << IGN_SHIFT;		/* 0x1f is hardwired IGN */
-	
 	return true;
 }
 

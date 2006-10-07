@@ -36,6 +36,8 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <arch/drivers/pci.h>
+#include <arch/trap/interrupt.h>
 #include <arch/memstr.h>
 #include <func.h>
 #include <panic.h>
@@ -44,6 +46,8 @@
 #define PCI_SPACE_MASK		0x03000000
 #define PCI_ABS_MASK		0x80000000	
 #define PCI_REG_MASK		0x000000ff
+
+#define PCI_IGN			0x1f
 
 bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 {
@@ -108,6 +112,28 @@ bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_r
 	}
 	
 	return false;
+}
+
+/** Map PCI interrupt.
+ *
+ * So far, we only know how to map interrupts of non-PCI devices connected
+ * to a PCI bridge.
+ */
+bool ofw_pci_map_interrupt(ofw_tree_node_t *node, ofw_pci_reg_t *reg, int ino, int *inr)
+{
+	pci_t *pci = node->device;
+	if (!pci) {
+		pci = pci_init(node);
+		if (!pci)
+			return false;
+		node->device = pci;
+	}
+
+	pci_enable_interrupt(pci, ino);
+
+	*inr = (PCI_IGN << IGN_SHIFT) | ino;
+
+	return true;
 }
 
 /** @}

@@ -115,7 +115,7 @@ struct ofw_ebus_intr_map {
 	uint32_t addr;
 	uint32_t intr;
 	uint32_t controller_handle;
-	uint32_t controller_inr;
+	uint32_t controller_ino;
 } __attribute__ ((packed));
 typedef struct ofw_ebus_intr_map ofw_ebus_intr_map_t;
 
@@ -165,7 +165,8 @@ extern bool ofw_upa_apply_ranges(ofw_tree_node_t *node, ofw_upa_reg_t *reg, uint
 
 extern bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out);
 
-extern bool ofw_fhc_map_interrupts(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *inr);
-extern bool ofw_ebus_map_interrupts(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr);
+extern bool ofw_fhc_map_interrupt(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *inr);
+extern bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr);
+extern bool ofw_pci_map_interrupt(ofw_tree_node_t *node, ofw_pci_reg_t *reg, int ino, int *inr);
 
 #endif

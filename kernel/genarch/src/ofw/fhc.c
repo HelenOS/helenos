@@ -109,7 +109,7 @@ bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uin
 	return false;
 }
 
-bool ofw_fhc_map_interrupts(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *inr)
+bool ofw_fhc_map_interrupt(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint32_t interrupt, int *inr)
 {
 	fhc_t *fhc = NULL;
 	if (!node->device) {
