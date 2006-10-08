@@ -737,6 +737,7 @@ fill_0_normal_tl1:
 	rdpr %tstate, %g1
 	rdpr %tpc, %g2
 	rdpr %tnpc, %g3
+	rd %y, %g4
 
 	/*
 	 * The following memory accesses will not fault
@@ -754,7 +755,6 @@ fill_0_normal_tl1:
 	 * versions of the SPARC architecture.
 	 * Surprisingly, gcc makes use of this register without a notice.
 	 */
-	rd %y, %g4
 	stx %g4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y]
 	
 	wrpr %g0, 0, %tl
@@ -787,12 +787,6 @@ fill_0_normal_tl1:
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
 
 	/*
-	 * Restore Y.
-	 */
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
-	wr %g4, %y
-
-	/*
 	 * Copy PSTATE.PEF to the in-register copy of TSTATE.
 	 */
 	and %l1, PSTATE_PEF_BIT, %l1
@@ -808,6 +802,11 @@ fill_0_normal_tl1:
 	wrpr %g2, 0, %tpc
 	wrpr %g3, 0, %tnpc
 
+	/*
+	 * Restore Y.
+	 */
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
+	wr %g4, %y
 
 	/*
 	 * If OTHERWIN is zero, then all the userspace windows have been
