@@ -84,7 +84,7 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 #define SAVED_TSTATE	-(1*8)
 #define SAVED_TPC	-(2*8)
 #define SAVED_TNPC	-(3*8)		/* <-- istate_t begins here */
-/* alignment gap */
+#define SAVED_Y		-(4*8)
 #define SAVED_I0	-(5*8)
 #define SAVED_I1	-(6*8)
 #define SAVED_I2	-(7*8)

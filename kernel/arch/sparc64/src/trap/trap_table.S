@@ -746,6 +746,16 @@ fill_0_normal_tl1:
 	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
 	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
 	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
+
+	/*
+	 * Save the Y register.
+	 * This register is deprecated according to SPARC V9 specification
+	 * and is only present for backward compatibility with previous
+	 * versions of the SPARC architecture.
+	 * Surprisingly, gcc makes use of this register without a notice.
+	 */
+	rd %y, %g4
+	stx %g4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y]
 	
 	wrpr %g0, 0, %tl
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
@@ -775,6 +785,12 @@ fill_0_normal_tl1:
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE], %g1
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC], %g2
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
+
+	/*
+	 * Restore Y.
+	 */
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
+	wr %g4, %y
 
 	/*
 	 * Copy PSTATE.PEF to the in-register copy of TSTATE.

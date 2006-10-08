@@ -16,7 +16,7 @@ CPU
 	o UltraSPARC IIi
 
 SIMULATORS
-	o simics 2.2.19, simics 3.0.17
+	o simics 2.2.19, simics 3.0.17, simics 3.0.21
 						
 TOOLCHAIN REQUIREMENTS
 	o binutils 2.17

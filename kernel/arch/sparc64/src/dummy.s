@@ -33,8 +33,8 @@
 
 .global dummy
 
-cpu_sleep:
-sys_tls_set:
+cpu_sleep:		! not supported by architecture
+sys_tls_set:		! not needed on architecture
 
 dummy:
 	retl
