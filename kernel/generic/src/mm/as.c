@@ -1578,5 +1578,39 @@ unative_t sys_as_area_destroy(uintptr_t address)
 	return (unative_t) as_area_destroy(AS, address);
 }
 
+/** Print out information about address space.
+ *
+ * @param as Address space.
+ */
+void as_print(as_t *as)
+{
+	ipl_t ipl;
+	
+	ipl = interrupts_disable();
+	mutex_lock(&as->lock);
+	
+	/* print out info about address space areas */
+	link_t *cur;
+	for (cur = as->as_area_btree.leaf_head.next; cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+		as_area_t *area;
+		btree_node_t *node;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		
+		int i;
+		for (i = 0; i < node->keys; i++) {
+			area = node->value[i];
+		
+			mutex_lock(&area->lock);
+			printf("as_area: %p, base=%p, pages=%d (%p - %p)\n",
+				area, area->base, area->pages, area->base, area->base + area->pages*PAGE_SIZE);
+			mutex_unlock(&area->lock);
+		}
+	}
+	
+	mutex_unlock(&as->lock);
+	interrupts_restore(ipl);
+}
+
 /** @}
  */

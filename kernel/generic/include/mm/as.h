@@ -216,6 +216,9 @@ extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);
 extern unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags);
 extern unative_t sys_as_area_destroy(uintptr_t address);
 
+/* Introspection functions. */
+extern void as_print(as_t *as);
+
 #endif /* KERNEL */
 
 #endif
