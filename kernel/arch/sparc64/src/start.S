@@ -29,6 +29,7 @@
 #include <arch/arch.h>
 #include <arch/regdef.h>
 #include <arch/boot/boot.h>
+#include <arch/stack.h>
 
 #include <arch/mm/mmu.h>
 #include <arch/mm/tlb.h>
@@ -56,7 +57,6 @@
  * following environment:
  * - TLBs are on
  * - identity mapping for the kernel image
- * - identity mapping for memory stack
  */
 
 .global kernel_image_start
@@ -67,7 +67,10 @@ kernel_image_start:
 	 * Setup basic runtime environment.
 	 */
 
-	flushw					! flush all but the active register window
+	wrpr %g0, NWINDOWS - 2, %cansave		! set maximum saveable windows
+	wrpr %g0, 0, %canrestore		! get rid of windows we will never need again
+	wrpr %g0, 0, %otherwin			! make sure the window state is consistent
+	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window traps for kernel
 
 	wrpr %g0, 0, %tl			! TL = 0, primary context register is used
 
@@ -215,6 +218,14 @@ kernel_image_start:
 	brz %l7, 1f				! skip if you are not the bootstrap CPU
 	nop
 
+	/*
+	 * So far, we have not touched the stack.
+	 * It is a good idead to set the kernel stack to a known state now.
+	 */
+	sethi %hi(temporary_boot_stack), %sp
+	or %sp, %lo(temporary_boot_stack), %sp
+	sub %sp, STACK_BIAS, %sp
+
 	sethi %hi(bootinfo), %o0
 	call memcpy				! copy bootinfo
 	or %o0, %lo(bootinfo), %o0
@@ -272,3 +283,26 @@ kernel_image_start:
 0:
 	ba 0b
 	nop
+
+
+.section K_DATA_START, "aw", @progbits
+
+/*
+ * Create small stack to be used by the bootstrap processor.
+ * It is going to be used only for a very limited period of
+ * time, but we switch to it anyway, just to be sure we are
+ * properly initialized.
+ *
+ * What is important is that this piece of memory is covered
+ * by the 4M DTLB locked entry and therefore there will be
+ * no surprises like deadly combinations of spill trap and
+ * and TLB miss on the stack address.
+ */
+
+#define INITIAL_STACK_SIZE	1024
+
+.align STACK_ALIGNMENT
+.space INITIAL_STACK_SIZE
+.align STACK_ALIGNMENT
+temporary_boot_stack:
+.space STACK_WINDOW_SAVE_AREA_SIZE

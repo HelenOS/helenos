@@ -119,10 +119,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		{ PAGESIZE_512K, 64*PAGE_SIZE, 2 },	/* 1M */
 		{ PAGESIZE_512K, 64*PAGE_SIZE, 4 },	/* 2M */
 		{ PAGESIZE_4M, 0, 1 }			/* 4M */
+		{ PAGESIZE_4M, 512*PAGE_SIZE, 2 }	/* 8M */
 	};
 	
 	ASSERT(ALIGN_UP(physaddr, PAGE_SIZE) == physaddr);
-	ASSERT(size <= 4*1024*1024);
+	ASSERT(size <= 8*1024*1024);
 	
 	if (size <= FRAME_SIZE)
 		order = 0;

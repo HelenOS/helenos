@@ -42,7 +42,7 @@
 #define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
 #define ASI_UPA_CONFIG		0x4a	/** ASI of the UPA_CONFIG register. */
 
-#define NWINDOW		8		/** Number of register window sets. */
+#define NWINDOWS		8	/** Number of register window sets. */
 
 #endif
 

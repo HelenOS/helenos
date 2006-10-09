@@ -673,7 +673,7 @@ fill_0_normal_tl1:
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(2), %wstate
 
-	wrpr %g0, NWINDOW - 1, %cleanwin	! prevent unnecessary clean_window exceptions
+	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent unnecessary clean_window exceptions
 
 	/*
 	 * Switch to kernel stack. The old stack is
@@ -830,7 +830,7 @@ fill_0_normal_tl1:
 	 */
 	and %g1, TSTATE_CWP_MASK, %l0
 	inc %l0
-	and %l0, NWINDOW - 1, %l0	! %l0 mod NWINDOW
+	and %l0, NWINDOWS - 1, %l0	! %l0 mod NWINDOWS
 	rdpr %cwp, %l1
 	cmp %l0, %l1
 	bz 0f				! CWP is ok
@@ -901,7 +901,7 @@ fill_0_normal_tl1:
 	 */
 	sub %g1, %g2, %g3
 	dec %g3
-	and %g3, NWINDOW - 1, %g3
+	and %g3, NWINDOWS - 1, %g3
 	wrpr %g3, 0, %cwp
 
 	/*
@@ -933,7 +933,7 @@ fill_0_normal_tl1:
 	ldx [%g7 + I7_OFFSET], %i7
 
 	dec %g3
-	and %g3, NWINDOW - 1, %g3
+	and %g3, NWINDOWS - 1, %g3
 	wrpr %g3, 0, %cwp			! switch to the preceeding window
 
 	ba 0b
@@ -946,13 +946,13 @@ fill_0_normal_tl1:
 	 */
 	wrpr %g1, 0, %cwp
 	add %g4, %g2, %g2
-	cmp %g2, NWINDOW - 2
-	bg 2f					! fix the CANRESTORE=NWINDOW-1 anomaly
-	mov NWINDOW - 2, %g1			! use dealy slot for both cases
+	cmp %g2, NWINDOWS - 2
+	bg 2f					! fix the CANRESTORE=NWINDOWS-1 anomaly
+	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
 	
 	wrpr %g0, 0, %otherwin
-	wrpr %g1, 0, %cansave			! NWINDOW - 2 - CANRESTORE
+	wrpr %g1, 0, %cansave			! NWINDOWS - 2 - CANRESTORE
 	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
 	wrpr %g2, 0, %cleanwin			! avoid information leak
 
@@ -972,14 +972,14 @@ fill_0_normal_tl1:
 	 * 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
 	 *
 	 * instruction trapped and spilled a register window into the userspace
-	 * window buffer, we have just restored NWINDOW - 1 register windows.
+	 * window buffer, we have just restored NWINDOWS - 1 register windows.
 	 * However, CANRESTORE can be only NWINDOW - 2 at most.
 	 *
-	 * The solution is to manually switch to (CWP - 1) mod NWINDOW
+	 * The solution is to manually switch to (CWP - 1) mod NWINDOWS
 	 * and set the window state registers so that:
 	 *
-	 * 	CANRESTORE 	= NWINDOW - 2
-	 *	CLEANWIN	= NWINDOW - 2
+	 * 	CANRESTORE 	= NWINDOWS - 2
+	 *	CLEANWIN	= NWINDOWS - 2
 	 *	CANSAVE 	= 0
 	 *	OTHERWIN	= 0
 	 *
@@ -993,7 +993,7 @@ fill_0_normal_tl1:
 
 	rdpr %cwp, %g1
 	dec %g1
-	and %g1, NWINDOW - 1, %g1
+	and %g1, NWINDOWS - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
 	
 .if \is_syscall
