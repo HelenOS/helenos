@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericipc
+/** @addtogroup genericinterrupt
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_IPC_IRQ_H_
-#define KERN_IPC_IRQ_H_
+#ifndef KERN_IRQ_H_
+#define KERN_IRQ_H_
 
-/** Maximum length of IPC IRQ program */
-#define IRQ_MAX_PROG_SIZE 10
+#include <arch/types.h>
+#include <adt/list.h>
 
-/** Reserved 'virtual' messages for kernel notifications */
-#define IPC_IRQ_RESERVED_VIRTUAL 10
-
-#define IPC_IRQ_KLOG       (-1)
-#define IPC_IRQ_KBDRESTART (-2)
+typedef int32_t inr_t;
+typedef int32_t devno_t;
 
 typedef enum {
-	CMD_MEM_READ_1 = 0,
-	CMD_MEM_READ_2,
-	CMD_MEM_READ_4,
-	CMD_MEM_READ_8,
-	CMD_MEM_WRITE_1,
-	CMD_MEM_WRITE_2,
-	CMD_MEM_WRITE_4,
-	CMD_MEM_WRITE_8,
-	CMD_PORT_READ_1,
-	CMD_PORT_WRITE_1,
-	CMD_IA64_GETCHAR,
-	CMD_PPC32_GETCHAR,
-	CMD_LAST
-} irq_cmd_type;
+	IRQ_DECLINE,		/**< Decline to service. */
+	IRQ_ACCEPT		/**< Accept to service. */
+} irq_ownership_t;
 
-typedef struct {
-	irq_cmd_type cmd;
-	void *addr;
-	unsigned long long value; 
-	int dstarg;
-} irq_cmd_t;
+typedef enum {
+	IRQ_TRIGGER_LEVEL = 1,
+	IRQ_TRIGGER_EDGE
+} irq_trigger_t;
 
-typedef struct {
-	unsigned int cmdcount;
-	irq_cmd_t *cmds;
-} irq_code_t;
+typedef struct irq irq_t;
 
-#ifdef KERNEL
+typedef void (* irq_handler_t)(irq_t *irq, void *arg, ...);
 
-#include <ipc/ipc.h>
+/** Structure representing one device IRQ.
+ *
+ * If one device has multiple interrupts, there will
+ * be multiple irq_t instantions with the same
+ * devno.
+ */
+struct irq {
+	/** Hash table link. */
+	link_t link;
 
-extern void ipc_irq_make_table(int irqcount);
-extern int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode);
-extern void ipc_irq_send_notif(int irq);
-extern void ipc_irq_send_msg(int irq, unative_t a1, unative_t a2, unative_t a3);
-extern void ipc_irq_unregister(answerbox_t *box, int irq);
-extern void irq_ipc_bind_arch(unative_t irq);
-extern void ipc_irq_cleanup(answerbox_t *box);
+	/** Unique device number. -1 if not yet assigned. */
+	devno_t devno;
 
-#endif
+	/** Actual IRQ number. -1 if not yet assigned. */
+	inr_t inr;
+	/** Task ID of the task to be notified about the IRQ or 0. */
+	task_id_t notif;
+	/** Trigger level of the IRQ.*/
+	irq_trigger_t trigger;
+	/** Claim ownership of the IRQ. */
+	irq_ownership_t (* claim)(void);
+	/** Handler for this IRQ and device. */
+	irq_handler_t handler;
+	/** Argument for the handler. */
+	void *arg;
+};
+
+extern void irq_init(count_t inrs, count_t chains);
+extern void irq_initialize(irq_t *irq);
+extern void irq_register(irq_t *irq);
+extern irq_t *irq_dispatch(inr_t inr);
 
 #endif
 

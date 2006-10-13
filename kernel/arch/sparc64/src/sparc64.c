@@ -46,6 +46,7 @@
 #include <arch/stack.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
+#include <irq.h>
 
 bootinfo_t bootinfo;
 
@@ -76,8 +77,10 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
-	if (config.cpu_active == 1)
+	if (config.cpu_active == 1) {
+		irq_init(1<<11, 128);
 		standalone_sparc64_console_init();
+	}
 }
 
 void arch_post_cpu_init(void)

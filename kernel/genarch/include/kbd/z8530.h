@@ -37,9 +37,8 @@
 #ifndef KERN_Z8530_H_
 #define KERN_Z8530_H_
 
+#include <irq.h>
 #include <typedefs.h>
-
-#define Z8530_INTRCV_DATA0	0x39	/* hardcoded for use in Simics */
 
 extern bool z8530_belongs_to_kernel;
 
@@ -49,6 +48,8 @@ extern void z8530_grab(void);
 extern void z8530_release(void);
 extern void z8530_interrupt(void);
 extern char z8530_key_read(chardev_t *d);
+extern irq_ownership_t z8530_claim(void);
+extern void z8530_irq_handler(irq_t *irq, void *arg, ...);
 
 #endif
 

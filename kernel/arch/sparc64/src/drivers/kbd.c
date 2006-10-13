@@ -40,7 +40,7 @@
 #ifdef CONFIG_NS16550
 #include <genarch/kbd/ns16550.h>
 #endif
-
+#include <irq.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -51,6 +51,8 @@
 volatile uint8_t *kbd_virt_address = NULL;
 
 kbd_type_t kbd_type = KBD_UNKNOWN;
+
+static irq_t kbd_irq;
 
 /** Initialize keyboard.
  *
@@ -101,6 +103,8 @@ void kbd_init(ofw_tree_node_t *node)
 	size_t size;
 	int inr;
 	
+	irq_initialize(&kbd_irq);
+	
 	switch (kbd_type) {
 	case KBD_Z8530:
 		size = ((ofw_fhc_reg_t *) prop->value)->size;
@@ -111,8 +115,16 @@ void kbd_init(ofw_tree_node_t *node)
 		if (!ofw_fhc_map_interrupt(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
+		} else {
+			kbd_irq.inr = inr;
+			kbd_irq.devno = 0;			/* FIXME: assign unique devno */
+			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
+			kbd_irq.claim = z8530_claim;
+			kbd_irq.handler = z8530_irq_handler;
+			irq_register(&kbd_irq);
 		}
 		break;
+		
 	case KBD_NS16550:
 		size = ((ofw_ebus_reg_t *) prop->value)->size;
 		if (!ofw_ebus_apply_ranges(node->parent, ((ofw_ebus_reg_t *) prop->value) , &pa)) {
@@ -122,8 +134,16 @@ void kbd_init(ofw_tree_node_t *node)
 		if (!ofw_ebus_map_interrupt(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
+		} else {
+			kbd_irq.inr = inr;
+			kbd_irq.devno = 0;			/* FIXME: assign unique devno */
+			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
+			kbd_irq.claim = ns16550_claim;
+			kbd_irq.handler = ns16550_irq_handler;
+			irq_register(&kbd_irq);
 		}
 		break;
+
 	default:
 		panic("Unexpected type.\n");
 	}

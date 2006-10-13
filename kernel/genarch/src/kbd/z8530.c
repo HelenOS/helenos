@@ -39,8 +39,10 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/z8530.h>
+#include <irq.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/kbd.h>
+#include <arch/drivers/fhc.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -167,6 +169,27 @@ void z8530_poll(void)
 				key_pressed(x);
 		}
 	}
+}
+
+irq_ownership_t z8530_claim(void)
+{
+	return (z8530_read_a(RR0) & RR0_RCA);
+}
+
+void z8530_irq_handler(irq_t *irq, void *arg, ...)
+{
+	/*
+	 * So far, we know we got this interrupt through the FHC.
+	 * Since we don't have enough information about the FHC and
+	 * because the interrupt looks like level sensitive,
+	 * we cannot handle it by scheduling one of the level
+	 * interrupt traps. Process the interrupt directly.
+	 */
+	if (z8530_belongs_to_kernel)
+		z8530_interrupt();
+	else
+		ipc_irq_send_notif(0);
+	fhc_clear_interrupt(central_fhc, irq->inr);
 }
 
 /** @}

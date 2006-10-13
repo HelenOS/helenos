@@ -38,12 +38,15 @@
 #define KERN_NS16550_H_
 
 #include <typedefs.h>
+#include <irq.h>
 
 extern void ns16550_init(void);
 extern void ns16550_poll(void);
 extern void ns16550_grab(void);
 extern void ns16550_release(void);
 extern char ns16550_key_read(chardev_t *d);
+extern irq_ownership_t ns16550_claim(void);
+extern void ns16550_irq_handler(irq_t *irq, void *arg, ...);
 
 #endif
 

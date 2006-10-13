@@ -35,8 +35,7 @@
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <interrupt.h>
-#include <arch/drivers/fhc.h>
-#include <arch/drivers/kbd.h>
+#include <irq.h>
 #include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
@@ -44,10 +43,15 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <print.h>
-#include <genarch/kbd/z8530.h>
 #include <arch.h>
 #include <mm/tlb.h>
 #include <config.h>
+
+/*
+ * To be removed once we get rid of the dependency in ipc_irq_bind_arch().
+ */
+#include <arch/drivers/kbd.h>
+#include <genarch/kbd/z8530.h>
 
 /** Register Interrupt Level Handler.
  *
@@ -71,6 +75,11 @@ void irq_ipc_bind_arch(unative_t irq)
 #endif
 }
 
+/** Process hardware interrupt.
+ *
+ * @param n Ignored.
+ * @param istate Ignored.
+ */
 void interrupt(int n, istate_t *istate)
 {
 	uint64_t intrcv;
@@ -79,45 +88,31 @@ void interrupt(int n, istate_t *istate)
 	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
 	data0 = asi_u64_read(ASI_UDB_INTR_R, ASI_UDB_INTR_R_DATA_0);
 
-	switch (data0) {
-#ifdef CONFIG_Z8530
-	case Z8530_INTRCV_DATA0:
-		if (kbd_type != KBD_Z8530)
-			break;
+	irq_t *irq = irq_dispatch(data0);
+	if (irq) {
 		/*
-		 * So far, we know we got this interrupt through the FHC.
-		 * Since we don't have enough information about the FHC and
-		 * because the interrupt looks like level sensitive,
-		 * we cannot handle it by scheduling one of the level
-		 * interrupt traps. Call the interrupt handler directly.
+		 * The IRQ handler was found.
 		 */
-
-		if (z8530_belongs_to_kernel)
-			z8530_interrupt();
-		else
-			ipc_irq_send_notif(0);
-		fhc_clear_interrupt(central_fhc, data0);
-		break;
-
-#endif
-	default:
-		if (data0 > config.base) {
-			/*
-			 * This is a cross-call.
-			 * data0 contains address of kernel function.
-			 * We call the function only after we verify
-			 * it is on of the supported ones.
-			 */
+		irq->handler(irq, irq->arg);
+	} else if (data0 > config.base) {
+		/*
+		 * This is a cross-call.
+		 * data0 contains address of kernel function.
+		 * We call the function only after we verify
+		 * it is on of the supported ones.
+		 */
 #ifdef CONFIG_SMP
-			if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
-				tlb_shootdown_ipi_recv();
-				break;
-			}
-#endif
+		if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
+			tlb_shootdown_ipi_recv();
 		}
-			
+#endif
+	} else {
+		/*
+		 * Spurious interrupt.
+		 */
+#ifdef CONFIG_DEBUG
 		printf("cpu%d: spurious interrupt (intrcv=%#llx, data0=%#llx)\n", CPU->id, intrcv, data0);
-		break;
+#endif
 	}
 
 	membar();

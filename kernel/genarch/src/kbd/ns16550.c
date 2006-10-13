@@ -39,6 +39,7 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/ns16550.h>
+#include <irq.h>
 #include <arch/interrupt.h>
 #include <cpu.h>
 #include <arch/asm.h>
@@ -158,6 +159,17 @@ void ns16550_poll(void)
 				key_pressed(x);
 		}
 	}
+}
+
+irq_ownership_t ns16550_claim(void)
+{
+	/* TODO */
+	return IRQ_ACCEPT;
+}
+
+void ns16550_irq_handler(irq_t *irq, void *arg, ...)
+{
+	panic("Not yet implemented.\n");
 }
 
 /** @}

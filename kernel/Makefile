@@ -148,6 +148,7 @@ GENERIC_SOURCES = \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \
 	generic/src/interrupt/interrupt.c \
+	generic/src/interrupt/irq.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
