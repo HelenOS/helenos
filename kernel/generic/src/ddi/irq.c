@@ -63,6 +63,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
+#include <atomic.h>
 #include <arch.h>
 
 /**
@@ -127,13 +128,16 @@ void irq_init(count_t inrs, count_t chains)
 void irq_initialize(irq_t *irq)
 {
 	link_initialize(&irq->link);
+	spinlock_initialize(&irq->lock, "irq.lock");
 	irq->inr = -1;
 	irq->devno = -1;
-	irq->notif = 0;
 	irq->trigger = 0;
 	irq->claim = NULL;
 	irq->handler = NULL;
 	irq->arg = NULL;
+	irq->notif_answerbox = NULL;
+	irq->code = NULL;
+	atomic_set(&irq->counter, 0);
 }
 
 /** Register IRQ for device.
@@ -220,8 +224,13 @@ bool irq_ht_compare(unative_t *key, count_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
 	inr_t *inr = (inr_t *) key;
+	bool rv;
 	
-	return ((irq->inr == *inr) && (irq->claim() == IRQ_ACCEPT));
+	spinlock_lock(&irq->lock);
+	rv = ((irq->inr == *inr) && (irq->claim() == IRQ_ACCEPT));
+	spinlock_unlock(&irq->lock);
+
+	return rv;
 }
 
 /** Compute hash index for the key.
@@ -259,8 +268,13 @@ index_t irq_lin_hash(unative_t *key)
 bool irq_lin_compare(unative_t *key, count_t keys, link_t *item)
 {
 	irq_t *irq = list_get_instance(item, irq_t, link);
+	bool rv;
 	
-	return (irq->claim() == IRQ_ACCEPT);
+	spinlock_lock(&irq->lock);
+	rv = (irq->claim() == IRQ_ACCEPT);
+	spinlock_unlock(&irq->lock);
+	
+	return rv;
 }
 
 /** @}

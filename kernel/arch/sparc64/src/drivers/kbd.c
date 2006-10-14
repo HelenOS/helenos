@@ -49,11 +49,7 @@
 #include <func.h>
 #include <print.h>
 
-volatile uint8_t *kbd_virt_address = NULL;
-
 kbd_type_t kbd_type = KBD_UNKNOWN;
-
-static irq_t kbd_irq;
 
 /** Initialize keyboard.
  *
@@ -102,9 +98,8 @@ void kbd_init(ofw_tree_node_t *node)
 	
 	uintptr_t pa;
 	size_t size;
-	int inr;
-	
-	irq_initialize(&kbd_irq);
+	inr_t inr;
+	devno_t devno = device_assign_devno();
 	
 	switch (kbd_type) {
 	case KBD_Z8530:
@@ -116,13 +111,6 @@ void kbd_init(ofw_tree_node_t *node)
 		if (!ofw_fhc_map_interrupt(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
-		} else {
-			kbd_irq.inr = inr;
-			kbd_irq.devno = device_assign_devno();
-			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
-			kbd_irq.claim = z8530_claim;
-			kbd_irq.handler = z8530_irq_handler;
-			irq_register(&kbd_irq);
 		}
 		break;
 		
@@ -135,14 +123,7 @@ void kbd_init(ofw_tree_node_t *node)
 		if (!ofw_ebus_map_interrupt(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
-		} else {
-			kbd_irq.inr = inr;
-			kbd_irq.devno = device_assign_devno();
-			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
-			kbd_irq.claim = ns16550_claim;
-			kbd_irq.handler = ns16550_irq_handler;
-			irq_register(&kbd_irq);
-		}
+		};
 		break;
 
 	default:
@@ -157,17 +138,17 @@ void kbd_init(ofw_tree_node_t *node)
 	 */
 	aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
 	offset = pa - aligned_addr;
-	kbd_virt_address = (uint8_t *) hw_map(aligned_addr, offset + size) + offset;
+	uintptr_t vaddr = hw_map(aligned_addr, offset + size) + offset;
 
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		z8530_init();
+		z8530_init(devno, inr, vaddr);
 		break;
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550_init();
+		ns16550_init(devno, inr, vaddr);
 		break;
 #endif
 	default:

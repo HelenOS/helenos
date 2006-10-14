@@ -42,7 +42,7 @@
 
 extern bool z8530_belongs_to_kernel;
 
-extern void z8530_init(void);
+extern void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr);
 extern void z8530_poll(void);
 extern void z8530_grab(void);
 extern void z8530_release(void);

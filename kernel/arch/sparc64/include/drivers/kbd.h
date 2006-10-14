@@ -46,8 +46,6 @@ typedef enum {
 
 extern kbd_type_t kbd_type;
 
-extern volatile uint8_t *kbd_virt_address;
-
 extern void kbd_init(ofw_tree_node_t *node);
 
 #endif

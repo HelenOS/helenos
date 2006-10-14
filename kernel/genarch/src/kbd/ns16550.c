@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2001-2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,12 @@
 
 #define LSR_DATA_READY	0x01
 
+/** Structure representing the ns16550. */
+static ns16550_t ns16550;
+
+/** Structure for ns16550's IRQ. */
+static irq_t ns16550_irq;
+
 /*
  * These codes read from ns16550 data register are silently ignored.
  */
@@ -81,21 +87,37 @@ void ns16550_release(void)
 	/* TODO */
 }
 
-/** Initialize ns16550. */
-void ns16550_init(void)
+/** Initialize ns16550.
+ *
+ * @param devno Device number.
+ * @param inr Interrupt number.
+ * @param vaddr Virtual address of device's registers.
+ */
+void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 {
 	ns16550_grab();
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
+	ns16550.devno = devno;
+	ns16550.reg = (uint8_t *) vaddr;
+	
+	irq_initialize(&ns16550_irq);
+	ns16550_irq.devno = devno;
+	ns16550_irq.inr = inr;
+	ns16550_irq.claim = ns16550_claim;
+	ns16550_irq.handler = ns16550_irq_handler;
+	irq_register(&ns16550_irq);
+	
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.irq", NULL, 0);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) kbd_virt_address);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
 	
-	ns16550_ier_write(IER_ERBFI);				/* enable receiver interrupt */
+	ns16550_ier_write(&ns16550, IER_ERBFI);		/* enable receiver interrupt */
 	
-	while (ns16550_lsr_read() & LSR_DATA_READY)
-		(void) ns16550_rbr_read();
+	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
+		(void) ns16550_rbr_read(&ns16550);
 }
 
 /** Process ns16550 interrupt.
@@ -129,9 +151,9 @@ char ns16550_key_read(chardev_t *d)
 
 	while(!(ch = active_read_buff_read())) {
 		uint8_t x;
-		while (!(ns16550_lsr_read() & LSR_DATA_READY))
+		while (!(ns16550_lsr_read(&ns16550) & LSR_DATA_READY))
 			;
-		x = ns16550_rbr_read();
+		x = ns16550_rbr_read(&ns16550);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
@@ -150,8 +172,8 @@ void ns16550_poll(void)
 {
 	uint8_t x;
 
-	while (ns16550_lsr_read() & LSR_DATA_READY) {
-		x = ns16550_rbr_read();
+	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
+		x = ns16550_rbr_read(&ns16550);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);

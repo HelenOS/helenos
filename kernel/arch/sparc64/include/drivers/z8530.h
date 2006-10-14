@@ -91,42 +91,48 @@
 /* Read Register 0 */
 #define RR0_RCA		(0x1<<0)	/** Receive Character Available. */
 
-static inline void z8530_write(index_t chan, uint8_t reg, uint8_t val)
+/** Structure representing the z8530 device. */
+typedef struct {
+	devno_t devno;
+	volatile uint8_t *reg;		/** Memory mapped registers of the z8530. */
+} z8530_t;
+
+static inline void z8530_write(z8530_t *dev, index_t chan, uint8_t reg, uint8_t val)
 {
 	/*
 	 * Registers 8-15 will automatically issue the Point High
 	 * command as their bit 3 is 1.
 	 */
-	kbd_virt_address[WR0+chan] = reg;	/* select register */
-	kbd_virt_address[WR0+chan] = val;	/* write value */
+	dev->reg[WR0+chan] = reg;	/* select register */
+	dev->reg[WR0+chan] = val;	/* write value */
 }
 
-static inline void z8530_write_a(uint8_t reg, uint8_t val)
+static inline void z8530_write_a(z8530_t *dev, uint8_t reg, uint8_t val)
 {
-	z8530_write(Z8530_CHAN_A, reg, val);
+	z8530_write(dev, Z8530_CHAN_A, reg, val);
 }
-static inline void z8530_write_b(uint8_t reg, uint8_t val)
+static inline void z8530_write_b(z8530_t *dev, uint8_t reg, uint8_t val)
 {
-	z8530_write(Z8530_CHAN_B, reg, val);
+	z8530_write(dev, Z8530_CHAN_B, reg, val);
 }
 
-static inline uint8_t z8530_read(index_t chan, uint8_t reg) 
+static inline uint8_t z8530_read(z8530_t *dev, index_t chan, uint8_t reg) 
 {
 	/*
 	 * Registers 8-15 will automatically issue the Point High
 	 * command as their bit 3 is 1.
 	 */
-	kbd_virt_address[WR0+chan] = reg;	/* select register */
-	return kbd_virt_address[WR0+chan];
+	dev->reg[WR0+chan] = reg;	/* select register */
+	return dev->reg[WR0+chan];
 }
 
-static inline uint8_t z8530_read_a(uint8_t reg)
+static inline uint8_t z8530_read_a(z8530_t *dev, uint8_t reg)
 {
-	return z8530_read(Z8530_CHAN_A, reg);
+	return z8530_read(dev, Z8530_CHAN_A, reg);
 }
-static inline uint8_t z8530_read_b(uint8_t reg)
+static inline uint8_t z8530_read_b(z8530_t *dev, uint8_t reg)
 {
-	return z8530_read(Z8530_CHAN_B, reg);
+	return z8530_read(dev, Z8530_CHAN_B, reg);
 }
 
 #endif

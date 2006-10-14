@@ -37,6 +37,10 @@
 
 #include <arch/types.h>
 #include <adt/list.h>
+#include <ipc/ipc.h>
+#include <ipc/irq.h>
+#include <atomic.h>
+#include <synch/spinlock.h>
 
 typedef enum {
 	IRQ_DECLINE,		/**< Decline to service. */
@@ -62,13 +66,18 @@ struct irq {
 	/** Hash table link. */
 	link_t link;
 
+	/** Lock protecting everything in this structure
+	 *  except the link member. When both the IRQ
+	 *  hash table lock and this lock are to be acquired,
+	 *  this lock must not be taken first.
+	 */
+	SPINLOCK_DECLARE(lock);
+
 	/** Unique device number. -1 if not yet assigned. */
 	devno_t devno;
 
 	/** Actual IRQ number. -1 if not yet assigned. */
 	inr_t inr;
-	/** Task ID of the task to be notified about the IRQ or 0. */
-	task_id_t notif;
 	/** Trigger level of the IRQ.*/
 	irq_trigger_t trigger;
 	/** Claim ownership of the IRQ. */
@@ -77,6 +86,14 @@ struct irq {
 	irq_handler_t handler;
 	/** Argument for the handler. */
 	void *arg;
+
+	/** Answerbox of the task that wanted to be notified. */
+	answerbox_t *notif_answerbox;
+	/** Pseudo-code to be performed by the top-half
+	 *  before a notification is sent. */
+	irq_code_t *code;
+	/** Counter of IRQ notifications. */
+	atomic_t counter;
 };
 
 extern void irq_init(count_t inrs, count_t chains);

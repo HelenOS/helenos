@@ -50,44 +50,50 @@
 
 #define LCR_DLAB	0x80	/** Divisor Latch Access bit. */
 
-static inline uint8_t ns16550_rbr_read(void)
+/** Structure representing the ns16550 device. */
+typedef struct {
+	devno_t devno;
+	volatile uint8_t *reg;	/** Memory mapped registers of the ns16550. */
+} ns16550_t;
+
+static inline uint8_t ns16550_rbr_read(ns16550_t *dev)
 {
-	return kbd_virt_address[RBR_REG];
+	return dev->reg[RBR_REG];
 }
 
-static inline uint8_t ns16550_ier_read(void)
+static inline uint8_t ns16550_ier_read(ns16550_t *dev)
 {
-	return kbd_virt_address[IER_REG];
+	return dev->reg[IER_REG];
 }
 
-static inline void ns16550_ier_write(uint8_t v)
+static inline void ns16550_ier_write(ns16550_t *dev, uint8_t v)
 {
-	kbd_virt_address[IER_REG] = v;
+	dev->reg[IER_REG] = v;
 }
 
-static inline uint8_t ns16550_iir_read(void)
+static inline uint8_t ns16550_iir_read(ns16550_t *dev)
 {
-	return kbd_virt_address[IIR_REG];
+	return dev->reg[IIR_REG];
 }
 
-static inline void ns16550_fcr_write(uint8_t v)
+static inline void ns16550_fcr_write(ns16550_t *dev, uint8_t v)
 {
-	kbd_virt_address[FCR_REG] = v;
+	dev->reg[FCR_REG] = v;
 }
 
-static inline uint8_t ns16550_lcr_read(void)
+static inline uint8_t ns16550_lcr_read(ns16550_t *dev)
 {
-	return kbd_virt_address[LCR_REG];
+	return dev->reg[LCR_REG];
 }
 
-static inline void ns16550_lcr_write(uint8_t v)
+static inline void ns16550_lcr_write(ns16550_t *dev, uint8_t v)
 {
-	kbd_virt_address[LCR_REG] = v;
+	dev->reg[LCR_REG] = v;
 }
 
-static inline uint8_t ns16550_lsr_read(void)
+static inline uint8_t ns16550_lsr_read(ns16550_t *dev)
 {
-	return kbd_virt_address[LSR_REG];
+	return dev->reg[LSR_REG];
 }
 
 #endif

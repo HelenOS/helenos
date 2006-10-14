@@ -60,6 +60,9 @@
 
 bool z8530_belongs_to_kernel = true;
 
+static z8530_t z8530;		/**< z8530 device structure. */
+static irq_t z8530_irq;		/**< z8530's IRQ. */ 
+
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
 
@@ -84,29 +87,40 @@ void z8530_release(void)
 }
 
 /** Initialize z8530. */
-void z8530_init(void)
+void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 {
 	chardev_initialize("z8530_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.irq", NULL, 0);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) kbd_virt_address);
+	z8530.devno = devno;
+	z8530.reg = (uint8_t *) vaddr;
 
-	(void) z8530_read_a(RR8);
+	irq_initialize(&z8530_irq);
+	z8530_irq.devno = devno;
+	z8530_irq.inr = inr;
+	z8530_irq.claim = z8530_claim;
+	z8530_irq.handler = z8530_irq_handler;
+	irq_register(&z8530_irq);
+
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
+
+	(void) z8530_read_a(&z8530, RR8);
 
 	/*
 	 * Clear any pending TX interrupts or we never manage
 	 * to set FHC UART interrupt state to idle.
 	 */
-	z8530_write_a(WR0, WR0_TX_IP_RST);
+	z8530_write_a(&z8530, WR0, WR0_TX_IP_RST);
 
-	z8530_write_a(WR1, WR1_IARCSC);		/* interrupt on all characters */
+	z8530_write_a(&z8530, WR1, WR1_IARCSC);		/* interrupt on all characters */
 
 	/* 8 bits per character and enable receiver */
-	z8530_write_a(WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
+	z8530_write_a(&z8530, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
-	z8530_write_a(WR9, WR9_MIE);		/* Master Interrupt Enable. */
+	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
 }
 
 /** Process z8530 interrupt.
@@ -139,9 +153,9 @@ char z8530_key_read(chardev_t *d)
 
 	while(!(ch = active_read_buff_read())) {
 		uint8_t x;
-		while (!(z8530_read_a(RR0) & RR0_RCA))
+		while (!(z8530_read_a(&z8530, RR0) & RR0_RCA))
 			;
-		x = z8530_read_a(RR8);
+		x = z8530_read_a(&z8530, RR8);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
@@ -160,8 +174,8 @@ void z8530_poll(void)
 {
 	uint8_t x;
 
-	while (z8530_read_a(RR0) & RR0_RCA) {
-		x = z8530_read_a(RR8);
+	while (z8530_read_a(&z8530, RR0) & RR0_RCA) {
+		x = z8530_read_a(&z8530, RR8);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
@@ -173,7 +187,7 @@ void z8530_poll(void)
 
 irq_ownership_t z8530_claim(void)
 {
-	return (z8530_read_a(RR0) & RR0_RCA);
+	return (z8530_read_a(&z8530, RR0) & RR0_RCA);
 }
 
 void z8530_irq_handler(irq_t *irq, void *arg, ...)

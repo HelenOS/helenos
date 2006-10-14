@@ -40,7 +40,7 @@
 #include <typedefs.h>
 #include <ddi/irq.h>
 
-extern void ns16550_init(void);
+extern void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr);
 extern void ns16550_poll(void);
 extern void ns16550_grab(void);
 extern void ns16550_release(void);
