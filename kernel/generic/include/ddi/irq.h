@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericinterrupt
+/** @addtogroup genericddi
  * @{
  */
 /** @file
@@ -37,9 +37,6 @@
 
 #include <arch/types.h>
 #include <adt/list.h>
-
-typedef int32_t inr_t;
-typedef int32_t devno_t;
 
 typedef enum {
 	IRQ_DECLINE,		/**< Decline to service. */

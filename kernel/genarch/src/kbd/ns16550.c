@@ -39,7 +39,7 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/ns16550.h>
-#include <irq.h>
+#include <ddi/irq.h>
 #include <arch/interrupt.h>
 #include <cpu.h>
 #include <arch/asm.h>

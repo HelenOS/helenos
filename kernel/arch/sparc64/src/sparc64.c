@@ -46,7 +46,7 @@
 #include <arch/stack.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
-#include <irq.h>
+#include <ddi/irq.h>
 
 bootinfo_t bootinfo;
 

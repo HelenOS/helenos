@@ -40,7 +40,8 @@
 #ifdef CONFIG_NS16550
 #include <genarch/kbd/ns16550.h>
 #endif
-#include <irq.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <typedefs.h>
@@ -117,7 +118,7 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		} else {
 			kbd_irq.inr = inr;
-			kbd_irq.devno = 0;			/* FIXME: assign unique devno */
+			kbd_irq.devno = device_assign_devno();
 			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
 			kbd_irq.claim = z8530_claim;
 			kbd_irq.handler = z8530_irq_handler;
@@ -136,7 +137,7 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		} else {
 			kbd_irq.inr = inr;
-			kbd_irq.devno = 0;			/* FIXME: assign unique devno */
+			kbd_irq.devno = device_assign_devno();
 			kbd_irq.trigger = IRQ_TRIGGER_LEVEL;
 			kbd_irq.claim = ns16550_claim;
 			kbd_irq.handler = ns16550_irq_handler;

@@ -37,8 +37,8 @@
 #ifndef KERN_Z8530_H_
 #define KERN_Z8530_H_
 
-#include <irq.h>
 #include <typedefs.h>
+#include <ddi/irq.h>
 
 extern bool z8530_belongs_to_kernel;
 

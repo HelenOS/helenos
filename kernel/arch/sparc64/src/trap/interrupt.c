@@ -35,7 +35,7 @@
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <interrupt.h>
-#include <irq.h>
+#include <ddi/irq.h>
 #include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>

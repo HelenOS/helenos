@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genericddi
  * @{
  */
 /**
  * @file
- * @brief	Headers for NS 16550 serial port / keyboard driver.
+ * @brief	Device numbers.
  */
 
-#ifndef KERN_NS16550_H_
-#define KERN_NS16550_H_
-
+#include <ddi/device.h>
+#include <atomic.h>
+#include <debug.h>
 #include <typedefs.h>
-#include <ddi/irq.h>
 
-extern void ns16550_init(void);
-extern void ns16550_poll(void);
-extern void ns16550_grab(void);
-extern void ns16550_release(void);
-extern char ns16550_key_read(chardev_t *d);
-extern irq_ownership_t ns16550_claim(void);
-extern void ns16550_irq_handler(irq_t *irq, void *arg, ...);
+static atomic_t last;
 
-#endif
+/** Assign new device number.
+ *
+ * @return Unique device number.
+ */
+devno_t device_assign_devno(void)
+{
+	devno_t devno;	
+
+	devno = (devno_t) atomic_postinc(&last);
+	ASSERT(devno >= 0);
+
+	return devno;
+}
 
 /** @}
  */

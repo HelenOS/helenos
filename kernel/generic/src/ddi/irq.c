@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericinterrupt
+/** @addtogroup genericddi
  * @{
  */
 /**
@@ -58,7 +58,7 @@
  * are unique, the claim functions can always return IRQ_ACCEPT.
  */
 
-#include <irq.h>
+#include <ddi/irq.h>
 #include <adt/hash_table.h>
 #include <arch/types.h>
 #include <typedefs.h>

@@ -39,7 +39,7 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/z8530.h>
-#include <irq.h>
+#include <ddi/irq.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/kbd.h>
 #include <arch/drivers/fhc.h>
