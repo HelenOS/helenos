@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	IRQ redirector.
+ * @brief	IRQ dispatcher.
  *
  * This file provides means of connecting IRQs with particular
  * devices and logic for dispatching interrupts to IRQ handlers
@@ -56,6 +56,14 @@
  * IRQs, the irq_hash_table can be optimized to a one-dimensional
  * array. Next, when it is known that the IRQ numbers (aka INR's)
  * are unique, the claim functions can always return IRQ_ACCEPT.
+ *
+ *
+ * Note about the irq_hash_table.
+ *
+ * The hash table is configured to use two keys: inr and devno.
+ * However, the hash index is computed only from inr. Moreover,
+ * if devno is -1, the match is based on the return value of
+ * the claim() function instead of on devno.
  */
 
 #include <ddi/irq.h>
@@ -65,6 +73,9 @@
 #include <synch/spinlock.h>
 #include <atomic.h>
 #include <arch.h>
+
+#define KEY_INR		0
+#define KEY_DEVNO	1
 
 /**
  * Spinlock protecting the hash table.
@@ -115,9 +126,9 @@ void irq_init(count_t inrs, count_t chains)
 	 * different keys), we can use optimized set of operations.
 	 */
 	if (inrs == chains)
-		hash_table_create(&irq_hash_table, chains, 1, &irq_lin_ops);
+		hash_table_create(&irq_hash_table, chains, 2, &irq_lin_ops);
 	else
-		hash_table_create(&irq_hash_table, chains, 1, &irq_ht_ops);
+		hash_table_create(&irq_hash_table, chains, 2, &irq_ht_ops);
 }
 
 /** Initialize one IRQ structure.
@@ -137,6 +148,7 @@ void irq_initialize(irq_t *irq)
 	irq->arg = NULL;
 	irq->notif_answerbox = NULL;
 	irq->code = NULL;
+	irq->method = 0;
 	atomic_set(&irq->counter, 0);
 }
 
@@ -151,41 +163,92 @@ void irq_initialize(irq_t *irq)
 void irq_register(irq_t *irq)
 {
 	ipl_t ipl;
+	unative_t key[] = {
+		(unative_t) irq->inr,
+		(unative_t) irq->devno
+	};
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&irq_hash_table_lock);
-	hash_table_insert(&irq_hash_table, (void *) &irq->inr, &irq->link);
+	hash_table_insert(&irq_hash_table, key, &irq->link);
 	spinlock_unlock(&irq_hash_table_lock);
 	interrupts_restore(ipl);
 }
 
 /** Dispatch the IRQ.
  *
+ * We assume this function is only called from interrupt
+ * context (i.e. that interrupts are disabled prior to
+ * this call).
+ *
+ * This function attempts to lookup a fitting IRQ
+ * structure. In case of success, return with interrupts
+ * disabled and holding the respective structure.
+ *
  * @param inr Interrupt number (aka inr or irq).
  *
  * @return IRQ structure of the respective device or NULL.
  */
-irq_t *irq_dispatch(inr_t inr)
+irq_t *irq_dispatch_and_lock(inr_t inr)
 {
-	ipl_t ipl;
 	link_t *lnk;
+	unative_t key[] = {
+		(unative_t) inr,
+		(unative_t) -1		/* search will use claim() instead of devno */
+	};
 	
-	ipl = interrupts_disable();
 	spinlock_lock(&irq_hash_table_lock);
 
-	lnk = hash_table_find(&irq_hash_table, (void *) &inr);
+	lnk = hash_table_find(&irq_hash_table, key);
 	if (lnk) {
 		irq_t *irq;
 		
 		irq = hash_table_get_instance(lnk, irq_t, link);
 
 		spinlock_unlock(&irq_hash_table_lock);
-		interrupts_restore(ipl);
 		return irq;
 	}
 	
 	spinlock_unlock(&irq_hash_table_lock);
-	interrupts_restore(ipl);
+
+	return NULL;	
+}
+
+/** Find the IRQ structure corresponding to inr and devno.
+ *
+ * This functions attempts to lookup the IRQ structure
+ * corresponding to its arguments. On success, this
+ * function returns with interrups disabled, holding
+ * the lock of the respective IRQ structure.
+ *
+ * This function assumes interrupts are already disabled.
+ *
+ * @param inr INR being looked up.
+ * @param devno Devno being looked up.
+ *
+ * @return Locked IRQ structure on success or NULL on failure.
+ */
+irq_t *irq_find_and_lock(inr_t inr, devno_t devno)
+{
+	link_t *lnk;
+	unative_t keys[] = {
+		(unative_t) inr,
+		(unative_t) devno
+	};
+	
+	spinlock_lock(&irq_hash_table_lock);
+
+	lnk = hash_table_find(&irq_hash_table, keys);
+	if (lnk) {
+		irq_t *irq;
+		
+		irq = hash_table_get_instance(lnk, irq_t, link);
+
+		spinlock_unlock(&irq_hash_table_lock);
+		return irq;
+	}
+	
+	spinlock_unlock(&irq_hash_table_lock);
 
 	return NULL;	
 }
@@ -197,38 +260,58 @@ irq_t *irq_dispatch(inr_t inr)
  * can be collisions between different
  * INRs.
  *
- * @param key Pointer to INR.
+ * The devno is not used to compute the hash.
+ *
+ * @param key The first of the keys is inr and the second is devno or -1.
  *
  * @return Index into the hash table.
  */
-index_t irq_ht_hash(unative_t *key)
+index_t irq_ht_hash(unative_t key[])
 {
-	inr_t *inr = (inr_t *) key;
-	return *inr % irq_hash_table.entries;
+	inr_t inr = (inr_t) key[KEY_INR];
+	return inr % irq_hash_table.entries;
 }
 
 /** Compare hash table element with a key.
  *
- * As usually, we do sort of a hack here.
- * Even when the key matches the inr member,
- * we ask the device to either accept
- * or decline to service the interrupt.
+ * There are two things to note about this function.
+ * First, it is used for the more complex architecture setup
+ * in which there are way too many interrupt numbers (i.e. inr's)
+ * to arrange the hash table so that collisions occur only
+ * among same inrs of different devnos. So the explicit check
+ * for inr match must be done.
+ * Second, if devno is -1, the second key (i.e. devno) is not
+ * used for the match and the result of the claim() function
+ * is used instead.
  *
- * @param key Pointer to key (i.e. inr).
- * @param keys This is 1.
+ * This function assumes interrupts are already disabled.
+ *
+ * @param key Keys (i.e. inr and devno).
+ * @param keys This is 2.
  * @param item The item to compare the key with.
  *
  * @return True on match or false otherwise.
  */
-bool irq_ht_compare(unative_t *key, count_t keys, link_t *item)
+bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
-	inr_t *inr = (inr_t *) key;
+	inr_t inr = (inr_t) key[KEY_INR];
+	devno_t devno = (devno_t) key[KEY_DEVNO];
+
 	bool rv;
 	
 	spinlock_lock(&irq->lock);
-	rv = ((irq->inr == *inr) && (irq->claim() == IRQ_ACCEPT));
-	spinlock_unlock(&irq->lock);
+	if (devno == -1) {
+		/* Invoked by irq_dispatch(). */
+		rv = ((irq->inr == inr) && (irq->claim() == IRQ_ACCEPT));
+	} else {
+		/* Invoked by irq_find(). */
+		rv = ((irq->inr == inr) && (irq->devno == devno));
+	}
+	
+	/* unlock only on non-match */
+	if (!rv)
+		spinlock_unlock(&irq->lock);
 
 	return rv;
 }
@@ -240,39 +323,54 @@ bool irq_ht_compare(unative_t *key, count_t keys, link_t *item)
  * are no collisions between different
  * INRs.
  *
- * @param key INR.
+ * @param key The first of the keys is inr and the second is devno or -1.
  *
  * @return Index into the hash table.
  */
-index_t irq_lin_hash(unative_t *key)
+index_t irq_lin_hash(unative_t key[])
 {
-	inr_t *inr = (inr_t *) key;
-	return *inr;
+	inr_t inr = (inr_t) key[KEY_INR];
+	return inr;
 }
 
 /** Compare hash table element with a key.
  *
- * As usually, we do sort of a hack here.
- * We don't compare the inr member with
- * the key because we know that there are
- * no collision between different keys.
- * We only ask the device to either accept
- * or decline to service the interrupt.
+ * There are two things to note about this function.
+ * First, it is used for the less complex architecture setup
+ * in which there are not too many interrupt numbers (i.e. inr's)
+ * to arrange the hash table so that collisions occur only
+ * among same inrs of different devnos. So the explicit check
+ * for inr match is not done.
+ * Second, if devno is -1, the second key (i.e. devno) is not
+ * used for the match and the result of the claim() function
+ * is used instead.
  *
- * @param key Pointer to key (i.e. inr).
- * @param keys This is 1.
+ * This function assumes interrupts are already disabled.
+ *
+ * @param key Keys (i.e. inr and devno).
+ * @param keys This is 2.
  * @param item The item to compare the key with.
  *
  * @return True on match or false otherwise.
  */
-bool irq_lin_compare(unative_t *key, count_t keys, link_t *item)
+bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
 {
 	irq_t *irq = list_get_instance(item, irq_t, link);
+	devno_t devno = (devno_t) key[KEY_DEVNO];
 	bool rv;
 	
 	spinlock_lock(&irq->lock);
-	rv = (irq->claim() == IRQ_ACCEPT);
-	spinlock_unlock(&irq->lock);
+	if (devno == -1) {
+		/* Invoked by irq_dispatch() */
+		rv = (irq->claim() == IRQ_ACCEPT);
+	} else {
+		/* Invoked by irq_find() */
+		rv = (irq->devno == devno);
+	}
+	
+	/* unlock only on non-match */
+	if (!rv)
+		spinlock_unlock(&irq->lock);
 	
 	return rv;
 }

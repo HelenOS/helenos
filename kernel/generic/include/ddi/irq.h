@@ -92,6 +92,8 @@ struct irq {
 	/** Pseudo-code to be performed by the top-half
 	 *  before a notification is sent. */
 	irq_code_t *code;
+	/** Method of the notification. */
+	unative_t method;
 	/** Counter of IRQ notifications. */
 	atomic_t counter;
 };
@@ -99,7 +101,8 @@ struct irq {
 extern void irq_init(count_t inrs, count_t chains);
 extern void irq_initialize(irq_t *irq);
 extern void irq_register(irq_t *irq);
-extern irq_t *irq_dispatch(inr_t inr);
+extern irq_t *irq_dispatch_and_lock(inr_t inr);
+extern irq_t *irq_find_and_lock(inr_t inr, devno_t devno);
 
 #endif
 

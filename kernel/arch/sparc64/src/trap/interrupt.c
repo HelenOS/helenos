@@ -46,6 +46,7 @@
 #include <arch.h>
 #include <mm/tlb.h>
 #include <config.h>
+#include <synch/spinlock.h>
 
 /*
  * To be removed once we get rid of the dependency in ipc_irq_bind_arch().
@@ -88,12 +89,13 @@ void interrupt(int n, istate_t *istate)
 	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
 	data0 = asi_u64_read(ASI_UDB_INTR_R, ASI_UDB_INTR_R_DATA_0);
 
-	irq_t *irq = irq_dispatch(data0);
+	irq_t *irq = irq_dispatch_and_lock(data0);
 	if (irq) {
 		/*
 		 * The IRQ handler was found.
 		 */
 		irq->handler(irq, irq->arg);
+		spinlock_unlock(&irq->lock);
 	} else if (data0 > config.base) {
 		/*
 		 * This is a cross-call.
