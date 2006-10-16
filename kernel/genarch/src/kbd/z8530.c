@@ -62,6 +62,8 @@
 static z8530_t z8530;		/**< z8530 device structure. */
 static irq_t z8530_irq;		/**< z8530's IRQ. */ 
 
+static ipc_notif_cfg_t saved_notif_cfg;
+
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
 
@@ -74,11 +76,35 @@ static chardev_operations_t ops = {
 /** Initialize keyboard and service interrupts using kernel routine. */
 void z8530_grab(void)
 {
+	(void) z8530_read_a(&z8530, RR8);
+
+	/*
+	 * Clear any pending TX interrupts or we never manage
+	 * to set FHC UART interrupt state to idle.
+	 */
+	z8530_write_a(&z8530, WR0, WR0_TX_IP_RST);
+
+	z8530_write_a(&z8530, WR1, WR1_IARCSC);		/* interrupt on all characters */
+
+	/* 8 bits per character and enable receiver */
+	z8530_write_a(&z8530, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
+	
+	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
+	
+	if (z8530_irq.notif_cfg.answerbox) {
+		saved_notif_cfg = z8530_irq.notif_cfg;
+		z8530_irq.notif_cfg.answerbox = NULL;
+		z8530_irq.notif_cfg.code = NULL;
+		z8530_irq.notif_cfg.method = 0;
+		z8530_irq.notif_cfg.counter = 0;
+	}
 }
 
 /** Resume the former IPC notification behavior. */
 void z8530_release(void)
 {
+	if (saved_notif_cfg.answerbox)
+		z8530_irq.notif_cfg = saved_notif_cfg;
 }
 
 /** Initialize z8530. */
@@ -102,20 +128,7 @@ void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
 
-	(void) z8530_read_a(&z8530, RR8);
-
-	/*
-	 * Clear any pending TX interrupts or we never manage
-	 * to set FHC UART interrupt state to idle.
-	 */
-	z8530_write_a(&z8530, WR0, WR0_TX_IP_RST);
-
-	z8530_write_a(&z8530, WR1, WR1_IARCSC);		/* interrupt on all characters */
-
-	/* 8 bits per character and enable receiver */
-	z8530_write_a(&z8530, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
-	
-	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
+	z8530_grab();
 }
 
 /** Process z8530 interrupt.
