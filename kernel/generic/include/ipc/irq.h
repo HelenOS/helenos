@@ -38,9 +38,6 @@
 /** Maximum length of IPC IRQ program */
 #define IRQ_MAX_PROG_SIZE 10
 
-#define VIRT_INR_KLOG		-2
-#define VIRT_INR_KBDRESTART	-3
-
 typedef enum {
 	CMD_MEM_READ_1 = 0,
 	CMD_MEM_READ_2,

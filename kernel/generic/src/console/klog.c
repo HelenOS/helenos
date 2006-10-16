@@ -40,6 +40,14 @@
 #include <ddi/irq.h>
 #include <ipc/irq.h>
 
+/*
+ * For now, we use 0 as INR.
+ * However, on some architectures 0 is the clock interrupt (e.g. amd64 and ia32).
+ * It is therefore desirable to have architecture specific definition of KLOG_VIRT_INR
+ * in the future.
+ */
+#define KLOG_VIRT_INR	0
+
 /* Order of frame to be allocated for klog communication */
 #define KLOG_ORDER	0
 
@@ -74,11 +82,11 @@ void klog_init(void)
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t)faddr);
 	sysinfo_set_item_val("klog.pages", NULL, 1 << KLOG_ORDER);
 	sysinfo_set_item_val("klog.devno", NULL, devno);
-	sysinfo_set_item_val("klog.inr", NULL, VIRT_INR_KLOG); 
+	sysinfo_set_item_val("klog.inr", NULL, KLOG_VIRT_INR);
 
 	irq_initialize(&klog_irq);
 	klog_irq.devno = devno;
-	klog_irq.inr = VIRT_INR_KLOG;
+	klog_irq.inr = KLOG_VIRT_INR;
 	klog_irq.claim = klog_claim;
 	irq_register(&klog_irq);
 
