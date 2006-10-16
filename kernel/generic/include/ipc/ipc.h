@@ -155,8 +155,7 @@
 
 #ifdef KERNEL
 
-#include <synch/mutex.h>
-#include <synch/condvar.h>
+#include <synch/waitq.h>
 #include <adt/list.h>
 
 #define IPC_MAX_PHONES  16

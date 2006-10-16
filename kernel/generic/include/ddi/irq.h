@@ -36,10 +36,9 @@
 #define KERN_IRQ_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
 #include <ipc/irq.h>
-#include <atomic.h>
 #include <synch/spinlock.h>
 
 typedef enum {
@@ -51,8 +50,6 @@ typedef enum {
 	IRQ_TRIGGER_LEVEL = 1,
 	IRQ_TRIGGER_EDGE
 } irq_trigger_t;
-
-typedef struct irq irq_t;
 
 typedef void (* irq_handler_t)(irq_t *irq, void *arg, ...);
 
@@ -87,15 +84,8 @@ struct irq {
 	/** Argument for the handler. */
 	void *arg;
 
-	/** Answerbox of the task that wanted to be notified. */
-	answerbox_t *notif_answerbox;
-	/** Pseudo-code to be performed by the top-half
-	 *  before a notification is sent. */
-	irq_code_t *code;
-	/** Method of the notification. */
-	unative_t method;
-	/** Counter of IRQ notifications. */
-	atomic_t counter;
+	/** Notification configuration structure. */
+	ipc_notif_cfg_t notif_cfg; 
 };
 
 extern void irq_init(count_t inrs, count_t chains);

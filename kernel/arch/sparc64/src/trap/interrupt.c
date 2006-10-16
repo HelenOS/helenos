@@ -39,7 +39,6 @@
 #include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
-#include <ipc/sysipc.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <print.h>
@@ -47,12 +46,6 @@
 #include <mm/tlb.h>
 #include <config.h>
 #include <synch/spinlock.h>
-
-/*
- * To be removed once we get rid of the dependency in ipc_irq_bind_arch().
- */
-#include <arch/drivers/kbd.h>
-#include <genarch/kbd/z8530.h>
 
 /** Register Interrupt Level Handler.
  *
@@ -65,15 +58,6 @@ void interrupt_register(int n, const char *name, iroutine f)
 	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
 	
 	exc_register(n - 1, name, f);
-}
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(unative_t irq)
-{
-#ifdef CONFIG_Z8530
-	if (kbd_type == KBD_Z8530)
-		z8530_belongs_to_kernel = false;
-#endif
 }
 
 /** Process hardware interrupt.

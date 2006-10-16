@@ -636,7 +636,7 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	amsg_t *msg;
 
 	if (in_interrupt_handler) {
-		printf("Cannot send asynchronou request in interrupt handler.\n");
+		printf("Cannot send asynchronous request in interrupt handler.\n");
 		_exit(1);
 	}
 
@@ -662,7 +662,7 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	amsg_t *msg;
 
 	if (in_interrupt_handler) {
-		printf("Cannot send asynchronou request in interrupt handler.\n");
+		printf("Cannot send asynchronous request in interrupt handler.\n");
 		_exit(1);
 	}
 

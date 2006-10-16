@@ -565,30 +565,34 @@ restart:
 	return (unative_t)call;
 }
 
-/** Connect irq handler to task */
-unative_t sys_ipc_register_irq(int irq, irq_code_t *ucode)
+/** Connect irq handler to task.
+ *
+ * @param inr IRQ number.
+ * @param devno Device number.
+ * @param method Method to be associated with the notification.
+ * @param ucode Uspace pointer to the top-half pseudocode.
+ *
+ * @return EPERM or a return code returned by ipc_irq_register().
+ */
+unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
-	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
-		return (unative_t) ELIMIT;
-	
-	irq_ipc_bind_arch(irq);
-
-	return ipc_irq_register(&TASK->answerbox, irq, ucode);
+	return ipc_irq_register(&TASK->answerbox, inr, devno, method, ucode);
 }
 
-/* Disconnect irq handler from task */
-unative_t sys_ipc_unregister_irq(int irq)
+/** Disconnect irq handler from task.
+ *
+ * @param inr IRQ number.
+ * @param devno Device number.
+ */
+unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 
-	if (irq >= IRQ_COUNT || irq <= -IPC_IRQ_RESERVED_VIRTUAL)
-		return (unative_t) ELIMIT;
-
-	ipc_irq_unregister(&TASK->answerbox, irq);
+	ipc_irq_unregister(&TASK->answerbox, inr, devno);
 
 	return 0;
 }

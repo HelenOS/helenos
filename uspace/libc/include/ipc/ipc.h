@@ -83,8 +83,8 @@ extern void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
 extern int ipc_connect_me_to(int phoneid, int arg1, int arg2);
 extern int ipc_hangup(int phoneid);
-extern int ipc_register_irq(int irq, irq_code_t *code);
-extern int ipc_unregister_irq(int irq);
+extern int ipc_register_irq(int inr, int devno, int method, irq_code_t *code);
+extern int ipc_unregister_irq(int inr, int devno);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
 
 #endif

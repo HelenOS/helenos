@@ -440,14 +440,10 @@ restart_phones:
 }
 
 
-/** Initilize ipc subsystem */
+/** Initilize IPC subsystem */
 void ipc_init(void)
 {
-	ipc_call_slab = slab_cache_create("ipc_call",
-					  sizeof(call_t),
-					  0,
-					  NULL, NULL, 0);
-	ipc_irq_make_table(IRQ_COUNT);
+	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL, NULL, 0);
 }
 
 

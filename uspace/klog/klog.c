@@ -40,6 +40,7 @@
 #include <ipc/services.h>
 #include <as.h>
 #include <kernel/ipc/irq.h>
+#include <sysinfo.h>
 
 /* Pointer to klog area */
 static char *klog;
@@ -72,7 +73,9 @@ int main(int argc, char *argv[])
 	}
 	klog = mapping;
 
-	if (ipc_register_irq(IPC_IRQ_KLOG, NULL)) {
+	int inr = sysinfo_value("klog.inr");
+	int devno = sysinfo_value("klog.devno");
+	if (ipc_register_irq(inr, devno, 0, NULL)) {
 		printf("Error registering for klog service.\n");
 		return 0;
 	}

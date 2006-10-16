@@ -802,7 +802,8 @@ int cmd_continue(cmd_arg_t *argv)
 	printf("The kernel will now relinquish the console.\n");
 	printf("Use userspace controls to redraw the screen.\n");
 	arch_release_console();
-	ipc_irq_send_msg(IPC_IRQ_KBDRESTART, 0, 0, 0);
+	/* TODO: send some vitual IRQ */
+	ipc_irq_send_msg(NULL, 0, 0, 0);
 	return 1;
 }
 

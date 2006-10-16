@@ -36,16 +36,22 @@
 #include <sysinfo/sysinfo.h>
 #include <console/klog.h>
 #include <print.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
 #include <ipc/irq.h>
 
 /* Order of frame to be allocated for klog communication */
-#define KLOG_ORDER 0
+#define KLOG_ORDER	0
 
 static char *klog;
 static int klogsize;
 static int klogpos;
 
 SPINLOCK_INITIALIZE(klog_lock);
+
+static irq_t klog_irq;
+
+static irq_ownership_t klog_claim(void);
 
 /** Initialize kernel logging facility
  *
@@ -63,11 +69,32 @@ void klog_init(void)
 		panic("Cannot allocate page for klog");
 	klog = (char *)PA2KA(faddr);
 	
+	devno_t devno = device_assign_devno();
+	
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t)faddr);
 	sysinfo_set_item_val("klog.pages", NULL, 1 << KLOG_ORDER);
+	sysinfo_set_item_val("klog.devno", NULL, devno);
+	sysinfo_set_item_val("klog.inr", NULL, VIRT_INR_KLOG); 
+
+	irq_initialize(&klog_irq);
+	klog_irq.devno = devno;
+	klog_irq.inr = VIRT_INR_KLOG;
+	klog_irq.claim = klog_claim;
+	irq_register(&klog_irq);
 
 	klogsize = PAGE_SIZE << KLOG_ORDER;
 	klogpos = 0;
+}
+
+/** Allways refuse IRQ ownership.
+ *
+ * This is not a real IRQ, so we always decline.
+ *
+ * @return Always returns IRQ_DECLINE.
+ */
+irq_ownership_t klog_claim(void)
+{
+	return IRQ_DECLINE;
 }
 
 static void klog_vprintf(const char *fmt, va_list args)
@@ -84,7 +111,7 @@ static void klog_vprintf(const char *fmt, va_list args)
 		if (ret >= klogsize)
 			goto out;
 	}
-	ipc_irq_send_msg(IPC_IRQ_KLOG, klogpos, ret, 0);
+	ipc_irq_send_msg(&klog_irq, klogpos, ret, 0);
 	klogpos += ret;
 	if (klogpos >= klogsize)
 		klogpos = 0;

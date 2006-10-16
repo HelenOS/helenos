@@ -97,6 +97,8 @@ typedef struct btree btree_t;
 
 typedef signed int inr_t;
 typedef signed int devno_t;
+typedef struct irq irq_t;
+typedef struct ipc_notif_cfg ipc_notif_cfg_t;
 
 #endif
 

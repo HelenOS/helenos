@@ -40,6 +40,7 @@
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/z8530.h>
 #include <ddi/irq.h>
+#include <ipc/irq.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/kbd.h>
 #include <arch/drivers/fhc.h>
@@ -58,8 +59,6 @@
  */
 #define IGNORE_CODE	0x7f		/* all keys up */
 
-bool z8530_belongs_to_kernel = true;
-
 static z8530_t z8530;		/**< z8530 device structure. */
 static irq_t z8530_irq;		/**< z8530's IRQ. */ 
 
@@ -72,18 +71,14 @@ static chardev_operations_t ops = {
 	.read = z8530_key_read
 };
 
-void z8530_wait(void);
-
-/** Initialize keyboard and service interrupts using kernel routine */
+/** Initialize keyboard and service interrupts using kernel routine. */
 void z8530_grab(void)
 {
-	z8530_belongs_to_kernel = true;
 }
 
-/** Resume the former interrupt vector */
+/** Resume the former IPC notification behavior. */
 void z8530_release(void)
 {
-	z8530_belongs_to_kernel = false;
 }
 
 /** Initialize z8530. */
@@ -131,10 +126,6 @@ void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 void z8530_interrupt(void)
 {
 	z8530_poll();
-}
-
-/** Wait until the controller reads its data. */
-void z8530_wait(void) {
 }
 
 /* Called from getc(). */
@@ -194,15 +185,15 @@ void z8530_irq_handler(irq_t *irq, void *arg, ...)
 {
 	/*
 	 * So far, we know we got this interrupt through the FHC.
-	 * Since we don't have enough information about the FHC and
-	 * because the interrupt looks like level sensitive,
+	 * Since we don't have enough documentation about the FHC
+	 * and because the interrupt looks like level sensitive,
 	 * we cannot handle it by scheduling one of the level
 	 * interrupt traps. Process the interrupt directly.
 	 */
-	if (z8530_belongs_to_kernel)
-		z8530_interrupt();
+	if (irq->notif_cfg.answerbox)
+		ipc_irq_send_notif(irq);
 	else
-		ipc_irq_send_notif(0);
+		z8530_interrupt();
 	fhc_clear_interrupt(central_fhc, irq->inr);
 }
 

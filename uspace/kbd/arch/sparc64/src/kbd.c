@@ -58,7 +58,7 @@ irq_code_t z8530_kbd = {
 int kbd_arch_init(void)
 {
 	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
-	ipc_register_irq(sysinfo_value("kbd.irq"), &z8530_kbd);
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &z8530_kbd);
 	return 0;
 }
 

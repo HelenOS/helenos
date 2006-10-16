@@ -449,14 +449,30 @@ int ipc_hangup(int phoneid)
 	return __SYSCALL1(SYS_IPC_HANGUP, phoneid);
 }
 
-int ipc_register_irq(int irq, irq_code_t *ucode)
+/** Register IRQ notification.
+ *
+ * @param inr IRQ number.
+ * @param devno Device number of the device generating inr.
+ * @param method Use this method for notifying me.
+ * @param ucode Top-half pseudocode handler.
+ *
+ * @return Value returned by the kernel.
+ */
+int ipc_register_irq(int inr, int devno, int method, irq_code_t *ucode)
 {
-	return __SYSCALL2(SYS_IPC_REGISTER_IRQ, irq, (sysarg_t) ucode);
+	return __SYSCALL4(SYS_IPC_REGISTER_IRQ, inr, devno, method, (sysarg_t) ucode);
 }
 
-int ipc_unregister_irq(int irq)
+/** Unregister IRQ notification.
+ *
+ * @param inr IRQ number.
+ * @param devno Device number of the device generating inr.
+ *
+ * @return Value returned by the kernel.
+ */
+int ipc_unregister_irq(int inr, int devno)
 {
-	return __SYSCALL1(SYS_IPC_UNREGISTER_IRQ, irq);
+	return __SYSCALL2(SYS_IPC_UNREGISTER_IRQ, inr, devno);
 }
 
 int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1)

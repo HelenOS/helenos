@@ -38,6 +38,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <arch/types.h>
+#include <typedefs.h>
 
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
 				unative_t arg1, ipc_data_t *data);
@@ -53,8 +54,8 @@ unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int nonbloc
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 			      unative_t method, unative_t arg1);
 unative_t sys_ipc_hangup(int phoneid);
-unative_t sys_ipc_register_irq(int irq, irq_code_t *ucode);
-unative_t sys_ipc_unregister_irq(int irq);
+unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode);
+unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno);
 
 #endif
 

@@ -38,11 +38,8 @@
 /** Maximum length of IPC IRQ program */
 #define IRQ_MAX_PROG_SIZE 10
 
-/** Reserved 'virtual' messages for kernel notifications */
-#define IPC_IRQ_RESERVED_VIRTUAL 10
-
-#define IPC_IRQ_KLOG       (-1)
-#define IPC_IRQ_KBDRESTART (-2)
+#define VIRT_INR_KLOG		-2
+#define VIRT_INR_KBDRESTART	-3
 
 typedef enum {
 	CMD_MEM_READ_1 = 0,
@@ -75,13 +72,26 @@ typedef struct {
 #ifdef KERNEL
 
 #include <ipc/ipc.h>
+#include <typedefs.h>
+#include <arch/types.h>
 
-extern void ipc_irq_make_table(int irqcount);
-extern int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode);
-extern void ipc_irq_send_notif(int irq);
-extern void ipc_irq_send_msg(int irq, unative_t a1, unative_t a2, unative_t a3);
-extern void ipc_irq_unregister(answerbox_t *box, int irq);
-extern void irq_ipc_bind_arch(unative_t irq);
+/** IPC notification config structure.
+ *
+ * Primarily, this structure is encapsulated in the irq_t structure.
+ * It is protected by irq_t::lock.
+ */
+struct ipc_notif_cfg {
+	answerbox_t *answerbox;		/**< Answerbox for notifications. */
+	unative_t method;		/**< Method to be used for the notification. */
+	irq_code_t *code;		/**< Top-half pseudocode. */
+	count_t counter;		/**< Counter. */
+};
+
+extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method,
+	irq_code_t *ucode);
+extern void ipc_irq_send_notif(irq_t *irq);
+extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3);
+extern void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno);
 extern void ipc_irq_cleanup(answerbox_t *box);
 
 #endif

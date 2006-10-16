@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,10 +40,10 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - METHOD: interrupt number
+ * - METHOD: method as registered by the SYS_IPC_REGISTER_IRQ syscall
  * - ARG1: payload modified by a 'top-half' handler
- * - ARG2: payload
- * - ARG3: payload
+ * - ARG2: payload modified by a 'top-half' handler
+ * - ARG3: payload modified by a 'top-half' handler
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *         in multithreaded drivers)
  */
@@ -50,26 +51,18 @@
 #include <arch.h>
 #include <mm/slab.h>
 #include <errno.h>
+#include <ddi/irq.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
-#include <atomic.h>
 #include <syscall/copy.h>
 #include <console/console.h>
 #include <print.h>
 
-typedef struct {
-	SPINLOCK_DECLARE(lock);
-	answerbox_t *box;
-	irq_code_t *code;
-	atomic_t counter;
-} ipc_irq_t;
-
-
-static ipc_irq_t *irq_conns = NULL;
-static int irq_conns_size;
-
-
-/* Execute code associated with IRQ notification */
+/** Execute code associated with IRQ notification.
+ *
+ * @param call Notification call.
+ * @param code Top-half pseudocode.
+ */
 static void code_execute(call_t *call, irq_code_t *code)
 {
 	int i;
@@ -168,32 +161,48 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 	return code;
 }
 
-/** Unregister task from irq */
-void ipc_irq_unregister(answerbox_t *box, int irq)
+/** Unregister task from IRQ notification.
+ *
+ * @param box Answerbox associated with the notification.
+ * @param inr IRQ numbe.
+ * @param devno Device number.
+ */
+void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
 	ipl_t ipl;
-	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
+	irq_t *irq;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[mq].lock);
-	if (irq_conns[mq].box == box) {
-		irq_conns[mq].box = NULL;
-		code_free(irq_conns[mq].code);
-		irq_conns[mq].code = NULL;
+	irq = irq_find_and_lock(inr, devno);
+	if (irq) {
+		if (irq->notif_cfg.answerbox == box) {
+			code_free(irq->notif_cfg.code);
+			irq->notif_cfg.code = NULL;
+			irq->notif_cfg.answerbox = NULL;
+			irq->notif_cfg.method = 0;
+			irq->notif_cfg.counter = 0;
+			spinlock_unlock(&irq->lock);
+		}
 	}
-
-	spinlock_unlock(&irq_conns[mq].lock);
 	interrupts_restore(ipl);
 }
 
-/** Register an answerbox as a receiving end of interrupts notifications */
-int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
+/** Register an answerbox as a receiving end for IRQ notifications.
+ *
+ * @param box Receiving answerbox.
+ * @param inr IRQ number.
+ * @param devno Device number.
+ * @param method Method to be associated with the notification.
+ * @param ucode Uspace pointer to top-half pseudocode.
+ *
+ * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ */
+int
+ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode)
 {
 	ipl_t ipl;
 	irq_code_t *code;
-	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
-
-	ASSERT(irq_conns);
+	irq_t *irq;
 
 	if (ucode) {
 		code = code_from_uspace(ucode);
@@ -203,135 +212,107 @@ int ipc_irq_register(answerbox_t *box, int irq, irq_code_t *ucode)
 		code = NULL;
 
 	ipl = interrupts_disable();
-	spinlock_lock(&irq_conns[mq].lock);
-
-	if (irq_conns[mq].box) {
-		spinlock_unlock(&irq_conns[mq].lock);
+	irq = irq_find_and_lock(inr, devno);
+	if (!irq) {
+		interrupts_restore(ipl);
+		code_free(code);
+		return ENOENT;
+	}
+	
+	if (irq->notif_cfg.answerbox) {
+		spinlock_unlock(&irq->lock);
 		interrupts_restore(ipl);
 		code_free(code);
 		return EEXISTS;
 	}
-	irq_conns[mq].box = box;
-	irq_conns[mq].code = code;
-	atomic_set(&irq_conns[mq].counter, 0);
-	spinlock_unlock(&irq_conns[mq].lock);
+	
+	irq->notif_cfg.answerbox = box;
+	irq->notif_cfg.method = method;
+	irq->notif_cfg.code = code;
+	irq->notif_cfg.counter = 0;
+	spinlock_unlock(&irq->lock);
 	interrupts_restore(ipl);
 
 	return 0;
 }
 
-/** Add call to proper answerbox queue
+/** Add call to proper answerbox queue.
  *
- * Assume irq_conns[mq].lock is locked */
-static void send_call(int mq, call_t *call)
+ * Assume irq->lock is locked.
+ *
+ */
+static void send_call(irq_t *irq, call_t *call)
 {
-	spinlock_lock(&irq_conns[mq].box->irq_lock);
-	list_append(&call->link, &irq_conns[mq].box->irq_notifs);
-	spinlock_unlock(&irq_conns[mq].box->irq_lock);
+	spinlock_lock(&irq->notif_cfg.answerbox->irq_lock);
+	list_append(&call->link, &irq->notif_cfg.answerbox->irq_notifs);
+	spinlock_unlock(&irq->notif_cfg.answerbox->irq_lock);
 		
-	waitq_wakeup(&irq_conns[mq].box->wq, 0);
+	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
 }
 
 /** Send notification message
  *
  */
-void ipc_irq_send_msg(int irq, unative_t a1, unative_t a2, unative_t a3)
+void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
 {
 	call_t *call;
-	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
 
-	spinlock_lock(&irq_conns[mq].lock);
+	spinlock_lock(&irq->lock);
 
-	if (irq_conns[mq].box) {
+	if (irq->notif_cfg.answerbox) {
 		call = ipc_call_alloc(FRAME_ATOMIC);
 		if (!call) {
-			spinlock_unlock(&irq_conns[mq].lock);
+			spinlock_unlock(&irq->lock);
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
-		IPC_SET_METHOD(call->data, irq);
+		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
 		/* Put a counter to the message */
-		call->private = atomic_preinc(&irq_conns[mq].counter);
+		call->private = ++irq->notif_cfg.counter;
 		
-		send_call(mq, call);
+		send_call(irq, call);
 	}
-	spinlock_unlock(&irq_conns[mq].lock);
+	spinlock_unlock(&irq->lock);
 }
 
 /** Notify task that an irq had occurred.
  *
- * We expect interrupts to be disabled
+ * We expect interrupts to be disabled and the irq->lock already held.
  */
-void ipc_irq_send_notif(int irq)
+void ipc_irq_send_notif(irq_t *irq)
 {
 	call_t *call;
-	int mq = irq + IPC_IRQ_RESERVED_VIRTUAL;
 
-	ASSERT(irq_conns);
-	spinlock_lock(&irq_conns[mq].lock);
+	ASSERT(irq);
 
-	if (irq_conns[mq].box) {
+	if (irq->notif_cfg.answerbox) {
 		call = ipc_call_alloc(FRAME_ATOMIC);
 		if (!call) {
-			spinlock_unlock(&irq_conns[mq].lock);
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
 		/* Put a counter to the message */
-		call->private = atomic_preinc(&irq_conns[mq].counter);
+		call->private = ++irq->notif_cfg.counter;
 		/* Set up args */
-		IPC_SET_METHOD(call->data, irq);
+		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
 
 		/* Execute code to handle irq */
-		code_execute(call, irq_conns[mq].code);
+		code_execute(call, irq->notif_cfg.code);
 		
-		send_call(mq, call);
-	}
-		
-	spinlock_unlock(&irq_conns[mq].lock);
-}
-
-
-/** Initialize table of interrupt handlers
- *
- * @param irqcount Count of required hardware IRQs to be supported
- */
-void ipc_irq_make_table(int irqcount)
-{
-	int i;
-
-	irqcount +=  IPC_IRQ_RESERVED_VIRTUAL;
-
-	irq_conns_size = irqcount;
-	irq_conns = malloc(irqcount * (sizeof(*irq_conns)), 0);
-	for (i=0; i < irqcount; i++) {
-		spinlock_initialize(&irq_conns[i].lock, "irq_ipc_lock");
-		irq_conns[i].box = NULL;
-		irq_conns[i].code = NULL;
+		send_call(irq, call);
 	}
 }
 
-/** Disconnect all irq's notifications
+/** Disconnect all IRQ notifications from an answerbox.
  *
- * @todo It may be better to do some linked list, so that
- *       we wouldn't need to go through whole array every cleanup
+ * @param box Answerbox for which we want to carry out the cleanup.
  */
 void ipc_irq_cleanup(answerbox_t *box)
 {
-	int i;
-	ipl_t ipl;
-	
-	for (i=0; i < irq_conns_size; i++) {
-		ipl = interrupts_disable();
-		spinlock_lock(&irq_conns[i].lock);
-		if (irq_conns[i].box == box)
-			irq_conns[i].box = NULL;
-		spinlock_unlock(&irq_conns[i].lock);
-		interrupts_restore(ipl);
-	}
+	/* TODO */
 }
 
 /** @}

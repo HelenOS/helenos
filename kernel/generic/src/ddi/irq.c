@@ -71,7 +71,6 @@
 #include <arch/types.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <atomic.h>
 #include <arch.h>
 
 #define KEY_INR		0
@@ -146,10 +145,10 @@ void irq_initialize(irq_t *irq)
 	irq->claim = NULL;
 	irq->handler = NULL;
 	irq->arg = NULL;
-	irq->notif_answerbox = NULL;
-	irq->code = NULL;
-	irq->method = 0;
-	atomic_set(&irq->counter, 0);
+	irq->notif_cfg.answerbox = NULL;
+	irq->notif_cfg.code = NULL;
+	irq->notif_cfg.method = 0;
+	irq->notif_cfg.counter = 0;
 }
 
 /** Register IRQ for device.
