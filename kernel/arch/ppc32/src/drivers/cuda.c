@@ -64,9 +64,6 @@
 static volatile uint8_t *cuda = NULL;
 static irq_t cuda_irq;		/**< Cuda's IRQ. */
 
-static ipc_notif_cfg_t saved_notif_cfg;
-
-
 static char lchars[0x80] = {
 	'a',
 	's',
@@ -254,7 +251,7 @@ int cuda_get_scancode(void)
 
 static void cuda_irq_handler(irq_t *irq, void *arg, ...)
 {
-	if (irq->notif_cfg.answerbox)
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);
 	else {
 		int scan_code = cuda_get_scancode();
@@ -276,21 +273,15 @@ static irq_ownership_t cuda_claim(void)
 /** Initialize keyboard and service interrupts using kernel routine */
 void cuda_grab(void)
 {
-	if (cuda_irq.notif_cfg.answerbox) {
-		saved_notif_cfg = cuda_irq.notif_cfg;
-		cuda_irq.notif_cfg.answerbox = NULL;
-		cuda_irq.notif_cfg.code = NULL;
-		cuda_irq.notif_cfg.method = 0;
-		cuda_irq.notif_cfg.counter = 0;
-	}
+	cuda_irq.notif_cfg.notify = false;
 }
 
 
 /** Resume the former interrupt vector */
 void cuda_release(void)
 {
-	if (saved_notif_cfg.answerbox)
-		cuda_irq.notif_cfg = saved_notif_cfg;
+	if (cuda_irq.notif_cfg.answerbox)
+		cuda_irq.notif_cfg.notify = true;
 }
 
 

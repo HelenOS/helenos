@@ -176,11 +176,12 @@ void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 	irq = irq_find_and_lock(inr, devno);
 	if (irq) {
 		if (irq->notif_cfg.answerbox == box) {
-			code_free(irq->notif_cfg.code);
-			irq->notif_cfg.code = NULL;
+			irq->notif_cfg.notify = false;
 			irq->notif_cfg.answerbox = NULL;
+			irq->notif_cfg.code = NULL;
 			irq->notif_cfg.method = 0;
 			irq->notif_cfg.counter = 0;
+			code_free(irq->notif_cfg.code);
 			spinlock_unlock(&irq->lock);
 		}
 	}
@@ -226,6 +227,7 @@ ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, i
 		return EEXISTS;
 	}
 	
+	irq->notif_cfg.notify = true;
 	irq->notif_cfg.answerbox = box;
 	irq->notif_cfg.method = method;
 	irq->notif_cfg.code = code;

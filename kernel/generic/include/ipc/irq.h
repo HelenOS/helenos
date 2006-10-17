@@ -78,6 +78,7 @@ typedef struct {
  * It is protected by irq_t::lock.
  */
 struct ipc_notif_cfg {
+	bool notify;			/**< When false, notifications are not sent. */
 	answerbox_t *answerbox;		/**< Answerbox for notifications. */
 	unative_t method;		/**< Method to be used for the notification. */
 	irq_code_t *code;		/**< Top-half pseudocode. */

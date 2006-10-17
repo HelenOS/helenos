@@ -61,8 +61,6 @@ static ns16550_t ns16550;
 /** Structure for ns16550's IRQ. */
 static irq_t ns16550_irq;
 
-static ipc_notif_cfg_t saved_notif_cfg;
-
 /*
  * These codes read from ns16550 data register are silently ignored.
  */
@@ -87,20 +85,14 @@ void ns16550_grab(void)
 	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
 		(void) ns16550_rbr_read(&ns16550);
 
-	if (ns16550_irq.notif_cfg.answerbox) {
-		saved_notif_cfg = ns16550_irq.notif_cfg;
-		ns16550_irq.notif_cfg.answerbox = NULL;
-		ns16550_irq.notif_cfg.code = NULL;
-		ns16550_irq.notif_cfg.method = 0;
-		ns16550_irq.notif_cfg.counter = 0;
-	}
+	ns16550_irq.notif_cfg.notify = false;
 }
 
 /** Resume the former interrupt vector */
 void ns16550_release(void)
 {
-	if (saved_notif_cfg.answerbox)
-		ns16550_irq.notif_cfg = saved_notif_cfg;
+	if (ns16550_irq.notif_cfg.answerbox)
+		ns16550_irq.notif_cfg.notify = true;
 }
 
 /** Initialize ns16550.
@@ -183,7 +175,7 @@ void ns16550_poll(void)
 	spinlock_lock(&ns16550_irq.lock);
 
 	if (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
-		if (ns16550_irq.notif_cfg.answerbox) {
+		if (ns16550_irq.notif_cfg.notify && ns16550_irq.notif_cfg.answerbox) {
 			/*
 			 * Send IPC notification.
 			 */

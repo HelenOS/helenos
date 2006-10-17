@@ -62,8 +62,6 @@
 static z8530_t z8530;		/**< z8530 device structure. */
 static irq_t z8530_irq;		/**< z8530's IRQ. */ 
 
-static ipc_notif_cfg_t saved_notif_cfg;
-
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
 
@@ -91,20 +89,14 @@ void z8530_grab(void)
 	
 	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
 	
-	if (z8530_irq.notif_cfg.answerbox) {
-		saved_notif_cfg = z8530_irq.notif_cfg;
-		z8530_irq.notif_cfg.answerbox = NULL;
-		z8530_irq.notif_cfg.code = NULL;
-		z8530_irq.notif_cfg.method = 0;
-		z8530_irq.notif_cfg.counter = 0;
-	}
+	z8530_irq.notif_cfg.notify = false;
 }
 
 /** Resume the former IPC notification behavior. */
 void z8530_release(void)
 {
-	if (saved_notif_cfg.answerbox)
-		z8530_irq.notif_cfg = saved_notif_cfg;
+	if (z8530_irq.notif_cfg.answerbox)
+		z8530_irq.notif_cfg.notify = true;
 }
 
 /** Initialize z8530. */
@@ -204,7 +196,7 @@ void z8530_irq_handler(irq_t *irq, void *arg, ...)
 	 * we cannot handle it by scheduling one of the level
 	 * interrupt traps. Process the interrupt directly.
 	 */
-	if (irq->notif_cfg.answerbox)
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);
 	else
 		z8530_interrupt();
