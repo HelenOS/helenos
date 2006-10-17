@@ -108,6 +108,7 @@ void ipc_answerbox_init(answerbox_t *box)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
+	list_initialize(&box->irq_head);
 	box->task = TASK;
 }
 

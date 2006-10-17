@@ -176,12 +176,17 @@ void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 	irq = irq_find_and_lock(inr, devno);
 	if (irq) {
 		if (irq->notif_cfg.answerbox == box) {
+			code_free(irq->notif_cfg.code);
 			irq->notif_cfg.notify = false;
 			irq->notif_cfg.answerbox = NULL;
 			irq->notif_cfg.code = NULL;
 			irq->notif_cfg.method = 0;
 			irq->notif_cfg.counter = 0;
-			code_free(irq->notif_cfg.code);
+
+			spinlock_lock(&box->irq_lock);
+			list_remove(&irq->notif_cfg.link);
+			spinlock_unlock(&box->irq_lock);
+			
 			spinlock_unlock(&irq->lock);
 		}
 	}
@@ -198,8 +203,7 @@ void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
  *
  * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
  */
-int
-ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode)
+int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode)
 {
 	ipl_t ipl;
 	irq_code_t *code;
@@ -232,6 +236,11 @@ ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, i
 	irq->notif_cfg.method = method;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
+
+	spinlock_lock(&box->irq_lock);
+	list_append(&irq->notif_cfg.link, &box->irq_head);
+	spinlock_unlock(&box->irq_lock);
+
 	spinlock_unlock(&irq->lock);
 	interrupts_restore(ipl);
 
@@ -310,11 +319,54 @@ void ipc_irq_send_notif(irq_t *irq)
 
 /** Disconnect all IRQ notifications from an answerbox.
  *
+ * This function is effective because the answerbox contains
+ * list of all irq_t structures that are registered to
+ * send notifications to it.
+ *
  * @param box Answerbox for which we want to carry out the cleanup.
  */
 void ipc_irq_cleanup(answerbox_t *box)
 {
-	/* TODO */
+	ipl_t ipl;
+	
+loop:
+	ipl = interrupts_disable();
+	spinlock_lock(&box->irq_lock);
+	
+	while (box->irq_head.next != &box->irq_head) {
+		link_t *cur = box->irq_head.next;
+		irq_t *irq;
+		
+		irq = list_get_instance(cur, irq_t, notif_cfg.link);
+		if (!spinlock_trylock(&irq->lock)) {
+			/*
+			 * Avoid deadlock by trying again.
+			 */
+			spinlock_unlock(&box->irq_lock);
+			interrupts_restore(ipl);
+			goto loop;
+		}
+		
+		ASSERT(irq->notif_cfg.answerbox == box);
+		
+		list_remove(&irq->notif_cfg.link);
+		
+		/*
+		 * Don't forget to free any top-half pseudocode.
+		 */
+		code_free(irq->notif_cfg.code);
+		
+		irq->notif_cfg.notify = false;
+		irq->notif_cfg.answerbox = NULL;
+		irq->notif_cfg.code = NULL;
+		irq->notif_cfg.method = 0;
+		irq->notif_cfg.counter = 0;
+
+		spinlock_unlock(&irq->lock);
+	}
+	
+	spinlock_unlock(&box->irq_lock);
+	interrupts_restore(ipl);
 }
 
 /** @}

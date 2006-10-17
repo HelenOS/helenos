@@ -145,10 +145,12 @@ void irq_initialize(irq_t *irq)
 	irq->claim = NULL;
 	irq->handler = NULL;
 	irq->arg = NULL;
+	irq->notif_cfg.notify = false;
 	irq->notif_cfg.answerbox = NULL;
 	irq->notif_cfg.code = NULL;
 	irq->notif_cfg.method = 0;
 	irq->notif_cfg.counter = 0;
+	link_initialize(&irq->notif_cfg.link);
 }
 
 /** Register IRQ for device.

@@ -71,6 +71,7 @@ typedef struct {
 #include <ipc/ipc.h>
 #include <typedefs.h>
 #include <arch/types.h>
+#include <adt/list.h>
 
 /** IPC notification config structure.
  *
@@ -83,6 +84,9 @@ struct ipc_notif_cfg {
 	unative_t method;		/**< Method to be used for the notification. */
 	irq_code_t *code;		/**< Top-half pseudocode. */
 	count_t counter;		/**< Counter. */
+	link_t link;			/**< Link between IRQs that are notifying the
+					     same answerbox. The list is protected by
+					     the answerbox irq_lock. */
 };
 
 extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method,

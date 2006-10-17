@@ -174,14 +174,15 @@ struct answerbox_s {
 
 	waitq_t wq;
 
-	link_t connected_phones; /**< Phones connected to this answerbox */
-	link_t calls;            /**< Received calls */
-	link_t dispatched_calls; /* Should be hash table in the future */
+	link_t connected_phones;	/**< Phones connected to this answerbox */
+	link_t calls;			/**< Received calls */
+	link_t dispatched_calls;	/* Should be hash table in the future */
 
-	link_t answers;          /**< Answered calls */
+	link_t answers;			/**< Answered calls */
 
 	SPINLOCK_DECLARE(irq_lock);
-	link_t irq_notifs;       /**< Notifications from IRQ handlers */
+	link_t irq_notifs;       	/**< Notifications from IRQ handlers */
+	link_t irq_head;		/**< IRQs with notifications to this answerbox. */
 };
 
 typedef enum {
