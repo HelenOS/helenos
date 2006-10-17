@@ -124,6 +124,7 @@ void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 	irq_register(&z8530_irq);
 
 	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);

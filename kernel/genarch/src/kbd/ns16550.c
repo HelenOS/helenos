@@ -38,9 +38,10 @@
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
+#include <arch/drivers/kbd.h>
 #include <arch/drivers/ns16550.h>
 #include <ddi/irq.h>
-#include <arch/interrupt.h>
+#include <ipc/irq.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -48,7 +49,9 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
+#include <arch/interrupt.h>
 #include <sysinfo/sysinfo.h>
+#include <synch/spinlock.h>
 
 #define LSR_DATA_READY	0x01
 
@@ -57,6 +60,8 @@ static ns16550_t ns16550;
 
 /** Structure for ns16550's IRQ. */
 static irq_t ns16550_irq;
+
+static ipc_notif_cfg_t saved_notif_cfg;
 
 /*
  * These codes read from ns16550 data register are silently ignored.
@@ -72,19 +77,30 @@ static chardev_operations_t ops = {
 	.read = ns16550_key_read
 };
 
-void ns16550_interrupt(int n, istate_t *istate);
-void ns16550_wait(void);
+void ns16550_interrupt(void);
 
 /** Initialize keyboard and service interrupts using kernel routine */
 void ns16550_grab(void)
 {
-	/* TODO */
+	ns16550_ier_write(&ns16550, IER_ERBFI);		/* enable receiver interrupt */
+	
+	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
+		(void) ns16550_rbr_read(&ns16550);
+
+	if (ns16550_irq.notif_cfg.answerbox) {
+		saved_notif_cfg = ns16550_irq.notif_cfg;
+		ns16550_irq.notif_cfg.answerbox = NULL;
+		ns16550_irq.notif_cfg.code = NULL;
+		ns16550_irq.notif_cfg.method = 0;
+		ns16550_irq.notif_cfg.counter = 0;
+	}
 }
 
 /** Resume the former interrupt vector */
 void ns16550_release(void)
 {
-	/* TODO */
+	if (saved_notif_cfg.answerbox)
+		ns16550_irq.notif_cfg = saved_notif_cfg;
 }
 
 /** Initialize ns16550.
@@ -95,7 +111,6 @@ void ns16550_release(void)
  */
 void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 {
-	ns16550_grab();
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
@@ -110,29 +125,21 @@ void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 	irq_register(&ns16550_irq);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
 	
-	ns16550_ier_write(&ns16550, IER_ERBFI);		/* enable receiver interrupt */
-	
-	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
-		(void) ns16550_rbr_read(&ns16550);
+	ns16550_grab();
 }
 
-/** Process ns16550 interrupt.
- *
- * @param n Interrupt vector.
- * @param istate Interrupted state.
- */
-void ns16550_interrupt(int n, istate_t *istate)
+/** Process ns16550 interrupt. */
+void ns16550_interrupt(void)
 {
-	/* TODO */
-}
-
-/** Wait until the controller reads its data. */
-void ns16550_wait(void)
-{
+	/* TODO
+	 *
+	 * ns16550 works in the polled mode so far.
+	 */
 }
 
 /* Called from getc(). */
@@ -170,9 +177,29 @@ char ns16550_key_read(chardev_t *d)
  */
 void ns16550_poll(void)
 {
-	uint8_t x;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&ns16550_irq.lock);
+
+	if (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
+		if (ns16550_irq.notif_cfg.answerbox) {
+			/*
+			 * Send IPC notification.
+			 */
+			ipc_irq_send_notif(&ns16550_irq);
+			spinlock_unlock(&ns16550_irq.lock);
+			interrupts_restore(ipl);
+			return;
+		}
+	}
+
+	spinlock_unlock(&ns16550_irq.lock);
+	interrupts_restore(ipl);
 
 	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
+		uint8_t x;
+		
 		x = ns16550_rbr_read(&ns16550);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
@@ -185,13 +212,12 @@ void ns16550_poll(void)
 
 irq_ownership_t ns16550_claim(void)
 {
-	/* TODO */
-	return IRQ_ACCEPT;
+	return (ns16550_lsr_read(&ns16550) & LSR_DATA_READY);
 }
 
 void ns16550_irq_handler(irq_t *irq, void *arg, ...)
 {
-	panic("Not yet implemented.\n");
+	panic("Not yet implemented, ns16550 works in polled mode.\n");
 }
 
 /** @}

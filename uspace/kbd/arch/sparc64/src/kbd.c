@@ -46,8 +46,14 @@
 #define KBD_KEY_RELEASE		0x80
 #define KBD_ALL_KEYS_UP		0x7f
 
+/** Top-half pseudocode for z8530. */
 irq_cmd_t z8530_cmds[] = {
-	{ CMD_MEM_READ_1, 0, 0, 1 }
+	{
+		CMD_MEM_READ_1,
+		0,			/**< Address. Will be patched in run-time. */
+		0,			/**< Value. Not used. */
+		1			/**< Arg 1 will contain the result. */
+	}
 };
 	
 irq_code_t z8530_kbd = {
@@ -55,10 +61,39 @@ irq_code_t z8530_kbd = {
 	z8530_cmds
 };
 
+/** Top-half pseudocode for ns16550. */
+irq_cmd_t ns16550_cmds[] = {
+	{
+		CMD_MEM_READ_1,
+		0,			/**< Address. Will be patched in run-time. */
+		0,			/**< Value. Not used. */
+		1			/**< Arg 1 will contain the result. */
+	}
+};
+	
+irq_code_t ns16550_kbd = {
+	1,
+	ns16550_cmds
+};
+
+#define KBD_Z8530	1
+#define KBD_NS16550	2
+
 int kbd_arch_init(void)
 {
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
-	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &z8530_kbd);
+	int type = sysinfo_value("kbd.type");
+	switch (type) {
+	case KBD_Z8530:
+		z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
+		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &z8530_kbd);
+		break;
+	case KBD_NS16550:
+		ns16550_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
+		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ns16550_kbd);
+		break;
+	default:
+		break;
+	}
 	return 0;
 }
 

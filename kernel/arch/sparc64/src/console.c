@@ -105,8 +105,12 @@ void kkbdpoll(void *arg)
 	thread_detach(THREAD);
 
 #ifdef CONFIG_Z8530
-	if (kbd_type == KBD_Z8530)
+	if (kbd_type == KBD_Z8530) {
+		/*
+		 * The z8530 driver is interrupt-driven.
+		 */
 		return;
+	}
 #endif
 
 	while (1) {
@@ -123,10 +127,20 @@ void kkbdpoll(void *arg)
  */
 void arch_grab_console(void)
 {
+	switch (kbd_type) {
 #ifdef CONFIG_Z8530
-	if (kbd_type == KBD_Z8530)
+	case KBD_Z8530:
 		z8530_grab();
+		break;
 #endif
+#ifdef CONFIG_NS16550
+	case KBD_NS16550:
+		ns16550_grab();
+		break;
+#endif
+	default:
+		break;
+	}
 }
 
 /** Return console to userspace
@@ -134,10 +148,20 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
+	switch (kbd_type) {
 #ifdef CONFIG_Z8530
-	if (kbd_type == KBD_Z8530)
+	case KBD_Z8530:
 		z8530_release();
+		break;
 #endif
+#ifdef CONFIG_NS16550
+	case KBD_NS16550:
+		ns16550_release();
+		break;
+#endif
+	default:
+		break;
+	}
 }
 
 /** @}
