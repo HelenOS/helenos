@@ -34,6 +34,7 @@
  * @brief	Device numbers.
  */
 
+#include <arch/types.h>
 #include <ddi/device.h>
 #include <atomic.h>
 #include <debug.h>

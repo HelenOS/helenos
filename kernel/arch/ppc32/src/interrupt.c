@@ -80,18 +80,5 @@ void interrupt_init(void)
 	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
 }
 
-
-static void ipc_int(int n, istate_t *istate)
-{
-	ipc_irq_send_notif(n - INT_OFFSET);
-}
-
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(unative_t irq)
-{
-	int_register(irq, "ipc_int", ipc_int);
-}
-
 /** @}
  */
