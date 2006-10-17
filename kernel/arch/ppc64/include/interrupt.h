@@ -37,14 +37,17 @@
 
 #include <arch/exception.h>
 
-#define IRQ_COUNT	1
-#define IVT_ITEMS   15
-#define INT_OFFSET  0
+#define IVT_ITEMS 16
+#define IVT_FIRST 0
 
-#define VECTOR_DECREMENTER 10
+#define VECTOR_DATA_STORAGE 2
+#define VECTOR_INSTRUCTION_STORAGE 3
+#define VECTOR_EXTERNAL 4
+#define VECTOR_DECREMENTER 8
 
 extern void start_decrementer(void);
 extern void interrupt_init(void);
+extern void extint_handler(int n, istate_t *istate);
 
 #endif
 

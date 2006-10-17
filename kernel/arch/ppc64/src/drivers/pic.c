@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,72 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc64interrupt
+/** @addtogroup ppc64
  * @{
  */
 /** @file
  */
 
-#include <ddi/irq.h>
-#include <interrupt.h>
-#include <arch/interrupt.h>
-#include <arch/types.h>
-#include <arch.h>
-#include <time/clock.h>
-#include <ipc/sysipc.h>
+
+#include <arch/asm.h>
 #include <arch/drivers/pic.h>
-#include <arch/mm/tlb.h>
-#include <print.h>
+#include <byteorder.h>
+#include <bitops.h>
 
+static volatile uint32_t *pic;
 
-void start_decrementer(void)
+void pic_init(uintptr_t base, size_t size)
 {
-	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
-	);
+	pic = (uint32_t *) hw_map(base, size);
 }
 
 
-/** Handler of external interrupts */
-static void exception_external(int n, istate_t *istate)
+
+void pic_enable_interrupt(int intnum)
 {
-	int inum;
+	if (intnum < 32) {
+		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] | (1 << intnum);
+	} else {
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum - 32));
+	}
 	
-	while ((inum = pic_get_pending()) != -1) {
-		irq_t *irq = irq_dispatch_and_lock(inum);
-		if (irq) {
-			/*
-			 * The IRQ handler was found.
-			 */
-			irq->handler(irq, irq->arg);
-			spinlock_unlock(&irq->lock);
-		} else {
-			/*
-			 * Spurious interrupt.
-			 */
-#ifdef CONFIG_DEBUG
-			printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
-#endif
-		}
-		pic_ack_interrupt(inum);
+}
+
+void pic_disable_interrupt(int intnum)
+{
+	if (intnum < 32) {
+		pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] & (~(1 << intnum));
+	} else {
+		pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] & (~(1 << (intnum - 32)));
 	}
 }
 
-
-static void exception_decrementer(int n, istate_t *istate)
+void pic_ack_interrupt(int intnum)
 {
-	clock();
-	start_decrementer();
+	if (intnum < 32) 
+		pic[PIC_ACK_LOW] = 1 << intnum;
+	else 
+		pic[PIC_ACK_HIGH] = 1 << (intnum - 32);
 }
 
-
-/* Initialize basic tables for exception dispatching */
-void interrupt_init(void)
+/** Return number of pending interrupt */
+int pic_get_pending(void)
 {
-	exc_register(VECTOR_EXTERNAL, "external", exception_external);
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
+	int pending;
+
+	pending = pic[PIC_PENDING_LOW];
+	if (pending)
+		return fnzb32(pending);
+	
+	pending = pic[PIC_PENDING_HIGH];
+	if (pending)
+		return fnzb32(pending) + 32;
+	
+	return -1;
 }
 
 /** @}

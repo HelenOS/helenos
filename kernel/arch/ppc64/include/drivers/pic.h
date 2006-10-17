@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,73 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc64interrupt
+/** @addtogroup ppc64
  * @{
  */
 /** @file
  */
 
-#include <ddi/irq.h>
-#include <interrupt.h>
-#include <arch/interrupt.h>
-#include <arch/types.h>
-#include <arch.h>
-#include <time/clock.h>
-#include <ipc/sysipc.h>
-#include <arch/drivers/pic.h>
-#include <arch/mm/tlb.h>
-#include <print.h>
+#ifndef KERN_ppc64_PIC_H_
+#define KERN_ppc64_PIC_H_
 
+#define PIC_PENDING_LOW    8
+#define PIC_PENDING_HIGH   4
+#define PIC_MASK_LOW       9
+#define PIC_MASK_HIGH      5
+#define PIC_ACK_LOW        10
+#define PIC_ACK_HIGH       6
 
-void start_decrementer(void)
-{
-	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
-	);
-}
+void pic_init(uintptr_t base, size_t size);
+void pic_enable_interrupt(int intnum);
+void pic_disable_interrupt(int intnum);
+void pic_ack_interrupt(int intnum);
+int pic_get_pending(void);
 
-
-/** Handler of external interrupts */
-static void exception_external(int n, istate_t *istate)
-{
-	int inum;
-	
-	while ((inum = pic_get_pending()) != -1) {
-		irq_t *irq = irq_dispatch_and_lock(inum);
-		if (irq) {
-			/*
-			 * The IRQ handler was found.
-			 */
-			irq->handler(irq, irq->arg);
-			spinlock_unlock(&irq->lock);
-		} else {
-			/*
-			 * Spurious interrupt.
-			 */
-#ifdef CONFIG_DEBUG
-			printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
 #endif
-		}
-		pic_ack_interrupt(inum);
-	}
-}
-
-
-static void exception_decrementer(int n, istate_t *istate)
-{
-	clock();
-	start_decrementer();
-}
-
-
-/* Initialize basic tables for exception dispatching */
-void interrupt_init(void)
-{
-	exc_register(VECTOR_EXTERNAL, "external", exception_external);
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
-}
 
 /** @}
  */
