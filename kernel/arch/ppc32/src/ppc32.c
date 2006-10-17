@@ -41,7 +41,11 @@
 #include <userspace.h>
 #include <proc/uarg.h>
 #include <console/console.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
 #include <arch/drivers/pic.h>
+
+#define IRQ_COUNT	64
 
 bootinfo_t bootinfo;
 
@@ -70,12 +74,17 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Initialize framebuffer */
 		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline, false);
+		
+		/* Initialize IRQ routing */
+		irq_init(IRQ_COUNT, IRQ_COUNT);
 	
 		/* Initialize PIC */
 		pic_init(bootinfo.keyboard.addr, PAGE_SIZE);
 		
-		cuda_init(bootinfo.keyboard.addr + 0x16000, 2 * PAGE_SIZE);
+		/* Initialize I/O controller */
+		cuda_init(device_assign_devno(), bootinfo.keyboard.addr + 0x16000, 2 * PAGE_SIZE);
 		
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();

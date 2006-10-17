@@ -80,13 +80,13 @@ int pic_get_pending(void)
 	int pending;
 
 	pending = pic[PIC_PENDING_LOW];
-	if (pending) {
+	if (pending)
 		return fnzb32(pending);
-	}
+	
 	pending = pic[PIC_PENDING_HIGH];
-	if (pending) {
+	if (pending)
 		return fnzb32(pending) + 32;
-	}
+	
 	return -1;
 }
 

@@ -183,7 +183,7 @@ static int lchars[0x80] = {
 
 int kbd_arch_init(void)
 {
-	return ipc_register_irq(sysinfo_value("cuda.irq"), &cuda_kbd);
+	return ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &cuda_kbd);
 }
 
 
@@ -207,4 +207,3 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 
 /** @}
  */
-

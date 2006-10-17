@@ -33,6 +33,7 @@
  */
 
 #include <arch/drivers/cuda.h>
+#include <ddi/irq.h>
 #include <arch/asm.h>
 #include <console/console.h>
 #include <console/chardev.h>
@@ -41,6 +42,7 @@
 #include <interrupt.h>
 #include <stdarg.h>
 
+#define CUDA_IRQ 10
 #define SPECIAL		'?'
 
 #define PACKET_ADB  0x00
@@ -60,7 +62,9 @@
 
 
 static volatile uint8_t *cuda = NULL;
-static iroutine vector;
+static irq_t cuda_irq;		/**< Cuda's IRQ. */
+
+static ipc_notif_cfg_t saved_notif_cfg;
 
 
 static char lchars[0x80] = {
@@ -248,45 +252,70 @@ int cuda_get_scancode(void)
 	return -1;
 }
 
-static void cuda_irq(int n, istate_t *istate)
+static void cuda_irq_handler(irq_t *irq, void *arg, ...)
 {
-	int scan_code = cuda_get_scancode();
-	
-	if (scan_code != -1) {
-		uint8_t scancode = (uint8_t) scan_code;
-		if ((scancode & 0x80) != 0x80)
-			chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
+	if (irq->notif_cfg.answerbox)
+		ipc_irq_send_notif(irq);
+	else {
+		int scan_code = cuda_get_scancode();
+		
+		if (scan_code != -1) {
+			uint8_t scancode = (uint8_t) scan_code;
+			if ((scancode & 0x80) != 0x80)
+				chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
+		}
 	}
+}
+
+static irq_ownership_t cuda_claim(void)
+{
+	return IRQ_ACCEPT;
 }
 
 
 /** Initialize keyboard and service interrupts using kernel routine */
 void cuda_grab(void)
 {
-	vector = int_register(CUDA_IRQ, "cuda", cuda_irq);
+	if (cuda_irq.notif_cfg.answerbox) {
+		saved_notif_cfg = cuda_irq.notif_cfg;
+		cuda_irq.notif_cfg.answerbox = NULL;
+		cuda_irq.notif_cfg.code = NULL;
+		cuda_irq.notif_cfg.method = 0;
+		cuda_irq.notif_cfg.counter = 0;
+	}
 }
 
 
 /** Resume the former interrupt vector */
 void cuda_release(void)
 {
-	if (vector)
-		int_register(CUDA_IRQ, "user_interrupt", vector);
+	if (saved_notif_cfg.answerbox)
+		cuda_irq.notif_cfg = saved_notif_cfg;
 }
 
 
-void cuda_init(uintptr_t base, size_t size)
+void cuda_init(devno_t devno, uintptr_t base, size_t size)
 {
-	cuda = (uint8_t *) hw_map(base, size);
-	
-	int_register(CUDA_IRQ, "cuda", cuda_irq);
-	pic_enable_interrupt(CUDA_IRQ);
+	cuda = (uint8_t *) hw_map(base, size);	
 	
 	chardev_initialize("cuda_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
-	sysinfo_set_item_val("cuda", NULL, true);
-	sysinfo_set_item_val("cuda.irq", NULL, CUDA_IRQ);
+	irq_initialize(&cuda_irq);
+	cuda_irq.devno = devno;
+	cuda_irq.inr = CUDA_IRQ;
+	cuda_irq.claim = cuda_claim;
+	cuda_irq.handler = cuda_irq_handler;
+	irq_register(&cuda_irq);
+	
+	pic_enable_interrupt(CUDA_IRQ);
+
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, CUDA_IRQ);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, base);
+
+	cuda_grab();
 }
 
 

@@ -37,12 +37,8 @@
 
 #include <arch/exception.h>
 
-#define IRQ_COUNT	64
-
-#define IVT_ITEMS   (16 + IRQ_COUNT)
-#define INT_OFFSET  16
-
-#define int_register(it, name, handler) exc_register(((it) + INT_OFFSET), name, handler)
+#define IVT_ITEMS 16
+#define IVT_FIRST 0
 
 #define VECTOR_DATA_STORAGE 2
 #define VECTOR_INSTRUCTION_STORAGE 3

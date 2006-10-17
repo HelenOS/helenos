@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <ddi/irq.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
 #include <arch/types.h>
@@ -40,6 +41,7 @@
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
+#include <print.h>
 
 
 void start_decrementer(void)
@@ -56,9 +58,23 @@ void start_decrementer(void)
 static void exception_external(int n, istate_t *istate)
 {
 	int inum;
-
+	
 	while ((inum = pic_get_pending()) != -1) {
-		exc_dispatch(inum + INT_OFFSET, istate);
+		irq_t *irq = irq_dispatch_and_lock(inum);
+		if (irq) {
+			/*
+			 * The IRQ handler was found.
+			 */
+			irq->handler(irq, irq->arg);
+			spinlock_unlock(&irq->lock);
+		} else {
+			/*
+			 * Spurious interrupt.
+			 */
+#ifdef CONFIG_DEBUG
+			printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+#endif
+		}
 		pic_ack_interrupt(inum);
 	}
 }

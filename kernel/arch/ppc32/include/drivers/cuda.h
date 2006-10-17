@@ -38,9 +38,7 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-#define CUDA_IRQ 10
-
-extern void cuda_init(uintptr_t base, size_t size);
+extern void cuda_init(devno_t devno, uintptr_t base, size_t size);
 extern int cuda_get_scancode(void);
 extern void cuda_grab(void);
 extern void cuda_release(void);
