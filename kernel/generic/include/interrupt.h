@@ -44,14 +44,6 @@
 #include <console/klog.h>
 #include <ipc/irq.h>
 
-#ifndef IVT_ITEMS
-#	define IVT_ITEMS 0
-#endif
-
-#ifndef IVT_FIRST
-#	define IVT_FIRST 0
-#endif
-
 #define fault_if_from_uspace(istate, cmd, ...) \
 { \
 	if (istate_from_uspace(istate)) { \
