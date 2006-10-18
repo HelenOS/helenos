@@ -87,6 +87,7 @@ typedef struct cmd_arg cmd_arg_t;
 typedef struct cmd_info cmd_info_t;
 
 typedef struct istate istate_t;
+typedef void (* function)();
 typedef void (* iroutine)(int n, istate_t *istate);
 
 typedef struct hash_table hash_table_t;
