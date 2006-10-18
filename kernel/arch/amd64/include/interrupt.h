@@ -39,6 +39,7 @@
 #include <arch/pm.h>
 
 #define IVT_ITEMS		IDT_ITEMS
+#define IVT_FIRST		0
 
 #define EXC_COUNT	32
 #define IRQ_COUNT	16
