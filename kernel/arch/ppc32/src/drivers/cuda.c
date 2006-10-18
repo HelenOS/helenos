@@ -251,7 +251,7 @@ int cuda_get_scancode(void)
 
 static void cuda_irq_handler(irq_t *irq, void *arg, ...)
 {
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
+	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
 		ipc_irq_send_notif(irq);
 	else {
 		int scan_code = cuda_get_scancode();
@@ -305,8 +305,6 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, CUDA_IRQ);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, base);
-
-	cuda_grab();
 }
 
 
