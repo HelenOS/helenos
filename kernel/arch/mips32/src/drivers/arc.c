@@ -353,21 +353,12 @@ static chardev_operations_t arc_ops = {
 	.read = arc_read
 };
 
-iroutine old_timer;
-/** Do polling on timer interrupt */
-static void timer_replace(int n, istate_t *istate)
-{
-	arc_keyboard_poll();
-	old_timer(n, istate);
-	arc_keyboard_poll();
-}
-
 void arc_console(void)
 {
 	kbd_polling_enabled = true;
 	
 	chardev_initialize("arc_console", &console, &arc_ops);
-	old_timer = int_register(TIMER_IRQ, "arc_kb_poll", timer_replace);
+	timer_fnc = &arc_keyboard_poll;
 	stdin = &console;
 	stdout = &console;
 }

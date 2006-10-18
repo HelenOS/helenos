@@ -54,6 +54,7 @@
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
 #include <macros.h>
+#include <ddi/device.h>
 
 #include <arch/asm/regname.h>
 
@@ -98,11 +99,10 @@ void arch_pre_mm_init(void)
 	arc_init();
 
 	/* Copy the exception vectors to the right places */
-	memcpy(TLB_EXC, (char *)tlb_refill_entry, EXCEPTION_JUMP_SIZE);
-	memcpy(NORM_EXC, (char *)exception_entry, EXCEPTION_JUMP_SIZE);
-	memcpy(CACHE_EXC, (char *)cache_error_entry, EXCEPTION_JUMP_SIZE);
-
-	interrupt_init();
+	memcpy(TLB_EXC, (char *) tlb_refill_entry, EXCEPTION_JUMP_SIZE);
+	memcpy(NORM_EXC, (char *) exception_entry, EXCEPTION_JUMP_SIZE);
+	memcpy(CACHE_EXC, (char *) cache_error_entry, EXCEPTION_JUMP_SIZE);
+	
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the kernel.
 	 * Clear the error level.
@@ -113,22 +113,18 @@ void arch_pre_mm_init(void)
 	 * Mask all interrupts 
 	 */
 	cp0_mask_all_int();
-
-	/*
-	 * Unmask hardware clock interrupt.
-	 */
-	cp0_unmask_int(TIMER_IRQ);
-
-	console_init();
+		
 	debugger_init();
 }
 
 void arch_post_mm_init(void)
 {
+	interrupt_init();
+	console_init(device_assign_devno());
 #ifdef CONFIG_FB
 	fb_init(0x12000000, 640, 480, 24, 1920, false); // gxemul framebuffer
 #endif
-	sysinfo_set_item_val("machine." STRING(MACHINE),NULL,1);
+	sysinfo_set_item_val("machine." STRING(MACHINE), NULL, 1);
 }
 
 void arch_post_cpu_init(void)

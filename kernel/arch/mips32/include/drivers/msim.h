@@ -37,12 +37,7 @@
 
 #include <console/chardev.h>
 
-#define MSIM_VIDEORAM            	0xB0000000
-/** Address of 'keyboard' device. */
-#define MSIM_KBD_ADDRESS		0xB0000000
-#define MSIM_KBD_IRQ	2
-
-void msim_console(void);
+void msim_console(devno_t devno);
 void msim_kbd_release(void);
 void msim_kbd_grab(void);
 

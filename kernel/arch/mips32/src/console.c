@@ -38,14 +38,14 @@
 #include <arch/drivers/serial.h>
 #include <arch/drivers/msim.h>
 
-void console_init(void)
+void console_init(devno_t devno)
 {
 	if (arc_enabled()) {
 		arc_console();
 	} else if (serial_init()) {
-		serial_console();
+		serial_console(devno);
 	} else {
-		msim_console();
+		msim_console(devno);
 	}
 }
 
@@ -56,6 +56,7 @@ void arch_grab_console(void)
 {
 	msim_kbd_grab();
 }
+
 /** Return console to userspace
  *
  */

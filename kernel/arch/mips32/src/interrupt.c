@@ -39,8 +39,15 @@
 #include <arch/cp0.h>
 #include <time/clock.h>
 #include <arch/drivers/arc.h>
-
 #include <ipc/sysipc.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
+
+#define IRQ_COUNT 8
+#define TIMER_IRQ 7
+
+function timer_fnc = NULL;
+static irq_t timer_irq;
 
 /** Disable interrupts.
  *
@@ -91,7 +98,12 @@ static void timer_start(void)
 	cp0_compare_write(nextcount);
 }
 
-static void timer_exception(int n, istate_t *istate)
+static irq_ownership_t timer_claim(void)
+{
+	return IRQ_ACCEPT;
+}
+
+static void timer_irq_handler(irq_t *irq, void *arg, ...)
 {
 	unsigned long drift;
 
@@ -103,42 +115,25 @@ static void timer_exception(int n, istate_t *istate)
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
 	clock();
-}
-
-static void swint0(int n, istate_t *istate)
-{
-	cp0_cause_write(cp0_cause_read() & ~(1 << 8)); /* clear SW0 interrupt */
-	ipc_irq_send_notif(0);
-}
-
-static void swint1(int n, istate_t *istate)
-{
-	cp0_cause_write(cp0_cause_read() & ~(1 << 9)); /* clear SW1 interrupt */
-	ipc_irq_send_notif(1);
+	
+	if (timer_fnc != NULL)
+		timer_fnc();
 }
 
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
-	int_register(TIMER_IRQ, "timer", timer_exception);
-	int_register(0, "swint0", swint0);
-	int_register(1, "swint1", swint1);
+	irq_init(IRQ_COUNT, IRQ_COUNT);
+	
+	irq_initialize(&timer_irq);
+	timer_irq.devno = device_assign_devno();
+	timer_irq.inr = TIMER_IRQ;
+	timer_irq.claim = timer_claim;
+	timer_irq.handler = timer_irq_handler;
+	irq_register(&timer_irq);
+	
 	timer_start();
-}
-
-static void ipc_int(int n, istate_t *istate)
-{
-	ipc_irq_send_notif(n-INT_OFFSET);
-}
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(unative_t irq)
-{
-	/* Do not allow to redefine timer */
-	/* Swint0, Swint1 are already handled */
-	if (irq == TIMER_IRQ || irq < 2)
-		return;
-	int_register(irq, "ipc_int", ipc_int);
+	cp0_unmask_int(TIMER_IRQ);
 }
 
 /** @}

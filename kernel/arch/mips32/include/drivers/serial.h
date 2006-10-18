@@ -62,8 +62,8 @@ typedef struct {
 	int irq;
 }serial_t;
 
-void serial_console(void);
-int serial_init(void);
+extern void serial_console(devno_t devno);
+extern int serial_init(void);
 
 #endif
 

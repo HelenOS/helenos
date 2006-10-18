@@ -37,7 +37,11 @@
 #include <arch/drivers/serial.h>
 #include <console/chardev.h>
 #include <console/console.h>
+#include <ddi/irq.h>
 
+#define SERIAL_IRQ 2
+
+static irq_t serial_irq;
 static chardev_t console;
 static serial_t sconf[SERIAL_MAX];
 static bool kb_enabled;
@@ -91,11 +95,9 @@ static char serial_do_read(chardev_t *dev)
 	return ch;
 }
 
-
-/** Process keyboard interrupt. Does not work in simics? */
-static void serial_interrupt(int n, void *stack)
+static void serial_handler(void)
 {
-	serial_t *sd = (serial_t *)console.data;
+	serial_t *sd = (serial_t *) console.data;
 	char ch;
 
 	if (!(SERIAL_READ_LSR(sd->port) & 1))
@@ -107,7 +109,19 @@ static void serial_interrupt(int n, void *stack)
 	chardev_push_character(&console, ch);
 }
 
+/** Process keyboard interrupt. Does not work in simics? */
+static void serial_irq_handler(irq_t *irq, void *arg, ...)
+{
+	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
+		ipc_irq_send_notif(irq);
+	else
+		serial_handler();
+}
 
+static irq_ownership_t serial_claim(void)
+{
+	return IRQ_ACCEPT;
+}
 
 static chardev_operations_t serial_ops = {
 	.resume = serial_enable,
@@ -116,15 +130,7 @@ static chardev_operations_t serial_ops = {
 	.read = serial_do_read
 };
 
-iroutine old_timer;
-/** Do polling on timer interrupt */
-static void timer_replace(int n, istate_t *istate)
-{
-	old_timer(n, istate);
-	serial_interrupt(n, istate);
-}
-
-void serial_console(void)
+void serial_console(devno_t devno)
 {
 	serial_t *sd = &sconf[0];
 
@@ -132,12 +138,18 @@ void serial_console(void)
 	chardev_initialize("serial_console", &console, &serial_ops);
 	console.data = sd;
 	kb_enabled = true;
+	
+	irq_initialize(&serial_irq);
+	serial_irq.devno = devno;
+	serial_irq.inr = SERIAL_IRQ;
+	serial_irq.claim = serial_claim;
+	serial_irq.handler = serial_irq_handler;
+	irq_register(&serial_irq);
 
-//	int_register(2, "serial_drvr", serial_interrupt);
 	/* I don't know why, but the serial interrupts simply
 	 * don't work on simics
 	 */
-	old_timer = int_register(TIMER_IRQ, "serial_drvr_poll", timer_replace);
+	timer_fnc = &serial_handler;
 	
 	stdin = &console;
 	stdout = &console;

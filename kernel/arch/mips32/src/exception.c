@@ -45,6 +45,7 @@
 #include <interrupt.h>
 #include <func.h>
 #include <console/kconsole.h>
+#include <ddi/irq.h>
 #include <arch/debugger.h>
 
 static char * exctable[] = {
@@ -145,9 +146,25 @@ static void interrupt_exception(int n, istate_t *istate)
 	/* decode interrupt number and process the interrupt */
 	cause = (cp0_cause_read() >> 8) &0xff;
 	
-	for (i = 0; i < 8; i++)
-		if (cause & (1 << i))
-			exc_dispatch(i+INT_OFFSET, istate);
+	for (i = 0; i < 8; i++) {
+		if (cause & (1 << i)) {
+			irq_t *irq = irq_dispatch_and_lock(i);
+			if (irq) {
+				/*
+				 * The IRQ handler was found.
+				 */
+				irq->handler(irq, irq->arg);
+				spinlock_unlock(&irq->lock);
+			} else {
+				/*
+				 * Spurious interrupt.
+				 */
+#ifdef CONFIG_DEBUG
+				printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, i);
+#endif
+			}
+		}
+	}
 }
 
 /** Handle syscall userspace call */
@@ -161,8 +178,9 @@ void exception_init(void)
 	int i;
 
 	/* Clear exception table */
-	for (i=0;i < IVT_ITEMS; i++)
+	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) unhandled_exception);
+	
 	exc_register(EXC_Bp, "bkpoint", (iroutine) breakpoint_exception);
 	exc_register(EXC_RI, "resinstr", (iroutine) reserved_instr_exception);
 	exc_register(EXC_Mod, "tlb_mod", (iroutine) tlbmod_exception);

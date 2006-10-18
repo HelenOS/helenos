@@ -37,17 +37,10 @@
 
 #include <arch/exception.h>
 
-#define IVT_ITEMS   40
-#define INT_OFFSET  32
-#define IRQ_COUNT   8
+#define IVT_ITEMS 32
+#define IVT_FIRST 0
 
-#define int_register(it, name, handler) exc_register(((it)+INT_OFFSET),name,handler)
-
-#define IRQ2	2
-#define IRQ3	3
-#define IRQ7	7
-
-#define TIMER_IRQ   	IRQ7
+extern function timer_fnc;
 
 extern void interrupt_init(void);
 

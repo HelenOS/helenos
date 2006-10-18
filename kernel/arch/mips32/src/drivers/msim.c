@@ -37,8 +37,16 @@
 #include <arch/drivers/msim.h>
 #include <arch/cp0.h>
 #include <console/console.h>
+#include <ddi/irq.h>
+#include <sysinfo/sysinfo.h>
+
+/** Address of devices. */
+#define MSIM_VIDEORAM		0xB0000000
+#define MSIM_KBD_ADDRESS	0xB0000000
+#define MSIM_KBD_IRQ 		2
 
 static chardev_t console;
+static irq_t msim_irq;
 
 static void msim_write(chardev_t *dev, const char ch);
 static void msim_enable(chardev_t *dev);
@@ -89,41 +97,59 @@ static char msim_do_read(chardev_t *dev)
 }
 
 /** Process keyboard interrupt. */
-static void msim_interrupt(int n, istate_t *istate)
+static void msim_irq_handler(irq_t *irq, void *arg, ...)
 {
-	char ch = 0;
+	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
+		ipc_irq_send_notif(irq);
+	else {
+		char ch = 0;
+		
+			ch = *((char *) MSIM_KBD_ADDRESS);
+			if (ch =='\r')
+				ch = '\n';
+			if (ch == 0x7f)
+				ch = '\b';
+			chardev_push_character(&console, ch);
+	}
+}
 
-	ch = *((char *) MSIM_KBD_ADDRESS);
-	if (ch =='\r')
-		ch = '\n';
-	if (ch == 0x7f)
-		ch = '\b';
-	chardev_push_character(&console, ch);
+static irq_ownership_t msim_claim(void)
+{
+	return IRQ_ACCEPT;
+}
+
+void msim_kbd_grab(void)
+{
+	msim_irq.notif_cfg.notify = false;
+}
+
+void msim_kbd_release(void)
+{
+	if (msim_irq.notif_cfg.answerbox)
+		msim_irq.notif_cfg.notify = true;
 }
 
 
 /* Return console object representing msim console */
-void msim_console(void)
+void msim_console(devno_t devno)
 {
 	chardev_initialize("msim_console", &console, &msim_ops);
-
-	int_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
-
-	cp0_unmask_int(MSIM_KBD_IRQ);
-
 	stdin = &console;
 	stdout = &console;
-}
-
-static iroutine oldvector;
-void msim_kbd_grab(void)
-{
-	oldvector = int_register(MSIM_KBD_IRQ, "msim_kbd", msim_interrupt);
-}
-void msim_kbd_release(void)
-{
-	if (oldvector)
-		int_register(MSIM_KBD_IRQ, "user_interrupt", oldvector);
+	
+	irq_initialize(&msim_irq);
+	msim_irq.devno = devno;
+	msim_irq.inr = MSIM_KBD_IRQ;
+	msim_irq.claim = msim_claim;
+	msim_irq.handler = msim_irq_handler;
+	irq_register(&msim_irq);
+	
+	cp0_unmask_int(MSIM_KBD_IRQ);
+	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, MSIM_KBD_ADDRESS);
 }
 
 /** @}
