@@ -41,15 +41,28 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <time/clock.h>
+#include <ddi/irq.h>
+#include <ddi/device.h>
 #include <arch.h>
 
-
 #define IT_SERVICE_CLOCKS 64
+
+static irq_t it_irq;
+
+static irq_ownership_t it_claim(void);
+static void it_interrupt(irq_t *irq, void *arg, ...);
 
 /** Initialize Interval Timer. */
 void it_init(void)
 {
 	cr_itv_t itv;
+
+	irq_initialize(&it_irq);
+	it_irq.inr = INTERRUPT_TIMER;
+	it_irq.devno = device_assign_devno();
+	it_irq.claim = it_claim;
+	it_irq.handler = it_interrupt;
+	irq_register(&it_irq);
 
 	/* initialize Interval Timer external interrupt vector */
 	itv.value = itv_read();
@@ -67,9 +80,19 @@ void it_init(void)
 	srlz_d();
 }
 
+/** Always claim ownership for this IRQ.
+ *
+ * Other devices are responsible to avoid using INR 0.
+ *
+ * @return Always IRQ_ACCEPT.
+ */
+irq_ownership_t it_claim(void)
+{
+	return IRQ_ACCEPT;
+}
 
 /** Process Interval Timer interrupt. */
-void it_interrupt(void)
+void it_interrupt(irq_t *irq, void *arg, ...)
 {
 	int64_t c;
 	int64_t m;
@@ -83,7 +106,7 @@ void it_interrupt(void)
 		c += IT_SERVICE_CLOCKS;
 
 		m += IT_DELTA;
-		if (m-c<0)
+		if (m - c < 0)
 			CPU->missed_clock_ticks++;
 		else
 			break;
@@ -93,6 +116,11 @@ void it_interrupt(void)
 	srlz_d();				/* propagate changes */
 	
 	clock();
+	
+	/*
+	 * This one is a good candidate for moving to a separate
+	 * kernel thread private to ski.c
+	 */
 	poll_keyboard();
 }
 

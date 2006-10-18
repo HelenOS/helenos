@@ -37,11 +37,23 @@
 #include <console/chardev.h>
 #include <arch/interrupt.h>
 #include <sysinfo/sysinfo.h>
+#include <arch/types.h>
+#include <typedefs.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
+#include <ipc/irq.h>
+#include <synch/spinlock.h>
+#include <arch/asm.h>
+
+#define SKI_KBD_INR	0
+
+static irq_t ski_kbd_irq;
+static devno_t ski_kbd_devno;
 
 chardev_t ski_console;
 chardev_t ski_uconsole;
-static bool kb_disable;
-int kbd_uspace=0;
+
+static bool kbd_disabled;
 
 static void ski_putchar(chardev_t *d, const char ch);
 static int32_t ski_getchar(void);
@@ -57,8 +69,8 @@ static int32_t ski_getchar(void);
 void ski_putchar(chardev_t *d, const char ch)
 {
 	__asm__ volatile (
-		"mov r15=%0\n"
-		"mov r32=%1\n"		/* r32 is in0 */
+		"mov r15 = %0\n"
+		"mov r32 = %1\n"	/* r32 is in0 */
 		"break 0x80000\n"	/* modifies r8 */
 		:
 		: "i" (SKI_PUTCHAR), "r" (ch)
@@ -83,13 +95,13 @@ int32_t ski_getchar(void)
 	uint64_t ch;
 	
 	__asm__ volatile (
-		"mov r15=%1\n"
+		"mov r15 = %1\n"
 		"break 0x80000;;\n"	/* modifies r8 */
-		"mov %0=r8;;\n"		
+		"mov %0 = r8;;\n"		
 
 		: "=r" (ch)
 		: "i" (SKI_GETCHAR)
-		: "r15",  "r8"
+		: "r15", "r8"
 	);
 
 	return (int32_t) ch;
@@ -103,7 +115,7 @@ static char ski_getchar_blocking(chardev_t *d)
 {
 	int ch;
 
-	while(!(ch=ski_getchar()))
+	while(!(ch = ski_getchar()))
 		;
 	if(ch == '\r')
 		ch = '\n'; 
@@ -115,52 +127,71 @@ void poll_keyboard(void)
 {
 	char ch;
 	static char last; 
+	ipl_t ipl;
 
-	if (kb_disable)
+	ipl = interrupts_disable();
+
+	if (kbd_disabled) {
+		interrupts_restore(ipl);
 		return;
+	}
+		
+	spinlock_lock(&ski_kbd_irq.lock);
 
 	ch = ski_getchar();
 	if(ch == '\r')
 		ch = '\n'; 
-	if (ch){
-		if(kbd_uspace){
+	if (ch) {
+		if (ski_kbd_irq.notif_cfg.notify && ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, ch);
-			virtual_interrupt(IRQ_KBD,NULL);
-		}
-		else {
+			ipc_irq_send_notif(&ski_kbd_irq);
+		} else {
 			chardev_push_character(&ski_console, ch);
 		}	
-		last = ch;		
+		last = ch;
+		spinlock_unlock(&ski_kbd_irq.lock);
+		interrupts_restore(ipl);
 		return;
-	}	
+	}
 
-	if (last){
-		if(kbd_uspace){
+	if (last) {
+		if (ski_kbd_irq.notif_cfg.notify && ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, 0);
-			virtual_interrupt(IRQ_KBD,NULL);
+			ipc_irq_send_notif(&ski_kbd_irq);
 		}
-		else {
-		}	
-		last = 0;		
-	}	
+		last = 0;
+	}
 
+	spinlock_unlock(&ski_kbd_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /* Called from getc(). */
-static void ski_kb_enable(chardev_t *d)
+static void ski_kbd_enable(chardev_t *d)
 {
-	kb_disable = false;
+	kbd_disabled = false;
 }
 
 /* Called from getc(). */
-static void ski_kb_disable(chardev_t *d)
+static void ski_kbd_disable(chardev_t *d)
 {
-	kb_disable = true;	
+	kbd_disabled = true;	
+}
+
+/** Decline to service hardware IRQ.
+ *
+ * This is only a virtual IRQ, so always decline.
+ *
+ * @return Always IRQ_DECLINE.
+ */
+static irq_ownership_t ski_kbd_claim(void)
+{
+	return IRQ_DECLINE;
 }
 
 static chardev_operations_t ski_ops = {
-	.resume = ski_kb_enable,
-	.suspend = ski_kb_disable,
+	.resume = ski_kbd_enable,
+	.suspend = ski_kbd_disable,
 	.write = ski_putchar,
 	.read = ski_getchar_blocking
 };
@@ -173,7 +204,7 @@ static chardev_operations_t ski_ops = {
 void ski_init_console(void)
 {
 	__asm__ volatile (
-		"mov r15=%0\n"
+		"mov r15 = %0\n"
 		"break 0x80000\n"
 		:
 		: "i" (SKI_INIT_CONSOLE)
@@ -185,6 +216,14 @@ void ski_init_console(void)
 	stdin = &ski_console;
 	stdout = &ski_console;
 
+	ski_kbd_devno = device_assign_devno();
+	
+	irq_initialize(&ski_kbd_irq);
+	ski_kbd_irq.inr = SKI_KBD_INR;
+	ski_kbd_irq.devno = ski_kbd_devno;
+	ski_kbd_irq.claim = ski_kbd_claim;
+	irq_register(&ski_kbd_irq);
+
 }
 
 /** Setup console sysinfo (i.e. Keyboard IRQ)
@@ -195,8 +234,20 @@ void ski_init_console(void)
  */
 void ski_set_console_sysinfo(void)
 {
-	sysinfo_set_item_val("kbd",NULL,true);
-	sysinfo_set_item_val("kbd.irq",NULL,IRQ_KBD);
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.inr", NULL, SKI_KBD_INR);
+	sysinfo_set_item_val("kbd.devno", NULL, ski_kbd_devno);
+}
+
+void ski_kbd_grab(void)
+{
+	ski_kbd_irq.notif_cfg.notify = false;
+}
+
+void ski_kbd_release(void)
+{
+	if (ski_kbd_irq.notif_cfg.answerbox)
+		ski_kbd_irq.notif_cfg.notify = true;
 }
 
 /** @}

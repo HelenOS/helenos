@@ -34,25 +34,25 @@
  */
 
 #include <arch/interrupt.h>
+#include <interrupt.h>
+#include <ddi/irq.h>
 #include <panic.h>
 #include <print.h>
+#include <symtab.h>
+#include <debug.h>
 #include <console/console.h>
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>
-#include <arch/drivers/it.h>
 #include <arch.h>
-#include <symtab.h>
-#include <debug.h>
 #include <syscall/syscall.h>
 #include <print.h>
 #include <proc/scheduler.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipc.h>
-#include <interrupt.h>
-
+#include <synch/spinlock.h>
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -60,7 +60,6 @@
 #define VECTOR_MAX		0x7f00
 
 #define BUNDLE_SIZE		16
-
 
 char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
@@ -197,11 +196,9 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 #endif
 }
 
-
 void nop_handler(uint64_t vector, istate_t *istate)
 {
 }
-
 
 /** Handle syscall. */
 int break_instruction(uint64_t vector, istate_t *istate)
@@ -228,34 +225,28 @@ void universal_handler(uint64_t vector, istate_t *istate)
 
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
+	irq_t *irq;
 	cr_ivr_t ivr;
 	
 	ivr.value = ivr_read();
 	srlz_d();
 
-	switch(ivr.vector) {
-	case INTERRUPT_TIMER:
-		it_interrupt();
-		break;
-	case INTERRUPT_SPURIOUS:
-	    	printf("cpu%d: spurious interrupt\n", CPU->id);
-		break;
-	default:
-		panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
-		break;
-	}
-}
+	irq = irq_dispatch_and_lock(ivr.vector);
+	if (irq) {
+		irq->handler(irq, irq->arg);
+		spinlock_unlock(&irq->lock);
+	} else {
+		switch (ivr.vector) {
+		case INTERRUPT_SPURIOUS:
+#ifdef CONFIG_DEBUG
+	 		printf("cpu%d: spurious interrupt\n", CPU->id);
+#endif
+			break;
 
-void virtual_interrupt(uint64_t irq, void *param)
-{
-	switch(irq) {
-	case IRQ_KBD:
-		if (kbd_uspace)
-			ipc_irq_send_notif(irq);
-		break;
-	default:
-		panic("\nUnhandled Virtual Interrupt request %d\n", irq);
-		break;
+		default:
+			panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
+			break;
+		}
 	}
 }
 

@@ -49,8 +49,7 @@
 #include <console/console.h>
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
-
-static int kbd_release=0;
+#include <ddi/irq.h>
 
 void arch_pre_main(void)
 {
@@ -80,12 +79,13 @@ void arch_pre_mm_init(void)
 	iva_write((uintptr_t) &ivt);
 	srlz_d();
 	
-	ski_init_console();
-	it_init();	
 }
 
 void arch_post_mm_init(void)
 {
+	irq_init(INR_COUNT, INR_COUNT);
+	ski_init_console();
+	it_init();	
 	ski_set_console_sysinfo();
 }
 
@@ -145,15 +145,14 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
-    kbd_release=kbd_uspace;
-    kbd_uspace=0;
+	ski_kbd_grab();
 }
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
-    kbd_uspace=kbd_release;
+	ski_kbd_release();
 }
 
 /** @}

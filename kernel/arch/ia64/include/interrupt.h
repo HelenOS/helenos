@@ -39,8 +39,16 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
-#define IRQ_COUNT               257 /* 256 NOT suppotred IRQS*//* TODO */
-#define IRQ_KBD                 256 /* One simulated interrupt for ski simulator keyboard*/
+/** ia64 has 256 INRs. */
+#define INR_COUNT	256
+
+/*
+ * We need to keep this just to compile.
+ * We might eventually move interrupt/ stuff
+ * to genarch.
+ */
+#define IVT_ITEMS       0
+#define IVT_FIRST       0
 
 /** External Interrupt vectors. */
 #define INTERRUPT_TIMER		0
@@ -126,7 +134,7 @@ static inline unative_t istate_get_pc(istate_t *istate)
 
 static inline int istate_from_uspace(istate_t *istate)
 {
-	return (istate->cr_iip)<0xe000000000000000ULL;
+	return (istate->cr_iip) < 0xe000000000000000ULL;
 }
 
 extern void *ivt;
@@ -136,7 +144,6 @@ extern int break_instruction(uint64_t vector, istate_t *istate);
 extern void universal_handler(uint64_t vector, istate_t *istate);
 extern void nop_handler(uint64_t vector, istate_t *istate);
 extern void external_interrupt(uint64_t vector, istate_t *istate);
-extern void virtual_interrupt(uint64_t irq, void *param);
 extern void disabled_fp_register(uint64_t vector, istate_t *istate);
 
 #endif

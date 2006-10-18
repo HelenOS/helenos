@@ -67,7 +67,7 @@ irq_code_t ski_kbd = {
 int kbd_arch_init(void)
 {
 	if (sysinfo_value("kbd")) {
-		ipc_register_irq(sysinfo_value("kbd.irq"), &ski_kbd);
+		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ski_kbd);
 		return 0;
 	}	
 	return 1;
@@ -84,9 +84,9 @@ int to_hex(int v)
 
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
 {
-	static unsigned long long buf=0;
-	static int count=0;	
-	static int esc_count=0;
+	static unsigned long long buf = 0;
+	static int count = 0;	
+	static int esc_count = 0;
 	int scan_code = IPC_GET_ARG2(*call);
 
 	/*
