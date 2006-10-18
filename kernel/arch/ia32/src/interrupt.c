@@ -195,16 +195,5 @@ static void ipc_int(int n, istate_t *istate)
 	trap_virtual_eoi();
 }
 
-
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(unative_t irq)
-{
-	if (irq == IRQ_CLK)
-		return;
-	exc_register(IVT_IRQBASE+irq, "ipc_int", ipc_int);
-	trap_virtual_enable_irqs(1 << irq);
-}
-
 /** @}
  */
-

@@ -259,17 +259,5 @@ void virtual_interrupt(uint64_t irq, void *param)
 	}
 }
 
-/* Reregister irq to be IPC-ready */
-void irq_ipc_bind_arch(unative_t irq)
-{
-	if(irq == IRQ_KBD) {
-		kbd_uspace = 1;
-		return;
-	}
-	return;
-	panic("not implemented\n");
-	/* TODO */
-}
-
 /** @}
  */
