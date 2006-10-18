@@ -68,7 +68,7 @@
 #define FUNCTION_KEYS 0x100
 
 irq_cmd_t msim_cmds[1] = {
-	{ CMD_MEM_READ_1, (void *)0xB0000000, 0, 2 }
+	{ CMD_MEM_READ_1, (void *) 0, 0, 2 }
 };
 
 irq_code_t msim_kbd = {
@@ -83,7 +83,8 @@ static int fb_fb;
 int kbd_arch_init(void)
 {
 	fb_fb = (sysinfo_value("fb.kind") == 1);
-	ipc_register_irq(2, &msim_kbd);
+	msim_cmds[0].addr = sysinfo_value("kbd.address.virtual");
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &msim_kbd);
 	return 0;
 }
 
