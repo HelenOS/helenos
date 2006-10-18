@@ -42,9 +42,6 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 
-#define KBD_IRQ      1
-#define MOUSE_IRQ    12
-
 #define i8042_DATA      0x60
 #define i8042_STATUS    0X64
 

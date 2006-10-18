@@ -42,6 +42,7 @@
 #include <kbd.h>
 #include <keys.h>
 #include <genarch/kbd.h>
+#include <sysinfo.h>
 
 /* Interesting bits for status register */
 #define i8042_OUTPUT_FULL  0x1
@@ -69,8 +70,8 @@ static volatile int keyflags;		/**< Tracking of multiple keypresses. */
 static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
 
 irq_cmd_t i8042_cmds[2] = {
-	{ CMD_PORT_READ_1, (void *)0x64, 0, 1 },
-	{ CMD_PORT_READ_1, (void *)0x60, 0, 2 }
+	{ CMD_PORT_READ_1, (void *) 0x64, 0, 1 },
+	{ CMD_PORT_READ_1, (void *) 0x60, 0, 2 }
 };
 
 irq_code_t i8042_kbd = {
@@ -91,7 +92,7 @@ int kbd_arch_init(void)
 	int i;
 	int mouseenabled = 0;
 
-	iospace_enable(task_get_id(),(void *)i8042_DATA, 5);
+	iospace_enable(task_get_id(), (void *) i8042_DATA, 5);
 	/* Disable kbd, enable mouse */
 	i8042_command_write(i8042_CMD_KBD);
 	wait_ready();
@@ -124,13 +125,11 @@ int kbd_arch_init(void)
 	if (mouseanswer == MOUSE_ACK) {
 		/* enable mouse */
 		mouseenabled = 1;
-
-		ipc_register_irq(MOUSE_IRQ, &i8042_kbd);
+		
+		ipc_register_irq(sysinfo_value("mouse.inr"), sysinfo_value("mouse.devno"), 0, &i8042_kbd);
 	}
 	/* Enable kbd */
-	ipc_register_irq(KBD_IRQ, &i8042_kbd);
-	/* Register for irq restart */
-	ipc_register_irq(IPC_IRQ_KBDRESTART, NULL);
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &i8042_kbd);
 
 	int newcontrol = i8042_KBD_IE | i8042_KBD_TRANSLATE;
 	if (mouseenabled)
@@ -148,11 +147,6 @@ int kbd_arch_init(void)
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
 	int status = IPC_GET_ARG1(*call);
-
-	if (IPC_GET_METHOD(*call) == IPC_IRQ_KBDRESTART) {
-		kbd_arch_init();
-		return 1;
-	}
 
 	if ((status & i8042_MOUSE_DATA))
 		return 0;
