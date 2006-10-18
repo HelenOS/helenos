@@ -56,14 +56,12 @@
 #define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
-#define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because
-			       *   we are in memory stress */
+#define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because we are in memory stress */
 
 /* cache_create flags */
 #define SLAB_CACHE_NOMAGAZINE 0x1 /**< Do not use per-cpu cache */
 #define SLAB_CACHE_SLINSIDE   0x2 /**< Have control structure inside SLAB */
-/** We add magazine cache later, if we have this flag */
-#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE)
+#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE) /**< We add magazine cache later, if we have this flag */
 
 typedef struct {
 	link_t link;

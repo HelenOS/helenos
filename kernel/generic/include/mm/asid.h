@@ -54,7 +54,7 @@
 
 #ifndef __ASM__
 
-#define ASIDS_ALLOCABLE	((ASID_MAX+1)-ASID_START)
+#define ASIDS_ALLOCABLE	((ASID_MAX + 1) - ASID_START)
 
 extern spinlock_t asidlock;
 extern link_t as_with_asid_head;
