@@ -188,11 +188,5 @@ void trap_virtual_eoi(void)
 
 }
 
-static void ipc_int(int n, istate_t *istate)
-{
-	ipc_irq_send_notif(n-IVT_IRQBASE);
-	trap_virtual_eoi();
-}
-
 /** @}
  */
