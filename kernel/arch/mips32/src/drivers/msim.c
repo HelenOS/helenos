@@ -120,13 +120,21 @@ static irq_ownership_t msim_claim(void)
 
 void msim_kbd_grab(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&msim_irq.lock);
 	msim_irq.notif_cfg.notify = false;
+	spinlock_unlock(&msim_irq.lock);
+	interrupts_restore(ipl);
 }
 
 void msim_kbd_release(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&msim_irq.lock);
 	if (msim_irq.notif_cfg.answerbox)
 		msim_irq.notif_cfg.notify = true;
+	spinlock_unlock(&msim_irq.lock);
+	interrupts_restore(ipl);
 }
 
 

@@ -273,15 +273,23 @@ static irq_ownership_t cuda_claim(void)
 /** Initialize keyboard and service interrupts using kernel routine */
 void cuda_grab(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&cuda_irq.lock);
 	cuda_irq.notif_cfg.notify = false;
+	spinlock_unlock(&cuda_irq.lock);
+	interrupts_restore(ipl);
 }
 
 
 /** Resume the former interrupt vector */
 void cuda_release(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&cuda_irq.lock);
 	if (cuda_irq.notif_cfg.answerbox)
 		cuda_irq.notif_cfg.notify = true;
+	spinlock_unlock(&cuda_irq.unlock);
+	interrupts_restore(ipl);
 }
 
 

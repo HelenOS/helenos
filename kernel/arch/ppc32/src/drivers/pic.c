@@ -45,8 +45,6 @@ void pic_init(uintptr_t base, size_t size)
 	pic = (uint32_t *) hw_map(base, size);
 }
 
-
-
 void pic_enable_interrupt(int intnum)
 {
 	if (intnum < 32) {

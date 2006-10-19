@@ -74,6 +74,8 @@ static chardev_operations_t ops = {
 /** Initialize keyboard and service interrupts using kernel routine. */
 void z8530_grab(void)
 {
+	ipl_t ipl = interrupts_disable();
+
 	(void) z8530_read_a(&z8530, RR8);
 
 	/*
@@ -89,14 +91,21 @@ void z8530_grab(void)
 	
 	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
 	
+	spinlock_lock(&z8530_irq.lock);
 	z8530_irq.notif_cfg.notify = false;
+	spinlock_unlock(&z8530_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /** Resume the former IPC notification behavior. */
 void z8530_release(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&z8530_irq.lock);
 	if (z8530_irq.notif_cfg.answerbox)
 		z8530_irq.notif_cfg.notify = true;
+	spinlock_unlock(&z8530_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /** Initialize z8530. */

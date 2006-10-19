@@ -241,13 +241,21 @@ void ski_set_console_sysinfo(void)
 
 void ski_kbd_grab(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&ski_kbd_irq.lock);
 	ski_kbd_irq.notif_cfg.notify = false;
+	spinlock_unlock(&ski_kbd_irq.lock);
+	interrupts_restore(ipl);
 }
 
 void ski_kbd_release(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&ski_kbd_irq.lock);
 	if (ski_kbd_irq.notif_cfg.answerbox)
 		ski_kbd_irq.notif_cfg.notify = true;
+	spinlock_unlock(&ski_kbd_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /** @}

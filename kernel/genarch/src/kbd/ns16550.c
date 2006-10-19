@@ -80,19 +80,28 @@ void ns16550_interrupt(void);
 /** Initialize keyboard and service interrupts using kernel routine */
 void ns16550_grab(void)
 {
+	ipl_t ipl = interrupts_disable();
+
 	ns16550_ier_write(&ns16550, IER_ERBFI);		/* enable receiver interrupt */
 	
 	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
 		(void) ns16550_rbr_read(&ns16550);
 
+	spinlock_lock(&ns16550_irq.lock);
 	ns16550_irq.notif_cfg.notify = false;
+	spinlock_unlock(&ns16550_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /** Resume the former interrupt vector */
 void ns16550_release(void)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&ns16550_irq.lock);
 	if (ns16550_irq.notif_cfg.answerbox)
 		ns16550_irq.notif_cfg.notify = true;
+	spinlock_unlock(&ns16550_irq.lock);
+	interrupts_restore(ipl);
 }
 
 /** Initialize ns16550.
