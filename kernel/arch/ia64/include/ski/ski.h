@@ -45,11 +45,11 @@
 extern chardev_t ski_uconsole;
 
 extern void ski_init_console(void);
-extern void ski_set_console_sysinfo(void);
-extern void poll_keyboard(void);
 
 extern void ski_kbd_grab(void);
 extern void ski_kbd_release(void);
+
+extern void kkbdpoll(void *arg);
 
 #endif
 

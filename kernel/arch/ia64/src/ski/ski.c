@@ -42,6 +42,7 @@
 #include <ddi/device.h>
 #include <ddi/irq.h>
 #include <ipc/irq.h>
+#include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 
@@ -123,7 +124,7 @@ static char ski_getchar_blocking(chardev_t *d)
 }
 
 /** Ask keyboard if a key was pressed. */
-void poll_keyboard(void)
+static void poll_keyboard(void)
 {
 	char ch;
 	static char last; 
@@ -224,16 +225,6 @@ void ski_init_console(void)
 	ski_kbd_irq.claim = ski_kbd_claim;
 	irq_register(&ski_kbd_irq);
 
-}
-
-/** Setup console sysinfo (i.e. Keyboard IRQ)
- *
- * Because sysinfo neads memory allocation/dealocation
- * this functions should be called separetely from init.
- *
- */
-void ski_set_console_sysinfo(void)
-{
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, SKI_KBD_INR);
 	sysinfo_set_item_val("kbd.devno", NULL, ski_kbd_devno);
@@ -256,6 +247,18 @@ void ski_kbd_release(void)
 		ski_kbd_irq.notif_cfg.notify = true;
 	spinlock_unlock(&ski_kbd_irq.lock);
 	interrupts_restore(ipl);
+}
+
+
+#define POLL_INTERVAL		50000		/* 50 ms */
+
+/** Kernel thread for polling keyboard. */
+void kkbdpoll(void *arg)
+{
+	while (1) {
+		poll_keyboard();
+		thread_usleep(POLL_INTERVAL);
+	}
 }
 
 /** @}

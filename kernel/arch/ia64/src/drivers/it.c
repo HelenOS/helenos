@@ -35,7 +35,6 @@
 /** Interval Timer driver. */
  
 #include <arch/drivers/it.h>
-#include <arch/ski/ski.h>
 #include <arch/interrupt.h>
 #include <arch/register.h>
 #include <arch/asm.h>
@@ -116,12 +115,6 @@ void it_interrupt(irq_t *irq, void *arg, ...)
 	srlz_d();				/* propagate changes */
 	
 	clock();
-	
-	/*
-	 * This one is a good candidate for moving to a separate
-	 * kernel thread private to ski.c
-	 */
-	poll_keyboard();
 }
 
 /** @}

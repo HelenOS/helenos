@@ -86,7 +86,6 @@ void arch_post_mm_init(void)
 	irq_init(INR_COUNT, INR_COUNT);
 	ski_init_console();
 	it_init();	
-	ski_set_console_sysinfo();
 }
 
 void arch_post_cpu_init(void)
@@ -99,6 +98,17 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	thread_t *t;
+
+	if (config.cpu_active == 1) {
+		/*
+		 * Create thread that polls keyboard.
+		 */
+		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
+		if (!t)
+			panic("cannot create kkbdpoll\n");
+		thread_ready(t);
+	}
 }
 
 /** Enter userspace and never return. */
