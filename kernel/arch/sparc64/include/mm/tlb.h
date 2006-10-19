@@ -429,6 +429,8 @@ extern void fast_data_access_protection(int n, istate_t *istate);
 
 extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable);
 
+extern void dump_sfsr_and_sfar(void);
+
 #endif /* !def __ASM__ */
 
 #endif

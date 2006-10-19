@@ -40,12 +40,12 @@
  */
 
 #include <arch/drivers/fhc.h>
+#include <arch/trap/interrupt.h>
 #include <arch/mm/page.h>
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
-#include <genarch/kbd/z8530.h>
 
 fhc_t *central_fhc = NULL;
 
@@ -94,8 +94,7 @@ void fhc_enable_interrupt(fhc_t *fhc, int inr)
 {
 	switch (inr) {
 	case FHC_UART_INR:
-		fhc->uart_imap[FHC_UART_ICLR] = 0x0;
-		fhc->uart_imap[FHC_UART_IMAP] = 0x80000000;
+		fhc->uart_imap[FHC_UART_IMAP] |= IMAP_V_MASK;
 		break;
 	default:
 		panic("Unexpected INR (%d)\n", inr);

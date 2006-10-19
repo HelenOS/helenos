@@ -34,6 +34,7 @@
  */
 
 #include <arch/trap/exception.h>
+#include <arch/mm/tlb.h>
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <arch/asm.h>
@@ -156,6 +157,7 @@ void data_access_exception(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s\n", __FUNCTION__);
 	dump_istate(istate);
+	dump_sfsr_and_sfar();
 	panic("%s\n", __FUNCTION__);
 }
 

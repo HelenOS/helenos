@@ -74,6 +74,12 @@ void tlb_arch_init(void)
 	 * Invalidate all non-locked DTLB and ITLB entries.
 	 */
 	tlb_invalidate_all();
+
+	/*
+	 * Clear both SFSRs.
+	 */
+	dtlb_sfsr_write(0);
+	itlb_sfsr_write(0);
 }
 
 /** Insert privileged mapping into DMMU TLB.
@@ -351,6 +357,21 @@ void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	dump_istate(istate);
 	panic("%s\n", str);
+}
+
+void dump_sfsr_and_sfar(void)
+{
+	tlb_sfsr_reg_t sfsr;
+	uintptr_t sfar;
+
+	sfsr.value = dtlb_sfsr_read();
+	sfar = dtlb_sfar_read();
+	
+	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, fv=%d\n",
+		sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
+	printf("DTLB SFAR: address=%p\n", sfar);
+	
+	dtlb_sfsr_write(0);
 }
 
 /** Invalidate all unlocked ITLB and DTLB entries. */

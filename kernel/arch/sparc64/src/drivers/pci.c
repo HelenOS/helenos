@@ -97,7 +97,6 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 
 void pci_sabre_enable_interrupt(pci_t *pci, int inr)
 {
-	pci->reg[PCI_SABRE_ICLR_BASE + (inr & INO_MASK)] = 0;
 	pci->reg[PCI_SABRE_IMAP_BASE + (inr & INO_MASK)] |= IMAP_V_MASK;
 }
 
