@@ -294,3 +294,9 @@ int ofw_screen(screen_t *screen)
 	
 	return true;
 }
+
+
+void ofw_quiesce(void)
+{
+    ofw_call("quiesce", 0, 0, NULL);
+}
