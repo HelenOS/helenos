@@ -102,7 +102,7 @@ typedef struct {
 	link_t partial_slabs;	/**< List of partial slabs */
 	SPINLOCK_DECLARE(slablock);
 	/* Magazines  */
-	link_t magazines	/**< List o full magazines */
+	link_t magazines;	/**< List o full magazines */
 	SPINLOCK_DECLARE(maglock);
 
 	/** CPU cache */
