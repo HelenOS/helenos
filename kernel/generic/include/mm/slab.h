@@ -68,13 +68,13 @@ typedef struct {
 	count_t busy;  /**< Count of full slots in magazine */
 	count_t size;  /**< Number of slots in magazine */
 	void *objs[0]; /**< Slots in magazine */
-}slab_magazine_t;
+} slab_magazine_t;
 
 typedef struct {
 	slab_magazine_t *current;
 	slab_magazine_t *last;
 	SPINLOCK_DECLARE(lock);
-}slab_mag_cache_t;
+} slab_mag_cache_t;
 
 
 typedef struct {
@@ -82,14 +82,14 @@ typedef struct {
 
 	link_t link;
 	/* Configuration */
-	size_t size;      /**< Size of slab position - align_up(sizeof(obj)) */
+	size_t size;		/**< Size of slab position - align_up(sizeof(obj)) */
 	int (*constructor)(void *obj, int kmflag);
 	int (*destructor)(void *obj);
-	int flags;        /**< Flags changing behaviour of cache */
+	int flags;		/**< Flags changing behaviour of cache */
 
 	/* Computed values */
-	uint8_t order;        /**< Order of frames to be allocated */
-	int objects;      /**< Number of objects that fit in */
+	uint8_t order;		/**< Order of frames to be allocated */
+	int objects;		/**< Number of objects that fit in */
 
 	/* Statistics */
 	atomic_t allocated_slabs;
@@ -98,16 +98,16 @@ typedef struct {
 	atomic_t magazine_counter; /**< How many magazines in magazines list */
 
 	/* Slabs */
-	link_t full_slabs;     /**< List of full slabs */
-	link_t partial_slabs;  /**< List of partial slabs */
+	link_t full_slabs;	/**< List of full slabs */
+	link_t partial_slabs;	/**< List of partial slabs */
 	SPINLOCK_DECLARE(slablock);
 	/* Magazines  */
-	link_t magazines;      /**< List o full magazines */
+	link_t magazines	/**< List o full magazines */
 	SPINLOCK_DECLARE(maglock);
 
 	/** CPU cache */
 	slab_mag_cache_t *mag_cache;
-}slab_cache_t;
+} slab_cache_t;
 
 extern slab_cache_t * slab_cache_create(char *name,
 					size_t size,

@@ -137,11 +137,11 @@ char *malloc_names[] =  {
 
 /** Slab descriptor */
 typedef struct {
-	slab_cache_t *cache; /**< Pointer to parent cache */
-	link_t link;       /* List of full/partial slabs */
-	void *start;       /**< Start address of first available item */
-	count_t available; /**< Count of available items in this slab */
-	index_t nextavail; /**< The index of next available item */
+	slab_cache_t *cache; 	/**< Pointer to parent cache. */
+	link_t link;       	/**< List of full/partial slabs. */
+	void *start;       	/**< Start address of first available item. */
+	count_t available; 	/**< Count of available items in this slab. */
+	index_t nextavail; 	/**< The index of next available item. */
 }slab_t;
 
 #ifdef CONFIG_DEBUG
@@ -289,16 +289,14 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 			return NULL;
 		spinlock_lock(&cache->slablock);
 	} else {
-		slab = list_get_instance(cache->partial_slabs.next,
-					 slab_t,
-					 link);
+		slab = list_get_instance(cache->partial_slabs.next, slab_t, link);
 		list_remove(&slab->link);
 	}
 	obj = slab->start + slab->nextavail * cache->size;
 	slab->nextavail = *((int *)obj);
 	slab->available--;
 
-	if (! slab->available)
+	if (!slab->available)
 		list_prepend(&slab->link, &cache->full_slabs);
 	else
 		list_prepend(&slab->link, &cache->partial_slabs);
@@ -899,7 +897,8 @@ void free(void *obj)
 {
 	slab_t *slab;
 
-	if (!obj) return;
+	if (!obj)
+		return;
 
 	slab = obj2slab(obj);
 	_slab_free(slab->cache, obj, slab);

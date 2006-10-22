@@ -80,7 +80,7 @@ passed to the underlying frame_alloc function.
    will never return NULL, but it CAN sleep indefinitely. The caller
    does not have to check the return value.
 
-3) The maximum size that can be allocated using malloc is 128K
+3) The maximum size that can be allocated using malloc is 256K
 
 Rules 1) and 2) apply to slab_alloc as well. Using SLAB allocator
 to allocate too large values is not recommended.
