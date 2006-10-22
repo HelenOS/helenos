@@ -1,4 +1,4 @@
-/** Xen32 linker script
+/** ia32xen linker script
  */
 
 #define __ASM__
