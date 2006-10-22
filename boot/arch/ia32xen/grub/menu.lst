@@ -1,0 +1,16 @@
+default 0
+timeout 10
+
+title=HelenOS/ia32xen
+root (cd)
+kernel /boot/xen.gz
+module /boot/kernel.bin
+module /boot/ns
+module /boot/init
+module /boot/pci
+module /boot/fb
+module /boot/kbd
+module /boot/console
+module /boot/tetris
+module /boot/ipcc
+module /boot/klog

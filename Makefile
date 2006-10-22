@@ -111,10 +111,10 @@ ifeq ($(PLATFORM),sparc64)
 	BARCH = sparc64
 endif
 
-ifeq ($(PLATFORM),xen32)
-	KARCH = xen32
+ifeq ($(PLATFORM),ia32xen)
+	KARCH = ia32xen
 	UARCH = ia32
-	BARCH = xen32
+	BARCH = ia32xen
 endif
 
 .PHONY: all build config distclean clean
