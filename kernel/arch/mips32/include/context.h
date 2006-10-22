@@ -46,9 +46,7 @@
 
 #ifndef __ASM__
 
-#ifndef __mips32_TYPES_H__
-# include <arch/types.h>
-#endif
+#include <arch/types.h>
 
 /*
  * Only save registers that must be preserved across

@@ -35,10 +35,7 @@
 #ifndef KERN_amd64_CONTEXT_H_
 #define KERN_amd64_CONTEXT_H_
 
-#ifndef KERN_amd64_TYPES_H_
-#  include <arch/types.h>
-#endif
-
+#include <arch/types.h>
 
 /* According to ABI the stack MUST be aligned on 
  * 16-byte boundary. If it is not, the va_arg calling will

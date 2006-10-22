@@ -35,10 +35,7 @@
 #ifndef KERN_mips32_EXCEPTION_H_
 #define KERN_mips32_EXCEPTION_H_
 
-#ifndef KERN_mips32_TYPES_H_
-#  include <arch/types.h>
-#endif
-
+#include <arch/types.h>
 #include <typedefs.h>
 #include <arch/cp0.h>
 

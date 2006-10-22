@@ -35,9 +35,7 @@
 #ifndef KERN_ppc32_CONTEXT_H_
 #define KERN_ppc32_CONTEXT_H_
 
-#ifndef KERN_ppc32_TYPES_H_
-# include <arch/types.h>
-#endif
+#include <arch/types.h>
 
 #define SP_DELTA	16
 

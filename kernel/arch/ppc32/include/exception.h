@@ -35,10 +35,7 @@
 #ifndef KERN_ppc32_EXCEPTION_H_
 #define KERN_ppc32_EXCEPTION_H_
 
-#ifndef KERN_ppc32_TYPES_H_
-#  include <arch/types.h>
-#endif
-
+#include <arch/types.h>
 #include <typedefs.h>
 
 struct istate {

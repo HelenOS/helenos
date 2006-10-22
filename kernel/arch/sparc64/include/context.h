@@ -35,17 +35,9 @@
 #ifndef KERN_sparc64_CONTEXT_H_
 #define KERN_sparc64_CONTEXT_H_
 
-#ifndef KERN_sparc64_STACK_H_
-# include <arch/stack.h>
-#endif
-
-#ifndef KERN_sparc64_TYPES_H_
-# include <arch/types.h>
-#endif
-
-#ifndef KERN_ALIGN_H_
-# include <align.h>
-#endif
+#include <arch/stack.h>
+#include <arch/types.h>
+#include <align.h>
 
 #define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE
 
