@@ -42,7 +42,7 @@
  * again, is nice because TSBs need to be locked
  * in TLBs - only one TLB entry will do.
  */
-#define TSB_SIZE			2			/* when changing this, change as.c as well */
+#define TSB_SIZE			2	/* when changing this, change as.c as well */
 #define ITSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
 #define DTSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
 

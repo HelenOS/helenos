@@ -67,7 +67,7 @@ kernel_image_start:
 	 * Setup basic runtime environment.
 	 */
 
-	wrpr %g0, NWINDOWS - 2, %cansave		! set maximum saveable windows
+	wrpr %g0, NWINDOWS - 2, %cansave	! set maximum saveable windows
 	wrpr %g0, 0, %canrestore		! get rid of windows we will never need again
 	wrpr %g0, 0, %otherwin			! make sure the window state is consistent
 	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window traps for kernel

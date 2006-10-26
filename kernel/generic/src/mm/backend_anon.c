@@ -132,7 +132,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
 	}
 	

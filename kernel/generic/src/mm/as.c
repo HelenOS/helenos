@@ -192,7 +192,7 @@ void as_destroy(as_t *as)
 
 	/*
 	 * Destroy address space areas of the address space.
-	 * The B+tee must be walked carefully because it is
+	 * The B+tree must be walked carefully because it is
 	 * also being destroyed.
 	 */	
 	for (cond = true; cond; ) {
@@ -416,7 +416,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		/*
 		 * Finish TLB shootdown sequence.
 		 */
-		tlb_invalidate_pages(AS->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
+		tlb_invalidate_pages(as->asid, area->base + pages*PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
 		
 		/*
@@ -609,7 +609,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 
 	/*
 	 * Now we are committed to sharing the area.
-	 * First prepare the area for sharing.
+	 * First, prepare the area for sharing.
 	 * Then it will be safe to unlock it.
 	 */
 	sh_info = src_area->sh_info;

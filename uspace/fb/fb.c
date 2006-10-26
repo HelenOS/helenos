@@ -1246,7 +1246,7 @@ int fb_init(void)
 	asz = fb_scanline*fb_height;
 	fb_addr = as_get_mappable_page(asz);
 	
-	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz,PAGE_SIZE) >>PAGE_WIDTH,
+	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz, PAGE_SIZE) >> PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
 
 	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);

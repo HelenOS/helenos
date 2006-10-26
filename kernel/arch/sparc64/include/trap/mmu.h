@@ -60,7 +60,6 @@
 	/*
 	 * First, try to refill TLB from TSB.
 	 */
-
 #ifdef CONFIG_TSB
 	ldxa [%g0] ASI_IMMU, %g1			! read TSB Tag Target Register
 	ldxa [%g0] ASI_IMMU_TSB_8KB_PTR_REG, %g2	! read TSB 8K Pointer
@@ -84,7 +83,7 @@
 
 #ifdef CONFIG_TSB
 	ldxa [%g0] ASI_DMMU, %g1			! read TSB Tag Target Register
-	srlx %g1, TSB_TAG_TARGET_CONTEXT_SHIFT, %g2	! is this kernel miss?
+	srlx %g1, TSB_TAG_TARGET_CONTEXT_SHIFT, %g2	! is this a kernel miss?
 	brz,pn %g2, 0f
 	ldxa [%g0] ASI_DMMU_TSB_8KB_PTR_REG, %g3	! read TSB 8K Pointer
 	ldda [%g3] ASI_NUCLEUS_QUAD_LDD, %g4		! 16-byte atomic load into %g4 and %g5
