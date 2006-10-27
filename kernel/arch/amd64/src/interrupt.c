@@ -51,9 +51,17 @@
 #include <synch/spinlock.h>
 #include <arch/ddi/ddi.h>
 #include <interrupt.h>
-#include <ipc/irq.h>
+#include <ddi/irq.h>
 
-void print_info_errcode(int n, istate_t *istate)
+/*
+ * Interrupt and exception dispatching.
+ */
+
+void (* disable_irqs_function)(uint16_t irqmask) = NULL;
+void (* enable_irqs_function)(uint16_t irqmask) = NULL;
+void (* eoi_function)(void) = NULL;
+
+void decode_istate(int n, istate_t *istate)
 {
 	char *symbol;
 /*	uint64_t *x = &istate->stack[0]; */
@@ -75,23 +83,24 @@ void print_info_errcode(int n, istate_t *istate)
 	printf("%%rsp=%#llx\n", &istate->stack[0]);
 }
 
-/*
- * Interrupt and exception dispatching.
- */
+static void trap_virtual_eoi(void)
+{
+	if (eoi_function)
+		eoi_function();
+	else
+		panic("no eoi_function\n");
 
-void (* disable_irqs_function)(uint16_t irqmask) = NULL;
-void (* enable_irqs_function)(uint16_t irqmask) = NULL;
-void (* eoi_function)(void) = NULL;
+}
 
-void null_interrupt(int n, istate_t *istate)
+static void null_interrupt(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "unserviced interrupt: %d", n);
-	print_info_errcode(n, istate);
+	decode_istate(n, istate);
 	panic("unserviced interrupt\n");
 }
 
 /** General Protection Fault. */
-void gp_fault(int n, istate_t *istate)
+static void gp_fault(int n, istate_t *istate)
 {
 	if (TASK) {
 		count_t ver;
@@ -114,18 +123,18 @@ void gp_fault(int n, istate_t *istate)
 		fault_if_from_uspace(istate, "general protection fault");
 	}
 
-	print_info_errcode(n, istate);
+	decode_istate(n, istate);
 	panic("general protection fault\n");
 }
 
-void ss_fault(int n, istate_t *istate)
+static void ss_fault(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "stack fault");
-	print_info_errcode(n, istate);
+	decode_istate(n, istate);
 	panic("stack fault\n");
 }
 
-void nm_fault(int n, istate_t *istate)
+static void nm_fault(int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
@@ -135,10 +144,59 @@ void nm_fault(int n, istate_t *istate)
 #endif
 }
 
-void tlb_shootdown_ipi(int n, istate_t *istate)
+static void tlb_shootdown_ipi(int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
+}
+
+/** Handler of IRQ exceptions */
+static void irq_interrupt(int n, istate_t *istate)
+{
+	ASSERT(n >= IVT_IRQBASE);
+	
+	int inum = n - IVT_IRQBASE;
+	ASSERT(inum < IRQ_COUNT);
+	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
+
+	irq_t *irq = irq_dispatch_and_lock(inum);
+	if (irq) {
+		/*
+		 * The IRQ handler was found.
+		 */
+		irq->handler(irq, irq->arg);
+		spinlock_unlock(&irq->lock);
+	} else {
+		/*
+		 * Spurious interrupt.
+		 */
+#ifdef CONFIG_DEBUG
+		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+#endif
+	}
+	trap_virtual_eoi();
+}
+
+void interrupt_init(void)
+{
+	int i;
+	
+	for (i = 0; i < IVT_ITEMS; i++)
+		exc_register(i, "null", (iroutine) null_interrupt);
+	
+	for (i = 0; i < IRQ_COUNT; i++) {
+		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
+			exc_register(IVT_IRQBASE + i, "irq", (iroutine) irq_interrupt);
+	}
+	
+	exc_register(7, "nm_fault", (iroutine) nm_fault);
+	exc_register(12, "ss_fault", (iroutine) ss_fault);
+	exc_register(13, "gp_fault", (iroutine) gp_fault);
+	exc_register(14, "ident_mapper", (iroutine) ident_page_fault);
+	
+#ifdef CONFIG_SMP
+	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", (iroutine) tlb_shootdown_ipi);
+#endif
 }
 
 void trap_virtual_enable_irqs(uint16_t irqmask)
@@ -155,15 +213,6 @@ void trap_virtual_disable_irqs(uint16_t irqmask)
 		disable_irqs_function(irqmask);
 	else
 		panic("no disable_irqs_function\n");
-}
-
-void trap_virtual_eoi(void)
-{
-	if (eoi_function)
-		eoi_function();
-	else
-		panic("no eoi_function\n");
-
 }
 
 /** @}

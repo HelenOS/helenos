@@ -180,13 +180,7 @@ void idt_init(void)
 		d->type = AR_INTERRUPT;	/* masking interrupt */
 
 		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
-		exc_register(i, "undef", (iroutine)null_interrupt);
 	}
-
-	exc_register( 7, "nm_fault", nm_fault);
-	exc_register(12, "ss_fault", ss_fault);
-	exc_register(13, "gp_fault", gp_fault);
-	exc_register(14, "ident_mapper", ident_page_fault);
 }
 
 /** Initialize segmentation - code/data/idt tables

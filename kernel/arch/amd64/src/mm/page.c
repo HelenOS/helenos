@@ -110,7 +110,7 @@ void page_arch_init(void)
 				page_mapping_insert(AS_KERNEL, PA2KA_CODE(KA2PA(cur)), KA2PA(cur), identity_flags);
 		}
 
-		exc_register(14, "page_fault", (iroutine)page_fault);
+		exc_register(14, "page_fault", (iroutine) page_fault);
 		write_cr3((uintptr_t) AS_KERNEL->page_table);
 	}
 	else {
@@ -193,7 +193,7 @@ void page_fault(int n, istate_t *istate)
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
 
-		print_info_errcode(n, istate);
+		decode_istate(n, istate);
 		printf("Page fault address: %llx\n", page);
 		panic("page fault\n");
 	}

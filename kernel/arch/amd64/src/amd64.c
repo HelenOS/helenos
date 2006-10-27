@@ -61,6 +61,8 @@
 #include <arch/debugger.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
+#include <ddi/irq.h>
+#include <ddi/device.h>
 
 
 /** Disable I/O on non-privileged levels
@@ -130,26 +132,30 @@ void arch_pre_mm_init(void)
 	clean_AM_flag();
 
 	if (config.cpu_active == 1) {
+		interrupt_init();
 		bios_init();
-		i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
-
-		#ifdef CONFIG_SMP
-		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     tlb_shootdown_ipi);
-		#endif /* CONFIG_SMP */
+		
+		/* PIC */
+		i8259_init();
 	}
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Initialize IRQ routing */
+		irq_init(IRQ_COUNT, IRQ_COUNT);
+		
+		/* hard clock */
+		i8254_init();
+
 #ifdef CONFIG_FB
 		if (vesa_present()) 
 			vesa_init();
 		else
 #endif
 			ega_init();	/* video */
+		
 		/* Enable debugger */
 		debugger_init();
 		/* Merge all memory zones to 1 big zone */
@@ -183,13 +189,20 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	i8042_init();	/* keyboard controller */
+	/* keyboard controller */
+	i8042_init(device_assign_devno(), IRQ_KBD, device_assign_devno(), IRQ_MOUSE);
 }
 
 void calibrate_delay_loop(void)
 {
 	i8254_calibrate_delay_loop();
-	i8254_normal_operation();
+	if (config.cpu_active == 1) {
+		/*
+		 * This has to be done only on UP.
+		 * On SMP, i8254 is not used for time keeping and its interrupt pin remains masked.
+		 */
+		i8254_normal_operation();
+	}
 }
 
 /** Set thread-local-storage pointer
