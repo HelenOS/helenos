@@ -61,6 +61,7 @@
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
+#include <ddi/irq.h>
 
 start_info_t start_info;
 memzone_t meminfo;
@@ -128,24 +129,24 @@ void arch_pre_mm_init(void)
 	pm_init();
 
 	if (config.cpu_active == 1) {
+		interrupt_init();
 //		bios_init();
 		
-		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
-		
-		#ifdef CONFIG_SMP
-		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     (iroutine) tlb_shootdown_ipi);
-		#endif /* CONFIG_SMP */
 	}
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-		/* video */
+		/* Initialize IRQ routing */
+		irq_init(IRQ_COUNT, IRQ_COUNT);
+		
+		/* Video */
 		xen_console_init();
+		
 		/* Enable debugger */
 		debugger_init();
+		
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
