@@ -40,7 +40,7 @@
 #define IVT_ITEMS 32
 #define IVT_FIRST 0
 
-extern function timer_fnc;
+extern function virtual_timer_fnc;
 
 extern void interrupt_init(void);
 

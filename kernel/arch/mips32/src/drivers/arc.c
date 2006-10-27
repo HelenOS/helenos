@@ -358,7 +358,7 @@ void arc_console(void)
 	kbd_polling_enabled = true;
 	
 	chardev_initialize("arc_console", &console, &arc_ops);
-	timer_fnc = &arc_keyboard_poll;
+	virtual_timer_fnc = &arc_keyboard_poll;
 	stdin = &console;
 	stdout = &console;
 }

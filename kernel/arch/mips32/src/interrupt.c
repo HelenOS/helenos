@@ -46,7 +46,7 @@
 #define IRQ_COUNT 8
 #define TIMER_IRQ 7
 
-function timer_fnc = NULL;
+function virtual_timer_fnc = NULL;
 static irq_t timer_irq;
 
 /** Disable interrupts.
@@ -116,8 +116,8 @@ static void timer_irq_handler(irq_t *irq, void *arg, ...)
 	cp0_compare_write(nextcount);
 	clock();
 	
-	if (timer_fnc != NULL)
-		timer_fnc();
+	if (virtual_timer_fnc != NULL)
+		virtual_timer_fnc();
 }
 
 /* Initialize basic tables for exception dispatching */

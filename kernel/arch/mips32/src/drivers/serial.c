@@ -149,7 +149,7 @@ void serial_console(devno_t devno)
 	/* I don't know why, but the serial interrupts simply
 	 * don't work on simics
 	 */
-	timer_fnc = &serial_handler;
+	virtual_timer_fnc = &serial_handler;
 	
 	stdin = &console;
 	stdout = &console;
