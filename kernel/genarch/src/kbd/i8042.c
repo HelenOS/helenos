@@ -88,7 +88,8 @@ static chardev_operations_t ops = {
 };
 
 /** Structure for i8042's IRQ. */
-static irq_t i8042_irq;
+static irq_t i8042_kbd_irq;
+static irq_t i8042_mouse_irq;
 
 /** Wait until the controller reads its data. */
 static void i8042_wait(void) {
@@ -107,19 +108,31 @@ void i8042_grab(void)
 	i8042_data_write(i8042_COMMAND);
 	i8042_wait();
 
-	spinlock_lock(&i8042_irq.lock);
-	i8042_irq.notif_cfg.notify = false;
-	spinlock_unlock(&i8042_irq.lock);
+	spinlock_lock(&i8042_kbd_irq.lock);
+	i8042_kbd_irq.notif_cfg.notify = false;
+	spinlock_unlock(&i8042_kbd_irq.lock);
+	
+	spinlock_lock(&i8042_mouse_irq.lock);
+	i8042_mouse_irq.notif_cfg.notify = false;
+	spinlock_unlock(&i8042_mouse_irq.lock);
+	
 	interrupts_restore(ipl);
 }
 
 void i8042_release(void)
 {
 	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&i8042_irq.lock);
-	if (i8042_irq.notif_cfg.answerbox)
-		i8042_irq.notif_cfg.notify = true;
-	spinlock_unlock(&i8042_irq.lock);
+	
+	spinlock_lock(&i8042_kbd_irq.lock);
+	if (i8042_kbd_irq.notif_cfg.answerbox)
+		i8042_kbd_irq.notif_cfg.notify = true;
+	spinlock_unlock(&i8042_kbd_irq.lock);
+	
+	spinlock_lock(&i8042_mouse_irq.lock);
+	if (i8042_mouse_irq.notif_cfg.answerbox)
+		i8042_mouse_irq.notif_cfg.notify = true;
+	spinlock_unlock(&i8042_mouse_irq.lock);
+	
 	interrupts_restore(ipl);
 }
 
@@ -128,7 +141,7 @@ static irq_ownership_t i8042_claim(void)
 	return IRQ_ACCEPT;
 }
 
-static void i8042_irq_handler(irq_t *irq, void *arg, ...)
+static void i8042_kbd_irq_handler(irq_t *irq, void *arg, ...)
 {
 	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);
@@ -150,20 +163,34 @@ static void i8042_irq_handler(irq_t *irq, void *arg, ...)
 	}
 }
 
+static void i8042_mouse_irq_handler(irq_t *irq, void *arg, ...)
+{
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
+		ipc_irq_send_notif(irq);
+}
+
 /** Initialize i8042. */
-void i8042_init(devno_t devno, inr_t inr)
+void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mouse_inr)
 {
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
-	irq_initialize(&i8042_irq);
-	i8042_irq.devno = devno;
-	i8042_irq.inr = inr;
-	i8042_irq.claim = i8042_claim;
-	i8042_irq.handler = i8042_irq_handler;
-	irq_register(&i8042_irq);
+	irq_initialize(&i8042_kbd_irq);
+	i8042_kbd_irq.devno = kbd_devno;
+	i8042_kbd_irq.inr = kbd_inr;
+	i8042_kbd_irq.claim = i8042_claim;
+	i8042_kbd_irq.handler = i8042_kbd_irq_handler;
+	irq_register(&i8042_kbd_irq);
 	
-	trap_virtual_enable_irqs(1 << inr);
+	irq_initialize(&i8042_mouse_irq);
+	i8042_mouse_irq.devno = mouse_devno;
+	i8042_mouse_irq.inr = mouse_inr;
+	i8042_mouse_irq.claim = i8042_claim;
+	i8042_mouse_irq.handler = i8042_mouse_irq_handler;
+	irq_register(&i8042_mouse_irq);
+	
+	trap_virtual_enable_irqs(1 << kbd_inr);
+	trap_virtual_enable_irqs(1 << mouse_inr);
 	
 	/*
 	 * Clear input buffer.
@@ -175,8 +202,12 @@ void i8042_init(devno_t devno, inr_t inr)
 	}
 	
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	sysinfo_set_item_val("kbd.devno", NULL, kbd_devno);
+	sysinfo_set_item_val("kbd.inr", NULL, kbd_inr);
+	
+	sysinfo_set_item_val("mouse", NULL, true);
+	sysinfo_set_item_val("mouse.devno", NULL, mouse_devno);
+	sysinfo_set_item_val("mouse.inr", NULL, mouse_inr);
 	
 	i8042_grab();
 }
