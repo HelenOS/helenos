@@ -51,7 +51,8 @@
  *
  * @param as Address space.
  * @param page First page to invalidate in TSB.
- * @param pages Number of pages to invalidate. Value of (count_t) -1 means the whole TSB. 
+ * @param pages Number of pages to invalidate.
+ *		Value of (count_t) -1 means the whole TSB.
  */
 void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 {
@@ -64,8 +65,8 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 	cnt = min(pages, ITSB_ENTRY_COUNT);
 	
 	for (i = 0; i < cnt; i++) {
-		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT-1)].tag.invalid = 0;
-		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT-1)].tag.invalid = 0;
+		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT-1)].tag.invalid = true;
+		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT-1)].tag.invalid = true;
 	}
 }
 
@@ -87,7 +88,9 @@ void itsb_pte_copy(pte_t *t)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = 1;	/* invalidate the entry (tag target has this set to 0) */
+	tsb->tag.invalid = true;	/* invalidate the entry
+					 * (tag target has this
+					 * set to 0) */
 
 	write_barrier();
 
@@ -98,12 +101,12 @@ void itsb_pte_copy(pte_t *t)
 	tsb->data.pfn = t->frame >> PAGE_WIDTH;
 	tsb->data.cp = t->c;
 	tsb->data.cv = t->c;
-	tsb->data.p = t->k;	/* p as privileged */
+	tsb->data.p = t->k;		/* p as privileged */
 	tsb->data.v = t->p;
 	
 	write_barrier();
 	
-	tsb->tag.invalid = 0;	/* mark the entry as valid */
+	tsb->tag.invalid = false;	/* mark the entry as valid */
 }
 
 /** Copy software PTE to DTSB.
@@ -125,7 +128,9 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = 1;	/* invalidate the entry (tag target has this set to 0) */
+	tsb->tag.invalid = true;	/* invalidate the entry
+					 * (tag target has this
+					 * set to 0) */
 
 	write_barrier();
 
@@ -136,13 +141,13 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	tsb->data.pfn = t->frame >> PAGE_WIDTH;
 	tsb->data.cp = t->c;
 	tsb->data.cv = t->c;
-	tsb->data.p = t->k;	/* p as privileged */
+	tsb->data.p = t->k;		/* p as privileged */
 	tsb->data.w = ro ? false : t->w;
 	tsb->data.v = t->p;
 	
 	write_barrier();
 	
-	tsb->tag.invalid = 0;	/* mark the entry as valid */
+	tsb->tag.invalid = true;	/* mark the entry as valid */
 }
 
 /** @}
