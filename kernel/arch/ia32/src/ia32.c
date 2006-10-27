@@ -57,10 +57,12 @@
 
 #include <arch/mm/memory_init.h>
 #include <interrupt.h>
+#include <ddi/irq.h>
 #include <arch/debugger.h>
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
+#include <ddi/device.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -71,22 +73,22 @@ void arch_pre_mm_init(void)
 	pm_init();
 
 	if (config.cpu_active == 1) {
+		interrupt_init();
 		bios_init();
-		i8259_init();	/* PIC */
-		i8254_init();	/* hard clock */
 		
-		exc_register(VECTOR_SYSCALL, "syscall", (iroutine) syscall);
-		
-		#ifdef CONFIG_SMP
-		exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-			     (iroutine) tlb_shootdown_ipi);
-		#endif /* CONFIG_SMP */
+		/* PIC */
+		i8259_init();
 	}
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Initialize IRQ routing */
+		irq_init(IRQ_COUNT, IRQ_COUNT);
+		
+		/* hard clock */
+		i8254_init();
 
 #ifdef CONFIG_FB
 		if (vesa_present()) 
@@ -94,7 +96,6 @@ void arch_post_mm_init(void)
 		else
 #endif
 			ega_init();	/* video */
-		
 		
 		/* Enable debugger */
 		debugger_init();
@@ -126,7 +127,8 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	i8042_init();	/* keyboard controller */
+	/* keyboard controller */
+	i8042_init(device_assign_devno(), IRQ_KBD);
 }
 
 void calibrate_delay_loop(void)

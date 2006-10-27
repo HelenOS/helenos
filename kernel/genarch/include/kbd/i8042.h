@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-extern void i8042_init(void);
+extern void i8042_init(devno_t devno, inr_t inr);
 extern void i8042_poll(void);
 extern void i8042_grab(void);
 extern void i8042_release(void);

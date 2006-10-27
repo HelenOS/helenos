@@ -41,7 +41,6 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
 #include <arch/drivers/i8042.h>
-#include <arch/interrupt.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -49,6 +48,8 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
+#include <sysinfo/sysinfo.h>
+#include <ddi/irq.h>
 
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -86,80 +87,98 @@ static chardev_operations_t ops = {
 	.read = i8042_key_read
 };
 
-static void i8042_interrupt(int n, istate_t *istate);
-static void i8042_wait(void);
+/** Structure for i8042's IRQ. */
+static irq_t i8042_irq;
 
-static iroutine oldvector;
-/** Initialize keyboard and service interrupts using kernel routine */
+/** Wait until the controller reads its data. */
+static void i8042_wait(void) {
+	while (i8042_status_read() & i8042_WAIT_MASK) {
+		/* wait */
+	}
+}
+
 void i8042_grab(void)
 {
-	oldvector = exc_register(VECTOR_KBD, "i8042_interrupt", (iroutine) i8042_interrupt);
+	ipl_t ipl = interrupts_disable();
+	
 	i8042_wait();
 	i8042_command_write(i8042_SET_COMMAND);
 	i8042_wait();
 	i8042_data_write(i8042_COMMAND);
 	i8042_wait();
+
+	spinlock_lock(&i8042_irq.lock);
+	i8042_irq.notif_cfg.notify = false;
+	spinlock_unlock(&i8042_irq.lock);
+	interrupts_restore(ipl);
 }
-/** Resume the former interrupt vector */
+
 void i8042_release(void)
 {
-	if (oldvector)
-		exc_register(VECTOR_KBD, "user_interrupt", oldvector);
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&i8042_irq.lock);
+	if (i8042_irq.notif_cfg.answerbox)
+		i8042_irq.notif_cfg.notify = true;
+	spinlock_unlock(&i8042_irq.lock);
+	interrupts_restore(ipl);
+}
+
+static irq_ownership_t i8042_claim(void)
+{
+	return IRQ_ACCEPT;
+}
+
+static void i8042_irq_handler(irq_t *irq, void *arg, ...)
+{
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
+		ipc_irq_send_notif(irq);
+	else {
+		uint8_t x;
+		uint8_t status;
+		
+		while (((status = i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
+			x = i8042_data_read();
+			
+			if ((status & i8042_MOUSE_DATA))
+				continue;
+			
+			if (x & KEY_RELEASE)
+				key_released(x ^ KEY_RELEASE);
+			else
+				key_pressed(x);
+		}
+	}
 }
 
 /** Initialize i8042. */
-void i8042_init(void)
+void i8042_init(devno_t devno, inr_t inr)
 {
-	int i;
-
-	i8042_grab();
-        /* Prevent user from accidentaly releasing calling i8042_resume
-	 * and disabling keyboard 
-	 */
-	oldvector = NULL; 
-
-	trap_virtual_enable_irqs(1<<IRQ_KBD);
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
-
+	
+	irq_initialize(&i8042_irq);
+	i8042_irq.devno = devno;
+	i8042_irq.inr = inr;
+	i8042_irq.claim = i8042_claim;
+	i8042_irq.handler = i8042_irq_handler;
+	irq_register(&i8042_irq);
+	
+	trap_virtual_enable_irqs(1 << inr);
+	
 	/*
 	 * Clear input buffer.
 	 * Number of iterations is limited to prevent infinite looping.
 	 */
+	int i;
 	for (i = 0; (i8042_status_read() & i8042_BUFFER_FULL_MASK) && i < 100; i++) {
 		i8042_data_read();
-	}  
-}
-
-/** Process i8042 interrupt.
- *
- * @param n Interrupt vector.
- * @param istate Interrupted state.
- */
-void i8042_interrupt(int n, istate_t *istate)
-{
-	uint8_t x;
-	uint8_t status;
-
-	while (((status=i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
-		x = i8042_data_read();
-
-		if ((status & i8042_MOUSE_DATA))
-			continue;
-
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			key_pressed(x);
 	}
-	trap_virtual_eoi();
-}
-
-/** Wait until the controller reads its data. */
-void i8042_wait(void) {
-	while (i8042_status_read() & i8042_WAIT_MASK) {
-		/* wait */
-	}
+	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	
+	i8042_grab();
 }
 
 /* Called from getc(). */

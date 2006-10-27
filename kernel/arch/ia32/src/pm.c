@@ -139,13 +139,8 @@ void idt_init(void)
 			d->access |= DPL_USER;
 		}
 		
-		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
-		exc_register(i, "undef", (iroutine) null_interrupt);
+		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i * interrupt_handler_size);
 	}
-	exc_register(13, "gp_fault", (iroutine) gp_fault);
-	exc_register( 7, "nm_fault", (iroutine) nm_fault);
-	exc_register(12, "ss_fault", (iroutine) ss_fault);
-	exc_register(19, "simd_fp", (iroutine) simd_fp_exception);
 }
 
 

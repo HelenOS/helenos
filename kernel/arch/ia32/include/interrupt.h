@@ -45,29 +45,27 @@
 #define IRQ_COUNT	16
 
 #define IVT_EXCBASE		0
-#define IVT_IRQBASE		(IVT_EXCBASE+EXC_COUNT)
-#define IVT_FREEBASE		(IVT_IRQBASE+IRQ_COUNT)
+#define IVT_IRQBASE		(IVT_EXCBASE + EXC_COUNT)
+#define IVT_FREEBASE	(IVT_IRQBASE + IRQ_COUNT)
 
-#define IRQ_CLK		0
-#define IRQ_KBD		1
-#define IRQ_PIC1	2
+#define IRQ_CLK			0
+#define IRQ_KBD			1
+#define IRQ_PIC1		2
 #define IRQ_PIC_SPUR	7
 
 /* this one must have four least significant bits set to ones */
-#define VECTOR_APIC_SPUR	(IVT_ITEMS-1)
+#define VECTOR_APIC_SPUR	(IVT_ITEMS - 1)
 
-#if (((VECTOR_APIC_SPUR + 1)%16) || VECTOR_APIC_SPUR >= IVT_ITEMS)
+#if (((VECTOR_APIC_SPUR + 1) % 16) || VECTOR_APIC_SPUR >= IVT_ITEMS)
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
-#define VECTOR_DEBUG            1
-#define VECTOR_PIC_SPUR		(IVT_IRQBASE+IRQ_PIC_SPUR)
-#define VECTOR_CLK		(IVT_IRQBASE+IRQ_CLK)
-#define VECTOR_KBD		(IVT_IRQBASE+IRQ_KBD)
-
-#define VECTOR_SYSCALL			(IVT_FREEBASE+0)
-#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE+1)
-#define VECTOR_DEBUG_IPI                (IVT_FREEBASE+2)
+#define VECTOR_DEBUG				1
+#define VECTOR_CLK					(IVT_IRQBASE + IRQ_CLK)
+#define VECTOR_PIC_SPUR				(IVT_IRQBASE + IRQ_PIC_SPUR)
+#define VECTOR_SYSCALL				IVT_FREEBASE
+#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
+#define VECTOR_DEBUG_IPI			(IVT_FREEBASE + 2)
 
 struct istate {
 	uint32_t eax;
@@ -110,18 +108,10 @@ extern void (* disable_irqs_function)(uint16_t irqmask);
 extern void (* enable_irqs_function)(uint16_t irqmask);
 extern void (* eoi_function)(void);
 
-extern void PRINT_INFO_ERRCODE(istate_t *istate);
-extern void null_interrupt(int n, istate_t *istate);
-extern void gp_fault(int n, istate_t *istate);
-extern void nm_fault(int n, istate_t *istate);
-extern void ss_fault(int n, istate_t *istate);
-extern void simd_fp_exception(int n, istate_t *istate);
-extern void syscall(int n, istate_t *istate);
-extern void tlb_shootdown_ipi(int n, istate_t *istate);
-
+extern void decode_istate(istate_t *istate);
+extern void interrupt_init(void);
 extern void trap_virtual_enable_irqs(uint16_t irqmask);
 extern void trap_virtual_disable_irqs(uint16_t irqmask);
-extern void trap_virtual_eoi(void);
 
 #endif
 

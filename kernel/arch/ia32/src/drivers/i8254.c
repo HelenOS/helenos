@@ -49,7 +49,8 @@
 #include <arch/cpuid.h>
 #include <arch.h>
 #include <time/delay.h>
-#include <interrupt.h>
+#include <ddi/irq.h>
+#include <ddi/device.h>
 
 #define CLK_PORT1	0x40
 #define CLK_PORT4	0x43
@@ -57,21 +58,37 @@
 #define CLK_CONST	1193180
 #define MAGIC_NUMBER	1194
 
-static void i8254_interrupt(int n, istate_t *istate);
+static irq_t i8254_irq;
+
+static irq_ownership_t i8254_claim(void)
+{
+	return IRQ_ACCEPT;
+}
+
+static void i8254_irq_handler(irq_t *irq, void *arg, ...)
+{
+	clock();
+}
 
 void i8254_init(void)
 {
+	irq_initialize(&i8254_irq);
+	i8254_irq.devno = device_assign_devno();
+	i8254_irq.inr = IRQ_CLK;
+	i8254_irq.claim = i8254_claim;
+	i8254_irq.handler = i8254_irq_handler;
+	irq_register(&i8254_irq);
+	
 	i8254_normal_operation();
 }
 
 void i8254_normal_operation(void)
 {
 	outb(CLK_PORT4, 0x36);
-	pic_disable_irqs(1<<IRQ_CLK);
-	outb(CLK_PORT1, (CLK_CONST/HZ) & 0xf);
-	outb(CLK_PORT1, (CLK_CONST/HZ) >> 8);
-	pic_enable_irqs(1<<IRQ_CLK);
-	exc_register(VECTOR_CLK, "i8254_clock", (iroutine) i8254_interrupt);
+	pic_disable_irqs(1 << IRQ_CLK);
+	outb(CLK_PORT1, (CLK_CONST / HZ) & 0xf);
+	outb(CLK_PORT1, (CLK_CONST / HZ) >> 8);
+	pic_enable_irqs(1 << IRQ_CLK);
 }
 
 #define LOOPS 150000
@@ -127,12 +144,6 @@ void i8254_calibrate_delay_loop(void)
 	CPU->frequency_mhz = (clk2-clk1)>>SHIFT;
 
 	return;
-}
-
-void i8254_interrupt(int n, istate_t *istate)
-{
-	trap_virtual_eoi();
-	clock();
 }
 
 /** @}

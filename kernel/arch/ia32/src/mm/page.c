@@ -111,7 +111,7 @@ void page_fault(int n, istate_t *istate)
         if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
 
-                PRINT_INFO_ERRCODE(istate);
+                decode_istate(istate);
                 printf("page fault address: %#x\n", page);
                 panic("page fault\n");
         }
