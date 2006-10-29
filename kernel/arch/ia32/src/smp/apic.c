@@ -44,6 +44,8 @@
 #include <print.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <ddi/irq.h>
+#include <ddi/device.h>
 
 #ifdef CONFIG_SMP
 
@@ -71,6 +73,7 @@ volatile uint32_t *l_apic = (uint32_t *) 0xfee00000;
 volatile uint32_t *io_apic = (uint32_t *) 0xfec00000;
 
 uint32_t apic_id_mask = 0;
+static irq_t l_apic_timer_irq;
 
 static int apic_poll_errors(void);
 
@@ -117,9 +120,27 @@ static char *intpol_str[] = {
 };
 #endif /* LAPIC_VERBOSE */
 
+/** APIC spurious interrupt handler.
+ *
+ * @param n Interrupt vector.
+ * @param istate Interrupted state.
+ */
+static void apic_spurious(int n, istate_t *istate)
+{
+#ifdef CONFIG_DEBUG
+	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
+#endif
+}
 
-static void apic_spurious(int n, istate_t *istate);
-static void l_apic_timer_interrupt(int n, istate_t *istate);
+static irq_ownership_t l_apic_timer_claim(void)
+{
+	return IRQ_ACCEPT;
+}
+
+static void l_apic_timer_irq_handler(irq_t *irq, void *arg, ...)
+{
+	clock();
+}
 
 /** Initialize APIC on BSP. */
 void apic_init(void)
@@ -139,22 +160,28 @@ void apic_init(void)
 	 * Other interrupts will be forwarded to the lowest priority CPU.
 	 */
 	io_apic_disable_irqs(0xffff);
-	exc_register(VECTOR_CLK, "l_apic_timer", (iroutine) l_apic_timer_interrupt);
+	
+	irq_initialize(&l_apic_timer_irq);
+	l_apic_timer_irq.devno = device_assign_devno();
+	l_apic_timer_irq.inr = IRQ_CLK;
+	l_apic_timer_irq.claim = l_apic_timer_claim;
+	l_apic_timer_irq.handler = l_apic_timer_irq_handler;
+	irq_register(&l_apic_timer_irq);
+	
 	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
 	
-		if ((pin = smp_irq_to_pin(i)) != -1) {
+		if ((pin = smp_irq_to_pin(i)) != -1)
 			io_apic_change_ioredtbl(pin, DEST_ALL, IVT_IRQBASE+i, LOPRI);
-		}
 	}
 	
 	/*
 	 * Ensure that io_apic has unique ID.
 	 */
 	idreg.value = io_apic_read(IOAPICID);
-	if ((1<<idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
+	if ((1 << idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
 		for (i = 0; i < APIC_ID_COUNT; i++) {
-			if (!((1<<i) & apic_id_mask)) {
+			if (!((1 << i) & apic_id_mask)) {
 				idreg.apic_id = i;
 				io_apic_write(IOAPICID, idreg.value);
 				break;
@@ -168,18 +195,6 @@ void apic_init(void)
 	l_apic_init();
 
 	l_apic_debug();	
-}
-
-/** APIC spurious interrupt handler.
- *
- * @param n Interrupt vector.
- * @param istate Interrupted state.
- */
-void apic_spurious(int n, istate_t *istate)
-{
-#ifdef CONFIG_DEBUG
-	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
-#endif
 }
 
 /** Poll for APIC errors.
@@ -438,17 +453,6 @@ void l_apic_debug(void)
 	error.value = l_apic[LVT_Err];
 	printf("LVT Err: vector=%hhd, %s, %s\n", error.vector, delivs_str[error.delivs], mask_str[error.masked]);
 #endif
-}
-
-/** Local APIC Timer Interrupt.
- *
- * @param n Interrupt vector number.
- * @param istate Interrupted state.
- */
-void l_apic_timer_interrupt(int n, istate_t *istate)
-{
-	l_apic_eoi();
-	clock();
 }
 
 /** Get Local APIC ID.
