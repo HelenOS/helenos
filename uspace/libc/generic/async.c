@@ -36,7 +36,7 @@
  * Asynchronous library
  *
  * The aim of this library is facilitating writing programs utilizing 
- * the asynchronous nature of Helenos IPC, yet using a normal way
+ * the asynchronous nature of HelenOS IPC, yet using a normal way
  * of programming. 
  *
  * You should be able to write very simple multithreaded programs, 
@@ -79,7 +79,7 @@
  *
  *       callid = async_get_call(&call);
  *       handle(callid, call);
- *       ipc_answer_fast(callid, 1,2,3);
+ *       ipc_answer_fast(callid, 1, 2, 3);
  *
  *       callid = async_get_call(&call);
  *       ....
@@ -104,21 +104,21 @@ static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
 typedef struct {
-	struct timeval expires;      /**< Expiration time for waiting thread */
-	int inlist;             /**< If true, this struct is in timeout list */
+	struct timeval expires;		/**< Expiration time for waiting thread */
+	int inlist;             	/**< If true, this struct is in timeout list */
 	link_t link;
 
-	pstid_t ptid;                /**< Thread waiting for this message */
-	int active;                  /**< If this thread is currently active */
-	int timedout;                /**< If true, we timed out */
+	pstid_t ptid;           	/**< Thread waiting for this message */
+	int active;             	/**< If this thread is currently active */
+	int timedout;           	/**< If true, we timed out */
 } awaiter_t;
 
 typedef struct {
 	awaiter_t wdata;
 
-	int done;                    /**< If reply was received */
-	ipc_call_t *dataptr;         /**< Pointer where the answer data
-				      *   is stored */
+	int done;               	/**< If reply was received */
+	ipc_call_t *dataptr;		/**< Pointer where the answer data
+					  *   is stored */
 	ipcarg_t retval;
 } amsg_t;
 
@@ -131,13 +131,13 @@ typedef struct {
 typedef struct {
 	awaiter_t wdata;
 
-	link_t link;             /**< Hash table link */
-	ipcarg_t in_phone_hash;  /**< Incoming phone hash. */
-	link_t msg_queue;        /**< Messages that should be delivered to this thread */
+	link_t link;			/**< Hash table link */
+	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
+	link_t msg_queue;		/**< Messages that should be delivered to this thread */
 	/* Structures for connection opening packet */
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipc_callid_t close_callid; /* Identification of closing packet */
+	ipc_callid_t close_callid;	/* Identification of closing packet */
 	void (*cthread)(ipc_callid_t,ipc_call_t *);
 } connection_t;
 
