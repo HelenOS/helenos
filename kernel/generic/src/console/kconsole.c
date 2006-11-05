@@ -204,7 +204,7 @@ static const char * cmdtab_search_one(const char *name,link_t **startpos)
  */
 static int cmdtab_compl(char *name)
 {
-	char output[MAX_SYMBOL_NAME+1];
+	static char output[MAX_SYMBOL_NAME+1];
 	link_t *startpos = NULL;
 	const char *foundtxt;
 	int found = 0;
@@ -244,7 +244,7 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 {
 	static int histposition = 0;
 
-	char tmp[MAX_CMDLINE+1];
+	static char tmp[MAX_CMDLINE+1];
 	int curlen = 0, position = 0;
 	char *current = history[histposition];
 	int i;
@@ -433,7 +433,7 @@ void kconsole(void *prompt)
 
 static int parse_int_arg(char *text, size_t len, unative_t *result)
 {
-	char symname[MAX_SYMBOL_NAME];
+	static char symname[MAX_SYMBOL_NAME];
 	uintptr_t symaddr;
 	bool isaddr = false;
 	bool isptr = false;

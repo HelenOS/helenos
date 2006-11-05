@@ -37,6 +37,7 @@
 
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/memstr.h>
+#include <mm/slab.h>
 #include <func.h>
 #include <print.h>
 #include <panic.h>
@@ -236,8 +237,10 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
  */
 static void ofw_tree_node_print(const ofw_tree_node_t *node, const char *path)
 {
-	char p[PATH_MAX_LEN];
-	
+	char *p;
+
+	p = (char *) malloc(PATH_MAX_LEN, 0);
+
 	if (node->parent) {
 		snprintf(p, PATH_MAX_LEN, "%s/%s", path, node->da_name);
 		printf("%s\n", p);
@@ -248,9 +251,11 @@ static void ofw_tree_node_print(const ofw_tree_node_t *node, const char *path)
 
 	if (node->child)
 		ofw_tree_node_print(node->child, p);
-	
+
 	if (node->peer)
 		ofw_tree_node_print(node->peer, path);
+
+	free(p);
 }
 
 /** Print the structure of the OpenFirmware device tree. */

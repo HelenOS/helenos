@@ -30,7 +30,9 @@
 #include <stack.h>
 #include <register.h>
 
-#define INITIAL_STACK_SIZE 	1024
+#define INITIAL_STACK_SIZE 	8192
+
+#define NWINDOWS		8
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -54,12 +56,15 @@ start:
 
 .align 8
 1:	
-	flushw
-
 	/*
 	 * Disable interrupts and disable address masking.
 	 */
 	wrpr %g0, PSTATE_PRIV_BIT, %pstate
+	
+	wrpr %g0, NWINDOWS - 2, %cansave	! set maximum saveable windows
+	wrpr %g0, 0, %canrestore		! get rid of windows we will never need again
+	wrpr %g0, 0, %otherwin			! make sure the window state is consistent
+	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window traps for kernel
 
 	set initial_stack_top, %sp
 	add %sp, -STACK_BIAS, %sp

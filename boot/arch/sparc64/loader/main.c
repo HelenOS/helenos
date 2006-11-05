@@ -37,12 +37,12 @@
 #include <align.h>
 
 bootinfo_t bootinfo;
+component_t components[COMPONENTS];
 
 void bootstrap(void)
 {
 	printf("HelenOS SPARC64 Bootloader\n");
-
-	component_t components[COMPONENTS];
+	
 	init_components(components);
 
 	if (!ofw_memmap(&bootinfo.memmap)) {
