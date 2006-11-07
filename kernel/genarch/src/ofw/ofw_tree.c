@@ -150,6 +150,9 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const
 
 /** Lookup node with matching node_handle.
  *
+ * Child nodes are looked up recursively contrary to peer nodes that
+ * are looked up iteratively to avoid stack overflow.
+ *
  * @param root Root of the searched subtree.
  * @param handle OpenFirmware handle.
  *
@@ -157,21 +160,19 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const
  */
 ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root, uint32_t handle)
 {
-	ofw_tree_node_t *node;
+	ofw_tree_node_t *cur;
 
-	if (root->node_handle == handle)
-		return root;
+	for (cur = root; cur; cur = cur->peer) {		
+		if (cur->node_handle == handle)
+			return cur;
 
-	if (root->peer) {
-		node = ofw_tree_find_node_by_handle(root->peer, handle);
-		if (node)
-			return node;
-	}
-		
-	if (root->child) {
-		node = ofw_tree_find_node_by_handle(root->child, handle);
-		if (node)
-			return node;
+		if (cur->child) {
+			ofw_tree_node_t *node;
+			
+			node = ofw_tree_find_node_by_handle(cur->child, handle);
+			if (node)
+				return node;
+		}
 	}
 	
 	return NULL;	
@@ -230,7 +231,10 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 	return node;
 }
 
-/** Recursively print subtree rooted in a node.
+/** Print OpenFirmware device subtree rooted in a node.
+ *
+ * Child nodes are processed recursively and peer nodes are processed
+ * iteratively in order to avoid stack overflow.
  *
  * @param node Root of the subtree.
  * @param path Current path, NULL for the very root of the entire tree.
@@ -238,22 +242,22 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 static void ofw_tree_node_print(const ofw_tree_node_t *node, const char *path)
 {
 	char *p;
+	const ofw_tree_node_t *cur;
 
 	p = (char *) malloc(PATH_MAX_LEN, 0);
 
-	if (node->parent) {
-		snprintf(p, PATH_MAX_LEN, "%s/%s", path, node->da_name);
-		printf("%s\n", p);
-	} else {
-		snprintf(p, PATH_MAX_LEN, "%s", node->da_name);
-		printf("/\n");
+	for (cur = node; cur; cur = cur->peer) {
+		if (cur->parent) {
+			snprintf(p, PATH_MAX_LEN, "%s/%s", path, cur->da_name);
+			printf("%s\n", p);
+		} else {
+			snprintf(p, PATH_MAX_LEN, "%s", cur->da_name);
+			printf("/\n");
+		}
+
+		if (cur->child)
+			ofw_tree_node_print(cur->child, p);
 	}
-
-	if (node->child)
-		ofw_tree_node_print(node->child, p);
-
-	if (node->peer)
-		ofw_tree_node_print(node->peer, path);
 
 	free(p);
 }
