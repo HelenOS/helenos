@@ -220,7 +220,7 @@ kernel_image_start:
 
 	/*
 	 * So far, we have not touched the stack.
-	 * It is a good idead to set the kernel stack to a known state now.
+	 * It is a good idea to set the kernel stack to a known state now.
 	 */
 	sethi %hi(temporary_boot_stack), %sp
 	or %sp, %lo(temporary_boot_stack), %sp
