@@ -48,8 +48,7 @@
 #define context_set(c, _pc, stack, size)								\
 	(c)->pc = ((uintptr_t) _pc) - 8;								\
 	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
-	(c)->fp = -STACK_BIAS;										\
-	(c)->cleanwin = 0
+	(c)->fp = -STACK_BIAS
 	
 
 /*
@@ -76,7 +75,6 @@ struct context {
 	uint64_t l6;
 	uint64_t l7;
 	ipl_t ipl;
-	uint64_t cleanwin;
 };
 
 #endif
