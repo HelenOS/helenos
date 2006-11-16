@@ -298,5 +298,5 @@ int ofw_screen(screen_t *screen)
 
 void ofw_quiesce(void)
 {
-    ofw_call("quiesce", 0, 0, NULL);
+	ofw_call("quiesce", 0, 0, NULL);
 }

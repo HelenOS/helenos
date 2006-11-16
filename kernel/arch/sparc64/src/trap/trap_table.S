@@ -618,6 +618,9 @@ spill_0_other_tl1:
 fill_0_normal_tl1:
 	FILL_NORMAL_HANDLER_KERNEL
 
+.align TABLE_SIZE
+
+
 #define NOT(x)	((x) == 0)
 
 /* Preemptible trap handler for TL=1.
