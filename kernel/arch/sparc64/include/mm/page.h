@@ -48,8 +48,10 @@
 #include <arch/types.h>
 #include <genarch/mm/page_ht.h>
 
-#define KA2PA(x)	((uintptr_t) (x))
-#define PA2KA(x)	((uintptr_t) (x))
+extern uintptr_t physmem_base;
+
+#define KA2PA(x)	(((uintptr_t) (x)) + physmem_base)
+#define PA2KA(x)	(((uintptr_t) (x)) - physmem_base)
 
 union page_address {
 	uintptr_t address;

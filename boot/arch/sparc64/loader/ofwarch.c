@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2005 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@
 #include <string.h>
 #include <register.h>
 #include "main.h"
+#include "asm.h"
 
 void write(const char *str, const int len)
 {
@@ -85,7 +87,9 @@ int ofw_cpu(void)
 					/*
 					 * Start secondary processor.
 					 */
-					(void) ofw_call("SUNW,start-cpu", 3, 1, NULL, node, KERNEL_VIRTUAL_ADDRESS, 0);
+					(void) ofw_call("SUNW,start-cpu", 3, 1, NULL, node,
+						 KERNEL_VIRTUAL_ADDRESS,
+						 bootinfo.physmem_start | AP_PROCESSOR);
 				}
 			}
 		}
@@ -93,3 +97,22 @@ int ofw_cpu(void)
 
 	return cpus;
 }
+
+/** Get physical memory starting address.
+ *
+ * @param start Pointer to variable where the physical memory starting
+ * 		address will be stored.
+ *
+ * @return Non-zero on succes, zero on failure.
+ */
+int ofw_get_physmem_start(uintptr_t *start)
+{
+	uint32_t memreg[4];
+
+	if (ofw_get_property(ofw_memory, "reg", &memreg, sizeof(memreg)) <= 0)
+		return 0;
+
+	*start = (((uint64_t) memreg[0]) << 32) | memreg[1];
+	return 1;
+}
+

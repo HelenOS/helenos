@@ -75,6 +75,7 @@ typedef struct {
  * Must be in sync with bootinfo structure used by the boot loader.
  */
 typedef struct {
+	uintptr_t physmem_start;
 	taskmap_t taskmap;
 	memmap_t memmap;
 	ballocs_t ballocs;

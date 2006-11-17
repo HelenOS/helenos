@@ -30,10 +30,12 @@
 #define BOOT_sparc64_OFWARCH_H_
 
 #include "main.h"
+#include "types.h"
 
 #define OFW_ADDRESS_CELLS	2
 #define OFW_SIZE_CELLS		2
 
 extern int ofw_cpu(void);
+extern int ofw_get_physmem_start(uintptr_t *start); 
 
 #endif

@@ -111,10 +111,9 @@
 	andncc %g1, %g2, %g3				! get page address into %g3
 	bz 0f						! page address is zero
 
-	or %g3, (TTE_CV|TTE_CP|TTE_P|TTE_W), %g2	! 8K pages are the default (encoded as 0)
-	mov 1, %g3
-	sllx %g3, TTE_V_SHIFT, %g3
-	or %g2, %g3, %g2
+	sethi %hi(kernel_8k_tlb_data_template), %g2
+	ldx [%g2 + %lo(kernel_8k_tlb_data_template)], %g2
+	or %g3, %g2, %g2
 	stxa %g2, [%g0] ASI_DTLB_DATA_IN_REG		! identity map the kernel page
 	retry
 

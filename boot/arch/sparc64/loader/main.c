@@ -46,6 +46,11 @@ void bootstrap(void)
 	
 	init_components(components);
 
+	if (!ofw_get_physmem_start(&bootinfo.physmem_start)) {
+		printf("Error: unable to get start of physical memory.\n");
+		halt();
+	}
+
 	if (!ofw_memmap(&bootinfo.memmap)) {
 		printf("Error: unable to get memory map, halting.\n");
 		halt();
@@ -57,7 +62,8 @@ void bootstrap(void)
 	}
 	
 	printf("\nSystem info\n");
-	printf(" memory: %dM\n", bootinfo.memmap.total>>20);
+	printf(" memory: %dM starting at %P\n",
+		bootinfo.memmap.total >> 20, bootinfo.physmem_start);
 
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);
@@ -65,7 +71,8 @@ void bootstrap(void)
 	
 	unsigned int i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %P: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
+		printf(" %P: %s image (size %d bytes)\n", components[i].start,
+			components[i].name, components[i].size);
 
 	void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
 	unsigned int top = 0;
@@ -93,9 +100,10 @@ void bootstrap(void)
 
 	printf("\nChecking for secondary processors...");
 	if (!ofw_cpu())
-		printf("Error: unable to get cpu properties\n");
+		printf("Error: unable to get CPU properties\n");
 	printf("done.\n");
 
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, 1, &bootinfo, sizeof(bootinfo));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
+		bootinfo.physmem_start | BSP_PROCESSOR,	&bootinfo, sizeof(bootinfo));
 }

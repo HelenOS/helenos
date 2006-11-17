@@ -44,25 +44,49 @@
 
 .section K_TEXT_START, "ax"
 
+#define BSP_FLAG	1
+
 /*
- * Here is where the kernel is passed control
- * from the boot loader.
+ * Here is where the kernel is passed control from the boot loader.
  * 
  * The registers are expected to be in this state:
- * - %o0 non-zero for the bootstrap processor, zero for application/secondary processors
- * - %o1 bootinfo structure address
- * - %o2 bootinfo structure size
+ * - %o0 starting address of physical memory + bootstrap processor flag
+ * 	bits 63...1:	physical memory starting address / 2
+ *	bit 0:		non-zero on BSP processor, zero on AP processors
+ * - %o1 bootinfo structure address (BSP only)
+ * - %o2 bootinfo structure size (BSP only)
  *
- * Moreover, we depend on boot having established the
- * following environment:
+ * Moreover, we depend on boot having established the following environment:
  * - TLBs are on
  * - identity mapping for the kernel image
  */
 
 .global kernel_image_start
 kernel_image_start:
-	mov %o0, %l7
+	mov BSP_FLAG, %l0
+	and %o0, %l0, %l7				! l7 <= bootstrap processor?
+	andn %o0, %l0, %l6				! l6 <= start of physical memory
 
+	sethi %hi(physmem_base), %l5
+	stx %l6, [%l5 + %lo(physmem_base)]
+
+	/*
+	 * Get bits 40:13 of physmem_base.
+	 */ 
+	sethi %hi(mask_40_13), %l4
+	sethi %hi(physmem_base_40_13), %l3
+	ldx [%l4 + %lo(mask_40_13)], %l4
+	and %l6, %l4, %l5				! l5 <= physmem_base[40:13]
+	stx %l5, [%l3 + %lo(physmem_base_40_13)]
+
+	/*
+	 * Prepare kernel 8K TLB data template.
+	 */
+	sethi %hi(kernel_8k_tlb_data_template), %l4
+	ldx [%l4 + %lo(kernel_8k_tlb_data_template)], %l3
+	or %l3, %l5, %l3
+	stx %l3, [%l4 + %lo(kernel_8k_tlb_data_template)]
+	
 	/*
 	 * Setup basic runtime environment.
 	 */
@@ -115,7 +139,8 @@ kernel_image_start:
 
 #define SET_TLB_DATA(r1, r2, imm) \
 	set TTE_CV | TTE_CP | TTE_P | LMA | imm, %r1; \
-	set PAGESIZE_4M, %r2; \
+	or %r1, %l5, %r1; \
+	mov PAGESIZE_4M, %r2; \
 	sllx %r2, TTE_SIZE_SHIFT, %r2; \
 	or %r1, %r2, %r1; \
 	mov 1, %r2; \
@@ -302,7 +327,33 @@ kernel_image_start:
 #define INITIAL_STACK_SIZE	1024
 
 .align STACK_ALIGNMENT
-.space INITIAL_STACK_SIZE
+	.space INITIAL_STACK_SIZE
 .align STACK_ALIGNMENT
 temporary_boot_stack:
-.space STACK_WINDOW_SAVE_AREA_SIZE
+	.space STACK_WINDOW_SAVE_AREA_SIZE
+
+
+.data
+
+.align 8
+.global physmem_base		! copy of the physical memory base address
+physmem_base:
+	.quad 0
+
+.global physmem_base_40_13
+physmem_base_40_13:		! physmem_base & mask_40_13
+	.quad 0
+
+.global mask_40_13
+mask_40_13:			! constant with bits 40:13 set
+	.quad (((1 << 41) - 1) & ~((1 << 13) - 1))
+
+/*
+ * This variable is used by the fast_data_MMU_miss trap handler.
+ * It is initialized to reflect the starting address of physical
+ * memory.
+ */
+.global kernel_8k_tlb_data_template
+kernel_8k_tlb_data_template:
+	.quad ((1 << TTE_V_SHIFT) | TTE_CV | TTE_CP | TTE_P | TTE_W)
+

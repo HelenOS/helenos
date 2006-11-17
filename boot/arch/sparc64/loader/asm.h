@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 Martin Decky
+ * Copyright (C) 2006 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +30,16 @@
 #ifndef BOOT_sparc64_ASM_H_
 #define BOOT_sparc64_ASM_H_
 
-#define PAGE_SIZE 8192
-#define PAGE_WIDTH 13
+#include "types.h"
+#include "main.h"
+
+#define PAGE_SIZE	8192
+#define PAGE_WIDTH	13
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
 extern void halt(void);
-extern void jump_to_kernel(void *entry, int bsp, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
+extern void jump_to_kernel(void *entry, uint64_t cfg, bootinfo_t *bootinfo,
+	unsigned int bootinfo_size) __attribute__((noreturn));
 
 #endif

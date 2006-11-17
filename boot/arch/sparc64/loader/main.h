@@ -38,6 +38,9 @@
 
 #define TASKMAP_MAX_RECORDS 32
 
+#define BSP_PROCESSOR	1
+#define AP_PROCESSOR	0
+
 typedef struct {
 	void *addr;
 	uint32_t size;
@@ -49,11 +52,14 @@ typedef struct {
 } taskmap_t;
 
 typedef struct {
+	uintptr_t physmem_start;
 	taskmap_t taskmap;
 	memmap_t memmap;
 	ballocs_t ballocs;
 	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
+
+extern bootinfo_t bootinfo;
 
 extern void start(void);
 extern void bootstrap(void);
