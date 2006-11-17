@@ -98,10 +98,12 @@ void bootstrap(void)
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
 
+#ifdef CONFIG_SMP
 	printf("\nChecking for secondary processors...");
 	if (!ofw_cpu())
 		printf("Error: unable to get CPU properties\n");
 	printf("done.\n");
+#endif
 
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
