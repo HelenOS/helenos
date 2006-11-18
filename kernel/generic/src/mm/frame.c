@@ -230,7 +230,7 @@ static int zone_can_alloc(zone_t *z, uint8_t order)
  * @param order Size (2^order) of free space we are trying to find
  * @param pzone Pointer to preferred zone or NULL, on return contains zone number
  */
-static zone_t * find_free_zone_lock(uint8_t order, int *pzone)
+static zone_t * find_free_zone_and_lock(uint8_t order, int *pzone)
 {
 	int i;
 	zone_t *z;
@@ -325,7 +325,7 @@ static link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block)
 	ASSERT(is_left ^ is_right);
 	if (is_left) {
 		index = (frame_index(zone, frame)) + (1 << frame->buddy_order);
-	} else { // if (is_right)
+	} else { 	/* if (is_right) */
 		index = (frame_index(zone, frame)) - (1 << frame->buddy_order);
 	}
 	
@@ -946,18 +946,18 @@ loop:
 	/*
 	 * First, find suitable frame zone.
 	 */
-	zone = find_free_zone_lock(order, pzone);
+	zone = find_free_zone_and_lock(order, pzone);
 	
 	/* If no memory, reclaim some slab memory,
 	   if it does not help, reclaim all */
 	if (!zone && !(flags & FRAME_NO_RECLAIM)) {
 		freed = slab_reclaim(0);
 		if (freed)
-			zone = find_free_zone_lock(order, pzone);
+			zone = find_free_zone_and_lock(order, pzone);
 		if (!zone) {
 			freed = slab_reclaim(SLAB_RECLAIM_ALL);
 			if (freed)
-				zone = find_free_zone_lock(order, pzone);
+				zone = find_free_zone_and_lock(order, pzone);
 		}
 	}
 	if (!zone) {
@@ -1048,10 +1048,10 @@ void frame_mark_unavailable(pfn_t start, count_t count)
 	int prefzone = 0;
 	
 	for (i=0; i < count; i++) {
-		zone = find_zone_and_lock(start+i,&prefzone);
+		zone = find_zone_and_lock(start + i, &prefzone);
 		if (!zone) /* PFN not found */
 			continue;
-		zone_mark_unavailable(zone, start+i-zone->base);
+		zone_mark_unavailable(zone, start + i - zone->base);
 
 		spinlock_unlock(&zone->lock);
 	}
@@ -1065,7 +1065,7 @@ void frame_init(void)
 {
 	if (config.cpu_active == 1) {
 		zones.count = 0;
-		spinlock_initialize(&zones.lock,"zones_glob_lock");
+		spinlock_initialize(&zones.lock, "zones.lock");
 	}
 	/* Tell the architecture to create some memory */
 	frame_arch_init();

@@ -382,7 +382,7 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 		pixelbytes = 4;
 		break;
 	default:
-		panic("Unsupported bpp");
+		panic("Unsupported bpp.\n");
 	}
 	
 	unsigned int fbsize = scan * y;
@@ -415,9 +415,9 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	if (pages == 1)
 		order = 0;
 	else
-		order = fnzb(pages-1)+1;
+		order = fnzb(pages - 1) + 1;
 
-	dbbuffer = frame_alloc(order,FRAME_ATOMIC | FRAME_KA);
+	dbbuffer = frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 	if (!dbbuffer)
 		printf("Failed to allocate scroll buffer.\n");
 	dboffset = 0;
