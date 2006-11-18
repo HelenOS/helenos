@@ -52,7 +52,6 @@
 
 /*
  * Implementation of generic 4-level page table interface.
- * NOTE: this implementation is under construction
  * 
  * Page table layout:
  * - 32-bit virtual addresses
