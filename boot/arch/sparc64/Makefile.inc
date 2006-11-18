@@ -42,9 +42,9 @@ depend:
 	-rm arch/$(ARCH)/loader/image.boot
 
 arch/$(ARCH)/loader/image.boot:
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	$(MAKE) -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
 
 clean: generic_clean
-	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	$(MAKE) -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 	-rm -fr $(TMP)
 	-rm -f $(BASE)/image.iso

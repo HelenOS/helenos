@@ -135,9 +135,9 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	 * Thus, the physical address space will not be wasted by holes created
 	 * by frame_alloc().
 	 */
-	ASSERT(last_frame);
-	uintptr_t virtaddr = ALIGN_UP(last_frame, 1<<(order + FRAME_WIDTH));
-	last_frame = ALIGN_UP(virtaddr + size, 1<<(order + FRAME_WIDTH));
+	ASSERT(PA2KA(last_frame));
+	uintptr_t virtaddr = ALIGN_UP(PA2KA(last_frame), 1 << (order + FRAME_WIDTH));
+	last_frame = ALIGN_UP(KA2PA(virtaddr) + size, 1 << (order + FRAME_WIDTH));
 	
 	for (i = 0; i < sizemap[order].count; i++) {
 		/*

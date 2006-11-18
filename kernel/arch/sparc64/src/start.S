@@ -67,25 +67,10 @@ kernel_image_start:
 	and %o0, %l0, %l7				! l7 <= bootstrap processor?
 	andn %o0, %l0, %l6				! l6 <= start of physical memory
 
-	sethi %hi(physmem_base), %l5
-	stx %l6, [%l5 + %lo(physmem_base)]
-
-	/*
-	 * Get bits 40:13 of physmem_base.
-	 */ 
-	sethi %hi(mask_40_13), %l4
-	sethi %hi(physmem_base_40_13), %l3
-	ldx [%l4 + %lo(mask_40_13)], %l4
-	and %l6, %l4, %l5				! l5 <= physmem_base[40:13]
-	stx %l5, [%l3 + %lo(physmem_base_40_13)]
-
-	/*
-	 * Prepare kernel 8K TLB data template.
-	 */
-	sethi %hi(kernel_8k_tlb_data_template), %l4
-	ldx [%l4 + %lo(kernel_8k_tlb_data_template)], %l3
-	or %l3, %l5, %l3
-	stx %l3, [%l4 + %lo(kernel_8k_tlb_data_template)]
+	! Get bits 40:13 of physmem_base.
+	srlx %l6, 13, %l5
+	sllx %l5, 13 + (63 - 40), %l5
+	srlx %l5, 63 - 40, %l5				! l5 <= physmem_base[40:13]
 	
 	/*
 	 * Setup basic runtime environment.
@@ -244,6 +229,22 @@ kernel_image_start:
 	nop
 
 	/*
+	 * Save physmem_base for use by the mm subsystem.
+	 * %l6 contains starting physical address
+	 */
+	sethi %hi(physmem_base), %l4
+	stx %l6, [%l4 + %lo(physmem_base)]
+
+	/*
+	 * Precompute kernel 8K TLB data template.
+	 * %l5 contains starting physical address bits [40:13]
+	 */
+	sethi %hi(kernel_8k_tlb_data_template), %l4
+	ldx [%l4 + %lo(kernel_8k_tlb_data_template)], %l3
+	or %l3, %l5, %l3
+	stx %l3, [%l4 + %lo(kernel_8k_tlb_data_template)]
+
+	/*
 	 * So far, we have not touched the stack.
 	 * It is a good idea to set the kernel stack to a known state now.
 	 */
@@ -340,20 +341,11 @@ temporary_boot_stack:
 physmem_base:
 	.quad 0
 
-.global physmem_base_40_13
-physmem_base_40_13:		! physmem_base & mask_40_13
-	.quad 0
-
-.global mask_40_13
-mask_40_13:			! constant with bits 40:13 set
-	.quad (((1 << 41) - 1) & ~((1 << 13) - 1))
-
 /*
  * This variable is used by the fast_data_MMU_miss trap handler.
- * It is initialized to reflect the starting address of physical
- * memory.
+ * In runtime, it is further modified to reflect the starting address of
+ * physical memory.
  */
 .global kernel_8k_tlb_data_template
 kernel_8k_tlb_data_template:
 	.quad ((1 << TTE_V_SHIFT) | TTE_CV | TTE_CP | TTE_P | TTE_W)
-
