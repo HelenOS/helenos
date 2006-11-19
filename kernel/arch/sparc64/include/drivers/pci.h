@@ -46,7 +46,8 @@ typedef struct pci_operations pci_operations_t;
 
 enum pci_model {
 	PCI_UNKNOWN,
-	PCI_SABRE
+	PCI_SABRE,
+	PCI_PSYCHO
 };
 
 struct pci_operations {
