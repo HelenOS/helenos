@@ -123,7 +123,7 @@ void scr_init(ofw_tree_node_t *node)
 		
 		break;
 	case SCR_FFB:	
-		fb_depth = 24;
+		fb_depth = 32;
 		fb_scanline = 8192;
 
 		ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
