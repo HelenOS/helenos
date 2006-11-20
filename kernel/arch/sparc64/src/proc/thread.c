@@ -54,7 +54,7 @@ void thr_destructor_arch(thread_t *t)
 		 * Mind the possible alignment of the userspace window buffer
 		 * belonging to a killed thread.
 		 */
-		frame_free(ALIGN_DOWN((uintptr_t) t->arch.uspace_window_buffer, PAGE_SIZE));
+		frame_free(KA2PA(ALIGN_DOWN((uintptr_t) t->arch.uspace_window_buffer, PAGE_SIZE)));
 	}
 }
 
@@ -65,7 +65,7 @@ void thread_create_arch(thread_t *t)
 		 * The thread needs userspace window buffer and the object
 		 * returned from the slab allocator doesn't have any.
 		 */
-		t->arch.uspace_window_buffer = frame_alloc(ONE_FRAME, 0);
+		t->arch.uspace_window_buffer = frame_alloc(ONE_FRAME, FRAME_KA);
 	} else {
 		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
 

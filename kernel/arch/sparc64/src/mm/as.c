@@ -62,7 +62,7 @@ int as_constructor_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
 	int order = fnzb32(((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH);
-	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags);
+	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
 
 	if (!tsb)
 		return -1;
@@ -78,7 +78,7 @@ int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
 	count_t cnt = ((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH;
-	frame_free((uintptr_t) as->arch.itsb);
+	frame_free(KA2PA((uintptr_t) as->arch.itsb));
 	return cnt;
 #else
 	return 0;
