@@ -45,8 +45,6 @@ uintptr_t last_frame = NULL;
 /** Create memory zones according to information stored in bootinfo.
  *
  * Walk the bootinfo memory map and create frame zones according to it.
- * The first frame is not blacklisted here as it is done in generic
- * frame_init().
  */
 void frame_arch_init(void)
 {
@@ -62,22 +60,23 @@ void frame_arch_init(void)
 			 * The memmap is created by HelenOS boot loader.
 			 * It already contains no holes.
 			 */
-	
+
 			confdata = ADDR2PFN(start);
 			if (confdata == ADDR2PFN(KA2PA(PFN2ADDR(0))))
 				confdata = ADDR2PFN(KA2PA(PFN2ADDR(2)));
 			zone_create(ADDR2PFN(start), SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),	confdata, 0);
 			last_frame = max(last_frame, start + ALIGN_UP(size, FRAME_SIZE));
 		}
+
+		/*
+		 * On sparc64, physical memory can start on a non-zero address.
+		 * The generic frame_init() only marks PFN 0 as not free, so we
+		 * must mark the physically first frame not free explicitly here,
+		 * no matter what is its address.
+		 */
+		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 	}
 	
-	/*
-	 * On sparc64, physical memory can start on a non-zero address.
-	 * The generic frame_init() only marks PFN 0 as not free, so we
-	 * must mark the physically first frame not free explicitly here,
-	 * no matter what is its address.
-	 */
-	frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 }
 
 /** @}
