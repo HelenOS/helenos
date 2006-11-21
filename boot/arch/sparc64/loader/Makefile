@@ -86,7 +86,7 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
+	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot boot.disasm Makefile.depend
 
 _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
 	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
