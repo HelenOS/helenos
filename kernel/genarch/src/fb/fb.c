@@ -358,31 +358,31 @@ static chardev_operations_t fb_ops = {
 void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align)
 {
 	switch (bpp) {
-		case 8:
-			rgb2scr = rgb_1byte;
-			scr2rgb = byte1_rgb;
-			pixelbytes = 1;
-			break;
-		case 16:
-			rgb2scr = rgb_2byte;
-			scr2rgb = byte2_rgb;
-			pixelbytes = 2;
-			break;
-		case 24:
-			rgb2scr = rgb_3byte;
-			scr2rgb = byte3_rgb;
-			if (align)
-				pixelbytes = 4;
-			else
-				pixelbytes = 3;
-			break;
-		case 32:
-			rgb2scr = rgb_4byte;
-			scr2rgb = byte4_rgb;
+	case 8:
+		rgb2scr = rgb_1byte;
+		scr2rgb = byte1_rgb;
+		pixelbytes = 1;
+		break;
+	case 16:
+		rgb2scr = rgb_2byte;
+		scr2rgb = byte2_rgb;
+		pixelbytes = 2;
+		break;
+	case 24:
+		rgb2scr = rgb_3byte;
+		scr2rgb = byte3_rgb;
+		if (align)
 			pixelbytes = 4;
-			break;
-		default:
-			panic("Unsupported bpp.\n");
+		else
+			pixelbytes = 3;
+		break;
+	case 32:
+		rgb2scr = rgb_4byte;
+		scr2rgb = byte4_rgb;
+		pixelbytes = 4;
+		break;
+	default:
+		panic("Unsupported bpp.\n");
 	}
 	
 	unsigned int fbsize = scan * y;
