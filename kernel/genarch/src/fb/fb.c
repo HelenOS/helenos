@@ -97,12 +97,12 @@ static inline int COLOR(int color)
 /* Conversion routines between different color representations */
 static void rgb_4byte(void *dst, int rgb)
 {
-	*(int *)dst = rgb;
+	*((int *) dst) = rgb;
 }
 
 static int byte4_rgb(void *src)
 {
-	return (*(int *)src) & 0xffffff;
+	return (*((int *) src)) & 0xffffff;
 }
 
 static void rgb_3byte(void *dst, int rgb)
@@ -133,7 +133,7 @@ static int byte3_rgb(void *src)
 static void rgb_2byte(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
-	*((uint16_t *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
+	*((uint16_t *) dst) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:6:5) */
@@ -153,7 +153,7 @@ static int byte2_rgb(void *src)
  */
 static void rgb_1byte(void *dst, int rgb)
 {
-	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
+	*((uint8_t *) dst) = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
@@ -168,11 +168,11 @@ static int byte1_rgb(void *src)
 
 static void putpixel(unsigned int x, unsigned int y, int color)
 {
-	(*rgb2scr)(&fbaddress[POINTPOS(x,y)], COLOR(color));
+	(*rgb2scr)(&fbaddress[POINTPOS(x, y)], COLOR(color));
 
 	if (dbbuffer) {
 		int dline = (y + dboffset) % yres;
-		(*rgb2scr)(&dbbuffer[POINTPOS(x,dline)], COLOR(color));
+		(*rgb2scr)(&dbbuffer[POINTPOS(x, dline)], COLOR(color));
 	}
 }
 
@@ -181,9 +181,9 @@ static int getpixel(unsigned int x, unsigned int y)
 {
 	if (dbbuffer) {
 		int dline = (y + dboffset) % yres;
-		return COLOR((*scr2rgb)(&dbbuffer[POINTPOS(x,dline)]));
+		return COLOR((*scr2rgb)(&dbbuffer[POINTPOS(x, dline)]));
 	}
-	return COLOR((*scr2rgb)(&fbaddress[POINTPOS(x,y)]));
+	return COLOR((*scr2rgb)(&fbaddress[POINTPOS(x, y)]));
 }
 
 
@@ -193,9 +193,9 @@ static void clear_screen(void)
 	unsigned int y;
 
 	for (y = 0; y < yres; y++) {
-		memcpy(&fbaddress[scanline*y], blankline, xres*pixelbytes);
+		memcpy(&fbaddress[scanline * y], blankline, xres * pixelbytes);
 		if (dbbuffer)
-			memcpy(&dbbuffer[scanline*y], blankline, xres*pixelbytes);
+			memcpy(&dbbuffer[scanline * y], blankline, xres * pixelbytes);
 	}
 }
 
@@ -207,13 +207,13 @@ static void scroll_screen(void)
 	int firstsz;
 
 	if (dbbuffer) {
-		memcpy(&dbbuffer[dboffset*scanline], blankline, FONT_SCANLINES*scanline);
+		memcpy(&dbbuffer[dboffset * scanline], blankline, FONT_SCANLINES * scanline);
 		
 		dboffset = (dboffset + FONT_SCANLINES) % yres;
-		firstsz = yres-dboffset;
+		firstsz = yres - dboffset;
 
-		memcpy(fbaddress, &dbbuffer[scanline*dboffset], firstsz*scanline);
-		memcpy(&fbaddress[firstsz*scanline], dbbuffer, dboffset*scanline);
+		memcpy(fbaddress, &dbbuffer[scanline * dboffset], firstsz * scanline);
+		memcpy(&fbaddress[firstsz * scanline], dbbuffer, dboffset * scanline);
 	} else {
 		memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES], scanline * yres - ROW_BYTES);
 		/* Clear last row */
@@ -358,31 +358,31 @@ static chardev_operations_t fb_ops = {
 void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align)
 {
 	switch (bpp) {
-	case 8:
-		rgb2scr = rgb_1byte;
-		scr2rgb = byte1_rgb;
-		pixelbytes = 1;
-		break;
-	case 16:
-		rgb2scr = rgb_2byte;
-		scr2rgb = byte2_rgb;
-		pixelbytes = 2;
-		break;
-	case 24:
-		rgb2scr = rgb_3byte;
-		scr2rgb = byte3_rgb;
-		if (align)
+		case 8:
+			rgb2scr = rgb_1byte;
+			scr2rgb = byte1_rgb;
+			pixelbytes = 1;
+			break;
+		case 16:
+			rgb2scr = rgb_2byte;
+			scr2rgb = byte2_rgb;
+			pixelbytes = 2;
+			break;
+		case 24:
+			rgb2scr = rgb_3byte;
+			scr2rgb = byte3_rgb;
+			if (align)
+				pixelbytes = 4;
+			else
+				pixelbytes = 3;
+			break;
+		case 32:
+			rgb2scr = rgb_4byte;
+			scr2rgb = byte4_rgb;
 			pixelbytes = 4;
-		else
-			pixelbytes = 3;
-		break;
-	case 32:
-		rgb2scr = rgb_4byte;
-		scr2rgb = byte4_rgb;
-		pixelbytes = 4;
-		break;
-	default:
-		panic("Unsupported bpp.\n");
+			break;
+		default:
+			panic("Unsupported bpp.\n");
 	}
 	
 	unsigned int fbsize = scan * y;
@@ -409,15 +409,8 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */
-	int totsize = scanline * yres;
-	int pages = SIZE2FRAMES(totsize);
-	int order;
-	if (pages == 1)
-		order = 0;
-	else
-		order = fnzb(pages - 1) + 1;
-
-	dbbuffer = frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+	unsigned int order = fnzb(SIZE2FRAMES(ALIGN_UP(fbsize, FRAME_SIZE))) + 1;
+	dbbuffer = (uint8_t * ) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 	if (!dbbuffer)
 		printf("Failed to allocate scroll buffer.\n");
 	dboffset = 0;
@@ -426,12 +419,10 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	blankline = (uint8_t *) malloc(ROW_BYTES, FRAME_ATOMIC);
 	if (!blankline)
 		panic("Failed to allocate blank line for framebuffer.");
-	for (y=0; y < FONT_SCANLINES; y++) {
-		for (x=0; x < xres; x++) {
-			(*rgb2scr)(&blankline[POINTPOS(x,y)], COLOR(BGCOLOR));
-		}
-	}
-
+	for (y = 0; y < FONT_SCANLINES; y++)
+		for (x = 0; x < xres; x++)
+			(*rgb2scr)(&blankline[POINTPOS(x, y)], COLOR(BGCOLOR));
+	
 	clear_screen();
 
 	/* Update size of screen to match text area */
@@ -442,7 +433,6 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 
 	chardev_initialize("fb", &framebuffer, &fb_ops);
 	stdout = &framebuffer;
-	
 }
 
 /** @}
