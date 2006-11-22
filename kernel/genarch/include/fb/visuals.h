@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Ondrej Palkovsky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,14 +32,15 @@
 /** @file
  */
 
-#ifndef KERN_FB_H_
-#define KERN_FB_H_
+#ifndef KERN_VISUALS_H_
+#define KERN_VISUALS_H_
 
-#include <typedefs.h>
-#include <arch/types.h>
-
-extern spinlock_t fb_lock;
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, unsigned int visual);
+#define VISUAL_INDIRECT_8	0
+#define VISUAL_RGB_5_5_5	1
+#define VISUAL_RGB_5_6_5	2
+#define VISUAL_RGB_8_8_8	3
+#define VISUAL_RGB_8_8_8_0	4
+#define VISUAL_RGB_0_8_8_8	5
 
 #endif
 

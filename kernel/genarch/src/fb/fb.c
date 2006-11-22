@@ -33,6 +33,7 @@
  */
 
 #include <genarch/fb/font-8x16.h>
+#include <genarch/fb/visuals.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -58,7 +59,6 @@ static int dboffset;
 static unsigned int xres = 0;
 static unsigned int yres = 0;
 static unsigned int scanline = 0;
-static unsigned int bitspp = 0;
 static unsigned int pixelbytes = 0;
 #ifdef FB_INVERT_COLORS
 static bool invert_colors = true;
@@ -95,17 +95,17 @@ static inline int COLOR(int color)
 }
 
 /* Conversion routines between different color representations */
-static void rgb_4byte(void *dst, int rgb)
+static void rgb_byte0888(void *dst, int rgb)
 {
 	*((int *) dst) = rgb;
 }
 
-static int byte4_rgb(void *src)
+static int byte0888_rgb(void *src)
 {
 	return (*((int *) src)) & 0xffffff;
 }
 
-static void rgb_3byte(void *dst, int rgb)
+static void rgb_byte888(void *dst, int rgb)
 {
 	uint8_t *scr = dst;
 #if defined(FB_INVERT_ENDIAN)
@@ -119,7 +119,7 @@ static void rgb_3byte(void *dst, int rgb)
 #endif
 }
 
-static int byte3_rgb(void *src)
+static int byte888_rgb(void *src)
 {
 	uint8_t *scr = src;
 #if defined(FB_INVERT_ENDIAN)
@@ -129,15 +129,29 @@ static int byte3_rgb(void *src)
 #endif	
 }
 
+/**  16-bit depth (5:5:5) */
+static void rgb_byte555(void *dst, int rgb)
+{
+	/* 5-bit, 5-bits, 5-bits */ 
+	*((uint16_t *) dst) = RED(rgb, 5) << 10 | GREEN(rgb, 5) << 5 | BLUE(rgb, 5);
+}
+
+/** 16-bit depth (5:5:5) */
+static int byte555_rgb(void *src)
+{
+	int color = *(uint16_t *)(src);
+	return (((color >> 10) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x1f) << (8 + 3)) | ((color & 0x1f) << 3);
+}
+
 /**  16-bit depth (5:6:5) */
-static void rgb_2byte(void *dst, int rgb)
+static void rgb_byte565(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
 	*((uint16_t *) dst) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:6:5) */
-static int byte2_rgb(void *src)
+static int byte565_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
@@ -151,16 +165,16 @@ static int byte2_rgb(void *src)
  * palette. This could be fixed by supporting custom palette
  * and setting it to simulate the 8-bit truecolor.
  */
-static void rgb_1byte(void *dst, int rgb)
+static void rgb_byte8(void *dst, int rgb)
 {
 	*((uint8_t *) dst) = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
  *
- * See the comment for rgb_1byte().
+ * See the comment for rgb_byte().
  */
-static int byte1_rgb(void *src)
+static int byte8_rgb(void *src)
 {
 	int color = *(uint8_t *)src;
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
@@ -207,7 +221,7 @@ static void scroll_screen(void)
 	int firstsz;
 
 	if (dbbuffer) {
-		memcpy(&dbbuffer[dboffset * scanline], blankline, FONT_SCANLINES * scanline);
+		memcpy(&dbbuffer[dboffset * scanline], blankline, ROW_BYTES);
 		
 		dboffset = (dboffset + FONT_SCANLINES) % yres;
 		firstsz = yres - dboffset;
@@ -348,41 +362,48 @@ static chardev_operations_t fb_ops = {
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr 	Physical address of the framebuffer
- * @param x    	Screen width in pixels
- * @param y    	Screen height in pixels
- * @param bpp  	Bits per pixel (8, 16, 24, 32)
- * @param scan 	Bytes per one scanline
- * @param align	Request alignment for 24bpp mode.
+ * @param addr   Physical address of the framebuffer
+ * @param x      Screen width in pixels
+ * @param y      Screen height in pixels
+ * @param scan   Bytes per one scanline
+ * @param visual Color model
+ *
  */
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, unsigned int scan, bool align)
+void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, unsigned int visual)
 {
-	switch (bpp) {
-	case 8:
-		rgb2scr = rgb_1byte;
-		scr2rgb = byte1_rgb;
+	switch (visual) {
+	case VISUAL_INDIRECT_8:
+		rgb2scr = rgb_byte8;
+		scr2rgb = byte8_rgb;
 		pixelbytes = 1;
 		break;
-	case 16:
-		rgb2scr = rgb_2byte;
-		scr2rgb = byte2_rgb;
+	case VISUAL_RGB_5_5_5:
+		rgb2scr = rgb_byte555;
+		scr2rgb = byte555_rgb;
 		pixelbytes = 2;
 		break;
-	case 24:
-		rgb2scr = rgb_3byte;
-		scr2rgb = byte3_rgb;
-		if (align)
-			pixelbytes = 4;
-		else
-			pixelbytes = 3;
+	case VISUAL_RGB_5_6_5:
+		rgb2scr = rgb_byte565;
+		scr2rgb = byte565_rgb;
+		pixelbytes = 2;
 		break;
-	case 32:
-		rgb2scr = rgb_4byte;
-		scr2rgb = byte4_rgb;
+	case VISUAL_RGB_8_8_8:
+		rgb2scr = rgb_byte888;
+		scr2rgb = byte888_rgb;
+		pixelbytes = 3;
+		break;
+	case VISUAL_RGB_8_8_8_0:
+		rgb2scr = rgb_byte888;
+		scr2rgb = byte888_rgb;
+		pixelbytes = 4;
+		break;
+	case VISUAL_RGB_0_8_8_8:
+		rgb2scr = rgb_byte0888;
+		scr2rgb = byte0888_rgb;
 		pixelbytes = 4;
 		break;
 	default:
-		panic("Unsupported bpp.\n");
+		panic("Unsupported visual.\n");
 	}
 	
 	unsigned int fbsize = scan * y;
@@ -392,7 +413,6 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	
 	xres = x;
 	yres = y;
-	bitspp = bpp;
 	scanline = scan;
 	
 	rows = y / FONT_SCANLINES;
@@ -402,9 +422,8 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int bpp, u
 	sysinfo_set_item_val("fb.kind", NULL, 1);
 	sysinfo_set_item_val("fb.width", NULL, xres);
 	sysinfo_set_item_val("fb.height", NULL, yres);
-	sysinfo_set_item_val("fb.bpp", NULL, bpp);
-	sysinfo_set_item_val("fb.bpp-align", NULL, align);
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
+	sysinfo_set_item_val("fb.visual", NULL, visual);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 

@@ -37,6 +37,7 @@
 #ifdef CONFIG_FB
 
 #include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
 #include <arch/drivers/vesa.h>
 #include <putchar.h>
 #include <mm/page.h>
@@ -67,7 +68,26 @@ int vesa_present(void)
 
 void vesa_init(void)
 {
-	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_bpp, vesa_scanline, false);
+	unsigned int visual;
+	
+	switch (vesa_bpp) {
+	case 8:
+		visual = VISUAL_INDIRECT_8;
+		break;
+	case 16:
+		visual = VISUAL_RGB_5_6_5;
+		break;
+	case 24:
+		visual = VISUAL_RGB_8_8_8;
+		break;
+	case 32:
+		visual = VISUAL_RGB_0_8_8_8;
+		break;
+	default:
+		panic("Unsupported bits per pixel");
+	}
+	
+	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_scanline, visual);
 }
 
 #endif

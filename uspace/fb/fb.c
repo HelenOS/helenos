@@ -49,7 +49,9 @@
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <kernel/errno.h>
+#include <kernel/genarch/fb/visuals.h>
 #include <async.h>
+#include <bool.h>
 
 #include "font-8x16.h"
 #include "fb.h"
@@ -147,17 +149,17 @@ static inline int COLOR(int color)
 }
 
 /* Conversion routines between different color representations */
-static void rgb_4byte(void *dst, int rgb)
+static void rgb_byte0888(void *dst, int rgb)
 {
 	*(int *)dst = rgb;
 }
 
-static int byte4_rgb(void *src)
+static int byte0888_rgb(void *src)
 {
 	return (*(int *)src) & 0xffffff;
 }
 
-static void rgb_3byte(void *dst, int rgb)
+static void rgb_byte888(void *dst, int rgb)
 {
 	uint8_t *scr = dst;
 #if defined(FB_INVERT_ENDIAN)
@@ -171,7 +173,7 @@ static void rgb_3byte(void *dst, int rgb)
 #endif
 }
 
-static int byte3_rgb(void *src)
+static int byte888_rgb(void *src)
 {
 	uint8_t *scr = src;
 #if defined(FB_INVERT_ENDIAN)
@@ -181,28 +183,42 @@ static int byte3_rgb(void *src)
 #endif	
 }
 
+/**  16-bit depth (5:5:5) */
+static void rgb_byte555(void *dst, int rgb)
+{
+	/* 5-bit, 5-bits, 5-bits */ 
+	*((uint16_t *)(dst)) = RED(rgb, 5) << 10 | GREEN(rgb, 5) << 5 | BLUE(rgb, 5);
+}
+
+/** 16-bit depth (5:5:5) */
+static int byte555_rgb(void *src)
+{
+	int color = *(uint16_t *)(src);
+	return (((color >> 10) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x1f) << (8 + 3)) | ((color & 0x1f) << 3);
+}
+
 /**  16-bit depth (5:6:5) */
-static void rgb_2byte(void *dst, int rgb)
+static void rgb_byte565(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
 	*((uint16_t *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:6:5) */
-static int byte2_rgb(void *src)
+static int byte565_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
 	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
-static void rgb_1byte(void *dst, int rgb)
+static void rgb_byte8(void *dst, int rgb)
 {
 	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
-static int byte1_rgb(void *src)
+static int byte8_rgb(void *src)
 {
 	int color = *(uint8_t *)src;
 	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
@@ -452,43 +468,49 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr Address of theframebuffer
- * @param xres Screen width in pixels
- * @param yres Screen height in pixels
- * @param bpp  Bits per pixel (8, 16, 24, 32)
- * @param scan Bytes per one scanline
- * @param align Alignment for 24bpp mode.
+ * @param addr          Address of theframebuffer
+ * @param xres          Screen width in pixels
+ * @param yres          Screen height in pixels
+ * @param visual        Bits per pixel (8, 16, 24, 32)
+ * @param scan          Bytes per one scanline
  * @param invert_colors Inverted colors.
  *
  */
-static void
-screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, unsigned int scan,
-	int align, int invert_colors)
+static bool screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int scan, unsigned int visual, bool invert_colors)
 {
-	switch (bpp) {
-	case 8:
-		screen.rgb2scr = rgb_1byte;
-		screen.scr2rgb = byte1_rgb;
+	switch (visual) {
+	case VISUAL_INDIRECT_8:
+		screen.rgb2scr = rgb_byte8;
+		screen.scr2rgb = byte8_rgb;
 		screen.pixelbytes = 1;
 		break;
-	case 16:
-		screen.rgb2scr = rgb_2byte;
-		screen.scr2rgb = byte2_rgb;
+	case VISUAL_RGB_5_5_5:
+		screen.rgb2scr = rgb_byte555;
+		screen.scr2rgb = byte555_rgb;
 		screen.pixelbytes = 2;
 		break;
-	case 24:
-		screen.rgb2scr = rgb_3byte;
-		screen.scr2rgb = byte3_rgb;
-		if (!align)
-			screen.pixelbytes = 3;
-		else
-			screen.pixelbytes = 4;
+	case VISUAL_RGB_5_6_5:
+		screen.rgb2scr = rgb_byte565;
+		screen.scr2rgb = byte565_rgb;
+		screen.pixelbytes = 2;
 		break;
-	case 32:
-		screen.rgb2scr = rgb_4byte;
-		screen.scr2rgb = byte4_rgb;
+	case VISUAL_RGB_8_8_8:
+		screen.rgb2scr = rgb_byte888;
+		screen.scr2rgb = byte888_rgb;
+		screen.pixelbytes = 3;
+		break;
+	case VISUAL_RGB_8_8_8_0:
+		screen.rgb2scr = rgb_byte888;
+		screen.scr2rgb = byte888_rgb;
 		screen.pixelbytes = 4;
 		break;
+	case VISUAL_RGB_0_8_8_8:
+		screen.rgb2scr = rgb_byte0888;
+		screen.scr2rgb = byte0888_rgb;
+		screen.pixelbytes = 4;
+		break;
+	default:
+		return false;
 	}
 
 	screen.fbaddress = (unsigned char *) addr;
@@ -498,7 +520,9 @@ screen_init(void *addr, unsigned int xres, unsigned int yres, unsigned int bpp, 
 	screen.invert_colors = invert_colors;
 	
 	/* Create first viewport */
-	viewport_create(0,0,xres,yres);
+	viewport_create(0, 0, xres, yres);
+	
+	return true;
 }
 
 /** Hide cursor if it is shown */
@@ -1226,10 +1250,9 @@ int fb_init(void)
 	void *fb_ph_addr;
 	unsigned int fb_width;
 	unsigned int fb_height;
-	unsigned int fb_bpp;
-	unsigned int fb_bpp_align;
 	unsigned int fb_scanline;
-	unsigned int fb_invert_colors;
+	unsigned int fb_visual;
+	bool fb_invert_colors;
 	void *fb_addr;
 	size_t asz;
 
@@ -1238,19 +1261,20 @@ int fb_init(void)
 	fb_ph_addr = (void *) sysinfo_value("fb.address.physical");
 	fb_width = sysinfo_value("fb.width");
 	fb_height = sysinfo_value("fb.height");
-	fb_bpp = sysinfo_value("fb.bpp");
-	fb_bpp_align = sysinfo_value("fb.bpp-align");
 	fb_scanline = sysinfo_value("fb.scanline");
+	fb_visual = sysinfo_value("fb.visual");
 	fb_invert_colors = sysinfo_value("fb.invert-colors");
 
-	asz = fb_scanline*fb_height;
+	asz = fb_scanline * fb_height;
 	fb_addr = as_get_mappable_page(asz);
 	
 	map_physmem(fb_ph_addr, fb_addr, ALIGN_UP(asz, PAGE_SIZE) >> PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
 
-	screen_init(fb_addr, fb_width, fb_height, fb_bpp, fb_scanline, fb_bpp_align, fb_invert_colors);
-	return 0;
+	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual, fb_invert_colors))
+		return 0;
+	
+	return -1;
 }
 
 /** 

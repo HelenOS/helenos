@@ -53,6 +53,7 @@
 #include <console/chardev.h>
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
 #include <macros.h>
 #include <ddi/device.h>
 
@@ -122,7 +123,7 @@ void arch_post_mm_init(void)
 	interrupt_init();
 	console_init(device_assign_devno());
 #ifdef CONFIG_FB
-	fb_init(0x12000000, 640, 480, 24, 1920, false); // gxemul framebuffer
+	fb_init(0x12000000, 640, 480, 1920, VISUAL_RGB_8_8_8); // gxemul framebuffer
 #endif
 	sysinfo_set_item_val("machine." STRING(MACHINE), NULL, 1);
 }

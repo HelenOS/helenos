@@ -35,6 +35,7 @@
 #include <arch/drivers/scr.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
 #include <arch/types.h>
 #include <typedefs.h>
 #include <func.h>
@@ -75,6 +76,7 @@ void scr_init(ofw_tree_node_t *node)
 	uint32_t fb_depth = 0;
 	uint32_t fb_linebytes = 0;
 	uint32_t fb_scanline = 0;
+	unsigned int visual;
 
 	prop = ofw_tree_getprop(node, "width");
 	if (prop && prop->value)
@@ -115,16 +117,33 @@ void scr_init(ofw_tree_node_t *node)
 			printf("Failed to determine screen address.\n");
 			return;
 		}
-
-		if (fb_depth == 24)
-			fb_scanline = fb_linebytes * 4;
-		else
+		
+		switch (fb_depth) {
+		case 8:
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_INDIRECT_8;
+			break;
+		case 16:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_5_6_5;
+			break;
+		case 24:
+			fb_scanline = fb_linebytes * 4;
+			visual = VISUAL_RGB_8_8_8_0;
+			break;
+		case 32:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_0_8_8_8;
+			break;
+		default:
+			printf("Unsupported bits per pixel.\n");
+			return;
+		}
 		
 		break;
 	case SCR_FFB:	
-		fb_depth = 32;
 		fb_scanline = 8192;
+		visual = VISUAL_RGB_0_8_8_8;
 
 		ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
 		if (!ofw_upa_apply_ranges(node->parent, reg, &fb_addr)) {
@@ -137,7 +156,7 @@ void scr_init(ofw_tree_node_t *node)
 		panic("Unexpected type.\n");
 	}
 
-	fb_init(fb_addr, fb_width, fb_height, fb_depth, fb_scanline, true);
+	fb_init(fb_addr, fb_width, fb_height, fb_scanline, visual);
 }
 
 /** @}

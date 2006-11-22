@@ -38,6 +38,7 @@
 #include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
 #include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
 #include <userspace.h>
 #include <proc/uarg.h>
 #include <console/console.h>
@@ -75,7 +76,25 @@ void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Initialize framebuffer */
-		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline, false);
+		unsigned int visual;
+		
+		switch (bootinfo.screen.bpp) {
+		case 8:
+			visual = VISUAL_INDIRECT_8;
+			break;
+		case 16:
+			visual = VISUAL_RGB_5_5_5;
+			break;
+		case 24:
+			visual = VISUAL_RGB_8_8_8;
+			break;
+		case 32:
+			visual = VISUAL_RGB_0_8_8_8;
+			break;
+		default:
+			panic("Unsupported bits per pixel");
+		}
+		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.scanline, visual);
 		
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
