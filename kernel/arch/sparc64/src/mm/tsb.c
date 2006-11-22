@@ -100,7 +100,9 @@ void itsb_pte_copy(pte_t *t)
 	tsb->data.size = PAGESIZE_8K;
 	tsb->data.pfn = t->frame >> PAGE_WIDTH;
 	tsb->data.cp = t->c;
+#ifdef CONFIG_VIRT_IDX_CACHE
 	tsb->data.cv = t->c;
+#endif /* CONFIG_VIRT_IDX_CACHE */
 	tsb->data.p = t->k;		/* p as privileged */
 	tsb->data.v = t->p;
 	
@@ -140,7 +142,9 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	tsb->data.size = PAGESIZE_8K;
 	tsb->data.pfn = t->frame >> PAGE_WIDTH;
 	tsb->data.cp = t->c;
+#ifdef CONFIG_VIRT_IDX_CACHE
 	tsb->data.cv = t->c;
+#endif /* CONFIG_VIRT_IDX_CACHE */
 	tsb->data.p = t->k;		/* p as privileged */
 	tsb->data.w = ro ? false : t->w;
 	tsb->data.v = t->p;

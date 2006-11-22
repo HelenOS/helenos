@@ -91,6 +91,10 @@ ifeq ($(CONFIG_NS16550),y)
 	DEFS += -DCONFIG_NS16550
 endif
 
+ifeq ($(CONFIG_VIRT_IDX_CACHE),y)
+	DEFS += -DCONFIG_VIRT_IDX_CACHE
+endif
+
 ifeq ($(CONFIG_POWEROFF),y)
 	DEFS += -DCONFIG_POWEROFF
 endif

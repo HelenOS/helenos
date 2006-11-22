@@ -111,7 +111,9 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool loc
 	data.pfn = fr.pfn;
 	data.l = locked;
 	data.cp = cacheable;
+#ifdef CONFIG_VIRT_IDX_CACHE
 	data.cv = cacheable;
+#endif /* CONFIG_VIRT_IDX_CACHE */
 	data.p = true;
 	data.w = true;
 	data.g = false;
@@ -146,7 +148,9 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	data.pfn = fr.pfn;
 	data.l = false;
 	data.cp = t->c;
+#ifdef CONFIG_VIRT_IDX_CACHE
 	data.cv = t->c;
+#endif /* CONFIG_VIRT_IDX_CACHE */
 	data.p = t->k;		/* p like privileged */
 	data.w = ro ? false : t->w;
 	data.g = t->g;
@@ -180,7 +184,9 @@ void itlb_pte_copy(pte_t *t)
 	data.pfn = fr.pfn;
 	data.l = false;
 	data.cp = t->c;
+#ifdef CONFIG_VIRT_IDX_CACHE
 	data.cv = t->c;
+#endif /* CONFIG_VIRT_IDX_CACHE */
 	data.p = t->k;		/* p like privileged */
 	data.w = false;
 	data.g = t->g;
