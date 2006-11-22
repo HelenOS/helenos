@@ -143,7 +143,7 @@ void scr_init(ofw_tree_node_t *node)
 		break;
 	case SCR_FFB:	
 		fb_scanline = 8192;
-		visual = VISUAL_RGB_0_8_8_8;
+		visual = VISUAL_BGR_0_8_8_8;
 
 		ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
 		if (!ofw_upa_apply_ranges(node->parent, reg, &fb_addr)) {

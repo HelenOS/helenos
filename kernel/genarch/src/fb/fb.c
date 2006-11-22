@@ -105,6 +105,17 @@ static int byte0888_rgb(void *src)
 	return (*((int *) src)) & 0xffffff;
 }
 
+static void bgr_byte0888(void *dst, int rgb)
+{
+	*((uint32_t *) dst) = BLUE(rgb, 8) << 16 | GREEN(rgb, 8) << 8 | RED(rgb, 8);
+}
+
+static int byte0888_bgr(void *src)
+{
+	int color = *(uint32_t *)(src);
+	return ((color & 0xff) << 16) | (((color >> 8) & 0xff) << 8) | ((color >> 16) & 0xff);
+}
+
 static void rgb_byte888(void *dst, int rgb)
 {
 	uint8_t *scr = dst;
@@ -400,6 +411,11 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, 
 	case VISUAL_RGB_0_8_8_8:
 		rgb2scr = rgb_byte0888;
 		scr2rgb = byte0888_rgb;
+		pixelbytes = 4;
+		break;
+	case VISUAL_BGR_0_8_8_8:
+		rgb2scr = bgr_byte0888;
+		scr2rgb = byte0888_bgr;
 		pixelbytes = 4;
 		break;
 	default:

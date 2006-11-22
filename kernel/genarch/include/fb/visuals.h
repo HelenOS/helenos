@@ -36,11 +36,14 @@
 #define KERN_VISUALS_H_
 
 #define VISUAL_INDIRECT_8	0
+
 #define VISUAL_RGB_5_5_5	1
 #define VISUAL_RGB_5_6_5	2
 #define VISUAL_RGB_8_8_8	3
 #define VISUAL_RGB_8_8_8_0	4
 #define VISUAL_RGB_0_8_8_8	5
+
+#define VISUAL_BGR_0_8_8_8	6
 
 #endif
 
