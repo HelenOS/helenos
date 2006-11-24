@@ -72,10 +72,29 @@ static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top
 	}
 }
 
+char *release = RELEASE;
+
+#ifdef REVISION
+	char *revision = ", revision " REVISION;
+#else
+	char *revision = "";
+#endif
+
+#ifdef TIMESTAMP
+	char *timestamp = "\nBuilt on " TIMESTAMP;
+#else
+	char *timestamp = "";
+#endif
+
+/** Print version information. */
+static void version_print(void)
+{
+	printf("HelenOS PPC32 Bootloader\nRelease %s%s%s\nCopyright (C) 2006 HelenOS project\n", release, revision, timestamp);
+}
 
 void bootstrap(void)
 {
-	printf("\nHelenOS PPC Bootloader\n");
+	version_print();
 	
 	init_components();
 	

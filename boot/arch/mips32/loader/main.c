@@ -34,9 +34,29 @@
 
 #define KERNEL_VIRTUAL_ADDRESS 0x80100000
 
+char *release = RELEASE;
+
+#ifdef REVISION
+	char *revision = ", revision " REVISION;
+#else
+	char *revision = "";
+#endif
+
+#ifdef TIMESTAMP
+	char *timestamp = "\nBuilt on " TIMESTAMP;
+#else
+	char *timestamp = "";
+#endif
+
+/** Print version information. */
+static void version_print(void)
+{
+	printf("HelenOS MIPS32 Bootloader\nRelease %s%s%s\nCopyright (C) 2006 HelenOS project\n", release, revision, timestamp);
+}
+
 void bootstrap(void)
 {
-	printf("HelenOS MIPS Bootloader\n");
+	version_print();
 	
 	component_t components[COMPONENTS];
 	bootinfo_t bootinfo;
