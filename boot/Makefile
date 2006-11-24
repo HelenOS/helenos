@@ -29,7 +29,6 @@
 ## Include configuration
 #
 
--include ../version
 -include Makefile.config
 
 ## Paths

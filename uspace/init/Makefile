@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+include ../../version
+include ../Makefile.config
+
 ## Setup toolchain
 #
 
@@ -36,6 +39,15 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 CFLAGS += -I../kbd/include
 
 LIBS = $(LIBC_PREFIX)/libc.a
+DEFS += -DRELEASE=\"$(RELEASE)\"
+
+ifdef REVISION
+	DEFS += "-DREVISION=\"$(REVISION)\""
+endif
+
+ifdef TIMESTAMP
+	DEFS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
+endif
 
 ## Sources
 #

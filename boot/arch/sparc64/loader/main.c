@@ -40,9 +40,29 @@
 bootinfo_t bootinfo;
 component_t components[COMPONENTS];
 
+char *release = RELEASE;
+
+#ifdef REVISION
+	char *revision = ", revision " REVISION;
+#else
+	char *revision = "";
+#endif
+
+#ifdef TIMESTAMP
+	char *timestamp = "\nBuilt on " TIMESTAMP;
+#else
+	char *timestamp = "";
+#endif
+
+/** Print version information. */
+static void version_print(void)
+{
+	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\nCopyright (C) 2006 HelenOS project\n", release, revision, timestamp);
+}
+
 void bootstrap(void)
 {
-	printf("HelenOS SPARC64 Bootloader\n");
+	version_print();
 	
 	init_components(components);
 

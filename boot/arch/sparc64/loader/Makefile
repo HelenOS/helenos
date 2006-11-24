@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+include ../../../../version
+include ../../../Makefile.config
+
 ## Toolchain configuration
 #
 
@@ -46,7 +49,15 @@ else
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64
+
+ifdef REVISION
+	CFLAGS += "-DREVISION=\"$(REVISION)\""
+endif
+
+ifdef TIMESTAMP
+	CFLAGS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
+endif
 
 SOURCES = \
 	main.c \

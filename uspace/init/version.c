@@ -37,13 +37,25 @@
 #include <stdio.h>
 #include "version.h"
 
+char *release = RELEASE;
+
+#ifdef REVISION
+	char *revision = ", revision " REVISION;
+#else
+	char *revision = "";
+#endif
+
+#ifdef TIMESTAMP
+	char *timestamp = "\nBuilt on " TIMESTAMP;
+#else
+	char *timestamp = "";
+#endif
+
 /** Print version information. */
 void version_print(void)
 {
-	puts("HelenOS init");
-	puts("Copyright (C) 2006 HelenOS project");
+	printf("HelenOS init\nRelease %s%s%s\nCopyright (C) 2006 HelenOS project\n", release, revision, timestamp);
 }
 
 /** @}
  */
-
