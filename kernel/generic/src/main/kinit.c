@@ -61,7 +61,7 @@
 #include <interrupt.h>
 #include <console/kconsole.h>
 #include <security/cap.h>
-#include <mm/rd.h>
+#include <lib/rd.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>

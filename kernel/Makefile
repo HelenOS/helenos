@@ -177,11 +177,11 @@ GENERIC_SOURCES = \
 	generic/src/mm/backend_elf.c \
 	generic/src/mm/backend_phys.c \
 	generic/src/mm/slab.c \
-	generic/src/mm/rd.c \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
 	generic/src/lib/elf.c \
+	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \
 	generic/src/printf/sprintf.c \

@@ -36,7 +36,7 @@
  * @brief	Kernel ELF loader.
  */
 
-#include <elf.h>
+#include <lib/elf.h>
 #include <debug.h>
 #include <arch/types.h>
 #include <typedefs.h>

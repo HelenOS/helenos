@@ -52,7 +52,7 @@
 #include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
-#include <elf.h>
+#include <lib/elf.h>
 
 /** Defined to be true if user address space and kernel address space shadow each other. */
 #define KERNEL_ADDRESS_SPACE_SHADOWED	KERNEL_ADDRESS_SPACE_SHADOWED_ARCH

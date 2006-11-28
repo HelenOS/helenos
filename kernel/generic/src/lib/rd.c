@@ -37,7 +37,7 @@
  * Support for RAM disk images.
  */
 
-#include <mm/rd.h>
+#include <lib/rd.h>
 
 bool init_rd(void * addr)
 {

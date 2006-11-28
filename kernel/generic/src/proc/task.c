@@ -50,7 +50,7 @@
 #include <security/cap.h>
 #include <memstr.h>
 #include <print.h>
-#include <elf.h>
+#include <lib/elf.h>
 #include <errno.h>
 #include <syscall/copy.h>
 #include <console/klog.h>
