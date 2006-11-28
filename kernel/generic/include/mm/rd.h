@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup genericmm
  * @{
  */
-/**
- * @file	services.h
- * @brief	List of all known services and their codes.
+/** @file
  */
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#ifndef KERN_RD_H_
+#define KERN_RD_H_
 
-#define SERVICE_PCI		1
-#define SERVICE_KEYBOARD	2
-#define SERVICE_VIDEO		3
-#define SERVICE_CONSOLE		4
-#define SERVICE_RD		5
+#include <typedefs.h>
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+extern bool init_rd(void * addr);
 
 #endif
 

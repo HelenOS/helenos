@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup rd
  * @{
- */
+ */ 
+
 /**
- * @file	services.h
- * @brief	List of all known services and their codes.
+ * @file	rd.c
+ * @brief	Initial RAM disk for HelenOS.
  */
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <ipc/ns.h>
+#include <errno.h>
+#include <async.h>
 
-#define SERVICE_PCI		1
-#define SERVICE_KEYBOARD	2
-#define SERVICE_VIDEO		3
-#define SERVICE_CONSOLE		4
-#define SERVICE_RD		5
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int retval;
 
-#endif
+	ipc_answer_fast(iid, 0, 0, 0);
 
-/** @}
- */
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			ipc_answer_fast(callid, 0,0,0);
+			return;
+		default:
+			retval = EINVAL;
+		}
+		ipc_answer_fast(callid, retval, 0, 0);
+	}	
+}
+
+
+int main(int argc, char **argv)
+{
+	ipcarg_t phonead;
+	
+	async_set_client_connection(rd_connection);
+	
+	/* Register service at nameserver */
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, &phonead) != 0)
+		return -1;
+
+	async_manager();
+
+	/* Never reached */
+	return 0;
+}
+
+/**
+ * @}
+ */ 

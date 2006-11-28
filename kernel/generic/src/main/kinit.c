@@ -61,6 +61,7 @@
 #include <interrupt.h>
 #include <console/kconsole.h>
 #include <security/cap.h>
+#include <mm/rd.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -158,17 +159,18 @@ void kinit(void *arg)
 	printf("\nTest finished, please reboot.\n");
 #else  /* CONFIG_TEST */
 
-	task_t *utask;
 	count_t i;
 	for (i = 0; i < init.cnt; i++) {
 		/*
-		 * Run user tasks.
+		 * Run user tasks, load RAM disk images.
 		 */
 		
-		if (init.tasks[i].addr % FRAME_SIZE)
-			panic("init[%d].addr is not frame aligned", i);
+		if (init.tasks[i].addr % FRAME_SIZE) {
+			printf("init[%d].addr is not frame aligned", i);
+			continue;
+		}
 
-		utask = task_run_program((void *) init.tasks[i].addr, "USPACE");
+		task_t *utask = task_run_program((void *) init.tasks[i].addr, "USPACE");
 		if (utask) {
 			/*
 			 * Set capabilities to init userspace tasks.
@@ -177,8 +179,12 @@ void kinit(void *arg)
 			
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
-		} else
-			printf("Init task %zd not started.\n", i);
+		} else {
+			bool rd = init_rd((void *) init.tasks[i].addr);
+			
+			if (!rd)
+				printf("Init binary %zd not used.\n", i);
+		}
 	}
 
 

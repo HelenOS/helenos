@@ -234,7 +234,7 @@ void main_bsp_separated_stack(void)
 		for (i = 0; i < init.cnt; i++)
 			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(uintptr_t) * 2, init.tasks[i].addr, i, init.tasks[i].size);
 	} else
-		printf("No init tasks found\n");
+		printf("No init binaries found\n");
 	
 	ipc_init();
 
