@@ -98,7 +98,7 @@ void itsb_pte_copy(pte_t *t)
 	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = t->frame >> PAGE_WIDTH;
+	tsb->data.pfn = t->frame >> FRAME_WIDTH;
 	tsb->data.cp = t->c;
 #ifdef CONFIG_VIRT_IDX_CACHE
 	tsb->data.cv = t->c;
@@ -140,7 +140,7 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = t->frame >> PAGE_WIDTH;
+	tsb->data.pfn = t->frame >> FRAME_WIDTH;
 	tsb->data.cp = t->c;
 #ifdef CONFIG_VIRT_IDX_CACHE
 	tsb->data.cv = t->c;

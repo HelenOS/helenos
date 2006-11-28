@@ -64,13 +64,13 @@
 .global kernel_image_start
 kernel_image_start:
 	mov BSP_FLAG, %l0
-	and %o0, %l0, %l7				! l7 <= bootstrap processor?
-	andn %o0, %l0, %l6				! l6 <= start of physical memory
+	and %o0, %l0, %l7			! l7 <= bootstrap processor?
+	andn %o0, %l0, %l6			! l6 <= start of physical memory
 
 	! Get bits 40:13 of physmem_base.
 	srlx %l6, 13, %l5
 	sllx %l5, 13 + (63 - 40), %l5
-	srlx %l5, 63 - 40, %l5				! l5 <= physmem_base[40:13]
+	srlx %l5, 63 - 40, %l5			! l5 <= physmem_base[40:13]
 	
 	/*
 	 * Setup basic runtime environment.

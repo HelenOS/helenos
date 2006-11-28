@@ -57,7 +57,7 @@
 
 #define ZONE_JOIN       0x1	/**< If possible, merge with neighbouring zones */
 
-#define FRAME_KA		0x1	/* skip frames conflicting with user address space */
+#define FRAME_KA		0x1	/* convert the frame address to kernel va */
 #define FRAME_ATOMIC 	        0x2	/* do not panic and do not sleep on failure */
 #define FRAME_NO_RECLAIM        0x4     /* do not start reclaiming when no free memory */
 

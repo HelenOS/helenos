@@ -9,6 +9,7 @@ implementation of SPARC V9 architecture.
 
 MACHINES
 	o Sun Ultra 5
+	o Sun Ultra 60
 	o Sun Enterprise E6500 (simulated)
 		
 CPU
