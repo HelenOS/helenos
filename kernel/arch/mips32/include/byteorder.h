@@ -35,23 +35,24 @@
 #ifndef KERN_mips32_BYTEORDER_H_
 #define KERN_mips32_BYTEORDER_H_
 
-#include <arch/types.h>
 #include <byteorder.h>
 
 #ifdef BIG_ENDIAN
-static inline uint64_t uint64_t_le2host(uint64_t n)
-{
-	return uint64_t_byteorder_swap(n);
-}
 
-static inline unative_t unative_t_le2host(unative_t n)
-{
-	return uint32_t_byteorder_swap(n);
-}
+#define uint32_t_le2host(n)		uint64_t_byteorder_swap(n)
+#define uint64_t_le2host(n)		uint32_t_byteorder_swap(n)
+
+#define uint32_t_be2host(n)		(n)
+#define uint64_t_be2host(n)		(n)
 
 #else
-#  define unative_t_le2host(n)		(n)
-#  define uint64_t_le2host(n)		(n)
+
+#define uint32_t_le2host(n)		(n)
+#define uint64_t_le2host(n)		(n)
+
+#define uint32_t_be2host(n)		uint64_t_byteorder_swap(n)
+#define uint64_t_be2host(n)		uint32_t_byteorder_swap(n)
+
 #endif
 
 #endif

@@ -35,37 +35,13 @@
 #ifndef KERN_ppc32_BYTEORDER_H_
 #define KERN_ppc32_BYTEORDER_H_
 
-#include <arch/types.h>
 #include <byteorder.h>
 
-#define BIG_ENDIAN
+#define uint32_t_le2host(n)		uint64_t_byteorder_swap(n)
+#define uint64_t_le2host(n)		uint32_t_byteorder_swap(n)
 
-static inline uint64_t uint64_t_le2host(uint64_t n)
-{
-	return uint64_t_byteorder_swap(n);
-}
-
-
-/** Convert little-endian unative_t to host unative_t
- *
- * Convert little-endian unative_t parameter to host endianess.
- *
- * @param n Little-endian unative_t argument.
- *
- * @return Result in host endianess.
- *
- */
-static inline unative_t unative_t_le2host(unative_t n)
-{
-	uintptr_t v;
-	
-	asm volatile (
-		"lwbrx %0, %1, %2\n"
-		: "=r" (v)
-		: "i" (0), "r" (&n)
-	);
-	return v;
-}
+#define uint32_t_be2host(n)		(n)
+#define uint64_t_be2host(n)		(n)
 
 #endif
 
