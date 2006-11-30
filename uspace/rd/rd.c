@@ -38,6 +38,11 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
+#include <sysinfo.h>
+#include <as.h>
+#include <ddi.h>
+#include <align.h>
+#include <bool.h>
 #include <errno.h>
 #include <async.h>
 
@@ -64,20 +69,40 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
+static bool rd_init(void)
+{
+	size_t rd_size = sysinfo_value("rd.size");
+	void * rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
+	
+	if (rd_size == 0)
+		return false;
+	
+	void * rd_addr = as_get_mappable_page(rd_size);
+	
+	map_physmem(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	
+	return true;
+}
+
+
 int main(int argc, char **argv)
 {
-	ipcarg_t phonead;
+	if (rd_init()) {
+		ipcarg_t phonead;
+		
+		async_set_client_connection(rd_connection);
+		
+		/* Register service at nameserver */
+		if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, &phonead) != 0)
+			return -1;
+		
+		async_manager();
+		
+		/* Never reached */
+		return 0;
+	}
 	
-	async_set_client_connection(rd_connection);
-	
-	/* Register service at nameserver */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, &phonead) != 0)
-		return -1;
-
-	async_manager();
-
-	/* Never reached */
-	return 0;
+	return -1;
 }
 
 /**

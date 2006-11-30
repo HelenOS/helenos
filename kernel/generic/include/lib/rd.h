@@ -75,7 +75,7 @@ typedef struct {
 	uint64_t data_size;
 } rd_header;
 
-extern int init_rd(rd_header * addr);
+extern int init_rd(rd_header * addr, size_t size);
 
 #endif
 
