@@ -180,9 +180,9 @@ void kinit(void *arg)
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
 		} else {
-			bool rd = init_rd((void *) init.tasks[i].addr);
+			int rd = init_rd((void *) init.tasks[i].addr);
 			
-			if (!rd)
+			if (rd != RE_OK)
 				printf("Init binary %zd not used.\n", i);
 		}
 	}

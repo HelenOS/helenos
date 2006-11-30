@@ -38,10 +38,32 @@
  */
 
 #include <lib/rd.h>
+#include <arch/byteorder.h>
 
-bool init_rd(void * addr)
+int init_rd(rd_header * header)
 {
-	return false;
+	/* Identify RAM disk */
+	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) || (header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
+		return RE_INVALID;
+	
+	/* Identify version */	
+	if (header->version != RD_VERSION)
+		return RE_UNSUPPORTED;
+	
+	uint64_t hsize;
+	switch (header->data_type) {
+	case RD_DATA_LSB:
+		hsize = uint64_t_le2host(header->header_size);
+		break;
+//	case RD_DATA_MSB:
+//		hsize = uint64_t_be2host(header->header_size);
+//		break;
+	default:
+		return RE_UNSUPPORTED;
+	}
+		
+
+	return RE_OK;
 }
 
 /** @}

@@ -41,7 +41,7 @@ static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 		((n & 0xff00) << 40) |
 		((n & 0xff0000) << 24) |
 		((n & 0xff000000LL) << 8) |
-		((n & 0xff00000000LL) >>8) |
+		((n & 0xff00000000LL) >> 8) |
 		((n & 0xff0000000000LL) >> 24) |
 		((n & 0xff000000000000LL) >> 40) |
 		((n & 0xff00000000000000LL) >> 56);
