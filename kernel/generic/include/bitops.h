@@ -46,11 +46,31 @@ static inline int fnzb32(uint32_t arg)
 {
 	int n = 0;
 
-	if (arg >> 16) { arg >>= 16;n += 16;}
-	if (arg >> 8) { arg >>= 8; n += 8;}
-	if (arg >> 4) { arg >>= 4; n += 4;}
-	if (arg >> 2) { arg >>= 2; n+=2;}
-	if (arg >> 1) { arg >>= 1; n+=1;}
+	if (arg >> 16) {
+		arg >>= 16;
+		n += 16;
+	}
+	
+	if (arg >> 8) {
+		arg >>= 8;
+		n += 8;
+	}
+	
+	if (arg >> 4) {
+		arg >>= 4;
+		n += 4;
+	}
+	
+	if (arg >> 2) {
+		arg >>= 2;
+		n += 2;
+	}
+	
+	if (arg >> 1) {
+		arg >>= 1;
+		n += 1;
+	}
+	
 	return n;
 }
 
@@ -58,7 +78,11 @@ static inline int fnzb64(uint64_t arg)
 {
 	int n = 0;
 
-	if (arg >> 32) { arg >>= 32;n += 32;}
+	if (arg >> 32) {
+		arg >>= 32;
+		n += 32;
+	}
+	
 	return n + fnzb32((uint32_t) arg);
 }
 

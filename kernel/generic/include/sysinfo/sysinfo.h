@@ -75,15 +75,15 @@ typedef struct sysinfo_rettype {
 	unative_t valid;
 } sysinfo_rettype_t;
 
-void sysinfo_set_item_val(const char *name,sysinfo_item_t **root,unative_t val);
-void sysinfo_dump(sysinfo_item_t **root,int depth);
-void sysinfo_set_item_function(const char *name,sysinfo_item_t **root,sysinfo_val_fn_t fn);
-void sysinfo_set_item_undefined(const char *name,sysinfo_item_t **root);
+void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val);
+void sysinfo_dump(sysinfo_item_t **root, int depth);
+void sysinfo_set_item_function(const char *name, sysinfo_item_t **root, sysinfo_val_fn_t fn);
+void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root);
 
-sysinfo_rettype_t sysinfo_get_val(const char *name,sysinfo_item_t **root);
+sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root);
 
-unative_t sys_sysinfo_valid(unative_t ptr,unative_t len);
-unative_t sys_sysinfo_value(unative_t ptr,unative_t len);
+unative_t sys_sysinfo_valid(unative_t ptr, unative_t len);
+unative_t sys_sysinfo_value(unative_t ptr, unative_t len);
 
 #endif
 

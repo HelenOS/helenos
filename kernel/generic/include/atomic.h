@@ -43,12 +43,12 @@ typedef struct atomic {
 
 static inline void atomic_set(atomic_t *val, long i)
 {
-        val->count = i;
+	val->count = i;
 }
 
 static inline long atomic_get(atomic_t *val)
 {
-        return val->count;
+	return val->count;
 }
 
 #endif
