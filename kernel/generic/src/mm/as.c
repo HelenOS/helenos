@@ -550,12 +550,13 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * @param dst_base Target base address.
  * @param dst_flags_mask Destination address space area flags mask.
  *
- * @return Zero on success or ENOENT if there is no such task or
- *	   if there is no such address space area,
- *	   EPERM if there was a problem in accepting the area or
- *	   ENOMEM if there was a problem in allocating destination
- *	   address space area. ENOTSUP is returned if an attempt
- *	   to share non-anonymous address space area is detected.
+ * @return Zero on success or ENOENT if there is no such task or if there is no
+ * such address space area, EPERM if there was a problem in accepting the area
+ * or ENOMEM if there was a problem in allocating destination address space
+ * area. ENOTSUP is returned if the address space area backend does not support
+ * sharing. It can be also returned if the architecture uses virtually indexed
+ * caches and the source and destination areas start at pages with different
+ * page colors.
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
@@ -580,6 +581,20 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		return ENOENT;
 	}
 	
+#if 0	/* disable the check for now */
+#ifdef CONFIG_VIRT_IDX_CACHE
+	if (PAGE_COLOR(src_area->base) != PAGE_COLOR(dst_base)) {
+		/*
+		 * Refuse to create illegal address alias.
+		 */
+		mutex_unlock(&src_area->lock);
+		mutex_unlock(&src_as->lock);
+		interrupts_restore(ipl);
+		return ENOTSUP;
+	}
+#endif /* CONFIG_VIRT_IDX_CACHE */
+#endif
+
 	if (!src_area->backend || !src_area->backend->share) {
 		/*
 		 * There is no backend or the backend does not

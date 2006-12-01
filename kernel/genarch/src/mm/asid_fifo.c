@@ -63,9 +63,9 @@ void asid_fifo_init(void)
 {
 	int i;
 
-	#if (!FIFO_STATIC)
+#if (!FIFO_STATIC)
 	fifo_create(free_asids);
-	#endif
+#endif
 		
 	for (i = 0; i < ASIDS_ALLOCABLE; i++) {
 		fifo_push(free_asids, ASID_START + i);

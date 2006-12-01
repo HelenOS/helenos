@@ -40,6 +40,8 @@
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
+#define PAGE_COLOR_BITS	1			/**< 14 - 13; 2^14 == 16K == alias boundary. */
+
 #ifdef KERNEL
 
 #ifndef __ASM__

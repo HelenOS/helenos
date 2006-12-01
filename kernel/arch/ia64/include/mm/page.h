@@ -41,11 +41,12 @@
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
 
+#define PAGE_COLOR_BITS	0			/* dummy */
 
 #ifdef KERNEL
 
 /** Bit width of the TLB-locked portion of kernel address space. */
-#define KERNEL_PAGE_WIDTH	28	/* 256M */
+#define KERNEL_PAGE_WIDTH		28	/* 256M */
 
 #define PPN_SHIFT			12
 
@@ -64,7 +65,7 @@
 #define KA2PA(x)	((uintptr_t) (x-(VRN_KERNEL<<VRN_SHIFT)))
 #define PA2KA(x)	((uintptr_t) (x+(VRN_KERNEL<<VRN_SHIFT)))
 
-#define VHPT_WIDTH 			20         	/* 1M */
+#define VHPT_WIDTH 			20	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)
 
 #define PTA_BASE_SHIFT			15

@@ -66,6 +66,12 @@
 
 #define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
 
+
+/**
+ * Macro for computing page color.
+ */
+#define PAGE_COLOR(va)		(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
+
 /** Page fault access type. */
 enum pf_access {
 	PF_ACCESS_READ,
