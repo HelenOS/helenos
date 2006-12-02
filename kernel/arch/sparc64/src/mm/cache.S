@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
- * @{
- */
-/**
- * @file
- * @brief	Various sparc64-specific macros.
- */
+#include <arch/arch.h>
 
-#ifndef KERN_sparc64_ARCH_H_
-#define KERN_sparc64_ARCH_H_
+#define DCACHE_SIZE		(16*1024)
+#define DCACHE_LINE_SIZE	64
 
-#define ASI_AIUP		0x10	/** Access to primary context with user privileges. */
-#define ASI_AIUS		0x11	/** Access to secondary context with user privileges. */
-#define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
-#define ASI_DCACHE_TAG		0x47	/** ASI D-Cache Tag. */
-#define ASI_UPA_CONFIG		0x4a	/** ASI of the UPA_CONFIG register. */
+.global dcache_flush
+dcache_flush:
+	set (DCACHE_SIZE - DCACHE_LINE_SIZE), %g1
+	stxa %g0, [%g1] ASI_DCACHE_TAG
+0:	membar #Sync
+	subcc %g1, DCACHE_LINE_SIZE, %g1
+	bnz,pt %xcc, 0b
+	stxa %g0, [%g1] ASI_DCACHE_TAG
+	retl
+	membar #Sync
 
-#define NWINDOWS		8	/** Number of register window sets. */
-
-#endif
-
-/** @}
- */

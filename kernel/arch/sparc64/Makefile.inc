@@ -83,6 +83,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/mm/as.c \
+	arch/$(ARCH)/src/mm/cache.c \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \

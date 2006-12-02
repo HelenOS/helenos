@@ -251,6 +251,12 @@ kernel_image_start:
 	stx %l3, [%l4 + %lo(kernel_8k_tlb_data_template)]
 
 	/*
+	 * Flush D-Cache.
+	 */
+	call dcache_flush
+	nop
+
+	/*
 	 * So far, we have not touched the stack.
 	 * It is a good idea to set the kernel stack to a known state now.
 	 */
