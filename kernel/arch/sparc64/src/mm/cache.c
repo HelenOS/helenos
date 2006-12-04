@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Jermar
+ * Copyright (C) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,41 +29,70 @@
 /** @addtogroup sparc64mm	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	D-cache shootdown algorithm.
  */
 
-#ifndef KERN_sparc64_AS_H_
-#define KERN_sparc64_AS_H_
+#include <arch/mm/cache.h>
 
-#ifdef CONFIG_TSB
-#include <arch/mm/tsb.h>
-#endif
+#ifdef CONFIG_SMP
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
+#include <smp/ipi.h>
+#include <arch/interrupt.h>
+#include <synch/spinlock.h>
+#include <arch.h>
+#include <debug.h>
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
-#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
-#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
+/**
+ * This spinlock is used by the processors to synchronize during the D-cache
+ * shootdown.
+ */
+SPINLOCK_INITIALIZE(dcachelock);
 
-#define USTACK_ADDRESS_ARCH	(0xffffffffffffffffULL-(PAGE_SIZE-1))
+/** Initialize the D-cache shootdown sequence.
+ *
+ * Start the shootdown sequence by sending out an IPI and wait until all
+ * processors spin on the dcachelock spinlock.
+ */
+void dcache_shootdown_start(void)
+{
+	int i;
 
-typedef struct {
-#ifdef CONFIG_TSB
-	tsb_entry_t *itsb;
-	tsb_entry_t *dtsb;
-#endif /* CONFIG_TSB */
-} as_arch_t;
+	CPU->arch.dcache_active = 0;
+	spinlock_lock(&dcachelock);
 
-#ifdef CONFIG_TSB
-#	define as_invalidate_translation_cache(as, page, cnt)	tsb_invalidate(as, page, cnt)
-#else
-#	define as_invalidate_translation_cache(as, page, cnt)
-#endif
+	ipi_broadcast(IPI_DCACHE_SHOOTDOWN);	
 
-extern void as_arch_init(void);
+busy_wait:
+	for (i = 0; i < config.cpu_count; i++)
+		if (cpus[i].arch.dcache_active)
+			goto busy_wait;
+}
 
-#endif
+/** Finish the D-cache shootdown sequence. */
+void dcache_shootdown_finalize(void)
+{
+	spinlock_unlock(&dcachelock);
+	CPU->arch.dcache_active = 1;
+}
+
+/** Process the D-cache shootdown IPI. */
+void dcache_shootdown_ipi_recv(void)
+{
+	ASSERT(CPU);
+
+	CPU->arch.dcache_active = 0;
+	spinlock_lock(&dcachelock);
+	spinlock_unlock(&dcachelock);
+	
+	dcache_flush();
+
+	CPU->arch.dcache_active = 1;
+}
+
+#endif /* CONFIG_SMP */
 
 /** @}
  */
+

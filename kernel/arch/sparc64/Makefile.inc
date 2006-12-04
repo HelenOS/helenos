@@ -84,6 +84,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/dummy.s \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/cache.c \
+	arch/$(ARCH)/src/mm/cache_asm.S \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \

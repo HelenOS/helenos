@@ -44,6 +44,7 @@
 #include <print.h>
 #include <arch.h>
 #include <mm/tlb.h>
+#include <arch/mm/cache.h>
 #include <config.h>
 #include <synch/spinlock.h>
 
@@ -90,6 +91,8 @@ void interrupt(int n, istate_t *istate)
 #ifdef CONFIG_SMP
 		if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
 			tlb_shootdown_ipi_recv();
+		} else if (data0 == (uintptr_t) dcache_shootdown_ipi_recv) {
+			dcache_shootdown_ipi_recv();
 		}
 #endif
 	} else {

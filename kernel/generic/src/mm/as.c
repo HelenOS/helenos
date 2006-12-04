@@ -78,6 +78,10 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
+#ifdef CONFIG_VIRT_IDX_DCACHE
+#include <arch/mm/cache.h>
+#endif /* CONFIG_VIRT_IDX_DCACHE */
+
 /**
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
@@ -161,6 +165,11 @@ as_t *as_create(int flags)
 	as->refcount = 0;
 	as->cpu_refcount = 0;
 	as->page_table = page_table_create(flags);
+
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	as->dcache_flush_on_install = false;
+	as->dcache_flush_on_deinstall = false;
+#endif	/* CONFIG_VIRT_IDX_DCACHE */
 
 	return as;
 }
@@ -268,6 +277,18 @@ as_area_t *as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int 
 		a->backend_data = *backend_data;
 	else
 		memsetb((uintptr_t) &a->backend_data, sizeof(a->backend_data), 0);
+
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	/*
+	 * When the area is being created with the AS_AREA_ATTR_PARTIAL flag, the
+	 * orig_color is probably wrong until the flag is reset. In other words, it is
+	 * initialized with the color of the area being created and not with the color
+	 * of the original address space area at the beginning of the share chain. Of
+	 * course, the correct color is set by as_area_share() before the flag is
+	 * reset.
+	 */
+	a->orig_color = PAGE_COLOR(base);
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 
 	btree_create(&a->used_space);
 	
@@ -554,9 +575,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * such address space area, EPERM if there was a problem in accepting the area
  * or ENOMEM if there was a problem in allocating destination address space
  * area. ENOTSUP is returned if the address space area backend does not support
- * sharing. It can be also returned if the architecture uses virtually indexed
- * caches and the source and destination areas start at pages with different
- * page colors.
+ * sharing.
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
@@ -564,6 +583,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	ipl_t ipl;
 	int src_flags;
 	size_t src_size;
+	int src_orig_color;
 	as_area_t *src_area, *dst_area;
 	share_info_t *sh_info;
 	mem_backend_t *src_backend;
@@ -581,19 +601,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		return ENOENT;
 	}
 	
-#if 0	/* disable the check for now */
-#ifdef CONFIG_VIRT_IDX_CACHE
-	if (PAGE_COLOR(src_area->base) != PAGE_COLOR(dst_base)) {
-		/*
-		 * Refuse to create illegal address alias.
-		 */
-		mutex_unlock(&src_area->lock);
-		mutex_unlock(&src_as->lock);
-		interrupts_restore(ipl);
-		return ENOTSUP;
-	}
-#endif /* CONFIG_VIRT_IDX_CACHE */
-#endif
 
 	if (!src_area->backend || !src_area->backend->share) {
 		/*
@@ -610,6 +617,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	src_flags = src_area->flags;
 	src_backend = src_area->backend;
 	src_backend_data = src_area->backend_data;
+	src_orig_color = src_area->orig_color;
 
 	/* Share the cacheable flag from the original mapping */
 	if (src_flags & AS_AREA_CACHEABLE)
@@ -664,17 +672,39 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		interrupts_restore(ipl);
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Now the destination address space area has been
 	 * fully initialized. Clear the AS_AREA_ATTR_PARTIAL
 	 * attribute and set the sh_info.
 	 */	
+	mutex_lock(&dst_as->lock);	
 	mutex_lock(&dst_area->lock);
 	dst_area->attributes &= ~AS_AREA_ATTR_PARTIAL;
 	dst_area->sh_info = sh_info;
+	dst_area->orig_color = src_orig_color;
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (src_orig_color != PAGE_COLOR(dst_base)) {
+		/*
+ 		 * We have just detected an attempt to create an invalid address
+ 		 * alias. We allow this and set a special flag that tells the
+ 		 * architecture specific code to flush the D-cache when the
+ 		 * offending address space is installed and deinstalled
+ 		 * (cleanup).
+ 		 *
+ 		 * In order for the flags to take effect immediately, we also
+ 		 * perform a global D-cache shootdown.
+ 		 */
+		dcache_shootdown_start();
+		dst_as->dcache_flush_on_install = true;
+		dst_as->dcache_flush_on_deinstall = true;
+		dcache_flush();
+		dcache_shootdown_finalize();
+	}
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 	mutex_unlock(&dst_area->lock);
-	
+	mutex_unlock(&dst_as->lock);	
+
 	interrupts_restore(ipl);
 	
 	return 0;

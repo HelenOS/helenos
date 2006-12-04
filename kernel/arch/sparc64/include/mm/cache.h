@@ -35,6 +35,16 @@
 #ifndef KERN_sparc64_CACHE_H_
 #define KERN_sparc64_CACHE_H_
 
+#ifdef CONFIG_SMP
+extern void dcache_shootdown_start(void);
+extern void dcache_shootdown_finalize(void);
+extern void dcache_shootdown_ipi_recv(void);
+#else /* CONFIG_SMP */
+#define dcache_shootdown_start();
+#define dcache_shootdown_finalize();
+#define dcache_shootdown_ipi_recv();
+#endif /* CONFIG_SMP */
+
 extern void dcache_flush(void);
 
 #endif

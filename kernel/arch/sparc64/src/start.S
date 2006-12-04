@@ -122,11 +122,11 @@ kernel_image_start:
 	stxa %g1, [VA_DMMU_TAG_ACCESS] %asi			
 	membar #Sync
 
-#ifdef CONFIG_VIRT_IDX_CACHE
+#ifdef CONFIG_VIRT_IDX_DCACHE
 #define TTE_LOW_DATA(imm) 	(TTE_CP | TTE_CV | TTE_P | LMA | (imm))
-#else /* CONFIG_VIRT_IDX_CACHE */
+#else /* CONFIG_VIRT_IDX_DCACHE */
 #define TTE_LOW_DATA(imm) 	(TTE_CP | TTE_P | LMA | (imm))
-#endif /* CONFIG_VIRT_IDX_CACHE */
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 
 #define SET_TLB_DATA(r1, r2, imm) \
 	set TTE_LOW_DATA(imm), %r1; \
@@ -360,8 +360,8 @@ physmem_base:
  */
 .global kernel_8k_tlb_data_template
 kernel_8k_tlb_data_template:
-#ifdef CONFIG_VIRT_IDX_CACHE
+#ifdef CONFIG_VIRT_IDX_DCACHE
 	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | TTE_CV | TTE_P | TTE_W)
-#else /* CONFIG_VIRT_IDX_CACHE */
+#else /* CONFIG_VIRT_IDX_DCACHE */
 	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | TTE_P | TTE_W)
-#endif /* CONFIG_VIRT_IDX_CACHE */
+#endif /* CONFIG_VIRT_IDX_DCACHE */

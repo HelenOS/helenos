@@ -94,6 +94,11 @@ struct as {
 	/** Address space identifier. Constant on architectures that do not support ASIDs.*/
 	asid_t asid;
 	
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	bool dcache_flush_on_install;
+	bool dcache_flush_on_deinstall;
+#endif /* CONFIG_VIRT_IDX_DCACHE */
+
 	/** Architecture specific content. */
 	as_arch_t arch;
 };
@@ -160,6 +165,12 @@ struct as_area {
 
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
+
+	/** 
+	 * Virtual color of the original address space area that was at the beginning
+	 * of the share chain.
+	 */
+	int orig_color; 
 };
 
 extern as_t *AS_KERNEL;

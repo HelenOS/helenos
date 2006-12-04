@@ -47,7 +47,11 @@
 #include <mm/frame.h>
 #include <bitops.h>
 #include <macros.h>
-#endif
+#endif /* CONFIG_TSB */
+
+#ifdef CONFIG_VIRT_IDX_DCACHE
+#include <arch/mm/cache.h>
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)
@@ -158,6 +162,23 @@ void as_install_arch(as_t *as)
 	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> PAGE_WIDTH;
 	dtsb_base_write(tsb_base.value);
 #endif
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (as->dcache_flush_on_install) {
+		/*
+		 * Some mappings in this address space are illegal address
+		 * aliases. Upon their creation, the flush_dcache_on_install
+		 * flag was set.
+		 *
+		 * We are now obliged to flush the D-cache in order to guarantee
+		 * that there will be at most one cache line for each address
+		 * alias.
+		 *
+		 * This flush performs a cleanup after another address space in
+		 * which the alias might have existed.
+		 */
+		dcache_flush();
+	}
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 }
 
 /** Perform sparc64-specific tasks when an address space is removed from the processor.
@@ -192,6 +213,26 @@ void as_deinstall_arch(as_t *as)
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
 	}
 #endif
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (as->dcache_flush_on_deinstall) {
+		/*
+		 * Some mappings in this address space are illegal address
+		 * aliases. Upon their creation, the flush_dcache_on_deinstall
+		 * flag was set.
+		 *
+		 * We are now obliged to flush the D-cache in order to guarantee
+		 * that there will be at most one cache line for each address
+		 * alias.
+		 *
+		 * This flush performs a cleanup after this address space. It is
+		 * necessary because other address spaces that contain the same
+		 * alias are not necessarily aware of the need to carry out the
+		 * cache flush. The only address spaces that are aware of it are
+		 * those that created the illegal alias. 
+		 */
+		dcache_flush();
+	}
+#endif /* CONFIG_VIRT_IDX_DCACHE */
 }
 
 /** @}

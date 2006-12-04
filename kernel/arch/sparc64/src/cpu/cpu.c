@@ -92,6 +92,11 @@ void cpu_arch_init(void)
 		dtlb_insert_mapping((uintptr_t) CPU->stack, KA2PA(CPU->stack), PAGESIZE_8K, true, true);
 	}
 
+	/*
+	 * Set the D-cache active flag.
+	 * Needed for the D-cache to work.
+	 */
+	CPU->arch.dcache_active = 1;
 }
 
 /** Read version information from the current processor. */

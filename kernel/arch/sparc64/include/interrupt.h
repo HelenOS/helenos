@@ -43,8 +43,13 @@
 #define IVT_ITEMS 	15
 #define IVT_FIRST	1
 
+/* This needs to be defined for inter-architecture API portability. */
 #define VECTOR_TLB_SHOOTDOWN_IPI	0
-#define IPI_TLB_SHOOTDOWN		VECTOR_TLB_SHOOTDOWN_IPI
+
+enum {
+	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI,
+	IPI_DCACHE_SHOOTDOWN
+};		
 
 struct istate {
 	uint64_t	tnpc;
