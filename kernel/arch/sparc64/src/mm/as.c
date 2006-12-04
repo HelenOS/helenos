@@ -166,7 +166,7 @@ void as_install_arch(as_t *as)
 	if (as->dcache_flush_on_install) {
 		/*
 		 * Some mappings in this address space are illegal address
-		 * aliases. Upon their creation, the flush_dcache_on_install
+		 * aliases. Upon their creation, the dcache_flush_on_install
 		 * flag was set.
 		 *
 		 * We are now obliged to flush the D-cache in order to guarantee
@@ -217,7 +217,7 @@ void as_deinstall_arch(as_t *as)
 	if (as->dcache_flush_on_deinstall) {
 		/*
 		 * Some mappings in this address space are illegal address
-		 * aliases. Upon their creation, the flush_dcache_on_deinstall
+		 * aliases. Upon their creation, the dcache_flush_on_deinstall
 		 * flag was set.
 		 *
 		 * We are now obliged to flush the D-cache in order to guarantee
