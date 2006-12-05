@@ -232,7 +232,7 @@ build: kernel.bin disasm
 
 config:
 	-rm Makefile.depend
-	tools/config.py kernel.config
+	../tools/config.py kernel.config
 
 -include Makefile.depend
 
