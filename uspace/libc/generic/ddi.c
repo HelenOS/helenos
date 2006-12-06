@@ -50,9 +50,9 @@
  *	   ENOENT if there is no task with specified ID and ENOMEM if there
  *	   was some problem in creating address space area.
  */
-int map_physmem(void *pf, void *vp, unsigned long pages, int flags)
+int physmem_map(void *pf, void *vp, unsigned long pages, int flags)
 {
-	return __SYSCALL4(SYS_MAP_PHYSMEM, (sysarg_t) pf, (sysarg_t) vp, pages, flags);
+	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp, pages, flags);
 }
 
 /** Enable I/O space range to task.

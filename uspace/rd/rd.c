@@ -79,7 +79,7 @@ static bool rd_init(void)
 	
 	void * rd_addr = as_get_mappable_page(rd_size);
 	
-	map_physmem(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	physmem_map(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
 	
 	return true;
 }

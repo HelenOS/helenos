@@ -37,7 +37,7 @@
 
 #include <task.h>
 
-extern int map_physmem(void *pf, void *vp, unsigned long pages, int flags);
+extern int physmem_map(void *pf, void *vp, unsigned long pages, int flags);
 extern int iospace_enable(task_id_t id, void *ioaddr, unsigned long size);
 extern int preemption_control(int enable);
 

@@ -151,7 +151,7 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	return rc;
 }
 
-/** Wrapper for SYS_MAP_PHYSMEM syscall.
+/** Wrapper for SYS_PHYSMEM_MAP syscall.
  *
  * @param phys_base Physical base address to map
  * @param virt_base Destination virtual address

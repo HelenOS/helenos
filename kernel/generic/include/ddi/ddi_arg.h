@@ -35,7 +35,7 @@
 #ifndef KERN_DDI_ARG_H_
 #define KERN_DDI_ARG_H_
 
-/** Structure encapsulating arguments for SYS_MAP_PHYSMEM syscall. */
+/** Structure encapsulating arguments for SYS_PHYSMEM_MAP syscall. */
 typedef struct {
 	unsigned long long task_id;	/** ID of the destination task. */
 	void *phys_base;		/** Physical address of starting frame. */

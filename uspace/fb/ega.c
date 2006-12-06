@@ -313,7 +313,7 @@ int ega_init(void)
 	sz = scr_width*scr_height*2;
 	scr_addr = as_get_mappable_page(sz);
 
-	map_physmem(ega_ph_addr, scr_addr, ALIGN_UP(sz,PAGE_SIZE)>>PAGE_WIDTH,
+	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >> PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
 
 	async_set_client_connection(ega_client_connection);
