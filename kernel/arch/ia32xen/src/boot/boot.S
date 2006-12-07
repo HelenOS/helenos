@@ -30,13 +30,27 @@
 #include <arch/mm/page.h>
 #include <arch/pm.h>
 
-.section __xen_guest
-	.ascii "GUEST_OS=HelenOS,"
-	.ascii "XEN_VER=xen-3.0,"
-	.ascii "HYPERCALL_PAGE=0x0000,"
-	.ascii "LOADER=generic,"
-	.ascii "FEATURES=writable_page_tables"
-	.byte   0
+#define ELFNOTE(name, type, desctype, descval) \
+	.section .note.name; \
+	.align 4; \
+	.long 2f - 1f; \
+	.long 4f - 3f; \
+	.long type; \
+	1:.asciz #name; \
+	2:.align 4; \
+	3:desctype descval; \
+	4:.align 4
+
+ELFNOTE(Xen, XEN_ELFNOTE_GUEST_OS,			.asciz,	"HelenOS")
+ELFNOTE(Xen, XEN_ELFNOTE_GUEST_VERSION,		.asciz,	RELEASE)
+ELFNOTE(Xen, XEN_ELFNOTE_XEN_VERSION,		.asciz,	"xen-3.0")
+ELFNOTE(Xen, XEN_ELFNOTE_VIRT_BASE,			.long,	PA2KA(BOOT_OFFSET))
+ELFNOTE(Xen, XEN_ELFNOTE_PADDR_OFFSET,		.long,	0)
+ELFNOTE(Xen, XEN_ELFNOTE_ENTRY,				.long,	kernel_image_start)
+ELFNOTE(Xen, XEN_ELFNOTE_HYPERCALL_PAGE,	.long,	hypercall_page)
+ELFNOTE(Xen, XEN_ELFNOTE_FEATURES,			.asciz,	"writable_page_tables|writable_descriptor_tables|auto_translated_physmap|supervisor_mode_kernel")
+ELFNOTE(Xen, XEN_ELFNOTE_PAE_MODE,			.asciz,	"no")
+ELFNOTE(Xen, XEN_ELFNOTE_LOADER,			.asciz,	"generic")
 
 .text
 
@@ -81,3 +95,9 @@ shared_info:
 .org 0x2000
 console_page:
 	.space PAGE_SIZE
+
+# Xen 3.0.3 ELF loader is somehow buggy
+# thus this workaround
+.global dummy_fill
+dummy_fill:
+	.space (1024 * 1024)

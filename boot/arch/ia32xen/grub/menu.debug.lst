@@ -3,7 +3,7 @@ timeout 10
 
 title=HelenOS/ia32xen
 root (cd)
-kernel /boot/xen.gz noreboot console=com1,vga com1=auto,8n1,0x3f8
+kernel /boot/xen.debug.gz noreboot console=com1,vga com1=auto,8n1,0x3f8
 module /boot/kernel.bin
 module /boot/ns
 module /boot/init

@@ -44,7 +44,7 @@ $(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst 
 	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
 ifeq ($(CONFIG_DEBUG),y)
 	cp arch/$(ARCH)/grub/menu.debug.lst arch/$(ARCH)/iso/boot/grub/menu.lst
-	cp arch/$(ARCH)/grub/xen.debug.gz arch/$(ARCH)/iso/boot/xen.gz
+	cp arch/$(ARCH)/grub/xen.debug.gz arch/$(ARCH)/iso/boot/
 else
 	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
 	cp arch/$(ARCH)/grub/xen.gz arch/$(ARCH)/iso/boot/

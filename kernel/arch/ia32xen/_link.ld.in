@@ -7,12 +7,13 @@
 
 ENTRY(kernel_image_start)
 
+PHDRS {
+	image PT_LOAD FLAGS(7);	/* RWE */
+	note PT_NOTE FLAGS(4);	/* R__ */
+}
+
 SECTIONS {
-	__xen_guest : {
-		*(__xen_guest);
-	}
-	
-	.image PA2KA(BOOT_OFFSET): { 
+	.image PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text);
@@ -32,7 +33,11 @@ SECTIONS {
 		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
 		*(.bss);			/* uninitialized static variables */
 		kdata_end = .;
-	}
+	} :image
+	
+	.notes : {
+		*(.note.Xen);
+	} :note
 
 	/DISCARD/ : {
 		*(.note.GNU-stack);		
