@@ -83,17 +83,19 @@ typedef struct {
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
 
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
+static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, char *colstr, void **addr)
 {
 	void *ph_addr;
+	int ph_color;
 
 	if (!*addr) {
-		ph_addr = (void *)sysinfo_value(name);
+		ph_addr = (void *) sysinfo_value(name);
 		if (!ph_addr) {
 			ipc_answer_fast(callid, ENOENT, 0, 0);
 			return;
 		}
-		*addr = as_get_mappable_page(PAGE_SIZE);
+		ph_color = (int) sysinfo_value(colstr);
+		*addr = as_get_mappable_page(PAGE_SIZE, ph_color);
 		physmem_map(ph_addr, *addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
 	ipc_answer_fast(callid, 0, (ipcarg_t) *addr, AS_AREA_READ);
@@ -116,10 +118,12 @@ int main(int argc, char **argv)
 		case IPC_M_AS_AREA_RECV:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:
-				get_as_area(callid, &call, "clock.faddr", &clockaddr);
+				get_as_area(callid, &call, "clock.faddr",
+					"clock.fcolor", &clockaddr);
 				break;
 			case SERVICE_MEM_KLOG:
-				get_as_area(callid, &call, "klog.faddr", &klogaddr);
+				get_as_area(callid, &call, "klog.faddr",
+					"klog.fcolor", &klogaddr);
 				break;
 			default:
 				ipc_answer_fast(callid, ENOENT, 0, 0);

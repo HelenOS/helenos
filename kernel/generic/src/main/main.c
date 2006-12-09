@@ -80,6 +80,7 @@
 #include <adt/btree.h>
 #include <console/klog.h>
 #include <smp/smp.h>
+#include <ddi/ddi.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -102,11 +103,14 @@ context_t ctx;
  * the linker or the low level assembler code with
  * appropriate sizes and addresses.
  */
-uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel is loaded. */
-size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes. */
-size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes. */
-
-uintptr_t stack_safe = 0;		/**< Lowest safe stack virtual address */
+uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel
+					  *  is loaded. */
+size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes.
+					  */
+size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes.
+					 */
+uintptr_t stack_safe = 0;		/**< Lowest safe stack virtual address.
+					  */
 
 void main_bsp(void);
 void main_ap(void);
@@ -141,7 +145,8 @@ void main_bsp(void)
 	config.base = hardcoded_load_address;
 	config.memory_size = get_memory_size();
 	
-	config.kernel_size = ALIGN_UP(hardcoded_ktext_size + hardcoded_kdata_size, PAGE_SIZE);
+	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
+		hardcoded_kdata_size, PAGE_SIZE);
 	config.stack_size = CONFIG_STACK_SIZE;
 	
 	/* Initialy the stack is placed just after the kernel */
@@ -150,21 +155,26 @@ void main_bsp(void)
 	/* Avoid placing stack on top of init */
 	count_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (PA_overlaps(config.stack_base, config.stack_size, init.tasks[i].addr, init.tasks[i].size))
-			config.stack_base = ALIGN_UP(init.tasks[i].addr + init.tasks[i].size, config.stack_size);
+		if (PA_overlaps(config.stack_base, config.stack_size,
+			init.tasks[i].addr, init.tasks[i].size))
+			config.stack_base = ALIGN_UP(init.tasks[i].addr +
+				init.tasks[i].size, config.stack_size);
 	}
 
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
-		if (PA_overlaps(config.stack_base, config.stack_size, ballocs.base, ballocs.size))
-			config.stack_base = ALIGN_UP(ballocs.base + ballocs.size, PAGE_SIZE);
+		if (PA_overlaps(config.stack_base, config.stack_size,
+			ballocs.base, ballocs.size))
+			config.stack_base = ALIGN_UP(ballocs.base +
+				ballocs.size, PAGE_SIZE);
 	}
 	
 	if (config.stack_base < stack_safe)
 		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
 	
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base, THREAD_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base,
+		THREAD_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -200,22 +210,28 @@ void main_bsp_separated_stack(void)
 	 * Memory management subsystems initialization.
 	 */	
 	arch_pre_mm_init();
-	frame_init();		/* Initialize at least 1 memory segment big enough for slab to work */
+	frame_init();		
+	/* Initialize at least 1 memory segment big enough for slab to work. */
 	slab_cache_init();
 	btree_init();
 	as_init();
 	page_init();
 	tlb_init();
+	ddi_init();
 	arch_post_mm_init();
 
 	version_print();
-	printf("kernel: %.*p hardcoded_ktext_size=%zdK, hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2, config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >> 10);
-	printf("stack:  %.*p size=%zdK\n", sizeof(uintptr_t) * 2, config.stack_base, config.stack_size >> 10);
+	printf("kernel: %.*p hardcoded_ktext_size=%zdK, "
+		"hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2,
+		config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >>
+		10);
+	printf("stack:  %.*p size=%zdK\n", sizeof(uintptr_t) * 2,
+		config.stack_base, config.stack_size >> 10);
 
 	arch_pre_smp_init();
 	smp_init();
-	
-	slab_enable_cpucache();	/* Slab must be initialized AFTER we know the number of processors */
+	/* Slab must be initialized after we know the number of processors. */
+	slab_enable_cpucache();
 
 	printf("config.memory_size=%zdM\n", config.memory_size >> 20);
 	printf("config.cpu_count=%zd\n", config.cpu_count);
@@ -232,7 +248,9 @@ void main_bsp_separated_stack(void)
 	
 	if (init.cnt > 0) {
 		for (i = 0; i < init.cnt; i++)
-			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i, sizeof(uintptr_t) * 2, init.tasks[i].addr, i, init.tasks[i].size);
+			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i,
+				sizeof(uintptr_t) * 2, init.tasks[i].addr, i,
+				init.tasks[i].size);
 	} else
 		printf("No init binaries found\n");
 	
@@ -304,7 +322,8 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
-	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack), (uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack),
+		(uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

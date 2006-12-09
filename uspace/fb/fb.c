@@ -704,9 +704,10 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	case IPC_M_AS_AREA_SEND:
 		/* We accept one area for data interchange */
 		if (IPC_GET_ARG1(*call) == shm_id) {
-			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
+			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call),
+				PAGE_COLOR(IPC_GET_ARG1(*call)));
 			shm_size = IPC_GET_ARG2(*call);
-			if (!ipc_answer_fast(callid, 0, (sysarg_t)dest, 0)) 
+			if (!ipc_answer_fast(callid, 0, (sysarg_t) dest, 0)) 
 				shm = dest;
 			else
 				shm_id = 0;
@@ -716,7 +717,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			return 1;
 		} else {
 			intersize = IPC_GET_ARG2(*call);
-			receive_comm_area(callid,call,(void *)&interbuffer);
+			receive_comm_area(callid, call, (void *) &interbuffer);
 		}
 		return 1;
 	case FB_PREPARE_SHM:
@@ -1282,12 +1283,13 @@ int fb_init(void)
 	fb_invert_colors = sysinfo_value("fb.invert-colors");
 
 	asz = fb_scanline * fb_height;
-	fb_addr = as_get_mappable_page(asz);
+	fb_addr = as_get_mappable_page(asz, (int) sysinfo_value("fb.address.color"));
 	
 	physmem_map(fb_ph_addr, fb_addr, ALIGN_UP(asz, PAGE_SIZE) >> PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE);
 
-	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual, fb_invert_colors))
+	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual,
+		fb_invert_colors))
 		return 0;
 	
 	return -1;

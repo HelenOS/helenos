@@ -39,12 +39,15 @@
 #include <task.h>
 #include <kernel/arch/mm/as.h>
 #include <kernel/mm/as.h>
+#include <libarch/config.h>
+
+#define PAGE_COLOR(va)	(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
 
 extern void *as_area_create(void *address, size_t size, int flags);
 extern int as_area_resize(void *address, size_t size, int flags);
 extern int as_area_destroy(void *address);
 extern void *set_maxheapsize(size_t mhs);
-extern void * as_get_mappable_page(size_t sz);
+extern void * as_get_mappable_page(size_t sz, int color);
 
 #endif
 

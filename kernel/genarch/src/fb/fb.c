@@ -45,8 +45,11 @@
 #include <config.h>
 #include <bitops.h>
 #include <print.h>
+#include <ddi/ddi.h>
 
 #include "helenos.xbm"
+
+static parea_t fb_parea;		/**< Physical memory area for fb. */
 
 SPINLOCK_INITIALIZE(fb_lock);
 
@@ -434,6 +437,12 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, 
 	rows = y / FONT_SCANLINES;
 	columns = x / COL_WIDTH;
 
+	fb_parea.pbase = (uintptr_t) addr;
+	fb_parea.vbase = (uintptr_t) fbaddress;
+	fb_parea.frames = SIZE2FRAMES(fbsize);
+	fb_parea.cacheable = false;
+	ddi_parea_register(&fb_parea);
+
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 1);
 	sysinfo_set_item_val("fb.width", NULL, xres);
@@ -441,6 +450,8 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, 
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.visual", NULL, visual);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
+	sysinfo_set_item_val("fb.address.color", NULL, PAGE_COLOR((uintptr_t)
+		fbaddress));
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */

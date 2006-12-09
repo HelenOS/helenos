@@ -73,11 +73,12 @@ static bool rd_init(void)
 {
 	size_t rd_size = sysinfo_value("rd.size");
 	void * rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
+	int rd_color = (int) sysinfo_value("rd.address.color");
 	
 	if (rd_size == 0)
 		return false;
 	
-	void * rd_addr = as_get_mappable_page(rd_size);
+	void * rd_addr = as_get_mappable_page(rd_size, rd_color);
 	
 	physmem_map(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
 	

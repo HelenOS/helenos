@@ -47,20 +47,60 @@
 #include <mm/as.h>
 #include <synch/spinlock.h>
 #include <syscall/copy.h>
+#include <adt/btree.h>
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
 
+/** This lock protects the parea_btree. */
+SPINLOCK_INITIALIZE(parea_lock);
+
+/** B+tree with enabled physical memory areas. */
+static btree_t parea_btree;
+
+/** Initialize DDI. */
+void ddi_init(void)
+{
+	btree_create(&parea_btree);
+}
+
+/** Enable piece of physical memory for mapping by physmem_map().
+ *
+ * @param parea Pointer to physical area structure.
+ *
+ * @todo This function doesn't check for overlaps. It depends on the kernel to
+ * create disjunct physical memory areas.
+ */
+void ddi_parea_register(parea_t *parea)
+{
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&parea_lock);
+	
+	/*
+	 * TODO: we should really check for overlaps here.
+	 * However, we should be safe because the kernel is pretty sane and
+	 * memory of different devices doesn't overlap. 
+	 */
+	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
+
+	spinlock_unlock(&parea_lock);
+	interrupts_restore(ipl);	
+}
+
 /** Map piece of physical memory into virtual address space of current task.
  *
- * @param pf Physical frame address of the starting frame.
- * @param vp Virtual page address of the starting page.
+ * @param pf Physical address of the starting frame.
+ * @param vp Virtual address of the starting page.
  * @param pages Number of pages to map.
  * @param flags Address space area flags for the mapping.
  *
- * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
- *	   ENOENT if there is no task matching the specified ID and ENOMEM if
- *	   there was a problem in creating address space area.
+ * @return 0 on success, EPERM if the caller lacks capabilities to use this
+ * 	syscall, ENOENT if there is no task matching the specified ID or the
+ * 	physical address space is not enabled for mapping and ENOMEM if there
+ * 	was a problem in creating address space area. ENOTSUP is returned when
+ * 	an attempt to create an illegal address alias is detected.
  */
 static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 {
@@ -79,6 +119,40 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 		return EPERM;
 
 	ipl = interrupts_disable();
+
+	/*
+	 * Check if the physical memory area is enabled for mapping.
+	 * If the architecture supports virtually indexed caches, intercept
+	 * attempts to create an illegal address alias.
+	 */
+	spinlock_lock(&parea_lock);
+	parea_t *parea;
+	btree_node_t *nodep;
+	parea = btree_search(&parea_btree, (btree_key_t) pf, &nodep);
+	if (!parea || parea->frames < pages || ((flags & AS_AREA_CACHEABLE) &&
+		!parea->cacheable) || (!(flags & AS_AREA_CACHEABLE) &&
+		parea->cacheable)) {
+		/*
+		 * This physical memory area cannot be mapped.
+		 */
+		spinlock_unlock(&parea_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (PAGE_COLOR(parea->vbase) != PAGE_COLOR(vp)) {
+		/*
+		 * Refuse to create an illegal address alias.
+		 */
+		spinlock_unlock(&parea_lock);
+		interrupts_restore(ipl);
+		return ENOTSUP;
+	}
+#endif /* CONFIG_VIRT_IDX_DCACHE */
+
+	spinlock_unlock(&parea_lock);
+
 	spinlock_lock(&TASK->lock);
 	
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
@@ -107,8 +181,8 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
  * @param ioaddr Starting I/O address.
  * @param size Size of the enabled I/O space..
  *
- * @return 0 on success, EPERM if the caller lacks capabilities to use this syscall,
- *	   ENOENT if there is no task matching the specified ID.
+ * @return 0 on success, EPERM if the caller lacks capabilities to use this
+ * 	syscall, ENOENT if there is no task matching the specified ID.
  */
 static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 {
@@ -160,12 +234,12 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t pages, 
-			 unative_t flags)
+unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t
+	pages, unative_t flags)
 {
-	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base, FRAME_SIZE),
-					  ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE), (count_t) pages,
-					  (int) flags);
+	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
+		FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
+		(count_t) pages, (int) flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
@@ -183,14 +257,15 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	if (rc != 0)
 		return (unative_t) rc;
 		
-	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id, (uintptr_t) arg.ioaddr, (size_t) arg.size);
+	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id,
+		(uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
 /** Disable or enable preemption.
  *
- * @param enable If non-zero, the preemption counter will be decremented, leading to potential
- * 		 enabling of preemption. Otherwise the preemption counter will be incremented,
- *		 preventing preemption from occurring.
+ * @param enable If non-zero, the preemption counter will be decremented,
+ * 	leading to potential enabling of preemption. Otherwise the preemption
+ * 	counter will be incremented, preventing preemption from occurring.
  *
  * @return Zero on success or EPERM if callers capabilities are not sufficient.
  */ 

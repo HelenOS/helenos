@@ -41,11 +41,15 @@
 #include <arch/byteorder.h>
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
+#include <ddi/ddi.h>
+
+static parea_t rd_parea;		/**< Physical memory area for rd. */
 
 int init_rd(rd_header * header, size_t size)
 {
 	/* Identify RAM disk */
-	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) || (header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
+	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) ||
+		(header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
 		return RE_INVALID;
 	
 	/* Identify version */	
@@ -76,9 +80,18 @@ int init_rd(rd_header * header, size_t size)
 	if ((uint64_t) hsize + dsize > size)
 		dsize = size - hsize;
 	
+	rd_parea.pbase = KA2PA((void *) header + hsize);
+	rd_parea.vbase = (uintptr_t) ((void *) header + hsize);
+	rd_parea.frames = SIZE2FRAMES(dsize);
+	rd_parea.cacheable = true;
+	ddi_parea_register(&rd_parea);
+
 	sysinfo_set_item_val("rd", NULL, true);
 	sysinfo_set_item_val("rd.size", NULL, dsize);
-	sysinfo_set_item_val("rd.address.physical", NULL, (unative_t) KA2PA((void *) header + hsize));
+	sysinfo_set_item_val("rd.address.physical", NULL, (unative_t)
+		KA2PA((void *) header + hsize));
+	sysinfo_set_item_val("rd.address.color", NULL, (unative_t)
+		PAGE_COLOR((uintptr_t) header + hsize));
 
 	return RE_OK;
 }

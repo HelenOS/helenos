@@ -70,7 +70,7 @@
 /**
  * Macro for computing page color.
  */
-#define PAGE_COLOR(va)		(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
+#define PAGE_COLOR(va)	(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
 
 /** Page fault access type. */
 enum pf_access {
@@ -82,7 +82,8 @@ typedef enum pf_access pf_access_t;
 
 /** Operations to manipulate page mappings. */
 struct page_mapping_operations {
-	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame, int
+		flags);
 	void (* mapping_remove)(as_t *as, uintptr_t page);
 	pte_t *(* mapping_find)(as_t *as, uintptr_t page);
 };
@@ -93,7 +94,8 @@ extern page_mapping_operations_t *page_mapping_operations;
 extern void page_init(void);
 extern void page_table_lock(as_t *as, bool lock);
 extern void page_table_unlock(as_t *as, bool unlock);
-extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int
+	flags);
 extern void page_mapping_remove(as_t *as, uintptr_t page);
 extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
 extern pte_t *page_table_create(int flags);

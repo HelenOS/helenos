@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <atomic.h>
 #include <futex.h>
+#include <sysinfo.h>
 #include <ipc/services.h>
 
 #include <sysinfo.h>
@@ -71,9 +72,12 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	int res;
 
 	if (!ktime) {
-		mapping = as_get_mappable_page(PAGE_SIZE);
+		mapping = as_get_mappable_page(PAGE_SIZE, (int)
+			sysinfo_value("clock.fcolor"));
 		/* Get the mapping of kernel clock */
-		res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, (sysarg_t) mapping, PAGE_SIZE, SERVICE_MEM_REALTIME, NULL, &rights, NULL);
+		res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, (sysarg_t)
+			mapping, PAGE_SIZE, SERVICE_MEM_REALTIME, NULL, &rights,
+			NULL);
 		if (res) {
 			printf("Failed to initialize timeofday memarea\n");
 			_exit(1);

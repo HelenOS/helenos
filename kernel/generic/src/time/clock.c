@@ -54,6 +54,11 @@
 #include <proc/thread.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/barrier.h>
+#include <mm/frame.h>
+#include <ddi/ddi.h>
+
+/** Physical memory area of the real time clock. */
+static parea_t clock_parea;
 
 /* Pointers to public variables with time */
 struct ptime {
@@ -72,25 +77,36 @@ static unative_t secfrag = 0;
  * The applications (and sometimes kernel) need to access accurate
  * information about realtime data. We allocate 1 page with these 
  * data and update it periodically.
- *
- * 
  */
 void clock_counter_init(void)
 {
 	void *faddr;
 
-	faddr = frame_alloc(0, FRAME_ATOMIC);
+	faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC);
 	if (!faddr)
 		panic("Cannot allocate page for clock");
 	
-	public_time = (struct ptime *)PA2KA(faddr);
+	public_time = (struct ptime *) PA2KA(faddr);
 
         /* TODO: We would need some arch dependent settings here */
 	public_time->seconds1 = 0;
 	public_time->seconds2 = 0;
 	public_time->useconds = 0; 
 
-	sysinfo_set_item_val("clock.faddr", NULL, (unative_t)faddr);
+	clock_parea.pbase = (uintptr_t) faddr;
+	clock_parea.vbase = (uintptr_t) public_time;
+	clock_parea.frames = 1;
+	clock_parea.cacheable = true;
+	ddi_parea_register(&clock_parea);
+
+	/*
+	 * Prepare information for the userspace so that it can successfully
+	 * physmem_map() the clock_parea.
+	 */
+	sysinfo_set_item_val("clock.cacheable", NULL, (unative_t) true);
+	sysinfo_set_item_val("clock.fcolor", NULL, (unative_t)
+		PAGE_COLOR(clock_parea.vbase));
+	sysinfo_set_item_val("clock.faddr", NULL, (unative_t) faddr);
 }
 
 

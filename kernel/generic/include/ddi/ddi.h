@@ -39,8 +39,19 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t pages, 
-			 unative_t flags);
+/** Structure representing contiguous physical memory area. */
+typedef struct {
+	uintptr_t pbase;	/**< Physical base of the area. */
+	uintptr_t vbase;	/**< Virtual base of the area. */
+	count_t frames;		/**< Number of frames in the area. */
+	bool cacheable;		/**< Cacheability. */
+} parea_t;
+
+extern void ddi_init(void);
+extern void ddi_parea_register(parea_t *parea);
+
+extern unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
+	unative_t pages, unative_t flags);
 extern unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
 extern unative_t sys_preempt_control(int enable);
 

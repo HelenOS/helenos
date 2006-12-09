@@ -43,7 +43,8 @@ void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 {
 	void *dest;
 
-	dest = as_get_mappable_page(IPC_GET_ARG2(*call));
+	dest = as_get_mappable_page(IPC_GET_ARG2(*call),
+		PAGE_COLOR(IPC_GET_ARG1(*call)));
 	if (ipc_answer_fast(callid, 0, (sysarg_t)dest, 0) == 0) {
 		if (*area)
 			as_area_destroy(*area);

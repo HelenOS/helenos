@@ -37,6 +37,7 @@
 
 #define PAGE_WIDTH	13
 #define PAGE_SIZE	(1<<PAGE_WIDTH)
+#define PAGE_COLOR_BITS	1		/**< Bit 13 is the page color. */
 
 #endif
 

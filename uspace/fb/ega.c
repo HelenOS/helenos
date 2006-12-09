@@ -34,7 +34,6 @@
 /** @file
  */
 
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <align.h>
@@ -61,7 +60,6 @@ typedef struct saved_screen {
 } saved_screen;
 
 saved_screen saved_screens[MAX_SAVED_SCREENS];
-
 
 #define EGA_IO_ADDRESS 0x3d4
 #define EGA_IO_SIZE 2
@@ -126,12 +124,14 @@ static void scroll(int rows)
 {
 	int i;
 	if (rows > 0) {
-		memcpy (scr_addr,((char *)scr_addr) + rows * scr_width * 2, scr_width * scr_height * 2 - rows * scr_width * 2);
+		memcpy (scr_addr,((char *)scr_addr) + rows * scr_width * 2,
+			scr_width * scr_height * 2 - rows * scr_width * 2);
 		for (i = 0; i < rows * scr_width ; i ++)
-			(((short *)scr_addr) + scr_width * scr_height - rows * scr_width) [i] = ((style << 8) + ' ');
+			(((short *)scr_addr) + scr_width * scr_height - rows *
+				scr_width) [i] = ((style << 8) + ' ');
 	} else if (rows < 0) {
-
-		memcpy (((char *)scr_addr) - rows * scr_width * 2 ,scr_addr ,scr_width * scr_height * 2 + rows * scr_width * 2);
+		memcpy (((char *)scr_addr) - rows * scr_width * 2, scr_addr,
+			scr_width * scr_height * 2 + rows * scr_width * 2);
 		for (i = 0; i < - rows * scr_width ; i++)
 			((short *)scr_addr) [i] = ((style << 8 ) + ' ');
 	}
@@ -308,13 +308,14 @@ int ega_init(void)
 	ega_ph_addr=(void *)sysinfo_value("fb.address.physical");
 	scr_width=sysinfo_value("fb.width");
 	scr_height=sysinfo_value("fb.height");
-	iospace_enable(task_get_id(),(void *)EGA_IO_ADDRESS,2);
+	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
 
-	sz = scr_width*scr_height*2;
-	scr_addr = as_get_mappable_page(sz);
+	sz = scr_width * scr_height * 2;
+	scr_addr = as_get_mappable_page(sz, (int)
+		sysinfo_value("fb.address.color"));
 
-	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >> PAGE_WIDTH,
-		    AS_AREA_READ | AS_AREA_WRITE);
+	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
+		PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
 
 	async_set_client_connection(ega_client_connection);
 

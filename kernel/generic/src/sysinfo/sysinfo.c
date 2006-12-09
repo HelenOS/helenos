@@ -230,21 +230,24 @@ void sysinfo_dump(sysinfo_item_t **proot, int depth)
 			printf("  ");
 		
 		switch (root->val_type) {
-			case SYSINFO_VAL_UNDEFINED:
-				val = 0;
-				vtype = "UND";
-				break;
-			case SYSINFO_VAL_VAL:
-				val = root->val.val;
-				vtype = "VAL";
-				break;
-			case SYSINFO_VAL_FUNCTION:
-				val = ((sysinfo_val_fn_t) (root->val.fn)) (root);
-				vtype = "FUN";
-				break;
+		case SYSINFO_VAL_UNDEFINED:
+			val = 0;
+			vtype = "UND";
+			break;
+		case SYSINFO_VAL_VAL:
+			val = root->val.val;
+			vtype = "VAL";
+			break;
+		case SYSINFO_VAL_FUNCTION:
+			val = ((sysinfo_val_fn_t) (root->val.fn)) (root);
+			vtype = "FUN";
+			break;
 		}
 		
-		printf("%s    %s val:%d(%x) sub:%s\n", root->name, vtype, val, val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ? "NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ? "TAB" : "FUN"));
+		printf("%s    %s val:%d(%x) sub:%s\n", root->name, vtype, val,
+			val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ?
+			"NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ?
+			"TAB" : "FUN"));
 		
 		if (root->subinfo_type == SYSINFO_SUBINFO_TABLE)
 			sysinfo_dump(&(root -> subinfo.table), depth + 1);

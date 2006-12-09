@@ -38,13 +38,17 @@
 #include <print.h>
 #include <ddi/device.h>
 #include <ddi/irq.h>
+#include <ddi/ddi.h>
 #include <ipc/irq.h>
 
+/** Physical memory area used for klog. */
+static parea_t klog_parea;
+	
 /*
  * For now, we use 0 as INR.
- * However, on some architectures 0 is the clock interrupt (e.g. amd64 and ia32).
- * It is therefore desirable to have architecture specific definition of KLOG_VIRT_INR
- * in the future.
+ * However, on some architectures 0 is the clock interrupt (e.g. amd64 and
+ * ia32). It is therefore desirable to have architecture specific definition of
+ * KLOG_VIRT_INR in the future.
  */
 #define KLOG_VIRT_INR	0
 
@@ -75,11 +79,19 @@ void klog_init(void)
 	faddr = frame_alloc(KLOG_ORDER, FRAME_ATOMIC);
 	if (!faddr)
 		panic("Cannot allocate page for klog");
-	klog = (char *)PA2KA(faddr);
+	klog = (char *) PA2KA(faddr);
 	
 	devno_t devno = device_assign_devno();
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (unative_t)faddr);
+	klog_parea.pbase = (uintptr_t) faddr;
+	klog_parea.vbase = (uintptr_t) klog;
+	klog_parea.frames = 1 << KLOG_ORDER;
+	klog_parea.cacheable = true;
+	ddi_parea_register(&klog_parea);
+
+	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("klog.fcolor", NULL, (unative_t)
+		PAGE_COLOR((uintptr_t) klog));
 	sysinfo_set_item_val("klog.pages", NULL, 1 << KLOG_ORDER);
 	sysinfo_set_item_val("klog.devno", NULL, devno);
 	sysinfo_set_item_val("klog.inr", NULL, KLOG_VIRT_INR);

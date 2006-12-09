@@ -73,8 +73,9 @@ void page_arch_init(void)
 		 */		
 		for (i = 0; i < bsp_locked_dtlb_entries; i++) {
 			dtlb_insert_mapping(bsp_locked_dtlb_entry[i].virt_page,
-				bsp_locked_dtlb_entry[i].phys_page, bsp_locked_dtlb_entry[i].pagesize_code,
-				true, false);
+				bsp_locked_dtlb_entry[i].phys_page,
+				bsp_locked_dtlb_entry[i].pagesize_code,	true,
+				false);
 		}
 #endif	
 
@@ -151,9 +152,12 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		/*
 		 * Second, save the information about the mapping for APs.
 		 */
-		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].virt_page = virtaddr + i*sizemap[order].increment;
-		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].phys_page = physaddr + i*sizemap[order].increment;
-		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].pagesize_code = sizemap[order].pagesize_code;
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].virt_page =
+			virtaddr + i*sizemap[order].increment;
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].phys_page =
+			physaddr + i*sizemap[order].increment;
+		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].pagesize_code =
+			sizemap[order].pagesize_code;
 		bsp_locked_dtlb_entries++;
 #endif
 	}

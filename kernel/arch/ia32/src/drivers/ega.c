@@ -46,11 +46,14 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
+#include <ddi/ddi.h>
 
 /*
  * The EGA driver.
  * Simple and short. Function for displaying characters and "scrolling".
  */
+
+static parea_t ega_parea;	/**< Physical memory area for EGA video RAM. */
 
 SPINLOCK_INITIALIZE(egalock);
 static uint32_t ega_cursor;
@@ -79,11 +82,19 @@ void ega_init(void)
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
 	
+	ega_parea.pbase = VIDEORAM;
+	ega_parea.vbase = (uintptr_t) videoram;
+	ega_parea.frames = 1;
+	ega_parea.cacheable = false;
+	ddi_parea_register(&ega_parea);
+
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 2);
 	sysinfo_set_item_val("fb.width", NULL, ROW);
 	sysinfo_set_item_val("fb.height", NULL, ROWS);
 	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM);
+	sysinfo_set_item_val("fb.address.color", NULL, PAGE_COLOR((uintptr_t)
+		videoram));
 	
 #ifndef CONFIG_FB
 	putchar('\n');

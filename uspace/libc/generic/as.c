@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <align.h>
 #include <types.h>
+#include <bitops.h>
 
 /**
  * Either 4*256M on 32-bit architecures or 16*256M on 64-bit architectures.
@@ -53,12 +54,14 @@
  */
 void *as_area_create(void *address, size_t size, int flags)
 {
-	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t ) address,
+		(sysarg_t) size, (sysarg_t) flags);
 }
 
 /** Resize address space area.
  *
- * @param address Virtual address pointing into already existing address space area.
+ * @param address Virtual address pointing into already existing address space
+ * 	area.
  * @param size New requested size of the area.
  * @param flags Currently unused.
  *
@@ -66,12 +69,14 @@ void *as_area_create(void *address, size_t size, int flags)
  */
 int as_area_resize(void *address, size_t size, int flags)
 {
-	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t) size, (sysarg_t) flags);
+	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address, (sysarg_t)
+		size, (sysarg_t) flags);
 }
 
 /** Destroy address space area.
  *
- * @param address Virtual address pointing into the address space area being destroyed.
+ * @param address Virtual address pointing into the address space area being
+ * 	destroyed.
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
@@ -133,28 +138,53 @@ void *set_maxheapsize(size_t mhs)
 	maxheapsize = mhs;
 	/* Return pointer to area not managed by sbrk */
 	return ((void *) &_heap + maxheapsize);
-
 }
 
 /** Return pointer to some unmapped area, where fits new as_area
  *
+ * @param sz Requested size of the allocation.
+ * @param color Requested virtual color of the allocation.
+ *
+ * @return Pointer to the beginning 
+ *
  * TODO: make some first_fit/... algorithm, we are now just incrementing
  *       the pointer to last area
  */
-void * as_get_mappable_page(size_t sz)
+#include <stdio.h>
+void *as_get_mappable_page(size_t sz, int color)
 {
 	void *res;
+	uint64_t asz;
+	int i;
+	
+	if (!sz)
+		return NULL;	
+
+	asz = 1 << (fnzb64(sz - 1) + 1);
 
 	/* Set heapsize to some meaningful value */
 	if (maxheapsize == -1)
 		set_maxheapsize(MAX_HEAP_SIZE);
 	
-	if (!last_allocated)
-		last_allocated = (void *) ALIGN_UP((void *) &_heap + maxheapsize, PAGE_SIZE);
-	
-	sz = ALIGN_UP(sz, PAGE_SIZE);
+	/*
+	 * Make sure we allocate from naturally aligned address and a page of
+	 * appropriate color.
+	 */
+	i = 0;
+	do {
+		if (!last_allocated) {
+			last_allocated = (void *) ALIGN_UP((void *) &_heap +
+				maxheapsize, asz);
+		} else {
+			last_allocated = (void *) ALIGN_UP(((uintptr_t)
+				last_allocated) + (int) (i > 0), asz);
+		}
+	} while ((asz < (1 << (PAGE_COLOR_BITS + PAGE_WIDTH))) &&
+		(PAGE_COLOR((uintptr_t) last_allocated) != color) &&
+		(++i < (1 << PAGE_COLOR_BITS)));
+
 	res = last_allocated;
-	last_allocated += sz;
+	last_allocated += ALIGN_UP(sz, PAGE_SIZE);
 
 	return res;
 }
