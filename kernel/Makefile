@@ -215,7 +215,10 @@ GENERIC_SOURCES = \
 
 ifneq ($(CONFIG_TEST),)
 	DEFS += -DCONFIG_TEST
-	GENERIC_SOURCES += test/$(CONFIG_TEST)/test.c
+	CFLAGS += -Itest/
+	GENERIC_SOURCES += \
+		test/test.c \
+		test/atomic/atomic1.c
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

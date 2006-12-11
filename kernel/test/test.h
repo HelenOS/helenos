@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup test
  * @{
  */
 /** @file
@@ -35,7 +35,18 @@
 #ifndef KERN_TEST_H_
 #define KERN_TEST_H_
 
-extern void test(void);
+#include <arch/types.h>
+#include <typedefs.h>
+
+typedef struct {
+	char * name;
+	char * desc;
+	function entry;
+} test_t;
+
+extern void test_atomic1(void);
+
+extern test_t tests[];
 
 #endif
 

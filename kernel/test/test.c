@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup test
+ * @{
+ */
+/** @file
+ */
+
 #include <test.h>
-#include <print.h>
-#include <atomic.h>
-#include <debug.h>
 
-void test(void)
-{
-	atomic_t a;
+test_t tests[] = {
+	{
+		"atomic1",
+		"Test atomic operations",
+		&test_atomic1
+	},
+	{NULL, NULL, NULL}
+};
 
-	atomic_set(&a, 10);
-	printf("Testing atomic_set() and atomic_get().\n");
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_postinc()\n");
-	ASSERT(atomic_postinc(&a) == 10);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_postdec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_preinc()\n");
-	ASSERT(atomic_preinc(&a) == 11);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_predec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-
-	printf("Test passed.\n");	
-	return;
-}
+/** @}
+ */

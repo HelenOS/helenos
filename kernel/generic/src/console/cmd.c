@@ -65,6 +65,10 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 
+#ifdef CONFIG_TEST
+#include <test.h>
+#endif
+
 /* Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
@@ -76,17 +80,44 @@ static cmd_info_t help_info = {
 
 static cmd_info_t exit_info = {
 	.name = "exit",
-	.description ="Exit kconsole",
+	.description = "Exit kconsole",
 	.argc = 0
 };
 
 static int cmd_continue(cmd_arg_t *argv);
 static cmd_info_t continue_info = {
 	.name = "continue",
-	.description ="Return console back to userspace.",
+	.description = "Return console back to userspace.",
 	.func = cmd_continue,
 	.argc = 0
 };
+
+#ifdef CONFIG_TEST
+static int cmd_tests(cmd_arg_t *argv);
+static cmd_info_t tests_info = {
+	.name = "tests",
+	.description = "Print available kernel tests.",
+	.func = cmd_tests,
+	.argc = 0
+};
+
+static char test_buf[MAX_CMDLINE + 1];
+static int cmd_test(cmd_arg_t *argv);
+static cmd_arg_t test_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = test_buf,
+		.len = sizeof(test_buf)
+	}
+};
+static cmd_info_t test_info = {
+	.name = "test",
+	.description = "Run kernel test.",
+	.func = cmd_test,
+	.argc = 1,
+	.argv = test_argv
+};
+#endif
 
 /* Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
@@ -377,6 +408,10 @@ static cmd_info_t *basic_commands[] = {
 	&version_info,
 	&zones_info,
 	&zone_info,
+#ifdef CONFIG_TEST
+	&tests_info,
+	&test_info,
+#endif
 	NULL
 };
 
@@ -802,6 +837,47 @@ int cmd_continue(cmd_arg_t *argv)
 	printf("The kernel will now relinquish the console.\n");
 	printf("Use userspace controls to redraw the screen.\n");
 	arch_release_console();
+	return 1;
+}
+
+/** Command for printing kernel tests list.
+ *
+ * @param argv Ignored.
+ *
+ * return Always 1.
+ */
+int cmd_tests(cmd_arg_t *argv)
+{
+	test_t *test;
+	
+	for (test = tests; test->name != NULL; test++)
+		printf("%s\t%s\n", test->name, test->desc);
+	
+	return 1;
+}
+
+/** Command for returning kernel tests
+ *
+ * @param argv Argument vector.
+ *
+ * return Always 1.
+ */
+int cmd_test(cmd_arg_t *argv)
+{
+	bool fnd = false;
+	test_t *test;
+	
+	for (test = tests; test->name != NULL; test++) {
+		if (strcmp(test->name, argv->buffer) == 0) {
+			fnd = true;
+			test->entry();
+			break;
+		}
+	}
+	
+	if (!fnd)
+		printf("Unknown test.\n");
+	
 	return 1;
 }
 

@@ -70,10 +70,6 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
-#ifdef CONFIG_TEST
-#include <test.h>
-#endif /* CONFIG_TEST */
-
 /** Kernel initialization thread.
  *
  * kinit takes care of higher level kernel
@@ -154,11 +150,6 @@ void kinit(void *arg)
 
 	interrupts_enable();
 
-#ifdef CONFIG_TEST
-	test();
-	printf("\nTest finished, please reboot.\n");
-#else  /* CONFIG_TEST */
-
 	count_t i;
 	for (i = 0; i < init.cnt; i++) {
 		/*
@@ -194,8 +185,6 @@ void kinit(void *arg)
 			printf("kinit... ");
 		}
 	}
-#endif /* CONFIG_TEST */
-
 }
 
 /** @}

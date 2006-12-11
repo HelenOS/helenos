@@ -1,0 +1,67 @@
+/*
+ * Copyright (C) 2006 Jakub Jermar
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <test.h>
+#include <print.h>
+#include <atomic.h>
+#include <debug.h>
+
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
+void test_atomic1(void)
+{
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
+	atomic_t a;
+
+	atomic_set(&a, 10);
+	printf("Testing atomic_set() and atomic_get().\n");
+	ASSERT(atomic_get(&a) == 10);
+	printf("Testing atomic_postinc()\n");
+	ASSERT(atomic_postinc(&a) == 10);
+	ASSERT(atomic_get(&a) == 11);
+	printf("Testing atomic_postdec()\n");
+	ASSERT(atomic_postdec(&a) == 11);
+	ASSERT(atomic_get(&a) == 10);
+	printf("Testing atomic_preinc()\n");
+	ASSERT(atomic_preinc(&a) == 11);
+	ASSERT(atomic_get(&a) == 11);
+	printf("Testing atomic_predec()\n");
+	ASSERT(atomic_postdec(&a) == 11);
+	ASSERT(atomic_get(&a) == 10);
+
+	printf("Test passed.\n");
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
+	return;
+}

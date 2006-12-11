@@ -37,6 +37,10 @@
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 #define ITEM_SIZE 256
 
 /** Fill memory with 2 caches, when allocation fails,
@@ -208,6 +212,10 @@ static void multitest(int size)
 
 void test(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
+
 	printf("Running reclaim single-thread test .. pass1\n");
 	totalmemtest();
 	printf("Running reclaim single-thread test .. pass2\n");
@@ -218,4 +226,9 @@ void test(void)
 	multitest(2048);
 	multitest(8192);
 	printf("All done.\n");
+
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }
