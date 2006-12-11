@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Ondrej Palkovsky
+ * Copyright (C) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,32 +32,11 @@
 /** @file
  */
 
-#ifndef KERN_amd64_CPUID_H_
-#define KERN_amd64_CPUID_H_
+#ifndef KERN_amd64_CYCLE_H_
+#define KERN_amd64_CYCLE_H_
 
-#define AMD_CPUID_EXTENDED   0x80000001
-#define AMD_EXT_NOEXECUTE    20
+extern uint64_t get_cycle(void);
 
-#define INTEL_CPUID_STANDARD 0x1
-#define INTEL_SSE2           26
-#define INTEL_FXSAVE         24
-
-#ifndef __ASM__
-
-#include <arch/types.h>
-
-struct cpu_info {
-	uint32_t cpuid_eax;
-	uint32_t cpuid_ebx;
-	uint32_t cpuid_ecx;
-	uint32_t cpuid_edx;
-} __attribute__ ((packed));
-
-extern int has_cpuid(void);
-
-extern void cpuid(uint32_t cmd, cpu_info_t *info);
-
-#endif /* !def __ASM__ */
 #endif
 
 /** @}

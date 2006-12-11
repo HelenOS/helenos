@@ -218,15 +218,6 @@ static inline uintptr_t get_stack_base(void)
 	return v;
 }
 
-static inline uint64_t rdtsc(void)
-{
-	uint64_t v;
-	
-	__asm__ volatile("rdtsc\n" : "=A" (v));
-	
-	return v;
-}
-
 /** Return current IP address */
 static inline uintptr_t * get_ip() 
 {

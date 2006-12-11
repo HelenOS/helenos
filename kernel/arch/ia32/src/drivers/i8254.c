@@ -39,6 +39,7 @@
 #include <arch/types.h>
 #include <time/clock.h>
 #include <time/delay.h>
+#include <arch/cycle.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/i8259.h>
 #include <arch/drivers/i8254.h>
@@ -137,11 +138,11 @@ void i8254_calibrate_delay_loop(void)
 
 	CPU->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + (((MAGIC_NUMBER*LOOPS)/1000) % ((t1-t2)-(o1-o2)) ? 1 : 0);
 
-	clk1 = rdtsc();
-	delay(1<<SHIFT);
-	clk2 = rdtsc();
+	clk1 = get_cycle();
+	delay(1 << SHIFT);
+	clk2 = get_cycle();
 	
-	CPU->frequency_mhz = (clk2-clk1)>>SHIFT;
+	CPU->frequency_mhz = (clk2 - clk1) >> SHIFT;
 
 	return;
 }
