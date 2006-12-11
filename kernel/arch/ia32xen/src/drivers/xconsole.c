@@ -42,7 +42,6 @@
 
 #define MASK_INDEX(index, ring) ((index) & (sizeof(ring) - 1))
 
-static bool asynchronous = false;
 static void xen_putchar(chardev_t *d, const char ch);
 
 chardev_t xen_console;
@@ -54,13 +53,11 @@ void xen_console_init(void)
 {
 	chardev_initialize("xen_out", &xen_console, &xen_ops);
 	stdout = &xen_console;
-	if (!(start_info.flags & SIF_INITDOMAIN))
-		asynchronous = true;
 }
 
 void xen_putchar(chardev_t *d, const char ch)
 {
-	if (asynchronous) {
+	if (start_info.console.domU.evtchn != 0) {
 		uint32_t cons = console_page.out_cons;
 		uint32_t prod = console_page.out_prod;
 		
@@ -77,7 +74,7 @@ void xen_putchar(chardev_t *d, const char ch)
 		
 		console_page.out_prod = prod;
 		
-		xen_notify_remote(start_info.console_evtchn);
+		xen_notify_remote(start_info.console.domU.evtchn);
 	} else
 		xen_console_io(CONSOLE_IO_WRITE, 1, &ch);
 }

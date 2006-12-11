@@ -71,29 +71,31 @@ extern void xen_failsafe_callback(void);
 
 void arch_pre_main(void)
 {
-	xen_vm_assist(VMASST_CMD_ENABLE, VMASST_TYPE_WRITABLE_PAGETABLES);
-	
 	pte_t pte;
 	memsetb((uintptr_t) &pte, sizeof(pte), 0);
 	
 	pte.present = 1;
 	pte.writeable = 1;
 	pte.frame_address = ADDR2PFN((uintptr_t) start_info.shared_info);
-	xen_update_va_mapping(&shared_info, pte, UVMF_INVLPG);
+	ASSERT(xen_update_va_mapping(&shared_info, pte, UVMF_INVLPG) == 0);
 	
-	pte.present = 1;
-	pte.writeable = 1;
-	pte.frame_address = start_info.console_mfn;
-	xen_update_va_mapping(&console_page, pte, UVMF_INVLPG);
+	if (!(start_info.flags & SIF_INITDOMAIN)) {
+		/* Map console frame */
+		pte.present = 1;
+		pte.writeable = 1;
+		pte.frame_address = start_info.console.domU.mfn;
+		ASSERT(xen_update_va_mapping(&console_page, pte, UVMF_INVLPG) == 0);
+	} else
+		start_info.console.domU.evtchn = 0;
 	
-	xen_set_callbacks(XEN_CS, xen_callback, XEN_CS, xen_failsafe_callback);
+	ASSERT(xen_set_callbacks(XEN_CS, xen_callback, XEN_CS, xen_failsafe_callback) == 0);
 	
 	/* Create identity mapping */
 	
 	meminfo.start = ADDR2PFN(ALIGN_UP(KA2PA(start_info.ptl0), PAGE_SIZE)) + start_info.pt_frames;
 	meminfo.size = start_info.frames - meminfo.start;
 	meminfo.reserved = 0;
-	
+
 	uintptr_t pa;
 	index_t last_ptl0 = 0;
 	for (pa = PFN2ADDR(meminfo.start); pa < PFN2ADDR(meminfo.start + meminfo.size); pa += FRAME_SIZE) {
@@ -107,8 +109,9 @@ void arch_pre_main(void)
 			memsetb(tva, PAGE_SIZE, 0);
 			
 			pte_t *tptl3 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(tva)));
-			SET_FRAME_FLAGS(tptl3, PTL3_INDEX(tva), PAGE_PRESENT);
+			SET_FRAME_ADDRESS(tptl3, PTL3_INDEX(tva), 0);
 			SET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(va), tpa);
+			SET_FRAME_ADDRESS(tptl3, PTL3_INDEX(tva), tpa);
 			
 			last_ptl0 = PTL0_INDEX(va);
 			meminfo.reserved++;

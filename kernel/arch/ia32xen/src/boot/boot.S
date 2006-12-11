@@ -48,7 +48,7 @@ ELFNOTE(Xen, XEN_ELFNOTE_VIRT_BASE,			.long,	PA2KA(BOOT_OFFSET))
 ELFNOTE(Xen, XEN_ELFNOTE_PADDR_OFFSET,		.long,	0)
 ELFNOTE(Xen, XEN_ELFNOTE_ENTRY,				.long,	kernel_image_start)
 ELFNOTE(Xen, XEN_ELFNOTE_HYPERCALL_PAGE,	.long,	hypercall_page)
-ELFNOTE(Xen, XEN_ELFNOTE_FEATURES,			.asciz,	"writable_page_tables|writable_descriptor_tables|auto_translated_physmap|supervisor_mode_kernel")
+ELFNOTE(Xen, XEN_ELFNOTE_FEATURES,			.asciz,	"auto_translated_physmap|supervisor_mode_kernel")
 ELFNOTE(Xen, XEN_ELFNOTE_PAE_MODE,			.asciz,	"no")
 ELFNOTE(Xen, XEN_ELFNOTE_LOADER,			.asciz,	"generic")
 

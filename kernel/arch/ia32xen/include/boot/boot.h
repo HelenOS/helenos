@@ -117,8 +117,19 @@ typedef struct {
 	uint32_t flags;             /**< SIF_xxx flags */
 	pfn_t store_mfn;            /**< Shared page (machine page) */
 	evtchn_t store_evtchn;      /**< Event channel for store communication */
-	pfn_t console_mfn;          /**< Console page (machine page) */
-	evtchn_t console_evtchn;    /**< Event channel for console messages */
+	
+	union {
+        struct {
+			pfn_t mfn;          /**< Console page (machine page) */
+			evtchn_t evtchn;    /**< Event channel for console messages */
+        } domU;
+		
+        struct {
+            uint32_t info_off;  /**< Offset of console_info struct */
+            uint32_t info_size; /**< Size of console_info struct from start */
+        } dom0;
+    } console;
+	
 	pte_t *ptl0;                /**< Boot PTL0 (kernel address) */
 	uint32_t pt_frames;         /**< Number of bootstrap page table frames */
 	pfn_t *pm_map;              /**< Physical->machine frame map (kernel address) */
@@ -126,6 +137,40 @@ typedef struct {
 	uint32_t mod_len;           /**< Modules size (bytes) */
 	int8_t cmd_line[GUEST_CMDLINE];
 } start_info_t;
+
+#define XEN_CONSOLE_VGA		0x03
+#define XEN_CONSOLE_VESA	0x23
+
+typedef struct {
+    uint8_t video_type;  
+
+    union {
+        struct {
+            uint16_t font_height;
+            uint16_t cursor_x;
+			uint16_t cursor_y;
+            uint16_t rows;
+			uint16_t columns;
+        } vga;
+
+        struct {
+            uint16_t width;
+			uint16_t height;
+            uint16_t bytes_per_line;
+            uint16_t bits_per_pixel;
+            uint32_t lfb_base;
+            uint32_t lfb_size;
+            uint8_t red_pos;
+			uint8_t red_size;
+            uint8_t green_pos;
+			uint8_t green_size;
+            uint8_t blue_pos;
+			uint8_t blue_size;
+            uint8_t rsvd_pos;
+			uint8_t rsvd_size;
+        } vesa_lfb;
+    } info;
+} console_info_t;
 
 typedef struct {
 	pfn_t start;

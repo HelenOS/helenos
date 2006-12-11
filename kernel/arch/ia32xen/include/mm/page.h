@@ -76,19 +76,32 @@
 	\
 	mmu_ext.cmd = MMUEXT_NEW_BASEPTR; \
 	mmu_ext.mfn = ADDR2PFN(PA2MA(ptl0)); \
-	xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF); \
+	ASSERT(xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF) == 0); \
 }
 
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) { \
+	mmuext_op_t mmu_ext; \
+	\
+	mmu_ext.cmd = MMUEXT_PIN_L1_TABLE; \
+	mmu_ext.mfn = ADDR2PFN(PA2MA(a)); \
+	ASSERT(xen_mmuext_op(&mmu_ext, 1, NULL, DOMID_SELF) == 0); \
+	\
 	mmu_update_t update; \
 	\
 	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl0))[(i)])); \
-	update.val = PA2MA(a) | 0x0003; \
-	xen_mmu_update(&update, 1, NULL, DOMID_SELF); \
+	update.val = PA2MA(a); \
+	ASSERT(xen_mmu_update(&update, 1, NULL, DOMID_SELF) == 0); \
 }
+
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *) (ptl3))[(i)].frame_address = PA2MA(a) >> 12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) { \
+	mmu_update_t update; \
+	\
+	update.ptr = PA2MA(KA2PA(&((pte_t *) (ptl3))[(i)])); \
+	update.val = PA2MA(a); \
+	ASSERT(xen_mmu_update(&update, 1, NULL, DOMID_SELF) == 0); \
+}
 
 #define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *) (ptl0), (index_t)(i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
@@ -196,18 +209,24 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 
 static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 {
-	pte_t *p = &pt[i];
+	pte_t p = pt[i];
 	
-	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
-	p->present = !(flags & PAGE_NOT_PRESENT);
-	p->uaccessible = (flags & PAGE_USER) != 0;
-	p->writeable = (flags & PAGE_WRITE) != 0;
-	p->global = (flags & PAGE_GLOBAL) != 0;
+	p.page_cache_disable = !(flags & PAGE_CACHEABLE);
+	p.present = !(flags & PAGE_NOT_PRESENT);
+	p.uaccessible = (flags & PAGE_USER) != 0;
+	p.writeable = (flags & PAGE_WRITE) != 0;
+	p.global = (flags & PAGE_GLOBAL) != 0;
 	
 	/*
 	 * Ensure that there is at least one bit set even if the present bit is cleared.
 	 */
-	p->soft_valid = true;
+	p.soft_valid = true;
+	
+	mmu_update_t update;
+	
+	update.ptr = PA2MA(KA2PA(&(pt[i])));
+	update.pte = p;
+	xen_mmu_update(&update, 1, NULL, DOMID_SELF);
 }
 
 extern void page_arch_init(void);

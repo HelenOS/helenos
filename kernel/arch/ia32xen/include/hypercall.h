@@ -61,7 +61,6 @@ typedef struct {
 #define XEN_EVENT_CHANNEL_OP	16
 #define XEN_VERSION				17
 #define XEN_CONSOLE_IO			18
-#define XEN_VM_ASSIST			21
 #define XEN_MMUEXT_OP			26
 
 
@@ -99,16 +98,6 @@ typedef struct {
 #define UVMF_MULTI				0        /**< Flush subset of TLBs */
 #define UVMF_LOCAL				0        /**< Flush local TLB */
 #define UVMF_ALL				(1 << 2) /**< Flush all TLBs */
-
-
-/*
- * Commands to XEN_VM_ASSIST
- */
-#define VMASST_CMD_ENABLE				0
-#define VMASST_CMD_DISABLE				1
-#define VMASST_TYPE_4GB_SEGMENTS		0
-#define VMASST_TYPE_4GB_SEGMENTS_NOTIFY	1
-#define VMASST_TYPE_WRITABLE_PAGETABLES	2
 
 
 #define DOMID_SELF (0x7FF0U)
@@ -218,11 +207,6 @@ typedef struct {
 static inline int xen_console_io(const unsigned int cmd, const unsigned int count, const char *str)
 {
 	return hypercall3(XEN_CONSOLE_IO, cmd, count, str);
-}
-
-static inline int xen_vm_assist(const unsigned int cmd, const unsigned int type)
-{
-    return hypercall2(XEN_VM_ASSIST, cmd, type);
 }
 
 static inline int xen_set_callbacks(const unsigned int event_selector, const void *event_address, const	unsigned int failsafe_selector, void *failsafe_address)
