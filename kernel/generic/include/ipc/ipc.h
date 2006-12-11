@@ -128,20 +128,24 @@
 #define IPC_M_PHONE_HUNGUP      3
 
 /** Send as_area over IPC 
- * - ARG1 - src base address
- * - ARG2 - size of src as(filled automatically by kernel)
- * - ARG3 - flags of the area being sent
- * - on answer ARG1 - dst base adress
+ * - ARG1 - src as_area base address
+ * - ARG2 - size of src as_area (filled automatically by kernel)
+ * - ARG3 - flags of the as_area being sent
+ * 
+ * on answer:
+ * - ARG1 - dst as_area base adress
  */
 #define IPC_M_AS_AREA_SEND      5
 
 /** Get as_area over IPC
- * - ARG1 - Where the area will be mapped
- * - ARG2 - Expected size of area
- * - ARG3 - User defined argument
- * on answer - the server sets ARG1 as src as address of the as_area
- * to be shared, ARG2 is set to rights that will be used for sharing,
- * which is returned as part of answer back to the receiver
+ * - ARG1 - where the as_area will be mapped
+ * - ARG2 - expected size of the as_area
+ * - ARG3 - user defined argument
+ * 
+ * on answer, the server sets:
+ *
+ * - ARG1 - src as_area base address
+ * - ARG2 - flags that will be used for sharing
  */
 #define IPC_M_AS_AREA_RECV      6
 

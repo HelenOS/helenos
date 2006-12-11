@@ -45,7 +45,7 @@ void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 
 	dest = as_get_mappable_page(IPC_GET_ARG2(*call),
 		PAGE_COLOR(IPC_GET_ARG1(*call)));
-	if (ipc_answer_fast(callid, 0, (sysarg_t)dest, 0) == 0) {
+	if (ipc_answer_fast(callid, 0, (sysarg_t) dest, 0) == 0) {
 		if (*area)
 			as_area_destroy(*area);
 		*area = dest;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	} 
 #endif
 #ifdef EGA_ENABLED
-	if (! initialized && sysinfo_value("fb.kind") == 2) {
+	if (!initialized && sysinfo_value("fb.kind") == 2) {
 		if (ega_init() == 0)
 			initialized = 1;
 	}

@@ -82,9 +82,9 @@ static void clrscr(void)
 {
 	int i;
 	
-	for (i=0; i < scr_width*scr_height; i++) {
-		scr_addr[i*2] = ' ';
-		scr_addr[i*2+1] = style;
+	for (i = 0; i < scr_width*scr_height; i++) {
+		scr_addr[i * 2] = ' ';
+		scr_addr[i * 2 + 1] = style;
 	}
 }
 
@@ -92,11 +92,11 @@ static void cursor_goto(unsigned int row, unsigned int col)
 {
 	int ega_cursor;
 
-	ega_cursor=col+scr_width*row;
+	ega_cursor = col + scr_width * row;
 	
-	outb(EGA_IO_ADDRESS    , 0xe);
-	outb(EGA_IO_ADDRESS + 1, (ega_cursor >>8) & 0xff);
-	outb(EGA_IO_ADDRESS    , 0xf);
+	outb(EGA_IO_ADDRESS, 0xe);
+	outb(EGA_IO_ADDRESS + 1, (ega_cursor >> 8) & 0xff);
+	outb(EGA_IO_ADDRESS, 0xf);
 	outb(EGA_IO_ADDRESS + 1, ega_cursor & 0xff);
 }
 
@@ -104,54 +104,55 @@ static void cursor_disable(void)
 {
 	uint8_t stat;
 
-	outb(EGA_IO_ADDRESS , 0xa);
+	outb(EGA_IO_ADDRESS, 0xa);
 	stat=inb(EGA_IO_ADDRESS + 1);
-	outb(EGA_IO_ADDRESS , 0xa);
-	outb(EGA_IO_ADDRESS +1 ,stat | (1<<5) );
+	outb(EGA_IO_ADDRESS, 0xa);
+	outb(EGA_IO_ADDRESS + 1, stat | (1 << 5));
 }
 
 static void cursor_enable(void)
 {
 	uint8_t stat;
 
-	outb(EGA_IO_ADDRESS , 0xa);
+	outb(EGA_IO_ADDRESS, 0xa);
 	stat=inb(EGA_IO_ADDRESS + 1);
-	outb(EGA_IO_ADDRESS , 0xa);
-	outb(EGA_IO_ADDRESS +1 ,stat & (~(1<<5)) );
+	outb(EGA_IO_ADDRESS, 0xa);
+	outb(EGA_IO_ADDRESS + 1, stat & (~(1 << 5)));
 }
 
 static void scroll(int rows)
 {
 	int i;
 	if (rows > 0) {
-		memcpy (scr_addr,((char *)scr_addr) + rows * scr_width * 2,
+		memcpy(scr_addr, ((char *) scr_addr) + rows * scr_width * 2,
 			scr_width * scr_height * 2 - rows * scr_width * 2);
-		for (i = 0; i < rows * scr_width ; i ++)
-			(((short *)scr_addr) + scr_width * scr_height - rows *
-				scr_width) [i] = ((style << 8) + ' ');
+		for (i = 0; i < rows * scr_width; i++)
+			(((short *) scr_addr) + scr_width * scr_height - rows *
+				scr_width)[i] = ((style << 8) + ' ');
 	} else if (rows < 0) {
-		memcpy (((char *)scr_addr) - rows * scr_width * 2, scr_addr,
+		memcpy(((char *)scr_addr) - rows * scr_width * 2, scr_addr,
 			scr_width * scr_height * 2 + rows * scr_width * 2);
-		for (i = 0; i < - rows * scr_width ; i++)
-			((short *)scr_addr) [i] = ((style << 8 ) + ' ');
+		for (i = 0; i < -rows * scr_width; i++)
+			((short *)scr_addr)[i] = ((style << 8 ) + ' ');
 	}
 }
 
 static void printchar(char c, unsigned int row, unsigned int col)
 {
-	scr_addr[(row*scr_width + col)*2] = c;
-	scr_addr[(row*scr_width + col)*2+1] = style;
+	scr_addr[(row * scr_width + col) * 2] = c;
+	scr_addr[(row * scr_width + col) * 2 + 1] = style;
 	
-	cursor_goto(row,col+1);
+	cursor_goto(row, col + 1);
 }
 
 static void draw_text_data(keyfield_t *data)
 {
 	int i;
 
-	for (i=0; i < scr_width*scr_height; i++) {
-		scr_addr[i*2] = data[i].character;
-		scr_addr[i*2+1] = EGA_STYLE(data[i].style.fg_color, data[i].style.bg_color);
+	for (i = 0; i < scr_width * scr_height; i++) {
+		scr_addr[i * 2] = data[i].character;
+		scr_addr[i * 2 + 1] = EGA_STYLE(data[i].style.fg_color,
+			data[i].style.bg_color);
 	}
 }
 
@@ -159,11 +160,11 @@ static int save_screen(void)
 {
 	int i;
 
-	for (i=0; ( i < MAX_SAVED_SCREENS ) && (saved_screens[i].data); i++)
+	for (i=0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++)
 		;
 	if (i == MAX_SAVED_SCREENS) 
 		return EINVAL;
-	if (!(saved_screens[i].data=malloc( 2 * scr_width*scr_height ))) 
+	if (!(saved_screens[i].data = malloc(2 * scr_width * scr_height))) 
 		return ENOMEM;
 	memcpy(saved_screens[i].data, scr_addr, 2 * scr_width * scr_height);
 
@@ -173,8 +174,10 @@ static int save_screen(void)
 static int print_screen(int i)
 {
 	if (saved_screens[i].data)
-		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width * scr_height);
-	else return EINVAL;
+		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width *
+			scr_height);
+	else
+		return EINVAL;
 	return i;
 }
 
@@ -203,13 +206,15 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
-			ipc_answer_fast(callid,0,0,0);
+			ipc_answer_fast(callid, 0, 0, 0);
 			return; /* Exit thread */
 		case IPC_M_AS_AREA_SEND:
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
-			if (intersize >= scr_width*scr_height*sizeof(*interbuf)) {
-				receive_comm_area(callid,&call,(void *)&interbuf);
+			if (intersize >= scr_width * scr_height *
+				sizeof(*interbuf)) {
+				receive_comm_area(callid, &call, (void *)
+					&interbuf);
 				continue;
 			}
 			retval = EINVAL;
@@ -237,7 +242,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			printchar(c,row,col);
+			printchar(c, row, col);
 			retval = 0;
 			break;
  		case FB_CURSOR_GOTO:
@@ -247,12 +252,12 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			cursor_goto(row,col);
+			cursor_goto(row, col);
  			retval = 0;
  			break;
 		case FB_SCROLL:
 			i = IPC_GET_ARG1(call);
-			if (i > scr_height || i < (- (int)scr_height)) {
+			if (i > scr_height || i < -((int) scr_height)) {
 				retval = EINVAL;
 				break;
 			}
@@ -295,7 +300,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_fast(callid,retval,0,0);
+		ipc_answer_fast(callid, retval, 0, 0);
 	}
 }
 
@@ -304,10 +309,9 @@ int ega_init(void)
 	void *ega_ph_addr;
 	size_t sz;
 
-
-	ega_ph_addr=(void *)sysinfo_value("fb.address.physical");
-	scr_width=sysinfo_value("fb.width");
-	scr_height=sysinfo_value("fb.height");
+	ega_ph_addr = (void *) sysinfo_value("fb.address.physical");
+	scr_width = sysinfo_value("fb.width");
+	scr_height = sysinfo_value("fb.height");
 	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
 
 	sz = scr_width * scr_height * 2;

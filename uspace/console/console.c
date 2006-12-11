@@ -70,17 +70,26 @@ struct {
 
 typedef struct {
 	keybuffer_t keybuffer;		/**< Buffer for incoming keys. */
-	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t , MAX_KEYREQUESTS_BUFFERED);	/**< Buffer for unsatisfied request for keys. */
+	/** Buffer for unsatisfied request for keys. */
+	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t,
+		MAX_KEYREQUESTS_BUFFERED);	
 	int keyrequest_counter;		/**< Number of requests in buffer. */
 	int client_phone;		/**< Phone to connected client. */
-	int used;			/**< 1 if this virtual console is connected to some client.*/
-	screenbuffer_t screenbuffer;	/**< Screenbuffer for saving screen contents and related settings. */
+	int used;			/**< 1 if this virtual console is
+					 * connected to some client.*/
+	screenbuffer_t screenbuffer;	/**< Screenbuffer for saving screen
+					 * contents and related settings. */
 } connection_t;
 
-static connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual consoles */
-static keyfield_t *interbuffer = NULL;			/**< Pointer to memory shared with framebufer used for faster virt. console switching */
+static connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual
+						 * consoles */
+static keyfield_t *interbuffer = NULL;		/**< Pointer to memory shared
+						 * with framebufer used for
+						 * faster virtual console
+						 *switching */
 
-static int kernel_pixmap = -1;      /**< Number of fb pixmap, where kernel console is stored */
+static int kernel_pixmap = -1;	/**< Number of fb pixmap, where kernel
+				 * console is stored */
 
 
 /** Find unused virtual console.
@@ -115,7 +124,8 @@ static void curs_goto(int row, int col)
 
 static void set_style(style_t *style)
 {
-	async_msg_2(fb_info.phone, FB_SET_STYLE, style->fg_color, style->bg_color); 
+	async_msg_2(fb_info.phone, FB_SET_STYLE, style->fg_color,
+		style->bg_color); 
 }
 
 static void set_style_col(int fgcolor, int bgcolor)
@@ -137,34 +147,30 @@ static void write_char(int console, char key)
 	screenbuffer_t *scr = &(connections[console].screenbuffer);
 	
 	switch (key) {
-		case '\n':
-			scr->position_y += 1;
-			scr->position_x =  0;
+	case '\n':
+		scr->position_y += 1;
+		scr->position_x =  0;
+		break;
+	case '\r':
+		break;
+	case '\t':
+		scr->position_x += 8;
+		scr->position_x -= scr->position_x % 8; 
+		break;
+	case '\b':
+		if (scr->position_x == 0) 
 			break;
-		case '\r':
-			break;
-		case '\t':
-			scr->position_x += 8;
-			scr->position_x -= scr->position_x % 8; 
-			break;
-		case '\b':
-			if (scr->position_x == 0) 
-				break;
+		scr->position_x--;
+		if (console == active_console)
+			prtchr(' ', scr->position_y, scr->position_x);
+		screenbuffer_putchar(scr, ' ');
+		break;
+	default:	
+		if (console == active_console)
+			prtchr(key, scr->position_y, scr->position_x);
 
-			scr->position_x--;
-
-			if (console == active_console)
-				prtchr(' ', scr->position_y, scr->position_x);
-	
-			screenbuffer_putchar(scr, ' ');
-			
-			break;
-		default:	
-			if (console == active_console)
-				prtchr(key, scr->position_y, scr->position_x);
-	
-			screenbuffer_putchar(scr, key);
-			scr->position_x++;
+		screenbuffer_putchar(scr, key);
+		scr->position_x++;
 	}
 	
 	scr->position_y += (scr->position_x >= scr->size_x);
@@ -257,9 +263,12 @@ static void change_console(int newcons)
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
-				interbuffer[i + j*conn->screenbuffer.size_x] = *get_field_at(&(conn->screenbuffer),i, j);
+				interbuffer[i + j * conn->screenbuffer.size_x]
+					= *get_field_at(&(conn->screenbuffer),
+					i, j);
 		/* This call can preempt, but we are already at the end */
-		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL, NULL);		
+		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL,
+			NULL);		
 	};
 	
 	if ((!interbuffer) || (rc != 0)) {
@@ -269,18 +278,22 @@ static void change_console(int newcons)
 
 		for (j = 0; j < conn->screenbuffer.size_y; j++) 
 			for (i = 0; i < conn->screenbuffer.size_x; i++) {
-				field = get_field_at(&(conn->screenbuffer),i, j);
+				field = get_field_at(&(conn->screenbuffer), i,
+					j);
 				if (!style_same(*style, field->style))
 					set_style(&field->style);
 				style = &field->style;
-				if ((field->character == ' ') && (style_same(field->style, conn->screenbuffer.style)))
+				if ((field->character == ' ') &&
+					(style_same(field->style,
+					conn->screenbuffer.style)))
 					continue;
 
 				prtchr(field->character, j, i);
 			}
 	}
 	
-	curs_goto(conn->screenbuffer.position_y, conn->screenbuffer.position_x);
+	curs_goto(conn->screenbuffer.position_y,
+		conn->screenbuffer.position_x);
 	curs_visibility(conn->screenbuffer.is_cursor_visible);
 
 	async_serialize_end();
@@ -310,7 +323,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case KBD_MS_MOVE:
-			gcons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			gcons_mouse_move(IPC_GET_ARG1(call),
+				IPC_GET_ARG2(call));
 			retval = 0;
 			break;
 		case KBD_PUSHCHAR:
@@ -321,7 +335,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* switch to another virtual console */
 			
 			conn = &connections[active_console];
-//			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 + CONSOLE_COUNT)) {
+/*
+ *			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 +
+ *				CONSOLE_COUNT)) {
+ */
 			if ((c >= 0x101) && (c < 0x101 + CONSOLE_COUNT)) {
 				if (c == 0x112)
 					change_console(KERNEL_CONSOLE);
@@ -333,7 +350,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* if client is awaiting key, send it */
 			if (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
-				ipc_answer_fast(fifo_pop(conn->keyrequests), 0, c, 0);
+				ipc_answer_fast(fifo_pop(conn->keyrequests), 0,
+					c, 0);
 				break;
 			}
 			
@@ -385,7 +403,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* Answer all pending requests */
 			while (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
-				ipc_answer_fast(fifo_pop(conn->keyrequests), ENOENT, 0, 0);
+				ipc_answer_fast(fifo_pop(conn->keyrequests),
+					ENOENT, 0, 0);
 				break;
 			}
 			conn->used = 0;
@@ -404,29 +423,27 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			break;
 		case CONSOLE_GOTO:
-			
-			screenbuffer_goto(&conn->screenbuffer, IPC_GET_ARG2(call), IPC_GET_ARG1(call));
+			screenbuffer_goto(&conn->screenbuffer,
+				IPC_GET_ARG2(call), IPC_GET_ARG1(call));
 			if (consnum == active_console)
-				curs_goto(IPC_GET_ARG1(call),IPC_GET_ARG2(call));
-			
+				curs_goto(IPC_GET_ARG1(call),
+					IPC_GET_ARG2(call));
 			break;
-
 		case CONSOLE_GETSIZE:
 			arg1 = fb_info.rows;
 			arg2 = fb_info.cols;
 			break;
 		case CONSOLE_FLUSH:
 			if (consnum == active_console)
-				async_req_2(fb_info.phone, FB_FLUSH, 0, 0, NULL, NULL);		
+				async_req_2(fb_info.phone, FB_FLUSH, 0, 0,
+					NULL, NULL);		
 			break;
 		case CONSOLE_SET_STYLE:
-			
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
 			screenbuffer_set_style(&conn->screenbuffer,arg1, arg2);
 			if (consnum == active_console)
 				set_style_col(arg1, arg2);
-				
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
 			arg1 = IPC_GET_ARG1(call);
@@ -437,17 +454,20 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_GETCHAR:
 			if (keybuffer_empty(&conn->keybuffer)) {
 				/* buffer is empty -> store request */
-				if (conn->keyrequest_counter < MAX_KEYREQUESTS_BUFFERED) {		
+				if (conn->keyrequest_counter <
+					MAX_KEYREQUESTS_BUFFERED) {	
 					fifo_push(conn->keyrequests, callid);
 					conn->keyrequest_counter++;
 				} else {
-					/* no key available and too many requests => fail */
+					/*
+					 * No key available and too many
+					 * requests => fail.
+					*/
 					ipc_answer_fast(callid, ELIMIT, 0, 0);
 				}
 				continue;
-			};
-			keybuffer_pop(&conn->keybuffer, (int *)&arg1);
-			
+			}
+			keybuffer_pop(&conn->keybuffer, (int *) &arg1);
 			break;
 		}
 		ipc_answer_fast(callid, 0, arg1, arg2);
@@ -464,18 +484,21 @@ int main(int argc, char *argv[])
 	
 	/* Connect to keyboard driver */
 
-	while ((kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0)) < 0) {
+	while ((kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0))
+		< 0) {
 		usleep(10000);
-	};
+	}
 	
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0)
+		{
 		return -1;
-	};
+	}
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	/* Connect to framebuffer driver */
 	
-	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0)) < 0) {
+	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0))
+		< 0) {
 		usleep(10000);
 	}
 	
@@ -489,7 +512,8 @@ int main(int argc, char *argv[])
 	/* Enable double buffering */
 	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t)-1, 1);
 	
-	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows), &(fb_info.cols)); 
+	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows),
+		&(fb_info.cols)); 
 	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	clrscr();
 	
@@ -498,20 +522,26 @@ int main(int argc, char *argv[])
 		connections[i].used = 0;
 		keybuffer_init(&(connections[i].keybuffer));
 		
-		connections[i].keyrequests.head = connections[i].keyrequests.tail = 0;
+		connections[i].keyrequests.head =
+			connections[i].keyrequests.tail = 0;
 		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
 		connections[i].keyrequest_counter = 0;
 		
-		if (screenbuffer_init(&(connections[i].screenbuffer), fb_info.cols, fb_info.rows ) == NULL) {
+		if (screenbuffer_init(&(connections[i].screenbuffer),
+			fb_info.cols, fb_info.rows) == NULL) {
 			/*FIXME: handle error */
 			return -1;
 		}
 	}
 	connections[KERNEL_CONSOLE].used = 1;
 	
-	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols * fb_info.rows , PROTO_READ|PROTO_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, 0 ,0 )) != NULL) {
-		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
-			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
+	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols *
+		fb_info.rows, PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS |
+		MAP_PRIVATE, 0, 0)) != NULL) {
+		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)
+			interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
+			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols
+				* fb_info.rows);
 			interbuffer = NULL;
 		}
 	}
@@ -522,7 +552,7 @@ int main(int argc, char *argv[])
 	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
 		return -1;
-	};
+	}
 	
 	async_manager();
 

@@ -45,14 +45,15 @@
 #undef context_set
 #endif
 
-#define context_set(c, _pc, stack, size)								\
-	(c)->pc = ((uintptr_t) _pc) - 8;								\
-	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
+#define context_set(c, _pc, stack, size)			\
+	(c)->pc = ((uintptr_t) _pc) - 8;			\
+	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), 	\
+		STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
 	(c)->fp = -STACK_BIAS
 	
 
 /*
- * Only save registers that must be preserved across
+ * Save only registers that must be preserved across
  * function calls.
  */
 struct context {
