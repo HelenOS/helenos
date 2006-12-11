@@ -34,6 +34,10 @@
 #include <panic.h>
 #include <memstr.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 #define VAL_COUNT   1024
 
 void * data[VAL_COUNT];
@@ -153,8 +157,15 @@ static void testthreads(void)
 	
 }
 
-void test(void)
+void test_slab1(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	testsimple();
 	testthreads();
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }

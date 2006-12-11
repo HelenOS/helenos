@@ -37,6 +37,12 @@
 
 #include <arch.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
+#if (defined(ia32) || defined(amd64) || defined(ia32xen))
+
 #define THREADS		50
 #define DELAY   	10000L
 #define ATTEMPTS        5
@@ -105,8 +111,11 @@ static void testit2(void *data)
 }
 
 
-void test(void)
+void test_sse1(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	thread_t *t;
 	int i;
 
@@ -133,4 +142,17 @@ void test(void)
 		;
 		
 	printf("Test passed.\n");
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }
+
+#else
+
+void test_sse1(void)
+{
+	printf("This test is available only on SSE enabled platforms.");
+}
+
+#endif

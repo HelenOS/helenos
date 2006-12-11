@@ -65,6 +65,54 @@ test_t tests[] = {
 		&test_fpu1,
 		true
 	},
+	{
+		"sse1",
+		"Intel SEE test",
+		&test_sse1,
+		true
+	},
+	{
+		"mips2",
+		"MIPS FPU test",
+		&test_mips2,
+		true
+	},
+	{
+		"falloc1",
+		"Frame allocator test 1",
+		&test_falloc1,
+		true
+	},
+	{
+		"falloc2",
+		"Frame allocator test 2",
+		&test_falloc2,
+		true
+	},
+	{
+		"mapping1",
+		"Mapping test",
+		&test_mapping1,
+		true
+	},
+	{
+		"slab1",
+		"SLAB test 1",
+		&test_slab1,
+		true
+	},
+	{
+		"slab2",
+		"SLAB test 2",
+		&test_slab2,
+		true
+	},
+	{
+		"purge1",
+		"Itanium TLB purge test",
+		&test_purge1,
+		true
+	},
 	{NULL, NULL, NULL}
 };
 

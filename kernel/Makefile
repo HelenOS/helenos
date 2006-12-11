@@ -222,7 +222,15 @@ ifeq ($(CONFIG_TEST),y)
 		test/btree/btree1.c \
 		test/debug/mips1.c \
 		test/fault/fault1.c \
-		test/fpu/fpu1.c
+		test/fpu/fpu1.c \
+		test/fpu/sse1.c \
+		test/fpu/mips2.c \
+		test/mm/falloc1.c \
+		test/mm/falloc2.c \
+		test/mm/mapping1.c \
+		test/mm/slab1.c \
+		test/mm/slab2.c \
+		test/mm/purge1.c
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

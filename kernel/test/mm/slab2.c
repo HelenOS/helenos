@@ -210,7 +210,7 @@ static void multitest(int size)
 	printf("Stress test complete.\n");
 }
 
-void test(void)
+void test_slab2(void)
 {
 #ifdef CONFIG_BENCH
 	uint64_t t0 = get_cycle();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Sergey Bondari
+ * Copyright (C) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,68 +25,68 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <print.h>
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <mm/slab.h>
+#include <mm/as.h>
 #include <arch/mm/page.h>
+#include <arch/mm/tlb.h>
 #include <arch/types.h>
 #include <debug.h>
-#include <align.h>
 
-#define MAX_FRAMES 1024
-#define MAX_ORDER 8
-#define TEST_RUNS 2
+#ifdef ia64
 
-void test(void) {
-	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES*sizeof(uintptr_t), 0);
-	int results[MAX_ORDER+1];
+extern void tlb_invalidate_all(void);
+extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, count_t cnt);
+
+void test(void)
+{
+	tlb_entry_t entryi;
+	tlb_entry_t entryd;
+
+	int i;
+																																													
+	entryd.word[0] = 0;
+	entryd.word[1] = 0;
+												
+	entryd.p = true;                 /* present */
+	entryd.ma = MA_WRITEBACK;
+	entryd.a = true;                 /* already accessed */
+	entryd.d = true;                 /* already dirty */
+	entryd.pl = PL_KERNEL;
+	entryd.ar = AR_READ | AR_WRITE;
+	entryd.ppn = 0;
+	entryd.ps = PAGE_WIDTH;
 	
-	int i, order, run;
-	int allocated;
-
-	ASSERT(TEST_RUNS > 1);
-	ASSERT(frames != NULL)
-
-	for (run = 0; run < TEST_RUNS; run++) {
-		for (order = 0; order <= MAX_ORDER; order++) {
-			printf("Allocating %d frames blocks ... ", 1 << order);
-			allocated = 0;
-			for (i = 0; i < MAX_FRAMES >> order; i++) {
-				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
-				
-				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					panic("Test failed. Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
-				}
-				
-				if (frames[allocated]) {
-					allocated++;
-				} else {
-					printf("done. ");
-					break;
-				}
-			}
-		
-			printf("%d blocks allocated.\n", allocated);
-		
-			if (run) {
-				if (results[order] != allocated) {
-					panic("Test failed. Frame leak possible.\n");
-				}
-			} else
-				results[order] = allocated;
-			
-			printf("Deallocating ... ");
-			for (i = 0; i < allocated; i++) {
-				frame_free(KA2PA(frames[i]));
-			}
-			printf("done.\n");
-		}
+	entryi.word[0] = 0;
+	entryi.word[1] = 0;
+	
+	entryi.p = true;                 /* present */
+	entryi.ma = MA_WRITEBACK;
+	entryi.a = true;                 /* already accessed */
+	entryi.d = true;                 /* already dirty */
+	entryi.pl = PL_KERNEL;
+	entryi.ar = AR_READ | AR_EXECUTE;
+	entryi.ppn = 0;
+	entryi.ps = PAGE_WIDTH;
+	
+	for (i = 0; i < 100; i++) {
+		itc_mapping_insert(0 + i * (1 << PAGE_WIDTH), 8, entryi);
+		dtc_mapping_insert(0 + i * (1 << PAGE_WIDTH), 9, entryd);
 	}
-
-	free(frames);
 	
-	printf("Test passed.\n");
+	tlb_invalidate_pages(8,0x0c000,14);
+	
+	/*tlb_invalidate_all();*/
 }
 
+#else
+
+void test_purge1(void)
+{
+	printf("This test is availaible only on IA64 platform.\n");
+}
+
+#endif

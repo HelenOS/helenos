@@ -34,21 +34,28 @@
 #include <arch/types.h>
 #include <debug.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 #define PAGE0	0x10000000
 #define PAGE1	(PAGE0+PAGE_SIZE)
 
 #define VALUE0	0x01234567
 #define VALUE1	0x89abcdef
 
-void test(void)
+void test_mapping1(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	uintptr_t frame0, frame1;
 	uint32_t v0, v1;
 
 	printf("Memory management test mapping #1\n");
 
-	frame0 = frame_alloc(ONE_FRAME, FRAME_KA);
-	frame1 = frame_alloc(ONE_FRAME, FRAME_KA);
+	frame0 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
+	frame1 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
 
 	printf("Writing %#x to physical address %p.\n", VALUE0, KA2PA(frame0));
 	*((uint32_t *) frame0) = VALUE0;
@@ -81,5 +88,8 @@ void test(void)
 	ASSERT(v1 == 0);
 	
 	printf("Test passed.\n");
-	
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif	
 }

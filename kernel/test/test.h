@@ -50,6 +50,14 @@ extern void test_btree1(void);
 extern void test_mips1(void);
 extern void test_fault1(void);
 extern void test_fpu1(void);
+extern void test_sse1(void);
+extern void test_mips2(void);
+extern void test_falloc1(void);
+extern void test_falloc2(void);
+extern void test_mapping1(void);
+extern void test_purge1(void);
+extern void test_slab1(void);
+extern void test_slab2(void);
 
 extern test_t tests[];
 

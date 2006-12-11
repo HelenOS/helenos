@@ -38,6 +38,10 @@
 #include <memstr.h>
 #include <arch.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 #define MAX_FRAMES 256
 #define MAX_ORDER 8
 
@@ -101,8 +105,11 @@ void failed(void)
 }
 
 
-void test(void)
+void test_falloc2(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	int i;
 
 	atomic_set(&thread_count, THREADS);
@@ -120,4 +127,8 @@ void test(void)
 		;
 
 	printf("Test passed.\n");
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }

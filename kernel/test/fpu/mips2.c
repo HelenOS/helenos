@@ -37,6 +37,8 @@
 
 #include <arch.h>
 
+#ifdef mips32
+
 #define THREADS		50
 #define DELAY   	10000L
 #define ATTEMPTS        5
@@ -105,7 +107,7 @@ static void testit2(void *data)
 }
 
 
-void test(void)
+void test_mips2(void)
 {
 	thread_t *t;
 	int i;
@@ -134,3 +136,12 @@ void test(void)
 		
 	printf("Test passed.\n");
 }
+
+#else
+
+void test_mips2(void)
+{
+	printf("This test is availaible only on MIPS32 platform.\n");
+}
+
+#endif
