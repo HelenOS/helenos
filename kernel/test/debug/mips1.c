@@ -38,8 +38,9 @@
 #include <arch.h>
 
 
-void test(void)
+void test_mips1(void)
 {
+#ifdef mips32
 	printf("MIPS debug test #1\n");
 
 	printf("You should enter kconsole debug mode now.\n");
@@ -47,4 +48,7 @@ void test(void)
 	asm __volatile__ ("break");
 
 	printf("Test passed.\n");
+#else
+	printf("This test is availaible only on MIPS32 platform.\n");
+#endif
 }

@@ -38,7 +38,7 @@
 #include <arch.h>
 
 
-void test(void)
+void test_fault1(void)
 {
 
 	((int *)(0))[1]=0;  

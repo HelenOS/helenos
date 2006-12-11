@@ -213,12 +213,16 @@ GENERIC_SOURCES = \
 ## Test sources
 #
 
-ifneq ($(CONFIG_TEST),)
+ifeq ($(CONFIG_TEST),y)
 	DEFS += -DCONFIG_TEST
 	CFLAGS += -Itest/
 	GENERIC_SOURCES += \
 		test/test.c \
-		test/atomic/atomic1.c
+		test/atomic/atomic1.c \
+		test/btree/btree1.c \
+		test/debug/mips1.c \
+		test/fault/fault1.c \
+		test/fpu/fpu1.c
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

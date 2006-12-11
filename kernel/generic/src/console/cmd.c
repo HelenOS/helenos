@@ -840,6 +840,7 @@ int cmd_continue(cmd_arg_t *argv)
 	return 1;
 }
 
+#ifdef CONFIG_TEST
 /** Command for printing kernel tests list.
  *
  * @param argv Ignored.
@@ -851,8 +852,9 @@ int cmd_tests(cmd_arg_t *argv)
 	test_t *test;
 	
 	for (test = tests; test->name != NULL; test++)
-		printf("%s\t%s\n", test->name, test->desc);
+		printf("%s\t\t%s%s\n", test->name, test->desc, (test->safe ? "" : " (unsafe)"));
 	
+	printf("*\t\tRun all safe tests\n");
 	return 1;
 }
 
@@ -864,22 +866,33 @@ int cmd_tests(cmd_arg_t *argv)
  */
 int cmd_test(cmd_arg_t *argv)
 {
-	bool fnd = false;
 	test_t *test;
 	
-	for (test = tests; test->name != NULL; test++) {
-		if (strcmp(test->name, argv->buffer) == 0) {
-			fnd = true;
-			test->entry();
-			break;
+	if (strcmp(argv->buffer, "*") == 0) {
+		for (test = tests; test->name != NULL; test++) {
+			if (test->safe) {
+				printf("\n%s\t\t%s\n\n", test->name, test->desc);
+				test->entry();
+			}
 		}
+	} else {
+		bool fnd = false;
+		
+		for (test = tests; test->name != NULL; test++) {
+			if (strcmp(test->name, argv->buffer) == 0) {
+				fnd = true;
+				test->entry();
+				break;
+			}
+		}
+		
+		if (!fnd)
+			printf("Unknown test.\n");
 	}
-	
-	if (!fnd)
-		printf("Unknown test.\n");
 	
 	return 1;
 }
+#endif
 
 /** @}
  */

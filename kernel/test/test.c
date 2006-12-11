@@ -38,7 +38,32 @@ test_t tests[] = {
 	{
 		"atomic1",
 		"Test atomic operations",
-		&test_atomic1
+		&test_atomic1,
+		true
+	},
+	{
+		"btree1",
+		"Test B-tree operations",
+		&test_btree1,
+		true
+	},
+	{
+		"mips1",
+		"MIPS debug test",
+		&test_mips1,
+		true
+	},
+	{
+		"fault1",
+		"Write to NULL (maybe page fault)",
+		&test_fault1,
+		false
+	},
+	{
+		"fpu1",
+		"Intel FPU test",
+		&test_fpu1,
+		true
 	},
 	{NULL, NULL, NULL}
 };

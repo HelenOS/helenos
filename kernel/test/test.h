@@ -42,9 +42,14 @@ typedef struct {
 	char * name;
 	char * desc;
 	function entry;
+	bool safe;
 } test_t;
 
 extern void test_atomic1(void);
+extern void test_btree1(void);
+extern void test_mips1(void);
+extern void test_fault1(void);
+extern void test_fpu1(void);
 
 extern test_t tests[];
 

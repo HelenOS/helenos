@@ -38,6 +38,12 @@
 #include <arch.h>
 #include <arch/arch.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
+#if (defined(ia32) || defined(amd64) || defined(ia64) || defined(ia32xen))
+
 #define THREADS		150*2
 #define ATTEMPTS	100
 
@@ -148,8 +154,11 @@ static void pi(void *data)
 	atomic_inc(&threads_ok);
 }
 
-void test(void)
+void test_fpu1(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	thread_t *t;
 	int i;
 
@@ -175,4 +184,17 @@ void test(void)
 		;
 		
 	printf("Test passed.\n");
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }
+
+#else
+
+void test_fpu1(void)
+{
+	printf("This test is available only on Intel/AMD platforms.");
+}
+
+#endif

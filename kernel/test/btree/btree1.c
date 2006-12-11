@@ -31,10 +31,17 @@
 #include <adt/btree.h>
 #include <debug.h>
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 void *data = (void *) 0xdeadbeef;
 
-void test(void)
+void test_btree1(void)
 {
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
 	btree_t t;
 	int i;
 
@@ -156,4 +163,8 @@ void test(void)
 	btree_remove(&t, 36, NULL);
 
 	btree_print(&t);
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
+#endif
 }

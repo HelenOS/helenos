@@ -63,5 +63,4 @@ void test_atomic1(void)
 	uint64_t dt = get_cycle() - t0;
 	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
 #endif
-	return;
 }
