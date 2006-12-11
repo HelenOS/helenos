@@ -33,32 +33,26 @@
 #include <proc/thread.h>
 #include <arch/types.h>
 #include <arch/context.h>
-#include <context.h>
-#include <panic.h>
 
 #include <synch/waitq.h>
-#include <synch/rwlock.h>
+#include <synch/semaphore.h>
 #include <synch/synch.h>
 #include <synch/spinlock.h>
 
-#define READERS		50
-#define WRITERS		50
+static semaphore_t sem;
 
-static rwlock_t rwlock;
-
-SPINLOCK_INITIALIZE(lock);
+static SPINLOCK_INITIALIZE(lock);
 
 static waitq_t can_start;
 
-uint32_t seed = 0xdeadbeef;
+static uint32_t seed = 0xdeadbeef;
 
 static uint32_t random(uint32_t max);
 
-static void writer(void *arg);
-static void reader(void *arg);
+static void consumer(void *arg);
 static void failed(void);
 
-uint32_t random(uint32_t max)
+static uint32_t random(uint32_t max)
 {
 	uint32_t rc;
 
@@ -70,84 +64,53 @@ uint32_t random(uint32_t max)
 }
 
 
-void writer(void *arg)
+static void consumer(void *arg)
 {
 	int rc, to;
+	
 	thread_detach(THREAD);
-	waitq_sleep(&can_start);
-
-	to = random(40000);
-	printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
-	rc = rwlock_write_lock_timeout(&rwlock, to);
-	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
-		return;
-	};
-	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
-
-	if (rwlock.readers_in) panic("Oops.");
-	thread_usleep(random(1000000));
-	if (rwlock.readers_in) panic("Oops.");	
-
-	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);	
-}
-
-void reader(void *arg)
-{
-	int rc, to;
-	thread_detach(THREAD);
+	
 	waitq_sleep(&can_start);
 	
-	to = random(2000);
-	printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
-	rc = rwlock_read_lock_timeout(&rwlock, to);
+	to = random(20000);
+	printf("cpu%d, tid %d down+ (%d)\n", CPU->id, THREAD->tid, to);
+	rc = semaphore_down_timeout(&sem, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %d down!\n", CPU->id, THREAD->tid);
 		return;
 	}
-	printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
-	thread_usleep(30000);
-	rwlock_read_unlock(&rwlock);
-	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
+	
+	printf("cpu%d, tid %d down=\n", CPU->id, THREAD->tid);	
+	thread_usleep(random(30000));
+	
+	semaphore_up(&sem);
+	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
 }
 
-void failed(void)
+static void failed(void)
 {
 	printf("Test failed prematurely.\n");
 	thread_exit();
 }
 
-void test(void)
+void test_semaphore2(void)
 {
-	context_t ctx;
 	uint32_t i, k;
 	
-	printf("Read/write locks test #4\n");
+	printf("Semaphore test #2\n");
     
 	waitq_initialize(&can_start);
-	rwlock_initialize(&rwlock);
+	semaphore_initialize(&sem, 5);
 	
-	for (;;) {
+
+	
+	for (; ;) {
 		thread_t *thrd;
 		
-		context_save(&ctx);
-		printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
-		
 		k = random(7) + 1;
-		printf("Creating %d readers\n", k);
+		printf("Creating %d consumers\n", k);
 		for (i=0; i<k; i++) {
-			thrd = thread_create(reader, NULL, TASK, 0, "reader");
-			if (thrd)
-				thread_ready(thrd);
-			else
-				failed();
-		}
-
-		k = random(5) + 1;
-		printf("Creating %d writers\n", k);
-		for (i=0; i<k; i++) {
-			thrd = thread_create(writer, NULL, TASK, 0, "writer");
+			thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
 			if (thrd)
 				thread_ready(thrd);
 			else

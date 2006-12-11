@@ -31,60 +31,43 @@
 #include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
-#include <arch/types.h>
-#include <arch/context.h>
 
 #include <synch/waitq.h>
-#include <synch/semaphore.h>
-#include <synch/synch.h>
-#include <synch/spinlock.h>
+#include <synch/rwlock.h>
 
-static semaphore_t sem;
+#define READERS		50
+#define WRITERS		50
 
-SPINLOCK_INITIALIZE(lock);
+static rwlock_t rwlock;
 
 static waitq_t can_start;
+static atomic_t items_read;
+static atomic_t items_written;
 
-uint32_t seed = 0xdeadbeef;
-
-static uint32_t random(uint32_t max);
-
-static void consumer(void *arg);
+static void writer(void *arg);
+static void reader(void *arg);
 static void failed(void);
 
-uint32_t random(uint32_t max)
+void writer(void *arg)
 {
-	uint32_t rc;
+	thread_detach(THREAD);
 
-	spinlock_lock(&lock);	
-	rc = seed % max;
-	seed = (((seed<<2) ^ (seed>>2)) * 487) + rc;
-	spinlock_unlock(&lock);
-	return rc;
+	waitq_sleep(&can_start);
+
+	rwlock_write_lock(&rwlock);
+	atomic_inc(&items_written);
+	rwlock_write_unlock(&rwlock);
 }
 
-
-void consumer(void *arg)
+void reader(void *arg)
 {
-	int rc, to;
-	
 	thread_detach(THREAD);
-	
+
 	waitq_sleep(&can_start);
 	
-	to = random(20000);
-	printf("cpu%d, tid %d down+ (%d)\n", CPU->id, THREAD->tid, to);
-	rc = semaphore_down_timeout(&sem, to);
-	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d down!\n", CPU->id, THREAD->tid);
-		return;
-	}
-	
-	printf("cpu%d, tid %d down=\n", CPU->id, THREAD->tid);	
-	thread_usleep(random(30000));
-	
-	semaphore_up(&sem);
-	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
+	rwlock_read_lock(&rwlock);
+	atomic_inc(&items_read);
+	rwlock_read_unlock(&rwlock);
 }
 
 void failed(void)
@@ -93,32 +76,53 @@ void failed(void)
 	thread_exit();
 }
 
-void test(void)
+void test_rwlock5(void)
 {
-	uint32_t i, k;
+	int i, j, k;
+	count_t readers, writers;
 	
-	printf("Semaphore test #2\n");
+	printf("Read/write locks test #5\n");
     
 	waitq_initialize(&can_start);
-	semaphore_initialize(&sem, 5);
+	rwlock_initialize(&rwlock);
 	
-
-	
-	for (; ;) {
+	for (i=1; i<=3; i++) {
 		thread_t *thrd;
-		
-		k = random(7) + 1;
-		printf("Creating %d consumers\n", k);
-		for (i=0; i<k; i++) {
-			thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
-			if (thrd)
-				thread_ready(thrd);
-			else
-				failed();
-		}
-		
-		thread_usleep(20000);
-		waitq_wakeup(&can_start, WAKEUP_ALL);
-	}		
 
+		atomic_set(&items_read, 0);
+		atomic_set(&items_written, 0);
+
+		readers = i*READERS;
+		writers = (4-i)*WRITERS;
+
+		printf("Creating %ld readers and %ld writers...", readers, writers);
+		
+		for (j=0; j<(READERS+WRITERS)/2; j++) {
+			for (k=0; k<i; k++) {
+				thrd = thread_create(reader, NULL, TASK, 0, "reader");
+				if (thrd)
+					thread_ready(thrd);
+				else
+					failed();
+			}
+			for (k=0; k<(4-i); k++) {
+				thrd = thread_create(writer, NULL, TASK, 0, "writer");
+				if (thrd)
+					thread_ready(thrd);
+				else
+					failed();
+			}
+		}
+
+		printf("ok\n");
+
+		thread_sleep(1);
+		waitq_wakeup(&can_start, WAKEUP_ALL);
+	
+		while (items_read.count != readers || items_written.count != writers) {
+			printf("%zd readers remaining, %zd writers remaining, readers_in=%zd\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
+			thread_usleep(100000);
+		}
+	}
+	printf("Test passed.\n");
 }

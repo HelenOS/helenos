@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2005 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <arch.h>
-#include <atomic.h>
 #include <print.h>
-#include <proc/thread.h>
+#include <debug.h>
+#include <panic.h>
 
-#include <synch/rwlock.h>
-
-#define READERS		50
-#define WRITERS		50
-
-static rwlock_t rwlock;
-
-static void reader(void *arg);
-static void failed(void);
-
-void reader(void *arg)
+#include <test.h>
+#include <sysinfo/sysinfo.h>
+/*
+static unative_t counter(sysinfo_item_t *root)
 {
-	thread_detach(THREAD);
+	static unative_t i=0;
+	return i++;
+}*/
 
-	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);    	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
-	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    		
-
-	printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
-
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
-	
-	printf("Test passed.\n");	
-
-}
-
-void failed(void)
+void test_sysinfo1(void)
 {
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test(void)
-{
-	int i;
-	thread_t *thrd;
-	
-	printf("Read/write locks test #3\n");
-    
-	rwlock_initialize(&rwlock);
-
-	rwlock_write_lock(&rwlock);
-	
-	for (i=0; i<4; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0, "reader");
-		if (thrd)
-			thread_ready(thrd);
-		else
-			failed();
-	}
-
-
-	thread_sleep(1);
-	
-	rwlock_write_unlock(&rwlock);
+/*	sysinfo_set_item_val("Ahoj.lidi.uaaaa",NULL,9);
+	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,15);
+	sysinfo_set_item_val("Ahoj.lidi",NULL,64);
+	sysinfo_set_item_function("Ahoj",NULL,counter);
+	sysinfo_dump(NULL,0);
+	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,75);
+	sysinfo_dump(NULL,0);
+	sysinfo_dump(NULL,0);
+	sysinfo_dump(NULL,0);*/
+	sysinfo_dump(NULL,0);
 }

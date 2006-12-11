@@ -35,7 +35,7 @@
 #include <arch/cycle.h>
 #endif
 
-void *data = (void *) 0xdeadbeef;
+static void *data = (void *) 0xdeadbeef;
 
 void test_btree1(void)
 {

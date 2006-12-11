@@ -39,56 +39,55 @@
 
 static rwlock_t rwlock;
 
-static void writer(void *arg);
+static void reader(void *arg);
 static void failed(void);
 
-void writer(void *arg)
+static void reader(void *arg)
 {
-
 	thread_detach(THREAD);
 
-	printf("Trying to lock rwlock for writing....\n");    
+	printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);    	
+	rwlock_read_lock(&rwlock);
+	rwlock_read_unlock(&rwlock);	
+	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    		
+
+	printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
 
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
+	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
 	
-	printf("Trying to lock rwlock for reading....\n");    	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
-	printf("Test passed.\n");
+	printf("Test passed.\n");	
+
 }
 
-void failed()
+static void failed(void)
 {
 	printf("Test failed prematurely.\n");
 	thread_exit();
 }
 
-void test(void)
+void test_rwlock3(void)
 {
+	int i;
 	thread_t *thrd;
 	
-	printf("Read/write locks test #2\n");
+	printf("Read/write locks test #3\n");
     
 	rwlock_initialize(&rwlock);
 
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);	
+	rwlock_write_lock(&rwlock);
 	
-	thrd = thread_create(writer, NULL, TASK, 0, "writer");
-	if (thrd)
-		thread_ready(thrd);
-	else
-		failed();
+	for (i=0; i<4; i++) {
+		thrd = thread_create(reader, NULL, TASK, 0, "reader");
+		if (thrd)
+			thread_ready(thrd);
+		else
+			failed();
+	}
 
 
 	thread_sleep(1);
 	
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
-
+	rwlock_write_unlock(&rwlock);
 }

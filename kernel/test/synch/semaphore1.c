@@ -49,7 +49,7 @@ static void consumer(void *arg);
 static void producer(void *arg);
 static void failed(void);
 
-void producer(void *arg)
+static void producer(void *arg)
 {
 	thread_detach(THREAD);	
 
@@ -61,7 +61,7 @@ void producer(void *arg)
 	semaphore_up(&sem);
 }
 
-void consumer(void *arg)
+static void consumer(void *arg)
 {
 	thread_detach(THREAD);	
 	
@@ -73,13 +73,13 @@ void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-void failed(void)
+static void failed(void)
 {
 	printf("Test failed prematurely.\n");
 	thread_exit();
 }
 
-void test(void)
+void test_semaphore1(void)
 {
 	int i, j, k;
 	int consumers, producers;

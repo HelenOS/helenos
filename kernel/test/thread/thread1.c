@@ -48,7 +48,7 @@ static void threadtest(void *data)
 		printf("%d\n",(int)(THREAD->tid));
 }
 
-void test(void)
+void test_thread1(void)
 {
 	thread_t *t;
 	int i;

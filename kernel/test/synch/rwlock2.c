@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Jakub Vana
+ * Copyright (C) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
-#include <debug.h>
-#include <panic.h>
-
 #include <test.h>
-#include <sysinfo/sysinfo.h>
-/*
-static unative_t counter(sysinfo_item_t *root)
-{
-	static unative_t i=0;
-	return i++;
-}*/
+#include <arch.h>
+#include <atomic.h>
+#include <print.h>
+#include <proc/thread.h>
 
-void test(void)
+#include <synch/rwlock.h>
+
+#define READERS		50
+#define WRITERS		50
+
+static rwlock_t rwlock;
+
+static void writer(void *arg);
+static void failed(void);
+
+static void writer(void *arg)
 {
-/*	sysinfo_set_item_val("Ahoj.lidi.uaaaa",NULL,9);
-	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,15);
-	sysinfo_set_item_val("Ahoj.lidi",NULL,64);
-	sysinfo_set_item_function("Ahoj",NULL,counter);
-	sysinfo_dump(NULL,0);
-	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,75);
-	sysinfo_dump(NULL,0);
-	sysinfo_dump(NULL,0);
-	sysinfo_dump(NULL,0);*/
-	sysinfo_dump(NULL,0);
+
+	thread_detach(THREAD);
+
+	printf("Trying to lock rwlock for writing....\n");    
+
+	rwlock_write_lock(&rwlock);
+	rwlock_write_unlock(&rwlock);
 	
+	printf("Trying to lock rwlock for reading....\n");    	
+	rwlock_read_lock(&rwlock);
+	rwlock_read_unlock(&rwlock);	
+	printf("Test passed.\n");
+}
+
+static void failed()
+{
+	printf("Test failed prematurely.\n");
+	thread_exit();
+}
+
+void test_rwlock2(void)
+{
+	thread_t *thrd;
+	
+	printf("Read/write locks test #2\n");
+    
+	rwlock_initialize(&rwlock);
+
+	rwlock_read_lock(&rwlock);
+	rwlock_read_lock(&rwlock);
+	rwlock_read_lock(&rwlock);
+	rwlock_read_lock(&rwlock);	
+	
+	thrd = thread_create(writer, NULL, TASK, 0, "writer");
+	if (thrd)
+		thread_ready(thrd);
+	else
+		failed();
+
+
+	thread_sleep(1);
+	
+	rwlock_read_unlock(&rwlock);
+	rwlock_read_unlock(&rwlock);
+	rwlock_read_unlock(&rwlock);
+	rwlock_read_unlock(&rwlock);	
+
 }

@@ -40,7 +40,7 @@
 
 static rwlock_t rwlock;
 
-void test(void)
+void test_rwlock1(void)
 {
 	printf("Read/write locks test #1\n");
 

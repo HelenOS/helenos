@@ -30,7 +30,7 @@
 
 #define BUFFER_SIZE 32
 
-void test(void)
+void test_print1(void)
 {
 	int retval;
 	unative_t nat = 0x12345678u;

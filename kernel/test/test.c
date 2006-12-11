@@ -113,6 +113,66 @@ test_t tests[] = {
 		&test_purge1,
 		true
 	},
+	{
+		"rwlock1",
+		"RW-lock test 1",
+		&test_rwlock1,
+		true
+	},
+	{
+		"rwlock2",
+		"RW-lock test 2",
+		&test_rwlock2,
+		true
+	},
+	{
+		"rwlock3",
+		"RW-lock test 3",
+		&test_rwlock3,
+		true
+	},
+	{
+		"rwlock4",
+		"RW-lock test 4",
+		&test_rwlock4,
+		true
+	},
+	{
+		"rwlock5",
+		"RW-lock test 5",
+		&test_rwlock5,
+		true
+	},
+	{
+		"semaphore1",
+		"Semaphore test 1",
+		&test_semaphore1,
+		true
+	},
+	{
+		"semaphore2",
+		"Semaphore test 2",
+		&test_semaphore2,
+		true
+	},
+	{
+		"print1",
+		"Printf test",
+		&test_print1,
+		true
+	},
+	{
+		"thread1",
+		"Thread test",
+		&test_thread1,
+		true
+	},
+	{
+		"sysinfo1",
+		"Sysinfo test",
+		&test_sysinfo1,
+		true
+	},
 	{NULL, NULL, NULL}
 };
 

@@ -58,6 +58,16 @@ extern void test_mapping1(void);
 extern void test_purge1(void);
 extern void test_slab1(void);
 extern void test_slab2(void);
+extern void test_rwlock1(void);
+extern void test_rwlock2(void);
+extern void test_rwlock3(void);
+extern void test_rwlock4(void);
+extern void test_rwlock5(void);
+extern void test_semaphore1(void);
+extern void test_semaphore2(void);
+extern void test_print1(void);
+extern void test_thread1(void);
+extern void test_sysinfo1(void);
 
 extern test_t tests[];
 

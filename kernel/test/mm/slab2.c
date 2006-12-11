@@ -119,10 +119,10 @@ static void totalmemtest(void)
 	slab_cache_destroy(cache2);
 }
 
-slab_cache_t *thr_cache;
-semaphore_t thr_sem;
-condvar_t thread_starter;
-mutex_t starter_mutex;
+static slab_cache_t *thr_cache;
+static semaphore_t thr_sem;
+static condvar_t thread_starter;
+static mutex_t starter_mutex;
 
 #define THREADS 8
 

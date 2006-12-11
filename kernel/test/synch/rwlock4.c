@@ -31,98 +31,131 @@
 #include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
+#include <arch/types.h>
+#include <arch/context.h>
+#include <context.h>
+#include <panic.h>
 
 #include <synch/waitq.h>
 #include <synch/rwlock.h>
+#include <synch/synch.h>
+#include <synch/spinlock.h>
 
 #define READERS		50
 #define WRITERS		50
 
 static rwlock_t rwlock;
 
+static SPINLOCK_INITIALIZE(lock);
+
 static waitq_t can_start;
-static atomic_t items_read;
-static atomic_t items_written;
+
+static uint32_t seed = 0xdeadbeef;
+
+static uint32_t random(uint32_t max);
 
 static void writer(void *arg);
 static void reader(void *arg);
 static void failed(void);
 
-void writer(void *arg)
+static uint32_t random(uint32_t max)
 {
-	thread_detach(THREAD);
+	uint32_t rc;
 
-	waitq_sleep(&can_start);
-
-	rwlock_write_lock(&rwlock);
-	atomic_inc(&items_written);
-	rwlock_write_unlock(&rwlock);
+	spinlock_lock(&lock);	
+	rc = seed % max;
+	seed = (((seed<<2) ^ (seed>>2)) * 487) + rc;
+	spinlock_unlock(&lock);
+	return rc;
 }
 
-void reader(void *arg)
-{
-	thread_detach(THREAD);
 
+static void writer(void *arg)
+{
+	int rc, to;
+	thread_detach(THREAD);
+	waitq_sleep(&can_start);
+
+	to = random(40000);
+	printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
+	rc = rwlock_write_lock_timeout(&rwlock, to);
+	if (SYNCH_FAILED(rc)) {
+		printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
+		return;
+	};
+	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
+
+	if (rwlock.readers_in) panic("Oops.");
+	thread_usleep(random(1000000));
+	if (rwlock.readers_in) panic("Oops.");	
+
+	rwlock_write_unlock(&rwlock);
+	printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);	
+}
+
+static void reader(void *arg)
+{
+	int rc, to;
+	thread_detach(THREAD);
 	waitq_sleep(&can_start);
 	
-	rwlock_read_lock(&rwlock);
-	atomic_inc(&items_read);
+	to = random(2000);
+	printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
+	rc = rwlock_read_lock_timeout(&rwlock, to);
+	if (SYNCH_FAILED(rc)) {
+		printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
+		return;
+	}
+	printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
+	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
+	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
 }
 
-void failed(void)
+static void failed(void)
 {
 	printf("Test failed prematurely.\n");
 	thread_exit();
 }
 
-void test(void)
+void test_rwlock4(void)
 {
-	int i, j, k;
-	count_t readers, writers;
+	context_t ctx;
+	uint32_t i, k;
 	
-	printf("Read/write locks test #5\n");
+	printf("Read/write locks test #4\n");
     
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
 	
-	for (i=1; i<=3; i++) {
+	for (;;) {
 		thread_t *thrd;
-
-		atomic_set(&items_read, 0);
-		atomic_set(&items_written, 0);
-
-		readers = i*READERS;
-		writers = (4-i)*WRITERS;
-
-		printf("Creating %ld readers and %ld writers...", readers, writers);
 		
-		for (j=0; j<(READERS+WRITERS)/2; j++) {
-			for (k=0; k<i; k++) {
-				thrd = thread_create(reader, NULL, TASK, 0, "reader");
-				if (thrd)
-					thread_ready(thrd);
-				else
-					failed();
-			}
-			for (k=0; k<(4-i); k++) {
-				thrd = thread_create(writer, NULL, TASK, 0, "writer");
-				if (thrd)
-					thread_ready(thrd);
-				else
-					failed();
-			}
+		context_save(&ctx);
+		printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
+		
+		k = random(7) + 1;
+		printf("Creating %d readers\n", k);
+		for (i=0; i<k; i++) {
+			thrd = thread_create(reader, NULL, TASK, 0, "reader");
+			if (thrd)
+				thread_ready(thrd);
+			else
+				failed();
 		}
 
-		printf("ok\n");
-
-		thread_sleep(1);
+		k = random(5) + 1;
+		printf("Creating %d writers\n", k);
+		for (i=0; i<k; i++) {
+			thrd = thread_create(writer, NULL, TASK, 0, "writer");
+			if (thrd)
+				thread_ready(thrd);
+			else
+				failed();
+		}
+		
+		thread_usleep(20000);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
-	
-		while (items_read.count != readers || items_written.count != writers) {
-			printf("%zd readers remaining, %zd writers remaining, readers_in=%zd\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
-			thread_usleep(100000);
-		}
-	}
-	printf("Test passed.\n");
+	}		
+
 }

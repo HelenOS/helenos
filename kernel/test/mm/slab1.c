@@ -40,7 +40,7 @@
 
 #define VAL_COUNT   1024
 
-void * data[VAL_COUNT];
+static void * data[VAL_COUNT];
 
 static void testit(int size, int count) 
 {
