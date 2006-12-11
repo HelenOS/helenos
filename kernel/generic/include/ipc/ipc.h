@@ -138,11 +138,11 @@
 #define IPC_M_AS_AREA_SEND      5
 
 /** Get as_area over IPC
- * - ARG1 - where the as_area will be mapped
- * - ARG2 - expected size of the as_area
+ * - ARG1 - dst as_area base address
+ * - ARG2 - dst as_area size
  * - ARG3 - user defined argument
  * 
- * on answer, the server sets:
+ * on answer, the server must set:
  *
  * - ARG1 - src as_area base address
  * - ARG2 - flags that will be used for sharing
