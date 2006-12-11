@@ -29,7 +29,7 @@
 #include <arch/arch.h>
 
 #define DCACHE_SIZE		(16*1024)
-#define DCACHE_LINE_SIZE	64
+#define DCACHE_LINE_SIZE	32	
 
 .global dcache_flush
 dcache_flush:
