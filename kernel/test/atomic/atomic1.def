@@ -1,0 +1,6 @@
+{
+	"atomic1",
+	"Test atomic operations",
+	&test_atomic1,
+	true
+},

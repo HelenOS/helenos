@@ -25,6 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+#ifdef mips32
 
 #include <print.h>
 #include <debug.h>
@@ -37,18 +39,15 @@
 
 #include <arch.h>
 
-
-void test_mips1(void)
+char * test_mips1(void)
 {
-#ifdef mips32
-	printf("MIPS debug test #1\n");
-
 	printf("You should enter kconsole debug mode now.\n");
-
-	asm __volatile__ ("break");
-
-	printf("Test passed.\n");
-#else
-	printf("This test is availaible only on MIPS32 platform.\n");
-#endif
+	
+	asm volatile (
+		"break\n"
+	);
+	
+	return "Back from debug mode";
 }
+
+#endif

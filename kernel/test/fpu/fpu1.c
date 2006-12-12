@@ -27,6 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if (defined(ia32) || defined(amd64) || defined(ia64) || defined(ia32xen))
+
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
@@ -38,13 +40,8 @@
 #include <arch.h>
 #include <arch/arch.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
 
-#if (defined(ia32) || defined(amd64) || defined(ia64) || defined(ia32xen))
-
-#define THREADS		150*2
+#define THREADS		150
 #define ATTEMPTS	100
 
 #define E_10e8	271828182
@@ -52,33 +49,60 @@
 
 
 #ifdef KERN_ia32_ARCH_H_
-static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
+static inline double sqrt(double x)
+{
+	double v;
+	
+	asm (
+		"fsqrt\n"
+		: "=t" (v)
+		: "0" (x)
+	);
+	
+	return v; 
+}
 #endif
 
 #ifdef KERN_amd64_ARCH_H_
-static inline double sqrt(double x) { double v; __asm__ ("fsqrt\n" : "=t" (v) : "0" (x)); return v; }
+static inline double sqrt(double x)
+{
+	double v;
+	
+	asm (
+		"fsqrt\n"
+		: "=t" (v)
+		: "0" (x)
+	);
+	
+	return v;
+}
 #endif
 
 #ifdef KERN_ia64_ARCH_H_
+
+#undef PI_10e8	
+#define PI_10e8	3141592
+
 static inline long double sqrt(long double a) 
 {   
 	long double x =	1;
 	long double lx = 0;
 
-	if(a<0.00000000000000001) return 0;
+	if (a < 0.00000000000000001)
+		return 0;
 		
-	while(x!=lx)
-	{
-		lx=x;
-		x=(x+(a/x))/2;
+	while(x != lx) {
+		lx = x;
+		x = (x + (a / x)) / 2;
 	}
+	
 	return x; 
 }
 #endif
 
 
-
 static atomic_t threads_ok;
+static atomic_t threads_fault;
 static waitq_t can_start;
 
 static void e(void *data)
@@ -91,32 +115,26 @@ static void e(void *data)
 	waitq_sleep(&can_start);
 
 	for (i = 0; i<ATTEMPTS; i++) {
-		le=-1;
-		e=0;
-		f=1;
+		le = -1;
+		e = 0;
+		f = 1;
 
-		for(d=1;e!=le;d*=f,f+=1) {
-			le=e;
-			e=e+1/d;
+		for (d = 1; e != le; d *= f, f += 1) {
+			le = e;
+			e = e + 1 / d;
 		}
 
-		if((int)(100000000*e)!=E_10e8)
-			panic("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000*e),(unative_t) E_10e8);
+		if ((int) (100000000 * e) != E_10e8) {
+			printf("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+			atomic_inc(&threads_fault);
+			break;
+		}
 	}
-
-	printf("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000*e),(unative_t) E_10e8);
 	atomic_inc(&threads_ok);
 }
 
 static void pi(void *data)
 {
-
-#ifdef KERN_ia64_ARCH_H_
-#undef PI_10e8	
-#define PI_10e8	3141592
-#endif
-
-
 	int i;
 	double lpi, pi;
 	double n, ab, ad;
@@ -125,76 +143,77 @@ static void pi(void *data)
 
 	waitq_sleep(&can_start);
 
-
-	for (i = 0; i<ATTEMPTS; i++) {
+	for (i = 0; i < ATTEMPTS; i++) {
 		lpi = -1;
 		pi = 0;
 
-		for (n=2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
+		for (n = 2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
 			double sc, cd;
 
-			sc = sqrt(1 - (ab*ab/4));
+			sc = sqrt(1 - (ab * ab / 4));
 			cd = 1 - sc;
-			ad = sqrt(ab*ab/4 + cd*cd);
+			ad = sqrt(ab * ab / 4 + cd * cd);
 			lpi = pi;
 			pi = 2 * n * ad;
 		}
 
 #ifdef KERN_ia64_ARCH_H_
-		if((int)(1000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000*pi),(unative_t) (PI_10e8/100));
+		if ((int) (1000000 * pi) != PI_10e8) {
+			printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+			atomic_inc(&threads_fault);
+			break;
+		}
 #else
-		if((int)(100000000*pi)!=PI_10e8)
-			panic("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000*pi),(unative_t) PI_10e8);
+		if ((int) (100000000 * pi) != PI_10e8) {
+			printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
+			atomic_inc(&threads_fault);
+			break;
+		}
 #endif
-
 	}
-
-	printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000*pi),(unative_t) PI_10e8);
 	atomic_inc(&threads_ok);
 }
 
-void test_fpu1(void)
+char * test_fpu1(void)
 {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
-	thread_t *t;
-	int i;
+	unsigned int i, total = 0;
 
 	waitq_initialize(&can_start);
+	atomic_set(&threads_ok, 0);
+	atomic_set(&threads_fault, 0);
+	printf("Creating %d threads... ", 2 * THREADS);
 
-	printf("FPU test #1\n");
-	printf("Creating %d threads... ", THREADS);
-
-	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(e, NULL, TASK, 0, "e")))
-			panic("could not create thread\n");
+	for (i = 0; i < THREADS; i++) {  
+		thread_t *t;
+		
+		if (!(t = thread_create(e, NULL, TASK, 0, "e"))) {
+			printf("could not create thread %d\n", 2 * i);
+			break;
+		}
 		thread_ready(t);
-		if (!(t = thread_create(pi, NULL, TASK, 0, "pi")))
-			panic("could not create thread\n");
+		total++;
+		
+		if (!(t = thread_create(pi, NULL, TASK, 0, "pi"))) {
+			printf("could not create thread %d\n", 2 * i + 1);
+			break;
+		}
 		thread_ready(t);
+		total++;
 	}
 	printf("ok\n");
 	
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
-
-	while (atomic_get(&threads_ok) != THREADS)
-		;
-		
-	printf("Test passed.\n");
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
-}
-
-#else
-
-void test_fpu1(void)
-{
-	printf("This test is available only on Intel/AMD platforms.");
+	
+	while (atomic_get(&threads_ok) != total) {
+		printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		thread_sleep(1);
+	}
+	
+	if (atomic_get(&threads_fault) == 0)
+		return NULL;
+	
+	return "Test failed";
 }
 
 #endif

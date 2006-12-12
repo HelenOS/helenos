@@ -26,6 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef mips32
+
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
@@ -37,111 +39,118 @@
 
 #include <arch.h>
 
-#ifdef mips32
-
 #define THREADS		50
 #define DELAY   	10000L
 #define ATTEMPTS        5
 
 static atomic_t threads_ok;
+static atomic_t threads_fault;
 static waitq_t can_start;
 
 static void testit1(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
-
+	
 	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
 
-	for (i = 0; i<ATTEMPTS; i++) {
-		__asm__ volatile (
+	for (i = 0; i < ATTEMPTS; i++) {
+		asm volatile (
 			"mtc1 %0,$1"
-			:"=r"(arg)
-			);
-
-		delay(DELAY);
-		__asm__ volatile (
-			"mfc1 %0, $1"
-			:"=r"(after_arg)
-			);
+			: "=r" (arg)
+		);
 		
-		if(arg != after_arg)
-			panic("General reg tid%d: arg(%d) != %d\n", 
-			      THREAD->tid, arg, after_arg);
+		delay(DELAY);
+		
+		asm volatile (
+			"mfc1 %0, $1"
+			: "=r" (after_arg)
+		);
+		
+		if (arg != after_arg) {
+			printf("General reg tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			atomic_inc(&threads_fault);
+			break;
+		}
 	}
-
 	atomic_inc(&threads_ok);
 }
 
 static void testit2(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
-
+	
 	thread_detach(THREAD);
-
+	
 	waitq_sleep(&can_start);
 
-	for (i = 0; i<ATTEMPTS; i++) {
-		__asm__ volatile (
+	for (i = 0; i < ATTEMPTS; i++) {
+		asm volatile (
 			"mtc1 %0,$1"
-			:"=r"(arg)
-			);
+			: "=r" (arg)
+		);
 
 		scheduler();
-		__asm__ volatile (
+		asm volatile (
 			"mfc1 %0,$1"
-			:"=r"(after_arg)
-			);
+			: "=r" (after_arg)
+		);
 		
-		if(arg != after_arg)
-			panic("General reg tid%d: arg(%d) != %d\n", 
-			      THREAD->tid, arg, after_arg);
+		if (arg != after_arg) {
+			panic("General reg tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			atomic_inc(&threads_fault);
+			break;
+		}
 	}
-
 	atomic_inc(&threads_ok);
 }
 
 
-void test_mips2(void)
+char * test_mips2(void)
 {
-	thread_t *t;
-	int i;
-
-	waitq_initialize(&can_start);
-
-	printf("MIPS test #1\n");
-	printf("Creating %d threads... ", THREADS);
-
-	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(testit1, (void *)((unative_t)i*2), TASK, 0, "testit1")))
-			panic("could not create thread\n");
-		thread_ready(t);
-		if (!(t = thread_create(testit2, (void *)((unative_t)i*2+1), TASK, 0, "testit2")))
-			panic("could not create thread\n");
-		thread_ready(t);
-	}
-
-	printf("ok\n");
+	unsigned int i, total = 0;
 	
+	waitq_initialize(&can_start);
+	atomic_set(&threads_ok, 0);
+	atomic_set(&threads_fault, 0);
+	printf("Creating %d threads... ", 2 * THREADS);
+
+	for (i = 0; i < THREADS; i++) {
+		thread_t *t;
+		
+		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1"))) {
+			printf("could not create thread %d\n", 2 * i);
+			break;
+		}
+		thread_ready(t);
+		total++;
+		
+		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2"))) {
+			printf("could not create thread %d\n", 2 * i + 1);
+			break;
+		}
+		thread_ready(t);
+		total++;
+	}
+	printf("ok\n");
+		
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
-
-	while (atomic_get(&threads_ok) != THREADS)
-		;
-		
-	printf("Test passed.\n");
-}
-
-#else
-
-void test_mips2(void)
-{
-	printf("This test is availaible only on MIPS32 platform.\n");
+	
+	while (atomic_get(&threads_ok) != total) {
+		printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		thread_sleep(1);
+	}
+	
+	if (atomic_get(&threads_fault) == 0)
+		return NULL;
+	
+	return "Test failed";
 }
 
 #endif

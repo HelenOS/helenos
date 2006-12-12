@@ -1,0 +1,8 @@
+#if (defined(ia32) || defined(amd64) || defined(ia32xen))
+{
+	"sse1",
+	"Intel SEE test",
+	&test_sse1,
+	true
+},
+#endif

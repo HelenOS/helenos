@@ -69,6 +69,10 @@
 #include <test.h>
 #endif
 
+#ifdef CONFIG_BENCH
+#include <arch/cycle.h>
+#endif
+
 /* Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
@@ -858,6 +862,27 @@ int cmd_tests(cmd_arg_t *argv)
 	return 1;
 }
 
+static bool run_test(const test_t * test)
+{
+	printf("%s\t\t%s\n", test->name, test->desc);
+#ifdef CONFIG_BENCH
+	uint64_t t0 = get_cycle();
+#endif
+	char * ret = test->entry();
+#ifdef CONFIG_BENCH
+	uint64_t dt = get_cycle() - t0;
+	printf("Time: %llu cycles\n", dt);
+#endif
+	
+	if (ret == NULL) {
+		printf("Test passed\n");
+		return true;
+	}
+
+	printf("%s\n", ret);
+	return false;
+}
+
 /** Command for returning kernel tests
  *
  * @param argv Argument vector.
@@ -871,8 +896,9 @@ int cmd_test(cmd_arg_t *argv)
 	if (strcmp(argv->buffer, "*") == 0) {
 		for (test = tests; test->name != NULL; test++) {
 			if (test->safe) {
-				printf("\n%s\t\t%s\n\n", test->name, test->desc);
-				test->entry();
+				printf("\n");
+				if (!run_test(test))
+					break;
 			}
 		}
 	} else {
@@ -881,13 +907,13 @@ int cmd_test(cmd_arg_t *argv)
 		for (test = tests; test->name != NULL; test++) {
 			if (strcmp(test->name, argv->buffer) == 0) {
 				fnd = true;
-				test->entry();
+				run_test(test);
 				break;
 			}
 		}
 		
 		if (!fnd)
-			printf("Unknown test.\n");
+			printf("Unknown test\n");
 	}
 	
 	return 1;

@@ -35,48 +35,14 @@
 #include <test.h>
 
 test_t tests[] = {
-	{
-		"atomic1",
-		"Test atomic operations",
-		&test_atomic1,
-		true
-	},
-	{
-		"btree1",
-		"Test B-tree operations",
-		&test_btree1,
-		true
-	},
-	{
-		"mips1",
-		"MIPS debug test",
-		&test_mips1,
-		true
-	},
-	{
-		"fault1",
-		"Write to NULL (maybe page fault)",
-		&test_fault1,
-		false
-	},
-	{
-		"fpu1",
-		"Intel FPU test",
-		&test_fpu1,
-		true
-	},
-	{
-		"sse1",
-		"Intel SEE test",
-		&test_sse1,
-		true
-	},
-	{
-		"mips2",
-		"MIPS FPU test",
-		&test_mips2,
-		true
-	},
+#include <atomic/atomic1.def>
+#include <btree/btree1.def>
+#include <debug/mips1.def>
+#include <fault/fault1.def>
+#include <fpu/fpu1.def>
+#include <fpu/sse1.def>
+#include <fpu/mips2.def>
+	/*
 	{
 		"falloc1",
 		"Frame allocator test 1",
@@ -172,7 +138,7 @@ test_t tests[] = {
 		"Sysinfo test",
 		&test_sysinfo1,
 		true
-	},
+	},*/
 	{NULL, NULL, NULL}
 };
 

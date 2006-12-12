@@ -38,9 +38,9 @@
 #include <arch.h>
 
 
-void test_fault1(void)
+char * test_fault1(void)
 {
-
-	((int *)(0))[1]=0;  
-
+	((int *)(0))[1] = 0;
+	
+	return "Written to NULL";
 }

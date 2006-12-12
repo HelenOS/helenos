@@ -31,36 +31,33 @@
 #include <atomic.h>
 #include <debug.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
-void test_atomic1(void)
+char * test_atomic1(void)
 {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
 	atomic_t a;
-
+	
 	atomic_set(&a, 10);
-	printf("Testing atomic_set() and atomic_get().\n");
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_postinc()\n");
-	ASSERT(atomic_postinc(&a) == 10);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_postdec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-	printf("Testing atomic_preinc()\n");
-	ASSERT(atomic_preinc(&a) == 11);
-	ASSERT(atomic_get(&a) == 11);
-	printf("Testing atomic_predec()\n");
-	ASSERT(atomic_postdec(&a) == 11);
-	ASSERT(atomic_get(&a) == 10);
-
-	printf("Test passed.\n");
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
+	if (atomic_get(&a) != 10)
+		return "Failed atomic_set()/atomic_get()";
+	
+	if (atomic_postinc(&a) != 10)
+		return "Failed atomic_postinc()";
+	if (atomic_get(&a) != 11)
+		return "Failed atomic_get() after atomic_postinc()";
+	
+	if (atomic_postdec(&a) != 11)
+		return "Failed atomic_postdec()";
+	if (atomic_get(&a) != 10)
+		return "Failed atomic_get() after atomic_postdec()";
+	
+	if (atomic_preinc(&a) != 11)
+		return "Failed atomic_preinc()";
+	if (atomic_get(&a) != 11)
+		return "Failed atomic_get() after atomic_preinc()";
+	
+	if (atomic_predec(&a) != 10)
+		return "Failed atomic_predec()";
+	if (atomic_get(&a) != 10)
+		return "Failed atomic_get() after atomic_predec()";
+	
+	return NULL;
 }

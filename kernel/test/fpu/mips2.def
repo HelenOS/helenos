@@ -1,0 +1,8 @@
+#ifdef mips32
+{
+	"mips2",
+	"MIPS FPU test",
+	&test_mips2,
+	true
+},
+#endif

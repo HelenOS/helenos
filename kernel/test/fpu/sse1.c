@@ -26,6 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if (defined(ia32) || defined(amd64) || defined(ia32xen))
+
 #include <print.h>
 #include <debug.h>
 #include <panic.h>
@@ -37,122 +39,117 @@
 
 #include <arch.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
-#if (defined(ia32) || defined(amd64) || defined(ia32xen))
-
-#define THREADS		50
+#define THREADS		25
 #define DELAY   	10000L
 #define ATTEMPTS        5
 
 static atomic_t threads_ok;
+static atomic_t threads_fault;
 static waitq_t can_start;
 
 static void testit1(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
 
 	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
 
-	for (i = 0; i<ATTEMPTS; i++) {
-		__asm__ volatile (
-			"movlpd	%0, %%xmm2"
-			:"=m"(arg)
-			);
+	for (i = 0; i < ATTEMPTS; i++) {
+		asm volatile (
+			"movlpd	%0, %%xmm2\n"
+			: "=m" (arg)
+		);
 
 		delay(DELAY);
-		__asm__ volatile (
-			"movlpd %%xmm2, %0"
-			:"=m"(after_arg)
-			);
+		asm volatile (
+			"movlpd %%xmm2, %0\n"
+			: "=m" (after_arg)
+		);
 		
-		if(arg != after_arg)
-			panic("tid%d: arg(%d) != %d\n", 
-			      THREAD->tid, arg, after_arg);
+		if (arg != after_arg) {
+			printf("tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			atomic_inc(&threads_fault);
+			break;
+		}
 	}
-
 	atomic_inc(&threads_ok);
 }
 
 static void testit2(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int)((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
 	int after_arg __attribute__((aligned(16)));
-
+	
 	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
 
-	for (i = 0; i<ATTEMPTS; i++) {
-		__asm__ volatile (
-			"movlpd	%0, %%xmm2"
-			:"=m"(arg)
-			);
+	for (i = 0; i < ATTEMPTS; i++) {
+		asm volatile (
+			"movlpd	%0, %%xmm2\n"
+			: "=m" (arg)
+		);
 
 		scheduler();
-		__asm__ volatile (
-			"movlpd %%xmm2, %0"
-			:"=m"(after_arg)
-			);
+		asm volatile (
+			"movlpd %%xmm2, %0\n"
+			: "=m" (after_arg)
+		);
 		
-		if(arg != after_arg)
-			panic("tid%d: arg(%d) != %d\n", 
-			      THREAD->tid, arg, after_arg);
+		if (arg != after_arg) {
+			printf("tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			atomic_inc(&threads_fault);
+			break;
+		}
 	}
-
 	atomic_inc(&threads_ok);
 }
 
 
-void test_sse1(void)
+char * test_sse1(void)
 {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
-	thread_t *t;
-	int i;
+	unsigned int i, total = 0;
 
 	waitq_initialize(&can_start);
+	atomic_set(&threads_ok, 0);
+	atomic_set(&threads_fault, 0);
+	printf("Creating %d threads... ", 2 * THREADS);
 
-	printf("SSE test #1\n");
-	printf("Creating %d threads... ", THREADS);
-
-	for (i=0; i<THREADS/2; i++) {  
-		if (!(t = thread_create(testit1, (void *)((unative_t)i*2), TASK, 0, "testit1")))
-			panic("could not create thread\n");
+	for (i = 0; i < THREADS; i++) {
+		thread_t *t;
+		
+		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1"))) {
+			printf("could not create thread %d\n", 2 * i);
+			break;
+		}
 		thread_ready(t);
-		if (!(t = thread_create(testit2, (void *)((unative_t)i*2+1), TASK, 0, "testit2")))
-			panic("could not create thread\n");
+		total++;
+		
+		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2"))) {
+			printf("could not create thread %d\n", 2 * i + 1);
+			break;
+		}
 		thread_ready(t);
+		total++;
 	}
-
 	printf("ok\n");
-	
+		
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
-
-	while (atomic_get(&threads_ok) != THREADS)
-		;
-		
-	printf("Test passed.\n");
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
-}
-
-#else
-
-void test_sse1(void)
-{
-	printf("This test is available only on SSE enabled platforms.");
+	
+	while (atomic_get(&threads_ok) != total) {
+		printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		thread_sleep(1);
+	}
+	
+	if (atomic_get(&threads_fault) == 0)
+		return NULL;
+	
+	return "Test failed";
 }
 
 #endif

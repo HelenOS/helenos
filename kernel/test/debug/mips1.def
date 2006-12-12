@@ -1,0 +1,8 @@
+#ifdef mips32
+{
+	"mips1",
+	"MIPS debug test",
+	&test_mips1,
+	false
+},
+#endif
