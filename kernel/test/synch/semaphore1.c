@@ -45,10 +45,6 @@ static waitq_t can_start;
 static atomic_t items_produced;
 static atomic_t items_consumed;
 
-static void consumer(void *arg);
-static void producer(void *arg);
-static void failed(void);
-
 static void producer(void *arg)
 {
 	thread_detach(THREAD);	
@@ -73,48 +69,39 @@ static void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-static void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_semaphore1(void)
+char * test_semaphore1(void)
 {
 	int i, j, k;
 	int consumers, producers;
 	
-	printf("Semaphore test #1\n");
-    
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);
 
-
-	for (i=1; i<=3; i++) {
+	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
 
 		atomic_set(&items_produced, 0);
 		atomic_set(&items_consumed, 0);
 		
 		consumers = i * CONSUMERS;
-		producers = (4-i) * PRODUCERS;
+		producers = (4 - i) * PRODUCERS;
 		
 		printf("Creating %d consumers and %d producers...", consumers, producers);
 	
-		for (j=0; j<(CONSUMERS+PRODUCERS)/2; j++) {
-			for (k=0; k<i; k++) {
+		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
+			for (k = 0; k < i; k++) {
 				thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
 				if (thrd)
 					thread_ready(thrd);
 				else
-					failed();
+					printf("could not create consumer %d\n", i);
 			}
-			for (k=0; k<(4-i); k++) {
+			for (k = 0; k < (4 - i); k++) {
 				thrd = thread_create(producer, NULL, TASK, 0, "producer");
 				if (thrd)
 					thread_ready(thrd);
 				else
-					failed();
+					printf("could not create producer %d\n", i);
 			}
 		}
 
@@ -123,10 +110,11 @@ void test_semaphore1(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-		while (items_consumed.count != consumers || items_produced.count != producers) {
+		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
 			printf("%d consumers remaining, %d producers remaining\n", consumers - items_consumed.count, producers - items_produced.count);
 			thread_sleep(1);
 		}
 	}
-	printf("Test passed.\n");
+	
+	return NULL;
 }

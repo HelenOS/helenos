@@ -32,23 +32,9 @@
 
 #include <test.h>
 #include <sysinfo/sysinfo.h>
-/*
-static unative_t counter(sysinfo_item_t *root)
-{
-	static unative_t i=0;
-	return i++;
-}*/
 
-void test_sysinfo1(void)
+char * test_sysinfo1(void)
 {
-/*	sysinfo_set_item_val("Ahoj.lidi.uaaaa",NULL,9);
-	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,15);
-	sysinfo_set_item_val("Ahoj.lidi",NULL,64);
-	sysinfo_set_item_function("Ahoj",NULL,counter);
-	sysinfo_dump(NULL,0);
-	sysinfo_set_item_val("Ahoj.lidi.ubbbb",NULL,75);
-	sysinfo_dump(NULL,0);
-	sysinfo_dump(NULL,0);
-	sysinfo_dump(NULL,0);*/
-	sysinfo_dump(NULL,0);
+	sysinfo_dump(NULL, 0);
+	return NULL;
 }

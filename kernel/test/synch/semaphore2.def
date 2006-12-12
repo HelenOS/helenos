@@ -1,0 +1,6 @@
+{
+	"semaphore2",
+	"Semaphore test 2",
+	&test_semaphore2,
+	true
+},

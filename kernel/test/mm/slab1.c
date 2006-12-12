@@ -34,10 +34,6 @@
 #include <panic.h>
 #include <memstr.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
 #define VAL_COUNT   1024
 
 static void * data[VAL_COUNT];
@@ -51,38 +47,38 @@ static void testit(int size, int count)
 	cache = slab_cache_create("test_cache", size, 0, NULL, NULL, 
 				  SLAB_CACHE_NOMAGAZINE);	
 	printf("Allocating %d items...", count);
-	for (i=0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t)data[i], size, 0);
+		memsetb((uintptr_t) data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);
-	for (i=0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		slab_free(cache, data[i]);
 	}
 	printf("done.\n");
 
 	printf("Allocating %d items...", count);
-	for (i=0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t)data[i], size, 0);
+		memsetb((uintptr_t) data[i], size, 0);
 	}
 	printf("done.\n");
 
-	printf("Freeing %d items...", count/2);
-	for (i=count-1; i >= count/2; i--) {
+	printf("Freeing %d items...", count / 2);
+	for (i = count - 1; i >= count / 2; i--) {
 		slab_free(cache, data[i]);
 	}
 	printf("done.\n");	
 
-	printf("Allocating %d items...", count/2);
-	for (i=count/2; i < count; i++) {
+	printf("Allocating %d items...", count / 2);
+	for (i = count / 2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t)data[i], size, 0);
+		memsetb((uintptr_t) data[i], size, 0);
 	}
 	printf("done.\n");
 	printf("Freeing %d items...", count);
-	for (i=0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		slab_free(cache, data[i]);
 	}
 	printf("done.\n");	
@@ -103,31 +99,30 @@ static void testsimple(void)
 	testit(16385, 128);
 }
 
-
 #define THREADS     6
 #define THR_MEM_COUNT   1024
 #define THR_MEM_SIZE    128
 
-void * thr_data[THREADS][THR_MEM_COUNT];
-slab_cache_t *thr_cache;
-semaphore_t thr_sem;
+static void * thr_data[THREADS][THR_MEM_COUNT];
+static slab_cache_t *thr_cache;
+static semaphore_t thr_sem;
 
 static void slabtest(void *data)
 {
-	int offs = (int)(unative_t) data;
-	int i,j;
+	int offs = (int) (unative_t) data;
+	int i, j;
 	
 	thread_detach(THREAD);
 	
 	printf("Starting thread #%d...\n",THREAD->tid);
-	for (j=0; j<10; j++) {
-		for (i=0; i<THR_MEM_COUNT; i++)
+	for (j = 0; j < 10; j++) {
+		for (i = 0; i < THR_MEM_COUNT; i++)
 			thr_data[offs][i] = slab_alloc(thr_cache,0);
-		for (i=0; i<THR_MEM_COUNT/2; i++)
+		for (i = 0; i < THR_MEM_COUNT / 2; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
-		for (i=0; i< THR_MEM_COUNT/2; i++)
+		for (i = 0; i < THR_MEM_COUNT / 2; i++)
 			thr_data[offs][i] = slab_alloc(thr_cache, 0);
-		for (i=0; i<THR_MEM_COUNT;i++)
+		for (i = 0; i < THR_MEM_COUNT; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}
 	printf("Thread #%d finished\n", THREAD->tid);
@@ -142,14 +137,15 @@ static void testthreads(void)
 	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, 
 				      NULL, NULL, 
 				      SLAB_CACHE_NOMAGAZINE);
-	semaphore_initialize(&thr_sem,0);
-	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(slabtest, (void *)(unative_t)i, TASK, 0, "slabtest")))
-			panic("could not create thread\n");
-		thread_ready(t);
+	semaphore_initialize(&thr_sem, 0);
+	for (i = 0; i < THREADS; i++) {  
+		if (!(t = thread_create(slabtest, (void *) (unative_t) i, TASK, 0, "slabtest")))
+			printf("Could not create thread %d\n", i);
+		else
+			thread_ready(t);
 	}
 
-	for (i=0; i<THREADS; i++)
+	for (i = 0; i < THREADS; i++)
 		semaphore_down(&thr_sem);
 	
 	slab_cache_destroy(thr_cache);
@@ -157,15 +153,10 @@ static void testthreads(void)
 	
 }
 
-void test_slab1(void)
+char * test_slab1(void)
 {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
 	testsimple();
 	testthreads();
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
+	
+	return NULL;
 }

@@ -39,9 +39,6 @@
 
 static rwlock_t rwlock;
 
-static void writer(void *arg);
-static void failed(void);
-
 static void writer(void *arg)
 {
 
@@ -58,18 +55,10 @@ static void writer(void *arg)
 	printf("Test passed.\n");
 }
 
-static void failed()
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_rwlock2(void)
+char * test_rwlock2(void)
 {
 	thread_t *thrd;
 	
-	printf("Read/write locks test #2\n");
-    
 	rwlock_initialize(&rwlock);
 
 	rwlock_read_lock(&rwlock);
@@ -81,14 +70,14 @@ void test_rwlock2(void)
 	if (thrd)
 		thread_ready(thrd);
 	else
-		failed();
-
+		return "Could not create thread";
 
 	thread_sleep(1);
 	
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
-
+	rwlock_read_unlock(&rwlock);
+	
+	return NULL;
 }

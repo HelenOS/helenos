@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <print.h>
 #include <test.h>
 #include <mm/page.h>
@@ -35,26 +36,20 @@
 #include <debug.h>
 #include <align.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
 #define MAX_FRAMES 1024
 #define MAX_ORDER 8
 #define TEST_RUNS 2
 
-void test_falloc1(void) {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
-	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES*sizeof(uintptr_t), 0);
-	int results[MAX_ORDER+1];
+char * test_falloc1(void) {
+	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
+	int results[MAX_ORDER + 1];
 	
 	int i, order, run;
 	int allocated;
 
 	ASSERT(TEST_RUNS > 1);
-	ASSERT(frames != NULL)
+	if (frames == NULL)
+		return "Unable to allocate frames";
 
 	for (run = 0; run < TEST_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
@@ -64,40 +59,34 @@ void test_falloc1(void) {
 				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					panic("Test failed. Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					printf("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					return "Test failed";
 				}
 				
-				if (frames[allocated]) {
+				if (frames[allocated])
 					allocated++;
-				} else {
+				else {
 					printf("done. ");
 					break;
 				}
 			}
-		
+			
 			printf("%d blocks allocated.\n", allocated);
 		
 			if (run) {
-				if (results[order] != allocated) {
-					panic("Test failed. Frame leak possible.\n");
-				}
+				if (results[order] != allocated)
+					return "Possible frame leak";
 			} else
 				results[order] = allocated;
 			
 			printf("Deallocating ... ");
-			for (i = 0; i < allocated; i++) {
+			for (i = 0; i < allocated; i++)
 				frame_free(KA2PA(frames[i]));
-			}
 			printf("done.\n");
 		}
 	}
 
 	free(frames);
 	
-	printf("Test passed.\n");
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
+	return NULL;
 }
-

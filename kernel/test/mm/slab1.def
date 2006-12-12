@@ -1,0 +1,6 @@
+{
+	"slab1",
+	"SLAB test 1",
+	&test_slab1,
+	true
+},

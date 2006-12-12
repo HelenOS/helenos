@@ -40,10 +40,8 @@
 
 static rwlock_t rwlock;
 
-void test_rwlock1(void)
+char * test_rwlock1(void)
 {
-	printf("Read/write locks test #1\n");
-
 	rwlock_initialize(&rwlock);
 
 	rwlock_write_lock(&rwlock);
@@ -73,6 +71,6 @@ void test_rwlock1(void)
 
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);
-
-	printf("Test passed.\n");
+	
+	return NULL;
 }

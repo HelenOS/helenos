@@ -30,14 +30,12 @@
 
 #define BUFFER_SIZE 32
 
-void test_print1(void)
+char * test_print1(void)
 {
 	int retval;
 	unative_t nat = 0x12345678u;
 	
 	char buffer[BUFFER_SIZE];
-	
-	printf(" Printf test \n");
 	
 	printf(" text 10.8s %*.*s \n", 5, 3, "text");
 	printf(" very long text 10.8s %10.8s \n", "very long text");
@@ -51,7 +49,7 @@ void test_print1(void)
 
 	printf("'%#llx' 64bit, '%#x' 32bit, '%#hhx' 8bit, '%#hx' 16bit, unative_t '%#zx'. '%#llx' 64bit and '%s' string.\n", 0x1234567887654321ll, 0x12345678, 0x12, 0x1234, nat, 0x1234567887654321ull, "Lovely string" );
 	
-	printf(" Print to NULL '%s'\n",NULL);
+	printf(" Print to NULL '%s'\n", NULL);
 
 	retval = snprintf(buffer, BUFFER_SIZE, "Short text without parameters.");
 	printf("Result is: '%s', retval = %d\n", buffer, retval);
@@ -67,5 +65,5 @@ void test_print1(void)
 	retval = snprintf(buffer, BUFFER_SIZE, "Very long %s. This text`s length is more than %d. We are interested in the result.", "text" , BUFFER_SIZE);
 	printf("Result is: '%s', retval = %d\n", buffer, retval);
 	
-	return;
+	return NULL;
 }

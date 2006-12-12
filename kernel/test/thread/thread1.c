@@ -39,24 +39,45 @@
 
 #define THREADS 5
 
+static atomic_t finish;
+static atomic_t threads_finished;
+
 static void threadtest(void *data)
 {
-
 	thread_detach(THREAD);	
 
-	while (1)
-		printf("%d\n",(int)(THREAD->tid));
+	while (atomic_get(&finish)) {
+		printf("%d\n", (int) (THREAD->tid));
+		thread_usleep(100);
+	}
+	atomic_inc(&threads_finished);
 }
 
-void test_thread1(void)
+char * test_thread1(void)
 {
-	thread_t *t;
-	int i;
+	unsigned int i, total = 0;
+	
+	atomic_set(&finish, 1);
+	atomic_set(&threads_finished, 0);
 
-	for (i=0; i<THREADS; i++) {  
-		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest")))
-			panic("could not create thread\n");
+	for (i = 0; i < THREADS; i++) {  
+		thread_t *t;
+		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest"))) {
+			printf("Could not create thread %d\n", i);
+			break;
+		}
 		thread_ready(t);
+		total++;
 	}
-	printf("ok\n");
+	
+	printf("Running threads for 10 seconds...\n");
+	thread_sleep(10);
+	
+	atomic_set(&finish, 0);
+	while (atomic_get(&threads_finished) < total) {
+		printf("Threads left: %d\n", total - atomic_get(&threads_finished));
+		thread_sleep(1);
+	}
+	
+	return NULL;
 }

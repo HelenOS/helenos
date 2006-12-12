@@ -26,6 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef ia64
+
 #include <print.h>
 #include <test.h>
 #include <mm/page.h>
@@ -36,16 +38,14 @@
 #include <arch/types.h>
 #include <debug.h>
 
-#ifdef ia64
-
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, count_t cnt);
 
-void test(void)
+char * test(void)
 {
 	tlb_entry_t entryi;
 	tlb_entry_t entryd;
-
+	
 	int i;
 																																													
 	entryd.word[0] = 0;
@@ -80,13 +80,8 @@ void test(void)
 	tlb_invalidate_pages(8,0x0c000,14);
 	
 	/*tlb_invalidate_all();*/
-}
-
-#else
-
-void test_purge1(void)
-{
-	printf("This test is availaible only on IA64 platform.\n");
+	
+	return NULL;
 }
 
 #endif

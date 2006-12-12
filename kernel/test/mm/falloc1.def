@@ -1,0 +1,6 @@
+{
+	"falloc1",
+	"Frame allocator test 1",
+	&test_falloc1,
+	true
+},

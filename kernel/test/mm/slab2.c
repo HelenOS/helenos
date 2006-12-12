@@ -37,10 +37,6 @@
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
 #define ITEM_SIZE 256
 
 /** Fill memory with 2 caches, when allocation fails,
@@ -77,7 +73,7 @@ static void totalmemtest(void)
 		*((void **)data2) = olddata2;
 		olddata1 = data1;
 		olddata2 = data2;
-	}while(1);
+	} while(1);
 	printf("done.\n");
 	/* We do not have memory - now deallocate cache2 */
 	printf("Deallocating cache2...");
@@ -128,7 +124,7 @@ static mutex_t starter_mutex;
 
 static void slabtest(void *priv)
 {
-	void *data=NULL, *new;
+	void *data = NULL, *new;
 
 	thread_detach(THREAD);
 
@@ -172,12 +168,10 @@ static void slabtest(void *priv)
 		data = new;
 	}
 
-
 	printf("Thread #%d finished\n", THREAD->tid);
 	slab_print_list();
 	semaphore_up(&thr_sem);
 }
-
 
 static void multitest(int size)
 {
@@ -195,30 +189,27 @@ static void multitest(int size)
 				      NULL, NULL, 
 				      0);
 	semaphore_initialize(&thr_sem,0);
-	for (i=0; i<THREADS; i++) {  
+	for (i = 0; i < THREADS; i++) {  
 		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest")))
-			panic("could not create thread\n");
-		thread_ready(t);
+			printf("Could not create thread %d\n", i);
+		else
+			thread_ready(t);
 	}
 	thread_sleep(1);
 	condvar_broadcast(&thread_starter);
 
-	for (i=0; i<THREADS; i++)
+	for (i = 0; i < THREADS; i++)
 		semaphore_down(&thr_sem);
 	
 	slab_cache_destroy(thr_cache);
 	printf("Stress test complete.\n");
 }
 
-void test_slab2(void)
+char * test_slab2(void)
 {
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
-
-	printf("Running reclaim single-thread test .. pass1\n");
+	printf("Running reclaim single-thread test .. pass 1\n");
 	totalmemtest();
-	printf("Running reclaim single-thread test .. pass2\n");
+	printf("Running reclaim single-thread test .. pass 2\n");
 	totalmemtest();
 	printf("Reclaim test OK.\n");
 
@@ -226,9 +217,6 @@ void test_slab2(void)
 	multitest(2048);
 	multitest(8192);
 	printf("All done.\n");
-
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
+	
+	return NULL;
 }

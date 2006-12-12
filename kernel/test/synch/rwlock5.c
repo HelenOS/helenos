@@ -44,11 +44,7 @@ static waitq_t can_start;
 static atomic_t items_read;
 static atomic_t items_written;
 
-static void writer(void *arg);
-static void reader(void *arg);
-static void failed(void);
-
-void writer(void *arg)
+static void writer(void *arg)
 {
 	thread_detach(THREAD);
 
@@ -59,7 +55,7 @@ void writer(void *arg)
 	rwlock_write_unlock(&rwlock);
 }
 
-void reader(void *arg)
+static void reader(void *arg)
 {
 	thread_detach(THREAD);
 
@@ -70,47 +66,39 @@ void reader(void *arg)
 	rwlock_read_unlock(&rwlock);
 }
 
-void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_rwlock5(void)
+char * test_rwlock5(void)
 {
 	int i, j, k;
 	count_t readers, writers;
 	
-	printf("Read/write locks test #5\n");
-    
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
 	
-	for (i=1; i<=3; i++) {
+	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
 
 		atomic_set(&items_read, 0);
 		atomic_set(&items_written, 0);
 
-		readers = i*READERS;
-		writers = (4-i)*WRITERS;
+		readers = i * READERS;
+		writers = (4 - i) * WRITERS;
 
 		printf("Creating %ld readers and %ld writers...", readers, writers);
 		
-		for (j=0; j<(READERS+WRITERS)/2; j++) {
-			for (k=0; k<i; k++) {
+		for (j = 0; j < (READERS + WRITERS) / 2; j++) {
+			for (k = 0; k < i; k++) {
 				thrd = thread_create(reader, NULL, TASK, 0, "reader");
 				if (thrd)
 					thread_ready(thrd);
 				else
-					failed();
+					printf("Could not create reader %d\n", k);
 			}
-			for (k=0; k<(4-i); k++) {
+			for (k = 0; k < (4 - i); k++) {
 				thrd = thread_create(writer, NULL, TASK, 0, "writer");
 				if (thrd)
 					thread_ready(thrd);
 				else
-					failed();
+					printf("Could not create writer %d\n", k);
 			}
 		}
 
@@ -119,10 +107,11 @@ void test_rwlock5(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-		while (items_read.count != readers || items_written.count != writers) {
+		while ((items_read.count != readers) || (items_written.count != writers)) {
 			printf("%zd readers remaining, %zd writers remaining, readers_in=%zd\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
 			thread_usleep(100000);
 		}
 	}
-	printf("Test passed.\n");
+	
+	return NULL;
 }

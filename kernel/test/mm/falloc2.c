@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <print.h>
 #include <test.h>
 #include <mm/page.h>
@@ -38,29 +39,28 @@
 #include <memstr.h>
 #include <arch.h>
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
 #define MAX_FRAMES 256
 #define MAX_ORDER 8
 
 #define THREAD_RUNS 1
 #define THREADS 8
 
-static void falloc(void * arg);
-static void failed(void);
-
 static atomic_t thread_count;
+static atomic_t thread_fail;
 
-void falloc(void * arg)
+static void falloc(void * arg)
 {
 	int order, run, allocated, i;
 	uint8_t val = THREAD->tid % THREADS;
 	index_t k;
 	
 	uintptr_t * frames =  (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
-	ASSERT(frames != NULL);
+	if (frames == NULL) {
+		printf("Thread #%d (cpu%d): Unable to allocate frames\n", THREAD->tid, CPU->id);
+		atomic_inc(&thread_fail);
+		atomic_dec(&thread_count);
+		return;
+	}
 	
 	thread_detach(THREAD);
 
@@ -73,9 +73,8 @@ void falloc(void * arg)
 				if (frames[allocated]) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
-				} else {
+				} else
 					break;
-				}
 			}
 			printf("Thread #%d (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
 
@@ -84,7 +83,8 @@ void falloc(void * arg)
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
 						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
-						failed();
+						atomic_inc(&thread_fail);
+						goto cleanup;
 					}
 				}
 				frame_free(KA2PA(frames[i]));
@@ -92,43 +92,36 @@ void falloc(void * arg)
 			printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
-	
+
+cleanup:	
 	free(frames);
 	printf("Thread #%d (cpu%d): Exiting\n", THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
 }
 
-
-void failed(void)
+char * test_falloc2(void)
 {
-	panic("Test failed.\n");
-}
-
-
-void test_falloc2(void)
-{
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
-	int i;
+	unsigned int i;
 
 	atomic_set(&thread_count, THREADS);
+	atomic_set(&thread_fail, 0);
 		
 	for (i = 0; i < THREADS; i++) {
-		thread_t * thrd;
-		thrd = thread_create(falloc, NULL, TASK, 0, "falloc");
-		if (thrd)
-			thread_ready(thrd);
-		else
-			failed();
+		thread_t * thrd = thread_create(falloc, NULL, TASK, 0, "falloc");
+		if (!thrd) {
+			printf("Could not create thread %d\n", i);
+			break;
+		}
+		thread_ready(thrd);
 	}
 	
-	while (thread_count.count)
-		;
-
-	printf("Test passed.\n");
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
-	printf("Time: %.*d cycles\n", sizeof(dt) * 2, dt);
-#endif
+	while (atomic_get(&thread_count) > 0) {
+		printf("Threads left: %d\n", atomic_get(&thread_count));
+		thread_sleep(1);
+	}
+	
+	if (atomic_get(&thread_fail) == 0)
+		return NULL;
+	
+	return "Test failed";
 }

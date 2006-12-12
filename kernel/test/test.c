@@ -42,103 +42,21 @@ test_t tests[] = {
 #include <fpu/fpu1.def>
 #include <fpu/sse1.def>
 #include <fpu/mips2.def>
-	/*
-	{
-		"falloc1",
-		"Frame allocator test 1",
-		&test_falloc1,
-		true
-	},
-	{
-		"falloc2",
-		"Frame allocator test 2",
-		&test_falloc2,
-		true
-	},
-	{
-		"mapping1",
-		"Mapping test",
-		&test_mapping1,
-		true
-	},
-	{
-		"slab1",
-		"SLAB test 1",
-		&test_slab1,
-		true
-	},
-	{
-		"slab2",
-		"SLAB test 2",
-		&test_slab2,
-		true
-	},
-	{
-		"purge1",
-		"Itanium TLB purge test",
-		&test_purge1,
-		true
-	},
-	{
-		"rwlock1",
-		"RW-lock test 1",
-		&test_rwlock1,
-		true
-	},
-	{
-		"rwlock2",
-		"RW-lock test 2",
-		&test_rwlock2,
-		true
-	},
-	{
-		"rwlock3",
-		"RW-lock test 3",
-		&test_rwlock3,
-		true
-	},
-	{
-		"rwlock4",
-		"RW-lock test 4",
-		&test_rwlock4,
-		true
-	},
-	{
-		"rwlock5",
-		"RW-lock test 5",
-		&test_rwlock5,
-		true
-	},
-	{
-		"semaphore1",
-		"Semaphore test 1",
-		&test_semaphore1,
-		true
-	},
-	{
-		"semaphore2",
-		"Semaphore test 2",
-		&test_semaphore2,
-		true
-	},
-	{
-		"print1",
-		"Printf test",
-		&test_print1,
-		true
-	},
-	{
-		"thread1",
-		"Thread test",
-		&test_thread1,
-		true
-	},
-	{
-		"sysinfo1",
-		"Sysinfo test",
-		&test_sysinfo1,
-		true
-	},*/
+#include <mm/falloc1.def>
+#include <mm/falloc2.def>
+#include <mm/mapping1.def>
+#include <mm/slab1.def>
+#include <mm/slab2.def>
+#include <synch/rwlock1.def>
+#include <synch/rwlock2.def>
+#include <synch/rwlock3.def>
+#include <synch/rwlock4.def>
+#include <synch/rwlock5.def>
+#include <synch/semaphore1.def>
+#include <synch/semaphore2.def>
+#include <print/print1.def>
+#include <thread/thread1.def>
+#include <sysinfo/sysinfo1.def>
 	{NULL, NULL, NULL}
 };
 

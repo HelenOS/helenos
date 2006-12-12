@@ -1,0 +1,6 @@
+{
+	"mapping1",
+	"Mapping test",
+	&test_mapping1,
+	false
+},

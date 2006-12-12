@@ -1,0 +1,6 @@
+{
+	"sysinfo1",
+	"Sysinfo test",
+	&test_sysinfo1,
+	true
+},

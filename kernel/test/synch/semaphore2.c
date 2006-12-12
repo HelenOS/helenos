@@ -47,11 +47,6 @@ static waitq_t can_start;
 
 static uint32_t seed = 0xdeadbeef;
 
-static uint32_t random(uint32_t max);
-
-static void consumer(void *arg);
-static void failed(void);
-
 static uint32_t random(uint32_t max)
 {
 	uint32_t rc;
@@ -62,7 +57,6 @@ static uint32_t random(uint32_t max)
 	spinlock_unlock(&sem_lock);
 	return rc;
 }
-
 
 static void consumer(void *arg)
 {
@@ -87,38 +81,27 @@ static void consumer(void *arg)
 	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
 }
 
-static void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_semaphore2(void)
+char * test_semaphore2(void)
 {
 	uint32_t i, k;
 	
-	printf("Semaphore test #2\n");
-    
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, 5);
 	
-
+	thread_t *thrd;
 	
-	for (; ;) {
-		thread_t *thrd;
-		
-		k = random(7) + 1;
-		printf("Creating %d consumers\n", k);
-		for (i=0; i<k; i++) {
-			thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
-			if (thrd)
-				thread_ready(thrd);
-			else
-				failed();
-		}
-		
-		thread_usleep(20000);
-		waitq_wakeup(&can_start, WAKEUP_ALL);
-	}		
-
+	k = random(7) + 1;
+	printf("Creating %d consumers\n", k);
+	for (i = 0; i < k; i++) {
+		thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
+		if (thrd)
+			thread_ready(thrd);
+		else
+			printf("Error creating thread\n");
+	}
+	
+	thread_usleep(20000);
+	waitq_wakeup(&can_start, WAKEUP_ALL);
+	
+	return NULL;
 }

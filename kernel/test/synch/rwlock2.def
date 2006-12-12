@@ -1,0 +1,6 @@
+{
+	"rwlock2",
+	"RW-lock test 2",
+	&test_rwlock2,
+	true
+},

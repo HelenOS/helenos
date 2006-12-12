@@ -52,12 +52,6 @@ static waitq_t can_start;
 
 static uint32_t seed = 0xdeadbeef;
 
-static uint32_t random(uint32_t max);
-
-static void writer(void *arg);
-static void reader(void *arg);
-static void failed(void);
-
 static uint32_t random(uint32_t max)
 {
 	uint32_t rc;
@@ -68,7 +62,6 @@ static uint32_t random(uint32_t max)
 	spinlock_unlock(&rw_lock);
 	return rc;
 }
-
 
 static void writer(void *arg)
 {
@@ -82,7 +75,7 @@ static void writer(void *arg)
 	if (SYNCH_FAILED(rc)) {
 		printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
 		return;
-	};
+	}
 	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
 
 	if (rwlock.readers_in) panic("Oops.");
@@ -112,50 +105,41 @@ static void reader(void *arg)
 	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
 }
 
-static void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_rwlock4(void)
+char * test_rwlock4(void)
 {
 	context_t ctx;
 	uint32_t i, k;
 	
-	printf("Read/write locks test #4\n");
-    
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
 	
-	for (;;) {
-		thread_t *thrd;
-		
-		context_save(&ctx);
-		printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
-		
-		k = random(7) + 1;
-		printf("Creating %d readers\n", k);
-		for (i=0; i<k; i++) {
-			thrd = thread_create(reader, NULL, TASK, 0, "reader");
-			if (thrd)
-				thread_ready(thrd);
-			else
-				failed();
-		}
+	thread_t *thrd;
+	
+	context_save(&ctx);
+	printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
+	
+	k = random(7) + 1;
+	printf("Creating %d readers\n", k);
+	for (i = 0; i < k; i++) {
+		thrd = thread_create(reader, NULL, TASK, 0, "reader");
+		if (thrd)
+			thread_ready(thrd);
+		else
+			printf("Could not create reader %d\n", i);
+	}
 
-		k = random(5) + 1;
-		printf("Creating %d writers\n", k);
-		for (i=0; i<k; i++) {
-			thrd = thread_create(writer, NULL, TASK, 0, "writer");
-			if (thrd)
-				thread_ready(thrd);
-			else
-				failed();
-		}
-		
-		thread_usleep(20000);
-		waitq_wakeup(&can_start, WAKEUP_ALL);
-	}		
-
+	k = random(5) + 1;
+	printf("Creating %d writers\n", k);
+	for (i=0; i<k; i++) {
+		thrd = thread_create(writer, NULL, TASK, 0, "writer");
+		if (thrd)
+			thread_ready(thrd);
+		else
+			printf("Could not create writer %d\n", i);
+	}
+	
+	thread_usleep(20000);
+	waitq_wakeup(&can_start, WAKEUP_ALL);
+	
+	return NULL;
 }

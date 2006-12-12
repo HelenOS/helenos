@@ -39,9 +39,6 @@
 
 static rwlock_t rwlock;
 
-static void reader(void *arg);
-static void failed(void);
-
 static void reader(void *arg)
 {
 	thread_detach(THREAD);
@@ -56,38 +53,27 @@ static void reader(void *arg)
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
 	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
-	
-	printf("Test passed.\n");	
-
 }
 
-static void failed(void)
-{
-	printf("Test failed prematurely.\n");
-	thread_exit();
-}
-
-void test_rwlock3(void)
+char * test_rwlock3(void)
 {
 	int i;
 	thread_t *thrd;
 	
-	printf("Read/write locks test #3\n");
-    
 	rwlock_initialize(&rwlock);
-
 	rwlock_write_lock(&rwlock);
 	
-	for (i=0; i<4; i++) {
+	for (i = 0; i < 4; i++) {
 		thrd = thread_create(reader, NULL, TASK, 0, "reader");
 		if (thrd)
 			thread_ready(thrd);
 		else
-			failed();
+			printf("Could not create reader %d\n", i);
 	}
-
 
 	thread_sleep(1);
 	
 	rwlock_write_unlock(&rwlock);
+	
+	return NULL;
 }
