@@ -30,7 +30,6 @@
 
 #include <print.h>
 #include <debug.h>
-#include <panic.h>
 
 #include <test.h>
 #include <atomic.h>
@@ -102,7 +101,7 @@ static void testit2(void *data)
 		);
 		
 		if (arg != after_arg) {
-			panic("General reg tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			printf("General reg tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}

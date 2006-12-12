@@ -31,7 +31,6 @@
 #include <print.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <panic.h>
 #include <mm/frame.h>
 #include <memstr.h>
 #include <synch/condvar.h>
@@ -88,7 +87,8 @@ static void totalmemtest(void)
 	for (i=0; i<30; i++) {
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
 		if (!data1) {
-			panic("Incorrect memory size - use another test.");
+			printf("Incorrect memory size - use another test.");
+			return;
 		}
 		memsetb((uintptr_t)data1, ITEM_SIZE, 0);
 		*((void **)data1) = olddata1;

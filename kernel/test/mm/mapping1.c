@@ -62,8 +62,10 @@ char * test_mapping1(void)
 	printf("Value at virtual address %p is %#x.\n", PAGE0, v0 = *((uint32_t *) PAGE0));
 	printf("Value at virtual address %p is %#x.\n", PAGE1, v1 = *((uint32_t *) PAGE1));
 	
-	ASSERT(v0 == VALUE0);
-	ASSERT(v1 == VALUE1);
+	if (v0 != VALUE0)
+		return "Value at v0 not equal to VALUE0";
+	if (v1 != VALUE1)
+		return "Value at v1 not equal to VALUE1";
 
 	printf("Writing %#x to virtual address %p.\n", 0, PAGE0);
 	*((uint32_t *) PAGE0) = 0;
@@ -76,8 +78,10 @@ char * test_mapping1(void)
 	printf("Value at virtual address %p is %#x.\n", PAGE0, *((uint32_t *) PAGE0));	
 	printf("Value at virtual address %p is %#x.\n", PAGE1, *((uint32_t *) PAGE1));
 
-	ASSERT(v0 == 0);
-	ASSERT(v1 == 0);
+	if (v0 != 0)
+		return "Value at v0 not equal to 0";
+	if (v1 != 0)
+		return "Value at v1 not equal to 0";
 	
 	return NULL;	
 }

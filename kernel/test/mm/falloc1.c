@@ -46,8 +46,10 @@ char * test_falloc1(void) {
 	
 	int i, order, run;
 	int allocated;
-
-	ASSERT(TEST_RUNS > 1);
+	
+	if (TEST_RUNS < 2)
+		return "Test is compiled with TEST_RUNS < 2";
+	
 	if (frames == NULL)
 		return "Unable to allocate frames";
 

@@ -28,7 +28,6 @@
 
 #include <print.h>
 #include <debug.h>
-#include <panic.h>
 
 #include <test.h>
 #include <sysinfo/sysinfo.h>

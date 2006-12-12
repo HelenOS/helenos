@@ -34,7 +34,6 @@
 #include <arch/types.h>
 #include <arch/context.h>
 #include <context.h>
-#include <panic.h>
 
 #include <synch/waitq.h>
 #include <synch/rwlock.h>
@@ -45,6 +44,7 @@
 #define WRITERS		50
 
 static rwlock_t rwlock;
+static atomic_t threads_fault;
 
 SPINLOCK_INITIALIZE(rw_lock);
 
@@ -78,9 +78,17 @@ static void writer(void *arg)
 	}
 	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
 
-	if (rwlock.readers_in) panic("Oops.");
+	if (rwlock.readers_in) {
+		printf("Oops.");
+		atomic_inc(&threads_fault);
+		return;
+	}
 	thread_usleep(random(1000000));
-	if (rwlock.readers_in) panic("Oops.");	
+	if (rwlock.readers_in) {
+		printf("Oops.");	
+		atomic_inc(&threads_fault);
+		return;
+	}
 
 	rwlock_write_unlock(&rwlock);
 	printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);	
@@ -112,6 +120,7 @@ char * test_rwlock4(void)
 	
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
+	atomic_set(&threads_fault, 0);
 	
 	thread_t *thrd;
 	
@@ -130,7 +139,7 @@ char * test_rwlock4(void)
 
 	k = random(5) + 1;
 	printf("Creating %d writers\n", k);
-	for (i=0; i<k; i++) {
+	for (i = 0; i < k; i++) {
 		thrd = thread_create(writer, NULL, TASK, 0, "writer");
 		if (thrd)
 			thread_ready(thrd);
@@ -141,5 +150,8 @@ char * test_rwlock4(void)
 	thread_usleep(20000);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-	return NULL;
+	if (atomic_get(&threads_fault) == 0)
+		return NULL;
+	
+	return "Test failed";
 }
