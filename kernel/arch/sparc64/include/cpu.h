@@ -55,7 +55,6 @@ struct cpu_arch {
 	uint32_t mid;			/**< Processor ID as read from UPA_CONFIG. */
 	ver_reg_t ver;
 	uint32_t clock_frequency;	/**< Processor frequency in MHz. */
-	int dcache_active;		/**< When non-zero, the D-cache is not being shot down. */
 };
 	
 #endif
