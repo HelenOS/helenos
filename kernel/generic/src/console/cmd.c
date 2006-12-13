@@ -69,10 +69,6 @@
 #include <test.h>
 #endif
 
-#ifdef CONFIG_BENCH
-#include <arch/cycle.h>
-#endif
-
 /* Data and methods for 'help' command. */
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
@@ -865,14 +861,28 @@ int cmd_tests(cmd_arg_t *argv)
 static bool run_test(const test_t * test)
 {
 	printf("%s\t\t%s\n", test->name, test->desc);
-#ifdef CONFIG_BENCH
-	uint64_t t0 = get_cycle();
-#endif
+	
+	/* Update and read thread accounting
+	   for benchmarking */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
+	thread_update_accounting();
+	uint64_t t0 = THREAD->cycles;
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
+	
+	/* Execute the test */
 	char * ret = test->entry();
-#ifdef CONFIG_BENCH
-	uint64_t dt = get_cycle() - t0;
+	
+	/* Update and read thread accounting */
+	ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
+	thread_update_accounting();
+	uint64_t dt = THREAD->cycles - t0;
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
+	
 	printf("Time: %llu cycles\n", dt);
-#endif
 	
 	if (ret == NULL) {
 		printf("Test passed\n");

@@ -47,6 +47,7 @@
 #include <time/delay.h>
 #include <arch/asm.h>
 #include <arch/faddr.h>
+#include <arch/cycle.h>
 #include <atomic.h>
 #include <synch/spinlock.h>
 #include <config.h>
@@ -308,6 +309,10 @@ void scheduler(void)
 	
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
+		
+		/* Update thread accounting */
+		THREAD->cycles += get_cycle() - THREAD->last_cycle;
+		
 #ifndef CONFIG_FPU_LAZY
 		fpu_context_save(THREAD->saved_fpu_context);
 #endif
@@ -315,6 +320,10 @@ void scheduler(void)
 			/*
 			 * This is the place where threads leave scheduler();
 			 */
+			
+			/* Save current CPU cycle */
+			THREAD->last_cycle = get_cycle();
+			
 			spinlock_unlock(&THREAD->lock);
 			interrupts_restore(THREAD->saved_context.ipl);
 			

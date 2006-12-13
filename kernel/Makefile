@@ -119,10 +119,6 @@ ifeq ($(CONFIG_FB),y)
 	endif
 endif
 
-ifeq ($(CONFIG_BENCH),y)
-	DEFS += -DCONFIG_BENCH
-endif
-
 ## Toolchain configuration
 #
 

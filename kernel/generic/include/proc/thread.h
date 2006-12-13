@@ -145,6 +145,9 @@ struct thread {
 	task_t *task;				/**< Containing task. */
 
 	uint64_t ticks;				/**< Ticks before preemption. */
+	
+	uint64_t cycles;			/**< Task accounting. */
+	uint64_t last_cycle;		/**< Last sampled cycle. */
 
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
 	uint32_t tid;				/**< Thread ID. */
@@ -189,6 +192,7 @@ extern void thread_detach(thread_t *t);
 extern void thread_register_call_me(void (* call_me)(void *), void *call_me_with);
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *t);
+extern void thread_update_accounting(void);
 extern bool thread_exists(thread_t *t);
 
 /* Fpu context slab cache */

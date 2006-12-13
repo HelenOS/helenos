@@ -42,6 +42,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <arch/asm.h>
+#include <arch/cycle.h>
 #include <arch.h>
 #include <synch/synch.h>
 #include <synch/spinlock.h>
@@ -325,6 +326,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
+	t->cycles = 0;
 	t->priority = -1;		/* start in rq[0] */
 	t->cpu = NULL;
 	t->flags = flags;
@@ -529,6 +531,9 @@ void thread_print_list(void)
 	/* Messing with thread structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
+	
+	printf("tid    name       address    state    task       ctx code       stack      cycles     cpu  kst        wq\n");
+	printf("------ ---------- ---------- -------- ---------- --- ---------- ---------- ---------- ---- ---------- ----------\n");
 
 	for (cur = threads_btree.leaf_head.next; cur != &threads_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
@@ -539,16 +544,34 @@ void thread_print_list(void)
 			thread_t *t;
 		
 			t = (thread_t *) node->value[i];
-			printf("%s: address=%#zx, tid=%zd, state=%s, task=%#zx, context=%ld, code=%#zx, stack=%#zx, cpu=",
-				t->name, t, t->tid, thread_states[t->state], t->task, t->task->context, t->thread_code, t->kstack);
+			
+			uint64_t cycles;
+			char suffix;
+			
+			if (t->cycles > 1000000000000000000LL) {
+				cycles = t->cycles / 1000000000000000000LL;
+				suffix = 'E';
+			} else if (t->cycles > 1000000000000LL) {
+				cycles = t->cycles / 1000000000000LL;
+				suffix = 'T';
+			} else if (t->cycles > 1000000LL) {
+				cycles = t->cycles / 1000000LL;
+				suffix = 'M';
+			} else {
+				cycles = t->cycles;
+				suffix = ' ';
+			}
+			
+			printf("%-6zd %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ", t->tid, t->name, t, thread_states[t->state], t->task, t->task->context, t->thread_code, t->kstack, cycles, suffix);
+			
 			if (t->cpu)
-				printf("cpu%zd", t->cpu->id);
+				printf("%-4zd", t->cpu->id);
 			else
 				printf("none");
-			if (t->state == Sleeping) {
-				printf(", kst=%#zx", t->kstack);
-				printf(", wq=%#zx", t->sleep_queue);
-			}
+			
+			if (t->state == Sleeping)
+				printf(" %#10zx %#10zx", t->kstack, t->sleep_queue);
+			
 			printf("\n");
 		}
 	}
@@ -571,6 +594,22 @@ bool thread_exists(thread_t *t)
 	btree_node_t *leaf;
 	
 	return btree_search(&threads_btree, (btree_key_t) ((uintptr_t) t), &leaf) != NULL;
+}
+
+
+/** Update accounting of current thread.
+ *
+ * Note that thread_lock on THREAD must be already held and
+ * interrupts must be already disabled.
+ *
+ * @param t Pointer to thread.
+ *
+ */
+void thread_update_accounting(void)
+{
+	uint64_t time = get_cycle();
+	THREAD->cycles += time - THREAD->last_cycle;
+	THREAD->last_cycle = time;
 }
 
 /** Process syscall to create new thread.
