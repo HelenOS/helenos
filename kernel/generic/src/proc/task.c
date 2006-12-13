@@ -343,6 +343,9 @@ void task_print_list(void)
 	/* Messing with thread structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
+	
+	printf("taskid name       ctx address    as         active calls callee\n");
+	printf("------ ---------- --- ---------- ---------- ------------ ------>\n");
 
 	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
@@ -356,11 +359,10 @@ void task_print_list(void)
 			t = (task_t *) node->value[i];
 		
 			spinlock_lock(&t->lock);
-			printf("%s(%lld): context=%ld, address=%#zx, as=%#zx, ActiveCalls: %zd",
-				t->name, t->taskid, t->context, t, t->as, atomic_get(&t->active_calls));
-			for (j=0; j < IPC_MAX_PHONES; j++) {
+			printf("%-6lld %-10s %-3ld %#10zx %#10zx %12zd", t->taskid, t->name, t->context, t, t->as, atomic_get(&t->active_calls));
+			for (j = 0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
-					printf(" Ph(%zd): %#zx ", j, t->phones[j].callee);
+					printf(" %zd:%#zx", j, t->phones[j].callee);
 			}
 			printf("\n");
 			spinlock_unlock(&t->lock);
