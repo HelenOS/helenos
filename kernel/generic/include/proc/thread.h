@@ -146,7 +146,7 @@ struct thread {
 
 	uint64_t ticks;				/**< Ticks before preemption. */
 	
-	uint64_t cycles;			/**< Task accounting. */
+	uint64_t cycles;			/**< Thread accounting. */
 	uint64_t last_cycle;		/**< Last sampled cycle. */
 
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
