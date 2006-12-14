@@ -54,7 +54,7 @@
 struct cpu_arch {
 	uint32_t mid;			/**< Processor ID as read from UPA_CONFIG. */
 	ver_reg_t ver;
-	uint32_t clock_frequency;	/**< Processor frequency in MHz. */
+	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
 	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
 					 *   generated when the TICK register
 					 *   matches this value.
