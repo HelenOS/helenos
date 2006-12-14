@@ -390,7 +390,7 @@ void scheduler_separated_stack(void)
 
 		case Exiting:
 repeat:
-		    	if (THREAD->detached) {
+			if (THREAD->detached) {
 				thread_destroy(THREAD);
 			} else {
 				/*
