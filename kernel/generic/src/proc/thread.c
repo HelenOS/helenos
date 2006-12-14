@@ -113,11 +113,27 @@ static void cushion(void)
 	void *arg = THREAD->thread_arg;
 	THREAD->last_cycle = get_cycle();
 
-	/* this is where each thread wakes up after its creation */
+	/* This is where each thread wakes up after its creation */
 	spinlock_unlock(&THREAD->lock);
 	interrupts_enable();
 
 	f(arg);
+	
+	/* Accumulate accounting to the task */
+	ipl_t ipl = interrupts_disable();
+	
+	spinlock_lock(&THREAD->lock);
+	thread_update_accounting();
+	uint64_t cycles = THREAD->cycles;
+	THREAD->cycles = 0;
+	spinlock_unlock(&THREAD->lock);
+	
+	spinlock_lock(&TASK->lock);
+	TASK->cycles += cycles;
+	spinlock_unlock(&TASK->lock);
+	
+	interrupts_restore(ipl);
+	
 	thread_exit();
 	/* not reached */
 }
@@ -533,7 +549,7 @@ void thread_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 	
-	printf("tid    name       address    state    task       ctx code       stack      cycles     cpu  kst        wq\n");
+	printf("tid    name       address    state    task       ctx code       stack      cycles     cpu  kstack     waitqueue\n");
 	printf("------ ---------- ---------- -------- ---------- --- ---------- ---------- ---------- ---- ---------- ----------\n");
 
 	for (cur = threads_btree.leaf_head.next; cur != &threads_btree.leaf_head; cur = cur->next) {
@@ -602,8 +618,6 @@ bool thread_exists(thread_t *t)
  *
  * Note that thread_lock on THREAD must be already held and
  * interrupts must be already disabled.
- *
- * @param t Pointer to thread.
  *
  */
 void thread_update_accounting(void)

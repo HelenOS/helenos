@@ -161,7 +161,7 @@ void kinit(void *arg)
 			continue;
 		}
 
-		task_t *utask = task_run_program((void *) init.tasks[i].addr, "USPACE");
+		task_t *utask = task_run_program((void *) init.tasks[i].addr, "uspace");
 		if (utask) {
 			/*
 			 * Set capabilities to init userspace tasks.

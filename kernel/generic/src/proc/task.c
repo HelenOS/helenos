@@ -119,6 +119,7 @@ task_t *task_create(as_t *as, char *name)
 
 	ta->capabilities = 0;
 	ta->accept_new_threads = true;
+	ta->cycles = 0;
 	
 	ipc_answerbox_init(&ta->answerbox);
 	for (i = 0; i < IPC_MAX_PHONES; i++)
@@ -266,6 +267,36 @@ task_t *task_find_by_id(task_id_t id)
 	return (task_t *) btree_search(&tasks_btree, (btree_key_t) id, &leaf);
 }
 
+/** Get accounting data of given task.
+ *
+ * Note that task_lock on @t must be already held and
+ * interrupts must be already disabled.
+ *
+ * @param t Pointer to thread.
+ *
+ */
+uint64_t task_get_accounting(task_t *t)
+{
+	/* Accumulated value of task */
+	uint64_t ret = t->cycles;
+	
+	/* Current values of threads */
+	link_t *cur;
+	for (cur = t->th_head.next; cur != &t->th_head; cur = cur->next) {
+		thread_t *thr = list_get_instance(cur, thread_t, th_link);
+		
+		spinlock_lock(&thr->lock);
+		
+		if (thr == THREAD) /* Update accounting of current thread */
+			thread_update_accounting(); 
+		ret += thr->cycles;
+		
+		spinlock_unlock(&thr->lock);
+	}
+	
+	return ret;
+}
+
 /** Kill task.
  *
  * @param id ID of the task to be killed.
@@ -344,8 +375,8 @@ void task_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
-	printf("taskid name       ctx address    as         active calls callee\n");
-	printf("------ ---------- --- ---------- ---------- ------------ ------>\n");
+	printf("taskid name       ctx address    as         cycles     threads calls  callee\n");
+	printf("------ ---------- --- ---------- ---------- ---------- ------- ------ ------>\n");
 
 	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
@@ -359,12 +390,29 @@ void task_print_list(void)
 			t = (task_t *) node->value[i];
 		
 			spinlock_lock(&t->lock);
-			printf("%-6lld %-10s %-3ld %#10zx %#10zx %12zd", t->taskid, t->name, t->context, t, t->as, atomic_get(&t->active_calls));
+			
+			uint64_t cycles = task_get_accounting(t);
+			char suffix;
+			
+			if (cycles > 1000000000000000000LL) {
+				cycles = cycles / 1000000000000000000LL;
+				suffix = 'E';
+			} else if (cycles > 1000000000000LL) {
+				cycles = cycles / 1000000000000LL;
+				suffix = 'T';
+			} else if (cycles > 1000000LL) {
+				cycles = cycles / 1000000LL;
+				suffix = 'M';
+			} else 
+				suffix = ' ';
+			
+			printf("%-6lld %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd", t->taskid, t->name, t->context, t, t->as, cycles, suffix, t->refcount, atomic_get(&t->active_calls));
 			for (j = 0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
 					printf(" %zd:%#zx", j, t->phones[j].callee);
 			}
 			printf("\n");
+			
 			spinlock_unlock(&t->lock);
 		}
 	}

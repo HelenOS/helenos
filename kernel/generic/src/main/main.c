@@ -259,7 +259,7 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create kernel task.
 	 */
-	k = task_create(AS_KERNEL, "KERNEL");
+	k = task_create(AS_KERNEL, "kernel");
 	if (!k)
 		panic("can't create kernel task\n");
 	

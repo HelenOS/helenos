@@ -82,6 +82,8 @@ struct task {
 	 */
 	mutex_t futexes_lock;
 	btree_t futexes;	/**< B+tree of futexes referenced by this task. */
+	
+	uint64_t cycles;	/**< Accumulated accounting. */
 };
 
 extern spinlock_t tasks_lock;
@@ -93,6 +95,7 @@ extern void task_destroy(task_t *t);
 extern task_t *task_run_program(void *program_addr, char *name);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);
+extern uint64_t task_get_accounting(task_t *t);
 
 
 #ifndef task_create_arch

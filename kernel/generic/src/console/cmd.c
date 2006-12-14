@@ -56,6 +56,7 @@
 #include <cpu.h>
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
+#include <mm/as.h>
 #include <mm/frame.h>
 #include <main/version.h>
 #include <mm/slab.h>
@@ -858,17 +859,16 @@ int cmd_tests(cmd_arg_t *argv)
 	return 1;
 }
 
-static bool run_test(const test_t * test)
+static void test_wrapper(void *arg)
 {
-	printf("%s\t\t%s\n", test->name, test->desc);
+	test_t *test = (test_t *) arg;
 	
 	/* Update and read thread accounting
 	   for benchmarking */
 	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
-	thread_update_accounting();
-	uint64_t t0 = THREAD->cycles;
-	spinlock_unlock(&THREAD->lock);
+	spinlock_lock(&TASK->lock);
+	uint64_t t0 = task_get_accounting(TASK);
+	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
 	/* Execute the test */
@@ -876,21 +876,48 @@ static bool run_test(const test_t * test)
 	
 	/* Update and read thread accounting */
 	ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
-	thread_update_accounting();
-	uint64_t dt = THREAD->cycles - t0;
-	spinlock_unlock(&THREAD->lock);
+	spinlock_lock(&TASK->lock);
+	uint64_t dt = task_get_accounting(TASK) - t0;
+	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
 	printf("Time: %llu cycles\n", dt);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
-		return true;
+//		return true;
+		return;
 	}
 
 	printf("%s\n", ret);
-	return false;
+//	return false;
+}
+
+static bool run_test(const test_t *test)
+{
+	printf("%s\t\t%s\n", test->name, test->desc);
+	
+	/* Create separate task and thread
+	   for the test */
+	task_t *ta = task_create(AS_KERNEL, "test");
+	if (ta == NULL) {
+		printf("Unable to create test task\n");
+		return false;
+	}
+	
+	thread_t *t = thread_create(test_wrapper, (void *) test, ta, 0, "test_main");
+	if (t == NULL) {
+		printf("Unable to create test main thread\n");
+		task_destroy(ta);
+		return false;
+	}
+	
+	/* Run the test */
+	thread_ready(t);
+	thread_join(t);
+	thread_detach(t);
+	
+	return true;
 }
 
 /** Command for returning kernel tests
