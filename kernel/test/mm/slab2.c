@@ -190,7 +190,7 @@ static void multitest(int size)
 				      0);
 	semaphore_initialize(&thr_sem,0);
 	for (i = 0; i < THREADS; i++) {  
-		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest")))
+		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest", false)))
 			printf("Could not create thread %d\n", i);
 		else
 			thread_ready(t);

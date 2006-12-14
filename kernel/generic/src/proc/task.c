@@ -220,13 +220,13 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create the main thread.
 	 */
-	t1 = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE, "uinit");
+	t1 = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE, "uinit", false);
 	ASSERT(t1);
 	
 	/*
 	 * Create killer thread for the new task.
 	 */
-	t2 = thread_create(ktaskgc, t1, task, 0, "ktaskgc");
+	t2 = thread_create(ktaskgc, t1, task, 0, "ktaskgc", true);
 	ASSERT(t2);
 	thread_ready(t2);
 
@@ -285,11 +285,12 @@ uint64_t task_get_accounting(task_t *t)
 		thread_t *thr = list_get_instance(cur, thread_t, th_link);
 		
 		spinlock_lock(&thr->lock);
-		
-		if (thr == THREAD) /* Update accounting of current thread */
-			thread_update_accounting(); 
-		ret += thr->cycles;
-		
+		/* Process only counted threads */
+		if (!thr->uncounted) {
+			if (thr == THREAD) /* Update accounting of current thread */
+				thread_update_accounting(); 
+			ret += thr->cycles;
+		}
 		spinlock_unlock(&thr->lock);
 	}
 	
@@ -328,7 +329,7 @@ int task_kill(task_id_t id)
 	btree_remove(&tasks_btree, ta->taskid, NULL);
 	spinlock_unlock(&tasks_lock);
 	
-	t = thread_create(ktaskclnp, NULL, ta, 0, "ktaskclnp");
+	t = thread_create(ktaskclnp, NULL, ta, 0, "ktaskclnp", true);
 	
 	spinlock_lock(&ta->lock);
 	ta->accept_new_threads = false;

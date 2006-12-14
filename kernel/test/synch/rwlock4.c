@@ -130,7 +130,7 @@ char * test_rwlock4(void)
 	k = random(7) + 1;
 	printf("Creating %d readers\n", k);
 	for (i = 0; i < k; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0, "reader");
+		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 		if (thrd)
 			thread_ready(thrd);
 		else
@@ -140,7 +140,7 @@ char * test_rwlock4(void)
 	k = random(5) + 1;
 	printf("Creating %d writers\n", k);
 	for (i = 0; i < k; i++) {
-		thrd = thread_create(writer, NULL, TASK, 0, "writer");
+		thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 		if (thrd)
 			thread_ready(thrd);
 		else

@@ -123,14 +123,17 @@ static void cushion(void)
 	ipl_t ipl = interrupts_disable();
 	
 	spinlock_lock(&THREAD->lock);
-	thread_update_accounting();
-	uint64_t cycles = THREAD->cycles;
-	THREAD->cycles = 0;
-	spinlock_unlock(&THREAD->lock);
-	
-	spinlock_lock(&TASK->lock);
-	TASK->cycles += cycles;
-	spinlock_unlock(&TASK->lock);
+	if (!THREAD->uncounted) {
+		thread_update_accounting();
+		uint64_t cycles = THREAD->cycles;
+		THREAD->cycles = 0;
+		spinlock_unlock(&THREAD->lock);
+		
+		spinlock_lock(&TASK->lock);
+		TASK->cycles += cycles;
+		spinlock_unlock(&TASK->lock);
+	} else
+		spinlock_unlock(&THREAD->lock);
 	
 	interrupts_restore(ipl);
 	
@@ -302,16 +305,17 @@ void thread_destroy(thread_t *t)
  *
  * Create a new thread.
  *
- * @param func  Thread's implementing function.
- * @param arg   Thread's implementing function argument.
- * @param task  Task to which the thread belongs.
- * @param flags Thread flags.
- * @param name  Symbolic name.
+ * @param func      Thread's implementing function.
+ * @param arg       Thread's implementing function argument.
+ * @param task      Task to which the thread belongs.
+ * @param flags     Thread flags.
+ * @param name      Symbolic name.
+ * @param uncounted Thread's accounting doesn't affect accumulated task accounting.
  *
  * @return New thread's structure on success, NULL on failure.
  *
  */
-thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name)
+thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name, bool uncounted)
 {
 	thread_t *t;
 	ipl_t ipl;
@@ -344,6 +348,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->thread_arg = arg;
 	t->ticks = -1;
 	t->cycles = 0;
+	t->uncounted = uncounted;
 	t->priority = -1;		/* start in rq[0] */
 	t->cpu = NULL;
 	t->flags = flags;
@@ -649,7 +654,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 		return (unative_t) rc;
 	}
 
-	if ((t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf))) {
+	if ((t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf, false))) {
 		tid = t->tid;
 		thread_ready(t);
 		return (unative_t) tid; 

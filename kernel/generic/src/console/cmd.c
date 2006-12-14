@@ -56,7 +56,6 @@
 #include <cpu.h>
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
-#include <mm/as.h>
 #include <mm/frame.h>
 #include <main/version.h>
 #include <mm/slab.h>
@@ -859,9 +858,9 @@ int cmd_tests(cmd_arg_t *argv)
 	return 1;
 }
 
-static void test_wrapper(void *arg)
+static bool run_test(const test_t *test)
 {
-	test_t *test = (test_t *) arg;
+	printf("%s\t\t%s\n", test->name, test->desc);
 	
 	/* Update and read thread accounting
 	   for benchmarking */
@@ -885,39 +884,11 @@ static void test_wrapper(void *arg)
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
-//		return true;
-		return;
+		return true;
 	}
 
 	printf("%s\n", ret);
-//	return false;
-}
-
-static bool run_test(const test_t *test)
-{
-	printf("%s\t\t%s\n", test->name, test->desc);
-	
-	/* Create separate task and thread
-	   for the test */
-	task_t *ta = task_create(AS_KERNEL, "test");
-	if (ta == NULL) {
-		printf("Unable to create test task\n");
-		return false;
-	}
-	
-	thread_t *t = thread_create(test_wrapper, (void *) test, ta, 0, "test_main");
-	if (t == NULL) {
-		printf("Unable to create test main thread\n");
-		task_destroy(ta);
-		return false;
-	}
-	
-	/* Run the test */
-	thread_ready(t);
-	thread_join(t);
-	thread_detach(t);
-	
-	return true;
+	return false;
 }
 
 /** Command for returning kernel tests

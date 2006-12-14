@@ -185,14 +185,14 @@ char * test_fpu1(void)
 	for (i = 0; i < THREADS; i++) {  
 		thread_t *t;
 		
-		if (!(t = thread_create(e, NULL, TASK, 0, "e"))) {
+		if (!(t = thread_create(e, NULL, TASK, 0, "e", false))) {
 			printf("could not create thread %d\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
-		if (!(t = thread_create(pi, NULL, TASK, 0, "pi"))) {
+		if (!(t = thread_create(pi, NULL, TASK, 0, "pi", false))) {
 			printf("could not create thread %d\n", 2 * i + 1);
 			break;
 		}

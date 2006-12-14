@@ -121,14 +121,14 @@ char * test_sse1(void)
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
-		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1"))) {
+		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1", false))) {
 			printf("could not create thread %d\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
-		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2"))) {
+		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2", false))) {
 			printf("could not create thread %d\n", 2 * i + 1);
 			break;
 		}

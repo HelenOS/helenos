@@ -64,7 +64,7 @@ char * test_rwlock3(void)
 	rwlock_write_lock(&rwlock);
 	
 	for (i = 0; i < 4; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0, "reader");
+		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 		if (thrd)
 			thread_ready(thrd);
 		else

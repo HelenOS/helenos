@@ -148,6 +148,7 @@ struct thread {
 	
 	uint64_t cycles;			/**< Thread accounting. */
 	uint64_t last_cycle;		/**< Last sampled cycle. */
+	bool uncounted;				/**< Thread doesn't affect accumulated accounting. */
 
 	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
 	uint32_t tid;				/**< Thread ID. */
@@ -168,7 +169,7 @@ extern spinlock_t threads_lock;
 extern btree_t threads_btree;			/**< B+tree containing all threads. */
 
 extern void thread_init(void);
-extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name);
+extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name, bool uncounted);
 extern void thread_ready(thread_t *t);
 extern void thread_exit(void) __attribute__((noreturn));
 

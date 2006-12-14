@@ -87,14 +87,14 @@ char * test_rwlock5(void)
 		
 		for (j = 0; j < (READERS + WRITERS) / 2; j++) {
 			for (k = 0; k < i; k++) {
-				thrd = thread_create(reader, NULL, TASK, 0, "reader");
+				thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 				if (thrd)
 					thread_ready(thrd);
 				else
 					printf("Could not create reader %d\n", k);
 			}
 			for (k = 0; k < (4 - i); k++) {
-				thrd = thread_create(writer, NULL, TASK, 0, "writer");
+				thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 				if (thrd)
 					thread_ready(thrd);
 				else

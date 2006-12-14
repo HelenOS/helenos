@@ -90,14 +90,14 @@ char * test_semaphore1(void)
 	
 		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
 			for (k = 0; k < i; k++) {
-				thrd = thread_create(consumer, NULL, TASK, 0, "consumer");
+				thrd = thread_create(consumer, NULL, TASK, 0, "consumer", false);
 				if (thrd)
 					thread_ready(thrd);
 				else
 					printf("could not create consumer %d\n", i);
 			}
 			for (k = 0; k < (4 - i); k++) {
-				thrd = thread_create(producer, NULL, TASK, 0, "producer");
+				thrd = thread_create(producer, NULL, TASK, 0, "producer", false);
 				if (thrd)
 					thread_ready(thrd);
 				else

@@ -66,7 +66,7 @@ char * test_rwlock2(void)
 	rwlock_read_lock(&rwlock);
 	rwlock_read_lock(&rwlock);	
 	
-	thrd = thread_create(writer, NULL, TASK, 0, "writer");
+	thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 	if (thrd)
 		thread_ready(thrd);
 	else
