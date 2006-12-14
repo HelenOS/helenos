@@ -99,7 +99,7 @@ void arch_post_smp_init(void)
 		/*
 	         * Create thread that polls keyboard.
 	         */
-		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
+		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 		if (!t)
 			panic("cannot create kkbdpoll\n");
 		thread_ready(t);
@@ -126,7 +126,8 @@ void calibrate_delay_loop(void)
  */
 void asm_delay_loop(const uint32_t usec)
 {
-	uint64_t stop = tick_read() + (uint64_t) usec * (uint64_t) CPU->arch.clock_frequency / 1000000;
+	uint64_t stop = tick_read() + (uint64_t) usec * (uint64_t)
+		CPU->arch.clock_frequency / 1000000;
 
 	while (tick_read() < stop)
 		;
