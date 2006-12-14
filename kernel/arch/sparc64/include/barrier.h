@@ -36,16 +36,26 @@
 #define KERN_sparc64_BARRIER_H_
 
 /*
- * We assume TSO memory model in which only reads can pass earlier stores
- * (but not earlier reads). Therefore, CS_ENTER_BARRIER() and CS_LEAVE_BARRIER()
- * can be empty.
+ * Our critical section barriers are prepared for the weakest RMO memory model.
  */
-#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
+#define CS_ENTER_BARRIER() 				\
+	__asm__ volatile (				\
+		"membar #LoadLoad | #LoadStore\n"	\
+		::: "memory"				\
+	)
+#define CS_LEAVE_BARRIER()				\
+	__asm__ volatile ( 				\
+		"membar #StoreStore\n"			\
+		"membar #LoadStore\n"			\
+		::: "memory"				\
+	)
 
-#define memory_barrier()	__asm__ volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory")
-#define read_barrier()		__asm__ volatile ("membar #LoadLoad\n" ::: "memory")
-#define write_barrier()		__asm__ volatile ("membar #StoreStore\n" ::: "memory")
+#define memory_barrier()	\
+	__asm__ volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory")
+#define read_barrier()		\
+	__asm__ volatile ("membar #LoadLoad\n" ::: "memory")
+#define write_barrier()		\
+	__asm__ volatile ("membar #StoreStore\n" ::: "memory")
 
 /** Flush Instruction Memory instruction. */
 static inline void flush(void)
