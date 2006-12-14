@@ -171,7 +171,6 @@ void task_destroy(task_t *t)
 	} else
 		mutex_unlock(&t->as->lock);
 	
-	btree_remove(&tasks_btree, (btree_key_t) t->taskid, NULL);	
 	free(t);
 	TASK = NULL;
 }
