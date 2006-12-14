@@ -52,7 +52,8 @@ void tick_init(void)
 	
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
-	compare.tick_cmpr = CPU->arch.clock_frequency/HZ;
+	compare.tick_cmpr = CPU->arch.clock_frequency / HZ;
+	CPU->arch.next_tick_cmpr = compare.tick_cmpr;
 	tick_compare_write(compare.value);
 	tick_write(0);
 }
@@ -65,7 +66,7 @@ void tick_init(void)
 void tick_interrupt(int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
-	uint64_t next, compare, start, stop;
+	uint64_t drift;
 	
 	softint.value = softint_read();
 	
@@ -87,18 +88,20 @@ void tick_interrupt(int n, istate_t *istate)
 	clear_softint_write(clear.value);
 	
 	/*
-	 * Restart counter.
+	 * Reprogram the compare register.
+	 * For now, we can ignore the potential of the registers to overflow.
+	 * On a 360MHz Ultra 60, the 63-bit compare counter will overflow in
+	 * about 812 years. If there was a 2GHz UltraSPARC computer, it would
+	 * overflow only in 146 years.
 	 */
-	compare = CPU->arch.clock_frequency/HZ;
-	start = tick_read();
-	next = start - compare;
-	while (next >= compare - TICK_RESTART_TIME) {
-		next -= compare;
+	drift = tick_read() - CPU->arch.next_tick_cmpr;
+	while (drift > CPU->arch.clock_frequency / HZ) {
+		drift -= CPU->arch.clock_frequency / HZ;
 		CPU->missed_clock_ticks++;
 	}
-	stop = tick_read();
-	tick_write(next + (stop - start));
-	
+	CPU->arch.next_tick_cmpr = tick_read() + (CPU->arch.clock_frequency / HZ)
+		- drift;
+	tick_compare_write(CPU->arch.next_tick_cmpr);
 	clock();
 }
 

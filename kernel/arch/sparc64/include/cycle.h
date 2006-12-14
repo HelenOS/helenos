@@ -39,7 +39,7 @@
 
 static inline uint64_t get_cycle(void)
 {
-	return 0;	/* not yet supported */
+	return tick_read();
 }
 
 #endif
