@@ -56,7 +56,8 @@ struct cpu_arch {
 	ver_reg_t ver;
 	uint32_t clock_frequency;	/**< Processor frequency in MHz. */
 	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-					 *   generated in this amount of ticks.
+					 *   generated when the TICK register
+					 *   matches this value.
 					 */
 };
 	
