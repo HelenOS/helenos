@@ -1138,7 +1138,7 @@ void zone_print_one(int num) {
 	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2, PFN2ADDR(zone->base));
 	printf("Zone size: %zd frames (%zdK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
 	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
-	printf("Available space: %zd (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Available space: %zd frames (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	
 	spinlock_unlock(&zone->lock);

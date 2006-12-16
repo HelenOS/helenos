@@ -38,12 +38,13 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-#define is_digit(d)		(((d) >= '0') && ((d) <= '9'))
-#define is_lower(c)		(((c) >= 'a') && ((c) <= 'z'))
-#define is_upper(c)		(((c) >= 'A') && ((c) <= 'Z'))
-#define is_alpha(c)		(is_lower(c) || is_upper(c))
-#define is_alphanum(c)		(is_alpha(c) || is_digit(c))
-#define is_white(c)		(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
+#define is_digit(d)	(((d) >= '0') && ((d) <= '9'))
+#define is_lower(c)	(((c) >= 'a') && ((c) <= 'z'))
+#define is_upper(c)	(((c) >= 'A') && ((c) <= 'Z'))
+#define is_alpha(c)	(is_lower(c) || is_upper(c))
+#define is_alphanum(c)	(is_alpha(c) || is_digit(c))
+#define is_white(c)	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || \
+				((c) == '\r'))
 
 #define min(a,b)	((a) < (b) ? (a) : (b))
 #define max(a,b)	((a) > (b) ? (a) : (b))

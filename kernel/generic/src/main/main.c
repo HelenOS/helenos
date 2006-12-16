@@ -126,7 +126,7 @@ static void main_bsp_separated_stack(void);
 static void main_ap_separated_stack(void);
 #endif
 
-#define CONFIG_STACK_SIZE	((1<<STACK_FRAMES)*STACK_SIZE)
+#define CONFIG_STACK_SIZE	((1 << STACK_FRAMES) * STACK_SIZE)
 
 /** Main kernel routine for bootstrap CPU.
  *

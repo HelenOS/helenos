@@ -57,9 +57,12 @@
 
 static void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *t);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str);
-static void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str);
-static void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str);
+static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const
+	char *str);
+static void do_fast_data_access_mmu_miss_fault(istate_t *istate,
+	 tlb_tag_access_reg_t tag, const char *str);
+static void do_fast_data_access_protection_fault(istate_t *istate,
+	tlb_tag_access_reg_t tag, const char *str);
 
 char *context_encoding[] = {
 	"Primary",
@@ -90,7 +93,8 @@ void tlb_arch_init(void)
  * @param locked True for permanent mappings, false otherwise.
  * @param cacheable True if the mapping is cacheable, false otherwise.
  */
-void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable)
+void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool
+	locked, bool cacheable)
 {
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
@@ -124,7 +128,8 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool loc
 /** Copy PTE to TLB.
  *
  * @param t Page Table Entry to be copied.
- * @param ro If true, the entry will be created read-only, regardless of its w field.
+ * @param ro If true, the entry will be created read-only, regardless of its w
+ * 	field.
  */
 void dtlb_pte_copy(pte_t *t, bool ro)
 {
@@ -212,20 +217,21 @@ void fast_instruction_access_mmu_miss(int n, istate_t *istate)
 		page_table_unlock(AS, true);
 	} else {
 		/*
-		 * Forward the page fault to the address space page fault handler.
+		 * Forward the page fault to the address space page fault
+		 * handler.
 		 */		
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			do_fast_instruction_access_mmu_miss_fault(istate, __FUNCTION__);
+			do_fast_instruction_access_mmu_miss_fault(istate,
+				__FUNCTION__);
 		}
 	}
 }
 
 /** DTLB miss handler.
  *
- * Note that some faults (e.g. kernel faults) were already resolved
- * by the low-level, assembly language part of the fast_data_access_mmu_miss
- * handler.
+ * Note that some faults (e.g. kernel faults) were already resolved by the
+ * low-level, assembly language part of the fast_data_access_mmu_miss handler.
  */
 void fast_data_access_mmu_miss(int n, istate_t *istate)
 {
@@ -239,9 +245,11 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 	if (tag.context == ASID_KERNEL) {
 		if (!tag.vpn) {
 			/* NULL access in kernel */
-			do_fast_data_access_mmu_miss_fault(istate, tag, __FUNCTION__);
+			do_fast_data_access_mmu_miss_fault(istate, tag,
+				__FUNCTION__);
 		}
-		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected kernel page fault.");
+		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected "
+			"kernel page fault.");
 	}
 
 	page_table_lock(AS, true);
@@ -263,7 +271,8 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 		 */		
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			do_fast_data_access_mmu_miss_fault(istate, tag, __FUNCTION__);
+			do_fast_data_access_mmu_miss_fault(istate, tag,
+				__FUNCTION__);
 		}
 	}
 }
@@ -282,8 +291,9 @@ void fast_data_access_protection(int n, istate_t *istate)
 	t = page_mapping_find(AS, va);
 	if (t && PTE_WRITABLE(t)) {
 		/*
-		 * The mapping was found in the software page hash table and is writable.
-		 * Demap the old mapping and insert an updated mapping into DTLB.
+		 * The mapping was found in the software page hash table and is
+		 * writable. Demap the old mapping and insert an updated mapping
+		 * into DTLB.
 		 */
 		t->a = true;
 		t->d = true;
@@ -295,11 +305,13 @@ void fast_data_access_protection(int n, istate_t *istate)
 		page_table_unlock(AS, true);
 	} else {
 		/*
-		 * Forward the page fault to the address space page fault handler.
+		 * Forward the page fault to the address space page fault
+		 * handler.
 		 */		
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-			do_fast_data_access_protection_fault(istate, tag, __FUNCTION__);
+			do_fast_data_access_protection_fault(istate, tag,
+				__FUNCTION__);
 		}
 	}
 }
@@ -316,8 +328,11 @@ void tlb_print(void)
 		d.value = itlb_data_access_read(i);
 		t.value = itlb_tag_read_read(i);
 		
-		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
-			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
+			"ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, "
+			"cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
+			t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag,
+			d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
 	printf("D-TLB contents:\n");
@@ -325,38 +340,46 @@ void tlb_print(void)
 		d.value = dtlb_data_access_read(i);
 		t.value = dtlb_tag_read_read(i);
 		
-		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n",
-			i, t.vpn, t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag, d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
+			"ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, "
+			"cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
+			t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag,
+			d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 	}
 
 }
 
-void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char *str)
+void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, const char
+	*str)
 {
 	fault_if_from_uspace(istate, "%s\n", str);
 	dump_istate(istate);
 	panic("%s\n", str);
 }
 
-void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
+void do_fast_data_access_mmu_miss_fault(istate_t *istate, tlb_tag_access_reg_t
+	tag, const char *str)
 {
 	uintptr_t va;
 
 	va = tag.vpn << PAGE_WIDTH;
 
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		tag.context);
 	dump_istate(istate);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	panic("%s\n", str);
 }
 
-void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t tag, const char *str)
+void do_fast_data_access_protection_fault(istate_t *istate, tlb_tag_access_reg_t
+	tag, const char *str)
 {
 	uintptr_t va;
 
 	va = tag.vpn << PAGE_WIDTH;
 
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va, tag.context);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		tag.context);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	dump_istate(istate);
 	panic("%s\n", str);
@@ -370,8 +393,9 @@ void dump_sfsr_and_sfar(void)
 	sfsr.value = dtlb_sfsr_read();
 	sfar = dtlb_sfar_read();
 	
-	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, fv=%d\n",
-		sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
+	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
+		"fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
+		sfsr.ow, sfsr.fv);
 	printf("DTLB SFAR: address=%p\n", sfar);
 	
 	dtlb_sfsr_write(0);
@@ -406,7 +430,8 @@ void tlb_invalidate_all(void)
 	
 }
 
-/** Invalidate all ITLB and DTLB entries that belong to specified ASID (Context).
+/** Invalidate all ITLB and DTLB entries that belong to specified ASID
+ * (Context).
  *
  * @param asid Address Space ID.
  */
@@ -429,7 +454,8 @@ void tlb_invalidate_asid(asid_t asid)
 	nucleus_leave();
 }
 
-/** Invalidate all ITLB and DTLB entries for specified page range in specified address space.
+/** Invalidate all ITLB and DTLB entries for specified page range in specified
+ * address space.
  *
  * @param asid Address Space ID.
  * @param page First page which to sweep out from ITLB and DTLB.
@@ -448,8 +474,10 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	mmu_primary_context_write(ctx.v);
 	
 	for (i = 0; i < cnt; i++) {
-		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i * PAGE_SIZE);
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i * PAGE_SIZE);
+		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i *
+			PAGE_SIZE);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i *
+			PAGE_SIZE);
 	}
 	
 	mmu_primary_context_write(pc_save.v);

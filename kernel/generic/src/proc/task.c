@@ -268,7 +268,7 @@ task_t *task_find_by_id(task_id_t id)
 
 /** Get accounting data of given task.
  *
- * Note that task_lock on @t must be already held and
+ * Note that task lock of 't' must be already held and
  * interrupts must be already disabled.
  *
  * @param t Pointer to thread.

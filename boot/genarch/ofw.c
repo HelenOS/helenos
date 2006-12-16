@@ -233,13 +233,18 @@ int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 		phys_hi, phys_lo);
 }
 
-
+/** Save OpenFirmware physical memory map.
+ *
+ * @param map Memory map structure where the map will be saved.
+ *
+ * @return Zero on failure, non-zero on success.
+ */
 int ofw_memmap(memmap_t *map)
 {
 	unsigned int ac = ofw_get_address_cells(ofw_memory);
 	unsigned int sc = ofw_get_size_cells(ofw_memory);
 
-	uint32_t buf[((ac+sc)*MEMMAP_MAX_RECORDS)];
+	uint32_t buf[((ac + sc) * MEMMAP_MAX_RECORDS)];
 	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(buf));
 	if (ret <= 0)		/* ret is the number of written bytes */
 		return false;
@@ -247,7 +252,8 @@ int ofw_memmap(memmap_t *map)
 	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (pos = 0; (pos < ret / sizeof(uint32_t)) && (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
+	for (pos = 0; (pos < ret / sizeof(uint32_t)) && (map->count <
+		MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void * start = (void *) ((uintptr_t) buf[pos + ac - 1]);
 		unsigned int size = buf[pos + ac + sc - 1];
 		

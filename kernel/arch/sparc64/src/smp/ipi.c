@@ -61,7 +61,7 @@ static void cross_call(int mid, void (* func)(void))
 	bool done;
 
 	/*
-	 * This functin might enable interrupts for a while.
+	 * This function might enable interrupts for a while.
 	 * In order to prevent migration to another processor,
 	 * we explicitly disable preemption.
 	 */

@@ -42,9 +42,10 @@
  * again, is nice because TSBs need to be locked
  * in TLBs - only one TLB entry will do.
  */
-#define TSB_SIZE			2	/* when changing this, change as.c as well */
-#define ITSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
-#define DTSB_ENTRY_COUNT		(512*(1<<TSB_SIZE))
+#define TSB_SIZE			2	/* when changing this, change
+						 * as.c as well */
+#define ITSB_ENTRY_COUNT		(512 * (1 << TSB_SIZE))
+#define DTSB_ENTRY_COUNT		(512 * (1 << TSB_SIZE))
 
 #define TSB_TAG_TARGET_CONTEXT_SHIFT	48
 
@@ -80,12 +81,14 @@ union tsb_base_reg {
 	uint64_t value;
 	struct {
 		uint64_t base : 51;	/**< TSB base address, bits 63:13. */
-		unsigned split : 1;	/**< Split vs. common TSB for 8K and 64K pages.
-					  *  HelenOS uses only 8K pages for user mappings,
-					  *  so we always set this to 0.
-					  */
+		unsigned split : 1;	/**< Split vs. common TSB for 8K and 64K
+					 * pages. HelenOS uses only 8K pages
+					 * for user mappings, so we always set
+					 * this to 0.
+					 */
 		unsigned : 9;
-		unsigned size : 3;	/**< TSB size. Number of entries is 512*2^size. */
+		unsigned size : 3;	/**< TSB size. Number of entries is
+					 * 512 * 2^size. */
 	} __attribute__ ((packed));
 };
 typedef union tsb_base_reg tsb_base_reg_t;

@@ -41,18 +41,17 @@
 #include <macros.h>
 #include <debug.h>
 
-#define TSB_INDEX_MASK		((1<<(21+1+TSB_SIZE-PAGE_WIDTH))-1)
+#define TSB_INDEX_MASK		((1 << (21 + 1 + TSB_SIZE - PAGE_WIDTH)) - 1)
 
 /** Invalidate portion of TSB.
  *
- * We assume that the address space is already locked.
- * Note that respective portions of both TSBs
- * are invalidated at a time.
+ * We assume that the address space is already locked. Note that respective
+ * portions of both TSBs are invalidated at a time.
  *
  * @param as Address space.
  * @param page First page to invalidate in TSB.
- * @param pages Number of pages to invalidate.
- *		Value of (count_t) -1 means the whole TSB.
+ * @param pages Number of pages to invalidate. Value of (count_t) -1 means the
+ * 	whole TSB.
  */
 void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 {
@@ -65,8 +64,10 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 	cnt = min(pages, ITSB_ENTRY_COUNT);
 	
 	for (i = 0; i < cnt; i++) {
-		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT-1)].tag.invalid = true;
-		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT-1)].tag.invalid = true;
+		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT - 1)].tag.invalid =
+			true;
+		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT - 1)].tag.invalid =
+			true;
 	}
 }
 

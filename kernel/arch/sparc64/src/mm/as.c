@@ -61,15 +61,18 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
-	int order = fnzb32(((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH);
+	int order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+		sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
 
 	if (!tsb)
 		return -1;
 
 	as->arch.itsb = (tsb_entry_t *) tsb;
-	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT * sizeof(tsb_entry_t));
-	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t), 0);
+	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
+		sizeof(tsb_entry_t));
+	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT)
+		* sizeof(tsb_entry_t), 0);
 #endif
 	return 0;
 }
@@ -77,7 +80,8 @@ int as_constructor_arch(as_t *as, int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
-	count_t cnt = ((ITSB_ENTRY_COUNT+DTSB_ENTRY_COUNT)*sizeof(tsb_entry_t))>>FRAME_WIDTH;
+	count_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+		sizeof(tsb_entry_t)) >> FRAME_WIDTH;
 	frame_free(KA2PA((uintptr_t) as->arch.itsb));
 	return cnt;
 #else
@@ -99,7 +103,8 @@ int as_create_arch(as_t *as, int flags)
 	return 0;
 }
 
-/** Perform sparc64-specific tasks when an address space becomes active on the processor.
+/** Perform sparc64-specific tasks when an address space becomes active on the
+ * processor.
  *
  * Install ASID and map TSBs.
  *
@@ -134,7 +139,7 @@ void as_install_arch(as_t *as)
 
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-	if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, 8 * PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need
@@ -160,7 +165,8 @@ void as_install_arch(as_t *as)
 #endif
 }
 
-/** Perform sparc64-specific tasks when an address space is removed from the processor.
+/** Perform sparc64-specific tasks when an address space is removed from the
+ * processor.
  *
  * Demap TSBs.
  *
@@ -183,7 +189,7 @@ void as_deinstall_arch(as_t *as)
 
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-	if (!overlaps(tsb, 8*PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, 8 * PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need

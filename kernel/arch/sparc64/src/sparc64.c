@@ -50,6 +50,7 @@
 
 bootinfo_t bootinfo;
 
+/** Perform sparc64 specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
 	/* Copy init task info. */
@@ -69,16 +70,23 @@ void arch_pre_main(void)
 	ofw_tree_init(bootinfo.ofw_root);
 }
 
+/** Perform sparc64 specific initialization before mm is initialized. */
 void arch_pre_mm_init(void)
 {
 	if (config.cpu_active == 1)
 		trap_init();
 }
 
+/** Perform sparc64 specific initialization afterr mm is initialized. */
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-		irq_init(1<<11, 128);
+		/*
+		 * We have 2^11 different interrupt vectors.
+		 * But we only create 128 buckets.
+		 */
+		irq_init(1 << 11, 128);
+		
 		standalone_sparc64_console_init();
 	}
 }
