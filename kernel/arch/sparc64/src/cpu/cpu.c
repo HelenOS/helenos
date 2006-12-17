@@ -44,7 +44,9 @@
 #include <arch/mm/tlb.h>
 #include <macros.h>
 
-/** Perform sparc64 specific initialization of the processor structure for the current processor. */
+/** Perform sparc64 specific initialization of the processor structure for the
+ * current processor.
+ */
 void cpu_arch_init(void)
 {
 	ofw_tree_node_t *node;
@@ -66,9 +68,11 @@ void cpu_arch_init(void)
 		if (prop && prop->value) {
 			mid = *((uint32_t *) prop->value);
 			if (mid == CPU->arch.mid) {
-				prop = ofw_tree_getprop(node, "clock-frequency");
+				prop = ofw_tree_getprop(node,
+					"clock-frequency");
 				if (prop && prop->value)
-					clock_frequency = *((uint32_t *) prop->value);
+					clock_frequency = *((uint32_t *)
+						prop->value);
 			}
 		}
 		node = ofw_tree_find_peer_by_device_type(node, "cpu");
@@ -80,16 +84,19 @@ void cpu_arch_init(void)
 	/*
 	 * Lock CPU stack in DTLB.
 	 */
-	uintptr_t base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
+	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 		 
-	if (!overlaps((uintptr_t) CPU->stack, PAGE_SIZE, base, (1<<KERNEL_PAGE_WIDTH))) {
+	if (!overlaps((uintptr_t) CPU->stack, PAGE_SIZE, base, (1 <<
+		KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this processor is not locked in DTLB.
 		 * First, demap any already existing mappings.
 		 * Second, create a locked mapping for it.
 		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) CPU->stack);
-		dtlb_insert_mapping((uintptr_t) CPU->stack, KA2PA(CPU->stack), PAGESIZE_8K, true, true);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t)
+			CPU->stack);
+		dtlb_insert_mapping((uintptr_t) CPU->stack, KA2PA(CPU->stack),
+			PAGESIZE_8K, true, true);
 	}
 }
 
@@ -103,7 +110,8 @@ void cpu_identify(void)
  *
  * This function is called by the bootstrap processor.
  *
- * @param m Processor structure of the CPU for which version information is to be printed.
+ * @param m Processor structure of the CPU for which version information is to
+ * 	be printed.
  */
 void cpu_print_report(cpu_t *m)
 {
@@ -151,8 +159,8 @@ void cpu_print_report(cpu_t *m)
 		break;
 	}
 
-	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%dMHz)\n",
-		m->id, manuf, impl, m->arch.ver.mask, m->arch.clock_frequency/1000000);
+	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%dMHz)\n", m->id, manuf,
+		impl, m->arch.ver.mask, m->arch.clock_frequency / 1000000);
 }
 
 /** @}

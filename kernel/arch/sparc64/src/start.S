@@ -77,13 +77,18 @@ kernel_image_start:
 	 */
 
 	wrpr %g0, NWINDOWS - 2, %cansave	! set maximum saveable windows
-	wrpr %g0, 0, %canrestore		! get rid of windows we will never need again
-	wrpr %g0, 0, %otherwin			! make sure the window state is consistent
-	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window traps for kernel
+	wrpr %g0, 0, %canrestore		! get rid of windows we will
+						! never need again
+	wrpr %g0, 0, %otherwin			! make sure the window state is
+						! consistent
+	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window
+						! traps for kernel
 
-	wrpr %g0, 0, %tl			! TL = 0, primary context register is used
+	wrpr %g0, 0, %tl			! TL = 0, primary context
+						! register is used
 
-	wrpr %g0, PSTATE_PRIV_BIT, %pstate	! Disable interrupts and disable 32-bit address masking.
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate	! disable interrupts and disable
+						! 32-bit address masking
 
 	wrpr %g0, 0, %pil			! intialize %pil
 
@@ -94,20 +99,19 @@ kernel_image_start:
 	wrpr %g1, %lo(trap_table), %tba
 
 	/* 
-	 * Take over the DMMU by installing global locked
-	 * TTE entry identically mapping the first 4M
-	 * of memory.
+	 * Take over the DMMU by installing global locked TTE entry identically
+	 * mapping the first 4M of memory.
 	 *
-	 * In case of DMMU, no FLUSH instructions need to be
-	 * issued. Because of that, the old DTLB contents can
-	 * be demapped pretty straightforwardly and without
-	 * causing any traps.
+	 * In case of DMMU, no FLUSH instructions need to be issued. Because of
+	 * that, the old DTLB contents can be demapped pretty straightforwardly
+	 * and without causing any traps.
 	 */
 
 	wr %g0, ASI_DMMU, %asi
 
 #define SET_TLB_DEMAP_CMD(r1, context_id) \
-	set (TLB_DEMAP_CONTEXT<<TLB_DEMAP_TYPE_SHIFT) | (context_id<<TLB_DEMAP_CONTEXT_SHIFT), %r1
+	set (TLB_DEMAP_CONTEXT << TLB_DEMAP_TYPE_SHIFT) | (context_id << \
+		TLB_DEMAP_CONTEXT_SHIFT), %r1
 	
 	! demap context 0
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
@@ -115,7 +119,7 @@ kernel_image_start:
 	membar #Sync
 
 #define SET_TLB_TAG(r1, context) \
-	set VMA | (context<<TLB_TAG_ACCESS_CONTEXT_SHIFT), %r1
+	set VMA | (context << TLB_TAG_ACCESS_CONTEXT_SHIFT), %r1
 
 	! write DTLB tag
 	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
@@ -144,11 +148,10 @@ kernel_image_start:
 	membar #Sync
 
 	/*
-	 * Because we cannot use global mappings (because we want to
-	 * have separate 64-bit address spaces for both the kernel
-	 * and the userspace), we prepare the identity mapping also in
-	 * context 1. This step is required by the
-	 * code installing the ITLB mapping.
+	 * Because we cannot use global mappings (because we want to have
+	 * separate 64-bit address spaces for both the kernel and the
+	 * userspace), we prepare the identity mapping also in context 1. This
+	 * step is required by the code installing the ITLB mapping.
 	 */
 	! write DTLB tag of context 1 (i.e. MEM_CONTEXT_TEMP)
 	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
@@ -161,25 +164,23 @@ kernel_image_start:
 	membar #Sync
 	
 	/*
-	 * Now is time to take over the IMMU.
-	 * Unfortunatelly, it cannot be done as easily as the DMMU,
-	 * because the IMMU is mapping the code it executes.
+	 * Now is time to take over the IMMU. Unfortunatelly, it cannot be done
+	 * as easily as the DMMU, because the IMMU is mapping the code it
+	 * executes.
 	 *
-	 * [ Note that brave experiments with disabling the IMMU
-	 * and using the DMMU approach failed after a dozen
-	 * of desparate days with only little success. ]
+	 * [ Note that brave experiments with disabling the IMMU and using the
+	 * DMMU approach failed after a dozen of desparate days with only little
+	 * success. ]
 	 *
-	 * The approach used here is inspired from OpenBSD.
-	 * First, the kernel creates IMMU mapping for itself
-	 * in context 1 (MEM_CONTEXT_TEMP) and switches to
-	 * it. Context 0 (MEM_CONTEXT_KERNEL) can be demapped
-	 * afterwards and replaced with the kernel permanent
-	 * mapping. Finally, the kernel switches back to
-	 * context 0 and demaps context 1.
+	 * The approach used here is inspired from OpenBSD. First, the kernel
+	 * creates IMMU mapping for itself in context 1 (MEM_CONTEXT_TEMP) and
+	 * switches to it. Context 0 (MEM_CONTEXT_KERNEL) can be demapped
+	 * afterwards and replaced with the kernel permanent mapping. Finally,
+	 * the kernel switches back to context 0 and demaps context 1.
 	 *
-	 * Moreover, the IMMU requires use of the FLUSH instructions.
-	 * But that is OK because we always use operands with
-	 * addresses already mapped by the taken over DTLB.
+	 * Moreover, the IMMU requires use of the FLUSH instructions. But that
+	 * is OK because we always use operands with addresses already mapped by
+	 * the taken over DTLB.
 	 */
 	
 	set kernel_image_start, %g5
@@ -291,9 +292,8 @@ kernel_image_start:
 
 #ifdef CONFIG_SMP
 	/*
-	 * Active loop for APs until the BSP picks them up.
-	 * A processor cannot leave the loop until the
-	 * global variable 'waking_up_mid' equals its
+	 * Active loop for APs until the BSP picks them up. A processor cannot
+	 * leave the loop until the global variable 'waking_up_mid' equals its
 	 * MID.
 	 */
 	set waking_up_mid, %g2
@@ -326,15 +326,13 @@ kernel_image_start:
 .section K_DATA_START, "aw", @progbits
 
 /*
- * Create small stack to be used by the bootstrap processor.
- * It is going to be used only for a very limited period of
- * time, but we switch to it anyway, just to be sure we are
- * properly initialized.
+ * Create small stack to be used by the bootstrap processor. It is going to be
+ * used only for a very limited period of time, but we switch to it anyway,
+ * just to be sure we are properly initialized.
  *
- * What is important is that this piece of memory is covered
- * by the 4M DTLB locked entry and therefore there will be
- * no surprises like deadly combinations of spill trap and
- * and TLB miss on the stack address.
+ * What is important is that this piece of memory is covered by the 4M DTLB
+ * locked entry and therefore there will be no surprises like deadly
+ * combinations of spill trap and and TLB miss on the stack address.
  */
 
 #define INITIAL_STACK_SIZE	1024
@@ -354,14 +352,16 @@ physmem_base:
 	.quad 0
 
 /*
- * This variable is used by the fast_data_MMU_miss trap handler.
- * In runtime, it is further modified to reflect the starting address of
- * physical memory.
+ * This variable is used by the fast_data_MMU_miss trap handler. In runtime, it
+ * is further modified to reflect the starting address of physical memory.
  */
 .global kernel_8k_tlb_data_template
 kernel_8k_tlb_data_template:
 #ifdef CONFIG_VIRT_IDX_DCACHE
-	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | TTE_CV | TTE_P | TTE_W)
+	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | \
+		 TTE_CV | TTE_P | TTE_W)
 #else /* CONFIG_VIRT_IDX_DCACHE */
-	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | TTE_P | TTE_W)
+	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | \
+		TTE_P | TTE_W)
 #endif /* CONFIG_VIRT_IDX_DCACHE */
+

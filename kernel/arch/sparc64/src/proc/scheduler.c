@@ -51,10 +51,9 @@ void before_task_runs_arch(void)
 
 /** Perform sparc64 specific steps before scheduling a thread.
  *
- * Ensure that thread's kernel stack, as well as userspace window
- * buffer for userspace threads, are locked in DTLB.
- * For userspace threads, initialize reserved global registers
- * in the alternate and interrupt sets.
+ * Ensure that thread's kernel stack, as well as userspace window buffer for
+ * userspace threads, are locked in DTLB. For userspace threads, initialize
+ * reserved global registers in the alternate and interrupt sets.
  */
 void before_thread_runs_arch(void)
 {
@@ -62,14 +61,17 @@ void before_thread_runs_arch(void)
 	
 	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
 
-	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1<<KERNEL_PAGE_WIDTH))) {
+	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1 <<
+		KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this thread is not locked in DTLB.
 		 * First, make sure it is not mapped already.
 		 * If not, create a locked mapping for it.
 		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
-		dtlb_insert_mapping((uintptr_t) THREAD->kstack, KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t)
+			THREAD->kstack);
+		dtlb_insert_mapping((uintptr_t) THREAD->kstack,
+			KA2PA(THREAD->kstack), PAGESIZE_8K, true, true);
 	}
 	
 	if ((THREAD->flags & THREAD_FLAG_USPACE)) {
@@ -78,21 +80,27 @@ void before_thread_runs_arch(void)
 		 * its userspace window buffer into DTLB.
 		 */
 		ASSERT(THREAD->arch.uspace_window_buffer);
-		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t) THREAD->arch.uspace_window_buffer, PAGE_SIZE);
-		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
+		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t)
+			THREAD->arch.uspace_window_buffer, PAGE_SIZE);
+		if (!overlaps(uw_buf, PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH))
+			{
 			/*
-			 * The buffer is not covered by the 4M locked kernel DTLB entry.
+			 * The buffer is not covered by the 4M locked kernel
+			 * DTLB entry.
 			 */
 			dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, uw_buf);
-			dtlb_insert_mapping(uw_buf, KA2PA(uw_buf), PAGESIZE_8K, true, true);
+			dtlb_insert_mapping(uw_buf, KA2PA(uw_buf), PAGESIZE_8K,
+				true, true);
 		}
 		
 		/*
-		 * Write kernel stack address to %g6 and a pointer to the last item
-		 * in the userspace window buffer to %g7 in the alternate and interrupt sets.
+		 * Write kernel stack address to %g6 and a pointer to the last
+		 * item in the userspace window buffer to %g7 in the alternate
+		 * and interrupt sets.
 		 */
 		uint64_t sp = (uintptr_t) THREAD->kstack + STACK_SIZE
-			- (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT));
+			- (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE,
+			STACK_ALIGNMENT));
 		write_to_ig_g6(sp);
 		write_to_ag_g6(sp);
 		write_to_ag_g7((uintptr_t) THREAD->arch.uspace_window_buffer);
@@ -108,14 +116,16 @@ void after_thread_ran_arch(void)
 {
 	uintptr_t base;
 
-	base = ALIGN_DOWN(config.base, 1<<KERNEL_PAGE_WIDTH);
+	base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 
-	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1<<KERNEL_PAGE_WIDTH))) {
+	if (!overlaps((uintptr_t) THREAD->kstack, PAGE_SIZE, base, (1 <<
+		KERNEL_PAGE_WIDTH))) {
 		/*
 		 * Kernel stack of this thread is locked in DTLB.
 		 * Destroy the mapping.
 		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t) THREAD->kstack);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t)
+			THREAD->kstack);
 	}
 	
 	if ((THREAD->flags & THREAD_FLAG_USPACE)) {
@@ -125,8 +135,9 @@ void after_thread_ran_arch(void)
 		 */
 		ASSERT(THREAD->arch.uspace_window_buffer);
 		
-		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t) THREAD->arch.uspace_window_buffer, PAGE_SIZE);
-		if (!overlaps(uw_buf, PAGE_SIZE, base, 1<<KERNEL_PAGE_WIDTH)) {
+		uintptr_t uw_buf = ALIGN_DOWN((uintptr_t)
+			THREAD->arch.uspace_window_buffer, PAGE_SIZE);
+		if (!overlaps(uw_buf, PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 			/*
 			 * The buffer is not covered by the 4M locked kernel DTLB entry
 			 * and therefore it was given a dedicated locked DTLB entry.
