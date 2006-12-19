@@ -38,26 +38,27 @@
 #define WRITERS		50
 
 static rwlock_t rwlock;
+static bool sh_quiet;
 
 static void writer(void *arg)
 {
-
-	thread_detach(THREAD);
-
-	printf("Trying to lock rwlock for writing....\n");    
-
+	if (!sh_quiet)
+		printf("Trying to lock rwlock for writing....\n");
+	
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
 	
-	printf("Trying to lock rwlock for reading....\n");    	
+	if (!sh_quiet)
+		printf("Trying to lock rwlock for reading....\n");
+	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);	
-	printf("Test passed.\n");
 }
 
 char * test_rwlock2(bool quiet)
 {
 	thread_t *thrd;
+	sh_quiet = quiet;
 	
 	rwlock_initialize(&rwlock);
 
@@ -78,6 +79,9 @@ char * test_rwlock2(bool quiet)
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
+	
+	thread_join(thrd);
+	thread_detach(thrd);
 	
 	return NULL;
 }

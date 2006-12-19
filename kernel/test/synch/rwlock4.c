@@ -43,8 +43,10 @@
 #define READERS		50
 #define WRITERS		50
 
+static atomic_t thread_count;
 static rwlock_t rwlock;
 static atomic_t threads_fault;
+static bool sh_quiet;
 
 SPINLOCK_INITIALIZE(rw_lock);
 
@@ -70,28 +72,42 @@ static void writer(void *arg)
 	waitq_sleep(&can_start);
 
 	to = random(40000);
-	printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
+	
 	rc = rwlock_write_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
+		if (!sh_quiet)
+			printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
+		atomic_dec(&thread_count);
 		return;
 	}
-	printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
 
 	if (rwlock.readers_in) {
-		printf("Oops.");
+		if (!sh_quiet)
+			printf("Oops.");
 		atomic_inc(&threads_fault);
+		atomic_dec(&thread_count);
 		return;
 	}
 	thread_usleep(random(1000000));
 	if (rwlock.readers_in) {
-		printf("Oops.");	
+		if (!sh_quiet)
+			printf("Oops.");	
 		atomic_inc(&threads_fault);
+		atomic_dec(&thread_count);
 		return;
 	}
 
 	rwlock_write_unlock(&rwlock);
-	printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);	
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);
+	atomic_dec(&thread_count);
 }
 
 static void reader(void *arg)
@@ -101,54 +117,79 @@ static void reader(void *arg)
 	waitq_sleep(&can_start);
 	
 	to = random(2000);
-	printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
+	
 	rc = rwlock_read_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
+		if (!sh_quiet)
+			printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
+		atomic_dec(&thread_count);
 		return;
 	}
-	printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
+	
 	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
-	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
+	
+	if (!sh_quiet)
+		printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);
+	atomic_dec(&thread_count);
 }
 
 char * test_rwlock4(bool quiet)
 {
 	context_t ctx;
-	uint32_t i, k;
+	uint32_t i;
+	sh_quiet = quiet;
 	
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
 	atomic_set(&threads_fault, 0);
 	
+	uint32_t rd = random(7) + 1;
+	uint32_t wr = random(5) + 1;
+	
+	atomic_set(&thread_count, rd + wr);
+	
 	thread_t *thrd;
 	
 	context_save(&ctx);
-	printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
+	if (!quiet) {
+		printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
+		printf("Creating %d readers\n", rd);
+	}
 	
-	k = random(7) + 1;
-	printf("Creating %d readers\n", k);
-	for (i = 0; i < k; i++) {
+	for (i = 0; i < rd; i++) {
 		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 		if (thrd)
 			thread_ready(thrd);
-		else
+		else if (!quiet)
 			printf("Could not create reader %d\n", i);
 	}
 
-	k = random(5) + 1;
-	printf("Creating %d writers\n", k);
-	for (i = 0; i < k; i++) {
+	if (!quiet)
+		printf("Creating %d writers\n", wr);
+	
+	for (i = 0; i < wr; i++) {
 		thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 		if (thrd)
 			thread_ready(thrd);
-		else
+		else if (!quiet)
 			printf("Could not create writer %d\n", i);
 	}
 	
 	thread_usleep(20000);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
+	
+	while (atomic_get(&thread_count) > 0) {
+		if (!quiet)
+			printf("Threads left: %d\n", atomic_get(&thread_count));
+		thread_sleep(1);
+	}
 	
 	if (atomic_get(&threads_fault) == 0)
 		return NULL;

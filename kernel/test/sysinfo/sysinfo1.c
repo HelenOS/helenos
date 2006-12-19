@@ -34,6 +34,7 @@
 
 char * test_sysinfo1(bool quiet)
 {
-	sysinfo_dump(NULL, 0);
+	if (!quiet)
+		sysinfo_dump(NULL, 0);
 	return NULL;
 }

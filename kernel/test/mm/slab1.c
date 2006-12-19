@@ -37,65 +37,87 @@
 
 static void * data[VAL_COUNT];
 
-static void testit(int size, int count) 
+static void testit(int size, int count, bool quiet) 
 {
 	slab_cache_t *cache;
 	int i;
 	
-	printf("Creating cache, object size: %d.\n", size);
-	cache = slab_cache_create("test_cache", size, 0, NULL, NULL, 
-				  SLAB_CACHE_NOMAGAZINE);	
-	printf("Allocating %d items...", count);
+	if (!quiet)
+		printf("Creating cache, object size: %d.\n", size);
+	
+	cache = slab_cache_create("test_cache", size, 0, NULL, NULL,
+				SLAB_CACHE_NOMAGAZINE);
+	
+	if (!quiet)
+		printf("Allocating %d items...", count);
+	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb((uintptr_t) data[i], size, 0);
 	}
-	printf("done.\n");
-	printf("Freeing %d items...", count);
-	for (i = 0; i < count; i++) {
-		slab_free(cache, data[i]);
+	
+	if (!quiet) {
+		printf("done.\n");
+		printf("Freeing %d items...", count);
 	}
-	printf("done.\n");
-
-	printf("Allocating %d items...", count);
+	
+	for (i = 0; i < count; i++)
+		slab_free(cache, data[i]);
+	
+	if (!quiet) {
+		printf("done.\n");
+		printf("Allocating %d items...", count);
+	}
+	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb((uintptr_t) data[i], size, 0);
 	}
-	printf("done.\n");
-
-	printf("Freeing %d items...", count / 2);
-	for (i = count - 1; i >= count / 2; i--) {
-		slab_free(cache, data[i]);
+	
+	if (!quiet) {
+		printf("done.\n");
+		printf("Freeing %d items...", count / 2);
 	}
-	printf("done.\n");	
-
-	printf("Allocating %d items...", count / 2);
+	
+	for (i = count - 1; i >= count / 2; i--)
+		slab_free(cache, data[i]);
+	
+	if (!quiet) {
+		printf("done.\n");	
+		printf("Allocating %d items...", count / 2);
+	}
+	
 	for (i = count / 2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb((uintptr_t) data[i], size, 0);
 	}
-	printf("done.\n");
-	printf("Freeing %d items...", count);
-	for (i = 0; i < count; i++) {
-		slab_free(cache, data[i]);
+	
+	if (!quiet) {
+		printf("done.\n");
+		printf("Freeing %d items...", count);
 	}
-	printf("done.\n");	
+	
+	for (i = 0; i < count; i++)
+		slab_free(cache, data[i]);
+	
+	if (!quiet)
+		printf("done.\n");	
 	slab_cache_destroy(cache);
-
-	printf("Test complete.\n");
+	
+	if (!quiet)
+		printf("Test complete.\n");
 }
 
-static void testsimple(void)
+static void testsimple(bool quiet)
 {
-	testit(100, VAL_COUNT);
-	testit(200, VAL_COUNT);
-	testit(1024, VAL_COUNT);
-	testit(2048, 512);
-	testit(4000, 128);
-	testit(8192, 128);
-	testit(16384, 128);
-	testit(16385, 128);
+	testit(100, VAL_COUNT, quiet);
+	testit(200, VAL_COUNT, quiet);
+	testit(1024, VAL_COUNT, quiet);
+	testit(2048, 512, quiet);
+	testit(4000, 128, quiet);
+	testit(8192, 128, quiet);
+	testit(16384, 128, quiet);
+	testit(16385, 128, quiet);
 }
 
 #define THREADS     6
@@ -105,6 +127,7 @@ static void testsimple(void)
 static void * thr_data[THREADS][THR_MEM_COUNT];
 static slab_cache_t *thr_cache;
 static semaphore_t thr_sem;
+static bool sh_quiet;
 
 static void slabtest(void *data)
 {
@@ -113,7 +136,9 @@ static void slabtest(void *data)
 	
 	thread_detach(THREAD);
 	
-	printf("Starting thread #%d...\n",THREAD->tid);
+	if (!sh_quiet)
+		printf("Starting thread #%d...\n", THREAD->tid);
+	
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < THR_MEM_COUNT; i++)
 			thr_data[offs][i] = slab_alloc(thr_cache,0);
@@ -124,23 +149,26 @@ static void slabtest(void *data)
 		for (i = 0; i < THR_MEM_COUNT; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}
-	printf("Thread #%d finished\n", THREAD->tid);
+	
+	if (!sh_quiet)
+		printf("Thread #%d finished\n", THREAD->tid);
+	
 	semaphore_up(&thr_sem);
 }
 
-static void testthreads(void)
+static void testthreads(bool quiet)
 {
 	thread_t *t;
 	int i;
 
-	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, 
-				      NULL, NULL, 
-				      SLAB_CACHE_NOMAGAZINE);
+	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, NULL, NULL,
+					SLAB_CACHE_NOMAGAZINE);
 	semaphore_initialize(&thr_sem, 0);
 	for (i = 0; i < THREADS; i++) {  
-		if (!(t = thread_create(slabtest, (void *) (unative_t) i, TASK, 0, "slabtest", false)))
-			printf("Could not create thread %d\n", i);
-		else
+		if (!(t = thread_create(slabtest, (void *) (unative_t) i, TASK, 0, "slabtest", false))) {
+			if (!quiet)
+				printf("Could not create thread %d\n", i);
+		} else
 			thread_ready(t);
 	}
 
@@ -148,14 +176,17 @@ static void testthreads(void)
 		semaphore_down(&thr_sem);
 	
 	slab_cache_destroy(thr_cache);
-	printf("Test complete.\n");
 	
+	if (!quiet)
+		printf("Test complete.\n");
 }
 
 char * test_slab1(bool quiet)
 {
-	testsimple();
-	testthreads();
+	sh_quiet = quiet;
+	
+	testsimple(quiet);
+	testthreads(quiet);
 	
 	return NULL;
 }

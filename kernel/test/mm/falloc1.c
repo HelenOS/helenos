@@ -55,25 +55,30 @@ char * test_falloc1(bool quiet) {
 
 	for (run = 0; run < TEST_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
-			printf("Allocating %d frames blocks ... ", 1 << order);
+			if (!quiet)
+				printf("Allocating %d frames blocks ... ", 1 << order);
+			
 			allocated = 0;
 			for (i = 0; i < MAX_FRAMES >> order; i++) {
 				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					printf("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					if (!quiet)
+						printf("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
 					return "Test failed";
 				}
 				
 				if (frames[allocated])
 					allocated++;
 				else {
-					printf("done. ");
+					if (!quiet)
+						printf("done. ");
 					break;
 				}
 			}
 			
-			printf("%d blocks allocated.\n", allocated);
+			if (!quiet)
+				printf("%d blocks allocated.\n", allocated);
 		
 			if (run) {
 				if (results[order] != allocated)
@@ -81,10 +86,14 @@ char * test_falloc1(bool quiet) {
 			} else
 				results[order] = allocated;
 			
-			printf("Deallocating ... ");
+			if (!quiet)
+				printf("Deallocating ... ");
+			
 			for (i = 0; i < allocated; i++)
 				frame_free(KA2PA(frames[i]));
-			printf("done.\n");
+			
+			if (!quiet)
+				printf("done.\n");
 		}
 	}
 

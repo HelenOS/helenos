@@ -59,7 +59,6 @@ char * test_rwlock1(bool quiet)
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	
-	
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);	
 

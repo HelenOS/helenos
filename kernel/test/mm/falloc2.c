@@ -47,6 +47,7 @@
 
 static atomic_t thread_count;
 static atomic_t thread_fail;
+static bool sh_quiet;
 
 static void falloc(void * arg)
 {
@@ -56,7 +57,8 @@ static void falloc(void * arg)
 	
 	uintptr_t * frames =  (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL) {
-		printf("Thread #%d (cpu%d): Unable to allocate frames\n", THREAD->tid, CPU->id);
+		if (!sh_quiet)
+			printf("Thread #%d (cpu%d): Unable to allocate frames\n", THREAD->tid, CPU->id);
 		atomic_inc(&thread_fail);
 		atomic_dec(&thread_count);
 		return;
@@ -66,7 +68,9 @@ static void falloc(void * arg)
 
 	for (run = 0; run < THREAD_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
-			printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
+			if (!sh_quiet)
+				printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
+			
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
 				frames[allocated] = (uintptr_t)frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
@@ -76,32 +80,42 @@ static void falloc(void * arg)
 				} else
 					break;
 			}
-			printf("Thread #%d (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
-
-			printf("Thread #%d (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
+			
+			if (!sh_quiet)
+				printf("Thread #%d (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
+			
+			if (!sh_quiet)
+				printf("Thread #%d (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
+			
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
-						printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+						if (!sh_quiet)
+							printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}
 				}
 				frame_free(KA2PA(frames[i]));
 			}
-			printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
+			
+			if (!sh_quiet)
+				printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
 
 cleanup:	
 	free(frames);
-	printf("Thread #%d (cpu%d): Exiting\n", THREAD->tid, CPU->id);
+	
+	if (!sh_quiet)
+		printf("Thread #%d (cpu%d): Exiting\n", THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
 }
 
 char * test_falloc2(bool quiet)
 {
 	unsigned int i;
+	sh_quiet = quiet;
 
 	atomic_set(&thread_count, THREADS);
 	atomic_set(&thread_fail, 0);
@@ -109,14 +123,16 @@ char * test_falloc2(bool quiet)
 	for (i = 0; i < THREADS; i++) {
 		thread_t * thrd = thread_create(falloc, NULL, TASK, 0, "falloc", false);
 		if (!thrd) {
-			printf("Could not create thread %d\n", i);
+			if (!quiet)
+				printf("Could not create thread %d\n", i);
 			break;
 		}
 		thread_ready(thrd);
 	}
 	
 	while (atomic_get(&thread_count) > 0) {
-		printf("Threads left: %d\n", atomic_get(&thread_count));
+		if (!quiet)
+			printf("Threads left: %d\n", atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	
