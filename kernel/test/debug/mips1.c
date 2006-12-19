@@ -40,7 +40,8 @@
 
 char * test_mips1(bool quiet)
 {
-	printf("You should enter kconsole debug mode now.\n");
+	if (!quiet)
+		printf("You should enter kconsole debug mode now.\n");
 	
 	asm volatile (
 		"break\n"

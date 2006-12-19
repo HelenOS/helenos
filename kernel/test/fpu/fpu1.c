@@ -103,11 +103,12 @@ static inline long double sqrt(long double a)
 static atomic_t threads_ok;
 static atomic_t threads_fault;
 static waitq_t can_start;
+static bool sh_quiet;
 
 static void e(void *data)
 {
 	int i;
-	double e,d,le,f;
+	double e, d, le, f;
 
 	thread_detach(THREAD);
 
@@ -124,7 +125,8 @@ static void e(void *data)
 		}
 
 		if ((int) (100000000 * e) != E_10e8) {
-			printf("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+			if (!sh_quiet)
+				printf("tid%d: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -158,13 +160,15 @@ static void pi(void *data)
 
 #ifdef KERN_ia64_ARCH_H_
 		if ((int) (1000000 * pi) != PI_10e8) {
-			printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+			if (!sh_quiet)
+				printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}
 #else
 		if ((int) (100000000 * pi) != PI_10e8) {
-			printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
+			if (!sh_quiet)
+				printf("tid%d: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -176,36 +180,44 @@ static void pi(void *data)
 char * test_fpu1(bool quiet)
 {
 	unsigned int i, total = 0;
+	sh_quiet = quiet;
 
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
 	atomic_set(&threads_fault, 0);
-	printf("Creating %d threads... ", 2 * THREADS);
+	
+	if (!quiet)
+		printf("Creating %d threads... ", 2 * THREADS);
 
 	for (i = 0; i < THREADS; i++) {  
 		thread_t *t;
 		
 		if (!(t = thread_create(e, NULL, TASK, 0, "e", false))) {
-			printf("could not create thread %d\n", 2 * i);
+			if (!quiet)
+				printf("could not create thread %d\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
 		if (!(t = thread_create(pi, NULL, TASK, 0, "pi", false))) {
-			printf("could not create thread %d\n", 2 * i + 1);
+			if (!quiet)
+				printf("could not create thread %d\n", 2 * i + 1);
 			break;
 		}
 		thread_ready(t);
 		total++;
 	}
-	printf("ok\n");
+	
+	if (!quiet)
+		printf("ok\n");
 	
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 	while (atomic_get(&threads_ok) != total) {
-		printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		if (!quiet)
+			printf("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}
 	

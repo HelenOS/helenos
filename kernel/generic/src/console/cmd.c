@@ -1033,7 +1033,12 @@ int cmd_bench(cmd_arg_t *argv)
 	for (test = tests; test->name != NULL; test++) {
 		if (strcmp(test->name, argv->buffer) == 0) {
 			fnd = true;
-			run_bench(test, cnt);
+			
+			if (test->safe)
+				run_bench(test, cnt);
+			else
+				printf("Unsafe test\n");
+			
 			break;
 		}
 	}
