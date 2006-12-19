@@ -109,7 +109,7 @@ static void testit2(void *data)
 }
 
 
-char * test_sse1(void)
+char * test_sse1(bool quiet)
 {
 	unsigned int i, total = 0;
 

@@ -40,7 +40,7 @@
 #define MAX_ORDER 8
 #define TEST_RUNS 2
 
-char * test_falloc1(void) {
+char * test_falloc1(bool quiet) {
 	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
 	int results[MAX_ORDER + 1];
 	

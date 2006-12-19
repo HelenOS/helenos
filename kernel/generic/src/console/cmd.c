@@ -117,6 +117,25 @@ static cmd_info_t test_info = {
 	.argc = 1,
 	.argv = test_argv
 };
+
+static int cmd_bench(cmd_arg_t *argv);
+static cmd_arg_t bench_argv[] = {
+	{
+		.type = ARG_TYPE_STRING,
+		.buffer = test_buf,
+		.len = sizeof(test_buf)
+	},
+	{
+		.type = ARG_TYPE_INT,
+	}
+};
+static cmd_info_t bench_info = {
+	.name = "bench",
+	.description = "Run kernel test as benchmark.",
+	.func = cmd_bench,
+	.argc = 2,
+	.argv = bench_argv
+};
 #endif
 
 /* Data and methods for 'description' command. */
@@ -411,6 +430,7 @@ static cmd_info_t *basic_commands[] = {
 #ifdef CONFIG_TEST
 	&tests_info,
 	&test_info,
+	&bench_info,
 #endif
 	NULL
 };
@@ -871,7 +891,7 @@ static bool run_test(const test_t *test)
 	interrupts_restore(ipl);
 	
 	/* Execute the test */
-	char * ret = test->entry();
+	char * ret = test->entry(false);
 	
 	/* Update and read thread accounting */
 	ipl = interrupts_disable();
@@ -880,7 +900,11 @@ static bool run_test(const test_t *test)
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
-	printf("Time: %llu cycles\n", dt);
+	uint64_t cycles;
+	char suffix;
+	order(dt, &cycles, &suffix);
+		
+	printf("Time: %llu%c cycles\n", cycles, suffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
@@ -889,6 +913,72 @@ static bool run_test(const test_t *test)
 
 	printf("%s\n", ret);
 	return false;
+}
+
+static bool run_bench(const test_t *test, const uint32_t cnt)
+{
+	uint32_t i;
+	bool ret = true;
+	uint64_t cycles;
+	char suffix;
+	
+	if (cnt < 1)
+		return true;
+	
+	uint64_t *data = malloc(sizeof(uint64_t) * cnt, 0);
+	if (data == NULL) {
+		printf("Error allocating memory for statistics\n");
+		return false;
+	}
+	
+	for (i = 0; i < cnt; i++) {
+		printf("%s (%d/%d) ... ", test->name, i + 1, cnt);
+		
+		/* Update and read thread accounting
+		   for benchmarking */
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&TASK->lock);
+		uint64_t t0 = task_get_accounting(TASK);
+		spinlock_unlock(&TASK->lock);
+		interrupts_restore(ipl);
+		
+		/* Execute the test */
+		char * ret = test->entry(true);
+		
+		/* Update and read thread accounting */
+		ipl = interrupts_disable();
+		spinlock_lock(&TASK->lock);
+		uint64_t dt = task_get_accounting(TASK) - t0;
+		spinlock_unlock(&TASK->lock);
+		interrupts_restore(ipl);
+		
+		if (ret != NULL) {
+			printf("%s\n", ret);
+			ret = false;
+			break;
+		}
+		
+		data[i] = dt;
+		order(dt, &cycles, &suffix);
+		printf("OK (%llu%c cycles)\n", cycles, suffix);
+	}
+	
+	if (ret) {
+		printf("\n");
+		
+		uint64_t sum = 0;
+		
+		for (i = 0; i < cnt; i++) {
+			sum += data[i];
+		}
+		
+		order(sum / (uint64_t) cnt, &cycles, &suffix);
+		printf("Average\t\t%llu%c\n", cycles, suffix);
+	}
+	
+	free(data);
+	
+	return ret;
 }
 
 /** Command for returning kernel tests
@@ -926,6 +1016,34 @@ int cmd_test(cmd_arg_t *argv)
 	
 	return 1;
 }
+
+/** Command for returning kernel tests as benchmarks
+ *
+ * @param argv Argument vector.
+ *
+ * return Always 1.
+ */
+int cmd_bench(cmd_arg_t *argv)
+{
+	test_t *test;
+	uint32_t cnt = argv[1].intval;
+	
+	bool fnd = false;
+	
+	for (test = tests; test->name != NULL; test++) {
+		if (strcmp(test->name, argv->buffer) == 0) {
+			fnd = true;
+			run_bench(test, cnt);
+			break;
+		}
+	}
+		
+	if (!fnd)
+		printf("Unknown test\n");
+
+	return 1;
+}
+
 #endif
 
 /** @}

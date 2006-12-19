@@ -205,7 +205,7 @@ static void multitest(int size)
 	printf("Stress test complete.\n");
 }
 
-char * test_slab2(void)
+char * test_slab2(bool quiet)
 {
 	printf("Running reclaim single-thread test .. pass 1\n");
 	totalmemtest();

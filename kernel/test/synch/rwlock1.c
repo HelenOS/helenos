@@ -40,7 +40,7 @@
 
 static rwlock_t rwlock;
 
-char * test_rwlock1(void)
+char * test_rwlock1(bool quiet)
 {
 	rwlock_initialize(&rwlock);
 

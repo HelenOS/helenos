@@ -110,7 +110,7 @@ static void testit2(void *data)
 }
 
 
-char * test_mips2(void)
+char * test_mips2(bool quiet)
 {
 	unsigned int i, total = 0;
 	

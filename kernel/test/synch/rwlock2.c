@@ -55,7 +55,7 @@ static void writer(void *arg)
 	printf("Test passed.\n");
 }
 
-char * test_rwlock2(void)
+char * test_rwlock2(bool quiet)
 {
 	thread_t *thrd;
 	

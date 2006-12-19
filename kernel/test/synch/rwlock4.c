@@ -113,7 +113,7 @@ static void reader(void *arg)
 	printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);		
 }
 
-char * test_rwlock4(void)
+char * test_rwlock4(bool quiet)
 {
 	context_t ctx;
 	uint32_t i, k;

@@ -52,7 +52,7 @@ static void threadtest(void *data)
 	atomic_inc(&threads_finished);
 }
 
-char * test_thread1(void)
+char * test_thread1(bool quiet)
 {
 	unsigned int i, total = 0;
 	

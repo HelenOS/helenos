@@ -81,7 +81,7 @@ static void consumer(void *arg)
 	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
 }
 
-char * test_semaphore2(void)
+char * test_semaphore2(bool quiet)
 {
 	uint32_t i, k;
 	

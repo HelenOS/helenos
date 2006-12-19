@@ -37,7 +37,7 @@
 #include <arch.h>
 
 
-char * test_fault1(void)
+char * test_fault1(bool quiet)
 {
 	((int *)(0))[1] = 0;
 	

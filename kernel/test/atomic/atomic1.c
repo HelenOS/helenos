@@ -31,7 +31,7 @@
 #include <atomic.h>
 #include <debug.h>
 
-char * test_atomic1(void)
+char * test_atomic1(bool quiet)
 {
 	atomic_t a;
 	

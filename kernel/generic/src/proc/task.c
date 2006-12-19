@@ -52,6 +52,7 @@
 #include <print.h>
 #include <lib/elf.h>
 #include <errno.h>
+#include <func.h>
 #include <syscall/copy.h>
 #include <console/klog.h>
 
@@ -391,20 +392,9 @@ void task_print_list(void)
 		
 			spinlock_lock(&t->lock);
 			
-			uint64_t cycles = task_get_accounting(t);
+			uint64_t cycles;
 			char suffix;
-			
-			if (cycles > 1000000000000000000LL) {
-				cycles = cycles / 1000000000000000000LL;
-				suffix = 'E';
-			} else if (cycles > 1000000000000LL) {
-				cycles = cycles / 1000000000000LL;
-				suffix = 'T';
-			} else if (cycles > 1000000LL) {
-				cycles = cycles / 1000000LL;
-				suffix = 'M';
-			} else 
-				suffix = ' ';
+			order(task_get_accounting(t), &cycles, &suffix);
 			
 			printf("%-6lld %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd", t->taskid, t->name, t->context, t, t->as, cycles, suffix, t->refcount, atomic_get(&t->active_calls));
 			for (j = 0; j < IPC_MAX_PHONES; j++) {

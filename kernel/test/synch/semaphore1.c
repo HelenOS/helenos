@@ -69,7 +69,7 @@ static void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-char * test_semaphore1(void)
+char * test_semaphore1(bool quiet)
 {
 	int i, j, k;
 	int consumers, producers;

@@ -569,20 +569,7 @@ void thread_print_list(void)
 			
 			uint64_t cycles;
 			char suffix;
-			
-			if (t->cycles > 1000000000000000000LL) {
-				cycles = t->cycles / 1000000000000000000LL;
-				suffix = 'E';
-			} else if (t->cycles > 1000000000000LL) {
-				cycles = t->cycles / 1000000000000LL;
-				suffix = 'T';
-			} else if (t->cycles > 1000000LL) {
-				cycles = t->cycles / 1000000LL;
-				suffix = 'M';
-			} else {
-				cycles = t->cycles;
-				suffix = ' ';
-			}
+			order(t->cycles, &cycles, &suffix);
 			
 			printf("%-6zd %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ", t->tid, t->name, t, thread_states[t->state], t->task, t->task->context, t->thread_code, t->kstack, cycles, suffix);
 			

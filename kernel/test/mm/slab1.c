@@ -152,7 +152,7 @@ static void testthreads(void)
 	
 }
 
-char * test_slab1(void)
+char * test_slab1(bool quiet)
 {
 	testsimple();
 	testthreads();

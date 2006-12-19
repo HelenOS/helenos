@@ -173,7 +173,7 @@ static void pi(void *data)
 	atomic_inc(&threads_ok);
 }
 
-char * test_fpu1(void)
+char * test_fpu1(bool quiet)
 {
 	unsigned int i, total = 0;
 

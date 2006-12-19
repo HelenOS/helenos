@@ -66,7 +66,7 @@ static void reader(void *arg)
 	rwlock_read_unlock(&rwlock);
 }
 
-char * test_rwlock5(void)
+char * test_rwlock5(bool quiet)
 {
 	int i, j, k;
 	count_t readers, writers;

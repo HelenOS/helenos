@@ -55,7 +55,7 @@ static void reader(void *arg)
 	printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    			
 }
 
-char * test_rwlock3(void)
+char * test_rwlock3(bool quiet)
 {
 	int i;
 	thread_t *thrd;
