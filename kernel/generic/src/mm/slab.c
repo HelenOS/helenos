@@ -796,15 +796,13 @@ void slab_print_list(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
-	printf("slab name\t  Osize\t  Pages\t Obj/pg\t  Slabs\t Cached\tAllocobjs\tCtl\n");
-	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
+	printf("slab name        size     pages  obj/pg slabs  cached allocated ctl\n");
+	printf("---------------- -------- ------ ------ ------ ------ --------- ---\n");
+	
+	for (cur = slab_cache_list.next; cur != &slab_cache_list; cur = cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
-		printf("%s\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t%7zd\t\t%s\n", cache->name, cache->size, 
-		       (1 << cache->order), cache->objects,
-		       atomic_get(&cache->allocated_slabs),
-		       atomic_get(&cache->cached_objs),
-		       atomic_get(&cache->allocated_objs),
-		       cache->flags & SLAB_CACHE_SLINSIDE ? "In" : "Out");
+		
+		printf("%-16s %8zd %6zd %6zd %6zd %6zd %9zd %-3s\n", cache->name, cache->size, (1 << cache->order), cache->objects, atomic_get(&cache->allocated_slabs), atomic_get(&cache->cached_objs), atomic_get(&cache->allocated_objs), cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}
 	spinlock_unlock(&slab_cache_lock);
 	interrupts_restore(ipl);
