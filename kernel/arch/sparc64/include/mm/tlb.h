@@ -65,7 +65,7 @@
 
 /* TLB Tag Access shifts */
 #define TLB_TAG_ACCESS_CONTEXT_SHIFT	0
-#define TLB_TAG_ACCESS_CONTEXT_MASK	((1<<13)-1)
+#define TLB_TAG_ACCESS_CONTEXT_MASK	((1 << 13) - 1)
 #define TLB_TAG_ACCESS_VPN_SHIFT	13
 
 #ifndef __ASM__
@@ -106,8 +106,8 @@ typedef union tlb_data_access_addr tlb_tag_read_addr_t;
 union tlb_tag_read_reg {
 	uint64_t value;
 	struct {
-		uint64_t vpn : 51;		/**< Virtual Address bits 63:13. */
-		unsigned context : 13;		/**< Context identifier. */
+		uint64_t vpn : 51;	/**< Virtual Address bits 63:13. */
+		unsigned context : 13;	/**< Context identifier. */
 	} __attribute__ ((packed));
 };
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
@@ -382,7 +382,8 @@ static inline uint64_t dtlb_sfar_read(void)
 /** Perform IMMU TLB Demap Operation.
  *
  * @param type Selects between context and page demap.
- * @param context_encoding Specifies which Context register has Context ID for demap.
+ * @param context_encoding Specifies which Context register has Context ID for
+ * 	demap.
  * @param page Address which is on the page to be demapped.
  */
 static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
@@ -397,14 +398,17 @@ static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
 	da.context = context_encoding;
 	da.vpn = pg.vpn;
 	
-	asi_u64_write(ASI_IMMU_DEMAP, da.value, 0);	/* da.value is the address within the ASI */ 
+	asi_u64_write(ASI_IMMU_DEMAP, da.value, 0);	/* da.value is the
+							 * address within the
+							 * ASI */ 
 	flush();
 }
 
 /** Perform DMMU TLB Demap Operation.
  *
  * @param type Selects between context and page demap.
- * @param context_encoding Specifies which Context register has Context ID for demap.
+ * @param context_encoding Specifies which Context register has Context ID for
+ *	 demap.
  * @param page Address which is on the page to be demapped.
  */
 static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
@@ -419,7 +423,9 @@ static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 	da.context = context_encoding;
 	da.vpn = pg.vpn;
 	
-	asi_u64_write(ASI_DMMU_DEMAP, da.value, 0); /* da.value is the address within the ASI */ 
+	asi_u64_write(ASI_DMMU_DEMAP, da.value, 0);	/* da.value is the
+							 * address within the
+							 * ASI */ 
 	membar();
 }
 

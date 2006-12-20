@@ -94,9 +94,15 @@ void before_thread_runs_arch(void)
 		}
 		
 		/*
-		 * Write kernel stack address to %g6 and a pointer to the last
-		 * item in the userspace window buffer to %g7 in the alternate
-		 * and interrupt sets.
+		 * Write kernel stack address to %g6 of the alternate and
+		 * interrupt global sets.
+		 *
+		 * Write pointer to the last item in the userspace window buffer
+		 * to %g7 in the alternate set. Write to the interrupt %g7 is
+		 * not necessary because:
+		 * - spill traps operate only in the alternate global set,
+		 * - preemptible trap handler switches to alternate globals
+		 *   before it explicitly uses %g7.
 		 */
 		uint64_t sp = (uintptr_t) THREAD->kstack + STACK_SIZE
 			- (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE,
@@ -109,7 +115,7 @@ void before_thread_runs_arch(void)
 
 /** Perform sparc64 specific steps before a thread stops running.
  *
- * Demap any locked DTLB entries isntalled by the thread (i.e. kernel stack
+ * Demap any locked DTLB entries installed by the thread (i.e. kernel stack
  * and userspace window buffer).
  */
 void after_thread_ran_arch(void)

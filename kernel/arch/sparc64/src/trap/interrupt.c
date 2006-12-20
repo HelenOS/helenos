@@ -97,7 +97,8 @@ void interrupt(int n, istate_t *istate)
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%d: spurious interrupt (intrcv=%#llx, data0=%#llx)\n", CPU->id, intrcv, data0);
+		printf("cpu%d: spurious interrupt (intrcv=%#llx, "
+			"data0=%#llx)\n", CPU->id, intrcv, data0);
 #endif
 	}
 
