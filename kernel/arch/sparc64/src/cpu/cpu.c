@@ -40,9 +40,6 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/types.h>
 #include <arch/drivers/tick.h>
-#include <arch/mm/page.h>
-#include <arch/mm/tlb.h>
-#include <macros.h>
 
 /** Perform sparc64 specific initialization of the processor structure for the
  * current processor.
@@ -80,24 +77,6 @@ void cpu_arch_init(void)
 
 	CPU->arch.clock_frequency = clock_frequency;
 	tick_init();
-	
-	/*
-	 * Lock CPU stack in DTLB.
-	 */
-	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-		 
-	if (!overlaps((uintptr_t) CPU->stack, PAGE_SIZE, base, (1 <<
-		KERNEL_PAGE_WIDTH))) {
-		/*
-		 * Kernel stack of this processor is not locked in DTLB.
-		 * First, demap any already existing mappings.
-		 * Second, create a locked mapping for it.
-		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, (uintptr_t)
-			CPU->stack);
-		dtlb_insert_mapping((uintptr_t) CPU->stack, KA2PA(CPU->stack),
-			PAGESIZE_8K, true, true);
-	}
 }
 
 /** Read version information from the current processor. */

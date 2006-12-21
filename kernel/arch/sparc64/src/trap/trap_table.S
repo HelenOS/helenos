@@ -742,11 +742,6 @@ fill_0_normal_tl1:
 	rdpr %tnpc, %g3
 	rd %y, %g4
 
-	/*
-	 * The following memory accesses will not fault
-	 * because special provisions are made to have
-	 * the kernel stack of THREAD locked in DTLB.
-	 */
 	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
 	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
 	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
