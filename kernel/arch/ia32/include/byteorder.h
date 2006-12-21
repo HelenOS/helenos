@@ -41,8 +41,8 @@
 #define uint32_t_le2host(n)		(n)
 #define uint64_t_le2host(n)		(n)
 
-#define uint32_t_be2host(n)		uint64_t_byteorder_swap(n)
-#define uint64_t_be2host(n)		uint32_t_byteorder_swap(n)
+#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
 
 #endif
 
