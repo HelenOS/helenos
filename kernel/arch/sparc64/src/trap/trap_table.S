@@ -629,10 +629,18 @@ fill_0_normal_tl1:
  * within a trap context possible. It is called from several other trap
  * handlers.
  *
- * This function can be entered either with interrupt globals or alternate globals.
- * Memory management trap handlers are obliged to switch to one of those global sets
- * prior to calling this function. Register window management functions are not
- * allowed to modify the alternate global registers.
+ * This function can be entered either with interrupt globals or alternate
+ * globals. Memory management trap handlers are obliged to switch to one of
+ * those global sets prior to calling this function. Register window management
+ * functions are not allowed to modify the alternate global registers.
+ *
+ * The kernel is designed to work on trap levels 0 - 4. For instance, the
+ * following can happen:
+ * TL0: kernel thread runs (CANSAVE=0, kernel stack not in DTLB)
+ * TL1: preemptible trap handler started after a tick interrupt
+ * TL2: preemptible trap handler did SAVE
+ * TL3: spill handler touched the kernel stack  
+ * TL4: hardware or software failure
  *
  * Input registers:
  *	%g1		Address of function to call.

@@ -329,10 +329,6 @@ kernel_image_start:
  * Create small stack to be used by the bootstrap processor. It is going to be
  * used only for a very limited period of time, but we switch to it anyway,
  * just to be sure we are properly initialized.
- *
- * What is important is that this piece of memory is covered by the 4M DTLB
- * locked entry and therefore there will be no surprises like deadly
- * combinations of spill trap and and TLB miss on the stack address.
  */
 
 #define INITIAL_STACK_SIZE	1024
