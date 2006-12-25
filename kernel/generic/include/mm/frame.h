@@ -53,46 +53,57 @@
 #define STACK_FRAMES ONE_FRAME
 #endif
 
-#define ZONES_MAX       16      /**< Maximum number of zones in system */
+/** Maximum number of zones in system. */
+#define ZONES_MAX       	16
 
-#define ZONE_JOIN       0x1	/**< If possible, merge with neighbouring zones */
+/** If possible, merge with neighbouring zones. */
+#define ZONE_JOIN       	0x1
 
-#define FRAME_KA		0x1	/* convert the frame address to kernel va */
-#define FRAME_ATOMIC 	        0x2	/* do not panic and do not sleep on failure */
-#define FRAME_NO_RECLAIM        0x4     /* do not start reclaiming when no free memory */
+/** Convert the frame address to kernel va. */
+#define FRAME_KA		0x1
+/** Do not panic and do not sleep on failure. */
+#define FRAME_ATOMIC 	        0x2
+/** Do not start reclaiming when no free memory. */
+#define FRAME_NO_RECLAIM        0x4
 
 static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
-	return (uintptr_t)(frame << FRAME_WIDTH);
+	return (uintptr_t) (frame << FRAME_WIDTH);
 }
 
 static inline pfn_t ADDR2PFN(uintptr_t addr)
 {
-	return (pfn_t)(addr >> FRAME_WIDTH);
+	return (pfn_t) (addr >> FRAME_WIDTH);
 }
 
 static inline count_t SIZE2FRAMES(size_t size)
 {
 	if (!size)
 		return 0;
-	return (count_t)((size-1) >> FRAME_WIDTH)+1;
+	return (count_t) ((size - 1) >> FRAME_WIDTH) + 1;
 }
 
-#define IS_BUDDY_ORDER_OK(index, order)		((~(((unative_t) -1) << (order)) & (index)) == 0)
-#define IS_BUDDY_LEFT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+#define IS_BUDDY_ORDER_OK(index, order)		\
+	((~(((unative_t) -1) << (order)) & (index)) == 0)
+#define IS_BUDDY_LEFT_BLOCK(zone, frame)	\
+	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	\
+	(((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	\
+	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
+#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	\
+	(((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
-#define frame_alloc(order, flags)		frame_alloc_generic(order, flags, NULL)
+#define frame_alloc(order, flags)		\
+	frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void * frame_alloc_generic(uint8_t order, int flags, int *pzone);
+extern void *frame_alloc_generic(uint8_t order, int flags, int *pzone);
 extern void frame_free(uintptr_t frame);
 extern void frame_reference_add(pfn_t pfn);
 
 extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
-void * frame_get_parent(pfn_t frame, int hint);
+void *frame_get_parent(pfn_t frame, int hint);
 void frame_set_parent(pfn_t frame, void *data, int hint);
 void frame_mark_unavailable(pfn_t start, count_t count);
 uintptr_t zone_conf_size(count_t count);

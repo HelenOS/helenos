@@ -83,7 +83,7 @@ typedef struct {
 	count_t free_count;	/**< number of free frame_t structures */
 	count_t busy_count;	/**< number of busy frame_t structures */
 	
-	buddy_system_t * buddy_system; /**< buddy system for the zone */
+	buddy_system_t *buddy_system; /**< buddy system for the zone */
 	int flags;
 } zone_t;
 
@@ -176,13 +176,13 @@ static int zones_add_zone(zone_t *newzone)
 
 /**
  * Try to find a zone where can we find the frame
- *
+ 
+ * Assume interrupts are disabled.
+ 
  * @param frame Frame number contained in zone
  * @param pzone If not null, it is used as zone hint. Zone index
  *              is filled into the variable on success. 
- * @return Pointer to LOCKED zone containing frame
- *
- * Assume interrupts disable
+ * @return Pointer to locked zone containing frame
  */
 static zone_t * find_zone_and_lock(pfn_t frame, int *pzone)
 {
@@ -222,10 +222,9 @@ static int zone_can_alloc(zone_t *z, uint8_t order)
 	return buddy_system_can_alloc(z->buddy_system, order);
 }
 
-/**
- * Find AND LOCK zone that can allocate order frames
+/** Find and lock zone that can allocate order frames.
  *
- * Assume interrupts are disabled!!
+ * Assume interrupts are disabled.
  *
  * @param order Size (2^order) of free space we are trying to find
  * @param pzone Pointer to preferred zone or NULL, on return contains zone number
@@ -260,8 +259,9 @@ static zone_t * find_free_zone_and_lock(uint8_t order, int *pzone)
 	return NULL;
 }
 
-/********************************************/
+/**************************/
 /* Buddy system functions */
+/**************************/
 
 /** Buddy system find_block implementation
  *
@@ -436,8 +436,9 @@ static struct buddy_system_operations  zone_buddy_system_operations = {
 	.print_id = zone_buddy_print_id
 };
 
-/*************************************/
+/******************/
 /* Zone functions */
+/******************/
 
 /** Allocate frame in particular zone
  *
@@ -534,7 +535,6 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
  * @param z1 Zone to merge
  * @param z2 Zone to merge
  */
-
 static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 {
 	uint8_t max_order;
