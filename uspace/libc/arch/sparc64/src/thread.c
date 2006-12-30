@@ -37,10 +37,20 @@
 #include <thread.h>
 #include <malloc.h>
 
-/** Allocate TLS & TCB for initial module threads
+/*
+ * sparc64 uses thread-local storage data structures, variant II, as described
+ * in:
+ * 	Drepper U.: ELF Handling For Thread-Local Storage, 2005
+ */
+
+/** Allocate TLS variant II data structures for a thread.
  *
- * @param data Start of data section
- * @return pointer to tcb_t structure
+ * Only static model is supported.
+ *
+ * @param data Pointer to pointer to thread local data. This is actually an
+ * 	output argument.
+ * @param size Size of thread local data.
+ * @return Pointer to TCB structure.
  */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
@@ -54,9 +64,16 @@ tcb_t * __alloc_tls(void **data, size_t size)
 	return tcb;
 }
 
+/** Free TLS variant II data structures of a thread.
+ *
+ * Only static model is supported.
+ *
+ * @param tcb Pointer to TCB structure.
+ * @param size Size of thread local data.
+ */
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	void *start = ((void *)tcb) - size;
+	void *start = ((void *) tcb) - size;
 	free(start);
 }
 

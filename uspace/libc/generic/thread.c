@@ -55,12 +55,14 @@ extern char _tdata_end;
 extern char _tbss_start;
 extern char _tbss_end;
 
-/** Create Thread Local storage area, return pointer to TCB(ThreadControlBlock)
+/** Create TLS (Thread Local Storage) data structures.
  *
- * !! The code requires, that sections .tdata and .tbss are adjacent.
- *    It may be changed in the future.
+ * The code requires, that sections .tdata and .tbss are adjacent. It may be
+ * changed in the future.
+ *
+ * @return Pointer to TCB.
  */
-tcb_t * __make_tls(void)
+tcb_t *__make_tls(void)
 {
 	void *data;
 	tcb_t *tcb;
@@ -68,8 +70,16 @@ tcb_t * __make_tls(void)
 	
 	tcb = __alloc_tls(&data, tls_size);
 	
+	/*
+	 * Copy thread local data from the initialization image.
+	 */
 	memcpy(data, &_tdata_start, &_tdata_end - &_tdata_start);
-	memset(data + (&_tbss_start-&_tdata_start), 0, &_tbss_end-&_tbss_start);
+	/*
+	 * Zero out the thread local uninitialized data.
+	 */
+	memset(data + (&_tbss_start - &_tdata_start), 0, &_tbss_end -
+		&_tbss_start);
+
 	return tcb;
 }
 
@@ -87,8 +97,6 @@ void __free_tls(tcb_t *tcb)
  * directly.
  *
  * @param uarg Pointer to userspace argument structure.
- *
- * TODO: Thread stack pages memory leak
  */
 void __thread_main(uspace_arg_t *uarg)
 {
@@ -124,7 +132,7 @@ int thread_create(void (* function)(void *), void *arg, char *name)
 	char *stack;
 	uspace_arg_t *uarg;
 
-	stack = (char *) malloc(getpagesize()*THREAD_INITIAL_STACK_PAGES_NO);
+	stack = (char *) malloc(getpagesize() * THREAD_INITIAL_STACK_PAGES_NO);
 	if (!stack)
 		return -1;
 		

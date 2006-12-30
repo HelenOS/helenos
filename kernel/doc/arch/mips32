@@ -14,7 +14,7 @@ CPU
 	o QED R4600
 
 EMULATORS AND VIRTUALIZERS
-	o msim 1.2.8
+	o msim 1.2.12
         o gxemul - both big and little endian
         o simics 2.2.19
 

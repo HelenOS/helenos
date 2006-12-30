@@ -33,10 +33,6 @@
 /**
  * @file
  * @brief	sparc64 TLS functions.
- *
- * The implementation is based on the IA-32 implementation which was also
- * designed by Sun and is virtually the same, except the TCB is stored in
- * %g7 (of the normal set).
  */
 
 #ifndef LIBC_sparc64_THREAD_H_

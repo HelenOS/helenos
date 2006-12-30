@@ -28,14 +28,6 @@
 
 #include <libarch/context_offset.h>
 
-/**
- * Both context_save_arch() and context_restore_arch() are
- * leaf-optimized procedures. This kind of optimization
- * is very important and prevents any implicit window
- * spill/fill/clean traps in these very core kernel
- * functions.
- */
-	
 .text   
 
 .global context_save
