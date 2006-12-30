@@ -101,7 +101,7 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Floating-point Trap vector",
 	"Lower-Privilege Transfer Trap vector",
 	"Taken Branch Trap vector",
-	"Single STep Trap vector",
+	"Single Step Trap vector",
 	"Reserved",
 	"Reserved",
 	"Reserved",
