@@ -35,13 +35,13 @@
 #ifndef KERN_sparc64_TTE_H_
 #define KERN_sparc64_TTE_H_
 
-#define TTE_G		(1<<0)
-#define TTE_W		(1<<1)
-#define TTE_P		(1<<2)
-#define TTE_E		(1<<3)
-#define TTE_CV		(1<<4)
-#define TTE_CP		(1<<5)
-#define TTE_L		(1<<6)
+#define TTE_G		(1 << 0)
+#define TTE_W		(1 << 1)
+#define TTE_P		(1 << 2)
+#define TTE_E		(1 << 3)
+#define TTE_CV		(1 << 4)
+#define TTE_CP		(1 << 5)
+#define TTE_L		(1 << 6)
 
 #define TTE_V_SHIFT	63
 #define TTE_SIZE_SHIFT	61
