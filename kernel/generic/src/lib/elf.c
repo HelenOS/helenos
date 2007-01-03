@@ -135,19 +135,19 @@ char *elf_error(int rc)
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	switch (entry->p_type) {
-	    case PT_NULL:
-	    case PT_PHDR:
+	case PT_NULL:
+	case PT_PHDR:
 		break;
-	    case PT_LOAD:
+	case PT_LOAD:
 		return load_segment(entry, elf, as);
 		break;
-	    case PT_DYNAMIC:
-	    case PT_INTERP:
-	    case PT_SHLIB:
-	    case PT_NOTE:
-	    case PT_LOPROC:
-	    case PT_HIPROC:
-	    default:
+	case PT_DYNAMIC:
+	case PT_INTERP:
+	case PT_SHLIB:
+	case PT_NOTE:
+	case PT_LOPROC:
+	case PT_HIPROC:
+	default:
 		return EE_UNSUPPORTED;
 		break;
 	}
@@ -214,7 +214,7 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	switch (entry->sh_type) {
-	    default:
+	default:
 		break;
 	}
 	
