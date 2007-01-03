@@ -50,6 +50,7 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
+#include <arch/simics/ega.h>
 
 void arch_pre_main(void)
 {
@@ -81,10 +82,16 @@ void arch_pre_mm_init(void)
 	
 }
 
+
+
 void arch_post_mm_init(void)
 {
 	irq_init(INR_COUNT, INR_COUNT);
+#ifdef SKI
 	ski_init_console();
+#else	
+	ega_init();
+#endif	
 	it_init();	
 }
 
@@ -98,16 +105,18 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	thread_t *t;
 
 	if (config.cpu_active == 1) {
 		/*
 		 * Create thread that polls keyboard.
 		 */
-		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll");
+#ifdef SKI
+		thread_t *t;
+		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 		if (!t)
 			panic("cannot create kkbdpoll\n");
 		thread_ready(t);
+#endif		
 	}
 }
 
@@ -155,14 +164,18 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
+#ifdef SKI
 	ski_kbd_grab();
+#endif	
 }
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
+#ifdef SKI
 	ski_kbd_release();
+#endif
 }
 
 /** @}

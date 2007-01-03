@@ -51,7 +51,7 @@
 #define IVT_FIRST       0
 
 /** External Interrupt vectors. */
-#define INTERRUPT_TIMER		0
+#define INTERRUPT_TIMER		255
 #define INTERRUPT_SPURIOUS	15
 
 /** General Exception codes. */

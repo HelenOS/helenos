@@ -105,7 +105,7 @@ static void code_execute(call_t *call, irq_code_t *code)
 			outb((long)code->cmds[i].addr, code->cmds[i].value);
 			break;
 #endif
-#if defined(ia64) 
+#if defined(ia64) && defined(SKI)
 		case CMD_IA64_GETCHAR:
 			dstval = _getc(&ski_uconsole);
 			break;

@@ -42,7 +42,9 @@ CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
-DEFS += -D__64_BITS__ -DINIT0_ADDRESS=$(INIT0_ADDRESS) -DINIT0_SIZE=$(INIT0_SIZE)
+DEFS += -D__64_BITS__ -DINIT0_ADDRESS=$(INIT0_ADDRESS) -DINIT0_SIZE=$(INIT0_SIZE) -D$(MACHINE)
+
+
 
 ## Compile with page hash table support.
 #
@@ -69,7 +71,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ia64.c \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/ski/ski.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/ivt.S \
 	arch/$(ARCH)/src/interrupt.c \
@@ -81,3 +82,14 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/proc/scheduler.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/it.c
+
+ifeq ($(MACHINE),ski)
+	ARCH_SOURCES += arch/$(ARCH)/src/ski/ski.c 
+	DEFS += -DSKI
+endif
+
+ifeq ($(MACHINE),i460GX)
+	ARCH_SOURCES += arch/$(ARCH)/src/simics/ega.c
+	DEFS += -DI460GX
+endif
+
