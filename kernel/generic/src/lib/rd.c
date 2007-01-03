@@ -65,7 +65,7 @@ int init_rd(rd_header * header, size_t size)
 		break;
 	case RD_DATA_MSB:
 		hsize = uint32_t_be2host(header->header_size);
-		dsize = uint64_t_le2host(header->data_size);
+		dsize = uint64_t_be2host(header->data_size);
 		break;
 	default:
 		return RE_UNSUPPORTED;
