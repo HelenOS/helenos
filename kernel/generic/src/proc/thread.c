@@ -80,13 +80,16 @@ char *thread_states[] = {
 	"Undead"
 }; 
 
-/** Lock protecting the threads_btree B+tree. For locking rules, see declaration thereof. */
+/** Lock protecting the threads_btree B+tree.
+ *
+ * For locking rules, see declaration thereof.
+ */
 SPINLOCK_INITIALIZE(threads_lock);
 
 /** B+tree of all threads.
  *
- * When a thread is found in the threads_btree B+tree, it is guaranteed to exist as long
- * as the threads_lock is held.
+ * When a thread is found in the threads_btree B+tree, it is guaranteed to
+ * exist as long as the threads_lock is held.
  */
 btree_t threads_btree;		
 
@@ -98,11 +101,10 @@ static slab_cache_t *thread_slab;
 slab_cache_t *fpu_context_slab;
 #endif
 
-/** Thread wrapper
+/** Thread wrapper.
  *
- * This wrapper is provided to ensure that every thread
- * makes a call to thread_exit() when its implementing
- * function returns.
+ * This wrapper is provided to ensure that every thread makes a call to
+ * thread_exit() when its implementing function returns.
  *
  * interrupts_disable() is assumed.
  *
@@ -201,14 +203,12 @@ void thread_init(void)
 {
 	THREAD = NULL;
 	atomic_set(&nrdy,0);
-	thread_slab = slab_cache_create("thread_slab", 
-					sizeof(thread_t),0, 
-					thr_constructor, thr_destructor, 0);
+	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
+		thr_constructor, thr_destructor, 0);
+
 #ifdef ARCH_HAS_FPU
-	fpu_context_slab = slab_cache_create("fpu_slab",
-					     sizeof(fpu_context_t),
-					     FPU_CONTEXT_ALIGN,
-					     NULL, NULL, 0);
+	fpu_context_slab = slab_cache_create("fpu_slab", sizeof(fpu_context_t),
+		FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 
 	btree_create(&threads_btree);
@@ -234,7 +234,7 @@ void thread_ready(thread_t *t)
 
 	ASSERT(! (t->state == Ready));
 
-	i = (t->priority < RQ_COUNT -1) ? ++t->priority : t->priority;
+	i = (t->priority < RQ_COUNT - 1) ? ++t->priority : t->priority;
 	
 	cpu = CPU;
 	if (t->flags & THREAD_FLAG_WIRED) {
@@ -267,15 +267,15 @@ void thread_ready(thread_t *t)
  */
 void thread_destroy(thread_t *t)
 {
-	bool destroy_task = false;	
+	bool destroy_task = false;
 
 	ASSERT(t->state == Exiting || t->state == Undead);
 	ASSERT(t->task);
 	ASSERT(t->cpu);
 
 	spinlock_lock(&t->cpu->lock);
-	if(t->cpu->fpu_owner==t)
-		t->cpu->fpu_owner=NULL;
+	if(t->cpu->fpu_owner == t)
+		t->cpu->fpu_owner = NULL;
 	spinlock_unlock(&t->cpu->lock);
 
 	spinlock_unlock(&t->lock);
@@ -310,12 +310,14 @@ void thread_destroy(thread_t *t)
  * @param task      Task to which the thread belongs.
  * @param flags     Thread flags.
  * @param name      Symbolic name.
- * @param uncounted Thread's accounting doesn't affect accumulated task accounting.
+ * @param uncounted Thread's accounting doesn't affect accumulated task
+ * 	 accounting.
  *
  * @return New thread's structure on success, NULL on failure.
  *
  */
-thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flags, char *name, bool uncounted)
+thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
+	int flags, char *name, bool uncounted)
 {
 	thread_t *t;
 	ipl_t ipl;
@@ -325,7 +327,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 		return NULL;
 	
 	/* Not needed, but good for debugging */
-	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES, 0);
+	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES,
+		0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tidlock);
@@ -334,7 +337,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	interrupts_restore(ipl);
 	
 	context_save(&t->saved_context);
-	context_set(&t->saved_context, FADDR(cushion), (uintptr_t) t->kstack, THREAD_STACK_SIZE);
+	context_set(&t->saved_context, FADDR(cushion), (uintptr_t) t->kstack,
+		THREAD_STACK_SIZE);
 	
 	the_initialize((the_t *) t->kstack);
 	
@@ -376,7 +380,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	t->fpu_context_exists = 0;
 	t->fpu_context_engaged = 0;
 
-	thread_create_arch(t);		/* might depend on previous initialization */
+	/* might depend on previous initialization */
+	thread_create_arch(t);	
 	
 	/*
 	 * Attach to the containing task.
@@ -398,7 +403,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 	 * Register this thread in the system-wide list.
 	 */
 	spinlock_lock(&threads_lock);
-	btree_insert(&threads_btree, (btree_key_t) ((uintptr_t) t), (void *) t, NULL);
+	btree_insert(&threads_btree, (btree_key_t) ((uintptr_t) t), (void *) t,
+		NULL);
 	spinlock_unlock(&threads_lock);
 	
 	interrupts_restore(ipl);
@@ -408,9 +414,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task, int flag
 
 /** Terminate thread.
  *
- * End current thread execution and switch it to the exiting
- * state. All pending timeouts are executed.
- *
+ * End current thread execution and switch it to the exiting state. All pending
+ * timeouts are executed.
  */
 void thread_exit(void)
 {
@@ -419,7 +424,8 @@ void thread_exit(void)
 restart:
 	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
-	if (THREAD->timeout_pending) { /* busy waiting for timeouts in progress */
+	if (THREAD->timeout_pending) { 
+		/* busy waiting for timeouts in progress */
 		spinlock_unlock(&THREAD->lock);
 		interrupts_restore(ipl);
 		goto restart;
@@ -443,7 +449,7 @@ restart:
  */
 void thread_sleep(uint32_t sec)
 {
-	thread_usleep(sec*1000000);
+	thread_usleep(sec * 1000000);
 }
 
 /** Wait for another thread to exit.

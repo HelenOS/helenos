@@ -59,9 +59,9 @@ cpu_t *cpus;
 void cpu_init(void) {
 	int i, j;
 	
-	#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
-	#endif /* CONFIG_SMP */
+#endif /* CONFIG_SMP */
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
 					FRAME_ATOMIC);
 		if (!cpus)
@@ -83,9 +83,9 @@ void cpu_init(void) {
 			}
 		}
 		
-	#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
 	}
-	#endif /* CONFIG_SMP */
+#endif /* CONFIG_SMP */
 
 	CPU = &cpus[config.cpu_active-1];
 	

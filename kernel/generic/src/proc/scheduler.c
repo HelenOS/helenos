@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (C) 2001-2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -142,7 +142,8 @@ restart:
 			/* Might sleep */
 			spinlock_unlock(&THREAD->lock);
 			spinlock_unlock(&CPU->lock);
-			THREAD->saved_fpu_context = slab_alloc(fpu_context_slab, 0);
+			THREAD->saved_fpu_context =
+				slab_alloc(fpu_context_slab, 0);
 			/* We may have switched CPUs during slab_alloc */
 			goto restart; 
 		}
@@ -231,7 +232,7 @@ loop:
 		spinlock_lock(&t->lock);
 		t->cpu = CPU;
 
-		t->ticks = us2ticks((i+1)*10000);
+		t->ticks = us2ticks((i + 1) * 10000);
 		t->priority = i;	/* correct rq index */
 
 		/*
@@ -267,7 +268,7 @@ static void relink_rq(int start)
 	list_initialize(&head);
 	spinlock_lock(&CPU->lock);
 	if (CPU->needs_relink > NEEDS_RELINK_MAX) {
-		for (i = start; i<RQ_COUNT-1; i++) {
+		for (i = start; i < RQ_COUNT - 1; i++) {
 			/* remember and empty rq[i + 1] */
 			r = &CPU->rq[i + 1];
 			spinlock_lock(&r->lock);
@@ -331,9 +332,9 @@ void scheduler(void)
 		}
 
 		/*
-		 * Interrupt priority level of preempted thread is recorded here
-		 * to facilitate scheduler() invocations from interrupts_disable()'d
-		 * code (e.g. waitq_sleep_timeout()). 
+		 * Interrupt priority level of preempted thread is recorded
+		 * here to facilitate scheduler() invocations from
+		 * interrupts_disable()'d code (e.g. waitq_sleep_timeout()). 
 		 */
 		THREAD->saved_context.ipl = ipl;
 	}
@@ -394,8 +395,8 @@ repeat:
 				thread_destroy(THREAD);
 			} else {
 				/*
-				 * The thread structure is kept allocated until somebody
-				 * calls thread_detach() on it.
+				 * The thread structure is kept allocated until
+				 * somebody calls thread_detach() on it.
 				 */
 				if (!spinlock_trylock(&THREAD->join_wq.lock)) {
 					/*
@@ -421,13 +422,15 @@ repeat:
 			THREAD->priority = -1;
 
 			/*
-			 * We need to release wq->lock which we locked in waitq_sleep().
-			 * Address of wq->lock is kept in THREAD->sleep_queue.
+			 * We need to release wq->lock which we locked in
+			 * waitq_sleep(). Address of wq->lock is kept in
+			 * THREAD->sleep_queue.
 			 */
 			spinlock_unlock(&THREAD->sleep_queue->lock);
 
 			/*
-			 * Check for possible requests for out-of-context invocation.
+			 * Check for possible requests for out-of-context
+			 * invocation.
 			 */
 			if (THREAD->call_me) {
 				THREAD->call_me(THREAD->call_me_with);
@@ -443,7 +446,8 @@ repeat:
 			/*
 			 * Entering state is unexpected.
 			 */
-			panic("tid%d: unexpected state %s\n", THREAD->tid, thread_states[THREAD->state]);
+			panic("tid%d: unexpected state %s\n", THREAD->tid,
+				thread_states[THREAD->state]);
 			break;
 		}
 
@@ -459,7 +463,8 @@ repeat:
 	relink_rq(priority);		
 
 	/*
-	 * If both the old and the new task are the same, lots of work is avoided.
+	 * If both the old and the new task are the same, lots of work is
+	 * avoided.
 	 */
 	if (TASK != THREAD->task) {
 		as_t *as1 = NULL;
@@ -476,7 +481,8 @@ repeat:
 		spinlock_unlock(&THREAD->task->lock);
 		
 		/*
-		 * Note that it is possible for two tasks to share one address space.
+		 * Note that it is possible for two tasks to share one address
+		 * space.
 		 */
 		if (as1 != as2) {
 			/*
@@ -493,8 +499,9 @@ repeat:
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (priority=%d,ticks=%lld,nrdy=%ld)\n",
-		CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks, atomic_get(&CPU->nrdy));
+	printf("cpu%d: tid %d (priority=%d, ticks=%lld, nrdy=%ld)\n",
+		CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
+			atomic_get(&CPU->nrdy));
 #endif	
 
 	/*
@@ -508,7 +515,8 @@ repeat:
 	before_thread_runs();
 
 	/*
-	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to thread's stack.
+	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to
+	 * thread's stack.
 	 */
 	the_copy(THE, (the_t *) THREAD->kstack);
 	
@@ -555,10 +563,11 @@ not_satisfied:
 		goto satisfied;
 
 	/*
-	 * Searching least priority queues on all CPU's first and most priority queues on all CPU's last.
+	 * Searching least priority queues on all CPU's first and most priority
+	 * queues on all CPU's last.
 	 */
-	for (j=RQ_COUNT-1; j >= 0; j--) {
-		for (i=0; i < config.cpu_active; i++) {
+	for (j= RQ_COUNT - 1; j >= 0; j--) {
+		for (i = 0; i < config.cpu_active; i++) {
 			link_t *l;
 			runq_t *r;
 			cpu_t *cpu;
@@ -567,7 +576,8 @@ not_satisfied:
 
 			/*
 			 * Not interested in ourselves.
-			 * Doesn't require interrupt disabling for kcpulb has THREAD_FLAG_WIRED.
+			 * Doesn't require interrupt disabling for kcpulb has
+			 * THREAD_FLAG_WIRED.
 			 */
 			if (CPU == cpu)
 				continue;
@@ -588,13 +598,16 @@ not_satisfied:
 			while (l != &r->rq_head) {
 				t = list_get_instance(l, thread_t, rq_link);
 				/*
-				 * We don't want to steal CPU-wired threads neither threads already
-				 * stolen. The latter prevents threads from migrating between CPU's
-				 * without ever being run. We don't want to steal threads whose FPU
-				 * context is still in CPU.
+				 * We don't want to steal CPU-wired threads
+				 * neither threads already stolen. The latter
+				 * prevents threads from migrating between CPU's
+				 * without ever being run. We don't want to
+				 * steal threads whose FPU context is still in
+				 * CPU.
 				 */
 				spinlock_lock(&t->lock);
-				if ((!(t->flags & (THREAD_FLAG_WIRED | THREAD_FLAG_STOLEN))) &&
+				if ((!(t->flags & (THREAD_FLAG_WIRED |
+					THREAD_FLAG_STOLEN))) &&
 					(!(t->fpu_context_engaged)) ) {
 					/*
 					 * Remove t from r.
@@ -621,8 +634,9 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, avg=%nd\n",
-					CPU->id, t->tid, CPU->id, atomic_get(&CPU->nrdy),
+				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, "
+					"avg=%nd\n", CPU->id, t->tid, CPU->id,
+					atomic_get(&CPU->nrdy),
 					atomic_get(&nrdy) / config.cpu_active);
 #endif
 				t->flags |= THREAD_FLAG_STOLEN;
@@ -637,7 +651,8 @@ not_satisfied:
 					goto satisfied;
 					
 				/*
-				 * We are not satisfied yet, focus on another CPU next time.
+				 * We are not satisfied yet, focus on another
+				 * CPU next time.
 				 */
 				k++;
 				
@@ -688,9 +703,10 @@ void sched_print_list(void)
 
 		spinlock_lock(&cpus[cpu].lock);
 		printf("cpu%d: address=%p, nrdy=%ld, needs_relink=%ld\n",
-		       cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy), cpus[cpu].needs_relink);
+			cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
+			cpus[cpu].needs_relink);
 		
-		for (i=0; i<RQ_COUNT; i++) {
+		for (i = 0; i < RQ_COUNT; i++) {
 			r = &cpus[cpu].rq[i];
 			spinlock_lock(&r->lock);
 			if (!r->n) {
@@ -698,10 +714,11 @@ void sched_print_list(void)
 				continue;
 			}
 			printf("\trq[%d]: ", i);
-			for (cur=r->rq_head.next; cur!=&r->rq_head; cur=cur->next) {
+			for (cur = r->rq_head.next; cur != &r->rq_head;
+				cur = cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
 				printf("%d(%s) ", t->tid,
-				       thread_states[t->state]);
+					thread_states[t->state]);
 			}
 			printf("\n");
 			spinlock_unlock(&r->lock);

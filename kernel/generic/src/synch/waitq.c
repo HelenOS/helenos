@@ -188,20 +188,20 @@ out:
  * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
  
  * If usec is greater than zero, regardless of the value of the
- * SYNCH_FLAGS_NON_BLOCKING bit in flags, the call will not return until either timeout,
- * interruption or wakeup comes. 
+ * SYNCH_FLAGS_NON_BLOCKING bit in flags, the call will not return until either
+ * timeout, interruption or wakeup comes. 
  *
- * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is not set in flags, the call
- * will not return until wakeup or interruption comes.
+ * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is not set in flags,
+ * the call will not return until wakeup or interruption comes.
  *
- * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the call will
- * immediately return, reporting either success or failure.
+ * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the
+ * call will immediately return, reporting either success or failure.
  *
- * @return 	Returns one of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT, ESYNCH_INTERRUPTED,
- *      	ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
+ * @return One of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT, ESYNCH_INTERRUPTED,
+ * ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
  *
- * @li ESYNCH_WOULD_BLOCK means that the sleep failed because at the time
- * of the call there was no pending wakeup.
+ * @li ESYNCH_WOULD_BLOCK means that the sleep failed because at the time of the
+ * call there was no pending wakeup.
  *
  * @li ESYNCH_TIMEOUT means that the sleep timed out.
  *
@@ -351,7 +351,8 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 			return ESYNCH_TIMEOUT;
 		}
 		THREAD->timeout_pending = true;
-		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec, waitq_timeouted_sleep, THREAD);
+		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec,
+			waitq_timeouted_sleep, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->head);
@@ -364,7 +365,8 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 
 	spinlock_unlock(&THREAD->lock);
 
-	scheduler(); 	/* wq->lock is released in scheduler_separated_stack() */
+	/* wq->lock is released in scheduler_separated_stack() */
+	scheduler(); 
 	
 	return ESYNCH_OK_BLOCKED;
 }
@@ -372,16 +374,15 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 
 /** Wake up first thread sleeping in a wait queue
  *
- * Wake up first thread sleeping in a wait queue.
- * This is the SMP- and IRQ-safe wrapper meant for
- * general use.
+ * Wake up first thread sleeping in a wait queue. This is the SMP- and IRQ-safe
+ * wrapper meant for general use.
  *
- * Besides its 'normal' wakeup operation, it attempts
- * to unregister possible timeout.
+ * Besides its 'normal' wakeup operation, it attempts to unregister possible
+ * timeout.
  *
  * @param wq Pointer to wait queue.
- * @param all If this is non-zero, all sleeping threads
- *        will be woken up and missed count will be zeroed.
+ * @param all If this is non-zero, all sleeping threads will be woken up and
+ * 	missed count will be zeroed.
  */
 void waitq_wakeup(waitq_t *wq, bool all)
 {
@@ -398,13 +399,12 @@ void waitq_wakeup(waitq_t *wq, bool all)
 
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
  *
- * This is the internal SMP- and IRQ-unsafe version
- * of waitq_wakeup(). It assumes wq->lock is already
- * locked and interrupts are already disabled.
+ * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup(). It
+ * assumes wq->lock is already locked and interrupts are already disabled.
  *
  * @param wq Pointer to wait queue.
- * @param all If this is non-zero, all sleeping threads
- *        will be woken up and missed count will be zeroed.
+ * @param all If this is non-zero, all sleeping threads will be woken up and
+ * 	missed count will be zeroed.
  */
 void _waitq_wakeup_unsafe(waitq_t *wq, bool all)
 {
