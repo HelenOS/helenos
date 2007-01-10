@@ -265,19 +265,6 @@ static inline uint64_t ver_read(void)
 	return v;
 }
 
-/** Read Trap Base Address register.
- *
- * @return Current value in TBA.
- */
-static inline uint64_t tba_read(void)
-{
-	uint64_t v;
-	
-	__asm__ volatile ("rdpr %%tba, %0\n" : "=r" (v));
-	
-	return v;
-}
-
 /** Read Trap Program Counter register.
  *
  * @return Current value in TPC.
@@ -300,6 +287,19 @@ static inline uint64_t tl_read(void)
 	uint64_t v;
 	
 	__asm__ volatile ("rdpr %%tl, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Read Trap Base Address register.
+ *
+ * @return Current value in TBA.
+ */
+static inline uint64_t tba_read(void)
+{
+	uint64_t v;
+	
+	__asm__ volatile ("rdpr %%tba, %0\n" : "=r" (v));
 	
 	return v;
 }

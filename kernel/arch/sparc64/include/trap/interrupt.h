@@ -43,7 +43,7 @@
 /* IMAP register bits */
 #define IGN_MASK	0x7c0
 #define INO_MASK	0x1f
-#define IMAP_V_MASK	(1ULL<<31)
+#define IMAP_V_MASK	(1ULL << 31)
 
 #define IGN_SHIFT	6
 

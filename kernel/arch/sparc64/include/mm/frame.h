@@ -36,7 +36,7 @@
 #define KERN_sparc64_FRAME_H_
 
 #define FRAME_WIDTH		13	/* 8K */
-#define FRAME_SIZE		(1<<FRAME_WIDTH)
+#define FRAME_SIZE		(1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__

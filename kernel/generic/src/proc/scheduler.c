@@ -501,7 +501,7 @@ repeat:
 #ifdef SCHEDULER_VERBOSE
 	printf("cpu%d: tid %d (priority=%d, ticks=%lld, nrdy=%ld)\n",
 		CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
-			atomic_get(&CPU->nrdy));
+		atomic_get(&CPU->nrdy));
 #endif	
 
 	/*

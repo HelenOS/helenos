@@ -39,7 +39,7 @@
 #ifndef KERN_sparc64_SYSCALL_TRAP_H_
 #define KERN_sparc64_SYSCALL_TRAP_H_
 
-#define TT_TRAP_INSTRUCTION(n)		(0x100+(n))
+#define TT_TRAP_INSTRUCTION(n)		(0x100 + (n))
 #define TT_TRAP_INSTRUCTION_LAST	TT_TRAP_INSTRUCTION(127)
 
 #ifdef __ASM__
