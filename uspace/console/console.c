@@ -86,7 +86,7 @@ static connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual
 static keyfield_t *interbuffer = NULL;		/**< Pointer to memory shared
 						 * with framebufer used for
 						 * faster virtual console
-						 *switching */
+						 * switching */
 
 static int kernel_pixmap = -1;	/**< Number of fb pixmap, where kernel
 				 * console is stored */
@@ -97,9 +97,9 @@ static int kernel_pixmap = -1;	/**< Number of fb pixmap, where kernel
  */
 static int find_free_connection(void) 
 {
-	int i = 0;
+	int i;
 	
-	for (i=0; i < CONSOLE_COUNT; i++) {
+	for (i = 0; i < CONSOLE_COUNT; i++) {
 		if (!connections[i].used)
 			return i;
 	}
@@ -148,8 +148,8 @@ static void write_char(int console, char key)
 	
 	switch (key) {
 	case '\n':
-		scr->position_y += 1;
-		scr->position_x =  0;
+		scr->position_y++;
+		scr->position_x = 0;
 		break;
 	case '\r':
 		break;
@@ -178,7 +178,7 @@ static void write_char(int console, char key)
 	if (scr->position_y >= scr->size_y) {
 		scr->position_y = scr->size_y - 1;
 		screenbuffer_clear_line(scr, scr->top_line);
-		scr->top_line = (scr->top_line+1) % scr->size_y;
+		scr->top_line = (scr->top_line + 1) % scr->size_y;
 		if (console == active_console)
 			async_msg(fb_info.phone, FB_SCROLL, 1);
 	}
@@ -263,8 +263,8 @@ static void change_console(int newcons)
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
 			for (j = 0; j < conn->screenbuffer.size_y; j++) 
-				interbuffer[i + j * conn->screenbuffer.size_x]
-					= *get_field_at(&(conn->screenbuffer),
+				interbuffer[i + j * conn->screenbuffer.size_x] =
+					*get_field_at(&(conn->screenbuffer),
 					i, j);
 		/* This call can preempt, but we are already at the end */
 		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL,
@@ -388,7 +388,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	screenbuffer_clear(&conn->screenbuffer);
 	
 	/* Accept the connection */
-	ipc_answer_fast(iid,0,0,0);
+	ipc_answer_fast(iid, 0, 0, 0);
 
 	while (1) {
 		async_serialize_end();
@@ -441,7 +441,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_SET_STYLE:
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_style(&conn->screenbuffer,arg1, arg2);
+			screenbuffer_set_style(&conn->screenbuffer, arg1, arg2);
 			if (consnum == active_console)
 				set_style_col(arg1, arg2);
 			break;
@@ -484,22 +484,22 @@ int main(int argc, char *argv[])
 	
 	/* Connect to keyboard driver */
 
-	while ((kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0))
-		< 0) {
+	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0);
+	while (kbd_phone < 0) {
 		usleep(10000);
+		kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0);
 	}
 	
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0)
-		{
 		return -1;
-	}
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	/* Connect to framebuffer driver */
 	
-	while ((fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0))
-		< 0) {
+	fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
+	while (fb_info.phone < 0) {
 		usleep(10000);
+		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
 	}
 	
 	/* Save old kernel screen */
@@ -510,7 +510,7 @@ int main(int argc, char *argv[])
 	/* Synchronize, the gcons can have something in queue */
 	async_req(fb_info.phone, FB_FLUSH, 0, NULL);
 	/* Enable double buffering */
-	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t)-1, 1);
+	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t) -1, 1);
 	
 	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows),
 		&(fb_info.cols)); 
@@ -529,15 +529,16 @@ int main(int argc, char *argv[])
 		
 		if (screenbuffer_init(&(connections[i].screenbuffer),
 			fb_info.cols, fb_info.rows) == NULL) {
-			/*FIXME: handle error */
+			/* FIXME: handle error */
 			return -1;
 		}
 	}
 	connections[KERNEL_CONSOLE].used = 1;
 	
-	if ((interbuffer = mmap(NULL, sizeof(keyfield_t) * fb_info.cols *
-		fb_info.rows, PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS |
-		MAP_PRIVATE, 0, 0)) != NULL) {
+	interbuffer = mmap(NULL,
+		sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
+		PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+	if (!interbuffer) {
 		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)
 			interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
 			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols
@@ -546,7 +547,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	curs_goto(0,0);
+	curs_goto(0, 0);
 	curs_visibility(connections[active_console].screenbuffer.is_cursor_visible);
 
 	/* Register at NS */

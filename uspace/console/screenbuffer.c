@@ -36,7 +36,9 @@
 #include <malloc.h>
 #include <unistd.h>
 
-/** Store one character to screenbuffer. Its position is determined by scr->position_x and scr->position_y.
+/** Store one character to screenbuffer. Its position is determined by
+ * scr->position_x and scr->position_y.
+ *
  * @param scr	screenbuffer
  * @param c	stored character
  */
@@ -58,7 +60,8 @@ void screenbuffer_putchar(screenbuffer_t *scr, char c)
  */
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y) 
 {
-	if ((scr->buffer = (keyfield_t *)malloc(sizeof(keyfield_t) * size_x * size_y)) == NULL) {
+	scr->buffer = (keyfield_t *) malloc(sizeof(keyfield_t) * size_x * size_y);
+	if (!scr->buffer) {
 		return NULL;
 	}
 	
@@ -99,8 +102,8 @@ void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
 	unsigned int i;
 	
 	for (i = 0; i < scr->size_x; i++) {
-		scr->buffer[i + line*scr->size_x].character = ' ';
-		scr->buffer[i + line*scr->size_x].style = scr->style;
+		scr->buffer[i + line * scr->size_x].character = ' ';
+		scr->buffer[i + line * scr->size_x].style = scr->style;
 	}
 }
 
@@ -142,4 +145,3 @@ void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned
  
 /** @}
  */
-

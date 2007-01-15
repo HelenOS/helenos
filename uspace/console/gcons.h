@@ -48,4 +48,3 @@ int gcons_mouse_btn(int state);
  
 /** @}
  */
-

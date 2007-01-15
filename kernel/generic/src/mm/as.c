@@ -232,7 +232,8 @@ void as_destroy(as_t *as)
  *
  * @return Address space area on success or NULL on failure.
  */
-as_area_t *as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
+as_area_t *
+as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 	       mem_backend_t *backend, mem_backend_data_t *backend_data)
 {
 	ipl_t ipl;

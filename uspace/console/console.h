@@ -49,8 +49,6 @@
 #define CONSOLE_CURSOR_VISIBILITY	1033
 
 #endif
-
  
 /** @}
  */
-
