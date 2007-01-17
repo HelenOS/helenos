@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2005 Martin Decky
- * Copyright (C) 2006 Jakub Jermar 
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,7 @@ char *release = RELEASE;
 /** Print version information. */
 static void version_print(void)
 {
-	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\nCopyright (C) 2006 HelenOS project\n", release, revision, timestamp);
+	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
 }
 
 void bootstrap(void)

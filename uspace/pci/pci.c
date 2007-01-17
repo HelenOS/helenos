@@ -1,8 +1,8 @@
 /*
  * HelenOS PCI driver.
  *
- * Copyright (C) 1997-2003 Martin Mares
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (c) 1997-2003 Martin Mares
+ * Copyright (c) 2006 Jakub Jermar
  *
  * (Based on libpci example.c written by Martin Mares.)
  *

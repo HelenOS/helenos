@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
- * Copyright (C) 2005-2006 Ondrej Palkovsky
+ * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005-2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Sergey Bondari
+ * Copyright (c) 2006 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

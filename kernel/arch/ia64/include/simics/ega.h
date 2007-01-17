@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Jakub Jermar
+ * Copyright (c) 2001-2004 Jakub Jermar
  * 2007 Jakub Vana 
  * All rights reserved.
  *

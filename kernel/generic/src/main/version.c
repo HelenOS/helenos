@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Jakub Jermar
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@
 #include <print.h>
 
 char *project = "SPARTAN kernel";
-char *copyright = "Copyright (C) 2001-2007 HelenOS project";
+char *copyright = "Copyright (c) 2001-2007 HelenOS project";
 char *release = RELEASE;
 char *name = NAME;
 char *arch = ARCH;

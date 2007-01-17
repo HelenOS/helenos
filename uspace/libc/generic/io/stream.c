@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2006 Josef Cejka
- * Copyright (C) 2006 Jakub Vana
+ * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

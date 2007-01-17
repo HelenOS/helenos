@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005 Josef Cejka
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
