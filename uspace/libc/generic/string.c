@@ -102,6 +102,21 @@ void *memmove(void *dst, const void *src, size_t n)
 	return (char *) src;
 }
 
+/** Compare two memory areas.
+ *
+ * @param s1	Pointer to the first area to compare.
+ * @param s2	Pointer to the second area to compare.
+ * @param len	Size of the first area in bytes. Both areas must have the same
+ *		length.
+ * @return	If len is 0, return zero. If the areas match, return zero.
+ *		Otherwise return non-zero.
+ */
+int bcmp(const char *s1, const char *s2, size_t len)
+{
+	for (; len && *s1++ == *s2++; len--)
+		;
+	return len;
+}
 
 /** Count the number of characters in the string, not including terminating 0.
  * @param str string
