@@ -149,30 +149,35 @@ static inline int COLOR(int color)
 }
 
 /* Conversion routines between different color representations */
-static void rgb_byte0888(void *dst, int rgb)
+static void
+rgb_byte0888(void *dst, int rgb)
 {
 	*(int *)dst = rgb;
 }
 
-static int byte0888_rgb(void *src)
+static int
+byte0888_rgb(void *src)
 {
 	return (*(int *)src) & 0xffffff;
 }
 
-static void bgr_byte0888(void *dst, int rgb)
+static void
+bgr_byte0888(void *dst, int rgb)
 {
 	*((uint32_t *) dst) = BLUE(rgb, 8) << 16 | GREEN(rgb, 8) << 8 |
 		RED(rgb, 8);
 }
 
-static int byte0888_bgr(void *src)
+static int
+byte0888_bgr(void *src)
 {
 	int color = *(uint32_t *)(src);
-	return ((color & 0xff) << 16) | (((color >> 8) & 0xff) << 8) | ((color
-		>> 16) & 0xff);
+	return ((color & 0xff) << 16) | (((color >> 8) & 0xff) << 8) |
+		((color >> 16) & 0xff);
 }
 
-static void rgb_byte888(void *dst, int rgb)
+static void
+rgb_byte888(void *dst, int rgb)
 {
 	uint8_t *scr = dst;
 #if defined(FB_INVERT_ENDIAN)
@@ -186,7 +191,8 @@ static void rgb_byte888(void *dst, int rgb)
 #endif
 }
 
-static int byte888_rgb(void *src)
+static int
+byte888_rgb(void *src)
 {
 	uint8_t *scr = src;
 #if defined(FB_INVERT_ENDIAN)
@@ -197,7 +203,8 @@ static int byte888_rgb(void *src)
 }
 
 /**  16-bit depth (5:5:5) */
-static void rgb_byte555(void *dst, int rgb)
+static void
+rgb_byte555(void *dst, int rgb)
 {
 	/* 5-bit, 5-bits, 5-bits */ 
 	*((uint16_t *)(dst)) = RED(rgb, 5) << 10 | GREEN(rgb, 5) << 5 |
@@ -205,15 +212,17 @@ static void rgb_byte555(void *dst, int rgb)
 }
 
 /** 16-bit depth (5:5:5) */
-static int byte555_rgb(void *src)
+static int
+byte555_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
-	return (((color >> 10) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x1f) <<
-		(8 + 3)) | ((color & 0x1f) << 3);
+	return (((color >> 10) & 0x1f) << (16 + 3)) |
+		(((color >> 5) & 0x1f) << (8 + 3)) | ((color & 0x1f) << 3);
 }
 
 /**  16-bit depth (5:6:5) */
-static void rgb_byte565(void *dst, int rgb)
+static void
+rgb_byte565(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
 	*((uint16_t *)(dst)) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 |
@@ -221,25 +230,28 @@ static void rgb_byte565(void *dst, int rgb)
 }
 
 /** 16-bit depth (5:6:5) */
-static int byte565_rgb(void *src)
+static int
+byte565_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
-	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) <<
-		(8 + 2)) | ((color & 0x1f) << 3);
+	return (((color >> 11) & 0x1f) << (16 + 3)) |
+		(((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (3:2:3) */
-static void rgb_byte8(void *dst, int rgb)
+static void
+rgb_byte8(void *dst, int rgb)
 {
 	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
-static int byte8_rgb(void *src)
+static int
+byte8_rgb(void *src)
 {
 	int color = *(uint8_t *)src;
-	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) <<
-		(8 + 6)) | ((color & 0x7) << 5);
+	return (((color >> 5) & 0x7) << (16 + 5)) |
+		(((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
 /** Put pixel into viewport 
@@ -249,14 +261,15 @@ static int byte8_rgb(void *src)
  * @param y Y coord relative to viewport
  * @param color RGB color 
  */
-static void putpixel(viewport_t *vport, unsigned int x, unsigned int y, int
-	color)
+static void
+putpixel(viewport_t *vport, unsigned int x, unsigned int y, int color)
 {
 	int dx = vport->x + x;
 	int dy = vport->y + y;
 
 	if (! (vport->paused && vport->dbdata))
-		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)], COLOR(color));
+		(*screen.rgb2scr)(&screen.fbaddress[POINTPOS(dx,dy)],
+			COLOR(color));
 
 	if (vport->dbdata) {
 		int dline = (y + vport->dboffset) % vport->height;
@@ -266,21 +279,23 @@ static void putpixel(viewport_t *vport, unsigned int x, unsigned int y, int
 }
 
 /** Get pixel from viewport */
-static int getpixel(viewport_t *vport, unsigned int x, unsigned int y)
+static int
+getpixel(viewport_t *vport, unsigned int x, unsigned int y)
 {
 	int dx = vport->x + x;
 	int dy = vport->y + y;
 
-	return COLOR((*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx,dy)]));
+	return COLOR((*screen.scr2rgb)(&screen.fbaddress[POINTPOS(dx, dy)]));
 }
 
-static inline void putpixel_mem(char *mem, unsigned int x, unsigned int y, int
-	color)
+static inline void
+putpixel_mem(char *mem, unsigned int x, unsigned int y, int color)
 {
 	(*screen.rgb2scr)(&mem[POINTPOS(x,y)], COLOR(color));
 }
 
-static void draw_rectangle(viewport_t *vport, unsigned int sx, unsigned int sy,
+static void
+draw_rectangle(viewport_t *vport, unsigned int sx, unsigned int sy,
 	unsigned int width, unsigned int height, int color)
 {
 	unsigned int x, y;
@@ -315,7 +330,8 @@ static void draw_rectangle(viewport_t *vport, unsigned int sx, unsigned int sy,
 }
 
 /** Fill viewport with background color */
-static void clear_port(viewport_t *vport)
+static void
+clear_port(viewport_t *vport)
 {
 	draw_rectangle(vport, 0, 0, vport->width, vport->height,
 		vport->style.bg_color);
@@ -326,7 +342,8 @@ static void clear_port(viewport_t *vport)
  * @param vport Viewport to scroll
  * @param lines Positive number - scroll up, negative - scroll down
  */
-static void scroll_port_nodb(viewport_t *vport, int lines)
+static void
+scroll_port_nodb(viewport_t *vport, int lines)
 {
 	int y;
 
@@ -350,7 +367,8 @@ static void scroll_port_nodb(viewport_t *vport, int lines)
 }
 
 /** Refresh given viewport from double buffer */
-static void refresh_viewport_db(viewport_t *vport)
+static void
+refresh_viewport_db(viewport_t *vport)
 {
 	unsigned int y, srcy, srcoff, dsty, dstx;
 
@@ -368,7 +386,8 @@ static void refresh_viewport_db(viewport_t *vport)
 }
 
 /** Scroll viewport that has double buffering enabled */
-static void scroll_port_db(viewport_t *vport, int lines)
+static void
+scroll_port_db(viewport_t *vport, int lines)
 {
 	++vport->paused;
 	if (lines > 0) {
@@ -393,7 +412,8 @@ static void scroll_port_db(viewport_t *vport, int lines)
 }
 
 /** Scrolls viewport given number of lines */
-static void scroll_port(viewport_t *vport, int lines)
+static void
+scroll_port(viewport_t *vport, int lines)
 {
 	if (vport->dbdata)
 		scroll_port_db(vport, lines);
@@ -402,7 +422,8 @@ static void scroll_port(viewport_t *vport, int lines)
 	
 }
 
-static void invert_pixel(viewport_t *vport, unsigned int x, unsigned int y)
+static void
+invert_pixel(viewport_t *vport, unsigned int x, unsigned int y)
 {
 	putpixel(vport, x, y, ~getpixel(vport, x, y));
 }
@@ -419,7 +440,8 @@ static void invert_pixel(viewport_t *vport, unsigned int x, unsigned int y)
  * @param style Color of the character
  * @param transparent If false, print background color
  */
-static void draw_glyph(viewport_t *vport,uint8_t glyph, unsigned int sx,
+static void
+draw_glyph(viewport_t *vport,uint8_t glyph, unsigned int sx,
 	 unsigned int sy, style_t style, int transparent)
 {
 	int i;
@@ -440,7 +462,8 @@ static void draw_glyph(viewport_t *vport,uint8_t glyph, unsigned int sx,
 }
 
 /** Invert character at given position */
-static void invert_char(viewport_t *vport,unsigned int row, unsigned int col)
+static void
+invert_char(viewport_t *vport,unsigned int row, unsigned int col)
 {
 	unsigned int x;
 	unsigned int y;
@@ -459,12 +482,13 @@ static void invert_char(viewport_t *vport,unsigned int row, unsigned int col)
  *
  * @return New viewport number
  */
-static int viewport_create(unsigned int x, unsigned int y,unsigned int width, 
+static int
+viewport_create(unsigned int x, unsigned int y,unsigned int width, 
 	unsigned int height)
 {
 	int i;
 
-	for (i=0; i < MAX_VIEWPORTS; i++) {
+	for (i = 0; i < MAX_VIEWPORTS; i++) {
 		if (!viewports[i].initialized)
 			break;
 	}
@@ -491,7 +515,6 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
 	return i;
 }
 
-
 /** Initialize framebuffer as a chardev output device
  *
  * @param addr          Address of theframebuffer
@@ -502,7 +525,8 @@ static int viewport_create(unsigned int x, unsigned int y,unsigned int width,
  * @param invert_colors Inverted colors.
  *
  */
-static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
+static bool
+screen_init(void *addr, unsigned int xres, unsigned int yres,
 	unsigned int scan, unsigned int visual, bool invert_colors)
 {
 	switch (visual) {
@@ -558,7 +582,8 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 }
 
 /** Hide cursor if it is shown */
-static void cursor_hide(viewport_t *vport)
+static void
+cursor_hide(viewport_t *vport)
 {
 	if (vport->cursor_active && vport->cursor_shown) {
 		invert_char(vport, vport->cur_row, vport->cur_col);
@@ -567,7 +592,8 @@ static void cursor_hide(viewport_t *vport)
 }
 
 /** Show cursor if cursor showing is enabled */
-static void cursor_print(viewport_t *vport)
+static void
+cursor_print(viewport_t *vport)
 {
 	/* Do not check for cursor_shown */
 	if (vport->cursor_active) {
@@ -577,7 +603,8 @@ static void cursor_print(viewport_t *vport)
 }
 
 /** Invert cursor, if it is enabled */
-static void cursor_blink(viewport_t *vport)
+static void
+cursor_blink(viewport_t *vport)
 {
 	if (vport->cursor_shown)
 		cursor_hide(vport);
@@ -593,8 +620,9 @@ static void cursor_blink(viewport_t *vport)
  * @param col Screen position relative to viewport
  * @param transparent If false, print background color with character
  */
-static void draw_char(viewport_t *vport, char c, unsigned int row, unsigned int
-	col, style_t style, int transparent)
+static void
+draw_char(viewport_t *vport, char c, unsigned int row, unsigned int col,
+	style_t style, int transparent)
 {
 	/* Optimize - do not hide cursor if we are going to overwrite it */
 	if (vport->cursor_active && vport->cursor_shown && 
@@ -622,7 +650,8 @@ static void draw_char(viewport_t *vport, char c, unsigned int row, unsigned int
  * @param vport Viewport id
  * @param data Text data fitting exactly into viewport
  */
-static void draw_text_data(viewport_t *vport, keyfield_t *data)
+static void
+draw_text_data(viewport_t *vport, keyfield_t *data)
 {
 	int i;
 	int col,row;
@@ -641,19 +670,20 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data)
 	cursor_print(vport);
 }
 
-
 /** Return first free pixmap */
-static int find_free_pixmap(void)
+static int
+find_free_pixmap(void)
 {
 	int i;
 	
-	for (i=0;i < MAX_PIXMAPS;i++)
+	for (i = 0;i < MAX_PIXMAPS;i++)
 		if (!pixmaps[i].data)
 			return i;
 	return -1;
 }
 
-static void putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
+static void
+putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
 {
 	pixmap_t *pmap = &pixmaps[pm];
 	int pos = (y * pmap->width + x) * screen.pixelbytes;
@@ -662,7 +692,8 @@ static void putpixel_pixmap(int pm, unsigned int x, unsigned int y, int color)
 }
 
 /** Create a new pixmap and return appropriate ID */
-static int shm2pixmap(unsigned char *shm, size_t size)
+static int
+shm2pixmap(unsigned char *shm, size_t size)
 {
 	int pm;
 	pixmap_t *pmap;
@@ -705,7 +736,8 @@ static int shm2pixmap(unsigned char *shm, size_t size)
  * note: this function is not threads safe, you would have
  * to redefine static variables with __thread
  */
-static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+static int
+shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
 	static keyfield_t *interbuffer = NULL;
 	static size_t intersize = 0;
@@ -717,7 +749,7 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	int handled = 1;
 	int retval = 0;
 	viewport_t *vport = &viewports[vp];
-	unsigned int x,y;
+	unsigned int x, y;
 
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_AS_AREA_SEND:
@@ -774,8 +806,8 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		}
 		
 		ppm_draw(shm, shm_size, IPC_GET_ARG1(*call),
-			IPC_GET_ARG2(*call), vport->width - x, vport->height -
-			y, (putpixel_cb_t)putpixel, vport);
+			IPC_GET_ARG2(*call), vport->width - x,
+			vport->height - y, (putpixel_cb_t)putpixel, vport);
 		break;
 	case FB_DRAW_TEXT_DATA:
 		if (!interbuffer) {
@@ -798,7 +830,8 @@ static int shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	return handled;
 }
 
-static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
+static void
+copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 {
 	int y;
 	int rowsize;
@@ -814,15 +847,16 @@ static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 	rowsize = width * screen.pixelbytes;
 
 	for (y = 0; y < height; y++) {
-		tmp = (vport->y + y) * screen.scanline + vport->x *
-			screen.pixelbytes;
+		tmp = (vport->y + y) * screen.scanline +
+			vport->x * screen.pixelbytes;
 		memcpy(pmap->data + rowsize * y, screen.fbaddress + tmp,
 			rowsize); 
 	}
 }
 
 /** Save viewport to pixmap */
-static int save_vp_to_pixmap(viewport_t *vport)
+static int
+save_vp_to_pixmap(viewport_t *vport)
 {
 	int pm;
 	pixmap_t *pmap;
@@ -873,9 +907,9 @@ static int draw_pixmap(int vp, int pm)
 	srcrowsize = vport->width * screen.pixelbytes;
 	realrowsize = realwidth * screen.pixelbytes;
 
-	for (y=0; y < realheight; y++) {
-		tmp = (vport->y + y) * screen.scanline + vport->x *
-			screen.pixelbytes;
+	for (y = 0; y < realheight; y++) {
+		tmp = (vport->y + y) * screen.scanline + 
+			vport->x * screen.pixelbytes;
 		memcpy(screen.fbaddress + tmp, pmap->data + y * srcrowsize,
 			realrowsize);
 	}
@@ -883,7 +917,8 @@ static int draw_pixmap(int vp, int pm)
 }
 
 /** Tick animation one step forward */
-static void anims_tick(void)
+static void
+anims_tick(void)
 {
 	int i;
 	static int counts = 0;
@@ -893,7 +928,7 @@ static void anims_tick(void)
 	if (counts)
 		return;
 
-	for (i=0; i < MAX_ANIMATIONS; i++) {
+	for (i = 0; i < MAX_ANIMATIONS; i++) {
 		if (!animations[i].animlen || !animations[i].initialized ||
 			!animations[i].enabled)
 			continue;
@@ -910,9 +945,10 @@ static int pointer_shown, pointer_enabled;
 static int pointer_vport = -1;
 static int pointer_pixmap = -1;
 
-static void mouse_show(void)
+static void
+mouse_show(void)
 {
-	int i,j;
+	int i, j;
 	int visibility;
 	int color;
 	int bytepos;
@@ -941,21 +977,22 @@ static void mouse_show(void)
 	for (i = 0; i < pointer_height; i++)
 		for (j = 0; j < pointer_width; j++) {
 			bytepos = i * ((pointer_width - 1) / 8 + 1) + j / 8;
-			visibility = pointer_mask_bits[bytepos] & (1 << (j %
-				8));
+			visibility = pointer_mask_bits[bytepos] &
+				(1 << (j % 8));
 			if (visibility) {
 				color = pointer_bits[bytepos] & (1 << (j % 8))
 					? 0 : 0xffffff;
 				if (pointer_x + j < screen.xres && pointer_y +
 					i < screen.yres)
 					putpixel(&viewports[0], pointer_x + j,
-						 pointer_y+i, color);
+						pointer_y + i, color);
 			}
 		}
 	pointer_shown = 1;
 }
 
-static void mouse_hide(void)
+static void
+mouse_hide(void)
 {
 	/* Restore image under the cursor */
 	if (pointer_shown) {
@@ -964,7 +1001,8 @@ static void mouse_hide(void)
 	}
 }
 
-static void mouse_move(unsigned int x, unsigned int y)
+static void
+mouse_move(unsigned int x, unsigned int y)
 {
 	mouse_hide();
 	pointer_x = x;
@@ -972,7 +1010,8 @@ static void mouse_move(unsigned int x, unsigned int y)
 	mouse_show();
 }
 
-static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+static int
+anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
 	int handled = 1;
 	int retval = 0;
@@ -1069,7 +1108,8 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 }
 
 /** Handler for messages concerning pixmap handling */
-static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+static int
+pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
 	int handled = 1;
 	int retval = 0;
@@ -1122,7 +1162,8 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 /** Function for handling connections to FB
  *
  */
-static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void
+fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -1143,7 +1184,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		if (vport->cursor_active || anims_enabled)
-			callid = async_get_call_timeout(&call,250000);
+			callid = async_get_call_timeout(&call, 250000);
 		else
 			callid = async_get_call(&call);
 
@@ -1178,7 +1219,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			ipc_answer_fast(callid,0,0,0);
+			ipc_answer_fast(callid, 0, 0, 0);
 
 			draw_char(vport, c, row, col, vport->style,
 				IPC_GET_METHOD(call) == FB_TRANS_PUTCHAR);
@@ -1264,8 +1305,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case FB_VIEWPORT_CREATE:
 			retval = viewport_create(IPC_GET_ARG1(call) >> 16,
-				IPC_GET_ARG1(call) & 0xffff, IPC_GET_ARG2(call)
-				 >> 16, IPC_GET_ARG2(call) & 0xffff);
+				IPC_GET_ARG1(call) & 0xffff,
+				IPC_GET_ARG2(call) >> 16,
+				IPC_GET_ARG2(call) & 0xffff);
 			break;
 		case FB_VIEWPORT_DELETE:
 			i = IPC_GET_ARG1(call);
@@ -1300,12 +1342,13 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_fast(callid,retval,0,0);
+		ipc_answer_fast(callid,retval, 0, 0);
 	}
 }
 
 /** Initialization of framebuffer */
-int fb_init(void)
+int
+fb_init(void)
 {
 	void *fb_ph_addr;
 	unsigned int fb_width;

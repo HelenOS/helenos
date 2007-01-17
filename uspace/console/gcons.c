@@ -89,14 +89,12 @@ static int vp_create(unsigned int x, unsigned int y,
 		     unsigned int width, unsigned int height)
 {
 	return async_req_2(fbphone, FB_VIEWPORT_CREATE,
-			   (x << 16) | y, (width << 16) | height,
-			   NULL, NULL);
+			   (x << 16) | y, (width << 16) | height, NULL, NULL);
 }
 
 static void clear(void)
 {
 	async_msg(fbphone, FB_CLEAR, 0);
-	
 }
 
 static void set_style(int fgcolor, int bgcolor)
@@ -122,10 +120,10 @@ static void redraw_state(int consnum)
 		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum],
 			ic_pixmaps[state]);
 
- 	if (state != CONS_DISCONNECTED && state != CONS_KERNEL && state !=
-		CONS_DISCONNECTED_SEL) {
+ 	if (state != CONS_DISCONNECTED && state != CONS_KERNEL &&
+		state != CONS_DISCONNECTED_SEL) {
  		snprintf(data, 5, "%d", consnum + 1);
- 		for (i=0; data[i]; i++)
+ 		for (i = 0; data[i]; i++)
  			tran_putch(data[i], 1, 2 + i);
  	}
 }
@@ -168,8 +166,8 @@ void gcons_notify_char(int consnum)
 	if (!use_gcons)
 		return;
 
-	if (consnum == active_console || console_state[consnum] ==
-		CONS_HAS_DATA)
+	if (consnum == active_console ||
+		console_state[consnum] == CONS_HAS_DATA)
 		return;
 
 	console_state[consnum] = CONS_HAS_DATA;
@@ -357,12 +355,12 @@ static void gcons_redraw_console(void)
 	vp_switch(0);
 	set_style(MAIN_COLOR, MAIN_COLOR);
 	clear();
-	draw_pixmap(_binary_helenos_ppm_start, (size_t)
-		&_binary_helenos_ppm_size, xres - 66, 2);
-	draw_pixmap(_binary_nameic_ppm_start, (size_t)
-		&_binary_nameic_ppm_size, 5, 17);
+	draw_pixmap(_binary_helenos_ppm_start,
+		(size_t) &_binary_helenos_ppm_size, xres - 66, 2);
+	draw_pixmap(_binary_nameic_ppm_start,
+		(size_t) &_binary_nameic_ppm_size, 5, 17);
 
-	for (i=0;i < CONSOLE_COUNT; i++)
+	for (i = 0;i < CONSOLE_COUNT; i++)
 		redraw_state(i);
 	vp_switch(console_vp);
 }
@@ -430,20 +428,20 @@ static void make_anim(void)
 	if (an < 0)
 		return;
 
-	pm = make_pixmap(_binary_anim_1_ppm_start, (int)
-		&_binary_anim_1_ppm_size);
+	pm = make_pixmap(_binary_anim_1_ppm_start,
+		(int) &_binary_anim_1_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 
-	pm = make_pixmap(_binary_anim_2_ppm_start, (int)
-		&_binary_anim_2_ppm_size);
+	pm = make_pixmap(_binary_anim_2_ppm_start,
+		(int) &_binary_anim_2_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 
-	pm = make_pixmap(_binary_anim_3_ppm_start, (int)
-		&_binary_anim_3_ppm_size);
+	pm = make_pixmap(_binary_anim_3_ppm_start,
+		(int) &_binary_anim_3_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 
-	pm = make_pixmap(_binary_anim_4_ppm_start, (int)
-		&_binary_anim_4_ppm_size);
+	pm = make_pixmap(_binary_anim_4_ppm_start,
+		(int) &_binary_anim_4_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 
 	async_msg(fbphone, FB_ANIM_START, an);
@@ -478,17 +476,17 @@ void gcons_init(int phone)
 
 	/* create console viewport */
 	/* Align width & height to character size */
-	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP, ALIGN_DOWN(xres -
-		2 * CONSOLE_MARGIN, 8), ALIGN_DOWN(yres - (CONSOLE_TOP +
-		CONSOLE_MARGIN), 16));
+	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP,
+		ALIGN_DOWN(xres - 2 * CONSOLE_MARGIN, 8),
+		ALIGN_DOWN(yres - (CONSOLE_TOP + CONSOLE_MARGIN), 16));
 	if (console_vp < 0)
 		return;
 	
 	/* Create status buttons */
 	status_start += (xres - 800) / 2;
 	for (i = 0; i < CONSOLE_COUNT; i++) {
-		cstatus_vp[i] = vp_create(status_start + CONSOLE_MARGIN + i *
-			(STATUS_WIDTH + STATUS_SPACE), STATUS_TOP,
+		cstatus_vp[i] = vp_create(status_start + CONSOLE_MARGIN +
+			i * (STATUS_WIDTH + STATUS_SPACE), STATUS_TOP,
 			STATUS_WIDTH, STATUS_HEIGHT);
 		if (cstatus_vp[i] < 0)
 			return;
@@ -498,16 +496,16 @@ void gcons_init(int phone)
 	
 	/* Initialize icons */
 	ic_pixmaps[CONS_SELECTED] =
-		make_pixmap(_binary_cons_selected_ppm_start, (int)
-		&_binary_cons_selected_ppm_size);
-	ic_pixmaps[CONS_IDLE] = make_pixmap(_binary_cons_idle_ppm_start, (int)
-		&_binary_cons_idle_ppm_size);
+		make_pixmap(_binary_cons_selected_ppm_start,
+		(int) &_binary_cons_selected_ppm_size);
+	ic_pixmaps[CONS_IDLE] = make_pixmap(_binary_cons_idle_ppm_start,
+		(int) &_binary_cons_idle_ppm_size);
 	ic_pixmaps[CONS_HAS_DATA] =
-		make_pixmap(_binary_cons_has_data_ppm_start, (int)
-		&_binary_cons_has_data_ppm_size);
+		make_pixmap(_binary_cons_has_data_ppm_start,
+		(int) &_binary_cons_has_data_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED] =
-		make_pixmap(_binary_cons_idle_ppm_start, (int)
-		&_binary_cons_idle_ppm_size);
+		make_pixmap(_binary_cons_idle_ppm_start,
+		(int) &_binary_cons_idle_ppm_size);
 	ic_pixmaps[CONS_KERNEL] = make_pixmap(_binary_cons_kernel_ppm_start,
 		(int) &_binary_cons_kernel_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];

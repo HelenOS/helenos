@@ -119,7 +119,6 @@ static void curs_visibility(int v)
 static void curs_goto(int row, int col)
 {
 	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
-	
 }
 
 static void set_style(style_t *style)
@@ -136,7 +135,6 @@ static void set_style_col(int fgcolor, int bgcolor)
 static void prtchr(char c, int row, int col)
 {
 	async_msg_3(fb_info.phone, FB_PUTCHAR, c, row, col);
-	
 }
 
 /** Check key and process special keys. 

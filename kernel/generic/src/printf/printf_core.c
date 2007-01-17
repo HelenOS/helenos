@@ -267,15 +267,15 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	/* Collect sum of all prefixes/signs/... to calculate padding and leading zeroes */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
-			case 2:	/* Binary formating is not standard, but usefull */
-				size += 2;
-				break;
-			case 8:
-				size++;
-				break;
-			case 16:
-				size += 2;
-				break;
+		case 2:	/* Binary formating is not standard, but usefull */
+			size += 2;
+			break;
+		case 8:
+			size++;
+			break;
+		case 16:
+			size += 2;
+			break;
 		}
 	}
 
@@ -328,32 +328,32 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
 	
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
-			case 2:	/* Binary formating is not standard, but usefull */
-				if (printf_putchar('0', ps) == 1)
+		case 2:	/* Binary formating is not standard, but usefull */
+			if (printf_putchar('0', ps) == 1)
+				counter++;
+			if (flags & __PRINTF_FLAG_BIGCHARS) {
+				if (printf_putchar('B', ps) == 1)
 					counter++;
-				if (flags & __PRINTF_FLAG_BIGCHARS) {
-					if (printf_putchar('B', ps) == 1)
-						counter++;
-				} else {
-					if (printf_putchar('b', ps) == 1)
-						counter++;
-				}
-				break;
-			case 8:
-				if (printf_putchar('o', ps) == 1)
+			} else {
+				if (printf_putchar('b', ps) == 1)
 					counter++;
-				break;
-			case 16:
-				if (printf_putchar('0', ps) == 1)
+			}
+			break;
+		case 8:
+			if (printf_putchar('o', ps) == 1)
+				counter++;
+			break;
+		case 16:
+			if (printf_putchar('0', ps) == 1)
+				counter++;
+			if (flags & __PRINTF_FLAG_BIGCHARS) {
+				if (printf_putchar('X', ps) == 1)
 					counter++;
-				if (flags & __PRINTF_FLAG_BIGCHARS) {
-					if (printf_putchar('X', ps) == 1)
-						counter++;
-				} else {
-					if (printf_putchar('x', ps) == 1)
-						counter++;
-				}
-				break;
+			} else {
+				if (printf_putchar('x', ps) == 1)
+					counter++;
+			}
+			break;
 		}
 	}
 
