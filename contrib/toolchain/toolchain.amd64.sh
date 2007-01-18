@@ -15,11 +15,13 @@ check_error() {
     fi
 }
 
-BINUTILS_VERSION="2.16.1"
+BINUTILS_VERSION="2.17"
 GCC_VERSION="4.1.1"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
-GCC="gcc-core-${GCC_VERSION}.tar.bz2"
+GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
+GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
+GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
 
 BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
@@ -39,9 +41,17 @@ if [ ! -f "${BINUTILS}" ]; then
     wget -c "${BINUTILS_SOURCE}${BINUTILS}"
     check_error $? "Error downloading binutils."
 fi
-if [ ! -f "${GCC}" ]; then
-    wget -c "${GCC_SOURCE}${GCC}"
-    check_error $? "Error downloading GCC."
+if [ ! -f "${GCC_CORE}" ]; then
+    wget -c "${GCC_SOURCE}${GCC_CORE}"
+    check_error $? "Error downloading GCC Core."
+fi
+if [ ! -f "${GCC_OBJC}" ]; then
+    wget -c "${GCC_SOURCE}${GCC_OBJC}"
+    check_error $? "Error downloading GCC Objective C."
+fi
+if [ ! -f "${GCC_CPP}" ]; then
+    wget -c "${GCC_SOURCE}${GCC_CPP}"
+    check_error $? "Error downloading GCC C++."
 fi
 
 echo ">>> Creating destionation directory"
@@ -61,8 +71,12 @@ fi
 echo ">>> Unpacking tarballs"
 tar -xvzf "${BINUTILS}"
 check_error $? "Error unpacking binutils."
-tar -xvjf "${GCC}"
-check_error $? "Error unpacking GCC."
+tar -xvjf "${GCC_CORE}"
+check_error $? "Error unpacking GCC Core."
+tar -xvjf "${GCC_OBJC}"
+check_error $? "Error unpacking GCC Objective C."
+tar -xvjf "${GCC_CPP}"
+check_error $? "Error unpacking GCC C++."
 
 echo ">>> Compiling and installing binutils"
 cd "${BINUTILSDIR}"
@@ -75,7 +89,7 @@ check_error $? "Error compiling/installing binutils."
 echo ">>> Compiling and installing GCC"
 cd "${OBJDIR}"
 check_error $? "Change directory failed."
-"${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c --disable-multilib --disable-libgcj --without-headers --disable-shared
+"${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
 check_error $? "Error configuring GCC."
 PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 check_error $? "Error compiling/installing GCC."
