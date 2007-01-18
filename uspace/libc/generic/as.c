@@ -150,7 +150,6 @@ void *set_maxheapsize(size_t mhs)
  * TODO: make some first_fit/... algorithm, we are now just incrementing
  *       the pointer to last area
  */
-#include <stdio.h>
 void *as_get_mappable_page(size_t sz, int color)
 {
 	void *res;
