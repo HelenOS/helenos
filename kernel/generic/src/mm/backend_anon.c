@@ -51,6 +51,10 @@
 #include <align.h>
 #include <arch.h>
 
+#ifdef CONFIG_VIRT_IDX_DCACHE
+#include <arch/mm/cache.h>
+#endif
+
 static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
 static void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
 static void anon_share(as_area_t *area);
@@ -153,12 +157,15 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  * The address space area and page tables must be already locked.
  *
  * @param area Ignored.
- * @param page Ignored.
+ * @param page Virtual address of the page corresponding to the frame.
  * @param frame Frame to be released.
  */
 void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	frame_free(frame);
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	dcache_flush_frame(page, frame);
+#endif
 }
 
 /** Share the anonymous address space area.

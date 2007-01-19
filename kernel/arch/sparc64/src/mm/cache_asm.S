@@ -28,9 +28,15 @@
 
 #include <arch/arch.h>
 
-#define DCACHE_SIZE		(16*1024)
+#define DCACHE_SIZE		(16 * 1024)
 #define DCACHE_LINE_SIZE	32	
 
+#define DCACHE_TAG_SHIFT	2
+
+.register %g2, #scratch
+.register %g3, #scratch
+
+/** Flush the whole D-cache. */
 .global dcache_flush
 dcache_flush:
 	set (DCACHE_SIZE - DCACHE_LINE_SIZE), %g1
@@ -42,3 +48,44 @@ dcache_flush:
 	retl
 	membar #Sync
 
+/** Flush only D-cache lines of one virtual color.
+ *
+ * @param o0	Virtual color to be flushed.
+ */
+.global dcache_flush_color
+dcache_flush_color:
+	mov (DCACHE_SIZE / DCACHE_LINE_SIZE) / 2, %g1
+	set DCACHE_SIZE / 2, %g2
+	sllx %g2, %o0, %g2
+	sub %g2, DCACHE_LINE_SIZE, %g2
+0:	stxa %g0, [%g2] ASI_DCACHE_TAG
+	membar #Sync
+	subcc %g1, 1, %g1
+	bnz,pt %xcc, 0b
+	sub %g2, DCACHE_LINE_SIZE, %g2
+	retl
+	nop
+
+/** Flush only D-cache lines of one virtual color and one tag.
+ *
+ * @param o0	Virtual color to lookup the tag.
+ * @param o1	Tag of the cachelines to be flushed.
+ */
+.global dcache_flush_tag
+dcache_flush_tag:
+	mov (DCACHE_SIZE / DCACHE_LINE_SIZE) / 2, %g1
+	set DCACHE_SIZE / 2, %g2
+	sllx %g2, %o0, %g2
+	sub %g2, DCACHE_LINE_SIZE, %g2
+0:	ldxa [%g2] ASI_DCACHE_TAG, %g3
+	srlx %g3, DCACHE_TAG_SHIFT, %g3
+	cmp %g3, %o1
+	bnz 1f
+	nop
+	stxa %g0, [%g2] ASI_DCACHE_TAG
+	membar #Sync
+1:	subcc %g1, 1, %g1
+	bnz,pt %xcc, 0b
+	sub %g2, DCACHE_LINE_SIZE, %g2
+	retl
+	nop

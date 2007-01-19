@@ -50,6 +50,10 @@
 #include <macros.h>
 #include <arch.h>
 
+#ifdef CONFIG_VIRT_IDX_DCACHE
+#include <arch/mm/cache.h>
+#endif
+
 static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
 static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
 static void elf_share(as_area_t *area);
@@ -219,6 +223,9 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 			 * Free the frame with the copy of writable segment data.
 			 */
 			frame_free(frame);
+#ifdef CONFIG_VIRT_IDX_DCACHE
+		        dcache_flush_frame(page, frame);
+#endif
 		}
 	} else {
 		/*
@@ -227,6 +234,9 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * In any case, a frame needs to be freed.
 		 */
 		frame_free(frame); 
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	        dcache_flush_frame(page, frame);
+#endif
 	}
 }
 

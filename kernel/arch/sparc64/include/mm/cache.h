@@ -35,7 +35,17 @@
 #ifndef KERN_sparc64_CACHE_H_
 #define KERN_sparc64_CACHE_H_
 
+#include <mm/page.h>
+#include <mm/frame.h>
+
+#define dcache_flush_page(p) \
+	dcache_flush_color(PAGE_COLOR((p)))
+#define dcache_flush_frame(p, f) \
+	dcache_flush_tag(PAGE_COLOR((p)), ADDR2PFN((f)));
+
 extern void dcache_flush(void);
+extern void dcache_flush_color(int c);
+extern void dcache_flush_tag(int c, pfn_t tag);
 
 #endif
 
