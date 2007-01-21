@@ -36,7 +36,7 @@
 #define KERN_TIMEOUT_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
+#include <cpu.h>
 #include <synch/spinlock.h>
 #include <adt/list.h>
 

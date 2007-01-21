@@ -37,12 +37,12 @@
 
 #include <arch/types.h>
 
-struct cpu_info {
+typedef struct {
 	uint32_t cpuid_eax;
 	uint32_t cpuid_ebx;
 	uint32_t cpuid_ecx;
 	uint32_t cpuid_edx;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) cpu_info_t;
 
 struct __cpuid_extended_feature_info {
 	unsigned sse3 :  1;
@@ -97,7 +97,7 @@ static inline uint32_t has_cpuid(void)
 	return ret;
 }
 
-static inline void cpuid(uint32_t cmd, struct cpu_info *info)
+static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 {
 	__asm__ volatile (
 		"movl %4, %%eax\n"

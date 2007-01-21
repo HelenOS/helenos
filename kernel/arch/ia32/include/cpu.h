@@ -42,7 +42,7 @@
 #define EFLAGS_IF       (1 << 9)
 #define EFLAGS_RF       (1 << 16)
 
-struct cpu_arch {
+typedef struct {
 	int vendor;
 	int family;
 	int model;
@@ -50,7 +50,7 @@ struct cpu_arch {
 	struct tss *tss;
 	
 	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
-};
+} cpu_arch_t;
 
 
 #define CR4_OSFXSR_MASK (1<<9)

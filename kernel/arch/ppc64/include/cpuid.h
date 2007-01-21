@@ -37,12 +37,12 @@
 
 #include <arch/types.h>
 
-struct cpu_info {
+typedef struct {
 	uint16_t version;
 	uint16_t revision;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) cpu_info_t;
 
-static inline void cpu_version(struct cpu_info *info)
+static inline void cpu_version(cpu_info_t *info)
 {
 	asm volatile (
 		"mfpvr %0\n"

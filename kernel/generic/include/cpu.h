@@ -52,7 +52,7 @@
  *
  * There is one structure like this for every processor.
  */
-struct cpu {
+typedef struct {
 	SPINLOCK_DECLARE(lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
@@ -91,7 +91,7 @@ struct cpu {
 	 * Stack used by scheduler when there is no running thread.
 	 */
 	uint8_t *stack;
-};
+} cpu_t;
 
 extern cpu_t *cpus;
 

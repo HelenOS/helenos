@@ -42,11 +42,11 @@
 #define FAMILY_ITANIUM	0x7
 #define FAMILY_ITANIUM2	0x1f
 
-struct cpu_arch {
+typedef struct {
 	uint64_t cpuid0;
 	uint64_t cpuid1;
 	cpuid3_t cpuid3;
-};
+} cpu_arch_t;
 
 /** Read CPUID register.
  *

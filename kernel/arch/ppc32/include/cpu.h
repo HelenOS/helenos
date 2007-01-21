@@ -37,10 +37,10 @@
 
 #include <typedefs.h>
 
-struct cpu_arch {
+typedef struct {
 	int version;
 	int revision;
-};
+} cpu_arch_t;
 	
 #endif
 

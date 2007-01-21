@@ -103,7 +103,7 @@ static void clean_AM_flag(void)
 
 void arch_pre_mm_init(void)
 {
-	struct cpu_info cpuid_s;
+	cpu_info_t cpuid_s;
 
 	cpuid(AMD_CPUID_EXTENDED,&cpuid_s);
 	if (! (cpuid_s.cpuid_edx & (1<<AMD_EXT_NOEXECUTE)))
