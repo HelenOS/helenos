@@ -327,7 +327,7 @@ void tlb_print(void)
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
 		t.value = itlb_tag_read_read(i);
-		
+
 		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
 			"ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, "
 			"cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
@@ -408,9 +408,18 @@ void tlb_invalidate_all(void)
 	tlb_data_t d;
 	tlb_tag_read_reg_t t;
 
+	/*
+	 * Walk all ITLB and DTLB entries and remove all unlocked mappings.
+	 *
+	 * The kernel doesn't use global mappings so any locked global mappings
+	 * found  must have been created by someone else. Their only purpose now
+	 * is to collide with proper mappings. Invalidate immediately. It should
+	 * be safe to invalidate them as late as now.
+	 */
+
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
-		if (!d.l) {
+		if (!d.l || d.g) {
 			t.value = itlb_tag_read_read(i);
 			d.v = false;
 			itlb_tag_access_write(t.value);
@@ -420,7 +429,7 @@ void tlb_invalidate_all(void)
 	
 	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
 		d.value = dtlb_data_access_read(i);
-		if (!d.l) {
+		if (!d.l || d.g) {
 			t.value = dtlb_tag_read_read(i);
 			d.v = false;
 			dtlb_tag_access_write(t.value);

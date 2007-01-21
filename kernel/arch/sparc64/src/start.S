@@ -99,7 +99,7 @@ kernel_image_start:
 	wrpr %g1, %lo(trap_table), %tba
 
 	/* 
-	 * Take over the DMMU by installing global locked TTE entry identically
+	 * Take over the DMMU by installing locked TTE entry identically
 	 * mapping the first 4M of memory.
 	 *
 	 * In case of DMMU, no FLUSH instructions need to be issued. Because of
