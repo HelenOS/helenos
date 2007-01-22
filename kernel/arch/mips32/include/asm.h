@@ -43,7 +43,7 @@
 static inline void cpu_sleep(void)
 {
 	/* Most of the simulators do not support */
-/*	__asm__ volatile ("wait"); */
+/*	asm volatile ("wait"); */
 }
 
 /** Return base address of current stack
@@ -56,7 +56,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
-	__asm__ volatile ("and %0, $29, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	asm volatile ("and %0, $29, %1\n" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
 	return v;
 }

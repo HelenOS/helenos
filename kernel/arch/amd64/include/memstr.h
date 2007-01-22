@@ -51,7 +51,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
         unative_t d0, d1, d2;
 
-        __asm__ __volatile__(
+        asm volatile(
                 "rep movsq\n\t"
                 "movq %4, %%rcx\n\t"
                 "andq $7, %%rcx\n\t"
@@ -82,7 +82,7 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
 	unative_t d0, d1, d2;
 	unative_t ret;
 	
-	__asm__ (
+	asm (
 		"repe cmpsb\n\t"
 		"je 1f\n\t"
 		"movq %3, %0\n\t"
@@ -108,7 +108,7 @@ static inline void memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
 	unative_t d0, d1;
 	
-	__asm__ __volatile__ (
+	asm volatile (
 		"rep stosw\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
 		: "0" (dst), "1" ((unative_t)cnt), "2" (x)
@@ -130,7 +130,7 @@ static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
 	unative_t d0, d1;
 	
-	__asm__ __volatile__ (
+	asm volatile (
 		"rep stosb\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
 		: "0" (dst), "1" ((unative_t)cnt), "2" (x)

@@ -194,7 +194,7 @@ static inline uint64_t thash(uint64_t va)
 {
 	uint64_t ret;
 
-	__asm__ volatile ("thash %0 = %1\n" : "=r" (ret) : "r" (va));
+	asm volatile ("thash %0 = %1\n" : "=r" (ret) : "r" (va));
 
 	return ret;
 }
@@ -212,7 +212,7 @@ static inline uint64_t ttag(uint64_t va)
 {
 	uint64_t ret;
 
-	__asm__ volatile ("ttag %0 = %1\n" : "=r" (ret) : "r" (va));
+	asm volatile ("ttag %0 = %1\n" : "=r" (ret) : "r" (va));
 
 	return ret;
 }
@@ -227,7 +227,7 @@ static inline uint64_t rr_read(index_t i)
 {
 	uint64_t ret;
 	ASSERT(i < REGION_REGISTERS);
-	__asm__ volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i << VRN_SHIFT));
+	asm volatile ("mov %0 = rr[%1]\n" : "=r" (ret) : "r" (i << VRN_SHIFT));
 	return ret;
 }
 
@@ -239,7 +239,7 @@ static inline uint64_t rr_read(index_t i)
 static inline void rr_write(index_t i, uint64_t v)
 {
 	ASSERT(i < REGION_REGISTERS);
-	__asm__ volatile (
+	asm volatile (
 		"mov rr[%0] = %1\n" 
 		: 
 		: "r" (i << VRN_SHIFT), "r" (v)
@@ -254,7 +254,7 @@ static inline uint64_t pta_read(void)
 {
 	uint64_t ret;
 	
-	__asm__ volatile ("mov %0 = cr.pta\n" : "=r" (ret));
+	asm volatile ("mov %0 = cr.pta\n" : "=r" (ret));
 	
 	return ret;
 }
@@ -265,7 +265,7 @@ static inline uint64_t pta_read(void)
  */
 static inline void pta_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.pta = %0\n" : : "r" (v));
+	asm volatile ("mov cr.pta = %0\n" : : "r" (v));
 }
 
 extern void page_arch_init(void);

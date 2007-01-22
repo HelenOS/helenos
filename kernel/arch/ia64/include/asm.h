@@ -49,7 +49,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uint64_t v;
 
-	__asm__ volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	asm volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
 	
 	return v;
 }
@@ -62,7 +62,7 @@ static inline uint64_t psr_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = psr\n" : "=r" (v));
+	asm volatile ("mov %0 = psr\n" : "=r" (v));
 	
 	return v;
 }
@@ -75,7 +75,7 @@ static inline uint64_t iva_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = cr.iva\n" : "=r" (v));
+	asm volatile ("mov %0 = cr.iva\n" : "=r" (v));
 	
 	return v;
 }
@@ -86,7 +86,7 @@ static inline uint64_t iva_read(void)
  */
 static inline void iva_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.iva = %0\n" : : "r" (v));
+	asm volatile ("mov cr.iva = %0\n" : : "r" (v));
 }
 
 
@@ -98,7 +98,7 @@ static inline uint64_t ivr_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = cr.ivr\n" : "=r" (v));
+	asm volatile ("mov %0 = cr.ivr\n" : "=r" (v));
 	
 	return v;
 }
@@ -109,7 +109,7 @@ static inline uint64_t ivr_read(void)
  */
 static inline void itc_write(uint64_t v)
 {
-	__asm__ volatile ("mov ar.itc = %0\n" : : "r" (v));
+	asm volatile ("mov ar.itc = %0\n" : : "r" (v));
 }
 
 /** Read ITC (Interval Timer Counter) register.
@@ -120,7 +120,7 @@ static inline uint64_t itc_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = ar.itc\n" : "=r" (v));
+	asm volatile ("mov %0 = ar.itc\n" : "=r" (v));
 	
 	return v;
 }
@@ -131,7 +131,7 @@ static inline uint64_t itc_read(void)
  */
 static inline void itm_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.itm = %0\n" : : "r" (v));
+	asm volatile ("mov cr.itm = %0\n" : : "r" (v));
 }
 
 /** Read ITM (Interval Timer Match) register.
@@ -142,7 +142,7 @@ static inline uint64_t itm_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = cr.itm\n" : "=r" (v));
+	asm volatile ("mov %0 = cr.itm\n" : "=r" (v));
 	
 	return v;
 }
@@ -155,7 +155,7 @@ static inline uint64_t itv_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = cr.itv\n" : "=r" (v));
+	asm volatile ("mov %0 = cr.itv\n" : "=r" (v));
 	
 	return v;
 }
@@ -166,7 +166,7 @@ static inline uint64_t itv_read(void)
  */
 static inline void itv_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.itv = %0\n" : : "r" (v));
+	asm volatile ("mov cr.itv = %0\n" : : "r" (v));
 }
 
 /** Write EOI (End Of Interrupt) register.
@@ -175,7 +175,7 @@ static inline void itv_write(uint64_t v)
  */
 static inline void eoi_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.eoi = %0\n" : : "r" (v));
+	asm volatile ("mov cr.eoi = %0\n" : : "r" (v));
 }
 
 /** Read TPR (Task Priority Register).
@@ -186,7 +186,7 @@ static inline uint64_t tpr_read(void)
 {
 	uint64_t v;
 
-	__asm__ volatile ("mov %0 = cr.tpr\n"  : "=r" (v));
+	asm volatile ("mov %0 = cr.tpr\n"  : "=r" (v));
 	
 	return v;
 }
@@ -197,7 +197,7 @@ static inline uint64_t tpr_read(void)
  */
 static inline void tpr_write(uint64_t v)
 {
-	__asm__ volatile ("mov cr.tpr = %0\n" : : "r" (v));
+	asm volatile ("mov cr.tpr = %0\n" : : "r" (v));
 }
 
 /** Disable interrupts.
@@ -211,7 +211,7 @@ static ipl_t interrupts_disable(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mov %0 = psr\n"
 		"rsm %1\n"
 		: "=r" (v)
@@ -232,7 +232,7 @@ static ipl_t interrupts_enable(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mov %0 = psr\n"
 		"ssm %1\n"
 		";;\n"
@@ -270,7 +270,7 @@ static inline ipl_t interrupts_read(void)
 /** Disable protection key checking. */
 static inline void pk_disable(void)
 {
-	__asm__ volatile ("rsm %0\n" : : "i" (PSR_PK_MASK));
+	asm volatile ("rsm %0\n" : : "i" (PSR_PK_MASK));
 }
 
 extern void cpu_halt(void);

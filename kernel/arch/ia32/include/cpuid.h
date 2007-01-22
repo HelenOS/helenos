@@ -76,7 +76,7 @@ static inline uint32_t has_cpuid(void)
 {
 	uint32_t val, ret;
 	
-	__asm__ volatile (
+	asm volatile (
 		"pushf\n"               /* read flags */
 		"popl %0\n"
 		"movl %0, %1\n"
@@ -99,7 +99,7 @@ static inline uint32_t has_cpuid(void)
 
 static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 {
-	__asm__ volatile (
+	asm volatile (
 		"movl %4, %%eax\n"
 		"cpuid\n"
 		

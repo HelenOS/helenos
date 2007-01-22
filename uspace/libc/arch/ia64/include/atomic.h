@@ -46,7 +46,7 @@ static inline long atomic_add(atomic_t *val, int imm)
 {
 	long v;
 
- 	__asm__ volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
+ 	asm volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
  
 	return v;
 }

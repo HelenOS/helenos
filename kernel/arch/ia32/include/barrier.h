@@ -46,12 +46,12 @@
  * Provisions are made to prevent compiler from reordering instructions itself.
  */
 
-#define CS_ENTER_BARRIER()	__asm__ volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	__asm__ volatile ("" ::: "memory")
+#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
 
 static inline void cpuid_serialization(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"xorl %%eax, %%eax\n"
 		"cpuid\n"
 		::: "eax", "ebx", "ecx", "edx", "memory"
@@ -59,20 +59,20 @@ static inline void cpuid_serialization(void)
 }
 
 #ifdef CONFIG_FENCES_P4
-#	define memory_barrier()		__asm__ volatile ("mfence\n" ::: "memory")
-#	define read_barrier()		__asm__ volatile ("lfence\n" ::: "memory")
+#	define memory_barrier()		asm volatile ("mfence\n" ::: "memory")
+#	define read_barrier()		asm volatile ("lfence\n" ::: "memory")
 #	ifdef CONFIG_WEAK_MEMORY
-#		define write_barrier()	__asm__ volatile ("sfence\n" ::: "memory")
+#		define write_barrier()	asm volatile ("sfence\n" ::: "memory")
 #	else
-#		define write_barrier()  __asm__ volatile( "" ::: "memory");
+#		define write_barrier()  asm volatile( "" ::: "memory");
 #	endif
 #elif CONFIG_FENCES_P3
 #	define memory_barrier()		cpuid_serialization()
 #	define read_barrier()		cpuid_serialization()
 #	ifdef CONFIG_WEAK_MEMORY
-#		define write_barrier()	__asm__ volatile ("sfence\n" ::: "memory")
+#		define write_barrier()	asm volatile ("sfence\n" ::: "memory")
 #	else
-#		define write_barrier()  __asm__ volatile( "" ::: "memory");
+#		define write_barrier()  asm volatile( "" ::: "memory");
 #	endif
 #else
 #	define memory_barrier()		cpuid_serialization()
@@ -80,7 +80,7 @@ static inline void cpuid_serialization(void)
 #	ifdef CONFIG_WEAK_MEMORY
 #		define write_barrier()	cpuid_serialization()
 #	else
-#		define write_barrier()  __asm__ volatile( "" ::: "memory");
+#		define write_barrier()  asm volatile( "" ::: "memory");
 #	endif
 #endif
 

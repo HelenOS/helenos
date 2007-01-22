@@ -53,7 +53,7 @@ static inline long atomic_add(atomic_t *val, int i)
 	do {
 		a = val->count;
 		b = a + i;
-		__asm__ volatile ("casx %0, %2, %1\n" : "+m" (*val), "+r" (b) : "r" (a));
+		asm volatile ("casx %0, %2, %1\n" : "+m" (*val), "+r" (b) : "r" (a));
 	} while (a != b);
 
 	return a;

@@ -39,7 +39,7 @@ static inline void atomic_inc(atomic_t *val)
 {
 	long tmp;
 
-	asm __volatile__ (
+	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"
 		"addic %0, %0, 1\n"
@@ -54,7 +54,7 @@ static inline void atomic_dec(atomic_t *val)
 {
 	long tmp;
 
-	asm __volatile__(
+	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"
 		"addic %0, %0, -1\n"

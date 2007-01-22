@@ -42,17 +42,17 @@
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock incl %0\n" : "=m" (val->count));
+	asm volatile ("lock incl %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("incl %0\n" : "=m" (val->count));
+	asm volatile ("incl %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock decl %0\n" : "=m" (val->count));
+	asm volatile ("lock decl %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("decl %0\n" : "=m" (val->count));
+	asm volatile ("decl %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
@@ -60,7 +60,7 @@ static inline long atomic_postinc(atomic_t *val)
 {
 	long r = 1;
 
-	__asm__ volatile (
+	asm volatile (
 		"lock xaddl %1, %0\n"
 		: "=m" (val->count), "+r" (r)
 	);
@@ -72,7 +72,7 @@ static inline long atomic_postdec(atomic_t *val)
 {
 	long r = -1;
 	
-	__asm__ volatile (
+	asm volatile (
 		"lock xaddl %1, %0\n"
 		: "=m" (val->count), "+r"(r)
 	);
@@ -86,7 +86,7 @@ static inline long atomic_postdec(atomic_t *val)
 static inline uint32_t test_and_set(atomic_t *val) {
 	uint32_t v;
 	
-	__asm__ volatile (
+	asm volatile (
 		"movl $1, %0\n"
 		"xchgl %0, %1\n"
 		: "=r" (v),"=m" (val->count)
@@ -101,7 +101,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 	uint32_t tmp;
 
 	preemption_disable();
-	__asm__ volatile (
+	asm volatile (
 		"0:;"
 #ifdef CONFIG_HT
 		"pause;" /* Pentium 4's HT love this instruction */

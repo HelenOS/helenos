@@ -56,7 +56,7 @@ static inline long atomic_add(atomic_t *val, int i)
 {
 	long tmp, v;
 
-	__asm__ volatile (
+	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
 		"	addiu %0, %0, %3\n"	/* same as addi, but never traps on overflow */

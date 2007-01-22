@@ -1569,7 +1569,7 @@ static size_t traverse_and_check(mstate m);
     I = NTREEBINS-1;\
   else {\
     unsigned int K;\
-    __asm__("bsrl %1,%0\n\t" : "=r" (K) : "rm"  (X));\
+    asm("bsrl %1,%0\n\t" : "=r" (K) : "rm"  (X));\
     I =  (bindex_t)((K << 1) + ((S >> (K + (TREEBIN_SHIFT-1)) & 1)));\
   }\
 }
@@ -1628,7 +1628,7 @@ static size_t traverse_and_check(mstate m);
 #define compute_bit2idx(X, I)\
 {\
   unsigned int J;\
-  __asm__("bsfl %1,%0\n\t" : "=r" (J) : "rm" (X));\
+  asm("bsfl %1,%0\n\t" : "=r" (J) : "rm" (X));\
   I = (bindex_t)J;\
 }
 

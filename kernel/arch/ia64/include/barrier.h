@@ -41,12 +41,12 @@
 #define CS_ENTER_BARRIER()	memory_barrier()
 #define CS_LEAVE_BARRIER()	memory_barrier()
 
-#define memory_barrier()	__asm__ volatile ("mf\n" ::: "memory")
+#define memory_barrier()	asm volatile ("mf\n" ::: "memory")
 #define read_barrier()		memory_barrier()
 #define write_barrier()		memory_barrier()
 
-#define srlz_i()		__asm__ volatile (";; srlz.i ;;\n" ::: "memory")
-#define srlz_d()		__asm__ volatile (";; srlz.d\n" ::: "memory")
+#define srlz_i()		asm volatile (";; srlz.i ;;\n" ::: "memory")
+#define srlz_d()		asm volatile (";; srlz.d\n" ::: "memory")
 
 #endif
 

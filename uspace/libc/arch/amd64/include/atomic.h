@@ -38,18 +38,18 @@
 #define LIBC_amd64_ATOMIC_H_
 
 static inline void atomic_inc(atomic_t *val) {
-	__asm__ volatile ("lock incq %0\n" : "=m" (val->count));
+	asm volatile ("lock incq %0\n" : "=m" (val->count));
 }
 
 static inline void atomic_dec(atomic_t *val) {
-	__asm__ volatile ("lock decq %0\n" : "=m" (val->count));
+	asm volatile ("lock decq %0\n" : "=m" (val->count));
 }
 
 static inline long atomic_postinc(atomic_t *val) 
 {
 	long r;
 
-	__asm__ volatile (
+	asm volatile (
 		"movq $1, %0\n"
 		"lock xaddq %0, %1\n"
 		: "=r" (r), "=m" (val->count)
@@ -62,7 +62,7 @@ static inline long atomic_postdec(atomic_t *val)
 {
 	long r;
 	
-	__asm__ volatile (
+	asm volatile (
 		"movq $-1, %0\n"
 		"lock xaddq %0, %1\n"
 		: "=r" (r), "=m" (val->count)

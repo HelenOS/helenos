@@ -51,7 +51,7 @@ static inline tcb_t * __tcb_get(void)
 {
 	void * retval;
 
-	__asm__ ("movl %%gs:0, %0" : "=r"(retval));
+	asm ("movl %%gs:0, %0" : "=r"(retval));
 	return retval;
 }
 

@@ -142,7 +142,7 @@ union index {
  */
 static inline void tlbp(void)
 {
-	__asm__ volatile ("tlbp\n\t");
+	asm volatile ("tlbp\n\t");
 }
 
 
@@ -152,7 +152,7 @@ static inline void tlbp(void)
  */
 static inline void tlbr(void)
 {
-	__asm__ volatile ("tlbr\n\t");
+	asm volatile ("tlbr\n\t");
 }
 
 /** Write Indexed TLB Entry
@@ -161,7 +161,7 @@ static inline void tlbr(void)
  */
 static inline void tlbwi(void)
 {
-	__asm__ volatile ("tlbwi\n\t");
+	asm volatile ("tlbwi\n\t");
 }
 
 /** Write Random TLB Entry
@@ -170,7 +170,7 @@ static inline void tlbwi(void)
  */
 static inline void tlbwr(void)
 {
-	__asm__ volatile ("tlbwr\n\t");
+	asm volatile ("tlbwr\n\t");
 }
 
 #define tlb_invalidate(asid)	tlb_invalidate_asid(asid)

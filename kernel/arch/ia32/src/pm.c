@@ -147,7 +147,7 @@ void idt_init(void)
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"pushfl\n"
 		"pop %%eax\n"
 		"and $0xffff8fff, %%eax\n"
@@ -160,7 +160,7 @@ static void clean_IOPL_NT_flags(void)
 /* Clean AM(18) flag in CR0 register */
 static void clean_AM_flag(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"mov %%cr0, %%eax\n"
 		"and $0xfffbffff, %%eax\n"
 		"mov %%eax, %%cr0\n"

@@ -69,7 +69,7 @@ static int32_t ski_getchar(void);
  */
 void ski_putchar(chardev_t *d, const char ch)
 {
-	__asm__ volatile (
+	asm volatile (
 		"mov r15 = %0\n"
 		"mov r32 = %1\n"	/* r32 is in0 */
 		"break 0x80000\n"	/* modifies r8 */
@@ -95,7 +95,7 @@ int32_t ski_getchar(void)
 {
 	uint64_t ch;
 	
-	__asm__ volatile (
+	asm volatile (
 		"mov r15 = %1\n"
 		"break 0x80000;;\n"	/* modifies r8 */
 		"mov %0 = r8;;\n"		
@@ -204,7 +204,7 @@ static chardev_operations_t ski_ops = {
  */
 void ski_init_console(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"mov r15 = %0\n"
 		"break 0x80000\n"
 		:

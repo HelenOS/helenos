@@ -73,7 +73,7 @@ void before_thread_runs_arch(void)
 	 * Record address of kernel stack to bank 0 r23.
 	 * These values will be found there after switch from userspace.
 	 */
-	__asm__ volatile (
+	asm volatile (
 		"bsw.0\n"
 		"mov r22 = %0\n"
 		"mov r23 = %1\n"

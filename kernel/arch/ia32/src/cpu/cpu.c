@@ -71,7 +71,7 @@ static char *vendor_str[] = {
 
 void fpu_disable(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"mov %%cr0,%%eax;"
 		"or $8,%%eax;"
 		"mov %%eax,%%cr0;"
@@ -83,7 +83,7 @@ void fpu_disable(void)
 
 void fpu_enable(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"mov %%cr0,%%eax;"
 		"and $0xffFFffF7,%%eax;"
 		"mov %%eax,%%cr0;"

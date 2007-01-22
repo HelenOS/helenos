@@ -52,7 +52,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
-	__asm__ volatile ("andq %%rsp, %0\n" : "=r" (v) : "0" (~((uint64_t)STACK_SIZE-1)));
+	asm volatile ("andq %%rsp, %0\n" : "=r" (v) : "0" (~((uint64_t)STACK_SIZE-1)));
 	
 	return v;
 }

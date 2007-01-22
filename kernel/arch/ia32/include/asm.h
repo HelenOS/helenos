@@ -57,19 +57,26 @@ extern void asm_fake_loop(uint32_t t);
  *
  * Halt the current CPU until interrupt event.
  */
-static inline void cpu_halt(void) { __asm__("hlt\n"); };
-static inline void cpu_sleep(void) { __asm__("hlt\n"); };
+static inline void cpu_halt(void)
+{
+	asm("hlt\n");
+};
+
+static inline void cpu_sleep(void)
+{
+	asm("hlt\n");
+};
 
 #define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
     { \
 	unative_t res; \
-	__asm__ volatile ("movl %%" #reg ", %0" : "=r" (res) ); \
+	asm volatile ("movl %%" #reg ", %0" : "=r" (res) ); \
 	return res; \
     }
 
 #define GEN_WRITE_REG(reg) static inline void write_ ##reg (unative_t regn) \
     { \
-	__asm__ volatile ("movl %0, %%" #reg : : "r" (regn)); \
+	asm volatile ("movl %0, %%" #reg : : "r" (regn)); \
     }
 
 GEN_READ_REG(cr0);
@@ -98,7 +105,10 @@ GEN_WRITE_REG(dr7);
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outb(uint16_t port, uint8_t val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outb(uint16_t port, uint8_t val)
+{
+	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) );
+}
 
 /** Word to port
  *
@@ -107,7 +117,10 @@ static inline void outb(uint16_t port, uint8_t val) { __asm__ volatile ("outb %b
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outw(uint16_t port, uint16_t val) { __asm__ volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outw(uint16_t port, uint16_t val)
+{
+	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) );
+}
 
 /** Double word to port
  *
@@ -116,7 +129,10 @@ static inline void outw(uint16_t port, uint16_t val) { __asm__ volatile ("outw %
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outl(uint16_t port, uint32_t val) { __asm__ volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outl(uint16_t port, uint32_t val)
+{
+	asm volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) );
+}
 
 /** Byte from port
  *
@@ -125,7 +141,13 @@ static inline void outl(uint16_t port, uint32_t val) { __asm__ volatile ("outl %
  * @param port Port to read from
  * @return Value read
  */
-static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint8_t inb(uint16_t port)
+{
+	uint8_t val;
+	
+	asm volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) );
+	return val;
+}
 
 /** Word from port
  *
@@ -134,7 +156,13 @@ static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %
  * @param port Port to read from
  * @return Value read
  */
-static inline uint16_t inw(uint16_t port) { uint16_t val; __asm__ volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint16_t inw(uint16_t port)
+{
+	uint16_t val;
+	
+	asm volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) );
+	return val;
+}
 
 /** Double word from port
  *
@@ -143,7 +171,13 @@ static inline uint16_t inw(uint16_t port) { uint16_t val; __asm__ volatile ("inw
  * @param port Port to read from
  * @return Value read
  */
-static inline uint32_t inl(uint16_t port) { uint32_t val; __asm__ volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint32_t inl(uint16_t port)
+{
+	uint32_t val;
+	
+	asm volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) );
+	return val;
+}
 
 /** Enable interrupts.
  *
@@ -155,7 +189,7 @@ static inline uint32_t inl(uint16_t port) { uint32_t val; __asm__ volatile ("inl
 static inline ipl_t interrupts_enable(void)
 {
 	ipl_t v;
-	__asm__ volatile (
+	asm volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
 		"sti\n"
@@ -174,7 +208,7 @@ static inline ipl_t interrupts_enable(void)
 static inline ipl_t interrupts_disable(void)
 {
 	ipl_t v;
-	__asm__ volatile (
+	asm volatile (
 		"pushf\n\t"
 		"popl %0\n\t"
 		"cli\n"
@@ -191,7 +225,7 @@ static inline ipl_t interrupts_disable(void)
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
-	__asm__ volatile (
+	asm volatile (
 		"pushl %0\n\t"
 		"popf\n"
 		: : "r" (ipl)
@@ -205,7 +239,7 @@ static inline void interrupts_restore(ipl_t ipl)
 static inline ipl_t interrupts_read(void)
 {
 	ipl_t v;
-	__asm__ volatile (
+	asm volatile (
 		"pushf\n\t"
 		"popl %0\n"
 		: "=r" (v)
@@ -223,7 +257,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
-	__asm__ volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
+	asm volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
 	
 	return v;
 }
@@ -233,7 +267,7 @@ static inline uintptr_t * get_ip()
 {
 	uintptr_t *ip;
 
-	__asm__ volatile (
+	asm volatile (
 		"mov %%eip, %0"
 		: "=r" (ip)
 		);
@@ -246,7 +280,7 @@ static inline uintptr_t * get_ip()
  */
 static inline void invlpg(uintptr_t addr)
 {
-	__asm__ volatile ("invlpg %0\n" :: "m" (*(unative_t *)addr));
+	asm volatile ("invlpg %0\n" :: "m" (*(unative_t *)addr));
 }
 
 /** Load GDTR register from memory.
@@ -255,7 +289,7 @@ static inline void invlpg(uintptr_t addr)
  */
 static inline void gdtr_load(ptr_16_32_t *gdtr_reg)
 {
-	__asm__ volatile ("lgdtl %0\n" : : "m" (*gdtr_reg));
+	asm volatile ("lgdtl %0\n" : : "m" (*gdtr_reg));
 }
 
 /** Store GDTR register to memory.
@@ -264,7 +298,7 @@ static inline void gdtr_load(ptr_16_32_t *gdtr_reg)
  */
 static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 {
-	__asm__ volatile ("sgdtl %0\n" : : "m" (*gdtr_reg));
+	asm volatile ("sgdtl %0\n" : : "m" (*gdtr_reg));
 }
 
 /** Load IDTR register from memory.
@@ -273,7 +307,7 @@ static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
  */
 static inline void idtr_load(ptr_16_32_t *idtr_reg)
 {
-	__asm__ volatile ("lidtl %0\n" : : "m" (*idtr_reg));
+	asm volatile ("lidtl %0\n" : : "m" (*idtr_reg));
 }
 
 /** Load TR from descriptor table.
@@ -282,7 +316,7 @@ static inline void idtr_load(ptr_16_32_t *idtr_reg)
  */
 static inline void tr_load(uint16_t sel)
 {
-	__asm__ volatile ("ltr %0" : : "r" (sel));
+	asm volatile ("ltr %0" : : "r" (sel));
 }
 
 #endif

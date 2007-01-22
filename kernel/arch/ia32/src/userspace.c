@@ -51,7 +51,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 
 	ipl = interrupts_disable();
 
-	__asm__ volatile (
+	asm volatile (
 		/*
 		 * Clear nested task flag.
 		 */

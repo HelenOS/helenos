@@ -69,7 +69,7 @@ int ofw_cpu(void)
 	
 	uint64_t current_mid;
 	
-	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (current_mid) : "r" (0), "i" (ASI_UPA_CONFIG));
+	asm volatile ("ldxa [%1] %2, %0\n" : "=r" (current_mid) : "r" (0), "i" (ASI_UPA_CONFIG));
 	current_mid >>= UPA_CONFIG_MID_SHIFT;
 	current_mid &= UPA_CONFIG_MID_MASK;
 

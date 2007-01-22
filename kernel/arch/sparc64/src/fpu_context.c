@@ -39,7 +39,7 @@
 
 void fpu_context_save(fpu_context_t *fctx)
 {
-	__asm__ volatile (
+	asm volatile (
 		"std %%f0, %0\n"
 		"std %%f2, %1\n"
 		"std %%f4, %2\n"
@@ -67,7 +67,7 @@ void fpu_context_save(fpu_context_t *fctx)
 	 * GCC (4.1.1) can't handle more than 30 operands in one asm statement.
 	 */
 	
-	__asm__ volatile (
+	asm volatile (
 		"std %%f32, %0\n"
 		"std %%f34, %1\n"
 		"std %%f36, %2\n"
@@ -90,12 +90,12 @@ void fpu_context_save(fpu_context_t *fctx)
 		  "=m" (fctx->d[28]), "=m" (fctx->d[29]), "=m" (fctx->d[30]), "=m" (fctx->d[31])
 	);
 	
-	__asm__ volatile ("stx %%fsr, %0\n" : "=m" (fctx->fsr));
+	asm volatile ("stx %%fsr, %0\n" : "=m" (fctx->fsr));
 }
 
 void fpu_context_restore(fpu_context_t *fctx)
 {
-	__asm__ volatile (
+	asm volatile (
 		"ldd %0, %%f0\n"
 		"ldd %1, %%f2\n"
 		"ldd %2, %%f4\n"
@@ -124,7 +124,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 	 * GCC (4.1.1) can't handle more than 30 operands in one asm statement.
 	 */
 	
-	__asm__ volatile (
+	asm volatile (
 		"ldd %0, %%f32\n"
 		"ldd %1, %%f34\n"
 		"ldd %2, %%f36\n"
@@ -148,7 +148,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 		  "m" (fctx->d[28]), "m" (fctx->d[29]), "m" (fctx->d[30]), "m" (fctx->d[31])
 	);
 	
-	__asm__ volatile ("ldx %0, %%fsr\n" : : "m" (fctx->fsr));
+	asm volatile ("ldx %0, %%fsr\n" : : "m" (fctx->fsr));
 }
 
 void fpu_enable(void)

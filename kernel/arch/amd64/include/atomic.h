@@ -42,17 +42,17 @@
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock incq %0\n" : "=m" (val->count));
+	asm volatile ("lock incq %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("incq %0\n" : "=m" (val->count));
+	asm volatile ("incq %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	__asm__ volatile ("lock decq %0\n" : "=m" (val->count));
+	asm volatile ("lock decq %0\n" : "=m" (val->count));
 #else
-	__asm__ volatile ("decq %0\n" : "=m" (val->count));
+	asm volatile ("decq %0\n" : "=m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
@@ -60,7 +60,7 @@ static inline long atomic_postinc(atomic_t *val)
 {
 	long r = 1;
 
-	__asm__ volatile (
+	asm volatile (
 		"lock xaddq %1, %0\n"
 		: "=m" (val->count), "+r" (r)
 	);
@@ -72,7 +72,7 @@ static inline long atomic_postdec(atomic_t *val)
 {
 	long r = -1;
 	
-	__asm__ volatile (
+	asm volatile (
 		"lock xaddq %1, %0\n"
 		: "=m" (val->count), "+r" (r)
 	);
@@ -86,7 +86,7 @@ static inline long atomic_postdec(atomic_t *val)
 static inline uint64_t test_and_set(atomic_t *val) {
 	uint64_t v;
 	
-	__asm__ volatile (
+	asm volatile (
 		"movq $1, %0\n"
 		"xchgq %0, %1\n"
 		: "=r" (v),"=m" (val->count)
@@ -102,7 +102,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 	uint64_t tmp;
 
 	preemption_disable();
-	__asm__ volatile (
+	asm volatile (
 		"0:;"
 #ifdef CONFIG_HT
 		"pause;"

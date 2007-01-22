@@ -45,14 +45,14 @@ typedef struct {
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	__asm__ volatile ("mov r13 = %0\n" : : "r" (tcb) : "r13");
+	asm volatile ("mov r13 = %0\n" : : "r" (tcb) : "r13");
 }
 
 static inline tcb_t *__tcb_get(void)
 {
 	void *retval;
 
-	__asm__ volatile ("mov %0 = r13\n" : "=r" (retval));
+	asm volatile ("mov %0 = r13\n" : "=r" (retval));
 
 	return retval;
 }

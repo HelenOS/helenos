@@ -39,23 +39,23 @@
  * Our critical section barriers are prepared for the weakest RMO memory model.
  */
 #define CS_ENTER_BARRIER() 				\
-	__asm__ volatile (				\
+	asm volatile (				\
 		"membar #LoadLoad | #LoadStore\n"	\
 		::: "memory"				\
 	)
 #define CS_LEAVE_BARRIER()				\
-	__asm__ volatile ( 				\
+	asm volatile ( 				\
 		"membar #StoreStore\n"			\
 		"membar #LoadStore\n"			\
 		::: "memory"				\
 	)
 
 #define memory_barrier()	\
-	__asm__ volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory")
+	asm volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory")
 #define read_barrier()		\
-	__asm__ volatile ("membar #LoadLoad\n" ::: "memory")
+	asm volatile ("membar #LoadLoad\n" ::: "memory")
 #define write_barrier()		\
-	__asm__ volatile ("membar #StoreStore\n" ::: "memory")
+	asm volatile ("membar #StoreStore\n" ::: "memory")
 
 /** Flush Instruction Memory instruction. */
 static inline void flush(void)
@@ -70,13 +70,13 @@ static inline void flush(void)
 	 * DTLB.
 	 */
 	 
-        __asm__ volatile ("flush %o7\n");
+        asm volatile ("flush %o7\n");
 }
 
 /** Memory Barrier instruction. */
 static inline void membar(void)
 {
-	__asm__ volatile ("membar #Sync\n");
+	asm volatile ("membar #Sync\n");
 }
 
 #endif

@@ -76,7 +76,7 @@ static char *vendor_str[] = {
  */
 void cpu_setup_fpu(void)
 {
-	__asm__ volatile (
+	asm volatile (
 		"movq %%cr0, %%rax;"
 		"btsq $1, %%rax;" /* cr0.mp */
 		"btrq $2, %%rax;"  /* cr0.em */
@@ -99,7 +99,7 @@ void cpu_setup_fpu(void)
  */
 void fpu_disable(void)
 {
-	__asm__	volatile (
+	asm	volatile (
 		"mov %%cr0,%%rax;"
 		"bts $3,%%rax;"
 		"mov %%rax,%%cr0;"
@@ -111,7 +111,7 @@ void fpu_disable(void)
 
 void fpu_enable(void)
 {
-	__asm__	volatile (
+	asm	volatile (
 		"mov %%cr0,%%rax;"
 		"btr $3,%%rax;"
 		"mov %%rax,%%cr0;"

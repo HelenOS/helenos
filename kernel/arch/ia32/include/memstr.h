@@ -51,7 +51,7 @@ static inline void * memcpy(void * dst, const void * src, size_t cnt)
 {
         unative_t d0, d1, d2;
 
-        __asm__ __volatile__(
+        asm volatile(
                 /* copy all full dwords */
                 "rep movsl\n\t"
                 /* load count again */
@@ -88,7 +88,7 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
 	uint32_t d0, d1, d2;
 	int ret;
 	
-	__asm__ (
+	asm (
 		"repe cmpsb\n\t"
 		"je 1f\n\t"
 		"movl %3, %0\n\t"
@@ -114,7 +114,7 @@ static inline void memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
 	uint32_t d0, d1;
 	
-	__asm__ __volatile__ (
+	asm volatile (
 		"rep stosw\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
 		: "0" (dst), "1" (cnt), "2" (x)
@@ -136,7 +136,7 @@ static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
 	uint32_t d0, d1;
 	
-	__asm__ __volatile__ (
+	asm volatile (
 		"rep stosb\n\t"
 		: "=&D" (d0), "=&c" (d1), "=a" (x)
 		: "0" (dst), "1" (cnt), "2" (x)

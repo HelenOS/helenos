@@ -72,7 +72,7 @@ void tlb_invalidate_all(void)
 
 	for(i = 0; i < count1; i++) {
 		for(j = 0; j < count2; j++) {
-			__asm__ volatile (
+			asm volatile (
 				"ptc.e %0 ;;"
 				:
 				: "r" (adr)
@@ -179,7 +179,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	}
 	/*cnt+=(page!=va);*/
 	for(; va<(page+cnt*(PAGE_SIZE)); va += (1<<ps))	{
-		__asm__ volatile (
+		asm volatile (
 			"ptc.l %0,%1;;"
 			:
 			: "r" (va), "r" (ps<<2)
@@ -244,7 +244,7 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 		srlz_i();
 	}
 	
-	__asm__ volatile (
+	asm volatile (
 		"mov r8=psr;;\n"
 		"rsm %0;;\n"   			/* PSR_IC_MASK */
 		"srlz.d;;\n"
@@ -320,7 +320,7 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, i
 		srlz_i();
 	}
 
-	__asm__ volatile (
+	asm volatile (
 		"mov r8=psr;;\n"
 		"rsm %0;;\n"			/* PSR_IC_MASK */
 		"srlz.d;;\n"
@@ -382,7 +382,7 @@ void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index
  */
 void dtr_purge(uintptr_t page, count_t width)
 {
-	__asm__ volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width<<2));
+	asm volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width<<2));
 }
 
 

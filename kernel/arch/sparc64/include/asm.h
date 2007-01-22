@@ -51,7 +51,7 @@ static inline uint64_t pstate_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%pstate, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%pstate, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -62,7 +62,7 @@ static inline uint64_t pstate_read(void)
  */
 static inline void pstate_write(uint64_t v)
 {
-	__asm__ volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
+	asm volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
 }
 
 /** Read TICK_compare Register.
@@ -73,7 +73,7 @@ static inline uint64_t tick_compare_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rd %%tick_cmpr, %0\n" : "=r" (v));
+	asm volatile ("rd %%tick_cmpr, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -84,7 +84,7 @@ static inline uint64_t tick_compare_read(void)
  */
 static inline void tick_compare_write(uint64_t v)
 {
-	__asm__ volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
+	asm volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
 }
 
 /** Read TICK Register.
@@ -95,7 +95,7 @@ static inline uint64_t tick_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%tick, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%tick, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -106,7 +106,7 @@ static inline uint64_t tick_read(void)
  */
 static inline void tick_write(uint64_t v)
 {
-	__asm__ volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
+	asm volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
 }
 
 /** Read FPRS Register.
@@ -117,7 +117,7 @@ static inline uint64_t fprs_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rd %%fprs, %0\n" : "=r" (v));
+	asm volatile ("rd %%fprs, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -128,7 +128,7 @@ static inline uint64_t fprs_read(void)
  */
 static inline void fprs_write(uint64_t v)
 {
-	__asm__ volatile ("wr %0, %1, %%fprs\n" : : "r" (v), "i" (0));
+	asm volatile ("wr %0, %1, %%fprs\n" : : "r" (v), "i" (0));
 }
 
 /** Read SOFTINT Register.
@@ -139,7 +139,7 @@ static inline uint64_t softint_read(void)
 {
 	uint64_t v;
 
-	__asm__ volatile ("rd %%softint, %0\n" : "=r" (v));
+	asm volatile ("rd %%softint, %0\n" : "=r" (v));
 
 	return v;
 }
@@ -150,7 +150,7 @@ static inline uint64_t softint_read(void)
  */
 static inline void softint_write(uint64_t v)
 {
-	__asm__ volatile ("wr %0, %1, %%softint\n" : : "r" (v), "i" (0));
+	asm volatile ("wr %0, %1, %%softint\n" : : "r" (v), "i" (0));
 }
 
 /** Write CLEAR_SOFTINT Register.
@@ -161,7 +161,7 @@ static inline void softint_write(uint64_t v)
  */
 static inline void clear_softint_write(uint64_t v)
 {
-	__asm__ volatile ("wr %0, %1, %%clear_softint\n" : : "r" (v), "i" (0));
+	asm volatile ("wr %0, %1, %%clear_softint\n" : : "r" (v), "i" (0));
 }
 
 /** Write SET_SOFTINT Register.
@@ -172,7 +172,7 @@ static inline void clear_softint_write(uint64_t v)
  */
 static inline void set_softint_write(uint64_t v)
 {
-	__asm__ volatile ("wr %0, %1, %%set_softint\n" : : "r" (v), "i" (0));
+	asm volatile ("wr %0, %1, %%set_softint\n" : : "r" (v), "i" (0));
 }
 
 /** Enable interrupts.
@@ -247,7 +247,7 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t unbiased_sp;
 	
-	__asm__ volatile ("add %%sp, %1, %0\n" : "=r" (unbiased_sp) : "i" (STACK_BIAS));
+	asm volatile ("add %%sp, %1, %0\n" : "=r" (unbiased_sp) : "i" (STACK_BIAS));
 	
 	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
 }
@@ -260,7 +260,7 @@ static inline uint64_t ver_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -273,7 +273,7 @@ static inline uint64_t tpc_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%tpc, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%tpc, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -286,7 +286,7 @@ static inline uint64_t tl_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%tl, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%tl, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -299,7 +299,7 @@ static inline uint64_t tba_read(void)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("rdpr %%tba, %0\n" : "=r" (v));
+	asm volatile ("rdpr %%tba, %0\n" : "=r" (v));
 	
 	return v;
 }
@@ -310,7 +310,7 @@ static inline uint64_t tba_read(void)
  */
 static inline void tba_write(uint64_t v)
 {
-	__asm__ volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
+	asm volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
 }
 
 /** Load uint64_t from alternate space.
@@ -324,7 +324,7 @@ static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" ((unsigned) asi));
+	asm volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" ((unsigned) asi));
 	
 	return v;
 }
@@ -337,25 +337,25 @@ static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
  */
 static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
-	__asm__ volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" ((unsigned) asi) : "memory");
+	asm volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" ((unsigned) asi) : "memory");
 }
 
 /** Flush all valid register windows to memory. */
 static inline void flushw(void)
 {
-	__asm__ volatile ("flushw\n");
+	asm volatile ("flushw\n");
 }
 
 /** Switch to nucleus by setting TL to 1. */
 static inline void nucleus_enter(void)
 {
-	__asm__ volatile ("wrpr %g0, 1, %tl\n");
+	asm volatile ("wrpr %g0, 1, %tl\n");
 }
 
 /** Switch from nucleus by setting TL to 0. */
 static inline void nucleus_leave(void)
 {
-	__asm__ volatile ("wrpr %g0, %g0, %tl\n");
+	asm volatile ("wrpr %g0, %g0, %tl\n");
 }
 
 /** Read UPA_CONFIG register.

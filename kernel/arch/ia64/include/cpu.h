@@ -58,7 +58,7 @@ static inline uint64_t cpuid_read(int n)
 {
 	uint64_t v;
 	
-	__asm__ volatile ("mov %0 = cpuid[%1]\n" : "=r" (v) : "r" (n));
+	asm volatile ("mov %0 = cpuid[%1]\n" : "=r" (v) : "r" (n));
 	
 	return v;
 }
