@@ -18,11 +18,13 @@ check_error() {
 BINUTILS_VERSION="2.17"
 GCC_VERSION="4.1.1"
 
+INCLUDES="ia64-pc-gnu-linux_includes.tar.bz2"
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
 GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
 GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
 
+INCLUDES_SOURCE="http://download.decky.cz/"
 BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 
@@ -31,12 +33,17 @@ WORKDIR=`pwd`
 TARGET="${PLATFORM}-pc-linux-gnu"
 HOST="i686-pc-linux-gnu"
 PREFIX="/usr/local/${PLATFORM}"
+INCLUDESDIR="${WORKDIR}/include"
 BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 OBJDIR="${WORKDIR}/gcc-obj"
 
 echo ">>> Downloading tarballs"
 
+if [ ! -f "${INCLUDES}" ]; then
+    wget -c "${INCLUDES_SOURCE}${INCLUDES}"
+    check_error $? "Error downloading includes."
+fi
 if [ ! -f "${BINUTILS}" ]; then
     wget -c "${BINUTILS_SOURCE}${BINUTILS}"
     check_error $? "Error downloading binutils."
@@ -69,6 +76,8 @@ if [ ! -d "${OBJDIR}" ]; then
 fi
 
 echo ">>> Unpacking tarballs"
+tar -xvjf "${INCLUDES}"
+check_error $? "Error unpacking includes."
 tar -xvzf "${BINUTILS}"
 check_error $? "Error unpacking binutils."
 tar -xvjf "${GCC_CORE}"
@@ -89,7 +98,7 @@ check_error $? "Error compiling/installing binutils."
 echo ">>> Compiling and installing GCC"
 cd "${OBJDIR}"
 check_error $? "Change directory failed."
-"${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
+"${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj "--with-headers=${INCLUDESDIR}" --disable-shared
 check_error $? "Error configuring GCC."
 PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 check_error $? "Error compiling/installing GCC."
