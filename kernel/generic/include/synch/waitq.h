@@ -45,7 +45,7 @@
 #define WAKEUP_ALL	1
 
 /** Wait queue structure. */
-struct waitq {
+typedef struct {
 
 	/** Lock protecting wait queue structure.
 	 *
@@ -55,7 +55,7 @@ struct waitq {
 
 	int missed_wakeups;	/**< Number of waitq_wakeup() calls that didn't find a thread to wake up. */
 	link_t head;		/**< List of sleeping threads for wich there was no missed_wakeup. */
-};
+} waitq_t;
 
 #define waitq_sleep(wq) \
 	waitq_sleep_timeout((wq),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)

@@ -37,12 +37,12 @@
 
 #include <arch/types.h>
 #include <synch/waitq.h>
-#include <typedefs.h>
+#include <synch/mutex.h>
 #include <synch/synch.h>
 
-struct condvar {
+typedef struct {
 	waitq_t wq;
-};
+} condvar_t;
 
 #define condvar_wait(cv,mtx) \
 	_condvar_wait_timeout((cv),(mtx),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)

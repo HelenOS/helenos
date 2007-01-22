@@ -50,15 +50,6 @@ typedef unsigned long context_id_t;
 typedef struct task task_t;
 typedef struct thread thread_t;
 
-typedef struct spinlock spinlock_t;
-typedef struct mutex mutex_t;
-typedef struct semaphore semaphore_t;
-typedef struct rwlock rwlock_t;
-typedef enum rwlock_type rwlock_type_t;
-typedef struct condvar condvar_t;
-typedef struct waitq waitq_t;
-typedef struct futex futex_t;
-
 typedef struct as_area as_area_t;
 typedef struct as as_t;
 

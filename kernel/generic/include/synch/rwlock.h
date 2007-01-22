@@ -41,17 +41,17 @@
 #include <synch/synch.h>
 #include <synch/spinlock.h>
 
-enum rwlock_type {
+typedef enum {
 	RWLOCK_NONE,
 	RWLOCK_READER,
 	RWLOCK_WRITER
-};
+} rwlock_type_t;
 
-struct rwlock {
+typedef struct {
 	SPINLOCK_DECLARE(lock);
 	mutex_t exclusive;	/**< Mutex for writers, readers can bypass it if readers_in is positive. */
 	count_t readers_in;	/**< Number of readers in critical section. */
-};
+} rwlock_t;
 
 #define rwlock_write_lock(rwl) \
 	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)

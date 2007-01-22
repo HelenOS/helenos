@@ -40,9 +40,9 @@
 #include <synch/semaphore.h>
 #include <synch/synch.h>
 
-struct mutex {
+typedef struct {
 	semaphore_t sem;
-};
+} mutex_t;
 
 #define mutex_lock(mtx) \
 	_mutex_lock_timeout((mtx),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)

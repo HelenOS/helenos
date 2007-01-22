@@ -43,6 +43,7 @@
 #ifndef __ASM__
 
 #include <arch/mm/asid.h>
+#include <synch/spinlock.h>
 #include <typedefs.h>
 
 #endif

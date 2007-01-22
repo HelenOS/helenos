@@ -40,7 +40,7 @@
 #define KERN_PAGE_HT_H_
 
 #include <mm/page.h>
-#include <typedefs.h>
+#include <synch/mutex.h>
 #include <arch/types.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>

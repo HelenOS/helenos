@@ -42,12 +42,12 @@
 #include <debug.h>
 
 #ifdef CONFIG_SMP
-struct spinlock {
+typedef struct {
 #ifdef CONFIG_DEBUG_SPINLOCK
 	char *name;
 #endif
 	atomic_t val;
-};
+} spinlock_t;
 
 /*
  * SPINLOCK_DECLARE is to be used for dynamically allocated spinlocks,
@@ -102,6 +102,8 @@ static inline void spinlock_unlock(spinlock_t *sl)
 }
 
 #else
+
+typedef void spinlock_t;
 
 /* On UP systems, spinlocks are effectively left out. */
 #define SPINLOCK_DECLARE(name)

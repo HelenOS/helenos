@@ -42,12 +42,12 @@
 #include <genarch/mm/page_pt.h>
 
 /** Kernel-side futex structure. */
-struct futex {
+typedef struct {
 	uintptr_t paddr;	/**< Physical address of the status variable. */
 	waitq_t wq;		/**< Wait queue for threads waiting for futex availability. */
 	link_t ht_link;		/**< Futex hash table link. */
 	count_t refcount;	/**< Number of tasks that reference this futex. */
-};
+} futex_t;
 
 extern void futex_init(void);
 extern unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags);

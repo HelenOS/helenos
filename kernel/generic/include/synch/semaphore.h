@@ -40,10 +40,9 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 
-struct semaphore
-{
+typedef struct {
 	waitq_t wq;
-};
+} semaphore_t;
 
 #define semaphore_down(s) \
 	_semaphore_down_timeout((s),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
