@@ -53,7 +53,7 @@
 #define THREAD_STACK_SIZE	STACK_SIZE
 
 /** Thread states. */
-enum state {
+typedef enum {
 	Invalid,	/**< It is an error, if thread is found in this state. */
 	Running,	/**< State of a thread that is currently executing on some CPU. */
 	Sleeping,	/**< Thread in this state is waiting for an event. */
@@ -61,7 +61,7 @@ enum state {
 	Entering,	/**< Threads are in this state before they are first readied. */
 	Exiting,	/**< After a thread calls thread_exit(), it is put into Exiting state. */
 	Undead		/**< Threads that were not detached but exited are in the Undead state. */
-};
+} state_t;
 
 extern char *thread_states[];
 
