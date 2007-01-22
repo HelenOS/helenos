@@ -44,7 +44,7 @@
 
 typedef void (* timeout_handler_t)(void *arg);
 
-struct timeout {
+typedef struct {
 	SPINLOCK_DECLARE(lock);
 
 	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
@@ -55,7 +55,7 @@ struct timeout {
 	void *arg;			/**< Argument to be passed to handler() function. */
 	
 	cpu_t *cpu;			/**< On which processor is this timeout registered. */
-};
+} timeout_t;
 
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *t);

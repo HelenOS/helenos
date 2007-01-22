@@ -59,13 +59,13 @@
  * of the following type will be placed at
  * the base address of the stack.
  */
-struct the {
+typedef struct {
 	count_t preemption_disabled;	/**< Preemption disabled counter. */
 	thread_t *thread;		/**< Current thread. */
 	task_t *task;			/**< Current task. */
 	cpu_t *cpu;			/**< Executing cpu. */
 	as_t *as;			/**< Current address space. */
-};
+} the_t;
 
 #define THE		((the_t *)(get_stack_base()))
 

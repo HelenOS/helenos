@@ -45,11 +45,11 @@
 #define NEEDS_RELINK_MAX	(HZ)
 
 /** Scheduler run queue structure. */
-struct runq {
+typedef struct {
 	SPINLOCK_DECLARE(lock);
 	link_t rq_head;		/**< List of ready threads. */
 	count_t n;		/**< Number of threads in rq_ready. */
-};
+} runq_t;
 
 extern atomic_t nrdy;
 extern void scheduler_init(void);

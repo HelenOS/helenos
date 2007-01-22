@@ -52,10 +52,6 @@ typedef struct thread thread_t;
 typedef struct context context_t;
 typedef struct fpu_context fpu_context_t;
 
-typedef struct timeout timeout_t;
-
-typedef struct runq runq_t;
-
 typedef struct spinlock spinlock_t;
 typedef struct mutex mutex_t;
 typedef struct semaphore semaphore_t;
@@ -72,8 +68,6 @@ typedef struct as_area as_area_t;
 typedef struct as as_t;
 
 typedef struct link link_t;
-
-typedef struct the the_t;
 
 typedef struct chardev chardev_t;
 
