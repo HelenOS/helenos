@@ -424,7 +424,7 @@ static void zone_buddy_mark_available(buddy_system_t *b, link_t * block) {
 	frame->refcount = 0;
 }
 
-static struct buddy_system_operations  zone_buddy_system_operations = {
+static buddy_system_operations_t zone_buddy_system_operations = {
 	.find_buddy = zone_buddy_find_buddy,
 	.bisect = zone_buddy_bisect,
 	.coalesce = zone_buddy_coalesce,

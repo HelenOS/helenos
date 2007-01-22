@@ -39,7 +39,7 @@
 
 #define SP_DELTA	16
 
-struct context {
+typedef struct {
 	uintptr_t sp;
 	uintptr_t pc;
 	
@@ -67,7 +67,7 @@ struct context {
 	uint64_t cr;
 	
 	ipl_t ipl;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) context_t;
 
 #endif
 

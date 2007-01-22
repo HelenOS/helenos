@@ -44,9 +44,9 @@ void fpu_fxsr(void);
 void fpu_fsr(void);
 
 
-struct fpu_context {
+typedef struct {
 	uint8_t fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
-};
+} fpu_context_t;
 
 #endif
 

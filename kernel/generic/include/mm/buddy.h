@@ -40,37 +40,39 @@
 
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff
 
+struct buddy_system;
+
 /** Buddy system operations to be implemented by each implementation. */
-struct buddy_system_operations {
+typedef struct {
 	/** Return pointer to left-side or right-side buddy for block passed as
 	  * argument. */
-	link_t *(* find_buddy)(buddy_system_t *, link_t *);
+	link_t *(* find_buddy)(struct buddy_system *, link_t *);
 	/** Bisect the block passed as argument and return pointer to the new
 	  * right-side buddy. */
-	link_t *(* bisect)(buddy_system_t *, link_t *);
+	link_t *(* bisect)(struct buddy_system *, link_t *);
 	/** Coalesce two buddies into a bigger block. */
-	link_t *(* coalesce)(buddy_system_t *, link_t *, link_t *);
+	link_t *(* coalesce)(struct buddy_system *, link_t *, link_t *);
 	/** Set order of block passed as argument. */
-	void (*set_order)(buddy_system_t *, link_t *, uint8_t);
+	void (*set_order)(struct buddy_system *, link_t *, uint8_t);
 	/** Return order of block passed as argument. */
-	uint8_t (*get_order)(buddy_system_t *, link_t *);
+	uint8_t (*get_order)(struct buddy_system *, link_t *);
 	/** Mark block as busy. */
-	void (*mark_busy)(buddy_system_t *, link_t *);
+	void (*mark_busy)(struct buddy_system *, link_t *);
 	/** Mark block as available. */
-	void (*mark_available)(buddy_system_t *, link_t *);
+	void (*mark_available)(struct buddy_system *, link_t *);
 	/** Find parent of block that has given order  */
-	link_t *(* find_block)(buddy_system_t *, link_t *, uint8_t);
-	void (* print_id)(buddy_system_t *, link_t *);
-};
+	link_t *(* find_block)(struct buddy_system *, link_t *, uint8_t);
+	void (* print_id)(struct buddy_system *, link_t *);
+} buddy_system_operations_t;
 
-struct buddy_system {
+typedef struct buddy_system {
 	/** Maximal order of block which can be stored by buddy system. */
 	uint8_t max_order;
 	link_t *order;
 	buddy_system_operations_t *op;
 	/** Pointer to be used by the implementation. */
 	void *data;
-};
+} buddy_system_t;
 
 extern void buddy_system_create(buddy_system_t *b, uint8_t max_order,
 	buddy_system_operations_t *op, void *data);

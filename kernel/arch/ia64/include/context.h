@@ -66,7 +66,7 @@
  * Only save registers that must be preserved across
  * function calls.
  */
-struct context {
+typedef struct {
 
 	/*
 	 * Application registers
@@ -128,7 +128,7 @@ struct context {
 	__r128 f31;
 	
 	ipl_t ipl;
-};
+} context_t;
 
 #endif
 

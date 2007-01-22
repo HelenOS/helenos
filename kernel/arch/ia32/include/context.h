@@ -51,7 +51,7 @@
  * Only save registers that must be preserved across
  * function calls.
  */
-struct context {
+typedef struct {
 	uintptr_t sp;
 	uintptr_t pc;
 	uint32_t ebx;
@@ -59,7 +59,7 @@ struct context {
 	uint32_t edi;
 	uint32_t ebp;
 	ipl_t ipl;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) context_t;
 
 #endif
 

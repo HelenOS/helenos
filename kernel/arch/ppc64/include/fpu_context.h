@@ -39,7 +39,7 @@
 # include <arch/types.h>
 #endif
 
-struct fpu_context {
+typedef struct {
 	uint64_t fr14;
 	uint64_t fr15;
 	uint64_t fr16;
@@ -59,7 +59,7 @@ struct fpu_context {
 	uint64_t fr30;
 	uint64_t fr31;
 	uint32_t fpscr;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) fpu_context_t;
 
 #endif
 

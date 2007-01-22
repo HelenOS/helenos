@@ -56,7 +56,7 @@
  * Save only registers that must be preserved across
  * function calls.
  */
-struct context {
+typedef struct {
 	uintptr_t sp;		/* %o6 */
 	uintptr_t pc;		/* %o7 */
 	uint64_t i0;
@@ -76,7 +76,7 @@ struct context {
 	uint64_t l6;
 	uint64_t l7;
 	ipl_t ipl;
-};
+} context_t;
 
 #endif
 

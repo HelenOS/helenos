@@ -39,10 +39,10 @@
 
 #define FPU_CONTEXT_ALIGN    sizeof(unative_t)
 
-struct fpu_context {
+typedef struct {
 	unative_t dregs[32];
 	unative_t cregs[32];
-};
+} fpu_context_t;
 
 #endif
 
