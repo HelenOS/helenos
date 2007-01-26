@@ -81,7 +81,7 @@ static unsigned int rows = 0;
 #define FGCOLOR		0xffff00
 #define LOGOCOLOR	0x2020b0
 
-#define RED(x, bits)	((x >> (16 + 8 - bits)) & ((1 << bits) - 1))
+#define RED(x, bits)	((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
 #define GREEN(x, bits)	((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
 #define BLUE(x, bits)	((x >> (8 - bits)) & ((1 << bits) - 1))
 
@@ -111,15 +111,15 @@ static int byte0888_rgb(void *src)
 
 static void bgr_byte0888(void *dst, int rgb)
 {
-	*((uint32_t *) dst) = BLUE(rgb, 8) << 16 | GREEN(rgb, 8) << 8 |	RED(rgb,
-		8);
+	*((uint32_t *) dst) = BLUE(rgb, 8) << 16 | GREEN(rgb, 8) << 8 |
+	    RED(rgb, 8);
 }
 
 static int byte0888_bgr(void *src)
 {
 	int color = *(uint32_t *)(src);
-	return ((color & 0xff) << 16) | (((color >> 8) & 0xff) << 8) | ((color
-		>> 16) & 0xff);
+	return ((color & 0xff) << 16) | (((color >> 8) & 0xff) << 8) |
+	    ((color >> 16) & 0xff);
 }
 
 static void rgb_byte888(void *dst, int rgb)
@@ -150,31 +150,32 @@ static int byte888_rgb(void *src)
 static void rgb_byte555(void *dst, int rgb)
 {
 	/* 5-bit, 5-bits, 5-bits */ 
-	*((uint16_t *) dst) = RED(rgb, 5) << 10 | GREEN(rgb, 5) << 5 | BLUE(rgb,
-		5);
+	*((uint16_t *) dst) = RED(rgb, 5) << 10 | GREEN(rgb, 5) << 5 |
+	    BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:5:5) */
 static int byte555_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
-	return (((color >> 10) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x1f) <<
-		(8 + 3)) | ((color & 0x1f) << 3);
+	return (((color >> 10) & 0x1f) << (16 + 3)) |
+	    (((color >> 5) & 0x1f) << (8 + 3)) | ((color & 0x1f) << 3);
 }
 
 /**  16-bit depth (5:6:5) */
 static void rgb_byte565(void *dst, int rgb)
 {
 	/* 5-bit, 6-bits, 5-bits */ 
-	*((uint16_t *) dst) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 | BLUE(rgb,		5);
+	*((uint16_t *) dst) = RED(rgb, 5) << 11 | GREEN(rgb, 6) << 5 |
+	    BLUE(rgb, 5);
 }
 
 /** 16-bit depth (5:6:5) */
 static int byte565_rgb(void *src)
 {
 	int color = *(uint16_t *)(src);
-	return (((color >> 11) & 0x1f) << (16 + 3)) | (((color >> 5) & 0x3f) <<
-		(8 + 2)) | ((color & 0x1f) << 3);
+	return (((color >> 11) & 0x1f) << (16 + 3)) |
+	    (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
 /** Put pixel - 8-bit depth (color palette/3:2:3)
@@ -187,8 +188,8 @@ static int byte565_rgb(void *src)
  */
 static void rgb_byte8(void *dst, int rgb)
 {
-	*((uint8_t *) dst) = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb,
-		3);
+	*((uint8_t *) dst) = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 |
+	    BLUE(rgb, 3);
 }
 
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
@@ -198,8 +199,8 @@ static void rgb_byte8(void *dst, int rgb)
 static int byte8_rgb(void *src)
 {
 	int color = *(uint8_t *)src;
-	return (((color >> 5) & 0x7) << (16 + 5)) | (((color >> 3) & 0x3) << (8
-		+ 6)) | ((color & 0x7) << 5);
+	return (((color >> 5) & 0x7) << (16 + 5)) |
+	    (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
 
 static void putpixel(unsigned int x, unsigned int y, int color)
@@ -231,8 +232,8 @@ static void clear_screen(void)
 	for (y = 0; y < yres; y++) {
 		memcpy(&fbaddress[scanline * y], blankline, xres * pixelbytes);
 		if (dbbuffer)
-			memcpy(&dbbuffer[scanline * y], blankline, xres *
-				pixelbytes);
+			memcpy(&dbbuffer[scanline * y], blankline,
+			    xres * pixelbytes);
 	}
 }
 
@@ -243,22 +244,66 @@ static void scroll_screen(void)
 	if (dbbuffer) {
 		count_t first;
 		
+		/* Clear the last row */
 		memcpy(&dbbuffer[dboffset * scanline], blankline, ROW_BYTES);
 		
 		dboffset = (dboffset + FONT_SCANLINES) % yres;
 		first = yres - dboffset;
+		
+		/* Move all rows one row up */
+		if (xres * pixelbytes == scanline) {
+			memcpy(fbaddress, &dbbuffer[dboffset * scanline],
+			    first * scanline);
+			memcpy(&fbaddress[first * scanline], dbbuffer,
+			    dboffset * scanline);
+		} else {
+			/*
+			 * When the scanline is bigger than number of bytes
+			 * in the X-resolution, chances are that the
+			 * frame buffer memory past the X-resolution is special
+			 * in some way. For example, the SUNW,ffb framebuffer
+			 * wraps this area around the beginning of the same
+			 * line. To avoid troubles, copy only memory as
+			 * specified by the resolution.
+			 */
+			int i;
 
-		memcpy(fbaddress, &dbbuffer[scanline * dboffset], first *
-			scanline);
-		memcpy(&fbaddress[first * scanline], dbbuffer, dboffset *
-			scanline);
+			for (i = 0; i < first; i++)
+				memcpy(&fbaddress[i * scanline],
+				    &dbbuffer[(dboffset + i) * scanline],
+				    xres * pixelbytes);
+			for (i = 0; i < dboffset; i++)
+				memcpy(&fbaddress[(first + i) * scanline],
+				    &dbbuffer[i * scanline], xres * pixelbytes);
+		}
 	} else {
 		uint8_t *lastline = &fbaddress[(rows - 1) * ROW_BYTES];
 		
-		memcpy((void *) fbaddress, (void *) &fbaddress[ROW_BYTES],
-			scanline * yres - ROW_BYTES);
-		/* Clear last row */
-		memcpy((void *) lastline, (void *) blankline, ROW_BYTES);
+		if (xres * pixelbytes == scanline) {
+			/* Move all rows one row up */
+			memcpy((void *) fbaddress,
+			    (void *) &fbaddress[ROW_BYTES],
+			    scanline * yres - ROW_BYTES);
+			/* Clear the last row */
+			memcpy((void *) lastline, (void *) blankline,
+			    ROW_BYTES);
+		} else {
+			/*
+			 * See the comment in the dbbuffer case.
+			 */
+			int i;
+
+			/* Move all rows one row up */
+			for (i = 0; i < yres - FONT_SCANLINES; i++)
+				memcpy(&fbaddress[i * scanline],
+				    &fbaddress[(i + FONT_SCANLINES) * scanline],
+				    xres * pixelbytes);
+			/* Clear the last row */
+			for (i = 0; i < FONT_SCANLINES; i++)
+				memcpy(&lastline[i * scanline],
+				    &blankline[i * scanline],
+				    xres * pixelbytes);
+		}
 	}
 }
 
@@ -290,8 +335,8 @@ static void draw_glyph(uint8_t glyph, unsigned int col, unsigned int row)
 	unsigned int y;
 
 	for (y = 0; y < FONT_SCANLINES; y++)
-		draw_glyph_line(fb_font[glyph * FONT_SCANLINES + y], col *
-			COL_WIDTH, row * FONT_SCANLINES + y);
+		draw_glyph_line(fb_font[glyph * FONT_SCANLINES + y],
+		    col * COL_WIDTH, row * FONT_SCANLINES + y);
 }
 
 /** Invert character at given position */
@@ -302,8 +347,8 @@ static void invert_char(unsigned int col, unsigned int row)
 
 	for (x = 0; x < COL_WIDTH; x++)
 		for (y = 0; y < FONT_SCANLINES; y++)
-			invert_pixel(col * COL_WIDTH + x, row * FONT_SCANLINES +
-				y);
+			invert_pixel(col * COL_WIDTH + x,
+			    row * FONT_SCANLINES + y);
 }
 
 /** Draw character at default position */
@@ -327,7 +372,7 @@ static void draw_logo(unsigned int startx, unsigned int starty)
 			byte >>= x % 8;
 			if (byte & 1)
 				putpixel(startx + x, starty + y,
-					COLOR(LOGOCOLOR));
+				    COLOR(LOGOCOLOR));
 		}
 }
 
@@ -400,7 +445,7 @@ static chardev_operations_t fb_ops = {
  *
  */
 void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
-	unsigned int visual)
+    unsigned int visual)
 {
 	switch (visual) {
 	case VISUAL_INDIRECT_8:
@@ -467,8 +512,8 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.visual", NULL, visual);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
-	sysinfo_set_item_val("fb.address.color", NULL, PAGE_COLOR((uintptr_t)
-		fbaddress));
+	sysinfo_set_item_val("fb.address.color", NULL,
+	    PAGE_COLOR((uintptr_t) fbaddress));
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */
