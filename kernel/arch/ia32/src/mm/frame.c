@@ -65,7 +65,7 @@ static void init_e820_memory(pfn_t minconf)
 						  FRAME_SIZE));
 			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size,
 						   FRAME_SIZE));
-			if (minconf < start || minconf >= start+size)
+			if (minconf < start || minconf >= start + size)
 				conf = start;
 			else
 				conf = minconf;

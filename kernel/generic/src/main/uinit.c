@@ -48,7 +48,8 @@
 
 /** Thread used to bring up userspace thread.
  *
- * @param arg Pointer to structure containing userspace entry and stack addresses.
+ * @param arg Pointer to structure containing userspace entry and stack
+ *     addresses.
  */
 void uinit(void *arg)
 {

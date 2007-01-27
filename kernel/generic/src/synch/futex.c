@@ -102,11 +102,12 @@ void futex_initialize(futex_t *futex)
 /** Sleep in futex wait queue.
  *
  * @param uaddr Userspace address of the futex counter.
- * @param usec If non-zero, number of microseconds this thread is willing to sleep.
+ * @param usec If non-zero, number of microseconds this thread is willing to
+ *     sleep.
  * @param flags Select mode of operation.
  *
- * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See synch.h.
- *	   If there is no physical mapping for uaddr ENOENT is returned.
+ * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See
+ *     synch.h. If there is no physical mapping for uaddr ENOENT is returned.
  */
 unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 {
@@ -134,7 +135,8 @@ unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 
 	futex = futex_find(paddr);
 	
-	return (unative_t) waitq_sleep_timeout(&futex->wq, usec, flags | SYNCH_FLAGS_INTERRUPTIBLE);
+	return (unative_t) waitq_sleep_timeout(&futex->wq, usec, flags |
+	    SYNCH_FLAGS_INTERRUPTIBLE);
 }
 
 /** Wakeup one thread waiting in futex wait queue.
@@ -242,7 +244,8 @@ gain_write_access:
 				 * current task's B+tree of known futexes.
 				 */
 				futex->refcount++;
-				btree_insert(&TASK->futexes, paddr, futex, leaf);
+				btree_insert(&TASK->futexes, paddr, futex,
+				    leaf);
 			}
 			mutex_unlock(&TASK->futexes_lock);
 	
@@ -271,7 +274,8 @@ gain_write_access:
 
 /** Compute hash index into futex hash table.
  *
- * @param key Address where the key (i.e. physical address of futex counter) is stored.
+ * @param key Address where the key (i.e. physical address of futex counter) is
+ *     stored.
  *
  * @return Index into futex hash table.
  */
@@ -282,7 +286,8 @@ index_t futex_ht_hash(unative_t *key)
 
 /** Compare futex hash table item with a key.
  *
- * @param key Address where the key (i.e. physical address of futex counter) is stored.
+ * @param key Address where the key (i.e. physical address of futex counter) is
+ *     stored.
  *
  * @return True if the item matches the key. False otherwise.
  */
@@ -316,7 +321,8 @@ void futex_cleanup(void)
 	rwlock_write_lock(&futex_ht_lock);
 	mutex_lock(&TASK->futexes_lock);
 
-	for (cur = TASK->futexes.leaf_head.next; cur != &TASK->futexes.leaf_head; cur = cur->next) {
+	for (cur = TASK->futexes.leaf_head.next;
+	    cur != &TASK->futexes.leaf_head; cur = cur->next) {
 		btree_node_t *node;
 		int i;
 		

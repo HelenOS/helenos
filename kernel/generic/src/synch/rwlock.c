@@ -220,12 +220,14 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 			 */
 		case ESYNCH_OK_BLOCKED:		
 			/*
-			 * We were woken with rwl->readers_in already incremented.
-			 * Note that this arrangement avoids race condition between
-			 * two concurrent readers. (Race is avoided if 'exclusive' is
-			 * locked at the same time as 'readers_in' is incremented.
-			 * Same time means both events happen atomically when
-			 * rwl->lock is held.)
+			 * We were woken with rwl->readers_in already
+			 * incremented.
+			 *
+			 * Note that this arrangement avoids race condition
+			 * between two concurrent readers. (Race is avoided if
+			 * 'exclusive' is locked at the same time as
+			 * 'readers_in' is incremented. Same time means both
+			 * events happen atomically when rwl->lock is held.)
 			 */
 			interrupts_restore(ipl);
 			break;
@@ -323,7 +325,8 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 	spinlock_lock(&rwl->exclusive.sem.wq.lock);
 
 	if (!list_empty(&rwl->exclusive.sem.wq.head))
-		t = list_get_instance(rwl->exclusive.sem.wq.head.next, thread_t, wq_link);
+		t = list_get_instance(rwl->exclusive.sem.wq.head.next, thread_t,
+		    wq_link);
 	do {
 		if (t) {
 			spinlock_lock(&t->lock);
@@ -343,7 +346,8 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 		if (type == RWLOCK_READER) {
 			/*
 			 * Waking up a reader.
-			 * We are responsible for incrementing rwl->readers_in for it.
+			 * We are responsible for incrementing rwl->readers_in
+			 * for it.
 			 */
 			 rwl->readers_in++;
 		}
@@ -360,7 +364,8 @@ void let_others_in(rwlock_t *rwl, int readers_only)
 		
 		t = NULL;
 		if (!list_empty(&rwl->exclusive.sem.wq.head)) {
-			t = list_get_instance(rwl->exclusive.sem.wq.head.next, thread_t, wq_link);
+			t = list_get_instance(rwl->exclusive.sem.wq.head.next,
+			    thread_t, wq_link);
 			if (t) {
 				spinlock_lock(&t->lock);
 				if (t->rwlock_holder_type != RWLOCK_READER)

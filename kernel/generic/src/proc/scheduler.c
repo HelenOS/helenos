@@ -360,7 +360,7 @@ void scheduler(void)
 	 */
 	context_save(&CPU->saved_context);
 	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack),
-		(uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	    (uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }
@@ -500,8 +500,8 @@ repeat:
 
 #ifdef SCHEDULER_VERBOSE
 	printf("cpu%d: tid %d (priority=%d, ticks=%lld, nrdy=%ld)\n",
-		CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
-		atomic_get(&CPU->nrdy));
+	    CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
+	    atomic_get(&CPU->nrdy));
 #endif	
 
 	/*
@@ -635,9 +635,9 @@ not_satisfied:
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
 				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, "
-					"avg=%nd\n", CPU->id, t->tid, CPU->id,
-					atomic_get(&CPU->nrdy),
-					atomic_get(&nrdy) / config.cpu_active);
+				    "avg=%nd\n", CPU->id, t->tid, CPU->id,
+				    atomic_get(&CPU->nrdy),
+				    atomic_get(&nrdy) / config.cpu_active);
 #endif
 				t->flags |= THREAD_FLAG_STOLEN;
 				t->state = Entering;
@@ -703,8 +703,8 @@ void sched_print_list(void)
 
 		spinlock_lock(&cpus[cpu].lock);
 		printf("cpu%d: address=%p, nrdy=%ld, needs_relink=%ld\n",
-			cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
-			cpus[cpu].needs_relink);
+		    cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
+		    cpus[cpu].needs_relink);
 		
 		for (i = 0; i < RQ_COUNT; i++) {
 			r = &cpus[cpu].rq[i];
@@ -718,7 +718,7 @@ void sched_print_list(void)
 				cur = cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
 				printf("%d(%s) ", t->tid,
-					thread_states[t->state]);
+				    thread_states[t->state]);
 			}
 			printf("\n");
 			spinlock_unlock(&r->lock);

@@ -65,9 +65,11 @@ SPINLOCK_INITIALIZE(tasks_lock);
 
 /** B+tree of active tasks.
  *
- * The task is guaranteed to exist after it was found in the tasks_btree as long as:
+ * The task is guaranteed to exist after it was found in the tasks_btree as
+ * long as:
  * @li the tasks_lock is held,
- * @li the task's lock is held when task's lock is acquired before releasing tasks_lock or
+ * @li the task's lock is held when task's lock is acquired before releasing
+ *     tasks_lock or
  * @li the task's refcount is greater than 0
  *
  */
@@ -125,7 +127,8 @@ task_t *task_create(as_t *as, char *name)
 	ipc_answerbox_init(&ta->answerbox);
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_init(&ta->phones[i]);
-	if ((ipc_phone_0) && (context_check(ipc_phone_0->task->context, ta->context)))
+	if ((ipc_phone_0) && (context_check(ipc_phone_0->task->context,
+	    ta->context)))
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
 
@@ -202,7 +205,8 @@ task_t * task_run_program(void *program_addr, char *name)
 	} 
 	
 	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	kernel_uarg->uspace_entry = (void *) ((elf_header_t *) program_addr)->e_entry;
+	kernel_uarg->uspace_entry =
+	    (void *) ((elf_header_t *) program_addr)->e_entry;
 	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
 	kernel_uarg->uspace_thread_function = NULL;
 	kernel_uarg->uspace_thread_arg = NULL;
@@ -214,14 +218,15 @@ task_t * task_run_program(void *program_addr, char *name)
 	/*
 	 * Create the data as_area.
 	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, 
-		LOADED_PROG_STACK_PAGES_NO*PAGE_SIZE,
-		USTACK_ADDRESS, AS_AREA_ATTR_NONE, &anon_backend, NULL);
+	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
+	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
 
 	/*
 	 * Create the main thread.
 	 */
-	t1 = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE, "uinit", false);
+	t1 = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE,
+	    "uinit", false);
 	ASSERT(t1);
 	
 	/*
@@ -238,7 +243,8 @@ task_t * task_run_program(void *program_addr, char *name)
 
 /** Syscall for reading task ID from userspace.
  *
- * @param uspace_task_id Userspace address of 8-byte buffer where to store current task ID.
+ * @param uspace_task_id Userspace address of 8-byte buffer where to store
+ * current task ID.
  *
  * @return 0 on success or an error code from @ref errno.h.
  */
@@ -248,7 +254,8 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
 	 * No need to acquire lock on TASK because taskid
 	 * remains constant for the lifespan of the task.
 	 */
-	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid, sizeof(TASK->taskid));
+	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid,
+	    sizeof(TASK->taskid));
 }
 
 /** Find task structure corresponding to task ID.
@@ -288,8 +295,10 @@ uint64_t task_get_accounting(task_t *t)
 		spinlock_lock(&thr->lock);
 		/* Process only counted threads */
 		if (!thr->uncounted) {
-			if (thr == THREAD) /* Update accounting of current thread */
-				thread_update_accounting(); 
+			if (thr == THREAD) {
+				/* Update accounting of current thread */
+				thread_update_accounting();
+			} 
 			ret += thr->cycles;
 		}
 		spinlock_unlock(&thr->lock);
@@ -376,10 +385,12 @@ void task_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
-	printf("taskid name       ctx address    as         cycles     threads calls  callee\n");
-	printf("------ ---------- --- ---------- ---------- ---------- ------- ------ ------>\n");
+	printf("taskid name       ctx address    as         cycles     threads "
+	    "calls  callee\n");
+	printf("------ ---------- --- ---------- ---------- ---------- ------- "	    "------ ------>\n");
 
-	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
+	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head;
+	    cur = cur->next) {
 		btree_node_t *node;
 		int i;
 		
@@ -396,10 +407,14 @@ void task_print_list(void)
 			char suffix;
 			order(task_get_accounting(t), &cycles, &suffix);
 			
-			printf("%-6lld %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd", t->taskid, t->name, t->context, t, t->as, cycles, suffix, t->refcount, atomic_get(&t->active_calls));
+			printf("%-6lld %-10s %-3ld %#10zx %#10zx %9llu%c %7zd "
+			    "%6zd", t->taskid, t->name, t->context, t, t->as,
+			    cycles, suffix, t->refcount,
+			    atomic_get(&t->active_calls));
 			for (j = 0; j < IPC_MAX_PHONES; j++) {
 				if (t->phones[j].callee)
-					printf(" %zd:%#zx", j, t->phones[j].callee);
+					printf(" %zd:%#zx", j,
+					    t->phones[j].callee);
 			}
 			printf("\n");
 			
@@ -465,10 +480,11 @@ loop:
 	}
 	
 	if (t != THREAD) {
-		ASSERT(t != main_thread);	/* uninit is joined and detached in ktaskgc */
+		ASSERT(t != main_thread);	/* uninit is joined and detached
+						 * in ktaskgc */
 		thread_join(t);
 		thread_detach(t);
-		goto loop;	/* go for another thread */
+		goto loop;			/* go for another thread */
 	}
 	
 	/*
@@ -497,22 +513,26 @@ loop:
 	 * Userspace threads cannot detach themselves,
 	 * therefore the thread pointer is guaranteed to be valid.
 	 */
-	if (thread_join_timeout(t, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {	/* sleep uninterruptibly here! */
+	if (thread_join_timeout(t, 1000000, SYNCH_FLAGS_NONE) ==
+	    ESYNCH_TIMEOUT) {	/* sleep uninterruptibly here! */
 		ipl_t ipl;
 		link_t *cur;
 		thread_t *thr = NULL;
 	
 		/*
-		 * The join timed out. Try to do some garbage collection of Undead threads.
+		 * The join timed out. Try to do some garbage collection of
+		 * Undead threads.
 		 */
 more_gc:		
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
 		
-		for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
+		for (cur = TASK->th_head.next; cur != &TASK->th_head;
+		    cur = cur->next) {
 			thr = list_get_instance(cur, thread_t, th_link);
 			spinlock_lock(&thr->lock);
-			if (thr != t && thr->state == Undead && thr->join_type == None) {
+			if (thr != t && thr->state == Undead &&
+			    thr->join_type == None) {
 				thr->join_type = TaskGC;
 				spinlock_unlock(&thr->lock);
 				break;

@@ -186,7 +186,7 @@ out:
  *
  * The sleep can be interrupted only if the
  * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
- 
+ * 
  * If usec is greater than zero, regardless of the value of the
  * SYNCH_FLAGS_NON_BLOCKING bit in flags, the call will not return until either
  * timeout, interruption or wakeup comes. 
@@ -352,7 +352,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		}
 		THREAD->timeout_pending = true;
 		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec,
-			waitq_timeouted_sleep, THREAD);
+		    waitq_timeouted_sleep, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->head);

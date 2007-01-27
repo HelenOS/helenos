@@ -204,11 +204,11 @@ void thread_init(void)
 	THREAD = NULL;
 	atomic_set(&nrdy,0);
 	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
-		thr_constructor, thr_destructor, 0);
+	    thr_constructor, thr_destructor, 0);
 
 #ifdef ARCH_HAS_FPU
 	fpu_context_slab = slab_cache_create("fpu_slab", sizeof(fpu_context_t),
-		FPU_CONTEXT_ALIGN, NULL, NULL, 0);
+	    FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 
 	btree_create(&threads_btree);
@@ -328,7 +328,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	/* Not needed, but good for debugging */
 	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES,
-		0);
+	    0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tidlock);
@@ -338,7 +338,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	context_save(&t->saved_context);
 	context_set(&t->saved_context, FADDR(cushion), (uintptr_t) t->kstack,
-		THREAD_STACK_SIZE);
+	    THREAD_STACK_SIZE);
 	
 	the_initialize((the_t *) t->kstack);
 	
@@ -404,7 +404,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	 */
 	spinlock_lock(&threads_lock);
 	btree_insert(&threads_btree, (btree_key_t) ((uintptr_t) t), (void *) t,
-		NULL);
+	    NULL);
 	spinlock_unlock(&threads_lock);
 	
 	interrupts_restore(ipl);
@@ -560,10 +560,13 @@ void thread_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 	
-	printf("tid    name       address    state    task       ctx code       stack      cycles     cpu  kstack     waitqueue\n");
-	printf("------ ---------- ---------- -------- ---------- --- ---------- ---------- ---------- ---- ---------- ----------\n");
+	printf("tid    name       address    state    task       ctx code    "
+	    "   stack      cycles     cpu  kstack     waitqueue\n");
+	printf("------ ---------- ---------- -------- ---------- --- --------"
+	    "-- ---------- ---------- ---- ---------- ----------\n");
 
-	for (cur = threads_btree.leaf_head.next; cur != &threads_btree.leaf_head; cur = cur->next) {
+	for (cur = threads_btree.leaf_head.next;
+	    cur != &threads_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
 		int i;
 
@@ -577,7 +580,10 @@ void thread_print_list(void)
 			char suffix;
 			order(t->cycles, &cycles, &suffix);
 			
-			printf("%-6zd %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ", t->tid, t->name, t, thread_states[t->state], t->task, t->task->context, t->thread_code, t->kstack, cycles, suffix);
+			printf("%-6zd %-10s %#10zx %-8s %#10zx %-3ld %#10zx "
+			    "%#10zx %9llu%c ", t->tid, t->name, t,
+			    thread_states[t->state], t->task, t->task->context,
+			    t->thread_code, t->kstack, cycles, suffix);
 			
 			if (t->cpu)
 				printf("%-4zd", t->cpu->id);
@@ -585,7 +591,8 @@ void thread_print_list(void)
 				printf("none");
 			
 			if (t->state == Sleeping)
-				printf(" %#10zx %#10zx", t->kstack, t->sleep_queue);
+				printf(" %#10zx %#10zx", t->kstack,
+				    t->sleep_queue);
 			
 			printf("\n");
 		}
@@ -608,7 +615,8 @@ bool thread_exists(thread_t *t)
 {
 	btree_node_t *leaf;
 	
-	return btree_search(&threads_btree, (btree_key_t) ((uintptr_t) t), &leaf) != NULL;
+	return btree_search(&threads_btree, (btree_key_t) ((uintptr_t) t),
+	    &leaf) != NULL;
 }
 
 
@@ -647,7 +655,9 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 		return (unative_t) rc;
 	}
 
-	if ((t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf, false))) {
+	t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf,
+	    false);
+	if (t) {
 		tid = t->tid;
 		thread_ready(t);
 		return (unative_t) tid; 
@@ -670,3 +680,4 @@ unative_t sys_thread_exit(int uspace_status)
 
 /** @}
  */
+

@@ -43,33 +43,33 @@ uint32_t e801memorysize;
 
 size_t get_memory_size(void) 
 {
-	return e801memorysize*1024;
+	return e801memorysize * 1024;
 }
 
 void memory_print_map(void)
 {
 	uint8_t i;
 	
-	for (i=0;i<e820counter;i++) {
+	for (i = 0; i < e820counter; i++) {
 		printf("E820 base: %#.16llx size: %#.16llx type: ", e820table[i].base_address, e820table[i].size);
 		switch (e820table[i].type) {
-			case MEMMAP_MEMORY_AVAILABLE: 
-				printf("available memory\n");
-				break;
-			case MEMMAP_MEMORY_RESERVED: 
-				printf("reserved memory\n");
-				break;
-			case MEMMAP_MEMORY_ACPI: 
-				printf("ACPI table\n");
-				break;
-			case MEMMAP_MEMORY_NVS: 
-				printf("NVS\n");
-				break;
-			case MEMMAP_MEMORY_UNUSABLE: 
-				printf("unusable memory\n");
-				break;
-			default:
-				printf("undefined memory type\n");
+		case MEMMAP_MEMORY_AVAILABLE: 
+			printf("available memory\n");
+			break;
+		case MEMMAP_MEMORY_RESERVED: 
+			printf("reserved memory\n");
+			break;
+		case MEMMAP_MEMORY_ACPI: 
+			printf("ACPI table\n");
+			break;
+		case MEMMAP_MEMORY_NVS: 
+			printf("NVS\n");
+			break;
+		case MEMMAP_MEMORY_UNUSABLE: 
+			printf("unusable memory\n");
+			break;
+		default:
+			printf("undefined memory type\n");
 		}
 	}
 

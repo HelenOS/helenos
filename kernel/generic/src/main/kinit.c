@@ -98,7 +98,8 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		if ((t = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true))) {
+		if ((t = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED,
+		    "kmp", true))) {
 			spinlock_lock(&t->lock);
 			t->cpu = &cpus[0];
 			spinlock_unlock(&t->lock);
@@ -123,7 +124,8 @@ void kinit(void *arg)
 		 */
 		for (i = 0; i < config.cpu_count; i++) {
 
-			if ((t = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true))) {
+			if ((t = thread_create(kcpulb, NULL, TASK,
+			    THREAD_FLAG_WIRED, "kcpulb", true))) {
 				spinlock_lock(&t->lock);			
 				t->cpu = &cpus[i];
 				spinlock_unlock(&t->lock);
@@ -143,7 +145,8 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	if ((t = thread_create(kconsole, "kconsole", TASK, 0, "kconsole", false)))
+	t = thread_create(kconsole, "kconsole", TASK, 0, "kconsole", false);
+	if (t)
 		thread_ready(t);
 	else
 		panic("thread_create/kconsole\n");
@@ -161,17 +164,20 @@ void kinit(void *arg)
 			continue;
 		}
 
-		task_t *utask = task_run_program((void *) init.tasks[i].addr, "uspace");
+		task_t *utask = task_run_program((void *) init.tasks[i].addr,
+		    "uspace");
 		if (utask) {
 			/*
 			 * Set capabilities to init userspace tasks.
 			 */
-			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER | CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
+			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER |
+			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
 			
 			if (!ipc_phone_0) 
 				ipc_phone_0 = &utask->answerbox;
 		} else {
-			int rd = init_rd((rd_header *) init.tasks[i].addr, init.tasks[i].size);
+			int rd = init_rd((rd_header *) init.tasks[i].addr,
+			    init.tasks[i].size);
 			
 			if (rd != RE_OK)
 				printf("Init binary %zd not used.\n", i);

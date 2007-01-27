@@ -146,7 +146,7 @@ void main_bsp(void)
 	config.memory_size = get_memory_size();
 	
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
-		hardcoded_kdata_size, PAGE_SIZE);
+	    hardcoded_kdata_size, PAGE_SIZE);
 	config.stack_size = CONFIG_STACK_SIZE;
 	
 	/* Initialy the stack is placed just after the kernel */
@@ -156,17 +156,17 @@ void main_bsp(void)
 	count_t i;
 	for (i = 0; i < init.cnt; i++) {
 		if (PA_overlaps(config.stack_base, config.stack_size,
-			init.tasks[i].addr, init.tasks[i].size))
+		    init.tasks[i].addr, init.tasks[i].size))
 			config.stack_base = ALIGN_UP(init.tasks[i].addr +
-				init.tasks[i].size, config.stack_size);
+			    init.tasks[i].size, config.stack_size);
 	}
 
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
 		if (PA_overlaps(config.stack_base, config.stack_size,
-			ballocs.base, ballocs.size))
+		    ballocs.base, ballocs.size))
 			config.stack_base = ALIGN_UP(ballocs.base +
-				ballocs.size, PAGE_SIZE);
+			    ballocs.size, PAGE_SIZE);
 	}
 	
 	if (config.stack_base < stack_safe)
@@ -174,7 +174,7 @@ void main_bsp(void)
 	
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base,
-		THREAD_STACK_SIZE);
+	    THREAD_STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -222,11 +222,11 @@ void main_bsp_separated_stack(void)
 
 	version_print();
 	printf("kernel: %.*p hardcoded_ktext_size=%zdK, "
-		"hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2,
-		config.base, hardcoded_ktext_size >> 10, hardcoded_kdata_size >>
-		10);
+	    "hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2,
+	    config.base, hardcoded_ktext_size >> 10,
+	    hardcoded_kdata_size >> 10);
 	printf("stack:  %.*p size=%zdK\n", sizeof(uintptr_t) * 2,
-		config.stack_base, config.stack_size >> 10);
+	    config.stack_base, config.stack_size >> 10);
 
 	arch_pre_smp_init();
 	smp_init();
@@ -249,8 +249,8 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		for (i = 0; i < init.cnt; i++)
 			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i,
-				sizeof(uintptr_t) * 2, init.tasks[i].addr, i,
-				init.tasks[i].size);
+			    sizeof(uintptr_t) * 2, init.tasks[i].addr, i,
+			    init.tasks[i].size);
 	} else
 		printf("No init binaries found\n");
 	
@@ -323,7 +323,7 @@ void main_ap(void)
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
 	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack),
-		(uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	    (uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }
