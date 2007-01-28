@@ -101,9 +101,10 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	thread_t *t;
+	static thread_t *t = NULL;
 
-	if (config.cpu_active == 1) {
+
+	if (!t) {
 		/*
 	         * Create thread that polls keyboard.
 	         */
