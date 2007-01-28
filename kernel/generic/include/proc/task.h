@@ -1,4 +1,4 @@
-/*3D
+/*
  * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
@@ -160,7 +160,7 @@ typedef struct {
 	/**
 	 * Processor ID assigned by kernel.
 	 */
-	int id;
+	unsigned int id;
 	
 	int active;
 	int tlb_active;
