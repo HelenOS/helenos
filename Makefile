@@ -53,44 +53,34 @@ ifeq ($(PLATFORM),ia64)
 	BARCH = ia64
 endif
 
-ifeq ($(PLATFORM),mips32msim)
+ifeq ($(PLATFORM),mips32)
 	KARCH = mips32
-	MACHINE = msim
-	UARCH = mips32
 	BARCH = mips32
-	IMAGE = binary
-endif
-
-ifeq ($(PLATFORM),mips32sim)
-	KARCH = mips32
-	MACHINE = simics
-	UARCH = mips32
-	BARCH = mips32
-	IMAGE = ecoff
-endif
-
-ifeq ($(PLATFORM),mips32gbe)
-	KARCH = mips32
-	MACHINE = bgxemul
-	UARCH = mips32eb
-	BARCH = mips32
-	IMAGE = ecoff
-endif
-
-ifeq ($(PLATFORM),mips32gle)
-	KARCH = mips32
-	MACHINE = lgxemul
-	UARCH = mips32
-	BARCH = mips32
-	IMAGE = ecoff
-endif
-
-ifeq ($(PLATFORM),mips32sgi)
-	KARCH = mips32
-	MACHINE = indy
-	UARCH = mips32eb
-	BARCH = mips32
-	IMAGE = ecoff
+	
+	ifeq ($(MACHINE),msim)
+		UARCH = mips32
+		IMAGE = binary
+	endif
+	
+	ifeq ($(MACHINE),simics)
+		UARCH = mips32
+		IMAGE = ecoff
+	endif
+	
+	ifeq ($(MACHINE),bgxemul)
+		UARCH = mips32eb
+		IMAGE = ecoff
+	endif
+	
+	ifeq ($(MACHINE),lgxemul)
+		UARCH = mips32
+		IMAGE = ecoff
+	endif
+	
+	ifeq ($(MACHINE),indy)
+		UARCH = mips32eb
+		IMAGE = ecoff
+	endif
 endif
 
 ifeq ($(PLATFORM),ppc32)
