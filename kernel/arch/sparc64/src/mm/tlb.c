@@ -44,7 +44,6 @@
 #include <arch.h>
 #include <print.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>
 #include <arch/trap/exception.h>

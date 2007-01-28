@@ -37,7 +37,7 @@
 #define KERN_KEY_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
+#include <console/chardev.h>
 
 #define KEY_RELEASE     0x80
 

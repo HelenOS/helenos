@@ -35,8 +35,6 @@
 #ifndef KERN_amd64_THREAD_H_
 #define KERN_amd64_THREAD_H_
 
-#include <arch/types.h>
-
 typedef struct {
 	unative_t tls;
 } thread_arch_t;

@@ -37,7 +37,6 @@
 #define KERN_FRAME_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <adt/list.h>
 #include <synch/spinlock.h>
 #include <mm/buddy.h>

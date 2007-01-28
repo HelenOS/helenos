@@ -58,7 +58,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <arch/interrupt.h>
 
 extern void dump_istate(istate_t *istate);
 

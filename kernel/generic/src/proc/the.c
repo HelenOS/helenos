@@ -42,7 +42,6 @@
  */
 
 #include <arch.h>
-#include <typedefs.h>
 
 
 /** Initialize THE structure

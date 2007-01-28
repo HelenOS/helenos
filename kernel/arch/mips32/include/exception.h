@@ -36,7 +36,6 @@
 #define KERN_mips32_EXCEPTION_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/cp0.h>
 
 #define EXC_Int		0
@@ -58,7 +57,7 @@
 #define EXC_WATCH	23
 #define EXC_VCED	31
 
-struct istate {
+typedef struct {
 	uint32_t at;
 	uint32_t v0;
 	uint32_t v1;
@@ -95,7 +94,7 @@ struct istate {
 	uint32_t status; /* cp0_status */
 	uint32_t epc; /* cp0_epc */
 	uint32_t k1; /* We use it as thread-local pointer */
-};
+} istate_t;
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {

@@ -35,7 +35,6 @@
 #ifndef KERN_amd64_TASK_H_
 #define KERN_amd64_TASK_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <adt/bitmap.h>
 

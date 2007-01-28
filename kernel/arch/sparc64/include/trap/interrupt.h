@@ -105,6 +105,9 @@
 #endif /* __ASM__ */
 
 #ifndef __ASM__
+
+#include <arch/interrupt.h>
+
 extern void interrupt(int n, istate_t *istate);
 #endif /* !def __ASM__ */
 

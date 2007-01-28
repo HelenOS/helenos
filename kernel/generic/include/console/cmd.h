@@ -35,7 +35,7 @@
 #ifndef KERN_CMD_H_
 #define KERN_CMD_H_
 
-#include <typedefs.h>
+#include <console/kconsole.h>
 
 extern void cmd_initialize(cmd_info_t *cmd);
 extern void cmd_init(void);

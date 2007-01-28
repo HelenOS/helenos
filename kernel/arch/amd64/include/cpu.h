@@ -54,7 +54,6 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <arch/pm.h>
 
 typedef struct {

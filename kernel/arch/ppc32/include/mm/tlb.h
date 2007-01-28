@@ -35,6 +35,8 @@
 #ifndef KERN_ppc32_TLB_H_
 #define KERN_ppc32_TLB_H_
 
+#include <arch/interrupt.h>
+
 typedef struct {
 	unsigned v : 1;          /**< Valid */
 	unsigned vsid : 24;      /**< Virtual Segment ID */

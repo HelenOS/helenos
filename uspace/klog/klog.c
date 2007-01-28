@@ -39,7 +39,6 @@
 #include <async.h>
 #include <ipc/services.h>
 #include <as.h>
-#include <kernel/ipc/irq.h>
 #include <sysinfo.h>
 
 /* Pointer to klog area */

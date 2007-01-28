@@ -34,9 +34,9 @@
 
 #include <arch/drivers/tick.h>
 #include <arch/interrupt.h>
+#include <arch/sparc64.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <typedefs.h>
 #include <arch/cpu.h>
 #include <arch/boot/boot.h>
 #include <time/clock.h>

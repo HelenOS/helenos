@@ -43,7 +43,6 @@
 #include <mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/asm.h>
 #include <synch/spinlock.h>
 #include <arch.h>

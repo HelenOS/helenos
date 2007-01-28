@@ -69,7 +69,7 @@
 #define VECTOR_DEBUG_IPI			(IVT_FREEBASE + 2)
 
 /** This is passed to interrupt handlers */
-struct istate {
+typedef struct {
 	uint64_t rax;
 	uint64_t rbx;
 	uint64_t rcx;
@@ -90,7 +90,7 @@ struct istate {
 	uint64_t cs;
 	uint64_t rflags;
 	uint64_t stack[]; /* Additional data on stack */
-};
+} istate_t;
 
 /** Return true if exception happened while in userspace */
 static inline int istate_from_uspace(istate_t *istate)

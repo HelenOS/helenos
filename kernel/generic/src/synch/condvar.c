@@ -40,7 +40,6 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <arch.h>
-#include <typedefs.h>
 
 /** Initialize condition variable.
  *

@@ -34,18 +34,11 @@
  */
 
 #include <arch/pm.h>
-#include <arch/mm/page.h>
-#include <arch/types.h>
-#include <arch/interrupt.h>
 #include <arch/asm.h>
-#include <interrupt.h>
 #include <mm/as.h>
-
-#include <config.h>
-
+#include <mm/frame.h>
 #include <memstr.h>
 #include <mm/slab.h>
-#include <debug.h>
 
 /*
  * There is no segmentation in long mode so we set up flat mode. In this

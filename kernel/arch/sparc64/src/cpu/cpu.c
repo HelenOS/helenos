@@ -32,14 +32,11 @@
 /** @file
  */
 
-#include <arch/asm.h>
 #include <cpu.h>
 #include <arch.h>
-#include <print.h>
-#include <arch/register.h>
 #include <genarch/ofw/ofw_tree.h>
-#include <arch/types.h>
 #include <arch/drivers/tick.h>
+#include <print.h>
 
 /** Perform sparc64 specific initialization of the processor structure for the
  * current processor.

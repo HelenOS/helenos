@@ -34,7 +34,6 @@
 
 #include <arch/mm/memory_init.h>
 #include <arch/boot/boot.h>
-#include <typedefs.h>
 
 /** Return total size of available memory in bytes.
  *

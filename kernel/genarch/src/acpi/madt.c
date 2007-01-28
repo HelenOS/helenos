@@ -35,7 +35,6 @@
  */
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/smp/apic.h>

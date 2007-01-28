@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32xen_mm	
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#include <arch/mm/memory_init.h>
-#include <arch/mm/page.h>
-#include <print.h>
-#include <mm/frame.h>
+#ifndef KERN_MM_H_
+#define KERN_MM_H_
 
-size_t get_memory_size(void) 
-{
-	return start_info.frames * PAGE_SIZE;
-}
+#define PAGE_CACHEABLE_SHIFT		0
+#define PAGE_NOT_CACHEABLE_SHIFT	PAGE_CACHEABLE_SHIFT
+#define PAGE_PRESENT_SHIFT		1
+#define PAGE_NOT_PRESENT_SHIFT		PAGE_PRESENT_SHIFT
+#define PAGE_USER_SHIFT			2
+#define PAGE_KERNEL_SHIFT		PAGE_USER_SHIFT
+#define PAGE_READ_SHIFT			3
+#define PAGE_WRITE_SHIFT		4
+#define PAGE_EXEC_SHIFT			5
+#define PAGE_GLOBAL_SHIFT		6
 
-void memory_print_map(void)
-{
-	printf("Xen memory: %p size: %d (reserved %d)\n", PFN2ADDR(meminfo.start), PFN2ADDR(meminfo.size - meminfo.reserved), PFN2ADDR(meminfo.reserved));
-}
+#define PAGE_NOT_CACHEABLE	(0 << PAGE_CACHEABLE_SHIFT)
+#define PAGE_CACHEABLE		(1 << PAGE_CACHEABLE_SHIFT)
+
+#define PAGE_PRESENT		(0 << PAGE_PRESENT_SHIFT)
+#define PAGE_NOT_PRESENT	(1 << PAGE_PRESENT_SHIFT)
+
+#define PAGE_USER		(1 << PAGE_USER_SHIFT)
+#define PAGE_KERNEL		(0 << PAGE_USER_SHIFT)
+
+#define PAGE_READ		(1 << PAGE_READ_SHIFT)
+#define PAGE_WRITE		(1 << PAGE_WRITE_SHIFT)
+#define PAGE_EXEC		(1 << PAGE_EXEC_SHIFT)
+
+#define PAGE_GLOBAL		(1 << PAGE_GLOBAL_SHIFT)
+
+#endif
 
 /** @}
  */

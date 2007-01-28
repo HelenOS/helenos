@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_MEMORY_INIT_H_
 #define KERN_sparc64_MEMORY_INIT_H_
 
-#include <typedefs.h>
+#include <arch/types.h>
 
 extern size_t get_memory_size(void);
 

@@ -37,7 +37,6 @@
 
 #include <types.h>
 #include <task.h>
-#include <kernel/arch/mm/as.h>
 #include <kernel/mm/as.h>
 #include <libarch/config.h>
 

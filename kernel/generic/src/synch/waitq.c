@@ -49,7 +49,6 @@
 #include <proc/scheduler.h>
 #include <arch/asm.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <time/timeout.h>
 #include <arch.h>
 #include <context.h>
@@ -117,58 +116,6 @@ out:
 	spinlock_unlock(&threads_lock);
 }
 
-/** Interrupt sleeping thread.
- *
- * This routine attempts to interrupt a thread from its sleep in a waitqueue.
- * If the thread is not found sleeping, no action is taken.
- *
- * @param t Thread to be interrupted.
- */
-void waitq_interrupt_sleep(thread_t *t)
-{
-	waitq_t *wq;
-	bool do_wakeup = false;
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&threads_lock);
-	if (!thread_exists(t))
-		goto out;
-
-grab_locks:
-	spinlock_lock(&t->lock);
-	if ((wq = t->sleep_queue)) {		/* assignment */
-		if (!(t->sleep_interruptible)) {
-			/*
-			 * The sleep cannot be interrupted.
-			 */
-			spinlock_unlock(&t->lock);
-			goto out;
-		}
-			
-		if (!spinlock_trylock(&wq->lock)) {
-			spinlock_unlock(&t->lock);
-			goto grab_locks;	/* avoid deadlock */
-		}
-
-		if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
-			t->timeout_pending = false;
-
-		list_remove(&t->wq_link);
-		t->saved_context = t->sleep_interruption_context;
-		do_wakeup = true;
-		t->sleep_queue = NULL;
-		spinlock_unlock(&wq->lock);
-	}
-	spinlock_unlock(&t->lock);
-
-	if (do_wakeup)
-		thread_ready(t);
-
-out:
-	spinlock_unlock(&threads_lock);
-	interrupts_restore(ipl);
-}
 
 /** Sleep until either wakeup, timeout or interruption occurs
  *
@@ -425,7 +372,7 @@ loop:
 	 * This is not necessary because of mutual exclusion
 	 * (the link belongs to the wait queue), but because
 	 * of synchronization with waitq_timeouted_sleep()
-	 * and waitq_interrupt_sleep().
+	 * and thread_interrupt_sleep().
 	 *
 	 * In order for these two functions to work, the following
 	 * invariant must hold:

@@ -42,7 +42,6 @@
 #include <arch/mm/asid.h>
 #include <arch/interrupt.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /** Data and instruction Translation Register indices. */
 #define DTR_KERNEL	0

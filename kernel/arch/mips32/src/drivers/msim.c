@@ -33,11 +33,11 @@
  */
 
 #include <interrupt.h>
+#include <ipc/irq.h>
 #include <console/chardev.h>
 #include <arch/drivers/msim.h>
 #include <arch/cp0.h>
 #include <console/console.h>
-#include <ddi/irq.h>
 #include <sysinfo/sysinfo.h>
 
 /** Address of devices. */

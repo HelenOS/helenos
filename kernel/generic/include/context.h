@@ -36,7 +36,6 @@
 #define KERN_CONTEXT_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/context.h>
 
 

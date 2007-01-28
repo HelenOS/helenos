@@ -40,7 +40,6 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <typedefs.h>
 #include <console/kconsole.h>
 
 atomic_t haltstate = {0}; /**< Halt flag */

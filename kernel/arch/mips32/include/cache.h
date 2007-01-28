@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_CACHE_H_
 #define KERN_mips32_CACHE_H_
 
-#include <typedefs.h>
+#include <arch/exception.h>
 
 extern void cache_error(istate_t *istate);
 

@@ -36,7 +36,6 @@
 #define KERN_FUTEX_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <synch/waitq.h>
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/page_pt.h>

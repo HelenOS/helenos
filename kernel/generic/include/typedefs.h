@@ -35,46 +35,7 @@
 #ifndef KERN_TYPEDEFS_H_
 #define KERN_TYPEDEFS_H_
 
-#define false 0
-#define true 1
-
-typedef short bool;
-
-typedef unsigned long size_t;
-typedef unsigned long count_t;
-typedef unsigned long index_t;
-
-typedef unsigned long long task_id_t;
-typedef unsigned long context_id_t;
-
-typedef struct task task_t;
-typedef struct thread thread_t;
-
-typedef struct as_area as_area_t;
-typedef struct as as_t;
-
-typedef struct link link_t;
-
-typedef struct chardev chardev_t;
-
-typedef enum cmd_arg_type cmd_arg_type_t;
-typedef struct cmd_arg cmd_arg_t;
-typedef struct cmd_info cmd_info_t;
-
-typedef struct istate istate_t;
 typedef void (* function)();
-typedef void (* iroutine)(int n, istate_t *istate);
-
-typedef struct hash_table hash_table_t;
-typedef struct hash_table_operations hash_table_operations_t;
-
-typedef struct btree_node btree_node_t;
-typedef struct btree btree_t;
-
-typedef signed int inr_t;
-typedef signed int devno_t;
-typedef struct irq irq_t;
-typedef struct ipc_notif_cfg ipc_notif_cfg_t;
 
 #endif
 

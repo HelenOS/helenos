@@ -36,7 +36,7 @@
 #ifndef KERN_ia32xen_MEMORY_INIT_H_
 #define KERN_ia32xen_MEMORY_INIT_H_
 
-#include <typedefs.h>
+#include <arch/types.h>
 
 size_t get_memory_size(void);
 

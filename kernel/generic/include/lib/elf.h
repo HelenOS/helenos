@@ -37,7 +37,6 @@
 
 #include <arch/elf.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /**
  * current ELF version
@@ -335,7 +334,6 @@ typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
 #endif
 
-extern int elf_load(elf_header_t *header, as_t * as);
 extern char *elf_error(int rc);
 
 #endif

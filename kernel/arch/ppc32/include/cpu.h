@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_CPU_H_
 #define KERN_ppc32_CPU_H_
 
-#include <typedefs.h>
+#include <arch/asm.h>
 
 typedef struct {
 	int version;

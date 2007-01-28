@@ -42,7 +42,7 @@
 
 #ifndef HERE
 /** Current Instruction Pointer address */
-#  define HERE ((uintptr_t *)0)
+#  define HERE ((uintptr_t *) 0)
 #endif
 
 /** Debugging ASSERT macro

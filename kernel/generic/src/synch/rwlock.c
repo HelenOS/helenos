@@ -63,7 +63,6 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <adt/list.h>
-#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <proc/thread.h>

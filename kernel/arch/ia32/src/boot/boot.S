@@ -74,7 +74,7 @@ multiboot_image_start:
 	rep movsb
 
 	mov $VESA_INIT_SEGMENT << 4, %edi
-	jmpl %edi
+	jmpl *%edi
 	
 	vesa_meeting_point:
 	

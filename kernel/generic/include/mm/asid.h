@@ -44,7 +44,8 @@
 
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
-#include <typedefs.h>
+#include <adt/list.h>
+#include <mm/as.h>
 
 #endif
 

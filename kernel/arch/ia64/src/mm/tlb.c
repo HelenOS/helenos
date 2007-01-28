@@ -47,7 +47,6 @@
 #include <arch/interrupt.h>
 #include <arch/pal/pal.h>
 #include <arch/asm.h>
-#include <typedefs.h>
 #include <panic.h>
 #include <print.h>
 #include <arch.h>

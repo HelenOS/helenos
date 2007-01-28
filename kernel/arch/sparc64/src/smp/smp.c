@@ -42,7 +42,6 @@
 #include <arch/types.h>
 #include <synch/synch.h>
 #include <synch/waitq.h>
-#include <typedefs.h>
 #include <print.h>
 
 /**

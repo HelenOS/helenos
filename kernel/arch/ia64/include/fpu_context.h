@@ -43,7 +43,7 @@
 #define FRS 96
 
 typedef struct {
-	__r128 fr[FRS];
+	uint128_t fr[FRS];
 } fpu_context_t;
 
 #endif

@@ -36,7 +36,6 @@
 #define KERN_mips32_TLB_H_
 
 #include <arch/exception.h>
-#include <typedefs.h>
 
 #ifdef TLBCNT
 #	define TLB_ENTRY_COUNT		TLBCNT
@@ -52,12 +51,7 @@
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
 
-typedef union entry_lo entry_lo_t;
-typedef union entry_hi entry_hi_t;
-typedef union page_mask page_mask_t;
-typedef union index tlb_index_t;
-
-union entry_lo {
+typedef union {
 	struct {
 #ifdef BIG_ENDIAN
 		unsigned : 2;		/* zero */
@@ -76,22 +70,9 @@ union entry_lo {
 #endif
 	} __attribute__ ((packed));
 	uint32_t value;
-};
+} entry_lo_t;
 
-/** Page Table Entry. */
-struct pte {
-	unsigned g : 1;			/**< Global bit. */
-	unsigned p : 1;			/**< Present bit. */
-	unsigned d : 1;			/**< Dirty bit. */
-	unsigned cacheable : 1;		/**< Cacheable bit. */
-	unsigned : 1;			/**< Unused. */
-	unsigned soft_valid : 1;	/**< Valid content even if not present. */
-	unsigned pfn : 24;		/**< Physical frame number. */
-	unsigned w : 1;			/**< Page writable bit. */
-	unsigned a : 1;			/**< Accessed bit. */
-};
-
-union entry_hi {
+typedef union {
 	struct {
 #ifdef BIG_ENDIAN
 		unsigned vpn2 : 19;
@@ -104,9 +85,9 @@ union entry_hi {
 #endif
 	} __attribute__ ((packed));
 	uint32_t value;
-};
+} entry_hi_t;
 
-union page_mask {
+typedef union {
 	struct {
 #ifdef BIG_ENDIAN
 		unsigned : 7;
@@ -119,9 +100,9 @@ union page_mask {
 #endif
 	} __attribute__ ((packed));
 	uint32_t value;
-};
+} page_mask_t;
 
-union index {
+typedef union {
 	struct {
 #ifdef BIG_ENDIAN
 		unsigned p : 1;
@@ -134,7 +115,7 @@ union index {
 #endif
 	} __attribute__ ((packed));
 	uint32_t value;
-};
+} tlb_index_t;
 
 /** Probe TLB for Matching Entry
  *

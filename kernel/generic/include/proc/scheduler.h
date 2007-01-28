@@ -37,7 +37,6 @@
 
 #include <synch/spinlock.h>
 #include <time/clock.h>		/* HZ */
-#include <typedefs.h>
 #include <atomic.h>
 #include <adt/list.h>
 

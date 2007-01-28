@@ -36,7 +36,6 @@
 #define KERN_RWLOCK_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <synch/mutex.h>
 #include <synch/synch.h>
 #include <synch/spinlock.h>

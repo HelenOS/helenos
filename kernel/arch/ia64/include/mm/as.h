@@ -47,6 +47,8 @@
 typedef struct {
 } as_arch_t;
 
+#include <genarch/mm/as_ht.h>
+
 #define as_constructor_arch(as, flags)		(as != as)
 #define as_destructor_arch(as)			(as != as)
 #define as_create_arch(as, flags)		(as != as)

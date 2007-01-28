@@ -35,7 +35,6 @@
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <security/cap.h>
 #include <arch.h>
 #include <arch/cp0.h>

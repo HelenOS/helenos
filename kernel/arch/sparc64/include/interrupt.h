@@ -36,7 +36,6 @@
 #ifndef KERN_sparc64_INTERRUPT_H_
 #define KERN_sparc64_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <arch/regdef.h>
 
@@ -50,11 +49,11 @@ enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI
 };		
 
-struct istate {
+typedef struct {
 	uint64_t	tnpc;
 	uint64_t	tpc;
 	uint64_t	tstate;
-};
+} istate_t;
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
@@ -70,9 +69,6 @@ static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->tpc;
 }
-
-
-extern void interrupt_register(int n, const char *name, iroutine f);
 
 #endif
 

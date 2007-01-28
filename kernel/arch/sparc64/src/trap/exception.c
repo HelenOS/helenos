@@ -40,7 +40,6 @@
 #include <arch/asm.h>
 #include <arch/register.h>
 #include <debug.h>
-#include <typedefs.h>
 #include <symtab.h>
 #include <print.h>
 

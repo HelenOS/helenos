@@ -38,7 +38,6 @@
 #include <ddi/device.h>
 #include <atomic.h>
 #include <debug.h>
-#include <typedefs.h>
 
 static atomic_t last;
 

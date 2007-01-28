@@ -37,7 +37,7 @@
 
 #include <ddi/ddi_arg.h>
 #include <arch/types.h>
-#include <typedefs.h>
+#include <proc/task.h>
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {

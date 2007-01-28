@@ -51,7 +51,6 @@
  *
  */
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <mm/frame.h>
 #include <mm/as.h>

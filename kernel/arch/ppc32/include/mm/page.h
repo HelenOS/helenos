@@ -104,9 +104,8 @@
 
 #ifndef __ASM__
 
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
+#include <mm/mm.h>
+#include <arch/interrupt.h>
 
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {

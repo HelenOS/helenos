@@ -35,7 +35,6 @@
 #ifndef KERN_ia64_INTERRUPT_H_
 #define KERN_ia64_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <arch/register.h>
 
@@ -64,37 +63,37 @@
 
 #define EOI	0		/**< The actual value doesn't matter. */
 
-struct istate {
-	__r128 f2;
-	__r128 f3;
-	__r128 f4;
-	__r128 f5;
-	__r128 f6;
-	__r128 f7;
-	__r128 f8;
-	__r128 f9;
-	__r128 f10;
-	__r128 f11;
-	__r128 f12;
-	__r128 f13;
-	__r128 f14;
-	__r128 f15;
-	__r128 f16;
-	__r128 f17;
-	__r128 f18;
-	__r128 f19;
-	__r128 f20;
-	__r128 f21;
-	__r128 f22;
-	__r128 f23;
-	__r128 f24;
-	__r128 f25;
-	__r128 f26;
-	__r128 f27;
-	__r128 f28;
-	__r128 f29;
-	__r128 f30;
-	__r128 f31;
+typedef struct {
+	uint128_t f2;
+	uint128_t f3;
+	uint128_t f4;
+	uint128_t f5;
+	uint128_t f6;
+	uint128_t f7;
+	uint128_t f8;
+	uint128_t f9;
+	uint128_t f10;
+	uint128_t f11;
+	uint128_t f12;
+	uint128_t f13;
+	uint128_t f14;
+	uint128_t f15;
+	uint128_t f16;
+	uint128_t f17;
+	uint128_t f18;
+	uint128_t f19;
+	uint128_t f20;
+	uint128_t f21;
+	uint128_t f22;
+	uint128_t f23;
+	uint128_t f24;
+	uint128_t f25;
+	uint128_t f26;
+	uint128_t f27;
+	uint128_t f28;
+	uint128_t f29;
+	uint128_t f30;
+	uint128_t f31;
 		
 	uintptr_t ar_bsp;
 	uintptr_t ar_bspstore;
@@ -119,7 +118,7 @@ struct istate {
 	uint64_t in2;
 	uint64_t in3;
 	uint64_t in4;
-};
+} istate_t;
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {

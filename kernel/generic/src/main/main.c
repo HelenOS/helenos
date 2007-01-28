@@ -53,6 +53,7 @@
 #include <debug.h>
 #include <config.h>
 #include <time/clock.h>
+#include <time/timeout.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
@@ -74,7 +75,6 @@
 #include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
-#include <typedefs.h>
 #include <ipc/ipc.h>
 #include <macros.h>
 #include <adt/btree.h>

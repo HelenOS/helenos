@@ -363,7 +363,7 @@ int task_kill(task_id_t id)
 		spinlock_unlock(&thr->lock);
 		
 		if (sleeping)
-			waitq_interrupt_sleep(thr);
+			thread_interrupt_sleep(thr);
 	}
 	
 	spinlock_unlock(&ta->lock);

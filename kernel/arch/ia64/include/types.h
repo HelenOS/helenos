@@ -35,26 +35,31 @@
 #ifndef KERN_ia64_TYPES_H_
 #define KERN_ia64_TYPES_H_
 
-#define NULL	0
+#define NULL 0
+#define false 0
+#define true 1
 
 typedef signed char int8_t;
-typedef signed short int int16_t;
+typedef signed short int16_t;
 typedef signed int int32_t;
 typedef signed long int64_t;
+typedef struct {
+	int64_t lo;
+	int64_t hi;
+} int128_t;
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
+typedef struct {
+	uint64_t lo;
+	uint64_t hi;
+} uint128_t;
 
-typedef unsigned char __r8; 			/* Reserve byte */
-typedef unsigned short __r16;
-typedef unsigned int __r32;
-typedef unsigned long __r64;
-typedef struct __r128 {
-	__r64 lo;
-	__r64 hi;
-} __r128;
+typedef uint64_t size_t;
+typedef uint64_t count_t;
+typedef uint64_t index_t;
 
 typedef uint64_t uintptr_t;
 typedef uint64_t pfn_t;
@@ -64,7 +69,12 @@ typedef uint64_t ipl_t;
 typedef uint64_t unative_t;
 typedef int64_t native_t;
 
-typedef struct pte pte_t;
+typedef uint8_t bool;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
+
+typedef int32_t inr_t;
+typedef int32_t devno_t;
 
 #endif
 

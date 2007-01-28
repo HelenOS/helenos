@@ -37,7 +37,6 @@
 
 #include <arch/mm/asid.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /**
  * Number of TLB shootdown messages that can be queued in processor
@@ -46,22 +45,20 @@
 #define TLB_MESSAGE_QUEUE_LEN	10
 
 /** Type of TLB shootdown message. */
-enum tlb_invalidate_type {
+typedef enum {
 	TLB_INVL_INVALID = 0,		/**< Invalid type. */
 	TLB_INVL_ALL,			/**< Invalidate all entries in TLB. */
 	TLB_INVL_ASID,			/**< Invalidate all entries belonging to one address space. */
 	TLB_INVL_PAGES			/**< Invalidate specified page range belonging to one address space. */
-};
-typedef enum tlb_invalidate_type tlb_invalidate_type_t;
+} tlb_invalidate_type_t;
 
 /** TLB shootdown message. */
-struct tlb_shootdown_msg {
+typedef struct {
 	tlb_invalidate_type_t type;	/**< Message type. */
 	asid_t asid;			/**< Address space identifier. */
 	uintptr_t page;			/**< Page address. */
 	count_t count;			/**< Number of pages to invalidate. */
-};
-typedef struct tlb_shootdown_msg tlb_shootdown_msg_t;
+} tlb_shootdown_msg_t;
 
 extern void tlb_init(void);
 

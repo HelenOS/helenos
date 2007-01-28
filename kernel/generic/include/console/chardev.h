@@ -35,26 +35,25 @@
 #ifndef KERN_CHARDEV_H_
 #define KERN_CHARDEV_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
 #define CHARDEV_BUFLEN 512
 
-/* Character device operations interface. */
-struct chardev_operations {
-	void (* suspend)(chardev_t *);		/**< Suspend pushing characters. */
-	void (* resume)(chardev_t *); 		/**< Resume pushing characters. */
-	void (* write)(chardev_t *, char c);	/**< Write character to stream. */
-	/** Read character directly from device, assume interrupts disabled */
-	char (* read)(chardev_t *); 
-};
+struct chardev;
 
-typedef struct chardev_operations chardev_operations_t;
+/* Character device operations interface. */
+typedef struct {
+	void (* suspend)(struct chardev *);		/**< Suspend pushing characters. */
+	void (* resume)(struct chardev *); 		/**< Resume pushing characters. */
+	void (* write)(struct chardev *, char c);	/**< Write character to stream. */
+	/** Read character directly from device, assume interrupts disabled */
+	char (* read)(struct chardev *); 
+} chardev_operations_t;
 
 /** Character input device. */
-struct chardev {
+typedef struct chardev {
 	char *name;
 	
 	waitq_t wq;
@@ -64,7 +63,7 @@ struct chardev {
 	chardev_operations_t *op;	/**< Implementation of chardev operations. */
 	index_t index;
 	void *data;
-};
+} chardev_t;
 
 extern void chardev_initialize(char *name,
 			       chardev_t *chardev, 

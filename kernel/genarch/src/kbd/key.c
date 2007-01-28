@@ -44,7 +44,6 @@
 #endif
 #include <synch/spinlock.h>
 #include <console/chardev.h>
-#include <typedefs.h>
 #include <macros.h>
 
 #define PRESSED_SHIFT		(1<<0)

@@ -57,11 +57,10 @@
 #ifdef KERNEL
 
 #ifndef __ASM__
-#  include <mm/page.h>
-#  include <arch/types.h>
-#endif
+#	include <mm/mm.h>
+#	include <arch/types.h>
+#	include <arch/interrupt.h>
 
-#ifndef __ASM__
 static inline uintptr_t ka2pa(uintptr_t x)
 {
 	if (x > 0xffffffff80000000)
@@ -69,12 +68,13 @@ static inline uintptr_t ka2pa(uintptr_t x)
 	else 
 		return x - 0xffff800000000000;
 }
-# define KA2PA(x)      ka2pa((uintptr_t)x)
-# define PA2KA_CODE(x)      (((uintptr_t) (x)) + 0xffffffff80000000)
-# define PA2KA(x)      (((uintptr_t) (x)) + 0xffff800000000000)
+
+#	define KA2PA(x)      ka2pa((uintptr_t)x)
+#	define PA2KA_CODE(x)      (((uintptr_t) (x)) + 0xffffffff80000000)
+#	define PA2KA(x)      (((uintptr_t) (x)) + 0xffff800000000000)
 #else
-# define KA2PA(x)      ((x) - 0xffffffff80000000)
-# define PA2KA(x)      ((x) + 0xffffffff80000000)
+#	define KA2PA(x)      ((x) - 0xffffffff80000000)
+#	define PA2KA(x)      ((x) + 0xffffffff80000000)
 #endif
 
 #define PTL0_ENTRIES_ARCH	512
@@ -132,24 +132,6 @@ static inline uintptr_t ka2pa(uintptr_t x)
 
 /** When bit on this position os 1, the page fault was caused during instruction fecth. */
 #define PFERR_CODE_ID		(1<<4)
-
-/** Page Table Entry. */
-struct page_specifier {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned unused: 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;		/**< Valid content even if present bit is cleared. */
-	unsigned avl : 2;
-	unsigned addr_12_31 : 30;
-	unsigned addr_32_51 : 21;
-	unsigned no_execute : 1;
-} __attribute__ ((packed));
 
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {

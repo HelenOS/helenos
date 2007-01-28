@@ -36,7 +36,6 @@
  */
 
 #include <symtab.h>
-#include <typedefs.h>
 #include <arch/byteorder.h>
 #include <func.h>
 #include <print.h>

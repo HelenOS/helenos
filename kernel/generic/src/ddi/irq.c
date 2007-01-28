@@ -69,7 +69,6 @@
 #include <ddi/irq.h>
 #include <adt/hash_table.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <arch.h>
 

@@ -36,7 +36,6 @@
 #define KERN_sparc64_Z8530_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/drivers/kbd.h>
 
 #define Z8530_CHAN_A	4

@@ -34,7 +34,6 @@
 
 #include <arch/console.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>

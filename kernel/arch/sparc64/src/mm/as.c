@@ -34,7 +34,7 @@
 
 #include <arch/mm/as.h>
 #include <arch/mm/tlb.h>
-#include <genarch/mm/as_ht.h>
+#include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
 #include <debug.h>
 #include <config.h>

@@ -35,7 +35,9 @@
 #ifndef KERN_sparc64_TYPES_H_
 #define KERN_sparc64_TYPES_H_
 
-#define NULL	0
+#define NULL 0
+#define false 0
+#define true 1
 
 typedef signed char int8_t;
 typedef signed short int16_t;
@@ -47,6 +49,10 @@ typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
 
+typedef uint64_t size_t;
+typedef uint64_t count_t;
+typedef uint64_t index_t;
+
 typedef uint64_t uintptr_t;
 typedef uint64_t pfn_t;
 
@@ -55,8 +61,12 @@ typedef uint64_t ipl_t;
 typedef uint64_t unative_t;
 typedef int64_t native_t;
 
-typedef struct pte pte_t;
+typedef uint8_t bool;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
 
+typedef int32_t inr_t;
+typedef int32_t devno_t;
 typedef uint8_t asi_t;
 
 #endif

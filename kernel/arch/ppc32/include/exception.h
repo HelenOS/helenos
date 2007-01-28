@@ -36,9 +36,8 @@
 #define KERN_ppc32_EXCEPTION_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
-struct istate {
+typedef struct {
 	uint32_t r0;
 	uint32_t r2;
 	uint32_t r3;
@@ -77,7 +76,7 @@ struct istate {
 	uint32_t xer;
 	uint32_t r12;
 	uint32_t sp;
-};
+} istate_t;
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {

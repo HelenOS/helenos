@@ -68,7 +68,7 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI			(IVT_FREEBASE + 2)
 
-struct istate {
+typedef struct {
 	uint32_t eax;
 	uint32_t ecx;
 	uint32_t edx;
@@ -87,7 +87,7 @@ struct istate {
 	uint32_t cs;
 	uint32_t eflags;
 	uint32_t stack[];
-};
+} istate_t;
 
 /** Return true if exception happened while in userspace */
 static inline int istate_from_uspace(istate_t *istate)

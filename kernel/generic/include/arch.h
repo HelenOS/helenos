@@ -35,13 +35,8 @@
 #ifndef KERN_ARCH_H_
 #define KERN_ARCH_H_
 
-#include <arch/types.h>
 #include <arch/arch.h>
-#include <typedefs.h>
-
-#include <cpu.h>
-#include <arch/cpu.h>
-#include <arch/asm.h> 
+#include <proc/task.h>
 
 #define DEFAULT_CONTEXT		0
 

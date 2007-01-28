@@ -54,30 +54,10 @@
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
 #include <arch/types.h>
-#include <typedefs.h>
-
-/** TSB Tag Target register. */
-union tsb_tag_target {
-	uint64_t value;
-	struct {
-		unsigned invalid : 1;	/**< Invalidated by software. */
-		unsigned : 2;
-		unsigned context : 13;	/**< Software ASID. */
-		unsigned : 6;
-		uint64_t va_tag : 42;	/**< Virtual address bits <63:22>. */
-	} __attribute__ ((packed));
-};
-typedef union tsb_tag_target tsb_tag_target_t;
-
-/** TSB entry. */
-struct tsb_entry {
-	tsb_tag_target_t tag;
-	tte_data_t data;
-} __attribute__ ((packed));
-typedef struct tsb_entry tsb_entry_t;
+#include <mm/as.h>
 
 /** TSB Base register. */
-union tsb_base_reg {
+typedef union tsb_base_reg {
 	uint64_t value;
 	struct {
 		uint64_t base : 51;	/**< TSB base address, bits 63:13. */
@@ -90,8 +70,7 @@ union tsb_base_reg {
 		unsigned size : 3;	/**< TSB size. Number of entries is
 					 * 512 * 2^size. */
 	} __attribute__ ((packed));
-};
-typedef union tsb_base_reg tsb_base_reg_t;
+} tsb_base_reg_t;
 
 /** Read ITSB Base register.
  *

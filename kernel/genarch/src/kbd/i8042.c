@@ -44,12 +44,11 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <typedefs.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
 #include <sysinfo/sysinfo.h>
-#include <ddi/irq.h>
+#include <ipc/irq.h>
 
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4

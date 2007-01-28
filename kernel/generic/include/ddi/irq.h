@@ -35,11 +35,40 @@
 #ifndef KERN_IRQ_H_
 #define KERN_IRQ_H_
 
+typedef enum {
+	CMD_MEM_READ_1 = 0,
+	CMD_MEM_READ_2,
+	CMD_MEM_READ_4,
+	CMD_MEM_READ_8,
+	CMD_MEM_WRITE_1,
+	CMD_MEM_WRITE_2,
+	CMD_MEM_WRITE_4,
+	CMD_MEM_WRITE_8,
+	CMD_PORT_READ_1,
+	CMD_PORT_WRITE_1,
+	CMD_IA64_GETCHAR,
+	CMD_PPC32_GETCHAR,
+	CMD_LAST
+} irq_cmd_type;
+
+typedef struct {
+	irq_cmd_type cmd;
+	void *addr;
+	unsigned long long value; 
+	int dstarg;
+} irq_cmd_t;
+
+typedef struct {
+	unsigned int cmdcount;
+	irq_cmd_t *cmds;
+} irq_code_t;
+
+#ifdef KERNEL
+
 #include <arch/types.h>
-#include <typedefs.h>
 #include <adt/list.h>
-#include <ipc/irq.h>
 #include <synch/spinlock.h>
+#include <proc/task.h>
 
 typedef enum {
 	IRQ_DECLINE,		/**< Decline to service. */
@@ -51,7 +80,26 @@ typedef enum {
 	IRQ_TRIGGER_EDGE
 } irq_trigger_t;
 
-typedef void (* irq_handler_t)(irq_t *irq, void *arg, ...);
+struct irq;
+typedef void (* irq_handler_t)(struct irq *irq, void *arg, ...);
+
+
+
+/** IPC notification config structure.
+ *
+ * Primarily, this structure is encapsulated in the irq_t structure.
+ * It is protected by irq_t::lock.
+ */
+typedef struct {
+	bool notify;			/**< When false, notifications are not sent. */
+	answerbox_t *answerbox;		/**< Answerbox for notifications. */
+	unative_t method;		/**< Method to be used for the notification. */
+	irq_code_t *code;		/**< Top-half pseudocode. */
+	count_t counter;		/**< Counter. */
+	link_t link;			/**< Link between IRQs that are notifying the
+					     same answerbox. The list is protected by
+					     the answerbox irq_lock. */
+} ipc_notif_cfg_t;
 
 /** Structure representing one device IRQ.
  *
@@ -59,7 +107,7 @@ typedef void (* irq_handler_t)(irq_t *irq, void *arg, ...);
  * be multiple irq_t instantions with the same
  * devno.
  */
-struct irq {
+typedef struct irq {
 	/** Hash table link. */
 	link_t link;
 
@@ -86,13 +134,15 @@ struct irq {
 
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg; 
-};
+} irq_t;
 
 extern void irq_init(count_t inrs, count_t chains);
 extern void irq_initialize(irq_t *irq);
 extern void irq_register(irq_t *irq);
 extern irq_t *irq_dispatch_and_lock(inr_t inr);
 extern irq_t *irq_find_and_lock(inr_t inr, devno_t devno);
+
+#endif
 
 #endif
 

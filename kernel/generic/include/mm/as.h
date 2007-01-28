@@ -47,7 +47,6 @@
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
@@ -66,54 +65,20 @@
 
 #define FLAG_AS_KERNEL	    (1 << 0)	/**< Kernel address space. */
 
-/** Address space structure.
- *
- * as_t contains the list of as_areas of userspace accessible
- * pages for one or more tasks. Ranges of kernel memory pages are not
- * supposed to figure in the list as they are shared by all tasks and
- * set up during system initialization.
- */
-struct as {
-	/** Protected by asidlock. */
-	link_t inactive_as_with_asid_link;
-
-	mutex_t lock;
-
-	/** Number of references (i.e tasks that reference this as). */
-	count_t refcount;
-
-	/** Number of processors on wich is this address space active. */
-	count_t cpu_refcount;
-
-	/** B+tree of address space areas. */
-	btree_t as_area_btree;
-
-	/** Page table pointer. Constant on architectures that use global page hash table. */
-	pte_t *page_table;
-
-	/** Address space identifier. Constant on architectures that do not support ASIDs.*/
-	asid_t asid;
-	
-	/** Architecture specific content. */
-	as_arch_t arch;
-};
-
-struct as_operations {
-	pte_t *(* page_table_create)(int flags);
-	void (* page_table_destroy)(pte_t *page_table);
-	void (* page_table_lock)(as_t *as, bool lock);
-	void (* page_table_unlock)(as_t *as, bool unlock);
-};
-typedef struct as_operations as_operations_t;
-
 /** Address space area attributes. */
 #define AS_AREA_ATTR_NONE	0
 #define AS_AREA_ATTR_PARTIAL	1	/**< Not fully initialized area. */
 
 #define AS_PF_FAULT		0	/**< The page fault was not resolved by as_page_fault(). */
 #define AS_PF_OK		1	/**< The page fault was resolved by as_page_fault(). */
-#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace()
-					     or memcpy_to_uspace(). */
+#define AS_PF_DEFER		2	/**< The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
+
+typedef struct {
+	pte_t *(* page_table_create)(int flags);
+	void (* page_table_destroy)(pte_t *page_table);
+	void (* page_table_lock)(as_t *as, bool lock);
+	void (* page_table_unlock)(as_t *as, bool unlock);
+} as_operations_t;
 
 /** This structure contains information associated with the shared address space area. */
 typedef struct {
@@ -122,15 +87,17 @@ typedef struct {
 	btree_t pagemap;	/**< B+tree containing complete map of anonymous pages of the shared area. */
 } share_info_t;
 
-/** Address space area backend structure. */
-typedef struct {
-	int (* page_fault)(as_area_t *area, uintptr_t addr, pf_access_t access);
-	void (* frame_free)(as_area_t *area, uintptr_t page, uintptr_t frame);
-	void (* share)(as_area_t *area);
-} mem_backend_t;
+/** Page fault access type. */
+typedef enum {
+	PF_ACCESS_READ,
+	PF_ACCESS_WRITE,
+	PF_ACCESS_EXEC
+} pf_access_t;
+
+struct mem_backend;
 
 /** Backend data stored in address space area. */
-typedef union {
+typedef union mem_backend_data {
 	struct {	/**< elf_backend members */
 		elf_header_t *elf;
 		elf_segment_header_t *segment;
@@ -146,7 +113,7 @@ typedef union {
  * Each as_area_t structure describes one contiguous area of virtual memory.
  * In the future, it should not be difficult to support shared areas.
  */
-struct as_area {
+typedef struct {
 	mutex_t lock;
 	as_t *as;		/**< Containing address space. */
 	int flags;		/**< Flags related to the memory represented by the address space area. */
@@ -156,11 +123,18 @@ struct as_area {
 	btree_t used_space;	/**< Map of used space. */
 	share_info_t *sh_info;	/**< If the address space area has been shared, this pointer will
 			     	     reference the share info structure. */
-	mem_backend_t *backend;	/**< Memory backend backing this address space area. */
+	struct mem_backend *backend;	/**< Memory backend backing this address space area. */
 
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
-};
+} as_area_t;
+
+/** Address space area backend structure. */
+typedef struct mem_backend {
+	int (* page_fault)(as_area_t *area, uintptr_t addr, pf_access_t access);
+	void (* frame_free)(as_area_t *area, uintptr_t page, uintptr_t frame);
+	void (* share)(as_area_t *area);
+} mem_backend_t;
 
 extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
@@ -206,10 +180,12 @@ extern void as_install_arch(as_t *as);
 extern void as_deinstall_arch(as_t *as);
 #endif /* !def as_deinstall_arch */
 
-/* Backend declarations. */
+/* Backend declarations and functions. */
 extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
+
+extern int elf_load(elf_header_t *header, as_t *as);
 
 /* Address space area related syscalls. */
 extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);

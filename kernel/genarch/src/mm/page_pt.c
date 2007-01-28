@@ -42,7 +42,6 @@
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 

@@ -36,7 +36,6 @@
 #include <arch/smp/smp.h>
 #include <arch/smp/mps.h>
 #include <arch/smp/ap.h>
-#include <arch/boot/boot.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <config.h>

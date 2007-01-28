@@ -34,6 +34,7 @@
 
 #include <smp/ipi.h>
 #include <cpu.h>
+#include <arch.h>
 #include <arch/cpu.h>
 #include <arch/asm.h>
 #include <config.h>

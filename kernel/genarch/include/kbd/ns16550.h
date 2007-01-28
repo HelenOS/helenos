@@ -37,8 +37,8 @@
 #ifndef KERN_NS16550_H_
 #define KERN_NS16550_H_
 
-#include <typedefs.h>
-#include <ddi/irq.h>
+#include <console/chardev.h> 
+#include <ipc/irq.h>
 
 extern void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr);
 extern void ns16550_poll(void);

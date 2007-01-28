@@ -39,7 +39,6 @@
 #include <arch.h>
 #include <arch/types.h>
 #include <print.h>
-#include <typedefs.h>
 #include <fpu_context.h>
 
 #include <arch/smp/apic.h>

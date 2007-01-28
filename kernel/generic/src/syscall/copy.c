@@ -44,7 +44,6 @@
 #include <macros.h>
 #include <arch.h>
 #include <errno.h>
-#include <typedefs.h>
 
 /** Copy data from userspace to kernel.
  *

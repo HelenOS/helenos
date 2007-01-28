@@ -36,13 +36,12 @@
 #define KERN_LIST_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 /** Doubly linked list head and link type. */
-struct link {
-	link_t *prev;	/**< Pointer to the previous item in the list. */
-	link_t *next;	/**< Pointer to the next item in the list. */
-};
+typedef struct link {
+	struct link *prev;	/**< Pointer to the previous item in the list. */
+	struct link *next;	/**< Pointer to the next item in the list. */
+} link_t;
 
 /** Declare and initialize statically allocated list.
  *

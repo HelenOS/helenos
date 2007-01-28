@@ -43,7 +43,6 @@
 
 #include <config.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 
 #define TASKMAP_MAX_RECORDS	32

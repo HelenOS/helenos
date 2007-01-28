@@ -37,6 +37,7 @@
 
 #include <arch/types.h>
 #include <arch/register.h>
+#include <arch/asm.h>
 
 #define MANUF_FUJITSU		0x04
 #define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */

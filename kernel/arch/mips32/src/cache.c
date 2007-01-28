@@ -34,7 +34,6 @@
 
 #include <arch/cache.h>
 #include <arch/exception.h>
-#include <typedefs.h>
 #include <panic.h>
 
 void cache_error(istate_t *istate)

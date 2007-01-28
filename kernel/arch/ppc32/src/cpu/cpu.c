@@ -35,10 +35,7 @@
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
 #include <cpu.h>
-
 #include <arch.h>
-
-#include <typedefs.h>
 #include <print.h>
 
 void cpu_arch_init(void)

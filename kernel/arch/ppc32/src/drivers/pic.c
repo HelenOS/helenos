@@ -33,8 +33,8 @@
  */
 
 
-#include <arch/asm.h>
 #include <arch/drivers/pic.h>
+#include <mm/page.h>
 #include <byteorder.h>
 #include <bitops.h>
 

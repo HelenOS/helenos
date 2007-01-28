@@ -44,13 +44,13 @@
 #include <arch/mm/tlb.h>
 #include <smp/ipi.h>
 #include <synch/spinlock.h>
-#include <typedefs.h>
 #include <atomic.h>
 #include <arch/interrupt.h>
 #include <config.h>
 #include <arch.h>
 #include <panic.h>
 #include <debug.h>
+#include <cpu.h>
 
 /**
  * This lock is used for synchronisation between sender and

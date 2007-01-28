@@ -37,10 +37,9 @@
 #include <arch/drivers/pci.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/trap/interrupt.h>
-#include <arch/mm/page.h>
+#include <mm/page.h>
 #include <mm/slab.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <debug.h>
 #include <print.h>
 #include <func.h>

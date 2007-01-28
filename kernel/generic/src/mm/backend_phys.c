@@ -37,7 +37,6 @@
 
 #include <debug.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/slab.h>

@@ -35,7 +35,6 @@
 #include <arch/pm.h>
 #include <config.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/context.h>
@@ -43,7 +42,6 @@
 #include <arch/mm/page.h>
 #include <mm/slab.h>
 #include <memstr.h>
-#include <arch/boot/boot.h>
 #include <interrupt.h>
 
 /*

@@ -35,8 +35,6 @@
 #ifndef KERN_MAIN_H_
 #define KERN_MAIN_H_
 
-#include <typedefs.h>
-
 extern uintptr_t stack_safe;
 
 #endif

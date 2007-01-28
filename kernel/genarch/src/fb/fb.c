@@ -46,7 +46,6 @@
 #include <print.h>
 #include <ddi/ddi.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 #include "helenos.xbm"
 

@@ -36,7 +36,6 @@
 #include <main/main.h>
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <align.h>
 
 #include <arch/pm.h>
@@ -54,7 +53,6 @@
 
 #include <arch/bios/bios.h>
 
-#include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
 #include <interrupt.h>
 #include <arch/debugger.h>

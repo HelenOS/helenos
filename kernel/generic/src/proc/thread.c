@@ -53,8 +53,8 @@
 #include <context.h>
 #include <adt/btree.h>
 #include <adt/list.h>
-#include <typedefs.h>
 #include <time/clock.h>
+#include <time/timeout.h>
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
@@ -676,6 +676,59 @@ unative_t sys_thread_exit(int uspace_status)
 	thread_exit();
 	/* Unreachable */
 	return 0;
+}
+
+/** Interrupt sleeping thread.
+ *
+ * This routine attempts to interrupt a thread from its sleep in a waitqueue.
+ * If the thread is not found sleeping, no action is taken.
+ *
+ * @param t Thread to be interrupted.
+ */
+void thread_interrupt_sleep(thread_t *t)
+{
+	waitq_t *wq;
+	bool do_wakeup = false;
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	if (!thread_exists(t))
+		goto out;
+
+grab_locks:
+	spinlock_lock(&t->lock);
+	if ((wq = t->sleep_queue)) {		/* assignment */
+		if (!(t->sleep_interruptible)) {
+			/*
+			 * The sleep cannot be interrupted.
+			 */
+			spinlock_unlock(&t->lock);
+			goto out;
+		}
+			
+		if (!spinlock_trylock(&wq->lock)) {
+			spinlock_unlock(&t->lock);
+			goto grab_locks;	/* avoid deadlock */
+		}
+
+		if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
+			t->timeout_pending = false;
+
+		list_remove(&t->wq_link);
+		t->saved_context = t->sleep_interruption_context;
+		do_wakeup = true;
+		t->sleep_queue = NULL;
+		spinlock_unlock(&wq->lock);
+	}
+	spinlock_unlock(&t->lock);
+
+	if (do_wakeup)
+		thread_ready(t);
+
+out:
+	spinlock_unlock(&threads_lock);
+	interrupts_restore(ipl);
 }
 
 /** @}

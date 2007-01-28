@@ -36,8 +36,6 @@
 #ifndef KERN_ia32_MEMORY_INIT_H_
 #define KERN_ia32_MEMORY_INIT_H_
 
-#include <typedefs.h>
-
 size_t get_memory_size(void);
 
 void memory_print_map(void);

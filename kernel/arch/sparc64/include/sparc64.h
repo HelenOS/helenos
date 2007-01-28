@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32xen_mm	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
  */
 
-#include <arch/mm/memory_init.h>
-#include <arch/mm/page.h>
-#include <print.h>
-#include <mm/frame.h>
+#ifndef KERN_sparc64_SPARC64_H_
+#define KERN_sparc64_SPARC64_H_
 
-size_t get_memory_size(void) 
-{
-	return start_info.frames * PAGE_SIZE;
-}
+#include <interrupt.h>
 
-void memory_print_map(void)
-{
-	printf("Xen memory: %p size: %d (reserved %d)\n", PFN2ADDR(meminfo.start), PFN2ADDR(meminfo.size - meminfo.reserved), PFN2ADDR(meminfo.reserved));
-}
+extern void interrupt_register(int n, const char *name, iroutine f);
+
+#endif
 
 /** @}
  */

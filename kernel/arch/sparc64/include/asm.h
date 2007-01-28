@@ -35,12 +35,11 @@
 #ifndef KERN_sparc64_ASM_H_
 #define KERN_sparc64_ASM_H_
 
-#include <arch.h>
-#include <typedefs.h>
+#include <arch/arch.h>
 #include <arch/types.h>
+#include <align.h>
 #include <arch/register.h>
 #include <config.h>
-#include <time/clock.h>
 #include <arch/stack.h>
 
 /** Read Processor State register.

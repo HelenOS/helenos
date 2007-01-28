@@ -36,6 +36,8 @@
 #define KERN_ia32xen_TYPES_H_
 
 #define NULL 0
+#define false 0
+#define true 1
 
 typedef signed char int8_t;
 typedef signed short int16_t;
@@ -47,6 +49,10 @@ typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
 typedef unsigned long long uint64_t;
 
+typedef uint32_t size_t;
+typedef uint32_t count_t;
+typedef uint32_t index_t;
+
 typedef uint32_t uintptr_t;
 typedef uint32_t pfn_t;
 
@@ -55,7 +61,28 @@ typedef uint8_t ipl_t;
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
-typedef struct page_specifier pte_t;
+typedef uint8_t bool;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
+
+typedef int32_t inr_t;
+typedef int32_t devno_t;
+
+/** Page Table Entry. */
+typedef struct {
+	unsigned present : 1;
+	unsigned writeable : 1;
+	unsigned uaccessible : 1;
+	unsigned page_write_through : 1;
+	unsigned page_cache_disable : 1;
+	unsigned accessed : 1;
+	unsigned dirty : 1;
+	unsigned pat : 1;
+	unsigned global : 1;
+	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
+	unsigned avl : 2;
+	unsigned frame_address : 20;
+} __attribute__ ((packed)) pte_t;
 
 #endif
 

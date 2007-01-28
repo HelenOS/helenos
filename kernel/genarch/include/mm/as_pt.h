@@ -35,9 +35,45 @@
 #ifndef KERN_AS_PT_H_
 #define KERN_AS_PT_H_
 
-#include <mm/as.h>
+#include <mm/mm.h>
+#include <arch/mm/asid.h>
+#include <adt/list.h>
+#include <adt/btree.h>
+#include <synch/mutex.h>
 
-extern as_operations_t as_pt_operations;
+#define AS_PAGE_TABLE
+
+/** Address space structure.
+ *
+ * as_t contains the list of as_areas of userspace accessible
+ * pages for one or more tasks. Ranges of kernel memory pages are not
+ * supposed to figure in the list as they are shared by all tasks and
+ * set up during system initialization.
+ */
+typedef struct {
+	/** Protected by asidlock. */
+	link_t inactive_as_with_asid_link;
+
+	mutex_t lock;
+
+	/** Number of references (i.e tasks that reference this as). */
+	count_t refcount;
+
+	/** Number of processors on wich is this address space active. */
+	count_t cpu_refcount;
+
+	/** B+tree of address space areas. */
+	btree_t as_area_btree;
+	
+	/** Page table pointer. */
+	pte_t *page_table;
+
+	/** Address space identifier. Constant on architectures that do not support ASIDs.*/
+	asid_t asid;
+	
+	/** Architecture specific content. */
+	as_arch_t arch;
+} as_t;
 
 #endif
 

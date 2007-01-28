@@ -79,10 +79,9 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /** LSU Control Register. */
-union lsu_cr_reg {
+typedef union {
 	uint64_t value;
 	struct {
 		unsigned : 23;
@@ -100,8 +99,7 @@ union lsu_cr_reg {
 		unsigned ic : 1;	/**< I-Cache enable. */
 		
 	} __attribute__ ((packed));
-};
-typedef union lsu_cr_reg lsu_cr_reg_t;
+} lsu_cr_reg_t;
 
 #endif /* !def __ASM__ */
 

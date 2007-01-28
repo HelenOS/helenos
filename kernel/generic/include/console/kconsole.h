@@ -35,31 +35,30 @@
 #ifndef KERN_KCONSOLE_H_
 #define KERN_KCONSOLE_H_
 
-#include <typedefs.h>
 #include <adt/list.h>
 #include <synch/spinlock.h>
 
 #define MAX_CMDLINE     256
 #define KCONSOLE_HISTORY 10
 
-enum cmd_arg_type {
+typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
 	ARG_TYPE_STRING,
 	ARG_TYPE_VAR      /**< Variable type - either symbol or string */
-};
+} cmd_arg_type_t;
 
 /** Structure representing one argument of kconsole command line. */
-struct cmd_arg {
+typedef struct {
 	cmd_arg_type_t type;		/**< Type descriptor. */
 	void *buffer;			/**< Buffer where to store data. */
 	size_t len;			/**< Size of the buffer. */
 	unative_t intval;                /**< Integer value */
 	cmd_arg_type_t vartype;         /**< Resulting type of variable arg */
-};
+} cmd_arg_t;
 
 /** Structure representing one kconsole command. */
-struct cmd_info {
+typedef struct {
 	link_t link;			/**< Command list link. */
 	SPINLOCK_DECLARE(lock);		/**< This lock protects everything below. */
 	const char *name;		/**< Command name. */
@@ -68,7 +67,7 @@ struct cmd_info {
 	count_t argc;			/**< Number of arguments. */
 	cmd_arg_t *argv;		/**< Argument vector. */
 	void (* help)(void);		/**< Function for printing detailed help. */
-};
+} cmd_info_t;
 
 extern spinlock_t cmd_lock;
 extern link_t cmd_head;

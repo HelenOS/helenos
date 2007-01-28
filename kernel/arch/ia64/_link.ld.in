@@ -6,8 +6,6 @@
  *
  */
 
-#define __ASM__
-
 ENTRY(kernel_image_start)
 
 SECTIONS {

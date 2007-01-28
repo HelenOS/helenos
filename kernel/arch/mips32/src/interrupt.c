@@ -41,7 +41,6 @@
 #include <arch/drivers/arc.h>
 #include <ipc/sysipc.h>
 #include <ddi/device.h>
-#include <ddi/irq.h>
 
 #define IRQ_COUNT 8
 #define TIMER_IRQ 7

@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <cpu.h>
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
 #include <arch/pm.h>
@@ -39,7 +40,6 @@
 #include <arch.h>
 #include <arch/types.h>
 #include <print.h>
-#include <typedefs.h>
 #include <fpu_context.h>
 
 /*
@@ -56,7 +56,7 @@
 
 
 enum vendor {
-	VendorUnknown=0,
+	VendorUnknown = 0,
 	VendorAMD,
 	VendorIntel
 };

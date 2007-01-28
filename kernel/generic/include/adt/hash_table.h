@@ -37,18 +37,9 @@
 
 #include <adt/list.h>
 #include <arch/types.h>
-#include <typedefs.h>
-
-/** Hash table structure. */
-struct hash_table {
-	link_t *entry;
-	count_t entries;
-	count_t max_keys;
-	hash_table_operations_t *op;
-};
 
 /** Set of operations for hash table. */
-struct hash_table_operations {
+typedef struct {
 	/** Hash function.
 	 *
 	 * @param key Array of keys needed to compute hash index. All keys must be passed.
@@ -70,7 +61,15 @@ struct hash_table_operations {
 	 * @param item Item that was removed from the hash table.
 	 */
 	void (*remove_callback)(link_t *item);
-};
+} hash_table_operations_t;
+
+/** Hash table structure. */
+typedef struct {
+	link_t *entry;
+	count_t entries;
+	count_t max_keys;
+	hash_table_operations_t *op;
+} hash_table_t;
 
 #define hash_table_get_instance(item, type, member)	list_get_instance((item), type, member)
 

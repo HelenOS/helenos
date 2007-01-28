@@ -36,7 +36,6 @@
 #define KERN_BTREE_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <adt/list.h>
 
 #define BTREE_M		5
@@ -45,7 +44,7 @@
 typedef uint64_t btree_key_t;
 
 /** B-tree node structure. */
-struct btree_node {
+typedef struct btree_node {
 	/** Number of keys. */
 	count_t keys;
 
@@ -65,10 +64,10 @@ struct btree_node {
 	 * ...
 	 * There is room for storing a subtree pointer for the extra key.
 	 */
-	btree_node_t *subtree[BTREE_M + 1];
+	struct btree_node *subtree[BTREE_M + 1];
 
 	/** Pointer to parent node. Root node has NULL parent. */
-	btree_node_t *parent;
+	struct btree_node *parent;
 
 	/** Link connecting leaf-level nodes. Defined only when this node is a leaf. */
 	link_t leaf_link;
@@ -76,13 +75,13 @@ struct btree_node {
 	/** Variables needed by btree_print(). */	
 	link_t bfs_link;
 	int depth;
-};
+} btree_node_t;
 
 /** B-tree structure. */
-struct btree {
+typedef struct {
 	btree_node_t *root;	/**< B-tree root node pointer. */
 	link_t leaf_head;	/**< Leaf-level list head. */
-};
+} btree_t;
 
 extern void btree_init(void);
 

@@ -42,7 +42,7 @@
 #define OFFSET_S8      0x28
 #define OFFSET_GP      0x2c
 
-/* struct istate */
+/* istate_t */
 #define EOFFSET_AT     0x0
 #define EOFFSET_V0     0x4
 #define EOFFSET_V1     0x8

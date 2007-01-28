@@ -35,7 +35,6 @@
 #ifndef KERN_ia32_CPU_H_
 #define KERN_ia32_CPU_H_
 
-#include <typedefs.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
 

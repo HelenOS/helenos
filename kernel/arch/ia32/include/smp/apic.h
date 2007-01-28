@@ -107,7 +107,7 @@
 /** Interrupt Command Register. */
 #define ICRlo		(0x300/sizeof(uint32_t))
 #define ICRhi		(0x310/sizeof(uint32_t))
-struct icr {
+typedef struct {
 	union {
 		uint32_t lo;
 		struct {
@@ -130,15 +130,14 @@ struct icr {
 			uint8_t dest;			/**< Destination field. */
 		} __attribute__ ((packed));
 	};
-} __attribute__ ((packed));
-typedef struct icr icr_t;
+} __attribute__ ((packed)) icr_t;
 
 /* End Of Interrupt. */
 #define EOI		(0x0b0/sizeof(uint32_t))
 
 /** Error Status Register. */
 #define ESR		(0x280/sizeof(uint32_t))
-union esr {
+typedef union {
 	uint32_t value;
 	uint8_t err_bitmap;
 	struct {
@@ -152,23 +151,21 @@ union esr {
 		unsigned illegal_register_address : 1;
 		unsigned : 24;
 	} __attribute__ ((packed));
-};
-typedef union esr esr_t;
+} esr_t;
 
 /* Task Priority Register */
 #define TPR		(0x080/sizeof(uint32_t))
-union tpr {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned pri_sc : 4;		/**< Task Priority Sub-Class. */
 		unsigned pri : 4;		/**< Task Priority. */
 	} __attribute__ ((packed));
-};
-typedef union tpr tpr_t;
+} tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
 #define SVR		(0x0f0/sizeof(uint32_t))
-union svr {
+typedef union {
 	uint32_t value;
 	struct {
 		uint8_t vector;			/**< Spurious Vector. */
@@ -176,19 +173,17 @@ union svr {
 		unsigned focus_checking : 1;	/**< Focus Processor Checking. */
 		unsigned : 22;			/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union svr svr_t;
+} svr_t;
 
 /** Time Divide Configuration Register. */
 #define TDCR		(0x3e0/sizeof(uint32_t))
-union tdcr {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned div_value : 4;		/**< Divide Value, bit 2 is always 0. */
 		unsigned : 28;			/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union tdcr tdcr_t;
+} tdcr_t;
 
 /* Initial Count Register for Timer */
 #define ICRT		(0x380/sizeof(uint32_t))
@@ -198,7 +193,7 @@ typedef union tdcr tdcr_t;
 
 /** LVT Timer register. */
 #define LVT_Tm		(0x320/sizeof(uint32_t))
-union lvt_tm {
+typedef union {
 	uint32_t value;
 	struct {
 		uint8_t vector;		/**< Local Timer Interrupt vector. */
@@ -209,13 +204,12 @@ union lvt_tm {
 		unsigned mode : 1;	/**< Timer Mode. */
 		unsigned : 14;		/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union lvt_tm lvt_tm_t;
+} lvt_tm_t;
 
 /** LVT LINT registers. */
 #define LVT_LINT0	(0x350/sizeof(uint32_t))
 #define LVT_LINT1	(0x360/sizeof(uint32_t))
-union lvt_lint {
+typedef union {
 	uint32_t value;
 	struct {
 		uint8_t vector;			/**< LINT Interrupt vector. */
@@ -228,12 +222,11 @@ union lvt_lint {
 		unsigned masked : 1;		/**< Interrupt Mask. */
 		unsigned : 15;			/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union lvt_lint lvt_lint_t;
+} lvt_lint_t;
 
 /** LVT Error register. */
 #define LVT_Err		(0x370/sizeof(uint32_t))
-union lvt_error {
+typedef union {
 	uint32_t value;
 	struct {
 		uint8_t vector;		/**< Local Timer Interrupt vector. */
@@ -243,19 +236,17 @@ union lvt_error {
 		unsigned masked : 1;	/**< Interrupt Mask. */
 		unsigned : 15;		/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union lvt_error lvt_error_t;
+} lvt_error_t;
 
 /** Local APIC ID Register. */
 #define L_APIC_ID	(0x020/sizeof(uint32_t))
-union l_apic_id {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
 		uint8_t apic_id;		/**< Local APIC ID. */
 	} __attribute__ ((packed));
-};
-typedef union l_apic_id l_apic_id_t;
+} l_apic_id_t;
 
 /** Local APIC Version Register */
 #define LAVR		(0x030/sizeof(uint32_t))
@@ -266,25 +257,23 @@ typedef union l_apic_id l_apic_id_t;
 
 /** Logical Destination Register. */
 #define  LDR		(0x0d0/sizeof(uint32_t))
-union ldr {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
 		uint8_t id;		/**< Logical APIC ID. */
 	} __attribute__ ((packed));
-};
-typedef union ldr ldr_t;
+} ldr_t;
 
 /** Destination Format Register. */
 #define DFR		(0x0e0/sizeof(uint32_t))
-union dfr {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned : 28;		/**< Reserved, all ones. */
 		unsigned model : 4;	/**< Model. */
 	} __attribute__ ((packed));
-};
-typedef union dfr dfr_t;
+} dfr_t;
 
 /* IO APIC */
 #define IOREGSEL	(0x00/sizeof(uint32_t))
@@ -296,17 +285,16 @@ typedef union dfr dfr_t;
 #define IOREDTBL	0x10
 
 /** I/O Register Select Register. */
-union io_regsel {
+typedef union {
 	uint32_t value;
 	struct {
 		uint8_t reg_addr;		/**< APIC Register Address. */
 		unsigned : 24;		/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union io_regsel io_regsel_t;
+} io_regsel_t;
 
 /** I/O Redirection Register. */
-struct io_redirection_reg {
+typedef struct io_redirection_reg {
 	union {
 		uint32_t lo;
 		struct {
@@ -329,20 +317,18 @@ struct io_redirection_reg {
 		} __attribute__ ((packed));
 	};
 	
-} __attribute__ ((packed));
-typedef struct io_redirection_reg io_redirection_reg_t;
+} __attribute__ ((packed)) io_redirection_reg_t;
 
 
 /** IO APIC Identification Register. */
-union io_apic_id {
+typedef union {
 	uint32_t value;
 	struct {
 		unsigned : 24;		/**< Reserved. */
 		unsigned apic_id : 4;	/**< IO APIC ID. */
 		unsigned : 4;		/**< Reserved. */
 	} __attribute__ ((packed));
-};
-typedef union io_apic_id io_apic_id_t;
+} io_apic_id_t;
 
 extern volatile uint32_t *l_apic;
 extern volatile uint32_t *io_apic;

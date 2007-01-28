@@ -46,24 +46,22 @@
 
 #ifndef __ASM__
 
-#include <mm/page.h>
-#include <arch/types.h>
-#include <genarch/mm/page_ht.h>
+//#include <arch/types.h>
+//#include <genarch/mm/page_ht.h>
+#include <arch/interrupt.h>
 
 extern uintptr_t physmem_base;
 
 #define KA2PA(x)	(((uintptr_t) (x)) + physmem_base)
 #define PA2KA(x)	(((uintptr_t) (x)) - physmem_base)
 
-union page_address {
+typedef union {
 	uintptr_t address;
 	struct {
 		uint64_t vpn : 51;		/**< Virtual Page Number. */
 		unsigned offset : 13;		/**< Offset. */
 	} __attribute__ ((packed));
-};
-
-typedef union page_address page_address_t;
+} page_address_t;
 
 extern void page_arch_init(void);
 

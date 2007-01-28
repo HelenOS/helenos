@@ -36,8 +36,8 @@
 #define KERN_ia64_CPU_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/register.h>
+#include <arch/asm.h>
 
 #define FAMILY_ITANIUM	0x7
 #define FAMILY_ITANIUM2	0x1f

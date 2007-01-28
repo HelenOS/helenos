@@ -33,7 +33,7 @@
  */
 
 #include <arch/drivers/cuda.h>
-#include <ddi/irq.h>
+#include <ipc/irq.h>
 #include <arch/asm.h>
 #include <console/console.h>
 #include <console/chardev.h>

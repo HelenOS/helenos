@@ -35,7 +35,7 @@
 #ifndef KERN_I8042_H_
 #define KERN_I8042_H_
 
-#include <typedefs.h>
+#include <console/chardev.h>
 
 extern void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mouse_inr);
 extern void i8042_poll(void);

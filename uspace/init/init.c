@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 {
 	version_print();
 
-	printf("Hello\nThis is Init\n");
+	printf("This is init\n");
 	
 	test_console();
 

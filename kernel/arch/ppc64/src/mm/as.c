@@ -33,7 +33,7 @@
  */
 
 #include <arch/mm/as.h>
-#include <genarch/mm/as_pt.h>
+#include <genarch/mm/page_pt.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)

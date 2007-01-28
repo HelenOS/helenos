@@ -42,8 +42,6 @@
 #include <mm/buddy.h>
 #include <mm/frame.h>
 #include <arch/types.h>
-#include <typedefs.h>
-#include <adt/list.h>
 #include <debug.h>
 #include <print.h>
 

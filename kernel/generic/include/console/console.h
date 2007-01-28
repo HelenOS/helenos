@@ -36,7 +36,7 @@
 #define KERN_CONSOLE_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
+#include <console/chardev.h>
 
 extern chardev_t *stdin;
 extern chardev_t *stdout;

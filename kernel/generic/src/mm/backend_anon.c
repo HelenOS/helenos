@@ -47,7 +47,6 @@
 #include <adt/btree.h>
 #include <errno.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <align.h>
 #include <arch.h>
 

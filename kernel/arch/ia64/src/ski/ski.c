@@ -38,7 +38,6 @@
 #include <arch/interrupt.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <ddi/device.h>
 #include <ddi/irq.h>
 #include <ipc/irq.h>

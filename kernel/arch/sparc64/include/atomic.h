@@ -37,7 +37,6 @@
 
 #include <arch/barrier.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /** Atomic add operation.
  *

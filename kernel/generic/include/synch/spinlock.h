@@ -36,7 +36,6 @@
 #define KERN_SPINLOCK_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <preemption.h>
 #include <atomic.h>
 #include <debug.h>
@@ -97,7 +96,7 @@ static inline void spinlock_unlock(spinlock_t *sl)
 	 */
 	CS_LEAVE_BARRIER();
 	
-	atomic_set(&sl->val,0);
+	atomic_set(&sl->val, 0);
 	preemption_enable();
 }
 
@@ -109,7 +108,7 @@ typedef void spinlock_t;
 #define SPINLOCK_DECLARE(name)
 #define SPINLOCK_INITIALIZE(name)
 
-#define spinlock_initialize(x,name)
+#define spinlock_initialize(x, name)
 #define spinlock_lock(x)		preemption_disable()
 #define spinlock_trylock(x) 		(preemption_disable(), 1)
 #define spinlock_unlock(x)		preemption_enable()

@@ -36,7 +36,6 @@
 #define KERN_MACROS_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 #define is_digit(d)	(((d) >= '0') && ((d) <= '9'))
 #define is_lower(c)	(((c) >= 'a') && ((c) <= 'z'))

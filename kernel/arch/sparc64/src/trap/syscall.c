@@ -38,7 +38,6 @@
 #include <syscall/syscall.h>
 #include <panic.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 unative_t syscall(int n, istate_t *istate, unative_t a1, unative_t a2, unative_t a3, unative_t a4)
 {

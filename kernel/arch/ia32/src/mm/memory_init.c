@@ -38,7 +38,7 @@
 #include <print.h>
 
 uint8_t e820counter = 0xff;
-struct e820memmap_ e820table[MEMMAP_E820_MAX_RECORDS];
+e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 uint32_t e801memorysize;
 
 size_t get_memory_size(void) 

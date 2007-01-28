@@ -39,7 +39,6 @@
 
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
 #include <mm/slab.h>

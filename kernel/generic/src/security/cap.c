@@ -43,7 +43,6 @@
 #include <syscall/sysarg64.h>
 #include <syscall/copy.h>
 #include <arch.h>
-#include <typedefs.h>
 #include <errno.h>
 
 /** Set capabilities.

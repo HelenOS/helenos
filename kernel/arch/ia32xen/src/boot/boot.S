@@ -26,9 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/boot/boot.h>
 #include <arch/mm/page.h>
-#include <arch/pm.h>
+#include <arch/hypercall.h>
 
 #define ELFNOTE(name, type, desctype, descval) \
 	.section .note.name; \

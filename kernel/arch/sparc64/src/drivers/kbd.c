@@ -44,7 +44,6 @@
 #include <ddi/irq.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <align.h>
 #include <func.h>
 #include <print.h>

@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_TICK_H_
 #define KERN_sparc64_TICK_H_
 
-#include <typedefs.h>
+#include <arch/interrupt.h>
 
 extern void tick_init(void);
 extern void tick_interrupt(int n, istate_t *istate);

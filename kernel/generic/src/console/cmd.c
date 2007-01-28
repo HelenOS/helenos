@@ -45,7 +45,6 @@
 #include <console/kconsole.h>
 #include <print.h>
 #include <panic.h>
-#include <typedefs.h>
 #include <arch/types.h>
 #include <adt/list.h>
 #include <arch.h>

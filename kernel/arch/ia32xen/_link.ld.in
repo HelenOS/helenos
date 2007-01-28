@@ -1,8 +1,7 @@
 /** ia32xen linker script
  */
 
-#define __ASM__
-#include <arch/boot/boot.h>
+#include <arch/hypercall.h>
 #include <arch/mm/page.h>
 
 ENTRY(kernel_image_start)

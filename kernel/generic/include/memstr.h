@@ -35,7 +35,6 @@
 #ifndef KERN_MEMSTR_H_
 #define KERN_MEMSTR_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <arch/memstr.h>
 

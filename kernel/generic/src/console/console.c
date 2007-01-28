@@ -38,7 +38,6 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch.h>
 #include <func.h>
 #include <print.h>

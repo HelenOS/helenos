@@ -36,13 +36,14 @@
 #define KERN_INTERRUPT_H_
 
 #include <arch/interrupt.h>
-#include <typedefs.h>
 #include <arch/types.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
 #include <console/klog.h>
-#include <ipc/irq.h>
+#include <ddi/irq.h>
+
+typedef void (* iroutine)(int n, istate_t *istate);
 
 #define fault_if_from_uspace(istate, cmd, ...) \
 { \
@@ -53,7 +54,6 @@
 		thread_exit(); \
 	} \
 }
-
 
 extern iroutine exc_register(int n, const char *name, iroutine f);
 extern void exc_dispatch(int n, istate_t *t);

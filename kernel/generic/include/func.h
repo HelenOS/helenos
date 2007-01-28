@@ -36,7 +36,6 @@
 #define KERN_FUNC_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <atomic.h>
 
 extern atomic_t haltstate;

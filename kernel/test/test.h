@@ -36,7 +36,6 @@
 #define KERN_TEST_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 typedef char * (* test_entry_t)(bool);
 

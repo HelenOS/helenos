@@ -38,7 +38,6 @@
 #include <arch/types.h>
 #include <arch/barrier.h>
 #include <preemption.h>
-#include <typedefs.h>
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP

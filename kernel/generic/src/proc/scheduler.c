@@ -44,6 +44,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
+#include <time/timeout.h>
 #include <time/delay.h>
 #include <arch/asm.h>
 #include <arch/faddr.h>
@@ -52,11 +53,11 @@
 #include <synch/spinlock.h>
 #include <config.h>
 #include <context.h>
+#include <fpu_context.h>
 #include <func.h>
 #include <arch.h>
 #include <adt/list.h>
 #include <panic.h>
-#include <typedefs.h>
 #include <cpu.h>
 #include <print.h>
 #include <debug.h>

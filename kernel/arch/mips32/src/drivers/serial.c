@@ -34,10 +34,10 @@
 
 #include <interrupt.h>
 #include <arch/cp0.h>
+#include <ipc/irq.h>
 #include <arch/drivers/serial.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/irq.h>
 
 #define SERIAL_IRQ 2
 

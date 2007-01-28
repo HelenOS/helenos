@@ -42,7 +42,6 @@
 #include <genarch/mm/asid_fifo.h>
 #include <arch/mm/asid.h>
 #include <mm/asid.h>
-#include <typedefs.h>
 #include <adt/fifo.h>
 
 #define FIFO_STATIC_LIMIT	1024

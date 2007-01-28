@@ -76,7 +76,6 @@
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 union tlb_context_reg {
 	uint64_t v;

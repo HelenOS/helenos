@@ -42,11 +42,13 @@
 #ifndef KERN_ia32_ASID_H_
 #define KERN_ia32_ASID_H_
 
-typedef int asid_t;
+#include <arch/types.h>
+
+typedef int32_t asid_t;
 
 #define ASID_MAX_ARCH		3
 
-#define asid_get()		(ASID_START+1)
+#define asid_get()		(ASID_START + 1)
 #define asid_put(asid)
 
 #endif

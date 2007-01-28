@@ -41,10 +41,9 @@
 
 #include <arch/drivers/fhc.h>
 #include <arch/trap/interrupt.h>
-#include <arch/mm/page.h>
+#include <mm/page.h>
 #include <mm/slab.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 
 fhc_t *central_fhc = NULL;

@@ -35,67 +35,30 @@
 #ifndef KERN_PAGE_H_
 #define KERN_PAGE_H_
 
-#include <arch/mm/asid.h>
 #include <arch/types.h>
-#include <typedefs.h>
+#include <mm/as.h>
 #include <memstr.h>
-
-#define PAGE_CACHEABLE_SHIFT		0
-#define PAGE_NOT_CACHEABLE_SHIFT	PAGE_CACHEABLE_SHIFT
-#define PAGE_PRESENT_SHIFT		1
-#define PAGE_NOT_PRESENT_SHIFT		PAGE_PRESENT_SHIFT
-#define PAGE_USER_SHIFT			2
-#define PAGE_KERNEL_SHIFT		PAGE_USER_SHIFT
-#define PAGE_READ_SHIFT			3
-#define PAGE_WRITE_SHIFT		4
-#define PAGE_EXEC_SHIFT			5
-#define PAGE_GLOBAL_SHIFT		6
-
-#define PAGE_NOT_CACHEABLE	(0<<PAGE_CACHEABLE_SHIFT)
-#define PAGE_CACHEABLE		(1<<PAGE_CACHEABLE_SHIFT)
-
-#define PAGE_PRESENT		(0<<PAGE_PRESENT_SHIFT)
-#define PAGE_NOT_PRESENT	(1<<PAGE_PRESENT_SHIFT)
-
-#define PAGE_USER		(1<<PAGE_USER_SHIFT)
-#define PAGE_KERNEL		(0<<PAGE_USER_SHIFT)
-
-#define PAGE_READ		(1<<PAGE_READ_SHIFT)
-#define PAGE_WRITE		(1<<PAGE_WRITE_SHIFT)
-#define PAGE_EXEC		(1<<PAGE_EXEC_SHIFT)
-
-#define PAGE_GLOBAL		(1<<PAGE_GLOBAL_SHIFT)
-
 
 /**
  * Macro for computing page color.
  */
 #define PAGE_COLOR(va)	(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
 
-/** Page fault access type. */
-enum pf_access {
-	PF_ACCESS_READ,
-	PF_ACCESS_WRITE,
-	PF_ACCESS_EXEC
-};
-typedef enum pf_access pf_access_t;
-
 /** Operations to manipulate page mappings. */
-struct page_mapping_operations {
-	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame, int
-		flags);
+typedef struct {
+	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame,
+		int flags);
 	void (* mapping_remove)(as_t *as, uintptr_t page);
 	pte_t *(* mapping_find)(as_t *as, uintptr_t page);
-};
-typedef struct page_mapping_operations page_mapping_operations_t;
+} page_mapping_operations_t;
 
 extern page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
 extern void page_table_lock(as_t *as, bool lock);
 extern void page_table_unlock(as_t *as, bool unlock);
-extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int
-	flags);
+extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+	int flags);
 extern void page_mapping_remove(as_t *as, uintptr_t page);
 extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
 extern pte_t *page_table_create(int flags);

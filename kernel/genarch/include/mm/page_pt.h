@@ -44,7 +44,7 @@
 #define KERN_PAGE_PT_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
+#include <mm/as.h>
 #include <mm/page.h>
 
 /*
@@ -107,6 +107,7 @@
 #define PTE_WRITABLE(p)		PTE_WRITABLE_ARCH((p))
 #define PTE_EXECUTABLE(p)	PTE_EXECUTABLE_ARCH((p))
 
+extern as_operations_t as_pt_operations;
 extern page_mapping_operations_t pt_mapping_operations;
 
 extern void page_mapping_insert_pt(as_t *as, uintptr_t page, uintptr_t frame, int flags);

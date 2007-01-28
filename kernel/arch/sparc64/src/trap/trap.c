@@ -43,7 +43,6 @@
 #include <memstr.h>
 #include <debug.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/drivers/tick.h>
 
 /** Initialize trap table. */

@@ -35,7 +35,6 @@
 #ifndef KERN_ia32_TASK_H_
 #define KERN_ia32_TASK_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
 #include <adt/bitmap.h>
 

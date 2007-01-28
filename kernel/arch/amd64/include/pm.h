@@ -36,9 +36,8 @@
 #define KERN_amd64_PM_H_
 
 #ifndef __ASM__
-# include <arch/types.h>
-# include <typedefs.h>
-# include <arch/context.h>
+#	include <arch/types.h>
+#	include <arch/context.h>
 #endif
 
 #define IDT_ITEMS 64

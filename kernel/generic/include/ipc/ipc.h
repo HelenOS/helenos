@@ -158,52 +158,12 @@
 
 #ifdef KERNEL
 
-#include <synch/waitq.h>
-#include <adt/list.h>
+#include <proc/task.h>
 
-#define IPC_MAX_PHONES  16
-
-typedef struct answerbox_s answerbox_t;
-typedef struct phone_s phone_t;
 typedef struct {
 	unative_t args[IPC_CALL_LEN];
 	phone_t *phone;
 } ipc_data_t;
-
-struct answerbox_s {
-	SPINLOCK_DECLARE(lock);
-
-	task_t *task;
-
-	waitq_t wq;
-
-	link_t connected_phones;	/**< Phones connected to this answerbox */
-	link_t calls;			/**< Received calls */
-	link_t dispatched_calls;	/* Should be hash table in the future */
-
-	link_t answers;			/**< Answered calls */
-
-	SPINLOCK_DECLARE(irq_lock);
-	link_t irq_notifs;       	/**< Notifications from IRQ handlers */
-	link_t irq_head;		/**< IRQs with notifications to this answerbox. */
-};
-
-typedef enum {
-	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
-	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
-	IPC_PHONE_CONNECTED,    /**< Phone is connected */
-	IPC_PHONE_HUNGUP,  	/**< Phone is hung up, waiting for answers to come */
-	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
-} ipc_phone_state_t;
-
-/** Structure identifying phone (in TASK structure) */
-struct phone_s {
-	SPINLOCK_DECLARE(lock);
-	link_t link;
-	answerbox_t *callee;
-	ipc_phone_state_t state;
-	atomic_t active_calls;
-};
 
 typedef struct {
 	link_t link;

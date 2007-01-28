@@ -85,12 +85,12 @@
 
 #ifndef __ASM__
 
+#include <arch/mm/as.h>
 #include <arch/mm/frame.h>
+#include <arch/interrupt.h>
 #include <arch/barrier.h>
-#include <genarch/mm/page_ht.h>
 #include <arch/mm/asid.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <debug.h>
 
 struct vhpt_tag_info {

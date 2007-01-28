@@ -35,30 +35,51 @@
 #ifndef KERN_mips32_TYPES_H_
 #define KERN_mips32_TYPES_H_
 
-#define NULL	0
+#define NULL 0
+#define false 0
+#define true 1
 
 typedef signed char int8_t;
-typedef unsigned char uint8_t;
-
 typedef signed short int16_t;
-typedef unsigned short uint16_t;
-
-typedef unsigned long uint32_t;
 typedef signed long int32_t;
-
-typedef unsigned long long uint64_t;
 typedef signed long long int64_t;
 
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long uint32_t;
+typedef unsigned long long uint64_t;
+
+typedef uint32_t size_t;
+typedef uint32_t count_t;
+typedef uint32_t index_t;
+
 typedef uint32_t uintptr_t;
+typedef uint32_t pfn_t;
 
 typedef uint32_t ipl_t;
 
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
-typedef struct pte pte_t;
+typedef uint8_t bool;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
 
-typedef uint32_t pfn_t;
+typedef int32_t inr_t;
+typedef int32_t devno_t;
+
+/** Page Table Entry. */
+typedef struct {
+	unsigned g : 1;			/**< Global bit. */
+	unsigned p : 1;			/**< Present bit. */
+	unsigned d : 1;			/**< Dirty bit. */
+	unsigned cacheable : 1;		/**< Cacheable bit. */
+	unsigned : 1;			/**< Unused. */
+	unsigned soft_valid : 1;	/**< Valid content even if not present. */
+	unsigned pfn : 24;		/**< Physical frame number. */
+	unsigned w : 1;			/**< Page writable bit. */
+	unsigned a : 1;			/**< Accessed bit. */
+} pte_t;
 
 #endif
 

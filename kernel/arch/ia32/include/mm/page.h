@@ -61,15 +61,15 @@
 #define PTL2_ENTRIES_ARCH	0
 #define PTL3_ENTRIES_ARCH	1024
 
-#define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>22)&0x3ff)
+#define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0
-#define PTL3_INDEX_ARCH(vaddr)	(((vaddr)>>12)&0x3ff)
+#define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address)<<12))
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address) << 12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address)<<12))
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address) << 12))
 
 #define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((uintptr_t) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].frame_address = (a)>>12)
@@ -89,59 +89,41 @@
 
 #define PTE_VALID_ARCH(p)			(*((uint32_t *) (p)) != 0)
 #define PTE_PRESENT_ARCH(p)			((p)->present != 0)
-#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address<<FRAME_WIDTH)
+#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)			1
 
 #ifndef __ASM__
 
-#include <mm/page.h>
-#include <arch/types.h>
-#include <arch/mm/frame.h>
-#include <typedefs.h>
+#include <mm/mm.h>
+#include <arch/interrupt.h>
 
 /* Page fault error codes. */
 
 /** When bit on this position is 0, the page fault was caused by a not-present page. */
-#define PFERR_CODE_P		(1<<0)
+#define PFERR_CODE_P		(1 << 0)
 
 /** When bit on this position is 1, the page fault was caused by a write. */
-#define PFERR_CODE_RW		(1<<1)
+#define PFERR_CODE_RW		(1 << 1)
 
 /** When bit on this position is 1, the page fault was caused in user mode. */
-#define PFERR_CODE_US		(1<<2)
+#define PFERR_CODE_US		(1 << 2)
 
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
-#define PFERR_CODE_RSVD		(1<<3)	
-
-/** Page Table Entry. */
-struct page_specifier {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned pat : 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
-	unsigned avl : 2;
-	unsigned frame_address : 20;
-} __attribute__ ((packed));
+#define PFERR_CODE_RSVD		(1 << 3)	
 
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];
 	
 	return (
-		(!p->page_cache_disable)<<PAGE_CACHEABLE_SHIFT |
-		(!p->present)<<PAGE_PRESENT_SHIFT |
-		p->uaccessible<<PAGE_USER_SHIFT |
+		(!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
+		(!p->present) << PAGE_PRESENT_SHIFT |
+		p->uaccessible << PAGE_USER_SHIFT |
 		1<<PAGE_READ_SHIFT |
-		p->writeable<<PAGE_WRITE_SHIFT |
+		p->writeable << PAGE_WRITE_SHIFT |
 		1<<PAGE_EXEC_SHIFT |
-		p->global<<PAGE_GLOBAL_SHIFT
+		p->global << PAGE_GLOBAL_SHIFT
 	);
 }
 

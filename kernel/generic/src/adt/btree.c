@@ -51,7 +51,6 @@
 #include <mm/slab.h>
 #include <debug.h>
 #include <panic.h>
-#include <typedefs.h>
 #include <print.h>
 
 static void btree_destroy_subtree(btree_node_t *root);

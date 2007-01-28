@@ -35,12 +35,12 @@
  * @brief	Address space functions for global page hash table.
  */
 
+#include <arch/mm/as.h>
 #include <genarch/mm/as_ht.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <memstr.h>
 #include <adt/hash_table.h>
 #include <synch/mutex.h>

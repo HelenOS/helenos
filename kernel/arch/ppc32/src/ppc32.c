@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <config.h>
 #include <arch.h>
 #include <arch/boot/boot.h>
 #include <arch/drivers/cuda.h>

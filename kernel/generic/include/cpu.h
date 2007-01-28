@@ -35,63 +35,9 @@
 #ifndef KERN_CPU_H_
 #define KERN_CPU_H_
 
-#include <arch/cpu.h>
-#include <proc/scheduler.h>
-#include <synch/spinlock.h>
-#include <synch/waitq.h>
-#include <arch/types.h>
-#include <typedefs.h>
-#include <arch/context.h>
-#include <config.h>
-#include <adt/list.h>
-#include <mm/tlb.h>
+#include <proc/thread.h>
 
 #define CPU_STACK_SIZE	STACK_SIZE
-
-/** CPU structure.
- *
- * There is one structure like this for every processor.
- */
-typedef struct {
-	SPINLOCK_DECLARE(lock);
-
-	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
-	count_t tlb_messages_count;
-	
-	context_t saved_context;
-
-	atomic_t nrdy;
-	runq_t rq[RQ_COUNT];
-	volatile count_t needs_relink;
-
-	SPINLOCK_DECLARE(timeoutlock);
-	link_t timeout_active_head;
-
-	count_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
-					     so that clock() can react. This variable is
-					     CPU-local and can be only accessed when interrupts
-					     are disabled. */
-
-	/**
-	 * Processor ID assigned by kernel.
-	 */
-	int id;
-	
-	int active;
-	int tlb_active;
-
-	uint16_t frequency_mhz;
-	uint32_t delay_loop_const;
-
-	cpu_arch_t arch;
-
-	thread_t *fpu_owner;
-	
-	/**
-	 * Stack used by scheduler when there is no running thread.
-	 */
-	uint8_t *stack;
-} cpu_t;
 
 extern cpu_t *cpus;
 

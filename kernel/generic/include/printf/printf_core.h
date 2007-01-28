@@ -35,7 +35,7 @@
 #ifndef KERN_PRINTF_CORE_H_
 #define KERN_PRINTF_CORE_H_
 
-#include <typedefs.h>
+#include <arch/types.h>
 #include <arch/arg.h>
 
 /** Structure for specifying output methods for different printf clones. */

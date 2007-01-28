@@ -34,7 +34,6 @@
 
 #include <arch/boot/boot.h>
 #include <arch/mm/memory_init.h>
-#include <typedefs.h>
 #include <print.h>
 
 

@@ -74,7 +74,6 @@
 #include <config.h>
 #include <align.h>
 #include <arch/types.h>
-#include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
@@ -168,7 +167,11 @@ as_t *as_create(int flags)
 	
 	as->refcount = 0;
 	as->cpu_refcount = 0;
+#ifdef AS_PAGE_TABLE
 	as->page_table = page_table_create(flags);
+#else
+	page_table_create(flags);
+#endif
 
 	return as;
 }
@@ -216,7 +219,11 @@ void as_destroy(as_t *as)
 	}
 
 	btree_destroy(&as->as_area_btree);
+#ifdef AS_PAGE_TABLE
 	page_table_destroy(as->page_table);
+#else
+	page_table_destroy(NULL);
+#endif
 
 	interrupts_restore(ipl);
 	

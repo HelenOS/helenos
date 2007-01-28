@@ -34,8 +34,6 @@
  */
 
 #include <fpu_context.h>
-#include <arch.h>
-#include <cpu.h>
 
 /** Save FPU (mmx, sse) context using fxsave instruction */
 void fpu_context_save(fpu_context_t *fctx)

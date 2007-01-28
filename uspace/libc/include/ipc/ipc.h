@@ -36,7 +36,7 @@
 #define LIBIPC_IPC_H_
 
 #include <kernel/ipc/ipc.h>
-#include <kernel/ipc/irq.h>
+#include <kernel/ddi/irq.h>
 #include <libc.h>
 #include <types.h>
 #include <kernel/synch/synch.h>
@@ -45,7 +45,7 @@ typedef sysarg_t ipcarg_t;
 typedef struct {
 	ipcarg_t args[IPC_CALL_LEN];
 	ipcarg_t in_phone_hash;
-} ipc_call_t ;
+} ipc_call_t;
 typedef sysarg_t ipc_callid_t;
 
 typedef void (* ipc_async_callback_t)(void *private, int retval,

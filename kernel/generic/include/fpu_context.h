@@ -36,7 +36,6 @@
 #define KERN_FPU_CONTEXT_H_
 
 #include <arch/fpu_context.h>
-#include <typedefs.h>
 
 #if defined(CONFIG_FPU_LAZY) && !defined(ARCH_HAS_FPU)
 # error "CONFIG_FPU_LAZY defined, but no ARCH_HAS_FPU"

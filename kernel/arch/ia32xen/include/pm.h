@@ -69,7 +69,6 @@
 #ifndef __ASM__
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/context.h>
 
 struct ptr_16_32 {

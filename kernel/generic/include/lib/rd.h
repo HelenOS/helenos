@@ -36,7 +36,6 @@
 #define KERN_RD_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 /**
  * RAM disk version

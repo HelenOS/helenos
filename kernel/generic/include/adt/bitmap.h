@@ -36,7 +36,6 @@
 #define KERN_BITMAP_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 #define BITS2BYTES(bits)	(bits ? ((((bits)-1)>>3)+1) : 0)
 

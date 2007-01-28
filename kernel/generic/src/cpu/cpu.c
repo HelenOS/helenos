@@ -44,7 +44,6 @@
 #include <arch/types.h>
 #include <config.h>
 #include <panic.h>
-#include <typedefs.h>
 #include <memstr.h>
 #include <adt/list.h>
 #include <print.h>

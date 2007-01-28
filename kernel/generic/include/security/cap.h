@@ -49,7 +49,6 @@
 
 #include <syscall/sysarg64.h>
 #include <arch/types.h>
-#include <typedefs.h>
 
 /**
  * CAP_CAP allows its holder to grant/revoke arbitrary
@@ -80,9 +79,6 @@
 #define CAP_IRQ_REG		(1<<4) 
 
 typedef uint32_t cap_t;
-
-extern void cap_set(task_t *t, cap_t caps);
-extern cap_t cap_get(task_t *t);
 
 extern unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
 extern unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);

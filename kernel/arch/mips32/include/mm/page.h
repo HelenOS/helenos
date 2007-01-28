@@ -43,11 +43,11 @@
 #define PAGE_COLOR_BITS	0			/* dummy */
 
 #ifndef __ASM__
-#  define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
-#  define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
+#	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
+#	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
-#  define KA2PA(x)	((x) - 0x80000000)
-#  define PA2KA(x)	((x) + 0x80000000)
+#	define KA2PA(x)	((x) - 0x80000000)
+#	define PA2KA(x)	((x) + 0x80000000)
 #endif
 
 #ifdef KERNEL
@@ -109,10 +109,8 @@
 
 #ifndef __ASM__
 
-#include <arch/mm/tlb.h>
-#include <mm/page.h>
-#include <arch/mm/frame.h>
-#include <arch/types.h>
+#include <mm/mm.h>
+#include <arch/exception.h>
 
 static inline int get_pt_flags(pte_t *pt, index_t i)
 {

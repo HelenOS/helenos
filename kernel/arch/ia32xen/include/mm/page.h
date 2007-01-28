@@ -121,11 +121,9 @@
 
 #ifndef __ASM__
 
-#include <mm/page.h>
-#include <arch/types.h>
-#include <arch/mm/frame.h>
-#include <typedefs.h>
+#include <mm/mm.h>
 #include <arch/hypercall.h>
+#include <arch/interrupt.h>
 
 /* Page fault error codes. */
 
@@ -140,22 +138,6 @@
 
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
 #define PFERR_CODE_RSVD		(1 << 3)
-
-/** Page Table Entry. */
-struct page_specifier {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned pat : 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
-	unsigned avl : 2;
-	unsigned frame_address : 20;
-} __attribute__ ((packed));
 
 typedef struct {
 	uint64_t ptr;      /**< Machine address of PTE */

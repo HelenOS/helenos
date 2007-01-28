@@ -39,10 +39,10 @@
 #ifndef KERN_PAGE_HT_H_
 #define KERN_PAGE_HT_H_
 
+#include <arch/types.h>
+#include <mm/as.h>
 #include <mm/page.h>
 #include <synch/mutex.h>
-#include <arch/types.h>
-#include <adt/list.h>
 #include <adt/hash_table.h>
 
 #define PAGE_HT_KEYS	2
@@ -61,22 +61,9 @@
 
 #define SET_PTL0_ADDRESS(x)
 
-struct pte {
-	link_t link;		/**< Page hash table link. */
-	as_t *as;		/**< Address space. */
-	uintptr_t page;		/**< Virtual memory page. */
-	uintptr_t frame;	/**< Physical memory frame. */
-	unsigned g : 1;		/**< Global page. */
-	unsigned x : 1;		/**< Execute. */
-	unsigned w : 1;		/**< Writable. */
-	unsigned k : 1;		/**< Kernel privileges required. */
-	unsigned c : 1;		/**< Cacheable. */
-	unsigned a : 1;		/**< Accessed. */
-	unsigned d : 1;		/**< Dirty. */
-	unsigned p : 1;		/**< Present. */
-};
-
+extern as_operations_t as_ht_operations;
 extern page_mapping_operations_t ht_mapping_operations;
+
 extern mutex_t page_ht_lock;
 extern hash_table_t page_ht;
 extern hash_table_operations_t ht_operations;

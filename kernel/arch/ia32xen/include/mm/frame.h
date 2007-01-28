@@ -42,9 +42,6 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
-#include <arch/boot/boot.h>
-
 #define PA2MA(x)	((start_info.pm_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
 #define MA2PA(x)	((mp_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
 

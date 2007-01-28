@@ -35,6 +35,8 @@
 #ifndef KERN_ppc32_PIC_H_
 #define KERN_ppc32_PIC_H_
 
+#include <arch/types.h>
+
 #define PIC_PENDING_LOW    8
 #define PIC_PENDING_HIGH   4
 #define PIC_MASK_LOW       9

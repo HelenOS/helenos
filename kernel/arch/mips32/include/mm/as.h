@@ -42,10 +42,12 @@
 #define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x00000000
 #define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0x7fffffff
 
-#define USTACK_ADDRESS_ARCH	(0x80000000-PAGE_SIZE)
+#define USTACK_ADDRESS_ARCH	(0x80000000 - PAGE_SIZE)
 
 typedef struct {
 } as_arch_t;
+
+#include <genarch/mm/as_pt.h>
 
 #define as_constructor_arch(as, flags)		(as != as)
 #define as_destructor_arch(as)			(as != as)

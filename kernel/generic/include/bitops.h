@@ -35,8 +35,6 @@
 #ifndef KERN_BITOPS_H_
 #define KERN_BITOPS_H_
 
-#include <typedefs.h>
-
 
 /** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
  *

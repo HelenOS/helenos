@@ -35,8 +35,8 @@
 #ifndef KERN_sparc64_SYSCALL_H_
 #define KERN_sparc64_SYSCALL_H_
 
-#include <typedefs.h>
 #include <arch/types.h>
+#include <arch/interrupt.h>
 
 extern unative_t syscall(int n, istate_t *istate, unative_t a1, unative_t a2, unative_t a3, unative_t a4);
 

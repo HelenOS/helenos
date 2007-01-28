@@ -36,7 +36,6 @@
 #define KERN_ppc32_CUDA_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 
 extern void cuda_init(devno_t devno, uintptr_t base, size_t size);
 extern int cuda_get_scancode(void);

@@ -36,7 +36,6 @@
 #define KERN_CONFIG_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
 #include <arch/mm/page.h>
 
 #define STACK_SIZE		PAGE_SIZE

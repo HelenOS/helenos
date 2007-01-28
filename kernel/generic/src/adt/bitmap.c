@@ -38,7 +38,6 @@
  */
 
 #include <adt/bitmap.h>
-#include <typedefs.h>
 #include <arch/types.h>
 #include <align.h>
 #include <debug.h>

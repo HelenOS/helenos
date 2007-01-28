@@ -1,4 +1,4 @@
-/*
+/*3D
  * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
@@ -35,18 +35,65 @@
 #ifndef KERN_TASK_H_
 #define KERN_TASK_H_
 
-#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
+#include <synch/rwlock.h>
 #include <synch/futex.h>
 #include <adt/btree.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
 #include <security/cap.h>
 #include <arch/proc/task.h>
+#include <arch/proc/thread.h>
+#include <arch/context.h>
+#include <arch/fpu_context.h>
+#include <arch/cpu.h>
+#include <mm/tlb.h>
+#include <proc/scheduler.h>
+
+#define IPC_MAX_PHONES  16
+#define THREAD_NAME_BUFLEN	20
+
+struct answerbox;
+struct task;
+struct thread;
+
+typedef enum {
+	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
+	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
+	IPC_PHONE_CONNECTED,    /**< Phone is connected */
+	IPC_PHONE_HUNGUP,  	/**< Phone is hung up, waiting for answers to come */
+	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
+} ipc_phone_state_t;
+
+/** Structure identifying phone (in TASK structure) */
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	link_t link;
+	struct answerbox *callee;
+	ipc_phone_state_t state;
+	atomic_t active_calls;
+} phone_t;
+
+typedef struct answerbox {
+	SPINLOCK_DECLARE(lock);
+
+	struct task *task;
+
+	waitq_t wq;
+
+	link_t connected_phones;	/**< Phones connected to this answerbox */
+	link_t calls;			/**< Received calls */
+	link_t dispatched_calls;	/* Should be hash table in the future */
+
+	link_t answers;			/**< Answered calls */
+
+	SPINLOCK_DECLARE(irq_lock);
+	link_t irq_notifs;       	/**< Notifications from IRQ handlers */
+	link_t irq_head;		/**< IRQs with notifications to this answerbox. */
+} answerbox_t;
 
 /** Task structure. */
-struct task {
+typedef struct task {
 	/** Task lock.
 	 *
 	 * Must be acquired before threads_lock and thread lock of any of its threads.
@@ -54,7 +101,7 @@ struct task {
 	SPINLOCK_DECLARE(lock);
 	
 	char *name;
-	thread_t *main_thread;	/**< Pointer to the main thread. */
+	struct thread *main_thread;	/**< Pointer to the main thread. */
 	link_t th_head;		/**< List of threads contained in this task. */
 	as_t *as;		/**< Address space. */
 	task_id_t taskid;	/**< Unique identity of task */
@@ -84,7 +131,164 @@ struct task {
 	btree_t futexes;	/**< B+tree of futexes referenced by this task. */
 	
 	uint64_t cycles;	/**< Accumulated accounting. */
-};
+} task_t;
+
+/** CPU structure.
+ *
+ * There is one structure like this for every processor.
+ */
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+
+	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
+	count_t tlb_messages_count;
+	
+	context_t saved_context;
+
+	atomic_t nrdy;
+	runq_t rq[RQ_COUNT];
+	volatile count_t needs_relink;
+
+	SPINLOCK_DECLARE(timeoutlock);
+	link_t timeout_active_head;
+
+	count_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
+					     so that clock() can react. This variable is
+					     CPU-local and can be only accessed when interrupts
+					     are disabled. */
+
+	/**
+	 * Processor ID assigned by kernel.
+	 */
+	int id;
+	
+	int active;
+	int tlb_active;
+
+	uint16_t frequency_mhz;
+	uint32_t delay_loop_const;
+
+	cpu_arch_t arch;
+
+	struct thread *fpu_owner;
+	
+	/**
+	 * Stack used by scheduler when there is no running thread.
+	 */
+	uint8_t *stack;
+} cpu_t;
+
+typedef void (* timeout_handler_t)(void *arg);
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+
+	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
+	
+	uint64_t ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
+
+	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
+	void *arg;			/**< Argument to be passed to handler() function. */
+	
+	cpu_t *cpu;			/**< On which processor is this timeout registered. */
+} timeout_t;
+
+/** Thread states. */
+typedef enum {
+	Invalid,	/**< It is an error, if thread is found in this state. */
+	Running,	/**< State of a thread that is currently executing on some CPU. */
+	Sleeping,	/**< Thread in this state is waiting for an event. */
+	Ready,		/**< State of threads in a run queue. */
+	Entering,	/**< Threads are in this state before they are first readied. */
+	Exiting,	/**< After a thread calls thread_exit(), it is put into Exiting state. */
+	Undead		/**< Threads that were not detached but exited are in the Undead state. */
+} state_t;
+
+/** Join types. */
+typedef enum {
+	None,
+	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
+	TaskGC		/**< The thread will be joined by ktaskgc thread. */
+} thread_join_type_t;
+
+/** Thread structure. There is one per thread. */
+typedef struct thread {
+	link_t rq_link;				/**< Run queue link. */
+	link_t wq_link;				/**< Wait queue link. */
+	link_t th_link;				/**< Links to threads within containing task. */
+	
+	/** Lock protecting thread structure.
+	 *
+	 * Protects the whole thread structure except list links above.
+	 */
+	SPINLOCK_DECLARE(lock);
+
+	char name[THREAD_NAME_BUFLEN];
+
+	void (* thread_code)(void *);		/**< Function implementing the thread. */
+	void *thread_arg;			/**< Argument passed to thread_code() function. */
+
+	/** From here, the stored context is restored when the thread is scheduled. */
+	context_t saved_context;
+	/** From here, the stored timeout context is restored when sleep times out. */
+	context_t sleep_timeout_context;
+	/** From here, the stored interruption context is restored when sleep is interrupted. */
+	context_t sleep_interruption_context;
+
+	bool sleep_interruptible;		/**< If true, the thread can be interrupted from sleep. */
+	waitq_t *sleep_queue;			/**< Wait queue in which this thread sleeps. */
+	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
+	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */
+
+	/** True if this thread is executing copy_from_uspace(). False otherwise. */
+	bool in_copy_from_uspace;
+	/** True if this thread is executing copy_to_uspace(). False otherwise. */
+	bool in_copy_to_uspace;
+	
+	/**
+	 * If true, the thread will not go to sleep at all and will
+	 * call thread_exit() before returning to userspace.
+	 */
+	bool interrupted;			
+	
+	thread_join_type_t	join_type;	/**< Who joinins the thread. */
+	bool detached;				/**< If true, thread_join_timeout() cannot be used on this thread. */
+	waitq_t join_wq;			/**< Waitq for thread_join_timeout(). */
+
+	fpu_context_t *saved_fpu_context;
+	int fpu_context_exists;
+
+	/*
+	 * Defined only if thread doesn't run.
+	 * It means that fpu context is in CPU that last time executes this thread.
+	 * This disables migration.
+	 */
+	int fpu_context_engaged;
+
+	rwlock_type_t rwlock_holder_type;
+
+	void (* call_me)(void *);		/**< Funtion to be called in scheduler before the thread is put asleep. */
+	void *call_me_with;			/**< Argument passed to call_me(). */
+
+	state_t state;				/**< Thread's state. */
+	int flags;				/**< Thread's flags. */
+	
+	cpu_t *cpu;				/**< Thread's CPU. */
+	task_t *task;				/**< Containing task. */
+
+	uint64_t ticks;				/**< Ticks before preemption. */
+	
+	uint64_t cycles;			/**< Thread accounting. */
+	uint64_t last_cycle;		/**< Last sampled cycle. */
+	bool uncounted;				/**< Thread doesn't affect accumulated accounting. */
+
+	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
+	uint32_t tid;				/**< Thread ID. */
+	
+	thread_arch_t arch;			/**< Architecture-specific data. */
+
+	uint8_t *kstack;			/**< Thread's kernel stack. */
+} thread_t;
 
 extern spinlock_t tasks_lock;
 extern btree_t tasks_btree;
@@ -96,6 +300,9 @@ extern task_t *task_run_program(void *program_addr, char *name);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);
 extern uint64_t task_get_accounting(task_t *t);
+
+extern void cap_set(task_t *t, cap_t caps);
+extern cap_t cap_get(task_t *t);
 
 
 #ifndef task_create_arch

@@ -33,10 +33,10 @@
  */
 
 #include <arch/interrupt.h>
+#include <arch/sparc64.h>
 #include <arch/trap/interrupt.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
-#include <typedefs.h>
 #include <arch/types.h>
 #include <debug.h>
 #include <arch/asm.h>
