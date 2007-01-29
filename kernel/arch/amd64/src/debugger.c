@@ -248,7 +248,7 @@ static void handle_exception(int slot, istate_t *istate)
 	       get_symtab_entry(getip(istate)));
 	printf("***Type 'exit' to exit kconsole.\n");
 	atomic_set(&haltstate,1);
-	kconsole("debug");
+	kconsole((void *) "debug");
 	atomic_set(&haltstate,0);
 }
 

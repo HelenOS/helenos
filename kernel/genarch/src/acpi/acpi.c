@@ -56,9 +56,9 @@ struct acpi_signature_map signature_map[] = {
 static int rsdp_check(uint8_t *rsdp) {
 	struct acpi_rsdp *r = (struct acpi_rsdp *) rsdp;
 	uint8_t sum = 0;
-	int i;
+	unsigned int i;
 	
-	for (i=0; i<20; i++)
+	for (i = 0; i < 20; i++)
 		sum += rsdp[i];
 		
 	if (sum)	
@@ -67,7 +67,7 @@ static int rsdp_check(uint8_t *rsdp) {
 	if (r->revision == 0)
 		return 1; /* ACPI 1.0 */
 		
-	for (; i<r->length; i++)
+	for (; i < r->length; i++)
 		sum += rsdp[i];
 		
 	return !sum;
@@ -78,9 +78,9 @@ int acpi_sdt_check(uint8_t *sdt)
 {
 	struct acpi_sdt_header *h = (struct acpi_sdt_header *) sdt;
 	uint8_t sum = 0;
-	int i;
+	unsigned int i;
 
-	for (i=0; i<h->length; i++)
+	for (i = 0; i < h->length; i++)
 		sum += sdt[i];
 		
 	return !sum;
@@ -94,14 +94,14 @@ static void map_sdt(struct acpi_sdt_header *sdt)
 
 static void configure_via_rsdt(void)
 {
-	int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(uint32_t);
+	unsigned int i, j, cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header)) / sizeof(uint32_t);
 	
-	for (i=0; i<cnt; i++) {
-		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
+	for (i = 0; i < cnt; i++) {
+		for (j = 0; j < sizeof(signature_map) / sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (unative_t) acpi_rsdt->entry[i];
 		
 			map_sdt(h);	
-			if (*((uint32_t *) &h->signature[0])==*((uint32_t *) &signature_map[j].signature[0])) {
+			if (*((uint32_t *) &h->signature[0]) == *((uint32_t *) &signature_map[j].signature[0])) {
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
@@ -115,14 +115,14 @@ next:
 
 static void configure_via_xsdt(void)
 {
-	int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))/sizeof(uint64_t);
+	unsigned int i, j, cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header)) / sizeof(uint64_t);
 	
-	for (i=0; i<cnt; i++) {
-		for (j=0; j<sizeof(signature_map)/sizeof(struct acpi_signature_map); j++) {
+	for (i = 0; i < cnt; i++) {
+		for (j = 0; j < sizeof(signature_map) / sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((uintptr_t) acpi_rsdt->entry[i]);
 
 			map_sdt(h);
-			if (*((uint32_t *) &h->signature[0])==*((uint32_t *) &signature_map[j].signature[0])) {
+			if (*((uint32_t *) &h->signature[0]) == *((uint32_t *) &signature_map[j].signature[0])) {
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;

@@ -61,7 +61,7 @@ void tlb_invalidate_asid(asid_t asid)
  */
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < cnt; i++)
 		invlpg(page + i * PAGE_SIZE);
