@@ -139,7 +139,7 @@ typedef struct mem_backend {
 extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
 
-extern spinlock_t inactive_as_with_asid_lock;
+SPINLOCK_EXTERN(inactive_as_with_asid_lock);
 extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);

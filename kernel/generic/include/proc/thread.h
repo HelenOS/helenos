@@ -60,7 +60,7 @@ extern char *thread_states[];
  * Must be acquired before T.lock for each T of type thread_t.
  *
  */
-extern spinlock_t threads_lock;
+SPINLOCK_EXTERN(threads_lock);
 
 extern btree_t threads_btree;			/**< B+tree containing all threads. */
 

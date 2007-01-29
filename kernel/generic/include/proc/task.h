@@ -246,7 +246,7 @@ typedef struct thread {
 	uint8_t *kstack;			/**< Thread's kernel stack. */
 } thread_t;
 
-extern spinlock_t tasks_lock;
+SPINLOCK_EXTERN(tasks_lock);
 extern btree_t tasks_btree;
 
 extern void task_init(void);

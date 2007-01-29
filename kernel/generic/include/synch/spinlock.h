@@ -53,6 +53,7 @@ typedef struct {
  * where the lock gets initialized in run time.
  */
 #define SPINLOCK_DECLARE(slname) 	spinlock_t slname
+#define SPINLOCK_EXTERN(slname)		extern spinlock_t slname
 
 /*
  * SPINLOCK_INITIALIZE is to be used for statically allocated spinlocks.
@@ -102,10 +103,9 @@ static inline void spinlock_unlock(spinlock_t *sl)
 
 #else
 
-typedef void spinlock_t;
-
 /* On UP systems, spinlocks are effectively left out. */
 #define SPINLOCK_DECLARE(name)
+#define SPINLOCK_EXTERN(name)
 #define SPINLOCK_INITIALIZE(name)
 
 #define spinlock_initialize(x, name)

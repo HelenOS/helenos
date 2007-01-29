@@ -40,7 +40,7 @@
 #include <arch/arg.h>
 
 /* We need this address in spinlock to avoid deadlock in deadlock detection */
-extern spinlock_t printflock;
+SPINLOCK_EXTERN(printflock);
 
 #define EOF (-1)
 

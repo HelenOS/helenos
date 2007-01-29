@@ -38,7 +38,7 @@
 #include <arch/types.h>
 #include <synch/spinlock.h>
 
-extern spinlock_t fb_lock;
+SPINLOCK_EXTERN(fb_lock);
 void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, unsigned int visual);
 
 #endif

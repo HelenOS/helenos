@@ -69,7 +69,7 @@ typedef struct {
 	void (* help)(void);		/**< Function for printing detailed help. */
 } cmd_info_t;
 
-extern spinlock_t cmd_lock;
+SPINLOCK_EXTERN(cmd_lock);
 extern link_t cmd_head;
 
 extern void kconsole_init(void);
