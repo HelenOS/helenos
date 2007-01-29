@@ -146,7 +146,7 @@ extern void as_init(void);
 
 extern as_t *as_create(int flags);
 extern void as_destroy(as_t *as);
-extern void as_switch(as_t *old, as_t *new);
+extern void as_switch(as_t *old, as_t *replace);
 extern int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate);
 
 extern as_area_t *as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,

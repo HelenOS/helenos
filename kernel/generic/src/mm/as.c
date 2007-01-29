@@ -863,7 +863,7 @@ page_fault:
  * @param old Old address space or NULL.
  * @param new New address space.
  */
-void as_switch(as_t *old, as_t *new)
+void as_switch(as_t *old, as_t *replace)
 {
 	ipl_t ipl;
 	bool needs_asid = false;
@@ -900,19 +900,19 @@ void as_switch(as_t *old, as_t *new)
 	/*
 	 * Second, prepare the new address space.
 	 */
-	mutex_lock_active(&new->lock);
-	if ((new->cpu_refcount++ == 0) && (new != AS_KERNEL)) {
-		if (new->asid != ASID_INVALID) {
-			list_remove(&new->inactive_as_with_asid_link);
+	mutex_lock_active(&replace->lock);
+	if ((replace->cpu_refcount++ == 0) && (replace != AS_KERNEL)) {
+		if (replace->asid != ASID_INVALID) {
+			list_remove(&replace->inactive_as_with_asid_link);
 		} else {
 			/*
-			 * Defer call to asid_get() until new->lock is released.
+			 * Defer call to asid_get() until replace->lock is released.
 			 */
 			needs_asid = true;
 		}
 	}
-	SET_PTL0_ADDRESS(new->page_table);
-	mutex_unlock(&new->lock);
+	SET_PTL0_ADDRESS(replace->page_table);
+	mutex_unlock(&replace->lock);
 
 	if (needs_asid) {
 		/*
@@ -922,9 +922,9 @@ void as_switch(as_t *old, as_t *new)
 		asid_t asid;
 		
 		asid = asid_get();
-		mutex_lock_active(&new->lock);
-		new->asid = asid;
-		mutex_unlock(&new->lock);
+		mutex_lock_active(&replace->lock);
+		replace->asid = asid;
+		mutex_unlock(&replace->lock);
 	}
 	spinlock_unlock(&inactive_as_with_asid_lock);
 	interrupts_restore(ipl);
@@ -933,9 +933,9 @@ void as_switch(as_t *old, as_t *new)
 	 * Perform architecture-specific steps.
 	 * (e.g. write ASID to hardware register etc.)
 	 */
-	as_install_arch(new);
+	as_install_arch(replace);
 	
-	AS = new;
+	AS = replace;
 }
 
 /** Convert address space area flags to page flags.
