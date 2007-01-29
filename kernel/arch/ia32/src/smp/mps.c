@@ -77,11 +77,11 @@ struct __io_apic_entry *io_apic_entries = NULL;
 struct __io_intr_entry *io_intr_entries = NULL;
 struct __l_intr_entry *l_intr_entries = NULL;
 
-int processor_entry_cnt = 0;
-int bus_entry_cnt = 0;
-int io_apic_entry_cnt = 0;
-int io_intr_entry_cnt = 0;
-int l_intr_entry_cnt = 0;
+unsigned int processor_entry_cnt = 0;
+unsigned int bus_entry_cnt = 0;
+unsigned int io_apic_entry_cnt = 0;
+unsigned int io_intr_entry_cnt = 0;
+unsigned int l_intr_entry_cnt = 0;
 
 /*
  * Implementation of IA-32 SMP configuration interface.
@@ -129,7 +129,7 @@ uint8_t get_cpu_apic_id(index_t i)
  */
 int mps_fs_check(uint8_t *base)
 {
-	int i;
+	unsigned int i;
 	uint8_t sum;
 	
 	for (i = 0, sum = 0; i < 16; i++)
@@ -165,7 +165,7 @@ int mps_ct_check(void)
 void mps_init(void)
 {
 	uint8_t *addr[2] = { NULL, (uint8_t *) PA2KA(0xf0000) };
-	int i, j, length[2] = { 1024, 64*1024 };
+	unsigned int i, j, length[2] = { 1024, 64 * 1024 };
 	
 
 	/*
@@ -208,7 +208,7 @@ fs_found:
 int configure_via_ct(void)
 {
 	uint8_t *cur;
-	int i, cnt;
+	unsigned int i, cnt;
 		
 	if (ct->signature != CT_SIGNATURE) {
 		printf("%s: bad ct->signature\n", __FUNCTION__);
@@ -320,7 +320,7 @@ void ct_bus_entry(struct __bus_entry *bus)
 
 void ct_io_apic_entry(struct __io_apic_entry *ioa)
 {
-	static int io_apic_count = 0;
+	static unsigned int io_apic_count = 0;
 
 	/* this ioapic is marked unusable */
 	if ((ioa->io_apic_flags & 1) == 0)
@@ -415,9 +415,9 @@ void ct_extended_entries(void)
 
 int mps_irq_to_pin(int irq)
 {
-	int i;
+	unsigned int i;
 	
-	for(i=0;i<io_intr_entry_cnt;i++) {
+	for(i = 0; i < io_intr_entry_cnt; i++) {
 		if (io_intr_entries[i].src_bus_irq == irq && io_intr_entries[i].intr_type == 0)
 			return io_intr_entries[i].dst_io_apic_pin;
 	}
