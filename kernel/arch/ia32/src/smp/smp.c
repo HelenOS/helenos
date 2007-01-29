@@ -170,7 +170,7 @@ void kmp(void *arg)
 	}
 }
 
-int smp_irq_to_pin(int irq)
+int smp_irq_to_pin(unsigned int irq)
 {
 	ASSERT(ops != NULL);
 	return ops->irq_to_pin(irq);

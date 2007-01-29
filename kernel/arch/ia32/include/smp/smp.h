@@ -43,10 +43,10 @@ struct smp_config_operations {
 	bool (* cpu_enabled)(index_t i);	/**< Check whether the processor of index i is enabled. */
 	bool (*cpu_bootstrap)(index_t i);	/**< Check whether the processor of index i is BSP. */
 	uint8_t (*cpu_apic_id)(index_t i);		/**< Return APIC ID of the processor of index i. */
-	int (*irq_to_pin)(int irq);		/**< Return mapping between irq and APIC pin. */
+	int (*irq_to_pin)(unsigned int irq);		/**< Return mapping between irq and APIC pin. */
 };
 
-extern int smp_irq_to_pin(int irq);
+extern int smp_irq_to_pin(unsigned int irq);
 
 #endif
 

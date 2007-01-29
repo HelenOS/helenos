@@ -146,7 +146,7 @@ static void l_apic_timer_irq_handler(irq_t *irq, void *arg, ...)
 void apic_init(void)
 {
 	io_apic_id_t idreg;
-	int i;
+	unsigned int i;
 
 	exc_register(VECTOR_APIC_SPUR, "apic_spurious", (iroutine) apic_spurious);
 
@@ -172,7 +172,7 @@ void apic_init(void)
 		int pin;
 	
 		if ((pin = smp_irq_to_pin(i)) != -1)
-			io_apic_change_ioredtbl(pin, DEST_ALL, IVT_IRQBASE+i, LOPRI);
+			io_apic_change_ioredtbl(pin, DEST_ALL, IVT_IRQBASE + i, LOPRI);
 	}
 	
 	/*
@@ -534,19 +534,20 @@ void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 void io_apic_disable_irqs(uint16_t irqmask)
 {
 	io_redirection_reg_t reg;
-	int i, pin;
+	unsigned int i;
+	int pin;
 	
-	for (i=0;i<16;i++) {
-		if (irqmask & (1<<i)) {
+	for (i = 0; i < 16; i++) {
+		if (irqmask & (1 << i)) {
 			/*
 			 * Mask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.lo = io_apic_read(IOREDTBL + pin * 2);
 				reg.masked = true;
-				io_apic_write(IOREDTBL + pin*2, reg.lo);
+				io_apic_write(IOREDTBL + pin * 2, reg.lo);
 			}
 			
 		}
@@ -559,20 +560,21 @@ void io_apic_disable_irqs(uint16_t irqmask)
  */
 void io_apic_enable_irqs(uint16_t irqmask)
 {
-	int i, pin;
+	unsigned int i;
+	int pin;
 	io_redirection_reg_t reg;	
 	
-	for (i=0;i<16;i++) {
-		if (irqmask & (1<<i)) {
+	for (i = 0;i < 16; i++) {
+		if (irqmask & (1 << i)) {
 			/*
 			 * Unmask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.lo = io_apic_read(IOREDTBL + pin * 2);
 				reg.masked = false;
-				io_apic_write(IOREDTBL + pin*2, reg.lo);
+				io_apic_write(IOREDTBL + pin * 2, reg.lo);
 			}
 			
 		}

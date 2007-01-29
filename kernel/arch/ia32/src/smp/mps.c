@@ -90,7 +90,7 @@ static count_t get_cpu_count(void);
 static bool is_cpu_enabled(index_t i);
 static bool is_bsp(index_t i);
 static uint8_t get_cpu_apic_id(index_t i);
-static int mps_irq_to_pin(int irq);
+static int mps_irq_to_pin(unsigned int irq);
 
 struct smp_config_operations mps_config_operations = {
 	.cpu_count = get_cpu_count,
@@ -413,11 +413,11 @@ void ct_extended_entries(void)
 	}
 }
 
-int mps_irq_to_pin(int irq)
+int mps_irq_to_pin(unsigned int irq)
 {
 	unsigned int i;
 	
-	for(i = 0; i < io_intr_entry_cnt; i++) {
+	for (i = 0; i < io_intr_entry_cnt; i++) {
 		if (io_intr_entries[i].src_bus_irq == irq && io_intr_entries[i].intr_type == 0)
 			return io_intr_entries[i].dst_io_apic_pin;
 	}
