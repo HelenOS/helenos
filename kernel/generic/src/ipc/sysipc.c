@@ -194,7 +194,7 @@ static int request_preprocess(call_t *call)
 		/* Set arg3 for server */
 		IPC_SET_ARG3(call->data, (unative_t)&TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
-		call->private = newphid;
+		call->priv = newphid;
 		break;
 	case IPC_M_AS_AREA_SEND:
 		size = as_get_size(IPC_GET_ARG1(call->data));
@@ -223,9 +223,9 @@ static void process_answer(call_t *call)
 
 	if (call->flags & IPC_CALL_CONN_ME_TO) {
 		if (IPC_GET_RETVAL(call->data))
-			phone_dealloc(call->private);
+			phone_dealloc(call->priv);
 		else
-			IPC_SET_ARG3(call->data, call->private);
+			IPC_SET_ARG3(call->data, call->priv);
 	}
 }
 
@@ -527,7 +527,7 @@ restart:
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
 		/* Set in_phone_hash to the interrupt counter */
-		call->data.phone = (void *)call->private;
+		call->data.phone = (void *) call->priv;
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
 

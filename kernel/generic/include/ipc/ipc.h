@@ -177,7 +177,7 @@ typedef struct {
 	 */
 	answerbox_t *callerbox;
 
-	unative_t private; /**< Private data to internal IPC */
+	unative_t priv; /**< Private data to internal IPC */
 
 	ipc_data_t data;  /**< Data passed from/to userspace */
 } call_t;

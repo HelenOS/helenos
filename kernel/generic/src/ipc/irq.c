@@ -282,7 +282,7 @@ void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
 		/* Put a counter to the message */
-		call->private = ++irq->notif_cfg.counter;
+		call->priv = ++irq->notif_cfg.counter;
 		
 		send_call(irq, call);
 	}
@@ -306,7 +306,7 @@ void ipc_irq_send_notif(irq_t *irq)
 		}
 		call->flags |= IPC_CALL_NOTIF;
 		/* Put a counter to the message */
-		call->private = ++irq->notif_cfg.counter;
+		call->priv = ++irq->notif_cfg.counter;
 		/* Set up args */
 		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
 
