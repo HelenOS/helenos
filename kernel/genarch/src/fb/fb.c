@@ -123,7 +123,7 @@ static int byte0888_bgr(void *src)
 
 static void rgb_byte888(void *dst, int rgb)
 {
-	uint8_t *scr = dst;
+	uint8_t *scr = (uint8_t *) dst;
 #if defined(FB_INVERT_ENDIAN)
 	scr[0] = RED(rgb, 8);
 	scr[1] = GREEN(rgb, 8);
@@ -137,7 +137,7 @@ static void rgb_byte888(void *dst, int rgb)
 
 static int byte888_rgb(void *src)
 {
-	uint8_t *scr = src;
+	uint8_t *scr = (uint8_t *) src;
 #if defined(FB_INVERT_ENDIAN)
 	return scr[0] << 16 | scr[1] << 8 | scr[2];
 #else
@@ -265,7 +265,7 @@ static void scroll_screen(void)
 			 * line. To avoid troubles, copy only memory as
 			 * specified by the resolution.
 			 */
-			int i;
+			unsigned int i;
 
 			for (i = 0; i < first; i++)
 				memcpy(&fbaddress[i * scanline],
@@ -290,7 +290,7 @@ static void scroll_screen(void)
 			/*
 			 * See the comment in the dbbuffer case.
 			 */
-			int i;
+			unsigned int i;
 
 			/* Move all rows one row up */
 			for (i = 0; i < yres - FONT_SCANLINES; i++)
