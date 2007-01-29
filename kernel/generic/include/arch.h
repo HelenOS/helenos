@@ -36,6 +36,7 @@
 #define KERN_ARCH_H_
 
 #include <arch/arch.h>
+#include <proc/thread.h>
 #include <proc/task.h>
 
 #define DEFAULT_CONTEXT		0

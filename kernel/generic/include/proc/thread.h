@@ -46,6 +46,7 @@
 #include <proc/uarg.h>
 
 #define THREAD_STACK_SIZE	STACK_SIZE
+#define THREAD_NAME_BUFLEN	20
 
 extern char *thread_states[];
 
@@ -53,6 +54,85 @@ extern char *thread_states[];
 #define THREAD_FLAG_WIRED	(1 << 0)	/**< Thread cannot be migrated to another CPU. */
 #define THREAD_FLAG_STOLEN	(1 << 1)	/**< Thread was migrated to another CPU and has not run yet. */
 #define THREAD_FLAG_USPACE	(1 << 2)	/**< Thread executes in userspace. */
+
+/** Thread structure. There is one per thread. */
+typedef struct thread {
+	link_t rq_link;				/**< Run queue link. */
+	link_t wq_link;				/**< Wait queue link. */
+	link_t th_link;				/**< Links to threads within containing task. */
+	
+	/** Lock protecting thread structure.
+	 *
+	 * Protects the whole thread structure except list links above.
+	 */
+	SPINLOCK_DECLARE(lock);
+
+	char name[THREAD_NAME_BUFLEN];
+
+	void (* thread_code)(void *);		/**< Function implementing the thread. */
+	void *thread_arg;			/**< Argument passed to thread_code() function. */
+
+	/** From here, the stored context is restored when the thread is scheduled. */
+	context_t saved_context;
+	/** From here, the stored timeout context is restored when sleep times out. */
+	context_t sleep_timeout_context;
+	/** From here, the stored interruption context is restored when sleep is interrupted. */
+	context_t sleep_interruption_context;
+
+	bool sleep_interruptible;		/**< If true, the thread can be interrupted from sleep. */
+	waitq_t *sleep_queue;			/**< Wait queue in which this thread sleeps. */
+	timeout_t sleep_timeout;		/**< Timeout used for timeoutable sleeping.  */
+	volatile int timeout_pending;		/**< Flag signalling sleep timeout in progress. */
+
+	/** True if this thread is executing copy_from_uspace(). False otherwise. */
+	bool in_copy_from_uspace;
+	/** True if this thread is executing copy_to_uspace(). False otherwise. */
+	bool in_copy_to_uspace;
+	
+	/**
+	 * If true, the thread will not go to sleep at all and will
+	 * call thread_exit() before returning to userspace.
+	 */
+	bool interrupted;			
+	
+	thread_join_type_t	join_type;	/**< Who joinins the thread. */
+	bool detached;				/**< If true, thread_join_timeout() cannot be used on this thread. */
+	waitq_t join_wq;			/**< Waitq for thread_join_timeout(). */
+
+	fpu_context_t *saved_fpu_context;
+	int fpu_context_exists;
+
+	/*
+	 * Defined only if thread doesn't run.
+	 * It means that fpu context is in CPU that last time executes this thread.
+	 * This disables migration.
+	 */
+	int fpu_context_engaged;
+
+	rwlock_type_t rwlock_holder_type;
+
+	void (* call_me)(void *);		/**< Funtion to be called in scheduler before the thread is put asleep. */
+	void *call_me_with;			/**< Argument passed to call_me(). */
+
+	state_t state;				/**< Thread's state. */
+	int flags;				/**< Thread's flags. */
+	
+	cpu_t *cpu;				/**< Thread's CPU. */
+	task_t *task;				/**< Containing task. */
+
+	uint64_t ticks;				/**< Ticks before preemption. */
+	
+	uint64_t cycles;			/**< Thread accounting. */
+	uint64_t last_cycle;		/**< Last sampled cycle. */
+	bool uncounted;				/**< Thread doesn't affect accumulated accounting. */
+
+	int priority;				/**< Thread's priority. Implemented as index to CPU->rq */
+	uint32_t tid;				/**< Thread ID. */
+	
+	thread_arch_t arch;			/**< Architecture-specific data. */
+
+	uint8_t *kstack;			/**< Thread's kernel stack. */
+} thread_t;
 
 /** Thread list lock.
  *
