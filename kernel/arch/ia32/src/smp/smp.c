@@ -100,7 +100,7 @@ void smp_init(void)
  */
 void kmp(void *arg)
 {
-	int i;
+	unsigned int i;
 	
 	ASSERT(ops != NULL);
 
