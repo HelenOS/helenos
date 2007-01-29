@@ -37,6 +37,7 @@
 
 #include <synch/waitq.h>
 #include <proc/task.h>
+#include <time/timeout.h>
 #include <cpu.h>
 #include <synch/rwlock.h>
 #include <adt/btree.h>
@@ -54,6 +55,24 @@ extern char *thread_states[];
 #define THREAD_FLAG_WIRED	(1 << 0)	/**< Thread cannot be migrated to another CPU. */
 #define THREAD_FLAG_STOLEN	(1 << 1)	/**< Thread was migrated to another CPU and has not run yet. */
 #define THREAD_FLAG_USPACE	(1 << 2)	/**< Thread executes in userspace. */
+
+/** Thread states. */
+typedef enum {
+	Invalid,	/**< It is an error, if thread is found in this state. */
+	Running,	/**< State of a thread that is currently executing on some CPU. */
+	Sleeping,	/**< Thread in this state is waiting for an event. */
+	Ready,		/**< State of threads in a run queue. */
+	Entering,	/**< Threads are in this state before they are first readied. */
+	Exiting,	/**< After a thread calls thread_exit(), it is put into Exiting state. */
+	Undead		/**< Threads that were not detached but exited are in the Undead state. */
+} state_t;
+
+/** Join types. */
+typedef enum {
+	None,
+	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
+	TaskGC		/**< The thread will be joined by ktaskgc thread. */
+} thread_join_type_t;
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {

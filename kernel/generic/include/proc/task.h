@@ -133,39 +133,6 @@ typedef struct task {
 	uint64_t cycles;	/**< Accumulated accounting. */
 } task_t;
 
-typedef void (* timeout_handler_t)(void *arg);
-
-typedef struct {
-	SPINLOCK_DECLARE(lock);
-
-	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
-	
-	uint64_t ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
-
-	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
-	void *arg;			/**< Argument to be passed to handler() function. */
-	
-	cpu_t *cpu;			/**< On which processor is this timeout registered. */
-} timeout_t;
-
-/** Thread states. */
-typedef enum {
-	Invalid,	/**< It is an error, if thread is found in this state. */
-	Running,	/**< State of a thread that is currently executing on some CPU. */
-	Sleeping,	/**< Thread in this state is waiting for an event. */
-	Ready,		/**< State of threads in a run queue. */
-	Entering,	/**< Threads are in this state before they are first readied. */
-	Exiting,	/**< After a thread calls thread_exit(), it is put into Exiting state. */
-	Undead		/**< Threads that were not detached but exited are in the Undead state. */
-} state_t;
-
-/** Join types. */
-typedef enum {
-	None,
-	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
-	TaskGC		/**< The thread will be joined by ktaskgc thread. */
-} thread_join_type_t;
-
 SPINLOCK_EXTERN(tasks_lock);
 extern btree_t tasks_btree;
 

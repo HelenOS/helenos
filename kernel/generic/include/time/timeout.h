@@ -36,7 +36,23 @@
 #define KERN_TIMEOUT_H_
 
 #include <arch/types.h>
-#include <proc/task.h>
+#include <adt/list.h>
+#include <cpu.h>
+
+typedef void (* timeout_handler_t)(void *arg);
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+
+	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
+	
+	uint64_t ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
+
+	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
+	void *arg;			/**< Argument to be passed to handler() function. */
+	
+	cpu_t *cpu;			/**< On which processor is this timeout registered. */
+} timeout_t;
 
 #define us2ticks(us)	((uint64_t) (((uint32_t) (us) / (1000000 / HZ))))
 
