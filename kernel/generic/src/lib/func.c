@@ -224,14 +224,20 @@ unative_t atoi(const char *text)
 void order(const uint64_t val, uint64_t *rv, char *suffix)
 {
 	if (val > 1000000000000000000LL) {
-		*rv = val / 1000000000000000000LL;
+		*rv = val / 1000000000000000LL;
 		*suffix = 'E';
-	} else if (val > 1000000000000LL) {
+	} else if (val > 1000000000000000LL) {
 		*rv = val / 1000000000000LL;
 		*suffix = 'T';
-	} else if (val > 1000000LL) {
+	} else if (val > 1000000000000LL) {
+		*rv = val / 1000000000LL;
+		*suffix = 'G';
+	} else if (val > 1000000000LL) {
 		*rv = val / 1000000LL;
 		*suffix = 'M';
+	} else if (val > 1000000LL) {
+		*rv = val / 1000LL;
+		*suffix = 'k';
 	} else {
 		*rv = val;
 		*suffix = ' ';
