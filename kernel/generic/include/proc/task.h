@@ -36,6 +36,7 @@
 #define KERN_TASK_H_
 
 #include <cpu.h>
+#include <ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/rwlock.h>
@@ -51,46 +52,7 @@
 #include <mm/tlb.h>
 #include <proc/scheduler.h>
 
-#define IPC_MAX_PHONES  16
-
-struct answerbox;
-struct task;
 struct thread;
-
-typedef enum {
-	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
-	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
-	IPC_PHONE_CONNECTED,    /**< Phone is connected */
-	IPC_PHONE_HUNGUP,  	/**< Phone is hung up, waiting for answers to come */
-	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
-} ipc_phone_state_t;
-
-/** Structure identifying phone (in TASK structure) */
-typedef struct {
-	SPINLOCK_DECLARE(lock);
-	link_t link;
-	struct answerbox *callee;
-	ipc_phone_state_t state;
-	atomic_t active_calls;
-} phone_t;
-
-typedef struct answerbox {
-	SPINLOCK_DECLARE(lock);
-
-	struct task *task;
-
-	waitq_t wq;
-
-	link_t connected_phones;	/**< Phones connected to this answerbox */
-	link_t calls;			/**< Received calls */
-	link_t dispatched_calls;	/* Should be hash table in the future */
-
-	link_t answers;			/**< Answered calls */
-
-	SPINLOCK_DECLARE(irq_lock);
-	link_t irq_notifs;       	/**< Notifications from IRQ handlers */
-	link_t irq_head;		/**< IRQs with notifications to this answerbox. */
-} answerbox_t;
 
 /** Task structure. */
 typedef struct task {

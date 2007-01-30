@@ -46,8 +46,6 @@
 
 #ifndef __ASM__
 
-//#include <arch/types.h>
-//#include <genarch/mm/page_ht.h>
 #include <arch/interrupt.h>
 
 extern uintptr_t physmem_base;
