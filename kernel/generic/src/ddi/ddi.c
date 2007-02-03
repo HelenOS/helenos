@@ -130,8 +130,8 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 	btree_node_t *nodep;
 	parea = btree_search(&parea_btree, (btree_key_t) pf, &nodep);
 	if (!parea || parea->frames < pages || ((flags & AS_AREA_CACHEABLE) &&
-		!parea->cacheable) || (!(flags & AS_AREA_CACHEABLE) &&
-		parea->cacheable)) {
+	    !parea->cacheable) || (!(flags & AS_AREA_CACHEABLE) &&
+	    parea->cacheable)) {
 		/*
 		 * This physical memory area cannot be mapped.
 		 */
@@ -234,12 +234,12 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  */ 
-unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base, unative_t
-	pages, unative_t flags)
+unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
+    unative_t pages, unative_t flags)
 {
 	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
-		FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
-		(count_t) pages, (int) flags);
+	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
+	    (count_t) pages, (int) flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
@@ -258,7 +258,7 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 		return (unative_t) rc;
 		
 	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id,
-		(uintptr_t) arg.ioaddr, (size_t) arg.size);
+	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
 /** Disable or enable preemption.
@@ -271,7 +271,7 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  */ 
 unative_t sys_preempt_control(int enable)
 {
-        if (! cap_get(TASK) & CAP_PREEMPT_CONTROL)
+        if (!cap_get(TASK) & CAP_PREEMPT_CONTROL)
                 return EPERM;
         if (enable)
                 preemption_enable();

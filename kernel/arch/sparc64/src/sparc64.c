@@ -136,7 +136,7 @@ void calibrate_delay_loop(void)
 void asm_delay_loop(const uint32_t usec)
 {
 	uint64_t stop = tick_read() + (uint64_t) usec * (uint64_t)
-		CPU->arch.clock_frequency / 1000000;
+	    CPU->arch.clock_frequency / 1000000;
 
 	while (tick_read() < stop)
 		;
@@ -146,9 +146,9 @@ void asm_delay_loop(const uint32_t usec)
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-		((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
-		- (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
-		(uintptr_t) kernel_uarg->uspace_uarg);
+	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
+	    - (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
+	    (uintptr_t) kernel_uarg->uspace_uarg);
 
 	for (;;)
 		;

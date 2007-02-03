@@ -99,8 +99,8 @@ void tick_interrupt(int n, istate_t *istate)
 		drift -= CPU->arch.clock_frequency / HZ;
 		CPU->missed_clock_ticks++;
 	}
-	CPU->arch.next_tick_cmpr = tick_read() + (CPU->arch.clock_frequency /
-		HZ) - drift;
+	CPU->arch.next_tick_cmpr = tick_read() +
+	    (CPU->arch.clock_frequency / HZ) - drift;
 	tick_compare_write(CPU->arch.next_tick_cmpr);
 	clock();
 }

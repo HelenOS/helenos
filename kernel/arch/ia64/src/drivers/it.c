@@ -113,8 +113,14 @@ void it_interrupt(irq_t *irq, void *arg, ...)
 	
 	itm_write(m);
 	srlz_d();				/* propagate changes */
-	
+
+	/*
+	 * We are holding a lock which prevents preemption.
+	 * Release the lock, call clock() and reacquire the lock again.
+	 */
+	spinlock_unlock(&irq->lock);	
 	clock();
+	spinlock_lock(&irq->lock);
 }
 
 /** @}

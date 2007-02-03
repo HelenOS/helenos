@@ -82,8 +82,6 @@ void arch_pre_mm_init(void)
 	
 }
 
-
-
 void arch_post_mm_init(void)
 {
 	irq_init(INR_COUNT, INR_COUNT);

@@ -302,10 +302,10 @@ bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 	
 	spinlock_lock(&irq->lock);
 	if (devno == -1) {
-		/* Invoked by irq_dispatch(). */
+		/* Invoked by irq_dispatch_and_lock(). */
 		rv = ((irq->inr == inr) && (irq->claim() == IRQ_ACCEPT));
 	} else {
-		/* Invoked by irq_find(). */
+		/* Invoked by irq_find_and_lock(). */
 		rv = ((irq->inr == inr) && (irq->devno == devno));
 	}
 	
@@ -361,10 +361,10 @@ bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
 	
 	spinlock_lock(&irq->lock);
 	if (devno == -1) {
-		/* Invoked by irq_dispatch() */
+		/* Invoked by irq_dispatch_and_lock() */
 		rv = (irq->claim() == IRQ_ACCEPT);
 	} else {
-		/* Invoked by irq_find() */
+		/* Invoked by irq_find_and_lock() */
 		rv = (irq->devno == devno);
 	}
 	

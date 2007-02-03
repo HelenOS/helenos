@@ -151,7 +151,7 @@ void apic_init(void)
 	 * Ensure that io_apic has unique ID.
 	 */
 	idreg.value = io_apic_read(IOAPICID);
-	if ((1<<idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
+	if ((1 << idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
 		for (i = 0; i < APIC_ID_COUNT; i++) {
 			if (!((1<<i) & apic_id_mask)) {
 				idreg.apic_id = i;
@@ -302,7 +302,7 @@ int l_apic_send_init_ipi(uint8_t apicid)
 		/*
 		 * If this is not 82489DX-based l_apic we must send two STARTUP IPI's.
 		 */
-		for (i = 0; i<2; i++) {
+		for (i = 0; i < 2; i++) {
 			icr.lo = l_apic[ICRlo];
 			icr.delmod = DELMOD_STARTUP;
 			icr.destmod = DESTMOD_PHYS;
@@ -401,8 +401,8 @@ void l_apic_init(void)
 	
 	/* Program Logical Destination Register. */
 	ldr.value = l_apic[LDR];
-	if (CPU->id < sizeof(CPU->id)*8)	/* size in bits */
-		ldr.id = (1<<CPU->id);
+	if (CPU->id < sizeof(CPU->id) * 8)	/* size in bits */
+		ldr.id = (1 << CPU->id);
 	l_apic[LDR] = ldr.value;
 	
 	/* Program Destination Format Register for Flat mode. */
@@ -507,8 +507,8 @@ void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 	if (flags & LOPRI)
 		dlvr = DELMOD_LOWPRI;
 
-	reg.lo = io_apic_read(IOREDTBL + pin*2);
-	reg.hi = io_apic_read(IOREDTBL + pin*2 + 1);
+	reg.lo = io_apic_read(IOREDTBL + pin * 2);
+	reg.hi = io_apic_read(IOREDTBL + pin * 2 + 1);
 	
 	reg.dest = dest;
 	reg.destmod = DESTMOD_LOGIC;
@@ -517,8 +517,8 @@ void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 	reg.delmod = dlvr;
 	reg.intvec = v;
 
-	io_apic_write(IOREDTBL + pin*2, reg.lo);
-	io_apic_write(IOREDTBL + pin*2 + 1, reg.hi);
+	io_apic_write(IOREDTBL + pin * 2, reg.lo);
+	io_apic_write(IOREDTBL + pin * 2 + 1, reg.hi);
 }
 
 /** Mask IRQs in IO APIC.
@@ -539,7 +539,7 @@ void io_apic_disable_irqs(uint16_t irqmask)
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.lo = io_apic_read(IOREDTBL + pin * 2);
 				reg.masked = true;
 				io_apic_write(IOREDTBL + pin*2, reg.lo);
 			}
@@ -566,7 +566,7 @@ void io_apic_enable_irqs(uint16_t irqmask)
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin*2);
+				reg.lo = io_apic_read(IOREDTBL + pin * 2);
 				reg.masked = false;
 				io_apic_write(IOREDTBL + pin*2, reg.lo);
 			}

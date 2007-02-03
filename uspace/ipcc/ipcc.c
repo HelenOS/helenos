@@ -75,7 +75,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		default:
 			printf("Received message from %P: %X\n", phonehash,callid);
-			for (i=0; i < 1024; i++)
+			for (i = 0; i < 1024; i++)
 				if (!callids[i]) {
 					callids[i] = callid;
 					break;
@@ -111,7 +111,7 @@ static void do_answer_msg(void)
 	char c;
 
 	cnt = 0;
-	for (i=0;i < 50;i++) {
+	for (i = 0;i < 50; i++) {
 		if (callids[i]) {
 			printf("%d: %P\n", cnt, callids[i]);
 			cnt++;
@@ -127,7 +127,7 @@ static void do_answer_msg(void)
 	} while (c < '0' || (c-'0') >= cnt);
 	cnt = c - '0' + 1;
 	
-	for (i=0;cnt;i++)
+	for (i = 0; cnt; i++)
 		if (callids[i])
 			cnt--;
 	i -= 1;
@@ -212,8 +212,6 @@ static void do_connect(void)
 		printf("error: %d\n", phid);
 }
 
-
-
 int main(void)
 {
 	ipcarg_t phonead;
@@ -226,11 +224,10 @@ int main(void)
 	printf("********************************\n");
 	printf("***********IPC Tester***********\n");
 	printf("********************************\n");
-
 	
 	async_set_client_connection(client_connection);
 
-	for (i=TEST_START;i < TEST_START+10;i++) {
+	for (i = TEST_START; i < TEST_START + 10; i++) {
 		res = ipc_connect_to_me(PHONE_NS, i, 0, &phonead);
 		if (!res)
 			break;
@@ -262,12 +259,15 @@ int main(void)
 			do_answer_msg();
 			break;
 		case 'j':
+			printf("Entering infinite loop\n");
 			while (1)
 				;
+			break;
 		case 'p':
 			printf("Doing page fault\n");
 			*((char *)0) = 1;
 			printf("done\n");
+			break;
 		case 'u':
 			var1=*( (int *) ( ( (char *)(&var) ) + 1 ) );
 			break;

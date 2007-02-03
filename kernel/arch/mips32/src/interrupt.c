@@ -113,7 +113,14 @@ static void timer_irq_handler(irq_t *irq, void *arg, ...)
 	}
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
+
+	/*
+	 * We are holding a lock which prevents preemption.
+	 * Release the lock, call clock() and reacquire the lock again.
+	 */
+	spinlock_unlock(&irq->lock);
 	clock();
+	spinlock_lock(&irq->lock);
 	
 	if (virtual_timer_fnc != NULL)
 		virtual_timer_fnc();

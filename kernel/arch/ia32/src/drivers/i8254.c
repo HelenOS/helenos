@@ -68,7 +68,15 @@ static irq_ownership_t i8254_claim(void)
 
 static void i8254_irq_handler(irq_t *irq, void *arg, ...)
 {
+	/*
+	 * This IRQ is responsible for kernel preemption.
+	 * Nevertheless, we are now holding a spinlock which prevents
+	 * preemption. For this particular IRQ, we don't need the
+	 * lock. We just release it, call clock() and then reacquire it again.
+	 */
+	spinlock_unlock(&irq->lock);
 	clock();
+	spinlock_lock(&irq->lock);
 }
 
 void i8254_init(void)
@@ -136,7 +144,9 @@ void i8254_calibrate_delay_loop(void)
 	o2 = inb(CLK_PORT1);
 	o2 |= inb(CLK_PORT1) << 8;
 
-	CPU->delay_loop_const = ((MAGIC_NUMBER*LOOPS)/1000) / ((t1-t2)-(o1-o2)) + (((MAGIC_NUMBER*LOOPS)/1000) % ((t1-t2)-(o1-o2)) ? 1 : 0);
+	CPU->delay_loop_const =
+	    ((MAGIC_NUMBER * LOOPS) / 1000) / ((t1 - t2) - (o1 - o2)) +
+	    (((MAGIC_NUMBER * LOOPS) / 1000) % ((t1 - t2) - (o1 - o2)) ? 1 : 0);
 
 	clk1 = get_cycle();
 	delay(1 << SHIFT);

@@ -86,7 +86,7 @@ void i8259_init(void)
 	eoi_function = pic_eoi;
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
-	pic_enable_irqs(1<<IRQ_PIC1);		/* but enable pic1 */
+	pic_enable_irqs(1 << IRQ_PIC1);		/* but enable pic1 */
 }
 
 void pic_enable_irqs(uint16_t irqmask)
@@ -119,8 +119,8 @@ void pic_disable_irqs(uint16_t irqmask)
 
 void pic_eoi(void)
 {
-	outb(0x20,0x20);
-	outb(0xa0,0x20);
+	outb(0x20, 0x20);
+	outb(0xa0, 0x20);
 }
 
 void pic_spurious(int n, istate_t *istate)

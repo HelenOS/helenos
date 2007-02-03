@@ -167,7 +167,9 @@ typedef struct {
 	mutex_t lock;
 	/** Containing address space. */
 	as_t *as;		
-	/** Flags related to the memory represented by the address space area. */
+	/**
+	 * Flags related to the memory represented by the address space area.
+	 */
 	int flags;
 	/** Attributes related to the address space area itself. */
 	int attributes;
@@ -179,8 +181,8 @@ typedef struct {
 	btree_t used_space;
 
 	/**
-	 * If the address space area has been shared, this pointer will reference
-	 * the share info structure.
+	 * If the address space area has been shared, this pointer will
+	 * reference the share info structure.
 	 */
 	share_info_t *sh_info;
 

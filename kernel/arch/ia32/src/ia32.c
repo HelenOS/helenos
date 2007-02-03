@@ -118,9 +118,9 @@ void arch_pre_smp_init(void)
 	if (config.cpu_active == 1) {
 		memory_print_map();
 		
-		#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
 		acpi_init();
-		#endif /* CONFIG_SMP */
+#endif /* CONFIG_SMP */
 	}
 }
 
