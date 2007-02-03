@@ -39,17 +39,21 @@
 #include <arch/types.h>
 
 /**
- * Number of TLB shootdown messages that can be queued in processor
- * tlb_messages queue.
+ * Number of TLB shootdown messages that can be queued in processor tlb_messages
+ * queue.
  */
 #define TLB_MESSAGE_QUEUE_LEN	10
 
 /** Type of TLB shootdown message. */
 typedef enum {
-	TLB_INVL_INVALID = 0,		/**< Invalid type. */
-	TLB_INVL_ALL,			/**< Invalidate all entries in TLB. */
-	TLB_INVL_ASID,			/**< Invalidate all entries belonging to one address space. */
-	TLB_INVL_PAGES			/**< Invalidate specified page range belonging to one address space. */
+	/** Invalid type. */
+	TLB_INVL_INVALID = 0,
+	/** Invalidate all entries in TLB. */
+	TLB_INVL_ALL,
+	/** Invalidate all entries belonging to one address space. */
+	TLB_INVL_ASID,
+	/** Invalidate specified page range belonging to one address space. */
+	TLB_INVL_PAGES
 } tlb_invalidate_type_t;
 
 /** TLB shootdown message. */
@@ -63,13 +67,14 @@ typedef struct {
 extern void tlb_init(void);
 
 #ifdef CONFIG_SMP
-extern void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, uintptr_t page, count_t count);
+extern void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
+    uintptr_t page, count_t count);
 extern void tlb_shootdown_finalize(void);
 extern void tlb_shootdown_ipi_recv(void);
 #else
-#  define tlb_shootdown_start(w, x, y, z)
-#  define tlb_shootdown_finalize()
-#  define tlb_shootdown_ipi_recv()
+#define tlb_shootdown_start(w, x, y, z)
+#define tlb_shootdown_finalize()
+#define tlb_shootdown_ipi_recv()
 #endif /* CONFIG_SMP */
 
 /* Export TLB interface that each architecture must implement. */

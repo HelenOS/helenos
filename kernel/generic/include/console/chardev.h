@@ -45,10 +45,13 @@ struct chardev;
 
 /* Character device operations interface. */
 typedef struct {
-	void (* suspend)(struct chardev *);		/**< Suspend pushing characters. */
-	void (* resume)(struct chardev *); 		/**< Resume pushing characters. */
-	void (* write)(struct chardev *, char c);	/**< Write character to stream. */
-	/** Read character directly from device, assume interrupts disabled */
+	/** Suspend pushing characters. */
+	void (* suspend)(struct chardev *);
+	/** Resume pushing characters. */
+	void (* resume)(struct chardev *);
+	/** Write character to stream. */
+	void (* write)(struct chardev *, char c);
+	/** Read character directly from device, assume interrupts disabled. */
 	char (* read)(struct chardev *); 
 } chardev_operations_t;
 
@@ -57,17 +60,18 @@ typedef struct chardev {
 	char *name;
 	
 	waitq_t wq;
-	SPINLOCK_DECLARE(lock);		/**< Protects everything below. */
+	/** Protects everything below. */
+	SPINLOCK_DECLARE(lock);	
 	uint8_t buffer[CHARDEV_BUFLEN];
 	count_t counter;
-	chardev_operations_t *op;	/**< Implementation of chardev operations. */
+	/** Implementation of chardev operations. */
+	chardev_operations_t *op;
 	index_t index;
 	void *data;
 } chardev_t;
 
-extern void chardev_initialize(char *name,
-			       chardev_t *chardev, 
-			       chardev_operations_t *op);
+extern void chardev_initialize(char *name, chardev_t *chardev,
+    chardev_operations_t *op);
 extern void chardev_push_character(chardev_t *chardev, uint8_t ch);
 
 #endif /* KERN_CHARDEV_H_ */

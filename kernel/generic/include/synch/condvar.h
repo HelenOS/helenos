@@ -44,15 +44,16 @@ typedef struct {
 	waitq_t wq;
 } condvar_t;
 
-#define condvar_wait(cv,mtx) \
-	_condvar_wait_timeout((cv),(mtx),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
-#define condvar_wait_timeout(cv,mtx,usec) \
-	_condvar_wait_timeout((cv),(mtx),(usec),SYNCH_FLAGS_NONE)
+#define condvar_wait(cv, mtx) \
+	_condvar_wait_timeout((cv), (mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
+#define condvar_wait_timeout(cv, mtx, usec) \
+	_condvar_wait_timeout((cv), (mtx), (usec), SYNCH_FLAGS_NONE)
 
 extern void condvar_initialize(condvar_t *cv);
 extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
-extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags);
+extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec,
+    int flags);
 
 #endif
 

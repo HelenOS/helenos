@@ -42,7 +42,8 @@
 typedef struct {
 	/** Hash function.
 	 *
-	 * @param key Array of keys needed to compute hash index. All keys must be passed.
+	 * @param key 	Array of keys needed to compute hash index. All keys must
+	 * 		be passed.
 	 *
 	 * @return Index into hash table.
 	 */
@@ -50,7 +51,8 @@ typedef struct {
 	
 	/** Hash table item comparison function.
 	 *
-	 * @param key Array of keys that will be compared with item. It is not necessary to pass all keys.
+	 * @param key 	Array of keys that will be compared with item. It is not
+	 *		necessary to pass all keys.
 	 *
 	 * @return true if the keys match, false otherwise.
 	 */
@@ -71,9 +73,11 @@ typedef struct {
 	hash_table_operations_t *op;
 } hash_table_t;
 
-#define hash_table_get_instance(item, type, member)	list_get_instance((item), type, member)
+#define hash_table_get_instance(item, type, member) \
+	list_get_instance((item), type, member)
 
-extern void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_operations_t *op);
+extern void hash_table_create(hash_table_t *h, count_t m, count_t max_keys,
+    hash_table_operations_t *op);
 extern void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item);
 extern link_t *hash_table_find(hash_table_t *h, unative_t key[]);
 extern void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys);

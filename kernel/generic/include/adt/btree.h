@@ -48,19 +48,25 @@ typedef struct btree_node {
 	/** Number of keys. */
 	count_t keys;
 
-	/** Keys. We currently support only single keys. Additional room for one extra key is provided. */
+	/**
+	 * Keys. We currently support only single keys. Additional room for one
+	 * extra key is provided.
+	 */
 	btree_key_t key[BTREE_MAX_KEYS + 1];
 
 	/** 
-	 * Pointers to values. Sorted according to the key array. Defined only in leaf-level.
-	 * There is room for storing value for the extra key.
+	 * Pointers to values. Sorted according to the key array. Defined only in
+	 * leaf-level. There is room for storing value for the extra key.
 	 */
 	void *value[BTREE_MAX_KEYS + 1];
 	
 	/**
-	 * Pointers to descendants of this node sorted according to the key array.
+	 * Pointers to descendants of this node sorted according to the key
+	 * array.
+	 *
 	 * subtree[0] points to subtree with keys lesser than to key[0].
-	 * subtree[1] points to subtree with keys greater than or equal to key[0] and lesser than key[1].
+	 * subtree[1] points to subtree with keys greater than or equal to
+	 *	      key[0] and lesser than key[1].
 	 * ...
 	 * There is room for storing a subtree pointer for the extra key.
 	 */
@@ -69,10 +75,12 @@ typedef struct btree_node {
 	/** Pointer to parent node. Root node has NULL parent. */
 	struct btree_node *parent;
 
-	/** Link connecting leaf-level nodes. Defined only when this node is a leaf. */
+	/**
+	 * Link connecting leaf-level nodes. Defined only when this node is a
+	 * leaf. */
 	link_t leaf_link;
 
-	/** Variables needed by btree_print(). */	
+	/* Variables needed by btree_print(). */	
 	link_t bfs_link;
 	int depth;
 } btree_node_t;
@@ -88,12 +96,15 @@ extern void btree_init(void);
 extern void btree_create(btree_t *t);
 extern void btree_destroy(btree_t *t);
 
-extern void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_node);
+extern void btree_insert(btree_t *t, btree_key_t key, void *value,
+    btree_node_t *leaf_node);
 extern void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node);
 extern void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node);
 
-extern btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node);
-extern btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node);
+extern btree_node_t *btree_leaf_node_left_neighbour(btree_t *t,
+    btree_node_t *node);
+extern btree_node_t *btree_leaf_node_right_neighbour(btree_t *t,
+    btree_node_t *node);
 
 extern void btree_print(btree_t *t);
 #endif

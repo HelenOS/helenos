@@ -47,40 +47,49 @@
 #endif
 
 /* Flags for calls */
-#define IPC_CALL_ANSWERED       (1<<0) /**< This is answer to a call */
-#define IPC_CALL_STATIC_ALLOC   (1<<1) /**< This call will not be freed on error */
-#define IPC_CALL_DISCARD_ANSWER (1<<2) /**< Answer will not be passed to userspace, will be discarded */
-#define IPC_CALL_FORWARDED      (1<<3) /**< Call was forwarded */
-#define IPC_CALL_CONN_ME_TO     (1<<4) /**< Identify connect_me_to answer */
-#define IPC_CALL_NOTIF          (1<<5) /**< Interrupt notification */
+
+/** This is answer to a call */
+#define IPC_CALL_ANSWERED	(1 << 0)
+/** This call will not be freed on error */
+#define IPC_CALL_STATIC_ALLOC	(1 << 1)
+/** Answer will not be passed to userspace, will be discarded */
+#define IPC_CALL_DISCARD_ANSWER	(1 << 2)
+/** Call was forwarded */
+#define IPC_CALL_FORWARDED	(1 << 3)
+/** Identify connect_me_to answer */
+#define IPC_CALL_CONN_ME_TO	(1 << 4)
+/** Interrupt notification */
+#define IPC_CALL_NOTIF		(1 << 5)
 
 /* Flags of callid (the addresses are aligned at least to 4, 
  * that is why we can use bottom 2 bits of the call address
  */
-#define IPC_CALLID_ANSWERED       1 /**< Type of this msg is 'answer' */
-#define IPC_CALLID_NOTIFICATION   2 /**< Type of this msg is 'notification' */
+/** Type of this msg is 'answer' */
+#define IPC_CALLID_ANSWERED	1
+/** Type of this msg is 'notification' */
+#define IPC_CALLID_NOTIFICATION	2
 
 /* Return values from IPC_ASYNC */
-#define IPC_CALLRET_FATAL         -1
-#define IPC_CALLRET_TEMPORARY     -2
+#define IPC_CALLRET_FATAL	-1
+#define IPC_CALLRET_TEMPORARY	-2
 
 
 /* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)   ((data).args[0] = (retval))
-#define IPC_SET_METHOD(data, val)   ((data).args[0] = (val))
-#define IPC_SET_ARG1(data, val)   ((data).args[1] = (val))
-#define IPC_SET_ARG2(data, val)   ((data).args[2] = (val))
-#define IPC_SET_ARG3(data, val)   ((data).args[3] = (val))
+#define IPC_SET_RETVAL(data, retval)	((data).args[0] = (retval))
+#define IPC_SET_METHOD(data, val)	((data).args[0] = (val))
+#define IPC_SET_ARG1(data, val)		((data).args[1] = (val))
+#define IPC_SET_ARG2(data, val)		((data).args[2] = (val))
+#define IPC_SET_ARG3(data, val)		((data).args[3] = (val))
 
-#define IPC_GET_METHOD(data)           ((data).args[0])
-#define IPC_GET_RETVAL(data)           ((data).args[0])
+#define IPC_GET_METHOD(data)		((data).args[0])
+#define IPC_GET_RETVAL(data)		((data).args[0])
 
-#define IPC_GET_ARG1(data)              ((data).args[1])
-#define IPC_GET_ARG2(data)              ((data).args[2])
-#define IPC_GET_ARG3(data)              ((data).args[3])
+#define IPC_GET_ARG1(data)		((data).args[1])
+#define IPC_GET_ARG2(data)		((data).args[2])
+#define IPC_GET_ARG3(data)		((data).args[3])
 
 /* Well known phone descriptors */
-#define PHONE_NS              0
+#define PHONE_NS	0
 
 /* System-specific methods - only through special syscalls
  * These methods have special behaviour
@@ -166,11 +175,16 @@ struct answerbox;
 struct task;
 
 typedef enum {
-	IPC_PHONE_FREE = 0,     /**< Phone is free and can be allocated */
-	IPC_PHONE_CONNECTING,   /**< Phone is connecting somewhere */
-	IPC_PHONE_CONNECTED,    /**< Phone is connected */
-	IPC_PHONE_HUNGUP,  	/**< Phone is hung up, waiting for answers to come */
-	IPC_PHONE_SLAMMED       /**< Phone was hungup from server */
+	/** Phone is free and can be allocated */
+	IPC_PHONE_FREE = 0,
+	/** Phone is connecting somewhere */
+	IPC_PHONE_CONNECTING,
+	/** Phone is connected */
+	IPC_PHONE_CONNECTED,
+	/** Phone is hung up, waiting for answers to come */
+	IPC_PHONE_HUNGUP,
+	/** Phone was hungup from server */
+	IPC_PHONE_SLAMMED
 } ipc_phone_state_t;
 
 /** Structure identifying phone (in TASK structure) */
@@ -189,15 +203,20 @@ typedef struct answerbox {
 
 	waitq_t wq;
 
-	link_t connected_phones;	/**< Phones connected to this answerbox */
-	link_t calls;			/**< Received calls */
+	/** Phones connected to this answerbox */
+	link_t connected_phones;
+	/** Received calls */
+	link_t calls;			
 	link_t dispatched_calls;	/* Should be hash table in the future */
 
-	link_t answers;			/**< Answered calls */
+	/** Answered calls */
+	link_t answers;
 
 	SPINLOCK_DECLARE(irq_lock);
-	link_t irq_notifs;       	/**< Notifications from IRQ handlers */
-	link_t irq_head;		/**< IRQs with notifications to this answerbox. */
+	/** Notifications from IRQ handlers */
+	link_t irq_notifs;
+	/** IRQs with notifications to this answerbox. */
+	link_t irq_head;
 } answerbox_t;
 
 typedef struct {
@@ -217,9 +236,11 @@ typedef struct {
 	 */
 	answerbox_t *callerbox;
 
-	unative_t priv; /**< Private data to internal IPC */
+	/** Private data to internal IPC */
+	unative_t priv;
 
-	ipc_data_t data;  /**< Data passed from/to userspace */
+	/** Data passed from/to userspace */
+	ipc_data_t data;
 } call_t;
 
 extern void ipc_init(void);

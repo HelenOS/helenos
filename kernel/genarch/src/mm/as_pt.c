@@ -85,7 +85,7 @@ pte_t *ptl0_create(int flags)
 		 
 		ipl = interrupts_disable();
 		mutex_lock(&AS_KERNEL->lock);		
-		src_ptl0 = (pte_t *) PA2KA((uintptr_t) AS_KERNEL->page_table);
+		src_ptl0 = (pte_t *) PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 
 		src = (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 		dst = (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];

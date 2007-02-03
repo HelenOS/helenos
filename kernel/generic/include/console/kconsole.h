@@ -45,28 +45,42 @@ typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
 	ARG_TYPE_STRING,
-	ARG_TYPE_VAR      /**< Variable type - either symbol or string */
+	/** Variable type - either symbol or string. */
+	ARG_TYPE_VAR      
 } cmd_arg_type_t;
 
 /** Structure representing one argument of kconsole command line. */
 typedef struct {
-	cmd_arg_type_t type;		/**< Type descriptor. */
-	void *buffer;			/**< Buffer where to store data. */
-	size_t len;			/**< Size of the buffer. */
-	unative_t intval;                /**< Integer value */
-	cmd_arg_type_t vartype;         /**< Resulting type of variable arg */
+	/** Type descriptor. */
+	cmd_arg_type_t type;
+	/** Buffer where to store data. */
+	void *buffer;
+	/** Size of the buffer. */
+	size_t len;
+	/** Integer value. */
+	unative_t intval;
+	/** Resulting type of variable arg */
+	cmd_arg_type_t vartype;
 } cmd_arg_t;
 
 /** Structure representing one kconsole command. */
 typedef struct {
-	link_t link;			/**< Command list link. */
-	SPINLOCK_DECLARE(lock);		/**< This lock protects everything below. */
-	const char *name;		/**< Command name. */
-	const char *description;	/**< Textual description. */
-	int (* func)(cmd_arg_t *);	/**< Function implementing the command. */
-	count_t argc;			/**< Number of arguments. */
-	cmd_arg_t *argv;		/**< Argument vector. */
-	void (* help)(void);		/**< Function for printing detailed help. */
+	/** Command list link. */
+	link_t link;
+	/** This lock protects everything below. */
+	SPINLOCK_DECLARE(lock);
+	/** Command name. */
+	const char *name;
+	/** Textual description. */
+	const char *description;
+	/** Function implementing the command. */
+	int (* func)(cmd_arg_t *);
+	/** Number of arguments. */
+	count_t argc;
+	/** Argument vector. */
+	cmd_arg_t *argv;
+	/** Function for printing detailed help. */
+	void (* help)(void);
 } cmd_info_t;
 
 SPINLOCK_EXTERN(cmd_lock);

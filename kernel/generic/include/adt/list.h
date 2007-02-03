@@ -47,7 +47,8 @@ typedef struct link {
  *
  * @param name Name of the new statically allocated list.
  */
-#define LIST_INITIALIZE(name)		link_t name = { .prev = &name, .next = &name }
+#define LIST_INITIALIZE(name) \
+	link_t name = { .prev = &name, .next = &name }
 
 /** Initialize doubly-linked circular list link
  *
@@ -107,7 +108,8 @@ static inline void list_append(link_t *link, link_t *head)
  *
  * Remove item from doubly-linked circular list.
  *
- * @param link Pointer to link_t structure to be removed from the list it is contained in.
+ * @param link 	Pointer to link_t structure to be removed from the list it is
+ * 		contained in.
  */
 static inline void list_remove(link_t *link)
 {
@@ -135,8 +137,10 @@ static inline bool list_empty(link_t *head)
  * Note that the algorithm works both directions:
  * concatenates splitted lists and splits concatenated lists.
  *
- * @param part1 Pointer to link_t structure leading the first (half of the headless) list.
- * @param part2 Pointer to link_t structure leading the second (half of the headless) list. 
+ * @param part1	Pointer to link_t structure leading the first (half of the
+ *		headless) list.
+ * @param part2	Pointer to link_t structure leading the second (half of the
+ *		headless) list. 
  */
 static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
@@ -154,8 +158,10 @@ static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
  *
  * Split headless doubly-linked circular list.
  *
- * @param part1 Pointer to link_t structure leading the first half of the headless list.
- * @param part2 Pointer to link_t structure leading the second half of the headless list. 
+ * @param part1	Pointer to link_t structure leading the first half of the
+ *		headless list.
+ * @param part2	Pointer to link_t structure leading the second half of the
+ *		headless list. 
  */
 static inline void headless_list_split(link_t *part1, link_t *part2)
 {
@@ -167,14 +173,15 @@ static inline void headless_list_split(link_t *part1, link_t *part2)
  * Concatenate two headless doubly-linked circular lists.
  *
  * @param part1 Pointer to link_t structure leading the first headless list.
- * @param part2 Pointer to link_t structure leading the second headless list. 
+ * @param part2 Pointer to link_t structure leading the second headless list.
  */
 static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
 
-#define list_get_instance(link,type,member) (type *)(((uint8_t*)(link))-((uint8_t*)&(((type *)NULL)->member)))
+#define list_get_instance(link,type,member) \
+	((type *)(((uint8_t *)(link)) - ((uint8_t *)&(((type *)NULL)->member))))
 
 extern bool list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);

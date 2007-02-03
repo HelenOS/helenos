@@ -58,7 +58,7 @@ extern void page_init(void);
 extern void page_table_lock(as_t *as, bool lock);
 extern void page_table_unlock(as_t *as, bool unlock);
 extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
-	int flags);
+    int flags);
 extern void page_mapping_remove(as_t *as, uintptr_t page);
 extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
 extern pte_t *page_table_create(int flags);

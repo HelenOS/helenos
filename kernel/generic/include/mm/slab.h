@@ -56,12 +56,18 @@
 #define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
-#define SLAB_RECLAIM_ALL  0x1 /**< Reclaim all possible memory, because we are in memory stress */
+
+/** Reclaim all possible memory, because we are in memory stress */
+#define SLAB_RECLAIM_ALL  0x1 
 
 /* cache_create flags */
-#define SLAB_CACHE_NOMAGAZINE 0x1 /**< Do not use per-cpu cache */
-#define SLAB_CACHE_SLINSIDE   0x2 /**< Have control structure inside SLAB */
-#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE) /**< We add magazine cache later, if we have this flag */
+
+/** Do not use per-cpu cache */
+#define SLAB_CACHE_NOMAGAZINE 0x1
+/** Have control structure inside SLAB */
+#define SLAB_CACHE_SLINSIDE   0x2
+/** We add magazine cache later, if we have this flag */
+#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE)
 
 typedef struct {
 	link_t link;
@@ -81,11 +87,16 @@ typedef struct {
 	char *name;
 
 	link_t link;
+
 	/* Configuration */
-	size_t size;		/**< Size of slab position - align_up(sizeof(obj)) */
+	/** Size of slab position - align_up(sizeof(obj)) */
+	size_t size;
+
 	int (*constructor)(void *obj, int kmflag);
 	int (*destructor)(void *obj);
-	int flags;		/**< Flags changing behaviour of cache */
+
+	/** Flags changing behaviour of cache */
+	int flags;
 
 	/* Computed values */
 	uint8_t order;		/**< Order of frames to be allocated */
@@ -95,7 +106,8 @@ typedef struct {
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
-	atomic_t magazine_counter; /**< How many magazines in magazines list */
+	/** How many magazines in magazines list */
+	atomic_t magazine_counter; 
 
 	/* Slabs */
 	link_t full_slabs;	/**< List of full slabs */
@@ -109,19 +121,16 @@ typedef struct {
 	slab_mag_cache_t *mag_cache;
 } slab_cache_t;
 
-extern slab_cache_t * slab_cache_create(char *name,
-					size_t size,
-					size_t align,
-					int (*constructor)(void *obj, int kmflag),
-					int (*destructor)(void *obj),
-					int flags);
+extern slab_cache_t * slab_cache_create(char *name, size_t size, size_t align,
+    int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
+    int flags);
 extern void slab_cache_destroy(slab_cache_t *cache);
 
 extern void * slab_alloc(slab_cache_t *cache, int flags);
 extern void slab_free(slab_cache_t *cache, void *obj);
 extern count_t slab_reclaim(int flags);
 
-/** Initialize slab subsytem */
+/* slab subsytem initialization */
 extern void slab_cache_init(void);
 extern void slab_enable_cpucache(void);
 

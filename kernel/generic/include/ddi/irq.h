@@ -91,21 +91,27 @@ typedef void (* irq_handler_t)(struct irq *irq, void *arg, ...);
  * It is protected by irq_t::lock.
  */
 typedef struct {
-	bool notify;			/**< When false, notifications are not sent. */
-	answerbox_t *answerbox;		/**< Answerbox for notifications. */
-	unative_t method;		/**< Method to be used for the notification. */
-	irq_code_t *code;		/**< Top-half pseudocode. */
-	count_t counter;		/**< Counter. */
-	link_t link;			/**< Link between IRQs that are notifying the
-					     same answerbox. The list is protected by
-					     the answerbox irq_lock. */
+	/** When false, notifications are not sent. */
+	bool notify;
+	/** Answerbox for notifications. */
+	answerbox_t *answerbox;
+	/** Method to be used for the notification. */
+	unative_t method;
+	/** Top-half pseudocode. */
+	irq_code_t *code;
+	/** Counter. */
+	count_t counter;
+	/**
+	 * Link between IRQs that are notifying the same answerbox. The list is
+	 * protected by the answerbox irq_lock.
+	 */
+	link_t link;
 } ipc_notif_cfg_t;
 
 /** Structure representing one device IRQ.
  *
- * If one device has multiple interrupts, there will
- * be multiple irq_t instantions with the same
- * devno.
+ * If one device has multiple interrupts, there will be multiple irq_t
+ * instantions with the same devno.
  */
 typedef struct irq {
 	/** Hash table link. */

@@ -54,7 +54,6 @@
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
 #include <arch/types.h>
-#include <mm/as.h>
 
 /** TSB Base register. */
 typedef union tsb_base_reg {
@@ -108,9 +107,13 @@ static inline void dtsb_base_write(uint64_t v)
 	asi_u64_write(ASI_DMMU, VA_DMMU_TSB_BASE, v);
 }
 
-extern void tsb_invalidate(as_t *as, uintptr_t page, count_t pages);
-extern void itsb_pte_copy(pte_t *t);
-extern void dtsb_pte_copy(pte_t *t, bool ro);
+/* Forward declarations. */
+struct as;
+struct pte;
+
+extern void tsb_invalidate(struct as *as, uintptr_t page, count_t pages);
+extern void itsb_pte_copy(struct pte *t);
+extern void dtsb_pte_copy(struct pte *t, bool ro);
 
 #endif /* !def __ASM__ */
 

@@ -106,7 +106,8 @@
  *
  */
 #define fifo_push(name, value) \
-	name.fifo[name.tail = (name.tail + 1) < name.items ? (name.tail + 1) : 0] = (value) 
+	name.fifo[name.tail = \
+	    (name.tail + 1) < name.items ? (name.tail + 1) : 0] = (value)
 
 /** Allocate memory for dynamic FIFO.
  *

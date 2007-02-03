@@ -168,7 +168,7 @@ as_t *as_create(int flags)
 	as->refcount = 0;
 	as->cpu_refcount = 0;
 #ifdef AS_PAGE_TABLE
-	as->page_table = page_table_create(flags);
+	as->genarch.page_table = page_table_create(flags);
 #else
 	page_table_create(flags);
 #endif
@@ -220,7 +220,7 @@ void as_destroy(as_t *as)
 
 	btree_destroy(&as->as_area_btree);
 #ifdef AS_PAGE_TABLE
-	page_table_destroy(as->page_table);
+	page_table_destroy(as->genarch.page_table);
 #else
 	page_table_destroy(NULL);
 #endif
@@ -863,7 +863,7 @@ page_fault:
  * @param old Old address space or NULL.
  * @param new New address space.
  */
-void as_switch(as_t *old, as_t *replace)
+void as_switch(as_t *old_as, as_t *new_as)
 {
 	ipl_t ipl;
 	bool needs_asid = false;
@@ -874,45 +874,47 @@ void as_switch(as_t *old, as_t *replace)
 	/*
 	 * First, take care of the old address space.
 	 */	
-	if (old) {
-		mutex_lock_active(&old->lock);
-		ASSERT(old->cpu_refcount);
-		if((--old->cpu_refcount == 0) && (old != AS_KERNEL)) {
+	if (old_as) {
+		mutex_lock_active(&old_as->lock);
+		ASSERT(old_as->cpu_refcount);
+		if((--old_as->cpu_refcount == 0) && (old_as != AS_KERNEL)) {
 			/*
 			 * The old address space is no longer active on
 			 * any processor. It can be appended to the
 			 * list of inactive address spaces with assigned
 			 * ASID.
 			 */
-			 ASSERT(old->asid != ASID_INVALID);
-			 list_append(&old->inactive_as_with_asid_link,
+			 ASSERT(old_as->asid != ASID_INVALID);
+			 list_append(&old_as->inactive_as_with_asid_link,
 			     &inactive_as_with_asid_head);
 		}
-		mutex_unlock(&old->lock);
+		mutex_unlock(&old_as->lock);
 
 		/*
 		 * Perform architecture-specific tasks when the address space
 		 * is being removed from the CPU.
 		 */
-		as_deinstall_arch(old);
+		as_deinstall_arch(old_as);
 	}
 
 	/*
 	 * Second, prepare the new address space.
 	 */
-	mutex_lock_active(&replace->lock);
-	if ((replace->cpu_refcount++ == 0) && (replace != AS_KERNEL)) {
-		if (replace->asid != ASID_INVALID) {
-			list_remove(&replace->inactive_as_with_asid_link);
+	mutex_lock_active(&new_as->lock);
+	if ((new_as->cpu_refcount++ == 0) && (new_as != AS_KERNEL)) {
+		if (new_as->asid != ASID_INVALID) {
+			list_remove(&new_as->inactive_as_with_asid_link);
 		} else {
 			/*
-			 * Defer call to asid_get() until replace->lock is released.
+			 * Defer call to asid_get() until new_as->lock is released.
 			 */
 			needs_asid = true;
 		}
 	}
-	SET_PTL0_ADDRESS(replace->page_table);
-	mutex_unlock(&replace->lock);
+#ifdef AS_PAGE_TABLE
+	SET_PTL0_ADDRESS(new_as->genarch.page_table);
+#endif
+	mutex_unlock(&new_as->lock);
 
 	if (needs_asid) {
 		/*
@@ -922,9 +924,9 @@ void as_switch(as_t *old, as_t *replace)
 		asid_t asid;
 		
 		asid = asid_get();
-		mutex_lock_active(&replace->lock);
-		replace->asid = asid;
-		mutex_unlock(&replace->lock);
+		mutex_lock_active(&new_as->lock);
+		new_as->asid = asid;
+		mutex_unlock(&new_as->lock);
 	}
 	spinlock_unlock(&inactive_as_with_asid_lock);
 	interrupts_restore(ipl);
@@ -933,9 +935,9 @@ void as_switch(as_t *old, as_t *replace)
 	 * Perform architecture-specific steps.
 	 * (e.g. write ASID to hardware register etc.)
 	 */
-	as_install_arch(replace);
+	as_install_arch(new_as);
 	
-	AS = replace;
+	AS = new_as;
 }
 
 /** Convert address space area flags to page flags.

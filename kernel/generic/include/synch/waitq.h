@@ -52,8 +52,12 @@ typedef struct {
 	 */
 	SPINLOCK_DECLARE(lock);
 
-	int missed_wakeups;	/**< Number of waitq_wakeup() calls that didn't find a thread to wake up. */
-	link_t head;		/**< List of sleeping threads for wich there was no missed_wakeup. */
+	/**
+	 * Number of waitq_wakeup() calls that didn't find a thread to wake up.
+	 */
+	int missed_wakeups;
+	/** List of sleeping threads for wich there was no missed_wakeup. */
+	link_t head;
 } waitq_t;
 
 #define waitq_sleep(wq) \

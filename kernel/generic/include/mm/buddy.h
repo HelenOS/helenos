@@ -44,11 +44,15 @@ struct buddy_system;
 
 /** Buddy system operations to be implemented by each implementation. */
 typedef struct {
-	/** Return pointer to left-side or right-side buddy for block passed as
-	  * argument. */
+	/**
+	 * Return pointer to left-side or right-side buddy for block passed as
+	 * argument.
+	 */
 	link_t *(* find_buddy)(struct buddy_system *, link_t *);
-	/** Bisect the block passed as argument and return pointer to the new
-	  * right-side buddy. */
+	/**
+	 * Bisect the block passed as argument and return pointer to the new
+	 * right-side buddy.
+	 */
 	link_t *(* bisect)(struct buddy_system *, link_t *);
 	/** Coalesce two buddies into a bigger block. */
 	link_t *(* coalesce)(struct buddy_system *, link_t *, link_t *);
@@ -75,7 +79,7 @@ typedef struct buddy_system {
 } buddy_system_t;
 
 extern void buddy_system_create(buddy_system_t *b, uint8_t max_order,
-	buddy_system_operations_t *op, void *data);
+    buddy_system_operations_t *op, void *data);
 extern link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i);
 extern bool buddy_system_can_alloc(buddy_system_t *b, uint8_t order);
 extern void buddy_system_free(buddy_system_t *b, link_t *block);

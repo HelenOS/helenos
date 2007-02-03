@@ -44,14 +44,16 @@ typedef void (* timeout_handler_t)(void *arg);
 typedef struct {
 	SPINLOCK_DECLARE(lock);
 
-	link_t link;			/**< Link to the list of active timeouts on THE->cpu */
-	
-	uint64_t ticks;			/**< Timeout will be activated in this amount of clock() ticks. */
-
-	timeout_handler_t handler;	/**< Function that will be called on timeout activation. */
-	void *arg;			/**< Argument to be passed to handler() function. */
-	
-	cpu_t *cpu;			/**< On which processor is this timeout registered. */
+	/** Link to the list of active timeouts on THE->cpu */
+	link_t link;
+	/** Timeout will be activated in this amount of clock() ticks. */	
+	uint64_t ticks;
+	/** Function that will be called on timeout activation. */
+	timeout_handler_t handler;
+	/** Argument to be passed to handler() function. */
+	void *arg;
+	/** On which processor is this timeout registered. */
+	cpu_t *cpu;
 } timeout_t;
 
 #define us2ticks(us)	((uint64_t) (((uint32_t) (us) / (1000000 / HZ))))
@@ -59,7 +61,8 @@ typedef struct {
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *t);
 extern void timeout_reinitialize(timeout_t *t);
-extern void timeout_register(timeout_t *t, uint64_t usec, timeout_handler_t f, void *arg);
+extern void timeout_register(timeout_t *t, uint64_t usec, timeout_handler_t f,
+    void *arg);
 extern bool timeout_unregister(timeout_t *t);
 
 #endif

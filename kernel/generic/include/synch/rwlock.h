@@ -48,22 +48,28 @@ typedef enum {
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
-	mutex_t exclusive;	/**< Mutex for writers, readers can bypass it if readers_in is positive. */
-	count_t readers_in;	/**< Number of readers in critical section. */
+	/**
+	 * Mutex for writers, readers can bypass it if readers_in is positive.
+	 */
+	mutex_t exclusive;
+	/** Number of readers in critical section. */
+	count_t readers_in;
 } rwlock_t;
 
 #define rwlock_write_lock(rwl) \
-	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
+	_rwlock_write_lock_timeout((rwl), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
 #define rwlock_read_lock(rwl) \
-	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NONE)
+	_rwlock_read_lock_timeout((rwl), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
 #define rwlock_write_trylock(rwl) \
-	_rwlock_write_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)
+	_rwlock_write_lock_timeout((rwl), SYNCH_NO_TIMEOUT, \
+	    SYNCH_FLAGS_NON_BLOCKING)
 #define rwlock_read_trylock(rwl) \
-	_rwlock_read_lock_timeout((rwl),SYNCH_NO_TIMEOUT,SYNCH_FLAGS_NON_BLOCKING)
-#define rwlock_write_lock_timeout(rwl,usec) \
-	_rwlock_write_lock_timeout((rwl),(usec),SYNCH_FLAGS_NONE)
-#define rwlock_read_lock_timeout(rwl,usec) \
-	_rwlock_read_lock_timeout((rwl),(usec),SYNCH_FLAGS_NONE)
+	_rwlock_read_lock_timeout((rwl), SYNCH_NO_TIMEOUT, \
+	    SYNCH_FLAGS_NON_BLOCKING)
+#define rwlock_write_lock_timeout(rwl, usec) \
+	_rwlock_write_lock_timeout((rwl), (usec), SYNCH_FLAGS_NONE)
+#define rwlock_read_lock_timeout(rwl, usec) \
+	_rwlock_read_lock_timeout((rwl), (usec), SYNCH_FLAGS_NONE)
 
 extern void rwlock_initialize(rwlock_t *rwl);
 extern void rwlock_read_unlock(rwlock_t *rwl);

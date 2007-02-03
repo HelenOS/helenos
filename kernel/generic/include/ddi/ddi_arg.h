@@ -37,18 +37,23 @@
 
 /** Structure encapsulating arguments for SYS_PHYSMEM_MAP syscall. */
 typedef struct {
-	unsigned long long task_id;	/** ID of the destination task. */
-	void *phys_base;		/** Physical address of starting frame. */
-	void *virt_base;		/** Virtual address of starting page. */
-	unsigned long pages;		/** Number of pages to map. */
-	int flags;			/** Address space area flags for the mapping. */
+	/** ID of the destination task. */
+	unsigned long long task_id;
+	/** Physical address of starting frame. */
+	void *phys_base;
+	/** Virtual address of starting page. */
+	void *virt_base;
+	/** Number of pages to map. */
+	unsigned long pages;
+	/** Address space area flags for the mapping. */
+	int flags;
 } ddi_memarg_t;
 
 /** Structure encapsulating arguments for SYS_ENABLE_IOSPACE syscall. */
 typedef struct {
-	unsigned long long task_id;	/** ID of the destination task. */
-	void *ioaddr;			/** Starting I/O space address. */
-	unsigned long size;		/** Number of bytes. */
+	unsigned long long task_id;	/**< ID of the destination task. */
+	void *ioaddr;			/**< Starting I/O space address. */
+	unsigned long size;		/**< Number of bytes. */
 } ddi_ioarg_t;
 
 #endif

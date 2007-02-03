@@ -53,9 +53,9 @@ void page_arch_init(void)
 {
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
-		AS_KERNEL->page_table = (pte_t *) KA2PA(start_info.ptl0);
+		AS_KERNEL->genarch.page_table = (pte_t *) KA2PA(start_info.ptl0);
 	} else
-		SET_PTL0_ADDRESS_ARCH(AS_KERNEL->page_table);
+		SET_PTL0_ADDRESS_ARCH(AS_KERNEL->genarch.page_table);
 }
 
 void page_fault(int n, istate_t *istate)

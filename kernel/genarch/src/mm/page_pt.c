@@ -72,7 +72,7 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 	pte_t *newpt;
 
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		newpt = (pte_t *)frame_alloc(ONE_FRAME, FRAME_KA);
@@ -128,7 +128,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	 * First, remove the mapping, if it exists.
 	 */
 
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return;
@@ -244,7 +244,7 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page)
 {
 	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
 
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->page_table);
+	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;

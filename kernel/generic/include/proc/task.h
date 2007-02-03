@@ -58,41 +58,53 @@ struct thread;
 typedef struct task {
 	/** Task lock.
 	 *
-	 * Must be acquired before threads_lock and thread lock of any of its threads.
+	 * Must be acquired before threads_lock and thread lock of any of its
+	 * threads.
 	 */
 	SPINLOCK_DECLARE(lock);
 	
 	char *name;
-	struct thread *main_thread;	/**< Pointer to the main thread. */
-	link_t th_head;		/**< List of threads contained in this task. */
-	as_t *as;		/**< Address space. */
-	task_id_t taskid;	/**< Unique identity of task */
-	context_id_t context;	/**< Task security context */
+	/** Pointer to the main thread. */
+	struct thread *main_thread;
+	/** List of threads contained in this task. */
+	link_t th_head;
+	/** Address space. */
+	as_t *as;
+	/** Unique identity of task. */
+	task_id_t taskid;
+	/** Task security context. */
+	context_id_t context;	
 
 	/** If this is true, new threads can become part of the task. */
 	bool accept_new_threads;
+	/** Number of references (i.e. threads). */
+	count_t refcount;	
 
-	count_t refcount;	/**< Number of references (i.e. threads). */
-
-	cap_t capabilities;	/**< Task capabilities. */
+	/** Task capabilities. */
+	cap_t capabilities;	
 
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
-	atomic_t active_calls;  /**< Active asynchronous messages.
-				 *   It is used for limiting uspace to
-				 *   certain extent. */
+	/**
+	 * Active asynchronous messages. It is used for limiting uspace to
+	 * certain extent.
+	 */
+	atomic_t active_calls;  
 	
-	task_arch_t arch;	/**< Architecture specific task data. */
+	/** Architecture specific task data. */
+	task_arch_t arch;	
 	
 	/**
 	 * Serializes access to the B+tree of task's futexes. This mutex is
 	 * independent on the task spinlock.
 	 */
 	mutex_t futexes_lock;
-	btree_t futexes;	/**< B+tree of futexes referenced by this task. */
+	/** B+tree of futexes referenced by this task. */
+	btree_t futexes;	
 	
-	uint64_t cycles;	/**< Accumulated accounting. */
+	/** Accumulated accounting. */
+	uint64_t cycles;
 } task_t;
 
 SPINLOCK_EXTERN(tasks_lock);

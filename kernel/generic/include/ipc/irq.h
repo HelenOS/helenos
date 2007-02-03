@@ -43,8 +43,8 @@
 #include <arch/types.h>
 #include <adt/list.h>
 
-extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method,
-	irq_code_t *ucode);
+extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
+    unative_t method, irq_code_t *ucode);
 extern void ipc_irq_send_notif(irq_t *irq);
 extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3);
 extern void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno);

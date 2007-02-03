@@ -42,14 +42,19 @@
 
 /** Kernel-side futex structure. */
 typedef struct {
-	uintptr_t paddr;	/**< Physical address of the status variable. */
-	waitq_t wq;		/**< Wait queue for threads waiting for futex availability. */
-	link_t ht_link;		/**< Futex hash table link. */
-	count_t refcount;	/**< Number of tasks that reference this futex. */
+	/** Physical address of the status variable. */
+	uintptr_t paddr;
+	/** Wait queue for threads waiting for futex availability. */
+	waitq_t wq;
+	/** Futex hash table link. */
+	link_t ht_link;
+	/** Number of tasks that reference this futex. */
+	count_t refcount;
 } futex_t;
 
 extern void futex_init(void);
-extern unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags);
+extern unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec,
+    int flags);
 extern unative_t sys_futex_wakeup(uintptr_t uaddr);
 
 extern void futex_cleanup(void);
