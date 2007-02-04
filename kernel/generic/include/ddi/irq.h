@@ -83,8 +83,6 @@ typedef enum {
 struct irq;
 typedef void (* irq_handler_t)(struct irq *irq, void *arg, ...);
 
-
-
 /** IPC notification config structure.
  *
  * Primarily, this structure is encapsulated in the irq_t structure.

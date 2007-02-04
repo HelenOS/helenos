@@ -42,6 +42,7 @@
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <synch/spinlock.h>
+#include <synch/waitq.h>
 #include <arch.h>
 #include <panic.h>
 #include <adt/btree.h>
@@ -363,7 +364,7 @@ int task_kill(task_id_t id)
 		spinlock_unlock(&thr->lock);
 		
 		if (sleeping)
-			thread_interrupt_sleep(thr);
+			waitq_interrupt_sleep(thr);
 	}
 	
 	spinlock_unlock(&ta->lock);

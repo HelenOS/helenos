@@ -63,6 +63,8 @@ typedef struct {
 #define waitq_sleep(wq) \
 	waitq_sleep_timeout((wq), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
 
+struct thread;
+
 extern void waitq_initialize(waitq_t *wq);
 extern int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags);
 extern ipl_t waitq_sleep_prepare(waitq_t *wq);
@@ -70,6 +72,7 @@ extern int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags);
 extern void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl);
 extern void waitq_wakeup(waitq_t *wq, bool all);
 extern void _waitq_wakeup_unsafe(waitq_t *wq, bool all);
+extern void waitq_interrupt_sleep(struct thread *t);
 
 #endif
 
