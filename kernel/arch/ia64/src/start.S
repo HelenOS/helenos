@@ -48,34 +48,34 @@ kernel_image_start:
 
 	# Fill TR.i and TR.d using Region Register #VRN_KERNEL
 
-	movl r8=(VRN_KERNEL<<VRN_SHIFT)
-	mov r9=rr[r8]
-	movl r10=(RR_MASK)
-	and r9=r10,r9
-	movl r10=((RID_KERNEL<<RID_SHIFT)|(KERNEL_PAGE_WIDTH<<PS_SHIFT))
-	or  r9=r10,r9
-	mov rr[r8]=r9
+	movl r8 = (VRN_KERNEL << VRN_SHIFT)
+	mov r9 = rr[r8]
+	movl r10 = (RR_MASK)
+	and r9 = r10, r9
+	movl r10 = ((RID_KERNEL << RID_SHIFT) | (KERNEL_PAGE_WIDTH << PS_SHIFT))
+	or  r9 = r10, r9
+	mov rr[r8] = r9
 
-	movl r8=(VRN_KERNEL<<VRN_SHIFT)
-	mov cr.ifa=r8
-	movl r10=(KERNEL_PAGE_WIDTH<<PS_SHIFT)
-	mov cr.itir=r10
-	movl r10=(KERNEL_TRANSLATION_I)
-	itr.i itr[r0]=r10
-	movl r10=(KERNEL_TRANSLATION_D)
-	itr.d dtr[r0]=r10
+	movl r8 = (VRN_KERNEL << VRN_SHIFT)
+	mov cr.ifa = r8
+	movl r10 = (KERNEL_PAGE_WIDTH << PS_SHIFT)
+	mov cr.itir = r10
+	movl r10 = (KERNEL_TRANSLATION_I)
+	itr.i itr[r0] = r10
+	movl r10 = (KERNEL_TRANSLATION_D)
+	itr.d dtr[r0] = r10
 
 	# initialize PSR
 	mov psr.l = r0
 	srlz.i
 	srlz.d
-	movl r10=(PSR_DT_MASK|PSR_RT_MASK|PSR_IT_MASK|PSR_IC_MASK)  /* Enable paging */
-	mov r9=psr
-	or r10=r10,r9
-	mov cr.ipsr=r10
-	mov cr.ifs=r0
-	movl r8=paging_start
-	mov cr.iip=r8
+	movl r10 = (PSR_DT_MASK | PSR_RT_MASK | PSR_IT_MASK | PSR_IC_MASK)  /* Enable paging */
+	mov r9 = psr
+	or r10 = r10, r9
+	mov cr.ipsr = r10
+	mov cr.ifs = r0
+	movl r8 = paging_start
+	mov cr.iip = r8
 	srlz.d
 	srlz.i
 
@@ -97,14 +97,14 @@ paging_start:
 	
 	# initialize register stack
 	mov ar.rsc = r0
-	movl r8=(VRN_KERNEL<<VRN_SHIFT) ;;
+	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
 	mov ar.bspstore = r8
 	loadrs
 
 	# initialize memory stack to some sane value
-	movl r12 = stack0;;
+	movl r12 = stack0 ;;
 	
-	add r12 = - 16, r12	/* allocate a scratch area on the stack */
+	add r12 = -16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
 	movl r1 = _hardcoded_load_address
@@ -123,15 +123,15 @@ paging_start:
 	st8 [r18] = r15
 	st8 [r19] = r16
 
-	ssm (1<<19);; /* Disable f32 - f127 */
-	srlz.i;
-	srlz.d;;
+	ssm (1 << 19) ;; /* Disable f32 - f127 */
+	srlz.i
+	srlz.d ;;
 
 	br.call.sptk.many b0 = arch_pre_main
 
-	movl r18=main_bsp ;;
-	mov b1=r18 ;;
-	br.call.sptk.many b0=b1
+	movl r18 = main_bsp ;;
+	mov b1 = r18 ;;
+	br.call.sptk.many b0 = b1
 
 
 0:

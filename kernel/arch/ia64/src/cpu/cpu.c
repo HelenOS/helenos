@@ -51,25 +51,27 @@ void cpu_identify(void)
 void cpu_print_report(cpu_t *m)
 {
 	char *family_str;
-	char vendor[2*sizeof(uint64_t)+1];
+	char vendor[2 * sizeof(uint64_t) + 1];
 	
-	*((uint64_t *) &vendor[0*sizeof(uint64_t)]) = CPU->arch.cpuid0;
-	*((uint64_t *) &vendor[1*sizeof(uint64_t)]) = CPU->arch.cpuid1;
-	vendor[sizeof(vendor)-1] = '\0';
+	*((uint64_t *) &vendor[0 * sizeof(uint64_t)]) = CPU->arch.cpuid0;
+	*((uint64_t *) &vendor[1 * sizeof(uint64_t)]) = CPU->arch.cpuid1;
+	vendor[sizeof(vendor) - 1] = '\0';
 	
 	switch(m->arch.cpuid3.family) {
-	    case FAMILY_ITANIUM:
-	    	family_str = "Itanium";
+	case FAMILY_ITANIUM:
+		family_str = "Itanium";
 		break;
-	    case FAMILY_ITANIUM2:
-	    	family_str = "Itanium 2";
+	case FAMILY_ITANIUM2:
+		family_str = "Itanium 2";
 		break;
-	    default:
-	    	family_str = "Unknown";
+	default:
+		family_str = "Unknown";
 		break;
 	}
 	
-	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id, family_str, vendor, CPU->arch.cpuid3.archrev, CPU->arch.cpuid3.model, CPU->arch.cpuid3.revision);
+	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id,
+	    family_str, vendor, CPU->arch.cpuid3.archrev, CPU->arch.cpuid3.model,
+	    CPU->arch.cpuid3.revision);
 }
 
 /** @}

@@ -45,7 +45,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/simics/ega.h>
+#include <arch/drivers/ega.h>
 
 /*
  * The EGA driver.
@@ -66,8 +66,12 @@ static chardev_operations_t ega_ops = {
 
 void ega_init(void)
 {
-	
 	videoram = (uint8_t *) (VIDEORAM);
+
+	/*
+	 * Clear the screen.
+	 */
+	_memsetw((uintptr_t) videoram, SCREEN, 0x0720);	
 
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
@@ -86,7 +90,7 @@ void ega_init(void)
 static void ega_display_char(char ch)
 {
 	videoram[ega_cursor * 2] = ch;
-	videoram[ega_cursor * 2+1] = 7;
+	videoram[ega_cursor * 2 + 1] = 7;
 }
 
 /*
@@ -94,16 +98,11 @@ static void ega_display_char(char ch)
  */
 static void ega_check_cursor(void)
 {
-	int i;
 	if (ega_cursor < SCREEN)
 		return;
 
 	memcpy((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
-	for(i=0;i<ROW*2;i+=2)
-	{
-		videoram[(SCREEN-ROW)*2+i+0]=0x20;
-		videoram[(SCREEN-ROW)*2+i+1]=0x07;
-	}
+	_memsetw((uintptr_t) (videoram + (SCREEN - ROW) * 2), ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 
@@ -135,7 +134,6 @@ void ega_putchar(chardev_t *d, const char ch)
 	spinlock_unlock(&egalock);
 	interrupts_restore(ipl);
 }
-
 
 /** @}
  */

@@ -50,7 +50,7 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
-#include <arch/simics/ega.h>
+#include <arch/drivers/ega.h>
 
 void arch_pre_main(void)
 {

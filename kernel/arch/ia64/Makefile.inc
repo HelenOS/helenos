@@ -89,7 +89,7 @@ ifeq ($(MACHINE),ski)
 endif
 
 ifeq ($(MACHINE),i460GX)
-	ARCH_SOURCES += arch/$(ARCH)/src/simics/ega.c
+	ARCH_SOURCES += arch/$(ARCH)/src/drivers/ega.c
 	DEFS += -DI460GX
 endif
 

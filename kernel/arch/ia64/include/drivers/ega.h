@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef simics_ega_h
-#define simics_ega_h
+#ifndef KERN_ia64_EGA_H
+#define KERN_ia64_EGA_H
 
 #define VIDEORAM (0xE0000000000B8000LL)
 
@@ -48,4 +48,3 @@ extern void ega_init(void);
 
 /** @}
  */
-
