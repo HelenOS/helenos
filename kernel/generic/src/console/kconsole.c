@@ -79,7 +79,8 @@ SPINLOCK_INITIALIZE(cmd_lock);	/**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_head);	/**< Command list. */
 
 static cmd_info_t *parse_cmdline(char *cmdline, size_t len);
-static bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end);
+static bool parse_argument(char *cmdline, size_t len, index_t *start,
+    index_t *end);
 static char history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
 
 /** Initialize kconsole data structures. */
@@ -88,7 +89,7 @@ void kconsole_init(void)
 	int i;
 
 	cmd_init();
-	for (i=0; i<KCONSOLE_HISTORY; i++)
+	for (i = 0; i < KCONSOLE_HISTORY; i++)
 		history[i][0] = '\0';
 }
 
@@ -127,9 +128,8 @@ int cmd_register(cmd_info_t *cmd)
 			spinlock_lock(&cmd->lock);
 			spinlock_lock(&hlp->lock);
 		}
-		if ((strncmp(hlp->name, 
-			     cmd->name, max(strlen(cmd->name),
-					    strlen(hlp->name))) == 0)) {
+		if ((strncmp(hlp->name, cmd->name, max(strlen(cmd->name),
+		    strlen(hlp->name))) == 0)) {
 			/* The command is already there. */
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd->lock);
@@ -154,7 +154,7 @@ int cmd_register(cmd_info_t *cmd)
 static void rdln_print_c(char ch, int count)
 {
 	int i;
-	for (i=0;i<count;i++)
+	for (i = 0; i < count; i++)
 		putchar(ch);
 }
 
@@ -163,8 +163,8 @@ static void insert_char(char *str, char ch, int pos)
 {
 	int i;
 	
-	for (i=strlen(str);i > pos; i--)
-		str[i] = str[i-1];
+	for (i = strlen(str); i > pos; i--)
+		str[i] = str[i - 1];
 	str[pos] = ch;
 }
 
@@ -179,7 +179,7 @@ static const char * cmdtab_search_one(const char *name,link_t **startpos)
 	if (!*startpos)
 		*startpos = cmd_head.next;
 
-	for (;*startpos != &cmd_head;*startpos = (*startpos)->next) {
+	for (; *startpos != &cmd_head; *startpos = (*startpos)->next) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(*startpos, cmd_info_t, link);
 
@@ -215,7 +215,8 @@ static int cmdtab_compl(char *name)
 		if (!found)
 			strncpy(output, foundtxt, strlen(foundtxt)+1);
 		else {
-			for (i=0; output[i] && foundtxt[i] && output[i]==foundtxt[i]; i++)
+			for (i = 0; output[i] && foundtxt[i] &&
+			    output[i] == foundtxt[i]; i++)
 				;
 			output[i] = '\0';
 		}
@@ -259,34 +260,35 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 		} if (c == '\b') { /* Backspace */
 			if (position == 0)
 				continue;
-			for (i=position; i<curlen;i++)
-				current[i-1] = current[i];
+			for (i = position; i < curlen; i++)
+				current[i - 1] = current[i];
 			curlen--;
 			position--;
 			putchar('\b');
-			for (i=position;i<curlen;i++)
+			for (i = position; i < curlen; i++)
 				putchar(current[i]);
 			putchar(' ');
-			rdln_print_c('\b',curlen-position+1);
+			rdln_print_c('\b', curlen - position + 1);
 			continue;
 		}
 		if (c == '\t') { /* Tabulator */
 			int found;
 
 			/* Move to the end of the word */
-			for (;position<curlen && current[position]!=' ';position++)
+			for (; position < curlen && current[position] != ' ';
+			    position++)
 				putchar(current[position]);
 			/* Copy to tmp last word */
-			for (i=position-1;i >= 0 && current[i]!=' ' ;i--)
+			for (i = position - 1; i >= 0 && current[i] != ' '; i--)
 				;
 			/* If word begins with * or &, skip it */
 			if (tmp[0] == '*' || tmp[0] == '&')
-				for (i=1;tmp[i];i++)
-					tmp[i-1] = tmp[i];
+				for (i = 1; tmp[i]; i++)
+					tmp[i - 1] = tmp[i];
 			i++; /* I is at the start of the word */
-			strncpy(tmp, current+i, position-i+1);
+			strncpy(tmp, current + i, position - i + 1);
 
-			if (i==0) { /* Command completion */
+			if (i == 0) { /* Command completion */
 				found = cmdtab_compl(tmp);
 			} else { /* Symtab completion */
 				found = symtab_compl(tmp);
@@ -294,15 +296,16 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 
 			if (found == 0) 
 				continue;
-			for (i=0;tmp[i] && curlen < MAX_CMDLINE;i++,curlen++)
-				insert_char(current, tmp[i], i+position);
+			for (i = 0; tmp[i] && curlen < MAX_CMDLINE;
+			    i++, curlen++)
+				insert_char(current, tmp[i], i + position);
 
-			if (strlen(tmp) || found==1) { /* If we have a hint */
-				for (i=position;i<curlen;i++) 
+			if (strlen(tmp) || found == 1) { /* If we have a hint */
+				for (i = position; i < curlen; i++) 
 					putchar(current[i]);
 				position += strlen(tmp);
 				/* Add space to end */
-				if (found == 1 && position == curlen && \
+				if (found == 1 && position == curlen &&
 				    curlen < MAX_CMDLINE) {
 					current[position] = ' ';
 					curlen++;
@@ -311,11 +314,11 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				}
 			} else { /* No hint, table was printed */
 				printf("%s> ", prompt);
-				for (i=0; i<curlen;i++)
+				for (i = 0; i < curlen; i++)
 					putchar(current[i]);
 				position += strlen(tmp);
 			}
-			rdln_print_c('\b', curlen-position);
+			rdln_print_c('\b', curlen - position);
 			continue;
 		}
 		if (c == 0x1b) { /* Special command */
@@ -329,50 +332,47 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 				/* Delete */
 				if (position == curlen)
 					continue;
-				for (i=position+1; i<curlen;i++) {
+				for (i = position + 1; i < curlen; i++) {
 					putchar(current[i]);
-					current[i-1] = current[i];
+					current[i - 1] = current[i];
 				}
 				putchar(' ');
-				rdln_print_c('\b',curlen-position);
+				rdln_print_c('\b', curlen - position);
 				curlen--;
-			}
-			else if (c == 0x48) { /* Home */
-				rdln_print_c('\b',position);
+			} else if (c == 0x48) { /* Home */
+				rdln_print_c('\b', position);
 				position = 0;
-			} 
-			else if (c == 0x46) {  /* End */
-				for (i=position;i<curlen;i++)
+			} else if (c == 0x46) {  /* End */
+				for (i = position; i < curlen; i++)
 					putchar(current[i]);
 				position = curlen;
-			}
-			else if (c == 0x44) { /* Left */
+			} else if (c == 0x44) { /* Left */
 				if (position > 0) {
 					putchar('\b');
 					position--;
 				}
 				continue;
-			}
-			else if (c == 0x43) { /* Right */
+			} else if (c == 0x43) { /* Right */
 				if (position < curlen) {
 					putchar(current[position]);
 					position++;
 				}
 				continue;
-			}
-			else if (c == 0x41 || c == 0x42) { 
-                                /* Up,down */
-				rdln_print_c('\b',position);
-				rdln_print_c(' ',curlen);
-				rdln_print_c('\b',curlen);
+			} else if (c == 0x41 || c == 0x42) { 
+                                /* Up, down */
+				rdln_print_c('\b', position);
+				rdln_print_c(' ', curlen);
+				rdln_print_c('\b', curlen);
 				if (c == 0x41) /* Up */
 					histposition--;
 				else
 					histposition++;
-				if (histposition < 0)
-					histposition = KCONSOLE_HISTORY -1 ;
-				else
-					histposition =  histposition % KCONSOLE_HISTORY;
+				if (histposition < 0) {
+					histposition = KCONSOLE_HISTORY - 1;
+				} else {
+					histposition =
+					    histposition % KCONSOLE_HISTORY;
+				}
 				current = history[histposition];
 				printf("%s", current);
 				curlen = strlen(current);
@@ -387,10 +387,10 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 		insert_char(current, c, position);
 
 		curlen++;
-		for (i=position;i<curlen;i++)
+		for (i = position; i < curlen; i++)
 			putchar(current[i]);
 		position++;
-		rdln_print_c('\b',curlen-position);
+		rdln_print_c('\b',curlen - position);
 	} 
 	if (curlen) {
 		histposition++;
@@ -423,8 +423,8 @@ void kconsole(void *prompt)
 		cmd_info = parse_cmdline(cmdline, len);
 		if (!cmd_info)
 			continue;
-		if (strncmp(cmd_info->name,"exit", \
-			    min(strlen(cmd_info->name),5)) == 0)
+		if (strncmp(cmd_info->name, "exit",
+		    min(strlen(cmd_info->name), 5)) == 0)
 			break;
 		(void) cmd_info->func(cmd_info->argv);
 	}
@@ -440,20 +440,22 @@ static int parse_int_arg(char *text, size_t len, unative_t *result)
 	/* If we get a name, try to find it in symbol table */
 	if (text[0] == '&') {
 		isaddr = true;
-		text++;len--;
+		text++;
+		len--;
 	} else if (text[0] == '*') {
 		isptr = true;
-		text++;len--;
+		text++;
+		len--;
 	}
 	if (text[0] < '0' || text[0] > '9') {
-		strncpy(symname, text, min(len+1, MAX_SYMBOL_NAME));
+		strncpy(symname, text, min(len + 1, MAX_SYMBOL_NAME));
 		symaddr = get_symbol_addr(symname);
 		if (!symaddr) {
-			printf("Symbol %s not found.\n",symname);
+			printf("Symbol %s not found.\n", symname);
 			return -1;
 		}
 		if (symaddr == (uintptr_t) -1) {
-			printf("Duplicate symbol %s.\n",symname);
+			printf("Duplicate symbol %s.\n", symname);
 			symtab_print_search(symname);
 			return -1;
 		}
@@ -501,7 +503,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		spinlock_lock(&hlp->lock);
 		
 		if (strncmp(hlp->name, &cmdline[start], max(strlen(hlp->name),
-							    end-start+1)) == 0) {
+		    end - start + 1)) == 0) {
 			cmd = hlp;
 			break;
 		}
@@ -539,26 +541,29 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
 		    	buf = cmd->argv[i].buffer;
-		    	strncpy(buf, (const char *) &cmdline[start], min((end - start) + 2, cmd->argv[i].len));
+		    	strncpy(buf, (const char *) &cmdline[start],
+			    min((end - start) + 2, cmd->argv[i].len));
 			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
 			break;
 		case ARG_TYPE_INT: 
-			if (parse_int_arg(cmdline+start, end-start+1, 
-					  &cmd->argv[i].intval))
+			if (parse_int_arg(cmdline + start, end - start + 1, 
+			    &cmd->argv[i].intval))
 				error = 1;
 			break;
 		case ARG_TYPE_VAR:
-			if (start != end && cmdline[start] == '"' && cmdline[end] == '"') {
+			if (start != end && cmdline[start] == '"' &&
+			    cmdline[end] == '"') {
 				buf = cmd->argv[i].buffer;
-				strncpy(buf, (const char *) &cmdline[start+1], 
-					min((end-start), cmd->argv[i].len));
-				buf[min((end - start), cmd->argv[i].len - 1)] = '\0';
+				strncpy(buf, (const char *) &cmdline[start + 1],
+				    min((end-start), cmd->argv[i].len));
+				buf[min((end - start), cmd->argv[i].len - 1)] =
+				    '\0';
 				cmd->argv[i].intval = (unative_t) buf;
 				cmd->argv[i].vartype = ARG_TYPE_STRING;
-			} else if (!parse_int_arg(cmdline+start, end-start+1, 
-						 &cmd->argv[i].intval))
+			} else if (!parse_int_arg(cmdline + start, end - start + 1, 
+			    &cmd->argv[i].intval)) {
 				cmd->argv[i].vartype = ARG_TYPE_INT;
-			else {
+			} else {
 				printf("Unrecognized variable argument.\n");
 				error = 1;
 			}
