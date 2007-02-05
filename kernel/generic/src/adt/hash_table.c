@@ -53,13 +53,13 @@
  */
 void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_operations_t *op)
 {
-	int i;
+	index_t i;
 
 	ASSERT(h);
 	ASSERT(op && op->hash && op->compare);
 	ASSERT(max_keys > 0);
 	
-	h->entry = malloc(m * sizeof(link_t), 0);
+	h->entry = (link_t *) malloc(m * sizeof(link_t), 0);
 	if (!h->entry) {
 		panic("cannot allocate memory for hash table\n");
 	}
