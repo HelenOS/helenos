@@ -56,7 +56,7 @@ cpu_t *cpus;
  *
  */
 void cpu_init(void) {
-	int i, j;
+	unsigned int i, j;
 	
 #ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
@@ -69,7 +69,7 @@ void cpu_init(void) {
 		/* initialize everything */
 		memsetb((uintptr_t) cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
-		for (i=0; i < config.cpu_count; i++) {
+		for (i = 0; i < config.cpu_count; i++) {
 			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);
 			
 			cpus[i].id = i;
@@ -98,7 +98,7 @@ void cpu_init(void) {
 /** List all processors. */
 void cpu_list(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].active)
