@@ -144,7 +144,7 @@ restart:
 			spinlock_unlock(&THREAD->lock);
 			spinlock_unlock(&CPU->lock);
 			THREAD->saved_fpu_context =
-				slab_alloc(fpu_context_slab, 0);
+			    (fpu_context_t *) slab_alloc(fpu_context_slab, 0);
 			/* We may have switched CPUs during slab_alloc */
 			goto restart; 
 		}
@@ -537,7 +537,8 @@ repeat:
 void kcpulb(void *arg)
 {
 	thread_t *t;
-	int count, average, i, j, k = 0;
+	int count, average, j, k = 0;
+	unsigned int i;
 	ipl_t ipl;
 
 	/*
@@ -689,7 +690,7 @@ satisfied:
 void sched_print_list(void)
 {
 	ipl_t ipl;
-	int cpu,i;
+	unsigned int cpu, i;
 	runq_t *r;
 	thread_t *t;
 	link_t *cur;
@@ -697,7 +698,7 @@ void sched_print_list(void)
 	/* We are going to mess with scheduler structures,
 	 * let's not be interrupted */
 	ipl = interrupts_disable();
-	for (cpu=0;cpu < config.cpu_count; cpu++) {
+	for (cpu = 0; cpu < config.cpu_count; cpu++) {
 
 		if (!cpus[cpu].active)
 			continue;

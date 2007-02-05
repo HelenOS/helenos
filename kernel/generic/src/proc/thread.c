@@ -166,7 +166,7 @@ static int thr_constructor(void *obj, int kmflags)
 #  endif
 #endif	
 
-	t->kstack = frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
+	t->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
 	if (! t->kstack) {
 #ifdef ARCH_HAS_FPU
 		if (t->saved_fpu_context)
@@ -568,7 +568,7 @@ void thread_print_list(void)
 	for (cur = threads_btree.leaf_head.next;
 	    cur != &threads_btree.leaf_head; cur = cur->next) {
 		btree_node_t *node;
-		int i;
+		unsigned int i;
 
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {

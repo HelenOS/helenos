@@ -118,7 +118,7 @@ void kinit(void *arg)
 
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
-		int i;
+		unsigned int i;
 		
 		/*
 		 * For each CPU, create its load balancing thread.
@@ -146,7 +146,7 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	t = thread_create(kconsole, "kconsole", TASK, 0, "kconsole", false);
+	t = thread_create(kconsole, (void *) "kconsole", TASK, 0, "kconsole", false);
 	if (t)
 		thread_ready(t);
 	else

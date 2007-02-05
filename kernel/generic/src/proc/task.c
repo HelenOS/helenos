@@ -393,7 +393,7 @@ void task_print_list(void)
 	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head;
 	    cur = cur->next) {
 		btree_node_t *node;
-		int i;
+		unsigned int i;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
