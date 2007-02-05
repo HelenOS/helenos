@@ -137,7 +137,7 @@ void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_n
  */
 void btree_destroy_subtree(btree_node_t *root)
 {
-	int i;
+	count_t i;
 
 	if (root->keys) {
 		for (i = 0; i < root->keys + 1; i++) { 
@@ -269,7 +269,7 @@ void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node)
 	}
 	
 	if (node->keys > FILL_FACTOR) {
-		int i;
+		count_t i;
 
 		/*
 		 * The key can be immediatelly removed.
@@ -335,7 +335,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 			continue;
 		} else {
 			void *val;
-			int i;
+			count_t i;
 		
 			/*
 			 * Now if the key is smaller than cur->key[i]
@@ -442,11 +442,11 @@ void node_initialize(btree_node_t *node)
  */ 
 void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *lsubtree)
 {
-	int i;
+	count_t i;
 
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
-			int j;
+			count_t j;
 		
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
@@ -478,11 +478,11 @@ void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *val
  */ 
 void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree)
 {
-	int i;
+	count_t i;
 
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
-			int j;
+			count_t j;
 		
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
@@ -510,7 +510,7 @@ void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *val
  */
 void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
 {
-	int i, j;
+	count_t i, j;
 	
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
@@ -538,7 +538,7 @@ void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
  */
 void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 {
-	int i, j;
+	count_t i, j;
 	
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
@@ -576,7 +576,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree, btree_key_t *median)
 {
 	btree_node_t *rnode;
-	int i, j;
+	count_t i, j;
 
 	ASSERT(median);
 	ASSERT(node->keys == BTREE_MAX_KEYS);
@@ -603,7 +603,7 @@ btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree
 	 * Copy big keys, values and subtree pointers to the new right sibling.
 	 * If this is an index node, do not copy the median.
 	 */
-	i = (int) INDEX_NODE(node);
+	i = (count_t) INDEX_NODE(node);
 	for (i += MEDIAN_HIGH_INDEX(node), j = 0; i < node->keys; i++, j++) {
 		rnode->key[j] = node->key[i];
 		rnode->value[j] = node->value[i];
@@ -638,7 +638,7 @@ btree_node_t *node_combine(btree_node_t *node)
 {
 	index_t idx;
 	btree_node_t *rnode;
-	int i;
+	count_t i;
 
 	ASSERT(!ROOT_NODE(node));
 	
@@ -687,7 +687,7 @@ btree_node_t *node_combine(btree_node_t *node)
  */ 
 index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right)
 {
-	int i;
+	count_t i;
 	
 	for (i = 0; i < node->keys + 1; i++) {
 		if (subtree == node->subtree[i])
@@ -940,7 +940,8 @@ bool try_rotation_from_right(btree_node_t *lnode)
  */
 void btree_print(btree_t *t)
 {
-	int i, depth = t->root->depth;
+	count_t i;
+	int depth = t->root->depth;
 	link_t head, *cur;
 
 	printf("Printing B-tree:\n");
