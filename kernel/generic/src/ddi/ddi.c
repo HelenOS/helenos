@@ -128,7 +128,7 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 	spinlock_lock(&parea_lock);
 	parea_t *parea;
 	btree_node_t *nodep;
-	parea = btree_search(&parea_btree, (btree_key_t) pf, &nodep);
+	parea = (parea_t *) btree_search(&parea_btree, (btree_key_t) pf, &nodep);
 	if (!parea || parea->frames < pages || ((flags & AS_AREA_CACHEABLE) &&
 	    !parea->cacheable) || (!(flags & AS_AREA_CACHEABLE) &&
 	    parea->cacheable)) {
