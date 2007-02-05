@@ -97,23 +97,23 @@ static inline count_t SIZE2FRAMES(size_t size)
 	frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void *frame_alloc_generic(uint8_t order, int flags, int *pzone);
+extern void *frame_alloc_generic(uint8_t order, int flags, unsigned int *pzone);
 extern void frame_free(uintptr_t frame);
 extern void frame_reference_add(pfn_t pfn);
 
 extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
-void *frame_get_parent(pfn_t frame, int hint);
-void frame_set_parent(pfn_t frame, void *data, int hint);
+void *frame_get_parent(pfn_t frame, unsigned int hint);
+void frame_set_parent(pfn_t frame, void *data, unsigned int hint);
 void frame_mark_unavailable(pfn_t start, count_t count);
 uintptr_t zone_conf_size(count_t count);
-void zone_merge(int z1, int z2);
+void zone_merge(unsigned int z1, unsigned int z2);
 void zone_merge_all(void);
 
 /*
  * Console functions
  */
 extern void zone_print_list(void);
-void zone_print_one(int znum);
+void zone_print_one(unsigned int znum);
 
 #endif
 
