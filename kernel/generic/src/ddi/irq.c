@@ -140,7 +140,7 @@ void irq_initialize(irq_t *irq)
 	spinlock_initialize(&irq->lock, "irq.lock");
 	irq->inr = -1;
 	irq->devno = -1;
-	irq->trigger = 0;
+	irq->trigger = (irq_trigger_t) 0;
 	irq->claim = NULL;
 	irq->handler = NULL;
 	irq->arg = NULL;
