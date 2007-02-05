@@ -91,11 +91,13 @@ typedef struct {
  * Some of the attributes in zone_t structures are 'read-only'
  */
 
-struct {
+typedef struct {
 	SPINLOCK_DECLARE(lock);
 	int count;
 	zone_t *info[ZONES_MAX];
-} zones;
+} zones_t;
+
+static zones_t zones;
 
 
 /*********************************/
