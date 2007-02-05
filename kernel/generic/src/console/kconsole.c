@@ -171,7 +171,7 @@ static void insert_char(char *str, char ch, int pos)
 /** Try to find a command beginning with prefix */
 static const char * cmdtab_search_one(const char *name,link_t **startpos)
 {
-	int namelen = strlen(name);
+	size_t namelen = strlen(name);
 	const char *curname;
 
 	spinlock_lock(&cmd_lock);
@@ -416,7 +416,7 @@ void kconsole(void *prompt)
 	}
 	
 	while (true) {
-		cmdline = clever_readline(prompt, stdin);
+		cmdline = clever_readline((char *) prompt, stdin);
 		len = strlen(cmdline);
 		if (!len)
 			continue;
@@ -486,7 +486,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 	index_t start = 0, end = 0;
 	cmd_info_t *cmd = NULL;
 	link_t *cur;
-	int i;
+	count_t i;
 	int error = 0;
 	
 	if (!parse_argument(cmdline, len, &start, &end)) {
@@ -540,8 +540,8 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		error = 0;
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
-		    	buf = cmd->argv[i].buffer;
-		    	strncpy(buf, (const char *) &cmdline[start],
+			buf = (char *) cmd->argv[i].buffer;
+			strncpy(buf, (const char *) &cmdline[start],
 			    min((end - start) + 2, cmd->argv[i].len));
 			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
 			break;
@@ -553,7 +553,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		case ARG_TYPE_VAR:
 			if (start != end && cmdline[start] == '"' &&
 			    cmdline[end] == '"') {
-				buf = cmd->argv[i].buffer;
+				buf = (char *) cmd->argv[i].buffer;
 				strncpy(buf, (const char *) &cmdline[start + 1],
 				    min((end-start), cmd->argv[i].len));
 				buf[min((end - start), cmd->argv[i].len - 1)] =
@@ -608,7 +608,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
  */
 bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end)
 {
-	int i;
+	index_t i;
 	bool found_start = false;
 	
 	ASSERT(start != NULL);
