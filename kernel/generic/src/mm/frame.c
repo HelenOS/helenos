@@ -230,7 +230,7 @@ static int zone_can_alloc(zone_t *z, uint8_t order)
  * @param order Size (2^order) of free space we are trying to find
  * @param pzone Pointer to preferred zone or NULL, on return contains zone number
  */
-static zone_t * find_free_zone_and_lock(uint8_t order, int *pzone)
+static zone_t * find_free_zone_and_lock(uint8_t order, unsigned int *pzone)
 {
 	unsigned int i;
 	zone_t *z;
@@ -935,7 +935,7 @@ void * frame_get_parent(pfn_t pfn, unsigned int hint)
  * @return Physical address of the allocated frame.
  *
  */
-void * frame_alloc_generic(uint8_t order, int flags, int *pzone) 
+void * frame_alloc_generic(uint8_t order, int flags, unsigned int *pzone) 
 {
 	ipl_t ipl;
 	int freed;

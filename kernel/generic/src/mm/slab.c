@@ -161,7 +161,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	slab_t *slab;
 	size_t fsize;
 	int i;
-	int zone=0;
+	unsigned int zone = 0;
 	
 	data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
 	if (!data) {
