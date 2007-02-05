@@ -525,7 +525,7 @@ int cmd_desc(cmd_arg_t *argv)
 /** Search symbol table */
 int cmd_symaddr(cmd_arg_t *argv)
 {
-	symtab_print_search(argv->buffer);
+	symtab_print_search((char *) argv->buffer);
 	
 	return 1;
 }
@@ -543,11 +543,11 @@ int cmd_call0(cmd_arg_t *argv)
 	}fptr;
 #endif
 
-	symaddr = get_symbol_addr(argv->buffer);
+	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search(argv->buffer);
+		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
@@ -579,11 +579,11 @@ int cmd_call1(cmd_arg_t *argv)
 	}fptr;
 #endif
 
-	symaddr = get_symbol_addr(argv->buffer);
+	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search(argv->buffer);
+		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
@@ -617,11 +617,11 @@ int cmd_call2(cmd_arg_t *argv)
 	}fptr;
 #endif
 
-	symaddr = get_symbol_addr(argv->buffer);
+	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search(argv->buffer);
+		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
@@ -656,11 +656,11 @@ int cmd_call3(cmd_arg_t *argv)
 	}fptr;
 #endif
 
-	symaddr = get_symbol_addr(argv->buffer);
+	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search(argv->buffer);
+		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
@@ -718,18 +718,18 @@ int cmd_set4(cmd_arg_t *argv)
 	bool pointer = false;
 
 	if (((char *)argv->buffer)[0] == '*') {
-		addr = (uint32_t *) get_symbol_addr(argv->buffer+1);
+		addr = (uint32_t *) get_symbol_addr((char *) argv->buffer + 1);
 		pointer = true;
-	} else if (((char *)argv->buffer)[0] >= '0' && 
+	} else if (((char *) argv->buffer)[0] >= '0' && 
 		   ((char *)argv->buffer)[0] <= '9')
 		addr = (uint32_t *)atoi((char *)argv->buffer);
 	else
-		addr = (uint32_t *)get_symbol_addr(argv->buffer);
+		addr = (uint32_t *)get_symbol_addr((char *) argv->buffer);
 
 	if (!addr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (addr == (uint32_t *) -1) {
-		symtab_print_search(argv->buffer);
+		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		if (pointer)
@@ -924,7 +924,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	if (cnt < 1)
 		return true;
 	
-	uint64_t *data = malloc(sizeof(uint64_t) * cnt, 0);
+	uint64_t *data = (uint64_t *) malloc(sizeof(uint64_t) * cnt, 0);
 	if (data == NULL) {
 		printf("Error allocating memory for statistics\n");
 		return false;
@@ -990,7 +990,7 @@ int cmd_test(cmd_arg_t *argv)
 {
 	test_t *test;
 	
-	if (strcmp(argv->buffer, "*") == 0) {
+	if (strcmp((char *) argv->buffer, "*") == 0) {
 		for (test = tests; test->name != NULL; test++) {
 			if (test->safe) {
 				printf("\n");
@@ -1002,7 +1002,7 @@ int cmd_test(cmd_arg_t *argv)
 		bool fnd = false;
 		
 		for (test = tests; test->name != NULL; test++) {
-			if (strcmp(test->name, argv->buffer) == 0) {
+			if (strcmp(test->name, (char *) argv->buffer) == 0) {
 				fnd = true;
 				run_test(test);
 				break;
@@ -1030,7 +1030,7 @@ int cmd_bench(cmd_arg_t *argv)
 	bool fnd = false;
 	
 	for (test = tests; test->name != NULL; test++) {
-		if (strcmp(test->name, argv->buffer) == 0) {
+		if (strcmp(test->name, (char *) argv->buffer) == 0) {
 			fnd = true;
 			
 			if (test->safe)
