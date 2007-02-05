@@ -67,7 +67,7 @@ static unative_t sys_io(int fd, const void * buf, size_t count)
 	if (count > PAGE_SIZE)
 		return ELIMIT;
 
-	data = malloc(count, 0);
+	data = (char *) malloc(count, 0);
 	if (!data)
 		return ENOMEM;
 	
@@ -98,7 +98,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	unative_t rc;
 
 	if (id < SYSCALL_END)
-		rc = syscall_table[id](a1,a2,a3,a4);
+		rc = syscall_table[id](a1, a2, a3, a4);
 	else {
 		klog_printf("TASK %lld: Unknown syscall id %d",TASK->taskid,id);
 		task_kill(TASK->taskid);
@@ -112,51 +112,51 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
-	sys_io,
-	sys_tls_set,
+	(syshandler_t) sys_io,
+	(syshandler_t) sys_tls_set,
 	
 	/* Thread and task related syscalls. */
-	sys_thread_create,
-	sys_thread_exit,
-	sys_task_get_id,
+	(syshandler_t) sys_thread_create,
+	(syshandler_t) sys_thread_exit,
+	(syshandler_t) sys_task_get_id,
 	
 	/* Synchronization related syscalls. */
-	sys_futex_sleep_timeout,
-	sys_futex_wakeup,
+	(syshandler_t) sys_futex_sleep_timeout,
+	(syshandler_t) sys_futex_wakeup,
 	
 	/* Address space related syscalls. */
-	sys_as_area_create,
-	sys_as_area_resize,
-	sys_as_area_destroy,
-
+	(syshandler_t) sys_as_area_create,
+	(syshandler_t) sys_as_area_resize,
+	(syshandler_t) sys_as_area_destroy,
+	
 	/* IPC related syscalls. */
-	sys_ipc_call_sync_fast,
-	sys_ipc_call_sync,
-	sys_ipc_call_async_fast,
-	sys_ipc_call_async,
-	sys_ipc_answer_fast,
-	sys_ipc_answer,
-	sys_ipc_forward_fast,
-	sys_ipc_wait_for_call,
-	sys_ipc_hangup,
-	sys_ipc_register_irq,
-	sys_ipc_unregister_irq,
-
+	(syshandler_t) sys_ipc_call_sync_fast,
+	(syshandler_t) sys_ipc_call_sync,
+	(syshandler_t) sys_ipc_call_async_fast,
+	(syshandler_t) sys_ipc_call_async,
+	(syshandler_t) sys_ipc_answer_fast,
+	(syshandler_t) sys_ipc_answer,
+	(syshandler_t) sys_ipc_forward_fast,
+	(syshandler_t) sys_ipc_wait_for_call,
+	(syshandler_t) sys_ipc_hangup,
+	(syshandler_t) sys_ipc_register_irq,
+	(syshandler_t) sys_ipc_unregister_irq,
+	
 	/* Capabilities related syscalls. */
-	sys_cap_grant,
-	sys_cap_revoke,
-
+	(syshandler_t) sys_cap_grant,
+	(syshandler_t) sys_cap_revoke,
+	
 	/* DDI related syscalls. */
-	sys_physmem_map,
-	sys_iospace_enable,
-	sys_preempt_control,
+	(syshandler_t) sys_physmem_map,
+	(syshandler_t) sys_iospace_enable,
+	(syshandler_t) sys_preempt_control,
 	
 	/* Sysinfo syscalls */
-	sys_sysinfo_valid,
-	sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_valid,
+	(syshandler_t) sys_sysinfo_value,
 	
 	/* Debug calls */
-	sys_debug_enable_console
+	(syshandler_t) sys_debug_enable_console
 };
 
 /** @}
