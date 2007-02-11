@@ -139,7 +139,8 @@ extern void slab_print_list(void);
 
 /* malloc support */
 extern void * malloc(unsigned int size, int flags);
-extern void free(void *obj);
+extern void * realloc(void *ptr, unsigned int size, int flags);
+extern void free(void *ptr);
 #endif
 
 /** @}

@@ -111,6 +111,7 @@
 #include <panic.h>
 #include <debug.h>
 #include <bitops.h>
+#include <macros.h>
 
 SPINLOCK_INITIALIZE(slab_cache_lock);
 static LIST_INITIALIZE(slab_cache_list);
@@ -127,12 +128,23 @@ static slab_cache_t slab_cache_cache;
  */
 static slab_cache_t *slab_extern_cache;
 /** Caches for malloc */
-static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W-SLAB_MIN_MALLOC_W+1];
+static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1];
 char *malloc_names[] =  {
-	"malloc-16","malloc-32","malloc-64","malloc-128",
-	"malloc-256","malloc-512","malloc-1K","malloc-2K",
-	"malloc-4K","malloc-8K","malloc-16K","malloc-32K",
-	"malloc-64K","malloc-128K","malloc-256K"
+	"malloc-16",
+	"malloc-32",
+	"malloc-64",
+	"malloc-128",
+	"malloc-256",
+	"malloc-512",
+	"malloc-1K",
+	"malloc-2K",
+	"malloc-4K",
+	"malloc-8K",
+	"malloc-16K",
+	"malloc-32K",
+	"malloc-64K",
+	"malloc-128K",
+	"malloc-256K"
 };
 
 /** Slab descriptor */
@@ -142,7 +154,7 @@ typedef struct {
 	void *start;       	/**< Start address of first available item. */
 	count_t available; 	/**< Count of available items in this slab. */
 	index_t nextavail; 	/**< The index of next available item. */
-}slab_t;
+} slab_t;
 
 #ifdef CONFIG_DEBUG
 static int _slab_initialized = 0;
@@ -213,7 +225,7 @@ static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 /** Map object to slab structure */
 static slab_t * obj2slab(void *obj)
 {
-	return (slab_t *)frame_get_parent(ADDR2PFN(KA2PA(obj)), 0);
+	return (slab_t *) frame_get_parent(ADDR2PFN(KA2PA(obj)), 0);
 }
 
 /**************************************/
@@ -760,7 +772,7 @@ static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 /** Return slab object to cache */
 void slab_free(slab_cache_t *cache, void *obj)
 {
-	_slab_free(cache,obj,NULL);
+	_slab_free(cache, obj, NULL);
 }
 
 /* Go through all caches and reclaim what is possible */
@@ -878,28 +890,51 @@ void slab_enable_cpucache(void)
 /* kalloc/kfree functions             */
 void * malloc(unsigned int size, int flags)
 {
-	int idx;
-
 	ASSERT(_slab_initialized);
 	ASSERT(size && size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))
 		size = (1 << SLAB_MIN_MALLOC_W);
 
-	idx = fnzb(size-1) - SLAB_MIN_MALLOC_W + 1;
+	int idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
 
 	return slab_alloc(malloc_caches[idx], flags);
 }
 
-void free(void *obj)
+void * realloc(void *ptr, unsigned int size, int flags)
 {
-	slab_t *slab;
+	ASSERT(_slab_initialized);
+	ASSERT(size <= (1 << SLAB_MAX_MALLOC_W));
+	
+	void *new_ptr;
+	
+	if (size > 0) {
+		if (size < (1 << SLAB_MIN_MALLOC_W))
+			size = (1 << SLAB_MIN_MALLOC_W);
+		int idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
+		
+		new_ptr = slab_alloc(malloc_caches[idx], flags);
+	} else
+		new_ptr = NULL;
+	
+	if ((new_ptr != NULL) && (ptr != NULL)) {
+		slab_t *slab = obj2slab(ptr);
+		memcpy(new_ptr, ptr, min(size, slab->cache->size));
+	}
+	
+	if (ptr != NULL)
+		free(ptr);
+	
+	return new_ptr;
+}
 
-	if (!obj)
+void free(void *ptr)
+{
+	if (!ptr)
 		return;
 
-	slab = obj2slab(obj);
-	_slab_free(slab->cache, obj, slab);
+	slab_t *slab = obj2slab(ptr);
+	_slab_free(slab->cache, ptr, slab);
 }
 
 /** @}
