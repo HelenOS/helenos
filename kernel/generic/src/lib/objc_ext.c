@@ -39,7 +39,7 @@
  * library. Many of the functions are just dummy.
  */
 
-#include <lib/objc.h>
+#include <lib/objc_ext.h>
 #include <panic.h>
 #include <arch/memstr.h>
 #include <mm/slab.h>

@@ -32,19 +32,33 @@
 /** @file
  */
 
-#ifndef KERN_OBJC_H_
-#define KERN_OBJC_H_
+#ifndef KERN_OBJC_EXT_H_
+#define KERN_OBJC_EXT_H_
 
-extern id class_create_instance(Class _class);
-extern id object_dispose(id object);
+#include <arch/types.h>
+#include <arch/arg.h>
 
-@interface base_t {
-    Class isa;
-}
+extern void *stderr;
 
-+ (id) new;
-- (id) free;
+extern void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function);
+extern void abort(void);
 
-@end
+extern void *fopen(const char *path, const char *mode);
+extern size_t fread(void *ptr, size_t size, size_t nmemb, void *stream);
+extern size_t fwrite(const void *ptr, size_t size, size_t nmemb, void *stream);
+extern int fflush(void *stream);
+extern int feof(void *stream);
+extern int fclose(void *stream);
+
+extern int vfprintf(void *stream, const char *format, va_list ap);
+extern int sscanf(const char *str, const char *format, ...);
+extern const unsigned short **__ctype_b_loc(void);
+extern long int __strtol_internal(const char *__nptr, char **__endptr, int __base, int __group);
+
+extern void *memset(void *s, int c, size_t n);
+extern void *calloc(size_t nmemb, size_t size);
 
 #endif
+
+/** @}
+ */

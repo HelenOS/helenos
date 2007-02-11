@@ -245,7 +245,8 @@ endif
 #
 
 ifeq ($(CONFIG_EXPERIMENTAL),y)
-	GENERIC_SOURCES += generic/src/lib/objc.c
+	GENERIC_SOURCES += generic/src/lib/objc_ext.c \
+		generic/src/lib/objc.c
 	EXTRA_OBJECTS = $(LIBDIR)/libobjc.a
 	EXTRA_FLAGS += -x objective-c
 endif

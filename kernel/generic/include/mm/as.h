@@ -53,6 +53,10 @@
 #include <adt/btree.h>
 #include <lib/elf.h>
 
+#ifdef __OBJC__
+#include <lib/objc.h>
+#endif
+
 /**
  * Defined to be true if user address space and kernel address space shadow each
  * other.
@@ -81,7 +85,7 @@
 #define AS_PF_DEFER		2
 
 #ifdef __OBJC__
-@interface as_t {
+@interface as_t : base_t {
 	@public
 		/** Protected by asidlock. */
 		link_t inactive_as_with_asid_link;
@@ -109,10 +113,12 @@
 		/** Architecture specific content. */
 		as_arch_t arch;
 }
+
 + (pte_t *) page_table_create: (int) flags;
 + (void) page_table_destroy: (pte_t *) page_table;
 - (void) page_table_lock: (bool) _lock;
 - (void) page_table_unlock: (bool) unlock;
+
 @end
 
 #else
