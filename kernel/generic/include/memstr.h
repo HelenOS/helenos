@@ -44,6 +44,7 @@
 extern void *_memcpy(void *dst, const void *src, size_t cnt);
 extern void _memsetb(uintptr_t dst, size_t cnt, uint8_t x);
 extern void _memsetw(uintptr_t dst, size_t cnt, uint16_t x);
+extern char *strcpy(char *dest, const char *src);
 
 #endif
 

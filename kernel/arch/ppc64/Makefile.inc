@@ -33,7 +33,7 @@ BFD_NAME = elf64-powerpc
 BFD_ARCH = powerpc:common64
 BFD = binary
 TARGET = ppc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc64/bin
+TOOLCHAIN_DIR = /usr/local/ppc64
 
 CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64

@@ -33,7 +33,7 @@ BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
 TARGET = amd64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/amd64/bin
+TOOLCHAIN_DIR = /usr/local/amd64
 
 CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
 DEFS += -DMACHINE=$(MACHINE) -D__64_BITS__

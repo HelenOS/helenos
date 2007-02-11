@@ -81,11 +81,13 @@
 #include <arch/mm/cache.h>
 #endif /* CONFIG_VIRT_IDX_DCACHE */
 
+#ifndef __OBJC__
 /**
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
  */
 as_operations_t *as_operations = NULL;
+#endif
 
 /**
  * Slab for as_t objects.
@@ -992,10 +994,14 @@ int as_area_get_flags(as_area_t *a)
  */
 pte_t *page_table_create(int flags)
 {
-        ASSERT(as_operations);
-        ASSERT(as_operations->page_table_create);
-
-        return as_operations->page_table_create(flags);
+#ifdef __OBJC__
+	return [as_t page_table_create: flags];
+#else
+	ASSERT(as_operations);
+	ASSERT(as_operations->page_table_create);
+	
+	return as_operations->page_table_create(flags);
+#endif
 }
 
 /** Destroy page table.
@@ -1006,10 +1012,14 @@ pte_t *page_table_create(int flags)
  */
 void page_table_destroy(pte_t *page_table)
 {
-        ASSERT(as_operations);
-        ASSERT(as_operations->page_table_destroy);
-
-        as_operations->page_table_destroy(page_table);
+#ifdef __OBJC__
+	return [as_t page_table_destroy: page_table];
+#else
+	ASSERT(as_operations);
+	ASSERT(as_operations->page_table_destroy);
+	
+	as_operations->page_table_destroy(page_table);
+#endif
 }
 
 /** Lock page table.
@@ -1026,10 +1036,14 @@ void page_table_destroy(pte_t *page_table)
  */
 void page_table_lock(as_t *as, bool lock)
 {
+#ifdef __OBJC__
+	[as page_table_lock: lock];
+#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_lock);
-
+	
 	as_operations->page_table_lock(as, lock);
+#endif
 }
 
 /** Unlock page table.
@@ -1039,10 +1053,14 @@ void page_table_lock(as_t *as, bool lock)
  */
 void page_table_unlock(as_t *as, bool unlock)
 {
+#ifdef __OBJC__
+	[as page_table_unlock: unlock];
+#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_unlock);
-
+	
 	as_operations->page_table_unlock(as, unlock);
+#endif
 }
 
 

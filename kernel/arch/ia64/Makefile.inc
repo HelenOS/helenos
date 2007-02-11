@@ -33,7 +33,7 @@ BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
 BFD = elf64-ia64-little
 TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ia64/bin
+TOOLCHAIN_DIR = /usr/local/ia64
 
 INIT0_ADDRESS = 0xe000000000400000
 INIT0_SIZE = 0x100000

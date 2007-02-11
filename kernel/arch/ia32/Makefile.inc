@@ -33,7 +33,7 @@ BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
 TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/i686/bin
+TOOLCHAIN_DIR = /usr/local/i686
 
 DEFS += -DMACHINE=$(MACHINE) -D__32_BITS__
 

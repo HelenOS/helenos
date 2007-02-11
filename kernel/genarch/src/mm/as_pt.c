@@ -52,12 +52,38 @@ static void ptl0_destroy(pte_t *page_table);
 static void pt_lock(as_t *as, bool lock);
 static void pt_unlock(as_t *as, bool unlock);
 
+#ifdef __OBJC__
+@implementation as_t
+
++ (pte_t *) page_table_create: (int) flags
+{
+	return ptl0_create(flags);
+}
+
++ (void) page_table_destroy: (pte_t *) page_table
+{
+	ptl0_destroy(page_table);
+}
+
+- (void) page_table_lock: (bool) _lock
+{
+	pt_lock(self, _lock);
+}
+
+- (void) page_table_unlock: (bool) unlock
+{
+	pt_unlock(self, unlock);
+}
+
+@end
+#else
 as_operations_t as_pt_operations = {
 	.page_table_create = ptl0_create,
 	.page_table_destroy = ptl0_destroy,
 	.page_table_lock = pt_lock,
 	.page_table_unlock = pt_unlock
 };
+#endif
 
 /** Create PTL0.
  *

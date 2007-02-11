@@ -39,7 +39,9 @@
 /** Architecture dependent address space init. */
 void as_arch_init(void)
 {
+#ifndef __OBJC__
 	as_operations = &as_pt_operations;
+#endif
 }
 
 /** @}

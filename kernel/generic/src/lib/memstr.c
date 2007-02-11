@@ -74,7 +74,7 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 			((uint8_t *)(((unative_t *) dst) + i))[j] = ((uint8_t *)(((unative_t *) src) + i))[j];
 	}
 		
-	return (char *)src;
+	return (char *) src;
 }
 
 /** Fill block of memory
@@ -92,7 +92,7 @@ void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 	int i;
 	uint8_t *p = (uint8_t *) dst;
 	
-	for(i=0; i<cnt; i++)
+	for (i = 0; i < cnt; i++)
 		p[i] = x;
 }
 
@@ -111,8 +111,27 @@ void _memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 	int i;
 	uint16_t *p = (uint16_t *) dst;
 	
-	for(i=0; i<cnt; i++)
+	for (i = 0; i < cnt; i++)
 		p[i] = x;	
+}
+
+/** Copy string
+ *
+ * Copy string from src address to dst address.
+ * The copying is done char-by-char until the null
+ * character. The source and destination memory areas
+ * cannot overlap.
+ *
+ * @param src Origin string to copy from.
+ * @param dst Origin string to copy to.
+ *
+ */
+char *strcpy(char *dest, const char *src)
+{
+	char *orig = dest;
+	
+	while ((*(dest++) = *(src++)));
+	return orig;
 }
 
 /** @}

@@ -33,7 +33,7 @@ BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
 TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/sparc64/bin
+TOOLCHAIN_DIR = /usr/local/sparc64
 
 CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N

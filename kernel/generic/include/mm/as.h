@@ -80,6 +80,43 @@
 /** The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
 #define AS_PF_DEFER		2
 
+#ifdef __OBJC__
+@interface as_t {
+	@public
+		/** Protected by asidlock. */
+		link_t inactive_as_with_asid_link;
+		
+		mutex_t lock;
+		
+		/** Number of references (i.e tasks that reference this as). */
+		count_t refcount;
+		
+		/** Number of processors on wich is this address space active. */
+		count_t cpu_refcount;
+		
+		/** B+tree of address space areas. */
+		btree_t as_area_btree;
+		
+		/**
+		 *  Address space identifier.
+		 *  Constant on architectures that do not support ASIDs.
+		 */
+		asid_t asid;
+		
+		/** Non-generic content. */
+		as_genarch_t genarch;
+		
+		/** Architecture specific content. */
+		as_arch_t arch;
+}
++ (pte_t *) page_table_create: (int) flags;
++ (void) page_table_destroy: (pte_t *) page_table;
+- (void) page_table_lock: (bool) _lock;
+- (void) page_table_unlock: (bool) unlock;
+@end
+
+#else
+
 /** Address space structure.
  *
  * as_t contains the list of as_areas of userspace accessible
@@ -121,6 +158,7 @@ typedef struct {
 	void (* page_table_lock)(as_t *as, bool lock);
 	void (* page_table_unlock)(as_t *as, bool unlock);
 } as_operations_t;
+#endif
 
 /**
  * This structure contains information associated with the shared address space
@@ -201,7 +239,10 @@ typedef struct mem_backend {
 } mem_backend_t;
 
 extern as_t *AS_KERNEL;
+
+#ifndef __OBJC__
 extern as_operations_t *as_operations;
+#endif
 
 SPINLOCK_EXTERN(inactive_as_with_asid_lock);
 extern link_t inactive_as_with_asid_head;

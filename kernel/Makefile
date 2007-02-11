@@ -128,12 +128,14 @@ ifeq ($(COMPILER),native)
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
+	LIBDIR = /usr/lib
 else
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
+	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
+	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
+	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
+	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
+	LIBDIR = $(TOOLCHAIN_DIR)/lib
 endif
 
 ## Generic kernel sources
@@ -239,6 +241,15 @@ ifeq ($(CONFIG_TEST),y)
 		test/sysinfo/sysinfo1.c
 endif
 
+## Experimental features
+#
+
+ifeq ($(CONFIG_EXPERIMENTAL),y)
+	GENERIC_SOURCES += generic/src/lib/objc.c
+	EXTRA_OBJECTS = $(LIBDIR)/libobjc.a
+	EXTRA_FLAGS += -x objective-c
+endif
+
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
@@ -279,13 +290,13 @@ arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 
 generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile generic/src/debug/empty_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/empty_map.o -o $@ -Map kernel.map.pre
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/empty_map.o  -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 	# Do it once again, this time to get correct even the symbols
 	# on architectures, that have bss after symtab
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab generic/src/debug/real_map.bin generic/src/debug/sizeok_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 
@@ -293,7 +304,7 @@ generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
 
 kernel.raw: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
+	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
 
 kernel.bin: kernel.raw
 	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin
@@ -308,4 +319,4 @@ disasm: kernel.raw
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@

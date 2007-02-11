@@ -31,7 +31,7 @@
 
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = /usr/local/mipsel/bin
+TOOLCHAIN_DIR = /usr/local/mipsel
 
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x81000000
