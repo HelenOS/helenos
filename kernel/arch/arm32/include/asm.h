@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_ASM_H_
+#define KERN_arm32_ASM_H_
 
-static inline int isdigit(int c)
+#include <arch/types.h>
+
+static inline void cpu_sleep(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
 }
 
-static inline int isspace(int c)
+/** Return base address of current stack
+ * 
+ * Return the base address of the current stack.
+ * The stack is assumed to be STACK_SIZE bytes long.
+ * The stack must start on page boundary.
+ */
+static inline uintptr_t get_stack_base(void)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */	
+	return NULL;
 }
+
+extern void cpu_halt(void);
+extern void asm_delay_loop(uint32_t t);
+extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
+    uintptr_t entry);
+
+extern ipl_t interrupts_disable(void);
+extern ipl_t interrupts_enable(void);
+extern void interrupts_restore(ipl_t ipl);
+extern ipl_t interrupts_read(void);
 
 #endif
 

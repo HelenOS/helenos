@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_ATOMIC_H_
+#define KERN_arm32_ATOMIC_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#define atomic_inc(x)	((void) atomic_add(x, 1))
+#define atomic_dec(x)	((void) atomic_add(x, -1))
 
-static inline int isspace(int c)
+#define atomic_postinc(x) (atomic_add(x, 1) - 1)
+#define atomic_postdec(x) (atomic_add(x, -1) + 1)
+
+#define atomic_preinc(x) atomic_add(x, 1)
+#define atomic_predec(x) atomic_add(x, -1)
+
+/* Atomic addition of immediate value.
+ *
+ * @param val Memory location to which will be the immediate value added.
+ * @param i Signed immediate that will be added to *val.
+ *
+ * @return Value after addition.
+ */
+static inline long atomic_add(atomic_t *val, int i)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
+	return (val->count += i);
 }
 
 #endif

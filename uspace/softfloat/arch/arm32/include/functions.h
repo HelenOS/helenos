@@ -26,35 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup softfloatarm32 arm32	
+ * @ingroup sfl
+ * @brief softfloat architecture dependent definitions 
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef __SOFTFLOAT_FUNCTIONS_H__
+#define __SOFTFLOAT_FUNCTIONS_H__
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#define float32_to_int(X) float32_to_int32(X);
+#define float32_to_long(X) float32_to_int32(X);
+#define float32_to_longlong(X) float32_to_int64(X);
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#define float64_to_int(X) float64_to_int32(X);
+#define float64_to_long(X) float64_to_int32(X);
+#define float64_to_longlong(X) float64_to_int64(X);
+
+#define float32_to_uint(X) float32_to_uint32(X);
+#define float32_to_ulong(X) float32_to_uint32(X);
+#define float32_to_ulonglong(X) float32_to_uint64(X);
+
+#define float64_to_uint(X) float64_to_uint32(X);
+#define float64_to_ulong(X) float64_to_uint32(X);
+#define float64_to_ulonglong(X) float64_to_uint64(X);
+
+#define int_to_float32(X) int32_to_float32(X);
+#define long_to_float32(X) int32_to_float32(X);
+#define longlong_to_float32(X) int64_to_float32(X);
+
+#define int_to_float64(X) int32_to_float64(X);
+#define long_to_float64(X) int32_to_float64(X);
+#define longlong_to_float64(X) int64_to_float64(X);
+
+#define uint_to_float32(X) uint32_to_float32(X);
+#define ulong_to_float32(X) uint32_to_float32(X);
+#define ulonglong_to_float32(X) uint64_to_float32(X);
+
+#define uint_to_float64(X) uint32_to_float64(X);
+#define ulong_to_float64(X) uint32_to_float64(X);
+#define ulonglong_to_float64(X) uint64_to_float64(X);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32ddi
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <ddi/ddi.h>
+#include <proc/task.h>
+#include <arch/types.h>
 
-static inline int isdigit(int c)
+/** Enable I/O space range for task.
+ *
+ * Interrupts are disabled and task is locked.
+ *
+ * @param task Task.
+ * @param ioaddr Startign I/O space address.
+ * @param size Size of the enabled I/O range.
+ *
+ * @return 0 on success or an error code from errno.h.
+ */
+int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	return 0;
 }
-
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
-
-#endif
 
 /** @}
  */

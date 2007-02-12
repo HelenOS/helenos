@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32 arm32
+  * @brief arm32 architecture dependent parts of libc
+  * @ingroup lc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <thread.h>
+#include <malloc.h>
 
-static inline int isdigit(int c)
+/** Allocate TLS & TCB for initial module threads
+ *
+ * @param data Start of data section
+ * @return pointer to tcb_t structure
+ */
+tcb_t * __alloc_tls(void **data, size_t size)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
+	return NULL;
 }
 
-static inline int isspace(int c)
+void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
 }
-
-#endif
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32mm	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_ASID_H_
+#define KERN_arm32_ASID_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#include <arch/types.h>
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#define ASID_MAX_ARCH		3	/* TODO */
+
+typedef uint8_t asid_t;
 
 #endif
 

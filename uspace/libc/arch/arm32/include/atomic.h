@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef LIBC_arm32_ATOMIC_H_
+#define LIBC_arm32_ATOMIC_H_
 
-static inline int isdigit(int c)
+/** Atomic addition.
+ *
+ * @param val Atomic value.
+ * @param imm Value to add.
+ *
+ * @return Value after addition.
+ */
+static inline long atomic_add(atomic_t *val, int imm)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
+	return (val->count += imm);
 }
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
+static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
+
+static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
+static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
+
+static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
+static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
 
 #endif
 

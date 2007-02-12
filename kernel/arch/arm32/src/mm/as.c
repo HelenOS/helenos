@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32mm
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <arch/mm/as.h>
+#include <genarch/mm/as_pt.h>
+#include <genarch/mm/asid_fifo.h>
+#include <mm/as.h>
+#include <arch.h>
 
-static inline int isdigit(int c)
+/** Architecture dependent address space init. */
+void as_arch_init(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
+        as_operations = &as_pt_operations;
+	asid_fifo_init();
 }
 
-static inline int isspace(int c)
+/** Install address space.
+ *
+ * Install ASID.
+ *
+ * @param as Address space structure.
+ */
+void as_install_arch(as_t *as)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
 }
-
-#endif
 
 /** @}
  */

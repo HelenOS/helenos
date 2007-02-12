@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kbdarm32 arm32
+ * @brief	HelenOS arm32 arch dependent parts of uspace keyboard handler.
+ * @ingroup  kbd
  * @{
- */
+ */ 
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <arch/kbd.h>
+#include <ipc/ipc.h>
+#include <sysinfo.h>
+#include <kbd.h>
+#include <keys.h>
 
-static inline int isdigit(int c)
+int kbd_arch_init(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	return 0;
 }
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
 
-#endif
+int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
+{
+	return 1;
+}
 
 /** @}
  */

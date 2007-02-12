@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_BYTEORDER_H_
+#define KERN_arm32_BYTEORDER_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#include <byteorder.h>
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#ifdef BIG_ENDIAN
+
+#define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_le2host(n)		uint64_t_byteorder_swap(n)
+
+#define uint32_t_be2host(n)		(n)
+#define uint64_t_be2host(n)		(n)
+
+#else
+
+#define uint32_t_le2host(n)		(n)
+#define uint64_t_le2host(n)		(n)
+
+#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
+
+#endif
 
 #endif
 

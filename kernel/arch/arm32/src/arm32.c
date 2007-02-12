@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
 
-static inline int isdigit(int c)
+#include <arch.h>
+
+void arch_pre_main(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
 }
 
-static inline int isspace(int c)
+void arch_pre_mm_init(void)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
 }
 
-#endif
+void arch_post_mm_init(void)
+{
+	/* TODO */
+}
+
+void arch_post_cpu_init(void)
+{
+	/* TODO */
+}
+
+void arch_pre_smp_init(void)
+{
+	/* TODO */
+}
+
+void arch_post_smp_init(void)
+{
+	/* TODO */
+}
+
+/** Perform arm32 specific tasks needed before the new task is run. */
+void before_task_runs_arch(void)
+{
+	/* TODO */
+}
+
+/** Perform arm32 specific tasks needed before the new thread is scheduled. */
+void before_thread_runs_arch(void)
+{
+	/* TODO */
+}
+
+void after_thread_ran_arch(void)
+{
+	/* TODO */
+}
 
 /** @}
  */

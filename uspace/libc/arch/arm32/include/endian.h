@@ -26,35 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef LIBC_arm32_ENDIAN_H_
+#define LIBC_arm32_ENDIAN_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#ifndef LIBC_ENDIAN_H_
+# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
+#endif
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#define __BYTE_ORDER __LITTLE_ENDIAN
 
 #endif
 

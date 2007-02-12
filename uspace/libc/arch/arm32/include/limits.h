@@ -26,35 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32	
  * @{
  */
 /** @file
+ * @ingroup libcarm32	
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef LIBC_arm32__LIMITS_H_
+#define LIBC_arm32__LIMITS_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
-
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+# define LONG_MIN MIN_INT32
+# define LONG_MAX MAX_INT32
+# define ULONG_MIN MIN_UINT32
+# define ULONG_MAX MAX_UINT32
 
 #endif
 

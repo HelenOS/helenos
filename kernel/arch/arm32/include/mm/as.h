@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32mm	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_AS_H_
+#define KERN_arm32_AS_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x80000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffff
+#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x00000000
+#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0x7fffffff
+
+#define USTACK_ADDRESS_ARCH	(0x80000000 - PAGE_SIZE)
+
+typedef struct {
+} as_arch_t;
+
+#include <genarch/mm/as_pt.h>
+
+#define as_constructor_arch(as, flags)		(as != as)
+#define as_destructor_arch(as)			(as != as)
+#define as_create_arch(as, flags)		(as != as)
+#define as_deinstall_arch(as)
+#define as_invalidate_translation_cache(as, page, cnt)
+
+extern void as_arch_init(void);
 
 #endif
 

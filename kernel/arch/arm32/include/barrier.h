@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_BARRIER_H_
+#define KERN_arm32_BARRIER_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+/*
+ * TODO: implement true ARM memory barriers for macros below.
+ */
+#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#define memory_barrier()        asm volatile ("" ::: "memory")
+#define read_barrier()          asm volatile ("" ::: "memory")
+#define write_barrier()         asm volatile ("" ::: "memory")
 
 #endif
 

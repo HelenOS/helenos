@@ -26,35 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kbdarm32 arm32
+ * @brief	HelenOS arm32 arch dependent parts of uspace keyboard handler.
+ * @ingroup  kbd
  * @{
- */
+ */ 
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
-
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
-
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+#ifndef KBD_arm32_KBD_H_
+#define KBD_arm32_KBD_H_
 
 #endif
 

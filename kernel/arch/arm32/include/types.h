@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_TYPES_H_
+#define KERN_arm32_TYPES_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+#define NULL 0
+#define false 0
+#define true 1
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed long int32_t;
+typedef signed long long int64_t;
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long uint32_t;
+typedef unsigned long long uint64_t;
+
+typedef uint32_t size_t;
+typedef uint32_t count_t;
+typedef uint32_t index_t;
+
+typedef uint32_t uintptr_t;
+typedef uint32_t pfn_t;
+
+typedef uint32_t ipl_t;
+
+typedef uint32_t unative_t;
+typedef int32_t native_t;
+
+typedef uint8_t bool;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
+
+typedef int32_t inr_t;
+typedef int32_t devno_t;
+
+/** Page Table Entry. */
+typedef struct {
+	/* placeholder */
+} pte_t;
 
 #endif
 

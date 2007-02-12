@@ -41,6 +41,12 @@ ifeq ($(PLATFORM),amd64)
 	BARCH = amd64
 endif
 
+ifeq ($(PLATFORM),arm32)
+	KARCH = arm32
+	UARCH = arm32
+	BARCH = arm32
+endif
+
 ifeq ($(PLATFORM),ia32)
 	KARCH = ia32
 	UARCH = ia32

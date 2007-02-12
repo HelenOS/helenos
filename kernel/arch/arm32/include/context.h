@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef KERN_arm32_CONTEXT_H_
+#define KERN_arm32_CONTEXT_H_
 
-static inline int isdigit(int c)
-{
-	return ((c >= '0' )&&( c <= '9'));
-}
+/*
+ * Put one item onto the stack to support get_stack_base() and align it up.
+ */
+#define SP_DELTA	0	/* TODO */
 
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
+
+#ifndef __ASM__
+
+#include <arch/types.h>
+
+/*
+ * Only save registers that must be preserved across function calls.
+ */
+typedef struct {
+	uintptr_t sp;
+	uintptr_t pc;
+	ipl_t ipl;
+} context_t;
+
+#endif /* __ASM__ */
 
 #endif
 

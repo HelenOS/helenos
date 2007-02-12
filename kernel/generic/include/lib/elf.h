@@ -64,6 +64,7 @@
 #define EM_MIPS_RS3_LE	10	/* MIPS RS3000 LE */
 #define EM_PPC		20	/* PPC32 */
 #define EM_PPC64	21	/* PPC64 */
+#define EM_ARM		40	/* ARM */
 #define EM_SPARCV9	43	/* SPARC64 */
 #define EM_IA_64	50	/* IA-64 */
 #define EM_X86_64	62	/* AMD64/EMT64 */

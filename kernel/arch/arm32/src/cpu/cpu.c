@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <cpu.h>
+#include <print.h>	
 
-static inline int isdigit(int c)
+void cpu_arch_init(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
 }
 
-static inline int isspace(int c)
+void cpu_identify(void)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
 }
 
-#endif
+void cpu_print_report(cpu_t *m)
+{
+	/* TODO */
+}
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef LIBC_arm32_THREAD_H_
+#define LIBC_arm32_THREAD_H_
 
-static inline int isdigit(int c)
+#include <unistd.h>
+
+#define THREAD_INITIAL_STACK_PAGES_NO 1
+
+typedef struct {
+	void *pst_data;
+	/* TODO */
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
 }
 
-static inline int isspace(int c)
+static inline tcb_t *__tcb_get(void)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
+	return NULL;
 }
 
 #endif

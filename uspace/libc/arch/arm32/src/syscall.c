@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32
  * @{
  */
 /** @file
+  * @ingroup libcarm32	
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <libc.h>
 
-static inline int isdigit(int c)
+sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
+    const sysarg_t p4, const syscall_t id)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	/* TODO */
+	return 0;
 }
-
-static inline int isspace(int c)
-{
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
-}
-
-#endif
 
 /** @}
  */

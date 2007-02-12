@@ -65,6 +65,7 @@
 #include <mm/slab.h>
 #include <bitops.h>
 #include <macros.h>
+#include <config.h>
 
 typedef struct {
 	count_t refcount;	/**< tracking of shared frames  */

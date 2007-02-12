@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32mm	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#include <arch/mm/page.h>
+#include <genarch/mm/page_pt.h>
+#include <mm/page.h>
 
-static inline int isdigit(int c)
+void page_arch_init(void)
 {
-	return ((c >= '0' )&&( c <= '9'));
+	page_mapping_operations = &pt_mapping_operations;
 }
 
-static inline int isspace(int c)
+/** Map device into kernel space. */
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
-	switch(c) {
-	case ' ':
-	case '\n':
-	case '\t':
-	case '\f':
-	case '\r':
-	case '\v':
-		return 1;
-		break;
-	default:
-		return 0;
-	}
+	/* TODO */
+	return NULL;
 }
-
-#endif
 
 /** @}
  */
