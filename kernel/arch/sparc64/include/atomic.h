@@ -105,7 +105,7 @@ static inline long test_and_set(atomic_t *val)
 static inline void atomic_lock_arch(atomic_t *val)
 {
 	uint64_t tmp1 = 1;
-	uint64_t tmp2;
+	uint64_t tmp2 = 0;
 
 	volatile uintptr_t x = (uint64_t) &val->count;
 
