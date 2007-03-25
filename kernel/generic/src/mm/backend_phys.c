@@ -32,7 +32,8 @@
 
 /**
  * @file
- * @brief	Backend for address space areas backed by continuous physical memory.
+ * @brief	Backend for address space areas backed by continuous physical
+ * 		memory.
  */
 
 #include <debug.h>
@@ -62,7 +63,8 @@ mem_backend_t phys_backend = {
  * @param addr Faulting virtual address.
  * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
+ * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
+ * serviced).
  */
 int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
@@ -72,7 +74,8 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		return AS_PF_FAULT;
 
 	ASSERT(addr - area->base < area->backend_data.frames * FRAME_SIZE);
-	page_mapping_insert(AS, addr, base + (addr - area->base), as_area_get_flags(area));
+	page_mapping_insert(AS, addr, base + (addr - area->base),
+	    as_area_get_flags(area));
         if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
                 panic("Could not insert used space.\n");
 

@@ -71,7 +71,8 @@ mem_backend_t elf_backend = {
  * @param addr Faulting virtual address.
  * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
+ * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
+ *     serviced).
  */
 int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
@@ -84,7 +85,8 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	ASSERT((addr >= entry->p_vaddr) && (addr < entry->p_vaddr + entry->p_memsz));
+	ASSERT((addr >= entry->p_vaddr) &&
+	    (addr < entry->p_vaddr + entry->p_memsz));
 	i = (addr - entry->p_vaddr) >> PAGE_WIDTH;
 	base = (uintptr_t) (((void *) elf) + entry->p_offset);
 	ASSERT(ALIGN_UP(base, FRAME_SIZE) == base);
@@ -107,7 +109,8 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			 */
 
 			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == ALIGN_DOWN(addr, PAGE_SIZE)) {
+				if (leaf->key[i] ==
+				    ALIGN_DOWN(addr, PAGE_SIZE)) {
 					found = true;
 					break;
 				}
@@ -115,8 +118,10 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		}
 		if (frame || found) {
 			frame_reference_add(ADDR2PFN(frame));
-			page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-			if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+			page_mapping_insert(AS, addr, frame,
+			    as_area_get_flags(area));
+			if (!used_space_insert(area,
+			    ALIGN_DOWN(addr, PAGE_SIZE), 1))
 				panic("Could not insert used space.\n");
 			mutex_unlock(&area->sh_info->lock);
 			return AS_PF_OK;
@@ -124,10 +129,12 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	}
 	
 	/*
-	 * The area is either not shared or the pagemap does not contain the mapping.
+	 * The area is either not shared or the pagemap does not contain the
+	 * mapping.
 	 */
 	
-	if (ALIGN_DOWN(addr, PAGE_SIZE) + PAGE_SIZE < entry->p_vaddr + entry->p_filesz) {
+	if (ALIGN_DOWN(addr, PAGE_SIZE) + PAGE_SIZE <
+	    entry->p_vaddr + entry->p_filesz) {
 		/*
 		 * Initialized portion of the segment. The memory is backed
 		 * directly by the content of the ELF image. Pages are
@@ -138,18 +145,21 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		if (entry->p_flags & PF_W) {
 			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
-			memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), FRAME_SIZE);
+			memcpy((void *) PA2KA(frame),
+			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
 			
 			if (area->sh_info) {
 				frame_reference_add(ADDR2PFN(frame));
-				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
-					(void *) frame, leaf);
+				btree_insert(&area->sh_info->pagemap,
+				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
+				    (void *) frame, leaf);
 			}
 
 		} else {
 			frame = KA2PA(base + i*FRAME_SIZE);
 		}	
-	} else if (ALIGN_DOWN(addr, PAGE_SIZE) >= ALIGN_UP(entry->p_vaddr + entry->p_filesz, PAGE_SIZE)) {
+	} else if (ALIGN_DOWN(addr, PAGE_SIZE) >=
+	    ALIGN_UP(entry->p_vaddr + entry->p_filesz, PAGE_SIZE)) {
 		/*
 		 * This is the uninitialized portion of the segment.
 		 * It is not physically present in the ELF image.
@@ -161,8 +171,9 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 
 		if (area->sh_info) {
 			frame_reference_add(ADDR2PFN(frame));
-			btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
-				(void *) frame, leaf);
+			btree_insert(&area->sh_info->pagemap,
+			    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
+			    (void *) frame, leaf);
 		}
 
 	} else {
@@ -175,12 +186,14 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		size = entry->p_filesz - (i<<PAGE_WIDTH);
 		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame) + size, FRAME_SIZE - size, 0);
-		memcpy((void *) PA2KA(frame), (void *) (base + i*FRAME_SIZE), size);
+		memcpy((void *) PA2KA(frame), (void *) (base + i * FRAME_SIZE),
+		    size);
 
 		if (area->sh_info) {
 			frame_reference_add(ADDR2PFN(frame));
-			btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
-				(void *) frame, leaf);
+			btree_insert(&area->sh_info->pagemap,
+			    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
+			    (void *) frame, leaf);
 		}
 
 	}
@@ -211,15 +224,18 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	uintptr_t base;
 	index_t i;
 	
-	ASSERT((page >= entry->p_vaddr) && (page < entry->p_vaddr + entry->p_memsz));
+	ASSERT((page >= entry->p_vaddr) &&
+	    (page < entry->p_vaddr + entry->p_memsz));
 	i = (page - entry->p_vaddr) >> PAGE_WIDTH;
 	base = (uintptr_t) (((void *) elf) + entry->p_offset);
 	ASSERT(ALIGN_UP(base, FRAME_SIZE) == base);
 	
-	if (page + PAGE_SIZE < ALIGN_UP(entry->p_vaddr + entry->p_filesz, PAGE_SIZE)) {
+	if (page + PAGE_SIZE <
+	    ALIGN_UP(entry->p_vaddr + entry->p_filesz, PAGE_SIZE)) {
 		if (entry->p_flags & PF_W) {
 			/*
-			 * Free the frame with the copy of writable segment data.
+			 * Free the frame with the copy of writable segment
+			 * data.
 			 */
 			frame_free(frame);
 #ifdef CONFIG_VIRT_IDX_DCACHE
@@ -228,9 +244,9 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		}
 	} else {
 		/*
-		 * The frame is either anonymous memory or the mixed case (i.e. lower
-		 * part is backed by the ELF image and the upper is anonymous).
-		 * In any case, a frame needs to be freed.
+		 * The frame is either anonymous memory or the mixed case (i.e.
+		 * lower part is backed by the ELF image and the upper is
+		 * anonymous). In any case, a frame needs to be freed.
 		 */
 		frame_free(frame); 
 #ifdef CONFIG_VIRT_IDX_DCACHE
@@ -260,10 +276,12 @@ void elf_share(as_area_t *area)
 	 * Find the node in which to start linear search.
 	 */
 	if (area->flags & AS_AREA_WRITE) {
-		node = list_get_instance(area->used_space.leaf_head.next, btree_node_t, leaf_link);
+		node = list_get_instance(area->used_space.leaf_head.next,
+		    btree_node_t, leaf_link);
 	} else {
 		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
-		node = btree_leaf_node_left_neighbour(&area->sh_info->pagemap, leaf);
+		node = btree_leaf_node_left_neighbour(&area->sh_info->pagemap,
+		    leaf);
 		if (!node)
 			node = leaf;
 	}
@@ -272,7 +290,8 @@ void elf_share(as_area_t *area)
 	 * Copy used anonymous portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head; cur = cur->next) {
+	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
+	    cur = cur->next) {
 		int i;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
@@ -294,19 +313,26 @@ void elf_share(as_area_t *area)
 				pte_t *pte;
 			
 				/*
-				 * Skip read-only pages that are backed by the ELF image.
+				 * Skip read-only pages that are backed by the
+				 * ELF image.
 				 */
 				if (!(area->flags & AS_AREA_WRITE))
-					if (base + (j + 1)*PAGE_SIZE <= start_anon)
+					if (base + (j + 1) * PAGE_SIZE <=
+					    start_anon)
 						continue;
 				
 				page_table_lock(area->as, false);
-				pte = page_mapping_find(area->as, base + j*PAGE_SIZE);
-				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-				btree_insert(&area->sh_info->pagemap, (base + j*PAGE_SIZE) - area->base,
+				pte = page_mapping_find(area->as,
+				    base + j * PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) &&
+				    PTE_PRESENT(pte));
+				btree_insert(&area->sh_info->pagemap,
+				    (base + j * PAGE_SIZE) - area->base,
 					(void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
-				frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
+
+				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
+				frame_reference_add(pfn);
 			}
 				
 		}
@@ -316,3 +342,4 @@ void elf_share(as_area_t *area)
 
 /** @}
  */
+

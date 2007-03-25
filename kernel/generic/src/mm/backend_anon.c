@@ -72,7 +72,8 @@ mem_backend_t anon_backend = {
  * @param addr Faulting virtual address.
  * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e. serviced).
+ * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
+ *     serviced).
  */
 int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
@@ -86,7 +87,8 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		
 		/*
 		 * The area is shared, chances are that the mapping can be found
-		 * in the pagemap of the address space area share info structure.
+		 * in the pagemap of the address space area share info
+		 * structure.
 		 * In the case that the pagemap does not contain the respective
 		 * mapping, a new frame is allocated and the mapping is created.
 		 */
@@ -102,7 +104,8 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			 * Just a small workaround.
 			 */
 			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == ALIGN_DOWN(addr, PAGE_SIZE)) {
+				if (leaf->key[i] ==
+				    ALIGN_DOWN(addr, PAGE_SIZE)) {
 					allocate = false;
 					break;
 				}
@@ -112,9 +115,12 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 				memsetb(PA2KA(frame), FRAME_SIZE, 0);
 				
 				/*
-				 * Insert the address of the newly allocated frame to the pagemap.
+				 * Insert the address of the newly allocated
+				 * frame to the pagemap.
 				 */
-				btree_insert(&area->sh_info->pagemap, ALIGN_DOWN(addr, PAGE_SIZE) - area->base, (void *) frame, leaf);
+				btree_insert(&area->sh_info->pagemap,
+				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
+				    (void *) frame, leaf);
 			}
 		}
 		frame_reference_add(ADDR2PFN(frame));
@@ -141,8 +147,8 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	
 	/*
 	 * Map 'page' to 'frame'.
-	 * Note that TLB shootdown is not attempted as only new information is being
-	 * inserted into page tables.
+	 * Note that TLB shootdown is not attempted as only new information is
+	 * being inserted into page tables.
 	 */
 	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
 	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
@@ -184,7 +190,8 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = area->used_space.leaf_head.next; cur != &area->used_space.leaf_head; cur = cur->next) {
+	for (cur = area->used_space.leaf_head.next;
+	    cur != &area->used_space.leaf_head; cur = cur->next) {
 		btree_node_t *node;
 		int i;
 		
@@ -198,12 +205,17 @@ void anon_share(as_area_t *area)
 				pte_t *pte;
 			
 				page_table_lock(area->as, false);
-				pte = page_mapping_find(area->as, base + j*PAGE_SIZE);
-				ASSERT(pte && PTE_VALID(pte) && PTE_PRESENT(pte));
-				btree_insert(&area->sh_info->pagemap, (base + j*PAGE_SIZE) - area->base,
-					(void *) PTE_GET_FRAME(pte), NULL);
+				pte = page_mapping_find(area->as,
+				    base + j * PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) &&
+				    PTE_PRESENT(pte));
+				btree_insert(&area->sh_info->pagemap,
+				    (base + j * PAGE_SIZE) - area->base,
+				    (void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
-				frame_reference_add(ADDR2PFN(PTE_GET_FRAME(pte)));
+
+				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
+				frame_reference_add(pfn);
 			}
 				
 		}
@@ -213,3 +225,4 @@ void anon_share(as_area_t *area)
 
 /** @}
  */
+
