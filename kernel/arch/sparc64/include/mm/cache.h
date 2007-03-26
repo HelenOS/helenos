@@ -43,9 +43,43 @@
 #define dcache_flush_frame(p, f) \
 	dcache_flush_tag(PAGE_COLOR((p)), ADDR2PFN((f)));
 
+/**
+ * Enumerations to differentiate among different scopes of D-Cache
+ * invalidation.
+ */
+typedef enum {
+	DCACHE_INVL_INVALID,
+	DCACHE_INVL_ALL,
+	DCACHE_INVL_COLOR,
+	DCACHE_INVL_FRAME
+} dcache_invalidate_type_t;
+
+/**
+ * Number of messages that can be queued in the cpu_arch_t structure at a time.
+ */
+#define DCACHE_MSG_QUEUE_LEN	10
+
+/** D-cache shootdown message type. */
+typedef struct {
+	dcache_invalidate_type_t type;
+	int color;
+	uintptr_t frame;
+} dcache_shootdown_msg_t;
+
 extern void dcache_flush(void);
 extern void dcache_flush_color(int c);
 extern void dcache_flush_tag(int c, pfn_t tag);
+
+#ifdef CONFIG_SMP
+extern void dcache_shootdown_start(dcache_invalidate_type_t type, int color,
+    uintptr_t frame);
+extern void dcache_shootdown_finalize(void);
+extern void dcache_shootdown_ipi_recv(void); 
+#else
+#define dcache_shootdown_start(t, c, f)
+#define dcache_shootdown_finalize()
+#define dcache_shootdown_ipi_recv()
+#endif /* CONFIG_SMP */
 
 #endif
 

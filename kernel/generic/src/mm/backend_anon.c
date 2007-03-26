@@ -78,6 +78,7 @@ mem_backend_t anon_backend = {
 int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	uintptr_t frame;
+	bool dirty = false;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -94,7 +95,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		mutex_lock(&area->sh_info->lock);
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
+		    ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
 			bool allocate = true;
 			int i;
@@ -113,6 +114,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			if (allocate) {
 				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 				memsetb(PA2KA(frame), FRAME_SIZE, 0);
+				dirty = true;
 				
 				/*
 				 * Insert the address of the newly allocated
@@ -143,6 +145,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
+		dirty = true;
 	}
 	
 	/*
@@ -154,6 +157,21 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
 		panic("Could not insert used space.\n");
 		
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (dirty && PAGE_COLOR(PA2KA(frame)) != PAGE_COLOR(addr)) {
+		/*
+		 * By writing to the frame using kernel virtual address,
+		 * we have created an illegal virtual alias. We now have to
+		 * invalidate cachelines belonging to addr on all processors
+		 * so that they will be reloaded with the new content on next
+		 * read.
+		 */
+		dcache_flush_frame(addr, frame);
+		dcache_shootdown_start(DCACHE_INVL_FRAME, PAGE_COLOR(addr), frame);
+		dcache_shootdown_finalize();
+	}
+#endif
+
 	return AS_PF_OK;
 }
 
@@ -168,9 +186,6 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	frame_free(frame);
-#ifdef CONFIG_VIRT_IDX_DCACHE
-	dcache_flush_frame(page, frame);
-#endif
 }
 
 /** Share the anonymous address space area.
@@ -217,7 +232,7 @@ void anon_share(as_area_t *area)
 				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
 				frame_reference_add(pfn);
 			}
-				
+
 		}
 	}
 	mutex_unlock(&area->sh_info->lock);

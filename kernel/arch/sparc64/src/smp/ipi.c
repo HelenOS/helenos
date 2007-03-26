@@ -39,6 +39,7 @@
 #include <arch/asm.h>
 #include <config.h>
 #include <mm/tlb.h>
+#include <arch/mm/cache.h>
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <arch/barrier.h>
@@ -78,9 +79,9 @@ static void cross_call(int mid, void (* func)(void))
 			func);
 		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_1, 0);
 		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_2, 0);
-		asi_u64_write(ASI_UDB_INTR_W, (mid <<
-			INTR_VEC_DISPATCH_MID_SHIFT) | ASI_UDB_INTR_W_DISPATCH,
-			0);
+		asi_u64_write(ASI_UDB_INTR_W,
+		    (mid << INTR_VEC_DISPATCH_MID_SHIFT) |
+		    ASI_UDB_INTR_W_DISPATCH, 0);
 	
 		membar();
 		
@@ -124,6 +125,11 @@ void ipi_broadcast_arch(int ipi)
 	case IPI_TLB_SHOOTDOWN:
 		func = tlb_shootdown_ipi_recv;
 		break;
+#if (defined(CONFIG_SMP) && (defined(CONFIG_VIRT_IDX_DCACHE)))
+	case IPI_DCACHE_SHOOTDOWN:
+		func = dcache_shootdown_ipi_recv;
+		break;
+#endif
 	default:
 		panic("Unknown IPI (%d).\n", ipi);
 		break;

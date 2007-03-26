@@ -39,6 +39,10 @@
 #include <arch/register.h>
 #include <arch/asm.h>
 
+#ifdef CONFIG_SMP
+#include <arch/mm/cache.h>
+#endif
+
 #define MANUF_FUJITSU		0x04
 #define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */
 #define MANUF_SUN		0x3e
@@ -53,12 +57,18 @@
 #define IMPL_SPARC64V		0x5
 
 typedef struct {
-	uint32_t mid;			/**< Processor ID as read from UPA_CONFIG. */
+	uint32_t mid;			/**< Processor ID as read from
+					     UPA_CONFIG. */
 	ver_reg_t ver;
 	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
 	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-									 generated when the TICK register
-									 matches this value. */
+					     generated when the TICK register
+					     matches this value. */
+#ifdef CONFIG_SMP
+	int dcache_active;
+	dcache_shootdown_msg_t dcache_messages[DCACHE_MSG_QUEUE_LEN];
+	count_t dcache_message_count;
+#endif
 } cpu_arch_t;
 	
 #endif

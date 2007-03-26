@@ -482,10 +482,10 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	mmu_primary_context_write(ctx.v);
 	
 	for (i = 0; i < cnt; i++) {
-		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i *
-			PAGE_SIZE);
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY, page + i *
-			PAGE_SIZE);
+		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
+		    page + i * PAGE_SIZE);
+		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
+		    page + i * PAGE_SIZE);
 	}
 	
 	mmu_primary_context_write(pc_save.v);

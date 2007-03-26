@@ -44,6 +44,7 @@
 #include <print.h>
 #include <arch.h>
 #include <mm/tlb.h>
+#include <arch/mm/cache.h>
 #include <config.h>
 #include <synch/spinlock.h>
 
@@ -83,13 +84,17 @@ void interrupt(int n, istate_t *istate)
 	} else if (data0 > config.base) {
 		/*
 		 * This is a cross-call.
-		 * data0 contains address of kernel function.
+		 * data0 contains address of the kernel function.
 		 * We call the function only after we verify
-		 * it is on of the supported ones.
+		 * it is one of the supported ones.
 		 */
 #ifdef CONFIG_SMP
 		if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
 			tlb_shootdown_ipi_recv();
+#ifdef CONFIG_VIRT_IDX_DCACHE
+		} else if (data0 == (uintptr_t) dcache_shootdown_ipi_recv) {
+			dcache_shootdown_ipi_recv();
+#endif
 		}
 #endif
 	} else {

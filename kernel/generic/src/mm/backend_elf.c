@@ -81,6 +81,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	btree_node_t *leaf;
 	uintptr_t base, frame;
 	index_t i;
+	bool dirty = false;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -147,7 +148,8 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 			memcpy((void *) PA2KA(frame),
 			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
-			
+			dirty = true;
+
 			if (area->sh_info) {
 				frame_reference_add(ADDR2PFN(frame));
 				btree_insert(&area->sh_info->pagemap,
@@ -168,6 +170,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 		memsetb(PA2KA(frame), FRAME_SIZE, 0);
+		dirty = true;
 
 		if (area->sh_info) {
 			frame_reference_add(ADDR2PFN(frame));
@@ -188,6 +191,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		memsetb(PA2KA(frame) + size, FRAME_SIZE - size, 0);
 		memcpy((void *) PA2KA(frame), (void *) (base + i * FRAME_SIZE),
 		    size);
+		dirty = true;
 
 		if (area->sh_info) {
 			frame_reference_add(ADDR2PFN(frame));
@@ -204,6 +208,21 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
 	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
 		panic("Could not insert used space.\n");
+
+#ifdef CONFIG_VIRT_IDX_DCACHE
+	if (dirty && PAGE_COLOR(PA2KA(frame)) != PAGE_COLOR(addr)) {
+		/*
+		 * By writing to the frame using kernel virtual address,
+		 * we have created an illegal virtual alias. We now have to
+		 * invalidate cachelines belonging to addr on all processors
+		 * so that they will be reloaded with the new content on next
+		 * read.
+		 */
+		dcache_flush_frame(addr, frame);
+		dcache_shootdown_start(DCACHE_INVL_FRAME, PAGE_COLOR(addr), frame);
+		dcache_shootdown_finalize();
+	}
+#endif
 
 	return AS_PF_OK;
 }
@@ -238,20 +257,14 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 			 * data.
 			 */
 			frame_free(frame);
-#ifdef CONFIG_VIRT_IDX_DCACHE
-		        dcache_flush_frame(page, frame);
-#endif
 		}
 	} else {
 		/*
 		 * The frame is either anonymous memory or the mixed case (i.e.
 		 * lower part is backed by the ELF image and the upper is
 		 * anonymous). In any case, a frame needs to be freed.
-		 */
-		frame_free(frame); 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-	        dcache_flush_frame(page, frame);
-#endif
+		 */ 
+		frame_free(frame);
 	}
 }
 
