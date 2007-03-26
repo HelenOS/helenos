@@ -78,7 +78,8 @@ void tlb_init(void)
  * @param page Virtual page address, if required by type.
  * @param count Number of pages, if required by type.
  */
-void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, uintptr_t page, count_t count)
+void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
+    uintptr_t page, count_t count)
 {
 	int i;
 
@@ -107,11 +108,11 @@ void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid, uintptr_t page
 			/*
 			 * Enqueue the message.
 			 */
-			cpu->tlb_messages[cpu->tlb_messages_count].type = type;
-			cpu->tlb_messages[cpu->tlb_messages_count].asid = asid;
-			cpu->tlb_messages[cpu->tlb_messages_count].page = page;
-			cpu->tlb_messages[cpu->tlb_messages_count].count = count;
-			cpu->tlb_messages_count++;
+			index_t idx = cpu->tlb_messages_count++;
+			cpu->tlb_messages[idx].type = type;
+			cpu->tlb_messages[idx].asid = asid;
+			cpu->tlb_messages[idx].page = page;
+			cpu->tlb_messages[idx].count = count;
 		}
 		spinlock_unlock(&cpu->lock);
 	}

@@ -411,7 +411,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 				int i = 0;
 			
 				if (overlaps(b, c * PAGE_SIZE, area->base,
-				    pages*PAGE_SIZE)) {
+				    pages * PAGE_SIZE)) {
 					
 					if (b + c * PAGE_SIZE <= start_free) {
 						/*
@@ -553,7 +553,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 				if (area->backend &&
 				    area->backend->frame_free) {
 					area->backend->frame_free(area,	b +
-					j * PAGE_SIZE, PTE_GET_FRAME(pte));
+					    j * PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
 				page_mapping_remove(as, b + j * PAGE_SIZE);				
 				page_table_unlock(as, false);

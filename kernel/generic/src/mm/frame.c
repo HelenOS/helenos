@@ -70,16 +70,19 @@
 typedef struct {
 	count_t refcount;	/**< tracking of shared frames  */
 	uint8_t buddy_order;	/**< buddy system block order */
-	link_t buddy_link;	/**< link to the next free block inside one order */
+	link_t buddy_link;	/**< link to the next free block inside one
+				     order */
 	void *parent;           /**< If allocated by slab, this points there */
 } frame_t;
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);	/**< this lock protects everything below */
-	pfn_t base;		/**< frame_no of the first frame in the frames array */
+	pfn_t base;		/**< frame_no of the first frame in the frames
+				     array */
 	count_t count;          /**< Size of zone */
 
-	frame_t *frames;	/**< array of frame_t structures in this zone */
+	frame_t *frames;	/**< array of frame_t structures in this
+				     zone */
 	count_t free_count;	/**< number of free frame_t structures */
 	count_t busy_count;	/**< number of busy frame_t structures */
 	
@@ -157,8 +160,8 @@ static int zones_add_zone(zone_t *newzone)
 	for (i = 0; i < zones.count; i++) {
 		/* Check for overflow */
 		z = zones.info[i];
-		if (overlaps(newzone->base,newzone->count,
-			     z->base, z->count)) {
+		if (overlaps(newzone->base,newzone->count, z->base,
+		    z->count)) {
 			printf("Zones overlap!\n");
 			return -1;
 		}
@@ -166,7 +169,7 @@ static int zones_add_zone(zone_t *newzone)
 			break;
 	}
 	/* Move other zones up */
-	for (j = i;j < zones.count; j++)
+	for (j = i; j < zones.count; j++)
 		zones.info[j + 1] = zones.info[j];
 	zones.info[i] = newzone;
 	zones.count++;
@@ -202,7 +205,8 @@ static zone_t * find_zone_and_lock(pfn_t frame, unsigned int *pzone)
 		z = zones.info[i];
 		spinlock_lock(&z->lock);
 		if (z->base <= frame && z->base + z->count > frame) {
-			spinlock_unlock(&zones.lock); /* Unlock the global lock */
+			/* Unlock the global lock */
+			spinlock_unlock(&zones.lock); 
 			if (pzone)
 				*pzone = i;
 			return z;
@@ -229,7 +233,8 @@ static int zone_can_alloc(zone_t *z, uint8_t order)
  * Assume interrupts are disabled.
  *
  * @param order Size (2^order) of free space we are trying to find
- * @param pzone Pointer to preferred zone or NULL, on return contains zone number
+ * @param pzone Pointer to preferred zone or NULL, on return contains zone
+ * 		number
  */
 static zone_t * find_free_zone_and_lock(uint8_t order, unsigned int *pzone)
 {
@@ -273,10 +278,10 @@ static zone_t * find_free_zone_and_lock(uint8_t order, unsigned int *pzone)
  * @param order - Order of parent must be different then this parameter!!
  */
 static link_t *zone_buddy_find_block(buddy_system_t *b, link_t *child,
-				     uint8_t order)
+    uint8_t order)
 {
-	frame_t * frame;
-	zone_t * zone;
+	frame_t *frame;
+	zone_t *zone;
 	index_t index;
 	
 	frame = list_get_instance(child, frame_t, buddy_link);
@@ -293,8 +298,8 @@ static link_t *zone_buddy_find_block(buddy_system_t *b, link_t *child,
 
 static void zone_buddy_print_id(buddy_system_t *b, link_t *block)
 {
-	frame_t * frame;
-	zone_t * zone;
+	frame_t *frame;
+	zone_t *zone;
 	index_t index;
 
 	frame = list_get_instance(block, frame_t, buddy_link);
@@ -310,16 +315,17 @@ static void zone_buddy_print_id(buddy_system_t *b, link_t *block)
  *
  * @return Buddy for given block if found
  */
-static link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block) 
+static link_t *zone_buddy_find_buddy(buddy_system_t *b, link_t *block) 
 {
-	frame_t * frame;
-	zone_t * zone;
+	frame_t *frame;
+	zone_t *zone;
 	index_t index;
 	bool is_left, is_right;
 
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
-	ASSERT(IS_BUDDY_ORDER_OK(frame_index_abs(zone, frame), frame->buddy_order));
+	ASSERT(IS_BUDDY_ORDER_OK(frame_index_abs(zone, frame),
+	    frame->buddy_order));
 	
 	is_left = IS_BUDDY_LEFT_BLOCK_ABS(zone, frame);
 	is_right = IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame);
@@ -348,8 +354,8 @@ static link_t * zone_buddy_find_buddy(buddy_system_t *b, link_t * block)
  *
  * @return right block
  */
-static link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
-	frame_t * frame_l, * frame_r;
+static link_t * zone_buddy_bisect(buddy_system_t *b, link_t *block) {
+	frame_t *frame_l, *frame_r;
 
 	frame_l = list_get_instance(block, frame_t, buddy_link);
 	frame_r = (frame_l + (1 << (frame_l->buddy_order - 1)));
@@ -365,8 +371,8 @@ static link_t * zone_buddy_bisect(buddy_system_t *b, link_t * block) {
  *
  * @return Coalesced block (actually block that represents lower address)
  */
-static link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1, 
-				    link_t * block_2) 
+static link_t *zone_buddy_coalesce(buddy_system_t *b, link_t *block_1, 
+    link_t *block_2) 
 {
 	frame_t *frame1, *frame2;
 	
@@ -382,8 +388,9 @@ static link_t * zone_buddy_coalesce(buddy_system_t *b, link_t * block_1,
  * @param block Buddy system block
  * @param order Order to set
  */
-static void zone_buddy_set_order(buddy_system_t *b, link_t * block, uint8_t order) {
-	frame_t * frame;
+static void zone_buddy_set_order(buddy_system_t *b, link_t *block,
+    uint8_t order) {
+	frame_t *frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	frame->buddy_order = order;
 }
@@ -395,8 +402,8 @@ static void zone_buddy_set_order(buddy_system_t *b, link_t * block, uint8_t orde
  *
  * @return Order of block
  */
-static uint8_t zone_buddy_get_order(buddy_system_t *b, link_t * block) {
-	frame_t * frame;
+static uint8_t zone_buddy_get_order(buddy_system_t *b, link_t *block) {
+	frame_t *frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	return frame->buddy_order;
 }
@@ -420,8 +427,8 @@ static void zone_buddy_mark_busy(buddy_system_t *b, link_t * block) {
  * @param block Buddy system block
  *
  */
-static void zone_buddy_mark_available(buddy_system_t *b, link_t * block) {
-	frame_t * frame;
+static void zone_buddy_mark_available(buddy_system_t *b, link_t *block) {
+	frame_t *frame;
 	frame = list_get_instance(block, frame_t, buddy_link);
 	frame->refcount = 0;
 }
@@ -520,8 +527,8 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
 	frame = zone_get_frame(zone, frame_idx);
 	if (frame->refcount)
 		return;
-	link = buddy_system_alloc_block(zone->buddy_system, 
-					&frame->buddy_link);
+	link = buddy_system_alloc_block(zone->buddy_system,
+	    &frame->buddy_link);
 	ASSERT(link);
 	zone->free_count--;
 }
@@ -545,12 +552,12 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 	pfn_t frame_idx;
 	frame_t *frame;
 
-	ASSERT(!overlaps(z1->base,z1->count,z2->base,z2->count));
+	ASSERT(!overlaps(z1->base, z1->count, z2->base, z2->count));
 	ASSERT(z1->base < z2->base);
 
 	spinlock_initialize(&z->lock, "zone_lock");
 	z->base = z1->base;
-	z->count = z2->base+z2->count - z1->base;
+	z->count = z2->base + z2->count - z1->base;
 	z->flags = z1->flags & z2->flags;
 
 	z->free_count = z1->free_count + z2->free_count;
@@ -558,12 +565,12 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 	
 	max_order = fnzb(z->count);
 
-	z->buddy_system = (buddy_system_t *)&z[1];
-	buddy_system_create(z->buddy_system, max_order, 
-			    &zone_buddy_system_operations, 
-			    (void *) z);
+	z->buddy_system = (buddy_system_t *) &z[1];
+	buddy_system_create(z->buddy_system, max_order,
+	    &zone_buddy_system_operations, (void *) z);
 
-	z->frames = (frame_t *)((uint8_t *) z->buddy_system + buddy_conf_size(max_order));
+	z->frames = (frame_t *)((uint8_t *) z->buddy_system +
+	    buddy_conf_size(max_order));
 	for (i = 0; i < z->count; i++) {
 		/* This marks all frames busy */
 		frame_initialize(&z->frames[i]);
@@ -603,7 +610,7 @@ static void _zone_merge(zone_t *z, zone_t *z1, zone_t *z2)
 	}
 	while (zone_can_alloc(z2, 0)) {
 		frame_idx = zone_frame_alloc(z2, 0);
-		frame = &z->frames[frame_idx + (z2->base-z1->base)];
+		frame = &z->frames[frame_idx + (z2->base - z1->base)];
 		frame->refcount = 0;
 		buddy_system_free(z->buddy_system, &frame->buddy_link);
 	}
@@ -668,7 +675,7 @@ static void zone_reduce_region(zone_t *zone, pfn_t frame_idx, count_t count)
 	for (i = 0; i < (count_t) (1 << order); i++) {
 		frame = &zone->frames[i + frame_idx];
 		frame->buddy_order = 0;
-		if (! frame->refcount)
+		if (!frame->refcount)
 			frame->refcount = 1;
 		ASSERT(frame->refcount == 1);
 	}
@@ -710,7 +717,8 @@ void zone_merge(unsigned int z1, unsigned int z2)
 	spinlock_lock(&zone1->lock);
 	spinlock_lock(&zone2->lock);
 
-	cframes = SIZE2FRAMES(zone_conf_size(zone2->base+zone2->count-zone1->base));
+	cframes = SIZE2FRAMES(zone_conf_size(zone2->base + zone2->count -
+	    zone1->base));
 	if (cframes == 1)
 		order = 0;
 	else 
@@ -803,7 +811,8 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	
 	/* Allocate frames _after_ the conframe */
 	/* Check sizes */
-	z->frames = (frame_t *)((uint8_t *) z->buddy_system + buddy_conf_size(max_order));
+	z->frames = (frame_t *)((uint8_t *) z->buddy_system +
+	    buddy_conf_size(max_order));
 	for (i = 0; i < count; i++) {
 		frame_initialize(&z->frames[i]);
 	}
@@ -865,16 +874,20 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 	if (confframe >= start && confframe < start+count) {
 		for (;confframe < start + count; confframe++) {
 			addr = PFN2ADDR(confframe);
-			if (overlaps(addr, PFN2ADDR(confcount), KA2PA(config.base), config.kernel_size))
+			if (overlaps(addr, PFN2ADDR(confcount),
+			    KA2PA(config.base), config.kernel_size))
 				continue;
 			
-			if (overlaps(addr, PFN2ADDR(confcount), KA2PA(config.stack_base), config.stack_size))
+			if (overlaps(addr, PFN2ADDR(confcount),
+			    KA2PA(config.stack_base), config.stack_size))
 				continue;
 			
 			bool overlap = false;
 			count_t i;
 			for (i = 0; i < init.cnt; i++)
-				if (overlaps(addr, PFN2ADDR(confcount), KA2PA(init.tasks[i].addr), init.tasks[i].size)) {
+				if (overlaps(addr, PFN2ADDR(confcount),
+				    KA2PA(init.tasks[i].addr),
+				    init.tasks[i].size)) {
 					overlap = true;
 					break;
 				}
@@ -915,7 +928,7 @@ void frame_set_parent(pfn_t pfn, void *data, unsigned int hint)
 	spinlock_unlock(&zone->lock);
 }
 
-void * frame_get_parent(pfn_t pfn, unsigned int hint)
+void *frame_get_parent(pfn_t pfn, unsigned int hint)
 {
 	zone_t *zone = find_zone_and_lock(pfn, &hint);
 	void *res;
@@ -1073,15 +1086,21 @@ void frame_init(void)
 	/* Tell the architecture to create some memory */
 	frame_arch_init();
 	if (config.cpu_active == 1) {
-		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)), SIZE2FRAMES(config.kernel_size));
-		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)), SIZE2FRAMES(config.stack_size));
+		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
+		    SIZE2FRAMES(config.kernel_size));
+		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)),
+		    SIZE2FRAMES(config.stack_size));
 		
 		count_t i;
-		for (i = 0; i < init.cnt; i++)
-			frame_mark_unavailable(ADDR2PFN(KA2PA(init.tasks[i].addr)), SIZE2FRAMES(init.tasks[i].size));
+		for (i = 0; i < init.cnt; i++) {
+			pfn_t pfn = ADDR2PFN(KA2PA(init.tasks[i].addr));
+			frame_mark_unavailable(pfn,
+			    SIZE2FRAMES(init.tasks[i].size));
+		}
 
 		if (ballocs.size)
-			frame_mark_unavailable(ADDR2PFN(KA2PA(ballocs.base)), SIZE2FRAMES(ballocs.size));
+			frame_mark_unavailable(ADDR2PFN(KA2PA(ballocs.base)),
+			    SIZE2FRAMES(ballocs.size));
 
 		/* Black list first frame, as allocating NULL would
 		 * fail in some places */
@@ -1106,7 +1125,8 @@ void zone_print_list(void) {
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%-2d %12p %12zd %12zd\n", i, PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
+		printf("%-2d %12p %12zd %12zd\n", i, PFN2ADDR(zone->base),
+		    zone->free_count, zone->busy_count);
 		spinlock_unlock(&zone->lock);
 	}
 	spinlock_unlock(&zones.lock);
@@ -1138,10 +1158,14 @@ void zone_print_one(unsigned int num) {
 	
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n");
-	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2, PFN2ADDR(zone->base));
-	printf("Zone size: %zd frames (%zdK)\n", zone->count, ((zone->count) * FRAME_SIZE) >> 10);
-	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count, (zone->busy_count * FRAME_SIZE) >> 10);
-	printf("Available space: %zd frames (%zdK)\n", zone->free_count, (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2,
+	    PFN2ADDR(zone->base));
+	printf("Zone size: %zd frames (%zdK)\n", zone->count,
+	    ((zone->count) * FRAME_SIZE) >> 10);
+	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count,
+	    (zone->busy_count * FRAME_SIZE) >> 10);
+	printf("Available space: %zd frames (%zdK)\n", zone->free_count,
+	    (zone->free_count * FRAME_SIZE) >> 10);
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	
 	spinlock_unlock(&zone->lock);
@@ -1152,3 +1176,4 @@ out:
 
 /** @}
  */
+
