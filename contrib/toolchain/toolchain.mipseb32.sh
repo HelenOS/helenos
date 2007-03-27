@@ -16,7 +16,7 @@ check_error() {
 }
 
 BINUTILS_VERSION="2.16.1"
-GCC_VERSION="4.1.1"
+GCC_VERSION="4.1.2"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -29,7 +29,6 @@ GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 PLATFORM="mips"
 WORKDIR=`pwd`
 TARGET="${PLATFORM}-sgi-irix5"
-HOST="i686-pc-linux-gnu"
 PREFIX="/usr/local/${PLATFORM}"
 BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
@@ -81,7 +80,7 @@ check_error $? "Error unpacking GCC C++."
 echo ">>> Compiling and installing binutils"
 cd "${BINUTILSDIR}"
 check_error $? "Change directory failed."
-./configure "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
+./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
 check_error $? "Error configuring binutils."
 make all install
 check_error $? "Error compiling/installing binutils."
@@ -89,7 +88,7 @@ check_error $? "Error compiling/installing binutils."
 echo ">>> Compiling and installing GCC"
 cd "${OBJDIR}"
 check_error $? "Change directory failed."
-"${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
+"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
 check_error $? "Error configuring GCC."
 PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 check_error $? "Error compiling/installing GCC."
