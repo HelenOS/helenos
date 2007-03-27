@@ -91,7 +91,7 @@ cd "${OBJDIR}"
 check_error $? "Change directory failed."
 "${GCCDIR}/configure" "--host=${HOST}" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
 check_error $? "Error configuring GCC."
-PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc all-target-libobjc install-target-libobjc
+PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 check_error $? "Error compiling/installing GCC."
 
 echo
