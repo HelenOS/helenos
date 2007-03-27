@@ -62,7 +62,7 @@ int as_constructor_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
 	int order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-		sizeof(tsb_entry_t)) >> FRAME_WIDTH);
+		sizeof(tsb_entry_t)) >> MMU_FRAME_WIDTH);
 	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
 
 	if (!tsb)
@@ -71,8 +71,8 @@ int as_constructor_arch(as_t *as, int flags)
 	as->arch.itsb = (tsb_entry_t *) tsb;
 	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
 		sizeof(tsb_entry_t));
-	memsetb((uintptr_t) as->arch.itsb, (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT)
-		* sizeof(tsb_entry_t), 0);
+	memsetb((uintptr_t) as->arch.itsb,
+	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
 #endif
 	return 0;
 }
@@ -81,7 +81,7 @@ int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
 	count_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-		sizeof(tsb_entry_t)) >> FRAME_WIDTH;
+		sizeof(tsb_entry_t)) >> MMU_FRAME_WIDTH;
 	frame_free(KA2PA((uintptr_t) as->arch.itsb));
 	return cnt;
 #else
@@ -139,7 +139,7 @@ void as_install_arch(as_t *as)
 
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-	if (!overlaps(tsb, 8 * PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need
@@ -158,9 +158,9 @@ void as_install_arch(as_t *as)
 	tsb_base.size = TSB_SIZE;
 	tsb_base.split = 0;
 
-	tsb_base.base = ((uintptr_t) as->arch.itsb) >> PAGE_WIDTH;
+	tsb_base.base = ((uintptr_t) as->arch.itsb) >> MMU_PAGE_WIDTH;
 	itsb_base_write(tsb_base.value);
-	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> PAGE_WIDTH;
+	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
 	dtsb_base_write(tsb_base.value);
 #endif
 }
@@ -189,7 +189,7 @@ void as_deinstall_arch(as_t *as)
 
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 		
-	if (!overlaps(tsb, 8 * PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need

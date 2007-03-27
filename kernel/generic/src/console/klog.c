@@ -90,8 +90,6 @@ void klog_init(void)
 	ddi_parea_register(&klog_parea);
 
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
-	sysinfo_set_item_val("klog.fcolor", NULL, (unative_t)
-		PAGE_COLOR((uintptr_t) klog));
 	sysinfo_set_item_val("klog.pages", NULL, 1 << KLOG_ORDER);
 	sysinfo_set_item_val("klog.devno", NULL, devno);
 	sysinfo_set_item_val("klog.inr", NULL, KLOG_VIRT_INR);

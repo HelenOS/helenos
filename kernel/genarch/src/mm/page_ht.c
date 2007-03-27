@@ -55,7 +55,8 @@ static index_t hash(unative_t key[]);
 static bool compare(unative_t key[], count_t keys, link_t *item);
 static void remove_callback(link_t *item);
 
-static void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+static void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+    int flags);
 static void ht_mapping_remove(as_t *as, uintptr_t page);
 static pte_t *ht_mapping_find(as_t *as, uintptr_t page);
 
@@ -103,14 +104,14 @@ index_t hash(unative_t key[])
 	 * of occurring. Least significant bits of VPN compose the
 	 * hash index.
 	 */
-	index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES-1));
+	index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES - 1));
 	
 	/*
 	 * Address space structures are likely to be allocated from
 	 * similar addresses. Least significant bits compose the
 	 * hash index.
 	 */
-	index |= ((unative_t) as) & (PAGE_HT_ENTRIES-1);
+	index |= ((unative_t) as) & (PAGE_HT_ENTRIES - 1);
 	
 	return index;
 }
@@ -136,7 +137,8 @@ bool compare(unative_t key[], count_t keys, link_t *item)
 	t = hash_table_get_instance(item, pte_t, link);
 
 	if (keys == PAGE_HT_KEYS) {
-		return (key[KEY_AS] == (uintptr_t) t->as) && (key[KEY_PAGE] == t->page);
+		return (key[KEY_AS] == (uintptr_t) t->as) &&
+		    (key[KEY_PAGE] == t->page);
 	} else {
 		return (key[KEY_AS] == (uintptr_t) t->as);
 	}
@@ -175,7 +177,10 @@ void remove_callback(link_t *item)
 void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 {
 	pte_t *t;
-	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = {
+		(uintptr_t) as,
+		page = ALIGN_DOWN(page, PAGE_SIZE)
+	};
 	
 	if (!hash_table_find(&page_ht, key)) {
 		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
@@ -209,7 +214,10 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
  */
 void ht_mapping_remove(as_t *as, uintptr_t page)
 {
-	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = {
+		(uintptr_t) as,
+		page = ALIGN_DOWN(page, PAGE_SIZE)
+	};
 	
 	/*
 	 * Note that removed PTE's will be freed
@@ -234,7 +242,10 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 {
 	link_t *hlp;
 	pte_t *t = NULL;
-	unative_t key[2] = { (uintptr_t) as, page = ALIGN_DOWN(page, PAGE_SIZE) };
+	unative_t key[2] = {
+		(uintptr_t) as,
+		page = ALIGN_DOWN(page, PAGE_SIZE)
+	};
 	
 	hlp = hash_table_find(&page_ht, key);
 	if (hlp)

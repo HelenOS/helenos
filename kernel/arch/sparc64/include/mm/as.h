@@ -81,10 +81,11 @@ typedef struct {
 #include <genarch/mm/as_ht.h>
 
 #ifdef CONFIG_TSB
-#	include <arch/mm/tsb.h>
-#	define as_invalidate_translation_cache(as, page, cnt)	tsb_invalidate(as, page, cnt)
+#include <arch/mm/tsb.h>
+#define as_invalidate_translation_cache(as, page, cnt) \
+	tsb_invalidate((as), (page), (cnt))
 #else
-#	define as_invalidate_translation_cache(as, page, cnt)
+#define as_invalidate_translation_cache(as, page, cnt)
 #endif
 
 extern void as_arch_init(void);

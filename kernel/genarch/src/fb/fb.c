@@ -511,8 +511,6 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
 	sysinfo_set_item_val("fb.scanline", NULL, scan);
 	sysinfo_set_item_val("fb.visual", NULL, visual);
 	sysinfo_set_item_val("fb.address.physical", NULL, addr);
-	sysinfo_set_item_val("fb.address.color", NULL,
-	    PAGE_COLOR((uintptr_t) fbaddress));
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */

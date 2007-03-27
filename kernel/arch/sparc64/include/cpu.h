@@ -64,11 +64,6 @@ typedef struct {
 	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
 					     generated when the TICK register
 					     matches this value. */
-#ifdef CONFIG_SMP
-	int dcache_active;
-	dcache_shootdown_msg_t dcache_messages[DCACHE_MSG_QUEUE_LEN];
-	count_t dcache_message_count;
-#endif
 } cpu_arch_t;
 	
 #endif

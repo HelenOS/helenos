@@ -112,8 +112,8 @@ struct as;
 struct pte;
 
 extern void tsb_invalidate(struct as *as, uintptr_t page, count_t pages);
-extern void itsb_pte_copy(struct pte *t);
-extern void dtsb_pte_copy(struct pte *t, bool ro);
+extern void itsb_pte_copy(struct pte *t, index_t index);
+extern void dtsb_pte_copy(struct pte *t, index_t index, bool ro);
 
 #endif /* !def __ASM__ */
 

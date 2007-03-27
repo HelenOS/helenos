@@ -7,9 +7,9 @@ PHDRS {
 }
 
 SECTIONS {
-	. = 0x2000;
+	. = 0x4000;
 
-	.init ALIGN(0x2000) : SUBALIGN(0x2000) {
+	.init ALIGN(0x4000) : SUBALIGN(0x4000) {
 		*(.init);
 	} :text
 	.text : {
@@ -17,11 +17,11 @@ SECTIONS {
 		*(.rodata*);
 	} :text
 	
-	.got ALIGN(0x2000) : SUBALIGN(0x2000) {
+	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
 		 _gp = .;
 		 *(.got*);
 	} :data
-	.data ALIGN(0x2000) : SUBALIGN(0x2000) {
+	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
 		*(.data);
 		*(.sdata);
 	} :data
@@ -41,7 +41,7 @@ SECTIONS {
 		*(.bss);
 	} :data
 
-	. = ALIGN(0x2000);
+	. = ALIGN(0x4000);
 	_heap = .;
 	
 	/DISCARD/ : {

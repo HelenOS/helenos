@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
 	printf("Kernel console output.\n");
 	
-	mapping = as_get_mappable_page(PAGE_SIZE, sysinfo_value("klog.fcolor"));
+	mapping = as_get_mappable_page(PAGE_SIZE);
 	res = ipc_call_sync_3(PHONE_NS, IPC_M_AS_AREA_RECV, 
 			      (sysarg_t) mapping, PAGE_SIZE, SERVICE_MEM_KLOG,
 			      NULL, NULL, NULL);

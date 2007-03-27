@@ -157,21 +157,6 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
 		panic("Could not insert used space.\n");
 		
-#ifdef CONFIG_VIRT_IDX_DCACHE
-	if (dirty && PAGE_COLOR(PA2KA(frame)) != PAGE_COLOR(addr)) {
-		/*
-		 * By writing to the frame using kernel virtual address,
-		 * we have created an illegal virtual alias. We now have to
-		 * invalidate cachelines belonging to addr on all processors
-		 * so that they will be reloaded with the new content on next
-		 * read.
-		 */
-		dcache_flush_frame(addr, frame);
-		dcache_shootdown_start(DCACHE_INVL_FRAME, PAGE_COLOR(addr), frame);
-		dcache_shootdown_finalize();
-	}
-#endif
-
 	return AS_PF_OK;
 }
 
@@ -240,4 +225,3 @@ void anon_share(as_area_t *area)
 
 /** @}
  */
-

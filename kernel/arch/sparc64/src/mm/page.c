@@ -73,9 +73,9 @@ void page_arch_init(void)
 		 */		
 		for (i = 0; i < bsp_locked_dtlb_entries; i++) {
 			dtlb_insert_mapping(bsp_locked_dtlb_entry[i].virt_page,
-				bsp_locked_dtlb_entry[i].phys_page,
-				bsp_locked_dtlb_entry[i].pagesize_code,	true,
-				false);
+			    bsp_locked_dtlb_entry[i].phys_page,
+			    bsp_locked_dtlb_entry[i].pagesize_code, true,
+			    false);
 		}
 #endif	
 
@@ -107,26 +107,26 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		size_t increment;
 		count_t count;
 	} sizemap[] = {
-		{ PAGESIZE_8K, 0, 1 },			/* 8K */
-		{ PAGESIZE_8K, PAGE_SIZE, 2 },		/* 16K */
-		{ PAGESIZE_8K, PAGE_SIZE, 4 },		/* 32K */
-		{ PAGESIZE_64K, 0, 1},			/* 64K */
-		{ PAGESIZE_64K, 8 * PAGE_SIZE, 2 },	/* 128K */
-		{ PAGESIZE_64K, 8 * PAGE_SIZE, 4 },	/* 256K */
-		{ PAGESIZE_512K, 0, 1 },		/* 512K */
-		{ PAGESIZE_512K, 64 * PAGE_SIZE, 2 },	/* 1M */
-		{ PAGESIZE_512K, 64 * PAGE_SIZE, 4 },	/* 2M */
-		{ PAGESIZE_4M, 0, 1 },			/* 4M */
-		{ PAGESIZE_4M, 512 * PAGE_SIZE, 2 }	/* 8M */
+		{ PAGESIZE_8K, 0, 1 },				/* 8K */
+		{ PAGESIZE_8K, MMU_PAGE_SIZE, 2 },		/* 16K */
+		{ PAGESIZE_8K, MMU_PAGE_SIZE, 4 },		/* 32K */
+		{ PAGESIZE_64K, 0, 1},				/* 64K */
+		{ PAGESIZE_64K, 8 * MMU_PAGE_SIZE, 2 },		/* 128K */
+		{ PAGESIZE_64K, 8 * MMU_PAGE_SIZE, 4 },		/* 256K */
+		{ PAGESIZE_512K, 0, 1 },			/* 512K */
+		{ PAGESIZE_512K, 64 * MMU_PAGE_SIZE, 2 },	/* 1M */
+		{ PAGESIZE_512K, 64 * MMU_PAGE_SIZE, 4 },	/* 2M */
+		{ PAGESIZE_4M, 0, 1 },				/* 4M */
+		{ PAGESIZE_4M, 512 * MMU_PAGE_SIZE, 2 }		/* 8M */
 	};
 	
-	ASSERT(ALIGN_UP(physaddr, PAGE_SIZE) == physaddr);
+	ASSERT(ALIGN_UP(physaddr, MMU_PAGE_SIZE) == physaddr);
 	ASSERT(size <= 8 * 1024 * 1024);
 	
-	if (size <= FRAME_SIZE)
+	if (size <= MMU_FRAME_SIZE)
 		order = 0;
 	else
-		order = (fnzb64(size - 1) + 1) - FRAME_WIDTH;
+		order = (fnzb64(size - 1) + 1) - MMU_FRAME_WIDTH;
 
 	/*
 	 * Use virtual addresses that are beyond the limit of physical memory.
@@ -134,27 +134,29 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	 * by frame_alloc().
 	 */
 	ASSERT(PA2KA(last_frame));
-	uintptr_t virtaddr = ALIGN_UP(PA2KA(last_frame), 1 << (order + FRAME_WIDTH));
-	last_frame = ALIGN_UP(KA2PA(virtaddr) + size, 1 << (order + FRAME_WIDTH));
+	uintptr_t virtaddr = ALIGN_UP(PA2KA(last_frame),
+	    1 << (order + FRAME_WIDTH));
+	last_frame = ALIGN_UP(KA2PA(virtaddr) + size,
+	    1 << (order + FRAME_WIDTH));
 	
 	for (i = 0; i < sizemap[order].count; i++) {
 		/*
 		 * First, insert the mapping into DTLB.
 		 */
 		dtlb_insert_mapping(virtaddr + i * sizemap[order].increment,
-			physaddr + i * sizemap[order].increment,
-			sizemap[order].pagesize_code, true, false);
+		    physaddr + i * sizemap[order].increment,
+		    sizemap[order].pagesize_code, true, false);
 	
 #ifdef CONFIG_SMP	
 		/*
 		 * Second, save the information about the mapping for APs.
 		 */
 		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].virt_page =
-			virtaddr + i * sizemap[order].increment;
+		    virtaddr + i * sizemap[order].increment;
 		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].phys_page =
-			physaddr + i * sizemap[order].increment;
+		    physaddr + i * sizemap[order].increment;
 		bsp_locked_dtlb_entry[bsp_locked_dtlb_entries].pagesize_code =
-			sizemap[order].pagesize_code;
+		    sizemap[order].pagesize_code;
 		bsp_locked_dtlb_entries++;
 #endif
 	}

@@ -99,8 +99,7 @@ void ddi_parea_register(parea_t *parea)
  * @return 0 on success, EPERM if the caller lacks capabilities to use this
  * 	syscall, ENOENT if there is no task matching the specified ID or the
  * 	physical address space is not enabled for mapping and ENOMEM if there
- * 	was a problem in creating address space area. ENOTSUP is returned when
- * 	an attempt to create an illegal address alias is detected.
+ * 	was a problem in creating address space area.
  */
 static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 {
@@ -139,18 +138,6 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
-
-#ifdef CONFIG_VIRT_IDX_DCACHE
-	if (PAGE_COLOR(parea->vbase) != PAGE_COLOR(vp)) {
-		/*
-		 * Refuse to create an illegal address alias.
-		 */
-		spinlock_unlock(&parea_lock);
-		interrupts_restore(ipl);
-		return ENOTSUP;
-	}
-#endif /* CONFIG_VIRT_IDX_DCACHE */
-
 	spinlock_unlock(&parea_lock);
 
 	spinlock_lock(&TASK->lock);

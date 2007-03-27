@@ -90,8 +90,6 @@ int init_rd(rd_header * header, size_t size)
 	sysinfo_set_item_val("rd.size", NULL, dsize);
 	sysinfo_set_item_val("rd.address.physical", NULL, (unative_t)
 		KA2PA((void *) header + hsize));
-	sysinfo_set_item_val("rd.address.color", NULL, (unative_t)
-		PAGE_COLOR((uintptr_t) header + hsize));
 
 	return RE_OK;
 }

@@ -36,10 +36,11 @@
 #include <as.h>
 #include <unistd.h>
 
-void *mmap(void  *start, size_t length, int prot, int flags, int fd, off_t offset)
+void *mmap(void  *start, size_t length, int prot, int flags, int fd,
+    off_t offset)
 {
 	if (!start)
-		start = as_get_mappable_page(length, 0);
+		start = as_get_mappable_page(length);
 	
 //	if (! ((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return MAP_FAILED;

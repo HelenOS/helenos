@@ -43,7 +43,7 @@
 /**
  * 16-extended-word save area for %i[0-7] and %l[0-7] registers.
  */
-#define STACK_WINDOW_SAVE_AREA_SIZE	(16*STACK_ITEM_SIZE)
+#define STACK_WINDOW_SAVE_AREA_SIZE	(16 * STACK_ITEM_SIZE)
 
 /**
  * By convention, the actual top of the stack is %sp + STACK_BIAS.

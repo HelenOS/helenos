@@ -39,7 +39,6 @@
 #include <arch/asm.h>
 #include <config.h>
 #include <mm/tlb.h>
-#include <arch/mm/cache.h>
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <arch/barrier.h>
@@ -125,11 +124,6 @@ void ipi_broadcast_arch(int ipi)
 	case IPI_TLB_SHOOTDOWN:
 		func = tlb_shootdown_ipi_recv;
 		break;
-#if (defined(CONFIG_SMP) && (defined(CONFIG_VIRT_IDX_DCACHE)))
-	case IPI_DCACHE_SHOOTDOWN:
-		func = dcache_shootdown_ipi_recv;
-		break;
-#endif
 	default:
 		panic("Unknown IPI (%d).\n", ipi);
 		break;

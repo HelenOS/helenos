@@ -613,8 +613,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * such address space area, EPERM if there was a problem in accepting the area
  * or ENOMEM if there was a problem in allocating destination address space
  * area. ENOTSUP is returned if the address space area backend does not support
- * sharing or if the kernel detects an attempt to create an illegal address
- * alias.
+ * sharing.
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
@@ -666,20 +665,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		interrupts_restore(ipl);
 		return EPERM;
 	}
-
-#ifdef CONFIG_VIRT_IDX_DCACHE
-	if (!(dst_flags_mask & AS_AREA_EXEC)) {
-		if (PAGE_COLOR(src_area->base) != PAGE_COLOR(dst_base)) {
-			/*
-			 * Refuse to create an illegal address alias.
-			 */
-			mutex_unlock(&src_area->lock);
-			mutex_unlock(&src_as->lock);
-			interrupts_restore(ipl);
-			return ENOTSUP;
-		}
-	}
-#endif /* CONFIG_VIRT_IDX_DCACHE */
 
 	/*
 	 * Now we are committed to sharing the area.
@@ -901,9 +886,9 @@ void as_switch(as_t *old_as, as_t *new_as)
 			 * list of inactive address spaces with assigned
 			 * ASID.
 			 */
-			 ASSERT(old_as->asid != ASID_INVALID);
-			 list_append(&old_as->inactive_as_with_asid_link,
-			     &inactive_as_with_asid_head);
+			ASSERT(old_as->asid != ASID_INVALID);
+			list_append(&old_as->inactive_as_with_asid_link,
+			    &inactive_as_with_asid_head);
 		}
 		mutex_unlock(&old_as->lock);
 

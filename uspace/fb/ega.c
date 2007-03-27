@@ -315,8 +315,7 @@ int ega_init(void)
 	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
 
 	sz = scr_width * scr_height * 2;
-	scr_addr = as_get_mappable_page(sz, (int)
-		sysinfo_value("fb.address.color"));
+	scr_addr = as_get_mappable_page(sz);
 
 	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
 		PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);

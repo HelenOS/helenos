@@ -104,8 +104,6 @@ void clock_counter_init(void)
 	 * physmem_map() the clock_parea.
 	 */
 	sysinfo_set_item_val("clock.cacheable", NULL, (unative_t) true);
-	sysinfo_set_item_val("clock.fcolor", NULL, (unative_t)
-		PAGE_COLOR(clock_parea.vbase));
 	sysinfo_set_item_val("clock.faddr", NULL, (unative_t) faddr);
 }
 

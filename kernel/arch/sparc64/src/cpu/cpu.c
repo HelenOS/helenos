@@ -51,11 +51,6 @@ void cpu_arch_init(void)
 	upa_config.value = upa_config_read();
 	CPU->arch.mid = upa_config.mid;
 	
-#if (defined(CONFIG_SMP) && defined(CONFIG_VIRT_IDX_DCACHE))
-	CPU->arch.dcache_active = 1;
-	CPU->arch.dcache_message_count = 0;
-#endif
-
 	/*
 	 * Detect processor frequency.
 	 */

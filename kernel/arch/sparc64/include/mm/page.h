@@ -37,10 +37,26 @@
 
 #include <arch/mm/frame.h>
 
+/*
+ * On the TLB and TSB level, we still use 8K pages, which are supported by the
+ * MMU.
+ */
+#define MMU_PAGE_WIDTH	MMU_FRAME_WIDTH
+#define MMU_PAGE_SIZE	MMU_FRAME_SIZE
+
+/*
+ * On the page table level, we use 16K pages. 16K pages are not supported by
+ * the MMU but we emulate them with pairs of 8K pages.
+ */
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
-#define PAGE_COLOR_BITS	1	/**< 14 - 13; 2^14 == 16K == alias boundary. */
+#define MMU_PAGES_PER_PAGE	(1 << (PAGE_WIDTH - MMU_PAGE_WIDTH))
+
+/*
+ * With 16K pages, there is only one page color.
+ */
+#define PAGE_COLOR_BITS	0	/**< 14 - 14; 2^14 == 16K == alias boundary. */
 
 #ifdef KERNEL
 

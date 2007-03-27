@@ -34,13 +34,14 @@
 
 #include <arch/mm/tsb.h>
 #include <arch/mm/tlb.h>
+#include <arch/mm/page.h>
 #include <arch/barrier.h>
 #include <mm/as.h>
 #include <arch/types.h>
 #include <macros.h>
 #include <debug.h>
 
-#define TSB_INDEX_MASK		((1 << (21 + 1 + TSB_SIZE - PAGE_WIDTH)) - 1)
+#define TSB_INDEX_MASK	((1 << (21 + 1 + TSB_SIZE - MMU_PAGE_WIDTH)) - 1)
 
 /** Invalidate portion of TSB.
  *
@@ -59,28 +60,31 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 	
 	ASSERT(as->arch.itsb && as->arch.dtsb);
 	
-	i0 = (page >> PAGE_WIDTH) & TSB_INDEX_MASK;
-	cnt = min(pages, ITSB_ENTRY_COUNT);
+	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
+	cnt = min(pages * MMU_PAGES_PER_PAGE, ITSB_ENTRY_COUNT);
 	
 	for (i = 0; i < cnt; i++) {
 		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT - 1)].tag.invalid =
-			true;
+		    true;
 		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT - 1)].tag.invalid =
-			true;
+		    true;
 	}
 }
 
 /** Copy software PTE to ITSB.
  *
- * @param t Software PTE.
+ * @param t 	Software PTE.
+ * @param index	Zero if lower 8K-subpage, one if higher 8K subpage.
  */
-void itsb_pte_copy(pte_t *t)
+void itsb_pte_copy(pte_t *t, index_t index)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
+	index_t entry;
 	
 	as = t->as;
-	tsb = &as->arch.itsb[(t->page >> PAGE_WIDTH) & TSB_INDEX_MASK];
+	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK; 
+	tsb = &as->arch.itsb[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -95,10 +99,11 @@ void itsb_pte_copy(pte_t *t)
 	write_barrier();
 
 	tsb->tag.context = as->asid;
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tsb->tag.va_tag = (t->page + (index << MMU_PAGE_WIDTH)) >>
+	    VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = t->frame >> FRAME_WIDTH;
+	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
 	tsb->data.cp = t->c;
 	tsb->data.p = t->k;		/* p as privileged */
 	tsb->data.v = t->p;
@@ -110,16 +115,19 @@ void itsb_pte_copy(pte_t *t)
 
 /** Copy software PTE to DTSB.
  *
- * @param t Software PTE.
- * @param ro If true, the mapping is copied read-only.
+ * @param t	Software PTE.
+ * @param index	Zero if lower 8K-subpage, one if higher 8K-subpage.
+ * @param ro	If true, the mapping is copied read-only.
  */
-void dtsb_pte_copy(pte_t *t, bool ro)
+void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
+	index_t entry;
 	
 	as = t->as;
-	tsb = &as->arch.dtsb[(t->page >> PAGE_WIDTH) & TSB_INDEX_MASK];
+	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK;
+	tsb = &as->arch.dtsb[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -134,10 +142,11 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	write_barrier();
 
 	tsb->tag.context = as->asid;
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tsb->tag.va_tag = (t->page + (index << MMU_PAGE_WIDTH)) >>
+	    VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = t->frame >> FRAME_WIDTH;
+	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
 	tsb->data.cp = t->c;
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	tsb->data.cv = t->c;

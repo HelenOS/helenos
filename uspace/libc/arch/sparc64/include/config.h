@@ -35,9 +35,9 @@
 #ifndef LIBC_sparc64_CONFIG_H_
 #define LIBC_sparc64_CONFIG_H_
 
-#define PAGE_WIDTH	13
-#define PAGE_SIZE	(1<<PAGE_WIDTH)
-#define PAGE_COLOR_BITS	1		/**< Bit 13 is the page color. */
+#define PAGE_WIDTH	14
+#define PAGE_SIZE	(1 << PAGE_WIDTH)
+#define PAGE_COLOR_BITS	0		/**< Only one page color. */
 
 #endif
 

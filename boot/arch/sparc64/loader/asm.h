@@ -33,8 +33,8 @@
 #include "types.h"
 #include "main.h"
 
-#define PAGE_SIZE	8192
-#define PAGE_WIDTH	13
+#define PAGE_WIDTH	14
+#define PAGE_SIZE	(1 << PAGE_WIDTH)
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
