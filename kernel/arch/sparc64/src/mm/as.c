@@ -61,8 +61,12 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
+	/*
+	 * The order must be calculated with respect to the emulated
+	 * 16K page size.
+	 */
 	int order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-		sizeof(tsb_entry_t)) >> MMU_FRAME_WIDTH);
+	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
 
 	if (!tsb)
@@ -70,7 +74,7 @@ int as_constructor_arch(as_t *as, int flags)
 
 	as->arch.itsb = (tsb_entry_t *) tsb;
 	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
-		sizeof(tsb_entry_t));
+	    sizeof(tsb_entry_t));
 	memsetb((uintptr_t) as->arch.itsb,
 	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
 #endif
@@ -80,8 +84,12 @@ int as_constructor_arch(as_t *as, int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
+	/*
+	 * The count must be calculated with respect to the emualted 16K page
+	 * size.
+	 */
 	count_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-		sizeof(tsb_entry_t)) >> MMU_FRAME_WIDTH;
+	    sizeof(tsb_entry_t)) >> FRAME_WIDTH;
 	frame_free(KA2PA((uintptr_t) as->arch.itsb));
 	return cnt;
 #else
