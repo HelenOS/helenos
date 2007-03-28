@@ -205,7 +205,6 @@ typedef union mem_backend_data {
 /** Address space area structure.
  *
  * Each as_area_t structure describes one contiguous area of virtual memory.
- * In the future, it should not be difficult to support shared areas.
  */
 typedef struct {
 	mutex_t lock;
