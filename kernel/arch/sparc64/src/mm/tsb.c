@@ -61,7 +61,10 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 	ASSERT(as->arch.itsb && as->arch.dtsb);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
-	cnt = min(pages * MMU_PAGES_PER_PAGE, ITSB_ENTRY_COUNT);
+	if (pages == (count_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
+		cnt = ITSB_ENTRY_COUNT;
+	else
+		cnt = pages * 2;
 	
 	for (i = 0; i < cnt; i++) {
 		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT - 1)].tag.invalid =
@@ -157,7 +160,7 @@ void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
 	
 	write_barrier();
 	
-	tsb->tag.invalid = true;	/* mark the entry as valid */
+	tsb->tag.invalid = false;	/* mark the entry as valid */
 }
 
 /** @}
