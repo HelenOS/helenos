@@ -90,7 +90,7 @@ all: image.boot disasm
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) kernel.o 
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
 	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
