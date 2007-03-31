@@ -36,11 +36,10 @@
 #include <arch/mm/asid.h>
 #include <arch/mm/page.h>
 #include <genarch/mm/as_ht.h>
+#include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
 #include <mm/asid.h>
-#include <arch.h>
 #include <arch/barrier.h>
-#include <synch/spinlock.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)
@@ -55,12 +54,8 @@ void as_arch_init(void)
  */
 void as_install_arch(as_t *as)
 {
-	ipl_t ipl;
 	region_register rr;
 	int i;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
 	
 	ASSERT(as->asid != ASID_INVALID);
 	
@@ -80,9 +75,6 @@ void as_install_arch(as_t *as)
 	}
 	srlz_d();
 	srlz_i();
-	
-	spinlock_unlock(&as->lock);
-	interrupts_restore(ipl);
 }
 
 /** @}

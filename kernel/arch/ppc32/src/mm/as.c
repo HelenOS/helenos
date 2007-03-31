@@ -54,12 +54,8 @@ void as_arch_init(void)
 void as_install_arch(as_t *as)
 {
 	asid_t asid;
-	ipl_t ipl;
 	uint32_t sr;
 
-	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
-	
 	asid = as->asid;
 	
 	/* Lower 2 GB, user and supervisor access */
@@ -79,9 +75,6 @@ void as_install_arch(as_t *as)
 			: "r" ((0x4000 << 16) + (asid << 4) + sr), "r" (sr << 28)
 		);
 	}
-	
-	spinlock_unlock(&as->lock);
-	interrupts_restore(ipl);
 }
 
 /** @}

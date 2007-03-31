@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup ppc64mm
+/** @addtogroup ppc64mm
   * @{
  */
 /** @file
@@ -41,6 +41,6 @@ void as_arch_init(void)
 	as_operations = &as_pt_operations;
 }
 
- /** @}
+/** @}
  */
 

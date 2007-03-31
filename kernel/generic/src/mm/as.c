@@ -95,10 +95,13 @@ static slab_cache_t *as_slab;
 #endif
 
 /**
- * This lock protects inactive_as_with_asid_head list. It must be acquired
- * before as_t mutex.
+ * This lock serializes access to the ASID subsystem.
+ * It protects:
+ * - inactive_as_with_asid_head list
+ * - as->asid for each as of the as_t type
+ * - asids_allocated counter
  */
-SPINLOCK_INITIALIZE(inactive_as_with_asid_lock);
+SPINLOCK_INITIALIZE(asidlock);
 
 /**
  * This list contains address spaces that are not active on any
@@ -205,14 +208,15 @@ void as_destroy(as_t *as)
 	 * Since there is no reference to this area,
 	 * it is safe not to lock its mutex.
 	 */
+
 	ipl = interrupts_disable();
-	spinlock_lock(&inactive_as_with_asid_lock);
+	spinlock_lock(&asidlock);
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
 		if (as != AS && as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
-	spinlock_unlock(&inactive_as_with_asid_lock);
+	spinlock_unlock(&asidlock);
 
 	/*
 	 * Destroy address space areas of the address space.
@@ -860,24 +864,20 @@ page_fault:
 /** Switch address spaces.
  *
  * Note that this function cannot sleep as it is essentially a part of
- * scheduling. Sleeping here would lead to deadlock on wakeup.
+ * scheduling. Sleeping here would lead to deadlock on wakeup. Another
+ * thing which is forbidden in this context is locking the address space.
  *
  * @param old Old address space or NULL.
  * @param new New address space.
  */
 void as_switch(as_t *old_as, as_t *new_as)
 {
-	ipl_t ipl;
-	bool needs_asid = false;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&inactive_as_with_asid_lock);
+	spinlock_lock(&asidlock);
 
 	/*
 	 * First, take care of the old address space.
 	 */	
 	if (old_as) {
-		mutex_lock_active(&old_as->lock);
 		ASSERT(old_as->cpu_refcount);
 		if((--old_as->cpu_refcount == 0) && (old_as != AS_KERNEL)) {
 			/*
@@ -890,7 +890,6 @@ void as_switch(as_t *old_as, as_t *new_as)
 			list_append(&old_as->inactive_as_with_asid_link,
 			    &inactive_as_with_asid_head);
 		}
-		mutex_unlock(&old_as->lock);
 
 		/*
 		 * Perform architecture-specific tasks when the address space
@@ -902,42 +901,23 @@ void as_switch(as_t *old_as, as_t *new_as)
 	/*
 	 * Second, prepare the new address space.
 	 */
-	mutex_lock_active(&new_as->lock);
 	if ((new_as->cpu_refcount++ == 0) && (new_as != AS_KERNEL)) {
-		if (new_as->asid != ASID_INVALID) {
+		if (new_as->asid != ASID_INVALID)
 			list_remove(&new_as->inactive_as_with_asid_link);
-		} else {
-			/*
-			 * Defer call to asid_get() until new_as->lock is released.
-			 */
-			needs_asid = true;
-		}
+		else
+			new_as->asid = asid_get();
 	}
 #ifdef AS_PAGE_TABLE
 	SET_PTL0_ADDRESS(new_as->genarch.page_table);
 #endif
-	mutex_unlock(&new_as->lock);
-
-	if (needs_asid) {
-		/*
-		 * Allocation of new ASID was deferred
-		 * until now in order to avoid deadlock.
-		 */
-		asid_t asid;
-		
-		asid = asid_get();
-		mutex_lock_active(&new_as->lock);
-		new_as->asid = asid;
-		mutex_unlock(&new_as->lock);
-	}
-	spinlock_unlock(&inactive_as_with_asid_lock);
-	interrupts_restore(ipl);
 	
 	/*
 	 * Perform architecture-specific steps.
 	 * (e.g. write ASID to hardware register etc.)
 	 */
 	as_install_arch(new_as);
+
+	spinlock_unlock(&asidlock);
 	
 	AS = new_as;
 }

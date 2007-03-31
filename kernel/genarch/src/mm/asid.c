@@ -62,14 +62,8 @@
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
-#include <arch.h>
 #include <adt/list.h>
 #include <debug.h>
-
-/**
- * asidlock protects the asids_allocated counter.
- */
-SPINLOCK_INITIALIZE(asidlock);
 
 static count_t asids_allocated = 0;
 
@@ -90,7 +84,6 @@ asid_t asid_get(void)
 	 * Check if there is an unallocated ASID.
 	 */
 	
-	spinlock_lock(&asidlock);
 	if (asids_allocated == ASIDS_ALLOCABLE) {
 
 		/*
@@ -108,7 +101,6 @@ asid_t asid_get(void)
 		list_remove(tmp);
 		
 		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);
-		mutex_lock_active(&as->lock);
 
 		/*
 		 * Steal the ASID.
@@ -130,8 +122,6 @@ asid_t asid_get(void)
 		 */
 		as_invalidate_translation_cache(as, 0, (count_t) -1);
 		
-		mutex_unlock(&as->lock);
-
 		/*
 		 * Get the system rid of the stolen ASID.
 		 */
@@ -156,8 +146,6 @@ asid_t asid_get(void)
 		tlb_shootdown_finalize();
 	}
 	
-	spinlock_unlock(&asidlock);
-	
 	return asid;
 }
 
@@ -170,16 +158,8 @@ asid_t asid_get(void)
  */
 void asid_put(asid_t asid)
 {
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&asidlock);
-
 	asids_allocated--;
 	asid_put_arch(asid);
-	
-	spinlock_unlock(&asidlock);
-	interrupts_restore(ipl);
 }
 
 /** @}

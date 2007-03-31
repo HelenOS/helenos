@@ -34,12 +34,12 @@
 
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
+#include <genarch/mm/page_pt.h>
 #include <genarch/mm/asid_fifo.h>
 #include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <arch/cp0.h>
-#include <arch.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)
@@ -57,19 +57,14 @@ void as_arch_init(void)
 void as_install_arch(as_t *as)
 {
 	entry_hi_t hi;
-	ipl_t ipl;
 
 	/*
 	 * Install ASID.
 	 */	
 	hi.value = cp0_entry_hi_read();
 
-	ipl = interrupts_disable();
-	spinlock_lock(&as->lock);
 	hi.asid = as->asid;
 	cp0_entry_hi_write(hi.value);	
-	spinlock_unlock(&as->lock);
-	interrupts_restore(ipl);
 }
 
 /** @}

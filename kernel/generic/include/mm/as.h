@@ -89,23 +89,25 @@
 	@public
 		/** Protected by asidlock. */
 		link_t inactive_as_with_asid_link;
+		/**
+		 * Number of processors on wich is this address space active.
+		 * Protected by asidlock.
+		 */
+		count_t cpu_refcount;
+		/**
+		 * Address space identifier.
+		 * Constant on architectures that do not support ASIDs.
+		 * Protected by asidlock.  
+		 */
+		asid_t asid;
 		
 		mutex_t lock;
 		
 		/** Number of references (i.e tasks that reference this as). */
 		count_t refcount;
 		
-		/** Number of processors on wich is this address space active. */
-		count_t cpu_refcount;
-		
 		/** B+tree of address space areas. */
 		btree_t as_area_btree;
-		
-		/**
-		 *  Address space identifier.
-		 *  Constant on architectures that do not support ASIDs.
-		 */
-		asid_t asid;
 		
 		/** Non-generic content. */
 		as_genarch_t genarch;
@@ -133,23 +135,25 @@
 typedef struct as {
 	/** Protected by asidlock. */
 	link_t inactive_as_with_asid_link;
+	/**
+	 * Number of processors on wich is this address space active.
+	 * Protected by asidlock.
+	 */
+	count_t cpu_refcount;
+	/**
+	 * Address space identifier.
+	 * Constant on architectures that do not support ASIDs.
+	 * Protected by asidlock.
+	 */
+	asid_t asid;
 
 	mutex_t lock;
 
 	/** Number of references (i.e tasks that reference this as). */
 	count_t refcount;
 
-	/** Number of processors on wich is this address space active. */
-	count_t cpu_refcount;
-
 	/** B+tree of address space areas. */
 	btree_t as_area_btree;
-	
-	/**
-	 *  Address space identifier.
-	 *  Constant on architectures that do not support ASIDs.
-	 */
-	asid_t asid;
 	
 	/** Non-generic content. */
 	as_genarch_t genarch;
@@ -249,7 +253,6 @@ extern as_t *AS_KERNEL;
 extern as_operations_t *as_operations;
 #endif
 
-SPINLOCK_EXTERN(inactive_as_with_asid_lock);
 extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);

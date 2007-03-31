@@ -42,7 +42,6 @@
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
 #include <arch/memstr.h>
-#include <synch/mutex.h>
 #include <arch/asm.h>
 #include <mm/frame.h>
 #include <bitops.h>
@@ -100,13 +99,7 @@ int as_destructor_arch(as_t *as)
 int as_create_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	mutex_lock_active(&as->lock);	/* completely unnecessary, but polite */
 	tsb_invalidate(as, 0, (count_t) -1);
-	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 #endif
 	return 0;
 }
@@ -123,18 +116,17 @@ void as_install_arch(as_t *as)
 	tlb_context_reg_t ctx;
 	
 	/*
-	 * Note that we don't lock the address space.
-	 * That's correct - we can afford it here
-	 * because we only read members that are
-	 * currently read-only.
+	 * Note that we don't and may not lock the address space. That's ok
+	 * since we only read members that are currently read-only.
+	 *
+	 * Moreover, the as->asid is protected by asidlock, which is being held.
 	 */
 	
 	/*
-	 * Write ASID to secondary context register.
-	 * The primary context register has to be set
-	 * from TL>0 so it will be filled from the
-	 * secondary context register from the TL=1
-	 * code just before switch to userspace.
+	 * Write ASID to secondary context register. The primary context
+	 * register has to be set from TL>0 so it will be filled from the
+	 * secondary context register from the TL=1 code just before switch to
+	 * userspace.
 	 */
 	ctx.v = 0;
 	ctx.context = as->asid;
@@ -184,10 +176,10 @@ void as_deinstall_arch(as_t *as)
 {
 
 	/*
-	 * Note that we don't lock the address space.
-	 * That's correct - we can afford it here
-	 * because we only read members that are
-	 * currently read-only.
+	 * Note that we don't and may not lock the address space. That's ok
+	 * since we only read members that are currently read-only.
+	 *
+	 * Moreover, the as->asid is protected by asidlock, which is being held.
 	 */
 
 #ifdef CONFIG_TSB
