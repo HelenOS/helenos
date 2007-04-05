@@ -101,10 +101,10 @@
 		 */
 		asid_t asid;
 		
-		mutex_t lock;
-		
 		/** Number of references (i.e tasks that reference this as). */
-		count_t refcount;
+		atomic_t refcount;
+
+		mutex_t lock;
 		
 		/** B+tree of address space areas. */
 		btree_t as_area_btree;
@@ -147,10 +147,10 @@ typedef struct as {
 	 */
 	asid_t asid;
 
-	mutex_t lock;
-
 	/** Number of references (i.e tasks that reference this as). */
-	count_t refcount;
+	atomic_t refcount;
+
+	mutex_t lock;
 
 	/** B+tree of address space areas. */
 	btree_t as_area_btree;

@@ -101,6 +101,24 @@ static inline void spinlock_unlock(spinlock_t *sl)
 	preemption_enable();
 }
 
+#ifdef CONFIG_DEBUG_SPINLOCK
+
+extern int printf(const char *, ...);
+
+#define DEADLOCK_THRESHOLD		100000000
+#define DEADLOCK_PROBE_INIT(pname)	count_t pname = 0
+#define DEADLOCK_PROBE(pname, value)					\
+	if ((pname)++ > (value)) {					\
+		(pname) = 0;						\
+		printf("Deadlock probe %s: exceeded threshold %d\n",	\
+		    "cpu%d: function=%s, line=%d\n",			\
+		    #pname, (value), CPU->id, __FUNCTION__, __LINE__);	\
+	}
+#else
+#define DEADLOCK_PROBE_INIT(pname)
+#define DEADLOCK_PROBE(pname, value)
+#endif
+
 #else
 
 /* On UP systems, spinlocks are effectively left out. */
@@ -112,6 +130,9 @@ static inline void spinlock_unlock(spinlock_t *sl)
 #define spinlock_lock(x)		preemption_disable()
 #define spinlock_trylock(x) 		(preemption_disable(), 1)
 #define spinlock_unlock(x)		preemption_enable()
+
+#define DEADLOCK_PROBE_INIT(pname)
+#define DEADLOCK_PROBE(pname, value)
 
 #endif
 

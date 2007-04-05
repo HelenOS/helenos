@@ -374,6 +374,7 @@ void ipc_cleanup(void)
 	int i;
 	call_t *call;
 	phone_t *phone;
+	DEADLOCK_PROBE_INIT(p_phonelck);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i=0;i < IPC_MAX_PHONES; i++)
@@ -387,9 +388,10 @@ restart_phones:
 	spinlock_lock(&TASK->answerbox.lock);
 	while (!list_empty(&TASK->answerbox.connected_phones)) {
 		phone = list_get_instance(TASK->answerbox.connected_phones.next,
-					  phone_t, link);
+		    phone_t, link);
 		if (! spinlock_trylock(&phone->lock)) {
 			spinlock_unlock(&TASK->answerbox.lock);
+			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
 			goto restart_phones;
 		}
 		

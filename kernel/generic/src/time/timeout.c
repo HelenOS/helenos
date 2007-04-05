@@ -45,7 +45,6 @@
 #include <arch/asm.h>
 #include <arch.h>
 
-
 /** Initialize timeouts
  *
  * Initialize kernel timeouts.
@@ -175,6 +174,7 @@ bool timeout_unregister(timeout_t *t)
 	timeout_t *hlp;
 	link_t *l;
 	ipl_t ipl;
+	DEADLOCK_PROBE_INIT(p_tolock);
 
 grab_locks:
 	ipl = interrupts_disable();
@@ -186,7 +186,8 @@ grab_locks:
 	}
 	if (!spinlock_trylock(&t->cpu->timeoutlock)) {
 		spinlock_unlock(&t->lock);
-		interrupts_restore(ipl);		
+		interrupts_restore(ipl);
+		DEADLOCK_PROBE(p_tolock, DEADLOCK_THRESHOLD);
 		goto grab_locks;
 	}
 	

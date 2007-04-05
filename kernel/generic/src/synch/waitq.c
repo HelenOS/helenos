@@ -86,6 +86,7 @@ void waitq_timeouted_sleep(void *data)
 	thread_t *t = (thread_t *) data;
 	waitq_t *wq;
 	bool do_wakeup = false;
+	DEADLOCK_PROBE_INIT(p_wqlock);
 
 	spinlock_lock(&threads_lock);
 	if (!thread_exists(t))
@@ -96,6 +97,7 @@ grab_locks:
 	if ((wq = t->sleep_queue)) {		/* assignment */
 		if (!spinlock_trylock(&wq->lock)) {
 			spinlock_unlock(&t->lock);
+			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
 			goto grab_locks;	/* avoid deadlock */
 		}
 
@@ -128,6 +130,7 @@ void waitq_interrupt_sleep(thread_t *t)
 	waitq_t *wq;
 	bool do_wakeup = false;
 	ipl_t ipl;
+	DEADLOCK_PROBE_INIT(p_wqlock);
 
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
@@ -147,6 +150,7 @@ grab_locks:
 			
 		if (!spinlock_trylock(&wq->lock)) {
 			spinlock_unlock(&t->lock);
+			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
 			goto grab_locks;	/* avoid deadlock */
 		}
 

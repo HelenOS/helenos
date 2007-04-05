@@ -41,6 +41,7 @@
 #include <proc/uarg.h>
 #include <mm/as.h>
 #include <mm/slab.h>
+#include <atomic.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
@@ -140,11 +141,8 @@ task_t *task_create(as_t *as, char *name)
 
 	/*
 	 * Increment address space reference count.
-	 * TODO: Reconsider the locking scheme.
 	 */
-	mutex_lock(&as->lock);
-	as->refcount++;
-	mutex_unlock(&as->lock);
+	atomic_inc(&as->refcount);
 
 	spinlock_lock(&tasks_lock);
 
@@ -166,15 +164,8 @@ void task_destroy(task_t *t)
 	task_destroy_arch(t);
 	btree_destroy(&t->futexes);
 
-	mutex_lock_active(&t->as->lock);
-	if (--t->as->refcount == 0) {
-		mutex_unlock(&t->as->lock);
+	if (atomic_predec(&t->as->refcount) == 0) 
 		as_destroy(t->as);
-		/*
-		 * t->as is destroyed.
-		 */
-	} else
-		mutex_unlock(&t->as->lock);
 	
 	free(t);
 	TASK = NULL;

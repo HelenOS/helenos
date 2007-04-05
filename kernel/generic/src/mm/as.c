@@ -57,6 +57,7 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
+#include <preemption.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
@@ -181,7 +182,7 @@ as_t *as_create(int flags)
 	else
 		as->asid = ASID_INVALID;
 	
-	as->refcount = 0;
+	atomic_set(&as->refcount, 0);
 	as->cpu_refcount = 0;
 #ifdef AS_PAGE_TABLE
 	as->genarch.page_table = page_table_create(flags);
@@ -196,21 +197,39 @@ as_t *as_create(int flags)
  *
  * When there are no tasks referencing this address space (i.e. its refcount is
  * zero), the address space can be destroyed.
+ *
+ * We know that we don't hold any spinlock.
  */
 void as_destroy(as_t *as)
 {
 	ipl_t ipl;
 	bool cond;
+	DEADLOCK_PROBE_INIT(p_asidlock);
 
-	ASSERT(as->refcount == 0);
+	ASSERT(atomic_get(&as->refcount) == 0);
 	
 	/*
 	 * Since there is no reference to this area,
 	 * it is safe not to lock its mutex.
 	 */
 
-	ipl = interrupts_disable();
-	spinlock_lock(&asidlock);
+	/*
+	 * We need to avoid deadlock between TLB shootdown and asidlock.
+	 * We therefore try to take asid conditionally and if we don't succeed,
+	 * we enable interrupts and try again. This is done while preemption is
+	 * disabled to prevent nested context switches. We also depend on the
+	 * fact that so far no spinlocks are held.
+	 */
+	preemption_disable();
+	ipl = interrupts_read();
+retry:
+	interrupts_disable();
+	if (!spinlock_trylock(&asidlock)) {
+		interrupts_enable();
+		DEADLOCK_PROBE(p_asidlock, DEADLOCK_THRESHOLD);
+		goto retry;
+	}
+	preemption_enable();	/* Interrupts disabled, enable preemption */
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
 		if (as != AS && as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
@@ -472,15 +491,16 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		/*
 		 * Finish TLB shootdown sequence.
 		 */
+
 		tlb_invalidate_pages(as->asid, area->base + pages * PAGE_SIZE,
 		    area->pages - pages);
-		tlb_shootdown_finalize();
-		
 		/*
 		 * Invalidate software translation caches (e.g. TSB on sparc64).
 		 */
 		as_invalidate_translation_cache(as, area->base +
 		    pages * PAGE_SIZE, area->pages - pages);
+		tlb_shootdown_finalize();
+		
 	} else {
 		/*
 		 * Growing the area.
@@ -568,14 +588,14 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Finish TLB shootdown sequence.
 	 */
+
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
-	tlb_shootdown_finalize();
-	
 	/*
 	 * Invalidate potential software translation caches (e.g. TSB on
 	 * sparc64).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
+	tlb_shootdown_finalize();
 	
 	btree_destroy(&area->used_space);
 
@@ -867,12 +887,29 @@ page_fault:
  * scheduling. Sleeping here would lead to deadlock on wakeup. Another
  * thing which is forbidden in this context is locking the address space.
  *
+ * When this function is enetered, no spinlocks may be held.
+ *
  * @param old Old address space or NULL.
  * @param new New address space.
  */
 void as_switch(as_t *old_as, as_t *new_as)
 {
-	spinlock_lock(&asidlock);
+	DEADLOCK_PROBE_INIT(p_asidlock);
+	preemption_disable();
+retry:
+	(void) interrupts_disable();
+	if (!spinlock_trylock(&asidlock)) {
+		/* 
+		 * Avoid deadlock with TLB shootdown.
+		 * We can enable interrupts here because
+		 * preemption is disabled. We should not be
+		 * holding any other lock.
+		 */
+		(void) interrupts_enable();
+		DEADLOCK_PROBE(p_asidlock, DEADLOCK_THRESHOLD);
+		goto retry;
+	}
+	preemption_enable();
 
 	/*
 	 * First, take care of the old address space.

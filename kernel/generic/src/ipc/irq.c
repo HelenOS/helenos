@@ -336,6 +336,7 @@ loop:
 	while (box->irq_head.next != &box->irq_head) {
 		link_t *cur = box->irq_head.next;
 		irq_t *irq;
+		DEADLOCK_PROBE_INIT(p_irqlock);
 		
 		irq = list_get_instance(cur, irq_t, notif_cfg.link);
 		if (!spinlock_trylock(&irq->lock)) {
@@ -344,6 +345,7 @@ loop:
 			 */
 			spinlock_unlock(&box->irq_lock);
 			interrupts_restore(ipl);
+			DEADLOCK_PROBE(p_irqlock, DEADLOCK_THRESHOLD);
 			goto loop;
 		}
 		

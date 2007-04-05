@@ -377,7 +377,8 @@ void scheduler(void)
 void scheduler_separated_stack(void)
 {
 	int priority;
-	
+	DEADLOCK_PROBE_INIT(p_joinwq);
+
 	ASSERT(CPU != NULL);
 	
 	if (THREAD) {
@@ -406,6 +407,8 @@ repeat:
 					spinlock_unlock(&THREAD->lock);
 					delay(10);
 					spinlock_lock(&THREAD->lock);
+					DEADLOCK_PROBE(p_joinwq,
+					    DEADLOCK_THRESHOLD);
 					goto repeat;
 				}
 				_waitq_wakeup_unsafe(&THREAD->join_wq, false);

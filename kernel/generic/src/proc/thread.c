@@ -496,7 +496,7 @@ void thread_detach(thread_t *t)
 	ipl_t ipl;
 
 	/*
-	 * Since the thread is expected to not be already detached,
+	 * Since the thread is expected not to be already detached,
 	 * pointer to it must be still valid.
 	 */
 	ipl = interrupts_disable();

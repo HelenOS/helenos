@@ -73,7 +73,6 @@ void spinlock_initialize(spinlock_t *sl, char *name)
  * @param sl Pointer to spinlock_t structure.
  */
 #ifdef CONFIG_DEBUG_SPINLOCK
-#define DEADLOCK_THRESHOLD	100000000
 void spinlock_lock_debug(spinlock_t *sl)
 {
 	count_t i = 0;
