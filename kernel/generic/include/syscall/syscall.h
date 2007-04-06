@@ -40,6 +40,7 @@ typedef enum {
 	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - psthread.S */
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
+	SYS_THREAD_GET_ID,
 	SYS_TASK_GET_ID,
 	SYS_FUTEX_SLEEP,
 	SYS_FUTEX_WAKEUP,

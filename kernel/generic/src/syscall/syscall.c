@@ -118,6 +118,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	/* Thread and task related syscalls. */
 	(syshandler_t) sys_thread_create,
 	(syshandler_t) sys_thread_exit,
+	(syshandler_t) sys_thread_get_id,
 	(syshandler_t) sys_task_get_id,
 	
 	/* Synchronization related syscalls. */

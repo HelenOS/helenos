@@ -250,6 +250,7 @@ extern slab_cache_t *fpu_context_slab;
 /* Thread syscall prototypes. */
 unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name);
 unative_t sys_thread_exit(int uspace_status);
+unative_t sys_thread_get_id(void);
 
 #endif
 

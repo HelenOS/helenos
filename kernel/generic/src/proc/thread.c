@@ -678,6 +678,18 @@ unative_t sys_thread_exit(int uspace_status)
 	return 0;
 }
 
+/** Syscall for getting TID.
+ *
+ * @return Thread ID.
+ */
+unative_t sys_thread_get_id(void)
+{
+	/*
+	 * No need to acquire lock on THREAD because tid
+	 * remains constant for the lifespan of the thread.
+	 */
+	return THREAD->tid;
+}
+
 /** @}
  */
-
