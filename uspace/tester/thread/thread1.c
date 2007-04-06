@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Vana
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +27,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#define THREADS 5
 
-#ifndef LIBC_THREAD_H_
-#define LIBC_THREAD_H_
+#include <atomic.h>
+#include <thread.h>
+#include <stdio.h>
+#include <unistd.h>
+#include "../tester.h"
 
-#include <kernel/proc/uarg.h>
-#include <libarch/thread.h>
-#include <types.h>
+static atomic_t finish;
+static atomic_t threads_finished;
+static bool sh_quiet;
 
-extern void __thread_entry(void);
-extern void __thread_main(uspace_arg_t *uarg);
+static void threadtest(void *data)
+{
+	thread_detach(thread_get_id());
 
-extern int thread_create(void (* function)(void *arg), void *arg, char *name);
-extern void thread_exit(int status);
-extern void thread_detach(int thread);
-extern int thread_join(int thread);
-extern int thread_get_id(void);
-extern tcb_t * __make_tls(void);
-extern tcb_t * __alloc_tls(void **data, size_t size);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t size);
+	while (atomic_get(&finish)) {
+		if (!sh_quiet)
+			printf("%d\n", thread_get_id());
+		usleep(100);
+	}
+	atomic_inc(&threads_finished);
+}
 
-#endif
+char * test_thread1(bool quiet)
+{
+	unsigned int i, total = 0;
+	sh_quiet = quiet;
+	
+	atomic_set(&finish, 1);
+	atomic_set(&threads_finished, 0);
 
-/** @}
- */
+	for (i = 0; i < THREADS; i++) {  
+		int t;
+		if ((t = thread_create(threadtest, NULL, "threadtest")) < 0) {
+			if (!quiet)
+				printf("Could not create thread %d\n", i);
+			break;
+		}
+		total++;
+	}
+	
+	if (!quiet)
+		printf("Running threads for 10 seconds...\n");
+	sleep(10);
+	
+	atomic_set(&finish, 0);
+	while (atomic_get(&threads_finished) < total) {
+		if (!quiet)
+			printf("Threads left: %d\n", total - atomic_get(&threads_finished));
+		sleep(1);
+	}
+	
+	return NULL;
+}

@@ -160,5 +160,36 @@ void thread_exit(int status)
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 }
 
+/** Detach thread.
+ *
+ * Currently not implemented.
+ *
+ * @param thread TID.
+ */
+void thread_detach(int thread)
+{
+}
+
+/** Join thread.
+ *
+ * Currently not implemented.
+ *
+ * @param thread TID.
+ *
+ * @return Thread exit status.
+ */
+int thread_join(int thread)
+{
+}
+
+/** Get current thread ID.
+ *
+ * @return Current thread ID.
+ */
+int thread_get_id(void)
+{
+	return __SYSCALL0(SYS_THREAD_GET_ID);
+}
+
 /** @}
  */

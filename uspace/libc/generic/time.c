@@ -108,13 +108,30 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	return 0;
 }
 
-/** Wait unconditionally for specified microseconds */
+/** Wait unconditionally for specified number of microseconds */
 void usleep(unsigned long usec)
 {
 	atomic_t futex = FUTEX_INITIALIZER;
 
-	futex_initialize(&futex,0);
+	futex_initialize(&futex, 0);
 	futex_down_timeout(&futex, usec, 0);
+}
+
+/** Wait unconditionally for specified number of seconds */
+unsigned int sleep(unsigned int seconds)
+{
+	atomic_t futex = FUTEX_INITIALIZER;
+
+	futex_initialize(&futex, 0);
+	
+	/* Sleep in 1000 second steps to support
+	   full argument range */
+	while (seconds > 0) {
+		unsigned int period = (seconds > 1000) ? 1000 : seconds;
+	
+		futex_down_timeout(&futex, period * 1000000, 0);
+		seconds -= period;
+	}
 }
 
 /** @}

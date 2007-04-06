@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include "../tester.h"
 
-#ifndef LIBC_THREAD_H_
-#define LIBC_THREAD_H_
+char * test_connect(bool quiet)
+{
+	char c;
+	int svc;
+	int phid;
 
-#include <kernel/proc/uarg.h>
-#include <libarch/thread.h>
-#include <types.h>
-
-extern void __thread_entry(void);
-extern void __thread_main(uspace_arg_t *uarg);
-
-extern int thread_create(void (* function)(void *arg), void *arg, char *name);
-extern void thread_exit(int status);
-extern void thread_detach(int thread);
-extern int thread_join(int thread);
-extern int thread_get_id(void);
-extern tcb_t * __make_tls(void);
-extern tcb_t * __alloc_tls(void **data, size_t size);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t size);
-
-#endif
-
-/** @}
- */
+	printf("Choose one service: 0:10000....9:10009\n");
+	do {
+		c = getchar();
+	} while (c < '0' || c > '9');
+	
+	svc = IPC_TEST_START + c - '0';
+	if (svc == myservice)
+		return "Currently cannot connect to myself, update test";
+	
+	printf("Connecting to %d..", svc);
+	phid = ipc_connect_me_to(PHONE_NS, svc, 0);
+	if (phid > 0) {
+		printf("phoneid: %d\n", phid);
+		phones[phid] = 1;
+	} else
+		return "Error";
+	
+	return NULL;
+}

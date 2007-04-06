@@ -1,0 +1,6 @@
+{
+	"connect",
+	"IPC connection test (connect to other service)",
+	&test_connect,
+	true
+},

@@ -1,0 +1,6 @@
+{
+	"register",
+	"IPC registration test",
+	&test_register,
+	true
+},

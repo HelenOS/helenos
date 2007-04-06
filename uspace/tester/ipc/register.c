@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include <async.h>
+#include "../tester.h"
 
-#ifndef LIBC_THREAD_H_
-#define LIBC_THREAD_H_
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	ipcarg_t phonehash = icall->in_phone_hash;
+	int retval;
+	int i;
 
-#include <kernel/proc/uarg.h>
-#include <libarch/thread.h>
-#include <types.h>
+	printf("Connected phone: %P, accepting\n", icall->in_phone_hash);
+	ipc_answer_fast(iid, 0, 0, 0);
+	for (i = 0; i < 1024; i++)
+		if (!connections[i]) {
+			connections[i] = phonehash;
+			break;
+		}
+	
+	while (1) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			printf("Phone (%P) hung up.\n", phonehash);
+			retval = 0;
+			break;
+		default:
+			printf("Received message from %P: %X\n", phonehash,callid);
+			for (i = 0; i < 1024; i++)
+				if (!callids[i]) {
+					callids[i] = callid;
+					break;
+				}
+			continue;
+		}
+		ipc_answer_fast(callid, retval, 0, 0);
+	}
+}
 
-extern void __thread_entry(void);
-extern void __thread_main(uspace_arg_t *uarg);
+char * test_register(bool quiet)
+{
+	int i;
+	
+	async_set_client_connection(client_connection);
 
-extern int thread_create(void (* function)(void *arg), void *arg, char *name);
-extern void thread_exit(int status);
-extern void thread_detach(int thread);
-extern int thread_join(int thread);
-extern int thread_get_id(void);
-extern tcb_t * __make_tls(void);
-extern tcb_t * __alloc_tls(void **data, size_t size);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t size);
-
-#endif
-
-/** @}
- */
+	for (i = IPC_TEST_START; i < IPC_TEST_START + 10; i++) {
+		ipcarg_t phonead;
+		int res = ipc_connect_to_me(PHONE_NS, i, 0, &phonead);
+		if (!res)
+			break;
+		printf("Failed registering as %d..:%d\n", i, res);
+	}
+	printf("Registered as service: %d\n", i);
+	myservice = i;
+	
+	return NULL;
+}

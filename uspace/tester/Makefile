@@ -41,7 +41,11 @@ LIBS = $(LIBC_PREFIX)/libc.a
 #
 
 OUTPUT = tester
-SOURCES = tester.c
+SOURCES = tester.c \
+	thread/thread1.c \
+	print/print1.c \
+	ipc/register.c \
+	ipc/connect.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

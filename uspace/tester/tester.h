@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup tester
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_THREAD_H_
-#define LIBC_THREAD_H_
+#ifndef TESTER_H_
+#define TESTER_H_
 
-#include <kernel/proc/uarg.h>
-#include <libarch/thread.h>
 #include <types.h>
+#include <bool.h>
+#include <ipc/ipc.h>
 
-extern void __thread_entry(void);
-extern void __thread_main(uspace_arg_t *uarg);
+#define IPC_TEST_START	10000
+#define MAX_PHONES		20
+#define MAX_CONNECTIONS 50
 
-extern int thread_create(void (* function)(void *arg), void *arg, char *name);
-extern void thread_exit(int status);
-extern void thread_detach(int thread);
-extern int thread_join(int thread);
-extern int thread_get_id(void);
-extern tcb_t * __make_tls(void);
-extern tcb_t * __alloc_tls(void **data, size_t size);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t size);
+extern int myservice;
+extern int phones[MAX_PHONES];
+extern int connections[MAX_CONNECTIONS];
+extern ipc_callid_t callids[MAX_CONNECTIONS];
+
+typedef char * (* test_entry_t)(bool);
+
+typedef struct {
+	char * name;
+	char * desc;
+	test_entry_t entry;
+	bool safe;
+} test_t;
+
+extern char * test_thread1(bool quiet);
+extern char * test_print1(bool quiet);
+extern char * test_register(bool quiet);
+extern char * test_connect(bool quiet);
+
+extern test_t tests[];
 
 #endif
 

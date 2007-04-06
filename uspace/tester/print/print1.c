@@ -26,8 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
-#include <test.h>
+#include <stdio.h>
+#include <unistd.h>
+#include "../tester.h"
 
 #define BUFFER_SIZE 32
 
@@ -35,7 +36,7 @@ char * test_print1(bool quiet)
 {
 	if (!quiet) {
 		int retval;
-		unative_t nat = 0x12345678u;
+		unsigned int nat = 0x12345678u;
 		
 		char buffer[BUFFER_SIZE];
 		
