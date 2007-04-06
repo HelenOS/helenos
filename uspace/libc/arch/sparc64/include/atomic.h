@@ -51,9 +51,11 @@ static inline long atomic_add(atomic_t *val, int i)
 	uint64_t a, b;
 
 	do {
-		a = val->count;
+		volatile uintptr_t x = (uint64_t) &val->count;
+
+		a = *((uint64_t *) x);
 		b = a + i;
-		asm volatile ("casx %0, %2, %1\n" : "+m" (*val), "+r" (b) : "r" (a));
+		asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *)x)), "+r" (b) : "r" (a));
 	} while (a != b);
 
 	return a;
