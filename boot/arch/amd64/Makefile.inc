@@ -34,7 +34,7 @@ TASKS = \
 	$(USPACEDIR)/kbd/kbd \
 	$(USPACEDIR)/console/console \
 	$(USPACEDIR)/tetris/tetris \
-	$(USPACEDIR)/ipcc/ipcc \
+	$(USPACEDIR)/tester/tester \
 	$(USPACEDIR)/klog/klog
 
 build: $(BASE)/image.iso

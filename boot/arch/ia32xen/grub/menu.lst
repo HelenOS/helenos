@@ -12,5 +12,5 @@ module /boot/fb
 module /boot/kbd
 module /boot/console
 module /boot/tetris
-module /boot/ipcc
+module /boot/tester
 module /boot/klog

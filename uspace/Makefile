@@ -41,7 +41,7 @@ DIRS = \
 	kbd \
 	console \
 	tetris \
-	ipcc \
+	tester \
 	klog \
 	rd \
 	fs

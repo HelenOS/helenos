@@ -40,8 +40,8 @@ LIBS = $(LIBC_PREFIX)/libc.a
 ## Sources
 #
 
-OUTPUT = ipcc
-SOURCES = ipcc.c
+OUTPUT = tester
+SOURCES = tester.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

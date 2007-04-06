@@ -49,7 +49,7 @@
 	return class_create_instance(self);
 }
 
-- (id) free
+- (id) dispose
 {
 	return object_dispose(self);
 }

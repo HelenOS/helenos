@@ -78,7 +78,7 @@ COMPONENTS = \
 	$(USPACEDIR)/kbd/kbd \
 	$(USPACEDIR)/console/console \
 	$(USPACEDIR)/tetris/tetris \
-	$(USPACEDIR)/ipcc/ipcc \
+	$(USPACEDIR)/tester/tester \
 	$(USPACEDIR)/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
