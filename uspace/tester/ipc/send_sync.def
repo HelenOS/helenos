@@ -1,0 +1,6 @@
+{
+	"send_sync",
+	"IPC send sync message test",
+	&test_send_sync,
+	true
+},

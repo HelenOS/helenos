@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include "../tester.h"
 
-#ifndef TESTER_H_
-#define TESTER_H_
+char * test_send_sync(bool quiet)
+{
+	int phoneid;
+	int res;
+	static int msgid = 1;
+	char c;
 
-#include <types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
-
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
-
-typedef char * (* test_entry_t)(bool);
-
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+	printf("Select phoneid to send msg: 2-9\n");
+	do {
+		c = getchar();
+	} while (c < '2' || c > '9');
+	phoneid = c - '0';
+	
+	printf("Sending msg...");
+	res = ipc_call_sync_2(phoneid, 2000, 0, 0, NULL, NULL);
+	printf("done: %d\n", res);
+	
+	return NULL;
+}

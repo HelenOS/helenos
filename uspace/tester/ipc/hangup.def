@@ -1,0 +1,6 @@
+{
+	"hangup",
+	"IPC hangup test",
+	&test_hangup,
+	true
+},

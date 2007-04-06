@@ -1,0 +1,6 @@
+{
+	"send_async",
+	"IPC send async message test",
+	&test_send_async,
+	true
+},

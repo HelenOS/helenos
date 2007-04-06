@@ -44,8 +44,14 @@ OUTPUT = tester
 SOURCES = tester.c \
 	thread/thread1.c \
 	print/print1.c \
+	fault/fault1.c \
+	fault/fault2.c \
 	ipc/register.c \
-	ipc/connect.c
+	ipc/connect.c \
+	ipc/send_async.c \
+	ipc/send_sync.c \
+	ipc/answer.c \
+	ipc/hangup.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

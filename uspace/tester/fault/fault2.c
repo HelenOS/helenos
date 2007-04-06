@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2005 Jakub Vana
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include "../tester.h"
 
-#ifndef TESTER_H_
-#define TESTER_H_
-
-#include <types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
-
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
-
-typedef char * (* test_entry_t)(bool);
-
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+char * test_fault2(bool quiet)
+{
+	volatile long long var;
+	volatile int var1;
+	
+	var1 = *((int *) (((char *) (&var)) + 1));
+	
+	return "Done unaligned read";
+}

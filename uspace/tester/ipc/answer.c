@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include "../tester.h"
 
-#ifndef TESTER_H_
-#define TESTER_H_
+char * test_answer(bool quiet)
+{
+	int i,cnt, errn = 0;
+	char c;
 
-#include <types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
+	cnt = 0;
+	for (i = 0;i < 50; i++) {
+		if (callids[i]) {
+			printf("%d: %P\n", cnt, callids[i]);
+			cnt++;
+		}
+		if (cnt >= 10)
+			break;
+	}
+	if (!cnt)
+		return;
+	printf("Choose message:\n");
+	do {
+		c = getchar();
+	} while (c < '0' || (c-'0') >= cnt);
+	cnt = c - '0' + 1;
+	
+	for (i = 0; cnt; i++)
+		if (callids[i])
+			cnt--;
+	i -= 1;
 
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
-
-typedef char * (* test_entry_t)(bool);
-
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+	printf("Normal (n) or hangup (h) or error(e) message?\n");
+	do {
+		c = getchar();
+	} while (c != 'n' && c != 'h' && c != 'e');
+	if (c == 'n')
+		errn = 0;
+	else if (c == 'h')
+		errn = EHANGUP;
+	else if (c == 'e')
+		errn = ENOENT;
+	printf("Answering %P\n", callids[i]);
+	ipc_answer_fast(callids[i], errn, 0, 0);
+	callids[i] = 0;
+	
+	return NULL;
+}

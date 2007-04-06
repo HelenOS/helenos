@@ -1,0 +1,6 @@
+{
+	"fault1",
+	"Write to NULL",
+	&test_fault1,
+	false
+},
