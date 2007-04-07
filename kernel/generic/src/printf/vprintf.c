@@ -35,6 +35,10 @@
 #include <print.h>
 #include <printf/printf_core.h>
 #include <putchar.h>
+#include <synch/spinlock.h>
+#include <arch/asm.h>
+
+SPINLOCK_INITIALIZE(printf_lock);			/**< vprintf spinlock */
 
 static int vprintf_write(const char *str, size_t count, void *unused)
 {
@@ -55,8 +59,16 @@ int puts(const char *s)
 int vprintf(const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vprintf_write, NULL};
-	return printf_core(fmt, &ps, ap);
-
+	
+	int irqpri = interrupts_disable();
+	spinlock_lock(&printf_lock);
+	
+	int ret = printf_core(fmt, &ps, ap);
+	
+	spinlock_unlock(&printf_lock);
+	interrupts_restore(irqpri);
+	
+	return ret;
 }
 
 /** @}

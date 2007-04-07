@@ -47,7 +47,7 @@ struct printf_spec {
 
 };
 
-int printf_core(const char *fmt, struct printf_spec *ps ,va_list ap);
+int printf_core(const char *fmt, struct printf_spec *ps, va_list ap);
 
 #endif
 

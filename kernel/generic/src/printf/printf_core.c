@@ -38,13 +38,8 @@
 #include <printf/printf_core.h>
 #include <putchar.h>
 #include <print.h>
-#include <synch/spinlock.h>
 #include <arch/arg.h>
-#include <arch/asm.h>
-
 #include <arch.h>
-
-SPINLOCK_INITIALIZE(printflock);			/**< printf spinlock */
 
 #define __PRINTF_FLAG_PREFIX		0x00000001	/**< show prefixes 0x or 0*/
 #define __PRINTF_FLAG_SIGNED		0x00000002	/**< signed / unsigned number */
@@ -458,7 +453,6 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  */
 int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 {
-	int irqpri;
 	int i = 0, j = 0; /**< i is index of currently processed char from fmt, j is index to the first not printed nonformating character */
 	int end;
 	int counter; /**< counter of printed characters */
@@ -472,10 +466,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 	uint64_t flags;
 	
 	counter = 0;
-	
-	irqpri = interrupts_disable();
-	spinlock_lock(&printflock);
-
+		
 	while ((c = fmt[i])) {
 		/* control character */
 		if (c == '%' ) { 
@@ -712,8 +703,6 @@ next_char:
 	}
 
 out:
-	spinlock_unlock(&printflock);
-	interrupts_restore(irqpri);
 	
 	return counter;
 }
