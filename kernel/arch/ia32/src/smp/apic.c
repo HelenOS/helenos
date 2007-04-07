@@ -139,7 +139,14 @@ static irq_ownership_t l_apic_timer_claim(void)
 
 static void l_apic_timer_irq_handler(irq_t *irq, void *arg, ...)
 {
+	/*
+	 * Holding a spinlock could prevent clock() from preempting
+	 * the current thread. In this case, we don't need to hold the
+	 * irq->lock so we just unlock it and then lock it again.
+	 */
+	spinlock_unlock(&irq->lock);
 	clock();
+	spinlock_lock(&irq->lock);
 }
 
 /** Initialize APIC on BSP. */
