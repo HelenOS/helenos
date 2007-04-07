@@ -45,21 +45,21 @@ static void reader(void *arg)
 	thread_detach(THREAD);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu: trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);
 	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	
 	if (!sh_quiet) {
-		printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);    		
-		printf("cpu%d, tid %d: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
+		printf("cpu%d, tid %llu: success\n", CPU->id, THREAD->tid);    		
+		printf("cpu%d, tid %llu: trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
 	}
 
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d: success\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu: success\n", CPU->id, THREAD->tid);
 	
 	atomic_dec(&thread_count);
 }

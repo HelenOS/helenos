@@ -45,7 +45,7 @@ static void threadtest(void *data)
 
 	while (atomic_get(&finish)) {
 		if (!sh_quiet)
-			printf("%d ", thread_get_id());
+			printf("%llu ", thread_get_id());
 		usleep(100000);
 	}
 	atomic_inc(&threads_finished);
@@ -60,8 +60,7 @@ char * test_thread1(bool quiet)
 	atomic_set(&threads_finished, 0);
 
 	for (i = 0; i < THREADS; i++) {  
-		int t;
-		if ((t = thread_create(threadtest, NULL, "threadtest")) < 0) {
+		if (thread_create(threadtest, NULL, "threadtest", NULL) < 0) {
 			if (!quiet)
 				printf("Could not create thread %d\n", i);
 			break;

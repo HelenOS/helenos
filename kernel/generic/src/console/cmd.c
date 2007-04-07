@@ -713,7 +713,7 @@ int cmd_tlb(cmd_arg_t *argv)
 /** Write 4 byte value to address */
 int cmd_set4(cmd_arg_t *argv)
 {
-	uint32_t *addr ;
+	uint32_t *addr;
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 

@@ -450,7 +450,7 @@ repeat:
 			/*
 			 * Entering state is unexpected.
 			 */
-			panic("tid%d: unexpected state %s\n", THREAD->tid,
+			panic("tid%llu: unexpected state %s\n", THREAD->tid,
 				thread_states[THREAD->state]);
 			break;
 		}
@@ -503,7 +503,7 @@ repeat:
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %d (priority=%d, ticks=%lld, nrdy=%ld)\n",
+	printf("cpu%d: tid %llu (priority=%d, ticks=%llu, nrdy=%ld)\n",
 	    CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
 	    atomic_get(&CPU->nrdy));
 #endif	
@@ -639,7 +639,7 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %d -> cpu%d, nrdy=%ld, "
+				printf("kcpulb%d: TID %llu -> cpu%d, nrdy=%ld, "
 				    "avg=%nd\n", CPU->id, t->tid, CPU->id,
 				    atomic_get(&CPU->nrdy),
 				    atomic_get(&nrdy) / config.cpu_active);
@@ -722,7 +722,7 @@ void sched_print_list(void)
 			for (cur = r->rq_head.next; cur != &r->rq_head;
 				cur = cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
-				printf("%d(%s) ", t->tid,
+				printf("%llu(%s) ", t->tid,
 				    thread_states[t->state]);
 			}
 			printf("\n");

@@ -90,10 +90,10 @@ typedef struct task {
 	 * Active asynchronous messages. It is used for limiting uspace to
 	 * certain extent.
 	 */
-	atomic_t active_calls;  
+	atomic_t active_calls;
 	
 	/** Architecture specific task data. */
-	task_arch_t arch;	
+	task_arch_t arch;
 	
 	/**
 	 * Serializes access to the B+tree of task's futexes. This mutex is

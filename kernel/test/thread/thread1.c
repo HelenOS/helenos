@@ -48,7 +48,7 @@ static void threadtest(void *data)
 
 	while (atomic_get(&finish)) {
 		if (!sh_quiet)
-			printf("%d ", (int) (THREAD->tid));
+			printf("%llu ", THREAD->tid);
 		thread_usleep(100000);
 	}
 	atomic_inc(&threads_finished);

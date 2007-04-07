@@ -70,6 +70,7 @@ typedef uint64_t unative_t;
 typedef int64_t native_t;
 
 typedef uint8_t bool;
+typedef uint64_t thread_id_t;
 typedef uint64_t task_id_t;
 typedef uint32_t context_id_t;
 

@@ -150,11 +150,11 @@ static void slabtest(void *priv)
 	mutex_unlock(&starter_mutex);
 	
 	if (!sh_quiet)
-		printf("Starting thread #%d...\n",THREAD->tid);
+		printf("Starting thread #%llu...\n",THREAD->tid);
 
 	/* Alloc all */
 	if (!sh_quiet)
-		printf("Thread #%d allocating...\n", THREAD->tid);
+		printf("Thread #%llu allocating...\n", THREAD->tid);
 	
 	while (1) {
 		/* Call with atomic to detect end of memory */
@@ -166,7 +166,7 @@ static void slabtest(void *priv)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #%d releasing...\n", THREAD->tid);
+		printf("Thread #%llu releasing...\n", THREAD->tid);
 	
 	while (data) {
 		new = *((void **)data);
@@ -176,7 +176,7 @@ static void slabtest(void *priv)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #%d allocating...\n", THREAD->tid);
+		printf("Thread #%llu allocating...\n", THREAD->tid);
 	
 	while (1) {
 		/* Call with atomic to detect end of memory */
@@ -188,7 +188,7 @@ static void slabtest(void *priv)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #%d releasing...\n", THREAD->tid);
+		printf("Thread #%llu releasing...\n", THREAD->tid);
 	
 	while (data) {
 		new = *((void **)data);
@@ -198,7 +198,7 @@ static void slabtest(void *priv)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #%d finished\n", THREAD->tid);
+		printf("Thread #%llu finished\n", THREAD->tid);
 	
 	slab_print_list();
 	semaphore_up(&thr_sem);

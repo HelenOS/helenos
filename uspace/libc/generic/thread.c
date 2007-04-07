@@ -124,10 +124,11 @@ void __thread_main(uspace_arg_t *uarg)
  * @param function Function implementing the thread.
  * @param arg Argument to be passed to thread.
  * @param name Symbolic name of the thread.
+ * @param tid Thread ID of the newly created thread.
  *
- * @return TID of the new thread on success or -1 on failure.
+ * @return Zero on success or a code from @ref errno.h on failure.
  */
-int thread_create(void (* function)(void *), void *arg, char *name)
+int thread_create(void (* function)(void *), void *arg, char *name, thread_id_t *tid)
 {
 	char *stack;
 	uspace_arg_t *uarg;
@@ -148,7 +149,7 @@ int thread_create(void (* function)(void *), void *arg, char *name)
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
-	return __SYSCALL2(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name);
+	return __SYSCALL3(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name, (sysarg_t) tid);
 }
 
 /** Terminate current thread.
@@ -166,7 +167,7 @@ void thread_exit(int status)
  *
  * @param thread TID.
  */
-void thread_detach(int thread)
+void thread_detach(thread_id_t thread)
 {
 }
 
@@ -178,7 +179,7 @@ void thread_detach(int thread)
  *
  * @return Thread exit status.
  */
-int thread_join(int thread)
+int thread_join(thread_id_t thread)
 {
 }
 
@@ -186,9 +187,13 @@ int thread_join(int thread)
  *
  * @return Current thread ID.
  */
-int thread_get_id(void)
+thread_id_t thread_get_id(void)
 {
-	return __SYSCALL0(SYS_THREAD_GET_ID);
+	thread_id_t thread_id;
+
+	(void) __SYSCALL1(SYS_THREAD_GET_ID, (sysarg_t) &thread_id);
+
+	return thread_id;
 }
 
 /** @}

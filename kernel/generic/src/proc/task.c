@@ -399,7 +399,7 @@ void task_print_list(void)
 			char suffix;
 			order(task_get_accounting(t), &cycles, &suffix);
 			
-			printf("%-6lld %-10s %-3ld %#10zx %#10zx %9llu%c %7zd "
+			printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd "
 			    "%6zd", t->taskid, t->name, t->context, t, t->as,
 			    cycles, suffix, t->refcount,
 			    atomic_get(&t->active_calls));
@@ -486,7 +486,7 @@ loop:
 
 	ipc_cleanup();
 	futex_cleanup();
-	klog_printf("Cleanup of task %lld completed.", TASK->taskid);
+	klog_printf("Cleanup of task %llu completed.", TASK->taskid);
 }
 
 /** Kernel thread used to kill the userspace task when its main thread exits.

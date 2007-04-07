@@ -137,7 +137,7 @@ static void slabtest(void *data)
 	thread_detach(THREAD);
 	
 	if (!sh_quiet)
-		printf("Starting thread #%d...\n", THREAD->tid);
+		printf("Starting thread #%llu...\n", THREAD->tid);
 	
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < THR_MEM_COUNT; i++)
@@ -151,7 +151,7 @@ static void slabtest(void *data)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #%d finished\n", THREAD->tid);
+		printf("Thread #%llu finished\n", THREAD->tid);
 	
 	semaphore_up(&thr_sem);
 }

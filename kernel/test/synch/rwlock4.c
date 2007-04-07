@@ -74,18 +74,18 @@ static void writer(void *arg)
 	to = random(40000);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d w+ (%d)\n", CPU->id, THREAD->tid, to);
+		printf("cpu%d, tid %llu w+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_write_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
 		if (!sh_quiet)
-			printf("cpu%d, tid %d w!\n", CPU->id, THREAD->tid);
+			printf("cpu%d, tid %llu w!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d w=\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu w=\n", CPU->id, THREAD->tid);
 
 	if (rwlock.readers_in) {
 		if (!sh_quiet)
@@ -106,7 +106,7 @@ static void writer(void *arg)
 	rwlock_write_unlock(&rwlock);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d w-\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu w-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 
@@ -119,24 +119,24 @@ static void reader(void *arg)
 	to = random(2000);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d r+ (%d)\n", CPU->id, THREAD->tid, to);
+		printf("cpu%d, tid %llu r+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_read_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
 		if (!sh_quiet)
-			printf("cpu%d, tid %d r!\n", CPU->id, THREAD->tid);
+			printf("cpu%d, tid %llu r!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d r=\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu r=\n", CPU->id, THREAD->tid);
 	
 	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %d r-\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu r-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 

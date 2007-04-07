@@ -72,7 +72,7 @@ static void testit1(void *data)
 		
 		if (arg != after_arg) {
 			if (!sh_quiet)
-				printf("tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+				printf("tid%llu: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -104,7 +104,7 @@ static void testit2(void *data)
 		
 		if (arg != after_arg) {
 			if (!sh_quiet)
-				printf("tid%d: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+				printf("tid%llu: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}

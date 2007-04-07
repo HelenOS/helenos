@@ -58,7 +58,7 @@ static void falloc(void * arg)
 	uintptr_t * frames =  (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL) {
 		if (!sh_quiet)
-			printf("Thread #%d (cpu%d): Unable to allocate frames\n", THREAD->tid, CPU->id);
+			printf("Thread #%llu (cpu%d): Unable to allocate frames\n", THREAD->tid, CPU->id);
 		atomic_inc(&thread_fail);
 		atomic_dec(&thread_count);
 		return;
@@ -69,7 +69,7 @@ static void falloc(void * arg)
 	for (run = 0; run < THREAD_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
 			if (!sh_quiet)
-				printf("Thread #%d (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
+				printf("Thread #%llu (cpu%d): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
 			
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
@@ -82,16 +82,16 @@ static void falloc(void * arg)
 			}
 			
 			if (!sh_quiet)
-				printf("Thread #%d (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
+				printf("Thread #%llu (cpu%d): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
 			
 			if (!sh_quiet)
-				printf("Thread #%d (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
+				printf("Thread #%llu (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
 			
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
 						if (!sh_quiet)
-							printf("Thread #%d (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+							printf("Thread #%llu (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}
@@ -100,7 +100,7 @@ static void falloc(void * arg)
 			}
 			
 			if (!sh_quiet)
-				printf("Thread #%d (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
+				printf("Thread #%llu (cpu%d): Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
 
@@ -108,7 +108,7 @@ cleanup:
 	free(frames);
 	
 	if (!sh_quiet)
-		printf("Thread #%d (cpu%d): Exiting\n", THREAD->tid, CPU->id);
+		printf("Thread #%llu (cpu%d): Exiting\n", THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
 }
 

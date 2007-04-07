@@ -970,7 +970,7 @@ void btree_print(btree_t *t)
 
 		printf("(");
 		for (i = 0; i < node->keys; i++) {
-			printf("%lld%s", node->key[i], i < node->keys - 1 ? "," : "");
+			printf("%llu%s", node->key[i], i < node->keys - 1 ? "," : "");
 			if (node->depth && node->subtree[i]) {
 				list_append(&node->subtree[i]->bfs_link, &head);
 			}
@@ -992,7 +992,7 @@ void btree_print(btree_t *t)
 
 		printf("(");
 		for (i = 0; i < node->keys; i++)
-			printf("%lld%s", node->key[i], i < node->keys - 1 ? "," : "");
+			printf("%llu%s", node->key[i], i < node->keys - 1 ? "," : "");
 		printf(")");
 	}
 	printf("\n");

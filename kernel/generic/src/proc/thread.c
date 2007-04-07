@@ -94,7 +94,7 @@ SPINLOCK_INITIALIZE(threads_lock);
 btree_t threads_btree;		
 
 SPINLOCK_INITIALIZE(tidlock);
-uint32_t last_tid = 0;
+thread_id_t last_tid = 0;
 
 static slab_cache_t *thread_slab;
 #ifdef ARCH_HAS_FPU
@@ -580,7 +580,7 @@ void thread_print_list(void)
 			char suffix;
 			order(t->cycles, &cycles, &suffix);
 			
-			printf("%-6zd %-10s %#10zx %-8s %#10zx %-3ld %#10zx "
+			printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx "
 			    "%#10zx %9llu%c ", t->tid, t->name, t,
 			    thread_states[t->state], t->task, t->task->context,
 			    t->thread_code, t->kstack, cycles, suffix);
@@ -636,12 +636,11 @@ void thread_update_accounting(void)
 /** Process syscall to create new thread.
  *
  */
-unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
+unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, thread_id_t *uspace_thread_id)
 {
 	thread_t *t;
 	char namebuf[THREAD_NAME_BUFLEN];
 	uspace_arg_t *kernel_uarg;
-	uint32_t tid;
 	int rc;
 
 	rc = copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
@@ -658,12 +657,14 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name)
 	t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf,
 	    false);
 	if (t) {
-		tid = t->tid;
 		thread_ready(t);
-		return (unative_t) tid; 
-	} else {
+		if (uspace_thread_id != NULL)
+			return (unative_t) copy_to_uspace(uspace_thread_id, &t->tid,
+		    	sizeof(t->tid));
+		else
+			return 0;
+	} else
 		free(kernel_uarg);
-	}
 
 	return (unative_t) ENOMEM;
 }
@@ -680,15 +681,19 @@ unative_t sys_thread_exit(int uspace_status)
 
 /** Syscall for getting TID.
  *
- * @return Thread ID.
+ * @param uspace_thread_id Userspace address of 8-byte buffer where to store
+ * current thread ID.
+ *
+ * @return 0 on success or an error code from @ref errno.h.
  */
-unative_t sys_thread_get_id(void)
+unative_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 {
 	/*
 	 * No need to acquire lock on THREAD because tid
 	 * remains constant for the lifespan of the thread.
 	 */
-	return THREAD->tid;
+	return (unative_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
+	    sizeof(THREAD->tid));
 }
 
 /** @}

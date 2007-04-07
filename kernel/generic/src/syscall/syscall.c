@@ -100,7 +100,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	if (id < SYSCALL_END)
 		rc = syscall_table[id](a1, a2, a3, a4);
 	else {
-		klog_printf("TASK %lld: Unknown syscall id %d",TASK->taskid,id);
+		klog_printf("TASK %llu: Unknown syscall id %d",TASK->taskid,id);
 		task_kill(TASK->taskid);
 		thread_exit();
 	}

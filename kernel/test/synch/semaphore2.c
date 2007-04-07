@@ -67,18 +67,18 @@ static void consumer(void *arg)
 	waitq_sleep(&can_start);
 	
 	to = random(20000);
-	printf("cpu%d, tid %d down+ (%d)\n", CPU->id, THREAD->tid, to);
+	printf("cpu%d, tid %llu down+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = semaphore_down_timeout(&sem, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%d, tid %d down!\n", CPU->id, THREAD->tid);
+		printf("cpu%d, tid %llu down!\n", CPU->id, THREAD->tid);
 		return;
 	}
 	
-	printf("cpu%d, tid %d down=\n", CPU->id, THREAD->tid);	
+	printf("cpu%d, tid %llu down=\n", CPU->id, THREAD->tid);	
 	thread_usleep(random(30000));
 	
 	semaphore_up(&sem);
-	printf("cpu%d, tid %d up\n", CPU->id, THREAD->tid);
+	printf("cpu%d, tid %llu up\n", CPU->id, THREAD->tid);
 }
 
 char * test_semaphore2(bool quiet)

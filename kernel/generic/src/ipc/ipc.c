@@ -502,7 +502,7 @@ void ipc_print_task(task_id_t taskid)
 	printf("ABOX - CALLS:\n");
 	for (tmp=task->answerbox.calls.next; tmp != &task->answerbox.calls;tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %p Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
 		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
 	}
@@ -512,7 +512,7 @@ void ipc_print_task(task_id_t taskid)
 	     tmp != &task->answerbox.dispatched_calls; 
 	     tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %p Srctask:%lld M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
+		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
 		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
 	}

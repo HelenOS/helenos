@@ -39,14 +39,16 @@
 #include <libarch/thread.h>
 #include <types.h>
 
+typedef uint64_t thread_id_t;
+
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *uarg);
 
-extern int thread_create(void (* function)(void *arg), void *arg, char *name);
+extern int thread_create(void (* function)(void *), void *arg, char *name, thread_id_t *tid);
 extern void thread_exit(int status);
-extern void thread_detach(int thread);
-extern int thread_join(int thread);
-extern int thread_get_id(void);
+extern void thread_detach(thread_id_t thread);
+extern int thread_join(thread_id_t thread);
+extern thread_id_t thread_get_id(void);
 extern tcb_t * __make_tls(void);
 extern tcb_t * __alloc_tls(void **data, size_t size);
 extern void __free_tls(tcb_t *);
