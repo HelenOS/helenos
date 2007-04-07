@@ -138,6 +138,7 @@ void irq_initialize(irq_t *irq)
 {
 	link_initialize(&irq->link);
 	spinlock_initialize(&irq->lock, "irq.lock");
+	irq->preack = false;
 	irq->inr = -1;
 	irq->devno = -1;
 	irq->trigger = (irq_trigger_t) 0;

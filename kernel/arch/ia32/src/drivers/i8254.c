@@ -82,6 +82,7 @@ static void i8254_irq_handler(irq_t *irq, void *arg, ...)
 void i8254_init(void)
 {
 	irq_initialize(&i8254_irq);
+	i8254_irq.preack = true;
 	i8254_irq.devno = device_assign_devno();
 	i8254_irq.inr = IRQ_CLK;
 	i8254_irq.claim = i8254_claim;

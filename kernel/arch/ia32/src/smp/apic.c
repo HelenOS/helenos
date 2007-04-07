@@ -169,6 +169,7 @@ void apic_init(void)
 	io_apic_disable_irqs(0xffff);
 	
 	irq_initialize(&l_apic_timer_irq);
+	l_apic_timer_irq.preack = true;
 	l_apic_timer_irq.devno = device_assign_devno();
 	l_apic_timer_irq.inr = IRQ_CLK;
 	l_apic_timer_irq.claim = l_apic_timer_claim;

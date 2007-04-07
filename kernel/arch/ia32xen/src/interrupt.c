@@ -176,14 +176,21 @@ static void irq_interrupt(int n, istate_t *istate)
 	ASSERT(n >= IVT_IRQBASE);
 	
 	int inum = n - IVT_IRQBASE;
+	bool ack = false;
 	ASSERT(inum < IRQ_COUNT);
 	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
-
+	
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
 		/*
 		 * The IRQ handler was found.
 		 */
+		 
+		if (irq->preack) {
+			/* Send EOI before processing the interrupt */
+			trap_virtual_eoi();
+			ack = true;
+		}
 		irq->handler(irq, irq->arg);
 		spinlock_unlock(&irq->lock);
 	} else {
@@ -194,7 +201,9 @@ static void irq_interrupt(int n, istate_t *istate)
 		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
 #endif
 	}
-	trap_virtual_eoi();
+	
+	if (!ack)
+		trap_virtual_eoi();
 }
 
 void interrupt_init(void)

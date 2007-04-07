@@ -121,13 +121,21 @@ typedef struct irq {
 	 *  this lock must not be taken first.
 	 */
 	SPINLOCK_DECLARE(lock);
+	
+	/** Send EOI before processing the interrupt.
+	 *  This is essential for timer interrupt which
+	 *  has to be acknowledged before doing preemption
+	 *  to make sure another timer interrupt will
+	 *  be eventually generated.
+	 */
+	bool preack;
 
 	/** Unique device number. -1 if not yet assigned. */
 	devno_t devno;
 
 	/** Actual IRQ number. -1 if not yet assigned. */
 	inr_t inr;
-	/** Trigger level of the IRQ.*/
+	/** Trigger level of the IRQ. */
 	irq_trigger_t trigger;
 	/** Claim ownership of the IRQ. */
 	irq_ownership_t (* claim)(void);
