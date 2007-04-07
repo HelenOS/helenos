@@ -83,7 +83,7 @@ void spinlock_lock_debug(spinlock_t *sl)
 	while (test_and_set(&sl->val)) {
 
 		/*
-		 * We need to be careful about printflock and fb_lock.
+		 * We need to be careful about printf_lock and fb_lock.
 		 * Both of them are used to report deadlocks via
 		 * printf() and fb_putchar().
 		 *
@@ -93,13 +93,13 @@ void spinlock_lock_debug(spinlock_t *sl)
 		 * However, we encountered false positives caused by very
 		 * slow VESA framebuffer interaction (especially when
 		 * run in a simulator) that caused problems with both
-		 * printflock and fb_lock.
+		 * printf_lock and fb_lock.
 		 *
-		 * Possible deadlocks on both printflock and fb_lock
+		 * Possible deadlocks on both printf_lock and fb_lock
 		 * are therefore not reported as they would cause an
 		 * infinite recursion.
 		 */
-		if (sl == &printflock)
+		if (sl == &printf_lock)
 			continue;
 #ifdef CONFIG_FB
 		if (sl == &fb_lock)
