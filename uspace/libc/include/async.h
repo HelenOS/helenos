@@ -116,12 +116,13 @@ int _async_init(void);
 void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, 
 		 ipcarg_t arg3);
 void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
-#define async_msg(ph,m,a1) async_msg_2(ph,m,a1,0)
+#define async_msg(ph, m, a1) async_msg_2(ph, m, a1, 0)
 
 static inline void async_serialize_start(void)
 {
 	psthread_inc_sercount();
 }
+
 static inline void async_serialize_end(void)
 {
 	psthread_dec_sercount();

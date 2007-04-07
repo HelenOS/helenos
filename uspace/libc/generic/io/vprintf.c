@@ -36,10 +36,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <io/printf_core.h>
+#include <futex.h>
 
-int vprintf_write(const char *str, size_t count, void *unused);
+atomic_t printf_futex = FUTEX_INITIALIZER;
 
-int vprintf_write(const char *str, size_t count, void *unused)
+static int vprintf_write(const char *str, size_t count, void *unused)
 {
 	return write(1, str, count);
 }
@@ -51,9 +52,13 @@ int vprintf_write(const char *str, size_t count, void *unused)
  */
 int vprintf(const char *fmt, va_list ap)
 {
-	struct printf_spec ps = {(int(*)(void *, size_t, void *))vprintf_write, NULL};
-	return printf_core(fmt, &ps, ap);
-
+	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vprintf_write, NULL};
+	
+	futex_down(&printf_futex);
+	int ret = printf_core(fmt, &ps, ap);
+	futex_up(&printf_futex);
+	
+	return ret;
 }
 
 /** @}

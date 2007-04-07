@@ -40,8 +40,6 @@
 #include <io/printf_core.h>
 #include <ctype.h>
 #include <string.h>
-/* For serialization */
-#include <async.h>
 
 #define __PRINTF_FLAG_PREFIX		0x00000001	/**< show prefixes 0x or 0*/
 #define __PRINTF_FLAG_SIGNED		0x00000002	/**< signed / unsigned number */
@@ -92,15 +90,13 @@ static int printf_putstr(const char * str, struct printf_spec *ps)
 {
 	size_t count;
 	
-	if (str == NULL) {
+	if (str == NULL)
 		return printf_putnchars("(NULL)", 6, ps);
-	}
 
 	for (count = 0; str[count] != 0; count++);
 
-	if (ps->write((void *) str, count, ps->data) == count) {
+	if (ps->write((void *) str, count, ps->data) == count)
 		return 0;
-	}
 	
 	return EOF;
 }
@@ -447,9 +443,6 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 	int width, precision;
 	uint64_t flags;
 	
-	/* Don't let other threads interfere */
-	async_serialize_start();
-
 	counter = 0;
 	
 	while ((c = fmt[i])) {
@@ -681,10 +674,8 @@ next_char:
 		counter += retval;
 	}
 	
-	async_serialize_end();
 	return counter;
 minus_out:
-	async_serialize_end();
 	return -counter;
 }
 

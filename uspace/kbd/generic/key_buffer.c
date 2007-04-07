@@ -111,4 +111,3 @@ int keybuffer_pop(keybuffer_t *keybuffer, int *c)
 /**
  * @}
  */ 
-

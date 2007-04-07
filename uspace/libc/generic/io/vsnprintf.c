@@ -43,8 +43,6 @@ struct vsnprintf_data {
 	char *string; /* destination string */
 };
 
-int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data);
-
 /** Write string to given buffer.
  * Write at most data->size characters including trailing zero. According to C99 has snprintf to return number
  * of characters that would have been written if enough space had been available. Hence the return value is not
@@ -55,7 +53,7 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data);
  * @param data structure with destination string, counter of used space and total string size.
  * @return number of characters to print (not characters really printed!)
  */
-int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
+static int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 {
 	size_t i;
 	i = data->size - data->len;
@@ -97,7 +95,7 @@ int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
 	struct vsnprintf_data data = {size, 0, str};
-	struct printf_spec ps = {(int(*)(void *, size_t, void *))vsnprintf_write, &data};
+	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vsnprintf_write, &data};
 
 	/* Print 0 at end of string - fix the case that nothing will be printed */
 	if (size > 0)
