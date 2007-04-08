@@ -599,6 +599,7 @@ int cmd_mcall0(cmd_arg_t *argv)
 			printf("cpu%u: ", i);
 			thread_ready(t);
 			thread_join(t);
+			thread_detach(t);
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}
