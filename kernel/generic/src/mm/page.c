@@ -76,7 +76,7 @@ void map_structure(uintptr_t s, size_t size)
 	cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
 
 	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, s + i * PAGE_SIZE, s + i * PAGE_SIZE, PAGE_NOT_CACHEABLE);
+		page_mapping_insert(AS_KERNEL, s + i * PAGE_SIZE, s + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
 
 }
 

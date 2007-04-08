@@ -53,7 +53,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
+		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	

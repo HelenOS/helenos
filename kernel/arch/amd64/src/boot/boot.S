@@ -441,6 +441,8 @@ vesa_init_protect:
 	movw %cx, %fs
 	movw %cx, %gs
 	
+	movl $START_STACK, %esp			# initialize stack pointer
+	
 	jmpl $gdtselector(KTEXT32_DES), $vesa_meeting_point
 	
 .align 4

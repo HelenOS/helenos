@@ -83,7 +83,7 @@ void page_arch_init(void)
 {
 	uintptr_t cur;
 	int i;
-	int identity_flags = PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL;
+	int identity_flags = PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL | PAGE_WRITE;
 
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
@@ -112,10 +112,8 @@ void page_arch_init(void)
 
 		exc_register(14, "page_fault", (iroutine) page_fault);
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	}
-	else {
+	} else 
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	}
 }
 
 
@@ -208,7 +206,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE);
+		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	

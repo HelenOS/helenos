@@ -88,7 +88,7 @@ int acpi_sdt_check(uint8_t *sdt)
 
 static void map_sdt(struct acpi_sdt_header *sdt)
 {
-	page_mapping_insert(AS_KERNEL, (uintptr_t) sdt, (uintptr_t) sdt, PAGE_NOT_CACHEABLE);
+	page_mapping_insert(AS_KERNEL, (uintptr_t) sdt, (uintptr_t) sdt, PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	map_structure((uintptr_t) sdt, sdt->length);
 }
 

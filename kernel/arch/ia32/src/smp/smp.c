@@ -82,13 +82,13 @@ void smp_init(void)
 
 	if (config.cpu_count > 1) {		
 		page_mapping_insert(AS_KERNEL, l_apic_address, (uintptr_t) l_apic, 
-				  PAGE_NOT_CACHEABLE);
+				  PAGE_NOT_CACHEABLE | PAGE_WRITE);
 		page_mapping_insert(AS_KERNEL, io_apic_address, (uintptr_t) io_apic,
-				  PAGE_NOT_CACHEABLE);
+				  PAGE_NOT_CACHEABLE | PAGE_WRITE);
 				  
 		l_apic = (uint32_t *) l_apic_address;
 		io_apic = (uint32_t *) io_apic_address;
-        }
+	}
 }
 
 /*

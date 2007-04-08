@@ -63,8 +63,8 @@ multiboot_image_start:
 	jmpl $selector(KTEXT_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
-	pushl %ebx							# save parameters from GRUB
-	pushl %eax
+	movl %eax, grub_eax					# save parameters from GRUB
+	movl %ebx, grub_ebx
 	
 	xorl %eax, %eax  
  	cpuid
@@ -104,8 +104,8 @@ multiboot_image_start:
 	
 	call map_kernel							# map kernel and turn paging on
 	
-	popl %eax
-	popl %ebx
+	movl grub_eax, %eax
+	movl grub_ebx, %ebx
 	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
 	je valid_boot
 		
@@ -481,8 +481,6 @@ vesa_init_real2:
 
 .code32
 vesa_init_protect:
-	popl %esp
-
 	movw $selector(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
@@ -490,6 +488,8 @@ vesa_init_protect:
 	movw %cx, %ds					# kernel data + stack
 	movw %cx, %ss
 	
+	movl $START_STACK, %esp			# initialize stack pointer
+
 	jmpl $selector(KTEXT_DES), $vesa_meeting_point
 
 .align 4
@@ -501,6 +501,12 @@ e_vesa_init:
 .align 4096
 page_directory:
 	.space 4096, 0
+
+grub_eax:
+	.long 0
+
+grub_ebx:
+	.long 0
 
 pse_msg:
 	.ascii "Page Size Extension not supported. System halted.\0"
