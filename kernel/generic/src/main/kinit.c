@@ -118,7 +118,7 @@ void kinit(void *arg)
 
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
-		unsigned int i;
+		count_t i;
 		
 		/*
 		 * For each CPU, create its load balancing thread.

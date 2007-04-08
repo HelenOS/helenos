@@ -192,10 +192,10 @@ static cmd_info_t set4_info = {
 };
 
 /* Data and methods for 'call0' command. */
-static char call0_buf[MAX_CMDLINE+1];
-static char carg1_buf[MAX_CMDLINE+1];
-static char carg2_buf[MAX_CMDLINE+1];
-static char carg3_buf[MAX_CMDLINE+1];
+static char call0_buf[MAX_CMDLINE + 1];
+static char carg1_buf[MAX_CMDLINE + 1];
+static char carg2_buf[MAX_CMDLINE + 1];
+static char carg3_buf[MAX_CMDLINE + 1];
 
 static int cmd_call0(cmd_arg_t *argv);
 static cmd_arg_t call0_argv = {
@@ -209,6 +209,21 @@ static cmd_info_t call0_info = {
 	.func = cmd_call0,
 	.argc = 1,
 	.argv = &call0_argv
+};
+
+/* Data and methods for 'mcall0' command. */
+static int cmd_mcall0(cmd_arg_t *argv);
+static cmd_arg_t mcall0_argv = {
+	.type = ARG_TYPE_STRING,
+	.buffer = call0_buf,
+	.len = sizeof(call0_buf)
+};
+static cmd_info_t mcall0_info = {
+	.name = "mcall0",
+	.description = "mcall0 <function> -> call function() on each CPU.",
+	.func = cmd_mcall0,
+	.argc = 1,
+	.argv = &mcall0_argv
 };
 
 /* Data and methods for 'call1' command. */
@@ -406,6 +421,7 @@ cmd_info_t version_info = {
 
 static cmd_info_t *basic_commands[] = {
 	&call0_info,
+	&mcall0_info,
 	&call1_info,
 	&call2_info,
 	&call3_info,
@@ -540,7 +556,7 @@ int cmd_call0(cmd_arg_t *argv)
 	struct {
 		unative_t f;
 		unative_t gp;
-	}fptr;
+	} fptr;
 #endif
 
 	symaddr = get_symbol_addr((char *) argv->buffer);
@@ -551,7 +567,7 @@ int cmd_call0(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(): %.*p: %s\n", sizeof(uintptr_t) * 2, symaddr, symbol);
+		printf("Calling %s() (%.*p)\n", symbol, sizeof(uintptr_t) * 2, symaddr);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((unative_t *)cmd_call2)[1];
@@ -560,6 +576,31 @@ int cmd_call0(cmd_arg_t *argv)
 		f =  (unative_t (*)(void)) symaddr;
 #endif
 		printf("Result: %#zx\n", f());
+	}
+	
+	return 1;
+}
+
+/** Call function with zero parameters on each CPU */
+int cmd_mcall0(cmd_arg_t *argv)
+{
+	/*
+	 * For each CPU, create a thread which will
+	 * call the function.
+	 */
+	
+	count_t i;
+	for (i = 0; i < config.cpu_count; i++) {
+		thread_t *t;
+		if ((t = thread_create((void (*)(void *)) cmd_call0, (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
+			spinlock_lock(&t->lock);
+			t->cpu = &cpus[i];
+			spinlock_unlock(&t->lock);
+			printf("cpu%u: ", i);
+			thread_ready(t);
+			thread_join(t);
+		} else
+			printf("Unable to create thread for cpu%u\n", i);
 	}
 	
 	return 1;
