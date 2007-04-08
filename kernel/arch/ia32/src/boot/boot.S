@@ -66,6 +66,21 @@ multiboot_image_start:
 	pushl %ebx							# save parameters from GRUB
 	pushl %eax
 	
+	xorl %eax, %eax  
+ 	cpuid
+ 	cmp $0x0, %eax						# any function > 0?
+	jbe pse_unsupported
+	movl $0x1, %eax						# Basic function code 80000001
+	cpuid
+	bt $3, %edx							# Test if PSE is supported
+	jc pse_supported
+
+	pse_unsupported:
+		movl $pse_msg, %esi
+		jmp error_halt
+	
+	pse_supported:
+	
 #ifdef CONFIG_FB
 	mov $vesa_init, %esi
 	mov $VESA_INIT_SEGMENT << 4, %edi
@@ -209,7 +224,7 @@ multiboot_image_start:
 	rep movsb
 	
 #endif
-	
+
 	call main_bsp								# never returns
 
 	cli
@@ -222,19 +237,20 @@ map_kernel:
 	# For simplicity, we map the entire 4G space.
 	#
 	movl %cr4, %ecx
-	orl $(1<<4), %ecx
-	movl %ecx, %cr4							# turn PSE on
+	orl $(1 << 4), %ecx							# turn PSE on
+	andl $(~(1 << 5)), %ecx						# turn PAE off
+	movl %ecx, %cr4
 	
-	movl $(page_directory+0), %esi
-	movl $(page_directory+2048), %edi
+	movl $(page_directory + 0), %esi
+	movl $(page_directory + 2048), %edi
 	xorl %ecx, %ecx
 	xorl %ebx, %ebx
 0:
-	movl $((1<<7)|(1<<0)), %eax
+	movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
 	orl %ebx, %eax
-	movl %eax, (%esi,%ecx,4)					# mapping 0x00000000+%ecx*4M => 0x00000000+%ecx*4M
-	movl %eax, (%edi,%ecx,4)					# mapping 0x80000000+%ecx*4M => 0x00000000+%ecx*4M
-	addl $(4*1024*1024), %ebx
+	movl %eax, (%esi, %ecx, 4)					# mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
+	movl %eax, (%edi, %ecx, 4)					# mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
+	addl $(4 * 1024 * 1024), %ebx
 
 	incl %ecx
 	cmpl $512, %ecx
@@ -242,11 +258,70 @@ map_kernel:
 
 	movl %esi, %cr3
 	
-	# turn paging on
 	movl %cr0, %ebx
-	orl $(1<<31), %ebx
+	orl $(1 << 31), %ebx						# turn paging on
 	movl %ebx, %cr0
 	ret
+
+# Print string from %esi to EGA display (in red) and halt
+error_halt:
+	movl $0xb8000, %edi						# base of EGA text mode memory
+	xorl %eax, %eax
+	
+	movw $0x3d4, %dx						# read bits 8 - 15 of the cursor address
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	shl $8, %ax
+	
+	movw $0x3d4, %dx						# read bits 0 - 7 of the cursor address
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	
+	cmp $1920, %ax
+	jbe cursor_ok
+		movw $1920, %ax						# sanity check for the cursor on the last line
+	cursor_ok:
+	
+	movw %ax, %bx
+	shl $1, %eax
+	addl %eax, %edi
+	
+	movw $0x0c00, %ax						# black background, light red foreground
+	cld
+	
+	ploop:
+		lodsb
+		cmp $0, %al
+		je ploop_end
+		stosw
+		inc %bx	
+		jmp ploop
+	ploop_end:
+	
+	movw $0x3d4, %dx						# write bits 8 - 15 of the cursor address
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bh, %al
+	outb %al, %dx
+	
+	movw $0x3d4, %dx						# write bits 0 - 7 of the cursor address
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bl, %al
+	outb %al, %dx
+		
+	cli
+	hlt
 
 #ifdef CONFIG_FB
 vesa_init:
@@ -426,3 +501,6 @@ e_vesa_init:
 .align 4096
 page_directory:
 	.space 4096, 0
+
+pse_msg:
+	.ascii "Page Size Extension not supported. System halted.\0"
