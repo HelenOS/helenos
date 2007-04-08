@@ -70,7 +70,7 @@ multiboot_image_start:
  	cpuid
  	cmp $0x0, %eax						# any function > 0?
 	jbe pse_unsupported
-	movl $0x1, %eax						# Basic function code 80000001
+	movl $0x1, %eax						# Basic function code 1
 	cpuid
 	bt $3, %edx							# Test if PSE is supported
 	jc pse_supported
