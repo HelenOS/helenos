@@ -72,8 +72,26 @@ multiboot_image_start:
 	movl %eax, grub_eax							# save parameters from GRUB
 	movl %ebx, grub_ebx
 	
+	# Protected 32-bit. We want to reuse the code-seg descriptor,
+	# the Default operand size must not be 1 when entering long mode
+	
+	movl $0x80000000, %eax  
+ 	cpuid
+ 	cmp $0x80000000, %eax						# any function > 80000000h?
+	jbe long_mode_unsupported
+	movl $(AMD_CPUID_EXTENDED), %eax			# Extended function code 80000001
+	cpuid
+	bt $29, %edx								# Test if long mode is supported.
+ 	jc long_mode_supported
+
+	long_mode_unsupported:
+		movl $long_mode_msg, %esi
+		jmp error_halt
+	
+	long_mode_supported:
+	
 #ifdef CONFIG_FB
-	mov $vesa_init, %esi;
+	mov $vesa_init, %esi
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	mov $e_vesa_init - vesa_init, %ecx
 	cld
@@ -92,24 +110,6 @@ multiboot_image_start:
 	shr $16, %ebx
 	mov %bx, KA2PA(vesa_bpp)
 #endif	
-
-	# Protected 32-bit. We want to reuse the code-seg descriptor,
-	# the Default operand size must not be 1 when entering long mode
-	
-	movl $0x80000000, %eax  
- 	cpuid
- 	cmp $0x80000000, %eax						# any function > 80000000h?
-	jbe long_mode_unsupported
-	movl $(AMD_CPUID_EXTENDED), %eax			# Extended function code 80000001
-	cpuid
-	bt $29, %edx								# Test if long mode is supported.
- 	jc long_mode_supported
-
-	long_mode_unsupported:
-		cli
-		hlt
-	
-	long_mode_supported:
 	
 	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
@@ -445,7 +445,67 @@ vesa_init_protect:
 	
 .align 4
 e_vesa_init:
-#endif	
+#endif
+
+# Print string from %esi to EGA display (in red) and halt
+error_halt:
+	movl $0xb8000, %edi						# base of EGA text mode memory
+	xorl %eax, %eax
+	
+	movw $0x3d4, %dx						# read bits 8 - 15 of the cursor address
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	shl $8, %ax
+	
+	movw $0x3d4, %dx						# read bits 0 - 7 of the cursor address
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	
+	cmp $1920, %ax
+	jbe cursor_ok
+		movw $1920, %ax						# sanity check for the cursor on the last line
+	cursor_ok:
+	
+	movw %ax, %bx
+	shl $1, %eax
+	addl %eax, %edi
+	
+	movw $0x0c00, %ax						# black background, light red foreground
+	cld
+	
+	ploop:
+		lodsb
+		cmp $0, %al
+		je ploop_end
+		stosw
+		inc %bx	
+		jmp ploop
+	ploop_end:
+	
+	movw $0x3d4, %dx						# write bits 8 - 15 of the cursor address
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bh, %al
+	outb %al, %dx
+	
+	movw $0x3d4, %dx						# write bits 0 - 7 of the cursor address
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bl, %al
+	outb %al, %dx
+		
+	cli
+	hlt
 				
 .section K_DATA_START, "aw", @progbits
 .align 4096
@@ -513,3 +573,6 @@ grub_eax:
 
 grub_ebx:
 	.long 0
+
+long_mode_msg:
+	.ascii "64 bit long mode not supported. System halted.\0"
