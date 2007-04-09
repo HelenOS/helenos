@@ -33,19 +33,25 @@
 #include <thread.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <futex.h>
 #include "../tester.h"
 
 static atomic_t finish;
 static atomic_t threads_finished;
 static bool sh_quiet;
 
+static atomic_t srlz = FUTEX_INITIALIZER;
+
 static void threadtest(void *data)
 {
 	thread_detach(thread_get_id());
 
 	while (atomic_get(&finish)) {
-		if (!sh_quiet)
+		if (!sh_quiet) {
+			futex_down(&srlz);
 			printf("%llu ", thread_get_id());
+			futex_up(&srlz);
+		}
 		usleep(100000);
 	}
 	atomic_inc(&threads_finished);
@@ -68,8 +74,11 @@ char * test_thread1(bool quiet)
 		total++;
 	}
 	
-	if (!quiet)
+	if (!quiet) {
+		futex_down(&srlz);
 		printf("Running threads for 10 seconds...\n");
+		futex_up(&srlz);
+	}
 	sleep(10);
 	
 	atomic_set(&finish, 0);

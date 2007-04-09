@@ -33,5 +33,5 @@ char * test_fault1(bool quiet)
 {
 	((int *)(0))[1] = 0;
 	
-	return "Written to NULL";
+	return "Survived write to NULL";
 }

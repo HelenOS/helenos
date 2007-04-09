@@ -660,7 +660,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, thread
 		thread_ready(t);
 		if (uspace_thread_id != NULL)
 			return (unative_t) copy_to_uspace(uspace_thread_id, &t->tid,
-		    	sizeof(t->tid));
+			    sizeof(t->tid));
 		else
 			return 0;
 	} else

@@ -36,5 +36,5 @@ char * test_fault2(bool quiet)
 	
 	var1 = *((int *) (((char *) (&var)) + 1));
 	
-	return "Done unaligned read";
+	return "Survived unaligned read";
 }
