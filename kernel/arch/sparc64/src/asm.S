@@ -273,7 +273,7 @@ switch_to_userspace:
 	flushw
 	wrpr %g0, 0, %cleanwin		! avoid information leak
 
-	mov %i3, %o0			! uarg
+	mov %i2, %o0			! uarg
 
 	clr %i2
 	clr %i3
