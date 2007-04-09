@@ -36,6 +36,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <io/printf_core.h>
+#include <futex.h>
+#include <async.h>
+
+static atomic_t printf_futex = FUTEX_INITIALIZER;
 
 static int vprintf_write(const char *str, size_t count, void *unused)
 {
@@ -49,10 +53,22 @@ static int vprintf_write(const char *str, size_t count, void *unused)
  */
 int vprintf(const char *fmt, va_list ap)
 {
-	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vprintf_write, NULL};
-	
+	struct printf_spec ps = {
+		(int (*)(void *, size_t, void *)) vprintf_write,
+		 NULL
+	};
+	/*
+	 * Prevent other threads to execute printf_core()
+	 */
+	futex_down(&printf_futex);
+	/*
+	 * Prevent other pseudo threads of the same thread
+	 * to execute printf_core()
+	 */
+	async_serialize_start();
 	int ret = printf_core(fmt, &ps, ap);
-	
+	async_serialize_end();
+	futex_up(&printf_futex);
 	return ret;
 }
 
