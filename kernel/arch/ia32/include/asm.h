@@ -59,12 +59,12 @@ extern void asm_fake_loop(uint32_t t);
  */
 static inline void cpu_halt(void)
 {
-	asm("hlt\n");
+	asm volatile ("hlt\n");
 };
 
 static inline void cpu_sleep(void)
 {
-	asm("hlt\n");
+	asm volatile ("hlt\n");
 };
 
 #define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \

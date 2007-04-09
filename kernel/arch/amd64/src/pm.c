@@ -242,6 +242,7 @@ void arch_reboot(void)
 	interrupts_restore(ipl);
 	asm volatile (
 		"int $0x03\n"
+		"cli\n"
 		"hlt\n"
 	);
 }

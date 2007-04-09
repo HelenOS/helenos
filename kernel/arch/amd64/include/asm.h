@@ -55,8 +55,15 @@ static inline uintptr_t get_stack_base(void)
 	return v;
 }
 
-static inline void cpu_sleep(void) { __asm__ volatile ("hlt\n"); };
-static inline void cpu_halt(void) { __asm__ volatile ("hlt\n"); };
+static inline void cpu_sleep(void)
+{
+	asm volatile ("hlt\n");
+};
+
+static inline void cpu_halt(void)
+{
+	asm volatile ("hlt\n");
+};
 
 
 /** Byte from port
