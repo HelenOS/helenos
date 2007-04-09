@@ -48,7 +48,8 @@
 #define PACKET_ADB  0x00
 #define PACKET_CUDA 0x01
 
-#define CUDA_POWERDOWN 0x0a
+#define CUDA_POWERDOWN	0x0a
+#define CUDA_RESET		0x11
 
 #define RS 0x200
 #define B (0 * RS)
@@ -191,9 +192,6 @@ static char lchars[0x80] = {
 };
 
 
-void send_packet(const uint8_t kind, index_t count, ...);
-
-
 static void receive_packet(uint8_t *kind, index_t count, uint8_t data[])
 {
 	cuda[B] = cuda[B] & ~TIP;
@@ -316,7 +314,7 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 }
 
 
-void send_packet(const uint8_t kind, index_t count, ...)
+static void send_packet(const uint8_t kind, count_t count, ...)
 {
 	index_t i;
 	va_list va;
@@ -341,9 +339,13 @@ void send_packet(const uint8_t kind, index_t count, ...)
 
 
 void cpu_halt(void) {
-#ifdef CONFIG_POWEROFF
-	send_packet(PACKET_CUDA, 1, CUDA_POWERDOWN);
-#endif
+	asm volatile (
+		"b 0\n"
+	);
+}
+
+void arch_reboot(void) {
+	send_packet(PACKET_CUDA, 1, CUDA_RESET);
 	asm volatile (
 		"b 0\n"
 	);

@@ -121,7 +121,7 @@ void tss_initialize(tss_t *t)
 void idt_init(void)
 {
 	idescriptor_t *d;
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < IDT_ITEMS; i++) {
 		d = &idt[i];
@@ -228,6 +228,28 @@ void set_tls_desc(uintptr_t tls)
 	gdt_setbase(&gdt_p[TLS_DES], tls);
 	/* Reload gdt register to update GS in CPU */
 	gdtr_load(&cpugdtr);
+}
+
+/* Reboot the machine by initiating
+ * a triple fault
+ */
+void arch_reboot(void)
+{
+	preemption_disable();
+	ipl_t ipl = interrupts_disable();
+	
+	memsetb((uintptr_t) idt, sizeof(idt), 0);
+	
+	ptr_16_32_t idtr;
+	idtr.limit = sizeof(idt);
+	idtr.base = (uintptr_t) idt;
+	idtr_load(&idtr);
+	
+	interrupts_restore(ipl);
+	asm volatile (
+		"int $0x03\n"
+		"hlt\n"
+	);
 }
 
 /** @}

@@ -48,6 +48,7 @@
 #include <arch/types.h>
 #include <adt/list.h>
 #include <arch.h>
+#include <config.h>
 #include <func.h>
 #include <macros.h>
 #include <debug.h>
@@ -79,7 +80,15 @@ static cmd_info_t help_info = {
 
 static cmd_info_t exit_info = {
 	.name = "exit",
-	.description = "Exit kconsole",
+	.description = "Exit kconsole.",
+	.argc = 0
+};
+
+static int cmd_reboot(cmd_arg_t *argv);
+static cmd_info_t reboot_info = {
+	.name = "reboot",
+	.description = "Reboot.",
+	.func = cmd_reboot,
 	.argc = 0
 };
 
@@ -429,6 +438,7 @@ static cmd_info_t *basic_commands[] = {
 	&cpus_info,
 	&desc_info,
 	&exit_info,
+	&reboot_info,
 	&halt_info,
 	&help_info,
 	&ipc_task_info,
@@ -501,6 +511,21 @@ int cmd_help(cmd_arg_t *argv)
 	
 	spinlock_unlock(&cmd_lock);	
 
+	return 1;
+}
+
+
+/** Reboot the system.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int cmd_reboot(cmd_arg_t *argv)
+{
+	reboot();
+	
+	/* Not reached */
 	return 1;
 }
 

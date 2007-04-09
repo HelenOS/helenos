@@ -93,6 +93,49 @@ void task_init(void)
 	btree_create(&tasks_btree);
 }
 
+/** Kill all tasks except the current task.
+ *
+ */
+void task_done(void)
+{
+	task_t *t;
+	do { /* Repeat until there are any tasks except TASK */
+		
+		/* Messing with task structures, avoid deadlock */
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&tasks_lock);
+		
+		t = NULL;
+		link_t *cur;
+		for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
+			btree_node_t *node = list_get_instance(cur, btree_node_t, leaf_link);
+			
+			unsigned int i;
+			for (i = 0; i < node->keys; i++) {
+				if ((task_t *) node->value[i] != TASK) {
+					t = (task_t *) node->value[i];
+					break;
+				}
+			}
+		}
+		
+		if (t != NULL) {
+			task_id_t id = t->taskid;
+			
+			spinlock_unlock(&tasks_lock);
+			interrupts_restore(ipl);
+			
+#ifdef CONFIG_DEBUG
+			printf("Killing task %llu\n", id);
+#endif			
+			task_kill(id);
+		} else {
+			spinlock_unlock(&tasks_lock);
+			interrupts_restore(ipl);
+		}
+		
+	} while (t != NULL);
+}
 
 /** Create new task
  *
@@ -373,7 +416,7 @@ void task_print_list(void)
 	link_t *cur;
 	ipl_t ipl;
 	
-	/* Messing with thread structures, avoid deadlock */
+	/* Messing with task structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	

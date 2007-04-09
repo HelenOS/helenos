@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <arch.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <mm/as.h>
@@ -225,6 +226,24 @@ void pm_init(void)
 	 * to its own TSS. We just need to load the TR register.
 	 */
 	tr_load(gdtselector(TSS_DES));
+}
+
+/* Reboot the machine by initiating
+ * a triple fault
+ */
+void arch_reboot(void)
+{
+	preemption_disable();
+	ipl_t ipl = interrupts_disable();
+	
+	memsetb((uintptr_t) idt, sizeof(idt), 0);
+	idtr_load(&idtr);
+	
+	interrupts_restore(ipl);
+	asm volatile (
+		"int $0x03\n"
+		"hlt\n"
+	);
 }
 
 /** @}

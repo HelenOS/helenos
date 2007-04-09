@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup main
  * @{
  */
-/** @file
- */
-
-#ifndef KERN_ARCH_H_
-#define KERN_ARCH_H_
-
-#include <arch/arch.h>
-#include <proc/thread.h>
-#include <proc/task.h>
-
-#define DEFAULT_CONTEXT		0
-
-#define CPU			THE->cpu
-#define THREAD			THE->thread
-#define TASK			THE->task
-#define AS			THE->as
-#define CONTEXT		(THE->task ? THE->task->context : DEFAULT_CONTEXT)
-#define PREEMPTION_DISABLED	THE->preemption_disabled
-
-#define context_check(ctx1, ctx2)	((ctx1) == (ctx2))
 
 /**
- * For each possible kernel stack, structure
- * of the following type will be placed at
- * the base address of the stack.
+ * @file
+ * @brief 	Shutdown procedures.
  */
-typedef struct {
-	count_t preemption_disabled;	/**< Preemption disabled counter. */
-	thread_t *thread;		/**< Current thread. */
-	task_t *task;			/**< Current task. */
-	cpu_t *cpu;			/**< Executing cpu. */
-	as_t *as;			/**< Current address space. */
-} the_t;
 
-#define THE		((the_t *)(get_stack_base()))
+#include <arch.h>
+#include <print.h>
 
-extern void the_initialize(the_t *the);
-extern void the_copy(the_t *src, the_t *dst);
-
-extern void arch_pre_main(void);
-extern void arch_pre_mm_init(void);
-extern void arch_post_mm_init(void);
-extern void arch_post_cpu_init(void);
-extern void arch_pre_smp_init(void);
-extern void arch_post_smp_init(void);
-
-extern void calibrate_delay_loop(void);
-
-extern void reboot(void);
-extern void arch_reboot(void);
-
+void reboot(void)
+{
+	task_done();
+	
+#ifdef CONFIG_DEBUG
+	printf("Rebooting the system\n");
 #endif
+	
+	arch_reboot();
+}
 
 /** @}
  */

@@ -176,5 +176,11 @@ void arch_release_console(void)
 #endif
 }
 
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
+}
+
 /** @}
  */

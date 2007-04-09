@@ -155,5 +155,11 @@ void userspace(uspace_arg_t *kernel_uarg)
 	/* not reached */
 }
 
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
+}
+
 /** @}
  */

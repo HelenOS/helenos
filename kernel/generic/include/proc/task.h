@@ -111,6 +111,7 @@ SPINLOCK_EXTERN(tasks_lock);
 extern btree_t tasks_btree;
 
 extern void task_init(void);
+extern void task_done(void);
 extern task_t *task_create(as_t *as, char *name);
 extern void task_destroy(task_t *t);
 extern task_t *task_run_program(void *program_addr, char *name);

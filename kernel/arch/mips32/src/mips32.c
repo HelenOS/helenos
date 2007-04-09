@@ -178,5 +178,11 @@ unative_t sys_tls_set(unative_t addr)
 	return 0;
 }
 
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
+}
+
 /** @}
  */

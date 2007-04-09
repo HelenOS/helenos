@@ -82,5 +82,11 @@ void after_thread_ran_arch(void)
 	/* TODO */
 }
 
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
+}
+
 /** @}
  */

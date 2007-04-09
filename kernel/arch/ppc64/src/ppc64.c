@@ -128,11 +128,18 @@ void userspace(uspace_arg_t *kernel_uarg)
 void arch_grab_console(void)
 {
 }
+
 /** Return console to userspace
  *
  */
 void arch_release_console(void)
 {
+}
+
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
 }
 
 /** @}

@@ -95,10 +95,6 @@ ifeq ($(CONFIG_VIRT_IDX_DCACHE),y)
 	DEFS += -DCONFIG_VIRT_IDX_DCACHE
 endif
 
-ifeq ($(CONFIG_POWEROFF),y)
-	DEFS += -DCONFIG_POWEROFF
-endif
-
 ifeq ($(CONFIG_FB),y)
 	ifeq ($(ARCH),ia32)
 		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
@@ -160,6 +156,7 @@ GENERIC_SOURCES = \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
 	generic/src/main/version.c \
+	generic/src/main/shutdown.c \
 	generic/src/proc/scheduler.c \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
