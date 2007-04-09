@@ -10,7 +10,7 @@
 
 OUTPUT_ARCH(mips)
 
-ENTRY(kernel_image_start) 
+ENTRY(kernel_image_start)
 
 SECTIONS {
 	. = KERNEL_LOAD_ADDRESS;
@@ -31,23 +31,16 @@ SECTIONS {
 		*(.rodata*);
 		*(.sdata);
 		*(.reginfo);
-		/* Unfortunately IRIX does not allow us
-	         * to include this as a last section :-(
-		 * BSS/SBSS addresses will be wrong */
+		*(.sbss);
+		*(.scommon);
+		*(.bss);		/* uninitialized static variables */
+		*(COMMON); 		/* global variables */
 		symbol_table = .;
 		*(symtab.*);             
 	}
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
 	.lit4 : { *(.lit4) }
-	.sbss : {
-		*(.sbss);
-		*(.scommon);
-	}
-	.bss : {
-		*(.bss);		/* uninitialized static variables */
-		*(COMMON); 		/* global variables */
-	}
 
 	kdata_end = .;
 
