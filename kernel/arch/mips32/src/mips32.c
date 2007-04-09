@@ -180,7 +180,7 @@ unative_t sys_tls_set(unative_t addr)
 
 void arch_reboot(void)
 {
-	// TODO
+	___halt();
 	while (1);
 }
 
