@@ -129,7 +129,21 @@
 	wrpr %g0, 1, %tl
 .endif
 
+	/*
+	 * Switch from the MM globals.
+	 */
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+
+	/*
+	 * Read the Tag Access register for the higher-level handler.
+	 * This is necessary to survive nested DTLB misses.
+	 */	
+	mov VA_DMMU_TAG_ACCESS, %g2
+	ldxa [%g2] ASI_DMMU, %g2
+
+	/*
+	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
+	 */
 	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
 .endm
 
@@ -142,7 +156,21 @@
 	wrpr %g0, 1, %tl
 .endif
 
+	/*
+	 * Switch from the MM globals.
+	 */
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+
+	/*
+	 * Read the Tag Access register for the higher-level handler.
+	 * This is necessary to survive nested DTLB misses.
+	 */	
+	mov VA_DMMU_TAG_ACCESS, %g2
+	ldxa [%g2] ASI_DMMU, %g2
+
+	/*
+	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
+	 */
 	PREEMPTIBLE_HANDLER fast_data_access_protection
 .endm
 

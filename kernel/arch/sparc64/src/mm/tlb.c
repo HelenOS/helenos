@@ -198,7 +198,7 @@ void itlb_pte_copy(pte_t *t, index_t index)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(int n, istate_t *istate)
+void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 {
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	index_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
@@ -234,15 +234,18 @@ void fast_instruction_access_mmu_miss(int n, istate_t *istate)
  *
  * Note that some faults (e.g. kernel faults) were already resolved by the
  * low-level, assembly language part of the fast_data_access_mmu_miss handler.
+ *
+ * @param tag Content of the TLB Tag Access register as it existed when the
+ *    trap happened. This is to prevent confusion created by clobbered
+ *    Tag Access register during a nested DTLB miss.
+ * @param istate Interrupted state saved on the stack.
  */
-void fast_data_access_mmu_miss(int n, istate_t *istate)
+void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 {
-	tlb_tag_access_reg_t tag;
 	uintptr_t va;
 	index_t index;
 	pte_t *t;
 
-	tag.value = dtlb_tag_access_read();
 	va = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;
 
@@ -282,15 +285,19 @@ void fast_data_access_mmu_miss(int n, istate_t *istate)
 	}
 }
 
-/** DTLB protection fault handler. */
-void fast_data_access_protection(int n, istate_t *istate)
+/** DTLB protection fault handler.
+ *
+ * @param tag Content of the TLB Tag Access register as it existed when the
+ *    trap happened. This is to prevent confusion created by clobbered
+ *    Tag Access register during a nested DTLB miss.
+ * @param istate Interrupted state saved on the stack.
+ */
+void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 {
-	tlb_tag_access_reg_t tag;
 	uintptr_t va;
 	index_t index;
 	pte_t *t;
 
-	tag.value = dtlb_tag_access_read();
 	va = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
 
@@ -371,9 +378,10 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 	uintptr_t va;
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
-
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
-	    tag.context);
+	if (tag.context) {
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		    tag.context);
+	}
 	dump_istate(istate);
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	panic("%s\n", str);
@@ -386,8 +394,10 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
 
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
-	    tag.context);
+	if (tag.context) {
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		    tag.context);
+	}
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	dump_istate(istate);
 	panic("%s\n", str);

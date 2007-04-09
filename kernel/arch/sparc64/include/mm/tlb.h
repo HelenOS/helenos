@@ -428,9 +428,9 @@ static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 	membar();
 }
 
-extern void fast_instruction_access_mmu_miss(int n, istate_t *istate);
-extern void fast_data_access_mmu_miss(int n, istate_t *istate);
-extern void fast_data_access_protection(int n, istate_t *istate);
+extern void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate);
+extern void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate);
+extern void fast_data_access_protection(tlb_tag_access_reg_t tag , istate_t *istate);
 
 extern void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize, bool locked, bool cacheable);
 
