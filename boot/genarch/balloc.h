@@ -31,6 +31,8 @@
 
 #include <types.h>
 
+#define BALLOC_MAX_SIZE		(1024 * 1024)
+
 typedef struct {
 	uintptr_t base;
 	size_t size;

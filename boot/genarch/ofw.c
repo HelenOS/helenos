@@ -38,6 +38,7 @@ phandle ofw_chosen;
 ihandle ofw_stdout;
 phandle ofw_root;
 ihandle ofw_mmu;
+ihandle ofw_memory_prop;
 phandle ofw_memory;
 phandle ofw_aliases;
 
@@ -47,7 +48,7 @@ void ofw_init(void)
 	if (ofw_chosen == -1)
 		halt();
 	
-	if (ofw_get_property(ofw_chosen, "stdout",  &ofw_stdout, sizeof(ofw_stdout)) <= 0)
+	if (ofw_get_property(ofw_chosen, "stdout", &ofw_stdout, sizeof(ofw_stdout)) <= 0)
 		ofw_stdout = 0;
 	
 	ofw_root = ofw_find_device("/");
@@ -56,8 +57,12 @@ void ofw_init(void)
 		halt();
 	}
 	
-	if (ofw_get_property(ofw_chosen, "mmu",  &ofw_mmu, sizeof(ofw_mmu)) <= 0) {
+	if (ofw_get_property(ofw_chosen, "mmu", &ofw_mmu, sizeof(ofw_mmu)) <= 0) {
 		puts("\r\nError: Unable to get mmu property, halted.\r\n");
+		halt();
+	}
+	if (ofw_get_property(ofw_chosen, "memory", &ofw_memory_prop, sizeof(ofw_memory_prop)) <= 0) {
+		puts("\r\nError: Unable to get memory property, halted.\r\n");
 		halt();
 	}
 
@@ -200,13 +205,12 @@ void *ofw_translate(const void *virt)
 	else
 		shift = 0;
 
-	return (void *) ((result[2]<<shift)|result[3]);
+	return (void *) ((result[2] << shift) | result[3]);
 }
 
-void *ofw_claim(const void *virt, const int len)
+void *ofw_claim_virt(const void *virt, const int len)
 {
 	ofw_arg_t retaddr;
-	int shift;
 
 	if (ofw_call("call-method", 5, 2, &retaddr, "claim", ofw_mmu, 0, len, virt) != 0) {
 		puts("Error: MMU method claim() failed, halting.\n");
@@ -214,6 +218,42 @@ void *ofw_claim(const void *virt, const int len)
 	}
 
 	return (void *) retaddr;
+}
+
+void *ofw_claim_phys(const void *phys, const int len)
+{
+	ofw_arg_t retaddr[2];
+	int shift;
+
+	if (sizeof(unative_t) == 8) {
+		shift = 32;
+		if (ofw_call("call-method", 6, 3, retaddr, "claim",
+		    ofw_memory_prop, 0, len, ((uintptr_t) phys) >> shift,
+		    ((uintptr_t) phys) & ((uint32_t) -1)) != 0) {
+			/*
+			 * Note that this will help us to discover
+			 * conflicts between OpenFirmware allocations
+			 * and our use of physical memory.
+			 * It is better to detect collisions here
+			 * than to cope with weird errors later.
+			 *
+			 * So this is really not to make the loader
+			 * more generic; it is here for debugging
+			 * purposes.
+			 */
+			puts("Error: memory method claim() failed, halting.\n");
+			halt();
+		}
+	} else {
+		shift = 0;
+		/*
+		 * FIXME: the number of arguments is probably different...
+		 */
+		puts("Error: 32-bit ofw_claim_phys not implemented.\n");
+		halt();
+	}
+
+	return (void *) ((retaddr[0] << shift) | retaddr[1]);
 }
 
 int ofw_map(const void *phys, const void *virt, const int size, const int mode)
@@ -230,7 +270,7 @@ int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 	}
 
 	return ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode, size, virt,
-		phys_hi, phys_lo);
+	    phys_hi, phys_lo);
 }
 
 /** Save OpenFirmware physical memory map.
@@ -252,8 +292,8 @@ int ofw_memmap(memmap_t *map)
 	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (pos = 0; (pos < ret / sizeof(uint32_t)) && (map->count <
-		MEMMAP_MAX_RECORDS); pos += ac + sc) {
+	for (pos = 0; (pos < ret / sizeof(uint32_t)) &&
+	    (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void * start = (void *) ((uintptr_t) buf[pos + ac - 1]);
 		unsigned int size = buf[pos + ac + sc - 1];
 		

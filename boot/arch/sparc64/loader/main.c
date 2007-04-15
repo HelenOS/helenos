@@ -92,7 +92,7 @@ void bootstrap(void)
 	unsigned int i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %P: %s image (size %d bytes)\n", components[i].start,
-			components[i].name, components[i].size);
+		    components[i].name, components[i].size);
 
 	void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
 	unsigned int top = 0;
@@ -102,17 +102,38 @@ void bootstrap(void)
 	for (i = 0; i < COMPONENTS; i++) {
 		printf(" %s...", components[i].name);
 		top = ALIGN_UP(top, PAGE_SIZE);
+
+		/*
+		 * At this point, we claim the physical memory that we are
+		 * going to use. We should be safe in case of the virtual
+		 * address space because the OpenFirmware, according to its
+		 * SPARC binding, should restrict its use of virtual memory
+		 * to addresses from [0xffd00000; 0xffefffff] and
+		 * [0xfe000000; 0xfeffffff].
+		 */
+		(void) ofw_claim_phys(bootinfo.physmem_start + base + top,
+		    ALIGN_UP(components[i].size, PAGE_SIZE));
+		    
 		memcpy(base + top, components[i].start, components[i].size);
 		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = base + top;
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr =
+			    base + top;
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
+			    components[i].size;
 			bootinfo.taskmap.count++;
 		}
 		top += components[i].size;
 		printf("done.\n");
 	}
 
-	balloc_init(&bootinfo.ballocs, ALIGN_UP(((uintptr_t) base) + top, PAGE_SIZE));
+	/*
+	 * Claim the physical memory for the boot allocator.
+	 * Initialize the boot allocator.
+	 */
+	(void) ofw_claim_phys(bootinfo.physmem_start +
+	    base + ALIGN_UP(top, PAGE_SIZE), BALLOC_MAX_SIZE);
+	balloc_init(&bootinfo.ballocs, ALIGN_UP(((uintptr_t) base) + top,
+	    PAGE_SIZE));
 
 	printf("\nCanonizing OpenFirmware device tree...");
 	bootinfo.ofw_root = ofw_tree_build();
@@ -127,5 +148,7 @@ void bootstrap(void)
 
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
-		bootinfo.physmem_start | BSP_PROCESSOR,	&bootinfo, sizeof(bootinfo));
+	    bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo,
+	    sizeof(bootinfo));
 }
+

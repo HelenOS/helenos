@@ -47,7 +47,10 @@ void *balloc(size_t size, size_t alignment)
 	alignment = ALIGN_UP(alignment, 4);
 	
 	addr = ballocs->base + ALIGN_UP(ballocs->size, alignment);
-	
+
+	if (ALIGN_UP(ballocs->size, alignment) + size > BALLOC_MAX_SIZE)
+		return NULL;
+		
 	ballocs->size = ALIGN_UP(ballocs->size, alignment) + size;
 	
 	return (void *) addr;
