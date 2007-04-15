@@ -45,8 +45,10 @@ dcache_flush:
 	subcc %g1, DCACHE_LINE_SIZE, %g1
 	bnz,pt %xcc, 0b
 	stxa %g0, [%g1] ASI_DCACHE_TAG
+	membar #Sync			
 	retl
-	membar #Sync
+	! beware SF Erratum #51, do not put the MEMBAR here
+	nop				
 
 /** Flush only D-cache lines of one virtual color.
  *
