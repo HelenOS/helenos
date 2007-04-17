@@ -61,6 +61,8 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
 	ASSERT(as->arch.itsb && as->arch.dtsb);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
+	ASSERT(i0 < ITSB_ENTRY_COUNT && i0 < DTSB_ENTRY_COUNT);
+
 	if (pages == (count_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
 		cnt = ITSB_ENTRY_COUNT;
 	else
@@ -84,9 +86,12 @@ void itsb_pte_copy(pte_t *t, index_t index)
 	as_t *as;
 	tsb_entry_t *tsb;
 	index_t entry;
+
+	ASSERT(index <= 1);
 	
 	as = t->as;
 	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK; 
+	ASSERT(entry < ITSB_ENTRY_COUNT);
 	tsb = &as->arch.itsb[entry];
 
 	/*
@@ -102,8 +107,8 @@ void itsb_pte_copy(pte_t *t, index_t index)
 	write_barrier();
 
 	tsb->tag.context = as->asid;
-	tsb->tag.va_tag = (t->page + (index << MMU_PAGE_WIDTH)) >>
-	    VA_TAG_PAGE_SHIFT;
+	/* the shift is bigger than PAGE_WIDTH, do not bother with index  */
+	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
 	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
@@ -128,8 +133,11 @@ void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
 	tsb_entry_t *tsb;
 	index_t entry;
 	
+	ASSERT(index <= 1);
+
 	as = t->as;
 	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK;
+	ASSERT(entry < DTSB_ENTRY_COUNT);
 	tsb = &as->arch.dtsb[entry];
 
 	/*
@@ -145,8 +153,8 @@ void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
 	write_barrier();
 
 	tsb->tag.context = as->asid;
-	tsb->tag.va_tag = (t->page + (index << MMU_PAGE_WIDTH)) >>
-	    VA_TAG_PAGE_SHIFT;
+	/* the shift is bigger than PAGE_WIDTH, do not bother with index */
+	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
 	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
