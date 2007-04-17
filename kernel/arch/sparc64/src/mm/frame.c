@@ -65,10 +65,10 @@ void frame_arch_init(void)
 			if (confdata == ADDR2PFN(KA2PA(PFN2ADDR(0))))
 				confdata = ADDR2PFN(KA2PA(PFN2ADDR(2)));
 			zone_create(ADDR2PFN(start),
-				SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),
-				confdata, 0);
+			    SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),
+			    confdata, 0);
 			last_frame = max(last_frame, start + ALIGN_UP(size,
-				FRAME_SIZE));
+			    FRAME_SIZE));
 		}
 
 		/*
