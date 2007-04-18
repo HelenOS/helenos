@@ -238,6 +238,7 @@ void thread_ready(thread_t *t)
 	
 	cpu = CPU;
 	if (t->flags & THREAD_FLAG_WIRED) {
+		ASSERT(t->cpu != NULL);
 		cpu = t->cpu;
 	}
 	t->state = Ready;

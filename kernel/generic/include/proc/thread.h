@@ -53,7 +53,11 @@ extern char *thread_states[];
 
 /* Thread flags */
 
-/** Thread cannot be migrated to another CPU. */
+/** Thread cannot be migrated to another CPU.
+ *
+ * When using this flag, the caller must set cpu in the thread_t
+ * structure manually before calling thread_ready (even on uniprocessor).
+ */ 
 #define THREAD_FLAG_WIRED	(1 << 0)
 /** Thread was migrated to another CPU and has not run yet. */
 #define THREAD_FLAG_STOLEN	(1 << 1)
