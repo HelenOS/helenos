@@ -100,7 +100,7 @@ void kmp(void *arg)
 		
 		if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT)
 			printf("%s: waiting for processor (mid = %d) timed out\n",
-				__FUNCTION__, mid);
+			    __FUNCTION__, mid);
 	}
 }
 

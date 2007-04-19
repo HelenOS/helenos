@@ -130,7 +130,8 @@ char *strcpy(char *dest, const char *src)
 {
 	char *orig = dest;
 	
-	while ((*(dest++) = *(src++)));
+	while ((*(dest++) = *(src++)))
+		;
 	return orig;
 }
 

@@ -74,8 +74,8 @@ static void cross_call(int mid, void (* func)(void))
 		panic("Interrupt Dispatch Status busy bit set\n");
 	
 	do {
-		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_0, (uintptr_t)
-			func);
+		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_0,
+		    (uintptr_t)	func);
 		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_1, 0);
 		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_2, 0);
 		asi_u64_write(ASI_UDB_INTR_W,

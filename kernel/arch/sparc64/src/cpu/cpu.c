@@ -63,10 +63,10 @@ void cpu_arch_init(void)
 			mid = *((uint32_t *) prop->value);
 			if (mid == CPU->arch.mid) {
 				prop = ofw_tree_getprop(node,
-					"clock-frequency");
+				    "clock-frequency");
 				if (prop && prop->value)
 					clock_frequency = *((uint32_t *)
-						prop->value);
+					    prop->value);
 			}
 		}
 		node = ofw_tree_find_peer_by_device_type(node, "cpu");

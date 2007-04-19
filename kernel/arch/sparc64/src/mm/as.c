@@ -66,6 +66,7 @@ int as_constructor_arch(as_t *as, int flags)
 	 */
 	int order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
 	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
+
 	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
 
 	if (!tsb)
@@ -74,6 +75,7 @@ int as_constructor_arch(as_t *as, int flags)
 	as->arch.itsb = (tsb_entry_t *) tsb;
 	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
 	    sizeof(tsb_entry_t));
+
 	memsetb((uintptr_t) as->arch.itsb,
 	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
 #endif

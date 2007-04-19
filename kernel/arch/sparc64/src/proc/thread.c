@@ -55,7 +55,7 @@ void thr_destructor_arch(thread_t *t)
 		 * belonging to a killed thread.
 		 */
 		frame_free(KA2PA(ALIGN_DOWN((uintptr_t)
-			t->arch.uspace_window_buffer, PAGE_SIZE)));
+		    t->arch.uspace_window_buffer, PAGE_SIZE)));
 	}
 }
 
@@ -75,8 +75,8 @@ void thread_create_arch(thread_t *t)
 		 * Mind the possible alignment of the userspace window buffer
 		 * belonging to a killed thread.
 		 */
-		 t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
-			PAGE_SIZE);
+		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
+		    PAGE_SIZE);
 	}
 }
 

@@ -39,12 +39,12 @@
  * Our critical section barriers are prepared for the weakest RMO memory model.
  */
 #define CS_ENTER_BARRIER() 				\
-	asm volatile (				\
+	asm volatile (					\
 		"membar #LoadLoad | #LoadStore\n"	\
 		::: "memory"				\
 	)
 #define CS_LEAVE_BARRIER()				\
-	asm volatile ( 				\
+	asm volatile ( 					\
 		"membar #StoreStore\n"			\
 		"membar #LoadStore\n"			\
 		::: "memory"				\
