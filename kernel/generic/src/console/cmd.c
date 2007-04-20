@@ -92,6 +92,14 @@ static cmd_info_t reboot_info = {
 	.argc = 0
 };
 
+static int cmd_uptime(cmd_arg_t *argv);
+static cmd_info_t uptime_info = {
+	.name = "uptime",
+	.description = "Print uptime information.",
+	.func = cmd_uptime,
+	.argc = 0
+};
+
 static int cmd_continue(cmd_arg_t *argv);
 static cmd_info_t continue_info = {
 	.name = "continue",
@@ -439,6 +447,7 @@ static cmd_info_t *basic_commands[] = {
 	&desc_info,
 	&exit_info,
 	&reboot_info,
+	&uptime_info,
 	&halt_info,
 	&help_info,
 	&ipc_task_info,
@@ -526,6 +535,26 @@ int cmd_reboot(cmd_arg_t *argv)
 	reboot();
 	
 	/* Not reached */
+	return 1;
+}
+
+
+/** Print system uptime information.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int cmd_uptime(cmd_arg_t *argv)
+{
+	ASSERT(uptime);
+	
+	/* This doesn't have to be very accurate */
+	unative_t sec = uptime->seconds1;
+	
+	printf("Up %u days, %u hours, %u minutes, %u seconds\n",
+		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
+	
 	return 1;
 }
 

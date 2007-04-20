@@ -41,7 +41,6 @@
  
 #include <time/clock.h>
 #include <time/timeout.h>
-#include <arch/types.h>
 #include <config.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
@@ -57,16 +56,12 @@
 #include <mm/frame.h>
 #include <ddi/ddi.h>
 
-/** Physical memory area of the real time clock. */
+/* Pointer to variable with uptime */
+uptime_t *uptime;
+
+/** Physical memory area of the real time clock */
 static parea_t clock_parea;
 
-/* Pointers to public variables with time */
-struct ptime {
-	unative_t seconds1;
-	unative_t useconds;
-	unative_t seconds2;
-};
-struct ptime *public_time;
 /* Variable holding fragment of second, so that we would update
  * seconds correctly
  */
@@ -86,15 +81,14 @@ void clock_counter_init(void)
 	if (!faddr)
 		panic("Cannot allocate page for clock");
 	
-	public_time = (struct ptime *) PA2KA(faddr);
-
-        /* TODO: We would need some arch dependent settings here */
-	public_time->seconds1 = 0;
-	public_time->seconds2 = 0;
-	public_time->useconds = 0; 
+	uptime = (uptime_t *) PA2KA(faddr);
+	
+	uptime->seconds1 = 0;
+	uptime->seconds2 = 0;
+	uptime->useconds = 0; 
 
 	clock_parea.pbase = (uintptr_t) faddr;
-	clock_parea.vbase = (uintptr_t) public_time;
+	clock_parea.vbase = (uintptr_t) uptime;
 	clock_parea.frames = 1;
 	clock_parea.cacheable = true;
 	ddi_parea_register(&clock_parea);
@@ -116,16 +110,16 @@ void clock_counter_init(void)
 static void clock_update_counters(void)
 {
 	if (CPU->id == 0) {
-		secfrag += 1000000/HZ;
+		secfrag += 1000000 / HZ;
 		if (secfrag >= 1000000) {
 			secfrag -= 1000000;
-			public_time->seconds1++;
+			uptime->seconds1++;
 			write_barrier();
-			public_time->useconds = secfrag;
+			uptime->useconds = secfrag;
 			write_barrier();
-			public_time->seconds2 = public_time->seconds1;
+			uptime->seconds2 = uptime->seconds1;
 		} else
-			public_time->useconds += 1000000/HZ;
+			uptime->useconds += 1000000 / HZ;
 	}
 }
 
