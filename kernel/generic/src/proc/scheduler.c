@@ -207,7 +207,7 @@ loop:
 
 	interrupts_disable();
 	
-	for (i = 0; i<RQ_COUNT; i++) {
+	for (i = 0; i < RQ_COUNT; i++) {
 		r = &CPU->rq[i];
 		spinlock_lock(&r->lock);
 		if (r->n == 0) {
@@ -451,7 +451,7 @@ repeat:
 			 * Entering state is unexpected.
 			 */
 			panic("tid%llu: unexpected state %s\n", THREAD->tid,
-				thread_states[THREAD->state]);
+			    thread_states[THREAD->state]);
 			break;
 		}
 
@@ -571,7 +571,7 @@ not_satisfied:
 	 * Searching least priority queues on all CPU's first and most priority
 	 * queues on all CPU's last.
 	 */
-	for (j= RQ_COUNT - 1; j >= 0; j--) {
+	for (j = RQ_COUNT - 1; j >= 0; j--) {
 		for (i = 0; i < config.cpu_active; i++) {
 			link_t *l;
 			runq_t *r;
@@ -612,8 +612,8 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 				if ((!(t->flags & (THREAD_FLAG_WIRED |
-					THREAD_FLAG_STOLEN))) &&
-					(!(t->fpu_context_engaged)) ) {
+				    THREAD_FLAG_STOLEN))) &&
+				    (!(t->fpu_context_engaged))) {
 					/*
 					 * Remove t from r.
 					 */
