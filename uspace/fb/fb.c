@@ -833,23 +833,27 @@ static void
 copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 {
 	int y;
-	int rowsize;
-	int tmp;
+	int tmp, srcrowsize;
+	int realwidth, realheight, realrowsize;
 	int width = vport->width;
 	int height = vport->height;
 
 	if (width + vport->x > screen.xres)
 		width = screen.xres - vport->x;
-	if (height + vport->y  > screen.yres)
+	if (height + vport->y > screen.yres)
 		height = screen.yres - vport->y;
+	
+	realwidth = pmap->width <= width ? pmap->width : width;
+	realheight = pmap->height <= height ? pmap->height : height;
 
-	rowsize = width * screen.pixelbytes;
-
-	for (y = 0; y < height; y++) {
+	srcrowsize = vport->width * screen.pixelbytes;
+	realrowsize = realwidth * screen.pixelbytes;
+	
+	for (y = 0; y < realheight; y++) {
 		tmp = (vport->y + y) * screen.scanline +
 			vport->x * screen.pixelbytes;
-		memcpy(pmap->data + rowsize * y, screen.fbaddress + tmp,
-			rowsize); 
+		memcpy(pmap->data + srcrowsize * y, screen.fbaddress + tmp,
+			realrowsize); 
 	}
 }
 
