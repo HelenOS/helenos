@@ -353,11 +353,12 @@ vesa_init_real2:
 	
 #define VESA_INFO_SIZE 1024
 
+#define VESA_MODE_ATTRIBUTES_OFFSET 0
 #define VESA_MODE_LIST_PTR_OFFSET 14
+#define VESA_MODE_SCANLINE_OFFSET 16
 #define VESA_MODE_WIDTH_OFFSET 18
 #define VESA_MODE_HEIGHT_OFFSET 20
 #define VESA_MODE_BPP_OFFSET 25
-#define VESA_MODE_SCANLINE_OFFSET 16
 #define VESA_MODE_PHADDR_OFFSET 40
 
 #define VESA_END_OF_MODES 0xffff
@@ -367,12 +368,10 @@ vesa_init_real2:
 #define VESA_GET_INFO 0x4f00
 #define VESA_GET_MODE_INFO 0x4f01
 #define VESA_SET_MODE 0x4f02
-
-#define CONFIG_VESA_BPP_a 255
+#define VESA_SET_PALETTE 0x4f09
 
 #if CONFIG_VESA_BPP == 24
-#undef CONFIG_VESA_BPP_a
-#define CONFIG_VESA_BPP_a 32
+#define CONFIG_VESA_BPP_VARIANT 32
 #endif
 
 	mov $VESA_GET_INFO, %ax
@@ -413,18 +412,21 @@ vesa_init_real2:
 	cmp VESA_MODE_WIDTH_OFFSET(%di), %ax
 	jnz 1b
 	
-	mov $CONFIG_VESA_HEIGHT,%ax
+	mov $CONFIG_VESA_HEIGHT, %ax
 	cmp VESA_MODE_HEIGHT_OFFSET(%di), %ax
 	jnz 1b
 	
 	mov $CONFIG_VESA_BPP, %al
 	cmp VESA_MODE_BPP_OFFSET(%di), %al
+
+#ifdef CONFIG_VESA_BPP_VARIANT
 	jz 2f
 	
-	mov $CONFIG_VESA_BPP_a, %al
+	mov $CONFIG_VESA_BPP_VARIANT, %al
 	cmp VESA_MODE_BPP_OFFSET(%di), %al
+#endif
 	jnz 1b
-	
+
 2:
 	
 	mov %cx, %bx
@@ -436,6 +438,59 @@ vesa_init_real2:
 	pop %di
 	cmp $VESA_OK, %al
 	jnz 0f
+
+#if CONFIG_VESA_BPP == 8
+	
+	# Set 3:2:3 VGA palette
+	
+	mov VESA_MODE_ATTRIBUTES_OFFSET(%di), %ax
+	push %di
+	mov $vga323 - vesa_init, %di
+	mov $0x100, %ecx
+	
+	bt $5, %ax							# Test if VGA compatible registers are present
+	jnc vga_compat
+		
+		# Try VESA routine to set palette
+		
+		mov $VESA_SET_PALETTE, %ax
+		xor %bl, %bl
+		xor %dx, %dx
+		int $0x10
+		
+		jmp vga_not_compat
+	
+	vga_compat:
+		
+		# Try VGA registers to set palette
+		
+		movw $0x3c6, %dx						# Set palette mask
+		movb $0xff, %al
+		outb %al, %dx
+		
+		movw $0x3c8, %dx						# First index to set
+		xor %al, %al
+		outb %al, %dx
+		
+		movw $0x3c9, %dx						# Data port
+		vga_loop:
+			movb %es:2(%di), %al
+			outb %al, %dx
+			
+			movb %es:1(%di), %al
+			outb %al, %dx
+			
+			movb %es:(%di), %al
+			outb %al, %dx
+			
+			addw $4, %di
+			loop vga_loop
+		
+	vga_not_compat:
+	
+	pop %di
+	
+#endif
 	
 	mov VESA_MODE_PHADDR_OFFSET(%di), %esi
 	mov VESA_MODE_WIDTH_OFFSET(%di), %ax
@@ -477,7 +532,9 @@ vesa_init_real2:
 	mov $0xffffffff, %edi		# EGA text mode used, because of problems with VESA
 	xor %ax, %ax
 	jz 8b						# Force relative jump
-	
+
+vga323:
+#include "vga323.pal"
 
 .code32
 vesa_init_protect:
@@ -509,4 +566,4 @@ grub_ebx:
 	.long 0
 
 pse_msg:
-	.ascii "Page Size Extension not supported. System halted.\0"
+	.asciz "Page Size Extension not supported. System halted."
