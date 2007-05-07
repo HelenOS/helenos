@@ -383,21 +383,20 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
  * Besides its 'normal' wakeup operation, it attempts to unregister possible
  * timeout.
  *
- * @param wq Pointer to wait queue.
- * @param all If this is non-zero, all sleeping threads will be woken up and
- * 	missed count will be zeroed.
+ * @param wq	Pointer to wait queue.
+ * @param mode	Wakeup mode.
  */
-void waitq_wakeup(waitq_t *wq, bool all)
+void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 {
 	ipl_t ipl;
 
 	ipl = interrupts_disable();
 	spinlock_lock(&wq->lock);
 
-	_waitq_wakeup_unsafe(wq, all);
+	_waitq_wakeup_unsafe(wq, mode);
 
-	spinlock_unlock(&wq->lock);	
-	interrupts_restore(ipl);	
+	spinlock_unlock(&wq->lock);
+	interrupts_restore(ipl);
 }
 
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
@@ -405,22 +404,27 @@ void waitq_wakeup(waitq_t *wq, bool all)
  * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup(). It
  * assumes wq->lock is already locked and interrupts are already disabled.
  *
- * @param wq Pointer to wait queue.
- * @param all If this is non-zero, all sleeping threads will be woken up and
- * 	missed count will be zeroed.
+ * @param wq	Pointer to wait queue.
+ * @param mode	If mode is WAKEUP_FIRST, then the longest waiting thread,
+ *		if any, is woken up. If mode is WAKEUP_ALL, then all
+ *		waiting threads, if any, are woken up. If there are no
+ *		waiting threads to be woken up, the missed wakeup is
+ *		recorded in the wait queue.
  */
-void _waitq_wakeup_unsafe(waitq_t *wq, bool all)
+void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 {
 	thread_t *t;
+	count_t count = 0;
 
 loop:	
 	if (list_empty(&wq->head)) {
 		wq->missed_wakeups++;
-		if (all)
-			wq->missed_wakeups = 0;
+		if (count && mode == WAKEUP_ALL)
+			wq->missed_wakeups--;
 		return;
 	}
 
+	count++;
 	t = list_get_instance(wq->head.next, thread_t, wq_link);
 	
 	/*
@@ -449,7 +453,7 @@ loop:
 
 	thread_ready(t);
 
-	if (all)
+	if (mode == WAKEUP_ALL)
 		goto loop;
 }
 

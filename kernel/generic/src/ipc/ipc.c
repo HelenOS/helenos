@@ -163,7 +163,7 @@ static void _ipc_answer_free_call(call_t *call)
 	spinlock_lock(&callerbox->lock);
 	list_append(&call->link, &callerbox->answers);
 	spinlock_unlock(&callerbox->lock);
-	waitq_wakeup(&callerbox->wq, 0);
+	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
 }
 
 /** Answer message, that is in callee queue
@@ -205,7 +205,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	spinlock_lock(&box->lock);
 	list_append(&call->link, &box->calls);
 	spinlock_unlock(&box->lock);
-	waitq_wakeup(&box->wq, 0);
+	waitq_wakeup(&box->wq, WAKEUP_FIRST);
 }
 
 /** Send a asynchronous request using phone to answerbox

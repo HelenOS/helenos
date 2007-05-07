@@ -411,7 +411,8 @@ repeat:
 					    DEADLOCK_THRESHOLD);
 					goto repeat;
 				}
-				_waitq_wakeup_unsafe(&THREAD->join_wq, false);
+				_waitq_wakeup_unsafe(&THREAD->join_wq,
+				    WAKEUP_FIRST);
 				spinlock_unlock(&THREAD->join_wq.lock);
 				
 				THREAD->state = Undead;

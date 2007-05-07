@@ -40,8 +40,10 @@
 #include <synch/synch.h>
 #include <adt/list.h>
 
-#define WAKEUP_FIRST	0
-#define WAKEUP_ALL	1
+typedef enum {
+	WAKEUP_FIRST = 0,
+	WAKEUP_ALL
+} wakeup_mode_t;
 
 /** Wait queue structure. */
 typedef struct {
@@ -70,8 +72,8 @@ extern int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags);
 extern ipl_t waitq_sleep_prepare(waitq_t *wq);
 extern int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags);
 extern void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl);
-extern void waitq_wakeup(waitq_t *wq, bool all);
-extern void _waitq_wakeup_unsafe(waitq_t *wq, bool all);
+extern void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode);
+extern void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode);
 extern void waitq_interrupt_sleep(struct thread *t);
 
 #endif
