@@ -102,11 +102,6 @@ static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 	asm volatile (
 		"movl %4, %%eax\n"
 		"cpuid\n"
-		
-		"movl %%eax, %0\n"
-		"movl %%ebx, %1\n"
-		"movl %%ecx, %2\n"
-		"movl %%edx, %3\n"
 		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx), "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
 		: "m" (cmd)
 	);
