@@ -107,9 +107,8 @@ static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 		"movl %%ebx, %1\n"
 		"movl %%ecx, %2\n"
 		"movl %%edx, %3\n"
-		: "=m" (info->cpuid_eax), "=m" (info->cpuid_ebx), "=m" (info->cpuid_ecx), "=m" (info->cpuid_edx)
+		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx), "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
 		: "m" (cmd)
-		: "eax", "ebx", "ecx", "edx"
 	);
 }
 
