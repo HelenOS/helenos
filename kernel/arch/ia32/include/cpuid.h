@@ -49,12 +49,10 @@ struct __cpuid_extended_feature_info {
 	unsigned      : 31;
 } __attribute__ ((packed));
 
-typedef union cpuid_extended_feature_info 
-{
+typedef union cpuid_extended_feature_info {
 	struct __cpuid_extended_feature_info bits;
-	uint32_t                                word;
-}cpuid_extended_feature_info;
-
+	uint32_t word;
+} cpuid_extended_feature_info;
 
 struct __cpuid_feature_info {
 	unsigned 			: 23;
@@ -65,11 +63,10 @@ struct __cpuid_feature_info {
 	unsigned      :  5;
 } __attribute__ ((packed));
 
-typedef union cpuid_feature_info 
-{
+typedef union cpuid_feature_info {
 	struct __cpuid_feature_info bits;
-	uint32_t                word       ;
-}cpuid_feature_info;
+	uint32_t word;
+} cpuid_feature_info;
 
 
 static inline uint32_t has_cpuid(void)
@@ -100,10 +97,9 @@ static inline uint32_t has_cpuid(void)
 static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 {
 	asm volatile (
-		"movl %4, %%eax\n"
 		"cpuid\n"
 		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx), "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
-		: "m" (cmd)
+		: "a" (cmd)
 	);
 }
 
