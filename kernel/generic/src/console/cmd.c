@@ -645,6 +645,9 @@ int cmd_mcall0(cmd_arg_t *argv)
 	
 	count_t i;
 	for (i = 0; i < config.cpu_count; i++) {
+		if (!cpus[i].active)
+			continue;
+		
 		thread_t *t;
 		if ((t = thread_create((void (*)(void *)) cmd_call0, (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
 			spinlock_lock(&t->lock);
