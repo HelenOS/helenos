@@ -104,6 +104,7 @@ int kbd_arch_init(void)
 	/* Flush all current IO */
 	while (i8042_status_read() & i8042_OUTPUT_FULL)
 		i8042_data_read();
+	
 	/* Initialize mouse */
 	i8042_command_write(i8042_CMD_MOUSE);
 	wait_ready();
