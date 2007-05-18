@@ -417,27 +417,37 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 	return callid;
 }
 
-/** Ask destination to do a callback connection
+/** Ask destination to do a callback connection.
  *
- * @return 0 - OK, error code
+ * @param phoneid	Phone ID used for contacting the other side.
+ * @param arg1		User defined argument.
+ * @param arg2		User defined argument.
+ * @param phonehash	Pointer to a place where the library will store an opaque
+ *			identifier of the phone that will be used for incoming
+ *			calls.
+ * @return Zero on success or a negative error code.
  */
-int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone)
+int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phonehash)
 {
-	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1,
-			       arg2, 0, 0, 0, phone);
+	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2, 0, 0, 0,
+	    phonehash);
 }
 
-/** Ask through phone for a new connection to some service
+/** Ask through phone for a new connection to some service.
  *
- * @return new phoneid - OK, error code
+ * @param phoneid	Phone ID used for contacting the other side.
+ * @param arg1		User defined argument.
+ * @param arg2		User defined argument.
+ *
+ * @return New phone ID on success or a negative error code.
  */
 int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 {
 	ipcarg_t newphid;
 	int res;
 
-	res =  ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1,
-			       arg2, 0, 0, 0, &newphid);
+	res =  ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, 0, 0, 0,
+	    &newphid);
 	if (res)
 		return res;
 	return newphid;

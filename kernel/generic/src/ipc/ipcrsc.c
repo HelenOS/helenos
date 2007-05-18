@@ -34,8 +34,8 @@
 
 /* IPC resources management
  *
- * The goal of this source code is to properly manage IPC resources
- * and allow straight and clean clean-up procedure upon task termination.
+ * The goal of this source code is to properly manage IPC resources and allow
+ * straight and clean clean-up procedure upon task termination.
  *
  * The pattern of usage of the resources is:
  * - allocate empty phone slot, connect | deallocate slot
@@ -47,48 +47,47 @@
  * 
  * Locking strategy
  *
- * - To use a phone, disconnect a phone etc., the phone must be
- *   first locked and then checked that it is connected
- * - To connect an allocated phone it need not be locked (assigning
- *   pointer is atomic on all platforms)
+ * - To use a phone, disconnect a phone etc., the phone must be first locked and
+ *   then checked that it is connected
+ * - To connect an allocated phone it need not be locked (assigning pointer is
+ *   atomic on all platforms)
  *
  * - To find an empty phone slot, the TASK must be locked
  * - To answer a message, the answerbox must be locked
  * - The locking of phone and answerbox is done at the ipc_ level.
- *   It is perfectly correct to pass unconnected phone to these functions
- *   and proper reply will be generated.
+ *   It is perfectly correct to pass unconnected phone to these functions and
+ *   proper reply will be generated.
  *
  * Locking order
  *
  * - first phone, then answerbox
  *   + Easy locking on calls
- *   - Very hard traversing list of phones when disconnecting because
- *     the phones may disconnect during traversal of list of connected phones.
- *     The only possibility is try_lock with restart of list traversal.
+ *   - Very hard traversing list of phones when disconnecting because the phones
+ *     may disconnect during traversal of list of connected phones. The only
+ *     possibility is try_lock with restart of list traversal.
  *
  * Destroying is less frequent, this approach is taken.
  *
  * Phone call
  *
  * *** Connect_me_to ***
- * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server
- * receives 'phoneid' of the connecting phone as an ARG3. If it answers
- * with RETVAL=0, the phonecall is accepted, otherwise it is refused.
+ * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server receives
+ * 'phoneid' of the connecting phone as an ARG3. If it answers with RETVAL=0,
+ * the phonecall is accepted, otherwise it is refused.
  *
  * *** Connect_to_me ***
- * The caller sends IPC_M_CONNECT_TO_ME, with special 
- * The server receives an automatically
- * opened phoneid. If it accepts (RETVAL=0), it can use the phoneid
- * immediately. 
- * Possible race condition can arise, when the client receives messages
- * from new connection before getting response for connect_to_me message.
- * Userspace should implement handshake protocol that would control it.
+ * The caller sends IPC_M_CONNECT_TO_ME. 
+ * The server receives an automatically opened phoneid. If it accepts
+ * (RETVAL=0), it can use the phoneid immediately. 
+ * Possible race condition can arise, when the client receives messages from new
+ * connection before getting response for connect_to_me message. Userspace
+ * should implement handshake protocol that would control it.
  *
  * Phone hangup
  * 
  * *** The caller hangs up (sys_ipc_hangup) ***
  * - The phone is disconnected (no more messages can be sent over this phone),
- *   all in-progress messages are correctly handled. The anwerbox receives
+ *   all in-progress messages are correctly handled. The answerbox receives
  *   IPC_M_PHONE_HUNGUP call from the phone that hung up. When all async
  *   calls are answered, the phone is deallocated.
  *
