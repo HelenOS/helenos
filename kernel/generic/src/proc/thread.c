@@ -299,6 +299,15 @@ void thread_destroy(thread_t *t)
 	if (destroy_task)
 		task_destroy(t->task);
 	
+	/*
+	 * If the thread had a userspace context, free up its kernel_uarg
+	 * structure.
+	 */
+	if (t->flags & THREAD_FLAG_USPACE) {
+		ASSERT(t->thread_arg);
+		free(t->thread_arg);
+	}
+
 	slab_free(thread_slab, t);
 }
 
@@ -312,13 +321,13 @@ void thread_destroy(thread_t *t)
  * @param flags     Thread flags.
  * @param name      Symbolic name.
  * @param uncounted Thread's accounting doesn't affect accumulated task
- * 	 accounting.
+ * 		    accounting.
  *
  * @return New thread's structure on success, NULL on failure.
  *
  */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
-	int flags, char *name, bool uncounted)
+    int flags, char *name, bool uncounted)
 {
 	thread_t *t;
 	ipl_t ipl;
@@ -637,7 +646,8 @@ void thread_update_accounting(void)
 /** Process syscall to create new thread.
  *
  */
-unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, thread_id_t *uspace_thread_id)
+unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
+    thread_id_t *uspace_thread_id)
 {
 	thread_t *t;
 	char namebuf[THREAD_NAME_BUFLEN];
@@ -660,8 +670,8 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, thread
 	if (t) {
 		thread_ready(t);
 		if (uspace_thread_id != NULL)
-			return (unative_t) copy_to_uspace(uspace_thread_id, &t->tid,
-			    sizeof(t->tid));
+			return (unative_t) copy_to_uspace(uspace_thread_id,
+			    &t->tid, sizeof(t->tid));
 		else
 			return 0;
 	} else

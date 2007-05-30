@@ -107,8 +107,11 @@ void task_done(void)
 		
 		t = NULL;
 		link_t *cur;
-		for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head; cur = cur->next) {
-			btree_node_t *node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (cur = tasks_btree.leaf_head.next;
+		    cur != &tasks_btree.leaf_head; cur = cur->next) {
+			btree_node_t *node;
+			
+			node = list_get_instance(cur, btree_node_t, leaf_link);
 			
 			unsigned int i;
 			for (i = 0; i < node->keys; i++) {
@@ -221,7 +224,7 @@ void task_destroy(task_t *t)
  *
  * @return Task of the running program or NULL on error.
  */
-task_t * task_run_program(void *program_addr, char *name)
+task_t *task_run_program(void *program_addr, char *name)
 {
 	as_t *as;
 	as_area_t *a;

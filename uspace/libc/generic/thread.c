@@ -77,8 +77,8 @@ tcb_t *__make_tls(void)
 	/*
 	 * Zero out the thread local uninitialized data.
 	 */
-	memset(data + (&_tbss_start - &_tdata_start), 0, &_tbss_end -
-		&_tbss_start);
+	memset(data + (&_tbss_start - &_tdata_start), 0,
+	    &_tbss_end - &_tbss_start);
 
 	return tcb;
 }
@@ -128,10 +128,12 @@ void __thread_main(uspace_arg_t *uarg)
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
-int thread_create(void (* function)(void *), void *arg, char *name, thread_id_t *tid)
+int thread_create(void (* function)(void *), void *arg, char *name,
+    thread_id_t *tid)
 {
 	char *stack;
 	uspace_arg_t *uarg;
+	int rc;
 
 	stack = (char *) malloc(getpagesize() * THREAD_INITIAL_STACK_PAGES_NO);
 	if (!stack)
@@ -149,7 +151,19 @@ int thread_create(void (* function)(void *), void *arg, char *name, thread_id_t 
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
-	return __SYSCALL3(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name, (sysarg_t) tid);
+	rc = __SYSCALL3(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name,
+	    (sysarg_t) tid);
+	
+	if (!rc) {
+		/*
+		 * Failed to create a new thread.
+		 * Free up the allocated structures.
+		 */
+		free(uarg);
+		free(stack);
+	}
+
+	return rc;
 }
 
 /** Terminate current thread.
