@@ -37,7 +37,7 @@
 #
 
 DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
-CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
 LFLAGS = -M
 AFLAGS =
 
@@ -118,14 +118,25 @@ endif
 ## Toolchain configuration
 #
 
-ifeq ($(COMPILER),native)
+ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
-else
+endif
+
+ifeq ($(COMPILER),icc_native)
+	CC = icc
+	AS = as
+	LD = ld
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+	LIBDIR = /usr/lib
+endif
+
+ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
