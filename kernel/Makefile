@@ -136,6 +136,15 @@ ifeq ($(COMPILER),icc_native)
 	LIBDIR = /usr/lib
 endif
 
+ifeq ($(COMPILER),suncc_native)
+	CC = suncc
+	AS = as
+	LD = ld
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+	LIBDIR = /usr/lib
+endif
+
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
