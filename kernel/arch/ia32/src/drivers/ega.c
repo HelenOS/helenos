@@ -66,7 +66,7 @@ static chardev_operations_t ega_ops = {
 	.write = ega_putchar
 };
 
-void ega_move_cursor(void);
+static void ega_move_cursor(void);
 
 void ega_init(void)
 {
@@ -119,7 +119,7 @@ static void ega_check_cursor(void)
 	ega_cursor = ega_cursor - ROW;
 }
 
-void ega_putchar(chardev_t *d, const char ch)
+void ega_putchar(chardev_t *d __attribute__((unused)), const char ch)
 {
 	ipl_t ipl;
 
@@ -152,9 +152,9 @@ void ega_putchar(chardev_t *d, const char ch)
 void ega_move_cursor(void)
 {
 	outb(0x3d4, 0xe);
-	outb(0x3d5, (ega_cursor >> 8) & 0xff);
+	outb(0x3d5, (uint8_t) ((ega_cursor >> 8) & 0xff));
 	outb(0x3d4, 0xf);
-	outb(0x3d5, ega_cursor & 0xff);	
+	outb(0x3d5, (uint8_t) (ega_cursor & 0xff));	
 }
 
 /** @}

@@ -95,11 +95,11 @@ void pic_enable_irqs(uint16_t irqmask)
 
 	if (irqmask & 0xff) {
 		x = inb(PIC_PIC0PORT2);
-		outb(PIC_PIC0PORT2, x & (~(irqmask & 0xff)));
+		outb(PIC_PIC0PORT2, (uint8_t) (x & (~(irqmask & 0xff))));
 	}
 	if (irqmask >> 8) {
 		x = inb(PIC_PIC1PORT2);
-		outb(PIC_PIC1PORT2, x & (~(irqmask >> 8)));
+		outb(PIC_PIC1PORT2, (uint8_t) (x & (~(irqmask >> 8))));
 	}
 }
 
@@ -109,11 +109,11 @@ void pic_disable_irqs(uint16_t irqmask)
 
 	if (irqmask & 0xff) {
 		x = inb(PIC_PIC0PORT2);
-		outb(PIC_PIC0PORT2, x | (irqmask & 0xff));
+		outb(PIC_PIC0PORT2, (uint8_t) (x | (irqmask & 0xff)));
 	}
 	if (irqmask >> 8) {
 		x = inb(PIC_PIC1PORT2);
-		outb(PIC_PIC1PORT2, x | (irqmask >> 8));
+		outb(PIC_PIC1PORT2, (uint8_t) (x | (irqmask >> 8)));
 	}
 }
 
@@ -123,10 +123,10 @@ void pic_eoi(void)
 	outb(0xa0, 0x20);
 }
 
-void pic_spurious(int n, istate_t *istate)
+void pic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
-	printf("cpu%d: PIC spurious interrupt\n", CPU->id);
+	printf("cpu%u: PIC spurious interrupt\n", CPU->id);
 #endif
 }
 

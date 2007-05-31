@@ -66,7 +66,7 @@ static irq_ownership_t i8254_claim(void)
 	return IRQ_ACCEPT;
 }
 
-static void i8254_irq_handler(irq_t *irq, void *arg, ...)
+static void i8254_irq_handler(irq_t *irq, void *arg __attribute__((unused)), ...)
 {
 	/*
 	 * This IRQ is responsible for kernel preemption.
@@ -121,7 +121,7 @@ void i8254_calibrate_delay_loop(void)
 	do {
 		/* will read both status and count */
 		outb(CLK_PORT4, 0xc2);
-		not_ok = (inb(CLK_PORT1)>>6)&1;
+		not_ok = (uint8_t) ((inb(CLK_PORT1) >> 6) & 1);
 		t1 = inb(CLK_PORT1);
 		t1 |= inb(CLK_PORT1) << 8;
 	} while (not_ok);

@@ -69,19 +69,19 @@ void decode_istate(istate_t *istate)
 		symbol = "";
 
 	if (CPU)
-		printf("----------------EXCEPTION OCCURED (cpu%d)----------------\n", CPU->id);
+		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);
 	else
 		printf("----------------EXCEPTION OCCURED----------------\n");
 		
-	printf("%%eip: %#x (%s)\n",istate->eip,symbol);
-	printf("ERROR_WORD=%#x\n", istate->error_word);
-	printf("%%cs=%#x,flags=%#x\n", istate->cs, istate->eflags);
-	printf("%%eax=%#x, %%ecx=%#x, %%edx=%#x, %%esp=%#x\n",  istate->eax,istate->ecx,istate->edx,&istate->stack[0]);
+	printf("%%eip: %#lx (%s)\n", istate->eip, symbol);
+	printf("ERROR_WORD=%#lx\n", istate->error_word);
+	printf("%%cs=%#lx,flags=%#lx\n", istate->cs, istate->eflags);
+	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
 #ifdef CONFIG_DEBUG_ALLREGS
-	printf("%%esi=%#x, %%edi=%#x, %%ebp=%#x, %%ebx=%#x\n",  istate->esi,istate->edi,istate->ebp,istate->ebx);
+	printf("%%esi=%#lx, %%edi=%#lx, %%ebp=%#lx, %%ebx=%#lx\n", istate->esi, istate->edi, istate->ebp, istate->ebx);
 #endif
-	printf("stack: %#x, %#x, %#x, %#x\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
-	printf("       %#x, %#x, %#x, %#x\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
+	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
+	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
 }
 
 static void trap_virtual_eoi(void)
@@ -102,7 +102,7 @@ static void null_interrupt(int n, istate_t *istate)
 }
 
 /** General Protection Fault. */
-static void gp_fault(int n, istate_t *istate)
+static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	if (TASK) {
 		count_t ver;
@@ -129,7 +129,7 @@ static void gp_fault(int n, istate_t *istate)
 	panic("general protection fault\n");
 }
 
-static void ss_fault(int n, istate_t *istate)
+static void ss_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	fault_if_from_uspace(istate, "stack fault");
 
@@ -137,22 +137,22 @@ static void ss_fault(int n, istate_t *istate)
 	panic("stack fault\n");
 }
 
-static void simd_fp_exception(int n, istate_t *istate)
+static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
 {
 	uint32_t mxcsr;
 	asm (
 		"stmxcsr %0;\n"
-		:"=m"(mxcsr)
+		: "=m" (mxcsr)
 	);
 	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx",
-	    (unative_t)mxcsr);
+	    (unative_t) mxcsr);
 
 	decode_istate(istate);
-	printf("MXCSR: %#zx\n",(unative_t)(mxcsr));
+	printf("MXCSR: %#lx\n", mxcsr);
 	panic("SIMD FP exception(19)\n");
 }
 
-static void nm_fault(int n, istate_t *istate)
+static void nm_fault(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
@@ -163,7 +163,7 @@ static void nm_fault(int n, istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void tlb_shootdown_ipi(int n, istate_t *istate)
+static void tlb_shootdown_ipi(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
@@ -171,7 +171,7 @@ static void tlb_shootdown_ipi(int n, istate_t *istate)
 #endif
 
 /** Handler of IRQ exceptions */
-static void irq_interrupt(int n, istate_t *istate)
+static void irq_interrupt(int n, istate_t *istate __attribute__((unused)))
 {
 	ASSERT(n >= IVT_IRQBASE);
 	
@@ -198,7 +198,7 @@ static void irq_interrupt(int n, istate_t *istate)
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+		printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
 #endif
 	}
 	

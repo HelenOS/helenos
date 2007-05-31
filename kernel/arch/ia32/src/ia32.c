@@ -126,8 +126,10 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	devno_t kbd = device_assign_devno();
+	devno_t mouse = device_assign_devno();
 	/* keyboard controller */
-	i8042_init(device_assign_devno(), IRQ_KBD, device_assign_devno(), IRQ_MOUSE);
+	i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 }
 
 void calibrate_delay_loop(void)
