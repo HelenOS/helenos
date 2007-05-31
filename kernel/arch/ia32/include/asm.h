@@ -257,7 +257,11 @@ static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
-	asm volatile ("andl %%esp, %0\n" : "=r" (v) : "0" (~(STACK_SIZE-1)));
+	asm volatile (
+		"andl %%esp, %0\n"
+		: "=r" (v)
+		: "0" (~(STACK_SIZE - 1))
+	);
 	
 	return v;
 }

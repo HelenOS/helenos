@@ -54,19 +54,19 @@
 #define	FS_SIGNATURE	0x5f504d5f
 #define CT_SIGNATURE 	0x504d4350
 
-int mps_fs_check(uint8_t *base);
-int mps_ct_check(void);
+static int mps_fs_check(uint8_t *base);
+static int mps_ct_check(void);
 
-int configure_via_ct(void);
-int configure_via_default(uint8_t n);
+static int configure_via_ct(void);
+static int configure_via_default(uint8_t n);
 
-int ct_processor_entry(struct __processor_entry *pr);
-void ct_bus_entry(struct __bus_entry *bus);
-void ct_io_apic_entry(struct __io_apic_entry *ioa);
-void ct_io_intr_entry(struct __io_intr_entry *iointr);
-void ct_l_intr_entry(struct __l_intr_entry *lintr);
+static int ct_processor_entry(struct __processor_entry *pr);
+static void ct_bus_entry(struct __bus_entry *bus);
+static void ct_io_apic_entry(struct __io_apic_entry *ioa);
+static void ct_io_intr_entry(struct __io_intr_entry *iointr);
+static void ct_l_intr_entry(struct __l_intr_entry *lintr);
 
-void ct_extended_entries(void);
+static void ct_extended_entries(void);
 
 static struct mps_fs *fs;
 static struct mps_ct *ct;
@@ -108,13 +108,13 @@ count_t get_cpu_count(void)
 bool is_cpu_enabled(index_t i)
 {
 	ASSERT(i < processor_entry_cnt);
-	return processor_entries[i].cpu_flags & 0x1;
+	return (bool) ((processor_entries[i].cpu_flags & 0x01) == 0x01);
 }
 
 bool is_bsp(index_t i)
 {
 	ASSERT(i < processor_entry_cnt);
-	return processor_entries[i].cpu_flags & 0x2;
+	return (bool) ((processor_entries[i].cpu_flags & 0x02) == 0x02);
 }
 
 uint8_t get_cpu_apic_id(index_t i)
@@ -133,7 +133,7 @@ int mps_fs_check(uint8_t *base)
 	uint8_t sum;
 	
 	for (i = 0, sum = 0; i < 16; i++)
-		sum += base[i];
+		sum = (uint8_t) (sum + base[i]);
 	
 	return !sum;
 }
@@ -150,14 +150,14 @@ int mps_ct_check(void)
 	
 	/* count the checksum for the base table */
 	for (i=0,sum=0; i < ct->base_table_length; i++)
-		sum += base[i];
+		sum = (uint8_t) (sum + base[i]);
 		
 	if (sum)
 		return 0;
 		
 	/* count the checksum for the extended table */
 	for (i=0,sum=0; i < ct->ext_table_length; i++)
-		sum += ext[i];
+		sum = (uint8_t) (sum + ext[i]);
 		
 	return sum == ct->ext_table_checksum;
 }
@@ -286,7 +286,7 @@ int configure_via_ct(void)
 	return cnt;
 }
 
-int configure_via_default(uint8_t n)
+int configure_via_default(uint8_t n __attribute__((unused)))
 {
 	/*
 	 * Not yet implemented.
@@ -296,7 +296,7 @@ int configure_via_default(uint8_t n)
 }
 
 
-int ct_processor_entry(struct __processor_entry *pr)
+int ct_processor_entry(struct __processor_entry *pr __attribute__((unused)))
 {
 	/*
 	 * Ignore processors which are not marked enabled.
@@ -308,7 +308,7 @@ int ct_processor_entry(struct __processor_entry *pr)
 	return 1;
 }
 
-void ct_bus_entry(struct __bus_entry *bus)
+void ct_bus_entry(struct __bus_entry *bus __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
 	char buf[7];
@@ -337,7 +337,7 @@ void ct_io_apic_entry(struct __io_apic_entry *ioa)
 }
 
 //#define MPSCT_VERBOSE
-void ct_io_intr_entry(struct __io_intr_entry *iointr)
+void ct_io_intr_entry(struct __io_intr_entry *iointr __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
 	switch (iointr->intr_type) {
@@ -368,7 +368,7 @@ void ct_io_intr_entry(struct __io_intr_entry *iointr)
 #endif
 }
 
-void ct_l_intr_entry(struct __l_intr_entry *lintr)
+void ct_l_intr_entry(struct __l_intr_entry *lintr __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
 	switch (lintr->intr_type) {

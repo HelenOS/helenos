@@ -48,7 +48,7 @@
 
 
 extern void debugger_init(void);
-extern int breakpoint_add(void * where, int flags, int curidx);
+extern int breakpoint_add(const void *where, const int flags, int curidx);
 extern void breakpoint_del(int slot);
 
 #endif

@@ -125,10 +125,10 @@ static char *intpol_str[] = {
  * @param n Interrupt vector.
  * @param istate Interrupted state.
  */
-static void apic_spurious(int n, istate_t *istate)
+static void apic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
-	printf("cpu%d: APIC spurious interrupt\n", CPU->id);
+	printf("cpu%u: APIC spurious interrupt\n", CPU->id);
 #endif
 }
 
@@ -137,7 +137,7 @@ static irq_ownership_t l_apic_timer_claim(void)
 	return IRQ_ACCEPT;
 }
 
-static void l_apic_timer_irq_handler(irq_t *irq, void *arg, ...)
+static void l_apic_timer_irq_handler(irq_t *irq, void *arg __attribute__((unused)), ...)
 {
 	/*
 	 * Holding a spinlock could prevent clock() from preempting
@@ -153,8 +153,7 @@ static void l_apic_timer_irq_handler(irq_t *irq, void *arg, ...)
 void apic_init(void)
 {
 	io_apic_id_t idreg;
-	unsigned int i;
-
+	
 	exc_register(VECTOR_APIC_SPUR, "apic_spurious", (iroutine) apic_spurious);
 
 	enable_irqs_function = io_apic_enable_irqs;
@@ -176,11 +175,12 @@ void apic_init(void)
 	l_apic_timer_irq.handler = l_apic_timer_irq_handler;
 	irq_register(&l_apic_timer_irq);
 	
+	uint8_t i;
 	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
 	
 		if ((pin = smp_irq_to_pin(i)) != -1)
-			io_apic_change_ioredtbl(pin, DEST_ALL, IVT_IRQBASE + i, LOPRI);
+			io_apic_change_ioredtbl((uint8_t) pin, DEST_ALL, (uint8_t) (IVT_IRQBASE + i), LOPRI);
 	}
 	
 	/*
@@ -328,7 +328,7 @@ int l_apic_send_init_ipi(uint8_t apicid)
 		 */
 		for (i = 0; i<2; i++) {
 			icr.lo = l_apic[ICRlo];
-			icr.vector = ((uintptr_t) ap_boot) / 4096; /* calculate the reset vector */
+			icr.vector = (uint8_t) (((uintptr_t) ap_boot) >> 12); /* calculate the reset vector */
 			icr.delmod = DELMOD_STARTUP;
 			icr.destmod = DESTMOD_PHYS;
 			icr.level = LEVEL_ASSERT;
@@ -425,9 +425,9 @@ void l_apic_init(void)
 	l_apic[ICRT] = t1-t2;
 	
 	/* Program Logical Destination Register. */
+	ASSERT(CPU->id < 8)
 	ldr.value = l_apic[LDR];
-	if (CPU->id < sizeof(CPU->id)*8)	/* size in bits */
-		ldr.id = (1<<CPU->id);
+	ldr.id = (uint8_t) (1 << CPU->id);
 	l_apic[LDR] = ldr.value;
 	
 	/* Program Destination Format Register for Flat mode. */
@@ -513,7 +513,7 @@ void io_apic_write(uint8_t address, uint32_t x)
  * @param v Interrupt vector to trigger.
  * @param flags Flags.
  */
-void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
+void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags)
 {
 	io_redirection_reg_t reg;
 	int dlvr = DELMOD_FIXED;
@@ -521,8 +521,8 @@ void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 	if (flags & LOPRI)
 		dlvr = DELMOD_LOWPRI;
 
-	reg.lo = io_apic_read(IOREDTBL + pin*2);
-	reg.hi = io_apic_read(IOREDTBL + pin*2 + 1);
+	reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
+	reg.hi = io_apic_read((uint8_t) (IOREDTBL + pin * 2 + 1));
 	
 	reg.dest = dest;
 	reg.destmod = DESTMOD_LOGIC;
@@ -531,8 +531,8 @@ void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
 	reg.delmod = dlvr;
 	reg.intvec = v;
 
-	io_apic_write(IOREDTBL + pin*2, reg.lo);
-	io_apic_write(IOREDTBL + pin*2 + 1, reg.hi);
+	io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
+	io_apic_write((uint8_t) (IOREDTBL + pin * 2 + 1), reg.hi);
 }
 
 /** Mask IRQs in IO APIC.
@@ -553,9 +553,9 @@ void io_apic_disable_irqs(uint16_t irqmask)
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin * 2);
+				reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
 				reg.masked = true;
-				io_apic_write(IOREDTBL + pin * 2, reg.lo);
+				io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
 			}
 			
 		}
@@ -572,7 +572,7 @@ void io_apic_enable_irqs(uint16_t irqmask)
 	int pin;
 	io_redirection_reg_t reg;	
 	
-	for (i = 0;i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		if (irqmask & (1 << i)) {
 			/*
 			 * Unmask the signal input in IO APIC if there is a
@@ -580,9 +580,9 @@ void io_apic_enable_irqs(uint16_t irqmask)
 			 */
 			pin = smp_irq_to_pin(i);
 			if (pin != -1) {
-				reg.lo = io_apic_read(IOREDTBL + pin * 2);
+				reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
 				reg.masked = false;
-				io_apic_write(IOREDTBL + pin * 2, reg.lo);
+				io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
 			}
 			
 		}

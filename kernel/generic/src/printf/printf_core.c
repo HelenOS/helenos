@@ -418,10 +418,10 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  * 
  * TYPE:@n
  * 	- "hh"	Signed or unsigned char.@n
- * 	- "h"	Signed or usigned short.@n
- * 	- ""	Signed or usigned int (default value).@n
- * 	- "l"	Signed or usigned long int.@n
- * 	- "ll"	Signed or usigned long long int.@n
+ * 	- "h"	Signed or unsigned short.@n
+ * 	- ""	Signed or unsigned int (default value).@n
+ * 	- "l"	Signed or unsigned long int.@n
+ * 	- "ll"	Signed or unsigned long long int.@n
  * 	- "z"	unative_t (non-standard extension).@n
  * 
  * 
@@ -433,7 +433,7 @@ static int print_number(uint64_t num, int width, int precision, int base , uint6
  * 	- s	Print zero terminated string. If a NULL value is passed as value, "(NULL)" is printed instead.
  * 
  * 	- P, p	Print value of a pointer. Void * value is expected and it is printed in hexadecimal notation with prefix
- * 	(as with \%#X or \%#x for 32bit or \%#X / \%#x for 64bit long pointers).
+ * 	(as with \%#X / \%#x for 32bit or \%#X / \%#x for 64bit long pointers).
  *
  * 	- b	Print value as unsigned binary number. Prefix is not printed by default. (Nonstandard extension.)
  * 

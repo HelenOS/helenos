@@ -83,15 +83,17 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
+		uintptr_t addr = PFN2ADDR(i);
+		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr, PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	}
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
 	return virtaddr;
 }
 
-void page_fault(int n, istate_t *istate)
+void page_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	uintptr_t page;
 	pf_access_t access;
@@ -110,7 +112,7 @@ void page_fault(int n, istate_t *istate)
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
 		
 		decode_istate(istate);
-		printf("page fault address: %#x\n", page);
+		printf("page fault address: %#lx\n", page);
 		panic("page fault\n");
 	}
 }

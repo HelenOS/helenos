@@ -45,7 +45,7 @@
  *
  * One item is put onto stack to support get_stack_base().
  */
-#define SP_DELTA	(8+STACK_ITEM_SIZE)
+#define SP_DELTA	(8 + STACK_ITEM_SIZE)
 
 /*
  * Only save registers that must be preserved across

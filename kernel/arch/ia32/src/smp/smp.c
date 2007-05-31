@@ -98,7 +98,7 @@ void smp_init(void)
  * BSP initialization (prior the very first call to scheduler()) will be used
  * as an initialization stack for each AP.)
  */
-void kmp(void *arg)
+void kmp(void *arg __attribute__((unused)))
 {
 	unsigned int i;
 	
@@ -112,8 +112,8 @@ void kmp(void *arg)
 	/*
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
-	*((uint16_t *) (PA2KA(0x467 + 0))) =  ((uintptr_t) ap_boot) >> 4;	/* segment */
-	*((uint16_t *) (PA2KA(0x467 + 2))) =  0;				/* offset */
+	*((uint16_t *) (PA2KA(0x467 + 0))) = (uint16_t) (((uintptr_t) ap_boot) >> 4);	/* segment */
+	*((uint16_t *) (PA2KA(0x467 + 2))) = 0;				/* offset */
 	
 	/*
 	 * Save 0xa to address 0xf of the CMOS RAM.
@@ -124,6 +124,8 @@ void kmp(void *arg)
 
 	pic_disable_irqs(0xffff);
 	apic_init();
+	
+	uint8_t apic = l_apic_id();
 
 	for (i = 0; i < ops->cpu_count(); i++) {
 		struct descriptor *gdt_new;
@@ -140,15 +142,15 @@ void kmp(void *arg)
 		if (ops->cpu_bootstrap(i))
 			continue;
 
-		if (ops->cpu_apic_id(i) == l_apic_id()) {
-			printf("%s: bad processor entry #%d, will not send IPI to myself\n", __FUNCTION__, i);
+		if (ops->cpu_apic_id(i) == apic) {
+			printf("%s: bad processor entry #%u, will not send IPI to myself\n", __FUNCTION__, i);
 			continue;
 		}
 		
 		/*
 		 * Prepare new GDT for CPU in question.
 		 */
-		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor), FRAME_ATOMIC)))
+		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS * sizeof(struct descriptor), FRAME_ATOMIC)))
 			panic("couldn't allocate memory for GDT\n");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
@@ -163,8 +165,10 @@ void kmp(void *arg)
 			 * the time. After it comes completely up, it is
 			 * supposed to wake us up.
 			 */
-			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT)
-				printf("%s: waiting for cpu%d (APIC ID = %d) timed out\n", __FUNCTION__, config.cpu_active > i ? config.cpu_active : i, ops->cpu_apic_id(i));
+			if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {
+				unsigned int cpu = (config.cpu_active > i) ? config.cpu_active : i;
+				printf("%s: waiting for cpu%u (APIC ID = %d) timed out\n", __FUNCTION__, cpu, ops->cpu_apic_id(i));
+			}
 		} else
 			printf("INIT IPI for l_apic%d failed\n", ops->cpu_apic_id(i));
 	}

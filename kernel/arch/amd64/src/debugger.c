@@ -102,7 +102,7 @@ static cmd_info_t addwatchp_info = {
 #endif
 
 /** Print table of active breakpoints */
-int cmd_print_breakpoints(cmd_arg_t *argv)
+int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 	int i;
 	char *symbol;
@@ -111,7 +111,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	for (i=0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			printf("%d. %p in %s\n",i,
+			printf("%d. %lx in %s\n", i,
 			       breakpoints[i].address, symbol);
 			printf("     Count(%d) ", breakpoints[i].counter);
 			printf("\n");
@@ -173,25 +173,24 @@ static void setup_dr(int curidx)
 	
 /** Enable hardware breakpoint
  *
- *
  * @param where Address of HW breakpoint
  * @param flags Type of breakpoint (EXECUTE, WRITE)
  * @return Debug slot on success, -1 - no available HW breakpoint
  */
-int breakpoint_add(void * where, int flags, int curidx)
+int breakpoint_add(const void *where, const int flags, int curidx)
 {
 	ipl_t ipl;
 	int i;
 	bpinfo_t *cur;
 
-	ASSERT( flags & (BKPOINT_INSTR | BKPOINT_WRITE | BKPOINT_READ_WRITE));
+	ASSERT(flags & (BKPOINT_INSTR | BKPOINT_WRITE | BKPOINT_READ_WRITE));
 
 	ipl = interrupts_disable();
 	spinlock_lock(&bkpoint_lock);
 	
 	if (curidx == -1) {
 		/* Find free space in slots */
-		for (i=0; i<BKPOINTS_MAX; i++)
+		for (i = 0; i < BKPOINTS_MAX; i++)
 			if (!breakpoints[i].address) {
 				curidx = i;
 				break;
@@ -223,9 +222,9 @@ int breakpoint_add(void * where, int flags, int curidx)
 }
 
 #ifdef amd64
-# define getip(x)  ((x)->rip)
+#	define getip(x)	((x)->rip)
 #else
-# define getip(x)  ((x)->eip)
+#	define getip(x)	((x)->eip)
 #endif
 
 static void handle_exception(int slot, istate_t *istate)
@@ -237,14 +236,14 @@ static void handle_exception(int slot, istate_t *istate)
 		if ((breakpoints[slot].flags & BKPOINT_CHECK_ZERO)) {
 			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
-			printf("**** Found ZERO on address %p ****\n",
-			       slot, breakpoints[slot].address);
+			printf("**** Found ZERO on address %lx (slot %d) ****\n",
+				breakpoints[slot].address, slot);
 		} else {
-			printf("Data watchpoint - new data: %p\n",
+			printf("Data watchpoint - new data: %lx\n",
 			       *((unative_t *) breakpoints[slot].address));
 		}
 	}
-	printf("Reached breakpoint %d:%p(%s)\n", slot, getip(istate),
+	printf("Reached breakpoint %d:%lx(%s)\n", slot, getip(istate),
 	       get_symtab_entry(getip(istate)));
 	printf("***Type 'exit' to exit kconsole.\n");
 	atomic_set(&haltstate,1);
@@ -313,7 +312,7 @@ static int cmd_add_breakpoint(cmd_arg_t *argv)
 }
 #endif
 
-static void debug_exception(int n, istate_t *istate)
+static void debug_exception(int n __attribute__((unused)), istate_t *istate)
 {
 	unative_t dr6;
 	int i;
@@ -337,12 +336,12 @@ static void debug_exception(int n, istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void debug_ipi(int n, istate_t *istate)
+static void debug_ipi(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 	int i;
 
 	spinlock_lock(&bkpoint_lock);
-	for (i=0; i < BKPOINTS_MAX; i++)
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		setup_dr(i);
 	spinlock_unlock(&bkpoint_lock);
 }

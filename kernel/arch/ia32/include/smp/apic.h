@@ -346,7 +346,7 @@ extern uint8_t l_apic_id(void);
 
 extern uint32_t io_apic_read(uint8_t address);
 extern void io_apic_write(uint8_t address , uint32_t x);
-extern void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags);
+extern void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags);
 extern void io_apic_disable_irqs(uint16_t irqmask);
 extern void io_apic_enable_irqs(uint16_t irqmask);
 

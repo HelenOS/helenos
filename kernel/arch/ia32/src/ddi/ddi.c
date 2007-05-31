@@ -125,10 +125,11 @@ void io_perm_bitmap_install(void)
 	ver = TASK->arch.iomapver;
 	if ((bits = TASK->arch.iomap.bits)) {
 		bitmap_t iomap;
+		task_t *task = TASK;
 	
 		ASSERT(TASK->arch.iomap.map);
 		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
-		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
+		bitmap_copy(&iomap, &task->arch.iomap, task->arch.iomap.bits);
 		/*
 		 * It is safe to set the trailing eight bits because of the extra
 		 * convenience byte in TSS_IOMAP_SIZE.
