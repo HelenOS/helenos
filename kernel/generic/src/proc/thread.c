@@ -157,20 +157,20 @@ static int thr_constructor(void *obj, int kmflags)
 	thr_constructor_arch(t);
 	
 #ifdef ARCH_HAS_FPU
-#  ifdef CONFIG_FPU_LAZY
+#ifdef CONFIG_FPU_LAZY
 	t->saved_fpu_context = NULL;
-#  else
-	t->saved_fpu_context = slab_alloc(fpu_context_slab,kmflags);
+#else
+	t->saved_fpu_context = slab_alloc(fpu_context_slab, kmflags);
 	if (!t->saved_fpu_context)
 		return -1;
-#  endif
+#endif
 #endif	
 
 	t->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
-	if (! t->kstack) {
+	if (!t->kstack) {
 #ifdef ARCH_HAS_FPU
 		if (t->saved_fpu_context)
-			slab_free(fpu_context_slab,t->saved_fpu_context);
+			slab_free(fpu_context_slab, t->saved_fpu_context);
 #endif
 		return -1;
 	}
@@ -189,7 +189,7 @@ static int thr_destructor(void *obj)
 	frame_free(KA2PA(t->kstack));
 #ifdef ARCH_HAS_FPU
 	if (t->saved_fpu_context)
-		slab_free(fpu_context_slab,t->saved_fpu_context);
+		slab_free(fpu_context_slab, t->saved_fpu_context);
 #endif
 	return 1; /* One page freed */
 }
@@ -232,7 +232,7 @@ void thread_ready(thread_t *t)
 
 	spinlock_lock(&t->lock);
 
-	ASSERT(! (t->state == Ready));
+	ASSERT(!(t->state == Ready));
 
 	i = (t->priority < RQ_COUNT - 1) ? ++t->priority : t->priority;
 	
@@ -258,57 +258,6 @@ void thread_ready(thread_t *t)
 	atomic_inc(&cpu->nrdy);
 
 	interrupts_restore(ipl);
-}
-
-/** Destroy thread memory structure
- *
- * Detach thread from all queues, cpus etc. and destroy it.
- *
- * Assume thread->lock is held!!
- */
-void thread_destroy(thread_t *t)
-{
-	bool destroy_task = false;
-
-	ASSERT(t->state == Exiting || t->state == Undead);
-	ASSERT(t->task);
-	ASSERT(t->cpu);
-
-	spinlock_lock(&t->cpu->lock);
-	if(t->cpu->fpu_owner == t)
-		t->cpu->fpu_owner = NULL;
-	spinlock_unlock(&t->cpu->lock);
-
-	spinlock_unlock(&t->lock);
-
-	spinlock_lock(&threads_lock);
-	btree_remove(&threads_btree, (btree_key_t) ((uintptr_t ) t), NULL);
-	spinlock_unlock(&threads_lock);
-
-	/*
-	 * Detach from the containing task.
-	 */
-	spinlock_lock(&t->task->lock);
-	list_remove(&t->th_link);
-	if (--t->task->refcount == 0) {
-		t->task->accept_new_threads = false;
-		destroy_task = true;
-	}
-	spinlock_unlock(&t->task->lock);	
-	
-	if (destroy_task)
-		task_destroy(t->task);
-	
-	/*
-	 * If the thread had a userspace context, free up its kernel_uarg
-	 * structure.
-	 */
-	if (t->flags & THREAD_FLAG_USPACE) {
-		ASSERT(t->thread_arg);
-		free(t->thread_arg);
-	}
-
-	slab_free(thread_slab, t);
 }
 
 /** Create new thread
@@ -392,10 +341,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 
 	/* might depend on previous initialization */
 	thread_create_arch(t);	
-	
-	/*
-	 * Attach to the containing task.
-	 */
+
 	ipl = interrupts_disable();	 
 	spinlock_lock(&task->lock);
 	if (!task->accept_new_threads) {
@@ -403,9 +349,93 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 		slab_free(thread_slab, t);
 		interrupts_restore(ipl);
 		return NULL;
+	} else {
+		/*
+		 * Bump the reference count so that this task cannot be
+		 * destroyed while the new thread is being attached to it.
+		 */
+		task->refcount++;
 	}
+	spinlock_unlock(&task->lock);
+	interrupts_restore(ipl);
+
+	if (!(flags & THREAD_FLAG_NOATTACH))
+		thread_attach(t, task);
+
+	return t;
+}
+
+/** Destroy thread memory structure
+ *
+ * Detach thread from all queues, cpus etc. and destroy it.
+ *
+ * Assume thread->lock is held!!
+ */
+void thread_destroy(thread_t *t)
+{
+	bool destroy_task = false;
+
+	ASSERT(t->state == Exiting || t->state == Undead);
+	ASSERT(t->task);
+	ASSERT(t->cpu);
+
+	spinlock_lock(&t->cpu->lock);
+	if (t->cpu->fpu_owner == t)
+		t->cpu->fpu_owner = NULL;
+	spinlock_unlock(&t->cpu->lock);
+
+	spinlock_unlock(&t->lock);
+
+	spinlock_lock(&threads_lock);
+	btree_remove(&threads_btree, (btree_key_t) ((uintptr_t ) t), NULL);
+	spinlock_unlock(&threads_lock);
+
+	/*
+	 * Detach from the containing task.
+	 */
+	spinlock_lock(&t->task->lock);
+	list_remove(&t->th_link);
+	if (--t->task->refcount == 0) {
+		t->task->accept_new_threads = false;
+		destroy_task = true;
+	}
+	spinlock_unlock(&t->task->lock);	
+	
+	if (destroy_task)
+		task_destroy(t->task);
+	
+	/*
+	 * If the thread had a userspace context, free up its kernel_uarg
+	 * structure.
+	 */
+	if (t->flags & THREAD_FLAG_USPACE) {
+		ASSERT(t->thread_arg);
+		free(t->thread_arg);
+	}
+
+	slab_free(thread_slab, t);
+}
+
+/** Make the thread visible to the system.
+ *
+ * Attach the thread structure to the current task and make it visible in the
+ * threads_btree.
+ *
+ * @param t	Thread to be attached to the task.
+ * @param task	Task to which the thread is to be attached.
+ */
+void thread_attach(thread_t *t, task_t *task)
+{
+	ipl_t ipl;
+
+	/*
+	 * Attach to the current task.
+	 */
+	ipl = interrupts_disable();	 
+	spinlock_lock(&task->lock);
+	ASSERT(task->refcount);
 	list_append(&t->th_link, &task->th_head);
-	if (task->refcount++ == 0)
+	if (task->refcount == 1)
 		task->main_thread = t;
 	spinlock_unlock(&task->lock);
 
@@ -418,8 +448,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	spinlock_unlock(&threads_lock);
 	
 	interrupts_restore(ipl);
-	
-	return t;
 }
 
 /** Terminate thread.
@@ -665,15 +693,51 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		return (unative_t) rc;
 	}
 
-	t = thread_create(uinit, kernel_uarg, TASK, THREAD_FLAG_USPACE, namebuf,
-	    false);
+	t = thread_create(uinit, kernel_uarg, TASK,
+	    THREAD_FLAG_USPACE | THREAD_FLAG_NOATTACH, namebuf, false);
 	if (t) {
+		if (uspace_thread_id != NULL) {
+			int rc;
+
+			rc = copy_to_uspace(uspace_thread_id, &t->tid,
+			    sizeof(t->tid));
+			if (rc != 0) {
+				ipl_t ipl;
+
+				/*
+				 * We have encountered a failure, but the thread
+				 * has already been created. We need to undo its
+				 * creation now.
+				 */
+
+				/*
+				 * The new thread structure is initialized,
+				 * but is still not visible to the system.
+				 * We can safely deallocate it.
+				 */
+				slab_free(thread_slab, t);
+			 	free(kernel_uarg);
+
+				/*
+				 * Now we need to decrement the task reference
+				 * counter. Because we are running within the
+				 * same task, thread t is not the last thread
+				 * in the task, so it is safe to merely
+				 * decrement the counter.
+				 */
+				ipl = interrupts_disable();
+				spinlock_lock(&TASK->lock);
+				TASK->refcount--;
+				spinlock_unlock(&TASK->lock);
+				interrupts_restore(ipl);
+
+				return (unative_t) rc;
+			 }
+		}
+		thread_attach(t, TASK);
 		thread_ready(t);
-		if (uspace_thread_id != NULL)
-			return (unative_t) copy_to_uspace(uspace_thread_id,
-			    &t->tid, sizeof(t->tid));
-		else
-			return 0;
+
+		return 0;
 	} else
 		free(kernel_uarg);
 

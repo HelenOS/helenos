@@ -63,6 +63,8 @@ extern char *thread_states[];
 #define THREAD_FLAG_STOLEN	(1 << 1)
 /** Thread executes in userspace. */
 #define THREAD_FLAG_USPACE	(1 << 2)
+/** Thread will be attached by the caller. */
+#define THREAD_FLAG_NOATTACH	(1 << 3)
 
 /** Thread states. */
 typedef enum {
@@ -220,6 +222,7 @@ extern btree_t threads_btree;
 extern void thread_init(void);
 extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
     int flags, char *name, bool uncounted);
+extern void thread_attach(thread_t *t, task_t *task);
 extern void thread_ready(thread_t *t);
 extern void thread_exit(void) __attribute__((noreturn));
 
