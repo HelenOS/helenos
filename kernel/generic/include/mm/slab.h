@@ -71,9 +71,9 @@
 
 typedef struct {
 	link_t link;
-	count_t busy;  /**< Count of full slots in magazine */
-	count_t size;  /**< Number of slots in magazine */
-	void *objs[0]; /**< Slots in magazine */
+	count_t busy;	/**< Count of full slots in magazine */
+	count_t size;	/**< Number of slots in magazine */
+	void *objs[];	/**< Slots in magazine */
 } slab_magazine_t;
 
 typedef struct {

@@ -38,6 +38,7 @@
 
 DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
 CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+#SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all
 LFLAGS = -M
 AFLAGS =
 
@@ -120,6 +121,7 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
+	AS_CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -129,6 +131,7 @@ endif
 
 ifeq ($(COMPILER),icc_native)
 	CC = icc
+	AS_CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -138,6 +141,7 @@ endif
 
 ifeq ($(COMPILER),suncc_native)
 	CC = suncc
+	AS_CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -147,6 +151,7 @@ endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
+	AS_CC = $(CC)
 	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
 	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
@@ -331,7 +336,7 @@ disasm: kernel.raw
 	$(OBJDUMP) -d kernel.raw > kernel.disasm
 
 %.o: %.S
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(AS_CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

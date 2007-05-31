@@ -60,12 +60,12 @@ extern void asm_fake_loop(uint32_t t);
 static inline void cpu_halt(void)
 {
 	asm volatile ("hlt\n");
-};
+}
 
 static inline void cpu_sleep(void)
 {
 	asm volatile ("hlt\n");
-};
+}
 
 #define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
     { \
@@ -79,24 +79,24 @@ static inline void cpu_sleep(void)
 	asm volatile ("movl %0, %%" #reg : : "r" (regn)); \
     }
 
-GEN_READ_REG(cr0);
-GEN_READ_REG(cr2);
-GEN_READ_REG(cr3);
-GEN_WRITE_REG(cr3);
+GEN_READ_REG(cr0)
+GEN_READ_REG(cr2)
+GEN_READ_REG(cr3)
+GEN_WRITE_REG(cr3)
 
-GEN_READ_REG(dr0);
-GEN_READ_REG(dr1);
-GEN_READ_REG(dr2);
-GEN_READ_REG(dr3);
-GEN_READ_REG(dr6);
-GEN_READ_REG(dr7);
+GEN_READ_REG(dr0)
+GEN_READ_REG(dr1)
+GEN_READ_REG(dr2)
+GEN_READ_REG(dr3)
+GEN_READ_REG(dr6)
+GEN_READ_REG(dr7)
 
-GEN_WRITE_REG(dr0);
-GEN_WRITE_REG(dr1);
-GEN_WRITE_REG(dr2);
-GEN_WRITE_REG(dr3);
-GEN_WRITE_REG(dr6);
-GEN_WRITE_REG(dr7);
+GEN_WRITE_REG(dr0)
+GEN_WRITE_REG(dr1)
+GEN_WRITE_REG(dr2)
+GEN_WRITE_REG(dr3)
+GEN_WRITE_REG(dr6)
+GEN_WRITE_REG(dr7)
 
 /** Byte to port
  *
