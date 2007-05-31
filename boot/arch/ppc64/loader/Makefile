@@ -35,13 +35,23 @@ include ../../../Makefile.config
 TARGET = ppc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
-ifeq ($(COMPILER),native)
+ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
-else
+endif
+
+ifeq ($(COMPILER),icc_native)
+	CC = icc
+	AS = as
+	LD = ld
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+endif
+
+ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld

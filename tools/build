@@ -18,7 +18,7 @@ for TARGET in $TARGETS ; do
 	
 	cd "$BASE"
 	make distclean
-	make "PLATFORM=$TARGET" "COMPILER=cross" "CONFIG_DEBUG=n"
+	make "PLATFORM=$TARGET" "COMPILER=gcc_cross" "CONFIG_DEBUG=n"
 	
 	cp -v "$BASE/uspace/libc/arch/$UTARGET/src/entry.o" "$OUTPUT/$TARGET"
 	cp -v "$BASE/uspace/libc/arch/$UTARGET/_link.ld" "$OUTPUT/$TARGET"

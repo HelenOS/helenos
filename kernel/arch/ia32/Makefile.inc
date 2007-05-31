@@ -61,7 +61,11 @@ ifeq ($(MACHINE),prescott)
 	DEFS += -DCONFIG_FENCES_P4
 endif
 ifeq ($(MACHINE),pentium4)
-	CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
+	ifeq ($(COMPILER),icc_native)
+		CFLAGS += -march=pentium4
+	else
+		CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
+	endif
 	DEFS += -DCONFIG_FENCES_P4
 endif
 
