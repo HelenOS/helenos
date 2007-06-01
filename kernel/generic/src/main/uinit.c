@@ -69,7 +69,8 @@ void uinit(void *arg)
 	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
 	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
 	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL; uarg.uspace_thread_arg = NULL;
+	uarg.uspace_thread_function = NULL;
+	uarg.uspace_thread_arg = NULL;
 
 	free((uspace_arg_t *) arg);
 	userspace(&uarg);
