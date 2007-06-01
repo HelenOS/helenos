@@ -42,9 +42,16 @@
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/ddi.h>
+#include <print.h>
+#include <align.h>
 
 static parea_t rd_parea;		/**< Physical memory area for rd. */
 
+/**
+ * RAM disk initialization routine. At this point, the RAM disk memory is shared
+ * and information about the share is provided as sysinfo values to the userspace
+ * tasks.
+ */  
 int init_rd(rd_header * header, size_t size)
 {
 	/* Identify RAM disk */
@@ -74,19 +81,23 @@ int init_rd(rd_header * header, size_t size)
 	if ((hsize % FRAME_SIZE) || (dsize % FRAME_SIZE))
 		return RE_UNSUPPORTED;
 	
+	if (dsize % FRAME_SIZE)
+		return RE_UNSUPPORTED;
+
 	if (hsize > size)
 		return RE_INVALID;
 	
 	if ((uint64_t) hsize + dsize > size)
 		dsize = size - hsize;
 	
-	rd_parea.pbase = KA2PA((void *) header + hsize);
+	rd_parea.pbase = ALIGN_DOWN((uintptr_t) KA2PA((void *) header + hsize), FRAME_SIZE);
 	rd_parea.vbase = (uintptr_t) ((void *) header + hsize);
 	rd_parea.frames = SIZE2FRAMES(dsize);
 	rd_parea.cacheable = true;
 	ddi_parea_register(&rd_parea);
 
 	sysinfo_set_item_val("rd", NULL, true);
+	sysinfo_set_item_val("rd.header_size", NULL, hsize);	
 	sysinfo_set_item_val("rd.size", NULL, dsize);
 	sysinfo_set_item_val("rd.address.physical", NULL, (unative_t)
 		KA2PA((void *) header + hsize));

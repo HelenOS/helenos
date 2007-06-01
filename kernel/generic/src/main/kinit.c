@@ -167,6 +167,7 @@ void kinit(void *arg)
 
 		task_t *utask = task_run_program((void *) init.tasks[i].addr,
 		    "uspace");
+		
 		if (utask) {
 			/*
 			 * Set capabilities to init userspace tasks.
@@ -181,7 +182,7 @@ void kinit(void *arg)
 			    init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %zd not used.\n", i);
+				printf("Init binary %zd not used, error code %d.\n", i, rd);
 		}
 	}
 

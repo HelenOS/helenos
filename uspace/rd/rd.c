@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2007 Michal Konopa
+ * Copyright (c) 2007 Martin Jelen
+ * Copyright (c) 2007 Peter Majer
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +47,17 @@
 #include <bool.h>
 #include <errno.h>
 #include <async.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <align.h>
+#include <async.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
+#include <stdio.h> 
+#include "rd.h"
 
+static void *rd_addr;
+static void *fs_addr;
 
 static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -54,15 +66,24 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 
 	ipc_answer_fast(iid, 0, 0, 0);
+	ipcarg_t offset;
 
 	while (1) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			ipc_answer_fast(callid, 0,0,0);
-			return;
-		default:
-			retval = EINVAL;
+			case IPC_M_PHONE_HUNGUP:
+				ipc_answer_fast(callid, 0,0,0);
+				return;
+			case IPC_M_AS_AREA_SEND:
+				ipc_answer_fast(callid, 0, (uintptr_t)fs_addr, 0);
+				continue;
+			case RD_READ_BLOCK:			
+				offset = IPC_GET_ARG1(call);
+				memcpy((void *)fs_addr, rd_addr+offset, BLOCK_SIZE);
+				retval = EOK;
+				break;
+			default:
+				retval = EINVAL;
 		}
 		ipc_answer_fast(callid, retval, 0, 0);
 	}	
@@ -71,19 +92,27 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 static bool rd_init(void)
 {
+	int retval, flags;
+
 	size_t rd_size = sysinfo_value("rd.size");
 	void * rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
 	
 	if (rd_size == 0)
 		return false;
 	
-	void * rd_addr = as_get_mappable_page(rd_size);
+	rd_addr = as_get_mappable_page(rd_size);
 	
-	physmem_map(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
+	retval = physmem_map(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
+
+	if (retval < 0)
+		return false;
 	
+	size_t fs_size = ALIGN_UP(BLOCK_SIZE * sizeof(char), PAGE_SIZE);
+	fs_addr = as_get_mappable_page(fs_size);
+
 	return true;
 }
-
 
 int main(int argc, char **argv)
 {

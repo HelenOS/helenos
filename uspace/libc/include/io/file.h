@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2007 Michal Konopa
+ * Copyright (c) 2007 Martin Jelen
+ * Copyright (c) 2007 Peter Majer
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +28,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
+ */ 
+
+/**
+ * @file	file.h
+ * @brief	The main header for the user library for working with the file system
  */
-/** @file
+
+#ifndef _FILE_H
+#define _FILE_H
+
+#include "../../../fs/const.h"
+#include "../../../fs/type.h"
+#include "../../../fs/stat.h"
+#include "../../../fs/dir.h"
+#include "../../../share/message.h"
+
+#define F_OK			0x00
+#define F_FILE_NOT_FOUND	0x01
+#define F_FILE_NOT_OPEN		0x02
+#define F_READ_ERROR		0x10
+#define F_READ_OVERFLOW		0x11
+#define F_SYSTEM_ERROR		0xf0
+#define F_IPC_FAILURE		0xf1
+#define F_MMAP_FAILURE		0xf2
+#define F_COMM_FAILURE		0xf3
+
+#define F_ERRTYPE_MASK		0xf0
+
+#define F_MODE_READ		0x01
+#define F_MODE_WRITE		0x02
+#define F_MODE_READ_WRITE	F_MODE_READ | F_MODE_WRITE
+#define F_MODE_APPEND		0x04
+
+/**
+ *
  */
+typedef struct {
+	char name[30];
+	unsigned short inode_num;
+} dir_item_t;
 
-#ifndef KERN_ERRNO_H_
-#define KERN_ERRNO_H_
+/**
+ *
+ */
+typedef struct {
+	size_t size;
+	dir_item_t base_info;
+	void *share;
+	message_params_t *params;
+	unsigned int handle;
+	stat_t stat;
+} file_t;
 
-/* 1-255 are kernel error codes, 256-512 are user error codes */
+static int f_err;
 
-#define EOK			0	/* No error */
-#define ENOENT		-1	/* No such entry */
-#define ENOMEM		-2	/* Not enough memory */
-#define ELIMIT		-3	/* Limit exceeded */
-#define EREFUSED	-4	/* Connection refused */
-#define EFORWARD	-5	/* Forward error */
-#define EPERM		-6	/* Permission denied */
-#define EHANGUP		-7	/* Answerbox closed connection, call sys_ipc_hangup
-				 * to close the connection. Used by answerbox
-				 * to close the connection.  */
-#define EEXISTS		-8	/* Entry already exists */
-#define EBADMEM		-9	/* Bad memory pointer */
-#define ENOTSUP		-10	/* Not supported */
-#define EADDRNOTAVAIL	-11	/* Address not available. */
-#define ETIMEOUT        -12     /* Timeout expired */
-#define EINVAL          -13     /* Invalid value */
-#define EBUSY           -14     /* Resource is busy */
+dir_item_t *ls(unsigned int *length);
+int chdir(char *new_dir);
+
+file_t *fopen(char *name, int mode);
+int fstat(file_t *file);
+int fread(file_t *file, void *buffer, unsigned int size);
+int fseek(file_t * file, int offset, int whence);
+int fclose(file_t *file);
 
 #endif
 
-/** @}
- */
+/**
+ *@}
+ /

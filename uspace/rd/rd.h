@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2007 Michal Konopa
+ * Copyright (c) 2007 Martin Jelen
+ * Copyright (c) 2007 Peter Majer
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +28,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup rd
  * @{
  */
-/** @file
+
+/**
+ * @file	rd.h
+ * @brief	Initial RAM disk for HelenOS - header
  */
 
-#ifndef KERN_ERRNO_H_
-#define KERN_ERRNO_H_
+/* Basic constants. */
 
-/* 1-255 are kernel error codes, 256-512 are user error codes */
+#ifndef _RD_H
+#define _RD_H
 
-#define EOK			0	/* No error */
-#define ENOENT		-1	/* No such entry */
-#define ENOMEM		-2	/* Not enough memory */
-#define ELIMIT		-3	/* Limit exceeded */
-#define EREFUSED	-4	/* Connection refused */
-#define EFORWARD	-5	/* Forward error */
-#define EPERM		-6	/* Permission denied */
-#define EHANGUP		-7	/* Answerbox closed connection, call sys_ipc_hangup
-				 * to close the connection. Used by answerbox
-				 * to close the connection.  */
-#define EEXISTS		-8	/* Entry already exists */
-#define EBADMEM		-9	/* Bad memory pointer */
-#define ENOTSUP		-10	/* Not supported */
-#define EADDRNOTAVAIL	-11	/* Address not available. */
-#define ETIMEOUT        -12     /* Timeout expired */
-#define EINVAL          -13     /* Invalid value */
-#define EBUSY           -14     /* Resource is busy */
+#define BLOCK_SIZE	1024  /**< Working block size */
 
-#endif
+#define RD_OFFSET	100 /**< IPC Message offset */
 
-/** @}
- */
+#define	RD_BASE		(FIRST_USER_METHOD + RD_OFFSET)  /**< IPC Index of the first RD message */
+#define	RD_READ_BLOCK	(RD_BASE + 1) /**< IPC Index of the RD_READ_BLOCK message */
+
+#endif /* _RD_H */

@@ -40,7 +40,7 @@
 /**
  * RAM disk version
  */
-#define	RD_VERSION	0
+#define	RD_VERSION	1
 
 /**
  * RAM disk magic number
