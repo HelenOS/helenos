@@ -67,6 +67,7 @@
 #include <main/uinit.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <console/klog.h>
 
 
 /** Thread states */
@@ -77,7 +78,7 @@ char *thread_states[] = {
 	"Ready",
 	"Entering",
 	"Exiting",
-	"Undead"
+	"JoinMe"
 }; 
 
 /** Lock protecting the threads_btree B+tree.
@@ -328,7 +329,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	t->in_copy_to_uspace = false;
 
 	t->interrupted = false;	
-	t->join_type = None;
 	t->detached = false;
 	waitq_initialize(&t->join_wq);
 	
@@ -341,23 +341,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 
 	/* might depend on previous initialization */
 	thread_create_arch(t);	
-
-	ipl = interrupts_disable();	 
-	spinlock_lock(&task->lock);
-	if (!task->accept_new_threads) {
-		spinlock_unlock(&task->lock);
-		slab_free(thread_slab, t);
-		interrupts_restore(ipl);
-		return NULL;
-	} else {
-		/*
-		 * Bump the reference count so that this task cannot be
-		 * destroyed while the new thread is being attached to it.
-		 */
-		task->refcount++;
-	}
-	spinlock_unlock(&task->lock);
-	interrupts_restore(ipl);
 
 	if (!(flags & THREAD_FLAG_NOATTACH))
 		thread_attach(t, task);
@@ -373,9 +356,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
  */
 void thread_destroy(thread_t *t)
 {
-	bool destroy_task = false;
-
-	ASSERT(t->state == Exiting || t->state == Undead);
+	ASSERT(t->state == Exiting || t->state == JoinMe);
 	ASSERT(t->task);
 	ASSERT(t->cpu);
 
@@ -395,13 +376,13 @@ void thread_destroy(thread_t *t)
 	 */
 	spinlock_lock(&t->task->lock);
 	list_remove(&t->th_link);
-	if (--t->task->refcount == 0) {
-		t->task->accept_new_threads = false;
-		destroy_task = true;
-	}
 	spinlock_unlock(&t->task->lock);	
-	
-	if (destroy_task)
+
+	/*
+	 * t is guaranteed to be the very last thread of its task.
+	 * It is safe to destroy the task.
+	 */
+	if (atomic_predec(&t->task->refcount) == 0)
 		task_destroy(t->task);
 	
 	/*
@@ -431,12 +412,11 @@ void thread_attach(thread_t *t, task_t *task)
 	/*
 	 * Attach to the current task.
 	 */
-	ipl = interrupts_disable();	 
+	ipl = interrupts_disable();
 	spinlock_lock(&task->lock);
-	ASSERT(task->refcount);
+	atomic_inc(&task->refcount);
+	atomic_inc(&task->lifecount);
 	list_append(&t->th_link, &task->th_head);
-	if (task->refcount == 1)
-		task->main_thread = t;
 	spinlock_unlock(&task->lock);
 
 	/*
@@ -459,6 +439,21 @@ void thread_exit(void)
 {
 	ipl_t ipl;
 
+	if (atomic_predec(&TASK->lifecount) == 0) {
+		/*
+		 * We are the last thread in the task that still has not exited.
+		 * With the exception of the moment the task was created, new
+		 * threads can only be created by threads of the same task.
+		 * We are safe to perform cleanup.
+		 */
+		if (THREAD->flags & THREAD_FLAG_USPACE) {
+			ipc_cleanup();
+		        futex_cleanup();
+			klog_printf("Cleanup of task %llu completed.",
+			    TASK->taskid);
+		}
+	}
+
 restart:
 	ipl = interrupts_disable();
 	spinlock_lock(&THREAD->lock);
@@ -468,6 +463,7 @@ restart:
 		interrupts_restore(ipl);
 		goto restart;
 	}
+	
 	THREAD->state = Exiting;
 	spinlock_unlock(&THREAD->lock);
 	scheduler();
@@ -524,7 +520,7 @@ int thread_join_timeout(thread_t *t, uint32_t usec, int flags)
 
 /** Detach thread.
  *
- * Mark the thread as detached, if the thread is already in the Undead state,
+ * Mark the thread as detached, if the thread is already in the JoinMe state,
  * deallocate its resources.
  *
  * @param t Thread to be detached.
@@ -540,7 +536,7 @@ void thread_detach(thread_t *t)
 	ipl = interrupts_disable();
 	spinlock_lock(&t->lock);
 	ASSERT(!t->detached);
-	if (t->state == Undead) {
+	if (t->state == JoinMe) {
 		thread_destroy(t);	/* unlocks &t->lock */
 		interrupts_restore(ipl);
 		return;
@@ -702,8 +698,6 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 			rc = copy_to_uspace(uspace_thread_id, &t->tid,
 			    sizeof(t->tid));
 			if (rc != 0) {
-				ipl_t ipl;
-
 				/*
 				 * We have encountered a failure, but the thread
 				 * has already been created. We need to undo its
@@ -711,25 +705,12 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 */
 
 				/*
-				 * The new thread structure is initialized,
-				 * but is still not visible to the system.
+				 * The new thread structure is initialized, but
+				 * is still not visible to the system.
 				 * We can safely deallocate it.
 				 */
 				slab_free(thread_slab, t);
 			 	free(kernel_uarg);
-
-				/*
-				 * Now we need to decrement the task reference
-				 * counter. Because we are running within the
-				 * same task, thread t is not the last thread
-				 * in the task, so it is safe to merely
-				 * decrement the counter.
-				 */
-				ipl = interrupts_disable();
-				spinlock_lock(&TASK->lock);
-				TASK->refcount--;
-				spinlock_unlock(&TASK->lock);
-				interrupts_restore(ipl);
 
 				return (unative_t) rc;
 			 }

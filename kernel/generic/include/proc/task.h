@@ -64,8 +64,6 @@ typedef struct task {
 	SPINLOCK_DECLARE(lock);
 	
 	char *name;
-	/** Pointer to the main thread. */
-	struct thread *main_thread;
 	/** List of threads contained in this task. */
 	link_t th_head;
 	/** Address space. */
@@ -75,10 +73,10 @@ typedef struct task {
 	/** Task security context. */
 	context_id_t context;	
 
-	/** If this is true, new threads can become part of the task. */
-	bool accept_new_threads;
 	/** Number of references (i.e. threads). */
-	count_t refcount;	
+	atomic_t refcount;
+	/** Number of threads that haven't exited yet. */
+	atomic_t lifecount;
 
 	/** Task capabilities. */
 	cap_t capabilities;	
@@ -121,7 +119,6 @@ extern uint64_t task_get_accounting(task_t *t);
 
 extern void cap_set(task_t *t, cap_t caps);
 extern cap_t cap_get(task_t *t);
-
 
 #ifndef task_create_arch
 extern void task_create_arch(task_t *t);

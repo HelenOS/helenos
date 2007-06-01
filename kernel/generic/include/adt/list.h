@@ -180,7 +180,7 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
-#define list_get_instance(link,type,member) \
+#define list_get_instance(link, type, member) \
 	((type *)(((uint8_t *)(link)) - ((uint8_t *)&(((type *)NULL)->member))))
 
 extern bool list_member(const link_t *link, const link_t *head);

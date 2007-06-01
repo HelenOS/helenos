@@ -45,6 +45,7 @@
 #include <proc/thread.h>
 #include <userspace.h>
 #include <mm/slab.h>
+#include <arch.h>
 
 /** Thread used to bring up userspace thread.
  *
@@ -54,12 +55,21 @@
 void uinit(void *arg)
 {
 	uspace_arg_t uarg;
+
+	/*
+	 * So far, we don't have a use for joining userspace threads so we
+	 * immediately detach each uinit thread. If joining of userspace threads
+	 * is required, some userspace API based on the kernel mechanism will
+	 * have to be implemented. Moreover, garbage collecting of threads that
+	 * didn't detach themselves and nobody else joined them will have to be
+	 * deployed for the event of forceful task termination.
+	 */
+	thread_detach(THREAD);
 	
 	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
 	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
 	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
+	uarg.uspace_thread_function = NULL; uarg.uspace_thread_arg = NULL;
 
 	free((uspace_arg_t *) arg);
 	userspace(&uarg);

@@ -405,7 +405,7 @@ repeat:
 					 * Avoid deadlock.
 					 */
 					spinlock_unlock(&THREAD->lock);
-					delay(10);
+					delay(HZ);
 					spinlock_lock(&THREAD->lock);
 					DEADLOCK_PROBE(p_joinwq,
 					    DEADLOCK_THRESHOLD);
@@ -415,7 +415,7 @@ repeat:
 				    WAKEUP_FIRST);
 				spinlock_unlock(&THREAD->join_wq.lock);
 				
-				THREAD->state = Undead;
+				THREAD->state = JoinMe;
 				spinlock_unlock(&THREAD->lock);
 			}
 			break;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2001-2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <time/timeout.h>
 #include <cpu.h>
 #include <synch/rwlock.h>
+#include <synch/spinlock.h>
 #include <adt/btree.h>
 #include <mm/slab.h>
 #include <arch/cpu.h>
@@ -80,16 +81,9 @@ typedef enum {
 	Entering,
 	/** After a thread calls thread_exit(), it is put into Exiting state. */
 	Exiting,
-	/** Threads that were not detached but exited are in the Undead state. */
-	Undead
+	/** Threads that were not detached but exited are in the JoinMe state. */
+	JoinMe
 } state_t;
-
-/** Join types. */
-typedef enum {
-	None,
-	TaskClnp,	/**< The thread will be joined by ktaskclnp thread. */
-	TaskGC		/**< The thread will be joined by ktaskgc thread. */
-} thread_join_type_t;
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {
@@ -152,12 +146,12 @@ typedef struct thread {
 	 */
 	bool interrupted;			
 	
-	/** Who joinins the thread. */
-	thread_join_type_t join_type;
 	/** If true, thread_join_timeout() cannot be used on this thread. */
 	bool detached;
 	/** Waitq for thread_join_timeout(). */
 	waitq_t join_wq;
+	/** Link used in the joiner_head list. */
+	link_t joiner_link;
 
 	fpu_context_t *saved_fpu_context;
 	int fpu_context_exists;
