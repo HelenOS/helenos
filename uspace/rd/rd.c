@@ -47,13 +47,8 @@
 #include <bool.h>
 #include <errno.h>
 #include <async.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <align.h>
 #include <async.h>
-#include <ddi.h>
-#include <libarch/ddi.h>
-#include <stdio.h> 
 #include "rd.h"
 
 static void *rd_addr;
