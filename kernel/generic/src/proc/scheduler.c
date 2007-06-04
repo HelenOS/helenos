@@ -415,7 +415,7 @@ repeat:
 				    WAKEUP_FIRST);
 				spinlock_unlock(&THREAD->join_wq.lock);
 				
-				THREAD->state = JoinMe;
+				THREAD->state = Lingering;
 				spinlock_unlock(&THREAD->lock);
 			}
 			break;

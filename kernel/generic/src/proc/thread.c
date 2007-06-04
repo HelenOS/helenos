@@ -78,7 +78,7 @@ char *thread_states[] = {
 	"Ready",
 	"Entering",
 	"Exiting",
-	"JoinMe"
+	"Lingering"
 }; 
 
 /** Lock protecting the threads_btree B+tree.
@@ -356,7 +356,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
  */
 void thread_destroy(thread_t *t)
 {
-	ASSERT(t->state == Exiting || t->state == JoinMe);
+	ASSERT(t->state == Exiting || t->state == Lingering);
 	ASSERT(t->task);
 	ASSERT(t->cpu);
 
@@ -520,8 +520,8 @@ int thread_join_timeout(thread_t *t, uint32_t usec, int flags)
 
 /** Detach thread.
  *
- * Mark the thread as detached, if the thread is already in the JoinMe state,
- * deallocate its resources.
+ * Mark the thread as detached, if the thread is already in the Lingering
+ * state, deallocate its resources.
  *
  * @param t Thread to be detached.
  */
@@ -536,7 +536,7 @@ void thread_detach(thread_t *t)
 	ipl = interrupts_disable();
 	spinlock_lock(&t->lock);
 	ASSERT(!t->detached);
-	if (t->state == JoinMe) {
+	if (t->state == Lingering) {
 		thread_destroy(t);	/* unlocks &t->lock */
 		interrupts_restore(ipl);
 		return;

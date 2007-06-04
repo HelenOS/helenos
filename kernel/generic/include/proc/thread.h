@@ -81,8 +81,8 @@ typedef enum {
 	Entering,
 	/** After a thread calls thread_exit(), it is put into Exiting state. */
 	Exiting,
-	/** Threads that were not detached but exited are in the JoinMe state. */
-	JoinMe
+	/** Threads that were not detached but exited are Lingering. */
+	Lingering
 } state_t;
 
 /** Thread structure. There is one per thread. */
