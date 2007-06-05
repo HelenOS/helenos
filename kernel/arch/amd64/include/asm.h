@@ -58,12 +58,12 @@ static inline uintptr_t get_stack_base(void)
 static inline void cpu_sleep(void)
 {
 	asm volatile ("hlt\n");
-};
+}
 
 static inline void cpu_halt(void)
 {
 	asm volatile ("hlt\n");
-};
+}
 
 
 /** Byte from port
@@ -73,7 +73,13 @@ static inline void cpu_halt(void)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) ); return val; }
+static inline uint8_t inb(uint16_t port)
+{
+	uint8_t val;
+
+	asm volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port));
+	return val;
+}
 
 /** Byte to port
  *
@@ -82,10 +88,16 @@ static inline uint8_t inb(uint16_t port) { uint8_t val; __asm__ volatile ("inb %
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outb(uint16_t port, uint8_t val) { __asm__ volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) ); }
+static inline void outb(uint16_t port, uint8_t val)
+{
+	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port));
+}
 
 /** Swap Hidden part of GS register with visible one */
-static inline void swapgs(void) { __asm__ volatile("swapgs"); }
+static inline void swapgs(void)
+{
+	asm volatile("swapgs");
+}
 
 /** Enable interrupts.
  *

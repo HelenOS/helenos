@@ -38,7 +38,11 @@
 
 DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
 CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
-#SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all -D__FUNCTION__=__func__
+
+#SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all \
+#-D__FUNCTION__=__func__ -features=extensions \
+#-erroff=E_ZERO_SIZED_STRUCT_UNION
+
 LFLAGS = -M
 AFLAGS =
 
