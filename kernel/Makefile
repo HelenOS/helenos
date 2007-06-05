@@ -129,7 +129,7 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
-	AS_CC = gcc
+	GCC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -140,7 +140,7 @@ endif
 
 ifeq ($(COMPILER),icc_native)
 	CC = icc
-	AS_CC = gcc
+	GCC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -151,7 +151,7 @@ endif
 
 ifeq ($(COMPILER),suncc_native)
 	CC = suncc
-	AS_CC = gcc
+	GCC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
@@ -162,7 +162,7 @@ endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
-	AS_CC = $(CC)
+	GCC = $(CC)
 	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
 	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
@@ -321,7 +321,7 @@ depend: archlinks
 	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile generic/src/debug/empty_map.o
@@ -348,7 +348,7 @@ disasm: kernel.raw
 	$(OBJDUMP) -d kernel.raw > kernel.disasm
 
 %.o: %.S
-	$(AS_CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
