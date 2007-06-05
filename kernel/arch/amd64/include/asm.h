@@ -260,24 +260,24 @@ static inline void tr_load(uint16_t sel)
 	__asm__ volatile ("movq %0, %%" #reg : : "r" (regn)); \
     }
 
-GEN_READ_REG(cr0);
-GEN_READ_REG(cr2);
-GEN_READ_REG(cr3);
-GEN_WRITE_REG(cr3);
+GEN_READ_REG(cr0)
+GEN_READ_REG(cr2)
+GEN_READ_REG(cr3)
+GEN_WRITE_REG(cr3)
 
-GEN_READ_REG(dr0);
-GEN_READ_REG(dr1);
-GEN_READ_REG(dr2);
-GEN_READ_REG(dr3);
-GEN_READ_REG(dr6);
-GEN_READ_REG(dr7);
+GEN_READ_REG(dr0)
+GEN_READ_REG(dr1)
+GEN_READ_REG(dr2)
+GEN_READ_REG(dr3)
+GEN_READ_REG(dr6)
+GEN_READ_REG(dr7)
 
-GEN_WRITE_REG(dr0);
-GEN_WRITE_REG(dr1);
-GEN_WRITE_REG(dr2);
-GEN_WRITE_REG(dr3);
-GEN_WRITE_REG(dr6);
-GEN_WRITE_REG(dr7);
+GEN_WRITE_REG(dr0)
+GEN_WRITE_REG(dr1)
+GEN_WRITE_REG(dr2)
+GEN_WRITE_REG(dr3)
+GEN_WRITE_REG(dr6)
+GEN_WRITE_REG(dr7)
 
 extern size_t interrupt_handler_size;
 extern void interrupt_handlers(void);
