@@ -36,7 +36,7 @@ BFD = elf32-little
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = /usr/local/arm
 
-CFLAGS += 
+GCC_CFLAGS += 
 
 DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE)
 

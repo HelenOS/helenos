@@ -36,12 +36,16 @@
 ## Common compiler flags
 #
 
-DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" -DKERNEL
-CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" \
+	-DKERNEL
 
-#SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all \
-#-D__FUNCTION__=__func__ -features=extensions \
-#-erroff=E_ZERO_SIZED_STRUCT_UNION
+GCC_CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes \
+	-Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+
+SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all \
+	-D__FUNCTION__=__func__ -features=extensions \
+	-erroff=E_ZERO_SIZED_STRUCT_UNION
+
 
 LFLAGS = -M
 AFLAGS =
@@ -131,6 +135,7 @@ ifeq ($(COMPILER),gcc_native)
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
+	CFLAGS = $(GCC_CFLAGS)
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -141,6 +146,7 @@ ifeq ($(COMPILER),icc_native)
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
+	CFLAGS = $(GCC_CFLAGS)
 endif
 
 ifeq ($(COMPILER),suncc_native)
@@ -151,6 +157,7 @@ ifeq ($(COMPILER),suncc_native)
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
+	CFLAGS = $(SUNCC_CFLAGS)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
@@ -161,6 +168,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
 	LIBDIR = $(TOOLCHAIN_DIR)/lib
+	CFLAGS = $(GCC_CFLAGS)
 endif
 
 ## Generic kernel sources

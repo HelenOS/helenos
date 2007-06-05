@@ -35,7 +35,7 @@ BFD = binary
 TARGET = ppc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc
 
-CFLAGS += -mcpu=powerpc -msoft-float -m32
+GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
 LFLAGS += -no-check-sections -N
 

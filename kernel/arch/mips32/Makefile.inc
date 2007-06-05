@@ -37,7 +37,7 @@ KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x81000000
 INIT_SIZE = 262144
 
-CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
+GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
 DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE) -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
 
@@ -66,7 +66,7 @@ ifeq ($(MACHINE),indy)
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
 	KERNEL_LOAD_ADDRESS = 0x88002000
-	CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -march=r4600
+	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -march=r4600
 	INIT_ADDRESS = 0
 	INIT_SIZE = 0
 endif
@@ -80,7 +80,7 @@ ifeq ($(MACHINE),bgxemul)
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = /usr/local/mips/bin
-	CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
+	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
 	INIT_ADDRESS = 0x81800000
 endif
 ifeq ($(MACHINE),simics)
@@ -89,13 +89,13 @@ ifeq ($(MACHINE),simics)
 	
 	BFD_NAME = elf32-tradlittlemips
 	BFD = elf32-tradlittlemips
-	CFLAGS += -mhard-float -mips3 -DTLBCNT=16
+	GCC_CFLAGS += -mhard-float -mips3 -DTLBCNT=16
 	TLBCNT = 16
 endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
-	CFLAGS += -mhard-float -mips3
+	GCC_CFLAGS += -mhard-float -mips3
 endif
 
 ## Compile with support for software integer division.
