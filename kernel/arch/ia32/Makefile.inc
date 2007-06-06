@@ -36,7 +36,7 @@ TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/i686
 
 DEFS += -DMACHINE=$(MACHINE) -D__32_BITS__
-SUNCC_CFLAGS = -m32
+SUNCC_CFLAGS += -m32
 
 ## Accepted CPUs
 #
