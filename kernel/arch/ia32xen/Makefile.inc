@@ -37,33 +37,50 @@ TOOLCHAIN_DIR = /usr/local/i686
 
 DEFS += -DMACHINE=$(MACHINE) -D__32_BITS__
 
-SUNCC_CFLAGS += -m32
+CMN1 = -m32
+GCC_CFLAGS += $(CMN1)
+ICC_CFLAGS += $(CMN1)
+SUNCC_CFLAGS += $(CMN1)
 
 ## Accepted CPUs
 #
 
 ifeq ($(MACHINE),athlon-xp)
-	GCC_CFLAGS += -march=athlon-xp -mmmx -msse -m3dnow
+	CMN2 = -march=athlon-xp -mmmx -msse -m3dnow
+	GCC_CFLAGS += $(CMN2)
+	ICC_CFLAGS += $(CMN2)
+	SUNCC_CFLAGS += -xarch=ssea
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_SMP = n
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),athlon-mp)
-	GCC_CFLAGS += -march=athlon-mp -mmmx -msse -m3dnow
+	CMN2 = -march=athlon-mp -mmmx -msse -m3dnow
+	GCC_CFLAGS += $(CMN2)
+	ICC_CFLAGS += $(CMN2)
+	SUNCC_CFLAGS += -xarch=ssea
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),pentium3)
-	GCC_CFLAGS += -march=pentium3 -mmmx -msse
+	CMN2 = -march=pentium3 -mmmx -msse
+	GCC_CFLAGS += $(CMN2)
+	ICC_CFLAGS += $(CMN2)
+	SUNCC_CFLAGS += -xarch=sse
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),prescott)
-	GCC_CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+	CMN2 = -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+	GCC_CFLAGS += $(CMN2)
+	ICC_CFLAGS += $(CMN2)
+	SUNCC_CFLAGS += -xarch=sse3
 	DEFS += -DCONFIG_FENCES_P4
 endif
 ifeq ($(MACHINE),pentium4)
 	GCC_CFLAGS += -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
+	ICC_CFLAGS += -march=pentium4
+	SUNCC_CFLAGS += -xarch=sse2
 	DEFS += -DCONFIG_FENCES_P4
 endif
 

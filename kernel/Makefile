@@ -33,19 +33,28 @@
 -include ../version
 -include Makefile.config
 
+INCLUDES = generic/include
+OPTIMIZATION = 3
+
 ## Common compiler flags
 #
 
 DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" \
 	-DKERNEL
 
-GCC_CFLAGS = -fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes \
-	-Werror -O3 -nostdlib -nostdinc -Igeneric/include/
+GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
+	-fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror \
+	-nostdlib -nostdinc
 
-SUNCC_CFLAGS = -xO3 -Igeneric/include/ -xnolib -xc99=all \
+ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
+	-fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror \
+	-nostdlib -nostdinc \
+	-wd170
+
+SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
+	-xnolib -xc99=all -xregs=no%float \
 	-D__FUNCTION__=__func__ -features=extensions \
 	-erroff=E_ZERO_SIZED_STRUCT_UNION
-
 
 LFLAGS = -M
 AFLAGS =
@@ -146,7 +155,7 @@ ifeq ($(COMPILER),icc_native)
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
-	CFLAGS = $(GCC_CFLAGS)
+	CFLAGS = $(ICC_CFLAGS)
 endif
 
 ifeq ($(COMPILER),suncc_native)

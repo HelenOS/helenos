@@ -35,8 +35,9 @@ BFD = binary
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/sparc64
 
-GCC_CFLAGS += -mcpu=ultrasparc -m64
-SUNCC_CFLAGS +=
+GCC_CFLAGS += -m64 -mcpu=ultrasparc 
+SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl
+
 LFLAGS += -no-check-sections -N
 
 DEFS += -D__64_BITS__

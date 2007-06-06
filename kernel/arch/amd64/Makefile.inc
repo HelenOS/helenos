@@ -35,7 +35,9 @@ BFD = binary
 TARGET = amd64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/amd64
 
-GCC_CFLAGS += -fno-unwind-tables -m64 -mcmodel=kernel -mno-red-zone
+CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables
+GCC_CFLAGS += $(CMN1)
+ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel
 
 DEFS += -DMACHINE=$(MACHINE) -D__64_BITS__
@@ -44,7 +46,10 @@ DEFS += -DMACHINE=$(MACHINE) -D__64_BITS__
 #
 
 ifeq ($(MACHINE),opteron)
-	GCC_CFLAGS += -march=opteron	
+	CMN2 := -march=opteron
+	GCC_CFLAGS += $(CMN2)
+	ICC_CFLAGS += $(CMN2)
+	SUNCC_CFLAGS += -xtarget=opteron
 	DEFS += -DFENCES=p4
 endif
 

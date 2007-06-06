@@ -38,12 +38,14 @@ TOOLCHAIN_DIR = /usr/local/ia64
 INIT0_ADDRESS = 0xe000000000400000
 INIT0_SIZE = 0x100000
 
-GCC_CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
+CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
+GCC_CFLAGS += $(CMN1)
+ICC_CFLAGS += $(CMN1)
+
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
 DEFS += -D__64_BITS__ -DINIT0_ADDRESS=$(INIT0_ADDRESS) -DINIT0_SIZE=$(INIT0_SIZE) -D$(MACHINE)
-
 
 
 ## Compile with page hash table support.
