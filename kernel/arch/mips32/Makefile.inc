@@ -73,7 +73,7 @@ endif
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
-	CFLAGS += -DFB_INVERT_ENDIAN -DARCH_HAS_FPU -mips3
+	GCC_CFLAGS += -DFB_INVERT_ENDIAN -DARCH_HAS_FPU -mips3
 endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-bigmips
