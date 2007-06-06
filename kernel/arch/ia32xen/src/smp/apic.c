@@ -499,7 +499,7 @@ void io_apic_write(uint8_t address, uint32_t x)
  * @param v Interrupt vector to trigger.
  * @param flags Flags.
  */
-void io_apic_change_ioredtbl(int pin, int dest, uint8_t v, int flags)
+void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags)
 {
 	io_redirection_reg_t reg;
 	int dlvr = DELMOD_FIXED;
