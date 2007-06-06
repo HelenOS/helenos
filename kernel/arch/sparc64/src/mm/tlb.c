@@ -225,7 +225,7 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
-			    __FUNCTION__);
+			    __func__);
 		}
 	}
 }
@@ -253,7 +253,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		if (!tag.vpn) {
 			/* NULL access in kernel */
 			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    __FUNCTION__);
+			    __func__);
 		}
 		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected "
 		    "kernel page fault.");
@@ -280,7 +280,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    __FUNCTION__);
+			    __func__);
 		}
 	}
 }
@@ -326,7 +326,7 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
 			do_fast_data_access_protection_fault(istate, tag,
-			    __FUNCTION__);
+			    __func__);
 		}
 	}
 }

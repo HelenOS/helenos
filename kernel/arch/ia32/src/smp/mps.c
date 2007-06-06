@@ -192,7 +192,7 @@ fs_found:
 
 	if (fs->config_type == 0 && fs->configuration_table) {
 		if (fs->mpfib2 >> 7) {
-			printf("%s: PIC mode not supported\n", __FUNCTION__);
+			printf("%s: PIC mode not supported\n", __func__);
 			return;
 		}
 
@@ -211,15 +211,15 @@ int configure_via_ct(void)
 	unsigned int i, cnt;
 		
 	if (ct->signature != CT_SIGNATURE) {
-		printf("%s: bad ct->signature\n", __FUNCTION__);
+		printf("%s: bad ct->signature\n", __func__);
 		return 1;
 	}
 	if (!mps_ct_check()) {
-		printf("%s: bad ct checksum\n", __FUNCTION__);
+		printf("%s: bad ct checksum\n", __func__);
 		return 1;
 	}
 	if (ct->oem_table) {
-		printf("%s: ct->oem_table not supported\n", __FUNCTION__);
+		printf("%s: ct->oem_table not supported\n", __func__);
 		return 1;
 	}
 	
@@ -274,7 +274,7 @@ int configure_via_ct(void)
 				 * Something is wrong. Fallback to UP mode.
 				 */
 				 
-				printf("%s: ct badness\n", __FUNCTION__);
+				printf("%s: ct badness\n", __func__);
 				return 1;
 		}
 	}
@@ -291,7 +291,7 @@ int configure_via_default(uint8_t n __attribute__((unused)))
 	/*
 	 * Not yet implemented.
 	 */
-	printf("%s: not supported\n", __FUNCTION__);
+	printf("%s: not supported\n", __func__);
 	return 1;
 }
 

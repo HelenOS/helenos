@@ -411,7 +411,7 @@ void kconsole(void *prompt)
 	char *cmdline;
 
 	if (!stdin) {
-		printf("%s: no stdin\n", __FUNCTION__);
+		printf("%s: no stdin\n", __func__);
 		return;
 	}
 	

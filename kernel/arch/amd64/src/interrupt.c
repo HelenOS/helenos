@@ -69,7 +69,7 @@ void decode_istate(int n, istate_t *istate)
 	if (!(symbol=get_symtab_entry(istate->rip)))
 		symbol = "";
 
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n, __FUNCTION__);
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n, __func__);
 	printf("%%rip: %#llx (%s)\n",istate->rip, symbol);
 	printf("ERROR_WORD=%#llx\n", istate->error_word);
 	printf("%%rcs=%#llx, flags=%#llx, %%cr0=%#llx\n", istate->cs, istate->rflags, read_cr0());

@@ -52,8 +52,7 @@ ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
 	-wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
-	-xnolib -xc99=all -xregs=no%float \
-	-D__FUNCTION__=__func__ -features=extensions \
+	-xnolib -xc99=all -features=extensions \
 	-erroff=E_ZERO_SIZED_STRUCT_UNION
 
 LFLAGS = -M

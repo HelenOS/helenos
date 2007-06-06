@@ -112,7 +112,7 @@ extern int printf(const char *, ...);
 		(pname) = 0;						\
 		printf("Deadlock probe %s: exceeded threshold %d\n",	\
 		    "cpu%d: function=%s, line=%d\n",			\
-		    #pname, (value), CPU->id, __FUNCTION__, __LINE__);	\
+		    #pname, (value), CPU->id, __func__, __LINE__);	\
 	}
 #else
 #define DEADLOCK_PROBE_INIT(pname)
