@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,14 @@
 
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = /usr/local/arm/bin
-CFLAGS += 
+CFLAGS += -ffixed-r9 -mtp=soft 
 LFLAGS += -N ../softint/libsoftint.a
 AFLAGS += 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/psthread.S \
 		arch/$(ARCH)/src/thread.c \
-		arch/$(ARCH)/src/dummy.S
+		arch/$(ARCH)/src/eabi.S
 
 BFD_NAME = elf32-little
 BFD_ARCH = arm

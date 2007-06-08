@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2007 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,15 @@
  * @{
  */
 /** @file
+ *  @brief Paging related declarations.
  */
 
 #ifndef KERN_arm32_PAGE_H_
 #define KERN_arm32_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <mm/mm.h>
+#include <arch/exception.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
@@ -52,61 +55,260 @@
 
 #ifdef KERNEL
 
-#define PTL0_ENTRIES_ARCH	0	/* TODO */
-#define PTL1_ENTRIES_ARCH	0	/* TODO */
-#define PTL2_ENTRIES_ARCH	0	/* TODO */
-#define PTL3_ENTRIES_ARCH	0	/* TODO */
+#define PTL0_ENTRIES_ARCH 	(2 << 12)	/* 4096 */
+#define PTL1_ENTRIES_ARCH 	0
+#define PTL2_ENTRIES_ARCH 	0
 
-#define PTL0_INDEX_ARCH(vaddr)  0	/* TODO */ 
-#define PTL1_INDEX_ARCH(vaddr)  0	/* TODO */
-#define PTL2_INDEX_ARCH(vaddr)  0	/* TODO */
-#define PTL3_INDEX_ARCH(vaddr)  0	/* TODO */
+/* coarse page tables used (256 * 4 = 1KB per page) */
+#define PTL3_ENTRIES_ARCH 	(2 << 8)	/* 256 */
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)
+#define PTL0_SIZE_ARCH 		FOUR_FRAMES
+#define PTL1_SIZE_ARCH 		0
+#define PTL2_SIZE_ARCH 		0
+#define PTL3_SIZE_ARCH 		ONE_FRAME
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		0	/* TODO */
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		0	/* TODO */
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		0	/* TODO */
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		0	/* TODO */
+#define PTL0_INDEX_ARCH(vaddr) 	(((vaddr) >> 20) & 0xfff)
+#define PTL1_INDEX_ARCH(vaddr) 	0
+#define PTL2_INDEX_ARCH(vaddr) 	0
+#define PTL3_INDEX_ARCH(vaddr) 	(((vaddr) >> 12) & 0x0ff)
 
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	/* TODO */
-#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)	/* TODO */
-#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)	/* TODO */
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	/* TODO */
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
+	((pte_t *) ((((pte_level0_t *)(ptl0))[(i)]).coarse_table_addr << 10))
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
+	(ptl1)
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i) \
+	(ptl2)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i) \
+	((uintptr_t) ((((pte_level1_t *)(ptl3))[(i)]).frame_base_addr << 12))
 
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		0	/* TODO */
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		0	/* TODO */
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		0	/* TODO */
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		0	/* TODO */
+#define SET_PTL0_ADDRESS_ARCH(ptl0) \
+	(set_ptl0_addr((pte_level0_t *) (ptl0)))
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
+	(((pte_level0_t *) (ptl0))[(i)].coarse_table_addr = (a) >> 10)
+#define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
+#define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
+	(((pte_level1_t *) (ptl3))[(i)].frame_base_addr = (a) >> 12)
 
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		/* TODO */
-#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)		/* TODO */
-#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)		/* TODO */
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	/* TODO */
+#define GET_PTL1_FLAGS_ARCH(ptl0, i) \
+	get_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i))
+#define GET_PTL2_FLAGS_ARCH(ptl1, i) \
+	PAGE_PRESENT
+#define GET_PTL3_FLAGS_ARCH(ptl2, i) \
+	PAGE_PRESENT
+#define GET_FRAME_FLAGS_ARCH(ptl3, i) \
+	get_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i))
 
-#define PTE_VALID_ARCH(pte)			0	/* TODO */
-#define PTE_PRESENT_ARCH(pte)			0	/* TODO */
-#define PTE_GET_FRAME_ARCH(pte)			0	/* TODO */
-#define PTE_WRITABLE_ARCH(pte)			0	/* TODO */
-#define PTE_EXECUTABLE_ARCH(pte)		0	/* TODO */
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
+	set_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i), (x))
+#define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
+#define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
+	set_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i), (x))
+
+#define PTE_VALID_ARCH(pte) \
+	(*((uint32_t *) (pte)) != 0)
+#define PTE_PRESENT_ARCH(pte) \
+	(((pte_level0_t *) (pte))->descriptor_type != 0)
+
+/* pte should point into ptl3 */
+#define PTE_GET_FRAME_ARCH(pte) \
+	(((pte_level1_t *) (pte))->frame_base_addr << FRAME_WIDTH)
+
+/* pte should point into ptl3 */
+#define PTE_WRITABLE_ARCH(pte) \
+	(((pte_level1_t *) (pte))->access_permission_0 == \
+	    PTE_AP_USER_RW_KERNEL_RW)
+
+#define PTE_EXECUTABLE_ARCH(pte) \
+	1
 
 #ifndef __ASM__
 
-#include <mm/mm.h>
-#include <arch/exception.h>
+/** Level 0 page table entry. */
+typedef struct {
+	/* 0b01 for coarse tables, see below for details */
+	unsigned descriptor_type     : 2;
+	unsigned impl_specific       : 3;
+	unsigned domain              : 4;
+	unsigned should_be_zero      : 1;
 
-static inline int get_pt_flags(pte_t *pt, index_t i)
+	/* Pointer to the coarse 2nd level page table (holding entries for small
+	 * (4KB) or large (64KB) pages. ARM also supports fine 2nd level page
+	 * tables that may hold even tiny pages (1KB) but they are bigger (4KB
+	 * per table in comparison with 1KB per the coarse table)
+	 */
+	unsigned coarse_table_addr   : 22;
+} ATTRIBUTE_PACKED pte_level0_t;
+
+/** Level 1 page table entry (small (4KB) pages used). */
+typedef struct {
+
+	/* 0b10 for small pages */
+	unsigned descriptor_type     : 2;
+	unsigned bufferable          : 1;
+	unsigned cacheable           : 1;
+
+	/* access permissions for each of 4 subparts of a page
+	 * (for each 1KB when small pages used */
+	unsigned access_permission_0 : 2;
+	unsigned access_permission_1 : 2;
+	unsigned access_permission_2 : 2;
+	unsigned access_permission_3 : 2;
+	unsigned frame_base_addr     : 20;
+} ATTRIBUTE_PACKED pte_level1_t;
+
+
+/* Level 1 page tables access permissions */
+
+/** User mode: no access, privileged mode: no access. */
+#define PTE_AP_USER_NO_KERNEL_NO	0
+
+/** User mode: no access, privileged mode: read/write. */
+#define PTE_AP_USER_NO_KERNEL_RW	1
+
+/** User mode: read only, privileged mode: read/write. */
+#define PTE_AP_USER_RO_KERNEL_RW	2
+
+/** User mode: read/write, privileged mode: read/write. */
+#define PTE_AP_USER_RW_KERNEL_RW	3
+
+
+/* pte_level0_t and pte_level1_t descriptor_type flags */
+
+/** pte_level0_t and pte_level1_t "not present" flag (used in descriptor_type). */
+#define PTE_DESCRIPTOR_NOT_PRESENT	0
+
+/** pte_level0_t coarse page table flag (used in descriptor_type). */
+#define PTE_DESCRIPTOR_COARSE_TABLE	1
+
+/** pte_level1_t small page table flag (used in descriptor type). */
+#define PTE_DESCRIPTOR_SMALL_PAGE	2
+
+
+/** Sets the address of level 0 page table.
+ *
+ * @param pt    Pointer to the page table to set.
+ */   
+static inline void set_ptl0_addr( pte_level0_t *pt)
 {
-	return 0;	/* TODO */
+	asm volatile (
+		"mcr p15, 0, %0, c2, c0, 0 \n"
+		:
+		: "r"(pt)
+	);
 }
 
-static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
+
+/** Returns level 0 page table entry flags.
+ *
+ *  @param pt     Level 0 page table.
+ *  @param i      Index of the entry to return.
+ */
+static inline int get_pt_level0_flags(pte_level0_t *pt, index_t i)
 {
-	/* TODO */
-	return;
+	pte_level0_t *p = &pt[i];
+	int np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
+
+	return (np << PAGE_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
+	    (1 << PAGE_READ_SHIFT) | (1 << PAGE_WRITE_SHIFT) |
+	    (1 << PAGE_EXEC_SHIFT) | (1 << PAGE_CACHEABLE_SHIFT);
 }
+
+/** Returns level 1 page table entry flags.
+ *
+ *  @param pt     Level 1 page table.
+ *  @param i      Index of the entry to return.
+ */
+static inline int get_pt_level1_flags(pte_level1_t *pt, index_t i)
+{
+	pte_level1_t *p = &pt[i];
+
+	int dt = p->descriptor_type;
+	int ap = p->access_permission_0;
+
+	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_PRESENT_SHIFT) |
+	    ((ap == PTE_AP_USER_RO_KERNEL_RW) << PAGE_READ_SHIFT) |
+	    ((ap == PTE_AP_USER_RW_KERNEL_RW) << PAGE_READ_SHIFT) |
+	    ((ap == PTE_AP_USER_RW_KERNEL_RW) << PAGE_WRITE_SHIFT) |
+	    ((ap != PTE_AP_USER_NO_KERNEL_RW) << PAGE_USER_SHIFT) |
+	    ((ap == PTE_AP_USER_NO_KERNEL_RW) << PAGE_READ_SHIFT) |
+	    ((ap == PTE_AP_USER_NO_KERNEL_RW) << PAGE_WRITE_SHIFT) |
+	    (1 << PAGE_EXEC_SHIFT) |
+	    (p->bufferable << PAGE_CACHEABLE);
+}
+
+
+/** Sets flags of level 0 page table entry.
+ *
+ *  @param pt     level 0 page table
+ *  @param i      index of the entry to be changed
+ *  @param flags  new flags
+ */
+static inline void set_pt_level0_flags(pte_level0_t *pt, index_t i, int flags)
+{
+	pte_level0_t *p = &pt[i];
+
+	if (flags & PAGE_NOT_PRESENT) {
+		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
+		/*
+		 * Ensures that the entry will be recognized as valid when
+		 * PTE_VALID_ARCH applied.
+		 */
+		p->should_be_zero = 1;
+	} else {
+		p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+		p->should_be_zero = 0;
+    }
+}
+
+
+/** Sets flags of level 1 page table entry.
+ *
+ *  We use same access rights for the whole page. When page is not preset we
+ *  store 1 in acess_rigts_3 so that at least one bit is 1 (to mark correct
+ *  page entry, see #PAGE_VALID_ARCH).
+ *
+ *  @param pt     Level 1 page table.
+ *  @param i      Index of the entry to be changed.
+ *  @param flags  New flags.
+ */  
+static inline void set_pt_level1_flags(pte_level1_t *pt, index_t i, int flags)
+{
+	pte_level1_t *p = &pt[i];
+	
+	if (flags & PAGE_NOT_PRESENT) {
+		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
+		p->access_permission_3 = 1;
+	} else {
+		p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+		p->access_permission_3 = p->access_permission_0;
+	}
+  
+	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
+
+	/* default access permission */
+	p->access_permission_0 = p->access_permission_1 = 
+	    p->access_permission_2 = p->access_permission_3 =
+	    PTE_AP_USER_NO_KERNEL_RW;
+
+	if (flags & PAGE_USER)  {
+		if (flags & PAGE_READ) {
+			p->access_permission_0 = p->access_permission_1 = 
+			    p->access_permission_2 = p->access_permission_3 = 
+			    PTE_AP_USER_RO_KERNEL_RW;
+		}
+		if (flags & PAGE_WRITE) {
+			p->access_permission_0 = p->access_permission_1 = 
+			    p->access_permission_2 = p->access_permission_3 = 
+			    PTE_AP_USER_RW_KERNEL_RW; 
+		}
+	}
+}
+
 
 extern void page_arch_init(void);
+
 
 #endif /* __ASM__ */
 

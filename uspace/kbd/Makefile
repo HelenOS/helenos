@@ -32,6 +32,7 @@
 LIBC_PREFIX = ../libc
 SOFTINT_PREFIX = ../softint
 include $(LIBC_PREFIX)/Makefile.toolchain 
+include ../../Makefile.config
 
 CFLAGS += -Iinclude -I../libadt/include
 
@@ -69,6 +70,12 @@ ifeq ($(ARCH), sparc64)
 		arch/$(ARCH)/src/scanc.c
 	GENARCH_SOURCES = \
 		genarch/src/kbd.c
+endif
+ifeq ($(ARCH), arm32)
+ifeq ($(MACHINE), gxemul_testarm)
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/kbd_gxemul.c
+endif
 endif
 
 

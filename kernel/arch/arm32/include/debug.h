@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Empty.
  */
 
 #ifndef KERN_arm32_DEBUG_H_

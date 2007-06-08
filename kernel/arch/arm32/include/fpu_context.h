@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Vana
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,9 @@
  * @{
  */
 /** @file
+ *  @brief FPU context (not implemented).
+ *
+ *  GXemul doesn't support FPU on its ARM CPU.
  */
 
 #ifndef KERN_arm32_FPU_CONTEXT_H_
@@ -37,7 +40,7 @@
 
 #include <arch/types.h>
 
-#define FPU_CONTEXT_ALIGN    0	/* TODO */
+#define FPU_CONTEXT_ALIGN    0
 
 typedef struct {
 } fpu_context_t;

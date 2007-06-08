@@ -29,8 +29,8 @@
 /** @addtogroup libcarm32	
  * @{
  */
-/** @file
- * @ingroup libcarm32
+/** @file 
+ *  @brief Definitions of basic types like #uintptr_t.
  */
 
 #ifndef LIBC_arm32_TYPES_H_

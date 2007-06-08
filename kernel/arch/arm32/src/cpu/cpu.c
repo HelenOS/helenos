@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,23 +30,101 @@
  * @{
  */
 /** @file
+ *  @brief CPU identification.
  */
 
+#include <arch/cpu.h>
 #include <cpu.h>
+#include <arch.h>
 #include <print.h>	
 
+/** Number of indexes left out in the #imp_data array */
+#define IMP_DATA_START_OFFSET 0x40
+
+/** Implementators (vendor) names */
+static char *imp_data[] = {
+	"?",					/* IMP_DATA_START_OFFSET */
+	"ARM Ltd",				/* 0x41 */
+	"",					/* 0x42 */
+	"",                             	/* 0x43 */
+	"Digital Equipment Corporation",	/* 0x44 */
+	"", "", "", "", "", "", "", "", "", "",	/* 0x45 - 0x4e */
+	"", "", "", "", "", "", "", "", "", "", /* 0x4f - 0x58 */
+	"", "", "", "", "", "", "", "", "", "", /* 0x59 - 0x62 */
+	"", "", "", "", "", "",			/* 0x63 - 0x68 */
+	"Intel Corporation"			/* 0x69 */
+};
+
+/** Length of the #imp_data array */
+static int imp_data_length = sizeof(imp_data) / sizeof(char *);
+
+/** Architecture names */
+static char *arch_data[] = {
+	"?",       /* 0x0 */
+	"4",       /* 0x1 */
+	"4T",      /* 0x2 */
+	"5",       /* 0x3 */
+	"5T",      /* 0x4 */
+	"5TE",     /* 0x5 */
+	"5TEJ",    /* 0x6 */
+	"6"        /* 0x7 */
+};
+
+/** Length of the #arch_data array */
+static int arch_data_length = sizeof(arch_data) / sizeof(char *);
+
+
+/** Retrieves processor identification from CP15 register 0.
+ * 
+ * @param cpu Structure for storing CPU identification.
+ */
+static void arch_cpu_identify(cpu_arch_t *cpu)
+{
+	uint32_t ident;
+	asm volatile (
+		"mrc p15, 0, %0, c0, c0, 0\n"
+		: "=r" (ident)
+	);
+
+	cpu->imp_num = ident >> 24;
+	cpu->variant_num = (ident << 8) >> 28;
+	cpu->arch_num = (ident << 12) >> 28;
+	cpu->prim_part_num = (ident << 16) >> 20;
+	cpu->rev_num = (ident << 28) >> 28;
+}
+
+/** Does nothing on ARM. */
 void cpu_arch_init(void)
 {
 }
 
-void cpu_identify(void)
+/** Retrieves processor identification and stores it to #CPU.arch */
+void cpu_identify(void) 
 {
-	/* TODO */
+	arch_cpu_identify(&CPU->arch);
 }
 
+/** Prints CPU identification. */
 void cpu_print_report(cpu_t *m)
 {
-	/* TODO */
+	char * vendor = imp_data[0];
+	char * architecture = arch_data[0];
+	cpu_arch_t * cpu_arch = &m->arch;
+
+	if ((cpu_arch->imp_num) > 0 &&
+	    (cpu_arch->imp_num < (imp_data_length + IMP_DATA_START_OFFSET))) {
+		vendor = imp_data[cpu_arch->imp_num - IMP_DATA_START_OFFSET];
+	}
+
+	if ((cpu_arch->arch_num) > 0 &&
+	    (cpu_arch->arch_num < arch_data_length)) {
+		architecture = arch_data[cpu_arch->arch_num];
+	}
+
+	printf("cpu%d: vendor=%s, architecture=ARM%s, part number=%x, "
+	    "variant=%x, revision=%x\n",
+	    m->id, vendor, architecture, cpu_arch->prim_part_num,
+	    cpu_arch->variant_num, cpu_arch->rev_num);
 }
 
 /** @}

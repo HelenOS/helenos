@@ -27,9 +27,17 @@
 	* @ingroup proc
 	*/
  	
+
 	/**
 	 * @cond amd64
 	 * @defgroup amd64proc amd64
+	 * @ingroup proc
+	 * @endcond
+	 */
+
+	 /**
+	 * @cond arm32
+	 * @defgroup arm32proc arm32
 	 * @ingroup proc
 	 * @endcond
 	 */
@@ -102,6 +110,13 @@
 	 * @ingroup mm
 	 * @endcond
 	 */
+	 
+	/**
+	 * @cond arm32
+	 * @defgroup arm32mm arm32	
+	 * @ingroup mm
+	 * @endcond
+	 */	 
 	
 	/**
 	 * @cond ia32
@@ -171,6 +186,13 @@
 	 * @ingroup ddi
 	 * @endcond
 	 */
+	 
+ 	/**
+	 * @cond arm32
+	 * @defgroup arm32ddi arm32
+	 * @ingroup ddi
+	 * @endcond
+	 */	 
 
  	/**
 	 * @cond ia32
@@ -228,6 +250,13 @@
 	 * @ingroup debug
 	 * @endcond
 	 */
+	 
+	/**
+	 * @cond arm32
+	 * @defgroup arm32debug arm32
+	 * @ingroup debug
+	 * @endcond
+	 */	 
 
 	/**
 	 * @cond ia32
@@ -285,6 +314,13 @@
 	 * @ingroup interrupt
 	 * @endcond
 	 */
+	 
+	/**
+	 * @cond arm32
+	 * @defgroup arm32interrupt arm32
+	 * @ingroup interrupt
+	 * @endcond
+	 */	 
 
 	/**
 	 * @cond ia32
@@ -346,6 +382,13 @@
 	 * @ingroup others
 	 * @endcond
 	 */
+	 
+	/**
+	 * @cond arm32
+	 * @defgroup arm32 arm32
+	 * @ingroup others
+	 * @endcond
+	 */	 
 
 	/**
 	 * @cond ia32

@@ -6,9 +6,12 @@
  *  
  */
 
+OUTPUT_ARCH(arm)
 ENTRY(kernel_image_start) 
 
+
 SECTIONS {
+	. = KERNEL_LOAD_ADDRESS;
 	.text : {
 		ktext_start = .;
 		*(.text);
@@ -22,22 +25,19 @@ SECTIONS {
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
-		LONG(0);		/* TODO */
+		LONG(KERNEL_LOAD_ADDRESS);
+		*(.bss);		/* uninitialized static variables */
+		*(COMMON); 		/* global variables */
+
 		*(.rodata*);
 		*(.sdata);
 		*(.reginfo);
+		symbol_table = .;
 		*(symtab.*);             
 	}
-	_gp = . + 0x8000;
-	.lit8 : { *(.lit8) }
-	.lit4 : { *(.lit4) }
 	.sbss : {
 		*(.sbss);
 		*(.scommon);
-	}
-	.bss : {
-		*(.bss);		/* uninitialized static variables */
-		*(COMMON); 		/* global variables */
 	}
 
 	kdata_end = .;
@@ -48,4 +48,5 @@ SECTIONS {
 	  *(.comment);
 	  *(.note);
 	}
+
 }

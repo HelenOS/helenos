@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2003-2007 Jakub Jermar
+# Copyright (c) 2007 Michal Kebrt
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,52 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.global kernel_image_start
-kernel_image_start:
+#include <arch/asm/boot.h>
 
-	/* TODO */
+.text
+
+.global kernel_image_start
+.global exc_stack
+.global supervisor_sp
+
+kernel_image_start:
 	
-0:
-	b 0b
+	# switch to supervisor mode
+	mrs r3, cpsr
+	bic r3, r3, #0x1f
+	orr r3, r3, #0x13
+	msr cpsr_c, r3	
+	
+	ldr sp, =temp_stack
+
+	cmp r2, #0
+	beq bootinfo_end
+
+	ldr r3, =bootinfo
+
+	bootinfo_loop:
+		ldr r4, [r1]
+		str r4, [r3]
+
+		add r1, r1, #4
+		add r3, r3, #4
+		add r2, r2, #-4
+
+		cmp r2, #0
+		bne bootinfo_loop
+	
+	bootinfo_end:
+
+	bl arch_pre_main
+
+	bl main_bsp
+
+	.space TEMP_STACK_SIZE
+temp_stack:
+
+	.space 1024
+exc_stack:
+
+supervisor_sp:
+	.space 4
+

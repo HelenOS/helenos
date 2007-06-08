@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2007 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,17 @@
  * @{
  */
 /** @file
+ *  @brief Type definitions.
  */
 
 #ifndef KERN_arm32_TYPES_H_
 #define KERN_arm32_TYPES_H_
+
+#ifndef DOXYGEN
+#	define ATTRIBUTE_PACKED __attribute__ ((packed))
+#else
+#	define ATTRIBUTE_PACKED
+#endif
 
 #define NULL 0
 #define false 0
@@ -69,9 +76,14 @@ typedef uint32_t context_id_t;
 typedef int32_t inr_t;
 typedef int32_t devno_t;
 
-/** Page Table Entry. */
+
+/** Page table entry.
+ *
+ *  We have different structs for level 0 and level 1 page table entries.
+ *  See page.h for definition of pte_level*_t.
+ */
 typedef struct {
-	/* placeholder */
+	unsigned dummy : 32;
 } pte_t;
 
 #endif

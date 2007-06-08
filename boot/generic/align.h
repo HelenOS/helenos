@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef BOOT_ALIGN_H_
 #define BOOT_ALIGN_H_
 
@@ -37,3 +43,6 @@
 #define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
 #endif
+
+/** @}
+ */

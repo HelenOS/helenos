@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,8 @@
 /** @addtogroup libcarm32	
  * @{
  */
-/** @file
+/** @file 
+ *  @brief Function address conversion.
  */
 
 #ifndef LIBC_arm32_FADDR_H_
@@ -37,13 +38,9 @@
 
 #include <libarch/types.h>
 
-/** 
- *
- * Calculate absolute address of function
- * referenced by fptr pointer.
+/** Calculate absolute address of function referenced by fptr pointer.
  *
  * @param f Function pointer.
- *
  */
 #define FADDR(f)	 (f)
 

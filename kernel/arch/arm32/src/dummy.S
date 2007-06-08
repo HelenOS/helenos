@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2003-2004 Jakub Jermar
+# Copyright (c) 2007 Michal Kebry, Pavel Jancik, Petr Stepan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,55 +30,35 @@
 
 .global calibrate_delay_loop
 .global asm_delay_loop
-.global dummy
-.global arch_grab_console
-.global arch_release_console
-.global cpu_halt
+
 .global fpu_context_restore
 .global fpu_context_save
 .global fpu_enable
 .global fpu_init
-.global interrupts_disable
-.global interrupts_enable
-.global interrupts_read
-.global interrupts_restore
-.global memcpy
-.global memcpy_from_uspace
-.global memcpy_to_uspace
-.global memsetb
-.global panic_printf
-.global symbol_table
-.global sys_tls_set
-.global tlb_invalidate_asid
-.global tlb_invalidate_pages
-.global userspace
-	
-calibrate_delay_loop:
-asm_delay_loop:
 
-arch_grab_console:
-arch_release_console:
-cpu_halt:
+.global sys_tls_set
+.global dummy
+
+calibrate_delay_loop:
+	mov	pc, lr
+
+asm_delay_loop:
+	mov	pc, lr
+
 fpu_context_restore:
+	mov	pc, lr
+    
 fpu_context_save:
+	mov	pc, lr
+    
 fpu_enable:
+	mov	pc, lr
+
 fpu_init:
-interrupts_disable:
-interrupts_enable:
-interrupts_read:
-interrupts_restore:
-memcpy:
-memcpy_from_uspace:
-memcpy_to_uspace:
-memsetb:
-panic_printf:
-symbol_table:
+	mov	pc, lr
+    
+# not used on ARM
 sys_tls_set:
-tlb_invalidate_asid:
-tlb_invalidate_pages:
-userspace:
 
 dummy:
-
-0:
-	b 0b
+	mov pc, lr

@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Empty.
  */
 
 #ifndef KERN_arm32_ARCH_H_

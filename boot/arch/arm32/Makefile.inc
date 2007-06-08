@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# So far, this is just a placeholder.
-#
+build: $(BASE)/image.boot
+
+$(BASE)/image.boot: depend arch/$(ARCH)/loader/image.boot
+	cp arch/$(ARCH)/loader/image.boot $(BASE)/image.boot
+
+depend:
+	-rm arch/$(ARCH)/loader/image.boot
+
+arch/$(ARCH)/loader/image.boot:
+	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(IMAGE)
+
+clean:
+	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) IMAGE=$(IMAGE)
+	-rm -f $(BASE)/image.boot

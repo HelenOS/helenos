@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Thread related declarations.
  */
 
 #ifndef KERN_arm32_THREAD_H_
@@ -46,4 +47,3 @@ typedef struct {
 
 /** @}
  */
-

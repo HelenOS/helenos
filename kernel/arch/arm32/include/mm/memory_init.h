@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Memory information functions declarations.
  */
 
 #ifndef KERN_arm32_MEMORY_INIT_H_
@@ -37,7 +38,7 @@
 
 #include <config.h>
 
-#define get_memory_size()	CONFIG_MEMORY_SIZE	/* TODO */
+size_t get_memory_size(void);
 
 #endif
 

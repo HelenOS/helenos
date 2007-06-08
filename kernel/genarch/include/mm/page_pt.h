@@ -55,6 +55,12 @@
 #define PTL2_ENTRIES			PTL2_ENTRIES_ARCH
 #define PTL3_ENTRIES			PTL3_ENTRIES_ARCH
 
+/* Table sizes in each level */
+#define PTL0_SIZE			PTL0_SIZE_ARCH
+#define PTL1_SIZE			PTL1_SIZE_ARCH
+#define PTL2_SIZE			PTL2_SIZE_ARCH
+#define PTL3_SIZE			PTL3_SIZE_ARCH
+
 /*
  * These macros process vaddr and extract those portions
  * of it that function as indices to respective page tables.

@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Memory barriers.
  */
 
 #ifndef KERN_arm32_BARRIER_H_

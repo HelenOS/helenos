@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2007 Pavel Jancik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +32,35 @@
  * @{
  */
 /** @file
+ *  @brief Uspace threads and TLS.
  */
 
 #include <thread.h>
 #include <malloc.h>
 
-/** Allocate TLS & TCB for initial module threads
+/** Allocates TLS & TCB.
  *
- * @param data Start of data section
- * @return pointer to tcb_t structure
+ * @param data Start of data section (output parameter).
+ * @param size Size of (tbss + tdata) sections.
+ * @return     Pointer to the allocated #tcb_t structure.
  */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	/* TODO */
-	return NULL;
+	tcb_t *result;
+
+	result = malloc(sizeof(tcb_t) + size);
+	*data = ((void *)result) + sizeof(tcb_t);
+	return result;
 }
 
+/** Deallocates TLS & TCB.
+ *
+ * @param tcb TCB structure to be deallocated (along with corresponding TLS).
+ * @param size Not used.
+ */
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	/* TODO */
+	free(tcb);
 }
 
 /** @}

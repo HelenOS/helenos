@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief ARM ELF constants.
  */
 
 #ifndef KERN_arm32_ELF_H_

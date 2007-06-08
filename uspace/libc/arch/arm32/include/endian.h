@@ -29,7 +29,8 @@
 /** @addtogroup libcarm32	
  * @{
  */
-/** @file
+/** @file 
+ *  @brief Endianness definition.
  */
 
 #ifndef LIBC_arm32_ENDIAN_H_

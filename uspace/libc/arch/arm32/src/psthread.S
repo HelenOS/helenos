@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Jakub Jermar
+# Copyright (c) 2007 Michal Kebrt
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,18 @@
 .global context_restore
 
 context_save:
-	/* TODO */
+	stmia r0!, {sp, lr}
+	stmia r0!, {r4-r11}
+
+	# return 1
+	mov r0, #1
+	mov pc, lr
 
 context_restore:
-	/* TODO */
+	ldmia r0!, {sp, lr}
+	ldmia r0!, {r4-r11}
+
+	#return 0
+	mov r0, #0
+	mov pc, lr
+

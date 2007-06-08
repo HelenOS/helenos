@@ -29,7 +29,8 @@
 /** @addtogroup libcarm32
  * @{
  */
-/** @file
+/** @file  
+ *  @brief Configuration constants.
  */
 
 #ifndef LIBC_arm32_CONFIG_H_

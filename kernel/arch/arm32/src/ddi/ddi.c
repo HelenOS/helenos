@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief DDI.
  */
 
 #include <ddi/ddi.h>

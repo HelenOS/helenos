@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Empty.
  */
 
 #ifndef LIBC_arm32_STACKARG_H_

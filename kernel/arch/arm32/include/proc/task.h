@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Task related declarations.
  */
 
 #ifndef KERN_arm32_TASK_H_

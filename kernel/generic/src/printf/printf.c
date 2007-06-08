@@ -33,6 +33,7 @@
  */
 
 #include <print.h>
+int printf(const char *fmt, ...);
 
 int printf(const char *fmt, ...)
 {

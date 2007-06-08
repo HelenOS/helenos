@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #include "printf.h"
 #include "stdarg.h"
 #include <types.h>
@@ -241,3 +247,6 @@ out:
 	
 	va_end(ap);
 }
+
+/** @}
+ */

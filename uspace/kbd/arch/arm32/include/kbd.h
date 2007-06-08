@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdarm32 arm32
- * @brief	HelenOS arm32 arch dependent parts of uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbdarm32
  * @{
  */ 
 /** @file
+ *  @brief Empty.
  */
 
 #ifndef KBD_arm32_KBD_H_

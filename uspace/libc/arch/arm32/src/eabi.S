@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2007 Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 .text
 
 .global __aeabi_read_tp
-__aeabi_read_tp:
 
-0:
-	b 0b
+__aeabi_read_tp:
+	mov r0, r9
+	mov pc, lr

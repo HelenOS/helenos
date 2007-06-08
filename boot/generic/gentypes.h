@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef BOOT_GENTYPES_H_
 #define BOOT_GENTYPES_H_
 
@@ -36,3 +42,6 @@
 typedef unsigned long size_t;
 
 #endif
+
+/** @}
+ */

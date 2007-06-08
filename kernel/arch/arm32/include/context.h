@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,42 @@
  * @{
  */
 /** @file
+ *  @brief Thread context.
  */
 
 #ifndef KERN_arm32_CONTEXT_H_
 #define KERN_arm32_CONTEXT_H_
 
-/*
- * Put one item onto the stack to support get_stack_base() and align it up.
- */
-#define SP_DELTA	0	/* TODO */
+#include <align.h>
+#include <arch/stack.h>
 
+/* Put one item onto the stack to support get_stack_base() and align it up. */
+#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #ifndef __ASM__
 
 #include <arch/types.h>
 
-/*
- * Only save registers that must be preserved across function calls.
+/** Thread context containing registers that must be preserved across function
+ * calls.
  */
 typedef struct {
+	uint32_t cpu_mode;
 	uintptr_t sp;
 	uintptr_t pc;
+	
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
+	
 	ipl_t ipl;
 } context_t;
+
 
 #endif /* __ASM__ */
 

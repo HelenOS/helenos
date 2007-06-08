@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,24 +32,9 @@
  * @{
  */ 
 /** @file
+ *  @brief Empty, required by generic Makefile.
  */
 
-#include <arch/kbd.h>
-#include <ipc/ipc.h>
-#include <sysinfo.h>
-#include <kbd.h>
-#include <keys.h>
-
-int kbd_arch_init(void)
-{
-	return 0;
-}
-
-
-int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
-{
-	return 1;
-}
 
 /** @}
  */

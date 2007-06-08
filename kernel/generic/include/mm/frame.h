@@ -45,6 +45,8 @@
 
 #define ONE_FRAME	0
 #define TWO_FRAMES	1
+#define FOUR_FRAMES	2
+
 
 #ifdef ARCH_STACK_FRAMES
 #define STACK_FRAMES ARCH_STACK_FRAMES

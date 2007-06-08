@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt, Petr Stepan
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,33 +31,112 @@
  * @{
  */
 /** @file
+ *  @brief Exception declarations.
  */
 
 #ifndef KERN_arm32_EXCEPTION_H_
 #define KERN_arm32_EXCEPTION_H_
 
 #include <arch/types.h>
+#include <arch/regutils.h>
 
+/** If defined, forces using of high exception vectors. */
+#define HIGH_EXCEPTION_VECTORS
+
+#ifdef HIGH_EXCEPTION_VECTORS
+	#define EXC_BASE_ADDRESS	0xffff0000
+#else
+	#define EXC_BASE_ADDRESS	0x0
+#endif
+
+/* Exception Vectors */
+#define EXC_RESET_VEC          (EXC_BASE_ADDRESS + 0x0)
+#define EXC_UNDEF_INSTR_VEC    (EXC_BASE_ADDRESS + 0x4)
+#define EXC_SWI_VEC            (EXC_BASE_ADDRESS + 0x8)
+#define EXC_PREFETCH_ABORT_VEC (EXC_BASE_ADDRESS + 0xc)
+#define EXC_DATA_ABORT_VEC     (EXC_BASE_ADDRESS + 0x10)
+#define EXC_IRQ_VEC            (EXC_BASE_ADDRESS + 0x18)
+#define EXC_FIQ_VEC            (EXC_BASE_ADDRESS + 0x1c)
+
+/* Exception numbers */
+#define EXC_RESET           0
+#define EXC_UNDEF_INSTR     1
+#define EXC_SWI             2
+#define EXC_PREFETCH_ABORT  3
+#define EXC_DATA_ABORT      4
+#define EXC_IRQ             5
+#define EXC_FIQ             6
+
+
+/** Kernel stack pointer.
+ *
+ * It is set when thread switches to user mode,
+ * and then used for exception handling.
+ */
+extern uintptr_t supervisor_sp;
+
+
+/** Temporary exception stack pointer.
+ *
+ * Temporary stack is used in exceptions handling routines
+ * before switching to thread's kernel stack.
+ */
+extern uintptr_t exc_stack;
+
+
+/** Struct representing CPU state saved when an exception occurs. */
 typedef struct {
-	/* TODO */
+	uint32_t spsr;
+	uint32_t sp;
+	uint32_t lr;
+
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
+	uint32_t r12;
+
+	uint32_t pc;
 } istate_t;
 
+
+/** Sets Program Counter member of given istate structure.
+ *
+ * @param istate istate structure
+ * @param retaddr new value of istate's PC member
+ */
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
-	/* TODO */
+ 	istate->pc = retaddr;
 }
 
-/** Return true if exception happened while in userspace */
+
+/** Returns true if exception happened while in userspace. */
 static inline int istate_from_uspace(istate_t *istate)
 {
-	/* TODO */
-	return 0;
+ 	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
 }
+
+
+/** Returns Program Counter member of given istate structure. */
 static inline unative_t istate_get_pc(istate_t *istate)
 {
-	/* TODO */
-	return 0;
+ 	return istate->pc;
 }
+
+
+extern void install_exception_handlers(void);
+extern void exception_init(void);
+extern void print_istate(istate_t *istate);
+
 
 #endif
 

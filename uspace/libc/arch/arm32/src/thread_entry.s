@@ -34,7 +34,4 @@
 #
 #
 __thread_entry:
-
-#
-# TODO
-#
+        b __thread_main

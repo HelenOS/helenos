@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,30 @@
  * @{
  */
 /** @file
+ *  @brief Frame related declarations.
  */
 
 #ifndef KERN_arm32_FRAME_H_
 #define KERN_arm32_FRAME_H_
 
-#define FRAME_WIDTH		0	/* TODO */
+#define FRAME_WIDTH		12 /* 4KB frames */
 #define FRAME_SIZE		(1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__
 
+#include <arch/types.h>
+
+#define BOOT_PAGE_TABLE_SIZE    0x4000
+#define BOOT_PAGE_TABLE_ADDRESS 0x4000
+
+#define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
+#define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
+
+extern uintptr_t last_frame;
+
 extern void frame_arch_init(void);
+extern void boot_page_table_free(void);
 
 #endif /* __ASM__ */
 #endif /* KERNEL */

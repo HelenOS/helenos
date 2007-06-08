@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,20 @@
  * @{
  */
 /** @file
+ *  @brief Count of CPU cycles.
  */
 
 #ifndef KERN_arm32_CYCLE_H_
 #define KERN_arm32_CYCLE_H_
 
+/** Returns count of CPU cycles.
+ *
+ *  No such instruction on ARM to get count of cycles.
+ *
+ *  @return Count of CPU cycles.
+ */
 static inline uint64_t get_cycle(void)
 {
-	/* TODO */
 	return 0;
 }
 

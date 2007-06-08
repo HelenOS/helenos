@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Memory manipulating functions declarations.
  */
 
 #ifndef KERN_arm32_MEMSTR_H_

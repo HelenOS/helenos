@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,62 +30,134 @@
  * @{
  */
 /** @file
+ *  @brief ARM32 architecture specific functions.
  */
 
-
 #include <arch.h>
+#include <arch/boot.h>
+#include <config.h>
+#include <arch/console.h>
+#include <ddi/device.h>
+#include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
+#include <ddi/irq.h>
+#include <arch/debug/print.h>
+#include <print.h>
+#include <config.h>
+#include <interrupt.h>
+#include <arch/regutils.h>
+#include <arch/machine.h>
+#include <userspace.h>
 
+/** Information about loaded tasks. */
+bootinfo_t bootinfo;
+
+/** Performs arm32 specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	/* TODO */
+	int i;
+
+	init.cnt = bootinfo.cnt;
+
+	for (i = 0; i < bootinfo.cnt; ++i) {
+		init.tasks[i].addr = bootinfo.tasks[i].addr;
+		init.tasks[i].size = bootinfo.tasks[i].size;
+	}
+	
 }
 
+/** Performs arm32 specific initialization before mm is initialized. */
 void arch_pre_mm_init(void)
 {
-	/* TODO */
+	/* It is not assumed by default */
+	interrupts_disable();
 }
 
+/** Performs arm32 specific initialization afterr mm is initialized. */
 void arch_post_mm_init(void)
 {
-	/* TODO */
+	machine_hw_map_init();
+
+	/* Initialize exception dispatch table */
+	exception_init();
+
+	interrupt_init();
+	
+	console_init(device_assign_devno());
+
+#ifdef CONFIG_FB
+	fb_init(machine_get_fb_address(), 640, 480, 1920, VISUAL_RGB_8_8_8);
+#endif
 }
 
+/** Performs arm32 specific tasks needed after cpu is initialized.
+ *
+ * Currently the function is empty.
+ */
 void arch_post_cpu_init(void)
 {
-	/* TODO */
 }
 
+
+/** Performs arm32 specific tasks needed before the multiprocessing is
+ * initialized.
+ *
+ * Currently the function is empty because SMP is not supported.
+ */
 void arch_pre_smp_init(void)
 {
-	/* TODO */
 }
 
+
+/** Performs arm32 specific tasks needed after the multiprocessing is
+ * initialized.
+ *
+ * Currently the function is empty because SMP is not supported.
+ */
 void arch_post_smp_init(void)
 {
-	/* TODO */
 }
 
-/** Perform arm32 specific tasks needed before the new task is run. */
+
+/** Performs arm32 specific tasks needed before the new task is run. */
 void before_task_runs_arch(void)
 {
-	/* TODO */
+	tlb_invalidate_all();
 }
 
-/** Perform arm32 specific tasks needed before the new thread is scheduled. */
+
+/** Performs arm32 specific tasks needed before the new thread is scheduled.
+ *
+ * It sets supervisor_sp.
+ */
 void before_thread_runs_arch(void)
 {
-	/* TODO */
+	uint8_t *stck;
+	
+	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
+	supervisor_sp = (uintptr_t) stck;
 }
 
+/** Performs arm32 specific tasks before a thread stops running.
+ *
+ * Currently the function is empty.
+ */
 void after_thread_ran_arch(void)
 {
-	/* TODO */
 }
 
-void arch_reboot(void)
+/** Halts CPU. */
+void cpu_halt(void)
 {
-	// TODO
-	while (1);
+	machine_cpu_halt();
+}
+
+/** Reboot. */
+void arch_reboot()
+{
+	/* not implemented */
+	for (;;)
+		;
 }
 
 /** @}

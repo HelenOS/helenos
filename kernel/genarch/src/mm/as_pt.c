@@ -97,11 +97,13 @@ pte_t *ptl0_create(int flags)
 {
 	pte_t *src_ptl0, *dst_ptl0;
 	ipl_t ipl;
+	int table_size;
 
-	dst_ptl0 = (pte_t *) frame_alloc(ONE_FRAME, FRAME_KA);
+	dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE, FRAME_KA);
+	table_size = FRAME_SIZE << PTL0_SIZE;
 
 	if (flags & FLAG_AS_KERNEL) {
-		memsetb((uintptr_t) dst_ptl0, PAGE_SIZE, 0);
+		memsetb((uintptr_t) dst_ptl0, table_size, 0);
 	} else {
 		uintptr_t src, dst;
 	
@@ -116,8 +118,8 @@ pte_t *ptl0_create(int flags)
 		src = (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 		dst = (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 
-		memsetb((uintptr_t) dst_ptl0, PAGE_SIZE, 0);
-		memcpy((void *) dst, (void *) src, PAGE_SIZE - (src - (uintptr_t) src_ptl0));
+		memsetb((uintptr_t) dst_ptl0, table_size, 0);
+		memcpy((void *) dst, (void *) src, table_size - (src - (uintptr_t) src_ptl0));
 		mutex_unlock(&AS_KERNEL->lock);
 		interrupts_restore(ipl);
 	}

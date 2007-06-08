@@ -82,6 +82,11 @@ static inline uintptr_t ka2pa(uintptr_t x)
 #define PTL2_ENTRIES_ARCH	512
 #define PTL3_ENTRIES_ARCH	512
 
+#define PTL0_SIZE_ARCH       ONE_FRAME
+#define PTL1_SIZE_ARCH       ONE_FRAME
+#define PTL2_SIZE_ARCH       ONE_FRAME
+#define PTL3_SIZE_ARCH       ONE_FRAME
+
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr)>>39)&0x1ff)
 #define PTL1_INDEX_ARCH(vaddr)	(((vaddr)>>30)&0x1ff)
 #define PTL2_INDEX_ARCH(vaddr)	(((vaddr)>>21)&0x1ff)

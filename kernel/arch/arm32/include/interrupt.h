@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,17 +27,30 @@
  */
 
 /** @addtogroup arm32interrupt
- * @ingroup interrupt
  * @{
  */
 /** @file
+ *  @brief Declarations of interrupt controlling routines.
  */
 
 #ifndef KERN_arm32_INTERRUPT_H_
 #define KERN_arm32_INTERRUPT_H_
 
-#define IVT_ITEMS 	0	/* TODO */
-#define IVT_FIRST	0	/* TODO */
+#include <arch/types.h>
+
+/** Initial size of exception dispatch table. */
+#define IVT_ITEMS 	6
+
+/** Index of the first item in exception dispatch table. */
+#define IVT_FIRST	0
+
+
+extern void interrupt_init(void);
+extern ipl_t interrupts_disable(void);
+extern ipl_t interrupts_enable(void);
+extern void interrupts_restore(ipl_t ipl);
+extern ipl_t interrupts_read(void);
+
 
 #endif
 

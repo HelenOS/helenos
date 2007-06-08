@@ -28,10 +28,11 @@
 
 /** @addtogroup softfloatarm32 arm32	
  * @ingroup sfl
- * @brief softfloat architecture dependent definitions 
+ * @brief Softfloat architecture dependent definitions.
  * @{
  */
-/** @file
+/** @file 
+ *  @brief Softfloat architecture dependent definitions.
  */
 
 #ifndef __SOFTFLOAT_FUNCTIONS_H__

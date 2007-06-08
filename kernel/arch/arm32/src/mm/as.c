@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Address space functions.
  */
 
 #include <arch/mm/as.h>
@@ -38,22 +39,13 @@
 #include <mm/as.h>
 #include <arch.h>
 
-/** Architecture dependent address space init. */
+/** Architecture dependent address space init.
+ *  
+ *  Since ARM supports page tables, #as_pt_operations are used.
+ */
 void as_arch_init(void)
 {
-        as_operations = &as_pt_operations;
-	asid_fifo_init();
-}
-
-/** Install address space.
- *
- * Install ASID.
- *
- * @param as Address space structure.
- */
-void as_install_arch(as_t *as)
-{
-	/* TODO */
+	as_operations = &as_pt_operations;
 }
 
 /** @}

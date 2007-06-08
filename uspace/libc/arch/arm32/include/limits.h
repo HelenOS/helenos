@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,17 +29,17 @@
 /** @addtogroup libcarm32	
  * @{
  */
-/** @file
- * @ingroup libcarm32	
+/** @file 
+ *  @brief Limits declarations.
  */
 
 #ifndef LIBC_arm32__LIMITS_H_
 #define LIBC_arm32__LIMITS_H_
 
-# define LONG_MIN MIN_INT32
-# define LONG_MAX MAX_INT32
-# define ULONG_MIN MIN_UINT32
-# define ULONG_MAX MAX_UINT32
+#define LONG_MIN MIN_INT32
+#define LONG_MAX MAX_INT32
+#define ULONG_MIN MIN_UINT32
+#define ULONG_MAX MAX_UINT32
 
 #endif
 

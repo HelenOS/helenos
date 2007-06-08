@@ -70,6 +70,11 @@
 #define PTL2_ENTRIES_ARCH	0
 #define PTL3_ENTRIES_ARCH	1024
 
+#define PTL0_SIZE_ARCH       ONE_FRAME
+#define PTL1_SIZE_ARCH       0
+#define PTL2_SIZE_ARCH       0
+#define PTL3_SIZE_ARCH       ONE_FRAME
+
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0

@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef STDARG_H__
 #define STDARG_H__
 
@@ -36,3 +42,6 @@ typedef __builtin_va_list va_list;
 #define va_end(ap)                      __builtin_va_end(ap)
 
 #endif
+
+/** @}
+ */

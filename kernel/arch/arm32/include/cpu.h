@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief CPU identification.
  */
 
 #ifndef KERN_arm32_CPU_H_
@@ -38,9 +39,25 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 
+
+/** Struct representing ARM CPU identifiaction. */
 typedef struct {
+	/** Implementator (vendor) number. */
+	uint32_t imp_num;
+
+	/** Variant number. */
+	uint32_t variant_num;
+
+	/** Architecture number. */
+	uint32_t arch_num;
+
+	/** Primary part number. */
+	uint32_t prim_part_num;
+
+	/** Revision number. */
+	uint32_t rev_num;
 } cpu_arch_t;
-	
+
 #endif
 
 /** @}

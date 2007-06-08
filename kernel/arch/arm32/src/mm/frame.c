@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,37 @@
  * @{
  */
 /** @file
+ *  @brief Frame related functions.
  */
 
 #include <mm/frame.h>
+#include <arch/mm/frame.h>
+#include <config.h>
+#include <arch/debug/print.h>
 
-/** Create memory zones. */
+/** Address of the last frame in the memory. */
+uintptr_t last_frame = 0;
+
+/** Creates memory zones. */
 void frame_arch_init(void)
 {
-	/* TODO */
+	/* all memory as one zone */
+	zone_create(0, ADDR2PFN(config.memory_size),
+	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
+	last_frame = config.memory_size;
+
+	/* blacklist boot page table */
+	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,
+	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);
+}
+
+/** Frees the boot page table. */
+void boot_page_table_free(void)
+{
+	int i;
+	for (i = 0; i < BOOT_PAGE_TABLE_SIZE_IN_FRAMES; i++) {
+		frame_free(i * FRAME_SIZE + BOOT_PAGE_TABLE_ADDRESS);
+	}
 }
 
 /** @}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Atomic operations.
  */
 
 #ifndef LIBC_arm32_ATOMIC_H_
@@ -37,25 +38,79 @@
 
 /** Atomic addition.
  *
- * @param val Atomic value.
- * @param imm Value to add.
+ * @param val Where to add.
+ * @param i   Value to be added.
  *
  * @return Value after addition.
  */
-static inline long atomic_add(atomic_t *val, int imm)
+static inline long atomic_add(atomic_t *val, int i)
 {
-	/* TODO */
-	return (val->count += imm);
+	int ret;
+	volatile long * mem = &(val->count);
+
+	asm volatile (
+		"1:                 \n"
+		"ldr r2, [%1]       \n"
+		"add r3, r2, %2     \n"
+		"str r3, %0         \n"
+		"swp r3, r3, [%1]   \n"
+		"cmp r3, r2         \n"
+		"bne 1b             \n"
+
+		: "=m" (ret)
+		: "r" (mem), "r" (i)
+		: "r3", "r2"
+	);
+
+	return ret;
 }
 
+
+/** Atomic increment.
+ *
+ * @param val Variable to be incremented.
+ */
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
+
+
+/** Atomic decrement.
+ *
+ * @param val Variable to be decremented.
+ */
 static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
 
-static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
 
-static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
-static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
+/** Atomic pre-increment.
+ *
+ * @param val Variable to be incremented.
+ * @return    Value after incrementation.
+ */
+static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1); }
+
+
+/** Atomic pre-decrement.
+ *
+ * @param val Variable to be decremented.
+ * @return    Value after decrementation.
+ */
+static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1); }
+
+
+/** Atomic post-increment.
+ *
+ * @param val Variable to be incremented.
+ * @return    Value before incrementation.
+ */
+static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1) - 1; }
+
+
+/** Atomic post-decrement.
+ *
+ * @param val Variable to be decremented.
+ * @return    Value before decrementation.
+ */
+static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1) + 1; }
+
 
 #endif
 

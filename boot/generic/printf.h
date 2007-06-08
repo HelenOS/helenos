@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup generic	
+ * @{
+ */
+/** @file
+ */
+
 #ifndef BOOT_PRINTF_H_
 #define BOOT_PRINTF_H_
 
@@ -40,3 +46,6 @@ extern void printf(const char *fmt, ...);
 extern void write(const char *str, const int len);
 
 #endif
+
+/** @}
+ */

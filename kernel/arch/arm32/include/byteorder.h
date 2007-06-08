@@ -30,6 +30,7 @@
  * @{
  */
 /** @file
+ *  @brief Endianness definitions.
  */
 
 #ifndef KERN_arm32_BYTEORDER_H_

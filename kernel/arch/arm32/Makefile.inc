@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2007 Jakub Jermar, Michal Kebrt
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,13 +31,25 @@
 
 BFD_NAME = elf32-little
 BFD_ARCH = arm
-BFD = elf32-little
+BFD = binary
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = /usr/local/arm
 
-GCC_CFLAGS += 
+KERNEL_LOAD_ADDRESS = 0x80200000
 
-DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE)
+ifeq ($(MACHINE), gxemul_testarm)
+	DMACHINE = MACHINE_GXEMUL_TESTARM
+endif
+
+GCC_CFLAGS += -fno-zero-initialized-in-bss
+
+DEFS += -D__32_BITS__ -DKERNEL_LOAD_ADDRESS=$(KERNEL_LOAD_ADDRESS) -D$(DMACHINE)
+
+# Compile with framebuffer support
+
+ifeq ($(CONFIG_FB), y)
+	DEFS += -DCONFIG_FB -DFB_INVERT_ENDIAN
+endif
 
 ## Compile with hierarchical page tables support.
 #
@@ -48,9 +59,9 @@ DEFS += -DCONFIG_PAGE_PT
 
 ## Compile with support for address space identifiers.
 #
-
-CONFIG_ASID = y
-CONFIG_ASID_FIFO = y
+# no HW support for ASIDs
+#CONFIG_ASID = y
+#CONFIG_ASID_FIFO = y 
 
 ## Compile with support with software division and multiplication.
 #
@@ -58,13 +69,27 @@ CONFIG_ASID_FIFO = y
 CONFIG_SOFTINT = y
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/arm32.c \
 	arch/$(ARCH)/src/start.S \
+	arch/$(ARCH)/src/asm.S \
+	arch/$(ARCH)/src/arm32.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/dummy.S \
+	arch/$(ARCH)/src/panic.S \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
+	arch/$(ARCH)/src/interrupt.c \
+	arch/$(ARCH)/src/debug/print.c \
+	arch/$(ARCH)/src/console.c \
+	arch/$(ARCH)/src/exception.c \
+	arch/$(ARCH)/src/userspace.c \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c
-	
+	arch/$(ARCH)/src/mm/page.c \
+	arch/$(ARCH)/src/mm/tlb.c \
+	arch/$(ARCH)/src/mm/memory_init.c \
+	arch/$(ARCH)/src/mm/page_fault.c
+
+ifeq ($(MACHINE), gxemul_testarm)
+	ARCH_SOURCES += arch/$(ARCH)/src/drivers/gxemul.c
+endif
+

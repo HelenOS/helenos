@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,8 @@
 
 .section .init, "ax"
 
+.org 0
+
 .global __entry
 .global __entry_driver
 
@@ -35,7 +37,13 @@
 #
 #
 __entry:
+	bl __main
+	bl __io_init
+	bl main
+	bl __exit
 
-#
-# TODO
-#
+__entry_driver:
+	bl __main
+	bl main
+	bl __exit
+

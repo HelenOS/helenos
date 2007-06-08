@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2007 Pavel Jancik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,44 @@
  * @{
  */
 /** @file
-  * @ingroup libcarm32	
+ *  @brief Syscall routine.
  */
 
 #include <libc.h>
 
+
+/** Syscall routine.
+ *
+ *  Stores p1-p4, id to r0-r4 registers and calls <code>swi</code>
+ *  instruction. Returned value is read from r0 register.
+ *
+ *  @param p1 Parameter 1.
+ *  @param p2 Parameter 2.
+ *  @param p3 Parameter 3.
+ *  @param p4 Parameter 4.
+ *  @param id Number of syscall.
+ *
+ *  @return Syscall return value.
+ */
 sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
     const sysarg_t p4, const syscall_t id)
 {
-	/* TODO */
-	return 0;
+	register sysarg_t __arm_reg_r0 asm("r0") = p1;
+	register sysarg_t __arm_reg_r1 asm("r1") = p2;
+	register sysarg_t __arm_reg_r2 asm("r2") = p3;
+	register sysarg_t __arm_reg_r3 asm("r3") = p4;
+	register sysarg_t __arm_reg_r4 asm("r4") = id;
+
+	asm volatile ( "swi"
+		: "=r" (__arm_reg_r0)
+		: "r"  (__arm_reg_r0),
+		  "r"  (__arm_reg_r1),
+		  "r"  (__arm_reg_r2),
+		  "r"  (__arm_reg_r3),
+		  "r"  (__arm_reg_r4)
+	);
+
+	return __arm_reg_r0;
 }
 
 /** @}
