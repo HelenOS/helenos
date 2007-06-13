@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef BOOT_mips32_MAIN_H_
+#define BOOT_mips32_MAIN_H_
 
 /** Align to the nearest higher address.
  *

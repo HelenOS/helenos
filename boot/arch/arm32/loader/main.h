@@ -68,7 +68,6 @@ typedef struct {
 } bootinfo_t;
 
 
-
 extern void bootstrap(void);
 
 #endif

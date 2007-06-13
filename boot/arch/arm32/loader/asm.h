@@ -62,12 +62,11 @@ extern void start(void);
  * @param bootinfo       Structure holding information about loaded tasks.
  * @param bootinfo_size  Size of the bootinfo structure.
  */
-extern void jump_to_kernel(void *entry, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
+extern void jump_to_kernel(void *entry, void *bootinfo,
+    unsigned int bootinfo_size) __attribute__((noreturn));
 
 
 #endif
 
-
 /** @}
  */
-

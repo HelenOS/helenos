@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MSIM_H__
-#define __MSIM_H__
+#ifndef BOOT_mips32_MSIM_H_
+#define BOOT_mips32_MSIM_H_
 
 extern void init(void);
 extern void halt(void);

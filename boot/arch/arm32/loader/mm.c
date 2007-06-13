@@ -42,25 +42,26 @@
  *
  *  Will be readable/writable by kernel with no access from user mode.
  *  Will belong to domain 0. No cache or buffering is enabled.
- *  
- *  @param pte    Section entry to initialize.
- *  @param frame  First frame in the section (frame number).
+ * 
+ *  @param pte Section entry to initialize.
+ *  @param frame First frame in the section (frame number).
  *
- *  @note         If frame is not 1MB aligned, first lower 1MB aligned frame will be used.
- */   
-static void init_pte_level0_section(pte_level0_section_t* pte, unsigned int frame)
+ *  @note If frame is not 1MB aligned, first lower 1MB aligned frame will be
+ *      used.
+ */
+static void init_pte_level0_section(pte_level0_section_t* pte,
+    unsigned int frame)
 {
-	pte->descriptor_type   = PTE_DESCRIPTOR_SECTION;
-	pte->bufferable        = 0;
-	pte->cacheable         = 0; 
-   	pte->impl_specific     = 0;
-	pte->domain            = 0;
+	pte->descriptor_type = PTE_DESCRIPTOR_SECTION;
+	pte->bufferable = 0;
+	pte->cacheable = 0;
+   	pte->impl_specific = 0;
+	pte->domain = 0;
 	pte->should_be_zero_1  = 0;
-	pte->access_permission = PTE_AP_USER_NO_KERNEL_RW;	
+	pte->access_permission = PTE_AP_USER_NO_KERNEL_RW;
 	pte->should_be_zero_2  = 0;
 	pte->section_base_addr = frame;
 }
-
 
 /** Initializes page table used while booting the kernel. */
 static void init_page_table(void) 
@@ -68,18 +69,19 @@ static void init_page_table(void)
 	int i;
 	const unsigned int first_kernel_page = ADDR2PFN(PA2KA(0));
 
-	// create 1:1 virtual-physical mapping (in lower 2GB)
+	/* Create 1:1 virtual-physical mapping (in lower 2GB). */
 	for (i = 0; i < first_kernel_page; i++) {
 		init_pte_level0_section(&page_table[i], i);
 	}
 
-	// create 1:1 virtual-physical mapping in kernel space (upper 2GB),
-	// physical addresses start from 0
+	/*
+	 * Create 1:1 virtual-physical mapping in kernel space (upper 2GB),
+	 * physical addresses start from 0.
+	 */
 	for (i = first_kernel_page; i < PTL0_ENTRIES; i++) {
 		init_pte_level0_section(&page_table[i], i - first_kernel_page);
 	}
 }
-
 
 /** Starts the MMU - initializes page table and enables paging. */
 void mmu_start() {
@@ -88,7 +90,6 @@ void mmu_start() {
 	enable_paging();
 }
 
-
 /** @}
  */
- 
+

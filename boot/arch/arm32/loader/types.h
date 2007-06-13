@@ -57,4 +57,3 @@ typedef uint32_t unative_t;
 
 /** @}
  */
-

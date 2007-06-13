@@ -48,7 +48,7 @@
  */
 static void putc(char ch)
 {
-	*((volatile char *)PUTC_ADDRESS) = ch;
+	*((volatile char *) PUTC_ADDRESS) = ch;
 }
 
 
