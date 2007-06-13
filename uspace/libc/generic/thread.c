@@ -106,6 +106,7 @@ void __thread_main(uspace_arg_t *uarg)
 	__tcb_set(pt->tcb);
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
+	/* XXX: we cannot free the userspace stack while running on it */
 	free(uarg->uspace_stack);
 	free(uarg);
 
@@ -154,7 +155,7 @@ int thread_create(void (* function)(void *), void *arg, char *name,
 	rc = __SYSCALL3(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name,
 	    (sysarg_t) tid);
 	
-	if (!rc) {
+	if (rc) {
 		/*
 		 * Failed to create a new thread.
 		 * Free up the allocated structures.
