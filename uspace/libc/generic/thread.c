@@ -107,8 +107,8 @@ void __thread_main(uspace_arg_t *uarg)
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/* XXX: we cannot free the userspace stack while running on it */
-	free(uarg->uspace_stack);
-	free(uarg);
+//	free(uarg->uspace_stack);
+//	free(uarg);
 
 	/* If there is a manager, destroy it */
 	async_destroy_manager();

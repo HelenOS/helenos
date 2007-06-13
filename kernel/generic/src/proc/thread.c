@@ -385,15 +385,6 @@ void thread_destroy(thread_t *t)
 	if (atomic_predec(&t->task->refcount) == 0)
 		task_destroy(t->task);
 	
-	/*
-	 * If the thread had a userspace context, free up its kernel_uarg
-	 * structure.
-	 */
-	if (t->flags & THREAD_FLAG_USPACE) {
-		ASSERT(t->thread_arg);
-		free(t->thread_arg);
-	}
-
 	slab_free(thread_slab, t);
 }
 
@@ -682,7 +673,12 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	if (rc != 0)
 		return (unative_t) rc;
 
-	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);	
+	/*
+	 * In case of failure, kernel_uarg will be deallocated in this function.
+	 * In case of success, kernel_uarg will be freed in uinit().
+	 */
+	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
 	if (rc != 0) {
 		free(kernel_uarg);
