@@ -41,10 +41,10 @@
 
 /** Decribes CP15 "fault status register" (FSR). */
 typedef struct {
-	unsigned status           : 3;
-	unsigned domain           : 4;
-	unsigned zero             : 1;
-	unsigned should_be_zero   : 24;
+	unsigned status : 3;
+	unsigned domain : 4;
+	unsigned zero : 1;
+	unsigned should_be_zero : 24;
 } ATTRIBUTE_PACKED fault_status_t;
 
 
@@ -61,14 +61,14 @@ typedef union {
  * @see ARM architecture reference (chapter 3.1)
  */
 typedef struct {
-	unsigned dummy1        : 4;
-	unsigned bit4          : 1;
-	unsigned bits567       : 3;
-	unsigned dummy         : 12;
-	unsigned access        : 1;
-	unsigned opcode        : 4;
-	unsigned type          : 3;
-	unsigned condition     : 4;
+	unsigned dummy1 : 4;
+	unsigned bit4 : 1;
+	unsigned bits567 : 3;
+	unsigned dummy : 12;
+	unsigned access : 1;
+	unsigned opcode : 4;
+	unsigned type : 3;
+	unsigned condition : 4;
 } ATTRIBUTE_PACKED instruction_t;
 
 

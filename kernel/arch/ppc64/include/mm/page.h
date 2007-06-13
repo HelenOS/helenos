@@ -65,42 +65,62 @@
  * - PLT3 has 1024 entries (10 bits)
  */
 
+/* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH	1024
 #define PTL1_ENTRIES_ARCH	0
 #define PTL2_ENTRIES_ARCH	0
 #define PTL3_ENTRIES_ARCH	1024
 
+/* Sizes of page tables in each level. */
 #define PTL0_SIZE_ARCH		ONE_FRAME
 #define PTL1_SIZE_ARCH		0
 #define PTL2_SIZE_ARCH		0
 #define PTL3_SIZE_ARCH		ONE_FRAME
 
+/* Macros calculating indices into page tables in each level. */
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		(((pte_t *) (ptl0))[(i)].pfn << 12)
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		(((pte_t *) (ptl3))[(i)].pfn << 12)
+/* Get PTE address accessors for each level. */
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
+	(((pte_t *) (ptl0))[(i)].pfn << 12)
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
+	(ptl1)
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i) \
+	(ptl2)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i)	\
+	(((pte_t *) (ptl3))[(i)].pfn << 12)
 
+/* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *) (ptl0))[(i)].pfn = (a) >> 12)
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
+	(((pte_t *) (ptl0))[(i)].pfn = (a) >> 12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *) (ptl3))[(i)].pfn = (a) >> 12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
+	(((pte_t *) (ptl3))[(i)].pfn = (a) >> 12)
 
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *) (ptl0), (index_t) (i))
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		PAGE_PRESENT
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		get_pt_flags((pte_t *) (ptl3), (index_t) (i))
+/* Get PTE flags accessors for each level. */
+#define GET_PTL1_FLAGS_ARCH(ptl0, i) \
+	get_pt_flags((pte_t *) (ptl0), (index_t) (i))
+#define GET_PTL2_FLAGS_ARCH(ptl1, i) \
+	PAGE_PRESENT
+#define GET_PTL3_FLAGS_ARCH(ptl2, i) \
+	PAGE_PRESENT
+#define GET_FRAME_FLAGS_ARCH(ptl3, i) \
+	get_pt_flags((pte_t *) (ptl3), (index_t) (i))
 
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *) (ptl0), (index_t) (i), (x))
+/* Set PTE flags accessors for each level. */
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
+	set_pt_flags((pte_t *) (ptl0), (index_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
+	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
 
+/* Macros for querying the last-level PTEs. */
 #define PTE_VALID_ARCH(pte)			(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
 #define PTE_GET_FRAME_ARCH(pte)			((uintptr_t) ((pte)->pfn << 12))
@@ -116,15 +136,13 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];
 	
-	return (
-		(1 << PAGE_CACHEABLE_SHIFT) |
-		((!p->p) << PAGE_PRESENT_SHIFT) |
-		(1 << PAGE_USER_SHIFT) |
-		(1 << PAGE_READ_SHIFT) |
-		(1 << PAGE_WRITE_SHIFT) |
-		(1 << PAGE_EXEC_SHIFT) |
-		(p->g << PAGE_GLOBAL_SHIFT)
-	);
+	return ((1 << PAGE_CACHEABLE_SHIFT) |
+	    ((!p->p) << PAGE_PRESENT_SHIFT) |
+	    (1 << PAGE_USER_SHIFT) |
+	    (1 << PAGE_READ_SHIFT) |
+	    (1 << PAGE_WRITE_SHIFT) |
+	    (1 << PAGE_EXEC_SHIFT) |
+	    (p->g << PAGE_GLOBAL_SHIFT));
 }
 
 static inline void set_pt_flags(pte_t *pt, index_t i, int flags)

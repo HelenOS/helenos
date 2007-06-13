@@ -56,46 +56,72 @@
  * Implementation of generic 4-level page table interface.
  * IA-32 has 2-level page tables, so PTL1 and PTL2 are left out.
  */
+
+/* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH	1024
 #define PTL1_ENTRIES_ARCH	0
 #define PTL2_ENTRIES_ARCH	0
 #define PTL3_ENTRIES_ARCH	1024
 
-#define PTL0_SIZE_ARCH       ONE_FRAME
-#define PTL1_SIZE_ARCH       0
-#define PTL2_SIZE_ARCH       0
-#define PTL3_SIZE_ARCH       ONE_FRAME
+/* Page table sizes for each level. */
+#define PTL0_SIZE_ARCH		ONE_FRAME
+#define PTL1_SIZE_ARCH		0
+#define PTL2_SIZE_ARCH		0
+#define PTL3_SIZE_ARCH		ONE_FRAME
 
+/* Macros calculating indices for each level. */
 #define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
 #define PTL1_INDEX_ARCH(vaddr)	0
 #define PTL2_INDEX_ARCH(vaddr)	0
 #define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
 
-#define GET_PTL1_ADDRESS_ARCH(ptl0, i)		((pte_t *)((((pte_t *)(ptl0))[(i)].frame_address) << 12))
-#define GET_PTL2_ADDRESS_ARCH(ptl1, i)		(ptl1)
-#define GET_PTL3_ADDRESS_ARCH(ptl2, i)		(ptl2)
-#define GET_FRAME_ADDRESS_ARCH(ptl3, i)		((uintptr_t)((((pte_t *)(ptl3))[(i)].frame_address) << 12))
+/* Get PTE address accessors for each level. */
+#define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
+	((pte_t *) ((((pte_t *) (ptl0))[(i)].frame_address) << 12))
+#define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
+	(ptl1)
+#define GET_PTL3_ADDRESS_ARCH(ptl2, i) \
+	(ptl2)
+#define GET_FRAME_ADDRESS_ARCH(ptl3, i) \
+	((uintptr_t) ((((pte_t *) (ptl3))[(i)].frame_address) << 12))
 
-#define SET_PTL0_ADDRESS_ARCH(ptl0)		(write_cr3((uintptr_t) (ptl0)))
-#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a)	(((pte_t *)(ptl0))[(i)].frame_address = (a)>>12)
+/* Set PTE address accessors for each level. */
+#define SET_PTL0_ADDRESS_ARCH(ptl0) \
+	(write_cr3((uintptr_t) (ptl0)))
+#define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
+	(((pte_t *) (ptl0))[(i)].frame_address = (a) >> 12)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
-#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a)	(((pte_t *)(ptl3))[(i)].frame_address = (a)>>12)
+#define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
+	(((pte_t *) (ptl3))[(i)].frame_address = (a) >> 12)
 
-#define GET_PTL1_FLAGS_ARCH(ptl0, i)		get_pt_flags((pte_t *)(ptl0), (index_t)(i))
-#define GET_PTL2_FLAGS_ARCH(ptl1, i)		PAGE_PRESENT
-#define GET_PTL3_FLAGS_ARCH(ptl2, i)		PAGE_PRESENT
-#define GET_FRAME_FLAGS_ARCH(ptl3, i)		get_pt_flags((pte_t *)(ptl3), (index_t)(i))
+/* Get PTE flags accessors for each level. */
+#define GET_PTL1_FLAGS_ARCH(ptl0, i) \
+	get_pt_flags((pte_t *) (ptl0), (index_t) (i))
+#define GET_PTL2_FLAGS_ARCH(ptl1, i) \
+	PAGE_PRESENT
+#define GET_PTL3_FLAGS_ARCH(ptl2, i) \
+	PAGE_PRESENT
+#define GET_FRAME_FLAGS_ARCH(ptl3, i) \
+	get_pt_flags((pte_t *) (ptl3), (index_t) (i))
 
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)		set_pt_flags((pte_t *)(ptl0), (index_t)(i), (x))
+/* Set PTE flags accessors for each level. */
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)	\
+	set_pt_flags((pte_t *) (ptl0), (index_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
-#define SET_FRAME_FLAGS_ARCH(ptl3, i, x)	set_pt_flags((pte_t *)(ptl3), (index_t)(i), (x))
+#define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
+	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
 
-#define PTE_VALID_ARCH(p)			(*((uint32_t *) (p)) != 0)
-#define PTE_PRESENT_ARCH(p)			((p)->present != 0)
-#define PTE_GET_FRAME_ARCH(p)			((p)->frame_address << FRAME_WIDTH)
-#define PTE_WRITABLE_ARCH(p)			((p)->writeable != 0)
+/* Macros for querying the last level entries. */
+#define PTE_VALID_ARCH(p) \
+	(*((uint32_t *) (p)) != 0)
+#define PTE_PRESENT_ARCH(p) \
+	((p)->present != 0)
+#define PTE_GET_FRAME_ARCH(p) \
+	((p)->frame_address << FRAME_WIDTH)
+#define PTE_WRITABLE_ARCH(p) \
+	((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)			1
 
 #ifndef __ASM__
@@ -105,7 +131,9 @@
 
 /* Page fault error codes. */
 
-/** When bit on this position is 0, the page fault was caused by a not-present page. */
+/** When bit on this position is 0, the page fault was caused by a not-present
+ * page.
+ */
 #define PFERR_CODE_P		(1 << 0)
 
 /** When bit on this position is 1, the page fault was caused by a write. */
@@ -121,15 +149,13 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];
 	
-	return (
-		(!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
-		(!p->present) << PAGE_PRESENT_SHIFT |
-		p->uaccessible << PAGE_USER_SHIFT |
-		1<<PAGE_READ_SHIFT |
-		p->writeable << PAGE_WRITE_SHIFT |
-		1<<PAGE_EXEC_SHIFT |
-		p->global << PAGE_GLOBAL_SHIFT
-	);
+	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
+	    (!p->present) << PAGE_PRESENT_SHIFT |
+	    p->uaccessible << PAGE_USER_SHIFT |
+	    1 << PAGE_READ_SHIFT |
+	    p->writeable << PAGE_WRITE_SHIFT |
+	    1 << PAGE_EXEC_SHIFT |
+	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
 static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
@@ -143,7 +169,8 @@ static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 	p->global = (flags & PAGE_GLOBAL) != 0;
 	
 	/*
-	 * Ensure that there is at least one bit set even if the present bit is cleared.
+	 * Ensure that there is at least one bit set even if the present bit is
+	 * cleared.
 	 */
 	p->soft_valid = true;
 }

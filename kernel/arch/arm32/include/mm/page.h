@@ -55,23 +55,26 @@
 
 #ifdef KERNEL
 
+/* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH 	(2 << 12)	/* 4096 */
 #define PTL1_ENTRIES_ARCH 	0
 #define PTL2_ENTRIES_ARCH 	0
-
 /* coarse page tables used (256 * 4 = 1KB per page) */
 #define PTL3_ENTRIES_ARCH 	(2 << 8)	/* 256 */
 
+/* Page table sizes for each level. */
 #define PTL0_SIZE_ARCH 		FOUR_FRAMES
 #define PTL1_SIZE_ARCH 		0
 #define PTL2_SIZE_ARCH 		0
 #define PTL3_SIZE_ARCH 		ONE_FRAME
 
+/* Macros calculating indices into page tables for each level. */
 #define PTL0_INDEX_ARCH(vaddr) 	(((vaddr) >> 20) & 0xfff)
 #define PTL1_INDEX_ARCH(vaddr) 	0
 #define PTL2_INDEX_ARCH(vaddr) 	0
 #define PTL3_INDEX_ARCH(vaddr) 	(((vaddr) >> 12) & 0x0ff)
 
+/* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
 	((pte_t *) ((((pte_level0_t *)(ptl0))[(i)]).coarse_table_addr << 10))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
@@ -81,6 +84,7 @@
 #define GET_FRAME_ADDRESS_ARCH(ptl3, i) \
 	((uintptr_t) ((((pte_level1_t *)(ptl3))[(i)]).frame_base_addr << 12))
 
+/* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
 	(set_ptl0_addr((pte_level0_t *) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
@@ -90,6 +94,7 @@
 #define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
 	(((pte_level1_t *) (ptl3))[(i)].frame_base_addr = (a) >> 12)
 
+/* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
 	get_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
@@ -99,6 +104,7 @@
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
 	get_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i))
 
+/* Set PTE flags accessors for each level. */
 #define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
 	set_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
@@ -106,20 +112,16 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
 	set_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i), (x))
 
+/* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
 	(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte) \
 	(((pte_level0_t *) (pte))->descriptor_type != 0)
-
-/* pte should point into ptl3 */
 #define PTE_GET_FRAME_ARCH(pte) \
 	(((pte_level1_t *) (pte))->frame_base_addr << FRAME_WIDTH)
-
-/* pte should point into ptl3 */
 #define PTE_WRITABLE_ARCH(pte) \
 	(((pte_level1_t *) (pte))->access_permission_0 == \
 	    PTE_AP_USER_RW_KERNEL_RW)
-
 #define PTE_EXECUTABLE_ARCH(pte) \
 	1
 
@@ -128,26 +130,26 @@
 /** Level 0 page table entry. */
 typedef struct {
 	/* 0b01 for coarse tables, see below for details */
-	unsigned descriptor_type     : 2;
-	unsigned impl_specific       : 3;
-	unsigned domain              : 4;
-	unsigned should_be_zero      : 1;
+	unsigned descriptor_type : 2;
+	unsigned impl_specific : 3;
+	unsigned domain : 4;
+	unsigned should_be_zero : 1;
 
 	/* Pointer to the coarse 2nd level page table (holding entries for small
 	 * (4KB) or large (64KB) pages. ARM also supports fine 2nd level page
 	 * tables that may hold even tiny pages (1KB) but they are bigger (4KB
 	 * per table in comparison with 1KB per the coarse table)
 	 */
-	unsigned coarse_table_addr   : 22;
+	unsigned coarse_table_addr : 22;
 } ATTRIBUTE_PACKED pte_level0_t;
 
 /** Level 1 page table entry (small (4KB) pages used). */
 typedef struct {
 
 	/* 0b10 for small pages */
-	unsigned descriptor_type     : 2;
-	unsigned bufferable          : 1;
-	unsigned cacheable           : 1;
+	unsigned descriptor_type : 2;
+	unsigned bufferable : 1;
+	unsigned cacheable : 1;
 
 	/* access permissions for each of 4 subparts of a page
 	 * (for each 1KB when small pages used */
@@ -155,7 +157,7 @@ typedef struct {
 	unsigned access_permission_1 : 2;
 	unsigned access_permission_2 : 2;
 	unsigned access_permission_3 : 2;
-	unsigned frame_base_addr     : 20;
+	unsigned frame_base_addr : 20;
 } ATTRIBUTE_PACKED pte_level1_t;
 
 
@@ -190,7 +192,7 @@ typedef struct {
  *
  * @param pt    Pointer to the page table to set.
  */   
-static inline void set_ptl0_addr( pte_level0_t *pt)
+static inline void set_ptl0_addr(pte_level0_t *pt)
 {
 	asm volatile (
 		"mcr p15, 0, %0, c2, c0, 0 \n"

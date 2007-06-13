@@ -82,8 +82,8 @@
 #define GET_FRAME_ADDRESS(ptl3, i)	GET_FRAME_ADDRESS_ARCH(ptl3, i)
 
 /*
- * These macros are provided to change shape of the 4-level
- * tree of page tables on respective level.
+ * These macros are provided to change the shape of the 4-level tree of page
+ * tables on respective level.
  */
 #define SET_PTL1_ADDRESS(ptl0, i, a)	SET_PTL1_ADDRESS_ARCH(ptl0, i, a)
 #define SET_PTL2_ADDRESS(ptl1, i, a)	SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
@@ -106,6 +106,9 @@
 #define SET_PTL3_FLAGS(ptl2, i, x)	SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS(ptl3, i, x)	SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
+/*
+ * Macros for querying the last-level PTEs.
+ */
 #define PTE_VALID(p)		PTE_VALID_ARCH((p))
 #define PTE_PRESENT(p)		PTE_PRESENT_ARCH((p))
 #define PTE_GET_FRAME(p)	PTE_GET_FRAME_ARCH((p))
@@ -118,7 +121,8 @@ extern as_operations_t as_pt_operations;
 #endif
 extern page_mapping_operations_t pt_mapping_operations;
 
-extern void page_mapping_insert_pt(as_t *as, uintptr_t page, uintptr_t frame, int flags);
+extern void page_mapping_insert_pt(as_t *as, uintptr_t page, uintptr_t frame,
+    int flags);
 extern pte_t *page_mapping_find_pt(as_t *as, uintptr_t page);
 
 #endif

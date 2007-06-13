@@ -50,8 +50,9 @@
 #define KEY_PAGE	1
 
 #define PAGE_HT_ENTRIES_BITS	13
-#define PAGE_HT_ENTRIES		(1<<PAGE_HT_ENTRIES_BITS)
+#define PAGE_HT_ENTRIES		(1 << PAGE_HT_ENTRIES_BITS)
 
+/* Macros for querying page hash table PTEs. */
 #define PTE_VALID(pte)		((pte) != NULL)
 #define PTE_PRESENT(pte)	((pte)->p != 0)
 #define PTE_GET_FRAME(pte)	((pte)->frame)

@@ -326,7 +326,7 @@ void elf_share(as_area_t *area)
 				    PTE_PRESENT(pte));
 				btree_insert(&area->sh_info->pagemap,
 				    (base + j * PAGE_SIZE) - area->base,
-					(void *) PTE_GET_FRAME(pte), NULL);
+				    (void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
 
 				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
