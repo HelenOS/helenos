@@ -60,8 +60,8 @@
 
 /** Execute code associated with IRQ notification.
  *
- * @param call Notification call.
- * @param code Top-half pseudocode.
+ * @param call		Notification call.
+ * @param code		Top-half pseudocode.
  */
 static void code_execute(call_t *call, irq_code_t *code)
 {
@@ -71,38 +71,38 @@ static void code_execute(call_t *call, irq_code_t *code)
 	if (!code)
 		return;
 	
-	for (i=0; i < code->cmdcount;i++) {
+	for (i = 0; i < code->cmdcount; i++) {
 		switch (code->cmds[i].cmd) {
 		case CMD_MEM_READ_1:
-			dstval = *((uint8_t *)code->cmds[i].addr);
+			dstval = *((uint8_t *) code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_2:
-			dstval = *((uint16_t *)code->cmds[i].addr);
+			dstval = *((uint16_t *) code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_4:
-			dstval = *((uint32_t *)code->cmds[i].addr);
+			dstval = *((uint32_t *) code->cmds[i].addr);
 			break;
 		case CMD_MEM_READ_8:
-			dstval = *((uint64_t *)code->cmds[i].addr);
+			dstval = *((uint64_t *) code->cmds[i].addr);
 			break;
 		case CMD_MEM_WRITE_1:
-			*((uint8_t *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint8_t *) code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_2:
-			*((uint16_t *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint16_t *) code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_4:
-			*((uint32_t *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint32_t *) code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_8:
-			*((uint64_t *)code->cmds[i].addr) = code->cmds[i].value;
+			*((uint64_t *) code->cmds[i].addr) = code->cmds[i].value;
 			break;
 #if defined(ia32) || defined(amd64)
 		case CMD_PORT_READ_1:
-			dstval = inb((long)code->cmds[i].addr);
+			dstval = inb((long) code->cmds[i].addr);
 			break;
 		case CMD_PORT_WRITE_1:
-			outb((long)code->cmds[i].addr, code->cmds[i].value);
+			outb((long) code->cmds[i].addr, code->cmds[i].value);
 			break;
 #endif
 #if defined(ia64) && defined(SKI)
@@ -124,6 +124,10 @@ static void code_execute(call_t *call, irq_code_t *code)
 	}
 }
 
+/** Free top-half pseudocode.
+ *
+ * @param code		Pointer to the top-half pseudocode.
+ */
 static void code_free(irq_code_t *code)
 {
 	if (code) {
@@ -132,7 +136,13 @@ static void code_free(irq_code_t *code)
 	}
 }
 
-static irq_code_t * code_from_uspace(irq_code_t *ucode)
+/** Copy top-half pseudocode from userspace into the kernel.
+ *
+ * @param ucode		Userspace address of the top-half pseudocode.
+ *
+ * @return		Kernel address of the copied pseudocode.
+ */
+static irq_code_t *code_from_uspace(irq_code_t *ucode)
 {
 	irq_code_t *code;
 	irq_cmd_t *ucmds;
@@ -150,8 +160,9 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 		return NULL;
 	}
 	ucmds = code->cmds;
-	code->cmds = malloc(sizeof(code->cmds[0]) * (code->cmdcount), 0);
-	rc = copy_from_uspace(code->cmds, ucmds, sizeof(code->cmds[0]) * (code->cmdcount));
+	code->cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
+	rc = copy_from_uspace(code->cmds, ucmds,
+	    sizeof(code->cmds[0]) * code->cmdcount);
 	if (rc != 0) {
 		free(code->cmds);
 		free(code);
@@ -163,9 +174,9 @@ static irq_code_t * code_from_uspace(irq_code_t *ucode)
 
 /** Unregister task from IRQ notification.
  *
- * @param box Answerbox associated with the notification.
- * @param inr IRQ numbe.
- * @param devno Device number.
+ * @param box		Answerbox associated with the notification.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
  */
 void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
@@ -195,15 +206,16 @@ void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box Receiving answerbox.
- * @param inr IRQ number.
- * @param devno Device number.
- * @param method Method to be associated with the notification.
- * @param ucode Uspace pointer to top-half pseudocode.
+ * @param box		Receiving answerbox.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @param method	Method to be associated with the notification.
+ * @param ucode		Uspace pointer to top-half pseudocode.
  *
- * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ * @return 		EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
  */
-int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t method, irq_code_t *ucode)
+int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
+    unative_t method, irq_code_t *ucode)
 {
 	ipl_t ipl;
 	irq_code_t *code;
@@ -213,8 +225,9 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t metho
 		code = code_from_uspace(ucode);
 		if (!code)
 			return EBADMEM;
-	} else
+	} else {
 		code = NULL;
+	}
 
 	ipl = interrupts_disable();
 	irq = irq_find_and_lock(inr, devno);
@@ -247,10 +260,12 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno, unative_t metho
 	return 0;
 }
 
-/** Add call to proper answerbox queue.
+/** Add a call to the proper answerbox queue.
  *
  * Assume irq->lock is locked.
  *
+ * @param irq		IRQ structure referencing the target answerbox.
+ * @param call		IRQ notification call.
  */
 static void send_call(irq_t *irq, call_t *call)
 {
@@ -261,8 +276,12 @@ static void send_call(irq_t *irq, call_t *call)
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
 }
 
-/** Send notification message
+/** Send notification message.
  *
+ * @param irq		IRQ structure.
+ * @param a1		Driver-specific payload argument.
+ * @param a2		Driver-specific payload argument.
+ * @param a3		Driver-specific payload argument.
  */
 void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
 {
@@ -289,9 +308,11 @@ void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
 	spinlock_unlock(&irq->lock);
 }
 
-/** Notify task that an irq had occurred.
+/** Notify a task that an IRQ had occurred.
  *
  * We expect interrupts to be disabled and the irq->lock already held.
+ *
+ * @param irq		IRQ structure.
  */
 void ipc_irq_send_notif(irq_t *irq)
 {
@@ -323,7 +344,7 @@ void ipc_irq_send_notif(irq_t *irq)
  * list of all irq_t structures that are registered to
  * send notifications to it.
  *
- * @param box Answerbox for which we want to carry out the cleanup.
+ * @param box		Answerbox for which we want to carry out the cleanup.
  */
 void ipc_irq_cleanup(answerbox_t *box)
 {

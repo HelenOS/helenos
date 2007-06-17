@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 /** Register service.
  *
  * @param service Service to be registered.
- * @param phone phone Phone to be used for connections to the service.
+ * @param phone Phone to be used for connections to the service.
  * @param call Pointer to call structure.
  *
  * @return Zero on success or a value from @ref errno.h.

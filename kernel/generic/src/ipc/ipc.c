@@ -34,7 +34,7 @@
 
 /* Lock ordering
  *
- * First the answerbox, then the phone
+ * First the answerbox, then the phone.
  */
 
 #include <synch/spinlock.h>
@@ -53,27 +53,33 @@
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
 
-/* Open channel that is assigned automatically to new tasks */
+/** Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
 
-/* Initialize new call */
+/** Initialize a call structure.
+ *
+ * @param call		Call structure to be initialized.
+ */
 static void _ipc_call_init(call_t *call)
 {
-	memsetb((uintptr_t)call, sizeof(*call), 0);
+	memsetb((uintptr_t) call, sizeof(*call), 0);
 	call->callerbox = &TASK->answerbox;
 	call->sender = TASK;
 }
 
-/** Allocate & initialize call structure
+/** Allocate and initialize a call structure.
  * 
- * The call is initialized, so that the reply will be directed
- * to TASK->answerbox
+ * The call is initialized, so that the reply will be directed to
+ * TASK->answerbox.
  *
- * @param flags Parameters for slab_alloc (ATOMIC, etc.)
+ * @param flags		Parameters for slab_alloc (e.g FRAME_ATOMIC).
+ *
+ * @return		If flags permit it, return NULL, or initialized kernel
+ *			call structure.
  */
-call_t * ipc_call_alloc(int flags)
+call_t *ipc_call_alloc(int flags)
 {
 	call_t *call;
 
@@ -83,20 +89,30 @@ call_t * ipc_call_alloc(int flags)
 	return call;
 }
 
-/** Initialize allocated call */
+/** Initialize a statically allocated call structure.
+ *
+ * @param call		Statically allocated kernel call structure to be
+ *			initialized.
+ */
 void ipc_call_static_init(call_t *call)
 {
 	_ipc_call_init(call);
 	call->flags |= IPC_CALL_STATIC_ALLOC;
 }
 
-/** Deallocate call stracuture */
+/** Deallocate a call stracuture.
+ *
+ * @param call		Call structure to be freed.
+ */
 void ipc_call_free(call_t *call)
 {
+	ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 	slab_free(ipc_call_slab, call);
 }
 
-/** Initialize answerbox structure
+/** Initialize an answerbox structure.
+ *
+ * @param box		Answerbox structure to be initialized.
  */
 void ipc_answerbox_init(answerbox_t *box)
 {
@@ -112,7 +128,11 @@ void ipc_answerbox_init(answerbox_t *box)
 	box->task = TASK;
 }
 
-/** Connect phone to answerbox */
+/** Connect a phone to an answerbox.
+ *
+ * @param phone		Initialized phone structure.
+ * @param box		Initialized answerbox structure.
+ */
 void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
 	spinlock_lock(&phone->lock);
@@ -127,7 +147,9 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	spinlock_unlock(&phone->lock);
 }
 
-/** Initialize phone structure and connect phone to answerbox
+/** Initialize a phone structure.
+ *
+ * @param phone		Phone structure to be initialized.
  */
 void ipc_phone_init(phone_t *phone)
 {
@@ -137,22 +159,27 @@ void ipc_phone_init(phone_t *phone)
 	atomic_set(&phone->active_calls, 0);
 }
 
-/** Helper function to facilitate synchronous calls */
+/** Helper function to facilitate synchronous calls.
+ *
+ * @param phone		Destination kernel phone structure.
+ * @param request	Call structure with request.
+ */
 void ipc_call_sync(phone_t *phone, call_t *request)
 {
 	answerbox_t sync_box; 
 
 	ipc_answerbox_init(&sync_box);
 
-	/* We will receive data on special box */
+	/* We will receive data in a special box. */
 	request->callerbox = &sync_box;
 
 	ipc_call(phone, request);
 	ipc_wait_for_call(&sync_box, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 }
 
-/** Answer message that was not dispatched and is not entered in
- * any queue
+/** Answer a message which was not dispatched and is not listed in any queue.
+ *
+ * @param call		Call structure to be answered.
  */
 static void _ipc_answer_free_call(call_t *call)
 {
@@ -166,10 +193,10 @@ static void _ipc_answer_free_call(call_t *call)
 	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
 }
 
-/** Answer message, that is in callee queue
+/** Answer a message which is in a callee queue.
  *
- * @param box Answerbox that is answering the message
- * @param call Modified request that is being sent back
+ * @param box		Answerbox that is answering the message.
+ * @param call		Modified request that is being sent back.
  */
 void ipc_answer(answerbox_t *box, call_t *call)
 {
@@ -181,10 +208,14 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	_ipc_answer_free_call(call);
 }
 
-/** Simulate sending back a message
+/** Simulate sending back a message.
  *
  * Most errors are better handled by forming a normal backward
  * message and sending it as a normal answer.
+ *
+ * @param phone		Phone structure the call should appear to come from.
+ * @param call		Call structure to be answered.
+ * @param err		Return value to be used for the answer.
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 {
@@ -194,10 +225,14 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 	_ipc_answer_free_call(call);
 }
 
-/* Unsafe unchecking ipc_call */
+/** Unsafe unchecking version of ipc_call.
+ *
+ * @param phone		Phone structure the call comes from.
+ * @param box		Destination answerbox structure.
+ */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
-	if (! (call->flags & IPC_CALL_FORWARDED)) {
+	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
 	}
@@ -208,10 +243,13 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	waitq_wakeup(&box->wq, WAKEUP_FIRST);
 }
 
-/** Send a asynchronous request using phone to answerbox
+/** Send an asynchronous request using a phone to an answerbox.
  *
- * @param phone Phone connected to answerbox.
- * @param call Structure representing the call.
+ * @param phone		Phone structure the call comes from and which is
+ *			connected to the destination answerbox.
+ * @param call		Call structure with request.
+ *
+ * @return		Return 0 on success, ENOENT on error.
  */
 int ipc_call(phone_t *phone, call_t *call)
 {
@@ -238,14 +276,15 @@ int ipc_call(phone_t *phone, call_t *call)
 	return 0;
 }
 
-/** Disconnect phone from answerbox
+/** Disconnect phone from answerbox.
  *
- * This call leaves the phone in HUNGUP state. The change to 'free' is done
+ * This call leaves the phone in the HUNGUP state. The change to 'free' is done
  * lazily later.
  *
- * @param phone Phone to be hung up
+ * @param phone		Phone structure to be hung up.
  *              
- * @return 0 - phone disconnected, -1 - the phone was already disconnected
+ * @return		Return 0 if the phone is disconnected.
+ *			Return -1 if the phone was already disconnected.
  */
 int ipc_phone_hangup(phone_t *phone)
 {
@@ -253,8 +292,8 @@ int ipc_phone_hangup(phone_t *phone)
 	call_t *call;
 	
 	spinlock_lock(&phone->lock);
-	if (phone->state == IPC_PHONE_FREE || phone->state ==IPC_PHONE_HUNGUP \
-	    || phone->state == IPC_PHONE_CONNECTING) {
+	if (phone->state == IPC_PHONE_FREE || phone->state == IPC_PHONE_HUNGUP ||
+	    phone->state == IPC_PHONE_CONNECTING) {
 		spinlock_unlock(&phone->lock);
 		return -1;
 	}
@@ -279,15 +318,17 @@ int ipc_phone_hangup(phone_t *phone)
 	return 0;
 }
 
-/** Forwards call from one answerbox to a new one
+/** Forwards call from one answerbox to another one.
  *
- * @param call Call to be redirected.
- * @param newphone Phone to target answerbox.
- * @param oldbox Old answerbox
- * @return 0 on forward ok, error code, if there was error
+ * @param call		Call structure to be redirected.
+ * @param newphone	Phone structure to target answerbox.
+ * @param oldbox	Old answerbox structure.
+ *
+ * @return		Return 0 if forwarding succeeded or an error code if
+ *			there was error.
  * 
- * - the return value serves only as an information for the forwarder,
- *   the original caller is notified automatically with EFORWARD
+ * The return value serves only as an information for the forwarder,
+ * the original caller is notified automatically with EFORWARD.
  */
 int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 {
@@ -299,17 +340,20 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
 }
 
 
-/** Wait for phone call 
+/** Wait for a phone call.
  *
- * @param box Answerbox expecting the call.
- * @param usec Timeout in microseconds. See documentation for waitq_sleep_timeout() for
- *	       decription of its special meaning.
- * @param flags Select mode of sleep operation. See documentation for waitq_sleep_timeout()i
- * 		for description of its special meaning.
- * @return Recived message address
- * - to distinguish between call and answer, look at call->flags
+ * @param box		Answerbox expecting the call.
+ * @param usec		Timeout in microseconds. See documentation for
+ *			waitq_sleep_timeout() for decription of its special
+ *			meaning.
+ * @param flags		Select mode of sleep operation. See documentation for
+ *			waitq_sleep_timeout() for description of its special
+ *			meaning.
+ * @return 		Recived call structure or NULL.
+ * 
+ * To distinguish between a call and an answer, have a look at call->flags.
  */
-call_t * ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
+call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
 {
 	call_t *request;
 	ipl_t ipl;
@@ -350,7 +394,10 @@ restart:
 	return request;
 }
 
-/** Answer all calls from list with EHANGUP msg */
+/** Answer all calls from list with EHANGUP answer.
+ *
+ * @param lst		Head of the list to be cleaned up.
+ */
 static void ipc_cleanup_call_list(link_t *lst)
 {
 	call_t *call;
@@ -364,10 +411,10 @@ static void ipc_cleanup_call_list(link_t *lst)
 	}
 }
 
-/** Cleans up all IPC communication of the current task
+/** Cleans up all IPC communication of the current task.
  *
  * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
- * have to change it as well if you want to cleanup other current then current.
+ * have to change it as well if you want to cleanup other tasks than TASK.
  */
 void ipc_cleanup(void)
 {
@@ -377,7 +424,7 @@ void ipc_cleanup(void)
 	DEADLOCK_PROBE_INIT(p_phonelck);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for (i=0;i < IPC_MAX_PHONES; i++)
+	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&TASK->phones[i]);
 
 	/* Disconnect all connected irqs */
@@ -413,8 +460,8 @@ restart_phones:
 		/* Go through all phones, until all are FREE... */
 		/* Locking not needed, no one else should modify
 		 * it, when we are in cleanup */
-		for (i=0;i < IPC_MAX_PHONES; i++) {
-			if (TASK->phones[i].state == IPC_PHONE_HUNGUP && \
+		for (i = 0; i < IPC_MAX_PHONES; i++) {
+			if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
 			    atomic_get(&TASK->phones[i].active_calls) == 0)
 				TASK->phones[i].state = IPC_PHONE_FREE;
 			
@@ -433,9 +480,11 @@ restart_phones:
 		if (i == IPC_MAX_PHONES)
 			break;
 		
-		call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
-		ASSERT((call->flags & IPC_CALL_ANSWERED) || (call->flags & IPC_CALL_NOTIF));
-		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
+		call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
+		    SYNCH_FLAGS_NONE);
+		ASSERT((call->flags & IPC_CALL_ANSWERED) ||
+		    (call->flags & IPC_CALL_NOTIF));
+		ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 		
 		atomic_dec(&TASK->active_calls);
 		ipc_call_free(call);
@@ -446,11 +495,15 @@ restart_phones:
 /** Initilize IPC subsystem */
 void ipc_init(void)
 {
-	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL, NULL, 0);
+	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL,
+	    NULL, 0);
 }
 
 
-/** Kconsole - list answerbox contents */
+/** List answerbox contents.
+ *
+ * @param taskid	Task ID.
+ */
 void ipc_print_task(task_id_t taskid)
 {
 	task_t *task;
@@ -468,10 +521,10 @@ void ipc_print_task(task_id_t taskid)
 
 	/* Print opened phones & details */
 	printf("PHONE:\n");
-	for (i=0; i < IPC_MAX_PHONES;i++) {
+	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		spinlock_lock(&task->phones[i].lock);
 		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%d: ",i);
+			printf("%d: ", i);
 			switch (task->phones[i].state) {
 			case IPC_PHONE_CONNECTING:
 				printf("connecting ");

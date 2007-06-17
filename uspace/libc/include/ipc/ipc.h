@@ -49,17 +49,18 @@ typedef struct {
 typedef sysarg_t ipc_callid_t;
 
 typedef void (* ipc_async_callback_t)(void *private, int retval,
-				      ipc_call_t *data);
+    ipc_call_t *data);
 
-#define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), (res2), 0)
+#define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) \
+	ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), (res2), \
+	    0)
 extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-			   ipcarg_t arg2, ipcarg_t arg3,
-			   ipcarg_t *result1, ipcarg_t *result2, 
-			   ipcarg_t *result3);
-
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2,
+    ipcarg_t *result3);
 
 extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
-			 ipcarg_t *result);
+    ipcarg_t *result);
+
 extern ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);
 static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
@@ -68,24 +69,27 @@ static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 }
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 
-extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
-			   ipcarg_t arg2);
+extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval,
+    ipcarg_t arg1, ipcarg_t arg2);
 extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
 
-#define ipc_call_async(phoneid,method,arg1,private, callback,can_preempt) (ipc_call_async_2(phoneid, method, arg1, 0, private, callback, can_preempt))
+#define ipc_call_async(phoneid, method, arg1, private, callback, can_preempt) \
+	(ipc_call_async_2(phoneid, method, arg1, 0, private, callback, \
+	    can_preempt))
 extern void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		      ipcarg_t arg2, void *private,
-		      ipc_async_callback_t callback, int can_preempt);
+    ipcarg_t arg2, void *private, ipc_async_callback_t callback,
+    int can_preempt);
 extern void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-			     ipcarg_t arg2, ipcarg_t arg3, void *private,
-			     ipc_async_callback_t callback, int can_preempt);
+    ipcarg_t arg2, ipcarg_t arg3, void *private, ipc_async_callback_t callback,
+    int can_preempt);
 
 extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
 extern int ipc_connect_me_to(int phoneid, int arg1, int arg2);
 extern int ipc_hangup(int phoneid);
 extern int ipc_register_irq(int inr, int devno, int method, irq_code_t *code);
 extern int ipc_unregister_irq(int inr, int devno);
-extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1);
+extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
+    ipcarg_t arg1);
 
 #endif
 

@@ -36,7 +36,7 @@
 #define KERN_IPC_IRQ_H_
 
 /** Maximum length of IPC IRQ program */
-#define IRQ_MAX_PROG_SIZE 10
+#define IRQ_MAX_PROG_SIZE	10
 
 #include <ipc/ipc.h>
 #include <ddi/irq.h>
@@ -46,7 +46,8 @@
 extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
     unative_t method, irq_code_t *ucode);
 extern void ipc_irq_send_notif(irq_t *irq);
-extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3);
+extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2,
+    unative_t a3);
 extern void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno);
 extern void ipc_irq_cleanup(answerbox_t *box);
 

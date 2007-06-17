@@ -35,10 +35,10 @@
 #ifndef KERN_IPCRSC_H_
 #define KERN_IPCRSC_H_
 
-call_t * get_call(unative_t callid);
-int phone_alloc(void);
-void phone_connect(int phoneid, answerbox_t *box);
-void phone_dealloc(int phoneid);
+extern call_t * get_call(unative_t callid);
+extern int phone_alloc(void);
+extern void phone_connect(int phoneid, answerbox_t *box);
+extern void phone_dealloc(int phoneid);
 
 #endif
 

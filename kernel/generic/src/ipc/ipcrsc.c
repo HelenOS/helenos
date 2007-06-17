@@ -132,21 +132,26 @@
 #include <ipc/ipcrsc.h>
 #include <debug.h>
 
-/** Find call_t * in call table according to callid
+/** Find call_t * in call table according to callid.
  *
- * TODO: Some speedup (hash table?)
- * @return NULL on not found, otherwise pointer to call structure
+ * @todo Some speedup (hash table?)
+ *
+ * @param callid	Userspace hash of the call. Currently it is the call
+ *			structure kernel address.
+ *
+ * @return		NULL on not found, otherwise pointer to the call
+ *			structure.
  */
-call_t * get_call(unative_t callid)
+call_t *get_call(unative_t callid)
 {
 	link_t *lst;
 	call_t *call, *result = NULL;
 
 	spinlock_lock(&TASK->answerbox.lock);
 	for (lst = TASK->answerbox.dispatched_calls.next;
-	     lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
+	    lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
 		call = list_get_instance(lst, call_t, link);
-		if ((unative_t)call == callid) {
+		if ((unative_t) call == callid) {
 			result = call;
 			break;
 		}
@@ -155,15 +160,19 @@ call_t * get_call(unative_t callid)
 	return result;
 }
 
-/** Allocate new phone slot in current TASK structure */
+/** Allocate new phone slot in the current TASK structure.
+ *
+ * @return		New phone handle or -1 if the phone handle limit is
+ *			exceeded.
+ */
 int phone_alloc(void)
 {
 	int i;
 
 	spinlock_lock(&TASK->lock);
 	
-	for (i=0; i < IPC_MAX_PHONES; i++) {
-		if (TASK->phones[i].state == IPC_PHONE_HUNGUP && \
+	for (i = 0; i < IPC_MAX_PHONES; i++) {
+		if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
 		    atomic_get(&TASK->phones[i].active_calls) == 0)
 			TASK->phones[i].state = IPC_PHONE_FREE;
 
@@ -179,6 +188,10 @@ int phone_alloc(void)
 	return i;
 }
 
+/** Mark a phone structure free.
+ *
+ * @param phone		Phone structure to be marked free.
+ */
 static void phone_deallocp(phone_t *phone)
 {
 	ASSERT(phone->state == IPC_PHONE_CONNECTING);
@@ -187,18 +200,21 @@ static void phone_deallocp(phone_t *phone)
 	phone->state = IPC_PHONE_FREE;
 }
 
-/** Free slot from a disconnected phone
+/** Free slot from a disconnected phone.
  *
- * All already sent messages will be correctly processed
+ * All already sent messages will be correctly processed.
+ *
+ * @param phoneid	Phone handle of the phone to be freed.
  */
 void phone_dealloc(int phoneid)
 {
 	phone_deallocp(&TASK->phones[phoneid]);
 }
 
-/** Connect phone to a given answerbox
+/** Connect phone to a given answerbox.
  *
- * @param phoneid The slot that will be connected
+ * @param phoneid 	Phone handle to be connected.
+ * @param box		Answerbox to which to connect the phone handle.
  *
  * The procedure _enforces_ that the user first marks the phone
  * busy (e.g. via phone_alloc) and then connects the phone, otherwise

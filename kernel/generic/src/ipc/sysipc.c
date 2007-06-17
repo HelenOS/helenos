@@ -49,14 +49,23 @@
 #include <mm/as.h>
 #include <print.h>
 
-#define GET_CHECK_PHONE(phone, phoneid, err) { \
-      if (phoneid > IPC_MAX_PHONES) { err; } \
-      phone = &TASK->phones[phoneid]; \
+#define GET_CHECK_PHONE(phone, phoneid, err) \
+{ \
+	if (phoneid > IPC_MAX_PHONES) { \
+		err; \
+	} \
+	phone = &TASK->phones[phoneid]; \
 }
 
-#define STRUCT_TO_USPACE(dst, src) copy_to_uspace(dst, src, sizeof(*(src)))
+#define STRUCT_TO_USPACE(dst, src)	copy_to_uspace(dst, src, sizeof(*(src)))
 
-/** Return true if the method is a system method */
+/** Decide if the method is a system method.
+ *
+ * @param method	Method to be decided.
+ *
+ * @return		Return 1 if the method is a system method.
+ *			Otherwise return 0.
+ */
 static inline int is_system_method(unative_t method)
 {
 	if (method <= IPC_M_LAST_SYSTEM)
@@ -64,10 +73,15 @@ static inline int is_system_method(unative_t method)
 	return 0;
 }
 
-/** Return true if the message with this method is forwardable
+/** Decide if the message with this method is forwardable.
  *
  * - some system messages may be forwarded, for some of them
  *   it is useless
+ *
+ * @param method	Method to be decided.
+ *
+ * @return		Return 1 if the method is forwardable.
+ *			Otherwise return 0.
  */
 static inline int is_forwardable(unative_t method)
 {
@@ -77,13 +91,18 @@ static inline int is_forwardable(unative_t method)
 	return 1;
 }
 
-/****************************************************/
-/* Functions that preprocess answer before sending 
- * it to the recepient
- */
 
-/** Return true if the caller (ipc_answer) should save
- * the old call contents for answer_preprocess
+/***********************************************************************
+ * Functions that preprocess answer before sending it to the recepient.
+ ***********************************************************************/
+
+/** Decide if the caller (e.g. ipc_answer()) should save the old call contents
+ * for answer_preprocess().
+ *
+ * @param call		Call structure to be decided.
+ *
+ * @return		Return 1 if the old call contents should be saved.
+ *			Return 0 otherwise.
  */
 static inline int answer_need_old(call_t *call)
 {
@@ -98,9 +117,14 @@ static inline int answer_need_old(call_t *call)
 	return 0;
 }
 
-/** Interpret process answer as control information
+/** Interpret process answer as control information.
  *
- * This function is called directly after sys_ipc_answer 
+ * This function is called directly after sys_ipc_answer().
+ *
+ * @param answer	Call structure with the answer.
+ * @param olddata	Saved data of the request.
+ *
+ * @return		Return 0 on success or an error code. 
  */
 static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
@@ -131,7 +155,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
-			/* Set 'phone identification' as arg3 of response */
+			/* Set 'phone hash' as arg3 of response */
 			IPC_SET_ARG3(answer->data,
 			    (unative_t) &TASK->phones[phoneid]);
 		}
@@ -181,9 +205,11 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return 0;
 }
 
-/** Called before the request is sent
+/** Called before the request is sent.
  *
- * @return 0 - no error, -1 - report error to user
+ * @param call		Call structure with the request.
+ *
+ * @return 		Return 0 on success, ELIMIT or EPERM on error.
  */
 static int request_preprocess(call_t *call)
 {
@@ -202,9 +228,8 @@ static int request_preprocess(call_t *call)
 		break;
 	case IPC_M_AS_AREA_SEND:
 		size = as_get_size(IPC_GET_ARG1(call->data));
-		if (!size) {
+		if (!size)
 			return EPERM;
-		}
 		IPC_SET_ARG2(call->data, size);
 		break;
 	default:
@@ -213,12 +238,14 @@ static int request_preprocess(call_t *call)
 	return 0;
 }
 
-/****************************************************/
-/* Functions called to process received call/answer 
- * before passing to uspace
- */
+/*******************************************************************************
+ * Functions called to process received call/answer before passing it to uspace.
+ *******************************************************************************/
 
-/** Do basic kernel processing of received call answer */
+/** Do basic kernel processing of received call answer.
+ *
+ * @param call		Call structure with the answer.
+ */
 static void process_answer(call_t *call)
 {
 	if (IPC_GET_RETVAL(call->data) == EHANGUP &&
@@ -233,9 +260,13 @@ static void process_answer(call_t *call)
 	}
 }
 
-/** Do basic kernel processing of received call request
+/** Do basic kernel processing of received call request.
  *
- * @return 0 - the call should be passed to userspace, 1 - ignore call
+ * @param box		Destination answerbox structure.
+ * @param call		Call structure with the request.
+ *
+ * @return 		Return 0 if the call should be passed to userspace.
+ *			Return -1 if the call should be ignored.
  */
 static int process_request(answerbox_t *box, call_t *call)
 {
@@ -245,7 +276,7 @@ static int process_request(answerbox_t *box, call_t *call)
 		phoneid = phone_alloc();
 		if (phoneid < 0) { /* Failed to allocate phone */
 			IPC_SET_RETVAL(call->data, ELIMIT);
-			ipc_answer(box,call);
+			ipc_answer(box, call);
 			return -1;
 		}
 		IPC_SET_ARG3(call->data, phoneid);
@@ -253,10 +284,19 @@ static int process_request(answerbox_t *box, call_t *call)
 	return 0;
 }
 
-/** Send a call over IPC, wait for reply, return to user
+/** Make a fast call over IPC, wait for reply and return to user.
  *
- * @return Call identification, returns -1 on fatal error, 
-           -2 on 'Too many async request, handle answers first
+ * This function can handle only one argument of payload, but is faster than
+ * the generic function (i.e. sys_ipc_call_sync()).
+ *
+ * @param phoneid	Phone handle for the call.
+ * @param method	Method of the call.
+ * @param arg1		Service-defined payload argument.
+ * @param data		Address of userspace structure where the reply call will
+ *			be stored.
+ *
+ * @return		Returns 0 on success.
+ *			Return ENOENT if there is no such phone handle.
  */
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
     unative_t arg1, ipc_data_t *data)
@@ -271,17 +311,25 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	IPC_SET_METHOD(call.data, method);
 	IPC_SET_ARG1(call.data, arg1);
 
-	if (!(res=request_preprocess(&call))) {
+	if (!(res = request_preprocess(&call))) {
 		ipc_call_sync(phone, &call);
 		process_answer(&call);
-	} else 
+	} else {
 		IPC_SET_RETVAL(call.data, res);
+	}
 	STRUCT_TO_USPACE(&data->args, &call.data.args);
 
 	return 0;
 }
 
-/** Synchronous IPC call allowing to send whole message */
+/** Make a synchronous IPC call allowing to transmit the entire payload.
+ *
+ * @param phoneid	Phone handle for the call.
+ * @param question	Userspace address of call data with the request.
+ * @param reply		Userspace address of call data where to store the answer.
+ *
+ * @return		Zero on success or an error code.
+ */
 unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question,
     ipc_data_t *reply)
 {
@@ -298,7 +346,7 @@ unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question,
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	if (!(res=request_preprocess(&call))) {
+	if (!(res = request_preprocess(&call))) {
 		ipc_call_sync(phone, &call);
 		process_answer(&call);
 	} else 
@@ -311,9 +359,9 @@ unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question,
 	return 0;
 }
 
-/** Check that the task did not exceed allowed limit
+/** Check that the task did not exceed the allowed limit of asynchronous calls.
  *
- * @return 0 - Limit OK,   -1 - limit exceeded
+ * @return 		Return 0 if limit not reached or -1 if limit exceeded.
  */
 static int check_call_limit(void)
 {
@@ -324,10 +372,20 @@ static int check_call_limit(void)
 	return 0;
 }
 
-/** Send an asynchronous call over ipc
+/** Make a fast asynchronous call over IPC.
  *
- * @return Call identification, returns -1 on fatal error, 
-           -2 on 'Too many async request, handle answers first
+ * This function can only handle two arguments of payload, but is faster than
+ * the generic function sys_ipc_call_async().
+ *
+ * @param phoneid	Phone handle for the call.
+ * @param method	Method of the call.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ *
+ * @return 		Return call hash on success.
+ *			Return IPC_CALLRET_FATAL in case of a fatal error and 
+ *			IPC_CALLRET_TEMPORARY if there are too many pending
+ *			asynchronous requests; answers should be handled first.
  */
 unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
     unative_t arg1, unative_t arg2)
@@ -355,9 +413,12 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	return (unative_t) call;
 }
 
-/** Synchronous IPC call allowing to send whole message
+/** Make an asynchronous IPC call allowing to transmit the entire payload.
  *
- * @return The same as sys_ipc_call_async
+ * @param phoneid	Phone handle for the call.
+ * @param data		Userspace address of call data with the request.
+ *
+ * @return		See sys_ipc_call_async_fast(). 
  */
 unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data)
 {
@@ -386,12 +447,22 @@ unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data)
 	return (unative_t) call;
 }
 
-/** Forward received call to another destination
+/** Forward a received call to another destination.
  *
- * The arg1 and arg2 are changed in the forwarded message
+ * @param callid	Hash of the call to forward.
+ * @param phoneid	Phone handle to use for forwarding.
+ * @param method	New method to use for the forwarded call.
+ * @param arg1		New value of the first argument for the forwarded call.
+ *
+ * @return		Return 0 on succes, otherwise return an error code.
+ *
+ * In case the original method is a system method, ARG1 and ARG2 are overwritten
+ * in the forwarded message with the new method and the new arg1, respectively.
+ * Otherwise the METHOD and ARG1 are rewritten with the new method and arg1,
+ * respectively.
  *
  * Warning: If implementing non-fast version, make sure that
- *          arg3 is not rewritten for certain system IPC
+ *          ARG3 is not rewritten for certain system IPC
  */
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
     unative_t method, unative_t arg1)
@@ -434,7 +505,18 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 	return ipc_forward(call, phone, &TASK->answerbox);
 }
 
-/** Send IPC answer */
+/** Answer an IPC call - fast version.
+ *
+ * This function can handle only two return arguments of payload, but is faster
+ * than the generic sys_ipc_answer().
+ *
+ * @param callid	Hash of the call to be answered.
+ * @param retval	Return value of the answer.
+ * @param arg1		Service-defined return value.
+ * @param arg2		Service-defined return value.
+ *
+ * @return		Return 0 on success, otherwise return an error code.	
+ */
 unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
     unative_t arg1, unative_t arg2)
 {
@@ -465,7 +547,13 @@ unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
 	return rc;
 }
 
-/** Send IPC answer */
+/** Answer an IPC call.
+ *
+ * @param callid	Hash of the call to be answered.
+ * @param data		Userspace address of call data with the answer.
+ *
+ * @return		Return 0 on success, otherwise return an error code.
+ */
 unative_t sys_ipc_answer(unative_t callid, ipc_data_t *data)
 {
 	call_t *call;
@@ -497,8 +585,11 @@ unative_t sys_ipc_answer(unative_t callid, ipc_data_t *data)
 	return rc;
 }
 
-/** Hang up the phone
+/** Hang up a phone.
  *
+ * @param		Phone handle of the phone to be hung up.
+ *
+ * @return		Return 0 on success or an error code.
  */
 unative_t sys_ipc_hangup(int phoneid)
 {
@@ -512,14 +603,17 @@ unative_t sys_ipc_hangup(int phoneid)
 	return 0;
 }
 
-/** Wait for incoming ipc call or answer
+/** Wait for an incoming IPC call or an answer.
  *
  * @param calldata	Pointer to buffer where the call/answer data is stored.
  * @param usec 		Timeout. See waitq_sleep_timeout() for explanation.
  * @param flags		Select mode of sleep operation. See waitq_sleep_timeout()
  *			for explanation.
  *
- * @return Callid, if callid & 1, then the call is answer
+ * @return 		Hash of the call.
+ *			If IPC_CALLID_NOTIFICATION bit is set in the hash, the
+ *			call is a notification. IPC_CALLID_ANSWERED denotes an
+ *			answer.
  */
 unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int flags)
 {
@@ -541,7 +635,7 @@ restart:
 
 		ipc_call_free(call);
 		
-		return ((unative_t)call) | IPC_CALLID_NOTIFICATION;
+		return ((unative_t) call) | IPC_CALLID_NOTIFICATION;
 	}
 
 	if (call->flags & IPC_CALL_ANSWERED) {
@@ -559,7 +653,7 @@ restart:
 		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
 		ipc_call_free(call);
 
-		return ((unative_t)call) | IPC_CALLID_ANSWERED;
+		return ((unative_t) call) | IPC_CALLID_ANSWERED;
 	}
 
 	if (process_request(&TASK->answerbox, call))
@@ -573,14 +667,14 @@ restart:
 	return (unative_t)call;
 }
 
-/** Connect irq handler to task.
+/** Connect an IRQ handler to a task.
  *
- * @param inr IRQ number.
- * @param devno Device number.
- * @param method Method to be associated with the notification.
- * @param ucode Uspace pointer to the top-half pseudocode.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @param method	Method to be associated with the notification.
+ * @param ucode		Uspace pointer to the top-half pseudocode.
  *
- * @return EPERM or a return code returned by ipc_irq_register().
+ * @return		EPERM or a return code returned by ipc_irq_register().
  */
 unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
     irq_code_t *ucode)
@@ -591,10 +685,12 @@ unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
 	return ipc_irq_register(&TASK->answerbox, inr, devno, method, ucode);
 }
 
-/** Disconnect irq handler from task.
+/** Disconnect an IRQ handler from a task.
  *
- * @param inr IRQ number.
- * @param devno Device number.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ *
+ * @return		Zero on success or EPERM on error..
  */
 unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
 {

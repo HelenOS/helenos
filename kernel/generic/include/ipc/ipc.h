@@ -37,13 +37,13 @@
 
 /* Length of data being transfered with IPC call */
 /* - the uspace may not be able to utilize full length */
-#define IPC_CALL_LEN    4
+#define IPC_CALL_LEN		4
 
 /** Maximum active async calls per thread */
 #ifdef CONFIG_DEBUG
-# define IPC_MAX_ASYNC_CALLS  4
+#define IPC_MAX_ASYNC_CALLS	4
 #else
-# define IPC_MAX_ASYNC_CALLS  4000
+#define IPC_MAX_ASYNC_CALLS	4000
 #endif
 
 /* Flags for calls */
@@ -61,15 +61,17 @@
 /** Interrupt notification */
 #define IPC_CALL_NOTIF		(1 << 5)
 
-/* Flags of callid (the addresses are aligned at least to 4, 
- * that is why we can use bottom 2 bits of the call address
+/*
+ * Bits used in call hashes.
+ * The addresses are aligned at least to 4 that is why we can use the 2 least
+ * significant bits of the call address.
  */
-/** Type of this msg is 'answer' */
+/** Type of this call is 'answer' */
 #define IPC_CALLID_ANSWERED	1
-/** Type of this msg is 'notification' */
+/** Type of this call is 'notification' */
 #define IPC_CALLID_NOTIFICATION	2
 
-/* Return values from IPC_ASYNC */
+/* Return values from sys_ipc_call_async(). */
 #define IPC_CALLRET_FATAL	-1
 #define IPC_CALLRET_TEMPORARY	-2
 
@@ -111,7 +113,7 @@
  *                       (on the receiving sid) as ARG3 of the call.
  *                     - the caller obtains taskid of the called thread
  */
-#define IPC_M_CONNECT_TO_ME     1
+#define IPC_M_CONNECT_TO_ME	1
 /** Protocol for CONNECT - ME - TO
  *
  * Calling process asks the callee to create for him a new connection.
@@ -130,11 +132,11 @@
  *                        system message 
  *
  */
-#define IPC_M_CONNECT_ME_TO     2
+#define IPC_M_CONNECT_ME_TO	2
 /** This message is sent to answerbox when the phone
  * is hung up
  */
-#define IPC_M_PHONE_HUNGUP      3
+#define IPC_M_PHONE_HUNGUP	3
 
 /** Send as_area over IPC 
  * - ARG1 - src as_area base address
@@ -144,7 +146,7 @@
  * on answer:
  * - ARG1 - dst as_area base adress
  */
-#define IPC_M_AS_AREA_SEND      5
+#define IPC_M_AS_AREA_SEND	5
 
 /** Get as_area over IPC
  * - ARG1 - dst as_area base address
@@ -156,14 +158,14 @@
  * - ARG1 - src as_area base address
  * - ARG2 - flags that will be used for sharing
  */
-#define IPC_M_AS_AREA_RECV      6
+#define IPC_M_AS_AREA_RECV	6
 
 
 /* Well-known methods */
-#define IPC_M_LAST_SYSTEM     511
-#define IPC_M_PING            512
+#define IPC_M_LAST_SYSTEM	511
+#define IPC_M_PING		512
 /* User methods */
-#define FIRST_USER_METHOD     1024
+#define FIRST_USER_METHOD	1024
 
 #ifdef KERNEL
 
@@ -203,17 +205,17 @@ typedef struct answerbox {
 
 	waitq_t wq;
 
-	/** Phones connected to this answerbox */
+	/** Phones connected to this answerbox. */
 	link_t connected_phones;
-	/** Received calls */
+	/** Received calls. */
 	link_t calls;			
 	link_t dispatched_calls;	/* Should be hash table in the future */
 
-	/** Answered calls */
+	/** Answered calls. */
 	link_t answers;
 
 	SPINLOCK_DECLARE(irq_lock);
-	/** Notifications from IRQ handlers */
+	/** Notifications from IRQ handlers. */
 	link_t irq_notifs;
 	/** IRQs with notifications to this answerbox. */
 	link_t irq_head;
@@ -229,17 +231,16 @@ typedef struct {
 
 	int flags;
 
-	/* Identification of the caller */
+	/** Identification of the caller. */
 	struct task *sender;
-	/* The caller box is different from sender->answerbox
-	 * for synchronous calls
-	 */
+	/** The caller box is different from sender->answerbox for synchronous
+	 *  calls. */
 	answerbox_t *callerbox;
 
-	/** Private data to internal IPC */
+	/** Private data to internal IPC. */
 	unative_t priv;
 
-	/** Data passed from/to userspace */
+	/** Data passed from/to userspace. */
 	ipc_data_t data;
 } call_t;
 

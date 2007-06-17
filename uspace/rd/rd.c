@@ -66,22 +66,22 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_PHONE_HUNGUP:
-				ipc_answer_fast(callid, 0,0,0);
-				return;
-			case IPC_M_AS_AREA_SEND:
-				ipc_answer_fast(callid, 0, (uintptr_t)fs_addr, 0);
-				continue;
-			case RD_READ_BLOCK:			
-				offset = IPC_GET_ARG1(call);
-				memcpy((void *)fs_addr, rd_addr+offset, BLOCK_SIZE);
-				retval = EOK;
-				break;
-			default:
-				retval = EINVAL;
+		case IPC_M_PHONE_HUNGUP:
+			ipc_answer_fast(callid, 0, 0, 0);
+			return;
+		case IPC_M_AS_AREA_SEND:
+			ipc_answer_fast(callid, 0, (uintptr_t) fs_addr, 0);
+			continue;
+		case RD_READ_BLOCK:			
+			offset = IPC_GET_ARG1(call);
+			memcpy((void *) fs_addr, rd_addr + offset, BLOCK_SIZE);
+			retval = EOK;
+			break;
+		default:
+			retval = EINVAL;
 		}
 		ipc_answer_fast(callid, retval, 0, 0);
-	}	
+	}
 }
 
 
@@ -90,7 +90,7 @@ static bool rd_init(void)
 	int retval, flags;
 
 	size_t rd_size = sysinfo_value("rd.size");
-	void * rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
+	void *rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
 	
 	if (rd_size == 0)
 		return false;
@@ -98,7 +98,8 @@ static bool rd_init(void)
 	rd_addr = as_get_mappable_page(rd_size);
 	
 	flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	retval = physmem_map(rd_ph_addr, rd_addr, ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
+	retval = physmem_map(rd_ph_addr, rd_addr,
+	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
 
 	if (retval < 0)
 		return false;
