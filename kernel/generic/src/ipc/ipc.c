@@ -100,7 +100,7 @@ void ipc_call_static_init(call_t *call)
 	call->flags |= IPC_CALL_STATIC_ALLOC;
 }
 
-/** Deallocate a call stracuture.
+/** Deallocate a call structure.
  *
  * @param call		Call structure to be freed.
  */
@@ -436,7 +436,7 @@ restart_phones:
 	while (!list_empty(&TASK->answerbox.connected_phones)) {
 		phone = list_get_instance(TASK->answerbox.connected_phones.next,
 		    phone_t, link);
-		if (! spinlock_trylock(&phone->lock)) {
+		if (!spinlock_trylock(&phone->lock)) {
 			spinlock_unlock(&TASK->answerbox.lock);
 			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
 			goto restart_phones;
@@ -544,7 +544,8 @@ void ipc_print_task(task_id_t taskid)
 			default:
 				break;
 			}
-			printf("active: %d\n", atomic_get(&task->phones[i].active_calls));
+			printf("active: %d\n",
+			    atomic_get(&task->phones[i].active_calls));
 		}
 		spinlock_unlock(&task->phones[i].lock);
 	}
@@ -553,11 +554,14 @@ void ipc_print_task(task_id_t taskid)
 	/* Print answerbox - calls */
 	spinlock_lock(&task->answerbox.lock);
 	printf("ABOX - CALLS:\n");
-	for (tmp=task->answerbox.calls.next; tmp != &task->answerbox.calls;tmp = tmp->next) {
+	for (tmp = task->answerbox.calls.next; tmp != &task->answerbox.calls;
+	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
-		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
-		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d "
+		    "Flags:%x\n", call, call->sender->taskid,
+		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    call->flags);
 	}
 	/* Print answerbox - calls */
 	printf("ABOX - DISPATCHED CALLS:\n");
@@ -565,17 +569,21 @@ void ipc_print_task(task_id_t taskid)
 	     tmp != &task->answerbox.dispatched_calls; 
 	     tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
-		       call->sender->taskid, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
-		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d "
+		    "Flags:%x\n", call, call->sender->taskid,
+		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    call->flags);
 	}
 	/* Print answerbox - calls */
 	printf("ABOX - ANSWERS:\n");
-	for (tmp=task->answerbox.answers.next; tmp != &task->answerbox.answers; tmp = tmp->next) {
+	for (tmp = task->answerbox.answers.next; tmp != &task->answerbox.answers;
+	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid:%p M:%d A1:%d A2:%d A3:%d Flags:%x\n",call,
-		       IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
-		       IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data), call->flags);
+		printf("Callid:%p M:%d A1:%d A2:%d A3:%d Flags:%x\n", call,
+		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    call->flags);
 	}
 
 	spinlock_unlock(&task->answerbox.lock);
