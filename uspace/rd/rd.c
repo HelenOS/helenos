@@ -2,6 +2,7 @@
  * Copyright (c) 2007 Michal Konopa
  * Copyright (c) 2007 Martin Jelen
  * Copyright (c) 2007 Peter Majer
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,42 +50,122 @@
 #include <async.h>
 #include <align.h>
 #include <async.h>
+#include <futex.h>
 #include "rd.h"
 
+/** Pointer to the ramdisk's image. */
 static void *rd_addr;
-static void *fs_addr;
 
+/**
+ * This futex protects the ramdisk's data.
+ * If we were to serve multiple requests (read + write or several writes)
+ * concurrently (i.e. from two or more threads), each read and write needs to be
+ * protected by this futex.
+ */ 
+atomic_t rd_futex = FUTEX_INITIALIZER;
+
+/** Handle one connection to ramdisk.
+ *
+ * @param iid		Hash of the request that opened the connection.
+ * @param icall		Call data of the request that opened the connection.
+ */
 static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-
-	ipc_answer_fast(iid, 0, 0, 0);
+	uintptr_t fs_va = NULL;
 	ipcarg_t offset;
 
+	/*
+	 * We allocate VA for communication per connection.
+	 * This allows us to potentionally have more clients and work
+	 * concurrently.
+	 */
+	fs_va = as_get_mappable_page(ALIGN_UP(BLOCK_SIZE, PAGE_SIZE));
+	if (!fs_va) {
+		/*
+		 * Hang up the phone if we cannot proceed any further.
+		 * This is the answer to the call that opened the connection.
+		 */
+		ipc_answer_fast(iid, EHANGUP, 0, 0);
+		return;
+	} else {
+		/*
+		 * Answer the first IPC_M_CONNECT_ME_TO call.
+		 * Return supported block size as ARG1.
+		 */
+		ipc_answer_fast(iid, EOK, BLOCK_SIZE, 0);
+	}
+
+	/*
+	 * Now we wait for the client to send us its communication as_area.
+	 */
+	callid = async_get_call(&call);
+	if (IPC_GET_METHOD(call) == IPC_M_AS_AREA_SEND) {
+		if (IPC_GET_ARG1(call) >= (ipcarg_t) BLOCK_SIZE) {
+			/*
+			 * The client sends an as_area that can absorb the whole
+			 * block.
+			 */
+			ipc_answer_fast(callid, EOK, (uintptr_t) fs_va, 0);
+		} else {
+			/*
+			 * The client offered as_area too small.
+			 * Close the connection.
+			 */
+			ipc_answer_fast(callid, EHANGUP, 0, 0);
+			return;		
+		}
+	} else {
+		/*
+		 * The client doesn't speak the same protocol.
+		 * At this point we can't handle protocol variations.
+		 * Close the connection.
+		 */
+		ipc_answer_fast(callid, EHANGUP, 0, 0);
+		return;
+	}
+	
 	while (1) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			ipc_answer_fast(callid, 0, 0, 0);
+			/*
+			 * The other side has hung up.
+			 * Answer the message and exit the pseudo thread.
+			 */
+			ipc_answer_fast(callid, EOK, 0, 0);
 			return;
-		case IPC_M_AS_AREA_SEND:
-			ipc_answer_fast(callid, 0, (uintptr_t) fs_addr, 0);
-			continue;
-		case RD_READ_BLOCK:			
+		case RD_READ_BLOCK:
 			offset = IPC_GET_ARG1(call);
-			memcpy((void *) fs_addr, rd_addr + offset, BLOCK_SIZE);
+			futex_down(&rd_futex);
+			memcpy((void *) fs_va, rd_addr + offset, BLOCK_SIZE);
+			futex_up(&rd_futex);
+			retval = EOK;
+			break;
+		case RD_WRITE_BLOCK:
+			offset = IPC_GET_ARG1(call);
+			futex_up(&rd_futex);
+			memcpy(rd_addr + offset, (void *) fs_va, BLOCK_SIZE);
+			futex_down(&rd_futex);
 			retval = EOK;
 			break;
 		default:
+			/*
+			 * The client doesn't speak the same protocol.
+			 * Instead of closing the connection, we just ignore
+			 * the call. This can be useful if the client uses a
+			 * newer version of the protocol.
+			 */
 			retval = EINVAL;
+			break;
 		}
 		ipc_answer_fast(callid, retval, 0, 0);
 	}
 }
 
-
+/** Prepare the ramdisk image for operation. */
 static bool rd_init(void)
 {
 	int retval, flags;
@@ -103,10 +184,6 @@ static bool rd_init(void)
 
 	if (retval < 0)
 		return false;
-	
-	size_t fs_size = ALIGN_UP(BLOCK_SIZE * sizeof(char), PAGE_SIZE);
-	fs_addr = as_get_mappable_page(fs_size);
-
 	return true;
 }
 

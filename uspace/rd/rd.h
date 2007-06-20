@@ -2,6 +2,7 @@
  * Copyright (c) 2007 Michal Konopa
  * Copyright (c) 2007 Martin Jelen
  * Copyright (c) 2007 Peter Majer
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,14 +40,13 @@
 
 /* Basic constants. */
 
-#ifndef _RD_H
-#define _RD_H
+#ifndef RD_RD_H_
+#define RD_RD_H_
 
-#define BLOCK_SIZE	1024  /**< Working block size */
+#define BLOCK_SIZE	1024	/**< Working block size */
 
-#define RD_OFFSET	100 /**< IPC Message offset */
+#define RD_BASE		1024
+#define	RD_READ_BLOCK	(RD_BASE + 1)	/**< Method for reading block. */
+#define RD_WRITE_BLOCK	(RD_BASE + 2)	/**< Method for writing block. */
 
-#define	RD_BASE		(FIRST_USER_METHOD + RD_OFFSET)  /**< IPC Index of the first RD message */
-#define	RD_READ_BLOCK	(RD_BASE + 1) /**< IPC Index of the RD_READ_BLOCK message */
-
-#endif /* _RD_H */
+#endif
