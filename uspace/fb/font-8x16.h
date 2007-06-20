@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __FONT_8X16_H__
-#define __FONT_8X16_H__
+#ifndef FB_FONT_8X16_H_
+#define FB_FONT_8X16_H_
 
-#define FONT_GLIPHS		256
+#define FONT_GLIPHS	256
 #define FONT_SCANLINES	16
 
 extern unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES];

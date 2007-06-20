@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MAIN_H_
-#define __MAIN_H_
+#ifndef FB_MAIN_H_
+#define FB_MAIN_H_
 
-void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area);
+extern void receive_comm_area(ipc_callid_t, ipc_call_t *, void **);
 
 #endif

@@ -26,15 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _PPM_H_
-#define _PPM_H_
+#ifndef FB_PPM_H_
+#define FB_PPM_H_
 
 #include "fb.h"
 
-int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
-	     unsigned int sy, 
-	     unsigned int maxwidth, unsigned int maxheight,
-	     putpixel_cb_t fnc,void *);
-int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width, unsigned int *height);
+extern int ppm_draw(unsigned char *, size_t, unsigned int, unsigned int, 
+    unsigned int, unsigned int, putpixel_cb_t, void *);
+extern int ppm_get_data(unsigned char *, size_t, unsigned int *, unsigned int *);
 
 #endif

@@ -34,13 +34,12 @@
 /** @file
  */
 
-#ifndef _SYSIO_H_
-#define _SYSIO_H_
+#ifndef FB_SYSIO_H_
+#define FB_SYSIO_H_
 
-void sysio_init(void);
+extern void sysio_init(void);
 
 #endif
 
 /** @}
  */
-

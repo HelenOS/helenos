@@ -55,7 +55,8 @@
 #define NS_HASH_TABLE_CHAINS	20
 
 static int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
-static int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid);
+static int connect_to_service(ipcarg_t service, ipc_call_t *call,
+    ipc_callid_t callid);
 
 /* Static functions implementing NS hash table operations. */
 static hash_index_t ns_hash(unsigned long *key);
@@ -83,7 +84,8 @@ typedef struct {
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
 
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
+static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name,
+    void **addr)
 {
 	void *ph_addr;
 
@@ -106,7 +108,8 @@ int main(int argc, char **argv)
 	
 	ipcarg_t retval;
 
-	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3, &ns_hash_table_ops)) {
+	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3,
+	    &ns_hash_table_ops)) {
 		return ENOMEM;
 	}
 		
@@ -134,19 +137,21 @@ int main(int argc, char **argv)
 			/*
 			 * Server requests service registration.
 			 */
-			retval = register_service(IPC_GET_ARG1(call), IPC_GET_ARG3(call), &call);
+			retval = register_service(IPC_GET_ARG1(call),
+			    IPC_GET_ARG3(call), &call);
 			break;
 		case IPC_M_CONNECT_ME_TO:
 			/*
 			 * Client requests to be connected to a service.
 			 */
-			retval = connect_to_service(IPC_GET_ARG1(call), &call, callid);
+			retval = connect_to_service(IPC_GET_ARG1(call), &call,
+			    callid);
 			break;
 		default:
 			retval = ENOENT;
 			break;
 		}
-		if (! (callid & IPC_CALLID_NOTIFICATION)) {
+		if (!(callid & IPC_CALLID_NOTIFICATION)) {
 			ipc_answer_fast(callid, retval, 0, 0);
 		}
 	}
@@ -162,7 +167,11 @@ int main(int argc, char **argv)
  */
 int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 {
-	unsigned long keys[3] = { service, call->in_phone_hash, 0 };
+	unsigned long keys[3] = {
+		service,
+		call->in_phone_hash,
+		0
+	};
 	hashed_service_t *hs;
 			
 	if (hash_table_find(&ns_hash_table, keys)) {

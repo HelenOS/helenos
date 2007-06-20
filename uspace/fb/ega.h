@@ -34,10 +34,10 @@
 /** @file
  */
 
-#ifndef _EGA_H_
-#define _EGA_H_
+#ifndef FB_EGA_H_
+#define FB_EGA_H_
 
-int ega_init(void);
+extern int ega_init(void);
 
 #endif
 
