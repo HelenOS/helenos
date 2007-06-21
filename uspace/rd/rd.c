@@ -55,6 +55,8 @@
 
 /** Pointer to the ramdisk's image. */
 static void *rd_addr;
+/** Size of the ramdisk. */
+static size_t rd_size;
 
 /**
  * This futex protects the ramdisk's data.
@@ -74,7 +76,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-	uintptr_t fs_va = NULL;
+	void *fs_va = NULL;
 	ipcarg_t offset;
 
 	/*
@@ -139,15 +141,29 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		case RD_READ_BLOCK:
 			offset = IPC_GET_ARG1(call);
+			if (offset * BLOCK_SIZE > rd_size - BLOCK_SIZE) {
+				/*
+				 * Reading past the end of the device.
+				 */
+				retval = ELIMIT;
+				break;
+			}
 			futex_down(&rd_futex);
-			memcpy((void *) fs_va, rd_addr + offset, BLOCK_SIZE);
+			memcpy(fs_va, rd_addr + offset, BLOCK_SIZE);
 			futex_up(&rd_futex);
 			retval = EOK;
 			break;
 		case RD_WRITE_BLOCK:
 			offset = IPC_GET_ARG1(call);
+			if (offset * BLOCK_SIZE > rd_size - BLOCK_SIZE) {
+				/*
+				 * Writing past the end of the device.
+				 */
+				retval = ELIMIT;
+				break;
+			}
 			futex_up(&rd_futex);
-			memcpy(rd_addr + offset, (void *) fs_va, BLOCK_SIZE);
+			memcpy(rd_addr + offset, fs_va, BLOCK_SIZE);
 			futex_down(&rd_futex);
 			retval = EOK;
 			break;
@@ -170,7 +186,7 @@ static bool rd_init(void)
 {
 	int retval, flags;
 
-	size_t rd_size = sysinfo_value("rd.size");
+	rd_size = sysinfo_value("rd.size");
 	void *rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
 	
 	if (rd_size == 0)
