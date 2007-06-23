@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,63 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TASKS = \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/pci/pci \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/klog/klog
+## Setup toolchain
+#
 
-build: $(BASE)/image.iso
+LIBC_PREFIX = ../../lib/libc
+SOFTINT_PREFIX = ../../lib/softint
+include $(LIBC_PREFIX)/Makefile.toolchain 
 
-$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/grub/menu.debug.lst arch/$(ARCH)/grub/xen.gz arch/$(ARCH)/grub/xen.debug.gz $(KERNELDIR)/kernel.bin $(TASKS)
-	mkdir -p arch/$(ARCH)/iso/boot/grub
-	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
-ifeq ($(CONFIG_DEBUG),y)
-	cp arch/$(ARCH)/grub/menu.debug.lst arch/$(ARCH)/iso/boot/grub/menu.lst
-	cp arch/$(ARCH)/grub/xen.debug.gz arch/$(ARCH)/iso/boot/
-else
-	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
-	cp arch/$(ARCH)/grub/xen.gz arch/$(ARCH)/iso/boot/
-endif
-	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
-	for task in $(TASKS) ; do \
-		cp $$task arch/$(ARCH)/iso/boot/ ; \
-	done
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
+CFLAGS += -I. -I../kbd/include -I../fb
+
+LIBS = $(LIBC_PREFIX)/libc.a
+
+## Sources
+#
+
+OUTPUT = console
+GENERIC_SOURCES = \
+	console.c \
+	screenbuffer.c \
+	../kbd/generic/key_buffer.c \
+	gcons.c
+
+IMAGES = helenos.ppm nameic.ppm cons_selected.ppm cons_idle.ppm \
+	cons_has_data.ppm cons_kernel.ppm anim_1.ppm anim_2.ppm anim_3.ppm \
+	anim_4.ppm
+
+ARCH_SOURCES = 
+
+GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES))) \
+			$(addsuffix .o,$(basename $(IMAGES)))	
+ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
+
+.PHONY: all clean depend disasm
+
+all: $(OUTPUT) disasm
+
+-include Makefile.depend
 
 clean:
-	-rm -fr arch/$(ARCH)/iso
-	-rm -f $(BASE)/image.iso
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
+
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld -e __entry_driver $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+%.o: %.ppm
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) $< $@

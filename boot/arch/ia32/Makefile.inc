@@ -27,15 +27,15 @@
 #
 
 TASKS = \
-	$(USPACEDIR)/init/init \
-	$(USPACEDIR)/ns/ns \
-	$(USPACEDIR)/pci/pci \
-	$(USPACEDIR)/fb/fb \
-	$(USPACEDIR)/kbd/kbd \
-	$(USPACEDIR)/console/console \
-	$(USPACEDIR)/tetris/tetris \
-	$(USPACEDIR)/tester/tester \
-	$(USPACEDIR)/klog/klog
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/pci/pci \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/klog/klog
 
 build: $(BASE)/image.iso
 

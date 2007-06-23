@@ -32,26 +32,26 @@
 -include Makefile.config
 
 DIRS = \
-	libc \
-	softint \
-	softfloat \
-	init \
-	ns \
-	fb \
-	kbd \
-	console \
-	tetris \
-	tester \
-	klog \
-	rd \
-	fs
+	lib/libc \
+	lib/softint \
+	lib/softfloat \
+	srv/ns \
+	srv/fb \
+	srv/kbd \
+	srv/console \
+	srv/rd \
+	srv/fs \
+	app/tetris \
+	app/tester \
+	app/klog \
+	app/init
 
 ifeq ($(ARCH), amd64)
-	DIRS += pci
+	DIRS += srv/pci
 endif
 
 ifeq ($(ARCH), ia32)
-	DIRS += pci
+	DIRS += srv/pci
 endif
 
 ifeq ($(ARCH), mips32)

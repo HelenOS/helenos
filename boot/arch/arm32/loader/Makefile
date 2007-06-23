@@ -78,14 +78,14 @@ endif
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/ns/ns \
-	$(USPACEDIR)/init/init \
-	$(USPACEDIR)/kbd/kbd \
-	$(USPACEDIR)/console/console \
-	$(USPACEDIR)/fb/fb \
-	$(USPACEDIR)/tester/tester \
-	$(USPACEDIR)/klog/klog \
-	$(USPACEDIR)/tetris/tetris
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/tetris/tetris
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
