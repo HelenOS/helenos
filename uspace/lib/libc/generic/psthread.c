@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +45,7 @@
 #include <async.h>
 
 #ifndef PSTHREAD_INITIAL_STACK_PAGES_NO
-#define PSTHREAD_INITIAL_STACK_PAGES_NO 1
+#define PSTHREAD_INITIAL_STACK_PAGES_NO	1
 #endif
 
 static LIST_INITIALIZE(ready_list);
@@ -55,14 +56,14 @@ static void psthread_main(void);
 
 static atomic_t psthread_futex = FUTEX_INITIALIZER;
 /** Count of real threads that are in async_serialized mode */
-static int serialized_threads; /* Protected by async_futex */
+static int serialized_threads;	/* Protected by async_futex */
 /** Thread-local count of serialization. If >0, we must not preempt */
 static __thread int serialization_count;
 /** Counter of threads residing in async_manager */
 static int threads_in_manager;
 
 /** Setup psthread information into TCB structure */
-psthread_data_t * psthread_setup()
+psthread_data_t *psthread_setup(void)
 {
 	psthread_data_t *pt;
 	tcb_t *tcb;
@@ -89,18 +90,30 @@ void psthread_teardown(psthread_data_t *pt)
 	free(pt);
 }
 
-/** Function that is called on entry to new pseudo thread */
+/** Function that spans the whole life-cycle of a pseudo thread.
+ *
+ * Each pseudo thread begins execution in this function.
+ * Then the function implementing the pseudo thread logic is called.
+ * After its return, the return value is saved for a potentional
+ * joiner. If the joiner exists, it is woken up. The pseudo thread
+ * then switches to another pseudo thread, which cleans up after it.
+ */
 void psthread_main(void)
 {
 	psthread_data_t *pt = __tcb_get()->pst_data;
 
 	pt->retval = pt->func(pt->arg);
 
-	pt->finished = 1;
-	if (pt->waiter)
-		list_append(&pt->waiter->link, &ready_list);
+	/*
+	 * If there is a joiner, wake it up and save our return value.
+	 */
+	if (pt->joiner) {
+		list_append(&pt->joiner->link, &ready_list);
+		pt->joiner->joinee_retval = pt->retval;
+	}
 
 	psthread_schedule_next_adv(PS_FROM_DEAD);
+	/* not reached */
 }
 
 /** Schedule next userspace pseudo thread.
@@ -108,8 +121,11 @@ void psthread_main(void)
  * If calling with PS_TO_MANAGER parameter, the async_futex should be
  * held.
  *
- * @param ctype Type of switch.
- * @return 0 if there is no ready pseudo thread, 1 otherwise.
+ * @param ctype		One of PS_SLEEP, PS_PREEMPT, PS_TO_MANAGER,
+ * 			PS_FROM_MANAGER, PS_FROM_DEAD. The parameter describes
+ *			the circumstances of the switch.
+ * @return		Return 0 if there is no ready pseudo thread,
+ * 			return 1 otherwise.
  */
 int psthread_schedule_next_adv(pschange_type ctype)
 {
@@ -120,12 +136,20 @@ int psthread_schedule_next_adv(pschange_type ctype)
 
 	if (ctype == PS_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
+	if (ctype == PS_SLEEP) {
+		if (list_empty(&ready_list) && list_empty(&serialized_list))
+			goto ret_0;
+	}
 
 	if (ctype == PS_FROM_MANAGER) {
 		if (list_empty(&ready_list) && list_empty(&serialized_list))
 			goto ret_0;
-		/* Do not preempt if there is not sufficient count of thread managers */
-		if (list_empty(&serialized_list) && threads_in_manager <= serialized_threads) {
+		/*
+		 * Do not preempt if there is not sufficient count of thread
+		 * managers.
+		 */
+		if (list_empty(&serialized_list) && threads_in_manager <=
+		    serialized_threads) {
 			goto ret_0;
 		}
 	}
@@ -138,45 +162,70 @@ int psthread_schedule_next_adv(pschange_type ctype)
 		}
 	}
 	
+	srcpt = __tcb_get()->pst_data;
 	if (ctype != PS_FROM_DEAD) {
 		/* Save current state */
-		srcpt = __tcb_get()->pst_data;
 		if (!context_save(&srcpt->ctx)) {
 			if (serialization_count)
 				srcpt->flags &= ~PSTHREAD_SERIALIZED;
-			return 1; // futex_up already done here
+			if (srcpt->clean_after_me) {
+				/*
+				 * Cleanup after the dead pseudo thread from
+				 * which we restored context here.
+				 */
+				free(srcpt->clean_after_me->stack);
+				psthread_teardown(srcpt->clean_after_me);
+				srcpt->clean_after_me = NULL;
+			}
+			return 1;	/* futex_up already done here */
 		}
 
-		/* Save myself to correct run list */
+		/* Save myself to the correct run list */
 		if (ctype == PS_PREEMPT)
 			list_append(&srcpt->link, &ready_list);
 		else if (ctype == PS_FROM_MANAGER) {
 			list_append(&srcpt->link, &manager_list);
 			threads_in_manager--;
-		} /* If ctype == PS_TO_MANAGER, don't save ourselves to any list, we should
-		   * already be somewhere, or we will be lost */
-	} else
-		srcpt = NULL; /* Avoid GCC warning, if ctype == PS_FROM_DEAD, srcpt is not used */
+		} else {	
+			/*
+			 * If ctype == PS_TO_MANAGER, don't save ourselves to
+			 * any list, we should already be somewhere, or we will
+			 * be lost.
+			 *
+			 * The ctype == PS_SLEEP case is similar. The pseudo
+			 * thread has an external refernce which can be used to
+			 * wake it up once that time has come.
+			 */
+		}
+	}
 
 	/* Choose new thread to run */
 	if (ctype == PS_TO_MANAGER || ctype == PS_FROM_DEAD) {
-		dstpt = list_get_instance(manager_list.next,psthread_data_t, link);
+		dstpt = list_get_instance(manager_list.next, psthread_data_t,
+		    link);
 		if (serialization_count && ctype == PS_TO_MANAGER) {
 			serialized_threads++;
 			srcpt->flags |= PSTHREAD_SERIALIZED;
 		}
 		threads_in_manager++;
+
+		if (ctype == PS_FROM_DEAD)
+			dstpt->clean_after_me = srcpt;
 	} else {
 		if (!list_empty(&serialized_list)) {
-			dstpt = list_get_instance(serialized_list.next, psthread_data_t, link);
+			dstpt = list_get_instance(serialized_list.next,
+			    psthread_data_t, link);
 			serialized_threads--;
-		} else
-			dstpt = list_get_instance(ready_list.next, psthread_data_t, link);
+		} else {
+			dstpt = list_get_instance(ready_list.next,
+			    psthread_data_t, link);
+		}
 	}
 	list_remove(&dstpt->link);
 
 	futex_up(&psthread_futex);
 	context_restore(&dstpt->ctx);
+	/* not reached */
 
 ret_0:
 	futex_up(&psthread_futex);
@@ -185,36 +234,40 @@ ret_0:
 
 /** Wait for uspace pseudo thread to finish.
  *
- * @param psthrid Pseudo thread to wait for.
+ * Each pseudo thread can be only joined by one other pseudo thread. Moreover,
+ * the joiner must be from the same thread as the joinee.
  *
- * @return Value returned by the finished thread.
+ * @param psthrid	Pseudo thread to join.
+ *
+ * @return		Value returned by the finished thread.
  */
 int psthread_join(pstid_t psthrid)
 {
-	volatile psthread_data_t *pt;
-	volatile int retval;
+	psthread_data_t *pt;
+	psthread_data_t *cur;
 
 	/* Handle psthrid = Kernel address -> it is wait for call */
 	pt = (psthread_data_t *) psthrid;
 
-	/* TODO */
-	printf("join unsupported\n");
-	_exit(1);
+	/*
+	 * The joiner is running so the joinee isn't.
+	 */
+	cur = __tcb_get()->pst_data;
+	pt->joiner = cur;
+	psthread_schedule_next_adv(PS_SLEEP);
 
-	retval = pt->retval;
-
-	free(pt->stack);
-	psthread_teardown((void *)pt);
-
-	return retval;
+	/*
+	 * The joinee fills in the return value.
+	 */
+	return cur->joinee_retval;
 }
 
 /** Create a userspace pseudo thread.
  *
- * @param func Pseudo thread function.
- * @param arg Argument to pass to func.
+ * @param func		Pseudo thread function.
+ * @param arg		Argument to pass to func.
  *
- * @return 0 on failure, TLS of the new pseudo thread.
+ * @return		Return 0 on failure or TLS of the new pseudo thread.
  */
 pstid_t psthread_create(int (*func)(void *), void *arg)
 {
@@ -223,7 +276,8 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 	pt = psthread_setup();
 	if (!pt) 
 		return 0;
-	pt->stack = (char *) malloc(PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize());
+	pt->stack = (char *) malloc(PSTHREAD_INITIAL_STACK_PAGES_NO *
+	    getpagesize());
 
 	if (!pt->stack) {
 		psthread_teardown(pt);
@@ -232,17 +286,24 @@ pstid_t psthread_create(int (*func)(void *), void *arg)
 
 	pt->arg= arg;
 	pt->func = func;
-	pt->finished = 0;
-	pt->waiter = NULL;
+	pt->clean_after_me = NULL;
+	pt->joiner = NULL;
+	pt->joinee_retval = 0;
+	pt->retval = 0;
 	pt->flags = 0;
 
 	context_save(&pt->ctx);
-	context_set(&pt->ctx, FADDR(psthread_main), pt->stack, PSTHREAD_INITIAL_STACK_PAGES_NO*getpagesize(), pt->tcb);
+	context_set(&pt->ctx, FADDR(psthread_main), pt->stack,
+	    PSTHREAD_INITIAL_STACK_PAGES_NO * getpagesize(), pt->tcb);
 
-	return (pstid_t )pt;
+	return (pstid_t) pt;
 }
 
-/** Add a thread to ready list */
+/** Add a thread to the ready list.
+ *
+ * @param psthrid		Pinter to the pseudo thread structure of the
+ *				pseudo thread to be added.
+ */
 void psthread_add_ready(pstid_t psthrid)
 {
 	psthread_data_t *pt;
@@ -256,7 +317,11 @@ void psthread_add_ready(pstid_t psthrid)
 	futex_up(&psthread_futex);
 }
 
-/** Add a thread to manager list */
+/** Add a pseudo thread to the manager list.
+ *
+ * @param psthrid		Pinter to the pseudo thread structure of the
+ *				pseudo thread to be added.
+ */
 void psthread_add_manager(pstid_t psthrid)
 {
 	psthread_data_t *pt;
@@ -269,7 +334,7 @@ void psthread_add_manager(pstid_t psthrid)
 }
 
 /** Remove one manager from manager list */
-void psthread_remove_manager()
+void psthread_remove_manager(void)
 {
 	futex_down(&psthread_futex);
 	if (list_empty(&manager_list)) {
@@ -280,25 +345,29 @@ void psthread_remove_manager()
 	futex_up(&psthread_futex);
 }
 
-/** Return thread id of current running thread */
+/** Return thread id of the currently running thread.
+ *
+ * @return		Pseudo thread ID of the currently running pseudo thread.
+ */
 pstid_t psthread_get_id(void)
 {
-	return (pstid_t)__tcb_get()->pst_data;
+	return (pstid_t) __tcb_get()->pst_data;
 }
 
 /** Disable preemption 
  *
- * If the thread wants to send several message in row and does not want
- * to be preempted, it should start async_serialize_start() in the beginning
- * of communication and async_serialize_end() in the end. If it is a
- * true multithreaded application, it should protect the communication channel
- * by a futex as well. Interrupt messages will can still be preempted.
+ * If the thread wants to send several message in a row and does not want to be
+ * preempted, it should start async_serialize_start() in the beginning of
+ * communication and async_serialize_end() in the end. If it is a true
+ * multithreaded application, it should protect the communication channel by a
+ * futex as well. Interrupt messages can still be preempted.
  */
 void psthread_inc_sercount(void)
 {
 	serialization_count++;
 }
 
+/** Restore the preemption counter to the previous state. */
 void psthread_dec_sercount(void)
 {
 	serialization_count--;
@@ -306,3 +375,4 @@ void psthread_dec_sercount(void)
 
 /** @}
  */
+

@@ -49,9 +49,10 @@
 #define PSTHREAD_SERIALIZED   1
 
 typedef enum {
+	PS_SLEEP,
+	PS_PREEMPT,
 	PS_TO_MANAGER,
 	PS_FROM_MANAGER,
-	PS_PREEMPT,
 	PS_FROM_DEAD
 } pschange_type;
 
@@ -65,8 +66,9 @@ struct psthread_data {
 	int (*func)(void *);
 	tcb_t *tcb;
 
-	struct psthread_data *waiter;
-	int finished;
+	struct psthread_data *clean_after_me;
+	struct psthread_data *joiner;
+	int joinee_retval;
 	int retval;
 	int flags;
 };
@@ -87,10 +89,9 @@ pstid_t psthread_get_id(void);
 void psthread_inc_sercount(void);
 void psthread_dec_sercount(void);
 
-static inline int psthread_schedule_next() {
+static inline int psthread_schedule_next(void) {
 	return psthread_schedule_next_adv(PS_PREEMPT);
 }
-
 
 #endif
 
