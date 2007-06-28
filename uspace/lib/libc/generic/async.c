@@ -35,57 +35,61 @@
 /**
  * Asynchronous library
  *
- * The aim of this library is facilitating writing programs utilizing 
- * the asynchronous nature of HelenOS IPC, yet using a normal way
- * of programming. 
+ * The aim of this library is facilitating writing programs utilizing the
+ * asynchronous nature of HelenOS IPC, yet using a normal way of programming. 
  *
- * You should be able to write very simple multithreaded programs, 
- * the async framework will automatically take care of most synchronization
- * problems.
+ * You should be able to write very simple multithreaded programs, the async
+ * framework will automatically take care of most synchronization problems.
  *
  * Default semantics:
- * - send() - send asynchronously. If the kernel refuses to send more
- *            messages, [ try to get responses from kernel, if nothing
- *            found, might try synchronous ]
+ * - async_send_*():	send asynchronously. If the kernel refuses to send
+ * 			more messages, [ try to get responses from kernel, if
+ * 			nothing found, might try synchronous ]
  *
- * Example of use:
+ * Example of use (pseudo C):
  * 
  * 1) Multithreaded client application
- *  fibril_create(fibril1);
- *  fibril_create(fibril2);
- *  ...
+ *
+ * fibril_create(fibril1, ...);
+ * fibril_create(fibril2, ...);
+ * ...
  *  
- *  fibril1() {
- *        conn = ipc_connect_me_to();
- *        c1 = send(conn);
- *        c2 = send(conn);
- *        wait_for(c1);
- *        wait_for(c2);
- *  }
+ * int fibril1(void *arg)
+ * {
+ * 	conn = ipc_connect_me_to();
+ *	c1 = async_send(conn);
+ * 	c2 = async_send(conn);
+ * 	async_wait_for(c1);
+ * 	async_wait_for(c2);
+ * 	...
+ * }
  *
  *
  * 2) Multithreaded server application
- * main() {
- *      async_manager();
+ * main()
+ * {
+ * 	async_manager();
  * }
  * 
  *
- * client_connection(icallid, *icall) {
- *       if (want_refuse) {
- *           ipc_answer_fast(icallid, ELIMIT, 0, 0);
- *           return;
- *       }
- *       ipc_answer_fast(icallid, 0, 0, 0);
+ * client_connection(icallid, *icall)
+ * {
+ * 	if (want_refuse) {
+ * 		ipc_answer_fast(icallid, ELIMIT, 0, 0);
+ * 		return;
+ * 	}
+ * 	ipc_answer_fast(icallid, EOK, 0, 0);
  *
- *       callid = async_get_call(&call);
- *       handle(callid, call);
- *       ipc_answer_fast(callid, 1, 2, 3);
+ * 	callid = async_get_call(&call);
+ * 	handle_call(callid, call);
+ * 	ipc_answer_fast(callid, 1, 2, 3);
  *
- *       callid = async_get_call(&call);
- *       ....
+ * 	callid = async_get_call(&call);
+ * 	....
  * }
  *
  */
+
 #include <futex.h>
 #include <async.h>
 #include <fibril.h>
@@ -567,9 +571,9 @@ static int async_manager_worker(void)
  * When more kernel threads are used, one async manager should
  * exist per thread. The particular implementation may change,
  * currently one async_manager is started automatically per kernel
- * thread except main thread. 
+ * thread except the main thread. 
  */
-static int async_manager_thread(void *arg)
+static int async_manager_fibril(void *arg)
 {
 	futex_up(&async_futex);
 	/* async_futex is always locked when entering
@@ -584,7 +588,7 @@ void async_create_manager(void)
 {
 	fid_t fid;
 
-	fid = fibril_create(async_manager_thread, NULL);
+	fid = fibril_create(async_manager_fibril, NULL);
 	fibril_add_manager(fid);
 }
 
