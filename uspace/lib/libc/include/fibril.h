@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc64	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ppc64_PSTHREAD_H_
-#define LIBC_ppc64_PSTHREAD_H_
+#ifndef LIBC_FIBRIL_H_
+#define LIBC_FIBRIL_H_
 
-#include <types.h>
+#include <libarch/fibril.h>
+#include <libadt/list.h>
+#include <libarch/thread.h>
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
+#ifndef context_set
 #define context_set(c, _pc, stack, size, ptls) 			\
 	(c)->pc = (sysarg_t) (_pc);				\
 	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
+        (c)->tls = (sysarg_t) (ptls);
+#endif /* context_set */
 
-#define SP_DELTA	16
+#define FIBRIL_SERIALIZED   1
 
-typedef struct {
-	uint64_t sp;
-	uint64_t pc;
-	
-	uint64_t tls;
-	uint64_t r13;
-	uint64_t r14;
-	uint64_t r15;
-	uint64_t r16;
-	uint64_t r17;
-	uint64_t r18;
-	uint64_t r19;
-	uint64_t r20;
-	uint64_t r21;
-	uint64_t r22;
-	uint64_t r23;
-	uint64_t r24;
-	uint64_t r25;
-	uint64_t r26;
-	uint64_t r27;
-	uint64_t r28;
-	uint64_t r29;
-	uint64_t r30;
-	uint64_t r31;
-	
-	uint64_t cr;
-} __attribute__ ((packed)) context_t;
+typedef enum {
+	FIBRIL_SLEEP,
+	FIBRIL_PREEMPT,
+	FIBRIL_TO_MANAGER,
+	FIBRIL_FROM_MANAGER,
+	FIBRIL_FROM_DEAD
+} fibril_switch_type_t;
+
+typedef sysarg_t fid_t;
+
+struct fibril {
+	link_t link;
+	context_t ctx;
+	void *stack;
+	void *arg;
+	int (*func)(void *);
+	tcb_t *tcb;
+
+	struct fibril *clean_after_me;
+	struct fibril *joiner;
+	int joinee_retval;
+	int retval;
+	int flags;
+};
+typedef struct fibril fibril_t;
+
+extern int context_save(context_t *c);
+extern void context_restore(context_t *c) __attribute__ ((noreturn));
+
+extern fid_t fibril_create(int (*func)(void *), void *arg);
+extern int fibril_join(fid_t fid);
+extern fibril_t *fibril_setup(void);
+extern void fibril_teardown(fibril_t *f);
+extern int fibril_schedule_next_adv(fibril_switch_type_t stype);
+extern void fibril_add_ready(fid_t fid);
+extern void fibril_add_manager(fid_t fid);
+extern void fibril_remove_manager(void);
+extern fid_t fibril_get_id(void);
+extern void fibril_inc_sercount(void);
+extern void fibril_dec_sercount(void);
+
+static inline int fibril_schedule_next(void) {
+	return fibril_schedule_next_adv(FIBRIL_PREEMPT);
+}
 
 #endif
 

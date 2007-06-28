@@ -63,7 +63,7 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	malloc/malloc.c \
-	generic/psthread.c \
+	generic/fibril.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \

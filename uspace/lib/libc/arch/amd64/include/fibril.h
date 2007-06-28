@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32	
+/** @addtogroup libcamd64
  * @{
  */
-/** @file 
- *  @brief psthread related declarations.
+/** @file
  */
 
-#ifndef LIBC_arm32_PSTHREAD_H_
-#define LIBC_arm32_PSTHREAD_H_
+#ifndef LIBC_amd64_FIBRIL_H_
+#define LIBC_amd64_FIBRIL_H_
 
 #include <types.h>
-#include <align.h>
-#include "thread.h"
 
-/** Size of a stack item */
-#define STACK_ITEM_SIZE		4
-
-/** Stack alignment - see <a href="http://www.arm.com/support/faqdev/14269.html">ABI</a> for details */
-#define STACK_ALIGNMENT		8
-
-#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
-
-/** Sets data to the context. 
- *  
- *  @param c     Context (#context_t).
- *  @param _pc   Program counter.
- *  @param stack Stack address.
- *  @param size  Stack size.
- *  @param ptls  Pointer to the TCB.
+/* According to ABI the stack MUST be aligned on 
+ * 16-byte boundary. If it is not, the va_arg calling will
+ * panic sooner or later
  */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET;
+#define SP_DELTA     16
 
-
-/** Thread context. 
- *
- *  Only registers preserved accross function calls are included. r9 is used 
- *  to store a TLS address. -ffixed-r9 gcc forces gcc not to use this
- *  register. -mtp=soft forces gcc to use #__aeabi_read_tp to obtain
- *  TLS address.
+/* We include only registers that must be preserved
+ * during function call
  */
-typedef struct  {
-	uint32_t sp;
-	uint32_t pc;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t tls;
-	uint32_t r10;
-	uint32_t r11;
+typedef struct {
+    uint64_t sp;
+    uint64_t pc;
+    
+    uint64_t rbx;
+    uint64_t rbp;
+
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
+
+    uint64_t tls;
 } context_t;
-
 
 #endif
 

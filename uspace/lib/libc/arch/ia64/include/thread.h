@@ -32,15 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_ia64THREAD_H_
-#define LIBC_ia64THREAD_H_
+#ifndef LIBC_ia64_THREAD_H_
+#define LIBC_ia64_THREAD_H_
 
 #define THREAD_INITIAL_STACK_PAGES_NO 2
 
 /* This structure must be exactly 16 bytes long */
 typedef struct {
 	void *dtv; /* unused in static linking*/
-	void *pst_data;
+	void *fibril_data;
 } tcb_t;
 
 static inline void __tcb_set(tcb_t *tcb)

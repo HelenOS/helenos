@@ -33,7 +33,7 @@ TARGET = ppc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/psthread.S \
+		arch/$(ARCH)/src/fibril.S \
 		arch/$(ARCH)/src/thread.c
 
 CFLAGS += -mcpu=powerpc64 -msoft-float -m64

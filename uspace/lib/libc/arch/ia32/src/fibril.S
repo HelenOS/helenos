@@ -39,7 +39,7 @@
 #
 context_save:
 	movl 0(%esp),%eax	# the caller's return %eip
-	movl 4(%esp),%edx	# address of the kernel_context variable to save context to
+	movl 4(%esp),%edx	# address of the context variable to save context to
 
 	movl %esp,0(%edx)	# %esp -> ctx->sp
 	movl %eax,4(%edx)	# %eip -> ctx->pc
@@ -63,7 +63,7 @@ context_save:
 # pointed by the 1st argument. Returns 0 in EAX.
 #
 context_restore:
-	movl 4(%esp),%eax	# address of the kernel_context variable to restore context from
+	movl 4(%esp),%eax	# address of the context variable to restore context from
 	movl 0(%eax),%esp	# ctx->sp -> %esp
 	movl 4(%eax),%edx	# ctx->pc -> %edx
 	movl 8(%eax),%ebx	# ctx->ebx -> %ebx

@@ -36,7 +36,7 @@ LFLAGS += -N ../../lib/softint/libsoftint.a
 AFLAGS += 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/psthread.S \
+		arch/$(ARCH)/src/fibril.S \
 		arch/$(ARCH)/src/thread.c \
 		arch/$(ARCH)/src/eabi.S
 

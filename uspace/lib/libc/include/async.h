@@ -36,7 +36,7 @@
 #define LIBC_ASYNC_H_
 
 #include <ipc/ipc.h>
-#include <psthread.h>
+#include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
 
@@ -45,7 +45,7 @@ typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 static inline void async_manager(void)
 {
-	psthread_schedule_next_adv(PS_TO_MANAGER);
+	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 }
 
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
@@ -101,7 +101,7 @@ static inline ipcarg_t async_req_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 }
 
 
-pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
+fid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
 			     ipc_call_t *call,
 			     void (*cthread)(ipc_callid_t,ipc_call_t *));
 void async_usleep(suseconds_t timeout);
@@ -120,12 +120,12 @@ void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
 
 static inline void async_serialize_start(void)
 {
-	psthread_inc_sercount();
+	fibril_inc_sercount();
 }
 
 static inline void async_serialize_end(void)
 {
-	psthread_dec_sercount();
+	fibril_dec_sercount();
 }
 
 extern atomic_t async_futex;

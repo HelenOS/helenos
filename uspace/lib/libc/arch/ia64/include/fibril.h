@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia64_PSTHREAD_H_
-#define LIBC_ia64_PSTHREAD_H_
+#ifndef LIBC_ia64_FIBRIL_H_
+#define LIBC_ia64_FIBRIL_H_
 
 #include <types.h>
 #include <align.h>
@@ -44,7 +44,7 @@
  * context_save() and context_restore() are both leaf procedures.
  * No need to allocate scratch area.
  */
-#define SP_DELTA	(0+ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #define PFM_MASK        (~0x3fffffffff)
 

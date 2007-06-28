@@ -85,11 +85,10 @@
  *       ....
  * }
  *
- * TODO: Detaching/joining dead psthreads?
  */
 #include <futex.h>
 #include <async.h>
-#include <psthread.h>
+#include <fibril.h>
 #include <stdio.h>
 #include <libadt/hash_table.h>
 #include <libadt/list.h>
@@ -104,13 +103,18 @@ static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
 typedef struct {
-	struct timeval expires;		/**< Expiration time for waiting thread */
-	int inlist;             	/**< If true, this struct is in timeout list */
+	/** Expiration time for waiting fibril. */
+	struct timeval expires;		
+	/** If true, this struct is in the timeout list. */
+	int inlist;
 	link_t link;
 
-	pstid_t ptid;           	/**< Thread waiting for this message */
-	int active;             	/**< If this thread is currently active */
-	int timedout;           	/**< If true, we timed out */
+	/** Fibril waiting for this message. */
+	fid_t fid;
+	/** If this fibril is currently active. */
+	int active;
+	/** If true, we timed out. */
+	int timedout;
 } awaiter_t;
 
 typedef struct {
@@ -118,7 +122,7 @@ typedef struct {
 
 	int done;               	/**< If reply was received */
 	ipc_call_t *dataptr;		/**< Pointer where the answer data
-					  *   is stored */
+					 *   is stored */
 	ipcarg_t retval;
 } amsg_t;
 
@@ -131,18 +135,19 @@ typedef struct {
 typedef struct {
 	awaiter_t wdata;
 
-	link_t link;			/**< Hash table link */
+	link_t link;			/**< Hash table link. */
 	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
-	link_t msg_queue;		/**< Messages that should be delivered to this thread */
+	link_t msg_queue;		/**< Messages that should be delivered
+					 *   to this fibril. */
 	/* Structures for connection opening packet */
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipc_callid_t close_callid;	/* Identification of closing packet */
-	void (*cthread)(ipc_callid_t,ipc_call_t *);
+	ipc_callid_t close_callid;	/* Identification of closing packet. */
+	void (*cfibril)(ipc_callid_t, ipc_call_t *);
 } connection_t;
 
-/** Identifier of incoming connection handled by current thread */
-__thread connection_t *PS_connection;
+/** Identifier of the incoming connection handled by the current fibril. */
+__thread connection_t *FIBRIL_connection;
 /** If true, it is forbidden to use async_req functions and
  *  all preemption is disabled */
 __thread int in_interrupt_handler;
@@ -285,7 +290,7 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 			list_remove(&conn->wdata.link);
 		}
 		conn->wdata.active = 1;
-		psthread_add_ready(conn->wdata.ptid);
+		fibril_add_ready(conn->wdata.fid);
 	}
 
 	futex_up(&async_futex);
@@ -300,13 +305,13 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	ipc_callid_t callid;
 	connection_t *conn;
 	
-	assert(PS_connection);
-	/* GCC 4.1.0 coughs on PS_connection-> dereference,
+	assert(FIBRIL_connection);
+	/* GCC 4.1.0 coughs on FIBRIL_connection-> dereference,
 	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
 	 *           I would never expect to find so many errors in 
 	 *           compiler *($&$(*&$
 	 */
-	conn = PS_connection; 
+	conn = FIBRIL_connection; 
 
 	futex_down(&async_futex);
 
@@ -322,11 +327,11 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			insert_timeout(&conn->wdata);
 
 		conn->wdata.active = 0;
-		psthread_schedule_next_adv(PS_TO_MANAGER);
+		fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 		/* Futex is up after getting back from async_manager 
 		 * get it again */
 		futex_down(&async_futex);
-		if (usecs && conn->wdata.timedout && \
+		if (usecs && conn->wdata.timedout &&
 		    list_empty(&conn->msg_queue)) {
 			/* If we timed out-> exit */
 			futex_up(&async_futex);
@@ -364,33 +369,35 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
  *
  * @param arg Connection structure pointer
  */
-static int connection_thread(void  *arg)
+static int connection_fibril(void  *arg)
 {
 	unsigned long key;
 	msg_t *msg;
 	int close_answered = 0;
 
 	/* Setup thread local connection pointer */
-	PS_connection = (connection_t *)arg;
-	PS_connection->cthread(PS_connection->callid, &PS_connection->call);
+	FIBRIL_connection = (connection_t *) arg;
+	FIBRIL_connection->cfibril(FIBRIL_connection->callid,
+	    &FIBRIL_connection->call);
 	
 	/* Remove myself from connection hash table */
 	futex_down(&async_futex);
-	key = PS_connection->in_phone_hash;
+	key = FIBRIL_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	
 	/* Answer all remaining messages with ehangup */
-	while (!list_empty(&PS_connection->msg_queue)) {
-		msg = list_get_instance(PS_connection->msg_queue.next, msg_t, link);
+	while (!list_empty(&FIBRIL_connection->msg_queue)) {
+		msg = list_get_instance(FIBRIL_connection->msg_queue.next,
+		    msg_t, link);
 		list_remove(&msg->link);
-		if (msg->callid == PS_connection->close_callid)
+		if (msg->callid == FIBRIL_connection->close_callid)
 			close_answered = 1;
 		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
 		free(msg);
 	}
-	if (PS_connection->close_callid)
-		ipc_answer_fast(PS_connection->close_callid, 0, 0, 0);
+	if (FIBRIL_connection->close_callid)
+		ipc_answer_fast(FIBRIL_connection->close_callid, 0, 0, 0);
 	
 	return 0;
 }
@@ -405,11 +412,12 @@ static int connection_thread(void  *arg)
  * @param in_phone_hash Identification of the incoming connection
  * @param callid Callid of the IPC_M_CONNECT_ME_TO packet
  * @param call Call data of the opening packet
- * @param cthread Thread function that should be called upon
+ * @param cfibril Fibril function that should be called upon
  *                opening the connection
- * @return New thread id
+ * @return New fibril id.
  */
-pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, ipc_call_t *call, void (*cthread)(ipc_callid_t, ipc_call_t *))
+fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
+    ipc_call_t *call, void (*cfibril)(ipc_callid_t, ipc_call_t *))
 {
 	connection_t *conn;
 	unsigned long key;
@@ -426,10 +434,10 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, ipc_cal
 	if (call)
 		conn->call = *call;
 	conn->wdata.active = 1; /* We will activate it asap */
-	conn->cthread = cthread;
+	conn->cfibril = cfibril;
 
-	conn->wdata.ptid = psthread_create(connection_thread, conn);
-	if (!conn->wdata.ptid) {
+	conn->wdata.fid = fibril_create(connection_fibril, conn);
+	if (!conn->wdata.fid) {
 		free(conn);
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
 		return NULL;
@@ -440,9 +448,9 @@ pstid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, ipc_cal
 	hash_table_insert(&conn_hash_table, &key, &conn->link);
 	futex_up(&async_futex);
 
-	psthread_add_ready(conn->wdata.ptid);
+	fibril_add_ready(conn->wdata.fid);
 
-	return conn->wdata.ptid;
+	return conn->wdata.fid;
 }
 
 /** Handle call that was received */
@@ -459,7 +467,8 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with thread etc. */
-		async_new_connection(IPC_GET_ARG3(*call), callid, call, client_connection);
+		async_new_connection(IPC_GET_ARG3(*call), callid, call,
+		    client_connection);
 		return;
 	}
 
@@ -485,7 +494,7 @@ static void handle_expired_timeouts(void)
 
 	cur = timeout_list.next;
 	while (cur != &timeout_list) {
-		waiter = list_get_instance(cur,awaiter_t,link);
+		waiter = list_get_instance(cur, awaiter_t, link);
 		if (tv_gt(&waiter->expires, &tv))
 			break;
 		cur = cur->next;
@@ -497,7 +506,7 @@ static void handle_expired_timeouts(void)
 		 */
 		if (!waiter->active) {
 			waiter->active = 1;
-			psthread_add_ready(waiter->ptid);
+			fibril_add_ready(waiter->fid);
 		}
 	}
 
@@ -514,7 +523,7 @@ static int async_manager_worker(void)
 	struct timeval tv;
 
 	while (1) {
-		if (psthread_schedule_next_adv(PS_FROM_MANAGER)) {
+		if (fibril_schedule_next_adv(FIBRIL_FROM_MANAGER)) {
 			futex_up(&async_futex); 
 			/* async_futex is always held
 			 * when entering manager thread
@@ -523,8 +532,9 @@ static int async_manager_worker(void)
 		}
 		futex_down(&async_futex);
 		if (!list_empty(&timeout_list)) {
-			waiter = list_get_instance(timeout_list.next,awaiter_t,link);
-			gettimeofday(&tv,NULL);
+			waiter = list_get_instance(timeout_list.next, awaiter_t,
+			    link);
+			gettimeofday(&tv, NULL);
 			if (tv_gteq(&tv, &waiter->expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
@@ -572,22 +582,23 @@ static int async_manager_thread(void *arg)
 /** Add one manager to manager list */
 void async_create_manager(void)
 {
-	pstid_t ptid;
+	fid_t fid;
 
-	ptid = psthread_create(async_manager_thread, NULL);
-	psthread_add_manager(ptid);
+	fid = fibril_create(async_manager_thread, NULL);
+	fibril_add_manager(fid);
 }
 
 /** Remove one manager from manager list */
 void async_destroy_manager(void)
 {
-	psthread_remove_manager();
+	fibril_remove_manager();
 }
 
 /** Initialize internal structures needed for async manager */
 int _async_init(void)
 {
-	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1, &conn_hash_table_ops)) {
+	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1,
+	    &conn_hash_table_ops)) {
 		printf("%s: cannot create hash table\n", "async");
 		return ENOMEM;
 	}
@@ -597,7 +608,7 @@ int _async_init(void)
 
 /** IPC handler for messages in async framework
  *
- * Notify thread that is waiting for this message, that it arrived
+ * Notify the fibril which is waiting for this message, that it arrived
  */
 static void reply_received(void *private, int retval,
 			   ipc_call_t *data)
@@ -620,7 +631,7 @@ static void reply_received(void *private, int retval,
 	msg->done = 1;
 	if (! msg->wdata.active) {
 		msg->wdata.active = 1;
-		psthread_add_ready(msg->wdata.ptid);
+		fibril_add_ready(msg->wdata.fid);
 	}
 	futex_up(&async_futex);
 }
@@ -636,7 +647,8 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	amsg_t *msg;
 
 	if (in_interrupt_handler) {
-		printf("Cannot send asynchronous request in interrupt handler.\n");
+		printf("Cannot send asynchronous request in interrupt "
+		    "handler.\n");
 		_exit(1);
 	}
 
@@ -646,7 +658,7 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 	msg->wdata.active = 1; /* We may sleep in next method, but it
 				* will use it's own mechanism */
-	ipc_call_async_2(phoneid,method,arg1,arg2,msg,reply_received,1);
+	ipc_call_async_2(phoneid, method, arg1, arg2, msg, reply_received, 1);
 
 	return (aid_t) msg;
 }
@@ -672,7 +684,8 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 	msg->wdata.active = 1; /* We may sleep in next method, but it
 				* will use it's own mechanism */
-	ipc_call_async_3(phoneid,method,arg1,arg2,arg3, msg,reply_received,1);
+	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, msg, reply_received,
+	    1);
 
 	return (aid_t) msg;
 }
@@ -694,12 +707,12 @@ void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 		goto done;
 	}
 
-	msg->wdata.ptid = psthread_get_id();
+	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = 0;
 	msg->wdata.inlist = 0;
 	/* Leave locked async_futex when entering this function */
-	psthread_schedule_next_adv(PS_TO_MANAGER);
-	/* futex is up automatically after psthread_schedule_next...*/
+	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_schedule_next...*/
 done:
 	if (retval)
 		*retval = msg->retval;
@@ -732,13 +745,13 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 	gettimeofday(&msg->wdata.expires, NULL);
 	tv_add(&msg->wdata.expires, timeout);
 
-	msg->wdata.ptid = psthread_get_id();
+	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = 0;
 	insert_timeout(&msg->wdata);
 
 	/* Leave locked async_futex when entering this function */
-	psthread_schedule_next_adv(PS_TO_MANAGER);
-	/* futex is up automatically after psthread_schedule_next...*/
+	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_schedule_next...*/
 
 	if (!msg->done)
 		return ETIMEOUT;
@@ -768,7 +781,7 @@ void async_usleep(suseconds_t timeout)
 	if (!msg)
 		return;
 
-	msg->wdata.ptid = psthread_get_id();
+	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = 0;
 
 	gettimeofday(&msg->wdata.expires, NULL);
@@ -777,8 +790,8 @@ void async_usleep(suseconds_t timeout)
 	futex_down(&async_futex);
 	insert_timeout(&msg->wdata);
 	/* Leave locked async_futex when entering this function */
-	psthread_schedule_next_adv(PS_TO_MANAGER);
-	/* futex is up automatically after psthread_schedule_next...*/
+	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_schedule_next...*/
 	free(msg);
 }
 
@@ -799,12 +812,14 @@ void async_set_interrupt_received(async_client_conn_t conn)
 void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		 ipcarg_t arg2, ipcarg_t arg3)
 {
-	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL, !in_interrupt_handler);
+	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL,
+	    !in_interrupt_handler);
 }
 
 void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 {
-	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL, !in_interrupt_handler);
+	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL,
+	    !in_interrupt_handler);
 }
 
 /** @}

@@ -39,7 +39,7 @@
 
 typedef struct {
 	void *self;
-	void *pst_data;
+	void *fibril_data;
 } tcb_t;
 
 static inline void __tcb_set(tcb_t *tcb)
@@ -49,7 +49,7 @@ static inline void __tcb_set(tcb_t *tcb)
 
 static inline tcb_t * __tcb_get(void)
 {
-	void * retval;
+	void *retval;
 
 	asm ("movl %%gs:0, %0" : "=r"(retval));
 	return retval;

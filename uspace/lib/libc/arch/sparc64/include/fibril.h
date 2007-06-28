@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
  */
 
-#ifndef LIBC_mips32_PSTHREAD_H_
-#define LIBC_mips32_PSTHREAD_H_
+#ifndef LIBC_sparc64_FIBRIL_H_
+#define LIBC_sparc64_FIBRIL_H_
 
+#include <libarch/stack.h>
 #include <types.h>
+#include <align.h>
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = ((sysarg_t)(ptls)) + 0x7000 + sizeof(tcb_t);
+#define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE
 
+#ifdef context_set
+#undef context_set
+#endif
 
-/* +16 is just for sure that the called function
- * have space to store it's arguments
- */
-#define SP_DELTA	(8+16)
-
-typedef struct  {
-	uint32_t sp;
-	uint32_t pc;
+#define context_set(c, _pc, stack, size, ptls)			\
+	(c)->pc = ((uintptr_t) _pc) - 8;			\
+	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size),	\
+		STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
+	(c)->fp = -STACK_BIAS;					\
+	(c)->tp = ptls
 	
-	uint32_t s0;
-	uint32_t s1;
-	uint32_t s2;
-	uint32_t s3;
-	uint32_t s4;
-	uint32_t s5;
-	uint32_t s6;
-	uint32_t s7;
-	uint32_t s8;
-	uint32_t gp;
-	uint32_t tls; /* Thread local storage(=k1) */
-
-	uint32_t f20;
-	uint32_t f21;
-	uint32_t f22;
-	uint32_t f23;
-	uint32_t f24;
-	uint32_t f25;
-	uint32_t f26;
-	uint32_t f27;
-	uint32_t f28;
-	uint32_t f29;
-	uint32_t f30;
-	
+/*
+ * Save only registers that must be preserved across
+ * function calls.
+ */
+typedef struct {
+	uintptr_t sp;		/* %o6 */
+	uintptr_t pc;		/* %o7 */
+	uint64_t i0;
+	uint64_t i1;
+	uint64_t i2;
+	uint64_t i3;
+	uint64_t i4;
+	uint64_t i5;
+	uintptr_t fp;		/* %i6 */
+	uintptr_t i7;
+	uint64_t l0;
+	uint64_t l1;
+	uint64_t l2;
+	uint64_t l3;
+	uint64_t l4;
+	uint64_t l5;
+	uint64_t l6;
+	uint64_t l7;
+	uint64_t tp;		/* %g7 */
 } context_t;
 
 #endif

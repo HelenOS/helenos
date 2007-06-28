@@ -49,8 +49,8 @@
  *  TLS starts just after this struct.
  */
 typedef struct {
-	/** psthread data. */
-	void *pst_data;
+	/** Fibril data. */
+	void *fibril_data;
 } tcb_t;
 
 

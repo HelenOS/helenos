@@ -26,39 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
+ * @ingroup libcmips32eb	
  */
 
-#ifndef LIBC_amd64_PSTHREAD_H_
-#define LIBC_amd64_PSTHREAD_H_
+#ifndef LIBC_mips32_FIBRIL_H_
+#define LIBC_mips32_FIBRIL_H_
 
 #include <types.h>
 
-/* According to ABI the stack MUST be aligned on 
- * 16-byte boundary. If it is not, the va_arg calling will
- * panic sooner or later
+/* We define our own context_set, because we need to set
+ * the TLS pointer to the tcb+0x7000
+ *
+ * See tls_set in thread.h
  */
-#define SP_DELTA     16
+#define context_set(c, _pc, stack, size, ptls) 			\
+	(c)->pc = (sysarg_t) (_pc);				\
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
+        (c)->tls = ((sysarg_t)(ptls)) + 0x7000 + sizeof(tcb_t);
 
-/* We include only registers that must be preserved
- * during function call
+
+/* +16 is just for sure that the called function
+ * have space to store it's arguments
  */
-typedef struct {
-    uint64_t sp;
-    uint64_t pc;
-    
-    uint64_t rbx;
-    uint64_t rbp;
+#define SP_DELTA	(8+16)
 
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
+typedef struct  {
+	uint32_t sp;
+	uint32_t pc;
+	
+	uint32_t s0;
+	uint32_t s1;
+	uint32_t s2;
+	uint32_t s3;
+	uint32_t s4;
+	uint32_t s5;
+	uint32_t s6;
+	uint32_t s7;
+	uint32_t s8;
+	uint32_t gp;
+	uint32_t tls; /* Thread local storage(=k1) */
 
-    uint64_t tls;
+	uint32_t f20;
+	uint32_t f21;
+	uint32_t f22;
+	uint32_t f23;
+	uint32_t f24;
+	uint32_t f25;
+	uint32_t f26;
+	uint32_t f27;
+	uint32_t f28;
+	uint32_t f29;
+	uint32_t f30;
+	
 } context_t;
 
 #endif

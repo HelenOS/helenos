@@ -35,8 +35,8 @@
 
 /* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
 
-#ifndef LIBC_mips32THREAD_H_
-#define LIBC_mips32THREAD_H_
+#ifndef LIBC_mips32_THREAD_H_
+#define LIBC_mips32_THREAD_H_
 
 /* I did not find any specification (neither MIPS nor PowerPC), but
  * as I found it
@@ -53,7 +53,7 @@
 #define MIPS_TP_OFFSET 0x7000
 
 typedef struct {
-	void *pst_data;
+	void *fibril_data;
 } tcb_t;
 
 static inline void __tcb_set(tcb_t *tcb)

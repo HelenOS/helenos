@@ -38,7 +38,7 @@
 #define PPC_TP_OFFSET 0x7000
 
 typedef struct {
-	void *pst_data;
+	void *fibril_data;
 } tcb_t;
 
 static inline void __tcb_set(tcb_t *tcb)

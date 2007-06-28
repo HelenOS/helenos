@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ppc32_PSTHREAD_H_
-#define LIBC_ppc32_PSTHREAD_H_
+#ifndef LIBC_ppc32_FIBRIL_H_
+#define LIBC_ppc32_FIBRIL_H_
 
 #include <types.h>
 

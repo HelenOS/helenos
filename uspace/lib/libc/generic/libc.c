@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <thread.h>
 #include <malloc.h>
-#include <psthread.h>
+#include <fibril.h>
 #include <io/stream.h>
 #include <ipc/ipc.h>
 #include <async.h>
@@ -57,12 +57,12 @@ void _exit(int status)
 
 void __main(void)
 {
-	psthread_data_t *pt;
+	fibril_t *f;
 
 	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
 	_async_init();
-	pt = psthread_setup();
-	__tcb_set(pt->tcb);
+	f = fibril_setup();
+	__tcb_set(f->tcb);
 }
 
 void __io_init(void)
@@ -74,7 +74,7 @@ void __io_init(void)
 
 void __exit(void)
 {
-	psthread_teardown(__tcb_get()->pst_data);
+	fibril_teardown(__tcb_get()->fibril_data);
 	_exit(0);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,72 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcarm32	
  * @{
  */
-/** @file
+/** @file 
+ *  @brief Fibrils related declarations.
  */
 
-#ifndef LIBC_PSTHREAD_H_
-#define LIBC_PSTHREAD_H_
+#ifndef LIBC_arm32_FIBRIL_H_
+#define LIBC_arm32_FIBRIL_H_
 
-#include <libarch/psthread.h>
-#include <libadt/list.h>
-#include <libarch/thread.h>
+#include <types.h>
+#include <align.h>
+#include "thread.h"
 
-#ifndef context_set
+/** Size of a stack item */
+#define STACK_ITEM_SIZE		4
+
+/** Stack alignment - see <a href="http://www.arm.com/support/faqdev/14269.html">ABI</a> for details */
+#define STACK_ALIGNMENT		8
+
+#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+
+
+/** Sets data to the context. 
+ *  
+ *  @param c     Context (#context_t).
+ *  @param _pc   Program counter.
+ *  @param stack Stack address.
+ *  @param size  Stack size.
+ *  @param ptls  Pointer to the TCB.
+ */
 #define context_set(c, _pc, stack, size, ptls) 			\
 	(c)->pc = (sysarg_t) (_pc);				\
 	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = (sysarg_t) (ptls);
-#endif /* context_set */
+        (c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET;
 
-#define PSTHREAD_SERIALIZED   1
 
-typedef enum {
-	PS_SLEEP,
-	PS_PREEMPT,
-	PS_TO_MANAGER,
-	PS_FROM_MANAGER,
-	PS_FROM_DEAD
-} pschange_type;
+/** Fibril context. 
+ *
+ *  Only registers preserved accross function calls are included. r9 is used 
+ *  to store a TLS address. -ffixed-r9 gcc forces gcc not to use this
+ *  register. -mtp=soft forces gcc to use #__aeabi_read_tp to obtain
+ *  TLS address.
+ */
+typedef struct  {
+	uint32_t sp;
+	uint32_t pc;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t tls;
+	uint32_t r10;
+	uint32_t r11;
+} context_t;
 
-typedef sysarg_t pstid_t;
-
-struct psthread_data {
-	link_t link;
-	context_t ctx;
-	void *stack;
-	void *arg;
-	int (*func)(void *);
-	tcb_t *tcb;
-
-	struct psthread_data *clean_after_me;
-	struct psthread_data *joiner;
-	int joinee_retval;
-	int retval;
-	int flags;
-};
-typedef struct psthread_data psthread_data_t;
-
-extern int context_save(context_t *c);
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
-
-pstid_t psthread_create(int (*func)(void *), void *arg);
-int psthread_join(pstid_t psthrid);
-psthread_data_t * psthread_setup(void);
-void psthread_teardown(psthread_data_t *pt);
-int psthread_schedule_next_adv(pschange_type ctype);
-void psthread_add_ready(pstid_t ptid);
-void psthread_add_manager(pstid_t psthrid);
-void psthread_remove_manager(void);
-pstid_t psthread_get_id(void);
-void psthread_inc_sercount(void);
-void psthread_dec_sercount(void);
-
-static inline int psthread_schedule_next(void) {
-	return psthread_schedule_next_adv(PS_PREEMPT);
-}
 
 #endif
 

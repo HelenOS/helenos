@@ -49,7 +49,7 @@
 #include <futex.h>
 #include <kernel/synch/synch.h>
 #include <async.h>
-#include <psthread.h>
+#include <fibril.h>
 
 /** Structure used for keeping track of sent asynchronous calls and queing
  * unsent calls.
@@ -66,7 +66,7 @@ typedef struct {
 			int phoneid;
 		} msg;
 	} u;
-	pstid_t ptid;	/**< Pseudothread waiting for sending this call. */
+	fid_t fid;	/**< Fibril waiting for sending this call. */
 } async_call_t;
 
 LIST_INITIALIZE(dispatched_calls);
@@ -216,11 +216,11 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 		list_append(&call->list, &queued_calls);
 
 		if (can_preempt) {
-			call->ptid = psthread_get_id();
-			psthread_schedule_next_adv(PS_TO_MANAGER);
+			call->fid = fibril_get_id();
+			fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 			/* Async futex unlocked by previous call */
 		} else {
-			call->ptid = 0;
+			call->fid = 0;
 			futex_up(&async_futex);
 		}
 		return;
@@ -383,8 +383,8 @@ static void try_dispatch_queued_calls(void)
 		list_remove(&call->list);
 
 		futex_up(&async_futex);
-		if (call->ptid)
-			psthread_add_ready(call->ptid);
+		if (call->fid)
+			fibril_add_ready(call->fid);
 		
 		if (callid == IPC_CALLRET_FATAL) {
 			if (call->callback)

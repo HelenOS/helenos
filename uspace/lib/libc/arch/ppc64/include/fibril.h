@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcppc64	
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_PSTHREAD_H_
-#define LIBC_sparc64_PSTHREAD_H_
+#ifndef LIBC_ppc64_FIBRIL_H_
+#define LIBC_ppc64_FIBRIL_H_
 
-#include <libarch/stack.h>
 #include <types.h>
-#include <align.h>
 
-#define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE
-
-#ifdef context_set
-#undef context_set
-#endif
-
-#define context_set(c, _pc, stack, size, ptls)			\
-	(c)->pc = ((uintptr_t) _pc) - 8;			\
-	(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size),	\
-		STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA);	\
-	(c)->fp = -STACK_BIAS;					\
-	(c)->tp = ptls
-	
-/*
- * Save only registers that must be preserved across
- * function calls.
+/* We define our own context_set, because we need to set
+ * the TLS pointer to the tcb+0x7000
+ *
+ * See tls_set in thread.h
  */
+#define context_set(c, _pc, stack, size, ptls) 			\
+	(c)->pc = (sysarg_t) (_pc);				\
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
+	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
+
+#define SP_DELTA	16
+
 typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
-	uintptr_t fp;		/* %i6 */
-	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	uint64_t tp;		/* %g7 */
-} context_t;
+	uint64_t sp;
+	uint64_t pc;
+	
+	uint64_t tls;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t r16;
+	uint64_t r17;
+	uint64_t r18;
+	uint64_t r19;
+	uint64_t r20;
+	uint64_t r21;
+	uint64_t r22;
+	uint64_t r23;
+	uint64_t r24;
+	uint64_t r25;
+	uint64_t r26;
+	uint64_t r27;
+	uint64_t r28;
+	uint64_t r29;
+	uint64_t r30;
+	uint64_t r31;
+	
+	uint64_t cr;
+} __attribute__ ((packed)) context_t;
 
 #endif
 

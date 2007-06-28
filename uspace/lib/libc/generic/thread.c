@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <libarch/faddr.h>
 #include <kernel/proc/uarg.h>
-#include <psthread.h>
+#include <fibril.h>
 #include <string.h>
 #include <async.h>
 
@@ -100,10 +100,10 @@ void __free_tls(tcb_t *tcb)
  */
 void __thread_main(uspace_arg_t *uarg)
 {
-	psthread_data_t *pt;
+	fibril_t *f;
 
-	pt = psthread_setup();
-	__tcb_set(pt->tcb);
+	f = fibril_setup();
+	__tcb_set(f->tcb);
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/* XXX: we cannot free the userspace stack while running on it */
@@ -112,7 +112,7 @@ void __thread_main(uspace_arg_t *uarg)
 
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
-	psthread_teardown(pt);
+	fibril_teardown(f);
 
 	thread_exit(0);
 }
