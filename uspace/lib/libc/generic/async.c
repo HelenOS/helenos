@@ -256,9 +256,7 @@ static void insert_timeout(awaiter_t *wd)
 	list_append(&wd->link, tmp);
 }
 
-/*************************************************/
-
-/** Try to route a call to an appropriate connection thread
+/** Try to route a call to an appropriate connection fibril
  *
  */
 static int route_call(ipc_callid_t callid, ipc_call_t *call)
@@ -302,7 +300,7 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 	return 1;
 }
 
-/** Return new incoming message for current(thread-local) connection */
+/** Return new incoming message for the current (fibril-local) connection */
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
 	msg_t *msg;
@@ -353,7 +351,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
-/** Thread function that gets created on new connection
+/** Fibril function that gets created on new connection
  *
  * This function is defined as a weak symbol - to be redefined in
  * user code.
@@ -366,12 +364,14 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 }
 
-/** Wrapper for client connection thread
+/** Wrapper for client connection fibril.
  *
- * When new connection arrives, thread with this function is created.
- * It calls client_connection and does final cleanup.
+ * When new connection arrives, a fibril with this implementing function is
+ * created. It calls client_connection() and does the final cleanup.
  *
- * @param arg Connection structure pointer
+ * @param arg		Connection structure pointer
+ *
+ * @return		Always zero.
  */
 static int connection_fibril(void  *arg)
 {
@@ -379,7 +379,7 @@ static int connection_fibril(void  *arg)
 	msg_t *msg;
 	int close_answered = 0;
 
-	/* Setup thread local connection pointer */
+	/* Setup fibril-local connection pointer */
 	FIBRIL_connection = (connection_t *) arg;
 	FIBRIL_connection->cfibril(FIBRIL_connection->callid,
 	    &FIBRIL_connection->call);
@@ -406,19 +406,18 @@ static int connection_fibril(void  *arg)
 	return 0;
 }
 
-/** Create new thread for a new connection 
+/** Create a new fibril for a new connection.
  *
- * Creates new thread for connection, fills in connection
- * structures and inserts it into the hash table, so that
- * later we can easily do routing of messages to particular
- * threads.
+ * Creates new fibril for connection, fills in connection structures and inserts
+ * it into the hash table, so that later we can easily do routing of messages to
+ * particular fibrils.
  *
- * @param in_phone_hash Identification of the incoming connection
- * @param callid Callid of the IPC_M_CONNECT_ME_TO packet
- * @param call Call data of the opening packet
- * @param cfibril Fibril function that should be called upon
- *                opening the connection
- * @return New fibril id.
+ * @param in_phone_hash	Identification of the incoming connection
+ * @param callid	Callid of the IPC_M_CONNECT_ME_TO packet
+ * @param call		Call data of the opening packet
+ * @param cfibril	Fibril function that should be called upon
+ *                	opening the connection
+ * @return 		New fibril id.
  */
 fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
     ipc_call_t *call, void (*cfibril)(ipc_callid_t, ipc_call_t *))
@@ -457,7 +456,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	return conn->wdata.fid;
 }
 
-/** Handle call that was received */
+/** Handle a call that was received. */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
 	/* Unrouted call - do some default behaviour */
@@ -470,7 +469,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_CONNECT_ME_TO:
-		/* Open new connection with thread etc. */
+		/* Open new connection with fibril etc. */
 		async_new_connection(IPC_GET_ARG3(*call), callid, call,
 		    client_connection);
 		return;
@@ -484,9 +483,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_fast(callid, EHANGUP, 0, 0);
 }
 
-/** Fire all timeouts that expired 
- *
- */
+/** Fire all timeouts that expired. */
 static void handle_expired_timeouts(void)
 {
 	struct timeval tv;
@@ -505,7 +502,7 @@ static void handle_expired_timeouts(void)
 		list_remove(&waiter->link);
 		waiter->inlist = 0;
 		waiter->timedout = 1;
-		/* Redundant condition? The thread should not
+		/* Redundant condition? The fibril should not
 		 * be active when it gets here.
 		 */
 		if (!waiter->active) {
@@ -530,7 +527,7 @@ static int async_manager_worker(void)
 		if (fibril_schedule_next_adv(FIBRIL_FROM_MANAGER)) {
 			futex_up(&async_futex); 
 			/* async_futex is always held
-			 * when entering manager thread
+			 * when entering manager fibril
 			 */
 			continue;
 		}
@@ -566,12 +563,10 @@ static int async_manager_worker(void)
 	return 0;
 }
 
-/** Function to start async_manager as a standalone thread 
+/** Function to start async_manager as a standalone fibril. 
  * 
  * When more kernel threads are used, one async manager should
- * exist per thread. The particular implementation may change,
- * currently one async_manager is started automatically per kernel
- * thread except the main thread. 
+ * exist per thread.
  */
 static int async_manager_fibril(void *arg)
 {
@@ -614,8 +609,7 @@ int _async_init(void)
  *
  * Notify the fibril which is waiting for this message, that it arrived
  */
-static void reply_received(void *private, int retval,
-			   ipc_call_t *data)
+static void reply_received(void *private, int retval, ipc_call_t *data)
 {
 	amsg_t *msg = (amsg_t *) private;
 
@@ -646,7 +640,7 @@ static void reply_received(void *private, int retval,
  * for completion.
  */
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-		   ipc_call_t *dataptr)
+    ipc_call_t *dataptr)
 {
 	amsg_t *msg;
 
@@ -673,7 +667,7 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
  * for completion.
  */
 aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-		   ipcarg_t arg3, ipc_call_t *dataptr)
+    ipcarg_t arg3, ipc_call_t *dataptr)
 {
 	amsg_t *msg;
 
@@ -696,10 +690,9 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 /** Wait for a message sent by async framework
  *
- * @param amsgid Message ID to wait for
- * @param retval Pointer to variable where will be stored retval
- *               of the answered message. If NULL, it is ignored.
- *
+ * @param amsgid	Message ID to wait for
+ * @param retval	Pointer to variable where will be stored retval of the
+ *			answered message. If NULL, it is ignored.
  */
 void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 {
@@ -793,15 +786,15 @@ void async_usleep(suseconds_t timeout)
 
 	futex_down(&async_futex);
 	insert_timeout(&msg->wdata);
-	/* Leave locked async_futex when entering this function */
+	/* Leave locked the async_futex when entering this function */
 	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
-	/* futex is up automatically after fibril_schedule_next...*/
+	/* futex is up automatically after fibril_schedule_next_adv()...*/
 	free(msg);
 }
 
-/** Set function that is called, IPC_M_CONNECT_ME_TO is received
+/** Set function that is called when IPC_M_CONNECT_ME_TO is received.
  *
- * @param conn Function that will form new psthread.
+ * @param conn Function that will form a new fibril.
  */
 void async_set_client_connection(async_client_conn_t conn)
 {
