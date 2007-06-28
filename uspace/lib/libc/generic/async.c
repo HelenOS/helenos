@@ -51,11 +51,11 @@
  * Example of use:
  * 
  * 1) Multithreaded client application
- *  create_thread(thread1);
- *  create_thread(thread2);
+ *  fibril_create(fibril1);
+ *  fibril_create(fibril2);
  *  ...
  *  
- *  thread1() {
+ *  fibril1() {
  *        conn = ipc_connect_me_to();
  *        c1 = send(conn);
  *        c2 = send(conn);

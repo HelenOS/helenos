@@ -49,7 +49,6 @@
 #define FIBRIL_SERIALIZED   1
 
 typedef enum {
-	FIBRIL_SLEEP,
 	FIBRIL_PREEMPT,
 	FIBRIL_TO_MANAGER,
 	FIBRIL_FROM_MANAGER,
@@ -67,8 +66,6 @@ struct fibril {
 	tcb_t *tcb;
 
 	struct fibril *clean_after_me;
-	struct fibril *joiner;
-	int joinee_retval;
 	int retval;
 	int flags;
 };
@@ -78,7 +75,6 @@ extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
 
 extern fid_t fibril_create(int (*func)(void *), void *arg);
-extern int fibril_join(fid_t fid);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f);
 extern int fibril_schedule_next_adv(fibril_switch_type_t stype);

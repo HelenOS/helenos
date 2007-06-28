@@ -48,15 +48,18 @@
 #define FIBRIL_INITIAL_STACK_PAGES_NO	1
 #endif
 
+/** This futex serializes access to ready_list, serialized_list and manage_list.
+ */ 
+static atomic_t fibril_futex = FUTEX_INITIALIZER;
+
 static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
 
 static void fibril_main(void);
 
-static atomic_t fibril_futex = FUTEX_INITIALIZER;
-/** Number of threads that are in async_serialized mode */
-static int serialized_threads;	/* Protected by async_futex */
+/** Number of fibrils that are in async_serialized mode */
+static int serialized_fibrils;	/* Protected by async_futex */
 /** Thread-local count of serialization. If >0, we must not preempt */
 static __thread int serialization_count;
 /** Counter for fibrils residing in async_manager */
@@ -92,24 +95,16 @@ void fibril_teardown(fibril_t *f)
 
 /** Function that spans the whole life-cycle of a fibril.
  *
- * Each fibril begins execution in this function.  Then the function
- * implementing the fibril logic is called.  After its return, the return value
- * is saved for a potentional joiner. If the joiner exists, it is woken up. The
- * fibril then switches to another fibril, which cleans up after it.
+ * Each fibril begins execution in this function. Then the function implementing
+ * the fibril logic is called.  After its return, the return value is saved.
+ * The fibril then switches to another fibril, which cleans up after it.
  */
 void fibril_main(void)
 {
 	fibril_t *f = __tcb_get()->fibril_data;
 
+	/* Call the implementing function. */
 	f->retval = f->func(f->arg);
-
-	/*
-	 * If there is a joiner, wake it up and save our return value.
-	 */
-	if (f->joiner) {
-		list_append(&f->joiner->link, &ready_list);
-		f->joiner->joinee_retval = f->retval;
-	}
 
 	fibril_schedule_next_adv(FIBRIL_FROM_DEAD);
 	/* not reached */
@@ -120,7 +115,7 @@ void fibril_main(void)
  * If calling with FIBRIL_TO_MANAGER parameter, the async_futex should be
  * held.
  *
- * @param stype		One of FIBRIL_SLEEP, FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
+ * @param stype		Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
  * 			FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
  * 			describes the circumstances of the switch.
  * @return		Return 0 if there is no ready fibril,
@@ -135,20 +130,16 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 
 	if (stype == FIBRIL_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
-	if (stype == FIBRIL_SLEEP) {
-		if (list_empty(&ready_list) && list_empty(&serialized_list))
-			goto ret_0;
-	}
 
 	if (stype == FIBRIL_FROM_MANAGER) {
 		if (list_empty(&ready_list) && list_empty(&serialized_list))
 			goto ret_0;
 		/*
-		 * Do not preempt if there is not sufficient count of thread
+		 * Do not preempt if there is not sufficient count of fibril 
 		 * managers.
 		 */
 		if (list_empty(&serialized_list) && fibrils_in_manager <=
-		    serialized_threads) {
+		    serialized_fibrils) {
 			goto ret_0;
 		}
 	}
@@ -190,10 +181,6 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 			 * If stype == FIBRIL_TO_MANAGER, don't put ourselves to
 			 * any list, we should already be somewhere, or we will
 			 * be lost.
-			 *
-			 * The stype == FIBRIL_SLEEP case is similar. The fibril
-			 * has an external refernce which can be used to wake it
-			 * up once that time has come.
 			 */
 		}
 	}
@@ -202,7 +189,7 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 	if (stype == FIBRIL_TO_MANAGER || stype == FIBRIL_FROM_DEAD) {
 		dstf = list_get_instance(manager_list.next, fibril_t, link);
 		if (serialization_count && stype == FIBRIL_TO_MANAGER) {
-			serialized_threads++;
+			serialized_fibrils++;
 			srcf->flags |= FIBRIL_SERIALIZED;
 		}
 		fibrils_in_manager++;
@@ -213,7 +200,7 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 		if (!list_empty(&serialized_list)) {
 			dstf = list_get_instance(serialized_list.next, fibril_t,
 			    link);
-			serialized_threads--;
+			serialized_fibrils--;
 		} else {
 			dstf = list_get_instance(ready_list.next, fibril_t,
 			    link);
@@ -228,36 +215,6 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 ret_0:
 	futex_up(&fibril_futex);
 	return retval;
-}
-
-/** Wait for fibril to finish.
- *
- * Each fibril can be only joined by one other fibril. Moreover, the joiner must
- * be from the same thread as the joinee.
- *
- * @param fid		Fibril to join.
- *
- * @return		Value returned by the completed fibril.
- */
-int fibril_join(fid_t fid)
-{
-	fibril_t *f;
-	fibril_t *cur;
-
-	/* Handle fid = Kernel address -> it is wait for call */
-	f = (fibril_t *) fid;
-
-	/*
-	 * The joiner is running so the joinee isn't.
-	 */
-	cur = __tcb_get()->fibril_data;
-	f->joiner = cur;
-	fibril_schedule_next_adv(FIBRIL_SLEEP);
-
-	/*
-	 * The joinee fills in the return value.
-	 */
-	return cur->joinee_retval;
 }
 
 /** Create a new fibril.
@@ -285,8 +242,6 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	f->arg = arg;
 	f->func = func;
 	f->clean_after_me = NULL;
-	f->joiner = NULL;
-	f->joinee_retval = 0;
 	f->retval = 0;
 	f->flags = 0;
 
