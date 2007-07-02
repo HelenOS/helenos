@@ -54,6 +54,73 @@ struct {
 	volatile sysarg_t seconds2;
 } *ktime = NULL;
 
+/** Add microseconds to given timeval.
+ *
+ * @param tv		Destination timeval.
+ * @param usecs		Number of microseconds to add.
+ */
+void tv_add(struct timeval *tv, suseconds_t usecs)
+{
+	tv->tv_sec += usecs / 1000000;
+	tv->tv_usec += usecs % 1000000;
+	if (tv->tv_usec > 1000000) {
+		tv->tv_sec++;
+		tv->tv_usec -= 1000000;
+	}
+}
+
+/** Subtract two timevals.
+ *
+ * @param tv1		First timeval.
+ * @param tv2		Second timeval.
+ *
+ * @return		Return difference between tv1 and tv2 (tv1 - tv2) in
+ * 			microseconds.
+ */
+suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2)
+{
+	suseconds_t result;
+
+	result = tv1->tv_usec - tv2->tv_usec;
+	result += (tv1->tv_sec - tv2->tv_sec) * 1000000;
+
+	return result;
+}
+
+/** Decide if one timeval is greater than the other.
+ *
+ * @param t1		First timeval.
+ * @param t2		Second timeval.
+ *
+ * @return		Return true tv1 is greater than tv2. Otherwise return
+ * 			false.
+ */
+int tv_gt(struct timeval *tv1, struct timeval *tv2)
+{
+	if (tv1->tv_sec > tv2->tv_sec)
+		return 1;
+	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec > tv2->tv_usec)
+		return 1;
+	return 0;
+}
+
+/** Decide if one timeval is greater than or equal to the other.
+ *
+ * @param tv1		First timeval.
+ * @param tv2		Second timeval.
+ *
+ * @return		Return true if tv1 is greater than or equal to tv2.
+ * 			Otherwise return false.
+ */
+int tv_gteq(struct timeval *tv1, struct timeval *tv2)
+{
+	if (tv1->tv_sec > tv2->tv_sec)
+		return 1;
+	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec >= tv2->tv_usec)
+		return 1;
+	return 0;
+}
+
 
 /** POSIX gettimeofday
  *

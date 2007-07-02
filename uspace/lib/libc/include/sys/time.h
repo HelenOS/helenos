@@ -52,7 +52,11 @@ struct timezone {
 	int  tz_dsttime;     /* type of dst correction */
 };
 
-int gettimeofday(struct timeval *tv, struct timezone *tz);
+extern void tv_add(struct timeval *tv, suseconds_t usecs);
+extern suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2);
+extern int tv_gt(struct timeval *tv1, struct timeval *tv2);
+extern int tv_gteq(struct timeval *tv1, struct timeval *tv2);
+extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif
 

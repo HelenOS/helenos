@@ -99,7 +99,7 @@
 #include <ipc/ipc.h>
 #include <assert.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 #include <arch/barrier.h>
 
 atomic_t async_futex = FUTEX_INITIALIZER;
@@ -160,49 +160,6 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
 static async_client_conn_t client_connection = default_client_connection;
 static async_client_conn_t interrupt_received = default_interrupt_received;
-
-/** Add microseconds to give timeval */
-static void tv_add(struct timeval *tv, suseconds_t usecs)
-{
-	tv->tv_sec += usecs / 1000000;
-	tv->tv_usec += usecs % 1000000;
-	if (tv->tv_usec > 1000000) {
-		tv->tv_sec++;
-		tv->tv_usec -= 1000000;
-	}
-}
-
-/** Subtract 2 timevals, return microseconds difference */
-static suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2)
-{
-	suseconds_t result;
-
-	result = tv1->tv_usec - tv2->tv_usec;
-	result += (tv1->tv_sec - tv2->tv_sec) * 1000000;
-
-	return result;
-}
-
-/** Compare timeval
- *
- * @return 1 if tv1 > tv2, otherwise 0
- */
-static int tv_gt(struct timeval *tv1, struct timeval *tv2)
-{
-	if (tv1->tv_sec > tv2->tv_sec)
-		return 1;
-	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec > tv2->tv_usec)
-		return 1;
-	return 0;
-}
-static int tv_gteq(struct timeval *tv1, struct timeval *tv2)
-{
-	if (tv1->tv_sec > tv2->tv_sec)
-		return 1;
-	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec >= tv2->tv_usec)
-		return 1;
-	return 0;
-}
 
 /* Hash table functions */
 #define CONN_HASH_TABLE_CHAINS	32
