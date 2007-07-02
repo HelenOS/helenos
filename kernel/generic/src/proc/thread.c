@@ -586,9 +586,9 @@ void thread_print_list(void)
 	spinlock_lock(&threads_lock);
 	
 	printf("tid    name       address    state    task       ctx code    "
-	    "   stack      cycles     cpu  kstack     waitqueue\n");
+	    "   stack      cycles     cpu  waitqueue\n");
 	printf("------ ---------- ---------- -------- ---------- --- --------"
-	    "-- ---------- ---------- ---- ---------- ----------\n");
+	    "-- ---------- ---------- ---- ---------\n");
 
 	for (cur = threads_btree.leaf_head.next;
 	    cur != &threads_btree.leaf_head; cur = cur->next) {
@@ -616,8 +616,7 @@ void thread_print_list(void)
 				printf("none");
 			
 			if (t->state == Sleeping)
-				printf(" %#10zx %#10zx", t->kstack,
-				    t->sleep_queue);
+				printf(" %#10zx", t->sleep_queue);
 			
 			printf("\n");
 		}
