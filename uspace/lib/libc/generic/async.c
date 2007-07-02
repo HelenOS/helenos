@@ -106,27 +106,31 @@ atomic_t async_futex = FUTEX_INITIALIZER;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
+/** Structures of this type represent a waiting fibril. */
 typedef struct {
-	/** Expiration time for waiting fibril. */
+	/** Expiration time. */
 	struct timeval expires;		
 	/** If true, this struct is in the timeout list. */
 	int inlist;
+	/** Timeout list link. */
 	link_t link;
 
 	/** Fibril waiting for this message. */
 	fid_t fid;
-	/** If this fibril is currently active. */
+	/** If true, this fibril is currently active. */
 	int active;
-	/** If true, we timed out. */
+	/** If true, we have timed out. */
 	int timedout;
 } awaiter_t;
 
 typedef struct {
 	awaiter_t wdata;
+	
+	/** If reply was received. */
+	int done;
+	/** Pointer to where the answer data is stored. */
+ 	ipc_call_t *dataptr;
 
-	int done;               	/**< If reply was received */
-	ipc_call_t *dataptr;		/**< Pointer where the answer data
-					 *   is stored */
 	ipcarg_t retval;
 } amsg_t;
 
@@ -139,21 +143,32 @@ typedef struct {
 typedef struct {
 	awaiter_t wdata;
 
-	link_t link;			/**< Hash table link. */
-	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
-	link_t msg_queue;		/**< Messages that should be delivered
-					 *   to this fibril. */
-	/* Structures for connection opening packet */
+	/** Hash table link. */
+	link_t link;
+
+	/** Incoming phone hash. */
+	ipcarg_t in_phone_hash;		
+
+	/** Messages that should be delivered to this fibril. */
+	link_t msg_queue;		
+					 
+	/** Identification of the opening call. */
 	ipc_callid_t callid;
+	/** Call data of the opening call. */
 	ipc_call_t call;
-	ipc_callid_t close_callid;	/* Identification of closing packet. */
+
+	/** Identification of the closing call. */
+	ipc_callid_t close_callid;
+
+	/** Fibril function that will be used to handle the connection. */
 	void (*cfibril)(ipc_callid_t, ipc_call_t *);
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
 __thread connection_t *FIBRIL_connection;
-/** If true, it is forbidden to use async_req functions and
- *  all preemption is disabled */
+
+/** If true, it is forbidden to use async_req functions and all preemption is
+ * disabled. */
 __thread int in_interrupt_handler;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
@@ -161,15 +176,28 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
 static async_client_conn_t client_connection = default_client_connection;
 static async_client_conn_t interrupt_received = default_interrupt_received;
 
-/* Hash table functions */
 #define CONN_HASH_TABLE_CHAINS	32
 
+/** Compute hash into the connection hash table based on the source phone hash.
+ *
+ * @param key		Pointer to source phone hash.
+ *
+ * @return		Index into the connection hash table.
+ */
 static hash_index_t conn_hash(unsigned long *key)
 {
 	assert(key);
 	return ((*key) >> 4) % CONN_HASH_TABLE_CHAINS;
 }
 
+/** Compare hash table item with a key.
+ *
+ * @param key		Array containing the source phone hash as the only item.
+ * @param keys		Expected 1 but ignored.
+ * @param item		Connection hash table item.
+ *
+ * @return		True on match, false otherwise.
+ */
 static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	connection_t *hs;
@@ -179,21 +207,29 @@ static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	return key[0] == hs->in_phone_hash;
 }
 
+/** Connection hash table removal callback function.
+ *
+ * This function is called whenever a connection is removed from the connection
+ * hash table.
+ *
+ * @param item		Connection hash table item being removed.
+ */
 static void conn_remove(link_t *item)
 {
 	free(hash_table_get_instance(item, connection_t, link));
 }
 
 
-/** Operations for NS hash table. */
+/** Operations for the connection hash table. */
 static hash_table_operations_t conn_hash_table_ops = {
 	.hash = conn_hash,
 	.compare = conn_compare,
 	.remove_callback = conn_remove
 };
 
-/** Insert sort timeout msg into timeouts list
+/** Sort in current fibril's timeout request.
  *
+ * @param wd		Wait data of the current fibril.
  */
 static void insert_timeout(awaiter_t *wd)
 {
@@ -213,7 +249,7 @@ static void insert_timeout(awaiter_t *wd)
 	list_append(&wd->link, tmp);
 }
 
-/** Try to route a call to an appropriate connection fibril
+/** Try to route a call to an appropriate connection fibril.
  *
  */
 static int route_call(ipc_callid_t callid, ipc_call_t *call)
@@ -257,7 +293,17 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 	return 1;
 }
 
-/** Return new incoming message for the current (fibril-local) connection */
+/** Return new incoming message for the current (fibril-local) connection.
+ *
+ * @param call		Storage where the incoming call data will be stored.
+ * @param usecs		Timeout in microseconds. Zero denotes no timeout.
+ *
+ * @return		If no timeout was specified, then a hash of the
+ * 			incoming call is returned. If a timeout is specified,
+ * 			then a hash of the incoming call is returned unless
+ * 			the timeout expires prior to receiving a message. In
+ * 			that case zero is returned.
+ */
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
 	msg_t *msg;
@@ -280,19 +326,21 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	} else {
 		conn->wdata.inlist = 0;
 	}
-	/* If nothing in queue, wait until something appears */
+	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
 		if (usecs)
 			insert_timeout(&conn->wdata);
 
 		conn->wdata.active = 0;
 		fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
-		/* Futex is up after getting back from async_manager 
-		 * get it again */
+		/*
+		 * Futex is up after getting back from async_manager get it
+		 * again.
+		*/
 		futex_down(&async_futex);
 		if (usecs && conn->wdata.timedout &&
 		    list_empty(&conn->msg_queue)) {
-			/* If we timed out-> exit */
+			/* If we timed out -> exit */
 			futex_up(&async_futex);
 			return 0;
 		}
@@ -310,8 +358,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 
 /** Fibril function that gets created on new connection
  *
- * This function is defined as a weak symbol - to be redefined in
- * user code.
+ * This function is defined as a weak symbol - to be redefined in user code.
  */
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
