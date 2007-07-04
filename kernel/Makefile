@@ -132,16 +132,28 @@ ifeq ($(CONFIG_FB),y)
 	endif
 endif
 
+## Simple detection for the type of the host system
+#
+HOST = $(shell uname)
+
+## On Solaris, some utilities have slightly different names
+#
+ifeq ($(HOST),SunOS)
+	BINUTILS_PREFIX = "g"
+else
+	BINUTILS_PREFIX = ""
+endif
+
 ## Toolchain configuration
 #
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	GCC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	LIBDIR = /usr/lib
 	CFLAGS = $(GCC_CFLAGS)
 endif
@@ -160,10 +172,10 @@ endif
 ifeq ($(COMPILER),suncc_native)
 	CC = suncc
 	GCC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	LIBDIR = /usr/lib
 	CFLAGS = $(SUNCC_CFLAGS)
 endif

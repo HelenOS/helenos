@@ -37,16 +37,28 @@ AFLAGS =
 
 include $(LIBC_PREFIX)/arch/$(ARCH)/Makefile.inc
 
+## Simple detection of the host system
+#
+HOST = $(shell uname)
+
+## On Solaris, some utilities have different names
+#
+ifeq ($(HOST),SunOS)
+	BINUTILS_PREFIX = "g"
+else
+	BINUTILS_PREFIX = ""
+endif
+
 ## Toolchain configuration
 #
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
-	AS = as
-	LD = ld
-	AR = ar
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	AR = $(BINUTILS_PREFIX)ar
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -66,3 +78,4 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
+
