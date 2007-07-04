@@ -51,8 +51,9 @@
 #include <async.h>
 #include <fibril.h>
 
-/** Structure used for keeping track of sent asynchronous calls and queing
- * unsent calls.
+/**
+ * Structures of this type are used for keeping track of sent asynchronous calls
+ * and queing unsent calls.
  */
 typedef struct {
 	link_t list;

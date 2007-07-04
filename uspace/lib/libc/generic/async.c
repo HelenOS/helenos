@@ -72,7 +72,7 @@
  * }
  * 
  *
- * client_connection(icallid, *icall)
+ * my_client_connection(icallid, *icall)
  * {
  * 	if (want_refuse) {
  * 		ipc_answer_fast(icallid, ELIMIT, 0, 0);
@@ -115,7 +115,7 @@ typedef struct {
 	/** Timeout list link. */
 	link_t link;
 
-	/** Fibril waiting for this message. */
+	/** Identification of and link to the waiting fibril. */
 	fid_t fid;
 	/** If true, this fibril is currently active. */
 	int active;
@@ -134,6 +134,10 @@ typedef struct {
 	ipcarg_t retval;
 } amsg_t;
 
+/**
+ * Structures of this type are used to group information about a call and a
+ * message queue link.
+ */
 typedef struct {
 	link_t link;
 	ipc_callid_t callid;
@@ -167,13 +171,23 @@ typedef struct {
 /** Identifier of the incoming connection handled by the current fibril. */
 __thread connection_t *FIBRIL_connection;
 
-/** If true, it is forbidden to use async_req functions and all preemption is
- * disabled. */
+/**
+ * If true, it is forbidden to use async_req functions and all preemption is
+ * disabled.
+ */
 __thread int in_interrupt_handler;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
+
+/**
+ * Pointer to a fibril function that will be used to handle connections.
+ */
 static async_client_conn_t client_connection = default_client_connection;
+/**
+ * Pointer to a fibril function that will be used to handle interrupt
+ * notifications.
+ */
 static async_client_conn_t interrupt_received = default_interrupt_received;
 
 #define CONN_HASH_TABLE_CHAINS	32
@@ -251,6 +265,16 @@ static void insert_timeout(awaiter_t *wd)
 
 /** Try to route a call to an appropriate connection fibril.
  *
+ * If the proper connection fibril is found, a message with the call is added to
+ * its message queue. If the fibril was not active, it is activated and all
+ * timeouts are unregistered.
+ *
+ * @param callid	Hash of the incoming call.
+ * @param call		Data of the incoming call.
+ *
+ * @return		Zero if the call doesn't match any connection.
+ * 			One if the call was passed to the respective connection
+ * 			fibril.
  */
 static int route_call(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -277,7 +301,7 @@ static int route_call(ipc_callid_t callid, ipc_call_t *call)
 	if (IPC_GET_METHOD(*call) == IPC_M_PHONE_HUNGUP)
 		conn->close_callid = callid;
 	
-	/* If the call is waiting for event, run it */
+	/* If the connection fibril is waiting for an event, activate it */
 	if (!conn->wdata.active) {
 		/* If in timeout list, remove it */
 		if (conn->wdata.inlist) {
@@ -314,7 +338,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	/* GCC 4.1.0 coughs on FIBRIL_connection-> dereference,
 	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
 	 *           I would never expect to find so many errors in 
-	 *           compiler *($&$(*&$
+	 *           a compiler *($&$(*&$
 	 */
 	conn = FIBRIL_connection; 
 
@@ -356,24 +380,33 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
-/** Fibril function that gets created on new connection
+/** Default fibril function that gets called to handle new connection.
  *
  * This function is defined as a weak symbol - to be redefined in user code.
+ *
+ * @param callid	Hash of the incoming call.
+ * @param call		Data of the incoming call.
  */
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_answer_fast(callid, ENOENT, 0, 0);
 }
+
+/** Default fibril function that gets called to handle interrupt notifications.
+ *
+ * @param callid	Hash of the incoming call.
+ * @param call		Data of the incoming call.
+ */
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 }
 
 /** Wrapper for client connection fibril.
  *
- * When new connection arrives, a fibril with this implementing function is
+ * When a new connection arrives, a fibril with this implementing function is
  * created. It calls client_connection() and does the final cleanup.
  *
- * @param arg		Connection structure pointer
+ * @param arg		Connection structure pointer.
  *
  * @return		Always zero.
  */
@@ -388,13 +421,13 @@ static int connection_fibril(void  *arg)
 	FIBRIL_connection->cfibril(FIBRIL_connection->callid,
 	    &FIBRIL_connection->call);
 	
-	/* Remove myself from connection hash table */
+	/* Remove myself from the connection hash table */
 	futex_down(&async_futex);
 	key = FIBRIL_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	
-	/* Answer all remaining messages with ehangup */
+	/* Answer all remaining messages with EHANGUP */
 	while (!list_empty(&FIBRIL_connection->msg_queue)) {
 		msg = list_get_instance(FIBRIL_connection->msg_queue.next,
 		    msg_t, link);
@@ -416,12 +449,13 @@ static int connection_fibril(void  *arg)
  * it into the hash table, so that later we can easily do routing of messages to
  * particular fibrils.
  *
- * @param in_phone_hash	Identification of the incoming connection
- * @param callid	Callid of the IPC_M_CONNECT_ME_TO packet
- * @param call		Call data of the opening packet
- * @param cfibril	Fibril function that should be called upon
- *                	opening the connection
- * @return 		New fibril id.
+ * @param in_phone_hash	Identification of the incoming connection.
+ * @param callid	Hash of the opening IPC_M_CONNECT_ME_TO call.
+ * @param call		Call data of the opening call.
+ * @param cfibril	Fibril function that should be called upon opening the
+ * 			connection.
+ *
+ * @return 		New fibril id or NULL on failure.
  */
 fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
     ipc_call_t *call, void (*cfibril)(ipc_callid_t, ipc_call_t *))
@@ -440,7 +474,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	conn->close_callid = 0;
 	if (call)
 		conn->call = *call;
-	conn->wdata.active = 1; /* We will activate it asap */
+	conn->wdata.active = 1;	/* We will activate the fibril ASAP */
 	conn->cfibril = cfibril;
 
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
@@ -449,7 +483,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
 		return NULL;
 	}
-	/* Add connection to hash table */
+	/* Add connection to the connection hash table */
 	key = conn->in_phone_hash;
 	futex_down(&async_futex);
 	hash_table_insert(&conn_hash_table, &key, &conn->link);
@@ -460,7 +494,14 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	return conn->wdata.fid;
 }
 
-/** Handle a call that was received. */
+/** Handle a call that was received.
+ *
+ * If the call has the IPC_M_CONNECT_ME_TO method, a new connection is created.
+ * Otherwise the call is routed to its connection fibril.
+ *
+ * @param callid	Hash of the incoming call.
+ * @param call		Data of the incoming call.
+ */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
 	/* Unrouted call - do some default behaviour */
@@ -479,7 +520,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	/* Try to route call through connection tables */
+	/* Try to route the call through the connection hash table */
 	if (route_call(callid, call))
 		return;
 
@@ -494,7 +535,7 @@ static void handle_expired_timeouts(void)
 	awaiter_t *waiter;
 	link_t *cur;
 
-	gettimeofday(&tv,NULL);
+	gettimeofday(&tv, NULL);
 	futex_down(&async_futex);
 
 	cur = timeout_list.next;
@@ -506,8 +547,9 @@ static void handle_expired_timeouts(void)
 		list_remove(&waiter->link);
 		waiter->inlist = 0;
 		waiter->timedout = 1;
-		/* Redundant condition? The fibril should not
-		 * be active when it gets here.
+		/*
+ 		 * Redundant condition?
+ 		 * The fibril should not be active when it gets here.
 		 */
 		if (!waiter->active) {
 			waiter->active = 1;
@@ -518,7 +560,10 @@ static void handle_expired_timeouts(void)
 	futex_up(&async_futex);
 }
 
-/** Endless loop dispatching incoming calls and answers */
+/** Endless loop dispatching incoming calls and answers.
+ *
+ * @return		Never returns.
+ */
 static int async_manager_worker(void)
 {
 	ipc_call_t call;
@@ -530,8 +575,9 @@ static int async_manager_worker(void)
 	while (1) {
 		if (fibril_schedule_next_adv(FIBRIL_FROM_MANAGER)) {
 			futex_up(&async_futex); 
-			/* async_futex is always held
-			 * when entering manager fibril
+			/*
+			 * async_futex is always held when entering a manager
+			 * fibril.
 			 */
 			continue;
 		}
@@ -567,22 +613,26 @@ static int async_manager_worker(void)
 	return 0;
 }
 
-/** Function to start async_manager as a standalone fibril. 
+/** Function to start async_manager as a standalone fibril.
  * 
- * When more kernel threads are used, one async manager should
- * exist per thread.
+ * When more kernel threads are used, one async manager should exist per thread.
+ *
+ * @param arg		Unused.
+ *
+ * @return		Never returns.
  */
 static int async_manager_fibril(void *arg)
 {
 	futex_up(&async_futex);
-	/* async_futex is always locked when entering
-	 * manager */
+	/*
+	 * async_futex is always locked when entering manager
+	 */
 	async_manager_worker();
 	
 	return 0;
 }
 
-/** Add one manager to manager list */
+/** Add one manager to manager list. */
 void async_create_manager(void)
 {
 	fid_t fid;
@@ -597,7 +647,10 @@ void async_destroy_manager(void)
 	fibril_remove_manager();
 }
 
-/** Initialize internal structures needed for async manager */
+/** Initialize the async framework.
+ *
+ * @return		Zero on success or an error code.
+ */
 int _async_init(void)
 {
 	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1,
@@ -609,9 +662,16 @@ int _async_init(void)
 	return 0;
 }
 
-/** IPC handler for messages in async framework
+/** Reply received callback.
  *
- * Notify the fibril which is waiting for this message, that it arrived
+ * This function is called whenever a reply for an asynchronous message sent out
+ * by the asynchronous framework is received.
+ *
+ * Notify the fibril which is waiting for this message that it has arrived.
+ *
+ * @param private	Pointer to the asynchronous message record.
+ * @param retval	Value returned in the answer.
+ * @param data		Call data of the answer.
  */
 static void reply_received(void *private, int retval, ipc_call_t *data)
 {
@@ -620,9 +680,7 @@ static void reply_received(void *private, int retval, ipc_call_t *data)
 	msg->retval = retval;
 
 	futex_down(&async_futex);
-	/* Copy data after futex_down, just in case the
-	 * call was detached 
-	 */
+	/* Copy data after futex_down, just in case the call was detached */
 	if (msg->dataptr)
 		*msg->dataptr = *data; 
 
@@ -631,17 +689,26 @@ static void reply_received(void *private, int retval, ipc_call_t *data)
 	if (msg->wdata.inlist)
 		list_remove(&msg->wdata.link);
 	msg->done = 1;
-	if (! msg->wdata.active) {
+	if (!msg->wdata.active) {
 		msg->wdata.active = 1;
 		fibril_add_ready(msg->wdata.fid);
 	}
 	futex_up(&async_futex);
 }
 
-/** Send message and return id of the sent message
+/** Send message and return id of the sent message.
  *
- * The return value can be used as input for async_wait() to wait
- * for completion.
+ * The return value can be used as input for async_wait() to wait for
+ * completion.
+ *
+ * @param phoneid	Handle of the phone that will be used for the send.
+ * @param method	Service-defined method.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param dataptr	If non-NULL, storage where the reply data will be
+ * 			stored.
+ *
+ * @return		Hash of the sent message.
  */
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
     ipc_call_t *dataptr)
@@ -658,8 +725,9 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	msg->done = 0;
 	msg->dataptr = dataptr;
 
-	msg->wdata.active = 1; /* We may sleep in next method, but it
-				* will use it's own mechanism */
+	/* We may sleep in the next method, but it will use its own mechanism */
+	msg->wdata.active = 1; 
+				
 	ipc_call_async_2(phoneid, method, arg1, arg2, msg, reply_received, 1);
 
 	return (aid_t) msg;
@@ -667,8 +735,18 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 /** Send message and return id of the sent message
  *
- * The return value can be used as input for async_wait() to wait
- * for completion.
+ * The return value can be used as input for async_wait() to wait for
+ * completion.
+ *
+ * @param phoneid	Handle of the phone that will be used for the send.
+ * @param method	Service-defined method.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param dataptr	If non-NULL, storage where the reply data will be
+ * 			stored.
+ *
+ * @return		Hash of the sent message.
  */
 aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
     ipcarg_t arg3, ipc_call_t *dataptr)
@@ -676,7 +754,8 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	amsg_t *msg;
 
 	if (in_interrupt_handler) {
-		printf("Cannot send asynchronous request in interrupt handler.\n");
+		printf("Cannot send asynchronous request in interrupt "
+		    "handler.\n");
 		_exit(1);
 	}
 
@@ -684,19 +763,20 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	msg->done = 0;
 	msg->dataptr = dataptr;
 
-	msg->wdata.active = 1; /* We may sleep in next method, but it
-				* will use it's own mechanism */
+	/* We may sleep in next method, but it will use its own mechanism */
+	msg->wdata.active = 1; 
+				
 	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, msg, reply_received,
 	    1);
 
 	return (aid_t) msg;
 }
 
-/** Wait for a message sent by async framework
+/** Wait for a message sent by the async framework.
  *
- * @param amsgid	Message ID to wait for
- * @param retval	Pointer to variable where will be stored retval of the
- *			answered message. If NULL, it is ignored.
+ * @param amsgid	Hash of the message to wait for.
+ * @param retval	Pointer to storage where the retval of the answer will
+ * 			be stored.
  */
 void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 {
@@ -711,7 +791,7 @@ void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = 0;
 	msg->wdata.inlist = 0;
-	/* Leave locked async_futex when entering this function */
+	/* Leave the async_futex locked when entering this function */
 	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 	/* futex is up automatically after fibril_schedule_next...*/
 done:
@@ -720,14 +800,14 @@ done:
 	free(msg);
 }
 
-/** Wait for a message sent by async framework with timeout
+/** Wait for a message sent by the async framework, timeout variant.
  *
- * @param amsgid Message ID to wait for
- * @param retval Pointer to variable where will be stored retval
- *               of the answered message. If NULL, it is ignored.
- * @param timeout Timeout in usecs
- * @return 0 on success, ETIMEOUT if timeout expired
+ * @param amsgid	Hash of the message to wait for.
+ * @param retval	Pointer to storage where the retval of the answer will
+ * 			be stored.
+ * @param timeout	Timeout in microseconds.
  *
+ * @return		Zero on success, ETIMEOUT if the timeout has expired.
  */
 int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 {
@@ -750,7 +830,7 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 	msg->wdata.active = 0;
 	insert_timeout(&msg->wdata);
 
-	/* Leave locked async_futex when entering this function */
+	/* Leave the async_futex locked when entering this function */
 	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 	/* futex is up automatically after fibril_schedule_next...*/
 
@@ -765,9 +845,11 @@ done:
 	return 0;
 }
 
-/** Wait specified time, but in the meantime handle incoming events
+/** Wait for specified time.
  *
- * @param timeout Time in microseconds to wait
+ * The current fibril is suspended but the thread continues to execute.
+ *
+ * @param timeout	Duration of the wait in microseconds.
  */
 void async_usleep(suseconds_t timeout)
 {
@@ -790,20 +872,26 @@ void async_usleep(suseconds_t timeout)
 
 	futex_down(&async_futex);
 	insert_timeout(&msg->wdata);
-	/* Leave locked the async_futex when entering this function */
+	/* Leave the async_futex locked when entering this function */
 	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 	/* futex is up automatically after fibril_schedule_next_adv()...*/
 	free(msg);
 }
 
-/** Set function that is called when IPC_M_CONNECT_ME_TO is received.
+/** Setter for client_connection function pointer.
  *
- * @param conn Function that will form a new fibril.
+ * @param conn		Function that will implement a new connection fibril.
  */
 void async_set_client_connection(async_client_conn_t conn)
 {
 	client_connection = conn;
 }
+
+/** Setter for interrupt_received function pointer.
+ *
+ * @param conn		Function that will implement a new interrupt
+ *			notification fibril.
+ */
 void async_set_interrupt_received(async_client_conn_t conn)
 {
 	interrupt_received = conn;
@@ -825,3 +913,4 @@ void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
 
 /** @}
  */
+
