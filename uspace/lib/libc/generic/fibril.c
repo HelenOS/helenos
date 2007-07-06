@@ -254,7 +254,8 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 
 /** Add a fibril to the ready list.
  *
- * @param fid		Pinter to the fibril structure of the fibril to be added.
+ * @param fid		Pinter to the fibril structure of the fibril to be
+ *			added.
  */
 void fibril_add_ready(fid_t fid)
 {

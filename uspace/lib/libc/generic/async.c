@@ -356,11 +356,17 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			insert_timeout(&conn->wdata);
 
 		conn->wdata.active = 0;
+		/*
+		 * Note: the current fibril will be rescheduled either due to a
+		 * timeout or due to an arriving message destined to it. In the
+		 * former case, handle_expired_timeouts() and, in the latter
+		 * case, route_call() will perform the wakeup.
+		 */
 		fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
 		/*
 		 * Futex is up after getting back from async_manager get it
 		 * again.
-		*/
+		 */
 		futex_down(&async_futex);
 		if (usecs && conn->wdata.timedout &&
 		    list_empty(&conn->msg_queue)) {
