@@ -138,28 +138,40 @@
  */
 #define IPC_M_PHONE_HUNGUP	3
 
-/** Send as_area over IPC 
- * - ARG1 - src as_area base address
- * - ARG2 - size of src as_area (filled automatically by kernel)
+/** Send as_area over IPC.
+ * - ARG1 - source as_area base address
+ * - ARG2 - size of source as_area (filled automatically by kernel)
  * - ARG3 - flags of the as_area being sent
  * 
- * on answer:
+ * on answer, the recipient must set:
  * - ARG1 - dst as_area base adress
  */
 #define IPC_M_AS_AREA_SEND	4	
 
-/** Get as_area over IPC
- * - ARG1 - dst as_area base address
- * - ARG2 - dst as_area size
+/** Receive as_area over IPC.
+ * - ARG1 - destination as_area base address
+ * - ARG2 - destination as_area size
  * - ARG3 - user defined argument
  * 
- * on answer, the server must set:
+ * on answer, the recipient must set:
  *
- * - ARG1 - src as_area base address
+ * - ARG1 - source as_area base address
  * - ARG2 - flags that will be used for sharing
  */
 #define IPC_M_AS_AREA_RECV	5	
 
+/** Send data to another address space over IPC.
+ * - ARG1 - destination address space virtual address, may be overriden by the
+ *	    recipient
+ * - ARG2 - source address space virtual address
+ * - ARG3 - size of data to be copied, may be overriden by the recipient
+ *
+ * on answer, the recipient must set:
+ *
+ * - ARG1 - final destination address space virtual address
+ * - ARG3 - final size of data to be copied
+ */
+#define IPC_M_DATA_SEND		6
 
 /* Well-known methods */
 #define IPC_M_LAST_SYSTEM	511
@@ -242,6 +254,9 @@ typedef struct {
 
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
+
+	/** Buffer for IPC_M_DATA_SEND. */
+	uint8_t *buffer;
 } call_t;
 
 extern void ipc_init(void);

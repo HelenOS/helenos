@@ -67,6 +67,7 @@ static void _ipc_call_init(call_t *call)
 	memsetb((uintptr_t) call, sizeof(*call), 0);
 	call->callerbox = &TASK->answerbox;
 	call->sender = TASK;
+	call->buffer = NULL;
 }
 
 /** Allocate and initialize a call structure.
@@ -107,6 +108,9 @@ void ipc_call_static_init(call_t *call)
 void ipc_call_free(call_t *call)
 {
 	ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
+	/* Check to see if we have data in the IPC_M_DATA_SEND buffer. */
+	if (call->buffer)
+		free(call->buffer);
 	slab_free(ipc_call_slab, call);
 }
 
@@ -292,7 +296,8 @@ int ipc_phone_hangup(phone_t *phone)
 	call_t *call;
 	
 	spinlock_lock(&phone->lock);
-	if (phone->state == IPC_PHONE_FREE || phone->state == IPC_PHONE_HUNGUP ||
+	if (phone->state == IPC_PHONE_FREE ||
+	    phone->state == IPC_PHONE_HUNGUP ||
 	    phone->state == IPC_PHONE_CONNECTING) {
 		spinlock_unlock(&phone->lock);
 		return -1;

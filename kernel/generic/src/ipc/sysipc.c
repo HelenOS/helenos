@@ -49,6 +49,9 @@
 #include <mm/as.h>
 #include <print.h>
 
+/** Maximum buffer size allowed for IPC_M_DATA_SEND requests. */
+#define DATA_SEND_LIMIT		(64 * 1024)
+
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
 	if (phoneid > IPC_MAX_PHONES) { \
@@ -85,10 +88,16 @@ static inline int is_system_method(unative_t method)
  */
 static inline int is_forwardable(unative_t method)
 {
-	if (method == IPC_M_PHONE_HUNGUP || method == IPC_M_AS_AREA_SEND ||
-	    method == IPC_M_AS_AREA_RECV)
-		return 0; /* This message is meant only for the receiver */
-	return 1;
+	switch (method) {
+	case IPC_M_PHONE_HUNGUP:
+	case IPC_M_AS_AREA_SEND:
+	case IPC_M_AS_AREA_RECV:
+	case IPC_M_DATA_SEND:
+		/* This message is meant only for the original recipient. */
+		return 0;
+	default:
+		return 1;
+	}
 }
 
 
@@ -106,15 +115,16 @@ static inline int is_forwardable(unative_t method)
  */
 static inline int answer_need_old(call_t *call)
 {
-	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
+	switch (IPC_GET_METHOD(call->data)) {
+	case IPC_M_CONNECT_TO_ME:
+	case IPC_M_CONNECT_ME_TO:
+	case IPC_M_AS_AREA_SEND:
+	case IPC_M_AS_AREA_RECV:
+	case IPC_M_DATA_SEND:
 		return 1;
-	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_ME_TO)
-		return 1;
-	if (IPC_GET_METHOD(call->data) == IPC_M_AS_AREA_SEND)
-		return 1;
-	if (IPC_GET_METHOD(call->data) == IPC_M_AS_AREA_RECV)
-		return 1;
-	return 0;
+	default:
+		return 0;
+	}
 }
 
 /** Interpret process answer as control information.
@@ -201,6 +211,23 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			    IPC_GET_ARG2(answer->data));
 			IPC_SET_RETVAL(answer->data, rc);
 		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_SEND) {
+		if (!IPC_GET_RETVAL(answer->data)) {
+			int rc;
+			uintptr_t dst;
+			uintptr_t size;
+
+			ASSERT(answer->buffer);
+
+			dst = IPC_GET_ARG1(answer->data);
+			size = IPC_GET_ARG3(answer->data);
+
+			rc = copy_to_uspace((void *) dst, answer->buffer, size);
+			if (rc != 0)
+				IPC_SET_RETVAL(answer->data, rc);
+			free(answer->buffer);
+			answer->buffer = NULL;
+		}
 	}
 	return 0;
 }
@@ -215,6 +242,8 @@ static int request_preprocess(call_t *call)
 {
 	int newphid;
 	size_t size;
+	uintptr_t src;
+	int rc;
 
 	switch (IPC_GET_METHOD(call->data)) {
 	case IPC_M_CONNECT_ME_TO:
@@ -231,6 +260,20 @@ static int request_preprocess(call_t *call)
 		if (!size)
 			return EPERM;
 		IPC_SET_ARG2(call->data, size);
+		break;
+	case IPC_M_DATA_SEND:
+		src = IPC_GET_ARG2(call->data);
+		size = IPC_GET_ARG3(call->data);
+		
+		if ((size <= 0) || (size > DATA_SEND_LIMIT))
+			return ELIMIT;
+		
+		call->buffer = (uint8_t *) malloc(size, 0);
+		rc = copy_from_uspace(call->buffer, (void *) src, size);
+		if (rc != 0) {
+			free(call->buffer);
+			return rc;
+		}
 		break;
 	default:
 		break;
@@ -326,7 +369,8 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
  *
  * @param phoneid	Phone handle for the call.
  * @param question	Userspace address of call data with the request.
- * @param reply		Userspace address of call data where to store the answer.
+ * @param reply		Userspace address of call data where to store the
+ *			answer.
  *
  * @return		Zero on success or an error code.
  */
