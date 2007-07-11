@@ -146,7 +146,7 @@
  * on answer:
  * - ARG1 - dst as_area base adress
  */
-#define IPC_M_AS_AREA_SEND	5
+#define IPC_M_AS_AREA_SEND	4	
 
 /** Get as_area over IPC
  * - ARG1 - dst as_area base address
@@ -158,7 +158,7 @@
  * - ARG1 - src as_area base address
  * - ARG2 - flags that will be used for sharing
  */
-#define IPC_M_AS_AREA_RECV	6
+#define IPC_M_AS_AREA_RECV	5	
 
 
 /* Well-known methods */
