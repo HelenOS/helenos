@@ -41,6 +41,7 @@
 #include <synch/mutex.h>
 #include <synch/rwlock.h>
 #include <synch/futex.h>
+#include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <security/cap.h>
@@ -56,6 +57,9 @@ struct thread;
 
 /** Task structure. */
 typedef struct task {
+	/** Task's linkage for the tasks_tree AVL tree. */
+	avltree_node_t tasks_tree_node;
+	
 	/** Task lock.
 	 *
 	 * Must be acquired before threads_lock and thread lock of any of its
@@ -106,7 +110,7 @@ typedef struct task {
 } task_t;
 
 SPINLOCK_EXTERN(tasks_lock);
-extern btree_t tasks_btree;
+extern avltree_t tasks_tree;
 
 extern void task_init(void);
 extern void task_done(void);

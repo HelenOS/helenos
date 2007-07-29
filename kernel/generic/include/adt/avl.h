@@ -53,7 +53,7 @@ typedef struct avltree avltree_t;
 
 typedef uint64_t avltree_key_t;
 
-typedef void (* avltree_walker_t)(avltree_node_t *);
+typedef bool (* avltree_walker_t)(avltree_node_t *, void *);
 
 /** AVL tree node structure. */
 struct avltree_node
@@ -133,7 +133,7 @@ extern avltree_node_t *avltree_search(avltree_t *t, avltree_key_t key);
 extern void avltree_insert(avltree_t *t, avltree_node_t *newnode);
 extern void avltree_delete(avltree_t *t, avltree_node_t *node);
 extern bool avltree_delete_min(avltree_t *t);
-extern void avltree_walk(avltree_t *t, avltree_walker_t walker);
+extern void avltree_walk(avltree_t *t, avltree_walker_t walker, void *arg);
 
 #endif
 

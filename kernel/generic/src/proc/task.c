@@ -46,6 +46,7 @@
 #include <synch/waitq.h>
 #include <arch.h>
 #include <panic.h>
+#include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
@@ -61,12 +62,12 @@
 #define LOADED_PROG_STACK_PAGES_NO 1
 #endif
 
-/** Spinlock protecting the tasks_btree B+tree. */
+/** Spinlock protecting the tasks_tree AVL tree. */
 SPINLOCK_INITIALIZE(tasks_lock);
 
-/** B+tree of active tasks.
+/** AVL tree of active tasks.
  *
- * The task is guaranteed to exist after it was found in the tasks_btree as
+ * The task is guaranteed to exist after it was found in the tasks_tree as
  * long as:
  * @li the tasks_lock is held,
  * @li the task's lock is held when task's lock is acquired before releasing
@@ -74,7 +75,7 @@ SPINLOCK_INITIALIZE(tasks_lock);
  * @li the task's refcount is greater than 0
  *
  */
-btree_t tasks_btree;
+avltree_t tasks_tree;
 
 static task_id_t task_counter = 0;
 
@@ -86,7 +87,23 @@ static task_id_t task_counter = 0;
 void task_init(void)
 {
 	TASK = NULL;
-	btree_create(&tasks_btree);
+	avltree_create(&tasks_tree);
+}
+
+/*
+ * The idea behind this walker is to remember a single task different from TASK.
+ */
+static bool task_done_walker(avltree_node_t *node, void *arg)
+{
+	task_t *t = avltree_get_instance(node, task_t, tasks_tree_node);
+	task_t **tp = (task_t **) arg;
+
+	if (t != TASK) { 
+		*tp = t;
+		return false;	/* stop walking */
+	}
+
+	return true;	/* continue the walk */
 }
 
 /** Kill all tasks except the current task.
@@ -102,21 +119,7 @@ void task_done(void)
 		spinlock_lock(&tasks_lock);
 		
 		t = NULL;
-		link_t *cur;
-		for (cur = tasks_btree.leaf_head.next;
-		    cur != &tasks_btree.leaf_head; cur = cur->next) {
-			btree_node_t *node;
-			
-			node = list_get_instance(cur, btree_node_t, leaf_link);
-			
-			unsigned int i;
-			for (i = 0; i < node->keys; i++) {
-				if ((task_t *) node->value[i] != TASK) {
-					t = (task_t *) node->value[i];
-					break;
-				}
-			}
-		}
+		avltree_walk(&tasks_tree, task_done_walker, &t);
 		
 		if (t != NULL) {
 			task_id_t id = t->taskid;
@@ -187,7 +190,9 @@ task_t *task_create(as_t *as, char *name)
 
 	spinlock_lock(&tasks_lock);
 	ta->taskid = ++task_counter;
-	btree_insert(&tasks_btree, (btree_key_t) ta->taskid, (void *) ta, NULL);
+	avltree_node_initialize(&ta->tasks_tree_node);
+	ta->tasks_tree_node.key = ta->taskid; 
+	avltree_insert(&tasks_tree, &ta->tasks_tree_node);
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 
@@ -204,7 +209,7 @@ void task_destroy(task_t *t)
 	 * Remove the task from the task B+tree.
 	 */
 	spinlock_lock(&tasks_lock);
-	btree_remove(&tasks_btree, t->taskid, NULL);
+	avltree_delete(&tasks_tree, &t->tasks_tree_node);
 	spinlock_unlock(&tasks_lock);
 
 	/*
@@ -310,9 +315,13 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
  */
 task_t *task_find_by_id(task_id_t id)
 {
-	btree_node_t *leaf;
+	avltree_node_t *node;
 	
-	return (task_t *) btree_search(&tasks_btree, (btree_key_t) id, &leaf);
+	node = avltree_search(&tasks_tree, (avltree_key_t) id);
+
+	if (node)
+		return avltree_get_instance(node, task_t, tasks_tree_node); 
+	return NULL;
 }
 
 /** Get accounting data of given task.
@@ -400,10 +409,33 @@ int task_kill(task_id_t id)
 	return 0;
 }
 
+static bool task_print_walker(avltree_node_t *node, void *arg)
+{
+	task_t *t = avltree_get_instance(node, task_t, tasks_tree_node);
+	int j;
+		
+	spinlock_lock(&t->lock);
+			
+	uint64_t cycles;
+	char suffix;
+	order(task_get_accounting(t), &cycles, &suffix);
+			
+	printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd",
+	    t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+	    t->refcount, atomic_get(&t->active_calls));
+	for (j = 0; j < IPC_MAX_PHONES; j++) {
+		if (t->phones[j].callee)
+			printf(" %zd:%#zx", j, t->phones[j].callee);
+	}
+	printf("\n");
+			
+	spinlock_unlock(&t->lock);
+	return true;
+}
+
 /** Print task list */
 void task_print_list(void)
 {
-	link_t *cur;
 	ipl_t ipl;
 	
 	/* Messing with task structures, avoid deadlock */
@@ -415,38 +447,7 @@ void task_print_list(void)
 	printf("------ ---------- --- ---------- ---------- ---------- ------- "
 	    "------ ------>\n");
 
-	for (cur = tasks_btree.leaf_head.next; cur != &tasks_btree.leaf_head;
-	    cur = cur->next) {
-		btree_node_t *node;
-		unsigned int i;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		for (i = 0; i < node->keys; i++) {
-			task_t *t;
-			int j;
-
-			t = (task_t *) node->value[i];
-		
-			spinlock_lock(&t->lock);
-			
-			uint64_t cycles;
-			char suffix;
-			order(task_get_accounting(t), &cycles, &suffix);
-			
-			printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd "
-			    "%6zd", t->taskid, t->name, t->context, t, t->as,
-			    cycles, suffix, t->refcount,
-			    atomic_get(&t->active_calls));
-			for (j = 0; j < IPC_MAX_PHONES; j++) {
-				if (t->phones[j].callee)
-					printf(" %zd:%#zx", j,
-					    t->phones[j].callee);
-			}
-			printf("\n");
-			
-			spinlock_unlock(&t->lock);
-		}
-	}
+	avltree_walk(&tasks_tree, task_print_walker, NULL);
 
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);

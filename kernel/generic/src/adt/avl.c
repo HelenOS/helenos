@@ -685,24 +685,44 @@ bool avltree_delete_min(avltree_t *t)
 	return true;
 }
 
-static void _avltree_walk(avltree_node_t *node, avltree_walker_t walker)
+/** Walk a subtree of an AVL tree in-order and apply a supplied walker on each
+ * visited node.
+ *
+ * @param node		Node representing the root of an AVL subtree to be
+ * 			walked.
+ * @param walker	Walker function that will be appliad on each visited
+ * 			node.
+ * @param arg		Argument for the walker.
+ *
+ * @return		Zero if the walk should stop or non-zero otherwise.
+ */
+static bool _avltree_walk(avltree_node_t *node, avltree_walker_t walker,
+    void *arg)
 {
-	if (node->lft)
-		_avltree_walk(node->lft, walker);
-	walker(node);
-	if (node->rgt)
-		_avltree_walk(node->rgt, walker);
+	if (node->lft) {
+		if (!_avltree_walk(node->lft, walker, arg))
+			return false;
+	}
+	if (!walker(node, arg))
+		return false;
+	if (node->rgt) {
+		if (!_avltree_walk(node->rgt, walker, arg))
+			return false;
+	}
+	return true;
 }
 
-/** Walk the AVL tree and apply the walker function on each visited node.
+/** Walk the AVL tree in-order and apply the walker function on each visited
+ * node.
  *
  * @param t		AVL tree to be walked.
  * @param walker	Walker function that will be called on each visited
  * 			node.
+ * @param arg		Argument for the walker.
  */
-void avltree_walk(avltree_t *t, avltree_walker_t walker)
+void avltree_walk(avltree_t *t, avltree_walker_t walker, void *arg)
 {
-	_avltree_walk(t->root, walker);
+	_avltree_walk(t->root, walker, arg);
 }
 
 /** @}

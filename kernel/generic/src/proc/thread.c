@@ -577,7 +577,7 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 	interrupts_restore(ipl);
 }
 
-static void thread_walker(avltree_node_t *node)
+static bool thread_walker(avltree_node_t *node, void *arg)
 {
 	thread_t *t;
 		
@@ -600,6 +600,8 @@ static void thread_walker(avltree_node_t *node)
 		printf(" %#10zx", t->sleep_queue);
 			
 	printf("\n");
+
+	return true;
 }
 
 /** Print list of threads debug info */
@@ -616,7 +618,7 @@ void thread_print_list(void)
 	printf("------ ---------- ---------- -------- ---------- --- --------"
 	    "-- ---------- ---------- ---- ---------\n");
 
-	avltree_walk(&threads_tree, thread_walker);
+	avltree_walk(&threads_tree, thread_walker, NULL);
 
 	spinlock_unlock(&threads_lock);
 	interrupts_restore(ipl);
