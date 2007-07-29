@@ -1,0 +1,6 @@
+{
+	"avltree1",
+	"Test Avl tree operations",
+	&test_avltree1,
+	true
+},
