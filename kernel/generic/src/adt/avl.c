@@ -107,6 +107,50 @@ avltree_node_t *avltree_find_min(avltree_t *t)
 	return p;
 }
 
+#define REBALANCE_INSERT_XX(DIR1, DIR2)		\
+	top->DIR1 = par->DIR2;			\
+	if (top->DIR1 != NULL)			\
+		top->DIR1->par = top;		\
+	par->par = top->par;			\
+	top->par = par;				\
+	par->DIR2 = top;			\
+	par->balance = 0;			\
+	top->balance = 0;			\
+	*dpc = par;
+
+#define REBALANCE_INSERT_LL()		REBALANCE_INSERT_XX(lft, rgt)
+#define REBALANCE_INSERT_RR()		REBALANCE_INSERT_XX(rgt, lft)
+
+#define REBALANCE_INSERT_XY(DIR1, DIR2, SGN)	\
+	gpa = par->DIR2;			\
+	par->DIR2 = gpa->DIR1;			\
+	if (gpa->DIR1 != NULL)			\
+		gpa->DIR1->par = par;		\
+	gpa->DIR1 = par;			\
+	par->par = gpa;				\
+	top->DIR1 = gpa->DIR2;			\
+	if (gpa->DIR2 != NULL)			\
+		gpa->DIR2->par = top;		\
+	gpa->DIR2 = top;			\
+	gpa->par = top->par;			\
+	top->par = gpa;				\
+						\
+	if (gpa->balance == -1 * SGN) {		\
+		par->balance = 0;		\
+		top->balance = 1 * SGN;		\
+	} else if (gpa->balance == 0) {		\
+		par->balance = 0;		\
+		top->balance = 0;		\
+	} else {				\
+		par->balance = -1 * SGN;	\
+		top->balance = 0;		\
+	}					\
+	gpa->balance = 0;			\
+	*dpc = gpa;
+
+#define REBALANCE_INSERT_LR()		REBALANCE_INSERT_XY(lft, rgt, 1)
+#define REBALANCE_INSERT_RL()		REBALANCE_INSERT_XY(rgt, lft, -1)
+	
 /** Insert new node into AVL tree.
  *
  * @param t AVL tree.
@@ -145,7 +189,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 	}
 
 	/*
-	 * Initialize new node.
+	 * Initialize the new node.
 	 */
 	newnode->key = key;
 	newnode->lft = NULL;
@@ -162,7 +206,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 	}
 
 	/*
-	 * Insert new node into previously found leaf place.
+	 * Insert the new node into the previously found leaf position.
 	 */
 	*dpc = newnode;
 
@@ -209,46 +253,14 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 			/*
 			 * LL rotation.
 			 */
-			top->lft = par->rgt;
-			if (top->lft != NULL)
-				top->lft->par = top;
-			par->par = top->par;
-			top->par = par;
-			par->rgt = top;
-			par->balance = 0;
-			top->balance = 0;
-			*dpc = par;
+			REBALANCE_INSERT_LL();
 		} else { 
 			/*
 			 * LR rotation.
 			 */
 			ASSERT(par->balance == 1);
 			
-			gpa = par->rgt;
-			par->rgt = gpa->lft;
-			if (gpa->lft != NULL)
-				gpa->lft->par = par;
-			gpa->lft = par;
-			par->par = gpa;
-			top->lft = gpa->rgt;
-			if (gpa->rgt != NULL)
-				gpa->rgt->par = top;
-			gpa->rgt = top;
-			gpa->par = top->par;
-			top->par = gpa;
-			
-			if (gpa->balance == -1) {
-				par->balance = 0;
-				top->balance = 1;
-			} else if (gpa->balance == 0) {
-				par->balance = 0;
-				top->balance = 0;
-			} else {
-				par->balance = -1;
-				top->balance = 0;
-			}
-			gpa->balance = 0;
-			*dpc = gpa;
+			REBALANCE_INSERT_LR();
 		}
 	} else if (top->balance == 2) { 
 		par = top->rgt;
@@ -256,46 +268,14 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 			/*
 			 * RR rotation.
 			 */
-			top->rgt = par->lft;
-			if (top->rgt != NULL)
-				top->rgt->par = top;
-			par->par = top->par;
-			top->par = par;
-			par->lft = top;
-			par->balance = 0;
-			top->balance = 0;
-			*dpc = par;
+			REBALANCE_INSERT_RR();
 		} else {
 			/*
 			 * RL rotation.
 			 */
 			ASSERT(par->balance == -1);
-			
-			gpa = par->lft;
-			par->lft = gpa->rgt;
-			if (gpa->rgt != NULL)
-				gpa->rgt->par = par;
-			gpa->rgt = par;
-			par->par = gpa;
-			top->rgt = gpa->lft;
-			if (gpa->lft != NULL)
-				gpa->lft->par = top;
-			gpa->lft = top;
-			gpa->par = top->par;
-			top->par = gpa;
-
-			if (gpa->balance == 1) {
-				par->balance = 0;
-				top->balance = -1;
-			} else if (gpa->balance == 0) {
-				par->balance = 0;
-				top->balance = 0;
-			} else {
-				par->balance = 1;
-				top->balance = 0;
-			}
-			gpa->balance = 0;
-			*dpc = gpa;
+		
+			REBALANCE_INSERT_RL();
 		}
 	} else { 
 		/*
@@ -351,7 +331,7 @@ repair(avltree_t *t, avltree_node_t *u, avltree_node_t *v, avltree_node_t *w,
 	return 1;
 }
 
-#define REBALANCE(DIR1, DIR2, SIGN)		\
+#define REBALANCE_DELETE(DIR1, DIR2, SIGN)	\
 	if (cur->balance == -1 * SIGN) {	\
 		par->balance = 0;		\
 		gpa->balance = 1 * SIGN;	\
@@ -374,8 +354,8 @@ repair(avltree_t *t, avltree_node_t *u, avltree_node_t *v, avltree_node_t *w,
 	}					\
 	cur->balance = 0;
 
-#define REBALANCE_LR()		REBALANCE(lft, rgt, 1)
-#define REBALANCE_RL()		REBALANCE(rgt, lft, -1)
+#define REBALANCE_DELETE_LR()		REBALANCE_DELETE(lft, rgt, 1)
+#define REBALANCE_DELETE_RL()		REBALANCE_DELETE(rgt, lft, -1)
 
 /** Delete a node from the AVL tree.
  *
@@ -515,7 +495,7 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 					 * children, depending on the balance
 					 * factor of the grand child (cur).
 					 */
-					REBALANCE_RL();
+					REBALANCE_DELETE_RL();
 					
 					/*
 					 * Repair paternity.
@@ -611,7 +591,7 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 					 * children, depending on the balance
 					 * factor of the grand child (cur).
 					 */
-					REBALANCE_LR();
+					REBALANCE_DELETE_LR();
 
 					/*
 					 * Repair paternity.
