@@ -52,10 +52,8 @@
 #include <adt/avl.h>
 #include <debug.h>
 
-
 #define LEFT 	0
 #define RIGHT	1
-
 
 /** Search for the first occurence of the given key in an AVL tree.
  *
@@ -64,7 +62,7 @@
  *
  * @return Pointer to a node or NULL if there is no such key.
  */
-avltree_node_t *avltree_search(avltree_t *t, uint64_t key)
+avltree_node_t *avltree_search(avltree_t *t, avltree_key_t key)
 {
 	avltree_node_t *p;
 	
@@ -120,7 +118,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 	avltree_node_t *gpa;
 	avltree_node_t *top;
 	avltree_node_t **dpc;
-	uint64_t key;
+	avltree_key_t key;
 
 	ASSERT(t);
 	ASSERT(newnode);
@@ -705,6 +703,26 @@ bool avltree_delete_min(avltree_t *t)
 	avltree_delete(t, node); 
 
 	return true;
+}
+
+static void _avltree_walk(avltree_node_t *node, avltree_walker_t walker)
+{
+	if (node->lft)
+		_avltree_walk(node->lft, walker);
+	walker(node);
+	if (node->rgt)
+		_avltree_walk(node->rgt, walker);
+}
+
+/** Walk the AVL tree and apply the walker function on each visited node.
+ *
+ * @param t		AVL tree to be walked.
+ * @param walker	Walker function that will be called on each visited
+ * 			node.
+ */
+void avltree_walk(avltree_t *t, avltree_walker_t walker)
+{
+	_avltree_walk(t->root, walker);
 }
 
 /** @}

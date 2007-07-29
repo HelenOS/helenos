@@ -32,7 +32,6 @@
 /** @file
  */
 
-
 #ifndef KERN_AVLTREE_H_
 #define KERN_AVLTREE_H_ 
 
@@ -46,13 +45,15 @@
  * @param type Name of the outer structure.
  * @param member Name of avltree attribute in the outer structure.
  */
-#define avltree_get_instance(link, type, member) \
-    ((type *)(((uint8_t *)(link)) - ((uint8_t *) &(((type *) NULL)->member))))
-
+#define avltree_get_instance(node, type, member) \
+    ((type *)(((uint8_t *)(node)) - ((uint8_t *) &(((type *) NULL)->member))))
 
 typedef struct avltree_node avltree_node_t;
 typedef struct avltree avltree_t;
 
+typedef uint64_t avltree_key_t;
+
+typedef void (* avltree_walker_t)(avltree_node_t *);
 
 /** AVL tree node structure. */
 struct avltree_node
@@ -77,7 +78,7 @@ struct avltree_node
 	struct avltree_node *par;
 	
 	/** Node's key. */
-	uint64_t key; 
+	avltree_key_t key; 
 	
 	/**
 	 * Difference between the heights of the left and the right subtree of
@@ -100,7 +101,7 @@ struct avltree
 	 * the tree. The base is changed to the key of the node which is deleted
 	 * with avltree_delete_min().
 	 */
-	uint64_t base; 
+	avltree_key_t base; 
 };
 
 
@@ -108,7 +109,7 @@ struct avltree
  *
  * @param t AVL tree.
  */
-static inline void avltree_create (avltree_t *t)
+static inline void avltree_create(avltree_t *t)
 {
 	t->root = NULL;
 	t->base = 0;
@@ -128,10 +129,11 @@ static inline void avltree_node_initialize(avltree_node_t *node)
 }
 
 extern avltree_node_t *avltree_find_min(avltree_t *t);
-extern avltree_node_t *avltree_search(avltree_t *t, uint64_t key);
+extern avltree_node_t *avltree_search(avltree_t *t, avltree_key_t key);
 extern void avltree_insert(avltree_t *t, avltree_node_t *newnode);
 extern void avltree_delete(avltree_t *t, avltree_node_t *node);
 extern bool avltree_delete_min(avltree_t *t);
+extern void avltree_walk(avltree_t *t, avltree_walker_t walker);
 
 #endif
 
