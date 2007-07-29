@@ -36,6 +36,7 @@
 
 test_t tests[] = {
 #include <atomic/atomic1.def>
+#include <avltree/avltree1.def>
 #include <btree/btree1.def>
 #include <debug/mips1.def>
 #include <fault/fault1.def>

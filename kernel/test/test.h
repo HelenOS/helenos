@@ -47,6 +47,7 @@ typedef struct {
 } test_t;
 
 extern char * test_atomic1(bool quiet);
+extern char * test_avltree1(bool quiet);
 extern char * test_btree1(bool quiet);
 extern char * test_mips1(bool quiet);
 extern char * test_fault1(bool quiet);
