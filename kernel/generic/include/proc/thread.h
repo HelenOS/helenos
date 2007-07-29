@@ -41,7 +41,7 @@
 #include <cpu.h>
 #include <synch/rwlock.h>
 #include <synch/spinlock.h>
-#include <adt/btree.h>
+#include <adt/avl.h>
 #include <mm/slab.h>
 #include <arch/cpu.h>
 #include <mm/tlb.h>
@@ -90,6 +90,9 @@ typedef struct thread {
 	link_t rq_link;		/**< Run queue link. */
 	link_t wq_link;		/**< Wait queue link. */
 	link_t th_link;		/**< Links to threads within containing task. */
+
+	/** Threads linkage to the threads_tree. */
+	avltree_node_t threads_tree_node;
 	
 	/** Lock protecting thread structure.
 	 *
@@ -204,14 +207,14 @@ typedef struct thread {
 
 /** Thread list lock.
  *
- * This lock protects all link_t structures chained in threads_head.
+ * This lock protects the threads_tree.
  * Must be acquired before T.lock for each T of type thread_t.
  *
  */
 SPINLOCK_EXTERN(threads_lock);
 
-/** B+tree containing all threads. */
-extern btree_t threads_btree;
+/** AVL tree containing all threads. */
+extern avltree_t threads_tree;
 
 extern void thread_init(void);
 extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,

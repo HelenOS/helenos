@@ -51,7 +51,7 @@
 #include <cpu.h>
 #include <func.h>
 #include <context.h>
-#include <adt/btree.h>
+#include <adt/avl.h>
 #include <adt/list.h>
 #include <time/clock.h>
 #include <time/timeout.h>
@@ -81,18 +81,18 @@ char *thread_states[] = {
 	"Lingering"
 }; 
 
-/** Lock protecting the threads_btree B+tree.
+/** Lock protecting the threads_tree AVL tree.
  *
  * For locking rules, see declaration thereof.
  */
 SPINLOCK_INITIALIZE(threads_lock);
 
-/** B+tree of all threads.
+/** ALV tree of all threads.
  *
- * When a thread is found in the threads_btree B+tree, it is guaranteed to
+ * When a thread is found in the threads_tree AVL tree, it is guaranteed to
  * exist as long as the threads_lock is held.
  */
-btree_t threads_btree;		
+avltree_t threads_tree;		
 
 SPINLOCK_INITIALIZE(tidlock);
 thread_id_t last_tid = 0;
@@ -212,7 +212,7 @@ void thread_init(void)
 	    FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 
-	btree_create(&threads_btree);
+	avltree_create(&threads_tree);
 }
 
 /** Make thread ready
@@ -339,6 +339,9 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	t->fpu_context_exists = 0;
 	t->fpu_context_engaged = 0;
 
+	avltree_node_initialize(&t->threads_tree_node);
+	t->threads_tree_node.key = (uintptr_t) t;
+
 	/* might depend on previous initialization */
 	thread_create_arch(t);	
 
@@ -368,7 +371,7 @@ void thread_destroy(thread_t *t)
 	spinlock_unlock(&t->lock);
 
 	spinlock_lock(&threads_lock);
-	btree_remove(&threads_btree, (btree_key_t) ((uintptr_t ) t), NULL);
+	avltree_delete(&threads_tree, &t->threads_tree_node);
 	spinlock_unlock(&threads_lock);
 
 	/*
@@ -391,7 +394,7 @@ void thread_destroy(thread_t *t)
 /** Make the thread visible to the system.
  *
  * Attach the thread structure to the current task and make it visible in the
- * threads_btree.
+ * threads_tree.
  *
  * @param t	Thread to be attached to the task.
  * @param task	Task to which the thread is to be attached.
@@ -414,8 +417,7 @@ void thread_attach(thread_t *t, task_t *task)
 	 * Register this thread in the system-wide list.
 	 */
 	spinlock_lock(&threads_lock);
-	btree_insert(&threads_btree, (btree_key_t) ((uintptr_t) t), (void *) t,
-	    NULL);
+	avltree_insert(&threads_tree, &t->threads_tree_node);
 	spinlock_unlock(&threads_lock);
 	
 	interrupts_restore(ipl);
@@ -575,10 +577,34 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 	interrupts_restore(ipl);
 }
 
+static void thread_walker(avltree_node_t *node)
+{
+	thread_t *t;
+		
+	t = avltree_get_instance(node, thread_t, threads_tree_node);
+
+	uint64_t cycles;
+	char suffix;
+	order(t->cycles, &cycles, &suffix);
+			
+	printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ",
+	    t->tid, t->name, t, thread_states[t->state], t->task,
+	    t->task->context, t->thread_code, t->kstack, cycles, suffix);
+			
+	if (t->cpu)
+		printf("%-4zd", t->cpu->id);
+	else
+		printf("none");
+			
+	if (t->state == Sleeping)
+		printf(" %#10zx", t->sleep_queue);
+			
+	printf("\n");
+}
+
 /** Print list of threads debug info */
 void thread_print_list(void)
 {
-	link_t *cur;
 	ipl_t ipl;
 	
 	/* Messing with thread structures, avoid deadlock */
@@ -590,37 +616,7 @@ void thread_print_list(void)
 	printf("------ ---------- ---------- -------- ---------- --- --------"
 	    "-- ---------- ---------- ---- ---------\n");
 
-	for (cur = threads_btree.leaf_head.next;
-	    cur != &threads_btree.leaf_head; cur = cur->next) {
-		btree_node_t *node;
-		unsigned int i;
-
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		for (i = 0; i < node->keys; i++) {
-			thread_t *t;
-		
-			t = (thread_t *) node->value[i];
-			
-			uint64_t cycles;
-			char suffix;
-			order(t->cycles, &cycles, &suffix);
-			
-			printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx "
-			    "%#10zx %9llu%c ", t->tid, t->name, t,
-			    thread_states[t->state], t->task, t->task->context,
-			    t->thread_code, t->kstack, cycles, suffix);
-			
-			if (t->cpu)
-				printf("%-4zd", t->cpu->id);
-			else
-				printf("none");
-			
-			if (t->state == Sleeping)
-				printf(" %#10zx", t->sleep_queue);
-			
-			printf("\n");
-		}
-	}
+	avltree_walk(&threads_tree, thread_walker);
 
 	spinlock_unlock(&threads_lock);
 	interrupts_restore(ipl);
@@ -637,10 +633,11 @@ void thread_print_list(void)
  */
 bool thread_exists(thread_t *t)
 {
-	btree_node_t *leaf;
+	avltree_node_t *node;
+
+	node = avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) t));
 	
-	return btree_search(&threads_btree, (btree_key_t) ((uintptr_t) t),
-	    &leaf) != NULL;
+	return node != NULL;
 }
 
 
