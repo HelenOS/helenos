@@ -82,7 +82,7 @@ extern int ${SYMBOL}_end;
 
 #define ${MACRO}_START ((void *) &${SYMBOL}_start)
 #define ${MACRO}_END ((void *) &${SYMBOL}_end)
-#define ${MACRO}_SIZE ((unsigned int) ${MACRO}_END - (unsigned int) ${MACRO}_START)" >> "$HEADER"
+#define ${MACRO}_SIZE ((unsigned long) ${MACRO}_END - (unsigned long) ${MACRO}_START)" >> "$HEADER"
 	
 	"$OBJCOPY" -I binary -O elf64-sparc -B sparc --rename-section ".data=.${BASENAME}_image" "$TASK" "$OBJECT"
 		
