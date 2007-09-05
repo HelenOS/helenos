@@ -63,6 +63,8 @@ void scr_init(ofw_tree_node_t *node)
 		scr_type = SCR_ATYFB;
 	else if (strcmp(name, "SUNW,ffb") == 0)
 		scr_type = SCR_FFB;
+	else if (strcmp(name, "cgsix") == 0)
+		scr_type = SCR_CGSIX;
 	
 	if (scr_type == SCR_UNKNOWN) {
 		printf("Unknown keyboard device.\n");
@@ -150,6 +152,24 @@ void scr_init(ofw_tree_node_t *node)
 			return;
 		}
 
+		break;
+	case SCR_CGSIX:
+		switch (fb_depth) {
+		case 8:
+			fb_scanline = fb_linebytes;
+			visual = VISUAL_INDIRECT_8;
+			break;
+		default:
+			printf("Not implemented.\n");
+			return;
+		}
+		
+		ofw_sbus_reg_t *cg6_reg = &((ofw_sbus_reg_t *) prop->value)[0];
+		if (!ofw_sbus_apply_ranges(node->parent, cg6_reg, &fb_addr)) {
+			printf("Failed to determine screen address.\n");
+			return;
+		}
+	
 		break;
 	default:
 		panic("Unexpected type.\n");

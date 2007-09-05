@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup ofw
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	SBUS 'reg' and 'ranges' properties handling.
+ *
  */
 
-#ifndef KERN_sparc64_SCR_H_
-#define KERN_sparc64_SCR_H_
-
-#include <arch/types.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <macros.h>
 
-typedef enum {
-	SCR_UNKNOWN,
-	SCR_ATYFB,
-	SCR_FFB,
-	SCR_CGSIX
-} scr_type_t;
-
-extern scr_type_t scr_type;
-
-extern void scr_init(ofw_tree_node_t *node);
-
-#endif
+bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
+    uintptr_t *pa)
+{
+	ofw_tree_property_t *prop;
+	ofw_sbus_range_t *range;
+	count_t ranges;
+	
+	/*
+	 * The SBUS support is very rudimentary in that we simply assume
+	 * that the SBUS bus in question is connected directly to the UPA bus.
+	 * Should we come across configurations that need more robust support,
+	 * the driver will have to be extended to handle different topologies.
+	 */
+	if (!node->parent || node->parent->parent)
+		return false;
+	
+	prop = ofw_tree_getprop(node, "ranges");
+	if (!prop)
+		return false;
+		
+	ranges = prop->size / sizeof(ofw_sbus_range_t);
+	range = prop->value;
+	
+	int i;
+	
+	for (i = 0; i < ranges; i++) {
+		if (overlaps(reg->addr, reg->size, range[i].child_base,
+		    range[i].size)) {
+			*pa = range[i].parent_base +
+			    (reg->addr - range[i].child_base);
+			return true;
+		}
+	}
+	
+	return false;
+}
 
 /** @}
  */

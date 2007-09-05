@@ -140,6 +140,19 @@ struct ofw_pci_range {
 } __attribute__ ((packed));
 typedef struct ofw_pci_range ofw_pci_range_t;
 
+struct ofw_sbus_reg {
+	uint64_t addr;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_sbus_reg ofw_sbus_reg_t;
+
+struct ofw_sbus_range {
+	uint64_t child_base;
+	uint64_t parent_base;
+	uint32_t size;
+} __attribute__ ((packed));
+typedef struct ofw_sbus_range ofw_sbus_range_t;
+
 struct ofw_upa_reg {
 	uint64_t addr;
 	uint64_t size;
@@ -160,6 +173,7 @@ extern bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uint
 extern bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uintptr_t *pa);
 extern bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa);
 extern bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa);
+extern bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg, uintptr_t *pa);
 extern bool ofw_upa_apply_ranges(ofw_tree_node_t *node, ofw_upa_reg_t *reg, uintptr_t *pa);
 
 extern bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out);
