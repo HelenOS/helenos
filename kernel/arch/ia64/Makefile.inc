@@ -31,11 +31,10 @@
 
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
-BFD = elf64-ia64-little
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ia64
 
-INIT0_ADDRESS = 0xe000000000400000
+INIT0_ADDRESS = 0xe000000004404000
 INIT0_SIZE = 0x100000
 
 CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
@@ -88,10 +87,14 @@ ARCH_SOURCES = \
 ifeq ($(MACHINE),ski)
 	ARCH_SOURCES += arch/$(ARCH)/src/ski/ski.c 
 	DEFS += -DSKI
+	BFD = elf64-ia64-little
 endif
 
 ifeq ($(MACHINE),i460GX)
 	ARCH_SOURCES += arch/$(ARCH)/src/drivers/ega.c
-	DEFS += -DI460GX
+	CONFIG_I8042 = y
+	DEFS += -DI460GX -DCONFIG_I8042
+	BFD = binary
+
 endif
 
