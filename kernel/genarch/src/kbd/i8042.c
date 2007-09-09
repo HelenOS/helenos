@@ -168,10 +168,10 @@ void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mou
 	i8042_mouse_irq.claim = i8042_claim;
 	i8042_mouse_irq.handler = i8042_irq_handler;
 	irq_register(&i8042_mouse_irq);
-	
+#ifndef ia64	
 	trap_virtual_enable_irqs(1 << kbd_inr);
 	trap_virtual_enable_irqs(1 << mouse_inr);
-	
+#endif	
 	/*
 	 * Clear input buffer.
 	 * Number of iterations is limited to prevent infinite looping.

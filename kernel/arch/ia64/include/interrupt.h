@@ -51,6 +51,8 @@
 
 /** External Interrupt vectors. */
 #define INTERRUPT_TIMER		255
+#define IRQ_KBD			241
+#define IRQ_MOUSE		252
 #define INTERRUPT_SPURIOUS	15
 
 /** General Exception codes. */
