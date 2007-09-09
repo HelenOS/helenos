@@ -107,6 +107,7 @@ paging_start:
 	add r12 = -16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
+	mov r20 = r1 ;;
 	movl r1 = _hardcoded_load_address
 
 	/*
@@ -118,10 +119,12 @@ paging_start:
 	addl r17 = @gprel(hardcoded_ktext_size), gp
 	addl r18 = @gprel(hardcoded_kdata_size), gp
 	addl r19 = @gprel(hardcoded_load_address), gp
+	addl r21 = @gprel(bootinfo), gp
 	;;
 	st8 [r17] = r14
 	st8 [r18] = r15
 	st8 [r19] = r16
+	st8 [r21] = r20
 
 	ssm (1 << 19) ;; /* Disable f32 - f127 */
 	srlz.i
