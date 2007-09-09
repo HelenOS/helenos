@@ -39,6 +39,24 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
+
+#define IA64_IOSPACE_ADDRESS 0xE0000FFFFC000000ULL
+
+static inline void  outb(uint64_t port,uint8_t v)
+{
+	*((char *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
+	asm volatile ("mf\n" ::: "memory");
+}
+
+
+static inline uint8_t inb(uint64_t port)
+{
+	asm volatile ("mf\n" ::: "memory");
+	return *((char *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 ))));
+}
+
+
+
 /** Return base address of current stack
  *
  * Return the base address of the current stack.
