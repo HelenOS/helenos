@@ -32,8 +32,8 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
-TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/sparc64/bin
+TARGET = ia64-pc-linux-gnu
+TOOLCHAIN_DIR = /usr/local/ia64/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
@@ -59,7 +59,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127
 
 ifdef REVISION
 	CFLAGS += "-DREVISION=\"$(REVISION)\""
@@ -74,22 +74,20 @@ SOURCES = \
 	../../../generic/printf.c \
 	../../../generic/string.c \
 	../../../genarch/balloc.c \
-	../../../genarch/ofw.c \
-	../../../genarch/ofw_tree.c \
-	ofwarch.c \
 	asm.S \
 	boot.S
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/klog/klog
+	
+#	$(USPACEDIR)/srv/ns/ns \
+#	$(USPACEDIR)/srv/fb/fb \
+#	$(USPACEDIR)/srv/kbd/kbd \
+#	$(USPACEDIR)/srv/console/console \
+#	$(USPACEDIR)/app/init/init \
+#	$(USPACEDIR)/app/tetris/tetris \
+#	$(USPACEDIR)/app/tester/tester \
+#	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
@@ -101,7 +99,7 @@ all: image.boot disasm
 -include Makefile.depend
 
 image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+	$(LD) -Map boot.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null

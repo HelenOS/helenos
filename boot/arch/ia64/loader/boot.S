@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2006 Martin Decky
+# Copyright (c) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,39 +27,43 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE),ski)
+#include <stack.h>
+
+.section BOOTSTRAP, "ax"
+
+.global start
+start:
+
+	mov ar.rsc = r0
+#	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
+	movl r1 = 0x100000
+	movl r8 = initial_stack ;;
+	mov ar.bspstore = r8
+	loadrs
+
+	# initialize memory stack to some sane value
+	movl r12 = initial_stack_top ;;
+	
+	add r12 = -16, r12	/* allocate a scratch area on the stack */
+
+	# initialize gp (Global Pointer) register
+	#movl r1 = _hardcoded_load_address
+
+	ssm (1 << 19) ;; /* Disable f32 - f127 */
+	srlz.i
+	srlz.d ;;
+
+	movl r18 = bootstrap ;;
+	mov b1 = r18 ;;
+	br.call.sptk.many b0 = b1
 
 
+.section bss, "ax"
 
-VMAXLMA_SRC = tools/ia64/vmaxlma.c
-build: $(BASE)/kernel.bin
-echo Building SKI
-#$(BASE)/kernel.bin: $(KERNELDIR)/kernel.bin vmaxlma
-#	cp $(KERNELDIR)/kernel.bin $(BASE)/kernel.bin
-#	./vmaxlma $(BASE)/kernel.bin
-#vmaxlma: $(VMAXLMA_SRC)
-#	$(CC) $(VMAXLMA_SRC) -o $@
-#clean:
-#	-rm -f $(BASE)/kernel.bin vmaxlma
+.align 8192
 
+initial_stack:
+	nop.m 0
 
-else
-
-
-build: $(BASE)/image.boot
-
-$(BASE)/image.boot: depend arch/$(ARCH)/loader/image.boot
-	cp arch/$(ARCH)/loader/image.boot $(BASE)/image.boot
-
-depend:
-	-rm arch/$(ARCH)/loader/image.boot
-
-arch/$(ARCH)/loader/image.boot:
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
-
-clean: generic_clean
-	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
-	-rm -f $(BASE)/image.boot
-
-
-endif
+.align 8192
+initial_stack_top:

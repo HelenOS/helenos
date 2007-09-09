@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2006 Martin Decky
+# Copyright (c) 2006 Jakub Jermar 
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,39 +27,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE),ski)
+#include <stack.h>
 
+.text
 
+.global halt
+.global memcpy
+.global jump_to_kernel
 
-VMAXLMA_SRC = tools/ia64/vmaxlma.c
-build: $(BASE)/kernel.bin
-echo Building SKI
-#$(BASE)/kernel.bin: $(KERNELDIR)/kernel.bin vmaxlma
-#	cp $(KERNELDIR)/kernel.bin $(BASE)/kernel.bin
-#	./vmaxlma $(BASE)/kernel.bin
-#vmaxlma: $(VMAXLMA_SRC)
-#	$(CC) $(VMAXLMA_SRC) -o $@
-#clean:
-#	-rm -f $(BASE)/kernel.bin vmaxlma
+halt:
+	
+memcpy:
 
-
-else
-
-
-build: $(BASE)/image.boot
-
-$(BASE)/image.boot: depend arch/$(ARCH)/loader/image.boot
-	cp arch/$(ARCH)/loader/image.boot $(BASE)/image.boot
-
-depend:
-	-rm arch/$(ARCH)/loader/image.boot
-
-arch/$(ARCH)/loader/image.boot:
-	make -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
-
-clean: generic_clean
-	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
-	-rm -f $(BASE)/image.boot
-
-
-endif
+jump_to_kernel:
+    alloc loc0 = ar.pfs, 1, 1, 0, 0
+    movl r8 = 0x4404000;;
+    mov b1 = r8 ;;
+    mov r1 = in0;
+    br.call.sptk.many b0 = b1;;
+.global ofw
+ofw:
