@@ -50,11 +50,26 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
+#include <ddi/device.h>
 #include <arch/drivers/ega.h>
+#include <arch/bootinfo.h>
+#include <genarch/kbd/i8042.h>
+
+bootinfo_t *bootinfo;
 
 void arch_pre_main(void)
 {
 	/* Setup usermode init tasks. */
+
+#ifdef I460GX
+	int i;
+	init.cnt = bootinfo->taskmap.count;
+	for(i=0;i<init.cnt;i++)
+	{
+	    init.tasks[i].addr = ((unsigned long)bootinfo->taskmap.tasks[i].addr)|VRN_MASK;
+	    init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
+	}
+#else	
 	init.cnt = 8;
 	init.tasks[0].addr = INIT0_ADDRESS;
 	init.tasks[0].size = INIT0_SIZE;
@@ -72,6 +87,7 @@ void arch_pre_main(void)
 	init.tasks[6].size = INIT0_SIZE;
 	init.tasks[7].addr = INIT0_ADDRESS + 0x1c00000;
 	init.tasks[7].size = INIT0_SIZE;
+#endif
 }
 
 void arch_pre_mm_init(void)
@@ -101,6 +117,19 @@ void arch_pre_smp_init(void)
 {
 }
 
+
+#ifdef I460GX
+#define POLL_INTERVAL		50000		/* 50 ms */
+/** Kernel thread for polling keyboard. */
+static void i8042_kkbdpoll(void *arg)
+{
+	while (1) {
+		i8042_poll();
+		thread_usleep(POLL_INTERVAL);
+	}
+}
+#endif
+
 void arch_post_smp_init(void)
 {
 
@@ -115,6 +144,21 @@ void arch_post_smp_init(void)
 			panic("cannot create kkbdpoll\n");
 		thread_ready(t);
 #endif		
+
+#ifdef I460GX
+		devno_t kbd = device_assign_devno();
+		devno_t mouse = device_assign_devno();
+		/* keyboard controller */
+		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
+
+		thread_t *t;
+		t = thread_create(i8042_kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
+		if (!t)
+			panic("cannot create kkbdpoll\n");
+		thread_ready(t);
+
+#endif
+
 	}
 }
 
