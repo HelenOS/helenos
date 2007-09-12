@@ -135,7 +135,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			/*
 			 * The other side has hung up.
-			 * Answer the message and exit the pseudo thread.
+			 * Answer the message and exit the fibril.
 			 */
 			ipc_answer_fast(callid, EOK, 0, 0);
 			return;
