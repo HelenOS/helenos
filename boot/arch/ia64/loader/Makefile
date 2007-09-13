@@ -79,15 +79,15 @@ SOURCES = \
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
-	
-#	$(USPACEDIR)/srv/ns/ns \
-#	$(USPACEDIR)/srv/fb/fb \
-#	$(USPACEDIR)/srv/kbd/kbd \
-#	$(USPACEDIR)/srv/console/console \
-#	$(USPACEDIR)/app/init/init \
-#	$(USPACEDIR)/app/tetris/tetris \
-#	$(USPACEDIR)/app/tester/tester \
-#	$(USPACEDIR)/app/klog/klog
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/klog/klog
+
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))

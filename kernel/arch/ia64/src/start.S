@@ -107,9 +107,10 @@ paging_start:
 	add r12 = -16, r12	/* allocate a scratch area on the stack */
 
 	# initialize gp (Global Pointer) register
-	mov r20 = r1 ;;
+	movl r20 = (VRN_KERNEL << VRN_SHIFT);;
+	or r20 = r20,r1;;
 	movl r1 = _hardcoded_load_address
-
+	
 	/*
 	 * Initialize hardcoded_* variables.
 	 */

@@ -36,7 +36,7 @@ start:
 
 	mov ar.rsc = r0
 #	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
-	movl r1 = 0x100000
+	movl r1 = 0x4400000
 	movl r8 = initial_stack ;;
 	mov ar.bspstore = r8
 	loadrs

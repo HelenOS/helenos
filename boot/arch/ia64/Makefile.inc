@@ -26,13 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE),ski)
+#ifeq ($(MACHINE),ski)
 
 
 
-VMAXLMA_SRC = tools/ia64/vmaxlma.c
-build: $(BASE)/kernel.bin
-echo Building SKI
+#VMAXLMA_SRC = tools/ia64/vmaxlma.c
+#build: $(BASE)/kernel.bin
+#echo Building SKI
 #$(BASE)/kernel.bin: $(KERNELDIR)/kernel.bin vmaxlma
 #	cp $(KERNELDIR)/kernel.bin $(BASE)/kernel.bin
 #	./vmaxlma $(BASE)/kernel.bin
@@ -42,7 +42,7 @@ echo Building SKI
 #	-rm -f $(BASE)/kernel.bin vmaxlma
 
 
-else
+#else
 
 
 build: $(BASE)/image.boot
@@ -61,4 +61,4 @@ clean: generic_clean
 	-rm -f $(BASE)/image.boot
 
 
-endif
+#endif

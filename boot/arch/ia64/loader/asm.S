@@ -31,13 +31,7 @@
 
 .text
 
-.global halt
-.global memcpy
 .global jump_to_kernel
-
-halt:
-	
-memcpy:
 
 jump_to_kernel:
     alloc loc0 = ar.pfs, 1, 1, 0, 0
