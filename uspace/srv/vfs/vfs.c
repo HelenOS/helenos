@@ -41,6 +41,38 @@
 #include <errno.h>
 #include "vfs.h"
 
+static void vfs_register(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+
+	callid = async_get_call(&call);
+	if (IPC_GET_METHOD(call) == IPC_M_DATA_SEND) {
+		size_t size = IPC_GET_ARG3(call);
+		if (size != sizeof(vfs_info_t)) {
+			/*
+			 * The client is sending us something, which cannot be
+			 * the info structure.
+			 */
+			ipc_answer_fast(iid, EINVAL, 0, 0);
+			ipc_answer_fast(callid, EINVAL, 0, 0);
+			return;
+		}
+		/*
+		 * XXX: continue here
+		 * Allocate an info structue, answer the call, check sanity
+		 * of the copied-in info structure, ...
+		 */
+	} else {
+		/*
+		 * The client doesn't obey the same protocol as we do.
+		 */ 
+		ipc_answer_fast(iid, EINVAL, 0, 0);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		return;
+	}
+}
+
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipcarg_t iarg1, iarg2;
@@ -64,6 +96,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	switch (iarg1) {
 	case VFS_REGISTER:
+		vfs_register(iid, icall);
+		break;
 	case VFS_MOUNT:
 	case VFS_UNMOUNT:
 	case VFS_OPEN:

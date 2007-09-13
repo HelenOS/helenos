@@ -34,11 +34,37 @@
 #define VFS_VFS_H_
 
 typedef enum {
-	VFS_REGISTER = 1,
+	VFS_REGISTER = 0,
 	VFS_MOUNT,
 	VFS_UNMOUNT,
-	VFS_OPEN
+	VFS_OPEN,
+	VFS_LAST,		/* keep this the last member of the enum */
 } vfs_request_t;
+
+
+/**
+ * An instance of this structure is associated with a particular FS operation.
+ * It tells VFS if the FS supports the operation or maybe if a default one
+ * should be used.
+ */
+typedef enum {
+	VFS_OP_NOTSUP = 0,
+	VFS_OP_DEFAULT,
+	VFS_OP_DEFINED
+} vfs_op_t;
+
+#define FS_NAME_MAXLEN	20
+
+/**
+ * A structure like this is passed to VFS by each individual FS upon its
+ * registration. It assosiates a human-readable identifier with each
+ * registered FS. More importantly, through this structure, the FS announces
+ * what operations it supports.
+ */
+typedef struct {
+	char fs_name[FS_NAME_MAXLEN];	/**< Unique identifier of the fs. */
+	vfs_op_t ops[VFS_LAST];		/**< Operations. */
+} vfs_info_t;
 
 #endif
 
