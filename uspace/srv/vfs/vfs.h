@@ -30,58 +30,17 @@
  * @{
  */ 
 
-/**
- * @file	vfs.c
- * @brief	VFS multiplexer for HelenOS.
- */
+#ifndef VFS_VFS_H_
+#define VFS_VFS_H_
 
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-#include <async.h>
-#include <errno.h>
-#include "vfs.h"
+typedef enum {
+	VFS_REGISTER = 1,
+	VFS_MOUNT,
+	VFS_UNMOUNT,
+	VFS_OPEN
+} vfs_request_t;
 
-static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	ipcarg_t iarg1, iarg2;
-
-	/*
-	 * The connection was opened via the IPC_CONNECT_ME_TO call.
-	 * This call needs to be answered.
-	 *
-	 * The protocol is that the requested action is specified in ARG1
-	 * of the opening call. If the request has a single integer argument,
-	 * it is passed in ARG2.
-	 */
-	iarg1 = IPC_GET_ARG1(*icall);
-	iarg2 = IPC_GET_ARG2(*icall);
-
-	/*
-	 * Now, the connection can either be from an individual FS,
-	 * which is trying to register itself and pass us its capabilities.
-	 * Or, the connection is a regular connection from a client that wants
-	 * us to do something for it (e.g. open a file, mount a fs etc.).
-	 */
-	switch (iarg1) {
-	case VFS_REGISTER:
-	case VFS_MOUNT:
-	case VFS_UNMOUNT:
-	case VFS_OPEN:
-	default:
-		ipc_answer_fast(iid, ENOTSUP, 0, 0);
-		break;
-	}
-}
-
-int main(int argc, char **argv)
-{
-	ipcarg_t phonead;
-
-	async_set_client_connection(vfs_connection);
-	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, &phonead);
-	async_manager();
-	return 0;
-}
+#endif
 
 /**
  * @}

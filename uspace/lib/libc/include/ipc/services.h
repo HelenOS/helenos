@@ -43,6 +43,7 @@
 #define SERVICE_CONSOLE		4
 #define SERVICE_RD		5
 #define SERVICE_FS		6
+#define SERVICE_VFS		7
 
 /* Memory area to be received from NS */
 #define SERVICE_MEM_REALTIME    1
