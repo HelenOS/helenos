@@ -50,6 +50,7 @@
 #include <kernel/synch/synch.h>
 #include <async.h>
 #include <fibril.h>
+#include <assert.h>
 
 /**
  * Structures of this type are used for keeping track of sent asynchronous calls
@@ -594,5 +595,58 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
+/** Wrapper for accepting the IPC_M_DATA_SEND calls.
+ *
+ * This wrapper only makes it more comfortable to accept IPC_M_DATA_SEND calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_SEND call will
+ * 			be stored.
+ * @param call		Storage where the incoming call will be stored.
+ * @param dst		Storage where the suggested destination address will
+ *			be stored. May be NULL.
+ * @param size		Storage where the suggested size will be stored. May be
+ *			NULL
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int ipc_data_send_accept(ipc_callid_t *callid, ipc_call_t *call, void **dst,
+    size_t *size)
+{
+	assert(callid);
+	assert(call);
+
+	*callid = async_get_call(call);
+	if (IPC_GET_METHOD(*call) != IPC_M_DATA_SEND)
+		return 0;
+	if (dst)
+		*dst = (void *) IPC_GET_ARG1(*call);
+	if (size)
+		*size = (size_t) IPC_GET_ARG3(*call);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_SEND calls.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_SEND calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_SEND call to answer.
+ * @param call		Call structure with the request.
+ * @param dst		Final destination address for the IPC_M_DATA_SEND call.
+ * @param size		Final size for the IPC_M_DATA_SEND call.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+ipcarg_t ipc_data_send_answer(ipc_callid_t callid, ipc_call_t *call, void *dst,     size_t size)
+{
+	IPC_SET_RETVAL(*call, EOK);
+	IPC_SET_ARG1(*call, (ipcarg_t) dst);
+	IPC_SET_ARG3(*call, (ipcarg_t) size);
+	return ipc_answer(callid, call);
+}
+ 
 /** @}
  */

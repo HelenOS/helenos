@@ -91,6 +91,11 @@ extern int ipc_unregister_irq(int inr, int devno);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
     ipcarg_t arg1);
 
+extern int ipc_data_send_accept(ipc_callid_t *callid, ipc_call_t *call,
+    void **dst, size_t *size);
+extern ipcarg_t ipc_data_send_answer(ipc_callid_t callid, ipc_call_t *call,
+    void *dst, size_t size);
+
 #endif
 
 /** @}
