@@ -45,9 +45,14 @@ static inline int isdigit(int c)
 	return ((c >= '0') && (c <= '9'));
 }
 
+static inline int isalnum(int c)
+{
+	return (isalpha(c) || isdigit(c));
+}
+
 static inline int isspace(int c)
 {
-	switch(c) {
+	switch (c) {
 	case ' ':
 	case '\n':
 	case '\t':
