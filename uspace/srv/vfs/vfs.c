@@ -39,72 +39,138 @@
 #include <ipc/services.h>
 #include <async.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <bool.h>
 #include "vfs.h"
 
-static void vfs_register(ipc_callid_t iid, ipc_call_t *icall)
+/** Verify the VFS info structure.
+ *
+ * @param info		Info structure to be verified.
+ *
+ * @return		Non-zero if the info structure is sane, zero otherwise.
+ */
+static int vfs_info_sane(vfs_info_t *info)
+{
+	return 1;	/* XXX */
+}
+
+/** VFS_REGISTER protocol function.
+ *
+ * @param rid		Hash of the call with the request.
+ * @param request	Call structure with the request.
+ */
+static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
+	int rc;
+	size_t size;
 
-	callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) == IPC_M_DATA_SEND) {
-		size_t size = IPC_GET_ARG3(call);
-		if (size != sizeof(vfs_info_t)) {
-			/*
-			 * The client is sending us something, which cannot be
-			 * the info structure.
-			 */
-			ipc_answer_fast(iid, EINVAL, 0, 0);
-			ipc_answer_fast(callid, EINVAL, 0, 0);
-			return;
-		}
-		/*
-		 * XXX: continue here
-		 * Allocate an info structue, answer the call, check sanity
-		 * of the copied-in info structure, ...
-		 */
-	} else {
+	/*
+	 * The first call has to be IPC_M_DATA_SEND in which we receive the
+	 * VFS info structure from the client FS.
+	 */
+	if (!ipc_data_send_accept(&callid, &call, NULL, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */ 
-		ipc_answer_fast(iid, EINVAL, 0, 0);
 		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
 	}
+	
+	/*
+	 * We know the size of the info structure. See if the client understands
+	 * this easy concept too.
+	 */
+	if (size != sizeof(vfs_info_t)) {
+		/*
+		 * The client is sending us something, which cannot be
+		 * the info structure.
+		 */
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
+		return;
+	}
+	vfs_info_t *info;
+
+	/*
+	 * Allocate a buffer for the info structure.
+	 */
+	info = (vfs_info_t *) malloc(sizeof(vfs_info_t));
+	if (!info) {
+		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		ipc_answer_fast(rid, ENOMEM, 0, 0);
+		return;
+	}
+		
+	rc = ipc_data_send_answer(callid, &call, info, size);
+	if (!rc) {
+		free(info);
+		ipc_answer_fast(callid, rc, 0, 0);
+		ipc_answer_fast(rid, rc, 0, 0);
+		return;
+	}
+		
+	if (!vfs_info_sane(info)) {
+		free(info);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
+		return;
+	}
+		
 }
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipcarg_t iarg1, iarg2;
+	bool keep_on_going = 1;
 
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
-	 *
-	 * The protocol is that the requested action is specified in ARG1
-	 * of the opening call. If the request has a single integer argument,
-	 * it is passed in ARG2.
 	 */
-	iarg1 = IPC_GET_ARG1(*icall);
-	iarg2 = IPC_GET_ARG2(*icall);
+	ipc_answer_fast(iid, EOK, 0, 0);
 
 	/*
-	 * Now, the connection can either be from an individual FS,
-	 * which is trying to register itself and pass us its capabilities.
-	 * Or, the connection is a regular connection from a client that wants
-	 * us to do something for it (e.g. open a file, mount a fs etc.).
+	 * Here we enter the main connection fibril loop.
+	 * The logic behind this loop and the protocol is that we'd like to keep
+	 * each connection open for a while before we close it. The benefit of
+	 * this is that the client doesn't have to establish a new connection
+	 * upon each request.  On the other hand, the client must be ready to
+	 * re-establish a connection if we hang it up due to reaching of maximum
+	 * number of requests per connection or due to the client timing out.
 	 */
-	switch (iarg1) {
-	case VFS_REGISTER:
-		vfs_register(iid, icall);
-		break;
-	case VFS_MOUNT:
-	case VFS_UNMOUNT:
-	case VFS_OPEN:
-	default:
-		ipc_answer_fast(iid, ENOTSUP, 0, 0);
-		break;
+	 
+	while (keep_on_going) {
+		ipc_callid_t callid;
+		ipc_call_t call;
+
+		callid = async_get_call(&call);
+		
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			keep_on_going = false;
+			break;
+		case VFS_REGISTER:
+			vfs_register(callid, &call);
+			keep_on_going = false;
+			break;
+		case VFS_MOUNT:
+		case VFS_UNMOUNT:
+		case VFS_OPEN:
+		case VFS_CREATE:
+		case VFS_CLOSE:
+		case VFS_READ:
+		case VFS_WRITE:
+		case VFS_SEEK:
+		default:
+			ipc_answer_fast(callid, ENOTSUP, 0, 0);
+			break;
+		}
 	}
+
+	/* TODO: cleanup after the client */
+	
 }
 
 int main(int argc, char **argv)

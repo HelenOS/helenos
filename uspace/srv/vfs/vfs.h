@@ -33,11 +33,20 @@
 #ifndef VFS_VFS_H_
 #define VFS_VFS_H_
 
+#include <ipc/ipc.h>
+
+#define VFS_FIRST	FIRST_USER_METHOD
+
 typedef enum {
-	VFS_REGISTER = 0,
+	VFS_REGISTER = VFS_FIRST,
 	VFS_MOUNT,
 	VFS_UNMOUNT,
 	VFS_OPEN,
+	VFS_CREATE,
+	VFS_CLOSE,
+	VFS_READ,
+	VFS_WRITE,
+	VFS_SEEK,
 	VFS_LAST,		/* keep this the last member of the enum */
 } vfs_request_t;
 
@@ -48,7 +57,7 @@ typedef enum {
  * should be used.
  */
 typedef enum {
-	VFS_OP_NOTSUP = 0,
+	VFS_OP_NULL = 0,
 	VFS_OP_DEFAULT,
 	VFS_OP_DEFINED
 } vfs_op_t;
@@ -62,12 +71,15 @@ typedef enum {
  * what operations it supports.
  */
 typedef struct {
-	char fs_name[FS_NAME_MAXLEN];	/**< Unique identifier of the fs. */
-	vfs_op_t ops[VFS_LAST];		/**< Operations. */
+	/** Unique identifier of the fs. */
+	char fs_name[FS_NAME_MAXLEN];
+	
+	/** Operations. */
+	vfs_op_t ops[VFS_LAST - VFS_FIRST];
 } vfs_info_t;
 
 #endif
 
 /**
  * @}
- */ 
+ */

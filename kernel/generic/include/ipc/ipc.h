@@ -272,8 +272,8 @@ extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
 extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
-void ipc_cleanup(void);
-int ipc_phone_hangup(phone_t *phone);
+extern void ipc_cleanup(void);
+extern int ipc_phone_hangup(phone_t *phone);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err);
 extern void ipc_print_task(task_id_t taskid);
 
