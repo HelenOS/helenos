@@ -40,8 +40,15 @@
 #include <async.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include <bool.h>
+#include <futex.h>
+#include <libadt/list.h>
 #include "vfs.h"
+
+atomic_t fs_head_futex = FUTEX_INITIALIZER;
+link_t fs_head;
 
 /** Verify the VFS info structure.
  *
@@ -49,9 +56,53 @@
  *
  * @return		Non-zero if the info structure is sane, zero otherwise.
  */
-static int vfs_info_sane(vfs_info_t *info)
+static bool vfs_info_sane(vfs_info_t *info)
 {
-	return 1;	/* XXX */
+	int i;
+
+	/*
+	 * Check if the name is non-empty and is composed solely of ASCII
+	 * characters [a-z]+[a-z0-9_-]*.
+	 */
+	if (!islower(info->name[0]))
+		return false;
+	for (i = 1; i < FS_NAME_MAXLEN; i++) {
+		if (!(islower(info->name[i]) || isdigit(info->name[i])) &&
+		    (info->name[i] != '-') && (info->name[i] != '_')) {
+			if (info->name[i] == '\0')
+				break;
+			else
+				return false;
+		}
+	}
+	
+
+	/*
+	 * Check if the FS implements mandatory VFS operations.
+	 */
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_REGISTER)] != VFS_OP_DEFINED)
+		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] != VFS_OP_DEFINED)
+		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] != VFS_OP_DEFINED)
+		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] != VFS_OP_DEFINED)
+		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] != VFS_OP_DEFINED)
+		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_READ)] != VFS_OP_DEFINED)
+		return false;
+	
+	/*
+	 * Check if each operation is either not defined, defined or default.
+	 */
+	for (i = VFS_FIRST; i < VFS_LAST; i++) {
+		if ((IPC_METHOD_TO_VFS_OP(i) != VFS_OP_NULL) && 
+		    (IPC_METHOD_TO_VFS_OP(i) != VFS_OP_DEFAULT) && 
+		    (IPC_METHOD_TO_VFS_OP(i) != VFS_OP_DEFINED))
+			return false;	
+	}
+	return true;
 }
 
 /** VFS_REGISTER protocol function.
@@ -80,8 +131,8 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	/*
-	 * We know the size of the info structure. See if the client understands
-	 * this easy concept too.
+	 * We know the size of the VFS info structure. See if the client
+	 * understands this easy concept too.
 	 */
 	if (size != sizeof(vfs_info_t)) {
 		/*
@@ -92,33 +143,64 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
 	}
-	vfs_info_t *info;
+	fs_info_t *fs_info;
 
 	/*
-	 * Allocate a buffer for the info structure.
+	 * Allocate and initialize a buffer for the fs_info structure.
 	 */
-	info = (vfs_info_t *) malloc(sizeof(vfs_info_t));
-	if (!info) {
+	fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
+	if (!fs_info) {
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
 		ipc_answer_fast(rid, ENOMEM, 0, 0);
 		return;
 	}
+	link_initialize(&fs_info->fs_link);
 		
-	rc = ipc_data_send_answer(callid, &call, info, size);
+	rc = ipc_data_send_answer(callid, &call, &fs_info->vfs_info, size);
 	if (!rc) {
-		free(info);
+		free(fs_info);
 		ipc_answer_fast(callid, rc, 0, 0);
 		ipc_answer_fast(rid, rc, 0, 0);
 		return;
 	}
 		
-	if (!vfs_info_sane(info)) {
-		free(info);
+	if (!vfs_info_sane(&fs_info->vfs_info)) {
+		free(fs_info);
 		ipc_answer_fast(callid, EINVAL, 0, 0);
 		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
 	}
 		
+	futex_down(&fs_head_futex);
+
+	/*
+	 * Check for duplicit registrations.
+	 */
+	link_t *cur;
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs_info_t *fi = list_get_instance(cur, fs_info_t,
+		    fs_link);
+		/* TODO: replace strcmp with strncmp once we have it */
+		if (strcmp(fs_info->vfs_info.name, fi->vfs_info.name) == 0) {
+			/*
+			 * We already register a fs like this.
+			 */
+			futex_up(&fs_head_futex);
+			free(fs_info);
+			ipc_answer_fast(callid, EEXISTS, 0, 0);
+			ipc_answer_fast(rid, EEXISTS, 0, 0);
+			return;
+		}
+	}
+	
+	/*
+	 * TODO:
+	 * 1. send the client the IPC_M_CONNECT_TO_ME call so that it makes a
+	 *    callback connection.
+	 * 2. add the fs_info into fs_head
+	 */
+
+	futex_up(&fs_head_futex);
 }
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -177,6 +259,7 @@ int main(int argc, char **argv)
 {
 	ipcarg_t phonead;
 
+	list_initialize(&fs_head);
 	async_set_client_connection(vfs_connection);
 	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, &phonead);
 	async_manager();

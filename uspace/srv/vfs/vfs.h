@@ -37,6 +37,8 @@
 
 #define VFS_FIRST	FIRST_USER_METHOD
 
+#define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
+
 typedef enum {
 	VFS_REGISTER = VFS_FIRST,
 	VFS_MOUNT,
@@ -72,11 +74,16 @@ typedef enum {
  */
 typedef struct {
 	/** Unique identifier of the fs. */
-	char fs_name[FS_NAME_MAXLEN];
+	char name[FS_NAME_MAXLEN];
 	
 	/** Operations. */
 	vfs_op_t ops[VFS_LAST - VFS_FIRST];
 } vfs_info_t;
+
+typedef struct {
+	link_t fs_link;
+	vfs_info_t vfs_info;
+} fs_info_t;
 
 #endif
 

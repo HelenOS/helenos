@@ -55,23 +55,25 @@ struct hash_table {
 struct hash_table_operations {
 	/** Hash function.
 	 *
-	 * @param key Array of keys needed to compute hash index. All keys must be passed.
+	 * @param key 	Array of keys needed to compute hash index. All keys
+	 *		must be passed.
 	 *
-	 * @return Index into hash table.
+	 * @return	Index into hash table.
 	 */
 	hash_index_t (* hash)(unsigned long key[]);
 	
 	/** Hash table item comparison function.
 	 *
-	 * @param key Array of keys that will be compared with item. It is not necessary to pass all keys.
+	 * @param key 	Array of keys that will be compared with item. It is
+	 *		not necessary to pass all keys.
 	 *
-	 * @return true if the keys match, false otherwise.
+	 * @return 	true if the keys match, false otherwise.
 	 */
 	int (*compare)(unsigned long key[], hash_count_t keys, link_t *item);
 
 	/** Hash table item removal callback.
 	 *
-	 * @param item Item that was removed from the hash table.
+	 * @param item 	Item that was removed from the hash table.
 	 */
 	void (*remove_callback)(link_t *item);
 };

@@ -35,9 +35,19 @@
 #ifndef LIBC_CTYPE_H_
 #define LIBC_CTYPE_H_
 
+static inline int islower(int c)
+{
+	return ((c >= 'a') && (c <= 'z'));
+}
+
+static inline int isupper(int c)
+{
+	return ((c >= 'A') && (c <= 'Z'));
+}
+
 static inline int isalpha(int c)
 {
-	return (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')));
+	return (islower(c) || isupper(c));
 }
 
 static inline int isdigit(int c)
