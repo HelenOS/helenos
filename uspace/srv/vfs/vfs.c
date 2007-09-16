@@ -86,6 +86,8 @@ static bool vfs_info_sane(vfs_info_t *info)
 		return false;
 	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] != VFS_OP_DEFINED)
 		return false;
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] != VFS_OP_DEFINED)
+		return false;
 	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] != VFS_OP_DEFINED)
 		return false;
 	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] != VFS_OP_DEFINED)
@@ -192,15 +194,40 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 	}
+
+	/*
+	 * Add fs_info to the list of registered FS's.
+	 */
+	list_append(&fs_info->fs_link, &fs_head);
+
+	/*
+	 * ACK receiving a properly formatted, non-duplicit vfs_info.
+	 */
+	ipc_answer_fast(callid, EOK, 0, 0);
 	
 	/*
-	 * TODO:
-	 * 1. send the client the IPC_M_CONNECT_TO_ME call so that it makes a
-	 *    callback connection.
-	 * 2. add the fs_info into fs_head
+	 * Now we want the client to send us the IPC_M_CONNECT_TO_ME call so
+	 * that a callback connection is created and we have a phone through
+	 * which to forward VFS requests to it.
 	 */
+	callid = async_get_call(&call);
+	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+		list_remove(&fs_info->fs_link);
+		futex_up(&fs_head_futex);
+		free(fs_info);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
+		return;
+	}
+	fs_info->phone = IPC_GET_ARG3(call);
+	ipc_answer_fast(callid, EOK, 0, 0);
 
 	futex_up(&fs_head_futex);
+
+	/*
+	 * That was it. The FS has been registered.
+	 */
+	ipc_answer_fast(rid, EOK, 0, 0);
 }
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)

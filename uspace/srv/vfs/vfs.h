@@ -43,6 +43,7 @@ typedef enum {
 	VFS_REGISTER = VFS_FIRST,
 	VFS_MOUNT,
 	VFS_UNMOUNT,
+	VFS_LOOKUP,
 	VFS_OPEN,
 	VFS_CREATE,
 	VFS_CLOSE,
@@ -83,6 +84,7 @@ typedef struct {
 typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
+	ipcarg_t phone;
 } fs_info_t;
 
 #endif

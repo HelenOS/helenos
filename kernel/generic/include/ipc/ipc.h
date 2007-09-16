@@ -102,7 +102,7 @@
  * so that it can start initiating new messages.
  *
  * The protocol for negotiating is:
- * - sys_connect_to_me - sends a message IPC_M_CONNECTTOME
+ * - sys_connect_to_me - sends a message IPC_M_CONNECT_TO_ME
  * - sys_wait_for_call - upon receipt tries to allocate new phone
  *                       - if it fails, responds with ELIMIT
  *                     - passes call to userspace. If userspace
@@ -110,7 +110,7 @@
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
  *                     - the allocated phoneid is passed to userspace 
- *                       (on the receiving sid) as ARG3 of the call.
+ *                       (on the receiving side) as ARG3 of the call.
  *                     - the caller obtains taskid of the called thread
  */
 #define IPC_M_CONNECT_TO_ME	1
