@@ -32,7 +32,7 @@
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = /usr/local/arm/bin
 CFLAGS += -ffixed-r9 -mtp=soft 
-LFLAGS += -N ../../lib/softint/libsoftint.a
+LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS += 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \

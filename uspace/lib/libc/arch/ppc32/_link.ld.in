@@ -1,4 +1,4 @@
-STARTUP(../../lib/libc/arch/ARCH/src/entry.o)
+STARTUP(LIBC_PREFIX/arch/ARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {

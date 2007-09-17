@@ -32,7 +32,7 @@
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ia64/bin
 CFLAGS += -fno-unwind-tables -DMALLOC_ALIGNMENT_16
-LFLAGS += -N ../../lib/softint/libsoftint.a
+LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS += 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \

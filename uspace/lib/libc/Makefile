@@ -29,7 +29,7 @@
 ## Common compiler flags
 #
 
-LIBC_PREFIX = .
+LIBC_PREFIX = $(shell pwd)
 SOFTINT_PREFIX = ../softint
 CONSOLE_PREFIX = ../../srv/console
 
@@ -103,7 +103,7 @@ libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(LIBS) $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
