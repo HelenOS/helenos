@@ -29,8 +29,8 @@
 ## Setup toolchain
 #
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+LIBC_PREFIX = ../../../lib/libc
+SOFTINT_PREFIX = ../../../lib/softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 LIBS = $(LIBC_PREFIX)/libc.a
@@ -38,9 +38,9 @@ LIBS = $(LIBC_PREFIX)/libc.a
 ## Sources
 #
 
-OUTPUT = fs
+OUTPUT = fat
 SOURCES = \
-	fs.c
+	fat.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

@@ -34,6 +34,7 @@
 #define VFS_VFS_H_
 
 #include <ipc/ipc.h>
+#include <libadt/list.h>
 
 #define VFS_FIRST	FIRST_USER_METHOD
 

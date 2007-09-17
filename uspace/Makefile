@@ -40,7 +40,7 @@ DIRS = \
 	srv/kbd \
 	srv/console \
 	srv/rd \
-	srv/fs \
+	srv/fs/fat \
 	srv/vfs \
 	app/tetris \
 	app/tester \

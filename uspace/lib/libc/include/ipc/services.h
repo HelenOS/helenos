@@ -37,13 +37,14 @@
 #ifndef LIBIPC_SERVICES_H_
 #define LIBIPC_SERVICES_H_
 
-#define SERVICE_PCI		1
-#define SERVICE_KEYBOARD	2
-#define SERVICE_VIDEO		3
-#define SERVICE_CONSOLE		4
-#define SERVICE_RD		5
-#define SERVICE_FS		6
-#define SERVICE_VFS		7
+typedef enum {
+	SERVICE_PCI = 1,
+	SERVICE_KEYBOARD,
+	SERVICE_VIDEO,
+	SERVICE_CONSOLE,
+	SERVICE_RD,
+	SERVICE_VFS
+} services_t;
 
 /* Memory area to be received from NS */
 #define SERVICE_MEM_REALTIME    1
