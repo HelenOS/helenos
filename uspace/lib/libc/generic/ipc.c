@@ -189,8 +189,8 @@ static inline async_call_t *ipc_prepare_async(void *private,
  * @param callid	Value returned by the SYS_IPC_CALL_ASYNC_* syscall.
  * @param phoneid	Phone handle through which the call was made.
  * @param call		async_call structure returned by ipc_prepare_async().
- * @param can_preempt	If non-zero, the current pseudo thread can be preempted
- *			in this call.
+ * @param can_preempt	If non-zero, the current fibril can be preempted in this
+ *			call.
  */
 static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
     async_call_t *call, int can_preempt)
@@ -250,8 +250,8 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
  * @param arg2		Service-defined payload argument.
  * @param private	Argument to be passed to the answer/error callback.
  * @param callback	Answer or error callback.
- * @param can_preempt	If non-zero, the current pseudo thread will be preempted
- *			in case the kernel temporarily refuses to accept more
+ * @param can_preempt	If non-zero, the current fibril will be preempted in
+ *			case the kernel temporarily refuses to accept more
  *			asynchronous calls.
  */
 void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
@@ -302,8 +302,8 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
  * @param arg3		Service-defined payload argument.
  * @param private	Argument to be passed to the answer/error callback.
  * @param callback	Answer or error callback.
- * @param can_preempt	If non-zero, the current pseudo thread will be preempted
- *			in case the kernel temporarily refuses to accept more
+ * @param can_preempt	If non-zero, the current fibril will be preempted in
+ *			case the kernel temporarily refuses to accept more
  *			asynchronous calls.
  *
  */
