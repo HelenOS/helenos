@@ -123,7 +123,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
 	 */
-	if (!ipc_data_send_accept(&callid, &call, NULL, &size)) {
+	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */ 
@@ -158,7 +158,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 	link_initialize(&fs_info->fs_link);
 		
-	rc = ipc_data_send_answer(callid, &call, &fs_info->vfs_info, size);
+	rc = ipc_data_deliver(callid, &call, &fs_info->vfs_info, size);
 	if (!rc) {
 		free(fs_info);
 		ipc_answer_fast(callid, rc, 0, 0);

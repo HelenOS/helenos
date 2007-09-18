@@ -38,6 +38,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <async.h>
 #include <errno.h>
 #include <unistd.h>
 #include "../../vfs/vfs.h"
@@ -58,6 +59,20 @@ vfs_info_t fat_vfs_info = {
 	}
 };
 
+/*
+ * This fibril processes request from the VFS server.
+ */
+void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	while (1) {
+		ipc_callid_t callid;
+		ipc_call_t call;
+	
+		callid = async_get_call(&call);
+		ipc_answer_fast(callid, ENOTSUP, 0, 0);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	ipcarg_t vfs_phone;
@@ -68,8 +83,30 @@ int main(int argc, char **argv)
 		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0);
 	}
 	
-	/* TODO: start making calls according to the VFS protocol */
+	/*
+	 * Tell VFS that we are here and want to get registered.
+	 * We use the async framework because VFS will answer the request
+	 * out-of-order, when it knows that the operation succeeded or failed.
+	 */
+	ipc_call_t answer;
+	aid_t req = async_send_2(vfs_phone, VFS_REGISTER, 0, 0, &answer);
 
+	/*
+	 * Send our VFS info structure to VFS.
+	 */
+	int rc = ipc_data_send(vfs_phone, &fat_vfs_info, sizeof(fat_vfs_info)); 
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+
+	/*
+	 * Ask VFS for callback connection.
+	 */
+	ipcarg_t phonehash;
+	ipc_connect_to_me(vfs_phone, 0, 0, &phonehash);
+
+	async_new_connection(phonehash, 0, NULL, fat_connection);
 	return 0;
 }
 

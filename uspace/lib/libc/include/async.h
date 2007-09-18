@@ -102,8 +102,7 @@ static inline ipcarg_t async_req_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 
 fid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
-			     ipc_call_t *call,
-			     void (*cthread)(ipc_callid_t,ipc_call_t *));
+    ipc_call_t *call, void (*cthread)(ipc_callid_t,ipc_call_t *));
 void async_usleep(suseconds_t timeout);
 void async_create_manager(void);
 void async_destroy_manager(void);

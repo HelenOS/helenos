@@ -515,8 +515,8 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
  */
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phonehash)
 {
-	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2, 0, 0, 0,
-	    phonehash);
+	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2, 0, 0,
+	    0, phonehash);
 }
 
 /** Ask through phone for a new connection to some service.
@@ -532,7 +532,7 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 	ipcarg_t newphid;
 	int res;
 
-	res =  ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, 0, 0, 0,
+	res = ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, 0, 0, 0,
 	    &newphid);
 	if (res)
 		return res;
@@ -595,9 +595,23 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }
 
-/** Wrapper for accepting the IPC_M_DATA_SEND calls.
+/** Wrapper for making IPC_M_DATA_SEND calls.
  *
- * This wrapper only makes it more comfortable to accept IPC_M_DATA_SEND calls
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Address of the beginning of the source buffer.
+ * @param size		Size of the source buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int ipc_data_send(int phoneid, void *src, size_t size)
+{
+	return ipc_call_sync_3(phoneid, IPC_M_DATA_SEND, 0, (ipcarg_t) src,
+	    (ipcarg_t) size, NULL, NULL, NULL);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_SEND calls.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_SEND calls
  * so that the user doesn't have to remember the meaning of each IPC argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
@@ -612,7 +626,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
  *
  * @return		Non-zero on success, zero on failure.
  */
-int ipc_data_send_accept(ipc_callid_t *callid, ipc_call_t *call, void **dst,
+int ipc_data_receive(ipc_callid_t *callid, ipc_call_t *call, void **dst,
     size_t *size)
 {
 	assert(callid);
@@ -640,7 +654,8 @@ int ipc_data_send_accept(ipc_callid_t *callid, ipc_call_t *call, void **dst,
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_data_send_answer(ipc_callid_t callid, ipc_call_t *call, void *dst,     size_t size)
+ipcarg_t ipc_data_deliver(ipc_callid_t callid, ipc_call_t *call, void *dst,
+    size_t size)
 {
 	IPC_SET_RETVAL(*call, EOK);
 	IPC_SET_ARG1(*call, (ipcarg_t) dst);
