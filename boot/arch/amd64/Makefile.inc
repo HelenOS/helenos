@@ -31,6 +31,8 @@ TASKS = \
 	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \

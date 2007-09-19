@@ -13,3 +13,5 @@ module /boot/console
 module /boot/tetris
 module /boot/tester
 module /boot/klog
+module /boot/fat
+module /boot/vfs

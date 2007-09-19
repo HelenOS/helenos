@@ -39,6 +39,7 @@
 #include <ipc/services.h>
 #include <async.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -46,6 +47,9 @@
 #include <futex.h>
 #include <libadt/list.h>
 #include "vfs.h"
+
+
+#define dprintf(...)	printf(__VA_ARGS__)
 
 atomic_t fs_head_futex = FUTEX_INITIALIZER;
 link_t fs_head;
@@ -64,15 +68,20 @@ static bool vfs_info_sane(vfs_info_t *info)
 	 * Check if the name is non-empty and is composed solely of ASCII
 	 * characters [a-z]+[a-z0-9_-]*.
 	 */
-	if (!islower(info->name[0]))
+	if (!islower(info->name[0])) {
+		dprintf("The name doesn't start with a lowercase character.\n");
 		return false;
+	}
 	for (i = 1; i < FS_NAME_MAXLEN; i++) {
 		if (!(islower(info->name[i]) || isdigit(info->name[i])) &&
 		    (info->name[i] != '-') && (info->name[i] != '_')) {
-			if (info->name[i] == '\0')
+			if (info->name[i] == '\0') {
 				break;
-			else
+			} else {
+				dprintf("The name contains illegal "
+				    "characters.\n");
 				return false;
+			}
 		}
 	}
 	
@@ -80,29 +89,45 @@ static bool vfs_info_sane(vfs_info_t *info)
 	/*
 	 * Check if the FS implements mandatory VFS operations.
 	 */
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_REGISTER)] != VFS_OP_DEFINED)
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_REGISTER)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_REGISTER not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_MOUNT not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_UNMOUNT not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_LOOKUP not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_OPEN not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_CLOSE not defined by the client.\n");
 		return false;
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_READ)] != VFS_OP_DEFINED)
+	}
+	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_READ)] != VFS_OP_DEFINED) {
+		dprintf("Operation VFS_READ not defined by the client.\n");
 		return false;
+	}
 	
 	/*
 	 * Check if each operation is either not defined, defined or default.
 	 */
 	for (i = VFS_FIRST; i < VFS_LAST; i++) {
-		if ((IPC_METHOD_TO_VFS_OP(i) != VFS_OP_NULL) && 
-		    (IPC_METHOD_TO_VFS_OP(i) != VFS_OP_DEFAULT) && 
-		    (IPC_METHOD_TO_VFS_OP(i) != VFS_OP_DEFINED))
-			return false;	
+		if ((info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_NULL) && 
+		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFAULT) && 
+		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFINED)) {
+			dprintf("Operation info not understood.\n");
+			return false;
+		}
 	}
 	return true;
 }
@@ -119,6 +144,9 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 	size_t size;
 
+	dprintf("Processing VFS_REGISTER request received from %p.\n",
+		request->in_phone_hash);
+
 	/*
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
@@ -126,11 +154,14 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
-		 */ 
+		 */
+		dprintf("Receiving of VFS info failed.\n");
 		ipc_answer_fast(callid, EINVAL, 0, 0);
 		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
 	}
+	
+	dprintf("VFS info received, size = %d\n", size);
 	
 	/*
 	 * We know the size of the VFS info structure. See if the client
@@ -141,6 +172,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		 * The client is sending us something, which cannot be
 		 * the info structure.
 		 */
+		dprintf("Received VFS info has bad size.\n");
 		ipc_answer_fast(callid, EINVAL, 0, 0);
 		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
@@ -152,6 +184,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
 	if (!fs_info) {
+		dprintf("Could not allocate memory for FS info.\n");
 		ipc_answer_fast(callid, ENOMEM, 0, 0);
 		ipc_answer_fast(rid, ENOMEM, 0, 0);
 		return;
@@ -159,12 +192,16 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	link_initialize(&fs_info->fs_link);
 		
 	rc = ipc_data_deliver(callid, &call, &fs_info->vfs_info, size);
-	if (!rc) {
+	if (rc != EOK) {
+		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
+		    rc);
 		free(fs_info);
 		ipc_answer_fast(callid, rc, 0, 0);
 		ipc_answer_fast(rid, rc, 0, 0);
 		return;
 	}
+
+	dprintf("VFS info delivered.\n");
 		
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
@@ -187,6 +224,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 			/*
 			 * We already register a fs like this.
 			 */
+			dprintf("FS is already registered.\n");
 			futex_up(&fs_head_futex);
 			free(fs_info);
 			ipc_answer_fast(callid, EEXISTS, 0, 0);
@@ -198,6 +236,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */
+	dprintf("Adding FS into the registered list.\n");
 	list_append(&fs_info->fs_link, &fs_head);
 
 	/*
@@ -212,6 +251,7 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	callid = async_get_call(&call);
 	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
 		futex_up(&fs_head_futex);
 		free(fs_info);
@@ -222,17 +262,23 @@ static void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->phone = IPC_GET_ARG3(call);
 	ipc_answer_fast(callid, EOK, 0, 0);
 
+	dprintf("Callback connection to FS created.\n");
+
 	futex_up(&fs_head_futex);
 
 	/*
 	 * That was it. The FS has been registered.
 	 */
 	ipc_answer_fast(rid, EOK, 0, 0);
+	dprintf("\"%s\" filesystem successfully registered.\n",
+	    fs_info->vfs_info.name);
 }
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	bool keep_on_going = 1;
+
+	printf("Connection opened from %p\n", icall->in_phone_hash);
 
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
@@ -255,6 +301,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 
 		callid = async_get_call(&call);
+
+		printf("Received call, method=%d\n", IPC_GET_METHOD(call));
 		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
@@ -285,6 +333,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 int main(int argc, char **argv)
 {
 	ipcarg_t phonead;
+
+	printf("VFS: HelenOS VFS server\n");
 
 	list_initialize(&fs_head);
 	async_set_client_connection(vfs_connection);
