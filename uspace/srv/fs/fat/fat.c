@@ -119,7 +119,15 @@ int main(int argc, char **argv)
 	 */
 	async_wait_for(req, NULL);
 	dprintf("FAT filesystem registered.\n");
-	async_manager();
+
+	/*
+	 * TODO: Interestingly, if we return, the only thread dies.
+	 *       If the only thread dies, the whole task is destroyed. 
+	 *       Prevent the thread from exiting when there are active fibrils.
+	 */
+	while(1)
+		usleep(1000000);
+	
 	return 0;
 }
 
