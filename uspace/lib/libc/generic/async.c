@@ -457,6 +457,9 @@ static int connection_fibril(void  *arg)
  *
  * @param in_phone_hash	Identification of the incoming connection.
  * @param callid	Hash of the opening IPC_M_CONNECT_ME_TO call.
+ * 			If callid is zero, the connection was opened by
+ * 			accepting the IPC_M_CONNECT_TO_ME call and this function
+ * 			is called directly by the server.
  * @param call		Call data of the opening call.
  * @param cfibril	Fibril function that should be called upon opening the
  * 			connection.
@@ -471,7 +474,8 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 
 	conn = malloc(sizeof(*conn));
 	if (!conn) {
-		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		if (callid)
+			ipc_answer_fast(callid, ENOMEM, 0, 0);
 		return NULL;
 	}
 	conn->in_phone_hash = in_phone_hash;
@@ -486,7 +490,8 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
 	if (!conn->wdata.fid) {
 		free(conn);
-		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		if (callid)
+			ipc_answer_fast(callid, ENOMEM, 0, 0);
 		return NULL;
 	}
 	/* Add connection to the connection hash table */

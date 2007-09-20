@@ -121,13 +121,13 @@ int main(int argc, char **argv)
 	dprintf("FAT filesystem registered.\n");
 
 	/*
-	 * TODO: Interestingly, if we return, the only thread dies.
+	 * TODO: Interestingly, if we merely return, the only thread dies.
 	 *       If the only thread dies, the whole task is destroyed. 
 	 *       Prevent the thread from exiting when there are active fibrils.
 	 */
-	while(1)
-		usleep(1000000);
-	
+	fibril_schedule_next_adv(FIBRIL_FROM_DEAD);
+	/* not reached */
+
 	return 0;
 }
 
