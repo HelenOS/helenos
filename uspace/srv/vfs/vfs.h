@@ -36,6 +36,8 @@
 #include <ipc/ipc.h>
 #include <libadt/list.h>
 
+#define dprintf(...)	printf(__VA_ARGS__)
+
 #define VFS_FIRST	FIRST_USER_METHOD
 
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
@@ -87,6 +89,10 @@ typedef struct {
 	vfs_info_t vfs_info;
 	ipcarg_t phone;
 } fs_info_t;
+
+extern link_t fs_head;
+
+extern void vfs_register(ipc_callid_t rid, ipc_call_t *request);
 
 #endif
 
