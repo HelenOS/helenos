@@ -269,6 +269,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_fast(rid, EOK, 0, 0);
 	dprintf("\"%s\" filesystem successfully registered.\n",
 	    fs_info->vfs_info.name);
+
 }
 
 /**
