@@ -36,8 +36,8 @@
  * This file implements ia32 specific access to i8042 registers.
  */
 
-#ifndef KERN_ia32_I8042_H_
-#define KERN_ia32_I8042_H_
+#ifndef KERN_ia64_I8042_H_
+#define KERN_ia64_I8042_H_
 
 #include <arch/asm.h>
 #include <arch/types.h>
