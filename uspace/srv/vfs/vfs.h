@@ -35,12 +35,16 @@
 
 #include <ipc/ipc.h>
 #include <libadt/list.h>
+#include <atomic.h>
+#include <types.h>
 
 #define dprintf(...)	printf(__VA_ARGS__)
 
 #define VFS_FIRST	FIRST_USER_METHOD
 
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
+
+typedef int64_t off_t;
 
 typedef enum {
 	VFS_REGISTER = VFS_FIRST,
@@ -84,11 +88,42 @@ typedef struct {
 	vfs_op_t ops[VFS_LAST - VFS_FIRST];
 } vfs_info_t;
 
+/**
+ * A structure like this will be allocated for each registered file system.
+ */
 typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	ipcarg_t phone;
 } fs_info_t;
+
+/**
+ * Instances of this type represent a file system node (e.g. directory, file).
+ * They are abstracted away from any file system implementation and contain just
+ * enough bits to uniquely identify the object in its file system instance.
+ *
+ * @note	fs_handle, dev_handle and index are meant to be returned in one
+ *		IPC reply.
+ */
+typedef struct {
+	int fs_handle;		/**< Global file system ID. */
+	int dev_handle;		/**< Global mount device devno. */
+	uint64_t index;		/**< Index of the node on its file system. */
+} vfs_node_t;
+
+/**
+ * Instances of this type represent an open file. If the file is opened by more
+ * than one task, there will be a separate structure allocated for each task.
+ */
+typedef struct {
+	vfs_node_t *node;
+	
+	/** Number of file handles referencing this file. */
+	atomic_t refcnt;
+
+	/** Current position in the file. */
+	off_t pos;
+} vfs_file_t;
 
 extern link_t fs_head;
 
