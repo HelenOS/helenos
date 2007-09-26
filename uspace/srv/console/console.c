@@ -67,7 +67,6 @@ struct {
 	ipcarg_t cols;		/**< Framebuffer columns */
 } fb_info;
 
-
 typedef struct {
 	keybuffer_t keybuffer;		/**< Buffer for incoming keys. */
 	/** Buffer for unsatisfied request for keys. */
@@ -124,7 +123,7 @@ static void curs_goto(int row, int col)
 static void set_style(style_t *style)
 {
 	async_msg_2(fb_info.phone, FB_SET_STYLE, style->fg_color,
-		style->bg_color); 
+	    style->bg_color); 
 }
 
 static void set_style_col(int fgcolor, int bgcolor)
@@ -260,14 +259,17 @@ static void change_console(int newcons)
 	curs_visibility(0);
 	if (interbuffer) {
 		for (i = 0; i < conn->screenbuffer.size_x; i++)
-			for (j = 0; j < conn->screenbuffer.size_y; j++) 
-				interbuffer[i + j * conn->screenbuffer.size_x] =
-					*get_field_at(&(conn->screenbuffer),
-					i, j);
+			for (j = 0; j < conn->screenbuffer.size_y; j++) {
+				unsigned int size_x;
+
+				size_x = conn->screenbuffer.size_x; 
+				interbuffer[i + j * size_x] =
+				    *get_field_at(&conn->screenbuffer, i, j);
+			}
 		/* This call can preempt, but we are already at the end */
 		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL,
-			NULL);		
-	};
+		    NULL);		
+	}
 	
 	if ((!interbuffer) || (rc != 0)) {
 		set_style(&conn->screenbuffer.style);
@@ -276,14 +278,14 @@ static void change_console(int newcons)
 
 		for (j = 0; j < conn->screenbuffer.size_y; j++) 
 			for (i = 0; i < conn->screenbuffer.size_x; i++) {
-				field = get_field_at(&(conn->screenbuffer), i,
-					j);
+				field = get_field_at(&conn->screenbuffer, i,
+				    j);
 				if (!style_same(*style, field->style))
 					set_style(&field->style);
 				style = &field->style;
 				if ((field->character == ' ') &&
-					(style_same(field->style,
-					conn->screenbuffer.style)))
+				    (style_same(field->style,
+				    conn->screenbuffer.style)))
 					continue;
 
 				prtchr(field->character, j, i);
@@ -291,7 +293,7 @@ static void change_console(int newcons)
 	}
 	
 	curs_goto(conn->screenbuffer.position_y,
-		conn->screenbuffer.position_x);
+	    conn->screenbuffer.position_x);
 	curs_visibility(conn->screenbuffer.is_cursor_visible);
 
 	async_serialize_end();
@@ -322,7 +324,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case KBD_MS_MOVE:
 			gcons_mouse_move(IPC_GET_ARG1(call),
-				IPC_GET_ARG2(call));
+			    IPC_GET_ARG2(call));
 			retval = 0;
 			break;
 		case KBD_PUSHCHAR:
@@ -349,7 +351,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			if (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
 				ipc_answer_fast(fifo_pop(conn->keyrequests), 0,
-					c, 0);
+				    c, 0);
 				break;
 			}
 			
@@ -402,7 +404,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			while (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
 				ipc_answer_fast(fifo_pop(conn->keyrequests),
-					ENOENT, 0, 0);
+				    ENOENT, 0, 0);
 				break;
 			}
 			conn->used = 0;
@@ -422,10 +424,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case CONSOLE_GOTO:
 			screenbuffer_goto(&conn->screenbuffer,
-				IPC_GET_ARG2(call), IPC_GET_ARG1(call));
+			    IPC_GET_ARG2(call), IPC_GET_ARG1(call));
 			if (consnum == active_console)
 				curs_goto(IPC_GET_ARG1(call),
-					IPC_GET_ARG2(call));
+				    IPC_GET_ARG2(call));
 			break;
 		case CONSOLE_GETSIZE:
 			arg1 = fb_info.rows;
@@ -434,12 +436,13 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_FLUSH:
 			if (consnum == active_console)
 				async_req_2(fb_info.phone, FB_FLUSH, 0, 0,
-					NULL, NULL);		
+				    NULL, NULL);		
 			break;
 		case CONSOLE_SET_STYLE:
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_style(&conn->screenbuffer, arg1, arg2);
+			screenbuffer_set_style(&conn->screenbuffer, arg1,
+			    arg2);
 			if (consnum == active_console)
 				set_style_col(arg1, arg2);
 			break;
@@ -510,23 +513,23 @@ int main(int argc, char *argv[])
 	/* Enable double buffering */
 	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t) -1, 1);
 	
-	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &(fb_info.rows),
-		&(fb_info.cols)); 
+	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &fb_info.rows,
+	    &fb_info.cols); 
 	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	clrscr();
 	
 	/* Init virtual consoles */
 	for (i = 0; i < CONSOLE_COUNT; i++) {
 		connections[i].used = 0;
-		keybuffer_init(&(connections[i].keybuffer));
+		keybuffer_init(&connections[i].keybuffer);
 		
-		connections[i].keyrequests.head =
-			connections[i].keyrequests.tail = 0;
+		connections[i].keyrequests.head = 0;
+		connections[i].keyrequests.tail = 0;
 		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
 		connections[i].keyrequest_counter = 0;
 		
-		if (screenbuffer_init(&(connections[i].screenbuffer),
-			fb_info.cols, fb_info.rows) == NULL) {
+		if (screenbuffer_init(&connections[i].screenbuffer,
+		    fb_info.cols, fb_info.rows) == NULL) {
 			/* FIXME: handle error */
 			return -1;
 		}
@@ -534,19 +537,21 @@ int main(int argc, char *argv[])
 	connections[KERNEL_CONSOLE].used = 1;
 	
 	interbuffer = mmap(NULL,
-		sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
-		PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+	    sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
+	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 	if (!interbuffer) {
-		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND, (ipcarg_t)
-			interbuffer, 0, AS_AREA_READ, NULL, NULL, NULL) != 0) {
-			munmap(interbuffer, sizeof(keyfield_t) * fb_info.cols
-				* fb_info.rows);
+		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND,
+		    (ipcarg_t) interbuffer, 0, AS_AREA_READ, NULL, NULL,
+		    NULL) != 0) {
+			munmap(interbuffer,
+			    sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
 			interbuffer = NULL;
 		}
 	}
 
 	curs_goto(0, 0);
-	curs_visibility(connections[active_console].screenbuffer.is_cursor_visible);
+	curs_visibility(
+	    connections[active_console].screenbuffer.is_cursor_visible);
 
 	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
