@@ -39,7 +39,7 @@
 /* dont allow to define it second time in stdarg.h */
 #define __VARARGS_DEFINED
 
-#include <types.h>
+#include <sys/types.h>
 
 /**
  * va_arg macro for MIPS32 - problem is that 64 bit values must be aligned on an 8-byte boundary (32bit values not)

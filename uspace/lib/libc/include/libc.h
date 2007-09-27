@@ -35,7 +35,7 @@
 #ifndef LIBC_LIBC_H_
 #define LIBC_LIBC_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 #include <libarch/syscall.h>
 

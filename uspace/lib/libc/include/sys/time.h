@@ -35,7 +35,7 @@
 #ifndef LIBC_TIME_H_
 #define LIBC_TIME_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 #define DST_NONE 0
 

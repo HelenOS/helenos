@@ -37,7 +37,7 @@
 
 #include <kernel/proc/uarg.h>
 #include <libarch/thread.h>
-#include <types.h>
+#include <sys/types.h>
 
 typedef uint64_t thread_id_t;
 

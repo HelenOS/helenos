@@ -38,7 +38,7 @@
 #include <kernel/ipc/ipc.h>
 #include <kernel/ddi/irq.h>
 #include <libc.h>
-#include <types.h>
+#include <sys/types.h>
 #include <kernel/synch/synch.h>
 
 typedef sysarg_t ipcarg_t;

@@ -35,7 +35,7 @@
 #ifndef LIBC_BITOPS_H_
 #define LIBC_BITOPS_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 
 /** Return position of first non-zero bit from left (i.e. [log_2(arg)]).

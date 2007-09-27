@@ -35,7 +35,7 @@
 #ifndef LIBC_ia64_FIBRIL_H_
 #define LIBC_ia64_FIBRIL_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <align.h>
 #include <libarch/stack.h>
 #include <libarch/types.h>

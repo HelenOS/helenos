@@ -35,7 +35,7 @@
 #ifndef LIBC_sparc64_SYSCALL_H_
 #define LIBC_sparc64_SYSCALL_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 
 static inline sysarg_t

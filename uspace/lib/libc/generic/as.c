@@ -36,7 +36,7 @@
 #include <libc.h>
 #include <unistd.h>
 #include <align.h>
-#include <types.h>
+#include <sys/types.h>
 #include <bitops.h>
 
 /**

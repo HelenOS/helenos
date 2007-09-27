@@ -35,7 +35,7 @@
 #ifndef LIBC_PRINTF_CORE_H_
 #define LIBC_PRINTF_CORE_H_
 
-#include <libarch/types.h>
+#include <sys/types.h>
 #include <stdarg.h>
 
 /** Structure for specifying output methods for different printf clones. */

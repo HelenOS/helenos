@@ -35,7 +35,7 @@
 #ifndef LIBC_TASK_H_
 #define LIBC_TASK_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 typedef uint64_t task_id_t;
 

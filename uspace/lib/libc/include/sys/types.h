@@ -35,7 +35,11 @@
 #ifndef LIBC_SYS_TYPES_H_
 #define LIBC_SYS_TYPES_H_
 
-#include <types.h>
+#include <libarch/types.h>
+
+typedef unsigned long size_t;
+typedef signed long ssize_t;
+typedef long off_t;
 
 #endif
 

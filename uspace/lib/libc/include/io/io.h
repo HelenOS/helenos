@@ -35,7 +35,7 @@
 #ifndef LIBC_IO_H_
 #define LIBC_IO_H_
 
-#include <libarch/types.h>
+#include <sys/types.h>
 
 int putnchars(const char * buf, size_t count);
 int putstr(const char * str);

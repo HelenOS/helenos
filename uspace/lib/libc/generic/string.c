@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <align.h>
+#include <sys/types.h>
 
 
 /* Dummy implementation of mem/ functions */

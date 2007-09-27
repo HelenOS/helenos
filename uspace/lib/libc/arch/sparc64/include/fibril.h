@@ -36,7 +36,7 @@
 #define LIBC_sparc64_FIBRIL_H_
 
 #include <libarch/stack.h>
-#include <types.h>
+#include <sys/types.h>
 #include <align.h>
 
 #define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE

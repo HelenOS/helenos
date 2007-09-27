@@ -36,7 +36,7 @@
 #define LIBC_FUTEX_H_
 
 #include <atomic.h>
-#include <types.h>
+#include <sys/types.h>
 
 #define FUTEX_INITIALIZER     {1}
 

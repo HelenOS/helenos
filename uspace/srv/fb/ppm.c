@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <sys/types.h>
 #include <errno.h>
 
 #include "ppm.h"
@@ -34,7 +34,8 @@
 static void skip_whitespace(unsigned char **data)
 {
 retry:
-	while (**data == ' ' || **data == '\t' || **data == '\n' || **data == '\r')
+	while (**data == ' ' || **data == '\t' || **data == '\n' ||
+	    **data == '\r')
 		(*data)++;
 	if (**data == '#') {
 		while (1) {
@@ -56,7 +57,8 @@ static void read_num(unsigned char **data, unsigned int *num)
 	}
 }
 
-int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width, unsigned int *height)
+int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width,
+    unsigned int *height)
 {
 	/* Read magic */
 	if (data[0] != 'P' || data[1] != '6')
@@ -81,10 +83,9 @@ int ppm_get_data(unsigned char *data, size_t dtsz, unsigned int *width, unsigned
  * @param maxheight Maximum allowed height for picture
  * @param putpixel Putpixel function used to print bitmap
  */
-int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx, 
-	     unsigned int sy, 
-	     unsigned int maxwidth, unsigned int maxheight,
-	     putpixel_cb_t putpixel, void *vport)
+int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
+    unsigned int sy, unsigned int maxwidth, unsigned int maxheight,
+    putpixel_cb_t putpixel, void *vport)
 {
 	unsigned int width, height;
 	unsigned int maxcolor;
@@ -105,22 +106,23 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 	read_num(&data,&maxcolor);
 	data++;
 
-	if (maxcolor == 0 || maxcolor > 255 || width*height > datasz) {
+	if (maxcolor == 0 || maxcolor > 255 || width * height > datasz) {
 		return EINVAL;
 	}
-	coef = 255/maxcolor;
-	if (coef*maxcolor > 255)
+	coef = 255 / maxcolor;
+	if (coef * maxcolor > 255)
 		coef -= 1;
 	
-	for (i=0; i < width*height; i++) {
+	for (i = 0; i < width * height; i++) {
 		/* Crop picture if we don't fit into region */
-		if (i % width > maxwidth || i/width > maxheight) {
+		if (i % width > maxwidth || i / width > maxheight) {
 			data += 3;
 			continue;
 		}
-		color = ((data[0]*coef) << 16) + ((data[1]*coef) << 8) + data[2]*coef;
+		color = ((data[0] * coef) << 16) + ((data[1] * coef) << 8) +
+		    data[2] * coef;
 		
-		(*putpixel)(vport, sx+(i % width), sy+(i / width), color);
+		(*putpixel)(vport, sx + (i % width), sy + (i / width), color);
 		data += 3;
 	}
 

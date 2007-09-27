@@ -35,7 +35,7 @@
 #ifndef LIBC_STDARG_H_
 #define LIBC_STDARG_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <libarch/stackarg.h>
 
 #ifndef __VARARGS_DEFINED

@@ -30,6 +30,7 @@
 #define FB_PPM_H_
 
 #include "fb.h"
+#include <sys/types.h>
 
 extern int ppm_draw(unsigned char *, size_t, unsigned int, unsigned int, 
     unsigned int, unsigned int, putpixel_cb_t, void *);

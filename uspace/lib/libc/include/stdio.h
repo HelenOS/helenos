@@ -35,7 +35,7 @@
 #ifndef LIBC_STDIO_H_
 #define LIBC_STDIO_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <stdarg.h>
 
 #define EOF (-1)

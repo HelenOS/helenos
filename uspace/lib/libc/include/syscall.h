@@ -37,7 +37,7 @@
 #ifndef LIBC_SYSCALL_H_
 #define LIBC_SYSCALL_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 
 extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id);

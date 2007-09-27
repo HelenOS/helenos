@@ -35,7 +35,7 @@
 #ifndef TESTER_H_
 #define TESTER_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <bool.h>
 #include <ipc/ipc.h>
 

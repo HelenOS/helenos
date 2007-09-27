@@ -37,7 +37,7 @@
 #ifndef __KEY_BUFFER_H__
 #define __KEY_BUFFER_H__
 
-#include <types.h>
+#include <sys/types.h>
 
 /** Size of buffer for pressed keys */
 #define KEYBUFFER_SIZE 128 

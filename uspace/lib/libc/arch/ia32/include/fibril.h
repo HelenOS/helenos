@@ -35,7 +35,7 @@
 #ifndef LIBC_ia32_FIBRIL_H_
 #define LIBC_ia32_FIBRIL_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 /* According to ABI the stack MUST be aligned on 
  * 16-byte boundary. If it is not, the va_arg calling will

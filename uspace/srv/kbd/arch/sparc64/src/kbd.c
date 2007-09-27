@@ -40,7 +40,7 @@
 #include <kbd.h>
 #include <keys.h>
 #include <stdio.h>
-#include <types.h>
+#include <sys/types.h>
 #include <genarch/kbd.h>
 
 #define KBD_KEY_RELEASE		0x80

@@ -33,6 +33,7 @@
  */
 
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <as.h>
 #include <unistd.h>
 

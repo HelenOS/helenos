@@ -35,7 +35,7 @@
 #ifndef LIBC_UNISTD_H_
 #define LIBC_UNISTD_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <libarch/config.h>
 
 #define NULL 0

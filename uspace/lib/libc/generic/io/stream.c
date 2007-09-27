@@ -45,6 +45,7 @@
 #include <console.h>
 #include <unistd.h>
 #include <async.h>
+#include <sys/types.h>
 
 #define FDS 32
 

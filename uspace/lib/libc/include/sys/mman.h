@@ -36,6 +36,7 @@
 #define LIBC_MMAN_H_
 
 #include <as.h>
+#include <sys/types.h>
 
 #define MAP_FAILED  ((void *) -1)
 
@@ -48,8 +49,8 @@
 #define PROTO_WRITE  AS_AREA_WRITE
 #define PROTO_EXEC   AS_AREA_EXEC
 
-extern void  *mmap(void  *start, size_t length, int prot, int flags, int fd,
-		   off_t offset);
+extern void *mmap(void  *start, size_t length, int prot, int flags, int fd,
+    off_t offset);
 extern int munmap(void *start, size_t length);
 
 #endif

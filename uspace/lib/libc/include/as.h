@@ -35,7 +35,7 @@
 #ifndef LIBC_AS_H_
 #define LIBC_AS_H_
 
-#include <types.h>
+#include <sys/types.h>
 #include <task.h>
 #include <kernel/mm/as.h>
 #include <libarch/config.h>

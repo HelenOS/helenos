@@ -36,7 +36,7 @@
 #include <atomic.h>
 #include <libc.h>
 #include <stdio.h>
-#include <types.h>
+#include <sys/types.h>
 #include <kernel/synch/synch.h>
 
 /*

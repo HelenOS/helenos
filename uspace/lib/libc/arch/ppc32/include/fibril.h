@@ -35,7 +35,7 @@
 #ifndef LIBC_ppc32_FIBRIL_H_
 #define LIBC_ppc32_FIBRIL_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 /* We define our own context_set, because we need to set
  * the TLS pointer to the tcb+0x7000

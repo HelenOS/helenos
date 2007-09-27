@@ -55,9 +55,9 @@ static inline ipc_callid_t async_get_call(ipc_call_t *data)
 }
 
 aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-		   ipc_call_t *dataptr);
+    ipc_call_t *dataptr);
 aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-		   ipcarg_t arg3, ipc_call_t *dataptr);
+    ipcarg_t arg3, ipc_call_t *dataptr);
 void async_wait_for(aid_t amsgid, ipcarg_t *result);
 int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
 
@@ -67,7 +67,8 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
  *
  * @return Return code of message
  */
-static inline ipcarg_t async_req_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t *r1, ipcarg_t *r2)
+static inline ipcarg_t async_req_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
+    ipcarg_t arg2, ipcarg_t *r1, ipcarg_t *r2)
 {
 	ipc_call_t result;
 	ipcarg_t rc;
@@ -80,11 +81,11 @@ static inline ipcarg_t async_req_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
 		*r2 = IPC_GET_ARG2(result);
 	return rc;
 }
-#define async_req(phoneid, method, arg1, r1) async_req_2(phoneid, method, arg1, 0, r1, 0)
+#define async_req(phoneid, method, arg1, r1) \
+    async_req_2(phoneid, method, arg1, 0, r1, 0)
 
 static inline ipcarg_t async_req_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-				   ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, 
-				   ipcarg_t *r2, ipcarg_t *r3)
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, ipcarg_t *r2, ipcarg_t *r3)
 {
 	ipc_call_t result;
 	ipcarg_t rc;
@@ -113,7 +114,7 @@ int _async_init(void);
 
 /* Primitve functions for IPC communication */
 void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, 
-		 ipcarg_t arg3);
+    ipcarg_t arg3);
 void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
 #define async_msg(ph, m, a1) async_msg_2(ph, m, a1, 0)
 

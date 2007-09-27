@@ -35,7 +35,7 @@
 #ifndef LIBC_STRING_H_
 #define LIBC_STRING_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 #define bzero(ptr, len)	memset((ptr), 0, (len))
 

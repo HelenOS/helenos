@@ -40,7 +40,7 @@
 #ifndef LIBC_ia32_STACKARG_H_
 #define LIBC_ia32_STACKARG_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 /* dont allow to define it second time in stdarg.h */
 #define __VARARGS_DEFINED
