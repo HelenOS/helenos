@@ -42,7 +42,9 @@ LIBS = $(LIBC_PREFIX)/libc.a
 OUTPUT = vfs
 SOURCES = \
 	vfs.c \
-	vfs_register.c
+	vfs_register.c \
+	vfs_lookup.c \
+	vfs_mount.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

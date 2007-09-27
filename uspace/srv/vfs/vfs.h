@@ -36,15 +36,13 @@
 #include <ipc/ipc.h>
 #include <libadt/list.h>
 #include <atomic.h>
-#include <types.h>
+#include <sys/types.h>
 
 #define dprintf(...)	printf(__VA_ARGS__)
 
 #define VFS_FIRST	FIRST_USER_METHOD
 
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
-
-typedef int64_t off_t;
 
 typedef enum {
 	VFS_REGISTER = VFS_FIRST,
@@ -125,9 +123,27 @@ typedef struct {
 	off_t pos;
 } vfs_file_t;
 
-extern link_t fs_head;
+extern link_t fs_head;		/**< List of registered file systems. */
 
-extern void vfs_register(ipc_callid_t rid, ipc_call_t *request);
+extern vfs_node_t *rootfs;	/**< Root node of the root file system. */
+
+#define MAX_PATH_LEN		(64 * 1024)
+
+#define PLB_SIZE		(2 * MAX_PATH_LEN)
+
+/** Each instance of this type describes one path lookup in progress. */
+typedef struct {
+	link_t	plb_link;	/**< Active PLB entries list link. */
+	unsigned index;		/**< Index of the first character in PLB. */
+	size_t len;		/**< Number of characters in this PLB entry. */
+} plb_entry_t;
+
+extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
+extern uint8_t *plb;		/**< Path Lookup Buffer */
+extern link_t plb_head;		/**< List of active PLB entries. */
+
+extern void vfs_register(ipc_callid_t, ipc_call_t *);
+extern void vfs_lookup(ipc_callid_t, ipc_call_t *);
 
 #endif
 

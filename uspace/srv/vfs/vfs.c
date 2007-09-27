@@ -32,7 +32,7 @@
 
 /**
  * @file	vfs.c
- * @brief	VFS multiplexer for HelenOS.
+ * @brief	VFS service for HelenOS.
  */
 
 #include <ipc/ipc.h>
@@ -41,6 +41,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <bool.h>
+#include <string.h>
+#include <as.h>
 #include <libadt/list.h>
 #include "vfs.h"
 
@@ -108,9 +110,31 @@ int main(int argc, char **argv)
 
 	printf("VFS: HelenOS VFS server\n");
 
+	/*
+	 * Initialize the list of registered file systems.
+	 */
 	list_initialize(&fs_head);
+
+	/*
+	 * Allocate and initialize the Path Lookup Buffer.
+	 */
+	list_initialize(&plb_head);
+	plb = as_get_mappable_page(PLB_SIZE);
+//	memset(plb, 0, PLB_SIZE);
+	
+	/*
+	 * Set a connectio handling function/fibril.
+	 */
 	async_set_client_connection(vfs_connection);
+
+	/*
+	 * Register at the naming service.
+	 */
 	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, &phonead);
+
+	/*
+	 * Start accepting connections.
+	 */
 	async_manager();
 	return 0;
 }
