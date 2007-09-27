@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <as.h>>
 #include "../../vfs/vfs.h"
 
 #define dprintf(...)	printf(__VA_ARGS__)
@@ -61,6 +62,8 @@ vfs_info_t fat_vfs_info = {
 		[IPC_METHOD_TO_VFS_OP(VFS_SEEK)] = VFS_OP_DEFAULT
 	}
 };
+
+uint8_t *plb_ro = NULL;
 
 /**
  * This connection fibril processes VFS requests from VFS.
@@ -140,6 +143,25 @@ int main(int argc, char **argv)
 	ipcarg_t phonehash;
 	ipc_connect_to_me(vfs_phone, 0, 0, &phonehash);
 
+	/*
+	 * Allocate piece of address space for PLB.
+	 */
+	plb_ro = as_get_mappable_page(PLB_SIZE);
+	if (!plb_ro) {
+		async_wait_for(req, NULL);
+		return ENOMEM;
+	}
+
+	/*
+	 * Request sharing the Path Lookup Buffer with VFS.
+	 */
+	rc = ipc_call_sync_3(vfs_phone, IPC_M_AS_AREA_RECV, plb_ro, PLB_SIZE, 0,
+	    NULL, NULL, NULL);
+	if (rc) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	 
 	/*
 	 * Create a connection fibril to handle the callback connection.
 	 */

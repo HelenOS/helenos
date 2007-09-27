@@ -45,6 +45,7 @@
 #include <ctype.h>
 #include <bool.h>
 #include <futex.h>
+#include <as.h>
 #include <libadt/list.h>
 #include "vfs.h"
 
@@ -174,11 +175,11 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_fast(rid, EINVAL, 0, 0);
 		return;
 	}
-	fs_info_t *fs_info;
 
 	/*
 	 * Allocate and initialize a buffer for the fs_info structure.
 	 */
+	fs_info_t *fs_info;
 	fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
 	if (!fs_info) {
 		dprintf("Could not allocate memory for FS info.\n");
@@ -260,6 +261,45 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_fast(callid, EOK, 0, 0);
 
 	dprintf("Callback connection to FS created.\n");
+
+	/*
+	 * The client will want us to send him the address space area with PLB.
+	 */
+	callid = async_get_call(&call);
+	if (IPC_GET_METHOD(call) != IPC_M_AS_AREA_RECV) {
+		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
+		list_remove(&fs_info->fs_link);
+		futex_up(&fs_head_futex);
+		ipc_hangup(fs_info->phone);
+		free(fs_info);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
+		return;
+	}
+	
+	/*
+	 * We can only send the client address space area PLB_SIZE bytes long.
+	 */
+	size = IPC_GET_ARG2(call);
+	if (size != PLB_SIZE) {
+		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
+		list_remove(&fs_info->fs_link);
+		futex_up(&fs_head_futex);
+		ipc_hangup(fs_info->phone);
+		free(fs_info);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(rid, EINVAL, 0, 0);
+		return;
+		
+	}
+
+	/*
+	 * Commit to read-only sharing the PLB with the client.
+	 */
+	ipc_answer_fast(callid, EOK, (ipcarg_t) plb,
+	    (ipcarg_t) (AS_AREA_READ | AS_AREA_CACHEABLE));	
+
+	dprintf("Sharing PLB.\n");
 
 	futex_up(&fs_head_futex);
 

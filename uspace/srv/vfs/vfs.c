@@ -120,7 +120,16 @@ int main(int argc, char **argv)
 	 */
 	list_initialize(&plb_head);
 	plb = as_get_mappable_page(PLB_SIZE);
-//	memset(plb, 0, PLB_SIZE);
+	if (!plb) {
+		printf("Cannot allocate a mappable piece of address space\n");
+		return ENOMEM;
+	}
+	if (as_area_create(plb, PLB_SIZE, AS_AREA_READ | AS_AREA_WRITE |
+	    AS_AREA_CACHEABLE) != plb) {
+		printf("Cannot create address space area.\n");
+		return ENOMEM;
+	}
+	memset(plb, 0, PLB_SIZE);
 	
 	/*
 	 * Set a connectio handling function/fibril.
