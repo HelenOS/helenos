@@ -45,14 +45,104 @@
 #include <libadt/list.h>
 #include "vfs.h"
 
+#define min(a, b)	((a) < (b) ? (a) : (b))
+
 atomic_t plb_futex = FUTEX_INITIALIZER;
-link_t plb_head;
+link_t plb_head;	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
-void vfs_lookup(ipc_callid_t rid, ipc_call_t *request)
+int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result)
 {
+	if (!len)
+		return EINVAL;
+
 	if (!rootfs)
-		ipc_answer_fast(rid, ENOENT, 0, 0);
+		return ENOENT;
+	
+	futex_down(&plb_futex);
+
+	plb_entry_t entry;
+	link_initialize(&entry.plb_link);
+	entry.len = len;
+
+	off_t first;	/* the first free index */
+	off_t last;	/* the last free index */
+
+	if (list_empty(&plb_head)) {
+		first = 0;
+		last = PLB_SIZE - 1;
+	} else {
+		plb_entry_t *oldest = list_get_instance(plb_head.next,
+		    plb_entry_t, plb_link);
+		plb_entry_t *newest = list_get_instance(plb_head.prev,
+		    plb_entry_t, plb_link);
+
+		first = (newest->index + newest->len) % PLB_SIZE;
+		last = (oldest->index - 1) % PLB_SIZE;
+	}
+
+	if (first <= last) {
+		if ((last - first) + 1 < len) {
+			/*
+			 * The buffer cannot absorb the path.
+			 */
+			futex_up(&plb_futex);
+			return ELIMIT;
+		}
+	} else {
+		if (PLB_SIZE - ((first - last) + 1) < len) {
+			/*
+			 * The buffer cannot absorb the path.
+			 */
+			futex_up(&plb_futex);
+			return ELIMIT;
+		}
+	}
+
+	/*
+	 * We know the first free index in PLB and we also know that there is
+	 * enough space in the buffer to hold our path.
+	 */
+
+	entry.index = first;
+	entry.len = len;
+
+	/*
+	 * Claim PLB space by inserting the entry into the PLB entry ring
+	 * buffer.
+	 */
+	list_append(&entry.plb_link, &plb_head);
+	
+	futex_up(&plb_futex);
+
+	/*
+	 * Copy the path into PLB.
+	 */
+	size_t cnt1 = min(len, (PLB_SIZE - first) + 1);
+	size_t cnt2 = len - cnt1;
+	
+	memcpy(&plb[first], path, cnt1);
+	memcpy(plb, &path[cnt1], cnt2);
+
+	ipc_call_t answer;
+	int phone = 0;		/* TODO */
+	aid_t req = async_send_2(phone, VFS_LOOKUP, (ipcarg_t) first,
+	    (ipcarg_t) last, &answer);
+
+	ipcarg_t rc;
+	async_wait_for(req, &rc);
+
+	futex_down(&plb_futex);
+	list_remove(&entry.plb_link);
+	futex_up(&plb_futex);
+
+	if (rc == EOK) {
+		result->fs_handle = (int) IPC_GET_ARG1(answer);
+		result->dev_handle = (int) IPC_GET_ARG2(answer);
+		result->index = (int) IPC_GET_ARG3(answer);
+	}
+
+	return rc;
 }
 
 /**
