@@ -40,8 +40,15 @@
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <bool.h>
+#include <libadt/list.h>
+#include <futex.h>
 
 #include "devmap.h"
+
+LIST_INITIALIZE(device_list);
+
+atomic_t device_list_futex = FUTEX_INITIALIZER;
 
 /** Initialize device mapper. 
  *
@@ -51,9 +58,72 @@ static int devmap_init()
 {
 	/* */
 
-	return 0;
+	return EOK;
 }
 
+static int devmap_register()
+{
+	ipc_callid_t callid2;
+	size_t size;
+	char buffer[DEVMAP_NAME_MAXLEN + 1];
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int retval;
+	
+	if (ipc_data_receive(&callid, &call, NULL, &size) != 0) {
+	//	retval = 
+	}
+
+	if (size > DEVMAP_NAME_MAXLEN) {
+		retval = ELIMIT;
+	} else {
+		ipc_data_deliver(callid2, &call, buffer, size);
+		buffer[DEVMAP_NAME_MAXLEN] = 0;
+	}
+	return EOK;
+}
+
+static int devmap_unregister()
+{
+	return EOK;
+}
+
+static int devmap_forward(int handle, ipc_call_t *call, ipc_callid_t callid)
+{
+	link_t *item;
+	ipcarg_t phone;
+	devmap_device_t *dev;
+
+	/* FIXME: add futex */
+	futex_down(&device_list_futex);
+
+	item = (&device_list)->next;
+
+	while (item != &device_list) {
+
+		dev = list_get_instance(item, devmap_device_t, list);
+		if (dev->handle == handle) {
+			break;
+		}
+		item = item->next;
+	}
+
+	if (item == &device_list) {
+		return ENOENT;
+	}
+
+	dev = list_get_instance(item, devmap_device_t, list);
+	phone = dev->phone;
+
+	futex_up(&device_list_futex);
+	
+	return ipc_forward_fast(callid, phone, 0, 0);
+}
+
+static int devmap_get_handle()
+{
+	return EOK;
+}
 
 /** Function for handling connections to devmap 
  *
@@ -64,24 +134,40 @@ devmap_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
+	bool cont = true;
+
+	printf("DevMap: new connection.");
 
 	ipc_answer_fast(iid, EOK, 0, 0); /* Accept connection */
 
-	while (1) {
+	while (cont) {
 		callid = async_get_call(&call);
 
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 				/* TODO: if its a device connection, remove it from table */
-			return; /* Exit thread */
+			devmap_unregister();
+			printf("DevMap: connection hung up.");
+			cont = false;
+			continue; /* Exit thread */
 
 		case DEVMAP_REGISTER:
-			/* TODO: */
+			
+			if ((retval = devmap_register()) != EOK) {
+				cont = false;
+			}
+			break;
 		case DEVMAP_UNREGISTER:
-			/* TODO: */
+			/* TODO: remove device (if registred) */
+			retval = devmap_unregister();
+			cont = false;
+			break;
 		case DEVMAP_CONNECT_TO_DEVICE:
-			/* TODO: */
-			retval = 0;
+			retval = devmap_forward(IPC_GET_ARG1(call), &call, callid);
+			cont = false;
+			break;
+		case DEVMAP_GET_HANDLE:
+			
 			break;
 		default:
 			retval = ENOENT;
@@ -89,6 +175,8 @@ devmap_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_fast(callid, retval, 0, 0);
 	}
  		
+	printf("DevMap: connection closed.");
+	return;
 }
 
 

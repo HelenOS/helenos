@@ -34,12 +34,27 @@
 #define DEVMAP_DEVMAP_H_
 
 #include <ipc/ipc.h>
+#include <libadt/list.h>
+
+#define DEVMAP_NAME_MAXLEN 512
 
 typedef enum {
 	DEVMAP_REGISTER = IPC_FIRST_USER_METHOD,
 	DEVMAP_UNREGISTER,
-	DEVMAP_CONNECT_TO_DEVICE
+	DEVMAP_CONNECT_TO_DEVICE,
+	DEVMAP_GET_HANDLE
 } devmap_request_t;
+
+
+/** Info about registered device
+ *
+ */
+typedef struct {
+	link_t list;
+	int handle;
+	char *name;
+	ipcarg_t phone;
+} devmap_device_t;
 
 #endif
 
