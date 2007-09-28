@@ -193,12 +193,36 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	futex_up(&rootfs_futex);
 	
+	free(buf);	/* The buffer is not needed anymore. */
+	
 	/*
 	 * At this point, we have all necessary pieces: file system and device
 	 * handles, and we know the mount point VFS node and also the root node
 	 * of the file system being mounted.
 	 */
-	
+
+	int phone = vfs_grab_phone(mp.fs_handle);
+	/* Later we can use ARG3 to pass mode/flags. */
+	aid_t req1 = async_send_3(phone, VFS_MOUNT, (ipcarg_t) mp.dev_handle,
+	    (ipcarg_t) mp.index, 0, NULL);
+	/* The second call uses the same method. */
+	aid_t req2 = async_send_3(phone, VFS_MOUNT,
+	    (ipcarg_t) mounted_root.fs_handle,
+	    (ipcarg_t) mounted_root.dev_handle, (ipcarg_t) mounted_root.index,
+	    NULL);
+
+	ipcarg_t rc1;
+	ipcarg_t rc2;
+	async_wait_for(req1, &rc1);
+	async_wait_for(req2, &rc2);
+	vfs_release_phone(phone);
+
+	if ((rc1 == EOK) && (rc2 == EOK))
+		ipc_answer_fast(rid, EOK, 0, 0);
+	else if (rc1 != EOK)
+		ipc_answer_fast(rid, rc1, 0, 0);
+	else
+		ipc_answer_fast(rid, rc2, 0, 0);
 }
 
 /**
