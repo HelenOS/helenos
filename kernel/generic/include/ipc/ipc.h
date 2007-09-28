@@ -177,7 +177,7 @@
 #define IPC_M_LAST_SYSTEM	511
 #define IPC_M_PING		512
 /* User methods */
-#define FIRST_USER_METHOD	1024
+#define IPC_FIRST_USER_METHOD	1024
 
 #ifdef KERNEL
 

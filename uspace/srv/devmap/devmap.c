@@ -35,7 +35,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>

@@ -33,8 +33,10 @@
 #ifndef DEVMAP_DEVMAP_H_
 #define DEVMAP_DEVMAP_H_
 
+#include <ipc/ipc.h>
+
 typedef enum {
-	DEVMAP_REGISTER = FIRST_USER_METHOD,
+	DEVMAP_REGISTER = IPC_FIRST_USER_METHOD,
 	DEVMAP_UNREGISTER,
 	DEVMAP_CONNECT_TO_DEVICE
 } devmap_request_t;

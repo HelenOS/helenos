@@ -37,10 +37,11 @@
 #include <libadt/list.h>
 #include <atomic.h>
 #include <sys/types.h>
+#include <bool.h>
 
 #define dprintf(...)	printf(__VA_ARGS__)
 
-#define VFS_FIRST	FIRST_USER_METHOD
+#define VFS_FIRST	IPC_FIRST_USER_METHOD
 
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
 
