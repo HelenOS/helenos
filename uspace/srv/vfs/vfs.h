@@ -128,7 +128,7 @@ typedef struct {
 
 extern link_t fs_head;		/**< List of registered file systems. */
 
-extern vfs_node_t *rootfs;	/**< Root node of the root file system. */
+extern vfs_node_t rootfs;	/**< Root node of the root file system. */
 
 #define MAX_PATH_LEN		(64 * 1024)
 
@@ -148,10 +148,9 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 extern int vfs_grab_phone(int);
 extern void vfs_release_phone(int);
 
-extern int fs_name_to_handle(char *name, bool lock);
+extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
-    vfs_node_t *altroot);
+extern int vfs_lookup_internal(char *, size_t, vfs_node_t *, vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);

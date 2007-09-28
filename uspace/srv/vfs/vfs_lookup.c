@@ -72,9 +72,9 @@ int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
 	if (altroot)
 		root = altroot;
 	else
-		root = rootfs;
+		root = &rootfs;
 
-	if (!root)
+	if (!root->fs_handle)
 		return ENOENT;
 	
 	futex_down(&plb_futex);

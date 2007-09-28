@@ -44,6 +44,7 @@
 #include <string.h>
 #include <as.h>
 #include <libadt/list.h>
+#include <atomic.h>
 #include "vfs.h"
 
 #define dprintf(...)	printf(__VA_ARGS__)
