@@ -218,22 +218,16 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Check for duplicit registrations.
 	 */
-	link_t *cur;
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
-		fs_info_t *fi = list_get_instance(cur, fs_info_t,
-		    fs_link);
-		/* TODO: replace strcmp with strncmp once we have it */
-		if (strcmp(fs_info->vfs_info.name, fi->vfs_info.name) == 0) {
-			/*
-			 * We already register a fs like this.
-			 */
-			dprintf("FS is already registered.\n");
-			futex_up(&fs_head_futex);
-			free(fs_info);
-			ipc_answer_fast(callid, EEXISTS, 0, 0);
-			ipc_answer_fast(rid, EEXISTS, 0, 0);
-			return;
-		}
+	if (fs_name_to_handle(fs_info->vfs_info.name, false)) {
+		/*
+		 * We already register a fs like this.
+		 */
+		dprintf("FS is already registered.\n");
+		futex_up(&fs_head_futex);
+		free(fs_info);
+		ipc_answer_fast(callid, EEXISTS, 0, 0);
+		ipc_answer_fast(rid, EEXISTS, 0, 0);
+		return;
 	}
 
 	/*
@@ -306,8 +300,6 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 
 	dprintf("Sharing PLB.\n");
 
-	futex_up(&fs_head_futex);
-
 	/*
 	 * That was it. The FS has been registered.
 	 * In reply to the VFS_REGISTER request, we assign the client file
@@ -315,6 +307,9 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	fs_info->fs_handle = (int) atomic_postinc(&fs_handle_next);
 	ipc_answer_fast(rid, EOK, (ipcarg_t) fs_info->fs_handle, 0);
+	
+	futex_up(&fs_head_futex);
+	
 	dprintf("\"%s\" filesystem successfully registered, handle=%d.\n",
 	    fs_info->vfs_info.name, fs_info->fs_handle);
 
@@ -382,6 +377,33 @@ void vfs_release_phone(int phone)
 	 * Not good to get here.
 	 */
 	assert(found == true);
+}
+
+/** Convert file system name to its handle.
+ *
+ * @param name		File system name.
+ * @param lock		If true, the function will down and up the
+ * 			fs_head_futex.
+ *
+ * @return		File system handle or zero if file system not found.
+ */
+int fs_name_to_handle(char *name, bool lock)
+{
+	int handle = 0;
+	
+	if (lock)
+		futex_down(&fs_head_futex);
+	link_t *cur;
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+		if (strcmp(fs->vfs_info.name, name) == 0) { /* XXX: strncmp() */
+			handle = fs->fs_handle;
+			break;
+		}
+	}
+	if (lock)
+		futex_up(&fs_head_futex);
+	return handle;
 }
 
 /**
