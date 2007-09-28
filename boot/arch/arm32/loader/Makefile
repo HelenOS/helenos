@@ -82,6 +82,9 @@ COMPONENTS = \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog \

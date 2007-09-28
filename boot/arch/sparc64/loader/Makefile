@@ -86,6 +86,9 @@ COMPONENTS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
