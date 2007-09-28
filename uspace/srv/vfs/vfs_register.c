@@ -47,10 +47,15 @@
 #include <futex.h>
 #include <as.h>
 #include <libadt/list.h>
+#include <assert.h>
 #include "vfs.h"
 
 atomic_t fs_head_futex = FUTEX_INITIALIZER;
 link_t fs_head;
+
+atomic_t fs_handle_next = {
+	.count = 1
+};
 
 /** Verify the VFS info structure.
  *
@@ -305,11 +310,78 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 
 	/*
 	 * That was it. The FS has been registered.
+	 * In reply to the VFS_REGISTER request, we assign the client file
+	 * system a global file system handle.
 	 */
-	ipc_answer_fast(rid, EOK, 0, 0);
-	dprintf("\"%s\" filesystem successfully registered.\n",
-	    fs_info->vfs_info.name);
+	fs_info->fs_handle = (int) atomic_postinc(&fs_handle_next);
+	ipc_answer_fast(rid, EOK, (ipcarg_t) fs_info->fs_handle, 0);
+	dprintf("\"%s\" filesystem successfully registered, handle=%d.\n",
+	    fs_info->vfs_info.name, fs_info->fs_handle);
 
+}
+
+/** For a given file system handle, implement policy for allocating a phone.
+ *
+ * @param handle	File system handle.
+ *
+ * @return		Phone over which a multi-call request can be safely
+ *			sent. Return 0 if no phone was found.
+ */
+int vfs_grab_phone(int handle)
+{
+	/*
+	 * For now, we don't try to be very clever and very fast.
+	 * We simply lookup the phone in the fs_head list. We currently don't
+	 * open any additional phones (even though that itself would be pretty
+	 * straightforward; housekeeping multiple open phones to a FS task would
+	 * be more demanding). Instead, we simply take the respective
+	 * phone_futex and keep it until vfs_release_phone().
+	 */
+	futex_down(&fs_head_futex);
+	link_t *cur;
+	fs_info_t *fs;
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs = list_get_instance(cur, fs_info_t, fs_link);
+		if (fs->fs_handle == handle) {
+			futex_up(&fs_head_futex);
+			/*
+			 * For now, take the futex unconditionally.
+			 * Oh yeah, serialization rocks.
+			 * It will be up'ed in vfs_release_phone().
+			 */
+			futex_down(&fs->phone_futex);
+			return fs->phone; 
+		}
+	}
+	futex_up(&fs_head_futex);
+	return 0;
+}
+
+/** Tell VFS that the phone is in use for any request.
+ *
+ * @param phone		Phone to FS task.
+ */
+void vfs_release_phone(int phone)
+{
+	bool found = false;
+
+	futex_down(&fs_head_futex);
+	link_t *cur;
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+		if (fs->phone == phone) {
+			found = true;
+			futex_up(&fs_head_futex);
+			futex_up(&fs->phone_futex);
+			return;
+		}
+	}
+	futex_up(&fs_head_futex);
+
+	/*
+	 * Not good to get here.
+	 */
+	assert(found == true);
 }
 
 /**

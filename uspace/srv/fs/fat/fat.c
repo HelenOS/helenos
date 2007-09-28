@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <as.h>>
+#include <as.h>
 #include "../../vfs/vfs.h"
 
 #define dprintf(...)	printf(__VA_ARGS__)
@@ -64,6 +64,8 @@ vfs_info_t fat_vfs_info = {
 };
 
 uint8_t *plb_ro = NULL;
+
+int fs_handle = 0;
 
 /**
  * This connection fibril processes VFS requests from VFS.
@@ -155,13 +157,20 @@ int main(int argc, char **argv)
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = ipc_call_sync_3(vfs_phone, IPC_M_AS_AREA_RECV, plb_ro, PLB_SIZE, 0,
-	    NULL, NULL, NULL);
+	rc = ipc_call_sync_3(vfs_phone, IPC_M_AS_AREA_RECV, (ipcarg_t) plb_ro,
+	    PLB_SIZE, 0, NULL, NULL, NULL);
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;
 	}
 	 
+	/*
+	 * Pick up the answer for the request to the VFS_REQUEST call.
+	 */
+	async_wait_for(req, NULL);
+	fs_handle = (int) IPC_GET_ARG1(answer);
+	dprintf("FAT filesystem registered, fs_handle=%d.\n", fs_handle);
+
 	/*
 	 * Create a connection fibril to handle the callback connection.
 	 */
@@ -172,12 +181,6 @@ int main(int argc, char **argv)
 	 * the same connection fibril as well.
 	 */
 	async_set_client_connection(fat_connection);
-
-	/*
-	 * Pick up the answer for the request to the VFS_REQUEST call.
-	 */
-	async_wait_for(req, NULL);
-	dprintf("FAT filesystem registered.\n");
 
 	async_create_manager();
 

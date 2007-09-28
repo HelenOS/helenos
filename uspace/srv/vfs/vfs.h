@@ -92,6 +92,8 @@ typedef struct {
 typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
+	int fs_handle;
+	atomic_t phone_futex;	/**< Phone serializing futex. */
 	ipcarg_t phone;
 } fs_info_t;
 
@@ -141,6 +143,9 @@ typedef struct {
 extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
+
+extern int vfs_grab_phone(int);
+extern void vfs_release_phone(int);
 
 extern int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result);
 

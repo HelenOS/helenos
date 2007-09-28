@@ -125,9 +125,10 @@ int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result)
 	memcpy(plb, &path[cnt1], cnt2);
 
 	ipc_call_t answer;
-	int phone = 0;		/* TODO */
-	aid_t req = async_send_2(phone, VFS_LOOKUP, (ipcarg_t) first,
-	    (ipcarg_t) last, &answer);
+	int phone = vfs_grab_phone(rootfs->fs_handle);
+	aid_t req = async_send_3(phone, VFS_LOOKUP, (ipcarg_t) first,
+	    (ipcarg_t) last, (ipcarg_t) rootfs->dev_handle, &answer);
+	vfs_release_phone(phone);
 
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
