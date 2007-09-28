@@ -45,6 +45,7 @@
 #include <libadt/list.h>
 #include "vfs.h"
 
+atomic_t rootfs_futex = FUTEX_INITIALIZER;
 vfs_node_t rootfs = { 0 };
 
 static int lookup_root(int fs_handle, int dev_handle, vfs_node_t *root)
@@ -58,7 +59,7 @@ static int lookup_root(int fs_handle, int dev_handle, vfs_node_t *root)
 		 */
 	};
 
-	return vfs_lookup_internal("/", 1, root, &altroot);
+	return vfs_lookup_internal("/", strlen("/"), root, &altroot);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -149,6 +150,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Finally, we need to resolve the path to the mountpoint. 
 	 */
 	vfs_node_t mp;
+	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/*
 		 * We already have the root FS.
@@ -159,6 +161,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			/*
 			 * The lookup failed for some reason.
 			 */
+			futex_up(&rootfs_futex);
 			free(buf);
 			ipc_answer_fast(rid, rc, 0, 0);
 			return;
@@ -167,12 +170,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * We still don't have the root file system mounted.
 		 */
-		if ((size - FS_NAME_MAXLEN == 1) &&
+		if ((size - FS_NAME_MAXLEN == strlen("/")) &&
 		    (buf[FS_NAME_MAXLEN] == '/')) {
 			/*
 			 * For this simple, but important case, we are done.
 			 */
 			rootfs = mounted_root;
+			futex_up(&rootfs_futex);
 			free(buf);
 			ipc_answer_fast(rid, EOK, 0, 0);
 			return;
@@ -181,12 +185,14 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 * We can't resolve this without the root filesystem
 			 * being mounted first.
 			 */
+			futex_up(&rootfs_futex);
 			free(buf);
 			ipc_answer_fast(rid, ENOENT, 0, 0);
 			return;
 		}
 	}
-		
+	futex_up(&rootfs_futex);
+	
 	/*
 	 * At this point, we have all necessary pieces: file system and device
 	 * handles, and we know the mount point VFS node and also the root node
