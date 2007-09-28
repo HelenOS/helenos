@@ -51,12 +51,30 @@ atomic_t plb_futex = FUTEX_INITIALIZER;
 link_t plb_head;	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
-int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result)
+/** Perform a path lookup.
+ *
+ * @param path		Path to be resolved; it needn't be an ASCIIZ string.
+ * @param len		Number of path characters pointed by path.
+ * @param result	Empty node structure where the result will be stored.
+ * @param altroot	If non-empty, will be used instead of rootfs as the root
+ *			of the whole VFS tree.
+ *
+ * @return		EOK on success or an error code from errno.h.
+ */
+int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
+    vfs_node_t *altroot)
 {
+	vfs_node_t *root;
+
 	if (!len)
 		return EINVAL;
 
-	if (!rootfs)
+	if (altroot)
+		root = altroot;
+	else
+		root = rootfs;
+
+	if (!root)
 		return ENOENT;
 	
 	futex_down(&plb_futex);
@@ -125,9 +143,9 @@ int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result)
 	memcpy(plb, &path[cnt1], cnt2);
 
 	ipc_call_t answer;
-	int phone = vfs_grab_phone(rootfs->fs_handle);
+	int phone = vfs_grab_phone(root->fs_handle);
 	aid_t req = async_send_3(phone, VFS_LOOKUP, (ipcarg_t) first,
-	    (ipcarg_t) last, (ipcarg_t) rootfs->dev_handle, &answer);
+	    (ipcarg_t) last, (ipcarg_t) root->dev_handle, &answer);
 	vfs_release_phone(phone);
 
 	ipcarg_t rc;
@@ -135,6 +153,11 @@ int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result)
 
 	futex_down(&plb_futex);
 	list_remove(&entry.plb_link);
+	/*
+	 * Erasing the path from PLB will come handy for debugging purposes.
+	 */
+	memset(&plb[first], 0, cnt1);
+	memset(plb, 0, cnt2);
 	futex_up(&plb_futex);
 
 	if (rc == EOK) {

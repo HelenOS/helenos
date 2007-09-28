@@ -149,7 +149,8 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *name, bool lock);
 
-extern int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result);
+extern int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
+    vfs_node_t *altroot);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
