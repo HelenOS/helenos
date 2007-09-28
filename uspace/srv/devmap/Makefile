@@ -26,67 +26,51 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include Makefile.config
+LIBC_PREFIX = ../../lib/libc
+SOFTINT_PREFIX = ../../lib/softint
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-DIRS = \
-	lib/libc \
-	lib/softint \
-	lib/softfloat \
-	srv/ns \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/rd \
-	srv/fs/fat \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/klog \
-	app/init
+CFLAGS += -I../libipc/include
 
-ifeq ($(ARCH), amd64)
-	DIRS += srv/pci
-endif
+LIBS =  $(LIBC_PREFIX)/libc.a
 
-ifeq ($(ARCH), ia32)
-	DIRS += srv/pci
-endif
+## Sources
+#
 
-ifeq ($(ARCH), mips32)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+OUTPUT = devmap
+SOURCES = \
+	devmap.c 
 
-ifeq ($(ARCH), mips32eb)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+CFLAGS += -D$(ARCH)
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+.PHONY: all clean depend disasm
 
-all:
-	../tools/config.py uspace.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG)
-	$(MAKE) -C . build
+all: $(OUTPUT) disasm
 
-config:
-	../tools/config.py uspace.config
+-include Makefile.depend
 
-build: $(BUILDS)
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
-clean: $(CLEANS)
-	find $(DIRS) -name '*.o' -follow -exec rm \{\} \;
-	find lib/libc -name "_link.ld" -exec rm \{\} \;
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-distclean: clean
-	-rm Makefile.config
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-$(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

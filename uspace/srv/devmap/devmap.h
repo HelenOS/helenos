@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2007 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup devmap
  * @{
- */
-/**
- * @file	services.h
- * @brief	List of all known services and their codes.
- */
+ */ 
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#ifndef DEVMAP_DEVMAP_H_
+#define DEVMAP_DEVMAP_H_
 
 typedef enum {
-	SERVICE_PCI = 1,
-	SERVICE_KEYBOARD,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_RD,
-	SERVICE_VFS,
-	SERVICE_DEVMAP
-} services_t;
-
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+	DEVMAP_REGISTER = FIRST_USER_METHOD,
+	DEVMAP_UNREGISTER,
+	DEVMAP_CONNECT_TO_DEVICE
+} devmap_request_t;
 
 #endif
 
-/** @}
- */
