@@ -58,7 +58,7 @@ start:
 	br.call.sptk.many b0 = b1
 
 
-.section bss, "ax"
+.section .bss, "ax"
 
 .align 8192
 
