@@ -1223,8 +1223,14 @@ bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
 	return true;
 }
 
-/** Return size of the address space area with given base.  */
-size_t as_get_size(uintptr_t base)
+/** Return size of the address space area with given base.
+ *
+ * @param base		Arbitrary address insede the address space area.
+ *
+ * @return		Size of the address space area in bytes or zero if it
+ *			does not exist.
+ */
+size_t as_area_get_size(uintptr_t base)
 {
 	ipl_t ipl;
 	as_area_t *src_area;

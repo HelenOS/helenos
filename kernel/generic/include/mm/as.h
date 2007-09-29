@@ -272,7 +272,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 
 extern int as_area_get_flags(as_area_t *area);
 extern bool as_area_check_access(as_area_t *area, pf_access_t access);
-extern size_t as_get_size(uintptr_t base);
+extern size_t as_area_get_size(uintptr_t base);
 extern int used_space_insert(as_area_t *a, uintptr_t page, count_t count);
 extern int used_space_remove(as_area_t *a, uintptr_t page, count_t count);
 

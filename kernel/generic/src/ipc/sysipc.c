@@ -256,7 +256,7 @@ static int request_preprocess(call_t *call)
 		call->priv = newphid;
 		break;
 	case IPC_M_AS_AREA_SEND:
-		size = as_get_size(IPC_GET_ARG1(call->data));
+		size = as_area_get_size(IPC_GET_ARG1(call->data));
 		if (!size)
 			return EPERM;
 		IPC_SET_ARG2(call->data, size);
