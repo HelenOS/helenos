@@ -69,7 +69,7 @@
  * @return		Return 1 if the method is a system method.
  *			Otherwise return 0.
  */
-static inline int is_system_method(unative_t method)
+static inline int method_is_system(unative_t method)
 {
 	if (method <= IPC_M_LAST_SYSTEM)
 		return 1;
@@ -86,17 +86,37 @@ static inline int is_system_method(unative_t method)
  * @return		Return 1 if the method is forwardable.
  *			Otherwise return 0.
  */
-static inline int is_forwardable(unative_t method)
+static inline int method_is_forwardable(unative_t method)
 {
 	switch (method) {
 	case IPC_M_PHONE_HUNGUP:
-	case IPC_M_AS_AREA_SEND:
-	case IPC_M_AS_AREA_RECV:
-	case IPC_M_DATA_SEND:
 		/* This message is meant only for the original recipient. */
 		return 0;
 	default:
 		return 1;
+	}
+}
+
+/** Decide if the message with this method is immutable on forward.
+ *
+ * - some system messages may be forwarded, for some of them
+ *   it is useless
+ *
+ * @param method	Method to be decided.
+ *
+ * @return		Return 1 if the method is immutable on forward.
+ *			Otherwise return 0.
+ */
+static inline int method_is_immutable(unative_t method)
+{
+	switch (method) {
+	case IPC_M_AS_AREA_SEND:
+	case IPC_M_AS_AREA_RECV:
+	case IPC_M_DATA_SEND:
+		return 1;
+		break;
+	default:
+		return 0;
 	}
 }
 
@@ -503,7 +523,8 @@ unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data)
  * In case the original method is a system method, ARG1 and ARG2 are overwritten
  * in the forwarded message with the new method and the new arg1, respectively.
  * Otherwise the METHOD and ARG1 are rewritten with the new method and arg1,
- * respectively.
+ * respectively. Also note there is a set of immutable methods, for which the
+ * new method and argument is not set and these values are ignored.
  *
  * Warning: If implementing non-fast version, make sure that
  *          ARG3 is not rewritten for certain system IPC
@@ -526,24 +547,28 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 		return ENOENT;
 	});		
 
-	if (!is_forwardable(IPC_GET_METHOD(call->data))) {
+	if (!method_is_forwardable(IPC_GET_METHOD(call->data))) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return EPERM;
 	}
 
-	/* Userspace is not allowed to change method of system methods
-	 * on forward, allow changing ARG1 and ARG2 by means of method and arg1
+	/*
+	 * Userspace is not allowed to change method of system methods on
+	 * forward, allow changing ARG1 and ARG2 by means of method and arg1.
+	 * If the method is immutable, don't change anything.
 	 */
-	if (is_system_method(IPC_GET_METHOD(call->data))) {
-		if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
-			phone_dealloc(IPC_GET_ARG3(call->data));
+	if (!method_is_immutable(IPC_GET_METHOD(call->data))) {
+		if (method_is_system(IPC_GET_METHOD(call->data))) {
+			if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
+				phone_dealloc(IPC_GET_ARG3(call->data));
 
-		IPC_SET_ARG1(call->data, method);
-		IPC_SET_ARG2(call->data, arg1);
-	} else {
-		IPC_SET_METHOD(call->data, method);
-		IPC_SET_ARG1(call->data, arg1);
+			IPC_SET_ARG1(call->data, method);
+			IPC_SET_ARG2(call->data, arg1);
+		} else {
+			IPC_SET_METHOD(call->data, method);
+			IPC_SET_ARG1(call->data, arg1);
+		}
 	}
 
 	return ipc_forward(call, phone, &TASK->answerbox);
