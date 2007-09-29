@@ -152,8 +152,13 @@ extern int fs_name_to_handle(char *, bool);
 
 extern int vfs_lookup_internal(char *, size_t, vfs_node_t *, vfs_node_t *);
 
+#define MAX_OPEN_FILES	128	
+
+extern bool vfs_conn_open_files_init(void);
+
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
+extern void vfs_open(ipc_callid_t, ipc_call_t *);
 
 #endif
 

@@ -56,6 +56,14 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	printf("Connection opened from %p\n", icall->in_phone_hash);
 
 	/*
+	 * Initialize the table of open files.
+	 */
+	if (!vfs_conn_open_files_init()) {
+		ipc_answer_fast(iid, ENOMEM, 0, 0);
+		return;
+	}
+
+	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
@@ -64,13 +72,13 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Here we enter the main connection fibril loop.
 	 * The logic behind this loop and the protocol is that we'd like to keep
-	 * each connection open for a while before we close it. The benefit of
-	 * this is that the client doesn't have to establish a new connection
-	 * upon each request.  On the other hand, the client must be ready to
-	 * re-establish a connection if we hang it up due to reaching of maximum
-	 * number of requests per connection or due to the client timing out.
+	 * each connection open until the client hangs up. When the client hangs
+	 * up, we will free its VFS state. The act of hanging up the connection
+	 * by the client is equivalent to client termination because we cannot
+	 * distinguish one from the other. On the other hand, the client can
+	 * hang up arbitrarily if it has no open files and reestablish the
+	 * connection later.
 	 */
-	 
 	while (keep_on_going) {
 		ipc_callid_t callid;
 		ipc_call_t call;
@@ -85,7 +93,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_REGISTER:
 			vfs_register(callid, &call);
-			keep_on_going = false;
 			break;
 		case VFS_MOUNT:
 		case VFS_UNMOUNT:
