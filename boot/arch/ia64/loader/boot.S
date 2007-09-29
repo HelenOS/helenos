@@ -63,7 +63,7 @@ start:
 .align 8192
 
 initial_stack:
-	nop.m 0
+	.space 8192
 
 .align 8192
 initial_stack_top:
