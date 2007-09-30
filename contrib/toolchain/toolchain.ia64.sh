@@ -16,7 +16,7 @@ check_error() {
 }
 
 BINUTILS_VERSION="2.17"
-GCC_VERSION="4.1.2"
+GCC_VERSION="4.2.1"
 
 INCLUDES="ia64-pc-gnu-linux_includes.tar.bz2"
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
