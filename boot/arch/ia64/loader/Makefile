@@ -59,7 +59,8 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127
+#-mno-pic means do not use gp + imm22 to address data
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic
 
 ifdef REVISION
 	CFLAGS += "-DREVISION=\"$(REVISION)\""
