@@ -58,12 +58,11 @@ start:
 	br.call.sptk.many b0 = b1
 
 
-.section .bss, "ax"
+.bss
 
 .align 8192
 
 initial_stack:
 	.space 8192
 
-.align 8192
 initial_stack_top:
