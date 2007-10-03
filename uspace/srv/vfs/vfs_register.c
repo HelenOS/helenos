@@ -233,14 +233,9 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */
-	dprintf("Adding FS into the registered list.\n");
+	dprintf("Inserting FS into the list of registered file systems.\n");
 	list_append(&fs_info->fs_link, &fs_head);
 
-	/*
-	 * ACK receiving a properly formatted, non-duplicit vfs_info.
-	 */
-	ipc_answer_fast(callid, EOK, 0, 0);
-	
 	/*
 	 * Now we want the client to send us the IPC_M_CONNECT_TO_ME call so
 	 * that a callback connection is created and we have a phone through
@@ -311,7 +306,6 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	
 	dprintf("\"%s\" filesystem successfully registered, handle=%d.\n",
 	    fs_info->vfs_info.name, fs_info->fs_handle);
-
 }
 
 /** For a given file system handle, implement policy for allocating a phone.
