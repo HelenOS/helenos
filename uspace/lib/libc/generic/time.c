@@ -148,9 +148,9 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 			printf("Failed to initialize timeofday memarea\n");
 			_exit(1);
 		}
-		if (! (rights & AS_AREA_READ)) {
+		if (!(rights & AS_AREA_READ)) {
 			printf("Received bad rights on time area: %X\n",
-			       rights);
+			    rights);
 			as_area_destroy(mapping);
 			_exit(1);
 		}
@@ -173,6 +173,17 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		tv->tv_sec = s1;
 
 	return 0;
+}
+
+time_t time(time_t *tloc)
+{
+	struct timeval tv;
+
+	if (gettimeofday(&tv, NULL))
+		return (time_t) -1;
+	if (tloc)
+		*tloc = tv.tv_sec;
+	return tv.tv_sec;
 }
 
 /** Wait unconditionally for specified number of microseconds */

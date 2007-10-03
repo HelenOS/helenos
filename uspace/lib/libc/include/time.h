@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,31 +32,12 @@
 /** @file
  */ 
 
-#ifndef LIBC_SYS_TIME_H_
-#define LIBC_SYS_TIME_H_
+#ifndef LIBC_TIME_H_
+#define LIBC_TIME_H_
 
-#include <sys/types.h>
+#include <sys/time.h>
 
-#define DST_NONE 0
-
-typedef long time_t;
-typedef long suseconds_t;
-
-struct timeval {
-	time_t         tv_sec;        /* seconds */
-	suseconds_t    tv_usec;  /* microseconds */
-};
-
-struct timezone {
-	int  tz_minuteswest; /* minutes W of Greenwich */
-	int  tz_dsttime;     /* type of dst correction */
-};
-
-extern void tv_add(struct timeval *tv, suseconds_t usecs);
-extern suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2);
-extern int tv_gt(struct timeval *tv1, struct timeval *tv2);
-extern int tv_gteq(struct timeval *tv1, struct timeval *tv2);
-extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+extern time_t time(time_t *);
 
 #endif
 
