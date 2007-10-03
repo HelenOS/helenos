@@ -138,7 +138,8 @@ static void prtchr(char c, int row, int col)
 
 /** Check key and process special keys. 
  *
- * */
+ *
+ */
 static void write_char(int console, char key)
 {
 	screenbuffer_t *scr = &(connections[console].screenbuffer);
@@ -376,7 +377,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	connection_t *conn;
 
 	if ((consnum = find_free_connection()) == -1) {
-		ipc_answer_fast(iid,ELIMIT,0,0);
+		ipc_answer_fast(iid, ELIMIT, 0, 0);
 		return;
 	}
 	conn = &connections[consnum];
@@ -395,7 +396,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		async_serialize_start();
 
-		arg1 = arg2 = 0;
+		arg1 = 0;
+		arg2 = 0;
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			gcons_notify_disconnect(consnum);
