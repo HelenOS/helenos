@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <libc.h>
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
@@ -472,8 +474,12 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #define MALLOC_ALIGNMENT ((size_t)8U)
 #endif
 
-#define FOOTERS 0
-#define ABORT  abort()
+#define FOOTERS 0 
+#define ABORT  \
+{ \
+	DEBUG("%s abort in %s on line %d\n", __FILE__, __func__, __LINE__); \
+	abort(); \
+}
 #define ABORT_ON_ASSERT_FAILURE 1
 #define PROCEED_ON_ERROR 0
 #define USE_LOCKS 1
@@ -551,7 +557,7 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 #endif /* LACKS_STDLIB_H */
 #ifdef DEBUG
 #if ABORT_ON_ASSERT_FAILURE
-#define assert(x) {if(!(x)) {printf(#x);ABORT;}}
+#define assert(x) {if(!(x)) {DEBUG(#x);ABORT;}}
 #else /* ABORT_ON_ASSERT_FAILURE */
 #include <assert.h>
 #endif /* ABORT_ON_ASSERT_FAILURE */
