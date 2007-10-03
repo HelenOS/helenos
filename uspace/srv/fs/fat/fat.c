@@ -182,16 +182,8 @@ int main(int argc, char **argv)
 	 */
 	async_set_client_connection(fat_connection);
 
-	async_create_manager();
-
-	/*
-	 * TODO: Interestingly, if we merely return, the only thread dies.
-	 *	 If the only thread dies, the whole task is destroyed. 
-	 *	 Prevent the thread from exiting when there are active fibrils.
-	 */
-	fibril_schedule_next_adv(FIBRIL_FROM_DEAD);
+	async_manager();
 	/* not reached */
-
 	return 0;
 }
 

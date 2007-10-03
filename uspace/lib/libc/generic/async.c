@@ -362,7 +362,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * former case, handle_expired_timeouts() and, in the latter
 		 * case, route_call() will perform the wakeup.
 		 */
-		fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+		fibril_switch(FIBRIL_TO_MANAGER);
 		/*
 		 * Futex is up after getting back from async_manager get it
 		 * again.
@@ -584,7 +584,7 @@ static int async_manager_worker(void)
 	struct timeval tv;
 
 	while (1) {
-		if (fibril_schedule_next_adv(FIBRIL_FROM_MANAGER)) {
+		if (fibril_switch(FIBRIL_FROM_MANAGER)) {
 			futex_up(&async_futex); 
 			/*
 			 * async_futex is always held when entering a manager
@@ -803,8 +803,8 @@ void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 	msg->wdata.active = 0;
 	msg->wdata.inlist = 0;
 	/* Leave the async_futex locked when entering this function */
-	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
-	/* futex is up automatically after fibril_schedule_next...*/
+	fibril_switch(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_switch...*/
 done:
 	if (retval)
 		*retval = msg->retval;
@@ -842,8 +842,8 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 	insert_timeout(&msg->wdata);
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
-	/* futex is up automatically after fibril_schedule_next...*/
+	fibril_switch(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_switch...*/
 
 	if (!msg->done)
 		return ETIMEOUT;
@@ -884,8 +884,8 @@ void async_usleep(suseconds_t timeout)
 	futex_down(&async_futex);
 	insert_timeout(&msg->wdata);
 	/* Leave the async_futex locked when entering this function */
-	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
-	/* futex is up automatically after fibril_schedule_next_adv()...*/
+	fibril_switch(FIBRIL_TO_MANAGER);
+	/* futex is up automatically after fibril_switch()...*/
 	free(msg);
 }
 

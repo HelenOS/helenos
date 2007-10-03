@@ -219,7 +219,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 
 		if (can_preempt) {
 			call->fid = fibril_get_id();
-			fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+			fibril_switch(FIBRIL_TO_MANAGER);
 			/* Async futex unlocked by previous call */
 		} else {
 			call->fid = 0;

@@ -104,7 +104,7 @@ void __thread_main(uspace_arg_t *uarg)
 
 	f = fibril_setup();
 	__tcb_set(f->tcb);
-	
+
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/* XXX: we cannot free the userspace stack while running on it */
 //	free(uarg->uspace_stack);

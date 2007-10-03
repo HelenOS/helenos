@@ -77,7 +77,7 @@ extern void context_restore(context_t *c) __attribute__ ((noreturn));
 extern fid_t fibril_create(int (*func)(void *), void *arg);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f);
-extern int fibril_schedule_next_adv(fibril_switch_type_t stype);
+extern int fibril_switch(fibril_switch_type_t stype);
 extern void fibril_add_ready(fid_t fid);
 extern void fibril_add_manager(fid_t fid);
 extern void fibril_remove_manager(void);
@@ -85,8 +85,8 @@ extern fid_t fibril_get_id(void);
 extern void fibril_inc_sercount(void);
 extern void fibril_dec_sercount(void);
 
-static inline int fibril_schedule_next(void) {
-	return fibril_schedule_next_adv(FIBRIL_PREEMPT);
+static inline int fibril_yield(void) {
+	return fibril_switch(FIBRIL_PREEMPT);
 }
 
 #endif

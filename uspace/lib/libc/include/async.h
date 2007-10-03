@@ -45,7 +45,7 @@ typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 static inline void async_manager(void)
 {
-	fibril_schedule_next_adv(FIBRIL_TO_MANAGER);
+	fibril_switch(FIBRIL_TO_MANAGER);
 }
 
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);

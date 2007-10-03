@@ -75,7 +75,7 @@ fibril_t *fibril_setup(void)
 	if (!tcb)
 		return NULL;
 
-	f = malloc(sizeof(*f));
+	f = malloc(sizeof(fibril_t));
 	if (!f) {
 		__free_tls(tcb);
 		return NULL;
@@ -83,6 +83,13 @@ fibril_t *fibril_setup(void)
 
 	tcb->fibril_data = f;
 	f->tcb = tcb;
+
+	f->func = NULL;
+	f->arg = NULL;
+	f->stack = NULL;
+	f->clean_after_me = NULL;
+	f->retval = 0;
+	f->flags = 0;
 
 	return f;
 }
@@ -106,11 +113,11 @@ void fibril_main(void)
 	/* Call the implementing function. */
 	f->retval = f->func(f->arg);
 
-	fibril_schedule_next_adv(FIBRIL_FROM_DEAD);
+	fibril_switch(FIBRIL_FROM_DEAD);
 	/* not reached */
 }
 
-/** Schedule next fibril.
+/** Switch from the current fibril.
  *
  * If calling with FIBRIL_TO_MANAGER parameter, the async_futex should be
  * held.
@@ -121,7 +128,7 @@ void fibril_main(void)
  * @return		Return 0 if there is no ready fibril,
  * 			return 1 otherwise.
  */
-int fibril_schedule_next_adv(fibril_switch_type_t stype)
+int fibril_switch(fibril_switch_type_t stype)
 {
 	fibril_t *srcf, *dstf;
 	int retval = 0;
@@ -138,8 +145,8 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 		 * Do not preempt if there is not sufficient count of fibril 
 		 * managers.
 		 */
-		if (list_empty(&serialized_list) && fibrils_in_manager <=
-		    serialized_fibrils) {
+		if (list_empty(&serialized_list) &&
+		    fibrils_in_manager <= serialized_fibrils) {
 			goto ret_0;
 		}
 	}
@@ -163,7 +170,18 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 				 * Cleanup after the dead fibril from which we
 				 * restored context here.
 				 */
-				free(srcf->clean_after_me->stack);
+				void *stack = srcf->clean_after_me->stack; 
+				if (stack) {
+					/*
+					 * This check is necessary because a
+					 * thread could have exited like a
+					 * normal fibril using the
+					 * FIBRIL_FROM_DEAD switch type. In that
+					 * case, its fibril will not have the
+					 * stack member filled.
+					 */
+					free(stack);
+				}
 				fibril_teardown(srcf->clean_after_me);
 				srcf->clean_after_me = NULL;
 			}
@@ -184,7 +202,7 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 			 */
 		}
 	}
-
+	
 	/* Choose a new fibril to run */
 	if (stype == FIBRIL_TO_MANAGER || stype == FIBRIL_FROM_DEAD) {
 		dstf = list_get_instance(manager_list.next, fibril_t, link);
@@ -194,7 +212,7 @@ int fibril_schedule_next_adv(fibril_switch_type_t stype)
 		}
 		fibrils_in_manager++;
 
-		if (stype == FIBRIL_FROM_DEAD)
+		if (stype == FIBRIL_FROM_DEAD) 
 			dstf->clean_after_me = srcf;
 	} else {
 		if (!list_empty(&serialized_list)) {
@@ -233,17 +251,13 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 		return 0;
 	f->stack = (char *) malloc(FIBRIL_INITIAL_STACK_PAGES_NO *
 	    getpagesize());
-
 	if (!f->stack) {
 		fibril_teardown(f);
 		return 0;
 	}
-
-	f->arg = arg;
+	
 	f->func = func;
-	f->clean_after_me = NULL;
-	f->retval = 0;
-	f->flags = 0;
+	f->arg = arg;
 
 	context_save(&f->ctx);
 	context_set(&f->ctx, FADDR(fibril_main), f->stack,
