@@ -518,7 +518,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	/* Unrouted call - do some default behaviour */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		in_interrupt_handler = 1;
-		(*interrupt_received)(callid,call);
+		(*interrupt_received)(callid, call);
 		in_interrupt_handler = 0;
 		return;
 	}		

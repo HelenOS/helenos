@@ -217,12 +217,12 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	async_wait_for(req2, &rc2);
 	vfs_release_phone(phone);
 
-	if ((rc1 == EOK) && (rc2 == EOK))
-		ipc_answer_fast(rid, EOK, 0, 0);
-	else if (rc1 != EOK)
+	if (rc2 == EOK)
 		ipc_answer_fast(rid, rc1, 0, 0);
-	else
+	else if (rc1 == EOK)
 		ipc_answer_fast(rid, rc2, 0, 0);
+	else
+		ipc_answer_fast(rid, rc1, 0, 0);
 }
 
 /**

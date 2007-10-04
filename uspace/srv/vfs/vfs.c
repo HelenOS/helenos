@@ -93,6 +93,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_REGISTER:
 			vfs_register(callid, &call);
+			keep_on_going = false;
 			break;
 		case VFS_MOUNT:
 		case VFS_UNMOUNT:
