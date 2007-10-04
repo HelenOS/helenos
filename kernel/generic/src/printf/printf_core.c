@@ -197,13 +197,8 @@ static int print_string(char *s, int width, int precision, uint64_t flags, struc
 		}
 	}
 
-	while (precision > size) {
-		precision--;
-		if (printf_putchar(' ', ps) == 1)	
-			++counter;
-	}
-	
- 	if ((retval = printf_putnchars(s, precision, ps)) < 0) {
+ 	if ((retval = printf_putnchars(s, size < precision ? size : precision,
+	    ps)) < 0) {
 		return -counter;
 	}
 	counter += retval;	
