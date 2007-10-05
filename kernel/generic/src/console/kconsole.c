@@ -616,12 +616,12 @@ bool parse_argument(char *cmdline, size_t len, index_t *start, index_t *end)
 	
 	for (i = *start; i < len; i++) {
 		if (!found_start) {
-			if (is_white(cmdline[i]))
+			if (isspace(cmdline[i]))
 				(*start)++;
 			else
 				found_start = true;
 		} else {
-			if (is_white(cmdline[i]))
+			if (isspace(cmdline[i]))
 				break;
 		}
 	}

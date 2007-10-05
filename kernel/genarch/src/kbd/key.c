@@ -144,8 +144,9 @@ void key_pressed(uint8_t sc)
 		chardev_push_character(&kbrd, 0x7e);
 		break;
 	default:
-	    	letter = is_lower(ascii);
-		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
+	    	letter = islower(ascii);
+		capslock = (keyflags & PRESSED_CAPSLOCK) ||
+		    (lockflags & LOCKED_CAPSLOCK);
 		shift = keyflags & PRESSED_SHIFT;
 		if (letter && capslock)
 			shift = !shift;
@@ -232,8 +233,9 @@ void active_read_key_pressed(uint8_t sc)
 		active_read_buff_write(0x7e);
 		break;
 	default:
-	    	letter = is_lower(ascii);
-		capslock = (keyflags & PRESSED_CAPSLOCK) || (lockflags & LOCKED_CAPSLOCK);
+	    	letter = islower(ascii);
+		capslock = (keyflags & PRESSED_CAPSLOCK) ||
+		    (lockflags & LOCKED_CAPSLOCK);
 		shift = keyflags & PRESSED_SHIFT;
 		if (letter && capslock)
 			shift = !shift;
