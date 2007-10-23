@@ -144,6 +144,7 @@
 #define SHF_WRITE		0x1 
 #define SHF_ALLOC		0x2
 #define SHF_EXECINSTR		0x4
+#define SHF_TLS			0x400
 #define SHF_MASKPROC		0xf0000000
 
 /**
