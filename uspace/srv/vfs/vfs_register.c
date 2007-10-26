@@ -148,7 +148,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 
 	dprintf("Processing VFS_REGISTER request received from %p.\n",
-		request->in_phone_hash);
+	    request->in_phone_hash);
 
 	/*
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
@@ -304,8 +304,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	
 	futex_up(&fs_head_futex);
 	
-	dprintf("\"%s\" filesystem successfully registered, handle=%d.\n",
-	    fs_info->vfs_info.name, fs_info->fs_handle);
+	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
+	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
 }
 
 /** For a given file system handle, implement policy for allocating a phone.
