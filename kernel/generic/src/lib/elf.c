@@ -56,9 +56,12 @@ static char *error_codes[] = {
 	"irrecoverable error"
 };
 
-static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *as);
-static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as);
-static int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as);
+static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
+    as_t *as);
+static int section_header(elf_section_header_t *entry, elf_header_t *elf,
+    as_t *as);
+static int load_segment(elf_segment_header_t *entry, elf_header_t *elf,
+    as_t *as);
 
 /** ELF loader
  *
@@ -71,14 +74,18 @@ int elf_load(elf_header_t *header, as_t * as)
 	int i, rc;
 
 	/* Identify ELF */
-	if (header->e_ident[EI_MAG0] != ELFMAG0 || header->e_ident[EI_MAG1] != ELFMAG1 || 
-	    header->e_ident[EI_MAG2] != ELFMAG2 || header->e_ident[EI_MAG3] != ELFMAG3) {
+	if (header->e_ident[EI_MAG0] != ELFMAG0 ||
+	    header->e_ident[EI_MAG1] != ELFMAG1 || 
+	    header->e_ident[EI_MAG2] != ELFMAG2 ||
+	    header->e_ident[EI_MAG3] != ELFMAG3) {
 		return EE_INVALID;
 	}
 	
 	/* Identify ELF compatibility */
-	if (header->e_ident[EI_DATA] != ELF_DATA_ENCODING || header->e_machine != ELF_MACHINE || 
-	    header->e_ident[EI_VERSION] != EV_CURRENT || header->e_version != EV_CURRENT ||
+	if (header->e_ident[EI_DATA] != ELF_DATA_ENCODING ||
+	    header->e_machine != ELF_MACHINE || 
+	    header->e_ident[EI_VERSION] != EV_CURRENT ||
+	    header->e_version != EV_CURRENT ||
 	    header->e_ident[EI_CLASS] != ELF_CLASS) {
 		return EE_INCOMPATIBLE;
 	}
@@ -95,14 +102,22 @@ int elf_load(elf_header_t *header, as_t * as)
 
 	/* Walk through all segment headers and process them. */
 	for (i = 0; i < header->e_phnum; i++) {
-		rc = segment_header(&((elf_segment_header_t *)(((uint8_t *) header) + header->e_phoff))[i], header, as);
+		elf_segment_header_t *seghdr;
+
+		seghdr = &((elf_segment_header_t *)(((uint8_t *) header) +
+		    header->e_phoff))[i];
+		rc = segment_header(seghdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
 
 	/* Inspect all section headers and proccess them. */
 	for (i = 0; i < header->e_shnum; i++) {
-		rc = section_header(&((elf_section_header_t *)(((uint8_t *) header) + header->e_shoff))[i], header, as);
+		elf_section_header_t *sechdr;
+
+		sechdr = &((elf_section_header_t *)(((uint8_t *) header) +
+		    header->e_shoff))[i];
+		rc = section_header(sechdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
@@ -118,7 +133,7 @@ int elf_load(elf_header_t *header, as_t * as)
  */
 char *elf_error(int rc)
 {
-	ASSERT(rc < sizeof(error_codes)/sizeof(char *));
+	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
 
 	return error_codes[rc];
 }
@@ -131,7 +146,8 @@ char *elf_error(int rc)
  *
  * @return EE_OK on success, error code otherwise.
  */
-static int segment_header(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
+static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
+    as_t *as)
 {
 	switch (entry->p_type) {
 	case PT_NULL:
@@ -171,7 +187,8 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	backend_data.segment = entry;
 
 	if (entry->p_align > 1) {
-		if ((entry->p_offset % entry->p_align) != (entry->p_vaddr % entry->p_align)) {
+		if ((entry->p_offset % entry->p_align) !=
+		    (entry->p_vaddr % entry->p_align)) {
 			return EE_INVALID;
 		}
 	}
@@ -190,8 +207,8 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	if (ALIGN_UP(entry->p_vaddr, PAGE_SIZE) != entry->p_vaddr)
 		return EE_UNSUPPORTED;
 
-	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr, AS_AREA_ATTR_NONE,
-		&elf_backend, &backend_data);
+	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr,
+	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data);
 	if (!a)
 		return EE_MEMORY;
 	
@@ -210,9 +227,20 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
  *
  * @return EE_OK on success, error code otherwise.
  */
-static int section_header(elf_section_header_t *entry, elf_header_t *elf, as_t *as)
+static int section_header(elf_section_header_t *entry, elf_header_t *elf,
+    as_t *as)
 {
 	switch (entry->sh_type) {
+	case SHT_PROGBITS:
+		if (entry->sh_flags & SHF_TLS) {
+			/* .tdata */
+		}
+		break;
+	case SHT_NOBITS:
+		if (entry->sh_flags & SHF_TLS) {
+			/* .tbss */
+		}
+		break;
 	default:
 		break;
 	}
