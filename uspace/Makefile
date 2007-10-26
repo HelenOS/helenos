@@ -86,7 +86,7 @@ distclean: clean
 	-rm Makefile.config
 
 $(CLEANS):
-	$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+	-$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
 
 $(BUILDS):
 	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)

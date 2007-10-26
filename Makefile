@@ -136,10 +136,10 @@ config:
 	tools/config.py HelenOS.config
 
 distclean:
-	-rm Makefile.config
 	-$(MAKE) -C kernel distclean
 	-$(MAKE) -C uspace distclean
 	-$(MAKE) -C boot distclean
+	-rm Makefile.config
 
 clean:
 	-$(MAKE) -C kernel clean
