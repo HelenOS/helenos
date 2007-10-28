@@ -29,7 +29,7 @@
 ## Toolchain configuration
 #
 
-BFD_NAME = elf32-little
+BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 BFD = binary
 TARGET = arm-linux-gnu

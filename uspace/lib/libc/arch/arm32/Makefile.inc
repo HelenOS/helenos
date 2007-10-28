@@ -40,5 +40,5 @@ ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/thread.c \
 		arch/$(ARCH)/src/eabi.S
 
-BFD_NAME = elf32-little
+BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
