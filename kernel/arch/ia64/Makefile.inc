@@ -29,7 +29,7 @@
 ## Toolchain configuration
 #
 
-BFD_NAME = elf64-little
+BFD_NAME = elf64-ia64-little
 BFD_ARCH = ia64-elf64
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ia64
