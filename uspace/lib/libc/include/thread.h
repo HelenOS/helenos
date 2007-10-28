@@ -41,6 +41,8 @@
 
 typedef uint64_t thread_id_t;
 
+extern char _tls_alignment;
+
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *uarg);
 

@@ -36,6 +36,7 @@
 
 #include <thread.h>
 #include <malloc.h>
+#include <align.h>
 
 /*
  * sparc64 uses thread-local storage data structures, variant II, as described
@@ -56,7 +57,8 @@ tcb_t * __alloc_tls(void **data, size_t size)
 {
 	tcb_t *tcb;
 	
-	*data = malloc(sizeof(tcb_t) + size);
+	size = ALIGN_UP(size, &_tls_alignment);
+	*data = memalign(&_tls_alignment, sizeof(tcb_t) + size);
 
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;
@@ -73,6 +75,7 @@ tcb_t * __alloc_tls(void **data, size_t size)
  */
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
+	size = ALIGN_UP(size, &_tls_alignment);
 	void *start = ((void *) tcb) - size;
 	free(start);
 }
