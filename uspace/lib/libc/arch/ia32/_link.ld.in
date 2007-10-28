@@ -30,6 +30,7 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
+	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
 	.bss : {
                 *(COMMON);
                 *(.bss);

@@ -22,19 +22,17 @@ SECTIONS {
 		*(.data .data.*);
 		*(.sdata);
 	} :data
-
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
 		_tdata_end = .;
 	} :data
-
 	.tbss : {
 		_tbss_start = .;
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-
+	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
 	.bss : {
 		*(.sbss);
 		*(.scommon);
