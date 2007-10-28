@@ -44,4 +44,4 @@ ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 
 
 BFD_ARCH = mips
-BFD_NAME = elf32-little
+BFD_NAME = elf32-tradlittlemips
