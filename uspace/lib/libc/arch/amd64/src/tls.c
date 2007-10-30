@@ -26,34 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcamd64 amd64
+ * @ingroup lc
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
+  * @ingroup libcia32
  */
 
-#include <thread.h>
-#include <malloc.h>
+#include <tls.h>
+#include <sys/types.h>
 
-/** Allocate TLS & TCB for initial module threads
- *
- * @param data (out) Start of TLS section
- * @param size Size of tdata+tbss section
- * @return pointer to tcb_t structure
- */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *result;
-
-	result = malloc(sizeof(tcb_t) + size);
-	*data = ((void *)result) + sizeof(tcb_t);
-	return result;
+	return tls_alloc_variant_2(data, size);
 }
 
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	free(tcb);
+	tls_free_variant_2(tcb, size);
 }
 
 /** @}

@@ -33,45 +33,8 @@
  * @ingroup libcmips32eb	
  */
 
-/* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
-
 #ifndef LIBC_mips32_THREAD_H_
 #define LIBC_mips32_THREAD_H_
-
-/* I did not find any specification (neither MIPS nor PowerPC), but
- * as I found it
- * - it uses Variant II
- * - TCB is at Address(First TLS Block)+0x7000.
- * - DTV is at Address(First TLS Block)+0x8000
- * - What would happen if the TLS data was larger then 0x7000?
- * - The linker never accesses DTV directly, has the second definition any
- *   sense?
- * We will make it this way:
- * - TCB is at TP-0x7000-sizeof(tcb)
- * - No assumption about DTV etc., but it will not have a fixed address
- */
-#define MIPS_TP_OFFSET 0x7000
-
-typedef struct {
-	void *fibril_data;
-} tcb_t;
-
-static inline void __tcb_set(tcb_t *tcb)
-{
-	void *tp = tcb;
-	tp += MIPS_TP_OFFSET + sizeof(tcb_t);
-
-	asm volatile ("add $27, %0, $0" : : "r"(tp)); /* Move tls to K1 */
-}
-
-static inline tcb_t * __tcb_get(void)
-{
-	void * retval;
-
-	asm volatile("add %0, $27, $0" : "=r"(retval));
-
-	return (tcb_t *)(retval - MIPS_TP_OFFSET - sizeof(tcb_t));
-}
 
 #endif
 

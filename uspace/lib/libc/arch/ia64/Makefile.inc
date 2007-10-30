@@ -37,7 +37,7 @@ AFLAGS +=
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/thread.c
+		arch/$(ARCH)/src/tls.c
 
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64

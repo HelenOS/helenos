@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
+# Copyright (c) 2007 Michal Kebrt
+# Copyright (c) 2007 Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@ AFLAGS +=
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/thread.c \
+		arch/$(ARCH)/src/tls.c \
 		arch/$(ARCH)/src/eabi.S
 
 BFD_NAME = elf32-littlearm

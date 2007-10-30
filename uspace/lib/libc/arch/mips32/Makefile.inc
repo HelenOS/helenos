@@ -40,7 +40,7 @@ endif
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 	arch/$(ARCH)/src/fibril.S \
-	arch/$(ARCH)/src/thread.c
+	arch/$(ARCH)/src/tls.c
 
 
 BFD_ARCH = mips

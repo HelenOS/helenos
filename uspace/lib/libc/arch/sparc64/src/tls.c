@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32 arm32
-  * @brief arm32 architecture dependent parts of libc
-  * @ingroup lc
+/** @addtogroup libcsparc64 sparc64
+ * @ingroup lc
  * @{
  */
 /** @file
- *  @brief Uspace threads and TLS.
- */
-
-#include <thread.h>
-#include <malloc.h>
-
-/** Allocates TLS & TCB.
  *
- * @param data Start of data section (output parameter).
- * @param size Size of (tbss + tdata) sections.
- * @return     Pointer to the allocated #tcb_t structure.
  */
+
+#include <tls.h>
+#include <sys/types.h>
+
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *result;
-
-	result = malloc(sizeof(tcb_t) + size);
-	*data = ((void *)result) + sizeof(tcb_t);
-	return result;
+	return tls_alloc_variant_2(data, size);
 }
 
-/** Deallocates TLS & TCB.
- *
- * @param tcb TCB structure to be deallocated (along with corresponding TLS).
- * @param size Not used.
- */
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	free(tcb);
+	tls_free_variant_2(tcb, size);
 }
 
 /** @}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libcppc64	
  * @{
  */
 /** @file
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
+#ifndef LIBC_ppc64_TLS_H_
+#define LIBC_ppc64_TLS_H_
 
-extern char _heap;
+#define CONFIG_TLS_VARIANT_1
 
-void _exit(int status)
+#define PPC_TP_OFFSET 0x7000
+
+typedef struct {
+	void *fibril_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	thread_exit(status);
+	void *tp = tcb;
+	tp += PPC_TP_OFFSET + sizeof(tcb_t);
+	
+	asm volatile (
+		"mr %%r2, %0\n"
+		:
+		: "r" (tp)
+	);
 }
 
-void __main(void)
+static inline tcb_t * __tcb_get(void)
 {
-	fibril_t *f;
+	void * retval;
+	
+	asm volatile (
+		"mr %0, %%r2\n"
+		: "=r" (retval)
+	);
 
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
+	return (tcb_t *)(retval - PPC_TP_OFFSET - sizeof(tcb_t));
 }
 
-void __io_init(void)
-{
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
-}
-
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+#endif
 
 /** @}
  */

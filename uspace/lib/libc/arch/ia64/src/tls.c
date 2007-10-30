@@ -26,33 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32	
+/** @addtogroup libcia64 ia64
+  * @brief ia64 architecture dependent parts of libc
+  * @ingroup lc
  * @{
  */
 /** @file
  */
 
-#include <thread.h>
+#include <tls.h>
 #include <malloc.h>
 
-/** Allocate TLS & TCB for initial module threads
- *
- * @param data Start of data section
- * @return pointer to tcb_t structure
- *
- */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *result;
-
-	result = malloc(sizeof(tcb_t) + size);
-	*data = ((void *)result) + sizeof(tcb_t);
-	return result;
+	return tls_alloc_variant_1(data, size);
 }
 
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	free(tcb);
+	tls_free_variant_1(tcb, size);
 }
 
 /** @}

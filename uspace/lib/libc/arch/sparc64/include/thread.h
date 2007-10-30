@@ -30,32 +30,9 @@
 /** @addtogroup libcsparc64
  * @{
  */
-/**
- * @file
- * @brief	sparc64 TLS functions.
- */
 
 #ifndef LIBC_sparc64_THREAD_H_
 #define LIBC_sparc64_THREAD_H_
-
-typedef struct {
-	void *self;
-	void *fibril_data;
-} tcb_t;
-
-static inline void __tcb_set(tcb_t *tcb)
-{
-	asm volatile ("mov %0, %%g7\n" : : "r" (tcb) : "g7");
-}
-
-static inline tcb_t * __tcb_get(void)
-{
-	void *retval;
-
-	asm volatile ("mov %%g7, %0\n" : "=r" (retval));
-
-	return retval;
-}
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64 ia64
-  * @brief ia64 architecture dependent parts of libc
-  * @ingroup lc
+/** @addtogroup libcia64	
  * @{
  */
 /** @file
  */
 
-#include <thread.h>
-#include <malloc.h>
+#ifndef LIBC_ia64_TLS_H_
+#define LIBC_ia64_TLS_H_
 
-/** Allocate TLS & TCB for initial module threads
- *
- * @param data Start of data section
- * @return pointer to tcb_t structure
- */
-extern char _tdata_start;
-extern char _tbss_end;
-tcb_t * __alloc_tls(void **data, size_t size)
+#define CONFIG_TLS_VARIANT_1
+
+#include <sys/types.h>
+
+/* This structure must be exactly 16 bytes long */
+typedef struct {
+	void *dtv; /* unused in static linking*/
+	void *fibril_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	tcb_t *tcb;
-	
-/*	ASSERT(sizeof(tcb_t) == 16); */
-
-	tcb = malloc(sizeof(tcb_t) + size);
-	*data = ((void *) tcb) + 16;
-
-	return tcb;
+	asm volatile ("mov r13 = %0\n" : : "r" (tcb) : "r13");
 }
 
-void __free_tls_arch(tcb_t *tcb, size_t size)
+static inline tcb_t *__tcb_get(void)
 {
-	free(tcb);
+	void *retval;
+
+	asm volatile ("mov %0 = r13\n" : "=r" (retval));
+
+	return retval;
 }
+
+#endif
 
 /** @}
  */

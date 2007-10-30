@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libcmips32	
  * @{
  */
 /** @file
- */ 
+ * @ingroup libcmips32eb	
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
+/* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
 
-extern char _heap;
+#ifndef LIBC_mips32_TLS_H_
+#define LIBC_mips32_TLS_H_
 
-void _exit(int status)
+/*
+ * FIXME: Note that the use of variant I contradicts the observations made in
+ * the note below. Nevertheless the scheme we have used for allocating and
+ * deallocatin TLS corresponds to TLS variant I.
+ */
+#define CONFIG_TLS_VARIANT_1
+
+/* I did not find any specification (neither MIPS nor PowerPC), but
+ * as I found it
+ * - it uses Variant II
+ * - TCB is at Address(First TLS Block)+0x7000.
+ * - DTV is at Address(First TLS Block)+0x8000
+ * - What would happen if the TLS data was larger then 0x7000?
+ * - The linker never accesses DTV directly, has the second definition any
+ *   sense?
+ * We will make it this way:
+ * - TCB is at TP-0x7000-sizeof(tcb)
+ * - No assumption about DTV etc., but it will not have a fixed address
+ */
+#define MIPS_TP_OFFSET 0x7000
+
+typedef struct {
+	void *fibril_data;
+} tcb_t;
+
+static inline void __tcb_set(tcb_t *tcb)
 {
-	thread_exit(status);
+	void *tp = tcb;
+	tp += MIPS_TP_OFFSET + sizeof(tcb_t);
+
+	asm volatile ("add $27, %0, $0" : : "r"(tp)); /* Move tls to K1 */
 }
 
-void __main(void)
+static inline tcb_t * __tcb_get(void)
 {
-	fibril_t *f;
+	void * retval;
 
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
+	asm volatile("add %0, $27, $0" : "=r"(retval));
+
+	return (tcb_t *)(retval - MIPS_TP_OFFSET - sizeof(tcb_t));
 }
 
-void __io_init(void)
-{
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
-}
-
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+#endif
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
- */ 
+ */
+
+#ifndef LIBC_amd64_TLS_H_
+#define LIBC_amd64_TLS_H_
+
+#define CONFIG_TLS_VARIANT_2
 
 #include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
 
-extern char _heap;
+typedef struct {
+	void *self;
+	void *fibril_data;
+} tcb_t;
 
-void _exit(int status)
+static inline void __tcb_set(tcb_t *tcb)
 {
-	thread_exit(status);
+	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tcb);
 }
 
-void __main(void)
+static inline tcb_t * __tcb_get(void)
 {
-	fibril_t *f;
+	void * retval;
 
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
+	asm ("movq %%fs:0, %0" : "=r"(retval));
+	return retval;
 }
 
-void __io_init(void)
-{
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
-}
-
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+#endif
 
 /** @}
  */

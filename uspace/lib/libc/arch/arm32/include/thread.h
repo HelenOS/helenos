@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2007 Pavel Jancik
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,68 +31,10 @@
  * @{
  */
 /** @file
- *  @brief Uspace threads and TLS.
  */
 
 #ifndef LIBC_arm32_THREAD_H_
 #define LIBC_arm32_THREAD_H_
-
-#include <unistd.h>
-
-/** Stack initial size. */
-#define THREAD_INITIAL_STACK_PAGES_NO 1
-
-/** Offsets for accessing __thread variables are shifted 8 bytes higher. */
-#define ARM_TP_OFFSET	(-8)
-
-/** TCB (Thread Control Block) struct. 
- *
- *  TLS starts just after this struct.
- */
-typedef struct {
-	/** Fibril data. */
-	void *fibril_data;
-} tcb_t;
-
-
-/** Sets TLS address to the r9 register.
- *
- *  @param tcb TCB (TLS starts behind)
- */
-static inline void __tcb_set(tcb_t *tcb)
-{
-	void *tls = (void *) tcb;
-	tls += sizeof(tcb_t) + ARM_TP_OFFSET;
-	asm volatile (
-		"mov r9, %0"
-		:
-		: "r"(tls)
-	);
-}
-
-
-/** Returns TCB address.
- *
- * @return TCB address (starts before TLS which address is stored in r9 register).
- */
-static inline tcb_t *__tcb_get(void)
-{
-	void *ret;
-	asm volatile (
-		"mov %0, r9"
-		: "=r"(ret)
-	);
-	return (tcb_t *) (ret - ARM_TP_OFFSET - sizeof(tcb_t));
-}
-
-
-/** Returns TLS address stored.
- *
- *  Implemented in assembly.
- *
- *  @return TLS address stored in r9 register
- */
-extern uintptr_t __aeabi_read_tp(void);
 
 #endif
 

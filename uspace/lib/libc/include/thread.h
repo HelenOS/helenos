@@ -41,20 +41,14 @@
 
 typedef uint64_t thread_id_t;
 
-extern char _tls_alignment;
-
 extern void __thread_entry(void);
-extern void __thread_main(uspace_arg_t *uarg);
+extern void __thread_main(uspace_arg_t *);
 
-extern int thread_create(void (* function)(void *), void *arg, char *name, thread_id_t *tid);
-extern void thread_exit(int status);
-extern void thread_detach(thread_id_t thread);
-extern int thread_join(thread_id_t thread);
+extern int thread_create(void (*)(void *), void *, char *, thread_id_t *);
+extern void thread_exit(int);
+extern void thread_detach(thread_id_t);
+extern int thread_join(thread_id_t);
 extern thread_id_t thread_get_id(void);
-extern tcb_t * __make_tls(void);
-extern tcb_t * __alloc_tls(void **data, size_t size);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t size);
 
 #endif
 

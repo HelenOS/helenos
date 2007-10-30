@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2007 Pavel Jancik
+ * Copyright (c) 2007 Michal Kebrt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +27,73 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libcarm32
  * @{
  */
 /** @file
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
+#ifndef LIBC_arm32_TLS_H_
+#define LIBC_arm32_TLS_H_
 
-extern char _heap;
+#include <sys/types.h>
 
-void _exit(int status)
+#define CONFIG_TLS_VARIANT_1
+
+/** Offsets for accessing __thread variables are shifted 8 bytes higher. */
+#define ARM_TP_OFFSET  (-8)
+
+/** TCB (Thread Control Block) struct. 
+ *
+ *  TLS starts just after this struct.
+ */
+typedef struct {
+	/** Fibril data. */
+	void *fibril_data;
+} tcb_t;
+
+
+/** Sets TLS address to the r9 register.
+ *
+ *  @param tcb		TCB (TLS starts behind)
+ */
+static inline void __tcb_set(tcb_t *tcb)
 {
-	thread_exit(status);
+	void *tls = (void *) tcb;
+	tls += sizeof(tcb_t) + ARM_TP_OFFSET;
+	asm volatile (
+		"mov r9, %0"
+		:
+		: "r" (tls)
+	);
 }
 
-void __main(void)
-{
-	fibril_t *f;
 
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
+/** Returns TCB address.
+ *
+ * @return		TCB address (starts before TLS which address is stored
+ * 			in r9 register).
+ */
+static inline tcb_t *__tcb_get(void)
+{
+	void *ret;
+	asm volatile (
+		"mov %0, r9"
+		: "=r"(ret)
+	);
+	return (tcb_t *) (ret - ARM_TP_OFFSET - sizeof(tcb_t));
 }
 
-void __io_init(void)
-{
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
-}
 
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+/** Returns TLS address stored.
+ *
+ *  Implemented in assembly.
+ *
+ *  @return		TLS address stored in r9 register
+ */
+extern uintptr_t __aeabi_read_tp(void);
+
+#endif
 
 /** @}
  */

@@ -34,7 +34,7 @@ TOOLCHAIN_DIR = /usr/local/amd64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/thread.c
+		arch/$(ARCH)/src/tls.c
 
 LFLAGS += -N
 

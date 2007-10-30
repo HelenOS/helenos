@@ -50,7 +50,9 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/cap.c \
 	generic/string.c \
+	generic/fibril.c \
 	generic/thread.c \
+	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
 	generic/io/io.c \
@@ -63,7 +65,6 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	malloc/malloc.c \
-	generic/fibril.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \

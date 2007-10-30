@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64 sparc64
- * @ingroup lc
+/** @addtogroup libc
  * @{
  */
 /** @file
- *
  */
 
-#include <thread.h>
-#include <malloc.h>
-#include <align.h>
+#ifndef LIBC_TLS_H_
+#define LIBC_TLS_H_
+
+#include <libarch/tls.h>
+#include <sys/types.h>
 
 /*
- * sparc64 uses thread-local storage data structures, variant II, as described
- * in:
- * 	Drepper U.: ELF Handling For Thread-Local Storage, 2005
+ * Symbols defined in the respective linker script.
  */
+extern char _tls_alignment;
+extern char _tdata_start;
+extern char _tdata_end;
+extern char _tbss_start;
+extern char _tbss_end;
 
-/** Allocate TLS variant II data structures for a thread.
- *
- * Only static model is supported.
- *
- * @param data Pointer to pointer to thread local data. This is actually an
- * 	output argument.
- * @param size Size of thread local data.
- * @return Pointer to TCB structure.
- */
-tcb_t * __alloc_tls(void **data, size_t size)
-{
-	tcb_t *tcb;
-	
-	size = ALIGN_UP(size, &_tls_alignment);
-	*data = memalign(&_tls_alignment, sizeof(tcb_t) + size);
+extern tcb_t *__make_tls(void);
+extern tcb_t *__alloc_tls(void **, size_t);
+extern void __free_tls(tcb_t *);
+extern void __free_tls_arch(tcb_t *, size_t);
 
-	tcb = (tcb_t *) (*data + size);
-	tcb->self = tcb;
+#ifdef CONFIG_TLS_VARIANT_1
+extern tcb_t *tls_alloc_variant_1(void **, size_t);
+extern void tls_free_variant_1(tcb_t *, size_t);
+#endif
+#ifdef CONFIG_TLS_VARIANT_2
+extern tcb_t *tls_alloc_variant_2(void **, size_t);
+extern void tls_free_variant_2(tcb_t *, size_t);
+#endif
 
-	return tcb;
-}
-
-/** Free TLS variant II data structures of a thread.
- *
- * Only static model is supported.
- *
- * @param tcb Pointer to TCB structure.
- * @param size Size of thread local data.
- */
-void __free_tls_arch(tcb_t *tcb, size_t size)
-{
-	size = ALIGN_UP(size, &_tls_alignment);
-	void *start = ((void *) tcb) - size;
-	free(start);
-}
+#endif
 
 /** @}
  */

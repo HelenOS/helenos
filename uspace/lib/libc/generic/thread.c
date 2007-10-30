@@ -41,53 +41,9 @@
 #include <string.h>
 #include <async.h>
 
-#include <stdio.h>
-
-
 #ifndef THREAD_INITIAL_STACK_PAGES_NO
 #define THREAD_INITIAL_STACK_PAGES_NO 1
 #endif
-
-static LIST_INITIALIZE(thread_garbage);
-
-extern char _tdata_start;
-extern char _tdata_end;
-extern char _tbss_start;
-extern char _tbss_end;
-
-/** Create TLS (Thread Local Storage) data structures.
- *
- * The code requires, that sections .tdata and .tbss are adjacent. It may be
- * changed in the future.
- *
- * @return Pointer to TCB.
- */
-tcb_t *__make_tls(void)
-{
-	void *data;
-	tcb_t *tcb;
-	size_t tls_size = &_tbss_end - &_tdata_start;
-	
-	tcb = __alloc_tls(&data, tls_size);
-	
-	/*
-	 * Copy thread local data from the initialization image.
-	 */
-	memcpy(data, &_tdata_start, &_tdata_end - &_tdata_start);
-	/*
-	 * Zero out the thread local uninitialized data.
-	 */
-	memset(data + (&_tbss_start - &_tdata_start), 0,
-	    &_tbss_end - &_tbss_start);
-
-	return tcb;
-}
-
-void __free_tls(tcb_t *tcb)
-{
-	size_t tls_size = &_tbss_end - &_tdata_start;
-	__free_tls_arch(tcb, tls_size);
-}
 
 /** Main thread function.
  *

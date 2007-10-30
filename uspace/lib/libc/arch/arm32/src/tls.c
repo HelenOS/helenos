@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2007 Pavel Jancik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libcarm32 arm32
+  * @brief arm32 architecture dependent parts of libc
+  * @ingroup lc
  * @{
  */
 /** @file
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
 #include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
+#include <sys/types.h>
 
-extern char _heap;
-
-void _exit(int status)
+tcb_t * __alloc_tls(void **data, size_t size)
 {
-	thread_exit(status);
+	return tls_alloc_variant_1(data, size);
 }
 
-void __main(void)
+void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	fibril_t *f;
-
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
-}
-
-void __io_init(void)
-{
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
-}
-
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
+	tls_free_variant_1(tcb, size);
 }
 
 /** @}

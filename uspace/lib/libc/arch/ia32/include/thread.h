@@ -35,26 +35,6 @@
 #ifndef LIBC_ia32_THREAD_H_
 #define LIBC_ia32_THREAD_H_
 
-#include <libc.h>
-
-typedef struct {
-	void *self;
-	void *fibril_data;
-} tcb_t;
-
-static inline void __tcb_set(tcb_t *tcb)
-{
-	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tcb);
-}
-
-static inline tcb_t * __tcb_get(void)
-{
-	void *retval;
-
-	asm ("movl %%gs:0, %0" : "=r"(retval));
-	return retval;
-}
-
 #endif
 
 /** @}

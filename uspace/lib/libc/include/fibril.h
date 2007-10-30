@@ -37,7 +37,7 @@
 
 #include <libarch/fibril.h>
 #include <libadt/list.h>
-#include <libarch/thread.h>
+#include <libarch/tls.h>
 
 #ifndef context_set
 #define context_set(c, _pc, stack, size, ptls) 			\

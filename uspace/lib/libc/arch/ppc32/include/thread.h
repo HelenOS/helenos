@@ -35,36 +35,6 @@
 #ifndef LIBC_ppc32_THREAD_H_
 #define LIBC_ppc32_THREAD_H_
 
-#define PPC_TP_OFFSET 0x7000
-
-typedef struct {
-	void *fibril_data;
-} tcb_t;
-
-static inline void __tcb_set(tcb_t *tcb)
-{
-	void *tp = tcb;
-	tp += PPC_TP_OFFSET + sizeof(tcb_t);
-	
-	asm volatile (
-		"mr %%r2, %0\n"
-		:
-		: "r" (tp)
-	);
-}
-
-static inline tcb_t * __tcb_get(void)
-{
-	void * retval;
-	
-	asm volatile (
-		"mr %0, %%r2\n"
-		: "=r" (retval)
-	);
-
-	return (tcb_t *)(retval - PPC_TP_OFFSET - sizeof(tcb_t));
-}
-
 #endif
 
 /** @}

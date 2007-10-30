@@ -35,9 +35,10 @@
 
 #include <libadt/list.h>
 #include <fibril.h>
+#include <thread.h>
+#include <tls.h>
 #include <malloc.h>
 #include <unistd.h>
-#include <thread.h>
 #include <stdio.h>
 #include <libarch/faddr.h>
 #include <futex.h>

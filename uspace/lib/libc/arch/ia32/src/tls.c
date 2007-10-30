@@ -34,33 +34,17 @@
   * @ingroup libcia32
  */
 
-#include <thread.h>
-#include <malloc.h>
-#include <align.h>
+#include <tls.h>
+#include <sys/types.h>
 
-/** Allocate TLS & TCB for initial module threads
- *
- * @param data Start of data section
- * @return pointer to tcb_t structure
- */
 tcb_t * __alloc_tls(void **data, size_t size)
 {
-	tcb_t *tcb;
-	
-	size = ALIGN_UP(size, &_tls_alignment);
-	*data = memalign(&_tls_alignment, sizeof(tcb_t) + size);
-
-	tcb = (tcb_t *) (*data + size);
-	tcb->self = tcb;
-
-	return tcb;
+	return tls_alloc_variant_2(data, size);
 }
 
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
-	size = ALIGN_UP(size, &_tls_alignment);
-	void *start = ((void *)tcb) - size;
-	free(start);
+	tls_free_variant_2(tcb, size);
 }
 
 /** @}

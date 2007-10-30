@@ -34,7 +34,7 @@ TOOLCHAIN_DIR = /usr/local/ppc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/thread.c
+		arch/$(ARCH)/src/tls.c
 
 CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64

@@ -33,7 +33,7 @@ TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/sparc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/thread.c
+		arch/$(ARCH)/src/tls.c
 
 CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N
