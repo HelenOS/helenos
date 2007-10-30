@@ -73,7 +73,10 @@ class NoDialog:
     def _print_choice(self, text, choices, defopt):
         sys.stdout.write('%s:\n' % text)
         for i,(text,descr) in enumerate(choices):
-            sys.stdout.write('\t%2d. %s\n' % (i, descr))
+            if descr is '':
+                sys.stdout.write('\t%2d. %s\n' % (i, text))
+            else:
+                sys.stdout.write('\t%2d. %s\n' % (i, descr))
         if defopt is not None:
             sys.stdout.write('Enter choice number[%d]: ' % defopt)
         else:
