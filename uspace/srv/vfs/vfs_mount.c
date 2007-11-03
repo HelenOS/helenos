@@ -86,8 +86,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	ipc_call_t call;
 	size_t size;
 	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
-		ipc_answer_fast(callid, EINVAL, 0, 0);
-		ipc_answer_fast(rid, EINVAL, 0, 0);
+		ipc_answer_fast_0(callid, EINVAL);
+		ipc_answer_fast_0(rid, EINVAL);
 		return;
 	}
 
@@ -98,8 +98,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if ((size < FS_NAME_MAXLEN + 1) ||
 	    (size > FS_NAME_MAXLEN + MAX_PATH_LEN)) {
-		ipc_answer_fast(callid, EINVAL, 0, 0);
-		ipc_answer_fast(rid, EINVAL, 0, 0);
+		ipc_answer_fast_0(callid, EINVAL);
+		ipc_answer_fast_0(rid, EINVAL);
 		return;
 	}
 
@@ -109,8 +109,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	uint8_t *buf;
 	buf = malloc(size);
 	if (!buf) {
-		ipc_answer_fast(callid, ENOMEM, 0, 0);
-		ipc_answer_fast(rid, ENOMEM, 0, 0);
+		ipc_answer_fast_0(callid, ENOMEM);
+		ipc_answer_fast_0(rid, ENOMEM);
 		return;
 	}
 
@@ -130,7 +130,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	int fs_handle = fs_name_to_handle(fs_name, true);
 	if (!fs_handle) {
 		free(buf);
-		ipc_answer_fast(rid, ENOENT, 0, 0);
+		ipc_answer_fast_0(rid, ENOENT);
 		return;
 	}
 
@@ -142,7 +142,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	rc = lookup_root(fs_handle, dev_handle, &mounted_root);
 	if (rc != EOK) {
 		free(buf);
-		ipc_answer_fast(rid, rc, 0, 0);
+		ipc_answer_fast_0(rid, rc);
 		return;
 	}
 
@@ -163,7 +163,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 */
 			futex_up(&rootfs_futex);
 			free(buf);
-			ipc_answer_fast(rid, rc, 0, 0);
+			ipc_answer_fast_0(rid, rc);
 			return;
 		}
 	} else {
@@ -178,7 +178,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			rootfs = mounted_root;
 			futex_up(&rootfs_futex);
 			free(buf);
-			ipc_answer_fast(rid, EOK, 0, 0);
+			ipc_answer_fast_0(rid, EOK);
 			return;
 		} else {
 			/*
@@ -187,7 +187,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 */
 			futex_up(&rootfs_futex);
 			free(buf);
-			ipc_answer_fast(rid, ENOENT, 0, 0);
+			ipc_answer_fast_0(rid, ENOENT);
 			return;
 		}
 	}
@@ -218,11 +218,11 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	vfs_release_phone(phone);
 
 	if (rc2 == EOK)
-		ipc_answer_fast(rid, rc1, 0, 0);
+		ipc_answer_fast_0(rid, rc1);
 	else if (rc1 == EOK)
-		ipc_answer_fast(rid, rc2, 0, 0);
+		ipc_answer_fast_0(rid, rc2);
 	else
-		ipc_answer_fast(rid, rc1, 0, 0);
+		ipc_answer_fast_0(rid, rc1);
 }
 
 /**

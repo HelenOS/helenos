@@ -92,13 +92,14 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name,
 	if (!*addr) {
 		ph_addr = (void *) sysinfo_value(name);
 		if (!ph_addr) {
-			ipc_answer_fast(callid, ENOENT, 0, 0);
+			ipc_answer_fast_0(callid, ENOENT);
 			return;
 		}
 		*addr = as_get_mappable_page(PAGE_SIZE);
-		physmem_map(ph_addr, *addr, 1, AS_AREA_READ | AS_AREA_CACHEABLE);
+		physmem_map(ph_addr, *addr, 1,
+		    AS_AREA_READ | AS_AREA_CACHEABLE);
 	}
-	ipc_answer_fast(callid, 0, (ipcarg_t) *addr, AS_AREA_READ);
+	ipc_answer_fast(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
 }
 
 int main(int argc, char **argv)
@@ -127,11 +128,11 @@ int main(int argc, char **argv)
 				    &klogaddr);
 				break;
 			default:
-				ipc_answer_fast(callid, ENOENT, 0, 0);
+				ipc_answer_fast_0(callid, ENOENT);
 			}
 			continue;
 		case IPC_M_PHONE_HUNGUP:
-			retval = 0;
+			retval = EOK;
 			break;
 		case IPC_M_CONNECT_TO_ME:
 			/*
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (!(callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer_fast(callid, retval, 0, 0);
+			ipc_answer_fast_0(callid, retval);
 		}
 	}
 }

@@ -52,8 +52,8 @@ typedef void (* ipc_async_callback_t)(void *private, int retval,
     ipc_call_t *data);
 
 #define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) \
-	ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), (res2), \
-	    0)
+	ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), \
+	    (res2), 0)
 extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2,
     ipcarg_t *result3);
@@ -69,6 +69,10 @@ static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 }
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 
+#define ipc_answer_fast_0(callid, retval) \
+	ipc_answer_fast((callid), (retval), 0, 0)
+#define ipc_answer_fast_1(callid, retval, arg1) \
+	ipc_answer_fast((callid), (retval), (arg1), 0)
 extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval,
     ipcarg_t arg1, ipcarg_t arg2);
 extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);

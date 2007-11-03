@@ -59,7 +59,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Initialize the table of open files.
 	 */
 	if (!vfs_conn_open_files_init()) {
-		ipc_answer_fast(iid, ENOMEM, 0, 0);
+		ipc_answer_fast_0(iid, ENOMEM);
 		return;
 	}
 
@@ -67,7 +67,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	ipc_answer_fast(iid, EOK, 0, 0);
+	ipc_answer_fast_0(iid, EOK);
 
 	/*
 	 * Here we enter the main connection fibril loop.
@@ -104,7 +104,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_WRITE:
 		case VFS_SEEK:
 		default:
-			ipc_answer_fast(callid, ENOTSUP, 0, 0);
+			ipc_answer_fast_0(callid, ENOTSUP);
 			break;
 		}
 	}

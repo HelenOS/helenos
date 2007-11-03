@@ -93,7 +93,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		ipc_answer_fast(iid, EOK, 0, 0);
+		ipc_answer_fast_0(iid, EOK);
 	}
 	
 	dprintf("VFS-FAT connection established.\n");
@@ -104,7 +104,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
 		default:
-			ipc_answer_fast(callid, ENOTSUP, 0, 0);
+			ipc_answer_fast_0(callid, ENOTSUP);
 			break;
 		}
 	}
