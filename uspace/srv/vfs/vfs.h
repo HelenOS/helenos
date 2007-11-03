@@ -172,6 +172,7 @@ extern void vfs_release_phone(int);
 extern int fs_name_to_handle(char *, bool);
 
 extern int vfs_lookup_internal(char *, size_t, vfs_triplet_t *, vfs_pair_t *);
+extern vfs_node_t *vfs_node_get(vfs_triplet_t *);
 
 #define MAX_OPEN_FILES	128	
 

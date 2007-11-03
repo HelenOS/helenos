@@ -31,7 +31,7 @@
  */ 
 
 /**
- * @file	vfs.c
+ * @file	vfs_register.c
  * @brief	VFS_REGISTER method.
  */
 

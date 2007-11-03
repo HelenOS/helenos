@@ -31,7 +31,7 @@
  */ 
 
 /**
- * @file	vfs.c
+ * @file	vfs_mount.c
  * @brief	VFS_MOUNT method.
  */
 

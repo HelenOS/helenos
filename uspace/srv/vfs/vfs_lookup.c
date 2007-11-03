@@ -31,7 +31,7 @@
  */ 
 
 /**
- * @file	vfs.c
+ * @file	vfs_lookup.c
  * @brief	VFS_LOOKUP method and Path Lookup Buffer code.
  */
 

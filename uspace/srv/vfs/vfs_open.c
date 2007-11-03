@@ -31,7 +31,7 @@
  */ 
 
 /**
- * @file	vfs.c
+ * @file	vfs_open.c
  * @brief	VFS_OPEN method.
  */
 
@@ -66,6 +66,14 @@ __thread vfs_file_t *files = NULL;
 /** Initialize the table of open files. */
 static bool vfs_conn_open_files_init(void)
 {
+	/*
+	 * Optimized fast path that will never go to sleep unnecessarily.
+	 * The assumption is that once files is non-zero, it will never be zero
+	 * again.
+	 */
+	if (files)
+		return true;
+		
 	futex_down(&files_futex);
 	if (!files) {
 		files = malloc(MAX_OPEN_FILES * sizeof(vfs_file_t));
@@ -85,6 +93,64 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_fast_0(rid, ENOMEM);
 		return;
 	}
+
+	/*
+	 * The POSIX interface is open(path, flags, mode).
+	 * We can receive flags and mode along with the VFS_OPEN call; the path
+	 * will need to arrive in another call.
+	 */
+	int flags = IPC_GET_ARG1(*request);
+	int mode = IPC_GET_ARG2(*request);
+	size_t size;
+
+	ipc_callid_t callid;
+	ipc_call_t call;
+
+	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
+		ipc_answer_fast_0(callid, EINVAL);
+		ipc_answer_fast_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Now we are on the verge of accepting the path.
+	 *
+	 * There is one optimization we could do in the future: copy the path
+	 * directly into the PLB using some kind of a callback.
+	 */
+	char *path = malloc(size);
+	
+	if (!path) {
+		ipc_answer_fast_0(callid, ENOMEM);
+		ipc_answer_fast_0(rid, ENOMEM);
+		return;
+	}
+
+	int rc;
+	if (rc = ipc_data_deliver(callid, &call, path, size)) {
+		ipc_answer_fast_0(rid, rc);
+		free(path);
+		return;
+	}
+	
+	/*
+	 * The path is now populated and we can call vfs_lookup_internal().
+	 */
+	vfs_triplet_t triplet;
+	rc = vfs_lookup_internal(path, size, &triplet, NULL);
+	if (rc) {
+		ipc_answer_fast_0(rid, rc);
+		free(path);
+		return;
+	}
+
+	/*
+	 * Path is no longer needed.
+	 */
+	free(path);
+
+	vfs_node_t *node = vfs_node_get(&triplet);
+	// TODO: not finished	
 }
 
 /**
