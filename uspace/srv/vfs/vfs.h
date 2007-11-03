@@ -99,17 +99,38 @@ typedef struct {
 } fs_info_t;
 
 /**
- * Instances of this type represent a file system node (e.g. directory, file).
- * They are abstracted away from any file system implementation and contain just
- * enough bits to uniquely identify the object in its file system instance.
+ * VFS_PAIR uniquely represents a file system instance.
+ */
+#define VFS_PAIR	\
+	int fs_handle;	\
+	int dev_handle;	
+
+/**
+ * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
+ * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
  * @note	fs_handle, dev_handle and index are meant to be returned in one
  *		IPC reply.
  */
+#define VFS_TRIPLET	\
+	VFS_PAIR;	\
+	uint64_t index;
+
 typedef struct {
-	int fs_handle;		/**< Global file system ID. */
-	int dev_handle;		/**< Global mount device devno. */
-	uint64_t index;		/**< Index of the node on its file system. */
+	VFS_PAIR;
+} vfs_pair_t;
+
+typedef struct {
+	VFS_TRIPLET;
+} vfs_triplet_t;
+
+/**
+ * Instances of this type represent an active, in-memory VFS node and any state
+ * which may be associated with it.
+ */
+typedef struct {
+	VFS_TRIPLET;		/**< Identity of the node. */
+	atomic_t refcnt;	/**< Usage counter. */
 } vfs_node_t;
 
 /**
@@ -128,7 +149,7 @@ typedef struct {
 
 extern link_t fs_head;		/**< List of registered file systems. */
 
-extern vfs_node_t rootfs;	/**< Root node of the root file system. */
+extern vfs_triplet_t rootfs;	/**< Root node of the root file system. */
 
 #define MAX_PATH_LEN		(64 * 1024)
 
@@ -150,7 +171,7 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, size_t, vfs_node_t *, vfs_node_t *);
+extern int vfs_lookup_internal(char *, size_t, vfs_triplet_t *, vfs_pair_t *);
 
 #define MAX_OPEN_FILES	128	
 

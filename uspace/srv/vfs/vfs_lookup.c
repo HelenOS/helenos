@@ -61,10 +61,10 @@ uint8_t *plb = NULL;
  *
  * @return		EOK on success or an error code from errno.h.
  */
-int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
-    vfs_node_t *altroot)
+int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
+    vfs_pair_t *altroot)
 {
-	vfs_node_t *root;
+	vfs_pair_t *root;
 
 	if (!len)
 		return EINVAL;
@@ -72,7 +72,7 @@ int vfs_lookup_internal(char *path, size_t len, vfs_node_t *result,
 	if (altroot)
 		root = altroot;
 	else
-		root = &rootfs;
+		root = (vfs_pair_t *) &rootfs;
 
 	if (!root->fs_handle)
 		return ENOENT;

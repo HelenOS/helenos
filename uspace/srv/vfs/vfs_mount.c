@@ -46,17 +46,17 @@
 #include "vfs.h"
 
 atomic_t rootfs_futex = FUTEX_INITIALIZER;
-vfs_node_t rootfs = { 0 };
+vfs_triplet_t rootfs = {
+	.fs_handle = 0,
+	.dev_handle = 0,
+	.index = 0,
+};
 
-static int lookup_root(int fs_handle, int dev_handle, vfs_node_t *root)
+static int lookup_root(int fs_handle, int dev_handle, vfs_triplet_t *root)
 {
-	vfs_node_t altroot = {
+	vfs_pair_t altroot = {
 		.fs_handle = fs_handle,
 		.dev_handle = dev_handle,
-		/*
-		 * At this point, we don't know what is the index of the root
-		 * node. Finally, that's what this function is about.
-		 */
 	};
 
 	return vfs_lookup_internal("/", strlen("/"), root, &altroot);
@@ -138,7 +138,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Lookup the root node of the filesystem being mounted.
 	 */
 	int rc;
-	vfs_node_t mounted_root;
+	vfs_triplet_t mounted_root;
 	rc = lookup_root(fs_handle, dev_handle, &mounted_root);
 	if (rc != EOK) {
 		free(buf);
@@ -149,7 +149,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Finally, we need to resolve the path to the mountpoint. 
 	 */
-	vfs_node_t mp;
+	vfs_triplet_t mp;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/*
