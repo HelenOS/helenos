@@ -56,14 +56,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	printf("Connection opened from %p\n", icall->in_phone_hash);
 
 	/*
-	 * Initialize the table of open files.
-	 */
-	if (!vfs_conn_open_files_init()) {
-		ipc_answer_fast_0(iid, ENOMEM);
-		return;
-	}
-
-	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
@@ -96,8 +88,13 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			keep_on_going = false;
 			break;
 		case VFS_MOUNT:
-		case VFS_UNMOUNT:
+			vfs_mount(callid, &call);
+			keep_on_going = false;
+			break;
 		case VFS_OPEN:
+			vfs_open(callid, &call);
+			break;
+		case VFS_UNMOUNT:
 		case VFS_CREATE:
 		case VFS_CLOSE:
 		case VFS_READ:

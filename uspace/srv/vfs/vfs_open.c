@@ -43,7 +43,11 @@
 #include <bool.h>
 #include <futex.h>
 #include <libadt/list.h>
+#include <sys/types.h>
 #include "vfs.h"
+
+/** Per-connection futex protecting the files array. */
+__thread atomic_t files_futex = FUTEX_INITIALIZER;
 
 /**
  * This is a per-connection table of open files.
@@ -53,18 +57,34 @@
  * several tables and several file handle name spaces per task. Besides of this,
  * the functionality will stay unchanged. So unless the client knows what it is
  * doing, it should open one connection to VFS only.
+ *
+ * Allocation of the open files table is deferred until the client makes the
+ * first VFS_OPEN operation.
  */
-__thread vfs_file_t files[MAX_OPEN_FILES];
+__thread vfs_file_t *files = NULL;
 
 /** Initialize the table of open files. */
-bool vfs_conn_open_files_init(void)
+static bool vfs_conn_open_files_init(void)
 {
-	memset(files, 0, MAX_OPEN_FILES * sizeof(vfs_file_t));
+	futex_down(&files_futex);
+	if (!files) {
+		files = malloc(MAX_OPEN_FILES * sizeof(vfs_file_t));
+		if (!files) {
+			futex_up(&files_futex);
+			return false;
+		}
+		memset(files, 0, MAX_OPEN_FILES * sizeof(vfs_file_t));
+	}
+	futex_up(&files_futex);
 	return true;
 }
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
+	if (!vfs_conn_open_files_init()) {
+		ipc_answer_fast_0(rid, ENOMEM);
+		return;
+	}
 }
 
 /**

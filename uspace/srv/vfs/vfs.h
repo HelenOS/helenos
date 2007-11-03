@@ -175,8 +175,6 @@ extern int vfs_lookup_internal(char *, size_t, vfs_triplet_t *, vfs_pair_t *);
 
 #define MAX_OPEN_FILES	128	
 
-extern bool vfs_conn_open_files_init(void);
-
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
