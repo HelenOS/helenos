@@ -31,62 +31,18 @@
  */ 
 
 /**
- * @file	vfs_node.c
- * @brief	Various operations on VFS nodes have their home in this file.
+ * @file	vfs_unlink.c
+ * @brief
  */
 
-#include "vfs.h"
+#include <atomic.h>
+#include <futex.h>
 
-/** Increment reference count of a VFS node.
- *
- * @param node		VFS node that will have its refcnt incremented.
+/**
+ * This futex serializes concurrent VFS_CREATE, VFS_OPEN and VFS_UNLINK
+ * operations.
  */
-void vfs_node_addref(vfs_node_t *node)
-{
-	/* TODO */
-}
-
-/** Decrement reference count of a VFS node.
- *
- * This function handles the case when the reference count drops to zero.
- *
- * @param node		VFS node that will have its refcnt decremented.
- */
-void vfs_node_delref(vfs_node_t *node)
-{
-	/* TODO */
-}
-
-/** Find VFS node.
- *
- * This function will try to lookup the given triplet in the VFS node hash
- * table. In case the triplet is not found there, a new VFS node is created.
- * In any case, the VFS node will have its reference count incremented. Every
- * node returned by this call should be eventually put back by calling
- * vfs_node_put() on it.
- *
- * @param triplet	Triplet encoding the identity of the VFS node.
- *
- * @return		VFS node corresponding to the given triplet.
- */
-vfs_node_t *vfs_node_get(vfs_triplet_t *triplet)
-{
-	/* TODO */
-	return NULL;
-}
-
-/** Return VFS node when no longer needed by the caller.
- *
- * This function will remove the reference on the VFS node created by
- * vfs_node_get(). This function can only be called as a closing bracket to the
- * preceding vfs_node_get() call.
- *
- * @param node		VFS node being released.
- */
-void vfs_node_put(vfs_node_t *node)
-{
-	vfs_node_delref(node);
-}
+atomic_t unlink_futex = FUTEX_INITIALIZER;
 
 /**
  * @}

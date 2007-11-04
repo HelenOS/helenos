@@ -56,6 +56,8 @@ typedef enum {
 	VFS_READ,
 	VFS_WRITE,
 	VFS_SEEK,
+	VFS_RENAME,
+	VFS_UNLINK,
 	VFS_LAST,		/* keep this the last member of the enum */
 } vfs_request_t;
 
@@ -130,7 +132,8 @@ typedef struct {
  */
 typedef struct {
 	VFS_TRIPLET;		/**< Identity of the node. */
-	atomic_t refcnt;	/**< Usage counter. */
+	unsigned refcnt;	/**< Usage counter. */
+	link_t nh_link;		/**< Node hash-table link. */
 } vfs_node_t;
 
 /**
@@ -141,7 +144,7 @@ typedef struct {
 	vfs_node_t *node;
 	
 	/** Number of file handles referencing this file. */
-	atomic_t refcnt;
+	unsigned refcnt;
 
 	/** Current position in the file. */
 	off_t pos;
@@ -166,13 +169,29 @@ extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 
+extern atomic_t unlink_futex;	/**< VFS_{CREATE|OPEN|UNLINK} serialization. */
+
 extern int vfs_grab_phone(int);
 extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
 extern int vfs_lookup_internal(char *, size_t, vfs_triplet_t *, vfs_pair_t *);
+
+
 extern vfs_node_t *vfs_node_get(vfs_triplet_t *);
+extern void vfs_node_put(vfs_node_t *);
+
+extern bool vfs_files_init(void);
+extern vfs_file_t *vfs_file_get(int);
+extern int vfs_fd_alloc(void);
+extern void vfs_fd_free(int);
+
+extern void vfs_file_addref(vfs_file_t *);
+extern void vfs_file_delref(vfs_file_t *);
+
+extern void vfs_node_addref(vfs_node_t *);
+extern void vfs_node_delref(vfs_node_t *);
 
 #define MAX_OPEN_FILES	128	
 

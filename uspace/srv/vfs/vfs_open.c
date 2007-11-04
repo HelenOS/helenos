@@ -38,58 +38,14 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <bool.h>
 #include <futex.h>
-#include <libadt/list.h>
 #include <sys/types.h>
+#include <stdlib.h>
 #include "vfs.h"
-
-/** Per-connection futex protecting the files array. */
-__thread atomic_t files_futex = FUTEX_INITIALIZER;
-
-/**
- * This is a per-connection table of open files.
- * Our assumption is that each client opens only one connection and therefore
- * there is one table of open files per task. However, this may not be the case
- * and the client can open more connections to VFS. In that case, there will be
- * several tables and several file handle name spaces per task. Besides of this,
- * the functionality will stay unchanged. So unless the client knows what it is
- * doing, it should open one connection to VFS only.
- *
- * Allocation of the open files table is deferred until the client makes the
- * first VFS_OPEN operation.
- */
-__thread vfs_file_t *files = NULL;
-
-/** Initialize the table of open files. */
-static bool vfs_conn_open_files_init(void)
-{
-	/*
-	 * Optimized fast path that will never go to sleep unnecessarily.
-	 * The assumption is that once files is non-zero, it will never be zero
-	 * again.
-	 */
-	if (files)
-		return true;
-		
-	futex_down(&files_futex);
-	if (!files) {
-		files = malloc(MAX_OPEN_FILES * sizeof(vfs_file_t));
-		if (!files) {
-			futex_up(&files_futex);
-			return false;
-		}
-		memset(files, 0, MAX_OPEN_FILES * sizeof(vfs_file_t));
-	}
-	futex_up(&files_futex);
-	return true;
-}
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
-	if (!vfs_conn_open_files_init()) {
+	if (!vfs_files_init()) {
 		ipc_answer_fast_0(rid, ENOMEM);
 		return;
 	}
@@ -127,18 +83,26 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	int rc;
-	if (rc = ipc_data_deliver(callid, &call, path, size)) {
+	if ((rc = ipc_data_deliver(callid, &call, path, size))) {
 		ipc_answer_fast_0(rid, rc);
 		free(path);
 		return;
 	}
 	
 	/*
+	 * Avoid the race condition in which the file can be deleted before we
+	 * find/create-and-lock the VFS node corresponding to the looked-up
+	 * triplet.
+	 */
+	futex_down(&unlink_futex);
+
+	/*
 	 * The path is now populated and we can call vfs_lookup_internal().
 	 */
 	vfs_triplet_t triplet;
 	rc = vfs_lookup_internal(path, size, &triplet, NULL);
 	if (rc) {
+		futex_up(&unlink_futex);
 		ipc_answer_fast_0(rid, rc);
 		free(path);
 		return;
@@ -150,7 +114,35 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&triplet);
-	// TODO: not finished	
+	futex_up(&unlink_futex);
+
+	/*
+	 * Get ourselves a file descriptor and the corresponding vfs_file_t
+	 * structure.
+	 */
+	int fd = vfs_fd_alloc();
+	if (fd < 0) {
+		vfs_node_put(node);
+		ipc_answer_fast_0(rid, fd);
+		return;
+	}
+	vfs_file_t *file = vfs_file_get(fd);
+	file->node = node;
+
+	/*
+	 * The following increase in reference count is for the fact that the
+	 * file is being opened and that a file structure is pointing to it.
+	 * It is necessary so that the file will not disappear when
+	 * vfs_node_put() is called. The reference will be dropped by the
+	 * respective VFS_CLOSE.
+	 */
+	vfs_node_addref(node);
+	vfs_node_put(node);
+
+	/*
+	 * Success! Return the new file descriptor to the client.
+	 */
+	ipc_answer_fast_1(rid, EOK, fd);
 }
 
 /**

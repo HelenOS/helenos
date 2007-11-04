@@ -43,10 +43,12 @@ OUTPUT = vfs
 SOURCES = \
 	vfs.c \
 	vfs_node.c \
+	vfs_file.c \
 	vfs_register.c \
 	vfs_lookup.c \
 	vfs_mount.c \
-	vfs_open.c
+	vfs_open.c \
+	vfs_unlink.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

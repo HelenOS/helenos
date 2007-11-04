@@ -100,6 +100,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_READ:
 		case VFS_WRITE:
 		case VFS_SEEK:
+		case VFS_UNLINK:
+		case VFS_RENAME:
 		default:
 			ipc_answer_fast_0(callid, ENOTSUP);
 			break;
