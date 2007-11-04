@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <thread.h>
+#include <tls.h>
 #include <malloc.h>
 
 /** Allocate TLS & TCB for initial module threads
