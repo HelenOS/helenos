@@ -39,22 +39,56 @@
 #define DEVMAP_NAME_MAXLEN 512
 
 typedef enum {
-	DEVMAP_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAP_UNREGISTER,
-	DEVMAP_CONNECT_TO_DEVICE,
-	DEVMAP_GET_HANDLE
+	DEVMAP_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
+	DEVMAP_DRIVER_UNREGISTER,
+	DEVMAP_DEVICE_CONNECT_ME_TO,
+	DEVMAP_DEVICE_REGISTER,
+	DEVMAP_DEVICE_UNREGISTER,
+	DEVMAP_DEVICE_GET_NAME,
+	DEVMAP_DEVICE_GET_HANDLE
 } devmap_request_t;
 
+/** Representation of device driver.
+ * Each driver is responsible for a set of devices.
+ */
+typedef struct {
+		/** Pointers to previous and next drivers in linked list */
+	link_t drivers;	
+		/** Pointer to the linked list of devices controlled by
+		 * this driver */
+	link_t devices;
+		/** Phone asociated with this driver */
+	ipcarg_t phone;
+		/** Device driver name */
+	char *name;	
+		/** Futex for list of devices owned by this driver */
+	atomic_t devices_futex;
+} devmap_driver_t;
 
 /** Info about registered device
  *
  */
 typedef struct {
-	link_t list;
+		/** Pointer to the previous and next device in the list of all devices */
+	link_t devices;
+		/** Pointer to the previous and next device in the list of devices
+		 owned by one driver */
+	link_t driver_devices;
+		/** Unique device identifier  */
 	int handle;
+		/** Device name */
 	char *name;
-	ipcarg_t phone;
+		/** Device driver handling this device */
+	devmap_driver_t *driver;
 } devmap_device_t;
+
+/** Interface provided by DevMap. 
+ *
+ */
+typedef enum {
+	DEVMAP_DRIVER = 1,
+	DEVMAP_CLIENT
+} devmap_interface_t;
 
 #endif
 

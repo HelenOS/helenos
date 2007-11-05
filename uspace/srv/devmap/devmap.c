@@ -41,14 +41,46 @@
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
-#include <libadt/list.h>
 #include <futex.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "devmap.h"
 
-LIST_INITIALIZE(device_list);
 
-atomic_t device_list_futex = FUTEX_INITIALIZER;
+LIST_INITIALIZE(devices_list);
+LIST_INITIALIZE(drivers_list);
+
+/* order of locking:
+ * drivers_list_futex
+ * devices_list_futex
+ * (devmap_driver_t *)->devices_futex
+ * create_handle_futex
+ **/
+
+static atomic_t devices_list_futex = FUTEX_INITIALIZER;
+static atomic_t drivers_list_futex = FUTEX_INITIALIZER;
+static atomic_t create_handle_futex = FUTEX_INITIALIZER;
+
+
+static int devmap_create_handle(void)
+{
+	static int last_handle = 0;
+	int handle;
+
+	/* TODO: allow reusing old handles after their unregistration
+		and implement some version of LRU algorithm */
+	/* FIXME: overflow */
+	futex_down(&create_handle_futex);	
+
+	last_handle += 1;
+	handle = last_handle;
+
+	futex_up(&create_handle_futex);	
+
+	return handle;
+}
+
 
 /** Initialize device mapper. 
  *
@@ -56,87 +88,567 @@ atomic_t device_list_futex = FUTEX_INITIALIZER;
  */
 static int devmap_init()
 {
-	/* */
+	/* TODO: */
 
 	return EOK;
 }
 
-static int devmap_register()
-{
-	ipc_callid_t callid2;
-	size_t size;
-	char buffer[DEVMAP_NAME_MAXLEN + 1];
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	
-	if (ipc_data_receive(&callid, &call, NULL, &size) != 0) {
-	//	retval = 
-	}
-
-	if (size > DEVMAP_NAME_MAXLEN) {
-		retval = ELIMIT;
-	} else {
-		ipc_data_deliver(callid2, &call, buffer, size);
-		buffer[DEVMAP_NAME_MAXLEN] = 0;
-	}
-	return EOK;
-}
-
-static int devmap_unregister()
-{
-	return EOK;
-}
-
-static int devmap_forward(int handle, ipc_call_t *call, ipc_callid_t callid)
+/** Find device with given name.
+ *
+ */
+static devmap_device_t *devmap_device_find_name(const char *name)
 {
 	link_t *item;
-	ipcarg_t phone;
-	devmap_device_t *dev;
+	devmap_device_t *device = NULL;
 
-	/* FIXME: add futex */
-	futex_down(&device_list_futex);
+	item = devices_list.next;
 
-	item = (&device_list)->next;
+	while (item != &devices_list) {
 
-	while (item != &device_list) {
-
-		dev = list_get_instance(item, devmap_device_t, list);
-		if (dev->handle == handle) {
+		device = list_get_instance(item, devmap_device_t, devices);
+		if (0 == strcmp(device->name, name)) {
 			break;
 		}
 		item = item->next;
 	}
 
-	if (item == &device_list) {
-		return ENOENT;
+	if (item == &devices_list) {
+		printf("DevMap: no device named %s.\n", name);
+		return NULL;
 	}
 
-	dev = list_get_instance(item, devmap_device_t, list);
-	phone = dev->phone;
-
-	futex_up(&device_list_futex);
-	
-	return ipc_forward_fast(callid, phone, 0, 0);
+	device = list_get_instance(item, devmap_device_t, devices);
+	return device;
 }
 
-static int devmap_get_handle()
+/** Find device with given handle.
+ * @todo: use hash table
+ */
+static devmap_device_t *devmap_device_find_handle(int handle)
 {
+	link_t *item;
+	devmap_device_t *device = NULL;
+	
+	futex_down(&devices_list_futex);
+
+	item = (&devices_list)->next;
+
+	while (item != &devices_list) {
+
+		device = list_get_instance(item, devmap_device_t, devices);
+		if (device->handle == handle) {
+			break;
+		}
+		item = item->next;
+	}
+
+	if (item == &devices_list) {
+		futex_up(&devices_list_futex);
+		return NULL;
+	}
+
+	device = list_get_instance(item, devmap_device_t, devices);
+	
+	futex_up(&devices_list_futex);
+
+	return device;
+}
+
+/** Unregister device and free it. Its assumed that driver's device list 
+ * is already locked.
+ *
+ */
+static int devmap_device_unregister_core(devmap_device_t *device)
+{
+
+	list_remove(&(device->devices));
+	list_remove(&(device->driver_devices));
+
+	free(device->name);	
+	free(device);
+
+
 	return EOK;
 }
 
-/** Function for handling connections to devmap 
+/** Read info about new driver and add it into linked list of registered drivers.
+ */
+static void devmap_driver_register(devmap_driver_t **odriver)
+{
+	size_t name_size;
+	ipc_callid_t callid;
+	ipc_call_t call;
+	devmap_driver_t *driver;
+	ipc_callid_t iid;
+	ipc_call_t icall;
+
+	*odriver = NULL;
+	
+	iid = async_get_call(&icall);
+
+	if (IPC_GET_METHOD(icall) != DEVMAP_DRIVER_REGISTER) {
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	} 
+
+	if (NULL == (driver = (devmap_driver_t *)malloc(sizeof(devmap_driver_t)))) {
+		ipc_answer_fast(iid, ENOMEM, 0, 0);
+		return;
+	}
+
+	/* 
+	 * Get driver name
+	 */
+	if (!ipc_data_receive(&callid, &call, NULL, &name_size)) {
+		printf("Unexpected request: %u.\n", IPC_GET_METHOD(call));
+		free(driver);
+		ipc_answer_fast(callid, EREFUSED, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	if (name_size > DEVMAP_NAME_MAXLEN) {
+		printf("Too logn name: %u: maximum is %u.\n", name_size, DEVMAP_NAME_MAXLEN);
+		free(driver);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	/*
+	 * Allocate buffer for device name.
+	 */
+	if (NULL == (driver->name = (char *)malloc(name_size + 1))) {
+		printf("Cannot allocate space for driver name.\n");
+		free(driver);
+		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}	
+
+	/*
+	 * Send confirmation to sender and get data into buffer.
+	 */
+	if (EOK != ipc_data_deliver(callid, &call, driver->name, name_size)) {
+		printf("Cannot read driver name.\n");
+		free(driver->name);
+		free(driver);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	driver->name[name_size] = 0;
+
+	printf("Read driver name: '%s'.\n", driver->name);
+
+	/* Initialize futex for list of devices owned by this driver */
+	futex_initialize(&(driver->devices_futex) ,1);
+
+	/* 
+	 * Initialize list of asociated devices
+     */
+	list_initialize(&(driver->devices));
+
+	/* 
+	 * Create connection to the driver 
+	 */
+	callid = async_get_call(&call);
+
+	if (IPC_M_CONNECT_TO_ME != IPC_GET_METHOD(call)) {
+		printf("DevMap: Unexpected method: %u.\n", \
+			IPC_GET_METHOD(call));
+		ipc_answer_fast(callid, ENOTSUP, 0, 0);
+		
+		free(driver->name);
+		free(driver);
+		ipc_answer_fast(iid, ENOTSUP, 0, 0);
+		return;
+	}
+
+	driver->phone = IPC_GET_ARG3(call);
+	
+	ipc_answer_fast(callid, EOK, 0, 0);
+	
+	list_initialize(&(driver->drivers));
+
+	futex_down(&drivers_list_futex);	
+	
+	/* TODO: check that no driver with name equals to driver->name is registered */
+
+	/* 
+	 * Insert new driver into list of registered drivers
+	 */
+	list_append(&(driver->drivers), &drivers_list);
+	futex_up(&drivers_list_futex);	
+	
+	ipc_answer_fast(iid, EOK, 0, 0);
+	printf("Driver registered.\n");
+
+	*odriver = driver;
+	return;
+}
+
+/** Unregister device driver, unregister all its devices and free driver structure.
  *
  */
-static void
-devmap_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static int devmap_driver_unregister(devmap_driver_t *driver)
+{
+	devmap_device_t *device;
+
+	if (NULL == driver) {
+		printf("Error: driver == NULL.\n");
+		return EEXISTS;
+	}
+
+	printf("Unregister driver '%s'.\n", driver->name);
+	futex_down(&drivers_list_futex);	
+
+	ipc_hangup(driver->phone);
+	
+	/* remove it from list of drivers */
+	list_remove(&(driver->drivers));
+
+	/* unregister all its devices */
+	
+	futex_down(&devices_list_futex);	
+	futex_down(&(driver->devices_futex));
+
+	while (!list_empty(&(driver->devices))) {
+		device = list_get_instance(driver->devices.next, devmap_device_t, driver_devices);
+		printf("Unregister device '%s'.\n", device->name);
+		devmap_device_unregister_core(device);
+	}
+	
+	futex_up(&(driver->devices_futex));
+	futex_up(&devices_list_futex);	
+	futex_up(&drivers_list_futex);	
+
+	/* free name and driver */
+	if (NULL != driver->name) {
+		free(driver->name);
+	}
+
+	free(driver);
+
+	printf("Driver unregistered.\n");
+
+	return EOK;
+}
+
+
+/** Register instance of device
+ *
+ */
+static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
+		devmap_driver_t *driver)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	int retval;
-	bool cont = true;
+	size_t size;
+	devmap_device_t *device;
 
-	printf("DevMap: new connection.");
+	if (NULL == driver) {
+		printf("Invalid driver registration.\n");
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+	
+	/* Create new device entry */
+	if (NULL == (device = (devmap_device_t *)malloc(sizeof(devmap_device_t)))) {
+		printf("Cannot allocate new device.\n");
+		ipc_answer_fast(iid, ENOMEM, 0, 0);
+		return;
+	}
+	
+	/* Get device name */
+	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
+		free(device);
+		printf("Cannot read device name.\n");
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	if (size > DEVMAP_NAME_MAXLEN) {
+		printf("Too long device name: %u.\n", size);
+		free(device);
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+		/* +1 for terminating \0 */
+	device->name = (char *)malloc(size + 1);
+
+	if (NULL == device->name) {
+		printf("Cannot read device name.\n");
+		free(device);
+		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+	
+	ipc_data_deliver(callid, &call, device->name, size);
+	device->name[size] = 0;
+
+	list_initialize(&(device->devices));
+	list_initialize(&(device->driver_devices));
+
+	futex_down(&devices_list_futex);	
+
+	/* Check that device with such name is not already registered */
+	if (NULL != devmap_device_find_name(device->name)) {
+		printf("Device '%s' already registered.\n", device->name);
+		futex_up(&devices_list_futex);	
+		free(device->name);
+		free(device);
+		ipc_answer_fast(iid, EEXISTS, 0, 0);
+		return;
+	}
+
+	/* Get unique device handle */
+	device->handle = devmap_create_handle(); 
+
+	device->driver = driver;
+	
+	/* Insert device into list of all devices  */
+	list_append(&(device->devices), &devices_list);
+
+	/* Insert device into list of devices that belog to one driver */
+	futex_down(&(device->driver->devices_futex));	
+	
+	list_append(&(device->driver_devices), &(device->driver->devices));
+	
+	futex_up(&(device->driver->devices_futex));	
+	futex_up(&devices_list_futex);	
+
+	printf("Device '%s' registered.\n", device->name);	
+	ipc_answer_fast(iid, EOK, device->handle, 0);
+
+	return;
+}
+
+/**
+ *
+ */
+static int devmap_device_unregister(ipc_callid_t iid, ipc_call_t *icall, 
+	devmap_driver_t *driver)
+{
+	/* TODO */
+
+	return EOK;
+}
+
+/** Connect client to the device.
+ * Find device driver owning requested device and forward
+ * the message to it.
+ *
+ *
+ */
+static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
+{
+	devmap_device_t *dev;
+	int handle;
+
+	/*
+	 * Get handle from request
+	 */
+	handle = IPC_GET_ARG1(*call);
+	dev = devmap_device_find_handle(handle);
+
+	if (NULL == dev) {
+		printf("DevMap: No registered device with handle %d.\n", handle);
+		ipc_answer_fast(callid, ENOENT, 0, 0);
+		return;
+	} 
+
+		/* FIXME: is this correct method how to pass argument on forwarding ?*/
+	ipc_forward_fast(callid, dev->driver->phone, (ipcarg_t)(dev->handle), 0);
+	return;
+}
+
+/** Find handle for device instance identified by name.
+ * In answer will be send EOK and device handle in arg1 or a error
+ * code from errno.h. 
+ */
+static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+{
+	char *name = NULL;
+	size_t name_size;
+	const devmap_device_t *dev;
+	ipc_callid_t callid;
+	ipc_call_t call;
+	ipcarg_t retval;
+	
+	
+	/* 
+	 * Wait for incoming message with device name (but do not
+	 * read the name itself until the buffer is allocated).
+	 */
+	if (!ipc_data_receive(&callid, &call, NULL, &name_size)) {
+		ipc_answer_fast(callid, EREFUSED, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	if (name_size > DEVMAP_NAME_MAXLEN) {
+		ipc_answer_fast(callid, EINVAL, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	/*
+	 * Allocate buffer for device name.
+	 */
+	if (NULL == (name = (char *)malloc(name_size))) {
+		ipc_answer_fast(callid, ENOMEM, 0, 0);
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}	
+
+	/*
+	 * Send confirmation to sender and get data into buffer.
+	 */
+	if (EOK != (retval = ipc_data_deliver(callid, &call, name, name_size))) {
+		ipc_answer_fast(iid, EREFUSED, 0, 0);
+		return;
+	}
+
+	/*
+	 * Find device name in linked list of known devices.
+	 */
+	dev = devmap_device_find_name(name);
+
+	/*
+	 * Device was not found.
+	 */
+	if (NULL == dev) {
+		printf("DevMap: device %s has not been registered.\n", name);
+		ipc_answer_fast(iid, ENOENT, 0, 0);
+		return;
+	}
+
+	printf("DevMap: device %s has handler %d.\n", name, dev->handle);
+		
+	ipc_answer_fast(iid, EOK, dev->handle, 0);
+
+	return;
+}
+
+/** Find name of device identified by id and send it to caller. 
+ *
+ */
+static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall) 
+{
+	const devmap_device_t *device;
+	size_t name_size;
+
+	device = devmap_device_find_handle(IPC_GET_ARG1(*icall));
+
+	/*
+	 * Device not found.
+	 */
+	if (NULL == device) {
+		ipc_answer_fast(iid, ENOENT, 0, 0);
+		return;
+	}	
+
+	ipc_answer_fast(iid, EOK, 0, 0);
+
+	name_size = strlen(device->name);
+
+
+/*	FIXME:
+	we have no channel from DevMap to client -> 
+	sending must be initiated by client
+
+	int rc = ipc_data_send(phone, device->name, name_size); 
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+*/	
+	/* TODO: send name in response */
+
+	return;
+}
+
+/** Handle connection with device driver.
+ *
+ */
+static void
+devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	bool cont = true;
+	devmap_driver_t *driver = NULL; 
+
+	ipc_answer_fast(iid, EOK, 0, 0); 
+
+	devmap_driver_register(&driver);
+
+	if (NULL == driver) {
+		printf("DevMap: driver registration failed.\n");
+		return;
+	}
+	
+	while (cont) {
+		callid = async_get_call(&call);
+
+ 		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			printf("DevMap: connection hung up.\n");
+			cont = false;
+			continue; /* Exit thread */
+		case DEVMAP_DRIVER_UNREGISTER:
+			printf("DevMap: unregister driver.\n");
+			if (NULL == driver) {
+				printf("DevMap: driver was not registered!\n");
+				ipc_answer_fast(callid, ENOENT, 0, 0);
+			} else {
+				ipc_answer_fast(callid, EOK, 0, 0);
+			}
+			break;
+		case DEVMAP_DEVICE_REGISTER:
+			/* Register one instance of device */
+			devmap_device_register(callid, &call, driver);
+			break;
+		case DEVMAP_DEVICE_UNREGISTER:
+			/* Remove instance of device identified by handler */
+			devmap_device_unregister(callid, &call, driver);
+			break;
+		case DEVMAP_DEVICE_GET_HANDLE:
+			devmap_get_handle(callid, &call);
+			break;
+		case DEVMAP_DEVICE_GET_NAME:
+			devmap_get_handle(callid, &call);
+			break;
+		default:
+			if (!(callid & IPC_CALLID_NOTIFICATION)) {
+				ipc_answer_fast(callid, ENOENT, 0, 0);
+			}
+		}
+	}
+	
+	if (NULL != driver) {
+			/* 
+			 * Unregister the device driver and all its devices.
+			 */
+		devmap_driver_unregister(driver);
+		driver = NULL;
+	}
+	
+}
+
+/** Handle connection with device client.
+ *
+ */
+static void
+devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	ipc_call_t call;
+	bool cont = true;
 
 	ipc_answer_fast(iid, EOK, 0, 0); /* Accept connection */
 
@@ -145,55 +657,77 @@ devmap_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-				/* TODO: if its a device connection, remove it from table */
-			devmap_unregister();
-			printf("DevMap: connection hung up.");
+			printf("DevMap: connection hung up.\n");
 			cont = false;
 			continue; /* Exit thread */
 
-		case DEVMAP_REGISTER:
-			
-			if ((retval = devmap_register()) != EOK) {
-				cont = false;
-			}
+		case DEVMAP_DEVICE_CONNECT_ME_TO:
+			/* Connect client to selected device */
+			printf("DevMap: connect to device %d.\n", IPC_GET_ARG1(call));
+			devmap_forward(callid, &call);
 			break;
-		case DEVMAP_UNREGISTER:
-			/* TODO: remove device (if registred) */
-			retval = devmap_unregister();
-			cont = false;
+
+		case DEVMAP_DEVICE_GET_HANDLE:
+ 			devmap_get_handle(callid, &call);
+
 			break;
-		case DEVMAP_CONNECT_TO_DEVICE:
-			retval = devmap_forward(IPC_GET_ARG1(call), &call, callid);
-			cont = false;
-			break;
-		case DEVMAP_GET_HANDLE:
-			
+		case DEVMAP_DEVICE_GET_NAME:
+			/* TODO */
+			devmap_get_name(callid, &call);
 			break;
 		default:
-			retval = ENOENT;
+			if (!(callid & IPC_CALLID_NOTIFICATION)) {
+				ipc_answer_fast(callid, ENOENT, 0, 0);
+			}
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
 	}
- 		
-	printf("DevMap: connection closed.");
+}
+
+/** Function for handling connections to devmap 
+ *
+ */
+static void
+devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+
+	printf("DevMap: new connection.\n");
+
+		/* Select interface */
+	switch ((ipcarg_t)(IPC_GET_ARG1(*icall))) {
+		case DEVMAP_DRIVER:
+			devmap_connection_driver(iid, icall);
+			break;
+		case DEVMAP_CLIENT:
+			devmap_connection_client(iid, icall);
+			break;
+		default:
+			ipc_answer_fast(iid, ENOENT, 0, 0); /* No such interface */
+			printf("DevMap: Unknown interface %u.\n", \
+				(ipcarg_t)(IPC_GET_ARG1(*icall)));
+	}
+
+	/* Cleanup */
+	
+	printf("DevMap: connection closed.\n");
 	return;
 }
 
-
+/**
+ *
+ */
 int main(int argc, char *argv[])
 {
-
 	ipcarg_t phonead;
 
 	printf("DevMap: HelenOS device mapper.\n");
 
 	if (devmap_init() != 0) {
-		printf("Error while initializing DevMap service.");
+		printf("Error while initializing DevMap service.\n");
 		return -1;
 	}
 
 		/* Set a handler of incomming connections */
-	async_set_client_connection(devmap_client_connection);
+	async_set_client_connection(devmap_connection);
 
 		/* Register device mapper at naming service */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, &phonead) != 0) 

@@ -55,6 +55,7 @@ test_t tests[] = {
 #include "ipc/send_sync.def"
 #include "ipc/answer.def"
 #include "ipc/hangup.def"
+#include "devmap/devmap1.def"
 	{NULL, NULL, NULL}
 };
 

@@ -67,6 +67,7 @@ extern char * test_send_async(bool quiet);
 extern char * test_send_sync(bool quiet);
 extern char * test_answer(bool quiet);
 extern char * test_hangup(bool quiet);
+extern char * test_devmap1(bool quiet);
 
 extern test_t tests[];
 
