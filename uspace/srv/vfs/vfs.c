@@ -124,6 +124,14 @@ int main(int argc, char **argv)
 	list_initialize(&fs_head);
 
 	/*
+	 * Initialize VFS node hash table.
+	 */
+	if (!vfs_nodes_init()) {
+		printf("Failed to initialize the VFS node hash table.\n");
+		return ENOMEM;
+	}
+
+	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
 	list_initialize(&plb_head);
