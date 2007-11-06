@@ -78,12 +78,14 @@ struct hash_table_operations {
 	void (*remove_callback)(link_t *item);
 };
 
-#define hash_table_get_instance(item, type, member)	list_get_instance((item), type, member)
+#define hash_table_get_instance(item, type, member) \
+    list_get_instance((item), type, member)
 
-extern int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op);
-extern void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item);
-extern link_t *hash_table_find(hash_table_t *h, unsigned long key[]);
-extern void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys);
+extern int hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
+    hash_table_operations_t *);
+extern void hash_table_insert(hash_table_t *, unsigned long [], link_t *);
+extern link_t *hash_table_find(hash_table_t *, unsigned long []);
+extern void hash_table_remove(hash_table_t *, unsigned long [], hash_count_t);
 
 #endif
 
