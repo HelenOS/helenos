@@ -39,8 +39,8 @@
 #include <futex.h>
 
 /**
- * This futex serializes concurrent VFS_CREATE, VFS_OPEN and VFS_UNLINK
- * operations.
+ * This futex prevents the race between a triplet-to-VFS-node resolution and a
+ * concurrent VFS_UNLINK or VFS_RMDIR operation.
  */
 atomic_t unlink_futex = FUTEX_INITIALIZER;
 

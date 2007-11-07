@@ -65,6 +65,7 @@ static int lookup_root(int fs_handle, int dev_handle, vfs_triplet_t *root)
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	int dev_handle;
+	vfs_node_t *mp_node = NULL;
 
 	/*
 	 * We expect the library to do the device-name to device-handle
@@ -136,6 +137,9 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 	/*
 	 * Lookup the root node of the filesystem being mounted.
+	 * In this case, we don't need to take the unlink_futex as the root node
+	 * cannot be removed. However, we do take a reference to it so that
+	 * we can track how many times it has been mounted.
 	 */
 	int rc;
 	vfs_triplet_t mounted_root;
@@ -143,6 +147,12 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		free(buf);
 		ipc_answer_fast_0(rid, rc);
+		return;
+	}
+	vfs_node_t *mr_node = vfs_node_get(&mounted_root);
+	if (!mr_node) {
+		free(buf);
+		ipc_answer_fast_0(rid, ENOMEM);
 		return;
 	}
 
@@ -155,17 +165,35 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * We already have the root FS.
 		 */
+		futex_down(&unlink_futex);
 		rc = vfs_lookup_internal((char *) (buf + FS_NAME_MAXLEN),
 		    size - FS_NAME_MAXLEN, &mp, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
 			 */
+			futex_up(&unlink_futex);
 			futex_up(&rootfs_futex);
+			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
 			ipc_answer_fast_0(rid, rc);
 			return;
 		}
+		mp_node = vfs_node_get(&mp);
+		if (!mp_node) {
+			futex_up(&unlink_futex);
+			futex_up(&rootfs_futex);
+			vfs_node_put(mr_node);	/* failed -> drop reference */
+			free(buf);
+			ipc_answer_fast_0(rid, ENOMEM);
+			return;
+		}
+		/*
+		 * Now we hold a reference to mp_node.
+		 * It will be dropped upon the corresponding VFS_UNMOUNT.
+		 * This prevents the mount point from being deleted.
+		 */
+		futex_up(&unlink_futex);
 	} else {
 		/*
 		 * We still don't have the root file system mounted.
@@ -187,6 +215,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 */
 			futex_up(&rootfs_futex);
 			free(buf);
+			vfs_node_put(mr_node);	/* failed -> drop reference */
 			ipc_answer_fast_0(rid, ENOENT);
 			return;
 		}
@@ -217,6 +246,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	async_wait_for(req2, &rc2);
 	vfs_release_phone(phone);
 
+	if ((rc1 != EOK) || (rc2 != EOK)) {
+		/* Mount failed, drop references to mr_node and mp_node. */
+		vfs_node_put(mr_node);
+		if (mp_node)
+			vfs_node_put(mp_node);
+	}
+	
 	if (rc2 == EOK)
 		ipc_answer_fast_0(rid, rc1);
 	else if (rc1 == EOK)
