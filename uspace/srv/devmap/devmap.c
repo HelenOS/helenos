@@ -154,9 +154,9 @@ static devmap_device_t *devmap_device_find_handle(int handle)
 	return device;
 }
 
-/** Unregister device and free it. Its assumed that driver's device list 
- * is already locked.
- *
+/**
+ * Unregister device and free it. It's assumed that driver's device list is
+ * already locked.
  */
 static int devmap_device_unregister_core(devmap_device_t *device)
 {
@@ -171,7 +171,9 @@ static int devmap_device_unregister_core(devmap_device_t *device)
 	return EOK;
 }
 
-/** Read info about new driver and add it into linked list of registered drivers.
+/**
+ * Read info about new driver and add it into linked list of registered
+ * drivers.
  */
 static void devmap_driver_register(devmap_driver_t **odriver)
 {
@@ -191,7 +193,8 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 		return;
 	} 
 
-	if (NULL == (driver = (devmap_driver_t *)malloc(sizeof(devmap_driver_t)))) {
+	if (NULL ==
+	    (driver = (devmap_driver_t *)malloc(sizeof(devmap_driver_t)))) {
 		ipc_answer_fast(iid, ENOMEM, 0, 0);
 		return;
 	}
@@ -208,7 +211,8 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	}
 
 	if (name_size > DEVMAP_NAME_MAXLEN) {
-		printf("Too logn name: %u: maximum is %u.\n", name_size, DEVMAP_NAME_MAXLEN);
+		printf("Too logn name: %u: maximum is %u.\n", name_size,
+		    DEVMAP_NAME_MAXLEN);
 		free(driver);
 		ipc_answer_fast(callid, EINVAL, 0, 0);
 		ipc_answer_fast(iid, EREFUSED, 0, 0);
@@ -242,7 +246,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	printf("Read driver name: '%s'.\n", driver->name);
 
 	/* Initialize futex for list of devices owned by this driver */
-	futex_initialize(&(driver->devices_futex) ,1);
+	futex_initialize(&(driver->devices_futex), 1);
 
 	/* 
 	 * Initialize list of asociated devices
@@ -255,8 +259,8 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	callid = async_get_call(&call);
 
 	if (IPC_M_CONNECT_TO_ME != IPC_GET_METHOD(call)) {
-		printf("DevMap: Unexpected method: %u.\n", \
-			IPC_GET_METHOD(call));
+		printf("DevMap: Unexpected method: %u.\n",
+		    IPC_GET_METHOD(call));
 		ipc_answer_fast(callid, ENOTSUP, 0, 0);
 		
 		free(driver->name);
@@ -273,7 +277,9 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 
 	futex_down(&drivers_list_futex);	
 	
-	/* TODO: check that no driver with name equals to driver->name is registered */
+	/* TODO:
+	 * check that no driver with name equal to driver->name is registered
+	 */
 
 	/* 
 	 * Insert new driver into list of registered drivers
@@ -314,7 +320,8 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	futex_down(&(driver->devices_futex));
 
 	while (!list_empty(&(driver->devices))) {
-		device = list_get_instance(driver->devices.next, devmap_device_t, driver_devices);
+		device = list_get_instance(driver->devices.next,
+		    devmap_device_t, driver_devices);
 		printf("Unregister device '%s'.\n", device->name);
 		devmap_device_unregister_core(device);
 	}
@@ -354,7 +361,8 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	/* Create new device entry */
-	if (NULL == (device = (devmap_device_t *)malloc(sizeof(devmap_device_t)))) {
+	if (NULL ==
+	    (device = (devmap_device_t *)malloc(sizeof(devmap_device_t)))) {
 		printf("Cannot allocate new device.\n");
 		ipc_answer_fast(iid, ENOMEM, 0, 0);
 		return;
@@ -456,13 +464,15 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 	dev = devmap_device_find_handle(handle);
 
 	if (NULL == dev) {
-		printf("DevMap: No registered device with handle %d.\n", handle);
+		printf("DevMap: No registered device with handle %d.\n",
+		    handle);
 		ipc_answer_fast(callid, ENOENT, 0, 0);
 		return;
 	} 
 
-		/* FIXME: is this correct method how to pass argument on forwarding ?*/
-	ipc_forward_fast(callid, dev->driver->phone, (ipcarg_t)(dev->handle), 0);
+	/* FIXME: is this correct method how to pass argument on forwarding ?*/
+	ipc_forward_fast(callid, dev->driver->phone, (ipcarg_t)(dev->handle),
+	    0);
 	return;
 }
 
@@ -508,7 +518,8 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	if (EOK != (retval = ipc_data_deliver(callid, &call, name, name_size))) {
+	if (EOK != (retval = ipc_data_deliver(callid, &call, name,
+	    name_size))) {
 		ipc_answer_fast(iid, EREFUSED, 0, 0);
 		return;
 	}
@@ -663,7 +674,8 @@ devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 
 		case DEVMAP_DEVICE_CONNECT_ME_TO:
 			/* Connect client to selected device */
-			printf("DevMap: connect to device %d.\n", IPC_GET_ARG1(call));
+			printf("DevMap: connect to device %d.\n",
+			    IPC_GET_ARG1(call));
 			devmap_forward(callid, &call);
 			break;
 
@@ -694,16 +706,16 @@ devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 		/* Select interface */
 	switch ((ipcarg_t)(IPC_GET_ARG1(*icall))) {
-		case DEVMAP_DRIVER:
-			devmap_connection_driver(iid, icall);
-			break;
-		case DEVMAP_CLIENT:
-			devmap_connection_client(iid, icall);
-			break;
-		default:
-			ipc_answer_fast(iid, ENOENT, 0, 0); /* No such interface */
-			printf("DevMap: Unknown interface %u.\n", \
-				(ipcarg_t)(IPC_GET_ARG1(*icall)));
+	case DEVMAP_DRIVER:
+		devmap_connection_driver(iid, icall);
+		break;
+	case DEVMAP_CLIENT:
+		devmap_connection_client(iid, icall);
+		break;
+	default:
+		ipc_answer_fast(iid, ENOENT, 0, 0); /* No such interface */
+		printf("DevMap: Unknown interface %u.\n",
+		    (ipcarg_t)(IPC_GET_ARG1(*icall)));
 	}
 
 	/* Cleanup */
@@ -729,7 +741,7 @@ int main(int argc, char *argv[])
 		/* Set a handler of incomming connections */
 	async_set_client_connection(devmap_connection);
 
-		/* Register device mapper at naming service */
+	/* Register device mapper at naming service */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, &phonead) != 0) 
 		return -1;
 	
