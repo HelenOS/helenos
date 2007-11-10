@@ -70,8 +70,8 @@ ifeq ($(MACHINE),pentium3)
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
-ifeq ($(MACHINE),prescott)
-	CMN2 = -march=pentium4 -mfpmath=sse -mmmx -msse -msse2 -msse3
+ifeq ($(MACHINE),core)
+	CMN2 = -march=prescott -mfpmath=sse -mmmx -msse -msse2 -msse3
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)
 	SUNCC_CFLAGS += -xarch=sse3
