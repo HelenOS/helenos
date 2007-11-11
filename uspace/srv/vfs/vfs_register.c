@@ -38,6 +38,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
+#include <fibril.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,6 +339,11 @@ int vfs_grab_phone(int handle)
 			 * It will be up'ed in vfs_release_phone().
 			 */
 			futex_down(&fs->phone_futex);
+			/*
+			 * Avoid deadlock with other fibrils in the same thread
+			 * by disabling fibril preemption.
+			 */
+			fibril_inc_sercount();
 			return fs->phone; 
 		}
 	}
@@ -353,6 +359,11 @@ void vfs_release_phone(int phone)
 {
 	bool found = false;
 
+	/*
+	 * Undo the fibril_inc_sercount() done in vfs_grab_phone().
+	 */
+	fibril_dec_sercount();
+	
 	futex_down(&fs_head_futex);
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
