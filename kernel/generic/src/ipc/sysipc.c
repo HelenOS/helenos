@@ -99,8 +99,7 @@ static inline int method_is_forwardable(unative_t method)
 
 /** Decide if the message with this method is immutable on forward.
  *
- * - some system messages may be forwarded, for some of them
- *   it is useless
+ * - some system messages may be forwarded but their content cannot be altered
  *
  * @param method	Method to be decided.
  *

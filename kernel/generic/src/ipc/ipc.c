@@ -233,6 +233,7 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
  *
  * @param phone		Phone structure the call comes from.
  * @param box		Destination answerbox structure.
+ * @param call		Call structure with request.
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
