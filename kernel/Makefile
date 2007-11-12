@@ -71,7 +71,7 @@ endif
 
 ## The at-sign
 #
-# THE $(ATSIGN) variable holds the ASCII character representing the at-sign
+# The $(ATSIGN) variable holds the ASCII character representing the at-sign
 # ('@') used in various $(AS) constructs (e.g. @progbits). On architectures that
 # don't use '@' for starting a comment, $(ATSIGN) is merely '@'. However, on
 # those that do use it for starting a comment (e.g. arm32), $(ATSIGN) must be
