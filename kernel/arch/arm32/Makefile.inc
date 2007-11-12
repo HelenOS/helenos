@@ -41,6 +41,8 @@ ifeq ($(MACHINE), gxemul_testarm)
 	DMACHINE = MACHINE_GXEMUL_TESTARM
 endif
 
+ATSIGN = %
+
 GCC_CFLAGS += -fno-zero-initialized-in-bss
 
 DEFS += -D__32_BITS__ -DKERNEL_LOAD_ADDRESS=$(KERNEL_LOAD_ADDRESS) -D$(DMACHINE)

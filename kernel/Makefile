@@ -66,12 +66,26 @@ ifdef TIMESTAMP
 	DEFS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
 endif
 
-## Setup kernel configuration
-#
-
 -include arch/$(ARCH)/Makefile.inc
 -include genarch/Makefile.inc
 
+## The at-sign
+#
+# THE $(ATSIGN) variable holds the ASCII character representing the at-sign
+# ('@') used in various $(AS) constructs (e.g. @progbits). On architectures that
+# don't use '@' for starting a comment, $(ATSIGN) is merely '@'. However, on
+# those that do use it for starting a comment (e.g. arm32), $(ATSIGN) must be
+# defined as the percentile-sign ('%') in the architecture-dependent
+# Makefile.inc.
+#
+ATSIGN ?= @
+
+## Cross-platform assembly to start a symtab.data section
+#
+SYMTAB_SECTION=".section symtab.data, \"a\", $(ATSIGN)progbits;"
+
+## Setup kernel configuration
+#
 ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
 endif
@@ -346,19 +360,19 @@ arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab Makefile generic/src/debug/empty_map.o
+	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o generic/src/debug/empty_map.o
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/empty_map.o  -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 	# Do it once again, this time to get correct even the symbols
 	# on architectures, that have bss after symtab
-	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab generic/src/debug/real_map.bin generic/src/debug/sizeok_map.o
+	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o generic/src/debug/sizeok_map.o
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 
 generic/src/debug/real_map.o: generic/src/debug/real_map.bin
-	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) --prefix-sections=symtab $< $@
+	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@ 
 
 kernel.raw: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
 	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
