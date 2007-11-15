@@ -66,19 +66,25 @@ void decode_istate(int n, istate_t *istate)
 	char *symbol;
 /*	uint64_t *x = &istate->stack[0]; */
 
-	if (!(symbol=get_symtab_entry(istate->rip)))
+	if (!(symbol = get_symtab_entry(istate->rip)))
 		symbol = "";
 
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n",n, __func__);
-	printf("%%rip: %#llx (%s)\n",istate->rip, symbol);
+	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n", n, __func__);
+	printf("%%rip: %#llx (%s)\n", istate->rip, symbol);
 	printf("ERROR_WORD=%#llx\n", istate->error_word);
-	printf("%%rcs=%#llx, flags=%#llx, %%cr0=%#llx\n", istate->cs, istate->rflags, read_cr0());
-	printf("%%rax=%#llx, %%rcx=%#llx, %%rdx=%#llx\n", istate->rax, istate->rcx, istate->rdx);
-	printf("%%rsi=%#llx, %%rdi=%#llx, %%r8 =%#llx\n", istate->rsi, istate->rdi, istate->r8);
-	printf("%%r9 =%#llx, %%r10 =%#llx, %%r11=%#llx\n", istate->r9, istate->r10, istate->r11);
+	printf("%%cs=%#llx, rflags=%#llx, %%cr0=%#llx\n", istate->cs,
+	    istate->rflags, read_cr0());
+	printf("%%rax=%#llx, %%rcx=%#llx, %%rdx=%#llx\n", istate->rax,
+	    istate->rcx, istate->rdx);
+	printf("%%rsi=%#llx, %%rdi=%#llx, %%r8=%#llx\n", istate->rsi,
+	    istate->rdi, istate->r8);
+	printf("%%r9=%#llx, %%r10=%#llx, %%r11=%#llx\n", istate->r9,
+	    istate->r10, istate->r11);
 #ifdef CONFIG_DEBUG_ALLREGS	
-	printf("%%r12=%#llx, %%r13=%#llx, %%r14=%#llx\n", istate->r12, istate->r13, istate->r14);
-	printf("%%r15=%#llx, %%rbx=%#llx, %%rbp=%#llx\n", istate->r15, istate->rbx, &istate->rbp);
+	printf("%%r12=%#llx, %%r13=%#llx, %%r14=%#llx\n", istate->r12,
+	    istate->r13, istate->r14);
+	printf("%%r15=%#llx, %%rbx=%#llx, %%rbp=%#llx\n", istate->r15,
+	    istate->rbx, &istate->rbp);
 #endif
 	printf("%%rsp=%#llx\n", &istate->stack[0]);
 }
@@ -195,7 +201,8 @@ void interrupt_init(void)
 	
 	for (i = 0; i < IRQ_COUNT; i++) {
 		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
-			exc_register(IVT_IRQBASE + i, "irq", (iroutine) irq_interrupt);
+			exc_register(IVT_IRQBASE + i, "irq",
+			    (iroutine) irq_interrupt);
 	}
 	
 	exc_register(7, "nm_fault", (iroutine) nm_fault);
@@ -204,7 +211,8 @@ void interrupt_init(void)
 	exc_register(14, "ident_mapper", (iroutine) ident_page_fault);
 	
 #ifdef CONFIG_SMP
-	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", (iroutine) tlb_shootdown_ipi);
+	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
+	    (iroutine) tlb_shootdown_ipi);
 #endif
 }
 
