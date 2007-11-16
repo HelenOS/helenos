@@ -33,7 +33,7 @@
 #include <align.h>
 
 #define FRS_TO_SAVE 30
-#define STACK_ITEMS		(19 + FRS_TO_SAVE*2)
+#define STACK_ITEMS		(21 + FRS_TO_SAVE * 2)
 #define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS*STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
 #if (STACK_ITEMS % 2 == 0)
@@ -135,20 +135,22 @@ heavyweight_handler:
 	 * copy input parameters to stack.
 	 */
     	mov R_TMP = 0x2c00 ;;
-	cmp.eq p6,p5 = R_OFFS, R_TMP ;;
+	cmp.eq p6, p5 = R_OFFS, R_TMP ;;
 	
 	/*
-	 * From now on, if this is break_instruction handler, p6 is true and p5 is false.
-	 * Otherwise p6 is false and p5 is true.
+	 * From now on, if this is break_instruction handler, p6 is true and p5
+	 * is false. Otherwise p6 is false and p5 is true.
 	 * Note that p5 is a preserved predicate register and we make use of it.
 	 */
 
+(p6)	st8 [r31] = r38, -8 ;;		/* save in6 */
+(p6)	st8 [r31] = r37, -8 ;;		/* save in5 */
 (p6)	st8 [r31] = r36, -8 ;;		/* save in4 */	
 (p6)	st8 [r31] = r35, -8 ;;		/* save in3 */
 (p6) 	st8 [r31] = r34, -8 ;;		/* save in2 */
 (p6)	st8 [r31] = r33, -8 ;;		/* save in1 */
 (p6)	st8 [r31] = r32, -8 ;;		/* save in0 */
-(p5)	add r31 = -40, r31 ;;
+(p5)	add r31 = -56, r31 ;;
     
 	st8 [r31] = r30, -8 ;;		/* save old stack pointer */ 
 	
@@ -178,7 +180,8 @@ heavyweight_handler:
 	mov r28 = ar.bspstore ;;
 	
 	/*
-	 * Inspect BSPSTORE to figure out whether it is necessary to switch to kernel BSPSTORE.
+	 * Inspect BSPSTORE to figure out whether it is necessary to switch to
+	 * kernel BSPSTORE.
 	 */
 (p1)	shr.u r30 = r28, VRN_SHIFT ;;
 (p1)	cmp.eq p1, p2 = VRN_KERNEL, r30 ;;
@@ -205,9 +208,9 @@ heavyweight_handler:
 0:	mov b0 = R_RET			/* restore b0 belonging to the interrupted context */
 
     /* 16. RSE switch to interrupted context */
-	cover				/* allocate zerro size frame (step 1 (from Intel Docs)) */
+	cover				/* allocate zero size frame (step 1 (from Intel Docs)) */
 
-	add r31 = (STACK_SCRATCH_AREA_SIZE+(FRS_TO_SAVE*2*8)), r12 ;;
+	add r31 = (STACK_SCRATCH_AREA_SIZE + (FRS_TO_SAVE * 2 * 8)), r12 ;;
 
 	ld8 r30 = [r31], +8 ;;		/* load ar.bsp */
 	ld8 r29 = [r31], +8 ;;   	/* load ar.bspstore */

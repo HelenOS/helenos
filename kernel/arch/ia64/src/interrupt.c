@@ -126,9 +126,10 @@ char *vector_to_string(uint16_t vector)
 	ASSERT(vector <= VECTOR_MAX);
 	
 	if (vector >= VECTORS_16_BUNDLE_START)
-		return vector_names_16_bundle[(vector-VECTORS_16_BUNDLE_START)/(16*BUNDLE_SIZE)];
+		return vector_names_16_bundle[(vector -
+		    VECTORS_16_BUNDLE_START) / (16 * BUNDLE_SIZE)];
 	else
-		return vector_names_64_bundle[vector/(64*BUNDLE_SIZE)];
+		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
 }
 
 void dump_interrupted_context(istate_t *istate)
@@ -141,12 +142,17 @@ void dump_interrupted_context(istate_t *istate)
 
 	putchar('\n');
 	printf("Interrupted context dump:\n");
-	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp, istate->ar_bspstore);
-	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat, istate->ar_rsc);
-	printf("ar.ifs=%#018llx\tar.pfs=%#018llx\n", istate->ar_ifs, istate->ar_pfs);
-	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value, istate->cr_ipsr);
+	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
+	    istate->ar_bspstore);
+	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat,
+	    istate->ar_rsc);
+	printf("ar.ifs=%#018llx\tar.pfs=%#018llx\n", istate->ar_ifs,
+	    istate->ar_pfs);
+	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value,
+	    istate->cr_ipsr);
 	
-	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei, iip);
+	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip,
+	    istate->cr_isr.ei, iip);
 	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa, iipa);
 	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa, ifa);
 }
@@ -190,9 +196,11 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY 
 	scheduler_fpu_lazy_request();	
 #else
-	fault_if_from_uspace(istate, "Interruption: %#hx (%s)", (uint16_t) vector, vector_to_string(vector));
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s)",
+	    (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (uint16_t) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (uint16_t) vector,
+	    vector_to_string(vector));
 #endif
 }
 
@@ -213,14 +221,17 @@ int break_instruction(uint64_t vector, istate_t *istate)
 		istate->cr_ipsr.ri++;
 	}
 
-	return syscall_handler(istate->in0, istate->in1, istate->in2, istate->in3, istate->in4);
+	return syscall_handler(istate->in0, istate->in1, istate->in2,
+	    istate->in3, istate->in4, istate->in5, istate->in6);
 }
 
 void universal_handler(uint64_t vector, istate_t *istate)
 {
-	fault_if_from_uspace(istate,"Interruption: %#hx (%s)\n",(uint16_t) vector, vector_to_string(vector));
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s)\n",
+	    (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (uint16_t) vector, vector_to_string(vector));
+	panic("Interruption: %#hx (%s)\n", (uint16_t) vector,
+	    vector_to_string(vector));
 }
 
 void external_interrupt(uint64_t vector, istate_t *istate)
@@ -244,7 +255,8 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 			break;
 
 		default:
-			panic("\nUnhandled External Interrupt Vector %d\n", ivr.vector);
+			panic("\nUnhandled External Interrupt Vector %d\n",
+			    ivr.vector);
 			break;
 		}
 	}

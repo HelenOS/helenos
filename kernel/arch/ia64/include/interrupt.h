@@ -113,13 +113,16 @@ typedef struct {
 	uintptr_t sp;
 	
 	/*
-	 * The following variables are defined only for break_instruction handler. 
+	 * The following variables are defined only for break_instruction
+	 * handler. 
 	 */
 	uint64_t in0;
 	uint64_t in1;
 	uint64_t in2;
 	uint64_t in3;
 	uint64_t in4;
+	uint64_t in5;
+	uint64_t in6;
 } istate_t;
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)

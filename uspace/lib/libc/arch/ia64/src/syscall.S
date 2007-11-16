@@ -38,7 +38,7 @@
 
 .global __syscall
 __syscall:
-	alloc r14 = ar.pfs, 5, 0, 0, 0 ;;
+	alloc r14 = ar.pfs, 7, 0, 0, 0 ;;
 	break SYSCALL_IMM
 	mov ar.pfs = r14 ;;
 	br.ret.sptk.many b0
