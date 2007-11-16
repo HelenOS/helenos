@@ -35,8 +35,14 @@
 #ifndef KERN_amd64_THREAD_H_
 #define KERN_amd64_THREAD_H_
 
+/* CAUTION: keep these in sync with low level assembly code in syscall_entry */
+#define SYSCALL_USTACK_RSP	0
+#define SYSCALL_KSTACK_RSP	1
+
 typedef struct {
 	unative_t tls;
+	/** User and kernel RSP for syscalls. */
+	uint64_t syscall_rsp[2];	
 } thread_arch_t;
 
 #define thr_constructor_arch(t)

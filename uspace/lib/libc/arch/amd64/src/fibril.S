@@ -80,7 +80,7 @@ context_restore:
 
 	# Set thread local storage
 	movq OFFSET_TLS(%rdi), %rdi   # Set arg1 to TLS addr
-	movq $1, %r8
+	movq $1, %rax		# SYS_TLS_SET
 	syscall
 
 	xorq %rax,%rax		# context_restore returns 0

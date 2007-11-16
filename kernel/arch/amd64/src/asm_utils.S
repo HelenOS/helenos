@@ -220,10 +220,11 @@ read_efer_flag:
 .macro handler i n
 
 	/*
-	 * Choose between version with error code and version without error code.
-	 * Both versions have to be of the same size. amd64 assembly is, however,
-	 * a little bit tricky. For instance, subq $0x80, %rsp and subq $0x78, %rsp
-	 * can result in two instructions with different op-code lengths.
+	 * Choose between version with error code and version without error
+	 * code. Both versions have to be of the same size. amd64 assembly is,
+	 * however, a little bit tricky. For instance, subq $0x80, %rsp and
+	 * subq $0x78, %rsp can result in two instructions with different
+	 * op-code lengths.
 	 * Therefore we align the interrupt handlers.
 	 */
 
@@ -269,34 +270,53 @@ h_start:
 	handler 0 IDT_ITEMS
 h_end:
 
-	
+## Low-level syscall handler
+# 
+# Registers on entry:
+#
+# @param rcx		Userspace return address.
+# @param r11		Userspace RLFAGS.
+#
+# @param rax		Syscall number.
+# @param rdi		1st syscall argument.
+# @param rsi		2nd syscall argument.
+# @param rdx		3rd syscall argument.
+# @param r10		4th syscall argument. Used instead of RCX because the
+#			SYSCALL instruction clobbers it.
+# @param r8		5th syscall argument.
+# @param r9		6th syscall argument.
+#
+# @return		Return value is in rax.
+#
 syscall_entry:
-	# Switch to hidden gs	
-	swapgs
-	# %gs:0 now points to pointer to stack page
-	mov %gs:0, %r10     # We have a ptr to stack page in r10
-	addq $PAGE_SIZE-16, %r10 # We need some space to store old %sp
-	
-	movq %rsp, 0(%r10)  # Save old stack pointer to stack
-	movq %r10, %rsp     # Change to new stack
-	pushq %rcx          # Return address
-	pushq %r11          # Save flags
-
-	# Switch back to remain consistent
-	swapgs 
-
+	swapgs			# Switch to hidden gs	
+	# 
+	# %gs:0			Scratch space for this thread's user RSP
+	# %gs:8			Address to be used as this thread's kernel RSP
+	#
+	movq %rsp, %gs:0	# Save this thread's user RSP
+	movq %gs:8, %rsp	# Set this thread's kernel RSP
+	swapgs			# Switch back to remain consistent
 	sti
-	movq %r9, %rcx      # Exchange last parameter as a third
 	
+	pushq %rcx
+	pushq %r11
+
+	movq %r10, %rcx		# Copy the 4th argument where it is expected 
+	pushq %rax
 	call syscall_handler
-	cli                 # We will be touching stack pointer
+	addq $8, %rsp
 		
 	popq %r11
 	popq %rcx
-	movq 0(%rsp), %rsp
+
+	cli
+	swapgs
+	movq %gs:0, %rsp	# Restore the user RSP
+	swapgs
+
 	sysretq
-		
-		
+
 .data
 .global interrupt_handler_size
 
