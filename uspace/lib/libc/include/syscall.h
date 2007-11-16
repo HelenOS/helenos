@@ -31,7 +31,8 @@
  */
 /**
  * @file
- * @brief	Syscall function declaration for architectures that don't inline syscalls.
+ * @brief	Syscall function declaration for architectures that don't
+ *		inline syscalls.
  */
 
 #ifndef LIBC_SYSCALL_H_
@@ -40,7 +41,9 @@
 #include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 
-extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id);
+extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,
+    const sysarg_t p3, const sysarg_t p4, const sysarg_t p5, const sysarg_t p6,
+    const syscall_t id);
 
 #endif
 

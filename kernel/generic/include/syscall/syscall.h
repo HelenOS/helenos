@@ -37,7 +37,7 @@
 
 typedef enum {
 	SYS_IO = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - psthread.S */
+	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
 	SYS_THREAD_GET_ID,
@@ -73,12 +73,13 @@ typedef enum {
 
 #include <arch/types.h>
 
-typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t);
+typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
+    unative_t, unative_t);
 
 extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
-				unative_t a4, unative_t id);
-extern unative_t sys_tls_set(unative_t addr);
+extern unative_t syscall_handler(unative_t, unative_t, unative_t, unative_t,
+    unative_t, unative_t, unative_t);
+extern unative_t sys_tls_set(unative_t);
 
 #endif
 

@@ -92,15 +92,15 @@ static unative_t sys_debug_enable_console(void)
 }
 
 /** Dispatch system call */
-unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3, unative_t a4,
-    unative_t id)
+unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
+    unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
 	unative_t rc;
 
 	if (id < SYSCALL_END)
-		rc = syscall_table[id](a1, a2, a3, a4);
+		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	else {
-		klog_printf("TASK %llu: Unknown syscall id %d", TASK->taskid,
+		klog_printf("TASK %llu: Unknown syscall id %llx", TASK->taskid,
 		    id);
 		task_kill(TASK->taskid);
 		thread_exit();
