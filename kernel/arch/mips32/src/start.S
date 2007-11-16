@@ -30,6 +30,7 @@
 #include <arch/mm/page.h>
 #include <arch/asm/boot.h>
 #include <arch/context_offset.h>
+#include <arch/stack.h>
 	
 .text
 
@@ -51,23 +52,23 @@
 # These changes will be automatically reversed in REGISTER_LOAD
 # SP is NOT saved as part of these registers
 .macro REGISTERS_STORE_AND_EXC_RESET r
-	sw $at,EOFFSET_AT(\r)
-	sw $v0,EOFFSET_V0(\r)
-	sw $v1,EOFFSET_V1(\r)
-	sw $a0,EOFFSET_A0(\r)
-	sw $a1,EOFFSET_A1(\r)
-	sw $a2,EOFFSET_A2(\r)
-	sw $a3,EOFFSET_A3(\r)
-	sw $t0,EOFFSET_T0(\r)
-	sw $t1,EOFFSET_T1(\r)
-	sw $t2,EOFFSET_T2(\r)
-	sw $t3,EOFFSET_T3(\r)
-	sw $t4,EOFFSET_T4(\r)
-	sw $t5,EOFFSET_T5(\r)
-	sw $t6,EOFFSET_T6(\r)
-	sw $t7,EOFFSET_T7(\r)
-	sw $t8,EOFFSET_T8(\r)
-	sw $t9,EOFFSET_T9(\r)
+	sw $at, EOFFSET_AT(\r)
+	sw $v0, EOFFSET_V0(\r)
+	sw $v1, EOFFSET_V1(\r)
+	sw $a0, EOFFSET_A0(\r)
+	sw $a1, EOFFSET_A1(\r)
+	sw $a2, EOFFSET_A2(\r)
+	sw $a3, EOFFSET_A3(\r)
+	sw $t0, EOFFSET_T0(\r)
+	sw $t1, EOFFSET_T1(\r)
+	sw $t2, EOFFSET_T2(\r)
+	sw $t3, EOFFSET_T3(\r)
+	sw $t4, EOFFSET_T4(\r)
+	sw $t5, EOFFSET_T5(\r)
+	sw $t6, EOFFSET_T6(\r)
+	sw $t7, EOFFSET_T7(\r)
+	sw $t8, EOFFSET_T8(\r)
+	sw $t9, EOFFSET_T9(\r)
 
 	mflo $at
 	sw $at, EOFFSET_LO(\r)
@@ -75,27 +76,27 @@
 	sw $at, EOFFSET_HI(\r)
 	
 #ifdef CONFIG_DEBUG_ALLREGS	
-	sw $s0,EOFFSET_S0(\r)
-	sw $s1,EOFFSET_S1(\r)
-	sw $s2,EOFFSET_S2(\r)
-	sw $s3,EOFFSET_S3(\r)
-	sw $s4,EOFFSET_S4(\r)
-	sw $s5,EOFFSET_S5(\r)
-	sw $s6,EOFFSET_S6(\r)
-	sw $s7,EOFFSET_S7(\r)
-	sw $s8,EOFFSET_S8(\r)
+	sw $s0, EOFFSET_S0(\r)
+	sw $s1, EOFFSET_S1(\r)
+	sw $s2, EOFFSET_S2(\r)
+	sw $s3, EOFFSET_S3(\r)
+	sw $s4, EOFFSET_S4(\r)
+	sw $s5, EOFFSET_S5(\r)
+	sw $s6, EOFFSET_S6(\r)
+	sw $s7, EOFFSET_S7(\r)
+	sw $s8, EOFFSET_S8(\r)
 #endif
 	
-	sw $gp,EOFFSET_GP(\r)
-	sw $ra,EOFFSET_RA(\r)
-	sw $k1,EOFFSET_K1(\r)
+	sw $gp, EOFFSET_GP(\r)
+	sw $ra, EOFFSET_RA(\r)
+	sw $k1, EOFFSET_K1(\r)
 
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
 	
-	and $t2, $t0, REG_SAVE_MASK  # Save only KSU,EXL,ERL,IE
+	and $t2, $t0, REG_SAVE_MASK	# Save only KSU,EXL,ERL,IE
 	li $t3, ~(0x1f)
-	and $t0, $t0, $t3           # Clear KSU,EXL,ERL,IE
+	and $t0, $t0, $t3		# Clear KSU,EXL,ERL,IE
 	
 	sw $t2,EOFFSET_STATUS(\r)
 	sw $t1,EOFFSET_EPC(\r)
@@ -108,54 +109,54 @@
 	mfc0 $t0, $status
 	lw $t1,EOFFSET_STATUS(\r)
 
-	li $t2, ~REG_SAVE_MASK    # Mask UM,EXL,ERL,IE
+	li $t2, ~REG_SAVE_MASK		# Mask UM,EXL,ERL,IE
 	and $t0, $t0, $t2
 	
-	or $t0, $t0, $t1   # Copy UM,EXL,ERL,IE from saved status
+	or $t0, $t0, $t1		# Copy UM,EXL, ERL, IE from saved status
 	mtc0 $t0, $status
 	
-	lw $v0,EOFFSET_V0(\r)
-	lw $v1,EOFFSET_V1(\r)
-	lw $a0,EOFFSET_A0(\r)
-	lw $a1,EOFFSET_A1(\r)
-	lw $a2,EOFFSET_A2(\r)
-	lw $a3,EOFFSET_A3(\r)
-	lw $t0,EOFFSET_T0(\r)
-	lw $t1,EOFFSET_T1(\r)
-	lw $t2,EOFFSET_T2(\r)
-	lw $t3,EOFFSET_T3(\r)
-	lw $t4,EOFFSET_T4(\r)
-	lw $t5,EOFFSET_T5(\r)
-	lw $t6,EOFFSET_T6(\r)
-	lw $t7,EOFFSET_T7(\r)
-	lw $t8,EOFFSET_T8(\r)
-	lw $t9,EOFFSET_T9(\r)
+	lw $v0, EOFFSET_V0(\r)
+	lw $v1, EOFFSET_V1(\r)
+	lw $a0, EOFFSET_A0(\r)
+	lw $a1, EOFFSET_A1(\r)
+	lw $a2, EOFFSET_A2(\r)
+	lw $a3, EOFFSET_A3(\r)
+	lw $t0, EOFFSET_T0(\r)
+	lw $t1, EOFFSET_T1(\r)
+	lw $t2, EOFFSET_T2(\r)
+	lw $t3, EOFFSET_T3(\r)
+	lw $t4, EOFFSET_T4(\r)
+	lw $t5, EOFFSET_T5(\r)
+	lw $t6, EOFFSET_T6(\r)
+	lw $t7, EOFFSET_T7(\r)
+	lw $t8, EOFFSET_T8(\r)
+	lw $t9, EOFFSET_T9(\r)
 	
 #ifdef CONFIG_DEBUG_ALLREGS	
-	lw $s0,EOFFSET_S0(\r)
-	lw $s1,EOFFSET_S1(\r)
-	lw $s2,EOFFSET_S2(\r)
-	lw $s3,EOFFSET_S3(\r)
-	lw $s4,EOFFSET_S4(\r)
-	lw $s5,EOFFSET_S5(\r)
-	lw $s6,EOFFSET_S6(\r)
-	lw $s7,EOFFSET_S7(\r)
-	lw $s8,EOFFSET_S8(\r)
+	lw $s0, EOFFSET_S0(\r)
+	lw $s1, EOFFSET_S1(\r)
+	lw $s2, EOFFSET_S2(\r)
+	lw $s3, EOFFSET_S3(\r)
+	lw $s4, EOFFSET_S4(\r)
+	lw $s5, EOFFSET_S5(\r)
+	lw $s6, EOFFSET_S6(\r)
+	lw $s7, EOFFSET_S7(\r)
+	lw $s8, EOFFSET_S8(\r)
 #endif
-	lw $gp,EOFFSET_GP(\r)
-	lw $ra,EOFFSET_RA(\r)
-	lw $k1,EOFFSET_K1(\r)
+	lw $gp, EOFFSET_GP(\r)
+	lw $ra, EOFFSET_RA(\r)
+	lw $k1, EOFFSET_K1(\r)
 	
-	lw $at,EOFFSET_LO(\r)
+	lw $at, EOFFSET_LO(\r)
 	mtlo $at
-	lw $at,EOFFSET_HI(\r)
+	lw $at, EOFFSET_HI(\r)
 	mthi $at
 
-	lw $at,EOFFSET_EPC(\r)
+	lw $at, EOFFSET_EPC(\r)
 	mtc0 $at, $epc
 	
-	lw $at,EOFFSET_AT(\r)
-	lw $sp,EOFFSET_SP(\r)
+	lw $at, EOFFSET_AT(\r)
+	lw $sp, EOFFSET_SP(\r)
 .endm
 
 # Move kernel stack pointer address to register K0
@@ -228,77 +229,92 @@ cache_error_entry:
 exception_entry:
 	j exception_handler
 	nop	
-
-	
 	
 exception_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
-	sw $sp,EOFFSET_SP($k0)
+	sw $sp, EOFFSET_SP($k0)
 	move $sp, $k0
 	
 	mfc0 $k0, $cause
 	
-	sra $k0, $k0, 0x2     # cp0_exc_cause() part 1
-	andi $k0, $k0, 0x1f   # cp0_exc_cause() part 2
-	sub $k0, 8            # 8=SYSCALL
+	sra $k0, $k0, 0x2		# cp0_exc_cause() part 1
+	andi $k0, $k0, 0x1f		# cp0_exc_cause() part 2
+	sub $k0, 8			# 8 = SYSCALL
 	
 	beqz $k0, syscall_shortcut
-	add $k0, 8            # Revert $k0 back to correct exc number
+	add $k0, 8			# Revert $k0 back to correct exc number
 	
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
-	jal exc_dispatch      # exc_dispatch(excno, register_space)
+	jal exc_dispatch		# exc_dispatch(excno, register_space)
 	move $a0, $k0
 
 	REGISTERS_LOAD $sp
 	# The $sp is automatically restored to former value
 	eret
 
-# it seems that mips reserves some space on stack for varfuncs???
-#define SS_ARG4   16
-#define SS_SP     EOFFSET_SP
-#define SS_STATUS EOFFSET_STATUS
-#define SS_EPC    EOFFSET_EPC
-#define SS_K1     EOFFSET_K1
+## Syscall entry
+#
+# Registers:
+#
+# @param v0		Syscall number.
+# @param a0		1st argument.
+# @param a1		2nd argument.
+# @param a2		3rd argument.
+# @param a3		4th argument.
+# @param t0		5th argument.
+# @param t1		6th argument.
+#
+# @return		The return value will be stored in v0.
+#
+#define SS_SP		EOFFSET_SP
+#define SS_STATUS	EOFFSET_STATUS
+#define SS_EPC		EOFFSET_EPC
+#define SS_K1		EOFFSET_K1
 syscall_shortcut:
 	# We have a lot of space on the stack, with free use
-	mfc0 $t1, $epc
-	mfc0 $t0, $status
-	sw $t1,SS_EPC($sp)  # Save EPC
-	sw $k1,SS_K1($sp)   # Save k1, which is not saved during context switch
+	mfc0 $t3, $epc
+	mfc0 $t2, $status
+	sw $t3, SS_EPC($sp)		# Save EPC
+	sw $k1, SS_K1($sp)   		# Save k1 not saved on context switch
 	
-	and $t2, $t0, REG_SAVE_MASK # Save only KSU,EXL,ERL,IE
-	li $t3, ~(0x1f)
-	and $t0, $t0, $t3           # Clear KSU,EXL,ERL
-	ori $t0, $t0, 0x1           # Set IE
+	and $t4, $t2, REG_SAVE_MASK	# Save only KSU, EXL, ERL, IE
+	li $t5, ~(0x1f)
+	and $t2, $t2, $t5		# Clear KSU, EXL, ERL
+	ori $t2, $t2, 0x1		# Set IE
 
-	sw $t2,SS_STATUS($sp)
-	mtc0 $t0, $status
+	sw $t4, SS_STATUS($sp)
+	mtc0 $t2, $status
 
-	# CALL Syscall handler
+	#
+	# Call the higher level system call handler
+	# We are going to reuse part of the unused exception stack frame
+	#
+	sw $t0, STACK_ARG4($sp)		# save the 5th argument on the stack
+	sw $t1, STACK_ARG5($sp)		# save the 6th argument on the stack
 	jal syscall_handler
-	sw $v0, SS_ARG4($sp)        # save v0 - arg4 to stack
+	sw $v0, STACK_ARG6($sp)		# save the syscall number on the stack
 
 	# restore status
-	mfc0 $t0, $status
-	lw $t1,SS_STATUS($sp)
+	mfc0 $t2, $status
+	lw $t3, SS_STATUS($sp)
 
-	# Change back to EXL=1(from last exception), otherwise
-	# an interrupt could rewrite the CP0-EPC
-	li $t2, ~REG_SAVE_MASK      # Mask UM,EXL,ERL,IE
-	and $t0, $t0, $t2
-	or $t0, $t0, $t1            # Copy UM,EXL,ERL,IE from saved status
-	mtc0 $t0, $status
+	# Change back to EXL = 1 (from last exception), otherwise
+	# an interrupt could rewrite the CP0 - EPC
+	li $t4, ~REG_SAVE_MASK		# Mask UM, EXL, ERL, IE
+	and $t2, $t2, $t4
+	or $t2, $t2, $t3		# Copy saved UM, EXL, ERL, IE
+	mtc0 $t2, $status
 			
-	# restore epc+4
-	lw $t0,SS_EPC($sp)
-	lw $k1,SS_K1($sp)
-	addi $t0, $t0, 4
-	mtc0 $t0, $epc
+	# restore epc + 4
+	lw $t2, SS_EPC($sp)
+	lw $k1, SS_K1($sp)
+	addi $t2, $t2, 4
+	mtc0 $t2, $epc
 	
-	lw $sp,SS_SP($sp) # restore sp
+	lw $sp, SS_SP($sp)		# restore sp
 	
 	eret
 		
@@ -333,5 +349,5 @@ cache_error_handler:
 userspace_asm:
 	add $sp, $a0, 0
 	add $v0, $a1, 0 
-	add $t9, $a2, 0   # Set up correct entry into PIC code 
+	add $t9, $a2, 0			# Set up correct entry into PIC code 
 	eret
