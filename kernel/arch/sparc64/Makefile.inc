@@ -99,7 +99,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/trap/trap.c \
 	arch/$(ARCH)/src/trap/exception.c \
 	arch/$(ARCH)/src/trap/interrupt.c \
-	arch/$(ARCH)/src/trap/syscall.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c \

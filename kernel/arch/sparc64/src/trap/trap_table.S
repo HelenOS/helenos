@@ -643,7 +643,7 @@ fill_0_normal_tl1:
  * TL4: hardware or software failure
  *
  * Input registers:
- *	%g1		Address of function to call.
+ *	%g1		Address of function to call if this is not a syscall.
  * 	%g2	 	First argument for the function.
  *	%g6		Pre-set as kernel stack base if trap from userspace.
  *	%g7		Pre-set as address of the userspace window buffer.
@@ -697,10 +697,12 @@ fill_0_normal_tl1:
 	/*
 	 * Copy arguments for the syscall to the new window.
 	 */
-	mov %i0, %o2
-	mov %i1, %o3
-	mov %i2, %o4
-	mov %i3, %o5
+	mov %i0, %o0
+	mov %i1, %o1
+	mov %i2, %o2
+	mov %i3, %o3
+	mov %i4, %o4
+	mov %i5, %o5
 .endif
 
 	/*
@@ -740,7 +742,12 @@ fill_0_normal_tl1:
 	 * Copy arguments.
 	 */
 	mov %g1, %l0
+.if NOT(\is_syscall)
 	mov %g2, %o0
+.else
+	! store the syscall number on the stack as 7th argument
+	stx %g2, [%sp + STACK_WINDOW_SAVE_AREA_SIZE + STACK_BIAS + STACK_ARG6] 
+.endif
 
 	/*
 	 * Save TSTATE, TPC and TNPC aside.
@@ -767,17 +774,19 @@ fill_0_normal_tl1:
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
 	SAVE_GLOBALS
 	
+.if NOT(\is_syscall)
 	/*
 	 * Call the higher-level handler and pass istate as second parameter.
 	 */
 	call %l0
 	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
-
-.if \is_syscall
+.else
 	/*
-	 * Copy the value returned by the syscall.
+	 * Call the higher-level syscall handler.
 	 */
-	mov %o0, %i0
+	call syscall_handler
+	nop
+	mov %o0, %i0				! copy the value returned by the syscall
 .endif
 
 	RESTORE_GLOBALS

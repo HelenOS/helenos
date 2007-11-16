@@ -45,10 +45,8 @@
 #ifdef __ASM__
 
 .macro TRAP_INSTRUCTION n
-	mov TT_TRAP_INSTRUCTION(\n), %g2
-	sethi %hi(syscall), %g1
 	ba trap_instruction_handler
-	or %g1, %lo(syscall), %g1
+	mov TT_TRAP_INSTRUCTION(\n) - TT_TRAP_INSTRUCTION(0), %g2
 .endm
 
 #endif /* __ASM__ */

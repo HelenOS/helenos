@@ -39,17 +39,21 @@
 #include <kernel/syscall/syscall.h>
 
 static inline sysarg_t
-__syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3, const sysarg_t p4, const syscall_t id)
+__syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
+    const sysarg_t p4, const sysarg_t p5, const sysarg_t p6, const syscall_t id)
 {
 	register uint64_t a1 asm("o0") = p1;
 	register uint64_t a2 asm("o1") = p2;
 	register uint64_t a3 asm("o2") = p3;
 	register uint64_t a4 asm("o3") = p4;
+	register uint64_t a5 asm("o4") = p5;
+	register uint64_t a6 asm("o5") = p6;
 
 	asm volatile (
-		"ta %5\n"
+		"ta %7\n"
 		: "=r" (a1)
-		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "i" (id)
+		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+		  "i" (id)
 		: "memory"
 	);
 	
