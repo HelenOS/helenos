@@ -74,11 +74,11 @@ context_restore:
 	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
 
 	# Set thread local storage
-	pushl %edi
-	movl 24(%eax), %eax   # Set arg1 to TLS addr
-	movl $1, %edi         # Syscall 1
+	pushl %edx
+	movl 24(%eax), %edx   # Set arg1 to TLS addr
+	movl $1, %eax         # Syscall SYS_TLS_SET
 	int $0x30
-	popl %edi
+	popl %edx
 	
 	xorl %eax,%eax		# context_restore returns 0
 	ret

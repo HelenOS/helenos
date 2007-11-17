@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,31 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/i686/bin
+/** Syscall wrapper.
+ *
+ * Mind the order of arguments. First two arguments and the syscall number go to
+ * scratch registers. An optimized version of this wrapper for fewer arguments
+ * could benefit from this and not save unused registers on the stack.
+ */
+.global __syscall
+__syscall:
+	pushl %ebx
+	pushl %esi
+	pushl %edi
+	pushl %ebp
+	movl 20(%esp), %edx	# First argument.
+	movl 24(%esp), %ecx	# Second argument.
+	movl 28(%esp), %ebx	# Third argument.
+	movl 32(%esp), %esi	# Fourth argument.
+	movl 36(%esp), %edi	# Fifth argument.
+	movl 40(%esp), %ebp	# Sixth argument.
+	movl 44(%esp), %eax	# Syscall number.
+	int $0x30
+	popl %ebp
+	popl %edi
+	popl %esi
+	popl %ebx
+	ret
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c
-
-LFLAGS += -N
-
-BFD_NAME = elf32-i386
-BFD_ARCH = i386

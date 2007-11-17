@@ -28,9 +28,9 @@
 
 ## very low and hardware-level functions
 
-# Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
-# and 1 means interrupt with error word
-#define ERROR_WORD_INTERRUPT_LIST 0x00027D00
+# Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error
+# word and 1 means interrupt with error word
+#define ERROR_WORD_INTERRUPT_LIST 0x00027d00
 
 .text
 
@@ -65,27 +65,27 @@
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-	movl %edi, %edx				/* save %edi */
-	movl %esi, %eax				/* save %esi */
+	movl %edi, %edx			/* save %edi */
+	movl %esi, %eax			/* save %esi */
 	
 	movl MEMCPY_SIZE(%esp), %ecx
-	shrl $2, %ecx				/* size / 4 */
+	shrl $2, %ecx			/* size / 4 */
 	
 	movl MEMCPY_DST(%esp), %edi
 	movl MEMCPY_SRC(%esp), %esi
 	
-	rep movsl				/* copy as much as possible word by word */
+	rep movsl			/* copy whole words */
 
 	movl MEMCPY_SIZE(%esp), %ecx
-	andl $3, %ecx				/* size % 4 */
+	andl $3, %ecx			/* size % 4 */
 	jz 0f
 	
-	rep movsb				/* copy the rest byte by byte */
+	rep movsb			/* copy the rest byte by byte */
 
 0:
 	movl %edx, %edi
 	movl %eax, %esi
-	movl MEMCPY_SRC(%esp), %eax		/* MEMCPY_SRC(%esp), success */
+	movl MEMCPY_SRC(%esp), %eax	/* MEMCPY_SRC(%esp), success */
 	ret
 	
 /*
@@ -96,7 +96,7 @@ memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
 	movl %edx, %edi
 	movl %eax, %esi
-	xorl %eax, %eax				/* return 0, failure */
+	xorl %eax, %eax			/* return 0, failure */
 	ret
 
 ## Turn paging on
@@ -104,9 +104,10 @@ memcpy_to_uspace_failover_address:
 # Enable paging and write-back caching in CR0.
 #
 paging_on:
-	movl %cr0,%edx
-	orl $(1<<31),%edx		# paging on
-	andl $~((1<<30)|(1<<29)),%edx	# clear Cache Disable and not Write Though
+	movl %cr0, %edx
+	orl $(1 << 31), %edx		# paging on
+	# clear Cache Disable and not Write Though
+	andl $~((1 << 30) | (1 << 29)), %edx
 	movl %edx,%cr0
 	jmp 0f
 0:
@@ -118,15 +119,11 @@ paging_on:
 # Enable local APIC in MSR.
 #
 enable_l_apic_in_msr:
-	push %eax
-
 	movl $0x1b, %ecx
 	rdmsr
-	orl $(1<<11),%eax
-	orl $(0xfee00000),%eax
+	orl $(1 << 11), %eax
+	orl $(0xfee00000), %eax
 	wrmsr
-
-	pop %eax
 	ret
 
 # Clear nested flag
@@ -134,7 +131,7 @@ enable_l_apic_in_msr:
 .macro CLEAR_NT_FLAG
 	pushfl
 	pop %ecx
-	and $0xffffbfff,%ecx
+	and $0xffffbfff, %ecx
 	push %ecx
 	popfl
 .endm	
@@ -150,34 +147,42 @@ enable_l_apic_in_msr:
 #define INTERRUPT_ALIGN 64
 .macro handler i n
 
-.ifeq \i-0x30     # Syscall handler
-	push %ds
-	push %es
-	push %fs
-	push %gs
+.ifeq \i - 0x30     # Syscall handler
+	pushl %ds
+	pushl %es
+	pushl %fs
+	pushl %gs
 
-	# Push arguments on stack
-	push %edi
-	push %esi
-	push %edx
-	push %ecx
-	push %eax
+	#
+	# Push syscall arguments onto the stack
+	#
+	# NOTE: The idea behind the order of arguments passed in registers is to
+	#	use all scratch registers first and preserved registers next.
+	#	An optimized libc syscall wrapper can make use of this setup.
+	#
+	pushl %eax
+	pushl %ebp
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+	pushl %ecx
+	pushl %edx
 	
 	# we must fill the data segment registers
-	movw $16,%ax
-	movw %ax,%ds
-	movw %ax,%es
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %es
 	
 	sti
-	
-	call syscall_handler   # syscall_handler(ax,cx,dx,si,di)
+	# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
+	call syscall_handler   
 	cli
-	addl $20, %esp         # clean-up of parameters
+	addl $28, %esp         # clean-up of parameters
 	
-	pop %gs
-	pop %fs
-	pop %es
-	pop %ds
+	popl %gs
+	popl %fs
+	popl %es
+	popl %ds
 	
 	CLEAR_NT_FLAG
 	iret
@@ -188,7 +193,7 @@ enable_l_apic_in_msr:
 	 * The latter version fakes the error word on the stack so that the
 	 * handlers and istate_t can be the same for both types.
 	 */
-	.iflt \i-32
+	.iflt \i - 32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
 			/* 
 			 * With error word, do nothing
@@ -206,64 +211,64 @@ enable_l_apic_in_msr:
 		subl $4, %esp
 	.endif
 	
-	push %ds
-	push %es
-	push %fs
-	push %gs
+	pushl %ds
+	pushl %es
+	pushl %fs
+	pushl %gs
 
 #ifdef CONFIG_DEBUG_ALLREGS
-	push %ebx
-	push %ebp
-	push %edi
-	push %esi
+	pushl %ebx
+	pushl %ebp
+	pushl %edi
+	pushl %esi
 #else
-	sub $16, %esp
+	subl $16, %esp
 #endif
-	push %edx
-	push %ecx
-	push %eax
+	pushl %edx
+	pushl %ecx
+	pushl %eax
 	
 	# we must fill the data segment registers
-	movw $16,%ax
-	movw %ax,%ds
-	movw %ax,%es
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %es
 
 	pushl %esp          # *istate
 	pushl $(\i)         # intnum
 	call exc_dispatch   # excdispatch(intnum, *istate)
-	addl $8,%esp        # Clear arguments from stack
+	addl $8, %esp       # Clear arguments from stack
 
 	CLEAR_NT_FLAG # Modifies %ecx
 	
-	pop %eax
-	pop %ecx
-	pop %edx
+	popl %eax
+	popl %ecx
+	popl %edx
 #ifdef CONFIG_DEBUG_ALLREGS
-	pop %esi
-	pop %edi
-	pop %ebp
-	pop %ebx
+	popl %esi
+	popl %edi
+	popl %ebp
+	popl %ebx
 #else
-	add $16, %esp
+	addl $16, %esp
 #endif	
 	
-	pop %gs
-	pop %fs
-	pop %es
-	pop %ds
+	popl %gs
+	popl %fs
+	popl %es
+	popl %ds
 
-	addl $4,%esp	# Skip error word, no matter whether real or fake.
+	addl $4, %esp	# Skip error word, no matter whether real or fake.
 	iret
 .endif
 
 	.align INTERRUPT_ALIGN
-	.if (\n-\i)-1
-	handler "(\i+1)",\n
+	.if (\n- \i) - 1
+	handler "(\i + 1)", \n
 	.endif
 .endm
 
 # keep in sync with pm.h !!!
-IDT_ITEMS=64
+IDT_ITEMS = 64
 .align INTERRUPT_ALIGN
 interrupt_handlers:
 h_start:
@@ -273,4 +278,4 @@ h_end:
 .data
 .global interrupt_handler_size
 
-interrupt_handler_size: .long (h_end-h_start)/IDT_ITEMS
+interrupt_handler_size: .long (h_end - h_start) / IDT_ITEMS
