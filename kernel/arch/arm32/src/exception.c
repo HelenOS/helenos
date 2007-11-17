@@ -214,7 +214,8 @@ static void install_handler (unsigned handler_addr, unsigned* vector)
 	/* relative address (related to exc. vector) of the word
 	 * where handler's address is stored
 	*/
-	volatile uint32_t handler_address_ptr = EXC_VECTORS_SIZE - PREFETCH_OFFSET;
+	volatile uint32_t handler_address_ptr = EXC_VECTORS_SIZE -
+	    PREFETCH_OFFSET;
 	
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
@@ -286,13 +287,8 @@ static void irq_exception_entry()
  */
 static void swi_exception(int exc_no, istate_t *istate)
 {
-	/*
-	dprintf("SYSCALL: r0-r4: %x, %x, %x, %x, %x; pc: %x\n", istate->r0, 
-		istate->r1, istate->r2, istate->r3, istate->r4, istate->pc);
-	*/
-
 	istate->r0 = syscall_handler(istate->r0, istate->r1, istate->r2,
-	    istate->r3, istate->r4);
+	    istate->r3, istate->r4, istate->r5, istate->r6);
 }
 
 /** Interrupt Exception handler.
