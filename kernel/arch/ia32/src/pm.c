@@ -133,12 +133,14 @@ void idt_init(void)
 
 		if (i == VECTOR_SYSCALL) {
 			/*
-			 * The syscall interrupt gate must be calleable from userland.
+			 * The syscall interrupt gate must be calleable from
+			 * userland.
 			 */
 			d->access |= DPL_USER;
 		}
 		
-		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i * interrupt_handler_size);
+		idt_setoffset(d, ((uintptr_t) interrupt_handlers) +
+		    i * interrupt_handler_size);
 	}
 }
 

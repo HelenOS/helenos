@@ -35,8 +35,8 @@
 #ifndef KERN_ia32_PM_H_
 #define KERN_ia32_PM_H_
 
-#define IDT_ITEMS 64
-#define GDT_ITEMS 7
+#define IDT_ITEMS	64	
+#define GDT_ITEMS	7
 
 #define VESA_INIT_SEGMENT 0x8000
 
@@ -63,20 +63,20 @@
 #define PL_KERNEL	0
 #define PL_USER		3
 
-#define AR_PRESENT	(1<<7)
-#define AR_DATA		(2<<3)
-#define AR_CODE		(3<<3)
-#define AR_WRITABLE	(1<<1)
+#define AR_PRESENT	(1 << 7)
+#define AR_DATA		(2 << 3)
+#define AR_CODE		(3 << 3)
+#define AR_WRITABLE	(1 << 1)
 #define AR_INTERRUPT	(0xe)
 #define AR_TSS		(0x9)
 
-#define DPL_KERNEL	(PL_KERNEL<<5)
-#define DPL_USER	(PL_USER<<5)
+#define DPL_KERNEL	(PL_KERNEL << 5)
+#define DPL_USER	(PL_USER << 5)
 
 #define TSS_BASIC_SIZE	104
-#define TSS_IOMAP_SIZE	(16*1024+1)	/* 16K for bitmap + 1 terminating byte for convenience */
+#define TSS_IOMAP_SIZE	(16 * 1024 + 1)	/* 16K for bitmap + 1 terminating byte for convenience */
 
-#define IO_PORTS	(64*1024)
+#define IO_PORTS	(64 * 1024)
 
 #ifndef __ASM__
 

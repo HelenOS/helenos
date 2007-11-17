@@ -41,17 +41,17 @@
 #define IVT_ITEMS		IDT_ITEMS
 #define IVT_FIRST		0
 
-#define EXC_COUNT	32
-#define IRQ_COUNT	16
+#define EXC_COUNT		32
+#define IRQ_COUNT		16
 
 #define IVT_EXCBASE		0
 #define IVT_IRQBASE		(IVT_EXCBASE + EXC_COUNT)
-#define IVT_FREEBASE	(IVT_IRQBASE + IRQ_COUNT)
+#define IVT_FREEBASE		(IVT_IRQBASE + IRQ_COUNT)
 
 #define IRQ_CLK			0
 #define IRQ_KBD			1
 #define IRQ_PIC1		2
-#define IRQ_PIC_SPUR	7
+#define IRQ_PIC_SPUR		7
 #define IRQ_MOUSE		12
 
 /* this one must have four least significant bits set to ones */
@@ -61,12 +61,12 @@
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
-#define VECTOR_DEBUG				1
-#define VECTOR_CLK					(IVT_IRQBASE + IRQ_CLK)
-#define VECTOR_PIC_SPUR				(IVT_IRQBASE + IRQ_PIC_SPUR)
-#define VECTOR_SYSCALL				IVT_FREEBASE
+#define VECTOR_DEBUG			1
+#define VECTOR_CLK			(IVT_IRQBASE + IRQ_CLK)
+#define VECTOR_PIC_SPUR			(IVT_IRQBASE + IRQ_PIC_SPUR)
+#define VECTOR_SYSCALL			IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
-#define VECTOR_DEBUG_IPI			(IVT_FREEBASE + 2)
+#define VECTOR_DEBUG_IPI		(IVT_FREEBASE + 2)
 
 /** This is passed to interrupt handlers */
 typedef struct {
