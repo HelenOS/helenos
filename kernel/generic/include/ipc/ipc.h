@@ -37,7 +37,7 @@
 
 /* Length of data being transfered with IPC call */
 /* - the uspace may not be able to utilize full length */
-#define IPC_CALL_LEN		4
+#define IPC_CALL_LEN		6	
 
 /** Maximum active async calls per thread */
 #ifdef CONFIG_DEBUG
@@ -82,6 +82,8 @@
 #define IPC_SET_ARG1(data, val)		((data).args[1] = (val))
 #define IPC_SET_ARG2(data, val)		((data).args[2] = (val))
 #define IPC_SET_ARG3(data, val)		((data).args[3] = (val))
+#define IPC_SET_ARG4(data, val)		((data).args[4] = (val))
+#define IPC_SET_ARG5(data, val)		((data).args[5] = (val))
 
 #define IPC_GET_METHOD(data)		((data).args[0])
 #define IPC_GET_RETVAL(data)		((data).args[0])
@@ -89,6 +91,8 @@
 #define IPC_GET_ARG1(data)		((data).args[1])
 #define IPC_GET_ARG2(data)		((data).args[2])
 #define IPC_GET_ARG3(data)		((data).args[3])
+#define IPC_GET_ARG4(data)		((data).args[4])
+#define IPC_GET_ARG5(data)		((data).args[5])
 
 /* Well known phone descriptors */
 #define PHONE_NS	0
