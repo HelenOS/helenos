@@ -368,6 +368,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	call_t call;
 	phone_t *phone;
 	int res;
+	int rc;
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
@@ -383,7 +384,9 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	} else {
 		IPC_SET_RETVAL(call.data, res);
 	}
-	STRUCT_TO_USPACE(&data->args, &call.data.args);
+	rc = STRUCT_TO_USPACE(&data->args, &call.data.args);
+	if (rc != 0)
+		return rc;
 
 	return 0;
 }
