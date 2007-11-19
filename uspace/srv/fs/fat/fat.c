@@ -157,8 +157,8 @@ int main(int argc, char **argv)
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = ipc_call_sync_3(vfs_phone, IPC_M_AS_AREA_RECV, (ipcarg_t) plb_ro,
-	    PLB_SIZE, 0, NULL, NULL, NULL);
+	rc = ipc_call_sync_2_0(vfs_phone, IPC_M_AS_AREA_RECV, (ipcarg_t) plb_ro,
+	    PLB_SIZE);
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;

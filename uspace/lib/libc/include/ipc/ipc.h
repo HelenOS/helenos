@@ -51,15 +51,138 @@ typedef sysarg_t ipc_callid_t;
 typedef void (* ipc_async_callback_t)(void *private, int retval,
     ipc_call_t *data);
 
-#define ipc_call_sync_2(phoneid, method, arg1, arg2, res1, res2) \
-	ipc_call_sync_3((phoneid), (method), (arg1), (arg2), 0, (res1), \
-	    (res2), 0)
-extern int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2,
-    ipcarg_t *result3);
+/*
+ * User-friendly wrappers for ipc_call_sync_fast() and ipc_call_sync_slow().
+ * They are in the form ipc_call_sync_m_n(), where m denotes the number of
+ * arguments of payload and n denotes number of return values. Whenever
+ * possible, the fast version is used.
+ */
+#define ipc_call_sync_0_0(phoneid, method) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, 0, 0, 0, 0, 0)
+#define ipc_call_sync_0_1(phoneid, method, res1) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, (res1), 0, 0, 0, 0)
+#define ipc_call_sync_0_2(phoneid, method, res1, res2) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, (res1), (res2), 0, 0, 0)
+#define ipc_call_sync_0_3(phoneid, method, res1, res2, res3) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, (res1), (res2), (res3), \
+        0, 0)
+#define ipc_call_sync_0_4(phoneid, method, res1, res2, res3, res4) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, (res1), (res2), (res3), \
+        (res4), 0)
+#define ipc_call_sync_0_5(phoneid, method, res1, res2, res3, res4, res5) \
+    ipc_call_sync_fast((phoneid), (method), 0, 0, 0, (res1), (res2), (res3), \
+        (res4), (res5))
+#define ipc_call_sync_1_0(phoneid, method, arg1) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, 0, 0, 0, 0, 0)
+#define ipc_call_sync_1_1(phoneid, method, arg1, res1) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, (res1), 0, 0, 0, 0)
+#define ipc_call_sync_1_2(phoneid, method, arg1, res1, res2) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, (res1), (res2), 0, \
+	0, 0)
+#define ipc_call_sync_1_3(phoneid, method, arg1, res1, res2, res3) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, (res1), (res2), \
+	(res3), 0, 0)
+#define ipc_call_sync_1_4(phoneid, method, arg1, res1, res2, res3, res4) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, (res1), (res2), \
+	(res3), (res4), 0)
+#define ipc_call_sync_1_5(phoneid, method, arg1, res1, res2, res3, res4, \
+    res5) \
+	ipc_call_sync_fast((phoneid), (method), (arg1), 0, 0, (res1), (res2), \
+	    (res3), (res4), (res5))
+#define ipc_call_sync_2_0(phoneid, method, arg1, arg2) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, 0, 0, 0, \
+	0, 0)
+#define ipc_call_sync_2_1(phoneid, method, arg1, arg2, res1) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, (res1), 0, 0, \
+	0, 0)
+#define ipc_call_sync_2_2(phoneid, method, arg1, arg2, res1, res2) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, (res1), \
+	(res2), 0, 0, 0)
+#define ipc_call_sync_2_3(phoneid, method, arg1, arg2, res1, res2, res3) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, (res1), \
+	(res2), (res3), 0, 0)
+#define ipc_call_sync_2_4(phoneid, method, arg1, arg2, res1, res2, res3, \
+    res4) \
+	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, (res1), \
+	    (res2), (res3), (res4), 0)
+#define ipc_call_sync_2_5(phoneid, method, arg1, arg2, res1, res2, res3, \
+    res4, res5)\
+	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), 0, (res1), \
+	    (res2), (res3), (res4), (res5))
+#define ipc_call_sync_3_0(phoneid, method, arg1, arg2, arg3) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, 0, 0, \
+    0, 0)
+#define ipc_call_sync_3_1(phoneid, method, arg1, arg2, arg3, res1) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), (res1), \
+	0, 0, 0, 0)
+#define ipc_call_sync_3_2(phoneid, method, arg1, arg2, arg3, res1, res2) \
+    ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), (res1), \
+	(res2), 0, 0, 0)
+#define ipc_call_sync_3_3(phoneid, method, arg1, arg2, arg3, res1, res2, \
+    res3) \
+	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (res1), (res2), (res3), 0, 0)
+#define ipc_call_sync_3_4(phoneid, method, arg1, arg2, arg3, res1, res2, \
+    res3, res4) \
+	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (res1), (res2), (res3), (res4), 0)
+#define ipc_call_sync_3_5(phoneid, method, arg1, arg2, arg3, res1, res2, \
+    res3, res4, res5) \
+	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (res1), (res2), (res3), (res4), (res5))
+#define ipc_call_sync_4_0(phoneid, method, arg1, arg2, arg3, arg4) \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	0, 0, 0, 0, 0)
+#define ipc_call_sync_4_1(phoneid, method, arg1, arg2, arg3, arg4, res1) \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	(res1), 0, 0, 0, 0)
+#define ipc_call_sync_4_2(phoneid, method, arg1, arg2, arg3, arg4, res1, res2) \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	(res1), (res2), 0, 0, 0)
+#define ipc_call_sync_4_3(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
+    res3) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (res1), (res2), (res3), 0, 0)
+#define ipc_call_sync_4_4(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
+    res3, res4) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (res1), (res2), (res3), (res4), 0)
+#define ipc_call_sync_4_5(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
+    res3, res4, res5) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (res1), (res2), (res3), (res4), (res5))
+#define ipc_call_sync_5_0(phoneid, method, arg1, arg2, arg3, arg4, arg5) \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+        (arg5), 0, 0, 0, 0, 0)
+#define ipc_call_sync_5_1(phoneid, method, arg1, arg2, arg3, arg4, arg5, res1) \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+        (arg5), (res1), 0, 0, 0, 0)
+#define ipc_call_sync_5_2(phoneid, method, arg1, arg2, arg3, arg4, arg5, res1, \
+    res2) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (arg5), (res1), (res2), 0, 0, 0)
+#define ipc_call_sync_5_3(phoneid, method, arg1, arg2, arg3, arg4, arg5, res1, \
+    res2, res3) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (arg5), (res1), (res2), (res3), 0, 0)
+#define ipc_call_sync_5_4(phoneid, method, arg1, arg2, arg3, arg4, arg5, res1, \
+    res2, res3, res4) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (arg5), (res1), (res2), (res3), (res4), 0)
+#define ipc_call_sync_5_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, res1, \
+    res2, res3, res4, res5) \
+	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (arg5), (res1), (res2), (res3), (res4), (res5))
 
-extern int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t *result);
+extern int ipc_call_sync_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2,
+    ipcarg_t *result3, ipcarg_t *result4, ipcarg_t *result5);
+
+extern int ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+    ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3, ipcarg_t *result4,
+    ipcarg_t *result5);
+
 
 extern ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);

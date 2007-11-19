@@ -348,12 +348,14 @@ static int process_request(answerbox_t *box, call_t *call)
 
 /** Make a fast call over IPC, wait for reply and return to user.
  *
- * This function can handle only one argument of payload, but is faster than
- * the generic function (i.e. sys_ipc_call_sync()).
+ * This function can handle only three arguments of payload, but is faster than
+ * the generic function (i.e. sys_ipc_call_sync_slow()).
  *
  * @param phoneid	Phone handle for the call.
  * @param method	Method of the call.
  * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
  * @param data		Address of userspace structure where the reply call will
  *			be stored.
  *
@@ -361,7 +363,7 @@ static int process_request(answerbox_t *box, call_t *call)
  *			Return ENOENT if there is no such phone handle.
  */
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
-    unative_t arg1, ipc_data_t *data)
+    unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data)
 {
 	call_t call;
 	phone_t *phone;
@@ -372,6 +374,8 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	ipc_call_static_init(&call);
 	IPC_SET_METHOD(call.data, method);
 	IPC_SET_ARG1(call.data, arg1);
+	IPC_SET_ARG2(call.data, arg2);
+	IPC_SET_ARG3(call.data, arg3);
 
 	if (!(res = request_preprocess(&call))) {
 		ipc_call_sync(phone, &call);
@@ -393,7 +397,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
  *
  * @return		Zero on success or an error code.
  */
-unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question,
+unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
     ipc_data_t *reply)
 {
 	call_t call;

@@ -84,47 +84,72 @@ static atomic_t ipc_futex = FUTEX_INITIALIZER;
 
 /** Make a fast synchronous call.
  *
- * Only one payload argument can be passed using this function. However, this
- * function is faster than the generic ipc_call_sync_3().
- *
- * @param phoneid	Phone handle for the call.
- * @param method	Requested method.
- * @param arg1		Service-defined payload argument.
- * @param result	If non-NULL, the return ARG1 will be stored there.
- *
- * @return		Negative values represent errors returned by IPC.
- *			Otherwise the RETVAL of the answer is returned.
- */
-int ipc_call_sync(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t *result)
-{
-	ipc_call_t resdata;
-	int callres;
-	
-	callres = __SYSCALL4(SYS_IPC_CALL_SYNC_FAST, phoneid, method, arg1,
-	    (sysarg_t) &resdata);
-	if (callres)
-		return callres;
-	if (result)
-		*result = IPC_GET_ARG1(resdata);
-	return IPC_GET_RETVAL(resdata);
-}
-
-/** Make a synchronous call transmitting 3 arguments of payload.
+ * Only three payload arguments can be passed using this function. However, this
+ * function is faster than the generic ipc_call_sync_slow() because the payload
+ * is passed directly in registers.
  *
  * @param phoneid	Phone handle for the call.
  * @param method	Requested method.
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
  * @param arg3		Service-defined payload argument.
+ * @param result1	If non-NULL, the return ARG1 will be stored there.
+ * @param result2	If non-NULL, the return ARG2 will be stored there.
+ * @param result3	If non-NULL, the return ARG3 will be stored there.
+ * @param result4	If non-NULL, the return ARG4 will be stored there.
+ * @param result5	If non-NULL, the return ARG5 will be stored there.
+ *
+ * @return		Negative values represent errors returned by IPC.
+ *			Otherwise the RETVAL of the answer is returned.
+ */
+int
+ipc_call_sync_fast(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
+    ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3,
+    ipcarg_t *result4, ipcarg_t *result5)
+{
+	ipc_call_t resdata;
+	int callres;
+	
+	callres = __SYSCALL6(SYS_IPC_CALL_SYNC_FAST, phoneid, method, arg1,
+	    arg2, arg3, (sysarg_t) &resdata);
+	if (callres)
+		return callres;
+	if (result1)
+		*result1 = IPC_GET_ARG1(resdata);
+	if (result2)
+		*result2 = IPC_GET_ARG2(resdata);
+	if (result3)
+		*result3 = IPC_GET_ARG3(resdata);
+	if (result4)
+		*result4 = IPC_GET_ARG4(resdata);
+	if (result5)
+		*result5 = IPC_GET_ARG5(resdata);
+
+	return IPC_GET_RETVAL(resdata);
+}
+
+/** Make a synchronous call transmitting 5 arguments of payload.
+ *
+ * @param phoneid	Phone handle for the call.
+ * @param method	Requested method.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
+ * @param arg5		Service-defined payload argument.
  * @param result1	If non-NULL, storage for the first return argument.
  * @param result2	If non-NULL, storage for the second return argument.
  * @param result3	If non-NULL, storage for the third return argument.
+ * @param result4	If non-NULL, storage for the fourth return argument.
+ * @param result5	If non-NULL, storage for the fifth return argument.
  *
  * @return		Negative value means IPC error.
  *			Otherwise the RETVAL of the answer.
  */
-int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3)
+int
+ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
+    ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, ipcarg_t *result1,
+    ipcarg_t *result2, ipcarg_t *result3, ipcarg_t *result4, ipcarg_t *result5)
 {
 	ipc_call_t data;
 	int callres;
@@ -133,8 +158,10 @@ int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	IPC_SET_ARG1(data, arg1);
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
+	IPC_SET_ARG4(data, arg4);
+	IPC_SET_ARG5(data, arg5);
 
-	callres = __SYSCALL3(SYS_IPC_CALL_SYNC, phoneid, (sysarg_t) &data,
+	callres = __SYSCALL3(SYS_IPC_CALL_SYNC_SLOW, phoneid, (sysarg_t) &data,
 	    (sysarg_t) &data);
 	if (callres)
 		return callres;
@@ -145,6 +172,11 @@ int ipc_call_sync_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 		*result2 = IPC_GET_ARG2(data);
 	if (result3)
 		*result3 = IPC_GET_ARG3(data);
+	if (result4)
+		*result4 = IPC_GET_ARG4(data);
+	if (result5)
+		*result5 = IPC_GET_ARG5(data);
+
 	return IPC_GET_RETVAL(data);
 }
 
@@ -515,8 +547,8 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
  */
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phonehash)
 {
-	return ipc_call_sync_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2, 0, 0,
-	    0, phonehash);
+	return ipc_call_sync_2_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
+	    NULL, NULL, phonehash);
 }
 
 /** Ask through phone for a new connection to some service.
@@ -532,8 +564,8 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2)
 	ipcarg_t newphid;
 	int res;
 
-	res = ipc_call_sync_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, 0, 0, 0,
-	    &newphid);
+	res = ipc_call_sync_2_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, NULL,
+	    NULL, &newphid);
 	if (res)
 		return res;
 	return newphid;
@@ -605,8 +637,8 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1
  */
 int ipc_data_send(int phoneid, void *src, size_t size)
 {
-	return ipc_call_sync_3(phoneid, IPC_M_DATA_SEND, 0, (ipcarg_t) src,
-	    (ipcarg_t) size, NULL, NULL, NULL);
+	return ipc_call_sync_3_0(phoneid, IPC_M_DATA_SEND, 0, (ipcarg_t) src,
+	    (ipcarg_t) size);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_SEND calls.

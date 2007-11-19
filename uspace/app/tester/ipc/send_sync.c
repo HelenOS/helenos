@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "../tester.h"
+#include <ipc/ipc.h>
 
 char * test_send_sync(bool quiet)
 {
@@ -44,7 +45,7 @@ char * test_send_sync(bool quiet)
 	phoneid = c - '0';
 	
 	printf("Sending msg...");
-	res = ipc_call_sync_2(phoneid, 2000, 0, 0, NULL, NULL);
+	res = ipc_call_sync_0_0(phoneid, 2000);
 	printf("done: %d\n", res);
 	
 	return NULL;

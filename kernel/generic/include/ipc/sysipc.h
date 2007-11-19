@@ -40,8 +40,8 @@
 #include <arch/types.h>
 
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
-    unative_t arg1, ipc_data_t *data);
-unative_t sys_ipc_call_sync(unative_t phoneid, ipc_data_t *question,
+    unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data);
+unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
     ipc_data_t *reply);
 unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method, 
     unative_t arg1, unative_t arg2);

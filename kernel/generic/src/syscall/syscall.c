@@ -133,7 +133,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,
-	(syshandler_t) sys_ipc_call_sync,
+	(syshandler_t) sys_ipc_call_sync_slow,
 	(syshandler_t) sys_ipc_call_async_fast,
 	(syshandler_t) sys_ipc_call_async,
 	(syshandler_t) sys_ipc_answer_fast,
