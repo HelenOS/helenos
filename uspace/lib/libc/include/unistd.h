@@ -45,7 +45,7 @@ extern ssize_t write(int fd, const void * buf, size_t count);
 extern ssize_t read(int fd, void * buf, size_t count);
 extern void _exit(int status);
 extern void *sbrk(ssize_t incr);
-extern void usleep(unsigned long usec);
+extern int usleep(unsigned long usec);
 extern unsigned int sleep(unsigned int seconds);
 
 #endif

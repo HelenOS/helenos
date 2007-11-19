@@ -187,12 +187,13 @@ time_t time(time_t *tloc)
 }
 
 /** Wait unconditionally for specified number of microseconds */
-void usleep(unsigned long usec)
+int usleep(unsigned long usec)
 {
 	atomic_t futex = FUTEX_INITIALIZER;
 
 	futex_initialize(&futex, 0);
 	futex_down_timeout(&futex, usec, 0);
+	return 0;
 }
 
 /** Wait unconditionally for specified number of seconds */
@@ -210,6 +211,7 @@ unsigned int sleep(unsigned int seconds)
 		futex_down_timeout(&futex, period * 1000000, 0);
 		seconds -= period;
 	}
+	return 0;
 }
 
 /** @}
