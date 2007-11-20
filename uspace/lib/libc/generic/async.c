@@ -75,14 +75,14 @@
  * my_client_connection(icallid, *icall)
  * {
  * 	if (want_refuse) {
- * 		ipc_answer_fast(icallid, ELIMIT, 0, 0);
+ * 		ipc_answer_0(icallid, ELIMIT);
  * 		return;
  * 	}
- * 	ipc_answer_fast(icallid, EOK, 0, 0);
+ * 	ipc_answer_0(icallid, EOK);
  *
  * 	callid = async_get_call(&call);
  * 	handle_call(callid, call);
- * 	ipc_answer_fast(callid, 1, 2, 3);
+ * 	ipc_answer_2(callid, 1, 2, 3);
  *
  * 	callid = async_get_call(&call);
  * 	....
@@ -395,7 +395,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
  */
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 {
-	ipc_answer_fast(callid, ENOENT, 0, 0);
+	ipc_answer_0(callid, ENOENT);
 }
 
 /** Default fibril function that gets called to handle interrupt notifications.
@@ -440,11 +440,11 @@ static int connection_fibril(void  *arg)
 		list_remove(&msg->link);
 		if (msg->callid == FIBRIL_connection->close_callid)
 			close_answered = 1;
-		ipc_answer_fast(msg->callid, EHANGUP, 0, 0);
+		ipc_answer_0(msg->callid, EHANGUP);
 		free(msg);
 	}
 	if (FIBRIL_connection->close_callid)
-		ipc_answer_fast(FIBRIL_connection->close_callid, 0, 0, 0);
+		ipc_answer_0(FIBRIL_connection->close_callid, EOK);
 	
 	return 0;
 }
@@ -475,7 +475,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	conn = malloc(sizeof(*conn));
 	if (!conn) {
 		if (callid)
-			ipc_answer_fast(callid, ENOMEM, 0, 0);
+			ipc_answer_0(callid, ENOMEM);
 		return NULL;
 	}
 	conn->in_phone_hash = in_phone_hash;
@@ -491,7 +491,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	if (!conn->wdata.fid) {
 		free(conn);
 		if (callid)
-			ipc_answer_fast(callid, ENOMEM, 0, 0);
+			ipc_answer_0(callid, ENOMEM);
 		return NULL;
 	}
 	/* Add connection to the connection hash table */
@@ -536,7 +536,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		return;
 
 	/* Unknown call from unknown phone - hang it up */
-	ipc_answer_fast(callid, EHANGUP, 0, 0);
+	ipc_answer_0(callid, EHANGUP);
 }
 
 /** Fire all timeouts that expired. */

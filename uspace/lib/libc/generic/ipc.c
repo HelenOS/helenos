@@ -375,33 +375,50 @@ void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 
 /** Answer a received call - fast version.
  *
- * The fast answer makes use of passing retval and first two arguments in
- * registers. If you need to return more, use the ipc_answer() instead.
+ * The fast answer makes use of passing retval and first four arguments in
+ * registers. If you need to return more, use the ipc_answer_slow() instead.
  *
  * @param callid	Hash of the call being answered.
  * @param retval	Return value.
  * @param arg1		First return argument.
  * @param arg2		Second return argument.
+ * @param arg3		Third return argument.
+ * @param arg4		Fourth return argument.
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
 ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
-    ipcarg_t arg2)
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4)
 {
-	return __SYSCALL4(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2);
+	return __SYSCALL6(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2, arg3,
+	    arg4);
 }
 
-/** Answer a received call - full version.
+/** Answer a received call - slow full version.
  *
  * @param callid	Hash of the call being answered.
- * @param call 		Call structure with the answer.
- *			Must be already initialized by the responder.
+ * @param retval	Return value.
+ * @param arg1		First return argument.
+ * @param arg2		Second return argument.
+ * @param arg3		Third return argument.
+ * @param arg4		Fourth return argument.
+ * @param arg5		Fifth return argument.
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call)
+ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5)
 {
-	return __SYSCALL2(SYS_IPC_ANSWER, callid, (sysarg_t) call);
+	ipc_call_t data;
+
+	IPC_SET_RETVAL(data, retval);
+	IPC_SET_ARG1(data, arg1);
+	IPC_SET_ARG2(data, arg2);
+	IPC_SET_ARG3(data, arg3);
+	IPC_SET_ARG4(data, arg4);
+	IPC_SET_ARG5(data, arg5);
+
+	return __SYSCALL2(SYS_IPC_ANSWER_SLOW, callid, (sysarg_t) &data);
 }
 
 
@@ -658,7 +675,6 @@ int ipc_data_send(int phoneid, void *src, size_t size)
  *
  * @param callid	Storage where the hash of the IPC_M_DATA_SEND call will
  * 			be stored.
- * @param call		Storage where the incoming call will be stored.
  * @param dst		Storage where the suggested destination address will
  *			be stored. May be NULL.
  * @param size		Storage where the suggested size will be stored. May be
@@ -666,19 +682,19 @@ int ipc_data_send(int phoneid, void *src, size_t size)
  *
  * @return		Non-zero on success, zero on failure.
  */
-int ipc_data_receive(ipc_callid_t *callid, ipc_call_t *call, void **dst,
-    size_t *size)
+int ipc_data_receive(ipc_callid_t *callid, void **dst, size_t *size)
 {
+	ipc_call_t data;
+	
 	assert(callid);
-	assert(call);
 
-	*callid = async_get_call(call);
-	if (IPC_GET_METHOD(*call) != IPC_M_DATA_SEND)
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_SEND)
 		return 0;
 	if (dst)
-		*dst = (void *) IPC_GET_ARG1(*call);
+		*dst = (void *) IPC_GET_ARG1(data);
 	if (size)
-		*size = (size_t) IPC_GET_ARG3(*call);
+		*size = (size_t) IPC_GET_ARG3(data);
 	return 1;
 }
 
@@ -688,19 +704,14 @@ int ipc_data_receive(ipc_callid_t *callid, ipc_call_t *call, void **dst,
  * so that the user doesn't have to remember the meaning of each IPC argument.
  *
  * @param callid	Hash of the IPC_M_DATA_SEND call to answer.
- * @param call		Call structure with the request.
  * @param dst		Final destination address for the IPC_M_DATA_SEND call.
  * @param size		Final size for the IPC_M_DATA_SEND call.
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_data_deliver(ipc_callid_t callid, ipc_call_t *call, void *dst,
-    size_t size)
+ipcarg_t ipc_data_deliver(ipc_callid_t callid, void *dst, size_t size)
 {
-	IPC_SET_RETVAL(*call, EOK);
-	IPC_SET_ARG1(*call, (ipcarg_t) dst);
-	IPC_SET_ARG3(*call, (ipcarg_t) size);
-	return ipc_answer(callid, call);
+	return ipc_answer_3(callid, EOK, (ipcarg_t) dst, 0, (ipcarg_t) size);
 }
  
 /** @}

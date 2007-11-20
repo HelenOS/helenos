@@ -592,11 +592,13 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
  * @param retval	Return value of the answer.
  * @param arg1		Service-defined return value.
  * @param arg2		Service-defined return value.
+ * @param arg3		Service-defined return value.
+ * @param arg4		Service-defined return value.
  *
  * @return		Return 0 on success, otherwise return an error code.	
  */
 unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
-    unative_t arg1, unative_t arg2)
+    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4)
 {
 	call_t *call;
 	ipc_data_t saved_data;
@@ -619,6 +621,8 @@ unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
 	IPC_SET_RETVAL(call->data, retval);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
+	IPC_SET_ARG3(call->data, arg3);
+	IPC_SET_ARG4(call->data, arg4);
 	rc = answer_preprocess(call, saveddata ? &saved_data : NULL);
 
 	ipc_answer(&TASK->answerbox, call);
@@ -632,7 +636,7 @@ unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
  *
  * @return		Return 0 on success, otherwise return an error code.
  */
-unative_t sys_ipc_answer(unative_t callid, ipc_data_t *data)
+unative_t sys_ipc_answer_slow(unative_t callid, ipc_data_t *data)
 {
 	call_t *call;
 	ipc_data_t saved_data;

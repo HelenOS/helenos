@@ -38,7 +38,6 @@ static void callback(void *_private, int retval, ipc_call_t *data)
 char * test_send_async(bool quiet)
 {
 	int phoneid;
-	int res;
 	static int msgid = 1;
 	char c;
 

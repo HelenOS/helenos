@@ -82,7 +82,7 @@ static void clrscr(void)
 {
 	int i;
 	
-	for (i = 0; i < scr_width*scr_height; i++) {
+	for (i = 0; i < scr_width * scr_height; i++) {
 		scr_addr[i * 2] = ' ';
 		scr_addr[i * 2 + 1] = style;
 	}
@@ -125,13 +125,13 @@ static void scroll(int rows)
 	int i;
 	if (rows > 0) {
 		memcpy(scr_addr, ((char *) scr_addr) + rows * scr_width * 2,
-			scr_width * scr_height * 2 - rows * scr_width * 2);
+		    scr_width * scr_height * 2 - rows * scr_width * 2);
 		for (i = 0; i < rows * scr_width; i++)
 			(((short *) scr_addr) + scr_width * scr_height - rows *
-				scr_width)[i] = ((style << 8) + ' ');
+			    scr_width)[i] = ((style << 8) + ' ');
 	} else if (rows < 0) {
 		memcpy(((char *)scr_addr) - rows * scr_width * 2, scr_addr,
-			scr_width * scr_height * 2 + rows * scr_width * 2);
+		    scr_width * scr_height * 2 + rows * scr_width * 2);
 		for (i = 0; i < -rows * scr_width; i++)
 			((short *)scr_addr)[i] = ((style << 8 ) + ' ');
 	}
@@ -152,7 +152,7 @@ static void draw_text_data(keyfield_t *data)
 	for (i = 0; i < scr_width * scr_height; i++) {
 		scr_addr[i * 2] = data[i].character;
 		scr_addr[i * 2 + 1] = EGA_STYLE(data[i].style.fg_color,
-			data[i].style.bg_color);
+		    data[i].style.bg_color);
 	}
 }
 
@@ -160,7 +160,7 @@ static int save_screen(void)
 {
 	int i;
 
-	for (i=0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++)
+	for (i = 0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++)
 		;
 	if (i == MAX_SAVED_SCREENS) 
 		return EINVAL;
@@ -175,7 +175,7 @@ static int print_screen(int i)
 {
 	if (saved_screens[i].data)
 		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width *
-			scr_height);
+		    scr_height);
 	else
 		return EINVAL;
 	return i;
@@ -195,26 +195,26 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int i;
 
 	if (client_connected) {
-		ipc_answer_fast(iid, ELIMIT, 0,0);
+		ipc_answer_0(iid, ELIMIT);
 		return;
 	}
 	client_connected = 1;
-	ipc_answer_fast(iid, 0, 0, 0); /* Accept connection */
+	ipc_answer_0(iid, EOK); /* Accept connection */
 
 	while (1) {
 		callid = async_get_call(&call);
  		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
-			ipc_answer_fast(callid, 0, 0, 0);
+			ipc_answer_0(callid, EOK);
 			return; /* Exit thread */
 		case IPC_M_AS_AREA_SEND:
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
 			if (intersize >= scr_width * scr_height *
-				sizeof(*interbuf)) {
-				receive_comm_area(callid, &call, (void *)
-					&interbuf);
+			    sizeof(*interbuf)) {
+				receive_comm_area(callid, &call,
+				    (void *) &interbuf);
 				continue;
 			}
 			retval = EINVAL;
@@ -228,7 +228,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_fast(callid, 0, scr_height, scr_width);
+			ipc_answer_2(callid, EOK, scr_height, scr_width);
 			continue;
 		case FB_CLEAR:
 			clrscr();
@@ -300,7 +300,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
+		ipc_answer_0(callid, retval);
 	}
 }
 
@@ -318,7 +318,7 @@ int ega_init(void)
 	scr_addr = as_get_mappable_page(sz);
 
 	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
-		PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
 
 	async_set_client_connection(ega_client_connection);
 

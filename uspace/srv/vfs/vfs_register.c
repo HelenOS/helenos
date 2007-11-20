@@ -155,13 +155,13 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
 	 */
-	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
+	if (!ipc_data_receive(&callid, NULL, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */
 		dprintf("Receiving of VFS info failed.\n");
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -177,8 +177,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		 * the info structure.
 		 */
 		dprintf("Received VFS info has bad size.\n");
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -189,19 +189,19 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
 	if (!fs_info) {
 		dprintf("Could not allocate memory for FS info.\n");
-		ipc_answer_fast_0(callid, ENOMEM);
-		ipc_answer_fast_0(rid, ENOMEM);
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 	link_initialize(&fs_info->fs_link);
 		
-	rc = ipc_data_deliver(callid, &call, &fs_info->vfs_info, size);
+	rc = ipc_data_deliver(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
 		free(fs_info);
-		ipc_answer_fast_0(callid, rc);
-		ipc_answer_fast_0(rid, rc);
+		ipc_answer_0(callid, rc);
+		ipc_answer_0(rid, rc);
 		return;
 	}
 
@@ -209,8 +209,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 		
@@ -226,8 +226,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		futex_up(&fs_head_futex);
 		free(fs_info);
-		ipc_answer_fast_0(callid, EEXISTS);
-		ipc_answer_fast_0(rid, EEXISTS);
+		ipc_answer_0(callid, EEXISTS);
+		ipc_answer_0(rid, EEXISTS);
 		return;
 	}
 
@@ -248,12 +248,12 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		list_remove(&fs_info->fs_link);
 		futex_up(&fs_head_futex);
 		free(fs_info);
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 	fs_info->phone = IPC_GET_ARG3(call);
-	ipc_answer_fast_0(callid, EOK);
+	ipc_answer_0(callid, EOK);
 
 	dprintf("Callback connection to FS created.\n");
 
@@ -267,8 +267,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		futex_up(&fs_head_futex);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -282,15 +282,15 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		futex_up(&fs_head_futex);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
-	ipc_answer_fast(callid, EOK, (ipcarg_t) plb,
+	ipc_answer_2(callid, EOK, (ipcarg_t) plb,
 	    (ipcarg_t) (AS_AREA_READ | AS_AREA_CACHEABLE));	
 
 	dprintf("Sharing PLB.\n");
@@ -301,7 +301,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * system a global file system handle.
 	 */
 	fs_info->fs_handle = (int) atomic_postinc(&fs_handle_next);
-	ipc_answer_fast_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
+	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
 	futex_up(&fs_head_futex);
 	

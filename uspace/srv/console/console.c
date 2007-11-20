@@ -277,8 +277,7 @@ static void change_console(int newcons)
 
 		for (j = 0; j < conn->screenbuffer.size_y; j++) 
 			for (i = 0; i < conn->screenbuffer.size_x; i++) {
-				field = get_field_at(&conn->screenbuffer, i,
-				    j);
+				field = get_field_at(&conn->screenbuffer, i, j);
 				if (!style_same(*style, field->style))
 					set_style(&field->style);
 				style = &field->style;
@@ -349,8 +348,8 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* if client is awaiting key, send it */
 			if (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
-				ipc_answer_fast(fifo_pop(conn->keyrequests), 0,
-				    c, 0);
+				ipc_answer_1(fifo_pop(conn->keyrequests), EOK,
+				    c);
 				break;
 			}
 			
@@ -361,7 +360,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
+		ipc_answer_0(callid, retval);
 	}
 }
 
@@ -375,7 +374,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	connection_t *conn;
 
 	if ((consnum = find_free_connection()) == -1) {
-		ipc_answer_fast(iid, ELIMIT, 0, 0);
+		ipc_answer_0(iid, ELIMIT);
 		return;
 	}
 	conn = &connections[consnum];
@@ -387,7 +386,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	screenbuffer_clear(&conn->screenbuffer);
 	
 	/* Accept the connection */
-	ipc_answer_fast(iid, 0, 0, 0);
+	ipc_answer_0(iid, EOK);
 
 	while (1) {
 		async_serialize_end();
@@ -403,8 +402,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* Answer all pending requests */
 			while (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
-				ipc_answer_fast(fifo_pop(conn->keyrequests),
-				    ENOENT, 0, 0);
+				ipc_answer_0(fifo_pop(conn->keyrequests),
+				    ENOENT);
 				break;
 			}
 			conn->used = 0;
@@ -464,14 +463,14 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 					 * No key available and too many
 					 * requests => fail.
 					*/
-					ipc_answer_fast(callid, ELIMIT, 0, 0);
+					ipc_answer_0(callid, ELIMIT);
 				}
 				continue;
 			}
 			keybuffer_pop(&conn->keybuffer, (int *) &arg1);
 			break;
 		}
-		ipc_answer_fast(callid, 0, arg1, arg2);
+		ipc_answer_2(callid, EOK, arg1, arg2);
 	}
 }
 

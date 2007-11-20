@@ -66,17 +66,17 @@ int main(int argc, char *argv[])
 	while (1) {		
 		ipc_call_t call;
 		ipc_callid_t callid;
+		ipcarg_t retval = ENOTSUP;
 
 		callid = ipc_wait_for_call(&call);
 		switch(IPC_GET_METHOD(call)) {
 		case IPC_M_CONNECT_ME_TO:
-			IPC_SET_RETVAL(call, 0);
+			retval = EOK;
 			break;
 		}
-		if (! (callid & IPC_CALLID_NOTIFICATION)) {
-			ipc_answer(callid, &call);
-		}
-		printf("%s: received call from %lX\n", NAME, call.in_phone_hash);
+		ipc_answer_0(callid, retval);
+		printf("%s: received call from %lX\n", NAME,
+		    call.in_phone_hash);
 	}
 
 	pci_cleanup(pacc);

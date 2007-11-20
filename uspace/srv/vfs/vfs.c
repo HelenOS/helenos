@@ -59,7 +59,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	ipc_answer_fast_0(iid, EOK);
+	ipc_answer_0(iid, EOK);
 
 	/*
 	 * Here we enter the main connection fibril loop.
@@ -103,7 +103,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_UNLINK:
 		case VFS_RENAME:
 		default:
-			ipc_answer_fast_0(callid, ENOTSUP);
+			ipc_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}

@@ -84,11 +84,10 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * system and the path of the mountpoint.
 	 */
 	ipc_callid_t callid;
-	ipc_call_t call;
 	size_t size;
-	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+	if (!ipc_data_receive(&callid, NULL, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -99,8 +98,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if ((size < FS_NAME_MAXLEN + 1) ||
 	    (size > FS_NAME_MAXLEN + MAX_PATH_LEN)) {
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -110,15 +109,15 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	uint8_t *buf;
 	buf = malloc(size);
 	if (!buf) {
-		ipc_answer_fast_0(callid, ENOMEM);
-		ipc_answer_fast_0(rid, ENOMEM);
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
 	/*
 	 * Deliver the data.
 	 */
-	(void) ipc_data_deliver(callid, &call, buf, size);
+	(void) ipc_data_deliver(callid, buf, size);
 
 	char fs_name[FS_NAME_MAXLEN + 1];
 	memcpy(fs_name, buf, FS_NAME_MAXLEN);
@@ -131,7 +130,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	int fs_handle = fs_name_to_handle(fs_name, true);
 	if (!fs_handle) {
 		free(buf);
-		ipc_answer_fast_0(rid, ENOENT);
+		ipc_answer_0(rid, ENOENT);
 		return;
 	}
 
@@ -146,13 +145,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	rc = lookup_root(fs_handle, dev_handle, &mounted_root);
 	if (rc != EOK) {
 		free(buf);
-		ipc_answer_fast_0(rid, rc);
+		ipc_answer_0(rid, rc);
 		return;
 	}
 	vfs_node_t *mr_node = vfs_node_get(&mounted_root);
 	if (!mr_node) {
 		free(buf);
-		ipc_answer_fast_0(rid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
@@ -176,7 +175,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
-			ipc_answer_fast_0(rid, rc);
+			ipc_answer_0(rid, rc);
 			return;
 		}
 		mp_node = vfs_node_get(&mp);
@@ -185,7 +184,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
-			ipc_answer_fast_0(rid, ENOMEM);
+			ipc_answer_0(rid, ENOMEM);
 			return;
 		}
 		/*
@@ -206,7 +205,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			rootfs = mounted_root;
 			futex_up(&rootfs_futex);
 			free(buf);
-			ipc_answer_fast_0(rid, EOK);
+			ipc_answer_0(rid, EOK);
 			return;
 		} else {
 			/*
@@ -216,7 +215,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			futex_up(&rootfs_futex);
 			free(buf);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
-			ipc_answer_fast_0(rid, ENOENT);
+			ipc_answer_0(rid, ENOENT);
 			return;
 		}
 	}
@@ -254,11 +253,11 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	if (rc2 == EOK)
-		ipc_answer_fast_0(rid, rc1);
+		ipc_answer_0(rid, rc1);
 	else if (rc1 == EOK)
-		ipc_answer_fast_0(rid, rc2);
+		ipc_answer_0(rid, rc2);
 	else
-		ipc_answer_fast_0(rid, rc1);
+		ipc_answer_0(rid, rc1);
 }
 
 /**

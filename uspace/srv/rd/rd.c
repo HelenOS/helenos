@@ -90,14 +90,14 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * Hang up the phone if we cannot proceed any further.
 		 * This is the answer to the call that opened the connection.
 		 */
-		ipc_answer_fast(iid, EHANGUP, 0, 0);
+		ipc_answer_0(iid, EHANGUP);
 		return;
 	} else {
 		/*
 		 * Answer the first IPC_M_CONNECT_ME_TO call.
 		 * Return supported block size as ARG1.
 		 */
-		ipc_answer_fast(iid, EOK, BLOCK_SIZE, 0);
+		ipc_answer_1(iid, EOK, BLOCK_SIZE);
 	}
 
 	/*
@@ -110,13 +110,13 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 * The client sends an as_area that can absorb the whole
 			 * block.
 			 */
-			ipc_answer_fast(callid, EOK, (uintptr_t) fs_va, 0);
+			ipc_answer_1(callid, EOK, (uintptr_t) fs_va);
 		} else {
 			/*
 			 * The client offered as_area too small.
 			 * Close the connection.
 			 */
-			ipc_answer_fast(callid, EHANGUP, 0, 0);
+			ipc_answer_0(callid, EHANGUP);
 			return;		
 		}
 	} else {
@@ -125,7 +125,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * At this point we can't handle protocol variations.
 		 * Close the connection.
 		 */
-		ipc_answer_fast(callid, EHANGUP, 0, 0);
+		ipc_answer_0(callid, EHANGUP);
 		return;
 	}
 	
@@ -137,7 +137,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 * The other side has hung up.
 			 * Answer the message and exit the fibril.
 			 */
-			ipc_answer_fast(callid, EOK, 0, 0);
+			ipc_answer_0(callid, EOK);
 			return;
 		case RD_READ_BLOCK:
 			offset = IPC_GET_ARG1(call);
@@ -177,7 +177,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
+		ipc_answer_0(callid, retval);
 	}
 }
 

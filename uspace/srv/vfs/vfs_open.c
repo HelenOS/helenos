@@ -46,7 +46,7 @@
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
 	if (!vfs_files_init()) {
-		ipc_answer_fast_0(rid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
@@ -60,11 +60,10 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 
 	ipc_callid_t callid;
-	ipc_call_t call;
 
-	if (!ipc_data_receive(&callid, &call, NULL, &size)) {
-		ipc_answer_fast_0(callid, EINVAL);
-		ipc_answer_fast_0(rid, EINVAL);
+	if (!ipc_data_receive(&callid, NULL, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -77,14 +76,14 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	char *path = malloc(size);
 	
 	if (!path) {
-		ipc_answer_fast_0(callid, ENOMEM);
-		ipc_answer_fast_0(rid, ENOMEM);
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
 	int rc;
-	if ((rc = ipc_data_deliver(callid, &call, path, size))) {
-		ipc_answer_fast_0(rid, rc);
+	if ((rc = ipc_data_deliver(callid, path, size))) {
+		ipc_answer_0(rid, rc);
 		free(path);
 		return;
 	}
@@ -103,7 +102,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	rc = vfs_lookup_internal(path, size, &triplet, NULL);
 	if (rc) {
 		futex_up(&unlink_futex);
-		ipc_answer_fast_0(rid, rc);
+		ipc_answer_0(rid, rc);
 		free(path);
 		return;
 	}
@@ -123,7 +122,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int fd = vfs_fd_alloc();
 	if (fd < 0) {
 		vfs_node_put(node);
-		ipc_answer_fast_0(rid, fd);
+		ipc_answer_0(rid, fd);
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
@@ -142,7 +141,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Success! Return the new file descriptor to the client.
 	 */
-	ipc_answer_fast_1(rid, EOK, fd);
+	ipc_answer_1(rid, EOK, fd);
 }
 
 /**

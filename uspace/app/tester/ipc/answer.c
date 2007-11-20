@@ -46,7 +46,7 @@ char * test_answer(bool quiet)
 			break;
 	}
 	if (!cnt)
-		return;
+		return NULL;
 	printf("Choose message:\n");
 	do {
 		c = getchar();
@@ -69,7 +69,7 @@ char * test_answer(bool quiet)
 	else if (c == 'e')
 		errn = ENOENT;
 	printf("Answering %P\n", callids[i]);
-	ipc_answer_fast(callids[i], errn, 0, 0);
+	ipc_answer_0(callids[i], errn);
 	callids[i] = 0;
 	
 	return NULL;

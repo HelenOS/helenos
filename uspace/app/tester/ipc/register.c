@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <async.h>
+#include <errno.h>
 #include "../tester.h"
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -40,7 +41,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int i;
 
 	printf("Connected phone: %P, accepting\n", icall->in_phone_hash);
-	ipc_answer_fast(iid, 0, 0, 0);
+	ipc_answer_0(iid, EOK);
 	for (i = 0; i < 1024; i++)
 		if (!connections[i]) {
 			connections[i] = phonehash;
@@ -55,7 +56,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		default:
-			printf("Received message from %P: %X\n", phonehash,callid);
+			printf("Received message from %P: %X\n", phonehash,
+			    callid);
 			for (i = 0; i < 1024; i++)
 				if (!callids[i]) {
 					callids[i] = callid;
@@ -63,7 +65,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				}
 			continue;
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
+		ipc_answer_0(callid, retval);
 	}
 }
 

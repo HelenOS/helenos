@@ -68,7 +68,10 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	kbd_arch_process(&keybuffer, call);
 
 	if (cons_connected && phone2cons != -1) {
-		/* recode to ASCII - one interrupt can produce more than one code so result is stored in fifo */
+		/*
+		 * recode to ASCII - one interrupt can produce more than one
+		 * code so result is stored in fifo
+		 */
 		while (!keybuffer_empty(&keybuffer)) {
 			if (!keybuffer_pop(&keybuffer, (int *)&chr))
 				break;
@@ -85,11 +88,11 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 
 	if (cons_connected) {
-		ipc_answer_fast(iid, ELIMIT, 0, 0);
+		ipc_answer_0(iid, ELIMIT);
 		return;
 	}
 	cons_connected = 1;
-	ipc_answer_fast(iid, 0, 0, 0);
+	ipc_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
@@ -98,7 +101,7 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 			cons_connected = 0;
 			ipc_hangup(phone2cons);
 			phone2cons = -1;
-			ipc_answer_fast(callid, 0,0,0);
+			ipc_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (phone2cons != -1) {
@@ -111,7 +114,7 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_fast(callid, retval, 0, 0);
+		ipc_answer_0(callid, retval);
 	}	
 }
 

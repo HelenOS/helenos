@@ -190,13 +190,29 @@ static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 }
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 
-#define ipc_answer_fast_0(callid, retval) \
-    ipc_answer_fast((callid), (retval), 0, 0)
-#define ipc_answer_fast_1(callid, retval, arg1) \
-    ipc_answer_fast((callid), (retval), (arg1), 0)
+/*
+ * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().
+ * They are in the form of ipc_answer_m(), where m is the number of return
+ * arguments. The macros decide between the fast and the slow version according
+ * to m.
+ */
+#define ipc_answer_0(callid, retval) \
+    ipc_answer_fast((callid), (retval), 0, 0, 0, 0)
+#define ipc_answer_1(callid, retval, arg1) \
+    ipc_answer_fast((callid), (retval), (arg1), 0, 0, 0)
+#define ipc_answer_2(callid, retval, arg1, arg2) \
+    ipc_answer_fast((callid), (retval), (arg1), (arg2), 0, 0)
+#define ipc_answer_3(callid, retval, arg1, arg2, arg3) \
+    ipc_answer_fast((callid), (retval), (arg1), (arg2), (arg3), 0)
+#define ipc_answer_4(callid, retval, arg1, arg2, arg3, arg4) \
+    ipc_answer_fast((callid), (retval), (arg1), (arg2), (arg3), (arg4))
+#define ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5) \
+    ipc_answer_slow((callid), (retval), (arg1), (arg2), (arg3), (arg4), (arg5))
+
 extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval,
-    ipcarg_t arg1, ipcarg_t arg2);
-extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
+    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4);
+extern ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval,
+    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5);
 
 /*
  * User-friendly wrappers for ipc_call_async_fast() and ipc_call_async_slow().
@@ -244,10 +260,8 @@ extern int ipc_unregister_irq(int inr, int devno);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
     ipcarg_t arg1);
 extern int ipc_data_send(int phoneid, void *src, size_t size);
-extern int ipc_data_receive(ipc_callid_t *callid, ipc_call_t *call, void **dst,
-    size_t *size);
-extern ipcarg_t ipc_data_deliver(ipc_callid_t callid, ipc_call_t *call,
-    void *dst, size_t size);
+extern int ipc_data_receive(ipc_callid_t *callid, void **dst, size_t *size);
+extern ipcarg_t ipc_data_deliver(ipc_callid_t callid, void *dst, size_t size);
 
 #endif
 
