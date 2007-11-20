@@ -189,7 +189,7 @@ ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
  */
 static ipc_callid_t _ipc_call_async(int phoneid, ipc_call_t *data)
 {
-	return __SYSCALL2(SYS_IPC_CALL_ASYNC, phoneid, (sysarg_t) data);
+	return __SYSCALL2(SYS_IPC_CALL_ASYNC_SLOW, phoneid, (sysarg_t) data);
 }
 
 /** Prolog to ipc_call_async_*() functions.
@@ -268,8 +268,8 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 
 /** Make a fast asynchronous call.
  *
- * This function can only handle two arguments of payload. It is, however,
- * faster than the more generic ipc_call_async_3().
+ * This function can only handle four arguments of payload. It is, however,
+ * faster than the more generic ipc_call_async_slow().
  *
  * Note that this function is a void function.
  * During normal opertation, answering this call will trigger the callback.
@@ -280,15 +280,17 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
  * @param method	Requested method.
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
  * @param private	Argument to be passed to the answer/error callback.
  * @param callback	Answer or error callback.
  * @param can_preempt	If non-zero, the current fibril will be preempted in
  *			case the kernel temporarily refuses to accept more
  *			asynchronous calls.
  */
-void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, void *private, ipc_async_callback_t callback,
-    int can_preempt)
+void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, void *private,
+    ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call = NULL;
 	ipc_callid_t callid;
@@ -304,8 +306,8 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	 * accesses the queue again.
 	 */
 	futex_down(&ipc_futex);
-	callid = __SYSCALL4(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1,
-	    arg2);
+	callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1,
+	    arg2, arg3, arg4);
 
 	if (callid == IPC_CALLRET_TEMPORARY) {
 		if (!call) {
@@ -316,6 +318,8 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		IPC_SET_METHOD(call->u.msg.data, method);
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
+		IPC_SET_ARG3(call->u.msg.data, arg3);
+		IPC_SET_ARG4(call->u.msg.data, arg4);
 	}
 	ipc_finish_async(callid, phoneid, call, can_preempt);
 }
@@ -332,6 +336,8 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
  * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
+ * @param arg5		Service-defined payload argument.
  * @param private	Argument to be passed to the answer/error callback.
  * @param callback	Answer or error callback.
  * @param can_preempt	If non-zero, the current fibril will be preempted in
@@ -339,9 +345,9 @@ void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
  *			asynchronous calls.
  *
  */
-void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, void *private, ipc_async_callback_t callback,
-    int can_preempt)
+void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, void *private,
+    ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call;
 	ipc_callid_t callid;
@@ -354,9 +360,11 @@ void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	IPC_SET_ARG1(call->u.msg.data, arg1);
 	IPC_SET_ARG2(call->u.msg.data, arg2);
 	IPC_SET_ARG3(call->u.msg.data, arg3);
+	IPC_SET_ARG4(call->u.msg.data, arg4);
+	IPC_SET_ARG5(call->u.msg.data, arg5);
 	/*
-	 * We need to make sure that we get callid before another thread accesses
-	 * the queue again.
+	 * We need to make sure that we get callid before another thread
+	 * accesses the queue again.
 	 */
 	futex_down(&ipc_futex);
 	callid = _ipc_call_async(phoneid, &call->u.msg.data);

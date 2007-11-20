@@ -444,13 +444,15 @@ static int check_call_limit(void)
 
 /** Make a fast asynchronous call over IPC.
  *
- * This function can only handle two arguments of payload, but is faster than
- * the generic function sys_ipc_call_async().
+ * This function can only handle four arguments of payload, but is faster than
+ * the generic function sys_ipc_call_async_slow().
  *
  * @param phoneid	Phone handle for the call.
  * @param method	Method of the call.
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
  *
  * @return 		Return call hash on success.
  *			Return IPC_CALLRET_FATAL in case of a fatal error and 
@@ -458,7 +460,7 @@ static int check_call_limit(void)
  *			asynchronous requests; answers should be handled first.
  */
 unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
-    unative_t arg1, unative_t arg2)
+    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4)
 {
 	call_t *call;
 	phone_t *phone;
@@ -473,7 +475,8 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	IPC_SET_METHOD(call->data, method);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
-	IPC_SET_ARG3(call->data, 0);
+	IPC_SET_ARG3(call->data, arg3);
+	IPC_SET_ARG4(call->data, arg4);
 
 	if (!(res = request_preprocess(call)))
 		ipc_call(phone, call);
@@ -490,7 +493,7 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
  *
  * @return		See sys_ipc_call_async_fast(). 
  */
-unative_t sys_ipc_call_async(unative_t phoneid, ipc_data_t *data)
+unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 {
 	call_t *call;
 	phone_t *phone;

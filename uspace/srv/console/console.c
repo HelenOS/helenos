@@ -32,9 +32,7 @@
 /** @file
  */
 
-/* TODO: remove */
-#include <stdio.h>
-
+#include <libc.h>
 #include <fb.h>
 #include <ipc/ipc.h>
 #include <keys.h>

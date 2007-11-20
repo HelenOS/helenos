@@ -48,7 +48,7 @@ char * test_send_async(bool quiet)
 	} while (c < '2' || c > '9');
 	phoneid = c - '0';
 
-	ipc_call_async(phoneid, 2000, 0, (void *) msgid, callback, 1);
+	ipc_call_async_0(phoneid, 2000, (void *) msgid, callback, 1);
 	printf("Async sent - msg %d\n", msgid);
 	msgid++;
 	

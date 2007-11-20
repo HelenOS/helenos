@@ -37,7 +37,6 @@
 
 #include <kernel/ipc/ipc.h>
 #include <kernel/ddi/irq.h>
-#include <libc.h>
 #include <sys/types.h>
 #include <kernel/synch/synch.h>
 
@@ -183,7 +182,6 @@ extern int ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3, ipcarg_t *result4,
     ipcarg_t *result5);
 
-
 extern ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);
 static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
@@ -193,21 +191,50 @@ static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 
 #define ipc_answer_fast_0(callid, retval) \
-	ipc_answer_fast((callid), (retval), 0, 0)
+    ipc_answer_fast((callid), (retval), 0, 0)
 #define ipc_answer_fast_1(callid, retval, arg1) \
-	ipc_answer_fast((callid), (retval), (arg1), 0)
+    ipc_answer_fast((callid), (retval), (arg1), 0)
 extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval,
     ipcarg_t arg1, ipcarg_t arg2);
 extern ipcarg_t ipc_answer(ipc_callid_t callid, ipc_call_t *call);
 
-#define ipc_call_async(phoneid, method, arg1, private, callback, can_preempt) \
-    (ipc_call_async_2(phoneid, method, arg1, 0, private, callback, can_preempt))
-extern void ipc_call_async_2(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, void *private, ipc_async_callback_t callback,
-    int can_preempt);
-extern void ipc_call_async_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, void *private, ipc_async_callback_t callback,
-    int can_preempt);
+/*
+ * User-friendly wrappers for ipc_call_async_fast() and ipc_call_async_slow().
+ * They are in the form of ipc_call_async_m(), where m is the number of payload
+ * arguments. The macros decide between the fast and the slow version according
+ * to m.
+ */
+#define ipc_call_async_0(phoneid, method, private, callback, \
+    can_preempt) \
+	ipc_call_async_fast((phoneid), (method), 0, 0, 0, 0, (private), \
+	    (callback), (can_preempt))
+#define ipc_call_async_1(phoneid, method, arg1, private, callback, \
+    can_preempt) \
+	ipc_call_async_fast((phoneid), (method), (arg1), 0, 0, 0, (private), \
+	    (callback), (can_preempt))
+#define ipc_call_async_2(phoneid, method, arg1, arg2, private, callback, \
+    can_preempt) \
+	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
+	    (private), (callback), (can_preempt))
+#define ipc_call_async_3(phoneid, method, arg1, arg2, arg3, private, callback, \
+    can_preempt) \
+	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, \
+	    (private), (callback), (can_preempt))
+#define ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, private, \
+    callback, can_preempt) \
+	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (private), (callback), (can_preempt))
+#define ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, \
+    private, callback, can_preempt) \
+	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (arg5), (private), (callback), (can_preempt))
+
+extern void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, void *private,
+    ipc_async_callback_t callback, int can_preempt);
+extern void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, void *private,
+    ipc_async_callback_t callback, int can_preempt);
 
 extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
 extern int ipc_connect_me_to(int phoneid, int arg1, int arg2);
