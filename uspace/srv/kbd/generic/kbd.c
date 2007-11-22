@@ -76,7 +76,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 			if (!keybuffer_pop(&keybuffer, (int *)&chr))
 				break;
 
-			async_msg(phone2cons, KBD_PUSHCHAR, chr);
+			async_msg_1(phone2cons, KBD_PUSHCHAR, chr);
 		}
 	}
 }

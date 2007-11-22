@@ -70,7 +70,7 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 	size_t i = 0;
 
 	while (i < count) {
-		if (async_req_2(streams[0].phone, CONSOLE_GETCHAR, 0, 0, &r0,
+		if (async_req_0_2(streams[0].phone, CONSOLE_GETCHAR,  &r0,
 		    &r1) < 0) {
 			return -1;
 		}
@@ -84,7 +84,7 @@ static ssize_t write_stdout(void *param, const void *buf, size_t count)
 	int i;
 
 	for (i = 0; i < count; i++)
-		async_msg(streams[1].phone, CONSOLE_PUTCHAR,
+		async_msg_1(streams[1].phone, CONSOLE_PUTCHAR,
 		    ((const char *) buf)[i]);
 	
 	return count;

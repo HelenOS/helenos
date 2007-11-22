@@ -95,8 +95,8 @@ static void resume_normal(void)
 
 void clear_screen(void)
 {
-	async_msg(con_phone, CONSOLE_CLEAR, 0);
-	moveto(0,0);
+	async_msg_0(con_phone, CONSOLE_CLEAR);
+	moveto(0, 0);
 }
 
 /*
@@ -107,7 +107,7 @@ scr_clear(void)
 {
 
 	resume_normal();
-	async_msg(con_phone, CONSOLE_CLEAR, 0);
+	async_msg_0(con_phone, CONSOLE_CLEAR);
 	curscore = -1;
 	memset((char *)curscreen, 0, sizeof(curscreen));
 }
@@ -119,7 +119,7 @@ void
 scr_init(void)
 {
 	con_phone = get_fd_phone(1);
-	async_msg(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
+	async_msg_1(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
 	resume_normal();
 	scr_clear();
 }
@@ -131,14 +131,15 @@ void moveto(int r, int c)
 
 static void fflush(void)
 {
-	async_msg(con_phone, CONSOLE_FLUSH, 0);
+	async_msg_0(con_phone, CONSOLE_FLUSH);
 }
 
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
 {
-	return async_req_2(con_phone, CONSOLE_GETSIZE, 0, 0, &ws->ws_row, &ws->ws_col);
+	return async_req_0_2(con_phone, CONSOLE_GETSIZE, &ws->ws_row,
+	    &ws->ws_col);
 }
 
 /*

@@ -101,6 +101,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <arch/barrier.h>
+#include <bool.h>
 
 atomic_t async_futex = FUTEX_INITIALIZER;
 static hash_table_t conn_hash_table;
@@ -175,7 +176,7 @@ __thread connection_t *FIBRIL_connection;
  * If true, it is forbidden to use async_req functions and all preemption is
  * disabled.
  */
-__thread int in_interrupt_handler;
+__thread int _in_interrupt_handler;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
@@ -189,6 +190,17 @@ static async_client_conn_t client_connection = default_client_connection;
  * notifications.
  */
 static async_client_conn_t interrupt_received = default_interrupt_received;
+
+/* 
+ * Getter for _in_interrupt_handler. We need to export the value of this thread
+ * local variable to other modules, but the binutils 2.18 linkers die on an
+ * attempt to export this symbol in the header file. For now, consider this as a
+ * workaround.
+ */
+bool in_interrupt_handler(void)
+{
+	return _in_interrupt_handler;
+}
 
 #define CONN_HASH_TABLE_CHAINS	32
 
@@ -517,9 +529,9 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
 	/* Unrouted call - do some default behaviour */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
-		in_interrupt_handler = 1;
+		_in_interrupt_handler = 1;
 		(*interrupt_received)(callid, call);
-		in_interrupt_handler = 0;
+		_in_interrupt_handler = 0;
 		return;
 	}		
 
@@ -716,17 +728,19 @@ static void reply_received(void *private, int retval, ipc_call_t *data)
  * @param method	Service-defined method.
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
  * @param dataptr	If non-NULL, storage where the reply data will be
  * 			stored.
  *
  * @return		Hash of the sent message.
  */
-aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipc_call_t *dataptr)
+aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
 {
 	amsg_t *msg;
 
-	if (in_interrupt_handler) {
+	if (_in_interrupt_handler) {
 		printf("Cannot send asynchronous request in interrupt "
 		    "handler.\n");
 		_exit(1);
@@ -739,7 +753,8 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 	/* We may sleep in the next method, but it will use its own mechanism */
 	msg->wdata.active = 1; 
 				
-	ipc_call_async_2(phoneid, method, arg1, arg2, msg, reply_received, 1);
+	ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, msg,
+	    reply_received, 1);
 
 	return (aid_t) msg;
 }
@@ -754,17 +769,20 @@ aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
  * @param arg1		Service-defined payload argument.
  * @param arg2		Service-defined payload argument.
  * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
+ * @param arg5		Service-defined payload argument.
  * @param dataptr	If non-NULL, storage where the reply data will be
  * 			stored.
  *
  * @return		Hash of the sent message.
  */
-aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, ipc_call_t *dataptr)
+aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+    ipc_call_t *dataptr)
 {
 	amsg_t *msg;
 
-	if (in_interrupt_handler) {
+	if (_in_interrupt_handler) {
 		printf("Cannot send asynchronous request in interrupt "
 		    "handler.\n");
 		_exit(1);
@@ -776,9 +794,9 @@ aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
 
 	/* We may sleep in next method, but it will use its own mechanism */
 	msg->wdata.active = 1; 
-				
-	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, msg, reply_received,
-	    1);
+
+	ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, msg,
+	    reply_received, 1);
 
 	return (aid_t) msg;
 }
@@ -866,7 +884,7 @@ void async_usleep(suseconds_t timeout)
 {
 	amsg_t *msg;
 	
-	if (in_interrupt_handler) {
+	if (_in_interrupt_handler) {
 		printf("Cannot call async_usleep in interrupt handler.\n");
 		_exit(1);
 	}
@@ -908,18 +926,88 @@ void async_set_interrupt_received(async_client_conn_t conn)
 	interrupt_received = conn;
 }
 
-/* Primitive functions for simple communication */
-void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-		 ipcarg_t arg2, ipcarg_t arg3)
+/** Pseudo-synchronous message sending - fast version.
+ *
+ * Send message asynchronously and return only after the reply arrives.
+ *
+ * This function can only transfer 4 register payload arguments. For
+ * transferring more arguments, see the slower async_req_slow().
+ *
+ * @param phoneid	Hash of the phone through which to make the call.
+ * @param method	Method of the call.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
+ * @param r1		If non-NULL, storage for the 1st reply argument.
+ * @param r2		If non-NULL, storage for the 2nd reply argument.
+ * @param r3		If non-NULL, storage for the 3rd reply argument.
+ * @param r4		If non-NULL, storage for the 4th reply argument.
+ * @param r5		If non-NULL, storage for the 5th reply argument.
+ * @return		Return code of the reply or a negative error code. 
+ */
+ipcarg_t async_req_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t *r1, ipcarg_t *r2,
+    ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5)
 {
-	ipc_call_async_3(phoneid, method, arg1, arg2, arg3, NULL, NULL,
-	    !in_interrupt_handler);
+	ipc_call_t result;
+	ipcarg_t rc;
+
+	aid_t eid = async_send_4(phoneid, method, arg1, arg2, arg3, arg4,
+	    &result);
+	async_wait_for(eid, &rc);
+	if (r1) 
+		*r1 = IPC_GET_ARG1(result);
+	if (r2)
+		*r2 = IPC_GET_ARG2(result);
+	if (r3)
+		*r3 = IPC_GET_ARG3(result);
+	if (r4)
+		*r4 = IPC_GET_ARG4(result);
+	if (r5)
+		*r5 = IPC_GET_ARG5(result);
+	return rc;
 }
 
-void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2)
+/** Pseudo-synchronous message sending - slow version.
+ *
+ * Send message asynchronously and return only after the reply arrives.
+ *
+ * @param phoneid	Hash of the phone through which to make the call.
+ * @param method	Method of the call.
+ * @param arg1		Service-defined payload argument.
+ * @param arg2		Service-defined payload argument.
+ * @param arg3		Service-defined payload argument.
+ * @param arg4		Service-defined payload argument.
+ * @param arg5		Service-defined payload argument.
+ * @param r1		If non-NULL, storage for the 1st reply argument.
+ * @param r2		If non-NULL, storage for the 2nd reply argument.
+ * @param r3		If non-NULL, storage for the 3rd reply argument.
+ * @param r4		If non-NULL, storage for the 4th reply argument.
+ * @param r5		If non-NULL, storage for the 5th reply argument.
+ * @return		Return code of the reply or a negative error code. 
+ */
+ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, ipcarg_t *r1,
+    ipcarg_t *r2, ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5)
 {
-	ipc_call_async_2(phoneid, method, arg1, arg2, NULL, NULL,
-	    !in_interrupt_handler);
+	ipc_call_t result;
+	ipcarg_t rc;
+
+	aid_t eid = async_send_5(phoneid, method, arg1, arg2, arg3, arg4, arg5,
+	    &result);
+	async_wait_for(eid, &rc);
+	if (r1) 
+		*r1 = IPC_GET_ARG1(result);
+	if (r2)
+		*r2 = IPC_GET_ARG2(result);
+	if (r3)
+		*r3 = IPC_GET_ARG3(result);
+	if (r4)
+		*r4 = IPC_GET_ARG4(result);
+	if (r5)
+		*r5 = IPC_GET_ARG5(result);
+	return rc;
 }
 
 /** @}

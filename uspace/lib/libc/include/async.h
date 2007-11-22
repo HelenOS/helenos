@@ -39,6 +39,7 @@
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
+#include <bool.h>
 
 typedef ipc_callid_t aid_t;
 typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
@@ -54,69 +55,193 @@ static inline ipc_callid_t async_get_call(ipc_call_t *data)
 	return async_get_call_timeout(data, 0);
 }
 
-aid_t async_send_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipc_call_t *dataptr);
-aid_t async_send_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, ipc_call_t *dataptr);
-void async_wait_for(aid_t amsgid, ipcarg_t *result);
-int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout);
-
-/** Pseudo-synchronous message sending
- *
- * Send message through IPC, wait in the event loop, until it is received
- *
- * @return Return code of message
+/*
+ * User-friendly wrappers for async_send_fast() and async_send_slow(). The
+ * macros are in the form async_send_m(), where m denotes the number of payload
+ * arguments.  Each macros chooses between the fast and the slow version based
+ * on m.
  */
-static inline ipcarg_t async_req_2(int phoneid, ipcarg_t method, ipcarg_t arg1, 
-    ipcarg_t arg2, ipcarg_t *r1, ipcarg_t *r2)
-{
-	ipc_call_t result;
-	ipcarg_t rc;
 
-	aid_t eid = async_send_2(phoneid, method, arg1, arg2, &result);
-	async_wait_for(eid, &rc);
-	if (r1) 
-		*r1 = IPC_GET_ARG1(result);
-	if (r2)
-		*r2 = IPC_GET_ARG2(result);
-	return rc;
-}
-#define async_req(phoneid, method, arg1, r1) \
-    async_req_2(phoneid, method, arg1, 0, r1, 0)
-
-static inline ipcarg_t async_req_3(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *r1, ipcarg_t *r2, ipcarg_t *r3)
-{
-	ipc_call_t result;
-	ipcarg_t rc;
-
-	aid_t eid = async_send_3(phoneid, method, arg1, arg2, arg3, &result);
-	async_wait_for(eid, &rc);
-	if (r1) 
-		*r1 = IPC_GET_ARG1(result);
-	if (r2)
-		*r2 = IPC_GET_ARG2(result);
-	if (r3)
-		*r3 = IPC_GET_ARG3(result);
-	return rc;
-}
-
+#define async_send_0(phoneid, method, dataptr) \
+    async_send_fast((phoneid), (method), 0, 0, 0, 0, (dataptr))
+#define async_send_1(phoneid, method, arg1, dataptr) \
+    async_send_fast((phoneid), (method), (arg1), 0, 0, 0, (dataptr))
+#define async_send_2(phoneid, method, arg1, arg2, dataptr) \
+    async_send_fast((phoneid), (method), (arg1), (arg2), 0, 0, (dataptr))
+#define async_send_3(phoneid, method, arg1, arg2, arg3, dataptr) \
+    async_send_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (dataptr))
+#define async_send_4(phoneid, method, arg1, arg2, arg3, arg4, dataptr) \
+    async_send_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+        (dataptr))
+#define async_send_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, dataptr) \
+    async_send_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+        (arg5), (dataptr))
+ 
+extern aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr);
+extern aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+    ipc_call_t *dataptr);
+extern void async_wait_for(aid_t amsgid, ipcarg_t *result);
+extern int async_wait_timeout(aid_t amsgid, ipcarg_t *retval,
+    suseconds_t timeout);
 
 fid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
     ipc_call_t *call, void (*cthread)(ipc_callid_t,ipc_call_t *));
 void async_usleep(suseconds_t timeout);
 void async_create_manager(void);
 void async_destroy_manager(void);
-void async_set_client_connection(async_client_conn_t conn);
-void async_set_interrupt_received(async_client_conn_t conn);
 int _async_init(void);
 
+extern void async_set_client_connection(async_client_conn_t conn);
+extern void async_set_interrupt_received(async_client_conn_t conn);
 
-/* Primitve functions for IPC communication */
-void async_msg_3(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2, 
-    ipcarg_t arg3);
-void async_msg_2(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2);
-#define async_msg(ph, m, a1) async_msg_2(ph, m, a1, 0)
+/* Wrappers for simple communication */
+#define async_msg_0(phone, method) \
+    ipc_call_async_0((phone), (method), NULL, NULL, !in_interrupt_handler())
+#define async_msg_1(phone, method, arg1) \
+    ipc_call_async_1((phone), (method), (arg1), NULL, NULL, \
+        !in_interrupt_handler())
+#define async_msg_2(phone, method, arg1, arg2) \
+    ipc_call_async_2((phone), (method), (arg1), (arg2), NULL, NULL, \
+        !in_interrupt_handler())
+#define async_msg_3(phone, method, arg1, arg2, arg3) \
+    ipc_call_async_3((phone), (method), (arg1), (arg2), (arg3), NULL, NULL, \
+        !in_interrupt_handler())
+#define async_msg_4(phone, method, arg1, arg2, arg3, arg4) \
+    ipc_call_async_4((phone), (method), (arg1), (arg2), (arg3), (arg4), NULL, \
+        NULL, !in_interrupt_handler())
+#define async_msg_5(phone, method, arg1, arg2, arg3, arg4, arg5) \
+    ipc_call_async_5((phone), (method), (arg1), (arg2), (arg3), (arg4), \
+        (arg5), NULL, NULL, !in_interrupt_handler())
+
+/*
+ * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
+ * are in the form async_req_m_n(), where m is the number of payload arguments
+ * and n is the number of return arguments. The macros decidce between the fast
+ * and slow verion based on m.
+ */
+#define async_req_0_0(phoneid, method) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, NULL, NULL, NULL, NULL, \
+	NULL)
+#define async_req_0_1(phoneid, method, r1) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, (r1), NULL, NULL, NULL, \
+	NULL)
+#define async_req_0_2(phoneid, method, r1, r2) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, (r1), (r2), NULL, NULL, \
+	NULL)
+#define async_req_0_3(phoneid, method, r1, r2, r3) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, (r1), (r2), (r3), NULL, \
+	NULL)
+#define async_req_0_4(phoneid, method, r1, r2, r3, r4) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, (r1), (r2), (r3), (r4), \
+	NULL)
+#define async_req_0_5(phoneid, method, r1, r2, r3, r4, r5) \
+    async_req_fast((phoneid), (method), 0, 0, 0, 0, (r1), (r2), (r3), (r4), \
+	(r5))
+#define async_req_1_0(phoneid, method, arg1) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, NULL, NULL, NULL, \
+	NULL, NULL)
+#define async_req_1_1(phoneid, method, arg1, rc1) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, (rc1), NULL, NULL, \
+	NULL, NULL)
+#define async_req_1_2(phoneid, method, arg1, rc1, rc2) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, (rc1), (rc2), NULL, \
+	NULL, NULL)
+#define async_req_1_3(phoneid, method, arg1, rc1, rc2, rc3) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, (rc1), (rc2), (rc3), \
+	NULL, NULL)
+#define async_req_1_4(phoneid, method, arg1, rc1, rc2, rc3, rc4) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, (rc1), (rc2), (rc3), \
+	(rc4), NULL)
+#define async_req_1_5(phoneid, method, arg1, rc1, rc2, rc3, rc4, rc5) \
+    async_req_fast((phoneid), (method), (arg1), 0, 0, 0, (rc1), (rc2), (rc3), \
+	(rc4), (rc5))
+#define async_req_2_0(phoneid, method, arg1, arg2) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, NULL, NULL, \
+	NULL, NULL, NULL)
+#define async_req_2_1(phoneid, method, arg1, arg2, rc1) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, (rc1), NULL, \
+	NULL, NULL, NULL)
+#define async_req_2_2(phoneid, method, arg1, arg2, rc1, rc2) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, (rc1), (rc2), \
+	NULL, NULL, NULL)
+#define async_req_2_3(phoneid, method, arg1, arg2, rc1, rc2, rc3) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, (rc1), (rc2), \
+	(rc3), NULL, NULL)
+#define async_req_2_4(phoneid, method, arg1, arg2, rc1, rc2, rc3, rc4) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, (rc1), (rc2), \
+	(rc3), (rc4), NULL)
+#define async_req_2_5(phoneid, method, arg1, arg2, rc1, rc2, rc3, rc4, rc5) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), 0, 0, (rc1), (rc2), \
+	(rc3), (rc4), (rc5))
+#define async_req_3_0(phoneid, method, arg1, arg2, arg3) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, NULL, NULL, \
+	NULL, NULL, NULL)
+#define async_req_3_1(phoneid, method, arg1, arg2, arg3, rc1) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (rc1), \
+	NULL, NULL, NULL, NULL)
+#define async_req_3_2(phoneid, method, arg1, arg2, arg3, rc1, rc2) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (rc1), \
+	(rc2), NULL, NULL, NULL)
+#define async_req_3_3(phoneid, method, arg1, arg2, arg3, rc1, rc2, rc3) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (rc1), \
+	(rc2), (rc3), NULL, NULL)
+#define async_req_3_4(phoneid, method, arg1, arg2, arg3, rc1, rc2, rc3, rc4) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (rc1), \
+	(rc2), (rc3), (rc4), NULL)
+#define async_req_3_5(phoneid, method, arg1, arg2, arg3, rc1, rc2, rc3, rc4, \
+    rc5) \
+	async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, (rc1), \
+	    (rc2), (rc3), (rc4), (rc5))
+#define async_req_4_0(phoneid, method, arg1, arg2, arg3, arg4) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), NULL, \
+	NULL, NULL, NULL, NULL)
+#define async_req_4_1(phoneid, method, arg1, arg2, arg3, arg4, rc1) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), (rc1), \
+	NULL, NULL, NULL, NULL)
+#define async_req_4_2(phoneid, method, arg1, arg2, arg3, arg4, rc1, rc2) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), (rc1), \
+	(rc2), NULL, NULL, NULL)
+#define async_req_4_3(phoneid, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3) \
+    async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), (rc1), \
+	(rc2), (rc3), NULL, NULL)
+#define async_req_4_4(phoneid, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
+    rc4) \
+	async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	    (rc1), (rc2), (rc3), (rc4), NULL)
+#define async_req_4_5(phoneid, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
+    rc4, rc5) \
+	async_req_fast((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	    (rc1), (rc2), (rc3), (rc4), (rc5))
+#define async_req_5_0(phoneid, method, arg1, arg2, arg3, arg4, arg5) \
+    async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+        (arg5), NULL, NULL, NULL, NULL, NULL)
+#define async_req_5_1(phoneid, method, arg1, arg2, arg3, arg4, arg5, rc1) \
+    async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	(arg5), (rc1), NULL, NULL, NULL, NULL)
+#define async_req_5_2(phoneid, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2) \
+    async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	(arg5), (rc1), (rc2), NULL, NULL, NULL)
+#define async_req_5_3(phoneid, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
+    rc3) \
+	async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	    (arg5), (rc1), (rc2), (rc3), NULL, NULL)
+#define async_req_5_4(phoneid, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
+    rc3, rc4) \
+	async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	    (arg5), (rc1), (rc2), (rc3), (rc4), NULL)
+#define async_req_5_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
+    rc3, rc4, rc5) \
+	async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+	    (arg5), (rc1), (rc2), (rc3), (rc4), (rc5))
+
+extern ipcarg_t async_req_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t *r1, ipcarg_t *r2,
+    ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5);
+extern ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, ipcarg_t *r1,
+    ipcarg_t *r2, ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5);
 
 static inline void async_serialize_start(void)
 {
@@ -128,7 +253,10 @@ static inline void async_serialize_end(void)
 	fibril_dec_sercount();
 }
 
+extern bool in_interrupt_handler(void);
+
 extern atomic_t async_futex;
+
 #endif
 
 /** @}

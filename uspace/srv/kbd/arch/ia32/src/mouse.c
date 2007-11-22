@@ -94,20 +94,21 @@ int mouse_arch_process(int phoneid, ipc_call_t *call)
 		if (phoneid != -1) {
 			if (buf.u.val.leftbtn ^ leftbtn) {
 				leftbtn = buf.u.val.leftbtn;
-				async_msg(phoneid, KBD_MS_LEFT, leftbtn);
+				async_msg_1(phoneid, KBD_MS_LEFT, leftbtn);
 			}
 			if (buf.u.val.rightbtn & rightbtn) {
 				rightbtn = buf.u.val.middlebtn;
-				async_msg(phoneid, KBD_MS_RIGHT, rightbtn);
+				async_msg_1(phoneid, KBD_MS_RIGHT, rightbtn);
 			}
 			if (buf.u.val.rightbtn & rightbtn) {
 				middlebtn = buf.u.val.middlebtn;
-				async_msg(phoneid, KBD_MS_MIDDLE, middlebtn);
+				async_msg_1(phoneid, KBD_MS_MIDDLE, middlebtn);
 			}
 			x = bit9toint(buf.u.val.xsign, buf.u.val.x);
 			y = bit9toint(buf.u.val.ysign, buf.u.val.y);
 			if (x || y)
-				async_msg_2(phoneid, KBD_MS_MOVE, (ipcarg_t)x, (ipcarg_t)(-y));
+				async_msg_2(phoneid, KBD_MS_MOVE, (ipcarg_t)x,
+				    (ipcarg_t)(-y));
 		}
 	}
 

@@ -105,12 +105,12 @@ static int find_free_connection(void)
 
 static void clrscr(void)
 {
-	async_msg(fb_info.phone, FB_CLEAR, 0);
+	async_msg_0(fb_info.phone, FB_CLEAR);
 }
 
 static void curs_visibility(int v)
 {
-	async_msg(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
+	async_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
 }
 
 static void curs_goto(int row, int col)
@@ -176,7 +176,7 @@ static void write_char(int console, char key)
 		screenbuffer_clear_line(scr, scr->top_line);
 		scr->top_line = (scr->top_line + 1) % scr->size_y;
 		if (console == active_console)
-			async_msg(fb_info.phone, FB_SCROLL, 1);
+			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
 	
 	scr->position_x = scr->position_x % scr->size_x;
@@ -196,7 +196,7 @@ static int switch_screens(int oldpixmap)
 	int newpmap;
        
 	/* Save screen */
-	newpmap = async_req(fb_info.phone, FB_VP2PIXMAP, 0, NULL);
+	newpmap = async_req_0_0(fb_info.phone, FB_VP2PIXMAP);
 	if (newpmap < 0)
 		return -1;
 
@@ -204,7 +204,7 @@ static int switch_screens(int oldpixmap)
 		/* Show old screen */
 		async_msg_2(fb_info.phone, FB_VP_DRAW_PIXMAP, 0, oldpixmap);
 		/* Drop old pixmap */
-		async_msg(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
+		async_msg_1(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
 	}
 	
 	return newpmap;
@@ -266,8 +266,7 @@ static void change_console(int newcons)
 				    *get_field_at(&conn->screenbuffer, i, j);
 			}
 		/* This call can preempt, but we are already at the end */
-		rc = async_req_2(fb_info.phone, FB_DRAW_TEXT_DATA, 0, 0, NULL,
-		    NULL);		
+		rc = async_req_0_0(fb_info.phone, FB_DRAW_TEXT_DATA);		
 	}
 	
 	if ((!interbuffer) || (rc != 0)) {
@@ -415,7 +414,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
 			if (consnum == active_console) {
-				async_msg(fb_info.phone, FB_CLEAR, 0); 
+				async_msg_0(fb_info.phone, FB_CLEAR); 
 			}
 			
 			screenbuffer_clear(&conn->screenbuffer);
@@ -434,8 +433,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case CONSOLE_FLUSH:
 			if (consnum == active_console)
-				async_req_2(fb_info.phone, FB_FLUSH, 0, 0,
-				    NULL, NULL);		
+				async_req_0_0(fb_info.phone, FB_FLUSH);
 			break;
 		case CONSOLE_SET_STYLE:
 			arg1 = IPC_GET_ARG1(call);
@@ -508,11 +506,11 @@ int main(int argc, char *argv[])
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
 	/* Synchronize, the gcons can have something in queue */
-	async_req(fb_info.phone, FB_FLUSH, 0, NULL);
+	async_req_0_0(fb_info.phone, FB_FLUSH);
 	/* Enable double buffering */
 	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t) -1, 1);
 	
-	async_req_2(fb_info.phone, FB_GET_CSIZE, 0, 0, &fb_info.rows,
+	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.rows,
 	    &fb_info.cols); 
 	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	clrscr();
@@ -539,9 +537,8 @@ int main(int argc, char *argv[])
 	    sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
 	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 	if (!interbuffer) {
-		if (async_req_3(fb_info.phone, IPC_M_AS_AREA_SEND,
-		    (ipcarg_t) interbuffer, 0, AS_AREA_READ, NULL, NULL,
-		    NULL) != 0) {
+		if (async_req_3_0(fb_info.phone, IPC_M_AS_AREA_SEND,
+		    (ipcarg_t) interbuffer, 0, AS_AREA_READ) != 0) {
 			munmap(interbuffer,
 			    sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
 			interbuffer = NULL;
