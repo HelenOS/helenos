@@ -320,6 +320,11 @@ void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		IPC_SET_ARG2(call->u.msg.data, arg2);
 		IPC_SET_ARG3(call->u.msg.data, arg3);
 		IPC_SET_ARG4(call->u.msg.data, arg4);
+		/*
+		 * To achieve deterministic behavior, we always zero out the
+		 * arguments that are beyond the limits of the fast version.
+		 */
+		IPC_SET_ARG5(call->u.msg.data, 0);
 	}
 	ipc_finish_async(callid, phoneid, call, can_preempt);
 }
@@ -435,7 +440,8 @@ static void try_dispatch_queued_calls(void)
 	futex_down(&async_futex);
 	while (!list_empty(&queued_calls)) {
 		call = list_get_instance(queued_calls.next, async_call_t, list);
-		callid = _ipc_call_async(call->u.msg.phoneid, &call->u.msg.data);
+		callid = _ipc_call_async(call->u.msg.phoneid,
+		    &call->u.msg.data);
 		if (callid == IPC_CALLRET_TEMPORARY) {
 			break;
 		}
@@ -645,9 +651,11 @@ int ipc_unregister_irq(int inr, int devno)
  *
  * For non-system methods, the old method and arg1 are rewritten by the new
  * values. For system methods, the new method and arg1 are written to the old
- * arg1 and arg2, respectivelly.
+ * arg1 and arg2, respectivelly. Calls with immutable methods are forwarded
+ * verbatim.
  */
-int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method, ipcarg_t arg1)
+int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
+    ipcarg_t arg1)
 {
 	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
 }

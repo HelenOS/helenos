@@ -377,6 +377,12 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	IPC_SET_ARG1(call.data, arg1);
 	IPC_SET_ARG2(call.data, arg2);
 	IPC_SET_ARG3(call.data, arg3);
+	/*
+	 * To achieve deterministic behavior, zero out arguments that are beyond
+	 * the limits of the fast version.
+	 */
+	IPC_SET_ARG4(call.data, 0);
+	IPC_SET_ARG5(call.data, 0);
 
 	if (!(res = request_preprocess(&call))) {
 		ipc_call_sync(phone, &call);
@@ -477,6 +483,11 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
 	IPC_SET_ARG4(call->data, arg4);
+	/*
+	 * To achieve deterministic behavior, zero out arguments that are beyond
+	 * the limits of the fast version.
+	 */
+	IPC_SET_ARG5(call->data, 0);
 
 	if (!(res = request_preprocess(call)))
 		ipc_call(phone, call);
@@ -623,6 +634,11 @@ unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
 	IPC_SET_ARG4(call->data, arg4);
+	/*
+	 * To achieve deterministic behavior, zero out arguments that are beyond
+	 * the limits of the fast version.
+	 */
+	IPC_SET_ARG5(call->data, 0);
 	rc = answer_preprocess(call, saveddata ? &saved_data : NULL);
 
 	ipc_answer(&TASK->answerbox, call);
