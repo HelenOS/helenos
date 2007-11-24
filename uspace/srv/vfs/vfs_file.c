@@ -99,6 +99,7 @@ int vfs_fd_alloc(void)
  */
 void vfs_fd_free(int fd)
 {
+	assert(fd < MAX_OPEN_FILES);
 	assert(files[fd] != NULL);
 	vfs_file_delref(files[fd]);
 	files[fd] = NULL;
@@ -144,7 +145,9 @@ void vfs_file_delref(vfs_file_t *file)
  */
 vfs_file_t *vfs_file_get(int fd)
 {
-	return files[fd];
+	if (fd < MAX_OPEN_FILES)
+		return files[fd];
+	return NULL;
 }
 
 /**
