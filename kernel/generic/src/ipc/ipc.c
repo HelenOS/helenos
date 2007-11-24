@@ -343,6 +343,9 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 	list_remove(&call->link);
 	spinlock_unlock(&oldbox->lock);
 
+	if (mode & IPC_FF_ROUTE_FROM_ME)
+		call->data.phone = newphone;
+
 	return ipc_call(newphone, call);
 }
 

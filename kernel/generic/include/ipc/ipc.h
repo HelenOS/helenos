@@ -99,6 +99,14 @@
 
 /* Forwarding flags. */
 #define IPC_FF_NONE		0
+/**
+ * The call will be routed as though it was initially sent via the phone used to
+ * forward it. This feature is intended to support the situation in which the
+ * forwarded call needs to be handled by the same connection fibril as any other
+ * calls that were initially sent by the forwarder to the same destination. This
+ * flag has no imapct on routing replies.
+ */
+#define IPC_FF_ROUTE_FROM_ME	(1 << 0)
 
 /* System-specific methods - only through special syscalls
  * These methods have special behaviour
