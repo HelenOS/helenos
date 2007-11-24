@@ -48,6 +48,7 @@ SOURCES = \
 	vfs_lookup.c \
 	vfs_mount.c \
 	vfs_open.c \
+	vfs_read.c \
 	vfs_unlink.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
