@@ -646,6 +646,7 @@ int ipc_unregister_irq(int inr, int devno)
  * @param phoneid	Phone handle to use for forwarding.
  * @param method	New method for the forwarded call.
  * @param arg1		New value of the first argument for the forwarded call.
+ * @param mode		Flags specifying mode of the forward operation.
  *
  * @return		Zero on success or an error code.
  *
@@ -655,9 +656,10 @@ int ipc_unregister_irq(int inr, int devno)
  * verbatim.
  */
 int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
-    ipcarg_t arg1)
+    ipcarg_t arg1, int mode)
 {
-	return __SYSCALL4(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1);
+	return __SYSCALL5(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1,
+	    mode);
 }
 
 /** Wrapper for making IPC_M_DATA_SEND calls.

@@ -329,6 +329,7 @@ int ipc_phone_hangup(phone_t *phone)
  * @param call		Call structure to be redirected.
  * @param newphone	Phone structure to target answerbox.
  * @param oldbox	Old answerbox structure.
+ * @param mode		Flags that specify mode of the forward operation.
  *
  * @return		Return 0 if forwarding succeeded or an error code if
  *			there was error.
@@ -336,7 +337,7 @@ int ipc_phone_hangup(phone_t *phone)
  * The return value serves only as an information for the forwarder,
  * the original caller is notified automatically with EFORWARD.
  */
-int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox)
+int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 {
 	spinlock_lock(&oldbox->lock);
 	list_remove(&call->link);

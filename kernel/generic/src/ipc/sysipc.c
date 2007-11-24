@@ -537,6 +537,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  * @param phoneid	Phone handle to use for forwarding.
  * @param method	New method to use for the forwarded call.
  * @param arg1		New value of the first argument for the forwarded call.
+ * @param mode		Flags that specify mode of the forward operation.
  *
  * @return		Return 0 on succes, otherwise return an error code.
  *
@@ -546,11 +547,12 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  * respectively. Also note there is a set of immutable methods, for which the
  * new method and argument is not set and these values are ignored.
  *
- * Warning: If implementing non-fast version, make sure that
- *          ARG3 is not rewritten for certain system IPC
+ * Warning:	When implementing support for changing additional payload
+ *		arguments, make sure that ARG3 is not rewritten for certain
+ *		system IPC
  */
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1)
+    unative_t method, unative_t arg1, int mode)
 {
 	call_t *call;
 	phone_t *phone;
@@ -591,7 +593,7 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 		}
 	}
 
-	return ipc_forward(call, phone, &TASK->answerbox);
+	return ipc_forward(call, phone, &TASK->answerbox, mode);
 }
 
 /** Answer an IPC call - fast version.

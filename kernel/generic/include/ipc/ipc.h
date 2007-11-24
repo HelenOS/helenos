@@ -97,6 +97,9 @@
 /* Well known phone descriptors */
 #define PHONE_NS	0
 
+/* Forwarding flags. */
+#define IPC_FF_NONE		0
+
 /* System-specific methods - only through special syscalls
  * These methods have special behaviour
  */
@@ -275,7 +278,8 @@ extern call_t * ipc_call_alloc(int flags);
 extern void ipc_answerbox_init(answerbox_t *box);
 extern void ipc_call_static_init(call_t *call);
 extern void task_print_list(void);
-extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox);
+extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
+    int mode);
 extern void ipc_cleanup(void);
 extern int ipc_phone_hangup(phone_t *phone);
 extern void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err);

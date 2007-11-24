@@ -471,7 +471,7 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 
 	/* FIXME: is this correct method how to pass argument on forwarding ?*/
 	ipc_forward_fast(callid, dev->driver->phone, (ipcarg_t)(dev->handle),
-	    0);
+	    0, IPC_FF_NONE);
 	return;
 }
 
