@@ -109,7 +109,29 @@ typedef struct {
 			uint16_t	signature;
 		} __attribute__ ((packed));
 	}; 
-} fat_bs_t __attribute__ ((packed));
+} __attribute__ ((packed)) fat_bs_t;
+
+typedef struct {
+	uint8_t		name[8];
+	uint8_t		ext[3];
+	uint8_t		attr;
+	uint8_t		reserved;
+	uint8_t		ctime_fine;
+	uint16_t	ctime;
+	uint16_t	cdate;
+	uint16_t	adate;
+	union {
+		uint16_t	eaidx;		/* FAT12/FAT16 */
+		uint16_t	firstc_hi;	/* FAT32 */
+	};
+	uint16_t	mtime;
+	uint16_t	mdate;
+	union {
+		uint16_t	firstc;		/* FAT12/FAT16 */
+		uint16_t	firstc_lo;	/* FAT32 */
+	};
+	uint32_t	size;
+} __attribute__ ((packed)) fat_dentry_t;
 
 extern uint8_t *plb_ro;
 
