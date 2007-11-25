@@ -129,7 +129,7 @@ static void klog_vprintf(const char *fmt, va_list args)
 		if (ret >= klogsize)
 			goto out;
 	}
-	ipc_irq_send_msg(&klog_irq, klogpos, ret, 0);
+	ipc_irq_send_msg_2(&klog_irq, klogpos, ret);
 	klogpos += ret;
 	if (klogpos >= klogsize)
 		klogpos = 0;

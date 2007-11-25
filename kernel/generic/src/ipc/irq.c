@@ -89,13 +89,16 @@ static void code_execute(call_t *call, irq_code_t *code)
 			*((uint8_t *) code->cmds[i].addr) = code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_2:
-			*((uint16_t *) code->cmds[i].addr) = code->cmds[i].value;
+			*((uint16_t *) code->cmds[i].addr) =
+			    code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_4:
-			*((uint32_t *) code->cmds[i].addr) = code->cmds[i].value;
+			*((uint32_t *) code->cmds[i].addr) =
+			    code->cmds[i].value;
 			break;
 		case CMD_MEM_WRITE_8:
-			*((uint64_t *) code->cmds[i].addr) = code->cmds[i].value;
+			*((uint64_t *) code->cmds[i].addr) =
+			    code->cmds[i].value;
 			break;
 #if defined(ia32) || defined(amd64)
 		case CMD_PORT_READ_1:
@@ -118,7 +121,8 @@ static void code_execute(call_t *call, irq_code_t *code)
 		default:
 			break;
 		}
-		if (code->cmds[i].dstarg && code->cmds[i].dstarg < 4) {
+		if (code->cmds[i].dstarg && code->cmds[i].dstarg <
+		    IPC_CALL_LEN) {
 			call->data.args[code->cmds[i].dstarg] = dstval;
 		}
 	}
@@ -282,8 +286,11 @@ static void send_call(irq_t *irq, call_t *call)
  * @param a1		Driver-specific payload argument.
  * @param a2		Driver-specific payload argument.
  * @param a3		Driver-specific payload argument.
+ * @param a4		Driver-specific payload argument.
+ * @param a5		Driver-specific payload argument.
  */
-void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
+void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3,
+    unative_t a4, unative_t a5)
 {
 	call_t *call;
 
@@ -300,6 +307,8 @@ void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3)
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
+		IPC_SET_ARG4(call->data, a4);
+		IPC_SET_ARG5(call->data, a5);
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
 		

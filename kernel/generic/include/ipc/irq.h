@@ -46,10 +46,26 @@
 extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
     unative_t method, irq_code_t *ucode);
 extern void ipc_irq_send_notif(irq_t *irq);
-extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2,
-    unative_t a3);
 extern void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno);
 extern void ipc_irq_cleanup(answerbox_t *box);
+
+/*
+ * User friendly wrappers for ipc_irq_send_msg(). They are in the form
+ * ipc_irq_send_msg_m(), where m is the number of payload arguments.
+ */
+#define ipc_irq_send_msg_1(irq, a1) \
+    ipc_irq_send_msg((irq), (a1), 0, 0, 0, 0)
+#define ipc_irq_send_msg_2(irq, a1, a2) \
+    ipc_irq_send_msg((irq), (a1), (a2), 0, 0, 0)
+#define ipc_irq_send_msg_3(irq, a1, a2, a3) \
+    ipc_irq_send_msg((irq), (a1), (a2), (a3), 0, 0)
+#define ipc_irq_send_msg_4(irq, a1, a2, a3, a4) \
+    ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), 0)
+#define ipc_irq_send_msg_5(irq, a1, a2, a3, a4, a5) \
+    ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), (a5))
+
+extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2,
+    unative_t a3, unative_t a4, unative_t a5);
 
 #endif
 
