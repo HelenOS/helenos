@@ -36,6 +36,7 @@
  * @brief	FAT file system driver for HelenOS.
  */
 
+#include "fat.h"
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
@@ -45,7 +46,6 @@
 #include <as.h>
 #include "../../vfs/vfs.h"
 
-#define dprintf(...)	printf(__VA_ARGS__)
 
 vfs_info_t fat_vfs_info = {
 	.name = "fat",
@@ -79,7 +79,7 @@ int fs_handle = 0;
  *
  * There are few issues with this arrangement. First, VFS can run out of
  * available phones. In that case, VFS can close some other phones or use one
- * phone for more serialized requests. Similarly, FAT can refuse to duplicate
+ * phone for more serialized requests. Similarily, FAT can refuse to duplicate
  * the connection. VFS should then just make use of already existing phones and
  * route its requests through them. To avoid paying the fibril creation price 
  * upon each request, FAT might want to keep the connections open after the
@@ -103,11 +103,21 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
+		case VFS_REGISTER:
+			ipc_answer_0(callid, EOK);
+			break;
+		case VFS_LOOKUP:
+			fat_lookup(callid, &call);
+			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
+}
+
+int block_read(int dev_handle, unsigned long blkno, void *buf)
+{
 }
 
 int main(int argc, char **argv)
