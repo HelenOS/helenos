@@ -58,7 +58,8 @@ void before_task_runs_arch(void)
  */
 void before_thread_runs_arch(void)
 {
-	CPU->arch.tss->esp0 = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+	CPU->arch.tss->esp0 = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE -
+	    SP_DELTA];
 	CPU->arch.tss->ss0 = selector(KDATA_DES);
 
 	/* Set up TLS in GS register */
@@ -69,7 +70,7 @@ void before_thread_runs_arch(void)
 	if (CPU->id < BKPOINTS_MAX) {
 		the_t *the = THE;
 		breakpoint_add(&((the_t *) the->thread->kstack)->as, 
-			BKPOINT_WRITE | BKPOINT_CHECK_ZERO, the->cpu->id);
+		    BKPOINT_WRITE | BKPOINT_CHECK_ZERO, the->cpu->id);
 	}
 #endif
 }

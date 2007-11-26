@@ -74,20 +74,23 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		if (!newmap)
 			return ENOMEM;
 		
-		bitmap_initialize(&oldiomap, task->arch.iomap.map, task->arch.iomap.bits);
+		bitmap_initialize(&oldiomap, task->arch.iomap.map,
+		    task->arch.iomap.bits);
 		bitmap_initialize(&task->arch.iomap, newmap, bits);
 
 		/*
 		 * Mark the new range inaccessible.
 		 */
-		bitmap_set_range(&task->arch.iomap, oldiomap.bits, bits - oldiomap.bits);
+		bitmap_set_range(&task->arch.iomap, oldiomap.bits,
+		    bits - oldiomap.bits);
 
 		/*
 		 * In case there really existed smaller iomap,
 		 * copy its contents and deallocate it.
 		 */		
 		if (oldiomap.bits) {
-			bitmap_copy(&task->arch.iomap, &oldiomap, oldiomap.bits);
+			bitmap_copy(&task->arch.iomap, &oldiomap,
+			    oldiomap.bits);
 			free(oldiomap.map);
 		}
 	}
@@ -127,11 +130,12 @@ void io_perm_bitmap_install(void)
 		bitmap_t iomap;
 	
 		ASSERT(TASK->arch.iomap.map);
-		bitmap_initialize(&iomap, CPU->arch.tss->iomap, TSS_IOMAP_SIZE * 8);
+		bitmap_initialize(&iomap, CPU->arch.tss->iomap,
+		    TSS_IOMAP_SIZE * 8);
 		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
 		/*
-		 * It is safe to set the trailing eight bits because of the extra
-		 * convenience byte in TSS_IOMAP_SIZE.
+		 * It is safe to set the trailing eight bits because of the
+		 * extra convenience byte in TSS_IOMAP_SIZE.
 		 */
 		bitmap_set_range(&iomap, ALIGN_UP(TASK->arch.iomap.bits, 8), 8);
 	}
