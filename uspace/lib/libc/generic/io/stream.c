@@ -96,7 +96,7 @@ static stream_t open_stdin(void)
 	
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS,
-		    SERVICE_CONSOLE, 0)) < 0) {
+		    SERVICE_CONSOLE, 0, 0)) < 0) {
 			usleep(10000);
 		}
 	}
@@ -115,7 +115,7 @@ static stream_t open_stdout(void)
 
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS,
-		    SERVICE_CONSOLE, 0)) < 0) {
+		    SERVICE_CONSOLE, 0, 0)) < 0) {
 			usleep(10000);
 		}
 	}

@@ -448,8 +448,6 @@ static int devmap_device_unregister(ipc_callid_t iid, ipc_call_t *icall,
 /** Connect client to the device.
  * Find device driver owning requested device and forward
  * the message to it.
- *
- *
  */
 static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -459,7 +457,7 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 	/*
 	 * Get handle from request
 	 */
-	handle = IPC_GET_ARG1(*call);
+	handle = IPC_GET_ARG2(*call);
 	dev = devmap_device_find_handle(handle);
 
 	if (NULL == dev) {
@@ -469,9 +467,8 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	} 
 
-	/* FIXME: is this correct method how to pass argument on forwarding ?*/
 	ipc_forward_fast(callid, dev->driver->phone, (ipcarg_t)(dev->handle),
-	    0, IPC_FF_NONE);
+	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
 	return;
 }
 
@@ -669,13 +666,6 @@ devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			cont = false;
 			continue; /* Exit thread */
 
-		case DEVMAP_DEVICE_CONNECT_ME_TO:
-			/* Connect client to selected device */
-			printf("DEVMAP: connect to device %d.\n",
-			    IPC_GET_ARG1(call));
-			devmap_forward(callid, &call);
-			break;
-
 		case DEVMAP_DEVICE_GET_HANDLE:
  			devmap_get_handle(callid, &call);
 
@@ -708,6 +698,12 @@ devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	case DEVMAP_CLIENT:
 		devmap_connection_client(iid, icall);
+		break;
+	case DEVMAP_CONNECT_TO_DEVICE:
+			/* Connect client to selected device */
+		printf("DEVMAP: connect to device %d.\n",
+		    IPC_GET_ARG2(*icall));
+		devmap_forward(iid, icall);
 		break;
 	default:
 		ipc_answer_0(iid, ENOENT); /* No such interface */

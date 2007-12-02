@@ -138,7 +138,7 @@
  * - sys_connect_me_to - send a synchronous message to name server
  *                       indicating that it wants to be connected to some
  *                       service
- *                     - arg1/2 are user specified, arg3 contains
+ *                     - arg1/2/3 are user specified, arg5 contains
  *                       address of the phone that should be connected
  *                       (TODO: it leaks to userspace)
  *   recipient         -  if ipc_answer == 0, then accept connection

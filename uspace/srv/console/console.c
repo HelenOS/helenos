@@ -482,10 +482,10 @@ int main(int argc, char *argv[])
 	
 	/* Connect to keyboard driver */
 
-	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0);
+	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	while (kbd_phone < 0) {
 		usleep(10000);
-		kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0);
+		kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	}
 	
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0)
@@ -494,10 +494,10 @@ int main(int argc, char *argv[])
 	
 	/* Connect to framebuffer driver */
 	
-	fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
+	fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	while (fb_info.phone < 0) {
 		usleep(10000);
-		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0);
+		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	}
 	
 	/* Save old kernel screen */

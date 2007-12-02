@@ -587,16 +587,17 @@ int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phonehash)
  * @param phoneid	Phone handle used for contacting the other side.
  * @param arg1		User defined argument.
  * @param arg2		User defined argument.
+ * @param arg3		User defined argument.
  *
  * @return		New phone handle on success or a negative error code.
  */
-int ipc_connect_me_to(int phoneid, int arg1, int arg2)
+int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3)
 {
 	ipcarg_t newphid;
 	int res;
 
-	res = ipc_call_sync_2_3(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, NULL,
-	    NULL, &newphid);
+	res = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, 
+		NULL, NULL, NULL, NULL, &newphid);
 	if (res)
 		return res;
 	return newphid;
@@ -646,20 +647,21 @@ int ipc_unregister_irq(int inr, int devno)
  * @param phoneid	Phone handle to use for forwarding.
  * @param method	New method for the forwarded call.
  * @param arg1		New value of the first argument for the forwarded call.
+ * @param arg2		New value of the second argument for the forwarded call.
  * @param mode		Flags specifying mode of the forward operation.
  *
  * @return		Zero on success or an error code.
  *
  * For non-system methods, the old method and arg1 are rewritten by the new
- * values. For system methods, the new method and arg1 are written to the old
- * arg1 and arg2, respectivelly. Calls with immutable methods are forwarded
- * verbatim.
+ * values. For system methods, the new method, arg1 and arg2 are written 
+ * to the old arg1, arg2 and arg3, respectivelly. Calls with immutable 
+ * methods are forwarded verbatim.
  */
 int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
-    ipcarg_t arg1, int mode)
+    ipcarg_t arg1, ipcarg_t arg2, int mode)
 {
-	return __SYSCALL5(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1,
-	    mode);
+	return __SYSCALL6(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1, 
+		arg2, mode);
 }
 
 /** Wrapper for making IPC_M_DATA_SEND calls.

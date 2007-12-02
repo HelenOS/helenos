@@ -96,7 +96,7 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * The call will be routed as if sent by ourselves.
 	 */
 	ipc_forward_fast(callid, fs_phone, IPC_GET_METHOD(call),
-	    IPC_GET_ARG1(call), IPC_FF_ROUTE_FROM_ME);
+	    IPC_GET_ARG1(call), 0, IPC_FF_ROUTE_FROM_ME);
 
 	vfs_release_phone(fs_phone);
 

@@ -212,8 +212,8 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 		return ENOENT;
 	}
 	hs = hash_table_get_instance(hlp, hashed_service_t, link);
-	return ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call), 0,
-	    IPC_FF_NONE);
+	return ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call), 
+		IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
 }
 
 /** Compute hash index into NS hash table.

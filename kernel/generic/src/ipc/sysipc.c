@@ -191,7 +191,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
 		/* If the users accepted call, connect */
 		if (!IPC_GET_RETVAL(answer->data)) {
-			ipc_phone_connect((phone_t *) IPC_GET_ARG3(*olddata),
+			ipc_phone_connect((phone_t *) IPC_GET_ARG5(*olddata),
 			    &TASK->answerbox);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_SEND) {
@@ -270,7 +270,7 @@ static int request_preprocess(call_t *call)
 		if (newphid < 0)
 			return ELIMIT;
 		/* Set arg3 for server */
-		IPC_SET_ARG3(call->data, (unative_t) &TASK->phones[newphid]);
+		IPC_SET_ARG5(call->data, (unative_t) &TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->priv = newphid;
 		break;
@@ -318,7 +318,7 @@ static void process_answer(call_t *call)
 		if (IPC_GET_RETVAL(call->data))
 			phone_dealloc(call->priv);
 		else
-			IPC_SET_ARG3(call->data, call->priv);
+			IPC_SET_ARG5(call->data, call->priv);
 	}
 }
 
@@ -552,7 +552,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  *		system IPC
  */
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1, int mode)
+    unative_t method, unative_t arg1, unative_t arg2, int mode)
 {
 	call_t *call;
 	phone_t *phone;
@@ -577,19 +577,22 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 
 	/*
 	 * Userspace is not allowed to change method of system methods on
-	 * forward, allow changing ARG1 and ARG2 by means of method and arg1.
+	 * forward, allow changing ARG1, ARG2 and ARG3 by means of method,
+	 * arg1 and arg2.
 	 * If the method is immutable, don't change anything.
 	 */
 	if (!method_is_immutable(IPC_GET_METHOD(call->data))) {
 		if (method_is_system(IPC_GET_METHOD(call->data))) {
 			if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
-				phone_dealloc(IPC_GET_ARG3(call->data));
+				phone_dealloc(IPC_GET_ARG5(call->data));
 
 			IPC_SET_ARG1(call->data, method);
 			IPC_SET_ARG2(call->data, arg1);
+			IPC_SET_ARG3(call->data, arg2);
 		} else {
 			IPC_SET_METHOD(call->data, method);
 			IPC_SET_ARG1(call->data, arg1);
+			IPC_SET_ARG2(call->data, arg2);
 		}
 	}
 

@@ -46,7 +46,7 @@ char * test_connect(bool quiet)
 		return "Currently cannot connect to myself, update test";
 	
 	printf("Connecting to %d..", svc);
-	phid = ipc_connect_me_to(PHONE_NS, svc, 0);
+	phid = ipc_connect_me_to(PHONE_NS, svc, 0, 0);
 	if (phid > 0) {
 		printf("phoneid: %d\n", phid);
 		phones[phid] = 1;

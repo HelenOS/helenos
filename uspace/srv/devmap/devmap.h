@@ -41,7 +41,6 @@
 typedef enum {
 	DEVMAP_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
 	DEVMAP_DRIVER_UNREGISTER,
-	DEVMAP_DEVICE_CONNECT_ME_TO,
 	DEVMAP_DEVICE_REGISTER,
 	DEVMAP_DEVICE_UNREGISTER,
 	DEVMAP_DEVICE_GET_NAME,
@@ -82,12 +81,18 @@ typedef struct {
 	devmap_driver_t *driver;
 } devmap_device_t;
 
-/** Interface provided by DevMap. 
- *
+/** Interface provided by devmap. 
+ * Every process that connects to devmap must ask one of following
+ * interfaces otherwise connection will be refused.
  */
 typedef enum {
-	DEVMAP_DRIVER = 1,
-	DEVMAP_CLIENT
+		/** Connect as device driver */
+	DEVMAP_DRIVER = 1,	
+		/** Connect as client */
+	DEVMAP_CLIENT,
+		/** Create new connection to instance of device that
+		 * is specified by second argument of call. */
+	DEVMAP_CONNECT_TO_DEVICE
 } devmap_interface_t;
 
 #endif

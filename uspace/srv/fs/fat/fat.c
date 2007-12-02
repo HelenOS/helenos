@@ -126,10 +126,10 @@ int main(int argc, char **argv)
 
 	printf("FAT: HelenOS FAT file system server.\n");
 
-	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0);
+	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	while (vfs_phone < EOK) {
 		usleep(10000);
-		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0);
+		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	}
 	
 	/*

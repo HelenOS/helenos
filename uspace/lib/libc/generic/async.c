@@ -538,7 +538,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril etc. */
-		async_new_connection(IPC_GET_ARG3(*call), callid, call,
+		async_new_connection(IPC_GET_ARG5(*call), callid, call,
 		    client_connection);
 		return;
 	}
