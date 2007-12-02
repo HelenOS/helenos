@@ -131,6 +131,7 @@ void task_done(void)
 			printf("Killing task %llu\n", id);
 #endif			
 			task_kill(id);
+			thread_usleep(10000);
 		} else {
 			spinlock_unlock(&tasks_lock);
 			interrupts_restore(ipl);
