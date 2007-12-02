@@ -110,11 +110,10 @@ static void timer_irq_handler(irq_t *irq, void *arg, ...)
 {
 	unsigned long drift;
 	
-	if (cp0_count_read() < lastcount) {
-		/* Count overflow detection */
+	if (cp0_count_read() < lastcount)
+		/* Count overflow detected */
 		count_hi++;
-		lastcount = cp0_count_read();
-	}
+	lastcount = cp0_count_read();
 	
 	drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
