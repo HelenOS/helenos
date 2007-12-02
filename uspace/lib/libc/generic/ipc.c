@@ -597,7 +597,7 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3)
 	int res;
 
 	res = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, 
-		NULL, NULL, NULL, NULL, &newphid);
+	    NULL, NULL, NULL, NULL, &newphid);
 	if (res)
 		return res;
 	return newphid;
@@ -652,8 +652,8 @@ int ipc_unregister_irq(int inr, int devno)
  *
  * @return		Zero on success or an error code.
  *
- * For non-system methods, the old method and arg1 are rewritten by the new
- * values. For system methods, the new method, arg1 and arg2 are written 
+ * For non-system methods, the old method, arg1 and arg2 are rewritten by the
+ * new values. For system methods, the new method, arg1 and arg2 are written 
  * to the old arg1, arg2 and arg3, respectivelly. Calls with immutable 
  * methods are forwarded verbatim.
  */
@@ -661,7 +661,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
     ipcarg_t arg1, ipcarg_t arg2, int mode)
 {
 	return __SYSCALL6(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1, 
-		arg2, mode);
+	    arg2, mode);
 }
 
 /** Wrapper for making IPC_M_DATA_SEND calls.

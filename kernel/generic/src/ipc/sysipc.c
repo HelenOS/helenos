@@ -537,18 +537,20 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  * @param phoneid	Phone handle to use for forwarding.
  * @param method	New method to use for the forwarded call.
  * @param arg1		New value of the first argument for the forwarded call.
+ * @param arg2		New value of the second argument for the forwarded call.
  * @param mode		Flags that specify mode of the forward operation.
  *
  * @return		Return 0 on succes, otherwise return an error code.
  *
- * In case the original method is a system method, ARG1 and ARG2 are overwritten
- * in the forwarded message with the new method and the new arg1, respectively.
- * Otherwise the METHOD and ARG1 are rewritten with the new method and arg1,
- * respectively. Also note there is a set of immutable methods, for which the
- * new method and argument is not set and these values are ignored.
+ * In case the original method is a system method, ARG1, ARG2 and ARG3 are
+ * overwritten in the forwarded message with the new method and the new arg1 and
+ * arg2, respectively. Otherwise the METHOD, ARG1 and ARG2 are rewritten with
+ * the new method, arg1 and arg2, respectively. Also note there is a set of
+ * immutable methods, for which the new method and argument is not set and
+ * these values are ignored.
  *
  * Warning:	When implementing support for changing additional payload
- *		arguments, make sure that ARG3 is not rewritten for certain
+ *		arguments, make sure that ARG5 is not rewritten for certain
  *		system IPC
  */
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
