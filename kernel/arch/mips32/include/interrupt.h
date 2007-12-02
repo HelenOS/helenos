@@ -42,6 +42,7 @@
 #define IVT_FIRST 0
 
 extern function virtual_timer_fnc;
+extern uint32_t count_hi;
 
 extern void interrupt_init(void);
 

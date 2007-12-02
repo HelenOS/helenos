@@ -89,10 +89,14 @@ ipl_t interrupts_read(void)
 }
 
 /* TODO: This is SMP unsafe!!! */
+uint32_t count_hi = 0;
 static unsigned long nextcount;
+static unsigned long lastcount;
+
 /** Start hardware clock */
 static void timer_start(void)
 {
+	lastcount = cp0_count_read();
 	nextcount = cp0_compare_value + cp0_count_read();
 	cp0_compare_write(nextcount);
 }
@@ -105,7 +109,13 @@ static irq_ownership_t timer_claim(void)
 static void timer_irq_handler(irq_t *irq, void *arg, ...)
 {
 	unsigned long drift;
-
+	
+	if (cp0_count_read() < lastcount) {
+		/* Count overflow detection */
+		count_hi++;
+		lastcount = cp0_count_read();
+	}
+	
 	drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
 		drift -= cp0_compare_value;
@@ -113,7 +123,7 @@ static void timer_irq_handler(irq_t *irq, void *arg, ...)
 	}
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
-
+	
 	/*
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
