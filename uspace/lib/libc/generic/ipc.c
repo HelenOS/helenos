@@ -569,6 +569,7 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
  * @param phoneid	Phone handle used for contacting the other side.
  * @param arg1		Service-defined argument.
  * @param arg2		Service-defined argument.
+ * @param arg3		Service-defined argument.
  * @param phonehash	Storage where the library will store an opaque
  *			identifier of the phone that will be used for incoming
  *			calls. This identifier can be used for connection
@@ -576,10 +577,11 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
  *
  * @return		Zero on success or a negative error code.
  */
-int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phonehash)
+int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3, 
+    ipcarg_t *phonehash)
 {
-	return ipc_call_sync_2_3(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
-	    NULL, NULL, phonehash);
+	return ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
+	    arg3, NULL, NULL, NULL, NULL, phonehash);
 }
 
 /** Ask through phone for a new connection to some service.

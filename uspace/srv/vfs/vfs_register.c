@@ -252,7 +252,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-	fs_info->phone = IPC_GET_ARG3(call);
+	fs_info->phone = IPC_GET_ARG5(call);
 	ipc_answer_0(callid, EOK);
 
 	dprintf("Callback connection to FS created.\n");

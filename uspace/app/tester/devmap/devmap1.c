@@ -90,7 +90,7 @@ static int device_client_fibril(void *arg)
 		return -1;
 	}
 /*	
- *	device_phone = (int) IPC_GET_ARG3(answer);
+ *	device_phone = (int) IPC_GET_ARG5(answer);
  */
 	printf("Connected to device.\n");
 	ipc_call_sync_1_0(device_phone, 1024, 1025);
@@ -149,7 +149,7 @@ static int driver_register(char *name)
 
 	async_set_client_connection(driver_client_connection);
 
-	ipc_connect_to_me(phone, 0, 0, &callback_phonehash);
+	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
 /*	
 	if (NULL == async_new_connection(callback_phonehash, 0, NULL,
 			driver_client_connection)) {

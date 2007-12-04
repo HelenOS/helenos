@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 	 * Ask VFS for callback connection.
 	 */
 	ipcarg_t phonehash;
-	ipc_connect_to_me(vfs_phone, 0, 0, &phonehash);
+	ipc_connect_to_me(vfs_phone, 0, 0, 0, &phonehash);
 
 	/*
 	 * Allocate piece of address space for PLB.

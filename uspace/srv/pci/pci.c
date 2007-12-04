@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%s: registering at naming service.\n", NAME);
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_PCI, 0, &ns_in_phone_hash) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_PCI, 0, 0, &ns_in_phone_hash) != 0) {
 		printf("Failed to register %s at naming service.\n", NAME);
 		return -1;
 	}

@@ -568,9 +568,10 @@ void ipc_print_task(task_id_t taskid)
 	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d "
-		    "Flags:%x\n", call, call->sender->taskid,
+		    "A4:%d A5:%d Flags:%x\n", call, call->sender->taskid,
 		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
 	/* Print answerbox - calls */
@@ -580,9 +581,10 @@ void ipc_print_task(task_id_t taskid)
 	     tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%llu M:%d A1:%d A2:%d A3:%d "
-		    "Flags:%x\n", call, call->sender->taskid,
+		    "A4:%d A5:%d Flags:%x\n", call, call->sender->taskid,
 		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
 	/* Print answerbox - calls */
@@ -590,9 +592,10 @@ void ipc_print_task(task_id_t taskid)
 	for (tmp = task->answerbox.answers.next; tmp != &task->answerbox.answers;
 	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
-		printf("Callid:%p M:%d A1:%d A2:%d A3:%d Flags:%x\n", call,
-		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		printf("Callid:%p M:%d A1:%d A2:%d A3:%d A4:%d A5:%d Flags:%x\n", 
+		    call, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
 

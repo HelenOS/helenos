@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 		async_set_client_connection(rd_connection);
 		
 		/* Register service at nameserver */
-		if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, &phonead) != 0)
+		if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, 0, &phonead) != 0)
 			return -1;
 		
 		async_manager();

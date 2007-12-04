@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 			 * Server requests service registration.
 			 */
 			retval = register_service(IPC_GET_ARG1(call),
-			    IPC_GET_ARG3(call), &call);
+			    IPC_GET_ARG5(call), &call);
 			break;
 		case IPC_M_CONNECT_ME_TO:
 			/*

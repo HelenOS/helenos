@@ -177,7 +177,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		return 0;
 
 	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
-		phoneid = IPC_GET_ARG3(*olddata);
+		phoneid = IPC_GET_ARG5(*olddata);
 		if (IPC_GET_RETVAL(answer->data)) {
 			/* The connection was not accepted */
 			phone_dealloc(phoneid);
@@ -185,7 +185,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
 			/* Set 'phone hash' as arg3 of response */
-			IPC_SET_ARG3(answer->data,
+			IPC_SET_ARG5(answer->data,
 			    (unative_t) &TASK->phones[phoneid]);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
@@ -341,7 +341,7 @@ static int process_request(answerbox_t *box, call_t *call)
 			ipc_answer(box, call);
 			return -1;
 		}
-		IPC_SET_ARG3(call->data, phoneid);
+		IPC_SET_ARG5(call->data, phoneid);
 	} 
 	return 0;
 }

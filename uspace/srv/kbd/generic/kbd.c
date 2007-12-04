@@ -108,7 +108,7 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = ELIMIT;
 				break;
 			}
-			phone2cons = IPC_GET_ARG3(call);
+			phone2cons = IPC_GET_ARG5(call);
 			retval = 0;
 			break;
 		default:
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	async_set_client_connection(console_connection);
 	async_set_interrupt_received(irq_handler);
 	/* Register service at nameserver */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, &phonead) != 0)
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, 0, &phonead) != 0)
 		return -1;
 
 	async_manager();

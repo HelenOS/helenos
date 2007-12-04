@@ -381,7 +381,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_serialize_start();
 	gcons_notify_connect(consnum);
-	conn->client_phone = IPC_GET_ARG3(call);
+	conn->client_phone = IPC_GET_ARG5(*icall);
 	screenbuffer_clear(&conn->screenbuffer);
 	
 	/* Accept the connection */
@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
 		kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	}
 	
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, &phonehash) != 0)
+	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0)
 		return -1;
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
@@ -550,7 +550,7 @@ int main(int argc, char *argv[])
 	    connections[active_console].screenbuffer.is_cursor_visible);
 
 	/* Register at NS */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		return -1;
 	}
 	

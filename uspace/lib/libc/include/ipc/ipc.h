@@ -252,7 +252,8 @@ extern void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, void *private,
     ipc_async_callback_t callback, int can_preempt);
 
-extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, ipcarg_t *phone);
+extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3,
+    ipcarg_t *phone);
 extern int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3);
 extern int ipc_hangup(int phoneid);
 extern int ipc_register_irq(int inr, int devno, int method, irq_code_t *code);

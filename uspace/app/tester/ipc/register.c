@@ -77,7 +77,7 @@ char * test_register(bool quiet)
 
 	for (i = IPC_TEST_START; i < IPC_TEST_START + 10; i++) {
 		ipcarg_t phonead;
-		int res = ipc_connect_to_me(PHONE_NS, i, 0, &phonead);
+		int res = ipc_connect_to_me(PHONE_NS, i, 0, 0, &phonead);
 		if (!res)
 			break;
 		printf("Failed registering as %d..:%d\n", i, res);

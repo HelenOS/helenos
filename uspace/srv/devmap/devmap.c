@@ -269,7 +269,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 		return;
 	}
 
-	driver->phone = IPC_GET_ARG3(call);
+	driver->phone = IPC_GET_ARG5(call);
 	
 	ipc_answer_0(callid, EOK);
 	
@@ -735,7 +735,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devmap_connection);
 
 	/* Register device mapper at naming service */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, &phonead) != 0) 
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, &phonead) != 0) 
 		return -1;
 	
 	async_manager();

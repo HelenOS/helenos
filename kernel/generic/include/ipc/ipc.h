@@ -125,7 +125,7 @@
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
  *                     - the allocated phoneid is passed to userspace 
- *                       (on the receiving side) as ARG3 of the call.
+ *                       (on the receiving side) as ARG5 of the call.
  *                     - the caller obtains taskid of the called thread
  */
 #define IPC_M_CONNECT_TO_ME	1

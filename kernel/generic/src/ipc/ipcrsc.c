@@ -72,7 +72,7 @@
  *
  * *** Connect_me_to ***
  * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server receives
- * 'phoneid' of the connecting phone as an ARG3. If it answers with RETVAL=0,
+ * 'phoneid' of the connecting phone as an ARG5. If it answers with RETVAL=0,
  * the phonecall is accepted, otherwise it is refused.
  *
  * *** Connect_to_me ***

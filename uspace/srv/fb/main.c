@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	if (!initialized)
 		sysio_init();
 
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, &phonead) != 0) 
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
 		return -1;
 	
 	async_manager();
