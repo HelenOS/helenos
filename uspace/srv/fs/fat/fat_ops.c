@@ -36,9 +36,27 @@
  */
 
 #include "fat.h"
+#include "../../vfs/vfs.h"
 #include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
+
+#define PLB_GET_CHAR(i)		(plb_ro[(i) % PLB_SIZE])
+
+#define FAT_NAME_LEN		8
+#define FAT_EXT_LEN		3
+
+#define FAT_PAD			' ' 
+
+#define FAT_DENTRY_UNUSED	0x00
+#define FAT_DENTRY_E5_ESC	0x05
+#define FAT_DENTRY_DOT		0x2e
+#define FAT_DENTRY_ERASED	0xe5
+
+static int match_path_component(fat_dentry_t *dentry, unsigned index,
+    size_t len)
+{
+}
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
 {

@@ -135,9 +135,19 @@ typedef struct {
 
 extern uint8_t *plb_ro;
 
-extern int block_read(int, unsigned long, void *);
-
 extern void fat_lookup(ipc_callid_t, ipc_call_t *);
+
+/*
+ * The following interfaces are rather fs-neutral and might be later moved to a
+ * dedicated library (e.g. libfs). We just wait until the interfaces stabilize
+ * and until there is more than one fs implementation.
+ */
+extern int block_read(int, unsigned long, void *);
+extern int block_write(int, unsigned long, void *);
+
+extern void node_add_mp(int, unsigned long);
+extern void node_del_mp(int, unsigned long);
+extern bool node_is_mp(int, unsigned long);
 
 #endif
 

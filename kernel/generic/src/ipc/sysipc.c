@@ -184,7 +184,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
-			/* Set 'phone hash' as arg3 of response */
+			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (unative_t) &TASK->phones[phoneid]);
 		}
@@ -269,7 +269,7 @@ static int request_preprocess(call_t *call)
 		newphid = phone_alloc();
 		if (newphid < 0)
 			return ELIMIT;
-		/* Set arg3 for server */
+		/* Set arg5 for server */
 		IPC_SET_ARG5(call->data, (unative_t) &TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->priv = newphid;

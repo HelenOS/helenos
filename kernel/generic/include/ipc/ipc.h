@@ -118,7 +118,7 @@
  *
  * The protocol for negotiating is:
  * - sys_connect_to_me - sends a message IPC_M_CONNECT_TO_ME
- * - sys_wait_for_call - upon receipt tries to allocate new phone
+ * - recipient         - upon receipt tries to allocate new phone
  *                       - if it fails, responds with ELIMIT
  *                     - passes call to userspace. If userspace
  *                       responds with error, phone is deallocated and
@@ -126,7 +126,6 @@
  *                       the call is accepted and the response is sent back.
  *                     - the allocated phoneid is passed to userspace 
  *                       (on the receiving side) as ARG5 of the call.
- *                     - the caller obtains taskid of the called thread
  */
 #define IPC_M_CONNECT_TO_ME	1
 /** Protocol for CONNECT - ME - TO
@@ -141,10 +140,9 @@
  *                     - arg1/2/3 are user specified, arg5 contains
  *                       address of the phone that should be connected
  *                       (TODO: it leaks to userspace)
- *   recipient         -  if ipc_answer == 0, then accept connection
+ *  - recipient        -  if ipc_answer == 0, then accept connection
  *                     -  otherwise connection refused
- *                     -  recepient may forward message. Forwarding
- *                        system message 
+ *                     -  recepient may forward message.
  *
  */
 #define IPC_M_CONNECT_ME_TO	2
