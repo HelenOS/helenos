@@ -53,9 +53,79 @@
 #define FAT_DENTRY_DOT		0x2e
 #define FAT_DENTRY_ERASED	0xe5
 
-static int match_path_component(fat_dentry_t *dentry, unsigned index,
-    size_t len)
+/** Compare one component of path to a directory entry.
+ *
+ * @param dentry	Directory entry to compare the path component with.
+ * @param start		Index into PLB where the path component starts.
+ * @param last		Index of the last character of the path in PLB.
+ *
+ * @return		Zero on failure or delta such that (index + delta) %
+ *			PLB_SIZE points	to a new path component in PLB.
+ */
+static unsigned match_path_component(fat_dentry_t *dentry, unsigned start,
+    unsigned last)
 {
+	unsigned cur;	/* current position in PLB */
+	int pos;	/* current position in dentry->name or dentry->ext */
+	bool name_processed = false;
+	bool dot_processed = false;
+	bool ext_processed = false;
+
+	if (last < start)
+		last += PLB_SIZE;
+	for (pos = 0, cur = start; (cur <= last) && (PLB_GET_CHAR(cur) != '/');
+	    pos++, cur++) {
+		if (!name_processed) {
+			if ((pos == FAT_NAME_LEN - 1) ||
+			    (dentry->name[pos + 1] == FAT_PAD)) {
+			    	/* this is the last character in name */
+				name_processed = true;
+			}
+			if (dentry->name[0] == FAT_PAD) {
+				/* name is empty */
+				name_processed = true;
+			} else if ((pos == 0) && (dentry->name[pos] ==
+			    FAT_DENTRY_E5_ESC)) {
+				if (PLB_GET_CHAR(cur) == 0xe5)
+					continue;
+				else
+					return 0;	/* character mismatch */
+			} else {
+				if (PLB_GET_CHAR(cur) == dentry->name[pos])
+					continue;
+				else
+					return 0;	/* character mismatch */
+			}
+		}
+		if (!dot_processed) {
+			dot_processed = true;
+			pos = -1;
+			if (PLB_GET_CHAR(cur) != '.')
+				return 0;
+			continue;
+		}
+		if (!ext_processed) {
+			if ((pos == FAT_EXT_LEN - 1) ||
+			    (dentry->ext[pos + 1] == FAT_PAD)) {
+				/* this is the last character in ext */
+				ext_processed = true;
+			}
+			if (dentry->ext[0] == FAT_PAD) {
+				/* ext is empty; the match will fail */
+				ext_processed = true;
+			} else if (PLB_GET_CHAR(cur) == dentry->ext[pos]) {
+				continue;
+			} else {
+				/* character mismatch */
+				return 0;
+			}
+		}
+		return 0;	/* extra characters in the component */
+	}
+	if (ext_processed || (name_processed && dentry->ext[0] == FAT_PAD))
+		return cur - start;
+	else
+		return 0;
 }
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
