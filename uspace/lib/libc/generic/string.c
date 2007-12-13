@@ -144,6 +144,16 @@ int strcmp(const char *a, const char *b)
 	
 }
 
+int strncmp(const char *a, const char *b, size_t n)
+{
+	size_t c = 0;
+
+	while (c < n && a[c] && b[c] && (!(a[c] - b[c])))
+		c++;
+	
+	return ( c < n ? a[c] - b[c] : 0);
+	
+}
 
 /** Return pointer to the first occurence of character c in string
  * @param str scanned string 
