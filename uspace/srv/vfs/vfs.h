@@ -83,7 +83,7 @@ typedef enum {
  */
 typedef struct {
 	/** Unique identifier of the fs. */
-	char name[FS_NAME_MAXLEN];
+	char name[FS_NAME_MAXLEN + 1];
 	
 	/** Operations. */
 	vfs_op_t ops[VFS_LAST - VFS_FIRST];

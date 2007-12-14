@@ -88,6 +88,14 @@ static bool vfs_info_sane(vfs_info_t *info)
 			}
 		}
 	}
+	/*
+	 * This check is not redundant. It ensures that the name is
+	 * NULL-terminated, even if FS_NAME_MAXLEN characters are used.
+	 */
+	if (info->name[i] != '\0') {
+		dprintf("The name is not properly NULL-terminated.\n");	
+		return false;
+	}
 	
 
 	/*
@@ -400,7 +408,8 @@ int fs_name_to_handle(char *name, bool lock)
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (strcmp(fs->vfs_info.name, name) == 0) { /* XXX: strncmp() */
+		if (strncmp(fs->vfs_info.name, name,
+		    sizeof(fs->vfs_info.name)) == 0) { 
 			handle = fs->fs_handle;
 			break;
 		}
