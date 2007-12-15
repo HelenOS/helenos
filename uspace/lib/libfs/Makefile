@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,68 +27,40 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Common compiler flags
 #
 
--include Makefile.config
+LIBC_PREFIX = ../libc
+## Setup toolchain
+#
 
-DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/softint \
-	lib/softfloat \
-	srv/ns \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/rd \
-	srv/fs/fat \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/klog \
-	app/init
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-ifeq ($(ARCH), amd64)
-	DIRS += srv/pci
-endif
+CFLAGS += -Iinclude
 
-ifeq ($(ARCH), ia32)
-	DIRS += srv/pci
-endif
+## Sources
+#
 
-ifeq ($(ARCH), mips32)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+SOURCES = \
+	libfs.c
 
-ifeq ($(ARCH), mips32eb)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+.PHONY: all clean depend
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+all: libfs.a
 
-all:
-	../tools/config.py uspace.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG)
-	$(MAKE) -C . build
+-include Makefile.depend
 
-config:
-	../tools/config.py uspace.config
+clean:
+	-rm -f libfs.a Makefile.depend
+	find . -name '*.o' -follow -exec rm \{\} \;
 
-build: $(BUILDS)
+depend:
+	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
-clean: $(CLEANS)
-	find $(DIRS) -name '*.o' -follow -exec rm \{\} \;
-	find lib/libc -name "_link.ld" -exec rm \{\} \;
+libfs.a: depend $(OBJECTS)
+	$(AR) rc libfs.a $(OBJECTS)
 
-distclean: clean
-	-rm Makefile.config
-
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
-
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
