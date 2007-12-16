@@ -32,7 +32,9 @@ TASKS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \

@@ -11,6 +11,7 @@ module /boot/fb
 module /boot/kbd
 module /boot/console
 module /boot/vfs
+module /boot/tmpfs
 module /boot/fat
 module /boot/devmap
 module /boot/tetris
