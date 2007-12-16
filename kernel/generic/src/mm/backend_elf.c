@@ -304,7 +304,7 @@ void elf_share(as_area_t *area)
 			 * by the ELF image.
 			 */
 			if (!(area->flags & AS_AREA_WRITE))
-				if (base + count*PAGE_SIZE <= start_anon)
+				if (base + count * PAGE_SIZE <= start_anon)
 					continue;
 			
 			for (j = 0; j < count; j++) {

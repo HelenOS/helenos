@@ -640,7 +640,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * sharing.
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
-		  as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
+    as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
 {
 	ipl_t ipl;
 	int src_flags;
@@ -702,13 +702,15 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		sh_info->refcount = 2;
 		btree_create(&sh_info->pagemap);
 		src_area->sh_info = sh_info;
+		/*
+		 * Call the backend to setup sharing.
+		 */
+		src_area->backend->share(src_area);
 	} else {
 		mutex_lock(&sh_info->lock);
 		sh_info->refcount++;
 		mutex_unlock(&sh_info->lock);
 	}
-
-	src_area->backend->share(src_area);
 
 	mutex_unlock(&src_area->lock);
 	mutex_unlock(&src_as->lock);
