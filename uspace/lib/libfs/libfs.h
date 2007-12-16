@@ -36,6 +36,19 @@
 #ifndef LIBFS_LIBFS_H_
 #define	LIBFS_LIBFS_H_ 
 
+#include "../../srv/vfs/vfs.h"
+#include <stdint.h>
+#include <ipc/ipc.h>
+#include <async.h>
+
+typedef struct {
+	int fs_handle;		/**< File system handle. */
+	ipcarg_t vfs_phonehash;	/**< Initial VFS phonehash. */
+	uint8_t *plb_ro;	/**< Read-only PLB view. */
+} fs_reg_t;
+
+extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
+
 #endif
 
 /** @}

@@ -34,6 +34,7 @@
 #define FAT_FAT_H_
 
 #include <ipc/ipc.h>
+#include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
 #include <bool.h>
@@ -133,7 +134,7 @@ typedef struct {
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
 
-extern uint8_t *plb_ro;
+extern fs_reg_t fat_reg;
 
 extern void fat_lookup(ipc_callid_t, ipc_call_t *);
 

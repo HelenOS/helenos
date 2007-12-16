@@ -41,7 +41,7 @@
 #include <async.h>
 #include <errno.h>
 
-#define PLB_GET_CHAR(i)		(plb_ro[(i) % PLB_SIZE])
+#define PLB_GET_CHAR(i)		(fat_reg.plb_ro[(i) % PLB_SIZE])
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3

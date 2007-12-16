@@ -35,6 +35,91 @@
  */
 
 #include "libfs.h" 
+#include "../../srv/vfs/vfs.h"
+#include <errno.h>
+#include <async.h>
+#include <ipc/ipc.h>
+#include <as.h>
+
+/** Register file system server.
+ *
+ * This function abstracts away the tedious registration protocol from
+ * file system implementations and lets them to reuse this registration glue
+ * code.
+ *
+ * @param vfs_phone	Open phone for communication with VFS.
+ * @param reg		File system registration structure. It will be
+ * 			initialized by this function.
+ * @param info		VFS info structure supplied by the file system
+ *			implementation.
+ * @param conn		Connection fibril for handling all calls originating in
+ *			VFS.
+ *
+ * @return		EOK on success or a non-zero error code on errror.
+ */
+int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
+    async_client_conn_t conn)
+{
+	/*
+	 * Tell VFS that we are here and want to get registered.
+	 * We use the async framework because VFS will answer the request
+	 * out-of-order, when it knows that the operation succeeded or failed.
+	 */
+	ipc_call_t answer;
+	aid_t req = async_send_0(vfs_phone, VFS_REGISTER, &answer);
+
+	/*
+	 * Send our VFS info structure to VFS.
+	 */
+	int rc = ipc_data_send(vfs_phone, info, sizeof(*info)); 
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+
+	/*
+	 * Ask VFS for callback connection.
+	 */
+	ipc_connect_to_me(vfs_phone, 0, 0, 0, &reg->vfs_phonehash);
+
+	/*
+	 * Allocate piece of address space for PLB.
+	 */
+	reg->plb_ro = as_get_mappable_page(PLB_SIZE);
+	if (!reg->plb_ro) {
+		async_wait_for(req, NULL);
+		return ENOMEM;
+	}
+
+	/*
+	 * Request sharing the Path Lookup Buffer with VFS.
+	 */
+	rc = ipc_call_sync_2_0(vfs_phone, IPC_M_AS_AREA_RECV,
+	    (ipcarg_t) reg->plb_ro, PLB_SIZE);
+	if (rc) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	 
+	/*
+	 * Pick up the answer for the request to the VFS_REQUEST call.
+	 */
+	async_wait_for(req, NULL);
+	reg->fs_handle = (int) IPC_GET_ARG1(answer);
+	
+	/*
+	 * Create a connection fibril to handle the callback connection.
+	 */
+	async_new_connection(reg->vfs_phonehash, 0, NULL, conn);
+	
+	/*
+	 * Tell the async framework that other connections are to be handled by
+	 * the same connection fibril as well.
+	 */
+	async_set_client_connection(conn);
+
+	return IPC_GET_RETVAL(answer);
+}
 
 /** @}
  */

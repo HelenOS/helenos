@@ -43,7 +43,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <as.h>
+#include <libfs.h>
 #include "../../vfs/vfs.h"
 
 
@@ -63,9 +63,7 @@ vfs_info_t fat_vfs_info = {
 	}
 };
 
-uint8_t *plb_ro = NULL;
-
-int fs_handle = 0;
+fs_reg_t fat_reg;
 
 /**
  * This connection fibril processes VFS requests from VFS.
@@ -132,65 +130,14 @@ int main(int argc, char **argv)
 		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	}
 	
-	/*
-	 * Tell VFS that we are here and want to get registered.
-	 * We use the async framework because VFS will answer the request
-	 * out-of-order, when it knows that the operation succeeded or failed.
-	 */
-	ipc_call_t answer;
-	aid_t req = async_send_2(vfs_phone, VFS_REGISTER, 0, 0, &answer);
-
-	/*
-	 * Send our VFS info structure to VFS.
-	 */
-	int rc = ipc_data_send(vfs_phone, &fat_vfs_info, sizeof(fat_vfs_info)); 
+	int rc;
+	rc = fs_register(vfs_phone, &fat_reg, &fat_vfs_info, fat_connection);
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		printf("Failed to register the FAT file system (%d)\n", rc);
 		return rc;
 	}
-
-	/*
-	 * Ask VFS for callback connection.
-	 */
-	ipcarg_t phonehash;
-	ipc_connect_to_me(vfs_phone, 0, 0, 0, &phonehash);
-
-	/*
-	 * Allocate piece of address space for PLB.
-	 */
-	plb_ro = as_get_mappable_page(PLB_SIZE);
-	if (!plb_ro) {
-		async_wait_for(req, NULL);
-		return ENOMEM;
-	}
-
-	/*
-	 * Request sharing the Path Lookup Buffer with VFS.
-	 */
-	rc = ipc_call_sync_2_0(vfs_phone, IPC_M_AS_AREA_RECV, (ipcarg_t) plb_ro,
-	    PLB_SIZE);
-	if (rc) {
-		async_wait_for(req, NULL);
-		return rc;
-	}
-	 
-	/*
-	 * Pick up the answer for the request to the VFS_REQUEST call.
-	 */
-	async_wait_for(req, NULL);
-	fs_handle = (int) IPC_GET_ARG1(answer);
-	dprintf("FAT filesystem registered, fs_handle=%d.\n", fs_handle);
-
-	/*
-	 * Create a connection fibril to handle the callback connection.
-	 */
-	async_new_connection(phonehash, 0, NULL, fat_connection);
 	
-	/*
-	 * Tell the async framework that other connections are to be handled by
-	 * the same connection fibril as well.
-	 */
-	async_set_client_connection(fat_connection);
+	dprintf("FAT filesystem registered, fs_handle=%d.\n", fat_reg.fs_handle);
 
 	async_manager();
 	/* not reached */
