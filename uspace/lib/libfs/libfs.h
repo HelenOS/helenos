@@ -49,6 +49,12 @@ typedef struct {
 
 extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
 
+extern int block_read(int, unsigned long, void *);
+extern int block_write(int, unsigned long, void *);
+
+extern void node_add_mp(int, unsigned long);
+extern void node_del_mp(int, unsigned long);
+extern bool node_is_mp(int, unsigned long);
 #endif
 
 /** @}

@@ -114,10 +114,6 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-int block_read(int dev_handle, unsigned long blkno, void *buf)
-{
-}
-
 int main(int argc, char **argv)
 {
 	int vfs_phone;
@@ -137,7 +133,8 @@ int main(int argc, char **argv)
 		return rc;
 	}
 	
-	dprintf("FAT filesystem registered, fs_handle=%d.\n", fat_reg.fs_handle);
+	dprintf("FAT filesystem registered, fs_handle=%d.\n",
+	    fat_reg.fs_handle);
 
 	async_manager();
 	/* not reached */
