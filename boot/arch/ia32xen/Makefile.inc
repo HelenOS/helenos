@@ -33,6 +33,7 @@ TASKS = \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/app/init/init \
