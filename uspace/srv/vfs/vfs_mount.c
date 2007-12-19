@@ -238,12 +238,12 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	    (ipcarg_t) mounted_root.fs_handle,
 	    (ipcarg_t) mounted_root.dev_handle, (ipcarg_t) mounted_root.index,
 	    NULL);
+	vfs_release_phone(phone);
 
 	ipcarg_t rc1;
 	ipcarg_t rc2;
 	async_wait_for(req1, &rc1);
 	async_wait_for(req2, &rc2);
-	vfs_release_phone(phone);
 
 	if ((rc1 != EOK) || (rc2 != EOK)) {
 		/* Mount failed, drop references to mr_node and mp_node. */
