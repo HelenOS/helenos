@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,53 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
-
-#ifndef TESTER_H_
-#define TESTER_H_
-
-#include <sys/types.h>
-#include <bool.h>
 #include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <async.h>
+#include "../../../srv/vfs/vfs.h" 
+#include "../tester.h"
 
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
+#define TMPFS_DEVHANDLE	999
 
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
+char buf[FS_NAME_MAXLEN + 1] = "tmpfs";
 
-typedef char * (* test_entry_t)(bool);
+char *test_vfs1(bool quiet)
+{
+	/* 1. connect to VFS */
+	int vfs_phone;
+	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
+	if (vfs_phone < EOK) {
+		return "Could not connect to VFS.\n";
+	}
+	
+	/* 2. mount TMPFS as / */
+	ipcarg_t rc;
+	aid_t req;
+	req = async_send_1(vfs_phone, VFS_MOUNT, TMPFS_DEVHANDLE, NULL);
+	buf[sizeof(buf) - 1] = '/';
+	if (ipc_data_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+		async_wait_for(req, &rc);
+		return "Could not send data to VFS.\n";
+	}
+	async_wait_for(req, &rc);
+	if (rc != EOK) {
+		return "Mount failed.\n";
+	}
+	
+	/* 3. open some files */
+	char *path = "/dir2/file2";
+	ipc_call_t answer;
+	req = async_send_2(vfs_phone, VFS_OPEN, 0, 0, &answer);
+	if (ipc_data_send(vfs_phone, path, strlen(path)) != EOK) {
+		async_wait_for(req, &rc);
+		return "Could not send path to VFS.\n";
+	}
+	async_wait_for(req, &rc);
+	if (rc != EOK) {
+		return "Open failed.\n";
+	}
 
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+	if (!quiet) {
+		printf("Opened %s handle=%d\n", path, IPC_GET_ARG1(answer));
+	}
 
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-extern char * test_devmap1(bool quiet);
-extern char * test_vfs1(bool quiet);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+	return NULL;
+}

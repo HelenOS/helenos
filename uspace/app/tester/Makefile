@@ -52,7 +52,8 @@ SOURCES = tester.c \
 	ipc/send_sync.c \
 	ipc/answer.c \
 	ipc/hangup.c \
-	devmap/devmap1.c
+	devmap/devmap1.c \
+	vfs/vfs1.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

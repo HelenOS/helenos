@@ -56,6 +56,7 @@ test_t tests[] = {
 #include "ipc/answer.def"
 #include "ipc/hangup.def"
 #include "devmap/devmap1.def"
+#include "vfs/vfs1.def"
 	{NULL, NULL, NULL}
 };
 
