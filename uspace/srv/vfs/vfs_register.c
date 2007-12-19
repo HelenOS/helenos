@@ -49,6 +49,7 @@
 #include <as.h>
 #include <libadt/list.h>
 #include <assert.h>
+#include <atomic.h>
 #include "vfs.h"
 
 atomic_t fs_head_futex = FUTEX_INITIALIZER;
@@ -202,6 +203,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	link_initialize(&fs_info->fs_link);
+	futex_initialize(&fs_info->phone_futex, 1);
 		
 	rc = ipc_data_deliver(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
