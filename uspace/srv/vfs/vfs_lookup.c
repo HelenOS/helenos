@@ -145,7 +145,8 @@ int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
 	ipc_call_t answer;
 	int phone = vfs_grab_phone(root->fs_handle);
 	aid_t req = async_send_3(phone, VFS_LOOKUP, (ipcarg_t) first,
-	    (ipcarg_t) last, (ipcarg_t) root->dev_handle, &answer);
+	    (ipcarg_t) (first + len - 1) % PLB_SIZE,
+	    (ipcarg_t) root->dev_handle, &answer);
 	vfs_release_phone(phone);
 
 	ipcarg_t rc;
