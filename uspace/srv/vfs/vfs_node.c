@@ -174,7 +174,7 @@ hash_index_t nodes_hash(unsigned long key[])
 	hash_index_t a = key[KEY_FS_HANDLE] << (NODES_BUCKETS_LOG / 4);
 	hash_index_t b = (a | key[KEY_DEV_HANDLE]) << (NODES_BUCKETS_LOG / 2);
 	
-	return (b | key[KEY_INDEX]) & ~(NODES_BUCKETS - 1);
+	return (b | key[KEY_INDEX]) & (NODES_BUCKETS - 1);
 }
 
 int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
