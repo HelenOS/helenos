@@ -42,10 +42,18 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 
 typedef struct tmpfs_dentry {
+	unsigned index;		/**< TMPFS node index. */
 	struct tmpfs_dentry *parent;
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
 	char *name;
+	enum {
+		TMPFS_NONE,
+		TMPFS_FILE,
+		TMPFS_DIRECTORY
+	} type;
+	size_t size;		/**< File size if type is TMPFS_FILE. */
+	void *data;		/**< File content's if type is TMPFS_FILE. */
 } tmpfs_dentry_t;
 
 extern fs_reg_t tmpfs_reg;
