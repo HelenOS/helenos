@@ -37,7 +37,8 @@
 
 #define TMPFS_DEVHANDLE	999
 
-char buf[FS_NAME_MAXLEN + 1] = "tmpfs";
+char fs_name[] = "tmpfs";
+char mp[] = "/";
 
 char *test_vfs1(bool quiet)
 {
@@ -52,10 +53,13 @@ char *test_vfs1(bool quiet)
 	ipcarg_t rc;
 	aid_t req;
 	req = async_send_1(vfs_phone, VFS_MOUNT, TMPFS_DEVHANDLE, NULL);
-	buf[sizeof(buf) - 1] = '/';
-	if (ipc_data_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+	if (ipc_data_send(vfs_phone, fs_name, strlen(fs_name)) != EOK) {
 		async_wait_for(req, &rc);
-		return "Could not send data to VFS.\n";
+		return "Could not send fs_name to VFS.\n";
+	}
+	if (ipc_data_send(vfs_phone, mp, strlen(mp)) != EOK) {
+		async_wait_for(req, &rc);
+		return "Could not send mp to VFS.\n";
 	}
 	async_wait_for(req, &rc);
 	if (rc != EOK) {

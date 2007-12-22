@@ -79,12 +79,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * carry mount options in the future.
 	 */
 
-	/*
-	 * Now, we expect the client to send us data with the name of the file
-	 * system and the path of the mountpoint.
-	 */
 	ipc_callid_t callid;
 	size_t size;
+
+	/*
+	 * Now, we expect the client to send us data with the name of the file
+	 * system.
+	 */
 	if (!ipc_data_receive(&callid, NULL, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -92,19 +93,51 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * There is no sense in receiving data that can't hold a single
-	 * character of path. We won't accept data that exceed certain limits
-	 * either.
+	 * Don't receive more than is necessary for storing a full file system
+	 * name.
 	 */
-	if ((size < FS_NAME_MAXLEN + 1) ||
-	    (size > FS_NAME_MAXLEN + MAX_PATH_LEN)) {
+	if (size < 1 || size > FS_NAME_MAXLEN) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
 	/*
-	 * Allocate buffer for the data being received.
+	 * Deliver the file system name.
+	 */
+	char fs_name[FS_NAME_MAXLEN + 1];
+	(void) ipc_data_deliver(callid, fs_name, size);
+	fs_name[size] = '\0';
+	
+	/*
+	 * Check if we know a file system with the same name as is in fs_name.
+	 * This will also give us its file system handle.
+	 */
+	int fs_handle = fs_name_to_handle(fs_name, true);
+	if (!fs_handle) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	/*
+	 * Now, we want the client to send us the mount point.
+	 */
+	if (!ipc_data_receive(&callid, NULL, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Check whether size is reasonable wrt. the mount point.
+	 */
+	if (size < 1 || size > MAX_PATH_LEN) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	/*
+	 * Allocate buffer for the mount point data being received.
 	 */
 	uint8_t *buf;
 	buf = malloc(size);
@@ -115,24 +148,9 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * Deliver the data.
+	 * Deliver the mount point.
 	 */
 	(void) ipc_data_deliver(callid, buf, size);
-
-	char fs_name[FS_NAME_MAXLEN + 1];
-	memcpy(fs_name, buf, FS_NAME_MAXLEN);
-	fs_name[FS_NAME_MAXLEN] = '\0';
-
-	/*
-	 * Check if we know a file system with the same name as is in fs_name.
-	 * This will also give us its file system handle.
-	 */
-	int fs_handle = fs_name_to_handle(fs_name, true);
-	if (!fs_handle) {
-		free(buf);
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
 
 	/*
 	 * Lookup the root node of the filesystem being mounted.
@@ -165,8 +183,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		 * We already have the root FS.
 		 */
 		futex_down(&unlink_futex);
-		rc = vfs_lookup_internal((char *) (buf + FS_NAME_MAXLEN),
-		    size - FS_NAME_MAXLEN, &mp, NULL);
+		rc = vfs_lookup_internal(buf, size, &mp, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
@@ -197,8 +214,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * We still don't have the root file system mounted.
 		 */
-		if ((size - FS_NAME_MAXLEN == strlen("/")) &&
-		    (buf[FS_NAME_MAXLEN] == '/')) {
+		if ((size == 1) && (buf[0] == '/')) {
 			/*
 			 * For this simple, but important case, we are done.
 			 */
