@@ -38,11 +38,13 @@
 #include <atomic.h>
 #include <sys/types.h>
 #include <bool.h>
+#include <libadt/hash_table.h>
 
 #define dprintf(...)	printf(__VA_ARGS__)
 
 typedef struct tmpfs_dentry {
-	unsigned index;		/**< TMPFS node index. */
+	unsigned long index;	/**< TMPFS node index. */
+	link_t dh_link;		/**< Dentries hash table link. */
 	struct tmpfs_dentry *parent;
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
@@ -59,6 +61,7 @@ typedef struct tmpfs_dentry {
 extern fs_reg_t tmpfs_reg;
 
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
 
 #endif
 

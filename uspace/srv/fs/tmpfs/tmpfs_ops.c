@@ -45,8 +45,45 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <libadt/hash_table.h>
+#include <as.h>
+
+#define min(a, b)		((a) < (b) ? (a) : (b))
+#define max(a, b)		((a) > (b) ? (a) : (b))
 
 #define PLB_GET_CHAR(i)		(tmpfs_reg.plb_ro[(i) % PLB_SIZE])
+
+#define DENTRIES_BUCKETS	256
+
+/*
+ * Hash table of all directory entries.
+ */
+hash_table_t dentries;
+
+static hash_index_t dentries_hash(unsigned long *key)
+{
+	return *key % DENTRIES_BUCKETS;
+}
+
+static int dentries_compare(unsigned long *key, hash_count_t keys,
+    link_t *item)
+{
+	tmpfs_dentry_t *dentry = hash_table_get_instance(item, tmpfs_dentry_t,
+	    dh_link);
+	return dentry->index == *key;
+}
+
+static void dentries_remove_callback(link_t *item)
+{
+}
+
+/** TMPFS dentries hash table operations. */
+hash_table_operations_t dentries_ops = {
+	.hash = dentries_hash,
+	.compare = dentries_compare,
+	.remove_callback = dentries_remove_callback
+};
 
 unsigned tmpfs_next_index = 1;
 
@@ -60,6 +97,7 @@ static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 	dentry->type = TMPFS_NONE;
 	dentry->size = 0;
 	dentry->data = NULL;
+	link_initialize(&dentry->dh_link);
 }
 
 /*
@@ -70,14 +108,17 @@ static tmpfs_dentry_t *root;
 
 static bool tmpfs_init(void)
 {
-	root = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
-	if (!root) {
+	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 1, &dentries_ops))
 		return false;
-	}
+
+	root = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
+	if (!root)
+		return false;
 	tmpfs_dentry_initialize(root);
 	root->index = tmpfs_next_index++;
 	root->name = "";
 	root->type = TMPFS_DIRECTORY;
+	hash_table_insert(&dentries, &root->index, &root->dh_link);
 
 	/*
 	 * This is only for debugging. Once we can create files and directories
@@ -96,6 +137,7 @@ static bool tmpfs_init(void)
 	d->parent = root;
 	d->type = TMPFS_DIRECTORY;
 	d->name = "dir1";
+	hash_table_insert(&dentries, &d->index, &d->dh_link);
 
 	d = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
 	if (!d) {
@@ -110,6 +152,7 @@ static bool tmpfs_init(void)
 	d->parent = root;
 	d->type = TMPFS_DIRECTORY;
 	d->name = "dir2";
+	hash_table_insert(&dentries, &d->index, &d->dh_link);
 	
 	d = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
 	if (!d) {
@@ -127,6 +170,7 @@ static bool tmpfs_init(void)
 	d->name = "file1";
 	d->data = "This is the contents of /dir1/file1.\n";
 	d->size = strlen(d->data);
+	hash_table_insert(&dentries, &d->index, &d->dh_link);
 
 	d = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
 	if (!d) {
@@ -145,6 +189,7 @@ static bool tmpfs_init(void)
 	d->name = "file2";
 	d->data = "This is the contents of /dir2/file2.\n";
 	d->size = strlen(d->data);
+	hash_table_insert(&dentries, &d->index, &d->dh_link);
 
 	return true;
 }
@@ -230,6 +275,60 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	ipc_answer_3(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index);
+}
+
+void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
+{
+	int dev_handle = IPC_GET_ARG1(*request);
+	unsigned long index = IPC_GET_ARG2(*request);
+	off_t pos = IPC_GET_ARG3(*request);
+	size_t size = IPC_GET_ARG4(*request);
+
+	/*
+	 * Lookup the respective dentry.
+	 */
+	link_t *hlp;
+	hlp = hash_table_find(&dentries, &index);
+	if (!hlp) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
+	    dh_link);
+
+	/*
+	 * Receive the communication area.
+	 */
+	ipc_callid_t callid;
+	ipc_call_t call;
+	callid = async_get_call(&call);
+	if (IPC_GET_METHOD(call) != IPC_M_AS_AREA_SEND) {
+		ipc_answer_0(callid, EINVAL);	
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	int flags = IPC_GET_ARG3(call);
+	if (!(flags & AS_AREA_WRITE)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	size_t sz = IPC_GET_ARG2(call);
+	uint8_t *buf = as_get_mappable_page(sz);
+	if (!buf) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	ipc_answer_1(callid, EOK, buf);		/* commit to share the area */
+
+	size_t bytes = max(0, min(dentry->size - pos, size));
+	memcpy(buf, dentry->data + pos, bytes);
+
+	(void) as_area_destroy(buf);
+
+	ipc_answer_1(rid, EOK, bytes);
 }
 
 /**

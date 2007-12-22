@@ -49,7 +49,7 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * operations are serialized (i.e. the reads and writes cannot
 	 * interleave and a file cannot be closed while it is being read).
 	 *
-	 * Additional synchronization needs to be added once table table of
+	 * Additional synchronization needs to be added once the table of
 	 * open files supports parallel access!
 	 */
 
@@ -60,6 +60,7 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 
 	int fd = IPC_GET_ARG1(*request);
+	size_t size = IPC_GET_ARG2(*request);
 
 	/*
 	 * Lookup the file structure corresponding to the file descriptor.
@@ -88,8 +89,9 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * Make a VFS_READ request at the destination FS server.
 	 */
 	aid_t msg;
-	msg = async_send_3(fs_phone, VFS_READ, file->node->dev_handle,
-	    file->node->index, file->pos, NULL);
+	ipc_call_t answer;
+	msg = async_send_4(fs_phone, VFS_READ, file->node->dev_handle,
+	    file->node->index, file->pos, size, &answer);
 	
 	/*
 	 * Forward the address space area offer to the destination FS server.
@@ -105,12 +107,13 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
+	size_t bytes = IPC_GET_ARG1(answer);
 
 	/*
 	 * FS server's reply is the final result of the whole operation we
 	 * return to the client.
 	 */
-	ipc_answer_0(rid, rc);
+	ipc_answer_1(rid, rc, bytes);
 }
 
 /**
