@@ -110,6 +110,11 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	size_t bytes = IPC_GET_ARG1(answer);
 
 	/*
+	 * Update the position pointer.
+	 */
+	file->pos += bytes;
+
+	/*
 	 * FS server's reply is the final result of the whole operation we
 	 * return to the client.
 	 */
