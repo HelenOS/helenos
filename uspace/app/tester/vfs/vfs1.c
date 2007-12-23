@@ -45,9 +45,8 @@ char *test_vfs1(bool quiet)
 	/* 1. connect to VFS */
 	int vfs_phone;
 	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
-	if (vfs_phone < EOK) {
+	if (vfs_phone < EOK)
 		return "Could not connect to VFS.\n";
-	}
 	
 	/* 2. mount TMPFS as / */
 	ipcarg_t rc;
@@ -62,9 +61,8 @@ char *test_vfs1(bool quiet)
 		return "Could not send mp to VFS.\n";
 	}
 	async_wait_for(req, &rc);
-	if (rc != EOK) {
+	if (rc != EOK)
 		return "Mount failed.\n";
-	}
 	
 	/* 3. open some files */
 	char *path = "/dir2/file2";
@@ -75,13 +73,22 @@ char *test_vfs1(bool quiet)
 		return "Could not send path to VFS.\n";
 	}
 	async_wait_for(req, &rc);
-	if (rc != EOK) {
+	if (rc != EOK)
 		return "Open failed.\n";
-	}
-
-	if (!quiet) {
+	if (!quiet)
 		printf("Opened %s handle=%d\n", path, IPC_GET_ARG1(answer));
+
+	/* 4. read data */
+	char buf[10];
+	req = async_send_1(vfs_phone, VFS_READ, 0, &answer);
+	if (ipc_data_read_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+		async_wait_for(req, &rc);
+		return "Could not read data from open file.\n";
 	}
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return "Read failed.\n";
+	printf("Read %d bytes: %s\n", IPC_GET_ARG1(answer), buf);
 
 	return NULL;
 }
