@@ -282,7 +282,6 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	int dev_handle = IPC_GET_ARG1(*request);
 	unsigned long index = IPC_GET_ARG2(*request);
 	off_t pos = IPC_GET_ARG3(*request);
-	size_t size = IPC_GET_ARG4(*request);
 
 	/*
 	 * Lookup the respective dentry.
@@ -297,38 +296,18 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	    dh_link);
 
 	/*
-	 * Receive the communication area.
+	 * Receive the read request.
 	 */
 	ipc_callid_t callid;
-	ipc_call_t call;
-	callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) != IPC_M_AS_AREA_SEND) {
+	size_t size;
+	if (!ipc_data_read_receive(&callid, size)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
-	int flags = IPC_GET_ARG3(call);
-	if (!(flags & AS_AREA_WRITE)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	size_t sz = IPC_GET_ARG2(call);
-	uint8_t *buf = as_get_mappable_page(sz);
-	if (!buf) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipc_answer_1(callid, EOK, buf);		/* commit to share the area */
-
 	size_t bytes = max(0, min(dentry->size - pos, size));
-	memcpy(buf, dentry->data + pos, bytes);
-
-	(void) as_area_destroy(buf);
-
-	ipc_answer_1(rid, EOK, bytes);
+	(void) ipc_data_read_deliver(callid, dentry->data + pos, bytes);
 }
 
 /**

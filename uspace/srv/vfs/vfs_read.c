@@ -53,14 +53,7 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * open files supports parallel access!
 	 */
 
-	/*
-	 * Because we don't support the receive analogy of IPC_M_DATA_SEND,
-	 * VFS_READ is emulutating its behavior via sharing an address space
-	 * area.
-	 */
-
 	int fd = IPC_GET_ARG1(*request);
-	size_t size = IPC_GET_ARG2(*request);
 
 	/*
 	 * Lookup the file structure corresponding to the file descriptor.
@@ -72,12 +65,10 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * Now we need to receive a call with client's address space area.
+	 * Now we need to receive a call with client's IPC_M_DATA_READ request.
 	 */
 	ipc_callid_t callid;
-	ipc_call_t call;
-	callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) != IPC_M_AS_AREA_SEND) {
+	if (!ipc_data_read_receive(&callid, NULL)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -90,15 +81,15 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_4(fs_phone, VFS_READ, file->node->dev_handle,
-	    file->node->index, file->pos, size, &answer);
+	msg = async_send_3(fs_phone, VFS_READ, file->node->dev_handle,
+	    file->node->index, file->pos, &answer);
 	
 	/*
-	 * Forward the address space area offer to the destination FS server.
-	 * The call will be routed as if sent by ourselves.
+	 * Forward the IPC_M_DATA_READ request to the destination FS server.
+	 * The call will be routed as if sent by ourselves. Note that call
+	 * arguments are immutable in this case so we don't have to bother.
 	 */
-	ipc_forward_fast(callid, fs_phone, IPC_GET_METHOD(call),
-	    IPC_GET_ARG1(call), 0, IPC_FF_ROUTE_FROM_ME);
+	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 
 	vfs_release_phone(fs_phone);
 

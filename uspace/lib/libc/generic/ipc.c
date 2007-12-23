@@ -689,7 +689,8 @@ int ipc_data_read_send(int phoneid, void *dst, size_t size)
  *
  * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
  * 			be stored.
- * @param size		Storage where the maximum size will be stored.
+ * @param size		Storage where the maximum size will be stored. Can be
+ *			NULL.
  *
  * @return		Non-zero on success, zero on failure.
  */
@@ -702,8 +703,8 @@ int ipc_data_read_receive(ipc_callid_t *callid, size_t *size)
 	*callid = async_get_call(&data);
 	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
 		return 0;
-	assert(size);
-	*size = (size_t) IPC_GET_ARG2(data);
+	if (size)
+		*size = (size_t) IPC_GET_ARG2(data);
 	return 1;
 }
 
