@@ -300,7 +300,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, size)) {
+	if (!ipc_data_read_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -308,6 +308,11 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 	size_t bytes = max(0, min(dentry->size - pos, size));
 	(void) ipc_data_read_deliver(callid, dentry->data + pos, bytes);
+
+	/*
+	 * Answer the VFS_READ call.
+	 */
+	ipc_answer_1(rid, EOK, bytes);
 }
 
 /**
