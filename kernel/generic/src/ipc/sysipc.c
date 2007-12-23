@@ -235,19 +235,54 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			    IPC_GET_ARG2(answer->data));
 			IPC_SET_RETVAL(answer->data, rc);
 		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_READ) {
+		ASSERT(!answer->buffer);
+		if (!IPC_GET_RETVAL(answer->data)) {
+			/* The recipient agreed to send data. */
+			uintptr_t src = IPC_GET_ARG1(answer->data);
+			uintptr_t dst = IPC_GET_ARG1(*olddata);
+			size_t max_size = IPC_GET_ARG2(*olddata);
+			size_t size = IPC_GET_ARG2(answer->data);
+			if (size <= max_size) {
+				/*
+				 * Copy the destination VA so that this piece of
+				 * information is not lost.
+				 */
+				IPC_SET_ARG1(answer->data, dst);
+
+				answer->buffer = malloc(size, 0);
+				int rc = copy_from_uspace(answer->buffer,
+				    (void *) src, size);
+				if (rc) {
+					IPC_SET_RETVAL(answer->data, rc);
+					free(answer->buffer);
+					answer->buffer = NULL;
+				}
+			} else {
+				IPC_SET_RETVAL(answer->data, ELIMIT);
+			}
+		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_WRITE) {
 		ASSERT(answer->buffer);
 		if (!IPC_GET_RETVAL(answer->data)) {
+			/* The recipient agreed to receive data. */
 			int rc;
 			uintptr_t dst;
 			uintptr_t size;
+			uintptr_t max_size;
 
 			dst = IPC_GET_ARG1(answer->data);
 			size = IPC_GET_ARG3(answer->data);
+			max_size = IPC_GET_ARG3(*olddata);
 
-			rc = copy_to_uspace((void *) dst, answer->buffer, size);
-			if (rc != 0)
-				IPC_SET_RETVAL(answer->data, rc);
+			if (size <= max_size) {
+				rc = copy_to_uspace((void *) dst,
+				    answer->buffer, size);
+				if (rc)
+					IPC_SET_RETVAL(answer->data, rc);
+			} else {
+				IPC_SET_RETVAL(answer->data, ELIMIT);
+			}
 		}
 		free(answer->buffer);
 		answer->buffer = NULL;
@@ -283,6 +318,11 @@ static int request_preprocess(call_t *call)
 		if (!size)
 			return EPERM;
 		IPC_SET_ARG2(call->data, size);
+		break;
+	case IPC_M_DATA_READ:
+		size = IPC_GET_ARG2(call->data);
+		if ((size <= 0 || (size > DATA_XFER_LIMIT)))
+			return ELIMIT;
 		break;
 	case IPC_M_DATA_WRITE:
 		src = IPC_GET_ARG2(call->data);
@@ -323,6 +363,17 @@ static void process_answer(call_t *call)
 			phone_dealloc(call->priv);
 		else
 			IPC_SET_ARG5(call->data, call->priv);
+	}
+
+	if (call->buffer) {
+		/* This must be an affirmative answer to IPC_M_DATA_READ. */
+		uintptr_t dst = IPC_GET_ARG1(call->data);
+		size_t size = IPC_GET_ARG2(call->data);
+		int rc = copy_to_uspace((void *) dst, call->buffer, size);
+		if (rc)
+			IPC_SET_RETVAL(call->data, rc);
+		free(call->buffer);
+		call->buffer = NULL;
 	}
 }
 

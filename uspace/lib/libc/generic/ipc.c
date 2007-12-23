@@ -666,6 +666,64 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 	    arg2, mode);
 }
 
+/** Wrapper for making IPC_M_DATA_READ calls.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Address of the beginning of the destination buffer.
+ * @param size		Size of the destination buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int ipc_data_read_send(int phoneid, void *dst, size_t size)
+{
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
+	    (ipcarg_t) size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_READ calls.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
+ * 			be stored.
+ * @param size		Storage where the maximum size will be stored.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int ipc_data_read_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
+		return 0;
+	assert(size);
+	*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_READ calls.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address for the IPC_M_DATA_READ call.
+ * @param size		Size for the IPC_M_DATA_READ call. Can be smaller than
+ *			the maximum size announced by the sender.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size)
+{
+	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) size);
+}
+
 /** Wrapper for making IPC_M_DATA_WRITE calls.
  *
  * @param phoneid	Phone that will be used to contact the receiving side.
@@ -723,7 +781,7 @@ int ipc_data_write_receive(ipc_callid_t *callid, void **dst, size_t *size)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size)
+int ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size)
 {
 	return ipc_answer_3(callid, EOK, (ipcarg_t) dst, 0, (ipcarg_t) size);
 }

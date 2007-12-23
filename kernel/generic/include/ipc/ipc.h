@@ -279,7 +279,7 @@ typedef struct {
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
 
-	/** Buffer for IPC_M_DATA_SEND. */
+	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
 } call_t;
 

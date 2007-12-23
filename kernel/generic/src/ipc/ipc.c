@@ -414,6 +414,8 @@ static void ipc_cleanup_call_list(link_t *lst)
 
 	while (!list_empty(lst)) {
 		call = list_get_instance(lst->next, call_t, link);
+		if (call->buffer)
+			free(call->buffer);
 		list_remove(&call->link);
 
 		IPC_SET_RETVAL(call->data, EHANGUP);
