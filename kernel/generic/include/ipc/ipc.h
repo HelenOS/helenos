@@ -184,7 +184,18 @@
  * - ARG1 - final destination address space virtual address
  * - ARG3 - final size of data to be copied
  */
-#define IPC_M_DATA_SEND		6
+#define IPC_M_DATA_WRITE	6
+
+/** Receive data from another address space over IPC.
+ * - ARG1 - destination virtual address in the source address space
+ * - ARG2 - size of data to be received, may be cropped by the recipient 
+ *
+ * on answer, the recipient must set:
+ *
+ * - ARG1 - source virtual address in the destination address space
+ * - ARG2 - final size of data to be copied
+ */
+#define IPC_M_DATA_READ		7
 
 /* Well-known methods */
 #define IPC_M_LAST_SYSTEM	511

@@ -53,11 +53,11 @@ char *test_vfs1(bool quiet)
 	ipcarg_t rc;
 	aid_t req;
 	req = async_send_1(vfs_phone, VFS_MOUNT, TMPFS_DEVHANDLE, NULL);
-	if (ipc_data_send(vfs_phone, fs_name, strlen(fs_name)) != EOK) {
+	if (ipc_data_write_send(vfs_phone, fs_name, strlen(fs_name)) != EOK) {
 		async_wait_for(req, &rc);
 		return "Could not send fs_name to VFS.\n";
 	}
-	if (ipc_data_send(vfs_phone, mp, strlen(mp)) != EOK) {
+	if (ipc_data_write_send(vfs_phone, mp, strlen(mp)) != EOK) {
 		async_wait_for(req, &rc);
 		return "Could not send mp to VFS.\n";
 	}
@@ -70,7 +70,7 @@ char *test_vfs1(bool quiet)
 	char *path = "/dir2/file2";
 	ipc_call_t answer;
 	req = async_send_2(vfs_phone, VFS_OPEN, 0, 0, &answer);
-	if (ipc_data_send(vfs_phone, path, strlen(path)) != EOK) {
+	if (ipc_data_write_send(vfs_phone, path, strlen(path)) != EOK) {
 		async_wait_for(req, &rc);
 		return "Could not send path to VFS.\n";
 	}

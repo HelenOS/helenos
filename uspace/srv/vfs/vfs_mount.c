@@ -86,7 +86,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
-	if (!ipc_data_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, NULL, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -106,7 +106,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Deliver the file system name.
 	 */
 	char fs_name[FS_NAME_MAXLEN + 1];
-	(void) ipc_data_deliver(callid, fs_name, size);
+	(void) ipc_data_write_deliver(callid, fs_name, size);
 	fs_name[size] = '\0';
 	
 	/*
@@ -122,7 +122,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Now, we want the client to send us the mount point.
 	 */
-	if (!ipc_data_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, NULL, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -150,7 +150,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Deliver the mount point.
 	 */
-	(void) ipc_data_deliver(callid, buf, size);
+	(void) ipc_data_write_deliver(callid, buf, size);
 
 	/*
 	 * Lookup the root node of the filesystem being mounted.

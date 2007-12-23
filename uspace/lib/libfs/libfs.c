@@ -71,7 +71,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
-	int rc = ipc_data_send(vfs_phone, info, sizeof(*info)); 
+	int rc = ipc_data_write_send(vfs_phone, info, sizeof(*info)); 
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;

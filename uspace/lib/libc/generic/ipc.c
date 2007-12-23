@@ -666,7 +666,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 	    arg2, mode);
 }
 
-/** Wrapper for making IPC_M_DATA_SEND calls.
+/** Wrapper for making IPC_M_DATA_WRITE calls.
  *
  * @param phoneid	Phone that will be used to contact the receiving side.
  * @param src		Address of the beginning of the source buffer.
@@ -674,20 +674,20 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_data_send(int phoneid, void *src, size_t size)
+int ipc_data_write_send(int phoneid, void *src, size_t size)
 {
-	return ipc_call_sync_3_0(phoneid, IPC_M_DATA_SEND, 0, (ipcarg_t) src,
+	return ipc_call_sync_3_0(phoneid, IPC_M_DATA_WRITE, 0, (ipcarg_t) src,
 	    (ipcarg_t) size);
 }
 
-/** Wrapper for receiving the IPC_M_DATA_SEND calls.
+/** Wrapper for receiving the IPC_M_DATA_WRITE calls.
  *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_SEND calls
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE calls
  * so that the user doesn't have to remember the meaning of each IPC argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid	Storage where the hash of the IPC_M_DATA_SEND call will
+ * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
  * 			be stored.
  * @param dst		Storage where the suggested destination address will
  *			be stored. May be NULL.
@@ -696,14 +696,14 @@ int ipc_data_send(int phoneid, void *src, size_t size)
  *
  * @return		Non-zero on success, zero on failure.
  */
-int ipc_data_receive(ipc_callid_t *callid, void **dst, size_t *size)
+int ipc_data_write_receive(ipc_callid_t *callid, void **dst, size_t *size)
 {
 	ipc_call_t data;
 	
 	assert(callid);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_SEND)
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
 		return 0;
 	if (dst)
 		*dst = (void *) IPC_GET_ARG1(data);
@@ -712,18 +712,18 @@ int ipc_data_receive(ipc_callid_t *callid, void **dst, size_t *size)
 	return 1;
 }
 
-/** Wrapper for answering the IPC_M_DATA_SEND calls.
+/** Wrapper for answering the IPC_M_DATA_WRITE calls.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_SEND calls
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE calls
  * so that the user doesn't have to remember the meaning of each IPC argument.
  *
- * @param callid	Hash of the IPC_M_DATA_SEND call to answer.
- * @param dst		Final destination address for the IPC_M_DATA_SEND call.
- * @param size		Final size for the IPC_M_DATA_SEND call.
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Final destination address for the IPC_M_DATA_WRITE call.
+ * @param size		Final size for the IPC_M_DATA_WRITE call.
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_data_deliver(ipc_callid_t callid, void *dst, size_t size)
+ipcarg_t ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size)
 {
 	return ipc_answer_3(callid, EOK, (ipcarg_t) dst, 0, (ipcarg_t) size);
 }

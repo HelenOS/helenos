@@ -164,7 +164,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
 	 */
-	if (!ipc_data_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, NULL, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */
@@ -205,7 +205,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	link_initialize(&fs_info->fs_link);
 	futex_initialize(&fs_info->phone_futex, 1);
 		
-	rc = ipc_data_deliver(callid, &fs_info->vfs_info, size);
+	rc = ipc_data_write_deliver(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);

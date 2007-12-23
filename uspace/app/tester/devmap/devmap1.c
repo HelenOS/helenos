@@ -49,8 +49,9 @@ static void driver_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 	
-	printf("connected: method=%u arg1=%u, arg2=%u arg3=%u.\n", IPC_GET_METHOD(*icall), 
-		IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall), IPC_GET_ARG3(*icall));
+	printf("connected: method=%u arg1=%u, arg2=%u arg3=%u.\n",
+	    IPC_GET_METHOD(*icall), IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall),
+	    IPC_GET_ARG3(*icall));
 
 	printf("driver_client_connection.\n");
 	ipc_answer_0(iid, EOK);
@@ -59,14 +60,16 @@ static void driver_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		retval = EOK;
-		printf("method=%u arg1=%u, arg2=%u arg3=%u.\n", IPC_GET_METHOD(call), 
-			IPC_GET_ARG1(call), IPC_GET_ARG2(call), IPC_GET_ARG3(call));
+		printf("method=%u arg1=%u, arg2=%u arg3=%u.\n",
+		    IPC_GET_METHOD(call), IPC_GET_ARG1(call),
+		    IPC_GET_ARG2(call), IPC_GET_ARG3(call));
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
 		default:
-			printf("Unknown device method %u.\n", IPC_GET_METHOD(call));
+			printf("Unknown device method %u.\n",
+			    IPC_GET_METHOD(call));
 			retval = ENOENT;
 		}
 		ipc_answer_0(callid, retval);
@@ -81,12 +84,12 @@ static int device_client_fibril(void *arg)
 
 	handle = (int)arg;
 
-	device_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, \
-		DEVMAP_CONNECT_TO_DEVICE, handle);
+	device_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+	    DEVMAP_CONNECT_TO_DEVICE, handle);
 
 	if (device_phone < 0) {
-		printf("Failed to connect to devmap as client (handle = %u).\n", 
-			handle);
+		printf("Failed to connect to devmap as client (handle = %u).\n",
+		    handle);
 		return -1;
 	}
 /*	
@@ -129,18 +132,17 @@ static int driver_register(char *name)
 	int phone;
 	ipcarg_t callback_phonehash;
 
-	phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-		DEVMAP_DRIVER, 0);
+	phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
 
 	while (phone < 0) {
 		usleep(100000);
 		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-			DEVMAP_DRIVER, 0);
+		    DEVMAP_DRIVER, 0);
 	}
 	
 	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
 
-	retval = ipc_data_send(phone, (char *)name, strlen(name) + 1); 
+	retval = ipc_data_write_send(phone, (char *)name, strlen(name) + 1); 
 
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -170,9 +172,10 @@ static int device_get_handle(int driver_phone, char *name, int *handle)
 	aid_t req;
 	ipc_call_t answer;
 
-	req = async_send_2(driver_phone, DEVMAP_DEVICE_GET_HANDLE, 0, 0, &answer);
+	req = async_send_2(driver_phone, DEVMAP_DEVICE_GET_HANDLE, 0, 0,
+	    &answer);
 
-	retval = ipc_data_send(driver_phone, name, strlen(name) + 1); 
+	retval = ipc_data_write_send(driver_phone, name, strlen(name) + 1); 
 
 	if (retval != EOK) {
 		printf("Failed to send device name '%s'.\n", name);
@@ -191,7 +194,8 @@ static int device_get_handle(int driver_phone, char *name, int *handle)
 		if (NULL != handle) {
 			*handle = (int) IPC_GET_ARG1(answer);
 		}
-		printf("Device '%s' has handle %u.\n", name, (int) IPC_GET_ARG1(answer));
+		printf("Device '%s' has handle %u.\n", name,
+		    (int) IPC_GET_ARG1(answer));
 	} else {
 		printf("Failed to get handle for device '%s'.\n", name);
 	}
@@ -212,7 +216,8 @@ static int device_register(int driver_phone, char *name, int *handle)
 
 	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0, &answer);
 
-	retval = ipc_data_send(driver_phone, (char *)name, strlen(name) + 1); 
+	retval = ipc_data_write_send(driver_phone, (char *)name,
+	    strlen(name) + 1); 
 
 	if (retval != EOK) {
 		printf("Failed to send device name '%s'.\n", name);
@@ -231,7 +236,8 @@ static int device_register(int driver_phone, char *name, int *handle)
 		if (NULL != handle) {
 			*handle = (int) IPC_GET_ARG1(answer);
 		}
-		printf("Device registered with handle %u.\n", (int) IPC_GET_ARG1(answer));
+		printf("Device registered with handle %u.\n",
+		    (int) IPC_GET_ARG1(answer));
 	}
 
 	return retval;

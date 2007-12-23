@@ -260,9 +260,11 @@ extern int ipc_register_irq(int inr, int devno, int method, irq_code_t *code);
 extern int ipc_unregister_irq(int inr, int devno);
 extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
     ipcarg_t arg1, ipcarg_t arg2, int mode);
-extern int ipc_data_send(int phoneid, void *src, size_t size);
-extern int ipc_data_receive(ipc_callid_t *callid, void **dst, size_t *size);
-extern ipcarg_t ipc_data_deliver(ipc_callid_t callid, void *dst, size_t size);
+extern int ipc_data_write_send(int phoneid, void *src, size_t size);
+extern int ipc_data_write_receive(ipc_callid_t *callid, void **dst,
+    size_t *size);
+extern ipcarg_t ipc_data_write_deliver(ipc_callid_t callid, void *dst,
+    size_t size);
 
 #endif
 

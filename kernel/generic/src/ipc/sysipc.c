@@ -49,8 +49,11 @@
 #include <mm/as.h>
 #include <print.h>
 
-/** Maximum buffer size allowed for IPC_M_DATA_SEND requests. */
-#define DATA_SEND_LIMIT		(64 * 1024)
+/**
+ * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
+ * requests.
+ */
+#define DATA_XFER_LIMIT		(64 * 1024)
 
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
@@ -111,7 +114,8 @@ static inline int method_is_immutable(unative_t method)
 	switch (method) {
 	case IPC_M_AS_AREA_SEND:
 	case IPC_M_AS_AREA_RECV:
-	case IPC_M_DATA_SEND:
+	case IPC_M_DATA_WRITE:
+	case IPC_M_DATA_READ:
 		return 1;
 		break;
 	default:
@@ -139,7 +143,8 @@ static inline int answer_need_old(call_t *call)
 	case IPC_M_CONNECT_ME_TO:
 	case IPC_M_AS_AREA_SEND:
 	case IPC_M_AS_AREA_RECV:
-	case IPC_M_DATA_SEND:
+	case IPC_M_DATA_WRITE:
+	case IPC_M_DATA_READ:
 		return 1;
 	default:
 		return 0;
@@ -230,7 +235,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			    IPC_GET_ARG2(answer->data));
 			IPC_SET_RETVAL(answer->data, rc);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_SEND) {
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_WRITE) {
 		if (!IPC_GET_RETVAL(answer->data)) {
 			int rc;
 			uintptr_t dst;
@@ -280,11 +285,11 @@ static int request_preprocess(call_t *call)
 			return EPERM;
 		IPC_SET_ARG2(call->data, size);
 		break;
-	case IPC_M_DATA_SEND:
+	case IPC_M_DATA_WRITE:
 		src = IPC_GET_ARG2(call->data);
 		size = IPC_GET_ARG3(call->data);
 		
-		if ((size <= 0) || (size > DATA_SEND_LIMIT))
+		if ((size <= 0) || (size > DATA_XFER_LIMIT))
 			return ELIMIT;
 		
 		call->buffer = (uint8_t *) malloc(size, 0);
