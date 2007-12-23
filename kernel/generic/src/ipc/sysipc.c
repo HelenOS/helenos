@@ -236,12 +236,11 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			IPC_SET_RETVAL(answer->data, rc);
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_WRITE) {
+		ASSERT(answer->buffer);
 		if (!IPC_GET_RETVAL(answer->data)) {
 			int rc;
 			uintptr_t dst;
 			uintptr_t size;
-
-			ASSERT(answer->buffer);
 
 			dst = IPC_GET_ARG1(answer->data);
 			size = IPC_GET_ARG3(answer->data);
@@ -249,9 +248,9 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			rc = copy_to_uspace((void *) dst, answer->buffer, size);
 			if (rc != 0)
 				IPC_SET_RETVAL(answer->data, rc);
-			free(answer->buffer);
-			answer->buffer = NULL;
 		}
+		free(answer->buffer);
+		answer->buffer = NULL;
 	}
 	return 0;
 }
