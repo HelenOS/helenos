@@ -315,6 +315,57 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_1(rid, EOK, bytes);
 }
 
+void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
+{
+	int dev_handle = IPC_GET_ARG1(*request);
+	unsigned long index = IPC_GET_ARG2(*request);
+	off_t pos = IPC_GET_ARG3(*request);
+
+	/*
+	 * Lookup the respective dentry.
+	 */
+	link_t *hlp;
+	hlp = hash_table_find(&dentries, &index);
+	if (!hlp) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
+	    dh_link);
+
+	/*
+	 * Receive the write request.
+	 */
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+		ipc_answer_0(callid, EINVAL);	
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * At this point, we are deliberately extremely straightforward and
+	 * simply realloc the contents of the file on every write. In the end,
+	 * the situation might not be as bad as it may look: our heap allocator
+	 * can save us and just grow the block whenever possible.
+	 */
+	void *newdata = realloc(dentry->data, size);
+	if (!newdata) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_1(rid, EOK, 0);
+		return;
+	}
+	dentry->size = size;
+	dentry->data = newdata;
+	(void) ipc_data_write_deliver(callid, dentry->data + pos, size);
+
+	/*
+	 * Answer the VFS_WRITE call.
+	 */
+	ipc_answer_1(rid, EOK, size);
+}
+
 /**
  * @}
  */ 

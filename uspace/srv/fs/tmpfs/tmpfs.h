@@ -62,6 +62,7 @@ extern fs_reg_t tmpfs_reg;
 
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_write(ipc_callid_t, ipc_call_t *);
 
 #endif
 

@@ -31,7 +31,7 @@
  */ 
 
 /**
- * @file	vfs_read.c
+ * @file	vfs_rdwr.c
  * @brief
  */
 
@@ -40,7 +40,7 @@
 #include <async.h>
 #include <errno.h>
 
-void vfs_read(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
 
 	/*
@@ -65,10 +65,16 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * Now we need to receive a call with client's IPC_M_DATA_READ request.
+	 * Now we need to receive a call with client's
+	 * IPC_M_DATA_READ/IPC_M_DATA_WRITE request.
 	 */
 	ipc_callid_t callid;
-	if (!ipc_data_read_receive(&callid, NULL)) {
+	int res;
+	if (read)
+		res = ipc_data_read_receive(&callid, NULL);
+	else 
+		res = ipc_data_write_receive(&callid, NULL, NULL);
+	if (!res) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -77,17 +83,18 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
 	/*
-	 * Make a VFS_READ request at the destination FS server.
+	 * Make a VFS_READ/VFS_WRITE request at the destination FS server.
 	 */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_3(fs_phone, VFS_READ, file->node->dev_handle,
-	    file->node->index, file->pos, &answer);
+	msg = async_send_3(fs_phone, IPC_GET_METHOD(*request),
+	    file->node->dev_handle, file->node->index, file->pos, &answer);
 	
 	/*
-	 * Forward the IPC_M_DATA_READ request to the destination FS server.
-	 * The call will be routed as if sent by ourselves. Note that call
-	 * arguments are immutable in this case so we don't have to bother.
+	 * Forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
+	 * destination FS server. The call will be routed as if sent by
+	 * ourselves. Note that call arguments are immutable in this case so we
+	 * don't have to bother.
 	 */
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 
@@ -110,6 +117,17 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * return to the client.
 	 */
 	ipc_answer_1(rid, rc, bytes);
+}
+
+
+void vfs_read(ipc_callid_t rid, ipc_call_t *request)
+{
+	vfs_rdwr(rid, request, true);
+}
+
+void vfs_write(ipc_callid_t rid, ipc_call_t *request)
+{
+	vfs_rdwr(rid, request, false);
 }
 
 /**
