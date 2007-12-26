@@ -345,24 +345,31 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * At this point, we are deliberately extremely straightforward and
-	 * simply realloc the contents of the file on every write. In the end,
-	 * the situation might not be as bad as it may look: our heap allocator
-	 * can save us and just grow the block whenever possible.
+	 * Check whether the file needs to grow.
 	 */
-	void *newdata = realloc(dentry->data, size);
+	if (pos + size <= dentry->size) {
+		/* The file size is not changing. */
+		(void) ipc_data_write_deliver(callid, dentry->data + pos, size);
+		ipc_answer_1(rid, EOK, size);
+		return;
+	}
+	size_t delta = (pos + size) - dentry->size;
+	/*
+	 * At this point, we are deliberately extremely straightforward and
+	 * simply realloc the contents of the file on every write that grows the
+	 * file. In the end, the situation might not be as bad as it may look:
+	 * our heap allocator can save us and just grow the block whenever
+	 * possible.
+	 */
+	void *newdata = realloc(dentry->data, dentry->size + delta);
 	if (!newdata) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_1(rid, EOK, 0);
 		return;
 	}
-	dentry->size = size;
+	dentry->size += delta;
 	dentry->data = newdata;
 	(void) ipc_data_write_deliver(callid, dentry->data + pos, size);
-
-	/*
-	 * Answer the VFS_WRITE call.
-	 */
 	ipc_answer_1(rid, EOK, size);
 }
 
