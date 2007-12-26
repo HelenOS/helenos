@@ -47,8 +47,8 @@ int puts(const char *str)
 		return putnchars("(NULL)", 6);
 	
 	for (count = 0; str[count] != 0; count++);
-	if (write(1, (void *) str, count) == count) {
-		if (write(1, &nl, 1) == 1)
+	if (write_stdout((void *) str, count) == count) {
+		if (write_stdout(&nl, 1) == 1)
 			return 0;
 	}
 	
@@ -62,8 +62,8 @@ int puts(const char *str)
  */
 int putnchars(const char *buf, size_t count)
 {
-	if (write(1, (void *) buf, count) == count)
-			return 0;
+	if (write_stdout((void *) buf, count) == count)
+		return 0;
 	
 	return EOF;
 }
@@ -79,8 +79,8 @@ int putstr(const char *str)
 		return putnchars("(NULL)", 6);
 
 	for (count = 0; str[count] != 0; count++);
-	if (write(1, (void *) str, count) == count)
-			return 0;
+	if (write_stdout((void *) str, count) == count)
+		return 0;
 	
 	return EOF;
 }
@@ -88,8 +88,8 @@ int putstr(const char *str)
 int putchar(int c)
 {
 	unsigned char ch = c;
-	if (write(1, (void *) &ch, 1) == 1)
-			return c;
+	if (write_stdout((void *) &ch, 1) == 1)
+		return c;
 	
 	return EOF;
 }
@@ -97,8 +97,8 @@ int putchar(int c)
 int getchar(void)
 {
 	unsigned char c;
-	if (read(0, (void *) &c, 1) == 1)
-			return c;
+	if (read_stdin((void *) &c, 1) == 1)
+		return c;
 	
 	return EOF;
 }

@@ -43,7 +43,7 @@ static atomic_t printf_futex = FUTEX_INITIALIZER;
 
 static int vprintf_write(const char *str, size_t count, void *unused)
 {
-	return write(1, str, count);
+	return write_stdout(str, count);
 }
 
 /** Print formatted text.

@@ -47,30 +47,20 @@
 #include <async.h>
 #include <sys/types.h>
 
-#define FDS 32
-
-typedef struct stream_t {
-	pwritefn_t w;
-	preadfn_t r;
-	void * param;
-	int phone;
-} stream_t;
-
 static int console_phone = -1;
-static stream_t streams[FDS];
 
-static ssize_t write_stderr(void *param, const void *buf, size_t count)
+ssize_t write_stderr(const void *buf, size_t count)
 {
 	return count;
 }
 
-static ssize_t read_stdin(void *param, void *buf, size_t count)
+ssize_t read_stdin(void *buf, size_t count)
 {
 	ipcarg_t r0, r1;
 	size_t i = 0;
 
 	while (i < count) {
-		if (async_req_0_2(streams[0].phone, CONSOLE_GETCHAR,  &r0,
+		if (async_req_0_2(console_phone, CONSOLE_GETCHAR, &r0,
 		    &r1) < 0) {
 			return -1;
 		}
@@ -79,115 +69,40 @@ static ssize_t read_stdin(void *param, void *buf, size_t count)
 	return i;
 }
 
-static ssize_t write_stdout(void *param, const void *buf, size_t count)
+ssize_t write_stdout(const void *buf, size_t count)
 {
 	int i;
 
 	for (i = 0; i < count; i++)
-		async_msg_1(streams[1].phone, CONSOLE_PUTCHAR,
+		async_msg_1(console_phone, CONSOLE_PUTCHAR,
 		    ((const char *) buf)[i]);
 	
 	return count;
 }
 
-static stream_t open_stdin(void)
+void open_stdin(void)
 {
-	stream_t stream;
-	
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS,
 		    SERVICE_CONSOLE, 0, 0)) < 0) {
 			usleep(10000);
 		}
 	}
-	
-	stream.r = read_stdin;
-	stream.w = NULL;
-	stream.param = 0;
-	stream.phone = console_phone;
-	
-	return stream;
 }
 
-static stream_t open_stdout(void)
+void open_stdout(void)
 {
-	stream_t stream;
-
 	if (console_phone < 0) {
 		while ((console_phone = ipc_connect_me_to(PHONE_NS,
 		    SERVICE_CONSOLE, 0, 0)) < 0) {
 			usleep(10000);
 		}
 	}
-	
-	stream.r = NULL;
-	stream.w = write_stdout;
-	stream.phone = console_phone;
-	stream.param = 0;
-	
-	return stream;
 }
 
-static ssize_t write_null(void *param, const void *buf, size_t count)
+int get_cons_phone(void)
 {
-	return count;
-}
-
-fd_t open(const char *fname, int flags)
-{
-	int c = 0;
-
-	while (((streams[c].w) || (streams[c].r)) && (c < FDS))
-		c++;
-	
-	if (c == FDS)
-		return EMFILE;
-	
-	if (!strcmp(fname, "stdin")) {
-		streams[c] = open_stdin();
-		return c;
-	}
-	
-	if (!strcmp(fname, "stdout")) {
-		streams[c] = open_stdout();
-		return c;
-	}
-	
-	if (!strcmp(fname, "stderr")) {
-		streams[c].w = write_stderr;
-		return c;
-	}
-	
-	if (!strcmp(fname, "null")) {
-		streams[c].w = write_null;
-		return c;
-	}
-	
-	return -1;
-}
-
-
-ssize_t write(int fd, const void *buf, size_t count)
-{
-	if (fd < FDS && streams[fd].w)
-		return streams[fd].w(streams[fd].param, buf, count);
-	
-	return 0;
-}
-
-ssize_t read(int fd, void *buf, size_t count)
-{
-	if (fd < FDS && streams[fd].r)
-		return streams[fd].r(streams[fd].param, buf, count);
-	
-	return 0;
-}
-
-int get_fd_phone(int fd)
-{
-	if (fd >= FDS || fd < 0)
-		return -1;
-	return streams[fd].phone;
+	return console_phone;
 }
 
 /** @}

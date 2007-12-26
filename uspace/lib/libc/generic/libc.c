@@ -68,9 +68,8 @@ void __main(void)
 
 void __io_init(void)
 {
-	open("stdin", 0);
-	open("stdout", 0);
-	open("stderr", 0);
+	open_stdin();
+	open_stdout();
 }
 
 void __exit(void)

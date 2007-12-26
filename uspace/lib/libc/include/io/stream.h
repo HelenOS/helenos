@@ -39,13 +39,14 @@
 
 #define EMFILE -17
 
-typedef int fd_t;
+extern void open_stdin(void);
+extern void open_stdout(void);
 
-typedef ssize_t (*pwritefn_t)(void *, const void *, size_t);
-typedef ssize_t (*preadfn_t)(void *, void *, size_t);
+extern ssize_t read_stdin(void *, size_t);
+extern ssize_t write_stdout(const void *, size_t);
+extern ssize_t write_stderr(const void *, size_t);
 
-fd_t open(const char *fname, int flags);
-int get_fd_phone(int fd);
+extern int get_cons_phone(void);
 
 #endif
 

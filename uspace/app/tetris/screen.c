@@ -118,7 +118,7 @@ scr_clear(void)
 void
 scr_init(void)
 {
-	con_phone = get_fd_phone(1);
+	con_phone = get_cons_phone();
 	async_msg_1(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
 	resume_normal();
 	scr_clear();
