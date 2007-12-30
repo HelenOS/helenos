@@ -35,11 +35,7 @@
 #ifndef LIBC_VFS_H_
 #define LIBC_VFS_H_
 
-#include <sys/types.h>
-
 extern int mount(const char *, const char *, const char *);
-extern int open(const char *, int, ...);
-extern ssize_t read(int, void *, size_t); 
 
 #endif
 

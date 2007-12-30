@@ -26,40 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <vfs.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include "../tester.h"
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-char *test_vfs1(bool quiet)
-{
-	if (mount("tmpfs", "/", "nulldev0") != EOK)
-		return "Mount failed.\n";
-	int fd1 = open("/dir1/file1", 0);
-	int fd2 = open("/dir2/file2", 0);
+#ifndef LIBC_FCNTL_H_
+#define LIBC_FCNTL_H_
 
-	if (fd1 < 0)
-		return "Open failed.\n";
-	if (fd2 < 0)
-		return "Open failed.\n";
+extern int open(const char *, int, ...);
 
-	if (!quiet)
-		printf("Opened file descriptors %d and %d.\n", fd1, fd2);
+#endif
 
-	char buf[10];
-
-	ssize_t cnt = read(fd1, buf, sizeof(buf));
-	if (cnt < 0)
-		return "Read failed.\n";
-
-	if (!quiet)
-		printf("Read %d bytes: %.*s\n", cnt, cnt, buf);
-
-	return NULL;
-}
-
+/** @}
+ */

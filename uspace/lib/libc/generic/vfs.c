@@ -33,6 +33,8 @@
  */
  
 #include <vfs.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
@@ -140,7 +142,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 			return res;
 		}
 	}
-	req = async_send_1(vfs_phone, VFS_READ, 0, &answer);
+	req = async_send_1(vfs_phone, VFS_READ, fildes, &answer);
 	if (ipc_data_read_send(vfs_phone, buf, sizeof(buf)) != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -153,5 +155,34 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	return (ssize_t) IPC_GET_ARG1(answer);
 }
 
+ssize_t write(int fildes, const void *buf, size_t nbyte) 
+{
+	int res;
+	ipcarg_t rc;
+	ipc_call_t answer;
+	aid_t req;
+
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	if (vfs_phone < 0) {
+		res = vfs_connect();
+		if (res < 0) {
+			async_serialize_end();
+			futex_up(&vfs_phone_futex);
+			return res;
+		}
+	}
+	req = async_send_1(vfs_phone, VFS_WRITE, fildes, &answer);
+	if (ipc_data_write_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		return (ssize_t) rc;
+	}
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	return (ssize_t) IPC_GET_ARG1(answer);
+}
 /** @}
  */
