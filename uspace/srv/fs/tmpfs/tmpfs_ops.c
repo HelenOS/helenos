@@ -299,14 +299,14 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * Receive the read request.
 	 */
 	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_read_receive(&callid, &size)) {
+	size_t len;
+	if (!ipc_data_read_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
-	size_t bytes = max(0, min(dentry->size - pos, size));
+	size_t bytes = max(0, min(dentry->size - pos, len));
 	(void) ipc_data_read_deliver(callid, dentry->data + pos, bytes);
 
 	/*
@@ -337,8 +337,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 * Receive the write request.
 	 */
 	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	size_t len;
+	if (!ipc_data_write_receive(&callid, NULL, &len)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -347,13 +347,13 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Check whether the file needs to grow.
 	 */
-	if (pos + size <= dentry->size) {
+	if (pos + len <= dentry->size) {
 		/* The file size is not changing. */
-		(void) ipc_data_write_deliver(callid, dentry->data + pos, size);
-		ipc_answer_1(rid, EOK, size);
+		(void) ipc_data_write_deliver(callid, dentry->data + pos, len);
+		ipc_answer_1(rid, EOK, len);
 		return;
 	}
-	size_t delta = (pos + size) - dentry->size;
+	size_t delta = (pos + len) - dentry->size;
 	/*
 	 * At this point, we are deliberately extremely straightforward and
 	 * simply realloc the contents of the file on every write that grows the
@@ -369,8 +369,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 	dentry->size += delta;
 	dentry->data = newdata;
-	(void) ipc_data_write_deliver(callid, dentry->data + pos, size);
-	ipc_answer_1(rid, EOK, size);
+	(void) ipc_data_write_deliver(callid, dentry->data + pos, len);
+	ipc_answer_1(rid, EOK, len);
 }
 
 /**
