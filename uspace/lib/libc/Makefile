@@ -73,7 +73,8 @@ GENERIC_SOURCES = \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \
-	generic/mman.c
+	generic/mman.c \
+	generic/vfs.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
