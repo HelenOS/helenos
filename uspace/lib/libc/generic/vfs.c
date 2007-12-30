@@ -143,7 +143,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 		}
 	}
 	req = async_send_1(vfs_phone, VFS_READ, fildes, &answer);
-	if (ipc_data_read_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+	if (ipc_data_read_send(vfs_phone, (void *)buf, nbyte) != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
 		futex_up(&vfs_phone_futex);
@@ -173,7 +173,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		}
 	}
 	req = async_send_1(vfs_phone, VFS_WRITE, fildes, &answer);
-	if (ipc_data_write_send(vfs_phone, buf, sizeof(buf)) != EOK) {
+	if (ipc_data_write_send(vfs_phone, (void *)buf, nbyte) != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
 		futex_up(&vfs_phone_futex);
