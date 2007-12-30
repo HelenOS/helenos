@@ -26,69 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ipc/ipc.h>
-#include <ipc/services.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <async.h>
-#include "../../../srv/vfs/vfs.h" 
+#include <sys/types.h>
+#include <vfs.h>
 #include "../tester.h"
-
-#define TMPFS_DEVHANDLE	999
-
-char fs_name[] = "tmpfs";
-char mp[] = "/";
 
 char *test_vfs1(bool quiet)
 {
-	/* 1. connect to VFS */
-	int vfs_phone;
-	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
-	if (vfs_phone < EOK)
-		return "Could not connect to VFS.\n";
-	
-	/* 2. mount TMPFS as / */
-	ipcarg_t rc;
-	aid_t req;
-	req = async_send_1(vfs_phone, VFS_MOUNT, TMPFS_DEVHANDLE, NULL);
-	if (ipc_data_write_send(vfs_phone, fs_name, strlen(fs_name)) != EOK) {
-		async_wait_for(req, &rc);
-		return "Could not send fs_name to VFS.\n";
-	}
-	if (ipc_data_write_send(vfs_phone, mp, strlen(mp)) != EOK) {
-		async_wait_for(req, &rc);
-		return "Could not send mp to VFS.\n";
-	}
-	async_wait_for(req, &rc);
-	if (rc != EOK)
+	if (mount("tmpfs", "/", "nulldev0") != EOK)
 		return "Mount failed.\n";
-	
-	/* 3. open some files */
-	char *path = "/dir2/file2";
-	ipc_call_t answer;
-	req = async_send_2(vfs_phone, VFS_OPEN, 0, 0, &answer);
-	if (ipc_data_write_send(vfs_phone, path, strlen(path)) != EOK) {
-		async_wait_for(req, &rc);
-		return "Could not send path to VFS.\n";
-	}
-	async_wait_for(req, &rc);
-	if (rc != EOK)
-		return "Open failed.\n";
-	if (!quiet)
-		printf("Opened %s handle=%d\n", path, IPC_GET_ARG1(answer));
+	int fd1 = open("/dir1/file1", 0);
+	int fd2 = open("/dir2/file2", 0);
 
-	/* 4. read data */
+	if (fd1 < 0)
+		return "Open failed.\n";
+	if (fd2 < 0)
+		return "Open failed.\n";
+
+	if (!quiet)
+		printf("Opened file descriptors %d and %d.\n", fd1, fd2);
+
 	char buf[10];
-	req = async_send_1(vfs_phone, VFS_READ, 0, &answer);
-	if (ipc_data_read_send(vfs_phone, buf, sizeof(buf)) != EOK) {
-		async_wait_for(req, &rc);
-		return "Could not read data from open file.\n";
-	}
-	async_wait_for(req, &rc);
-	if (rc != EOK)
+
+	ssize_t cnt = read(fd1, buf, sizeof(buf));
+	if (cnt < 0)
 		return "Read failed.\n";
-	printf("Read %d bytes: %s\n", IPC_GET_ARG1(answer), buf);
+
+	if (!quiet)
+		printf("Read %d bytes: %.*s\n", cnt, cnt, buf);
 
 	return NULL;
 }
+
