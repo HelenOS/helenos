@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	while (1) {
 		callid = ipc_wait_for_call(&call);
 		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_AS_AREA_RECV:
+		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:
 				get_as_area(callid, &call, "clock.faddr",

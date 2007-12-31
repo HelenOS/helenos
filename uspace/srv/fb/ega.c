@@ -208,7 +208,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);
 			return; /* Exit thread */
-		case IPC_M_AS_AREA_SEND:
+		case IPC_M_SHARE_OUT:
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
 			if (intersize >= scr_width * scr_height *

@@ -666,6 +666,133 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 	    arg2, mode);
 }
 
+/** Wrapper for making IPC_M_SHARE_IN calls.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Destination address space area base.
+ * @param size		Size of the destination address space area.
+ * @param arg		User defined argument.
+ * @param flags		Storage where the received flags will be stored. Can be
+ *			NULL.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int ipc_share_in_send(int phoneid, void *dst, size_t size, ipcarg_t arg,
+    int *flags)
+{
+	int res;
+	sysarg_t tmp_flags;
+	res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	if (flags)
+		*flags = tmp_flags;
+	return res;
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_IN calls.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_IN call will
+ * 			be stored.
+ * @param size		Destination address space area size.	
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int ipc_share_in_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_IN calls.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address space base.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int ipc_share_in_deliver(ipc_callid_t callid, void *src, int flags)
+{
+	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) flags);
+}
+
+/** Wrapper for making IPC_M_SHARE_OUT calls.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Source address space area base address.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int ipc_share_out_send(int phoneid, void *src, int flags)
+{
+	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
+	    (ipcarg_t) flags);
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_OUT calls.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_OUT call will
+ * 			be stored.
+ * @param size		Storage where the source address space area size will be
+ *			stored.
+ * @param flags		Storage where the sharing flags will be stored.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+	assert(flags);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	*flags = (int) IPC_GET_ARG3(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_OUT calls.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Destination address space area base address.	
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int ipc_share_out_deliver(ipc_callid_t callid, void *dst)
+{
+	return ipc_answer_1(callid, EOK, (ipcarg_t) dst);
+}
+
+
 /** Wrapper for making IPC_M_DATA_READ calls.
  *
  * @param phoneid	Phone that will be used to contact the receiving side.

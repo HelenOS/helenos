@@ -747,7 +747,7 @@ shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	unsigned int x, y;
 
 	switch (IPC_GET_METHOD(*call)) {
-	case IPC_M_AS_AREA_SEND:
+	case IPC_M_SHARE_OUT:
 		/* We accept one area for data interchange */
 		if (IPC_GET_ARG1(*call) == shm_id) {
 			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));

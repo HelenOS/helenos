@@ -103,14 +103,14 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Now we wait for the client to send us its communication as_area.
 	 */
-	callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) == IPC_M_AS_AREA_SEND) {
-		if (IPC_GET_ARG1(call) >= (ipcarg_t) BLOCK_SIZE) {
+	size_t size;
+	if (ipc_share_out_receive(&callid, &size, NULL)) {
+		if (size >= BLOCK_SIZE) {
 			/*
 			 * The client sends an as_area that can absorb the whole
 			 * block.
 			 */
-			ipc_answer_1(callid, EOK, (uintptr_t) fs_va);
+			(void) ipc_share_out_deliver(callid, fs_va);
 		} else {
 			/*
 			 * The client offered as_area too small.

@@ -112,8 +112,8 @@ static inline int method_is_forwardable(unative_t method)
 static inline int method_is_immutable(unative_t method)
 {
 	switch (method) {
-	case IPC_M_AS_AREA_SEND:
-	case IPC_M_AS_AREA_RECV:
+	case IPC_M_SHARE_OUT:
+	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
 		return 1;
@@ -141,8 +141,8 @@ static inline int answer_need_old(call_t *call)
 	switch (IPC_GET_METHOD(call->data)) {
 	case IPC_M_CONNECT_TO_ME:
 	case IPC_M_CONNECT_ME_TO:
-	case IPC_M_AS_AREA_SEND:
-	case IPC_M_AS_AREA_RECV:
+	case IPC_M_SHARE_OUT:
+	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
 		return 1;
@@ -199,7 +199,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			ipc_phone_connect((phone_t *) IPC_GET_ARG5(*olddata),
 			    &TASK->answerbox);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_SEND) {
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_SHARE_OUT) {
 		if (!IPC_GET_RETVAL(answer->data)) {
 			/* Accepted, handle as_area receipt */
 			ipl_t ipl;
@@ -218,7 +218,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			IPC_SET_RETVAL(answer->data, rc);
 			return rc;
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_AS_AREA_RECV) {
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_SHARE_IN) {
 		if (!IPC_GET_RETVAL(answer->data)) { 
 			ipl_t ipl;
 			as_t *as;
@@ -313,7 +313,7 @@ static int request_preprocess(call_t *call)
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->priv = newphid;
 		break;
-	case IPC_M_AS_AREA_SEND:
+	case IPC_M_SHARE_OUT:
 		size = as_area_get_size(IPC_GET_ARG1(call->data));
 		if (!size)
 			return EPERM;

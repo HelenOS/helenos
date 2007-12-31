@@ -159,7 +159,7 @@
  * on answer, the recipient must set:
  * - ARG1 - dst as_area base adress
  */
-#define IPC_M_AS_AREA_SEND	4	
+#define IPC_M_SHARE_OUT		4	
 
 /** Receive as_area over IPC.
  * - ARG1 - destination as_area base address
@@ -171,7 +171,7 @@
  * - ARG1 - source as_area base address
  * - ARG2 - flags that will be used for sharing
  */
-#define IPC_M_AS_AREA_RECV	5	
+#define IPC_M_SHARE_IN		5	
 
 /** Send data to another address space over IPC.
  * - ARG1 - source address space virtual address

@@ -270,8 +270,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * The client will want us to send him the address space area with PLB.
 	 */
-	callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) != IPC_M_AS_AREA_RECV) {
+
+	if (!ipc_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
 		futex_up(&fs_head_futex);
@@ -285,7 +285,6 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * We can only send the client address space area PLB_SIZE bytes long.
 	 */
-	size = IPC_GET_ARG2(call);
 	if (size != PLB_SIZE) {
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
@@ -300,8 +299,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
-	ipc_answer_2(callid, EOK, (ipcarg_t) plb,
-	    (ipcarg_t) (AS_AREA_READ | AS_AREA_CACHEABLE));	
+	(void) ipc_share_in_deliver(callid, plb,
+	    AS_AREA_READ | AS_AREA_CACHEABLE);
 
 	dprintf("Sharing PLB.\n");
 

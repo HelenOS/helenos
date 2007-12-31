@@ -135,15 +135,14 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	void *mapping;
 	sysarg_t s1, s2;
-	sysarg_t rights;
+	int rights;
 	int res;
 
 	if (!ktime) {
 		mapping = as_get_mappable_page(PAGE_SIZE);
 		/* Get the mapping of kernel clock */
-		res = ipc_call_sync_3_2(PHONE_NS, IPC_M_AS_AREA_RECV,
-		    (sysarg_t) mapping, PAGE_SIZE, SERVICE_MEM_REALTIME, NULL,
-		    &rights);
+		res = ipc_share_in_send_1_1(PHONE_NS, mapping, PAGE_SIZE,
+		    SERVICE_MEM_REALTIME, &rights);
 		if (res) {
 			printf("Failed to initialize timeofday memarea\n");
 			_exit(1);

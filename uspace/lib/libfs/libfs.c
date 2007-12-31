@@ -94,8 +94,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = ipc_call_sync_2_0(vfs_phone, IPC_M_AS_AREA_RECV,
-	    (ipcarg_t) reg->plb_ro, PLB_SIZE);
+	rc = ipc_share_in_send_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;
