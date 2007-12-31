@@ -266,8 +266,7 @@ extern int ipc_data_read_send(int phoneid, void *dst, size_t size);
 extern int ipc_data_read_receive(ipc_callid_t *callid, size_t *size);
 extern int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size);
 extern int ipc_data_write_send(int phoneid, void *src, size_t size);
-extern int ipc_data_write_receive(ipc_callid_t *callid, void **dst,
-    size_t *size);
+extern int ipc_data_write_receive(ipc_callid_t *callid, size_t *size);
 extern int ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size);
 
 #endif

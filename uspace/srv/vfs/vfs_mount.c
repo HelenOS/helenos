@@ -86,7 +86,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -122,7 +122,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Now, we want the client to send us the mount point.
 	 */
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;

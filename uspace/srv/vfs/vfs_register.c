@@ -164,7 +164,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
 	 */
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */

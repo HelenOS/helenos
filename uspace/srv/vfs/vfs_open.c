@@ -61,7 +61,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 	ipc_callid_t callid;
 
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;

@@ -73,7 +73,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	if (read)
 		res = ipc_data_read_receive(&callid, NULL);
 	else 
-		res = ipc_data_write_receive(&callid, NULL, NULL);
+		res = ipc_data_write_receive(&callid, NULL);
 	if (!res) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);

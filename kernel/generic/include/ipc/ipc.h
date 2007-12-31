@@ -174,15 +174,13 @@
 #define IPC_M_AS_AREA_RECV	5	
 
 /** Send data to another address space over IPC.
- * - ARG1 - destination address space virtual address, may be overriden by the
- *	    recipient
- * - ARG2 - source address space virtual address
- * - ARG3 - size of data to be copied, may be overriden by the recipient
+ * - ARG1 - source address space virtual address
+ * - ARG2 - size of data to be copied, may be overriden by the recipient
  *
  * on answer, the recipient must set:
  *
  * - ARG1 - final destination address space virtual address
- * - ARG3 - final size of data to be copied
+ * - ARG2 - final size of data to be copied
  */
 #define IPC_M_DATA_WRITE	6
 

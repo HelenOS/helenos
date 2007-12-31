@@ -735,7 +735,7 @@ int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size)
  */
 int ipc_data_write_send(int phoneid, void *src, size_t size)
 {
-	return ipc_call_sync_3_0(phoneid, IPC_M_DATA_WRITE, 0, (ipcarg_t) src,
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
 	    (ipcarg_t) size);
 }
 
@@ -748,14 +748,12 @@ int ipc_data_write_send(int phoneid, void *src, size_t size)
  *
  * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
  * 			be stored.
- * @param dst		Storage where the suggested destination address will
- *			be stored. May be NULL.
  * @param size		Storage where the suggested size will be stored. May be
  *			NULL
  *
  * @return		Non-zero on success, zero on failure.
  */
-int ipc_data_write_receive(ipc_callid_t *callid, void **dst, size_t *size)
+int ipc_data_write_receive(ipc_callid_t *callid, size_t *size)
 {
 	ipc_call_t data;
 	
@@ -764,10 +762,8 @@ int ipc_data_write_receive(ipc_callid_t *callid, void **dst, size_t *size)
 	*callid = async_get_call(&data);
 	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
 		return 0;
-	if (dst)
-		*dst = (void *) IPC_GET_ARG1(data);
 	if (size)
-		*size = (size_t) IPC_GET_ARG3(data);
+		*size = (size_t) IPC_GET_ARG2(data);
 	return 1;
 }
 
@@ -784,7 +780,7 @@ int ipc_data_write_receive(ipc_callid_t *callid, void **dst, size_t *size)
  */
 int ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size)
 {
-	return ipc_answer_3(callid, EOK, (ipcarg_t) dst, 0, (ipcarg_t) size);
+	return ipc_answer_2(callid, EOK, (ipcarg_t) dst, (ipcarg_t) size);
 }
  
 /** @}

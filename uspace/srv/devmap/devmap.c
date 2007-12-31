@@ -202,7 +202,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	/* 
 	 * Get driver name
 	 */
-	if (!ipc_data_write_receive(&callid, NULL, &name_size)) {
+	if (!ipc_data_write_receive(&callid, &name_size)) {
 		printf("Unexpected request.\n");
 		free(driver);
 		ipc_answer_0(callid, EREFUSED);
@@ -368,7 +368,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	/* Get device name */
-	if (!ipc_data_write_receive(&callid, NULL, &size)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		free(device);
 		printf("Cannot read device name.\n");
 		ipc_answer_0(iid, EREFUSED);
@@ -489,7 +489,7 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	 * Wait for incoming message with device name (but do not
 	 * read the name itself until the buffer is allocated).
 	 */
-	if (!ipc_data_write_receive(&callid, NULL, &name_size)) {
+	if (!ipc_data_write_receive(&callid, &name_size)) {
 		ipc_answer_0(callid, EREFUSED);
 		ipc_answer_0(iid, EREFUSED);
 		return;

@@ -272,8 +272,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			uintptr_t max_size;
 
 			dst = IPC_GET_ARG1(answer->data);
-			size = IPC_GET_ARG3(answer->data);
-			max_size = IPC_GET_ARG3(*olddata);
+			size = IPC_GET_ARG2(answer->data);
+			max_size = IPC_GET_ARG2(*olddata);
 
 			if (size <= max_size) {
 				rc = copy_to_uspace((void *) dst,
@@ -325,8 +325,8 @@ static int request_preprocess(call_t *call)
 			return ELIMIT;
 		break;
 	case IPC_M_DATA_WRITE:
-		src = IPC_GET_ARG2(call->data);
-		size = IPC_GET_ARG3(call->data);
+		src = IPC_GET_ARG1(call->data);
+		size = IPC_GET_ARG2(call->data);
 		
 		if ((size <= 0) || (size > DATA_XFER_LIMIT))
 			return ELIMIT;
