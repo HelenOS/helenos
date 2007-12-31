@@ -233,7 +233,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	if (EOK != ipc_data_write_deliver(callid, driver->name, name_size)) {
+	if (EOK != ipc_data_write_finalize(callid, driver->name, name_size)) {
 		printf("Cannot read driver name.\n");
 		free(driver->name);
 		free(driver);
@@ -394,7 +394,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
-	ipc_data_write_deliver(callid, device->name, size);
+	ipc_data_write_finalize(callid, device->name, size);
 	device->name[size] = 0;
 
 	list_initialize(&(device->devices));
@@ -513,7 +513,8 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	if (EOK != (retval = ipc_data_write_deliver(callid, name, name_size))) {
+	if (EOK != (retval = ipc_data_write_finalize(callid, name,
+	    name_size))) {
 		ipc_answer_0(iid, EREFUSED);
 		return;
 	}

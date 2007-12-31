@@ -325,7 +325,7 @@ static void draw_pixmap(char *logo, size_t size, int x, int y)
 	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
-	rc = ipc_share_out_send(fbphone, shm, PROTO_READ);
+	rc = ipc_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
 	/* Draw logo */
@@ -386,7 +386,7 @@ static int make_pixmap(char *data, int size)
 	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
-	rc = ipc_share_out_send(fbphone, shm, PROTO_READ);
+	rc = ipc_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
 

@@ -71,7 +71,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
-	int rc = ipc_data_write_send(vfs_phone, info, sizeof(*info)); 
+	int rc = ipc_data_write_start(vfs_phone, info, sizeof(*info)); 
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -94,7 +94,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = ipc_share_in_send_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
+	rc = ipc_share_in_start_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;

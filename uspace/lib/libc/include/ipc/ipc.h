@@ -263,30 +263,30 @@ extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 
 
 /*
- * User-friendly wrappers for ipc_share_in_send().
+ * User-friendly wrappers for ipc_share_in_start().
  */
-#define ipc_share_in_send_0_0(phoneid, dst, size) \
-    ipc_share_in_send((phoneid), (dst), (size), 0, NULL)
-#define ipc_share_in_send_0_1(phoneid, dst, size, flags) \
-    ipc_share_in_send((phoneid), (dst), (size), 0, (flags))
-#define ipc_share_in_send_1_0(phoneid, dst, size, arg) \
-    ipc_share_in_send((phoneid), (dst), (size), (arg), NULL)
-#define ipc_share_in_send_1_1(phoneid, dst, size, arg, flags) \
-    ipc_share_in_send((phoneid), (dst), (size), (arg), (flags))
+#define ipc_share_in_start_0_0(phoneid, dst, size) \
+    ipc_share_in_start((phoneid), (dst), (size), 0, NULL)
+#define ipc_share_in_start_0_1(phoneid, dst, size, flags) \
+    ipc_share_in_start((phoneid), (dst), (size), 0, (flags))
+#define ipc_share_in_start_1_0(phoneid, dst, size, arg) \
+    ipc_share_in_start((phoneid), (dst), (size), (arg), NULL)
+#define ipc_share_in_start_1_1(phoneid, dst, size, arg, flags) \
+    ipc_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int ipc_share_in_send(int phoneid, void *dst, size_t size, ipcarg_t arg,
+extern int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
     int *flags);
 extern int ipc_share_in_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_share_in_deliver(ipc_callid_t callid, void *src, int flags);
-extern int ipc_share_out_send(int phoneid, void *src, int flags);
+extern int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags);
+extern int ipc_share_out_start(int phoneid, void *src, int flags);
 extern int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags);
-extern int ipc_share_out_deliver(ipc_callid_t callid, void *dst);
-extern int ipc_data_read_send(int phoneid, void *dst, size_t size);
+extern int ipc_share_out_finalize(ipc_callid_t callid, void *dst);
+extern int ipc_data_read_start(int phoneid, void *dst, size_t size);
 extern int ipc_data_read_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size);
-extern int ipc_data_write_send(int phoneid, void *src, size_t size);
+extern int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size);
+extern int ipc_data_write_start(int phoneid, void *src, size_t size);
 extern int ipc_data_write_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size);
+extern int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size);
 
 #endif
 

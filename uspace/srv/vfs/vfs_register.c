@@ -205,7 +205,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	link_initialize(&fs_info->fs_link);
 	futex_initialize(&fs_info->phone_futex, 1);
 		
-	rc = ipc_data_write_deliver(callid, &fs_info->vfs_info, size);
+	rc = ipc_data_write_finalize(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
@@ -299,7 +299,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
-	(void) ipc_share_in_deliver(callid, plb,
+	(void) ipc_share_in_finalize(callid, plb,
 	    AS_AREA_READ | AS_AREA_CACHEABLE);
 
 	dprintf("Sharing PLB.\n");

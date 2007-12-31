@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	printf("Kernel console output.\n");
 	
 	mapping = as_get_mappable_page(PAGE_SIZE);
-	res = ipc_share_in_send_1_0(PHONE_NS, mapping, PAGE_SIZE,
+	res = ipc_share_in_start_1_0(PHONE_NS, mapping, PAGE_SIZE,
 	    SERVICE_MEM_KLOG);
 	if (res) {
 		printf("Failed to initialize klog memarea\n");

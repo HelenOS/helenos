@@ -677,7 +677,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_share_in_send(int phoneid, void *dst, size_t size, ipcarg_t arg,
+int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
     int *flags)
 {
 	int res;
@@ -727,7 +727,7 @@ int ipc_share_in_receive(ipc_callid_t *callid, size_t *size)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-int ipc_share_in_deliver(ipc_callid_t callid, void *src, int flags)
+int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags)
 {
 	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) flags);
 }
@@ -740,7 +740,7 @@ int ipc_share_in_deliver(ipc_callid_t callid, void *src, int flags)
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_share_out_send(int phoneid, void *src, int flags)
+int ipc_share_out_start(int phoneid, void *src, int flags)
 {
 	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
 	    (ipcarg_t) flags);
@@ -787,7 +787,7 @@ int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-int ipc_share_out_deliver(ipc_callid_t callid, void *dst)
+int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
 {
 	return ipc_answer_1(callid, EOK, (ipcarg_t) dst);
 }
@@ -801,7 +801,7 @@ int ipc_share_out_deliver(ipc_callid_t callid, void *dst)
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_data_read_send(int phoneid, void *dst, size_t size)
+int ipc_data_read_start(int phoneid, void *dst, size_t size)
 {
 	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
 	    (ipcarg_t) size);
@@ -847,7 +847,7 @@ int ipc_data_read_receive(ipc_callid_t *callid, size_t *size)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size)
+int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size)
 {
 	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) size);
 }
@@ -860,7 +860,7 @@ int ipc_data_read_deliver(ipc_callid_t callid, void *src, size_t size)
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_data_write_send(int phoneid, void *src, size_t size)
+int ipc_data_write_start(int phoneid, void *src, size_t size)
 {
 	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
 	    (ipcarg_t) size);
@@ -905,7 +905,7 @@ int ipc_data_write_receive(ipc_callid_t *callid, size_t *size)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-int ipc_data_write_deliver(ipc_callid_t callid, void *dst, size_t size)
+int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 {
 	return ipc_answer_2(callid, EOK, (ipcarg_t) dst, (ipcarg_t) size);
 }

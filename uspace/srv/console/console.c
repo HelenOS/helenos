@@ -537,7 +537,7 @@ int main(int argc, char *argv[])
 	    sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
 	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 	if (!interbuffer) {
-		if (ipc_share_out_send(fb_info.phone, interbuffer,
+		if (ipc_share_out_start(fb_info.phone, interbuffer,
 		    AS_AREA_READ) != EOK) {
 			munmap(interbuffer,
 			    sizeof(keyfield_t) * fb_info.cols * fb_info.rows);

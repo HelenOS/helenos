@@ -307,7 +307,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	size_t bytes = max(0, min(dentry->size - pos, len));
-	(void) ipc_data_read_deliver(callid, dentry->data + pos, bytes);
+	(void) ipc_data_read_finalize(callid, dentry->data + pos, bytes);
 
 	/*
 	 * Answer the VFS_READ call.
@@ -349,7 +349,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if (pos + len <= dentry->size) {
 		/* The file size is not changing. */
-		(void) ipc_data_write_deliver(callid, dentry->data + pos, len);
+		(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
 		ipc_answer_1(rid, EOK, len);
 		return;
 	}
@@ -369,7 +369,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 	dentry->size += delta;
 	dentry->data = newdata;
-	(void) ipc_data_write_deliver(callid, dentry->data + pos, len);
+	(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
 	ipc_answer_1(rid, EOK, len);
 }
 

@@ -110,7 +110,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 * The client sends an as_area that can absorb the whole
 			 * block.
 			 */
-			(void) ipc_share_out_deliver(callid, fs_va);
+			(void) ipc_share_out_finalize(callid, fs_va);
 		} else {
 			/*
 			 * The client offered as_area too small.

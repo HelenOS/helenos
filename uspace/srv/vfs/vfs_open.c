@@ -82,7 +82,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	int rc;
-	if ((rc = ipc_data_write_deliver(callid, path, size))) {
+	if ((rc = ipc_data_write_finalize(callid, path, size))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
