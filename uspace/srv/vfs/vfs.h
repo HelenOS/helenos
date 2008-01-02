@@ -134,6 +134,9 @@ typedef struct {
 	VFS_TRIPLET;		/**< Identity of the node. */
 	unsigned refcnt;	/**< Usage counter. */
 	link_t nh_link;		/**< Node hash-table link. */
+
+	/** Holding this futex prevents modifications of the node's contents. */
+	atomic_t contents_futex;
 } vfs_node_t;
 
 /**
@@ -169,7 +172,8 @@ extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 
-extern atomic_t unlink_futex;	/**< VFS_{CREATE|OPEN|UNLINK} serialization. */
+/** Holding this futex prevents extern changes in file system namespace. */ 
+atomic_t namespace_futex;
 
 extern int vfs_grab_phone(int);
 extern void vfs_release_phone(int);

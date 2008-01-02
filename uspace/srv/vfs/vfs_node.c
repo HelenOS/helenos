@@ -146,6 +146,7 @@ vfs_node_t *vfs_node_get(vfs_triplet_t *triplet)
 		node->dev_handle = triplet->fs_handle;
 		node->index = triplet->index;
 		link_initialize(&node->nh_link);
+		futex_initialize(&node->contents_futex, 1);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	

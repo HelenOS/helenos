@@ -39,6 +39,7 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
+#include <futex.h>
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
@@ -80,6 +81,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		return;
 	}
 
+	/*
+	 * Lock the file's node so that no other client can read/write to it at
+	 * the same time.
+	 */
+	futex_down(&file->node->contents_futex);
+
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
 	/*
@@ -106,6 +113,11 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	size_t bytes = IPC_GET_ARG1(answer);
+
+	/*
+	 * Unlock the VFS node.
+	 */
+	futex_up(&file->node->contents_futex);
 
 	/*
 	 * Update the position pointer.

@@ -154,9 +154,9 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 	/*
 	 * Lookup the root node of the filesystem being mounted.
-	 * In this case, we don't need to take the unlink_futex as the root node
-	 * cannot be removed. However, we do take a reference to it so that
-	 * we can track how many times it has been mounted.
+	 * In this case, we don't need to take the namespace_futex as the root
+	 * node cannot be removed. However, we do take a reference to it so
+	 * that we can track how many times it has been mounted.
 	 */
 	int rc;
 	vfs_triplet_t mounted_root;
@@ -182,13 +182,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * We already have the root FS.
 		 */
-		futex_down(&unlink_futex);
+		futex_down(&namespace_futex);
 		rc = vfs_lookup_internal(buf, size, &mp, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
 			 */
-			futex_up(&unlink_futex);
+			futex_up(&namespace_futex);
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
@@ -197,7 +197,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		}
 		mp_node = vfs_node_get(&mp);
 		if (!mp_node) {
-			futex_up(&unlink_futex);
+			futex_up(&namespace_futex);
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
@@ -209,7 +209,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		 * It will be dropped upon the corresponding VFS_UNMOUNT.
 		 * This prevents the mount point from being deleted.
 		 */
-		futex_up(&unlink_futex);
+		futex_up(&namespace_futex);
 	} else {
 		/*
 		 * We still don't have the root file system mounted.

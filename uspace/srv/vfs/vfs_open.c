@@ -93,7 +93,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * find/create-and-lock the VFS node corresponding to the looked-up
 	 * triplet.
 	 */
-	futex_down(&unlink_futex);
+	futex_down(&namespace_futex);
 
 	/*
 	 * The path is now populated and we can call vfs_lookup_internal().
@@ -101,7 +101,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	vfs_triplet_t triplet;
 	rc = vfs_lookup_internal(path, size, &triplet, NULL);
 	if (rc) {
-		futex_up(&unlink_futex);
+		futex_up(&namespace_futex);
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -113,7 +113,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&triplet);
-	futex_up(&unlink_futex);
+	futex_up(&namespace_futex);
 
 	/*
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t

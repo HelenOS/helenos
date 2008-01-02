@@ -40,9 +40,9 @@
 
 /**
  * This futex prevents the race between a triplet-to-VFS-node resolution and a
- * concurrent VFS_UNLINK or VFS_RMDIR operation.
+ * concurrent VFS operation which modifies the file system namespace.
  */
-atomic_t unlink_futex = FUTEX_INITIALIZER;
+atomic_t namespace_futex = FUTEX_INITIALIZER;
 
 /**
  * @}
