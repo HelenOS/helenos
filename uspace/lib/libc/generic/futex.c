@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,8 +41,8 @@
 
 /*
  * Note about race conditions.
- * Because of non-atomic nature of operations performed sequentially on the futex
- * counter and the futex wait queue, there is a race condition:
+ * Because of non-atomic nature of operations performed sequentially on the
+ * futex counter and the futex wait queue, there is a race condition:
  *
  * (wq->missed_wakeups == 1) && (futex->count = 1)
  *
@@ -54,71 +54,83 @@
  * 4. B thus changes futex->count from -1 to 0
  * 5. B has to call SYS_FUTEX_WAKEUP syscall to wake up the sleeping thread
  * 6. B finds the wait queue empty and changes wq->missed_wakeups from 0 to 1
- * 7. A fixes futex->count (i.e. the number of waiting threads) by changing it from 0 to 1
+ * 7. A fixes futex->count (i.e. the number of waiting threads) by changing it
+ *    from 0 to 1
  *
  * Scenario 2 (conditional down operation vs. futex_up)
  * 1. assume wq->missed_wakeups == 0 && futex->count == 0
  *    (i.e. thread A is in the critical section)
- * 2. thread B performs futex_trydown() operation and changes futex->count from 0 to -1
+ * 2. thread B performs futex_trydown() operation and changes futex->count from
+ *    0 to -1
  *    B is now obliged to call SYS_FUTEX_SLEEP syscall
  * 3. A wants to leave the critical section and does futex_up()
- * 4. A thus changes futex->count from -1 to 0 and must call SYS_FUTEX_WAKEUP syscall
+ * 4. A thus changes futex->count from -1 to 0 and must call SYS_FUTEX_WAKEUP
+ *    syscall
  * 5. B finds the wait queue empty and immediatelly aborts the conditional sleep
- * 6. No thread is queueing in the wait queue so wq->missed_wakeups changes from 0 to 1
- * 6. B fixes futex->count (i.e. the number of waiting threads) by changing it from 0 to 1
+ * 6. No thread is queueing in the wait queue so wq->missed_wakeups changes from
+ *    0 to 1
+ * 6. B fixes futex->count (i.e. the number of waiting threads) by changing it
+ *    from 0 to 1
  *
- * Both scenarios allow two threads to be in the critical section simultaneously.
- * One without kernel intervention and the other through wq->missed_wakeups being 1.
+ * Both scenarios allow two threads to be in the critical section
+ * simultaneously. One without kernel intervention and the other through
+ * wq->missed_wakeups being 1.
  *
- * To mitigate this problem, futex_down_timeout() detects that the syscall didn't sleep
- * in the wait queue, fixes the futex counter and RETRIES the whole operation again.
- *
+ * To mitigate this problem, futex_down_timeout() detects that the syscall
+ * didn't sleep in the wait queue, fixes the futex counter and RETRIES the
+ * whole operation again.
  */
 
 /** Initialize futex counter.
  *
- * @param futex Futex.
- * @param val Initialization value.
+ * @param futex		Futex.
+ * @param val		Initialization value.
  */
-void futex_initialize(atomic_t *futex, int val)
+void futex_initialize(futex_t *futex, int val)
 {
 	atomic_set(futex, val);
 }
 
-int futex_down(atomic_t *futex)
+int futex_down(futex_t *futex)
 {
 	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 }
 
-int futex_trydown(atomic_t *futex)
+int futex_trydown(futex_t *futex)
 {
-	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+	return futex_down_timeout(futex, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_NON_BLOCKING);
 }
 
 /** Try to down the futex.
  *
- * @param futex Futex.
- * @param usec Microseconds to wait. Zero value means sleep without timeout.
- * @param flags Select mode of operation. See comment for waitq_sleep_timeout(). 
+ * @param futex		Futex.
+ * @param usec		Microseconds to wait. Zero value means sleep without
+ * 			timeout.
+ * @param flags		Select mode of operation. See comment for
+ * 			waitq_sleep_timeout(). 
  *
- * @return ENOENT if there is no such virtual address. One of ESYNCH_OK_ATOMIC
- *	   and ESYNCH_OK_BLOCKED on success or ESYNCH_TIMEOUT if the lock was
- *	   not acquired because of a timeout or ESYNCH_WOULD_BLOCK if the
- *	   operation could not be carried out atomically (if requested so).
+ * @return		ENOENT if there is no such virtual address. One of
+ * 			ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED on success or
+ * 			ESYNCH_TIMEOUT if the lock was not acquired because of
+ * 			a timeout or ESYNCH_WOULD_BLOCK if the operation could
+ * 			not be carried out atomically (if requested so).
  */
-int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags)
+int futex_down_timeout(futex_t *futex, uint32_t usec, int flags)
 {
 	int rc;
 	
 	while (atomic_predec(futex) < 0) {
-		rc = __SYSCALL3(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count, (sysarg_t) usec, (sysarg_t) flags);
+		rc = __SYSCALL3(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count,
+		    (sysarg_t) usec, (sysarg_t) flags);
 		
 		switch (rc) {
 		case ESYNCH_OK_ATOMIC:
 			/*
-			 * Because of a race condition between timeout and futex_up()
-			 * and between conditional futex_down_timeout() and futex_up(),
-			 * we have to give up and try again in this special case.
+			 * Because of a race condition between timeout and
+			 * futex_up() and between conditional
+			 * futex_down_timeout() and futex_up(), we have to give
+			 * up and try again in this special case.
 			 */
 			atomic_inc(futex);
 			break;
@@ -130,9 +142,10 @@ int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags)
 
 		case ESYNCH_WOULD_BLOCK:
 			/*
-			 * The conditional down operation should be implemented this way.
-			 * The userspace-only variant tends to accumulate missed wakeups
-			 * in the kernel futex wait queue.
+			 * The conditional down operation should be implemented
+			 * this way. The userspace-only variant tends to
+			 * accumulate missed wakeups in the kernel futex wait
+			 * queue.
 			 */
 			atomic_inc(futex);
 			return ESYNCH_WOULD_BLOCK;
@@ -141,7 +154,8 @@ int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags)
 		case ESYNCH_OK_BLOCKED:
 			/*
 			 * Enter the critical section.
-			 * The futex counter has already been incremented for us.
+			 * The futex counter has already been incremented for
+			 * us.
 			 */
 			return ESYNCH_OK_BLOCKED;
 			break;
@@ -158,11 +172,12 @@ int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags)
 
 /** Up the futex.
  *
- * @param futex Futex.
+ * @param futex		Futex.
  *
- * @return ENOENT if there is no such virtual address. Otherwise zero.
+ * @return		ENOENT if there is no such virtual address. Otherwise
+ * 			zero.
  */
-int futex_up(atomic_t *futex)
+int futex_up(futex_t *futex)
 {
 	long val;
 	

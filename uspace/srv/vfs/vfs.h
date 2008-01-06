@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -136,8 +136,10 @@ typedef struct {
 	unsigned refcnt;	/**< Usage counter. */
 	link_t nh_link;		/**< Node hash-table link. */
 
-	/** Holding this rwlock prevents modifications of the node's contents. */
-	atomic_t contents_rwlock;
+	/**
+	 * Holding this rwlock prevents modifications of the node's contents.
+	 */
+	rwlock_t contents_rwlock;
 } vfs_node_t;
 
 /**

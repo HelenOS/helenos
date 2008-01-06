@@ -40,11 +40,13 @@
 
 #define FUTEX_INITIALIZER     {1}
 
-extern void futex_initialize(atomic_t *futex, int value);
-extern int futex_down(atomic_t *futex);
-extern int futex_trydown(atomic_t *futex);
-extern int futex_down_timeout(atomic_t *futex, uint32_t usec, int flags);
-extern int futex_up(atomic_t *futex);
+typedef atomic_t futex_t;
+
+extern void futex_initialize(futex_t *futex, int value);
+extern int futex_down(futex_t *futex);
+extern int futex_trydown(futex_t *futex);
+extern int futex_down_timeout(futex_t *futex, uint32_t usec, int flags);
+extern int futex_up(futex_t *futex);
 
 #endif
 
