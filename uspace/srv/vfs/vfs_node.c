@@ -40,6 +40,7 @@
 #include <string.h>
 #include <atomic.h>
 #include <futex.h>
+#include <rwlock.h>
 #include <libadt/hash_table.h>
 
 /** Futex protecting the VFS node hash table. */
@@ -146,7 +147,7 @@ vfs_node_t *vfs_node_get(vfs_triplet_t *triplet)
 		node->dev_handle = triplet->fs_handle;
 		node->index = triplet->index;
 		link_initialize(&node->nh_link);
-		futex_initialize(&node->contents_futex, 1);
+		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	
