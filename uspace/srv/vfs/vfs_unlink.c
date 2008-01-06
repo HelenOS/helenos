@@ -35,14 +35,13 @@
  * @brief
  */
 
-#include <atomic.h>
-#include <futex.h>
+#include <rwlock.h>
 
 /**
- * This futex prevents the race between a triplet-to-VFS-node resolution and a
+ * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
  * concurrent VFS operation which modifies the file system namespace.
  */
-atomic_t namespace_futex = FUTEX_INITIALIZER;
+RWLOCK_INITIALIZE(namespace_rwlock);
 
 /**
  * @}

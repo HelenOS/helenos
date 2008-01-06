@@ -44,6 +44,9 @@
 
 typedef atomic_t rwlock_t;
 
+#define RWLOCK_INITIALIZE(rwlock)	\
+    rwlock_t rwlock = FUTEX_INITIALIZER
+
 #define rwlock_initialize(rwlock)	futex_initialize((rwlock), 1)
 #define rwlock_reader_lock(rwlock)	futex_down((rwlock))
 #define rwlock_writer_lock(rwlock)	futex_down((rwlock))

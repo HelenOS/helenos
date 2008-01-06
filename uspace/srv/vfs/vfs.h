@@ -173,8 +173,8 @@ extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 
-/** Holding this futex prevents extern changes in file system namespace. */ 
-atomic_t namespace_futex;
+/** Holding this rwlock prevents changes in file system namespace. */ 
+extern rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(int);
 extern void vfs_release_phone(int);
