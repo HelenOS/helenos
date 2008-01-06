@@ -135,6 +135,7 @@ typedef struct {
 	VFS_TRIPLET;		/**< Identity of the node. */
 	unsigned refcnt;	/**< Usage counter. */
 	link_t nh_link;		/**< Node hash-table link. */
+	size_t size;		/**< Cached size of the file. */
 
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
@@ -210,6 +211,7 @@ extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
+extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 
 #endif
 

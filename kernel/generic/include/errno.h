@@ -55,6 +55,7 @@
 #define ETIMEOUT        -12     /* Timeout expired */
 #define EINVAL          -13     /* Invalid value */
 #define EBUSY           -14     /* Resource is busy */
+#define EOVERFLOW	-15	/* The result does not fit its size. */
 
 #endif
 

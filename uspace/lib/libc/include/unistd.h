@@ -41,8 +41,14 @@
 #define NULL 0
 #define getpagesize()     (PAGE_SIZE)
 
+#define SEEK_SET	0
+#define SEEK_CUR	1
+#define SEEK_END	2
+
 extern ssize_t write(int fd, const void * buf, size_t count);
 extern ssize_t read(int fd, void * buf, size_t count);
+extern off_t lseek(int, off_t, int);
+
 extern void _exit(int status);
 extern void *sbrk(ssize_t incr);
 extern int usleep(unsigned long usec);

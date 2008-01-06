@@ -99,10 +99,12 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_WRITE:
 			vfs_write(callid, &call);
 			break;
+		case VFS_SEEK:
+			vfs_seek(callid, &call);
+			break;
 		case VFS_UNMOUNT:
 		case VFS_CREATE:
 		case VFS_CLOSE:
-		case VFS_SEEK:
 		case VFS_UNLINK:
 		case VFS_RENAME:
 		default:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar 
+ * Copyright (c) 2008 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -184,5 +184,35 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	futex_up(&vfs_phone_futex);
 	return (ssize_t) IPC_GET_ARG1(answer);
 }
+
+off_t lseek(int fildes, off_t offset, int whence)
+{
+	int res;
+	ipcarg_t rc;
+
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	if (vfs_phone < 0) {
+		res = vfs_connect();
+		if (res < 0) {
+			async_serialize_end();
+			futex_up(&vfs_phone_futex);
+			return res;
+		}
+	}
+		
+	off_t newoffs;
+	rc = async_req_3_1(vfs_phone, VFS_SEEK, fildes, offset, whence,
+	    &newoffs);
+
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+
+	if (rc != EOK)
+		return (off_t) -1;
+	
+	return newoffs;
+}
+
 /** @}
  */

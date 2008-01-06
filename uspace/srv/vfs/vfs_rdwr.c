@@ -40,6 +40,7 @@
 #include <async.h>
 #include <errno.h>
 #include <rwlock.h>
+#include <unistd.h>
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
@@ -153,6 +154,60 @@ void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 void vfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	vfs_rdwr(rid, request, false);
+}
+
+void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = (int) IPC_GET_ARG1(*request);
+	off_t off = (off_t) IPC_GET_ARG2(*request);
+	int whence = (int) IPC_GET_ARG3(*request);
+
+
+	/*
+	 * Lookup the file structure corresponding to the file descriptor.
+	 */
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	off_t newpos;
+	futex_down(&file->lock);
+	if (whence == SEEK_SET) {
+		file->pos = off;
+		futex_up(&file->lock);
+		ipc_answer_1(rid, EOK, off);
+		return;
+	}
+	if (whence == SEEK_CUR) {
+		if (file->pos + off < file->pos) {
+			futex_up(&file->lock);
+			ipc_answer_0(rid, EOVERFLOW);
+			return;
+		}
+		file->pos += off;
+		newpos = file->pos;
+		futex_up(&file->lock);
+		ipc_answer_1(rid, EOK, newpos);
+		return;
+	}
+	if (whence == SEEK_END) {
+		rwlock_reader_lock(&file->node->contents_rwlock);
+		size_t size = file->node->size;
+		rwlock_reader_unlock(&file->node->contents_rwlock);
+		if (size + off < size) {
+			futex_up(&file->lock);
+			ipc_answer_0(rid, EOVERFLOW);
+			return;
+		}
+		newpos = size + off;
+		futex_up(&file->lock);
+		ipc_answer_1(rid, EOK, newpos);
+		return;
+	}
+	futex_up(&file->lock);
+	ipc_answer_0(rid, EINVAL);
 }
 
 /**
