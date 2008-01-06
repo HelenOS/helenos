@@ -86,6 +86,7 @@ int vfs_fd_alloc(void)
 			if (!files[i])
 				return ENOMEM;
 			memset(files[i], 0, sizeof(vfs_file_t));
+			futex_initialize(&files[i]->lock, 1);
 			vfs_file_addref(files[i]);
 			return i;
 		}

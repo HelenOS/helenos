@@ -147,6 +147,9 @@ typedef struct {
  * than one task, there will be a separate structure allocated for each task.
  */
 typedef struct {
+	/** Serializes access to this open file. */
+	futex_t lock;
+
 	vfs_node_t *node;
 	
 	/** Number of file handles referencing this file. */

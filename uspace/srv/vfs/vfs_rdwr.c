@@ -82,6 +82,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	}
 
 	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	futex_down(&file->lock);
+
+	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time.
 	 */
@@ -126,9 +132,10 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		rwlock_writer_unlock(&file->node->contents_rwlock);
 
 	/*
-	 * Update the position pointer.
+	 * Update the position pointer and unlock the open file.
 	 */
 	file->pos += bytes;
+	futex_up(&file->lock);
 
 	/*
 	 * FS server's reply is the final result of the whole operation we
