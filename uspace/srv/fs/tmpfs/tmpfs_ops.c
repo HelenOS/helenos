@@ -274,7 +274,8 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 		}
 	}
 
-	ipc_answer_3(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index);
+	ipc_answer_4(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index,
+	    dcur->size);
 }
 
 void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
@@ -372,7 +373,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	dentry->size += delta;
 	dentry->data = newdata;
 	(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
-	ipc_answer_1(rid, EOK, len);
+	ipc_answer_2(rid, EOK, len, dentry->size);
 }
 
 /**

@@ -129,8 +129,11 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 */
 	if (read)
 		rwlock_reader_unlock(&file->node->contents_rwlock);
-	else
+	else {
+		/* Update the cached version of node's size. */
+		file->node->size = IPC_GET_ARG2(answer); 
 		rwlock_writer_unlock(&file->node->contents_rwlock);
+	}
 
 	/*
 	 * Update the position pointer and unlock the open file.

@@ -56,13 +56,15 @@ uint8_t *plb = NULL;
  * @param path		Path to be resolved; it needn't be an ASCIIZ string.
  * @param len		Number of path characters pointed by path.
  * @param result	Empty node structure where the result will be stored.
+ * @param size		Storage where the size of the node will be stored. Can
+ *			be NULL.
  * @param altroot	If non-empty, will be used instead of rootfs as the root
  *			of the whole VFS tree.
  *
  * @return		EOK on success or an error code from errno.h.
  */
 int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
-    vfs_pair_t *altroot)
+    size_t *size, vfs_pair_t *altroot)
 {
 	vfs_pair_t *root;
 
@@ -165,6 +167,8 @@ int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
 		result->fs_handle = (int) IPC_GET_ARG1(answer);
 		result->dev_handle = (int) IPC_GET_ARG2(answer);
 		result->index = (int) IPC_GET_ARG3(answer);
+		if (size)
+			*size = (size_t) IPC_GET_ARG4(answer);
 	}
 
 	return rc;

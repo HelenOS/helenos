@@ -42,6 +42,7 @@
 #include <futex.h>
 #include <rwlock.h>
 #include <libadt/hash_table.h>
+#include <assert.h>
 
 /** Futex protecting the VFS node hash table. */
 atomic_t nodes_futex = FUTEX_INITIALIZER;
@@ -121,10 +122,11 @@ void vfs_node_delref(vfs_node_t *node)
  * vfs_node_put() on it.
  *
  * @param triplet	Triplet encoding the identity of the VFS node.
+ * @param size		Size of the node as filled by vfs_lookup_internal().
  *
  * @return		VFS node corresponding to the given triplet.
  */
-vfs_node_t *vfs_node_get(vfs_triplet_t *triplet)
+vfs_node_t *vfs_node_get(vfs_triplet_t *triplet, size_t size)
 {
 	unsigned long key[] = {
 		[KEY_FS_HANDLE] = triplet->fs_handle,
@@ -146,12 +148,16 @@ vfs_node_t *vfs_node_get(vfs_triplet_t *triplet)
 		node->fs_handle = triplet->fs_handle;
 		node->dev_handle = triplet->fs_handle;
 		node->index = triplet->index;
+		node->size = size;
 		link_initialize(&node->nh_link);
 		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	
 	}
+
+	assert(node->size == size);
+
 	_vfs_node_addref(node);
 	futex_up(&nodes_futex);
 

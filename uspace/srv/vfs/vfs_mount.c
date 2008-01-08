@@ -52,14 +52,15 @@ vfs_triplet_t rootfs = {
 	.index = 0,
 };
 
-static int lookup_root(int fs_handle, int dev_handle, vfs_triplet_t *root)
+static int lookup_root(int fs_handle, int dev_handle, vfs_triplet_t *root,
+    size_t *size)
 {
 	vfs_pair_t altroot = {
 		.fs_handle = fs_handle,
 		.dev_handle = dev_handle,
 	};
 
-	return vfs_lookup_internal("/", strlen("/"), root, &altroot);
+	return vfs_lookup_internal("/", strlen("/"), root, size, &altroot);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -160,13 +161,14 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	int rc;
 	vfs_triplet_t mounted_root;
-	rc = lookup_root(fs_handle, dev_handle, &mounted_root);
+	size_t mrsz;
+	rc = lookup_root(fs_handle, dev_handle, &mounted_root, &mrsz);
 	if (rc != EOK) {
 		free(buf);
 		ipc_answer_0(rid, rc);
 		return;
 	}
-	vfs_node_t *mr_node = vfs_node_get(&mounted_root);
+	vfs_node_t *mr_node = vfs_node_get(&mounted_root, mrsz);
 	if (!mr_node) {
 		free(buf);
 		ipc_answer_0(rid, ENOMEM);
@@ -177,13 +179,14 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Finally, we need to resolve the path to the mountpoint. 
 	 */
 	vfs_triplet_t mp;
+	size_t mpsz;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/*
 		 * We already have the root FS.
 		 */
 		rwlock_writer_lock(&namespace_rwlock);
-		rc = vfs_lookup_internal(buf, size, &mp, NULL);
+		rc = vfs_lookup_internal(buf, size, &mp, &mpsz, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
@@ -195,7 +198,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			ipc_answer_0(rid, rc);
 			return;
 		}
-		mp_node = vfs_node_get(&mp);
+		mp_node = vfs_node_get(&mp, mpsz);
 		if (!mp_node) {
 			rwlock_writer_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);

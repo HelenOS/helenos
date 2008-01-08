@@ -57,11 +57,11 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	int flags = IPC_GET_ARG1(*request);
 	int mode = IPC_GET_ARG2(*request);
-	size_t size;
+	size_t len;
 
 	ipc_callid_t callid;
 
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!ipc_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -73,7 +73,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * There is one optimization we could do in the future: copy the path
 	 * directly into the PLB using some kind of a callback.
 	 */
-	char *path = malloc(size);
+	char *path = malloc(len);
 	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
@@ -82,7 +82,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	int rc;
-	if ((rc = ipc_data_write_finalize(callid, path, size))) {
+	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -99,7 +99,8 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * The path is now populated and we can call vfs_lookup_internal().
 	 */
 	vfs_triplet_t triplet;
-	rc = vfs_lookup_internal(path, size, &triplet, NULL);
+	size_t size;
+	rc = vfs_lookup_internal(path, len, &triplet, &size, NULL);
 	if (rc) {
 		rwlock_reader_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
@@ -112,7 +113,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	free(path);
 
-	vfs_node_t *node = vfs_node_get(&triplet);
+	vfs_node_t *node = vfs_node_get(&triplet, size);
 	rwlock_reader_unlock(&namespace_rwlock);
 
 	/*
