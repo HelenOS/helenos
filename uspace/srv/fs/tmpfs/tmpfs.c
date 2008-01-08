@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,16 +54,19 @@
 vfs_info_t tmpfs_vfs_info = {
 	.name = "tmpfs",
 	.ops = {
-		[IPC_METHOD_TO_VFS_OP(VFS_REGISTER)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_CREATE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_READ)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_WRITE)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_SEEK)] = VFS_OP_DEFAULT
+		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_RENAME)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_OPENDIR)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_READDIR)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_CLOSEDIR)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_UNLINK)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_NULL,
 	}
 };
 
@@ -106,9 +109,6 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
-		case VFS_REGISTER:
-			ipc_answer_0(callid, EOK);
-			break;
 		case VFS_LOOKUP:
 			tmpfs_lookup(callid, &call);
 			break;

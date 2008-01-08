@@ -745,18 +745,6 @@ static bool vfs_info_sane(vfs_info_t *info)
 	/*
 	 * Check if the FS implements mandatory VFS operations.
 	 */
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_REGISTER)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_REGISTER not defined by the client.\n");
-		return false;
-	}
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_MOUNT not defined by the client.\n");
-		return false;
-	}
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_UNMOUNT not defined by the client.\n");
-		return false;
-	}
 	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] != VFS_OP_DEFINED) {
 		dprintf("Operation VFS_LOOKUP not defined by the client.\n");
 		return false;
@@ -777,7 +765,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 	/*
 	 * Check if each operation is either not defined, defined or default.
 	 */
-	for (i = VFS_FIRST; i < VFS_LAST; i++) {
+	for (i = VFS_FIRST; i < VFS_LAST_CLNT; i++) {
 		if ((info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_NULL) && 
 		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFAULT) && 
 		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFINED)) {
