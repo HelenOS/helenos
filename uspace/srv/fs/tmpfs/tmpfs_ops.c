@@ -368,7 +368,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	/* Clear any newly allocated memory in order to emulate gaps.  */
-	memset(dentry->data + dentry->size, 0, delta);
+	memset(newdata + dentry->size, 0, delta);
 	dentry->size += delta;
 	dentry->data = newdata;
 	(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
