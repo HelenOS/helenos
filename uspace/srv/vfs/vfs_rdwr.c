@@ -93,9 +93,9 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * the same time.
 	 */
 	if (read)
-		rwlock_reader_lock(&file->node->contents_rwlock);
+		rwlock_read_lock(&file->node->contents_rwlock);
 	else
-		rwlock_writer_lock(&file->node->contents_rwlock);
+		rwlock_write_lock(&file->node->contents_rwlock);
 
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
@@ -128,11 +128,11 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * Unlock the VFS node.
 	 */
 	if (read)
-		rwlock_reader_unlock(&file->node->contents_rwlock);
+		rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
 		/* Update the cached version of node's size. */
 		file->node->size = IPC_GET_ARG2(answer); 
-		rwlock_writer_unlock(&file->node->contents_rwlock);
+		rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 
 	/*
@@ -196,9 +196,9 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	if (whence == SEEK_END) {
-		rwlock_reader_lock(&file->node->contents_rwlock);
+		rwlock_read_lock(&file->node->contents_rwlock);
 		size_t size = file->node->size;
-		rwlock_reader_unlock(&file->node->contents_rwlock);
+		rwlock_read_unlock(&file->node->contents_rwlock);
 		if (size + off < size) {
 			futex_up(&file->lock);
 			ipc_answer_0(rid, EOVERFLOW);

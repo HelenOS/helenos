@@ -185,13 +185,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * We already have the root FS.
 		 */
-		rwlock_writer_lock(&namespace_rwlock);
+		rwlock_write_lock(&namespace_rwlock);
 		rc = vfs_lookup_internal(buf, size, &mp, &mpsz, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
 			 */
-			rwlock_writer_unlock(&namespace_rwlock);
+			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
@@ -200,7 +200,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		}
 		mp_node = vfs_node_get(&mp, mpsz);
 		if (!mp_node) {
-			rwlock_writer_unlock(&namespace_rwlock);
+			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
@@ -212,7 +212,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		 * It will be dropped upon the corresponding VFS_UNMOUNT.
 		 * This prevents the mount point from being deleted.
 		 */
-		rwlock_writer_unlock(&namespace_rwlock);
+		rwlock_write_unlock(&namespace_rwlock);
 	} else {
 		/*
 		 * We still don't have the root file system mounted.

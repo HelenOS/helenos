@@ -93,7 +93,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * find/create-and-lock the VFS node corresponding to the looked-up
 	 * triplet.
 	 */
-	rwlock_reader_lock(&namespace_rwlock);
+	rwlock_read_lock(&namespace_rwlock);
 
 	/*
 	 * The path is now populated and we can call vfs_lookup_internal().
@@ -102,7 +102,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 	rc = vfs_lookup_internal(path, len, &triplet, &size, NULL);
 	if (rc) {
-		rwlock_reader_unlock(&namespace_rwlock);
+		rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -114,7 +114,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&triplet, size);
-	rwlock_reader_unlock(&namespace_rwlock);
+	rwlock_read_unlock(&namespace_rwlock);
 
 	/*
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
