@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -367,6 +367,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_1(rid, EOK, 0);
 		return;
 	}
+	/* Clear any newly allocated memory in order to emulate gaps.  */
+	memset(dentry->data + dentry->size, 0, delta);
 	dentry->size += delta;
 	dentry->data = newdata;
 	(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
