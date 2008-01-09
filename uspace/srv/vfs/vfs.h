@@ -138,6 +138,11 @@ typedef struct {
 	VFS_TRIPLET;
 } vfs_triplet_t;
 
+typedef struct {
+	vfs_triplet_t triplet;
+	size_t size;
+} vfs_lookup_res_t;
+
 /**
  * Instances of this type represent an active, in-memory VFS node and any state
  * which may be associated with it.
@@ -198,11 +203,11 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, size_t, vfs_triplet_t *, size_t *,
+extern int vfs_lookup_internal(char *, size_t, vfs_lookup_res_t *,
     vfs_pair_t *);
 
 extern bool vfs_nodes_init(void);
-extern vfs_node_t *vfs_node_get(vfs_triplet_t *, size_t);
+extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
 
 #define MAX_OPEN_FILES	128

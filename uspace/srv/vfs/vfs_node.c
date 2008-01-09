@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -121,17 +121,16 @@ void vfs_node_delref(vfs_node_t *node)
  * node returned by this call should be eventually put back by calling
  * vfs_node_put() on it.
  *
- * @param triplet	Triplet encoding the identity of the VFS node.
- * @param size		Size of the node as filled by vfs_lookup_internal().
+ * @param result	Populated lookup result structure.
  *
  * @return		VFS node corresponding to the given triplet.
  */
-vfs_node_t *vfs_node_get(vfs_triplet_t *triplet, size_t size)
+vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 {
 	unsigned long key[] = {
-		[KEY_FS_HANDLE] = triplet->fs_handle,
-		[KEY_DEV_HANDLE] = triplet->dev_handle,
-		[KEY_INDEX] = triplet->index
+		[KEY_FS_HANDLE] = result->triplet.fs_handle,
+		[KEY_DEV_HANDLE] = result->triplet.dev_handle,
+		[KEY_INDEX] = result->triplet.index
 	};
 	link_t *tmp;
 	vfs_node_t *node;
@@ -145,10 +144,10 @@ vfs_node_t *vfs_node_get(vfs_triplet_t *triplet, size_t size)
 			return NULL;
 		}
 		memset(node, 0, sizeof(vfs_node_t));
-		node->fs_handle = triplet->fs_handle;
-		node->dev_handle = triplet->fs_handle;
-		node->index = triplet->index;
-		node->size = size;
+		node->fs_handle = result->triplet.fs_handle;
+		node->dev_handle = result->triplet.fs_handle;
+		node->index = result->triplet.index;
+		node->size = result->size;
 		link_initialize(&node->nh_link);
 		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
@@ -156,7 +155,7 @@ vfs_node_t *vfs_node_get(vfs_triplet_t *triplet, size_t size)
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	
 	}
 
-	assert(node->size == size);
+	assert(node->size == result->size);
 
 	_vfs_node_addref(node);
 	futex_up(&nodes_futex);

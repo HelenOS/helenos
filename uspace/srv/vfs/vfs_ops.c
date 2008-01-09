@@ -70,16 +70,14 @@ uint8_t *plb = NULL;
  *
  * @param path		Path to be resolved; it needn't be an ASCIIZ string.
  * @param len		Number of path characters pointed by path.
- * @param result	Empty node structure where the result will be stored.
- * @param size		Storage where the size of the node will be stored. Can
- *			be NULL.
+ * @param result	Empty structure where the lookup result will be stored.
  * @param altroot	If non-empty, will be used instead of rootfs as the root
  *			of the whole VFS tree.
  *
  * @return		EOK on success or an error code from errno.h.
  */
-int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
-    size_t *size, vfs_pair_t *altroot)
+int vfs_lookup_internal(char *path, size_t len, vfs_lookup_res_t *result,
+    vfs_pair_t *altroot)
 {
 	vfs_pair_t *root;
 
@@ -179,11 +177,10 @@ int vfs_lookup_internal(char *path, size_t len, vfs_triplet_t *result,
 	futex_up(&plb_futex);
 
 	if (rc == EOK) {
-		result->fs_handle = (int) IPC_GET_ARG1(answer);
-		result->dev_handle = (int) IPC_GET_ARG2(answer);
-		result->index = (int) IPC_GET_ARG3(answer);
-		if (size)
-			*size = (size_t) IPC_GET_ARG4(answer);
+		result->triplet.fs_handle = (int) IPC_GET_ARG1(answer);
+		result->triplet.dev_handle = (int) IPC_GET_ARG2(answer);
+		result->triplet.index = (int) IPC_GET_ARG3(answer);
+		result->size = (size_t) IPC_GET_ARG4(answer);
 	}
 
 	return rc;
@@ -196,15 +193,14 @@ vfs_triplet_t rootfs = {
 	.index = 0,
 };
 
-static int lookup_root(int fs_handle, int dev_handle, vfs_triplet_t *root,
-    size_t *size)
+static int lookup_root(int fs_handle, int dev_handle, vfs_lookup_res_t *result)
 {
 	vfs_pair_t altroot = {
 		.fs_handle = fs_handle,
 		.dev_handle = dev_handle,
 	};
 
-	return vfs_lookup_internal("/", strlen("/"), root, size, &altroot);
+	return vfs_lookup_internal("/", strlen("/"), result, &altroot);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -304,15 +300,14 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * that we can track how many times it has been mounted.
 	 */
 	int rc;
-	vfs_triplet_t mounted_root;
-	size_t mrsz;
-	rc = lookup_root(fs_handle, dev_handle, &mounted_root, &mrsz);
+	vfs_lookup_res_t mr_res;
+	rc = lookup_root(fs_handle, dev_handle, &mr_res);
 	if (rc != EOK) {
 		free(buf);
 		ipc_answer_0(rid, rc);
 		return;
 	}
-	vfs_node_t *mr_node = vfs_node_get(&mounted_root, mrsz);
+	vfs_node_t *mr_node = vfs_node_get(&mr_res);
 	if (!mr_node) {
 		free(buf);
 		ipc_answer_0(rid, ENOMEM);
@@ -322,15 +317,14 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Finally, we need to resolve the path to the mountpoint. 
 	 */
-	vfs_triplet_t mp;
-	size_t mpsz;
+	vfs_lookup_res_t mp_res;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/*
 		 * We already have the root FS.
 		 */
 		rwlock_write_lock(&namespace_rwlock);
-		rc = vfs_lookup_internal(buf, size, &mp, &mpsz, NULL);
+		rc = vfs_lookup_internal(buf, size, &mp_res, NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
@@ -342,7 +336,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			ipc_answer_0(rid, rc);
 			return;
 		}
-		mp_node = vfs_node_get(&mp, mpsz);
+		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
@@ -365,7 +359,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			/*
 			 * For this simple, but important case, we are done.
 			 */
-			rootfs = mounted_root;
+			rootfs = mr_res.triplet;
 			futex_up(&rootfs_futex);
 			free(buf);
 			ipc_answer_0(rid, EOK);
@@ -392,15 +386,16 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * of the file system being mounted.
 	 */
 
-	int phone = vfs_grab_phone(mp.fs_handle);
+	int phone = vfs_grab_phone(mp_res.triplet.fs_handle);
 	/* Later we can use ARG3 to pass mode/flags. */
-	aid_t req1 = async_send_3(phone, VFS_MOUNT, (ipcarg_t) mp.dev_handle,
-	    (ipcarg_t) mp.index, 0, NULL);
+	aid_t req1 = async_send_3(phone, VFS_MOUNT,
+	    (ipcarg_t) mp_res.triplet.dev_handle,
+	    (ipcarg_t) mp_res.triplet.index, 0, NULL);
 	/* The second call uses the same method. */
 	aid_t req2 = async_send_3(phone, VFS_MOUNT,
-	    (ipcarg_t) mounted_root.fs_handle,
-	    (ipcarg_t) mounted_root.dev_handle, (ipcarg_t) mounted_root.index,
-	    NULL);
+	    (ipcarg_t) mr_res.triplet.fs_handle,
+	    (ipcarg_t) mr_res.triplet.dev_handle,
+	    (ipcarg_t) mr_res.triplet.index, NULL);
 	vfs_release_phone(phone);
 
 	ipcarg_t rc1;
@@ -478,9 +473,8 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * The path is now populated and we can call vfs_lookup_internal().
 	 */
-	vfs_triplet_t triplet;
-	size_t size;
-	rc = vfs_lookup_internal(path, len, &triplet, &size, NULL);
+	vfs_lookup_res_t lr;
+	rc = vfs_lookup_internal(path, len, &lr, NULL);
 	if (rc) {
 		rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
@@ -493,7 +487,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	free(path);
 
-	vfs_node_t *node = vfs_node_get(&triplet, size);
+	vfs_node_t *node = vfs_node_get(&lr);
 	rwlock_read_unlock(&namespace_rwlock);
 
 	/*
