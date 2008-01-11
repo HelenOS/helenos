@@ -103,29 +103,16 @@ static void clean_AM_flag(void)
 
 void arch_pre_mm_init(void)
 {
-	cpu_info_t cpuid_s;
-
-	cpuid(AMD_CPUID_EXTENDED,&cpuid_s);
-	if (! (cpuid_s.cpuid_edx & (1<<AMD_EXT_NOEXECUTE)))
-		panic("Processor does not support No-execute pages.\n");
-
-	cpuid(INTEL_CPUID_STANDARD,&cpuid_s);
-	if (! (cpuid_s.cpuid_edx & (1<<INTEL_FXSAVE)))
-		panic("Processor does not support FXSAVE/FXRESTORE.\n");
-	
-	if (! (cpuid_s.cpuid_edx & (1<<INTEL_SSE2)))
-		panic("Processor does not support SSE2 instructions.\n");
-
-	/* Enable No-execute pages */
+	/* Enable no-execute pages */
 	set_efer_flag(AMD_NXE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
 
 	/* Initialize segmentation */
 	pm_init();
-
-        /* Disable I/O on nonprivileged levels
-	 * clear the NT(nested-thread) flag 
+	
+	/* Disable I/O on nonprivileged levels
+	 * clear the NT (nested-thread) flag 
 	 */
 	clean_IOPL_NT_flags();
 	/* Disable alignment check */

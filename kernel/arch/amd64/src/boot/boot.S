@@ -1,4 +1,4 @@
-#
+
 # Copyright (c) 2005 Ondrej Palkovsky
 # Copyright (c) 2006 Martin Decky
 # All rights reserved.
@@ -75,20 +75,51 @@ multiboot_image_start:
 	# Protected 32-bit. We want to reuse the code-seg descriptor,
 	# the Default operand size must not be 1 when entering long mode
 	
-	movl $0x80000000, %eax  
+	movl $(INTEL_CPUID_EXTENDED), %eax  
  	cpuid
- 	cmp $0x80000000, %eax						# any function > 80000000h?
-	jbe long_mode_unsupported
-	movl $(AMD_CPUID_EXTENDED), %eax			# Extended function code 80000001
-	cpuid
-	bt $29, %edx								# Test if long mode is supported.
- 	jc long_mode_supported
-
-	long_mode_unsupported:
-		movl $long_mode_msg, %esi
+ 	cmp $(INTEL_CPUID_EXTENDED), %eax
+	ja extended_cpuid_supported
+		
+		movl $extended_cpuid_msg, %esi
 		jmp error_halt
 	
+	extended_cpuid_supported:
+	
+	movl $(AMD_CPUID_EXTENDED), %eax
+	cpuid
+	bt $(AMD_EXT_LONG_MODE), %edx
+ 	jc long_mode_supported
+		
+		movl $long_mode_msg, %esi
+		jmp error_halt
+
 	long_mode_supported:
+	
+	bt $(AMD_EXT_NOEXECUTE), %edx
+	jc noexecute_supported
+	
+		movl $noexecute_msg, %esi
+		jmp error_halt
+	
+	noexecute_supported:
+	
+	movl $(INTEL_CPUID_STANDARD), %eax
+	cpuid
+	bt $(INTEL_FXSAVE), %edx
+ 	jc fx_supported
+	
+		movl $fx_msg, %esi
+		jmp error_halt
+	
+	fx_supported:
+	
+	bt $(INTEL_SSE2), %edx
+ 	jc sse2_supported
+	
+		movl $sse2_msg, %esi
+		jmp error_halt
+	
+	sse2_supported:
 	
 #ifdef CONFIG_FB
 	mov $vesa_init, %esi
@@ -111,7 +142,7 @@ multiboot_image_start:
 	mov %bx, KA2PA(vesa_bpp)
 #endif	
 	
-	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
+	# Enable 64-bit page translation entries - CR4.PAE = 1.
 	# Paging is not enabled until after long mode is enabled
 	
 	movl %cr4, %eax
@@ -127,10 +158,10 @@ multiboot_image_start:
 	
 	movl $EFER_MSR_NUM, %ecx	# EFER MSR number
 	rdmsr						# Read EFER
-	btsl $AMD_LME_FLAG, %eax	# Set LME=1
+	btsl $AMD_LME_FLAG, %eax	# Set LME = 1
 	wrmsr						# Write EFER
 	
-	# Enable paging to activate long mode (set CR0.PG=1)
+	# Enable paging to activate long mode (set CR0.PG = 1)
 	
 	movl %cr0, %eax
 	btsl $31, %eax
@@ -635,5 +666,13 @@ grub_eax:
 grub_ebx:
 	.long 0
 
+extended_cpuid_msg:
+	.asciz "Extended CPUID not supported. System halted."
 long_mode_msg:
 	.asciz "64 bit long mode not supported. System halted."
+noexecute_msg:
+	.asciz "No-execute pages not supported. System halted."
+fx_msg:
+	.asciz "FXSAVE/FXRESTORE instructions not supported. System halted."
+sse2_msg:
+	.asciz "SSE2 instructions not supported. System halted."
