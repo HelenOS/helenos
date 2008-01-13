@@ -33,7 +33,9 @@
  */
  
 #include <vfs.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -233,6 +235,42 @@ int ftruncate(int fildes, off_t length)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	return (int) rc;
+}
+
+DIR *opendir(const char *dirname)
+{
+	DIR *dirp = malloc(sizeof(DIR));
+	if (!dirp)
+		return NULL;
+	dirp->fd = open(dirname, 0);	/* TODO: must be a directory */
+	if (!dirp->fd) {
+		free(dirp);
+		return NULL;
+	}
+	dirp->pos = 0;
+	return dirp;
+}
+
+struct dirent *readdir(DIR *dirp)
+{
+	return NULL;	/* TODO */	
+}
+
+void rewinddir(DIR *dirp)
+{
+	dirp->pos = 0;
+}
+
+int closedir(DIR *dirp)
+{
+	(void) close(dirp->fd);
+	free(dirp);
+	return 0;
+}
+
+int close(int fildes)
+{
+	return 0;	/* TODO */
 }
 
 /** @}

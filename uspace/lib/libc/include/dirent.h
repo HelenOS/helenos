@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,29 +32,26 @@
 /** @file
  */
 
-#ifndef LIBC_UNISTD_H_
-#define LIBC_UNISTD_H_
+#ifndef LIBC_DIRENT_H_
+#define LIBC_DIRENT_H_
 
-#include <sys/types.h>
-#include <libarch/config.h>
+#define NAME_MAX	256	
 
-#define NULL 0
-#define getpagesize()     (PAGE_SIZE)
+struct dirent {
+	char d_name[NAME_MAX + 1];
+};
 
-#define SEEK_SET	0
-#define SEEK_CUR	1
-#define SEEK_END	2
+typedef struct {
+	int fd;
+	unsigned pos;
+	struct dirent res;
+} DIR;
 
-extern ssize_t write(int, const void *, size_t);
-extern ssize_t read(int, void *, size_t);
-extern off_t lseek(int, off_t, int);
-extern int ftruncate(int, off_t);
-extern int close(int);
 
-extern void _exit(int status);
-extern void *sbrk(ssize_t incr);
-extern int usleep(unsigned long usec);
-extern unsigned int sleep(unsigned int seconds);
+extern DIR *opendir(const char *);
+extern struct dirent *readdir(DIR *);
+extern void rewinddir(DIR *);
+extern int closedir(DIR *);
 
 #endif
 
