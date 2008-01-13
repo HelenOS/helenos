@@ -368,12 +368,49 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_1(rid, EOK, 0);
 		return;
 	}
-	/* Clear any newly allocated memory in order to emulate gaps.  */
+	/* Clear any newly allocated memory in order to emulate gaps. */
 	memset(newdata + dentry->size, 0, delta);
 	dentry->size += delta;
 	dentry->data = newdata;
 	(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
 	ipc_answer_2(rid, EOK, len, dentry->size);
+}
+
+void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+{
+	int dev_handle = IPC_GET_ARG1(*request);
+	unsigned long index = IPC_GET_ARG2(*request);
+	size_t size = IPC_GET_ARG3(*request);
+
+	/*
+	 * Lookup the respective dentry.
+	 */
+	link_t *hlp;
+	hlp = hash_table_find(&dentries, &index);
+	if (!hlp) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
+	    dh_link);
+
+	if (size == dentry->size) {
+		ipc_answer_0(rid, EOK);
+		return;
+	}
+
+	void *newdata = realloc(dentry->data, size);
+	if (!newdata) {
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	if (size > dentry->size) {
+		size_t delta = size - dentry->size;
+		memset(newdata + dentry->size, 0, delta);
+	}
+	dentry->size = size;
+	dentry->data = newdata;
+	ipc_answer_0(rid, EOK);
 }
 
 /**

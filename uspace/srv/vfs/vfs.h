@@ -229,6 +229,7 @@ extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
+extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
 
 #endif
 

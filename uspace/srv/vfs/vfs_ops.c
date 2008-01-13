@@ -689,6 +689,33 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EINVAL);
 }
 
+void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	size_t size = IPC_GET_ARG2(*request);
+	ipcarg_t rc;
+
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	futex_down(&file->lock);
+
+	rwlock_write_lock(&file->node->contents_rwlock);
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	rc = async_req_3_0(fs_phone, VFS_TRUNCATE, (ipcarg_t)file->node->dev_handle,
+	    (ipcarg_t)file->node->index, (ipcarg_t)size);
+	vfs_release_phone(fs_phone);
+	if (rc == EOK)
+		file->node->size = size;
+	rwlock_write_unlock(&file->node->contents_rwlock);
+
+	futex_up(&file->lock);
+
+	return rc;	
+}
+
 atomic_t fs_head_futex = FUTEX_INITIALIZER;
 link_t fs_head;
 

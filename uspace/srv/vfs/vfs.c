@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,6 +103,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			vfs_seek(callid, &call);
 			break;
 		case VFS_TRUNCATE:
+			vfs_truncate(callid, &call);
+			break;
 		case VFS_UNMOUNT:
 		case VFS_CLOSE:
 		case VFS_UNLINK:
