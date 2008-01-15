@@ -71,16 +71,15 @@
  */
 static void clean_IOPL_NT_flags(void)
 {
-	asm
-	(
-		"pushfq;"
-		"pop %%rax;"
-		"and $~(0x7000),%%rax;"
-		"pushq %%rax;"
-		"popfq;"
+	asm (
+		"pushfq\n"
+		"pop %%rax\n"
+		"and $~(0x7000), %%rax\n"
+		"pushq %%rax\n"
+		"popfq\n"
 		:
 		:
-		:"%rax"
+		: "%rax"
 	);
 }
 
@@ -90,14 +89,13 @@ static void clean_IOPL_NT_flags(void)
  */
 static void clean_AM_flag(void)
 {
-	asm
-	(
-		"mov %%cr0,%%rax;"
-		"and $~(0x40000),%%rax;"
-		"mov %%rax,%%cr0;"
+	asm (
+		"mov %%cr0, %%rax\n"
+		"and $~(0x40000), %%rax\n"
+		"mov %%rax, %%cr0\n"
 		:
 		:
-		:"%rax"
+		: "%rax"
 	);
 }
 
@@ -127,6 +125,7 @@ void arch_pre_mm_init(void)
 	}
 }
 
+
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
@@ -135,7 +134,7 @@ void arch_post_mm_init(void)
 		
 		/* hard clock */
 		i8254_init();
-
+				
 #ifdef CONFIG_FB
 		if (vesa_present()) 
 			vesa_init();
@@ -148,9 +147,9 @@ void arch_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
+	
 	/* Setup fast SYSCALL/SYSRET */
 	syscall_setup_cpu();
-	
 }
 
 void arch_post_cpu_init()

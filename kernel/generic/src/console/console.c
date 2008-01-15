@@ -60,6 +60,7 @@ static void null_putchar(chardev_t *d, const char ch)
 static chardev_operations_t null_stdout_ops = {
 	.write = null_putchar
 };
+
 chardev_t null_stdout = {
 	.name = "null",
 	.op = &null_stdout_ops

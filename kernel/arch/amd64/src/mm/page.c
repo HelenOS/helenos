@@ -87,7 +87,7 @@ void page_arch_init(void)
 
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
-		
+
 		/*
 		 * PA2KA(identity) mapping for all frames.
 		 */
@@ -95,9 +95,10 @@ void page_arch_init(void)
 			/* Standard identity mapping */
 			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, identity_flags);
 		}
+		
 		/* Upper kernel mapping
 		 * - from zero to top of kernel (include bottom addresses
-		 *   because some are needed for init )
+		 *   because some are needed for init)
 		 */
 		for (cur = PA2KA_CODE(0); cur < config.base + config.kernel_size; cur += FRAME_SIZE)
 			page_mapping_insert(AS_KERNEL, cur, KA2PA(cur), identity_flags);

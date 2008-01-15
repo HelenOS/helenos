@@ -38,7 +38,7 @@
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0xffff800000000000
-#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffff80000000
 #define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
 #define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0x00007fffffffffff
 
