@@ -125,4 +125,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/arc.c \
 	arch/$(ARCH)/src/drivers/msim.c \
-	arch/$(ARCH)/src/drivers/serial.c
+	arch/$(ARCH)/src/drivers/serial.c \
+	arch/$(ARCH)/src/smp/order.c
