@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2006 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2008 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,9 @@ SOURCES = \
 	vfs.c \
 	vfs_node.c \
 	vfs_file.c \
-	vfs_ops.c
+	vfs_ops.c \
+	vfs_lookup.c \
+	vfs_register.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
