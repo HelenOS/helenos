@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <libadt/hash_table.h>
 #include <as.h>
@@ -307,8 +308,36 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	size_t bytes = max(0, min(dentry->size - pos, len));
-	(void) ipc_data_read_finalize(callid, dentry->data + pos, bytes);
+	size_t bytes;
+	if (dentry->type == TMPFS_FILE) {
+		bytes = max(0, min(dentry->size - pos, len));
+		(void) ipc_data_read_finalize(callid, dentry->data + pos,
+		    bytes);
+	} else {
+		int i;
+		tmpfs_dentry_t *cur = dentry->child;
+		
+		assert(dentry->type == TMPFS_DIRECTORY);
+		
+		/*
+		 * Yes, we really use O(n) algorithm here.
+		 * If it bothers someone, it could be fixed by introducing a
+		 * hash table.
+		 */
+		for (i = 0, cur = dentry->child; i < pos && cur; i++,
+		    cur = cur->sibling)
+			;
+
+		if (!cur) {
+			ipc_answer_0(callid, ENOENT);
+			ipc_answer_1(rid, ENOENT, 0);
+			return;
+		}
+
+		(void) ipc_data_read_finalize(callid, cur->name,
+		    strlen(cur->name) + 1);
+		bytes = 1;
+	}
 
 	/*
 	 * Answer the VFS_READ call.

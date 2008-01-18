@@ -43,7 +43,6 @@ struct dirent {
 
 typedef struct {
 	int fd;
-	unsigned pos;
 	struct dirent res;
 } DIR;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,19 +34,32 @@
 #include <vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include "../tester.h"
 
 char *test_vfs1(bool quiet)
 {
 	if (mount("tmpfs", "/", "nulldev0") != EOK)
 		return "Mount failed.\n";
+
+
+	DIR *dirp;
+	struct dirent *dp;
+
+	dirp = opendir("/");
+	if (!dirp)
+		return "opendir() failed.";
+	while ((dp = readdir(dirp)))
+		printf("Discovered %s\n", dp->d_name);
+	closedir(dirp);
+
 	int fd1 = open("/dir1/file1", 0);
 	int fd2 = open("/dir2/file2", 0);
 
 	if (fd1 < 0)
-		return "Open failed.\n";
+		return "open() failed.\n";
 	if (fd2 < 0)
-		return "Open failed.\n";
+		return "open() failed.\n";
 
 	if (!quiet)
 		printf("Opened file descriptors %d and %d.\n", fd1, fd2);
@@ -55,7 +68,7 @@ char *test_vfs1(bool quiet)
 
 	ssize_t cnt = read(fd1, buf, sizeof(buf));
 	if (cnt < 0)
-		return "Read failed.\n";
+		return "read() failed.\n";
 
 	if (!quiet)
 		printf("Read %d bytes: %.*s\n", cnt, cnt, buf);

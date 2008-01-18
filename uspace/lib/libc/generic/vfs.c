@@ -243,22 +243,24 @@ DIR *opendir(const char *dirname)
 	if (!dirp)
 		return NULL;
 	dirp->fd = open(dirname, 0);	/* TODO: must be a directory */
-	if (!dirp->fd) {
+	if (dirp->fd < 0) {
 		free(dirp);
 		return NULL;
 	}
-	dirp->pos = 0;
 	return dirp;
 }
 
 struct dirent *readdir(DIR *dirp)
 {
-	return NULL;	/* TODO */	
+	ssize_t len = read(dirp->fd, &dirp->res.d_name[0], NAME_MAX + 1);
+	if (len <= 0)
+		return NULL;
+	return &dirp->res;
 }
 
 void rewinddir(DIR *dirp)
 {
-	dirp->pos = 0;
+	(void) lseek(dirp->fd, 0, SEEK_SET);
 }
 
 int closedir(DIR *dirp)
