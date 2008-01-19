@@ -55,14 +55,15 @@ uint8_t *plb = NULL;
  *
  * @param path		Path to be resolved; it needn't be an ASCIIZ string.
  * @param len		Number of path characters pointed by path.
+ * @param lflag		Flags to be used during lookup.
  * @param result	Empty structure where the lookup result will be stored.
  * @param altroot	If non-empty, will be used instead of rootfs as the root
  *			of the whole VFS tree.
  *
  * @return		EOK on success or an error code from errno.h.
  */
-int vfs_lookup_internal(char *path, size_t len, vfs_lookup_res_t *result,
-    vfs_pair_t *altroot)
+int vfs_lookup_internal(char *path, size_t len, int lflag,
+    vfs_lookup_res_t *result, vfs_pair_t *altroot)
 {
 	vfs_pair_t *root;
 
@@ -144,9 +145,9 @@ int vfs_lookup_internal(char *path, size_t len, vfs_lookup_res_t *result,
 
 	ipc_call_t answer;
 	int phone = vfs_grab_phone(root->fs_handle);
-	aid_t req = async_send_3(phone, VFS_LOOKUP, (ipcarg_t) first,
+	aid_t req = async_send_4(phone, VFS_LOOKUP, (ipcarg_t) first,
 	    (ipcarg_t) (first + len - 1) % PLB_SIZE,
-	    (ipcarg_t) root->dev_handle, &answer);
+	    (ipcarg_t) root->dev_handle, (ipcarg_t) lflag, &answer);
 	vfs_release_phone(phone);
 
 	ipcarg_t rc;

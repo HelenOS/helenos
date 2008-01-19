@@ -71,7 +71,8 @@ static int lookup_root(int fs_handle, int dev_handle, vfs_lookup_res_t *result)
 		.dev_handle = dev_handle,
 	};
 
-	return vfs_lookup_internal("/", strlen("/"), result, &altroot);
+	return vfs_lookup_internal("/", strlen("/"), L_DIRECTORY, result,
+	    &altroot);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -195,7 +196,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		 * We already have the root FS.
 		 */
 		rwlock_write_lock(&namespace_rwlock);
-		rc = vfs_lookup_internal(buf, size, &mp_res, NULL);
+		rc = vfs_lookup_internal(buf, size, L_DIRECTORY, &mp_res,
+		    NULL);
 		if (rc != EOK) {
 			/*
 			 * The lookup failed for some reason.
@@ -297,12 +299,16 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * The POSIX interface is open(path, flags, mode).
-	 * We can receive flags and mode along with the VFS_OPEN call; the path
+	 * The POSIX interface is open(path, oflag, mode).
+	 * We can receive oflags and mode along with the VFS_OPEN call; the path
 	 * will need to arrive in another call.
+	 *
+	 * We also receive one private, non-POSIX set of flags called lflag
+	 * used to pass information to vfs_lookup_internal().
 	 */
-	int flags = IPC_GET_ARG1(*request);
-	int mode = IPC_GET_ARG2(*request);
+	int lflag = IPC_GET_ARG1(*request);
+	int oflag = IPC_GET_ARG2(*request);
+	int mode = IPC_GET_ARG3(*request);
 	size_t len;
 
 	ipc_callid_t callid;
@@ -345,7 +351,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * The path is now populated and we can call vfs_lookup_internal().
 	 */
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, len, &lr, NULL);
+	rc = vfs_lookup_internal(path, len, lflag, &lr, NULL);
 	if (rc) {
 		rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);

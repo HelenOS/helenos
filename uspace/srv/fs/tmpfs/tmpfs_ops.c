@@ -236,6 +236,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	unsigned next = IPC_GET_ARG1(*request);
 	unsigned last = IPC_GET_ARG2(*request);
 	int dev_handle = IPC_GET_ARG3(*request);
+	int lflag = IPC_GET_ARG4(*request);
 
 	if (last < next)
 		last += PLB_SIZE;

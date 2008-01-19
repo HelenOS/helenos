@@ -95,8 +95,7 @@ int mount(const char *fs_name, const char *mp, const char *dev)
 	return (int) rc;
 }
 
-
-int open(const char *path, int oflag, ...)
+static int _open(const char *path, int lflag, int oflag, ...)
 {
 	int res;
 	ipcarg_t rc;
@@ -113,7 +112,7 @@ int open(const char *path, int oflag, ...)
 			return res;
 		}
 	}
-	req = async_send_2(vfs_phone, VFS_OPEN, oflag, 0, &answer);
+	req = async_send_3(vfs_phone, VFS_OPEN, lflag, oflag, 0, &answer);
 	rc = ipc_data_write_start(vfs_phone, path, strlen(path));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
@@ -125,6 +124,11 @@ int open(const char *path, int oflag, ...)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	return (int) IPC_GET_ARG1(answer);
+}
+
+int open(const char *path, int oflag, ...)
+{
+	return _open(path, L_FILE, oflag);
 }
 
 ssize_t read(int fildes, void *buf, size_t nbyte) 
@@ -242,7 +246,7 @@ DIR *opendir(const char *dirname)
 	DIR *dirp = malloc(sizeof(DIR));
 	if (!dirp)
 		return NULL;
-	dirp->fd = open(dirname, 0);	/* TODO: must be a directory */
+	dirp->fd = _open(dirname, L_DIRECTORY, 0);
 	if (dirp->fd < 0) {
 		free(dirp);
 		return NULL;

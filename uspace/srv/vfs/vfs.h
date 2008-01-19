@@ -138,6 +138,9 @@ typedef struct {
 	VFS_TRIPLET;
 } vfs_triplet_t;
 
+#define L_FILE		1
+#define L_DIRECTORY	2
+
 typedef struct {
 	vfs_triplet_t triplet;
 	size_t size;
@@ -203,7 +206,7 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, size_t, vfs_lookup_res_t *,
+extern int vfs_lookup_internal(char *, size_t, int, vfs_lookup_res_t *,
     vfs_pair_t *);
 
 extern bool vfs_nodes_init(void);
