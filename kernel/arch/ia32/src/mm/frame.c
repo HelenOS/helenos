@@ -61,10 +61,8 @@ static void init_e820_memory(pfn_t minconf)
 
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address,
-			    FRAME_SIZE));
-			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size,
-			    FRAME_SIZE));
+			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address, FRAME_SIZE));
+			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size, FRAME_SIZE));
 			if ((minconf < start) || (minconf >= start + size))
 				conf = start;
 			else
@@ -73,8 +71,7 @@ static void init_e820_memory(pfn_t minconf)
 			if (last_frame < ALIGN_UP(e820table[i].base_address +
 			    e820table[i].size, FRAME_SIZE))
 				last_frame =
-				    ALIGN_UP(e820table[i].base_address +
-				    e820table[i].size, FRAME_SIZE);
+				    ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
 		}			
 	}
 }
@@ -87,8 +84,14 @@ static cmd_info_t e820_info = {
 	.argc = 0
 };
 
-static char *e820names[] = { "invalid", "available", "reserved", "acpi", "nvs",
-    "unusable" };
+static char *e820names[] = {
+	"invalid",
+	"available",
+	"reserved",
+	"acpi",
+	"nvs",
+	"unusable"
+};
 
 
 static int cmd_e820mem(cmd_arg_t *argv)
