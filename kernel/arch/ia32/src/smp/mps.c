@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2005 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -149,14 +149,14 @@ int mps_ct_check(void)
 	int i;	
 	
 	/* count the checksum for the base table */
-	for (i=0,sum=0; i < ct->base_table_length; i++)
+	for (i = 0,sum = 0; i < ct->base_table_length; i++)
 		sum = (uint8_t) (sum + base[i]);
 		
 	if (sum)
 		return 0;
 		
 	/* count the checksum for the extended table */
-	for (i=0,sum=0; i < ct->ext_table_length; i++)
+	for (i = 0, sum = 0; i < ct->ext_table_length; i++)
 		sum = (uint8_t) (sum + ext[i]);
 		
 	return sum == ct->ext_table_checksum;
@@ -178,7 +178,8 @@ void mps_init(void)
 	addr[0] = (uint8_t *) PA2KA(ebda ? ebda : 639 * 1024);
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
-			if (*((uint32_t *) &addr[i][j]) == FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
+			if (*((uint32_t *) &addr[i][j]) ==
+			    FS_SIGNATURE && mps_fs_check(&addr[i][j])) {
 				fs = (struct mps_fs *) &addr[i][j];
 				goto fs_found;
 			}
@@ -227,55 +228,62 @@ int configure_via_ct(void)
 
 	cnt = 0;
 	cur = &ct->base_table[0];
-	for (i=0; i < ct->entry_count; i++) {
+	for (i = 0; i < ct->entry_count; i++) {
 		switch (*cur) {
-			/* Processor entry */
-			case 0:	
-				processor_entries = processor_entries ? processor_entries : (struct __processor_entry *) cur;
-				processor_entry_cnt++;
-				cnt += ct_processor_entry((struct __processor_entry *) cur);
-				cur += 20;
-				break;
+		/* Processor entry */
+		case 0:	
+			processor_entries = processor_entries ?
+			    processor_entries :
+			    (struct __processor_entry *) cur;
+			processor_entry_cnt++;
+			cnt += ct_processor_entry((struct __processor_entry *)
+			    cur);
+			cur += 20;
+			break;
 
-			/* Bus entry */
-			case 1:
-				bus_entries = bus_entries ? bus_entries : (struct __bus_entry *) cur;
-				bus_entry_cnt++;
-				ct_bus_entry((struct __bus_entry *) cur);
-				cur += 8;
-				break;
+		/* Bus entry */
+		case 1:
+			bus_entries = bus_entries ?
+			    bus_entries : (struct __bus_entry *) cur;
+			bus_entry_cnt++;
+			ct_bus_entry((struct __bus_entry *) cur);
+			cur += 8;
+			break;
 				
-			/* I/O Apic */
-			case 2:
-				io_apic_entries = io_apic_entries ? io_apic_entries : (struct __io_apic_entry *) cur;
+		/* I/O Apic */
+		case 2:
+			io_apic_entries = io_apic_entries ?
+			    io_apic_entries : (struct __io_apic_entry *) cur;
 				io_apic_entry_cnt++;
-				ct_io_apic_entry((struct __io_apic_entry *) cur);
-				cur += 8;
-				break;
+			ct_io_apic_entry((struct __io_apic_entry *) cur);
+			cur += 8;
+			break;
 				
-			/* I/O Interrupt Assignment */
-			case 3:
-				io_intr_entries = io_intr_entries ? io_intr_entries : (struct __io_intr_entry *) cur;
-				io_intr_entry_cnt++;
-				ct_io_intr_entry((struct __io_intr_entry *) cur);
-				cur += 8;
-				break;
+		/* I/O Interrupt Assignment */
+		case 3:
+			io_intr_entries = io_intr_entries ?
+			    io_intr_entries : (struct __io_intr_entry *) cur;
+			io_intr_entry_cnt++;
+			ct_io_intr_entry((struct __io_intr_entry *) cur);
+			cur += 8;
+			break;
 
-			/* Local Interrupt Assignment */
-			case 4:
-				l_intr_entries = l_intr_entries ? l_intr_entries : (struct __l_intr_entry *) cur;
-				l_intr_entry_cnt++;
-				ct_l_intr_entry((struct __l_intr_entry *) cur);
-				cur += 8;
-				break;
+		/* Local Interrupt Assignment */
+		case 4:
+			l_intr_entries = l_intr_entries ?
+			    l_intr_entries : (struct __l_intr_entry *) cur;
+			l_intr_entry_cnt++;
+			ct_l_intr_entry((struct __l_intr_entry *) cur);
+			cur += 8;
+			break;
 
-			default:
-				/*
-				 * Something is wrong. Fallback to UP mode.
-				 */
-				 
-				printf("%s: ct badness\n", __func__);
-				return 1;
+		default:
+			/*
+			 * Something is wrong. Fallback to UP mode.
+			 */
+
+			printf("%s: ct badness\n", __func__);
+			return 1;
 		}
 	}
 	
@@ -301,10 +309,10 @@ int ct_processor_entry(struct __processor_entry *pr __attribute__((unused)))
 	/*
 	 * Ignore processors which are not marked enabled.
 	 */
-	if ((pr->cpu_flags & (1<<0)) == 0)
+	if ((pr->cpu_flags & (1 << 0)) == 0)
 		return 0;
 	
-	apic_id_mask |= (1<<pr->l_apic_id); 
+	apic_id_mask |= (1 << pr->l_apic_id); 
 	return 1;
 }
 
@@ -341,29 +349,54 @@ void ct_io_intr_entry(struct __io_intr_entry *iointr __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
 	switch (iointr->intr_type) {
-	    case 0: printf("INT"); break;
-	    case 1: printf("NMI"); break;
-	    case 2: printf("SMI"); break;
-	    case 3: printf("ExtINT"); break;
+	case 0:
+		printf("INT");
+		break;
+	case 1:
+		printf("NMI");
+		break;
+	case 2:
+		printf("SMI");
+		break;
+	case 3:
+		printf("ExtINT");
+		break;
 	}
 	putchar(',');
-	switch (iointr->poel&3) {
-	    case 0: printf("bus-like"); break;
-	    case 1: printf("active high"); break;
-	    case 2: printf("reserved"); break;
-	    case 3: printf("active low"); break;
+	switch (iointr->poel & 3) {
+	case 0:
+		printf("bus-like");
+		break;
+	case 1:
+		printf("active high");
+		break;
+	case 2:
+		printf("reserved");
+		break;
+	case 3:
+		printf("active low");
+		break;
 	}
 	putchar(',');
-	switch ((iointr->poel>>2)&3) {
-	    case 0: printf("bus-like"); break;
-	    case 1: printf("edge-triggered"); break;
-	    case 2: printf("reserved"); break;
-	    case 3: printf("level-triggered"); break;
+	switch ((iointr->poel >> 2) & 3) {
+	case 0:
+		printf("bus-like");
+		break;
+	case 1:
+		printf("edge-triggered");
+		break;
+	case 2:
+		printf("reserved");
+		break;
+	case 3:
+		printf("level-triggered");
+		break;
 	}
 	putchar(',');
 	printf("bus%d,irq%d", iointr->src_bus_id, iointr->src_bus_irq);
 	putchar(',');
-	printf("io_apic%d,pin%d", iointr->dst_io_apic_id, iointr->dst_io_apic_pin);
+	printf("io_apic%d,pin%d", iointr->dst_io_apic_id,
+	    iointr->dst_io_apic_pin);
 	putchar('\n');	
 #endif
 }
@@ -372,24 +405,48 @@ void ct_l_intr_entry(struct __l_intr_entry *lintr __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
 	switch (lintr->intr_type) {
-	    case 0: printf("INT"); break;
-	    case 1: printf("NMI"); break;
-	    case 2: printf("SMI"); break;
-	    case 3: printf("ExtINT"); break;
+	case 0:
+	    printf("INT");
+	    break;
+	case 1:
+	    printf("NMI");
+	    break;
+	case 2:
+	    printf("SMI");
+	    break;
+	case 3:
+	    printf("ExtINT");
+	    break;
 	}
 	putchar(',');
-	switch (lintr->poel&3) {
-	    case 0: printf("bus-like"); break;
-	    case 1: printf("active high"); break;
-	    case 2: printf("reserved"); break;
-	    case 3: printf("active low"); break;
+	switch (lintr->poel & 3) {
+	case 0:
+	    printf("bus-like");
+	    break;
+	case 1:
+	    printf("active high");
+	    break;
+	case 2:
+	    printf("reserved");
+	    break;
+	case 3:
+	    printf("active low");
+	    break;
 	}
 	putchar(',');
-	switch ((lintr->poel>>2)&3) {
-	    case 0: printf("bus-like"); break;
-	    case 1: printf("edge-triggered"); break;
-	    case 2: printf("reserved"); break;
-	    case 3: printf("level-triggered"); break;
+	switch ((lintr->poel >> 2) & 3) {
+	case 0:
+	    printf("bus-like");
+	    break;
+	case 1:
+	    printf("edge-triggered");
+	    break;
+	case 2:
+	    printf("reserved");
+	    break;
+	case 3:
+	    printf("level-triggered");
+	    break;
 	}
 	putchar(',');
 	printf("bus%d,irq%d", lintr->src_bus_id, lintr->src_bus_irq);
@@ -404,11 +461,13 @@ void ct_extended_entries(void)
 	uint8_t *ext = (uint8_t *) ct + ct->base_table_length;
 	uint8_t *cur;
 
-	for (cur = ext; cur < ext + ct->ext_table_length; cur += cur[CT_EXT_ENTRY_LEN]) {
+	for (cur = ext; cur < ext + ct->ext_table_length;
+	    cur += cur[CT_EXT_ENTRY_LEN]) {
 		switch (cur[CT_EXT_ENTRY_TYPE]) {
-			default:
-				printf("%p: skipping MP Configuration Table extended entry type %d\n", cur, cur[CT_EXT_ENTRY_TYPE]);
-				break;
+		default:
+			printf("%p: skipping MP Configuration Table extended "
+			    "entry type %d\n", cur, cur[CT_EXT_ENTRY_TYPE]);
+			break;
 		}
 	}
 }
@@ -418,7 +477,8 @@ int mps_irq_to_pin(unsigned int irq)
 	unsigned int i;
 	
 	for (i = 0; i < io_intr_entry_cnt; i++) {
-		if (io_intr_entries[i].src_bus_irq == irq && io_intr_entries[i].intr_type == 0)
+		if (io_intr_entries[i].src_bus_irq == irq &&
+		    io_intr_entries[i].intr_type == 0)
 			return io_intr_entries[i].dst_io_apic_pin;
 	}
 	

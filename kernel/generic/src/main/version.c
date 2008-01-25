@@ -36,7 +36,7 @@
 #include <print.h>
 
 char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2007 HelenOS project";
+char *copyright = "Copyright (c) 2001-2008 HelenOS project";
 char *release = RELEASE;
 char *name = NAME;
 char *arch = ARCH;

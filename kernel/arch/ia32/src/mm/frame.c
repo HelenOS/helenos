@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,15 +61,20 @@ static void init_e820_memory(pfn_t minconf)
 
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address, FRAME_SIZE));
-			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size, FRAME_SIZE));
+			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address,
+			    FRAME_SIZE));
+			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size,
+			    FRAME_SIZE));
 			if ((minconf < start) || (minconf >= start + size))
 				conf = start;
 			else
 				conf = minconf;
 			zone_create(start, size, conf, 0);
-			if (last_frame < ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE))
-				last_frame = ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
+			if (last_frame < ALIGN_UP(e820table[i].base_address +
+			    e820table[i].size, FRAME_SIZE))
+				last_frame =
+				    ALIGN_UP(e820table[i].base_address +
+				    e820table[i].size, FRAME_SIZE);
 		}			
 	}
 }
@@ -82,8 +87,8 @@ static cmd_info_t e820_info = {
 	.argc = 0
 };
 
-static char *e820names[] = { "invalid", "available", "reserved",
-			     "acpi", "nvs", "unusable" };
+static char *e820names[] = { "invalid", "available", "reserved", "acpi", "nvs",
+    "unusable" };
 
 
 static int cmd_e820mem(cmd_arg_t *argv)
@@ -96,11 +101,9 @@ static int cmd_e820mem(cmd_arg_t *argv)
 			name = e820names[e820table[i].type];
 		else
 			name = "invalid";
-		printf("%.*p %#.16llXB %s\n", 
-			sizeof(unative_t) * 2,
-		       (unative_t) e820table[i].base_address, 
-		       (uint64_t) e820table[i].size,
-		       name);
+		printf("%.*p %#.16llXB %s\n", sizeof(unative_t) * 2,
+		    (unative_t) e820table[i].base_address, 
+		    (uint64_t) e820table[i].size, name);
 	}			
 	return 0;
 }
@@ -117,7 +120,8 @@ void frame_arch_init(void)
 		minconf = 1;
 #ifdef CONFIG_SMP
 		minconf = max(minconf,
-			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size));
+		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
+		        hardcoded_unmapped_kdata_size));
 #endif
 #ifdef CONFIG_SIMICS_FIX
 		minconf = max(minconf, ADDR2PFN(0x10000));
@@ -130,7 +134,8 @@ void frame_arch_init(void)
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
-			(hardcoded_unmapped_ktext_size + hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
+		    (hardcoded_unmapped_ktext_size +
+		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 		
 #ifdef CONFIG_SIMICS_FIX
 		/* Don't know why, but these addresses help */

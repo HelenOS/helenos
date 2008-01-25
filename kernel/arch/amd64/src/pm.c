@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2005-2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -54,7 +54,7 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ .limit_0_15  = 0xffff, 
 	  .base_0_15   = 0, 
 	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE , 
+	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE, 
 	  .limit_16_19 = 0xf, 
 	  .available   = 0, 
 	  .longmode    = 1, 
@@ -111,14 +111,16 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB	
-	{ 0xffff, 0, VESA_INIT_SEGMENT>>12, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
+	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | DPL_KERNEL,
+	  0xf, 0, 0, 0, 0, 0
+	}
 #endif
 };
 
 idescriptor_t idt[IDT_ITEMS];
 
-ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base= (uint64_t) gdt };
-ptr_16_64_t idtr = {.limit = sizeof(idt), .base= (uint64_t) idt };
+ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base = (uint64_t) gdt };
+ptr_16_64_t idtr = {.limit = sizeof(idt), .base = (uint64_t) idt };
 
 static tss_t tss;
 tss_t *tss_p = NULL;
@@ -173,7 +175,8 @@ void idt_init(void)
 		d->present = 1;
 		d->type = AR_INTERRUPT;	/* masking interrupt */
 
-		idt_setoffset(d, ((uintptr_t) interrupt_handlers) + i*interrupt_handler_size);
+		idt_setoffset(d, ((uintptr_t) interrupt_handlers) +
+		    i * interrupt_handler_size);
 	}
 }
 
