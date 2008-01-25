@@ -1,6 +1,7 @@
 
 # Copyright (c) 2005 Ondrej Palkovsky
 # Copyright (c) 2006 Martin Decky
+# Copyright (c) 2008 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -54,7 +55,7 @@ multiboot_header:
 
 multiboot_image_start:
 	movl $START_STACK, %esp			# initialize stack pointer
-	lgdt bootstrap_gdtr				# initialize Global Descriptor Table register
+	lgdtl bootstrap_gdtr			# initialize Global Descriptor Table register
 
 	movw $gdtselector(KDATA_DES), %cx
 	movw %cx, %es
@@ -69,7 +70,7 @@ multiboot_image_start:
 	jmpl $gdtselector(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
-	movl %eax, grub_eax							# save parameters from GRUB
+	movl %eax, grub_eax						# save parameters from GRUB
 	movl %ebx, grub_ebx
 	
 	# Protected 32-bit. We want to reuse the code-seg descriptor,
@@ -156,9 +157,9 @@ multiboot_image_start:
 	
 	# Enable long mode
 	
-	movl $EFER_MSR_NUM, %ecx	# EFER MSR number
+	movl $EFER_MSR_NUM, %ecx			# EFER MSR number
 	rdmsr						# Read EFER
-	btsl $AMD_LME_FLAG, %eax	# Set LME = 1
+	btsl $AMD_LME_FLAG, %eax			# Set LME = 1
 	wrmsr						# Write EFER
 	
 	# Enable paging to activate long mode (set CR0.PG = 1)
@@ -177,10 +178,10 @@ start64:
 	movl grub_eax, %eax
 	movl grub_ebx, %ebx
 	
-	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
+	cmpl $MULTIBOOT_LOADER_MAGIC, %eax			# compare GRUB signature
 	je valid_boot
 		
-		xorl %ecx, %ecx							# no memory size or map available
+		xorl %ecx, %ecx					# no memory size or map available
 		movl %ecx, e801memorysize
 		movl %ecx, e820counter
 		
@@ -188,22 +189,22 @@ start64:
 		
 	valid_boot:
 		
-		movl (%ebx), %eax						# ebx = physical address of struct multiboot_info
+		movl (%ebx), %eax				# ebx = physical address of struct multiboot_info
 		
-		bt $0, %eax								# mbi->flags[0] (mem_lower, mem_upper valid)
+		bt $0, %eax					# mbi->flags[0] (mem_lower, mem_upper valid)
 		jc mem_valid
 			
 			xorl %ecx, %ecx
 			jmp mem_invalid
 			
 		mem_valid:
-		movl 4(%ebx), %ecx						# mbi->mem_lower
-		addl 8(%ebx), %ecx						# mbi->mem_upper
+		movl 4(%ebx), %ecx				# mbi->mem_lower
+		addl 8(%ebx), %ecx				# mbi->mem_upper
 		
 		mem_invalid:
 		movl %ecx, e801memorysize
 		
-		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
+		bt $3, %eax					# mbi->flags[3] (mods_count, mods_addr valid)
 		jc mods_valid
 			
 			xorq %rcx, %rcx
@@ -213,26 +214,26 @@ start64:
 		mods_valid:
 		
 		xorq %rcx, %rcx
-		movl 20(%ebx), %ecx						# mbi->mods_count
+		movl 20(%ebx), %ecx				# mbi->mods_count
 		movq %rcx, init
 		
 		cmpl $0, %ecx
 		je mods_end
 		
-		movl 24(%ebx), %esi						# mbi->mods_addr
+		movl 24(%ebx), %esi				# mbi->mods_addr
 		movq $init, %rdi
 		
 		mods_loop:
 			
 			xorq %rdx, %rdx
-			movl 0(%esi), %edx					# mods->mod_start
+			movl 0(%esi), %edx			# mods->mod_start
 			movq $0xffff800000000000, %r10
 			addq %r10, %rdx
 			movq %rdx, 8(%rdi)
 			
 			xorq %rdx, %rdx
 			movl 4(%esi), %edx
-			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
+			subl 0(%esi), %edx			# mods->mod_end - mods->mod_start
 			movq %rdx, 16(%rdi)
 			
 			addl $16, %esi
@@ -242,15 +243,15 @@ start64:
 			
 		mods_end:
 		
-		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
+		bt $6, %eax					# mbi->flags[6] (mmap_length, mmap_addr valid)	
 		jc mmap_valid
 			
 			xorl %edx, %edx
 			jmp mmap_invalid
 			
 		mmap_valid:
-		movl 44(%ebx), %ecx						# mbi->mmap_length
-		movl 48(%ebx), %esi						# mbi->mmap_addr
+		movl 44(%ebx), %ecx				# mbi->mmap_length
+		movl 48(%ebx), %esi				# mbi->mmap_addr
 		movq $e820table, %rdi
 		xorl %edx, %edx
 		
@@ -258,22 +259,22 @@ start64:
 			cmpl $0, %ecx
 			jle mmap_end
 			
-			movl 4(%esi), %eax					# mmap->base_addr_low
+			movl 4(%esi), %eax			# mmap->base_addr_low
 			movl %eax, (%rdi)
 			
-			movl 8(%esi), %eax					# mmap->base_addr_high
+			movl 8(%esi), %eax			# mmap->base_addr_high
 			movl %eax, 4(%rdi)
 			
-			movl 12(%esi), %eax					# mmap->length_low
+			movl 12(%esi), %eax			# mmap->length_low
 			movl %eax, 8(%rdi)
 			
-			movl 16(%esi), %eax					# mmap->length_high
+			movl 16(%esi), %eax			# mmap->length_high
 			movl %eax, 12(%rdi)
 			
-			movl 20(%esi), %eax					# mmap->type
+			movl 20(%esi), %eax			# mmap->type
 			movl %eax, 16(%rdi)
 			
-			movl (%esi), %eax					# mmap->size
+			movl (%esi), %eax			# mmap->size
 			addl $0x4, %eax
 			addl %eax, %esi
 			subl %eax, %ecx
@@ -431,7 +432,7 @@ vesa_init_real2:
 	mov $vga323 - vesa_init, %di
 	mov $0x100, %ecx
 	
-	bt $5, %ax							# Test if VGA compatible registers are present
+	bt $5, %ax						# Test if VGA compatible registers are present
 	jnc vga_compat
 		
 		# Try VESA routine to set palette
@@ -447,15 +448,15 @@ vesa_init_real2:
 		
 		# Try VGA registers to set palette
 		
-		movw $0x3c6, %dx						# Set palette mask
+		movw $0x3c6, %dx				# Set palette mask
 		movb $0xff, %al
 		outb %al, %dx
 		
-		movw $0x3c8, %dx						# First index to set
+		movw $0x3c8, %dx				# First index to set
 		xor %al, %al
 		outb %al, %dx
 		
-		movw $0x3c9, %dx						# Data port
+		movw $0x3c9, %dx				# Data port
 		vga_loop:
 			movb %es:2(%di), %al
 			outb %al, %dx
@@ -512,7 +513,7 @@ vesa_init_real2:
 1:
 	mov $0x0003, %ax
 	int $0x10
-	mov $0xffffffff, %edi		# EGA text mode used, because of problems with VESA
+	mov $0xffffffff, %edi				# EGA text mode used, because of problems with VESA
 	xor %ax, %ax
 	jz 8b						# Force relative jump
 
@@ -523,7 +524,7 @@ vga323:
 vesa_init_protect:
 	movw $gdtselector(KDATA_DES), %cx
 	movw %cx, %es
-	movw %cx, %ds							# kernel data + stack
+	movw %cx, %ds					# kernel data + stack
 	movw %cx, %ss
 	# Simics seems to remove hidden part of GS on entering user mode
 	#  when _visible_ part of GS does not point to user-mode segment
@@ -531,7 +532,7 @@ vesa_init_protect:
 	movw %cx, %fs
 	movw %cx, %gs
 	
-	movl $START_STACK, %esp			# initialize stack pointer
+	movl $START_STACK, %esp				# initialize stack pointer
 	
 	jmpl $gdtselector(KTEXT32_DES), $vesa_meeting_point
 	
@@ -541,10 +542,10 @@ e_vesa_init:
 
 # Print string from %esi to EGA display (in red) and halt
 error_halt:
-	movl $0xb8000, %edi						# base of EGA text mode memory
+	movl $0xb8000, %edi				# base of EGA text mode memory
 	xorl %eax, %eax
 	
-	movw $0x3d4, %dx						# read bits 8 - 15 of the cursor address
+	movw $0x3d4, %dx				# read bits 8 - 15 of the cursor address
 	movb $0xe, %al
 	outb %al, %dx
 	
@@ -552,7 +553,7 @@ error_halt:
 	inb %dx, %al
 	shl $8, %ax
 	
-	movw $0x3d4, %dx						# read bits 0 - 7 of the cursor address
+	movw $0x3d4, %dx				# read bits 0 - 7 of the cursor address
 	movb $0xf, %al
 	outb %al, %dx
 	
@@ -561,14 +562,14 @@ error_halt:
 	
 	cmp $1920, %ax
 	jbe cursor_ok
-		movw $1920, %ax						# sanity check for the cursor on the last line
+		movw $1920, %ax				# sanity check for the cursor on the last line
 	cursor_ok:
 	
 	movw %ax, %bx
 	shl $1, %eax
 	addl %eax, %edi
 	
-	movw $0x0c00, %ax						# black background, light red foreground
+	movw $0x0c00, %ax				# black background, light red foreground
 	cld
 	
 	ploop:
@@ -580,7 +581,7 @@ error_halt:
 		jmp ploop
 	ploop_end:
 	
-	movw $0x3d4, %dx						# write bits 8 - 15 of the cursor address
+	movw $0x3d4, %dx				# write bits 8 - 15 of the cursor address
 	movb $0xe, %al
 	outb %al, %dx
 	
@@ -588,7 +589,7 @@ error_halt:
 	movb %bh, %al
 	outb %al, %dx
 	
-	movw $0x3d4, %dx						# write bits 0 - 7 of the cursor address
+	movw $0x3d4, %dx				# write bits 0 - 7 of the cursor address
 	movb $0xf, %al
 	outb %al, %dx
 	
@@ -599,52 +600,64 @@ error_halt:
 	cli
 	hlt
 				
-.section K_DATA_START, "aw", @progbits
-.align 4096
 
-# Identical mapping of first 64MB and the same of -2GB -> 0	
-.global ptl_2
-ptl_2:	
-	.quad 0x0 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x200000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x400000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x600000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x800000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0xa00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0xc00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0xe00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1000000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1200000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1400000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1600000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1800000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1a00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1c00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x1e00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2000000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2200000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2400000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2600000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2800000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2a00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2c00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x2e00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3000000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3200000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3400000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3600000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3800000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3a00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3c00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad 0x3e00000 | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	
+.section K_INI_PTLS, "aw", @progbits
+
+#
+# Macro for generating initial page table contents.
+# @param cnt	Number of entries to generat. Must be multiple of 8.
+# @param g	Number of GB that will be added to the mapping.
+#
+.macro ptl2gen cnt g 
+.if \cnt
+	ptl2gen "\cnt - 8" \g 
+	.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+.endif
+.endm
+
+# Page table for pages in the first gigabyte.
+.align 4096
+.global ptl_2_0g
+ptl_2_0g:	
+	ptl2gen 512 0
+
+# Page table for pages in the second gigabyte.
+.align 4096
+.global ptl_2_1g
+ptl_2_1g:
+	ptl2gen 512 1
+
+# Page table for pages in the third gigabyte.
+.align 4096
+.global ptl_2_2g
+ptl_2_2g:
+	ptl2gen 512 2
+
+# Page table for pages in the fourth gigabyte.
+.align 4096
+.global ptl_2_3g
+ptl_2_3g:
+	ptl2gen 512 3
+
 .align 4096
 .global ptl_1
 ptl_1:
-	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 509,8,0
-	.quad ptl_2 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 1,8,0
+	# Identity mapping for [0; 4G)
+	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT) 
+	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 506, 8, 0
+	# Mapping of [0; 1G) at -2G
+	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 1, 8, 0
 	
 .align 4096
 .global ptl_0
@@ -654,6 +667,8 @@ ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 	.fill 254,8,0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+
+.section K_DATA_START, "aw", @progbits
 
 .global bootstrap_gdtr
 bootstrap_gdtr:

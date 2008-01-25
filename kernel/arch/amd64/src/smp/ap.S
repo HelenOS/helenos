@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2001-2004 Jakub Jermar
+# Copyright (c) 2008 Jakub Jermar
 # Copyright (c) 2005-2006 Martin Decky
 # All rights reserved.
 #
@@ -45,8 +45,8 @@
 .global unmapped_ap_boot
 
 # This piece of code is real-mode and is meant to be alligned at 4K boundary.
-# The requirement for such an alignment comes from MP Specification's STARTUP IPI
-# requirements.
+# The requirement for such an alignment comes from MP Specification's STARTUP
+# IPI requirements.
 
 .align 4096
 unmapped_ap_boot:
@@ -59,7 +59,7 @@ unmapped_ap_boot:
 	
 	movl %cr0, %eax
 	orl $1, %eax
-	movl %eax, %cr0				# switch to protected mode
+	movl %eax, %cr0		# switch to protected mode
 	jmpl $gdtselector(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	
 jump_to_kernel:
@@ -82,10 +82,10 @@ jump_to_kernel:
 	movl %eax, %cr3
 	
 	# Enable long mode
-	movl $EFER_MSR_NUM, %ecx   # EFER MSR number
-	rdmsr                   # Read EFER
-	btsl $AMD_LME_FLAG, %eax            # Set LME=1
-	wrmsr                   # Write EFER
+	movl $EFER_MSR_NUM, %ecx	# EFER MSR number
+	rdmsr				# Read EFER
+	btsl $AMD_LME_FLAG, %eax	# Set LME=1
+	wrmsr				# Write EFER
 	
 	# Enable paging to activate long mode (set CR0.PG=1)
 	movl %cr0, %eax
@@ -107,7 +107,6 @@ start64:
 #ifdef CONFIG_SMP
 
 .global unmapped_ap_gdtr
-
 unmapped_ap_gdtr:
 	.word 0
 	.long 0

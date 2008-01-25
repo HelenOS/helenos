@@ -19,6 +19,7 @@ SECTIONS {
 
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
+		*(K_INI_PTLS);
 		unmapped_kdata_end = .;
 	}
 
