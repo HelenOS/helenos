@@ -138,8 +138,36 @@ typedef struct {
 	VFS_TRIPLET;
 } vfs_triplet_t;
 
+/*
+ * Lookup flags.
+ */
+/**
+ * Lookup will succeed only if the object is a regular file.  If L_CREATE is
+ * specified, an empty file will be created. This flag is mutually exclusive
+ * with L_DIRECTORY.
+ */
 #define L_FILE		1
+/**
+ * Lookup wil succeed only if the object is a directory. If L_CREATE is
+ * specified, an empty directory will be created. This flag is mutually
+ * exclusive with L_FILE.
+ */
 #define L_DIRECTORY	2
+/**
+ * When used with L_CREATE, L_EXCLUSIVE will cause the lookup to fail if the
+ * object already exists. L_EXCLUSIVE is implied when L_DIRECTORY is used.
+ */
+#define L_EXCLUSIVE	4
+/**
+ * L_CREATE is used for creating both regular files and directories.
+ */
+#define L_CREATE	8
+/**
+ * L_DESTROY is used to remove leaves from the file system namespace. This flag
+ * cannot be passed directly by the client, but will be set by VFS during
+ * VFS_UNLINK.
+ */
+#define L_DESTROY	16
 
 typedef struct {
 	vfs_triplet_t triplet;
