@@ -37,6 +37,12 @@
 
 #include <kernel/errno.h>
 
+#define ENAMETOOLONG	(-256)
+#define EISDIR		(-257)
+#define ENOTDIR		(-258)
+#define ENOSPC		(-259)
+#define EEXIST		(-260)
+
 #endif
 
 /** @}

@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <libadt/hash_table.h>
@@ -198,37 +199,24 @@ static bool tmpfs_init(void)
 /** Compare one component of path to a directory entry.
  *
  * @param dentry	Directory entry to compare the path component with.
- * @param start		Index into PLB where the path component starts.
- * @param last		Index of the last character of the path in PLB.
+ * @param component	Array of characters holding component name.
  *
- * @return		Zero on failure or delta such that (index + delta) %
- *			PLB_SIZE points	to the first unprocessed character in
- *			PLB which comprises the path.
+ * @return		True on match, false otherwise.
  */
-static unsigned match_path_component(tmpfs_dentry_t *dentry, unsigned start,
-    unsigned last)
+static bool match_component(tmpfs_dentry_t *dentry, const char *component)
 {
-	int i, j;
-	size_t namelen;
+	return !strcmp(dentry->name, component);
+}
 
-	namelen = strlen(dentry->name);
+static unsigned long create_node(tmpfs_dentry_t *dentry,
+    const char *component, int lflag)
+{
+	return 0;
+}
 
-	if (last < start)
-		last += PLB_SIZE;
-
-	for (i = 0, j = start; i < namelen && j <= last; i++, j++) {
-		if (dentry->name[i] != PLB_GET_CHAR(j))
-			return 0;
-	}
-	
-	if (i != namelen)
-		return 0;
-	if (j < last && PLB_GET_CHAR(j) != '/')
-		return 0;
-	if (j == last)
-	    	return 0;
-	
-	return (j - start);
+static int destroy_component(tmpfs_dentry_t *dentry)
+{
+	return EPERM;
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
@@ -241,6 +229,9 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	if (last < next)
 		last += PLB_SIZE;
 
+	/*
+	 * Initialize TMPFS.
+	 */
 	if (!root && !tmpfs_init()) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
@@ -249,31 +240,123 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	tmpfs_dentry_t *dtmp = root->child; 
 	tmpfs_dentry_t *dcur = root;
 
-	bool hit = true;
-	
 	if (PLB_GET_CHAR(next) == '/')
 		next++;		/* eat slash */
 	
+	char component[NAME_MAX + 1];
+	int len = 0;
 	while (next <= last) {
-		unsigned delta;
-		hit = false;
-		do {
-			delta = match_path_component(dtmp, next, last);
-			if (!delta) {
-				dtmp = dtmp->sibling;
-			} else {
-				hit = true;
-				next += delta;
-				next++;		/* eat slash */
-				dcur = dtmp;
-				dtmp = dtmp->child;
-			}	
-		} while (delta == 0 && dtmp);
-		if (!hit) {
-			ipc_answer_3(rid, ENOENT, tmpfs_reg.fs_handle,
-			    dev_handle, dcur->index);
+
+		/* collect the component */
+		if (PLB_GET_CHAR(next) != '/') {
+			if (len + 1 == NAME_MAX) {
+				/* comopnent length overflow */
+				ipc_answer_0(rid, ENAMETOOLONG);
+				return;
+			}
+			component[len++] = PLB_GET_CHAR(next);
+			next++;	/* process next character */
+			if (next <= last)
+				continue;
+		}
+
+		assert(len);
+		component[len] = '\0';
+		next++;		/* eat slash */
+		len = 0;
+
+		/* match the component */
+		while (dtmp && !match_component(dtmp, component))
+			dtmp = dtmp->sibling;
+
+		/* handle miss: match amongst siblings */
+		if (!dtmp) {
+			if ((next > last) && (lflag & L_CREATE)) {
+				/* no components left and L_CREATE specified */
+				if (dcur->type != TMPFS_DIRECTORY) {
+					ipc_answer_0(rid, ENOTDIR);
+					return;
+				} 
+				unsigned long index = create_node(dcur,
+				    component, lflag);
+				if (index) {
+					ipc_answer_4(rid, EOK,
+					    tmpfs_reg.fs_handle, dev_handle,
+					    index, 0);
+				} else {
+					ipc_answer_0(rid, ENOSPC);
+				}
+				return;
+			}
+			ipc_answer_0(rid, ENOENT);
 			return;
 		}
+
+		/* descent one level */
+		dcur = dtmp;
+		dtmp = dtmp->child;
+
+		/* handle miss: excessive components */
+		if (!dtmp && next <= last) {
+			if (lflag & L_CREATE) {
+				if (dcur->type != TMPFS_DIRECTORY) {
+					ipc_answer_0(rid, ENOTDIR);
+					return;
+				}
+
+				/* collect next component */
+				while (next <= last) {
+					if (PLB_GET_CHAR(next) == '/') {
+						/* more than one component */
+						ipc_answer_0(rid, ENOENT);
+						return;
+					}
+					if (len + 1 == NAME_MAX) {
+						/* component length overflow */
+						ipc_answer_0(rid, ENAMETOOLONG);
+						return;
+					}
+					component[len++] = PLB_GET_CHAR(next);
+					next++;	/* process next character */
+				}
+				assert(len);
+				component[len] = '\0';
+				len = 0;
+				
+				unsigned long index;
+				index = create_node(dcur, component, lflag);
+				if (index) {
+					ipc_answer_4(rid, EOK,
+					    tmpfs_reg.fs_handle, dev_handle,
+					    index, 0);
+				} else {
+					ipc_answer_0(rid, ENOSPC);
+				}
+				return;
+			}
+			ipc_answer_0(rid, ENOENT);
+			return;
+		}
+	
+	}
+
+	/* handle hit */
+	if (lflag & L_DESTROY) {
+		int res = destroy_component(dcur);
+		ipc_answer_0(rid, res);
+		return;
+	}
+	if ((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) {
+		ipc_answer_0(rid, EEXIST);
+		return;
+	}
+	if ((lflag & L_FILE) && (dcur->type != TMPFS_FILE)) {
+		ipc_answer_0(rid, EISDIR);
+		return;
+	}
+	if ((lflag & L_DIRECTORY) && (dcur->type != TMPFS_DIRECTORY)) {
+		ipc_answer_0(rid, ENOTDIR);
+		return;
 	}
 
 	ipc_answer_4(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index,
