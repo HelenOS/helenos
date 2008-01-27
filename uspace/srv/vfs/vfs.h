@@ -204,6 +204,9 @@ typedef struct {
 	/** Number of file handles referencing this file. */
 	unsigned refcnt;
 
+	/** Append on write. */
+	bool append;
+
 	/** Current position in the file. */
 	off_t pos;
 } vfs_file_t;

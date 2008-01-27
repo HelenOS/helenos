@@ -370,6 +370,8 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 	vfs_file_t *file = vfs_file_get(fd);
 	file->node = node;
+	if (oflag & O_APPEND)
+		file->append = true;
 
 	/*
 	 * The following increase in reference count is for the fact that the
@@ -443,6 +445,8 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	/* Make a VFS_READ/VFS_WRITE request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
+	if (!read && file->append)
+		file->pos = file->node->size;
 	msg = async_send_3(fs_phone, IPC_GET_METHOD(*request),
 	    file->node->dev_handle, file->node->index, file->pos, &answer);
 	
