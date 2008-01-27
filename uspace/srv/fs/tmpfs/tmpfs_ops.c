@@ -245,7 +245,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	
 	char component[NAME_MAX + 1];
 	int len = 0;
-	while (next <= last) {
+	while (dtmp && next <= last) {
 
 		/* collect the component */
 		if (PLB_GET_CHAR(next) != '/') {
@@ -295,49 +295,47 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 		/* descent one level */
 		dcur = dtmp;
 		dtmp = dtmp->child;
+	}
 
-		/* handle miss: excessive components */
-		if (!dtmp && next <= last) {
-			if (lflag & L_CREATE) {
-				if (dcur->type != TMPFS_DIRECTORY) {
-					ipc_answer_0(rid, ENOTDIR);
-					return;
-				}
-
-				/* collect next component */
-				while (next <= last) {
-					if (PLB_GET_CHAR(next) == '/') {
-						/* more than one component */
-						ipc_answer_0(rid, ENOENT);
-						return;
-					}
-					if (len + 1 == NAME_MAX) {
-						/* component length overflow */
-						ipc_answer_0(rid, ENAMETOOLONG);
-						return;
-					}
-					component[len++] = PLB_GET_CHAR(next);
-					next++;	/* process next character */
-				}
-				assert(len);
-				component[len] = '\0';
-				len = 0;
-				
-				unsigned long index;
-				index = create_node(dcur, component, lflag);
-				if (index) {
-					ipc_answer_4(rid, EOK,
-					    tmpfs_reg.fs_handle, dev_handle,
-					    index, 0);
-				} else {
-					ipc_answer_0(rid, ENOSPC);
-				}
+	/* handle miss: excessive components */
+	if (!dtmp && next <= last) {
+		if (lflag & L_CREATE) {
+			if (dcur->type != TMPFS_DIRECTORY) {
+				ipc_answer_0(rid, ENOTDIR);
 				return;
 			}
-			ipc_answer_0(rid, ENOENT);
+
+			/* collect next component */
+			while (next <= last) {
+				if (PLB_GET_CHAR(next) == '/') {
+					/* more than one component */
+					ipc_answer_0(rid, ENOENT);
+					return;
+				}
+				if (len + 1 == NAME_MAX) {
+					/* component length overflow */
+					ipc_answer_0(rid, ENAMETOOLONG);
+					return;
+				}
+				component[len++] = PLB_GET_CHAR(next);
+				next++;	/* process next character */
+			}
+			assert(len);
+			component[len] = '\0';
+			len = 0;
+				
+			unsigned long index;
+			index = create_node(dcur, component, lflag);
+			if (index) {
+				ipc_answer_4(rid, EOK, tmpfs_reg.fs_handle,
+				    dev_handle, index, 0);
+			} else {
+				ipc_answer_0(rid, ENOSPC);
+			}
 			return;
 		}
-	
+		ipc_answer_0(rid, ENOENT);
+		return;
 	}
 
 	/* handle hit */
