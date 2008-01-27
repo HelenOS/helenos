@@ -44,18 +44,20 @@ char text[] = "O xein', angellein Lakedaimoniois hoti teide "
 char *test_vfs1(bool quiet)
 {
 	if (mount("tmpfs", "/", "nulldev0") != EOK)
-		return "Mount failed.\n";
+		return "mount() failed.\n";
+	if (!quiet)
+		printf("mounted tmpfs on /.\n");
 
 	if (mkdir("/mydir", 0) != 0)
 		return "mkdir() failed.\n";
 	if (!quiet)
-		printf("Created directory /mydir\n");
+		printf("created directory /mydir\n");
 	
 	int fd0 = open("/mydir/myfile", O_CREAT);
 	if (fd0 < 0)
 		return "open() failed.\n";
 	if (!quiet)
-		printf("Created /mydir/myfile, handle=%d\n", fd0);
+		printf("created file /mydir/myfile, fd=%d\n", fd0);
 
 	ssize_t cnt;
 	size_t size = sizeof(text);
@@ -63,30 +65,11 @@ char *test_vfs1(bool quiet)
 	if (cnt < 0)
 		return "write() failed.\n";
 	if (!quiet)
-		printf("Written %d btyes to handle %d.\n", cnt, fd0);
+		printf("written %d bytes, fd=%d\n", cnt, fd0);
 	if (lseek(fd0, 0, SEEK_SET) != 0)
 		return "lseek() failed.\n";
-
-	DIR *dirp;
-	struct dirent *dp;
-
-	dirp = opendir("/");
-	if (!dirp)
-		return "opendir() failed.";
-	while ((dp = readdir(dirp)))
-		printf("Discovered %s\n", dp->d_name);
-	closedir(dirp);
-
-	int fd1 = open("/dir1/file1", O_RDONLY);
-	int fd2 = open("/dir2/file2", O_RDONLY);
-
-	if (fd1 < 0)
-		return "open() failed.\n";
-	if (fd2 < 0)
-		return "open() failed.\n";
-
 	if (!quiet)
-		printf("Opened file descriptors %d and %d.\n", fd1, fd2);
+		printf("sought to position 0, fd=%d\n", fd0);
 
 	char buf[10];
 
@@ -95,16 +78,17 @@ char *test_vfs1(bool quiet)
 		return "read() failed.\n";
 
 	if (!quiet)
-		printf("Read %d bytes from handle %d: %.*s\n", cnt, fd0, cnt,
-		    buf);
+		printf("read %d bytes: \"%.*s\", fd=%d\n", cnt, cnt, buf, fd0);
 
-	cnt = read(fd1, buf, sizeof(buf));
-	if (cnt < 0)
-		return "read() failed.\n";
+	DIR *dirp;
+	struct dirent *dp;
 
-	if (!quiet)
-		printf("Read %d bytes from handle %d: %.*s\n", cnt, fd1, cnt,
-		    buf);
+	dirp = opendir("/");
+	if (!dirp)
+		return "opendir() failed.";
+	while ((dp = readdir(dirp)))
+		printf("discovered node %s in /\n", dp->d_name);
+	closedir(dirp);
 
 	return NULL;
 }
