@@ -47,6 +47,7 @@
 #include <libadt/list.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <atomic.h>
 #include "vfs.h"
@@ -291,6 +292,11 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int mode = IPC_GET_ARG3(*request);
 	size_t len;
 
+	if (oflag & O_CREAT)
+		lflag |= L_CREATE;
+	if (oflag & O_EXCL)
+		lflag |= L_EXCLUSIVE;
+
 	ipc_callid_t callid;
 
 	if (!ipc_data_write_receive(&callid, &len)) {
@@ -325,13 +331,19 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * find/create-and-lock the VFS node corresponding to the looked-up
 	 * triplet.
 	 */
-	rwlock_read_lock(&namespace_rwlock);
+	if (lflag & L_CREATE)
+		rwlock_write_lock(&namespace_rwlock);
+	else
+		rwlock_read_lock(&namespace_rwlock);
 
 	/* The path is now populated and we can call vfs_lookup_internal(). */
 	vfs_lookup_res_t lr;
 	rc = vfs_lookup_internal(path, len, lflag, &lr, NULL);
 	if (rc) {
-		rwlock_read_unlock(&namespace_rwlock);
+		if (lflag & L_CREATE)
+			rwlock_write_unlock(&namespace_rwlock);
+		else
+			rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -341,7 +353,10 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&lr);
-	rwlock_read_unlock(&namespace_rwlock);
+	if (lflag & L_CREATE)
+		rwlock_write_unlock(&namespace_rwlock);
+	else
+		rwlock_read_unlock(&namespace_rwlock);
 
 	/*
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
