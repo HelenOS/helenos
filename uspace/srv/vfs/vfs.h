@@ -56,6 +56,7 @@ typedef enum {
 	VFS_OPENDIR,
 	VFS_READDIR,
 	VFS_CLOSEDIR,
+	VFS_MKDIR,
 	VFS_UNLINK,
 	VFS_MOUNT,
 	VFS_UNMOUNT,
@@ -261,6 +262,7 @@ extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
+extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 
 #endif
 

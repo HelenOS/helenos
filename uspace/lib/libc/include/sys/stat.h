@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,14 @@
  * @{
  */
 /** @file
- */
+ */ 
 
-#ifndef LIBC_SYS_TYPES_H_
-#define LIBC_SYS_TYPES_H_
+#ifndef LIBC_SYS_STAT_H_
+#define LIBC_SYS_STAT_H_
 
-#include <libarch/types.h>
+#include <sys/types.h>
 
-typedef unsigned long size_t;
-typedef signed long ssize_t;
-typedef long off_t;
-typedef int mode_t;
+extern int mkdir(const char *, mode_t);
 
 #endif
 

@@ -105,13 +105,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_TRUNCATE:
 			vfs_truncate(callid, &call);
 			break;
-		case VFS_UNMOUNT:
-		case VFS_CLOSE:
-		case VFS_UNLINK:
-		case VFS_RENAME:
-		case VFS_OPENDIR:
-		case VFS_READDIR:
-		case VFS_CLOSEDIR:
+		case VFS_MKDIR:
+			vfs_mkdir(callid, &call);
+			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;

@@ -57,6 +57,7 @@ uint8_t *plb = NULL;
  * @param len		Number of path characters pointed by path.
  * @param lflag		Flags to be used during lookup.
  * @param result	Empty structure where the lookup result will be stored.
+ *			Can be NULL.
  * @param altroot	If non-empty, will be used instead of rootfs as the root
  *			of the whole VFS tree.
  *
@@ -162,7 +163,7 @@ int vfs_lookup_internal(char *path, size_t len, int lflag,
 	memset(plb, 0, cnt2);
 	futex_up(&plb_futex);
 
-	if (rc == EOK) {
+	if ((rc == EOK) && result) {
 		result->triplet.fs_handle = (int) IPC_GET_ARG1(answer);
 		result->triplet.dev_handle = (int) IPC_GET_ARG2(answer);
 		result->triplet.index = (int) IPC_GET_ARG3(answer);

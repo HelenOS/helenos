@@ -37,6 +37,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
@@ -131,6 +133,11 @@ int open(const char *path, int oflag, ...)
 	return _open(path, L_FILE, oflag);
 }
 
+int close(int fildes)
+{
+	return 0;	/* TODO */
+}
+
 ssize_t read(int fildes, void *buf, size_t nbyte) 
 {
 	int res;
@@ -209,7 +216,7 @@ off_t lseek(int fildes, off_t offset, int whence)
 		
 	off_t newoffs;
 	rc = async_req_3_1(vfs_phone, VFS_SEEK, fildes, offset, whence,
-	    &newoffs);
+	    (ipcarg_t)&newoffs);
 
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
@@ -274,9 +281,35 @@ int closedir(DIR *dirp)
 	return 0;
 }
 
-int close(int fildes)
+int mkdir(const char *path, mode_t mode)
 {
-	return 0;	/* TODO */
+	int res;
+	ipcarg_t rc;
+	ipc_call_t answer;
+	aid_t req;
+	
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	if (vfs_phone < 0) {
+		res = vfs_connect();
+		if (res < 0) {
+			async_serialize_end();
+			futex_up(&vfs_phone_futex);
+			return res;
+		}
+	}
+	req = async_send_1(vfs_phone, VFS_MKDIR, mode, &answer);
+	rc = ipc_data_write_start(vfs_phone, path, strlen(path));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		return (int) rc;
+	}
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	return EOK; 
 }
 
 /** @}

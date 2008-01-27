@@ -211,7 +211,42 @@ static bool match_component(tmpfs_dentry_t *dentry, const char *component)
 static unsigned long create_node(tmpfs_dentry_t *dentry,
     const char *component, int lflag)
 {
-	return 0;
+	assert(dentry->type == TMPFS_DIRECTORY);
+	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
+
+	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
+	if (!node)
+		return 0;
+	size_t len = strlen(component);
+	char *name = malloc(len + 1);
+	if (!name) {
+		free(node);
+		return 0;
+	}
+	strcpy(name, component);
+
+	tmpfs_dentry_initialize(node);
+	node->index = tmpfs_next_index++;
+	node->name = name;
+	node->parent = dentry;
+	if (lflag & L_DIRECTORY) 
+		node->type = TMPFS_DIRECTORY;
+	else 
+		node->type = TMPFS_FILE;
+
+	/* Insert the new node into the namespace. */
+	if (dentry->child) {
+		tmpfs_dentry_t *tmp = dentry->child;
+		while (tmp->sibling)
+			tmp = tmp->sibling;
+		tmp->sibling = node;
+	} else {
+		dentry->child = node;
+	}
+
+	/* Insert the new node into the dentry hash table. */
+	hash_table_insert(&dentries, &node->index, &node->dh_link);
+	return node->index;
 }
 
 static int destroy_component(tmpfs_dentry_t *dentry)
@@ -256,7 +291,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 			}
 			component[len++] = PLB_GET_CHAR(next);
 			next++;	/* process next character */
-			if (next <= last)
+			if (next <= last) 
 				continue;
 		}
 
@@ -279,7 +314,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 				} 
 				unsigned long index = create_node(dcur,
 				    component, lflag);
-				if (index) {
+				if (index > 0) {
 					ipc_answer_4(rid, EOK,
 					    tmpfs_reg.fs_handle, dev_handle,
 					    index, 0);

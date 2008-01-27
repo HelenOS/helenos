@@ -30,11 +30,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "../tester.h"
 
 char *test_vfs1(bool quiet)
@@ -42,6 +43,8 @@ char *test_vfs1(bool quiet)
 	if (mount("tmpfs", "/", "nulldev0") != EOK)
 		return "Mount failed.\n";
 
+	if (mkdir("/mydir", 0) != 0)
+		return "mkdir() failed.\n";
 
 	DIR *dirp;
 	struct dirent *dp;

@@ -115,9 +115,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/*
-	 * Deliver the file system name.
-	 */
+	/* Deliver the file system name. */
 	char fs_name[FS_NAME_MAXLEN + 1];
 	(void) ipc_data_write_finalize(callid, fs_name, size);
 	fs_name[size] = '\0';
@@ -132,26 +130,20 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/*
-	 * Now, we want the client to send us the mount point.
-	 */
+	/* Now, we want the client to send us the mount point. */
 	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
-	/*
-	 * Check whether size is reasonable wrt. the mount point.
-	 */
+	/* Check whether size is reasonable wrt. the mount point. */
 	if (size < 1 || size > MAX_PATH_LEN) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-	/*
-	 * Allocate buffer for the mount point data being received.
-	 */
+	/* Allocate buffer for the mount point data being received. */
 	uint8_t *buf;
 	buf = malloc(size);
 	if (!buf) {
@@ -160,9 +152,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/*
-	 * Deliver the mount point.
-	 */
+	/* Deliver the mount point. */
 	(void) ipc_data_write_finalize(callid, buf, size);
 
 	/*
@@ -186,22 +176,16 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/*
-	 * Finally, we need to resolve the path to the mountpoint. 
-	 */
+	/* Finally, we need to resolve the path to the mountpoint. */
 	vfs_lookup_res_t mp_res;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
-		/*
-		 * We already have the root FS.
-		 */
+		/* We already have the root FS. */
 		rwlock_write_lock(&namespace_rwlock);
 		rc = vfs_lookup_internal(buf, size, L_DIRECTORY, &mp_res,
 		    NULL);
 		if (rc != EOK) {
-			/*
-			 * The lookup failed for some reason.
-			 */
+			/* The lookup failed for some reason. */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
 			vfs_node_put(mr_node);	/* failed -> drop reference */
@@ -225,13 +209,9 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		rwlock_write_unlock(&namespace_rwlock);
 	} else {
-		/*
-		 * We still don't have the root file system mounted.
-		 */
+		/* We still don't have the root file system mounted. */
 		if ((size == 1) && (buf[0] == '/')) {
-			/*
-			 * For this simple, but important case, we are done.
-			 */
+			/* For this simple, but important case, we are done. */
 			rootfs = mr_res.triplet;
 			futex_up(&rootfs_futex);
 			free(buf);
@@ -347,9 +327,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	rwlock_read_lock(&namespace_rwlock);
 
-	/*
-	 * The path is now populated and we can call vfs_lookup_internal().
-	 */
+	/* The path is now populated and we can call vfs_lookup_internal(). */
 	vfs_lookup_res_t lr;
 	rc = vfs_lookup_internal(path, len, lflag, &lr, NULL);
 	if (rc) {
@@ -359,9 +337,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/*
-	 * Path is no longer needed.
-	 */
+	/** Path is no longer needed. */
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&lr);
@@ -390,9 +366,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	vfs_node_addref(node);
 	vfs_node_put(node);
 
-	/*
-	 * Success! Return the new file descriptor to the client.
-	 */
+	/* Success! Return the new file descriptor to the client. */
 	ipc_answer_1(rid, EOK, fd);
 }
 
@@ -411,9 +385,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 
 	int fd = IPC_GET_ARG1(*request);
 
-	/*
-	 * Lookup the file structure corresponding to the file descriptor.
-	 */
+	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
 		ipc_answer_0(rid, ENOENT);
@@ -453,9 +425,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
-	/*
-	 * Make a VFS_READ/VFS_WRITE request at the destination FS server.
-	 */
+	/* Make a VFS_READ/VFS_WRITE request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
 	msg = async_send_3(fs_phone, IPC_GET_METHOD(*request),
@@ -471,16 +441,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 
 	vfs_release_phone(fs_phone);
 
-	/*
-	 * Wait for reply from the FS server.
-	 */
+	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	size_t bytes = IPC_GET_ARG1(answer);
 
-	/*
-	 * Unlock the VFS node.
-	 */
+	/* Unlock the VFS node. */
 	if (read)
 		rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
@@ -489,9 +455,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 
-	/*
-	 * Update the position pointer and unlock the open file.
-	 */
+	/* Update the position pointer and unlock the open file. */
 	file->pos += bytes;
 	futex_up(&file->lock);
 
@@ -519,9 +483,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	int whence = (int) IPC_GET_ARG3(*request);
 
 
-	/*
-	 * Lookup the file structure corresponding to the file descriptor.
-	 */
+	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
 		ipc_answer_0(rid, ENOENT);
@@ -581,14 +543,57 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 	rwlock_write_lock(&file->node->contents_rwlock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
-	rc = async_req_3_0(fs_phone, VFS_TRUNCATE, (ipcarg_t)file->node->dev_handle,
-	    (ipcarg_t)file->node->index, (ipcarg_t)size);
+	rc = async_req_3_0(fs_phone, VFS_TRUNCATE,
+	    (ipcarg_t)file->node->dev_handle, (ipcarg_t)file->node->index,
+	    (ipcarg_t)size);
 	vfs_release_phone(fs_phone);
 	if (rc == EOK)
 		file->node->size = size;
 	rwlock_write_unlock(&file->node->contents_rwlock);
 
 	futex_up(&file->lock);
+	ipc_answer_0(rid, rc);
+}
+
+void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
+{
+	int mode = IPC_GET_ARG1(*request);
+	size_t len;
+
+	ipc_callid_t callid;
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Now we are on the verge of accepting the path.
+	 *
+	 * There is one optimization we could do in the future: copy the path
+	 * directly into the PLB using some kind of a callback.
+	 */
+	char *path = malloc(len);
+	
+	if (!path) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	int rc;
+	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+		ipc_answer_0(rid, rc);
+		free(path);
+		return;
+	}
+	
+	rwlock_write_lock(&namespace_rwlock);
+	int lflag = L_DIRECTORY | L_CREATE | L_EXCLUSIVE;
+	rc = vfs_lookup_internal(path, len, lflag, NULL, NULL);
+	rwlock_write_unlock(&namespace_rwlock);
+	free(path);
 	ipc_answer_0(rid, rc);
 }
 
