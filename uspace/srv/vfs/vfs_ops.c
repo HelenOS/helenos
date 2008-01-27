@@ -370,7 +370,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 	vfs_file_t *file = vfs_file_get(fd);
 	file->node = node;
-	if (oflag & O_APPEND)
+	if (oflag & O_APPEND) 
 		file->append = true;
 
 	/*
@@ -470,12 +470,14 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
 		/* Update the cached version of node's size. */
-		file->node->size = IPC_GET_ARG2(answer); 
+		if (rc == EOK)
+			file->node->size = IPC_GET_ARG2(answer); 
 		rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 
 	/* Update the position pointer and unlock the open file. */
-	file->pos += bytes;
+	if (rc == EOK)
+		file->pos += bytes;
 	futex_up(&file->lock);
 
 	/*

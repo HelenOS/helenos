@@ -115,6 +115,9 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_READ:
 			tmpfs_read(callid, &call);
 			break;
+		case VFS_WRITE:
+			tmpfs_write(callid, &call);
+			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;

@@ -38,6 +38,9 @@
 #include <sys/stat.h>
 #include "../tester.h"
 
+char text[] = "O xein', angellein Lakedaimoniois hoti teide "
+	"keimetha tois keinon rhemasi peithomenoi.";
+
 char *test_vfs1(bool quiet)
 {
 	if (mount("tmpfs", "/", "nulldev0") != EOK)
@@ -45,6 +48,24 @@ char *test_vfs1(bool quiet)
 
 	if (mkdir("/mydir", 0) != 0)
 		return "mkdir() failed.\n";
+	if (!quiet)
+		printf("Created directory /mydir\n");
+	
+	int fd0 = open("/mydir/myfile", O_CREAT);
+	if (fd0 < 0)
+		return "open() failed.\n";
+	if (!quiet)
+		printf("Created /mydir/myfile, handle=%d\n", fd0);
+
+	ssize_t cnt;
+	size_t size = sizeof(text);
+	cnt = write(fd0, text, size);
+	if (cnt < 0)
+		return "write() failed.\n";
+	if (!quiet)
+		printf("Written %d btyes to handle %d.\n", cnt, fd0);
+	if (lseek(fd0, 0, SEEK_SET) != 0)
+		return "lseek() failed.\n";
 
 	DIR *dirp;
 	struct dirent *dp;
@@ -56,8 +77,8 @@ char *test_vfs1(bool quiet)
 		printf("Discovered %s\n", dp->d_name);
 	closedir(dirp);
 
-	int fd1 = open("/dir1/file1", 0);
-	int fd2 = open("/dir2/file2", 0);
+	int fd1 = open("/dir1/file1", O_RDONLY);
+	int fd2 = open("/dir2/file2", O_RDONLY);
 
 	if (fd1 < 0)
 		return "open() failed.\n";
@@ -69,12 +90,21 @@ char *test_vfs1(bool quiet)
 
 	char buf[10];
 
-	ssize_t cnt = read(fd1, buf, sizeof(buf));
+	cnt = read(fd0, buf, sizeof(buf));
 	if (cnt < 0)
 		return "read() failed.\n";
 
 	if (!quiet)
-		printf("Read %d bytes: %.*s\n", cnt, cnt, buf);
+		printf("Read %d bytes from handle %d: %.*s\n", cnt, fd0, cnt,
+		    buf);
+
+	cnt = read(fd1, buf, sizeof(buf));
+	if (cnt < 0)
+		return "read() failed.\n";
+
+	if (!quiet)
+		printf("Read %d bytes from handle %d: %.*s\n", cnt, fd1, cnt,
+		    buf);
 
 	return NULL;
 }

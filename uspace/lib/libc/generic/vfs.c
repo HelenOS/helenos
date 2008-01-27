@@ -165,7 +165,10 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	async_wait_for(req, &rc);
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
-	return (ssize_t) IPC_GET_ARG1(answer);
+	if (rc == EOK)
+		return (ssize_t) IPC_GET_ARG1(answer);
+	else
+		return -1;
 }
 
 ssize_t write(int fildes, const void *buf, size_t nbyte) 
@@ -195,7 +198,10 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	async_wait_for(req, &rc);
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
-	return (ssize_t) IPC_GET_ARG1(answer);
+	if (rc == EOK)
+		return (ssize_t) IPC_GET_ARG1(answer);
+	else
+		return -1;
 }
 
 off_t lseek(int fildes, off_t offset, int whence)

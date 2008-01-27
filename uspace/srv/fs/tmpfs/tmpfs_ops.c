@@ -497,7 +497,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	if (pos + len <= dentry->size) {
 		/* The file size is not changing. */
 		(void) ipc_data_write_finalize(callid, dentry->data + pos, len);
-		ipc_answer_1(rid, EOK, len);
+		ipc_answer_2(rid, EOK, len, dentry->size);
 		return;
 	}
 	size_t delta = (pos + len) - dentry->size;
@@ -511,7 +511,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	void *newdata = realloc(dentry->data, dentry->size + delta);
 	if (!newdata) {
 		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_1(rid, EOK, 0);
+		ipc_answer_2(rid, EOK, 0, dentry->size);
 		return;
 	}
 	/* Clear any newly allocated memory in order to emulate gaps. */
