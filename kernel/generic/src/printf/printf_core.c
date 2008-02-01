@@ -458,7 +458,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *
  * 	- u	Print unsigned decimal number.
  *
- * 	- X, x	Print hexadecimal number with upper- or lower-case. Prefix isi
+ * 	- X, x	Print hexadecimal number with upper- or lower-case. Prefix is
  *		not printed by default.
  * 
  * All other characters from fmt except the formatting directives are printed in

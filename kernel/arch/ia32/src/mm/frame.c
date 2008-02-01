@@ -96,17 +96,20 @@ static char *e820names[] = {
 
 static int cmd_e820mem(cmd_arg_t *argv)
 {
-	int i;
+	unsigned int i;
 	char *name;
-
+	
+	printf("Base               Size               Name\n");
+	printf("------------------ ------------------ ---------\n");
+		
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type <= MEMMAP_MEMORY_UNUSABLE)
 			name = e820names[e820table[i].type];
 		else
 			name = "invalid";
-		printf("%.*p %#.16llXB %s\n", sizeof(unative_t) * 2,
-		    (unative_t) e820table[i].base_address, 
-		    (uint64_t) e820table[i].size, name);
+		
+		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
+			e820table[i].size, name);
 	}			
 	return 0;
 }

@@ -586,18 +586,27 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	uint64_t cycles;
 	char suffix;
 	order(t->cycles, &cycles, &suffix);
-			
-	printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ",
-	    t->tid, t->name, t, thread_states[t->state], t->task,
-	    t->task->context, t->thread_code, t->kstack, cycles, suffix);
+	
+	if (sizeof(void *) == 4)
+		printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ",
+		    t->tid, t->name, t, thread_states[t->state], t->task,
+	    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+	else
+		printf("%-6llu %-10s %#18zx %-8s %#18zx %-3ld %#18zx %#18zx %9llu%c ",
+		    t->tid, t->name, t, thread_states[t->state], t->task,
+	    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
 			
 	if (t->cpu)
 		printf("%-4zd", t->cpu->id);
 	else
 		printf("none");
 			
-	if (t->state == Sleeping)
-		printf(" %#10zx", t->sleep_queue);
+	if (t->state == Sleeping) {
+		if (sizeof(uintptr_t) == 4)
+			printf(" %#10zx", t->sleep_queue);
+		else
+			printf(" %#18zx", t->sleep_queue);
+	}
 			
 	printf("\n");
 
@@ -613,10 +622,21 @@ void thread_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
 	
-	printf("tid    name       address    state    task       ctx code    "
-	    "   stack      cycles     cpu  waitqueue\n");
-	printf("------ ---------- ---------- -------- ---------- --- --------"
-	    "-- ---------- ---------- ---- ---------\n");
+	if (sizeof(uintptr_t) == 4) {
+		printf("tid    name       address    state    task       "
+			"ctx code       stack      cycles     cpu  "
+			"waitqueue\n");
+		printf("------ ---------- ---------- -------- ---------- "
+			"--- ---------- ---------- ---------- ---- "
+			"----------\n");
+	} else {
+		printf("tid    name       address            state    task               "
+			"ctx code               stack              cycles     cpu  "
+			"waitqueue\n");
+		printf("------ ---------- ------------------ -------- ------------------ "
+			"--- ------------------ ------------------ ---------- ---- "
+			"------------------\n");
+	}
 
 	avltree_walk(&threads_tree, thread_walker, NULL);
 

@@ -104,17 +104,27 @@ static cmd_info_t addwatchp_info = {
 /** Print table of active breakpoints */
 int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
-	int i;
+	unsigned int i;
 	char *symbol;
-
-	printf("Breakpoint table.\n");
-	for (i=0; i < BKPOINTS_MAX; i++)
+	
+	if (sizeof(void *) == 4) {
+		printf("#  Count Address    In symbol\n");
+		printf("-- ----- ---------- ---------\n");
+	} else {
+		printf("#  Count Address            In symbol\n");
+		printf("-- ----- ------------------ ---------\n");
+	}
+	
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			printf("%d. %lx in %s\n", i,
-			       breakpoints[i].address, symbol);
-			printf("     Count(%d) ", breakpoints[i].counter);
-			printf("\n");
+			
+			if (sizeof(void *) == 4)
+				printf("%-2u %-5d %#10zx %s\n", i, breakpoints[i].counter,
+					breakpoints[i].address, symbol);
+			else
+				printf("%-2u %-5d %#18zx %s\n", i, breakpoints[i].counter,
+					breakpoints[i].address, symbol);
 		}
 	return 1;
 }

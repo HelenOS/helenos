@@ -420,10 +420,15 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	uint64_t cycles;
 	char suffix;
 	order(task_get_accounting(t), &cycles, &suffix);
-			
-	printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd",
-	    t->taskid, t->name, t->context, t, t->as, cycles, suffix,
-	    t->refcount, atomic_get(&t->active_calls));
+	
+	if (sizeof(void *) == 4)
+		printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd",
+	    	t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+		    t->refcount, atomic_get(&t->active_calls));
+	else
+		printf("%-6llu %-10s %-3ld %#18zx %#18zx %9llu%c %7zd %6zd",
+		    t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+	    	t->refcount, atomic_get(&t->active_calls));
 	for (j = 0; j < IPC_MAX_PHONES; j++) {
 		if (t->phones[j].callee)
 			printf(" %zd:%#zx", j, t->phones[j].callee);
@@ -443,10 +448,17 @@ void task_print_list(void)
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
-	printf("taskid name       ctx address    as         cycles     threads "
-	    "calls  callee\n");
-	printf("------ ---------- --- ---------- ---------- ---------- ------- "
-	    "------ ------>\n");
+	if (sizeof(void *) == 4) {
+		printf("taskid name       ctx address    as         "
+			"cycles     threads calls  callee\n");
+		printf("------ ---------- --- ---------- ---------- "
+			"---------- ------- ------ ------>\n");
+	} else {
+		printf("taskid name       ctx address            as                 "
+			"cycles     threads calls  callee\n");
+		printf("------ ---------- --- ------------------ ------------------ "
+			"---------- ------- ------ ------>\n");
+	}
 
 	avltree_walk(&tasks_tree, task_print_walker, NULL);
 

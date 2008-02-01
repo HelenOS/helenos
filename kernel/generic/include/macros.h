@@ -62,6 +62,7 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 
 	return (s1 < e2) && (s2 < e1);
 }
+
 /* Compute overlapping of physical addresses */
 #define PA_overlaps(x, szx, y, szy)	overlaps(KA2PA(x), szx, KA2PA(y), szy)
 

@@ -103,25 +103,40 @@ static void exc_undef(int n, istate_t *istate)
 /** kconsole cmd - print all exceptions */
 static int exc_print_cmd(cmd_arg_t *argv)
 {
-	int i;
+	unsigned int i;
 	char *symbol;
 
 	spinlock_lock(&exctbl_lock);
-	printf("Exc Description Handler\n");
-	for (i=0; i < IVT_ITEMS; i++) {
-		symbol = get_symtab_entry((unative_t)exc_table[i].f);
+	
+	if (sizeof(void *) == 4) {
+		printf("Exc Description  Handler    Symbol\n");
+		printf("--- ------------ ---------- --------\n");
+	} else {
+		printf("Exc Description  Handler            Symbol\n");
+		printf("--- ------------ ------------------ --------\n");
+	}
+	
+	for (i = 0; i < IVT_ITEMS; i++) {
+		symbol = get_symtab_entry((unative_t) exc_table[i].f);
 		if (!symbol)
 			symbol = "not found";
-		printf("%d %s %.*p(%s)\n", i + IVT_FIRST, exc_table[i].name,
-		       sizeof(uintptr_t) * 2, exc_table[i].f,symbol);		
-		if (!((i+1) % 20)) {
-			printf("Press any key to continue.");
+		
+		if (sizeof(void *) == 4)
+			printf("%-3u %-12s %#10zx %s\n", i + IVT_FIRST, exc_table[i].name,
+				exc_table[i].f, symbol);
+		else
+			printf("%-3u %-12s %#18zx %s\n", i + IVT_FIRST, exc_table[i].name,
+				exc_table[i].f, symbol);
+		
+		if (((i + 1) % 20) == 0) {
+			printf(" -- Press any key to continue -- ");
 			spinlock_unlock(&exctbl_lock);
 			getc(stdin);
 			spinlock_lock(&exctbl_lock);
 			printf("\n");
 		}
 	}
+	
 	spinlock_unlock(&exctbl_lock);
 	
 	return 1;

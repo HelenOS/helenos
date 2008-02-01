@@ -1120,15 +1120,29 @@ void zone_print_list(void) {
 
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
-	printf("#  base address free frames  busy frames\n");
-	printf("-- ------------ ------------ ------------\n");
+	
+	if (sizeof(void *) == 4) {
+		printf("#  base address free frames  busy frames\n");
+		printf("-- ------------ ------------ ------------\n");
+	} else {
+		printf("#  base address         free frames  busy frames\n");
+		printf("-- -------------------- ------------ ------------\n");
+	}
+	
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		printf("%-2d %12p %12zd %12zd\n", i, PFN2ADDR(zone->base),
-		    zone->free_count, zone->busy_count);
+		
+		if (sizeof(void *) == 4)
+			printf("%-2d   %#10zx %12zd %12zd\n", i, PFN2ADDR(zone->base),
+			    zone->free_count, zone->busy_count);
+		else
+			printf("%-2d   %#18zx %12zd %12zd\n", i, PFN2ADDR(zone->base),
+			    zone->free_count, zone->busy_count);
+		
 		spinlock_unlock(&zone->lock);
 	}
+	
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
 }
