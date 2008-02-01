@@ -331,7 +331,7 @@ vesa_init_real2:
 	mov %bx, %ss
 	
 	movl $0x0000fffc, %esp
-    movl $0x0000fffc, %ebp
+	movl $0x0000fffc, %ebp
 	
 #define VESA_INFO_SIZE 1024
 
