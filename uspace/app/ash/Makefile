@@ -109,23 +109,22 @@ GENHEADERS = \
 	syntax.h \
 	builtins.h 
 
-SOURCES =	${SHSRCS} ${GENSRCS}
+SOURCES = ${SHSRCS} ${GENSRCS}
+SUBDIRS = tools
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend disasm
+.PHONY: all clean depend disasm all-subdirs
 
-all: $(OUTPUT) disasm
+all: all-subdirs $(OUTPUT) disasm
+
+all-subdirs:
+	for i in $(SUBDIRS); do \
+		echo "make all in $$i..."; \
+		make -C $$i all; \
+	done
 
 -include Makefile.depend
-
-BUILD_TOOLS = \
-	mkinit \
-	mknodes \
-	mksyntax
-
-build-tools: $(BUILD_TOOLS)
-	$(CC) -c $< -o $@
 
 .ORDER: builtins.c builtins.h
 builtins.c builtins.h: mkbuiltins builtins.def
@@ -156,7 +155,11 @@ token.h: mktokens
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
-	-rm -f $(GENSRCS) $(GENHEADERS) $(OBJECTS) $(BUILD_TOOLS)
+	-rm -f $(GENSRCS) $(GENHEADERS) $(OBJECTS) 
+	for i in $(SUBDIRS); do \
+		echo "make clean in $$i..."; \
+		make -C $$i clean; \
+	done
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) $(GENHEADERS) > Makefile.depend
