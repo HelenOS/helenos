@@ -33,21 +33,17 @@ SOURCES = \
 	mksignames.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-OUTPUT := $(basename $(SOURCES))
+OUTPUT := $(addprefix ../,$(basename $(SOURCES)))
 
 .PHONY: all clean move-output
 
-all: $(OUTPUT) move-output	
+all: $(OUTPUT)
 
-#$(OUTPUT): $(OBJECTS)
-#	$(LD) $< $(LFLAGS) -o $@ 
-
-move-output:
-	mv $(OUTPUT) ../
+$(OUTPUT): $(OBJECTS)
+	$(CC) $< $(LFLAGS) -o $@ 
 
 clean:
 	-rm -f $(OUTPUT) $(OBJECTS)
-	( cd ..; rm -f $(OUTPUT); )
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
