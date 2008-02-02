@@ -1,0 +1,1207 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.5.4	//
+ADDCMD	setmode.c	170;"	d	file:
+ALIASINUSE	alias.h	41;"	d
+ALIGN	machdep.h	52;"	d
+ALL	error.c	223;"	d	file:
+ARB	exec.c	88;"	d	file:
+ARITH_ADD	arith.c	/^     ARITH_ADD = 275,$/;"	e	enum:yytokentype	file:
+ARITH_ADD	arith.c	114;"	d	file:
+ARITH_ADD	arith.h	/^     ARITH_ADD = 275,$/;"	e	enum:yytokentype
+ARITH_ADD	arith.h	87;"	d
+ARITH_AND	arith.c	/^     ARITH_AND = 262,$/;"	e	enum:yytokentype	file:
+ARITH_AND	arith.c	101;"	d	file:
+ARITH_AND	arith.h	/^     ARITH_AND = 262,$/;"	e	enum:yytokentype
+ARITH_AND	arith.h	74;"	d
+ARITH_BAND	arith.c	/^     ARITH_BAND = 265,$/;"	e	enum:yytokentype	file:
+ARITH_BAND	arith.c	104;"	d	file:
+ARITH_BAND	arith.h	/^     ARITH_BAND = 265,$/;"	e	enum:yytokentype
+ARITH_BAND	arith.h	77;"	d
+ARITH_BNOT	arith.c	/^     ARITH_BNOT = 279,$/;"	e	enum:yytokentype	file:
+ARITH_BNOT	arith.c	118;"	d	file:
+ARITH_BNOT	arith.h	/^     ARITH_BNOT = 279,$/;"	e	enum:yytokentype
+ARITH_BNOT	arith.h	91;"	d
+ARITH_BOR	arith.c	/^     ARITH_BOR = 263,$/;"	e	enum:yytokentype	file:
+ARITH_BOR	arith.c	102;"	d	file:
+ARITH_BOR	arith.h	/^     ARITH_BOR = 263,$/;"	e	enum:yytokentype
+ARITH_BOR	arith.h	75;"	d
+ARITH_BXOR	arith.c	/^     ARITH_BXOR = 264,$/;"	e	enum:yytokentype	file:
+ARITH_BXOR	arith.c	103;"	d	file:
+ARITH_BXOR	arith.h	/^     ARITH_BXOR = 264,$/;"	e	enum:yytokentype
+ARITH_BXOR	arith.h	76;"	d
+ARITH_DIV	arith.c	/^     ARITH_DIV = 277,$/;"	e	enum:yytokentype	file:
+ARITH_DIV	arith.c	116;"	d	file:
+ARITH_DIV	arith.h	/^     ARITH_DIV = 277,$/;"	e	enum:yytokentype
+ARITH_DIV	arith.h	89;"	d
+ARITH_EQ	arith.c	/^     ARITH_EQ = 267,$/;"	e	enum:yytokentype	file:
+ARITH_EQ	arith.c	106;"	d	file:
+ARITH_EQ	arith.h	/^     ARITH_EQ = 267,$/;"	e	enum:yytokentype
+ARITH_EQ	arith.h	79;"	d
+ARITH_GE	arith.c	/^     ARITH_GE = 269,$/;"	e	enum:yytokentype	file:
+ARITH_GE	arith.c	108;"	d	file:
+ARITH_GE	arith.h	/^     ARITH_GE = 269,$/;"	e	enum:yytokentype
+ARITH_GE	arith.h	81;"	d
+ARITH_GT	arith.c	/^     ARITH_GT = 270,$/;"	e	enum:yytokentype	file:
+ARITH_GT	arith.c	109;"	d	file:
+ARITH_GT	arith.h	/^     ARITH_GT = 270,$/;"	e	enum:yytokentype
+ARITH_GT	arith.h	82;"	d
+ARITH_LE	arith.c	/^     ARITH_LE = 268,$/;"	e	enum:yytokentype	file:
+ARITH_LE	arith.c	107;"	d	file:
+ARITH_LE	arith.h	/^     ARITH_LE = 268,$/;"	e	enum:yytokentype
+ARITH_LE	arith.h	80;"	d
+ARITH_LPAREN	arith.c	/^     ARITH_LPAREN = 259,$/;"	e	enum:yytokentype	file:
+ARITH_LPAREN	arith.c	98;"	d	file:
+ARITH_LPAREN	arith.h	/^     ARITH_LPAREN = 259,$/;"	e	enum:yytokentype
+ARITH_LPAREN	arith.h	71;"	d
+ARITH_LSHIFT	arith.c	/^     ARITH_LSHIFT = 273,$/;"	e	enum:yytokentype	file:
+ARITH_LSHIFT	arith.c	112;"	d	file:
+ARITH_LSHIFT	arith.h	/^     ARITH_LSHIFT = 273,$/;"	e	enum:yytokentype
+ARITH_LSHIFT	arith.h	85;"	d
+ARITH_LT	arith.c	/^     ARITH_LT = 271,$/;"	e	enum:yytokentype	file:
+ARITH_LT	arith.c	110;"	d	file:
+ARITH_LT	arith.h	/^     ARITH_LT = 271,$/;"	e	enum:yytokentype
+ARITH_LT	arith.h	83;"	d
+ARITH_MUL	arith.c	/^     ARITH_MUL = 278,$/;"	e	enum:yytokentype	file:
+ARITH_MUL	arith.c	117;"	d	file:
+ARITH_MUL	arith.h	/^     ARITH_MUL = 278,$/;"	e	enum:yytokentype
+ARITH_MUL	arith.h	90;"	d
+ARITH_NE	arith.c	/^     ARITH_NE = 266,$/;"	e	enum:yytokentype	file:
+ARITH_NE	arith.c	105;"	d	file:
+ARITH_NE	arith.h	/^     ARITH_NE = 266,$/;"	e	enum:yytokentype
+ARITH_NE	arith.h	78;"	d
+ARITH_NOT	arith.c	/^     ARITH_NOT = 280,$/;"	e	enum:yytokentype	file:
+ARITH_NOT	arith.c	119;"	d	file:
+ARITH_NOT	arith.h	/^     ARITH_NOT = 280,$/;"	e	enum:yytokentype
+ARITH_NOT	arith.h	92;"	d
+ARITH_NUM	arith.c	/^     ARITH_NUM = 258,$/;"	e	enum:yytokentype	file:
+ARITH_NUM	arith.c	97;"	d	file:
+ARITH_NUM	arith.h	/^     ARITH_NUM = 258,$/;"	e	enum:yytokentype
+ARITH_NUM	arith.h	70;"	d
+ARITH_OR	arith.c	/^     ARITH_OR = 261,$/;"	e	enum:yytokentype	file:
+ARITH_OR	arith.c	100;"	d	file:
+ARITH_OR	arith.h	/^     ARITH_OR = 261,$/;"	e	enum:yytokentype
+ARITH_OR	arith.h	73;"	d
+ARITH_REM	arith.c	/^     ARITH_REM = 276,$/;"	e	enum:yytokentype	file:
+ARITH_REM	arith.c	115;"	d	file:
+ARITH_REM	arith.h	/^     ARITH_REM = 276,$/;"	e	enum:yytokentype
+ARITH_REM	arith.h	88;"	d
+ARITH_RPAREN	arith.c	/^     ARITH_RPAREN = 260,$/;"	e	enum:yytokentype	file:
+ARITH_RPAREN	arith.c	99;"	d	file:
+ARITH_RPAREN	arith.h	/^     ARITH_RPAREN = 260,$/;"	e	enum:yytokentype
+ARITH_RPAREN	arith.h	72;"	d
+ARITH_RSHIFT	arith.c	/^     ARITH_RSHIFT = 272,$/;"	e	enum:yytokentype	file:
+ARITH_RSHIFT	arith.c	111;"	d	file:
+ARITH_RSHIFT	arith.h	/^     ARITH_RSHIFT = 272,$/;"	e	enum:yytokentype
+ARITH_RSHIFT	arith.h	84;"	d
+ARITH_SUB	arith.c	/^     ARITH_SUB = 274,$/;"	e	enum:yytokentype	file:
+ARITH_SUB	arith.c	113;"	d	file:
+ARITH_SUB	arith.h	/^     ARITH_SUB = 274,$/;"	e	enum:yytokentype
+ARITH_SUB	arith.h	86;"	d
+ARITH_UNARYMINUS	arith.c	/^     ARITH_UNARYMINUS = 282$/;"	e	enum:yytokentype	file:
+ARITH_UNARYMINUS	arith.c	121;"	d	file:
+ARITH_UNARYMINUS	arith.h	/^     ARITH_UNARYMINUS = 282$/;"	e	enum:yytokentype
+ARITH_UNARYMINUS	arith.h	94;"	d
+ARITH_UNARYPLUS	arith.c	/^     ARITH_UNARYPLUS = 281,$/;"	e	enum:yytokentype	file:
+ARITH_UNARYPLUS	arith.c	120;"	d	file:
+ARITH_UNARYPLUS	arith.h	/^     ARITH_UNARYPLUS = 281,$/;"	e	enum:yytokentype
+ARITH_UNARYPLUS	arith.h	93;"	d
+ATABSIZE	alias.c	58;"	d	file:
+BAND	bltin/test.c	/^	BAND,$/;"	e	enum:token	file:
+BBINOP	bltin/test.c	/^	BBINOP,$/;"	e	enum:token_types	file:
+BINOP	bltin/test.c	/^	BINOP,$/;"	e	enum:token_types	file:
+BITCMD	setmode.c	/^} BITCMD;$/;"	t	file:
+BLOCKSIZE	mkinit.c	90;"	d	file:
+BLOCK_OUT	output.c	81;"	d	file:
+BOR	bltin/test.c	/^	BOR,$/;"	e	enum:token	file:
+BSD	shell.h	57;"	d
+BUFLEN	mknodes.c	71;"	d	file:
+BUNOP	bltin/test.c	/^	BUNOP,$/;"	e	enum:token_types	file:
+CEOF	jobs.c	70;"	d	file:
+CEOF	output.c	69;"	d	file:
+CHECKEND	parser.c	839;"	d	file:
+CHECKSTRSPACE	memalloc.h	73;"	d
+CLEAR_PENDING_INT	error.h	90;"	d
+CMD2_CLR	setmode.c	80;"	d	file:
+CMD2_GBITS	setmode.c	82;"	d	file:
+CMD2_OBITS	setmode.c	83;"	d	file:
+CMD2_SET	setmode.c	81;"	d	file:
+CMD2_UBITS	setmode.c	84;"	d	file:
+CMDBUILTIN	exec.h	44;"	d
+CMDFUNCTION	exec.h	45;"	d
+CMDNORMAL	exec.h	43;"	d
+CMDTABLESIZE	exec.c	87;"	d	file:
+CMDUNKNOWN	exec.h	42;"	d
+CTLARI	parser.h	48;"	d
+CTLBACKQ	parser.h	45;"	d
+CTLENDARI	parser.h	49;"	d
+CTLENDVAR	parser.h	44;"	d
+CTLESC	parser.h	42;"	d
+CTLQUOTE	parser.h	46;"	d
+CTLQUOTEMARK	parser.h	50;"	d
+CTLVAR	parser.h	43;"	d
+Cflag	options.h	62;"	d
+DEFEDITOR	histedit.c	70;"	d	file:
+DEFINE_OPTIONS	options.c	53;"	d	file:
+DEFINE_OPTIONS	options.c	55;"	d	file:
+DEL	hetio.c	49;"	d	file:
+DO_ABS	exec.h	58;"	d
+DO_BRUTE	exec.h	60;"	d
+DO_ERR	exec.h	57;"	d
+DO_NOFUN	exec.h	59;"	d
+EMPTY	redir.c	73;"	d	file:
+EOFMARKLEN	parser.c	73;"	d	file:
+EOF_NLEFT	input.c	77;"	d	file:
+EOI	bltin/test.c	/^	EOI,$/;"	e	enum:token	file:
+ESC	hetio.c	48;"	d	file:
+EV_BACKCMD	eval.c	84;"	d	file:
+EV_EXIT	eval.c	82;"	d	file:
+EV_TESTED	eval.c	83;"	d	file:
+EXERROR	error.h	71;"	d
+EXEXEC	error.h	73;"	d
+EXINT	error.h	70;"	d
+EXP_CASE	expand.h	59;"	d
+EXP_FULL	expand.h	55;"	d
+EXP_RECORD	expand.h	60;"	d
+EXP_REDIR	expand.h	58;"	d
+EXP_TILDE	expand.h	56;"	d
+EXP_VARTILDE	expand.h	57;"	d
+EXSHELLPROC	error.h	72;"	d
+E_CREAT	error.h	46;"	d
+E_EXEC	error.h	47;"	d
+E_OPEN	error.h	45;"	d
+Eflag	options.h	61;"	d
+FILBDEV	bltin/test.c	/^	FILBDEV,$/;"	e	enum:token	file:
+FILCDEV	bltin/test.c	/^	FILCDEV,$/;"	e	enum:token	file:
+FILDIR	bltin/test.c	/^	FILDIR,$/;"	e	enum:token	file:
+FILEQ	bltin/test.c	/^	FILEQ,$/;"	e	enum:token	file:
+FILEX	bltin/test.c	/^	FILEX,$/;"	e	enum:token	file:
+FILEXIST	bltin/test.c	/^	FILEXIST,$/;"	e	enum:token	file:
+FILFIFO	bltin/test.c	/^	FILFIFO,$/;"	e	enum:token	file:
+FILGID	bltin/test.c	/^	FILGID,$/;"	e	enum:token	file:
+FILGZ	bltin/test.c	/^	FILGZ,$/;"	e	enum:token	file:
+FILNT	bltin/test.c	/^	FILNT,$/;"	e	enum:token	file:
+FILOT	bltin/test.c	/^	FILOT,$/;"	e	enum:token	file:
+FILRD	bltin/test.c	/^	FILRD,$/;"	e	enum:token	file:
+FILREG	bltin/test.c	/^	FILREG,$/;"	e	enum:token	file:
+FILSGID	bltin/test.c	/^	FILSGID,$/;"	e	enum:token	file:
+FILSOCK	bltin/test.c	/^	FILSOCK,$/;"	e	enum:token	file:
+FILSTCK	bltin/test.c	/^	FILSTCK,$/;"	e	enum:token	file:
+FILSUID	bltin/test.c	/^	FILSUID,$/;"	e	enum:token	file:
+FILSYM	bltin/test.c	/^	FILSYM,$/;"	e	enum:token	file:
+FILTT	bltin/test.c	/^	FILTT,$/;"	e	enum:token	file:
+FILUID	bltin/test.c	/^	FILUID,$/;"	e	enum:token	file:
+FILWR	bltin/test.c	/^	FILWR,$/;"	e	enum:token	file:
+FORCEINTON	error.h	89;"	d
+FORK_BG	jobs.h	43;"	d
+FORK_FG	jobs.h	42;"	d
+FORK_NOJOB	jobs.h	44;"	d
+GENHEADERS	Makefile	/^GENHEADERS = \\$/;"	m
+GENSRCS	Makefile	/^GENSRCS = builtins.c \\$/;"	m
+HAVE_VASPRINTF	output.c	359;"	d	file:
+INITARGS	bltin/bltin.h	67;"	d
+INITARGS	bltin/bltin.h	73;"	d
+INIT_DEPS	Makefile	/^INIT_DEPS = alias.c eval.c exec.c input.c jobs.c options.c parser.c \\$/;"	m
+INTEQ	bltin/test.c	/^	INTEQ,$/;"	e	enum:token	file:
+INTGE	bltin/test.c	/^	INTGE,$/;"	e	enum:token	file:
+INTGT	bltin/test.c	/^	INTGT,$/;"	e	enum:token	file:
+INTLE	bltin/test.c	/^	INTLE,$/;"	e	enum:token	file:
+INTLT	bltin/test.c	/^	INTLT,$/;"	e	enum:token	file:
+INTNE	bltin/test.c	/^	INTNE,$/;"	e	enum:token	file:
+INTOFF	error.h	87;"	d
+INTON	error.h	88;"	d
+Iflag	options.h	53;"	d
+JOBDONE	jobs.h	63;"	d
+JOBS	shell.h	55;"	d
+JOBSTOPPED	jobs.h	62;"	d
+LIBC_PREFIX	Makefile	/^LIBC_PREFIX = ..\/..\/lib\/libc$/;"	m
+LIBS	Makefile	/^LIBS = $(LIBC_PREFIX)\/libc.a$/;"	m
+LPAREN	bltin/test.c	/^	LPAREN,$/;"	e	enum:token	file:
+MAXCMDTEXT	jobs.c	1073;"	d	file:
+MAXFIELDS	mknodes.c	70;"	d	file:
+MAXHISTLOOPS	histedit.c	69;"	d	file:
+MAXMBOXES	mail.c	64;"	d	file:
+MAXPWD	cd.c	299;"	d	file:
+MAXTYPES	mknodes.c	69;"	d	file:
+MAX_HISTORY	hetio.c	46;"	d	file:
+MEM_OUT	output.c	82;"	d	file:
+MINSIZE	memalloc.c	118;"	d	file:
+MKINIT	shell.h	72;"	d
+NEOF	parser.h	76;"	d
+NEWARGS	exec.c	217;"	d	file:
+NOPTS	options.h	68;"	d
+NSIG	mksignames.c	28;"	d	file:
+NULL	bltin/bltin.h	70;"	d
+NULL	shell.h	63;"	d
+NULL	shell.h	68;"	d
+OBJECTS	Makefile	/^OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))$/;"	m
+OPERAND	bltin/test.c	/^	OPERAND$/;"	e	enum:token	file:
+OUTBUFSIZ	output.c	80;"	d	file:
+OUTFILE	mkinit.c	78;"	d	file:
+OUTPUT	Makefile	/^OUTPUT =	sh$/;"	m
+OUTPUT_ERR	output.c	83;"	d	file:
+OUTPUT_INCL	output.h	109;"	d
+OUTTEMP	mkinit.c	79;"	d	file:
+PAREN	bltin/test.c	/^	PAREN$/;"	e	enum:token_types	file:
+PARSEARITH	parser.c	844;"	d	file:
+PARSEBACKQNEW	parser.c	843;"	d	file:
+PARSEBACKQOLD	parser.c	842;"	d	file:
+PARSEREDIR	parser.c	840;"	d	file:
+PARSESUB	parser.c	841;"	d	file:
+PIPESIZE	redir.c	75;"	d	file:
+PIPESIZE	redir.c	77;"	d	file:
+PROFILE	main.c	86;"	d	file:
+REDIR_BACKQ	redir.h	43;"	d
+REDIR_PUSH	redir.h	42;"	d
+RETURN	parser.c	754;"	d	file:
+RETURN	parser.c	822;"	d	file:
+RPAREN	bltin/test.c	/^	RPAREN,$/;"	e	enum:token	file:
+RTLEN	mksignames.c	36;"	d	file:
+RTLIM	mksignames.c	37;"	d	file:
+SET_LEN	setmode.c	71;"	d	file:
+SET_LEN_INCR	setmode.c	72;"	d	file:
+SHSRCS	Makefile	/^SHSRCS =	alias.c \\$/;"	m
+SIGSSIZE	main.c	217;"	d	file:
+SKIPBREAK	eval.h	72;"	d
+SKIPCONT	eval.h	73;"	d
+SKIPFILE	eval.h	75;"	d
+SKIPFUNC	eval.h	74;"	d
+SOFTINT_PREFIX	Makefile	/^SOFTINT_PREFIX = ..\/..\/lib\/softint$/;"	m
+SOURCES	Makefile	/^SOURCES =	${SHSRCS} ${GENSRCS}$/;"	m
+STACKSTRNUL	memalloc.h	75;"	d
+STADJUST	memalloc.h	78;"	d
+STANDARD_BITS	setmode.c	186;"	d	file:
+STARTSTACKSTR	memalloc.h	71;"	d
+STATIC	shell.h	71;"	d
+STPUTC	memalloc.h	72;"	d
+STREQ	bltin/test.c	/^	STREQ,$/;"	e	enum:token	file:
+STREZ	bltin/test.c	/^	STREZ,$/;"	e	enum:token	file:
+STRGT	bltin/test.c	/^	STRGT,$/;"	e	enum:token	file:
+STRLT	bltin/test.c	/^	STRLT,$/;"	e	enum:token	file:
+STRNE	bltin/test.c	/^	STRNE,$/;"	e	enum:token	file:
+STRNZ	bltin/test.c	/^	STRNZ,$/;"	e	enum:token	file:
+STTOPC	memalloc.h	77;"	d
+STUNPUTC	memalloc.h	76;"	d
+S_CATCH	trap.c	78;"	d	file:
+S_DFL	trap.c	77;"	d	file:
+S_HARD_IGN	trap.c	80;"	d	file:
+S_IGN	trap.c	79;"	d	file:
+S_ISTXT	setmode.c	68;"	d	file:
+S_RESET	trap.c	81;"	d	file:
+TEMPSIZE	output.c	354;"	d	file:
+TRACE	shell.h	80;"	d
+TRACE	shell.h	82;"	d
+T_INT	mknodes.c	77;"	d	file:
+T_NODE	mknodes.c	74;"	d	file:
+T_NODELIST	mknodes.c	75;"	d	file:
+T_OTHER	mknodes.c	78;"	d	file:
+T_STRING	mknodes.c	76;"	d	file:
+T_TEMP	mknodes.c	79;"	d	file:
+UNOP	bltin/test.c	/^	UNOP,$/;"	e	enum:token_types	file:
+UNOT	bltin/test.c	/^	UNOT,$/;"	e	enum:token	file:
+USTPUTC	memalloc.h	74;"	d
+VEXPORT	var.h	46;"	d
+VNOFUNC	var.h	52;"	d
+VREADONLY	var.h	47;"	d
+VSASSIGN	parser.h	62;"	d
+VSLENGTH	parser.h	67;"	d
+VSMINUS	parser.h	59;"	d
+VSNORMAL	parser.h	58;"	d
+VSNUL	parser.h	54;"	d
+VSPLUS	parser.h	60;"	d
+VSQUESTION	parser.h	61;"	d
+VSQUOTE	parser.h	55;"	d
+VSTACK	var.h	50;"	d
+VSTRFIXED	var.h	48;"	d
+VSTRIMLEFT	parser.h	63;"	d
+VSTRIMLEFTMAX	parser.h	64;"	d
+VSTRIMRIGHT	parser.h	65;"	d
+VSTRIMRIGHTMAX	parser.h	66;"	d
+VSTYPE	parser.h	53;"	d
+VTABSIZE	var.c	75;"	d	file:
+VTEXTFIXED	var.h	49;"	d
+VUNSET	var.h	51;"	d
+Vflag	options.h	60;"	d
+YYABORT	arith.c	744;"	d	file:
+YYACCEPT	arith.c	743;"	d	file:
+YYBACKUP	arith.c	756;"	d	file:
+YYBISON	arith.c	47;"	d	file:
+YYBISON_VERSION	arith.c	50;"	d	file:
+YYCOPY	arith.c	477;"	d	file:
+YYCOPY	arith.c	480;"	d	file:
+YYDEBUG	arith.c	268;"	d	file:
+YYDPRINTF	arith.c	836;"	d	file:
+YYDPRINTF	arith.c	982;"	d	file:
+YYEMPTY	arith.c	740;"	d	file:
+YYEOF	arith.c	741;"	d	file:
+YYERRCODE	arith.c	775;"	d	file:
+YYERROR	arith.c	745;"	d	file:
+YYERROR_VERBOSE	arith.c	273;"	d	file:
+YYERROR_VERBOSE	arith.c	274;"	d	file:
+YYERROR_VERBOSE	arith.c	276;"	d	file:
+YYFAIL	arith.c	752;"	d	file:
+YYFINAL	arith.c	510;"	d	file:
+YYFPRINTF	arith.c	833;"	d	file:
+YYFREE	arith.c	443;"	d	file:
+YYID	arith.c	/^YYID (i)$/;"	f	file:
+YYID	arith.c	367;"	d	file:
+YYINITDEPTH	arith.c	991;"	d	file:
+YYLAST	arith.c	512;"	d	file:
+YYLEX	arith.c	823;"	d	file:
+YYLEX	arith.c	825;"	d	file:
+YYLLOC_DEFAULT	arith.c	784;"	d	file:
+YYLSP_NEEDED	arith.c	59;"	d	file:
+YYMALLOC	arith.c	436;"	d	file:
+YYMAXDEPTH	arith.c	1002;"	d	file:
+YYMAXUTOK	arith.c	525;"	d	file:
+YYNNTS	arith.c	517;"	d	file:
+YYNRULES	arith.c	519;"	d	file:
+YYNSTATES	arith.c	521;"	d	file:
+YYNTOKENS	arith.c	515;"	d	file:
+YYPACT_NINF	arith.c	660;"	d	file:
+YYPOPSTACK	arith.c	1340;"	d	file:
+YYPURE	arith.c	56;"	d	file:
+YYRECOVERING	arith.c	754;"	d	file:
+YYRHSLOC	arith.c	782;"	d	file:
+YYSIZE_MAXIMUM	arith.c	344;"	d	file:
+YYSIZE_T	arith.c	332;"	d	file:
+YYSIZE_T	arith.c	334;"	d	file:
+YYSIZE_T	arith.c	338;"	d	file:
+YYSIZE_T	arith.c	340;"	d	file:
+YYSKELETON_NAME	arith.c	53;"	d	file:
+YYSTACK_ALLOC	arith.c	390;"	d	file:
+YYSTACK_ALLOC	arith.c	394;"	d	file:
+YYSTACK_ALLOC	arith.c	399;"	d	file:
+YYSTACK_ALLOC	arith.c	422;"	d	file:
+YYSTACK_ALLOC_MAXIMUM	arith.c	419;"	d	file:
+YYSTACK_ALLOC_MAXIMUM	arith.c	425;"	d	file:
+YYSTACK_BYTES	arith.c	469;"	d	file:
+YYSTACK_FREE	arith.c	413;"	d	file:
+YYSTACK_FREE	arith.c	423;"	d	file:
+YYSTACK_GAP_MAXIMUM	arith.c	465;"	d	file:
+YYSTACK_RELOCATE	arith.c	1428;"	d	file:
+YYSTACK_RELOCATE	arith.c	496;"	d	file:
+YYSTYPE	arith.c	/^typedef int YYSTYPE;$/;"	t	file:
+YYSTYPE	arith.h	/^typedef int YYSTYPE;$/;"	t
+YYSTYPE_IS_DECLARED	arith.c	287;"	d	file:
+YYSTYPE_IS_DECLARED	arith.h	102;"	d
+YYSTYPE_IS_TRIVIAL	arith.c	288;"	d	file:
+YYSTYPE_IS_TRIVIAL	arith.h	103;"	d
+YYTABLE_NINF	arith.c	681;"	d	file:
+YYTERROR	arith.c	774;"	d	file:
+YYTOKENTYPE	arith.c	65;"	d	file:
+YYTOKENTYPE	arith.h	38;"	d
+YYTOKEN_TABLE	arith.c	281;"	d	file:
+YYTRANSLATE	arith.c	527;"	d	file:
+YYUNDEFTOK	arith.c	524;"	d	file:
+YYUSE	arith.c	360;"	d	file:
+YYUSE	arith.c	362;"	d	file:
+YY_	arith.c	350;"	d	file:
+YY_	arith.c	354;"	d	file:
+YY_LOCATION_PRINT	arith.c	810;"	d	file:
+YY_LOCATION_PRINT	arith.c	815;"	d	file:
+YY_REDUCE_PRINT	arith.c	972;"	d	file:
+YY_REDUCE_PRINT	arith.c	985;"	d	file:
+YY_STACK_PRINT	arith.c	934;"	d	file:
+YY_STACK_PRINT	arith.c	984;"	d	file:
+YY_SYMBOL_PRINT	arith.c	842;"	d	file:
+YY_SYMBOL_PRINT	arith.c	983;"	d	file:
+_STDLIB_H	arith.c	404;"	d	file:
+_STDLIB_H	arith.c	432;"	d	file:
+_rmescapes	expand.c	/^_rmescapes(str, flag)$/;"	f
+action	error.c	/^	short action;		\/* operation which encountered the error *\/$/;"	m	struct:errname	file:
+add	mksyntax.c	/^add(p, type)$/;"	f	file:
+addchar	mkinit.c	/^addchar(c, text)$/;"	f
+addcmd	setmode.c	/^addcmd(set, op, who, oparg, mask)$/;"	f	file:
+addcmdentry	exec.c	/^addcmdentry(name, entry)$/;"	f
+addfname	expand.c	/^addfname(name)$/;"	f
+addglob	expand.c	/^addglob(pglob)$/;"	f
+addstr	mkinit.c	/^addstr(s, text)$/;"	f
+aexpr	bltin/test.c	/^aexpr(n)$/;"	f	file:
+aflag	options.h	63;"	d
+alias	alias.h	/^struct alias {$/;"	s
+aliascmd	alias.c	/^aliascmd(argc, argv)$/;"	f
+align	machdep.h	/^union align {$/;"	u
+alloca	arith.c	397;"	d	file:
+amiddecls	mkinit.c	/^int amiddecls;				\/* for formatting *\/$/;"	v
+andor	parser.c	/^andor() {$/;"	f
+ap	input.c	/^	struct alias *ap;	\/* if push was associated with an alias *\/$/;"	m	struct:strpush	file:
+arg0	options.c	/^char *arg0;			\/* value of $0 *\/$/;"	v
+argbackq	expand.c	/^struct nodelist *argbackq;	\/* list of back quote expressions *\/$/;"	v
+arglist	expand.h	/^struct arglist {$/;"	s
+argptr	options.c	/^char **argptr;			\/* argument list for builtin commands *\/$/;"	v
+argstr	expand.c	/^argstr(p, flag)$/;"	f
+arith	arith.c	/^arith(s)$/;"	f
+arith_buf	arith.c	/^const char *arith_buf, *arith_startbuf;$/;"	v
+arith_startbuf	arith.c	/^const char *arith_buf, *arith_startbuf;$/;"	v
+atab	alias.c	/^struct alias *atab[ATABSIZE];$/;"	v
+attyset	var.h	110;"	d
+backcmd	eval.h	/^struct backcmd {		\/* result of evalbackcmd *\/$/;"	s
+backgndpid	jobs.c	/^MKINIT short backgndpid = -1;	\/* pid of last background process *\/$/;"	v
+backquotelist	parser.c	/^struct nodelist *backquotelist;$/;"	v
+base	mksyntax.c	/^static int base;$/;"	v	file:
+basebuf	input.c	/^char basebuf[BUFSIZ];		\/* buffer for top level input file *\/$/;"	v
+basepf	input.c	/^MKINIT struct parsefile basepf;	\/* top level input file *\/$/;"	v
+basestrpush	input.c	/^	struct strpush basestrpush; \/* so pushing one is fast *\/$/;"	m	struct:parsefile	file:
+bash_group_member	bltin/test.c	/^bash_group_member (gid)$/;"	f	file:
+begoff	expand.c	/^	int begoff;		\/* offset of start of region *\/$/;"	m	struct:ifsregion	file:
+bflag	options.h	64;"	d
+bgcmd	jobs.c	/^bgcmd(argc, argv)$/;"	f
+binop	bltin/test.c	/^binop()$/;"	f	file:
+bitcmd	setmode.c	/^typedef struct bitcmd {$/;"	s	file:
+bits	setmode.c	/^	mode_t	bits;$/;"	m	struct:bitcmd	file:
+block	mkinit.c	/^struct block {$/;"	s	file:
+bltincmd	eval.c	/^bltincmd(argc, argv)$/;"	f
+bltinlookup	var.c	/^bltinlookup(name, doall)$/;"	f
+breakcmd	eval.c	/^breakcmd(argc, argv)$/;"	f
+buf	eval.h	/^	char *buf;		\/* buffer *\/$/;"	m	struct:backcmd
+buf	input.c	/^	char *buf;		\/* input buffer *\/$/;"	m	struct:parsefile	file:
+buf	output.h	/^	char *buf;$/;"	m	struct:output
+bufsize	output.h	/^	int bufsize;$/;"	m	struct:output
+builtinloc	exec.c	/^STATIC int builtinloc = -1;		\/* index in path of %builtin, or -1 *\/$/;"	v
+casematch	expand.c	/^casematch(pattern, val)$/;"	f
+cdcmd	cd.c	/^cdcmd(argc, argv)$/;"	f
+cdcomppath	cd.c	/^STATIC char *cdcomppath;$/;"	v
+cfile	mksyntax.c	/^static FILE *cfile;$/;"	v	file:
+changed	jobs.h	/^	char changed;		\/* true if status has changed *\/$/;"	m	struct:job
+changepath	exec.c	/^changepath(newval)$/;"	f
+checkkwd	parser.c	/^MKINIT int checkkwd;            \/* 1 == check for kwds, 2 == also eat newlines *\/$/;"	v
+chkmail	mail.c	/^chkmail(silent)$/;"	f
+ckfopen	mkinit.c	/^ckfopen(file, mode)$/;"	f
+ckfree	memalloc.h	81;"	d
+ckmalloc	memalloc.c	/^ckmalloc(nbytes)$/;"	f
+ckmalloc	mkinit.c	/^ckmalloc(nbytes)$/;"	f
+ckrealloc	memalloc.c	/^ckrealloc(p, nbytes)$/;"	f
+clear_traps	trap.c	/^clear_traps() {$/;"	f
+clearcmdentry	exec.c	/^clearcmdentry(firstchange)$/;"	f
+clearredir	redir.c	/^clearredir() {$/;"	f
+closememout	output.c	/^closememout() {$/;"	f
+closescript	input.c	/^closescript() {$/;"	f
+cmd	jobs.h	/^	char *cmd;		\/* text of command being run *\/$/;"	m	struct:procstat
+cmd	miscbltin.c	/^	int	cmd;$/;"	m	struct:limits	file:
+cmd	setmode.c	/^	char	cmd;$/;"	m	struct:bitcmd	file:
+cmd2	setmode.c	/^	char	cmd2;$/;"	m	struct:bitcmd	file:
+cmdentry	exec.h	/^struct cmdentry {$/;"	s
+cmdenviron	eval.c	/^struct strlist *cmdenviron;$/;"	v
+cmdlookup	exec.c	/^cmdlookup(name, add)$/;"	f
+cmdloop	main.c	/^cmdloop(top)$/;"	f
+cmdname	exec.c	/^	char cmdname[ARB];	\/* name of command *\/$/;"	m	struct:tblentry	file:
+cmdnextc	jobs.c	/^STATIC char *cmdnextc;$/;"	v
+cmdnleft	jobs.c	/^STATIC int cmdnleft;$/;"	v
+cmdputs	jobs.c	/^cmdputs(s)$/;"	f
+cmdtable	exec.c	/^STATIC struct tblentry *cmdtable[CMDTABLESIZE];$/;"	v
+cmdtxt	jobs.c	/^cmdtxt(n)$/;"	f
+cmdtype	exec.c	/^	short cmdtype;		\/* index identifying command *\/$/;"	m	struct:tblentry	file:
+cmdtype	exec.h	/^	int cmdtype;$/;"	m	struct:cmdentry
+code	mkinit.c	/^	struct text code;	\/* code for handling event *\/$/;"	m	struct:event	file:
+command	parser.c	/^command() {$/;"	f
+commandcmd	exec.c	/^commandcmd(argc, argv)$/;"	f
+commandname	error.c	/^char *commandname;$/;"	v
+commandname	eval.c	/^char *commandname;$/;"	v
+commandtext	jobs.c	/^commandtext(n)$/;"	f
+comment	mkinit.c	/^	char *comment;		\/* comment describing routine *\/$/;"	m	struct:event	file:
+comment	mksyntax.c	/^	char *comment;$/;"	m	struct:synclass	file:
+compress_mode	setmode.c	/^compress_mode(set)$/;"	f	file:
+copyfd	redir.c	/^copyfd(from, to)$/;"	f
+copyright	mkinit.c	/^static const char copyright[] =$/;"	v	file:
+copyright	mknodes.c	/^static const char copyright[] =$/;"	v	file:
+copyright	mksyntax.c	/^static const char copyright[] =$/;"	v	file:
+cp	machdep.h	/^	char *cp;$/;"	m	union:align
+curcmd	main.c	/^STATIC union node *curcmd;$/;"	v
+curdir	cd.c	/^char *curdir = NULL;		\/* current working directory *\/$/;"	v
+curfile	mkinit.c	/^char *curfile;				\/* current file *\/$/;"	v
+curjob	jobs.c	/^short curjob;			\/* current job *\/$/;"	v
+curstr	mknodes.c	/^static struct str *curstr;		\/* current structure *\/$/;"	v	file:
+cvtnum	expand.c	/^cvtnum(num, buf)$/;"	f
+debug	show.c	/^int debug = 0;$/;"	v
+debug	show.c	/^int debug = 1;$/;"	v
+decl	mknodes.c	/^	char *decl;		\/* declaration of field *\/$/;"	m	struct:field	file:
+decls	mkinit.c	/^struct text decls;			\/* declarations *\/$/;"	v
+decode_signal	trap.c	/^int decode_signal(const char *string)$/;"	f
+defines	mkinit.c	/^struct text defines;			\/* #define statements *\/$/;"	v
+defun	exec.c	/^defun(name, func)$/;"	f
+delete_cmd_entry	exec.c	/^delete_cmd_entry() {$/;"	f
+deletefuncs	exec.c	/^deletefuncs() {$/;"	f
+describe_command	exec.c	/^describe_command(command, verbose)$/;"	f
+digit	output.c	/^static const char digit[] = "0123456789ABCDEF";$/;"	v	file:
+digit_contig	mksyntax.c	/^static int digit_contig;\/* true if digits are contiguous *\/$/;"	v	file:
+digit_convert	mksyntax.c	/^digit_convert()$/;"	f	file:
+displayhist	histedit.c	/^int displayhist;$/;"	v
+docd	cd.c	/^docd(dest, print)$/;"	f
+dodecl	mkinit.c	/^dodecl(line1, fp)$/;"	f
+doevent	mkinit.c	/^doevent(ep, fp, fname)$/;"	f
+doformat	output.c	/^doformat(dest, f, ap)$/;"	f
+doformat	output.h	100;"	d
+doinclude	mkinit.c	/^doinclude(line)$/;"	f
+done	mknodes.c	/^	int done;			\/* set if fully parsed *\/$/;"	m	struct:str	file:
+doprompt	parser.c	/^int doprompt;			\/* if set, prompt the user *\/$/;"	v
+dotcmd	main.c	/^dotcmd(argc, argv)$/;"	f
+dotrap	trap.c	/^dotrap() {$/;"	f
+dowait	jobs.c	/^dowait(block, job)$/;"	f
+dprintf	output.c	/^dprintf(const char *fmt, ...)$/;"	f
+dumpmode	setmode.c	/^dumpmode(set)$/;"	f	file:
+dupredirect	redir.c	/^dupredirect(redir, f, memory)$/;"	f
+editing	histedit.c	87;"	d	file:
+eflag	options.h	51;"	d
+el	histedit.c	/^EditLine *el;	\/* editline cookie *\/$/;"	v
+el	input.c	/^EditLine *el;			\/* cookie for editline package *\/$/;"	v
+el_in	histedit.c	/^static FILE *el_in, *el_out;$/;"	v	file:
+el_out	histedit.c	/^static FILE *el_in, *el_out;$/;"	v	file:
+emptyoutbuf	output.c	/^emptyoutbuf(dest)$/;"	f
+endoff	expand.c	/^	int endoff;		\/* offset of end of region *\/$/;"	m	struct:ifsregion	file:
+environment	var.c	/^environment() {$/;"	f
+eofmark	parser.c	/^	char *eofmark;		\/* string indicating end of input *\/$/;"	m	struct:heredoc	file:
+equal	mkinit.c	172;"	d	file:
+equal	mystring.h	48;"	d
+equalf	bltin/test.c	/^equalf (f1, f2)$/;"	f	file:
+errcode	error.c	/^	short errcode;		\/* error number *\/$/;"	m	struct:errname	file:
+errmsg	error.c	/^errmsg(e, action)$/;"	f
+errname	error.c	/^struct errname {$/;"	s	file:
+error	arith.c	/^error(s)$/;"	f
+error	bltin/test.c	/^error(const char *msg, ...)$/;"	f	file:
+error	error.c	/^error(const char *msg, ...)$/;"	f
+error	mkinit.c	/^error(msg)$/;"	f
+error	mknodes.c	/^error(const char *msg, ...)$/;"	f	file:
+errormsg	error.c	/^STATIC const struct errname errormsg[] = {$/;"	v
+errout	output.c	/^struct output errout = {NULL, 0, NULL, 100, 2, 0};$/;"	v
+errout	output.c	/^struct output errout = {NULL, NULL, 0, NULL, 0, 2, 0};$/;"	v
+evalbackcmd	eval.c	/^evalbackcmd(n, result)$/;"	f
+evalcase	eval.c	/^evalcase(n, flags)$/;"	f
+evalcmd	eval.c	/^evalcmd(argc, argv)$/;"	f
+evalcommand	eval.c	/^evalcommand(cmd, flags, backcmd)$/;"	f
+evalfor	eval.c	/^evalfor(n, flags)$/;"	f
+evalloop	eval.c	/^evalloop(n, flags)$/;"	f
+evalpipe	eval.c	/^evalpipe(n)$/;"	f
+evalskip	eval.c	/^MKINIT int evalskip;		\/* set if we are skipping commands *\/$/;"	v
+evalstring	eval.c	/^evalstring(s, flag)$/;"	f
+evalsubshell	eval.c	/^evalsubshell(n, flags)$/;"	f
+evaltree	eval.c	/^evaltree(n, flags)$/;"	f
+evalvar	expand.c	/^evalvar(p, flag)$/;"	f
+event	mkinit.c	/^struct event event[] = {$/;"	v
+event	mkinit.c	/^struct event {$/;"	s	file:
+exception	error.c	/^int exception;$/;"	v
+execcmd	eval.c	/^execcmd(argc, argv)$/;"	f
+execinterp	exec.c	/^execinterp(argv, envp)$/;"	f
+exerrno	exec.c	/^int exerrno = 0;			\/* Last exec error *\/$/;"	v
+exerror	error.c	/^exerror(int cond, const char *msg, ...)$/;"	f
+exitcmd	main.c	/^exitcmd(argc, argv)$/;"	f
+exitshell	trap.c	/^exitshell(status)$/;"	f
+exitstatus	eval.c	/^int exitstatus;			\/* exit status of last command *\/$/;"	v
+exp	arith.y	/^exp:	expr {$/;"	l
+expandarg	expand.c	/^expandarg(arg, arglist, flag)$/;"	f
+expandhere	expand.c	/^expandhere(arg, fd)$/;"	f
+expandmeta	expand.c	/^expandmeta(str, flag)$/;"	f
+exparg	expand.c	/^struct arglist exparg;		\/* holds expanded arg list *\/$/;"	v
+expari	expand.c	/^expari(flag)$/;"	f
+expbackq	expand.c	/^expbackq(cmd, quoted, flag)$/;"	f
+expcmd	arith.c	/^expcmd(argc, argv)$/;"	f
+expdest	expand.c	/^char *expdest;			\/* output of current string *\/$/;"	v
+expdir	expand.c	/^char *expdir;$/;"	v
+expmeta	expand.c	/^expmeta(enddir, name)$/;"	f
+exportcmd	var.c	/^exportcmd(argc, argv)$/;"	f
+expr	arith.y	/^expr:	ARITH_LPAREN expr ARITH_RPAREN { $$ = $2; }$/;"	l
+expredir	eval.c	/^expredir(n)$/;"	f
+expsort	expand.c	/^expsort(str)$/;"	f
+exptilde	expand.c	/^exptilde(p, flag)$/;"	f
+exraise	error.c	/^exraise(e)$/;"	f
+exverror	error.c	/^exverror(cond, msg, ap)$/;"	f	file:
+factor	miscbltin.c	/^	int	factor;	\/* multiply by to get rlim_{cur,max} values *\/$/;"	m	struct:limits	file:
+falsecmd	eval.c	/^falsecmd(argc, argv)$/;"	f
+fc_replace	histedit.c	/^fc_replace(s, p, r)$/;"	f
+fd	eval.h	/^	int fd;			\/* file descriptor to read from *\/$/;"	m	struct:backcmd
+fd	input.c	/^	int fd;			\/* file descriptor (or -1 if string) *\/$/;"	m	struct:parsefile	file:
+fd	output.h	/^	int fd;$/;"	m	struct:output
+fd0_redirected	redir.c	/^int fd0_redirected = 0;$/;"	v
+fd0_redirected_p	redir.c	/^fd0_redirected_p () {$/;"	f
+fd2	redir.c	/^int fd2 = 2;$/;"	v
+fflag	options.h	52;"	d
+fflush	bltin/bltin.h	60;"	d
+fgcmd	jobs.c	/^fgcmd(argc, argv)$/;"	f
+field	mknodes.c	/^	struct field field[MAXFIELDS];	\/* the fields of the structure *\/$/;"	m	struct:str	file:
+field	mknodes.c	/^struct field {			\/* a structure field *\/$/;"	s	file:
+filltable	mksyntax.c	/^filltable(dftval)$/;"	f	file:
+filstat	bltin/test.c	/^filstat(nm, mode)$/;"	f	file:
+find_builtin	exec.c	/^find_builtin(name)$/;"	f
+find_command	exec.c	/^find_command(name, entry, act, path)$/;"	f
+find_dot_file	main.c	/^find_dot_file(basename)$/;"	f
+fixredir	parser.c	/^void fixredir(union node *n, const char *text, int err)$/;"	f
+flag	alias.h	/^	int flag;$/;"	m	struct:alias
+flags	output.h	/^	short flags;$/;"	m	struct:output
+flags	var.c	/^	int flags;$/;"	m	struct:varinit	file:
+flags	var.h	/^	int flags;			\/* flags are defined above *\/$/;"	m	struct:var
+flags	var.h	/^	int flags;			\/* saved flags *\/$/;"	m	struct:localvar
+flushall	output.c	/^flushall() {$/;"	f
+flushout	output.c	/^flushout(dest)$/;"	f
+flushout	output.h	99;"	d
+fmtstr	output.c	/^fmtstr(char *outbuf, size_t length, const char *fmt, ...)$/;"	f
+forkshell	jobs.c	/^forkshell(jp, n, mode)$/;"	f
+fprintf	bltin/bltin.h	58;"	d
+fputs	bltin/bltin.h	59;"	d
+freejob	jobs.c	/^freejob(jp)$/;"	f
+freeparam	options.c	/^freeparam(param)$/;"	f
+freestdout	output.c	/^freestdout() {$/;"	f
+func	exec.h	/^		union node *func;$/;"	m	union:cmdentry::param
+func	var.c	/^	void (*func) __P((const char *));$/;"	m	struct:varinit	file:
+func	var.h	/^	void (*func) __P((const char *));$/;"	m	struct:var
+funcnest	eval.c	/^int funcnest;			\/* depth of function calls *\/$/;"	v
+get_standard_path	eval.c	/^get_standard_path()$/;"	f
+getcmdentry	exec.c	/^getcmdentry(name, entry)$/;"	f
+getcomponent	cd.c	/^getcomponent() {$/;"	f
+getjob	jobs.c	/^getjob(name)$/;"	f
+getmode	setmode.c	/^getmode(bbox, omode)$/;"	f
+getn	bltin/test.c	/^getn(s)$/;"	f	file:
+getopts	options.c	/^getopts(optstr, optvar, optfirst, optind, optoff)$/;"	f
+getoptscmd	options.c	/^getoptscmd(argc, argv)$/;"	f
+getoptsreset	options.c	/^getoptsreset(value)$/;"	f
+getprompt	parser.c	/^getprompt(void *unused)$/;"	f
+getpwd	cd.c	/^getpwd()$/;"	f
+gooddefine	mkinit.c	/^gooddefine(line)$/;"	f
+goodname	parser.c	/^goodname(char *name)$/;"	f
+gotsig	trap.c	/^char gotsig[NSIG];		\/* indicates specified signal received *\/$/;"	v
+gotsigchild	jobs.c	/^STATIC int gotsigchild;$/;"	v
+grabstackblock	memalloc.c	/^grabstackblock(len)$/;"	f
+grabstackstr	memalloc.h	79;"	d
+group_array	bltin/test.c	/^static gid_t *group_array = NULL;$/;"	v	file:
+growstackblock	memalloc.c	/^growstackblock() {$/;"	f
+growstackstr	memalloc.c	/^growstackstr() {$/;"	f
+handler	error.c	/^struct jmploc *handler;$/;"	v
+hashalias	alias.c	/^hashalias(p)$/;"	f
+hashcd	exec.c	/^hashcd() {$/;"	f
+hashcmd	exec.c	/^hashcmd(argc, argv)$/;"	f
+hashvar	var.c	/^hashvar(p)$/;"	f
+header_files	mkinit.c	/^char *header_files[200];		\/* list of header files *\/$/;"	v
+here	parser.c	/^	union node *here;		\/* redirection node *\/$/;"	m	struct:heredoc	file:
+heredoc	parser.c	/^struct heredoc *heredoc;$/;"	v
+heredoc	parser.c	/^struct heredoc {$/;"	s	file:
+heredoclist	parser.c	/^struct heredoc *heredoclist;	\/* list of here documents to read *\/$/;"	v
+herefd	memalloc.c	/^int herefd = -1;$/;"	v
+hetio_init	hetio.c	/^void hetio_init(void)$/;"	f
+hetio_inter	hetio.c	/^int hetio_inter = 0;$/;"	v
+hetio_read_input	hetio.c	/^int hetio_read_input(int fd)$/;"	f
+hetio_reset_term	hetio.c	/^void hetio_reset_term(void)$/;"	f
+hfile	mksyntax.c	/^static FILE *hfile;$/;"	v	file:
+his_end	hetio.c	/^static struct history *his_end = NULL;		\/* Last element in command line list *\/$/;"	v	file:
+his_front	hetio.c	/^static struct history *his_front = NULL;	\/* First element in command line list *\/$/;"	v	file:
+hist	histedit.c	/^History *hist;	\/* history cookie *\/$/;"	v
+histcmd	histedit.c	/^histcmd(argc, argv)$/;"	f
+histedit	histedit.c	/^histedit()$/;"	f
+history	hetio.c	/^struct history$/;"	s	file:
+history_counter	hetio.c	/^static int history_counter = 0;			\/* Number of commands in history list *\/$/;"	v	file:
+histsizeval	var.h	105;"	d
+i	machdep.h	/^	int i;$/;"	m	union:align
+iflag	options.h	54;"	d
+ifsbreakup	expand.c	/^ifsbreakup(string, arglist)$/;"	f
+ifsfirst	expand.c	/^struct ifsregion ifsfirst;	\/* first struct in list of ifs regions *\/$/;"	v
+ifsfree	expand.c	/^ifsfree()$/;"	f
+ifslastp	expand.c	/^struct ifsregion *ifslastp;	\/* last struct in list *\/$/;"	v
+ifsregion	expand.c	/^struct ifsregion {$/;"	s	file:
+ifsset	var.h	97;"	d
+ifsval	var.h	96;"	d
+ignoresig	trap.c	/^ignoresig(signo)$/;"	f
+in_function	eval.h	67;"	d
+indent	mknodes.c	/^indent(amount, fp)$/;"	f	file:
+indent	show.c	/^indent(amount, pfx, fp)$/;"	f	file:
+index	exec.h	/^		int index;$/;"	m	union:cmdentry::param
+infp	mknodes.c	/^static FILE *infp;$/;"	v	file:
+init	mkinit.c	/^char init[] = "\\$/;"	v
+init	mksyntax.c	/^init()$/;"	f	file:
+init_editline	input.c	/^int init_editline = 0;		\/* editline library initialized? *\/$/;"	v
+initialize_group_array	bltin/test.c	/^initialize_group_array ()$/;"	f	file:
+initialize_signames	mksignames.c	/^initialize_signames ()$/;"	f
+initialpgrp	jobs.c	/^int initialpgrp;		\/* pgrp of shell on invocation *\/$/;"	v
+initstreams	output.c	/^void initstreams() {$/;"	f
+initvar	var.c	/^initvar() {$/;"	f
+input_backspace	hetio.c	/^input_backspace(int *cursor, int *len)$/;"	f
+input_delete	hetio.c	/^void input_delete(int cursor)$/;"	f
+input_end	hetio.c	/^void input_end(int *cursor, int len)$/;"	f
+input_home	hetio.c	/^void input_home(int *cursor)				\/* Command line input routines *\/$/;"	f
+int_pending	error.h	91;"	d
+intpending	error.c	/^volatile int intpending;$/;"	v
+intreceived	jobs.c	/^STATIC int intreceived;$/;"	v
+is_assignment_builtin	eval.c	/^is_assignment_builtin (command)$/;"	f
+is_entry	mksyntax.c	/^struct synclass is_entry[] = {$/;"	v
+is_number	mystring.c	/^is_number(p)$/;"	f
+is_regular_builtin	exec.c	/^is_regular_builtin(name)$/;"	f
+is_special_builtin	eval.c	/^is_special_builtin(name)$/;"	f
+isoperand	bltin/test.c	/^isoperand()$/;"	f	file:
+jmploc	error.h	/^struct jmploc {$/;"	s
+job	jobs.h	/^struct job {$/;"	s
+job_warning	jobs.c	/^int job_warning = 0;$/;"	v
+jobctl	jobs.c	/^MKINIT int jobctl;$/;"	v
+jobctl	jobs.h	/^	char jobctl;		\/* job running under job control *\/$/;"	m	struct:job
+jobidcmd	jobs.c	/^jobidcmd(argc, argv)$/;"	f
+jobscmd	jobs.c	/^jobscmd(argc, argv)$/;"	f
+jobtab	jobs.c	/^struct job *jobtab;		\/* array of jobs *\/$/;"	v
+jp	eval.h	/^	struct job *jp;		\/* job structure for command *\/$/;"	m	struct:backcmd
+killcmd	jobs.c	/^killcmd(argc, argv)$/;"	f
+last	mkinit.c	/^	struct block *last;$/;"	m	struct:text	file:
+lastcmdentry	exec.c	/^struct tblentry **lastcmdentry;$/;"	v
+lastp	expand.h	/^	struct strlist **lastp;$/;"	m	struct:arglist
+lasttoken	parser.c	/^int lasttoken;			\/* last token read *\/$/;"	v
+letter	options.h	/^	const char letter;$/;"	m	struct:optent
+limits	miscbltin.c	/^static const struct limits limits[] = {$/;"	v	file:
+limits	miscbltin.c	/^struct limits {$/;"	s	file:
+line	mknodes.c	/^static char line[1024];$/;"	v	file:
+linep	mknodes.c	/^static char *linep;$/;"	v	file:
+linno	input.c	/^	int linno;		\/* current line *\/$/;"	m	struct:parsefile	file:
+linno	mkinit.c	/^int linno;				\/* current line *\/$/;"	v
+linno	mknodes.c	/^static int linno;$/;"	v	file:
+list	expand.h	/^	struct strlist *list;$/;"	m	struct:arglist
+list	parser.c	/^list(nlflag)$/;"	f
+listsetvar	var.c	/^listsetvar(list)$/;"	f
+lleft	input.c	/^	int lleft;		\/* number of chars left in this buffer *\/$/;"	m	struct:parsefile	file:
+loc	error.h	/^	jmp_buf loc;$/;"	m	struct:jmploc
+localcmd	var.c	/^localcmd(argc, argv)$/;"	f
+localvar	var.h	/^struct localvar {$/;"	s
+localvars	var.h	/^struct localvar *localvars;$/;"	v
+longjmp	error.h	107;"	d
+lookupalias	alias.c	/^lookupalias(name, check)$/;"	f
+lookupvar	var.c	/^lookupvar(name)$/;"	f
+loopnest	eval.c	/^MKINIT int loopnest;		\/* current loop nesting level *\/$/;"	v
+macro	mksyntax.c	/^static char *macro[] = {$/;"	v	file:
+mailtime	mail.c	/^STATIC time_t mailtime[MAXMBOXES];	\/* times of mailboxes *\/$/;"	v
+mailval	var.h	98;"	d
+main	arith.c	/^main(argc, argv)$/;"	f
+main	bltin/bltin.h	72;"	d
+main	bltin/echo.c	/^main(argc, argv)  char **argv; {$/;"	f
+main	bltin/echo.c	45;"	d	file:
+main	bltin/times.c	/^int main() {$/;"	f
+main	bltin/times.c	12;"	d	file:
+main	main.c	/^main(argc, argv)$/;"	f
+main	mkinit.c	/^main(argc, argv)$/;"	f
+main	mknodes.c	/^main(argc, argv)$/;"	f
+main	mksignames.c	/^main (argc, argv)$/;"	f
+main	mksyntax.c	/^main(argc, argv)$/;"	f
+makejob	jobs.c	/^makejob(node, nprocs)$/;"	f
+makename	parser.c	/^makename() {$/;"	f
+makestrspace	memalloc.c	/^makestrspace() {$/;"	f
+malloc	options.h	/^	unsigned char malloc;	\/* if parameter list dynamically allocated *\/$/;"	m	struct:shparam
+marknext	memalloc.h	/^	struct stackmark *marknext;$/;"	m	struct:stackmark
+markp	memalloc.c	/^struct stackmark *markp;$/;"	v
+match	mkinit.c	/^match(name, line)$/;"	f
+memout	output.c	/^struct output memout = {NULL, 0, NULL, 0, MEM_OUT, 0};$/;"	v
+memout	output.c	/^struct output memout = {NULL, NULL, 0, NULL, 0, MEM_OUT, 0};$/;"	v
+mflag	options.h	55;"	d
+minus_o	options.c	/^minus_o(name, val)$/;"	f
+minusc	options.c	/^char *minusc;			\/* argument to -c option *\/$/;"	v
+mklocal	var.c	/^mklocal(name)$/;"	f
+mpathset	var.h	112;"	d
+mpathval	var.h	99;"	d
+msg	error.c	/^	const char *msg;	\/* text describing the error *\/$/;"	m	struct:errname	file:
+msort	expand.c	/^msort(list, len)$/;"	f
+n	hetio.c	/^   struct history *n;$/;"	m	struct:history	file:
+name	alias.h	/^	char *name;$/;"	m	struct:alias
+name	miscbltin.c	/^	const char *name;$/;"	m	struct:limits	file:
+name	mkinit.c	/^	char *name;		\/* name of event (e.g. INIT) *\/$/;"	m	struct:event	file:
+name	mknodes.c	/^	char *name;		\/* name of field *\/$/;"	m	struct:field	file:
+name	mksyntax.c	/^	char *name;$/;"	m	struct:synclass	file:
+name	options.h	/^	const char *name;$/;"	m	struct:optent
+nbits	mksyntax.c	/^static int nbits;	\/* number of bits in a character *\/$/;"	v	file:
+needprompt	parser.c	/^int needprompt;			\/* true if interactive and at start of line *\/$/;"	v
+new_term	hetio.c	/^static struct termios old_term, new_term;	\/* Current termio and the previous termio before starting ash *\/$/;"	v	file:
+newerf	bltin/test.c	/^newerf (f1, f2)$/;"	f	file:
+nexpr	bltin/test.c	/^nexpr(n)$/;"	f	file:
+next	alias.h	/^	struct alias *next;$/;"	m	struct:alias
+next	exec.c	/^	struct tblentry *next;	\/* next entry in hash chain *\/$/;"	m	struct:tblentry	file:
+next	expand.c	/^	struct ifsregion *next;	\/* next region in list *\/$/;"	m	struct:ifsregion	file:
+next	expand.h	/^	struct strlist *next;$/;"	m	struct:strlist
+next	mkinit.c	/^	struct block *next;$/;"	m	struct:block	file:
+next	parser.c	/^	struct heredoc *next;	\/* next here document in list *\/$/;"	m	struct:heredoc	file:
+next	redir.c	/^	struct redirtab *next;$/;"	m	struct:redirtab	file:
+next	var.h	/^	struct localvar *next;		\/* next local variable in list *\/$/;"	m	struct:localvar
+next	var.h	/^	struct var *next;		\/* next entry in hash list *\/$/;"	m	struct:var
+nextc	input.c	/^	char *nextc;		\/* next char in buffer *\/$/;"	m	struct:parsefile	file:
+nextc	mkinit.c	/^	char *nextc;$/;"	m	struct:text	file:
+nextc	output.h	/^	char *nextc;$/;"	m	struct:output
+nextfield	mknodes.c	/^nextfield(buf)$/;"	f	file:
+nextopt	options.c	/^nextopt(optstring)$/;"	f
+nfields	mknodes.c	/^	int nfields;		\/* number of fields in the structure *\/$/;"	m	struct:str	file:
+nflag	options.h	56;"	d
+ngroups	bltin/test.c	/^static int ngroups;$/;"	v	file:
+njobs	jobs.c	/^int njobs;			\/* size of array *\/$/;"	v
+nleft	eval.h	/^	int nleft;		\/* number of chars in buffer *\/$/;"	m	struct:backcmd
+nleft	input.c	/^	int nleft;		\/* number of chars left in this line *\/$/;"	m	struct:parsefile	file:
+nleft	mkinit.c	/^	int nleft;$/;"	m	struct:text	file:
+nleft	output.h	/^	int nleft;$/;"	m	struct:output
+nmboxes	mail.c	/^STATIC int nmboxes;			\/* number of mailboxes *\/$/;"	v
+noclobberopen	redir.c	/^noclobberopen(fname)$/;"	f
+nodename	mknodes.c	/^static char *nodename[MAXTYPES];	\/* names of the nodes *\/$/;"	v	file:
+nodestr	mknodes.c	/^static struct str *nodestr[MAXTYPES];	\/* type of structure used by the node *\/$/;"	v	file:
+noexpand	parser.c	/^noexpand(text)$/;"	f
+not_fcnumber	histedit.c	/^not_fcnumber(s)$/;"	f
+nparam	options.h	/^	int nparam;		\/* # of positional parameters (without $0) *\/$/;"	m	struct:shparam
+nprocs	jobs.h	/^	short nprocs;		\/* number of processes *\/$/;"	m	struct:job
+nstr	mknodes.c	/^static int nstr;			\/* number of structures *\/$/;"	v	file:
+ntypes	mknodes.c	/^static int ntypes;			\/* number of node types *\/$/;"	v	file:
+nullstr	mystring.c	/^char nullstr[1];		\/* zero length string *\/$/;"	v
+nulonly	expand.c	/^	int nulonly;		\/* search for nul bytes only *\/$/;"	m	struct:ifsregion	file:
+number	mystring.c	/^number(s)$/;"	f
+oexitstatus	eval.c	/^int oexitstatus;		\/* saved exit status *\/$/;"	v
+oexpr	bltin/test.c	/^oexpr(n)$/;"	f	file:
+old_term	hetio.c	/^static struct termios old_term, new_term;	\/* Current termio and the previous termio before starting ash *\/$/;"	v	file:
+olderf	bltin/test.c	/^olderf (f1, f2)$/;"	f	file:
+onint	error.c	/^onint() {$/;"	f
+onsig	trap.c	/^onsig(signo)$/;"	f
+onsigchild	jobs.c	/^STATIC int onsigchild() {$/;"	f
+op_num	bltin/test.c	/^	short op_num, op_type;$/;"	m	struct:t_op	file:
+op_text	bltin/test.c	/^	const char *op_text;$/;"	m	struct:t_op	file:
+op_type	bltin/test.c	/^	short op_num, op_type;$/;"	m	struct:t_op	file:
+open_mem	output.c	/^open_mem(block, length, file)$/;"	f
+openhere	redir.c	/^openhere(redir)$/;"	f
+openmemout	output.c	/^openmemout() {$/;"	f
+openredirect	redir.c	/^openredirect(redir)$/;"	f
+opentrace	show.c	/^opentrace() {$/;"	f
+ops	bltin/test.c	/^} const ops [] = {$/;"	v	file:
+optarg	options.c	/^char *optarg;			\/* set by nextopt (like getopt) *\/$/;"	v
+optent	options.h	/^struct optent {$/;"	s
+optind	options.h	/^	int optind;		\/* next parameter to be processed by getopts *\/$/;"	m	struct:shparam
+optindval	var.h	103;"	d
+option	miscbltin.c	/^	char	option;$/;"	m	struct:limits	file:
+options	options.c	/^options(cmdline)$/;"	f
+optlist	options.h	/^struct optent optlist[NOPTS] = {$/;"	v
+optoff	options.h	/^	int optoff;		\/* used by getopts *\/$/;"	m	struct:shparam
+optptr	options.c	/^char *optptr;			\/* used by nextopt *\/$/;"	v
+optschanged	options.c	/^optschanged()$/;"	f
+out1	output.c	/^struct output *out1 = &output;$/;"	v
+out1c	output.h	104;"	d
+out1fmt	output.c	/^out1fmt(const char *fmt, ...)$/;"	f
+out1str	output.h	106;"	d
+out2	output.c	/^struct output *out2 = &errout;$/;"	v
+out2c	output.h	105;"	d
+out2str	output.h	107;"	d
+out_junk	output.c	/^char out_junk[16];$/;"	v
+outc	output.h	102;"	d
+outc	output.h	98;"	d
+outfmt	output.c	/^outfmt(struct output *file, const char *fmt, ...)$/;"	f
+outfunc	mknodes.c	/^outfunc(cfile, calcsize)$/;"	f	file:
+output	mkinit.c	/^output() {$/;"	f
+output	mknodes.c	/^output(file)$/;"	f	file:
+output	output.c	/^struct output output = {NULL, 0, NULL, OUTBUFSIZ, 1, 0};$/;"	v
+output	output.c	/^struct output output = {NULL, NULL, 0, NULL, 0, 1, 0};$/;"	v
+output	output.h	/^struct output {$/;"	s
+output_type_macros	mksyntax.c	/^output_type_macros()$/;"	f	file:
+outsizes	mknodes.c	/^outsizes(cfile)$/;"	f	file:
+outstr	output.c	/^outstr(p, file)$/;"	f
+p	hetio.c	/^   struct history *p;$/;"	m	struct:history	file:
+p	options.h	/^	char **p;		\/* parameter list *\/$/;"	m	struct:shparam
+padvance	exec.c	/^padvance(path, name)$/;"	f
+param	exec.c	/^	union param param;	\/* definition of builtin function *\/$/;"	m	struct:tblentry	file:
+param	exec.h	/^	union param {$/;"	u	struct:cmdentry
+parsebackquote	parser.c	/^int parsebackquote;		\/* nonzero if we are inside backquotes *\/$/;"	v
+parsecmd	parser.c	/^parsecmd(int interact)$/;"	f
+parsefield	mknodes.c	/^parsefield()$/;"	f	file:
+parsefile	input.c	/^struct parsefile *parsefile = &basepf;	\/* current input file *\/$/;"	v
+parsefile	input.c	/^struct parsefile {$/;"	s	file:
+parsefname	parser.c	/^parsefname() {$/;"	f
+parseheredoc	parser.c	/^parseheredoc() {$/;"	f
+parselleft	input.c	/^MKINIT int parselleft;		\/* copy of parsefile->lleft *\/$/;"	v
+parsenextc	input.c	/^char *parsenextc;		\/* copy of parsefile->nextc *\/$/;"	v
+parsenleft	input.c	/^MKINIT int parsenleft;		\/* copy of parsefile->nleft *\/$/;"	v
+parsenode	mknodes.c	/^parsenode()$/;"	f	file:
+path_change	exec.c	/^path_change(newval, bltin)$/;"	f
+pathopt	exec.c	/^const char *pathopt;$/;"	v
+pathval	var.h	100;"	d
+patmatch	expand.c	/^patmatch(pattern, string, squoted)$/;"	f
+patmatch2	expand.c	/^patmatch2(pattern, string, squoted)$/;"	f
+patmatch2	expand.c	131;"	d	file:
+peektoken	parser.c	/^peektoken() {$/;"	f
+pendingsigs	trap.c	/^int pendingsigs;			\/* indicates some signal received *\/$/;"	v
+pfgets	input.c	/^pfgets(line, len)$/;"	f
+pgetc	input.c	/^pgetc()$/;"	f
+pgetc_macro	input.h	66;"	d
+pgrp	jobs.h	/^	short pgrp;		\/* process group of this job *\/$/;"	m	struct:job
+pid	jobs.h	/^	pid_t pid;		\/* process id *\/$/;"	m	struct:procstat
+pipeline	parser.c	/^pipeline() {$/;"	f
+plinno	input.c	/^int plinno = 1;			\/* input line number *\/$/;"	v
+pmatch	expand.c	/^pmatch(pattern, string, squoted)$/;"	f
+pointer	shell.h	/^typedef char *pointer;$/;"	t
+pointer	shell.h	/^typedef void *pointer;$/;"	t
+popallfiles	input.c	/^popallfiles() {$/;"	f
+popfile	input.c	/^popfile() {$/;"	f
+poplocalvars	var.c	/^poplocalvars() {$/;"	f
+popredir	redir.c	/^popredir() {$/;"	f
+popstackmark	memalloc.c	/^popstackmark(mark)$/;"	f
+popstring	input.c	/^popstring()$/;"	f
+preadbuffer	input.c	/^preadbuffer()$/;"	f
+preadfd	input.c	/^preadfd()$/;"	f	file:
+prefix	mystring.c	/^prefix(pfx, string)$/;"	f
+preglob	expand.c	/^preglob(str)$/;"	f
+prehash	eval.c	/^prehash(n)$/;"	f
+prev	input.c	/^	struct parsefile *prev;	\/* preceding file on stack *\/$/;"	m	struct:parsefile	file:
+prev	input.c	/^	struct strpush *prev;	\/* preceding string on stack *\/$/;"	m	struct:strpush	file:
+prev	memalloc.c	/^	struct stack_block *prev;$/;"	m	struct:stack_block	file:
+prevcmd	main.c	/^STATIC union node *prevcmd;$/;"	v
+prevdir	cd.c	/^char *prevdir;			\/* previous working directory *\/$/;"	v
+prevlleft	input.c	/^	int prevlleft;$/;"	m	struct:strpush	file:
+prevnleft	input.c	/^	int prevnleft;$/;"	m	struct:strpush	file:
+prevstring	input.c	/^	char *prevstring;$/;"	m	struct:strpush	file:
+primary	bltin/test.c	/^primary(n)$/;"	f	file:
+print	mksyntax.c	/^print(name)$/;"	f	file:
+printentry	exec.c	/^printentry(cmdp, verbose)$/;"	f
+printf	bltin/bltin.h	55;"	d
+procargs	options.c	/^procargs(argc, argv)$/;"	f
+procstat	jobs.h	/^struct procstat {$/;"	s
+profile_buf	main.c	/^short profile_buf[16384];$/;"	v
+progname	mksignames.c	/^char *progname;$/;"	v
+ps	jobs.h	/^	struct procstat *ps;	\/* status or processes when more than one *\/$/;"	m	struct:job
+ps0	jobs.h	/^	struct procstat ps0;	\/* status of process *\/$/;"	m	struct:job
+ps1val	var.h	101;"	d
+ps2val	var.h	102;"	d
+pungetc	input.c	/^pungetc() {$/;"	f
+pushfile	input.c	/^pushfile() {$/;"	f
+pushstring	input.c	/^pushstring(s, len, ap)$/;"	f
+putc	bltin/bltin.h	56;"	d
+putchar	bltin/bltin.h	57;"	d
+pwdcmd	cd.c	/^pwdcmd(argc, argv)$/;"	f
+qflag	options.h	66;"	d
+quoteflag	parser.c	/^int quoteflag;			\/* set if (part of) last token was quoted *\/$/;"	v
+rcsid	mkinit.c	/^static const char rcsid[] =$/;"	v	file:
+rcsid	mknodes.c	/^static const char rcsid[] =$/;"	v	file:
+rcsid	mksyntax.c	/^static const char rcsid[] =$/;"	v	file:
+read_profile	main.c	/^read_profile(name)$/;"	f
+readcmd	miscbltin.c	/^readcmd(argc, argv)$/;"	f
+readcmdfile	main.c	/^readcmdfile(name)$/;"	f
+readfile	mkinit.c	/^readfile(fname)$/;"	f
+readline	mknodes.c	/^readline()$/;"	f	file:
+readtoken	parser.c	/^readtoken() {$/;"	f
+readtoken1	parser.c	/^readtoken1(firstc, syntax, eofmark, striptabs)$/;"	f
+recordregion	expand.c	/^recordregion(start, end, nulonly)$/;"	f
+redirect	redir.c	/^redirect(redir, flags)$/;"	f
+redirlist	redir.c	/^MKINIT struct redirtab *redirlist;$/;"	v
+redirnode	parser.c	/^union node *redirnode;$/;"	v
+redirtab	redir.c	/^struct redirtab {$/;"	s	file:
+rehash	exec.c	/^	char rehash;		\/* if set, cd done since entry created *\/$/;"	m	struct:tblentry	file:
+removerecordregions	expand.c	/^removerecordregions(endoff)$/;"	f
+renamed	redir.c	/^	short renamed[10];$/;"	m	struct:redirtab	file:
+reset	mkinit.c	/^char reset[] = "\\$/;"	v
+reset_term	hetio.c	/^static int reset_term = 0;			\/* Set to true if the terminal needs to be reset upon exit *\/$/;"	v	file:
+restartjob	jobs.c	/^restartjob(jp)$/;"	f
+returncmd	eval.c	/^returncmd(argc, argv)$/;"	f
+rflag	miscbltin.c	71;"	d	file:
+rlim_t	miscbltin.c	/^typedef enum __rlimit_resource rlim_t;$/;"	t	file:
+rmaliases	alias.c	/^rmaliases() {$/;"	f
+rmescapes	expand.c	/^rmescapes(str)$/;"	f
+rootpid	main.c	/^int rootpid;$/;"	v
+rootshell	main.c	/^int rootshell;$/;"	v
+routine	mkinit.c	/^	char *routine;		\/* name of routine called on event *\/$/;"	m	struct:event	file:
+s	hetio.c	/^   char *s;$/;"	m	struct:history	file:
+savestr	memalloc.c	/^savestr(s)$/;"	f
+savestr	mkinit.c	/^savestr(s)$/;"	f
+savestr	mknodes.c	/^savestr(s)$/;"	f	file:
+sccsid	arith.c	/^static char sccsid[] = "@(#)arith.y	8.3 (Berkeley) 5\/4\/95";$/;"	v	file:
+scopy	mystring.h	49;"	d
+scopyn	mystring.c	/^scopyn(from, to, size)$/;"	f
+setIO	hetio.c	/^void setIO(struct termios *new, struct termios *old)	\/* Set terminal IO to canonical mode, and save old term settings. *\/$/;"	f
+setalias	alias.c	/^setalias(name, val)$/;"	f
+setcmd	options.c	/^setcmd(argc, argv)$/;"	f
+sethistsize	histedit.c	/^sethistsize(hs)$/;"	f
+setinputfd	input.c	/^setinputfd(fd, push)$/;"	f
+setinputfile	input.c	/^setinputfile(fname, push)$/;"	f
+setinputstring	input.c	/^setinputstring(string, push)$/;"	f
+setinteractive	trap.c	/^setinteractive(on)$/;"	f
+setjmp	error.h	106;"	d
+setjobctl	jobs.c	/^setjobctl(on)$/;"	f
+setjobctl	jobs.h	97;"	d
+setmode	setmode.c	/^setmode(p)$/;"	f
+setoption	options.c	/^setoption(flag, val)$/;"	f
+setparam	options.c	/^setparam(argv)$/;"	f
+setprompt	parser.c	/^setprompt(which)$/;"	f
+setsignal	trap.c	/^setsignal(signo)$/;"	f
+setstackmark	memalloc.c	/^setstackmark(mark)$/;"	f
+setterm	histedit.c	/^setterm(term)$/;"	f
+setvar	var.c	/^setvar(name, val, flags)$/;"	f
+setvarcmd	var.c	/^setvarcmd(argc, argv)$/;"	f
+setvareq	var.c	/^setvareq(s, flags)$/;"	f
+setvarsafe	var.c	/^setvarsafe(name, val, flags)$/;"	f
+sflag	options.h	57;"	d
+sharg	show.c	/^sharg(arg, fp)$/;"	f	file:
+shcmd	show.c	/^shcmd(cmd, fp)$/;"	f	file:
+shellexec	exec.c	/^shellexec(argv, envp, path, idx)$/;"	f
+shellparam	options.c	/^struct shparam shellparam;	\/* current positional parameters *\/$/;"	v
+shellproc	mkinit.c	/^char shellproc[] = "\\$/;"	v
+shiftcmd	options.c	/^shiftcmd(argc, argv)$/;"	f
+short	arith.c	300;"	d	file:
+showjobs	jobs.c	/^showjobs(change)$/;"	f
+showtree	show.c	/^showtree(n)$/;"	f
+showvarscmd	var.c	/^showvarscmd(argc, argv)$/;"	f
+shparam	options.h	/^struct shparam {$/;"	s
+shprocvar	var.c	/^shprocvar() {$/;"	f
+shtree	show.c	/^shtree(n, ind, pfx, fp)$/;"	f	file:
+sigmode	trap.c	/^MKINIT char sigmode[NSIG];	\/* current value of signal *\/$/;"	v
+signal_names	mksignames.c	/^char *signal_names[2 * NSIG];$/;"	v
+simplecmd	parser.c	/^simplecmd(rpp, redir)$/;"	f
+size	mksyntax.c	/^static int size;	\/* number of values which a char variable can have *\/$/;"	v	file:
+skipbl	mknodes.c	/^skipbl()$/;"	f	file:
+skipcount	eval.c	/^STATIC int skipcount;		\/* number of levels to skip *\/$/;"	v
+space	memalloc.c	/^	char space[MINSIZE];$/;"	m	struct:stack_block	file:
+sstrnleft	memalloc.c	/^int sstrnleft;$/;"	v
+stack_block	memalloc.c	/^struct stack_block {$/;"	s	file:
+stackbase	memalloc.c	/^struct stack_block stackbase;$/;"	v
+stackblock	memalloc.h	69;"	d
+stackblocksize	memalloc.h	70;"	d
+stackmark	memalloc.h	/^struct stackmark {$/;"	s
+stacknleft	memalloc.c	/^int stacknleft = MINSIZE;$/;"	v
+stacknleft	memalloc.h	/^	int stacknleft;$/;"	m	struct:stackmark
+stacknxt	memalloc.c	/^char *stacknxt = stackbase.space;$/;"	v
+stacknxt	memalloc.h	/^	char *stacknxt;$/;"	m	struct:stackmark
+stackp	memalloc.c	/^struct stack_block *stackp = &stackbase;$/;"	v
+stackp	memalloc.h	/^	struct stack_block *stackp;$/;"	m	struct:stackmark
+stalloc	memalloc.c	/^stalloc(nbytes)$/;"	f
+start	mkinit.c	/^	struct block *start;$/;"	m	struct:text	file:
+startlinno	parser.c	/^int startlinno;			\/* line # where last token started *\/$/;"	v
+state	jobs.h	/^	char state;		\/* true if job is finished *\/$/;"	m	struct:job
+status	jobs.h	/^	int status;		\/* status flags (defined above) *\/$/;"	m	struct:procstat
+stderr	bltin/bltin.h	54;"	d
+stdout	bltin/bltin.h	53;"	d
+stoppedjobs	jobs.c	/^stoppedjobs()$/;"	f
+str	mknodes.c	/^static struct str str[MAXTYPES];	\/* the structures *\/$/;"	v	file:
+str	mknodes.c	/^struct str {			\/* struct representing a node structure *\/$/;"	s	file:
+str_to_event	histedit.c	/^str_to_event(str, last)$/;"	f
+stream	output.h	/^	FILE *stream;$/;"	m	struct:output
+striptabs	parser.c	/^	int striptabs;		\/* if set, strip leading tabs *\/$/;"	m	struct:heredoc	file:
+strlist	expand.h	/^struct strlist {$/;"	s
+strpush	input.c	/^	struct strpush *strpush; \/* for pushing strings at this level *\/$/;"	m	struct:parsefile	file:
+strpush	input.c	/^struct strpush {$/;"	s	file:
+strtodest	expand.c	/^strtodest(p, quoted, allow_split)$/;"	f
+stunalloc	memalloc.c	/^stunalloc(p)$/;"	f
+subevalvar	expand.c	/^subevalvar(p, str, strloc, subtype, startloc, varflags)$/;"	f
+suppressint	error.c	/^volatile int suppressint;$/;"	v
+synclass	mksyntax.c	/^struct synclass synclass[] = {$/;"	v
+synclass	mksyntax.c	/^struct synclass {$/;"	s	file:
+synerror	parser.c	/^synerror(msg)$/;"	f
+synexpect	parser.c	/^synexpect(token)$/;"	f
+syntax	bltin/test.c	/^syntax(op, msg)$/;"	f	file:
+syntax	mksyntax.c	/^static char *syntax[513];$/;"	v	file:
+t_lex	bltin/test.c	/^t_lex(s)$/;"	f	file:
+t_op	bltin/test.c	/^static struct t_op {$/;"	s	file:
+t_wp	bltin/test.c	/^static char **t_wp;$/;"	v	file:
+t_wp_op	bltin/test.c	/^static struct t_op const *t_wp_op;$/;"	v	file:
+tag	mknodes.c	/^	char *tag;		\/* structure tag *\/$/;"	m	struct:str	file:
+tblentry	exec.c	/^struct tblentry {$/;"	s	file:
+termval	var.h	106;"	d
+test_eaccess	bltin/test.c	/^test_eaccess (path, mode)$/;"	f	file:
+testcmd	bltin/test.c	/^testcmd(argc, argv)$/;"	f
+text	expand.h	/^	char *text;$/;"	m	struct:strlist
+text	mkinit.c	/^	char text[BLOCKSIZE];$/;"	m	struct:block	file:
+text	mkinit.c	/^struct text {$/;"	s	file:
+text	var.c	/^	const char *text;$/;"	m	struct:varinit	file:
+text	var.h	/^	char *text;			\/* name=value *\/$/;"	m	struct:var
+text	var.h	/^	char *text;			\/* saved text *\/$/;"	m	struct:localvar
+token	bltin/test.c	/^enum token {$/;"	g	file:
+token_types	bltin/test.c	/^enum token_types {$/;"	g	file:
+tokpushback	parser.c	/^MKINIT int tokpushback;		\/* last token pushed back *\/$/;"	v
+trace	show.c	/^trace(const char *fmt, ...)$/;"	f
+tracefile	show.c	/^FILE *tracefile;$/;"	v
+trap	trap.c	/^char *trap[NSIG+1];		\/* trap handler commands *\/$/;"	v
+trapcmd	trap.c	/^trapcmd(argc, argv)$/;"	f
+trargs	show.c	/^trargs(ap)$/;"	f
+trputc	show.c	/^trputc(c)$/;"	f
+trputs	show.c	/^trputs(s)$/;"	f
+trstring	show.c	/^trstring(s)$/;"	f	file:
+truecmd	eval.c	/^truecmd(argc, argv)$/;"	f
+tryexec	exec.c	/^tryexec(cmd, argv, envp)$/;"	f
+type	mknodes.c	/^	int type;			\/* type of field *\/$/;"	m	struct:field	file:
+typecmd	exec.c	/^typecmd(argc, argv)$/;"	f
+u	exec.h	/^	} u;$/;"	m	struct:cmdentry
+uflag	options.h	65;"	d
+ulimitcmd	miscbltin.c	/^ulimitcmd(argc, argv)$/;"	f
+umaskcmd	miscbltin.c	/^umaskcmd(argc, argv)$/;"	f
+unalias	alias.c	/^unalias(name)$/;"	f
+unaliascmd	alias.c	/^unaliascmd(argc, argv)$/;"	f
+ungrabstackstr	memalloc.c	/^ungrabstackstr(s, p)$/;"	f
+unsetcmd	var.c	/^unsetcmd(argc, argv)$/;"	f
+unsetfunc	exec.c	/^unsetfunc(name)$/;"	f
+unsetvar	var.c	/^unsetvar(s)$/;"	f
+updatepwd	cd.c	/^updatepwd(dir)$/;"	f
+used	jobs.h	/^	char used;		\/* true if this entry is in used *\/$/;"	m	struct:job
+val	alias.h	/^	char *val;$/;"	m	struct:alias
+val	options.h	/^	char val;$/;"	m	struct:optent
+var	var.c	/^	struct var *var;$/;"	m	struct:varinit	file:
+var	var.h	/^struct var {$/;"	s
+varequal	var.c	/^varequal(p, q)$/;"	f
+varinit	var.c	/^const struct varinit varinit[] = {$/;"	v
+varinit	var.c	/^struct varinit {$/;"	s	file:
+varisset	expand.c	/^varisset(name, nulok)$/;"	f
+vartab	var.c	/^struct var *vartab[VTABSIZE];$/;"	v
+varvalue	expand.c	/^varvalue(name, quoted, allow_split)$/;"	f
+vatty	var.c	/^struct var vatty;$/;"	v
+vflag	options.h	59;"	d
+vhistsize	var.c	/^struct var vhistsize;$/;"	v
+vifs	var.c	/^struct var vifs;$/;"	v
+vmail	var.c	/^struct var vmail;$/;"	v
+vmpath	var.c	/^struct var vmpath;$/;"	v
+voptind	var.c	/^struct var voptind;$/;"	v
+vp	var.h	/^	struct var *vp;			\/* the variable that was made local *\/$/;"	m	struct:localvar
+vpath	var.c	/^struct var vpath;$/;"	v
+vps1	var.c	/^struct var vps1;$/;"	v
+vps2	var.c	/^struct var vps2;$/;"	v
+vterm	var.c	/^struct var vterm;$/;"	v
+vvers	var.c	/^struct var vvers;$/;"	v
+waitcmd	jobs.c	/^waitcmd(argc, argv)$/;"	f
+waitforjob	jobs.c	/^waitforjob(jp)$/;"	f
+waitonint	jobs.c	/^STATIC void waitonint(int sig) {$/;"	f
+waitproc	jobs.c	/^waitproc(block, status)$/;"	f
+warnx	bltin/bltin.h	61;"	d
+whichprompt	input.c	/^int whichprompt;		\/* 1 == PS1, 2 == PS2 *\/$/;"	v
+wordtext	parser.c	/^char *wordtext;			\/* text of last word returned by readtoken *\/$/;"	v
+write_signames	mksignames.c	/^write_signames (stream)$/;"	f
+writer	mkinit.c	/^char writer[] = "\\$/;"	v
+writer	mknodes.c	/^char writer[] = "\\$/;"	v
+writer	mksyntax.c	/^static char writer[] = "\\$/;"	v	file:
+writetext	mkinit.c	/^writetext(text, fp)$/;"	f
+xflag	options.h	58;"	d
+xioctl	output.c	/^xioctl(fd, request, arg)$/;"	f
+xwrite	output.c	/^xwrite(fd, buf, nbytes)$/;"	f
+xxreadtoken	parser.c	/^xxreadtoken() {$/;"	f
+yy_reduce_print	arith.c	/^yy_reduce_print (yyvsp, yyrule)$/;"	f	file:
+yy_stack_print	arith.c	/^yy_stack_print (bottom, top)$/;"	f	file:
+yy_symbol_print	arith.c	/^yy_symbol_print (yyoutput, yytype, yyvaluep)$/;"	f	file:
+yy_symbol_value_print	arith.c	/^yy_symbol_value_print (yyoutput, yytype, yyvaluep)$/;"	f	file:
+yyalloc	arith.c	/^union yyalloc$/;"	u	file:
+yychar	arith.c	/^int yychar;$/;"	v
+yycheck	arith.c	/^static const yytype_int8 yycheck[] =$/;"	v	file:
+yyclearin	arith.c	739;"	d	file:
+yydebug	arith.c	/^int yydebug;$/;"	v
+yydefact	arith.c	/^static const yytype_uint8 yydefact[] =$/;"	v	file:
+yydefgoto	arith.c	/^static const yytype_int8 yydefgoto[] =$/;"	v	file:
+yydestruct	arith.c	/^yydestruct (yymsg, yytype, yyvaluep)$/;"	f	file:
+yyerrok	arith.c	738;"	d	file:
+yyerror	arith.c	/^yyerror(s)$/;"	f
+yylval	arith.c	/^YYSTYPE yylval;$/;"	v
+yynerrs	arith.c	/^int yynerrs;$/;"	v
+yypact	arith.c	/^static const yytype_int16 yypact[] =$/;"	v	file:
+yypgoto	arith.c	/^static const yytype_int8 yypgoto[] =$/;"	v	file:
+yyprhs	arith.c	/^static const yytype_uint8 yyprhs[] =$/;"	v	file:
+yyr1	arith.c	/^static const yytype_uint8 yyr1[] =$/;"	v	file:
+yyr2	arith.c	/^static const yytype_uint8 yyr2[] =$/;"	v	file:
+yyrhs	arith.c	/^static const yytype_int8 yyrhs[] =$/;"	v	file:
+yyrline	arith.c	/^static const yytype_uint8 yyrline[] =$/;"	v	file:
+yyss	arith.c	/^  yytype_int16 yyss;$/;"	m	union:yyalloc	file:
+yystos	arith.c	/^static const yytype_uint8 yystos[] =$/;"	v	file:
+yystpcpy	arith.c	/^yystpcpy (yydest, yysrc)$/;"	f	file:
+yystpcpy	arith.c	1034;"	d	file:
+yystrlen	arith.c	/^yystrlen (yystr)$/;"	f	file:
+yystrlen	arith.c	1011;"	d	file:
+yystype	arith.c	286;"	d	file:
+yystype	arith.h	101;"	d
+yysyntax_error	arith.c	/^yysyntax_error (char *yyresult, int yystate, int yychar)$/;"	f	file:
+yytable	arith.c	/^static const yytype_uint8 yytable[] =$/;"	v	file:
+yytname	arith.c	/^static const char *const yytname[] =$/;"	v	file:
+yytnamerr	arith.c	/^yytnamerr (char *yyres, const char *yystr)$/;"	f	file:
+yytokentype	arith.c	/^   enum yytokentype {$/;"	g	file:
+yytokentype	arith.h	/^   enum yytokentype {$/;"	g
+yytoknum	arith.c	/^static const yytype_uint16 yytoknum[] =$/;"	v	file:
+yytranslate	arith.c	/^static const yytype_uint8 yytranslate[] =$/;"	v	file:
+yytype_int16	arith.c	/^typedef YYTYPE_INT16 yytype_int16;$/;"	t	file:
+yytype_int16	arith.c	/^typedef short int yytype_int16;$/;"	t	file:
+yytype_int8	arith.c	/^typedef YYTYPE_INT8 yytype_int8;$/;"	t	file:
+yytype_int8	arith.c	/^typedef short int yytype_int8;$/;"	t	file:
+yytype_int8	arith.c	/^typedef signed char yytype_int8;$/;"	t	file:
+yytype_uint16	arith.c	/^typedef YYTYPE_UINT16 yytype_uint16;$/;"	t	file:
+yytype_uint16	arith.c	/^typedef unsigned short int yytype_uint16;$/;"	t	file:
+yytype_uint8	arith.c	/^typedef YYTYPE_UINT8 yytype_uint8;$/;"	t	file:
+yytype_uint8	arith.c	/^typedef unsigned char yytype_uint8;$/;"	t	file:
+yyvs	arith.c	/^  YYSTYPE yyvs;$/;"	m	union:yyalloc	file:
