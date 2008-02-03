@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2008 Josef Cejka
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,38 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
+.global setjmp
+.global longjmp
 
-TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/i686/bin
+.type setjmp,@function
+setjmp:
+	movl	0(%esp), %ecx	# save current pc
+	leal	4(%esp), %edx	# save stack pointer
+	movl	(%edx), %eax	# get jmp_buf pointer
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c \
-		arch/$(ARCH)/src/setjmp.S 
+		# Save registers 
+	movl %ebx, 0(%eax)
+	movl %esi, 4(%eax)
+	movl %edi, 8(%eax)
+	movl %ebp, 12(%eax)
+	movl %edx, 16(%eax)
 
-LFLAGS += -N
+	movl %ecx, 20(%eax) # save pc
+	ret
 
-BFD_NAME = elf32-i386
-BFD_ARCH = i386
+.type longjmp,@function
+longjmp:
+
+	movl 4(%esp), %ecx	# put address of jmp_buf into ecx
+	movl 8(%esp), %eax	# put return value into eax	
+
+		# restore all registers
+	movl 0(%ecx), %ebx
+	movl 4(%ecx), %esi
+	movl 8(%ecx), %edi
+	movl 12(%ecx), %ebp
+	movl 16(%ecx), %esp
+	
+	movl 20(%ecx), %edx # saved return address 
+	jmp *%edx
