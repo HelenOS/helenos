@@ -467,11 +467,13 @@ void tlb_print(void)
 	page_mask_t mask;
 	entry_lo_t lo0, lo1;
 	entry_hi_t hi, hi_save;
-	int i;
+	unsigned int i;
 
 	hi_save.value = cp0_entry_hi_read();
-
-	printf("TLB:\n");
+	
+	printf("#  ASID VPN2   MASK G V D C PFN\n");
+	printf("-- ---- ------ ---- - - - - ------\n");
+	
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
@@ -481,10 +483,11 @@ void tlb_print(void)
 		lo0.value = cp0_entry_lo0_read();
 		lo1.value = cp0_entry_lo1_read();
 		
-		printf("%d: asid=%d, vpn2=%d, mask=%d\tg[0]=%d, v[0]=%d, d[0]=%d, c[0]=%hhd, pfn[0]=%d\n"
-		       "\t\t\t\tg[1]=%d, v[1]=%d, d[1]=%d, c[1]=%hhd, pfn[1]=%d\n",
-		       i, hi.asid, hi.vpn2, mask.mask, lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn,
-		       lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
+		printf("%-2u %-4u %#6x %#4x %1u %1u %1u %1u %#6x\n",
+			i, hi.asid, hi.vpn2, mask.mask,
+			lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn);
+		printf("                    %1u %1u %1u %1u %#6x\n",
+			lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
 	
 	cp0_entry_hi_write(hi_save.value);
