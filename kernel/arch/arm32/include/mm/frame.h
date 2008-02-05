@@ -54,6 +54,7 @@ extern uintptr_t last_frame;
 
 extern void frame_arch_init(void);
 extern void boot_page_table_free(void);
+#define physmem_print()
 
 #endif /* __ASM__ */
 #endif /* KERNEL */

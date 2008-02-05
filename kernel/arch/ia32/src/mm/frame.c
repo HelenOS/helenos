@@ -45,8 +45,6 @@
 #include <macros.h>
 
 #include <print.h>
-#include <console/cmd.h>
-#include <console/kconsole.h>
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -55,7 +53,7 @@ uintptr_t last_frame = 0;
 
 static void init_e820_memory(pfn_t minconf)
 {
-	int i;
+	unsigned int i;
 	pfn_t start, conf;
 	size_t size;
 
@@ -63,11 +61,14 @@ static void init_e820_memory(pfn_t minconf)
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address, FRAME_SIZE));
 			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size, FRAME_SIZE));
+			
 			if ((minconf < start) || (minconf >= start + size))
 				conf = start;
 			else
 				conf = minconf;
+			
 			zone_create(start, size, conf, 0);
+			
 			if (last_frame < ALIGN_UP(e820table[i].base_address +
 			    e820table[i].size, FRAME_SIZE))
 				last_frame =
@@ -75,14 +76,6 @@ static void init_e820_memory(pfn_t minconf)
 		}			
 	}
 }
-
-static int cmd_e820mem(cmd_arg_t *argv);
-static cmd_info_t e820_info = {
-	.name = "e820list",
-	.description = "List e820 memory.",
-	.func = cmd_e820mem,
-	.argc = 0
-};
 
 static char *e820names[] = {
 	"invalid",
@@ -94,7 +87,7 @@ static char *e820names[] = {
 };
 
 
-static int cmd_e820mem(cmd_arg_t *argv)
+void physmem_print(void)
 {
 	unsigned int i;
 	char *name;
@@ -111,23 +104,19 @@ static int cmd_e820mem(cmd_arg_t *argv)
 		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
 			e820table[i].size, name);
 	}			
-	return 0;
 }
 
 
 void frame_arch_init(void)
 {
-	static pfn_t minconf;
+	pfn_t minconf;
 	
 	if (config.cpu_active == 1) {
-		cmd_initialize(&e820_info);
-		cmd_register(&e820_info);
-
 		minconf = 1;
 #ifdef CONFIG_SMP
 		minconf = max(minconf,
-		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
-		        hardcoded_unmapped_kdata_size));
+			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
+			hardcoded_unmapped_kdata_size));
 #endif
 #ifdef CONFIG_SIMICS_FIX
 		minconf = max(minconf, ADDR2PFN(0x10000));
@@ -140,8 +129,8 @@ void frame_arch_init(void)
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
-		    (hardcoded_unmapped_ktext_size +
-		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
+			(hardcoded_unmapped_ktext_size +
+			hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 		
 #ifdef CONFIG_SIMICS_FIX
 		/* Don't know why, but these addresses help */

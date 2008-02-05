@@ -35,13 +35,14 @@
 #ifndef KERN_ia64_FRAME_H_
 #define KERN_ia64_FRAME_H_
 
-#define FRAME_WIDTH   14	/* 16K */
-#define FRAME_SIZE		(1<<FRAME_WIDTH)
+#define FRAME_WIDTH		14	/* 16K */
+#define FRAME_SIZE		(1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__
 
 extern void frame_arch_init(void);
+#define physmem_print()
 
 #define ARCH_STACK_FRAMES TWO_FRAMES
 

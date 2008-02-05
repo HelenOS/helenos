@@ -46,6 +46,7 @@
 #define MA2PA(x)	((mp_map[((uintptr_t) (x)) >> 12] << 12) + (((uintptr_t) (x)) & 0xfff))
 
 extern void frame_arch_init(void);
+#define physmem_print()
 
 #endif /* __ASM__ */
 #endif /* KERNEL */

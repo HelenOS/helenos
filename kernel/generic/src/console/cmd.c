@@ -334,6 +334,17 @@ static cmd_info_t halt_info = {
 	.argc = 0
 };
 
+/* Data and methods for 'physmem' command. */
+static int cmd_physmem(cmd_arg_t *argv);
+cmd_info_t physmem_info = {
+	.name = "physmem",
+	.description = "Print physical memory configuration.",
+	.help = NULL,
+	.func = cmd_physmem,
+	.argc = 0,
+	.argv = NULL
+};
+
 /* Data and methods for 'tlb' command. */
 static int cmd_tlb(cmd_arg_t *argv);
 cmd_info_t tlb_info = {
@@ -457,6 +468,7 @@ static cmd_info_t *basic_commands[] = {
 	&sched_info,
 	&threads_info,
 	&tasks_info,
+	&physmem_info,
 	&tlb_info,
 	&version_info,
 	&zones_info,
@@ -484,13 +496,12 @@ void cmd_initialize(cmd_info_t *cmd)
 /** Initialize and register commands. */
 void cmd_init(void)
 {
-	int i;
+	unsigned int i;
 
-	for (i=0;basic_commands[i]; i++) {
+	for (i = 0; basic_commands[i]; i++) {
 		cmd_initialize(basic_commands[i]);
 		if (!cmd_register(basic_commands[i]))
-			panic("could not register command %s\n", 
-			      basic_commands[i]->name);
+			panic("could not register command %s\n", basic_commands[i]->name);
 	}
 }
 
@@ -806,6 +817,18 @@ int cmd_halt(cmd_arg_t *argv)
 int cmd_tlb(cmd_arg_t *argv)
 {
 	tlb_print();
+	return 1;
+}
+
+/** Command for printing physical memory configuration.
+ *
+ * @param argv Not used.
+ *
+ * @return Always returns 1.
+ */
+int cmd_physmem(cmd_arg_t *argv)
+{
+	physmem_print();
 	return 1;
 }
 
