@@ -241,23 +241,22 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 /** Print table of active breakpoints */
 int cmd_print_breakpoints(cmd_arg_t *argv)
 {
-	int i;
+	unsigned int i;
 	char *symbol;
-
-	printf("Breakpoint table.\n");
-	for (i=0; i < BKPOINTS_MAX; i++)
+	
+	printf("#  Count Address    INPROG ONESHOT FUNCCALL In symbol\n");
+	printf("-- ----- ---------- ------ ------- -------- ---------\n");
+	
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			printf("%d. %p in %s\n",i,
-			       breakpoints[i].address, symbol);
-			printf("     Count(%d) ", breakpoints[i].counter);
-			if (breakpoints[i].flags & BKPOINT_INPROG)
-				printf("INPROG ");
-			if (breakpoints[i].flags & BKPOINT_ONESHOT)
-				printf("ONESHOT ");
-			if (breakpoints[i].flags & BKPOINT_FUNCCALL)
-				printf("FUNCCALL ");
-			printf("\n");
+			
+			printf("%-2u %-5d %#10zx %-6s %-7s %-8s %s\n", i,
+				breakpoints[i].counter, breakpoints[i].address,
+				((breakpoints[i].flags & BKPOINT_INPROG) ? "true" : "false"),
+				((breakpoints[i].flags & BKPOINT_ONESHOT) ? "true" : "false"),
+				((breakpoints[i].flags & BKPOINT_FUNCCALL) ? "true" : "false"),
+				symbol);
 		}
 	return 1;
 }
