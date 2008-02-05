@@ -102,7 +102,6 @@ void arch_post_cpu_init(void)
 
 void arch_pre_smp_init(void)
 {
-	memory_print_map();
 }
 
 void arch_post_smp_init(void)

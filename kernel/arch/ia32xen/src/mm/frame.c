@@ -36,6 +36,14 @@
 #include <mm/frame.h>
 #include <config.h>
 
+void physmem_print(void)
+{
+	printf("Base       Size       Reserved\n");
+	printf("---------- ---------- ---------\n");
+	printf("%#10x %#10x %#10x\n", PFN2ADDR(meminfo.start),
+		PFN2ADDR(meminfo.size), PFN2ADDR(meminfo.reserved));
+}
+
 void frame_arch_init(void)
 {
 	if (config.cpu_active == 1) {

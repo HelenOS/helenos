@@ -43,13 +43,5 @@ size_t get_memory_size(void)
 }
 
 
-void memory_print_map(void)
-{
-	count_t i;
-	
-	for (i = 0; i < bootinfo.memmap.count; i++)
-		printf("base: %#x size: %#x\n", bootinfo.memmap.zones[i].start, bootinfo.memmap.zones[i].size);
-}
-
 /** @}
  */

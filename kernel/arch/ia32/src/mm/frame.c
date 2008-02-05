@@ -103,7 +103,7 @@ void physmem_print(void)
 		
 		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
 			e820table[i].size, name);
-	}			
+	}
 }
 
 

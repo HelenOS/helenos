@@ -37,8 +37,6 @@
 
 size_t get_memory_size(void);
 
-void memory_print_map(void);
-
 #endif
 
 /** @}

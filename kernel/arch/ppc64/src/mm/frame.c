@@ -38,8 +38,22 @@
 #include <mm/frame.h>
 #include <align.h>
 #include <macros.h>
+#include <print.h>
 
 uintptr_t last_frame = 0;
+
+void physmem_print(void)
+{
+	unsigned int i;
+	
+	printf("Base       Size\n");
+	printf("---------- ----------\n");
+		
+	for (i = 0; i < bootinfo.memmap.count; i++) {
+		printf("%#10x %#10x\n", bootinfo.memmap.zones[i].start,
+			bootinfo.memmap.zones[i].size);
+	}
+}
 
 void frame_arch_init(void)
 {
