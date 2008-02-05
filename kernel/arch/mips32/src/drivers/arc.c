@@ -106,17 +106,12 @@ static char *ctypes[] = {
 	"Anonymous"
 };
 
-static arc_sbp *sbp = (arc_sbp *)PA2KA(0x1000);
+static arc_sbp *sbp = (arc_sbp *) PA2KA(0x1000);
 static arc_func_vector_t *arc_entry; 
 
 
-static void arc_putchar(char ch);
-
 /** Return true if ARC is available */
-int arc_enabled(void)
-{
-	return sbp != NULL;
-}
+#define arc_enabled() (sbp != NULL)
 
 
 /** Print configuration data that ARC reports about component */
@@ -138,11 +133,11 @@ static void arc_print_confdata(arc_component *c)
 	free(configdata);
 	return;
 	
-	for (i=0; i < configdata->count; i++) {
+	for (i = 0; i < configdata->count; i++) {
 		switch (configdata->descr[i].type) {
 		case CmResourceTypePort:
 			printf("Port: %p-size:%d ",
-			       (uintptr_t)configdata->descr[i].u.port.start,
+			       (uintptr_t) configdata->descr[i].u.port.start,
 			       configdata->descr[i].u.port.length);
 			break;
 		case CmResourceTypeInterrupt:
@@ -169,8 +164,8 @@ static void arc_print_component(arc_component *c)
 	int i;
 
 	printf("%s: ",ctypes[c->type]);
-	for (i=0;i < c->identifier_len;i++)
-		printf("%c",c->identifier[i]);
+	for (i = 0; i < c->identifier_len; i++)
+		printf("%c", c->identifier[i]);
 
 	printf(" ");
 	arc_print_confdata(c);
@@ -182,7 +177,7 @@ static void arc_print_component(arc_component *c)
  */
 static int cmd_arc_print_devices(cmd_arg_t *argv)
 {
-	arc_component *c,*next;
+	arc_component *c, *next;
 
 	c = arc_entry->getchild(NULL);
 	while (c) {
@@ -210,28 +205,23 @@ static cmd_info_t devlist_info = {
 /** Read from arc bios memory map and print it
  *
  */
-static int cmd_arc_print_memmap(cmd_arg_t *argv)
+void physmem_print(void)
 {
-	arc_memdescriptor_t *desc;
-
-	printf("Memory map:\n");
-
-	desc = arc_entry->getmemorydescriptor(NULL);
-	while (desc) {
-		printf("%s: %d(%p) (size: %dKB)\n",basetypes[desc->type],
-		       desc->basepage * ARC_FRAME,
-		       desc->basepage * ARC_FRAME,
-		       desc->basecount*ARC_FRAME/1024);
-		desc = arc_entry->getmemorydescriptor(desc);
-	}
-	return 1;
+	printf("Base       Size       Type\n");
+	printf("---------- ---------- ---------\n");
+	
+	if (arc_enabled()) {
+		arc_memdescriptor_t *desc = arc_entry->getmemorydescriptor(NULL);
+		
+		while (desc) {
+			printf("%#10x %#10x %s\n",
+				desc->basepage * ARC_FRAME, desc->basecount * ARC_FRAME,
+				basetypes[desc->type]);
+			desc = arc_entry->getmemorydescriptor(desc);
+		}	
+	} else
+		printf("%#10x %#10x free\n", 0, config.memory_size);
 }
-static cmd_info_t memmap_info = {
-	.name = "arcmemmap",
-	.description = "Print arc memory map",
-	.func = cmd_arc_print_memmap,
-	.argc = 0
-};
 
 /** Print charactor to console */
 static void arc_putchar(char ch)
@@ -243,20 +233,8 @@ static void arc_putchar(char ch)
 	ipl = interrupts_disable();
 	arc_entry->write(1, &ch, 1, &cnt);
 	interrupts_restore(ipl);
-	
 }
 
-static int cmd_reboot(cmd_arg_t *argv)
-{
-	arc_entry->reboot();
-	return 0;
-}
-static cmd_info_t reboot_info = {
-	.name = "reboot",
-	.description = "Reboot computer",
-	.func = cmd_reboot,
-	.argc = 0
-};
 
 /** Initialize ARC structure
  *
@@ -276,15 +254,22 @@ int arc_init(void)
 	arc_putchar('\n');
 
 	/* Add command for resetting the computer */
-	cmd_initialize(&reboot_info);
-	cmd_register(&reboot_info);
-	cmd_initialize(&memmap_info);
-	cmd_register(&memmap_info);
 	cmd_initialize(&devlist_info);
 	cmd_register(&devlist_info);
 
 	return 0;
 }
+
+int arc_reboot(void)
+{
+	if (arc_enabled()) {
+		arc_entry->reboot();
+		return true;
+	}
+	
+	return false;
+}
+
 
 static bool kbd_polling_enabled;
 static chardev_t console;
@@ -296,13 +281,13 @@ static void arc_keyboard_poll(void)
 	uint32_t count;
 	long result;
 	
-	if (! kbd_polling_enabled)
+	if (!kbd_polling_enabled)
 		return;
 
 	if (arc_entry->getreadstatus(0))
 		return;
 	result = arc_entry->read(0, &ch, 1, &count);
-	if (result || count!=1) {
+	if ((result) || (count != 1)) {
 		return;
 	}
 	if (ch == '\r')
@@ -320,7 +305,7 @@ static char arc_read(chardev_t *dev)
 	long result;
 
 	result = arc_entry->read(0, &ch, 1, &count);
-	if (result || count!=1) {
+	if ((result) || (count != 1)) {
 		printf("Error reading from ARC keyboard.\n");
 		cpu_halt();
 	}
@@ -353,49 +338,60 @@ static chardev_operations_t arc_ops = {
 	.read = arc_read
 };
 
-void arc_console(void)
+int arc_console(void)
 {
-	kbd_polling_enabled = true;
+	if (arc_enabled()) {
+		kbd_polling_enabled = true;
+		
+		chardev_initialize("arc_console", &console, &arc_ops);
+		virtual_timer_fnc = &arc_keyboard_poll;
+		stdin = &console;
+		stdout = &console;
+		
+		return true;
+	}
 	
-	chardev_initialize("arc_console", &console, &arc_ops);
-	virtual_timer_fnc = &arc_keyboard_poll;
-	stdin = &console;
-	stdout = &console;
+	return false;
 }
 
 /* Initialize frame zones from ARC firmware. 
  * In the future we may use even the FirmwareTemporary regions,
  * currently we use the FreeMemory (what about the LoadedProgram?)
  */
-void arc_frame_init(void)
+int arc_frame_init(void)
 {
-	arc_memdescriptor_t *desc;
-	int total = 0;
-	uintptr_t base;
-	size_t basesize;
-
-	desc = arc_entry->getmemorydescriptor(NULL);
-	while (desc) {
-		if (desc->type == FreeMemory ||
-		    desc->type == FreeContiguous) {
-			base = desc->basepage*ARC_FRAME;
-			basesize = desc->basecount*ARC_FRAME;
-
-			if (base % FRAME_SIZE ) {
-				basesize -= FRAME_SIZE - (base % FRAME_SIZE);
-				base = ALIGN_UP(base, FRAME_SIZE);
+	if (arc_enabled()) {
+		arc_memdescriptor_t *desc;
+		int total = 0;
+		uintptr_t base;
+		size_t basesize;
+	
+		desc = arc_entry->getmemorydescriptor(NULL);
+		while (desc) {
+			if ((desc->type == FreeMemory) ||
+			    (desc->type == FreeContiguous)) {
+				base = desc->basepage*ARC_FRAME;
+				basesize = desc->basecount*ARC_FRAME;
+	
+				if (base % FRAME_SIZE ) {
+					basesize -= FRAME_SIZE - (base % FRAME_SIZE);
+					base = ALIGN_UP(base, FRAME_SIZE);
+				}
+				basesize = ALIGN_DOWN(basesize, FRAME_SIZE);
+	
+				total += basesize;
+				
+				zone_create(ADDR2PFN(base), SIZE2FRAMES(basesize),
+					    ADDR2PFN(base), 0);
 			}
-			basesize = ALIGN_DOWN(basesize, FRAME_SIZE);
-
-			total += basesize;
-			
-			zone_create(ADDR2PFN(base), SIZE2FRAMES(basesize),
-				    ADDR2PFN(base), 0);
+			desc = arc_entry->getmemorydescriptor(desc);
 		}
-		desc = arc_entry->getmemorydescriptor(desc);
+	
+		config.memory_size = total;
+		return true;
 	}
-
-	config.memory_size = total;
+	
+	return false;
 }
 
 /** @}

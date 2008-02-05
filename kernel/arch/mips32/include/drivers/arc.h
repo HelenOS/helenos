@@ -257,9 +257,9 @@ typedef struct {
 } __attribute__ ((packed)) arc_sbp;
 
 extern int arc_init(void);
-extern int arc_enabled(void);
-void arc_frame_init(void);
-void arc_console(void);
+extern int arc_reboot(void);
+extern int arc_frame_init(void);
+extern int arc_console(void);
 
 #endif
 

@@ -40,12 +40,11 @@
 
 void console_init(devno_t devno)
 {
-	if (arc_enabled()) {
-		arc_console();
-	} else if (serial_init()) {
-		serial_console(devno);
-	} else {
-		msim_console(devno);
+	if (!arc_console()) {
+		if (serial_init())
+			serial_console(devno);
+		else
+			msim_console(devno);
 	}
 }
 

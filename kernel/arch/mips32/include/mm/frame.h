@@ -42,7 +42,7 @@
 #ifndef __ASM__
 
 extern void frame_arch_init(void);
-#define physmem_print()
+extern void physmem_print(void);
 
 #endif /* __ASM__ */
 #endif /* KERNEL */

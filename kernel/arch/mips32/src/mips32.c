@@ -141,16 +141,15 @@ void arch_post_smp_init(void)
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	/* EXL=1, UM=1, IE=1 */
+	/* EXL = 1, UM = 1, IE = 1 */
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
-					      cp0_status_um_bit |
-					      cp0_status_ie_enabled_bit));
+		cp0_status_um_bit | cp0_status_ie_enabled_bit));
 	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
-	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack+PAGE_SIZE), 
-		      (uintptr_t) kernel_uarg->uspace_uarg,
-		      (uintptr_t) kernel_uarg->uspace_entry);
-	while (1)
-		;
+	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + PAGE_SIZE), 
+		(uintptr_t) kernel_uarg->uspace_uarg,
+		(uintptr_t) kernel_uarg->uspace_entry);
+	
+	while (1);
 }
 
 /** Perform mips32 specific tasks needed before the new task is run. */
@@ -180,7 +179,9 @@ unative_t sys_tls_set(unative_t addr)
 
 void arch_reboot(void)
 {
-	___halt();
+	if (!arc_reboot())
+		___halt();
+	
 	while (1);
 }
 
