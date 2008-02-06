@@ -182,7 +182,6 @@ start64:
 	je valid_boot
 		
 		xorl %ecx, %ecx					# no memory size or map available
-		movl %ecx, e801memorysize
 		movl %ecx, e820counter
 		
 		jmp invalid_boot
@@ -190,19 +189,6 @@ start64:
 	valid_boot:
 		
 		movl (%ebx), %eax				# ebx = physical address of struct multiboot_info
-		
-		bt $0, %eax					# mbi->flags[0] (mem_lower, mem_upper valid)
-		jc mem_valid
-			
-			xorl %ecx, %ecx
-			jmp mem_invalid
-			
-		mem_valid:
-		movl 4(%ebx), %ecx				# mbi->mem_lower
-		addl 8(%ebx), %ecx				# mbi->mem_upper
-		
-		mem_invalid:
-		movl %ecx, e801memorysize
 		
 		bt $3, %eax					# mbi->flags[3] (mods_count, mods_addr valid)
 		jc mods_valid

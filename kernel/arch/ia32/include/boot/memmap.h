@@ -65,7 +65,6 @@ typedef struct {
 
 extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 extern uint8_t e820counter; 
-extern uint32_t e801memorysize;         /**< Size of available memory in KB. */
 
 #endif
 

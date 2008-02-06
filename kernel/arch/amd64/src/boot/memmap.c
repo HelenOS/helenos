@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup amd64mm	
  * @{
  */
 /** @file
  */
 
-#include <arch/mm/memory_init.h>
-#include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
 
-/** Return total size of available memory in bytes.
- *
- * @return Size of available memory in bytes.
- */
-size_t get_memory_size(void)
-{
-	return bootinfo.memmap.total;
-}
+uint8_t e820counter = 0xff;
+e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 
 /** @}
  */

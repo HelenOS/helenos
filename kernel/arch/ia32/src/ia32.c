@@ -54,7 +54,6 @@
 
 #include <arch/bios/bios.h>
 
-#include <arch/mm/memory_init.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <arch/debugger.h>

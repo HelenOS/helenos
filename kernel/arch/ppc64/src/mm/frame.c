@@ -34,7 +34,6 @@
 
 #include <arch/boot/boot.h>
 #include <arch/mm/frame.h>
-#include <arch/mm/memory_init.h>
 #include <mm/frame.h>
 #include <align.h>
 #include <macros.h>

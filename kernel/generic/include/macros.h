@@ -66,6 +66,9 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 /* Compute overlapping of physical addresses */
 #define PA_overlaps(x, szx, y, szy)	overlaps(KA2PA(x), szx, KA2PA(y), szy)
 
+#define SIZE2KB(size) (size >> 10)
+#define SIZE2MB(size) (size >> 20)
+
 #define STRING(arg) STRING_ARG(arg)
 #define STRING_ARG(arg) #arg
 

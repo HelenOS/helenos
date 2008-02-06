@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ppc32_MEMORY_INIT_H_
-#define KERN_ppc32_MEMORY_INIT_H_
+#include <arch/boot/memmap.h>
 
-size_t get_memory_size(void);
-
-#endif
+uint8_t e820counter = 0xff;
+e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 
 /** @}
  */

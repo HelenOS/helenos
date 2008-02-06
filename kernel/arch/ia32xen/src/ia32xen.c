@@ -53,7 +53,6 @@
 
 #include <arch/bios/bios.h>
 
-#include <arch/mm/memory_init.h>
 #include <interrupt.h>
 #include <arch/debugger.h>
 #include <proc/thread.h>

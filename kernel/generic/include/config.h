@@ -69,7 +69,6 @@ typedef struct {
 	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
 
 	uintptr_t base;
-	size_t memory_size;		/**< Size of detected memory in bytes. */
 	size_t kernel_size;		/**< Size of memory in bytes taken by kernel and stack */
 	
 	uintptr_t stack_base;		/**< Base adddress of initial stack */

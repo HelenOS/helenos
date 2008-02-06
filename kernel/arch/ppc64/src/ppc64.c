@@ -34,7 +34,6 @@
 
 #include <arch.h>
 #include <arch/boot/boot.h>
-#include <arch/mm/memory_init.h>
 #include <arch/interrupt.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>

@@ -63,7 +63,6 @@
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
-#include <arch/mm/memory_init.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <genarch/mm/page_pt.h>
@@ -143,8 +142,6 @@ void main_bsp(void)
 	config.cpu_active = 1;
 	
 	config.base = hardcoded_load_address;
-	config.memory_size = get_memory_size();
-	
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
 	    hardcoded_kdata_size, PAGE_SIZE);
 	config.stack_size = CONFIG_STACK_SIZE;
@@ -219,22 +216,22 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	ddi_init();
 	arch_post_mm_init();
-
+	
 	version_print();
-	printf("kernel: %.*p hardcoded_ktext_size=%zdK, "
-	    "hardcoded_kdata_size=%zdK\n", sizeof(uintptr_t) * 2,
-	    config.base, hardcoded_ktext_size >> 10,
-	    hardcoded_kdata_size >> 10);
-	printf("stack:  %.*p size=%zdK\n", sizeof(uintptr_t) * 2,
-	    config.stack_base, config.stack_size >> 10);
-
+	printf("kernel: %.*p hardcoded_ktext_size=%zd KB, "
+	    "hardcoded_kdata_size=%zd KB\n", sizeof(uintptr_t) * 2,
+		config.base, SIZE2KB(hardcoded_ktext_size),
+		SIZE2KB(hardcoded_kdata_size));
+	printf("stack:  %.*p size=%zd KB\n", sizeof(uintptr_t) * 2,
+	    config.stack_base, SIZE2KB(config.stack_size));
+	
 	arch_pre_smp_init();
 	smp_init();
 	/* Slab must be initialized after we know the number of processors. */
 	slab_enable_cpucache();
-
-	printf("config.memory_size=%zdM\n", config.memory_size >> 20);
-	printf("config.cpu_count=%zd\n", config.cpu_count);
+	
+	printf("Detected %zu CPU(s), %llu MB free memory\n",
+		config.cpu_count, SIZE2MB(zone_total_size()));
 	cpu_init();
 	
 	calibrate_delay_loop();

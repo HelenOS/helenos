@@ -84,6 +84,11 @@ static inline count_t SIZE2FRAMES(size_t size)
 	return (count_t) ((size - 1) >> FRAME_WIDTH) + 1;
 }
 
+static inline size_t FRAMES2SIZE(count_t frames)
+{
+	return (size_t) (frames << FRAME_WIDTH);
+}
+
 #define IS_BUDDY_ORDER_OK(index, order)		\
 	((~(((unative_t) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame)	\
@@ -104,18 +109,19 @@ extern void frame_free(uintptr_t frame);
 extern void frame_reference_add(pfn_t pfn);
 
 extern int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags);
-void *frame_get_parent(pfn_t frame, unsigned int hint);
-void frame_set_parent(pfn_t frame, void *data, unsigned int hint);
-void frame_mark_unavailable(pfn_t start, count_t count);
-uintptr_t zone_conf_size(count_t count);
-void zone_merge(unsigned int z1, unsigned int z2);
-void zone_merge_all(void);
+extern void *frame_get_parent(pfn_t frame, unsigned int hint);
+extern void frame_set_parent(pfn_t frame, void *data, unsigned int hint);
+extern void frame_mark_unavailable(pfn_t start, count_t count);
+extern uintptr_t zone_conf_size(count_t count);
+extern void zone_merge(unsigned int z1, unsigned int z2);
+extern void zone_merge_all(void);
+extern uint64_t zone_total_size(void);
 
 /*
  * Console functions
  */
 extern void zone_print_list(void);
-void zone_print_one(unsigned int znum);
+extern void zone_print_one(unsigned int znum);
 
 #endif
 

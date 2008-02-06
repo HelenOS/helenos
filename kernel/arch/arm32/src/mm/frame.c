@@ -35,6 +35,7 @@
 
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
+#include <arch/machine.h>
 #include <config.h>
 #include <arch/debug/print.h>
 
@@ -45,9 +46,9 @@ uintptr_t last_frame = 0;
 void frame_arch_init(void)
 {
 	/* all memory as one zone */
-	zone_create(0, ADDR2PFN(config.memory_size),
+	zone_create(0, ADDR2PFN(machine_get_memory_size()),
 	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
-	last_frame = config.memory_size;
+	last_frame = machine_get_memory_size();
 
 	/* blacklist boot page table */
 	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,

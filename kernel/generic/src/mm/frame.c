@@ -104,25 +104,29 @@ typedef struct {
 static zones_t zones;
 
 
-/*********************************/
+/********************/
 /* Helper functions */
+/********************/
+
 static inline index_t frame_index(zone_t *zone, frame_t *frame)
 {
-	return (index_t)(frame - zone->frames);
+	return (index_t) (frame - zone->frames);
 }
+
 static inline index_t frame_index_abs(zone_t *zone, frame_t *frame)
 {
-	return (index_t)(frame - zone->frames) + zone->base;
+	return (index_t) (frame - zone->frames) + zone->base;
 }
+
 static inline int frame_index_valid(zone_t *zone, index_t index)
 {
-	return index >= 0 && index < zone->count;
+	return (index >= 0) && (index < zone->count);
 }
 
 /** Compute pfn_t from frame_t pointer & zone pointer */
 static index_t make_frame_index(zone_t *zone, frame_t *frame)
 {
-	return frame - zone->frames;
+	return (frame - zone->frames);
 }
 
 /** Initialize frame structure
@@ -137,8 +141,9 @@ static void frame_initialize(frame_t *frame)
 	frame->buddy_order = 0;
 }
 
-/*************************************/
+/**********************/
 /* Zoneinfo functions */
+/**********************/
 
 /**
  * Insert-sort zone into zones list
@@ -154,25 +159,33 @@ static int zones_add_zone(zone_t *newzone)
 
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
+	
 	/* Try to merge */
-	if (zones.count + 1 == ZONES_MAX)
-		panic("Maximum zone(%d) count exceeded.", ZONES_MAX);
+	if (zones.count + 1 == ZONES_MAX) {
+		printf("Maximum zone count %u exceeded!\n", ZONES_MAX);
+		spinlock_unlock(&zones.lock);
+		interrupts_restore(ipl);
+		return -1;
+	}
+	
 	for (i = 0; i < zones.count; i++) {
 		/* Check for overflow */
 		z = zones.info[i];
-		if (overlaps(newzone->base,newzone->count, z->base,
-		    z->count)) {
+		if (overlaps(newzone->base, newzone->count, z->base, z->count)) {
 			printf("Zones overlap!\n");
 			return -1;
 		}
 		if (newzone->base < z->base)
 			break;
 	}
+	
 	/* Move other zones up */
 	for (j = i; j < zones.count; j++)
 		zones.info[j + 1] = zones.info[j];
+	
 	zones.info[i] = newzone;
 	zones.count++;
+	
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
 
@@ -181,9 +194,9 @@ static int zones_add_zone(zone_t *newzone)
 
 /**
  * Try to find a zone where can we find the frame
- 
+ *
  * Assume interrupts are disabled.
- 
+ *
  * @param frame Frame number contained in zone
  * @param pzone If not null, it is used as zone hint. Zone index
  *              is filled into the variable on success. 
@@ -900,7 +913,7 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 			panic("Cannot find configuration data for zone.");
 	}
 
-	z = (zone_t *)PA2KA(PFN2ADDR(confframe));
+	z = (zone_t *) PA2KA(PFN2ADDR(confframe));
 	zone_construct(start, count, z, flags);
 	znum = zones_add_zone(z);
 	if (znum == -1)
@@ -1109,6 +1122,32 @@ void frame_init(void)
 }
 
 
+/** Return total size of all zones
+ *
+ */
+uint64_t zone_total_size(void) {
+	zone_t *zone = NULL;
+	unsigned int i;
+	ipl_t ipl;
+	uint64_t total = 0;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&zones.lock);
+	
+	for (i = 0; i < zones.count; i++) {
+		zone = zones.info[i];
+		spinlock_lock(&zone->lock);
+		total += (uint64_t) FRAMES2SIZE(zone->count);
+		spinlock_unlock(&zone->lock);
+	}
+	
+	spinlock_unlock(&zones.lock);
+	interrupts_restore(ipl);
+	
+	return total;
+}
+
+
 
 /** Prints list of zones
  *
@@ -1160,7 +1199,7 @@ void zone_print_one(unsigned int num) {
 	spinlock_lock(&zones.lock);
 
 	for (i = 0; i < zones.count; i++) {
-		if (i == num || PFN2ADDR(zones.info[i]->base) == num) {
+		if ((i == num) || (PFN2ADDR(zones.info[i]->base) == num)) {
 			zone = zones.info[i];
 			break;
 		}
@@ -1174,15 +1213,15 @@ void zone_print_one(unsigned int num) {
 	printf("Memory zone information\n");
 	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2,
 	    PFN2ADDR(zone->base));
-	printf("Zone size: %zd frames (%zdK)\n", zone->count,
-	    ((zone->count) * FRAME_SIZE) >> 10);
-	printf("Allocated space: %zd frames (%zdK)\n", zone->busy_count,
-	    (zone->busy_count * FRAME_SIZE) >> 10);
-	printf("Available space: %zd frames (%zdK)\n", zone->free_count,
-	    (zone->free_count * FRAME_SIZE) >> 10);
+	printf("Zone size: %zd frames (%zd KB)\n", zone->count,
+		SIZE2KB(FRAMES2SIZE(zone->count)));
+	printf("Allocated space: %zd frames (%zd KB)\n", zone->busy_count,
+		SIZE2KB(FRAMES2SIZE(zone->busy_count)));
+	printf("Available space: %zd frames (%zd KB)\n", zone->free_count,
+		SIZE2KB(FRAMES2SIZE(zone->free_count)));
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
-	
 	spinlock_unlock(&zone->lock);
+	
 out:
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);

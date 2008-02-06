@@ -87,6 +87,7 @@ endif
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/boot/boot.S \
+	arch/$(ARCH)/src/boot/memmap.c \
 	arch/$(ARCH)/src/pm.c \
 	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/ddi/ddi.c \
@@ -103,7 +104,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/asm_utils.S \
-	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
 	arch/$(ARCH)/src/proc/task.c \

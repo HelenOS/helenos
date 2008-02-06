@@ -46,7 +46,7 @@
 void frame_arch_init(void)
 {
 	if (!arc_frame_init()) {
-		zone_create(0, ADDR2PFN(config.memory_size), 1, 0);
+		zone_create(0, ADDR2PFN(CONFIG_MEMORY_SIZE), 1, 0);
 		/*
 		 * Blacklist interrupt vector
 		 */

@@ -50,7 +50,6 @@
 #endif
 
 #include <arch/bios/bios.h>
-#include <arch/mm/memory_init.h>
 #include <arch/cpu.h>
 #include <print.h>
 #include <arch/cpuid.h>

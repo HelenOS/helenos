@@ -88,7 +88,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/frame.c \
 	arch/$(ARCH)/src/mm/page.c \
 	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/mm/memory_init.c \
 	arch/$(ARCH)/src/mm/page_fault.c
 
 ifeq ($(MACHINE), gxemul_testarm)

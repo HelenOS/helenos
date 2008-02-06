@@ -220,7 +220,7 @@ void physmem_print(void)
 			desc = arc_entry->getmemorydescriptor(desc);
 		}	
 	} else
-		printf("%#10x %#10x free\n", 0, config.memory_size);
+		printf("%#10x %#10x free\n", 0, CONFIG_MEMORY_SIZE);
 }
 
 /** Print charactor to console */
@@ -362,7 +362,6 @@ int arc_frame_init(void)
 {
 	if (arc_enabled()) {
 		arc_memdescriptor_t *desc;
-		int total = 0;
 		uintptr_t base;
 		size_t basesize;
 	
@@ -379,15 +378,12 @@ int arc_frame_init(void)
 				}
 				basesize = ALIGN_DOWN(basesize, FRAME_SIZE);
 	
-				total += basesize;
-				
 				zone_create(ADDR2PFN(base), SIZE2FRAMES(basesize),
 					    ADDR2PFN(base), 0);
 			}
 			desc = arc_entry->getmemorydescriptor(desc);
 		}
 	
-		config.memory_size = total;
 		return true;
 	}
 	
