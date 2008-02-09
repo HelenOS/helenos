@@ -41,18 +41,21 @@
  * This is Ski-specific and certainly not sufficient
  * for real ia64 systems that provide memory map.
  */
-#define MEMORY_SIZE	(512 * 1024 * 1024)
-#define ROM_BASE	0xa0000
-#define ROM_SIZE	(384 * 1024)
+#define MEMORY_SIZE	(64 * 1024 * 1024)
+#define MEMORY_BASE	(64 * 1024 * 1024)
 
+#define ROM_BASE	0xa0000               //For ski
+#define ROM_SIZE	(384 * 1024)          //For ski
+void poke_char(int x,int y,char ch, char c);
 void frame_arch_init(void)
 {
-	zone_create(0, SIZE2FRAMES(MEMORY_SIZE), 1, 0);
+	zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
 	
 	/*
 	 * Blacklist ROM regions.
 	 */
 	frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
+	
 }
 
 /** @}

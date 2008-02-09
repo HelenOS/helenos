@@ -47,6 +47,8 @@
 
 /** Bit width of the TLB-locked portion of kernel address space. */
 #define KERNEL_PAGE_WIDTH		28	/* 256M */
+#define IO_PAGE_WIDTH			26	/* 64M */
+
 
 #define PPN_SHIFT			12
 

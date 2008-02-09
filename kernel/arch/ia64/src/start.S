@@ -35,8 +35,15 @@
 #define RID_SHIFT 8
 #define PS_SHIFT 2
 
-#define KERNEL_TRANSLATION_I 0x0010000000000661
-#define KERNEL_TRANSLATION_D 0x0010000000000661
+#define KERNEL_TRANSLATION_I  0x0010000000000661
+#define KERNEL_TRANSLATION_D  0x0010000000000661
+#define KERNEL_TRANSLATION_VIO 0x0010000000000671
+#define KERNEL_TRANSLATION_IO 0x00100FFFFC000671 
+#define VIO_OFFSET            0x0002000000000000
+
+#define IO_OFFSET             0x0001000000000000
+
+
 
 .section K_TEXT_START, "ax"
 
@@ -46,29 +53,70 @@ stack0:
 kernel_image_start:
 	.auto
 
+	mov psr.l = r0
+	srlz.i
+	srlz.d
+
 	# Fill TR.i and TR.d using Region Register #VRN_KERNEL
+
 
 	movl r8 = (VRN_KERNEL << VRN_SHIFT)
 	mov r9 = rr[r8]
+
+
 	movl r10 = (RR_MASK)
 	and r9 = r10, r9
 	movl r10 = ((RID_KERNEL << RID_SHIFT) | (KERNEL_PAGE_WIDTH << PS_SHIFT))
 	or  r9 = r10, r9
+
+
 	mov rr[r8] = r9
+
+
 
 	movl r8 = (VRN_KERNEL << VRN_SHIFT)
 	mov cr.ifa = r8
-	movl r10 = (KERNEL_PAGE_WIDTH << PS_SHIFT)
-	mov cr.itir = r10
+
+	
+	mov r11 = cr.itir ;;
+	movl r10 = (KERNEL_PAGE_WIDTH << PS_SHIFT);;
+	or r10 =r10 , r11  ;;
+	mov cr.itir = r10;;
+
+	
 	movl r10 = (KERNEL_TRANSLATION_I)
 	itr.i itr[r0] = r10
+
+	
 	movl r10 = (KERNEL_TRANSLATION_D)
 	itr.d dtr[r0] = r10
 
+
+	movl r7 = 1
+	movl r8 = (VRN_KERNEL << VRN_SHIFT) | VIO_OFFSET
+	mov cr.ifa = r8
+	movl r10 = (KERNEL_TRANSLATION_VIO)
+	itr.d dtr[r7] = r10
+
+
+	mov r11 = cr.itir ;;
+	movl r10 = ~0xfc;;
+	and r10 =r10 , r11  ;;
+	movl r11 = (IO_PAGE_WIDTH << PS_SHIFT);;
+	or r10 =r10 , r11  ;;
+	mov cr.itir = r10;;
+
+
+	movl r7 = 2
+	movl r8 = (VRN_KERNEL << VRN_SHIFT) | IO_OFFSET
+	mov cr.ifa = r8
+	movl r10 = (KERNEL_TRANSLATION_IO)
+	itr.d dtr[r7] = r10
+
+
+
+
 	# initialize PSR
-	mov psr.l = r0
-	srlz.i
-	srlz.d
 	movl r10 = (PSR_DT_MASK | PSR_RT_MASK | PSR_IT_MASK | PSR_IC_MASK)  /* Enable paging */
 	mov r9 = psr
 	or r10 = r10, r9

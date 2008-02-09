@@ -99,9 +99,16 @@ COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
 
 .PHONY: all clean depend
 
-all: image.boot disasm
+all: hello.efi disasm
 
 -include Makefile.depend
+
+
+hello.efi: image.boot
+	make -C gefi/HelenOS
+	cp gefi/HelenOS/hello.efi ../../../../
+	cp gefi/HelenOS/hello.efi /boot/efi/
+	cp gefi/HelenOS/image.bin /boot/efi/
 
 image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
 	$(LD) -Map boot.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
@@ -111,6 +118,7 @@ depend:
 
 clean:
 	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot boot.disasm Makefile.depend
+	make -C gefi/HelenOS clean
 
 _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
 	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)

@@ -36,7 +36,7 @@
 #ifndef KERN_ia64_EGA_H
 #define KERN_ia64_EGA_H
 
-#define VIDEORAM (0xE0000000000B8000LL)
+#define VIDEORAM (0xe0020000000B8000LL)
 
 #define ROW		80
 #define ROWS		25

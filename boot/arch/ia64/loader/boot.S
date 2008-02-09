@@ -57,8 +57,8 @@ start:
 	mov b1 = r18 ;;
 	br.call.sptk.many b0 = b1
 
+.bss #on this line is ".bss", it cannot be seen in my mcedit :-(
 
-.bss
 
 .align 8192
 
