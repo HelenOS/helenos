@@ -256,7 +256,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 
-		/* descent one level */
+		/* descend one level */
 		dcur = dtmp;
 		dtmp = dtmp->child;
 	}
