@@ -173,6 +173,7 @@ typedef struct {
 typedef struct {
 	vfs_triplet_t triplet;
 	size_t size;
+	unsigned lnkcnt;
 } vfs_lookup_res_t;
 
 /**
@@ -181,7 +182,16 @@ typedef struct {
  */
 typedef struct {
 	VFS_TRIPLET;		/**< Identity of the node. */
-	unsigned refcnt;	/**< Usage counter. */
+
+	/**
+	 * Usage counter.  This includes, but is not limited to, all vfs_file_t
+	 * structures that reference this node.
+	 */
+	unsigned refcnt;
+	
+	/** Number of names this node has in the file system namespace. */
+	unsigned lnkcnt;
+
 	link_t nh_link;		/**< Node hash-table link. */
 	size_t size;		/**< Cached size of the file. */
 

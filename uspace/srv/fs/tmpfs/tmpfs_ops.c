@@ -58,6 +58,9 @@
 
 #define DENTRIES_BUCKETS	256
 
+#define TMPFS_GET_INDEX(x)	(((tmpfs_dentry_t *)(x))->index)
+#define TMPFS_GET_LNKCNT(x)	1
+
 /*
  * Hash table of all directory entries.
  */
@@ -127,30 +130,34 @@ static bool tmpfs_init(void)
 
 /** Compare one component of path to a directory entry.
  *
- * @param dentry	Directory entry to compare the path component with.
+ * @param nodep		Node to compare the path component with.
  * @param component	Array of characters holding component name.
  *
  * @return		True on match, false otherwise.
  */
-static bool match_component(tmpfs_dentry_t *dentry, const char *component)
+static bool match_component(void *nodep, const char *component)
 {
+	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
+
 	return !strcmp(dentry->name, component);
 }
 
-static unsigned long create_node(tmpfs_dentry_t *dentry,
+static void *create_node(void *nodep,
     const char *component, int lflag)
 {
+	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
+
 	assert(dentry->type == TMPFS_DIRECTORY);
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 
 	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
 	if (!node)
-		return 0;
+		return NULL;
 	size_t len = strlen(component);
 	char *name = malloc(len + 1);
 	if (!name) {
 		free(node);
-		return 0;
+		return NULL;
 	}
 	strcpy(name, component);
 
@@ -175,10 +182,10 @@ static unsigned long create_node(tmpfs_dentry_t *dentry,
 
 	/* Insert the new node into the dentry hash table. */
 	hash_table_insert(&dentries, &node->index, &node->dh_link);
-	return node->index;
+	return (void *) node;
 }
 
-static int destroy_component(tmpfs_dentry_t *dentry)
+static int destroy_component(void *nodeptr)
 {
 	return EPERM;
 }
@@ -241,12 +248,13 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 					ipc_answer_0(rid, ENOTDIR);
 					return;
 				} 
-				unsigned long index = create_node(dcur,
+				void *nodep = create_node(dcur,
 				    component, lflag);
-				if (index > 0) {
-					ipc_answer_4(rid, EOK,
+				if (nodep) {
+					ipc_answer_5(rid, EOK,
 					    tmpfs_reg.fs_handle, dev_handle,
-					    index, 0);
+					    TMPFS_GET_INDEX(nodep), 0,
+					    TMPFS_GET_LNKCNT(nodep));
 				} else {
 					ipc_answer_0(rid, ENOSPC);
 				}
@@ -288,11 +296,11 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 			component[len] = '\0';
 			len = 0;
 				
-			unsigned long index;
-			index = create_node(dcur, component, lflag);
-			if (index) {
-				ipc_answer_4(rid, EOK, tmpfs_reg.fs_handle,
-				    dev_handle, index, 0);
+			void *nodep = create_node(dcur, component, lflag);
+			if (nodep) {
+				ipc_answer_5(rid, EOK, tmpfs_reg.fs_handle,
+				    dev_handle, TMPFS_GET_INDEX(nodep), 0,
+				    TMPFS_GET_LNKCNT(nodep));
 			} else {
 				ipc_answer_0(rid, ENOSPC);
 			}
@@ -321,8 +329,8 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	ipc_answer_4(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index,
-	    dcur->size);
+	ipc_answer_5(rid, EOK, tmpfs_reg.fs_handle, dev_handle, dcur->index,
+	    dcur->size, TMPFS_GET_LNKCNT(dcur));
 }
 
 void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)

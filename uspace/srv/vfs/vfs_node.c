@@ -148,6 +148,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->dev_handle = result->triplet.fs_handle;
 		node->index = result->triplet.index;
 		node->size = result->size;
+		node->lnkcnt = result->lnkcnt;
 		link_initialize(&node->nh_link);
 		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
@@ -156,6 +157,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 	}
 
 	assert(node->size == result->size);
+	assert(node->lnkcnt == result->lnkcnt);
 
 	_vfs_node_addref(node);
 	futex_up(&nodes_futex);

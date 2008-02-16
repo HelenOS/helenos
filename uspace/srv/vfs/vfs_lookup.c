@@ -168,6 +168,7 @@ int vfs_lookup_internal(char *path, size_t len, int lflag,
 		result->triplet.dev_handle = (int) IPC_GET_ARG2(answer);
 		result->triplet.index = (int) IPC_GET_ARG3(answer);
 		result->size = (size_t) IPC_GET_ARG4(answer);
+		result->lnkcnt = (unsigned) IPC_GET_ARG5(answer);
 	}
 
 	return rc;
