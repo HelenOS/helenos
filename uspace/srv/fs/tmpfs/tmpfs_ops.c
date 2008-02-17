@@ -514,6 +514,8 @@ void tmpfs_free(ipc_callid_t rid, ipc_call_t *request)
 	assert(!dentry->child);
 	assert(!dentry->sibling);
 
+	hash_table_remove(&dentries, &index, 1);
+
 	if (dentry->type == TMPFS_FILE)
 		free(dentry->data);
 	free(dentry->name);
