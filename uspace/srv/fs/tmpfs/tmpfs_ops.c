@@ -330,10 +330,10 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 
 	/* handle hit */
 	if (lflag & L_DESTROY) {
+		unsigned old_lnkcnt = TMPFS_GET_LNKCNT(dcur);
 		int res = destroy_component(dcur);
-		unsigned lnkcnt = (res == EOK) ? 0 : TMPFS_GET_LNKCNT(dcur);
 		ipc_answer_5(rid, (ipcarg_t)res, tmpfs_reg.fs_handle,
-		    dev_handle, dcur->index, dcur->size, lnkcnt);
+		    dev_handle, dcur->index, dcur->size, old_lnkcnt);
 		return;
 	}
 	if ((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) {

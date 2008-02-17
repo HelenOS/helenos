@@ -141,6 +141,10 @@ typedef struct {
  * Lookup flags.
  */
 /**
+ * No lookup flags used.
+ */
+#define L_NONE		0
+/**
  * Lookup will succeed only if the object is a regular file.  If L_CREATE is
  * specified, an empty file will be created. This flag is mutually exclusive
  * with L_DIRECTORY.
@@ -275,6 +279,7 @@ extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
+extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 
 #endif
 

@@ -310,7 +310,6 @@ int mkdir(const char *path, mode_t mode)
 {
 	int res;
 	ipcarg_t rc;
-	ipc_call_t answer;
 	aid_t req;
 	
 	futex_down(&vfs_phone_futex);
@@ -323,7 +322,7 @@ int mkdir(const char *path, mode_t mode)
 			return res;
 		}
 	}
-	req = async_send_1(vfs_phone, VFS_MKDIR, mode, &answer);
+	req = async_send_1(vfs_phone, VFS_MKDIR, mode, NULL);
 	rc = ipc_data_write_start(vfs_phone, path, strlen(path));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
@@ -335,6 +334,46 @@ int mkdir(const char *path, mode_t mode)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	return EOK; 
+}
+
+static int _unlink(const char *path, int lflag)
+{
+	int res;
+	ipcarg_t rc;
+	aid_t req;
+	
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	if (vfs_phone < 0) {
+		res = vfs_connect();
+		if (res < 0) {
+			async_serialize_end();
+			futex_up(&vfs_phone_futex);
+			return res;
+		}
+	}
+	req = async_send_0(vfs_phone, VFS_UNLINK, NULL);
+	rc = ipc_data_write_start(vfs_phone, path, strlen(path));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		return (int) rc;
+	}
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	return EOK; 
+}
+
+int unlink(const char *path)
+{
+	return _unlink(path, L_NONE);
+}
+
+int rmdir(const char *path)
+{
+	return _unlink(path, L_DIRECTORY);
 }
 
 /** @}

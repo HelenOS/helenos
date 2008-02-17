@@ -590,8 +590,8 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 {
 	int mode = IPC_GET_ARG1(*request);
-	size_t len;
 
+	size_t len;
 	ipc_callid_t callid;
 
 	if (!ipc_data_write_receive(&callid, &len)) {
@@ -627,6 +627,63 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	rwlock_write_unlock(&namespace_rwlock);
 	free(path);
 	ipc_answer_0(rid, rc);
+}
+
+void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
+{
+	int lflag = IPC_GET_ARG1(*request);
+
+	size_t len;
+	ipc_callid_t callid;
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Now we are on the verge of accepting the path.
+	 *
+	 * There is one optimization we could do in the future: copy the path
+	 * directly into the PLB using some kind of a callback.
+	 */
+	char *path = malloc(len);
+	
+	if (!path) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	int rc;
+	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+		ipc_answer_0(rid, rc);
+		free(path);
+		return;
+	}
+	
+	rwlock_write_lock(&namespace_rwlock);
+	lflag &= L_DIRECTORY;	/* sanitize lflag */
+	vfs_lookup_res_t lr;
+	rc = vfs_lookup_internal(path, len, lflag | L_DESTROY, &lr, NULL);
+	free(path);
+	if (rc != EOK) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
+	/*
+	 * The name has already been unlinked by vfs_lookup_internal().
+	 * We have to get and put the VFS node to ensure that it is
+	 * VFS_FREE'd after the last reference to it is dropped.
+	 */
+	vfs_node_t *node = vfs_node_get(&lr);
+	node->lnkcnt--;
+	rwlock_write_unlock(&namespace_rwlock);
+	vfs_node_put(node);
+	ipc_answer_0(rid, EOK);
 }
 
 /**

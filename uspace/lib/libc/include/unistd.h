@@ -50,6 +50,8 @@ extern ssize_t read(int, void *, size_t);
 extern off_t lseek(int, off_t, int);
 extern int ftruncate(int, off_t);
 extern int close(int);
+extern int unlink(const char *);
+extern int rmdir(const char *);
 
 extern void _exit(int status);
 extern void *sbrk(ssize_t incr);

@@ -111,6 +111,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_MKDIR:
 			vfs_mkdir(callid, &call);
 			break;
+		case VFS_UNLINK:
+			vfs_unlink(callid, &call);
+			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;
