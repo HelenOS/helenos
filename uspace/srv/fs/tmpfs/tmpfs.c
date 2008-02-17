@@ -55,18 +55,12 @@ vfs_info_t tmpfs_vfs_info = {
 	.name = "tmpfs",
 	.ops = {
 		[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_READ)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_WRITE)] = VFS_OP_DEFINED,
-		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_RENAME)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_OPENDIR)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_READDIR)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_CLOSEDIR)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_UNLINK)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_NULL,
 		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_FREE)] = VFS_OP_DEFINED,
 	}
 };
 
@@ -117,6 +111,12 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_WRITE:
 			tmpfs_write(callid, &call);
+			break;
+		case VFS_TRUNCATE:
+			tmpfs_truncate(callid, &call);
+			break;
+		case VFS_FREE:
+			tmpfs_free(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);

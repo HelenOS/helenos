@@ -43,6 +43,8 @@
 #include <rwlock.h>
 #include <libadt/hash_table.h>
 #include <assert.h>
+#include <async.h>
+#include <errno.h>
 
 /** Futex protecting the VFS node hash table. */
 atomic_t nodes_futex = FUTEX_INITIALIZER;
@@ -101,16 +103,41 @@ void vfs_node_addref(vfs_node_t *node)
  */
 void vfs_node_delref(vfs_node_t *node)
 {
+	bool free_vfs_node = false;
+	bool free_fs_node = false;
+
 	futex_down(&nodes_futex);
 	if (node->refcnt-- == 1) {
+		/*
+		 * We are dropping the last reference to this node.
+		 * Remove it from the VFS node hash table.
+		 */
 		unsigned long key[] = {
 			[KEY_FS_HANDLE] = node->fs_handle,
 			[KEY_DEV_HANDLE] = node->dev_handle,
 			[KEY_INDEX] = node->index
 		};
 		hash_table_remove(&nodes, key, 3);
+		free_vfs_node = true;
+		if (!node->lnkcnt)
+			free_fs_node = true;
 	}
 	futex_up(&nodes_futex);
+
+	if (free_fs_node) {
+		/* 
+		 * The node is not visible in the file system namespace.
+		 * Free up its resources.
+		 */
+		int phone = vfs_grab_phone(node->fs_handle);
+		ipcarg_t rc;
+		rc = async_req_2_0(phone, VFS_FREE, (ipcarg_t)node->dev_handle,
+		    (ipcarg_t)node->index);
+		assert(rc == EOK);
+		vfs_release_phone(phone);
+	}
+	if (free_vfs_node)
+		free(node);
 }
 
 /** Find VFS node.
@@ -196,8 +223,6 @@ int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 
 void nodes_remove_callback(link_t *item)
 {
-	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
-	free(node);
 }
 
 /**

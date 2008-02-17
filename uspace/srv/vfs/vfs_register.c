@@ -106,14 +106,6 @@ static bool vfs_info_sane(vfs_info_t *info)
 		dprintf("Operation VFS_LOOKUP not defined by the client.\n");
 		return false;
 	}
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_OPEN)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_OPEN not defined by the client.\n");
-		return false;
-	}
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_CLOSE)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_CLOSE not defined by the client.\n");
-		return false;
-	}
 	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_READ)] != VFS_OP_DEFINED) {
 		dprintf("Operation VFS_READ not defined by the client.\n");
 		return false;

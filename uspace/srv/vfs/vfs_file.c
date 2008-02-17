@@ -130,7 +130,7 @@ void vfs_file_delref(vfs_file_t *file)
 {
 	if (file->refcnt-- == 1) {
 		/*
-		 * Lost last reference to a file, need to drop our reference
+		 * Lost the last reference to a file, need to drop our reference
 		 * to the underlying VFS node.
 		 */
 		vfs_node_delref(file->node);

@@ -496,6 +496,32 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EOK);
 }
 
+void tmpfs_free(ipc_callid_t rid, ipc_call_t *request)
+{
+	int dev_handle = IPC_GET_ARG1(*request);
+	unsigned long index = IPC_GET_ARG2(*request);
+
+	link_t *hlp;
+	hlp = hash_table_find(&dentries, &index);
+	if (!hlp) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
+	    dh_link);
+	
+	assert(!dentry->parent);
+	assert(!dentry->child);
+	assert(!dentry->sibling);
+
+	if (dentry->type == TMPFS_FILE)
+		free(dentry->data);
+	free(dentry->name);
+	free(dentry);
+
+	ipc_answer_0(rid, EOK);
+}
+
 /**
  * @}
  */ 

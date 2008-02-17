@@ -47,17 +47,9 @@
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
 
 typedef enum {
-	VFS_OPEN = VFS_FIRST,
-	VFS_CLOSE,
-	VFS_READ,
+	VFS_READ = VFS_FIRST,
 	VFS_WRITE,
 	VFS_TRUNCATE,
-	VFS_RENAME,
-	VFS_OPENDIR,
-	VFS_READDIR,
-	VFS_CLOSEDIR,
-	VFS_MKDIR,
-	VFS_UNLINK,
 	VFS_MOUNT,
 	VFS_UNMOUNT,
 	VFS_LAST_CMN,	/* keep this the last member of this enum */
@@ -65,12 +57,18 @@ typedef enum {
 
 typedef enum {
 	VFS_LOOKUP = VFS_LAST_CMN,
+	VFS_FREE,
 	VFS_LAST_CLNT,	/* keep this the last member of this enum */
 } vfs_request_clnt_t;
 
 typedef enum {
 	VFS_REGISTER = VFS_LAST_CMN,
+	VFS_OPEN,
+	VFS_CLOSE,
 	VFS_SEEK,
+	VFS_MKDIR,
+	VFS_UNLINK,
+	VFS_RENAME,
 	VFS_LAST_SRV,	/* keep this the last member of this enum */
 } vfs_request_srv_t;
 
