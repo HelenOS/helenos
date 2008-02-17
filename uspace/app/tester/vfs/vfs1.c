@@ -80,12 +80,39 @@ char *test_vfs1(bool quiet)
 	if (!quiet)
 		printf("read %d bytes: \"%.*s\", fd=%d\n", cnt, cnt, buf, fd0);
 
+	close(fd0);
+
 	DIR *dirp;
 	struct dirent *dp;
 
+	if (!quiet)
+		printf("scanning the root directory...\n");
+
 	dirp = opendir("/");
 	if (!dirp)
-		return "opendir() failed.";
+		return "opendir() failed\n";
+	while ((dp = readdir(dirp)))
+		printf("discovered node %s in /\n", dp->d_name);
+	closedir(dirp);
+
+	if (unlink("/mydir/myfile"))
+		return "unlink() failed.\n";
+	
+	if (!quiet)
+		printf("unlinked file /mydir/myfile\n");
+
+	if (rmdir("/mydir"))
+		return "rmdir() failed.\n";
+
+	if (!quiet)
+		printf("removed directory /mydir\n");
+	
+	if (!quiet)
+		printf("scanning the root directory...\n");
+
+	dirp = opendir("/");
+	if (!dirp)
+		return "opendir() failed\n";
 	while ((dp = readdir(dirp)))
 		printf("discovered node %s in /\n", dp->d_name);
 	closedir(dirp);
