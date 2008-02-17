@@ -204,6 +204,8 @@ static int destroy_component(void *nodeptr)
 			tmp = tmp->sibling;
 		tmp->sibling = dentry->sibling;
 	}
+	dentry->sibling = NULL;
+	dentry->parent = NULL;
 
 	return EOK;
 }
