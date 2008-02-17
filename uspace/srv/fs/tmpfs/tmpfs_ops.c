@@ -187,7 +187,25 @@ static void *create_node(void *nodep,
 
 static int destroy_component(void *nodeptr)
 {
-	return EPERM;
+	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *)nodeptr;
+
+	if (dentry->child)
+		return ENOTEMPTY;
+
+	if (!dentry->parent)
+		return EBUSY;
+
+	if (dentry->parent->child == dentry) {
+		dentry->parent->child = dentry->sibling;
+	} else {
+		/* TODO: consider doubly linked list for organizing siblings. */
+		tmpfs_dentry_t *tmp = dentry->parent->child;
+		while (tmp->sibling != dentry)
+			tmp = tmp->sibling;
+		tmp->sibling = dentry->sibling;
+	}
+
+	return EOK;
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
@@ -313,7 +331,9 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	/* handle hit */
 	if (lflag & L_DESTROY) {
 		int res = destroy_component(dcur);
-		ipc_answer_0(rid, res);
+		unsigned lnkcnt = (res == EOK) ? 0 : TMPFS_GET_LNKCNT(dcur);
+		ipc_answer_5(rid, (ipcarg_t)res, tmpfs_reg.fs_handle,
+		    dev_handle, dcur->index, dcur->size, lnkcnt);
 		return;
 	}
 	if ((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) {

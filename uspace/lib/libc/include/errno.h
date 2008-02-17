@@ -42,6 +42,7 @@
 #define ENOTDIR		(-258)
 #define ENOSPC		(-259)
 #define EEXIST		(-260)
+#define ENOTEMPTY	(-261)
 
 #endif
 
