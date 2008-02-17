@@ -269,6 +269,7 @@ extern void vfs_node_delref(vfs_node_t *);
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
+extern void vfs_close(ipc_callid_t, ipc_call_t *);
 extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);

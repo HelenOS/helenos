@@ -135,7 +135,26 @@ int open(const char *path, int oflag, ...)
 
 int close(int fildes)
 {
-	return 0;	/* TODO */
+	int res;
+	ipcarg_t rc;
+
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	if (vfs_phone < 0) {
+		res = vfs_connect();
+		if (res < 0) {
+			async_serialize_end();
+			futex_up(&vfs_phone_futex);
+			return res;
+		}
+	}
+		
+	rc = async_req_1_0(vfs_phone, VFS_CLOSE, fildes);
+
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	
+	return (int)rc;
 }
 
 ssize_t read(int fildes, void *buf, size_t nbyte) 

@@ -93,6 +93,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OPEN:
 			vfs_open(callid, &call);
 			break;
+		case VFS_CLOSE:
+			vfs_close(callid, &call);
+			break;
 		case VFS_READ:
 			vfs_read(callid, &call);
 			break;

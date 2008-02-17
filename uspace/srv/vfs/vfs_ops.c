@@ -387,6 +387,17 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_1(rid, EOK, fd);
 }
 
+void vfs_close(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	if (fd >= MAX_OPEN_FILES) {
+		ipc_answer_0(rid, EBADF);
+		return;
+	}
+	vfs_fd_free(fd);
+	ipc_answer_0(rid, EOK);
+}
+
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
 
