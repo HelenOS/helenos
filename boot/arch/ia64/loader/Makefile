@@ -41,6 +41,7 @@ ifeq ($(COMPILER),gcc_native)
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
+	GEFI_PREXIX = 
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -57,6 +58,7 @@ ifeq ($(COMPILER),gcc_cross)
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
 	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+	GEFI_PREFIX = $(TOOLCHAIN_DIR)/$(TARGET)-
 endif
 
 #-mno-pic means do not use gp + imm22 to address data
@@ -105,10 +107,10 @@ all: hello.efi disasm
 
 
 hello.efi: image.boot
-	make -C gefi/HelenOS
+	make -C gefi/HelenOS PREFIX=$(GEFI_PREFIX)
 	cp gefi/HelenOS/hello.efi ../../../../
-	cp gefi/HelenOS/hello.efi /boot/efi/
-	cp gefi/HelenOS/image.bin /boot/efi/
+#	cp gefi/HelenOS/hello.efi /boot/efi/
+	cp gefi/HelenOS/image.bin ../../../../
 
 image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
 	$(LD) -Map boot.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@

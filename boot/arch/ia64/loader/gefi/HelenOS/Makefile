@@ -20,7 +20,7 @@
 #  Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #  02111-1307, USA.
 #
-
+prefix=$(PREFIX)
 include ../Make.defaults
 CDIR=$(TOPDIR)/..
 LINUX_HEADERS	= /usr/src/sys/build
@@ -32,7 +32,7 @@ LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 FORMAT		= efi-app-$(ARCH)
 
 
-all:	hello.efi
+all:	gefi hello.efi
 
 
 clean:
@@ -43,7 +43,7 @@ clean:
 hello.efi: hello.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		   -j .rela -j .reloc --target=$(FORMAT) hello.so hello.efi
-	objdump -d hello.efi > hello.disass
+	$(OBJDUMP) -d hello.efi > hello.disass  
 
 hello.so: hello.o image.o
 	$(LD) $(LDFLAGS) -Map hello.map hello.o -o hello.so $(LOADLIBES)
@@ -52,8 +52,9 @@ hello.o: hello.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c hello.c -o hello.o
 
 image.o: ../../image.boot
-	objcopy -O binary ../../image.boot image.bin
-	objcopy -I binary -O elf64-ia64-little -B ia64 image.bin image.o
+	$(OBJCOPY) -O binary ../../image.boot image.bin
+	$(OBJCOPY) -I binary -O elf64-ia64-little -B ia64 image.bin image.o
 
 
-
+gefi:
+	make -C .. prefix=$(PREFIX)

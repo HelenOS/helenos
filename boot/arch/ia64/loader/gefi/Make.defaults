@@ -38,14 +38,14 @@ INSTALL	   = install
 
 GCC_VERSION=$(shell $(CROSS_COMPILE)$(CC) -v 2>&1 | fgrep 'gcc version' | cut -f3 -d' ' | cut -f1 -d'.')
 
-ifeq ($(ARCH),ia64)
-  prefix	=
-  CC		= $(prefix)gcc
-  AS		= $(prefix)as
-  LD		= $(prefix)ld
-  AR		= $(prefix)ar
-  RANLIB	= $(prefix)ranlib
-  OBJCOPY	= $(prefix)objcopy
+#  prefix	=
+CC		= $(prefix)gcc
+AS		= $(prefix)as
+LD		= $(prefix)ld
+AR		= $(prefix)ar
+RANLIB	= $(prefix)ranlib
+OBJCOPY	= $(prefix)objcopy
+OBJDUMP	= $(prefix)objdump
 
 
 ifneq ($(GCC_VERSION),2)
@@ -53,23 +53,4 @@ ifneq ($(GCC_VERSION),2)
 endif
 
 CFLAGS += -mfixed-range=f32-f127
-
-else
- ifeq ($(ARCH),ia32)
-#
-# gcc-3.x is required
-#
-  prefix	= 
-  ifneq ($(GCC_VERSION),2)
-    CC = $(prefix)gcc
-  else
-    CC = $(prefix)gcc3 #must have gcc 3.x
-  endif
-  AS		= $(prefix)as
-  LD		= $(prefix)ld
-  AR		= $(prefix)ar
-  RANLIB	= $(prefix)ranlib
-  OBJCOPY	= $(prefix)objcopy
- endif
-endif
 
