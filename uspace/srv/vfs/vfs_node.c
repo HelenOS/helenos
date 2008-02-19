@@ -172,7 +172,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		}
 		memset(node, 0, sizeof(vfs_node_t));
 		node->fs_handle = result->triplet.fs_handle;
-		node->dev_handle = result->triplet.fs_handle;
+		node->dev_handle = result->triplet.dev_handle;
 		node->index = result->triplet.index;
 		node->size = result->size;
 		node->lnkcnt = result->lnkcnt;
