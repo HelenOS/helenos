@@ -391,7 +391,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 		    bytes);
 	} else {
 		int i;
-		tmpfs_dentry_t *cur = dentry->child;
+		tmpfs_dentry_t *cur;
 		
 		assert(dentry->type == TMPFS_DIRECTORY);
 		
