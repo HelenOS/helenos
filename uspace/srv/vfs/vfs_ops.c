@@ -677,7 +677,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * The name has already been unlinked by vfs_lookup_internal().
 	 * We have to get and put the VFS node to ensure that it is
-	 * VFS_FREE'd after the last reference to it is dropped.
+	 * VFS_DESTROY'ed after the last reference to it is dropped.
 	 */
 	vfs_node_t *node = vfs_node_get(&lr);
 	node->lnkcnt--;

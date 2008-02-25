@@ -60,7 +60,7 @@ vfs_info_t tmpfs_vfs_info = {
 		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_NULL,
 		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_NULL,
-		[IPC_METHOD_TO_VFS_OP(VFS_FREE)] = VFS_OP_DEFINED,
+		[IPC_METHOD_TO_VFS_OP(VFS_DESTROY)] = VFS_OP_DEFINED,
 	}
 };
 
@@ -115,8 +115,8 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_TRUNCATE:
 			tmpfs_truncate(callid, &call);
 			break;
-		case VFS_FREE:
-			tmpfs_free(callid, &call);
+		case VFS_DESTROY:
+			tmpfs_destroy(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);

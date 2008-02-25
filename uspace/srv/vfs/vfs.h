@@ -57,7 +57,7 @@ typedef enum {
 
 typedef enum {
 	VFS_LOOKUP = VFS_LAST_CMN,
-	VFS_FREE,
+	VFS_DESTROY,
 	VFS_LAST_CLNT,	/* keep this the last member of this enum */
 } vfs_request_clnt_t;
 

@@ -61,9 +61,13 @@
 #define TMPFS_GET_INDEX(x)	(((tmpfs_dentry_t *)(x))->index)
 #define TMPFS_GET_LNKCNT(x)	1
 
-/*
- * Hash table of all directory entries.
- */
+/* Forward declarations of static functions. */
+static void *create_node(int);
+static bool link_node(void *, void *, const char *);
+static int unlink_node(void *);
+static void destroy_node(void *);
+
+/** Hash table of all directory entries. */
 hash_table_t dentries;
 
 static hash_index_t dentries_hash(unsigned long *key)
@@ -115,17 +119,8 @@ static bool tmpfs_init(void)
 {
 	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 1, &dentries_ops))
 		return false;
-
-	root = (tmpfs_dentry_t *) malloc(sizeof(tmpfs_dentry_t));
-	if (!root)
-		return false;
-	tmpfs_dentry_initialize(root);
-	root->index = tmpfs_next_index++;
-	root->name = "";
-	root->type = TMPFS_DIRECTORY;
-	hash_table_insert(&dentries, &root->index, &root->dh_link);
-
-	return true;
+	root = (tmpfs_dentry_t *) create_node(L_DIRECTORY);
+	return root != NULL;
 }
 
 /** Compare one component of path to a directory entry.
@@ -142,50 +137,55 @@ static bool match_component(void *nodep, const char *component)
 	return !strcmp(dentry->name, component);
 }
 
-static void *create_node(void *nodep,
-    const char *component, int lflag)
+void *create_node(int lflag)
 {
-	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
-
-	assert(dentry->type == TMPFS_DIRECTORY);
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 
 	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
 	if (!node)
 		return NULL;
-	size_t len = strlen(component);
-	char *name = malloc(len + 1);
-	if (!name) {
-		free(node);
-		return NULL;
-	}
-	strcpy(name, component);
 
 	tmpfs_dentry_initialize(node);
 	node->index = tmpfs_next_index++;
-	node->name = name;
-	node->parent = dentry;
 	if (lflag & L_DIRECTORY) 
 		node->type = TMPFS_DIRECTORY;
 	else 
 		node->type = TMPFS_FILE;
-
-	/* Insert the new node into the namespace. */
-	if (dentry->child) {
-		tmpfs_dentry_t *tmp = dentry->child;
-		while (tmp->sibling)
-			tmp = tmp->sibling;
-		tmp->sibling = node;
-	} else {
-		dentry->child = node;
-	}
 
 	/* Insert the new node into the dentry hash table. */
 	hash_table_insert(&dentries, &node->index, &node->dh_link);
 	return (void *) node;
 }
 
-static int destroy_component(void *nodeptr)
+bool link_node(void *prnt, void *chld, const char *nm)
+{
+	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
+	tmpfs_dentry_t *childp = (tmpfs_dentry_t *) chld;
+
+	assert(parentp->type == TMPFS_DIRECTORY);
+
+	size_t len = strlen(nm);
+	char *name = malloc(len + 1);
+	if (!name)
+		return false;
+	strcpy(name, nm);
+	childp->name = name;
+
+	/* Insert the new node into the namespace. */
+	if (parentp->child) {
+		tmpfs_dentry_t *tmp = parentp->child;
+		while (tmp->sibling)
+			tmp = tmp->sibling;
+		tmp->sibling = childp;
+	} else {
+		parentp->child = childp;
+	}
+	childp->parent = parentp;
+
+	return true;
+}
+
+int unlink_node(void *nodeptr)
 {
 	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *)nodeptr;
 
@@ -207,7 +207,25 @@ static int destroy_component(void *nodeptr)
 	dentry->sibling = NULL;
 	dentry->parent = NULL;
 
+	free(dentry->name);
+	dentry->name = NULL;
+
 	return EOK;
+}
+
+void destroy_node(void *nodep)
+{
+	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
+	
+	assert(!dentry->child);
+	assert(!dentry->sibling);
+
+	unsigned long index = dentry->index;
+	hash_table_remove(&dentries, &index, 1);
+
+	if (dentry->type == TMPFS_FILE)
+		free(dentry->data);
+	free(dentry);
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
@@ -268,13 +286,19 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 					ipc_answer_0(rid, ENOTDIR);
 					return;
 				} 
-				void *nodep = create_node(dcur,
-				    component, lflag);
+				void *nodep = create_node(lflag);
 				if (nodep) {
-					ipc_answer_5(rid, EOK,
-					    tmpfs_reg.fs_handle, dev_handle,
-					    TMPFS_GET_INDEX(nodep), 0,
-					    TMPFS_GET_LNKCNT(nodep));
+					if (!link_node(dcur, nodep,
+					    component)) {
+						destroy_node(nodep);
+						ipc_answer_0(rid, ENOSPC);
+					} else {
+						ipc_answer_5(rid, EOK,
+						    tmpfs_reg.fs_handle,
+						    dev_handle,
+						    TMPFS_GET_INDEX(nodep), 0,
+						    TMPFS_GET_LNKCNT(nodep));
+					}
 				} else {
 					ipc_answer_0(rid, ENOSPC);
 				}
@@ -316,11 +340,17 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 			component[len] = '\0';
 			len = 0;
 				
-			void *nodep = create_node(dcur, component, lflag);
+			void *nodep = create_node(lflag);
 			if (nodep) {
-				ipc_answer_5(rid, EOK, tmpfs_reg.fs_handle,
-				    dev_handle, TMPFS_GET_INDEX(nodep), 0,
-				    TMPFS_GET_LNKCNT(nodep));
+				if (!link_node(dcur, nodep, component)) {
+					destroy_node(nodep);
+					ipc_answer_0(rid, ENOSPC);
+				} else {
+					ipc_answer_5(rid, EOK,
+					    tmpfs_reg.fs_handle,
+					    dev_handle, TMPFS_GET_INDEX(nodep),
+					    0, TMPFS_GET_LNKCNT(nodep));
+				}
 			} else {
 				ipc_answer_0(rid, ENOSPC);
 			}
@@ -333,7 +363,7 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	/* handle hit */
 	if (lflag & L_DESTROY) {
 		unsigned old_lnkcnt = TMPFS_GET_LNKCNT(dcur);
-		int res = destroy_component(dcur);
+		int res = unlink_node(dcur);
 		ipc_answer_5(rid, (ipcarg_t)res, tmpfs_reg.fs_handle,
 		    dev_handle, dcur->index, dcur->size, old_lnkcnt);
 		return;
@@ -518,7 +548,7 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EOK);
 }
 
-void tmpfs_free(ipc_callid_t rid, ipc_call_t *request)
+void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
 	int dev_handle = IPC_GET_ARG1(*request);
 	unsigned long index = IPC_GET_ARG2(*request);
@@ -531,18 +561,7 @@ void tmpfs_free(ipc_callid_t rid, ipc_call_t *request)
 	}
 	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
 	    dh_link);
-	
-	assert(!dentry->parent);
-	assert(!dentry->child);
-	assert(!dentry->sibling);
-
-	hash_table_remove(&dentries, &index, 1);
-
-	if (dentry->type == TMPFS_FILE)
-		free(dentry->data);
-	free(dentry->name);
-	free(dentry);
-
+	destroy_node(dentry);
 	ipc_answer_0(rid, EOK);
 }
 
