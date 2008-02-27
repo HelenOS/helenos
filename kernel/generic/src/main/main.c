@@ -57,6 +57,7 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <proc/tasklet.h>
 #include <main/kinit.h>
 #include <main/version.h>
 #include <console/kconsole.h>
@@ -102,14 +103,15 @@ context_t ctx;
  * the linker or the low level assembler code with
  * appropriate sizes and addresses.
  */
-uintptr_t hardcoded_load_address = 0;	/**< Virtual address of where the kernel
-					  *  is loaded. */
-size_t hardcoded_ktext_size = 0;	/**< Size of the kernel code in bytes.
-					  */
-size_t hardcoded_kdata_size = 0;	/**< Size of the kernel data in bytes.
-					 */
-uintptr_t stack_safe = 0;		/**< Lowest safe stack virtual address.
-					  */
+
+/**< Virtual address of where the kernel is loaded. */
+uintptr_t hardcoded_load_address = 0;
+/**< Size of the kernel code in bytes. */
+size_t hardcoded_ktext_size = 0;
+/**< Size of the kernel data in bytes. */
+size_t hardcoded_kdata_size = 0;
+/**< Lowest safe stack virtual address. */
+uintptr_t stack_safe = 0;		
 
 void main_bsp(void);
 void main_ap(void);
@@ -215,6 +217,7 @@ void main_bsp_separated_stack(void)
 	page_init();
 	tlb_init();
 	ddi_init();
+	tasklet_init();
 	arch_post_mm_init();
 	
 	version_print();
