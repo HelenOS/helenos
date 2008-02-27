@@ -61,7 +61,7 @@ void ofw_tree_init(ofw_tree_node_t *root)
  */
 ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *name)
 {
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < node->properties; i++) {
 		if (strcmp(node->property[i].name, name) == 0)

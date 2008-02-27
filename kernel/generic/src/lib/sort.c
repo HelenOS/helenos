@@ -96,14 +96,17 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
 void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot)
 {
 	if (n > 4) {
-		int i = 0, j = n - 1;
+		unsigned int i = 0, j = n - 1;
 
 		memcpy(pivot, data, e_size);
 
 		while (1) {
-			while ((cmp(data + i * e_size, pivot) < 0) && i < n) i++;
-			while ((cmp(data + j * e_size, pivot) >=0) && j > 0) j--;
-			if (i<j) {
+			while ((cmp(data + i * e_size, pivot) < 0) && (i < n))
+				i++;
+			while ((cmp(data + j * e_size, pivot) >= 0) && (j > 0))
+				j--;
+			
+			if (i < j) {
 				memcpy(tmp, data + i * e_size, e_size);
 				memcpy(data + i * e_size, data + j * e_size, e_size);
 				memcpy(data + j * e_size, tmp, e_size);

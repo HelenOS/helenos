@@ -81,7 +81,7 @@ void tlb_init(void)
 void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
     uintptr_t page, count_t count)
 {
-	int i;
+	unsigned int i;
 
 	CPU->tlb_active = 0;
 	spinlock_lock(&tlblock);
@@ -144,7 +144,7 @@ void tlb_shootdown_ipi_recv(void)
 	asid_t asid;
 	uintptr_t page;
 	count_t count;
-	int i;
+	unsigned int i;
 	
 	ASSERT(CPU);
 	

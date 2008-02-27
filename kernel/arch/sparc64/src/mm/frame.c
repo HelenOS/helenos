@@ -48,7 +48,7 @@ uintptr_t last_frame = NULL;
  */
 void frame_arch_init(void)
 {
-	int i;
+	unsigned int i;
 	pfn_t confdata;
 
 	if (config.cpu_active == 1) {

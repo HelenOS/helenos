@@ -78,7 +78,7 @@ char * test_thread1(bool quiet)
 	thread_sleep(10);
 	
 	atomic_set(&finish, 0);
-	while (atomic_get(&threads_finished) < total) {
+	while (atomic_get(&threads_finished) < ((long) total)) {
 		if (!quiet)
 			printf("Threads left: %d\n", total - atomic_get(&threads_finished));
 		thread_sleep(1);

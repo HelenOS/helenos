@@ -70,7 +70,7 @@ char * get_symtab_entry(unative_t addr)
  */
 static char * symtab_search_one(const char *name, int *startpos)
 {
-	int namelen = strlen(name);
+	unsigned int namelen = strlen(name);
 	char *curname;
 	int i,j;
 	int colonoffset = -1;

@@ -246,7 +246,7 @@ static void test_tree_delete(avltree_t *tree, count_t node_count,
 
 static void test_tree_delmin(avltree_t *tree, count_t node_count, bool quiet)
 {
-	int i = 0;
+	unsigned int i = 0;
 	
 	if (!quiet)
 		printf("Deleting minimum nodes...");

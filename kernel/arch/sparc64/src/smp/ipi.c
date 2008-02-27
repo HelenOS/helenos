@@ -116,7 +116,7 @@ static void cross_call(int mid, void (* func)(void))
  */
 void ipi_broadcast_arch(int ipi)
 {
-	int i;
+	unsigned int i;
 	
 	void (* func)(void);
 	

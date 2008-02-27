@@ -65,7 +65,7 @@
  */
 static void code_execute(call_t *call, irq_code_t *code)
 {
-	int i;
+	unsigned int i;
 	unative_t dstval = 0;
 	
 	if (!code)

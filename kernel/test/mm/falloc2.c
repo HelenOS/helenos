@@ -88,7 +88,7 @@ static void falloc(void * arg)
 				printf("Thread #%llu (cpu%d): Deallocating ... \n", THREAD->tid, CPU->id);
 			
 			for (i = 0; i < allocated; i++) {
-				for (k = 0; k <= ((FRAME_SIZE << order) - 1); k++) {
+				for (k = 0; k <= (((index_t) FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
 						if (!sh_quiet)
 							printf("Thread #%llu (cpu%d): Unexpected data (%d) in block %p offset %#zx\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);

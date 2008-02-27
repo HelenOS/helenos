@@ -61,7 +61,7 @@ bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
 	ranges = prop->size / sizeof(ofw_sbus_range_t);
 	range = prop->value;
 	
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < ranges; i++) {
 		if (overlaps(reg->addr, reg->size, range[i].child_base,

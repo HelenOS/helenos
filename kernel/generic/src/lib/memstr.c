@@ -59,7 +59,7 @@
  */
 void *_memcpy(void * dst, const void *src, size_t cnt)
 {
-	int i, j;
+	unsigned int i, j;
 	
 	if (ALIGN_UP((uintptr_t) src, sizeof(unative_t)) != (uintptr_t) src ||
 		ALIGN_UP((uintptr_t) dst, sizeof(unative_t)) != (uintptr_t) dst) {
@@ -89,7 +89,7 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
  */
 void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 {
-	int i;
+	unsigned int i;
 	uint8_t *p = (uint8_t *) dst;
 	
 	for (i = 0; i < cnt; i++)
@@ -108,7 +108,7 @@ void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
  */
 void _memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 {
-	int i;
+	unsigned int i;
 	uint16_t *p = (uint16_t *) dst;
 	
 	for (i = 0; i < cnt; i++)

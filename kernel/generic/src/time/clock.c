@@ -137,7 +137,7 @@ void clock(void)
 	timeout_handler_t f;
 	void *arg;
 	count_t missed_clock_ticks = CPU->missed_clock_ticks;
-	int i;
+	unsigned int i;
 
 	/*
 	 * To avoid lock ordering problems,

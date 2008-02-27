@@ -120,7 +120,7 @@ static inline index_t frame_index_abs(zone_t *zone, frame_t *frame)
 
 static inline int frame_index_valid(zone_t *zone, index_t index)
 {
-	return (index >= 0) && (index < zone->count);
+	return (index < zone->count);
 }
 
 /** Compute pfn_t from frame_t pointer & zone pointer */
@@ -210,7 +210,7 @@ static zone_t * find_zone_and_lock(pfn_t frame, unsigned int *pzone)
 	
 	spinlock_lock(&zones.lock);
 
-	if (hint >= zones.count || hint < 0)
+	if (hint >= zones.count)
 		hint = 0;
 	
 	i = hint;
@@ -719,7 +719,7 @@ void zone_merge(unsigned int z1, unsigned int z2)
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 
-	if (z1 < 0 || z1 >= zones.count || z2 < 0 || z2 >= zones.count)
+	if ((z1 >= zones.count) || (z2 >= zones.count))
 		goto errout;
 	/* We can join only 2 zones with none existing inbetween */
 	if (z2-z1 != 1)

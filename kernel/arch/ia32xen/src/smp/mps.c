@@ -77,11 +77,11 @@ struct __io_apic_entry *io_apic_entries = NULL;
 struct __io_intr_entry *io_intr_entries = NULL;
 struct __l_intr_entry *l_intr_entries = NULL;
 
-int processor_entry_cnt = 0;
-int bus_entry_cnt = 0;
-int io_apic_entry_cnt = 0;
-int io_intr_entry_cnt = 0;
-int l_intr_entry_cnt = 0;
+unsigned int processor_entry_cnt = 0;
+unsigned int bus_entry_cnt = 0;
+unsigned int io_apic_entry_cnt = 0;
+unsigned int io_intr_entry_cnt = 0;
+unsigned int l_intr_entry_cnt = 0;
 
 waitq_t ap_completion_wq;
 
@@ -417,7 +417,7 @@ void ct_extended_entries(void)
 
 int mps_irq_to_pin(unsigned int irq)
 {
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < io_intr_entry_cnt; i++) {
 		if (io_intr_entries[i].src_bus_irq == irq && io_intr_entries[i].intr_type == 0)

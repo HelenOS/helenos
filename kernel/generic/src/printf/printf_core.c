@@ -93,7 +93,7 @@ static char digits_big[] = "0123456789ABCDEF";
 static int printf_putnchars(const char * buf, size_t count,
     struct printf_spec *ps)
 {
-	return ps->write((void *)buf, count, ps->data);
+	return ps->write((void *) buf, count, ps->data);
 }
 
 /** Print a string without adding a newline.
@@ -177,8 +177,8 @@ static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
  *
  * @return		Number of characters printed, negative value on	failure.
  */ 
-static int print_string(char *s, int width, int precision, uint64_t flags,
-    struct printf_spec *ps)
+static int print_string(char *s, int width, unsigned int precision,
+	uint64_t flags, struct printf_spec *ps)
 {
 	int counter = 0;
 	size_t size;

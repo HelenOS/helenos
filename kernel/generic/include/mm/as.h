@@ -299,7 +299,7 @@ extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
-extern int elf_load(elf_header_t *header, as_t *as);
+extern unsigned int elf_load(elf_header_t *header, as_t *as);
 
 /* Address space area related syscalls. */
 extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);

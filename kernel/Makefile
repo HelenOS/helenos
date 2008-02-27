@@ -43,7 +43,7 @@ DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"
 	-DKERNEL
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
-	-fno-builtin -fomit-frame-pointer -Wall -Wmissing-prototypes -Werror \
+	-fno-builtin -fomit-frame-pointer -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
 	-nostdlib -nostdinc
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \

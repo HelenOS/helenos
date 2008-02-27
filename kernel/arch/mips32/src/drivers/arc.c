@@ -118,7 +118,7 @@ static arc_func_vector_t *arc_entry;
 static void arc_print_confdata(arc_component *c)
 {
 	cm_resource_list *configdata;
-	int i;
+	unsigned int i;
 
 	if (!c->configdatasize)
 		return; /* No configuration data */
@@ -161,7 +161,7 @@ static void arc_print_confdata(arc_component *c)
 /** Print information about component */
 static void arc_print_component(arc_component *c)
 {
-	int i;
+	unsigned int i;
 
 	printf("%s: ",ctypes[c->type]);
 	for (i = 0; i < c->identifier_len; i++)

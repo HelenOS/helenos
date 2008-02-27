@@ -56,10 +56,10 @@ static void putc(char ch)
  */
 static int debug_write(const char *str, size_t count, void *unused)
 {
-	int i;
-	for (i = 0; i < count; ++i) {
+	unsigned int i;
+	for (i = 0; i < count; ++i)
 		putc(str[i]);
-	}
+	
 	return i;
 }
 

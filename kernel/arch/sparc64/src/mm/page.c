@@ -66,7 +66,7 @@ void page_arch_init(void)
 	} else {
 
 #ifdef CONFIG_SMP
-		int i;
+		unsigned int i;
 
 		/*
 		 * Copy locked DTLB entries from the BSP.
@@ -98,7 +98,7 @@ void page_arch_init(void)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	unsigned int order;
-	int i;
+	unsigned int i;
 
 	ASSERT(config.cpu_active == 1);
 

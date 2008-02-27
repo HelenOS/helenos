@@ -244,7 +244,7 @@ task_t *task_run_program(void *program_addr, char *name)
 {
 	as_t *as;
 	as_area_t *a;
-	int rc;
+	unsigned int rc;
 	thread_t *t;
 	task_t *task;
 	uspace_arg_t *kernel_uarg;

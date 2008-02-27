@@ -139,9 +139,9 @@ int strcmp(const char *src, const char *dst)
  */
 int strncmp(const char *src, const char *dst, size_t len)
 {
-	int i;
+	unsigned int i;
 	
-	for (i = 0; *src && *dst && i < len; src++, dst++, i++) {
+	for (i = 0; (*src) && (*dst) && (i < len); src++, dst++, i++) {
 		if (*src < *dst)
 			return -1;
 		if (*src > *dst)
@@ -168,7 +168,7 @@ int strncmp(const char *src, const char *dst, size_t len)
  */
 void strncpy(char *dest, const char *src, size_t len)
 {
-	int i;
+	unsigned int i;
 	for (i = 0; i < len; i++) {
 		if (!(dest[i] = src[i]))
 			return;

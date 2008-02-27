@@ -103,6 +103,7 @@ static void exc_undef(int n, istate_t *istate)
 /** kconsole cmd - print all exceptions */
 static int exc_print_cmd(cmd_arg_t *argv)
 {
+#if (IVT_ITEMS > 0)
 	unsigned int i;
 	char *symbol;
 
@@ -138,6 +139,7 @@ static int exc_print_cmd(cmd_arg_t *argv)
 	}
 	
 	spinlock_unlock(&exctbl_lock);
+#endif
 	
 	return 1;
 }

@@ -208,7 +208,7 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 	bpinfo_t *cur;
 	ipl_t ipl;
 
-	if (argv->intval < 0 || argv->intval > BKPOINTS_MAX) {
+	if (argv->intval > BKPOINTS_MAX) {
 		printf("Invalid breakpoint number.\n");
 		return 0;
 	}

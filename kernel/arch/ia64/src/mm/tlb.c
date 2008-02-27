@@ -59,7 +59,7 @@ void tlb_invalidate_all(void)
 	uintptr_t adr;
 	uint32_t count1, count2, stride1, stride2;
 		
-	int i, j;
+	unsigned int i, j;
 		
 	adr = PAL_PTCE_INFO_BASE();
 	count1 = PAL_PTCE_INFO_COUNT1();
@@ -69,8 +69,8 @@ void tlb_invalidate_all(void)
 		
 	ipl = interrupts_disable();
 
-	for(i = 0; i < count1; i++) {
-		for(j = 0; j < count2; j++) {
+	for (i = 0; i < count1; i++) {
+		for (j = 0; j < count2; j++) {
 			asm volatile (
 				"ptc.e %0 ;;"
 				:

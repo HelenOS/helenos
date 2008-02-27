@@ -69,7 +69,7 @@ static int load_segment(elf_segment_header_t *entry, elf_header_t *elf,
  * @param as Created and properly mapped address space
  * @return EE_OK on success
  */
-int elf_load(elf_header_t *header, as_t * as)
+unsigned int elf_load(elf_header_t *header, as_t * as)
 {
 	int i, rc;
 
@@ -131,7 +131,7 @@ int elf_load(elf_header_t *header, as_t * as)
  *
  * @return NULL terminated description of error.
  */
-char *elf_error(int rc)
+char *elf_error(unsigned int rc)
 {
 	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
 

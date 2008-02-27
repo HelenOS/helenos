@@ -58,7 +58,11 @@ test_t tests[] = {
 #include <print/print1.def>
 #include <thread/thread1.def>
 #include <sysinfo/sysinfo1.def>
-	{NULL, NULL, NULL}
+	{
+		.name = NULL,
+		.desc = NULL, 
+		.entry = NULL
+	}
 };
 
 /** @}

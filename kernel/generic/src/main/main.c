@@ -86,7 +86,7 @@ config_t config;
 
 /** Initial user-space tasks */
 init_t init = {
-	0
+	.cnt = 0
 };
 
 /** Boot allocations. */

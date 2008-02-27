@@ -55,7 +55,7 @@ bootinfo_t bootinfo;
 /** Performs arm32 specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	int i;
+	unsigned int i;
 
 	init.cnt = bootinfo.cnt;
 

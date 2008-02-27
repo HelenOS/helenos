@@ -65,7 +65,7 @@ bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *
 	ranges = prop->size / sizeof(ofw_pci_range_t);
 	range = prop->value;
 	
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < ranges; i++) {
 		if ((reg->space & PCI_SPACE_MASK) != (range[i].space & PCI_SPACE_MASK))
@@ -100,7 +100,7 @@ bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_r
 	assigned_addresses = prop->size / sizeof(ofw_pci_reg_t);
 	assigned_address = prop->value;
 	
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < assigned_addresses; i++) {
 		if ((assigned_address[i].space & PCI_REG_MASK) == (reg->space & PCI_REG_MASK)) {

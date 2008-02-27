@@ -172,7 +172,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	void *data;
 	slab_t *slab;
 	size_t fsize;
-	int i;
+	unsigned int i;
 	unsigned int zone = 0;
 	
 	data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
@@ -191,15 +191,15 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	}
 	
 	/* Fill in slab structures */
-	for (i=0; i < (1 << cache->order); i++)
-		frame_set_parent(ADDR2PFN(KA2PA(data))+i, slab, zone);
+	for (i = 0; i < ((unsigned int) 1 << cache->order); i++)
+		frame_set_parent(ADDR2PFN(KA2PA(data)) + i, slab, zone);
 
 	slab->start = data;
 	slab->available = cache->objects;
 	slab->nextavail = 0;
 	slab->cache = cache;
 
-	for (i=0; i<cache->objects;i++)
+	for (i = 0; i < cache->objects; i++)
 		*((int *) (slab->start + i*cache->size)) = i+1;
 
 	atomic_inc(&cache->allocated_slabs);
@@ -371,10 +371,10 @@ static void put_mag_to_cache(slab_cache_t *cache, slab_magazine_t *mag)
 static count_t magazine_destroy(slab_cache_t *cache, 
 				slab_magazine_t *mag)
 {
-	int i;
+	unsigned int i;
 	count_t frames = 0;
 
-	for (i=0;i < mag->busy; i++) {
+	for (i = 0; i < mag->busy; i++) {
 		frames += slab_obj_destroy(cache, mag->objs[i], NULL);
 		atomic_dec(&cache->cached_objs);
 	}
@@ -527,7 +527,7 @@ static int magazine_obj_put(slab_cache_t *cache, void *obj)
 /* Slab cache functions */
 
 /** Return number of objects that fit in certain cache size */
-static int comp_objects(slab_cache_t *cache)
+static unsigned int comp_objects(slab_cache_t *cache)
 {
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
 		return ((PAGE_SIZE << cache->order) - sizeof(slab_t)) / cache->size;
@@ -536,16 +536,16 @@ static int comp_objects(slab_cache_t *cache)
 }
 
 /** Return wasted space in slab */
-static int badness(slab_cache_t *cache)
+static unsigned int badness(slab_cache_t *cache)
 {
-	int objects;
-	int ssize;
+	unsigned int objects;
+	unsigned int ssize;
 
 	objects = comp_objects(cache);
 	ssize = PAGE_SIZE << cache->order;
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
 		ssize -= sizeof(slab_t);
-	return ssize - objects*cache->size;
+	return ssize - objects * cache->size;
 }
 
 /**
@@ -553,16 +553,15 @@ static int badness(slab_cache_t *cache)
  */
 static void make_magcache(slab_cache_t *cache)
 {
-	int i;
+	unsigned int i;
 	
 	ASSERT(_slab_initialized >= 2);
 
 	cache->mag_cache = malloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
-	for (i=0; i < config.cpu_count; i++) {
+	for (i = 0; i < config.cpu_count; i++) {
 		memsetb((uintptr_t)&cache->mag_cache[i],
 			sizeof(cache->mag_cache[i]), 0);
-		spinlock_initialize(&cache->mag_cache[i].lock, 
-				    "slab_maglock_cpu");
+		spinlock_initialize(&cache->mag_cache[i].lock, "slab_maglock_cpu");
 	}
 }
 
@@ -654,7 +653,7 @@ slab_cache_t * slab_cache_create(char *name,
  */
 static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 {
-	int i;
+	unsigned int i;
 	slab_magazine_t *mag;
 	count_t frames = 0;
 	int magcount;
@@ -675,7 +674,7 @@ static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 	if (flags & SLAB_RECLAIM_ALL) {
 		/* Free cpu-bound magazines */
 		/* Destroy CPU magazines */
-		for (i=0; i<config.cpu_count; i++) {
+		for (i = 0; i < config.cpu_count; i++) {
 			spinlock_lock(&cache->mag_cache[i].lock);
 
 			mag = cache->mag_cache[i].current;

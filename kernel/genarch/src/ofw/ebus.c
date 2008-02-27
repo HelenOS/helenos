@@ -57,7 +57,7 @@ bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t
 	ranges = prop->size / sizeof(ofw_ebus_range_t);
 	range = prop->value;
 	
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < ranges; i++) {
 		if (reg->space != range[i].child_space)
@@ -102,7 +102,7 @@ bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t
 	uint32_t addr = reg->addr & intr_mask->addr_mask;
 	uint32_t intr = interrupt & intr_mask->intr_mask;
 	
-	int i;
+	unsigned int i;
 	for (i = 0; i < count; i++) {
 		if ((intr_map[i].space == space) && (intr_map[i].addr == addr)
 			&& (intr_map[i].intr == intr))

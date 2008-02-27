@@ -490,7 +490,7 @@ void tlb_invalidate_asid(asid_t asid)
  */
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
-	int i;
+	unsigned int i;
 	tlb_context_reg_t pc_save, ctx;
 	
 	/* switch to nucleus because we are mapped by the primary context */

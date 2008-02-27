@@ -572,7 +572,7 @@ void tlb_invalidate_asid(asid_t asid)
  */
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
-	int i;
+	unsigned int i;
 	ipl_t ipl;
 	entry_lo_t lo0, lo1;
 	entry_hi_t hi, hi_save;
@@ -583,7 +583,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();
 
-	for (i = 0; i < cnt+1; i+=2) {
+	for (i = 0; i < cnt + 1; i += 2) {
 		hi.value = 0;
 		prepare_entry_hi(&hi, asid, page + i * PAGE_SIZE);
 		cp0_entry_hi_write(hi.value);

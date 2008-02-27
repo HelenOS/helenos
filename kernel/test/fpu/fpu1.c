@@ -215,7 +215,7 @@ char * test_fpu1(bool quiet)
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-	while (atomic_get(&threads_ok) != total) {
+	while (atomic_get(&threads_ok) != (long) total) {
 		if (!quiet)
 			printf("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);

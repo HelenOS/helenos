@@ -82,7 +82,7 @@ extern pte_t ptl_0; /* From boot.S */
 void page_arch_init(void)
 {
 	uintptr_t cur;
-	int i;
+	unsigned int i;
 	int identity_flags = PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL | PAGE_WRITE;
 
 	if (config.cpu_active == 1) {

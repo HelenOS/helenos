@@ -103,7 +103,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 			ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
-			int i;
+			unsigned int i;
 
 			/*
 			 * Workaround for valid NULL address.
@@ -290,14 +290,14 @@ void elf_share(as_area_t *area)
 	mutex_lock(&area->sh_info->lock);
 	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
 	    cur = cur->next) {
-		int i;
+		unsigned int i;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			count_t count = (count_t) node->value[i];
-			int j;
+			unsigned int j;
 			
 			/*
 			 * Skip read-only areas of used space that are backed

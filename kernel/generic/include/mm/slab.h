@@ -53,7 +53,7 @@
 #define SLAB_INSIDE_SIZE   (PAGE_SIZE >> 3)
 
 /** Maximum wasted space we allow for cache */
-#define SLAB_MAX_BADNESS(cache)   ((PAGE_SIZE << (cache)->order) >> 2)
+#define SLAB_MAX_BADNESS(cache)   (((unsigned int) PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
 
@@ -99,8 +99,8 @@ typedef struct {
 	int flags;
 
 	/* Computed values */
-	uint8_t order;		/**< Order of frames to be allocated */
-	int objects;		/**< Number of objects that fit in */
+	uint8_t order;				/**< Order of frames to be allocated */
+	unsigned int objects;		/**< Number of objects that fit in */
 
 	/* Statistics */
 	atomic_t allocated_slabs;

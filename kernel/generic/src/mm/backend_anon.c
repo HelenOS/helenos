@@ -98,7 +98,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		    ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
 		if (!frame) {
 			bool allocate = true;
-			int i;
+			unsigned int i;
 			
 			/*
 			 * Zero can be returned as a valid frame address.
@@ -193,13 +193,13 @@ void anon_share(as_area_t *area)
 	for (cur = area->used_space.leaf_head.next;
 	    cur != &area->used_space.leaf_head; cur = cur->next) {
 		btree_node_t *node;
-		int i;
+		unsigned int i;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			count_t count = (count_t) node->value[i];
-			int j;
+			unsigned int j;
 			
 			for (j = 0; j < count; j++) {
 				pte_t *pte;

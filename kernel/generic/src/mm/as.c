@@ -431,7 +431,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 				uintptr_t b = node->key[node->keys - 1];
 				count_t c =
 				    (count_t) node->value[node->keys - 1];
-				int i = 0;
+				unsigned int i = 0;
 			
 				if (overlaps(b, c * PAGE_SIZE, area->base,
 				    pages * PAGE_SIZE)) {
@@ -561,7 +561,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	for (cur = area->used_space.leaf_head.next;
 	    cur != &area->used_space.leaf_head; cur = cur->next) {
 		btree_node_t *node;
-		int i;
+		unsigned int i;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
@@ -1097,7 +1097,7 @@ as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
 	as_area_t *a;
 	btree_node_t *leaf, *lnode;
-	int i;
+	unsigned int i;
 	
 	a = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
 	if (a) {
@@ -1155,7 +1155,7 @@ bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
 {
 	as_area_t *a;
 	btree_node_t *leaf, *node;
-	int i;
+	unsigned int i;
 	
 	/*
 	 * We don't want any area to have conflicts with NULL page.
@@ -1264,7 +1264,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 {
 	btree_node_t *leaf, *node;
 	count_t pages;
-	int i;
+	unsigned int i;
 
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
@@ -1546,7 +1546,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 {
 	btree_node_t *leaf, *node;
 	count_t pages;
-	int i;
+	unsigned int i;
 
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
@@ -1734,7 +1734,7 @@ void sh_info_remove_reference(share_info_t *sh_info)
 		for (cur = sh_info->pagemap.leaf_head.next;
 		    cur != &sh_info->pagemap.leaf_head; cur = cur->next) {
 			btree_node_t *node;
-			int i;
+			unsigned int i;
 			
 			node = list_get_instance(cur, btree_node_t, leaf_link);
 			for (i = 0; i < node->keys; i++) 
@@ -1795,7 +1795,7 @@ void as_print(as_t *as)
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		
-		int i;
+		unsigned int i;
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 		

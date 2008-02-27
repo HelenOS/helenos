@@ -56,7 +56,7 @@ static char *imp_data[] = {
 };
 
 /** Length of the #imp_data array */
-static int imp_data_length = sizeof(imp_data) / sizeof(char *);
+static unsigned int imp_data_length = sizeof(imp_data) / sizeof(char *);
 
 /** Architecture names */
 static char *arch_data[] = {
@@ -71,7 +71,7 @@ static char *arch_data[] = {
 };
 
 /** Length of the #arch_data array */
-static int arch_data_length = sizeof(arch_data) / sizeof(char *);
+static unsigned int arch_data_length = sizeof(arch_data) / sizeof(char *);
 
 
 /** Retrieves processor identification from CP15 register 0.
