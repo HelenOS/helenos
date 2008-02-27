@@ -42,6 +42,23 @@
 #include <async.h>
 
 typedef struct {
+	bool (* match)(void *, const char *);
+	void * (* create)(int);
+	void (* destroy)(void *);
+	bool (* link)(void *, void *, const char *);
+	int (* unlink)(void *);
+	unsigned long (* index_get)(void *);
+	unsigned long (* size_get)(void *);
+	unsigned (* lnkcnt_get)(void *);
+	void *(* child_get)(void *);
+	void *(* sibling_get)(void *);
+	void *(* root_get)(void);
+	char (* plb_get_char)(unsigned pos);	
+	bool (* is_directory)(void *);
+	bool (* is_file)(void *);
+} libfs_ops_t;
+
+typedef struct {
 	int fs_handle;		/**< File system handle. */
 	ipcarg_t vfs_phonehash;	/**< Initial VFS phonehash. */
 	uint8_t *plb_ro;	/**< Read-only PLB view. */
@@ -55,6 +72,9 @@ extern int block_write(int, unsigned long, void *);
 extern void node_add_mp(int, unsigned long);
 extern void node_del_mp(int, unsigned long);
 extern bool node_is_mp(int, unsigned long);
+
+extern void libfs_lookup(libfs_ops_t *, int, ipc_callid_t, ipc_call_t *);
+
 #endif
 
 /** @}

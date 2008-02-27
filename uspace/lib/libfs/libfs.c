@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar 
+ * Copyright (c) 2008 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,8 @@
 #include <async.h>
 #include <ipc/ipc.h>
 #include <as.h>
+#include <assert.h>
+#include <dirent.h>
 
 /** Register file system server.
  *
@@ -118,6 +120,154 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	async_set_client_connection(conn);
 
 	return IPC_GET_RETVAL(answer);
+}
+
+void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
+{
+	unsigned next = IPC_GET_ARG1(*request);
+	unsigned last = IPC_GET_ARG2(*request);
+	int dev_handle = IPC_GET_ARG3(*request);
+	int lflag = IPC_GET_ARG4(*request);
+
+	if (last < next)
+		last += PLB_SIZE;
+
+	void *cur = ops->root_get();
+	void *tmp = ops->child_get(cur);
+
+	if (ops->plb_get_char(next) == '/')
+		next++;		/* eat slash */
+	
+	char component[NAME_MAX + 1];
+	int len = 0;
+	while (tmp && next <= last) {
+
+		/* collect the component */
+		if (ops->plb_get_char(next) != '/') {
+			if (len + 1 == NAME_MAX) {
+				/* comopnent length overflow */
+				ipc_answer_0(rid, ENAMETOOLONG);
+				return;
+			}
+			component[len++] = ops->plb_get_char(next);
+			next++;	/* process next character */
+			if (next <= last) 
+				continue;
+		}
+
+		assert(len);
+		component[len] = '\0';
+		next++;		/* eat slash */
+		len = 0;
+
+		/* match the component */
+		while (tmp && !ops->match(tmp, component))
+			tmp = ops->sibling_get(tmp);
+
+		/* handle miss: match amongst siblings */
+		if (!tmp) {
+			if ((next > last) && (lflag & L_CREATE)) {
+				/* no components left and L_CREATE specified */
+				if (!ops->is_directory(cur)) {
+					ipc_answer_0(rid, ENOTDIR);
+					return;
+				} 
+				void *nodep = ops->create(lflag);
+				if (nodep) {
+					if (!ops->link(cur, nodep, component)) {
+						ops->destroy(nodep);
+						ipc_answer_0(rid, ENOSPC);
+					} else {
+						ipc_answer_5(rid, EOK,
+						    fs_handle, dev_handle,
+						    ops->index_get(nodep), 0,
+						    ops->lnkcnt_get(nodep));
+					}
+				} else {
+					ipc_answer_0(rid, ENOSPC);
+				}
+				return;
+			}
+			ipc_answer_0(rid, ENOENT);
+			return;
+		}
+
+		/* descend one level */
+		cur = tmp;
+		tmp = ops->child_get(tmp);
+	}
+
+	/* handle miss: excessive components */
+	if (!tmp && next <= last) {
+		if (lflag & L_CREATE) {
+			if (!ops->is_directory(cur)) {
+				ipc_answer_0(rid, ENOTDIR);
+				return;
+			}
+
+			/* collect next component */
+			while (next <= last) {
+				if (ops->plb_get_char(next) == '/') {
+					/* more than one component */
+					ipc_answer_0(rid, ENOENT);
+					return;
+				}
+				if (len + 1 == NAME_MAX) {
+					/* component length overflow */
+					ipc_answer_0(rid, ENAMETOOLONG);
+					return;
+				}
+				component[len++] = ops->plb_get_char(next);
+				next++;	/* process next character */
+			}
+			assert(len);
+			component[len] = '\0';
+			len = 0;
+				
+			void *nodep = ops->create(lflag);
+			if (nodep) {
+				if (!ops->link(cur, nodep, component)) {
+					ops->destroy(nodep);
+					ipc_answer_0(rid, ENOSPC);
+				} else {
+					ipc_answer_5(rid, EOK,
+					    fs_handle, dev_handle,
+					    ops->index_get(nodep), 0,
+					    ops->lnkcnt_get(nodep));
+				}
+			} else {
+				ipc_answer_0(rid, ENOSPC);
+			}
+			return;
+		}
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	/* handle hit */
+	if (lflag & L_DESTROY) {
+		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
+		int res = ops->unlink(cur);
+		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
+		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
+		return;
+	}
+	if ((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) {
+		ipc_answer_0(rid, EEXIST);
+		return;
+	}
+	if ((lflag & L_FILE) && (ops->is_directory(cur))) {
+		ipc_answer_0(rid, EISDIR);
+		return;
+	}
+	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
+		ipc_answer_0(rid, ENOTDIR);
+		return;
+	}
+
+	ipc_answer_5(rid, EOK, fs_handle, dev_handle, ops->index_get(cur),
+	    ops->size_get(cur), ops->lnkcnt_get(cur));
 }
 
 /** @}
