@@ -363,19 +363,19 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 	/* Truncate the file if requested and if necessary. */
 	if (oflag & O_TRUNC) {
-		futex_down(&node->contents_rwlock);
+		rwlock_write_lock(&node->contents_rwlock);
 		if (node->size) {
 			rc = vfs_truncate_internal(node->fs_handle,
 			    node->dev_handle, node->index, 0);
 			if (rc) {
-				futex_up(&node->contents_rwlock);
+				rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
 				ipc_answer_0(rid, rc);
 				return;
 			}
 			node->size = 0;
 		}
-		futex_up(&node->contents_rwlock);
+		rwlock_write_unlock(&node->contents_rwlock);
 	}
 
 	/*
