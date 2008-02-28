@@ -52,6 +52,9 @@
 #include <atomic.h>
 #include "vfs.h"
 
+/* Forward declarations of static functions. */
+static int vfs_truncate_internal(int, int, unsigned long, size_t);
+
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
  * concurrent VFS operation which modifies the file system namespace.
@@ -349,7 +352,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/** Path is no longer needed. */
+	/* Path is no longer needed. */
 	free(path);
 
 	vfs_node_t *node = vfs_node_get(&lr);
@@ -357,6 +360,23 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		rwlock_write_unlock(&namespace_rwlock);
 	else
 		rwlock_read_unlock(&namespace_rwlock);
+
+	/* Truncate the file if requested and if necessary. */
+	if (oflag & O_TRUNC) {
+		futex_down(&node->contents_rwlock);
+		if (node->size) {
+			rc = vfs_truncate_internal(node->fs_handle,
+			    node->dev_handle, node->index, 0);
+			if (rc) {
+				futex_up(&node->contents_rwlock);
+				vfs_node_put(node);
+				ipc_answer_0(rid, rc);
+				return;
+			}
+			node->size = 0;
+		}
+		futex_up(&node->contents_rwlock);
+	}
 
 	/*
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
@@ -560,11 +580,24 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EINVAL);
 }
 
+int vfs_truncate_internal(int fs_handle, int dev_handle, unsigned long index,
+    size_t size)
+{
+	ipcarg_t rc;
+	int fs_phone;
+	
+	fs_phone = vfs_grab_phone(fs_handle);
+	rc = async_req_3_0(fs_phone, VFS_TRUNCATE, (ipcarg_t)dev_handle,
+	    (ipcarg_t)index, (ipcarg_t)size);
+	vfs_release_phone(fs_phone);
+	return (int)rc;
+}
+
 void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	size_t size = IPC_GET_ARG2(*request);
-	ipcarg_t rc;
+	int rc;
 
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
@@ -574,17 +607,14 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	futex_down(&file->lock);
 
 	rwlock_write_lock(&file->node->contents_rwlock);
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
-	rc = async_req_3_0(fs_phone, VFS_TRUNCATE,
-	    (ipcarg_t)file->node->dev_handle, (ipcarg_t)file->node->index,
-	    (ipcarg_t)size);
-	vfs_release_phone(fs_phone);
+	rc = vfs_truncate_internal(file->node->fs_handle,
+	    file->node->dev_handle, file->node->index, size);
 	if (rc == EOK)
 		file->node->size = size;
 	rwlock_write_unlock(&file->node->contents_rwlock);
 
 	futex_up(&file->lock);
-	ipc_answer_0(rid, rc);
+	ipc_answer_0(rid, (ipcarg_t)rc);
 }
 
 void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
