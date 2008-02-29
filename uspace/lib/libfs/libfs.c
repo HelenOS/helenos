@@ -122,6 +122,15 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	return IPC_GET_RETVAL(answer);
 }
 
+/** Lookup VFS triplet by name in the file system name space.
+ *
+ * @param ops		libfs operations structure with function pointers to
+ *			file system implementation
+ * @param fs_handle	File system handle of the file system where to perform
+ *			the lookup.
+ * @param rid		Request ID of the VFS_LOOKUP request.
+ * @param request	VFS_LOOKUP request data itself.
+ */
 void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
