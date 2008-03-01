@@ -124,6 +124,9 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 
 /** Lookup VFS triplet by name in the file system name space.
  *
+ * The path passed in the PLB must be in the canonical file system path format
+ * as returned by the canonify() function.
+ *
  * @param ops		libfs operations structure with function pointers to
  *			file system implementation
  * @param fs_handle	File system handle of the file system where to perform
