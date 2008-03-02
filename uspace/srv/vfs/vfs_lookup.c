@@ -49,7 +49,7 @@
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
 /* Forward static declarations. */
-static char *canonify(char *path);
+static char *canonify(char *path, size_t *lenp);
 
 atomic_t plb_futex = FUTEX_INITIALIZER;
 link_t plb_head;	/**< PLB entry ring buffer. */
@@ -57,8 +57,8 @@ uint8_t *plb = NULL;
 
 /** Perform a path lookup.
  *
- * @param path		Path to be resolved; it needn't be an ASCIIZ string.
- * @param len		Number of path characters pointed by path.
+ * @param path		Path to be resolved; it must be a NULL-terminated
+ *			string.
  * @param lflag		Flags to be used during lookup.
  * @param result	Empty structure where the lookup result will be stored.
  *			Can be NULL.
@@ -67,13 +67,10 @@ uint8_t *plb = NULL;
  *
  * @return		EOK on success or an error code from errno.h.
  */
-int vfs_lookup_internal(char *path, size_t len, int lflag,
-    vfs_lookup_res_t *result, vfs_pair_t *altroot)
+int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
+    vfs_pair_t *altroot)
 {
 	vfs_pair_t *root;
-
-	if (!len)
-		return EINVAL;
 
 	if (altroot)
 		root = altroot;
@@ -82,6 +79,11 @@ int vfs_lookup_internal(char *path, size_t len, int lflag,
 
 	if (!root->fs_handle)
 		return ENOENT;
+	
+	size_t len;
+	path = canonify(path, &len);
+	if (!path)
+		return EINVAL;
 	
 	futex_down(&plb_futex);
 
@@ -273,7 +275,8 @@ static void save_component(token_t *t, token_t *tfsl, token_t *tlcomp)
 }
 static void terminate_slash(token_t *t, token_t *tfsl, token_t *tlcomp)
 {
-	tfsl->stop[1] = '\0';
+	if (tfsl->stop[1])	/* avoid writing to a well-formatted path */
+		tfsl->stop[1] = '\0';
 }
 static void remove_trailing_slash(token_t *t, token_t *tfsl, token_t *tlcomp)
 {
@@ -434,11 +437,13 @@ static change_state_t trans[4][6] = {
  * This function makes a potentially non-canonical file system path canonical.
  * It works in-place and requires a NULL-terminated input string.
  *
- * @param		Path to be canonified.
+ * @param path		Path to be canonified.
+ * @param lenp		Pointer where the length of the final path will be
+ *			stored. Can be NULL.
  *
  * @return		Canonified path or NULL on failure.
  */
-char *canonify(char *path)
+char *canonify(char *path, size_t *lenp)
 {
 	state_t state;
 	token_t t;
@@ -450,6 +455,7 @@ char *canonify(char *path)
 restart:
 	state = S_INI;
 	t = tfsl;
+	tlcomp = tfsl;
 	while (state != S_ACCEPT && state != S_RESTART && state != S_REJECT) {
 		if (trans[state][t.kind].f)
 			trans[state][t.kind].f(&t, &tfsl, &tlcomp);
@@ -463,6 +469,8 @@ restart:
 	case S_REJECT:
 		return NULL;
 	case S_ACCEPT:
+		if (lenp)
+			*lenp = (size_t)((tlcomp.stop - tfsl.start) + 1);
 		return tfsl.start; 
 	default:
 		abort();

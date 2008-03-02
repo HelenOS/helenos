@@ -250,8 +250,7 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, size_t, int, vfs_lookup_res_t *,
-    vfs_pair_t *);
+extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *, vfs_pair_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);

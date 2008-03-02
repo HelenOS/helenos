@@ -75,8 +75,7 @@ static int lookup_root(int fs_handle, int dev_handle, vfs_lookup_res_t *result)
 		.dev_handle = dev_handle,
 	};
 
-	return vfs_lookup_internal("/", strlen("/"), L_DIRECTORY, result,
-	    &altroot);
+	return vfs_lookup_internal("/", L_DIRECTORY, result, &altroot);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -149,7 +148,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	/* Allocate buffer for the mount point data being received. */
 	uint8_t *buf;
-	buf = malloc(size);
+	buf = malloc(size + 1);
 	if (!buf) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
@@ -158,6 +157,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 	/* Deliver the mount point. */
 	(void) ipc_data_write_finalize(callid, buf, size);
+	buf[size] = '\0';
 
 	/*
 	 * Lookup the root node of the filesystem being mounted.
@@ -186,8 +186,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
 		rwlock_write_lock(&namespace_rwlock);
-		rc = vfs_lookup_internal(buf, size, L_DIRECTORY, &mp_res,
-		    NULL);
+		rc = vfs_lookup_internal(buf, L_DIRECTORY, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
 			rwlock_write_unlock(&namespace_rwlock);
@@ -314,7 +313,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * There is one optimization we could do in the future: copy the path
 	 * directly into the PLB using some kind of a callback.
 	 */
-	char *path = malloc(len);
+	char *path = malloc(len + 1);
 	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
@@ -328,6 +327,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		free(path);
 		return;
 	}
+	path[len] = '\0';
 	
 	/*
 	 * Avoid the race condition in which the file can be deleted before we
@@ -341,7 +341,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 	/* The path is now populated and we can call vfs_lookup_internal(). */
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, len, lflag, &lr, NULL);
+	rc = vfs_lookup_internal(path, lflag, &lr, NULL);
 	if (rc) {
 		if (lflag & L_CREATE)
 			rwlock_write_unlock(&namespace_rwlock);
@@ -636,7 +636,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	 * There is one optimization we could do in the future: copy the path
 	 * directly into the PLB using some kind of a callback.
 	 */
-	char *path = malloc(len);
+	char *path = malloc(len + 1);
 	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
@@ -650,10 +650,11 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 		free(path);
 		return;
 	}
+	path[len] = '\0';
 	
 	rwlock_write_lock(&namespace_rwlock);
 	int lflag = L_DIRECTORY | L_CREATE | L_EXCLUSIVE;
-	rc = vfs_lookup_internal(path, len, lflag, NULL, NULL);
+	rc = vfs_lookup_internal(path, lflag, NULL, NULL);
 	rwlock_write_unlock(&namespace_rwlock);
 	free(path);
 	ipc_answer_0(rid, rc);
@@ -678,7 +679,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	 * There is one optimization we could do in the future: copy the path
 	 * directly into the PLB using some kind of a callback.
 	 */
-	char *path = malloc(len);
+	char *path = malloc(len + 1);
 	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
@@ -692,11 +693,12 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 		free(path);
 		return;
 	}
+	path[len] = '\0';
 	
 	rwlock_write_lock(&namespace_rwlock);
 	lflag &= L_DIRECTORY;	/* sanitize lflag */
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, len, lflag | L_DESTROY, &lr, NULL);
+	rc = vfs_lookup_internal(path, lflag | L_DESTROY, &lr, NULL);
 	free(path);
 	if (rc != EOK) {
 		rwlock_write_unlock(&namespace_rwlock);
