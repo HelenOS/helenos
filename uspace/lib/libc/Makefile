@@ -74,7 +74,8 @@ GENERIC_SOURCES = \
 	generic/err.c \
 	generic/stdlib.c \
 	generic/mman.c \
-	generic/vfs.c
+	generic/vfs/vfs.c \
+	generic/vfs/canonify.c
 
 ARCH_SOURCES += \
 	arch/$(ARCH)/src/entry.s \
