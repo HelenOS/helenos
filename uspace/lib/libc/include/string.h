@@ -39,25 +39,27 @@
 
 #define bzero(ptr, len)	memset((ptr), 0, (len))
 
-void * memset(void *s, int c, size_t n);
-void * memcpy(void *dest, const void *src, size_t n);
-void * memmove(void *dest, const void *src, size_t n);
+extern void * memset(void *, int, size_t);
+extern void * memcpy(void *, const void *, size_t);
+extern void * memmove(void *, const void *, size_t);
 
-int bcmp(const char *s1, const char *s2, size_t n);
+extern int bcmp(const char *, const char *, size_t);
 
-int strcmp(const char *, const char *);
-int strncmp(const char *, const char *, size_t n);
+extern int strcmp(const char *, const char *);
+extern int strncmp(const char *, const char *, size_t);
 
-char *strcpy(char *dest, const char *src);
-char *strncpy(char *dest, const char *src, size_t n);
+extern char *strcpy(char *, const char *);
+extern char *strncpy(char *, const char *, size_t);
 
-size_t strlen(const char *str);
+extern char *strcat(char *, const char *);
 
-char *strchr(const char *str, int c);
-char *strrchr(const char *str, int c);
+extern size_t strlen(const char *);
 
-long int strtol(const char *nptr, char **endptr, int base);
-unsigned long strtoul(const char *nptr, char **endptr, int base);
+extern char *strchr(const char *, int);
+extern char *strrchr(const char *, int);
+
+extern long int strtol(const char *, char **, int);
+extern unsigned long strtoul(const char *, char **, int);
 
 #endif
 

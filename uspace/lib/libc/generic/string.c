@@ -328,7 +328,8 @@ char *strcpy(char *dest, const char *src)
 {
 	char *orig = dest;
 	
-	while ((*(dest++) = *(src++)));
+	while ((*(dest++) = *(src++)))
+		;
 	return orig;
 }
 
@@ -336,7 +337,19 @@ char *strncpy(char *dest, const char *src, size_t n)
 {
 	char *orig = dest;
 	
-	while ((*(dest++) = *(src++)) && --n);
+	while ((*(dest++) = *(src++)) && --n)
+		;
+	return orig;
+}
+
+char *strcat(char *dest, const char *src)
+{
+	char *orig = dest;
+	while (*dest++)
+		;
+	--dest;
+	while ((*dest++ = *src++))
+		;
 	return orig;
 }
 
