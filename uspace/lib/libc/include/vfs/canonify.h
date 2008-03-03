@@ -35,6 +35,8 @@
 #ifndef LIBC_VFS_CANONIFY_H_
 #define LIBC_VFS_CANONIFY_H_
 
+#include <sys/types.h>
+
 extern char *canonify(char *, size_t *);
 
 #endif

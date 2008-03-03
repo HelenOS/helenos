@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <vfs.h>
+#include <vfs/vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>

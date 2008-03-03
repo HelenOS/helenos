@@ -52,6 +52,8 @@ extern int ftruncate(int, off_t);
 extern int close(int);
 extern int unlink(const char *);
 extern int rmdir(const char *);
+extern int chdir(const char *);
+extern char *getcwd(char *buf, size_t);
 
 extern void _exit(int status);
 extern void *sbrk(ssize_t incr);

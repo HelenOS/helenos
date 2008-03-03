@@ -44,6 +44,7 @@
 #define EEXIST		(-260)
 #define ENOTEMPTY	(-261)
 #define EBADF		(-262)
+#define ERANGE		(-263)
 
 #endif
 
