@@ -186,6 +186,7 @@ static bool tmpfs_init(void)
 	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 1, &dentries_ops))
 		return false;
 	root = (tmpfs_dentry_t *) tmpfs_create_node(L_DIRECTORY);
+	root->lnkcnt = 1;
 	return root != NULL;
 }
 
