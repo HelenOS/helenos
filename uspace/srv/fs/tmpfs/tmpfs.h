@@ -54,6 +54,7 @@ typedef struct tmpfs_dentry {
 		TMPFS_FILE,
 		TMPFS_DIRECTORY
 	} type;
+	unsigned lnkcnt;	/**< Link count. */
 	size_t size;		/**< File size if type is TMPFS_FILE. */
 	void *data;		/**< File content's if type is TMPFS_FILE. */
 } tmpfs_dentry_t;

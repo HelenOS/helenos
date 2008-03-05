@@ -86,7 +86,7 @@ static unsigned long tmpfs_size_get(void *nodep)
 
 static unsigned tmpfs_lnkcnt_get(void *nodep)
 {
-	return 1;
+	return ((tmpfs_dentry_t *) nodep)->lnkcnt;
 }
 
 static void *tmpfs_child_get(void *nodep)
@@ -175,6 +175,7 @@ static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 	dentry->child = NULL;
 	dentry->name = NULL;
 	dentry->type = TMPFS_NONE;
+	dentry->lnkcnt = 0;
 	dentry->size = 0;
 	dentry->data = NULL;
 	link_initialize(&dentry->dh_link);
@@ -233,6 +234,9 @@ bool tmpfs_link_node(void *prnt, void *chld, const char *nm)
 	char *name = malloc(len + 1);
 	if (!name)
 		return false;
+	
+	childp->lnkcnt++;
+	
 	strcpy(name, nm);
 	childp->name = name;
 
@@ -275,6 +279,8 @@ int tmpfs_unlink_node(void *nodeptr)
 	free(dentry->name);
 	dentry->name = NULL;
 
+	dentry->lnkcnt--;
+
 	return EOK;
 }
 
@@ -282,6 +288,7 @@ void tmpfs_destroy_node(void *nodep)
 {
 	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
 	
+	assert(!dentry->lnkcnt);
 	assert(!dentry->child);
 	assert(!dentry->sibling);
 
