@@ -145,6 +145,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 	if (last < next)
 		last += PLB_SIZE;
 
+	void *par = NULL;
 	void *cur = ops->root_get();
 	void *tmp = ops->child_get(cur);
 
@@ -206,6 +207,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 		}
 
 		/* descend one level */
+		par = cur;
 		cur = tmp;
 		tmp = ops->child_get(tmp);
 	}
@@ -260,7 +262,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 	/* handle hit */
 	if (lflag & L_DESTROY) {
 		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
-		int res = ops->unlink(cur);
+		int res = ops->unlink(par, cur);
 		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
 		return;

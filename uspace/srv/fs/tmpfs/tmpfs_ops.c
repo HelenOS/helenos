@@ -70,7 +70,7 @@ static tmpfs_dentry_t *root;
 static bool tmpfs_match(void *, const char *);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
-static int tmpfs_unlink_node(void *);
+static int tmpfs_unlink_node(void *, void *);
 static void tmpfs_destroy_node(void *);
 
 /* Implementation of helper functions. */
@@ -170,7 +170,6 @@ unsigned tmpfs_next_index = 1;
 static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 {
 	dentry->index = 0;
-	dentry->parent = NULL;
 	dentry->sibling = NULL;
 	dentry->child = NULL;
 	dentry->name = NULL;
@@ -250,37 +249,36 @@ bool tmpfs_link_node(void *prnt, void *chld, const char *nm)
 	} else {
 		parentp->child = childp;
 	}
-	childp->parent = parentp;
 
 	return true;
 }
 
-int tmpfs_unlink_node(void *nodeptr)
+int tmpfs_unlink_node(void *prnt, void *chld)
 {
-	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *)nodeptr;
+	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *)prnt;
+	tmpfs_dentry_t *childp = (tmpfs_dentry_t *)chld;
 
-	if (dentry->child)
-		return ENOTEMPTY;
-
-	if (!dentry->parent)
+	if (!parentp)
 		return EBUSY;
 
-	if (dentry->parent->child == dentry) {
-		dentry->parent->child = dentry->sibling;
+	if (childp->child)
+		return ENOTEMPTY;
+
+	if (parentp->child == childp) {
+		parentp->child = childp->sibling;
 	} else {
 		/* TODO: consider doubly linked list for organizing siblings. */
-		tmpfs_dentry_t *tmp = dentry->parent->child;
-		while (tmp->sibling != dentry)
+		tmpfs_dentry_t *tmp = parentp->child;
+		while (tmp->sibling != childp)
 			tmp = tmp->sibling;
-		tmp->sibling = dentry->sibling;
+		tmp->sibling = childp->sibling;
 	}
-	dentry->sibling = NULL;
-	dentry->parent = NULL;
+	childp->sibling = NULL;
 
-	free(dentry->name);
-	dentry->name = NULL;
+	free(childp->name);
+	childp->name = NULL;
 
-	dentry->lnkcnt--;
+	childp->lnkcnt--;
 
 	return EOK;
 }

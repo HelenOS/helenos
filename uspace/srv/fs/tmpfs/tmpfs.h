@@ -45,7 +45,6 @@
 typedef struct tmpfs_dentry {
 	unsigned long index;	/**< TMPFS node index. */
 	link_t dh_link;		/**< Dentries hash table link. */
-	struct tmpfs_dentry *parent;
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
 	char *name;
