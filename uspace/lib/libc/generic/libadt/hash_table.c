@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,14 @@
 
 /** Create chained hash table.
  *
- * @param h Hash table structure. Will be initialized by this call.
- * @param m Number of slots in the hash table.
- * @param max_keys Maximal number of keys needed to identify an item.
- * @param op Hash table operations structure.
- * @return true on success
+ * @param h		Hash table structure. Will be initialized by this call.
+ * @param m		Number of hash table buckets.
+ * @param max_keys	Maximal number of keys needed to identify an item.
+ * @param op		Hash table operations structure.
+ * @return		True on success
  */
-int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, hash_table_operations_t *op)
+int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
+    hash_table_operations_t *op)
 {
 	hash_count_t i;
 
@@ -76,11 +77,22 @@ int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys, ha
 	return true;
 }
 
-/** Insert item into hash table.
+/** Destroy a hash table instance.
  *
- * @param h Hash table.
- * @param key Array of all keys necessary to compute hash index.
- * @param item Item to be inserted into the hash table.
+ * @param h		Hash table to be destroyed.
+ */
+void hash_table_destroy(hash_table_t *h)
+{
+	assert(h);
+	assert(h->entry);
+	free(h->entry);
+}
+
+/** Insert item into a hash table.
+ *
+ * @param h		Hash table.
+ * @param key		Array of all keys necessary to compute hash index.
+ * @param item		Item to be inserted into the hash table.
  */
 void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
 {
@@ -97,10 +109,10 @@ void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
 
 /** Search hash table for an item matching keys.
  *
- * @param h Hash table.
- * @param key Array of all keys needed to compute hash index.
+ * @param h		Hash table.
+ * @param key		Array of all keys needed to compute hash index.
  *
- * @return Matching item on success, NULL if there is no such item.
+ * @return		Matching item on success, NULL if there is no such item.
  */
 link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 {
@@ -112,7 +124,8 @@ link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 	chain = h->op->hash(key);
 	assert(chain < h->entries);
 	
-	for (cur = h->entry[chain].next; cur != &h->entry[chain]; cur = cur->next) {
+	for (cur = h->entry[chain].next; cur != &h->entry[chain];
+	    cur = cur->next) {
 		if (h->op->compare(key, h->max_keys, cur)) {
 			/*
 			 * The entry is there.
@@ -128,22 +141,25 @@ link_t *hash_table_find(hash_table_t *h, unsigned long key[])
  *
  * For each removed item, h->remove_callback() is called.
  *
- * @param h Hash table.
- * @param key Array of keys that will be compared against items of the hash table.
- * @param keys Number of keys in the 'key' array.
+ * @param h		Hash table.
+ * @param key		Array of keys that will be compared against items of
+ * 			the hash table.
+ * @param keys		Number of keys in the 'key' array.
  */
 void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 {
 	hash_index_t chain;
 	link_t *cur;
 
-	assert(h && h->op && h->op->hash && h->op->compare && h->op->remove_callback);
+	assert(h && h->op && h->op->hash && h->op->compare &&
+	    h->op->remove_callback);
 	assert(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
 
 		/*
-		 * All keys are known, hash_table_find() can be used to find the entry.
+		 * All keys are known, hash_table_find() can be used to find the
+		 * entry.
 		 */
 	
 		cur = hash_table_find(h, key);
@@ -159,7 +175,8 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	 * Any partially matching entries are to be removed.
 	 */
 	for (chain = 0; chain < h->entries; chain++) {
-		for (cur = h->entry[chain].next; cur != &h->entry[chain]; cur = cur->next) {
+		for (cur = h->entry[chain].next; cur != &h->entry[chain];
+		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
 				
