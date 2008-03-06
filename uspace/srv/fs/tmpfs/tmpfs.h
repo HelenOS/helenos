@@ -47,7 +47,7 @@ typedef struct tmpfs_dentry {
 	link_t dh_link;		/**< Dentries hash table link. */
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
-	char *name;
+	hash_table_t names;	/**< All names linking to this TMPFS node. */ 
 	enum {
 		TMPFS_NONE,
 		TMPFS_FILE,

@@ -175,7 +175,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 		len = 0;
 
 		/* match the component */
-		while (tmp && !ops->match(tmp, component))
+		while (tmp && !ops->match(cur, tmp, component))
 			tmp = ops->sibling_get(tmp);
 
 		/* handle miss: match amongst siblings */

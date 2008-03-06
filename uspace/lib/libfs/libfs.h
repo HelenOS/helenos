@@ -42,7 +42,7 @@
 #include <async.h>
 
 typedef struct {
-	bool (* match)(void *, const char *);
+	bool (* match)(void *, void *, const char *);
 	void * (* create)(int);
 	void (* destroy)(void *);
 	bool (* link)(void *, void *, const char *);
