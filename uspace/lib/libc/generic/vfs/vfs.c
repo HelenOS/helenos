@@ -413,7 +413,7 @@ int mkdir(const char *path, mode_t mode)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
-	return EOK; 
+	return rc; 
 }
 
 static int _unlink(const char *path, int lflag)
@@ -455,7 +455,7 @@ static int _unlink(const char *path, int lflag)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
-	return EOK; 
+	return rc; 
 }
 
 int unlink(const char *path)
