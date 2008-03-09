@@ -166,11 +166,20 @@ typedef struct {
  */
 #define L_CREATE	8
 /**
- * L_DESTROY is used to remove leaves from the file system namespace. This flag
+ * L_LINK is used for linking to an already existing nodes.
+ */
+#define L_LINK		16
+/**
+ * L_UNLINK is used to remove leaves from the file system namespace. This flag
  * cannot be passed directly by the client, but will be set by VFS during
  * VFS_UNLINK.
  */
-#define L_DESTROY	16
+#define L_UNLINK	32	
+/**
+ * L_PARENT performs a lookup but returns the triplet of the parent node.
+ * This flag may not be combined with any other lookup flag.
+ */
+#define L_PARENT	64	
 
 typedef struct {
 	vfs_triplet_t triplet;
@@ -250,7 +259,8 @@ extern void vfs_release_phone(int);
 
 extern int fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *, vfs_pair_t *);
+extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *, vfs_pair_t *,
+    ...);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
@@ -279,6 +289,7 @@ extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
+extern void vfs_rename(ipc_callid_t, ipc_call_t *);
 
 #endif
 

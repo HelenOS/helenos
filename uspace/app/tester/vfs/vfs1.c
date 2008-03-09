@@ -95,11 +95,17 @@ char *test_vfs1(bool quiet)
 		printf("discovered node %s in /\n", dp->d_name);
 	closedir(dirp);
 
-	if (unlink("/mydir/myfile"))
+	if (rename("/mydir/myfile", "/mydir/yourfile"))
+		return "rename() failed.\n";
+
+	if (!quiet)
+		printf("renamed /mydir/myfile to /mydir/yourfile\n");
+
+	if (unlink("/mydir/yourfile"))
 		return "unlink() failed.\n";
 	
 	if (!quiet)
-		printf("unlinked file /mydir/myfile\n");
+		printf("unlinked file /mydir/yourfile\n");
 
 	if (rmdir("/mydir"))
 		return "rmdir() failed.\n";

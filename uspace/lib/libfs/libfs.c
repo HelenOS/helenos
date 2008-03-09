@@ -141,6 +141,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 	unsigned last = IPC_GET_ARG2(*request);
 	int dev_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
+	int index = IPC_GET_ARG5(*request); /* when L_LINK specified */
 
 	if (last < next)
 		last += PLB_SIZE;
@@ -180,28 +181,46 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 
 		/* handle miss: match amongst siblings */
 		if (!tmp) {
-			if ((next > last) && (lflag & L_CREATE)) {
-				/* no components left and L_CREATE specified */
+			if (next <= last) {
+				/* there are unprocessed components */
+				ipc_answer_0(rid, ENOENT);
+				return;
+			}
+			/* miss in the last component */
+			if (lflag & (L_CREATE | L_LINK)) { 
+				/* request to create a new link */
 				if (!ops->is_directory(cur)) {
 					ipc_answer_0(rid, ENOTDIR);
 					return;
-				} 
-				void *nodep = ops->create(lflag);
+				}
+				void *nodep;
+				if (lflag & L_CREATE)
+					nodep = ops->create(lflag);
+				else
+					nodep = ops->node_get(fs_handle,
+					    dev_handle, index);
 				if (nodep) {
 					if (!ops->link(cur, nodep, component)) {
-						ops->destroy(nodep);
+						if (lflag & L_CREATE)
+							ops->destroy(nodep);
 						ipc_answer_0(rid, ENOSPC);
 					} else {
 						ipc_answer_5(rid, EOK,
 						    fs_handle, dev_handle,
-						    ops->index_get(nodep), 0,
+						    ops->index_get(nodep),
+						    ops->size_get(nodep),
 						    ops->lnkcnt_get(nodep));
 					}
 				} else {
 					ipc_answer_0(rid, ENOSPC);
 				}
 				return;
-			}
+			} else if (lflag & L_PARENT) {
+				/* return parent */
+				ipc_answer_5(rid, EOK, fs_handle, dev_handle,
+				    ops->index_get(cur), ops->size_get(cur),
+				    ops->lnkcnt_get(cur));
+			} 
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -214,7 +233,7 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 
 	/* handle miss: excessive components */
 	if (!tmp && next <= last) {
-		if (lflag & L_CREATE) {
+		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
 				ipc_answer_0(rid, ENOTDIR);
 				return;
@@ -239,15 +258,22 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 			component[len] = '\0';
 			len = 0;
 				
-			void *nodep = ops->create(lflag);
+			void *nodep;
+			if (lflag & L_CREATE)
+				nodep = ops->create(lflag);
+			else
+				nodep = ops->node_get(fs_handle, dev_handle,
+				    index);
 			if (nodep) {
 				if (!ops->link(cur, nodep, component)) {
-					ops->destroy(nodep);
+					if (lflag & L_CREATE)
+						ops->destroy(nodep);
 					ipc_answer_0(rid, ENOSPC);
 				} else {
 					ipc_answer_5(rid, EOK,
 					    fs_handle, dev_handle,
-					    ops->index_get(nodep), 0,
+					    ops->index_get(nodep),
+					    ops->size_get(nodep),
 					    ops->lnkcnt_get(nodep));
 				}
 			} else {
@@ -260,14 +286,22 @@ void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
 	}
 
 	/* handle hit */
-	if (lflag & L_DESTROY) {
+	if (lflag & L_PARENT) {
+		cur = par;
+		if (!cur) {
+			ipc_answer_0(rid, ENOENT);
+			return;
+		}
+	}
+	if (lflag & L_UNLINK) {
 		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
 		int res = ops->unlink(par, cur);
 		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
 		return;
 	}
-	if ((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) {
+	if (((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) ||
+	    (lflag & L_LINK)) {
 		ipc_answer_0(rid, EEXIST);
 		return;
 	}

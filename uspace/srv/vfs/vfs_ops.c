@@ -35,6 +35,7 @@
  * @brief	Operations that VFS offers to its clients.
  */
 
+#include "vfs.h"
 #include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
@@ -50,7 +51,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <atomic.h>
-#include "vfs.h"
+#include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
 static int vfs_truncate_internal(int, int, unsigned long, size_t);
@@ -306,21 +307,12 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
-	/*
-	 * Now we are on the verge of accepting the path.
-	 *
-	 * There is one optimization we could do in the future: copy the path
-	 * directly into the PLB using some kind of a callback.
-	 */
 	char *path = malloc(len + 1);
-	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
 	int rc;
 	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
@@ -629,21 +621,12 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
-	/*
-	 * Now we are on the verge of accepting the path.
-	 *
-	 * There is one optimization we could do in the future: copy the path
-	 * directly into the PLB using some kind of a callback.
-	 */
 	char *path = malloc(len + 1);
-	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
 	int rc;
 	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
@@ -672,21 +655,12 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
-	/*
-	 * Now we are on the verge of accepting the path.
-	 *
-	 * There is one optimization we could do in the future: copy the path
-	 * directly into the PLB using some kind of a callback.
-	 */
 	char *path = malloc(len + 1);
-	
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
 	int rc;
 	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
@@ -698,7 +672,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	rwlock_write_lock(&namespace_rwlock);
 	lflag &= L_DIRECTORY;	/* sanitize lflag */
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, lflag | L_DESTROY, &lr, NULL);
+	rc = vfs_lookup_internal(path, lflag | L_UNLINK, &lr, NULL);
 	free(path);
 	if (rc != EOK) {
 		rwlock_write_unlock(&namespace_rwlock);
@@ -715,6 +689,167 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	node->lnkcnt--;
 	rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(node);
+	ipc_answer_0(rid, EOK);
+}
+
+void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
+{
+	size_t len;
+	ipc_callid_t callid;
+	int rc;
+
+	/* Retrieve the old path. */
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	char *old = malloc(len + 1);
+	if (!old) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	if ((rc = ipc_data_write_finalize(callid, old, len))) {
+		ipc_answer_0(rid, rc);
+		free(old);
+		return;
+	}
+	old[len] = '\0';
+	
+	/* Retrieve the new path. */
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		free(old);
+		return;
+	}
+	char *new = malloc(len + 1);
+	if (!new) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		free(old);
+		return;
+	}
+	if ((rc = ipc_data_write_finalize(callid, new, len))) {
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	new[len] = '\0';
+
+	char *oldc = canonify(old, &len);
+	char *newc = canonify(new, NULL);
+	if (!oldc || !newc) {
+		ipc_answer_0(rid, EINVAL);
+		free(old);
+		free(new);
+		return;
+	}
+	if (!strncmp(newc, oldc, len)) {
+		/* oldc is a prefix of newc */
+		ipc_answer_0(rid, EINVAL);
+		free(old);
+		free(new);
+		return;
+	}
+	
+	vfs_lookup_res_t old_lr;
+	vfs_lookup_res_t new_lr;
+	vfs_lookup_res_t new_par_lr;
+	rwlock_write_lock(&namespace_rwlock);
+	/* Lookup the node belonging to the old file name. */
+	rc = vfs_lookup_internal(oldc, L_NONE, &old_lr, NULL);
+	if (rc != EOK) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	vfs_node_t *old_node = vfs_node_get(&old_lr);
+	if (!old_node) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, ENOMEM);
+		free(old);
+		free(new);
+		return;
+	}
+	/* Lookup parent of the new file name. */
+	rc = vfs_lookup_internal(newc, L_PARENT, &new_par_lr, NULL);
+	if (rc != EOK) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	/* Check whether linking to the same file system instance. */
+	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
+	    (old_node->dev_handle != new_par_lr.triplet.dev_handle)) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, EXDEV);	/* different file systems */
+		free(old);
+		free(new);
+		return;
+	}
+	/* Destroy the old link for the new name. */
+	vfs_node_t *new_node = NULL;
+	rc = vfs_lookup_internal(newc, L_UNLINK, &new_lr, NULL);
+	switch (rc) {
+	case ENOENT:
+		/* simply not in our way */
+		break;
+	case EOK:
+		new_node = vfs_node_get(&new_lr);
+		if (!new_node) {
+			rwlock_write_unlock(&namespace_rwlock);
+			ipc_answer_0(rid, ENOMEM);
+			free(old);
+			free(new);
+			return;
+		}
+		new_node->lnkcnt--;
+		break;
+	default:
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, ENOTEMPTY);
+		free(old);
+		free(new);
+		return;
+	}
+	/* Create the new link for the new name. */
+	rc = vfs_lookup_internal(newc, L_LINK, NULL, NULL, old_node->index);
+	if (rc != EOK) {
+		rwlock_write_unlock(&namespace_rwlock);
+		if (new_node)
+			vfs_node_put(new_node);
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	old_node->lnkcnt++;
+	/* Destroy the link for the old name. */
+	rc = vfs_lookup_internal(oldc, L_UNLINK, NULL, NULL);
+	if (rc != EOK) {
+		rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
+		if (new_node)
+			vfs_node_put(new_node);
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	old_node->lnkcnt--;
+	rwlock_write_unlock(&namespace_rwlock);
+	vfs_node_put(old_node);
+	if (new_node)
+		vfs_node_put(new_node);
+	free(old);
+	free(new);
 	ipc_answer_0(rid, EOK);
 }
 

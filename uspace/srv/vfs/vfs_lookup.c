@@ -40,6 +40,7 @@
 #include <async.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 #include <bool.h>
 #include <futex.h>
 #include <libadt/list.h>
@@ -65,7 +66,7 @@ uint8_t *plb = NULL;
  * @return		EOK on success or an error code from errno.h.
  */
 int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
-    vfs_pair_t *altroot)
+    vfs_pair_t *altroot, ...)
 {
 	vfs_pair_t *root;
 
@@ -81,6 +82,15 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	path = canonify(path, &len);
 	if (!path)
 		return EINVAL;
+	
+	unsigned long index = 0;
+	if (lflag & L_LINK) {
+		va_list ap;
+
+		va_start(ap, altroot);
+		index = va_arg(ap, unsigned long);
+		va_end(ap);
+	}
 	
 	futex_down(&plb_futex);
 
@@ -149,9 +159,10 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 
 	ipc_call_t answer;
 	int phone = vfs_grab_phone(root->fs_handle);
-	aid_t req = async_send_4(phone, VFS_LOOKUP, (ipcarg_t) first,
+	aid_t req = async_send_5(phone, VFS_LOOKUP, (ipcarg_t) first,
 	    (ipcarg_t) (first + len - 1) % PLB_SIZE,
-	    (ipcarg_t) root->dev_handle, (ipcarg_t) lflag, &answer);
+	    (ipcarg_t) root->dev_handle, (ipcarg_t) lflag, (ipcarg_t) index,
+	    &answer);
 	vfs_release_phone(phone);
 
 	ipcarg_t rc;

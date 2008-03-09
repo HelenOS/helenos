@@ -67,6 +67,8 @@ extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 
 #define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
+extern int rename(const char *, const char *);
+
 #endif
 
 /** @}

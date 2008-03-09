@@ -43,6 +43,7 @@
 
 typedef struct {
 	bool (* match)(void *, void *, const char *);
+	void * (* node_get)(int, int, unsigned long);
 	void * (* create)(int);
 	void (* destroy)(void *);
 	bool (* link)(void *, void *, const char *);
