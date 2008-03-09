@@ -50,7 +50,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <atomic.h>
 #include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
@@ -62,7 +61,7 @@ static int vfs_truncate_internal(int, int, unsigned long, size_t);
  */
 RWLOCK_INITIALIZE(namespace_rwlock);
 
-atomic_t rootfs_futex = FUTEX_INITIALIZER;
+futex_t rootfs_futex = FUTEX_INITIALIZER;
 vfs_triplet_t rootfs = {
 	.fs_handle = 0,
 	.dev_handle = 0,
@@ -686,7 +685,9 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	 * VFS_DESTROY'ed after the last reference to it is dropped.
 	 */
 	vfs_node_t *node = vfs_node_get(&lr);
+	futex_down(&nodes_futex);
 	node->lnkcnt--;
+	futex_up(&nodes_futex);
 	rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(node);
 	ipc_answer_0(rid, EOK);
@@ -810,7 +811,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 			free(new);
 			return;
 		}
+		futex_down(&nodes_futex);
 		new_node->lnkcnt--;
+		futex_up(&nodes_futex);
 		break;
 	default:
 		rwlock_write_unlock(&namespace_rwlock);
@@ -830,7 +833,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	futex_down(&nodes_futex);
 	old_node->lnkcnt++;
+	futex_up(&nodes_futex);
 	/* Destroy the link for the old name. */
 	rc = vfs_lookup_internal(oldc, L_UNLINK, NULL, NULL);
 	if (rc != EOK) {
@@ -843,7 +848,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	futex_down(&nodes_futex);
 	old_node->lnkcnt--;
+	futex_up(&nodes_futex);
 	rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(old_node);
 	if (new_node)

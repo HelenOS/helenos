@@ -35,7 +35,7 @@
 
 #include <ipc/ipc.h>
 #include <libadt/list.h>
-#include <atomic.h>
+#include <futex.h>
 #include <rwlock.h>
 #include <sys/types.h>
 #include <bool.h>
@@ -107,7 +107,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	int fs_handle;
-	atomic_t phone_futex;	/**< Phone serializing futex. */
+	futex_t phone_futex;	/**< Phone serializing futex. */
 	ipcarg_t phone;
 } fs_info_t;
 
@@ -232,6 +232,8 @@ typedef struct {
 	off_t pos;
 } vfs_file_t;
 
+extern futex_t nodes_futex;
+
 extern link_t fs_head;		/**< List of registered file systems. */
 
 extern vfs_triplet_t rootfs;	/**< Root node of the root file system. */
@@ -247,7 +249,7 @@ typedef struct {
 	size_t len;		/**< Number of characters in this PLB entry. */
 } plb_entry_t;
 
-extern atomic_t plb_futex;	/**< Futex protecting plb and plb_head. */
+extern futex_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 

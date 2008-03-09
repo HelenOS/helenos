@@ -38,7 +38,6 @@
 #include "vfs.h"
 #include <stdlib.h>
 #include <string.h>
-#include <atomic.h>
 #include <futex.h>
 #include <rwlock.h>
 #include <libadt/hash_table.h>
@@ -47,7 +46,7 @@
 #include <errno.h>
 
 /** Futex protecting the VFS node hash table. */
-atomic_t nodes_futex = FUTEX_INITIALIZER;
+futex_t nodes_futex = FUTEX_INITIALIZER;
 
 #define NODES_BUCKETS_LOG	8
 #define NODES_BUCKETS		(1 << NODES_BUCKETS_LOG)

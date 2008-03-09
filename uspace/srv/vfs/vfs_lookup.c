@@ -44,12 +44,11 @@
 #include <bool.h>
 #include <futex.h>
 #include <libadt/list.h>
-#include <atomic.h>
 #include <vfs/canonify.h>
 
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
-atomic_t plb_futex = FUTEX_INITIALIZER;
+futex_t plb_futex = FUTEX_INITIALIZER;
 link_t plb_head;	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
