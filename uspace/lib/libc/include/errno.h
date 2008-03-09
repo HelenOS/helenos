@@ -45,6 +45,7 @@
 #define ENOTEMPTY	(-261)
 #define EBADF		(-262)
 #define ERANGE		(-263)
+#define EXDEV		(-264)
 
 #endif
 
