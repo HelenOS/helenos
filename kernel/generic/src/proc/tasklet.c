@@ -37,6 +37,7 @@
 #include <proc/tasklet.h>
 #include <synch/spinlock.h>
 #include <mm/slab.h>
+#include <config.h>
 
 /** Spinlock protecting list of tasklets */
 SPINLOCK_INITIALIZE(tasklet_lock);
