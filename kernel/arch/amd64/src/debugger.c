@@ -292,7 +292,8 @@ void breakpoint_del(int slot)
 /** Remove breakpoint from table */
 int cmd_del_breakpoint(cmd_arg_t *argv)
 {
-	if (argv->intval < 0 || argv->intval > BKPOINTS_MAX) {
+	unative_t bpno = argv->intval;
+	if (bpno > BKPOINTS_MAX) {
 		printf("Invalid breakpoint number.\n");
 		return 0;
 	}
