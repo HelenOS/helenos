@@ -205,6 +205,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 		
 	futex_down(&fs_head_futex);
+	fibril_inc_sercount();
 
 	/*
 	 * Check for duplicit registrations.
@@ -214,6 +215,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		 * We already register a fs like this.
 		 */
 		dprintf("FS is already registered.\n");
+		fibril_dec_sercount();
 		futex_up(&fs_head_futex);
 		free(fs_info);
 		ipc_answer_0(callid, EEXISTS);
@@ -226,7 +228,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	dprintf("Inserting FS into the list of registered file systems.\n");
 	list_append(&fs_info->fs_link, &fs_head);
-
+	
 	/*
 	 * Now we want the client to send us the IPC_M_CONNECT_TO_ME call so
 	 * that a callback connection is created and we have a phone through
@@ -236,6 +238,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
+		fibril_dec_sercount();
 		futex_up(&fs_head_futex);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
@@ -254,6 +257,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (!ipc_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
+		fibril_dec_sercount();
 		futex_up(&fs_head_futex);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
@@ -268,6 +272,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (size != PLB_SIZE) {
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
+		fibril_dec_sercount();
 		futex_up(&fs_head_futex);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
@@ -292,6 +297,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->fs_handle = (int) atomic_postinc(&fs_handle_next);
 	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
+	fibril_dec_sercount();
 	futex_up(&fs_head_futex);
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
