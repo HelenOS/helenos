@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -57,7 +58,7 @@ DIR *cwd_dir = NULL;
 char *cwd_path = NULL;
 size_t cwd_len = 0; 
 
-static char *absolutize(const char *path)
+static char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 
@@ -85,6 +86,11 @@ static char *absolutize(const char *path)
 		ncwd_path[0] = '\0';
 	}
 	strcat(ncwd_path, path);
+	if (!canonify(ncwd_path, retlen)) {
+		futex_up(&cwd_futex);
+		free(ncwd_path);
+		return NULL;
+	}
 	futex_up(&cwd_futex);
 	return ncwd_path;
 }
@@ -102,17 +108,12 @@ int mount(const char *fs_name, const char *mp, const char *dev)
 	ipcarg_t rc;
 	aid_t req;
 
-	int dev_handle = 0;	/* TODO */
+	dev_handle_t dev_handle = 0;	/* TODO */
 
-	char *mpa = absolutize(mp);
+	size_t mpa_len;
+	char *mpa = absolutize(mp, &mpa_len);
 	if (!mpa)
 		return ENOMEM;
-	size_t mpc_len;
-	char *mpc = canonify(mpa, &mpc_len);
-	if (!mpc) {
-		free(mpa);
-		return EINVAL;
-	}
 
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -134,7 +135,7 @@ int mount(const char *fs_name, const char *mp, const char *dev)
 		free(mpa);
 		return (int) rc;
 	}
-	rc = ipc_data_write_start(vfs_phone, (void *)mpc, mpc_len);
+	rc = ipc_data_write_start(vfs_phone, (void *)mpa, mpa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -156,15 +157,10 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	ipc_call_t answer;
 	aid_t req;
 	
-	char *pa = absolutize(path);
+	size_t pa_len;
+	char *pa = absolutize(path, &pa_len);
 	if (!pa)
 		return ENOMEM;
-	size_t pc_len;
-	char *pc = canonify(pa, &pc_len);
-	if (!pc) {
-		free(pa);
-		return EINVAL;
-	}
 	
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -178,7 +174,7 @@ static int _open(const char *path, int lflag, int oflag, ...)
 		}
 	}
 	req = async_send_3(vfs_phone, VFS_OPEN, lflag, oflag, 0, &answer);
-	rc = ipc_data_write_start(vfs_phone, pc, pc_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -379,15 +375,10 @@ int mkdir(const char *path, mode_t mode)
 	ipcarg_t rc;
 	aid_t req;
 	
-	char *pa = absolutize(path);
+	size_t pa_len;
+	char *pa = absolutize(path, &pa_len);
 	if (!pa)
 		return ENOMEM;
-	size_t pc_len;
-	char *pc = canonify(pa, &pc_len);
-	if (!pc) {
-		free(pa);
-		return EINVAL;
-	}
 
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -401,7 +392,7 @@ int mkdir(const char *path, mode_t mode)
 		}
 	}
 	req = async_send_1(vfs_phone, VFS_MKDIR, mode, NULL);
-	rc = ipc_data_write_start(vfs_phone, pc, pc_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -422,15 +413,11 @@ static int _unlink(const char *path, int lflag)
 	ipcarg_t rc;
 	aid_t req;
 	
-	char *pa = absolutize(path);
+	size_t pa_len;
+	char *pa = absolutize(path, &pa_len);
 	if (!pa)
 		return ENOMEM;
-	size_t pc_len;
-	char *pc = canonify(pa, &pc_len);
-	if (!pc) {
-		free(pa);
-		return EINVAL;
-	}
+
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
 	if (vfs_phone < 0) {
@@ -443,7 +430,7 @@ static int _unlink(const char *path, int lflag)
 		}
 	}
 	req = async_send_0(vfs_phone, VFS_UNLINK, NULL);
-	rc = ipc_data_write_start(vfs_phone, pc, pc_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -474,26 +461,16 @@ int rename(const char *old, const char *new)
 	ipcarg_t rc;
 	aid_t req;
 	
-	char *olda = absolutize(old);
+	size_t olda_len;
+	char *olda = absolutize(old, &olda_len);
 	if (!olda)
 		return ENOMEM;
-	size_t oldc_len;
-	char *oldc = canonify(olda, &oldc_len);
-	if (!oldc) {
-		free(olda);
-		return EINVAL;
-	}
-	char *newa = absolutize(new);
+
+	size_t newa_len;
+	char *newa = absolutize(new, &newa_len);
 	if (!newa) {
 		free(olda);
 		return ENOMEM;
-	}
-	size_t newc_len;
-	char *newc = canonify(newa, &newc_len);
-	if (!newc) {
-		free(olda);
-		free(newa);
-		return EINVAL;
 	}
 
 	futex_down(&vfs_phone_futex);
@@ -509,7 +486,7 @@ int rename(const char *old, const char *new)
 		}
 	}
 	req = async_send_0(vfs_phone, VFS_RENAME, NULL);
-	rc = ipc_data_write_start(vfs_phone, oldc, oldc_len);
+	rc = ipc_data_write_start(vfs_phone, olda, olda_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -518,7 +495,7 @@ int rename(const char *old, const char *new)
 		free(newa);
 		return (int) rc;
 	}
-	rc = ipc_data_write_start(vfs_phone, newc, newc_len);
+	rc = ipc_data_write_start(vfs_phone, newa, newa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -537,17 +514,12 @@ int rename(const char *old, const char *new)
 
 int chdir(const char *path)
 {
-	char *pa = absolutize(path);
+	size_t pa_len;
+	char *pa = absolutize(path, &pa_len);
 	if (!pa)
 		return ENOMEM;
-	size_t pc_len;
-	char *pc = canonify(pa, &pc_len);
-	if (!pc) {
-		free(pa);
-		return ENOENT;
-	}
 
-	DIR *d = opendir(pc);
+	DIR *d = opendir(pa);
 	if (!d) {
 		free(pa);
 		return ENOENT;
@@ -562,8 +534,8 @@ int chdir(const char *path)
 		cwd_len = 0;
 	}
 	cwd_dir = d;
-	cwd_path = pc;
-	cwd_len = pc_len;
+	cwd_path = pa;
+	cwd_len = pa_len;
 	futex_up(&cwd_futex);
 }
 
