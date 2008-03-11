@@ -53,7 +53,7 @@
 #include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
-static int vfs_truncate_internal(int, int, unsigned long, size_t);
+static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, size_t);
 
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
@@ -68,7 +68,9 @@ vfs_triplet_t rootfs = {
 	.index = 0,
 };
 
-static int lookup_root(int fs_handle, int dev_handle, vfs_lookup_res_t *result)
+static int
+lookup_root(fs_handle_t fs_handle, dev_handle_t dev_handle,
+    vfs_lookup_res_t *result)
 {
 	vfs_pair_t altroot = {
 		.fs_handle = fs_handle,
@@ -80,7 +82,7 @@ static int lookup_root(int fs_handle, int dev_handle, vfs_lookup_res_t *result)
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	int dev_handle;
+	dev_handle_t dev_handle;
 	vfs_node_t *mp_node = NULL;
 
 	/*
@@ -88,7 +90,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * translation for us, thus the device handle will arrive as ARG1
 	 * in the request.
 	 */
-	dev_handle = IPC_GET_ARG1(*request);
+	dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
 
 	/*
 	 * For now, don't make use of ARG2 and ARG3, but they can be used to
@@ -127,7 +129,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Check if we know a file system with the same name as is in fs_name.
 	 * This will also give us its file system handle.
 	 */
-	int fs_handle = fs_name_to_handle(fs_name, true);
+	fs_handle_t fs_handle = fs_name_to_handle(fs_name, true);
 	if (!fs_handle) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -571,8 +573,9 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EINVAL);
 }
 
-int vfs_truncate_internal(int fs_handle, int dev_handle, unsigned long index,
-    size_t size)
+int
+vfs_truncate_internal(fs_handle_t fs_handle, dev_handle_t dev_handle,
+    fs_index_t index, size_t size)
 {
 	ipcarg_t rc;
 	int fs_phone;

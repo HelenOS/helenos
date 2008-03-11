@@ -43,13 +43,13 @@
 
 typedef struct {
 	bool (* match)(void *, void *, const char *);
-	void * (* node_get)(int, int, unsigned long);
+	void * (* node_get)(fs_handle_t, dev_handle_t, fs_index_t);
 	void * (* create)(int);
 	void (* destroy)(void *);
 	bool (* link)(void *, void *, const char *);
 	int (* unlink)(void *, void *);
-	unsigned long (* index_get)(void *);
-	unsigned long (* size_get)(void *);
+	fs_index_t (* index_get)(void *);
+	size_t (* size_get)(void *);
 	unsigned (* lnkcnt_get)(void *);
 	void *(* child_get)(void *);
 	void *(* sibling_get)(void *);
@@ -74,7 +74,7 @@ extern void node_add_mp(int, unsigned long);
 extern void node_del_mp(int, unsigned long);
 extern bool node_is_mp(int, unsigned long);
 
-extern void libfs_lookup(libfs_ops_t *, int, ipc_callid_t, ipc_call_t *);
+extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 
 #endif
 

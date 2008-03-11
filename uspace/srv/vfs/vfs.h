@@ -46,6 +46,11 @@
 
 #define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
 
+/* Basic types. */
+typedef int16_t fs_handle_t;
+typedef int16_t dev_handle_t;
+typedef uint32_t fs_index_t;
+
 typedef enum {
 	VFS_READ = VFS_FIRST,
 	VFS_WRITE,
@@ -106,7 +111,7 @@ typedef struct {
 typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
-	int fs_handle;
+	fs_handle_t fs_handle;
 	futex_t phone_futex;	/**< Phone serializing futex. */
 	ipcarg_t phone;
 } fs_info_t;
@@ -114,9 +119,9 @@ typedef struct {
 /**
  * VFS_PAIR uniquely represents a file system instance.
  */
-#define VFS_PAIR	\
-	int fs_handle;	\
-	int dev_handle;	
+#define VFS_PAIR		\
+	fs_handle_t fs_handle;	\
+	dev_handle_t dev_handle;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
@@ -127,7 +132,7 @@ typedef struct {
  */
 #define VFS_TRIPLET	\
 	VFS_PAIR;	\
-	uint64_t index;
+	fs_index_t index;
 
 typedef struct {
 	VFS_PAIR;
@@ -256,10 +261,10 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 /** Holding this rwlock prevents changes in file system namespace. */ 
 extern rwlock_t namespace_rwlock;
 
-extern int vfs_grab_phone(int);
+extern int vfs_grab_phone(fs_handle_t);
 extern void vfs_release_phone(int);
 
-extern int fs_name_to_handle(char *, bool);
+extern fs_handle_t fs_name_to_handle(char *, bool);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *, vfs_pair_t *,
     ...);

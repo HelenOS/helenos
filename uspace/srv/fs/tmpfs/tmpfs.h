@@ -43,7 +43,7 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 
 typedef struct tmpfs_dentry {
-	unsigned long index;	/**< TMPFS node index. */
+	fs_index_t index;	/**< TMPFS node index. */
 	link_t dh_link;		/**< Dentries hash table link. */
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;

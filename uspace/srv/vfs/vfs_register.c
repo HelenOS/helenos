@@ -294,7 +294,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * In reply to the VFS_REGISTER request, we assign the client file
 	 * system a global file system handle.
 	 */
-	fs_info->fs_handle = (int) atomic_postinc(&fs_handle_next);
+	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
 	fibril_dec_sercount();
@@ -311,7 +311,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
  * @return		Phone over which a multi-call request can be safely
  *			sent. Return 0 if no phone was found.
  */
-int vfs_grab_phone(int handle)
+int vfs_grab_phone(fs_handle_t handle)
 {
 	/*
 	 * For now, we don't try to be very clever and very fast.
@@ -386,7 +386,7 @@ void vfs_release_phone(int phone)
  *
  * @return		File system handle or zero if file system not found.
  */
-int fs_name_to_handle(char *name, bool lock)
+fs_handle_t fs_name_to_handle(char *name, bool lock)
 {
 	int handle = 0;
 	

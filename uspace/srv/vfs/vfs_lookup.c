@@ -82,12 +82,12 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	if (!path)
 		return EINVAL;
 	
-	uint64_t index = 0;
+	fs_index_t index = 0;
 	if (lflag & L_LINK) {
 		va_list ap;
 
 		va_start(ap, altroot);
-		index = va_arg(ap, uint64_t);
+		index = va_arg(ap, fs_index_t);
 		va_end(ap);
 	}
 	
@@ -177,9 +177,9 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	futex_up(&plb_futex);
 
 	if ((rc == EOK) && result) {
-		result->triplet.fs_handle = (int) IPC_GET_ARG1(answer);
-		result->triplet.dev_handle = (int) IPC_GET_ARG2(answer);
-		result->triplet.index = (uint64_t) IPC_GET_ARG3(answer);
+		result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);
+		result->triplet.dev_handle = (dev_handle_t) IPC_GET_ARG2(answer);
+		result->triplet.index = (fs_index_t) IPC_GET_ARG3(answer);
 		result->size = (size_t) IPC_GET_ARG4(answer);
 		result->lnkcnt = (unsigned) IPC_GET_ARG5(answer);
 	}

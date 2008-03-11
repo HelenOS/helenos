@@ -134,14 +134,14 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
  * @param rid		Request ID of the VFS_LOOKUP request.
  * @param request	VFS_LOOKUP request data itself.
  */
-void libfs_lookup(libfs_ops_t *ops, int fs_handle, ipc_callid_t rid,
+void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
 	unsigned next = IPC_GET_ARG1(*request);
 	unsigned last = IPC_GET_ARG2(*request);
-	int dev_handle = IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
-	int index = IPC_GET_ARG5(*request); /* when L_LINK specified */
+	fs_index_t index = IPC_GET_ARG5(*request); /* when L_LINK specified */
 
 	if (last < next)
 		last += PLB_SIZE;

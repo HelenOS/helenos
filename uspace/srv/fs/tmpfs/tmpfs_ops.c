@@ -70,19 +70,19 @@ static tmpfs_dentry_t *root;
 
 /* Forward declarations of static functions. */
 static bool tmpfs_match(void *, void *, const char *);
-static void *tmpfs_node_get(int, int, unsigned long);
+static void *tmpfs_node_get(fs_handle_t, dev_handle_t, fs_index_t);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
 static void tmpfs_destroy_node(void *);
 
 /* Implementation of helper functions. */
-static unsigned long tmpfs_index_get(void *nodep)
+static fs_index_t tmpfs_index_get(void *nodep)
 {
 	return ((tmpfs_dentry_t *) nodep)->index;
 }
 
-static unsigned long tmpfs_size_get(void *nodep)
+static size_t tmpfs_size_get(void *nodep)
 {
 	return ((tmpfs_dentry_t *) nodep)->size;
 }
@@ -169,7 +169,7 @@ hash_table_operations_t dentries_ops = {
 	.remove_callback = dentries_remove_callback
 };
 
-unsigned tmpfs_next_index = 1;
+fs_index_t tmpfs_next_index = 1;
 
 typedef struct {
 	char *name;
@@ -262,9 +262,11 @@ bool tmpfs_match(void *prnt, void *chld, const char *component)
 	return !strcmp(namep->name, component);
 }
 
-void *tmpfs_node_get(int fs_handle, int dev_handle, unsigned long index)
+void *
+tmpfs_node_get(fs_handle_t fs_handle, dev_handle_t dev_handle, fs_index_t index)
 {
-	link_t *lnk = hash_table_find(&dentries, &index);
+	unsigned long key = index;
+	link_t *lnk = hash_table_find(&dentries, &key);
 	if (!lnk)
 		return NULL;
 	return hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link); 
@@ -289,7 +291,8 @@ void *tmpfs_create_node(int lflag)
 		node->type = TMPFS_FILE;
 
 	/* Insert the new node into the dentry hash table. */
-	hash_table_insert(&dentries, &node->index, &node->dh_link);
+	unsigned long key = node->index;
+	hash_table_insert(&dentries, &key, &node->dh_link);
 	return (void *) node;
 }
 
@@ -369,8 +372,8 @@ void tmpfs_destroy_node(void *nodep)
 	assert(!dentry->child);
 	assert(!dentry->sibling);
 
-	unsigned long index = dentry->index;
-	hash_table_remove(&dentries, &index, 1);
+	unsigned long key = dentry->index;
+	hash_table_remove(&dentries, &key, 1);
 
 	hash_table_destroy(&dentry->names);
 
@@ -391,15 +394,16 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
-	int dev_handle = IPC_GET_ARG1(*request);
-	unsigned long index = IPC_GET_ARG2(*request);
-	off_t pos = IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	off_t pos = (off_t)IPC_GET_ARG3(*request);
 
 	/*
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	hlp = hash_table_find(&dentries, &index);
+	unsigned long key = index;
+	hlp = hash_table_find(&dentries, &key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -463,15 +467,16 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	int dev_handle = IPC_GET_ARG1(*request);
-	unsigned long index = IPC_GET_ARG2(*request);
-	off_t pos = IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	off_t pos = (off_t)IPC_GET_ARG3(*request);
 
 	/*
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	hlp = hash_table_find(&dentries, &index);
+	unsigned long key = index;
+	hlp = hash_table_find(&dentries, &key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -523,15 +528,16 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	int dev_handle = IPC_GET_ARG1(*request);
-	unsigned long index = IPC_GET_ARG2(*request);
-	size_t size = IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	size_t size = (off_t)IPC_GET_ARG3(*request);
 
 	/*
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	hlp = hash_table_find(&dentries, &index);
+	unsigned long key = index;
+	hlp = hash_table_find(&dentries, &key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -560,11 +566,12 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
-	int dev_handle = IPC_GET_ARG1(*request);
-	unsigned long index = IPC_GET_ARG2(*request);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 
 	link_t *hlp;
-	hlp = hash_table_find(&dentries, &index);
+	unsigned long key = index;
+	hlp = hash_table_find(&dentries, &key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
