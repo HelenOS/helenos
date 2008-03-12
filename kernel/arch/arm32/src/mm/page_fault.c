@@ -173,7 +173,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
  */
 void data_abort(int exc_no, istate_t *istate)
 {
-	fault_status_t fsr = read_fault_status_register();
+	fault_status_t fsr __attribute__ ((unused)) =
+	    read_fault_status_register();
 	uintptr_t badvaddr = read_fault_address_register();
 
 	pf_access_t access = get_memory_access_type(istate->pc, badvaddr);
