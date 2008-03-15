@@ -120,7 +120,7 @@ endif
 CONFIG_SOFTINT = y
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/context.s \
+	arch/$(ARCH)/src/context.S \
 	arch/$(ARCH)/src/debug/panic.s \
 	arch/$(ARCH)/src/delay.s \
 	arch/$(ARCH)/src/asm.S \

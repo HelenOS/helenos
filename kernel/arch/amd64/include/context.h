@@ -35,6 +35,8 @@
 #ifndef KERN_amd64_CONTEXT_H_
 #define KERN_amd64_CONTEXT_H_
 
+#ifdef KERNEL
+
 #include <arch/types.h>
 
 /* According to ABI the stack MUST be aligned on 
@@ -42,6 +44,8 @@
  * panic sooner or later
  */
 #define SP_DELTA     16
+
+#endif /* KERNEL */
 
 /* We include only registers that must be preserved
  * during function call

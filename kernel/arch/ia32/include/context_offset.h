@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2008 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,39 +32,52 @@
 /** @file
  */
 
-#ifndef KERN_ia32_CONTEXT_H_
-#define KERN_ia32_CONTEXT_H_
+#ifndef KERN_ia32_CONTEXT_OFFSET_H_
+#define KERN_ia32_CONTEXT_OFFSET_H_
 
-#ifdef KERNEL
-#include <arch/types.h>
+#define OFFSET_SP  0x0
+#define OFFSET_PC  0x4
+#define OFFSET_EBX 0x8
+#define OFFSET_ESI 0xC
+#define OFFSET_EDI 0x10
+#define OFFSET_EBP 0x14
 
-#define STACK_ITEM_SIZE	4
+#ifdef KERNEL 
+# define OFFSET_IPL 0x18
+#else
+# define OFFSET_TLS 0x18
+#endif
 
-/*
- * Both context_save() and context_restore() eat two doublewords from the stack.
- * First for pop of the saved register, second during ret instruction.
- *
- * One item is put onto stack to support get_stack_base().
- */
-#define SP_DELTA	(8 + STACK_ITEM_SIZE)
 
-#endif /* KERNEL */
+#ifdef __ASM__ 
 
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t pc;
-	uint32_t ebx;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-	ipl_t ipl;
-} __attribute__ ((packed)) context_t;
+# ctx: address of the structure with saved context 
+# pc: return address
+
+.macro CONTEXT_SAVE_ARCH_CORE ctx:req pc:req
+	movl %esp,OFFSET_SP(\ctx)	# %esp -> ctx->sp	
+	movl \pc,OFFSET_PC(\ctx)	# %eip -> ctx->pc
+	movl %ebx,OFFSET_EBX(\ctx)	# %ebx -> ctx->ebx	
+	movl %esi,OFFSET_ESI(\ctx)	# %esi -> ctx->esi	
+	movl %edi,OFFSET_EDI(\ctx)	# %edi -> ctx->edi	
+	movl %ebp,OFFSET_EBP(\ctx)	# %ebp -> ctx->ebp	
+.endm
+
+# ctx: address of the structure with saved context 
+
+.macro CONTEXT_RESTORE_ARCH_CORE ctx:req pc:req
+	movl OFFSET_SP(\ctx),%esp	# ctx->sp -> %esp
+	movl OFFSET_PC(\ctx),\pc	# ctx->pc -> \pc
+	movl OFFSET_EBX(\ctx),%ebx	# ctx->ebx -> %ebx
+	movl OFFSET_ESI(\ctx),%esi	# ctx->esi -> %esi
+	movl OFFSET_EDI(\ctx),%edi	# ctx->edi -> %edi
+	movl OFFSET_EBP(\ctx),%ebp	# ctx->ebp -> %ebp
+.endm
+
+#endif /* __ASM__ */ 
 
 #endif
 
 /** @}
  */
+

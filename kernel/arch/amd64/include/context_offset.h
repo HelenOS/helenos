@@ -39,4 +39,17 @@
 #define OFFSET_R15 0x38
 #define OFFSET_IPL 0x40
 
+#ifdef __ASM__
+
+# ctx: address of the structure with saved context 
+# pc: return address
+.macro CONTEXT_SAVE_ARCH_CORE ctx:req pc:req
+.endm
+
+# ctx: address of the structure with saved context 
+.macro CONTEXT_RESTORE_ARCH_CORE ctx:req pc:req
+.endm
+
+#endif
+
 #endif
