@@ -40,16 +40,9 @@
 #
 context_save_arch:
 	movq (%rsp), %rdx     # the caller's return %eip
+
 	# In %edi is passed 1st argument
-	movq %rdx, OFFSET_PC(%rdi)
-	movq %rsp, OFFSET_SP(%rdi)
-	
-	movq %rbx, OFFSET_RBX(%rdi)
-	movq %rbp, OFFSET_RBP(%rdi)
-	movq %r12, OFFSET_R12(%rdi)
-	movq %r13, OFFSET_R13(%rdi)
-	movq %r14, OFFSET_R14(%rdi)
-	movq %r15, OFFSET_R15(%rdi)
+	CONTEXT_SAVE_ARCH_CORE %rdi %rdx 
 	
 	xorq %rax,%rax		# context_save returns 1
 	incq %rax
@@ -62,16 +55,9 @@ context_save_arch:
 # pointed by the 1st argument. Returns 0 in EAX.
 #
 context_restore_arch:	
-	movq OFFSET_R15(%rdi), %r15
-	movq OFFSET_R14(%rdi), %r14
-	movq OFFSET_R13(%rdi), %r13
-	movq OFFSET_R12(%rdi), %r12
-	movq OFFSET_RBP(%rdi), %rbp
-	movq OFFSET_RBX(%rdi), %rbx	
-	
-	movq OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
-	
-	movq OFFSET_PC(%rdi), %rdx
+
+	CONTEXT_RESTORE_ARCH_CORE %rdi %rdx
+
 	movq %rdx,(%rsp)
 
 	xorq %rax,%rax		# context_restore returns 0

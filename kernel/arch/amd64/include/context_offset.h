@@ -37,17 +37,41 @@
 #define OFFSET_R13 0x28
 #define OFFSET_R14 0x30
 #define OFFSET_R15 0x38
-#define OFFSET_IPL 0x40
+
+#ifdef KERNEL
+# define OFFSET_IPL 0x40
+#else
+# define OFFSET_TLS 0x40
+#endif
 
 #ifdef __ASM__
 
 # ctx: address of the structure with saved context 
 # pc: return address
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req pc:req
+	movq \pc, OFFSET_PC(\ctx)
+	movq %rsp, OFFSET_SP(\ctx)
+	
+	movq %rbx, OFFSET_RBX(\ctx)
+	movq %rbp, OFFSET_RBP(\ctx)
+	movq %r12, OFFSET_R12(\ctx)
+	movq %r13, OFFSET_R13(\ctx)
+	movq %r14, OFFSET_R14(\ctx)
+	movq %r15, OFFSET_R15(\ctx)
 .endm
 
 # ctx: address of the structure with saved context 
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req pc:req
+	movq OFFSET_R15(\ctx), %r15
+	movq OFFSET_R14(\ctx), %r14
+	movq OFFSET_R13(\ctx), %r13
+	movq OFFSET_R12(\ctx), %r12
+	movq OFFSET_RBP(\ctx), %rbp
+	movq OFFSET_RBX(\ctx), %rbx	
+	
+	movq OFFSET_SP(\ctx), %rsp   # ctx->sp -> %rsp
+	
+	movq OFFSET_PC(\ctx), \pc
 .endm
 
 #endif
