@@ -42,6 +42,24 @@
 #define OFFSET_S8      0x28
 #define OFFSET_GP      0x2c
 
+#ifdef KERNEL
+# define OFFSET_IPL     0x30
+#else
+# define OFFSET_TLS     0x30
+
+# define OFFSET_F20     0x34
+# define OFFSET_F21     0x38
+# define OFFSET_F22     0x3c
+# define OFFSET_F23     0x40
+# define OFFSET_F24     0x44
+# define OFFSET_F25     0x48
+# define OFFSET_F26     0x4c
+# define OFFSET_F27     0x50
+# define OFFSET_F28     0x54
+# define OFFSET_F29     0x58
+# define OFFSET_F30     0x5c
+#endif /* KERNEL */
+
 /* istate_t */
 #define EOFFSET_AT     0x0
 #define EOFFSET_V0     0x4
@@ -78,5 +96,123 @@
 #define EOFFSET_EPC    0x80
 #define EOFFSET_K1     0x84
 #define REGISTER_SPACE 136
+
+#ifdef __ASM__
+
+#include <arch/asm/regname.h>
+
+# ctx: address of the structure with saved context
+.macro CONTEXT_SAVE_ARCH_CORE ctx:req
+	sw $s0,OFFSET_S0(\ctx)
+	sw $s1,OFFSET_S1(\ctx)
+	sw $s2,OFFSET_S2(\ctx)
+	sw $s3,OFFSET_S3(\ctx)
+	sw $s4,OFFSET_S4(\ctx)
+	sw $s5,OFFSET_S5(\ctx)
+	sw $s6,OFFSET_S6(\ctx)
+	sw $s7,OFFSET_S7(\ctx)
+	sw $s8,OFFSET_S8(\ctx)
+	sw $gp,OFFSET_GP(\ctx)
+
+#ifndef KERNEL		
+	sw $k1,OFFSET_TLS(\ctx)
+
+# ifdef CONFIG_MIPS_FPU	
+	mfc1 $t0,$20
+	sw $t0, OFFSET_F20(\ctx)
+
+	mfc1 $t0,$21
+	sw $t0, OFFSET_F21(\ctx)
+
+	mfc1 $t0,$22
+	sw $t0, OFFSET_F22(\ctx)
+
+	mfc1 $t0,$23
+	sw $t0, OFFSET_F23(\ctx)
+
+	mfc1 $t0,$24
+	sw $t0, OFFSET_F24(\ctx)
+
+	mfc1 $t0,$25
+	sw $t0, OFFSET_F25(\ctx)
+
+	mfc1 $t0,$26
+	sw $t0, OFFSET_F26(\ctx)
+
+	mfc1 $t0,$27
+	sw $t0, OFFSET_F27(\ctx)
+
+	mfc1 $t0,$28
+	sw $t0, OFFSET_F28(\ctx)
+
+	mfc1 $t0,$29
+	sw $t0, OFFSET_F29(\ctx)
+	
+	mfc1 $t0,$30
+	sw $t0, OFFSET_F30(\ctx)
+# endif /* CONFIG_MIPS_FPU */	
+#endif /* KERNEL */
+
+	sw $ra,OFFSET_PC(\ctx)
+	sw $sp,OFFSET_SP(\ctx)
+.endm
+
+# ctx: address of the structure with saved context
+.macro CONTEXT_RESTORE_ARCH_CORE ctx:req
+	lw $s0,OFFSET_S0(\ctx)
+	lw $s1,OFFSET_S1(\ctx)
+	lw $s2,OFFSET_S2(\ctx)
+	lw $s3,OFFSET_S3(\ctx)
+	lw $s4,OFFSET_S4(\ctx)
+	lw $s5,OFFSET_S5(\ctx)
+	lw $s6,OFFSET_S6(\ctx)
+	lw $s7,OFFSET_S7(\ctx)
+	lw $s8,OFFSET_S8(\ctx)
+	lw $gp,OFFSET_GP(\ctx)
+#ifndef KERNEL
+	lw $k1,OFFSET_TLS(\ctx)
+
+# ifdef CONFIG_MIPS_FPU	
+	lw $t0, OFFSET_F20(\ctx)
+	mtc1 $t0,$20
+
+	lw $t0, OFFSET_F21(\ctx)
+	mtc1 $t0,$21
+
+	lw $t0, OFFSET_F22(\ctx)
+	mtc1 $t0,$22
+
+	lw $t0, OFFSET_F23(\ctx)
+	mtc1 $t0,$23
+
+	lw $t0, OFFSET_F24(\ctx)
+	mtc1 $t0,$24
+
+	lw $t0, OFFSET_F25(\ctx)
+	mtc1 $t0,$25
+
+	lw $t0, OFFSET_F26(\ctx)
+	mtc1 $t0,$26
+
+	lw $t0, OFFSET_F27(\ctx)
+	mtc1 $t0,$27
+
+	lw $t0, OFFSET_F28(\ctx)
+	mtc1 $t0,$28
+
+	lw $t0, OFFSET_F29(\ctx)
+	mtc1 $t0,$29
+
+	lw $t0, OFFSET_F30(\ctx)
+	mtc1 $t0,$30
+# endif	/* CONFIG_MIPS_FPU */
+	
+#endif /* KERNEL */
+	lw $ra,OFFSET_PC(\ctx)
+	lw $sp,OFFSET_SP(\ctx)
+.endm
+
+#endif
+
 
 #endif

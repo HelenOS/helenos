@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/asm/regname.h>
 #include <arch/context_offset.h>
 	
 .text   
@@ -38,48 +37,16 @@
 .global context_save_arch
 .global context_restore_arch
 
-.macro CONTEXT_STORE r
-	sw $s0,OFFSET_S0(\r)
-	sw $s1,OFFSET_S1(\r)
-	sw $s2,OFFSET_S2(\r)
-	sw $s3,OFFSET_S3(\r)
-	sw $s4,OFFSET_S4(\r)
-	sw $s5,OFFSET_S5(\r)
-	sw $s6,OFFSET_S6(\r)
-	sw $s7,OFFSET_S7(\r)
-	sw $s8,OFFSET_S8(\r)
-	sw $gp,OFFSET_GP(\r)
-	
-	sw $ra,OFFSET_PC(\r)
-	sw $sp,OFFSET_SP(\r)
-.endm
-
-.macro CONTEXT_LOAD r
-	lw $s0,OFFSET_S0(\r)
-	lw $s1,OFFSET_S1(\r)
-	lw $s2,OFFSET_S2(\r)
-	lw $s3,OFFSET_S3(\r)
-	lw $s4,OFFSET_S4(\r)
-	lw $s5,OFFSET_S5(\r)
-	lw $s6,OFFSET_S6(\r)
-	lw $s7,OFFSET_S7(\r)
-	lw $s8,OFFSET_S8(\r)
-	lw $gp,OFFSET_GP(\r)
-	
-	lw $ra,OFFSET_PC(\r)
-	lw $sp,OFFSET_SP(\r)
-.endm
-
 	
 context_save_arch:
-	CONTEXT_STORE $a0
+	CONTEXT_SAVE_ARCH_CORE $a0
 
 	# context_save returns 1
 	j $31
 	li $2, 1	
 	
 context_restore_arch:
-	CONTEXT_LOAD $a0
+	CONTEXT_RESTORE_ARCH_CORE $a0
 
 	# context_restore returns 0
 	j $31
