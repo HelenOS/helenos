@@ -43,7 +43,7 @@ context_save:
 	movl 0(%esp),%eax	# the caller's return %eip
 	movl 4(%esp),%edx	# address of the context variable to save context to
 
-		# save registers to given structure
+		# save registers to the context structure
 	CONTEXT_SAVE_ARCH_CORE %edx %eax
 
 	# Save TLS
@@ -63,7 +63,7 @@ context_save:
 context_restore:
 	movl 4(%esp),%eax	# address of the context variable to restore context from
 
-		# restore registers from jmp_buf
+		# restore registers from the context structure
 	CONTEXT_RESTORE_ARCH_CORE %eax %edx
 
 	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
