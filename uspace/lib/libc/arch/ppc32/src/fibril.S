@@ -32,58 +32,10 @@
 .global context_restore
 
 #include <libarch/regname.h>
-#include <libarch/context_offset.h>
-
-.macro CONTEXT_STORE r
-	stw sp, OFFSET_SP(\r)
-	stw r2, OFFSET_R2(\r)
-	stw r13, OFFSET_R13(\r)
-	stw r14, OFFSET_R14(\r)
-	stw r15, OFFSET_R15(\r)
-	stw r16, OFFSET_R16(\r)
-	stw r17, OFFSET_R17(\r)
-	stw r18, OFFSET_R18(\r)
-	stw r19, OFFSET_R19(\r)
-	stw r20, OFFSET_R20(\r)
-	stw r21, OFFSET_R21(\r)
-	stw r22, OFFSET_R22(\r)
-	stw r23, OFFSET_R23(\r)
-	stw r24, OFFSET_R24(\r)
-	stw r25, OFFSET_R25(\r)
-	stw r26, OFFSET_R26(\r)
-	stw r27, OFFSET_R27(\r)
-	stw r28, OFFSET_R28(\r)
-	stw r29, OFFSET_R29(\r)
-	stw r30, OFFSET_R30(\r)
-	stw r31, OFFSET_R31(\r)
-.endm
-
-.macro CONTEXT_LOAD r
-	lwz sp, OFFSET_SP(\r)
-	lwz r2, OFFSET_R2(\r)
-	lwz r13, OFFSET_R13(\r)
-	lwz r14, OFFSET_R14(\r)
-	lwz r15, OFFSET_R15(\r)
-	lwz r16, OFFSET_R16(\r)
-	lwz r17, OFFSET_R17(\r)
-	lwz r18, OFFSET_R18(\r)
-	lwz r19, OFFSET_R19(\r)
-	lwz r20, OFFSET_R20(\r)
-	lwz r21, OFFSET_R21(\r)
-	lwz r22, OFFSET_R22(\r)
-	lwz r23, OFFSET_R23(\r)
-	lwz r24, OFFSET_R24(\r)
-	lwz r25, OFFSET_R25(\r)
-	lwz r26, OFFSET_R26(\r)
-	lwz r27, OFFSET_R27(\r)
-	lwz r28, OFFSET_R28(\r)
-	lwz r29, OFFSET_R29(\r)
-	lwz r30, OFFSET_R30(\r)
-	lwz r31, OFFSET_R31(\r)
-.endm
+#include <arch/context_offset.h>
 
 context_save:
-	CONTEXT_STORE r3
+	CONTEXT_SAVE_ARCH_CORE r3
 	
 	mflr r4
 	stw r4, OFFSET_PC(r3)
@@ -97,7 +49,7 @@ context_save:
 
 
 context_restore:
-	CONTEXT_LOAD r3
+	CONTEXT_RESTORE_ARCH_CORE r3
 	
 	lwz r4, OFFSET_CR(r3)
 	mtcr r4
