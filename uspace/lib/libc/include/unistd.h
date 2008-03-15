@@ -38,7 +38,10 @@
 #include <sys/types.h>
 #include <libarch/config.h>
 
+#ifndef NULL
 #define NULL 0
+#endif
+
 #define getpagesize()     (PAGE_SIZE)
 
 #define SEEK_SET	0

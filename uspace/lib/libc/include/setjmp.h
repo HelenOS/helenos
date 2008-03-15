@@ -26,28 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia32
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ia32_SETJMP_H_
-#define LIBC_ia32_SETJMP_H_
+#ifndef LIBC_SETJMP_H_
+#define LIBC_SETJMP_H_
 
-#include <libarch/types.h>
+#include <libarch/fibril.h>
 
-typedef struct {
-	uint32_t ebx;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-	uint32_t esp;
-	uint32_t pc;
-} jmp_buf;
+typedef context_t jmp_buf;
 
-int setjmp(jmp_buf env);
-void longjmp(jmp_buf env,int val) __attribute__((__noreturn__));
+extern int setjmp(jmp_buf env);
+extern void longjmp(jmp_buf env,int val) __attribute__((__noreturn__));
 
 #endif
 
