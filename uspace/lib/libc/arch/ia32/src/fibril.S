@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <kernel/arch/context_offset.h>
+
 .text
 
 .global context_save
@@ -41,16 +43,12 @@ context_save:
 	movl 0(%esp),%eax	# the caller's return %eip
 	movl 4(%esp),%edx	# address of the context variable to save context to
 
-	movl %esp,0(%edx)	# %esp -> ctx->sp
-	movl %eax,4(%edx)	# %eip -> ctx->pc
-	movl %ebx,8(%edx)	# %ebx -> ctx->ebx
-	movl %esi,12(%edx)	# %esi -> ctx->esi
-	movl %edi,16(%edx)	# %edi -> ctx->edi
-	movl %ebp,20(%edx)	# %ebp -> ctx->ebp
+		# save registers to given structure
+	CONTEXT_SAVE_ARCH_CORE %edx %eax
 
 	# Save TLS
 	movl %gs:0, %eax
-	movl %eax, 24(%edx)     # tls -> ctx->tls
+	movl %eax, OFFSET_TLS(%edx)     # tls -> ctx->tls
 	
 	xorl %eax,%eax		# context_save returns 1
 	incl %eax
@@ -64,18 +62,15 @@ context_save:
 #
 context_restore:
 	movl 4(%esp),%eax	# address of the context variable to restore context from
-	movl 0(%eax),%esp	# ctx->sp -> %esp
-	movl 4(%eax),%edx	# ctx->pc -> %edx
-	movl 8(%eax),%ebx	# ctx->ebx -> %ebx
-	movl 12(%eax),%esi	# ctx->esi -> %esi
-	movl 16(%eax),%edi	# ctx->edi -> %edi
-	movl 20(%eax),%ebp	# ctx->ebp -> %ebp
+
+		# restore registers from jmp_buf
+	CONTEXT_RESTORE_ARCH_CORE %eax %edx
 
 	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
 
 	# Set thread local storage
 	pushl %edx
-	movl 24(%eax), %edx   # Set arg1 to TLS addr
+	movl OFFSET_TLS(%eax), %edx   # Set arg1 to TLS addr
 	movl $1, %eax         # Syscall SYS_TLS_SET
 	int $0x30
 	popl %edx
