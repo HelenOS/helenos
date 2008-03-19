@@ -124,7 +124,8 @@ void fpu_enable(void)
 void cpu_arch_init(void)
 {
 	CPU->arch.tss = tss_p;
-	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((uint8_t *) CPU->arch.tss);
+	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] -
+	    ((uint8_t *) CPU->arch.tss);
 	CPU->fpu_owner = NULL;
 }
 
@@ -139,29 +140,33 @@ void cpu_identify(void)
 		/*
 		 * Check for AMD processor.
 		 */
-		if (info.cpuid_ebx==AMD_CPUID_EBX && info.cpuid_ecx==AMD_CPUID_ECX && info.cpuid_edx==AMD_CPUID_EDX) {
+		if (info.cpuid_ebx == AMD_CPUID_EBX &&
+		    info.cpuid_ecx == AMD_CPUID_ECX &&
+		    info.cpuid_edx == AMD_CPUID_EDX) {
 			CPU->arch.vendor = VendorAMD;
 		}
 
 		/*
 		 * Check for Intel processor.
 		 */		
-		if (info.cpuid_ebx==INTEL_CPUID_EBX && info.cpuid_ecx==INTEL_CPUID_ECX && info.cpuid_edx==INTEL_CPUID_EDX) {
+		if (info.cpuid_ebx == INTEL_CPUID_EBX &&
+		    info.cpuid_ecx == INTEL_CPUID_ECX &&
+		    info.cpuid_edx == INTEL_CPUID_EDX) {
 			CPU->arch.vendor = VendorIntel;
 		}
 				
 		cpuid(1, &info);
-		CPU->arch.family = (info.cpuid_eax>>8)&0xf;
-		CPU->arch.model = (info.cpuid_eax>>4)&0xf;
-		CPU->arch.stepping = (info.cpuid_eax>>0)&0xf;						
+		CPU->arch.family = (info.cpuid_eax >> 8) & 0xf;
+		CPU->arch.model = (info.cpuid_eax >> 4) & 0xf;
+		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0xf;						
 	}
 }
 
 void cpu_print_report(cpu_t* m)
 {
 	printf("cpu%d: (%s family=%d model=%d stepping=%d) %dMHz\n",
-		m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model, m->arch.stepping,
-		m->frequency_mhz);
+	    m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model,
+	    m->arch.stepping, m->frequency_mhz);
 }
 
 /** @}
