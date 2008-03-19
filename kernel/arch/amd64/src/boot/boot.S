@@ -54,6 +54,7 @@ multiboot_header:
 	.long multiboot_image_start
 
 multiboot_image_start:
+	cld
 	movl $START_STACK, %esp			# initialize stack pointer
 	lgdtl bootstrap_gdtr			# initialize Global Descriptor Table register
 
@@ -126,7 +127,6 @@ multiboot_image_start:
 	mov $vesa_init, %esi
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	mov $e_vesa_init - vesa_init, %ecx
-	cld
 	rep movsb
 
 	mov $VESA_INIT_SEGMENT << 4, %edi
@@ -282,7 +282,6 @@ start64:
 	movq $BOOT_OFFSET, %rsi
 	movq $AP_BOOT_OFFSET, %rdi
 	movq $_hardcoded_unmapped_size, %rcx
-	cld
 	rep movsb
 	
 #endif
@@ -556,7 +555,6 @@ error_halt:
 	addl %eax, %edi
 	
 	movw $0x0c00, %ax				# black background, light red foreground
-	cld
 	
 	ploop:
 		lodsb

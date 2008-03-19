@@ -62,9 +62,11 @@ void syscall_setup_cpu(void)
 	write_msr(AMD_MSR_LSTAR, (uint64_t)syscall_entry);
 	/* Mask RFLAGS on syscall 
 	 * - disable interrupts, until we exchange the stack register
-	 *   (mask the IE bit)
+	 *   (mask the IF bit)
+	 * - clear DF so that the string instructions operate in
+	 *   the right direction
 	 */
-	write_msr(AMD_MSR_SFMASK, 0x200);
+	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF);
 }
 
 /** @}

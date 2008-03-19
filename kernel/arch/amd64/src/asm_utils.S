@@ -248,6 +248,7 @@ read_efer_flag:
 	.endif	
 
 	save_all_gpr
+	cld
 
 	movq $(\i), %rdi   	# %rdi - first parameter
 	movq %rsp, %rsi   	# %rsi - pointer to istate

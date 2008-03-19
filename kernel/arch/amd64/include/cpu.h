@@ -35,8 +35,9 @@
 #ifndef KERN_amd64_CPU_H_
 #define KERN_amd64_CPU_H_
 
-#define RFLAGS_IF       (1 << 9)
-#define RFLAGS_RF       (1 << 16)
+#define RFLAGS_IF	(1 << 9)
+#define RFLAGS_DF	(1 << 10)
+#define RFLAGS_RF	(1 << 16)
 
 #define EFER_MSR_NUM    0xc0000080
 #define AMD_SCE_FLAG    0

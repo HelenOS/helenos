@@ -173,6 +173,7 @@ enable_l_apic_in_msr:
 	movw %ax, %ds
 	movw %ax, %es
 	
+	cld
 	sti
 	# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
 	call syscall_handler   
@@ -232,6 +233,8 @@ enable_l_apic_in_msr:
 	movw $16, %ax
 	movw %ax, %ds
 	movw %ax, %es
+
+	cld
 
 	pushl %esp          # *istate
 	pushl $(\i)         # intnum

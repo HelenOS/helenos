@@ -50,6 +50,7 @@ multiboot_header:
 	.long multiboot_image_start
 	
 multiboot_image_start:
+	cld
 	movl $START_STACK, %esp			# initialize stack pointer
 	lgdt KA2PA(bootstrap_gdtr)		# initialize Global Descriptor Table register
 
@@ -85,7 +86,6 @@ multiboot_image_start:
 	mov $vesa_init, %esi
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	mov $e_vesa_init - vesa_init, %ecx
-	cld
 	rep movsb
 
 	mov $VESA_INIT_SEGMENT << 4, %edi
@@ -206,7 +206,6 @@ multiboot_image_start:
 	movl $BOOT_OFFSET, %esi
 	movl $AP_BOOT_OFFSET, %edi
 	movl $_hardcoded_unmapped_size, %ecx
-	cld
 	rep movsb
 	
 #endif
@@ -279,7 +278,6 @@ error_halt:
 	addl %eax, %edi
 	
 	movw $0x0c00, %ax						# black background, light red foreground
-	cld
 	
 	ploop:
 		lodsb
