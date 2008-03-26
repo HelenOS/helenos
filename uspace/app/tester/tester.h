@@ -42,6 +42,7 @@
 #define IPC_TEST_START	10000
 #define MAX_PHONES		20
 #define MAX_CONNECTIONS 50
+#define TEST_SKIPPED    "Test Skipped"
 
 extern int myservice;
 extern int phones[MAX_PHONES];

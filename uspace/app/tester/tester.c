@@ -78,6 +78,21 @@ static bool run_test(test_t *test)
 
 static void run_safe_tests(void)
 {
+	test_t *test;
+	int i = 0, n = 0;
+
+	printf("\n*** Running all safe tests\n\n");
+
+	for (test = tests; test->name != NULL; test++) {
+		if (test->safe) {
+			if (run_test(test))
+				i++;
+			else
+				n++;
+		}
+	}
+
+	printf("\nSafe tests completed, %d tests run, %d passed.\n\n", i + n, i);
 }
 
 static void list_tests(void)

@@ -36,9 +36,11 @@ char * test_connect(bool quiet)
 	int svc;
 	int phid;
 
-	printf("Choose one service: 0:10000....9:10009\n");
+	printf("Choose one service: 0:10000....9:10009 (Q to skip)\n");
 	do {
 		c = getchar();
+		if (c == 'Q' || c == 'q')
+			return TEST_SKIPPED;
 	} while (c < '0' || c > '9');
 	
 	svc = IPC_TEST_START + c - '0';
