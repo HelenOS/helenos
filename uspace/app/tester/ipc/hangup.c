@@ -37,10 +37,10 @@ char * test_hangup(bool quiet)
 	int res;
 	int phoneid;
 
-	printf("Select phoneid to hangup: 2-9 (Q to skip)\n");
+	printf("Select phoneid to hangup: 2-9 (q to skip)\n");
 	do {
 		c = getchar();
-		if (c == 'Q' || c == 'q')
+		if ((c == 'Q') || (c == 'q'))
 			return TEST_SKIPPED;
 	} while (c < '2' || c > '9');
 	phoneid = c - '0';

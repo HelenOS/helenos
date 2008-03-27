@@ -36,10 +36,10 @@ char * test_connect(bool quiet)
 	int svc;
 	int phid;
 
-	printf("Choose one service: 0:10000....9:10009 (Q to skip)\n");
+	printf("Choose one service: 0:10000....9:10009 (q to skip)\n");
 	do {
 		c = getchar();
-		if (c == 'Q' || c == 'q')
+		if ((c == 'Q') || (c == 'q'))
 			return TEST_SKIPPED;
 	} while (c < '0' || c > '9');
 	

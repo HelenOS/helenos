@@ -41,10 +41,10 @@ char * test_send_async(bool quiet)
 	static int msgid = 1;
 	char c;
 
-	printf("Select phoneid to send msg: 2-9 (Q to skip)\n");
+	printf("Select phoneid to send msg: 2-9 (q to skip)\n");
 	do {
 		c = getchar();
-		if (c == 'Q' || c == 'q')
+		if ((c == 'Q') || (c == 'q'))
 			return TEST_SKIPPED;
 	} while (c < '2' || c > '9');
 	phoneid = c - '0';
