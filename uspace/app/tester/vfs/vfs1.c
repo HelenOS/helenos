@@ -43,10 +43,23 @@ char text[] = "O xein', angellein Lakedaimoniois hoti teide "
 
 char *test_vfs1(bool quiet)
 {
-	if (mount("tmpfs", "/", "nulldev0") != EOK)
-		return "mount() failed.\n";
-	if (!quiet)
-		printf("mounted tmpfs on /.\n");
+	int rc;
+
+	rc = mount("tmpfs", "/", "nulldev0");
+	switch (rc) {
+	case EOK:
+		if (!quiet)
+			printf("mounted tmpfs on /\n");
+		break;
+	case EBUSY:
+		if (!quiet)
+			printf("(INFO) something is already mounted on /\n");
+		break;
+	default:
+		if (!quiet)
+			printf("(INFO) IPC returned errno %d\n", rc);
+		return "mount() failed.";
+	}
 
 	if (mkdir("/mydir", 0) != 0)
 		return "mkdir() failed.\n";

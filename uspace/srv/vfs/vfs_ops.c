@@ -188,6 +188,15 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
 		rwlock_write_lock(&namespace_rwlock);
+		if ((size == 1) && (buf[0] == '/')) {
+			/* Trying to mount root FS over root FS */
+			rwlock_write_unlock(&namespace_rwlock);
+			futex_up(&rootfs_futex);
+			vfs_node_put(mr_node);
+			free(buf);
+			ipc_answer_0(rid, EBUSY);
+			return;
+		}
 		rc = vfs_lookup_internal(buf, L_DIRECTORY, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
