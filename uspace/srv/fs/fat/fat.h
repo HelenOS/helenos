@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <atomic.h>
 #include <sys/types.h>
 #include <bool.h>
+#include "../../vfs/vfs.h"
 
 #define dprintf(...)	printf(__VA_ARGS__)
 
@@ -47,17 +48,17 @@ typedef struct {
 	/* BIOS Parameter Block */
 	uint16_t	bps;		/**< Bytes per sector. */
 	uint8_t		spc;		/**< Sectors per cluster. */
-	uint16_t	rsc;		/**< Reserved sector count. */
+	uint16_t	rscnt;		/**< Reserved sector count. */
 	uint8_t		fatcnt;		/**< Number of FATs. */
 	uint16_t	root_ent_max;	/**< Maximum number of root directory
 					     entries. */
-	uint16_t	totsec;		/**< Total sectors. */
+	uint16_t	totsec16;	/**< Total sectors. 16-bit version. */
 	uint8_t		mdesc;		/**< Media descriptor. */
 	uint16_t	sec_per_fat;	/**< Sectors per FAT12/FAT16. */
 	uint16_t	sec_per_track;	/**< Sectors per track. */
 	uint16_t	headcnt;	/**< Number of heads. */
 	uint32_t	hidden_sec;	/**< Hidden sectors. */
-	uint32_t	total_sec;	/**< Total sectors. */
+	uint32_t	totseci32;	/**< Total sectors. 32-bit version. */
 
 	union {
 		struct {
@@ -101,7 +102,7 @@ typedef struct {
 			/** Serial number. */
 			uint32_t	id;
 			/** Volume label. */
-			uint8_t		label;
+			uint8_t		label[11];
 			/** FAT type. */
 			uint8_t		type[8];
 			/** Boot code. */
@@ -133,6 +134,23 @@ typedef struct {
 	};
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
+
+typedef enum {
+	FAT_DIRECTORY,
+	FAT_FILE
+} fat_node_type_t;
+
+/** FAT in-core node. */
+typedef struct {
+	fat_node_type_t		type;
+	/** VFS index is the node's first allocated cluster. */
+	fs_index_t		index;
+	dev_handle_t		dev_handle;
+	/** FAT in-core node hash table link. */
+	link_t 			fin_link;
+	size_t			size;
+	unsigned		lnkcnt;
+} fat_node_t;
 
 extern fs_reg_t fat_reg;
 
