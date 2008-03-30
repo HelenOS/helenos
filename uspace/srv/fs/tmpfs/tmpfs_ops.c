@@ -69,7 +69,7 @@ static tmpfs_dentry_t *root;
  */
 
 /* Forward declarations of static functions. */
-static bool tmpfs_match(void *, void *, const char *);
+static void *tmpfs_match(void *, const char *);
 static void *tmpfs_node_get(fs_handle_t, dev_handle_t, fs_index_t);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
@@ -92,14 +92,9 @@ static unsigned tmpfs_lnkcnt_get(void *nodep)
 	return ((tmpfs_dentry_t *) nodep)->lnkcnt;
 }
 
-static void *tmpfs_child_get(void *nodep)
+static bool tmpfs_has_children(void *nodep)
 {
-	return ((tmpfs_dentry_t *) nodep)->child;
-}
-
-static void *tmpfs_sibling_get(void *nodep)
-{
-	return ((tmpfs_dentry_t *) nodep)->sibling;
+	return ((tmpfs_dentry_t *) nodep)->child != NULL;
 }
 
 static void *tmpfs_root_get(void)
@@ -133,8 +128,7 @@ libfs_ops_t tmpfs_libfs_ops = {
 	.index_get = tmpfs_index_get,
 	.size_get = tmpfs_size_get,
 	.lnkcnt_get = tmpfs_lnkcnt_get,
-	.child_get = tmpfs_child_get,
-	.sibling_get = tmpfs_sibling_get,
+	.has_children = tmpfs_has_children,
 	.root_get = tmpfs_root_get,
 	.plb_get_char = tmpfs_plb_get_char,
 	.is_directory = tmpfs_is_directory,
@@ -243,23 +237,32 @@ static bool tmpfs_init(void)
 
 /** Compare one component of path to a directory entry.
  *
- * @param prnt		Node from which we descended.
- * @param chld		Node to compare the path component with.
+ * @param parentp	Pointer to node from which we descended.
+ * @param childp	Pointer to node to compare the path component with.
  * @param component	Array of characters holding component name.
  *
  * @return		True on match, false otherwise.
  */
-bool tmpfs_match(void *prnt, void *chld, const char *component)
+static bool
+tmpfs_match_one(tmpfs_dentry_t *parentp, tmpfs_dentry_t *childp,
+    const char *component)
 {
-	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
-	tmpfs_dentry_t *childp = (tmpfs_dentry_t *) chld;
-
 	unsigned long key = (unsigned long) parentp;
 	link_t *hlp = hash_table_find(&childp->names, &key);
 	assert(hlp);
 	tmpfs_name_t *namep = hash_table_get_instance(hlp, tmpfs_name_t, link);
-
 	return !strcmp(namep->name, component);
+}
+
+void *tmpfs_match(void *prnt, const char *component)
+{
+	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
+	tmpfs_dentry_t *childp = parentp->child;
+
+	while (childp && !tmpfs_match_one(parentp, childp, component))
+		childp = childp->sibling;
+
+	return (void *) childp;
 }
 
 void *

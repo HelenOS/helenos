@@ -42,7 +42,7 @@
 #include <async.h>
 
 typedef struct {
-	bool (* match)(void *, void *, const char *);
+	void * (* match)(void *, const char *);
 	void * (* node_get)(fs_handle_t, dev_handle_t, fs_index_t);
 	void * (* create)(int);
 	void (* destroy)(void *);
@@ -51,8 +51,7 @@ typedef struct {
 	fs_index_t (* index_get)(void *);
 	size_t (* size_get)(void *);
 	unsigned (* lnkcnt_get)(void *);
-	void *(* child_get)(void *);
-	void *(* sibling_get)(void *);
+	bool (* has_children)(void *);
 	void *(* root_get)(void);
 	char (* plb_get_char)(unsigned pos);	
 	bool (* is_directory)(void *);
