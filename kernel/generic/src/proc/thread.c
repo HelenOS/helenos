@@ -87,7 +87,7 @@ char *thread_states[] = {
  */
 SPINLOCK_INITIALIZE(threads_lock);
 
-/** ALV tree of all threads.
+/** AVL tree of all threads.
  *
  * When a thread is found in the threads_tree AVL tree, it is guaranteed to
  * exist as long as the threads_lock is held.
