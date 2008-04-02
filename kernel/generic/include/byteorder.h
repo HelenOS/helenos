@@ -38,21 +38,27 @@
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {
 	return ((n & 0xff) << 56) |
-		((n & 0xff00) << 40) |
-		((n & 0xff0000) << 24) |
-		((n & 0xff000000LL) << 8) |
-		((n & 0xff00000000LL) >> 8) |
-		((n & 0xff0000000000LL) >> 24) |
-		((n & 0xff000000000000LL) >> 40) |
-		((n & 0xff00000000000000LL) >> 56);
+	    ((n & 0xff00) << 40) |
+	    ((n & 0xff0000) << 24) |
+	    ((n & 0xff000000LL) << 8) |
+	    ((n & 0xff00000000LL) >> 8) |
+	    ((n & 0xff0000000000LL) >> 24) |
+	    ((n & 0xff000000000000LL) >> 40) |
+	    ((n & 0xff00000000000000LL) >> 56);
 }
 
 static inline uint32_t uint32_t_byteorder_swap(uint32_t n)
 {
 	return ((n & 0xff) << 24) |
-		((n & 0xff00) << 8) |
-		((n & 0xff0000) >> 8) |
-		((n & 0xff000000) >> 24);
+	    ((n & 0xff00) << 8) |
+	    ((n & 0xff0000) >> 8) |
+	    ((n & 0xff000000) >> 24);
+}
+
+static inline uint16_t uint16_t_byteorder_swap(uint16_t n)
+{
+	return ((n & 0xff) << 8) |
+	    ((n & 0xff00) >> 8);
 }
 
 #endif
