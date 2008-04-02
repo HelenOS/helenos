@@ -37,9 +37,58 @@
 
 #define __LITTLE_ENDIAN 1234
 #define __BIG_ENDIAN	4321
-#define __PDP_ENDIAN	3412
 
+#include <stdint.h>
 #include <libarch/endian.h>
+
+#if (__BYTE_ORDER == __BIG_ENDIAN)
+
+#define uint16_t_le2host(n)		uint16_t_byteorder_swap(n)
+#define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_le2host(n)		uint64_t_byteorder_swap(n)
+
+#define uint16_t_be2host(n)		(n)
+#define uint32_t_be2host(n)		(n)
+#define uint64_t_be2host(n)		(n)
+
+#else
+
+#define uint16_t_le2host(n)		(n)
+#define uint32_t_le2host(n)		(n)
+#define uint64_t_le2host(n)		(n)
+
+#define uint16_t_be2host(n)		uint16_t_byteorder_swap(n)
+#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
+
+#endif
+
+
+static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
+{
+	return ((n & 0xff) << 56) |
+	    ((n & 0xff00) << 40) |
+	    ((n & 0xff0000) << 24) |
+	    ((n & 0xff000000LL) << 8) |
+	    ((n & 0xff00000000LL) >> 8) |
+	    ((n & 0xff0000000000LL) >> 24) |
+	    ((n & 0xff000000000000LL) >> 40) |
+	    ((n & 0xff00000000000000LL) >> 56);
+}
+
+static inline uint32_t uint32_t_byteorder_swap(uint32_t n)
+{
+	return ((n & 0xff) << 24) |
+	    ((n & 0xff00) << 8) |
+	    ((n & 0xff0000) >> 8) |
+	    ((n & 0xff000000) >> 24);
+}
+
+static inline uint16_t uint16_t_byteorder_swap(uint16_t n)
+{
+	return ((n & 0xff) << 8) |
+	    ((n & 0xff00) >> 8);
+}
 
 #endif
 
