@@ -113,6 +113,10 @@ typedef struct {
 	}; 
 } __attribute__ ((packed)) fat_bs_t;
 
+#define FAT_ATTR_RDONLY		(1 << 0)
+#define FAT_ATTR_VOLLABEL	(1 << 3)
+#define FAT_ATTR_SUBDIR		(1 << 4)
+
 typedef struct {
 	uint8_t		name[8];
 	uint8_t		ext[3];
