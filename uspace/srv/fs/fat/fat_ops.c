@@ -42,6 +42,7 @@
 #include <async.h>
 #include <errno.h>
 #include <string.h>
+#include <endian.h>
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
@@ -135,7 +136,7 @@ static void *fat_match(void *prnt, const char *component)
 		if (strcmp(name, component) == 0) {
 			/* hit */
 			void *node = fat_node_get(parentp->dev_handle,
-			    (fs_index_t)d->firstc);
+			    (fs_index_t)uint16_t_le2host(d->firstc));
 			fat_dentry_put(d);
 			return node;
 
