@@ -38,7 +38,7 @@
  */
 
 #include <lib/rd.h>
-#include <arch/byteorder.h>
+#include <byteorder.h>
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/ddi.h>

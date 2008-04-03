@@ -36,7 +36,7 @@
  */
 
 #include <symtab.h>
-#include <arch/byteorder.h>
+#include <byteorder.h>
 #include <func.h>
 #include <print.h>
 
@@ -53,12 +53,12 @@ char * get_symtab_entry(unative_t addr)
 {
 	count_t i;
 
-	for (i=1;symbol_table[i].address_le;++i) {
+	for (i = 1; symbol_table[i].address_le; ++i) {
 		if (addr < uint64_t_le2host(symbol_table[i].address_le))
 			break;
 	}
-	if (addr >= uint64_t_le2host(symbol_table[i-1].address_le))
-		return symbol_table[i-1].symbol_name;
+	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le))
+		return symbol_table[i - 1].symbol_name;
 	return NULL;
 }
 
@@ -72,19 +72,19 @@ static char * symtab_search_one(const char *name, int *startpos)
 {
 	unsigned int namelen = strlen(name);
 	char *curname;
-	int i,j;
+	int i, j;
 	int colonoffset = -1;
 
-	for (i=0;name[i];i++)
+	for (i = 0; name[i]; i++)
 		if (name[i] == ':') {
 			colonoffset = i;
 			break;
 		}
 
-	for (i=*startpos;symbol_table[i].address_le;++i) {
+	for (i = *startpos; symbol_table[i].address_le; ++i) {
 		/* Find a ':' in name */
 		curname = symbol_table[i].symbol_name;
-		for (j=0; curname[j] && curname[j] != ':'; j++)
+		for (j = 0; curname[j] && curname[j] != ':'; j++)
 			;
 		if (!curname[j])
 			continue;
@@ -94,7 +94,7 @@ static char * symtab_search_one(const char *name, int *startpos)
 			continue;
 		if (strncmp(curname, name, namelen) == 0) {
 			*startpos = i;
-			return curname+namelen;
+			return curname + namelen;
 		}
 	}
 	return NULL;
@@ -115,7 +115,7 @@ uintptr_t get_symbol_addr(const char *name)
 	int i;
 
 	i = 0;
-	while ((hint=symtab_search_one(name, &i))) {
+	while ((hint = symtab_search_one(name, &i))) {
 		if (!strlen(hint)) {
 			addr =  uint64_t_le2host(symbol_table[i].address_le);
 			found++;
@@ -151,7 +151,7 @@ void symtab_print_search(const char *name)
  */
 int symtab_compl(char *input)
 {
-	char output[MAX_SYMBOL_NAME+1];
+	char output[MAX_SYMBOL_NAME + 1];
 	int startpos = 0;
 	char *foundtxt;
 	int found = 0;
@@ -172,9 +172,10 @@ int symtab_compl(char *input)
 	while ((foundtxt = symtab_search_one(name, &startpos))) {
 		startpos++;
 		if (!found)
-			strncpy(output, foundtxt, strlen(foundtxt)+1);
+			strncpy(output, foundtxt, strlen(foundtxt) + 1);
 		else {
-			for (i=0; output[i] && foundtxt[i] && output[i]==foundtxt[i]; i++)
+			for (i = 0; output[i] && foundtxt[i] &&
+			     output[i] == foundtxt[i]; i++)
 				;
 			output[i] = '\0';
 		}

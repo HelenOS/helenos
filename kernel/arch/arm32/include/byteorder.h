@@ -36,28 +36,10 @@
 #ifndef KERN_arm32_BYTEORDER_H_
 #define KERN_arm32_BYTEORDER_H_
 
-#include <byteorder.h>
-
 #ifdef BIG_ENDIAN
-
-#define uint16_t_le2host(n)		uint16_t_byteorder_swap(n)
-#define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
-#define uint64_t_le2host(n)		uint64_t_byteorder_swap(n)
-
-#define uint16_t_be2host(n)		(n)
-#define uint32_t_be2host(n)		(n)
-#define uint64_t_be2host(n)		(n)
-
+#define ARCH_IS_BIG_ENDIAN
 #else
-
-#define uint16_t_le2host(n)		(n)
-#define uint32_t_le2host(n)		(n)
-#define uint64_t_le2host(n)		(n)
-
-#define uint16_t_be2host(n)		uint16_t_byteorder_swap(n)
-#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
-#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
-
+#define ARCH_IS_LITTLE_ENDIAN
 #endif
 
 #endif

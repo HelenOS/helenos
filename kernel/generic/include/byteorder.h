@@ -35,6 +35,34 @@
 #ifndef KERN_BYTEORDER_H_
 #define KERN_BYTEORDER_H_
 
+#include <arch/byteorder.h>
+
+#if !(defined(ARCH_IS_BIG_ENDIAN) ^ defined(ARCH_IS_LITTLE_ENDIAN))
+#error The architecture must be either big-endian or little-endian.
+#endif
+
+#ifdef ARCH_IS_BIG_ENDIAN
+
+#define uint16_t_le2host(n)		uint16_t_byteorder_swap(n)
+#define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_le2host(n)		uint64_t_byteorder_swap(n)
+
+#define uint16_t_be2host(n)		(n)
+#define uint32_t_be2host(n)		(n)
+#define uint64_t_be2host(n)		(n)
+
+#else
+
+#define uint16_t_le2host(n)		(n)
+#define uint32_t_le2host(n)		(n)
+#define uint64_t_le2host(n)		(n)
+
+#define uint16_t_be2host(n)		uint16_t_byteorder_swap(n)
+#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
+#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
+
+#endif
+
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {
 	return ((n & 0xff) << 56) |

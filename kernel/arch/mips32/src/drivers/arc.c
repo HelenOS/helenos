@@ -36,7 +36,7 @@
 #include <arch/mm/page.h>
 #include <print.h>
 #include <arch.h>
-#include <arch/byteorder.h>
+#include <byteorder.h>
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <interrupt.h>
