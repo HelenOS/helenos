@@ -35,7 +35,7 @@
 #ifndef __SFTYPES_H__
 #define __SFTYPES_H__
 
-#include <endian.h>
+#include <byteorder.h>
 #include <stdint.h>
 
 typedef union {
@@ -43,17 +43,17 @@ typedef union {
 	uint32_t binary;
 
 	struct 	{
-		#if __BYTE_ORDER == __BIG_ENDIAN
+#if defined(ARCH_IS_BIG_ENDIAN)
 		uint32_t sign:1;
 		uint32_t exp:8;
 		uint32_t fraction:23;
-		#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#elif defined(ARCH_IS_LITTLE_ENDIAN)
 		uint32_t fraction:23;
 		uint32_t exp:8;
 		uint32_t sign:1;
-		#else 
-			#error "Unknown endians."
-		#endif
+#else 
+#error "Unknown endians."
+#endif
 		} parts __attribute__ ((packed));
  	} float32;
 	
@@ -62,17 +62,17 @@ typedef union {
 	uint64_t binary;
 	
 	struct	{
-		#if __BYTE_ORDER == __BIG_ENDIAN
+#if defined(ARCH_IS_BIG_ENDIAN)
 		uint64_t sign:1;
 		uint64_t exp:11;
 		uint64_t fraction:52;
-		#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#elif defined(ARCH_IS_LITTLE_ENDIAN)
 		uint64_t fraction:52;
 		uint64_t exp:11;
 		uint64_t sign:1;
-		#else 
-			#error "Unknown endians."
-		#endif
+#else 
+#error "Unknown endians."
+#endif
 		} parts __attribute__ ((packed));
 	} float64;
 
@@ -81,7 +81,10 @@ typedef union {
 #define FLOAT64_MAX
 #define FLOAT64_MIN
 
-/* For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf, comparing with this constants is not sufficient */
+/*
+ * For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf,
+ * comparing with these constants is not sufficient.
+ */
 #define FLOAT32_NAN 0x7FC00001
 #define FLOAT32_SIGNAN 0x7F800001
 #define FLOAT32_INF 0x7F800000

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,16 +32,17 @@
 /** @file
  */
 
-#ifndef LIBC_ENDIAN_H_
-#define LIBC_ENDIAN_H_
+#ifndef LIBC_BYTEORDER_H_
+#define LIBC_BYTEORDER_H_
 
-#define __LITTLE_ENDIAN 1234
-#define __BIG_ENDIAN	4321
-
+#include <libarch/byteorder.h>
 #include <stdint.h>
-#include <libarch/endian.h>
 
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#if !(defined(ARCH_IS_BIG_ENDIAN) ^ defined(ARCH_IS_LITTLE_ENDIAN))
+#error The architecture must be either big-endian or little-endian.
+#endif
+
+#ifdef ARCH_IS_BIG_ENDIAN
 
 #define uint16_t_le2host(n)		uint16_t_byteorder_swap(n)
 #define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
@@ -62,7 +63,6 @@
 #define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
 
 #endif
-
 
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {

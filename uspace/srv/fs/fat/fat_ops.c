@@ -42,7 +42,7 @@
 #include <async.h>
 #include <errno.h>
 #include <string.h>
-#include <endian.h>
+#include <byteorder.h>
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3

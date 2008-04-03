@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_ENDIAN_H_
-#define LIBC_sparc64_ENDIAN_H_
+#ifndef LIBC_sparc64_BYTEORDER_H_
+#define LIBC_sparc64_BYTEORDER_H_
 
-#ifndef LIBC_ENDIAN_H_
-# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
-#endif
-
-#define __BYTE_ORDER __BIG_ENDIAN
+#define ARCH_IS_BIG_ENDIAN
 
 #endif
 

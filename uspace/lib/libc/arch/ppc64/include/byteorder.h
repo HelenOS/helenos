@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,24 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-/** @addtogroup libcmips32eb mipseb32
-  * @brief mipseb32 architecture dependent parts of libc
-  * @ingroup lc
+
+/** @addtogroup libcppc64
  * @{
  */
 /** @file
  */
 
+#ifndef LIBC_ppc64_BYTEORDER_H_
+#define LIBC_ppc64_BYTEORDER_H_
 
-#ifndef LIBC_mips32eb_ENDIAN_H_
-#define LIBC_mips32eb_ENDIAN_H_
-
-#ifndef LIBC_ENDIAN_H_
-# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
-#endif
-
-#define __BYTE_ORDER __BIG_ENDIAN
+#define ARCH_IS_BIG_ENDIAN
 
 #endif
 

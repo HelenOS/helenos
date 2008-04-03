@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32	
+/** @addtogroup libcamd64
  * @{
  */
-/** @file 
- *  @brief Endianness definition.
+/** @file
  */
 
-#ifndef LIBC_arm32_ENDIAN_H_
-#define LIBC_arm32_ENDIAN_H_
+#ifndef LIBC_amd64_BYTEORDER_H_
+#define LIBC_amd64_BYTEORDER_H_
 
-#ifndef LIBC_ENDIAN_H_
-# error "Never use <libarch/endian.h> directly - use <endian.h> instead."
-#endif
-
-#define __BYTE_ORDER __LITTLE_ENDIAN
+/* AMD64 is little-endian */
+#define ARCH_IS_LITTLE_ENDIAN
 
 #endif
 
