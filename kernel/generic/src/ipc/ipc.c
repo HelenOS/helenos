@@ -117,8 +117,9 @@ void ipc_call_free(call_t *call)
 /** Initialize an answerbox structure.
  *
  * @param box		Answerbox structure to be initialized.
+ * @param task		Task to which the answerbox belongs.
  */
-void ipc_answerbox_init(answerbox_t *box)
+void ipc_answerbox_init(answerbox_t *box, task_t *task)
 {
 	spinlock_initialize(&box->lock, "ipc_box_lock");
 	spinlock_initialize(&box->irq_lock, "ipc_box_irqlock");
@@ -129,7 +130,7 @@ void ipc_answerbox_init(answerbox_t *box)
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
 	list_initialize(&box->irq_head);
-	box->task = TASK;
+	box->task = task;
 }
 
 /** Connect a phone to an answerbox.
@@ -172,7 +173,7 @@ void ipc_call_sync(phone_t *phone, call_t *request)
 {
 	answerbox_t sync_box; 
 
-	ipc_answerbox_init(&sync_box);
+	ipc_answerbox_init(&sync_box, TASK);
 
 	/* We will receive data in a special box. */
 	request->callerbox = &sync_box;

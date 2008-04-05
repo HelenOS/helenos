@@ -282,23 +282,22 @@ typedef struct {
 } call_t;
 
 extern void ipc_init(void);
-extern call_t * ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags);
-extern void ipc_answer(answerbox_t *box, call_t *request);
-extern int ipc_call(phone_t *phone, call_t *call);
-extern void ipc_call_sync(phone_t *phone, call_t *request);
-extern void ipc_phone_init(phone_t *phone);
-extern void ipc_phone_connect(phone_t *phone, answerbox_t *box);
-extern void ipc_call_free(call_t *call);
-extern call_t * ipc_call_alloc(int flags);
-extern void ipc_answerbox_init(answerbox_t *box);
-extern void ipc_call_static_init(call_t *call);
+extern call_t * ipc_wait_for_call(answerbox_t *, uint32_t, int);
+extern void ipc_answer(answerbox_t *, call_t *);
+extern int ipc_call(phone_t *, call_t *);
+extern void ipc_call_sync(phone_t *, call_t *);
+extern void ipc_phone_init(phone_t *);
+extern void ipc_phone_connect(phone_t *, answerbox_t *);
+extern void ipc_call_free(call_t *);
+extern call_t * ipc_call_alloc(int);
+extern void ipc_answerbox_init(answerbox_t *, struct task *);
+extern void ipc_call_static_init(call_t *);
 extern void task_print_list(void);
-extern int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
-    int mode);
+extern int ipc_forward(call_t *, phone_t *, answerbox_t *, int);
 extern void ipc_cleanup(void);
-extern int ipc_phone_hangup(phone_t *phone);
-extern void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err);
-extern void ipc_print_task(task_id_t taskid);
+extern int ipc_phone_hangup(phone_t *);
+extern void ipc_backsend_err(phone_t *, call_t *, unative_t);
+extern void ipc_print_task(task_id_t);
 
 extern answerbox_t *ipc_phone_0;
 

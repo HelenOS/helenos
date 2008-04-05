@@ -171,7 +171,7 @@ task_t *task_create(as_t *as, char *name)
 	ta->capabilities = 0;
 	ta->cycles = 0;
 	
-	ipc_answerbox_init(&ta->answerbox);
+	ipc_answerbox_init(&ta->answerbox, ta);
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_init(&ta->phones[i]);
 	if ((ipc_phone_0) && (context_check(ipc_phone_0->task->context,
