@@ -130,26 +130,26 @@ typedef void (* ipc_async_callback_t)(void *private, int retval,
 	ipc_call_sync_fast((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (res1), (res2), (res3), (res4), (res5))
 #define ipc_call_sync_4_0(phoneid, method, arg1, arg2, arg3, arg4) \
-    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), 0, \
 	0, 0, 0, 0, 0)
 #define ipc_call_sync_4_1(phoneid, method, arg1, arg2, arg3, arg4, res1) \
-    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), 0, \
 	(res1), 0, 0, 0, 0)
 #define ipc_call_sync_4_2(phoneid, method, arg1, arg2, arg3, arg4, res1, res2) \
-    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
+    ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), 0, \
 	(res1), (res2), 0, 0, 0)
 #define ipc_call_sync_4_3(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
     res3) \
 	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (res1), (res2), (res3), 0, 0)
+	    (arg4), 0, (res1), (res2), (res3), 0, 0)
 #define ipc_call_sync_4_4(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
     res3, res4) \
 	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (res1), (res2), (res3), (res4), 0)
+	    (arg4), 0, (res1), (res2), (res3), (res4), 0)
 #define ipc_call_sync_4_5(phoneid, method, arg1, arg2, arg3, arg4, res1, res2, \
     res3, res4, res5) \
 	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (res1), (res2), (res3), (res4), (res5))
+	    (arg4), 0, (res1), (res2), (res3), (res4), (res5))
 #define ipc_call_sync_5_0(phoneid, method, arg1, arg2, arg3, arg4, arg5) \
     ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
         (arg5), 0, 0, 0, 0, 0)
