@@ -770,7 +770,7 @@ int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
 	assert(flags);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
 		return 0;
 	*size = (size_t) IPC_GET_ARG2(data);
 	*flags = (int) IPC_GET_ARG3(data);
