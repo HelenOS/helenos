@@ -209,7 +209,7 @@ typedef struct {
 	unsigned lnkcnt;
 
 	link_t nh_link;		/**< Node hash-table link. */
-	size_t size;		/**< Cached size of the file. */
+	size_t size;		/**< Cached size if the node is a file. */
 
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
