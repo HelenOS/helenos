@@ -82,12 +82,21 @@ static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 	}
 }
 
-static fat_dentry_t *fat_dentry_get(fat_node_t *dirnode, unsigned idx)
+/* TODO and also move somewhere else */
+typedef struct {
+	void *data;
+} block_t;
+
+static block_t *block_get(dev_handle_t dev_handle, off_t offset)
 {
 	return NULL;	/* TODO */
 }
 
-static void fat_dentry_put(fat_dentry_t *dentry)
+static block_t *fat_block_get(fat_node_t *node, off_t offset) {
+	return NULL;	/* TODO */
+}
+
+static void block_put(block_t *block)
 {
 	/* TODO */
 }
@@ -97,53 +106,70 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 	return NULL;	/* TODO */
 }
 
+#define BS_BLOCK	0
+
 static void *fat_match(void *prnt, const char *component)
 {
 	fat_node_t *parentp = (fat_node_t *)prnt;
 	char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
-	unsigned i;
-	unsigned dentries; 
+	unsigned i, j;
+	unsigned dps;		/* dentries per sector */
+	unsigned blocks;
 	fat_dentry_t *d;
+	block_t *bb;
+	block_t *b;
+	fat_bs_t *bs;
 
-	dentries = parentp->size / sizeof(fat_dentry_t);
-	for (i = 0; i < dentries; i++) {
-		d = fat_dentry_get(parentp, i);
-		if (d->attr & FAT_ATTR_VOLLABEL) {
-			/* volume label entry */
-			fat_dentry_put(d);
-			continue;
-		}
-		if (d->name[0] == FAT_DENTRY_ERASED) {
-			/* not-currently-used entry */
-			fat_dentry_put(d);
-			continue;
-		}
-		if (d->name[0] == FAT_DENTRY_UNUSED) {
-			/* never used entry */
-			fat_dentry_put(d);
-			break;
-		}
-		if (d->name[0] == FAT_DENTRY_DOT) {
-			/*
-			 * Most likely '.' or '..'.
-			 * It cannot occur in a regular file name.
-			 */
-			fat_dentry_put(d);
-			continue;
-		}
+	bb = block_get(parentp->dev_handle, BS_BLOCK);
+	if (!bb)
+		return NULL;
+	bs = (fat_bs_t *)bb->data;
+	dps = bs->bps / sizeof(fat_dentry_t);
+	blocks = parentp->size / bs->bps + (parentp->size % bs->bps != 0);
+	block_put(bb);
+	for (i = 0; i < blocks; i++) {
+		unsigned dentries;
 		
-		dentry_name_canonify(d, name);
-		if (strcmp(name, component) == 0) {
-			/* hit */
-			void *node = fat_node_get(parentp->dev_handle,
-			    (fs_index_t)uint16_t_le2host(d->firstc));
-			fat_dentry_put(d);
-			return node;
+		b = fat_block_get(parentp, i);
+		if (!b) 
+			return NULL;
 
-		} else {
-			/* miss */
-			fat_dentry_put(d);
+		dentries = (i == blocks - 1) ?
+		    parentp->size % sizeof(fat_dentry_t) :
+		    dps;
+		for (j = 0; j < dentries; j++) { 
+			d = ((fat_dentry_t *)b->data) + j;
+			if (d->attr & FAT_ATTR_VOLLABEL) {
+				/* volume label entry */
+				continue;
+			}
+			if (d->name[0] == FAT_DENTRY_ERASED) {
+				/* not-currently-used entry */
+				continue;
+			}
+			if (d->name[0] == FAT_DENTRY_UNUSED) {
+				/* never used entry */
+				block_put(b);
+				return NULL;
+			}
+			if (d->name[0] == FAT_DENTRY_DOT) {
+				/*
+				 * Most likely '.' or '..'.
+				 * It cannot occur in a regular file name.
+				 */
+				continue;
+			}
+		
+			dentry_name_canonify(d, name);
+			if (strcmp(name, component) == 0) {
+				/* hit */
+				void *node = fat_node_get(parentp->dev_handle,
+				    (fs_index_t)uint16_t_le2host(d->firstc));
+				block_put(b);
+				return node;
+			}
 		}
+		block_put(b);
 	}
 
 	return NULL;
