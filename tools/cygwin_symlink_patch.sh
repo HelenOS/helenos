@@ -20,10 +20,3 @@ for linkName in `find . ! -iwholename '.*svn*' ! -type d -print`; do
      ln -s "$linkTarget" "$linkName" 
    fi   
 done 
-
-
-
-
- 
-
- 
