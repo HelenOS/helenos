@@ -113,20 +113,20 @@ static void *fat_match(void *prnt, const char *component)
 	fat_node_t *parentp = (fat_node_t *)prnt;
 	char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
 	unsigned i, j;
+	unsigned bps;		/* bytes per sector */
 	unsigned dps;		/* dentries per sector */
 	unsigned blocks;
 	fat_dentry_t *d;
 	block_t *bb;
 	block_t *b;
-	fat_bs_t *bs;
 
 	bb = block_get(parentp->dev_handle, BS_BLOCK);
 	if (!bb)
 		return NULL;
-	bs = (fat_bs_t *)bb->data;
-	dps = bs->bps / sizeof(fat_dentry_t);
-	blocks = parentp->size / bs->bps + (parentp->size % bs->bps != 0);
+	bps = uint16_t_le2host(((fat_bs_t *)bb->data)->bps);
 	block_put(bb);
+	dps = bps / sizeof(fat_dentry_t);
+	blocks = parentp->size / bps + (parentp->size % bps != 0);
 	for (i = 0; i < blocks; i++) {
 		unsigned dentries;
 		
