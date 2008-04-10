@@ -58,7 +58,7 @@ typedef struct {
 	uint16_t	sec_per_track;	/**< Sectors per track. */
 	uint16_t	headcnt;	/**< Number of heads. */
 	uint32_t	hidden_sec;	/**< Hidden sectors. */
-	uint32_t	totseci32;	/**< Total sectors. 32-bit version. */
+	uint32_t	totsec32;	/**< Total sectors. 32-bit version. */
 
 	union {
 		struct {
@@ -140,6 +140,7 @@ typedef struct {
 } __attribute__ ((packed)) fat_dentry_t;
 
 typedef enum {
+	FAT_INVALID,
 	FAT_DIRECTORY,
 	FAT_FILE
 } fat_node_type_t;
@@ -149,11 +150,17 @@ typedef struct {
 	fat_node_type_t		type;
 	/** VFS index is the node's first allocated cluster. */
 	fs_index_t		index;
+	/** VFS index of the parent node. */
+	fs_index_t		pindex;
 	dev_handle_t		dev_handle;
 	/** FAT in-core node hash table link. */
 	link_t 			fin_link;
+	/** FAT in-core node free list link. */
+	link_t			ffn_link;
 	size_t			size;
 	unsigned		lnkcnt;
+	unsigned		refcnt;
+	bool			dirty;
 } fat_node_t;
 
 extern fs_reg_t fat_reg;

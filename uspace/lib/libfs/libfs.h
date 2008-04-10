@@ -43,7 +43,7 @@
 
 typedef struct {
 	void * (* match)(void *, const char *);
-	void * (* node_get)(dev_handle_t, fs_index_t);
+	void * (* node_get)(dev_handle_t, fs_index_t, fs_index_t);
 	void * (* create)(int);
 	void (* destroy)(void *);
 	bool (* link)(void *, void *, const char *);
@@ -65,13 +65,6 @@ typedef struct {
 } fs_reg_t;
 
 extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
-
-extern int block_read(int, unsigned long, void *);
-extern int block_write(int, unsigned long, void *);
-
-extern void node_add_mp(int, unsigned long);
-extern void node_del_mp(int, unsigned long);
-extern bool node_is_mp(int, unsigned long);
 
 extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 

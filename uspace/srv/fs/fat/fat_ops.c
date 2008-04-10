@@ -43,6 +43,15 @@
 #include <errno.h>
 #include <string.h>
 #include <byteorder.h>
+#include <libadt/hash_table.h>
+#include <libadt/list.h>
+#include <assert.h>
+
+/** Hash table of FAT in-core nodes. */
+hash_table_t fin_hash;
+
+/** List of free FAT in-core nodes. */
+link_t ffn_head;
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
@@ -92,7 +101,8 @@ static block_t *block_get(dev_handle_t dev_handle, off_t offset)
 	return NULL;	/* TODO */
 }
 
-static block_t *fat_block_get(fat_node_t *node, off_t offset) {
+static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
+    off_t offset) {
 	return NULL;	/* TODO */
 }
 
@@ -101,9 +111,77 @@ static void block_put(block_t *block)
 	/* TODO */
 }
 
-static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
+static void fat_node_initialize(fat_node_t *node)
 {
-	return NULL;	/* TODO */
+	node->type = 0;
+	node->index = 0;
+	node->pindex = 0;
+	node->dev_handle = 0;
+	link_initialize(&node->fin_link);
+	link_initialize(&node->ffn_link);
+	node->size = 0;
+	node->lnkcnt = 0;
+	node->refcnt = 0;
+	node->dirty = false;
+}
+
+static void fat_sync_node(fat_node_t *node)
+{
+	/* TODO */
+}
+
+static void *
+fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
+{
+	link_t *lnk;
+	fat_node_t *node = NULL;
+	block_t *bb;
+	block_t *b;
+	fat_dentry_t *d;
+	unsigned bps;		/* bytes per sector */
+	unsigned dps;		/* dentries per sector */
+
+	unsigned long key[] = {
+		dev_handle,
+		index
+	};
+
+	lnk = hash_table_find(&fin_hash, key);
+	if (lnk) {
+		/*
+		 * The in-core node was found in the hash table.
+		 */
+		node = hash_table_get_instance(lnk, fat_node_t, fin_link);
+		if (!node->refcnt++)
+			list_remove(&node->ffn_link);
+		return (void *) node;	
+	}
+
+	if (!list_empty(&ffn_head)) {
+		/*
+		 * We are going to reuse a node from the free list.
+		 */
+		lnk = ffn_head.next; 
+		list_remove(lnk);
+		node = list_get_instance(lnk, fat_node_t, ffn_link);
+		assert(!node->refcnt);
+		if (node->dirty)
+			fat_sync_node(node);
+	} else {
+		/*
+		 * We need to allocate a new node.
+		 */
+		node = malloc(sizeof(fat_node_t));
+		if (!node)
+			return NULL;
+	}
+	fat_node_initialize(node);
+
+	if (!pindex) {
+		
+	} else {
+	}
+
 }
 
 #define BS_BLOCK	0
@@ -130,7 +208,7 @@ static void *fat_match(void *prnt, const char *component)
 	for (i = 0; i < blocks; i++) {
 		unsigned dentries;
 		
-		b = fat_block_get(parentp, i);
+		b = fat_block_get(parentp->dev_handle, parentp->index, i);
 		if (!b) 
 			return NULL;
 
@@ -164,7 +242,8 @@ static void *fat_match(void *prnt, const char *component)
 			if (strcmp(name, component) == 0) {
 				/* hit */
 				void *node = fat_node_get(parentp->dev_handle,
-				    (fs_index_t)uint16_t_le2host(d->firstc));
+				    (fs_index_t)uint16_t_le2host(d->firstc),
+				    parentp->index);
 				block_put(b);
 				return node;
 			}
@@ -175,6 +254,34 @@ static void *fat_match(void *prnt, const char *component)
 	return NULL;
 }
 
+static fs_index_t fat_index_get(void *node)
+{
+	fat_node_t *fnodep = (fat_node_t *)node;
+	if (!fnodep)
+		return 0;
+	return fnodep->index;
+}
+
+static size_t fat_size_get(void *node)
+{
+	return ((fat_node_t *)node)->size;
+}
+
+static unsigned fat_lnkcnt_get(void *node)
+{
+	return ((fat_node_t *)node)->lnkcnt;
+}
+
+static bool fat_is_directory(void *node)
+{
+	return ((fat_node_t *)node)->type == FAT_DIRECTORY;
+}
+
+static bool fat_is_file(void *node)
+{
+	return ((fat_node_t *)node)->type == FAT_FILE;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.match = fat_match,
@@ -183,14 +290,14 @@ libfs_ops_t fat_libfs_ops = {
 	.destroy = NULL,
 	.link = NULL,
 	.unlink = NULL,
-	.index_get = NULL,
-	.size_get = NULL,
-	.lnkcnt_get = NULL,
+	.index_get = fat_index_get,
+	.size_get = fat_size_get,
+	.lnkcnt_get = fat_lnkcnt_get,
 	.has_children = NULL,
 	.root_get = NULL,
 	.plb_get_char =	NULL,
-	.is_directory = NULL,
-	.is_file = NULL
+	.is_directory = fat_is_directory,
+	.is_file = fat_is_file
 };
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
