@@ -47,6 +47,11 @@
 #include <libadt/list.h>
 #include <assert.h>
 
+#define BS_BLOCK		0
+
+#define FIN_KEY_DEV_HANDLE	0
+#define FIN_KEY_INDEX		1
+
 /** Hash table of FAT in-core nodes. */
 hash_table_t fin_hash;
 
@@ -125,25 +130,44 @@ static void fat_node_initialize(fat_node_t *node)
 	node->dirty = false;
 }
 
+static uint16_t fat_bps_get(dev_handle_t dev_handle)
+{
+	block_t *bb;
+	uint16_t bps;
+	
+	bb = block_get(dev_handle, BS_BLOCK);
+	assert(bb != NULL);
+	bps = uint16_t_le2host(((fat_bs_t *)bb->data)->bps);
+	block_put(bb);
+
+	return bps;
+}
+
 static void fat_sync_node(fat_node_t *node)
 {
 	/* TODO */
 }
 
+/** Instantiate a FAT in-core node.
+ *
+ * FAT stores the info necessary for instantiation of a node in the parent of
+ * that node.  This design necessitated the addition of the parent node index
+ * parameter to this otherwise generic libfs API.
+ */
 static void *
 fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 {
 	link_t *lnk;
 	fat_node_t *node = NULL;
-	block_t *bb;
 	block_t *b;
+	unsigned bps;
+	unsigned dps;
 	fat_dentry_t *d;
-	unsigned bps;		/* bytes per sector */
-	unsigned dps;		/* dentries per sector */
+	unsigned i, j;
 
 	unsigned long key[] = {
-		dev_handle,
-		index
+		[FIN_KEY_DEV_HANDLE] = dev_handle,
+		[FIN_KEY_INDEX] = index
 	};
 
 	lnk = hash_table_find(&fin_hash, key);
@@ -157,6 +181,9 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 		return (void *) node;	
 	}
 
+	bps = fat_bps_get(dev_handle);
+	dps = bps / sizeof(fat_dentry_t);
+	
 	if (!list_empty(&ffn_head)) {
 		/*
 		 * We are going to reuse a node from the free list.
@@ -167,6 +194,9 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 		assert(!node->refcnt);
 		if (node->dirty)
 			fat_sync_node(node);
+		key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
+		key[FIN_KEY_INDEX] = node->index;
+		hash_table_remove(&fin_hash, key, sizeof(key)/sizeof(*key));
 	} else {
 		/*
 		 * We need to allocate a new node.
@@ -176,15 +206,50 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 			return NULL;
 	}
 	fat_node_initialize(node);
+	node->refcnt++;
+	node->lnkcnt++;
+	node->dev_handle = dev_handle;
+	node->index = index;
+	node->pindex = pindex;
 
-	if (!pindex) {
-		
-	} else {
+	/*
+	 * Because of the design of the FAT file system, we have no clue about
+	 * how big (i.e. how many directory entries it contains) is the parent
+	 * of the node we are trying to instantiate.  However, we know that it
+	 * must contain a directory entry for our node of interest.  We simply
+	 * scan the parent until we find it.
+	 */
+	for (i = 0; ; i++) {
+		b = fat_block_get(node->dev_handle, node->pindex, i);
+		if (!b) {
+			node->refcnt--;
+			list_append(&node->ffn_link, &ffn_head);
+			return NULL;
+		}
+		for (j = 0; j < dps; j++) {
+			d = ((fat_dentry_t *)b->data) + j;
+			if (d->firstc == node->index)
+				goto found;
+		}
+		block_put(b);
 	}
+	
+found:
+	if (!(d->attr & (FAT_ATTR_SUBDIR | FAT_ATTR_VOLLABEL)))
+		node->type = FAT_FILE;
+	if ((d->attr & FAT_ATTR_SUBDIR) || !pindex)
+		node->type = FAT_DIRECTORY;
+	assert((node->type == FAT_FILE) || (node->type == FAT_DIRECTORY));
+	
+	node->size = uint32_t_le2host(d->size);
+	block_put(b);
+	
+	key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
+	key[FIN_KEY_INDEX] = node->index;
+	hash_table_insert(&fin_hash, key, &node->fin_link);
 
+	return node;
 }
-
-#define BS_BLOCK	0
 
 static void *fat_match(void *prnt, const char *component)
 {
@@ -195,14 +260,9 @@ static void *fat_match(void *prnt, const char *component)
 	unsigned dps;		/* dentries per sector */
 	unsigned blocks;
 	fat_dentry_t *d;
-	block_t *bb;
 	block_t *b;
 
-	bb = block_get(parentp->dev_handle, BS_BLOCK);
-	if (!bb)
-		return NULL;
-	bps = uint16_t_le2host(((fat_bs_t *)bb->data)->bps);
-	block_put(bb);
+	bps = fat_bps_get(parentp->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 	blocks = parentp->size / bps + (parentp->size % bps != 0);
 	for (i = 0; i < blocks; i++) {
