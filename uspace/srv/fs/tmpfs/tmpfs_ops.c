@@ -97,7 +97,7 @@ static bool tmpfs_has_children(void *nodep)
 	return ((tmpfs_dentry_t *) nodep)->child != NULL;
 }
 
-static void *tmpfs_root_get(void)
+static void *tmpfs_root_get(dev_handle_t dev_handle)
 {
 	return root; 
 }

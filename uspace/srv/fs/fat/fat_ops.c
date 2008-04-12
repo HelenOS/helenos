@@ -237,7 +237,7 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 found:
 	if (!(d->attr & (FAT_ATTR_SUBDIR | FAT_ATTR_VOLLABEL)))
 		node->type = FAT_FILE;
-	if ((d->attr & FAT_ATTR_SUBDIR) || !pindex)
+	if ((d->attr & FAT_ATTR_SUBDIR) || !index)
 		node->type = FAT_DIRECTORY;
 	assert((node->type == FAT_FILE) || (node->type == FAT_DIRECTORY));
 	
@@ -332,6 +332,16 @@ static unsigned fat_lnkcnt_get(void *node)
 	return ((fat_node_t *)node)->lnkcnt;
 }
 
+static void *fat_root_get(dev_handle_t dev_handle)
+{
+	return fat_node_get(dev_handle, 0, 0);	
+}
+
+static char fat_plb_get_char(unsigned pos)
+{
+	return fat_reg.plb_ro[pos % PLB_SIZE];
+}
+
 static bool fat_is_directory(void *node)
 {
 	return ((fat_node_t *)node)->type == FAT_DIRECTORY;
@@ -354,8 +364,8 @@ libfs_ops_t fat_libfs_ops = {
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
 	.has_children = NULL,
-	.root_get = NULL,
-	.plb_get_char =	NULL,
+	.root_get = fat_root_get,
+	.plb_get_char =	fat_plb_get_char,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file
 };

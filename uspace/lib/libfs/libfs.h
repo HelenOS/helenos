@@ -52,7 +52,7 @@ typedef struct {
 	size_t (* size_get)(void *);
 	unsigned (* lnkcnt_get)(void *);
 	bool (* has_children)(void *);
-	void *(* root_get)(void);
+	void *(* root_get)(dev_handle_t);
 	char (* plb_get_char)(unsigned pos);	
 	bool (* is_directory)(void *);
 	bool (* is_file)(void *);

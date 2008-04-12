@@ -147,7 +147,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		last += PLB_SIZE;
 
 	void *par = NULL;
-	void *cur = ops->root_get();
+	void *cur = ops->root_get(dev_handle);
 	void *tmp;
 
 	if (ops->plb_get_char(next) == '/')
