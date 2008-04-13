@@ -142,6 +142,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
 	fs_index_t index = IPC_GET_ARG5(*request); /* when L_LINK specified */
+	char component[NAME_MAX + 1];
+	int len;
 
 	if (last < next)
 		last += PLB_SIZE;
@@ -152,12 +154,11 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
 	
-	char component[NAME_MAX + 1];
-	int len = 0;
 	while (ops->has_children(cur) && next <= last) {
 		void *tmp;
 
 		/* collect the component */
+		len = 0;
 		while ((ops->plb_get_char(next) != '/') && (next <= last)) {
 			if (len + 1 == NAME_MAX) {
 				/* comopnent length overflow */
@@ -171,7 +172,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		assert(len);
 		component[len] = '\0';
 		next++;		/* eat slash */
-		len = 0;
 
 		/* match the component */
 		tmp = ops->match(cur, component);
@@ -236,6 +236,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			}
 
 			/* collect next component */
+			len = 0;
 			while (next <= last) {
 				if (ops->plb_get_char(next) == '/') {
 					/* more than one component */
@@ -252,7 +253,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			}
 			assert(len);
 			component[len] = '\0';
-			len = 0;
 				
 			void *nodep;
 			if (lflag & L_CREATE)
