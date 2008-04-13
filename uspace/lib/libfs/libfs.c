@@ -148,7 +148,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 	void *par = NULL;
 	void *cur = ops->root_get(dev_handle);
-	void *tmp;
 
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
@@ -156,9 +155,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	char component[NAME_MAX + 1];
 	int len = 0;
 	while (ops->has_children(cur) && next <= last) {
+		void *tmp;
 
 		/* collect the component */
-		if (ops->plb_get_char(next) != '/') {
+		while ((ops->plb_get_char(next) != '/') && (next <= last)) {
 			if (len + 1 == NAME_MAX) {
 				/* comopnent length overflow */
 				ipc_answer_0(rid, ENAMETOOLONG);
@@ -166,8 +166,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			}
 			component[len++] = ops->plb_get_char(next);
 			next++;	/* process next character */
-			if (next <= last) 
-				continue;
 		}
 
 		assert(len);
