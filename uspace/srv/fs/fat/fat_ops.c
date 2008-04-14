@@ -276,6 +276,11 @@ found:
 	return node;
 }
 
+static void fat_node_put(void *node)
+{
+	/* TODO */
+}
+
 static void *fat_match(void *prnt, const char *component)
 {
 	fat_node_t *parentp = (fat_node_t *)prnt;
@@ -414,6 +419,7 @@ static bool fat_is_file(void *node)
 libfs_ops_t fat_libfs_ops = {
 	.match = fat_match,
 	.node_get = fat_node_get,
+	.node_put = fat_node_put,
 	.create = NULL,
 	.destroy = NULL,
 	.link = NULL,

@@ -150,20 +150,19 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 	void *par = NULL;
 	void *cur = ops->root_get(dev_handle);
+	void *tmp = NULL;
 
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
 	
 	while (ops->has_children(cur) && next <= last) {
-		void *tmp;
-
 		/* collect the component */
 		len = 0;
 		while ((ops->plb_get_char(next) != '/') && (next <= last)) {
 			if (len + 1 == NAME_MAX) {
 				/* comopnent length overflow */
 				ipc_answer_0(rid, ENAMETOOLONG);
-				return;
+				goto out;
 			}
 			component[len++] = ops->plb_get_char(next);
 			next++;	/* process next character */
@@ -181,14 +180,14 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			if (next <= last) {
 				/* there are unprocessed components */
 				ipc_answer_0(rid, ENOENT);
-				return;
+				goto out;
 			}
 			/* miss in the last component */
 			if (lflag & (L_CREATE | L_LINK)) { 
 				/* request to create a new link */
 				if (!ops->is_directory(cur)) {
 					ipc_answer_0(rid, ENOTDIR);
-					return;
+					goto out;
 				}
 				void *nodep;
 				if (lflag & L_CREATE)
@@ -207,11 +206,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						    ops->index_get(nodep),
 						    ops->size_get(nodep),
 						    ops->lnkcnt_get(nodep));
+						ops->node_put(nodep);
 					}
 				} else {
 					ipc_answer_0(rid, ENOSPC);
 				}
-				return;
+				goto out;
 			} else if (lflag & L_PARENT) {
 				/* return parent */
 				ipc_answer_5(rid, EOK, fs_handle, dev_handle,
@@ -219,12 +219,16 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				    ops->lnkcnt_get(cur));
 			} 
 			ipc_answer_0(rid, ENOENT);
-			return;
+			goto out;
 		}
+
+		if (par)
+			ops->node_put(par);
 
 		/* descend one level */
 		par = cur;
 		cur = tmp;
+		tmp = NULL;
 	}
 
 	/* handle miss: excessive components */
@@ -232,7 +236,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
 				ipc_answer_0(rid, ENOTDIR);
-				return;
+				goto out;
 			}
 
 			/* collect next component */
@@ -241,12 +245,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				if (ops->plb_get_char(next) == '/') {
 					/* more than one component */
 					ipc_answer_0(rid, ENOENT);
-					return;
+					goto out;
 				}
 				if (len + 1 == NAME_MAX) {
 					/* component length overflow */
 					ipc_answer_0(rid, ENAMETOOLONG);
-					return;
+					goto out;
 				}
 				component[len++] = ops->plb_get_char(next);
 				next++;	/* process next character */
@@ -271,22 +275,25 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					    ops->index_get(nodep),
 					    ops->size_get(nodep),
 					    ops->lnkcnt_get(nodep));
+					ops->node_put(nodep);
 				}
 			} else {
 				ipc_answer_0(rid, ENOSPC);
 			}
-			return;
+			goto out;
 		}
 		ipc_answer_0(rid, ENOENT);
-		return;
+		goto out;
 	}
 
 	/* handle hit */
 	if (lflag & L_PARENT) {
+		ops->node_put(cur);
 		cur = par;
+		par = NULL;
 		if (!cur) {
 			ipc_answer_0(rid, ENOENT);
-			return;
+			goto out;
 		}
 	}
 	if (lflag & L_UNLINK) {
@@ -294,24 +301,32 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		int res = ops->unlink(par, cur);
 		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
-		return;
+		goto out;
 	}
 	if (((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) ||
 	    (lflag & L_LINK)) {
 		ipc_answer_0(rid, EEXIST);
-		return;
+		goto out;
 	}
 	if ((lflag & L_FILE) && (ops->is_directory(cur))) {
 		ipc_answer_0(rid, EISDIR);
-		return;
+		goto out;
 	}
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		ipc_answer_0(rid, ENOTDIR);
-		return;
+		goto out;
 	}
 
 	ipc_answer_5(rid, EOK, fs_handle, dev_handle, ops->index_get(cur),
 	    ops->size_get(cur), ops->lnkcnt_get(cur));
+
+out:
+	if (par)
+		ops->node_put(par);
+	if (cur)
+		ops->node_put(cur);
+	if (tmp)
+		ops->node_put(tmp);
 }
 
 /** @}

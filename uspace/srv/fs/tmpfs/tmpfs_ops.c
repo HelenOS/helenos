@@ -71,6 +71,7 @@ static tmpfs_dentry_t *root;
 /* Forward declarations of static functions. */
 static void *tmpfs_match(void *, const char *);
 static void *tmpfs_node_get(dev_handle_t, fs_index_t, fs_index_t);
+static void tmpfs_node_put(void *);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
@@ -121,6 +122,7 @@ static bool tmpfs_is_file(void *nodep)
 libfs_ops_t tmpfs_libfs_ops = {
 	.match = tmpfs_match,
 	.node_get = tmpfs_node_get,
+	.node_put = tmpfs_node_put,
 	.create = tmpfs_create_node,
 	.destroy = tmpfs_destroy_node,
 	.link = tmpfs_link_node,
@@ -273,6 +275,11 @@ tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 	if (!lnk)
 		return NULL;
 	return hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link); 
+}
+
+void tmpfs_node_put(void *node)
+{
+	/* nothing to do */
 }
 
 void *tmpfs_create_node(int lflag)
