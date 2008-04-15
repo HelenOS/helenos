@@ -198,7 +198,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				if (nodep) {
 					if (!ops->link(cur, nodep, component)) {
 						if (lflag & L_CREATE)
-							ops->destroy(nodep);
+							(void)ops->destroy(nodep);
 						ipc_answer_0(rid, ENOSPC);
 					} else {
 						ipc_answer_5(rid, EOK,
@@ -267,7 +267,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			if (nodep) {
 				if (!ops->link(cur, nodep, component)) {
 					if (lflag & L_CREATE)
-						ops->destroy(nodep);
+						(void)ops->destroy(nodep);
 					ipc_answer_0(rid, ENOSPC);
 				} else {
 					ipc_answer_5(rid, EOK,

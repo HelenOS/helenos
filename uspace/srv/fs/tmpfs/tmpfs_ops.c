@@ -75,7 +75,7 @@ static void tmpfs_node_put(void *);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
-static void tmpfs_destroy_node(void *);
+static bool tmpfs_destroy_node(void *);
 
 /* Implementation of helper functions. */
 static fs_index_t tmpfs_index_get(void *nodep)
@@ -374,7 +374,7 @@ int tmpfs_unlink_node(void *prnt, void *chld)
 	return EOK;
 }
 
-void tmpfs_destroy_node(void *nodep)
+bool tmpfs_destroy_node(void *nodep)
 {
 	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
 	
@@ -390,6 +390,7 @@ void tmpfs_destroy_node(void *nodep)
 	if (dentry->type == TMPFS_FILE)
 		free(dentry->data);
 	free(dentry);
+	return true;
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)

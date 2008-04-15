@@ -306,6 +306,26 @@ static void fat_node_put(void *node)
 	futex_up(&fin_futex);
 }
 
+static void *fat_create(int flags)
+{
+	return NULL;	/* not supported at the moment */
+}
+
+static bool fat_destroy(void *node)
+{
+	return false;	/* not supported at the moment */
+}
+
+static bool fat_link(void *prnt, void *chld, const char *name)
+{
+	return false;	/* not supported at the moment */
+}
+
+static int fat_unlink(void *prnt, void *chld)
+{
+	return ENOTSUP;	/* not supported at the moment */
+}
+
 static void *fat_match(void *prnt, const char *component)
 {
 	fat_node_t *parentp = (fat_node_t *)prnt;
@@ -445,10 +465,10 @@ libfs_ops_t fat_libfs_ops = {
 	.match = fat_match,
 	.node_get = fat_node_get,
 	.node_put = fat_node_put,
-	.create = NULL,
-	.destroy = NULL,
-	.link = NULL,
-	.unlink = NULL,
+	.create = fat_create,
+	.destroy = fat_destroy,
+	.link = fat_link,
+	.unlink = fat_unlink,
 	.index_get = fat_index_get,
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
