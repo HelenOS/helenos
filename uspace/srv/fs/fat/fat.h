@@ -147,6 +147,8 @@ typedef enum {
 
 /** FAT in-core node. */
 typedef struct {
+	/** Protects an instance of this type. */
+	futex_t			lock;
 	fat_node_type_t		type;
 	/** VFS index is the node's first allocated cluster. */
 	fs_index_t		index;

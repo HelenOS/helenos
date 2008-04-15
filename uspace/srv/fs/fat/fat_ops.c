@@ -46,11 +46,15 @@
 #include <libadt/hash_table.h>
 #include <libadt/list.h>
 #include <assert.h>
+#include <futex.h>
 
 #define BS_BLOCK		0
 
 #define FIN_KEY_DEV_HANDLE	0
 #define FIN_KEY_INDEX		1
+
+/** Futex protecting both fin_hash and ffn_head. */
+futex_t fin_futex = FUTEX_INITIALIZER;
 
 /** Hash table of FAT in-core nodes. */
 hash_table_t fin_hash;
@@ -118,6 +122,7 @@ static void block_put(block_t *block)
 
 static void fat_node_initialize(fat_node_t *node)
 {
+	futex_initialize(&node->lock, 1);
 	node->type = 0;
 	node->index = 0;
 	node->pindex = 0;
@@ -200,6 +205,7 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 		[FIN_KEY_INDEX] = index
 	};
 
+	futex_down(&fin_futex);
 	lnk = hash_table_find(&fin_hash, key);
 	if (lnk) {
 		/*
@@ -208,6 +214,12 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 		node = hash_table_get_instance(lnk, fat_node_t, fin_link);
 		if (!node->refcnt++)
 			list_remove(&node->ffn_link);
+		futex_up(&fin_futex);
+		
+		/* Make sure that the node is fully instantiated. */
+		futex_down(&node->lock);
+		futex_up(&node->lock);
+		
 		return (void *) node;	
 	}
 
@@ -241,6 +253,17 @@ fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
 	node->dev_handle = dev_handle;
 	node->index = index;
 	node->pindex = pindex;
+	key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
+	key[FIN_KEY_INDEX] = node->index;
+	hash_table_insert(&fin_hash, key, &node->fin_link);
+
+	/*
+	 * We have already put the node back to fin_hash.
+	 * The node is not yet fully instantiated so we lock it prior to
+	 * unlocking fin_hash.
+	 */
+	futex_down(&node->lock);
+	futex_up(&fin_futex);
 
 	/*
 	 * Because of the design of the FAT file system, we have no clue about
@@ -268,11 +291,8 @@ found:
 	
 	node->size = uint32_t_le2host(d->size);
 	block_put(b);
-	
-	key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
-	key[FIN_KEY_INDEX] = node->index;
-	hash_table_insert(&fin_hash, key, &node->fin_link);
 
+	futex_up(&node->lock);
 	return node;
 }
 
@@ -280,8 +300,10 @@ static void fat_node_put(void *node)
 {
 	fat_node_t *nodep = (fat_node_t *)node;
 
-	if (nodep->refcnt-- == 1)
+	futex_down(&fin_futex);
+	if (!--nodep->refcnt)
 		list_append(&nodep->ffn_link, &ffn_head);
+	futex_up(&fin_futex);
 }
 
 static void *fat_match(void *prnt, const char *component)
