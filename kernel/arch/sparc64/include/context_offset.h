@@ -48,4 +48,60 @@
 #define OFFSET_L6       0x80
 #define OFFSET_L7       0x88
 
+#ifndef KERNEL		
+# define OFFSET_TP      0x90
+#endif
+
+#ifdef __ASM__ 
+
+.macro CONTEXT_SAVE_ARCH_CORE ctx:req
+	stx %sp, [\ctx + OFFSET_SP]
+	stx %o7, [\ctx + OFFSET_PC]
+	stx %i0, [\ctx + OFFSET_I0]
+	stx %i1, [\ctx + OFFSET_I1]
+	stx %i2, [\ctx + OFFSET_I2]
+	stx %i3, [\ctx + OFFSET_I3]
+	stx %i4, [\ctx + OFFSET_I4]
+	stx %i5, [\ctx + OFFSET_I5]
+	stx %fp, [\ctx + OFFSET_FP]
+	stx %i7, [\ctx + OFFSET_I7]
+	stx %l0, [\ctx + OFFSET_L0]
+	stx %l1, [\ctx + OFFSET_L1]
+	stx %l2, [\ctx + OFFSET_L2]
+	stx %l3, [\ctx + OFFSET_L3]
+	stx %l4, [\ctx + OFFSET_L4]
+	stx %l5, [\ctx + OFFSET_L5]
+	stx %l6, [\ctx + OFFSET_L6]
+	stx %l7, [\ctx + OFFSET_L7]
+#ifndef KERNEL		
+	stx %g7, [\ctx + OFFSET_TP]
+#endif
+.endm
+
+.macro CONTEXT_RESTORE_ARCH_CORE ctx:req
+	ldx [\ctx + OFFSET_SP], %sp
+	ldx [\ctx + OFFSET_PC], %o7
+	ldx [\ctx + OFFSET_I0], %i0
+	ldx [\ctx + OFFSET_I1], %i1
+	ldx [\ctx + OFFSET_I2], %i2
+	ldx [\ctx + OFFSET_I3], %i3
+	ldx [\ctx + OFFSET_I4], %i4
+	ldx [\ctx + OFFSET_I5], %i5
+	ldx [\ctx + OFFSET_FP], %fp
+	ldx [\ctx + OFFSET_I7], %i7
+	ldx [\ctx + OFFSET_L0], %l0
+	ldx [\ctx + OFFSET_L1], %l1
+	ldx [\ctx + OFFSET_L2], %l2
+	ldx [\ctx + OFFSET_L3], %l3
+	ldx [\ctx + OFFSET_L4], %l4
+	ldx [\ctx + OFFSET_L5], %l5
+	ldx [\ctx + OFFSET_L6], %l6
+	ldx [\ctx + OFFSET_L7], %l7
+#ifndef KERNEL		
+	ldx [\ctx + OFFSET_TP], %g7
+#endif
+.endm
+
+#endif /* __ASM__ */ 
+
 #endif
