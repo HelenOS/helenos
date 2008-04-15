@@ -110,14 +110,82 @@ static block_t *block_get(dev_handle_t dev_handle, off_t offset)
 	return NULL;	/* TODO */
 }
 
-static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
-    off_t offset) {
-	return NULL;	/* TODO */
-}
-
 static void block_put(block_t *block)
 {
 	/* TODO */
+}
+
+
+#define FAT_BS(b)		((fat_bs_t *)((b)->data))
+
+#define FAT_CLST_FIRST	0x0002
+#define FAT_CLST_BAD	0xfff7
+#define FAT_CLST_LAST1	0xfff8
+#define FAT_CLST_LAST8  0xffff
+
+/** Convert cluster number to an index within a FAT.
+ *
+ * Format Identifier and cluster numbering is considered.
+ */
+#define C2FAT_IDX(c)	(1 + (c) - FAT_CLST_FIRST)
+
+static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
+    off_t offset)
+{
+	block_t *bb;
+	block_t *b;
+	unsigned bps;
+	unsigned spc;
+	unsigned rscnt;		/* block address of the first FAT */
+	unsigned fatcnt;
+	unsigned rde;
+	unsigned rds;		/* root directory size */
+	unsigned sf;
+	unsigned ssa;		/* size of the system area */
+	unsigned clusters;
+	unsigned clst = index;
+	unsigned i;
+
+	bb = block_get(dev_handle, BS_BLOCK);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	spc = FAT_BS(bb)->spc;
+	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
+	fatcnt = FAT_BS(bb)->fatcnt;
+	rde = uint16_t_le2host(FAT_BS(bb)->root_ent_max);
+	sf = uint16_t_le2host(FAT_BS(bb)->sec_per_fat);
+	block_put(bb);
+
+	rds = (sizeof(fat_dentry_t) * rde) / bps;
+	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
+	ssa = rscnt + fatcnt * sf + rds;
+
+	if (!index) {
+		/* root directory special case */
+		assert(offset < rds);
+		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
+		return b;
+	}
+
+	clusters = offset / spc; 
+	for (i = 0; i < clusters; i++) {
+		unsigned fsec;	/* sector offset relative to FAT1 */
+		unsigned fidx;	/* FAT1 entry index */
+
+		assert(clst >= FAT_CLST_FIRST && clst < FAT_CLST_BAD);
+		fsec = (C2FAT_IDX(clst) * sizeof(uint16_t)) / bps;
+		fidx = C2FAT_IDX(clst) % (bps / sizeof(uint16_t));
+		/* read FAT1 */
+		b = block_get(dev_handle, rscnt + fsec);
+		clst = uint16_t_le2host(((uint16_t *)b->data)[fidx]);
+		assert(clst != FAT_CLST_BAD);
+		assert(clst < FAT_CLST_LAST1);
+		block_put(b);
+	}
+
+	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
+	    offset % spc);
+
+	return b;
 }
 
 static void fat_node_initialize(fat_node_t *node)
@@ -142,7 +210,7 @@ static uint16_t fat_bps_get(dev_handle_t dev_handle)
 	
 	bb = block_get(dev_handle, BS_BLOCK);
 	assert(bb != NULL);
-	bps = uint16_t_le2host(((fat_bs_t *)bb->data)->bps);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	block_put(bb);
 
 	return bps;
