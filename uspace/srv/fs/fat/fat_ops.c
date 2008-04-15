@@ -311,9 +311,9 @@ static void *fat_create(int flags)
 	return NULL;	/* not supported at the moment */
 }
 
-static bool fat_destroy(void *node)
+static int fat_destroy(void *node)
 {
-	return false;	/* not supported at the moment */
+	return ENOTSUP;	/* not supported at the moment */
 }
 
 static bool fat_link(void *prnt, void *chld, const char *name)

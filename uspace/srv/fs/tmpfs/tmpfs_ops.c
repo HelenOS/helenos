@@ -75,7 +75,7 @@ static void tmpfs_node_put(void *);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
-static bool tmpfs_destroy_node(void *);
+static int tmpfs_destroy_node(void *);
 
 /* Implementation of helper functions. */
 static fs_index_t tmpfs_index_get(void *nodep)
@@ -374,7 +374,7 @@ int tmpfs_unlink_node(void *prnt, void *chld)
 	return EOK;
 }
 
-bool tmpfs_destroy_node(void *nodep)
+int tmpfs_destroy_node(void *nodep)
 {
 	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
 	
@@ -390,7 +390,7 @@ bool tmpfs_destroy_node(void *nodep)
 	if (dentry->type == TMPFS_FILE)
 		free(dentry->data);
 	free(dentry);
-	return true;
+	return EOK;
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
@@ -579,6 +579,7 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	int rc;
 
 	link_t *hlp;
 	unsigned long key = index;
@@ -589,8 +590,8 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	}
 	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
 	    dh_link);
-	tmpfs_destroy_node(dentry);
-	ipc_answer_0(rid, EOK);
+	rc = tmpfs_destroy_node(dentry);
+	ipc_answer_0(rid, rc);
 }
 
 /**
