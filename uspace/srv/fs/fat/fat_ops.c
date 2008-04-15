@@ -278,7 +278,10 @@ found:
 
 static void fat_node_put(void *node)
 {
-	/* TODO */
+	fat_node_t *nodep = (fat_node_t *)node;
+
+	if (nodep->refcnt-- == 1)
+		list_append(&nodep->ffn_link, &ffn_head);
 }
 
 static void *fat_match(void *prnt, const char *component)
