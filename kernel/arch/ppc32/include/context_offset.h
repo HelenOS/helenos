@@ -76,7 +76,6 @@
 #ifdef __ASM__
 # include <arch/asm/regname.h>
 
-
 # ctx: address of the structure with saved context
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req
 	stw sp, OFFSET_SP(\ctx)

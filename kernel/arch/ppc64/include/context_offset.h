@@ -73,4 +73,60 @@
 #define OFFSET_FR31  0x88
 #define OFFSET_FPSCR 0x90
 
+
+#ifdef __ASM__
+# include <arch/asm/regname.h>
+
+# ctx: address of the structure with saved context
+.macro CONTEXT_SAVE_ARCH_CORE ctx:req
+	stw sp, OFFSET_SP(\ctx)
+	stw r2, OFFSET_R2(\ctx)
+	stw r13, OFFSET_R13(\ctx)
+	stw r14, OFFSET_R14(\ctx)
+	stw r15, OFFSET_R15(\ctx)
+	stw r16, OFFSET_R16(\ctx)
+	stw r17, OFFSET_R17(\ctx)
+	stw r18, OFFSET_R18(\ctx)
+	stw r19, OFFSET_R19(\ctx)
+	stw r20, OFFSET_R20(\ctx)
+	stw r21, OFFSET_R21(\ctx)
+	stw r22, OFFSET_R22(\ctx)
+	stw r23, OFFSET_R23(\ctx)
+	stw r24, OFFSET_R24(\ctx)
+	stw r25, OFFSET_R25(\ctx)
+	stw r26, OFFSET_R26(\ctx)
+	stw r27, OFFSET_R27(\ctx)
+	stw r28, OFFSET_R28(\ctx)
+	stw r29, OFFSET_R29(\ctx)
+	stw r30, OFFSET_R30(\ctx)
+	stw r31, OFFSET_R31(\ctx)
+.endm
+
+# ctx: address of the structure with saved context
+.macro CONTEXT_RESTORE_ARCH_CORE ctx:req
+	lwz sp, OFFSET_SP(\ctx)
+	lwz r2, OFFSET_R2(\ctx)
+	lwz r13, OFFSET_R13(\ctx)
+	lwz r14, OFFSET_R14(\ctx)
+	lwz r15, OFFSET_R15(\ctx)
+	lwz r16, OFFSET_R16(\ctx)
+	lwz r17, OFFSET_R17(\ctx)
+	lwz r18, OFFSET_R18(\ctx)
+	lwz r19, OFFSET_R19(\ctx)
+	lwz r20, OFFSET_R20(\ctx)
+	lwz r21, OFFSET_R21(\ctx)
+	lwz r22, OFFSET_R22(\ctx)
+	lwz r23, OFFSET_R23(\ctx)
+	lwz r24, OFFSET_R24(\ctx)
+	lwz r25, OFFSET_R25(\ctx)
+	lwz r26, OFFSET_R26(\ctx)
+	lwz r27, OFFSET_R27(\ctx)
+	lwz r28, OFFSET_R28(\ctx)
+	lwz r29, OFFSET_R29(\ctx)
+	lwz r30, OFFSET_R30(\ctx)
+	lwz r31, OFFSET_R31(\ctx)
+.endm
+
+#endif /* __ASM__ */
+
 #endif
