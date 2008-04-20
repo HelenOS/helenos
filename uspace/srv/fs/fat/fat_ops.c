@@ -53,9 +53,6 @@
 #define FIN_KEY_DEV_HANDLE	0
 #define FIN_KEY_INDEX		1
 
-/** Futex protecting both fin_hash and ffn_head. */
-futex_t fin_futex = FUTEX_INITIALIZER;
-
 /** Hash table of FAT in-core nodes. */
 hash_table_t fin_hash;
 
@@ -115,22 +112,21 @@ static void block_put(block_t *block)
 	/* TODO */
 }
 
+static fat_idx_t *fat_idx_map(fat_cluster_t pfc, unsigned pdi)
+{
+	return NULL;	/* TODO */
+}
 
 #define FAT_BS(b)		((fat_bs_t *)((b)->data))
 
+#define FAT_CLST_RES0	0x0000
+#define FAT_CLST_RES1	0x0001	/* internally used to mark root directory */
 #define FAT_CLST_FIRST	0x0002
 #define FAT_CLST_BAD	0xfff7
 #define FAT_CLST_LAST1	0xfff8
 #define FAT_CLST_LAST8  0xffff
 
-/** Convert cluster number to an index within a FAT.
- *
- * Format Identifier and cluster numbering is considered.
- */
-#define C2FAT_IDX(c)	(1 + (c) - FAT_CLST_FIRST)
-
-static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
-    off_t offset)
+static block_t *fat_block_get(fat_node_t *nodep, off_t offset)
 {
 	block_t *bb;
 	block_t *b;
@@ -143,10 +139,10 @@ static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
 	unsigned clusters;
-	unsigned clst = index;
+	fat_cluster_t clst = nodep->firstc;
 	unsigned i;
 
-	bb = block_get(dev_handle, BS_BLOCK);
+	bb = block_get(nodep->idx->dev_handle, BS_BLOCK);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	spc = FAT_BS(bb)->spc;
 	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
@@ -159,10 +155,11 @@ static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
 	ssa = rscnt + fatcnt * sf + rds;
 
-	if (!index) {
+	if (nodep->idx->index == FAT_CLST_RES1) {
 		/* root directory special case */
 		assert(offset < rds);
-		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
+		b = block_get(nodep->idx->dev_handle,
+		    rscnt + fatcnt * sf + offset);
 		return b;
 	}
 
@@ -172,29 +169,26 @@ static block_t *fat_block_get(dev_handle_t dev_handle, fs_index_t index,
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST && clst < FAT_CLST_BAD);
-		fsec = (C2FAT_IDX(clst) * sizeof(uint16_t)) / bps;
-		fidx = C2FAT_IDX(clst) % (bps / sizeof(uint16_t));
+		fsec = (clst * sizeof(fat_cluster_t)) / bps;
+		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec);
-		clst = uint16_t_le2host(((uint16_t *)b->data)[fidx]);
+		b = block_get(nodep->idx->dev_handle, rscnt + fsec);
+		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		assert(clst < FAT_CLST_LAST1);
 		block_put(b);
 	}
 
-	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
-	    offset % spc);
+	b = block_get(nodep->idx->dev_handle, ssa +
+	    (clst - FAT_CLST_FIRST) * spc + offset % spc);
 
 	return b;
 }
 
 static void fat_node_initialize(fat_node_t *node)
 {
-	futex_initialize(&node->lock, 1);
+	node->idx = NULL;
 	node->type = 0;
-	node->index = 0;
-	node->pindex = 0;
-	node->dev_handle = 0;
 	link_initialize(&node->fin_link);
 	link_initialize(&node->ffn_link);
 	node->size = 0;
@@ -294,13 +288,13 @@ static void *fat_match(void *prnt, const char *component)
 	fat_dentry_t *d;
 	block_t *b;
 
-	bps = fat_bps_get(parentp->dev_handle);
+	bps = fat_bps_get(parentp->idx->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 	blocks = parentp->size / bps + (parentp->size % bps != 0);
 	for (i = 0; i < blocks; i++) {
 		unsigned dentries;
 		
-		b = fat_block_get(parentp->dev_handle, parentp->index, i);
+		b = fat_block_get(parentp, i);
 		dentries = (i == blocks - 1) ?
 		    parentp->size % sizeof(fat_dentry_t) :
 		    dps;
@@ -319,8 +313,10 @@ static void *fat_match(void *prnt, const char *component)
 			}
 			if (strcmp(name, component) == 0) {
 				/* hit */
-				void *node = fat_node_get(parentp->dev_handle,
-				    (fs_index_t)uint16_t_le2host(d->firstc));
+				fat_idx_t *idx = fat_idx_map(parentp->firstc,
+				    i * dps + j);
+				void *node = fat_node_get(idx->dev_handle,
+				    idx->index);
 				block_put(b);
 				return node;
 			}
@@ -336,7 +332,7 @@ static fs_index_t fat_index_get(void *node)
 	fat_node_t *fnodep = (fat_node_t *)node;
 	if (!fnodep)
 		return 0;
-	return fnodep->index;
+	return fnodep->idx->index;
 }
 
 static size_t fat_size_get(void *node)
@@ -361,7 +357,7 @@ static bool fat_has_children(void *node)
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
 
-	bps = fat_bps_get(nodep->dev_handle);
+	bps = fat_bps_get(nodep->idx->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 
 	blocks = nodep->size / bps + (nodep->size % bps != 0);
@@ -370,7 +366,7 @@ static bool fat_has_children(void *node)
 		unsigned dentries;
 		fat_dentry_t *d;
 	
-		b = fat_block_get(nodep->dev_handle, nodep->index, i);
+		b = fat_block_get(nodep, i);
 		dentries = (i == blocks - 1) ?
 		    nodep->size % sizeof(fat_dentry_t) :
 		    dps;
@@ -398,7 +394,7 @@ static bool fat_has_children(void *node)
 
 static void *fat_root_get(dev_handle_t dev_handle)
 {
-	return fat_node_get(dev_handle, 0);	
+	return fat_node_get(dev_handle, FAT_CLST_RES1);
 }
 
 static char fat_plb_get_char(unsigned pos)

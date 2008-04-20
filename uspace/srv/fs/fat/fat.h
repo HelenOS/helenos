@@ -139,22 +139,67 @@ typedef struct {
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
 
+typedef uint16_t fat_cluster_t;
+
 typedef enum {
 	FAT_INVALID,
 	FAT_DIRECTORY,
 	FAT_FILE
 } fat_node_type_t;
 
-/** FAT in-core node. */
+struct fat_node;
+
+/** FAT index structure.
+ *
+ * This structure exists to help us to overcome certain limitations of the FAT
+ * file system design.  The problem with FAT is that it is hard to find
+ * an entity which could represent a VFS index.  There are two candidates:
+ *
+ * a) number of the node's first cluster
+ * b) the pair of the parent directory's first cluster and the dentry index
+ *    within the parent directory
+ *
+ * We need VFS indices to be:
+ * A) unique
+ * B) stable in time, at least until the next mount
+ *
+ * Unfortunately a) does not meet the A) criterion because zero-length files
+ * will have the first cluster field cleared.  And b) does not meet the B)
+ * criterion because unlink() and rename() will both free up the original
+ * dentry, which contains all the essential info about the file.
+ *
+ * Therefore, a completely opaque indices are used and the FAT server maintains
+ * a mapping between them and otherwise nice b) variant.  On rename(), the VFS
+ * index stays unaltered, while the internal FAT "physical tree address"
+ * changes.  The unlink case is also handled this way thanks to an in-core node
+ * pointer embedded in the index structure.
+ */
 typedef struct {
-	/** Protects an instance of this type. */
-	futex_t			lock;
+	dev_handle_t	dev_handle;
+	fs_index_t	index;
+	/**
+	 * Parent first cluster.
+	 * Zero is used if this node is not linked, in which case nodep must
+	 * contain a pointer to the in-core node structure.
+	 * One is used when the parent is the root directory.
+	 */
+	fat_cluster_t	pfc;
+	/** Parent directory entry index. */
+	unsigned	pdi;
+	/** Pointer to in-core node instance. */
+	struct fat_node	*nodep;
+} fat_idx_t;
+
+/** FAT in-core node. */
+typedef struct fat_node {
 	fat_node_type_t		type;
-	/** VFS index is the node's first allocated cluster. */
-	fs_index_t		index;
-	/** VFS index of the parent node. */
-	fs_index_t		pindex;
-	dev_handle_t		dev_handle;
+	fat_idx_t		*idx;
+	/**
+	 *  Node's first cluster.
+	 *  Zero is used for zero-length nodes.
+	 *  One is used to mark root directory.
+	 */
+	fat_cluster_t		firstc;
 	/** FAT in-core node hash table link. */
 	link_t 			fin_link;
 	/** FAT in-core node free list link. */
