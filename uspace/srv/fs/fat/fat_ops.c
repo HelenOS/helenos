@@ -251,127 +251,16 @@ static void fat_sync_node(fat_node_t *node)
 	/* TODO */
 }
 
-/** Instantiate a FAT in-core node.
- *
- * FAT stores the info necessary for instantiation of a node in the parent of
- * that node.  This design necessitated the addition of the parent node index
- * parameter to this otherwise generic libfs API.
- */
+/** Instantiate a FAT in-core node. */
 static void *
-fat_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
+fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
-	link_t *lnk;
-	fat_node_t *node = NULL;
-	block_t *b;
-	unsigned bps;
-	unsigned dps;
-	fat_dentry_t *d;
-	unsigned i, j;
-
-	unsigned long key[] = {
-		[FIN_KEY_DEV_HANDLE] = dev_handle,
-		[FIN_KEY_INDEX] = index
-	};
-
-	futex_down(&fin_futex);
-	lnk = hash_table_find(&fin_hash, key);
-	if (lnk) {
-		/*
-		 * The in-core node was found in the hash table.
-		 */
-		node = hash_table_get_instance(lnk, fat_node_t, fin_link);
-		if (!node->refcnt++)
-			list_remove(&node->ffn_link);
-		futex_up(&fin_futex);
-		
-		/* Make sure that the node is fully instantiated. */
-		futex_down(&node->lock);
-		futex_up(&node->lock);
-		
-		return (void *) node;	
-	}
-
-	bps = fat_bps_get(dev_handle);
-	dps = bps / sizeof(fat_dentry_t);
-	
-	if (!list_empty(&ffn_head)) {
-		/*
-		 * We are going to reuse a node from the free list.
-		 */
-		lnk = ffn_head.next; 
-		list_remove(lnk);
-		node = list_get_instance(lnk, fat_node_t, ffn_link);
-		assert(!node->refcnt);
-		if (node->dirty)
-			fat_sync_node(node);
-		key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
-		key[FIN_KEY_INDEX] = node->index;
-		hash_table_remove(&fin_hash, key, sizeof(key)/sizeof(*key));
-	} else {
-		/*
-		 * We need to allocate a new node.
-		 */
-		node = malloc(sizeof(fat_node_t));
-		if (!node)
-			return NULL;
-	}
-	fat_node_initialize(node);
-	node->refcnt++;
-	node->lnkcnt++;
-	node->dev_handle = dev_handle;
-	node->index = index;
-	node->pindex = pindex;
-	key[FIN_KEY_DEV_HANDLE] = node->dev_handle;
-	key[FIN_KEY_INDEX] = node->index;
-	hash_table_insert(&fin_hash, key, &node->fin_link);
-
-	/*
-	 * We have already put the node back to fin_hash.
-	 * The node is not yet fully instantiated so we lock it prior to
-	 * unlocking fin_hash.
-	 */
-	futex_down(&node->lock);
-	futex_up(&fin_futex);
-
-	/*
-	 * Because of the design of the FAT file system, we have no clue about
-	 * how big (i.e. how many directory entries it contains) is the parent
-	 * of the node we are trying to instantiate.  However, we know that it
-	 * must contain a directory entry for our node of interest.  We simply
-	 * scan the parent until we find it.
-	 */
-	for (i = 0; ; i++) {
-		b = fat_block_get(node->dev_handle, node->pindex, i);
-		for (j = 0; j < dps; j++) {
-			d = ((fat_dentry_t *)b->data) + j;
-			if (d->firstc == node->index)
-				goto found;
-		}
-		block_put(b);
-	}
-	
-found:
-	if (!(d->attr & (FAT_ATTR_SUBDIR | FAT_ATTR_VOLLABEL)))
-		node->type = FAT_FILE;
-	if ((d->attr & FAT_ATTR_SUBDIR) || !index)
-		node->type = FAT_DIRECTORY;
-	assert((node->type == FAT_FILE) || (node->type == FAT_DIRECTORY));
-	
-	node->size = uint32_t_le2host(d->size);
-	block_put(b);
-
-	futex_up(&node->lock);
-	return node;
+	return NULL;	/* TODO */
 }
 
 static void fat_node_put(void *node)
 {
-	fat_node_t *nodep = (fat_node_t *)node;
-
-	futex_down(&fin_futex);
-	if (!--nodep->refcnt)
-		list_append(&nodep->ffn_link, &ffn_head);
-	futex_up(&fin_futex);
+	/* TODO */
 }
 
 static void *fat_create(int flags)
@@ -431,8 +320,7 @@ static void *fat_match(void *prnt, const char *component)
 			if (strcmp(name, component) == 0) {
 				/* hit */
 				void *node = fat_node_get(parentp->dev_handle,
-				    (fs_index_t)uint16_t_le2host(d->firstc),
-				    parentp->index);
+				    (fs_index_t)uint16_t_le2host(d->firstc));
 				block_put(b);
 				return node;
 			}
@@ -510,7 +398,7 @@ static bool fat_has_children(void *node)
 
 static void *fat_root_get(dev_handle_t dev_handle)
 {
-	return fat_node_get(dev_handle, 0, 0);	
+	return fat_node_get(dev_handle, 0);	
 }
 
 static char fat_plb_get_char(unsigned pos)

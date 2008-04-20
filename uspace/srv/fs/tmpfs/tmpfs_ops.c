@@ -70,7 +70,7 @@ static tmpfs_dentry_t *root;
 
 /* Forward declarations of static functions. */
 static void *tmpfs_match(void *, const char *);
-static void *tmpfs_node_get(dev_handle_t, fs_index_t, fs_index_t);
+static void *tmpfs_node_get(dev_handle_t, fs_index_t);
 static void tmpfs_node_put(void *);
 static void *tmpfs_create_node(int);
 static bool tmpfs_link_node(void *, void *, const char *);
@@ -268,7 +268,7 @@ void *tmpfs_match(void *prnt, const char *component)
 }
 
 void *
-tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index, fs_index_t pindex)
+tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
 	unsigned long key = index;
 	link_t *lnk = hash_table_find(&dentries, &key);
