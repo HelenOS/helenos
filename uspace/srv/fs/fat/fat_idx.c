@@ -117,8 +117,8 @@ hit:
 	return false;
 }
 
-/** If possible, merge two intervals of freed indices. */
-static void try_merge_intervals(link_t *l, link_t *r, link_t *cur)
+/** If possible, coalesce two intervals of freed indices. */
+static void try_coalesce_intervals(link_t *l, link_t *r, link_t *cur)
 {
 	freed_t *fl = list_get_instance(l, freed_t, link);
 	freed_t *fr = list_get_instance(r, freed_t, link);
@@ -170,14 +170,14 @@ hit:
 			if (f->first == index + 1) {
 				f->first--;
 				if (lnk->prev != &u->freed_head)
-					try_merge_intervals(lnk->prev, lnk,
+					try_coalesce_intervals(lnk->prev, lnk,
 					    lnk);
 				return;
 			}
 			if (f->last == index - 1) {
 				f->last++;
 				if (lnk->next != &u->freed_head)
-					try_merge_intervals(lnk, lnk->next,
+					try_coalesce_intervals(lnk, lnk->next,
 					    lnk);
 				return;
 			}
