@@ -308,7 +308,8 @@ static void *fat_match(void *prnt, const char *component)
 			}
 			if (strcmp(name, component) == 0) {
 				/* hit */
-				fat_idx_t *idx = fat_idx_map(parentp->firstc,
+				fat_idx_t *idx = fat_idx_map(
+				    parentp->idx->dev_handle, parentp->firstc,
 				    i * dps + j);
 				void *node = fat_node_get(idx->dev_handle,
 				    idx->index);
