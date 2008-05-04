@@ -112,6 +112,18 @@ static inline void list_append(link_t *link, link_t *head)
 	head->prev = link;
 }
 
+/** Insert item before another item in doubly-linked circular list. */
+static inline void list_insert_before(link_t *l, link_t *r)
+{
+	list_append(l, r);
+}
+
+/** Insert item after another item in doubly-linked circular list. */
+static inline void list_insert_after(link_t *r, link_t *l)
+{
+	list_prepend(l, r);
+}
+
 /** Remove item from doubly-linked circular list
  *
  * Remove item from doubly-linked circular list.
