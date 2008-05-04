@@ -112,11 +112,6 @@ static void block_put(block_t *block)
 	/* TODO */
 }
 
-static fat_idx_t *fat_idx_map(fat_cluster_t pfc, unsigned pdi)
-{
-	return NULL;	/* TODO */
-}
-
 #define FAT_BS(b)		((fat_bs_t *)((b)->data))
 
 #define FAT_CLST_RES0	0x0000

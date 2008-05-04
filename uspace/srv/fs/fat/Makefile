@@ -44,7 +44,8 @@ LIBS = $(LIBC_PREFIX)/libc.a $(LIBFS_PREFIX)/libfs.a
 OUTPUT = fat
 SOURCES = \
 	fat.c \
-	fat_ops.c
+	fat_ops.c \
+	fat_idx.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

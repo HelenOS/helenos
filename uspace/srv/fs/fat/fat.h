@@ -214,6 +214,8 @@ extern fs_reg_t fat_reg;
 
 extern void fat_lookup(ipc_callid_t, ipc_call_t *);
 
+extern fat_idx_t *fat_idx_map(fat_cluster_t, unsigned);
+
 #endif
 
 /**
