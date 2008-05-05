@@ -175,16 +175,19 @@ struct fat_node;
  * pointer embedded in the index structure.
  */
 typedef struct {
+	/** Used indices hash table link. */
+	link_t		uh_link;
+
 	dev_handle_t	dev_handle;
 	fs_index_t	index;
 	/**
-	 * Parent first cluster.
+	 * Parent node's first cluster.
 	 * Zero is used if this node is not linked, in which case nodep must
 	 * contain a pointer to the in-core node structure.
 	 * One is used when the parent is the root directory.
 	 */
 	fat_cluster_t	pfc;
-	/** Parent directory entry index. */
+	/** Directory entry index within the parent node. */
 	unsigned	pdi;
 	/** Pointer to in-core node instance. */
 	struct fat_node	*nodep;

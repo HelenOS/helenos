@@ -70,6 +70,66 @@ typedef struct {
 
 static LIST_INITIALIZE(unused_head);
 
+/** Global hash table of all used fat_idx_t structures. */ 
+static hash_table_t used_hash;
+
+#define USED_HASH_BUCKETS_LOG	12
+#define USED_HASH_BUCKETS	(1 << USED_HASH_BUCKETS_LOG)
+
+#define USED_HASH_DH_KEY	0
+#define USED_HASH_PFC_KEY	1
+#define USED_HASH_PDI_KEY	2
+
+static hash_index_t idx_hash(unsigned long key[])
+{
+	dev_handle_t dev_handle = (dev_handle_t)key[USED_HASH_DH_KEY];
+	fat_cluster_t pfc = (fat_cluster_t)key[USED_HASH_PFC_KEY];
+	unsigned pdi = (unsigned)key[USED_HASH_PDI_KEY];
+
+	hash_index_t h;
+
+	/*
+	 * The least significant half of all bits are the least significant bits
+	 * of the parent node's first cluster.
+	 *
+	 * The least significant half of the most significant half of all bits
+	 * are the least significant bits of the node's dentry index within the
+	 * parent directory node.
+	 *
+	 * The most significant half of the most significant half of all bits
+	 * are the least significant bits of the device handle.
+	 */
+	h = pfc & ((USED_HASH_BUCKETS_LOG / 2) - 1);
+	h |= (pdi & ((USED_HASH_BUCKETS_LOG / 4) - 1)) <<
+	    (USED_HASH_BUCKETS_LOG / 2); 
+	h |= (dev_handle & ((USED_HASH_BUCKETS_LOG / 4) - 1)) <<
+	    (3 * (USED_HASH_BUCKETS_LOG / 4));
+
+	return h;
+}
+
+static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
+{
+	dev_handle_t dev_handle = (dev_handle_t)key[USED_HASH_DH_KEY];
+	fat_cluster_t pfc = (fat_cluster_t)key[USED_HASH_PFC_KEY];
+	unsigned pdi = (unsigned)key[USED_HASH_PDI_KEY];
+	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uh_link);
+
+	return (dev_handle == fidx->dev_handle) && (pfc == fidx->pfc) &&
+	    (pdi == fidx->pdi);
+}
+
+static void idx_remove_callback(link_t *item)
+{
+	/* nothing to do */
+}
+
+static hash_table_operations_t used_idx_ops = {
+	.hash = idx_hash,
+	.compare = idx_compare,
+	.remove_callback = idx_remove_callback,
+};
+
 /** Allocate a VFS index which is not currently in use. */
 static bool fat_idx_alloc(dev_handle_t dev_handle, fs_index_t *index)
 {
@@ -206,5 +266,34 @@ hit:
 
 fat_idx_t *fat_idx_map(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 {
-	return NULL;	/* TODO */
+	fat_idx_t *fidx;
+	link_t *l;
+	unsigned long key[] = {
+		[USED_HASH_DH_KEY] = dev_handle,
+		[USED_HASH_PFC_KEY] = pfc,
+		[USED_HASH_PDI_KEY] = pdi,
+	};
+
+	l = hash_table_find(&used_hash, key);
+	if (l) {
+		fidx = hash_table_get_instance(l, fat_idx_t, uh_link);
+	} else {
+		fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
+		if (!fidx) {
+			return NULL;
+		}
+		if (!fat_idx_alloc(dev_handle, &fidx->index)) {
+			free(fidx);
+			return NULL;
+		}
+		link_initialize(&fidx->uh_link);
+		fidx->dev_handle = dev_handle;
+		fidx->pfc = pfc;
+		fidx->pdi = pdi;
+		fidx->nodep = NULL;
+		hash_table_insert(&used_hash, key, &fidx->uh_link);
+	}
+
+	return fidx;
 }
+
