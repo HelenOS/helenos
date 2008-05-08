@@ -121,7 +121,11 @@ static void block_put(block_t *block)
 #define FAT_CLST_LAST1	0xfff8
 #define FAT_CLST_LAST8  0xffff
 
-static block_t *fat_block_get(fat_node_t *nodep, off_t offset)
+#define fat_block_get(np, off) \
+    _fat_block_get((np)->idx->dev_handle, (np)->firstc, (off))
+
+static block_t *
+_fat_block_get(dev_handle_t dev_handle, fat_cluster_t fc, off_t offset)
 {
 	block_t *bb;
 	block_t *b;
@@ -134,10 +138,10 @@ static block_t *fat_block_get(fat_node_t *nodep, off_t offset)
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
 	unsigned clusters;
-	fat_cluster_t clst = nodep->firstc;
+	fat_cluster_t clst = fc;
 	unsigned i;
 
-	bb = block_get(nodep->idx->dev_handle, BS_BLOCK);
+	bb = block_get(dev_handle, BS_BLOCK);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	spc = FAT_BS(bb)->spc;
 	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
@@ -150,11 +154,10 @@ static block_t *fat_block_get(fat_node_t *nodep, off_t offset)
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
 	ssa = rscnt + fatcnt * sf + rds;
 
-	if (nodep->idx->index == FAT_CLST_RES1) {
+	if (fc == FAT_CLST_RES1) {
 		/* root directory special case */
 		assert(offset < rds);
-		b = block_get(nodep->idx->dev_handle,
-		    rscnt + fatcnt * sf + offset);
+		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
 		return b;
 	}
 
@@ -167,15 +170,15 @@ static block_t *fat_block_get(fat_node_t *nodep, off_t offset)
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(nodep->idx->dev_handle, rscnt + fsec);
+		b = block_get(dev_handle, rscnt + fsec);
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		assert(clst < FAT_CLST_LAST1);
 		block_put(b);
 	}
 
-	b = block_get(nodep->idx->dev_handle, ssa +
-	    (clst - FAT_CLST_FIRST) * spc + offset % spc);
+	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
+	    offset % spc);
 
 	return b;
 }
@@ -241,10 +244,49 @@ static void fat_sync_node(fat_node_t *node)
 }
 
 /** Instantiate a FAT in-core node. */
-static void *
-fat_node_get(dev_handle_t dev_handle, fs_index_t index)
+static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
-	return NULL;	/* TODO */
+	fat_idx_t *idx;
+	block_t *b;
+	fat_dentry_t *d;
+	fat_node_t *nodep;
+	unsigned bps;
+	unsigned dps;
+
+	idx = fat_idx_get_by_index(dev_handle, index);
+	if (!idx)
+		return NULL;
+
+	if (idx->nodep) {
+		/*
+		 * We are lucky.
+		 * The node is already instantiated in memory.
+		 */
+		idx->nodep->refcnt++;
+		return idx->nodep;
+	}
+
+	/*
+	 * We must instantiate the node from the file system.
+	 */
+	
+	assert(idx->pfc);
+
+	nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
+	if (!nodep)
+		return NULL;
+	fat_node_initialize(nodep);
+
+	bps = fat_bps_get(dev_handle);
+	dps = bps / sizeof(fat_dentry_t);
+
+	b = _fat_block_get(dev_handle, idx->pfc,
+	    (idx->pdi * sizeof(fat_dentry_t)) / bps);
+
+	assert(b);
+
+	d = ((fat_dentry_t *)b->data) + (idx->pdi % dps);
+	/* XXX */
 }
 
 static void fat_node_put(void *node)
@@ -398,7 +440,7 @@ static bool fat_has_children(void *node)
 
 static void *fat_root_get(dev_handle_t dev_handle)
 {
-	return fat_node_get(dev_handle, FAT_CLST_RES1);
+	return fat_node_get(dev_handle, 0);	/* TODO */
 }
 
 static char fat_plb_get_char(unsigned pos)
