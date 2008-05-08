@@ -308,9 +308,17 @@ static void *fat_match(void *prnt, const char *component)
 			}
 			if (strcmp(name, component) == 0) {
 				/* hit */
-				fat_idx_t *idx = fat_idx_map(
+				fat_idx_t *idx = fat_idx_get_by_pos(
 				    parentp->idx->dev_handle, parentp->firstc,
 				    i * dps + j);
+				if (!idx) {
+					/*
+					 * Can happen if memory is low or if we
+					 * run out of 32-bit indices.
+					 */
+					block_put(b);
+					return NULL;
+				}
 				void *node = fat_node_get(idx->dev_handle,
 				    idx->index);
 				block_put(b);

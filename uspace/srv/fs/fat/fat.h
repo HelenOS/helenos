@@ -175,8 +175,10 @@ struct fat_node;
  * pointer embedded in the index structure.
  */
 typedef struct {
-	/** Used indices hash table link. */
-	link_t		uh_link;
+	/** Used indices (position) hash table link. */
+	link_t		uph_link;
+	/** Used indices (index) hash table link. */
+	link_t		uih_link;
 
 	dev_handle_t	dev_handle;
 	fs_index_t	index;
@@ -217,7 +219,8 @@ extern fs_reg_t fat_reg;
 
 extern void fat_lookup(ipc_callid_t, ipc_call_t *);
 
-extern fat_idx_t *fat_idx_map(dev_handle_t, fat_cluster_t, unsigned);
+extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
+extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
 
 #endif
 
