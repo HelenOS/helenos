@@ -50,14 +50,8 @@
 
 #define BS_BLOCK		0
 
-#define FIN_KEY_DEV_HANDLE	0
-#define FIN_KEY_INDEX		1
-
-/** Hash table of FAT in-core nodes. */
-hash_table_t fin_hash;
-
-/** List of free FAT in-core nodes. */
-link_t ffn_head;
+/** List of free FAT nodes that still contain valid data. */
+LIST_INITIALIZE(ffn_head);
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
@@ -125,7 +119,7 @@ static void block_put(block_t *block)
     _fat_block_get((np)->idx->dev_handle, (np)->firstc, (off))
 
 static block_t *
-_fat_block_get(dev_handle_t dev_handle, fat_cluster_t fc, off_t offset)
+_fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 {
 	block_t *bb;
 	block_t *b;
@@ -138,7 +132,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t fc, off_t offset)
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
 	unsigned clusters;
-	fat_cluster_t clst = fc;
+	fat_cluster_t clst = firstc;
 	unsigned i;
 
 	bb = block_get(dev_handle, BS_BLOCK);
@@ -154,7 +148,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t fc, off_t offset)
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
 	ssa = rscnt + fatcnt * sf + rds;
 
-	if (fc == FAT_CLST_RES1) {
+	if (firstc == FAT_CLST_RES1) {
 		/* root directory special case */
 		assert(offset < rds);
 		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
@@ -187,7 +181,6 @@ static void fat_node_initialize(fat_node_t *node)
 {
 	node->idx = NULL;
 	node->type = 0;
-	link_initialize(&node->fin_link);
 	link_initialize(&node->ffn_link);
 	node->size = 0;
 	node->lnkcnt = 0;
@@ -238,7 +231,7 @@ static fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *d)
 	return FAT_DENTRY_VALID;
 }
 
-static void fat_sync_node(fat_node_t *node)
+static void fat_node_sync(fat_node_t *node)
 {
 	/* TODO */
 }
@@ -272,21 +265,52 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 	
 	assert(idx->pfc);
 
-	nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
-	if (!nodep)
-		return NULL;
+	if (!list_empty(&ffn_head)) {
+		/* Try to use a cached unused node structure. */
+		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
+		if (nodep->dirty)
+			fat_node_sync(nodep);
+		list_remove(&nodep->ffn_link);
+		nodep->idx->nodep = NULL;
+	} else {
+		/* Try to allocate a new node structure. */
+		nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
+		if (!nodep)
+			return NULL;
+	}
 	fat_node_initialize(nodep);
 
 	bps = fat_bps_get(dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 
+	/* Read the block that contains the dentry of interest. */
 	b = _fat_block_get(dev_handle, idx->pfc,
 	    (idx->pdi * sizeof(fat_dentry_t)) / bps);
-
 	assert(b);
 
 	d = ((fat_dentry_t *)b->data) + (idx->pdi % dps);
-	/* XXX */
+	if (d->attr & FAT_ATTR_SUBDIR) {
+		/* 
+		 * The only directory which does not have this bit set is the
+		 * root directory itself. The root directory node is handled
+		 * and initialized elsewhere.
+		 */
+		nodep->type = FAT_DIRECTORY;
+	} else {
+		nodep->type = FAT_FILE;
+	}
+	nodep->firstc = uint16_t_le2host(d->firstc);
+	nodep->size = uint32_t_le2host(d->size);
+	nodep->lnkcnt = 1;
+	nodep->refcnt = 1;
+
+	block_put(b);
+
+	/* Link the idx structure with the node structure. */
+	nodep->idx = idx;
+	idx->nodep = nodep;
+
+	return nodep;
 }
 
 static void fat_node_put(void *node)
@@ -440,7 +464,7 @@ static bool fat_has_children(void *node)
 
 static void *fat_root_get(dev_handle_t dev_handle)
 {
-	return fat_node_get(dev_handle, 0);	/* TODO */
+	return NULL;	/* TODO */
 }
 
 static char fat_plb_get_char(unsigned pos)

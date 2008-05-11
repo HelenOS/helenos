@@ -205,8 +205,6 @@ typedef struct fat_node {
 	 *  One is used to mark root directory.
 	 */
 	fat_cluster_t		firstc;
-	/** FAT in-core node hash table link. */
-	link_t 			fin_link;
 	/** FAT in-core node free list link. */
 	link_t			ffn_link;
 	size_t			size;
