@@ -60,7 +60,7 @@ static void waitq_sleep_timed_out(void *data);
  *
  * Initialize wait queue.
  *
- * @param wq Pointer to wait queue to be initialized.
+ * @param wq		Pointer to wait queue to be initialized.
  */
 void waitq_initialize(waitq_t *wq)
 {
@@ -71,7 +71,7 @@ void waitq_initialize(waitq_t *wq)
 
 /** Handle timeout during waitq_sleep_timeout() call
  *
- * This routine is called when waitq_sleep_timeout() timeouts.
+ * This routine is called when waitq_sleep_timeout() times out.
  * Interrupts are disabled.
  *
  * It is supposed to try to remove 'its' thread from the wait queue;
@@ -79,7 +79,7 @@ void waitq_initialize(waitq_t *wq)
  * overlap. In that case it behaves just as though there was no
  * timeout at all.
  *
- * @param data Pointer to the thread that called waitq_sleep_timeout().
+ * @param data		Pointer to the thread that called waitq_sleep_timeout().
  */
 void waitq_sleep_timed_out(void *data)
 {
@@ -123,7 +123,7 @@ out:
  * This routine attempts to interrupt a thread from its sleep in a waitqueue.
  * If the thread is not found sleeping, no action is taken.
  *
- * @param t Thread to be interrupted.
+ * @param t		Thread to be interrupted.
  */
 void waitq_interrupt_sleep(thread_t *t)
 {
@@ -234,9 +234,9 @@ int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
  * This function will return holding the lock of the wait queue
  * and interrupts disabled.
  *
- * @param wq Wait queue.
+ * @param wq		Wait queue.
  *
- * @return Interrupt level as it existed on entry to this function.
+ * @return		Interrupt level as it existed on entry to this function.
  */
 ipl_t waitq_sleep_prepare(waitq_t *wq)
 {
@@ -272,9 +272,9 @@ restart:
  * to the call to waitq_sleep_prepare(). If necessary, the wait queue
  * lock is released.
  *
- * @param wq Wait queue.
- * @param rc Return code of waitq_sleep_timeout_unsafe().
- * @param ipl Interrupt level returned by waitq_sleep_prepare().
+ * @param wq		Wait queue.
+ * @param rc		Return code of waitq_sleep_timeout_unsafe().
+ * @param ipl		Interrupt level returned by waitq_sleep_prepare().
  */
 void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
 {
@@ -292,14 +292,14 @@ void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
 /** Internal implementation of waitq_sleep_timeout().
  *
  * This function implements logic of sleeping in a wait queue.
- * This call must be preceeded by a call to waitq_sleep_prepare()
- * and followed by a call to waitq_slee_finish().
+ * This call must be preceded by a call to waitq_sleep_prepare()
+ * and followed by a call to waitq_sleep_finish().
  *
- * @param wq See waitq_sleep_timeout().
- * @param usec See waitq_sleep_timeout().
- * @param flags See waitq_sleep_timeout().
+ * @param wq		See waitq_sleep_timeout().
+ * @param usec		See waitq_sleep_timeout().
+ * @param flags		See waitq_sleep_timeout().
  *
- * @return See waitq_sleep_timeout().
+ * @return		See waitq_sleep_timeout().
  */
 int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 {
@@ -384,8 +384,8 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
  * Besides its 'normal' wakeup operation, it attempts to unregister possible
  * timeout.
  *
- * @param wq	Pointer to wait queue.
- * @param mode	Wakeup mode.
+ * @param wq		Pointer to wait queue.
+ * @param mode		Wakeup mode.
  */
 void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 {
@@ -405,12 +405,12 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
  * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup(). It
  * assumes wq->lock is already locked and interrupts are already disabled.
  *
- * @param wq	Pointer to wait queue.
- * @param mode	If mode is WAKEUP_FIRST, then the longest waiting thread,
- *		if any, is woken up. If mode is WAKEUP_ALL, then all
- *		waiting threads, if any, are woken up. If there are no
- *		waiting threads to be woken up, the missed wakeup is
- *		recorded in the wait queue.
+ * @param wq		Pointer to wait queue.
+ * @param mode		If mode is WAKEUP_FIRST, then the longest waitingi
+ * 			thread, if any, is woken up. If mode is WAKEUP_ALL, then
+ *			all waiting threads, if any, are woken up. If there are
+ *			no waiting threads to be woken up, the missed wakeup is
+ *			recorded in the wait queue.
  */
 void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 {
