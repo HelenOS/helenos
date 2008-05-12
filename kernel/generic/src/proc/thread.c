@@ -265,15 +265,17 @@ void thread_ready(thread_t *t)
  *
  * Create a new thread.
  *
- * @param func      Thread's implementing function.
- * @param arg       Thread's implementing function argument.
- * @param task      Task to which the thread belongs.
- * @param flags     Thread flags.
- * @param name      Symbolic name.
- * @param uncounted Thread's accounting doesn't affect accumulated task
- * 		    accounting.
+ * @param func		Thread's implementing function.
+ * @param arg		Thread's implementing function argument.
+ * @param task		Task to which the thread belongs. The caller must
+ * 			guarantee that the task won't cease to exist during the
+ * 			call. The task's lock may not be held.
+ * @param flags		Thread flags.
+ * @param name		Symbolic name.
+ * @param uncounted	Thread's accounting doesn't affect accumulated task
+ * 			accounting.
  *
- * @return New thread's structure on success, NULL on failure.
+ * @return 		New thread's structure on success, NULL on failure.
  *
  */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
