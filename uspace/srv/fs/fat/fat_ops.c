@@ -91,7 +91,7 @@ static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 	}
 }
 
-/* TODO and also move somewhere else */
+/* TODO move somewhere else */
 typedef struct {
 	void *data;
 } block_t;
@@ -255,7 +255,8 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 		 * We are lucky.
 		 * The node is already instantiated in memory.
 		 */
-		idx->nodep->refcnt++;
+		if (!idx->nodep->refcnt++)
+			list_remove(&nodep->ffn_link);
 		return idx->nodep;
 	}
 
@@ -315,7 +316,11 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 
 static void fat_node_put(void *node)
 {
-	/* TODO */
+	fat_node_t *nodep = (fat_node_t *)node;
+
+	if (!--nodep->refcnt) {
+		list_append(&nodep->ffn_link, &ffn_head);
+	}
 }
 
 static void *fat_create(int flags)
