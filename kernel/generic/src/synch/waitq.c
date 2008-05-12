@@ -54,7 +54,7 @@
 #include <context.h>
 #include <adt/list.h>
 
-static void waitq_timeouted_sleep(void *data);
+static void waitq_sleep_timed_out(void *data);
 
 /** Initialize wait queue
  *
@@ -81,7 +81,7 @@ void waitq_initialize(waitq_t *wq)
  *
  * @param data Pointer to the thread that called waitq_sleep_timeout().
  */
-void waitq_timeouted_sleep(void *data)
+void waitq_sleep_timed_out(void *data)
 {
 	thread_t *t = (thread_t *) data;
 	waitq_t *wq;
@@ -183,9 +183,9 @@ out:
  * This function is really basic in that other functions as waitq_sleep()
  * and all the *_timeout() functions use it.
  *
- * @param wq Pointer to wait queue.
- * @param usec Timeout in microseconds.
- * @param flags Specify mode of the sleep.
+ * @param wq		Pointer to wait queue.
+ * @param usec		Timeout in microseconds.
+ * @param flags		Specify mode of the sleep.
  *
  * The sleep can be interrupted only if the
  * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
@@ -200,22 +200,23 @@ out:
  * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the
  * call will immediately return, reporting either success or failure.
  *
- * @return One of: ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT, ESYNCH_INTERRUPTED,
- * ESYNCH_OK_ATOMIC, ESYNCH_OK_BLOCKED.
+ * @return		Returns one of ESYNCH_WOULD_BLOCK, ESYNCH_TIMEOUT,
+ * 			ESYNCH_INTERRUPTED, ESYNCH_OK_ATOMIC and
+ * 			ESYNCH_OK_BLOCKED.
  *
- * @li ESYNCH_WOULD_BLOCK means that the sleep failed because at the time of the
- * call there was no pending wakeup.
+ * @li	ESYNCH_WOULD_BLOCK means that the sleep failed because at the time of
+ *	the call there was no pending wakeup.
  *
- * @li ESYNCH_TIMEOUT means that the sleep timed out.
+ * @li	ESYNCH_TIMEOUT means that the sleep timed out.
  *
- * @li ESYNCH_INTERRUPTED means that somebody interrupted the sleeping thread.
+ * @li	ESYNCH_INTERRUPTED means that somebody interrupted the sleeping thread.
  *
- * @li ESYNCH_OK_ATOMIC means that the sleep succeeded and that there was
- * a pending wakeup at the time of the call. The caller was not put
- * asleep at all.
+ * @li	ESYNCH_OK_ATOMIC means that the sleep succeeded and that there was
+ * 	a pending wakeup at the time of the call. The caller was not put
+ * 	asleep at all.
  * 
- * @li ESYNCH_OK_BLOCKED means that the sleep succeeded; the full sleep was 
- * attempted.
+ * @li	ESYNCH_OK_BLOCKED means that the sleep succeeded; the full sleep was 
+ * 	attempted.
  */
 int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
 {
@@ -355,7 +356,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		}
 		THREAD->timeout_pending = true;
 		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec,
-		    waitq_timeouted_sleep, THREAD);
+		    waitq_sleep_timed_out, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->head);
@@ -431,7 +432,7 @@ loop:
 	 * Lock the thread prior to removing it from the wq.
 	 * This is not necessary because of mutual exclusion
 	 * (the link belongs to the wait queue), but because
-	 * of synchronization with waitq_timeouted_sleep()
+	 * of synchronization with waitq_sleep_timed_out()
 	 * and thread_interrupt_sleep().
 	 *
 	 * In order for these two functions to work, the following
