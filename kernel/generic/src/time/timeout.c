@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Timeout management functions.
+ * @brief		Timeout management functions.
  */
 
 #include <time/timeout.h>
@@ -61,7 +61,7 @@ void timeout_init(void)
  *
  * Initialize all members except the lock.
  *
- * @param t Timeout to be initialized.
+ * @param t		Timeout to be initialized.
  *
  */
 void timeout_reinitialize(timeout_t *t)
@@ -78,7 +78,7 @@ void timeout_reinitialize(timeout_t *t)
  *
  * Initialize all members including the lock.
  *
- * @param t Timeout to be initialized.
+ * @param t		Timeout to be initialized.
  *
  */
 void timeout_initialize(timeout_t *t)
@@ -94,14 +94,14 @@ void timeout_initialize(timeout_t *t)
  * to timeout list and make it execute in
  * time microseconds (or slightly more).
  *
- * @param t    Timeout structure.
- * @param time Number of usec in the future to execute
- *             the handler.
- * @param f    Timeout handler function.
- * @param arg  Timeout handler argument.
+ * @param t		Timeout structure.
+ * @param time		Number of usec in the future to execute the handler.
+ * @param f		Timeout handler function.
+ * @param arg		Timeout handler argument.
  *
  */
-void timeout_register(timeout_t *t, uint64_t time, timeout_handler_t f, void *arg)
+void
+timeout_register(timeout_t *t, uint64_t time, timeout_handler_t f, void *arg)
 {
 	timeout_t *hlp = NULL;
 	link_t *l, *m;
@@ -165,9 +165,9 @@ void timeout_register(timeout_t *t, uint64_t time, timeout_handler_t f, void *ar
  *
  * Remove timeout from timeout list.
  *
- * @param t Timeout to unregister.
+ * @param t		Timeout to unregister.
  *
- * @return true on success, false on failure.
+ * @return		True on success, false on failure.
  */
 bool timeout_unregister(timeout_t *t)
 {

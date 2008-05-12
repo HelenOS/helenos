@@ -406,7 +406,7 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
  * assumes wq->lock is already locked and interrupts are already disabled.
  *
  * @param wq		Pointer to wait queue.
- * @param mode		If mode is WAKEUP_FIRST, then the longest waitingi
+ * @param mode		If mode is WAKEUP_FIRST, then the longest waiting
  * 			thread, if any, is woken up. If mode is WAKEUP_ALL, then
  *			all waiting threads, if any, are woken up. If there are
  *			no waiting threads to be woken up, the missed wakeup is
