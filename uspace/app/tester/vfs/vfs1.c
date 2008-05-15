@@ -86,12 +86,13 @@ char *test_vfs1(bool quiet)
 
 	char buf[10];
 
-	cnt = read(fd0, buf, sizeof(buf));
-	if (cnt < 0)
-		return "read() failed.\n";
-
-	if (!quiet)
-		printf("read %d bytes: \"%.*s\", fd=%d\n", cnt, cnt, buf, fd0);
+	while ((cnt = read(fd0, buf, sizeof(buf)))) {
+		if (cnt < 0)
+			return "read() failed.\n";
+		if (!quiet)
+			printf("read %d bytes: \"%.*s\", fd=%d\n", cnt, cnt,
+			    buf, fd0);
+	}
 
 	close(fd0);
 

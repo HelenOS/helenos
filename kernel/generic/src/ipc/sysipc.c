@@ -243,7 +243,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			uintptr_t dst = IPC_GET_ARG1(*olddata);
 			size_t max_size = IPC_GET_ARG2(*olddata);
 			size_t size = IPC_GET_ARG2(answer->data);
-			if (size <= max_size) {
+			if (size && size <= max_size) {
 				/*
 				 * Copy the destination VA so that this piece of
 				 * information is not lost.
@@ -258,6 +258,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 					free(answer->buffer);
 					answer->buffer = NULL;
 				}
+			} else if (!size) {
+				IPC_SET_RETVAL(answer->data, EOK);
 			} else {
 				IPC_SET_RETVAL(answer->data, ELIMIT);
 			}
