@@ -58,7 +58,7 @@ typedef struct tasklet_descriptor {
 	tasklet_callback_t callback;
 	
 	/** Argument passed to the callback */
-	void* arg;
+	void *arg;
 	
 	/** State of the tasklet */
 	tasklet_state_t state;
