@@ -74,6 +74,17 @@ static futex_t unused_futex = FUTEX_INITIALIZER;
 /** List of unused structures. */
 static LIST_INITIALIZE(unused_head);
 
+/** Futex protecting the up_hash and ui_hash.
+ *
+ * The locking strategy assumes that there will be at most one fibril for each
+ * dev_handle.  Therefore it will be sufficient to hold the futex for shorter
+ * times (i.e. only during hash table operations as opposed to holding it the
+ * whole time between an unsuccessful find and the following insert). Should the
+ * assumption break, the locking strategy for this futex will have to be
+ * reconsidered.
+ */
+static futex_t used_futex = FUTEX_INITIALIZER; 
+
 /**
  * Global hash table of all used fat_idx_t structures.
  * The index structures are hashed by the dev_handle, parent node's first
@@ -339,7 +350,9 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 		[UPH_PDI_KEY] = pdi,
 	};
 
+	futex_down(&used_futex);
 	l = hash_table_find(&up_hash, pkey);
+	futex_up(&used_futex);
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
 	} else {
@@ -364,8 +377,10 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 		fidx->pdi = pdi;
 		fidx->nodep = NULL;
 
+		futex_down(&used_futex);
 		hash_table_insert(&up_hash, pkey, &fidx->uph_link);
 		hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+		futex_up(&used_futex);
 	}
 
 	return fidx;
@@ -381,7 +396,9 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 		[UIH_INDEX_KEY] = index,
 	};
 
+	futex_down(&used_futex);
 	l = hash_table_find(&ui_hash, ikey);
+	futex_up(&used_futex);
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uih_link);
 	}
