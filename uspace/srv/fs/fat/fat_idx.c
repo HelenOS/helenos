@@ -68,6 +68,10 @@ typedef struct {
 	link_t		freed_head;
 } unused_t;
 
+/** Futex protecting the list of unused structures. */
+static futex_t unused_futex = FUTEX_INITIALIZER;
+
+/** List of unused structures. */
 static LIST_INITIALIZE(unused_head);
 
 /**
@@ -187,12 +191,14 @@ static bool fat_idx_alloc(dev_handle_t dev_handle, fs_index_t *index)
 	unused_t *u;
 	
 	assert(index);
+	futex_down(&unused_futex);
 	for (l = unused_head.next; l != &unused_head; l = l->next) {
 		u = list_get_instance(l, unused_t, link);
 		if (u->dev_handle == dev_handle) 
 			goto hit;
 	}
-
+	futex_up(&unused_futex);
+	
 	/* dev_handle not found */
 	return false;	
 
@@ -205,6 +211,7 @@ hit:
 			 */
 			*index = u->next++;
 			--u->remaining;
+			futex_up(&unused_futex);
 			return true;
 		}
 	} else {
@@ -217,6 +224,7 @@ hit:
 			list_remove(&f->link);
 			free(f);
 		}
+		futex_up(&unused_futex);
 		return true;
 	}
 	/*
@@ -224,6 +232,7 @@ hit:
 	 * theoretically still possible (e.g. too many open unlinked nodes or
 	 * too many zero-sized nodes).
 	 */
+	futex_up(&unused_futex);
 	return false;
 }
 
@@ -252,11 +261,13 @@ static void fat_idx_free(dev_handle_t dev_handle, fs_index_t index)
 	link_t *l;
 	unused_t *u;
 
+	futex_down(&unused_futex);
 	for (l = unused_head.next; l != &unused_head; l = l->next) {
 		u = list_get_instance(l, unused_t, link);
 		if (u->dev_handle == dev_handle)
 			goto hit;
 	}
+	futex_up(&unused_futex);
 
 	/* should not happen */
 	assert(0);
@@ -266,7 +277,6 @@ hit:
 		/* The index can be returned directly to the counter. */
 		u->next--;
 		u->remaining++;
-		return;
 	} else {
 		/*
 		 * The index must be returned either to an existing freed
@@ -282,6 +292,7 @@ hit:
 				if (lnk->prev != &u->freed_head)
 					try_coalesce_intervals(lnk->prev, lnk,
 					    lnk);
+				futex_up(&unused_futex);
 				return;
 			}
 			if (f->last == index - 1) {
@@ -289,6 +300,7 @@ hit:
 				if (lnk->next != &u->freed_head)
 					try_coalesce_intervals(lnk, lnk->next,
 					    lnk);
+				futex_up(&unused_futex);
 				return;
 			}
 			if (index > f->first) {
@@ -299,6 +311,7 @@ hit:
 				n->first = index;
 				n->last = index;
 				list_insert_before(&n->link, lnk);
+				futex_up(&unused_futex);
 				return;
 			}
 
@@ -312,6 +325,7 @@ hit:
 		n->last = index;
 		list_append(&n->link, &u->freed_head);
 	}
+	futex_up(&unused_futex);
 }
 
 fat_idx_t *
