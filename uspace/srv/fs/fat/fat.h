@@ -180,6 +180,7 @@ typedef struct {
 	/** Used indices (index) hash table link. */
 	link_t		uih_link;
 
+	futex_t		lock;
 	dev_handle_t	dev_handle;
 	fs_index_t	index;
 	/**
@@ -197,6 +198,7 @@ typedef struct {
 
 /** FAT in-core node. */
 typedef struct fat_node {
+	futex_t			lock;
 	fat_node_type_t		type;
 	fat_idx_t		*idx;
 	/**

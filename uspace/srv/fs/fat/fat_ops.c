@@ -50,8 +50,11 @@
 
 #define BS_BLOCK		0
 
-/** List of free FAT nodes that still contain valid data. */
-LIST_INITIALIZE(ffn_head);
+/** Futex protecting the list of cached free FAT nodes. */
+static futex_t ffn_futex = FUTEX_INITIALIZER;
+
+/** List of cached free FAT nodes. */
+static LIST_INITIALIZE(ffn_head);
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
@@ -179,6 +182,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 
 static void fat_node_initialize(fat_node_t *node)
 {
+	futex_initialize(&node->lock, 1);
 	node->idx = NULL;
 	node->type = 0;
 	link_initialize(&node->ffn_link);
@@ -236,60 +240,74 @@ static void fat_node_sync(fat_node_t *node)
 	/* TODO */
 }
 
-/** Instantiate a FAT in-core node. */
-static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
+/** Internal version of fat_node_get().
+ *
+ * @param idxp		Locked index structure.
+ */
+static void *fat_node_get_core(fat_idx_t *idxp)
 {
-	fat_idx_t *idx;
 	block_t *b;
 	fat_dentry_t *d;
 	fat_node_t *nodep;
 	unsigned bps;
 	unsigned dps;
 
-	idx = fat_idx_get_by_index(dev_handle, index);
-	if (!idx)
-		return NULL;
-
-	if (idx->nodep) {
+	if (idxp->nodep) {
 		/*
 		 * We are lucky.
 		 * The node is already instantiated in memory.
 		 */
-		if (!idx->nodep->refcnt++)
+		futex_down(&idxp->nodep->lock);
+		if (!idxp->nodep->refcnt++)
 			list_remove(&nodep->ffn_link);
-		return idx->nodep;
+		futex_up(&idxp->nodep->lock);
+		return idxp->nodep;
 	}
 
 	/*
 	 * We must instantiate the node from the file system.
 	 */
 	
-	assert(idx->pfc);
+	assert(idxp->pfc);
 
+	futex_down(&ffn_futex);
 	if (!list_empty(&ffn_head)) {
-		/* Try to use a cached unused node structure. */
+		/* Try to use a cached free node structure. */
+		fat_idx_t *idxp_tmp;
 		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
+		if (futex_trydown(&nodep->lock) == ESYNCH_WOULD_BLOCK)
+			goto skip_cache;
+		idxp_tmp = nodep->idx;
+		if (futex_trydown(&idxp_tmp->lock) == ESYNCH_WOULD_BLOCK) {
+			futex_up(&nodep->lock);
+			goto skip_cache;
+		}
+		list_remove(&nodep->ffn_link);
+		futex_up(&ffn_futex);
 		if (nodep->dirty)
 			fat_node_sync(nodep);
-		list_remove(&nodep->ffn_link);
-		nodep->idx->nodep = NULL;
+		idxp_tmp->nodep = NULL;
+		futex_up(&nodep->lock);
+		futex_up(&idxp_tmp->lock);
 	} else {
+skip_cache:
 		/* Try to allocate a new node structure. */
+		futex_up(&ffn_futex);
 		nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
 		if (!nodep)
 			return NULL;
 	}
 	fat_node_initialize(nodep);
 
-	bps = fat_bps_get(dev_handle);
+	bps = fat_bps_get(idxp->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 
 	/* Read the block that contains the dentry of interest. */
-	b = _fat_block_get(dev_handle, idx->pfc,
-	    (idx->pdi * sizeof(fat_dentry_t)) / bps);
+	b = _fat_block_get(idxp->dev_handle, idxp->pfc,
+	    (idxp->pdi * sizeof(fat_dentry_t)) / bps);
 	assert(b);
 
-	d = ((fat_dentry_t *)b->data) + (idx->pdi % dps);
+	d = ((fat_dentry_t *)b->data) + (idxp->pdi % dps);
 	if (d->attr & FAT_ATTR_SUBDIR) {
 		/* 
 		 * The only directory which does not have this bit set is the
@@ -308,19 +326,38 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 	block_put(b);
 
 	/* Link the idx structure with the node structure. */
-	nodep->idx = idx;
-	idx->nodep = nodep;
+	nodep->idx = idxp;
+	idxp->nodep = nodep;
 
 	return nodep;
+}
+
+/** Instantiate a FAT in-core node. */
+static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
+{
+	void *node;
+	fat_idx_t *idxp;
+
+	idxp = fat_idx_get_by_index(dev_handle, index);
+	if (!idxp)
+		return NULL;
+	/* idxp->lock held */
+	node = fat_node_get_core(idxp);
+	futex_up(&idxp->lock);
+	return node;
 }
 
 static void fat_node_put(void *node)
 {
 	fat_node_t *nodep = (fat_node_t *)node;
 
+	futex_down(&nodep->lock);
 	if (!--nodep->refcnt) {
+		futex_down(&ffn_futex);
 		list_append(&nodep->ffn_link, &ffn_head);
+		futex_up(&ffn_futex);
 	}
+	futex_up(&nodep->lock);
 }
 
 static void *fat_create(int flags)
@@ -379,6 +416,7 @@ static void *fat_match(void *prnt, const char *component)
 			}
 			if (strcmp(name, component) == 0) {
 				/* hit */
+				void *node;
 				fat_idx_t *idx = fat_idx_get_by_pos(
 				    parentp->idx->dev_handle, parentp->firstc,
 				    i * dps + j);
@@ -390,8 +428,8 @@ static void *fat_match(void *prnt, const char *component)
 					block_put(b);
 					return NULL;
 				}
-				void *node = fat_node_get(idx->dev_handle,
-				    idx->index);
+				node = fat_node_get_core(idx);
+				futex_up(&idx->lock);
 				block_put(b);
 				return node;
 			}
@@ -432,6 +470,7 @@ static bool fat_has_children(void *node)
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
 
+	futex_down(&nodep->idx->lock);
 	bps = fat_bps_get(nodep->idx->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 
@@ -452,18 +491,22 @@ static bool fat_has_children(void *node)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
+				futex_up(&nodep->idx->lock);
 				return false;
 			default:
 			case FAT_DENTRY_VALID:
 				block_put(b);
+				futex_up(&nodep->idx->lock);
 				return true;
 			}
 			block_put(b);
+			futex_up(&nodep->idx->lock);
 			return true;
 		}
 		block_put(b);
 	}
 
+	futex_up(&nodep->idx->lock);
 	return false;
 }
 
