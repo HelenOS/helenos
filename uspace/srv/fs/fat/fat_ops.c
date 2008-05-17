@@ -391,6 +391,7 @@ static void *fat_match(void *prnt, const char *component)
 	fat_dentry_t *d;
 	block_t *b;
 
+	futex_down(&parentp->idx->lock);
 	bps = fat_bps_get(parentp->idx->dev_handle);
 	dps = bps / sizeof(fat_dentry_t);
 	blocks = parentp->size / bps + (parentp->size % bps != 0);
@@ -408,6 +409,7 @@ static void *fat_match(void *prnt, const char *component)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
+				futex_up(&parentp->idx->lock);
 				return NULL;
 			default:
 			case FAT_DENTRY_VALID:
@@ -417,9 +419,16 @@ static void *fat_match(void *prnt, const char *component)
 			if (strcmp(name, component) == 0) {
 				/* hit */
 				void *node;
+				/*
+				 * Assume tree hierarchy for locking.  We
+				 * already have the parent and now we are going
+				 * to lock the child.  Never lock in the oposite
+				 * order.
+				 */
 				fat_idx_t *idx = fat_idx_get_by_pos(
 				    parentp->idx->dev_handle, parentp->firstc,
 				    i * dps + j);
+				futex_up(&parentp->idx->lock);
 				if (!idx) {
 					/*
 					 * Can happen if memory is low or if we
@@ -436,7 +445,7 @@ static void *fat_match(void *prnt, const char *component)
 		}
 		block_put(b);
 	}
-
+	futex_up(&parentp->idx->lock);
 	return NULL;
 }
 
