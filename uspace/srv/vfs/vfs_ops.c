@@ -85,6 +85,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	dev_handle_t dev_handle;
 	vfs_node_t *mp_node = NULL;
 	int rc;
+	int phone;
 
 	/*
 	 * We expect the library to do the device-name to device-handle
@@ -225,11 +226,29 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		/* We still don't have the root file system mounted. */
 		if ((size == 1) && (buf[0] == '/')) {
-			/* For this simple, but important case, we are done. */
-			rootfs = mr_res.triplet;
-			futex_up(&rootfs_futex);
+			/*
+			 * For this simple, but important case,
+			 * we are almost done.
+			 */
 			free(buf);
-			ipc_answer_0(rid, EOK);
+			
+			/* Inform the mount point about the root mount. */
+			phone = vfs_grab_phone(mr_res.triplet.fs_handle);
+			rc = async_req_5_0(phone, VFS_MOUNT,
+			    (ipcarg_t) mr_res.triplet.dev_handle,
+			    (ipcarg_t) mr_res.triplet.index,
+			    (ipcarg_t) mr_res.triplet.fs_handle,
+			    (ipcarg_t) mr_res.triplet.dev_handle,
+			    (ipcarg_t) mr_res.triplet.index);
+			vfs_release_phone(phone);
+
+			if (rc == EOK)
+				rootfs = mr_res.triplet;
+			else 
+				vfs_node_put(mr_node);
+
+			futex_up(&rootfs_futex);
+			ipc_answer_0(rid, rc);
 			return;
 		} else {
 			/*
@@ -257,7 +276,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * @todo
 	 * Add more IPC parameters so that we can send mount mode/flags.
 	 */
-	int phone = vfs_grab_phone(mp_res.triplet.fs_handle);
+	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
 	rc = async_req_5_0(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
 	    (ipcarg_t) mp_res.triplet.index,
