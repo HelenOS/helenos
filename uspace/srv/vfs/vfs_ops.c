@@ -84,6 +84,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle;
 	vfs_node_t *mp_node = NULL;
+	int rc;
 
 	/*
 	 * We expect the library to do the device-name to device-handle
@@ -167,7 +168,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * node cannot be removed. However, we do take a reference to it so
 	 * that we can track how many times it has been mounted.
 	 */
-	int rc;
 	vfs_lookup_res_t mr_res;
 	rc = lookup_root(fs_handle, dev_handle, &mr_res);
 	if (rc != EOK) {
@@ -253,36 +253,27 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * of the file system being mounted.
 	 */
 
+	/**
+	 * @todo
+	 * Add more IPC parameters so that we can send mount mode/flags.
+	 */
 	int phone = vfs_grab_phone(mp_res.triplet.fs_handle);
-	/* Later we can use ARG3 to pass mode/flags. */
-	aid_t req1 = async_send_3(phone, VFS_MOUNT,
+	rc = async_req_5_0(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
-	    (ipcarg_t) mp_res.triplet.index, 0, NULL);
-	/* The second call uses the same method. */
-	aid_t req2 = async_send_3(phone, VFS_MOUNT,
+	    (ipcarg_t) mp_res.triplet.index,
 	    (ipcarg_t) mr_res.triplet.fs_handle,
 	    (ipcarg_t) mr_res.triplet.dev_handle,
-	    (ipcarg_t) mr_res.triplet.index, NULL);
+	    (ipcarg_t) mr_res.triplet.index);
 	vfs_release_phone(phone);
 
-	ipcarg_t rc1;
-	ipcarg_t rc2;
-	async_wait_for(req1, &rc1);
-	async_wait_for(req2, &rc2);
-
-	if ((rc1 != EOK) || (rc2 != EOK)) {
+	if (rc != EOK) {
 		/* Mount failed, drop references to mr_node and mp_node. */
 		vfs_node_put(mr_node);
 		if (mp_node)
 			vfs_node_put(mp_node);
 	}
 	
-	if (rc2 == EOK)
-		ipc_answer_0(rid, rc1);
-	else if (rc1 == EOK)
-		ipc_answer_0(rid, rc2);
-	else
-		ipc_answer_0(rid, rc1);
+	ipc_answer_0(rid, rc);
 }
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
