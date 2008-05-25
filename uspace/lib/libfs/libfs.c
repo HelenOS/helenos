@@ -155,7 +155,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
 	
-	while (ops->has_children(cur) && next <= last) {
+	while (next <= last && ops->has_children(cur)) {
 		/* collect the component */
 		len = 0;
 		while ((ops->plb_get_char(next) != '/') && (next <= last)) {
@@ -197,8 +197,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					    index);
 				if (nodep) {
 					if (!ops->link(cur, nodep, component)) {
-						if (lflag & L_CREATE)
-							(void)ops->destroy(nodep);
+						if (lflag & L_CREATE) {
+							(void)ops->destroy(
+							    nodep);
+						}
 						ipc_answer_0(rid, ENOSPC);
 					} else {
 						ipc_answer_5(rid, EOK,
@@ -232,7 +234,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 
 	/* handle miss: excessive components */
-	if (!ops->has_children(cur) && next <= last) {
+	if (next <= last && !ops->has_children(cur)) {
 		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
 				ipc_answer_0(rid, ENOTDIR);
