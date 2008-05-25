@@ -158,7 +158,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	while (next <= last && ops->has_children(cur)) {
 		/* collect the component */
 		len = 0;
-		while ((ops->plb_get_char(next) != '/') && (next <= last)) {
+		while ((next <= last) &&  (ops->plb_get_char(next) != '/')) {
 			if (len + 1 == NAME_MAX) {
 				/* comopnent length overflow */
 				ipc_answer_0(rid, ENAMETOOLONG);
