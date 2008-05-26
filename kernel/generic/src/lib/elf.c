@@ -100,6 +100,10 @@ unsigned int elf_load(elf_header_t *header, as_t * as)
 	if (header->e_type != ET_EXEC)
 		return EE_UNSUPPORTED;
 
+	/* Check if the ELF image starts on a page boundary */
+	if (ALIGN_UP((uintptr_t)header, PAGE_SIZE) != (uintptr_t)header)
+		return EE_UNSUPPORTED;
+
 	/* Walk through all segment headers and process them. */
 	for (i = 0; i < header->e_phnum; i++) {
 		elf_segment_header_t *seghdr;
@@ -182,6 +186,8 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	as_area_t *a;
 	int flags = 0;
 	mem_backend_data_t backend_data;
+	uintptr_t base;
+	size_t mem_sz;
 	
 	backend_data.elf = elf;
 	backend_data.segment = entry;
@@ -201,13 +207,14 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 		flags |= AS_AREA_READ;
 	flags |= AS_AREA_CACHEABLE;
 
-	/*
-	 * Check if the virtual address starts on page boundary.
+	/* 
+	 * Align vaddr down, inserting a little "gap" at the beginning.
+	 * Adjust area size, so that its end remains in place.
 	 */
-	if (ALIGN_UP(entry->p_vaddr, PAGE_SIZE) != entry->p_vaddr)
-		return EE_UNSUPPORTED;
+	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
+	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-	a = as_area_create(as, flags, entry->p_memsz, entry->p_vaddr,
+	a = as_area_create(as, flags, mem_sz, base,
 	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data);
 	if (!a)
 		return EE_MEMORY;

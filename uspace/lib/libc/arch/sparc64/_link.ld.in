@@ -7,21 +7,23 @@ PHDRS {
 }
 
 SECTIONS {
-	. = 0x4000;
+	. = 0x4000 + SIZEOF_HEADERS;
 
-	.init ALIGN(0x4000) : SUBALIGN(0x4000) {
+	.init : {
 		*(.init);
 	} :text
 	.text : {
 		*(.text);
 		*(.rodata*);
 	} :text
-	
-	.got ALIGN(0x4000) : SUBALIGN(0x4000) {
+
+	. = . + 0x4000;
+
+	.got : {
 		 _gp = .;
 		 *(.got*);
 	} :data
-	.data ALIGN(0x4000) : SUBALIGN(0x4000) {
+	.data : {
 		*(.data);
 		*(.sdata);
 	} :data
