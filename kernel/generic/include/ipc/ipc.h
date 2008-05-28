@@ -205,6 +205,8 @@
 
 #define IPC_MAX_PHONES  16
 
+#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <synch/waitq.h>
 
 struct answerbox;
@@ -225,7 +227,7 @@ typedef enum {
 
 /** Structure identifying phone (in TASK structure) */
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	mutex_t lock;
 	link_t link;
 	struct answerbox *callee;
 	ipc_phone_state_t state;

@@ -168,14 +168,14 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		/* In case of forward, hangup the forwared phone,
 		 * not the originator
 		 */
-		spinlock_lock(&answer->data.phone->lock);
+		mutex_lock(&answer->data.phone->lock);
 		spinlock_lock(&TASK->answerbox.lock);
 		if (answer->data.phone->state == IPC_PHONE_CONNECTED) {
 			list_remove(&answer->data.phone->link);
 			answer->data.phone->state = IPC_PHONE_SLAMMED;
 		}
 		spinlock_unlock(&TASK->answerbox.lock);
-		spinlock_unlock(&answer->data.phone->lock);
+		mutex_unlock(&answer->data.phone->lock);
 	}
 
 	if (!olddata)

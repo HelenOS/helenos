@@ -37,7 +37,9 @@
  * First the answerbox, then the phone.
  */
 
+#include <synch/synch.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <ipc/ipc.h>
@@ -140,7 +142,7 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
  */
 void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
-	spinlock_lock(&phone->lock);
+	mutex_lock(&phone->lock);
 
 	phone->state = IPC_PHONE_CONNECTED;
 	phone->callee = box;
@@ -149,7 +151,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	list_append(&phone->link, &box->connected_phones);
 	spinlock_unlock(&box->lock);
 
-	spinlock_unlock(&phone->lock);
+	mutex_unlock(&phone->lock);
 }
 
 /** Initialize a phone structure.
@@ -158,7 +160,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
  */
 void ipc_phone_init(phone_t *phone)
 {
-	spinlock_initialize(&phone->lock, "phone_lock");
+	mutex_initialize(&phone->lock);
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
@@ -261,9 +263,9 @@ int ipc_call(phone_t *phone, call_t *call)
 {
 	answerbox_t *box;
 
-	spinlock_lock(&phone->lock);
+	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_CONNECTED) {
-		spinlock_unlock(&phone->lock);
+		mutex_unlock(&phone->lock);
 		if (call->flags & IPC_CALL_FORWARDED) {
 			IPC_SET_RETVAL(call->data, EFORWARD);
 			_ipc_answer_free_call(call);
@@ -278,7 +280,7 @@ int ipc_call(phone_t *phone, call_t *call)
 	box = phone->callee;
 	_ipc_call(phone, box, call);
 	
-	spinlock_unlock(&phone->lock);
+	mutex_unlock(&phone->lock);
 	return 0;
 }
 
@@ -297,11 +299,11 @@ int ipc_phone_hangup(phone_t *phone)
 	answerbox_t *box;
 	call_t *call;
 	
-	spinlock_lock(&phone->lock);
+	mutex_lock(&phone->lock);
 	if (phone->state == IPC_PHONE_FREE ||
 	    phone->state == IPC_PHONE_HUNGUP ||
 	    phone->state == IPC_PHONE_CONNECTING) {
-		spinlock_unlock(&phone->lock);
+		mutex_unlock(&phone->lock);
 		return -1;
 	}
 	box = phone->callee;
@@ -320,7 +322,7 @@ int ipc_phone_hangup(phone_t *phone)
 	}
 
 	phone->state = IPC_PHONE_HUNGUP;
-	spinlock_unlock(&phone->lock);
+	mutex_unlock(&phone->lock);
 
 	return 0;
 }
@@ -449,7 +451,7 @@ restart_phones:
 	while (!list_empty(&TASK->answerbox.connected_phones)) {
 		phone = list_get_instance(TASK->answerbox.connected_phones.next,
 		    phone_t, link);
-		if (!spinlock_trylock(&phone->lock)) {
+		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
 			spinlock_unlock(&TASK->answerbox.lock);
 			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
 			goto restart_phones;
@@ -460,7 +462,7 @@ restart_phones:
 		phone->state = IPC_PHONE_SLAMMED;
 		list_remove(&phone->link);
 
-		spinlock_unlock(&phone->lock);
+		mutex_unlock(&phone->lock);
 	}
 
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
@@ -535,7 +537,10 @@ void ipc_print_task(task_id_t taskid)
 	/* Print opened phones & details */
 	printf("PHONE:\n");
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		spinlock_lock(&task->phones[i].lock);
+		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
+			printf("%d: mutex busy\n", i);
+			continue;
+		}
 		if (task->phones[i].state != IPC_PHONE_FREE) {
 			printf("%d: ", i);
 			switch (task->phones[i].state) {
@@ -560,7 +565,7 @@ void ipc_print_task(task_id_t taskid)
 			printf("active: %d\n",
 			    atomic_get(&task->phones[i].active_calls));
 		}
-		spinlock_unlock(&task->phones[i].lock);
+		mutex_unlock(&task->phones[i].lock);
 	}
 
 
@@ -579,7 +584,7 @@ void ipc_print_task(task_id_t taskid)
 	}
 	/* Print answerbox - calls */
 	printf("ABOX - DISPATCHED CALLS:\n");
-	for (tmp=task->answerbox.dispatched_calls.next; 
+	for (tmp = task->answerbox.dispatched_calls.next; 
 	     tmp != &task->answerbox.dispatched_calls; 
 	     tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
