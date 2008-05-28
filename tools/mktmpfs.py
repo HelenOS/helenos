@@ -48,30 +48,39 @@ def main():
 		print "<PATH> must be a directory"
 		return
 	
-	outf = file(sys.argv[2], "w");
+	header_size = 18
+	payload_size = 0
+	outf = file(sys.argv[2], "w")
+	outf.write(struct.pack("<" + ("%d" % header_size) + "x"))
 	
 	for root, dirs, files in os.walk(path):
 		relpath = root[len(path):len(root)]
 		for name in files:
 			canon = os.path.join(relpath, name)
 			outf.write(struct.pack("<BL" + ("%d" % len(canon)) + "s", 1, len(canon), canon))
+			payload_size += 5 + len(canon)
 			
 			fn = os.path.join(root, name)
 			size = os.path.getsize(fn)
 			rd = 0;
 			outf.write(struct.pack("<L", size))
+			payload_size += 4
 			
 			inf = file(fn, "r")
 			while (rd < size):
 				data = inf.read(4096);
 				outf.write(data)
+				payload_size += len(data)
 				rd += len(data)
 			inf.close()
 		
 		for name in dirs:
 			canon = os.path.join(relpath, name)
 			outf.write(struct.pack("<BL" + ("%d" % len(canon)) + "s", 2, len(canon), canon))
+			payload_size += 5 + len(canon)
 	
+	outf.seek(0)
+	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, payload_size))
 	outf.close()
 
 if __name__ == '__main__':
