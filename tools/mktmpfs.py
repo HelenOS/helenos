@@ -34,23 +34,31 @@ import sys
 import os
 import struct
 
+def align_up(size, alignment):
+	return (((size) + ((alignment) - 1)) & ~((alignment) - 1))
+
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <PATH> <IMAGE>"
+	print prname + " <ALIGNMENT> <PATH> <IMAGE>"
 
 def main():
-	if (len(sys.argv) < 3):
+	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1]);
+	if (not sys.argv[1].isdigit()):
+		print "<ALIGNMENT> must be a number"
+		return
+	
+	align = int(sys.argv[1], 0)
+	path = os.path.abspath(sys.argv[2])
 	if (not os.path.isdir(path)):
 		print "<PATH> must be a directory"
 		return
 	
-	header_size = 18
+	header_size = align_up(18, align)
 	payload_size = 0
-	outf = file(sys.argv[2], "w")
+	outf = file(sys.argv[3], "w")
 	outf.write(struct.pack("<" + ("%d" % header_size) + "x"))
 	
 	for root, dirs, files in os.walk(path):
@@ -79,8 +87,13 @@ def main():
 			outf.write(struct.pack("<BL" + ("%d" % len(canon)) + "s", 2, len(canon), canon))
 			payload_size += 5 + len(canon)
 	
+	aligned_size = align_up(payload_size, align)
+	
+	if (aligned_size - payload_size > 0):
+		outf.write(struct.pack("<" + ("%d" % (aligned_size - payload_size)) + "x"))
+	
 	outf.seek(0)
-	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, payload_size))
+	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, aligned_size))
 	outf.close()
 
 if __name__ == '__main__':
