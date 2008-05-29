@@ -96,8 +96,9 @@ void bootstrap(void)
 {
 	version_print();
 	
-	init_components();
-	
+	component_t components[COMPONENTS];
+	init_components(components);
+		
 	unsigned int i;
 	
 	for (i = 0; i < COMPONENTS; i++)

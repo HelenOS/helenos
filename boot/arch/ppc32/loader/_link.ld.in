@@ -1,0 +1,13 @@
+	.boot 0x10000000: AT (0) { 
+		*(BOOTSTRAP);
+		*(REALMODE);
+		*(.text);
+		
+		*(.rodata);
+		*(.rodata.*);
+		*(.data);		/* initialized data */
+		*(.sdata);
+		*(.sdata2);
+		*(.sbss);
+		*(.bss);		/* uninitialized static variables */	
+		*(COMMON); 		/* global variables */

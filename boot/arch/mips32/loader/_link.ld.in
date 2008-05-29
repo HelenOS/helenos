@@ -1,0 +1,14 @@
+	.boot 0xbfc00000: AT (0) {
+		*(BOOTSTRAP);
+		*(.text);
+		
+		*(.rodata);
+		*(.rodata.*);
+		*(.data);		/* initialized data */
+		*(.sdata);
+		*(.sdata2);
+		*(.sbss);
+		*(.scommon);
+		*(.bss);		/* uninitialized static variables */	
+		*(COMMON); 		/* global variables */
+		*(.reginfo);

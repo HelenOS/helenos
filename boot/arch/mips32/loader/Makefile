@@ -32,6 +32,14 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+ifeq ($(IMAGE),binary)
+	BFD = binary
+endif
+ifeq ($(IMAGE),ecoff)
+	BFD = ecoff-littlemips
+endif
+BFD_NAME = elf32-tradlittlemips
+BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = /usr/local/mipsel/bin
 
@@ -72,6 +80,7 @@ endif
 SOURCES = \
 	main.c \
 	msim.c \
+	_components.c \
 	../../../generic/printf.c \
 	asm.S \
 	boot.S
@@ -107,10 +116,10 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD) $(BFD_ARCH) 4096 $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

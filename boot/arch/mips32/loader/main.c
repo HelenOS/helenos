@@ -59,8 +59,9 @@ void bootstrap(void)
 	version_print();
 	
 	component_t components[COMPONENTS];
-	bootinfo_t bootinfo;
 	init_components(components);
+	
+	bootinfo_t bootinfo;
 	
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
