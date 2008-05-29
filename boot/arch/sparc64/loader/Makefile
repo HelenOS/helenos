@@ -43,14 +43,6 @@ ifeq ($(COMPILER),gcc_native)
 	OBJDUMP = objdump
 endif
 
-ifeq ($(COMPILER),icc_native)
-	CC = icc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-endif
-
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as

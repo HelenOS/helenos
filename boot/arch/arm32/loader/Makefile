@@ -27,21 +27,26 @@
 #
 
 include ../../../../version
-include ../../../../Makefile.config
+include ../../../Makefile.config
 
 ## Toolchain configuration
 #
 
+BFD = elf32-littlearm
+BFD_NAME = elf32-littlearm
+BFD_ARCH = arm
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = /usr/local/arm/bin
 
-ifeq ($(COMPILER),native)
+ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
-else
+endif
+
+ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
@@ -68,28 +73,25 @@ SOURCES = \
 	boot.S \
 	asm.S \
 	mm.c \
+	print/gxemul.c \
+	_components.c \
 	../../../generic/printf.c \
 	../../../genarch/division.c
-
-ifeq ($(MACHINE), gxemul_testarm)
-	SOURCES += print/gxemul.c
-endif
-
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/vfs/vfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/tetris/tetris
+	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
@@ -100,17 +102,17 @@ all: image.boot
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(OBJECTS) $(COMPONENT_OBJECTS)
-	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@ 
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
+	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend 
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD) $(BFD_ARCH) 4096 $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
