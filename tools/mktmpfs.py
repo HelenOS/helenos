@@ -35,6 +35,7 @@ import os
 import struct
 
 def align_up(size, alignment):
+	"Align upwards to a given alignment"
 	return (((size) + ((alignment) - 1)) & ~((alignment) - 1))
 
 def usage(prname):
