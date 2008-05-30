@@ -42,7 +42,6 @@
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/ddi.h>
-#include <print.h>
 #include <align.h>
 
 static parea_t rd_parea;		/**< Physical memory area for rd. */
@@ -52,7 +51,7 @@ static parea_t rd_parea;		/**< Physical memory area for rd. */
  * and information about the share is provided as sysinfo values to the userspace
  * tasks.
  */  
-int init_rd(rd_header * header, size_t size)
+int init_rd(rd_header_t *header, size_t size)
 {
 	/* Identify RAM disk */
 	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) ||
@@ -80,10 +79,7 @@ int init_rd(rd_header * header, size_t size)
 	
 	if ((hsize % FRAME_SIZE) || (dsize % FRAME_SIZE))
 		return RE_UNSUPPORTED;
-	
-	if (dsize % FRAME_SIZE)
-		return RE_UNSUPPORTED;
-
+		
 	if (hsize > size)
 		return RE_INVALID;
 	

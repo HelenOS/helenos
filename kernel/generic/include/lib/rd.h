@@ -66,15 +66,17 @@
 #define RE_UNSUPPORTED		2	/* Non-supported image (e.g. wrong version) */
 
 /** RAM disk header */
-typedef struct {
+struct rd_header {
 	uint8_t magic[RD_MAGIC_SIZE];
 	uint8_t version;
 	uint8_t data_type;
 	uint32_t header_size;
 	uint64_t data_size;
-} rd_header;
+} __attribute__ ((packed));
 
-extern int init_rd(rd_header * addr, size_t size);
+typedef struct rd_header rd_header_t;
+
+extern int init_rd(rd_header_t *addr, size_t size);
 
 #endif
 
