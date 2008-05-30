@@ -36,46 +36,27 @@ import subprocess
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <OBJCOPY> <FORMAT> <OUTPUT_FORMAT> <ARCH> <ALIGNMENT>"
+	print prname + " <OBJCOPY> <FORMAT> <ARCH> <ALIGNMENT> <UINTPTR>"
 
 def main():
 	if (len(sys.argv) < 6):
 		usage(sys.argv[0])
 		return
 	
-	if (not sys.argv[5].isdigit()):
+	if (not sys.argv[4].isdigit()):
 		print "<ALIGNMENT> must be a number"
 		return
 	
-	templatename = "_link.ld.in"
-	workdir = os.getcwd()
 	objcopy = sys.argv[1]
 	format = sys.argv[2]
-	output_format = sys.argv[3]
-	arch = sys.argv[4]
-	align = int(sys.argv[5], 0)
+	arch = sys.argv[3]
+	align = int(sys.argv[4], 0)
+	uintptr = sys.argv[5]
 	
-	link = file("_link.ld", "w")
+	workdir = os.getcwd()
+	
 	header = file("_components.h", "w")
 	data = file("_components.c", "w")
-	
-	link.write("OUTPUT_FORMAT(\"" + output_format + "\")\n")
-	link.write("OUTPUT_ARCH(" + arch + ")\n")
-	link.write("ENTRY(start)\n\n")
-	link.write("SECTIONS {\n")
-	
-	size = os.path.getsize(templatename)
-	rd = 0
-	template = file(templatename, "r")
-	
-	while (rd < size):
-		buf = template.read(4096)
-		link.write(buf)
-		rd += len(buf)
-	
-	template.close()
-	
-	link.write("\n")
 	
 	header.write("#ifndef ___COMPONENTS_H__\n")
 	header.write("#define ___COMPONENTS_H__\n\n")
@@ -85,6 +66,7 @@ def main():
 	data.write("{\n")
 	
 	cnt = 0
+	link = ""
 	for task in sys.argv[6:]:
 		basename = os.path.basename(task)
 		plainname = os.path.splitext(basename)[0]
@@ -95,14 +77,16 @@ def main():
 		
 		print task + " -> " + object
 		
-		link.write("\t\t. = ALIGN(" + ("%d" % align) + ");\n")
-		link.write("\t\t*(." + plainname + "_image);\n\n")
+		if (align > 1):
+			link += "\t\t. = ALIGN(" + ("%d" % align) + ");\n"
+		
+		link += "\t\t*(." + plainname + "_image);\n"
 		
 		header.write("extern int " + symbol + "_start;\n")
 		header.write("extern int " + symbol + "_end;\n\n")
 		header.write("#define " + macro + "_START ((void *) &" + symbol + "_start)\n")
 		header.write("#define " + macro + "_END ((void *) &" + symbol + "_end)\n")
-		header.write("#define " + macro + "_SIZE ((unsigned int) " + macro + "_END - (unsigned int) " + macro + "_START)\n\n")
+		header.write("#define " + macro + "_SIZE ((" + uintptr + ") " + macro + "_END - (" + uintptr + ") " + macro + "_START)\n\n")
 		
 		data.write("\tcomponents[" + ("%d" % cnt) + "].name = \"" + plainname + "\";\n")
 		data.write("\tcomponents[" + ("%d" % cnt) + "].start = " + macro + "_START;\n")
@@ -118,26 +102,31 @@ def main():
 			basename, os.path.join(workdir, object)])
 		os.chdir(workdir)
 		
-		cnt = cnt + 1
+		cnt += 1
 		
-	link.write("\t}\n")
-	link.write("}\n")
-	
 	header.write("#define COMPONENTS " + ("%d" % cnt) + "\n\n")
 	header.write("typedef struct {\n")
 	header.write("\tchar *name;\n\n")
 	header.write("\tvoid *start;\n")
 	header.write("\tvoid *end;\n")
-	header.write("\tunsigned int size;\n")
+	header.write("\t" + uintptr + " size;\n")
 	header.write("} component_t;\n\n")
 	header.write("extern void init_components(component_t *components);\n\n")
 	header.write("#endif\n")
 	
 	data.write("}\n")
 	
-	link.close()
 	header.close()
 	data.close()
+	
+	linkname = "_link.ld"
+	link_in = file(linkname + ".in", "r")
+	template = link_in.read(os.path.getsize(linkname + ".in"))
+	link_in.close()
+	
+	link_out = file(linkname, "w")
+	link_out.write(template.replace("[[COMPONENTS]]", link))
+	link_out.close()
 
 if __name__ == '__main__':
 	main()

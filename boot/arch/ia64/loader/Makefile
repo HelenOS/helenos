@@ -32,6 +32,8 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+BFD_NAME = elf64-ia64-little
+BFD_ARCH = ia64
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = /usr/local/ia64/bin
 
@@ -77,6 +79,7 @@ SOURCES = \
 	../../../generic/printf.c \
 	../../../generic/string.c \
 	../../../genarch/balloc.c \
+	_components.c \
 	asm.S \
 	boot.S
 
@@ -95,7 +98,6 @@ COMPONENTS = \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog
 
-
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
 
@@ -105,7 +107,6 @@ all: hello.efi disasm
 
 -include Makefile.depend
 
-
 hello.efi: image.boot
 	make -C gefi/HelenOS PREFIX=$(GEFI_PREFIX)
 	cp gefi/HelenOS/hello.efi ../../../../
@@ -113,17 +114,17 @@ hello.efi: image.boot
 	cp gefi/HelenOS/image.bin ../../../../
 
 image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map boot.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot boot.disasm Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend
 	make -C gefi/HelenOS clean
 
-_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned long" $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
@@ -132,4 +133,4 @@ _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
 
 disasm: image.boot
-	$(OBJDUMP) -d image.boot > boot.disasm
+	$(OBJDUMP) -d image.boot > image.disasm

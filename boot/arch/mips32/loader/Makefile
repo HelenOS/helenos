@@ -33,10 +33,10 @@ include ../../../Makefile.config
 #
 
 ifeq ($(IMAGE),binary)
-	BFD = binary
+	LD_IN = binary
 endif
 ifeq ($(IMAGE),ecoff)
-	BFD = ecoff-littlemips
+	LD_IN = ecoff
 endif
 BFD_NAME = elf32-tradlittlemips
 BFD_ARCH = mips
@@ -108,10 +108,13 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
+	-rm -f _components.h _components.c _link.ld _link.ld.in $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD) $(BFD_ARCH) 4096 $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 4096 "unsigned int" $(COMPONENTS)
+
+_link.ld.in: _link.ld.in.$(LD_IN)
+	cp $< $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

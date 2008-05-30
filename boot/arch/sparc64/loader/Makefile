@@ -32,6 +32,8 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+BFD_NAME = elf64-sparc
+BFD_ARCH = sparc
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/sparc64/bin
 
@@ -63,6 +65,7 @@ endif
 
 SOURCES = \
 	main.c \
+	_components.c \
 	../../../generic/printf.c \
 	../../../generic/string.c \
 	../../../genarch/balloc.c \
@@ -103,10 +106,10 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot boot.disasm Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend
 
-_components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	./pack $(IMAGE) $(OBJCOPY) $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
@@ -115,4 +118,4 @@ _components.h _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
 
 disasm: image.boot
-	$(OBJDUMP) -d image.boot > boot.disasm
+	$(OBJDUMP) -d image.boot > image.disasm

@@ -1,3 +1,8 @@
+OUTPUT_FORMAT("elf64-powerpc") 
+OUTPUT_ARCH(powerpc:common64) 
+ENTRY(start) 
+ 
+SECTIONS {
 	.boot 0x0000000010000000: AT (0) { 
 		*(BOOTSTRAP);
 		*(REALMODE);
@@ -13,3 +18,10 @@
 		*(.sbss);
 		*(.bss);		/* uninitialized static variables */	
 		*(COMMON); 		/* global variables */
+[[COMPONENTS]]
+	} 
+ 
+    /DISCARD/ : { 
+        *(*); 
+    } 
+}

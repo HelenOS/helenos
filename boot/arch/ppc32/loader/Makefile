@@ -32,7 +32,6 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
-BFD = elf32-powerpc
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common
 TARGET = ppc-linux-gnu
@@ -106,8 +105,8 @@ depend:
 clean:
 	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS)
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD) $(BFD_ARCH) 4096 $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 4096 "unsigned int" $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
