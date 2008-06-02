@@ -37,11 +37,22 @@
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
+.global memsetb
+.global memsetw
 .global memcpy
 .global memcpy_from_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
+
+
+# Wrapper for generic memsetb
+memsetb:
+	jmp _memsetb
+
+# Wrapper for generic memsetw
+memsetw:
+	jmp _memsetw
 
 
 #define MEMCPY_DST	4
