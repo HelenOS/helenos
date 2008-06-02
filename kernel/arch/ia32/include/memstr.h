@@ -94,7 +94,7 @@ static inline int memcmp(const void * src, const void * dst, size_t cnt)
 		"movl %3, %0\n\t"
 		"addl $1, %0\n\t"
 		"1:\n"
-		: "=a" (ret), "=%S" (d0), "=&D" (d1), "=&c" (d2)
+		: "=a" (ret), "=&S" (d0), "=&D" (d1), "=&c" (d2)
 		: "0" (0), "1" ((unative_t) src), "2" ((unative_t) dst), "3" ((unative_t) cnt)
 	);
 	
@@ -116,7 +116,7 @@ static inline void memsetw(uintptr_t dst, size_t cnt, uint16_t x)
 	
 	asm volatile (
 		"rep stosw\n\t"
-		: "=&D" (d0), "=&c" (d1), "=a" (x)
+		: "=&D" (d0), "=&c" (d1), "=&a" (x)
 		: "0" (dst), "1" (cnt), "2" (x)
 		: "memory"
 	);
@@ -138,7 +138,7 @@ static inline void memsetb(uintptr_t dst, size_t cnt, uint8_t x)
 	
 	asm volatile (
 		"rep stosb\n\t"
-		: "=&D" (d0), "=&c" (d1), "=a" (x)
+		: "=&D" (d0), "=&c" (d1), "=&a" (x)
 		: "0" (dst), "1" (cnt), "2" (x)
 		: "memory"
 	);
