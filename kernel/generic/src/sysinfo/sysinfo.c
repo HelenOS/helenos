@@ -177,7 +177,7 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	
 	if (item != NULL) { /* If in subsystem, unable to create or return so unable to set */
-		item->val.val=val;                   
+		item->val.val = val;                   
 		item->val_type = SYSINFO_VAL_VAL;
 	}
 }
@@ -192,7 +192,7 @@ void sysinfo_set_item_function(const char *name, sysinfo_item_t **root, sysinfo_
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	
 	if (item != NULL) { /* If in subsystem, unable to create or return so  unable to set */
-		item->val.fn=fn;                   
+		item->val.fn = fn;                   
 		item->val_type = SYSINFO_VAL_FUNCTION;
 	}
 }
@@ -244,7 +244,7 @@ void sysinfo_dump(sysinfo_item_t **proot, int depth)
 			break;
 		}
 		
-		printf("%s    %s val:%d(%x) sub:%s\n", root->name, vtype, val,
+		printf("%s    %s val:%" PRIun "(%" PRIxn ") sub:%s\n", root->name, vtype, val,
 			val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ?
 			"NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ?
 			"TAB" : "FUN"));

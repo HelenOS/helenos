@@ -101,7 +101,7 @@ static const unsigned short *__ctype_b_ptr = __ctype_b + 128;
 
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function)
 {
-	panic("Run-time assertion (%s:%d:%s) failed (%s)", file, line, function ? function : "", assertion);
+	panic("Run-time assertion (%s:%u:%s) failed (%s)", file, line, function ? function : "", assertion);
 }
 
 void abort(void)

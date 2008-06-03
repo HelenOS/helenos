@@ -67,10 +67,10 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 			((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
 	} else { 
 	
-		for (i = 0; i < cnt/sizeof(unative_t); i++)
+		for (i = 0; i < cnt / sizeof(unative_t); i++)
 			((unative_t *) dst)[i] = ((unative_t *) src)[i];
 		
-		for (j = 0; j < cnt%sizeof(unative_t); j++)
+		for (j = 0; j < cnt % sizeof(unative_t); j++)
 			((uint8_t *)(((unative_t *) dst) + i))[j] = ((uint8_t *)(((unative_t *) src) + i))[j];
 	}
 		

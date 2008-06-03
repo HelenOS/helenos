@@ -104,7 +104,7 @@ void cpu_list(void)
 		if (cpus[i].active)
 			cpu_print_report(&cpus[i]);
 		else
-			printf("cpu%d: not active\n", i);
+			printf("cpu%u: not active\n", i);
 	}
 }
 

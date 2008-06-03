@@ -73,7 +73,7 @@ void halt()
 	}
 #endif      
 	if (CPU)
-		printf("cpu%d: halted\n", CPU->id);
+		printf("cpu%u: halted\n", CPU->id);
 	else
 		printf("cpu: halted\n");
 	cpu_halt();
