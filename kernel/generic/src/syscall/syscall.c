@@ -51,12 +51,11 @@
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
-#include <console/klog.h>
 
 /** Print using kernel facility
  *
- * Some simulators can print only through kernel. Userspace can use
- * this syscall to facilitate it.
+ * Print to kernel log.
+ *
  */
 static unative_t sys_io(int fd, const void * buf, size_t count) 
 {
@@ -100,8 +99,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	if (id < SYSCALL_END)
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	else {
-		klog_printf("TASK %llu: Unknown syscall id %llx", TASK->taskid,
-		    id);
+		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
 		task_kill(TASK->taskid);
 		thread_exit();
 	}
@@ -120,7 +118,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_create,
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
+	
 	(syshandler_t) sys_task_get_id,
+	(syshandler_t) sys_task_spawn,
 	
 	/* Synchronization related syscalls. */
 	(syshandler_t) sys_futex_sleep_timeout,
