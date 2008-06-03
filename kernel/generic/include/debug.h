@@ -38,11 +38,11 @@
 #include <panic.h>
 #include <arch/debug.h>
 
-#define CALLER       ((uintptr_t)__builtin_return_address(0))
+#define CALLER ((uintptr_t) __builtin_return_address(0))
 
 #ifndef HERE
 /** Current Instruction Pointer address */
-#  define HERE ((uintptr_t *) 0)
+#	define HERE ((uintptr_t *) 0)
 #endif
 
 /** Debugging ASSERT macro
@@ -55,10 +55,49 @@
  *
  */
 #ifdef CONFIG_DEBUG
-#	define ASSERT(expr) if (!(expr)) { panic("assertion failed (%s), caller=%.*p\n", #expr, sizeof(uintptr_t) * 2, CALLER); }
+#	define ASSERT(expr) \
+		if (!(expr)) { \
+			panic("assertion failed (%s), caller=%p\n", #expr, CALLER); \
+		}
 #else
 #	define ASSERT(expr)
 #endif
+
+/** Extensive debugging output macro
+ *
+ * If CONFIG_EDEBUG is set, the LOG() macro
+ * will print whatever message is indicated plus
+ * an information about the location.
+ *
+ */
+
+#ifdef CONFIG_EDEBUG
+#	define LOG(format, ...) \
+		printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
+			__LINE__, ##__VA_ARGS__);
+#else
+#	define LOG(format, ...)
+#endif
+
+/** Extensive debugging execute macro
+ *
+ * If CONFIG_EDEBUG is set, the LOG_EXEC() macro
+ * will print an information about calling a given
+ * function and call it.
+ *
+ */
+
+#ifdef CONFIG_EDEBUG
+#	define LOG_EXEC(fnc) \
+		{ \
+			printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
+			__LINE__); \
+			fnc; \
+		}
+#else
+#	define LOG_EXEC(fnc) fnc
+#endif
+
 
 #endif
 
