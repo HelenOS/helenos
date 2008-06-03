@@ -36,6 +36,7 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
+extern void info_print(void);
 extern void version_print(void);
 
 #endif

@@ -32,7 +32,7 @@
 #include <ipc/services.h>
 #include <async.h>
 #include <errno.h>
-#include <../../../srv/devmap/devmap.h>
+#include <ipc/devmap.h>
 #include "../tester.h"
 
 #include <time.h>

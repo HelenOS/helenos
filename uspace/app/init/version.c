@@ -35,6 +35,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include "init.h"
 #include "version.h"
 
 char *release = RELEASE;
@@ -50,6 +51,11 @@ char *release = RELEASE;
 #else
 	char *timestamp = "";
 #endif
+
+void info_print(void)
+{
+	printf(NAME ": HelenOS init\n");
+}
 
 /** Print version information. */
 void version_print(void)

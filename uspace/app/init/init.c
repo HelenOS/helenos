@@ -34,30 +34,107 @@
  * @file
  */
 
-#include "version.h"
 #include <stdio.h>
+#include <unistd.h>
+#include <vfs/vfs.h>
+#include <bool.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <task.h>
+#include <malloc.h>
+#include "init.h"
+#include "version.h"
 
-static void test_console(void)
+#define BUF_SIZE 150000
+
+static char *buf;
+
+static void console_wait(void)
 {
-	int c;
+	while (get_cons_phone() < 0)
+		usleep(50000);	// FIXME
+}
 
-	while ((c = getchar()) != EOF)
-		putchar(c);
+static bool mount_tmpfs(void)
+{
+	int rc = -1;
+	
+	while (rc < 0) {
+		rc = mount("tmpfs", "/", "initrd");
+		
+		switch (rc) {
+		case EOK:
+			printf(NAME ": Root filesystem mounted\n");
+			break;
+		case EBUSY:
+			printf(NAME ": Root filesystem already mounted\n");
+			break;
+		case ELIMIT:
+			printf(NAME ": Unable to mount root filesystem\n");
+			return false;
+		default:
+			sleep(5);	// FIXME
+		}
+	}
+	
+	return true;
+}
+
+static void spawn(char *fname)
+{
+	printf(NAME ": Spawning %s\n", fname);
+	
+	int fd = open(fname, O_RDONLY);
+	if (fd >= 0) {
+	
+		ssize_t rd;
+		size_t len = 0;
+		
+		// FIXME: cannot do long reads yet
+		do {
+			rd = read(fd, buf + len, 1024);
+			if (rd > 0)
+				len += rd;
+			
+		} while (rd > 0);
+		
+		if (len > 0) {
+			task_spawn(buf, len);
+			sleep(1);	// FIXME
+		}
+		
+		close(fd);
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	version_print();
-
-	printf("This is init\n");
+	info_print();
+	sleep(5);	// FIXME
 	
-	test_console();
-
-	printf("\nBye.\n");
-
+	if (!mount_tmpfs()) {
+		printf(NAME ": Exiting\n");
+		return -1;
+	}
+	
+	buf = malloc(BUF_SIZE);
+	
+	// FIXME: spawn("/sbin/pci");
+	spawn("/sbin/fb");
+	spawn("/sbin/kbd");
+	spawn("/sbin/console");
+	
+	console_wait();
+	version_print();
+	
+	spawn("/sbin/fat");
+	spawn("/sbin/tetris");
+	// FIXME: spawn("/sbin/tester");
+	// FIXME: spawn("/sbin/klog");
+	
+	free(buf);
 	return 0;
 }
 
 /** @}
  */
-
