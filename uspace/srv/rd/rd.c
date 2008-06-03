@@ -51,7 +51,11 @@
 #include <align.h>
 #include <async.h>
 #include <futex.h>
+#include <stdio.h>
+#include <ipc/devmap.h>
 #include "rd.h"
+
+#define NAME "rd"
 
 /** Pointer to the ramdisk's image. */
 static void *rd_addr;
@@ -104,7 +108,8 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Now we wait for the client to send us its communication as_area.
 	 */
 	size_t size;
-	if (ipc_share_out_receive(&callid, &size, NULL)) {
+	int flags;
+	if (ipc_share_out_receive(&callid, &size, &flags)) {
 		if (size >= BLOCK_SIZE) {
 			/*
 			 * The client sends an as_area that can absorb the whole
@@ -149,7 +154,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			futex_down(&rd_futex);
-			memcpy(fs_va, rd_addr + offset, BLOCK_SIZE);
+			memcpy(fs_va, rd_addr + offset * BLOCK_SIZE, BLOCK_SIZE);
 			futex_up(&rd_futex);
 			retval = EOK;
 			break;
@@ -163,7 +168,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			futex_up(&rd_futex);
-			memcpy(rd_addr + offset, fs_va, BLOCK_SIZE);
+			memcpy(rd_addr + offset * BLOCK_SIZE, fs_va, BLOCK_SIZE);
 			futex_down(&rd_futex);
 			retval = EOK;
 			break;
@@ -181,46 +186,119 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static int driver_register(char *name)
+{
+	ipcarg_t retval;
+	aid_t req;
+	ipc_call_t answer;
+	int phone;
+	ipcarg_t callback_phonehash;
+
+	phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+
+	while (phone < 0) {
+		usleep(10000);
+		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+		    DEVMAP_DRIVER, 0);
+	}
+	
+	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
+
+	retval = ipc_data_write_start(phone, (char *) name, strlen(name) + 1); 
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return -1;
+	}
+
+	async_set_client_connection(rd_connection);
+
+	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	async_wait_for(req, &retval);
+
+	return phone;
+}
+
+static int device_register(int driver_phone, char *name, int *handle)
+{
+	ipcarg_t retval;
+	aid_t req;
+	ipc_call_t answer;
+
+	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0, &answer);
+
+	retval = ipc_data_write_start(driver_phone, (char *) name, strlen(name) + 1); 
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+
+	if (handle != NULL)
+		*handle = -1;
+	
+	if (EOK == retval) {
+		if (NULL != handle)
+			*handle = (int) IPC_GET_ARG1(answer);
+	}
+	
+	return retval;
+}
+
 /** Prepare the ramdisk image for operation. */
 static bool rd_init(void)
 {
-	int retval, flags;
-
 	rd_size = sysinfo_value("rd.size");
 	void *rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
 	
-	if (rd_size == 0)
+	if (rd_size == 0) {
+		printf(NAME ": No RAM disk found\n");
 		return false;
+	}
 	
 	rd_addr = as_get_mappable_page(rd_size);
 	
-	flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	retval = physmem_map(rd_ph_addr, rd_addr,
+	int flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
+	int retval = physmem_map(rd_ph_addr, rd_addr,
 	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
 
-	if (retval < 0)
+	if (retval < 0) {
+		printf(NAME ": Error mapping RAM disk\n");
 		return false;
+	}
+	
+	printf(NAME ": Found RAM disk at %p, %d bytes\n", rd_ph_addr, rd_size);
+	
+	int driver_phone = driver_register(NAME);
+	if (driver_phone < 0) {
+		printf(NAME ": Unable to register driver\n");
+		return false;
+	}
+	
+	int dev_handle;
+	if (EOK != device_register(driver_phone, "initrd", &dev_handle)) {
+		ipc_hangup(driver_phone);
+		printf(NAME ": Unable to register device\n");
+		return false;
+	}
+	
 	return true;
 }
 
 int main(int argc, char **argv)
 {
-	if (rd_init()) {
-		ipcarg_t phonead;
-		
-		async_set_client_connection(rd_connection);
-		
-		/* Register service at nameserver */
-		if (ipc_connect_to_me(PHONE_NS, SERVICE_RD, 0, 0, &phonead) != 0)
-			return -1;
-		
-		async_manager();
-		
-		/* Never reached */
-		return 0;
-	}
+	printf(NAME ": HelenOS RAM disk server\n");
 	
-	return -1;
+	if (!rd_init())
+		return -1;
+	
+	printf(NAME ": Accepting connections\n");
+	async_manager();
+
+	/* Never reached */
+	return 0;
 }
 
 /**
