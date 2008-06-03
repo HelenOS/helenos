@@ -40,7 +40,10 @@
 #include <sys/types.h>
 #include <bool.h>
 
-#define dprintf(...)	printf(__VA_ARGS__)
+// FIXME: according to CONFIG_DEBUG
+// #define dprintf(...)	printf(__VA_ARGS__)
+
+#define dprintf(...)
 
 #define VFS_FIRST	IPC_FIRST_USER_METHOD
 

@@ -47,13 +47,13 @@
 #include <atomic.h>
 #include "vfs.h"
 
+#define NAME "vfs"
+
 #define dprintf(...)	printf(__VA_ARGS__)
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	bool keep_on_going = 1;
-
-	printf("Connection opened from %p\n", icall->in_phone_hash);
 
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
@@ -77,8 +77,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 		callid = async_get_call(&call);
 
-		printf("Received call, method=%d\n", IPC_GET_METHOD(call));
-		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
@@ -131,7 +129,7 @@ int main(int argc, char **argv)
 {
 	ipcarg_t phonead;
 
-	printf("VFS: HelenOS VFS server\n");
+	printf(NAME ": HelenOS VFS server\n");
 
 	/*
 	 * Initialize the list of registered file systems.
@@ -142,7 +140,7 @@ int main(int argc, char **argv)
 	 * Initialize VFS node hash table.
 	 */
 	if (!vfs_nodes_init()) {
-		printf("Failed to initialize the VFS node hash table.\n");
+		printf(NAME ": Failed to initialize VFS node hash table\n");
 		return ENOMEM;
 	}
 
@@ -152,12 +150,12 @@ int main(int argc, char **argv)
 	list_initialize(&plb_head);
 	plb = as_get_mappable_page(PLB_SIZE);
 	if (!plb) {
-		printf("Cannot allocate a mappable piece of address space\n");
+		printf(NAME ": Cannot allocate a mappable piece of address space\n");
 		return ENOMEM;
 	}
 	if (as_area_create(plb, PLB_SIZE, AS_AREA_READ | AS_AREA_WRITE |
 	    AS_AREA_CACHEABLE) != plb) {
-		printf("Cannot create address space area.\n");
+		printf(NAME ": Cannot create address space area\n");
 		return ENOMEM;
 	}
 	memset(plb, 0, PLB_SIZE);
@@ -175,6 +173,7 @@ int main(int argc, char **argv)
 	/*
 	 * Start accepting connections.
 	 */
+	printf(NAME ": Accepting connections\n");
 	async_manager();
 	return 0;
 }

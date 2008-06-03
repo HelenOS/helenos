@@ -444,14 +444,14 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 */
 
 	int fd = IPC_GET_ARG1(*request);
-
+	
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-
+	
 	/*
 	 * Now we need to receive a call with client's
 	 * IPC_M_DATA_READ/IPC_M_DATA_WRITE request.
@@ -467,13 +467,13 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	/*
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
 	futex_down(&file->lock);
-
+	
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time.
@@ -482,7 +482,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		rwlock_read_lock(&file->node->contents_rwlock);
 	else
 		rwlock_write_lock(&file->node->contents_rwlock);
-
+	
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
 	/* Make a VFS_READ/VFS_WRITE request at the destination FS server. */
@@ -500,14 +500,14 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * don't have to bother.
 	 */
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-
+	
 	vfs_release_phone(fs_phone);
-
+	
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	size_t bytes = IPC_GET_ARG1(answer);
-
+	
 	/* Unlock the VFS node. */
 	if (read)
 		rwlock_read_unlock(&file->node->contents_rwlock);
@@ -517,12 +517,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 			file->node->size = IPC_GET_ARG2(answer); 
 		rwlock_write_unlock(&file->node->contents_rwlock);
 	}
-
+	
 	/* Update the position pointer and unlock the open file. */
 	if (rc == EOK)
 		file->pos += bytes;
 	futex_up(&file->lock);
-
+	
 	/*
 	 * FS server's reply is the final result of the whole operation we
 	 * return to the client.
