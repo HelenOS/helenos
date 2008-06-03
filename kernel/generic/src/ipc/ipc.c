@@ -573,7 +573,7 @@ void ipc_print_task(task_id_t taskid)
 	spinlock_lock(&task->answerbox.lock);
 	printf("ABOX - CALLS:\n");
 	for (tmp = task->answerbox.calls.next; tmp != &task->answerbox.calls;
-		tmp = tmp->next) {
+	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun 
 			" A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
@@ -586,8 +586,8 @@ void ipc_print_task(task_id_t taskid)
 	/* Print answerbox - calls */
 	printf("ABOX - DISPATCHED CALLS:\n");
 	for (tmp = task->answerbox.dispatched_calls.next;
-		tmp != &task->answerbox.dispatched_calls; 
-		tmp = tmp->next) {
+	    tmp != &task->answerbox.dispatched_calls; 
+	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun
 			" A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
@@ -600,7 +600,7 @@ void ipc_print_task(task_id_t taskid)
 	/* Print answerbox - calls */
 	printf("ABOX - ANSWERS:\n");
 	for (tmp = task->answerbox.answers.next; tmp != &task->answerbox.answers;
-		tmp = tmp->next) {
+	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
 			" A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", 
