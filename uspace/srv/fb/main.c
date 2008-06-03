@@ -33,11 +33,13 @@
 #include <as.h>
 #include <align.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "fb.h"
-#include "sysio.h"
 #include "ega.h"
 #include "main.h"
+
+#define NAME "fb"
 
 void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 {
@@ -53,6 +55,8 @@ void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 
 int main(int argc, char *argv[])
 {
+	printf(NAME ": HelenOS Framebuffer service\n");
+	
 	ipcarg_t phonead;
 	int initialized = 0;
 
@@ -70,11 +74,12 @@ int main(int argc, char *argv[])
 #endif
 
 	if (!initialized)
-		sysio_init();
+		return -1;
 
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
 		return -1;
 	
+	printf(NAME ": Accepting connections\n");
 	async_manager();
 	/* Never reached */
 	return 0;
