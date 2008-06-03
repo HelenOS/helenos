@@ -50,7 +50,7 @@
 #include <ddi.h>
 #include <as.h>
 
-#define NAME	"NS"
+#define NAME	"ns"
 
 #define NS_HASH_TABLE_CHAINS	20
 
@@ -104,6 +104,8 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name,
 
 int main(int argc, char **argv)
 {
+	printf(NAME ": HelenOS IPC Naming Service\n");
+	
 	ipc_call_t call;
 	ipc_callid_t callid;
 	
@@ -111,9 +113,11 @@ int main(int argc, char **argv)
 
 	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3,
 	    &ns_hash_table_ops)) {
+		printf(NAME ": No memory available\n");
 		return ENOMEM;
 	}
-		
+	
+	printf(NAME ": Accepting connections\n");
 	while (1) {
 		callid = ipc_wait_for_call(&call);
 		switch (IPC_GET_METHOD(call)) {
@@ -156,6 +160,9 @@ int main(int argc, char **argv)
 			ipc_answer_0(callid, retval);
 		}
 	}
+	
+	/* Not reached */
+	return 0;
 }
 
 /** Register service.
