@@ -44,5 +44,10 @@ task_id_t task_get_id(void)
 	return task_id;
 }
 
+int task_spawn(void *image, size_t size)
+{
+	return __SYSCALL2(SYS_TASK_SPAWN, (sysarg_t) image, (sysarg_t) size);
+}
+
 /** @}
  */

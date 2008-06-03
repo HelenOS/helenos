@@ -40,6 +40,7 @@
 typedef uint64_t task_id_t;
 
 extern task_id_t task_get_id(void);
+extern int task_spawn(void *image, size_t size);
 
 #endif
 
