@@ -128,7 +128,7 @@ void task_done(void)
 			interrupts_restore(ipl);
 			
 #ifdef CONFIG_DEBUG
-			printf("Killing task %llu\n", id);
+			printf("Killing task %" PRIu64 "\n", id);
 #endif			
 			task_kill(id);
 			thread_usleep(10000);
@@ -233,61 +233,6 @@ void task_destroy(task_t *t)
 	TASK = NULL;
 }
 
-/** Create new task with 1 thread and run it
- *
- * @param program_addr Address of program executable image.
- * @param name Program name. 
- *
- * @return Task of the running program or NULL on error.
- */
-task_t *task_run_program(void *program_addr, char *name)
-{
-	as_t *as;
-	as_area_t *a;
-	unsigned int rc;
-	thread_t *t;
-	task_t *task;
-	uspace_arg_t *kernel_uarg;
-
-	as = as_create(0);
-	ASSERT(as);
-
-	rc = elf_load((elf_header_t *) program_addr, as);
-	if (rc != EE_OK) {
-		as_destroy(as);
-		return NULL;
-	} 
-	
-	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	kernel_uarg->uspace_entry =
-	    (void *) ((elf_header_t *) program_addr)->e_entry;
-	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
-	
-	task = task_create(as, name);
-	ASSERT(task);
-
-	/*
-	 * Create the data as_area.
-	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
-	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
-
-	/*
-	 * Create the main thread.
-	 */
-	t = thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE,
-	    "uinit", false);
-	ASSERT(t);
-	
-	thread_ready(t);
-
-	return task;
-}
-
 /** Syscall for reading task ID from userspace.
  *
  * @param uspace_task_id Userspace address of 8-byte buffer where to store
@@ -303,6 +248,81 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
 	 */
 	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid,
 	    sizeof(TASK->taskid));
+}
+
+unative_t sys_task_spawn(void *image, size_t size)
+{
+	void *kimage = malloc(size, 0);
+	if (kimage == NULL)
+		return ENOMEM;
+	
+	int rc = copy_from_uspace(kimage, image, size);
+	if (rc != EOK)
+		return rc;
+	
+	uspace_arg_t *kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	if (kernel_uarg == NULL) {
+		free(kimage);
+		return ENOMEM;
+	}
+	
+	kernel_uarg->uspace_entry =
+	    (void *) ((elf_header_t *) kimage)->e_entry;
+	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
+	kernel_uarg->uspace_thread_function = NULL;
+	kernel_uarg->uspace_thread_arg = NULL;
+	kernel_uarg->uspace_uarg = NULL;
+	
+	as_t *as = as_create(0);
+	if (as == NULL) {
+		free(kernel_uarg);
+		free(kimage);
+		return ENOMEM;
+	}
+	
+	unsigned int erc = elf_load((elf_header_t *) kimage, as);
+	if (erc != EE_OK) {
+		as_destroy(as);
+		free(kernel_uarg);
+		free(kimage);
+		return ENOENT;
+	}
+	
+	as_area_t *area = as_area_create(as,
+		AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+		LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
+		AS_AREA_ATTR_NONE, &anon_backend, NULL);
+	if (area == NULL) {
+		as_destroy(as);
+		free(kernel_uarg);
+		free(kimage);
+		return ENOMEM;
+	}
+	
+	task_t *task = task_create(as, "app");
+	if (task == NULL) {
+		as_destroy(as);
+		free(kernel_uarg);
+		free(kimage);
+		return ENOENT;
+	}
+	
+	// FIXME: control the capabilities
+	cap_set(task, cap_get(TASK));
+	
+	thread_t *thread = thread_create(uinit, kernel_uarg, task,
+		THREAD_FLAG_USPACE, "user", false);
+	if (thread == NULL) {
+		task_destroy(task);
+		as_destroy(as);
+		free(kernel_uarg);
+		free(kimage);
+		return ENOENT;
+	}
+	
+	thread_ready(thread);
+	
+	return EOK;
 }
 
 /** Find task structure corresponding to task ID.
@@ -420,18 +440,22 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	uint64_t cycles;
 	char suffix;
 	order(task_get_accounting(t), &cycles, &suffix);
-	
-	if (sizeof(void *) == 4)
-		printf("%-6llu %-10s %-3ld %#10zx %#10zx %9llu%c %7zd %6zd",
-	    	t->taskid, t->name, t->context, t, t->as, cycles, suffix,
-		    t->refcount, atomic_get(&t->active_calls));
-	else
-		printf("%-6llu %-10s %-3ld %#18zx %#18zx %9llu%c %7zd %6zd",
-		    t->taskid, t->name, t->context, t, t->as, cycles, suffix,
-	    	t->refcount, atomic_get(&t->active_calls));
+
+#ifdef __32_BITS__	
+	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %7ld %6ld",
+		t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+		atomic_get(&t->refcount), atomic_get(&t->active_calls));
+#endif
+
+#ifdef __64_BITS__
+	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %7ld %6ld",
+		t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+		atomic_get(&t->refcount), atomic_get(&t->active_calls));
+#endif
+
 	for (j = 0; j < IPC_MAX_PHONES; j++) {
 		if (t->phones[j].callee)
-			printf(" %zd:%#zx", j, t->phones[j].callee);
+			printf(" %d:%p", j, t->phones[j].callee);
 	}
 	printf("\n");
 			
@@ -447,18 +471,20 @@ void task_print_list(void)
 	/* Messing with task structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
-	
-	if (sizeof(void *) == 4) {
-		printf("taskid name       ctx address    as         "
-			"cycles     threads calls  callee\n");
-		printf("------ ---------- --- ---------- ---------- "
-			"---------- ------- ------ ------>\n");
-	} else {
-		printf("taskid name       ctx address            as                 "
-			"cycles     threads calls  callee\n");
-		printf("------ ---------- --- ------------------ ------------------ "
-			"---------- ------- ------ ------>\n");
-	}
+
+#ifdef __32_BITS__	
+	printf("taskid name       ctx address    as         "
+		"cycles     threads calls  callee\n");
+	printf("------ ---------- --- ---------- ---------- "
+		"---------- ------- ------ ------>\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("taskid name       ctx address            as                 "
+		"cycles     threads calls  callee\n");
+	printf("------ ---------- --- ------------------ ------------------ "
+		"---------- ------- ------ ------>\n");
+#endif
 
 	avltree_walk(&tasks_tree, task_print_walker, NULL);
 

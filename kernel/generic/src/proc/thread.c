@@ -67,7 +67,11 @@
 #include <main/uinit.h>
 #include <syscall/copy.h>
 #include <errno.h>
-#include <console/klog.h>
+
+
+#ifndef LOADED_PROG_STACK_PAGES_NO
+#define LOADED_PROG_STACK_PAGES_NO 1
+#endif
 
 
 /** Thread states */
@@ -443,9 +447,8 @@ void thread_exit(void)
 		 */
 		if (THREAD->flags & THREAD_FLAG_USPACE) {
 			ipc_cleanup();
-		        futex_cleanup();
-			klog_printf("Cleanup of task %llu completed.",
-			    TASK->taskid);
+			futex_cleanup();
+			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
 		}
 	}
 
@@ -581,33 +584,37 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 
 static bool thread_walker(avltree_node_t *node, void *arg)
 {
-	thread_t *t;
-		
-	t = avltree_get_instance(node, thread_t, threads_tree_node);
-
+	thread_t *t = avltree_get_instance(node, thread_t, threads_tree_node);
+	
 	uint64_t cycles;
 	char suffix;
 	order(t->cycles, &cycles, &suffix);
-	
-	if (sizeof(void *) == 4)
-		printf("%-6llu %-10s %#10zx %-8s %#10zx %-3ld %#10zx %#10zx %9llu%c ",
-		    t->tid, t->name, t, thread_states[t->state], t->task,
-	    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
-	else
-		printf("%-6llu %-10s %#18zx %-8s %#18zx %-3ld %#18zx %#18zx %9llu%c ",
-		    t->tid, t->name, t, thread_states[t->state], t->task,
-	    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+
+#ifdef __32_BITS__
+	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9" PRIu64 "%c ",
+	    t->tid, t->name, t, thread_states[t->state], t->task,
+    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+#endif
+
+#ifdef __64_BITS__
+	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9" PRIu64 "%c ",
+	    t->tid, t->name, t, thread_states[t->state], t->task,
+    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+#endif
 			
 	if (t->cpu)
-		printf("%-4zd", t->cpu->id);
+		printf("%-4u", t->cpu->id);
 	else
 		printf("none");
 			
 	if (t->state == Sleeping) {
-		if (sizeof(uintptr_t) == 4)
-			printf(" %#10zx", t->sleep_queue);
-		else
-			printf(" %#18zx", t->sleep_queue);
+#ifdef __32_BITS__
+		printf(" %10p", t->sleep_queue);
+#endif
+
+#ifdef __64_BITS__
+		printf(" %18p", t->sleep_queue);
+#endif
 	}
 			
 	printf("\n");
@@ -623,22 +630,24 @@ void thread_print_list(void)
 	/* Messing with thread structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&threads_lock);
-	
-	if (sizeof(uintptr_t) == 4) {
-		printf("tid    name       address    state    task       "
-			"ctx code       stack      cycles     cpu  "
-			"waitqueue\n");
-		printf("------ ---------- ---------- -------- ---------- "
-			"--- ---------- ---------- ---------- ---- "
-			"----------\n");
-	} else {
-		printf("tid    name       address            state    task               "
-			"ctx code               stack              cycles     cpu  "
-			"waitqueue\n");
-		printf("------ ---------- ------------------ -------- ------------------ "
-			"--- ------------------ ------------------ ---------- ---- "
-			"------------------\n");
-	}
+
+#ifdef __32_BITS__	
+	printf("tid    name       address    state    task       "
+		"ctx code       stack      cycles     cpu  "
+		"waitqueue\n");
+	printf("------ ---------- ---------- -------- ---------- "
+		"--- ---------- ---------- ---------- ---- "
+		"----------\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("tid    name       address            state    task               "
+		"ctx code               stack              cycles     cpu  "
+		"waitqueue\n");
+	printf("------ ---------- ------------------ -------- ------------------ "
+		"--- ------------------ ------------------ ---------- ---- "
+		"------------------\n");
+#endif
 
 	avltree_walk(&threads_tree, thread_walker, NULL);
 
@@ -662,6 +671,73 @@ bool thread_exists(thread_t *t)
 	node = avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) t));
 	
 	return node != NULL;
+}
+
+
+/** Create new user task with 1 thread from image
+ *
+ * @param program_addr Address of program executable image.
+ * @param name Program name.
+ *
+ * @return Initialized main thread of the task or NULL on error.
+ */
+thread_t *thread_create_program(void *program_addr, char *name)
+{
+	as_t *as;
+	as_area_t *area;
+	unsigned int rc;
+	task_t *task;
+	uspace_arg_t *kernel_uarg;
+	
+	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	if (kernel_uarg == NULL)
+		return NULL;
+	
+	kernel_uarg->uspace_entry =
+	    (void *) ((elf_header_t *) program_addr)->e_entry;
+	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
+	kernel_uarg->uspace_thread_function = NULL;
+	kernel_uarg->uspace_thread_arg = NULL;
+	kernel_uarg->uspace_uarg = NULL;
+
+	as = as_create(0);
+	if (as == NULL) {
+		free(kernel_uarg);
+		return NULL;
+	}
+
+	rc = elf_load((elf_header_t *) program_addr, as);
+	if (rc != EE_OK) {
+		free(kernel_uarg);
+		as_destroy(as);
+		return NULL;
+	}
+	
+	/*
+	 * Create the data as_area.
+	 */
+	area = as_area_create(as,
+		AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+		LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
+		AS_AREA_ATTR_NONE, &anon_backend, NULL);
+	if (area == NULL) {
+		free(kernel_uarg);
+		as_destroy(as);
+		return NULL;
+	} 
+	
+	task = task_create(as, name);
+	if (task == NULL) {
+		free(kernel_uarg);
+		as_destroy(as);
+		return NULL;
+	}
+	
+	/*
+	 * Create the main thread.
+	 */
+	return thread_create(uinit, kernel_uarg, task, THREAD_FLAG_USPACE,
+	    "uinit", false);
 }
 
 
