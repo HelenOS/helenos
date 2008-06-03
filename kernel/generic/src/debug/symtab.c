@@ -39,6 +39,8 @@
 #include <byteorder.h>
 #include <func.h>
 #include <print.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 /** Return entry that seems most likely to correspond to argument.
  *
@@ -139,7 +141,7 @@ void symtab_print_search(const char *name)
 	while (symtab_search_one(name, &i)) {
 		addr =  uint64_t_le2host(symbol_table[i].address_le);
 		realname = symbol_table[i].symbol_name;
-		printf("%.*p: %s\n", sizeof(uintptr_t) * 2, addr, realname);
+		printf("%p: %s\n", addr, realname);
 		i++;
 	}
 }

@@ -106,9 +106,8 @@ void spinlock_lock_debug(spinlock_t *sl)
 			continue;
 #endif
 		if (i++ > DEADLOCK_THRESHOLD) {
-			printf("cpu%d: looping on spinlock %.*p:%s, "
-			    "caller=%.*p", CPU->id, sizeof(uintptr_t) * 2, sl,
-			    sl->name, sizeof(uintptr_t) * 2, CALLER);
+			printf("cpu%u: looping on spinlock %" PRIp ":%s, caller=%" PRIp,
+				CPU->id, sl, sl->name, CALLER);
 			symbol = get_symtab_entry(CALLER);
 			if (symbol)
 				printf("(%s)", symbol);
@@ -119,7 +118,7 @@ void spinlock_lock_debug(spinlock_t *sl)
 	}
 
 	if (deadlock_reported)
-		printf("cpu%d: not deadlocked\n", CPU->id);
+		printf("cpu%u: not deadlocked\n", CPU->id);
 
 	/*
 	 * Prevent critical section code from bleeding out this way up.
