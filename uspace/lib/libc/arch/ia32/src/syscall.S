@@ -53,4 +53,3 @@ __syscall:
 	popl %esi
 	popl %ebx
 	ret
-

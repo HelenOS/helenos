@@ -31,18 +31,11 @@
 .org 0
 
 .globl __entry
-.globl __entry_driver
 
 ## User-space task entry point
 #
 #
 __entry:
-	bl __main
-	bl __io_init
-	bl main
-	bl __exit
-
-__entry_driver:
 	bl __main
 	bl main
 	bl __exit

@@ -31,23 +31,11 @@
 .org 0
 
 .globl __entry
-.globl __entry_driver
 
 ## User-space task entry point
 #
 #
 __entry:
-	sethi %hi(_gp), %l7
-	call __main
-	or %l7, %lo(_gp), %l7
-	call __io_init
-	nop
-	call main
-	nop
-	call __exit
-	nop
-
-__entry_driver:
 	sethi %hi(_gp), %l7
 	call __main
 	or %l7, %lo(_gp), %l7

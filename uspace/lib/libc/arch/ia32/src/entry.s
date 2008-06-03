@@ -31,24 +31,11 @@
 .org 0
 
 .globl __entry
-.globl __entry_driver
 
 ## User-space task entry point
 #
 #
 __entry:
-	mov %ss, %ax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	# Do not set %gs, it contains descriptor that can see TLS
-	
-	call __main
-	call __io_init
-	call main
-	call __exit
-	
-__entry_driver:
 	mov %ss, %ax
 	mov %ax, %ds
 	mov %ax, %es
