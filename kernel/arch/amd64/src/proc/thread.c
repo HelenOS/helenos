@@ -46,7 +46,7 @@ void thread_create_arch(thread_t *t)
 	 * Kernel RSP can be precalculated at thread creation time.
 	 */
 	t->arch.syscall_rsp[SYSCALL_KSTACK_RSP] =
-	    (uintptr_t)&t->kstack[PAGE_SIZE - sizeof(uint64_t)];
+	    (uintptr_t) &t->kstack[PAGE_SIZE - sizeof(uint64_t)];
 }
 
 /** @}

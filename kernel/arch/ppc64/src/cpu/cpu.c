@@ -53,7 +53,7 @@ void cpu_identify(void)
 
 void cpu_print_report(cpu_t *m)
 {
-	printf("cpu%d: version=%d, revision=%d\n", m->id, m->arch.version, m->arch.revision);
+	printf("cpu%u: version=%d, revision=%d\n", m->id, m->arch.version, m->arch.revision);
 }
 
 /** @}

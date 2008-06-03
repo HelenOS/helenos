@@ -142,7 +142,7 @@ void kmp(void *arg)
 		/*
 		 * Prepare new GDT for CPU in question.
 		 */
-		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS*sizeof(struct descriptor), FRAME_ATOMIC)))
+		if (!(gdt_new = (struct descriptor *) malloc(GDT_ITEMS * sizeof(struct descriptor), FRAME_ATOMIC)))
 			panic("couldn't allocate memory for GDT\n");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));

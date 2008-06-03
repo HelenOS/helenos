@@ -161,7 +161,7 @@ static void interrupt_exception(int n, istate_t *istate)
 				 * Spurious interrupt.
 				 */
 #ifdef CONFIG_DEBUG
-				printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, i);
+				printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, i);
 #endif
 			}
 		}

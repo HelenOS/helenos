@@ -152,7 +152,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 	spinlock_lock(&bkpoint_lock);
 
 	/* Check, that the breakpoints do not conflict */
-	for (i=0; i<BKPOINTS_MAX; i++) {
+	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (breakpoints[i].address == (uintptr_t)argv->intval) {
 			printf("Duplicate breakpoint %d.\n", i);
 			spinlock_unlock(&bkpoints_lock);
@@ -314,7 +314,7 @@ void debugger_bpoint(istate_t *istate)
 		}
 		/* Reinst only breakpoint */
 		if ((breakpoints[i].flags & BKPOINT_REINST) \
-		    && (fireaddr ==breakpoints[i].address+sizeof(unative_t))) {
+		    && (fireaddr == breakpoints[i].address + sizeof(unative_t))) {
 			cur = &breakpoints[i];
 			break;
 		}

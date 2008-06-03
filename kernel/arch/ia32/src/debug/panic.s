@@ -30,5 +30,5 @@
 .global panic_printf
 
 panic_printf:
-	movl $halt,(%esp)	# fake stack to make printf return to halt
+	movl $halt, (%esp)	# fake stack to make printf return to halt
 	jmp printf

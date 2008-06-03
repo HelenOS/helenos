@@ -106,25 +106,31 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 	unsigned int i;
 	char *symbol;
-	
-	if (sizeof(void *) == 4) {
-		printf("#  Count Address    In symbol\n");
-		printf("-- ----- ---------- ---------\n");
-	} else {
-		printf("#  Count Address            In symbol\n");
-		printf("-- ----- ------------------ ---------\n");
-	}
+
+#ifdef __32_BITS__	
+	printf("#  Count Address    In symbol\n");
+	printf("-- ----- ---------- ---------\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("#  Count Address            In symbol\n");
+	printf("-- ----- ------------------ ---------\n");
+#endif
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
 			symbol = get_symtab_entry(breakpoints[i].address);
-			
-			if (sizeof(void *) == 4)
-				printf("%-2u %-5d %#10zx %s\n", i, breakpoints[i].counter,
-					breakpoints[i].address, symbol);
-			else
-				printf("%-2u %-5d %#18zx %s\n", i, breakpoints[i].counter,
-					breakpoints[i].address, symbol);
+
+#ifdef __32_BITS__
+			printf("%-2u %-5d %#10zx %s\n", i, breakpoints[i].counter,
+				breakpoints[i].address, symbol);
+#endif
+
+#ifdef __64_BITS__
+			printf("%-2u %-5d %#18zx %s\n", i, breakpoints[i].counter,
+				breakpoints[i].address, symbol);
+#endif
+
 		}
 	return 1;
 }
@@ -162,15 +168,19 @@ static void setup_dr(int curidx)
 		if ((flags & BKPOINT_INSTR)) {
 			;
 		} else {
-			if (sizeof(int) == 4)
-				dr7 |= ((unative_t) 0x3) << (18 + 4*curidx);
-			else /* 8 */
-				dr7 |= ((unative_t) 0x2) << (18 + 4*curidx);
+		
+#ifdef __32_BITS__
+			dr7 |= ((unative_t) 0x3) << (18 + 4 * curidx);
+#endif
+
+#ifdef __64_BITS__
+			dr7 |= ((unative_t) 0x2) << (18 + 4 * curidx);
+#endif
 			
 			if ((flags & BKPOINT_WRITE))
-				dr7 |= ((unative_t) 0x1) << (16 + 4*curidx);
+				dr7 |= ((unative_t) 0x1) << (16 + 4 * curidx);
 			else if ((flags & BKPOINT_READ_WRITE))
-				dr7 |= ((unative_t) 0x3) << (16 + 4*curidx);
+				dr7 |= ((unative_t) 0x3) << (16 + 4 * curidx);
 		}
 
 		/* Enable global breakpoint */

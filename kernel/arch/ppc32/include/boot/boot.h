@@ -38,7 +38,7 @@
 #define BOOT_OFFSET		0x8000
 
 /* Temporary stack size for boot process */
-#define TEMP_STACK_SIZE 0x100
+#define TEMP_STACK_SIZE 0x1000
 
 #define TASKMAP_MAX_RECORDS 32
 #define MEMMAP_MAX_RECORDS 32

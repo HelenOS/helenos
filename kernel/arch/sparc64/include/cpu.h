@@ -36,6 +36,7 @@
 #define KERN_sparc64_CPU_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 #include <arch/asm.h>
 

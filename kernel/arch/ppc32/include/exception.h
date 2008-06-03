@@ -82,6 +82,7 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->pc = retaddr;
 }
+
 /** Return true if exception happened while in userspace */
 #include <panic.h>
 static inline int istate_from_uspace(istate_t *istate)
@@ -89,6 +90,7 @@ static inline int istate_from_uspace(istate_t *istate)
 	panic("istate_from_uspace not yet implemented");
 	return 0;
 }
+
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;

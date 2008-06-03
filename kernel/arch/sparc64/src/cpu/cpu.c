@@ -135,7 +135,7 @@ void cpu_print_report(cpu_t *m)
 		break;
 	}
 
-	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%dMHz)\n", m->id, manuf,
+	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%d MHz)\n", m->id, manuf,
 		impl, m->arch.ver.mask, m->arch.clock_frequency / 1000000);
 }
 

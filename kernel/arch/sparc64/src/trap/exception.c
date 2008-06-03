@@ -45,9 +45,9 @@
 
 void dump_istate(istate_t *istate)
 {
-	printf("TSTATE=%#llx\n", istate->tstate);
-	printf("TPC=%#llx (%s)\n", istate->tpc, get_symtab_entry(istate->tpc));
-	printf("TNPC=%#llx (%s)\n", istate->tnpc, get_symtab_entry(istate->tnpc));
+	printf("TSTATE=%#" PRIx64 "\n", istate->tstate);
+	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, get_symtab_entry(istate->tpc));
+	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, get_symtab_entry(istate->tnpc));
 }
 
 /** Handle instruction_access_exception. (0x8) */

@@ -36,6 +36,8 @@
 #define KERN_ppc32_TLB_H_
 
 #include <arch/interrupt.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 	unsigned v : 1;          /**< Valid */

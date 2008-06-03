@@ -105,7 +105,7 @@ static void configure_via_rsdt(void)
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%#zp: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				printf("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -126,7 +126,7 @@ static void configure_via_xsdt(void)
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%#zp: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				printf("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -160,7 +160,7 @@ void acpi_init(void)
 	return;
 
 rsdp_found:
-	printf("%#zp: ACPI Root System Description Pointer\n", acpi_rsdp);
+	printf("%p: ACPI Root System Description Pointer\n", acpi_rsdp);
 
 	acpi_rsdt = (struct acpi_rsdt *) (unative_t) acpi_rsdp->rsdt_address;
 	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);
@@ -169,11 +169,11 @@ rsdp_found:
 	if (acpi_xsdt) map_sdt((struct acpi_sdt_header *) acpi_xsdt);	
 
 	if (acpi_rsdt && !acpi_sdt_check((uint8_t *) acpi_rsdt)) {
-		printf("RSDT: %s\n", "bad checksum");
+		printf("RSDT: bad checksum\n");
 		return;
 	}
 	if (acpi_xsdt && !acpi_sdt_check((uint8_t *) acpi_xsdt)) {
-		printf("XSDT: %s\n", "bad checksum");
+		printf("XSDT: bad checksum\n");
 		return;
 	}
 

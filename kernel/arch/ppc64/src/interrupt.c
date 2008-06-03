@@ -80,7 +80,7 @@ static void exception_external(int n, istate_t *istate)
 			 * Spurious interrupt.
 			 */
 #ifdef CONFIG_DEBUG
-			printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+			printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
 #endif
 		}
 		

@@ -105,8 +105,8 @@
 #define MODEL_CLUSTER	0x0
 
 /** Interrupt Command Register. */
-#define ICRlo		(0x300/sizeof(uint32_t))
-#define ICRhi		(0x310/sizeof(uint32_t))
+#define ICRlo		(0x300 / sizeof(uint32_t))
+#define ICRhi		(0x310 / sizeof(uint32_t))
 typedef struct {
 	union {
 		uint32_t lo;
@@ -133,10 +133,10 @@ typedef struct {
 } __attribute__ ((packed)) icr_t;
 
 /* End Of Interrupt. */
-#define EOI		(0x0b0/sizeof(uint32_t))
+#define EOI		(0x0b0 / sizeof(uint32_t))
 
 /** Error Status Register. */
-#define ESR		(0x280/sizeof(uint32_t))
+#define ESR		(0x280 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	uint8_t err_bitmap;
@@ -154,7 +154,7 @@ typedef union {
 } esr_t;
 
 /* Task Priority Register */
-#define TPR		(0x080/sizeof(uint32_t))
+#define TPR		(0x080 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -164,7 +164,7 @@ typedef union {
 } tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
-#define SVR		(0x0f0/sizeof(uint32_t))
+#define SVR		(0x0f0 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -176,7 +176,7 @@ typedef union {
 } svr_t;
 
 /** Time Divide Configuration Register. */
-#define TDCR		(0x3e0/sizeof(uint32_t))
+#define TDCR		(0x3e0 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -186,13 +186,13 @@ typedef union {
 } tdcr_t;
 
 /* Initial Count Register for Timer */
-#define ICRT		(0x380/sizeof(uint32_t))
+#define ICRT		(0x380 / sizeof(uint32_t))
 
 /* Current Count Register for Timer */
-#define CCRT		(0x390/sizeof(uint32_t))
+#define CCRT		(0x390 / sizeof(uint32_t))
 
 /** LVT Timer register. */
-#define LVT_Tm		(0x320/sizeof(uint32_t))
+#define LVT_Tm		(0x320 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -207,8 +207,8 @@ typedef union {
 } lvt_tm_t;
 
 /** LVT LINT registers. */
-#define LVT_LINT0	(0x350/sizeof(uint32_t))
-#define LVT_LINT1	(0x360/sizeof(uint32_t))
+#define LVT_LINT0	(0x350 / sizeof(uint32_t))
+#define LVT_LINT1	(0x360 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -225,7 +225,7 @@ typedef union {
 } lvt_lint_t;
 
 /** LVT Error register. */
-#define LVT_Err		(0x370/sizeof(uint32_t))
+#define LVT_Err		(0x370 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -239,7 +239,7 @@ typedef union {
 } lvt_error_t;
 
 /** Local APIC ID Register. */
-#define L_APIC_ID	(0x020/sizeof(uint32_t))
+#define L_APIC_ID	(0x020 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -249,14 +249,14 @@ typedef union {
 } l_apic_id_t;
 
 /** Local APIC Version Register */
-#define LAVR		(0x030/sizeof(uint32_t))
+#define LAVR		(0x030 / sizeof(uint32_t))
 #define LAVR_Mask	0xff
-#define is_local_apic(x)	(((x)&LAVR_Mask&0xf0)==0x1)
-#define is_82489DX_apic(x)	((((x)&LAVR_Mask&0xf0)==0x0))
-#define is_local_xapic(x)	(((x)&LAVR_Mask)==0x14)
+#define is_local_apic(x)	(((x) & LAVR_Mask & 0xf0) == 0x1)
+#define is_82489DX_apic(x)	((((x) & LAVR_Mask & 0xf0) == 0x0))
+#define is_local_xapic(x)	(((x) & LAVR_Mask) == 0x14)
 
 /** Logical Destination Register. */
-#define  LDR		(0x0d0/sizeof(uint32_t))
+#define  LDR		(0x0d0 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -266,7 +266,7 @@ typedef union {
 } ldr_t;
 
 /** Destination Format Register. */
-#define DFR		(0x0e0/sizeof(uint32_t))
+#define DFR		(0x0e0 / sizeof(uint32_t))
 typedef union {
 	uint32_t value;
 	struct {
@@ -276,8 +276,8 @@ typedef union {
 } dfr_t;
 
 /* IO APIC */
-#define IOREGSEL	(0x00/sizeof(uint32_t))
-#define IOWIN		(0x10/sizeof(uint32_t))
+#define IOREGSEL	(0x00 / sizeof(uint32_t))
+#define IOWIN		(0x10 / sizeof(uint32_t))
 
 #define IOAPICID	0x00
 #define IOAPICVER	0x01

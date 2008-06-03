@@ -30,6 +30,7 @@
 #define KERN_OFW_TREE_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define OFW_TREE_PROPERTY_MAX_NAMELEN	32
 

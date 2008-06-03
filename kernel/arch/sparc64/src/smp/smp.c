@@ -99,7 +99,7 @@ void kmp(void *arg)
 		waking_up_mid = mid;
 		
 		if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT)
-			printf("%s: waiting for processor (mid = %d) timed out\n",
+			printf("%s: waiting for processor (mid = %" PRIu32 ") timed out\n",
 			    __func__, mid);
 	}
 }

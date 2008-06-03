@@ -37,6 +37,7 @@
 
 #include <arch/arch.h>
 #include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 #include <arch/register.h>
 #include <config.h>
