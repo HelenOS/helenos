@@ -153,39 +153,49 @@ void kinit(void *arg)
 		panic("thread_create/kconsole\n");
 
 	interrupts_enable();
-
+	
+	/*
+	 * Create user tasks, load RAM disk images.
+	 */
 	count_t i;
+	thread_t *threads[CONFIG_INIT_TASKS];
+	
 	for (i = 0; i < init.cnt; i++) {
-		/*
-		 * Run user tasks, load RAM disk images.
-		 */
-		
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%d].addr is not frame aligned", i);
+			printf("init[%" PRIc "].addr is not frame aligned", i);
 			continue;
 		}
 
-		task_t *utask = task_run_program((void *) init.tasks[i].addr,
-		    "uspace");
+		threads[i] = thread_create_program(
+			(void *) init.tasks[i].addr, "uspace");
 		
-		if (utask) {
+		if (threads[i] != NULL) {
 			/*
 			 * Set capabilities to init userspace tasks.
 			 */
-			cap_set(utask, CAP_CAP | CAP_MEM_MANAGER |
+			cap_set(threads[i]->task, CAP_CAP | CAP_MEM_MANAGER |
 			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
 			
-			if (!ipc_phone_0) 
-				ipc_phone_0 = &utask->answerbox;
+			if (!ipc_phone_0)
+				ipc_phone_0 = &threads[i]->task->answerbox;
 		} else {
 			int rd = init_rd((rd_header_t *) init.tasks[i].addr,
 			    init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %zd not used, error code %d.\n", i, rd);
+				printf("Init binary %" PRIc " not used, error code %d.\n", i, rd);
 		}
 	}
-
+	
+	/*
+	 * Run user tasks with reasonable delays
+	 */
+	for (i = 0; i < init.cnt; i++) {
+		if (threads[i] != NULL) {
+			thread_usleep(50000);
+			thread_ready(threads[i]);
+		}
+	}
 
 	if (!stdin) {
 		while (1) {
