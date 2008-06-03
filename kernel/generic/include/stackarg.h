@@ -52,9 +52,9 @@ typedef struct va_list {
 	(ap).last = (uint8_t *) &(lst)
 
 #define va_arg(ap, type) 		\
-	(*((type *)((ap).last + ((ap).pos  += sizeof(type) ) - sizeof(type))))
+	(*((type *)((ap).last + ((ap).pos += sizeof(type)) - sizeof(type))))
 
-#define va_copy(dst,src)       dst=src
+#define va_copy(dst, src) dst = src
 #define va_end(ap)
 
 

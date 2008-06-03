@@ -40,7 +40,6 @@
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <console/klog.h>
 #include <ddi/irq.h>
 
 typedef void (* iroutine)(int n, istate_t *istate);
@@ -49,8 +48,8 @@ typedef void (* iroutine)(int n, istate_t *istate);
 { \
 	if (istate_from_uspace(istate)) { \
 		task_t *task = TASK; \
-		klog_printf("Task %llu killed due to an exception at %p.", task->taskid, istate_get_pc(istate)); \
-		klog_printf("  " cmd, ##__VA_ARGS__); \
+		printf("Task %" PRIu64 " killed due to an exception at %p.", task->taskid, istate_get_pc(istate)); \
+		printf("  " cmd, ##__VA_ARGS__); \
 		task_kill(task->taskid); \
 		thread_exit(); \
 	} \

@@ -35,6 +35,9 @@
 #ifndef KERN_DEVICE_H_
 #define KERN_DEVICE_H_
 
+#include <arch/types.h>
+#include <typedefs.h>
+
 extern devno_t device_assign_devno(void);
 
 #endif

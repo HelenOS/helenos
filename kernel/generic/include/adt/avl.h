@@ -36,6 +36,7 @@
 #define KERN_AVLTREE_H_ 
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * Macro for getting a pointer to the structure which contains the avltree
