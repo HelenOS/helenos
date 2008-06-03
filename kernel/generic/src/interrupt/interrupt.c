@@ -108,26 +108,31 @@ static int exc_print_cmd(cmd_arg_t *argv)
 	char *symbol;
 
 	spinlock_lock(&exctbl_lock);
-	
-	if (sizeof(void *) == 4) {
-		printf("Exc Description          Handler    Symbol\n");
-		printf("--- -------------------- ---------- --------\n");
-	} else {
-		printf("Exc Description          Handler            Symbol\n");
-		printf("--- -------------------- ------------------ --------\n");
-	}
+
+#ifdef __32_BITS__
+	printf("Exc Description          Handler    Symbol\n");
+	printf("--- -------------------- ---------- --------\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("Exc Description          Handler            Symbol\n");
+	printf("--- -------------------- ------------------ --------\n");
+#endif
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
 		symbol = get_symtab_entry((unative_t) exc_table[i].f);
 		if (!symbol)
 			symbol = "not found";
-		
-		if (sizeof(void *) == 4)
-			printf("%-3u %-20s %#10zx %s\n", i + IVT_FIRST, exc_table[i].name,
-				exc_table[i].f, symbol);
-		else
-			printf("%-3u %-20s %#18zx %s\n", i + IVT_FIRST, exc_table[i].name,
-				exc_table[i].f, symbol);
+
+#ifdef __32_BITS__
+		printf("%-3u %-20s %10p %s\n", i + IVT_FIRST, exc_table[i].name,
+			exc_table[i].f, symbol);
+#endif
+
+#ifdef __64_BITS__
+		printf("%-3u %-20s %18p %s\n", i + IVT_FIRST, exc_table[i].name,
+			exc_table[i].f, symbol);
+#endif
 		
 		if (((i + 1) % 20) == 0) {
 			printf(" -- Press any key to continue -- ");
@@ -158,7 +163,7 @@ void exc_init(void)
 {
 	int i;
 
-	for (i=0;i < IVT_ITEMS; i++)
+	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) exc_undef);
 
 	cmd_initialize(&exc_info);
