@@ -48,6 +48,7 @@
 #include <futex.h>
 #include <errno.h>
 #include <string.h>
+#include <ipc/devmap.h>
 #include "../../srv/vfs/vfs.h"
 
 int vfs_phone = -1;
@@ -102,14 +103,49 @@ static int vfs_connect(void)
 	return vfs_phone;
 }
 
+static int device_get_handle(char *name, dev_handle_t *handle)
+{
+	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+	if (phone < 0)
+		return phone;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, 0, 0,
+	    &answer);
+	
+	ipcarg_t retval = ipc_data_write_start(phone, name, strlen(name) + 1); 
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		ipc_hangup(phone);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+
+	if (handle != NULL)
+		*handle = -1;
+	
+	if (retval == EOK) {
+		if (handle != NULL)
+			*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+	}
+	
+	ipc_hangup(phone);
+	return retval;
+}
+
 int mount(const char *fs_name, const char *mp, const char *dev)
 {
 	int res;
 	ipcarg_t rc;
 	aid_t req;
-
-	dev_handle_t dev_handle = 0;	/* TODO */
-
+	dev_handle_t dev_handle;
+	
+	res = device_get_handle(dev, &dev_handle);
+	if (res != EOK)
+		return res;
+	
 	size_t mpa_len;
 	char *mpa = absolutize(mp, &mpa_len);
 	if (!mpa)
