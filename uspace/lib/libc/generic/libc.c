@@ -64,12 +64,8 @@ void __main(void)
 	_async_init();
 	f = fibril_setup();
 	__tcb_set(f->tcb);
-}
-
-void __io_init(void)
-{
-	open_stdin();
-	open_stdout();
+	
+	open_console();
 }
 
 void __exit(void)
