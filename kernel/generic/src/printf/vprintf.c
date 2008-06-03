@@ -37,6 +37,8 @@
 #include <putchar.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
 SPINLOCK_INITIALIZE(printf_lock);			/**< vprintf spinlock */
 

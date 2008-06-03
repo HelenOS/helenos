@@ -124,7 +124,7 @@ void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_n
 	lnode = leaf_node;
 	if (!lnode) {
 		if (btree_search(t, key, &lnode)) {
-			panic("B-tree %p already contains key %d\n", t, key);
+			panic("B-tree %p already contains key %" PRIu64 "\n", t, key);
 		}
 	}
 	
@@ -224,7 +224,7 @@ void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 	lnode = leaf_node;
 	if (!lnode) {
 		if (!btree_search(t, key, &lnode)) {
-			panic("B-tree %p does not contain key %d\n", t, key);
+			panic("B-tree %p does not contain key %" PRIu64 "\n", t, key);
 		}
 	}
 	
@@ -524,7 +524,7 @@ void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
 			return;
 		}
 	}
-	panic("node %p does not contain key %d\n", node, key);
+	panic("node %p does not contain key %" PRIu64 "\n", node, key);
 }
 
 /** Remove key and its right subtree pointer from B-tree node.
@@ -551,7 +551,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 			return;
 		}
 	}
-	panic("node %p does not contain key %d\n", node, key);
+	panic("node %p does not contain key %" PRIu64 "\n", node, key);
 }
 
 /** Split full B-tree node and insert new key-value-right-subtree triplet.
@@ -970,7 +970,7 @@ void btree_print(btree_t *t)
 
 		printf("(");
 		for (i = 0; i < node->keys; i++) {
-			printf("%llu%s", node->key[i], i < node->keys - 1 ? "," : "");
+			printf("%" PRIu64 "%s", node->key[i], i < node->keys - 1 ? "," : "");
 			if (node->depth && node->subtree[i]) {
 				list_append(&node->subtree[i]->bfs_link, &head);
 			}
@@ -992,7 +992,7 @@ void btree_print(btree_t *t)
 
 		printf("(");
 		for (i = 0; i < node->keys; i++)
-			printf("%llu%s", node->key[i], i < node->keys - 1 ? "," : "");
+			printf("%" PRIu64 "%s", node->key[i], i < node->keys - 1 ? "," : "");
 		printf(")");
 	}
 	printf("\n");

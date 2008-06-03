@@ -75,7 +75,6 @@ typedef enum {
 	PrintfQualifierInt,
 	PrintfQualifierLong,
 	PrintfQualifierLongLong,
-	PrintfQualifierNative,
 	PrintfQualifierPointer
 } qualifier_t;
 
@@ -432,7 +431,6 @@ static int print_number(uint64_t num, int width, int precision, int base,
  * 	- ""	Signed or unsigned int (default value).@n
  * 	- "l"	Signed or unsigned long int.@n
  * 	- "ll"	Signed or unsigned long long int.@n
- * 	- "z"	unative_t (non-standard extension).@n
  * 
  * 
  * CONVERSION:@n
@@ -486,7 +484,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 		
 	while ((c = fmt[i])) {
 		/* control character */
-		if (c == '%' ) { 
+		if (c == '%') { 
 			/* print common characters if any processed */	
 			if (i > j) {
 				if ((retval = printf_putnchars(&fmt[j],
@@ -536,7 +534,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			} else if (fmt[i] == '*') {
 				/* get width value from argument list */
 				i++;
-				width = (int)va_arg(ap, int);
+				width = (int) va_arg(ap, int);
 				if (width < 0) {
 					/* negative width sets '-' flag */
 					width *= -1;
@@ -559,7 +557,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					 * list.
 					 */
 					i++;
-					precision = (int)va_arg(ap, int);
+					precision = (int) va_arg(ap, int);
 					if (precision < 0) {
 						/* ignore negative precision */
 						precision = 0;
@@ -584,9 +582,6 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					i++;
 					qualifier = PrintfQualifierLongLong;
 				}
-				break;
-			case 'z':	/* unative_t */
-				qualifier = PrintfQualifierNative;
 				break;
 			default:
 				/* default type */
@@ -627,7 +622,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			 * Integer values
 			 */
 			case 'P': /* pointer */
-			       	flags |= __PRINTF_FLAG_BIGCHARS;
+				flags |= __PRINTF_FLAG_BIGCHARS;
 			case 'p':
 				flags |= __PRINTF_FLAG_PREFIX;
 				base = 16;
@@ -670,33 +665,27 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			switch (qualifier) {
 			case PrintfQualifierByte:
 				size = sizeof(unsigned char);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierShort:
 				size = sizeof(unsigned short);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierInt:
 				size = sizeof(unsigned int);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierLong:
 				size = sizeof(unsigned long);
-				number = (uint64_t)va_arg(ap, unsigned long);
+				number = (uint64_t) va_arg(ap, unsigned long);
 				break;
 			case PrintfQualifierLongLong:
 				size = sizeof(unsigned long long);
-				number = (uint64_t)va_arg(ap,
-				    unsigned long long);
+				number = (uint64_t) va_arg(ap, unsigned long long);
 				break;
 			case PrintfQualifierPointer:
 				size = sizeof(void *);
-				number = (uint64_t)(unsigned long)va_arg(ap,
-				    void *);
-				break;
-			case PrintfQualifierNative:
-				size = sizeof(unative_t);
-				number = (uint64_t)va_arg(ap, unative_t);
+				number = (uint64_t) (unsigned long) va_arg(ap, void *);
 				break;
 			default: /* Unknown qualifier */
 				counter = -counter;
@@ -708,7 +697,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					flags |= __PRINTF_FLAG_NEGATIVE;
 				
 					if (size == sizeof(uint64_t)) {
-						number = -((int64_t)number);
+						number = -((int64_t) number);
 					} else {
 						number = ~number;
 						number &=
@@ -734,7 +723,7 @@ next_char:
 	}
 	
 	if (i > j) {
-		if ((retval = printf_putnchars(&fmt[j], (unative_t)(i - j),
+		if ((retval = printf_putnchars(&fmt[j], (unative_t) (i - j),
 		    ps)) < 0) { /* error */
 			counter = -counter;
 			goto out;
@@ -744,7 +733,6 @@ next_char:
 	}
 
 out:
-	
 	return counter;
 }
 
