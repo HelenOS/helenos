@@ -72,7 +72,7 @@ static void testit1(void *data)
 		
 		if (arg != after_arg) {
 			if (!sh_quiet)
-				printf("General reg tid%llu: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+				printf("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -104,7 +104,7 @@ static void testit2(void *data)
 		
 		if (arg != after_arg) {
 			if (!sh_quiet)
-				printf("General reg tid%llu: arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+				printf("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -123,14 +123,14 @@ char * test_mips2(bool quiet)
 	atomic_set(&threads_fault, 0);
 	
 	if (!quiet)
-		printf("Creating %d threads... ", 2 * THREADS);
+		printf("Creating %u threads... ", 2 * THREADS);
 
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
 		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1", false))) {
 			if (!quiet)
-				printf("could not create thread %d\n", 2 * i);
+				printf("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
@@ -138,7 +138,7 @@ char * test_mips2(bool quiet)
 		
 		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2", false))) {
 			if (!quiet)
-				printf("could not create thread %d\n", 2 * i + 1);
+				printf("could not create thread %u\n", 2 * i + 1);
 			break;
 		}
 		thread_ready(t);

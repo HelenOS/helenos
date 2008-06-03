@@ -36,12 +36,13 @@
 #define KERN_TEST_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 
-typedef char * (* test_entry_t)(bool);
+typedef char *(*test_entry_t)(bool);
 
 typedef struct {
-	char * name;
-	char * desc;
+	char *name;
+	char *desc;
 	test_entry_t entry;
 	bool safe;
 } test_t;

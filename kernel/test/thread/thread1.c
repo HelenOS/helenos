@@ -48,7 +48,7 @@ static void threadtest(void *data)
 
 	while (atomic_get(&finish)) {
 		if (!sh_quiet)
-			printf("%llu ", THREAD->tid);
+			printf("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);
 	}
 	atomic_inc(&threads_finished);

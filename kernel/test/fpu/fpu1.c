@@ -126,7 +126,7 @@ static void e(void *data)
 
 		if ((int) (100000000 * e) != E_10e8) {
 			if (!sh_quiet)
-				printf("tid%llu: e*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+				printf("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -161,14 +161,14 @@ static void pi(void *data)
 #ifdef KERN_ia64_ARCH_H_
 		if ((int) (1000000 * pi) != PI_10e8) {
 			if (!sh_quiet)
-				printf("tid%llu: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+				printf("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}
 #else
 		if ((int) (100000000 * pi) != PI_10e8) {
 			if (!sh_quiet)
-				printf("tid%llu: pi*10e8=%zd should be %zd\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
+				printf("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -187,14 +187,14 @@ char * test_fpu1(bool quiet)
 	atomic_set(&threads_fault, 0);
 	
 	if (!quiet)
-		printf("Creating %d threads... ", 2 * THREADS);
+		printf("Creating %u threads... ", 2 * THREADS);
 
 	for (i = 0; i < THREADS; i++) {  
 		thread_t *t;
 		
 		if (!(t = thread_create(e, NULL, TASK, 0, "e", false))) {
 			if (!quiet)
-				printf("could not create thread %d\n", 2 * i);
+				printf("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
@@ -202,7 +202,7 @@ char * test_fpu1(bool quiet)
 		
 		if (!(t = thread_create(pi, NULL, TASK, 0, "pi", false))) {
 			if (!quiet)
-				printf("could not create thread %d\n", 2 * i + 1);
+				printf("could not create thread %u\n", 2 * i + 1);
 			break;
 		}
 		thread_ready(t);

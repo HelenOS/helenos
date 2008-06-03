@@ -108,7 +108,7 @@ char * test_rwlock5(bool quiet)
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 		while ((items_read.count != readers) || (items_written.count != writers)) {
-			printf("%zd readers remaining, %zd writers remaining, readers_in=%zd\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
+			printf("%d readers remaining, %d writers remaining, readers_in=%d\n", readers - items_read.count, writers - items_written.count, rwlock.readers_in);
 			thread_usleep(100000);
 		}
 	}

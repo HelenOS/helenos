@@ -61,14 +61,14 @@ static avltree_node_t *test_tree_parents(avltree_node_t *node)
 	if (node->lft) {
 		tmp = test_tree_parents(node->lft);
 		if (tmp != node) {
-			printf("Bad parent pointer key: %d, address: %p\n",
+			printf("Bad parent pointer key: %" PRIu64 ", address: %p\n",
 			    tmp->key, node->lft);
 		}
 	}
 	if (node->rgt) {
 		tmp = test_tree_parents(node->rgt);
 		if (tmp != node) {
-			printf("Bad parent pointer key: %d, address: %p\n",
+			printf("Bad parent pointer key: %" PRIu64 ", address: %p\n",
 			    tmp->key,node->rgt);
 		}
 	}
@@ -109,7 +109,7 @@ static void print_tree_structure_flat(avltree_node_t *node, int level)
 	if (node == NULL)
 		return;
 
-	printf("%d[%d]", node->key, node->balance);
+	printf("%" PRIu64 "[%" PRIu8 "]", node->key, node->balance);
 	if (node->lft != NULL || node->rgt != NULL) {
 		printf("(");
 
@@ -191,7 +191,7 @@ static void test_tree_insert(avltree_t *tree, count_t node_count, bool quiet)
 	avltree_create(tree);
 	
 	if (!quiet)
-		printf("Inserting %d nodes...", node_count);
+		printf("Inserting %" PRIc " nodes...", node_count);
 
 	for (i = 0; i < node_count; i++) {
 		newnode = alloc_avltree_node();

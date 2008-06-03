@@ -74,18 +74,18 @@ static void writer(void *arg)
 	to = random(40000);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu w+ (%d)\n", CPU->id, THREAD->tid, to);
+		printf("cpu%u, tid %" PRIu64 " w+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_write_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
 		if (!sh_quiet)
-			printf("cpu%d, tid %llu w!\n", CPU->id, THREAD->tid);
+			printf("cpu%u, tid %" PRIu64 " w!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu w=\n", CPU->id, THREAD->tid);
+		printf("cpu%u, tid %" PRIu64 " w=\n", CPU->id, THREAD->tid);
 
 	if (rwlock.readers_in) {
 		if (!sh_quiet)
@@ -106,7 +106,7 @@ static void writer(void *arg)
 	rwlock_write_unlock(&rwlock);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu w-\n", CPU->id, THREAD->tid);
+		printf("cpu%u, tid %" PRIu64 " w-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 
@@ -119,24 +119,24 @@ static void reader(void *arg)
 	to = random(2000);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu r+ (%d)\n", CPU->id, THREAD->tid, to);
+		printf("cpu%u, tid %" PRIu64 " r+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_read_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
 		if (!sh_quiet)
-			printf("cpu%d, tid %llu r!\n", CPU->id, THREAD->tid);
+			printf("cpu%u, tid %" PRIu64 " r!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu r=\n", CPU->id, THREAD->tid);
+		printf("cpu%u, tid %" PRIu64 " r=\n", CPU->id, THREAD->tid);
 	
 	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
 	
 	if (!sh_quiet)
-		printf("cpu%d, tid %llu r-\n", CPU->id, THREAD->tid);
+		printf("cpu%u, tid %" PRIu64 " r-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 
@@ -159,8 +159,8 @@ char * test_rwlock4(bool quiet)
 	
 	context_save(&ctx);
 	if (!quiet) {
-		printf("sp=%#x, readers_in=%d\n", ctx.sp, rwlock.readers_in);
-		printf("Creating %d readers\n", rd);
+		printf("sp=%#x, readers_in=%" PRIc "\n", ctx.sp, rwlock.readers_in);
+		printf("Creating %" PRIu32 " readers\n", rd);
 	}
 	
 	for (i = 0; i < rd; i++) {
@@ -168,18 +168,18 @@ char * test_rwlock4(bool quiet)
 		if (thrd)
 			thread_ready(thrd);
 		else if (!quiet)
-			printf("Could not create reader %d\n", i);
+			printf("Could not create reader %" PRIu32 "\n", i);
 	}
 
 	if (!quiet)
-		printf("Creating %d writers\n", wr);
+		printf("Creating %" PRIu32 " writers\n", wr);
 	
 	for (i = 0; i < wr; i++) {
 		thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 		if (thrd)
 			thread_ready(thrd);
 		else if (!quiet)
-			printf("Could not create writer %d\n", i);
+			printf("Could not create writer %" PRIu32 "\n", i);
 	}
 	
 	thread_usleep(20000);
@@ -187,7 +187,7 @@ char * test_rwlock4(bool quiet)
 	
 	while (atomic_get(&thread_count) > 0) {
 		if (!quiet)
-			printf("Threads left: %d\n", atomic_get(&thread_count));
+			printf("Threads left: %ld\n", atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	
