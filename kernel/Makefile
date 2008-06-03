@@ -90,6 +90,10 @@ ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
 endif
 
+ifeq ($(CONFIG_EDEBUG),y)
+	DEFS += -DCONFIG_EDEBUG
+endif
+
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
 	DEFS += -DCONFIG_DEBUG_SPINLOCK
 endif
@@ -217,7 +221,6 @@ GENERIC_SOURCES = \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/kconsole.c \
-	generic/src/console/klog.c \
 	generic/src/console/cmd.c \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \
