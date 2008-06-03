@@ -35,7 +35,19 @@
 #ifndef KERN_TYPEDEFS_H_
 #define KERN_TYPEDEFS_H_
 
+#define NULL 0
+#define false 0
+#define true 1
+
 typedef void (* function)();
+
+typedef uint8_t bool;
+typedef uint64_t thread_id_t;
+typedef uint64_t task_id_t;
+typedef uint32_t context_id_t;
+
+typedef int32_t inr_t;
+typedef int32_t devno_t;
 
 #endif
 
