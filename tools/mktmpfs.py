@@ -42,6 +42,39 @@ def usage(prname):
 	"Print usage syntax"
 	print prname + " <ALIGNMENT> <PATH> <IMAGE>"
 
+def recursion(root, outf):
+	"Recursive directory walk"
+	
+	payload_size = 0
+	
+	for name in os.listdir(root):
+		canon = os.path.join(root, name)
+		
+		if (os.path.isfile(canon)):
+			outf.write(struct.pack("<BL" + ("%d" % len(name)) + "s", 1, len(name), name))
+			payload_size += 5 + len(name)
+			size = os.path.getsize(canon)
+			rd = 0;
+			outf.write(struct.pack("<L", size))
+			payload_size += 4
+			
+			inf = file(canon, "r")
+			while (rd < size):
+				data = inf.read(4096);
+				outf.write(data)
+				payload_size += len(data)
+				rd += len(data)
+			inf.close()
+		
+		if (os.path.isdir(canon)):
+			outf.write(struct.pack("<BL" + ("%d" % len(name)) + "s", 2, len(name), name))
+			payload_size += 5 + len(name)
+			payload_size += recursion(canon, outf)
+			outf.write(struct.pack("<BL", 0, 0))
+			payload_size += 5
+	
+	return payload_size
+
 def main():
 	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
@@ -58,41 +91,22 @@ def main():
 		return
 	
 	header_size = align_up(18, align)
-	payload_size = 0
 	outf = file(sys.argv[3], "w")
 	outf.write(struct.pack("<" + ("%d" % header_size) + "x"))
 	
-	for root, dirs, files in os.walk(path):
-		relpath = root[len(path):len(root)]
-		for name in files:
-			canon = os.path.join(relpath, name)
-			outf.write(struct.pack("<BL" + ("%d" % len(canon)) + "s", 1, len(canon), canon))
-			payload_size += 5 + len(canon)
-			
-			fn = os.path.join(root, name)
-			size = os.path.getsize(fn)
-			rd = 0;
-			outf.write(struct.pack("<L", size))
-			payload_size += 4
-			
-			inf = file(fn, "r")
-			while (rd < size):
-				data = inf.read(4096);
-				outf.write(data)
-				payload_size += len(data)
-				rd += len(data)
-			inf.close()
+	outf.write(struct.pack("<5s", "TMPFS"))
+	payload_size = 5
+	
+	payload_size += recursion(path, outf)
 		
-		for name in dirs:
-			canon = os.path.join(relpath, name)
-			outf.write(struct.pack("<BL" + ("%d" % len(canon)) + "s", 2, len(canon), canon))
-			payload_size += 5 + len(canon)
+	outf.write(struct.pack("<BL", 0, 0))
+	payload_size += 5
 	
 	aligned_size = align_up(payload_size, align)
 	
 	if (aligned_size - payload_size > 0):
 		outf.write(struct.pack("<" + ("%d" % (aligned_size - payload_size)) + "x"))
-	
+		
 	outf.seek(0)
 	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, aligned_size))
 	outf.close()
