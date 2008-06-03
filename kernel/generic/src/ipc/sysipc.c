@@ -426,7 +426,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	phone_t *phone;
 	int res;
 	int rc;
-
+	
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
 	ipc_call_static_init(&call);
@@ -626,7 +626,7 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return ENOENT;
-	});		
+	});
 
 	if (!method_is_forwardable(IPC_GET_METHOD(call->data))) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
