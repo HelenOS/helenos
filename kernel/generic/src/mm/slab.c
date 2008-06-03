@@ -557,7 +557,7 @@ static void make_magcache(slab_cache_t *cache)
 	
 	ASSERT(_slab_initialized >= 2);
 
-	cache->mag_cache = malloc(sizeof(slab_mag_cache_t)*config.cpu_count,0);
+	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,0);
 	for (i = 0; i < config.cpu_count; i++) {
 		memsetb((uintptr_t)&cache->mag_cache[i],
 			sizeof(cache->mag_cache[i]), 0);
@@ -813,7 +813,10 @@ void slab_print_list(void)
 	for (cur = slab_cache_list.next; cur != &slab_cache_list; cur = cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
 		
-		printf("%-16s %8zd %6zd %6zd %6zd %6zd %9zd %-3s\n", cache->name, cache->size, (1 << cache->order), cache->objects, atomic_get(&cache->allocated_slabs), atomic_get(&cache->cached_objs), atomic_get(&cache->allocated_objs), cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
+		printf("%-16s %8" PRIs " %6d %6u %6ld %6ld %9ld %-3s\n",
+			cache->name, cache->size, (1 << cache->order), cache->objects,
+			atomic_get(&cache->allocated_slabs), atomic_get(&cache->cached_objs),
+			atomic_get(&cache->allocated_objs), cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}
 	spinlock_unlock(&slab_cache_lock);
 	interrupts_restore(ipl);
@@ -826,7 +829,7 @@ void slab_cache_init(void)
 	/* Initialize magazine cache */
 	_slab_cache_create(&mag_cache,
 			   "slab_magazine",
-			   sizeof(slab_magazine_t)+SLAB_MAG_SIZE*sizeof(void*),
+			   sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void*),
 			   sizeof(uintptr_t),
 			   NULL, NULL,
 			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
@@ -844,8 +847,8 @@ void slab_cache_init(void)
 					      SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
 
 	/* Initialize structures for malloc */
-	for (i=0, size=(1<<SLAB_MIN_MALLOC_W);
-	     i < (SLAB_MAX_MALLOC_W-SLAB_MIN_MALLOC_W+1);
+	for (i=0, size=(1 << SLAB_MIN_MALLOC_W);
+	     i < (SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1);
 	     i++, size <<= 1) {
 		malloc_caches[i] = slab_cache_create(malloc_names[i],
 						     size, 0,

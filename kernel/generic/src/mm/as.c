@@ -453,18 +453,15 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		
 					cond = false;	/* we are almost done */
 					i = (start_free - b) >> PAGE_WIDTH;
-					if (!used_space_remove(area, start_free,
-					    c - i))
-						panic("Could not remove used "
-						    "space.\n");
+					if (!used_space_remove(area, start_free, c - i))
+						panic("Could not remove used space.\n");
 				} else {
 					/*
 					 * The interval of used space can be
 					 * completely removed.
 					 */
 					if (!used_space_remove(area, b, c))
-						panic("Could not remove used "
-						    "space.\n");
+						panic("Could not remove used space.\n");
 				}
 			
 				for (; i < c; i++) {
@@ -1528,7 +1525,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		}
 	}
 
-	panic("Inconsistency detected while adding %d pages of used space at "
+	panic("Inconsistency detected while adding %" PRIc " pages of used space at "
 	    "%p.\n", count, page);
 }
 
@@ -1707,7 +1704,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	}
 
 error:
-	panic("Inconsistency detected while removing %d pages of used space "
+	panic("Inconsistency detected while removing %" PRIc " pages of used space "
 	    "from %p.\n", count, page);
 }
 
@@ -1800,9 +1797,9 @@ void as_print(as_t *as)
 			as_area_t *area = node->value[i];
 		
 			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%d (%p - %p)\n",
+			printf("as_area: %p, base=%p, pages=%" PRIc " (%p - %p)\n",
 			    area, area->base, area->pages, area->base,
-			    area->base + area->pages*PAGE_SIZE);
+			    area->base + FRAMES2SIZE(area->pages));
 			mutex_unlock(&area->lock);
 		}
 	}

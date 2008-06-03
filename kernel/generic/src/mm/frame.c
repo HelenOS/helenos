@@ -318,7 +318,7 @@ static void zone_buddy_print_id(buddy_system_t *b, link_t *block)
 	frame = list_get_instance(block, frame_t, buddy_link);
 	zone = (zone_t *) b->data;
 	index = frame_index(zone, frame);
-	printf("%zd", index);
+	printf("%" PRIi, index);
 }				     
 
 /** Buddy system find_buddy implementation
@@ -844,7 +844,7 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
  */
 uintptr_t zone_conf_size(count_t count)
 {
-	int size = sizeof(zone_t) + count*sizeof(frame_t);
+	int size = sizeof(zone_t) + count * sizeof(frame_t);
 	int max_order;
 
 	max_order = fnzb(count);
@@ -1159,25 +1159,30 @@ void zone_print_list(void) {
 
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
-	
-	if (sizeof(void *) == 4) {
-		printf("#  base address free frames  busy frames\n");
-		printf("-- ------------ ------------ ------------\n");
-	} else {
-		printf("#  base address         free frames  busy frames\n");
-		printf("-- -------------------- ------------ ------------\n");
-	}
+
+#ifdef __32_BITS__	
+	printf("#  base address free frames  busy frames\n");
+	printf("-- ------------ ------------ ------------\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("#  base address         free frames  busy frames\n");
+	printf("-- -------------------- ------------ ------------\n");
+#endif
 	
 	for (i = 0; i < zones.count; i++) {
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
-		
-		if (sizeof(void *) == 4)
-			printf("%-2d   %#10zx %12zd %12zd\n", i, PFN2ADDR(zone->base),
-			    zone->free_count, zone->busy_count);
-		else
-			printf("%-2d   %#18zx %12zd %12zd\n", i, PFN2ADDR(zone->base),
-			    zone->free_count, zone->busy_count);
+
+#ifdef __32_BITS__
+		printf("%-2u   %10p %12" PRIc " %12" PRIc "\n", i, PFN2ADDR(zone->base),
+		    zone->free_count, zone->busy_count);
+#endif
+
+#ifdef __64_BITS__
+		printf("%-2u   %18p %12" PRIc " %12" PRIc "\n", i, PFN2ADDR(zone->base),
+		    zone->free_count, zone->busy_count);
+#endif
 		
 		spinlock_unlock(&zone->lock);
 	}
@@ -1211,13 +1216,12 @@ void zone_print_one(unsigned int num) {
 	
 	spinlock_lock(&zone->lock);
 	printf("Memory zone information\n");
-	printf("Zone base address: %#.*p\n", sizeof(uintptr_t) * 2,
-	    PFN2ADDR(zone->base));
-	printf("Zone size: %zd frames (%zd KB)\n", zone->count,
+	printf("Zone base address: %p\n", PFN2ADDR(zone->base));
+	printf("Zone size: %" PRIc " frames (%" PRIs " KB)\n", zone->count,
 		SIZE2KB(FRAMES2SIZE(zone->count)));
-	printf("Allocated space: %zd frames (%zd KB)\n", zone->busy_count,
+	printf("Allocated space: %" PRIc " frames (%" PRIs " KB)\n", zone->busy_count,
 		SIZE2KB(FRAMES2SIZE(zone->busy_count)));
-	printf("Available space: %zd frames (%zd KB)\n", zone->free_count,
+	printf("Available space: %" PRIc " frames (%" PRIs " KB)\n", zone->free_count,
 		SIZE2KB(FRAMES2SIZE(zone->free_count)));
 	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
 	spinlock_unlock(&zone->lock);

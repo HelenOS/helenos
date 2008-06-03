@@ -44,6 +44,7 @@
 #include <arch/types.h>
 #include <debug.h>
 #include <print.h>
+#include <macros.h>
 
 /** Return size needed for the buddy configuration data */
 size_t buddy_conf_size(int max_order)
@@ -289,20 +290,21 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 	index_t i;
 	count_t cnt, elem_count = 0, block_count = 0;
-	link_t * cur;
+	link_t *cur;
 	
 
 	printf("Order\tBlocks\tSize    \tBlock size\tElems per block\n");
 	printf("-----\t------\t--------\t----------\t---------------\n");
 	
-	for (i=0;i <= b->max_order; i++) {
+	for (i = 0;i <= b->max_order; i++) {
 		cnt = 0;
 		if (!list_empty(&b->order[i])) {
 			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next)
 				cnt++;
 		}
 	
-		printf("#%zd\t%5zd\t%7zdK\t%8zdK\t%6zd\t", i, cnt, (cnt * (1 << i) * elem_size) >> 10, ((1 << i) * elem_size) >> 10, 1 << i);
+		printf("#%" PRIi "\t%5" PRIc "\t%7" PRIc "K\t%8" PRIi "K\t%6u\t",
+			i, cnt, SIZE2KB(cnt * (1 << i) * elem_size), SIZE2KB((1 << i) * elem_size), 1 << i);
 		if (!list_empty(&b->order[i])) {
 			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) {
 				b->op->print_id(b, cur);
@@ -315,8 +317,7 @@ void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
 		elem_count += (1 << i) * cnt;
 	}
 	printf("-----\t------\t--------\t----------\t---------------\n");
-	printf("Buddy system contains %zd free elements (%zd blocks)\n" , elem_count, block_count);
-
+	printf("Buddy system contains %" PRIc " free elements (%" PRIc " blocks)\n" , elem_count, block_count);
 }
 
 /** @}
