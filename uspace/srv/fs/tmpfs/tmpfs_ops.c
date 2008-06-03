@@ -272,8 +272,10 @@ static bool tmpfs_blockread(int phone, void *buffer, size_t *bufpos, size_t *buf
 		}
 		
 		if (*bufpos == *buflen) {
-			int retval;
-			int rc = ipc_call_sync_2_1(phone, RD_READ_BLOCK, *pos / BLOCK_SIZE, BLOCK_SIZE, (sysarg_t *) &retval);
+			ipcarg_t retval;
+			int rc = ipc_call_sync_2_1(phone, RD_READ_BLOCK,
+			    *pos / BLOCK_SIZE, BLOCK_SIZE,
+			    &retval);
 			if ((rc != EOK) || (retval != EOK))
 				return false;
 			
