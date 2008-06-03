@@ -78,7 +78,6 @@
 #include <ipc/ipc.h>
 #include <macros.h>
 #include <adt/btree.h>
-#include <console/klog.h>
 #include <smp/smp.h>
 #include <ddi/ddi.h>
 
@@ -140,6 +139,8 @@ static void main_ap_separated_stack(void);
  */
 void main_bsp(void)
 {
+	LOG();
+	
 	config.cpu_count = 1;
 	config.cpu_active = 1;
 	
@@ -171,6 +172,13 @@ void main_bsp(void)
 	if (config.stack_base < stack_safe)
 		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
 	
+	version_print();
+	
+	LOG("\nconfig.base=%#" PRIp " config.kernel_size=%" PRIs
+		"\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
+		config.base, config.kernel_size,
+		config.stack_base, config.stack_size);
+	
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base,
 	    THREAD_STACK_SIZE);
@@ -186,9 +194,7 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
-	task_t *k;
-	thread_t *t;
-	count_t i;
+	LOG();
 	
 	the_initialize(THE);
 
@@ -197,79 +203,74 @@ void main_bsp_separated_stack(void)
 	 * because other subsystems will register their respective
 	 * commands.
 	 */
-	kconsole_init();
+	LOG_EXEC(kconsole_init());
 	
 	/*
 	 * Exception handler initialization, before architecture
 	 * starts adding its own handlers
 	 */
-	exc_init();
+	LOG_EXEC(exc_init());
 
 	/*
 	 * Memory management subsystems initialization.
-	 */	
-	arch_pre_mm_init();
-	frame_init();		
+	 */
+	LOG_EXEC(arch_pre_mm_init());
+	LOG_EXEC(frame_init());
+	
 	/* Initialize at least 1 memory segment big enough for slab to work. */
-	slab_cache_init();
-	btree_init();
-	as_init();
-	page_init();
-	tlb_init();
-	ddi_init();
-	tasklet_init();
-	arch_post_mm_init();
+	LOG_EXEC(slab_cache_init());
+	LOG_EXEC(btree_init());
+	LOG_EXEC(as_init());
+	LOG_EXEC(page_init());
+	LOG_EXEC(tlb_init());
+	LOG_EXEC(ddi_init());
+	LOG_EXEC(tasklet_init());
+	LOG_EXEC(arch_post_mm_init());
+	LOG_EXEC(arch_pre_smp_init());
+	LOG_EXEC(smp_init());
 	
-	version_print();
-	printf("kernel: %.*p hardcoded_ktext_size=%zd KB, "
-	    "hardcoded_kdata_size=%zd KB\n", sizeof(uintptr_t) * 2,
-		config.base, SIZE2KB(hardcoded_ktext_size),
-		SIZE2KB(hardcoded_kdata_size));
-	printf("stack:  %.*p size=%zd KB\n", sizeof(uintptr_t) * 2,
-	    config.stack_base, SIZE2KB(config.stack_size));
-	
-	arch_pre_smp_init();
-	smp_init();
 	/* Slab must be initialized after we know the number of processors. */
-	slab_enable_cpucache();
+	LOG_EXEC(slab_enable_cpucache());
 	
-	printf("Detected %zu CPU(s), %llu MB free memory\n",
+	printf("Detected %" PRIc " CPU(s), %" PRIu64" MB free memory\n",
 		config.cpu_count, SIZE2MB(zone_total_size()));
-	cpu_init();
 	
-	calibrate_delay_loop();
-	clock_counter_init();
-	timeout_init();
-	scheduler_init();
-	task_init();
-	thread_init();
-	futex_init();
-	klog_init();
+	LOG_EXEC(cpu_init());
+	
+	LOG_EXEC(calibrate_delay_loop());
+	LOG_EXEC(clock_counter_init());
+	LOG_EXEC(timeout_init());
+	LOG_EXEC(scheduler_init());
+	LOG_EXEC(task_init());
+	LOG_EXEC(thread_init());
+	LOG_EXEC(futex_init());
 	
 	if (init.cnt > 0) {
+		count_t i;
 		for (i = 0; i < init.cnt; i++)
-			printf("init[%zd].addr=%.*p, init[%zd].size=%zd\n", i,
-			    sizeof(uintptr_t) * 2, init.tasks[i].addr, i,
-			    init.tasks[i].size);
+			printf("init[%" PRIc "].addr=%#" PRIp
+				", init[%" PRIc "].size=%#" PRIs "\n",
+				i, init.tasks[i].addr,
+				i, init.tasks[i].size);
 	} else
 		printf("No init binaries found\n");
 	
-	ipc_init();
+	LOG_EXEC(ipc_init());
 
 	/*
 	 * Create kernel task.
 	 */
-	k = task_create(AS_KERNEL, "kernel");
-	if (!k)
-		panic("can't create kernel task\n");
+	task_t *kernel = task_create(AS_KERNEL, "kernel");
+	if (!kernel)
+		panic("Can't create kernel task\n");
 	
 	/*
 	 * Create the first thread.
 	 */
-	t = thread_create(kinit, NULL, k, 0, "kinit", true);
-	if (!t)
-		panic("can't create kinit thread\n");
-	thread_ready(t);
+	thread_t *kinit_thread = thread_create(kinit, NULL, kernel, 0, "kinit", true);
+	if (!kinit_thread)
+		panic("Can't create kinit thread\n");
+	LOG_EXEC(thread_ready(kinit_thread));
 	
 	/*
 	 * This call to scheduler() will return to kinit,
