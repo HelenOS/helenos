@@ -160,7 +160,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		len = 0;
 		while ((next <= last) &&  (ops->plb_get_char(next) != '/')) {
 			if (len + 1 == NAME_MAX) {
-				/* comopnent length overflow */
+				/* component length overflow */
 				ipc_answer_0(rid, ENAMETOOLONG);
 				goto out;
 			}
