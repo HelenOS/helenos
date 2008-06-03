@@ -49,7 +49,6 @@
     __syscall(p1, p2, p3, p4, p5, p6,id)
 
 extern void __main(void);
-extern void __io_init(void);
 extern void __exit(void);
 
 #endif
