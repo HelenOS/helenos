@@ -42,7 +42,7 @@
  * @param chardev Character device.
  * @param op Implementation of character device operations.
  */
-void chardev_initialize(char *name,chardev_t *chardev, 
+void chardev_initialize(char *name, chardev_t *chardev, 
 			chardev_operations_t *op)
 {
 	chardev->name = name;

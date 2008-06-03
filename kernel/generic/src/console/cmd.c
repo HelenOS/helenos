@@ -563,7 +563,7 @@ int cmd_uptime(cmd_arg_t *argv)
 	/* This doesn't have to be very accurate */
 	unative_t sec = uptime->seconds1;
 	
-	printf("Up %u days, %u hours, %u minutes, %u seconds\n",
+	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
 		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
 	
 	return 1;
@@ -632,7 +632,7 @@ int cmd_call0(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling %s() (%.*p)\n", symbol, sizeof(uintptr_t) * 2, symaddr);
+		printf("Calling %s() (%p)\n", symbol, symaddr);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((unative_t *)cmd_call2)[1];
@@ -640,7 +640,7 @@ int cmd_call0(cmd_arg_t *argv)
 #else
 		f =  (unative_t (*)(void)) symaddr;
 #endif
-		printf("Result: %#zx\n", f());
+		printf("Result: %#" PRIxn "\n", f());
 	}
 	
 	return 1;
@@ -686,7 +686,7 @@ int cmd_call1(cmd_arg_t *argv)
 	struct {
 		unative_t f;
 		unative_t gp;
-	}fptr;
+	} fptr;
 #endif
 
 	symaddr = get_symbol_addr((char *) argv->buffer);
@@ -698,7 +698,7 @@ int cmd_call1(cmd_arg_t *argv)
 	} else {
 		symbol = get_symtab_entry(symaddr);
 
-		printf("Calling f(%#zx): %.*p: %s\n", arg1, sizeof(uintptr_t) * 2, symaddr, symbol);
+		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((unative_t *)cmd_call2)[1];
@@ -706,7 +706,7 @@ int cmd_call1(cmd_arg_t *argv)
 #else
 		f =  (unative_t (*)(unative_t,...)) symaddr;
 #endif
-		printf("Result: %#zx\n", f(arg1));
+		printf("Result: %#" PRIxn "\n", f(arg1));
 	}
 	
 	return 1;
@@ -735,8 +735,8 @@ int cmd_call2(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(0x%zx,0x%zx): %.*p: %s\n", 
-		       arg1, arg2, sizeof(uintptr_t) * 2, symaddr, symbol);
+		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
+		       arg1, arg2, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((unative_t *)cmd_call2)[1];
@@ -744,7 +744,7 @@ int cmd_call2(cmd_arg_t *argv)
 #else
 		f =  (unative_t (*)(unative_t,unative_t,...)) symaddr;
 #endif
-		printf("Result: %#zx\n", f(arg1, arg2));
+		printf("Result: %#" PRIxn "\n", f(arg1, arg2));
 	}
 	
 	return 1;
@@ -774,8 +774,8 @@ int cmd_call3(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-		printf("Calling f(0x%zx,0x%zx, 0x%zx): %.*p: %s\n", 
-		       arg1, arg2, arg3, sizeof(uintptr_t) * 2, symaddr, symbol);
+		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
+		       arg1, arg2, arg3, symaddr, symbol);
 #ifdef ia64
 		fptr.f = symaddr;
 		fptr.gp = ((unative_t *)cmd_call2)[1];
@@ -783,7 +783,7 @@ int cmd_call3(cmd_arg_t *argv)
 #else
 		f =  (unative_t (*)(unative_t,unative_t,unative_t,...)) symaddr;
 #endif
-		printf("Result: %#zx\n", f(arg1, arg2, arg3));
+		printf("Result: %#" PRIxn "\n", f(arg1, arg2, arg3));
 	}
 	
 	return 1;
@@ -856,7 +856,7 @@ int cmd_set4(cmd_arg_t *argv)
 	} else {
 		if (pointer)
 			addr = (uint32_t *)(*(unative_t *)addr);
-		printf("Writing 0x%x -> %.*p\n", arg1, sizeof(uintptr_t) * 2, addr);
+		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
 		*addr = arg1;
 		
 	}
@@ -1025,7 +1025,7 @@ static bool run_test(const test_t *test)
 	char suffix;
 	order(dt, &cycles, &suffix);
 		
-	printf("Time: %llu%c cycles\n", cycles, suffix);
+	printf("Time: %" PRIu64 "%c cycles\n", cycles, suffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
@@ -1053,7 +1053,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	}
 	
 	for (i = 0; i < cnt; i++) {
-		printf("%s (%d/%d) ... ", test->name, i + 1, cnt);
+		printf("%s (%u/%u) ... ", test->name, i + 1, cnt);
 		
 		/* Update and read thread accounting
 		   for benchmarking */
@@ -1081,7 +1081,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		data[i] = dt;
 		order(dt, &cycles, &suffix);
-		printf("OK (%llu%c cycles)\n", cycles, suffix);
+		printf("OK (%" PRIu64 "%c cycles)\n", cycles, suffix);
 	}
 	
 	if (ret) {
@@ -1094,7 +1094,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		}
 		
 		order(sum / (uint64_t) cnt, &cycles, &suffix);
-		printf("Average\t\t%llu%c\n", cycles, suffix);
+		printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
 	}
 	
 	free(data);

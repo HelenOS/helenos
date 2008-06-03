@@ -43,22 +43,23 @@
 #include <print.h>
 #include <atomic.h>
 
-#define BUFLEN 2048
-static char debug_buffer[BUFLEN];
-static size_t offset = 0;
-/** Initialize stdout to something that does not print, but does not fail
- *
- * Save data in some buffer so that it could be retrieved in the debugger
- */
-static void null_putchar(chardev_t *d, const char ch)
-{
-	if (offset >= BUFLEN)
-		offset = 0;
-	debug_buffer[offset++] = ch;
-}
+#define KLOG_SIZE 4096
+
+/**< Kernel log cyclic buffer */
+static char klog[KLOG_SIZE];
+
+/**< First kernel log characters */
+static index_t klog_start = 0;
+/**< Number of valid kernel log characters */
+static size_t klog_len = 0;
+/**< Number of stored (not printed) kernel log characters */
+static size_t klog_stored = 0;
 
 static chardev_operations_t null_stdout_ops = {
-	.write = null_putchar
+	.suspend = NULL,
+	.resume = NULL,
+	.write = NULL,
+	.read = NULL
 };
 
 chardev_t null_stdout = {
@@ -90,7 +91,7 @@ uint8_t _getc(chardev_t *chardev)
 			return chardev->op->read(chardev);
 		/* no other way of interacting with user, halt */
 		if (CPU)
-			printf("cpu%d: ", CPU->id);
+			printf("cpu%u: ", CPU->id);
 		else
 			printf("cpu: ");
 		printf("halted - no kconsole\n");
@@ -161,8 +162,28 @@ uint8_t getc(chardev_t *chardev)
 
 void putchar(char c)
 {
+	if ((klog_stored > 0) && (stdout->op->write)) {
+		/* Print charaters stored in kernel log */
+		index_t i;
+		for (i = klog_len - klog_stored; i < klog_len; i++)
+			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_SIZE]);
+		klog_stored = 0;
+	}
+	
+	/* Store character in the cyclic kernel log */
+	klog[(klog_start + klog_len) % KLOG_SIZE] = c;
+	if (klog_len < KLOG_SIZE)
+		klog_len++;
+	else
+		klog_start = (klog_start + 1) % KLOG_SIZE;
+	
 	if (stdout->op->write)
 		stdout->op->write(stdout, c);
+	else {
+		/* The character is just in the kernel log */
+		if (klog_stored < klog_len)
+			klog_stored++;
+	}
 }
 
 /** @}
