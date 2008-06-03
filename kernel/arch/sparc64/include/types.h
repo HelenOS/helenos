@@ -35,10 +35,6 @@
 #ifndef KERN_sparc64_TYPES_H_
 #define KERN_sparc64_TYPES_H_
 
-#define NULL 0
-#define false 0
-#define true 1
-
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
@@ -61,13 +57,31 @@ typedef uint64_t ipl_t;
 typedef uint64_t unative_t;
 typedef int64_t native_t;
 
-typedef uint8_t bool;
-typedef uint64_t thread_id_t;
-typedef uint64_t task_id_t;
-typedef uint32_t context_id_t;
+/**< Formats for uintptr_t, size_t, count_t and index_t */
+#define PRIp "llx"
+#define PRIs "llu"
+#define PRIc "llu"
+#define PRIi "llu"
 
-typedef int32_t inr_t;
-typedef int32_t devno_t;
+/**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
+#define PRId8 "d"
+#define PRId16 "d"
+#define PRId32 "d"
+#define PRId64 "lld"
+#define PRIdn "lld"
+
+#define PRIu8 "u"
+#define PRIu16 "u"
+#define PRIu32 "u"
+#define PRIu64 "llu"
+#define PRIun "llu"
+
+#define PRIx8 "x"
+#define PRIx16 "x"
+#define PRIx32 "x"
+#define PRIx64 "llx"
+#define PRIxn "llx"
+
 typedef uint8_t asi_t;
 
 #endif

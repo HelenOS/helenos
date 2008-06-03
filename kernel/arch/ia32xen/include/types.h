@@ -61,14 +61,6 @@ typedef uint8_t ipl_t;
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
-typedef uint8_t bool;
-typedef uint64_t thread_id_t;
-typedef uint64_t task_id_t;
-typedef uint32_t context_id_t;
-
-typedef int32_t inr_t;
-typedef int32_t devno_t;
-
 /** Page Table Entry. */
 typedef struct {
 	unsigned present : 1;

@@ -35,10 +35,6 @@
 #ifndef KERN_ia64_TYPES_H_
 #define KERN_ia64_TYPES_H_
 
-#define NULL 0
-#define false 0
-#define true 1
-
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
@@ -68,14 +64,6 @@ typedef uint64_t ipl_t;
 
 typedef uint64_t unative_t;
 typedef int64_t native_t;
-
-typedef uint8_t bool;
-typedef uint64_t thread_id_t;
-typedef uint64_t task_id_t;
-typedef uint32_t context_id_t;
-
-typedef int32_t inr_t;
-typedef int32_t devno_t;
 
 #endif
 
