@@ -451,7 +451,7 @@ repeat:
 			/*
 			 * Entering state is unexpected.
 			 */
-			panic("tid%llu: unexpected state %s\n", THREAD->tid,
+			panic("tid%" PRIu64 ": unexpected state %s\n", THREAD->tid,
 			    thread_states[THREAD->state]);
 			break;
 		}
@@ -504,7 +504,7 @@ repeat:
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%d: tid %llu (priority=%d, ticks=%llu, nrdy=%ld)\n",
+	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 ", nrdy=%ld)\n",
 	    CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
 	    atomic_get(&CPU->nrdy));
 #endif	
@@ -640,8 +640,8 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%d: TID %llu -> cpu%d, nrdy=%ld, "
-				    "avg=%nd\n", CPU->id, t->tid, CPU->id,
+				printf("kcpulb%u: TID %" PRIu64 " -> cpu%u, nrdy=%ld, "
+				    "avg=%ld\n", CPU->id, t->tid, CPU->id,
 				    atomic_get(&CPU->nrdy),
 				    atomic_get(&nrdy) / config.cpu_active);
 #endif
@@ -708,7 +708,7 @@ void sched_print_list(void)
 			continue;
 
 		spinlock_lock(&cpus[cpu].lock);
-		printf("cpu%d: address=%p, nrdy=%ld, needs_relink=%ld\n",
+		printf("cpu%u: address=%p, nrdy=%ld, needs_relink=%" PRIc "\n",
 		    cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
 		    cpus[cpu].needs_relink);
 		
@@ -719,11 +719,11 @@ void sched_print_list(void)
 				spinlock_unlock(&r->lock);
 				continue;
 			}
-			printf("\trq[%d]: ", i);
+			printf("\trq[%u]: ", i);
 			for (cur = r->rq_head.next; cur != &r->rq_head;
 				cur = cur->next) {
 				t = list_get_instance(cur, thread_t, rq_link);
-				printf("%llu(%s) ", t->tid,
+				printf("%" PRIu64 "(%s) ", t->tid,
 				    thread_states[t->state]);
 			}
 			printf("\n");
