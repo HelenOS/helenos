@@ -78,14 +78,17 @@ SOURCES = \
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs
+
+RD_TASKS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog
@@ -99,17 +102,24 @@ all: image.boot disasm
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
+	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend
+	-for task in $(RD_TASKS) ; do \
+		rm -f $(USPACEDIR)/dist/sbin/`basename $$task` ; \
+	done
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_TASKS) _link.ld.in
+	for task in $(RD_TASKS) ; do \
+		cp $$task $(USPACEDIR)/dist/sbin/ ; \
+	done
+	../../../../tools/mktmpfs.py 16384 $(USPACEDIR)/dist/ initrd.img
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS) ./initrd.img
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

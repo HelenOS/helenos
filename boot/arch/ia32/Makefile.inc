@@ -26,33 +26,43 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TASKS = \
+INIT_TASKS = \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs
+
+RD_TASKS = \
 	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(TASKS)
+$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_TASKS)
 	mkdir -p arch/$(ARCH)/iso/boot/grub
 	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
 	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
 	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
-	for task in $(TASKS) ; do \
+	for task in $(INIT_TASKS) ; do \
 		cp $$task arch/$(ARCH)/iso/boot/ ; \
 	done
+	for task in $(RD_TASKS) ; do \
+		cp $$task $(USPACEDIR)/dist/sbin/ ; \
+	done
+	$(BASE)/tools/mktmpfs.py 4096 $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:
+	-for task in $(RD_TASKS) ; do \
+		rm -f $(USPACEDIR)/dist/sbin/`basename $$task` ; \
+	done
 	-rm -fr arch/$(ARCH)/iso
 	-rm -f $(BASE)/image.iso
