@@ -342,4 +342,3 @@ void fibril_dec_sercount(void)
 
 /** @}
  */
-
