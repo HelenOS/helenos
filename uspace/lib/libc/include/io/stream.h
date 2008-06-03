@@ -39,8 +39,7 @@
 
 #define EMFILE -17
 
-extern void open_stdin(void);
-extern void open_stdout(void);
+extern void open_console(void);
 
 extern ssize_t read_stdin(void *, size_t);
 extern ssize_t write_stdout(const void *, size_t);

@@ -56,52 +56,47 @@ ssize_t write_stderr(const void *buf, size_t count)
 
 ssize_t read_stdin(void *buf, size_t count)
 {
-	ipcarg_t r0, r1;
-	size_t i = 0;
-
-	while (i < count) {
-		if (async_req_0_2(console_phone, CONSOLE_GETCHAR, &r0,
-		    &r1) < 0) {
-			return -1;
+	open_console();
+	if (console_phone >= 0) {
+		ipcarg_t r0, r1;
+		size_t i = 0;
+	
+		while (i < count) {
+			if (async_req_0_2(console_phone, CONSOLE_GETCHAR, &r0, &r1) < 0)
+				return -1;
+			((char *) buf)[i++] = r0;
 		}
-		((char *) buf)[i++] = r0;
+		return i;
 	}
-	return i;
 }
 
 ssize_t write_stdout(const void *buf, size_t count)
 {
-	int i;
-
-	for (i = 0; i < count; i++)
-		async_msg_1(console_phone, CONSOLE_PUTCHAR,
-		    ((const char *) buf)[i]);
+	open_console();
+	if (console_phone >= 0) {
+		int i;
 	
-	return count;
+		for (i = 0; i < count; i++)
+			async_msg_1(console_phone, CONSOLE_PUTCHAR,
+			    ((const char *) buf)[i]);
+		
+		return count;
+	} else
+		return __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, count);
 }
 
-void open_stdin(void)
+void open_console(void)
 {
 	if (console_phone < 0) {
-		while ((console_phone = ipc_connect_me_to(PHONE_NS,
-		    SERVICE_CONSOLE, 0, 0)) < 0) {
-			usleep(10000);
-		}
-	}
-}
-
-void open_stdout(void)
-{
-	if (console_phone < 0) {
-		while ((console_phone = ipc_connect_me_to(PHONE_NS,
-		    SERVICE_CONSOLE, 0, 0)) < 0) {
-			usleep(10000);
-		}
+		int phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0, 0);
+		if (phone >= 0)
+			console_phone = phone;
 	}
 }
 
 int get_cons_phone(void)
 {
+	open_console();
 	return console_phone;
 }
 
