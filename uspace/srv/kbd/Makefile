@@ -72,10 +72,8 @@ ifeq ($(ARCH), sparc64)
 		genarch/src/kbd.c
 endif
 ifeq ($(ARCH), arm32)
-ifeq ($(MACHINE), gxemul_testarm)
 	ARCH_SOURCES += \
 		arch/$(ARCH)/src/kbd_gxemul.c
-endif
 endif
 
 
@@ -100,7 +98,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld -e __entry_driver $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
