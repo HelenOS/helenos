@@ -46,12 +46,13 @@
 #include <libadt/fifo.h>
 #include <screenbuffer.h>
 #include <sys/mman.h>
+#include <stdio.h>
 
 #include "gcons.h"
 
 #define MAX_KEYREQUESTS_BUFFERED 32
 
-#define NAME "CONSOLE"
+#define NAME "console"
 
 /** Index of currently used virtual console.
  */
@@ -474,6 +475,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
+	printf(NAME ": HelenOS Console service\n");
+	
 	ipcarg_t phonehash;
 	int kbd_phone;
 	int i;
@@ -550,10 +553,11 @@ int main(int argc, char *argv[])
 	    connections[active_console].screenbuffer.is_cursor_visible);
 
 	/* Register at NS */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, 0, &phonehash) != 0)
 		return -1;
-	}
 	
+	// FIXME: avoid connectiong to itself, keep using klog
+	// printf(NAME ": Accepting connections\n");
 	async_manager();
 
 	return 0;	
