@@ -50,6 +50,8 @@
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
+#define NAME "tmpfs"
+
 
 vfs_info_t tmpfs_vfs_info = {
 	.name = "tmpfs",
@@ -132,7 +134,7 @@ int main(int argc, char **argv)
 {
 	int vfs_phone;
 
-	printf("TMPFS: HelenOS TMPFS file system server.\n");
+	printf(NAME ": HelenOS TMPFS file system server\n");
 
 	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	while (vfs_phone < EOK) {
@@ -144,13 +146,11 @@ int main(int argc, char **argv)
 	rc = fs_register(vfs_phone, &tmpfs_reg, &tmpfs_vfs_info,
 	    tmpfs_connection);
 	if (rc != EOK) {
-		printf("Failed to register the TMPFS file system (%d)\n", rc);
+		printf(NAME ": Failed to register file system (%d)\n", rc);
 		return rc;
 	}
 	
-	dprintf("TMPFS filesystem registered, fs_handle=%d.\n",
-	    tmpfs_reg.fs_handle);
-
+	printf(NAME ": Accepting connections\n");
 	async_manager();
 	/* not reached */
 	return 0;
