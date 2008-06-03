@@ -50,7 +50,7 @@
 #include <async.h>
 #include <keys.h>
 
-#define NAME "KBD"
+#define NAME "kbd"
 
 int cons_connected = 0;
 int phone2cons = -1;
@@ -121,6 +121,8 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
+	printf(NAME ": HelenOS Keyboard service\n");
+	
 	ipcarg_t phonead;
 	
 	/* Initialize arch dependent parts */
@@ -135,7 +137,8 @@ int main(int argc, char **argv)
 	/* Register service at nameserver */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, 0, &phonead) != 0)
 		return -1;
-
+	
+	printf(NAME ": Accepting connections\n");
 	async_manager();
 
 	/* Never reached */
@@ -145,4 +148,3 @@ int main(int argc, char **argv)
 /**
  * @}
  */ 
-
