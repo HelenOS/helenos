@@ -63,6 +63,9 @@ static unative_t sys_io(int fd, const void * buf, size_t count)
 	char *data;
 	int rc;
 
+	if (count == 0)
+		return 0;
+
 	if (count > PAGE_SIZE)
 		return ELIMIT;
 
