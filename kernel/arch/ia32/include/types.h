@@ -57,30 +57,28 @@ typedef uint32_t ipl_t;
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
-/**< Formats for uintptr_t, size_t, count_t and index_t */
-#define PRIp "x"
-#define PRIs "u"
-#define PRIc "u"
-#define PRIi "u"
+#define PRIp "x"	/**< Format for uintptr_t. */
+#define PRIs "u"	/**< Format for size_t. */
+#define PRIc "u"	/**< Format for count_t. */
+#define PRIi "u"	/**< Format for index_t. */
 
-/**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
-#define PRId8 "d"
-#define PRId16 "d"
-#define PRId32 "d"
-#define PRId64 "lld"
-#define PRIdn "d"
+#define PRId8 "d"	/**< Format for int8_t. */
+#define PRId16 "d"	/**< Format for int16_t. */
+#define PRId32 "d"	/**< Format for int32_t. */
+#define PRId64 "lld"	/**< Format for int64_t. */
+#define PRIdn "d"	/**< Format for native_t. */
 
-#define PRIu8 "u"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-#define PRIun "u"
+#define PRIu8 "u"	/**< Format for uint8_t. */
+#define PRIu16 "u"	/**< Format for uint16_t. */
+#define PRIu32 "u"	/**< Format for uint32_t. */
+#define PRIu64 "llu"	/**< Format for uint64_t. */
+#define PRIun "u"	/**< Format for unative_t. */
 
-#define PRIx8 "x"
-#define PRIx16 "x"
-#define PRIx32 "x"
-#define PRIx64 "llx"
-#define PRIxn "x"
+#define PRIx8 "x"	/**< Format for hexadecimal (u)int8_t. */
+#define PRIx16 "x"	/**< Format for hexadecimal (u)int16_t. */
+#define PRIx32 "x"	/**< Format for hexadecimal (u)uint32_t. */
+#define PRIx64 "llx"	/**< Format for hexadecimal (u)int64_t. */
+#define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
 
 /** Page Table Entry. */
 typedef struct {
