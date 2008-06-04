@@ -31,23 +31,11 @@
 .org 0
 
 .globl __entry
-.globl __entry_driver
 
 ## User-space task entry point
 #
 #
 __entry:
-	alloc loc0 = ar.pfs, 0, 1, 2, 0
-	mov r1 = _gp 
-	br.call.sptk.many b0 = __main
-0:
-	br.call.sptk.many b0 = __io_init
-1:
-	br.call.sptk.many b0 = main
-2:
-	br.call.sptk.many b0 = __exit
-
-__entry_driver:
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
 	mov r1 = _gp 
 	br.call.sptk.many b0 = __main
