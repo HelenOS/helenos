@@ -45,7 +45,7 @@
 KTEXT=8
 KDATA=16
 
-# This piece of code is real-mode and is meant to be alligned at 4K boundary.
+# This piece of code is real-mode and is meant to be aligned at 4K boundary.
 # The requirement for such an alignment comes from MP Specification's STARTUP IPI
 # requirements.
 

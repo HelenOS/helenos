@@ -63,25 +63,25 @@ static unative_t sys_io(int fd, const void * buf, size_t count)
 	char *data;
 	int rc;
 
-	if (count == 0)
-		return 0;
-
 	if (count > PAGE_SIZE)
 		return ELIMIT;
-
-	data = (char *) malloc(count, 0);
-	if (!data)
-		return ENOMEM;
 	
-	rc = copy_from_uspace(data, buf, count);
-	if (rc) {
+	if (count > 0) {
+		data = (char *) malloc(count, 0);
+		if (!data)
+			return ENOMEM;
+		
+		rc = copy_from_uspace(data, buf, count);
+		if (rc) {
+			free(data);
+			return rc;
+		}
+	
+		for (i = 0; i < count; i++)
+			putchar(data[i]);
 		free(data);
-		return rc;
-	}
-
-	for (i = 0; i < count; i++)
-		putchar(data[i]);
-	free(data);
+	} else
+		klog_update();
 	
 	return count;
 }

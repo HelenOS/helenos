@@ -35,25 +35,49 @@
 
 #include <console/console.h>
 #include <console/chardev.h>
+#include <sysinfo/sysinfo.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
+#include <ddi/device.h>
+#include <ddi/irq.h>
+#include <ddi/ddi.h>
+#include <ipc/irq.h>
 #include <arch.h>
 #include <func.h>
 #include <print.h>
 #include <atomic.h>
 
-#define KLOG_SIZE 4096
+#define KLOG_SIZE PAGE_SIZE
 
 /**< Kernel log cyclic buffer */
-static char klog[KLOG_SIZE];
+static char klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
 
+/**< Kernel log initialized */
+static bool klog_inited = false;
 /**< First kernel log characters */
 static index_t klog_start = 0;
 /**< Number of valid kernel log characters */
 static size_t klog_len = 0;
 /**< Number of stored (not printed) kernel log characters */
 static size_t klog_stored = 0;
+/**< Number of stored kernel log characters for uspace */
+static size_t klog_uspace = 0;
+
+/**< Kernel log spinlock */
+SPINLOCK_INITIALIZE(klog_lock);
+
+/** Physical memory area used for klog buffer */
+static parea_t klog_parea;
+	
+/*
+ * For now, we use 0 as INR.
+ * However, it is therefore desirable to have architecture specific
+ * definition of KLOG_VIRT_INR in the future.
+ */
+#define KLOG_VIRT_INR	0
+
+static irq_t klog_irq;
 
 static chardev_operations_t null_stdout_ops = {
 	.suspend = NULL,
@@ -67,9 +91,57 @@ chardev_t null_stdout = {
 	.op = &null_stdout_ops
 };
 
-/** Standard input character device. */
+/** Allways refuse IRQ ownership.
+ *
+ * This is not a real IRQ, so we always decline.
+ *
+ * @return Always returns IRQ_DECLINE.
+ */
+static irq_ownership_t klog_claim(void)
+{
+	return IRQ_DECLINE;
+}
+
+/** Standard input character device */
 chardev_t *stdin = NULL;
 chardev_t *stdout = &null_stdout;
+
+/** Initialize kernel logging facility
+ *
+ * The shared area contains kernel cyclic buffer. Userspace application may
+ * be notified on new data with indication of position and size
+ * of the data within the circular buffer.
+ */
+void klog_init(void)
+{
+	void *faddr = (void *) KA2PA(klog);
+	
+	ASSERT((uintptr_t) faddr % FRAME_SIZE == 0);
+	ASSERT(KLOG_SIZE % FRAME_SIZE == 0);
+
+	devno_t devno = device_assign_devno();
+	
+	klog_parea.pbase = (uintptr_t) faddr;
+	klog_parea.vbase = (uintptr_t) klog;
+	klog_parea.frames = SIZE2FRAMES(KLOG_SIZE);
+	klog_parea.cacheable = true;
+	ddi_parea_register(&klog_parea);
+
+	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(KLOG_SIZE));
+	sysinfo_set_item_val("klog.devno", NULL, devno);
+	sysinfo_set_item_val("klog.inr", NULL, KLOG_VIRT_INR);
+
+	irq_initialize(&klog_irq);
+	klog_irq.devno = devno;
+	klog_irq.inr = KLOG_VIRT_INR;
+	klog_irq.claim = klog_claim;
+	irq_register(&klog_irq);
+	
+	spinlock_lock(&klog_lock);
+	klog_inited = true;
+	spinlock_unlock(&klog_lock);
+}
 
 /** Get character from character device. Do not echo character.
  *
@@ -160,8 +232,22 @@ uint8_t getc(chardev_t *chardev)
 	return ch;
 }
 
+void klog_update(void)
+{
+	spinlock_lock(&klog_lock);
+	
+	if ((klog_inited) && (klog_irq.notif_cfg.notify) && (klog_uspace > 0)) {
+		ipc_irq_send_msg_3(&klog_irq, klog_start, klog_len, klog_uspace);
+		klog_uspace = 0;
+	}
+	
+	spinlock_unlock(&klog_lock);
+}
+
 void putchar(char c)
 {
+	spinlock_lock(&klog_lock);
+	
 	if ((klog_stored > 0) && (stdout->op->write)) {
 		/* Print charaters stored in kernel log */
 		index_t i;
@@ -184,6 +270,14 @@ void putchar(char c)
 		if (klog_stored < klog_len)
 			klog_stored++;
 	}
+	
+	/* The character is stored for uspace */
+	if (klog_uspace < klog_len)
+		klog_uspace++;
+	
+	spinlock_unlock(&klog_lock);
+	
+	klog_update();
 }
 
 /** @}

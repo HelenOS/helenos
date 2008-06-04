@@ -41,6 +41,9 @@
 extern chardev_t *stdin;
 extern chardev_t *stdout;
 
+extern void klog_init(void);
+extern void klog_update(void);
+
 extern uint8_t getc(chardev_t *chardev);
 uint8_t _getc(chardev_t *chardev);
 extern count_t gets(chardev_t *chardev, char *buf, size_t buflen);

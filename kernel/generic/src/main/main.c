@@ -80,6 +80,7 @@
 #include <adt/btree.h>
 #include <smp/smp.h>
 #include <ddi/ddi.h>
+#include <console/console.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -256,6 +257,7 @@ void main_bsp_separated_stack(void)
 		printf("No init binaries found\n");
 	
 	LOG_EXEC(ipc_init());
+	LOG_EXEC(klog_init());
 
 	/*
 	 * Create kernel task.
