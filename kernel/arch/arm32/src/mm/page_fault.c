@@ -40,6 +40,7 @@
 #include <genarch/mm/page_pt.h>
 #include <arch.h>
 #include <interrupt.h>
+#include <print.h>
 
 /** Returns value stored in fault status register.
  *

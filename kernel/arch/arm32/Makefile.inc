@@ -37,9 +37,9 @@ TOOLCHAIN_DIR = /usr/local/arm
 
 KERNEL_LOAD_ADDRESS = 0x80200000
 
-ifeq ($(MACHINE), gxemul_testarm)
+# ifeq ($(MACHINE), gxemul_testarm)
 	DMACHINE = MACHINE_GXEMUL_TESTARM
-endif
+# endif
 
 ATSIGN = %
 
@@ -90,7 +90,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/tlb.c \
 	arch/$(ARCH)/src/mm/page_fault.c
 
-ifeq ($(MACHINE), gxemul_testarm)
+# ifeq ($(MACHINE), gxemul_testarm)
 	ARCH_SOURCES += arch/$(ARCH)/src/drivers/gxemul.c
-endif
+# endif
 
