@@ -52,9 +52,6 @@ __entry:
 	jal __main
 	nop
 	
-	jal __io_init
-	nop
-	
 	jal main
 	nop
 	
@@ -62,28 +59,6 @@ __entry:
 	nop
 .end
 
-.ent __entry_driver
-__entry_driver:
-	.frame $sp, 32, $31
-	.cpload $25
-	
-	
-	# Mips o32 may store its arguments on stack, make space (16 bytes),
-	# so that it could work with -O0
-	# Make space additional 16 bytes for the stack frame
-
-	addiu $sp, -32
-	.cprestore 16   # Allow PIC code
-	
-	jal __main
-	nop
-	
-	jal main
-	nop
-	
-	jal __exit
-	nop
-.end
 # Alignment of output section data to 0x4000
 .section .data
 .align 14

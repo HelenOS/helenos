@@ -35,6 +35,8 @@
 #ifndef KERN_TYPEDEFS_H_
 #define KERN_TYPEDEFS_H_
 
+#include <arch/types.h>
+
 #define NULL 0
 #define false 0
 #define true 1
