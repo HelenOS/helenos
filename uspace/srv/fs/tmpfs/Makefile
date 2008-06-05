@@ -44,7 +44,8 @@ LIBS = $(LIBC_PREFIX)/libc.a $(LIBFS_PREFIX)/libfs.a
 OUTPUT = tmpfs
 SOURCES = \
 	tmpfs.c \
-	tmpfs_ops.c
+	tmpfs_ops.c \
+	tmpfs_dump.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

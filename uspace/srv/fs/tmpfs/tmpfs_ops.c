@@ -50,10 +50,6 @@
 #include <libadt/hash_table.h>
 #include <as.h>
 #include <libfs.h>
-#include <ipc/services.h>
-#include <ipc/devmap.h>
-#include <sys/mman.h>
-#include <byteorder.h>
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 #define max(a, b)		((a) > (b) ? (a) : (b))
@@ -61,10 +57,6 @@
 #define DENTRIES_BUCKETS	256
 
 #define NAMES_BUCKETS		4
-
-#define BLOCK_SIZE			1024	// FIXME
-#define RD_BASE				1024	// FIXME
-#define	RD_READ_BLOCK	(RD_BASE + 1)
 
 /*
  * For now, we don't distinguish between different dev_handles/instances. All
@@ -147,11 +139,6 @@ libfs_ops_t tmpfs_libfs_ops = {
 
 /** Hash table of all directory entries. */
 hash_table_t dentries;
-
-struct rdentry {
-	uint8_t type;
-	uint32_t len;
-} __attribute__((packed));
 
 /* Implementation of hash table interface for the dentries hash table. */
 static hash_index_t dentries_hash(unsigned long *key)
@@ -248,179 +235,6 @@ static bool tmpfs_init(void)
 	}
 	root->lnkcnt = 1;
 	return true;
-}
-
-static bool tmpfs_blockread(int phone, void *buffer, size_t *bufpos, size_t *buflen, size_t *pos, void *dst, size_t size)
-{
-	size_t offset = 0;
-	size_t left = size;
-	
-	while (left > 0) {
-		size_t rd;
-		
-		if (*bufpos + left < *buflen)
-			rd = left;
-		else
-			rd = *buflen - *bufpos;
-		
-		if (rd > 0) {
-			memcpy(dst + offset, buffer + *bufpos, rd);
-			offset += rd;
-			*bufpos += rd;
-			*pos += rd;
-			left -= rd;
-		}
-		
-		if (*bufpos == *buflen) {
-			ipcarg_t retval;
-			int rc = ipc_call_sync_2_1(phone, RD_READ_BLOCK,
-			    *pos / BLOCK_SIZE, BLOCK_SIZE,
-			    &retval);
-			if ((rc != EOK) || (retval != EOK))
-				return false;
-			
-			*bufpos = 0;
-			*buflen = BLOCK_SIZE;
-		}
-	}
-	
-	return true;
-}
-
-static bool tmpfs_restore_recursion(int phone, void *block, size_t *bufpos, size_t *buflen, size_t *pos, tmpfs_dentry_t *parent)
-{
-	struct rdentry entry;
-	
-	do {
-		char *fname;
-		tmpfs_dentry_t *node;
-		uint32_t size;
-		
-		if (!tmpfs_blockread(phone, block, bufpos, buflen, pos, &entry, sizeof(entry)))
-			return false;
-		
-		entry.len = uint32_t_le2host(entry.len);
-		
-		switch (entry.type) {
-		case 0:
-			break;
-		case 1:
-			fname = malloc(entry.len + 1);
-			if (fname == NULL)
-				return false;
-			
-			node = (tmpfs_dentry_t *) tmpfs_create_node(L_FILE);
-			if (node == NULL) {
-				free(fname);
-				return false;
-			}
-			
-			if (!tmpfs_blockread(phone, block, bufpos, buflen, pos, fname, entry.len)) {
-				tmpfs_destroy_node((void *) node);
-				free(fname);
-				return false;
-			}
-			fname[entry.len] = 0;
-			
-			if (!tmpfs_link_node((void *) parent, (void *) node, fname)) {
-				tmpfs_destroy_node((void *) node);
-				free(fname);
-				return false;
-			}
-			free(fname);
-			
-			if (!tmpfs_blockread(phone, block, bufpos, buflen, pos, &size, sizeof(size)))
-				return false;
-			
-			size = uint32_t_le2host(size);
-			
-			node->data = malloc(size);
-			if (node->data == NULL)
-				return false;
-			
-			node->size = size;
-			if (!tmpfs_blockread(phone, block, bufpos, buflen, pos, node->data, size))
-				return false;
-			
-			break;
-		case 2:
-			fname = malloc(entry.len + 1);
-			if (fname == NULL)
-				return false;
-			
-			node = (tmpfs_dentry_t *) tmpfs_create_node(L_DIRECTORY);
-			if (node == NULL) {
-				free(fname);
-				return false;
-			}
-			
-			if (!tmpfs_blockread(phone, block, bufpos, buflen, pos, fname, entry.len)) {
-				tmpfs_destroy_node((void *) node);
-				free(fname);
-				return false;
-			}
-			fname[entry.len] = 0;
-			
-			if (!tmpfs_link_node((void *) parent, (void *) node, fname)) {
-				tmpfs_destroy_node((void *) node);
-				free(fname);
-				return false;
-			}
-			free(fname);
-			
-			if (!tmpfs_restore_recursion(phone, block, bufpos, buflen, pos, node))
-				return false;
-			
-			break;
-		default:
-			return false;
-		}
-	} while (entry.type != 0);
-	
-	return true;
-}
-
-static bool tmpfs_restore(dev_handle_t dev)
-{
-	void *block = mmap(NULL, BLOCK_SIZE,
-	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	
-	if (block == NULL)
-		return false;
-	
-	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CONNECT_TO_DEVICE, dev);
-
-	if (phone < 0) {
-		munmap(block, BLOCK_SIZE);
-		return false;
-	}
-	
-	if (ipc_share_out_start(phone, block, AS_AREA_READ | AS_AREA_WRITE) != EOK)
-		goto error;
-	
-	size_t bufpos = 0;
-	size_t buflen = 0;
-	size_t pos = 0;
-	
-	char tag[6];
-	if (!tmpfs_blockread(phone, block, &bufpos, &buflen, &pos, tag, 5))
-		goto error;
-	
-	tag[5] = 0;
-	if (strcmp(tag, "TMPFS") != 0)
-		goto error;
-	
-	if (!tmpfs_restore_recursion(phone, block, &bufpos, &buflen, &pos, root))
-		goto error;
-		
-	ipc_hangup(phone);
-	munmap(block, BLOCK_SIZE);
-	return true;
-	
-error:
-	ipc_hangup(phone);
-	munmap(block, BLOCK_SIZE);
-	return false;
 }
 
 /** Compare one component of path to a directory entry.

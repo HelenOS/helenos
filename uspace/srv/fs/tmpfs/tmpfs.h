@@ -60,12 +60,16 @@ typedef struct tmpfs_dentry {
 
 extern fs_reg_t tmpfs_reg;
 
+extern libfs_ops_t tmpfs_libfs_ops;
+
 extern void tmpfs_mount(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_write(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_truncate(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_destroy(ipc_callid_t, ipc_call_t *);
+
+extern bool tmpfs_restore(dev_handle_t);
 
 #endif
 
