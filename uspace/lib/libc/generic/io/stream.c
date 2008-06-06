@@ -82,7 +82,7 @@ ssize_t write_stdout(const void *buf, size_t count)
 		
 		return count;
 	} else
-		return __SYSCALL3(SYS_IO, 1, (sysarg_t) buf, count);
+		return __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, count);
 }
 
 void open_console(void)
@@ -92,6 +92,11 @@ void open_console(void)
 		if (phone >= 0)
 			console_phone = phone;
 	}
+}
+
+void klog_update(void)
+{
+	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);
 }
 
 int get_cons_phone(void)

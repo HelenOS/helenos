@@ -40,46 +40,54 @@
 #include <ipc/services.h>
 #include <as.h>
 #include <sysinfo.h>
+#include <io/stream.h>
+#include <errno.h>
+
+#define NAME "klog"
+
+#define KLOG_SIZE PAGE_SIZE
 
 /* Pointer to klog area */
 static char *klog;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
-	int i;
-	
 	async_serialize_start();
-	for (i=0; klog[i + IPC_GET_ARG1(*call)] && i < IPC_GET_ARG2(*call); i++)
-		putchar(klog[i + IPC_GET_ARG1(*call)]);
-	putchar('\n');
+	
+	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
+	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
+	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
+	size_t i;
+	for (i = klog_len - klog_stored; i < klog_len; i++)
+		putchar(klog[(klog_start + i) % KLOG_SIZE]);
+	
 	async_serialize_end();
 }
 
 int main(int argc, char *argv[])
 {
-	int res;
-	void *mapping;
-
-	printf("Kernel console output.\n");
-	
-	mapping = as_get_mappable_page(PAGE_SIZE);
-	res = ipc_share_in_start_1_0(PHONE_NS, mapping, PAGE_SIZE,
-	    SERVICE_MEM_KLOG);
-	if (res) {
-		printf("Failed to initialize klog memarea\n");
-		_exit(1);
+	klog = (char *) as_get_mappable_page(KLOG_SIZE);
+	if (klog == NULL) {
+		printf(NAME ": Error allocating memory area\n");
+		return -1;
 	}
-	klog = mapping;
+	
+	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog, KLOG_SIZE,
+	    SERVICE_MEM_KLOG);
+	if (res != EOK) {
+		printf(NAME ": Error initializing memory area\n");
+		return -1;
+	}
 
 	int inr = sysinfo_value("klog.inr");
 	int devno = sysinfo_value("klog.devno");
-	if (ipc_register_irq(inr, devno, 0, NULL)) {
-		printf("Error registering for klog service.\n");
-		return 0;
+	if (ipc_register_irq(inr, devno, 0, NULL) != EOK) {
+		printf(NAME ": Error registering klog notifications\n");
+		return -1;
 	}
-
+	
 	async_set_interrupt_received(interrupt_received);
-
+	klog_update();
 	async_manager();
 
 	return 0;

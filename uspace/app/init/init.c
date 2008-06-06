@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 	spawn("/sbin/fat");
 	spawn("/sbin/tetris");
 	// FIXME: spawn("/sbin/tester");
-	// FIXME: spawn("/sbin/klog");
+	spawn("/sbin/klog");
 	
 	free(buf);
 	return 0;
