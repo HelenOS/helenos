@@ -83,6 +83,23 @@ static void unused_initialize(unused_t *u, dev_handle_t dev_handle)
 	list_initialize(&u->freed_head);
 }
 
+static unused_t *unused_find(dev_handle_t dev_handle, bool lock)
+{
+	unused_t *u;
+	link_t *l;
+
+	if (lock)
+		futex_down(&unused_futex);
+	for (l = unused_head.next; l != &unused_head; l = l->next) {
+		u = list_get_instance(l, unused_t, link);
+		if (u->dev_handle == dev_handle) 
+			return u;
+	}
+	if (lock)
+		futex_up(&unused_futex);
+	return NULL;
+}
+
 /** Futex protecting the up_hash and ui_hash. */
 static futex_t used_futex = FUTEX_INITIALIZER; 
 
@@ -199,22 +216,13 @@ static hash_table_operations_t uih_ops = {
 /** Allocate a VFS index which is not currently in use. */
 static bool fat_idx_alloc(dev_handle_t dev_handle, fs_index_t *index)
 {
-	link_t *l;
 	unused_t *u;
 	
 	assert(index);
-	futex_down(&unused_futex);
-	for (l = unused_head.next; l != &unused_head; l = l->next) {
-		u = list_get_instance(l, unused_t, link);
-		if (u->dev_handle == dev_handle) 
-			goto hit;
-	}
-	futex_up(&unused_futex);
-	
-	/* dev_handle not found */
-	return false;	
+	u = unused_find(dev_handle, true);
+	if (!u)
+		return false;	
 
-hit:
 	if (list_empty(&u->freed_head)) {
 		if (u->remaining) { 
 			/*
@@ -270,21 +278,11 @@ static void try_coalesce_intervals(link_t *l, link_t *r, link_t *cur)
 /** Free a VFS index, which is no longer in use. */
 static void fat_idx_free(dev_handle_t dev_handle, fs_index_t index)
 {
-	link_t *l;
 	unused_t *u;
 
-	futex_down(&unused_futex);
-	for (l = unused_head.next; l != &unused_head; l = l->next) {
-		u = list_get_instance(l, unused_t, link);
-		if (u->dev_handle == dev_handle)
-			goto hit;
-	}
-	futex_up(&unused_futex);
+	u = unused_find(dev_handle, true);
+	assert(u);
 
-	/* should not happen */
-	assert(0);
-
-hit:
 	if (u->next == index + 1) {
 		/* The index can be returned directly to the counter. */
 		u->next--;
@@ -430,32 +428,28 @@ void fat_idx_fini(void)
 
 int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 {
-	unused_t *u = (unused_t *) malloc(sizeof(unused_t));
+	unused_t *u;
+	int rc = EOK;
+
+	u = (unused_t *) malloc(sizeof(unused_t));
 	if (!u)
 		return ENOMEM;
 	unused_initialize(u, dev_handle);
 	futex_down(&unused_futex);
-	list_append(&u->link, &unused_head);
+	if (!unused_find(dev_handle, false))
+		list_append(&u->link, &unused_head);
+	else
+		rc = EEXIST;
 	futex_up(&unused_futex);
-	return EOK;
+	return rc;
 }
 
 void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
 {
 	unused_t *u;
-	link_t *l;
 
-	futex_down(&unused_futex);
-	for (l = unused_head.next; l != &unused_head; l = l->next) {
-		u = list_get_instance(l, unused_t, link);
-		if (u->dev_handle == dev_handle) 
-			goto hit;
-	}
-	futex_up(&unused_futex);
-
-	assert(false);	/* should not happen */
-
-hit:
+	u = unused_find(dev_handle, true);
+	assert(u);
 	list_remove(&u->link);
 	futex_up(&unused_futex);
 

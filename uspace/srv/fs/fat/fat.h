@@ -40,7 +40,9 @@
 #include <bool.h>
 #include "../../vfs/vfs.h"
 
+#ifndef dprintf
 #define dprintf(...)	printf(__VA_ARGS__)
+#endif
 
 typedef struct {
 	uint8_t		ji[3];		/**< Jump instruction. */
