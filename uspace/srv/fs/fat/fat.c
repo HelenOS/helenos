@@ -55,6 +55,7 @@ vfs_info_t fat_vfs_info = {
 		[IPC_METHOD_TO_VFS_OP(VFS_WRITE)] = VFS_OP_NULL,
 		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_NULL,
 		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_NULL,
+		[IPC_METHOD_TO_VFS_OP(VFS_MOUNTED)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_NULL,
 	}
 };
@@ -97,6 +98,12 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
+		case VFS_MOUNTED:
+			fat_mounted(callid, &call);
+			break;
+		case VFS_MOUNT:
+			fat_mount(callid, &call);
+			break;
 		case VFS_LOOKUP:
 			fat_lookup(callid, &call);
 			break;
@@ -110,8 +117,13 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 int main(int argc, char **argv)
 {
 	int vfs_phone;
+	int rc;
 
 	printf("FAT: HelenOS FAT file system server.\n");
+
+	rc = fat_idx_init();
+	if (rc != EOK)
+		goto err;
 
 	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	while (vfs_phone < EOK) {
@@ -119,11 +131,10 @@ int main(int argc, char **argv)
 		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
 	}
 	
-	int rc;
 	rc = fs_register(vfs_phone, &fat_reg, &fat_vfs_info, fat_connection);
 	if (rc != EOK) {
-		printf("Failed to register the FAT file system (%d)\n", rc);
-		return rc;
+		fat_idx_fini();
+		goto err;
 	}
 	
 	dprintf("FAT filesystem registered, fs_handle=%d.\n",
@@ -132,6 +143,10 @@ int main(int argc, char **argv)
 	async_manager();
 	/* not reached */
 	return 0;
+
+err:
+	printf("Failed to register the FAT file system (%d)\n", rc);
+	return rc;
 }
 
 /**

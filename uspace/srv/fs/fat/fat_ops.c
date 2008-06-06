@@ -558,6 +558,25 @@ libfs_ops_t fat_libfs_ops = {
 	.is_file = fat_is_file
 };
 
+void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	int rc;
+
+	rc = fat_idx_init_by_dev_handle(dev_handle);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
+	ipc_answer_0(rid, EOK);
+}
+
+void fat_mount(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_lookup(&fat_libfs_ops, fat_reg.fs_handle, rid, request);

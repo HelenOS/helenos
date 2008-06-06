@@ -74,6 +74,15 @@ static futex_t unused_futex = FUTEX_INITIALIZER;
 /** List of unused structures. */
 static LIST_INITIALIZE(unused_head);
 
+static void unused_initialize(unused_t *u, dev_handle_t dev_handle)
+{
+	link_initialize(&u->link);
+	u->dev_handle = dev_handle;
+	u->next = 0;
+	u->remaining = ((uint64_t)((fs_index_t)-1)) + 1;
+	list_initialize(&u->freed_head);
+}
+
 /** Futex protecting the up_hash and ui_hash. */
 static futex_t used_futex = FUTEX_INITIALIZER; 
 
@@ -401,3 +410,64 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 	return fidx;
 }
 
+int fat_idx_init(void)
+{
+	if (!hash_table_create(&up_hash, UPH_BUCKETS, 3, &uph_ops)) 
+		return ENOMEM;
+	if (!hash_table_create(&ui_hash, UIH_BUCKETS, 2, &uih_ops)) {
+		hash_table_destroy(&up_hash);
+		return ENOMEM;
+	}
+	return EOK;
+}
+
+void fat_idx_fini(void)
+{
+	/* We assume the hash tables are empty. */
+	hash_table_destroy(&up_hash);
+	hash_table_destroy(&ui_hash);
+}
+
+int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
+{
+	unused_t *u = (unused_t *) malloc(sizeof(unused_t));
+	if (!u)
+		return ENOMEM;
+	unused_initialize(u, dev_handle);
+	futex_down(&unused_futex);
+	list_append(&u->link, &unused_head);
+	futex_up(&unused_futex);
+	return EOK;
+}
+
+void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
+{
+	unused_t *u;
+	link_t *l;
+
+	futex_down(&unused_futex);
+	for (l = unused_head.next; l != &unused_head; l = l->next) {
+		u = list_get_instance(l, unused_t, link);
+		if (u->dev_handle == dev_handle) 
+			goto hit;
+	}
+	futex_up(&unused_futex);
+
+	assert(false);	/* should not happen */
+
+hit:
+	list_remove(&u->link);
+	futex_up(&unused_futex);
+
+	while (!list_empty(&u->freed_head)) {
+		freed_t *f;
+		f = list_get_instance(u->freed_head.next, freed_t, link);
+		list_remove(&f->link);
+		free(f);
+	}
+	free(u); 
+}
+
+/**
+ * @}
+ */ 
