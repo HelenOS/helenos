@@ -36,7 +36,7 @@ all:	gefi hello.efi
 
 
 clean:
-	rm -f *.efi *~ *.o *.so
+	rm -f *.efi *~ *.o *.so *.map *.disass *.bin
 
 .PHONY: install
 

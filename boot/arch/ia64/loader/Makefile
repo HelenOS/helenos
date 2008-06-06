@@ -120,7 +120,8 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend ../../../../image.bin ../../../../hello.efi
+	make -C gefi clean
 	make -C gefi/HelenOS clean
 
 _components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
