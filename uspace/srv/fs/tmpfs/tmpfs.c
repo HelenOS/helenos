@@ -61,6 +61,7 @@ vfs_info_t tmpfs_vfs_info = {
 		[IPC_METHOD_TO_VFS_OP(VFS_WRITE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_TRUNCATE)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_MOUNT)] = VFS_OP_DEFINED,
+		[IPC_METHOD_TO_VFS_OP(VFS_MOUNTED)] = VFS_OP_DEFINED,
 		[IPC_METHOD_TO_VFS_OP(VFS_UNMOUNT)] = VFS_OP_NULL,
 		[IPC_METHOD_TO_VFS_OP(VFS_DESTROY)] = VFS_OP_DEFINED,
 	}
@@ -105,6 +106,9 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
+		case VFS_MOUNTED:
+			tmpfs_mounted(callid, &call);
+			break;
 		case VFS_MOUNT:
 			tmpfs_mount(callid, &call);
 			break;

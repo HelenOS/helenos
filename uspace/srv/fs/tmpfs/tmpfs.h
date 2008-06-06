@@ -40,7 +40,9 @@
 #include <bool.h>
 #include <libadt/hash_table.h>
 
+#ifndef dprintf
 #define dprintf(...)	printf(__VA_ARGS__)
+#endif
 
 typedef struct tmpfs_dentry {
 	fs_index_t index;	/**< TMPFS node index. */
@@ -62,6 +64,7 @@ extern fs_reg_t tmpfs_reg;
 
 extern libfs_ops_t tmpfs_libfs_ops;
 
+extern void tmpfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_mount(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);

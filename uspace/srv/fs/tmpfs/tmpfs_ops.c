@@ -393,36 +393,38 @@ int tmpfs_destroy_node(void *nodep)
 	return EOK;
 }
 
-void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
+void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t mr_index = (fs_index_t) IPC_GET_ARG2(*request);
-	fs_handle_t mp_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
-	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
-	fs_index_t mp_index = (fs_index_t) IPC_GET_ARG5(*request);
-	
-	if ((mr_index == root->index) &&
-		(mp_fs_handle == tmpfs_reg.fs_handle) &&
-		(mp_index == mr_index)) {
-		
-		if (mr_dev_handle >= 0) {
-			if (tmpfs_restore(mr_dev_handle))
-				ipc_answer_0(rid, EOK);
-			else
-				ipc_answer_0(rid, ELIMIT);
-		} else
-			ipc_answer_0(rid, EOK);
-	} else
-		ipc_answer_0(rid, ENOTSUP);
-}
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 
-void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
-{
 	/* Initialize TMPFS. */
 	if (!root && !tmpfs_init()) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
+
+	if (dev_handle >= 0) {
+		if (tmpfs_restore(dev_handle))
+			ipc_answer_0(rid, EOK);
+		else
+			ipc_answer_0(rid, ELIMIT);
+	} else {
+			ipc_answer_0(rid, EOK);
+	}
+}
+
+void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t mp_index = (fs_index_t) IPC_GET_ARG2(*request);
+	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
+	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
+	
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
+{
 	libfs_lookup(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
 }
 

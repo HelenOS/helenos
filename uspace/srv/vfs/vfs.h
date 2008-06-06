@@ -65,6 +65,7 @@ typedef enum {
 
 typedef enum {
 	VFS_LOOKUP = VFS_LAST_CMN,
+	VFS_MOUNTED,
 	VFS_DESTROY,
 	VFS_LAST_CLNT,	/* keep this the last member of this enum */
 } vfs_request_clnt_t;
@@ -244,7 +245,7 @@ extern futex_t nodes_futex;
 
 extern link_t fs_head;		/**< List of registered file systems. */
 
-extern vfs_triplet_t rootfs;	/**< Root node of the root file system. */
+extern vfs_pair_t rootfs;	/**< Root file system. */
 
 #define MAX_PATH_LEN		(64 * 1024)
 

@@ -62,23 +62,10 @@ static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, size_t);
 RWLOCK_INITIALIZE(namespace_rwlock);
 
 futex_t rootfs_futex = FUTEX_INITIALIZER;
-vfs_triplet_t rootfs = {
+vfs_pair_t rootfs = {
 	.fs_handle = 0,
-	.dev_handle = 0,
-	.index = 0,
+	.dev_handle = 0
 };
-
-static int
-lookup_root(fs_handle_t fs_handle, dev_handle_t dev_handle,
-    vfs_lookup_res_t *result)
-{
-	vfs_pair_t altroot = {
-		.fs_handle = fs_handle,
-		.dev_handle = dev_handle,
-	};
-
-	return vfs_lookup_internal("/", L_DIRECTORY, result, &altroot);
-}
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -163,27 +150,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	(void) ipc_data_write_finalize(callid, buf, size);
 	buf[size] = '\0';
 
-	/*
-	 * Lookup the root node of the filesystem being mounted.
-	 * In this case, we don't need to take the namespace_futex as the root
-	 * node cannot be removed. However, we do take a reference to it so
-	 * that we can track how many times it has been mounted.
-	 */
-	vfs_lookup_res_t mr_res;
-	rc = lookup_root(fs_handle, dev_handle, &mr_res);
-	if (rc != EOK) {
-		free(buf);
-		ipc_answer_0(rid, rc);
-		return;
-	}
-	vfs_node_t *mr_node = vfs_node_get(&mr_res);
-	if (!mr_node) {
-		free(buf);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-
-	/* Finally, we need to resolve the path to the mountpoint. */
+	/* Resolve the path to the mountpoint. */
 	vfs_lookup_res_t mp_res;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
@@ -193,7 +160,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			/* Trying to mount root FS over root FS */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			vfs_node_put(mr_node);
 			free(buf);
 			ipc_answer_0(rid, EBUSY);
 			return;
@@ -203,7 +169,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			/* The lookup failed for some reason. */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
 			ipc_answer_0(rid, rc);
 			return;
@@ -212,7 +177,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		if (!mp_node) {
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			vfs_node_put(mr_node);	/* failed -> drop reference */
 			free(buf);
 			ipc_answer_0(rid, ENOMEM);
 			return;
@@ -232,20 +196,16 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 */
 			free(buf);
 			
-			/* Inform the mount point about the root mount. */
-			phone = vfs_grab_phone(mr_res.triplet.fs_handle);
-			rc = async_req_5_0(phone, VFS_MOUNT,
-			    (ipcarg_t) mr_res.triplet.dev_handle,
-			    (ipcarg_t) mr_res.triplet.index,
-			    (ipcarg_t) mr_res.triplet.fs_handle,
-			    (ipcarg_t) mr_res.triplet.dev_handle,
-			    (ipcarg_t) mr_res.triplet.index);
+			/* Tell the mountee that it is being mounted. */
+			phone = vfs_grab_phone(fs_handle);
+			rc = async_req_1_0(phone, VFS_MOUNTED,
+			    (ipcarg_t) dev_handle);
 			vfs_release_phone(phone);
 
-			if (rc == EOK)
-				rootfs = mr_res.triplet;
-			else 
-				vfs_node_put(mr_node);
+			if (rc == EOK) {
+				rootfs.fs_handle = fs_handle;
+				rootfs.dev_handle = dev_handle;
+			}
 
 			futex_up(&rootfs_futex);
 			ipc_answer_0(rid, rc);
@@ -257,7 +217,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 */
 			futex_up(&rootfs_futex);
 			free(buf);
-			vfs_node_put(mr_node);	/* failed -> drop reference */
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -268,26 +227,19 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	
 	/*
 	 * At this point, we have all necessary pieces: file system and device
-	 * handles, and we know the mount point VFS node and also the root node
-	 * of the file system being mounted.
+	 * handles, and we know the mount point VFS node.
 	 */
 
-	/**
-	 * @todo
-	 * Add more IPC parameters so that we can send mount mode/flags.
-	 */
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
-	rc = async_req_5_0(phone, VFS_MOUNT,
+	rc = async_req_4_0(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
 	    (ipcarg_t) mp_res.triplet.index,
-	    (ipcarg_t) mr_res.triplet.fs_handle,
-	    (ipcarg_t) mr_res.triplet.dev_handle,
-	    (ipcarg_t) mr_res.triplet.index);
+	    (ipcarg_t) fs_handle,
+	    (ipcarg_t) dev_handle);
 	vfs_release_phone(phone);
 
 	if (rc != EOK) {
-		/* Mount failed, drop references to mr_node and mp_node. */
-		vfs_node_put(mr_node);
+		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
 	}

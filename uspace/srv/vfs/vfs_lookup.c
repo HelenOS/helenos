@@ -72,7 +72,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	if (altroot)
 		root = altroot;
 	else
-		root = (vfs_pair_t *) &rootfs;
+		root = &rootfs;
 
 	if (!root->fs_handle)
 		return ENOENT;
