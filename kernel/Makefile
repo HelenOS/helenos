@@ -34,7 +34,7 @@
 -include Makefile.config
 
 INCLUDES = generic/include
-OPTIMIZATION = 3
+OPTIMIZATION = 1
 
 ## Common compiler flags
 #

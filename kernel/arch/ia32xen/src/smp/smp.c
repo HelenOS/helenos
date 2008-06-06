@@ -146,7 +146,7 @@ void kmp(void *arg)
 			panic("couldn't allocate memory for GDT\n");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
-		memsetb((uintptr_t)(&gdt_new[TSS_DES]), sizeof(struct descriptor), 0);
+		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
 		gdtr.base = (uintptr_t) gdt_new;
 
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {

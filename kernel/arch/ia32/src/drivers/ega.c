@@ -115,7 +115,7 @@ static void ega_check_cursor(void)
 		return;
 
 	memcpy((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
-	memsetw((uintptr_t) (videoram + (SCREEN - ROW) * 2), ROW, 0x0720);
+	memsetw(videoram + (SCREEN - ROW) * 2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 

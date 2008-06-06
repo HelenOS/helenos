@@ -162,7 +162,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 * and cleared.
 		 */
 		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
-		memsetb(PA2KA(frame), FRAME_SIZE, 0);
+		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 		dirty = true;
 	} else {
 		size_t pad_lo, pad_hi;
@@ -187,8 +187,8 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		memcpy((void *) (PA2KA(frame) + pad_lo),
 		    (void *) (base + i * FRAME_SIZE + pad_lo),
 		    FRAME_SIZE - pad_lo - pad_hi);
-		memsetb(PA2KA(frame), pad_lo, 0);
-		memsetb(PA2KA(frame) + FRAME_SIZE - pad_hi, pad_hi, 0);
+		memsetb((void *) PA2KA(frame), pad_lo, 0);
+		memsetb((void *) (PA2KA(frame) + FRAME_SIZE - pad_hi), pad_hi, 0);
 		dirty = true;
 	}
 

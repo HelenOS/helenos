@@ -87,7 +87,7 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
  * @param x   Value to fill.
  *
  */
-void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
+void _memsetb(void *dst, size_t cnt, uint8_t x)
 {
 	unsigned int i;
 	uint8_t *p = (uint8_t *) dst;
@@ -106,7 +106,7 @@ void _memsetb(uintptr_t dst, size_t cnt, uint8_t x)
  * @param x   Value to fill.
  *
  */
-void _memsetw(uintptr_t dst, size_t cnt, uint16_t x)
+void _memsetw(void *dst, size_t cnt, uint16_t x)
 {
 	unsigned int i;
 	uint16_t *p = (uint16_t *) dst;

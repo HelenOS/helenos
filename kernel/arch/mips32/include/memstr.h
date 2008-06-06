@@ -37,10 +37,10 @@
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
-extern void memsetw(uintptr_t dst, size_t cnt, uint16_t x);
-extern void memsetb(uintptr_t dst, size_t cnt, uint8_t x);
+extern void memsetw(void *dst, size_t cnt, uint16_t x);
+extern void memsetb(void *dst, size_t cnt, uint8_t x);
 
-extern int memcmp(uintptr_t src, uintptr_t dst, int cnt);
+extern int memcmp(const void *a, const void *b, size_t cnt);
 
 #endif
 

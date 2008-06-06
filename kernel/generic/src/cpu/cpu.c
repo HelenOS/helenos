@@ -67,7 +67,7 @@ void cpu_init(void) {
 			panic("malloc/cpus");
 
 		/* initialize everything */
-		memsetb((uintptr_t) cpus, sizeof(cpu_t) * config.cpu_count, 0);
+		memsetb(cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
 		for (i = 0; i < config.cpu_count; i++) {
 			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);

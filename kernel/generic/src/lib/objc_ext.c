@@ -161,7 +161,7 @@ long int __strtol_internal(const char *__nptr, char **__endptr, int __base, int 
 
 void *memset(void *s, int c, size_t n)
 {
-	memsetb((uintptr_t) s, n, c);
+	memsetb(s, n, c);
 	return s;
 }
 

@@ -324,8 +324,7 @@ as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 	if (backend_data)
 		a->backend_data = *backend_data;
 	else
-		memsetb((uintptr_t) &a->backend_data, sizeof(a->backend_data),
-		    0);
+		memsetb(&a->backend_data, sizeof(a->backend_data), 0);
 
 	btree_create(&a->used_space);
 	

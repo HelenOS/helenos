@@ -68,8 +68,8 @@ static void totalmemtest(bool quiet)
 				slab_free(cache2, data2);
 			break;
 		}
-		memsetb((uintptr_t) data1, ITEM_SIZE, 0);
-		memsetb((uintptr_t) data2, ITEM_SIZE, 0);
+		memsetb(data1, ITEM_SIZE, 0);
+		memsetb(data2, ITEM_SIZE, 0);
 		*((void **) data1) = olddata1;
 		*((void **) data2) = olddata2;
 		olddata1 = data1;
@@ -100,7 +100,7 @@ static void totalmemtest(bool quiet)
 				printf("Incorrect memory size - use another test.");
 			return;
 		}
-		memsetb((uintptr_t) data1, ITEM_SIZE, 0);
+		memsetb(data1, ITEM_SIZE, 0);
 		*((void **) data1) = olddata1;
 		olddata1 = data1;
 	}
@@ -108,7 +108,7 @@ static void totalmemtest(bool quiet)
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
 		if (!data1)
 			break;
-		memsetb((uintptr_t) data1, ITEM_SIZE, 0);
+		memsetb(data1, ITEM_SIZE, 0);
 		*((void **) data1) = olddata1;
 		olddata1 = data1;
 	}

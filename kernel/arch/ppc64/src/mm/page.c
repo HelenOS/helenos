@@ -252,7 +252,7 @@ fail:
 
 void pht_init(void)
 {
-	memsetb((uintptr_t) phte, 1 << PHT_BITS, 0);
+	memsetb(phte, 1 << PHT_BITS, 0);
 }
 
 

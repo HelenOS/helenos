@@ -76,7 +76,7 @@ int as_constructor_arch(as_t *as, int flags)
 	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
 	    sizeof(tsb_entry_t));
 
-	memsetb((uintptr_t) as->arch.itsb,
+	memsetb(as->arch.itsb,
 	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
 #endif
 	return 0;

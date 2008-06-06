@@ -69,7 +69,7 @@ extern void xen_failsafe_callback(void);
 void arch_pre_main(void)
 {
 	pte_t pte;
-	memsetb((uintptr_t) &pte, sizeof(pte), 0);
+	memsetb(&pte, sizeof(pte), 0);
 	
 	pte.present = 1;
 	pte.writeable = 1;
@@ -103,7 +103,7 @@ void arch_pre_main(void)
 			uintptr_t tpa = PFN2ADDR(meminfo.start + meminfo.reserved);
 			uintptr_t tva = PA2KA(tpa);
 			
-			memsetb(tva, PAGE_SIZE, 0);
+			memsetb((void *) tva, PAGE_SIZE, 0);
 			
 			pte_t *tptl3 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(start_info.ptl0, PTL0_INDEX(tva)));
 			SET_FRAME_ADDRESS(tptl3, PTL3_INDEX(tva), 0);

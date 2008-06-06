@@ -81,7 +81,7 @@ void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 
 void vhpt_invalidate_all()
 {
-	memsetb((uintptr_t) vhpt_base, 1 << VHPT_WIDTH, 0);
+	memsetb(vhpt_base, 1 << VHPT_WIDTH, 0);
 }
 
 void vhpt_invalidate_asid(asid_t asid)

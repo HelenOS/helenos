@@ -160,8 +160,7 @@ void kmp(void *arg __attribute__((unused)))
 			panic("couldn't allocate memory for GDT\n");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
-		memsetb((uintptr_t)(&gdt_new[TSS_DES]),
-		    sizeof(struct descriptor), 0);
+		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
 		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(struct descriptor);
 		protected_ap_gdtr.base = KA2PA((uintptr_t) gdt_new);
 		gdtr.base = (uintptr_t) gdt_new;

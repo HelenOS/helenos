@@ -98,7 +98,7 @@ void gdt_setlimit(descriptor_t *d, uint32_t limit)
 
 void tss_initialize(tss_t *t)
 {
-	memsetb((uintptr_t) t, sizeof(struct tss), 0);
+	memsetb(t, sizeof(struct tss), 0);
 }
 
 static void trap(void)

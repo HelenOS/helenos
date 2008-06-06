@@ -559,8 +559,7 @@ static void make_magcache(slab_cache_t *cache)
 
 	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,0);
 	for (i = 0; i < config.cpu_count; i++) {
-		memsetb((uintptr_t)&cache->mag_cache[i],
-			sizeof(cache->mag_cache[i]), 0);
+		memsetb(&cache->mag_cache[i], sizeof(cache->mag_cache[i]), 0);
 		spinlock_initialize(&cache->mag_cache[i].lock, "slab_maglock_cpu");
 	}
 }
@@ -578,7 +577,7 @@ _slab_cache_create(slab_cache_t *cache,
 	int pages;
 	ipl_t ipl;
 
-	memsetb((uintptr_t)cache, sizeof(*cache), 0);
+	memsetb(cache, sizeof(*cache), 0);
 	cache->name = name;
 
 	if (align < sizeof(unative_t))

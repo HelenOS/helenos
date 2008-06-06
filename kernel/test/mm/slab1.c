@@ -53,7 +53,7 @@ static void testit(int size, int count, bool quiet)
 	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t) data[i], size, 0);
+		memsetb(data[i], size, 0);
 	}
 	
 	if (!quiet) {
@@ -71,7 +71,7 @@ static void testit(int size, int count, bool quiet)
 	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t) data[i], size, 0);
+		memsetb(data[i], size, 0);
 	}
 	
 	if (!quiet) {
@@ -89,7 +89,7 @@ static void testit(int size, int count, bool quiet)
 	
 	for (i = count / 2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
-		memsetb((uintptr_t) data[i], size, 0);
+		memsetb(data[i], size, 0);
 	}
 	
 	if (!quiet) {

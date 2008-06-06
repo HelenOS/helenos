@@ -63,7 +63,7 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
 	if (!h->entry) {
 		panic("cannot allocate memory for hash table\n");
 	}
-	memsetb((uintptr_t) h->entry, m * sizeof(link_t), 0);
+	memsetb(h->entry, m * sizeof(link_t), 0);
 	
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);

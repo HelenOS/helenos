@@ -55,7 +55,7 @@ static void falloc(void * arg)
 	uint8_t val = THREAD->tid % THREADS;
 	index_t k;
 	
-	uintptr_t * frames =  (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
+	void **frames =  (void **) malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
 	if (frames == NULL) {
 		if (!sh_quiet)
 			printf("Thread #%" PRIu64 " (cpu%u): Unable to allocate frames\n", THREAD->tid, CPU->id);
@@ -73,7 +73,7 @@ static void falloc(void * arg)
 			
 			allocated = 0;
 			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = (uintptr_t)frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				frames[allocated] = frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				if (frames[allocated]) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;

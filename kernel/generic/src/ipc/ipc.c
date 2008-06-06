@@ -66,7 +66,7 @@ static slab_cache_t *ipc_call_slab;
  */
 static void _ipc_call_init(call_t *call)
 {
-	memsetb((uintptr_t) call, sizeof(*call), 0);
+	memsetb(call, sizeof(*call), 0);
 	call->callerbox = &TASK->answerbox;
 	call->sender = TASK;
 	call->buffer = NULL;

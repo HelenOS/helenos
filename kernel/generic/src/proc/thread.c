@@ -293,8 +293,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 		return NULL;
 	
 	/* Not needed, but good for debugging */
-	memsetb((uintptr_t) t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES,
-	    0);
+	memsetb(t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES, 0);
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&tidlock);

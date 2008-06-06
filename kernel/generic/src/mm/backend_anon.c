@@ -113,7 +113,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			}
 			if (allocate) {
 				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
-				memsetb(PA2KA(frame), FRAME_SIZE, 0);
+				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 				dirty = true;
 				
 				/*
@@ -144,7 +144,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   the different causes
 		 */
 		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
-		memsetb(PA2KA(frame), FRAME_SIZE, 0);
+		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 		dirty = true;
 	}
 	

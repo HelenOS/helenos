@@ -112,7 +112,7 @@ void idt_setoffset(idescriptor_t *d, uintptr_t offset)
 
 void tss_initialize(tss_t *t)
 {
-	memsetb((uintptr_t) t, sizeof(struct tss), 0);
+	memsetb(t, sizeof(struct tss), 0);
 }
 
 /*
@@ -240,7 +240,7 @@ void arch_reboot(void)
 	preemption_disable();
 	ipl_t ipl = interrupts_disable();
 	
-	memsetb((uintptr_t) idt, sizeof(idt), 0);
+	memsetb(idt, sizeof(idt), 0);
 	
 	ptr_16_32_t idtr;
 	idtr.limit = sizeof(idt);
