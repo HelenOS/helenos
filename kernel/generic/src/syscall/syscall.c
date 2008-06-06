@@ -57,7 +57,7 @@
  * Print to kernel log.
  *
  */
-static unative_t sys_io(int fd, const void * buf, size_t count) 
+static unative_t sys_klog(int fd, const void * buf, size_t count) 
 {
 	size_t i;
 	char *data;
@@ -114,7 +114,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
-	(syshandler_t) sys_io,
+	(syshandler_t) sys_klog,
 	(syshandler_t) sys_tls_set,
 	
 	/* Thread and task related syscalls. */

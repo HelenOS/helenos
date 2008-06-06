@@ -49,6 +49,7 @@
 #include <atomic.h>
 
 #define KLOG_SIZE PAGE_SIZE
+#define KLOG_LATENCY 8
 
 /**< Kernel log cyclic buffer */
 static char klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
@@ -275,9 +276,17 @@ void putchar(char c)
 	if (klog_uspace < klog_len)
 		klog_uspace++;
 	
+	/* Check notify uspace to update */
+	bool update;
+	if ((klog_uspace > KLOG_LATENCY) || (c == '\n'))
+		update = true;
+	else
+		update = false;
+	
 	spinlock_unlock(&klog_lock);
 	
-	klog_update();
+	if (update)
+		klog_update();
 }
 
 /** @}

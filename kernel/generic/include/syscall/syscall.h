@@ -36,7 +36,7 @@
 #define KERN_SYSCALL_H_
 
 typedef enum {
-	SYS_IO = 0,
+	SYS_KLOG = 0,
 	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
 	
 	SYS_THREAD_CREATE,
