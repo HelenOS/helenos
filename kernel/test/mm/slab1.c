@@ -151,7 +151,7 @@ static void slabtest(void *data)
 	}
 	
 	if (!sh_quiet)
-		printf("Thread #" PRIu64 " finished\n", THREAD->tid);
+		printf("Thread #%" PRIu64 " finished\n", THREAD->tid);
 	
 	semaphore_up(&thr_sem);
 }
