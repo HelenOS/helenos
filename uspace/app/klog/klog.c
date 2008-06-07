@@ -50,6 +50,12 @@
 /* Pointer to klog area */
 static char *klog;
 
+static void console_wait(void)
+{
+	while (get_cons_phone() < 0)
+		usleep(50000);	// FIXME
+}
+
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 	async_serialize_start();
@@ -66,6 +72,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
+	console_wait();
+	
 	klog = (char *) as_get_mappable_page(KLOG_SIZE);
 	if (klog == NULL) {
 		printf(NAME ": Error allocating memory area\n");
