@@ -112,11 +112,16 @@ static void block_put(block_t *block)
 #define FAT_BS(b)		((fat_bs_t *)((b)->data))
 
 #define FAT_CLST_RES0	0x0000
-#define FAT_CLST_RES1	0x0001	/* internally used to mark root directory */
+#define FAT_CLST_RES1	0x0001
 #define FAT_CLST_FIRST	0x0002
 #define FAT_CLST_BAD	0xfff7
 #define FAT_CLST_LAST1	0xfff8
 #define FAT_CLST_LAST8  0xffff
+
+/* internally used to mark root directory's parent */
+#define FAT_CLST_ROOTPAR	FAT_CLST_RES0
+/* internally used to mark root directory */
+#define FAT_CLST_ROOT		FAT_CLST_RES1
 
 #define fat_block_get(np, off) \
     _fat_block_get((np)->idx->dev_handle, (np)->firstc, (off))
@@ -151,7 +156,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
 	ssa = rscnt + fatcnt * sf + rds;
 
-	if (firstc == FAT_CLST_RES1) {
+	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(offset < rds);
 		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
@@ -521,7 +526,7 @@ static bool fat_has_children(void *node)
 
 static void *fat_root_get(dev_handle_t dev_handle)
 {
-	return NULL;	/* TODO */
+	return fat_node_get(dev_handle, 0);
 }
 
 static char fat_plb_get_char(unsigned pos)
@@ -561,13 +566,48 @@ libfs_ops_t fat_libfs_ops = {
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	block_t *bb;
+	uint16_t rde;
 	int rc;
+
+	/* Read the number of root directory entries. */
+	bb = block_get(dev_handle, BS_BLOCK);
+	rde = uint16_t_le2host(FAT_BS(bb)->root_ent_max);
+	block_put(bb);
 
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
 	}
+
+	/* Initialize the root node. */
+	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
+	if (!rootp) {
+		fat_idx_fini_by_dev_handle(dev_handle);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	fat_node_initialize(rootp);
+
+	fat_idx_t *ridxp = fat_idx_get_by_pos(dev_handle, FAT_CLST_ROOTPAR, 0);
+	if (!ridxp) {
+		free(rootp);
+		fat_idx_fini_by_dev_handle(dev_handle);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	assert(ridxp->index == 0);
+	/* ridxp->lock held */
+
+	rootp->type = FAT_DIRECTORY;
+	rootp->firstc = FAT_CLST_ROOT;
+	rootp->refcnt = 1;
+	rootp->size = rde * sizeof(fat_dentry_t);
+	rootp->idx = ridxp;
+	ridxp->nodep = rootp;
+	
+	futex_up(&ridxp->lock);
 
 	ipc_answer_0(rid, EOK);
 }
