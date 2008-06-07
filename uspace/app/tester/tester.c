@@ -128,10 +128,15 @@ int main(void)
 				printf("Unknown test\n\n");
 			else
 				run_test(test);
-		} else if (c == '*')
+		} else if (c == '*') {
 			run_safe_tests();
-		else
+		} else if (c < 0) {
+			/* got EOF */
+			break;
+		} else {
 			printf("Invalid test\n\n");
+		}
+			
 	}
 }
 

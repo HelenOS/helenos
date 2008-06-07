@@ -67,6 +67,8 @@ ssize_t read_stdin(void *buf, size_t count)
 			((char *) buf)[i++] = r0;
 		}
 		return i;
+	} else {
+		return -1;
 	}
 }
 
