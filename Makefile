@@ -113,7 +113,7 @@ ifeq ($(PLATFORM),ia32xen)
 	BARCH = ia32xen
 endif
 
-.PHONY: all build config distclean clean
+.PHONY: all build config distclean clean cscope
 
 all:
 	tools/config.py HelenOS.config default $(PLATFORM) $(COMPILER) $(CONFIG_DEBUG)
@@ -145,3 +145,8 @@ clean:
 	-$(MAKE) -C kernel clean
 	-$(MAKE) -C uspace clean
 	-$(MAKE) -C boot clean
+
+cscope:
+	-rm cscope.out
+	-find kernel boot uspace -regex '^.*\.[chsS]$$' -print >srclist
+	-cscope -bi srclist
