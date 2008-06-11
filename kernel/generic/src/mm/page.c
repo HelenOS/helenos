@@ -45,6 +45,7 @@
 #include <arch/mm/asid.h>
 #include <mm/as.h>
 #include <mm/frame.h>
+#include <arch/barrier.h>
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <memstr.h>
@@ -65,8 +66,8 @@ void page_init(void)
  * considering possible crossings
  * of page boundaries.
  *
- * @param s Address of the structure.
- * @param size Size of the structure.
+ * @param s		Address of the structure.
+ * @param size		Size of the structure.
  */
 void map_structure(uintptr_t s, size_t size)
 {
@@ -76,8 +77,11 @@ void map_structure(uintptr_t s, size_t size)
 	cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
 
 	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, s + i * PAGE_SIZE, s + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
+		page_mapping_insert(AS_KERNEL, s + i * PAGE_SIZE,
+		    s + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
 
+	/* Repel prefetched accesses to the old mapping. */
+	memory_barrier();
 }
 
 /** Insert mapping of page to frame.
@@ -87,10 +91,11 @@ void map_structure(uintptr_t s, size_t size)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
- * @param page Virtual address of the page to be mapped.
- * @param frame Physical address of memory frame to which the mapping is done.
- * @param flags Flags to be used for mapping.
+ * @param as		Address space to wich page belongs.
+ * @param page		Virtual address of the page to be mapped.
+ * @param frame		Physical address of memory frame to which the mapping is
+ * 			done.
+ * @param flags		Flags to be used for mapping.
  */
 void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 {
@@ -98,6 +103,9 @@ void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 	ASSERT(page_mapping_operations->mapping_insert);
 	
 	page_mapping_operations->mapping_insert(as, page, frame, flags);
+	
+	/* Repel prefetched accesses to the old mapping. */
+	memory_barrier();
 }
 
 /** Remove mapping of page.
@@ -108,8 +116,8 @@ void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
- * @param page Virtual address of the page to be demapped.
+ * @param as		Address space to wich page belongs.
+ * @param page		Virtual address of the page to be demapped.
  */
 void page_mapping_remove(as_t *as, uintptr_t page)
 {
@@ -117,6 +125,9 @@ void page_mapping_remove(as_t *as, uintptr_t page)
 	ASSERT(page_mapping_operations->mapping_remove);
 	
 	page_mapping_operations->mapping_remove(as, page);
+
+	/* Repel prefetched accesses to the old mapping. */
+	memory_barrier();
 }
 
 /** Find mapping for virtual page
@@ -125,10 +136,11 @@ void page_mapping_remove(as_t *as, uintptr_t page)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
- * @param page Virtual page.
+ * @param as		Address space to wich page belongs.
+ * @param page		Virtual page.
  *
- * @return NULL if there is no such mapping; requested mapping otherwise.
+ * @return		NULL if there is no such mapping; requested mapping
+ * 			otherwise.
  */
 pte_t *page_mapping_find(as_t *as, uintptr_t page)
 {
