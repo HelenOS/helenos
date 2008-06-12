@@ -40,6 +40,22 @@
  * They however, define the single interface. 
  */
 
+/*
+ * Note on memory prefetching and updating memory mappings, also described in:
+ * AMD x86-64 Architecture Programmer's Manual, Volume 2, System Programming,
+ * 7.2.1 Special Coherency Considerations.
+ *
+ * The processor which modifies a page table mapping can access prefetched data
+ * from the old mapping.  In order to prevent this, we place a memory barrier
+ * after a mapping is updated.
+ *
+ * We assume that the other processors are either not using the mapping yet
+ * (i.e. during the bootstrap) or are executing the TLB shootdown code.  While
+ * we don't care much about the former case, the processors in the latter case 
+ * will do an implicit serialization by virtue of running the TLB shootdown
+ * interrupt handler.
+ */
+
 #include <mm/page.h>
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
