@@ -27,9 +27,7 @@
  */
 
 #include <arch/arch.h>
-
-#define DCACHE_SIZE		(16 * 1024)
-#define DCACHE_LINE_SIZE	32	
+#include <arch/mm/cache_spec.h>
 
 #define DCACHE_TAG_SHIFT	2
 

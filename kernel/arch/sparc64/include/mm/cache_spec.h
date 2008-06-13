@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_mips32_BARRIER_H_
-#define KERN_mips32_BARRIER_H_
+#ifndef KERN_sparc64_CACHE_SPEC_H_
+#define KERN_sparc64_CACHE_SPEC_H_
 
 /*
- * TODO: implement true MIPS memory barriers for macros below.
+ * The following macros are valid for the following processors:
+ *
+ * 	UltraSPARC, UltraSPARC II, UltraSPARC IIi
+ * 
+ * Should we support other UltraSPARC processors, we need to make sure that
+ * the macros are defined correctly for them.
  */
-#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
 
-#define memory_barrier()        asm volatile ("" ::: "memory")
-#define read_barrier()          asm volatile ("" ::: "memory")
-#define write_barrier()         asm volatile ("" ::: "memory")
+#define DCACHE_SIZE		(16 * 1024)
+#define DCACHE_LINE_SIZE	32	
 
-#define smc_coherence(a)
+#define ICACHE_SIZE		(16 * 1024)
+#define ICACHE_WAYS		2
+#define ICACHE_LINE_SIZE	32
 
 #endif
 

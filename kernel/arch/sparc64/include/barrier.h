@@ -57,8 +57,13 @@
 #define write_barrier()		\
 	asm volatile ("membar #StoreStore\n" ::: "memory")
 
+static inline void flush(uintptr_t addr)
+{
+	asm volatile ("flush %0\n" :: "r" (addr) : "memory");
+}
+
 /** Flush Instruction Memory instruction. */
-static inline void flush(void)
+static inline void flush_blind(void)
 {
 	/*
 	 * The FLUSH instruction takes address parameter.
@@ -77,6 +82,12 @@ static inline void flush(void)
 static inline void membar(void)
 {
 	asm volatile ("membar #Sync\n");
+}
+
+#define smc_coherence(a)	\
+{				\
+	write_barrier();	\
+	flush((a));		\
 }
 
 #endif

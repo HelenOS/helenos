@@ -84,6 +84,14 @@ static inline void cpuid_serialization(void)
 #	endif
 #endif
 
+/*
+ * On ia32, the hardware takes care about instruction and data cache coherence,
+ * even on SMP systems.  We issue a write barrier to be sure that writes
+ * queueing in the store buffer drain to the memory (even though it would be
+ * sufficient for them to drain to the D-cache).
+ */
+#define smc_coherence(a)		write_barrier()
+
 #endif
 
 /** @}

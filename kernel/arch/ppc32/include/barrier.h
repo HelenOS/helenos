@@ -42,6 +42,8 @@
 #define read_barrier() asm volatile ("sync" ::: "memory")
 #define write_barrier() asm volatile ("eieio" ::: "memory")
 
+#define smc_coherence(a)
+
 #endif
 
 /** @}

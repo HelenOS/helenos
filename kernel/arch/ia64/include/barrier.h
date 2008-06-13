@@ -45,8 +45,22 @@
 #define read_barrier()		memory_barrier()
 #define write_barrier()		memory_barrier()
 
-#define srlz_i()		asm volatile (";; srlz.i ;;\n" ::: "memory")
-#define srlz_d()		asm volatile (";; srlz.d\n" ::: "memory")
+#define srlz_i()		\
+	asm volatile (";; srlz.i ;;\n" ::: "memory")
+#define srlz_d()		\
+	asm volatile (";; srlz.d\n" ::: "memory")
+
+#define fc_i(a)			\
+	asm volatile ("fc.i %0\n" : "r" ((a)) :: "memory")  
+#define sync_i()		\
+	asm volatile (";; sync.i\n" ::: "memory")
+
+#define smc_coherence(a)	\
+{				\
+	fc_i((a));		\
+	sync_i();		\
+	srlz_i();		\
+}
 
 #endif
 

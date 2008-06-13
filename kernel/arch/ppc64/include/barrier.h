@@ -38,9 +38,11 @@
 #define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
 
-#define memory_barrier() asm volatile ("sync" ::: "memory")
-#define read_barrier() asm volatile ("sync" ::: "memory")
-#define write_barrier() asm volatile ("eieio" ::: "memory")
+#define memory_barrier()	asm volatile ("sync" ::: "memory")
+#define read_barrier()		asm volatile ("sync" ::: "memory")
+#define write_barrier()		asm volatile ("eieio" ::: "memory")
+
+#define smc_coherence(a)
 
 #endif
 
