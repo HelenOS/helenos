@@ -98,6 +98,14 @@ memcpy:
 	mov	%o1, %o0
 
 jump_to_kernel:
+	/*
+	 * Make sure that the code we have moved has drained to main memory.
+	 * We have a reason to assume that the I-cache does not include the
+	 * code to which we are going to pass control. Hence no I-cache
+	 * invalidation.
+	 */ 
+	membar #StoreStore
+
 	mov %o0, %l1
 	mov %o1, %o0
 	mov %o2, %o1
