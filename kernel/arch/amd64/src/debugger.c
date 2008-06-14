@@ -122,13 +122,15 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 			symbol = get_symtab_entry(breakpoints[i].address);
 
 #ifdef __32_BITS__
-			printf("%-2u %-5d %#10zx %s\n", i, breakpoints[i].counter,
-				breakpoints[i].address, symbol);
+			printf("%-2u %-5d %#10zx %s\n", i,
+			    breakpoints[i].counter, breakpoints[i].address,
+			    symbol);
 #endif
 
 #ifdef __64_BITS__
-			printf("%-2u %-5d %#18zx %s\n", i, breakpoints[i].counter,
-				breakpoints[i].address, symbol);
+			printf("%-2u %-5d %#18zx %s\n", i,
+			    breakpoints[i].counter, breakpoints[i].address,
+			    symbol);
 #endif
 
 		}
@@ -184,7 +186,7 @@ static void setup_dr(int curidx)
 		}
 
 		/* Enable global breakpoint */
-		dr7 |= 0x2 << (curidx*2);
+		dr7 |= 0x2 << (curidx * 2);
 
 		write_dr7(dr7);
 		
@@ -256,15 +258,15 @@ static void handle_exception(int slot, istate_t *istate)
 		if ((breakpoints[slot].flags & BKPOINT_CHECK_ZERO)) {
 			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
-			printf("**** Found ZERO on address %lx (slot %d) ****\n",
-				breakpoints[slot].address, slot);
+			printf("*** Found ZERO on address %lx (slot %d) ***\n",
+			    breakpoints[slot].address, slot);
 		} else {
 			printf("Data watchpoint - new data: %lx\n",
-			       *((unative_t *) breakpoints[slot].address));
+			    *((unative_t *) breakpoints[slot].address));
 		}
 	}
 	printf("Reached breakpoint %d:%lx(%s)\n", slot, getip(istate),
-	       get_symtab_entry(getip(istate)));
+	    get_symtab_entry(getip(istate)));
 	printf("***Type 'exit' to exit kconsole.\n");
 	atomic_set(&haltstate,1);
 	kconsole((void *) "debug");
@@ -357,7 +359,9 @@ static void debug_exception(int n __attribute__((unused)), istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void debug_ipi(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+static void
+debug_ipi(int n __attribute__((unused)),
+    istate_t *istate __attribute__((unused)))
 {
 	int i;
 
@@ -373,7 +377,7 @@ void debugger_init()
 {
 	int i;
 
-	for (i=0; i<BKPOINTS_MAX; i++)
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
 	
 	cmd_initialize(&bkpts_info);
@@ -394,11 +398,9 @@ void debugger_init()
 		panic("could not register command %s\n", addwatchp_info.name);
 #endif
 	
-	exc_register(VECTOR_DEBUG, "debugger",
-		     debug_exception);
+	exc_register(VECTOR_DEBUG, "debugger", debug_exception);
 #ifdef CONFIG_SMP
-	exc_register(VECTOR_DEBUG_IPI, "debugger_smp",
-		     debug_ipi);
+	exc_register(VECTOR_DEBUG_IPI, "debugger_smp", debug_ipi);
 #endif
 }
 
