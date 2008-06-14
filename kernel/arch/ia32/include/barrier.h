@@ -91,6 +91,7 @@ static inline void cpuid_serialization(void)
  * sufficient for them to drain to the D-cache).
  */
 #define smc_coherence(a)		write_barrier()
+#define smc_coherence_block(a, l)	write_barrier()
 
 #endif
 

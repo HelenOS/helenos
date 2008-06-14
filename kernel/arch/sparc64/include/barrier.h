@@ -57,10 +57,8 @@
 #define write_barrier()		\
 	asm volatile ("membar #StoreStore\n" ::: "memory")
 
-static inline void flush(uintptr_t addr)
-{
-	asm volatile ("flush %0\n" :: "r" (addr) : "memory");
-}
+#define flush(a)		\
+	asm volatile ("flush %0\n" :: "r" ((a)) : "memory")
 
 /** Flush Instruction Memory instruction. */
 static inline void flush_blind(void)
@@ -88,6 +86,15 @@ static inline void membar(void)
 {				\
 	write_barrier();	\
 	flush((a));		\
+}
+
+#define FLUSH_INVAL_MIN		4
+#define smc_coherence_block(a, l)			\
+{							\
+	unsigned long i;				\
+	write_barrier();				\
+	for (i = 0; i < (l); i += FLUSH_INVAL_MIN)	\
+		flush((void *)(a) + i);			\
 }
 
 #endif

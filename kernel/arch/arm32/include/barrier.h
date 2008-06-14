@@ -47,6 +47,7 @@
 #define write_barrier()         asm volatile ("" ::: "memory")
 
 #define smc_coherence(a)
+#define smc_coherence_block(a, l)
 
 #endif
 

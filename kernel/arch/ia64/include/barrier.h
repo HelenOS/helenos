@@ -62,6 +62,16 @@
 	srlz_i();		\
 }
 
+#define FC_INVAL_MIN		32
+#define smc_coherence_block(a, l)		\
+{						\
+	unsigned long i;			\
+	for (i = 0; i < (l); i += FC_INVAL_MIN)	\
+		fc_i((void *)(a) + i);		\
+	sync_i();				\
+	srlz_i();				\
+}
+
 #endif
 
 /** @}
