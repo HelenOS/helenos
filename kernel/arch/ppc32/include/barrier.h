@@ -42,8 +42,42 @@
 #define read_barrier() asm volatile ("sync" ::: "memory")
 #define write_barrier() asm volatile ("eieio" ::: "memory")
 
-#define smc_coherence(a)
-#define smc_coherence_block(a, l)
+/*
+ * The IMB sequence used here is valid for all possible cache models
+ * on uniprocessor. SMP might require a different sequence.
+ * See PowerPC Programming Environment for 32-Bit Microprocessors,
+ * chapter 5.1.5.2
+ */
+
+static inline void smc_coherence(void *addr)
+{
+	asm volatile (
+		"dcbst 0, %0\n"
+		"sync\n"
+		"icbi 0, %0\n"
+		"isync\n"
+		:: "r" (addr)
+	);
+}
+
+#define COHERENCE_INVAL_MIN	4
+
+static inline void smc_coherence_block(void *addr, unsigned long len)
+{
+	unsigned long i;
+
+	for (i = 0; i < len; i += COHERENCE_INVAL_MIN) {
+		asm volatile ("dcbst 0, %0\n" :: "r" (addr + i));
+	}
+
+	asm volatile ("sync");
+
+	for (i = 0; i < len; i += COHERENCE_INVAL_MIN) {
+		asm volatile ("icbi 0, %0\n" :: "r" (addr + i));
+	}
+
+	asm volatile ("isync");
+}
 
 #endif
 
