@@ -40,6 +40,7 @@
 #include <interrupt.h>
 #include <arch/machine.h>
 #include <arch/mm/page_fault.h>
+#include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
 
@@ -209,7 +210,7 @@ inline static void switch_to_irq_servicing_mode()
  *
  *  Addresses of handlers are stored in memory following exception vectors.
  */
-static void install_handler (unsigned handler_addr, unsigned* vector)
+static void install_handler(unsigned handler_addr, unsigned *vector)
 {
 	/* relative address (related to exc. vector) of the word
 	 * where handler's address is stored
@@ -219,6 +220,7 @@ static void install_handler (unsigned handler_addr, unsigned* vector)
 	
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
+	smc_coherence(*vector);
 	
 	/* store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
@@ -226,38 +228,38 @@ static void install_handler (unsigned handler_addr, unsigned* vector)
 }
 
 /** Low-level Reset Exception handler. */
-static void reset_exception_entry()
+static void reset_exception_entry(void)
 {
 	PROCESS_EXCEPTION(EXC_RESET);
 }
 
 /** Low-level Software Interrupt Exception handler. */
-static void swi_exception_entry()
+static void swi_exception_entry(void)
 {
 	PROCESS_EXCEPTION(EXC_SWI);
 }
 
 /** Low-level Undefined Instruction Exception handler. */
-static void undef_instr_exception_entry()
+static void undef_instr_exception_entry(void)
 {
 	PROCESS_EXCEPTION(EXC_UNDEF_INSTR);
 }
 
 /** Low-level Fast Interrupt Exception handler. */
-static void fiq_exception_entry()
+static void fiq_exception_entry(void)
 {
 	PROCESS_EXCEPTION(EXC_FIQ);
 }
 
 /** Low-level Prefetch Abort Exception handler. */
-static void prefetch_abort_exception_entry()
+static void prefetch_abort_exception_entry(void)
 {
 	asm("sub lr, lr, #4");
 	PROCESS_EXCEPTION(EXC_PREFETCH_ABORT);
 } 
 
 /** Low-level Data Abort Exception handler. */
-static void data_abort_exception_entry()
+static void data_abort_exception_entry(void)
 {
 	asm("sub lr, lr, #8");
 	PROCESS_EXCEPTION(EXC_DATA_ABORT);
@@ -269,7 +271,7 @@ static void data_abort_exception_entry()
  * because of possible occurence of nested interrupt exception, which
  * would overwrite (and thus spoil) stack pointer.
  */
-static void irq_exception_entry()
+static void irq_exception_entry(void)
 {
 	asm("sub lr, lr, #4");
 	setup_stack_and_save_regs();
