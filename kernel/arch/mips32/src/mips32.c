@@ -50,6 +50,7 @@
 #include <arch/interrupt.h>
 #include <arch/drivers/arc.h>
 #include <console/chardev.h>
+#include <arch/barrier.h>
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
@@ -100,14 +101,18 @@ void arch_pre_mm_init(void)
 
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *) tlb_refill_entry, EXCEPTION_JUMP_SIZE);
+	smc_coherence_block(TLB_EXC, EXCEPTION_JUMP_SIZE);
 	memcpy(NORM_EXC, (char *) exception_entry, EXCEPTION_JUMP_SIZE);
+	smc_coherence_block(NORM_EXC, EXCEPTION_JUMP_SIZE);
 	memcpy(CACHE_EXC, (char *) cache_error_entry, EXCEPTION_JUMP_SIZE);
+	smc_coherence_block(CACHE_EXC, EXCEPTION_JUMP_SIZE);
 	
 	/*
-	 * Switch to BEV normal level so that exception vectors point to the kernel.
-	 * Clear the error level.
+	 * Switch to BEV normal level so that exception vectors point to the
+	 * kernel. Clear the error level.
 	 */
-	cp0_status_write(cp0_status_read() & ~(cp0_status_bev_bootstrap_bit|cp0_status_erl_error_bit));
+	cp0_status_write(cp0_status_read() &
+	    ~(cp0_status_bev_bootstrap_bit | cp0_status_erl_error_bit));
 
 	/* 
 	 * Mask all interrupts 
@@ -122,7 +127,8 @@ void arch_post_mm_init(void)
 	interrupt_init();
 	console_init(device_assign_devno());
 #ifdef CONFIG_FB
-	fb_init(0x12000000, 640, 480, 1920, VISUAL_RGB_8_8_8); // gxemul framebuffer
+	/* GXemul framebuffer */
+	fb_init(0x12000000, 640, 480, 1920, VISUAL_RGB_8_8_8);
 #endif
 	sysinfo_set_item_val("machine." STRING(MACHINE), NULL, 1);
 }
@@ -143,13 +149,14 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	/* EXL = 1, UM = 1, IE = 1 */
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
-		cp0_status_um_bit | cp0_status_ie_enabled_bit));
+	    cp0_status_um_bit | cp0_status_ie_enabled_bit));
 	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
 	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + PAGE_SIZE), 
-		(uintptr_t) kernel_uarg->uspace_uarg,
-		(uintptr_t) kernel_uarg->uspace_entry);
+	    (uintptr_t) kernel_uarg->uspace_uarg,
+	    (uintptr_t) kernel_uarg->uspace_entry);
 	
-	while (1);
+	while (1)
+		;
 }
 
 /** Perform mips32 specific tasks needed before the new task is run. */
@@ -160,7 +167,8 @@ void before_task_runs_arch(void)
 /** Perform mips32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	supervisor_sp = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE-SP_DELTA];
+	supervisor_sp = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE -
+	    SP_DELTA];
 }
 
 void after_thread_ran_arch(void)
@@ -182,7 +190,8 @@ void arch_reboot(void)
 	if (!arc_reboot())
 		___halt();
 	
-	while (1);
+	while (1)
+		;
 }
 
 /** @}
