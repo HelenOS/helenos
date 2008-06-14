@@ -33,6 +33,7 @@
  */
 
 #include <arch/debugger.h>
+#include <arch/barrier.h>
 #include <memstr.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
@@ -72,7 +73,8 @@ static cmd_arg_t add_argv = {
 };
 static cmd_info_t addbkpt_info = {
 	.name = "addbkpt",
-	.description = "addbkpt <&symbol> - new bkpoint. Break on J/Branch insts unsupported.",
+	.description = "addbkpt <&symbol> - new bkpoint. Break on J/Branch "
+	    "insts unsupported.",
 	.func = cmd_add_breakpoint,
 	.argc = 1,
 	.argv = &add_argv
@@ -84,7 +86,8 @@ static cmd_arg_t adde_argv[] = {
 };
 static cmd_info_t addbkpte_info = {
 	.name = "addbkpte",
-	.description = "addebkpte <&symbol> <&func> - new bkpoint. Call func(or Nothing if 0).",
+	.description = "addebkpte <&symbol> <&func> - new bkpoint. Call "
+	    "func(or Nothing if 0).",
 	.func = cmd_add_breakpoint,
 	.argc = 2,
 	.argv = adde_argv
@@ -93,7 +96,7 @@ static cmd_info_t addbkpte_info = {
 static struct {
 	uint32_t andmask;
 	uint32_t value;
-}jmpinstr[] = {
+} jmpinstr[] = {
 	{0xf3ff0000, 0x41000000}, /* BCzF */
 	{0xf3ff0000, 0x41020000}, /* BCzFL */
 	{0xf3ff0000, 0x41010000}, /* BCzT */
@@ -117,7 +120,7 @@ static struct {
 	{0xfc000000, 0x08000000}, /* J */
 	{0xfc000000, 0x0c000000}, /* JAL */
 	{0xfc1f07ff, 0x00000009}, /* JALR */
-	{0,0} /* EndOfTable */
+	{0, 0} /* EndOfTable */
 };
 
 /** Test, if the given instruction is a jump or branch instruction
@@ -129,7 +132,7 @@ static bool is_jump(unative_t instr)
 {
 	int i;
 
-	for (i=0;jmpinstr[i].andmask;i++) {
+	for (i = 0; jmpinstr[i].andmask; i++) {
 		if ((instr & jmpinstr[i].andmask) == jmpinstr[i].value)
 			return true;
 	}
@@ -157,16 +160,18 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 			printf("Duplicate breakpoint %d.\n", i);
 			spinlock_unlock(&bkpoints_lock);
 			return 0;
-		} else if (breakpoints[i].address == (uintptr_t)argv->intval + sizeof(unative_t) || \
-			   breakpoints[i].address == (uintptr_t)argv->intval - sizeof(unative_t)) {
-			printf("Adjacent breakpoints not supported, conflict with %d.\n", i);
+		} else if (breakpoints[i].address == (uintptr_t)argv->intval +
+		    sizeof(unative_t) || breakpoints[i].address ==
+		    (uintptr_t)argv->intval - sizeof(unative_t)) {
+			printf("Adjacent breakpoints not supported, conflict "
+			    "with %d.\n", i);
 			spinlock_unlock(&bkpoints_lock);
 			return 0;
 		}
 			
 	}
 
-	for (i=0; i<BKPOINTS_MAX; i++)
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (!breakpoints[i].address) {
 			cur = &breakpoints[i];
 			break;
@@ -185,7 +190,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		cur->flags = 0;
 	} else { /* We are add extended */
 		cur->flags = BKPOINT_FUNCCALL;
-		cur->bkfunc = 	(void (*)(void *, istate_t *)) argv[1].intval;
+		cur->bkfunc = (void (*)(void *, istate_t *)) argv[1].intval;
 	}
 	if (is_jump(cur->instruction))
 		cur->flags |= BKPOINT_ONESHOT;
@@ -193,14 +198,13 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 
 	/* Set breakpoint */
 	*((unative_t *)cur->address) = 0x0d;
+	smc_coherence(cur->address);
 
 	spinlock_unlock(&bkpoint_lock);
 	interrupts_restore(ipl);
 
 	return 1;
 }
-
-
 
 /** Remove breakpoint from table */
 int cmd_del_breakpoint(cmd_arg_t *argv)
@@ -229,7 +233,9 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 		return 0;
 	}
 	((uint32_t *)cur->address)[0] = cur->instruction;
+	smc_coherence(((uint32_t *)cur->address)[0]);
 	((uint32_t *)cur->address)[1] = cur->nextinstruction;
+	smc_coherence(((uint32_t *)cur->address)[1]);
 
 	cur->address = NULL;
 
@@ -252,11 +258,11 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 			symbol = get_symtab_entry(breakpoints[i].address);
 			
 			printf("%-2u %-5d %#10zx %-6s %-7s %-8s %s\n", i,
-				breakpoints[i].counter, breakpoints[i].address,
-				((breakpoints[i].flags & BKPOINT_INPROG) ? "true" : "false"),
-				((breakpoints[i].flags & BKPOINT_ONESHOT) ? "true" : "false"),
-				((breakpoints[i].flags & BKPOINT_FUNCCALL) ? "true" : "false"),
-				symbol);
+			    breakpoints[i].counter, breakpoints[i].address,
+			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
+			    "false"), ((breakpoints[i].flags & BKPOINT_ONESHOT)
+			    ? "true" : "false"), ((breakpoints[i].flags &
+			    BKPOINT_FUNCCALL) ? "true" : "false"), symbol);
 		}
 	return 1;
 }
@@ -266,7 +272,7 @@ void debugger_init()
 {
 	int i;
 
-	for (i=0; i<BKPOINTS_MAX; i++)
+	for (i = 0; i < BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
 	
 	cmd_initialize(&bkpts_info);
@@ -305,16 +311,16 @@ void debugger_bpoint(istate_t *istate)
 		panic("Breakpoint in branch delay slot not supported.\n");
 
 	spinlock_lock(&bkpoint_lock);
-	for (i=0; i<BKPOINTS_MAX; i++) {
+	for (i = 0; i < BKPOINTS_MAX; i++) {
 		/* Normal breakpoint */
-		if (fireaddr == breakpoints[i].address \
-		    && !(breakpoints[i].flags & BKPOINT_REINST)) {
+		if (fireaddr == breakpoints[i].address &&
+		    !(breakpoints[i].flags & BKPOINT_REINST)) {
 			cur = &breakpoints[i];
 			break;
 		}
 		/* Reinst only breakpoint */
-		if ((breakpoints[i].flags & BKPOINT_REINST) \
-		    && (fireaddr == breakpoints[i].address + sizeof(unative_t))) {
+		if ((breakpoints[i].flags & BKPOINT_REINST) &&
+		    (fireaddr == breakpoints[i].address + sizeof(unative_t))) {
 			cur = &breakpoints[i];
 			break;
 		}
@@ -323,8 +329,10 @@ void debugger_bpoint(istate_t *istate)
 		if (cur->flags & BKPOINT_REINST) {
 			/* Set breakpoint on first instruction */
 			((uint32_t *)cur->address)[0] = 0x0d;
+			smc_coherence(((uint32_t *)cur->address)[0]);
 			/* Return back the second */
 			((uint32_t *)cur->address)[1] = cur->nextinstruction;
+			smc_coherence(((uint32_t *)cur->address)[1]);
 			cur->flags &= ~BKPOINT_REINST;
 			spinlock_unlock(&bkpoint_lock);
 			return;
@@ -333,11 +341,12 @@ void debugger_bpoint(istate_t *istate)
 			printf("Warning: breakpoint recursion\n");
 		
 		if (!(cur->flags & BKPOINT_FUNCCALL))
-			printf("***Breakpoint %d: %p in %s.\n", i, 
-			       fireaddr, get_symtab_entry(istate->epc));
+			printf("***Breakpoint %d: %p in %s.\n", i, fireaddr,
+			    get_symtab_entry(istate->epc));
 
 		/* Return first instruction back */
 		((uint32_t *)cur->address)[0] = cur->instruction;
+		smc_coherence(cur->address);
 
 		if (! (cur->flags & BKPOINT_ONESHOT)) {
 			/* Set Breakpoint on next instruction */
