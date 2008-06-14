@@ -45,6 +45,7 @@
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
+#include <arch/barrier.h>
 #include <panic.h>
 #include <adt/avl.h>
 #include <adt/btree.h>
@@ -259,8 +260,16 @@ unative_t sys_task_spawn(void *image, size_t size)
 	int rc = copy_from_uspace(kimage, image, size);
 	if (rc != EOK)
 		return rc;
+
+	/*
+	 * Not very efficient and it would be better to call it on code only,
+	 * but this whole function is a temporary hack anyway and one day it
+	 * will go in favor of the userspace dynamic loader.
+	 */
+	smc_coherence_block(kimage, size);
 	
-	uspace_arg_t *kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
+	uspace_arg_t *kernel_uarg;
+	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
 	if (kernel_uarg == NULL) {
 		free(kimage);
 		return ENOMEM;
@@ -289,9 +298,9 @@ unative_t sys_task_spawn(void *image, size_t size)
 	}
 	
 	as_area_t *area = as_area_create(as,
-		AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
-		LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
-		AS_AREA_ATTR_NONE, &anon_backend, NULL);
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
+	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
 	if (area == NULL) {
 		as_destroy(as);
 		free(kernel_uarg);
@@ -311,7 +320,7 @@ unative_t sys_task_spawn(void *image, size_t size)
 	cap_set(task, cap_get(TASK));
 	
 	thread_t *thread = thread_create(uinit, kernel_uarg, task,
-		THREAD_FLAG_USPACE, "user", false);
+	    THREAD_FLAG_USPACE, "user", false);
 	if (thread == NULL) {
 		task_destroy(task);
 		as_destroy(as);
@@ -442,15 +451,15 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	order(task_get_accounting(t), &cycles, &suffix);
 
 #ifdef __32_BITS__	
-	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %7ld %6ld",
-		t->taskid, t->name, t->context, t, t->as, cycles, suffix,
-		atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %10p %10p %9" PRIu64
+	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
+	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
 #endif
 
 #ifdef __64_BITS__
-	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %7ld %6ld",
-		t->taskid, t->name, t->context, t, t->as, cycles, suffix,
-		atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-10s %-3" PRIu32 " %18p %18p %9" PRIu64
+	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
+	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
 #endif
 
 	for (j = 0; j < IPC_MAX_PHONES; j++) {
@@ -474,16 +483,16 @@ void task_print_list(void)
 
 #ifdef __32_BITS__	
 	printf("taskid name       ctx address    as         "
-		"cycles     threads calls  callee\n");
+	    "cycles     threads calls  callee\n");
 	printf("------ ---------- --- ---------- ---------- "
-		"---------- ------- ------ ------>\n");
+	    "---------- ------- ------ ------>\n");
 #endif
 
 #ifdef __64_BITS__
 	printf("taskid name       ctx address            as                 "
-		"cycles     threads calls  callee\n");
+	    "cycles     threads calls  callee\n");
 	printf("------ ---------- --- ------------------ ------------------ "
-		"---------- ------- ------ ------>\n");
+	    "---------- ------- ------ ------>\n");
 #endif
 
 	avltree_walk(&tasks_tree, task_print_walker, NULL);
