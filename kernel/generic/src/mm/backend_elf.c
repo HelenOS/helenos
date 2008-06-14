@@ -48,6 +48,7 @@
 #include <memstr.h>
 #include <macros.h>
 #include <arch.h>
+#include <arch/barrier.h>
 
 #ifdef CONFIG_VIRT_IDX_DCACHE
 #include <arch/mm/cache.h>
@@ -67,12 +68,13 @@ mem_backend_t elf_backend = {
  *
  * The address space area and page tables must be already locked.
  *
- * @param area Pointer to the address space area.
- * @param addr Faulting virtual address.
- * @param access Access mode that caused the fault (i.e. read/write/exec).
+ * @param area		Pointer to the address space area.
+ * @param addr		Faulting virtual address.
+ * @param access	Access mode that caused the fault (i.e.
+ * 			read/write/exec).
  *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
- *     serviced).
+ * @return		AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK
+ * 			on success (i.e. serviced).
  */
 int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
@@ -150,6 +152,8 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
 			memcpy((void *) PA2KA(frame),
 			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
+			if (entry->p_flags & PF_X)
+				smc_coherence_block(PA2KA(frame), FRAME_SIZE);
 			dirty = true;
 		} else {
 			frame = KA2PA(base + i * FRAME_SIZE);
@@ -187,8 +191,12 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		memcpy((void *) (PA2KA(frame) + pad_lo),
 		    (void *) (base + i * FRAME_SIZE + pad_lo),
 		    FRAME_SIZE - pad_lo - pad_hi);
+		if (entry->p_flags & PF_X)
+			smc_coherence_block(PA2KA(frame) + pad_lo, FRAME_SIZE -
+			    pad_lo - pad_hi);
 		memsetb((void *) PA2KA(frame), pad_lo, 0);
-		memsetb((void *) (PA2KA(frame) + FRAME_SIZE - pad_hi), pad_hi, 0);
+		memsetb((void *) (PA2KA(frame) + FRAME_SIZE - pad_hi), pad_hi,
+		    0);
 		dirty = true;
 	}
 
@@ -212,9 +220,10 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  *
  * The address space area and page tables must be already locked.
  *
- * @param area Pointer to the address space area.
- * @param page Page that is mapped to frame. Must be aligned to PAGE_SIZE.
- * @param frame Frame to be released.
+ * @param area		Pointer to the address space area.
+ * @param page		Page that is mapped to frame. Must be aligned to
+ * 			PAGE_SIZE.
+ * @param frame		Frame to be released.
  *
  */
 void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
@@ -257,7 +266,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
  *
  * The address space and address space area must be locked prior to the call.
  *
- * @param area Address space area.
+ * @param area		Address space area.
  */
 void elf_share(as_area_t *area)
 {
