@@ -39,6 +39,11 @@ start:
 	b bootstrap
 
 jump_to_kernel:
+	#
+	# TODO
+	# Make sure that the I-cache, D-cache and memory are mutually coherent
+	# before passing control to the copied code.
+	#
 	bx r0
 
 
