@@ -60,8 +60,8 @@
 #define flush(a)		\
 	asm volatile ("flush %0\n" :: "r" ((a)) : "memory")
 
-/** Flush Instruction Memory instruction. */
-static inline void flush_blind(void)
+/** Flush Instruction pipeline. */
+static inline void flush_pipeline(void)
 {
 	/*
 	 * The FLUSH instruction takes address parameter.

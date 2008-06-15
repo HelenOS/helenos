@@ -160,7 +160,7 @@ static inline uint64_t mmu_primary_context_read(void)
 static inline void mmu_primary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Read MMU Secondary Context Register.
@@ -179,7 +179,7 @@ static inline uint64_t mmu_secondary_context_read(void)
 static inline void mmu_secondary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_SECONDARY_CONTEXT_REG, v);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Read IMMU TLB Data Access Register.
@@ -209,7 +209,7 @@ static inline void itlb_data_access_write(index_t entry, uint64_t value)
 	reg.value = 0;
 	reg.tlb_entry = entry;
 	asi_u64_write(ASI_ITLB_DATA_ACCESS_REG, reg.value, value);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Read DMMU TLB Data Access Register.
@@ -279,7 +279,7 @@ static inline uint64_t dtlb_tag_read_read(index_t entry)
 static inline void itlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_TAG_ACCESS, v);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Read IMMU TLB Tag Access Register.
@@ -318,7 +318,7 @@ static inline uint64_t dtlb_tag_access_read(void)
 static inline void itlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_ITLB_DATA_IN_REG, 0, v);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Write DMMU TLB Data in Register.
@@ -347,7 +347,7 @@ static inline uint64_t itlb_sfsr_read(void)
 static inline void itlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_SFSR, v);
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Read DTLB Synchronous Fault Status Register.
@@ -400,7 +400,7 @@ static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
 	asi_u64_write(ASI_IMMU_DEMAP, da.value, 0);	/* da.value is the
 							 * address within the
 							 * ASI */ 
-	flush_blind();
+	flush_pipeline();
 }
 
 /** Perform DMMU TLB Demap Operation.
