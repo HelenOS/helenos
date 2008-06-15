@@ -99,18 +99,38 @@ memcpy:
 
 jump_to_kernel:
 	/*
-	 * Make sure that the code we have moved has drained to main memory.
-	 * We have a reason to assume that the I-cache does not include the
-	 * code to which we are going to pass control. Hence no I-cache
-	 * invalidation.
+	 * We have copied code and now we need to guarantee cache coherence.
+	 * 1. Make sure that the code we have moved has drained to main memory.
+	 * 2. Invalidate I-cache.
+	 * 3. Flush instruction pipeline.
 	 */ 
-	membar #StoreStore
+	call	icache_flush
+	membar	#StoreStore
+	flush	%i7
 
 	mov %o0, %l1
 	mov %o1, %o0
 	mov %o2, %o1
 	mov %o3, %o2
 	jmp %l1				! jump to kernel
+	nop
+
+#define ICACHE_SIZE		8192
+#define ICACHE_LINE_SIZE	32
+#define ICACHE_SET_BIT		(1 << 13)
+#define ASI_ICACHE_TAG		0x67
+
+# Flush I-cache
+icache_flush:
+	set	((ICACHE_SIZE - ICACHE_LINE_SIZE) | ICACHE_SET_BIT), %g1
+	stxa	%g0, [%g1] ASI_ICACHE_TAG
+0:	membar	#Sync
+	subcc	%g1, ICACHE_LINE_SIZE, %g1
+	bnz,pt	%xcc, 0b
+	stxa	%g0, [%g1] ASI_ICACHE_TAG
+	membar	#Sync
+	retl
+	! SF Erratum #51
 	nop
 
 .global ofw

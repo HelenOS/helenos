@@ -69,27 +69,33 @@ int ofw_cpu(void)
 	
 	uint64_t current_mid;
 	
-	asm volatile ("ldxa [%1] %2, %0\n" : "=r" (current_mid) : "r" (0), "i" (ASI_UPA_CONFIG));
+	asm volatile ("ldxa [%1] %2, %0\n"
+	    : "=r" (current_mid)
+	    : "r" (0), "i" (ASI_UPA_CONFIG));
 	current_mid >>= UPA_CONFIG_MID_SHIFT;
 	current_mid &= UPA_CONFIG_MID_MASK;
 
 	int cpus;
 	
-	for (cpus = 0; node != 0 && node != -1; node = ofw_get_peer_node(node), cpus++) {
-		if (ofw_get_property(node, "device_type", type_name, sizeof(type_name)) > 0) {
+	for (cpus = 0; node != 0 && node != -1; node = ofw_get_peer_node(node),
+	    cpus++) {
+		if (ofw_get_property(node, "device_type", type_name,
+		    sizeof(type_name)) > 0) {
 			if (strcmp(type_name, "cpu") == 0) {
 				uint32_t mid;
 				
-				if (ofw_get_property(node, "upa-portid", &mid, sizeof(mid)) <= 0)
+				if (ofw_get_property(node, "upa-portid", &mid,
+				    sizeof(mid)) <= 0)
 					continue;
 					
 				if (current_mid != mid) {
 					/*
 					 * Start secondary processor.
 					 */
-					(void) ofw_call("SUNW,start-cpu", 3, 1, NULL, node,
-						 KERNEL_VIRTUAL_ADDRESS,
-						 bootinfo.physmem_start | AP_PROCESSOR);
+					(void) ofw_call("SUNW,start-cpu", 3, 1,
+					    NULL, node, KERNEL_VIRTUAL_ADDRESS,
+					    bootinfo.physmem_start |
+					    AP_PROCESSOR);
 				}
 			}
 		}
