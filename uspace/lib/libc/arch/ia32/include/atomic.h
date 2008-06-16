@@ -36,11 +36,11 @@
 #define LIBC_ia32_ATOMIC_H_
 
 static inline void atomic_inc(atomic_t *val) {
-	asm volatile ("lock incl %0\n" : "=m" (val->count));
+	asm volatile ("lock incl %0\n" : "+m" (val->count));
 }
 
 static inline void atomic_dec(atomic_t *val) {
-	asm volatile ("lock decl %0\n" : "=m" (val->count));
+	asm volatile ("lock decl %0\n" : "+m" (val->count));
 }
 
 static inline long atomic_postinc(atomic_t *val) 
@@ -50,7 +50,7 @@ static inline long atomic_postinc(atomic_t *val)
 	asm volatile (
 		"movl $1, %0\n"
 		"lock xaddl %0, %1\n"
-		: "=r" (r), "=m" (val->count)
+		: "=r" (r), "+m" (val->count)
 	);
 
 	return r;
@@ -63,14 +63,14 @@ static inline long atomic_postdec(atomic_t *val)
 	asm volatile (
 		"movl $-1, %0\n"
 		"lock xaddl %0, %1\n"
-		: "=r" (r), "=m" (val->count)
+		: "=r" (r), "+m" (val->count)
 	);
 	
 	return r;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val)+1)
-#define atomic_predec(val) (atomic_postdec(val)-1)
+#define atomic_preinc(val) (atomic_postinc(val) + 1)
+#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 #endif
 

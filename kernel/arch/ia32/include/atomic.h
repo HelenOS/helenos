@@ -41,17 +41,17 @@
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock incl %0\n" : "=m" (val->count));
+	asm volatile ("lock incl %0\n" : "+m" (val->count));
 #else
-	asm volatile ("incl %0\n" : "=m" (val->count));
+	asm volatile ("incl %0\n" : "+m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock decl %0\n" : "=m" (val->count));
+	asm volatile ("lock decl %0\n" : "+m" (val->count));
 #else
-	asm volatile ("decl %0\n" : "=m" (val->count));
+	asm volatile ("decl %0\n" : "+m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
@@ -61,7 +61,7 @@ static inline long atomic_postinc(atomic_t *val)
 
 	asm volatile (
 		"lock xaddl %1, %0\n"
-		: "=m" (val->count), "+r" (r)
+		: "+m" (val->count), "+r" (r)
 	);
 
 	return r;
@@ -73,14 +73,14 @@ static inline long atomic_postdec(atomic_t *val)
 	
 	asm volatile (
 		"lock xaddl %1, %0\n"
-		: "=m" (val->count), "+r"(r)
+		: "+m" (val->count), "+r"(r)
 	);
 	
 	return r;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val)+1)
-#define atomic_predec(val) (atomic_postdec(val)-1)
+#define atomic_preinc(val) (atomic_postinc(val) + 1)
+#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 static inline uint32_t test_and_set(atomic_t *val) {
 	uint32_t v;
@@ -88,7 +88,7 @@ static inline uint32_t test_and_set(atomic_t *val) {
 	asm volatile (
 		"movl $1, %0\n"
 		"xchgl %0, %1\n"
-		: "=r" (v),"=m" (val->count)
+		: "=r" (v),"+m" (val->count)
 	);
 	
 	return v;
@@ -101,20 +101,20 @@ static inline void atomic_lock_arch(atomic_t *val)
 
 	preemption_disable();
 	asm volatile (
-		"0:;"
+		"0:\n"
 #ifdef CONFIG_HT
-		"pause;" /* Pentium 4's HT love this instruction */
+		"pause\n" /* Pentium 4's HT love this instruction */
 #endif
-		"mov %0, %1;"
-		"testl %1, %1;"
-		"jnz 0b;"       /* Lightweight looping on locked spinlock */
+		"mov %0, %1\n"
+		"testl %1, %1\n"
+		"jnz 0b\n"       /* lightweight looping on locked spinlock */
 		
-		"incl %1;"      /* now use the atomic operation */
-		"xchgl %0, %1;"
-		"testl %1, %1;"
-		"jnz 0b;"
-                : "=m"(val->count),"=r"(tmp)
-		);
+		"incl %1\n"      /* now use the atomic operation */
+		"xchgl %0, %1\n"	
+		"testl %1, %1\n"
+		"jnz 0b\n"
+                : "+m" (val->count), "=r"(tmp)
+	);
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
