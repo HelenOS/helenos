@@ -63,7 +63,7 @@ static inline long atomic_add(atomic_t *val, int i)
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
 		"	nop\n"
-		: "=&r" (tmp), "=m" (val->count), "=&r" (v)
+		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
 		: "i" (i), "i" (0)
 		);
 
