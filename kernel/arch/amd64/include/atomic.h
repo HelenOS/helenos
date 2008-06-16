@@ -41,17 +41,17 @@
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock incq %0\n" : "=m" (val->count));
+	asm volatile ("lock incq %0\n" : "+m" (val->count));
 #else
-	asm volatile ("incq %0\n" : "=m" (val->count));
+	asm volatile ("incq %0\n" : "+m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock decq %0\n" : "=m" (val->count));
+	asm volatile ("lock decq %0\n" : "+m" (val->count));
 #else
-	asm volatile ("decq %0\n" : "=m" (val->count));
+	asm volatile ("decq %0\n" : "+m" (val->count));
 #endif /* CONFIG_SMP */
 }
 
@@ -61,7 +61,7 @@ static inline long atomic_postinc(atomic_t *val)
 
 	asm volatile (
 		"lock xaddq %1, %0\n"
-		: "=m" (val->count), "+r" (r)
+		: "+m" (val->count), "+r" (r)
 	);
 
 	return r;
@@ -73,14 +73,14 @@ static inline long atomic_postdec(atomic_t *val)
 	
 	asm volatile (
 		"lock xaddq %1, %0\n"
-		: "=m" (val->count), "+r" (r)
+		: "+m" (val->count), "+r" (r)
 	);
 	
 	return r;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val)+1)
-#define atomic_predec(val) (atomic_postdec(val)-1)
+#define atomic_preinc(val) (atomic_postinc(val) + 1)
+#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 static inline uint64_t test_and_set(atomic_t *val) {
 	uint64_t v;
@@ -88,7 +88,7 @@ static inline uint64_t test_and_set(atomic_t *val) {
 	asm volatile (
 		"movq $1, %0\n"
 		"xchgq %0, %1\n"
-		: "=r" (v),"=m" (val->count)
+		: "=r" (v), "+m" (val->count)
 	);
 	
 	return v;
@@ -102,20 +102,20 @@ static inline void atomic_lock_arch(atomic_t *val)
 
 	preemption_disable();
 	asm volatile (
-		"0:;"
+		"0:\n"
 #ifdef CONFIG_HT
-		"pause;"
+		"pause\n"
 #endif
-		"mov %0, %1;"
-		"testq %1, %1;"
-		"jnz 0b;"       /* Lightweight looping on locked spinlock */
+		"mov %0, %1\n"
+		"testq %1, %1\n"
+		"jnz 0b\n"       /* Lightweight looping on locked spinlock */
 		
-		"incq %1;"      /* now use the atomic operation */
-		"xchgq %0, %1;"
-		"testq %1, %1;"
-		"jnz 0b;"
-                : "=m"(val->count),"=r"(tmp)
-		);
+		"incq %1\n"      /* now use the atomic operation */
+		"xchgq %0, %1\n"
+		"testq %1, %1\n"
+		"jnz 0b\n"
+                : "+m" (val->count), "=r"(tmp)
+	);
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
