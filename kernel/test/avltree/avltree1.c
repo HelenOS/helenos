@@ -48,7 +48,8 @@ static avltree_node_t *first_free_node = NULL;
 
 static int test_tree_balance(avltree_node_t *node);
 static avltree_node_t *test_tree_parents(avltree_node_t *node);
-static void print_tree_structure_flat (avltree_node_t *node, int level);
+static void print_tree_structure_flat (avltree_node_t *node, int level)
+    __attribute__ ((used));
 static avltree_node_t *alloc_avltree_node(void);
 
 static avltree_node_t *test_tree_parents(avltree_node_t *node)
@@ -61,14 +62,15 @@ static avltree_node_t *test_tree_parents(avltree_node_t *node)
 	if (node->lft) {
 		tmp = test_tree_parents(node->lft);
 		if (tmp != node) {
-			printf("Bad parent pointer key: %" PRIu64 ", address: %p\n",
-			    tmp->key, node->lft);
+			printf("Bad parent pointer key: %" PRIu64
+			    ", address: %p\n", tmp->key, node->lft);
 		}
 	}
 	if (node->rgt) {
 		tmp = test_tree_parents(node->rgt);
 		if (tmp != node) {
-			printf("Bad parent pointer key: %" PRIu64 ", address: %p\n",
+			printf("Bad parent pointer key: %" PRIu64
+			    ", address: %p\n",
 			    tmp->key,node->rgt);
 		}
 	}
@@ -94,7 +96,8 @@ int test_tree_balance(avltree_node_t *node)
  * Prints the structure of the node, which is level levels from the top of the
  * tree. 
  */
-static void print_tree_structure_flat(avltree_node_t *node, int level)
+static void
+print_tree_structure_flat(avltree_node_t *node, int level)
 {
 	/*
 	 * You can set the maximum level as high as you like.
@@ -130,6 +133,7 @@ static void alloc_avltree_node_prepare(void)
 	for (i = 0; i < NODE_COUNT - 1; i++) {
 		avltree_nodes[i].par = &avltree_nodes[i + 1];
 	}
+	avltree_nodes[i].par = NULL;
 	
 	/*
 	 * Node keys which will be used for insertion. Up to NODE_COUNT size of
@@ -169,7 +173,6 @@ static void alloc_avltree_node_prepare(void)
 	for (i = 21; i < NODE_COUNT; i++)
 		avltree_nodes[i].key = i * 3;
 	
-	avltree_nodes[i].par = NULL;
 	first_free_node = &avltree_nodes[0];
 }
 
