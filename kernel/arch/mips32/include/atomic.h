@@ -58,13 +58,13 @@ static inline long atomic_add(atomic_t *val, int i)
 	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
-		"	addiu %0, %0, %3\n"	/* same as addi, but never traps on overflow */
+		"	addu %0, %0, %3\n"	/* same as addi, but never traps on overflow */
 		"       move %2, %0\n"
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
 		"	nop\n"
 		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
-		: "i" (i), "i" (0)
+		: "r" (i), "i" (0)
 		);
 
 	return v;
