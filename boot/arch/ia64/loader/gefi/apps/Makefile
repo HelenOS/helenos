@@ -28,7 +28,7 @@ CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
 CRTOBJS		= ../gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT	= ../gnuefi/elf_$(ARCH)_efi.lds
 LDFLAGS		+= -T $(LDSCRIPT) -shared -Bsymbolic -L../lib -L../gnuefi $(CRTOBJS)
-LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
+LOADLIBES	= -lefi -lgnuefi
 FORMAT		= efi-app-$(ARCH)
 
 TARGETS = t.efi t2.efi t3.efi t4.efi t5.efi t6.efi printenv.efi t7.efi
