@@ -131,17 +131,17 @@ static void main_ap_separated_stack(void);
 
 /** Main kernel routine for bootstrap CPU.
  *
- * Initializes the kernel by bootstrap CPU.
- * This function passes control directly to
- * main_bsp_separated_stack().
+ * The code here still runs on the boot stack, which knows nothing about
+ * preemption counts.  Because of that, this function cannot directly call
+ * functions that disable or enable preemption (e.g. spinlock_lock()). The
+ * primary task of this function is to calculate address of a new stack and
+ * switch to it.
  *
  * Assuming interrupts_disable().
  *
  */
 void main_bsp(void)
 {
-	LOG();
-	
 	config.cpu_count = 1;
 	config.cpu_active = 1;
 	
@@ -173,13 +173,6 @@ void main_bsp(void)
 	if (config.stack_base < stack_safe)
 		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
 	
-	version_print();
-	
-	LOG("\nconfig.base=%#" PRIp " config.kernel_size=%" PRIs
-		"\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
-		config.base, config.kernel_size,
-		config.stack_base, config.stack_size);
-	
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base,
 	    THREAD_STACK_SIZE);
@@ -195,9 +188,18 @@ void main_bsp(void)
  */
 void main_bsp_separated_stack(void) 
 {
+	/* Keep this the first thing. */
+	the_initialize(THE);
+
 	LOG();
 	
-	the_initialize(THE);
+	version_print();
+	
+	LOG("\nconfig.base=%#" PRIp " config.kernel_size=%" PRIs
+	    "\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
+	    config.base, config.kernel_size, config.stack_base,
+	    config.stack_size);
+	
 
 	/*
 	 * kconsole data structures must be initialized very early
@@ -249,10 +251,9 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		count_t i;
 		for (i = 0; i < init.cnt; i++)
-			printf("init[%" PRIc "].addr=%#" PRIp
-				", init[%" PRIc "].size=%#" PRIs "\n",
-				i, init.tasks[i].addr,
-				i, init.tasks[i].size);
+			printf("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
+			    "].size=%#" PRIs "\n", i, init.tasks[i].addr,
+			    i, init.tasks[i].size);
 	} else
 		printf("No init binaries found\n");
 	
@@ -269,7 +270,8 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create the first thread.
 	 */
-	thread_t *kinit_thread = thread_create(kinit, NULL, kernel, 0, "kinit", true);
+	thread_t *kinit_thread = thread_create(kinit, NULL, kernel, 0, "kinit",
+	    true);
 	if (!kinit_thread)
 		panic("Can't create kinit thread\n");
 	LOG_EXEC(thread_ready(kinit_thread));
