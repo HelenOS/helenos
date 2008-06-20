@@ -35,6 +35,7 @@ BFD = binary
 TARGET = amd64-linux-gnu
 TOOLCHAIN_DIR = /usr/local/amd64
 
+FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)

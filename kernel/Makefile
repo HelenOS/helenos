@@ -393,5 +393,15 @@ disasm: kernel.raw
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
-%.o: %.c
+#
+# The FPU tests are the only objects for which we allow the compiler to generate
+# FPU instructions.
+#
+test/fpu/%.o: test/fpu/%.c
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+
+#
+# Ordinary objects.
+#
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c $< -o $@ 
