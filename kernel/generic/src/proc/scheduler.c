@@ -451,8 +451,8 @@ repeat:
 			/*
 			 * Entering state is unexpected.
 			 */
-			panic("tid%" PRIu64 ": unexpected state %s\n", THREAD->tid,
-			    thread_states[THREAD->state]);
+			panic("tid%" PRIu64 ": unexpected state %s\n",
+			    THREAD->tid, thread_states[THREAD->state]);
 			break;
 		}
 
@@ -504,9 +504,9 @@ repeat:
 	THREAD->state = Running;
 
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 ", nrdy=%ld)\n",
-	    CPU->id, THREAD->tid, THREAD->priority, THREAD->ticks,
-	    atomic_get(&CPU->nrdy));
+	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 
+	    ", nrdy=%ld)\n", CPU->id, THREAD->tid, THREAD->priority,
+	    THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif	
 
 	/*
@@ -640,9 +640,9 @@ not_satisfied:
 				 */
 				spinlock_lock(&t->lock);
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%u: TID %" PRIu64 " -> cpu%u, nrdy=%ld, "
-				    "avg=%ld\n", CPU->id, t->tid, CPU->id,
-				    atomic_get(&CPU->nrdy),
+				printf("kcpulb%u: TID %" PRIu64 " -> cpu%u, "
+				    "nrdy=%ld, avg=%ld\n", CPU->id, t->tid,
+				    CPU->id, atomic_get(&CPU->nrdy),
 				    atomic_get(&nrdy) / config.cpu_active);
 #endif
 				t->flags |= THREAD_FLAG_STOLEN;

@@ -146,7 +146,8 @@ void kinit(void *arg)
 	/*
 	 * Create kernel console.
 	 */
-	t = thread_create(kconsole, (void *) "kconsole", TASK, 0, "kconsole", false);
+	t = thread_create(kconsole, (void *) "kconsole", TASK, 0, "kconsole",
+	    false);
 	if (t)
 		thread_ready(t);
 	else
@@ -166,8 +167,8 @@ void kinit(void *arg)
 			continue;
 		}
 
-		threads[i] = thread_create_program(
-			(void *) init.tasks[i].addr, "uspace");
+		threads[i] = thread_create_program((void *) init.tasks[i].addr,
+		    "uspace");
 		
 		if (threads[i] != NULL) {
 			/*
@@ -183,7 +184,8 @@ void kinit(void *arg)
 			    init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %" PRIc " not used, error code %d.\n", i, rd);
+				printf("Init binary %" PRIc " not used, error "
+				    "code %d.\n", i, rd);
 		}
 	}
 	
