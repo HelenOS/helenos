@@ -167,7 +167,7 @@ static int _slab_initialized = 0;
  * Allocate frames for slab space and initialize
  *
  */
-static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
+static slab_t *slab_space_alloc(slab_cache_t *cache, int flags)
 {
 	void *data;
 	slab_t *slab;
@@ -179,7 +179,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	if (!data) {
 		return NULL;
 	}
-	if (! (cache->flags & SLAB_CACHE_SLINSIDE)) {
+	if (!(cache->flags & SLAB_CACHE_SLINSIDE)) {
 		slab = slab_alloc(slab_extern_cache, flags);
 		if (!slab) {
 			frame_free(KA2PA(data));
@@ -200,7 +200,7 @@ static slab_t * slab_space_alloc(slab_cache_t *cache, int flags)
 	slab->cache = cache;
 
 	for (i = 0; i < cache->objects; i++)
-		*((int *) (slab->start + i*cache->size)) = i+1;
+		*((int *) (slab->start + i*cache->size)) = i + 1;
 
 	atomic_inc(&cache->allocated_slabs);
 	return slab;
@@ -239,8 +239,7 @@ static slab_t * obj2slab(void *obj)
  *
  * @return Number of freed pages
  */
-static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
-				slab_t *slab)
+static count_t slab_obj_destroy(slab_cache_t *cache, void *obj, slab_t *slab)
 {
 	int freed = 0;
 
@@ -256,7 +255,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	ASSERT(slab->available < cache->objects);
 
 	*((int *)obj) = slab->nextavail;
-	slab->nextavail = (obj - slab->start)/cache->size;
+	slab->nextavail = (obj - slab->start) / cache->size;
 	slab->available++;
 
 	/* Move it to correct list */
@@ -281,7 +280,7 @@ static count_t slab_obj_destroy(slab_cache_t *cache, void *obj,
  *
  * @return Object address or null
  */
-static void * slab_obj_create(slab_cache_t *cache, int flags)
+static void *slab_obj_create(slab_cache_t *cache, int flags)
 {
 	slab_t *slab;
 	void *obj;
@@ -301,7 +300,8 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
 			return NULL;
 		spinlock_lock(&cache->slablock);
 	} else {
-		slab = list_get_instance(cache->partial_slabs.next, slab_t, link);
+		slab = list_get_instance(cache->partial_slabs.next, slab_t,
+		    link);
 		list_remove(&slab->link);
 	}
 	obj = slab->start + slab->nextavail * cache->size;
@@ -332,8 +332,7 @@ static void * slab_obj_create(slab_cache_t *cache, int flags)
  *
  * @param first If true, return first, else last mag
  */
-static slab_magazine_t * get_mag_from_cache(slab_cache_t *cache,
-					    int first)
+static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache, int first)
 {
 	slab_magazine_t *mag = NULL;
 	link_t *cur;
@@ -368,8 +367,7 @@ static void put_mag_to_cache(slab_cache_t *cache, slab_magazine_t *mag)
  *
  * @return Number of freed pages
  */
-static count_t magazine_destroy(slab_cache_t *cache, 
-				slab_magazine_t *mag)
+static count_t magazine_destroy(slab_cache_t *cache, slab_magazine_t *mag)
 {
 	unsigned int i;
 	count_t frames = 0;
@@ -389,7 +387,7 @@ static count_t magazine_destroy(slab_cache_t *cache,
  *
  * Assume cpu_magazine lock is held
  */
-static slab_magazine_t * get_full_current_mag(slab_cache_t *cache)
+static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
 {
 	slab_magazine_t *cmag, *lastmag, *newmag;
 
@@ -423,7 +421,7 @@ static slab_magazine_t * get_full_current_mag(slab_cache_t *cache)
  *
  * @return Pointer to object or NULL if not available
  */
-static void * magazine_obj_get(slab_cache_t *cache)
+static void *magazine_obj_get(slab_cache_t *cache)
 {
 	slab_magazine_t *mag;
 	void *obj;
@@ -458,7 +456,7 @@ static void * magazine_obj_get(slab_cache_t *cache)
  *   allocate new, exchange last & current
  *
  */
-static slab_magazine_t * make_empty_current_mag(slab_cache_t *cache)
+static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
 {
 	slab_magazine_t *cmag,*lastmag,*newmag;
 
@@ -530,7 +528,8 @@ static int magazine_obj_put(slab_cache_t *cache, void *obj)
 static unsigned int comp_objects(slab_cache_t *cache)
 {
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
-		return ((PAGE_SIZE << cache->order) - sizeof(slab_t)) / cache->size;
+		return ((PAGE_SIZE << cache->order) - sizeof(slab_t)) /
+		    cache->size;
 	else 
 		return (PAGE_SIZE << cache->order) / cache->size;
 }
@@ -557,22 +556,20 @@ static void make_magcache(slab_cache_t *cache)
 	
 	ASSERT(_slab_initialized >= 2);
 
-	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,0);
+	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,
+	    0);
 	for (i = 0; i < config.cpu_count; i++) {
 		memsetb(&cache->mag_cache[i], sizeof(cache->mag_cache[i]), 0);
-		spinlock_initialize(&cache->mag_cache[i].lock, "slab_maglock_cpu");
+		spinlock_initialize(&cache->mag_cache[i].lock,
+		    "slab_maglock_cpu");
 	}
 }
 
 /** Initialize allocated memory as a slab cache */
 static void
-_slab_cache_create(slab_cache_t *cache,
-		   char *name,
-		   size_t size,
-		   size_t align,
-		   int (*constructor)(void *obj, int kmflag),
-		   int (*destructor)(void *obj),
-		   int flags)
+_slab_cache_create(slab_cache_t *cache, char *name, size_t size, size_t align,
+    int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
+    int flags)
 {
 	int pages;
 	ipl_t ipl;
@@ -595,7 +592,7 @@ _slab_cache_create(slab_cache_t *cache,
 	list_initialize(&cache->magazines);
 	spinlock_initialize(&cache->slablock, "slab_lock");
 	spinlock_initialize(&cache->maglock, "slab_maglock");
-	if (! (cache->flags & SLAB_CACHE_NOMAGAZINE))
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
 		make_magcache(cache);
 
 	/* Compute slab sizes, object counts in slabs etc. */
@@ -608,7 +605,7 @@ _slab_cache_create(slab_cache_t *cache,
 	if (pages == 1)
 		cache->order = 0;
 	else
-		cache->order = fnzb(pages-1)+1;
+		cache->order = fnzb(pages - 1) + 1;
 
 	while (badness(cache) > SLAB_MAX_BADNESS(cache)) {
 		cache->order += 1;
@@ -629,18 +626,16 @@ _slab_cache_create(slab_cache_t *cache,
 }
 
 /** Create slab cache  */
-slab_cache_t * slab_cache_create(char *name,
-				 size_t size,
-				 size_t align,
-				 int (*constructor)(void *obj, int kmflag),
-				 int (*destructor)(void *obj),
-				 int flags)
+slab_cache_t *
+slab_cache_create(char *name, size_t size, size_t align,
+    int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
+    int flags)
 {
 	slab_cache_t *cache;
 
 	cache = slab_alloc(&slab_cache_cache, 0);
 	_slab_cache_create(cache, name, size, align, constructor, destructor,
-			   flags);
+	    flags);
 	return cache;
 }
 
@@ -664,7 +659,7 @@ static count_t _slab_reclaim(slab_cache_t *cache, int flags)
 	 * endless loop 
 	 */
 	magcount = atomic_get(&cache->magazine_counter);
-	while (magcount-- && (mag=get_mag_from_cache(cache,0))) {
+	while (magcount-- && (mag=get_mag_from_cache(cache, 0))) {
 		frames += magazine_destroy(cache,mag);
 		if (!(flags & SLAB_RECLAIM_ALL) && frames)
 			break;
@@ -717,8 +712,8 @@ void slab_cache_destroy(slab_cache_t *cache)
 	_slab_reclaim(cache, SLAB_RECLAIM_ALL);
 
 	/* All slabs must be empty */
-	if (!list_empty(&cache->full_slabs) \
-	    || !list_empty(&cache->partial_slabs))
+	if (!list_empty(&cache->full_slabs) ||
+	    !list_empty(&cache->partial_slabs))
 		panic("Destroying cache that is not empty.");
 
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
@@ -726,9 +721,8 @@ void slab_cache_destroy(slab_cache_t *cache)
 	slab_free(&slab_cache_cache, cache);
 }
 
-/** Allocate new object from cache - if no flags given, always returns 
-    memory */
-void * slab_alloc(slab_cache_t *cache, int flags)
+/** Allocate new object from cache - if no flags given, always returns memory */
+void *slab_alloc(slab_cache_t *cache, int flags)
 {
 	ipl_t ipl;
 	void *result = NULL;
@@ -757,9 +751,8 @@ static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 
 	ipl = interrupts_disable();
 
-	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) \
-	    || magazine_obj_put(cache, obj)) {
-
+	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) ||
+	    magazine_obj_put(cache, obj)) {
 		slab_obj_destroy(cache, obj, slab);
 
 	}
@@ -786,7 +779,8 @@ count_t slab_reclaim(int flags)
 	 * memory allocation from interrupts can deadlock.
 	 */
 
-	for (cur = slab_cache_list.next;cur!=&slab_cache_list; cur=cur->next) {
+	for (cur = slab_cache_list.next; cur != &slab_cache_list;
+	    cur = cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
 		frames += _slab_reclaim(cache, flags);
 	}
@@ -806,16 +800,21 @@ void slab_print_list(void)
 	
 	ipl = interrupts_disable();
 	spinlock_lock(&slab_cache_lock);
-	printf("slab name        size     pages  obj/pg slabs  cached allocated ctl\n");
-	printf("---------------- -------- ------ ------ ------ ------ --------- ---\n");
+	printf("slab name        size     pages  obj/pg slabs  cached allocated"
+	    " ctl\n");
+	printf("---------------- -------- ------ ------ ------ ------ ---------"
+	    " ---\n");
 	
-	for (cur = slab_cache_list.next; cur != &slab_cache_list; cur = cur->next) {
+	for (cur = slab_cache_list.next; cur != &slab_cache_list;
+	    cur = cur->next) {
 		cache = list_get_instance(cur, slab_cache_t, link);
 		
 		printf("%-16s %8" PRIs " %6d %6u %6ld %6ld %9ld %-3s\n",
-			cache->name, cache->size, (1 << cache->order), cache->objects,
-			atomic_get(&cache->allocated_slabs), atomic_get(&cache->cached_objs),
-			atomic_get(&cache->allocated_objs), cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
+		    cache->name, cache->size, (1 << cache->order),
+		    cache->objects, atomic_get(&cache->allocated_slabs),
+		    atomic_get(&cache->cached_objs),
+		    atomic_get(&cache->allocated_objs),
+		    cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}
 	spinlock_unlock(&slab_cache_lock);
 	interrupts_restore(ipl);
@@ -826,32 +825,24 @@ void slab_cache_init(void)
 	int i, size;
 
 	/* Initialize magazine cache */
-	_slab_cache_create(&mag_cache,
-			   "slab_magazine",
-			   sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void*),
-			   sizeof(uintptr_t),
-			   NULL, NULL,
-			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
+	_slab_cache_create(&mag_cache, "slab_magazine",
+	    sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void*),
+	    sizeof(uintptr_t), NULL, NULL, SLAB_CACHE_NOMAGAZINE |
+	    SLAB_CACHE_SLINSIDE);
 	/* Initialize slab_cache cache */
-	_slab_cache_create(&slab_cache_cache,
-			   "slab_cache",
-			   sizeof(slab_cache_cache),
-			   sizeof(uintptr_t),
-			   NULL, NULL,
-			   SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
+	_slab_cache_create(&slab_cache_cache, "slab_cache",
+	    sizeof(slab_cache_cache), sizeof(uintptr_t), NULL, NULL,
+	    SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
 	/* Initialize external slab cache */
-	slab_extern_cache = slab_cache_create("slab_extern",
-					      sizeof(slab_t),
-					      0, NULL, NULL,
-					      SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
+	slab_extern_cache = slab_cache_create("slab_extern", sizeof(slab_t), 0,
+	    NULL, NULL, SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
 
 	/* Initialize structures for malloc */
-	for (i=0, size=(1 << SLAB_MIN_MALLOC_W);
-	     i < (SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1);
-	     i++, size <<= 1) {
-		malloc_caches[i] = slab_cache_create(malloc_names[i],
-						     size, 0,
-						     NULL,NULL, SLAB_CACHE_MAGDEFERRED);
+	for (i = 0, size = (1 << SLAB_MIN_MALLOC_W);
+	    i < (SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1);
+	    i++, size <<= 1) {
+		malloc_caches[i] = slab_cache_create(malloc_names[i], size, 0,
+		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 	}
 #ifdef CONFIG_DEBUG       
 	_slab_initialized = 1;
@@ -876,9 +867,11 @@ void slab_enable_cpucache(void)
 
 	spinlock_lock(&slab_cache_lock);
 	
-	for (cur=slab_cache_list.next; cur != &slab_cache_list;cur=cur->next){
+	for (cur = slab_cache_list.next; cur != &slab_cache_list;
+	    cur = cur->next){
 		s = list_get_instance(cur, slab_cache_t, link);
-		if ((s->flags & SLAB_CACHE_MAGDEFERRED) != SLAB_CACHE_MAGDEFERRED)
+		if ((s->flags & SLAB_CACHE_MAGDEFERRED) !=
+		    SLAB_CACHE_MAGDEFERRED)
 			continue;
 		make_magcache(s);
 		s->flags &= ~SLAB_CACHE_MAGDEFERRED;
@@ -889,7 +882,7 @@ void slab_enable_cpucache(void)
 
 /**************************************/
 /* kalloc/kfree functions             */
-void * malloc(unsigned int size, int flags)
+void *malloc(unsigned int size, int flags)
 {
 	ASSERT(_slab_initialized);
 	ASSERT(size && size <= (1 << SLAB_MAX_MALLOC_W));
@@ -902,7 +895,7 @@ void * malloc(unsigned int size, int flags)
 	return slab_alloc(malloc_caches[idx], flags);
 }
 
-void * realloc(void *ptr, unsigned int size, int flags)
+void *realloc(void *ptr, unsigned int size, int flags)
 {
 	ASSERT(_slab_initialized);
 	ASSERT(size <= (1 << SLAB_MAX_MALLOC_W));
