@@ -87,7 +87,8 @@ call_t *ipc_call_alloc(int flags)
 	call_t *call;
 
 	call = slab_alloc(ipc_call_slab, flags);
-	_ipc_call_init(call);
+	if (call)
+		_ipc_call_init(call);
 
 	return call;
 }
