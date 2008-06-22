@@ -53,7 +53,8 @@
 #define SLAB_INSIDE_SIZE   (PAGE_SIZE >> 3)
 
 /** Maximum wasted space we allow for cache */
-#define SLAB_MAX_BADNESS(cache)   (((unsigned int) PAGE_SIZE << (cache)->order) >> 2)
+#define SLAB_MAX_BADNESS(cache)	\
+	(((unsigned int) PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
 
@@ -99,7 +100,7 @@ typedef struct {
 	int flags;
 
 	/* Computed values */
-	uint8_t order;				/**< Order of frames to be allocated */
+	uint8_t order;			/**< Order of frames to be allocated */
 	unsigned int objects;		/**< Number of objects that fit in */
 
 	/* Statistics */
@@ -121,14 +122,13 @@ typedef struct {
 	slab_mag_cache_t *mag_cache;
 } slab_cache_t;
 
-extern slab_cache_t * slab_cache_create(char *name, size_t size, size_t align,
-    int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
-    int flags);
-extern void slab_cache_destroy(slab_cache_t *cache);
+extern slab_cache_t *slab_cache_create(char *, size_t, size_t,
+    int (*)(void *, int), int (*)(void *), int);
+extern void slab_cache_destroy(slab_cache_t *);
 
-extern void * slab_alloc(slab_cache_t *cache, int flags);
-extern void slab_free(slab_cache_t *cache, void *obj);
-extern count_t slab_reclaim(int flags);
+extern void * slab_alloc(slab_cache_t *, int);
+extern void slab_free(slab_cache_t *, void *);
+extern count_t slab_reclaim(int);
 
 /* slab subsytem initialization */
 extern void slab_cache_init(void);
@@ -138,9 +138,9 @@ extern void slab_enable_cpucache(void);
 extern void slab_print_list(void);
 
 /* malloc support */
-extern void * malloc(unsigned int size, int flags);
-extern void * realloc(void *ptr, unsigned int size, int flags);
-extern void free(void *ptr);
+extern void *malloc(unsigned int, int);
+extern void *realloc(void *, unsigned int, int);
+extern void free(void *);
 #endif
 
 /** @}
