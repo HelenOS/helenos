@@ -794,30 +794,77 @@ count_t slab_reclaim(int flags)
 /* Print list of slabs */
 void slab_print_list(void)
 {
-	slab_cache_t *cache;
-	link_t *cur;
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&slab_cache_lock);
+	int skip = 0;
+
 	printf("slab name        size     pages  obj/pg slabs  cached allocated"
 	    " ctl\n");
 	printf("---------------- -------- ------ ------ ------ ------ ---------"
 	    " ---\n");
-	
-	for (cur = slab_cache_list.next; cur != &slab_cache_list;
-	    cur = cur->next) {
+
+	while (true) {
+		slab_cache_t *cache;
+		link_t *cur;
+		ipl_t ipl;
+		int i;
+
+		/*
+		 * We must not hold the slab_cache_lock spinlock when printing
+		 * the statistics. Otherwise we can easily deadlock if the print
+		 * needs to allocate memory.
+		 *
+		 * Therefore, we walk through the slab cache list, skipping some
+		 * amount of already processed caches during each iteration and
+		 * gathering statistics about the first unprocessed cache. For
+		 * the sake of printing the statistics, we realese the
+		 * slab_cache_lock and reacquire it afterwards. Then the walk
+		 * starts again.
+		 *
+		 * This limits both the efficiency and also accuracy of the
+		 * obtained statistics. The efficiency is decreased because the
+		 * time complexity of the algorithm is quadratic instead of
+		 * linear. The accuracy is impacted because we drop the lock
+		 * after processing one cache. If there is someone else
+		 * manipulating the cache list, we might omit an arbitrary
+		 * number of caches or process one cache multiple times.
+		 * However, we don't bleed for this algorithm for it is only
+		 * statistics.
+		 */
+
+		ipl = interrupts_disable();
+		spinlock_lock(&slab_cache_lock);
+
+		for (i = 0, cur = slab_cache_list.next;
+		    i < skip && cur != &slab_cache_list;
+		    i++, cur = cur->next)
+			;
+
+		if (cur == &slab_cache_list) {
+			spinlock_unlock(&slab_cache_lock);
+			interrupts_restore(ipl);
+			break;
+		}
+
+		skip++;
+
 		cache = list_get_instance(cur, slab_cache_t, link);
+
+		char *name = cache->name;
+		uint8_t order = cache->order;
+		size_t size = cache->size;
+		unsigned int objects = cache->objects;
+		long allocated_slabs = atomic_get(&cache->allocated_slabs);
+		long cached_objs = atomic_get(&cache->cached_objs);
+		long allocated_objs = atomic_get(&cache->allocated_objs);
+		int flags = cache->flags;
+		
+		spinlock_unlock(&slab_cache_lock);
+		interrupts_restore(ipl);
 		
 		printf("%-16s %8" PRIs " %6d %6u %6ld %6ld %9ld %-3s\n",
-		    cache->name, cache->size, (1 << cache->order),
-		    cache->objects, atomic_get(&cache->allocated_slabs),
-		    atomic_get(&cache->cached_objs),
-		    atomic_get(&cache->allocated_objs),
-		    cache->flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
+		    name, size, (1 << order), objects, allocated_slabs,
+		    cached_objs, allocated_objs,
+		    flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}
-	spinlock_unlock(&slab_cache_lock);
-	interrupts_restore(ipl);
 }
 
 void slab_cache_init(void)
