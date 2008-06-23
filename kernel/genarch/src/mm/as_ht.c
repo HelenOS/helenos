@@ -72,7 +72,7 @@ pte_t *ht_create(int flags)
 {
 	if (flags & FLAG_AS_KERNEL) {
 		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
-		mutex_initialize(&page_ht_lock);
+		mutex_initialize(&page_ht_lock, MUTEX_PASSIVE);
 	}
 	return NULL;
 }

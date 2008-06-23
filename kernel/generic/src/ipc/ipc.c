@@ -161,7 +161,7 @@ void ipc_phone_connect(phone_t *phone, answerbox_t *box)
  */
 void ipc_phone_init(phone_t *phone)
 {
-	mutex_initialize(&phone->lock);
+	mutex_initialize(&phone->lock, MUTEX_PASSIVE);
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);

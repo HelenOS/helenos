@@ -82,7 +82,7 @@ static void release_spinlock(void *arg);
  */
 void rwlock_initialize(rwlock_t *rwl) {
 	spinlock_initialize(&rwl->lock, "rwlock_t");
-	mutex_initialize(&rwl->exclusive);
+	mutex_initialize(&rwl->exclusive, MUTEX_PASSIVE);
 	rwl->readers_in = 0;
 }
 

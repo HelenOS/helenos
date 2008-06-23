@@ -39,20 +39,26 @@
 #include <synch/semaphore.h>
 #include <synch/synch.h>
 
+typedef enum {
+	MUTEX_PASSIVE,
+	MUTEX_ACTIVE
+} mutex_type_t;
+
 typedef struct {
+	mutex_type_t type;
 	semaphore_t sem;
 } mutex_t;
 
-#define mutex_lock(mtx) \
+#define mutex_lock(mtx)			\
 	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-#define mutex_trylock(mtx) \
+#define mutex_trylock(mtx)		\
 	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING)
-#define mutex_lock_timeout(mtx, usec) \
+#define mutex_lock_timeout(mtx, usec)	\
 	_mutex_lock_timeout((mtx), (usec), SYNCH_FLAGS_NON_BLOCKING)
 
-extern void mutex_initialize(mutex_t *mtx);
-extern int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags);
-extern void mutex_unlock(mutex_t *mtx);
+extern void mutex_initialize(mutex_t *, mutex_type_t);
+extern int _mutex_lock_timeout(mutex_t *, uint32_t, int);
+extern void mutex_unlock(mutex_t *);
 
 #endif
 

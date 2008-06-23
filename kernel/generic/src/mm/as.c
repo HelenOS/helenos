@@ -126,7 +126,7 @@ static int as_constructor(void *obj, int flags)
 	int rc;
 
 	link_initialize(&as->inactive_as_with_asid_link);
-	mutex_initialize(&as->lock);	
+	mutex_initialize(&as->lock, MUTEX_PASSIVE);	
 	
 	rc = as_constructor_arch(as, flags);
 	
@@ -168,7 +168,7 @@ as_t *as_create(int flags)
 #ifdef __OBJC__
 	as = [as_t new];
 	link_initialize(&as->inactive_as_with_asid_link);
-	mutex_initialize(&as->lock);	
+	mutex_initialize(&as->lock, MUTEX_PASSIVE);	
 	(void) as_constructor_arch(as, flags);
 #else
 	as = (as_t *) slab_alloc(as_slab, 0);
@@ -312,7 +312,7 @@ as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 	
 	a = (as_area_t *) malloc(sizeof(as_area_t), 0);
 
-	mutex_initialize(&a->lock);
+	mutex_initialize(&a->lock, MUTEX_PASSIVE);
 	
 	a->as = as;
 	a->flags = flags;
@@ -694,7 +694,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	sh_info = src_area->sh_info;
 	if (!sh_info) {
 		sh_info = (share_info_t *) malloc(sizeof(share_info_t), 0);
-		mutex_initialize(&sh_info->lock);
+		mutex_initialize(&sh_info->lock, MUTEX_PASSIVE);
 		sh_info->refcount = 2;
 		btree_create(&sh_info->pagemap);
 		src_area->sh_info = sh_info;

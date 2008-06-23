@@ -43,29 +43,27 @@
 
 /** Initialize condition variable.
  *
- * @param cv Condition variable.
+ * @param cv		Condition variable.
  */
 void condvar_initialize(condvar_t *cv)
 {
 	waitq_initialize(&cv->wq);
 }
 
-/**
- * Signal the condition has become true
- * to the first waiting thread by waking it up.
+/** Signal the condition has become true to the first waiting thread by waking
+ * it up.
  *
- * @param cv Condition variable.
+ * @param cv		Condition variable.
  */
 void condvar_signal(condvar_t *cv)
 {
 	waitq_wakeup(&cv->wq, WAKEUP_FIRST);
 }
 
-/**
- * Signal the condition has become true
- * to all waiting threads by waking them up.
+/** Signal the condition has become true to all waiting threads by waking
+ * them up.
  *
- * @param cv Condition variable.
+ * @param cv		Condition variable.
  */
 void condvar_broadcast(condvar_t *cv)
 {
@@ -74,17 +72,17 @@ void condvar_broadcast(condvar_t *cv)
 
 /** Wait for the condition becoming true.
  *
- * @param cv Condition variable.
- * @param mtx Mutex.
- * @param usec Timeout value in microseconds.
- * @param flags Select mode of operation.
+ * @param cv		Condition variable.
+ * @param mtx		Mutex.
+ * @param usec		Timeout value in microseconds.
+ * @param flags		Select mode of operation.
  *
- * For exact description of meaning of possible combinations
- * of usec and flags, see comment for waitq_sleep_timeout().
- * Note that when SYNCH_FLAGS_NON_BLOCKING is specified here,
- * ESYNCH_WOULD_BLOCK is always returned.
+ * For exact description of meaning of possible combinations of usec and flags,
+ * see comment for waitq_sleep_timeout().  Note that when
+ * SYNCH_FLAGS_NON_BLOCKING is specified here, ESYNCH_WOULD_BLOCK is always
+ * returned.
  *
- * @return See comment for waitq_sleep_timeout().
+ * @return		See comment for waitq_sleep_timeout().
  */
 int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
 {

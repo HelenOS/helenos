@@ -216,7 +216,7 @@ static void multitest(int size, bool quiet)
 		printf("Running stress test with size %d\n", size);
 	
 	condvar_initialize(&thread_starter);
-	mutex_initialize(&starter_mutex);
+	mutex_initialize(&starter_mutex, MUTEX_PASSIVE);
 
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
 	semaphore_initialize(&thr_sem,0);

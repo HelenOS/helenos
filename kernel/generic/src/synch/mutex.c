@@ -38,42 +38,54 @@
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
 #include <synch/synch.h>
+#include <debug.h>
 
-/** Initialize mutex
+/** Initialize mutex.
  *
- * Initialize mutex.
- *
- * @param mtx Mutex.
+ * @param mtx		Mutex.
+ * @param type		Type of the mutex.
  */
-void mutex_initialize(mutex_t *mtx)
+void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 {
+	mtx->type = type;
 	semaphore_initialize(&mtx->sem, 1);
 }
 
-/** Acquire mutex
+/** Acquire mutex.
  *
- * Acquire mutex.
  * Timeout mode and non-blocking mode can be requested.
  *
- * @param mtx Mutex.
- * @param usec Timeout in microseconds.
- * @param flags Specify mode of operation.
+ * @param mtx		Mutex.
+ * @param usec		Timeout in microseconds.
+ * @param flags		Specify mode of operation.
  *
  * For exact description of possible combinations of
  * usec and flags, see comment for waitq_sleep_timeout().
  *
- * @return See comment for waitq_sleep_timeout().
+ * @return		See comment for waitq_sleep_timeout().
  */
 int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
 {
-	return _semaphore_down_timeout(&mtx->sem, usec, flags);
+	int rc;
+
+	if (mtx->type == MUTEX_PASSIVE) {
+		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
+	} else {
+		ASSERT(mtx->type == MUTEX_ACTIVE);
+		ASSERT(usec == SYNCH_NO_TIMEOUT);
+		ASSERT(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
+		do {
+			rc = semaphore_trydown(&mtx->sem);
+		} while (SYNCH_FAILED(rc) &&
+		    !(flags & SYNCH_FLAGS_NON_BLOCKING));
+	}
+
+	return rc;
 }
 
-/** Release mutex
+/** Release mutex.
  *
- * Release mutex.
- *
- * @param mtx Mutex.
+ * @param mtx		Mutex.
  */
 void mutex_unlock(mutex_t *mtx)
 {
