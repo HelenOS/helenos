@@ -109,9 +109,10 @@ static zones_t zones;
  * Synchronization primitives used to sleep when there is no memory
  * available.
  */
-mutex_t zones_mtx;
-condvar_t zones_cv;
-int new_freed_mem = false;
+mutex_t mem_avail_mtx;
+condvar_t mem_avail_cv;
+unsigned long mem_avail_frames = 0;	/**< Number of available frames. */
+unsigned long mem_avail_gen = 0;	/**< Generation counter. */
 
 /********************/
 /* Helper functions */
@@ -140,7 +141,7 @@ static index_t make_frame_index(zone_t *zone, frame_t *frame)
 
 /** Initialize frame structure.
  *
- * @param framei	Frame structure to be initialized.
+ * @param frame		Frame structure to be initialized.
  */
 static void frame_initialize(frame_t *frame)
 {
@@ -539,7 +540,7 @@ static void zone_frame_free(zone_t *zone, index_t frame_idx)
 }
 
 /** Return frame from zone. */
-static frame_t * zone_get_frame(zone_t *zone, index_t frame_idx)
+static frame_t *zone_get_frame(zone_t *zone, index_t frame_idx)
 {
 	ASSERT(frame_idx < zone->count);
 	return &zone->frames[frame_idx];
@@ -558,6 +559,10 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
 	    &frame->buddy_link);
 	ASSERT(link);
 	zone->free_count--;
+
+	mutex_lock(&mem_avail_mtx);
+	mem_avail_frames--;
+	mutex_unlock(&mem_avail_mtx);
 }
 
 /** Join two zones.
@@ -735,7 +740,7 @@ void zone_merge(unsigned int z1, unsigned int z2)
 	if ((z1 >= zones.count) || (z2 >= zones.count))
 		goto errout;
 	/* We can join only 2 zones with none existing inbetween */
-	if (z2-z1 != 1)
+	if (z2 - z1 != 1)
 		goto errout;
 
 	zone1 = zones.info[z1];
@@ -796,7 +801,7 @@ void zone_merge_all(void)
 	int count = zones.count;
 
 	while (zones.count > 1 && --count) {
-		zone_merge(0,1);
+		zone_merge(0, 1);
 		break;
 	}
 }
@@ -893,8 +898,8 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 	 * it does not span kernel & init
 	 */
 	confcount = SIZE2FRAMES(zone_conf_size(count));
-	if (confframe >= start && confframe < start+count) {
-		for (;confframe < start + count; confframe++) {
+	if (confframe >= start && confframe < start + count) {
+		for (; confframe < start + count; confframe++) {
 			addr = PFN2ADDR(confframe);
 			if (overlaps(addr, PFN2ADDR(confcount),
 			    KA2PA(config.base), config.kernel_size))
@@ -928,11 +933,16 @@ int zone_create(pfn_t start, count_t count, pfn_t confframe, int flags)
 	if (znum == -1)
 		return -1;
 
+	mutex_lock(&mem_avail_mtx);
+	mem_avail_frames += count;
+	mutex_unlock(&mem_avail_mtx);
+
 	/* If confdata in zone, mark as unavailable */
 	if (confframe >= start && confframe < start + count)
 		for (i = confframe; i < confframe + confcount; i++) {
 			zone_mark_unavailable(z, i - z->base);
 		}
+	
 	return znum;
 }
 
@@ -946,7 +956,7 @@ void frame_set_parent(pfn_t pfn, void *data, unsigned int hint)
 
 	ASSERT(zone);
 
-	zone_get_frame(zone, pfn-zone->base)->parent = data;
+	zone_get_frame(zone, pfn - zone->base)->parent = data;
 	spinlock_unlock(&zone->lock);
 }
 
@@ -977,6 +987,7 @@ void *frame_alloc_generic(uint8_t order, int flags, unsigned int *pzone)
 	int freed;
 	pfn_t v;
 	zone_t *zone;
+	unsigned long gen = 0;
 	
 loop:
 	ipl = interrupts_disable();
@@ -1008,17 +1019,30 @@ loop:
 		}
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " falling asleep, low memory.\n", THREAD->tid);
+		unsigned long avail;
+
+		mutex_lock(&mem_avail_mtx);
+		avail = mem_avail_frames;
+		mutex_unlock(&mem_avail_mtx);
+
+		printf("Thread %" PRIu64 " waiting for %u frames, "
+		    "%u available.\n", THREAD->tid, 1ULL << order, avail);
 #endif
 
-		mutex_lock(&zones_mtx);
-		if (!new_freed_mem)
-			condvar_wait(&zones_cv, &zones_mtx);
-		new_freed_mem = false;
-		mutex_unlock(&zones_mtx);
+		mutex_lock(&mem_avail_mtx);
+		while ((mem_avail_frames < (1ULL << order)) ||
+		    gen == mem_avail_gen)
+			condvar_wait(&mem_avail_cv, &mem_avail_mtx);
+		gen = mem_avail_gen;
+		mutex_unlock(&mem_avail_mtx);
 
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " woken up, memory available.\n", THREAD->tid);
+		mutex_lock(&mem_avail_mtx);
+		avail = mem_avail_frames;
+		mutex_unlock(&mem_avail_mtx);
+
+		printf("Thread %" PRIu64 " woken up, %u frames available.\n",
+		    THREAD->tid, avail);
 #endif
 
 		interrupts_restore(ipl);
@@ -1029,6 +1053,11 @@ loop:
 	v += zone->base;
 
 	spinlock_unlock(&zone->lock);
+	
+	mutex_lock(&mem_avail_mtx);
+	mem_avail_frames -= (1ULL << order);
+	mutex_unlock(&mem_avail_mtx);
+
 	interrupts_restore(ipl);
 
 	if (flags & FRAME_KA)
@@ -1065,10 +1094,11 @@ void frame_free(uintptr_t frame)
 	/*
 	 * Signal that some memory has been freed.
 	 */
-	mutex_lock(&zones_mtx);	
-	new_freed_mem = true;
-	condvar_broadcast(&zones_cv);
-	mutex_unlock(&zones_mtx);
+	mutex_lock(&mem_avail_mtx);
+	mem_avail_frames++;
+	mem_avail_gen++;
+	condvar_broadcast(&mem_avail_cv);
+	mutex_unlock(&mem_avail_mtx);
 
 	interrupts_restore(ipl);
 }
@@ -1124,6 +1154,8 @@ void frame_init(void)
 	if (config.cpu_active == 1) {
 		zones.count = 0;
 		spinlock_initialize(&zones.lock, "zones.lock");
+		mutex_initialize(&mem_avail_mtx, MUTEX_ACTIVE);
+		condvar_initialize(&mem_avail_cv);
 	}
 	/* Tell the architecture to create some memory */
 	frame_arch_init();
@@ -1148,9 +1180,6 @@ void frame_init(void)
 		 * fail in some places */
 		frame_mark_unavailable(0, 1);
 	}
-
-	mutex_initialize(&zones_mtx, MUTEX_ACTIVE);	/* mimic spinlock */
-	condvar_initialize(&zones_cv);
 }
 
 
