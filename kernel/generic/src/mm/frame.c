@@ -58,6 +58,8 @@
 #include <debug.h>
 #include <adt/list.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
+#include <synch/condvar.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <print.h>
@@ -103,6 +105,13 @@ typedef struct {
 
 static zones_t zones;
 
+/*
+ * Synchronization primitives used to sleep when there is no memory
+ * available.
+ */
+mutex_t zones_mtx;
+condvar_t zones_cv;
+int new_freed_mem = false;
 
 /********************/
 /* Helper functions */
@@ -991,14 +1000,28 @@ loop:
 	}
 	if (!zone) {
 		/*
-		 * TODO: Sleep until frames are available again.
+		 * Sleep until some frames are available again.
 		 */
-		interrupts_restore(ipl);
-
-		if (flags & FRAME_ATOMIC)
+		if (flags & FRAME_ATOMIC) {
+			interrupts_restore(ipl);
 			return 0;
+		}
 		
-		panic("Sleep not implemented.\n");
+#ifdef CONFIG_DEBUG
+		printf("Thread %" PRIu64 " falling asleep, low memory.\n", THREAD->tid);
+#endif
+
+		mutex_lock(&zones_mtx);
+		if (!new_freed_mem)
+			condvar_wait(&zones_cv, &zones_mtx);
+		new_freed_mem = false;
+		mutex_unlock(&zones_mtx);
+
+#ifdef CONFIG_DEBUG
+		printf("Thread %" PRIu64 " woken up, memory available.\n", THREAD->tid);
+#endif
+
+		interrupts_restore(ipl);
 		goto loop;
 	}
 	
@@ -1028,16 +1051,25 @@ void frame_free(uintptr_t frame)
 	pfn_t pfn = ADDR2PFN(frame);
 
 	ipl = interrupts_disable();
-	
+
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	zone = find_zone_and_lock(pfn,NULL);
+	zone = find_zone_and_lock(pfn, NULL);
 	ASSERT(zone);
 	
-	zone_frame_free(zone, pfn-zone->base);
+	zone_frame_free(zone, pfn - zone->base);
 	
 	spinlock_unlock(&zone->lock);
+	
+	/*
+	 * Signal that some memory has been freed.
+	 */
+	mutex_lock(&zones_mtx);	
+	new_freed_mem = true;
+	condvar_broadcast(&zones_cv);
+	mutex_unlock(&zones_mtx);
+
 	interrupts_restore(ipl);
 }
 
@@ -1116,6 +1148,9 @@ void frame_init(void)
 		 * fail in some places */
 		frame_mark_unavailable(0, 1);
 	}
+
+	mutex_initialize(&zones_mtx, MUTEX_ACTIVE);	/* mimic spinlock */
+	condvar_initialize(&zones_cv);
 }
 
 
