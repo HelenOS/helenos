@@ -308,4 +308,6 @@ memcpy_to_uspace:
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	b memcpy_from_uspace_failover_address
+	# return zero, failure
+	xor r3, r3, r3
+	blr
