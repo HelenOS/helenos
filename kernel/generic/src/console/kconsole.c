@@ -169,7 +169,7 @@ static void insert_char(char *str, char ch, int pos)
 }
 
 /** Try to find a command beginning with prefix */
-static const char * cmdtab_search_one(const char *name,link_t **startpos)
+static const char *cmdtab_search_one(const char *name,link_t **startpos)
 {
 	size_t namelen = strlen(name);
 	const char *curname;
@@ -203,7 +203,7 @@ static const char * cmdtab_search_one(const char *name,link_t **startpos)
  */
 static int cmdtab_compl(char *name)
 {
-	static char output[MAX_SYMBOL_NAME+1];
+	static char output[MAX_SYMBOL_NAME + 1];
 	link_t *startpos = NULL;
 	const char *foundtxt;
 	int found = 0;
@@ -213,7 +213,7 @@ static int cmdtab_compl(char *name)
 	while ((foundtxt = cmdtab_search_one(name, &startpos))) {
 		startpos = startpos->next;
 		if (!found)
-			strncpy(output, foundtxt, strlen(foundtxt)+1);
+			strncpy(output, foundtxt, strlen(foundtxt) + 1);
 		else {
 			for (i = 0; output[i] && foundtxt[i] &&
 			    output[i] == foundtxt[i]; i++)
@@ -240,11 +240,12 @@ static int cmdtab_compl(char *name)
 	
 }
 
-static char * clever_readline(const char *prompt, chardev_t *input)
+//char *clever_readline(const char *prompt, chardev_t *input);
+static char *clever_readline(const char *prompt, chardev_t *input)
 {
 	static int histposition = 0;
 
-	static char tmp[MAX_CMDLINE+1];
+	static char tmp[MAX_CMDLINE + 1];
 	int curlen = 0, position = 0;
 	char *current = history[histposition];
 	int i;
@@ -257,7 +258,8 @@ static char * clever_readline(const char *prompt, chardev_t *input)
 		if (c == '\n') {
 			putchar(c);
 			break;
-		} if (c == '\b') { /* Backspace */
+		}
+		if (c == '\b') { /* Backspace */
 			if (position == 0)
 				continue;
 			for (i = position; i < curlen; i++)
@@ -543,7 +545,8 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 			buf = (char *) cmd->argv[i].buffer;
 			strncpy(buf, (const char *) &cmdline[start],
 			    min((end - start) + 2, cmd->argv[i].len));
-			buf[min((end - start) + 1, cmd->argv[i].len - 1)] = '\0';
+			buf[min((end - start) + 1, cmd->argv[i].len - 1)] =
+			    '\0';
 			break;
 		case ARG_TYPE_INT: 
 			if (parse_int_arg(cmdline + start, end - start + 1, 
@@ -560,8 +563,8 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 				    '\0';
 				cmd->argv[i].intval = (unative_t) buf;
 				cmd->argv[i].vartype = ARG_TYPE_STRING;
-			} else if (!parse_int_arg(cmdline + start, end - start + 1, 
-			    &cmd->argv[i].intval)) {
+			} else if (!parse_int_arg(cmdline + start,
+			    end - start + 1, &cmd->argv[i].intval)) {
 				cmd->argv[i].vartype = ARG_TYPE_INT;
 			} else {
 				printf("Unrecognized variable argument.\n");

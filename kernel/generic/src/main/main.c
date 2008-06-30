@@ -61,6 +61,7 @@
 #include <main/kinit.h>
 #include <main/version.h>
 #include <console/kconsole.h>
+#include <console/console.h>
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
@@ -80,7 +81,7 @@
 #include <adt/btree.h>
 #include <smp/smp.h>
 #include <ddi/ddi.h>
-#include <console/console.h>
+
 
 /** Global configuration structure. */
 config_t config;
@@ -235,8 +236,8 @@ void main_bsp_separated_stack(void)
 	/* Slab must be initialized after we know the number of processors. */
 	LOG_EXEC(slab_enable_cpucache());
 	
-	printf("Detected %" PRIc " CPU(s), %" PRIu64" MB free memory\n",
-		config.cpu_count, SIZE2MB(zone_total_size()));
+	printf("Detected %" PRIc " CPU(s), %" PRIu64" MiB free memory\n",
+	    config.cpu_count, SIZE2MB(zone_total_size()));
 	
 	LOG_EXEC(cpu_init());
 	
@@ -252,8 +253,8 @@ void main_bsp_separated_stack(void)
 		count_t i;
 		for (i = 0; i < init.cnt; i++)
 			printf("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
-			    "].size=%#" PRIs "\n", i, init.tasks[i].addr,
-			    i, init.tasks[i].size);
+			    "].size=%#" PRIs "\n", i, init.tasks[i].addr, i,
+			    init.tasks[i].size);
 	} else
 		printf("No init binaries found\n");
 	
