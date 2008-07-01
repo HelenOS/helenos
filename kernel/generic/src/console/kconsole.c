@@ -240,7 +240,6 @@ static int cmdtab_compl(char *name)
 	
 }
 
-//char *clever_readline(const char *prompt, chardev_t *input);
 static char *clever_readline(const char *prompt, chardev_t *input)
 {
 	static int histposition = 0;
