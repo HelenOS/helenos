@@ -36,7 +36,7 @@
 #ifndef LIBC_arm32_BYTEORDER_H_
 #define LIBC_arm32_BYTEORDER_H_
 
-#define ARCH_IS_BIG_ENDIAN
+#define ARCH_IS_LITTLE_ENDIAN
 
 #endif
 
