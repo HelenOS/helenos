@@ -70,7 +70,7 @@ OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all clean depend disasm
 
-all: $(OUTPUT) disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
@@ -83,8 +83,10 @@ depend:
 $(OUTPUT): $(OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< >$@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

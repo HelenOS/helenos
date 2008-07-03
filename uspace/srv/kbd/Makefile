@@ -83,7 +83,7 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
 .PHONY: all clean depend disasm links
 
-all: links $(OUTPUT) disasm
+all: links $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
@@ -100,8 +100,10 @@ depend:
 $(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< >$@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

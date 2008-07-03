@@ -10,7 +10,7 @@ OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all clean depend disasm
 
-all: $(OUTPUT) disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
@@ -22,8 +22,11 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend *.o
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< >$@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
