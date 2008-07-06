@@ -318,18 +318,6 @@ static link_t *zone_buddy_find_block(buddy_system_t *b, link_t *child,
 	return NULL;
 }
 
-static void zone_buddy_print_id(buddy_system_t *b, link_t *block)
-{
-	frame_t *frame;
-	zone_t *zone;
-	index_t index;
-
-	frame = list_get_instance(block, frame_t, buddy_link);
-	zone = (zone_t *) b->data;
-	index = frame_index(zone, frame);
-	printf("%" PRIi, index);
-}				     
-
 /** Buddy system find_buddy implementation.
  *
  * @param b		Buddy system.
@@ -469,8 +457,7 @@ static buddy_system_operations_t zone_buddy_system_operations = {
 	.get_order = zone_buddy_get_order,
 	.mark_busy = zone_buddy_mark_busy,
 	.mark_available = zone_buddy_mark_available,
-	.find_block = zone_buddy_find_block,
-	.print_id = zone_buddy_print_id
+	.find_block = zone_buddy_find_block
 };
 
 /******************/
@@ -1283,6 +1270,10 @@ void zone_print_one(unsigned int num)
 	zone_t *zone = NULL;
 	ipl_t ipl;
 	unsigned int i;
+	uintptr_t base;
+	count_t count;
+	count_t busy_count;
+	count_t free_count;
 
 	ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
@@ -1294,25 +1285,28 @@ void zone_print_one(unsigned int num)
 		}
 	}
 	if (!zone) {
+		spinlock_unlock(&zones.lock);
+		interrupts_restore(ipl);
 		printf("Zone not found.\n");
-		goto out;
+		return;
 	}
 	
 	spinlock_lock(&zone->lock);
-	printf("Memory zone information\n");
-	printf("Zone base address: %p\n", PFN2ADDR(zone->base));
-	printf("Zone size: %" PRIc " frames (%" PRIs " KB)\n", zone->count,
-	    SIZE2KB(FRAMES2SIZE(zone->count)));
-	printf("Allocated space: %" PRIc " frames (%" PRIs " KB)\n",
-	    zone->busy_count, SIZE2KB(FRAMES2SIZE(zone->busy_count)));
-	printf("Available space: %" PRIc " frames (%" PRIs " KB)\n",
-	    zone->free_count, SIZE2KB(FRAMES2SIZE(zone->free_count)));
-	buddy_system_structure_print(zone->buddy_system, FRAME_SIZE);
+	base = PFN2ADDR(zone->base);
+	count = zone->count;
+	busy_count = zone->busy_count;
+	free_count = zone->free_count;
 	spinlock_unlock(&zone->lock);
-	
-out:
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
+
+	printf("Zone base address: %p\n", base);
+	printf("Zone size: %" PRIc " frames (%" PRIs " KiB)\n", count,
+	    SIZE2KB(FRAMES2SIZE(count)));
+	printf("Allocated space: %" PRIc " frames (%" PRIs " KiB)\n",
+	    busy_count, SIZE2KB(FRAMES2SIZE(busy_count)));
+	printf("Available space: %" PRIc " frames (%" PRIs " KiB)\n",
+	    free_count, SIZE2KB(FRAMES2SIZE(free_count)));
 }
 
 /** @}

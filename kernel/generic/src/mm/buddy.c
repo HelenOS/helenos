@@ -35,8 +35,7 @@
  * @brief	Buddy allocator framework.
  *
  * This file contains buddy system allocator framework.
- * Specialized functions are needed for this abstract framework
- * to be useful.
+ * Specialized functions are needed for this abstract framework to be useful.
  */
 
 #include <mm/buddy.h>
@@ -46,28 +45,27 @@
 #include <print.h>
 #include <macros.h>
 
-/** Return size needed for the buddy configuration data */
+/** Return size needed for the buddy configuration data. */
 size_t buddy_conf_size(int max_order)
 {
 	return sizeof(buddy_system_t) + (max_order + 1) * sizeof(link_t);
 }
 
 
-/** Create buddy system
+/** Create buddy system.
  *
  * Allocate memory for and initialize new buddy system.
  *
- * @param b Preallocated buddy system control data.
- * @param max_order The biggest allocable size will be 2^max_order.
- * @param op Operations for new buddy system.
- * @param data Pointer to be used by implementation.
+ * @param b		Preallocated buddy system control data.
+ * @param max_order	The biggest allocable size will be 2^max_order.
+ * @param op		Operations for new buddy system.
+ * @param data		Pointer to be used by implementation.
  *
- * @return New buddy system.
+ * @return		New buddy system.
  */
-void buddy_system_create(buddy_system_t *b,
-			 uint8_t max_order, 
-			 buddy_system_operations_t *op, 
-			 void *data)
+void
+buddy_system_create(buddy_system_t *b, uint8_t max_order,
+    buddy_system_operations_t *op, void *data)
 {
 	int i;
 
@@ -81,7 +79,7 @@ void buddy_system_create(buddy_system_t *b,
 	ASSERT(op->mark_busy);
 
 	/*
-	 * Use memory after our own structure
+	 * Use memory after our own structure.
 	 */
 	b->order = (link_t *) (&b[1]);
 	
@@ -93,38 +91,39 @@ void buddy_system_create(buddy_system_t *b,
 	b->data = data;
 }
 
-/** Check if buddy system can allocate block
+/** Check if buddy system can allocate block.
  *
- * @param b Buddy system pointer
- * @param i Size of the block (2^i)
+ * @param b		Buddy system pointer.
+ * @param i		Size of the block (2^i).
  *
- * @return True if block can be allocated
+ * @return		True if block can be allocated.
  */
-bool buddy_system_can_alloc(buddy_system_t *b, uint8_t i) {
+bool buddy_system_can_alloc(buddy_system_t *b, uint8_t i)
+{
 	uint8_t k;
 	
 	/*
 	 * If requested block is greater then maximal block
 	 * we know immediatly that we cannot satisfy the request.
 	 */
-	if (i > b->max_order) return false;
+	if (i > b->max_order)
+		return false;
 
 	/*
 	 * Check if any bigger or equal order has free elements
 	 */
-	for (k=i; k <= b->max_order; k++) {
+	for (k = i; k <= b->max_order; k++) {
 		if (!list_empty(&b->order[k])) {
 			return true;
 		}
 	}
 	
 	return false;
-	
 }
 
-/** Allocate PARTICULAR block from buddy system
+/** Allocate PARTICULAR block from buddy system.
  *
- * @ return Block of data or NULL if no such block was found
+ * @return		Block of data or NULL if no such block was found.
  */
 link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 {
@@ -135,7 +134,7 @@ link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 	ASSERT(left);
 	list_remove(left);
 	while (1) {
-		if (! b->op->get_order(b,left)) {
+		if (!b->op->get_order(b, left)) {
 			b->op->mark_busy(b, left);
 			return left;
 		}
@@ -143,8 +142,8 @@ link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 		order = b->op->get_order(b, left);
 
 		right = b->op->bisect(b, left);
-		b->op->set_order(b, left, order-1);
-		b->op->set_order(b, right, order-1);
+		b->op->set_order(b, left, order - 1);
+		b->op->set_order(b, right, order - 1);
 
 		tmp = b->op->find_block(b, block, BUDDY_SYSTEM_INNER_BLOCK);
 
@@ -161,10 +160,10 @@ link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block)
 
 /** Allocate block from buddy system.
  *
- * @param b Buddy system pointer.
- * @param i Returned block will be 2^i big.
+ * @param b		Buddy system pointer.
+ * @param i		Returned block will be 2^i big.
  *
- * @return Block of data represented by link_t.
+ * @return		Block of data represented by link_t.
  */
 link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i)
 {
@@ -218,13 +217,12 @@ link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i)
 	buddy_system_free(b, hlp);
 	
 	return res;
-	
 }
 
 /** Return block to buddy system.
  *
- * @param b Buddy system pointer.
- * @param block Block to return.
+ * @param b		Buddy system pointer.
+ * @param block		Block to return.
  */
 void buddy_system_free(buddy_system_t *b, link_t *block)
 {
@@ -268,7 +266,8 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 			b->op->set_order(b, hlp, i + 1);
 
 			/*
-			 * Recursively add the coalesced block to the list of order i + 1.
+			 * Recursively add the coalesced block to the list of
+			 * order i + 1.
 			 */
 			buddy_system_free(b, hlp);
 			return;
@@ -279,45 +278,6 @@ void buddy_system_free(buddy_system_t *b, link_t *block)
 	 * Insert block into the list of order i.
 	 */
 	list_append(block, &b->order[i]);
-
-}
-
-/** Prints out structure of buddy system
- *
- * @param b Pointer to buddy system
- * @param elem_size Element size
- */
-void buddy_system_structure_print(buddy_system_t *b, size_t elem_size) {
-	index_t i;
-	count_t cnt, elem_count = 0, block_count = 0;
-	link_t *cur;
-	
-
-	printf("Order\tBlocks\tSize    \tBlock size\tElems per block\n");
-	printf("-----\t------\t--------\t----------\t---------------\n");
-	
-	for (i = 0;i <= b->max_order; i++) {
-		cnt = 0;
-		if (!list_empty(&b->order[i])) {
-			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next)
-				cnt++;
-		}
-	
-		printf("#%" PRIi "\t%5" PRIc "\t%7" PRIc "K\t%8" PRIi "K\t%6u\t",
-			i, cnt, SIZE2KB(cnt * (1 << i) * elem_size), SIZE2KB((1 << i) * elem_size), 1 << i);
-		if (!list_empty(&b->order[i])) {
-			for (cur = b->order[i].next; cur != &b->order[i]; cur = cur->next) {
-				b->op->print_id(b, cur);
-				printf(" ");
-			}
-		}
-		printf("\n");
-			
-		block_count += cnt;
-		elem_count += (1 << i) * cnt;
-	}
-	printf("-----\t------\t--------\t----------\t---------------\n");
-	printf("Buddy system contains %" PRIc " free elements (%" PRIc " blocks)\n" , elem_count, block_count);
 }
 
 /** @}

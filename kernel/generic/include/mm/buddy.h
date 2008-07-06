@@ -66,7 +66,6 @@ typedef struct {
 	void (*mark_available)(struct buddy_system *, link_t *);
 	/** Find parent of block that has given order  */
 	link_t *(* find_block)(struct buddy_system *, link_t *, uint8_t);
-	void (* print_id)(struct buddy_system *, link_t *);
 } buddy_system_operations_t;
 
 typedef struct buddy_system {
@@ -78,14 +77,13 @@ typedef struct buddy_system {
 	void *data;
 } buddy_system_t;
 
-extern void buddy_system_create(buddy_system_t *b, uint8_t max_order,
-    buddy_system_operations_t *op, void *data);
-extern link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i);
-extern bool buddy_system_can_alloc(buddy_system_t *b, uint8_t order);
-extern void buddy_system_free(buddy_system_t *b, link_t *block);
-extern void buddy_system_structure_print(buddy_system_t *b, size_t elem_size);
-extern size_t buddy_conf_size(int max_order);
-extern link_t *buddy_system_alloc_block(buddy_system_t *b, link_t *block);
+extern void buddy_system_create(buddy_system_t *, uint8_t,
+    buddy_system_operations_t *, void *);
+extern link_t *buddy_system_alloc(buddy_system_t *, uint8_t);
+extern bool buddy_system_can_alloc(buddy_system_t *, uint8_t);
+extern void buddy_system_free(buddy_system_t *, link_t *);
+extern size_t buddy_conf_size(int);
+extern link_t *buddy_system_alloc_block(buddy_system_t *, link_t *);
 
 #endif
 
