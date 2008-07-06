@@ -265,7 +265,7 @@ find_free_zone_and_lock(uint8_t order, int flags, unsigned int *pzone)
 	unsigned int hint = pzone ? *pzone : 0;
 	
 	/* Mask off flags that are not applicable. */
-	flags &= FRAME_LOW_16_GiB;
+	flags &= FRAME_LOW_4_GiB;
 
 	spinlock_lock(&zones.lock);
 	if (hint >= zones.count)
@@ -823,10 +823,10 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	z->count = count;
 
 	/* Mask off flags that are calculated automatically. */
-	flags &= ~FRAME_LOW_16_GiB;
+	flags &= ~FRAME_LOW_4_GiB;
 	/* Determine calculated flags. */
-	if (z->base + count < (1ULL << (34 - FRAME_WIDTH)))	/* 16 GiB */
-		flags |= FRAME_LOW_16_GiB;
+	if (z->base + count < (1ULL << (32 - FRAME_WIDTH)))	/* 4 GiB */
+		flags |= FRAME_LOW_4_GiB;
 
 	z->flags = flags;
 

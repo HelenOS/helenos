@@ -63,8 +63,8 @@
 #define FRAME_ATOMIC		0x2
 /** Do not start reclaiming when no free memory. */
 #define FRAME_NO_RECLAIM	0x4
-/** Do not allocate above 16GiB. */
-#define FRAME_LOW_16_GiB	0x8
+/** Do not allocate above 4 GiB. */
+#define FRAME_LOW_4_GiB		0x8
 
 static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
