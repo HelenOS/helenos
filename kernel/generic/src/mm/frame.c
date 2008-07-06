@@ -200,8 +200,7 @@ static int zones_add_zone(zone_t *newzone)
 	return i;
 }
 
-/**
- * Try to find a zone where can we find the frame.
+/** Try to find a zone where can we find the frame.
  *
  * Assume interrupts are disabled.
  *
@@ -237,7 +236,7 @@ static zone_t *find_zone_and_lock(pfn_t frame, unsigned int *pzone)
 		i++;
 		if (i >= zones.count)
 			i = 0;
-	} while(i != hint);
+	} while (i != hint);
 
 	spinlock_unlock(&zones.lock);
 	return NULL;
@@ -254,15 +253,20 @@ static int zone_can_alloc(zone_t *z, uint8_t order)
  * Assume interrupts are disabled.
  *
  * @param order		Size (2^order) of free space we are trying to find.
+ * @param flags		Required flags of the target zone.
  * @param pzone		Pointer to preferred zone or NULL, on return contains
  * 			zone number.
  */
-static zone_t *find_free_zone_and_lock(uint8_t order, unsigned int *pzone)
+static zone_t *
+find_free_zone_and_lock(uint8_t order, int flags, unsigned int *pzone)
 {
 	unsigned int i;
 	zone_t *z;
 	unsigned int hint = pzone ? *pzone : 0;
 	
+	/* Mask off flags that are not applicable. */
+	flags &= FRAME_LOW_16_GiB;
+
 	spinlock_lock(&zones.lock);
 	if (hint >= zones.count)
 		hint = 0;
@@ -272,17 +276,24 @@ static zone_t *find_free_zone_and_lock(uint8_t order, unsigned int *pzone)
 		
 		spinlock_lock(&z->lock);
 
-		/* Check if the zone has 2^order frames area available  */
-		if (zone_can_alloc(z, order)) {
-			spinlock_unlock(&zones.lock);
-			if (pzone)
-				*pzone = i;
-			return z;
+		/*
+		 * Check whether the zone meets the search criteria.
+		 */
+		if ((z->flags & flags) == flags) {
+			/*
+			 * Check if the zone has 2^order frames area available.
+			 */
+			if (zone_can_alloc(z, order)) {
+				spinlock_unlock(&zones.lock);
+				if (pzone)
+					*pzone = i;
+				return z;
+			}
 		}
 		spinlock_unlock(&z->lock);
 		if (++i >= zones.count)
 			i = 0;
-	} while(i != hint);
+	} while (i != hint);
 	spinlock_unlock(&zones.lock);
 	return NULL;
 }
@@ -810,7 +821,15 @@ static void zone_construct(pfn_t start, count_t count, zone_t *z, int flags)
 	spinlock_initialize(&z->lock, "zone_lock");
 	z->base = start;
 	z->count = count;
+
+	/* Mask off flags that are calculated automatically. */
+	flags &= ~FRAME_LOW_16_GiB;
+	/* Determine calculated flags. */
+	if (z->base + count < (1ULL << (34 - FRAME_WIDTH)))	/* 16 GiB */
+		flags |= FRAME_LOW_16_GiB;
+
 	z->flags = flags;
+
 	z->free_count = count;
 	z->busy_count = 0;
 
@@ -982,18 +1001,19 @@ loop:
 	/*
 	 * First, find suitable frame zone.
 	 */
-	zone = find_free_zone_and_lock(order, pzone);
+	zone = find_free_zone_and_lock(order, flags, pzone);
 	
 	/* If no memory, reclaim some slab memory,
 	   if it does not help, reclaim all */
 	if (!zone && !(flags & FRAME_NO_RECLAIM)) {
 		freed = slab_reclaim(0);
 		if (freed)
-			zone = find_free_zone_and_lock(order, pzone);
+			zone = find_free_zone_and_lock(order, flags, pzone);
 		if (!zone) {
 			freed = slab_reclaim(SLAB_RECLAIM_ALL);
 			if (freed)
-				zone = find_free_zone_and_lock(order, pzone);
+				zone = find_free_zone_and_lock(order, flags,
+				    pzone);
 		}
 	}
 	if (!zone) {
