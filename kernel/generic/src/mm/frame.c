@@ -1214,9 +1214,6 @@ void zone_print_list(void)
 	unsigned int i;
 	ipl_t ipl;
 
-	ipl = interrupts_disable();
-	spinlock_lock(&zones.lock);
-
 #ifdef __32_BITS__	
 	printf("#  base address free frames  busy frames\n");
 	printf("-- ------------ ------------ ------------\n");
@@ -1227,26 +1224,54 @@ void zone_print_list(void)
 	printf("-- -------------------- ------------ ------------\n");
 #endif
 	
-	for (i = 0; i < zones.count; i++) {
+	/*
+	 * Because printing may require allocation of memory, we may not hold
+	 * the frame allocator locks when printing zone statistics.  Therefore,
+	 * we simply gather the statistics under the protection of the locks and
+	 * print the statistics when the locks have been released.
+	 *
+	 * When someone adds/removes zones while we are printing the statistics,
+	 * we may end up with inaccurate output (e.g. a zone being skipped from
+	 * the listing).
+	 */
+
+	for (i = 0; ; i++) {
+		uintptr_t base;
+		count_t free_count;
+		count_t busy_count;
+
+		ipl = interrupts_disable();
+		spinlock_lock(&zones.lock);
+		
+		if (i >= zones.count) {
+			spinlock_unlock(&zones.lock);
+			interrupts_restore(ipl);
+			break;
+		}
+
 		zone = zones.info[i];
 		spinlock_lock(&zone->lock);
 
+		base = PFN2ADDR(zone->base);
+		free_count = zone->free_count;
+		busy_count = zone->busy_count;
+
+		spinlock_unlock(&zone->lock);
+		
+		spinlock_unlock(&zones.lock);
+		interrupts_restore(ipl);
+
 #ifdef __32_BITS__
-		printf("%-2u   %10p %12" PRIc " %12" PRIc "\n",
-		    i, PFN2ADDR(zone->base), zone->free_count,
-		    zone->busy_count);
+		printf("%-2u   %10p %12" PRIc " %12" PRIc "\n", i, base,
+		    free_count, busy_count);
 #endif
 
 #ifdef __64_BITS__
-		printf("%-2u   %18p %12" PRIc " %12" PRIc "\n", i,
-		    PFN2ADDR(zone->base), zone->free_count, zone->busy_count);
+		printf("%-2u   %18p %12" PRIc " %12" PRIc "\n", i, base,
+		    free_count, busy_count);
 #endif
 		
-		spinlock_unlock(&zone->lock);
 	}
-	
-	spinlock_unlock(&zones.lock);
-	interrupts_restore(ipl);
 }
 
 /** Prints zone details.
