@@ -222,6 +222,8 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
+
+	if (rc != EOK) return (int) rc;
 	return (int) IPC_GET_ARG1(answer);
 }
 
