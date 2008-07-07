@@ -282,7 +282,7 @@ extern void vfs_node_put(vfs_node_t *);
 extern bool vfs_files_init(void);
 extern vfs_file_t *vfs_file_get(int);
 extern int vfs_fd_alloc(void);
-extern void vfs_fd_free(int);
+extern int vfs_fd_free(int);
 
 extern void vfs_file_addref(vfs_file_t *);
 extern void vfs_file_delref(vfs_file_t *);

@@ -97,13 +97,17 @@ int vfs_fd_alloc(void)
 /** Release file descriptor.
  *
  * @param fd		File descriptor being released.
+ *
+ * @return		EOK on success or EBADF if fd is an invalid file
+ *			descriptor.
  */
-void vfs_fd_free(int fd)
+int vfs_fd_free(int fd)
 {
-	assert(fd < MAX_OPEN_FILES);
-	assert(files[fd] != NULL);
+	if ((fd >= MAX_OPEN_FILES) || (files[fd] == NULL))
+		return EBADF;
 	vfs_file_delref(files[fd]);
 	files[fd] = NULL;
+	return EOK;
 }
 
 /** Increment reference count of VFS file structure.
