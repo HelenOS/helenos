@@ -34,8 +34,11 @@
 
 ## User-space task entry point
 #
+# r1 contains the PCB pointer
 #
 __entry:
+	# Pass pcb_ptr to __main as the first argument (in r0)
+	mov r0, r1
 	bl __main
-	bl main
+
 	bl __exit

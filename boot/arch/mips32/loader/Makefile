@@ -80,6 +80,7 @@ SOURCES = \
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
@@ -93,7 +94,9 @@ RD_TASKS = \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/cli/cli \
 	$(USPACEDIR)/app/klog/klog
+
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))

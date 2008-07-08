@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,13 @@
  */ 
 
 #include <task.h>
+#include <ipc/ipc.h>
+#include <ipc/loader.h>
 #include <libc.h>
+#include <string.h>
+#include <stdlib.h>
+#include <async.h>
+#include <errno.h>
 
 task_id_t task_get_id(void)
 {
@@ -44,9 +51,123 @@ task_id_t task_get_id(void)
 	return task_id;
 }
 
-int task_spawn(void *image, size_t size)
+static int task_spawn_loader(void)
 {
-	return __SYSCALL2(SYS_TASK_SPAWN, (sysarg_t) image, (sysarg_t) size);
+	int phone_id, rc;
+
+	rc = __SYSCALL1(SYS_PROGRAM_SPAWN_LOADER, (sysarg_t) &phone_id);
+	if (rc != 0)
+		return rc;
+
+	return phone_id;
+}
+
+static int loader_set_args(int phone_id, const char *argv[])
+{
+	aid_t req;
+	ipc_call_t answer;
+	ipcarg_t rc;
+
+	const char **ap;
+	char *dp;
+	char *arg_buf;
+	size_t buffer_size;
+	size_t len;
+
+	/* 
+	 * Serialize the arguments into a single array. First
+	 * compute size of the buffer needed.
+	 */
+	ap = argv;
+	buffer_size = 0;
+	while (*ap != NULL) {
+		buffer_size += strlen(*ap) + 1;
+		++ap;
+	}
+
+	arg_buf = malloc(buffer_size);
+	if (arg_buf == NULL) return ENOMEM;
+
+	/* Now fill the buffer with null-terminated argument strings */
+	ap = argv;
+	dp = arg_buf;
+	while (*ap != NULL) {
+		strcpy(dp, *ap);
+		dp += strlen(*ap) + 1;
+
+		++ap;
+	}
+
+	/* Send serialized arguments to the loader */
+
+	req = async_send_0(phone_id, LOADER_SET_ARGS, &answer);
+	rc = ipc_data_write_start(phone_id, (void *)arg_buf, buffer_size);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK) return rc;
+
+	/* Free temporary buffer */
+	free(arg_buf);
+
+	return EOK;
+}
+
+/** Create a new task by running an executable from VFS.
+ *
+ * @param path	pathname of the binary to execute
+ * @param argv	command-line arguments
+ * @return	ID of the newly created task or zero on error.
+ */
+task_id_t task_spawn(const char *path, const char *argv[])
+{
+	int phone_id;
+	ipc_call_t answer;
+	aid_t req;
+	int rc;
+	ipcarg_t retval;
+
+	/* Spawn a program loader */	
+	phone_id = task_spawn_loader();
+	if (phone_id < 0) return 0;
+
+	/*
+	 * Say hello so that the loader knows the incoming connection's
+	 * phone hash.
+	 */
+	rc = async_req_0_0(phone_id, LOADER_HELLO);
+	if (rc != EOK) return 0;
+
+	/* Send program pathname */
+	req = async_send_0(phone_id, LOADER_SET_PATHNAME, &answer);
+	rc = ipc_data_write_start(phone_id, (void *)path, strlen(path));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return 1;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK) goto error;
+
+	/* Send arguments */
+	rc = loader_set_args(phone_id, argv);
+	if (rc != EOK) goto error;
+
+	/* Request loader to start the program */	
+	rc = async_req_0_0(phone_id, LOADER_RUN);
+	if (rc != EOK) goto error;
+
+	/* Success */
+	ipc_hangup(phone_id);
+	return 1;
+
+	/* Error exit */
+error:
+	ipc_hangup(phone_id);
+	return 0;
 }
 
 /** @}

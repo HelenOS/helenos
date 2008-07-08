@@ -37,6 +37,7 @@ DIRS = \
 	lib/softint \
 	lib/softfloat \
 	srv/ns \
+	srv/loader \
 	srv/fb \
 	srv/kbd \
 	srv/console \
@@ -47,6 +48,7 @@ DIRS = \
 	srv/devmap \
 	app/tetris \
 	app/tester \
+	app/cli \
 	app/klog \
 	app/init
 

@@ -65,6 +65,10 @@ userspace_asm:
 	# set stack
 	
 	mr sp, r4
+
+	# %r3 is defined to hold pcb_ptr - set it to 0
+
+	xor r3, r3, r3
 	
 	# jump to userspace
 	

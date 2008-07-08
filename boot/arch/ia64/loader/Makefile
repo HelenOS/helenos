@@ -86,6 +86,7 @@ SOURCES = \
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \

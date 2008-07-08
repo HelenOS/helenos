@@ -57,7 +57,7 @@ static char *error_codes[] = {
 };
 
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as);
+    as_t *as, int flags);
 static int section_header(elf_section_header_t *entry, elf_header_t *elf,
     as_t *as);
 static int load_segment(elf_segment_header_t *entry, elf_header_t *elf,
@@ -67,9 +67,10 @@ static int load_segment(elf_segment_header_t *entry, elf_header_t *elf,
  *
  * @param header Pointer to ELF header in memory
  * @param as Created and properly mapped address space
+ * @param flags A combination of ELD_F_*
  * @return EE_OK on success
  */
-unsigned int elf_load(elf_header_t *header, as_t * as)
+unsigned int elf_load(elf_header_t *header, as_t * as, int flags)
 {
 	int i, rc;
 
@@ -110,7 +111,7 @@ unsigned int elf_load(elf_header_t *header, as_t * as)
 
 		seghdr = &((elf_segment_header_t *)(((uint8_t *) header) +
 		    header->e_phoff))[i];
-		rc = segment_header(seghdr, header, as);
+		rc = segment_header(seghdr, header, as, flags);
 		if (rc != EE_OK)
 			return rc;
 	}
@@ -151,8 +152,10 @@ char *elf_error(unsigned int rc)
  * @return EE_OK on success, error code otherwise.
  */
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as)
+    as_t *as, int flags)
 {
+	char *interp;
+
 	switch (entry->p_type) {
 	case PT_NULL:
 	case PT_PHDR:
@@ -162,6 +165,16 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		break;
 	case PT_DYNAMIC:
 	case PT_INTERP:
+		interp = (char *)elf + entry->p_offset;
+		/* FIXME */
+		/*if (memcmp((uintptr_t)interp, (uintptr_t)ELF_INTERP_ZSTR,
+		    ELF_INTERP_ZLEN) != 0) {
+			return EE_UNSUPPORTED;
+		}*/
+		if ((flags & ELD_F_LOADER) == 0) {
+			return EE_LOADER;
+		}
+		break;
 	case PT_SHLIB:
 	case PT_NOTE:
 	case PT_LOPROC:

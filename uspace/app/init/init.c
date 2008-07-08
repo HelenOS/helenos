@@ -45,10 +45,6 @@
 #include "init.h"
 #include "version.h"
 
-#define BUF_SIZE 150000
-
-static char *buf;
-
 static void console_wait(void)
 {
 	while (get_cons_phone() < 0)
@@ -82,28 +78,16 @@ static bool mount_tmpfs(void)
 
 static void spawn(char *fname)
 {
+	char *argv[2];
+
 	printf(NAME ": Spawning %s\n", fname);
-	
-	int fd = open(fname, O_RDONLY);
-	if (fd >= 0) {
-	
-		ssize_t rd;
-		size_t len = 0;
-		
-		// FIXME: cannot do long reads yet
-		do {
-			rd = read(fd, buf + len, 1024);
-			if (rd > 0)
-				len += rd;
-			
-		} while (rd > 0);
-		
-		if (len > 0) {
-			task_spawn(buf, len);
-			sleep(1);	// FIXME
-		}
-		
-		close(fd);
+
+	argv[0] = fname;
+	argv[1] = NULL;
+
+	if (task_spawn(fname, argv) != 0) {
+		/* Success */
+		sleep(1);
 	}
 }
 
@@ -117,8 +101,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	buf = malloc(BUF_SIZE);
-	
 	// FIXME: spawn("/sbin/pci");
 	spawn("/sbin/fb");
 	spawn("/sbin/kbd");
@@ -129,10 +111,10 @@ int main(int argc, char *argv[])
 	
 	spawn("/sbin/fat");
 	spawn("/sbin/tetris");
+	spawn("/sbin/cli");
 	// FIXME: spawn("/sbin/tester");
 	spawn("/sbin/klog");
 	
-	free(buf);
 	return 0;
 }
 

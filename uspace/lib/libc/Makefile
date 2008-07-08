@@ -51,6 +51,8 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/string.c \
 	generic/fibril.c \
+	generic/pcb.c \
+	generic/smc.c \
 	generic/thread.c \
 	generic/tls.c \
 	generic/task.c \

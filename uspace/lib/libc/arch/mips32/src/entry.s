@@ -35,24 +35,25 @@
 
 ## User-space task entry point
 #
+# $a0 ($4) contains the PCB pointer
 #
 .ent __entry
 __entry:
 	.frame $sp, 32, $31
 	.cpload $25
-	
-	
+
 	# Mips o32 may store its arguments on stack, make space (16 bytes),
 	# so that it could work with -O0
 	# Make space additional 16 bytes for the stack frame
 
 	addiu $sp, -32
 	.cprestore 16   # Allow PIC code
-	
+
+	# Pass pcb_ptr to __main() as the first argument. pcb_ptr is already
+	# in $a0. As the first argument is passed in $a0, no operation
+	# is needed.
+
 	jal __main
-	nop
-	
-	jal main
 	nop
 	
 	jal __exit

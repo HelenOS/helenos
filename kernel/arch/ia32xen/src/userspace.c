@@ -68,6 +68,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"pushl %3\n"
 		"pushl %4\n"
 		"movl %5, %%eax\n"
+
+		/* %ebx is defined to hold pcb_ptr - set it to 0 */
+		"xorl %%ebx, %%ebx\n"
+
 		"iret\n"
 		: 
 		: "i" (selector(UDATA_DES) | PL_USER),

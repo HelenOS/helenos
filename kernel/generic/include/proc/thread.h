@@ -248,8 +248,6 @@ extern void thread_destroy(thread_t *t);
 extern void thread_update_accounting(void);
 extern bool thread_exists(thread_t *t);
 
-extern thread_t *thread_create_program(void *program_addr, char *name);
-
 /** Fpu context slab cache. */
 extern slab_cache_t *fpu_context_slab;
 

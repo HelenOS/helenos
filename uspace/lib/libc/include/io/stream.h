@@ -40,6 +40,7 @@
 #define EMFILE -17
 
 extern void open_console(void);
+extern void close_console(void);
 extern void klog_update(void);
 
 extern ssize_t read_stdin(void *, size_t);

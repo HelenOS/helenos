@@ -132,7 +132,6 @@ extern void task_destroy_arch(task_t *t);
 #endif
 
 extern unative_t sys_task_get_id(task_id_t *uspace_task_id);
-extern unative_t sys_task_spawn(void *image, size_t size);
 
 #endif
 

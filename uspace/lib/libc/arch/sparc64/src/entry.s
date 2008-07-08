@@ -34,12 +34,15 @@
 
 ## User-space task entry point
 #
+# %o0 contains uarg
+# %o1 contains pcb_ptr
 #
 __entry:
+	# Pass pcb_ptr as the first argument to __main()
+	mov %o1, %o0
 	sethi %hi(_gp), %l7
 	call __main
 	or %l7, %lo(_gp), %l7
-	call main
-	nop
+
 	call __exit
 	nop

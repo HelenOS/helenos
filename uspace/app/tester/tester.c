@@ -107,8 +107,17 @@ static void list_tests(void)
 	printf("*\t\t\tRun all safe tests\n");
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+	printf("Number of arguments: %d\n", argc);
+	if (argv) {
+		printf("Arguments:");
+		while (*argv) {
+			printf(" '%s'", *argv++);
+		}
+		printf("\n");
+	}
+
 	while (1) {
 		char c;
 		test_t *test;

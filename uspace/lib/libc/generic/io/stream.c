@@ -96,6 +96,15 @@ void open_console(void)
 	}
 }
 
+void close_console(void)
+{
+	if (console_phone >= 0) {
+		if (ipc_hangup(console_phone) == 0) {
+			console_phone = -1;
+		}
+	}
+}
+
 void klog_update(void)
 {
 	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);

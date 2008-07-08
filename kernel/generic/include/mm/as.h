@@ -269,6 +269,7 @@ extern int as_area_destroy(as_t *as, uintptr_t address);
 extern int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags);
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
     as_t *dst_as, uintptr_t dst_base, int dst_flags_mask);
+extern int as_area_change_flags(as_t *as, int flags, uintptr_t address);
 
 extern int as_area_get_flags(as_area_t *area);
 extern bool as_area_check_access(as_area_t *area, pf_access_t access);
@@ -299,11 +300,19 @@ extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
-extern unsigned int elf_load(elf_header_t *header, as_t *as);
+/** 
+ * This flags is passed when running the loader, otherwise elf_load()
+ * would return with a EE_LOADER error code.
+ */
+#define ELD_F_NONE	0
+#define ELD_F_LOADER	1
+
+extern unsigned int elf_load(elf_header_t *header, as_t *as, int flags);
 
 /* Address space area related syscalls. */
 extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);
 extern unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags);
+extern unative_t sys_as_area_change_flags(uintptr_t address, int flags);
 extern unative_t sys_as_area_destroy(uintptr_t address);
 
 /* Introspection functions. */

@@ -349,5 +349,7 @@ cache_error_handler:
 userspace_asm:
 	add $sp, $a0, 0
 	add $v0, $a1, 0 
-	add $t9, $a2, 0			# Set up correct entry into PIC code 
+	add $t9, $a2, 0			# Set up correct entry into PIC code
+	xor $a0, $a0, $a0		# $a0 is defined to hold pcb_ptr
+					# set it to 0
 	eret

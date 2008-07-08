@@ -61,6 +61,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 			  "pushq %3\n"
 			  "pushq %4\n"
 			  "movq %5, %%rax\n"
+			  /* %rdi is defined to hold pcb_ptr - set it to 0 */
+			  "xorq %%rdi, %%rdi\n"
 			  "iretq\n"
 			  : : 
 			  "i" (gdtselector(UDATA_DES) | PL_USER), 

@@ -70,8 +70,11 @@ void userspace(uspace_arg_t *kernel_uarg)
 	/* set first parameter */
 	ustate.r0 = (uintptr_t) kernel_uarg->uspace_uarg;
 
+	/* %r1 is defined to hold pcb_ptr - set it to 0 */
+	ustate.r1 = 0;
+
 	/* clear other registers */
-	ustate.r1 = ustate.r2  = ustate.r3  = ustate.r4  = ustate.r5 =
+	ustate.r2 = ustate.r3  = ustate.r4  = ustate.r5 =
 	    ustate.r6  = ustate.r7  = ustate.r8  = ustate.r9 = ustate.r10 = 
 	    ustate.r11 = ustate.r12 = ustate.lr = 0;
 

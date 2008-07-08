@@ -85,6 +85,20 @@ int as_area_destroy(void *address)
 	return __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t ) address);
 }
 
+/** Change address-space area flags.
+ *
+ * @param address Virtual address pointing into the address space area being
+ * 	modified.
+ * @param flags New flags describing type of the area.
+ *
+ * @return Zero on success or a code from @ref errno.h on failure.
+ */
+int as_area_change_flags(void *address, int flags)
+{
+	return __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
+	    (sysarg_t) flags);
+}
+
 static size_t heapsize = 0;
 static size_t maxheapsize = (size_t) (-1);
 

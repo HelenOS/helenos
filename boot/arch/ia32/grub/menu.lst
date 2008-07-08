@@ -10,4 +10,5 @@ title=HelenOS
 	module /boot/rd
 	module /boot/vfs
 	module /boot/tmpfs
+	module /boot/loader
 	module /boot/initrd.img

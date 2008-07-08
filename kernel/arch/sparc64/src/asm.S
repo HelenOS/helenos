@@ -274,6 +274,8 @@ switch_to_userspace:
 	wrpr %g0, 0, %cleanwin		! avoid information leak
 
 	mov %i2, %o0			! uarg
+	xor %o1, %o1, %o1		! %o1 is defined to hold pcb_ptr
+					! set it to 0
 
 	clr %i2
 	clr %i3

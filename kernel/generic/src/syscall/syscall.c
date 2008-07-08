@@ -38,6 +38,7 @@
 #include <syscall/syscall.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <proc/program.h>
 #include <mm/as.h>
 #include <print.h>
 #include <putchar.h>
@@ -46,6 +47,7 @@
 #include <debug.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
+#include <synch/smc.h>
 #include <ddi/ddi.h>
 #include <security/cap.h>
 #include <syscall/copy.h>
@@ -123,15 +125,17 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_get_id,
 	
 	(syshandler_t) sys_task_get_id,
-	(syshandler_t) sys_task_spawn,
+	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
 	(syshandler_t) sys_futex_sleep_timeout,
 	(syshandler_t) sys_futex_wakeup,
+	(syshandler_t) sys_smc_coherence,
 	
 	/* Address space related syscalls. */
 	(syshandler_t) sys_as_area_create,
 	(syshandler_t) sys_as_area_resize,
+	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
 	
 	/* IPC related syscalls. */

@@ -47,6 +47,7 @@
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/thread.h>
+#include <proc/program.h>
 #include <panic.h>
 #include <func.h>
 #include <cpu.h>
@@ -159,7 +160,7 @@ void kinit(void *arg)
 	 * Create user tasks, load RAM disk images.
 	 */
 	count_t i;
-	thread_t *threads[CONFIG_INIT_TASKS];
+	program_t programs[CONFIG_INIT_TASKS];
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
@@ -167,19 +168,23 @@ void kinit(void *arg)
 			continue;
 		}
 
-		threads[i] = thread_create_program((void *) init.tasks[i].addr,
-		    "uspace");
-		
-		if (threads[i] != NULL) {
+		int rc = program_create_from_image((void *) init.tasks[i].addr,
+		    &programs[i]);
+
+		if (rc == 0 && programs[i].task != NULL) {
 			/*
 			 * Set capabilities to init userspace tasks.
 			 */
-			cap_set(threads[i]->task, CAP_CAP | CAP_MEM_MANAGER |
+			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
 			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
+
 			
 			if (!ipc_phone_0)
-				ipc_phone_0 = &threads[i]->task->answerbox;
+				ipc_phone_0 = &programs[i].task->answerbox;
+		} else if (rc == 0) {
+			/* It was the program loader and was registered */
 		} else {
+			/* RAM disk image */
 			int rd = init_rd((rd_header_t *) init.tasks[i].addr,
 			    init.tasks[i].size);
 			
@@ -193,9 +198,9 @@ void kinit(void *arg)
 	 * Run user tasks with reasonable delays
 	 */
 	for (i = 0; i < init.cnt; i++) {
-		if (threads[i] != NULL) {
+		if (programs[i].task != NULL) {
 			thread_usleep(50000);
-			thread_ready(threads[i]);
+			program_ready(&programs[i]);
 		}
 	}
 

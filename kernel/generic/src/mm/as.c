@@ -771,6 +771,160 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 	return true;
 }
 
+/** Change adress area flags.
+ *
+ * The idea is to have the same data, but with a different access mode.
+ * This is needed e.g. for writing code into memory and then executing it.
+ * In order for this to work properly, this may copy the data
+ * into private anonymous memory (unless it's already there).
+ *
+ * @param as Address space.
+ * @param flags Flags of the area memory.
+ * @param address Address withing the area to be changed.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure. 
+ */
+int as_area_change_flags(as_t *as, int flags, uintptr_t address)
+{
+	as_area_t *area;
+	uintptr_t base;
+	link_t *cur;
+	ipl_t ipl;
+	int page_flags;
+	uintptr_t *old_frame;
+	index_t frame_idx;
+	count_t used_pages;
+
+	/* Flags for the new memory mapping */
+	page_flags = area_flags_to_page_flags(flags);
+
+	ipl = interrupts_disable();
+	mutex_lock(&as->lock);
+
+	area = find_area_and_lock(as, address);
+	if (!area) {
+		mutex_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+
+	if (area->sh_info || area->backend != &anon_backend) {
+		/* Copying shared areas not supported yet */
+		/* Copying non-anonymous memory not supported yet */
+		mutex_unlock(&area->lock);
+		mutex_unlock(&as->lock);
+		interrupts_restore(ipl);
+		return ENOTSUP;
+	}
+
+	base = area->base;
+
+	/*
+	 * Compute total number of used pages in the used_space B+tree
+	 */
+	used_pages = 0;
+
+	for (cur = area->used_space.leaf_head.next;
+	    cur != &area->used_space.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		unsigned int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			used_pages += (count_t) node->value[i];
+		}
+	}
+
+	/* An array for storing frame numbers */
+	old_frame = malloc(used_pages * sizeof(uintptr_t), 0);
+
+	/*
+	 * Start TLB shootdown sequence.
+	 */
+	tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base, area->pages);
+
+	/*
+	 * Remove used pages from page tables and remember their frame
+	 * numbers.
+	 */
+	frame_idx = 0;
+
+	for (cur = area->used_space.leaf_head.next;
+	    cur != &area->used_space.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		unsigned int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			uintptr_t b = node->key[i];
+			count_t j;
+			pte_t *pte;
+			
+			for (j = 0; j < (count_t) node->value[i]; j++) {
+				page_table_lock(as, false);
+				pte = page_mapping_find(as, b + j * PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) &&
+				    PTE_PRESENT(pte));
+				old_frame[frame_idx++] = PTE_GET_FRAME(pte);
+
+				/* Remove old mapping */
+				page_mapping_remove(as, b + j * PAGE_SIZE);
+				page_table_unlock(as, false);
+			}
+		}
+	}
+
+	/*
+	 * Finish TLB shootdown sequence.
+	 */
+
+	tlb_invalidate_pages(as->asid, area->base, area->pages);
+	/*
+	 * Invalidate potential software translation caches (e.g. TSB on
+	 * sparc64).
+	 */
+	as_invalidate_translation_cache(as, area->base, area->pages);
+	tlb_shootdown_finalize();
+
+	/*
+	 * Map pages back in with new flags. This step is kept separate
+	 * so that there's no instant when the memory area could be
+	 * accesed with both the old and the new flags at once.
+	 */
+	frame_idx = 0;
+
+	for (cur = area->used_space.leaf_head.next;
+	    cur != &area->used_space.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		unsigned int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			uintptr_t b = node->key[i];
+			count_t j;
+			
+			for (j = 0; j < (count_t) node->value[i]; j++) {
+				page_table_lock(as, false);
+
+				/* Insert the new mapping */
+				page_mapping_insert(as, b + j * PAGE_SIZE,
+				    old_frame[frame_idx++], page_flags);
+
+				page_table_unlock(as, false);
+			}
+		}
+	}
+
+	free(old_frame);
+
+	mutex_unlock(&area->lock);
+	mutex_unlock(&as->lock);
+	interrupts_restore(ipl);
+
+	return 0;
+}
+
+
 /** Handle page fault within the current address space.
  *
  * This is the high-level page fault handler. It decides
@@ -1764,6 +1918,12 @@ unative_t sys_as_area_create(uintptr_t address, size_t size, int flags)
 unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags)
 {
 	return (unative_t) as_area_resize(AS, address, size, 0);
+}
+
+/** Wrapper for as_area_change_flags(). */
+unative_t sys_as_area_change_flags(uintptr_t address, int flags)
+{
+	return (unative_t) as_area_change_flags(AS, flags, address);
 }
 
 /** Wrapper for as_area_destroy(). */

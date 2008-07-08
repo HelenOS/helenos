@@ -35,10 +35,8 @@
  * @brief	Task management.
  */
 
-#include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/uarg.h>
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <atomic.h>
@@ -46,22 +44,15 @@
 #include <synch/waitq.h>
 #include <arch.h>
 #include <arch/barrier.h>
-#include <panic.h>
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
-#include <security/cap.h>
-#include <memstr.h>
+#include <ipc/ipcrsc.h>
 #include <print.h>
-#include <lib/elf.h>
 #include <errno.h>
 #include <func.h>
 #include <syscall/copy.h>
-
-#ifndef LOADED_PROG_STACK_PAGES_NO
-#define LOADED_PROG_STACK_PAGES_NO 1
-#endif
 
 /** Spinlock protecting the tasks_tree AVL tree. */
 SPINLOCK_INITIALIZE(tasks_lock);
@@ -249,89 +240,6 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
 	 */
 	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid,
 	    sizeof(TASK->taskid));
-}
-
-unative_t sys_task_spawn(void *image, size_t size)
-{
-	void *kimage = malloc(size, 0);
-	if (kimage == NULL)
-		return ENOMEM;
-	
-	int rc = copy_from_uspace(kimage, image, size);
-	if (rc != EOK)
-		return rc;
-
-	/*
-	 * Not very efficient and it would be better to call it on code only,
-	 * but this whole function is a temporary hack anyway and one day it
-	 * will go in favor of the userspace dynamic loader.
-	 */
-	smc_coherence_block(kimage, size);
-	
-	uspace_arg_t *kernel_uarg;
-	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	if (kernel_uarg == NULL) {
-		free(kimage);
-		return ENOMEM;
-	}
-	
-	kernel_uarg->uspace_entry =
-	    (void *) ((elf_header_t *) kimage)->e_entry;
-	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
-	
-	as_t *as = as_create(0);
-	if (as == NULL) {
-		free(kernel_uarg);
-		free(kimage);
-		return ENOMEM;
-	}
-	
-	unsigned int erc = elf_load((elf_header_t *) kimage, as);
-	if (erc != EE_OK) {
-		as_destroy(as);
-		free(kernel_uarg);
-		free(kimage);
-		return ENOENT;
-	}
-	
-	as_area_t *area = as_area_create(as,
-	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
-	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
-	if (area == NULL) {
-		as_destroy(as);
-		free(kernel_uarg);
-		free(kimage);
-		return ENOMEM;
-	}
-	
-	task_t *task = task_create(as, "app");
-	if (task == NULL) {
-		as_destroy(as);
-		free(kernel_uarg);
-		free(kimage);
-		return ENOENT;
-	}
-	
-	// FIXME: control the capabilities
-	cap_set(task, cap_get(TASK));
-	
-	thread_t *thread = thread_create(uinit, kernel_uarg, task,
-	    THREAD_FLAG_USPACE, "user", false);
-	if (thread == NULL) {
-		task_destroy(task);
-		as_destroy(as);
-		free(kernel_uarg);
-		free(kimage);
-		return ENOENT;
-	}
-	
-	thread_ready(thread);
-	
-	return EOK;
 }
 
 /** Find task structure corresponding to task ID.

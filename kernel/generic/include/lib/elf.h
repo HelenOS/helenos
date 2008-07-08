@@ -114,7 +114,8 @@
 #define	EE_MEMORY		2	/* Cannot allocate address space */
 #define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
 #define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_IRRECOVERABLE	5
+#define EE_LOADER		5	/* The image is actually a program loader */
+#define EE_IRRECOVERABLE	6
 
 /**
  * ELF section types
@@ -337,6 +338,10 @@ typedef struct elf64_symbol elf_symbol_t;
 #endif
 
 extern char *elf_error(unsigned int rc);
+
+/* Interpreter string used to recognize the program loader */
+#define ELF_INTERP_ZSTR "kernel"
+#define ELF_INTERP_ZLEN  sizeof(ELF_INTERP_ZSTR)
 
 #endif
 

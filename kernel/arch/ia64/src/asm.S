@@ -163,6 +163,9 @@ switch_to_userspace:
 
 	xor r1 = r1, r1
 	
+	/* r2 is defined to hold pcb_ptr - set it to 0 */
+	xor r2 = r2, r2
+	
 	mov loc1 = cr.ifs
 	movl loc2 = PFM_MASK ;;
 	and loc1 = loc2, loc1 ;;

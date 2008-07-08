@@ -79,6 +79,7 @@ COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
 	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs \
@@ -91,6 +92,7 @@ RD_TASKS = \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/cli/cli \
 	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

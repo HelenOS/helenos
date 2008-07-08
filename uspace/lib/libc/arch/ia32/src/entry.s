@@ -34,6 +34,7 @@
 
 ## User-space task entry point
 #
+# %ebx contains the PCB pointer
 #
 __entry:
 	mov %ss, %ax
@@ -41,7 +42,9 @@ __entry:
 	mov %ax, %es
 	mov %ax, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
-	
+
+	# Pass the PCB pointer to __main as the first argument
+	pushl %ebx
 	call __main
-	call main
+
 	call __exit

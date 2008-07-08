@@ -48,17 +48,21 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <as.h>
+#include <loader/pcb.h>
 
 extern char _heap;
+extern int main(int argc, char *argv[]);
 
 void _exit(int status)
 {
 	thread_exit(status);
 }
 
-void __main(void)
+void __main(void *pcb_ptr)
 {
 	fibril_t *f;
+	int argc;
+	char **argv;
 
 	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
 	_async_init();
@@ -66,6 +70,19 @@ void __main(void)
 	__tcb_set(f->tcb);
 	
 	open_console();
+
+	/* Save the PCB pointer */
+	__pcb = (pcb_t *)pcb_ptr;
+
+	if (__pcb == NULL) {
+		argc = 0;
+		argv = NULL;
+	} else {
+		argc = __pcb->argc;
+		argv = __pcb->argv;
+	}
+
+	main(argc, argv);
 }
 
 void __exit(void)

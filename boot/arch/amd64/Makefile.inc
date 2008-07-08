@@ -28,11 +28,12 @@
 
 INIT_TASKS = \
 	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 
 RD_TASKS = \
 	$(USPACEDIR)/srv/pci/pci \
@@ -42,7 +43,8 @@ RD_TASKS = \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/klog/klog
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/cli/cli
 
 build: $(BASE)/image.iso
 

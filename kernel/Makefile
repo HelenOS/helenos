@@ -232,6 +232,7 @@ GENERIC_SOURCES = \
 	generic/src/main/uinit.c \
 	generic/src/main/version.c \
 	generic/src/main/shutdown.c \
+	generic/src/proc/program.c \
 	generic/src/proc/scheduler.c \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
@@ -270,6 +271,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/rwlock.c \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
+	generic/src/synch/smc.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
 	generic/src/smp/ipi.c \
