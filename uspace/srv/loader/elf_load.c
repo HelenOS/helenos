@@ -224,7 +224,10 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		        + i * sizeof(elf_segment_header_t), SEEK_SET);
 
 		rc = read(elf->fd, &segment_hdr, sizeof(elf_segment_header_t));
-		if (rc < 0) { printf("read error\n"); return EE_INVALID; }
+		if (rc < 0) {
+			printf("read error\n");
+			return EE_INVALID;
+		}
 
 		rc = segment_header(elf, &segment_hdr);
 		if (rc != EE_OK)
@@ -242,7 +245,10 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		    + i * sizeof(elf_section_header_t), SEEK_SET);
 
 		rc = read(elf->fd, &section_hdr, sizeof(elf_section_header_t));
-		if (rc < 0) { printf("read error\n"); return EE_INVALID; }
+		if (rc < 0) {
+			printf("read error\n");
+			return EE_INVALID;
+		}
 
 		rc = section_header(elf, &section_hdr);
 		if (rc != EE_OK)
@@ -326,9 +332,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
 		    (entry->p_vaddr % entry->p_align)) {
-			printf("align check 1 failed offset%%align=%d, vaddr%%align=%d\n",
-			entry->p_offset % entry->p_align,
-			entry->p_vaddr % entry->p_align
+			printf("align check 1 failed offset%%align=%d, "
+			    "vaddr%%align=%d\n",
+			    entry->p_offset % entry->p_align,
+			    entry->p_vaddr % entry->p_align
 			);
 			return EE_INVALID;
 		}
@@ -369,7 +376,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 */
 //	printf("seek to %d\n", entry->p_offset);
 	rc = lseek(elf->fd, entry->p_offset, SEEK_SET);
-	if (rc < 0) { printf("seek error\n"); return EE_INVALID; }
+	if (rc < 0) {
+		printf("seek error\n");
+		return EE_INVALID;
+	}
 
 //	printf("read 0x%x bytes to address 0x%x\n", entry->p_filesz, entry->p_vaddr+bias);
 /*	rc = read(fd, (void *)(entry->p_vaddr + bias), entry->p_filesz);
@@ -391,7 +401,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		rc = read(elf->fd, dp, now);
 //		printf("->%d\n", rc);
 
-		if (rc < 0) { printf("read error\n"); return EE_INVALID; }
+		if (rc < 0) { 
+			printf("read error\n");
+			return EE_INVALID;
+		}
 
 		left -= now;
 		dp += now;
