@@ -96,6 +96,7 @@ rwait(struct timeval *tvp)
 	struct timeval starttv, endtv, *s;
 	static ipc_call_t charcall;
 	ipcarg_t rc;
+	int cons_phone;
 
 	/*
 	 * Someday, select() will do this for us.
@@ -110,8 +111,11 @@ rwait(struct timeval *tvp)
 		s = NULL;
 
 	if (!lastchar) {
-		if (!getchar_inprog)
-			getchar_inprog = async_send_2(1,CONSOLE_GETCHAR,0,0,&charcall);
+		if (!getchar_inprog) {
+			cons_phone = get_cons_phone();
+			getchar_inprog = async_send_2(cons_phone,
+			    CONSOLE_GETCHAR, 0, 0, &charcall);
+		}
 		if (!s) 
 			async_wait_for(getchar_inprog, &rc);
 		else if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
